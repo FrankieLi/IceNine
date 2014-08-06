@@ -8,20 +8,14 @@ Authors:      Frankie Li (li31@llnl.gov)
 -----------
 Acknowledging IceNine
 -----------
-
-To cite the code itself:
+cite:
 
 IceNine, Orientation Reconstruction for Synchrotron X-ray Data, https://github.com/FrankieLi/IceNine
+
+
 or the bibentry:
 
 citation.bib
-
-
-To cite the algorithm:
-
-S. F. Li, and R. M. Suter, Adaptive reconstruction method for three-dimensional
-orientation imaging, Journal of Applied Crystallography, 2013.
-
 
 
 -----------
