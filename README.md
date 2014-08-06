@@ -6,10 +6,25 @@ Authors:      Frankie Li (li31@llnl.gov)
 -----------
 
 -----------
+Acknowledging IceNine
+-----------
+cite:
+
+IceNine, Orientation Reconstruction for Synchrotron X-ray Data, https://github.com/FrankieLi/IceNine
+
+
+or the bibentry:
+
+citation.bib
+
+
+-----------
 Requirements:  
------------    XDM++
-	       Boost 1.43
-               gcc > 4.4
+-----------    
+
+XDM++
+Boost 1.43
+gcc >= 4.2
 
 -----------
 Descriptions:
@@ -22,7 +37,6 @@ during S. F. Li's PhD Thesis.  This library hosted by Carnegie Mellon University
 
 -Because of lagacy reasons, file formats are currently limited to *.mic for output and *.bin and
 *.txt for input.  This will hopefully change in the forthcoming releases.
-
 
 
 -----------
