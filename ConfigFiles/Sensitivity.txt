@@ -1,0 +1,57 @@
+#  Optimization File
+#
+#  Purpose:  This specifies all of the MAGNITUDE of RANGE for the variables of that
+#            could be used for parameter optimization.
+#
+#
+#  Note that a coordinate system is chosen for these pixel.  Namely,
+#  there's J and K.  The rationale is row, column, horizontal, vertical
+#  becomes ambiguous for a detector that's rotated or are not mounted 
+#  perpendicular to the beam.  Therefore, J and K are to be explicitly
+#  specified in this file in the lab frame.  The orientation of the
+#  detector is then the rotation that one must take from the specified 
+#  J, K coordinate system to the experimental detector.
+#
+
+
+{
+
+JUnitVector			1  0  0   # temporarily not used
+KUnitVector			0 -1  0   # internally, this is set manually
+
+
+BeamCenterJ     0.005
+BeamCenterK		  0.005
+
+LabFrameLocation					0.001 0 0    #
+LabFrameOrientation       0.05 0.05 0.05
+
+
+NumJPixels					0
+NumKPixels					0
+
+PixelJLength         0
+PixelKLength         0
+
+}
+
+{
+
+JUnitVector			1  0  0   # temporarily not used
+KUnitVector			0 -1  0   # internally, this is set manually
+
+
+BeamCenterJ     0.005
+BeamCenterK		  0.005
+
+LabFrameLocation					0.001 0 0    #
+LabFrameOrientation       0.5 0.5 0.5
+
+
+NumJPixels					0
+NumKPixels					0
+
+PixelJLength         0
+PixelKLength         0
+
+}

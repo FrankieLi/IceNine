@@ -1,0 +1,51 @@
+#
+#
+#  Note that a coordinate system is chosen for these pixel.  Namely,
+#  there's J and K.  The rationale is row, column, horizontal, vertical
+#  becomes ambiguous for a detector that's rotated or are not mounted 
+#  perpendicular to the beam.  Therefore, J and K are to be explicitly
+#  specified in this file in the lab frame.  The orientation of the
+#  detector is then the rotation that one must take from the specified 
+#  J, K coordinate system to the experimental detector.
+#
+
+{
+
+JUnitVector			1  0  0   # temporarily not used
+KUnitVector			0 -1  0   # internally, this is set manually
+
+
+BeamCenterJ     524.0225    
+BeamCenterK		  1009.933    
+
+LabFrameLocation				 4.60 0 0 
+LabFrameOrientation					90 90 0
+
+NumJPixels					1024
+NumKPixels						1024
+
+PixelJLength         0.0040845890
+PixelKLength         0.0040845890
+
+}
+
+
+{
+
+JUnitVector			1  0  0   # temporarily not used
+KUnitVector			0 -1  0   # internally, this is set manually
+
+
+BeamCenterJ     523.9225    
+BeamCenterK		  1011.1  
+
+LabFrameLocation					5.40 0 0
+LabFrameOrientation				90 90 0
+
+NumJPixels					1024
+NumKPixels						1024
+
+PixelJLength         0.0040845890
+PixelKLength         0.0040845890
+
+}
