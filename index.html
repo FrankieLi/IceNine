@@ -4,7 +4,7 @@
   <head>
     <meta charset='utf-8'>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <meta name="description" content="IceNine : Orientation Reconstruction for Synchrotron X-ray Data">
+    <meta name="description" content="IceNine : Orientation Reconstruction for Synchrotron X-ray Data (near field high energy x-ray diffraction microscopy, or nf-HEDM)">
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
@@ -19,7 +19,7 @@
           <a id="forkme_banner" href="https://github.com/FrankieLi/IceNine">View on GitHub</a>
 
           <h1 id="project_title">IceNine</h1>
-          <h2 id="project_tagline">Orientation Reconstruction for Synchrotron X-ray Data</h2>
+          <h2 id="project_tagline">Orientation Reconstruction for Synchrotron X-ray Data (near field high energy x-ray diffraction microscopy, or nf-HEDM)</h2>
 
             <section id="downloads">
               <a class="zip_download_link" href="https://github.com/FrankieLi/IceNine/zipball/master">Download this project as a .zip file</a>
@@ -67,10 +67,11 @@ mpich &gt;= 2</p>
 <hr><h2>
 <a name="descriptions" class="anchor" href="#descriptions"><span class="octicon octicon-link"></span></a>Descriptions:</h2>
 
-<p>-This is a forward model reconstruction code that implements [1].  Detailed reconstruction
-characteristics can be found in [1].  </p>
+<p>-This is a forward model reconstruction code that implements [1].  Detailed reconstruction characteristics can be found in [1].</p>
 
-<p>-Note that IceNine requires XDM++, which is a library developed in Carnegie Mellon University
+<ul>
+<li>An example application to imaging of deformed microstructure can be found in [2].  In there, the real world resolution limits of the near field high energy x-ray diffraction microscopy (nf-HEDM) is discussed at length.</li>
+</ul><p>-Note that IceNine requires XDM++, which is a library developed in Carnegie Mellon University
 during S. F. Li's PhD Thesis.  This library hosted by Carnegie Mellon University on GitHub.</p>
 
 <p>-Because of lagacy reasons, file formats are currently limited to *.mic for output and *.bin and
@@ -87,6 +88,9 @@ of this distribution.</p>
 
 <p>[1]  S. F. Li, and R. M. Suter, Adaptive reconstruction method for three-dimensional
 orientation imaging, Journal of Applied Crystallography, 2013.</p>
+
+<p>[2] S F. Li, J. Lind, C. M. Hefferan, R. Pokharel, U. Lienert, A. D. Rollett, R. M. Suter, 
+Three-dimensional plastic response in polycrystalline copper via near-field high-energy X-ray diffraction microscopy, Journal of Applied Crystallography, 2012</p>
       </section>
     </div>
 
