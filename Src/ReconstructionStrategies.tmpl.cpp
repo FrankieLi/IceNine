@@ -54,7 +54,7 @@ namespace ReconstructionStrategies
 
     fSampleRadius = fSampleRadius_;
     oSampleCenter = oSampleCenter_;
-    InitializeMicGridID( SolutionGrid, MultiStagedDetails::NOT_VISITED );
+    this->InitializeMicGridID( SolutionGrid, MultiStagedDetails::NOT_VISITED );
     
     typedef typename Mic::VoxelType_iterator Iter;
     for( Iter pCur = ReconstructionRegion.VoxelListBegin();
@@ -112,7 +112,7 @@ namespace ReconstructionStrategies
   template< class SamplePointT, class SamplePointGrid >
   void RestrictedStratifiedGrid<SamplePointT, SamplePointGrid>::Reset()
   {
-    InitializeMicGridID( SolutionGrid, MultiStagedDetails::NOT_VISITED );
+    this->InitializeMicGridID( SolutionGrid, MultiStagedDetails::NOT_VISITED );
     pCurrentSamplePoint = SamplePointPtrList.begin();
     bFirstPass = true;
   }
@@ -162,7 +162,7 @@ namespace ReconstructionStrategies
     // skip over all visited voxels and unrestricted voxels
     while( pCurrentSamplePoint != SamplePointPtrList.end()
            && ( (* pCurrentSamplePoint )->nID != MultiStagedDetails::NOT_VISITED
-                || ! IsInRestrictedRegion( *pCurrentSamplePoint,
+                || ! this->IsInRestrictedRegion( *pCurrentSamplePoint,
                                            oSampleCenter, fSampleRadius ) ) )
     {
       nElementsLeft --;
@@ -178,7 +178,7 @@ namespace ReconstructionStrategies
         pCurrentSamplePoint = SamplePointPtrList.begin();     // one time reset
         while( pCurrentSamplePoint != SamplePointPtrList.end()
                && ( (* pCurrentSamplePoint )->nID != MultiStagedDetails::NOT_VISITED
-                    || ! IsInRestrictedRegion( *pCurrentSamplePoint,
+                    || ! this->IsInRestrictedRegion( *pCurrentSamplePoint,
                                                oSampleCenter, fSampleRadius ) ) )
         {
 	  nElementsLeft --;
@@ -265,7 +265,7 @@ namespace ReconstructionStrategies
     std::cout << "[LazyBFS Client]: initialize with reference " << std::endl;
     SolutionGrid.InitializeWithReference( ReconstructionRegion );
     std::cout << "[LazyBFS Client]: InitializeMicGridID " << std::endl;
-    InitializeMicGridID( SolutionGrid, MultiStagedDetails::NOT_VISITED );
+    this->InitializeMicGridID( SolutionGrid, MultiStagedDetails::NOT_VISITED );
   }
 
   //---------------------------------------------------------------
