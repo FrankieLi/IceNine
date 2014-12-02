@@ -79,6 +79,8 @@
 #include "ParallelDriver.h"
 #include "PaintGrid.h"
 
+#include "GrainReconstruction.h"
+
 //#include "UnitTest.h"
 
 using namespace GeneralLib;

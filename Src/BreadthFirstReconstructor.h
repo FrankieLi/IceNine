@@ -148,7 +148,7 @@ namespace ParallelReconstructor
     
     int nMyID;
     int nProcessingElements;
-    const ReconstructionSetup & LocalSetup;  // Sever doesn't do anything to this other than to send
+    const ReconstructionSetup & LocalSetup;  // Server doesn't do anything to this other than to send
     LogStream & osLogFile;
 
     XDMParallel::XDMCommunicator Comm;

@@ -35,15 +35,15 @@
 //------------------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////
 //
-//  SerialReconstruction.h
-//   Author:   Frankie Li ( sfli@cmu.edu )
+//  GrainReconstruction.h
+//   Author:   Frankie Li (li31@llnl.gov)
 //
-//   Purpose:  Simple serial reconstruction
+//   Purpose:  Simple serial grain reconstruction
 //
 ////////////////////////////////////////////////////////////
 
-#ifndef _SERIAL_RECONSTRUCTION_H
-#define _SERIAL_RECONSTRUCTION_H
+#ifndef _Grain_RECONSTRUCTION_H
+#define _Grain_RECONSTRUCTION_H
 
 #include "Reconstructor.h"
 #include "DiscreteAdaptive.h"
@@ -54,71 +54,92 @@ namespace Reconstruction
 {
    //----------------------------------------
   //
-  //  SerialReconstruction
+  //  GrainReconstruction
   //
   //  This is the root of all serial reconstruction calls, at least
   //  for the simple version.
   //
   //----------------------------------------
-  class SerialReconstruction
+  class GrainReconstruction
   {
   private:
-    typedef ReconstructionStrategies::UniformSubidivisonSequentialSelection ReconstructionStrategy;
-    typedef SearchDetails::SCandidate       SCandidate;
-    typedef SearchDetails::SSearchParameter SSearchParameter;
+    
+    // parameterization of GrainReconstruction later
+    typedef SVoxel SamplePointT;
+    typedef MicAnalysis::CMicGrid SamplePointGrid; 
+    
+    typedef MicFile<SamplePointT>                                 Mic;
+    
+    typedef ReconstructionStrategies::BreadthFirstStrategy<SamplePointT, SamplePointGrid> ReconstructionStrategy;
+    
+    typedef ReconstructionStrategy::SamplePointPtr SamplePointPtr;
     
     ReconstructionSetup     oSetup;
     ReconstructionStrategy  VoxelQueue;   // acts as a queue
     CSimulation oSimulator;
-    SerialReconstruction();
+    
+    GrainReconstruction();
   public:
 
-    SerialReconstruction( const CConfigFile & oConfigFile )
+    GrainReconstruction( const CConfigFile & oConfigFile )
     {
       RUNTIME_ASSERT( oConfigFile.nMicGridType == eTriangular, "Non-triangular grid not implemented for serial reconstruction\n" );
       oSetup.InitializeWithDataFiles( oConfigFile );
-      boost::shared_ptr<CMic> pMic= boost::dynamic_pointer_cast<CMic>( oSetup.ReconstructionRegion());
+      boost::shared_ptr<Mic> pMic= boost::dynamic_pointer_cast<Mic>( oSetup.ReconstructionRegion());
       VoxelQueue.Initialize( *pMic,
                              oSetup.MinSideLength() );
       oSimulator.Initialize( oSetup.ExperimentalSetup() );
     }
     
     //----------------------------------------
-    // ReconstructSample
+    //  ReconstructGrain
+    //     Given a voxel marking the central seed point, reconstruct outward 
+    //     in a breadth first sense.
     //----------------------------------------
-    void ReconstructSample()
+    vector<SamplePointPtr> ReconstructGrain( SamplePointT Center )
     {
-      BasicVoxelReconstructor     Reconstructor( oSimulator, oSetup );
-      DiscreteRefinement<SVoxel>  AdpReconstructor( oSimulator, oSetup );
-      std::cout << "Num Elements in Queue " << VoxelQueue.Size() << std::endl;
-      while( VoxelQueue.Size() != 0 )
-      {
-        SVoxel Result;
-        Int nCode;
-        time_t oStartTime, oStopTime;
-        time( & oStartTime );
-        boost::tie( Result, nCode ) = Reconstructor.ReconstructVoxel( VoxelQueue.First() );
-        time( & oStopTime );
-        double oTimeDiff = difftime( oStopTime, oStartTime );
-        std::cout << "Normal Reconstruction " << oTimeDiff << " sec " << std::endl;
-        
-        time( & oStartTime );
-        boost::tie( Result, nCode ) = AdpReconstructor.ReconstructVoxel( VoxelQueue.First() );
-        time( & oStopTime );
-        oTimeDiff = difftime( oStopTime, oStartTime );
-        std::cout << "Adaptive Reconstruction " << oTimeDiff << " sec " << std::endl;
+      using namespace ReconstructionStrategies::MultiStagedDetails;
+      DiscreteRefinement<SamplePointT>  AdpReconstructor( oSimulator, oSetup );
 
-        VoxelQueue.Pop();
-        VoxelQueue.Push( Result );
-      }  
-    }
-    
-    //----------------------------------------
-    // ReconstructedMic
-    //----------------------------------------
-    CMic GetReconstructedMic() const
-    {
-      return VoxelQueue.Solution();
+      VoxelQueue.Reset();
+      
+      int nCenterCode;
+      
+      boost::tie( Center, nCenterCode ) = AdpReconstructor.ReconstructVoxel( Center  );    // Fit center
+      CostFunctions::SOverlapInfo oInfo = AdpReconstructor.EvaluateOverlapInfo( Center );
+      Center.fConfidence        = CostFunctions::Utilities::GetConfidence( oInfo );
+      Center.fPixelOverlapRatio = CostFunctions::Utilities::GetHitRatio  ( oInfo );
+      
+      Center.nID = REFIT;
+      VoxelQueue.Push( Center );
+      
+      if( nCenterCode != SearchDetails::CONVERGED
+	  && Center.fPixelOverlapRatio < oSetup.InputParameters().fMinAccelerationThreshold )
+	return VoxelQueue.SolutionVector();
+      
+      VoxelQueue.InsertSeed( Center );
+      Float fBestConf = Center.fPixelOverlapRatio;  // begin fitting outward, breadth first
+
+      while( VoxelQueue.Size() > 0 )
+      {
+	SamplePointT CurVoxel = VoxelQueue.First();
+	VoxelQueue.Pop();
+	oInfo = AdpReconstructor.LocalOptimization( CurVoxel );
+	fBestConf = std::max( CurVoxel.fPixelOverlapRatio, fBestConf );
+
+	if( ( CurVoxel.fPixelOverlapRatio / fBestConf ) > 0.9  )  // need more sophisticated acceptance
+	{
+	  CurVoxel.nID = FITTED;
+	  VoxelQueue.Push( CurVoxel );
+	  VoxelQueue.InsertSeed( CurVoxel );
+	}
+	else
+	{
+	  CurVoxel.nID = REFIT; // reset to unfitted
+	  VoxelQueue.Push( CurVoxel );
+	}
+      }    
+      return VoxelQueue.SolutionVector();
     }
   };
 }
