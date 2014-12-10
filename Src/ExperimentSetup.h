@@ -230,6 +230,17 @@ public:
   const CSimulationRange &    GetRangeToIndexMap() const { return oRangeToIndexMap; } 
 
 
+  //---------------------------------------------
+  //  GetDetector - Direct access to a pointer to detector
+  // 
+  //---------------------------------------------
+  CDetector* GetDetector( int n ) 
+  {
+    RUNTIME_ASSERT( n < vDetectorList.size(), 
+		    " GetDetector: Tried to access detector n > vDetectorList.size()\n ");
+    return &( vDetectorList[ n ] );
+  }
+
   //----------------------------------
   //  Backward compatibility related accessors
   //----------------------------------

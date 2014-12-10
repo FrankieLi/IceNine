@@ -170,6 +170,8 @@ public:
   SVector3                  GetOrientation         () const;
   SMatrix3x3                GetOrientationMatrix   () const;
   const vector<CUnitCell> & GetStructureList       () const { return voCrystalStructList; }
+  
+  CUnitCell *               GetStructure           ( int nPhase ) { return &voCrystalStructList[nPhase ]; }
   LatticeSymmetry::ESymmetryT  GetSampleSymmetry    () const { return eSampleSymmetry; }
 
   //----------------------------------

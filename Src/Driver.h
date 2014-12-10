@@ -80,7 +80,7 @@
 #include "PaintGrid.h"
 
 #include "GrainReconstruction.h"
-
+#include "DetectorCalibration.h"
 //#include "UnitTest.h"
 
 using namespace GeneralLib;
@@ -102,6 +102,8 @@ void SimulateDetectorImage( const string &sConfigFilename );
 void ReconstructSample( const string & sConfigFilename );
 void ReoptimizeSample( const string & sConfigFilename );
 void CostCalculation  ( const string & sConfigFilename );
+
+void DetectorOptimization  ( const string & sConfigFilename );
 void PaintGrid( const string & sConfigFilename,
                 const string & sPaintGridFilename,
                 int nThreads );

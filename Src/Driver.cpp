@@ -86,6 +86,10 @@ int XDMDriver( int argc, char* args[] )
     std::cout << "Running nThreads " << nThreads << std::endl;
     PaintGrid( args[2], args[3], nThreads );
   }
+  else if ( args[1][0] == 'D')
+  {
+    DetectorOptimization  ( args[2] );
+  }
   else
   {
     cerr << "Undefined program option: "  << args[1][0] << endl;
@@ -93,6 +97,25 @@ int XDMDriver( int argc, char* args[] )
   }
 
   return 0;
+}
+
+//---------------------------------------------------------------------------
+//  DetectorOptimization
+//
+//---------------------------------------------------------------------------
+void DetectorOptimization  ( const string & sConfigFilename )
+{
+  CConfigFile oConfigFile;
+  if( !oConfigFile.InputConfigParameters( sConfigFilename ) )
+  {
+    std::cerr << "Experiment setup failed: Unable to read file: " << sConfigFilename << std::endl;
+    exit(0);
+  }
+
+  std::cout << "Running test of detector optimization " << std::endl;
+  Calibration::TestCostFunction TestFn( oConfigFile );
+  TestFn.DrawCost();
+  
 }
 
 //---------------------------------------------------------------------------

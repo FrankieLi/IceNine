@@ -78,6 +78,7 @@ namespace ReconstructionStrategies
                                        SVector3 PrimaryDiag,
                                        SVector3 SecondaryDiag,
                                        Float fNewSideLength );
+
     struct Null_Deleter { void operator()( void const*) const{} };
   }
 

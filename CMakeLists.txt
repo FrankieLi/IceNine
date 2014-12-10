@@ -49,8 +49,12 @@ include_directories("${PROJECT_SOURCE_DIR}/XDM++.strain/libXDM")    # define loc
  add_subdirectory( XDM++.strain/libXDM )
 SET(Boost_DIR /Users/Shared/Libraries/boost-trunk/boost)            # define location of boost 1.43 (user download)
 include_directories(/opt/local/include/)
+include_directories(/Users/li31/LLNL/nlopt/include/)
+
+
+LINK_DIRECTORIES( "/Users/li31/LLNL/nlopt/lib/")
 
 
 ADD_EXECUTABLE(IceNine ${IceNine_FileList} )
-TARGET_LINK_LIBRARIES( IceNine XDM++  ) 
+TARGET_LINK_LIBRARIES( IceNine nlopt  XDM++ ) 
 

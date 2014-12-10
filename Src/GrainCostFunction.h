@@ -42,20 +42,17 @@
 //
 ////////////////////////////////////////////////////////////
 
-#ifndef _Grain_RECONSTRUCTION_H
-#define _Grain_RECONSTRUCTION_H
+#ifndef _GRAIN_COST_FUNCTION_H
+#define _GRAIN_COST_FUNCTION_H
 
 #include "Reconstructor.h"
 #include "DiscreteAdaptive.h"
 #include <ctime>
 #include <boost/shared_ptr.hpp>
 
-
-#include "GrainCostFunction.h"
-
 namespace Reconstruction
 {
-   //----------------------------------------
+  //----------------------------------------
   //
   //  GrainReconstruction
   //
@@ -63,11 +60,11 @@ namespace Reconstruction
   //  for the simple version.
   //
   //----------------------------------------
-  class GrainReconstruction
+  class GrainCostFunction
   {
-  private:
-    
-    // parameterization of GrainReconstruction later
+
+  public:  
+    // parameterization of GrainCostFunction later
     typedef SVoxel SamplePointT;
     typedef MicAnalysis::CMicGrid SamplePointGrid; 
     
@@ -76,76 +73,69 @@ namespace Reconstruction
     typedef ReconstructionStrategies::BreadthFirstStrategy<SamplePointT, SamplePointGrid> ReconstructionStrategy;
     
     typedef ReconstructionStrategy::SamplePointPtr SamplePointPtr;
+    typedef boost::shared_ptr< ReconstructionSetup >   ReconstructionSetupPtr;
+    typedef boost::shared_ptr< CSimulation >           SimulatorPtr;
+
+  private:    
+    ReconstructionSetupPtr  pSetup;
+    SimulatorPtr            pSimulator;
     
-    ReconstructionSetup     oSetup;
-    ReconstructionStrategy  VoxelQueue;   // acts as a queue
-    CSimulation oSimulator;
-    
-    GrainReconstruction();
+    GrainCostFunction();
+
+      
   public:
 
-    GrainReconstruction( const CConfigFile & oConfigFile )
+    GrainCostFunction( ReconstructionSetupPtr _pSetup,
+		       SimulatorPtr          _pSimulator )
+      : pSetup( _pSetup ), pSimulator( _pSimulator )
+      {  }
+    
+    //----------------------------------------
+    //  GetSetup
+    //----------------------------------------
+    ReconstructionSetupPtr GetSetup() 
     {
-      RUNTIME_ASSERT( oConfigFile.nMicGridType == eTriangular, "Non-triangular grid not implemented for serial reconstruction\n" );
-      oSetup.InitializeWithDataFiles( oConfigFile );
-      boost::shared_ptr<Mic> pMic= boost::dynamic_pointer_cast<Mic>( oSetup.ReconstructionRegion());
-      VoxelQueue.Initialize( *pMic,
-                             oSetup.MinSideLength() );
-      oSimulator.Initialize( oSetup.ExperimentalSetup() );
+      return pSetup;
+    }
+
+    //----------------------------------------
+    //  GetSimulator
+    //----------------------------------------
+    SimulatorPtr GetSimulator() 
+    {
+      return pSimulator;
     }
     
- 
     //----------------------------------------
-    //  ReconstructGrain
-    //     Given a voxel marking the central seed point, reconstruct outward 
-    //     in a breadth first sense.
+    //  GetAssociatedPixelList
+    //  - Return the set of pixels associated with
+    //    the grain specified by the list of voxels.
     //----------------------------------------
-    vector<SamplePointPtr> ReconstructGrain( SamplePointT Center )
+
+    //----------------------------------------
+    //  GetAverageVoxelOverlapRatio
+    //----------------------------------------
+    Float GetAverageVoxelOverlapRatio( std::vector<SamplePointT> & VoxelList )
     {
-      using namespace ReconstructionStrategies::MultiStagedDetails;
-      DiscreteRefinement<SamplePointT>  AdpReconstructor( oSimulator, oSetup );
+      if( VoxelList.size() == 0 )
+	return 0;
 
-      VoxelQueue.Reset();
+      DiscreteRefinement<SamplePointT>  AdpReconstructor( *pSimulator, *pSetup );
       
-      int nCenterCode;
-      
-      boost::tie( Center, nCenterCode ) = AdpReconstructor.ReconstructVoxel( Center  );    // Fit center
-      CostFunctions::SOverlapInfo oInfo = AdpReconstructor.EvaluateOverlapInfo( Center );
-      Center.fConfidence        = CostFunctions::Utilities::GetConfidence( oInfo );
-      Center.fPixelOverlapRatio = CostFunctions::Utilities::GetHitRatio  ( oInfo );
-      
-      Center.nID = REFIT;
-      VoxelQueue.Push( Center );
-      
-      if( nCenterCode != SearchDetails::CONVERGED
-	  && Center.fPixelOverlapRatio < oSetup.InputParameters().fMinAccelerationThreshold )
-	return VoxelQueue.SolutionVector();
-      
-      VoxelQueue.InsertSeed( Center );
-      Float fBestConf = Center.fPixelOverlapRatio;  // begin fitting outward, breadth first
-
-      while( VoxelQueue.Size() > 0 )
+      Float fAveragedOverlapRatio = 0;
+      for( int i = 0; i < VoxelList.size(); i ++ )
       {
-	SamplePointT CurVoxel = VoxelQueue.First();
-	VoxelQueue.Pop();
-	oInfo = AdpReconstructor.LocalOptimization( CurVoxel );
-	fBestConf = std::max( CurVoxel.fPixelOverlapRatio, fBestConf );
-
-	if( ( CurVoxel.fPixelOverlapRatio / fBestConf ) > 0.9  )  // need more sophisticated acceptance
-	{
-	  CurVoxel.nID = FITTED;
-	  VoxelQueue.Push( CurVoxel );
-	  VoxelQueue.InsertSeed( CurVoxel );
-	}
-	else
-	{
-	  CurVoxel.nID = REFIT; // reset to unfitted
-	  VoxelQueue.Push( CurVoxel );
-	}
-      }    
-      return VoxelQueue.SolutionVector();
+	CostFunctions::SOverlapInfo oInfo = AdpReconstructor.EvaluateOverlapInfo( VoxelList[i] );
+	fAveragedOverlapRatio += CostFunctions::Utilities::GetHitRatio  ( oInfo );
+      }
+      
+      return fAveragedOverlapRatio / static_cast<Float>( VoxelList.size() );
     }
+
+    
   };
+
+  
 }
 
 
