@@ -150,6 +150,8 @@ bool CConfigFile::Parse( const string & sBuf )
     "ConsistencyError",
     "BraggFilterTolerance",
     
+    //  Fit type
+    "DEBUG_FirstSearchType",
     "RunParameterOptimization",
     "RunReconstruction",
     "RunAdpReconstruction",
@@ -158,6 +160,10 @@ bool CConfigFile::Parse( const string & sBuf )
     "LazyBFS",
     "LazyStrain",
     "LocalOrientationOptimization",
+    "DEBUG_LastSearchType",
+    //  end search types
+    //-----------------------------
+    
     "BCPeakDetectorOffset",
 
     //------------------------
@@ -257,14 +263,21 @@ bool CConfigFile::Parse( const string & sBuf )
     eConsistencyError,
     eBraggFilterTolerance,
     
+    //  search types
+    eDEBUG_FirstSearchType,
     eRunParameterOptimization,
     eRunReconstruction,
     eRunAdpReconstruction,
     eSelectBoundaryVoxels,
+    
     eIntensityDecomposition,
     eLazyBFS,
     eLazyStrain,
     eLocalOrientationOptimization,
+
+    eDEBUG_LastSearchType,
+    //  end search type
+
     eBCPeakDetectorOffset,
 
     eEnableStrain,
@@ -297,6 +310,8 @@ bool CConfigFile::Parse( const string & sBuf )
   //
   // a list of variables that are optional
   vInitializationCheck[eComment]                  = true;
+  vInitializationCheck[eDEBUG_FirstSearchType]    = true;
+  vInitializationCheck[eDEBUG_LastSearchType]     = true;
   vInitializationCheck[eRunParameterOptimization] = true;
   vInitializationCheck[eRunReconstruction]        = true;
   vInitializationCheck[eRunAdpReconstruction]     = true;
@@ -345,6 +360,22 @@ bool CConfigFile::Parse( const string & sBuf )
       CONFIG_DEBUG( std::cout << i + 1 << " " << sKeywordStrings[iFirstToken] << " "
                     << vsTokens[i][0].c_str() << " Token " << iFirstToken << endl); 
     }
+
+    //----------------
+    //  Error handling
+    //----------------
+    if( (iFirstToken < eDEBUG_FirstSearchType 
+	|| iFirstToken > eDEBUG_LastSearchType ) && iFirstToken != eComment )
+    {
+      if( vsTokens[i].size() <= 1 )
+      {
+	std::cerr << "Keyword " << vsTokens[i][0] 
+		  << " requires at least one argument. Please check the config file at around line: "
+		  << i << endl;
+	RUNTIME_ASSERT( false, " Config File has a typo somewhere!" );
+      }
+    }
+   
     switch(iFirstToken)   // look at first token of each line
     {
       // Comment
