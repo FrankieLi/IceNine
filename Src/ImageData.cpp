@@ -451,7 +451,7 @@ Bool CSearchableImageData::HasOverlapPeak( const BBox2D & oTestBox ) const
 void CSearchableImageData::InitializePeakList()
 {
   vDetectorPeakList.clear();
-  vDetectorPeakList = oImage.GetPeakList();
+  //vDetectorPeakList = oImage.GetPeakList();
   BuildSearchTree();
 }
 

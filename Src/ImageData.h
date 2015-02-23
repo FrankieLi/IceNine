@@ -436,8 +436,6 @@ class CSearchableImageData : public CImageData
 
 private:
   
-
-  
   // For testing purpose before installing kdtree   // moved to public to testing purposes
   // TODO:  Remove this -- but someone's has to write a
   //        serializer for the tree...

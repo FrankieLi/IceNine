@@ -71,10 +71,14 @@ bool CXDMForwardSimulation::SimulateDetectorImagesOptimized( bool bStrainEnabled
   const vector<SIntRange> &  vFileRangeList  = oExpSetup.GetFileRangeList();
   const vector<CDetector> &  oDetectorList   = oExpSetup.GetDetectorList();
   const CSimulationRange &  oRangeToIndexMap = oExpSetup.GetRangeToIndexMap();
-  
-  oSimulator.Initialize( oExpSetup );
-  
+
+  //------------------------
+  //  Initializing various coupling
+  //------------------------
+  oSimulator.Initialize( oExpSetup );  
   oExpSetup.InitializeSample( oCurrentLayer,  oDetectorList[ 0 ] );  // binding CurrentLayer to the first detector's limit
+
+  
 
   //----------------------------
   //  DEBUG

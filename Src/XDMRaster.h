@@ -195,10 +195,12 @@ namespace GeneralLib
     //------------------------------------------
     void SerializedAdd( Int nJPixel, Int nKPixel, Float fValue );
     void EnableSerializeMode();
+    
+
     //------------------------------------------
     // Extract the list of connected pixels
     //------------------------------------------
-    vector<CDetectorPeak> GetPeakList( bool bPurgePixels = true ) const;
+    //  vector<CDetectorPeak> GetPeakList( bool bPurgePixels = true ) const;
     
     //------------------------------------------
     //  Save and Restore feature
