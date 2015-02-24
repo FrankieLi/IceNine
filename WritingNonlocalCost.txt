@@ -1,0 +1,14 @@
+1. BuildSearchTree -> BuildSearchHash (Multi-map)
+2. Template parameter for DiscreteSearch to take different cost functionals
+3. Run forward simuation to select g_hkl
+4. Remove CSample that's being sent all over and replace it with a rotation matrix with SampleToLabMatrix
+5. ProjectVoxel needs to be modified to include returned bbox and omega
+6. Build a different cost function that uses images and grains - call this GrainCost
+7. GrainLocalOptimization - using local optimization algorithms
+   - use pointers to pass simulators and reconstruction with data
+   - 
+
+8. Need to be able to read data as binary or with intensity
+
+9. Worry about plumbing when things actually work.  Wrost case - two binaries for now.
+   - Need to branch in git

@@ -45,6 +45,8 @@ PROJECT(IceNine)
 
 SET(CMAKE_CXX_COMPILER mpic++-mpich-gcc49)
 
+include_directories("/Users/li31/LLNL/BES/Mesh_3/ExtLib/eigen")    # using eigen
+
 include_directories("${PROJECT_SOURCE_DIR}/XDM++.strain/libXDM")    # define location of XDM++ (user download)
  add_subdirectory( XDM++.strain/libXDM )
 SET(Boost_DIR /Users/Shared/Libraries/boost-trunk/boost)            # define location of boost 1.43 (user download)

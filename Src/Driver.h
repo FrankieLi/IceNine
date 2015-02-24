@@ -51,7 +51,7 @@
 #ifndef _DRIVER_H_
 #define _DRIVER_H_
 
-
+#include "DetectorCalibration.h"
 #include "ConfigFile.h"
 #include "Debug.h"
 #include <string>
@@ -100,6 +100,7 @@ using std::cout;
 int XDMDriver( int argc, char* args[] );
 void SimulateDetectorImage( const string &sConfigFilename );
 void ReconstructSample( const string & sConfigFilename );
+void ReconstructGrain( const string & sConfigFilename );
 void ReoptimizeSample( const string & sConfigFilename );
 void CostCalculation  ( const string & sConfigFilename );
 void PaintGrid( const string & sConfigFilename,

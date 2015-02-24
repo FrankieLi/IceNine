@@ -336,6 +336,22 @@ void CSearchableImageData::BuildSearchTree( )
   }
 }
 
+//----------------------------------------------------------------------------------
+// BuildIndexToPeakPtrMap
+//----------------------------------------------------------------------------------
+void CSearchableImageData::BuildIndexToPeakPtrMap( )
+{
+  for( Size_Type i = 0; i < vDetectorPeakList.size(); i ++ )
+  {
+    BBoxPtr BoxPtr( new BBox2D() );
+    *BoxPtr = vDetectorPeakList[i].GetBoundingBox();
+    
+    for( Size_Type n = 0; n < vDetectorPeakList[i].vPixelList.size(); n ++ )
+      IndexToPeakMap[ PixelToIndex( vDetectorPeakList[i].vPixelList[n] ) ] = BoxPtr;
+  }
+}
+
+
 //-------------------------------------------------------------------------
 //
 //  Override the read
@@ -412,7 +428,10 @@ bool CSearchableImageData::ReadCXDMSimulationUFFFile( const string &filename,
     vDetectorPeakList[ i ].vPixelList.clear();                // since they are not being used now (will be needed later)
   }
   if( !bServerMode )
+  {
+    BuildIndexToPeakPtrMap();
     BuildSearchTree();
+  }
   return true;
 }
 

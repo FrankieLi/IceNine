@@ -60,7 +60,7 @@ int XDMDriver( int argc, char* args[] )
   if( argc < 3 )
   {
     cerr << "USAGE: " << args[0]
-         << " [ (s)imulate | (r)econstruct | (p)arallel reconstruction ]  <Config File>" << endl;
+         << " [ (s)imulate | (r)econstruct | (p)arallel reconstruction ]  <Config File> " << endl;
     return -1;
   }
 
@@ -70,7 +70,26 @@ int XDMDriver( int argc, char* args[] )
   }
   else if ( args[1][0] == 'r')
   {
-    ReconstructSample( args[2] );
+    if( argc == 3 )
+    {
+      ReconstructSample( args[2] );
+    }
+    if( argc == 4 )  // running test
+    {
+      if( args[4] == NULL )     
+      {
+	std::cerr 
+	<< "Serial reconstruction optional parameters: [(P)arameter Optimization | (G)rain Reconstruction) " 
+	<< std::endl;
+      }
+      if( args[4][0] == 'P' )
+      {
+      }
+      if( args[4][0] == 'G' )
+      {
+	ReconstructGrain( args[2] );
+      }
+    }
   }
   else if ( args[1][0] == 'p')
   {
@@ -169,4 +188,22 @@ int ParallelReconstruction( int argc, char* args[],
   oPReconstructor.Process( argc, args, sConfigFilename );
   
   return 0;
+}
+
+//---------------------------------------------------------------------------
+//  ReconstructGrain
+//---------------------------------------------------------------------------
+void ReconstructGrain( const string & sConfigFilename )
+{
+  CConfigFile oConfigFile;
+  if( !oConfigFile.InputConfigParameters( sConfigFilename ) )
+  {
+    std::cerr << "Experiment setup failed: Unable to read file: " << sConfigFilename << std::endl;
+    exit(0);
+  }
+  Reconstruction::GrainReconstruction oReconstruction( oConfigFile );
+
+  oReconstruction.ReconstructRandomGrain(  );
+
+
 }

@@ -318,8 +318,6 @@ namespace ReconstructionStrategies
     
     Mic         ReconstructionRegion;
     
-   
-    
     vector< SamplePointPtr > SamplePointPtrList;
     vector< SamplePointPtr > SolutionPointPtrList;  
     typedef typename vector<SamplePointPtr>::iterator SamplePointPtrIter;

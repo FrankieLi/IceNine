@@ -110,7 +110,16 @@ protected:
       return ( oLHS.x * nWidth + oLHS.y )  < (oRHS.x * nWidth + oRHS.y );
     }
   };
-    
+  
+  //-------------------------------------------------
+  //  PixelToIndex
+  //-------------------------------------------------
+  Size_Type PixelToIndex( const Pixel & p ) const
+  {
+    return p.x * oImage.GetWidth() + p.y;
+  }
+
+  
 public:
 
   //
@@ -443,6 +452,12 @@ private:
   //        serializer for the tree...
   vector<CDetectorPeak> vDetectorPeakList;
 
+  //------------------------------
+  //  need an int-> pointer map.
+  //------------------------------
+  typedef boost::shared_ptr<BBox2D> BBoxPtr;
+  std::map< Int, BBoxPtr > IndexToPeakMap;
+
   RangeSearch::CPeakQuadtree oPeakTree;
 
   //--------------------------
@@ -457,6 +472,11 @@ private:
   // BuildSearhTree
   //--------------------------
   void BuildSearchTree( );
+
+  //--------------------------
+  // BuildIndexToPeakPtrMap()
+  //--------------------------
+  void BuildIndexToPeakPtrMap( );
   
 public:
 
