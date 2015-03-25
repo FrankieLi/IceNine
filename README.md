@@ -2,7 +2,7 @@ IceNine
 =======
 
 -----------
-Authors:      Frankie Li (li31@llnl.gov)
+Authors:      Frankie Li (shiu.fai.li@gmail.com)
 -----------
 
 -----------
