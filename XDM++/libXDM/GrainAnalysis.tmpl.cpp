@@ -1,0 +1,21 @@
+////////////////////////////////////////////////////////////////
+//
+//  File:    GrainAnalysis.tmpl.cpp
+//  Author:  Frankie Li
+//  e-mail:  sfli@cmu.edu
+//  
+//
+// Implementation of template functions used in GrainAnalysis.
+//
+/////////////////////////////////////////////////////////////////
+
+
+
+
+namespace GrainAnalysis
+{
+
+
+    
+}
+

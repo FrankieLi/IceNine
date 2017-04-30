@@ -47,8 +47,8 @@ SET(CMAKE_CXX_COMPILER /scratch/Plumb/HEDM/lib/mpich/bin/mpicxx)
 
 include_directories("/scratch/Plumb/HEDM/Code/Libraries/eigen/include/eigen3")    # using eigen
 
-include_directories("${PROJECT_SOURCE_DIR}/XDM++.strain/libXDM")    # define location of XDM++ (user download)
- add_subdirectory( XDM++.strain/libXDM )
+include_directories("${PROJECT_SOURCE_DIR}/XDM++/libXDM")    # define location of XDM++ (user download)
+ add_subdirectory( XDM++/libXDM )
  SET(Boost_DIR /scratch/Plumb/HEDM/Code/Libraries/boost-trunk/boost)            # define location of boost 1.43 (user download)
 include_directories(/opt/local/include/)
 
