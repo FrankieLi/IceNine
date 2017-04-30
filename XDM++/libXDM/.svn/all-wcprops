@@ -1,0 +1,455 @@
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/HEDM_Stable/!svn/ver/1320/branches/DEV/XDM++.strain/libXDM
+END
+Error.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Error.h
+END
+IteratorAdapter.h
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/HEDM_Stable/!svn/ver/1282/branches/DEV/XDM++.strain/libXDM/IteratorAdapter.h
+END
+Geometry.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Geometry.h
+END
+GrainAnalysis.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/GrainAnalysis.cpp
+END
+Raster.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/HEDM_Stable/!svn/ver/1316/branches/DEV/XDM++.strain/libXDM/Raster.h
+END
+MicIO.h
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/HEDM_Stable/!svn/ver/1319/branches/DEV/XDM++.strain/libXDM/MicIO.h
+END
+BitMatrix.h
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/HEDM_Stable/!svn/ver/1279/branches/DEV/XDM++.strain/libXDM/BitMatrix.h
+END
+RandomMatrix.h
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/HEDM_Stable/!svn/ver/987/branches/DEV/XDM++.strain/libXDM/RandomMatrix.h
+END
+UltraLightWeightGraph.h
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/UltraLightWeightGraph.h
+END
+3dMath.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/HEDM_Stable/!svn/ver/987/branches/DEV/XDM++.strain/libXDM/3dMath.cpp
+END
+Quaternion.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Quaternion.cpp
+END
+Geometry.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Geometry.cpp
+END
+Polygon.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Polygon.h
+END
+MicSampler.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/MicSampler.cpp
+END
+BBox.h
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/BBox.h
+END
+Parser.h
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Parser.h
+END
+Voxel.h
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/HEDM_Stable/!svn/ver/1312/branches/DEV/XDM++.strain/libXDM/Voxel.h
+END
+BitMatrix.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/HEDM_Stable/!svn/ver/1279/branches/DEV/XDM++.strain/libXDM/BitMatrix.cpp
+END
+RandomMatrix.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/HEDM_Stable/!svn/ver/983/branches/DEV/XDM++.strain/libXDM/RandomMatrix.cpp
+END
+RectangularMic.h
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/HEDM_Stable/!svn/ver/1281/branches/DEV/XDM++.strain/libXDM/RectangularMic.h
+END
+TriangularMic.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/HEDM_Stable/!svn/ver/1281/branches/DEV/XDM++.strain/libXDM/TriangularMic.h
+END
+UniqueVertexMap.h
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/UniqueVertexMap.h
+END
+Types.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/HEDM_Stable/!svn/ver/887/branches/DEV/XDM++.strain/libXDM/Types.h
+END
+GrainAnalysis.h
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/GrainAnalysis.h
+END
+Sampling.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/HEDM_Stable/!svn/ver/887/branches/DEV/XDM++.strain/libXDM/Sampling.cpp
+END
+Raster.tmpl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/HEDM_Stable/!svn/ver/1318/branches/DEV/XDM++.strain/libXDM/Raster.tmpl.cpp
+END
+MicIO.tmpl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/HEDM_Stable/!svn/ver/1290/branches/DEV/XDM++.strain/libXDM/MicIO.tmpl.cpp
+END
+PhysicalConstants.h
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/PhysicalConstants.h
+END
+MicGrid.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/HEDM_Stable/!svn/ver/1320/branches/DEV/XDM++.strain/libXDM/MicGrid.cpp
+END
+Quadtree.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Quadtree.h
+END
+SimpleGraph.h
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/SimpleGraph.h
+END
+TiffReader.h
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/TiffReader.h
+END
+3dMath.h
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/HEDM_Stable/!svn/ver/987/branches/DEV/XDM++.strain/libXDM/3dMath.h
+END
+Voxel.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Voxel.cpp
+END
+MathDebug.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/MathDebug.cpp
+END
+MicSampler.h
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/MicSampler.h
+END
+CrystalStructure.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/svn/HEDM_Stable/!svn/ver/1274/branches/DEV/XDM++.strain/libXDM/CrystalStructure.cpp
+END
+SimpleVTKIO.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/HEDM_Stable/!svn/ver/887/branches/DEV/XDM++.strain/libXDM/SimpleVTKIO.cpp
+END
+AsynchronousMPI.h
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/HEDM_Stable/!svn/ver/1275/branches/DEV/XDM++.strain/libXDM/AsynchronousMPI.h
+END
+XDMVoxel.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/XDMVoxel.cpp
+END
+TiffReader.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/TiffReader.cpp
+END
+SutherlandHodgman.h
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/SutherlandHodgman.h
+END
+Sampling.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/HEDM_Stable/!svn/ver/925/branches/DEV/XDM++.strain/libXDM/Sampling.h
+END
+GrainAnalysis.tmpl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/GrainAnalysis.tmpl.cpp
+END
+UFF.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/UFF.cpp
+END
+PeakFile.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/HEDM_Stable/!svn/ver/1304/branches/DEV/XDM++.strain/libXDM/PeakFile.cpp
+END
+MicGrid.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/HEDM_Stable/!svn/ver/1320/branches/DEV/XDM++.strain/libXDM/MicGrid.h
+END
+Pixel.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Pixel.h
+END
+Debug.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Debug.cpp
+END
+MicMesh.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/MicMesh.h
+END
+CMakeLists.txt
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/HEDM_Stable/!svn/ver/1317/branches/DEV/XDM++.strain/libXDM/CMakeLists.txt
+END
+RangeSearch.tmpl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/RangeSearch.tmpl.cpp
+END
+Symmetry.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/HEDM_Stable/!svn/ver/887/branches/DEV/XDM++.strain/libXDM/Symmetry.h
+END
+MicIO.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/HEDM_Stable/!svn/ver/991/branches/DEV/XDM++.strain/libXDM/MicIO.cpp
+END
+MicMesh.tmpl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/MicMesh.tmpl.cpp
+END
+AsynchronousMPI.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/HEDM_Stable/!svn/ver/1275/branches/DEV/XDM++.strain/libXDM/AsynchronousMPI.cpp
+END
+CrystalPrimitives.h
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/CrystalPrimitives.h
+END
+Symmetry.tmpl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/HEDM_Stable/!svn/ver/887/branches/DEV/XDM++.strain/libXDM/Symmetry.tmpl.cpp
+END
+MathDebug.h
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/MathDebug.h
+END
+CrystalStructure.h
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/HEDM_Stable/!svn/ver/1274/branches/DEV/XDM++.strain/libXDM/CrystalStructure.h
+END
+MicSampler.tmpl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/MicSampler.tmpl.cpp
+END
+SimpleVTKIO.h
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/SimpleVTKIO.h
+END
+XDMVoxel.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/XDMVoxel.h
+END
+Serializer.h
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/HEDM_Stable/!svn/ver/895/branches/DEV/XDM++.strain/libXDM/Serializer.h
+END
+XDMFileTypes.h
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/XDMFileTypes.h
+END
+MicMesh.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/MicMesh.cpp
+END
+PeakFile.h
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/HEDM_Stable/!svn/ver/1299/branches/DEV/XDM++.strain/libXDM/PeakFile.h
+END
+UFF.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svn/HEDM_Stable/!svn/ver/887/branches/DEV/XDM++.strain/libXDM/UFF.h
+END
+SimpleGraph.tmpl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/SimpleGraph.tmpl.cpp
+END
+RangeSearch.h
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/RangeSearch.h
+END
+Symmetry.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/HEDM_Stable/!svn/ver/929/branches/DEV/XDM++.strain/libXDM/Symmetry.cpp
+END
+Quaternion.h
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/HEDM_Stable/!svn/ver/887/branches/DEV/XDM++.strain/libXDM/Quaternion.h
+END
+BBox.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/BBox.cpp
+END
+Debug.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/HEDM_Stable/!svn/ver/901/branches/DEV/XDM++.strain/libXDM/Debug.h
+END
+Parser.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/HEDM_Stable/!svn/ver/858/branches/DEV/XDM++.strain/libXDM/Parser.cpp
+END
