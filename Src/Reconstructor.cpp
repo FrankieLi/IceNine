@@ -130,7 +130,7 @@ namespace Reconstruction
   {
     //---------------------------------------
     //  DEBUG
-    DEBUG_OutputVoxelCost( oVoxel );
+    //   DEBUG_OutputVoxelCost( oVoxel );
     //---------------------------------------
     
     typedef ReconstructionSetup::EtaAngularFilter PeakFilterT;

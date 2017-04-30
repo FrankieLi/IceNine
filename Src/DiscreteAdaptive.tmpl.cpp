@@ -80,7 +80,7 @@ namespace Reconstruction
 //                                       pFirst, pEnd,
 //                                       nQMax );
     
-    AdaptedLocalVoxelCostFn WrappedCostFn( CompleteVoxelCostFn,
+    AdaptedLocalVoxelCostFn WrappedCostFn( &CompleteVoxelCostFn,
                                            oSetup.SampleGeometry(),
                                            oSetup.ExperimentalSetup().GetRangeToIndexMap(),
                                            oSetup.ExperimentalSetup().GetDetectorList(),
