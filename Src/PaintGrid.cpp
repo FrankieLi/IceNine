@@ -54,7 +54,10 @@
 CPaintGrid::CPaintGrid( const CConfigFile & oConfigFile, int nThreads ) 
 {
   NumThreads = nThreads;
-  omp_set_num_threads( NumThreads );
+  // omp_set_num_threads( NumThreads );
+
+  RUNTIME_ASSERT(0, "omp_set_num_threads not working!");
+  exit(0);
   oSetupFile = oConfigFile;                  // to be removed
 
   //--------------------------------------
@@ -116,7 +119,9 @@ void CPaintGrid::ReadOrientationTestPoints( const std::string & OrientationFilen
   for( int i = 0; i < RFList.size(); i ++)
     {
       GeneralLib::SQuaternion q;
-      q.CreateFromRodrigues( RFList[i] );
+
+      RUNTIME_ASSERT(0, "PAINTGRID IS BROKEN RIGHT NOW\n");
+      //     q.CreateFromRodrigues( RFList[i] );
       FZList[i] =  q.GetRotationMatrix3x3();
     }
 
