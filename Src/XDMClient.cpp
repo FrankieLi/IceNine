@@ -114,7 +114,7 @@ namespace XDMParallel
                     "Error:  Only triangular voxels accepted for parameter MC right now\n" );
     typedef ParallelReconstructor::ParameterOptimization::ParameterOptimizationClient<> PMC;
     PMC  Client( oSetup, nMyID, osLogFile );
-    //  Client.Initialize();
+    Client.Initialize();
     GET_LOG( osLogFile ) << "Running Parameter Optimization" << std::endl;
     time_t oStartTime, oStopTime;
     time( &oStartTime );

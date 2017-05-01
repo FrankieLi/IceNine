@@ -43,14 +43,20 @@ set( IceNine_FileList ${IceNine_FileList} "Src/PaintGrid.cpp" )
 # This project is designed to be built outside the Insight source tree.
 PROJECT(IceNine)
 
-SET(CMAKE_CXX_COMPILER /scratch/Plumb/HEDM/lib/mpich/bin/mpicxx)
+#SET(CMAKE_CXX_COMPILER mpic++-mpich-mp)
+SET(CMAKE_CXX_COMPILER "/Users/sfli/Libraries/mpich/bin/mpicxx")
+	           
+# define location of boost 1.43 (user download)
+SET(Boost_DIR /Users/sfli/Libraries/boost-trunk) 
 
-include_directories("/scratch/Plumb/HEDM/Code/Libraries/eigen/include/eigen3")    # using eigen
+include_directories("/Users/sfli/Libraries/eigen/include/eigen3/")    # using eigen
 
-include_directories("${PROJECT_SOURCE_DIR}/XDM++/libXDM")    # define location of XDM++ (user download)
- add_subdirectory( XDM++/libXDM )
- SET(Boost_DIR /scratch/Plumb/HEDM/Code/Libraries/boost-trunk/boost)            # define location of boost 1.43 (user download)
-include_directories(/opt/local/include/)
+# define location of XDM++ (user download)
+include_directories("${PROJECT_SOURCE_DIR}/XDM++/libXDM")    
+add_subdirectory( XDM++/libXDM )
+
+include_directories(/opt/local/include/boost)
+#include_directories(/opt/local/include/)
 
 
 ADD_EXECUTABLE(IceNine ${IceNine_FileList} )

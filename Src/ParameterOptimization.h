@@ -426,7 +426,7 @@ namespace ParallelReconstructor
       
       Int nMyID;
       const int nServerPE;
-    
+
       vector<SamplePointPtr> Fit( const SamplePointT & oCenter );
       
       //----------------------------------
@@ -468,20 +468,20 @@ namespace ParallelReconstructor
       void ParameterMC();
     
     public:
-    
-      ParameterOptimizationClient( ReconstructionSetup & oReconstructionSetup,
-                                   int nID, LogStream & os )
-        : GeometricOptimizationBase< SamplePointT >( oReconstructionSetup, os ),
-          LocalSetup( oReconstructionSetup ),
-          nMyID( nID ), nServerPE(0), osLogFile( os ) {} // server PE is always 0
-      
-      void Initialize( );
+     ParameterOptimizationClient(ReconstructionSetup &oReconstructionSetup,
+                                 int nID, LogStream &os)
+         : GeometricOptimizationBase<SamplePointT>(oReconstructionSetup, os),
+           LocalSetup(oReconstructionSetup),
+           nMyID(nID),
+           nServerPE(0),
+           osLogFile(os) {}  // server PE is always 0
 
+     void Initialize();
 
-      //----------------------------------------------------
-      //  Process
-      //----------------------------------------------------
-      void Process( );
+     //----------------------------------------------------
+     //  Process
+     //----------------------------------------------------
+     void Process();
       
     };
 
