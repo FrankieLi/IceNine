@@ -111,6 +111,9 @@ namespace XDMParallel
     WaitRecv(); // blocking recv still
     *nCommand = oCommand.nCommand;
     *nSrcPE   = oCommand.nSource;
+    std::cout << " Command recv'd: " << *nCommand << std::endl;
+    std::cout << " command: " << pXDMCommands[ *nCommand ]  << std::endl;
+
   }
   
   //----------------------------------
