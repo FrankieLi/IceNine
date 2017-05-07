@@ -50,6 +50,12 @@ namespace XDMParallel
   const char*  pXDMCommands[] =
     {
       "FIT",
+      "LBFS_REFIT",
+      "FIT_ADP",
+      "FIT_INT_DECOMP",
+      "FIT_LBFS",
+      "FIT_STRAIN_LBFS",
+      "FIT_LOCAL_OPTIMIZE",
       "REPORT",
       "FIT_VECTOR",
       "FIT_REGRID",
@@ -59,13 +65,14 @@ namespace XDMParallel
       "FIT_MC_LIST",
       "OPT_PARAM",
       "EVAL_OVERLAP",
+      "USE_BND",
       "REPORT_MC",
       "REPORT_MC_LIST",
       "SET_EXP_PARAM",
       "GENERAL_TAG",
       "ALLDONE",
       "WAIT",
-      "PROCESS_DONE"   // gotta formalize this -- maybe wait has to be used more carefully.
+      "PROCESS_DONE" 
     };
   
   //----------------------------------

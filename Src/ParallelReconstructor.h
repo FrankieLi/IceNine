@@ -68,6 +68,7 @@ namespace ParallelReconstructor
                                 LogStream & osLogFile,
                                 Int nMyID,  Int nCommand )
     {
+      RUNTIME_ASSERT(!ElementQueue.empty(), "No more processing elements left!");
       while( ! ElementQueue.empty() )
       {
         if ( VoxelQueue.Empty() )

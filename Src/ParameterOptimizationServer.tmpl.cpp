@@ -101,7 +101,7 @@ ParameterOptimizationServer<SamplePointT, SamplePointGrid>::
     Base::SendExpParameters(nClientID, oNewEnergyLoc, vNewDetectorLoc);
     GET_LOG(osLogFile) << " Sending " << oLargeSearchList.size()
                        << " voxels to client " << nClientID << std::endl;
-    Base::Comm.SendCommand(0, nClientID, XDMParallel::FIT_MC_LIST);
+    Base::Comm.SendCommand(0, nClientID, XDMParallel::FIT_MC);
     Base::Comm.SendWorkUnitList(nClientID, oLargeSearchList);
   }
 
@@ -167,14 +167,14 @@ ParameterOptimizationServer<SamplePointT,
     VoxelQueue.RandomizedSetMaxElements(nMaxElements);
   }
 
-  std::queue<int> WaitQueue;
+  std::queue<int> PEQueue;
   for (int i = 1; i <= (nProcessingElements - 1);
        i++)  // start from 1, since 0 is Server
-    WaitQueue.push(i);
+    PEQueue.push(i);
   typedef XDMParallel::MultiElementDistribution<SamplePointT>
       MultiElementDistributor;
   MultiElementDistributor SingleVoxelDistributor(1);
-  Utilities::WorkUnitDistribution(VoxelQueue, SingleVoxelDistributor, WaitQueue,
+  Utilities::WorkUnitDistribution(VoxelQueue, SingleVoxelDistributor, PEQueue,
                                   Base::Comm, osLogFile, 0,
                                   XDMParallel::FIT_MC);
   GET_LOG(osLogFile) << "Finished with Initial Work Unit Distribution "
@@ -186,7 +186,10 @@ ParameterOptimizationServer<SamplePointT,
       LocalSetup.InputParameters().nOptNumElementPerPE;  // parameters?
   int NumClients = nProcessingElements - 1;
   Int NumElementsUsed = NumClients;
-  while (!VoxelQueue.Empty() || WaitQueue.size() < NumClients ||
+
+  // This exit condition is wrong. We either need to do a waiting queue and a
+  // working queue, or we need to do something else.
+  while (!VoxelQueue.Empty() || PEQueue.size() < NumClients ||
          Int(oConvergedSamplePoints.size()) >= nElementsToFit) {
     Int nClientPE;
     Int nCommand;
@@ -201,15 +204,21 @@ ParameterOptimizationServer<SamplePointT,
                    "[This error check shall be removed after debugging] Error: "
                    "Size mismatch in PMC\n ");
     oOptResult = TmpResult[0];
+    PEQueue.push(nClientPE);
     if (oOptResult.bConverged) oConvergedSamplePoints.push_back(oOptResult);
 
     if (oConvergedSamplePoints.size() < nElementsToFit &&
-        (NumElementsUsed < nMaxElements))  // if there's still voxels left
+        (NumElementsUsed < nMaxElements))  { // if there's still voxels left
+  
+
+      // This distribution is wrong. Why are we sending to PEQueue?
       Utilities::WorkUnitDistribution(VoxelQueue, SingleVoxelDistributor,
-                                      WaitQueue, Base::Comm, osLogFile, 0,
+                                      PEQueue, Base::Comm, osLogFile, 0,
                                       XDMParallel::FIT_MC);
-    else  // tell client that we're done
+    }else{  // tell client that we're done
+      std::cout << "Tell clients to wait" << std::endl;
       Base::Comm.SendCommand(nMyID, nClientPE, XDMParallel::WAIT);
+    } 
   }
 
   if (oConvergedSamplePoints.size() > nElementsToFit) {

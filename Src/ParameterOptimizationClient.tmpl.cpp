@@ -207,7 +207,7 @@ void ParameterOptimizationClient<SamplePointT, Reconstructor,
   GET_LOG(osLogFile) << "[Client] Finished fitting:" << oWorkUnitList.size()
                      << " units " << std::endl;
 
-  Comm.SendCommand(nMyID, nServerPE, XDMParallel::REPORT_MC_LIST);
+  Comm.SendCommand(nMyID, nServerPE, XDMParallel::REPORT_MC);
   Comm.SendWorkUnitList(nServerPE, vOptResult);
   GET_LOG(osLogFile) << " Finished MC fitting element list " << std::endl;
 }
@@ -291,8 +291,6 @@ void ParameterOptimizationClient<SamplePointT, Reconstructor,
   } while (nCommand != XDMParallel::PROCESS_DONE);
 }
 
-// template< class SamplePointT, class R, class G >
-// void LazyBFSClient<SamplePointT, R, G>::Initialize( )
 template <class SamplePointT, class Reconstructor, class SamplePointGrid>
 void ParameterOptimizationClient<SamplePointT, Reconstructor,
                                  SamplePointGrid>::Initialize() {
@@ -302,14 +300,7 @@ void ParameterOptimizationClient<SamplePointT, Reconstructor,
   boost::shared_ptr<Mic> pMic =
       boost::dynamic_pointer_cast<Mic>(this->LocalSetup.ReconstructionRegion());
   VoxelQueue.Initialize(*pMic, LocalSetup.MinSideLength());
-
   std::cout << "Client:  Finished with initialization" << std::endl;
-  // broadcast
-  // int nCommand;
-  // Comm.BcastRecvCommand(0, &nCommand);
-  // RUNTIME_ASSERT(nCommand == BEGIN_BFS_FIT,
-  //                "Unexpected command recv'd in LazyBFSClient,
-  //                Initialize\n");
   this->Simulator.Initialize(LocalSetup.ExperimentalSetup());
   this->pReconstructor =
       ReconstructorPtr(new Reconstructor(Simulator, LocalSetup));
