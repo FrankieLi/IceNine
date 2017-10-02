@@ -55,7 +55,7 @@
 
 namespace Reconstruction
 {
-   //----------------------------------------
+  //----------------------------------------
   //
   //  GrainReconstruction
   //
@@ -65,8 +65,8 @@ namespace Reconstruction
   //----------------------------------------
   class GrainReconstruction
   {
-  private:
-    
+
+  public:  
     // parameterization of GrainReconstruction later
     typedef SVoxel SamplePointT;
     typedef MicAnalysis::CMicGrid SamplePointGrid; 
@@ -76,8 +76,9 @@ namespace Reconstruction
     typedef ReconstructionStrategies::BreadthFirstStrategy<SamplePointT, SamplePointGrid> ReconstructionStrategy;
     
     typedef ReconstructionStrategy::SamplePointPtr SamplePointPtr;
-    
-    ReconstructionSetup     oSetup;
+    typedef boost::shared_ptr< ReconstructionSetup >   ReconstructionSetupPtr;
+  private:    
+    ReconstructionSetupPtr  pSetup;
     ReconstructionStrategy  VoxelQueue;   // acts as a queue
     CSimulation oSimulator;
     
@@ -86,12 +87,14 @@ namespace Reconstruction
 
     GrainReconstruction( const CConfigFile & oConfigFile )
     {
-      RUNTIME_ASSERT( oConfigFile.nMicGridType == eTriangular, "Non-triangular grid not implemented for serial reconstruction\n" );
-      oSetup.InitializeWithDataFiles( oConfigFile );
-      boost::shared_ptr<Mic> pMic= boost::dynamic_pointer_cast<Mic>( oSetup.ReconstructionRegion());
+      pSetup = ReconstructionSetupPtr( new ReconstructionSetup() );
+      RUNTIME_ASSERT( oConfigFile.nMicGridType == eTriangular, 
+		      "Non-triangular grid not implemented for serial reconstruction\n" );
+      pSetup->InitializeWithDataFiles( oConfigFile );
+      boost::shared_ptr<Mic> pMic= boost::dynamic_pointer_cast<Mic>( pSetup->ReconstructionRegion());
       VoxelQueue.Initialize( *pMic,
-                             oSetup.MinSideLength() );
-      oSimulator.Initialize( oSetup.ExperimentalSetup() );
+                             pSetup->MinSideLength() );
+      oSimulator.Initialize( pSetup->ExperimentalSetup() );
     }
     
  
@@ -103,7 +106,7 @@ namespace Reconstruction
     vector<SamplePointPtr> ReconstructGrain( SamplePointT Center )
     {
       using namespace ReconstructionStrategies::MultiStagedDetails;
-      DiscreteRefinement<SamplePointT>  AdpReconstructor( oSimulator, oSetup );
+      DiscreteRefinement<SamplePointT>  AdpReconstructor( oSimulator, *pSetup );
 
       VoxelQueue.Reset();
       
@@ -118,7 +121,7 @@ namespace Reconstruction
       VoxelQueue.Push( Center );
       
       if( nCenterCode != SearchDetails::CONVERGED
-	  && Center.fPixelOverlapRatio < oSetup.InputParameters().fMinAccelerationThreshold )
+	  && Center.fPixelOverlapRatio < pSetup->InputParameters().fMinAccelerationThreshold )
 	return VoxelQueue.SolutionVector();
       
       VoxelQueue.InsertSeed( Center );
@@ -145,6 +148,43 @@ namespace Reconstruction
       }    
       return VoxelQueue.SolutionVector();
     }
+    
+    //----------------------------------------
+    //  ReconstructRandomGrain
+    //   Choose a random point and apply reconstruct grain
+    //----------------------------------------
+    vector<SamplePointPtr> ReconstructRandomGrain( )
+    {
+      typedef ReconstructionStrategies::RestrictedStratifiedGrid< SamplePointT,SamplePointGrid > 
+	ReconstructionStrategy;
+      
+      ReconstructionStrategy InitialPoints;
+      
+      boost::shared_ptr< Mic > pMic 
+	= boost::dynamic_pointer_cast<Mic>( pSetup->ReconstructionRegion() );
+      
+      InitialPoints.Initialize( *pMic,
+				pSetup->MinSideLength(),
+				pSetup->InputParameters().SampleCenter,
+				pSetup->InputParameters().SampleRadius );
+      
+      vector<SamplePointPtr> FittedGrain = ReconstructGrain( InitialPoints.First() );
+      
+      return FittedGrain;
+    }
+    
+    //----------------------------------------
+    //  GetDetectorPtr
+    //----------------------------------------
+    ReconstructionSetupPtr GetSetup() const
+    {
+      return pSetup;
+    }
+
+    //----------------------------------------
+    //  GetAssociatedPixelList
+    //----------------------------------------
+
   };
 }
 

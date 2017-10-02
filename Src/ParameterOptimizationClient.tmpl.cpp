@@ -162,6 +162,10 @@ namespace ParallelReconstructor
     RUNTIME_ASSERT( nServerPE == 0,
                     "Client recving messages from units other than ROOT!  STOP \n" );
     vector<ParamOptMsg> vOptResult( oWorkUnitList.size() );
+
+    GET_LOG(osLogFile) << "[Client] Rec'd Work Unit List:"
+                       << oWorkUnitList.size() << " units " << std::endl;
+
     for( Size_Type i = 0; i < oWorkUnitList.size(); i ++ )
     {
       SamplePointT Result;
@@ -175,6 +179,9 @@ namespace ParallelReconstructor
       vOptResult[i].oVoxel = Result;
       vOptResult[i].oOverlapInfo = pReconstructor->EvaluateOverlapInfo( Result );
     }
+
+    GET_LOG(osLogFile) << "[Client] Finished fitting:"
+                       << oWorkUnitList.size() << " units " << std::endl;
     
     Comm.SendCommand( nMyID, nServerPE, XDMParallel::REPORT_MC_LIST );
     Comm.SendWorkUnitList( nServerPE, vOptResult );
@@ -254,6 +261,30 @@ namespace ParallelReconstructor
       };
     } while( nCommand != XDMParallel::PROCESS_DONE );
   }
+
+  // template< class SamplePointT, class R, class G >
+  // void LazyBFSClient<SamplePointT, R, G>::Initialize( )
+  template <class SamplePointT, class Reconstructor, class SamplePointGrid>
+  void ParameterOptimizationClient<SamplePointT, Reconstructor,
+                                   SamplePointGrid>::Initialize() {
+
+    typedef typename LazyBFSClient<SamplePointT, Reconstructor,
+                                   SamplePointGrid>::Mic Mic;
+    boost::shared_ptr<Mic> pMic = boost::dynamic_pointer_cast<Mic>(
+        this->LocalSetup.ReconstructionRegion());
+    VoxelQueue.Initialize(*pMic, LocalSetup.MinSideLength());
+
+    std::cout << "Client:  Finished with initialization" << std::endl;
+    // broadcast
+    // int nCommand;
+    // Comm.BcastRecvCommand(0, &nCommand);
+    // RUNTIME_ASSERT(nCommand == BEGIN_BFS_FIT,
+    //                "Unexpected command recv'd in LazyBFSClient,
+    //                Initialize\n");
+    this->Simulator.Initialize(LocalSetup.ExperimentalSetup());
+    this->pReconstructor = ReconstructorPtr(new Reconstructor(Simulator, LocalSetup));
+  }
+
   }// namespace ParameterOptimization
   
 } // namespace ParallelReconstructor

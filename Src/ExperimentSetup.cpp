@@ -123,7 +123,8 @@ void CXDMExperimentSetup::SetDetectionLimit( CUnitCell & oResCellStruct,
   Int nMaxK = (Int) ( fMaxQ / oRecpVecs[1].GetLength() );
   Int nMaxL = (Int) ( fMaxQ / oRecpVecs[2].GetLength() ); 
 
-  oResCellStruct.SetReflectionVectorLimits( nMaxH, nMaxK, nMaxL, fMaxQ, oExpConfigFile.fMinAmplitudeFraction );
+  oResCellStruct.SetReflectionVectorLimits( nMaxH, nMaxK, nMaxL, fMaxQ, 
+					    oExpConfigFile.fMinAmplitudeFraction );
 
 }
 

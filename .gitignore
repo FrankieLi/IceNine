@@ -7,3 +7,10 @@ XDM++.strain
 cmake_install.cmake
 CMakeCache.txt
 *~
+CMakeLists.txt
+ExtLib
+*.tgz
+*.zip
+*.a
+*.DS_Store
+*Examples/Example1.Sharp.Gen/

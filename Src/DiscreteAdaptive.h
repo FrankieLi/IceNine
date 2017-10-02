@@ -73,7 +73,7 @@ namespace Reconstruction
   public:
     typedef typename OverlapCostFn::SamplePointT SamplePointT;
   private:
-    OverlapCostFn  & CostFn;
+    OverlapCostFn  * CostFn;
     CSample        & oSample;
     const XDMSimulation::CSimulationRange & oRangeToIndexMap;
     const DetectorListT   & oDetList;
@@ -83,7 +83,7 @@ namespace Reconstruction
 
   public:
     
-    ContinuousToDiscreteAdapater( OverlapCostFn CostFn_, CSample & s_,
+    ContinuousToDiscreteAdapater( OverlapCostFn *CostFn_, CSample & s_,
                                   const XDMSimulation::CSimulationRange & oRangeMap_,
                                   const DetectorListT & DetList_,
                                   const CSimulationData & oData_ )
@@ -96,9 +96,9 @@ namespace Reconstruction
     //  Actual wrapper
     //------------------------------------------
     SOverlapInfo operator()( const SamplePointT & v )
-    {
+    { 
       SOverlapInfo oOverlapInfo
-        = CostFn( v, oSample, oDetList, oRangeToIndexMap, oExpData );
+        = this->CostFn->operator()( v, oSample, oDetList, oRangeToIndexMap, oExpData );
 
       return oOverlapInfo;
     }

@@ -1,0 +1,61 @@
+============================
+Instructions to build IceNine.
+============================
+
+-------------
+Requirements:
+-------------
+
+You will need a c++ compiler (gcc >= 4.5), mpi, cmake, and boost. Manual compilaton of IceNine
+is actually not that hard, but we've transitioned to cmake to systematize things.
+
+
+
+1.  Make sure the following files/directories are removed.  They shouldn't be around, 
+but if you got this source as a tarball, they could have slipped in by accident.
+
+CMakeCache.txt 
+CMakeFiles
+Makefile
+
+2. Edit CMakeList.txt and change the following lines:
+
+SET(CMAKE_CXX_COMPILER mpic++-mpich-gcc49)    # <-----  change this to your mpi c++ compiler
+
+SET(Boost_DIR /Users/Shared/Libraries/boost-trunk/boost)            # <--- define your boost directory
+include_directories(/opt/local/include/)                            # <--- define additional include directories
+
+
+ADD_EXECUTABLE(IceNine ${IceNine_FileList} )
+TARGET_LINK_LIBRARIES( IceNine XDM++  ) 
+
+
+3. type:
+
+  ccmake .
+   
+  press 'c' for configure
+
+  This gives you an iterative configuration gui.  What this means is that you can iteratively
+edit and try configuring by editing each of the fields and test configuring the changes.
+
+
+  Once you're done, press 'g' to generate.  Sometimes, you'll have to press 'c' multiple times
+before cmake allows you to generate.  I have no idea how exactly ccmake works a lot of times,
+unfortunately.  Google is your friend.
+
+
+4. Once Makefile is succesfully generated, you can make as usual:
+
+make -j 8 IceNine
+
+
+
+WARNING:  Make sure the build type is "Release"!!!!  A debug build runs about a 100x slower
+because of all of the debug checks!
+
+
+
+
+
+

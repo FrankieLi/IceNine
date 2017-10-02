@@ -1,4 +1,4 @@
-//============================================================================== 
+//==============================================================================
 // Copyright (c) 2014, Lawrence Livermore National Security, LLC.
 // Produced at the Lawrence Livermore National Laboratory
 // Written by S. F. Li (li31@llnl.gov)
@@ -27,23 +27,24 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//============================================================================== 
+//==============================================================================
 
 //------------------------------------------------------------------------------------
 //  Author:  S. F. Li (Frankie)
-//  e-mail:  li31@llnl.gov; sfli@cmu.edu 
+//  e-mail:  li31@llnl.gov; sfli@cmu.edu
 //------------------------------------------------------------------------------------
-////////////////////////////////////////////////////////////
-//
-//  GrainReconstruction.h
-//   Author:   Frankie Li (li31@llnl.gov)
-//
-//   Purpose:  Simple serial grain reconstruction
-//
-////////////////////////////////////////////////////////////
 
 #ifndef _GRAIN_COST_FUNCTION_H
 #define _GRAIN_COST_FUNCTION_H
+//  GrainCostFunction.h
+//   Author:   Frankie Li (li31@llnl.gov)
+//
+//   Purpose:  Calculate the cost of a grain,
+//             - Metric is done in detector space
+//             - Several ideas: sub region cross-correlation
+//             - Renormalized L1?
+//
+////////////////////////////////////////////////////////////
 
 #include "Reconstructor.h"
 #include "DiscreteAdaptive.h"
@@ -63,37 +64,37 @@ namespace Reconstruction
   class GrainCostFunction
   {
 
-  public:  
+  public:
     // parameterization of GrainCostFunction later
     typedef SVoxel SamplePointT;
-    typedef MicAnalysis::CMicGrid SamplePointGrid; 
-    
+    typedef MicAnalysis::CMicGrid SamplePointGrid;
+
     typedef MicFile<SamplePointT>                                 Mic;
-    
+
     typedef ReconstructionStrategies::BreadthFirstStrategy<SamplePointT, SamplePointGrid> ReconstructionStrategy;
-    
+
     typedef ReconstructionStrategy::SamplePointPtr SamplePointPtr;
     typedef boost::shared_ptr< ReconstructionSetup >   ReconstructionSetupPtr;
     typedef boost::shared_ptr< CSimulation >           SimulatorPtr;
 
-  private:    
+  private:
     ReconstructionSetupPtr  pSetup;
     SimulatorPtr            pSimulator;
-    
+
     GrainCostFunction();
 
-      
+
   public:
 
     GrainCostFunction( ReconstructionSetupPtr _pSetup,
 		       SimulatorPtr          _pSimulator )
       : pSetup( _pSetup ), pSimulator( _pSimulator )
       {  }
-    
+
     //----------------------------------------
     //  GetSetup
     //----------------------------------------
-    ReconstructionSetupPtr GetSetup() 
+    ReconstructionSetupPtr GetSetup()
     {
       return pSetup;
     }
@@ -101,11 +102,11 @@ namespace Reconstruction
     //----------------------------------------
     //  GetSimulator
     //----------------------------------------
-    SimulatorPtr GetSimulator() 
+    SimulatorPtr GetSimulator()
     {
       return pSimulator;
     }
-    
+
     //----------------------------------------
     //  GetAssociatedPixelList
     //  - Return the set of pixels associated with
@@ -121,21 +122,17 @@ namespace Reconstruction
 	return 0;
 
       DiscreteRefinement<SamplePointT>  AdpReconstructor( *pSimulator, *pSetup );
-      
+
       Float fAveragedOverlapRatio = 0;
       for( int i = 0; i < VoxelList.size(); i ++ )
       {
 	CostFunctions::SOverlapInfo oInfo = AdpReconstructor.EvaluateOverlapInfo( VoxelList[i] );
 	fAveragedOverlapRatio += CostFunctions::Utilities::GetHitRatio  ( oInfo );
       }
-      
+
       return fAveragedOverlapRatio / static_cast<Float>( VoxelList.size() );
     }
-
-    
   };
-
-  
 }
 
 

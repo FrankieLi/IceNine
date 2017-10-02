@@ -80,16 +80,16 @@ namespace GeneralLib
   //  are stored and shapes rasterized.
   //
   //------------------------------------------------------------------------------------
-  //  class CXDMRaster : public CRaster<IntensityT, boost::numeric::ublas::compressed_matrix<IntensityT> >   // using default compressed matrix
-  class CXDMRaster : public CRaster<IntensityT, BitMatrix >   // using default compressed matrix
+  class CXDMRaster : public CRaster<IntensityT, boost::numeric::ublas::compressed_matrix<IntensityT> >   // using default compressed matrix
+   //  class CXDMRaster : public CRaster<IntensityT, BitMatrix >   // using default compressed matrix
   {
   
   private:
 
     vector<Point> oTriangle;
     vector<Point> RectList;
-    //    typedef CRaster<IntensityT,boost::numeric::ublas::compressed_matrix<IntensityT>  > Base;
-    typedef CRaster<IntensityT, BitMatrix  > Base;
+    typedef CRaster<IntensityT,boost::numeric::ublas::compressed_matrix<IntensityT>  > Base;
+    //typedef CRaster<IntensityT, BitMatrix  > Base;
     typedef IntensityT  BaseIntensityType;  
     struct SCompactCoordinate
     {

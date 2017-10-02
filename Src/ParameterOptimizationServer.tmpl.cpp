@@ -1,4 +1,4 @@
-//============================================================================== 
+//==============================================================================
 // Copyright (c) 2014, Lawrence Livermore National Security, LLC.
 // Produced at the Lawrence Livermore National Laboratory
 // Written by S. F. Li (li31@llnl.gov)
@@ -27,11 +27,11 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//============================================================================== 
+//==============================================================================
 
 //------------------------------------------------------------------------------------
 //  Author:  S. F. Li (Frankie)
-//  e-mail:  li31@llnl.gov; sfli@cmu.edu 
+//  e-mail:  li31@llnl.gov; sfli@cmu.edu
 //------------------------------------------------------------------------------------
 
 
@@ -58,8 +58,8 @@ namespace ParallelReconstructor
       typedef GeometricOptimizationBase<SamplePointT> Base;
       VoxelQueue.RandomizeReset();
       vector<SamplePointT> oLargeSearchList;
-      
-      VoxelQueue.Get( LocalSetup.InputParameters().nParamMCGlobalSearchElements, std::back_inserter( oLargeSearchList ) ); 
+
+      VoxelQueue.Get( LocalSetup.InputParameters().nParamMCGlobalSearchElements, std::back_inserter( oLargeSearchList ) );
       vector<SLargeScaleOpt>        vCandidates;
       vector<vector<SDetParamMsg> > oDetParamList( nProcessingElements );
       vector<Float>                 oEnergyList  ( nProcessingElements );
@@ -77,7 +77,7 @@ namespace ParallelReconstructor
         GET_LOG( osLogFile ) << "---------------------" << std::endl;
       }
 
-  
+
       for( Int nClientID = 1; nClientID < nProcessingElements; nClientID ++ )
       {
         vector<SDetParamMsg> vNewDetectorLoc;
@@ -93,17 +93,17 @@ namespace ParallelReconstructor
           vNewDetectorLoc           = vDetParams;
           oNewEnergyLoc.fBeamEnergy = oStartEnergyLoc.fBeamEnergy;
         }
-      
+
         oEnergyList  [ nClientID ] = oNewEnergyLoc.fBeamEnergy;
         oDetParamList[ nClientID ] = vNewDetectorLoc;
-      
+
         Base::Comm.SendCommand( 0, nClientID, XDMParallel::SET_EXP_PARAM );
         Base::SendExpParameters( nClientID, oNewEnergyLoc, vNewDetectorLoc );
         GET_LOG( osLogFile ) << " Sending " << oLargeSearchList.size() << " voxels to client " << nClientID << std::endl;
         Base::Comm.SendCommand( 0, nClientID, XDMParallel::FIT_MC_LIST );
         Base::Comm.SendWorkUnitList( nClientID, oLargeSearchList );
       }
-    
+
       // listen for result
       Int nClientsLeft = nProcessingElements - 1;
       vector<SLargeScaleOpt> oCandidateList;
@@ -114,7 +114,7 @@ namespace ParallelReconstructor
         RUNTIME_ASSERT( nCommand == XDMParallel::REPORT_MC_LIST, "Server ERROR!  Wrong comamnd recv'd \n");
         vector< SParamOptMsg<SamplePointT> > vOptResults;
         Base::Comm.RecvWorkUnitList( nClientID, vOptResults );
-      
+
         // calculate cost
         Float fCost   = 0;
         Int nFitted   = 0;
@@ -133,7 +133,7 @@ namespace ParallelReconstructor
           }
         }
         GET_LOG( osLogFile ) << "Client " << nClientID << " Fitted "
-                             << nFitted << " Unfitted " << nUnfitted << " cost = " << fCost << std::endl; 
+                             << nFitted << " Unfitted " << nUnfitted << " cost = " << fCost << std::endl;
         if( fCost < static_cast<Float>( oLargeSearchList.size() ) )
         {
           SLargeScaleOpt oNewPoint;
@@ -147,9 +147,9 @@ namespace ParallelReconstructor
       GET_LOG( osLogFile ) << " Finished Large Scale Optimization: Num Candidates = " << vCandidates.size() << std::endl;
       return vCandidates;
     }
-  
-  
-  
+
+
+
     //---------------------------------------------------------------------------
     //  GetNConvergedElements
     //---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ namespace ParallelReconstructor
     ::GetNConvergedElements( )
     {
       typedef GeometricOptimizationBase<SamplePointT> Base;
-      const Int nMaxElements = nProcessingElements * LocalSetup.InputParameters().nOptNumElementPerPE * 3; 
+      const Int nMaxElements = nProcessingElements * LocalSetup.InputParameters().nOptNumElementPerPE * 3;
       if( VoxelQueue.Size() > nMaxElements )
       {
         GET_LOG( osLogFile ) << "Number of elements from structure: " << VoxelQueue.Size() << std::endl;
@@ -167,7 +167,7 @@ namespace ParallelReconstructor
         GET_LOG( osLogFile ) << "Limiting to " <<   nMaxElements << " elements " << std::endl;
         VoxelQueue.RandomizedSetMaxElements( nMaxElements );
       }
-      
+
       std::queue<int> WaitQueue;
       for( int i = 1; i <= (nProcessingElements - 1); i ++ )  // start from 1, since 0 is Server
         WaitQueue.push( i );
@@ -182,27 +182,27 @@ namespace ParallelReconstructor
       int NumClients      = nProcessingElements -1;
       Int NumElementsUsed = NumClients;
       while( ! VoxelQueue.Empty() || WaitQueue.size() < NumClients
-             || Int( oConvergedSamplePoints.size() ) >= nElementsToFit )   
+             || Int( oConvergedSamplePoints.size() ) >= nElementsToFit )
       {
         Int                  nClientPE;
         Int                  nCommand;
         vector<ParamOptMsg> TmpResult;
         ParamOptMsg          oOptResult;
-        NumElementsUsed ++; 
-        Base::Comm.RecvCommand( &nClientPE, &nCommand );  
-        RUNTIME_ASSERT( nCommand == XDMParallel::REPORT_MC, "\nDriver::Server: Unknown command from client recv \n" );
+        NumElementsUsed ++;
+        Base::Comm.RecvCommand( &nClientPE, &nCommand );
+        RUNTIME_ASSERT( nCommand == XDMParallel::REPORT_MC_LIST, "\nDriver::Server: Unknown command from client recv \n" );
         Base::Comm.RecvWorkUnitList( nClientPE, TmpResult );
         RUNTIME_ASSERT( TmpResult.size() == 1, "[This error check shall be removed after debugging] Error: Size mismatch in PMC\n " );
         oOptResult = TmpResult[0];
         if( oOptResult.bConverged )
           oConvergedSamplePoints.push_back( oOptResult );
-        
+
         if ( oConvergedSamplePoints.size() < nElementsToFit && (NumElementsUsed < nMaxElements) ) // if there's still voxels left
           Utilities::WorkUnitDistribution( VoxelQueue, SingleVoxelDistributor, WaitQueue, Base::Comm, osLogFile, 0,  XDMParallel::FIT_MC );
         else                                     // tell client that we're done
           Base::Comm.SendCommand( nMyID, nClientPE, XDMParallel::WAIT );
       }
-      
+
       if( oConvergedSamplePoints.size() > nElementsToFit )
       {
         GET_LOG( osLogFile ) << "Needed " << nElementsToFit << " Ended with "
@@ -234,11 +234,11 @@ namespace ParallelReconstructor
       SMonteCarloParam oMCParam;
       oMCParam.fTemperature     = LocalSetup.InputParameters().fParameterMCTemperature;
       oMCParam.nCoolingSteps    = LocalSetup.InputParameters().nNumParamOptSteps * LocalSetup.InputParameters().fCoolingFraction;
-      oMCParam.fDTemperature    = oMCParam.fTemperature / oMCParam.nCoolingSteps;  
+      oMCParam.fDTemperature    = oMCParam.fTemperature / oMCParam.nCoolingSteps;
       oMCParam.nThermalizeSteps = LocalSetup.InputParameters().nNumParamOptSteps * LocalSetup.InputParameters().fThermalizeFraction;
       oMCParam.nMaxIterations   = LocalSetup.InputParameters().nNumParamOptSteps;
       oMCParam.eSearchMethod    = static_cast<SO3SearchMethod>( LocalSetup.InputParameters().nOrientationSearchMethod);
-      
+
       Base::Comm.SendCommand  ( nMyID, 1, nProcessingElements - 1, XDMParallel::EVAL_OVERLAP );
       Base::Comm.BcastSend    ( nMyID,    oMCParam            );
       Base::Comm.BcastSendList( nMyID,    vSamplePoints       );
@@ -267,7 +267,7 @@ namespace ParallelReconstructor
         }
         Base::SendExpParameters( nClientID, oEnergyStartLoc, vDetectorStartLoc );
       }
-    
+
       vector<SDetParamMsg>   vBestParam;
       SEnergyOpt             oBestEnergyParam;
       Float fBestCost        = 2;
@@ -296,8 +296,8 @@ namespace ParallelReconstructor
       }
       return boost::make_tuple( vBestParam, fBestCost, oBestEnergyParam );
     }
-  
-  
+
+
     //---------------------------------------------------------------------------
     //  RunParameterOpt
     //
@@ -312,7 +312,7 @@ namespace ParallelReconstructor
       RUNTIME_ASSERT( LocalSetup.InputParameters().fCoolingFraction >= 0,    "ParallelReconstruction:  fCoolingFraction < 0" );
       RUNTIME_ASSERT( ( LocalSetup.InputParameters().fThermalizeFraction + LocalSetup.InputParameters().fCoolingFraction <= 1),
                       "ParallelReconstruction: fThermalizeFraction + fCoolingFraction > 1 ");
-      
+
       vector<SStepSizeInfo>   vGlobalMaxDeviation = LocalSetup.ExperimentalSetup().GetOptimizationInfo();
       vector<SDetParamMsg>      vCurrentDetParams = LocalSetup.ExperimentalSetup().GetExperimentalParameters();
       const vector<SStepSizeInfo> & vMinStepSizes = LocalSetup.ExperimentalSetup().GetDetectorSensitivity();
@@ -323,32 +323,32 @@ namespace ParallelReconstructor
       Float fScale = Float ( 1 )
                    / ( pow( (nProcessingElements - 1)  * LocalSetup.InputParameters().nNumParamOptSteps,
                             Float( 1 ) / Float ( 3 ) ) );
-    
+
       GET_LOG( osLogFile ) << "Scaling Factor for parameter MC: " << fScale << " " << nProcessingElements << std::endl;
-    
+
       vector<SStepSizeInfo> vClientStepSizeInfo = vGlobalMaxDeviation;
       Base::ScaleParamOptMsg( vClientStepSizeInfo, vMinStepSizes, fScale );
 
       Int                  nIter           = 0;
       Float                fGlobalBestCost = 2;
-      
+
       const Float fReductionScale = std::min( LocalSetup.InputParameters().fSearchVolReductionFactor /
                                               pow( Float( nProcessingElements -1 ), Float(1) / Float(3) ),
                                               Float( 0.8 ) );  // 4 is the fudge factor
- 
-      vector< SParamOptMsg<SamplePointT> > vSamplePoints;    
+
+      vector< SParamOptMsg<SamplePointT> > vSamplePoints;
       VoxelQueue.RandomizeReset();
       SEnergyOpt oEnergyLoc;
       oEnergyLoc.fBeamEnergy = LocalSetup.ExperimentalSetup().GetBeamEnergy();
       oEnergyLoc.fEnergyStep = LocalSetup.InputParameters().BeamEnergyWidth / Float(2) * fScale;
-      
+
       SEnergyOpt            oBestEnergyLoc     = oEnergyLoc;
       vector<SDetParamMsg>   vBestParams        = vCurrentDetParams;
 
       Int                   nLocalRestarts     = 0;
       Int                   nLargeStepRestarts = 0;
       bool                  bFitNewVoxels      = true;
-    
+
       while ( nIter < LocalSetup.InputParameters().nParameterRefinements )
       {
         Bool bFitSuccess = false;
@@ -362,14 +362,14 @@ namespace ParallelReconstructor
         if( bFitSuccess || (!bFitNewVoxels) )
         {
           // Run LocalParamOptimization
-          SEnergyOpt            OptimizedEnergyLoc;            
+          SEnergyOpt            OptimizedEnergyLoc;
           vector<SDetParamMsg>   OptimizedParams;
           Float                 fCurrentCost = 2;
-          boost::tie( OptimizedParams, fCurrentCost, OptimizedEnergyLoc ) = 
+          boost::tie( OptimizedParams, fCurrentCost, OptimizedEnergyLoc ) =
             LocalParamOptimization( oEnergyLoc, vCurrentDetParams,
                                     vSamplePoints, vClientStepSizeInfo,
                                     vGlobalMaxDeviation );
-        
+
           GET_LOG( osLogFile ) << "[Best Cost, New Cost] " << fGlobalBestCost << " " << fCurrentCost << std::endl;
           if( fCurrentCost < fGlobalBestCost )   // if something's found, refine
           {
@@ -420,25 +420,25 @@ namespace ParallelReconstructor
         }
         nIter ++;
       }  //----------------------------------------
-    
+
       //-----------------------------------
       // save mic file
       //-----------------------------------
 
       RUNTIME_ASSERT( 0, "Need to rewrite the part that saves to mic");
-      
+
       VoxelQueue.ClearSolution();
       for( Size_Type i = 0; i < vSamplePoints.size(); i ++ )
         VoxelQueue.Push( vSamplePoints[i].oVoxel );
-      
+
       //      Base::WriteFitResult( VoxelQueue.Solution(), ".opt");
       Base::SetExperimentalParameters( oBestEnergyLoc.fBeamEnergy, vBestParams );
-      
-      GET_LOG( osLogFile ) << "Best Energy: " << oBestEnergyLoc.fBeamEnergy << std::endl; 
+
+      GET_LOG( osLogFile ) << "Best Energy: " << oBestEnergyLoc.fBeamEnergy << std::endl;
       Base::Comm.SendCommand( nMyID, 1, nProcessingElements -1, XDMParallel::PROCESS_DONE );
       //      VoxelQueue.ClearSolution();
-      
-      
+
+
     }
 
   } // end namespace ParameterOptimization
