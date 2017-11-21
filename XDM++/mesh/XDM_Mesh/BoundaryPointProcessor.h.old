@@ -1,0 +1,222 @@
+//-------------------------------------------------------------------
+//
+//  BoundaryPointProcessor.h
+//
+//
+//
+//-------------------------------------------------------------------
+
+#ifndef XDM_BOUNDARY_POINT_PROCESSOR_H
+#define XDM_BOUNDARY_POINT_PROCESSOR_H
+
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/grid_simplify_point_set.h>
+#include <CGAL/Search_traits_3.h>
+#include <CGAL/Orthogonal_k_neighbor_search.h>
+#include <CGAL/property_map.h>
+#include <CGAL/Memory_sizer.h>
+
+#include <fstream>
+#include <string>
+#include <vector>
+#include <ostream>
+#include "XDM_Mesh/XDM_Utilities.h"
+
+namespace XDM
+{
+  template< class Kernel > 
+  class BoundaryPointProcessor
+  {
+    
+  public:
+    // types for K nearest neighbors search structure
+    typedef typename CGAL::Search_traits_3<Kernel> Tree_traits;
+    typedef typename CGAL::Orthogonal_k_neighbor_search<Tree_traits> Neighbor_search;
+    typedef typename Neighbor_search::iterator Search_iterator;
+    
+    typedef typename Neighbor_search::Tree Tree;
+    typedef typename Kernel::Point_3 Point;
+    typedef typename std::vector<Point> PointList;
+    
+    typedef typename PointList::iterator PointIter;
+
+    typedef CGAL::XDM_test::TestPoint WeightedPoint;
+    typedef std::vector<WeightedPoint> WeightedPointList;
+    typedef typename std::vector< std::pair< WeightedPoint, int > > WPointDimList;
+    typedef typename std::vector< std::pair< Point, int > > PointDimList;
+
+
+    struct PointDimCmp
+    {
+      bool operator() ( const std::pair< Point, int> & oLHS,
+                        const std::pair< Point, int> & oRHS ) const
+      {
+        return oLHS.second > oRHS.second;
+      }
+    };
+
+    struct NotQuadPoint
+    {
+      bool operator() ( const std::pair< Point, int> & oObj ) const
+      {
+        return oObj.second < 4;
+      }
+    };
+    
+  private:
+    Tree oBndPointTree;
+    WeightedPointList oNewBndPoints;
+    
+  public:
+    
+    BoundaryPointProcessor( PointIter pFirst, PointIter pEnd )
+      : oBndPointTree( pFirst, pEnd )
+    {  }
+
+    BoundaryPointProcessor(){}
+
+    //---------------------------------------------
+    //  Initialize
+    //---------------------------------------------
+    void Initialize( WPointDimList & oWpList )
+    {
+      std::vector< Point > oBndPointList;
+      for( int i = 0; i < oWpList.size(); i ++ )
+      {
+        const WeightedPoint & p = oWpList[i].first;
+        oBndPointList.push_back( Point( p.x, p.y, p.z ) );
+      }
+      oBndPointTree = Tree( oBndPointList.begin(),
+                            oBndPointList.end() );
+ //      CalculateWeight( oWpList );
+
+      
+      for( int i = 0; i < oWpList.size(); i ++ )
+        oNewBndPoints.push_back( oWpList[i].first );
+
+      PointDimList oTestSmoothedPoints = SmoothPoints( oWpList, 2, 1.5 );
+      oNewBndPoints = CalculateWeight( oTestSmoothedPoints );
+    }
+
+    //---------------------------------------------
+    //  SmoothPoints
+    //
+    //  A dumb way to smooth points
+    //
+    //---------------------------------------------
+    PointDimList SmoothPoints( const WPointDimList & oWpList,
+                               float fSmoothingLength,
+                               float fPointSpacing)  
+    {
+      PointDimList oNewBndPtrList;
+      for( int i = 0; i < oWpList.size(); i ++ )
+      {
+
+        // only smooth non-quad points
+        if( oWpList[i].second < 4 )
+        {
+          WeightedPoint p = oWpList[i].first;
+          Point Query(p.x, p.y, p.z);
+          Neighbor_search search( oBndPointTree, Query, 20 );
+          int nNgbCounted = 1;
+          WeightedPoint pNewPoint = oWpList[i].first;
+
+          for( Search_iterator it = search.begin();
+               it != search.end(); ++ it )
+          {
+            if( it->second < fSmoothingLength )
+            {
+              Point pNew = it->first;
+              pNewPoint.x += pNew.x();
+              pNewPoint.y += pNew.y();
+              pNewPoint.z += pNew.z();
+              nNgbCounted ++;
+            }
+          }
+          pNewPoint.x /= float( nNgbCounted );
+          pNewPoint.y /= float( nNgbCounted );
+          pNewPoint.z /= float( nNgbCounted );
+          Point ToInsert( pNewPoint.x, pNewPoint.y, pNewPoint.z );
+          oNewBndPtrList.push_back( std::make_pair( ToInsert, oWpList[i].second ) );
+        }
+        else
+        {
+          Point p = Point( oWpList[i].first.x, oWpList[i].first.y, oWpList[i].first.z );
+          oNewBndPtrList.push_back( std::make_pair( p, oWpList[i].second ) );
+        }
+      }
+      std::cerr << "BndPtrList " << oNewBndPtrList.size() << std::endl;
+//       for( int i = 0; i < oNewBndPtrList.size(); i ++ )
+//       {
+//         std::cout << oNewBndPtrList[i].first.x() << " "
+//                   << oNewBndPtrList[i].first.y() << " "
+//                   << oNewBndPtrList[i].first.z() << std::endl;
+          
+//       }
+      oNewBndPtrList.erase( CGAL::XDM_PointProcessing::
+                            grid_simplify_point_set( oNewBndPtrList.begin(),
+                                                     oNewBndPtrList.end(),
+                                                     CGAL::First_of_pair_property_map< std::pair<Point, int> >(),
+                                                     CGAL::Second_of_pair_property_map< std::pair<Point, int> >(),
+                                                     fPointSpacing ),
+                            oNewBndPtrList.end() );
+
+      std::cerr << "BndPtrList after removal " << oNewBndPtrList.size() << std::endl;
+      PointDimList (oNewBndPtrList).swap( oNewBndPtrList ); // swap trick
+      
+      return oNewBndPtrList;
+    }
+    
+    //---------------------------------------------
+    //  Calculate weight of each point
+    //---------------------------------------------
+    void CalculateWeight( WPointDimList & oWpList )
+    {
+      for( int i = 0; i < oWpList.size(); i ++ )
+      {
+        WeightedPoint p = oWpList[i].first;
+        Point Query(p.x, p.y, p.z);
+        Neighbor_search search( oBndPointTree, Query, 1 ); // find 1 neighbor
+
+        
+        oWpList[i].first.w = std::sqrt( CGAL::squared_distance( search.begin()->first,
+                                                                Query ) )* float( 4 ) / float(3);
+      }
+    }
+
+
+    //---------------------------------------------
+    //  Calculate weight of each point
+    //---------------------------------------------
+    WeightedPointList CalculateWeight( PointDimList & oPointList )
+    {
+      WeightedPointList oWpList;
+      for( int i = 0; i < oPointList.size(); i ++ )
+      {
+        Point Query = oPointList[i].first;
+        Neighbor_search search( oBndPointTree, Query, 1 ); // find 1 neighbor
+        WeightedPoint p( oPointList[i].first.x(),
+                         oPointList[i].first.y(),
+                         oPointList[i].first.z(), 0 );
+        
+ //        p.w = std::sqrt( CGAL::squared_distance( search.begin()->first,
+//                                                  Query ) )* float( 4 ) / float(3);
+        p.w = 0;
+        oWpList.push_back( p );
+      }
+      return oWpList;
+    }
+    //---------------------------------------------
+    //  GetWeightedPoints
+    //---------------------------------------------
+    WeightedPointList GetWeightedPoints() const
+    {
+      return oNewBndPoints;
+    }
+
+  };
+  
+}
+
+
+#endif
