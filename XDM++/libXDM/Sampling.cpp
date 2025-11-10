@@ -281,7 +281,7 @@ namespace GeneralLib
       else
         bSamplePointViolation = false;
         
-      return std::make_pair<Bool, SQuaternion>( bSamplePointViolation, oViolatingPoint );
+      return std::make_pair( bSamplePointViolation, oViolatingPoint );
     }
 
     //---------------------------------------------------------------------------------------

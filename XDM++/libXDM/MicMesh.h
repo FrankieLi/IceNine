@@ -206,7 +206,7 @@ namespace XDMUtility
     //  could be generalized to take equal operator
     struct SDeleteCmp
     {
-      const ShapePtr & oToDelete;
+      ShapePtr oToDelete;
 
       SDeleteCmp( const ShapePtr & oToDelete_ )
         :oToDelete( oToDelete_ ){}

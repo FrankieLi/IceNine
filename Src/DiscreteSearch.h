@@ -282,7 +282,7 @@ namespace OrientationSearch
       oRecipVectors = oCryStructList[ nPhase ].GetReflectionVectorList();  
       //----------------------------------------
       std::sort( oRecipVectors.begin(), oRecipVectors.end(),
-                 bind( &CRecpVector::fMag, _1) < bind( &CRecpVector::fMag, _2) );
+                 [](const CRecpVector& a, const CRecpVector& b) { return a.fMag < b.fMag; } );
     }
     
     //--------------------------------------------------
@@ -301,7 +301,7 @@ namespace OrientationSearch
       typedef vector<CRecpVector>::iterator RecpIter;
       RecpIter pRecpEnd = std::find_if( oRecipVectors.begin(),
                                         oRecipVectors.end(),
-                                        bind( &CRecpVector::fMag, _1) > fQMax  );
+                                        [fQMax](const CRecpVector& v) { return v.fMag > fQMax; } );
       
       typedef OrientationSearch::TrivialPropertyMap  PropMap;
       vector<SCandidate> oRes;
@@ -332,7 +332,7 @@ namespace OrientationSearch
       typedef vector<CRecpVector>::iterator RecpIter;
       RecpIter pRecpEnd = std::find_if( oRecipVectors.begin(),
                                         oRecipVectors.end(),
-                                        bind( &CRecpVector::fMag, _1) > fQMax  );
+                                        [fQMax](const CRecpVector& v) { return v.fMag > fQMax; } );
       
       typedef OrientationSearch::TrivialPropertyMap  PropMap;
       vector< vector< SCandidate> > oRes;
@@ -436,7 +436,7 @@ namespace OrientationSearch
       typedef vector<CRecpVector>::iterator RecpIter;
       RecpIter pRecpEnd = std::find_if( oRecipVectors.begin(),
                                         oRecipVectors.end(),
-                                        bind( &CRecpVector::fMag, _1) > fQMax  );
+                                        [fQMax](const CRecpVector& v) { return v.fMag > fQMax; } );
       
       typedef OrientationSearch::TrivialPropertyMap  PropMap;
       vector< vector< SCandidate> > oRes;
