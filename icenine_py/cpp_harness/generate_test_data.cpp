@@ -12,12 +12,14 @@
 //    - au_fcc_all_hkl_qmax8.json: All Miller indices before symmetry reduction
 //    - au_fcc_unique_hkl_qmax8.json: Unique reflections after reduction
 //    - q_magnitudes.json: Q magnitudes for test reflections
+//    - scattering_omegas.json: Scattering omega angles for test reflections
 //
 /////////////////////////////////////////////////////////////////
 
 #include "XDM++/libXDM/Symmetry.h"
 #include "XDM++/libXDM/CrystalStructure.h"
 #include "XDM++/libXDM/3dMath.h"
+#include "XDM++/libXDM/PhysicalConstants.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -34,6 +36,73 @@ const Float BEAM_ENERGY = 50.02099; // keV
 const Float WAVELENGTH = 0.2478;    // Angstroms
 const Float MAX_Q = 8.0;            // Å^-1
 const Float TWO_PI = 6.28318530718;
+const Float BEAM_DEFLECTION_CHI = 0.0;  // radians (no beam deflection)
+
+//------------------------------------------------------------------------------
+// GetScatteringOmegas
+//
+// Standalone implementation extracted from Simulation.cpp (lines 65-119)
+// for testing purposes.
+//
+// This function calculates the omega angles at which the Bragg condition
+// is satisfied for a specific scattering vector.
+//
+// Returns true if observable, false if too close to rotation axis.
+//------------------------------------------------------------------------------
+bool GetScatteringOmegas(Float &fOmegaRes1, Float &fOmegaRes2,
+                         const SVector3 &oScatteringVec,
+                         const Float &fScatteringVecMag,
+                         Float fBeamEnergy,
+                         Float fBeamDeflectionChiLaue)
+{
+    // NOTE: reciprocal vectors are measured in angstrom
+    // k = 2pi/lambda = E / (h-bar c)
+
+    Float fWavenumber = PhysicalConstants::keV_over_hbar_c_in_ang * fBeamEnergy;
+
+    Float fSinTheta = fScatteringVecMag / ((Float)2.0 * fWavenumber);   // Bragg angle
+    Float fCosChi = oScatteringVec.m_fZ / fScatteringVecMag;             // Tilt angle of G relative to z-axis
+    Float fSinChi = sqrt((Float)1.0 - fCosChi * fCosChi);
+
+    Float fSinChiLaue = sin(fBeamDeflectionChiLaue);     // Tilt angle of k_i (+ means up)
+    Float fCosChiLaue = cos(fBeamDeflectionChiLaue);
+
+    Float fNumerator = fSinTheta + fCosChi * fSinChiLaue;
+    Float fDenom     = fSinChi * fCosChiLaue;
+
+    if (fabs(fNumerator) <= fabs(fDenom))
+    {
+        // [-pi:pi]: angle to bring G to nominal position along +y-axis
+        Float fDeltaOmega0 = atan2(oScatteringVec.m_fX, oScatteringVec.m_fY);
+
+        //  [0:pi/2] since arg >0: phi goes from above to Bragg angle
+        Float fDeltaOmega_b1 = asin(fNumerator / fDenom);
+
+        Float fDeltaOmega_b2 = PI - fDeltaOmega_b1;
+
+        fOmegaRes1 = fDeltaOmega_b1 + fDeltaOmega0;  // oScatteringVec.m_fY > 0
+        fOmegaRes2 = fDeltaOmega_b2 + fDeltaOmega0;  // oScatteringVec.m_fY < 0
+
+        if (fOmegaRes1 > PI)          // range really doesn't matter
+            fOmegaRes1 -= 2.f * PI;
+
+        if (fOmegaRes1 < -PI)
+            fOmegaRes1 += 2.f * PI;
+
+        if (fOmegaRes2 > PI)
+            fOmegaRes2 -= 2.f * PI;
+
+        if (fOmegaRes2 < -PI)
+            fOmegaRes2 += 2.f * PI;
+
+        return true;
+    }
+    else
+    {
+        fOmegaRes1 = fOmegaRes2 = 0;     // too close to rotation axis to be illuminated
+        return false;
+    }
+}
 
 // JSON helpers
 void write_matrix3x3_json(ofstream& out, const SMatrix3x3& m, bool last = false) {
@@ -275,6 +344,94 @@ int main() {
     out_q << "}\n";
     out_q.close();
     cout << "  Written: q_magnitudes.json\n\n";
+
+    // 6. Generate scattering omega angles for test reflections
+    cout << "Generating scattering omega angles..." << endl;
+
+    // Test reflections with various orientations to get comprehensive test coverage
+    struct OmegaTestCase {
+        int h, k, l;
+        Float gx, gy, gz;  // scattering vector in sample frame
+    };
+
+    vector<OmegaTestCase> omega_tests;
+
+    // Test on unique reflections with identity orientation (no rotation)
+    for (size_t i = 0; i < unique_hkls.size(); i++) {
+        OmegaTestCase test;
+        test.h = unique_hkls[i].h;
+        test.k = unique_hkls[i].k;
+        test.l = unique_hkls[i].l;
+
+        // G vector = a* * (h, k, l) for cubic
+        test.gx = a_recip * test.h;
+        test.gy = a_recip * test.k;
+        test.gz = a_recip * test.l;
+
+        omega_tests.push_back(test);
+    }
+
+    // Add some rotated cases to test different orientations
+    // Rotate (111) by 45 degrees around z-axis
+    {
+        OmegaTestCase test = {1, 1, 1, 0, 0, 0};
+        Float angle = 0.7853981633974483;  // 45 degrees = pi/4
+        Float cos_a = cos(angle);
+        Float sin_a = sin(angle);
+        Float h = 1, k = 1, l = 1;
+        test.gx = a_recip * (h * cos_a - k * sin_a);
+        test.gy = a_recip * (h * sin_a + k * cos_a);
+        test.gz = a_recip * l;
+        omega_tests.push_back(test);
+    }
+
+    ofstream out_omega("../cpp_outputs/scattering_omegas.json");
+    out_omega << "{\n";
+    out_omega << "  \"description\": \"Scattering omega angles for test reflections\",\n";
+    out_omega << "  \"beam_energy\": " << BEAM_ENERGY << ",\n";
+    out_omega << "  \"beam_deflection_chi\": " << BEAM_DEFLECTION_CHI << ",\n";
+    out_omega << "  \"beam_direction\": [1, 0, 0],\n";
+    out_omega << "  \"test_cases\": [\n";
+
+    int observable_count = 0;
+    for (size_t i = 0; i < omega_tests.size(); i++) {
+        SVector3 g_vec(omega_tests[i].gx, omega_tests[i].gy, omega_tests[i].gz);
+        Float g_mag = g_vec.GetLength();
+
+        Float omega1, omega2;
+        bool observable = GetScatteringOmegas(omega1, omega2, g_vec, g_mag,
+                                               BEAM_ENERGY, BEAM_DEFLECTION_CHI);
+
+        if (observable) observable_count++;
+
+        out_omega << "    {\n";
+        out_omega << "      \"hkl\": [" << omega_tests[i].h << ", "
+                  << omega_tests[i].k << ", " << omega_tests[i].l << "],\n";
+        out_omega << "      \"g_vector\": [" << fixed << setprecision(15)
+                  << g_vec.m_fX << ", " << g_vec.m_fY << ", " << g_vec.m_fZ << "],\n";
+        out_omega << "      \"g_magnitude\": " << fixed << setprecision(15) << g_mag << ",\n";
+        out_omega << "      \"observable\": " << (observable ? "true" : "false");
+
+        if (observable) {
+            out_omega << ",\n";
+            out_omega << "      \"omega1\": " << fixed << setprecision(15) << omega1 << ",\n";
+            out_omega << "      \"omega2\": " << fixed << setprecision(15) << omega2 << "\n";
+        } else {
+            out_omega << "\n";
+        }
+
+        out_omega << "    }";
+        if (i < omega_tests.size() - 1) out_omega << ",";
+        out_omega << "\n";
+    }
+
+    out_omega << "  ]\n";
+    out_omega << "}\n";
+    out_omega.close();
+
+    cout << "  Generated " << omega_tests.size() << " omega angle test cases\n";
+    cout << "  Observable peaks: " << observable_count << "\n";
+    cout << "  Written: scattering_omegas.json\n\n";
 
     cout << "Test data generation complete!\n";
     cout << "All files written to cpp_outputs/\n";
