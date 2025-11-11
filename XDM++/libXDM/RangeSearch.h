@@ -11,12 +11,12 @@
 
 #ifndef RANGE_SEARCH_H_
 #define RANGE_SEARCH_H_
-#include <boost/shared_ptr.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
+#include <memory>
+
+
 #include <map>
 #include <vector>
-#include <boost/function.hpp>
+#include <functional>
 
 #include "Types.h"
 #include "Debug.h"
@@ -25,12 +25,11 @@
 namespace RangeSearch
 {
 
-  using boost::tuple;
-  using boost::shared_ptr;
+  using std::tuple;
+  using std::shared_ptr;
   using std::map;
   using std::vector;
-  using namespace boost::lambda;
-  using boost::get;
+  using std::get;
   
   template< typename CoordinateT, typename DataT >
   struct SYNode;    // Forward declaration
@@ -90,8 +89,8 @@ namespace RangeSearch
 
     typedef SXNode<FieldT, DataT> PrimaryNodeT;
     typedef SYNode<FieldT, DataT> AssociatedNodeT;
-    typedef typename boost::tuple< FieldT, FieldT, DataT > InputT; 
-    typedef typename boost::shared_ptr< SXNode< FieldT, DataT > > TreeNodePtrT;
+    typedef typename std::tuple< FieldT, FieldT, DataT > InputT; 
+    typedef typename std::shared_ptr< SXNode< FieldT, DataT > > TreeNodePtrT;
     typedef typename std::vector< InputT > PrimaryCoordMapT;
     typedef typename PrimaryCoordMapT::iterator PrimaryCoordMapIterT;
     typedef typename AssociatedNodeT::NextPtrT AssociatedNodePtrT;

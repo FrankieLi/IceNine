@@ -49,9 +49,7 @@
 #include "Quaternion.h"
 #include "ExperimentSetup.h"
 
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include "MicGrid.h"
 #include "Utilities.h"
 #include "SearchDetails.h"
@@ -272,9 +270,8 @@ namespace OrientationSearch
         oSearchProcess( _Sample, _DetList, _RMap, _Data,
                         oVoxelCostFunction, oAcceptFn, oSimulator )
     {
-      using boost::tuple;
-      using namespace boost::lambda;
-      using boost::get;
+      using std::tuple;
+      using std::get;
 
       //----------------------------------------
       //   Need to change this to get to strain compatible - need a template parameter
@@ -294,9 +291,8 @@ namespace OrientationSearch
                                       SearchPointIterT pEnd,
                                       Float fQMax )
     {
-      using boost::tuple;
-      using namespace boost::lambda;
-      using boost::get;
+      using std::tuple;
+      using std::get;
       
       typedef vector<CRecpVector>::iterator RecpIter;
       RecpIter pRecpEnd = std::find_if( oRecipVectors.begin(),
@@ -325,9 +321,8 @@ namespace OrientationSearch
                                                       Float fAngularRadius,
                                                       SymmetryT & oSym )
     {
-      using boost::tuple;
-      using namespace boost::lambda;
-      using boost::get;
+      using std::tuple;
+      using std::get;
       
       typedef vector<CRecpVector>::iterator RecpIter;
       RecpIter pRecpEnd = std::find_if( oRecipVectors.begin(),
@@ -429,9 +424,8 @@ namespace OrientationSearch
                                                        Float fAngularRadius,
                                                        SymmetryT & oSym )
     {
-      using boost::tuple;
-      using namespace boost::lambda;
-      using boost::get;
+      using std::tuple;
+      using std::get;
       
       typedef vector<CRecpVector>::iterator RecpIter;
       RecpIter pRecpEnd = std::find_if( oRecipVectors.begin(),

@@ -370,7 +370,7 @@ bool CPaintGrid::Run( const std::string & PaintGridConfig  )
 
   oSetup.ExperimentalSetup().InitializeSample( oCurrentLayer,  oDetectorList[ 0 ] );  // binding CurrentLayer to the first detector's limit
 
-  boost::shared_ptr< CMic > pMic= boost::dynamic_pointer_cast<CMic>( oCurrentLayer.GetMic() );
+  std::shared_ptr< CMic > pMic= std::dynamic_pointer_cast<CMic>( oCurrentLayer.GetMic() );
 
   
   RUNTIME_ASSERT( pMic->VoxelListBegin() != pMic->VoxelListEnd(),
@@ -538,7 +538,7 @@ std::vector<Float> CPaintGrid::Paint( const DetectorListT & vDetectorList,
   Float fWavenumber =  PhysicalConstants:: keV_over_hbar_c_in_ang * oSetup.ExperimentalSetup().GetBeamEnergy();  // (Energy (keV)/( hbar c ) - in ang.
   // i.e., E = 64 => 64 keV/(hbar c) in final unit of ang
   const vector<CUnitCell> & oCryStructList = oCurrentLayer.GetStructureList();
-  boost::shared_ptr< CMic > pMic= boost::dynamic_pointer_cast<CMic>( oCurrentLayer.GetMic() );
+  std::shared_ptr< CMic > pMic= std::dynamic_pointer_cast<CMic>( oCurrentLayer.GetMic() );
   
   std::cout << " Number of voxels " << pMic->GetNumVoxels() << std::endl;
   std::vector<int> IntersectDetectorCount( FZList.size(), 0);
@@ -621,7 +621,7 @@ std::vector<Float> CPaintGrid::Paint( const DetectorListT & vDetectorList,
                 //                std::cout << fEta << " " << f2Theta << std::endl;
                 bool bAccept;
                 Float fIntensity;
-                boost::tie( bAccept, fIntensity ) = FAcceptFn( oScatteringDir ); 
+                std::tie( bAccept, fIntensity ) = FAcceptFn( oScatteringDir ); 
                 if( bAccept )
                 {
                   IntersectDetectorCount[n] ++;

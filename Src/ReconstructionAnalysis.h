@@ -49,9 +49,9 @@
 #include "SampleReconstruction.h"
 #include "XDMVoxel.h"
 // For annoyomous functions
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/tuple/tuple.hpp>
+
+
+#include <tuple>
 
 namespace ReconstructionAnalysis
 {

@@ -51,7 +51,7 @@
 #include "Reconstructor.h"
 #include "DiscreteAdaptive.h"
 #include <ctime>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 namespace Reconstruction
 {
@@ -70,7 +70,7 @@ namespace Reconstruction
     // parameterization of GrainReconstruction later
     typedef SVoxel SamplePointT;
     typedef ReconstructionStrategy::SamplePointPtr SamplePointPtr;
-    typedef boost::shared_ptr< ReconstructionSetup >   ReconstructionSetupPtr;
+    typedef std::shared_ptr< ReconstructionSetup >   ReconstructionSetupPtr;
   private:    
     ReconstructionSetupPtr  pSetup;
     

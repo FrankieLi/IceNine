@@ -18,7 +18,7 @@
 #include "XDMVoxel.h"
 #include "MicIO.h"
 #include <boost/multi_array.hpp>
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include "MicMesh.h"
 #include "IteratorAdapter.h"
 #include <sstream>
@@ -91,7 +91,7 @@ namespace MicAnalysis
     typedef Shape ShapeT; //  for compatibility
     
     
-    typedef boost::shared_ptr<Shape>         ShapePtr;
+    typedef std::shared_ptr<Shape>         ShapePtr;
     typedef std::vector< ShapePtr >          ShapePtrList;
     typedef ShapePtrList::iterator           ShapePtrIter;
     typedef ShapePtrList::const_iterator     ConstShapePtrIter;
@@ -399,7 +399,7 @@ namespace MicAnalysis
   {
   public:
     typedef CMicGrid                          LayerContainer;
-    typedef boost::shared_ptr<LayerContainer> LayerContainerPtr;
+    typedef std::shared_ptr<LayerContainer> LayerContainerPtr;
   private:
     Float fMinSideLength;
     Float fInitialSideLength;
@@ -436,7 +436,7 @@ namespace MicAnalysis
       {
         ShapeTreePtr pNewTree = ShapeTreePtr( new ShapeTreeT( oPlanarBBox, fMinSideLength, fInitialSideLength ) );
         bool bSuccess;
-        boost::tie( pIter, bSuccess) = oObjLocator.insert( std::pair<Float, ShapeTreePtr>( fZ, pNewTree ) );
+        std::tie( pIter, bSuccess) = oObjLocator.insert( std::pair<Float, ShapeTreePtr>( fZ, pNewTree ) );
       }
       return pIter->second->Insert( oShape );
     }
@@ -453,7 +453,7 @@ namespace MicAnalysis
       {
         ShapeTreePtr pNewTree = ShapeTreePtr( new ShapeTreeT( oPlanarBBox, fMinSideLength, fInitialSideLength ) );
         bool bSuccess;
-        boost::tie( pIter, bSuccess) = oObjLocator.insert( std::pair<Float, ShapeTreePtr>( fZ, pNewTree ) );
+        std::tie( pIter, bSuccess) = oObjLocator.insert( std::pair<Float, ShapeTreePtr>( fZ, pNewTree ) );
       }
       return pIter->second->Insert( pShape );
     }
@@ -552,7 +552,7 @@ namespace MicAnalysis
   class RectMicGrid
   {
   public:
-    typedef boost::shared_ptr<ShapeT>        ShapePtr;
+    typedef std::shared_ptr<ShapeT>        ShapePtr;
     typedef std::vector< ShapePtr >          ShapePtrList;
     typedef typename ShapePtrList::iterator  ShapePtrIter;
     typedef typename boost::multi_array<ShapePtr, 2>  ShapeGridT;

@@ -32,7 +32,7 @@
 #include <vector>
 #include "Debug.h"
 #include "Types.h"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 
 using std::vector;
 using std::string;

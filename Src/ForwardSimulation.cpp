@@ -151,7 +151,7 @@ bool CXDMForwardSimulation::SimulateDetectorImagesOptimized( ImageMap & oSimData
 
 
   
-  boost::shared_ptr< CMic > pMic= boost::dynamic_pointer_cast<CMic>( oCurrentLayer.GetMic() );
+  std::shared_ptr< CMic > pMic= std::dynamic_pointer_cast<CMic>( oCurrentLayer.GetMic() );
 
   pMic->SetVoxelList( TestVoxelList );
 
@@ -209,7 +209,7 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
   //
   //  Note:  This loop cannot be parallelized due to the sparse matrix used.  (Memory access and all)
   //
-  boost::shared_ptr< CMic > pMic= boost::dynamic_pointer_cast<CMic>( oCurrentLayer.GetMic() );
+  std::shared_ptr< CMic > pMic= std::dynamic_pointer_cast<CMic>( oCurrentLayer.GetMic() );
 
   int nVoxelCount = 0;
   for( vector<SVoxel>::const_iterator pCurVoxel = pMic->VoxelListBegin();
@@ -303,7 +303,7 @@ void CXDMForwardSimulation::SimulatePeaksWithStrain_Debug( ImageMap & oSimData, 
   //
   //  Note:  This loop cannot be parallelized due to the sparse matrix used.  (Memory access and all)
   //
-  boost::shared_ptr< CMic > pMic= boost::dynamic_pointer_cast<CMic>( oCurrentLayer.GetMic() );
+  std::shared_ptr< CMic > pMic= std::dynamic_pointer_cast<CMic>( oCurrentLayer.GetMic() );
   for( vector<SVoxel>::const_iterator pCurVoxel = pMic->VoxelListBegin();
        pCurVoxel != pMic->VoxelListEnd(); pCurVoxel ++ )
   {

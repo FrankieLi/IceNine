@@ -54,7 +54,7 @@
 #include "SimulationData.h"
 #include "3dMath.h"
 #include <limits>
-#include "boost/tuple/tuple.hpp"
+#include <tuple>
 
 namespace OrientationSearch
 {
@@ -125,7 +125,7 @@ namespace OrientationSearch
       : CostFunction( CostFn_ )
     {
       
-      boost::tie( fSearchBoxWidth, fRadius )
+      std::tie( fSearchBoxWidth, fRadius )
         = Details::CalculateSearchParameter( LocalSearchParam );
       nMaxMCStep          = LocalSearchParam.nMaxMCSteps;
       fMaxConvergenceCost = LocalSearchParam.fMaxConvergenceCost;
@@ -151,7 +151,7 @@ namespace OrientationSearch
     {
       SMatrix3x3 oNewOrient;
       Float fCurrentCost;
-      boost::tie( oNewOrient, fCurrentCost)
+      std::tie( oNewOrient, fCurrentCost)
         = oMCOptimizer.RandomRestartZeroTemp( oCandidate.oOrientation,
                                               fRadius, fSearchBoxWidth,
                                               CostFunction, nMaxMCStep,
@@ -172,7 +172,7 @@ namespace OrientationSearch
     {
       SMatrix3x3 oNewOrient;
       Float fCurrentCost;
-      boost::tie( oNewOrient, fCurrentCost)
+      std::tie( oNewOrient, fCurrentCost)
         = oMCOptimizer.AdaptiveSamplingZeroTemp( v.oOrientMatrix,
                                                  DEGREE_TO_RADIAN( 0.5 ), fSearchBoxWidth,
                                                  CostFunction, nMaxMCStep,

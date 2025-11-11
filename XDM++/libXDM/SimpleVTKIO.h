@@ -19,9 +19,9 @@
 #include <map>
 #include <vector>
 
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/tuple/tuple.hpp>
+
+
+#include <tuple>
 
 namespace Visualization
 {

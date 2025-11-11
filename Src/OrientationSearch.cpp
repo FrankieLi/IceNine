@@ -139,7 +139,7 @@ namespace OrientationOptimization
   //--------------------------------------------------------------------------------------------------------
   //  Public:   ZeroTemperatureOptimization
   //--------------------------------------------------------------------------------------------------------
-  boost::tuple<SMatrix3x3, Float, Float>
+  std::tuple<SMatrix3x3, Float, Float>
   COrientationMC::ZeroTemperatureOptimizationWithVariance( const SMatrix3x3 & oInitialOrientation,
                                                            Float fAngularRadius, 
                                                            COverlapFunction & oObjectiveFunction,
@@ -193,7 +193,7 @@ namespace OrientationOptimization
       Variance = -1.0;
     
     // Named return value optimization
-    boost::tuple<SMatrix3x3, Float, Float> oRes = boost::make_tuple( oOptimalState, fMinimizedCost, Variance ); 
+    std::tuple<SMatrix3x3, Float, Float> oRes = std::make_tuple( oOptimalState, fMinimizedCost, Variance ); 
     return oRes;
   }
 
@@ -234,7 +234,7 @@ namespace OrientationOptimization
       Float fCurrentCost;
       SMatrix3x3 oTmpResOrient;
       
-      boost::tie( oTmpResOrient, fCurrentCost, fCurrentVariance )
+      std::tie( oTmpResOrient, fCurrentCost, fCurrentVariance )
         =  ZeroTemperatureOptimizationWithVariance( oCurrentState, SubregionRadius, 
                                                     oObjectiveFunction, NumSubregionSteps );
       if( fCurrentVariance > fConvergenceVariance )
@@ -321,7 +321,7 @@ namespace OrientationOptimization
       
       Float fCurrentCost;
       SMatrix3x3 oTmpResOrient;
-      boost::tie( oTmpResOrient, fCurrentCost ) =  ZeroTemperatureOptimization( oCurrentState, fCurAngularStepSize, 
+      std::tie( oTmpResOrient, fCurrentCost ) =  ZeroTemperatureOptimization( oCurrentState, fCurAngularStepSize, 
                                                                                 oObjectiveFunction, nOptimizationSteps );
       nTotalStepTaken += nOptimizationSteps;
       

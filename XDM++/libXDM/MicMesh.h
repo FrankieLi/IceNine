@@ -28,9 +28,9 @@
 #include "Geometry.h"
 #include "SimpleGraph.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
+#include <memory>
+
+
 
 #include "UniqueVertexMap.h"
 
@@ -189,7 +189,7 @@ namespace XDMUtility
     //-----------------------------------
  
     typedef SVoxel                              ShapeT; // to be removed to make MicMesh<ShapeT>
-    typedef boost::shared_ptr< ShapeT >         ShapePtr;
+    typedef std::shared_ptr< ShapeT >         ShapePtr;
     typedef FShapePtrLessCmp< ShapePtr >        ShapeWeakOrderCmp;
     
     typedef RangeSearch::CQuadtree< ShapePtr >          ShapeTreeT;
@@ -356,7 +356,7 @@ namespace XDMUtility
     typedef typename ShapeTreeT::ShapeT    ShapeT; // to be removed to make MicMesh<ShapeT>
     typedef typename ShapeTreeT::ShapePtr  ShapePtr;
     
-    typedef boost::shared_ptr< ShapeTreeT >           ShapeTreePtr;
+    typedef std::shared_ptr< ShapeTreeT >           ShapeTreePtr;
     typedef typename ShapeTreeT::BBox                 BBox2D;
     typedef GeneralLib::SBoundingBox                  BBox3D;
     typedef FNgbCollector<ShapePtr, BBox2D>           FNgbLookup2D;

@@ -221,7 +221,6 @@ namespace MicAnalysis
   CMicGrid::ShapePtrList
   CMicGrid::FindOverlap( const ShapeT & oCenter, Float fRelError ) const
   {
-    using namespace boost::lambda;
     vector<ShapePtr> oNgbs;
     BBox oCenterBB = oCenter.GetBoundingBox();
     Find( oNgbs, oCenterBB );

@@ -71,7 +71,7 @@ namespace Visualization
         oOutFile << vAllVoxels[i].pVertex[n] * Float( 1000 )  + SVector3( 500, 500, 0 )<< std::endl;  // DEBUG added * 1000 
       Bool bSuccess;
       std::map<Int, Int>::iterator pCur;
-      boost::tie( pCur, bSuccess )
+      std::tie( pCur, bSuccess )
         = oUniqueIDMap.insert( std::pair<Int, Int>( vAllVoxels[i].nGrainID,  nCurID ) );
       if( bSuccess )
         nCurID ++;

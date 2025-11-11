@@ -42,7 +42,7 @@ namespace XDMUtility
     {
       ShapeTreePtr pNewTree = ShapeTreePtr( new ShapeTreeT( oPlanarBBox, nMaxDepth, FErrorEstimator() ) );
       bool bSuccess;
-      boost::tie( pIter, bSuccess) = oObjLocator.insert( std::pair<Float, ShapeTreePtr>( fZ, pNewTree ) );
+      std::tie( pIter, bSuccess) = oObjLocator.insert( std::pair<Float, ShapeTreePtr>( fZ, pNewTree ) );
     }
     return pIter->second->Insert( oShape );
   }
@@ -61,7 +61,7 @@ namespace XDMUtility
     {
       ShapeTreePtr pNewTree = ShapeTreePtr( new ShapeTreeT( oPlanarBBox, nMaxDepth, FErrorEstimator() ) );
       bool bSuccess;
-      boost::tie( pIter, bSuccess) = oObjLocator.insert( std::pair<Float, ShapeTreePtr>( fZ, pNewTree ) );
+      std::tie( pIter, bSuccess) = oObjLocator.insert( std::pair<Float, ShapeTreePtr>( fZ, pNewTree ) );
     }
     pIter->second->Insert( pShape );
     return pShape;

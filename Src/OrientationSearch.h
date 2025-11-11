@@ -59,14 +59,14 @@
 #include <fstream>
 
 //  BOOST Mersenne Twister and distribution generators
-#include <boost/random/variate_generator.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_real.hpp>
+
+
+
 #include <boost/numeric/ublas/vector.hpp>
 
 #include "Quaternion.h"
 
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 
 using namespace GeneralLib;
 
@@ -180,9 +180,6 @@ namespace OrientationOptimization
   public:
 
     //    std::ofstream oLogFile;
-    
-  public:
-    typedef boost::variate_generator<boost::mt19937&, boost::uniform_real<> > RandomRealT;
 
   private:
 
@@ -256,7 +253,7 @@ namespace OrientationOptimization
                                  COverlapFunction & oObjectiveFunction,
                                  Int nMaxMCStep );
     
-    boost::tuple<SMatrix3x3, Float, Float>
+    std::tuple<SMatrix3x3, Float, Float>
     ZeroTemperatureOptimizationWithVariance( const SMatrix3x3 & oInitialOrientation,
                                              Float fAngularRadius, 
                                              COverlapFunction & oObjectiveFunction,

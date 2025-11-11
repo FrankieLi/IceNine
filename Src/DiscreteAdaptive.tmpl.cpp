@@ -219,7 +219,7 @@ namespace Reconstruction
                                                  oSetup.Data(), 1.0 ); // convergance ratio set to 1.0
     bool bConverged = false;
     SamplePointT Result;
-    boost::tie( Result, bConverged )
+    std::tie( Result, bConverged )
       =      LocalOptimization.FindOptimal( oInputVoxel,
                                             oSearchPointCandidates.begin(),
                                             oSearchPointCandidates.begin() + nLocalOptCandidates,

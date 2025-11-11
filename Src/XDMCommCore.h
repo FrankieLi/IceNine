@@ -50,9 +50,9 @@
 #include "MicIO.h"
 #include <cstdio>
 #include <ctime>
-#include <boost/random.hpp>
-#include <boost/tuple/tuple.hpp>
-#include <boost/shared_ptr.hpp>
+#include <random>
+#include <tuple>
+#include <memory>
 #include "Sampling.h"
 #include "Symmetry.h"
 #include "XDMParallel.h"

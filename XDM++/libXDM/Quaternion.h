@@ -16,17 +16,12 @@
 #include "3dMath.h"
 #include <limits>
 #include <math.h>
-#include <boost/random/variate_generator.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_real.hpp>
-
+#include <random>
 
 typedef Float FLOAT;
 
 namespace GeneralLib
 {
-  
-  typedef boost::variate_generator<boost::mt19937&, boost::uniform_real<> > RandomRealT;
   
   // Forward declearation
   class SQuaternion;
@@ -53,19 +48,9 @@ namespace GeneralLib
   class CRandomRotationGenerator
   {
   private:
-    boost::mt19937 oRngEngine;
-    RandomRealT oRandomReal;
+    std::mt19937 oRngEngine;
+    std::uniform_real_distribution<Float> oDistribution;
 
-    
-    //----------------------------------------------------------
-    //  Initialize the random number generator to the one
-    //  specified.  RandomRealT is defined here as a typedef
-    //  of a Boost random number generator type.
-    // 
-    //  CURRENT UNSUPPORTED AND UNIMPLEMENTED
-    //
-    //----------------------------------------------------------
-    CRandomRotationGenerator( const RandomRealT & oRandomNumberGenerator );
   public:
 
     //----------------------------------------------------------
@@ -73,8 +58,8 @@ namespace GeneralLib
     //                        automatically
     //----------------------------------------------------------
     CRandomRotationGenerator(): oRngEngine(),
-                                oRandomReal( oRngEngine , boost::uniform_real<>( 0, 1 ) )
-    {   
+                                oDistribution( 0, 1 )
+    {
     };
     
 

@@ -26,7 +26,7 @@ CSimpleUGraph< ObjT, Compare >::CSimpleUGraph( const CSimpleUGraph & oRhs )
 {
   oBoostGraph      = oRhs.oBoostGraph;
   oDataToVertexMap = oRhs.oDataToVertexMap;
-  oVertexToDataMap = boost::get( boost::vertex_name, oBoostGraph );
+  oVertexToDataMap = std::get( boost::vertex_name, oBoostGraph );
 }
 
 //-------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ void CSimpleUGraph< ObjT, Compare >::AddVertex( const ObjT &oNewVertex )
     return;
   
   // note that Vertex() is just a place holder
-  boost::tie( vMapPos, bInserted ) = oDataToVertexMap.insert( std::make_pair( oNewVertex, Vertex() ) );
+  std::tie( vMapPos, bInserted ) = oDataToVertexMap.insert( std::make_pair( oNewVertex, Vertex() ) );
 
   if ( bInserted )                                    // If data is not already added in the map
   {
@@ -75,7 +75,7 @@ void CSimpleUGraph< ObjT, Compare >::AddEdge( const ObjT &oV1, const ObjT & oV2 
   AddVertex( oV2 );
   Vertex u = oDataToVertexMap[ oV1 ];
   Vertex v = oDataToVertexMap[ oV2 ];
-  boost::tie( e, bAdded ) = add_edge( v, u, oBoostGraph );    // add edge
+  std::tie( e, bAdded ) = add_edge( v, u, oBoostGraph );    // add edge
 }
 
 //-------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ vector< ObjT > CSimpleUGraph<ObjT, Compare>::GetNeighbors( const ObjT & oVertex 
 
   AdjVertexIterT pNgb, pEnd;
   // vertices are unique - there can only be one element in the iterator
-  boost::tie( pNgb, pEnd ) = adjacent_vertices( pVertexIt->second, oBoostGraph );
+  std::tie( pNgb, pEnd ) = adjacent_vertices( pVertexIt->second, oBoostGraph );
 
  
   for(; pNgb != pEnd; pNgb ++ )
@@ -188,7 +188,7 @@ template< class ObjT, class Compare >
 vector< ObjT > CSimpleUGraph< ObjT, Compare >::GetVertices( ) const
 {
   VertexIteratorT pCur, pEnd;
-  boost::tie( pCur, pEnd )  = boost::vertices( oBoostGraph );
+  std::tie( pCur, pEnd )  = boost::vertices( oBoostGraph );
   vector< ObjT > vAllVertices(0);
 
   for( ; pCur != pEnd; ++ pCur )
@@ -208,7 +208,7 @@ CSimpleUGraph< ObjT, Compare> & CSimpleUGraph< ObjT, Compare >::operator=( const
 {
   oBoostGraph      = oRhs.oBoostGraph;
   oDataToVertexMap = oRhs.oDataToVertexMap;
-  oVertexToDataMap = boost::get( boost::vertex_name, oBoostGraph );
+  oVertexToDataMap = std::get( boost::vertex_name, oBoostGraph );
 
   return *this;
 }
@@ -225,7 +225,7 @@ void CSimpleUGraph< ObjT, Compare >::PrintGraph()
   EdgeIteratorT  ei;
   EdgeIteratorT  ei_end;
   
-  for ( boost::tie(ei, ei_end) = edges( oBoostGraph ); ei != ei_end; ++ei)
+  for ( std::tie(ei, ei_end) = edges( oBoostGraph ); ei != ei_end; ++ei)
   {
     std::cout << "(" << oVertexToDataMap[source( *ei, oBoostGraph )] 
               << "," << oVertexToDataMap[target( *ei, oBoostGraph )] << ") ";

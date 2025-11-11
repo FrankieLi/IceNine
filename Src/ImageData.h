@@ -67,7 +67,7 @@
 #include <boost/pending/disjoint_sets.hpp>
 #include <boost/graph/incremental_components.hpp>
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "DetectorData.h"
 #include "XDMRaster.h"
@@ -281,7 +281,7 @@ namespace Geometry2D
 namespace RangeSearch
 {
 
-  typedef boost::shared_ptr<CDetectorPeak> CPeakPtr;
+  typedef std::shared_ptr<CDetectorPeak> CPeakPtr;
   
   //-------------------------------------------------------------------------------------
   //  Class CPeakQuadtree -- a specialized class that has an early exit for
@@ -455,7 +455,7 @@ private:
   //------------------------------
   //  need an int-> pointer map.
   //------------------------------
-  typedef boost::shared_ptr<BBox2D> BBoxPtr;
+  typedef std::shared_ptr<BBox2D> BBoxPtr;
   std::map< Int, BBoxPtr > IndexToPeakMap;
 
   RangeSearch::CPeakQuadtree oPeakTree;

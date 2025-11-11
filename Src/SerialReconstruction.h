@@ -48,7 +48,7 @@
 #include "Reconstructor.h"
 #include "DiscreteAdaptive.h"
 #include <ctime>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 namespace Reconstruction
 {
@@ -77,7 +77,7 @@ namespace Reconstruction
     {
       RUNTIME_ASSERT( oConfigFile.nMicGridType == eTriangular, "Non-triangular grid not implemented for serial reconstruction\n" );
       oSetup.InitializeWithDataFiles( oConfigFile );
-      boost::shared_ptr<CMic> pMic= boost::dynamic_pointer_cast<CMic>( oSetup.ReconstructionRegion());
+      std::shared_ptr<CMic> pMic= std::dynamic_pointer_cast<CMic>( oSetup.ReconstructionRegion());
       VoxelQueue.Initialize( *pMic,
                              oSetup.MinSideLength() );
       oSimulator.Initialize( oSetup.ExperimentalSetup() );
@@ -97,13 +97,13 @@ namespace Reconstruction
         Int nCode;
         time_t oStartTime, oStopTime;
         time( & oStartTime );
-        boost::tie( Result, nCode ) = Reconstructor.ReconstructVoxel( VoxelQueue.First() );
+        std::tie( Result, nCode ) = Reconstructor.ReconstructVoxel( VoxelQueue.First() );
         time( & oStopTime );
         double oTimeDiff = difftime( oStopTime, oStartTime );
         std::cout << "Normal Reconstruction " << oTimeDiff << " sec " << std::endl;
         
         time( & oStartTime );
-        boost::tie( Result, nCode ) = AdpReconstructor.ReconstructVoxel( VoxelQueue.First() );
+        std::tie( Result, nCode ) = AdpReconstructor.ReconstructVoxel( VoxelQueue.First() );
         time( & oStopTime );
         oTimeDiff = difftime( oStopTime, oStartTime );
         std::cout << "Adaptive Reconstruction " << oTimeDiff << " sec " << std::endl;

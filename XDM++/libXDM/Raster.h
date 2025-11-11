@@ -34,7 +34,7 @@
 #include "Error.h"
 
 
-#include <boost/function.hpp>
+#include <functional>
 
 #define BOOST_UBLAS_STRICT_MATRIX_SPARSE
 using std::ofstream;
