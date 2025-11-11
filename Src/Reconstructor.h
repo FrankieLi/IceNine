@@ -57,7 +57,7 @@
 #include "ContinuousSearch.h"
 #include "SearchTraits.h"
 #include <ctime>
-#include "boost/tuple/tuple.hpp"
+#include <tuple>
 
 
 namespace Reconstruction

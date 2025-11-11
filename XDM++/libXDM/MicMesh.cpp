@@ -96,7 +96,6 @@ namespace XDMUtility
   vector<CMicMesh::ShapePtr>
   CMicMesh::FindOverlap( const ShapeT &oCenter, Float fRelError ) const
   {
-    using namespace boost::lambda;
     vector<ShapePtr> oNgbs;
     BBox oCenterBB = oCenter.GetBoundingBox();
     Float fError = FErrorEstimator();      // extend Bounding box by epsilon of this mesh

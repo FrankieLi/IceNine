@@ -12,7 +12,7 @@
 #include <vector>
 #include "Serializer.h"
 #include <boost/circular_buffer.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <deque>
 #include "Types.h"
 #include "Error.h"
@@ -365,7 +365,7 @@ namespace XDMMPI
   class AMpi
   {
   public:
-    typedef boost::shared_ptr< GeneralLib::CSerializer > SerializerPtr;
+    typedef std::shared_ptr< GeneralLib::CSerializer > SerializerPtr;
 
   protected:
 

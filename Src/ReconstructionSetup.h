@@ -50,12 +50,12 @@
 #ifndef RECONSTRUCTION_SETUP_H
 #define RECONSTRUCTION_SETUP_H
 
-#include <boost/function.hpp>
+#include <functional>
 #include "boost/multi_array.hpp"
 #include "Quaternion.h"
 #include "Serializer.h"
 #include "Symmetry.h"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <limits>
 #include "OverlapInfo.h"
 #include "SimulationData.h"

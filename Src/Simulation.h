@@ -74,7 +74,7 @@
 #include "SimulationData.h"
 #include "boost/multi_array.hpp"
 #include "ProgramLimits.h"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 
 #include "DiffractionCore.h"    // All inline functions are here
 #include "PeakFilters.h"

@@ -62,7 +62,7 @@
 #include "SimpleGraph.h"
 #include "Serializer.h"
 #include <boost/pending/disjoint_sets.hpp>
-#include <boost/function.hpp>
+#include <functional>
 
 #include <boost/numeric/ublas/vector_of_vector.hpp>
 

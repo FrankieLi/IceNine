@@ -281,7 +281,7 @@ namespace GeneralLib
       else
         bSamplePointViolation = false;
         
-      return std::make_pair<Bool, SQuaternion>( bSamplePointViolation, oViolatingPoint );
+      return std::make_pair( bSamplePointViolation, oViolatingPoint );
     }
 
     //---------------------------------------------------------------------------------------
@@ -338,7 +338,7 @@ namespace GeneralLib
         Bool bSamplePointViolation;
         SQuaternion oViolatingNgb;
         vector<SQuaternion>::iterator pCurPointPtr = oOrientationGrid.begin()  + i;
-        boost::tie( bSamplePointViolation, oViolatingNgb ) = GetViolatingPoint( pCurPointPtr, oOrientationGrid,
+        std::tie( bSamplePointViolation, oViolatingNgb ) = GetViolatingPoint( pCurPointPtr, oOrientationGrid,
                                                                                 oSym, fMinMisorientation );
 
         //----------------------------------------------------
@@ -465,23 +465,17 @@ namespace GeneralLib
     //---------------------------------------------------------------------------------------
     vector<SQuaternion> CQuaternionGrid::GetRandomLocalGrid( Float fMaxDistance, Int nGridPoints ) const
     {
-      boost::mt19937 oRngEngine;
-      RandomRealT oRandomReal( oRngEngine , boost::uniform_real<>( -fMaxDistance/2.0, fMaxDistance/2.0 ) );
-      vector<SQuaternion> oLocalGrid;      
+      std::mt19937 oRngEngine;
+      std::uniform_real_distribution<Float> oDistribution( -fMaxDistance/2.0, fMaxDistance/2.0 );
+      vector<SQuaternion> oLocalGrid;
       for ( Int i = 0; i < nGridPoints; i ++ )
       {
-        SQuaternion oGridPoint = GetNearIdentityPoint( oRandomReal(), oRandomReal(), oRandomReal() );
+        SQuaternion oGridPoint = GetNearIdentityPoint( oDistribution(oRngEngine),
+                                                        oDistribution(oRngEngine),
+                                                        oDistribution(oRngEngine) );
         oLocalGrid.push_back( oGridPoint );
       }
       return oLocalGrid;
-    }
-    
-    //---------------------------------------------------------------------------------------
-    //  GetRandomLocalPoint
-    //---------------------------------------------------------------------------------------
-    SQuaternion CQuaternionGrid::GetRandomLocalPoint( RandomRealT & oRandomReal ) const
-    {
-      return GetNearIdentityPoint( oRandomReal(), oRandomReal(), oRandomReal() );
     }
     
     //---------------------------------------------------------------------------------------

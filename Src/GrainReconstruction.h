@@ -48,7 +48,7 @@
 #include "Reconstructor.h"
 #include "DiscreteAdaptive.h"
 #include <ctime>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 namespace Reconstruction
 {
@@ -73,7 +73,7 @@ namespace Reconstruction
     typedef ReconstructionStrategies::BreadthFirstStrategy<SamplePointT, SamplePointGrid> ReconstructionStrategy;
     
     typedef ReconstructionStrategy::SamplePointPtr SamplePointPtr;
-    typedef boost::shared_ptr< ReconstructionSetup >   ReconstructionSetupPtr;
+    typedef std::shared_ptr< ReconstructionSetup >   ReconstructionSetupPtr;
   private:    
     ReconstructionSetupPtr  pSetup;
     ReconstructionStrategy  VoxelQueue;   // acts as a queue
@@ -88,7 +88,7 @@ namespace Reconstruction
       RUNTIME_ASSERT( oConfigFile.nMicGridType == eTriangular, 
 		      "Non-triangular grid not implemented for serial reconstruction\n" );
       pSetup->InitializeWithDataFiles( oConfigFile );
-      boost::shared_ptr<Mic> pMic= boost::dynamic_pointer_cast<Mic>( pSetup->ReconstructionRegion());
+      std::shared_ptr<Mic> pMic= std::dynamic_pointer_cast<Mic>( pSetup->ReconstructionRegion());
       VoxelQueue.Initialize( *pMic,
                              pSetup->MinSideLength() );
       oSimulator.Initialize( pSetup->ExperimentalSetup() );
@@ -108,7 +108,7 @@ namespace Reconstruction
       
       int nCenterCode;
       
-      boost::tie( Center, nCenterCode ) = AdpReconstructor.ReconstructVoxel( Center  );    // Fit center
+      std::tie( Center, nCenterCode ) = AdpReconstructor.ReconstructVoxel( Center  );    // Fit center
       CostFunctions::SOverlapInfo oInfo = AdpReconstructor.EvaluateOverlapInfo( Center );
       Center.fConfidence        = CostFunctions::Utilities::GetConfidence( oInfo );
       Center.fPixelOverlapRatio = CostFunctions::Utilities::GetHitRatio  ( oInfo );
@@ -156,8 +156,8 @@ namespace Reconstruction
       
       ReconstructionStrategy InitialPoints;
       
-      boost::shared_ptr< Mic > pMic 
-	= boost::dynamic_pointer_cast<Mic>( pSetup->ReconstructionRegion() );
+      std::shared_ptr< Mic > pMic 
+	= std::dynamic_pointer_cast<Mic>( pSetup->ReconstructionRegion() );
       
       InitialPoints.Initialize( *pMic,
 				pSetup->MinSideLength(),

@@ -50,7 +50,7 @@
 
 #include "ParallelReconstructor.h"
 #include "DiscreteAdaptive.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <queue>
 #include "XDMCommCore.h"
 #include <limits>
@@ -90,7 +90,7 @@ namespace ParallelReconstructor
       public BFSFitCmd
   {
   public:
-    typedef boost::shared_ptr< Reconstructor >  ReconstructorPtr;
+    typedef std::shared_ptr< Reconstructor >  ReconstructorPtr;
     typedef ReconstructionStrategies::BreadthFirstStrategy<SamplePointT, SamplePointGrid> ReconstructionStrategy;
     typedef PBRMath::BBox2D                                       BBox2D;
     typedef typename ReconstructionStrategy::SamplePointPtr       SamplePointPtr;
@@ -143,7 +143,7 @@ namespace ParallelReconstructor
     typedef ReconstructionStrategies::RestrictedStratifiedGrid< SamplePointT,SamplePointGrid > ReconstructionStrategy;
     typedef XDMParallel::SingleElementDistribution                                             SingleElementDistributor;
     typedef MicFile<SamplePointT>                                                              Mic;
-    typedef boost::shared_ptr<MicIOBase>                                                       MicPtr;
+    typedef std::shared_ptr<MicIOBase>                                                       MicPtr;
   protected:
     
     int nMyID;

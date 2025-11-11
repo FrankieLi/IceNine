@@ -75,7 +75,7 @@ namespace Reconstruction
       SVoxel Result = oInputVoxel;
       Reconstructor::LocalOptimization( Result );
 
-      return make_pair< SVoxel, Int >( Result,
+      return make_pair( Result,
                                        CostFunctions::Utilities::ClassifyConvergence( Result, oCompleteLocalSearch ) );
     }
     

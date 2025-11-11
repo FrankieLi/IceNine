@@ -130,7 +130,7 @@ void CSimulation::GetProjectedVertices( ProjectedPixelMap & vProjectedPixels,
 
   bool bAccept;
   Float fIntensity;
-  boost::tie( bAccept, fIntensity ) = FPeakAcceptFilter( oReflectedRayDir ); 
+  std::tie( bAccept, fIntensity ) = FPeakAcceptFilter( oReflectedRayDir ); 
   if( ! bAccept )
     return;
   

@@ -57,7 +57,7 @@
 #include "CrystalStructure.h"
 #include "Serializer.h"
 #include "Symmetry.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 using namespace GeneralLib;
 
@@ -72,7 +72,7 @@ using namespace GeneralLib;
 class CSample
 {
 public:
-  typedef boost::shared_ptr< MicIOBase > MicIOPtrT;
+  typedef std::shared_ptr< MicIOBase > MicIOPtrT;
 private:
   
   // Sample orientation and location in Lab coordinates

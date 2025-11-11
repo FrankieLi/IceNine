@@ -271,7 +271,7 @@ namespace ReconstructionStrategies
   class GridStrategyTools
   {
   public:
-    typedef boost::shared_ptr< SamplePointT > SamplePointPtr;
+    typedef std::shared_ptr< SamplePointT > SamplePointPtr;
     
   protected:
     
@@ -314,7 +314,7 @@ namespace ReconstructionStrategies
   public:
     typedef typename GridStrategyTools< SamplePointT, SamplePointGrid >::SamplePointPtr SamplePointPtr;
     typedef MicFile<SamplePointT> Mic;
-    typedef boost::shared_ptr< Mic > MicPtr;
+    typedef std::shared_ptr< Mic > MicPtr;
     
     Mic         ReconstructionRegion;
     

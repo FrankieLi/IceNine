@@ -81,7 +81,7 @@ namespace XDMParallel
   //
   //  Parameter:  Postfix is used to for intermediate files
   //---------------------------------------------------------------------------
-  void CParallelServer::WriteFitResult( boost::shared_ptr<MicIOBase> pMic, const string & oPostFix,
+  void CParallelServer::WriteFitResult( std::shared_ptr<MicIOBase> pMic, const string & oPostFix,
                                         bool bReduceToFZ )
 
   {
@@ -112,13 +112,13 @@ namespace XDMParallel
         case eTriangular:
           {
             XDMUtility
-              ::ReduceToFundamentalZone( *( boost::dynamic_pointer_cast<TriangleMic>( pMic ) ), *pSym );
+              ::ReduceToFundamentalZone( *( std::dynamic_pointer_cast<TriangleMic>( pMic ) ), *pSym );
             break;
           }
         case eSquare:
           {
             XDMUtility
-            ::ReduceToFundamentalZone( *( boost::dynamic_pointer_cast<SquareMic>  ( pMic ) ), *pSym );
+            ::ReduceToFundamentalZone( *( std::dynamic_pointer_cast<SquareMic>  ( pMic ) ), *pSym );
           break;
           }
         default:
@@ -197,7 +197,7 @@ namespace XDMParallel
           std::cout << "begin processing, triangle " << std::endl;
           Server.Process();
           MicIOPtrT pResult = oSetup.PartialResult();
-          *( boost::dynamic_pointer_cast<LBFS::Mic>( pResult )) = Server.Solution();
+          *( std::dynamic_pointer_cast<LBFS::Mic>( pResult )) = Server.Solution();
         }
         break;
       case eSquare:
@@ -208,7 +208,7 @@ namespace XDMParallel
           std::cout << "begin processing, square " << std::endl;
           Server.Process();
           MicIOPtrT pResult = oSetup.PartialResult();
-          *( boost::dynamic_pointer_cast<LBFS::Mic>(pResult) ) = Server.Solution();
+          *( std::dynamic_pointer_cast<LBFS::Mic>(pResult) ) = Server.Solution();
           break;
         }
       default:
@@ -255,7 +255,7 @@ namespace XDMParallel
     if ( oSetup.InputParameters().bUsePartialResult )
     {
 //       typedef LBFS::Mic TriangleMic;
-//       boost::shared_ptr< TriangleMic > pPartialResult= boost::dynamic_pointer_cast<TriangleMic>( oSetup.PartialResult() );
+//       std::shared_ptr< TriangleMic > pPartialResult= std::dynamic_pointer_cast<TriangleMic>( oSetup.PartialResult() );
 //       Server.InitializeRestart( *pPartialResult );
       Server.InitializeRestart( oSetup.PartialResult() );
       std::cout << " Restarting fit from partial result " << std::endl;

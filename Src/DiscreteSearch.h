@@ -49,9 +49,7 @@
 #include "Quaternion.h"
 #include "ExperimentSetup.h"
 
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include "MicGrid.h"
 #include "Utilities.h"
 #include "SearchDetails.h"
@@ -272,9 +270,8 @@ namespace OrientationSearch
         oSearchProcess( _Sample, _DetList, _RMap, _Data,
                         oVoxelCostFunction, oAcceptFn, oSimulator )
     {
-      using boost::tuple;
-      using namespace boost::lambda;
-      using boost::get;
+      using std::tuple;
+      using std::get;
 
       //----------------------------------------
       //   Need to change this to get to strain compatible - need a template parameter
@@ -282,7 +279,7 @@ namespace OrientationSearch
       oRecipVectors = oCryStructList[ nPhase ].GetReflectionVectorList();  
       //----------------------------------------
       std::sort( oRecipVectors.begin(), oRecipVectors.end(),
-                 bind( &CRecpVector::fMag, _1) < bind( &CRecpVector::fMag, _2) );
+                 [](const CRecpVector& a, const CRecpVector& b) { return a.fMag < b.fMag; } );
     }
     
     //--------------------------------------------------
@@ -294,14 +291,13 @@ namespace OrientationSearch
                                       SearchPointIterT pEnd,
                                       Float fQMax )
     {
-      using boost::tuple;
-      using namespace boost::lambda;
-      using boost::get;
+      using std::tuple;
+      using std::get;
       
       typedef vector<CRecpVector>::iterator RecpIter;
       RecpIter pRecpEnd = std::find_if( oRecipVectors.begin(),
                                         oRecipVectors.end(),
-                                        bind( &CRecpVector::fMag, _1) > fQMax  );
+                                        [fQMax](const CRecpVector& v) { return v.fMag > fQMax; } );
       
       typedef OrientationSearch::TrivialPropertyMap  PropMap;
       vector<SCandidate> oRes;
@@ -325,14 +321,13 @@ namespace OrientationSearch
                                                       Float fAngularRadius,
                                                       SymmetryT & oSym )
     {
-      using boost::tuple;
-      using namespace boost::lambda;
-      using boost::get;
+      using std::tuple;
+      using std::get;
       
       typedef vector<CRecpVector>::iterator RecpIter;
       RecpIter pRecpEnd = std::find_if( oRecipVectors.begin(),
                                         oRecipVectors.end(),
-                                        bind( &CRecpVector::fMag, _1) > fQMax  );
+                                        [fQMax](const CRecpVector& v) { return v.fMag > fQMax; } );
       
       typedef OrientationSearch::TrivialPropertyMap  PropMap;
       vector< vector< SCandidate> > oRes;
@@ -429,14 +424,13 @@ namespace OrientationSearch
                                                        Float fAngularRadius,
                                                        SymmetryT & oSym )
     {
-      using boost::tuple;
-      using namespace boost::lambda;
-      using boost::get;
+      using std::tuple;
+      using std::get;
       
       typedef vector<CRecpVector>::iterator RecpIter;
       RecpIter pRecpEnd = std::find_if( oRecipVectors.begin(),
                                         oRecipVectors.end(),
-                                        bind( &CRecpVector::fMag, _1) > fQMax  );
+                                        [fQMax](const CRecpVector& v) { return v.fMag > fQMax; } );
       
       typedef OrientationSearch::TrivialPropertyMap  PropMap;
       vector< vector< SCandidate> > oRes;

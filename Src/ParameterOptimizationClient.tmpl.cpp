@@ -170,7 +170,7 @@ namespace ParallelReconstructor
     {
       SamplePointT Result;
       Int nResultCode;
-      boost::tie( Result, nResultCode ) = pReconstructor->ReconstructVoxel( oWorkUnitList[i] );
+      std::tie( Result, nResultCode ) = pReconstructor->ReconstructVoxel( oWorkUnitList[i] );
       if( nResultCode == SearchDetails::CONVERGED
           || nResultCode == SearchDetails::PARTIAL )
         vOptResult[i].bConverged = true;
@@ -270,7 +270,7 @@ namespace ParallelReconstructor
 
     typedef typename LazyBFSClient<SamplePointT, Reconstructor,
                                    SamplePointGrid>::Mic Mic;
-    boost::shared_ptr<Mic> pMic = boost::dynamic_pointer_cast<Mic>(
+    std::shared_ptr<Mic> pMic = std::dynamic_pointer_cast<Mic>(
         this->LocalSetup.ReconstructionRegion());
     VoxelQueue.Initialize(*pMic, LocalSetup.MinSideLength());
 

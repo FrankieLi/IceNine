@@ -51,7 +51,7 @@
 #include "XDMCommCore.h"
 #include "Reconstructor.h"
 #include "DiscreteAdaptive.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "BreadthFirstReconstructor.h"
 #include "LocalOptimizationAdaptor.h"
 #include "ParameterOptimization.h"

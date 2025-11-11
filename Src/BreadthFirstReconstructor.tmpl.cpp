@@ -63,7 +63,7 @@ namespace ParallelReconstructor
   void LazyBFSClient<SamplePointT, R, G>::Initialize( )
   {
     typedef typename LazyBFSClient<SamplePointT, R, G>::Mic Mic;
-    boost::shared_ptr< Mic > pMic= boost::dynamic_pointer_cast<Mic>( LocalSetup.ReconstructionRegion() );
+    std::shared_ptr< Mic > pMic= std::dynamic_pointer_cast<Mic>( LocalSetup.ReconstructionRegion() );
     VoxelQueue.Initialize( *pMic,
                            LocalSetup.MinSideLength() );
 
@@ -126,7 +126,7 @@ namespace ParallelReconstructor
     {
       time_t oStartTime, oStopTime;
       time( &oStartTime );
-      boost::tie( oResult, nCenterCode ) = pReconstructor->ReconstructVoxel( oCenter );
+      std::tie( oResult, nCenterCode ) = pReconstructor->ReconstructVoxel( oCenter );
       time( &oStopTime );
       double oTimeDiff = difftime( oStopTime, oStartTime );
       GET_LOG( osLogFile ) << "  First Voxel Required: " << oTimeDiff << " Sec " << std::endl;
@@ -306,8 +306,8 @@ namespace ParallelReconstructor
   void LazyBFSServer<SamplePointT, SamplePointGrid>::Initialize( )
   {
     typedef typename LazyBFSServer<SamplePointT, SamplePointGrid>::Mic Mic;
-    boost::shared_ptr< Mic > pMic     = boost::dynamic_pointer_cast<Mic>( LocalSetup.ReconstructionRegion() );
-    boost::shared_ptr< Mic > pPartial = boost::dynamic_pointer_cast<Mic>( LocalSetup.PartialResult() );
+    std::shared_ptr< Mic > pMic     = std::dynamic_pointer_cast<Mic>( LocalSetup.ReconstructionRegion() );
+    std::shared_ptr< Mic > pPartial = std::dynamic_pointer_cast<Mic>( LocalSetup.PartialResult() );
     if ( LocalSetup.InputParameters().bUsePartialResult )
     {
       GET_LOG( osLogFile ) << "Restarting with partial result " << std::endl;
@@ -343,7 +343,7 @@ namespace ParallelReconstructor
   ::Initialize( typename LazyBFSServer<SamplePointT, SamplePointGrid>::MicPtr StartPoint )
   {
     typedef typename LazyBFSServer<SamplePointT, SamplePointGrid>::Mic Mic;
-    boost::shared_ptr< Mic > pStartPoint = boost::dynamic_pointer_cast<Mic>( StartPoint );
+    std::shared_ptr< Mic > pStartPoint = std::dynamic_pointer_cast<Mic>( StartPoint );
     VoxelQueue.Initialize( *pStartPoint,
                            pStartPoint->GetMinSideLength(),
                            LocalSetup.InputParameters().SampleCenter,

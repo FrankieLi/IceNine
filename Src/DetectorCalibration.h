@@ -51,7 +51,7 @@
 #include "Reconstructor.h"
 #include "DiscreteAdaptive.h"
 #include <ctime>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "GrainReconstruction.h"
 #include <Eigen/Dense>
 

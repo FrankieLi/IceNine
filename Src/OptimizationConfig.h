@@ -53,7 +53,7 @@
 #include <string>
 #include "InitFilesIO.h"
 #include <vector>
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <sstream>
 
 

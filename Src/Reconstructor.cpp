@@ -222,7 +222,7 @@ namespace Reconstruction
       Int nElements = std::min( Int( oSearchPointCandidates.size() ), InputParam.nMaxDiscreteCandidates );
       
       bool bConverged = false;
-      boost::tie( Result, bConverged )
+      std::tie( Result, bConverged )
         =      LocalOptimization.FindOptimal( oInputVoxel,
                                               oSearchPointCandidates.begin(),
                                               oSearchPointCandidates.begin() + nElements,

@@ -29,7 +29,7 @@
 #include <assert.h>
 #include "Types.h"
 #include "Serializer.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <cmath>
 
 using std::cerr;
@@ -65,7 +65,7 @@ typedef MicFile< SVoxel > CMic;
 class MicIOBase
 {
 public:
-  typedef boost::shared_ptr< MicIOBase > MicIOBasePtr;
+  typedef std::shared_ptr< MicIOBase > MicIOBasePtr;
   
   virtual      ~MicIOBase(){}
   virtual bool Read( const string &filename )              = 0;
@@ -204,10 +204,12 @@ public:
   virtual bool InitializeToResolution ( Float & fMinRes )
   {
     RUNTIME_ASSERT(0, "Initialize to Resolution does not work for MicFileBase");
+    return false;
   }
   virtual bool SetMinResolution       ( Float fMinRes )
   {
     RUNTIME_ASSERT(0, "Set Min Set min Resolution does not work for MicFileBase");
+    return false;
   }
   virtual void InitializeSampleLimits( const MicIOBase * pMicPtr )
   {
@@ -776,7 +778,7 @@ public:
       case eTriangular:
         {
           std::cout << "Created Triangular mic " << std::endl;
-          MicIOPtr p = MicIOPtr( new TriangularMic() ) ;   // named ptr from "Best Practice" of boost::shared_ptr
+          MicIOPtr p = MicIOPtr( new TriangularMic() ) ;   // named ptr from "Best Practice" of std::shared_ptr
           return p;
         }
       case eSquare:

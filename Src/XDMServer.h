@@ -50,7 +50,7 @@
 #include "XDMCommCore.h"
 #include "BreadthFirstReconstructor.h"
 #include "MicIO.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "ParameterOptimization.h"
 namespace XDMParallel
 {
@@ -62,7 +62,7 @@ namespace XDMParallel
   class CParallelServer : public core::CParallelDetails
   {
   private:
-    typedef boost::shared_ptr<MicIOBase>    MicFilePtrT;
+    typedef std::shared_ptr<MicIOBase>    MicFilePtrT;
     
   protected:
     CConfigFile oLocalConfigFile;

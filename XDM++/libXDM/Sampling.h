@@ -17,11 +17,8 @@
 #include "Quaternion.h"
 #include "Symmetry.h"
 #include <vector>
-#include <boost/random/variate_generator.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_real.hpp>
-
-#include <boost/tuple/tuple.hpp>
+#include <random>
+#include <tuple>
 
 using std::vector;
 
@@ -36,30 +33,29 @@ namespace GeneralLib
   class CUniformRandomReal
   {
   private:
-    typedef boost::variate_generator<boost::mt19937&, boost::uniform_real<> > RandomRealT;
-    boost::mt19937  oRngEngine;
-    RandomRealT     oRandomReal;
+    std::mt19937  oRngEngine;
+    std::uniform_real_distribution<Float> oDistribution;
   public:
 
     //---------------------------------------------------------------------
     //  Constructor specifying a range
     //---------------------------------------------------------------------
     CUniformRandomReal( Float fMin, Float fMax ): oRngEngine(),
-      oRandomReal( oRngEngine , boost::uniform_real<>( fMin, fMax ) ){}
-    
+      oDistribution( fMin, fMax ) {}
+
     //---------------------------------------------------------------------
     //  Default constructor (range is [0, 1) )
     //---------------------------------------------------------------------
     CUniformRandomReal(): oRngEngine(),
-      oRandomReal( oRngEngine , boost::uniform_real<>( 0, 1 ) ){}
-    
+      oDistribution( 0, 1 ) {}
+
     //---------------------------------------------------------------------
-    //  GetRandomVariable 
+    //  GetRandomVariable
     //---------------------------------------------------------------------
     Float GetRandomVariable( Float fMin, Float fMax )
     {
-      Float fScale = fMax - fMin;
-      return fScale * oRandomReal() + fMin;
+      std::uniform_real_distribution<Float> dist( fMin, fMax );
+      return dist( oRngEngine );
     }
 
     //---------------------------------------------------------------------
@@ -69,7 +65,7 @@ namespace GeneralLib
     //---------------------------------------------------------------------
     Float GetRandomVariable( )
     {
-      return oRandomReal();
+      return oDistribution( oRngEngine );
     }
 
     //---------------------------------------------------------------------
@@ -77,9 +73,9 @@ namespace GeneralLib
     //---------------------------------------------------------------------
     Float operator()()
     {
-      return oRandomReal();
+      return oDistribution( oRngEngine );
     }
-    
+
     //---------------------------------------------------------------------
     //  operator() - to be used as a functor
     //---------------------------------------------------------------------
@@ -329,7 +325,6 @@ namespace UniformGrid
     //
     //---------------------------------------------------------------------------------------
     vector<SQuaternion> GetRandomLocalGrid( Float fMaxDistance, Int nGridPoints ) const;
-    SQuaternion GetRandomLocalPoint( RandomRealT & oRandReal ) const;
 
     //---------------------------------------------------------------------------------------
     //

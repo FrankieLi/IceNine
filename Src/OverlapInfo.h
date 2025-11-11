@@ -48,17 +48,17 @@
 #define OVERLAP_INFO_H_
 
 #include "Simulation.h"
-#include <boost/random/variate_generator.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_real.hpp>
-#include <boost/function.hpp>
+
+
+
+#include <functional>
 #include "boost/multi_array.hpp"
 #include "Quaternion.h"
 #include "OrientationSearch.h"
 #include "Sampling.h"
 #include "Serializer.h"
 #include "Symmetry.h"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <limits>
 #include "SearchDetails.h"
 #include "PeakFilters.h"
@@ -495,7 +495,7 @@ namespace CostFunctions
       //   remove the "const-ness" of the object without (logically)
       //   disrupting all callers of TrianglePixelOverlapCounter().
       //----------------------------------------------
-      boost::tie( nPixelOverlap, nPixelProduced )
+      std::tie( nPixelOverlap, nPixelProduced )
         = const_cast< ImageT &>( oImage ).GetTriangleOverlapProperty( p1, p2, p3 );
       
       oOverlapInfo.nPixelOverlap    += nPixelOverlap;
@@ -563,7 +563,7 @@ namespace CostFunctions
       //   remove the "const-ness" of the object without (logically)
       //   disrupting all callers of TrianglePixelOverlapCounter().
       //----------------------------------------------
-      boost::tie( nPixelOverlap, nPixelProduced )
+      std::tie( nPixelOverlap, nPixelProduced )
         = const_cast< ImageT &>( oImage ).GetSquareOverlapProperty( p1, p2, p3, p4 );
       
       oOverlapInfo.nPixelOverlap    += nPixelOverlap;

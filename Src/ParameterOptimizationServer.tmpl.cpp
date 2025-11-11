@@ -222,7 +222,7 @@ namespace ParallelReconstructor
     //
     //----------------------------------
     template<  class SamplePointT, class SamplePointGrid >
-    boost::tuple< std::vector< SDetParamMsg  >, Float, SEnergyOpt >
+    std::tuple< std::vector< SDetParamMsg  >, Float, SEnergyOpt >
     ParameterOptimizationServer< SamplePointT, SamplePointGrid >
     ::LocalParamOptimization( const SEnergyOpt            & oEnergyLoc,
                               const vector<SDetParamMsg>  & vDetParams,
@@ -294,7 +294,7 @@ namespace ParallelReconstructor
         GET_LOG( osLogFile ) << "Optimal from: " << nClientID << " " << fCost <<  std::endl;
         nReported ++;
       }
-      return boost::make_tuple( vBestParam, fBestCost, oBestEnergyParam );
+      return std::make_tuple( vBestParam, fBestCost, oBestEnergyParam );
     }
 
 
@@ -354,7 +354,7 @@ namespace ParallelReconstructor
         Bool bFitSuccess = false;
         if( bFitNewVoxels )
         {
-          boost::tie(vSamplePoints, bFitSuccess) = GetNConvergedElements( );
+          std::tie(vSamplePoints, bFitSuccess) = GetNConvergedElements( );
           VoxelQueue.RandomizeReset();
           bFitNewVoxels = false;
         }
@@ -365,7 +365,7 @@ namespace ParallelReconstructor
           SEnergyOpt            OptimizedEnergyLoc;
           vector<SDetParamMsg>   OptimizedParams;
           Float                 fCurrentCost = 2;
-          boost::tie( OptimizedParams, fCurrentCost, OptimizedEnergyLoc ) =
+          std::tie( OptimizedParams, fCurrentCost, OptimizedEnergyLoc ) =
             LocalParamOptimization( oEnergyLoc, vCurrentDetParams,
                                     vSamplePoints, vClientStepSizeInfo,
                                     vGlobalMaxDeviation );

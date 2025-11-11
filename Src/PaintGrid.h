@@ -50,13 +50,13 @@
 #include "Simulation.h"
 #include "SimulationData.h"
 #include "DetectorFile.h"
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/tuple/tuple.hpp>
+
+
+#include <tuple>
 #include "Raster.h"
 #include <boost/numeric/ublas/matrix.hpp>
 #include "PeakFilters.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "InitFilesIO.h"
 #include "BBox.h"
 #include <sstream>

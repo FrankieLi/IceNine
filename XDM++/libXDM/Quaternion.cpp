@@ -345,26 +345,26 @@ namespace GeneralLib
   //----------------------------------------------------------------------------------------------
   SQuaternion CRandomRotationGenerator::GetRandomQuaternion( )
   {
-  
-    Float s = oRandomReal();
-    Float theta1 = 2 * PI * oRandomReal();
-    Float theta2 = 2 * PI * oRandomReal();
+
+    Float s = oDistribution(oRngEngine);
+    Float theta1 = 2 * PI * oDistribution(oRngEngine);
+    Float theta2 = 2 * PI * oDistribution(oRngEngine);
     Float sigma1 = sqrt( 1 - s );
     Float sigma2 = sqrt( s );
-  
+
     Float w = cos( theta2 ) * sigma2 ;
     Float x = sin( theta1 ) * sigma1 ;
     Float y = cos( theta1 ) * sigma1 ;
     Float z = sin( theta2 ) * sigma2 ;
-  
+
     SQuaternion qRet;
     qRet.m_fW = w;
     qRet.m_fX = x;
     qRet.m_fY = y;
     qRet.m_fZ = z;
-  
+
     return qRet;
-  
+
   }
 
   //----------------------------------------------------------
@@ -376,12 +376,12 @@ namespace GeneralLib
   //----------------------------------------------------------
   SQuaternion CRandomRotationGenerator::GetRandomQuaternion( Float fScale )
   {
-    Float s = oRandomReal() * fScale;
-    Float theta1 = 2 * PI * oRandomReal() * fScale;
-    Float theta2 = 2 * PI * oRandomReal() * fScale;
+    Float s = oDistribution(oRngEngine) * fScale;
+    Float theta1 = 2 * PI * oDistribution(oRngEngine) * fScale;
+    Float theta2 = 2 * PI * oDistribution(oRngEngine) * fScale;
     Float sigma1 = sqrt( 1 - s );
     Float sigma2 = sqrt( s );
-  
+
     Float w = cos( theta2 ) * sigma2 ;
     Float x = sin( theta1 ) * sigma1 ;
     Float y = cos( theta1 ) * sigma1 ;

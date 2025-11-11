@@ -199,7 +199,7 @@ namespace Reconstruction
                                         oSearchPointCandidates.size() );   // -------- WARNING hard code                                       
     bool bConverged = false;
     SVoxel Result;
-    boost::tie( Result, bConverged )
+    std::tie( Result, bConverged )
       =      LocalOptimization.FindOptimal( oInputVoxel,
                                             oSearchPointCandidates.begin(),
                                             oSearchPointCandidates.begin() + nLocalOptCandidates,

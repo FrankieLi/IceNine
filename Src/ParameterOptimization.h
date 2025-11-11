@@ -50,7 +50,7 @@
 
 #include "ParallelReconstructor.h"
 #include "DiscreteAdaptive.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <queue>
 #include "XDMCommCore.h"
 #include <limits>
@@ -269,7 +269,7 @@ namespace ParallelReconstructor
       typedef ReconstructionStrategies::RandomizedQueue< SamplePointT,SamplePointGrid > ReconstructionStrategy;
       typedef XDMParallel::SingleElementDistribution                                             SingleElementDistributor;
       typedef MicFile<SamplePointT>                                                              Mic;
-      typedef boost::shared_ptr<MicIOBase>                                                       MicPtr;
+      typedef std::shared_ptr<MicIOBase>                                                       MicPtr;
       typedef vector< SDetParamMsg >                  DetParamMsgList;
       typedef GeometricOptimizationBase< SamplePointT >  OptimizationBase;
       
@@ -323,7 +323,7 @@ namespace ParallelReconstructor
       //             that the local perturbation can go a bit
       //             further and becomes just a bit more robust.
       //----------------------------------
-      boost::tuple< DetParamMsgList, Float, SEnergyOpt >
+      std::tuple< DetParamMsgList, Float, SEnergyOpt >
       LocalParamOptimization( const SEnergyOpt            & oEnergyLoc,
                               const vector<SDetParamMsg>  & vDetParams,
                               const vector< SParamOptMsg<SamplePointT> >  & vSamplePoints,
@@ -358,7 +358,7 @@ namespace ParallelReconstructor
       void Initialize( )
       {
         typedef typename LazyBFSServer<SamplePointT, SamplePointGrid>::Mic Mic;
-        boost::shared_ptr< Mic > pMic= boost::dynamic_pointer_cast<Mic>( LocalSetup.ReconstructionRegion() );
+        std::shared_ptr< Mic > pMic= std::dynamic_pointer_cast<Mic>( LocalSetup.ReconstructionRegion() );
         
         VoxelQueue.Initialize( *pMic,
                                LocalSetup.MinSideLength(),
@@ -403,7 +403,7 @@ namespace ParallelReconstructor
         public GeometricOptimizationBase< SamplePointT >
     {
     public:
-      typedef boost::shared_ptr< Reconstructor >            ReconstructorPtr;
+      typedef std::shared_ptr< Reconstructor >            ReconstructorPtr;
       typedef ReconstructionStrategies
       ::BreadthFirstStrategy<SamplePointT, SamplePointGrid> ReconstructionStrategy;  // probably don't really need a queue
       

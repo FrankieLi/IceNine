@@ -14,9 +14,9 @@
 #include "Types.h"
 #include "3dMath.h"
 #include "Quadtree.h"
-#include <boost/shared_ptr.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
+#include <memory>
+
+
 
 namespace XDMUtility
 {
@@ -43,7 +43,7 @@ namespace XDMUtility
 
 
   
-  typedef boost::shared_ptr< SVertex > CSVertexPtr;
+  typedef std::shared_ptr< SVertex > CSVertexPtr;
   
   
   //---------------------------------------------------

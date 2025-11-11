@@ -12,14 +12,14 @@
 
 namespace RangeSearch
 {
-  using boost::tuples::make_tuple;
-  using boost::shared_ptr;
+  using std::tuples::make_tuple;
+  using std::shared_ptr;
   using std::multimap;
   using std::map;
   using std::make_pair;
   using std::pair;
   using std::vector;
-  using boost::get;
+  using std::get;
   
   //----------------------------------------------
   //  InsertElement
@@ -304,7 +304,7 @@ namespace RangeSearch
     TreeNodePtrT pCur = pLeft;
     Bool bInYRange = true;
     AssociatedNodeOffsetT pMinShift = pMin->nLeftNextOffset ;
-    boost::tie( bInYRange, pMin ) = MoveAssociatedPtr( pCur->vYCoordList.begin(),
+    std::tie( bInYRange, pMin ) = MoveAssociatedPtr( pCur->vYCoordList.begin(),
                                                        pMinShift );
     while ( pCur.get() != NULL && !IsLeaf( pCur ) && bInYRange )
     {
@@ -323,7 +323,7 @@ namespace RangeSearch
         pMinShift = pMin->nRightNextOffset;
         pCur = pCur->pRight; 
       }
-      boost::tie( bInYRange, pMin ) = MoveAssociatedPtr( pCur->vYCoordList.begin(),
+      std::tie( bInYRange, pMin ) = MoveAssociatedPtr( pCur->vYCoordList.begin(),
                                                          pMinShift );
     }
 
@@ -348,7 +348,7 @@ namespace RangeSearch
     DEBUG_ASSERT( !IsLeaf( pCur ), "TreeWalk unexpectedly applied to leaf\n");
     Bool bInYRange = true;
     AssociatedNodeOffsetT pMinShift = pMin->nRightNextOffset;
-    boost::tie( bInYRange, pMin ) = MoveAssociatedPtr( pCur->vYCoordList.begin(),
+    std::tie( bInYRange, pMin ) = MoveAssociatedPtr( pCur->vYCoordList.begin(),
                                                        pMinShift );
     Bool bMovedLeft;
     while (  pCur.get() != NULL && !IsLeaf( pCur ) && bInYRange )
@@ -371,7 +371,7 @@ namespace RangeSearch
         pCur = pCur->pLeft;
         bMovedLeft = true;
       }
-      boost::tie( bInYRange, pMin ) = MoveAssociatedPtr( pCur->vYCoordList.begin(),
+      std::tie( bInYRange, pMin ) = MoveAssociatedPtr( pCur->vYCoordList.begin(),
                                                          pMinShift );
     }
 

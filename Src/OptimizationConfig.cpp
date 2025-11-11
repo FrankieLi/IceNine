@@ -271,7 +271,7 @@ namespace OptimizationConfig
           nMaxSteps =  InitFileIO::ExtractInt( vsTokens[i], i );
           break;
         case StrainOpt::eConvergenceMethod:
-          boost::tie( ConvergenceMethod, fConvergenceThresh )
+          std::tie( ConvergenceMethod, fConvergenceThresh )
             = StrainOpt::ProcessConvergenceMethod( vsTokens[i], i );
           break;
           

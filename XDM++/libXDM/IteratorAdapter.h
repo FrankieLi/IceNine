@@ -161,9 +161,9 @@ namespace XDMUtility
   protected:
 
     typedef SerializingIterator<MatrixDataT>    Self;
-    typedef typename MatrixDataT::element       element;    
+    typedef typename MatrixDataT::element       element;
     typedef typename MatrixDataT::element &     reference;
-    typedef const               reference       const_reference;
+    typedef const typename MatrixDataT::element & const_reference;
     typedef typename MatrixDataT::index         index;
 
     MatrixDataT & Data;
@@ -249,7 +249,7 @@ namespace XDMUtility
   public:
     typedef SerializingIterator<MatrixDataT>    Base;
     typedef typename MatrixDataT::element &     reference;
-    typedef const               reference       const_reference;
+    typedef const typename MatrixDataT::element & const_reference;
     typedef typename MatrixDataT::element       element;
     typedef typename MatrixDataT::index         index;
 

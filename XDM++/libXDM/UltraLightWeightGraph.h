@@ -64,7 +64,7 @@ namespace ULWGraph
     void DeleteVertex( CFVertexT u )
     {
       ConstVertexIterT pFirst, pEnd;
-      boost::tie( pFirst, pEnd ) = GetNeighbors( u );
+      std::tie( pFirst, pEnd ) = GetNeighbors( u );
 
       for ( ; pFirst != pEnd; ++ pFirst )
         DeleteEdge( u, pFirst->first );

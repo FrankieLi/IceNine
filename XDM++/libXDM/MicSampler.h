@@ -15,7 +15,7 @@
 
 
 #include "Quadtree.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "BBox.h"
 #include <vector>
 #include "Sampling.h"
