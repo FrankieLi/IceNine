@@ -15,6 +15,7 @@ import torch
 from pathlib import Path
 import tempfile
 import shutil
+from typing import Dict, List
 
 from icenine.mic_file import (
     Voxel,
@@ -459,6 +460,198 @@ class TestEdgeCases:
         np.testing.assert_allclose(R2_reconstructed.T @ R2_reconstructed, np.eye(3), atol=1e-5)
         np.testing.assert_allclose(np.linalg.det(R2), 1.0, atol=1e-5)
         np.testing.assert_allclose(np.linalg.det(R2_reconstructed), 1.0, atol=1e-5)
+
+
+# ==========================================================================================
+# Spatial Indexing Tests
+# ==========================================================================================
+
+
+class TestSpatialIndexing:
+    """Test spatial indexing and neighbor queries."""
+
+    def test_build_spatial_index(self, test_data_dir):
+        """Test building KDTree index."""
+        mic_file = test_data_dir / "Au1007_small.mic"
+        if not mic_file.exists():
+            pytest.skip(f"Test file not found: {mic_file}")
+
+        mic = MicFile.read(str(mic_file))
+        mic.build_spatial_index()
+
+        assert hasattr(mic, "_kdtree")
+        assert hasattr(mic, "_built_index")
+        assert mic._built_index is True
+        assert mic._kdtree is not None
+
+    def test_get_neighbors_radius(self, test_data_dir):
+        """Test radius-based neighbor finding."""
+        mic_file = test_data_dir / "Au1007_small.mic"
+        if not mic_file.exists():
+            pytest.skip(f"Test file not found: {mic_file}")
+
+        mic = MicFile.read(str(mic_file))
+
+        # Find neighbors within 0.05 m
+        neighbors = mic.get_neighbors(0, radius=0.05)
+
+        assert isinstance(neighbors, list)
+        assert all(isinstance(n, int) for n in neighbors)
+        assert 0 not in neighbors  # Query voxel not in results
+        assert all(0 <= n < len(mic.voxels) for n in neighbors)
+
+    def test_get_k_nearest_neighbors(self, test_data_dir):
+        """Test k-nearest neighbor finding."""
+        mic_file = test_data_dir / "Au1007_small.mic"
+        if not mic_file.exists():
+            pytest.skip(f"Test file not found: {mic_file}")
+
+        mic = MicFile.read(str(mic_file))
+
+        k = 3
+        neighbors, distances = mic.get_k_nearest_neighbors(0, k=k)
+
+        assert len(neighbors) == min(k, len(mic.voxels) - 1)
+        assert len(distances) == len(neighbors)
+        assert all(isinstance(n, int) for n in neighbors)
+        assert all(isinstance(d, float) for d in distances)
+        assert 0 not in neighbors  # Query voxel not in results
+
+        # Distances should be sorted
+        assert all(distances[i] <= distances[i + 1] for i in range(len(distances) - 1))
+
+    def test_is_boundary_voxel(self):
+        """Test boundary detection with fitted and unfitted voxels."""
+        # Create test case: fitted voxel (0) surrounded by unfitted voxels
+        voxels = [
+            Voxel(position=np.array([0.0, 0.0, 0.0]), orientation=np.eye(3), side_length=0.012, phase=1),
+            Voxel(position=np.array([0.012, 0.0, 0.0]), orientation=np.eye(3), side_length=0.012, phase=0),
+            Voxel(position=np.array([-0.012, 0.0, 0.0]), orientation=np.eye(3), side_length=0.012, phase=0),
+        ]
+        mic = MicFile(voxels=voxels, initial_side_length=0.012)
+
+        # Voxel 0 should be on boundary (fitted with unfitted neighbors)
+        assert mic.is_boundary_voxel(0) is True
+
+        # Voxels 1 and 2 should not be on boundary (unfitted)
+        assert mic.is_boundary_voxel(1) is False
+        assert mic.is_boundary_voxel(2) is False
+
+    def test_get_boundary_voxels(self):
+        """Test getting all boundary voxels."""
+        # Create test case with boundary
+        voxels = [
+            Voxel(position=np.array([0.0, 0.0, 0.0]), orientation=np.eye(3), side_length=0.012, phase=1),
+            Voxel(position=np.array([0.012, 0.0, 0.0]), orientation=np.eye(3), side_length=0.012, phase=0),
+            Voxel(position=np.array([0.024, 0.0, 0.0]), orientation=np.eye(3), side_length=0.012, phase=1),
+        ]
+        mic = MicFile(voxels=voxels, initial_side_length=0.012)
+
+        boundary = mic.get_boundary_voxels()
+
+        assert isinstance(boundary, list)
+        assert 0 in boundary  # Voxel 0 is on boundary
+
+
+# ==========================================================================================
+# C++ Validation Tests
+# ==========================================================================================
+
+
+class TestCppValidation:
+    """Validate Python neighbor finding against C++ implementation."""
+
+    def load_cpp_neighbors(self, filepath: str) -> Dict[int, List[int]]:
+        """Load neighbor lists from C++ output file."""
+        neighbors_dict = {}
+        with open(filepath, "r") as f:
+            for line in f:
+                # Skip comments
+                if line.startswith("#"):
+                    continue
+
+                parts = line.strip().split()
+                if len(parts) < 2:
+                    continue
+
+                voxel_idx = int(parts[0])
+                num_neighbors = int(parts[1])
+                neighbor_indices = [int(parts[i]) for i in range(2, 2 + num_neighbors)]
+
+                neighbors_dict[voxel_idx] = neighbor_indices
+
+        return neighbors_dict
+
+    def test_neighbors_match_cpp(self, test_data_dir):
+        """Test that Python neighbor finding matches C++ implementation."""
+        mic_file = test_data_dir / "Au1007_small.mic"
+        cpp_neighbors_file = test_data_dir.parent / "icenine_py" / "cpp_harness" / "neighbors_cpp.txt"
+
+        # Check if C++ output exists
+        if not cpp_neighbors_file.exists():
+            pytest.skip(
+                f"C++ neighbor file not found: {cpp_neighbors_file}. "
+                "Run: cd icenine_py/cpp_harness && make test_neighbors_run"
+            )
+
+        # Load MIC file
+        mic = MicFile.read(str(mic_file))
+
+        # Load C++ neighbors
+        cpp_neighbors = self.load_cpp_neighbors(str(cpp_neighbors_file))
+
+        # Radius used in C++ test
+        radius = 0.05  # 50 mm
+
+        # Compare neighbors for each voxel
+        mismatches = []
+        for voxel_idx in range(len(mic.voxels)):
+            # Get Python neighbors
+            py_neighbors = set(mic.get_neighbors(voxel_idx, radius=radius))
+
+            # Get C++ neighbors
+            cpp_neighbors_set = set(cpp_neighbors.get(voxel_idx, []))
+
+            # Compare
+            if py_neighbors != cpp_neighbors_set:
+                mismatches.append({
+                    "voxel_idx": voxel_idx,
+                    "python": sorted(py_neighbors),
+                    "cpp": sorted(cpp_neighbors_set),
+                    "python_only": sorted(py_neighbors - cpp_neighbors_set),
+                    "cpp_only": sorted(cpp_neighbors_set - py_neighbors),
+                })
+
+        # Report results
+        if mismatches:
+            print("\nNeighbor finding mismatches:")
+            for m in mismatches:
+                print(f"Voxel {m['voxel_idx']}:")
+                print(f"  Python: {m['python']}")
+                print(f"  C++:    {m['cpp']}")
+                print(f"  Python only: {m['python_only']}")
+                print(f"  C++ only:    {m['cpp_only']}")
+
+        # Assert no mismatches
+        assert len(mismatches) == 0, (
+            f"Found {len(mismatches)} mismatches between Python and C++ neighbor finding. "
+            f"See output above for details."
+        )
+
+    def test_boundary_voxels_with_cpp_file(self, test_data_dir):
+        """Test boundary voxel detection using file validated against C++."""
+        mic_file = test_data_dir / "Au1007_small.mic"
+        if not mic_file.exists():
+            pytest.skip(f"Test file not found: {mic_file}")
+
+        mic = MicFile.read(str(mic_file))
+
+        # All voxels in Au1007_small.mic have phase 1 (fitted)
+        # So there should be no boundary voxels
+        boundary = mic.get_boundary_voxels()
+
+        # For this file, all voxels are fitted, so no boundary
+        assert len(boundary) == 0, "All voxels are fitted, should have no boundary"
 
 
 if __name__ == "__main__":

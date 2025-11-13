@@ -1,0 +1,8 @@
+# Neighbor lists from C++ distance-based search
+# Format: voxel_index num_neighbors neighbor_0 neighbor_1 ...
+# Radius: 0.05 m
+# Total voxels: 4
+0 3 1 2 3
+1 3 0 2 3
+2 3 0 1 3
+3 3 0 1 2
