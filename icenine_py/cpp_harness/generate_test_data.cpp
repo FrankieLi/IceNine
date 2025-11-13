@@ -12,13 +12,14 @@
 //    - au_fcc_all_hkl_qmax8.json: All Miller indices before symmetry reduction
 //    - au_fcc_unique_hkl_qmax8.json: Unique reflections after reduction
 //    - q_magnitudes.json: Q magnitudes for test reflections
-//    - scattering_omegas.json: Scattering omega angles for test reflections
+//    - scattering_omegas.json: ~5000 scattering omega angles with uniform SO(3) rotations
 //
 /////////////////////////////////////////////////////////////////
 
 #include "XDM++/libXDM/Symmetry.h"
 #include "XDM++/libXDM/CrystalStructure.h"
 #include "XDM++/libXDM/3dMath.h"
+#include "XDM++/libXDM/Quaternion.h"
 #include "XDM++/libXDM/PhysicalConstants.h"
 #include <iostream>
 #include <fstream>
@@ -346,17 +347,19 @@ int main() {
     cout << "  Written: q_magnitudes.json\n\n";
 
     // 6. Generate scattering omega angles for test reflections
-    cout << "Generating scattering omega angles..." << endl;
+    cout << "Generating scattering omega angles with random rotations..." << endl;
 
     // Test reflections with various orientations to get comprehensive test coverage
     struct OmegaTestCase {
         int h, k, l;
         Float gx, gy, gz;  // scattering vector in sample frame
+        Float qw, qx, qy, qz;  // quaternion that produced this rotation
     };
 
     vector<OmegaTestCase> omega_tests;
 
     // Test on unique reflections with identity orientation (no rotation)
+    cout << "  Adding " << unique_hkls.size() << " test cases with identity orientation..." << endl;
     for (size_t i = 0; i < unique_hkls.size(); i++) {
         OmegaTestCase test;
         test.h = unique_hkls[i].h;
@@ -368,29 +371,101 @@ int main() {
         test.gy = a_recip * test.k;
         test.gz = a_recip * test.l;
 
+        // Identity quaternion
+        test.qw = 1.0;
+        test.qx = 0.0;
+        test.qy = 0.0;
+        test.qz = 0.0;
+
         omega_tests.push_back(test);
     }
 
-    // Add some rotated cases to test different orientations
-    // Rotate (111) by 45 degrees around z-axis
-    {
-        OmegaTestCase test = {1, 1, 1, 0, 0, 0};
-        Float angle = 0.7853981633974483;  // 45 degrees = pi/4
-        Float cos_a = cos(angle);
-        Float sin_a = sin(angle);
-        Float h = 1, k = 1, l = 1;
-        test.gx = a_recip * (h * cos_a - k * sin_a);
-        test.gy = a_recip * (h * sin_a + k * cos_a);
-        test.gz = a_recip * l;
-        omega_tests.push_back(test);
+    // Add ~5000 random rotations applied to a subset of reflections
+    // We'll use a few representative reflections and apply many random rotations to each
+    const int NUM_RANDOM_TESTS = 5000;
+    cout << "  Generating " << NUM_RANDOM_TESTS << " test cases with random SO(3) rotations..." << endl;
+
+    // Select a few representative reflections to rotate
+    vector<HKL> base_reflections;
+    if (unique_hkls.size() > 0) base_reflections.push_back(unique_hkls[0]);  // First unique
+    if (unique_hkls.size() > 1) base_reflections.push_back(unique_hkls[1]);  // Second unique
+    if (unique_hkls.size() > unique_hkls.size()/2) {
+        base_reflections.push_back(unique_hkls[unique_hkls.size()/2]);  // Middle
     }
+    if (unique_hkls.size() > 2) {
+        base_reflections.push_back(unique_hkls[unique_hkls.size()-1]);  // Last unique
+    }
+
+    // Add some specific interesting reflections if available
+    for (size_t i = 0; i < unique_hkls.size(); i++) {
+        const HKL& hkl = unique_hkls[i];
+        if ((hkl.h == 1 && hkl.k == 1 && hkl.l == 1) ||
+            (hkl.h == 2 && hkl.k == 0 && hkl.l == 0) ||
+            (hkl.h == 2 && hkl.k == 2 && hkl.l == 0)) {
+            // Check if not already added
+            bool already_added = false;
+            for (const auto& br : base_reflections) {
+                if (br.h == hkl.h && br.k == hkl.k && br.l == hkl.l) {
+                    already_added = true;
+                    break;
+                }
+            }
+            if (!already_added) {
+                base_reflections.push_back(hkl);
+            }
+        }
+    }
+
+    // Initialize random rotation generator
+    CRandomRotationGenerator random_rotation_gen;
+
+    // Generate random rotations
+    int tests_per_reflection = NUM_RANDOM_TESTS / base_reflections.size();
+    if (tests_per_reflection < 1) tests_per_reflection = 1;
+
+    for (size_t i = 0; i < base_reflections.size(); i++) {
+        int num_tests = (i == base_reflections.size() - 1)
+            ? (NUM_RANDOM_TESTS - omega_tests.size() + unique_hkls.size())  // Adjust last batch to hit target
+            : tests_per_reflection;
+
+        for (int j = 0; j < num_tests; j++) {
+            // Generate random rotation
+            SQuaternion random_quat = random_rotation_gen.GetRandomQuaternion();
+            SMatrix3x3 rotation_matrix = random_quat.GetRotationMatrix3x3();
+
+            // Base g-vector in crystal frame
+            SVector3 g_crystal(a_recip * base_reflections[i].h,
+                              a_recip * base_reflections[i].k,
+                              a_recip * base_reflections[i].l);
+
+            // Rotate g-vector to sample frame
+            SVector3 g_sample = rotation_matrix * g_crystal;
+
+            OmegaTestCase test;
+            test.h = base_reflections[i].h;
+            test.k = base_reflections[i].k;
+            test.l = base_reflections[i].l;
+            test.gx = g_sample.m_fX;
+            test.gy = g_sample.m_fY;
+            test.gz = g_sample.m_fZ;
+            test.qw = random_quat.m_fW;
+            test.qx = random_quat.m_fX;
+            test.qy = random_quat.m_fY;
+            test.qz = random_quat.m_fZ;
+
+            omega_tests.push_back(test);
+        }
+    }
+
+    cout << "  Total test cases: " << omega_tests.size() << endl;
 
     ofstream out_omega("../cpp_outputs/scattering_omegas.json");
     out_omega << "{\n";
-    out_omega << "  \"description\": \"Scattering omega angles for test reflections\",\n";
+    out_omega << "  \"description\": \"Scattering omega angles for test reflections with random SO(3) rotations\",\n";
     out_omega << "  \"beam_energy\": " << BEAM_ENERGY << ",\n";
     out_omega << "  \"beam_deflection_chi\": " << BEAM_DEFLECTION_CHI << ",\n";
     out_omega << "  \"beam_direction\": [1, 0, 0],\n";
+    out_omega << "  \"num_test_cases\": " << omega_tests.size() << ",\n";
     out_omega << "  \"test_cases\": [\n";
 
     int observable_count = 0;
@@ -407,6 +482,9 @@ int main() {
         out_omega << "    {\n";
         out_omega << "      \"hkl\": [" << omega_tests[i].h << ", "
                   << omega_tests[i].k << ", " << omega_tests[i].l << "],\n";
+        out_omega << "      \"quaternion\": [" << fixed << setprecision(15)
+                  << omega_tests[i].qw << ", " << omega_tests[i].qx << ", "
+                  << omega_tests[i].qy << ", " << omega_tests[i].qz << "],\n";
         out_omega << "      \"g_vector\": [" << fixed << setprecision(15)
                   << g_vec.m_fX << ", " << g_vec.m_fY << ", " << g_vec.m_fZ << "],\n";
         out_omega << "      \"g_magnitude\": " << fixed << setprecision(15) << g_mag << ",\n";
