@@ -601,5 +601,173 @@ class TestDetectorParameters:
         assert torch.allclose(params.orientation, orientation)
 
 
+class TestDetectorImageIntegration:
+    """Test integration between Detector and ImageData."""
+
+    def test_add_direct_beam_dense(self):
+        """Test beam rasterization with dense image."""
+        from icenine.image_data import ImageData
+
+        detector = Detector(
+            num_rows=100,
+            num_cols=100,
+            pixel_height=0.2,
+            pixel_width=0.2,
+            beam_center_j=50.0,
+            beam_center_k=50.0
+        )
+
+        image = ImageData(100, 100, mode='dense')
+
+        # Add beam aperture (2mm x 2mm)
+        detector.add_direct_beam(image, beam_height=2.0, beam_width=2.0)
+
+        # Check that pixels were lit
+        assert image.num_nonzero > 0
+
+        # Beam should be centered around beam center pixel
+        # Beam center is at (50, 50) pixels
+        # 2mm beam with 0.2mm pixels = 10 pixels
+        # So beam should span approximately (45, 45) to (55, 55)
+        assert image.get_pixel(50, 50).item() > 0  # Center should be bright
+
+    def test_add_direct_beam_sparse(self):
+        """Test beam rasterization with sparse image."""
+        from icenine.image_data import ImageData
+
+        detector = Detector(
+            num_rows=100,
+            num_cols=100,
+            pixel_height=0.2,
+            pixel_width=0.2,
+            beam_center_j=50.0,
+            beam_center_k=50.0
+        )
+
+        image = ImageData(100, 100, mode='sparse')
+
+        # Add beam aperture
+        detector.add_direct_beam(image, beam_height=2.0, beam_width=2.0)
+
+        # Check that pixels were lit
+        assert image.num_nonzero > 0
+
+        # Sparse mode should have same result
+        assert image.get_pixel(50, 50).item() > 0
+
+    def test_add_direct_beam_intensity(self):
+        """Test beam rasterization with custom intensity."""
+        from icenine.image_data import ImageData
+
+        detector = Detector(
+            num_rows=100,
+            num_cols=100,
+            pixel_height=0.2,
+            pixel_width=0.2,
+            beam_center_j=50.0,
+            beam_center_k=50.0
+        )
+
+        image = ImageData(100, 100, mode='dense')
+
+        # Add beam with custom intensity
+        detector.add_direct_beam(image, beam_height=2.0, beam_width=2.0, intensity=2.5)
+
+        # Check that intensity was applied
+        center_value = image.get_pixel(50, 50).item()
+        assert center_value > 1.0  # Should be higher due to intensity=2.5
+
+    def test_add_direct_beam_hard_vs_soft(self):
+        """Test beam rasterization in hard vs soft mode."""
+        from icenine.image_data import ImageData
+
+        detector = Detector(
+            num_rows=100,
+            num_cols=100,
+            pixel_height=0.2,
+            pixel_width=0.2,
+            beam_center_j=50.0,
+            beam_center_k=50.0
+        )
+
+        # Hard mode
+        image_hard = ImageData(100, 100, mode='dense')
+        detector.add_direct_beam(image_hard, beam_height=2.0, beam_width=2.0, mode='hard')
+
+        # Soft mode
+        image_soft = ImageData(100, 100, mode='dense')
+        detector.add_direct_beam(image_soft, beam_height=2.0, beam_width=2.0, mode='soft')
+
+        # Both should have pixels lit
+        assert image_hard.num_nonzero > 0
+        assert image_soft._pixels_dense.sum() > 0
+
+    def test_add_direct_beam_dimension_mismatch(self):
+        """Test that dimension mismatch raises error."""
+        from icenine.image_data import ImageData
+
+        detector = Detector(
+            num_rows=100,
+            num_cols=100,
+            pixel_height=0.2,
+            pixel_width=0.2,
+            beam_center_j=50.0,
+            beam_center_k=50.0
+        )
+
+        # Image with different dimensions
+        image = ImageData(200, 200, mode='dense')
+
+        # Should raise ValueError
+        with pytest.raises(ValueError, match="Image dimensions .* do not match detector"):
+            detector.add_direct_beam(image, beam_height=2.0, beam_width=2.0)
+
+    def test_add_direct_beam_offset_beam_center(self):
+        """Test beam with offset beam center."""
+        from icenine.image_data import ImageData
+
+        detector = Detector(
+            num_rows=100,
+            num_cols=100,
+            pixel_height=0.2,
+            pixel_width=0.2,
+            beam_center_j=30.0,  # Offset beam center
+            beam_center_k=70.0
+        )
+
+        image = ImageData(100, 100, mode='dense')
+
+        # Add beam
+        detector.add_direct_beam(image, beam_height=2.0, beam_width=2.0)
+
+        # Beam should be centered at offset position
+        assert image.get_pixel(30, 70).item() > 0  # Should be bright at offset center
+        assert image.get_pixel(50, 50).item() == 0.0  # Original center should be dark
+
+    def test_add_direct_beam_large_beam(self):
+        """Test beam rasterization with large beam."""
+        from icenine.image_data import ImageData
+
+        detector = Detector(
+            num_rows=200,
+            num_cols=200,
+            pixel_height=0.2,
+            pixel_width=0.2,
+            beam_center_j=100.0,
+            beam_center_k=100.0
+        )
+
+        image = ImageData(200, 200, mode='dense')
+
+        # Add large beam (10mm x 10mm)
+        detector.add_direct_beam(image, beam_height=10.0, beam_width=10.0)
+
+        # Large beam should light many pixels
+        assert image.num_nonzero > 1000  # 50x50 pixel beam = 2500 pixels approx
+
+        # Center should be bright
+        assert image.get_pixel(100, 100).item() > 0
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
