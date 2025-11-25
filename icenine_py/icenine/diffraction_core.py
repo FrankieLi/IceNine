@@ -563,8 +563,13 @@ def build_reflected_ray(
     """
     from .geometry import Ray
 
-    # Transform vertex to lab frame
-    lab_vertex = sample.to_lab_frame(vertex)
+    # Transform vertex (a point) to lab frame
+    # Need to use homogeneous coordinates for full transformation (rotation + translation)
+    # Convert to 4D: [x, y, z, 1]
+    vertex_4d = torch.cat([vertex, torch.tensor([1.0])])
+    lab_vertex_4d = sample.to_lab_frame_4d(vertex_4d)
+    # Convert back to 3D
+    lab_vertex = lab_vertex_4d[:3]
 
     # Create ray
     reflected_ray = Ray(origin=lab_vertex, direction=ref_dir)
