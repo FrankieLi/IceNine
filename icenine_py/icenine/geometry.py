@@ -518,6 +518,9 @@ class Ray:
             torch.zeros_like(denominator)
         )
 
+        # Also check that intersection is in front of ray (t > 0)
+        intersects = intersects & (t > 0)
+
         return intersects, t
 
     def at(self, t: torch.Tensor) -> torch.Tensor:
