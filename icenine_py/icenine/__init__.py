@@ -16,6 +16,8 @@ Modules:
     simulation_range: Omega range system for discontinuous data collection
     sample: Sample with voxel grid and coordinate transformations
     config_file: Configuration file parser for IceNine experiments
+    file_io: File I/O utilities for detector and structure files
+    experiment_setup: Experiment setup and parameter management
 """
 
 __version__ = "0.1.0"
@@ -32,6 +34,8 @@ from . import mic_file
 from . import simulation_range
 from . import sample
 from . import config_file
+from . import file_io
+from . import experiment_setup
 
 __all__ = [
     "constants",
@@ -45,4 +49,6 @@ __all__ = [
     "simulation_range",
     "sample",
     "config_file",
+    "file_io",
+    "experiment_setup",
 ]
