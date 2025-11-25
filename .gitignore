@@ -1,7 +1,7 @@
 
 Makefile
 
-IceNine
+/IceNine
 CMakeFiles
 XDM++.strain
 cmake_install.cmake
