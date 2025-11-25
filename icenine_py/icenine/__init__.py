@@ -18,6 +18,8 @@ Modules:
     config_file: Configuration file parser for IceNine experiments
     file_io: File I/O utilities for detector and structure files
     experiment_setup: Experiment setup and parameter management
+    peak_filters: Peak acceptance filters for diffraction simulation
+    simulation: Core diffraction simulation engine (forward model)
 """
 
 __version__ = "0.1.0"
@@ -36,6 +38,8 @@ from . import sample
 from . import config_file
 from . import file_io
 from . import experiment_setup
+from . import peak_filters
+from . import simulation
 
 __all__ = [
     "constants",
@@ -51,4 +55,6 @@ __all__ = [
     "config_file",
     "file_io",
     "experiment_setup",
+    "peak_filters",
+    "simulation",
 ]

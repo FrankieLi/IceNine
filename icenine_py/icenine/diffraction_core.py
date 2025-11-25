@@ -441,3 +441,241 @@ def batch_scattering_omegas_from_reflections(
         result.g_magnitudes = result.g_magnitudes.reshape(B, N)
 
     return result
+
+
+# ============================================================================
+# Ray Projection and Reflection Functions
+# ============================================================================
+
+def get_reflection_vector(
+    r_in: torch.Tensor,
+    normal: torch.Tensor
+) -> torch.Tensor:
+    """
+    Calculate geometric reflection vector.
+
+    Based on geometric optics: R_out = R_in - 2(R_in·n)n
+
+    Args:
+        r_in: Incident ray direction, shape (3,) or (N, 3)
+        normal: Surface normal vector, shape (3,) or (N, 3)
+                Must be normalized
+
+    Returns:
+        Reflected ray direction, same shape as inputs
+
+    C++ Reference:
+        DiffractionCore.h:89-98 GetReflectionVector
+
+    Example:
+        >>> # Reflect downward ray off horizontal surface
+        >>> r_in = torch.tensor([0., 0., -1.])
+        >>> normal = torch.tensor([0., 0., 1.])
+        >>> r_out = get_reflection_vector(r_in, normal)
+        >>> r_out
+        tensor([0., 0., 1.])
+    """
+    # R_out = R_in - 2 * (R_in · normal) * normal
+    if r_in.dim() == 1:
+        # Single vector
+        dot_product = torch.dot(r_in, normal)
+    else:
+        # Batched vectors
+        dot_product = torch.sum(r_in * normal, dim=-1, keepdim=True)
+
+    r_out = r_in - 2.0 * dot_product * normal
+    return r_out
+
+
+def get_reflected_ray_dir(
+    sample,
+    normal: torch.Tensor,
+    beam_dir: torch.Tensor
+) -> torch.Tensor:
+    """
+    Calculate reflected ray direction in lab frame.
+
+    Transforms normal from sample frame to lab frame, then applies
+    geometric reflection of beam direction.
+
+    Purpose: Avoids redundant calculation when projecting multiple vertices
+    with the same normal (constant interpolation across voxel).
+
+    Args:
+        sample: Sample object with to_lab_frame() method
+        normal: Surface normal in sample frame, shape (3,)
+        beam_dir: Incident beam direction in lab frame, shape (3,)
+
+    Returns:
+        Reflected ray direction in lab frame, shape (3,)
+
+    C++ Reference:
+        DiffractionCore.h:114-120 GetReflectedRayDir
+
+    Example:
+        >>> from icenine.sample import Sample
+        >>> sample = Sample()
+        >>> sample.set_location(torch.tensor([0., 0., 0.]))
+        >>> normal = torch.tensor([0., 0., 1.])  # Sample frame
+        >>> beam_dir = torch.tensor([0., 0., 1.])  # Lab frame
+        >>> reflected_dir = get_reflected_ray_dir(sample, normal, beam_dir)
+    """
+    # Transform normal to lab frame
+    lab_normal = sample.to_lab_frame(normal)
+
+    # Apply geometric reflection
+    reflected_dir = get_reflection_vector(beam_dir, lab_normal)
+
+    return reflected_dir
+
+
+def build_reflected_ray(
+    sample,
+    vertex: torch.Tensor,
+    ref_dir: torch.Tensor
+):
+    """
+    Build reflected ray from vertex in lab frame.
+
+    Creates a Ray object with origin at vertex (transformed to lab frame)
+    and direction along ref_dir.
+
+    Args:
+        sample: Sample object with to_lab_frame() method
+        vertex: Vertex position in sample frame, shape (3,)
+        ref_dir: Reflected ray direction in lab frame, shape (3,)
+
+    Returns:
+        Ray object with origin and direction in lab frame
+
+    C++ Reference:
+        DiffractionCore.h:132-140 BuildReflectedRay
+
+    Example:
+        >>> from icenine.sample import Sample
+        >>> from icenine.geometry import Ray
+        >>> sample = Sample()
+        >>> vertex = torch.tensor([1., 0., 0.])  # Sample frame
+        >>> ref_dir = torch.tensor([0., 0., 1.])  # Lab frame
+        >>> ray = build_reflected_ray(sample, vertex, ref_dir)
+        >>> ray.direction
+        tensor([0., 0., 1.])
+    """
+    from .geometry import Ray
+
+    # Transform vertex to lab frame
+    lab_vertex = sample.to_lab_frame(vertex)
+
+    # Create ray
+    reflected_ray = Ray(origin=lab_vertex, direction=ref_dir)
+
+    return reflected_ray
+
+
+def get_reflected_ray(
+    sample,
+    vertex: torch.Tensor,
+    normal: torch.Tensor,
+    beam_dir: torch.Tensor
+):
+    """
+    Calculate reflected ray from vertex with given normal (convenience wrapper).
+
+    Combines get_reflected_ray_dir() and build_reflected_ray() into single call.
+
+    Args:
+        sample: Sample object with to_lab_frame() method
+        vertex: Vertex position in sample frame, shape (3,)
+        normal: Surface normal in sample frame, shape (3,)
+        beam_dir: Incident beam direction in lab frame, shape (3,)
+
+    Returns:
+        Ray object representing reflected ray in lab frame
+
+    C++ Reference:
+        DiffractionCore.h:150-156 GetReflectedRay
+
+    Example:
+        >>> from icenine.sample import Sample
+        >>> sample = Sample()
+        >>> vertex = torch.tensor([1., 0., 0.])
+        >>> normal = torch.tensor([0., 0., 1.])
+        >>> beam_dir = torch.tensor([0., 0., 1.])
+        >>> ray = get_reflected_ray(sample, vertex, normal, beam_dir)
+    """
+    # Calculate reflected direction
+    ref_dir = get_reflected_ray_dir(sample, normal, beam_dir)
+
+    # Build ray from vertex
+    reflected_ray = build_reflected_ray(sample, vertex, ref_dir)
+
+    return reflected_ray
+
+
+def get_illuminated_pixel(
+    detector,
+    incident_ray
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Calculate pixel coordinates where ray intersects detector.
+
+    Performs ray-plane intersection with detector, then converts intersection
+    point from lab coordinates to pixel coordinates (row, col).
+
+    Args:
+        detector: Detector object with intersect_ray() and lab_to_pixel() methods
+        incident_ray: Ray object (incident upon the detector)
+
+    Returns:
+        Tuple of (hit, pixel_col, pixel_row):
+            - hit: Boolean tensor indicating if ray intersects detector
+            - pixel_col: Column coordinate (J direction), valid if hit=True
+            - pixel_row: Row coordinate (K direction), valid if hit=True
+
+    C++ Reference:
+        DiffractionCore.h:165-179 GetIlluminatedPixel
+
+    Notes:
+        - C++ returns Point with (x=col, y=row) convention
+        - Python returns separate (col, row) tensors
+        - Non-intersecting rays return (False, 0, 0)
+
+    Example:
+        >>> from icenine.detector import Detector
+        >>> from icenine.geometry import Ray
+        >>> import torch
+        >>>
+        >>> # Create detector
+        >>> detector = Detector(num_rows=1024, num_cols=1024,
+        ...                     beam_center_j=512, beam_center_k=512)
+        >>>
+        >>> # Ray hitting detector center
+        >>> ray = Ray(
+        ...     origin=torch.tensor([0., 0., -1.]),
+        ...     direction=torch.tensor([0., 0., 1.])
+        ... )
+        >>> hit, col, row = get_illuminated_pixel(detector, ray)
+        >>> hit
+        tensor(True)
+    """
+    # Perform ray-detector intersection
+    intersects, t = detector.intersect_ray(incident_ray)
+
+    if not intersects.item():
+        # No intersection
+        return (
+            torch.tensor(False),
+            torch.tensor(0.0),
+            torch.tensor(0.0)
+        )
+
+    # Calculate intersection point in lab frame
+    # C++: oIntersectLoc = oIncidentRay.Evaluate(fT)
+    intersect_loc = incident_ray.at(t)
+
+    # Convert to pixel coordinates
+    # C++: oDetector.LabToPixel(ImageRow, ImageCol, oIntersectLoc)
+    pixel_row, pixel_col = detector.lab_to_pixel(intersect_loc)
+
+    # C++ convention: p.x = ImageCol, p.y = ImageRow
+    return intersects, pixel_col, pixel_row
