@@ -20,6 +20,7 @@ Modules:
     experiment_setup: Experiment setup and parameter management
     peak_filters: Peak acceptance filters for diffraction simulation
     simulation: Core diffraction simulation engine (forward model)
+    forward_simulation: Main forward simulation loop and image generation
 """
 
 __version__ = "0.1.0"
@@ -40,6 +41,7 @@ from . import file_io
 from . import experiment_setup
 from . import peak_filters
 from . import simulation
+from . import forward_simulation
 
 __all__ = [
     "constants",
@@ -57,4 +59,5 @@ __all__ = [
     "experiment_setup",
     "peak_filters",
     "simulation",
+    "forward_simulation",
 ]
