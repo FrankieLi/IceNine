@@ -214,16 +214,26 @@ class MicFile:
             )
 
         # Parse required fields using tuple unpacking (more Pythonic)
-        x, y, z = float(tokens[0]), float(tokens[1]), float(tokens[2])
-        direction = int(tokens[3])  # 1 = UP, 2 = DOWN
-        generation = int(tokens[4])
-        phase = int(tokens[5])
-        phi1_deg, Phi_deg, phi2_deg = float(tokens[6]), float(tokens[7]), float(tokens[8])
+        try:
+            x, y, z = float(tokens[0]), float(tokens[1]), float(tokens[2])
+            direction = int(tokens[3])  # 1 = UP, 2 = DOWN
+            generation = int(tokens[4])
+            phase = int(tokens[5])
+            phi1_deg, Phi_deg, phi2_deg = float(tokens[6]), float(tokens[7]), float(tokens[8])
 
-        # Parse optional fields with defaults
-        confidence = float(tokens[9]) if len(tokens) > 9 else 0.0
-        cost = float(tokens[10]) if len(tokens) > 10 else 0.0
-        overlap_ratio = float(tokens[11]) if len(tokens) > 11 else 0.0
+            # Parse optional fields with defaults
+            confidence = float(tokens[9]) if len(tokens) > 9 else 0.0
+            cost = float(tokens[10]) if len(tokens) > 10 else 0.0
+            overlap_ratio = float(tokens[11]) if len(tokens) > 11 else 0.0
+        except ValueError as e:
+            # Show the offending line when parsing fails
+            line_text = ' '.join(tokens)
+            raise ValueError(
+                f"Failed to parse MIC file (line {line_num}):\n"
+                f"  Error: {e}\n"
+                f"  Line: {line_text}\n"
+                f"  Tokens: {tokens}"
+            )
 
         # Parse deformation tensor if present (19 total columns)
         deformation = None

@@ -268,37 +268,112 @@ def read_detector_file(filename: str) -> List[Detector]:
 
 def read_crystal_structure_file(filename: str, element: str = "Au", lattice_type: str = "FCC") -> CrystalStructure:
     """
-    Read crystal structure from file.
+    Read crystal structure from .dat file.
 
-    NOTE: The C++ version reads binary .dat files. For the Python port, we use
-    factory methods from CrystalStructure for now. Binary file reading can be
-    added later if needed.
+    C++ Reference: InitFilesIO.cpp:275-336 ReadCrystalStructureFile()
+
+    File format (comma/space/tab/# delimited):
+        Line 1: a, b, c (unit cell lengths in Angstroms)
+        Line 2: alpha, beta, gamma (unit cell angles in degrees)
+        Line 3: number of atoms
+        Lines 4+: Z, x, y, z (atomic number and fractional coordinates)
 
     Args:
-        filename: Path to structure file (currently not used - for future implementation)
-        element: Element symbol (default: "Au")
-        lattice_type: Lattice type - "FCC", "BCC", "HCP", etc. (default: "FCC")
+        filename: Path to structure .dat file
+        element: Element symbol (unused - read from file)
+        lattice_type: Lattice type (unused - determined from file)
 
     Returns:
         CrystalStructure object
 
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        ValueError: If file format is invalid
+
     Example:
-        >>> # For now, use factory methods directly:
-        >>> gold = CrystalStructure.create_fcc("Au", 4.0782)
-        >>>
-        >>> # Future: Will support reading binary .dat files
-        >>> # gold = read_crystal_structure_file("DataFiles/gold.dat")
+        >>> copper = read_crystal_structure_file("DataFiles/copper.dat")
+        >>> copper.lattice.a
+        3.61
     """
-    # TODO: Implement binary .dat file reading to match C++ InitFileIO::ReadStructureFile()
-    # For now, raise an error with instructions
-    raise NotImplementedError(
-        f"Binary .dat file reading not yet implemented.\n"
-        f"Please use CrystalStructure factory methods instead:\n"
-        f"  from icenine.crystal_structure import CrystalStructure\n"
-        f"  gold = CrystalStructure.create_fcc('Au', 4.0782)\n"
-        f"\n"
-        f"File requested: {filename}"
-    )
+    from pymatgen.core.structure import Structure
+    from pymatgen.core.lattice import Lattice
+    from pymatgen.core.periodic_table import Element
+
+    # Read file
+    try:
+        with open(filename, 'rb') as f:
+            content = f.read().decode('utf-8', errors='ignore')
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Crystal structure file not found: {filename}")
+
+    # Tokenize by commas, #, spaces, tabs, newlines
+    # C++: GeneralLib::Tokenize( vsTokens, sBuffStr, ",# \t\n");
+    lines = []
+    for line in content.split('\n'):
+        # Split by delimiters and filter empty tokens
+        tokens = []
+        for token in line.replace(',', ' ').replace('#', ' ').split():
+            token = token.strip()
+            if token:
+                tokens.append(token)
+        if tokens:
+            lines.append(tokens)
+
+    if len(lines) < 4:
+        raise ValueError(
+            f"Crystal structure file too short: expected >= 4 lines, got {len(lines)}"
+        )
+
+    # Parse unit cell lengths (Line 1)
+    # C++: oCell.SetUnitCellLength( atof(vsTokens[0][0]), ... )
+    if len(lines[0]) < 3:
+        raise ValueError(f"Failed to parse a, b, c from line 1: {lines[0]}")
+    a = float(lines[0][0])
+    b = float(lines[0][1])
+    c = float(lines[0][2])
+
+    # Parse unit cell angles (Line 2, in degrees)
+    # C++: oCell.SetUnitCellBasisAngles( DEGREE_TO_RADIAN(...), ... )
+    if len(lines[1]) < 3:
+        raise ValueError(f"Failed to parse alpha, beta, gamma from line 2: {lines[1]}")
+    alpha = float(lines[1][0])
+    beta = float(lines[1][1])
+    gamma = float(lines[1][2])
+
+    # Parse number of atoms (Line 3)
+    # C++: oCell.SetNumAtoms( atoi( vsTokens[2][0].c_str() ) )
+    if len(lines[2]) < 1:
+        raise ValueError(f"Failed to parse number of atoms from line 3: {lines[2]}")
+    num_atoms = int(lines[2][0])
+
+    # Parse atoms (Lines 4+)
+    # C++: for each line: Z, x, y, z
+    species = []
+    coords = []
+    for i in range(3, min(3 + num_atoms, len(lines))):
+        if len(lines[i]) < 4:
+            raise ValueError(
+                f"Invalid atom specification at line {i+1}: expected Z,x,y,z, got {lines[i]}"
+            )
+
+        # C++: oCell.AddAtom( atoi( vsTokens[i][0].c_str() ), oPos )
+        atomic_number = int(lines[i][0])
+        x = float(lines[i][1])
+        y = float(lines[i][2])
+        z = float(lines[i][3])
+
+        # Convert atomic number to element symbol
+        element_symbol = Element.from_Z(atomic_number).symbol
+        species.append(element_symbol)
+        coords.append([x, y, z])
+
+    # Create pymatgen Structure
+    # C++: oCell.InitializeCoordinateSystem()
+    lattice = Lattice.from_parameters(a, b, c, alpha, beta, gamma)
+    structure = Structure(lattice, species, coords)
+
+    # Create CrystalStructure
+    return CrystalStructure(structure)
 
 
 # ============================================================================

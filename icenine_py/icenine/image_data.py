@@ -555,18 +555,19 @@ class ImageData:
         torch.save(data, filename)
 
     @staticmethod
-    def load_binary(filename: str, device: str = 'cpu') -> 'ImageData':
+    def load_binary(filename: str, device: str = 'cpu', weights_only: bool = False) -> 'ImageData':
         """
         Load image from binary file.
 
         Args:
             filename: Input file path
             device: Device to load tensors onto
+            weights_only: If True, only load weights (PyTorch 2.6+ security feature)
 
         Returns:
             ImageData instance
         """
-        data = torch.load(filename, map_location=device)
+        data = torch.load(filename, map_location=device, weights_only=weights_only)
 
         image = ImageData(
             num_rows=data['num_rows'],

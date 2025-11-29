@@ -453,20 +453,24 @@ def read_omega_file(
                 f"got {len(tokens)}"
             )
 
-        low = int(tokens[0])
-        high = int(tokens[1])
+        # Strip commas from tokens (some files have trailing commas)
+        low = int(tokens[0].rstrip(','))
+        high = int(tokens[1].rstrip(','))
         file_ranges.append(FileRange(low, high))
 
     # Parse omega ranges (remaining lines, degrees -> radians)
+    # Note: Omega ranges are COMMA-separated (e.g., "-90.,-89.,0.,0.")
     omega_ranges = []
     for i, line in enumerate(lines[num_detectors:], start=num_detectors+2):
-        tokens = line.split()
+        # Split by comma (omega ranges are comma-separated)
+        tokens = line.split(',')
         if len(tokens) < 2:
             raise ValueError(
                 f"Invalid omega range at line {i}: expected 2 tokens, "
                 f"got {len(tokens)}"
             )
 
+        # First two tokens are omega_low and omega_high (in degrees)
         low_deg = float(tokens[0])
         high_deg = float(tokens[1])
 

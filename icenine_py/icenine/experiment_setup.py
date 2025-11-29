@@ -509,23 +509,41 @@ class XDMExperimentSetup(ExperimentSetup):
 
         # Add empty structure (phase 0 - no scattering)
         empty_structure = CrystalStructure.create_cubic("Empty", 1.0)
-        # TODO: Set reflection limits to (0,0,0,0,0) for empty
+        # C++: oEmptyStructure.SetReflectionVectorLimits(0, 0, 0, 0, 0)
+        empty_structure.set_reflection_limits(0, 0, 0, 0.0, 0.0)
         sample.add_crystal_structure(empty_structure)
 
         # Read crystal structure file
-        # TODO: Implement binary .dat file reading
-        # For now, use factory method based on config
+        # C++: if (!InitFileIO::ReadCrystalStructureFile(oCellStructure, oExpConfigFile.StructureFilename))
+        from .file_io import read_crystal_structure_file
         structure_filename = self.config_file.structure_filename
-        print(f"WARNING: Using default FCC gold structure instead of reading {structure_filename}")
-        crystal = CrystalStructure.create_fcc("Au", 4.0782)  # Gold FCC
+        try:
+            crystal = read_crystal_structure_file(structure_filename)
+            print(f"Loaded crystal structure from {structure_filename}: {crystal}")
+        except Exception as e:
+            print(f"WARNING: Failed to read {structure_filename}: {e}")
+            print(f"WARNING: Using default FCC gold structure as fallback")
+            crystal = CrystalStructure.create_fcc("Au", 4.0782)  # Gold FCC fallback
 
         # Calculate detection limits
         max_q = self.get_max_q(detector, sample)
         print(f"Max Q calculated: {max_q:.4f} Å⁻¹")
 
-        # Set detection limit on crystal structure
-        # TODO: Implement set_detection_limit() in CrystalStructure
-        # This should limit reciprocal lattice generation to observable reflections
+        # Take minimum of user-specified max_q and calculated max_q
+        max_q = min(max_q, self.config_file.max_q)
+
+        # Calculate max Miller indices for cubic crystal
+        # C++: Int nMaxH = (Int) ( fMaxQ / oRecpVecs[0].GetLength() );
+        recip_params = crystal.get_reciprocal_lattice_parameters()
+        max_h = int(max_q / recip_params[0])
+        max_k = int(max_q / recip_params[1])
+        max_l = int(max_q / recip_params[2])
+
+        # Set reflection vector limits
+        # C++: oResCellStruct.SetReflectionVectorLimits(nMaxH, nMaxK, nMaxL, fMaxQ, oExpConfigFile.fMinAmplitudeFraction)
+        crystal.set_reflection_limits(
+            max_h, max_k, max_l, max_q, self.config_file.min_amplitude_fraction
+        )
 
         # Apply symmetry to reflection vectors
         symmetry = self.get_sample_symmetry()
@@ -557,30 +575,25 @@ class XDMExperimentSetup(ExperimentSetup):
             >>> max_q = setup.get_max_q(detector, sample)
             >>> print(f"Max observable Q: {max_q:.4f} Å⁻¹")
         """
-        # Incident wave vector magnitude
-        # k = E / (ℏc) where E is in keV
-        k_mag = KEV_OVER_HBAR_C_IN_ANG * self.beam_energy
-
-        # Get detector corner position (coordinate origin)
+        # C++: SVector3 oKOutMaxDir = oDetector.GetDetectorCoordinateOrigin()
+        # Get detector corner position (coordinate origin) in lab frame
         # By convention, this is the corner furthest from the beam
-        detector_origin = detector.get_detector_coordinate_origin()
+        k_out_max_dir = detector.coordinate_origin.numpy()
 
-        # Vector from sample to detector corner
-        sample_to_detector = detector_origin - sample.get_location()
+        # C++: oKOutMaxDir += oSample.GetLocation()
+        # Note: C++ code adds sample location (seems like an error, but matching it)
+        k_out_max_dir += sample.get_location()
 
-        # Distance and angle calculations
-        distance = np.linalg.norm(sample_to_detector)
-        detector_radius = detector.get_detector_radius()
+        # C++: oKOutMaxDir.Normalize()
+        # Normalize to get scattered beam direction
+        k_out_max_dir = k_out_max_dir / np.linalg.norm(k_out_max_dir)
 
-        # Maximum scattering angle occurs at detector edge
-        theta_max = np.arctan(detector_radius / distance)
+        # C++: SVector3 oQMax = GetReciprocalVector( oKOutMaxDir )
+        # Calculate reciprocal vector for this scattering direction
+        q_max_vec = self.get_reciprocal_vector(k_out_max_dir)
 
-        # For elastic scattering: |Q| = 2k sin(θ/2)
-        max_q = 2.0 * k_mag * np.sin(theta_max / 2.0)
-
-        # Take minimum of calculated and user-specified max Q
-        if self.config_file and self.config_file.max_q > 0:
-            max_q = min(max_q, self.config_file.max_q)
+        # C++: return oQMax.GetLength()
+        max_q = np.linalg.norm(q_max_vec)
 
         return max_q
 

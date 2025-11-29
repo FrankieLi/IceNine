@@ -25,12 +25,14 @@ class Reflection:
         h, k, l: Miller indices
         q_mag: Magnitude of scattering vector |Q| in Å⁻¹
         q_vec: Cartesian scattering vector (optional)
+        intensity: Structure factor intensity |F|² (optional)
     """
     h: int
     k: int
     l: int
     q_mag: float
     q_vec: Optional[np.ndarray] = None
+    intensity: float = 1.0
 
     def __repr__(self) -> str:
         return f"({self.h} {self.k} {self.l}) Q={self.q_mag:.4f}"
@@ -69,6 +71,10 @@ class CrystalStructure:
 
         # Create symmetry object
         self.symmetry = CrystalSymmetry(structure)
+
+        # Cache for reflection vectors
+        self._reflection_vectors: Optional[List[Reflection]] = None
+        self._max_q: Optional[float] = None
 
     @classmethod
     def create_fcc(cls, element: str, a: float) -> "CrystalStructure":
@@ -216,7 +222,12 @@ class CrystalStructure:
                     # Keep if within max_q
                     if q_mag <= max_q:
                         q_vec = self.calculate_q_vector(h, k, l)
-                        reflection = Reflection(h, k, l, q_mag, q_vec)
+
+                        # Calculate structure factor intensity
+                        # C++: oRefRecipVector.fIntensity = CalculateIntensity( oRefRecipVector.v )
+                        intensity = self.calculate_intensity(q_vec)
+
+                        reflection = Reflection(h, k, l, q_mag, q_vec, intensity)
                         reflections.append(reflection)
 
         return reflections
@@ -301,6 +312,62 @@ class CrystalStructure:
         )
         return self.get_unique_reflections(all_reflections, tolerance)
 
+    def calculate_intensity(self, q_vec: np.ndarray) -> float:
+        """
+        Calculate structure factor intensity |F|² for a reciprocal vector.
+
+        This implements the kinematical diffraction structure factor:
+            F = Σ_j f_j * exp(i * Q · r_j)
+            I = |F|² = Real(F)² + Imag(F)²
+
+        where:
+            f_j = atomic scattering factor (approximated as atomic number)
+            Q = reciprocal lattice vector
+            r_j = atom position in Cartesian coordinates
+
+        C++ Reference: CrystalStructure.cpp:404-425 CalculateIntensity()
+
+        Args:
+            q_vec: Reciprocal lattice vector Q in Cartesian coordinates (Å⁻¹)
+
+        Returns:
+            Structure factor intensity |F|²
+
+        Example:
+            >>> structure = CrystalStructure.create_fcc("Au", 4.0782)
+            >>> q_vec = structure.calculate_q_vector(1, 1, 1)
+            >>> intensity = structure.calculate_intensity(q_vec)
+        """
+        s_real = 0.0
+        s_imaginary = 0.0
+
+        # C++: for(Size_Type i = 0; i < oTranslationVector.size(); i ++)
+        for site in self.structure.sites:
+            # Get atom position in Cartesian coordinates
+            # C++: SVector3 oAtomPosition = oTranslationVector[i].v.m_fX * oPrimitiveVector[0] + ...
+            atom_position = site.coords  # pymatgen already provides Cartesian coords
+
+            # Calculate Q · r
+            # C++: Float fRDotK = Dot( oReciprocalVector, oAtomPosition )
+            r_dot_k = np.dot(q_vec, atom_position)
+
+            # Atomic scattering factor (approximated as atomic number Z)
+            # C++: oTranslationVector[i].fEffectiveZ
+            # For more accuracy, could use proper scattering factors from tables
+            effective_z = float(site.specie.Z)
+
+            # Structure factor: F = Σ f_j * e^(i*k·r) = Σ f_j * (cos(k·r) + i*sin(k·r))
+            # C++: fSReal += oTranslationVector[i].fEffectiveZ * cos( fRDotK )
+            # C++: fSImaginary += oTranslationVector[i].fEffectiveZ * sin( fRDotK )
+            s_real += effective_z * np.cos(r_dot_k)
+            s_imaginary += effective_z * np.sin(r_dot_k)
+
+        # Intensity = |F|² = Real² + Imag²
+        # C++: return ( fSReal * fSReal + fSImaginary * fSImaginary )
+        intensity = s_real * s_real + s_imaginary * s_imaginary
+
+        return intensity
+
     def get_d_spacing(self, h: int, k: int, l: int) -> float:
         """
         Calculate d-spacing for a reflection.
@@ -328,6 +395,48 @@ class CrystalStructure:
             self.reciprocal_lattice.b,
             self.reciprocal_lattice.c,
         )
+
+    def set_reflection_limits(
+        self,
+        max_h: int,
+        max_k: int,
+        max_l: int,
+        max_q: float,
+        min_intensity_fraction: float = 0.0
+    ) -> None:
+        """
+        Set reflection generation limits and cache reflections.
+
+        Compatible with C++ CUnitCell::SetReflectionVectorLimits().
+
+        Args:
+            max_h, max_k, max_l: Maximum Miller indices (currently unused, using max_q instead)
+            max_q: Maximum scattering vector magnitude in Å⁻¹
+            min_intensity_fraction: Minimum intensity fraction to include (currently unused)
+        """
+        self._max_q = max_q
+        # Generate and cache reflections
+        self._reflection_vectors = self.generate_reflections(max_q)
+
+    def get_reflection_vectors(self) -> List[Reflection]:
+        """
+        Get cached reflection vectors.
+
+        Compatible with C++ CUnitCell::GetReflectionVectorList().
+        Must call set_reflection_limits() first.
+
+        Returns:
+            List of Reflection objects with q_vec populated
+
+        Raises:
+            RuntimeError: If set_reflection_limits() not called
+        """
+        if self._reflection_vectors is None:
+            raise RuntimeError(
+                "Reflection vectors not initialized. "
+                "Call set_reflection_limits() first."
+            )
+        return self._reflection_vectors
 
     def __repr__(self) -> str:
         """String representation."""
