@@ -128,3 +128,31 @@ Samples are 3D voxel grids in `.mic` format; each voxel stores crystal orientati
 - Cost function evaluation is the computational bottleneck
 - DiffractionCore uses inline functions for performance-critical physics
 - Parallel reconstruction (mode `p`) recommended for large samples
+
+## Gitflow Workflow
+
+This project uses gitflow. All work must follow this branching model:
+
+```
+master           ← releases only (tagged, e.g. v3.last)
+  └─ develop     ← integration branch, PRs merge here
+       └─ feature/name           ← feature branches off develop
+            └─ feature/name/task ← optional sub-task branches
+```
+
+### Branch Rules
+- **master**: Never commit directly. Only merge from develop for releases.
+- **develop**: Integration branch. Feature branches merge here via PR.
+- **feature/***: All new work. Branch off develop, merge back via PR.
+- **feature/\*/task**: Sub-tasks off a feature branch. Merge back to parent feature.
+
+### Workflow Commands
+- `/start-feature <name>` — create feature branch off develop
+- `/start-task <name>` — create sub-task branch off current feature
+- `/finish-task` — run tests, review, merge task → parent feature
+- `/finish-feature` — run tests, review, create PR → develop
+
+### Before Merging
+Always run the relevant test suite:
+- Python changes: `cd icenine_py && pytest tests/ -v`
+- C++ changes: `cmake -DCMAKE_BUILD_TYPE=Release . && make -j8`
