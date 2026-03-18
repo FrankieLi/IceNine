@@ -156,3 +156,10 @@ master           ← releases only (tagged, e.g. v3.last)
 Always run the relevant test suite:
 - Python changes: `cd icenine_py && pytest tests/ -v`
 - C++ changes: `cmake -DCMAKE_BUILD_TYPE=Release . && make -j8`
+
+### Documentation Rules
+These rules apply to ALL work, not just when using slash commands:
+
+1. **Plan documentation**: When entering plan mode, save the plan to `icenine_py/MIGRATION_HISTORY.md` under a new section (if it relates to the Python port) or the appropriate doc.
+2. **Completion summaries**: After executing a plan, summarize what was accomplished in `icenine_py/MIGRATION_HISTORY.md`, then delete the plan file from `.claude/plans/`.
+3. **Feature documentation**: When a new feature or module is added, update `icenine_py/README.md` to reflect it (new modules, changed structure, new dependencies, etc.).

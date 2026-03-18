@@ -30,7 +30,13 @@ Follow these steps in order:
 - Provide a brief summary of what changed and any concerns
 - Ask the user if they want to proceed with the merge
 
-## Step 4: Merge (only after user confirms)
+## Step 4: Document what was accomplished
+- Append a brief summary of the completed work to `icenine_py/MIGRATION_HISTORY.md` under the appropriate phase section (add a new sub-heading if needed)
+- If a new module or feature was added, update `icenine_py/README.md` to reflect it
+- If a plan file exists in `.claude/plans/`, delete it — the summary in MIGRATION_HISTORY.md replaces it
+- Commit the documentation updates before merging
+
+## Step 5: Merge (only after user confirms)
 - Checkout the parent branch: `git checkout <parent>`
 - Merge the task branch: `git merge --no-ff <task-branch> -m "Merge <task-branch>: <brief summary>"`
 - Push the parent branch: `git push origin <parent>`
