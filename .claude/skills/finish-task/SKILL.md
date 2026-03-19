@@ -2,7 +2,6 @@
 name: finish-task
 description: Finish current task branch - run tests, review changes, merge back to parent feature branch.
 user-invocable: true
-allowed-tools: Bash(git *), Bash(pytest *), Bash(cd *), Bash(make *)
 ---
 
 Finish the current task branch and merge it back to the parent feature branch.
@@ -17,7 +16,7 @@ Follow these steps in order:
 ## Step 2: Run tests
 - If there are Python files changed (`git diff --name-only <parent>...HEAD | grep '\.py$'`), run:
   ```
-  cd icenine_py && pytest tests/ -v
+  cd icenine_py && uv run pytest tests/ -v
   ```
 - If there are C++ files changed, run:
   ```

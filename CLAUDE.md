@@ -153,12 +153,14 @@ master           ← releases only (tagged, e.g. v3.last)
 - `/start-feature <name>` — create feature branch off develop
 - `/start-task <name>` — create sub-task branch off current feature
 - `/finish-task` — run tests, review, merge task → parent feature
-- `/finish-feature` — run tests, review, create PR → develop
+- `/finish-feature` — run tests, review, create PR → develop, merge via GitHub
 
-### Before Merging
-Always run the relevant test suite:
-- Python changes: `cd icenine_py && pytest tests/ -v`
-- C++ changes: `cmake -DCMAKE_BUILD_TYPE=Release . && make -j8`
+### Merge Rules
+- **Feature → develop**: ALWAYS via GitHub PR. Never merge locally and push develop. Push the feature branch, create PR with `gh pr create`, merge with `gh pr merge --merge --delete-branch`.
+- **Task → parent feature**: Local merge with `--no-ff` is fine (no PR needed).
+- Always run the relevant test suite before merging:
+  - Python changes: `cd icenine_py && uv run pytest tests/ -v`
+  - C++ changes: `cmake -DCMAKE_BUILD_TYPE=Release . && make -j8`
 
 ### Documentation Rules
 These rules apply to ALL work, not just when using slash commands:
