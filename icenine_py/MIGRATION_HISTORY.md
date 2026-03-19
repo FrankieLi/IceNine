@@ -43,6 +43,28 @@ Consolidated record of the C++ → Python/PyTorch migration. For current package
 
 ## Critical Gotchas
 
+### Detector Geometry (Root Causes of Forward Simulation Mismatch)
+
+Two bugs in detector geometry caused zero pixel overlap between Python and C++ forward simulation output. Fixing them achieved ~86% pixel match.
+
+**Bug 1: Detector plane normal computed incorrectly** (`detector.py:_calculate_image_plane`)
+- **C++ method** (`Detector.cpp:211-244 CalculateImagePlane`): Defines the detector plane using 3 corner points `(1,0,0)`, `(0,1,0)`, `(0,0,0)` rotated by the orientation matrix and translated by position. The plane normal is `cross(p2-p1, p3-p1)`.
+- **Python bug**: Was computing plane normal as `cross(lab_basis_j, lab_basis_k)`, which gives the wrong normal when J/K unit vectors are not the standard basis (e.g., for typical HEDM detectors where J=`(1,0,0)` and K=`(0,-1,0)`).
+- **Fix**: Replicated the C++ 3-point plane construction exactly.
+
+**Bug 2: Detector J/K unit vectors hardcoded incorrectly** (`detector.py:__init__`)
+- **C++ method** (`DetectorFile.cpp:GetDetector`): Reads `JUnitVector` and `KUnitVector` from the detector file and passes them to `SetImageParameter`.
+- **Python bug**: Hardcoded J=`(0,1,0)`, K=`(0,0,1)` instead of reading from file. The correct defaults matching C++ convention are J=`(1,0,0)`, K=`(0,-1,0)`.
+- **Fix**: Added `j_unit_vector`/`k_unit_vector` parameters to `Detector.__init__()` with correct defaults, and pass parsed values from `file_io.py:DetectorInfo.get_detector()`.
+
+**Related fix in `file_io.py`**: `LabFrameOrientation` Euler angles were being double-converted from degrees to radians — `euler_to_matrix()` internally converts degrees, but the code was passing already-converted radians.
+
+### Latent Bug: Sample orientation save/restore (degree/radian mismatch)
+- `sample.get_orientation()` returns Euler angles in **radians**
+- `sample.set_orientation()` expects angles in **degrees** (it calls `passive_euler_matrix()` which converts internally)
+- C++ `SetOrientation` takes **radians** directly (calls `cosf()`)
+- This bug doesn't trigger for the Example2 test case where orientation is `(0,0,0)`, but will break for non-zero sample orientations.
+
 ### Euler Angle Conventions
 - **Voxel orientations**: Active ZXZ Bunge convention (standard crystallography)
 - **Global sample orientation**: Passive Euler convention (`SetPassiveEulerMatrix` in C++), implemented as `passive_euler_matrix()` in Python. These are NOT the same — discovered through test failures.
@@ -64,4 +86,7 @@ Single-element physics operations are too slow for production. All diffraction c
 
 ### Integration Testing
 - C++ vs Python forward simulation comparison using three-voxel test case (360 detector images)
+- After detector geometry fixes: ~86% pixel overlap (1386/1614 C++ pixels matched in d0 files, 644/746 in d1 files)
+- Python generates ~4x more pixels than C++ due to simplified 1-micron triangle voxel approximation vs C++ actual mesh geometry
+- Remaining ~14% mismatch is likely edge rounding and voxel shape differences
 - See `Examples/Example2.ThreeVoxels/README_INTEGRATION_TEST.md`

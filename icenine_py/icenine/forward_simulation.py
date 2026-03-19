@@ -255,18 +255,6 @@ class ForwardSimulation:
             crystal_structure = structure_list[phase_index]
             reciprocal_vectors = crystal_structure.get_reflection_vectors()
 
-            # DEBUG: Print all reciprocal vectors for first voxel only
-            if voxel_count == 1:
-                print(f"=== Python Reciprocal Vectors (first voxel, phase {phase_index}) ===")
-                print(f"Total reciprocal vectors: {len(reciprocal_vectors)}")
-                for i, recip in enumerate(reciprocal_vectors):
-                    q_vec_str = f"({recip.q_vec[0]:.4f}, {recip.q_vec[1]:.4f}, {recip.q_vec[2]:.4f})"
-                    print(f"  [{i}] h={recip.h} k={recip.k} l={recip.l} "
-                          f"Q={q_vec_str} |Q|={recip.q_mag:.4f} I={recip.intensity:.0f}")
-                print("=== END Python Reciprocal Vectors ===")
-                import sys
-                sys.exit(0)  # Exit after printing
-
             # Get voxel orientation as PyTorch tensor
             # C++: pCurVoxel->oOrientMatrix
             voxel_orientation = torch.from_numpy(voxel.orientation).float()

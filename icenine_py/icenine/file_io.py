@@ -114,14 +114,13 @@ class DetectorInfo:
                     self.lab_frame_location = np.array([float(tokens[1]), float(tokens[2]), float(tokens[3])],
                                                        dtype=np.float32)
                 elif keyword == "LabFrameOrientation":
-                    # Input is in degrees, convert to radians
+                    # Input is in degrees
                     euler_deg = np.array([float(tokens[1]), float(tokens[2]), float(tokens[3])])
                     self.lab_frame_orientation_euler = np.deg2rad(euler_deg).astype(np.float32)
                     # Build rotation matrix using active Euler angles (ZXZ Bunge convention)
+                    # euler_to_matrix takes DEGREES, so pass the original degree values
                     self.lab_frame_orientation_matrix = euler_to_matrix(
-                        self.lab_frame_orientation_euler[0],
-                        self.lab_frame_orientation_euler[1],
-                        self.lab_frame_orientation_euler[2]
+                        euler_deg[0], euler_deg[1], euler_deg[2]
                     )
                 elif keyword == "NumJPixels":
                     self.num_j_pixels = int(tokens[1])
@@ -155,6 +154,8 @@ class DetectorInfo:
         # Create detector using factory method
         # C++ calls CXDMDetectorFactory::MakeDetector
         # Note: Detector uses (num_rows, num_cols) which corresponds to (K, J) in C++
+        # J/K unit vectors come from the detector file and define the detector
+        # coordinate system before orientation rotation is applied
         detector = Detector(
             num_rows=self.num_k_pixels,  # K direction = rows
             num_cols=self.num_j_pixels,  # J direction = columns
@@ -163,7 +164,9 @@ class DetectorInfo:
             pixel_width=self.pixel_width,
             pixel_height=self.pixel_height,
             position=torch.from_numpy(self.lab_frame_location),
-            orientation=torch.from_numpy(self.lab_frame_orientation_matrix)
+            orientation=torch.from_numpy(self.lab_frame_orientation_matrix),
+            j_unit_vector=torch.from_numpy(self.j_unit_vector),
+            k_unit_vector=torch.from_numpy(self.k_unit_vector),
         )
 
         return detector

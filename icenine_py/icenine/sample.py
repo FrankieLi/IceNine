@@ -19,7 +19,7 @@ import numpy as np
 
 from .mic_file import MicFile
 from .crystal_structure import CrystalStructure
-from .geometry import euler_to_matrix_torch, matrix_to_euler, passive_euler_matrix
+from .geometry import euler_to_matrix_torch, matrix_to_euler, passive_euler_matrix, active_euler_matrix
 from .symmetry import CrystalSymmetry
 
 
@@ -238,8 +238,9 @@ class Sample:
         theta_rad = np.deg2rad(theta)
         psi_rad = np.deg2rad(psi)
 
-        # Build rotation matrix using passive convention
-        R_new = passive_euler_matrix(phi_rad, theta_rad, psi_rad)
+        # Build rotation matrix using ACTIVE convention
+        # C++ uses BuildActiveEulerMatrix (Sample.cpp:124)
+        R_new = active_euler_matrix(phi_rad, theta_rad, psi_rad)
 
         # Compose with existing rotation
         rotation_old = self.sample_to_lab_matrix[:3, :3]
@@ -263,9 +264,9 @@ class Sample:
         axis = axis / np.linalg.norm(axis)
         angle_rad = np.deg2rad(angle_deg)
 
-        # Rodrigues' rotation formula for PASSIVE rotation (transpose of active)
+        # Rodrigues' rotation formula for ACTIVE rotation
+        # C++ uses BuildRotationAboutAxis which builds an active rotation (Sample.cpp:137-139)
         # Active: R = I + sin(θ)K + (1-cos(θ))K²
-        # Passive: R = I - sin(θ)K + (1-cos(θ))K²  (note the minus sign)
         # where K is the skew-symmetric cross-product matrix
         K = torch.tensor([
             [0, -axis[2], axis[1]],
@@ -274,29 +275,47 @@ class Sample:
         ], dtype=torch.float32)
 
         I = torch.eye(3, dtype=torch.float32)
-        # Use negative angle for passive rotation (equivalent to transpose)
-        R = I - np.sin(angle_rad) * K + (1 - np.cos(angle_rad)) * torch.matmul(K, K)
+        R = I + np.sin(angle_rad) * K + (1 - np.cos(angle_rad)) * torch.matmul(K, K)
 
         # Compose with existing rotation
         rotation_old = self.sample_to_lab_matrix[:3, :3]
         self.sample_to_lab_matrix[:3, :3] = torch.matmul(R, rotation_old)
 
-    def rotate_z(self, omega_deg: float) -> None:
+    def rotate_z(self, omega: float) -> None:
         """
-        Apply rotation around Z-axis (optimized version).
+        Apply ACTIVE rotation around Z-axis (optimized version).
 
         This is a performance-optimized version for the common case of
         rotating around the Z-axis, which is frequently used during
         sample rotation in experiments.
 
-        C++ Reference: Sample.cpp:165-169 (RotateZ - hand-optimized)
+        C++ Reference: Sample.cpp:150-180 (RotateZ - hand-optimized)
+        C++ comment: "A ACTIVE rotation is used to go from the sample back to the lab."
+
+        The operation is: oSampleToLabMatrix = Rz(omega) @ oSampleToLabMatrix
 
         Args:
-            omega_deg: Rotation angle around Z-axis in degrees
+            omega: Rotation angle around Z-axis in RADIANS
         """
-        # For now, use general rotate() method
-        # Can optimize later with hand-coded matrix if needed
-        self.rotate(omega_deg, 0, 0)
+        cos_omega = np.cos(omega)
+        sin_omega = np.sin(omega)
+
+        # Active Z-rotation matrix:
+        # [cos(ω)  -sin(ω)  0]
+        # [sin(ω)   cos(ω)  0]
+        # [0        0       1]
+        # Applied as left-multiply on existing sample-to-lab matrix
+        rotation_old = self.sample_to_lab_matrix[:3, :3].clone()
+
+        self.sample_to_lab_matrix[0, 0] = cos_omega * rotation_old[0, 0] - sin_omega * rotation_old[1, 0]
+        self.sample_to_lab_matrix[0, 1] = cos_omega * rotation_old[0, 1] - sin_omega * rotation_old[1, 1]
+        self.sample_to_lab_matrix[0, 2] = cos_omega * rotation_old[0, 2] - sin_omega * rotation_old[1, 2]
+
+        self.sample_to_lab_matrix[1, 0] = sin_omega * rotation_old[0, 0] + cos_omega * rotation_old[1, 0]
+        self.sample_to_lab_matrix[1, 1] = sin_omega * rotation_old[0, 1] + cos_omega * rotation_old[1, 1]
+        self.sample_to_lab_matrix[1, 2] = sin_omega * rotation_old[0, 2] + cos_omega * rotation_old[1, 2]
+
+        # Z-row unchanged (rotation about Z-axis)
 
     # =========================================================================
     # Accessors

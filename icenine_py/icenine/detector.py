@@ -117,6 +117,8 @@ class Detector:
         beam_center_k: float,
         position: Optional[torch.Tensor] = None,
         orientation: Optional[torch.Tensor] = None,
+        j_unit_vector: Optional[torch.Tensor] = None,
+        k_unit_vector: Optional[torch.Tensor] = None,
         dtype: torch.dtype = torch.float32,
         device: Union[str, torch.device] = 'cpu'
     ):
@@ -134,6 +136,10 @@ class Detector:
                      Default: origin (0, 0, 0)
             orientation: 3x3 rotation matrix (lab to detector), shape (3, 3).
                         Default: identity (detector perpendicular to beam)
+            j_unit_vector: J-axis direction in detector frame, shape (3,).
+                          Default: (1, 0, 0) matching C++ convention from detector file.
+            k_unit_vector: K-axis direction in detector frame, shape (3,).
+                          Default: (0, -1, 0) matching C++ convention from detector file.
             dtype: PyTorch data type for tensors
             device: PyTorch device ('cpu' or 'cuda')
 
@@ -174,10 +180,16 @@ class Detector:
             self._orientation = orientation.to(dtype=dtype, device=self.device)
 
         # Detector coordinate system basis vectors (in detector frame)
-        # These define the detector plane orientation before rotation
-        # C++ Reference: Detector.cpp lines 109-111
-        self._det_frame_basis_j = torch.tensor([0.0, 1.0, 0.0], dtype=dtype, device=self.device)
-        self._det_frame_basis_k = torch.tensor([0.0, 0.0, 1.0], dtype=dtype, device=self.device)
+        # These come from the detector file (JUnitVector, KUnitVector)
+        # C++ Reference: Detector.cpp lines 105-106, 109-110
+        if j_unit_vector is not None:
+            self._det_frame_basis_j = j_unit_vector.to(dtype=dtype, device=self.device)
+        else:
+            self._det_frame_basis_j = torch.tensor([1.0, 0.0, 0.0], dtype=dtype, device=self.device)
+        if k_unit_vector is not None:
+            self._det_frame_basis_k = k_unit_vector.to(dtype=dtype, device=self.device)
+        else:
+            self._det_frame_basis_k = torch.tensor([0.0, -1.0, 0.0], dtype=dtype, device=self.device)
 
         # Calculate coordinate origin in detector frame
         # This is the offset from beam center to (0,0) pixel
@@ -206,11 +218,14 @@ class Detector:
         This method updates the detector plane based on current position and
         orientation. It's called internally whenever position or orientation changes.
 
-        The detector plane is defined by three points that are rotated by the
-        orientation matrix and translated by the position vector.
+        The detector plane is defined by three points on the detector face
+        (in the x-y plane of detector frame), rotated by the orientation matrix
+        and translated to the detector position.
 
         C++ Reference:
             Detector.cpp CDetector::CalculateImagePlane (lines 211-244)
+            Detector.cpp lines 122-131: detector plane is the y-z plane (by convention),
+            defined by points (1,0,0), (0,1,0), (0,0,0)
         """
         # Rotate the basis vectors to lab frame
         # C++ Reference: Detector.cpp lines 155-158
@@ -218,18 +233,29 @@ class Detector:
         self._lab_frame_basis_k = self._orientation @ self._det_frame_basis_k
         self._lab_frame_coord_origin = self._orientation @ self._det_frame_coord_origin
 
-        # Calculate detector plane normal from basis vectors
-        # The detector plane is spanned by basis_j and basis_k,
-        # so the normal is perpendicular to both
-        # Normal = basis_j × basis_k (cross product)
-        normal = torch.linalg.cross(self._lab_frame_basis_j, self._lab_frame_basis_k)
-        normal = normal / torch.norm(normal)  # normalize
+        # Define detector plane using 3 corner points, matching C++ exactly
+        # C++ Detector.cpp lines 125-129:
+        #   v1 = (1, 0, 0), v2 = (0, 1, 0), v3 = (0, 0, 0)
+        det_pt1 = torch.tensor([1.0, 0.0, 0.0], dtype=self.dtype, device=self.device)
+        det_pt2 = torch.tensor([0.0, 1.0, 0.0], dtype=self.dtype, device=self.device)
+        det_pt3 = torch.tensor([0.0, 0.0, 0.0], dtype=self.dtype, device=self.device)
 
-        # Plane equation: normal · (x - position) = 0
-        # Expanded: normal · x = normal · position
-        # Standard form: A*x + B*y + C*z + D = 0
-        # where D = -normal · position
-        d = -torch.dot(normal, self._position)
+        # Rotate then translate
+        # C++ lines 215-223
+        p1 = self._orientation @ det_pt1 + self._position
+        p2 = self._orientation @ det_pt2 + self._position
+        p3 = self._orientation @ det_pt3 + self._position
+
+        # Compute plane normal from edges
+        # C++ lines 225-229: edge1 = p3 - p1, edge2 = p2 - p1, normal = cross(edge2, edge1)
+        edge1 = p3 - p1
+        edge2 = p2 - p1
+        normal = torch.linalg.cross(edge2, edge1)
+        normal = normal / torch.norm(normal)
+
+        # Plane equation: A*x + B*y + C*z + D = 0
+        # C++ line 237: D = -dot(normal, p1)
+        d = -torch.dot(normal, p1)
 
         # Create plane (coefficients: A, B, C, D)
         plane_coeffs = torch.cat([normal, d.unsqueeze(0)])
