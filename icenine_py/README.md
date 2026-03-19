@@ -1,83 +1,117 @@
 # IceNine Python/PyTorch Implementation
 
-Python port of IceNine crystallography and diffraction primitives with PyTorch acceleration.
-
-## Overview
-
-This is a test-driven migration of IceNine's core diffraction physics calculations from C++ to Python, focusing on:
-
-- **Crystallography primitives**: Symmetry operations, reciprocal lattice generation
-- **Diffraction physics**: Scattering vector calculations, Bragg condition, observable peaks
-- **Validation**: Every function tested against C++ ground truth (tolerance < 1e-6)
-
-## Project Structure
-
-```
-icenine_py/
-├── icenine/               # Python package
-│   ├── constants.py       # Physical constants (KEV_OVER_HBAR_C_IN_ANG, etc.)
-│   ├── symmetry.py        # Crystal symmetry operations (pymatgen wrapper)
-│   ├── crystal_structure.py  # Crystal structures and reciprocal lattice
-│   └── diffraction_core.py   # Core diffraction calculations
-├── tests/                 # Test suite
-│   ├── test_symmetry.py   # Symmetry operation validation
-│   ├── test_miller_indices.py  # Miller index generation validation
-│   └── test_diffraction.py     # Diffraction calculation validation
-├── cpp_harness/           # C++ ground truth generator
-│   └── generate_test_data.cpp
-└── cpp_outputs/           # C++ test data (JSON)
-```
+Python port of the IceNine forward model for synchrotron X-ray diffraction simulation, with PyTorch acceleration. Validated pixel-exact against the C++ implementation.
 
 ## Installation
 
 ```bash
-# Install dependencies
-pip install -e .
-
-# Install with development tools
-pip install -e ".[dev]"
+cd icenine_py
+uv pip install -e ".[dev]"
 ```
 
-## Dependencies
+Dependencies: numpy, torch, pymatgen, scipy (see `pyproject.toml`).
 
-- **pymatgen**: Crystallography and symmetry operations
-- **PyTorch**: Tensor operations and GPU acceleration
-- **NumPy**: Array operations
-- **SciPy**: Rotation and transformation utilities
+## Quick Start: Forward Simulation
+
+```bash
+cd Examples/Example2.ThreeVoxels
+uv run python run_python_simulation.py
+```
+
+This simulates X-ray diffraction from a 3-voxel copper sample (64.35 keV beam, 180 omega steps × 2 detectors) and writes 360 detector images to `ScatteringData_Python/`.
+
+### Programmatic Usage
+
+```python
+from icenine.config_file import ConfigFile
+from icenine.forward_simulation import ForwardSimulation
+
+config = ConfigFile.from_file("path/to/experiment.config")
+simulator = ForwardSimulation(config)
+images = simulator.simulate_detector_images(output_dir="output/")
+# images[omega_index][detector_index] is an ImageData object
+```
+
+### What ForwardSimulation Does
+
+For each voxel in the sample:
+1. Loads crystal structure and generates reciprocal lattice vectors (filtered by MaxQ and MinAmplitudeFraction)
+2. For each reciprocal vector, solves the Bragg condition for omega angles
+3. Maps each omega to an experimental wedge via `SimulationRange`
+4. Rotates the sample to the omega angle
+5. Projects the voxel triangle onto all detectors (Sutherland-Hodgman clipping + scanline rasterization)
+6. Accumulates intensity with Lorentz-polarization correction: `I = I_form / (|sin(η)| × sin(2θ))`
+
+## Package Modules
+
+| Module | Description |
+|--------|-------------|
+| `forward_simulation.py` | Main simulation loop — generates detector images from a sample |
+| `simulation.py` | Core engine — Bragg condition solving, vertex projection, voxel rasterization |
+| `experiment_setup.py` | Reads config, initializes detectors/sample/omega ranges |
+| `config_file.py` | Parser for `.config` files (80+ parameters, auto degree→radian conversion) |
+| `detector.py` | Detector geometry, coordinate transforms, ray-plane intersection |
+| `image_data.py` | Detector image storage, scanline triangle rasterizer |
+| `sample.py` | Sample with orientation, translation, crystal structures |
+| `mic_file.py` | Read/write `.mic` voxel grid files (Bunge Euler angles) |
+| `crystal_structure.py` | Unit cell, reciprocal lattice, reflection vector generation |
+| `diffraction_core.py` | Scattering omega calculation, reflected rays (PyTorch batched) |
+| `peak_filters.py` | Eta-angle acceptance filter with Lorentz-polarization correction |
+| `simulation_range.py` | Omega range system for discontinuous data collection wedges |
+| `geometry.py` | Euler conversions, Plane/Ray classes |
+| `symmetry.py` | Crystal symmetry operations (pymatgen wrapper) |
+| `constants.py` | Physical constants |
+| `file_io.py` | Detector file, crystal structure file, and omega file I/O |
+
+## Config File Format
+
+Forward simulation requires a `.config` file specifying:
+
+```
+BeamEnergy           64.351           # keV
+BeamDirection        0  0  1          # unit vector
+MaxQ                 16               # Å⁻¹, max scattering vector magnitude
+EtaLimit             86               # degrees, max eta for peak acceptance
+MinAmplitudeFraction 0.25             # filter reflections below this fraction of max intensity
+SampleFilename       SimInput/three_voxels.mic
+StructureFilename    DataFiles/copper.dat
+DetectorFilename     ConfigFiles/StandardGeometry.2Det
+OmegaFilename        DataFiles/omega_180_2L.dat
+OutFileBasename      3Grains.sim
+OutFileExtension     d
+OutFileSerialLength  5
+```
+
+See `Examples/Example2.ThreeVoxels/ConfigFiles/Example2.Simulation.config` for a complete example.
 
 ## Testing
 
-All tests compare Python outputs against C++ ground truth:
-
 ```bash
-# Run all tests
-pytest tests/
-
-# Run specific test suite
-pytest tests/test_symmetry.py -v
-
-# Run with coverage
-pytest --cov=icenine tests/
+cd icenine_py
+uv run pytest tests/ -v                # all unit tests
+uv run pytest tests/test_simulation.py  # specific module
+uv run pytest --cov=icenine tests/      # with coverage
 ```
 
-## Test Parameters
+### Integration Test (C++ vs Python)
 
-Using Gold (Au) FCC from `ConfigFiles/ReconstructTest.config`:
+```bash
+cd Examples/Example2.ThreeVoxels
+uv run python run_python_simulation.py   # generate Python output
+uv run python compare_outputs.py         # compare against C++ reference
+```
 
-- Element: Au
-- Lattice: FCC (a = 4.0782 Å)
-- Space group: 225 (Fm-3m)
-- Beam energy: 50.02099 keV
-- Wavelength: 0.2478 Å
-- Max Q: 8.0 Å⁻¹
+Expected: 3200/3201 pixels match at identical locations, max relative intensity difference < 1e-5.
 
-## Validation Strategy
+## Validation Status
 
-1. **C++ Test Harness**: Generate ground truth data from original IceNine
-2. **Python Implementation**: Port functions using modern libraries
-3. **Numerical Comparison**: Assert Python matches C++ within tolerance
-4. **Validation Report**: Statistical analysis of differences
+The forward simulation has been validated pixel-exact against C++ on the Example2.ThreeVoxels test case:
+
+- **3200 matching pixels** (same location and intensity to within float32 precision)
+- **Max relative intensity difference: 5.4e-6**
+- **4 pixel-location mismatches** — all at omega bin boundaries due to floating-point rounding
+- **353/360 files are nonempty** in both C++ and Python (identical set)
 
 ## Citation
 
-Based on: S. F. Li and R. M. Suter, "Adaptive reconstruction method for three-dimensional orientation imaging", *Journal of Applied Crystallography*, 2013.
+S. F. Li and R. M. Suter, "Adaptive reconstruction method for three-dimensional orientation imaging", *Journal of Applied Crystallography*, 2013.

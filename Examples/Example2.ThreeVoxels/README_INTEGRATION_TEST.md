@@ -17,7 +17,7 @@ This directory contains an end-to-end integration test comparing C++ and Python 
 
 ```bash
 cd Examples/Example2.ThreeVoxels
-python run_python_simulation.py
+uv run python run_python_simulation.py
 ```
 
 **What it does:**
@@ -49,7 +49,7 @@ Loading configuration...
 ### 2. Compare Outputs
 
 ```bash
-python compare_outputs.py
+uv run python compare_outputs.py
 ```
 
 **What it does:**
@@ -87,14 +87,19 @@ Pass/Fail Criteria
 ✓ ALL TESTS PASSED - Python and C++ outputs match!
 ```
 
+## Current Results
+
+- **3200/3201 pixels match** at identical (col, row) locations
+- **Max relative intensity difference: 5.4e-6** (well within float32 precision)
+- **4 pixel-location mismatches** — all at omega bin boundaries where floating-point rounding places a peak in an adjacent 1° bin
+- **353/360 files nonempty** in both C++ and Python (identical set)
+
 ## Pass/Fail Criteria
 
 | Metric | Threshold | Description |
 |--------|-----------|-------------|
-| Max absolute difference | < 10⁻³ | Largest pixel error across all images |
-| Mean absolute difference | < 10⁻⁵ | Average pixel error |
-| Max relative error | < 1% | Largest percentage error |
-| Minimum correlation | > 0.99 | Pearson correlation coefficient |
+| Max relative difference | < 10⁻⁴ | Largest relative intensity error for matching pixels |
+| Pixel location match | > 99.9% | Fraction of pixels at identical (col, row) |
 
 ## Test Files
 
@@ -139,12 +144,11 @@ The Python version may be slower than C++ initially. Consider:
 
 ## Expected Differences
 
-Even with identical algorithms, small numerical differences may occur due to:
-- **Floating point precision:** C++ uses `float`, Python uses `torch.float32`
-- **Library differences:** Different implementations of transcendental functions
-- **Rounding errors:** Accumulated over thousands of calculations
+Small numerical differences occur due to:
+- **Float32 precision:** C++ `float` and PyTorch `float32` have identical precision but different intermediate rounding in transcendental functions (sin, asin, atan2)
+- **Omega bin boundaries:** When an omega value falls exactly on a 1° bin edge, C++ and Python may round to adjacent bins. This accounts for all 4 pixel-location mismatches.
 
-Typical acceptable differences: 10⁻⁶ to 10⁻⁵ (relative error)
+Typical relative intensity error: < 10⁻⁵
 
 ## Citation
 

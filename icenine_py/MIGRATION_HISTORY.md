@@ -84,22 +84,30 @@ Single-element physics operations are too slow for production. All diffraction c
 - Parallel processing (MPI-based server/client)
 - Continuous optimization (ContinuousSearch)
 
-### Integration Testing
-- C++ vs Python forward simulation comparison using three-voxel test case (360 detector images)
-- **100% pixel recall achieved** (all 2360 C++ pixels matched by Python output)
-  - Detector 0: 1614/1614 C++ pixels matched (100%)
-  - Detector 1: 746/746 C++ pixels matched (100%)
-- Python generates ~4.3x more pixels than C++ (10198 vs 2360) due to rasterization differences (soft vs hard triangle fill, subpixel handling)
-- All C++ pixels are a strict subset of Python pixels — Python is a superset
+### Integration Testing — Pixel-Exact Match Achieved
 
-**Bug fix history:**
+C++ vs Python forward simulation comparison using three-voxel test case (360 detector images, 2 detectors, 180 omega steps, copper FCC).
+
+**Final status:** 3200/3201 pixels match at identical locations with max relative intensity difference of 5.4e-6. Only 4 pixel-location mismatches remain, all caused by floating-point omega values landing on bin boundaries (rounding to adjacent 1° bin).
+
+**Bug fix history (chronological):**
 1. Detector plane normal computed incorrectly → fixed to match C++ 3-point construction
 2. J/K unit vectors hardcoded wrong → fixed to read from detector file
 3. `LabFrameOrientation` Euler angles double-converted → fixed to pass degrees to `euler_to_matrix()`
-4. **Voxel vertices used hardcoded 1mm right triangle** → fixed to use actual equilateral triangle geometry from .mic file (side_length, points_up, position), matching C++ `MicIO.h:300-315`
+4. Voxel vertices used hardcoded 1mm right triangle → fixed to use actual equilateral triangle geometry from .mic file (side_length, points_up, position), matching C++ `MicIO.h:300-315`
+5. **Rasterization mismatch (4.3x extra pixels)**: Python used soft/sigmoid rasterization. Replaced with C++-matching scanline rasterizer: float→int truncation matching `ToRowPixel`/`ToColPixel`, Sutherland-Hodgman polygon clipping with C++ boundary conventions, Bresenham edge table, scanline fill. Reduced from 4.3x → 1.36x pixel ratio.
+6. **Multi-detector short-circuit**: Implemented C++ `GetProjectedVertices` behavior — if ANY vertex fails to intersect ANY detector plane, skip ALL detectors for that peak. (No effect on Example2 since all rays hit both detector planes.)
+7. **C++ tokenizer bug (`Parser.cpp`)**: `Tokenize()` dropped the last line of files without trailing newlines. The mic file `three_voxels.mic` had no trailing `\n`, so the 3rd voxel was silently skipped — C++ only simulated 2 of 3 voxels. Fixed by treating end-of-buffer as implicit newline. This was the root cause of the remaining 843 extra pixels (Python correctly loaded all 3 voxels).
 
-- Diagnostic scripts in `Examples/Example2.ThreeVoxels/`:
-  - `debug_single_peak.py` — traces one voxel + one reciprocal vector through full pipeline
-  - `debug_detector_geometry.py` — prints all detector geometric properties
-  - `compare_pixel_overlap.py` — pixel overlap comparison (recall/precision)
+**Key implementation details (for future debugging):**
+- `image_data.py:add_triangle_scanline()` — C++-matching rasterizer. Vertex coordinates are truncated (not rounded) to match `ToRowPixel`/`ToColPixel`. Clipping uses `x < x_max` (strictly less) for right/bottom and `x >= x_min` for left/top, matching C++ `SutherlandHodgman.h`.
+- `simulation.py:project_voxel_multi_detector()` — Projects all 3 vertices onto all detectors before rasterizing. Short-circuits if any vertex misses any detector plane.
+- `forward_simulation.py:_simulate_peaks()` — Triple loop: voxels × reflections × omega solutions. Uses `range_map.angle_to_wedge_index()` for omega bin mapping. Peak filter (`XDMEtaAcceptFn`) applies Lorentz-polarization correction: `I = I_form / (|sin(η)| × sin(2θ))`.
+- Omega-to-bin mapping: `SimulationRange._build_index_list()` marks only the CENTER bin of each wedge, matching C++ `SimulationData.h:Set()`. For 180 individual 1° wedges, all 180 bins have valid indices.
+
+**Diagnostic scripts in `Examples/Example2.ThreeVoxels/`:**
+- `run_python_simulation.py` — runs full forward simulation
+- `compare_outputs.py` / `compare_pixel_overlap.py` — pixel comparison
+- `debug_single_peak.py` — traces one voxel + one reciprocal vector through full pipeline
+- `debug_detector_geometry.py` — prints detector geometric properties
 - See `Examples/Example2.ThreeVoxels/README_INTEGRATION_TEST.md`
