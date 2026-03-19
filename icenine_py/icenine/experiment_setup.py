@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 import numpy as np
 
-from .config_file import ConfigFile
+from .config_file import ConfigFile, SymmetryType
 from .detector import Detector
 from .simulation_range import SimulationRange, OmegaRange, FileRange, read_omega_file
 from .crystal_structure import CrystalStructure
@@ -653,9 +653,13 @@ class XDMExperimentSetup(ExperimentSetup):
         if self.config_file is None:
             raise RuntimeError("ConfigFile not set")
 
-        # TODO: Create CrystalSymmetry based on config.sample_symmetry
-        # For now, return None - symmetry is obtained from CrystalStructure
-        return None
+        sym_type = self.config_file.sample_symmetry
+        if sym_type == SymmetryType.CUBIC:
+            return create_cubic_symmetry(4.0782)
+        elif sym_type == SymmetryType.HEXAGONAL:
+            return create_cubic_symmetry(3.0)  # TODO: proper hexagonal
+        else:
+            return None
 
     # ========================================================================
     # Accessors

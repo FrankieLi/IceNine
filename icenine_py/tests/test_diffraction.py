@@ -31,6 +31,11 @@ CPP_OUTPUTS_DIR = Path(__file__).parent.parent / "cpp_outputs"
 def load_json(filename: str) -> dict:
     """Load JSON ground truth data from C++."""
     filepath = CPP_OUTPUTS_DIR / filename
+    if not filepath.exists():
+        pytest.skip(
+            f"C++ test data not found: {filepath}\n"
+            f"Run: cd icenine_py/cpp_harness && make test_{filepath.stem}"
+        )
     with open(filepath, "r") as f:
         return json.load(f)
 

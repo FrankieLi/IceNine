@@ -107,7 +107,7 @@ class CrystalSymmetry:
         # Try all symmetry operations
         for sym_op in self.symmetry_ops:
             rotated = sym_op.rotation_matrix @ v1_array
-            if np.allclose(rotated, v2_array, atol=tolerance):
+            if np.allclose(rotated, v2_array, atol=tolerance, rtol=0):
                 return True
 
         return False
