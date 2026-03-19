@@ -25,11 +25,14 @@ Follow these steps in order:
   ```
 - If any tests fail, STOP and report. Do NOT proceed.
 
-## Step 3: Review all changes
-- Show the full diff against develop: `git diff develop...HEAD --stat`
-- Show commit history: `git log --oneline develop..HEAD`
-- Provide a summary of all changes, organized by topic
-- Flag any concerns (large files, potential issues, missing tests)
+## Step 3: Code review (separate context)
+- Spawn the `code-reviewer` agent using the Agent tool with:
+  - `subagent_type`: `"code-reviewer"`
+  - `model`: `"opus"`
+  - `prompt`: `"Review the feature branch <branch> against develop. Run: git diff develop...HEAD --stat, git log --oneline develop..HEAD, then read and review all changed files."`
+- Wait for the review to complete
+- Present the review results to the user
+- If the verdict is REQUEST CHANGES, STOP and work with the user to address the issues before proceeding
 
 ## Step 4: Document what was accomplished
 - Update `icenine_py/MIGRATION_HISTORY.md`:
