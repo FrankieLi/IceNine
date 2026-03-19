@@ -433,7 +433,8 @@ class TestFileStatistics:
         print(f"Median voxels: {np.median(sizes):.1f}")
 
         # Histogram
-        bins = [0, 1, 10, 100, 1000, 10000, max(sizes) + 1]
+        max_bin = max(sizes) + 1
+        bins = sorted(set([0, 1, 10, 100, 1000, 10000, max_bin]))
         hist, _ = np.histogram(sizes, bins=bins)
 
         print("\nSize distribution:")

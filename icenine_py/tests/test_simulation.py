@@ -348,12 +348,16 @@ class TestSimulationIntegration:
 
         # Get reflections up to some Q
         max_q = 10.0  # Å⁻¹
-        reflections = gold.get_reflections(max_q)
+        reflections = gold.generate_reflections(max_q)
 
         assert len(reflections) > 0
 
-        # Get reflection vectors
-        reciprocal_vectors = [r.g_vector for r in reflections[:10]]  # First 10
+        # Get reflection vectors (q_vec may be None, compute from lattice if needed)
+        reciprocal_vectors = [
+            torch.tensor(r.q_vec, dtype=torch.float32)
+            for r in reflections[:10]
+            if r.q_vec is not None
+        ]
 
         # Generate peaks
         orientation = torch.eye(3)

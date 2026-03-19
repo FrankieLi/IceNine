@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 import numpy as np
 
-from .config_file import ConfigFile
+from .config_file import ConfigFile, SymmetryType
 from .detector import Detector
 from .simulation_range import SimulationRange, OmegaRange, FileRange, read_omega_file
 from .crystal_structure import CrystalStructure
@@ -639,23 +639,28 @@ class XDMExperimentSetup(ExperimentSetup):
 
         C++ Reference: ExperimentSetup.cpp:78-95
 
-        NOTE: In the Python port, symmetry is obtained from the crystal structure
-        (via CrystalStructure.symmetry) rather than from a global symmetry factory.
-        This method returns None and symmetry should be obtained from the
-        crystal structure after it's created.
-
         Returns:
-            None (symmetry obtained from CrystalStructure)
+            CrystalSymmetry for the configured sample symmetry type,
+            or None if symmetry type is NONE.
 
         Raises:
             RuntimeError: If config file not set
+            NotImplementedError: If symmetry type is not yet supported
         """
         if self.config_file is None:
             raise RuntimeError("ConfigFile not set")
 
-        # TODO: Create CrystalSymmetry based on config.sample_symmetry
-        # For now, return None - symmetry is obtained from CrystalStructure
-        return None
+        sym_type = self.config_file.sample_symmetry
+        if sym_type == SymmetryType.CUBIC:
+            # Lattice parameter doesn't affect symmetry operators (purely
+            # rotational), so a dummy value is fine here.
+            return create_cubic_symmetry(1.0)
+        elif sym_type == SymmetryType.HEXAGONAL:
+            raise NotImplementedError("Hexagonal symmetry not yet implemented")
+        elif sym_type == SymmetryType.NONE:
+            return None
+        else:
+            raise NotImplementedError(f"Symmetry type {sym_type} not yet implemented")
 
     # ========================================================================
     # Accessors

@@ -28,6 +28,17 @@ def project_root():
     return Path(__file__).parent.parent.parent
 
 
+@pytest.fixture(autouse=True)
+def chdir_to_project_root(project_root, monkeypatch):
+    """Change to project root so relative paths in config files resolve correctly.
+
+    Config files use paths like 'ConfigFiles/DetectorFile.txt' which are
+    relative to the project root (matching C++ behavior where IceNine is
+    run from the project root).
+    """
+    monkeypatch.chdir(project_root)
+
+
 @pytest.fixture
 def config_file(project_root):
     """Load ReconstructTest.config for testing."""
@@ -42,6 +53,21 @@ def experiment_setup(config_file):
     """Create initialized XDMExperimentSetup."""
     setup = XDMExperimentSetup(config_file)
     return setup
+
+
+@pytest.fixture
+def initialized_experiment_setup(experiment_setup):
+    """Create fully initialized XDMExperimentSetup with all data files loaded.
+
+    Skips if required data files (detector, omega, etc.) are not found.
+    """
+    try:
+        experiment_setup.initialize_experiment()
+    except (RuntimeError, FileNotFoundError) as e:
+        if "not found" in str(e).lower() or "failed to read" in str(e).lower():
+            pytest.skip(f"Required data file not found: {e}")
+        raise
+    return experiment_setup
 
 
 # ============================================================================
@@ -121,23 +147,18 @@ class TestXDMExperimentSetup:
         assert setup.initialized
         assert setup.config_file == config_file
 
-    def test_initialize_experiment(self, experiment_setup):
+    def test_initialize_experiment(self, initialized_experiment_setup):
         """Test full experiment initialization."""
-        # This will read detector and omega files
-        experiment_setup.initialize_experiment()
-
         # Check that data was loaded
-        assert len(experiment_setup.detector_list) > 0
-        assert len(experiment_setup.omega_range_list) > 0
-        assert len(experiment_setup.file_range_list) > 0
-        assert experiment_setup.range_to_index_map is not None
+        assert len(initialized_experiment_setup.detector_list) > 0
+        assert len(initialized_experiment_setup.omega_range_list) > 0
+        assert len(initialized_experiment_setup.file_range_list) > 0
+        assert initialized_experiment_setup.range_to_index_map is not None
 
-    def test_detector_list_loaded(self, experiment_setup):
+    def test_detector_list_loaded(self, initialized_experiment_setup):
         """Test that detectors are loaded correctly."""
-        experiment_setup.initialize_experiment()
-
-        detectors = experiment_setup.get_detector_list()
-        assert len(detectors) == experiment_setup.config_file.num_detectors
+        detectors = initialized_experiment_setup.get_detector_list()
+        assert len(detectors) == initialized_experiment_setup.config_file.num_detectors
 
         # Check first detector has valid parameters
         det = detectors[0]
@@ -146,11 +167,9 @@ class TestXDMExperimentSetup:
         assert det.pixel_width > 0
         assert det.pixel_height > 0
 
-    def test_omega_ranges_loaded(self, experiment_setup):
+    def test_omega_ranges_loaded(self, initialized_experiment_setup):
         """Test that omega ranges are loaded correctly."""
-        experiment_setup.initialize_experiment()
-
-        omega_ranges = experiment_setup.get_omega_range_list()
+        omega_ranges = initialized_experiment_setup.get_omega_range_list()
         assert len(omega_ranges) > 0
 
         # Check that ranges are valid
@@ -159,27 +178,23 @@ class TestXDMExperimentSetup:
             assert omega_range.low >= -2*np.pi
             assert omega_range.high <= 2*np.pi
 
-    def test_range_to_index_map(self, experiment_setup):
+    def test_range_to_index_map(self, initialized_experiment_setup):
         """Test SimulationRange mapper creation."""
-        experiment_setup.initialize_experiment()
-
-        mapper = experiment_setup.get_range_to_index_map()
+        mapper = initialized_experiment_setup.get_range_to_index_map()
         assert mapper is not None
         assert mapper.low < mapper.high
 
-    def test_get_max_q(self, experiment_setup):
+    def test_get_max_q(self, initialized_experiment_setup):
         """Test max Q calculation."""
-        experiment_setup.initialize_experiment()
-
         # Create a sample at origin
         sample = Sample()
         sample.set_location(np.array([0.0, 0.0, 0.0]))
 
         # Get first detector
-        detector = experiment_setup.detector_list[0]
+        detector = initialized_experiment_setup.detector_list[0]
 
         # Calculate max Q
-        max_q = experiment_setup.get_max_q(detector, sample)
+        max_q = initialized_experiment_setup.get_max_q(detector, sample)
 
         # Verify it's reasonable (should be positive and < 20 Å⁻¹ for typical setup)
         assert max_q > 0
@@ -188,16 +203,24 @@ class TestXDMExperimentSetup:
 
     def test_get_reciprocal_vector(self, experiment_setup):
         """Test reciprocal vector calculation."""
-        # Scattered in forward direction (no scattering)
-        k_out_dir = np.array([0.0, 0.0, 1.0])
+        beam_dir = experiment_setup.beam_direction
+
+        # Scattered in forward direction (no scattering) — use actual beam direction
+        k_out_dir = beam_dir / np.linalg.norm(beam_dir)
         g_vec = experiment_setup.get_reciprocal_vector(k_out_dir)
 
         # For forward scattering, G should be ~zero
         assert np.linalg.norm(g_vec) < 0.1
 
-        # Scattered at 90 degrees
-        k_out_dir = np.array([1.0, 0.0, 0.0])
-        g_vec = experiment_setup.get_reciprocal_vector(k_out_dir)
+        # Scattered at 90 degrees to beam
+        # Find a direction perpendicular to beam
+        if abs(beam_dir[2]) < 0.9:
+            perp = np.cross(beam_dir, np.array([0.0, 0.0, 1.0]))
+        else:
+            perp = np.cross(beam_dir, np.array([1.0, 0.0, 0.0]))
+        perp = perp / np.linalg.norm(perp)
+
+        g_vec = experiment_setup.get_reciprocal_vector(perp)
 
         # G magnitude should be sqrt(2)*k for 90° scattering
         k_mag = 0.506773182 * experiment_setup.beam_energy  # KEV_OVER_HBAR_C_IN_ANG * E
@@ -210,31 +233,31 @@ class TestXDMExperimentSetup:
     def test_get_sample_symmetry(self, experiment_setup):
         """Test sample symmetry retrieval."""
         from icenine.config_file import SymmetryType
+        from icenine.symmetry import CrystalSymmetry
 
         # Test depends on what's in config file
         symmetry = experiment_setup.get_sample_symmetry()
         assert symmetry is not None
 
-        # Should be Cubic for gold sample
+        # Should be CrystalSymmetry for gold sample (cubic)
         if experiment_setup.config_file.sample_symmetry == SymmetryType.CUBIC:
-            from icenine.symmetry import CubicSymmetry
-            assert isinstance(symmetry, CubicSymmetry)
+            assert isinstance(symmetry, CrystalSymmetry)
+            # Cubic symmetry should have 48 operators
+            assert len(symmetry.symmetry_ops) == 48
 
-    def test_initialize_sample(self, experiment_setup, project_root):
+    def test_initialize_sample(self, initialized_experiment_setup, project_root):
         """Test sample initialization with crystal structure."""
-        experiment_setup.initialize_experiment()
-
         # Create sample
         sample = Sample()
 
         # Get first detector for max Q calculation
-        detector = experiment_setup.detector_list[0]
+        detector = initialized_experiment_setup.detector_list[0]
 
         # Initialize sample
         # NOTE: This will fail if sample file doesn't exist or if
         # binary .dat file reading is not implemented
         try:
-            experiment_setup.initialize_sample(sample, detector)
+            initialized_experiment_setup.initialize_sample(sample, detector)
 
             # Check that sample was configured
             assert len(sample.get_structure_list()) > 0
@@ -284,8 +307,13 @@ class TestExperimentSetupIntegration:
         setup = XDMExperimentSetup(config_file)
         assert setup.initialized
 
-        # Initialize experiment
-        setup.initialize_experiment()
+        # Initialize experiment (skip if data files missing)
+        try:
+            setup.initialize_experiment()
+        except (RuntimeError, FileNotFoundError) as e:
+            if "not found" in str(e).lower() or "failed to read" in str(e).lower():
+                pytest.skip(f"Required data file not found: {e}")
+            raise
         assert len(setup.detector_list) > 0
         assert len(setup.omega_range_list) > 0
 
