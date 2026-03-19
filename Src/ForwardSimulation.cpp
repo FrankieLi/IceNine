@@ -40,6 +40,7 @@
 //--------------------------------------------------------------------------------------------------------
 
 #include "ForwardSimulation.h"
+#include <iomanip>
 
 
 //--------------------------------------------------------------------------------------------------------
@@ -215,18 +216,18 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
   for( vector<SVoxel>::const_iterator pCurVoxel = pMic->VoxelListBegin();
        pCurVoxel != pMic->VoxelListEnd(); pCurVoxel ++ )
   {
+    Int nCryStructIndex = pCurVoxel->nPhase;
+    const vector<CRecpVector> & oRecipVectors = oCryStructList[ nCryStructIndex ].GetReflectionVectorList();
+
     nVoxelCount ++;
-    
+
     if( nVoxelCount %10000 == 0 )
       std::cout << nVoxelCount << std::endl;
     //------------------------------------------
-    Int nCryStructIndex = pCurVoxel->nPhase;
-    const vector<CRecpVector> & oRecipVectors = oCryStructList[ nCryStructIndex ].GetReflectionVectorList(); 
-    //-------------------------------------------
-    
-    for(Size_Type nRecipIndex = 0; nRecipIndex < oRecipVectors.size();  nRecipIndex++)   
+
+    for(Size_Type nRecipIndex = 0; nRecipIndex < oRecipVectors.size();  nRecipIndex++)
     {
-      SVector3 oScatteringVec  = oRecipVectors[nRecipIndex].v; 	
+      SVector3 oScatteringVec  = oRecipVectors[nRecipIndex].v;
       oScatteringVec.Transform( pCurVoxel->oOrientMatrix );    // g_hkl' = O * g_hkl
 
       // ----------- CHECK THIS
@@ -234,7 +235,7 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
       //  This is starin in crystal frame
       //
       //  -- TO TEST THIS
-      //  --  Check principal axis strains 
+      //  --  Check principal axis strains
       //  --  Check components
       //  --  Check trivial rotations
       //
@@ -242,22 +243,22 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
       // Apply strain here   g_hkl'' =  (I + S) * g_hkl -- note the *LEFT* multiply -- we've taken the inverse of (I+S)
       ///
 
-        
+
         Float fOmegaRes[2];
         //------------------------------------
         //  Magnitude is precomputed.  Rotation does not change magintude
         //------------------------------------
         bool  bPeakObservable = oSimulator.GetScatteringOmegas( fOmegaRes[0], fOmegaRes[1],
                                                                 oScatteringVec, oRecipVectors[nRecipIndex].fMag );
-      
+
         Float fSinTheta = oRecipVectors[nRecipIndex].fMag / ( Float(2.0) * fWavenumber );
         FAcceptFn.fSin2Theta = sin( Float( 2 ) * asin( fSinTheta ) ) ;    // change this function object to save x,y points instead
-      
+
         if( bPeakObservable )
         {
           oScatteringVec.Normalize();
-          const SVector3 & oScatteringDir = oScatteringVec; 
-          for ( int i = 0; i < 2; i ++ )   // using this for loop to enforce uniformity     
+          const SVector3 & oScatteringDir = oScatteringVec;
+          for ( int i = 0; i < 2; i ++ )   // using this for loop to enforce uniformity
           {
             Size_Type nOmegaIndex = oRangeToIndexMap( fOmegaRes[i] );
             if ( nOmegaIndex != XDMSimulation::NoMatch )
@@ -274,11 +275,11 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
                                             oCurOrientation.m_fY,
                                             oCurOrientation.m_fZ );  // use this to reduce numerical errors
             }
-          
+
           }
-        
+
         }
-      
+
     }// end for each Reciprocal Vector
   }
 }
