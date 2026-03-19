@@ -303,7 +303,6 @@ void CXDMExperimentSetup::InitializeSample( CSample & oSample, const CDetector &
   {
     exit(0);  // Replace with exceptions
   }
-
   //////////
   //
   // TODO:  Generalize to allow multiple structure

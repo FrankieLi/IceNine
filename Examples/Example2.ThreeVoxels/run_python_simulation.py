@@ -50,7 +50,7 @@ def main():
 
     # Modify output directory to ScatteringData_Python/
     original_basename = config.out_file_basename
-    config.out_file_basename = "ScatteringData_Python/3Grains.sim"
+    config.out_file_basename = "3Grains.sim"
 
     print(f"  Modified output: {config.out_file_basename}")
     print()

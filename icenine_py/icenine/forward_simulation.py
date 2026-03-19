@@ -324,24 +324,21 @@ class ForwardSimulation:
                         sin_2theta=sin_2theta
                     )
 
-                    # Project voxel onto all detectors
+                    # Project voxel onto all detectors simultaneously
+                    # C++ short-circuit: if any vertex misses any detector plane,
+                    # skip all detectors for this peak
                     # C++: oSimulator.ProjectVoxel(oCurImageList, vDetectorList, oCurrentLayer,
                     #                              *pCurVoxel, oScatteringDir, FAcceptFn)
-                    for det_idx, detector in enumerate(detector_list):
-                        image = images[omega_index][det_idx]
-
-                        # Get voxel vertices in sample frame
-                        vertices = self._get_voxel_vertices(voxel)
-
-                        # Project voxel
-                        self.simulator.project_voxel(
-                            image,
-                            detector,
-                            sample,
-                            vertices,
-                            scattering_dir,
-                            peak_filter
-                        )
+                    vertices = self._get_voxel_vertices(voxel)
+                    det_images = [images[omega_index][d] for d in range(len(detector_list))]
+                    self.simulator.project_voxel_multi_detector(
+                        det_images,
+                        detector_list,
+                        sample,
+                        vertices,
+                        scattering_dir,
+                        peak_filter
+                    )
 
                     # Restore sample orientation
                     # C++: oCurrentLayer.SetOrientation(oCurOrientation.m_fX, ...)
