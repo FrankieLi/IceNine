@@ -216,24 +216,8 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
   for( vector<SVoxel>::const_iterator pCurVoxel = pMic->VoxelListBegin();
        pCurVoxel != pMic->VoxelListEnd(); pCurVoxel ++ )
   {
-    // DEBUG: Print all reciprocal vectors for first voxel only (before incrementing)
     Int nCryStructIndex = pCurVoxel->nPhase;
     const vector<CRecpVector> & oRecipVectors = oCryStructList[ nCryStructIndex ].GetReflectionVectorList();
-
-    if (nVoxelCount == 0) {
-      std::cout << "=== C++ Debug: First Voxel (phase " << nCryStructIndex << ") ===" << std::endl;
-      // Print orientation matrix
-      std::cout << "Orientation matrix:" << std::endl;
-      for(int i = 0; i < 3; i++) {
-        std::cout << "  [";
-        for(int j = 0; j < 3; j++) {
-          std::cout << std::setw(12) << std::setprecision(6) << pCurVoxel->oOrientMatrix.m[i][j];
-          if (j < 2) std::cout << ", ";
-        }
-        std::cout << "]" << std::endl;
-      }
-      std::cout << std::endl;
-    }
 
     nVoxelCount ++;
 
@@ -246,24 +230,12 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
       SVector3 oScatteringVec  = oRecipVectors[nRecipIndex].v;
       oScatteringVec.Transform( pCurVoxel->oOrientMatrix );    // g_hkl' = O * g_hkl
 
-      // DEBUG: Print first 5 transformed Q-vectors for first voxel
-      if (nVoxelCount == 1 && nRecipIndex < 5) {
-        const CRecpVector & recip = oRecipVectors[nRecipIndex];
-        std::cout << "  Recip [" << nRecipIndex << "] h=" << recip.h << " k=" << recip.k << " l=" << recip.l << std::endl;
-        std::cout << "    Original Q: (" << recip.v.m_fX << ", " << recip.v.m_fY << ", " << recip.v.m_fZ << ")" << std::endl;
-        std::cout << "    Transformed Q: (" << oScatteringVec.m_fX << ", " << oScatteringVec.m_fY << ", " << oScatteringVec.m_fZ << ")" << std::endl;
-      }
-      if (nVoxelCount == 1 && nRecipIndex == 5) {
-        std::cout << "=== END C++ Debug ===" << std::endl;
-        exit(0);
-      }
-
       // ----------- CHECK THIS
       //
       //  This is starin in crystal frame
       //
       //  -- TO TEST THIS
-      //  --  Check principal axis strains 
+      //  --  Check principal axis strains
       //  --  Check components
       //  --  Check trivial rotations
       //
@@ -271,22 +243,22 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
       // Apply strain here   g_hkl'' =  (I + S) * g_hkl -- note the *LEFT* multiply -- we've taken the inverse of (I+S)
       ///
 
-        
+
         Float fOmegaRes[2];
         //------------------------------------
         //  Magnitude is precomputed.  Rotation does not change magintude
         //------------------------------------
         bool  bPeakObservable = oSimulator.GetScatteringOmegas( fOmegaRes[0], fOmegaRes[1],
                                                                 oScatteringVec, oRecipVectors[nRecipIndex].fMag );
-      
+
         Float fSinTheta = oRecipVectors[nRecipIndex].fMag / ( Float(2.0) * fWavenumber );
         FAcceptFn.fSin2Theta = sin( Float( 2 ) * asin( fSinTheta ) ) ;    // change this function object to save x,y points instead
-      
+
         if( bPeakObservable )
         {
           oScatteringVec.Normalize();
-          const SVector3 & oScatteringDir = oScatteringVec; 
-          for ( int i = 0; i < 2; i ++ )   // using this for loop to enforce uniformity     
+          const SVector3 & oScatteringDir = oScatteringVec;
+          for ( int i = 0; i < 2; i ++ )   // using this for loop to enforce uniformity
           {
             Size_Type nOmegaIndex = oRangeToIndexMap( fOmegaRes[i] );
             if ( nOmegaIndex != XDMSimulation::NoMatch )
@@ -303,11 +275,11 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
                                             oCurOrientation.m_fY,
                                             oCurOrientation.m_fZ );  // use this to reduce numerical errors
             }
-          
+
           }
-        
+
         }
-      
+
     }// end for each Reciprocal Vector
   }
 }

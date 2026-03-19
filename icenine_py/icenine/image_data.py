@@ -809,6 +809,266 @@ class ImageData:
                 for j, k, v in zip(j_idx, k_idx, values):
                     self.add_to_pixel(j, k, v)
 
+    def add_triangle_scanline(
+        self,
+        v0: torch.Tensor,
+        v1: torch.Tensor,
+        v2: torch.Tensor,
+        intensity: Union[float, torch.Tensor] = 1.0,
+    ) -> None:
+        """
+        Rasterize triangle using scanline fill matching C++ exactly.
+
+        Replicates the C++ rasterization pipeline:
+        1. Sutherland-Hodgman polygon clipping against detector bounds (float)
+        2. round() to convert clipped vertices to integer pixels
+        3. Bresenham edge tracing to build edge table
+        4. Scanline fill between left/right edges
+
+        This produces identical pixel sets to the C++ implementation.
+
+        Args:
+            v0, v1, v2: Triangle vertices in pixel coordinates, shape (2,)
+                        Format: [j, k] where j=column, k=row (float)
+            intensity: Intensity value for all triangle pixels
+
+        C++ Reference:
+            Raster.tmpl.cpp GeneralRasterizePolygon + CalculateScanline
+            SutherlandHodgman.h (Sutherland-Hodgman polygon clipping)
+        """
+        v0 = self._to_tensor(v0, dtype=torch.float32)
+        v1 = self._to_tensor(v1, dtype=torch.float32)
+        v2 = self._to_tensor(v2, dtype=torch.float32)
+        intensity_val = float(intensity) if isinstance(intensity, (int, float)) else intensity.item()
+
+        # Step 0: Truncate pixel coordinates to integers, matching C++
+        # C++ ToRowPixel/ToColPixel return Int via (Int) cast (truncation toward zero).
+        # Negative values become -1 in C++. We replicate this behavior so that
+        # the vertices entering the SH clipper have the same integer values as C++.
+        def truncate_pixel(val):
+            """Match C++ ToRowPixel/ToColPixel: truncate positive, -1 for negative."""
+            if val < 0:
+                return -1.0
+            return float(int(val))
+
+        # Step 1: Sutherland-Hodgman clipping against [0, W-1] x [0, H-1]
+        # Vertices are integer-valued floats (matching C++ flow)
+        polygon = [
+            (truncate_pixel(v0[0].item()), truncate_pixel(v0[1].item())),
+            (truncate_pixel(v1[0].item()), truncate_pixel(v1[1].item())),
+            (truncate_pixel(v2[0].item()), truncate_pixel(v2[1].item())),
+        ]
+        clipped = self._sutherland_hodgman_clip(
+            polygon, 0.0, float(self.num_cols - 1), 0.0, float(self.num_rows - 1)
+        )
+
+        if len(clipped) < 3:
+            return  # Triangle fully clipped away
+
+        # Step 2: Round to integer pixel coordinates (matching C++ OutputStage)
+        # Since input vertices are already integer-valued, round() is ~no-op for
+        # in-bounds vertices. For clipped vertices at boundaries, round() gives
+        # the correct integer.
+        int_vertices = [(round(x), round(y)) for x, y in clipped]
+
+        # Step 3+4: Bresenham edge table + scanline fill
+        pixels = self._scanline_fill(int_vertices)
+
+        if not pixels:
+            return
+
+        # Step 5: Accumulate intensity
+        for col, row in pixels:
+            if 0 <= col < self.num_cols and 0 <= row < self.num_rows:
+                if self._mode == 'dense':
+                    self._pixels_dense[row, col] += intensity_val
+                else:
+                    self.add_to_pixel(col, row, intensity_val)
+
+    @staticmethod
+    def _sutherland_hodgman_clip(polygon, x_min, x_max, y_min, y_max):
+        """
+        Sutherland-Hodgman polygon clipping against rectangular boundary.
+
+        Matches C++ SutherlandHodgman.h exactly, including boundary conventions:
+        - Left (x >= x_min): inside
+        - Right (x < x_max): inside  (C++ uses less, excludes right boundary)
+        - Top (y >= y_min): inside
+        - Bottom (y < y_max): inside  (C++ uses less, excludes bottom boundary)
+
+        Args:
+            polygon: List of (x, y) tuples
+            x_min, x_max, y_min, y_max: Clipping boundaries
+
+        Returns:
+            List of (x, y) tuples for clipped polygon
+        """
+        def clip_edge(vertices, is_inside, intersect):
+            if not vertices:
+                return []
+            output = []
+            prev = vertices[-1]
+            prev_inside = is_inside(prev)
+            for curr in vertices:
+                curr_inside = is_inside(curr)
+                if curr_inside:
+                    if not prev_inside:
+                        output.append(intersect(prev, curr))
+                    output.append(curr)
+                elif prev_inside:
+                    output.append(intersect(prev, curr))
+                prev = curr
+                prev_inside = curr_inside
+            return output
+
+        def intersect_left(p0, p1):
+            dx = p1[0] - p0[0]
+            if abs(dx) < 0.01:
+                return (x_min, p0[1])
+            slope = (p1[1] - p0[1]) / dx
+            return (x_min, p0[1] + slope * (x_min - p0[0]))
+
+        def intersect_right(p0, p1):
+            dx = p1[0] - p0[0]
+            if abs(dx) < 0.01:
+                return (x_max, p0[1])
+            slope = (p1[1] - p0[1]) / dx
+            return (x_max, p0[1] + slope * (x_max - p0[0]))
+
+        def intersect_top(p0, p1):
+            dy = p1[1] - p0[1]
+            if abs(dy) < 0.01:
+                return (p0[0], y_min)
+            slope = (p1[0] - p0[0]) / dy
+            return (p0[0] + slope * (y_min - p0[1]), y_min)
+
+        def intersect_bottom(p0, p1):
+            dy = p1[1] - p0[1]
+            if abs(dy) < 0.01:
+                return (p0[0], y_max)
+            slope = (p1[0] - p0[0]) / dy
+            return (p0[0] + slope * (y_max - p0[1]), y_max)
+
+        # C++ clips in order: Right, Top, Left, Bottom
+        # Boundary conventions from SutherlandHodgman.h:
+        #   Right: less<REAL> → x < x_max
+        #   Top: greater_equal<REAL> → y >= y_min
+        #   Left: greater_equal<REAL> → x >= x_min
+        #   Bottom: less<REAL> → y < y_max
+        result = polygon
+        result = clip_edge(result, lambda p: p[0] < x_max, intersect_right)
+        result = clip_edge(result, lambda p: p[1] >= y_min, intersect_top)
+        result = clip_edge(result, lambda p: p[0] >= x_min, intersect_left)
+        result = clip_edge(result, lambda p: p[1] < y_max, intersect_bottom)
+        return result
+
+    @staticmethod
+    def _scanline_fill(int_vertices):
+        """
+        Scanline fill using Bresenham edge tracing, matching C++ exactly.
+
+        Args:
+            int_vertices: List of (x, y) integer tuples (polygon vertices)
+
+        Returns:
+            List of (x, y) integer tuples for all filled pixels
+
+        C++ Reference:
+            Raster.tmpl.cpp CalculateScanline + GeneralRasterizePolygon fill loop
+        """
+        if len(int_vertices) < 3:
+            return []
+
+        # Find Y range
+        y_min = min(v[1] for v in int_vertices)
+        y_max = max(v[1] for v in int_vertices)
+
+        if y_min == y_max:
+            # Degenerate: horizontal line
+            x_min = min(v[0] for v in int_vertices)
+            x_max = max(v[0] for v in int_vertices)
+            return [(x, y_min) for x in range(x_min, x_max + 1)]
+
+        # Edge table: for each row, [left_x, right_x], initialized to -1
+        edge_table = {}
+        for y in range(y_min, y_max + 1):
+            edge_table[y] = [-1, -1]
+
+        # Trace edges using Bresenham (matching C++ CalculateScanline)
+        n = len(int_vertices)
+        for i in range(n):
+            v0 = int_vertices[(i - 1) % n] if i > 0 else int_vertices[n - 1]
+            v1 = int_vertices[i]
+            ImageData._bresenham_edge(edge_table, v0[0], v0[1], v1[0], v1[1])
+
+        # Fill scanlines (matching C++ GeneralRasterizePolygon fill loop)
+        pixels = []
+        for y in range(y_min, y_max + 1):
+            left, right = edge_table[y]
+            if left >= 0 or right >= 0:
+                if left < 0:
+                    # Single pixel
+                    pixels.append((right, y))
+                elif right < 0:
+                    # Single pixel
+                    pixels.append((left, y))
+                else:
+                    if left > right:
+                        left, right = right, left
+                    for x in range(left, right + 1):
+                        pixels.append((x, y))
+        return pixels
+
+    @staticmethod
+    def _bresenham_edge(edge_table, v0x, v0y, v1x, v1y):
+        """
+        Bresenham line algorithm for edge table, matching C++ CalculateScanline exactly.
+
+        Records left/right extremes for each scanline row.
+
+        C++ Reference:
+            Raster.tmpl.cpp CalculateScanline (Bresenham from Wikipedia)
+        """
+        steep = abs(v1y - v0y) > abs(v1x - v0x)
+
+        if steep:
+            v0x, v0y = v0y, v0x
+            v1x, v1y = v1y, v1x
+
+        if v0x > v1x:
+            v0x, v1x = v1x, v0x
+            v0y, v1y = v1y, v0y
+
+        delta_x = v1x - v0x
+        delta_y = abs(v1y - v0y)
+        error = delta_x
+        y_step = 1 if v0y < v1y else -1
+        y = v0y
+
+        for x in range(v0x, v1x + 1):
+            if steep:
+                # plot(y, x) → edge_table[x] records y
+                row = x
+                col = y
+            else:
+                # plot(x, y) → edge_table[y] records x
+                row = y
+                col = x
+
+            if row in edge_table:
+                if edge_table[row][0] < 0:
+                    edge_table[row][0] = col
+                elif edge_table[row][0] > col:
+                    edge_table[row][0] = col
+
+                if edge_table[row][1] < col:
+                    edge_table[row][1] = col
+
+            error -= 2 * delta_y
+            if error < 0:
+                y += y_step
+                error += 2 * delta_x
+
     def add_polygon(
         self,
         vertices: torch.Tensor,

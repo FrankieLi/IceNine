@@ -595,3 +595,47 @@ def passive_euler_matrix(phi: float, theta: float, psi: float) -> torch.Tensor:
         [m10, m11, m12],
         [m20, m21, m22]
     ], dtype=torch.float32)
+
+
+def active_euler_matrix(phi: float, theta: float, psi: float) -> torch.Tensor:
+    """
+    Build active Euler rotation matrix.
+
+    Matches C++ SMatrix3x3::BuildActiveEulerMatrix from XDM++/libXDM/3dMath.cpp:152-172.
+
+    Used by CSample::Rotate() for composing rotations onto the sample-to-lab matrix.
+    This is the TRANSPOSE of passive_euler_matrix.
+
+    Args:
+        phi: First Euler angle (radians)
+        theta: Second Euler angle (radians)
+        psi: Third Euler angle (radians)
+
+    Returns:
+        3x3 rotation matrix as torch.Tensor
+    """
+    cos_phi = np.cos(phi)
+    sin_phi = np.sin(phi)
+    cos_theta = np.cos(theta)
+    sin_theta = np.sin(theta)
+    cos_psi = np.cos(psi)
+    sin_psi = np.sin(psi)
+
+    # Matrix elements from C++ 3dMath.cpp:160-170
+    m00 = cos_phi * cos_psi - sin_phi * cos_theta * sin_psi
+    m10 = sin_phi * cos_psi + cos_phi * cos_theta * sin_psi
+    m20 = sin_theta * sin_psi
+
+    m01 = -cos_phi * sin_psi - sin_phi * cos_theta * cos_psi
+    m11 = -sin_phi * sin_psi + cos_phi * cos_theta * cos_psi
+    m21 = sin_theta * cos_psi
+
+    m02 = sin_phi * sin_theta
+    m12 = -cos_phi * sin_theta
+    m22 = cos_theta
+
+    return torch.tensor([
+        [m00, m01, m02],
+        [m10, m11, m12],
+        [m20, m21, m22]
+    ], dtype=torch.float32)

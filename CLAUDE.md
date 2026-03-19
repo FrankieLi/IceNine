@@ -36,12 +36,15 @@ Ongoing test-driven migration of IceNine's core physics to Python/PyTorch. Every
 
 ### Setup & Test
 
+**CRITICAL**: All Python commands MUST be run using `uv`. Never use bare `python3`, `pip`, or `pytest`.
+
 ```bash
 cd icenine_py
-pip install -e ".[dev]"           # install with dev deps (pytest, black, mypy)
-pytest tests/                      # run all tests
-pytest tests/test_symmetry.py -v   # run a single test file
-pytest --cov=icenine tests/        # with coverage
+uv pip install -e ".[dev]"              # install with dev deps (pytest, black, mypy)
+uv run pytest tests/                     # run all tests
+uv run pytest tests/test_symmetry.py -v  # run a single test file
+uv run pytest --cov=icenine tests/       # with coverage
+uv run python script.py                  # run any Python script
 ```
 
 ### Python Style

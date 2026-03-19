@@ -30,9 +30,9 @@ namespace GeneralLib
 		
 		
       iEndLine = sBuf.find_first_of("\n", iEndLine + 1);
-		
+
       if(iEndLine == string::npos)
-        return;
+        iEndLine = sBuf.size();  // treat end-of-buffer as implicit newline
 		
       while(iCurrentPos < iEndLine){
         string currentToken;

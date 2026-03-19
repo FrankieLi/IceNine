@@ -343,9 +343,84 @@ class Simulation:
         v1 = torch.tensor(pixels[1])
         v2 = torch.tensor(pixels[2])
 
-        image.add_triangle(v0, v1, v2, intensity)
+        image.add_triangle_scanline(v0, v1, v2, intensity)
 
         return True
+
+    def project_voxel_multi_detector(
+        self,
+        images: list,
+        detector_list: list,
+        sample: 'Sample',
+        voxel_vertices: torch.Tensor,
+        normal: torch.Tensor,
+        peak_filter: 'PeakFilterFn'
+    ) -> bool:
+        """
+        Project voxel onto all detectors with C++ short-circuit behavior.
+
+        In C++, GetProjectedVertices iterates vertices × detectors. If ANY
+        vertex fails to intersect ANY detector plane, the function returns
+        immediately (short-circuit), skipping ALL detectors for this peak.
+
+        This differs from calling project_voxel per-detector independently,
+        where a peak could be rasterized on detector 0 even if a vertex
+        misses detector 1's plane.
+
+        Args:
+            images: List of ImageData objects, one per detector
+            detector_list: List of Detector objects
+            sample: Sample object
+            voxel_vertices: Shape (3, 3) - triangle vertices in sample frame
+            normal: Scattering direction (shape (3,))
+            peak_filter: Acceptance filter
+
+        Returns:
+            True if any detector was hit
+
+        C++ Reference:
+            Simulation.tmpl.cpp:115-161 GetProjectedVertices
+            Simulation.tmpl.cpp:62-104 ProjectVoxel (template)
+        """
+        from .diffraction_core import get_reflected_ray_dir, build_reflected_ray
+
+        num_detectors = len(detector_list)
+        reflected_dir = get_reflected_ray_dir(sample, normal, self.beam_direction)
+
+        # Apply peak filter (same for all detectors)
+        reflected_dir_normalized = reflected_dir / torch.norm(reflected_dir)
+        accept, intensity = peak_filter(reflected_dir_normalized)
+        if not accept:
+            return False
+
+        # Project all vertices onto all detectors with short-circuit
+        # C++ iterates: for each vertex → for each detector
+        # If any intersection fails → return immediately (skip everything)
+        projected_pixels = [[None, None, None] for _ in range(num_detectors)]
+
+        for vi in range(3):
+            vertex = voxel_vertices[vi]
+            reflected_ray = build_reflected_ray(sample, vertex, reflected_dir)
+
+            for det_idx in range(num_detectors):
+                hit, pixel_col, pixel_row = get_illuminated_pixel(
+                    detector_list[det_idx], reflected_ray
+                )
+                if not hit.item():
+                    # C++ short-circuit: return immediately
+                    return False
+                projected_pixels[det_idx][vi] = (pixel_col.item(), pixel_row.item())
+
+        # All vertices hit all detectors — rasterize
+        detector_hit = False
+        for det_idx in range(num_detectors):
+            v0 = torch.tensor(projected_pixels[det_idx][0])
+            v1 = torch.tensor(projected_pixels[det_idx][1])
+            v2 = torch.tensor(projected_pixels[det_idx][2])
+            images[det_idx].add_triangle_scanline(v0, v1, v2, intensity)
+            detector_hit = True
+
+        return detector_hit
 
     def __repr__(self):
         """String representation for debugging."""

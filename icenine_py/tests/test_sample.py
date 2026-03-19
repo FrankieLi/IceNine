@@ -95,21 +95,34 @@ class TestSample:
         assert torch.allclose(v_lab, expected, atol=1e-6)
 
     def test_rotate_composition(self):
-        """Test rotation composition."""
+        """Test rotation composition.
+
+        C++ SetOrientation uses PassiveEuler, Rotate uses ActiveEuler.
+        For pure Z rotation: Active(phi) @ Passive(phi) = Identity,
+        so we test with a non-trivial composition instead.
+
+        Verify that rotate_z (active, radians) composed with
+        set_orientation (passive) gives correct combined result.
+        """
         sample = Sample()
 
-        # First rotation: 45° around Z
+        # Set orientation with passive 45° Z rotation
         sample.set_orientation(45, 0, 0)
 
-        # Second rotation: another 45° around Z
-        sample.rotate(45, 0, 0)
+        # Then compose with active 90° Z rotation via rotate()
+        sample.rotate(90, 0, 0)
 
-        # Total should be 90°
-        # Transform [1, 0, 0] → should be [0, -1, 0]
+        # Active(90) @ Passive(45):
+        # Active(90) = [[0, -1], [1, 0]]
+        # Passive(45) = [[cos45, sin45], [-sin45, cos45]]
+        # Product = [[sin45, -cos45], [cos45, sin45]]
+        # Applied to [1,0,0] → [sin45, cos45, 0]
         v_sample = torch.tensor([1.0, 0.0, 0.0])
         v_lab = sample.to_lab_frame(v_sample)
 
-        expected = torch.tensor([0.0, -1.0, 0.0])
+        sin45 = np.sin(np.deg2rad(45))
+        cos45 = np.cos(np.deg2rad(45))
+        expected = torch.tensor([sin45, cos45, 0.0], dtype=torch.float32)
         assert torch.allclose(v_lab, expected, atol=1e-6)
 
     def test_to_lab_frame_batched(self):
@@ -144,30 +157,38 @@ class TestSample:
         assert torch.allclose(v, v_transformed)
 
     def test_rotate_axis_angle(self):
-        """Test axis-angle rotation."""
+        """Test axis-angle rotation.
+
+        C++ uses ACTIVE rotation (Sample.cpp:138: BuildRotationAboutAxis).
+        Active 90° Z rotation: [1,0,0] → [0,1,0] (counterclockwise).
+        """
         sample = Sample()
 
         # Rotate 90° around Z-axis using axis-angle
         axis = np.array([0.0, 0.0, 1.0])
         sample.rotate_axis_angle(axis, 90)
 
-        # Transform [1, 0, 0] → should be [0, -1, 0]
+        # Active rotation: [1, 0, 0] → [0, 1, 0]
         v = torch.tensor([1.0, 0.0, 0.0])
         v_lab = sample.to_lab_frame(v)
 
-        expected = torch.tensor([0.0, -1.0, 0.0])
+        expected = torch.tensor([0.0, 1.0, 0.0])
         assert torch.allclose(v_lab, expected, atol=1e-6)
 
     def test_rotate_z_optimized(self):
-        """Test optimized Z rotation."""
-        sample = Sample()
-        sample.rotate_z(90)
+        """Test optimized Z rotation.
 
-        # Should give same result as general rotation
+        rotate_z takes RADIANS (matching C++ RotateZ which calls cos/sin directly).
+        C++ uses ACTIVE rotation (Sample.cpp:162 comment).
+        """
+        sample = Sample()
+        sample.rotate_z(np.pi / 2)  # 90° in radians
+
+        # Active rotation: [1, 0, 0] → [0, 1, 0]
         v = torch.tensor([1.0, 0.0, 0.0])
         v_lab = sample.to_lab_frame(v)
 
-        expected = torch.tensor([0.0, -1.0, 0.0])
+        expected = torch.tensor([0.0, 1.0, 0.0])
         assert torch.allclose(v_lab, expected, atol=1e-6)
 
     def test_get_orientation_matrix(self):

@@ -255,18 +255,6 @@ class ForwardSimulation:
             crystal_structure = structure_list[phase_index]
             reciprocal_vectors = crystal_structure.get_reflection_vectors()
 
-            # DEBUG: Print all reciprocal vectors for first voxel only
-            if voxel_count == 1:
-                print(f"=== Python Reciprocal Vectors (first voxel, phase {phase_index}) ===")
-                print(f"Total reciprocal vectors: {len(reciprocal_vectors)}")
-                for i, recip in enumerate(reciprocal_vectors):
-                    q_vec_str = f"({recip.q_vec[0]:.4f}, {recip.q_vec[1]:.4f}, {recip.q_vec[2]:.4f})"
-                    print(f"  [{i}] h={recip.h} k={recip.k} l={recip.l} "
-                          f"Q={q_vec_str} |Q|={recip.q_mag:.4f} I={recip.intensity:.0f}")
-                print("=== END Python Reciprocal Vectors ===")
-                import sys
-                sys.exit(0)  # Exit after printing
-
             # Get voxel orientation as PyTorch tensor
             # C++: pCurVoxel->oOrientMatrix
             voxel_orientation = torch.from_numpy(voxel.orientation).float()
@@ -336,24 +324,21 @@ class ForwardSimulation:
                         sin_2theta=sin_2theta
                     )
 
-                    # Project voxel onto all detectors
+                    # Project voxel onto all detectors simultaneously
+                    # C++ short-circuit: if any vertex misses any detector plane,
+                    # skip all detectors for this peak
                     # C++: oSimulator.ProjectVoxel(oCurImageList, vDetectorList, oCurrentLayer,
                     #                              *pCurVoxel, oScatteringDir, FAcceptFn)
-                    for det_idx, detector in enumerate(detector_list):
-                        image = images[omega_index][det_idx]
-
-                        # Get voxel vertices in sample frame
-                        vertices = self._get_voxel_vertices(voxel)
-
-                        # Project voxel
-                        self.simulator.project_voxel(
-                            image,
-                            detector,
-                            sample,
-                            vertices,
-                            scattering_dir,
-                            peak_filter
-                        )
+                    vertices = self._get_voxel_vertices(voxel)
+                    det_images = [images[omega_index][d] for d in range(len(detector_list))]
+                    self.simulator.project_voxel_multi_detector(
+                        det_images,
+                        detector_list,
+                        sample,
+                        vertices,
+                        scattering_dir,
+                        peak_filter
+                    )
 
                     # Restore sample orientation
                     # C++: oCurrentLayer.SetOrientation(oCurOrientation.m_fX, ...)
@@ -363,33 +348,41 @@ class ForwardSimulation:
         """
         Get triangular vertices for voxel projection.
 
-        In the simplified Python port, we project voxels as triangles.
-        The C++ version uses more complex voxel geometry.
+        Computes the 3 vertices of the equilateral triangle voxel,
+        matching the C++ implementation in MicIO.h lines 300-315.
 
         Args:
-            voxel: Voxel to get vertices for
+            voxel: Voxel with position, side_length, and points_up fields
 
         Returns:
-            Vertices tensor, shape (3, 3)
+            Vertices tensor, shape (3, 3) - counter-clockwise winding
 
-        Notes:
-            For now, we create a simple triangular approximation centered
-            at the voxel position. A more complete implementation would use
-            the actual voxel mesh geometry.
+        C++ Reference:
+            XDM++/libXDM/MicIO.h lines 300-315
         """
-        # Get voxel center in sample frame
-        center = torch.from_numpy(voxel.position).float()
+        import math
 
-        # Create small triangle around center
-        # This is a simplified approximation - full implementation would
-        # use actual voxel mesh from Sample.get_voxel_mesh()
-        size = 0.001  # 1 micron triangle
+        x = float(voxel.position[0])
+        y = float(voxel.position[1])
+        z = float(voxel.position[2])
+        s = float(voxel.side_length)
 
-        vertices = torch.tensor([
-            [center[0], center[1], center[2]],
-            [center[0] + size, center[1], center[2]],
-            [center[0], center[1] + size, center[2]]
-        ])
+        if voxel.points_up:
+            # UP triangle (direction=1) - counter-clockwise winding
+            # C++ MicIO.h lines 302-305
+            vertices = torch.tensor([
+                [x,           y,                          z],
+                [x + s,       y,                          z],
+                [x + s / 2.0, y + s / 2.0 * math.sqrt(3.0), z],
+            ], dtype=torch.float32)
+        else:
+            # DOWN triangle (direction=2) - counter-clockwise winding
+            # C++ MicIO.h lines 310-313
+            vertices = torch.tensor([
+                [x,           y,                            z],
+                [x + s / 2.0, y - s / 2.0 * math.sqrt(3.0), z],
+                [x + s,       y,                            z],
+            ], dtype=torch.float32)
 
         return vertices
 
