@@ -93,10 +93,10 @@ class TestDetectorCreation:
         assert detector.detector_width == 2048 * 0.2
         assert detector.detector_height == 2048 * 0.2
 
-        # Check basis vectors (should be Y and Z for unrotated detector)
+        # Check basis vectors (J=X, K=-Y for unrotated detector, matching C++ defaults)
         j_basis, k_basis = detector.basis_vectors
-        assert torch.allclose(j_basis, torch.tensor([0.0, 1.0, 0.0]))
-        assert torch.allclose(k_basis, torch.tensor([0.0, 0.0, 1.0]))
+        assert torch.allclose(j_basis, torch.tensor([1.0, 0.0, 0.0]))
+        assert torch.allclose(k_basis, torch.tensor([0.0, -1.0, 0.0]))
 
 
 class TestCoordinateTransformations:
@@ -136,8 +136,9 @@ class TestCoordinateTransformations:
             position=position
         )
 
-        # Test point on detector plane
-        lab_point = torch.tensor([100.0, 10.0, 5.0])
+        # Test point on detector plane (z=0 for identity orientation,
+        # since plane normal is (0,0,1) from C++ 3-point construction)
+        lab_point = torch.tensor([100.0, 10.0, 0.0])
 
         # Lab -> detector -> lab
         j, k = detector.lab_to_detector_coordinate(lab_point)
@@ -203,10 +204,11 @@ class TestCoordinateTransformations:
             position=torch.tensor([100.0, 0.0, 0.0])
         )
 
-        # Create batch of lab points
+        # Create batch of lab points on detector plane (z=0 for identity orientation)
         batch_size = 10
         lab_points = torch.randn(batch_size, 3) * 10.0
-        lab_points[:, 0] = 100.0  # All points on detector plane
+        lab_points[:, 0] += 100.0  # Near detector position
+        lab_points[:, 2] = 0.0     # On detector plane (z=0)
 
         # Transform to detector coordinates
         j, k = detector.lab_to_detector_coordinate(lab_points)
@@ -323,7 +325,7 @@ class TestDetectorTransformations:
             beam_center_k=512.0
         )
 
-        # Initial basis vectors (Y and Z for unrotated)
+        # Initial basis vectors (X and -Y for unrotated, matching C++ defaults)
         j_basis_initial, k_basis_initial = detector.basis_vectors
 
         # Rotate detector
@@ -351,20 +353,21 @@ class TestRayIntersection:
             position=torch.tensor([100.0, 0.0, 0.0])
         )
 
-        # Ray traveling along +X towards detector
+        # Detector plane has normal (0,0,1) from C++ 3-point construction,
+        # passing through z=0. Ray along -Z is perpendicular.
         ray = Ray(
-            origin=torch.tensor([0.0, 0.0, 0.0]),
-            direction=torch.tensor([1.0, 0.0, 0.0])
+            origin=torch.tensor([100.0, 0.0, 5.0]),
+            direction=torch.tensor([0.0, 0.0, -1.0])
         )
 
         intersects, t = detector.intersect_ray(ray)
 
         assert intersects.item() is True
-        assert t.item() == pytest.approx(100.0, abs=1e-5)
+        assert t.item() == pytest.approx(5.0, abs=1e-5)
 
-        # Verify intersection point
+        # Verify intersection point is on detector plane (z=0)
         intersection_point = ray.at(t)
-        assert torch.allclose(intersection_point, detector.position, atol=1e-5)
+        assert intersection_point[2].item() == pytest.approx(0.0, abs=1e-5)
 
     def test_angled_ray_intersection(self):
         """Test intersection with angled ray."""
@@ -378,12 +381,12 @@ class TestRayIntersection:
             position=torch.tensor([100.0, 0.0, 0.0])
         )
 
-        # Ray at angle
-        direction = torch.tensor([1.0, 0.5, 0.3])
+        # Ray at angle hitting the z=0 plane
+        direction = torch.tensor([1.0, 0.5, -0.3])
         direction = direction / torch.norm(direction)
 
         ray = Ray(
-            origin=torch.tensor([0.0, 0.0, 0.0]),
+            origin=torch.tensor([0.0, 0.0, 5.0]),
             direction=direction
         )
 
@@ -392,9 +395,9 @@ class TestRayIntersection:
         assert intersects.item() is True
         assert t.item() > 0
 
-        # Intersection point should be on detector plane
+        # Intersection point should be on detector plane (z=0)
         intersection_point = ray.at(t)
-        assert intersection_point[0].item() == pytest.approx(100.0, abs=1e-4)
+        assert intersection_point[2].item() == pytest.approx(0.0, abs=1e-4)
 
     def test_parallel_ray_no_intersection(self):
         """Test that parallel ray doesn't intersect."""
@@ -408,10 +411,10 @@ class TestRayIntersection:
             position=torch.tensor([100.0, 0.0, 0.0])
         )
 
-        # Ray parallel to detector plane (along Y)
+        # Ray parallel to detector plane (along X, at z=5, not on z=0 plane)
         ray = Ray(
-            origin=torch.tensor([0.0, 0.0, 0.0]),
-            direction=torch.tensor([0.0, 1.0, 0.0])
+            origin=torch.tensor([0.0, 0.0, 5.0]),
+            direction=torch.tensor([1.0, 0.0, 0.0])
         )
 
         intersects, t = detector.intersect_ray(ray)

@@ -191,9 +191,12 @@ class TestProjectVertex:
     """Test project_vertex method."""
 
     def test_vertex_at_origin(self, simple_simulator, test_detector, test_sample):
-        """Test projecting vertex at origin."""
-        vertex = torch.tensor([0., 0., 0.])
-        normal = torch.tensor([0., 0., 1.])
+        """Test projecting vertex above detector plane."""
+        # Beam is along +X (from simple_simulator fixture).
+        # Detector plane is z=0 (identity orientation at position (1,0,0)).
+        # Use normal (1,0,1)/sqrt(2) so the +X beam reflects downward toward z=0.
+        vertex = torch.tensor([0., 0., 1.])  # Above detector plane
+        normal = torch.tensor([1., 0., 1.]) / np.sqrt(2)
 
         hit, pixel_col, pixel_row = simple_simulator.project_vertex(
             test_detector,
@@ -202,7 +205,7 @@ class TestProjectVertex:
             normal
         )
 
-        # Vertex at origin should hit detector
+        # Reflected ray should hit the z=0 detector plane
         assert hit == True
         assert pixel_col > 0
         assert pixel_row > 0

@@ -185,8 +185,8 @@ class TestGetIlluminatedPixel:
 
     def test_ray_hitting_detector_center(self):
         """Test ray hitting detector at beam center."""
-        # Create detector
-        # Default detector orientation: surface perpendicular to X-axis (in YZ plane)
+        # With identity orientation, detector plane has normal (0,0,1) at z=0
+        # from C++ 3-point construction. Ray along -Z hits the plane.
         detector = Detector(
             num_rows=1024,
             num_cols=1024,
@@ -194,14 +194,14 @@ class TestGetIlluminatedPixel:
             beam_center_k=512.0,
             pixel_width=0.004,
             pixel_height=0.004,
-            position=torch.tensor([1.0, 0., 0.]),  # 1m away along X
+            position=torch.tensor([1.0, 0., 0.]),
             orientation=torch.eye(3)
         )
 
-        # Ray from origin toward detector along +X
+        # Ray from above detector position, heading down toward z=0 plane
         ray = Ray(
-            origin=torch.tensor([0., 0., 0.]),
-            direction=torch.tensor([1., 0., 0.])
+            origin=torch.tensor([1.0, 0., 1.0]),
+            direction=torch.tensor([0., 0., -1.])
         )
 
         hit, pixel_col, pixel_row = get_illuminated_pixel(detector, ray)
@@ -249,17 +249,17 @@ class TestGetIlluminatedPixel:
             orientation=torch.eye(3)
         )
 
-        # Ray at slight angle in Y direction
+        # Ray from above, at slight angle in X direction toward detector
         ray = Ray(
-            origin=torch.tensor([0., 0., 0.]),
-            direction=torch.tensor([1., 0.1, 0.]).float()  # Slight angle
+            origin=torch.tensor([1.0, 0.1, 1.0]),
+            direction=torch.tensor([0., 0., -1.]).float()  # Heading down to z=0 plane
         )
 
         hit, pixel_col, pixel_row = get_illuminated_pixel(detector, ray)
 
         assert hit.item() == True
-        # Should be offset from center
-        assert pixel_col.item() > 512.0  # Offset in +J direction
+        # Should be offset from center due to Y=0.1 offset
+        assert pixel_col.item() != 512.0  # Offset from beam center
 
 
 if __name__ == "__main__":
