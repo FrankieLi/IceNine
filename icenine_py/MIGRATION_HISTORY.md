@@ -86,7 +86,20 @@ Single-element physics operations are too slow for production. All diffraction c
 
 ### Integration Testing
 - C++ vs Python forward simulation comparison using three-voxel test case (360 detector images)
-- After detector geometry fixes: ~86% pixel overlap (1386/1614 C++ pixels matched in d0 files, 644/746 in d1 files)
-- Python generates ~4x more pixels than C++ due to simplified 1-micron triangle voxel approximation vs C++ actual mesh geometry
-- Remaining ~14% mismatch is likely edge rounding and voxel shape differences
+- **100% pixel recall achieved** (all 2360 C++ pixels matched by Python output)
+  - Detector 0: 1614/1614 C++ pixels matched (100%)
+  - Detector 1: 746/746 C++ pixels matched (100%)
+- Python generates ~4.3x more pixels than C++ (10198 vs 2360) due to rasterization differences (soft vs hard triangle fill, subpixel handling)
+- All C++ pixels are a strict subset of Python pixels — Python is a superset
+
+**Bug fix history:**
+1. Detector plane normal computed incorrectly → fixed to match C++ 3-point construction
+2. J/K unit vectors hardcoded wrong → fixed to read from detector file
+3. `LabFrameOrientation` Euler angles double-converted → fixed to pass degrees to `euler_to_matrix()`
+4. **Voxel vertices used hardcoded 1mm right triangle** → fixed to use actual equilateral triangle geometry from .mic file (side_length, points_up, position), matching C++ `MicIO.h:300-315`
+
+- Diagnostic scripts in `Examples/Example2.ThreeVoxels/`:
+  - `debug_single_peak.py` — traces one voxel + one reciprocal vector through full pipeline
+  - `debug_detector_geometry.py` — prints all detector geometric properties
+  - `compare_pixel_overlap.py` — pixel overlap comparison (recall/precision)
 - See `Examples/Example2.ThreeVoxels/README_INTEGRATION_TEST.md`

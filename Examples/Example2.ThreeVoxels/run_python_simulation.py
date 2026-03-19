@@ -25,8 +25,10 @@ from icenine.forward_simulation import ForwardSimulation
 def main():
     """Run Python forward simulation."""
 
-    # Set working directory
+    # Set working directory to example dir (config has relative paths)
+    import os
     example_dir = Path(__file__).parent
+    os.chdir(example_dir)
     config_path = example_dir / "ConfigFiles" / "Example2.Simulation.config"
 
     print("=" * 70)

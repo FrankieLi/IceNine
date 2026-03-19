@@ -351,33 +351,41 @@ class ForwardSimulation:
         """
         Get triangular vertices for voxel projection.
 
-        In the simplified Python port, we project voxels as triangles.
-        The C++ version uses more complex voxel geometry.
+        Computes the 3 vertices of the equilateral triangle voxel,
+        matching the C++ implementation in MicIO.h lines 300-315.
 
         Args:
-            voxel: Voxel to get vertices for
+            voxel: Voxel with position, side_length, and points_up fields
 
         Returns:
-            Vertices tensor, shape (3, 3)
+            Vertices tensor, shape (3, 3) - counter-clockwise winding
 
-        Notes:
-            For now, we create a simple triangular approximation centered
-            at the voxel position. A more complete implementation would use
-            the actual voxel mesh geometry.
+        C++ Reference:
+            XDM++/libXDM/MicIO.h lines 300-315
         """
-        # Get voxel center in sample frame
-        center = torch.from_numpy(voxel.position).float()
+        import math
 
-        # Create small triangle around center
-        # This is a simplified approximation - full implementation would
-        # use actual voxel mesh from Sample.get_voxel_mesh()
-        size = 0.001  # 1 micron triangle
+        x = float(voxel.position[0])
+        y = float(voxel.position[1])
+        z = float(voxel.position[2])
+        s = float(voxel.side_length)
 
-        vertices = torch.tensor([
-            [center[0], center[1], center[2]],
-            [center[0] + size, center[1], center[2]],
-            [center[0], center[1] + size, center[2]]
-        ])
+        if voxel.points_up:
+            # UP triangle (direction=1) - counter-clockwise winding
+            # C++ MicIO.h lines 302-305
+            vertices = torch.tensor([
+                [x,           y,                          z],
+                [x + s,       y,                          z],
+                [x + s / 2.0, y + s / 2.0 * math.sqrt(3.0), z],
+            ], dtype=torch.float32)
+        else:
+            # DOWN triangle (direction=2) - counter-clockwise winding
+            # C++ MicIO.h lines 310-313
+            vertices = torch.tensor([
+                [x,           y,                            z],
+                [x + s / 2.0, y - s / 2.0 * math.sqrt(3.0), z],
+                [x + s,       y,                            z],
+            ], dtype=torch.float32)
 
         return vertices
 
