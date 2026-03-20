@@ -72,6 +72,11 @@ For each voxel in the sample:
 | `symmetry.py` | Crystal symmetry operations (pymatgen wrapper) |
 | `constants.py` | Physical constants |
 | `file_io.py` | Detector file, crystal structure file, and omega file I/O |
+| `reconstructor.py` | Serial reconstruction orchestrator — multi-level adaptive search |
+| `orientation_search.py` | Discrete grid search + zero-temperature MC optimization |
+| `cost_functions.py` | Overlap computation between simulated projections and experimental data |
+| `experimental_data.py` | Load experimental detector images for reconstruction |
+| `sampling.py` | SO(3) uniform sampling via Sukharev grids (Yershova & LaValle) |
 
 ## Config File Format
 
