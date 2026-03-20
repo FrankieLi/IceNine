@@ -12,6 +12,7 @@ Author: S. F. Li
 
 from typing import List, Optional
 from pathlib import Path
+import math
 import numpy as np
 import torch
 
@@ -23,6 +24,11 @@ from .detector import Detector
 from .image_data import ImageData
 from .peak_filters import XDMEtaAcceptFn
 from .constants import KEV_OVER_HBAR_C_IN_ANG
+from .diffraction_core import (
+    get_scattering_omegas_torch,
+    get_reflection_vector,
+)
+from .geometry import Ray
 
 
 class ForwardSimulation:
@@ -180,169 +186,243 @@ class ForwardSimulation:
         """
         Core simulation loop: iterate over voxels, reflections, and omegas.
 
-        This is the computational kernel of the forward simulation.
-
-        Args:
-            images: 2D list of detector images to accumulate into
-            detector_list: List of detector geometries
-            sample: Sample with voxel grid
-            range_map: Omega range to index mapping
+        Optimized version:
+        - Batches Bragg solving per-voxel (all reflections at once)
+        - Uses functional rotations (no sample mutation/restore)
+        - Pure Python floats in inner loop (avoids torch scalar overhead)
+        - Pre-computes all detector geometry and reciprocal vectors
 
         C++ Reference:
             ForwardSimulation.cpp:200-284 SimulatePeaks
-
-        Algorithm:
-            FOR each voxel v in sample:
-                Get crystal structure for voxel phase
-                Get reciprocal vectors G_hkl from structure
-
-                FOR each reflection G_hkl:
-                    Transform to lab frame: G' = O * G_hkl
-                    Solve Bragg condition for omega angles
-
-                    IF peak is observable:
-                        FOR each omega solution (ω₁, ω₂):
-                            Find omega index in range map
-                            IF omega in valid range:
-                                Rotate sample to omega
-                                Project voxel onto detector(s)
-                                Add intensity to image[omega_index][detector_index]
-                                Reset sample orientation
-
-        Performance:
-            - C++ cannot parallelize due to sparse matrix memory access
-            - Python version could potentially use thread-safe image accumulation
-            - Progress reported every 10000 voxels
         """
-        # Create peak acceptance filter
-        # C++: HEDM::XDMEtaAcceptFn FAcceptFn(-oExpSetup.GetEtaLimit(), oExpSetup.GetEtaLimit())
         eta_limit = self.exp_setup.get_eta_limit()
-
-        # Calculate wavenumber for Bragg angle calculations
-        # C++: Float fWavenumber = PhysicalConstants::keV_over_hbar_c_in_ang * oExpSetup.GetBeamEnergy()
         wavenumber = KEV_OVER_HBAR_C_IN_ANG * self.exp_setup.beam_energy
-
-        # Get crystal structures
-        # C++: const vector<CUnitCell> & oCryStructList = oCurrentLayer.GetStructureList()
+        beam_energy = self.exp_setup.beam_energy
+        beam_deflection = self.exp_setup.get_beam_deflection_chi_laue()
+        beam_dir_t = self.simulator.beam_direction
+        bd0, bd1, bd2 = beam_dir_t[0].item(), beam_dir_t[1].item(), beam_dir_t[2].item()
         structure_list = sample.get_structure_list()
-
-        # Get voxel grid
-        # C++: std::shared_ptr<CMic> pMic = std::dynamic_pointer_cast<CMic>(oCurrentLayer.GetMic())
         mic = sample.get_mic()
         voxel_list = mic.voxels
+        num_detectors = len(detector_list)
+
+        # Pre-compute detector geometry as plain Python floats
+        det_geom = []
+        for det in detector_list:
+            plane = det.detector_plane
+            pn = plane.normal
+            dp = det._position
+            dco = det._lab_frame_coord_origin
+            bj = det._lab_frame_basis_j
+            bk = det._lab_frame_basis_k
+            det_geom.append((
+                pn[0].item(), pn[1].item(), pn[2].item(), plane.d.item(),
+                dp[0].item(), dp[1].item(), dp[2].item(),
+                dco[0].item(), dco[1].item(), dco[2].item(),
+                bj[0].item(), bj[1].item(), bj[2].item(),
+                bk[0].item(), bk[1].item(), bk[2].item(),
+                det.pixel_half_width, det.pixel_half_height,
+                det.pixel_width, det.pixel_height,
+            ))
+
+        # Pre-compute reciprocal vector tensors per phase (torch for batched Bragg)
+        # and plain float arrays for inner loop
+        phase_data_torch = {}
+        phase_data_float = {}
+        for phase_idx, structure in enumerate(structure_list):
+            recp_vecs = structure.get_reflection_vectors()
+            if not recp_vecs:
+                continue
+            g_hkl_batch = torch.stack(
+                [torch.from_numpy(rv.q_vec).float() for rv in recp_vecs]
+            )
+            g_mag_batch = torch.tensor(
+                [rv.q_mag for rv in recp_vecs], dtype=torch.float32
+            )
+            intensities_list = [rv.intensity for rv in recp_vecs]
+            sin_theta = g_mag_batch / (2.0 * wavenumber)
+            sin_2theta = torch.sin(2.0 * torch.asin(sin_theta))
+            sin_2theta_list = sin_2theta.tolist()
+
+            phase_data_torch[phase_idx] = (g_hkl_batch, g_mag_batch)
+            phase_data_float[phase_idx] = (intensities_list, sin_2theta_list)
+
+        # Get base sample-to-lab matrix as plain floats
+        bm = sample.sample_to_lab_matrix
+        br00, br01, br02 = bm[0, 0].item(), bm[0, 1].item(), bm[0, 2].item()
+        br10, br11, br12 = bm[1, 0].item(), bm[1, 1].item(), bm[1, 2].item()
+        br20, br21, br22 = bm[2, 0].item(), bm[2, 1].item(), bm[2, 2].item()
+        bt0, bt1, bt2 = bm[0, 3].item(), bm[1, 3].item(), bm[2, 3].item()
+
+        _cos = math.cos
+        _sin = math.sin
+        _sqrt = math.sqrt
+        _atan2 = math.atan2
+        _fabs = math.fabs
 
         print(f"Simulating {len(voxel_list)} voxels...")
 
-        # Main simulation loop
-        # C++: for(vector<SVoxel>::const_iterator pCurVoxel = pMic->VoxelListBegin(); ...)
-        voxel_count = 0
+        for voxel_count, voxel in enumerate(voxel_list):
+            if (voxel_count + 1) % 10000 == 0:
+                print(f"  Voxel {voxel_count + 1}/{len(voxel_list)}")
 
-        for voxel in voxel_list:
-            voxel_count += 1
-
-            # Progress reporting
-            # C++: if(nVoxelCount % 10000 == 0) std::cout << nVoxelCount << std::endl
-            if voxel_count % 10000 == 0:
-                print(f"  Voxel {voxel_count}/{len(voxel_list)}")
-
-            # Get crystal structure for this voxel's phase
-            # C++: Int nCryStructIndex = pCurVoxel->nPhase
-            # C++: const vector<CRecpVector> & oRecipVectors = oCryStructList[nCryStructIndex].GetReflectionVectorList()
             phase_index = voxel.phase
-            if phase_index >= len(structure_list):
-                continue  # Skip invalid phase
+            if phase_index not in phase_data_torch:
+                continue
 
-            crystal_structure = structure_list[phase_index]
-            reciprocal_vectors = crystal_structure.get_reflection_vectors()
+            g_hkl_batch, g_mag_batch = phase_data_torch[phase_index]
+            intensities_list, sin_2theta_list = phase_data_float[phase_index]
 
-            # Get voxel orientation as PyTorch tensor
-            # C++: pCurVoxel->oOrientMatrix
+            # Transform all reciprocal vectors to lab frame at once (torch, batched)
             voxel_orientation = torch.from_numpy(voxel.orientation).float()
+            g_lab_batch = (voxel_orientation @ g_hkl_batch.T).T  # (N_refl, 3)
 
-            # Process each reflection
-            # C++: for(Size_Type nRecipIndex = 0; nRecipIndex < oRecipVectors.size(); nRecipIndex++)
-            for recp_idx, recp_vector in enumerate(reciprocal_vectors):
-                # Transform scattering vector to lab frame
-                # C++: SVector3 oScatteringVec = oRecipVectors[nRecipIndex].v
-                # C++: oScatteringVec.Transform(pCurVoxel->oOrientMatrix)  // g_hkl' = O * g_hkl
-                g_hkl = torch.from_numpy(recp_vector.q_vec).float()
-                g_lab = voxel_orientation @ g_hkl
-                g_magnitude = recp_vector.q_mag
+            # Batch Bragg solving for ALL reflections at once
+            bragg_result = get_scattering_omegas_torch(
+                g_lab_batch, g_mag_batch, beam_energy, beam_deflection
+            )
 
-                # Solve Bragg condition for omega angles
-                # C++: bool bPeakObservable = oSimulator.GetScatteringOmegas(fOmegaRes[0], fOmegaRes[1], ...)
-                from .diffraction_core import get_scattering_omegas_torch
+            # Extract observable results to plain Python lists
+            obs_mask = bragg_result.observable
+            if not obs_mask.any():
+                continue
 
-                result = get_scattering_omegas_torch(
-                    g_lab.unsqueeze(0),  # Add batch dimension
-                    torch.tensor([g_magnitude]),
-                    self.exp_setup.beam_energy,
-                    self.exp_setup.get_beam_deflection_chi_laue()
+            obs_indices = torch.where(obs_mask)[0].tolist()
+            g_lab_np = g_lab_batch.numpy()
+            omega1_np = bragg_result.omega1.numpy()
+            omega2_np = bragg_result.omega2.numpy()
+
+            # Pre-compute scattering directions as plain floats
+            obs_data = []
+            for idx in obs_indices:
+                gx, gy, gz = float(g_lab_np[idx, 0]), float(g_lab_np[idx, 1]), float(g_lab_np[idx, 2])
+                gnorm = _sqrt(gx * gx + gy * gy + gz * gz)
+                inv_gnorm = 1.0 / gnorm if gnorm > 0 else 0.0
+                sdx, sdy, sdz = gx * inv_gnorm, gy * inv_gnorm, gz * inv_gnorm
+                obs_data.append((
+                    sdx, sdy, sdz,
+                    float(omega1_np[idx]), float(omega2_np[idx]),
+                    intensities_list[idx], sin_2theta_list[idx]
+                ))
+
+            # Pre-compute voxel vertices as plain floats
+            x = float(voxel.position[0])
+            y = float(voxel.position[1])
+            z = float(voxel.position[2])
+            s = float(voxel.side_length)
+            sqrt3 = 1.7320508075688772
+            if voxel.points_up:
+                verts = (
+                    (x, y, z),
+                    (x + s, y, z),
+                    (x + s * 0.5, y + s * 0.5 * sqrt3, z),
+                )
+            else:
+                verts = (
+                    (x, y, z),
+                    (x + s * 0.5, y - s * 0.5 * sqrt3, z),
+                    (x + s, y, z),
                 )
 
-                if not result.observable[0]:
-                    continue  # Peak not observable
-
-                # Calculate sin(2θ) for Lorentz-polarization correction
-                # C++: Float fSinTheta = oRecipVectors[nRecipIndex].fMag / (Float(2.0) * fWavenumber)
-                # C++: FAcceptFn.fSin2Theta = sin(Float(2) * asin(fSinTheta))
-                sin_theta = g_magnitude / (2.0 * wavenumber)
-                sin_2theta = np.sin(2.0 * np.arcsin(sin_theta))
-
-                # Normalize scattering direction
-                # C++: oScatteringVec.Normalize()
-                # C++: const SVector3 & oScatteringDir = oScatteringVec
-                scattering_dir = g_lab / torch.norm(g_lab)
-
-                # Process both omega solutions
-                # C++: for(int i = 0; i < 2; i++)
-                omega_solutions = [result.omega1[0].item(), result.omega2[0].item()]
-
-                for omega in omega_solutions:
-                    # Find omega index in range map
-                    # C++: Size_Type nOmegaIndex = oRangeToIndexMap(fOmegaRes[i])
-                    # C++: if(nOmegaIndex != XDMSimulation::NoMatch)
+            # Process all observable peaks
+            for sdx, sdy, sdz, omega1, omega2, form_intensity, sin_2theta in obs_data:
+                for omega in (omega1, omega2):
                     omega_index = range_map.angle_to_wedge_index(omega)
-
                     if omega_index is None:
-                        continue  # Omega outside valid ranges
+                        continue
 
-                    # Save current sample orientation
-                    # C++: const SVector3 oCurOrientation = oCurrentLayer.GetOrientation()
-                    current_orientation = sample.get_orientation()
+                    # Compute Rz(omega) @ base_rotation as plain floats
+                    cos_w = _cos(omega)
+                    sin_w = _sin(omega)
+                    r00 = cos_w * br00 - sin_w * br10
+                    r01 = cos_w * br01 - sin_w * br11
+                    r02 = cos_w * br02 - sin_w * br12
+                    r10 = sin_w * br00 + cos_w * br10
+                    r11 = sin_w * br01 + cos_w * br11
+                    r12 = sin_w * br02 + cos_w * br12
+                    r20 = br20
+                    r21 = br21
+                    r22 = br22
 
-                    # Rotate sample to omega angle
-                    # C++: oCurrentLayer.RotateZ(fOmegaRes[i])
-                    sample.rotate_z(omega)
+                    # Transform scattering direction to lab frame
+                    lnx = r00 * sdx + r01 * sdy + r02 * sdz
+                    lny = r10 * sdx + r11 * sdy + r12 * sdz
+                    lnz = r20 * sdx + r21 * sdy + r22 * sdz
 
-                    # Create peak filter with this reflection's intensity
-                    # C++: FAcceptFn.fFormIntensity = oRecipVectors[nRecipIndex].fIntensity
-                    peak_filter = XDMEtaAcceptFn(
-                        min_eta=-eta_limit,
-                        max_eta=eta_limit,
-                        form_intensity=recp_vector.intensity,
-                        sin_2theta=sin_2theta
-                    )
+                    # Reflection: r_out = beam - 2*(beam·n)*n
+                    dot_bn = bd0 * lnx + bd1 * lny + bd2 * lnz
+                    two_dot = 2.0 * dot_bn
+                    rdx = bd0 - two_dot * lnx
+                    rdy = bd1 - two_dot * lny
+                    rdz = bd2 - two_dot * lnz
 
-                    # Project voxel onto all detectors simultaneously
-                    # C++ short-circuit: if any vertex misses any detector plane,
-                    # skip all detectors for this peak
-                    # C++: oSimulator.ProjectVoxel(oCurImageList, vDetectorList, oCurrentLayer,
-                    #                              *pCurVoxel, oScatteringDir, FAcceptFn)
-                    vertices = self._get_voxel_vertices(voxel)
-                    det_images = [images[omega_index][d] for d in range(len(detector_list))]
-                    self.simulator.project_voxel_multi_detector(
-                        det_images,
-                        detector_list,
-                        sample,
-                        vertices,
-                        scattering_dir,
-                        peak_filter
-                    )
+                    # Peak filter: eta acceptance + intensity
+                    rd_norm = _sqrt(rdx * rdx + rdy * rdy + rdz * rdz)
+                    inv_rd_norm = 1.0 / rd_norm if rd_norm > 0 else 0.0
+                    rdy_n = rdy * inv_rd_norm
+                    rdz_n = rdz * inv_rd_norm
+                    eta = _atan2(_fabs(rdy_n), _fabs(rdz_n))
 
-                    # Restore sample orientation
-                    # C++: oCurrentLayer.SetOrientation(oCurOrientation.m_fX, ...)
-                    sample.set_orientation(*current_orientation)
+                    if eta >= eta_limit:
+                        continue
+
+                    sin_eta = _sin(eta)
+                    intensity = form_intensity / (_fabs(sin_eta) * sin_2theta + 1e-10)
+
+                    # Project 3 vertices onto all detectors
+                    all_hit = True
+                    projected_pixels = [None] * (num_detectors * 3)
+
+                    for vi in range(3):
+                        vx, vy, vz = verts[vi]
+                        lab_vx = r00 * vx + r01 * vy + r02 * vz + bt0
+                        lab_vy = r10 * vx + r11 * vy + r12 * vz + bt1
+                        lab_vz = r20 * vx + r21 * vy + r22 * vz + bt2
+
+                        for di in range(num_detectors):
+                            dg = det_geom[di]
+                            # Ray-plane intersection
+                            denom = dg[0] * rdx + dg[1] * rdy + dg[2] * rdz
+                            if _fabs(denom) < 1e-8:
+                                all_hit = False
+                                break
+                            numer = -(dg[0] * lab_vx + dg[1] * lab_vy + dg[2] * lab_vz + dg[3])
+                            t = numer / denom
+                            if t <= 0:
+                                all_hit = False
+                                break
+
+                            # Intersection point
+                            ix = lab_vx + t * rdx
+                            iy = lab_vy + t * rdy
+                            iz = lab_vz + t * rdz
+
+                            # Lab to detector pixel coordinates
+                            px = ix - dg[4] - dg[7]
+                            py = iy - dg[5] - dg[8]
+                            pz = iz - dg[6] - dg[9]
+                            j_coord = px * dg[10] + py * dg[11] + pz * dg[12]
+                            k_coord = px * dg[13] + py * dg[14] + pz * dg[15]
+                            col = (j_coord + dg[16]) / dg[18]
+                            row = (k_coord + dg[17]) / dg[19]
+
+                            projected_pixels[di * 3 + vi] = (col, row)
+
+                        if not all_hit:
+                            break
+
+                    if not all_hit:
+                        continue
+
+                    # Rasterize onto each detector
+                    for di in range(num_detectors):
+                        base = di * 3
+                        v0 = torch.tensor(projected_pixels[base])
+                        v1 = torch.tensor(projected_pixels[base + 1])
+                        v2 = torch.tensor(projected_pixels[base + 2])
+                        images[omega_index][di].add_triangle_scanline(
+                            v0, v1, v2, intensity
+                        )
 
     def _get_voxel_vertices(self, voxel) -> torch.Tensor:
         """
@@ -351,33 +431,21 @@ class ForwardSimulation:
         Computes the 3 vertices of the equilateral triangle voxel,
         matching the C++ implementation in MicIO.h lines 300-315.
 
-        Args:
-            voxel: Voxel with position, side_length, and points_up fields
-
-        Returns:
-            Vertices tensor, shape (3, 3) - counter-clockwise winding
-
         C++ Reference:
             XDM++/libXDM/MicIO.h lines 300-315
         """
-        import math
-
         x = float(voxel.position[0])
         y = float(voxel.position[1])
         z = float(voxel.position[2])
         s = float(voxel.side_length)
 
         if voxel.points_up:
-            # UP triangle (direction=1) - counter-clockwise winding
-            # C++ MicIO.h lines 302-305
             vertices = torch.tensor([
                 [x,           y,                          z],
                 [x + s,       y,                          z],
                 [x + s / 2.0, y + s / 2.0 * math.sqrt(3.0), z],
             ], dtype=torch.float32)
         else:
-            # DOWN triangle (direction=2) - counter-clockwise winding
-            # C++ MicIO.h lines 310-313
             vertices = torch.tensor([
                 [x,           y,                            z],
                 [x + s / 2.0, y - s / 2.0 * math.sqrt(3.0), z],
