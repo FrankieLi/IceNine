@@ -120,6 +120,26 @@ C++ vs Python forward simulation comparison using three-voxel test case (360 det
 - `forward_simulation.py:_simulate_peaks()` — Triple loop: voxels × reflections × omega solutions. Uses `range_map.angle_to_wedge_index()` for omega bin mapping. Peak filter (`XDMEtaAcceptFn`) applies Lorentz-polarization correction: `I = I_form / (|sin(η)| × sin(2θ))`.
 - Omega-to-bin mapping: `SimulationRange._build_index_list()` marks only the CENTER bin of each wedge, matching C++ `SimulationData.h:Set()`. For 180 individual 1° wedges, all 180 bins have valid indices.
 
+### Performance Optimization — 6x Forward Simulation Speedup
+
+Profiling the ManyGrains test (24,570 voxels, 112 reflections, 180 omega steps) revealed torch scalar operation overhead as the bottleneck. Each per-element torch tensor op has ~10-50µs Python overhead; with ~3,360 torch ops per voxel this dominated runtime at ~58ms/voxel (~22min total).
+
+**Optimizations applied:**
+1. **Batched Bragg solving**: Single `get_scattering_omegas_torch()` call per voxel with all reflections stacked as (N,3) tensor, instead of N individual calls
+2. **Pre-computed detector geometry**: Detector plane normals, origins, unit vectors, and pixel parameters extracted as plain Python floats before the voxel loop
+3. **Pure-Python inner loop**: Replaced torch scalar tensor ops with `math` module for rotation, ray-plane intersection, and lab-to-pixel conversion
+4. **Functional rotation**: Compute Rz(omega) @ base_rotation as inline float math instead of mutating/restoring sample state per omega
+
+**Result**: 9.3ms/voxel (down from 58.2ms), ~4.5min for full ManyGrains simulation.
+
+**ManyGrains validation**: 99.97% pixel match rate (7,422,506 / 7,424,450), pixel count ratio 1.0000, total intensity ratio 1.000000, mean correlation 0.9996. Remaining ~0.03% mismatches are omega bin-boundary rounding (same as ThreeVoxels).
+
+**Note on differentiability**: The inner loop now uses plain floats (not torch autograd). This is acceptable because forward simulation generates images for comparison and doesn't need gradients. The proper differentiable path would batch ALL voxels into large tensors (matrix ops on thousands of voxels simultaneously), which is a separate effort.
+
+**Diagnostic scripts in `Examples/Example2.ManyGrains/`:**
+- `run_python_simulation.py` — runs full forward simulation (24,570 voxels)
+- `compare_outputs.py` — statistical comparison with pass/fail criteria
+
 **Diagnostic scripts in `Examples/Example2.ThreeVoxels/`:**
 - `run_python_simulation.py` — runs full forward simulation
 - `compare_outputs.py` / `compare_pixel_overlap.py` — pixel comparison
