@@ -28,7 +28,17 @@ from icenine.forward_simulation import ForwardSimulation
 
 config = ConfigFile.from_file("path/to/experiment.config")
 simulator = ForwardSimulation(config)
+
+# Serial path (reference implementation, non-differentiable)
 images = simulator.simulate_detector_images(output_dir="output/")
+
+# Batched path (differentiable through stages 1-5, torch autograd preserved)
+images = simulator.simulate_detector_images(output_dir="output/", batched=True)
+
+# Batched with memory chunking (for large samples)
+images = simulator.simulate_detector_images(
+    output_dir="output/", batched=True, batch_size=5000
+)
 # images[omega_index][detector_index] is an ImageData object
 ```
 
@@ -56,7 +66,7 @@ For each voxel in the sample:
 | `mic_file.py` | Read/write `.mic` voxel grid files (Bunge Euler angles) |
 | `crystal_structure.py` | Unit cell, reciprocal lattice, reflection vector generation |
 | `diffraction_core.py` | Scattering omega calculation, reflected rays (PyTorch batched) |
-| `peak_filters.py` | Eta-angle acceptance filter with Lorentz-polarization correction |
+| `peak_filters.py` | Eta-angle acceptance filter with Lorentz-polarization correction (`batch_eta_filter()` for vectorized ops) |
 | `simulation_range.py` | Omega range system for discontinuous data collection wedges |
 | `geometry.py` | Euler conversions, Plane/Ray classes |
 | `symmetry.py` | Crystal symmetry operations (pymatgen wrapper) |
@@ -105,12 +115,17 @@ Expected: 3200/3201 pixels match at identical locations, max relative intensity 
 
 ## Validation Status
 
-The forward simulation has been validated pixel-exact against C++ on the Example2.ThreeVoxels test case:
+Forward simulation validated pixel-exact against C++ on two test cases:
 
-- **3200 matching pixels** (same location and intensity to within float32 precision)
-- **Max relative intensity difference: 5.4e-6**
-- **4 pixel-location mismatches** — all at omega bin boundaries due to floating-point rounding
-- **353/360 files are nonempty** in both C++ and Python (identical set)
+**ThreeVoxels** (3 voxels, 2 detectors, 180 omega steps):
+- 3200/3201 pixels match, max relative intensity difference 5.4e-6
+- 4 pixel-location mismatches at omega bin boundaries (floating-point rounding)
+
+**ManyGrains** (24,570 voxels, 2 detectors, 180 omega steps):
+- 99.97% pixel match rate (7,422,506 / 7,424,450)
+- Pixel count ratio 1.0000, intensity ratio 1.000000
+
+**Serial vs Batched** paths produce identical output (0.015% bin-boundary mismatches due to float32 precision in Bragg solver).
 
 ## Citation
 
