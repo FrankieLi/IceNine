@@ -5,9 +5,7 @@ Verifies that gradients flow from pixel coordinates back to voxel orientations.
 Stage 6 (rasterization) is discrete and non-differentiable by design.
 """
 
-import pytest
 import torch
-import numpy as np
 
 
 def test_batched_eta_filter_gradient():

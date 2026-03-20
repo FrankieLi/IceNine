@@ -13,6 +13,7 @@ Author: S. F. Li
 from typing import List, Optional
 from pathlib import Path
 import math
+import time
 import numpy as np
 import torch
 
@@ -459,8 +460,6 @@ class ForwardSimulation:
             range_map: SimulationRange for omega-to-wedge lookup
             batch_size: Max voxels per chunk (None = all at once)
         """
-        import time
-
         # ---- Stage 0: data preparation ----
         t0 = time.time()
         (
@@ -667,7 +666,10 @@ class ForwardSimulation:
                         )
 
             if chunk_end < V:
-                print(f"  Chunk {chunk_start}-{chunk_end}/{V}, rasterized so far: {total_rasterized}")
+                print(
+                    f"  Chunk {chunk_start}-{chunk_end}/{V},"
+                    f" rasterized so far: {total_rasterized}"
+                )
 
         t_total = time.time() - t0
         print(f"  Batched simulation: {t_total:.2f}s, {total_rasterized} triangles rasterized")
