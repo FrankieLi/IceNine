@@ -137,6 +137,40 @@ class XDMEtaAcceptFn:
         )
 
 
+def batch_eta_filter(
+    ray_dirs: torch.Tensor,
+    eta_limit: float,
+    form_intensities: torch.Tensor,
+    sin_2thetas: torch.Tensor,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Batched eta acceptance filter with Lorentz-polarization correction.
+
+    Vectorized version of XDMEtaAcceptFn for processing N peaks at once.
+    Fully differentiable via torch autograd.
+
+    Args:
+        ray_dirs: Reflected ray directions, shape (N, 3)
+        eta_limit: Maximum eta angle (radians)
+        form_intensities: Form factor intensities per peak, shape (N,)
+        sin_2thetas: sin(2*theta) per peak, shape (N,)
+
+    Returns:
+        Tuple of:
+            accept: Boolean mask, shape (N,)
+            intensity: Corrected intensities, shape (N,)
+    """
+    rd_norm = torch.norm(ray_dirs, dim=1, keepdim=True)
+    ray_dirs_n = ray_dirs / (rd_norm + 1e-10)
+
+    eta = torch.atan2(torch.abs(ray_dirs_n[:, 1]), torch.abs(ray_dirs_n[:, 2]))
+    accept = eta < eta_limit
+
+    sin_eta = torch.sin(eta)
+    intensity = form_intensities / (torch.abs(sin_eta) * sin_2thetas + 1e-10)
+
+    return accept, intensity
+
+
 class TrivialAcceptFn:
     """
     Trivial acceptance filter that accepts all peaks with constant intensity.

@@ -13,6 +13,7 @@ Author: S. F. Li
 from typing import List, Optional
 from pathlib import Path
 import math
+import time
 import numpy as np
 import torch
 
@@ -22,7 +23,7 @@ from .simulation import Simulation, PeakInfo
 from .sample import Sample
 from .detector import Detector
 from .image_data import ImageData
-from .peak_filters import XDMEtaAcceptFn
+from .peak_filters import XDMEtaAcceptFn, batch_eta_filter
 from .constants import KEV_OVER_HBAR_C_IN_ANG
 from .diffraction_core import (
     get_scattering_omegas_torch,
@@ -83,7 +84,9 @@ class ForwardSimulation:
     def simulate_detector_images(
         self,
         sample: Optional[Sample] = None,
-        output_dir: Optional[Path] = None
+        output_dir: Optional[Path] = None,
+        batched: bool = False,
+        batch_size: Optional[int] = None,
     ) -> List[List[ImageData]]:
         """
         Main entry point for forward simulation.
@@ -154,12 +157,21 @@ class ForwardSimulation:
 
         # Run simulation
         print("Begin Simulation")
-        self._simulate_peaks(
-            self.images,
-            detector_list,
-            sample,
-            range_map
-        )
+        if batched:
+            self._simulate_peaks_batched(
+                self.images,
+                detector_list,
+                sample,
+                range_map,
+                batch_size=batch_size,
+            )
+        else:
+            self._simulate_peaks(
+                self.images,
+                detector_list,
+                sample,
+                range_map
+            )
         print("Finished Simulation")
 
         # Output images
@@ -423,6 +435,329 @@ class ForwardSimulation:
                         images[omega_index][di].add_triangle_scanline(
                             v0, v1, v2, intensity
                         )
+
+    # ------------------------------------------------------------------
+    # Batched (differentiable) forward simulation pipeline
+    # ------------------------------------------------------------------
+
+    def _simulate_peaks_batched(
+        self,
+        images: List[List[ImageData]],
+        detector_list: List[Detector],
+        sample: Sample,
+        range_map,
+        batch_size: Optional[int] = None,
+    ):
+        """Fully batched forward simulation using torch tensor operations.
+
+        Processes all voxels via large tensor ops (stages 1-5 are differentiable).
+        Only the final rasterization (stage 6) is sequential / non-differentiable.
+
+        Args:
+            images: 2D list [omega_idx][det_idx] of ImageData to accumulate into
+            detector_list: list of Detector objects
+            sample: Sample with voxels and crystal structures
+            range_map: SimulationRange for omega-to-wedge lookup
+            batch_size: Max voxels per chunk (None = all at once)
+        """
+        # ---- Stage 0: data preparation ----
+        t0 = time.time()
+        (
+            orientations, vertices, phase_indices,
+            phase_data, base_rot, translation,
+            det_tensors, beam_dir, beam_energy, beam_deflection,
+            eta_limit, omega_lookup,
+        ) = self._prepare_batched_data(sample, detector_list, range_map)
+
+        V = orientations.shape[0]
+        if batch_size is None:
+            batch_size = V
+
+        num_detectors = len(detector_list)
+        t_prep = time.time() - t0
+        print(f"  Batched data prep: {t_prep:.2f}s  ({V} voxels)")
+
+        # ---- Chunk loop ----
+        total_rasterized = 0
+        for chunk_start in range(0, V, batch_size):
+            chunk_end = min(chunk_start + batch_size, V)
+            chunk_orient = orientations[chunk_start:chunk_end]
+            chunk_verts = vertices[chunk_start:chunk_end]
+            chunk_phases = phase_indices[chunk_start:chunk_end]
+
+            for phase_idx, pd in phase_data.items():
+                phase_mask = chunk_phases == phase_idx
+                if not phase_mask.any():
+                    continue
+
+                orient_p = chunk_orient[phase_mask]       # (Vp, 3, 3)
+                verts_p = chunk_verts[phase_mask]          # (Vp, 3, 3)
+                g_hkl = pd["g_hkl"]                        # (R, 3)
+                g_mag = pd["g_mag"]                         # (R,)
+                intensities = pd["intensities"]             # (R,)
+                sin_2theta = pd["sin_2theta"]               # (R,)
+                Vp = orient_p.shape[0]
+                R = g_hkl.shape[0]
+
+                # ---- Stage 1: batched Bragg solving ----
+                g_lab = torch.bmm(
+                    orient_p,
+                    g_hkl.unsqueeze(0).expand(Vp, -1, -1).transpose(1, 2),
+                ).transpose(1, 2)  # (Vp, R, 3)
+
+                g_lab_flat = g_lab.reshape(Vp * R, 3)
+                g_mag_flat = g_mag.unsqueeze(0).expand(Vp, R).reshape(Vp * R)
+
+                bragg = get_scattering_omegas_torch(
+                    g_lab_flat, g_mag_flat, beam_energy, beam_deflection
+                )
+                observable = bragg.observable.reshape(Vp, R)
+                omega1 = bragg.omega1.reshape(Vp, R)
+                omega2 = bragg.omega2.reshape(Vp, R)
+
+                # ---- Stage 2: omega filter + compaction ----
+                omegas = torch.stack([omega1, omega2], dim=2)  # (Vp, R, 2)
+                obs_exp = observable.unsqueeze(2).expand_as(omegas)
+
+                # Vectorized omega-to-wedge lookup (float64 to match serial precision)
+                idx_tensor, ol_low, ol_width, ol_n = omega_lookup
+                omega_flat = omegas.reshape(-1)
+                f_vals = (omega_flat.double() - ol_low) / ol_width
+                bin_idx = f_vals.long()
+                # Must check f_vals >= 0 (not just bin_idx >= 0) because
+                # .long() truncates -0.001 to 0, which would falsely pass
+                bin_valid = (f_vals >= 0) & (bin_idx < ol_n)
+                bin_idx_clamped = bin_idx.clamp(0, ol_n - 1)
+                wedge_idx = idx_tensor[bin_idx_clamped]
+                omega_valid = bin_valid & (wedge_idx >= 0)
+
+                combined = obs_exp.reshape(-1) & omega_valid
+                valid_flat = torch.where(combined)[0]
+                N_valid = valid_flat.shape[0]
+                if N_valid == 0:
+                    continue
+
+                # Index arrays
+                voxel_idx = valid_flat // (R * 2)
+                remainder = valid_flat % (R * 2)
+                refl_idx = remainder // 2
+
+                valid_omegas = omega_flat[valid_flat]
+                valid_wedge_idx = wedge_idx[valid_flat]
+
+                # ---- Stage 3: batched rotation + reflection ----
+                cos_w = torch.cos(valid_omegas)
+                sin_w = torch.sin(valid_omegas)
+                zeros = torch.zeros_like(cos_w)
+                ones = torch.ones_like(cos_w)
+
+                Rz = torch.stack([
+                    cos_w, -sin_w, zeros,
+                    sin_w,  cos_w, zeros,
+                    zeros,  zeros, ones,
+                ], dim=1).reshape(N_valid, 3, 3)
+
+                full_rot = torch.bmm(Rz, base_rot.unsqueeze(0).expand(N_valid, -1, -1))
+
+                # Scattering directions: normalized g_lab vectors
+                g_lab_valid = g_lab[voxel_idx, refl_idx]  # (N_valid, 3)
+                g_norms = torch.norm(g_lab_valid, dim=1, keepdim=True)
+                scat_dir = g_lab_valid / (g_norms + 1e-10)
+
+                # Transform to lab frame
+                lab_normal = torch.bmm(
+                    full_rot, scat_dir.unsqueeze(2)
+                ).squeeze(2)  # (N_valid, 3)
+
+                # Reflection: r_out = beam - 2*(beam·n)*n
+                beam_exp = beam_dir.unsqueeze(0).expand(N_valid, -1)
+                dot_bn = torch.sum(beam_exp * lab_normal, dim=1, keepdim=True)
+                ray_dir = beam_exp - 2.0 * dot_bn * lab_normal  # (N_valid, 3)
+
+                # ---- Stage 4: batched eta filter ----
+                valid_intensities = intensities[refl_idx]
+                valid_sin2theta = sin_2theta[refl_idx]
+                eta_accept, intensity = batch_eta_filter(
+                    ray_dir, eta_limit, valid_intensities, valid_sin2theta
+                )
+
+                # ---- Stage 5: batched vertex projection ----
+                valid_verts = verts_p[voxel_idx]  # (N_valid, 3, 3)
+
+                # Transform vertices to lab frame
+                lab_verts = torch.bmm(
+                    full_rot,
+                    valid_verts.transpose(1, 2),
+                ).transpose(1, 2) + translation.unsqueeze(0).unsqueeze(1)
+                # lab_verts: (N_valid, 3_verts, 3_xyz)
+
+                # Per-detector ray-plane intersection + pixel projection
+                all_det_hit = eta_accept.clone()
+                pixel_coords_list = []
+
+                for di in range(num_detectors):
+                    dn = det_tensors["normals"][di]       # (3,)
+                    dd = det_tensors["d"][di]              # scalar
+                    dp = det_tensors["pos"][di]            # (3,)
+                    do = det_tensors["origin"][di]         # (3,)
+                    dbj = det_tensors["basis_j"][di]       # (3,)
+                    dbk = det_tensors["basis_k"][di]       # (3,)
+                    phw = det_tensors["pixel_params"][di, 0].item()
+                    phh = det_tensors["pixel_params"][di, 1].item()
+                    pw = det_tensors["pixel_params"][di, 2].item()
+                    ph = det_tensors["pixel_params"][di, 3].item()
+
+                    # denom = normal · ray_dir  → (N_valid,)
+                    denom = torch.sum(dn.unsqueeze(0) * ray_dir, dim=1)
+                    denom_ok = torch.abs(denom) > 1e-8
+
+                    # numer = -(normal · vert + d)  → (N_valid, 3)
+                    numer = -(
+                        torch.sum(
+                            dn.unsqueeze(0).unsqueeze(0) * lab_verts, dim=2
+                        ) + dd
+                    )
+
+                    # t = numer / denom  → (N_valid, 3)
+                    safe_denom = denom.clone()
+                    safe_denom[~denom_ok] = 1.0
+                    t = numer / safe_denom.unsqueeze(1)
+
+                    t_ok = t > 0  # (N_valid, 3)
+                    hit_d = denom_ok.unsqueeze(1) & t_ok
+                    all_verts_hit = hit_d.all(dim=1)  # (N_valid,)
+                    all_det_hit = all_det_hit & all_verts_hit
+
+                    # Intersection points  → (N_valid, 3, 3)
+                    intersect = lab_verts + t.unsqueeze(2) * ray_dir.unsqueeze(1)
+
+                    # Lab-to-pixel: project onto detector basis
+                    offset = dp + do  # position + coord_origin
+                    pixel_loc = intersect - offset.unsqueeze(0).unsqueeze(0)
+                    j_coord = torch.sum(pixel_loc * dbj.unsqueeze(0).unsqueeze(0), dim=2)
+                    k_coord = torch.sum(pixel_loc * dbk.unsqueeze(0).unsqueeze(0), dim=2)
+
+                    col = (j_coord + phw) / pw  # (N_valid, 3)
+                    row = (k_coord + phh) / ph  # (N_valid, 3)
+
+                    pixel_coords_list.append(
+                        torch.stack([col, row], dim=2)  # (N_valid, 3, 2)
+                    )
+
+                # ---- Stage 6: rasterization (sequential) ----
+                final_valid = torch.where(all_det_hit)[0]
+                n_raster = final_valid.shape[0]
+                total_rasterized += n_raster
+
+                # Detach and convert to numpy for fast sequential access
+                wedge_np = valid_wedge_idx[final_valid].numpy()
+                intensity_np = intensity[final_valid].detach().numpy()
+                px_np = [pc[final_valid].detach().numpy() for pc in pixel_coords_list]
+
+                for i in range(n_raster):
+                    oi = int(wedge_np[i])
+                    inten = float(intensity_np[i])
+                    for di in range(num_detectors):
+                        v0c, v0r = float(px_np[di][i, 0, 0]), float(px_np[di][i, 0, 1])
+                        v1c, v1r = float(px_np[di][i, 1, 0]), float(px_np[di][i, 1, 1])
+                        v2c, v2r = float(px_np[di][i, 2, 0]), float(px_np[di][i, 2, 1])
+                        images[oi][di].add_triangle_scanline(
+                            (v0c, v0r), (v1c, v1r), (v2c, v2r), inten
+                        )
+
+            if chunk_end < V:
+                print(
+                    f"  Chunk {chunk_start}-{chunk_end}/{V},"
+                    f" rasterized so far: {total_rasterized}"
+                )
+
+        t_total = time.time() - t0
+        print(f"  Batched simulation: {t_total:.2f}s, {total_rasterized} triangles rasterized")
+
+    def _prepare_batched_data(self, sample, detector_list, range_map):
+        """Stage 0: collect all data into contiguous tensors."""
+        eta_limit = self.exp_setup.get_eta_limit()
+        wavenumber = KEV_OVER_HBAR_C_IN_ANG * self.exp_setup.beam_energy
+        beam_energy = self.exp_setup.beam_energy
+        beam_deflection = self.exp_setup.get_beam_deflection_chi_laue()
+        beam_dir = self.simulator.beam_direction.float()
+
+        structure_list = sample.get_structure_list()
+        mic = sample.get_mic()
+        voxel_list = mic.voxels
+        V = len(voxel_list)
+        sqrt3 = 1.7320508075688772
+
+        # Voxel tensors
+        orient_list = []
+        vert_list = []
+        phase_list = []
+        for voxel in voxel_list:
+            orient_list.append(torch.from_numpy(voxel.orientation).float())
+            x, y, z = float(voxel.position[0]), float(voxel.position[1]), float(voxel.position[2])
+            s = float(voxel.side_length)
+            if voxel.points_up:
+                v = [[x, y, z], [x + s, y, z], [x + s * 0.5, y + s * 0.5 * sqrt3, z]]
+            else:
+                v = [[x, y, z], [x + s * 0.5, y - s * 0.5 * sqrt3, z], [x + s, y, z]]
+            vert_list.append(v)
+            phase_list.append(voxel.phase)
+
+        orientations = torch.stack(orient_list)                         # (V, 3, 3)
+        vertices = torch.tensor(vert_list, dtype=torch.float32)         # (V, 3, 3)
+        phase_indices = torch.tensor(phase_list, dtype=torch.long)      # (V,)
+
+        # Phase data
+        phase_data = {}
+        for phase_idx, structure in enumerate(structure_list):
+            recp_vecs = structure.get_reflection_vectors()
+            if not recp_vecs:
+                continue
+            g_hkl = torch.stack([torch.from_numpy(rv.q_vec).float() for rv in recp_vecs])
+            g_mag = torch.tensor([rv.q_mag for rv in recp_vecs], dtype=torch.float32)
+            intensities_t = torch.tensor([rv.intensity for rv in recp_vecs], dtype=torch.float32)
+            sin_theta = g_mag / (2.0 * wavenumber)
+            sin_2theta_t = torch.sin(2.0 * torch.asin(sin_theta))
+            phase_data[phase_idx] = {
+                "g_hkl": g_hkl,
+                "g_mag": g_mag,
+                "intensities": intensities_t,
+                "sin_2theta": sin_2theta_t,
+            }
+
+        # Base rotation (3x3 part of sample_to_lab)
+        bm = sample.sample_to_lab_matrix
+        base_rot = bm[:3, :3].float()
+        translation = bm[:3, 3].float()
+
+        # Detector tensors
+        det_tensors = {
+            "normals": [], "d": [], "pos": [], "origin": [],
+            "basis_j": [], "basis_k": [], "pixel_params": [],
+        }
+        for det in detector_list:
+            plane = det.detector_plane
+            det_tensors["normals"].append(plane.normal.float())
+            det_tensors["d"].append(plane.d.float())
+            det_tensors["pos"].append(det._position.float())
+            det_tensors["origin"].append(det._lab_frame_coord_origin.float())
+            det_tensors["basis_j"].append(det._lab_frame_basis_j.float())
+            det_tensors["basis_k"].append(det._lab_frame_basis_k.float())
+            det_tensors["pixel_params"].append(torch.tensor([
+                det.pixel_half_width, det.pixel_half_height,
+                det.pixel_width, det.pixel_height,
+            ], dtype=torch.float32))
+        det_tensors["pixel_params"] = torch.stack(det_tensors["pixel_params"])
+
+        # Omega lookup
+        omega_lookup = range_map.to_lookup_tensor()
+
+        return (
+            orientations, vertices, phase_indices,
+            phase_data, base_rot, translation,
+            det_tensors, beam_dir, beam_energy, beam_deflection,
+            eta_limit, omega_lookup,
+        )
 
     def _get_voxel_vertices(self, voxel) -> torch.Tensor:
         """

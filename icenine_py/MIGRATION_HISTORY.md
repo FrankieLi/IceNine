@@ -134,7 +134,7 @@ Profiling the ManyGrains test (24,570 voxels, 112 reflections, 180 omega steps) 
 
 **ManyGrains validation**: 99.97% pixel match rate (7,422,506 / 7,424,450), pixel count ratio 1.0000, total intensity ratio 1.000000, mean correlation 0.9996. Remaining ~0.03% mismatches are omega bin-boundary rounding (same as ThreeVoxels).
 
-**Note on differentiability**: The inner loop now uses plain floats (not torch autograd). This is acceptable because forward simulation generates images for comparison and doesn't need gradients. The proper differentiable path would batch ALL voxels into large tensors (matrix ops on thousands of voxels simultaneously), which is a separate effort.
+**Note on differentiability**: The inner loop now uses plain floats (not torch autograd). This is acceptable because forward simulation generates images for comparison and doesn't need gradients. See "Fully Batched Differentiable Pipeline" below for the autograd-preserving path.
 
 **Diagnostic scripts in `Examples/Example2.ManyGrains/`:**
 - `run_python_simulation.py` — runs full forward simulation (24,570 voxels)
@@ -146,3 +146,40 @@ Profiling the ManyGrains test (24,570 voxels, 112 reflections, 180 omega steps) 
 - `debug_single_peak.py` — traces one voxel + one reciprocal vector through full pipeline
 - `debug_detector_geometry.py` — prints detector geometric properties
 - See `Examples/Example2.ThreeVoxels/README_INTEGRATION_TEST.md`
+
+### Fully Batched Differentiable Pipeline
+
+Added `_simulate_peaks_batched()` as a dual path alongside the serial `_simulate_peaks()`. The batched pipeline processes ALL voxels simultaneously via large tensor operations, preserving torch autograd through stages 1-5 for future gradient-based orientation optimization.
+
+**Architecture**: 7-stage pipeline with configurable `batch_size` chunking:
+- **Stage 0**: Collect voxel orientations (V,3,3), vertices (V,3,3), detector geometry into contiguous tensors
+- **Stage 1**: Batched Bragg solving — `bmm(orientations, g_hkl.T)` → `get_scattering_omegas_torch()` for all voxels×reflections at once
+- **Stage 2**: Vectorized omega-to-wedge lookup via `SimulationRange.to_lookup_tensor()` + compact valid peaks with `torch.where()`
+- **Stage 3**: Build `Rz(omega)` rotation matrices as (N,3,3) tensors, transform scattering directions, compute reflection vectors
+- **Stage 4**: `batch_eta_filter()` — vectorized eta acceptance + Lorentz-polarization intensity correction
+- **Stage 5**: Transform voxel vertices to lab frame, per-detector ray-plane intersection + pixel coordinate projection
+- **Stage 6**: Sequential rasterization via existing `add_triangle_scanline()` (non-differentiable, accumulates into shared images)
+
+**Differentiability boundary**: Stages 1-5 are fully differentiable via torch autograd. Stage 6 (scanline rasterization) is discrete/non-differentiable by design — gradients flow up to pixel coordinates but not through the integer rasterization step.
+
+**API**: `simulate_detector_images(batched=True, batch_size=None)` selects the batched path. `batch_size=None` means all voxels in one chunk; set a value to limit memory for large samples.
+
+**New helper functions**:
+- `peak_filters.batch_eta_filter()` — vectorized eta filter + intensity computation
+- `SimulationRange.to_lookup_tensor()` — omega-to-wedge index tensor for batched lookup
+
+**Validation**:
+- ThreeVoxels: pixel-exact match (3203/3203, max rel diff 2.1e-7)
+- ManyGrains 100-voxel subset: 82,666/82,678 match, 12 bin-boundary mismatches (0.015%)
+- ManyGrains full (24,570 voxels): 7,424,420 pixels in 3.3min (8.0ms/voxel)
+- Autograd smoke tests: non-zero gradients verified through each differentiable stage
+
+**Bug fixes during implementation**:
+1. Omega bin lookup: `.long()` truncates negative floats like -0.001 to 0, falsely passing the `bin_idx >= 0` check. Fixed by checking `f_vals >= 0` on the float value before truncation.
+2. Used float64 for omega-to-bin conversion to match serial path precision (reduces bin-boundary mismatches).
+
+**Performance note**: For the current workload, rasterization (Stage 6) dominates at ~2.5M sequential `add_triangle_scanline` calls. The batched stages (1-5) add minimal overhead. Significant speedup would require a batched rasterizer or GPU parallelism.
+
+**Regression test scripts**:
+- `Examples/Example2.ThreeVoxels/test_batched_vs_serial.py` — pixel-exact comparison
+- `Examples/Example2.ManyGrains/test_batched_vs_serial.py` — subset comparison + full benchmark

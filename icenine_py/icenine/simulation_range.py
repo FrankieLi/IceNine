@@ -367,6 +367,24 @@ class SimulationRange:
 
         return index_list
 
+    def to_lookup_tensor(self):
+        """Return vectorized omega-to-wedge lookup data for batched simulation.
+
+        Returns:
+            Tuple of (index_tensor, low, width, num_intervals) where:
+                index_tensor: torch.LongTensor of shape (num_intervals,),
+                    -1 for gaps (replaces None in index_list)
+                low: float, overall minimum omega angle
+                width: float, bin width
+                num_intervals: int, total bins
+        """
+        import torch
+        index_tensor = torch.tensor(
+            [-1 if x is None else x for x in self.index_list],
+            dtype=torch.long,
+        )
+        return index_tensor, self.low, self.width, self.num_intervals
+
 
 def read_omega_file(
     filename: str,
