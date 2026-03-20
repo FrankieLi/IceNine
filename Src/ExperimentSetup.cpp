@@ -303,6 +303,7 @@ void CXDMExperimentSetup::InitializeSample( CSample & oSample, const CDetector &
   {
     exit(0);  // Replace with exceptions
   }
+
   //////////
   //
   // TODO:  Generalize to allow multiple structure
@@ -314,7 +315,7 @@ void CXDMExperimentSetup::InitializeSample( CSample & oSample, const CDetector &
   oEmptyStructure.InitializeCoordinateSystem();
   oEmptyStructure.SetReflectionVectorLimits(0, 0, 0, 0, 0);
   oSample.AddCrystalStructure( oEmptyStructure );
-  
+
   CUnitCell oCellStructure;
   if ( !InitFileIO::ReadCrystalStructureFile( oCellStructure, oExpConfigFile.StructureFilename ) )
     exit( 0 );
@@ -327,6 +328,7 @@ void CXDMExperimentSetup::InitializeSample( CSample & oSample, const CDetector &
   const CSymmetry* pSym = GetSampleSymmetry();
   oCellStructure.SetUniqueReflectionVectorList( *pSym );
   oSample.AddCrystalStructure( oCellStructure );
+
   oSample.SetSampleSymmetry( oExpConfigFile.SampleSymmetry );
 }
 

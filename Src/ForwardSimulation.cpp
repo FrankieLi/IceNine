@@ -264,13 +264,17 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
             if ( nOmegaIndex != XDMSimulation::NoMatch )
             {
               const SVector3 oCurOrientation = oCurrentLayer.GetOrientation();
+
               oCurrentLayer.RotateZ( fOmegaRes[i] );
+
               FAcceptFn.fFormIntensity = oRecipVectors[nRecipIndex].fIntensity;
               typedef boost::multi_array_types::index_range range;
               range rDetRange = range( 0, vDetectorList.size() );
               ImageMap::array_view<1>::type oCurImageList = oSimData[ boost::indices [ nOmegaIndex ][ rDetRange ] ];
+
               oSimulator.ProjectVoxel( oCurImageList, vDetectorList, oCurrentLayer,
                                        *pCurVoxel, oScatteringDir, FAcceptFn );
+
               oCurrentLayer.SetOrientation( oCurOrientation.m_fX,
                                             oCurOrientation.m_fY,
                                             oCurOrientation.m_fZ );  // use this to reduce numerical errors
