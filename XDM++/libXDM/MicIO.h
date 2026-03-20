@@ -290,6 +290,15 @@ public:
         v.nGeneration = atoi( vsTokens[i][4].c_str() );
         v.fSideLength = fInitialSideLength / pow( 2,  v.nGeneration ) ;
         v.nPhase = atoi( vsTokens[i][5].c_str() );
+        if( v.nPhase < 0 || v.nPhase > 1 )
+        {
+          cerr << "[MicFile::Read] ERROR: Invalid phase value " << v.nPhase
+               << " at line " << i << " of " << filename << "." << endl
+               << "  nPhase must be 0 (empty) or 1 (material). This mic file appears to contain"
+               << " grain IDs instead of phase indices. Please regenerate the mic file with"
+               << " correct phase values." << endl;
+          exit(1);
+        }
 
         Float fX, fY, fZ;
 
@@ -348,9 +357,9 @@ public:
         }
       
         oVoxelList.push_back(v);
-      }	
+      }
     }
-    
+
     ClearBuffer();  // clear buffer after use
     return true;
   }
