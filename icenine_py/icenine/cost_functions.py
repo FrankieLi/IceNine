@@ -70,21 +70,34 @@ class OverlapInfo:
         self.peak_overlap += peak_overlap_flag
         self.peak_on_detector += peak_on_detector_flag
 
-    def update_quality(self, n_detectors_total: int) -> None:
+    def update_quality(
+        self,
+        peak_pixel_overlap: int,
+        peak_pixel_on_detector: int,
+        peak_detectors_overlap: int,
+        n_detectors_total: int,
+    ) -> None:
         """
         Update quality metric using incremental (Welford-style) running mean.
 
-        quality_i = (pixel_overlap / pixel_on_detector) * (detectors_overlap / n_detectors)
+        Uses per-peak values (not accumulated totals) to compute the per-peak
+        quality contribution, matching the C++ UpdateQuality(oRHS, ...) signature
+        where oRHS is a separate per-peak OverlapInfo.
+
+        quality_i = (peak_pixel_overlap / peak_pixel_on_detector) * (peak_det_overlap / n_det)
         quality = running_mean(quality_0, quality_1, ..., quality_n)
 
         C++ Reference: OverlapInfo.h SOverlapInfo::UpdateQuality
         """
-        if self.pixel_on_detector == 0 or n_detectors_total == 0:
+        if peak_pixel_on_detector == 0 or n_detectors_total == 0:
             return
 
-        pixel_ratio = self.pixel_overlap / self.pixel_on_detector
-        det_ratio = self.detectors_overlap / n_detectors_total
-        cur_quality = pixel_ratio * det_ratio
+        pixel_ratio = peak_pixel_overlap / peak_pixel_on_detector
+        if peak_detectors_overlap > 0:
+            det_ratio = peak_detectors_overlap / n_detectors_total
+            cur_quality = pixel_ratio * det_ratio
+        else:
+            cur_quality = 0.0
 
         # Incremental mean: q = q + (cur - q) / (n + 1)
         self.quality += (cur_quality - self.quality) / (self.n_quality_points + 1)
@@ -322,13 +335,17 @@ def calculate_diffraction_overlap(
             detector_lit, spot_overlap, n_detectors
         )
 
-        # Update overlap info
+        # Update overlap info — accumulate counts, then update quality with per-peak values
+        # C++ calls UpdateCounts(oCurOverlapInfo) then UpdateQuality(oCurOverlapInfo, ...)
         overlap_info.detectors_overlap = n_det_ovlp
         overlap_info.update_counts(
             peak_pixel_overlap, peak_pixel_on_det,
             peak_ovlp, peak_on_det,
         )
-        overlap_info.update_quality(n_detectors)
+        overlap_info.update_quality(
+            peak_pixel_overlap, peak_pixel_on_det,
+            n_det_ovlp, n_detectors,
+        )
 
     # Restore original sample orientation
     sample.sample_to_lab_matrix = orig_matrix

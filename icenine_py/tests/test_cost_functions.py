@@ -57,40 +57,43 @@ class TestOverlapInfo:
     def test_update_quality_single(self):
         """Quality for single peak with full overlap on 2 detectors."""
         info = OverlapInfo()
-        info.pixel_overlap = 10
-        info.pixel_on_detector = 10
-        info.detectors_overlap = 2
-        info.update_quality(n_detectors_total=2)
+        info.update_quality(
+            peak_pixel_overlap=10, peak_pixel_on_detector=10,
+            peak_detectors_overlap=2, n_detectors_total=2,
+        )
 
         # (10/10) * (2/2) = 1.0
         assert abs(info.quality - 1.0) < 1e-10
         assert abs(info.cost - 0.0) < 1e-10
 
     def test_update_quality_incremental(self):
-        """Quality uses incremental (Welford) running mean."""
+        """Quality uses incremental (Welford) running mean with per-peak values."""
         info = OverlapInfo()
 
         # First peak: 100% overlap, 2/2 detectors
-        info.pixel_overlap = 10
-        info.pixel_on_detector = 10
-        info.detectors_overlap = 2
-        info.update_quality(n_detectors_total=2)
+        info.update_quality(
+            peak_pixel_overlap=10, peak_pixel_on_detector=10,
+            peak_detectors_overlap=2, n_detectors_total=2,
+        )
         assert abs(info.quality - 1.0) < 1e-10
 
-        # Second peak: 50% overlap, 1/2 detectors
-        info.pixel_overlap = 15
-        info.pixel_on_detector = 20
-        info.detectors_overlap = 1
-        info.update_quality(n_detectors_total=2)
+        # Second peak: 5/10 pixel overlap, 1/2 detectors
+        info.update_quality(
+            peak_pixel_overlap=5, peak_pixel_on_detector=10,
+            peak_detectors_overlap=1, n_detectors_total=2,
+        )
 
-        # cur_quality = (15/20) * (1/2) = 0.375
-        # running_mean = 1.0 + (0.375 - 1.0) / 2 = 0.6875
-        assert abs(info.quality - 0.6875) < 1e-10
+        # cur_quality = (5/10) * (1/2) = 0.25
+        # running_mean = 1.0 + (0.25 - 1.0) / 2 = 0.625
+        assert abs(info.quality - 0.625) < 1e-10
 
     def test_update_quality_zero_pixels(self):
         """Quality unchanged when no pixels on detector."""
         info = OverlapInfo()
-        info.update_quality(n_detectors_total=2)
+        info.update_quality(
+            peak_pixel_overlap=0, peak_pixel_on_detector=0,
+            peak_detectors_overlap=0, n_detectors_total=2,
+        )
         assert info.quality == 0.0
 
 
