@@ -183,3 +183,39 @@ Added `_simulate_peaks_batched()` as a dual path alongside the serial `_simulate
 **Regression test scripts**:
 - `Examples/Example2.ThreeVoxels/test_batched_vs_serial.py` — pixel-exact comparison
 - `Examples/Example2.ManyGrains/test_batched_vs_serial.py` — subset comparison + full benchmark
+
+### Phase 8: Reconstruction Algorithm (Trivial/Serial)
+
+Port of the C++ reconstruction pipeline: `SerialReconstruction` → `BasicVoxelReconstructor` → sequential voxel-by-voxel orientation search. No BFS, no MPI parallelism, no parameter optimization.
+
+**New modules**:
+- `sampling.py` (~570 lines): SO(3) uniform sampling via Sukharev grids (Yershova & LaValle, 2003). `CQuaternionGrid` port with barycentric-to-quaternion mapping on 4 hyperfaces of the upper hemi-hypersphere. Includes fundamental zone reduction (max |w| selection), misorientation computation, SLERP, structured/random local grid generation.
+- `experimental_data.py` (~200 lines): Loads detector images from ASCII files or forward simulation output into `[omega_interval][detector]` array for pixel queries during reconstruction.
+- `cost_functions.py` (~340 lines): `OverlapInfo` (Welford running mean quality metric), `VoxelCostFunction` (per-peak projection + overlap counting), `count_qualified_peaks` (contiguous detector validation). Supports both hard (discrete) and soft (differentiable) modes via existing `ImageData.get_triangle_overlap_property()`.
+- `orientation_search.py` (~270 lines): `run_discrete_search` (FZ orientations × local grid perturbations), `MCOptimizer` (zero-temperature greedy descent with step halving and random restarts).
+- `reconstructor.py` (~310 lines): `ReconstructionSetup` (loads all data from config), `BasicVoxelReconstructor` (multi-level adaptive: discrete → quick MC → filter → full MC → convergence), `SerialReconstruction` (voxel loop + .mic output).
+
+**Architecture**:
+```
+SerialReconstruction.reconstruct_sample()
+  └─ BasicVoxelReconstructor.reconstruct_voxel()
+       └─ for level in [0..max_local_resolution]:
+            1. run_discrete_search(fz_orientations × local_grid[level])
+            2. MCOptimizer.optimize(candidates, 20 steps)  # quick
+            3. Sort + keep top N
+            4. MCOptimizer.optimize(top, full_params)       # full
+            5. if hit_ratio_converged: break
+```
+
+**Key design decisions**:
+- Direct port of Sukharev grid (no standard library equivalent for deterministic low-discrepancy SO(3) sampling)
+- Uses existing `build_reflected_ray` + `get_illuminated_pixel` for projection (same code path as forward sim)
+- FZ reduction uses proper rotation quaternions only (24 cubic ops filtered from 48 total)
+- Cost function mode='hard' for C++ validation, mode='soft' for future gradient optimization
+
+**Test coverage**: 60 new tests across 5 test files (all passing):
+- `test_sampling.py` (25 tests): Sukharev grid, SLERP, quaternion arithmetic, FZ reduction, misorientation
+- `test_experimental_data.py` (8 tests): in-memory loading, ASCII file loading, pixel queries
+- `test_cost_functions.py` (14 tests): OverlapInfo metrics, qualified peak counting
+- `test_orientation_search.py` (8 tests): candidate sorting, parameters, convergence
+- `test_reconstructor.py` (5 tests): voxel vertices, convergence codes
