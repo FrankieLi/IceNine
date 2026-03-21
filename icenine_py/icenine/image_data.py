@@ -1231,45 +1231,72 @@ class ImageData:
             ImageData.cpp CImageData::GetTriangleOverlapProperty
             CostFunctions.h (usage in overlap calculations)
         """
-        # Create temporary image for triangle
-        temp = ImageData(
-            self.num_rows, self.num_cols,
-            mode='dense',  # Always use dense for temporary
-            dtype=self.dtype,
-            device=self.device.type
-        )
+        v0 = self._to_tensor(v0, dtype=torch.float32)
+        v1 = self._to_tensor(v1, dtype=torch.float32)
+        v2 = self._to_tensor(v2, dtype=torch.float32)
 
-        # Rasterize triangle onto temporary image
-        temp.add_triangle(v0, v1, v2, intensity=1.0, mode=mode, temperature=temperature)
+        # Compute bounding box of triangle, clamped to image bounds
+        all_j = torch.stack([v0[0], v1[0], v2[0]])
+        all_k = torch.stack([v0[1], v1[1], v2[1]])
+        j_min = max(int(torch.floor(all_j.min()).item()), 0)
+        j_max = min(int(torch.ceil(all_j.max()).item()), self.num_cols - 1)
+        k_min = max(int(torch.floor(all_k.min()).item()), 0)
+        k_max = min(int(torch.ceil(all_k.max()).item()), self.num_rows - 1)
 
-        # Get existing image as dense
-        if self._mode == 'dense':
-            existing = self._pixels_dense
-        else:
-            existing = self._pixels_sparse.to_dense()
+        # Empty bounding box → no overlap
+        if j_min > j_max or k_min > k_max:
+            zero = torch.tensor(0.0, dtype=self.dtype, device=self.device)
+            return zero, zero
+
+        # Create pixel grid within bounding box only
+        j_range = torch.arange(j_min, j_max + 1, dtype=torch.float32, device=self.device)
+        k_range = torch.arange(k_min, k_max + 1, dtype=torch.float32, device=self.device)
+        j_grid, k_grid = torch.meshgrid(j_range, k_range, indexing='xy')
+        pixel_points = torch.stack([j_grid.flatten() + 0.5, k_grid.flatten() + 0.5], dim=1)
+
+        # Compute barycentric coordinates for bounding box pixels
+        bary = self._barycentric_coordinates(pixel_points, v0, v1, v2)
 
         if mode == 'hard':
-            # Hard mode: binary overlap
-            # num_overlap: pixels where both are > 0
-            simulated_mask = temp._pixels_dense > 0
-            experimental_mask = existing > 0
-            num_overlap = (simulated_mask & experimental_mask).sum()
+            inside = (bary >= 0).all(dim=1)
+            if not inside.any():
+                zero = torch.tensor(0.0, dtype=self.dtype, device=self.device)
+                return zero, zero
 
-            # num_lit: pixels where simulated is > 0
-            num_lit = simulated_mask.sum()
+            num_lit = inside.sum()
+
+            # Extract experimental pixels at lit positions within bounding box
+            j_idx = j_grid.flatten().long()
+            k_idx = k_grid.flatten().long()
+            lit_j = j_idx[inside]
+            lit_k = k_idx[inside]
+
+            if self._mode == 'dense':
+                exp_vals = self._pixels_dense[lit_k, lit_j]
+            else:
+                exp_dense = self._pixels_sparse.to_dense()
+                exp_vals = exp_dense[lit_k, lit_j]
+
+            num_overlap = (exp_vals > 0).sum()
         else:
-            # Soft mode: weighted overlap (differentiable)
-            # Use product of weights as overlap measure
-            # If both are bright, product is high
-            # If either is dark, product is low
-            simulated_weights = temp._pixels_dense
-            experimental_weights = torch.clamp(existing, 0, 1)  # Normalize to [0,1]
+            # Soft mode: sigmoid-based weights
+            min_bary = bary.min(dim=1)[0]
+            weights = torch.sigmoid(min_bary / temperature)
 
-            # Overlap: sum of products
-            num_overlap = (simulated_weights * experimental_weights).sum()
+            num_lit = weights.sum()
 
-            # Total lit: sum of simulated weights
-            num_lit = simulated_weights.sum()
+            # Extract experimental pixels at bounding box positions
+            j_idx = j_grid.flatten().long()
+            k_idx = k_grid.flatten().long()
+
+            if self._mode == 'dense':
+                exp_vals = self._pixels_dense[k_idx, j_idx]
+            else:
+                exp_dense = self._pixels_sparse.to_dense()
+                exp_vals = exp_dense[k_idx, j_idx]
+
+            exp_weights = torch.clamp(exp_vals, 0, 1)
+            num_overlap = (weights * exp_weights).sum()
 
         return num_overlap, num_lit
 
