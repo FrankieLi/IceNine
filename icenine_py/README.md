@@ -1,6 +1,6 @@
 # IceNine Python/PyTorch Implementation
 
-Python port of the IceNine forward model for synchrotron X-ray diffraction simulation, with PyTorch acceleration. Validated pixel-exact against the C++ implementation.
+Python port of IceNine for synchrotron X-ray diffraction — forward simulation and reconstruction of crystal grain orientations. Forward simulation validated pixel-exact against the C++ implementation.
 
 ## Installation
 
@@ -78,6 +78,116 @@ For each voxel in the sample:
 | `experimental_data.py` | Load experimental detector images for reconstruction |
 | `sampling.py` | SO(3) uniform sampling via Sukharev grids (Yershova & LaValle) |
 
+## Quick Start: Reconstruction
+
+Reconstruction recovers crystal orientations from experimental (or synthetic) detector images. The workflow is: load a config → load experimental data → search orientation space → output a `.mic` file with fitted orientations.
+
+### Using Synthetic Data (Forward Sim → Reconstruct)
+
+The simplest way to test reconstruction is with synthetic data from a forward simulation:
+
+```python
+import os
+from icenine.config_file import ConfigFile
+from icenine.experimental_data import ExperimentalData
+from icenine.reconstructor import setup_reconstruction, SerialReconstruction
+
+# Work from the example directory (config uses relative paths)
+os.chdir("Examples/Example2.ThreeVoxels")
+
+config = ConfigFile.from_file("ConfigFiles/Example2.Simulation.config")
+
+# Point to forward simulation output as "experimental" data
+config.out_file_basename = "3Grains.sim"
+exp_data = ExperimentalData.from_image_directory(
+    directory="ScatteringData_Python",
+    basename="3Grains.sim",
+    ext="d",
+    serial_length=5,
+    n_omega=180,
+    n_detectors=2,
+    num_rows=2048,
+    num_cols=2048,
+)
+
+# Set up reconstruction (loads FZ orientations, detectors, sample, etc.)
+setup = setup_reconstruction(config, exp_data=exp_data)
+
+# Reconstruct all voxels and save result
+recon = SerialReconstruction(setup)
+results = recon.reconstruct_sample(
+    output_mic="reconstructed.mic",
+    max_voxels=3,  # limit for testing; remove for full sample
+)
+
+# Inspect results
+for i, r in enumerate(results):
+    print(f"Voxel {i}: cost={r.cost:.4f}, hit_ratio={r.hit_ratio:.3f}, "
+          f"convergence={r.convergence_code}")
+```
+
+### Using Real Experimental Data
+
+```python
+config = ConfigFile.from_file("path/to/experiment.config")
+
+# ExperimentalData loads from the InfileBasename/InfileExtension in config
+setup = setup_reconstruction(config)
+
+recon = SerialReconstruction(setup)
+results = recon.reconstruct_sample(output_mic="output.mic")
+```
+
+### What Reconstruction Does
+
+For each voxel in the sample grid:
+1. **Discrete search**: Evaluates all FZ orientations × local grid perturbations
+2. **Quick MC**: Runs short Monte Carlo optimization (20 steps) on top candidates
+3. **Filter**: Keeps the best N candidates by cost
+4. **Full MC**: Runs full MC optimization with restarts and convergence checking
+5. **Adaptive deepening**: If not converged, refines the local grid and repeats
+
+The search is multi-level adaptive — it starts with a coarse orientation grid and progressively refines around promising candidates until the cost function converges.
+
+### Key Config Parameters for Reconstruction
+
+| Parameter | Description | Typical Value |
+|-----------|-------------|---------------|
+| `FundamentalZoneFilename` | SO(3) sampling grid file | `DataFiles/MyFZ.dat` |
+| `LocalOrientationGridRadius` | Local search radius (degrees) | 5 |
+| `MinLocalResolution` / `MaxLocalResolution` | Adaptive deepening levels | 0 / 3-5 |
+| `MaxMCSteps` | Monte Carlo steps per candidate | 300-3500 |
+| `SuccessiveRestarts` | MC random restarts | 2-3 |
+| `MaxConvergenceCost` | Cost threshold to stop MC early | 0.0001-0.01 |
+| `MaxAcceptedCost` | Cost threshold to accept result | 0.9 |
+| `MaxDiscreteCandidates` | Top candidates from discrete search | 50-100 |
+
+### Single-Voxel Reconstruction
+
+For debugging or testing, you can reconstruct a single voxel directly:
+
+```python
+import torch
+from icenine.reconstructor import setup_reconstruction, BasicVoxelReconstructor, _get_voxel_vertices
+
+setup = setup_reconstruction(config, exp_data=exp_data)
+reconstructor = BasicVoxelReconstructor(setup)
+
+# Get voxel from sample
+mic = setup.sample.get_mic()
+voxel = mic.voxels[0]
+vertices = _get_voxel_vertices(voxel)
+
+result = reconstructor.reconstruct_voxel(
+    voxel_vertices=vertices,
+    phase_index=voxel.phase,
+)
+
+print(f"Cost: {result.cost:.4f}")
+print(f"Hit ratio: {result.hit_ratio:.3f}")
+print(f"Orientation:\n{result.orientation}")
+```
+
 ## Config File Format
 
 Forward simulation requires a `.config` file specifying:
@@ -103,12 +213,13 @@ See `Examples/Example2.ThreeVoxels/ConfigFiles/Example2.Simulation.config` for a
 
 ```bash
 cd icenine_py
-uv run pytest tests/ -v                # all unit tests
-uv run pytest tests/test_simulation.py  # specific module
-uv run pytest --cov=icenine tests/      # with coverage
+uv run pytest tests/ -v                                 # all tests (326 passed, 34 skipped)
+uv run pytest tests/test_simulation.py                   # specific module
+uv run pytest tests/test_reconstruction_integration.py   # reconstruction end-to-end (~40s)
+uv run pytest --cov=icenine tests/                       # with coverage
 ```
 
-### Integration Test (C++ vs Python)
+### Forward Simulation Integration Test (C++ vs Python)
 
 ```bash
 cd Examples/Example2.ThreeVoxels
@@ -118,9 +229,20 @@ uv run python compare_outputs.py         # compare against C++ reference
 
 Expected: 3200/3201 pixels match at identical locations, max relative intensity difference < 1e-5.
 
+### Reconstruction Integration Tests
+
+`test_reconstruction_integration.py` runs 5 end-to-end tests using the ThreeVoxels example:
+- Loads forward simulation output as synthetic experimental data
+- Evaluates cost function at ground truth orientation (verifies overlap)
+- Compares ground truth quality against random orientations
+- Runs MC optimization from a perturbed starting point
+- Verifies convergence to within 10° of ground truth
+
 ## Validation Status
 
-Forward simulation validated pixel-exact against C++ on two test cases:
+### Forward Simulation
+
+Validated pixel-exact against C++ on two test cases:
 
 **ThreeVoxels** (3 voxels, 2 detectors, 180 omega steps):
 - 3200/3201 pixels match, max relative intensity difference 5.4e-6
@@ -131,6 +253,13 @@ Forward simulation validated pixel-exact against C++ on two test cases:
 - Pixel count ratio 1.0000, intensity ratio 1.000000
 
 **Serial vs Batched** paths produce identical output (0.015% bin-boundary mismatches due to float32 precision in Bragg solver).
+
+### Reconstruction
+
+Validated on ThreeVoxels synthetic data (forward sim output → reconstruction):
+- Ground truth orientations produce high overlap (hit ratio > 0.5, quality > random)
+- MC optimizer converges from 1.5° perturbation to within 10° of ground truth
+- Integration tests run in ~40s (optimized from ~380s via bounding-box overlap computation)
 
 ## Citation
 
