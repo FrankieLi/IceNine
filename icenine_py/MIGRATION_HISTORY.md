@@ -229,3 +229,20 @@ SerialReconstruction.reconstruct_sample()
 - `test_orientation_search.py` (8 tests): candidate sorting, parameters, convergence
 - `test_reconstructor.py` (5 tests): voxel vertices, convergence codes
 - `test_reconstruction_integration.py` (5 tests): end-to-end pipeline validation
+
+### Performance: Cost Function Optimization
+
+**Problem**: `get_triangle_overlap_property()` was the dominant bottleneck (73% of cost function wall time). For each peak projection, it allocated a full 2048×2048 temporary `ImageData`, rasterized a tiny triangle (~10-50 pixels), then called `torch.sum()` over all 4M pixels twice (overlap mask + lit mask). With ~1,700 peaks per cost evaluation and hundreds of evaluations per voxel, this caused massive memory churn and wasted computation.
+
+**Profiling** (10 cost evaluations, ground truth orientation):
+| Bottleneck | Time | % |
+|---|---|---|
+| `torch.sum()` on 2048×2048 masks | 16.9s | 43% |
+| `get_triangle_overlap_property` overhead | 11.8s | 30% |
+| `torch.zeros(2048, 2048)` temp alloc | 3.0s | 8% |
+
+**Fix**: Rewrote `get_triangle_overlap_property` to compute barycentric coordinates only within the triangle's bounding box. No temporary image allocation — directly index into the existing experimental image at lit pixel positions.
+
+**Result**: Integration tests 381s → 41s (**9.4x speedup**). Per-evaluation time 4.0s → 0.38s (**10.5x speedup**). `torch.sum()` and `torch.zeros()` completely eliminated from top bottlenecks.
+
+**Remaining hotspots** (for future optimization): ray-plane intersection (45%), sample rotation (14%), detector coordinate conversion (13%) — all per-peak Python loops that could be batched in a future pass.
