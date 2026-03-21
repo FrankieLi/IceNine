@@ -1,5 +1,18 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -qE '(^|&&\\s*|;\\s*|\\|\\s*)(python3?|pytest|pip)\\b' && echo '{\"decision\":\"block\",\"reason\":\"Use uv: \\\"uv run pytest\\\" instead of bare \\\"pytest\\\", \\\"uv run python\\\" instead of \\\"python3\\\", \\\"uv pip\\\" instead of \\\"pip\\\". This project uses uv for Python environment management.\"}' || true",
+            "timeout": 5,
+            "statusMessage": "Checking for bare Python commands..."
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
@@ -11,6 +24,21 @@
           }
         ]
       }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(file:*)",
+      "Bash(stat:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(diff:*)"
     ]
   }
 }
