@@ -213,9 +213,19 @@ SerialReconstruction.reconstruct_sample()
 - FZ reduction uses proper rotation quaternions only (24 cubic ops filtered from 48 total)
 - Cost function mode='hard' for C++ validation, mode='soft' for future gradient optimization
 
-**Test coverage**: 60 new tests across 5 test files (all passing):
+**Bugs found and fixed**:
+- `reduce_to_fundamental_zone`: FZ reduction didn't enforce positive-w hemisphere after selecting the symmetry equivalent with max |w|. Added `if best[0] < 0: best = -best` (matches C++ `ToConvention`).
+- `update_quality`: Used accumulated (running-sum) `self.pixel_overlap` / `self.pixel_on_detector` instead of per-peak values. C++ `UpdateQuality(oRHS, ...)` reads per-peak `oRHS.nPixelOverlap` / `oRHS.nPixelOnDetector`. Fixed by passing per-peak values as explicit arguments.
+- Phase indexing: Phase 0 = empty space (no crystal), phase 1+ = fitted structures. `voxel.phase` maps directly into `structure_list` (no `- 1` offset).
+
+**Integration tests** (`test_reconstruction_integration.py`, 5 tests):
+- Forward sim output → experimental data → cost function → MC optimization → orientation convergence
+- Tests: data dimensions, bright pixels, ground truth overlap (relative vs random), hit ratio, MC convergence from perturbed ground truth (< 10 deg misorientation)
+
+**Test coverage**: 65 tests across 6 test files (all passing, 326 total suite):
 - `test_sampling.py` (25 tests): Sukharev grid, SLERP, quaternion arithmetic, FZ reduction, misorientation
 - `test_experimental_data.py` (8 tests): in-memory loading, ASCII file loading, pixel queries
 - `test_cost_functions.py` (14 tests): OverlapInfo metrics, qualified peak counting
 - `test_orientation_search.py` (8 tests): candidate sorting, parameters, convergence
 - `test_reconstructor.py` (5 tests): voxel vertices, convergence codes
+- `test_reconstruction_integration.py` (5 tests): end-to-end pipeline validation
