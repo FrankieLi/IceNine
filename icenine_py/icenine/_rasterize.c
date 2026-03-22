@@ -194,6 +194,10 @@ static PyObject* triangle_overlap(PyObject *self, PyObject *args) {
     npy_intp num_rows = PyArray_DIM(image_array, 0);
     npy_intp num_cols = PyArray_DIM(image_array, 1);
     int dtype = PyArray_TYPE(image_array);
+    if (dtype != NPY_FLOAT32 && dtype != NPY_FLOAT64) {
+        PyErr_SetString(PyExc_TypeError, "image must be float32 or float64");
+        return NULL;
+    }
 
     /* Truncate pixel coordinates (matching Python truncate_pixel) */
     #define TRUNC_PIXEL(val) ((val) < 0 ? -1.0 : floor(val))
@@ -202,6 +206,7 @@ static PyObject* triangle_overlap(PyObject *self, PyObject *args) {
     polygon[0].x = TRUNC_PIXEL(v0x); polygon[0].y = TRUNC_PIXEL(v0y);
     polygon[1].x = TRUNC_PIXEL(v1x); polygon[1].y = TRUNC_PIXEL(v1y);
     polygon[2].x = TRUNC_PIXEL(v2x); polygon[2].y = TRUNC_PIXEL(v2y);
+    #undef TRUNC_PIXEL
 
     /* Sutherland-Hodgman clip */
     int n_verts = sutherland_hodgman_clip(
@@ -321,6 +326,10 @@ static PyObject* pixel_radius_overlap(PyObject *self, PyObject *args) {
     npy_intp num_rows = PyArray_DIM(image_array, 0);
     npy_intp num_cols = PyArray_DIM(image_array, 1);
     int dtype = PyArray_TYPE(image_array);
+    if (dtype != NPY_FLOAT32 && dtype != NPY_FLOAT64) {
+        PyErr_SetString(PyExc_TypeError, "image must be float32 or float64");
+        return NULL;
+    }
 
     int found_in_bounds = 0;
     int found_bright = 0;

@@ -555,6 +555,9 @@ def calculate_diffraction_overlap_batched(
                     found_bright = False
                     num_rows = exp_image.num_rows
                     num_cols = exp_image.num_cols
+                    pixels_dense = exp_image._pixels_dense
+                    if pixels_dense is None:
+                        pixels_dense = exp_image._pixels_sparse.to_dense()
                     for dx in range(-pixel_radius, pixel_radius + 1):
                         if found_bright:
                             break
@@ -562,7 +565,7 @@ def calculate_diffraction_overlap_batched(
                             px, py = cx + dx, cy + dy
                             if 0 <= px < num_cols and 0 <= py < num_rows:
                                 found_in_bounds = True
-                                if exp_image._pixels_dense[py, px].item() > 0:
+                                if pixels_dense[py, px].item() > 0:
                                     found_bright = True
                                     break
 
