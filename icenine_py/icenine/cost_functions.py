@@ -33,7 +33,6 @@ from .simulation import Simulation
 from .simulation_range import SimulationRange
 
 try:
-    from ._rasterize import pixel_radius_overlap as _c_pixel_radius_overlap
     from ._rasterize import stage_d_overlap as _c_stage_d_overlap
     _HAS_C_RASTERIZE = True
 except ImportError:

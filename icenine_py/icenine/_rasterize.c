@@ -596,15 +596,19 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
 
     /* Validate wedge_indices */
     if (PyArray_NDIM(wedge_indices_arr) != 1 ||
-        PyArray_TYPE(wedge_indices_arr) != NPY_INT32) {
-        PyErr_SetString(PyExc_TypeError, "wedge_indices must be 1D int32 array");
+        PyArray_TYPE(wedge_indices_arr) != NPY_INT32 ||
+        !PyArray_IS_C_CONTIGUOUS(wedge_indices_arr)) {
+        PyErr_SetString(PyExc_TypeError,
+            "wedge_indices must be C-contiguous 1D int32 array");
         return NULL;
     }
 
     /* Validate det_hit_mask */
     if (PyArray_NDIM(det_hit_mask_arr) != 2 ||
-        PyArray_TYPE(det_hit_mask_arr) != NPY_UINT8) {
-        PyErr_SetString(PyExc_TypeError, "det_hit_mask must be 2D uint8 array");
+        PyArray_TYPE(det_hit_mask_arr) != NPY_UINT8 ||
+        !PyArray_IS_C_CONTIGUOUS(det_hit_mask_arr)) {
+        PyErr_SetString(PyExc_TypeError,
+            "det_hit_mask must be C-contiguous 2D uint8 array");
         return NULL;
     }
 
@@ -625,8 +629,10 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
             return NULL;
         }
         pixel_centers_arr = (PyArrayObject *)pixel_centers_obj;
-        if (PyArray_TYPE(pixel_centers_arr) != NPY_INT32) {
-            PyErr_SetString(PyExc_TypeError, "pixel_centers must be int32");
+        if (PyArray_TYPE(pixel_centers_arr) != NPY_INT32 ||
+            !PyArray_IS_C_CONTIGUOUS(pixel_centers_arr)) {
+            PyErr_SetString(PyExc_TypeError,
+                "pixel_centers must be C-contiguous int32 array");
             return NULL;
         }
         pixel_centers = (const npy_int32 *)PyArray_DATA(pixel_centers_arr);
@@ -637,8 +643,10 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
             return NULL;
         }
         pixel_vertices_arr = (PyArrayObject *)pixel_vertices_obj;
-        if (PyArray_TYPE(pixel_vertices_arr) != NPY_FLOAT32) {
-            PyErr_SetString(PyExc_TypeError, "pixel_vertices must be float32");
+        if (PyArray_TYPE(pixel_vertices_arr) != NPY_FLOAT32 ||
+            !PyArray_IS_C_CONTIGUOUS(pixel_vertices_arr)) {
+            PyErr_SetString(PyExc_TypeError,
+                "pixel_vertices must be C-contiguous float32 array");
             return NULL;
         }
         pixel_vertices = (const float *)PyArray_DATA(pixel_vertices_arr);
@@ -654,10 +662,18 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
     }
 
     for (Py_ssize_t i = 0; i < n_images; i++) {
-        PyArrayObject *img = (PyArrayObject *)PyList_GET_ITEM(image_list, i);
-        if (PyArray_TYPE(img) != NPY_UINT8) {
+        PyObject *item = PyList_GET_ITEM(image_list, i);
+        if (!PyArray_Check(item)) {
             free(image_ptrs);
-            PyErr_SetString(PyExc_TypeError, "all images must be uint8 arrays");
+            PyErr_SetString(PyExc_TypeError, "all images must be numpy arrays");
+            return NULL;
+        }
+        PyArrayObject *img = (PyArrayObject *)item;
+        if (PyArray_TYPE(img) != NPY_UINT8 || PyArray_NDIM(img) != 2 ||
+            !PyArray_IS_C_CONTIGUOUS(img)) {
+            free(image_ptrs);
+            PyErr_SetString(PyExc_TypeError,
+                "all images must be C-contiguous 2D uint8 arrays");
             return NULL;
         }
         image_ptrs[i] = (const unsigned char *)PyArray_DATA(img);
@@ -670,6 +686,7 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
     int total_peak_on_det = 0;
     double quality = 0.0;
     int n_quality_points = 0;
+    int last_n_det_ovlp = 0;  /* detectors_overlap from last peak */
 
     /* Main loop over peaks */
     for (int p = 0; p < n_peaks; p++) {
@@ -751,6 +768,7 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
         );
 
         /* Update counts (matches OverlapInfo.update_counts) */
+        last_n_det_ovlp = n_det_ovlp;
         total_pixel_overlap += peak_pixel_overlap;
         total_pixel_on_det += peak_pixel_on_det;
         total_peak_overlap += peak_ovlp;
@@ -780,7 +798,7 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
         total_peak_on_det,
         quality,
         n_quality_points,
-        0  /* placeholder for detectors_overlap (last peak's value, not accumulated) */
+        last_n_det_ovlp  /* detectors_overlap from last peak, matching Python fallback */
     );
 }
 

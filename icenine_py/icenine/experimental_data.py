@@ -80,7 +80,9 @@ class ExperimentalData:
 
         n_omega = len(images)
         n_det = len(images[0])
-        return cls(images=images, n_omega_intervals=n_omega, n_detectors=n_det)
+        result = cls(images=images, n_omega_intervals=n_omega, n_detectors=n_det)
+        result.prepare_for_reconstruction()
+        return result
 
     @classmethod
     def from_ascii_files(
