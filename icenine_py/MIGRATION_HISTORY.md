@@ -267,4 +267,28 @@ SerialReconstruction.reconstruct_sample()
 
 **Result**: `evaluate()` dropped from 8,824 us to 3,589 us (**2.46x speedup**). Per-peak overlap 377 us → 342 us. Batched overlap 37,134 us (serial) → 3,437 us (batched + C extension). All 328 tests pass, 34 skipped.
 
-**Remaining gap**: Python 3,589 us vs C++ 42 us (~85x). The dominant remaining cost is the sequential Stage D loop (110 peaks × 2 detectors), Python object overhead per iteration, and torch↔numpy conversions. Further speedup would require either moving the entire Stage D loop to C or using Cython/numba for the per-peak iteration.
+**Remaining gap**: Python 3,589 us vs C++ 42 us (~85x). The dominant remaining cost is the sequential Stage D loop.
+
+#### Stage D: Sequential Per-Peak Overlap (the bottleneck)
+
+`calculate_diffraction_overlap_batched()` is organized into four stages:
+
+| Stage | What | Mode | Time |
+|-------|------|------|------|
+| A | Map omegas → wedge indices, filter invalid bins | Batched (numpy) | ~50 us |
+| B | Batch rotation (Rz @ base_rot), reflection, vertex transform | Batched (torch.bmm) | ~300 us |
+| C | Batch ray-detector intersection → pixel coordinates + hit masks | Batched (torch) | ~350 us |
+| **D** | **Loop over M peaks × N detectors: look up experimental image, check pixel overlap, accumulate counters** | **Sequential (Python loop)** | **~2,900 us** |
+
+Stage D (cost_functions.py ~line 523) iterates over each valid peak `p` in `range(M)` and each detector `det_idx` in `range(n_detectors)`. For each (peak, detector) pair it:
+
+1. **Looks up the experimental image** via `exp_data.get_image(wedge_idx, det_idx)` — each peak maps to a different omega wedge, so a different experimental image
+2. **Checks pixel overlap** using one of two modes:
+   - `pixel_radius > 0`: Searches a ±radius square around the projected center pixel for any bright pixel (C extension fast path or Python fallback)
+   - `pixel_radius == 0`: Full triangle rasterization via `get_triangle_overlap_property()` — Sutherland-Hodgman clip + Bresenham scanline + per-pixel overlap count (C extension fast path or Python fallback)
+3. **Accumulates counters**: `detector_lit[det_idx]`, `spot_overlap[det_idx]`, `peak_pixel_overlap`, `peak_pixel_on_det`
+4. **Calls `count_qualified_peaks()`** to determine if the peak qualifies (requires overlap on at least one detector)
+
+**Why Stage D is inherently sequential**: Each peak projects onto a *different* experimental image (different omega wedge). The images cannot be stacked into a single tensor because they correspond to different physical measurements. The C++ handles this with a tight compiled loop (~0.2 us per peak); Python pays ~13 us per (peak × detector) iteration due to `.item()` calls, torch↔numpy conversions, and Python object dispatch.
+
+**Future optimization paths**: (1) Move entire Stage D loop to C extension, (2) Cython/numba JIT, (3) Pre-group peaks by wedge index to amortize `get_image()` overhead, (4) Cache `image_np` conversions across detectors.
