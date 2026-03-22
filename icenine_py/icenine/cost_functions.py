@@ -34,6 +34,7 @@ from .simulation_range import SimulationRange
 
 try:
     from ._rasterize import pixel_radius_overlap as _c_pixel_radius_overlap
+    from ._rasterize import stage_d_overlap as _c_stage_d_overlap
     _HAS_C_RASTERIZE = True
 except ImportError:
     _HAS_C_RASTERIZE = False
@@ -520,44 +521,102 @@ def calculate_diffraction_overlap_batched(
         per_det_all_hit.append(all_hit)
         per_det_pixels.append(pixels)
 
-    # ---- Stage D: Sequential per-peak overlap accumulation ----
-    for p in range(M):
-        wedge_idx = int(v_wedge[p])
+    # ---- Stage D: Per-peak overlap accumulation ----
+    # NOTE: Stage D intentionally breaks autograd. The overlap check is
+    # inherently non-differentiable (binary pixel test, integer counting,
+    # contiguity validation). Stages A-C preserve the autograd graph;
+    # if gradient-based refinement is ever needed, differentiate through
+    # those stages and use a differentiable renderer for image comparison.
 
-        detector_lit = [False] * n_detectors
-        spot_overlap = [False] * n_detectors
-        peak_pixel_overlap = 0
-        peak_pixel_on_det = 0
+    if _HAS_C_RASTERIZE and mode == 'hard':
+        # ---- Fast path: batch C extension ----
+        # Build compact image lookup — only unique wedges needed
+        v_wedge_np = np.asarray(v_wedge, dtype=np.int32)
+        unique_wedges = np.unique(v_wedge_np)
+        wedge_to_local = np.full(int(v_wedge_np.max()) + 1, -1, dtype=np.int32)
+        for i, w in enumerate(unique_wedges):
+            wedge_to_local[w] = i
+        local_wedge = wedge_to_local[v_wedge_np]  # (M,) re-indexed
 
-        for det_idx in range(n_detectors):
-            if not per_det_all_hit[det_idx][p].item():
-                continue
+        # Build image list: [local_wedge * n_det + det] -> binary numpy
+        image_list = []
+        for w in unique_wedges:
+            for d in range(n_detectors):
+                image_list.append(exp_data.get_image(int(w), d).get_binary_numpy())
 
-            exp_image = exp_data.get_image(wedge_idx, det_idx)
+        # Build det_hit_mask: (M, n_det) uint8
+        det_hit = np.stack(
+            [per_det_all_hit[d].numpy().astype(np.uint8) for d in range(n_detectors)],
+            axis=1,
+        )  # (M, n_det)
 
-            if pixel_radius > 0:
-                # Pixel-based peak overlap: check ±pixel_radius square around
-                # projected center point. Matches C++ PixelBasedPeakOverlapCounter.
-                pixels = per_det_pixels[det_idx][p]  # (3, 2) — [col, row]
-                # Use first vertex as center point (matching C++ *pFirst)
-                cx = int(pixels[0, 0].item())
-                cy = int(pixels[0, 1].item())
+        # Get image dimensions from first image
+        first_image = exp_data.get_image(int(unique_wedges[0]), 0)
+        img_rows = first_image.num_rows
+        img_cols = first_image.num_cols
 
-                if _HAS_C_RASTERIZE and exp_image._mode == 'dense':
-                    image_np = exp_image._pixels_dense.numpy()
-                    if not image_np.flags['C_CONTIGUOUS']:
-                        image_np = np.ascontiguousarray(image_np)
-                    ib, br = _c_pixel_radius_overlap(image_np, cx, cy, pixel_radius)
-                    found_in_bounds = bool(ib)
-                    found_bright = bool(br)
-                else:
+        if pixel_radius > 0:
+            # pixel_centers: (M, n_det, 2) int32 — first vertex as center
+            centers = np.stack(
+                [per_det_pixels[d][:, 0, :].numpy().astype(np.int32)
+                 for d in range(n_detectors)],
+                axis=1,
+            )  # (M, n_det, 2) — [col, row]
+            centers = np.ascontiguousarray(centers)
+            result = _c_stage_d_overlap(
+                image_list, local_wedge, det_hit,
+                centers, None,
+                n_detectors, pixel_radius, M, img_rows, img_cols,
+            )
+        else:
+            # pixel_vertices: (M, n_det, 3, 2) float32
+            verts = np.stack(
+                [per_det_pixels[d].numpy().astype(np.float32)
+                 for d in range(n_detectors)],
+                axis=1,
+            )  # (M, n_det, 3, 2)
+            verts = np.ascontiguousarray(verts)
+            result = _c_stage_d_overlap(
+                image_list, local_wedge, det_hit,
+                None, verts,
+                n_detectors, pixel_radius, M, img_rows, img_cols,
+            )
+
+        # Unpack results
+        overlap_info.pixel_overlap = result[0]
+        overlap_info.pixel_on_detector = result[1]
+        overlap_info.peak_overlap = result[2]
+        overlap_info.peak_on_detector = result[3]
+        overlap_info.quality = result[4]
+        overlap_info.n_quality_points = result[5]
+        overlap_info.detectors_overlap = result[6]
+
+    else:
+        # ---- Fallback: sequential Python loop ----
+        for p in range(M):
+            wedge_idx = int(v_wedge[p])
+
+            detector_lit = [False] * n_detectors
+            spot_overlap = [False] * n_detectors
+            peak_pixel_overlap = 0
+            peak_pixel_on_det = 0
+
+            for det_idx in range(n_detectors):
+                if not per_det_all_hit[det_idx][p].item():
+                    continue
+
+                exp_image = exp_data.get_image(wedge_idx, det_idx)
+
+                if pixel_radius > 0:
+                    pixels = per_det_pixels[det_idx][p]
+                    cx = int(pixels[0, 0].item())
+                    cy = int(pixels[0, 1].item())
+
                     found_in_bounds = False
                     found_bright = False
                     num_rows = exp_image.num_rows
                     num_cols = exp_image.num_cols
-                    pixels_dense = exp_image._pixels_dense
-                    if pixels_dense is None:
-                        pixels_dense = exp_image._pixels_sparse.to_dense()
+                    binary_img = exp_image.get_binary_numpy()
                     for dx in range(-pixel_radius, pixel_radius + 1):
                         if found_bright:
                             break
@@ -565,55 +624,51 @@ def calculate_diffraction_overlap_batched(
                             px, py = cx + dx, cy + dy
                             if 0 <= px < num_cols and 0 <= py < num_rows:
                                 found_in_bounds = True
-                                if pixels_dense[py, px].item() > 0:
+                                if binary_img[py, px]:
                                     found_bright = True
                                     break
 
-                if found_in_bounds:
-                    detector_lit[det_idx] = True
-                    peak_pixel_on_det += 1
-                if found_bright:
-                    peak_pixel_overlap += 1
-                    spot_overlap[det_idx] = True
-            else:
-                # Full triangle rasterization overlap
-                pixels = per_det_pixels[det_idx][p]  # (3, 2)
-                v0 = pixels[0]  # (2,) — [col, row]
-                v1 = pixels[1]
-                v2 = pixels[2]
+                    if found_in_bounds:
+                        detector_lit[det_idx] = True
+                        peak_pixel_on_det += 1
+                    if found_bright:
+                        peak_pixel_overlap += 1
+                        spot_overlap[det_idx] = True
+                else:
+                    pixels = per_det_pixels[det_idx][p]
+                    v0 = pixels[0]
+                    v1 = pixels[1]
+                    v2 = pixels[2]
 
-                n_overlap, n_lit = exp_image.get_triangle_overlap_property(
-                    v0, v1, v2, mode=mode,
-                )
+                    n_overlap, n_lit = exp_image.get_triangle_overlap_property(
+                        v0, v1, v2, mode=mode,
+                    )
 
-                n_overlap_int = int(n_overlap.item())
-                n_lit_int = int(n_lit.item())
+                    n_overlap_int = int(n_overlap.item())
+                    n_lit_int = int(n_lit.item())
 
-                peak_pixel_overlap += n_overlap_int
-                peak_pixel_on_det += n_lit_int
+                    peak_pixel_overlap += n_overlap_int
+                    peak_pixel_on_det += n_lit_int
 
-                # Match C++ ShapePixelOverlapCounter<SVoxel> (OverlapInfo.h:498-517):
-                # detector_lit only when overlap > 0 OR in-bounds pixels exist.
-                if n_overlap_int > 0:
-                    detector_lit[det_idx] = True
-                    spot_overlap[det_idx] = True
-                elif n_lit_int > 0:
-                    detector_lit[det_idx] = True
+                    if n_overlap_int > 0:
+                        detector_lit[det_idx] = True
+                        spot_overlap[det_idx] = True
+                    elif n_lit_int > 0:
+                        detector_lit[det_idx] = True
 
-        # Qualified peak counting
-        peak_on_det, peak_ovlp, n_det_ovlp = count_qualified_peaks(
-            detector_lit, spot_overlap, n_detectors
-        )
+            peak_on_det, peak_ovlp, n_det_ovlp = count_qualified_peaks(
+                detector_lit, spot_overlap, n_detectors
+            )
 
-        overlap_info.detectors_overlap = n_det_ovlp
-        overlap_info.update_counts(
-            peak_pixel_overlap, peak_pixel_on_det,
-            peak_ovlp, peak_on_det,
-        )
-        overlap_info.update_quality(
-            peak_pixel_overlap, peak_pixel_on_det,
-            n_det_ovlp, n_detectors,
-        )
+            overlap_info.detectors_overlap = n_det_ovlp
+            overlap_info.update_counts(
+                peak_pixel_overlap, peak_pixel_on_det,
+                peak_ovlp, peak_on_det,
+            )
+            overlap_info.update_quality(
+                peak_pixel_overlap, peak_pixel_on_det,
+                n_det_ovlp, n_detectors,
+            )
 
     return overlap_info
 

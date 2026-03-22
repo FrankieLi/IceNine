@@ -138,11 +138,13 @@ class ExperimentalData:
                 image.load_ascii(str(filepath))
                 images[omega_idx][det_idx] = image
 
-        return cls(
+        result = cls(
             images=images,  # type: ignore[arg-type]
             n_omega_intervals=n_omega,
             n_detectors=n_det,
         )
+        result.prepare_for_reconstruction()
+        return result
 
     @classmethod
     def from_image_directory(
@@ -201,11 +203,24 @@ class ExperimentalData:
                 image.load_ascii(str(filepath))
                 images[omega_idx][det_idx] = image
 
-        return cls(
+        result = cls(
             images=images,  # type: ignore[arg-type]
             n_omega_intervals=n_omega,
             n_detectors=n_detectors,
         )
+        result.prepare_for_reconstruction()
+        return result
+
+    def prepare_for_reconstruction(self) -> None:
+        """
+        Pre-compute binary caches for all images.
+
+        Call this before reconstruction to eagerly populate the uint8 binary
+        arrays, avoiding lazy computation during the hot cost function loop.
+        """
+        for omega_idx in range(self.n_omega_intervals):
+            for det_idx in range(self.n_detectors):
+                self.images[omega_idx][det_idx].ensure_binary_cache()
 
     def count_bright_pixels(self) -> int:
         """Count total bright pixels across all images."""
