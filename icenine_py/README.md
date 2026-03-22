@@ -74,7 +74,8 @@ For each voxel in the sample:
 | `file_io.py` | Detector file, crystal structure file, and omega file I/O |
 | `reconstructor.py` | Serial reconstruction orchestrator — multi-level adaptive search |
 | `orientation_search.py` | Discrete grid search + zero-temperature MC optimization |
-| `cost_functions.py` | Overlap computation between simulated projections and experimental data |
+| `cost_functions.py` | Overlap computation between simulated projections and experimental data (batched Stages A-C + sequential Stage D) |
+| `_rasterize.c` | CPython C extension for fast triangle rasterization and pixel overlap (Sutherland-Hodgman + Bresenham) |
 | `experimental_data.py` | Load experimental detector images for reconstruction |
 | `sampling.py` | SO(3) uniform sampling via Sukharev grids (Yershova & LaValle) |
 
@@ -260,6 +261,20 @@ Validated on ThreeVoxels synthetic data (forward sim output → reconstruction):
 - Ground truth orientations produce high overlap (hit ratio > 0.5, quality > random)
 - MC optimizer converges from 1.5° perturbation to within 10° of ground truth
 - Integration tests run in ~40s (optimized from ~380s via bounding-box overlap computation)
+- Cost function evaluate(): 3,589 us (2.46x speedup from vectorized eta filtering + C extension rasterizer)
+
+### Cost Function Pipeline (`calculate_diffraction_overlap_batched`)
+
+The batched cost function is organized into four stages:
+
+| Stage | What | Mode |
+|-------|------|------|
+| A | Map peak omegas → wedge indices, filter invalid | Numpy vectorized |
+| B | Batch rotation/reflection, vertex transform to lab frame | PyTorch batched (bmm) |
+| C | Batch ray-detector intersection → pixel coordinates | PyTorch batched |
+| D | Per-peak overlap: look up experimental image, check pixel overlap | Sequential Python loop |
+
+Stage D is sequential because each peak maps to a different experimental image (different omega wedge). The C extension `_rasterize.c` accelerates the inner pixel operations (triangle rasterization and pixel-radius search) but the per-peak Python loop overhead remains the dominant bottleneck (~85x vs C++).
 
 ## Citation
 
