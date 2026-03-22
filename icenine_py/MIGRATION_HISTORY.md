@@ -291,4 +291,35 @@ Stage D (cost_functions.py ~line 523) iterates over each valid peak `p` in `rang
 
 **Why Stage D is inherently sequential**: Each peak projects onto a *different* experimental image (different omega wedge). The images cannot be stacked into a single tensor because they correspond to different physical measurements. The C++ handles this with a tight compiled loop (~0.2 us per peak); Python pays ~13 us per (peak × detector) iteration due to `.item()` calls, torch↔numpy conversions, and Python object dispatch.
 
-**Future optimization paths**: (1) Move entire Stage D loop to C extension, (2) Cython/numba JIT, (3) Pre-group peaks by wedge index to amortize `get_image()` overhead, (4) Cache `image_np` conversions across detectors.
+**Future optimization paths**: (1) ~~Move entire Stage D loop to C extension~~ (done, see v3 below), (2) Cython/numba JIT, (3) ~~Pre-group peaks by wedge index~~ (done, see v3 below), (4) ~~Cache image conversions~~ (done, binary cache).
+
+### Performance: Cost Function Optimization v3 — Batch C Extension (2026-03-22)
+
+**Problem**: After v2, `evaluate()` was 3,589 us (~85x vs C++ 42 us). Stage D's sequential Python loop was the dominant bottleneck (~2,900 us of 3,589 us) due to M×N Python→C round trips, `.item()` calls, and repeated torch→numpy conversions.
+
+**Fix (3 components)**:
+
+1. **Binary image cache** (`ImageData._binary_cache`): Added `get_binary_numpy() -> np.ndarray` that returns a cached C-contiguous uint8 array where 1 = pixel > 0. Reconstruction only checks binary overlap, never intensity. The cache is lazily computed and invalidated by all mutator methods. Pre-populated at `ExperimentalData` load time via `prepare_for_reconstruction()`. Memory: 4x savings (uint8 vs float32).
+
+2. **Batch C extension `stage_d_overlap()`** (`_rasterize.c`): Replaced the entire Stage D Python loop with a single C call. The function:
+   - Receives all peak data as numpy arrays (wedge indices, detector hit masks, pixel coords/vertices)
+   - Groups peaks by wedge index internally, processing all peaks against each binary image
+   - Implements `count_qualified_peaks()` contiguity check and Welford running-mean quality update in C
+   - Uses internal helpers `triangle_overlap_uint8()` and `pixel_radius_overlap_uint8()` that operate on binary images
+   - Eliminates ~220 Python→C round trips per evaluation
+
+3. **Differentiability documentation**: Added comment at Stage D explaining the intentional autograd break. Stages A-C preserve the PyTorch autograd graph; Stage D is inherently non-differentiable (binary pixel test, integer counting, contiguity validation). No code path calls `.backward()` — reconstruction uses discrete search + MC.
+
+**Result**: `evaluate()` dropped from 3,589 us to 503 us (**7.1x speedup**). Batched overlap: 3,437 us → 364 us (**9.4x speedup**). Gap vs C++ reduced from 85x to ~12x.
+
+| Component | v2 (us) | v3 (us) | Speedup |
+|-----------|---------|---------|---------|
+| Observable peaks (eta filter) | ~690 | ~690 | — |
+| Stage D (overlap loop) | ~2,900 | ~170 | 17x |
+| Data prep for C | 0 | ~50 | — |
+| **evaluate() total** | **3,589** | **503** | **7.1x** |
+| **Gap vs C++ (42 us)** | 85x | **12x** | — |
+
+**Remaining gap**: The 12x gap is from Stages A-C (batched torch tensor ops vs C++ inline compiled code). Closing that would require moving A-C to C/CUDA — a separate effort.
+
+**Files changed**: `image_data.py` (binary cache), `experimental_data.py` (eager cache population), `_rasterize.c` (batch `stage_d_overlap` + internal helpers), `cost_functions.py` (C batch path + Python fallback + autograd comment), `tests/test_cost_functions.py` (C-vs-Python equivalence test). All 329 tests pass.

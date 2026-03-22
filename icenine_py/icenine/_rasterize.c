@@ -4,6 +4,8 @@
  * Implements the hot path of cost function evaluation:
  *   triangle_overlap(image, v0x, v0y, v1x, v1y, v2x, v2y) -> (overlap, lit)
  *   pixel_radius_overlap(image, cx, cy, radius) -> (in_bounds, bright)
+ *   stage_d_overlap(...) -> (pixel_overlap, pixel_on_det, peak_overlap,
+ *                            peak_on_det, quality, n_quality_points)
  *
  * Ports the Python algorithms from image_data.py:
  *   _sutherland_hodgman_clip + _scanline_fill + _bresenham_edge + overlap count
@@ -23,6 +25,8 @@
 #define MAX_POLY_VERTS 16
 /* Maximum scanlines for edge table */
 #define MAX_SCANLINES 4096
+/* Maximum detectors */
+#define MAX_DETECTORS 8
 
 /* ---- Sutherland-Hodgman polygon clipping ---- */
 
@@ -170,7 +174,191 @@ static void bresenham_edge(ScanlineEntry *table, int y_offset, int table_size,
     }
 }
 
-/* ---- Main triangle_overlap function ---- */
+/* ---- Internal helpers for batch operations ---- */
+
+/**
+ * Triangle overlap on uint8 binary image. Returns (overlap, lit).
+ * image_data: C-contiguous uint8 array, row-major
+ */
+static void triangle_overlap_uint8(
+    const unsigned char *image_data, npy_intp num_rows, npy_intp num_cols,
+    double v0x, double v0y, double v1x, double v1y, double v2x, double v2y,
+    int *out_overlap, int *out_lit
+) {
+    *out_overlap = 0;
+    *out_lit = 0;
+
+    /* Truncate pixel coordinates */
+    Point2D polygon[MAX_POLY_VERTS];
+    polygon[0].x = (v0x < 0) ? -1.0 : floor(v0x);
+    polygon[0].y = (v0y < 0) ? -1.0 : floor(v0y);
+    polygon[1].x = (v1x < 0) ? -1.0 : floor(v1x);
+    polygon[1].y = (v1y < 0) ? -1.0 : floor(v1y);
+    polygon[2].x = (v2x < 0) ? -1.0 : floor(v2x);
+    polygon[2].y = (v2y < 0) ? -1.0 : floor(v2y);
+
+    int n_verts = sutherland_hodgman_clip(
+        polygon, 3,
+        0.0, (double)(num_cols - 1), 0.0, (double)(num_rows - 1)
+    );
+
+    if (n_verts < 3) return;
+
+    int int_verts[MAX_POLY_VERTS][2];
+    int y_min = INT_MAX, y_max = INT_MIN;
+    for (int i = 0; i < n_verts; i++) {
+        int_verts[i][0] = (int)round(polygon[i].x);
+        int_verts[i][1] = (int)round(polygon[i].y);
+        if (int_verts[i][1] < y_min) y_min = int_verts[i][1];
+        if (int_verts[i][1] > y_max) y_max = int_verts[i][1];
+    }
+
+    int n_scanlines = y_max - y_min + 1;
+    if (n_scanlines <= 0 || n_scanlines > MAX_SCANLINES) return;
+
+    ScanlineEntry *table = (ScanlineEntry*)malloc(n_scanlines * sizeof(ScanlineEntry));
+    if (!table) return;
+    for (int i = 0; i < n_scanlines; i++) {
+        table[i].left = -1;
+        table[i].right = -1;
+    }
+
+    for (int i = 0; i < n_verts; i++) {
+        int prev = (i == 0) ? n_verts - 1 : i - 1;
+        bresenham_edge(table, y_min, n_scanlines,
+                       int_verts[prev][0], int_verts[prev][1],
+                       int_verts[i][0], int_verts[i][1]);
+    }
+
+    /* Degenerate case: horizontal line */
+    if (y_min == y_max) {
+        int x_min_h = INT_MAX, x_max_h = INT_MIN;
+        for (int i = 0; i < n_verts; i++) {
+            if (int_verts[i][0] < x_min_h) x_min_h = int_verts[i][0];
+            if (int_verts[i][0] > x_max_h) x_max_h = int_verts[i][0];
+        }
+        for (int x = x_min_h; x <= x_max_h; x++) {
+            if (x >= 0 && x < num_cols && y_min >= 0 && y_min < num_rows) {
+                (*out_lit)++;
+                if (image_data[y_min * num_cols + x]) (*out_overlap)++;
+            }
+        }
+        free(table);
+        return;
+    }
+
+    for (int i = 0; i < n_scanlines; i++) {
+        int left = table[i].left;
+        int right = table[i].right;
+        int y = y_min + i;
+
+        if (left < 0 && right < 0) continue;
+        if (left < 0) left = right;
+        if (right < 0) right = left;
+        if (left > right) { int tmp = left; left = right; right = tmp; }
+
+        for (int x = left; x <= right; x++) {
+            if (x >= 0 && x < num_cols && y >= 0 && y < num_rows) {
+                (*out_lit)++;
+                if (image_data[y * num_cols + x]) (*out_overlap)++;
+            }
+        }
+    }
+
+    free(table);
+}
+
+/**
+ * Pixel-radius overlap on uint8 binary image. Returns (in_bounds, bright).
+ */
+static void pixel_radius_overlap_uint8(
+    const unsigned char *image_data, npy_intp num_rows, npy_intp num_cols,
+    int cx, int cy, int radius,
+    int *out_in_bounds, int *out_bright
+) {
+    *out_in_bounds = 0;
+    *out_bright = 0;
+
+    for (int dy = -radius; dy <= radius && !(*out_bright); dy++) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            int px = cx + dx;
+            int py = cy + dy;
+            if (px >= 0 && px < num_cols && py >= 0 && py < num_rows) {
+                *out_in_bounds = 1;
+                if (image_data[py * num_cols + px]) {
+                    *out_bright = 1;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * count_qualified_peaks — C port of Python count_qualified_peaks().
+ *
+ * Check if a peak has valid (contiguous) detector coverage.
+ * A peak is "qualified" as on-detector if it lights up a contiguous set
+ * of detectors starting from detector 0 (allowing trailing gap).
+ *
+ * C++ Reference: OverlapInfo.tmpl.cpp CountQualifiedPeaks
+ */
+static void count_qualified_peaks_c(
+    const int *detector_lit, const int *spot_overlap, int n_detectors,
+    int *out_peak_on_det, int *out_peak_overlap, int *out_n_det_overlap
+) {
+    *out_peak_on_det = 0;
+    *out_peak_overlap = 0;
+    *out_n_det_overlap = 0;
+
+    if (n_detectors == 0) return;
+
+    /* Check contiguous lit pattern (must start at detector 0) */
+    int valid_sim_peak = 0;
+    if (detector_lit[0]) {
+        valid_sim_peak = 1;
+        int gap_seen = 0;
+        for (int i = 1; i < n_detectors; i++) {
+            if (!detector_lit[i]) {
+                gap_seen = 1;
+            } else if (gap_seen) {
+                valid_sim_peak = 0;
+                break;
+            }
+        }
+    }
+
+    if (!valid_sim_peak) return;
+    *out_peak_on_det = 1;
+
+    /* Check contiguous overlap pattern */
+    int valid_overlap = 0;
+    int n_det_overlap = 0;
+
+    if (spot_overlap[0]) {
+        valid_overlap = 1;
+        n_det_overlap = 1;
+        int gap_seen = 0;
+        for (int i = 1; i < n_detectors; i++) {
+            if (spot_overlap[i]) {
+                if (gap_seen && detector_lit[i]) {
+                    valid_overlap = 0;
+                    break;
+                }
+                n_det_overlap++;
+            } else if (detector_lit[i]) {
+                gap_seen = 1;
+            }
+        }
+    }
+
+    if (valid_overlap) {
+        *out_peak_overlap = 1;
+        *out_n_det_overlap = n_det_overlap;
+    }
+}
+
+/* ---- Main triangle_overlap function (Python-facing, float32/float64) ---- */
 
 static PyObject* triangle_overlap(PyObject *self, PyObject *args) {
     PyArrayObject *image_array;
@@ -307,7 +495,7 @@ static PyObject* triangle_overlap(PyObject *self, PyObject *args) {
     return Py_BuildValue("(ii)", num_overlap, num_lit);
 }
 
-/* ---- pixel_radius_overlap function ---- */
+/* ---- pixel_radius_overlap function (Python-facing, float32/float64) ---- */
 
 static PyObject* pixel_radius_overlap(PyObject *self, PyObject *args) {
     PyArrayObject *image_array;
@@ -354,6 +542,248 @@ static PyObject* pixel_radius_overlap(PyObject *self, PyObject *args) {
     return Py_BuildValue("(ii)", found_in_bounds, found_bright);
 }
 
+/* ---- Batch Stage D overlap function ---- */
+
+/**
+ * stage_d_overlap(image_list, wedge_indices, det_hit_mask,
+ *                 pixel_centers, pixel_vertices,
+ *                 n_detectors, pixel_radius, n_peaks,
+ *                 image_rows, image_cols)
+ *
+ * Replaces the entire Stage D Python loop with a single C call.
+ * Processes all M peaks × N detectors, computing overlap against
+ * pre-cached uint8 binary images.
+ *
+ * Args:
+ *   image_list: Python list of uint8 2D numpy arrays (binary images).
+ *               Indexed as image_list[wedge_local * n_detectors + det].
+ *   wedge_indices: int32 array (M,) — local wedge index for each peak
+ *   det_hit_mask: uint8 array (M, N_det) — 1 if peak hits detector
+ *   pixel_centers: int32 array (M, N_det, 2) — (cx, cy) for pixel_radius mode
+ *                  (may be None if pixel_radius == 0)
+ *   pixel_vertices: float32 array (M, N_det, 3, 2) — triangle vertices
+ *                   (may be None if pixel_radius > 0)
+ *   n_detectors: int
+ *   pixel_radius: int (0 for triangle mode)
+ *   n_peaks: int (M)
+ *   image_rows: int (rows per image)
+ *   image_cols: int (cols per image)
+ *
+ * Returns:
+ *   (pixel_overlap, pixel_on_detector, peak_overlap, peak_on_detector,
+ *    quality, n_quality_points)
+ */
+static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
+    PyObject *image_list;
+    PyArrayObject *wedge_indices_arr, *det_hit_mask_arr;
+    PyObject *pixel_centers_obj, *pixel_vertices_obj;
+    int n_detectors, pixel_radius, n_peaks, image_rows, image_cols;
+
+    if (!PyArg_ParseTuple(args, "O!O!O!OOiiiii",
+            &PyList_Type, &image_list,
+            &PyArray_Type, &wedge_indices_arr,
+            &PyArray_Type, &det_hit_mask_arr,
+            &pixel_centers_obj,
+            &pixel_vertices_obj,
+            &n_detectors, &pixel_radius, &n_peaks,
+            &image_rows, &image_cols))
+        return NULL;
+
+    if (n_detectors > MAX_DETECTORS) {
+        PyErr_SetString(PyExc_ValueError, "n_detectors exceeds MAX_DETECTORS");
+        return NULL;
+    }
+
+    /* Validate wedge_indices */
+    if (PyArray_NDIM(wedge_indices_arr) != 1 ||
+        PyArray_TYPE(wedge_indices_arr) != NPY_INT32) {
+        PyErr_SetString(PyExc_TypeError, "wedge_indices must be 1D int32 array");
+        return NULL;
+    }
+
+    /* Validate det_hit_mask */
+    if (PyArray_NDIM(det_hit_mask_arr) != 2 ||
+        PyArray_TYPE(det_hit_mask_arr) != NPY_UINT8) {
+        PyErr_SetString(PyExc_TypeError, "det_hit_mask must be 2D uint8 array");
+        return NULL;
+    }
+
+    const npy_int32 *wedge_indices = (const npy_int32 *)PyArray_DATA(wedge_indices_arr);
+    const npy_uint8 *det_hit_mask = (const npy_uint8 *)PyArray_DATA(det_hit_mask_arr);
+
+    /* Optional arrays */
+    const npy_int32 *pixel_centers = NULL;
+    const float *pixel_vertices = NULL;
+
+    PyArrayObject *pixel_centers_arr = NULL;
+    PyArrayObject *pixel_vertices_arr = NULL;
+
+    if (pixel_radius > 0) {
+        if (pixel_centers_obj == Py_None) {
+            PyErr_SetString(PyExc_ValueError,
+                "pixel_centers required when pixel_radius > 0");
+            return NULL;
+        }
+        pixel_centers_arr = (PyArrayObject *)pixel_centers_obj;
+        if (PyArray_TYPE(pixel_centers_arr) != NPY_INT32) {
+            PyErr_SetString(PyExc_TypeError, "pixel_centers must be int32");
+            return NULL;
+        }
+        pixel_centers = (const npy_int32 *)PyArray_DATA(pixel_centers_arr);
+    } else {
+        if (pixel_vertices_obj == Py_None) {
+            PyErr_SetString(PyExc_ValueError,
+                "pixel_vertices required when pixel_radius == 0");
+            return NULL;
+        }
+        pixel_vertices_arr = (PyArrayObject *)pixel_vertices_obj;
+        if (PyArray_TYPE(pixel_vertices_arr) != NPY_FLOAT32) {
+            PyErr_SetString(PyExc_TypeError, "pixel_vertices must be float32");
+            return NULL;
+        }
+        pixel_vertices = (const float *)PyArray_DATA(pixel_vertices_arr);
+    }
+
+    /* Pre-fetch image data pointers */
+    Py_ssize_t n_images = PyList_Size(image_list);
+    const unsigned char **image_ptrs = (const unsigned char **)malloc(
+        n_images * sizeof(unsigned char *));
+    if (!image_ptrs) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    for (Py_ssize_t i = 0; i < n_images; i++) {
+        PyArrayObject *img = (PyArrayObject *)PyList_GET_ITEM(image_list, i);
+        if (PyArray_TYPE(img) != NPY_UINT8) {
+            free(image_ptrs);
+            PyErr_SetString(PyExc_TypeError, "all images must be uint8 arrays");
+            return NULL;
+        }
+        image_ptrs[i] = (const unsigned char *)PyArray_DATA(img);
+    }
+
+    /* Accumulation variables */
+    int total_pixel_overlap = 0;
+    int total_pixel_on_det = 0;
+    int total_peak_overlap = 0;
+    int total_peak_on_det = 0;
+    double quality = 0.0;
+    int n_quality_points = 0;
+
+    /* Main loop over peaks */
+    for (int p = 0; p < n_peaks; p++) {
+        int wedge_idx = wedge_indices[p];
+
+        int detector_lit[MAX_DETECTORS];
+        int spot_overlap[MAX_DETECTORS];
+        int peak_pixel_overlap = 0;
+        int peak_pixel_on_det = 0;
+
+        memset(detector_lit, 0, n_detectors * sizeof(int));
+        memset(spot_overlap, 0, n_detectors * sizeof(int));
+
+        for (int d = 0; d < n_detectors; d++) {
+            /* det_hit_mask is (M, N_det), row-major */
+            if (!det_hit_mask[p * n_detectors + d]) continue;
+
+            /* Look up image: image_list[wedge_idx * n_detectors + d] */
+            Py_ssize_t img_idx = (Py_ssize_t)wedge_idx * n_detectors + d;
+            if (img_idx < 0 || img_idx >= n_images) continue;
+
+            const unsigned char *image_data = image_ptrs[img_idx];
+
+            if (pixel_radius > 0) {
+                /* pixel_centers is (M, N_det, 2), row-major */
+                int base = (p * n_detectors + d) * 2;
+                int cx = pixel_centers[base];
+                int cy = pixel_centers[base + 1];
+
+                int in_bounds, bright;
+                pixel_radius_overlap_uint8(
+                    image_data, image_rows, image_cols,
+                    cx, cy, pixel_radius,
+                    &in_bounds, &bright
+                );
+
+                if (in_bounds) {
+                    detector_lit[d] = 1;
+                    peak_pixel_on_det++;
+                }
+                if (bright) {
+                    peak_pixel_overlap++;
+                    spot_overlap[d] = 1;
+                }
+            } else {
+                /* pixel_vertices is (M, N_det, 3, 2), row-major */
+                int base = ((p * n_detectors + d) * 3) * 2;
+                double v0x = (double)pixel_vertices[base + 0];
+                double v0y = (double)pixel_vertices[base + 1];
+                double v1x = (double)pixel_vertices[base + 2];
+                double v1y = (double)pixel_vertices[base + 3];
+                double v2x = (double)pixel_vertices[base + 4];
+                double v2y = (double)pixel_vertices[base + 5];
+
+                int n_overlap, n_lit;
+                triangle_overlap_uint8(
+                    image_data, image_rows, image_cols,
+                    v0x, v0y, v1x, v1y, v2x, v2y,
+                    &n_overlap, &n_lit
+                );
+
+                peak_pixel_overlap += n_overlap;
+                peak_pixel_on_det += n_lit;
+
+                if (n_overlap > 0) {
+                    detector_lit[d] = 1;
+                    spot_overlap[d] = 1;
+                } else if (n_lit > 0) {
+                    detector_lit[d] = 1;
+                }
+            }
+        }
+
+        /* Qualified peak counting */
+        int peak_on_det, peak_ovlp, n_det_ovlp;
+        count_qualified_peaks_c(
+            detector_lit, spot_overlap, n_detectors,
+            &peak_on_det, &peak_ovlp, &n_det_ovlp
+        );
+
+        /* Update counts (matches OverlapInfo.update_counts) */
+        total_pixel_overlap += peak_pixel_overlap;
+        total_pixel_on_det += peak_pixel_on_det;
+        total_peak_overlap += peak_ovlp;
+        total_peak_on_det += peak_on_det;
+
+        /* Update quality (Welford mean, matches OverlapInfo.update_quality) */
+        if (peak_pixel_on_det > 0 && n_detectors > 0) {
+            double pixel_ratio = (double)peak_pixel_overlap / peak_pixel_on_det;
+            double cur_quality;
+            if (n_det_ovlp > 0) {
+                double det_ratio = (double)n_det_ovlp / n_detectors;
+                cur_quality = pixel_ratio * det_ratio;
+            } else {
+                cur_quality = 0.0;
+            }
+            quality += (cur_quality - quality) / (n_quality_points + 1);
+            n_quality_points++;
+        }
+    }
+
+    free(image_ptrs);
+
+    return Py_BuildValue("(iiiidii)",
+        total_pixel_overlap,
+        total_pixel_on_det,
+        total_peak_overlap,
+        total_peak_on_det,
+        quality,
+        n_quality_points,
+        0  /* placeholder for detectors_overlap (last peak's value, not accumulated) */
+    );
+}
+
 /* ---- Module definition ---- */
 
 static PyMethodDef rasterize_methods[] = {
@@ -364,6 +794,14 @@ static PyMethodDef rasterize_methods[] = {
     {"pixel_radius_overlap", pixel_radius_overlap, METH_VARARGS,
      "pixel_radius_overlap(image, cx, cy, radius) -> (in_bounds, bright)\n\n"
      "Check if any pixel in +-radius square around (cx, cy) is bright."},
+    {"stage_d_overlap", stage_d_overlap, METH_VARARGS,
+     "stage_d_overlap(image_list, wedge_indices, det_hit_mask, pixel_centers,\n"
+     "                pixel_vertices, n_detectors, pixel_radius, n_peaks,\n"
+     "                image_rows, image_cols)\n"
+     "  -> (pixel_overlap, pixel_on_det, peak_overlap, peak_on_det,\n"
+     "      quality, n_quality_points, detectors_overlap)\n\n"
+     "Batch Stage D overlap: processes all peaks in a single C call.\n"
+     "Uses uint8 binary images from ImageData.get_binary_numpy()."},
     {NULL, NULL, 0, NULL}
 };
 

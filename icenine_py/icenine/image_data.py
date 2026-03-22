@@ -123,6 +123,9 @@ class ImageData:
         self._pixels_dense: Optional[torch.Tensor] = None
         self._pixels_sparse: Optional[torch.sparse.Tensor] = None
 
+        # Binary cache for reconstruction (uint8, lazily populated)
+        self._binary_cache: Optional[np.ndarray] = None
+
         # Initialize storage based on mode
         if mode == 'dense':
             self._pixels_dense = torch.zeros(
@@ -172,6 +175,35 @@ class ImageData:
         return self.num_nonzero / total_pixels if total_pixels > 0 else 0.0
 
     # =========================================================================
+    # Binary Cache (for reconstruction cost functions)
+    # =========================================================================
+
+    def get_binary_numpy(self) -> np.ndarray:
+        """
+        Return a C-contiguous uint8 array where 1 = pixel > 0, 0 = otherwise.
+
+        Lazily computed and cached. The cache is invalidated by any mutator
+        method (set_pixel, add_to_pixel, clear, set_pixels, load_ascii,
+        add_triangle, add_triangle_scanline).
+
+        Used by reconstruction cost functions which only need binary overlap
+        checks, not intensity values. uint8 is 4x smaller than float32.
+        """
+        if self._binary_cache is None:
+            self.ensure_binary_cache()
+        return self._binary_cache
+
+    def ensure_binary_cache(self) -> None:
+        """Pre-compute and cache the binary numpy array."""
+        if self._mode == 'dense':
+            self._binary_cache = (self._pixels_dense.numpy() > 0).astype(np.uint8)
+        else:
+            self._binary_cache = (self._pixels_sparse.to_dense().numpy() > 0).astype(np.uint8)
+        # Guarantee C-contiguous for C extension
+        if not self._binary_cache.flags['C_CONTIGUOUS']:
+            self._binary_cache = np.ascontiguousarray(self._binary_cache)
+
+    # =========================================================================
     # Basic Pixel Operations
     # =========================================================================
 
@@ -192,6 +224,7 @@ class ImageData:
         C++ Reference:
             ImageData.cpp CImageData::SetPixel
         """
+        self._binary_cache = None
         j = self._to_tensor(j, dtype=torch.long)
         k = self._to_tensor(k, dtype=torch.long)
         value = self._to_tensor(value, dtype=self.dtype)
@@ -248,6 +281,7 @@ class ImageData:
         C++ Reference:
             ImageData.cpp CImageData::AddToPixel
         """
+        self._binary_cache = None
         j = self._to_tensor(j, dtype=torch.long)
         k = self._to_tensor(k, dtype=torch.long)
         value = self._to_tensor(value, dtype=self.dtype)
@@ -265,6 +299,7 @@ class ImageData:
         C++ Reference:
             ImageData.cpp CImageData::ClearImage
         """
+        self._binary_cache = None
         if self._mode == 'dense':
             self._pixels_dense.zero_()
         else:
@@ -297,6 +332,7 @@ class ImageData:
             k_coords: Row indices, shape (N,)
             values: Pixel values, shape (N,)
         """
+        self._binary_cache = None
         if self._mode == 'dense':
             self._pixels_dense[k_coords, j_coords] = values
         else:
@@ -505,6 +541,7 @@ class ImageData:
         C++ Reference:
             ImageData.cpp CImageData::ReadCXDMSimulationDataFile
         """
+        self._binary_cache = None
         j_list, k_list, intensity_list = [], [], []
 
         with open(filename, 'r') as f:
@@ -757,6 +794,7 @@ class ImageData:
         C++ Reference:
             ImageData.cpp CImageData::AddTriangle
         """
+        self._binary_cache = None
         v0 = self._to_tensor(v0, dtype=torch.float32)
         v1 = self._to_tensor(v1, dtype=torch.float32)
         v2 = self._to_tensor(v2, dtype=torch.float32)
@@ -846,6 +884,7 @@ class ImageData:
         v0 = self._to_tensor(v0, dtype=torch.float32)
         v1 = self._to_tensor(v1, dtype=torch.float32)
         v2 = self._to_tensor(v2, dtype=torch.float32)
+        self._binary_cache = None
         intensity_val = float(intensity) if isinstance(intensity, (int, float)) else intensity.item()
 
         # Step 0: Truncate pixel coordinates to integers, matching C++
