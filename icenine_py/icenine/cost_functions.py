@@ -32,6 +32,12 @@ from .sample import Sample
 from .simulation import Simulation
 from .simulation_range import SimulationRange
 
+try:
+    from ._rasterize import pixel_radius_overlap as _c_pixel_radius_overlap
+    _HAS_C_RASTERIZE = True
+except ImportError:
+    _HAS_C_RASTERIZE = False
+
 
 # ---------------------------------------------------------------------------
 # OverlapInfo — aggregate overlap metrics
@@ -536,20 +542,29 @@ def calculate_diffraction_overlap_batched(
                 # Use first vertex as center point (matching C++ *pFirst)
                 cx = int(pixels[0, 0].item())
                 cy = int(pixels[0, 1].item())
-                found_in_bounds = False
-                found_bright = False
-                num_rows = exp_image.num_rows
-                num_cols = exp_image.num_cols
-                for dx in range(-pixel_radius, pixel_radius + 1):
-                    if found_bright:
-                        break
-                    for dy in range(-pixel_radius, pixel_radius + 1):
-                        px, py = cx + dx, cy + dy
-                        if 0 <= px < num_cols and 0 <= py < num_rows:
-                            found_in_bounds = True
-                            if exp_image._pixels_dense[py, px].item() > 0:
-                                found_bright = True
-                                break
+
+                if _HAS_C_RASTERIZE and exp_image._mode == 'dense':
+                    image_np = exp_image._pixels_dense.numpy()
+                    if not image_np.flags['C_CONTIGUOUS']:
+                        image_np = np.ascontiguousarray(image_np)
+                    ib, br = _c_pixel_radius_overlap(image_np, cx, cy, pixel_radius)
+                    found_in_bounds = bool(ib)
+                    found_bright = bool(br)
+                else:
+                    found_in_bounds = False
+                    found_bright = False
+                    num_rows = exp_image.num_rows
+                    num_cols = exp_image.num_cols
+                    for dx in range(-pixel_radius, pixel_radius + 1):
+                        if found_bright:
+                            break
+                        for dy in range(-pixel_radius, pixel_radius + 1):
+                            px, py = cx + dx, cy + dy
+                            if 0 <= px < num_cols and 0 <= py < num_rows:
+                                found_in_bounds = True
+                                if exp_image._pixels_dense[py, px].item() > 0:
+                                    found_bright = True
+                                    break
 
                 if found_in_bounds:
                     detector_lit[det_idx] = True

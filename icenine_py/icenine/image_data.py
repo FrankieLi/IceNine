@@ -18,6 +18,13 @@ from dataclasses import dataclass
 import torch
 import numpy as np
 
+try:
+    from ._rasterize import triangle_overlap as _c_triangle_overlap
+    from ._rasterize import pixel_radius_overlap as _c_pixel_radius_overlap
+    _HAS_C_RASTERIZE = True
+except ImportError:
+    _HAS_C_RASTERIZE = False
+
 
 @dataclass
 class ImageDataParameters:
@@ -1235,57 +1242,95 @@ class ImageData:
         v1 = self._to_tensor(v1, dtype=torch.float32)
         v2 = self._to_tensor(v2, dtype=torch.float32)
 
-        # Compute bounding box of triangle, clamped to image bounds
-        all_j = torch.stack([v0[0], v1[0], v2[0]])
-        all_k = torch.stack([v0[1], v1[1], v2[1]])
-        j_min = max(int(torch.floor(all_j.min()).item()), 0)
-        j_max = min(int(torch.ceil(all_j.max()).item()), self.num_cols - 1)
-        k_min = max(int(torch.floor(all_k.min()).item()), 0)
-        k_max = min(int(torch.ceil(all_k.max()).item()), self.num_rows - 1)
-
-        # Empty bounding box → no overlap
-        if j_min > j_max or k_min > k_max:
-            zero = torch.tensor(0.0, dtype=self.dtype, device=self.device)
-            return zero, zero
-
-        # Create pixel grid within bounding box only
-        j_range = torch.arange(j_min, j_max + 1, dtype=torch.float32, device=self.device)
-        k_range = torch.arange(k_min, k_max + 1, dtype=torch.float32, device=self.device)
-        j_grid, k_grid = torch.meshgrid(j_range, k_range, indexing='xy')
-        pixel_points = torch.stack([j_grid.flatten() + 0.5, k_grid.flatten() + 0.5], dim=1)
-
-        # Compute barycentric coordinates for bounding box pixels
-        bary = self._barycentric_coordinates(pixel_points, v0, v1, v2)
-
         if mode == 'hard':
-            inside = (bary >= 0).all(dim=1)
-            if not inside.any():
+            # Fast path: use C extension for rasterization + overlap counting
+            if _HAS_C_RASTERIZE and self._mode == 'dense':
+                image_np = self._pixels_dense.numpy()
+                if not image_np.flags['C_CONTIGUOUS']:
+                    image_np = np.ascontiguousarray(image_np)
+                n_overlap_int, n_lit_int = _c_triangle_overlap(
+                    image_np,
+                    v0[0].item(), v0[1].item(),
+                    v1[0].item(), v1[1].item(),
+                    v2[0].item(), v2[1].item(),
+                )
+                num_overlap = torch.tensor(
+                    float(n_overlap_int), dtype=self.dtype, device=self.device
+                )
+                num_lit = torch.tensor(
+                    float(n_lit_int), dtype=self.dtype, device=self.device
+                )
+            else:
+                # Fallback: Python scanline rasterization matching C++
+                # GeneralRasterizePolygon. Handles degenerate triangles correctly.
+                def truncate_pixel(val):
+                    if val < 0:
+                        return -1.0
+                    return float(int(val))
+
+                polygon = [
+                    (truncate_pixel(v0[0].item()), truncate_pixel(v0[1].item())),
+                    (truncate_pixel(v1[0].item()), truncate_pixel(v1[1].item())),
+                    (truncate_pixel(v2[0].item()), truncate_pixel(v2[1].item())),
+                ]
+                clipped = self._sutherland_hodgman_clip(
+                    polygon, 0.0, float(self.num_cols - 1), 0.0, float(self.num_rows - 1)
+                )
+
+                if len(clipped) < 3:
+                    zero = torch.tensor(0.0, dtype=self.dtype, device=self.device)
+                    return zero, zero
+
+                int_vertices = [(round(x), round(y)) for x, y in clipped]
+                pixels = self._scanline_fill(int_vertices)
+
+                if not pixels:
+                    zero = torch.tensor(0.0, dtype=self.dtype, device=self.device)
+                    return zero, zero
+
+                num_lit_int = 0
+                num_overlap_int = 0
+                for col, row in pixels:
+                    if 0 <= col < self.num_cols and 0 <= row < self.num_rows:
+                        num_lit_int += 1
+                        if self._mode == 'dense':
+                            if self._pixels_dense[row, col].item() > 0:
+                                num_overlap_int += 1
+                        else:
+                            exp_dense = self._pixels_sparse.to_dense()
+                            if exp_dense[row, col].item() > 0:
+                                num_overlap_int += 1
+
+                num_overlap = torch.tensor(
+                    float(num_overlap_int), dtype=self.dtype, device=self.device
+                )
+                num_lit = torch.tensor(
+                    float(num_lit_int), dtype=self.dtype, device=self.device
+                )
+        else:
+            # Soft mode: barycentric coordinates with sigmoid weighting
+            all_j = torch.stack([v0[0], v1[0], v2[0]])
+            all_k = torch.stack([v0[1], v1[1], v2[1]])
+            j_min = max(int(torch.floor(all_j.min()).item()), 0)
+            j_max = min(int(torch.ceil(all_j.max()).item()), self.num_cols - 1)
+            k_min = max(int(torch.floor(all_k.min()).item()), 0)
+            k_max = min(int(torch.ceil(all_k.max()).item()), self.num_rows - 1)
+
+            if j_min > j_max or k_min > k_max:
                 zero = torch.tensor(0.0, dtype=self.dtype, device=self.device)
                 return zero, zero
 
-            num_lit = inside.sum()
+            j_range = torch.arange(j_min, j_max + 1, dtype=torch.float32, device=self.device)
+            k_range = torch.arange(k_min, k_max + 1, dtype=torch.float32, device=self.device)
+            j_grid, k_grid = torch.meshgrid(j_range, k_range, indexing='xy')
+            pixel_points = torch.stack([j_grid.flatten() + 0.5, k_grid.flatten() + 0.5], dim=1)
 
-            # Extract experimental pixels at lit positions within bounding box
-            j_idx = j_grid.flatten().long()
-            k_idx = k_grid.flatten().long()
-            lit_j = j_idx[inside]
-            lit_k = k_idx[inside]
-
-            if self._mode == 'dense':
-                exp_vals = self._pixels_dense[lit_k, lit_j]
-            else:
-                exp_dense = self._pixels_sparse.to_dense()
-                exp_vals = exp_dense[lit_k, lit_j]
-
-            num_overlap = (exp_vals > 0).sum()
-        else:
-            # Soft mode: sigmoid-based weights
+            bary = self._barycentric_coordinates(pixel_points, v0, v1, v2)
             min_bary = bary.min(dim=1)[0]
             weights = torch.sigmoid(min_bary / temperature)
 
             num_lit = weights.sum()
 
-            # Extract experimental pixels at bounding box positions
             j_idx = j_grid.flatten().long()
             k_idx = k_grid.flatten().long()
 
