@@ -261,7 +261,7 @@ Validated on ThreeVoxels synthetic data (forward sim output → reconstruction):
 - Ground truth orientations produce high overlap (hit ratio > 0.5, quality > random)
 - MC optimizer converges from 1.5° perturbation to within 10° of ground truth
 - Integration tests run in ~40s (optimized from ~380s via bounding-box overlap computation)
-- Cost function evaluate(): 3,589 us (2.46x speedup from vectorized eta filtering + C extension rasterizer)
+- Cost function evaluate(): 503 us (~12x vs C++ 42 us, optimized via batch C extension + binary image cache)
 
 ### Cost Function Pipeline (`calculate_diffraction_overlap_batched`)
 
@@ -272,9 +272,9 @@ The batched cost function is organized into four stages:
 | A | Map peak omegas → wedge indices, filter invalid | Numpy vectorized |
 | B | Batch rotation/reflection, vertex transform to lab frame | PyTorch batched (bmm) |
 | C | Batch ray-detector intersection → pixel coordinates | PyTorch batched |
-| D | Per-peak overlap: look up experimental image, check pixel overlap | Sequential Python loop |
+| D | Per-peak overlap: rasterize + count against experimental images | Batch C extension (`stage_d_overlap`) |
 
-Stage D is sequential because each peak maps to a different experimental image (different omega wedge). The C extension `_rasterize.c` accelerates the inner pixel operations (triangle rasterization and pixel-radius search) but the per-peak Python loop overhead remains the dominant bottleneck (~85x vs C++).
+Stage D processes all M peaks × N detectors in a single C call via `_rasterize.c:stage_d_overlap()`. It uses pre-cached uint8 binary images (`ImageData.get_binary_numpy()`) and implements triangle overlap, pixel-radius search, contiguity validation, and Welford quality aggregation entirely in C. A Python fallback path is available when the C extension is not compiled.
 
 ## Citation
 
