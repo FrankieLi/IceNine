@@ -15,7 +15,7 @@ The main entry point is `VoxelCostFunction.evaluate()`, which:
 
 import math
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 import torch
@@ -313,8 +313,6 @@ def calculate_diffraction_overlap(
             if not all_hit or len(projected) < 3:
                 continue
 
-            detector_lit[det_idx] = True
-
             # Count pixel overlap with experimental image
             n_overlap, n_lit = exp_image.get_triangle_overlap_property(
                 projected[0], projected[1], projected[2],
@@ -327,8 +325,14 @@ def calculate_diffraction_overlap(
             peak_pixel_overlap += n_overlap_int
             peak_pixel_on_det += n_lit_int
 
+            # Match C++ ShapePixelOverlapCounter<SVoxel> (OverlapInfo.h:498-517):
+            # detector_lit is set only when overlap > 0 OR triangle has in-bounds
+            # pixels (n_lit > 0, equivalent to C++ IsInBound check on vertices).
             if n_overlap_int > 0:
+                detector_lit[det_idx] = True
                 spot_overlap[det_idx] = True
+            elif n_lit_int > 0:
+                detector_lit[det_idx] = True
 
         # Qualified peak counting
         peak_on_det, peak_ovlp, n_det_ovlp = count_qualified_peaks(
@@ -349,6 +353,249 @@ def calculate_diffraction_overlap(
 
     # Restore original sample orientation
     sample.sample_to_lab_matrix = orig_matrix
+
+    return overlap_info
+
+
+def calculate_diffraction_overlap_batched(
+    sample: Sample,
+    voxel_vertices: torch.Tensor,
+    peak_omegas: "Union[List[float], torch.Tensor]",
+    peak_normals: "Union[List[torch.Tensor], torch.Tensor]",
+    detector_list: List[Detector],
+    range_map: SimulationRange,
+    exp_data: ExperimentalData,
+    beam_direction: torch.Tensor,
+    mode: str = 'hard',
+    pixel_radius: int = 0,
+) -> OverlapInfo:
+    """
+    Batched version of calculate_diffraction_overlap.
+
+    Replaces the per-peak Python loop for geometric computations (Z-rotation,
+    normal transform, reflection, vertex projection, ray-plane intersection)
+    with vectorized tensor operations. Only the per-peak overlap counting
+    (which accesses different experimental images) remains sequential.
+
+    When pixel_radius > 0, uses pixel-based peak overlap (matching C++
+    PixelBasedPeakOverlapCounter) instead of full triangle rasterization.
+    This checks a ±pixel_radius square around the projected center point
+    for brightness, providing tolerance for small orientation errors during
+    discrete search.
+
+    C++ Reference: OverlapInfo.h PixelBasedPeakOverlapCounter (pixel_radius > 0)
+                   OverlapInfo.h ShapePixelOverlapCounter (pixel_radius == 0)
+    """
+    n_detectors = len(detector_list)
+    overlap_info = OverlapInfo()
+    n_peaks = len(peak_omegas)
+
+    if n_peaks == 0:
+        return overlap_info
+
+    # ---- Stage A: Vectorized omega filtering ----
+    # Accept both tensor and list inputs for backward compatibility
+    if isinstance(peak_omegas, torch.Tensor):
+        omegas = peak_omegas
+    else:
+        omegas = torch.tensor(peak_omegas, dtype=torch.float32)
+    if isinstance(peak_normals, torch.Tensor):
+        normals = peak_normals
+    else:
+        normals = torch.stack(peak_normals)  # (N, 3)
+
+    # Map omega to wedge index using range_map internals
+    low = range_map.low
+    width = range_map.width
+    bin_indices = ((omegas.numpy() - low) / width).astype(int)
+
+    # Look up wedge indices, filtering invalid bins
+    wedge_indices = np.full(n_peaks, -1, dtype=np.int64)
+    index_list = range_map.index_list
+    n_bins = len(index_list)
+    for i in range(n_peaks):
+        n = bin_indices[i]
+        if 0 <= n < n_bins and index_list[n] is not None:
+            wedge_indices[i] = index_list[n]
+
+    valid_mask = wedge_indices >= 0
+    if not np.any(valid_mask):
+        return overlap_info
+
+    valid_indices = np.where(valid_mask)[0]
+    v_omegas = omegas[valid_indices]          # (M,)
+    v_normals = normals[valid_indices]        # (M, 3)
+    v_wedge = wedge_indices[valid_indices]    # (M,)
+    M = len(valid_indices)
+
+    # ---- Stage B: Batch geometric computations ----
+    orig_matrix = sample.sample_to_lab_matrix  # (4, 4) tensor
+
+    # Build M rotation matrices Rz(omega) — (M, 3, 3)
+    cos_w = torch.cos(v_omegas)
+    sin_w = torch.sin(v_omegas)
+    Rz = torch.zeros(M, 3, 3)
+    Rz[:, 0, 0] = cos_w
+    Rz[:, 0, 1] = -sin_w
+    Rz[:, 1, 0] = sin_w
+    Rz[:, 1, 1] = cos_w
+    Rz[:, 2, 2] = 1.0
+
+    base_rot = orig_matrix[:3, :3]       # (3, 3)
+    full_rot = Rz @ base_rot             # (M, 3, 3)
+
+    # Transform normals to lab frame: (M, 3)
+    lab_normals = torch.bmm(full_rot, v_normals.unsqueeze(-1)).squeeze(-1)
+
+    # Reflected directions: beam - 2*(beam·n)*n — (M, 3)
+    dot = (beam_direction.unsqueeze(0) * lab_normals).sum(dim=1, keepdim=True)  # (M, 1)
+    reflected = beam_direction.unsqueeze(0) - 2.0 * dot * lab_normals  # (M, 3)
+
+    # Build full 4x4 matrices for vertex transform — (M, 4, 4)
+    full_4x4 = torch.zeros(M, 4, 4)
+    full_4x4[:, :3, :3] = full_rot
+    full_4x4[:, :3, 3] = orig_matrix[:3, 3]  # translation unchanged by Rz
+    full_4x4[:, 3, 3] = 1.0
+
+    # Transform 3 vertices for all M peaks: (3, 4) homogeneous
+    verts_4d = torch.cat([voxel_vertices, torch.ones(3, 1)], dim=1)  # (3, 4)
+    # einsum: for each peak m, for each vertex v, compute full_4x4[m] @ verts_4d[v]
+    lab_verts = torch.einsum('mij,vj->mvi', full_4x4, verts_4d)[:, :, :3]  # (M, 3, 3)
+
+    # ---- Stage C: Batch ray-detector intersection per detector ----
+    # For each detector, compute pixel coordinates for all M peaks × 3 vertices
+    # Store results: per_det_hit[det_idx] = (M,) bool, per_det_pixels[det_idx] = (M, 3, 2)
+    per_det_all_hit = []
+    per_det_pixels = []
+
+    for det_idx in range(n_detectors):
+        detector = detector_list[det_idx]
+        plane = detector._detector_plane
+
+        plane_n = plane.normal   # (3,)
+        plane_d = plane.d        # scalar
+
+        # Ray origins: lab_verts (M, 3, 3) reshaped to (M*3, 3)
+        origins = lab_verts.reshape(M * 3, 3)
+        # Ray directions: reflected (M, 3) expanded to (M, 3, 3) then (M*3, 3)
+        dirs = reflected.unsqueeze(1).expand(M, 3, 3).reshape(M * 3, 3)
+
+        # t = -(n·origin + d) / (n·dir)
+        denom = (dirs * plane_n).sum(dim=1)                     # (M*3,)
+        numer = -((origins * plane_n).sum(dim=1) + plane_d)     # (M*3,)
+        parallel = torch.abs(denom) < 1e-8
+        safe_denom = torch.where(parallel, torch.ones_like(denom), denom)
+        t = torch.where(parallel, torch.zeros_like(denom), numer / safe_denom)
+        hits = (~parallel) & (t > 0)
+
+        # Intersection points → pixel coordinates (inline detector math)
+        pts = origins + t.unsqueeze(1) * dirs  # (M*3, 3)
+
+        # lab_to_detector_coordinate inlined:
+        relative = pts - detector._position       # (M*3, 3)
+        pixel_loc = relative - detector._lab_frame_coord_origin  # (M*3, 3)
+        j = (pixel_loc * detector._lab_frame_basis_j).sum(dim=1)  # (M*3,)
+        k = (pixel_loc * detector._lab_frame_basis_k).sum(dim=1)  # (M*3,)
+
+        # to_col_pixel / to_row_pixel inlined:
+        col = (j + detector.pixel_half_width) / detector.pixel_width
+        row = (k + detector.pixel_half_height) / detector.pixel_height
+
+        # Reshape to (M, 3): per peak, per vertex
+        # Match serial: detector_lit uses ray-plane hit only (no bounds check)
+        hits_mv = hits.reshape(M, 3)
+        all_hit = hits_mv.all(dim=1)  # (M,) — peaks where all 3 vertices intersect plane
+
+        cols_mv = col.reshape(M, 3)
+        rows_mv = row.reshape(M, 3)
+
+        # Store pixel coords as (M, 3, 2) — [col, row]
+        pixels = torch.stack([cols_mv, rows_mv], dim=2)  # (M, 3, 2)
+        per_det_all_hit.append(all_hit)
+        per_det_pixels.append(pixels)
+
+    # ---- Stage D: Sequential per-peak overlap accumulation ----
+    for p in range(M):
+        wedge_idx = int(v_wedge[p])
+
+        detector_lit = [False] * n_detectors
+        spot_overlap = [False] * n_detectors
+        peak_pixel_overlap = 0
+        peak_pixel_on_det = 0
+
+        for det_idx in range(n_detectors):
+            if not per_det_all_hit[det_idx][p].item():
+                continue
+
+            exp_image = exp_data.get_image(wedge_idx, det_idx)
+
+            if pixel_radius > 0:
+                # Pixel-based peak overlap: check ±pixel_radius square around
+                # projected center point. Matches C++ PixelBasedPeakOverlapCounter.
+                pixels = per_det_pixels[det_idx][p]  # (3, 2) — [col, row]
+                # Use first vertex as center point (matching C++ *pFirst)
+                cx = int(pixels[0, 0].item())
+                cy = int(pixels[0, 1].item())
+                found_in_bounds = False
+                found_bright = False
+                num_rows = exp_image.num_rows
+                num_cols = exp_image.num_cols
+                for dx in range(-pixel_radius, pixel_radius + 1):
+                    if found_bright:
+                        break
+                    for dy in range(-pixel_radius, pixel_radius + 1):
+                        px, py = cx + dx, cy + dy
+                        if 0 <= px < num_cols and 0 <= py < num_rows:
+                            found_in_bounds = True
+                            if exp_image._pixels_dense[py, px].item() > 0:
+                                found_bright = True
+                                break
+
+                if found_in_bounds:
+                    detector_lit[det_idx] = True
+                    peak_pixel_on_det += 1
+                if found_bright:
+                    peak_pixel_overlap += 1
+                    spot_overlap[det_idx] = True
+            else:
+                # Full triangle rasterization overlap
+                pixels = per_det_pixels[det_idx][p]  # (3, 2)
+                v0 = pixels[0]  # (2,) — [col, row]
+                v1 = pixels[1]
+                v2 = pixels[2]
+
+                n_overlap, n_lit = exp_image.get_triangle_overlap_property(
+                    v0, v1, v2, mode=mode,
+                )
+
+                n_overlap_int = int(n_overlap.item())
+                n_lit_int = int(n_lit.item())
+
+                peak_pixel_overlap += n_overlap_int
+                peak_pixel_on_det += n_lit_int
+
+                # Match C++ ShapePixelOverlapCounter<SVoxel> (OverlapInfo.h:498-517):
+                # detector_lit only when overlap > 0 OR in-bounds pixels exist.
+                if n_overlap_int > 0:
+                    detector_lit[det_idx] = True
+                    spot_overlap[det_idx] = True
+                elif n_lit_int > 0:
+                    detector_lit[det_idx] = True
+
+        # Qualified peak counting
+        peak_on_det, peak_ovlp, n_det_ovlp = count_qualified_peaks(
+            detector_lit, spot_overlap, n_detectors
+        )
+
+        overlap_info.detectors_overlap = n_det_ovlp
+        overlap_info.update_counts(
+            peak_pixel_overlap, peak_pixel_on_det,
+            peak_ovlp, peak_on_det,
+        )
+        overlap_info.update_quality(
+            peak_pixel_overlap, peak_pixel_on_det,
+            n_det_ovlp, n_detectors,
+        )
 
     return overlap_info
 
@@ -379,6 +626,9 @@ class VoxelCostFunction:
         sample: Sample,
         structure_list: List[CrystalStructure],
         mode: str = 'hard',
+        eta_limit: float = math.pi / 2.0,
+        pixel_radius: int = 0,
+        max_q: float = 0.0,
     ):
         """
         Args:
@@ -389,6 +639,18 @@ class VoxelCostFunction:
             sample: Sample object (used for rotations)
             structure_list: List of CrystalStructure (one per phase)
             mode: 'hard' for discrete counting, 'soft' for differentiable
+            eta_limit: Maximum eta angle for peak acceptance (radians).
+                       Peaks with eta >= eta_limit are skipped, matching C++
+                       XDMEtaAcceptFn in Simulation.tmpl.cpp GetProjectedVertices.
+            pixel_radius: Pixel radius for overlap check expansion. When > 0,
+                          uses pixel-based peak overlap (±pixel_radius square)
+                          instead of triangle rasterization. Used for discrete
+                          search to widen the cost landscape.
+                          C++ Reference: OverlapInfo.h PixelBasedPeakOverlapCounter
+            max_q: Maximum Q for reciprocal vector filtering (Å⁻¹). When > 0,
+                   only reciprocal vectors with |q| <= max_q are used. When 0,
+                   uses all vectors. C++ uses nQMaxDiscrete=5 for discrete search.
+                   C++ Reference: DiscreteSearch.h:298-300
         """
         self.simulator = simulator
         self.detector_list = detector_list
@@ -397,12 +659,19 @@ class VoxelCostFunction:
         self.sample = sample
         self.structure_list = structure_list
         self.mode = mode
+        self.eta_limit = eta_limit
+        self.pixel_radius = pixel_radius
 
         # Pre-compute reciprocal vectors per phase
         self._phase_recip_vecs = {}
         for phase_idx, structure in enumerate(structure_list):
             recp_vecs = structure.get_reflection_vectors()
             if recp_vecs:
+                # Filter by max_q if specified (C++ nQMaxDiscrete)
+                if max_q > 0:
+                    recp_vecs = [rv for rv in recp_vecs if rv.q_mag <= max_q]
+                if not recp_vecs:
+                    continue
                 g_hkl_batch = torch.stack(
                     [torch.from_numpy(rv.q_vec).float() for rv in recp_vecs]
                 )
@@ -435,6 +704,12 @@ class VoxelCostFunction:
 
         g_hkl_batch, g_mag_batch = self._phase_recip_vecs[phase_index]
 
+        # NOTE: Do NOT call set_orientation_matrix() here.
+        # The orientation is applied only to reciprocal vectors (g_lab = orient @ g_hkl).
+        # The sample-to-lab matrix stays as the base (identity) matrix, matching the
+        # forward simulation where vertices are in the sample frame and only undergo
+        # Rz(omega) rotation, not crystal orientation rotation.
+
         # Transform reciprocal vectors to sample frame
         orientation_t = torch.from_numpy(orientation).float()
         g_lab_batch = (orientation_t @ g_hkl_batch.T).T
@@ -447,36 +722,68 @@ class VoxelCostFunction:
             self.simulator.beam_deflection_chi,
         )
 
-        # Collect observable peaks
-        peak_omegas = []
-        peak_normals = []
-
+        # Collect observable peaks using vectorized eta filtering
         obs_mask = bragg_result.observable
         if not obs_mask.any():
             return OverlapInfo()
 
-        obs_indices = torch.where(obs_mask)[0].tolist()
-        for idx in obs_indices:
-            g_vec = g_lab_batch[idx]
-            g_mag = torch.norm(g_vec)
-            normal = g_vec / g_mag  # scattering direction (unit)
+        beam_dir = self.simulator.beam_direction
+        base_rot = self.sample.sample_to_lab_matrix[:3, :3]
 
-            # Both omega solutions
-            peak_omegas.append(bragg_result.omega1[idx].item())
-            peak_normals.append(normal)
+        # Extract observable peaks as tensors — no Python loop needed
+        obs_g = g_lab_batch[obs_mask]  # (K, 3)
+        obs_mag = torch.norm(obs_g, dim=1, keepdim=True)  # (K, 1)
+        obs_normals = obs_g / obs_mag  # (K, 3) unit vectors
 
-            peak_omegas.append(bragg_result.omega2[idx].item())
-            peak_normals.append(normal)
+        # Expand: each observable peak has 2 omega solutions → 2K rows
+        obs_omega1 = bragg_result.omega1[obs_mask]  # (K,)
+        obs_omega2 = bragg_result.omega2[obs_mask]  # (K,)
+        all_omegas = torch.cat([obs_omega1, obs_omega2])  # (2K,)
+        all_normals = torch.cat([obs_normals, obs_normals])  # (2K, 3)
+        N = all_omegas.shape[0]
 
-        # Calculate diffraction overlap
-        return calculate_diffraction_overlap(
+        # Batch rotation matrices Rz(omega) — (N, 3, 3)
+        cos_w = torch.cos(all_omegas)
+        sin_w = torch.sin(all_omegas)
+        Rz = torch.zeros(N, 3, 3)
+        Rz[:, 0, 0] = cos_w
+        Rz[:, 0, 1] = -sin_w
+        Rz[:, 1, 0] = sin_w
+        Rz[:, 1, 1] = cos_w
+        Rz[:, 2, 2] = 1.0
+
+        # Batch: full_rot = Rz @ base_rot, lab_normals = full_rot @ normals
+        full_rot = Rz @ base_rot  # (N, 3, 3)
+        lab_normals = torch.bmm(full_rot, all_normals.unsqueeze(-1)).squeeze(-1)  # (N, 3)
+
+        # Batch reflection: reflected = beam - 2*(beam·n)*n
+        dot = (beam_dir.unsqueeze(0) * lab_normals).sum(dim=1, keepdim=True)  # (N, 1)
+        reflected = beam_dir.unsqueeze(0) - 2.0 * dot * lab_normals  # (N, 3)
+
+        # Batch eta filter: eta = atan2(|ry|/|r|, |rz|/|r|) < eta_limit
+        rd_norms = torch.norm(reflected, dim=1)  # (N,)
+        safe_norms = torch.where(rd_norms > 0, rd_norms, torch.ones_like(rd_norms))
+        ry = torch.abs(reflected[:, 1]) / safe_norms
+        rz_val = torch.abs(reflected[:, 2]) / safe_norms
+        eta = torch.atan2(ry, rz_val)  # (N,)
+        valid = (eta < self.eta_limit) & (rd_norms > 0)  # (N,) bool
+
+        peak_omegas_t = all_omegas[valid]  # (M,) tensor
+        peak_normals_t = all_normals[valid]  # (M, 3) tensor
+
+        if peak_omegas_t.shape[0] == 0:
+            return OverlapInfo()
+
+        # Calculate diffraction overlap (batched for performance)
+        return calculate_diffraction_overlap_batched(
             sample=self.sample,
             voxel_vertices=voxel_vertices,
-            peak_omegas=peak_omegas,
-            peak_normals=peak_normals,
+            peak_omegas=peak_omegas_t,
+            peak_normals=peak_normals_t,
             detector_list=self.detector_list,
             range_map=self.range_map,
             exp_data=self.exp_data,
             beam_direction=self.simulator.beam_direction,
             mode=self.mode,
+            pixel_radius=self.pixel_radius,
         )
