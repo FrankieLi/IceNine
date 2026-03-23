@@ -118,10 +118,16 @@ class ExperimentalData:
         serial_length = config.in_file_serial_length
         det_offset = config.bc_peak_detector_offset
 
+        import time as _time
+
         # Initialize 2D image array
         images: List[List[Optional[ImageData]]] = [
             [None for _ in range(n_det)] for _ in range(n_omega)
         ]
+
+        total_files = n_omega * n_det
+        loaded = 0
+        t_start = _time.time()
 
         for det_idx, detector in enumerate(detector_list):
             file_range = file_ranges[det_idx]
@@ -139,12 +145,19 @@ class ExperimentalData:
                 image = ImageData(detector.num_rows, detector.num_cols)
                 image.load_ascii(str(filepath))
                 images[omega_idx][det_idx] = image
+                loaded += 1
+
+                if loaded % 60 == 0 or loaded == total_files:
+                    elapsed = _time.time() - t_start
+                    print(f"  Loading images: {loaded}/{total_files} "
+                          f"({elapsed:.1f}s)", flush=True)
 
         result = cls(
             images=images,  # type: ignore[arg-type]
             n_omega_intervals=n_omega,
             n_detectors=n_det,
         )
+        print(f"  Preparing binary caches...", flush=True)
         result.prepare_for_reconstruction()
         return result
 
@@ -183,12 +196,17 @@ class ExperimentalData:
         Returns:
             ExperimentalData loaded from directory
         """
+        import time as _time
+
         directory = Path(directory)
+        total_files = n_omega * n_detectors
+        loaded = 0
 
         images: List[List[Optional[ImageData]]] = [
             [None for _ in range(n_detectors)] for _ in range(n_omega)
         ]
 
+        t_start = _time.time()
         for det_idx in range(n_detectors):
             for omega_idx in range(n_omega):
                 file_num = file_start + omega_idx
@@ -204,12 +222,19 @@ class ExperimentalData:
                 image = ImageData(num_rows, num_cols)
                 image.load_ascii(str(filepath))
                 images[omega_idx][det_idx] = image
+                loaded += 1
+
+                if loaded % 60 == 0 or loaded == total_files:
+                    elapsed = _time.time() - t_start
+                    print(f"  Loading images: {loaded}/{total_files} "
+                          f"({elapsed:.1f}s)", flush=True)
 
         result = cls(
             images=images,  # type: ignore[arg-type]
             n_omega_intervals=n_omega,
             n_detectors=n_detectors,
         )
+        print(f"  Preparing binary caches...", flush=True)
         result.prepare_for_reconstruction()
         return result
 

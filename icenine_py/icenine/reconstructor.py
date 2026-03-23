@@ -190,7 +190,13 @@ class BasicVoxelReconstructor:
 
         C++ Reference: Reconstructor.cpp:181-245 ReconstructVoxel
         """
-        cost_fn = VoxelCostFunction(
+        # Two cost functions matching C++ two-tier approach:
+        # - Global search (discrete): pixel_radius=3, wider cost landscape
+        #   C++ Reference: DiscreteAdaptive.tmpl.cpp:65 nPixelRadius=3
+        # - Local search (MC): pixel_radius=0, exact triangle rasterization
+        #   C++ Reference: Reconstructor.cpp LocalSearchCostFunctions
+        eta_limit = self.setup.exp_setup.get_eta_limit()
+        global_cost_fn = VoxelCostFunction(
             simulator=self.setup.simulator,
             detector_list=self.setup.detector_list,
             range_map=self.setup.range_map,
@@ -198,10 +204,24 @@ class BasicVoxelReconstructor:
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
             mode='hard',
+            eta_limit=eta_limit,
+            pixel_radius=3,
+            max_q=5.0,
+        )
+        local_cost_fn = VoxelCostFunction(
+            simulator=self.setup.simulator,
+            detector_list=self.setup.detector_list,
+            range_map=self.setup.range_map,
+            exp_data=self.setup.exp_data,
+            sample=self.setup.sample,
+            structure_list=self.setup.structure_list,
+            mode='hard',
+            eta_limit=eta_limit,
+            pixel_radius=0,
         )
 
         mc_optimizer = MCOptimizer(
-            cost_fn=cost_fn,
+            cost_fn=local_cost_fn,
             voxel_vertices=voxel_vertices,
             phase_index=phase_index,
             rng=rng,
@@ -220,22 +240,38 @@ class BasicVoxelReconstructor:
         for level in range(self.params.min_local_resolution,
                            self.params.max_local_resolution + 1):
             local_grid = self._local_grids[level]
+            t_level = time.time()
 
-            # Phase 1: Discrete search
+            # Phase 1: Discrete search — search ALL FZ orientations × local_grid
+            # at every level, matching C++ ReconstructVoxel (Reconstructor.cpp:212-215).
+            # The C++ does NOT do adaptive narrowing — it always searches the full
+            # FZ set with progressively finer local grids.
+            n_evals = len(self.setup.fz_orientations) * len(local_grid)
+            print(f"    Level {level}: discrete search "
+                  f"({len(self.setup.fz_orientations)} FZ × {len(local_grid)} local "
+                  f"= {n_evals} evals)", flush=True)
             candidates = run_discrete_search(
-                cost_fn=cost_fn,
+                cost_fn=global_cost_fn,
                 fz_orientations=self.setup.fz_orientations,
                 local_grid=local_grid,
                 voxel_vertices=voxel_vertices,
                 phase_index=phase_index,
             )
+            t_discrete = time.time() - t_level
 
             if not candidates:
+                print(f"    Level {level}: no candidates found ({t_discrete:.1f}s)",
+                      flush=True)
                 continue
 
+            print(f"    Level {level}: {len(candidates)} candidates ({t_discrete:.1f}s), "
+                  f"best cost={candidates[0].cost:.4f}", flush=True)
+
             # Phase 2: Quick MC optimization (20 steps, no restarts)
+            t_mc = time.time()
+            n_quick = min(len(candidates), self.params.max_discrete_candidates)
             quick_candidates = []
-            for cand in candidates[:self.params.max_discrete_candidates]:
+            for cand in candidates[:n_quick]:
                 result = mc_optimizer.optimize(
                     initial_orientation=cand.orientation,
                     angular_box_side=box_width,
@@ -249,9 +285,13 @@ class BasicVoxelReconstructor:
             # Phase 3: Sort and keep top N
             quick_candidates.sort()
             top_candidates = quick_candidates[:self.params.max_discrete_candidates]
+            t_quick = time.time() - t_mc
+            print(f"    Level {level}: quick MC on {n_quick} candidates ({t_quick:.1f}s), "
+                  f"best cost={top_candidates[0].cost:.4f}", flush=True)
 
             # Phase 4: Full MC optimization
-            for cand in top_candidates:
+            t_full = time.time()
+            for ci, cand in enumerate(top_candidates):
                 result = mc_optimizer.optimize(
                     initial_orientation=cand.orientation,
                     angular_box_side=box_width,
@@ -270,6 +310,13 @@ class BasicVoxelReconstructor:
                                             self.params.max_deepening_hit_ratio)):
                     converged = True
                     break
+
+            t_full_mc = time.time() - t_full
+            t_total_level = time.time() - t_level
+            print(f"    Level {level}: full MC on {ci + 1} candidates ({t_full_mc:.1f}s), "
+                  f"best cost={best_candidate.cost:.4f}, "
+                  f"level total={t_total_level:.1f}s"
+                  f"{' CONVERGED' if converged else ''}", flush=True)
 
             if converged:
                 break
@@ -317,17 +364,16 @@ class SerialReconstruction:
             voxel_list = voxel_list[:max_voxels]
 
         n_voxels = len(voxel_list)
-        print(f"Reconstructing {n_voxels} voxels...")
+        print(f"Reconstructing {n_voxels} voxels...", flush=True)
 
         self.results = []
         start_time = time.time()
 
         for idx, voxel in enumerate(voxel_list):
-            if (idx + 1) % 10 == 0 or idx == 0:
-                elapsed = time.time() - start_time
-                rate = (idx + 1) / elapsed if elapsed > 0 else 0
-                print(f"  Voxel {idx + 1}/{n_voxels} "
-                      f"({elapsed:.1f}s, {rate:.2f} vox/s)")
+            t_voxel = time.time()
+            elapsed = t_voxel - start_time
+            print(f"  Voxel {idx + 1}/{n_voxels} (phase={voxel.phase}, "
+                  f"elapsed={elapsed:.1f}s)", flush=True)
 
             # Get voxel vertices
             vertices = _get_voxel_vertices(voxel)
@@ -340,12 +386,20 @@ class SerialReconstruction:
             )
 
             self.results.append(result)
+            voxel_time = time.time() - t_voxel
+            oi = result.overlap_info
+            hit = (oi.pixel_overlap / oi.pixel_on_detector
+                   if oi and oi.pixel_on_detector > 0 else 0)
+            print(f"  Voxel {idx + 1}/{n_voxels} done: "
+                  f"cost={result.cost:.4f}, hit_ratio={hit:.3f}, "
+                  f"time={voxel_time:.1f}s", flush=True)
 
             # Update voxel orientation with reconstructed result
             voxel.orientation = result.orientation
 
         elapsed = time.time() - start_time
-        print(f"Reconstruction complete: {n_voxels} voxels in {elapsed:.1f}s")
+        print(f"Reconstruction complete: {n_voxels} voxels in {elapsed:.1f}s",
+              flush=True)
 
         # Save output .mic file
         if output_mic is not None:
