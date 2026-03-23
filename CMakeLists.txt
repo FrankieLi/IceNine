@@ -88,5 +88,55 @@ target_link_libraries(IceNine PRIVATE
 )
 
 # Set MPI compile flags
-target_compile_options(IceNine PRIVATE ${MPI_CXX_COMPILE_FLAGS}) 
+target_compile_options(IceNine PRIVATE ${MPI_CXX_COMPILE_FLAGS})
+
+#----------------------------
+# Cost Function Benchmark (standalone, no MPI main)
+#----------------------------
+set( Benchmark_FileList
+  "Src/CostFunctionBenchmark.cpp"
+  "Src/BoundarySelectionStrategies.cpp"
+  "Src/BreadthFirstReconstructor.cpp"
+  "Src/ConfigFile.cpp"
+  "Src/CostFunctions.cpp"
+  "Src/Detector.cpp"
+  "Src/DetectorFile.cpp"
+  "Src/DiscreteSearch.cpp"
+  "Src/ExperimentSetup.cpp"
+  "Src/ForwardSimulation.cpp"
+  "Src/ImageData.cpp"
+  "Src/InitFilesIO.cpp"
+  "Src/OptimizationConfig.cpp"
+  "Src/OrientationSearch.cpp"
+  "Src/Peak.cpp"
+  "Src/ReconstructionSetup.cpp"
+  "Src/ReconstructionStrategies.cpp"
+  "Src/Reconstructor.cpp"
+  "Src/Sample.cpp"
+  "Src/SearchDetails.cpp"
+  "Src/Simulation.cpp"
+  "Src/Utilities.cpp"
+  "Src/XDMClient.cpp"
+  "Src/XDMParallel.cpp"
+  "Src/XDMRaster.cpp"
+  "Src/XDMServer.cpp"
+  "Src/PaintGrid.cpp"
+)
+
+add_executable(CostFunctionBenchmark ${Benchmark_FileList})
+
+target_include_directories(CostFunctionBenchmark PRIVATE
+    ${PROJECT_SOURCE_DIR}/XDM++/libXDM
+    ${Boost_INCLUDE_DIRS}
+    ${MPI_CXX_INCLUDE_DIRS}
+)
+
+target_link_libraries(CostFunctionBenchmark PRIVATE
+    XDM++
+    Eigen3::Eigen
+    ${MPI_CXX_LIBRARIES}
+    ${Boost_LIBRARIES}
+)
+
+target_compile_options(CostFunctionBenchmark PRIVATE ${MPI_CXX_COMPILE_FLAGS})
 

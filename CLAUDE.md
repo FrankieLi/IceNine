@@ -57,6 +57,8 @@ uv run python script.py                  # run any Python script
 - **Degree/radian boundary**: `.mic` files store angles in degrees; conversion to radians happens at I/O boundaries. Config files have 15 parameters requiring degree-to-radian conversion.
 - **Batching required**: Single-element physics operations are too slow. All diffraction calculations must use batched PyTorch operations.
 - **Spatial indexing**: Always use `scipy.spatial.cKDTree` (not `KDTree`) — 10-100x faster, identical API.
+- **Q-max mismatch is intentional**: Simulation data may use Q-max=16 while reconstruction uses Q-max=8. This does NOT degrade reconstruction quality. The cost function does not penalize under-observed peaks — peaks beyond max_q are filtered out at `VoxelCostFunction.__init__` time. Both C++ and Python handle this identically. Fewer reciprocal vectors means fewer peaks in the metric (faster but less discriminating).
+- **Cost function angular sharpness**: The cost function (pixel overlap quality) is extremely sharp in orientation space — quality drops rapidly within 0.2–0.5 degrees of the correct orientation. This is fundamental Bragg diffraction physics (peaks are narrow in angle). Multi-level adaptive search is necessary: coarse Sukharev grid to find the basin, then fine MC refinement within it.
 
 ## Architecture
 
