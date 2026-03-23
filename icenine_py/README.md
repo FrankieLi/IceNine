@@ -72,7 +72,7 @@ For each voxel in the sample:
 | `symmetry.py` | Crystal symmetry operations (pymatgen wrapper) |
 | `constants.py` | Physical constants |
 | `file_io.py` | Detector file, crystal structure file, and omega file I/O |
-| `reconstructor.py` | Serial reconstruction orchestrator — multi-level adaptive search |
+| `reconstructor.py` | Reconstruction orchestrators — serial, adaptive, and BFS spatial propagation |
 | `orientation_search.py` | Discrete grid search + zero-temperature MC optimization |
 | `cost_functions.py` | Overlap computation between simulated projections and experimental data (batched Stages A-C + sequential Stage D) |
 | `_rasterize.c` | CPython C extension for fast triangle rasterization and pixel overlap (Sutherland-Hodgman + Bresenham) |
@@ -149,6 +149,28 @@ For each voxel in the sample grid:
 5. **Adaptive deepening**: If not converged, refines the local grid and repeats
 
 The search is multi-level adaptive — it starts with a coarse orientation grid and progressively refines around promising candidates until the cost function converges.
+
+### BFS Reconstruction (Recommended for Large Samples)
+
+For spatially coherent microstructures, BFS reconstruction is much faster than independent per-voxel search. It does a full adaptive search on a seed voxel, then propagates the orientation to neighbors via BFS, using cheap MC-only optimization:
+
+```python
+from icenine.reconstructor import setup_reconstruction, BFSReconstruction
+
+setup = setup_reconstruction(config, exp_data=exp_data)
+recon = BFSReconstruction(setup)
+processed = recon.reconstruct_sample(output_mic="bfs_result.mic")
+```
+
+BFS algorithm:
+1. **Seed selection**: Pick next unvisited voxel (randomized order)
+2. **Full search**: `AdaptiveVoxelReconstructor.reconstruct_voxel()` on seed (~100-150s)
+3. **Propagate**: Copy seed orientation to all unvisited neighbors
+4. **BFS loop**: For each neighbor, run `local_optimization()` (MC-only, ~1s)
+5. **Accept/reject**: If neighbor quality > 90% of best, mark FITTED and propagate; else mark REFIT
+6. **Repeat**: Until all voxels visited
+
+For the ThreeVoxels test case: 252s (BFS) vs 6638s (serial) — 26× faster. The speedup is even larger for big samples where most voxels are interior neighbors.
 
 ### Key Config Parameters for Reconstruction
 
