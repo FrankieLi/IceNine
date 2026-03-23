@@ -312,3 +312,55 @@ class TestSingleVoxelReconstruction:
         assert misori_deg < 10.0, (
             f"Expected misorientation < 10 deg, got {misori_deg:.2f} deg"
         )
+
+    def test_variance_minimizing_mc(
+        self, recon_setup, ground_truth_mic, cubic_symmetry_quats
+    ):
+        """
+        Start from ground truth + small perturbation, run variance-minimizing
+        MC, verify convergence.
+
+        C++ Reference: OrientationSearch.cpp AdaptiveSamplingZeroTemp
+        """
+        cost_fn = recon_setup
+        voxel = ground_truth_mic.voxels[0]
+        vertices = _get_voxel_vertices(voxel)
+        gt_orientation = voxel.orientation
+
+        # Perturb by ~1 degree
+        from scipy.spatial.transform import Rotation
+        perturbation = Rotation.from_rotvec(
+            np.array([0.015, 0.005, -0.005])
+        ).as_matrix()
+        start_orientation = perturbation @ gt_orientation
+
+        mc = MCOptimizer(
+            cost_fn=cost_fn,
+            voxel_vertices=vertices,
+            phase_index=voxel.phase,
+            rng=np.random.default_rng(123),
+        )
+
+        result = mc.variance_minimizing_optimize(
+            initial_orientation=start_orientation,
+            search_box_side=math.radians(2.0),
+            max_mc_steps=200,
+            successive_restarts=2,
+            max_convergence_cost=0.1,
+            convergence_variance=0.02 ** 2,
+        )
+
+        # Should find overlap
+        assert result.cost < 1.0, (
+            f"Variance-min MC should find overlap, got cost={result.cost}"
+        )
+
+        # Should converge close to ground truth
+        q_result = matrix_to_quaternion(result.orientation)
+        q_truth = matrix_to_quaternion(gt_orientation)
+        misori = get_misorientation(q_result, q_truth, cubic_symmetry_quats)
+        misori_deg = math.degrees(misori)
+
+        assert misori_deg < 10.0, (
+            f"Expected misorientation < 10 deg, got {misori_deg:.2f} deg"
+        )
