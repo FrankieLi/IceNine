@@ -12,6 +12,7 @@ C++ Reference:
 
 import math
 import time
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -26,7 +27,7 @@ from .detector import Detector
 from .experiment_setup import XDMExperimentSetup
 from .experimental_data import ExperimentalData
 from .forward_simulation import ForwardSimulation
-from .mic_file import MicFile
+from .mic_file import MicFile, ReconstructionState
 from .orientation_search import (
     MCOptimizer,
     SearchCandidate,
@@ -678,6 +679,264 @@ class AdaptiveVoxelReconstructor:
         result.cost = final_info.cost
 
         return result
+
+
+# ---------------------------------------------------------------------------
+# BFSReconstruction — breadth-first spatial propagation
+# ---------------------------------------------------------------------------
+
+class BFSReconstruction:
+    """
+    Breadth-first reconstruction with spatial orientation propagation.
+
+    Full adaptive search on seed voxels, then MC-only local optimization
+    on neighbors using inherited orientations. This is much faster than
+    independent per-voxel search for spatially coherent microstructures.
+
+    Algorithm:
+    1. Shuffle all voxels (randomized seed order)
+    2. Pick next unvisited voxel as seed
+    3. Full AdaptiveVoxelReconstructor.reconstruct_voxel() on seed
+    4. If seed quality >= threshold: mark FITTED, propagate to neighbors via BFS
+    5. BFS loop: pop neighbor, run local_optimization (MC-only),
+       accept if (hit_ratio / best_hit_ratio) > 0.9
+    6. Repeat from step 2 until all voxels visited
+
+    C++ Reference:
+        BreadthFirstReconstructor.tmpl.cpp:112-188 Fit()
+        ReconstructionStrategies.tmpl.cpp:334-356 InsertSeed()
+    """
+
+    def __init__(self, setup: ReconstructionSetup):
+        self.setup = setup
+        self.reconstructor = AdaptiveVoxelReconstructor(setup)
+
+    def reconstruct_sample(
+        self,
+        output_mic: Optional[str] = None,
+        max_voxels: Optional[int] = None,
+        rng: Optional[np.random.Generator] = None,
+    ) -> List[int]:
+        """
+        Reconstruct all voxels using BFS propagation.
+
+        Args:
+            output_mic: Path to save reconstructed .mic file (optional)
+            max_voxels: Limit number of voxels to process (for testing)
+            rng: Random number generator
+
+        Returns:
+            List of voxel indices in order they were processed
+        """
+        if rng is None:
+            rng = np.random.default_rng()
+
+        mic = self.setup.sample.get_mic()
+        n_total = len(mic.voxels)
+        n_process = min(n_total, max_voxels) if max_voxels else n_total
+
+        # Initialize all voxels to NOT_VISITED
+        # C++ ReconstructionStrategies.tmpl.cpp:57
+        for v in mic.voxels:
+            v.reconstruction_id = ReconstructionState.NOT_VISITED
+
+        # Randomized seed order (C++ uses random_shuffle)
+        voxel_order = list(range(n_process))
+        rng.shuffle(voxel_order)
+
+        print(f"BFS Reconstruction: {n_process} voxels", flush=True)
+        start_time = time.time()
+        all_processed = []
+        n_seeds = 0
+        n_fitted = 0
+        n_refit = 0
+
+        for seed_idx in voxel_order:
+            if mic.voxels[seed_idx].reconstruction_id != ReconstructionState.NOT_VISITED:
+                continue
+
+            n_seeds += 1
+            t_seed = time.time()
+            print(f"\n  Seed #{n_seeds}: voxel {seed_idx}", flush=True)
+
+            processed = self._fit_from_seed(mic, seed_idx, rng)
+            all_processed.extend(processed)
+
+            seed_fitted = sum(
+                1 for i in processed
+                if mic.voxels[i].reconstruction_id == ReconstructionState.FITTED
+            )
+            seed_refit = len(processed) - seed_fitted
+            n_fitted += seed_fitted
+            n_refit += seed_refit
+
+            t_elapsed = time.time() - t_seed
+            print(f"  Seed #{n_seeds} done: {len(processed)} voxels "
+                  f"({seed_fitted} fitted, {seed_refit} refit) in {t_elapsed:.1f}s",
+                  flush=True)
+
+        total_time = time.time() - start_time
+        print(f"\nBFS complete: {n_seeds} seeds, {n_fitted} fitted, "
+              f"{n_refit} refit, {total_time:.1f}s total", flush=True)
+
+        # Save output .mic file
+        if output_mic is not None:
+            mic.write(output_mic)
+            print(f"Saved reconstructed mic to {output_mic}", flush=True)
+
+        return all_processed
+
+    def _fit_from_seed(
+        self,
+        mic: MicFile,
+        seed_idx: int,
+        rng: np.random.Generator,
+    ) -> List[int]:
+        """
+        Full reconstruction on seed, then BFS propagation to neighbors.
+
+        C++ Reference: BreadthFirstReconstructor.tmpl.cpp:112-188 Fit()
+        """
+        voxel = mic.voxels[seed_idx]
+        vertices = _get_voxel_vertices(voxel)
+
+        # Full adaptive reconstruction on seed
+        t0 = time.time()
+        result = self.reconstructor.reconstruct_voxel(
+            voxel_vertices=vertices,
+            phase_index=voxel.phase,
+            rng=rng,
+        )
+        t_recon = time.time() - t0
+
+        # Evaluate overlap
+        # C++ BreadthFirstReconstructor.tmpl.cpp:136
+        overlap_info = self.reconstructor.evaluate_overlap(
+            result.orientation, vertices, voxel.phase
+        )
+
+        # Compute confidence and hit_ratio
+        # C++ CostFunctions.cpp: GetConfidence = peak_overlap / peak_on_detector
+        # C++ CostFunctions.cpp: GetHitRatio = pixel_overlap / pixel_on_detector
+        confidence = (overlap_info.peak_overlap / overlap_info.peak_on_detector
+                      if overlap_info.peak_on_detector > 0 else 0.0)
+        hit_ratio = (overlap_info.pixel_overlap / overlap_info.pixel_on_detector
+                     if overlap_info.pixel_on_detector > 0 else 0.0)
+
+        # Update seed voxel
+        voxel.orientation = result.orientation
+        voxel.cost = result.cost
+        voxel.confidence = confidence
+        voxel.overlap_ratio = hit_ratio
+
+        print(f"    Seed voxel {seed_idx}: cost={result.cost:.4f}, "
+              f"hit_ratio={hit_ratio:.3f}, conf={confidence:.3f} ({t_recon:.1f}s)",
+              flush=True)
+
+        # Check acceptance threshold
+        # C++ BreadthFirstReconstructor.tmpl.cpp:142-149
+        min_accel = self.setup.config.min_acceleration_threshold
+        if hit_ratio < min_accel:
+            voxel.reconstruction_id = ReconstructionState.REFIT
+            print(f"    Seed rejected (hit_ratio {hit_ratio:.3f} < "
+                  f"threshold {min_accel:.3f})", flush=True)
+            return [seed_idx]
+
+        # Mark fitted, start BFS
+        # C++ BreadthFirstReconstructor.tmpl.cpp:153-156
+        voxel.reconstruction_id = ReconstructionState.FITTED
+        solution = [seed_idx]
+
+        bfs_queue: deque[int] = deque()
+        self._insert_seed(mic, seed_idx, bfs_queue)
+
+        best_conf = hit_ratio
+        n_bfs = 0
+
+        # BFS expansion loop
+        # C++ BreadthFirstReconstructor.tmpl.cpp:157-184
+        while bfs_queue:
+            neighbor_idx = bfs_queue.popleft()
+
+            # Skip already-fitted voxels (C++ Pop() skips FITTED)
+            if mic.voxels[neighbor_idx].reconstruction_id == ReconstructionState.FITTED:
+                continue
+
+            neighbor = mic.voxels[neighbor_idx]
+            n_vertices = _get_voxel_vertices(neighbor)
+            n_bfs += 1
+
+            # MC-only optimization from inherited orientation
+            t_local = time.time()
+            opt_result = self.reconstructor.local_optimization(
+                voxel_vertices=n_vertices,
+                phase_index=neighbor.phase,
+                initial_orientation=neighbor.orientation,
+                rng=rng,
+            )
+            t_local_elapsed = time.time() - t_local
+
+            # Compute hit_ratio from result
+            n_info = opt_result.overlap_info
+            n_hit_ratio = (n_info.pixel_overlap / n_info.pixel_on_detector
+                           if n_info and n_info.pixel_on_detector > 0 else 0.0)
+            n_confidence = (n_info.peak_overlap / n_info.peak_on_detector
+                            if n_info and n_info.peak_on_detector > 0 else 0.0)
+
+            # Update neighbor voxel
+            neighbor.orientation = opt_result.orientation
+            neighbor.cost = opt_result.cost
+            neighbor.confidence = n_confidence
+            neighbor.overlap_ratio = n_hit_ratio
+
+            # Track best quality
+            # C++ BreadthFirstReconstructor.tmpl.cpp:162
+            best_conf = max(n_hit_ratio, best_conf)
+
+            # Acceptance check: 90% of best quality
+            # C++ BreadthFirstReconstructor.tmpl.cpp:163
+            if best_conf > 0 and (n_hit_ratio / best_conf) > 0.9:
+                # Accept: mark fitted, propagate to neighbors
+                neighbor.reconstruction_id = ReconstructionState.FITTED
+                solution.append(neighbor_idx)
+                self._insert_seed(mic, neighbor_idx, bfs_queue)
+                print(f"    BFS #{n_bfs} voxel {neighbor_idx}: FITTED "
+                      f"cost={opt_result.cost:.4f}, hit_ratio={n_hit_ratio:.3f} "
+                      f"({t_local_elapsed:.1f}s)", flush=True)
+            else:
+                # Reject: mark for later re-fitting
+                neighbor.reconstruction_id = ReconstructionState.REFIT
+                solution.append(neighbor_idx)
+                print(f"    BFS #{n_bfs} voxel {neighbor_idx}: REFIT "
+                      f"cost={opt_result.cost:.4f}, hit_ratio={n_hit_ratio:.3f} "
+                      f"(ratio={n_hit_ratio / best_conf:.3f} < 0.9) "
+                      f"({t_local_elapsed:.1f}s)", flush=True)
+
+        return solution
+
+    def _insert_seed(
+        self,
+        mic: MicFile,
+        voxel_idx: int,
+        queue: deque,
+    ) -> None:
+        """
+        Propagate orientation to unvisited neighbors and add to BFS queue.
+
+        C++ Reference: ReconstructionStrategies.tmpl.cpp:334-356 InsertSeed()
+        """
+        voxel = mic.voxels[voxel_idx]
+        # C++ uses GetNeighbors with the solution grid
+        # Python uses KDTree-based neighbor lookup with 2x side_length radius
+        radius = 2.0 * voxel.side_length
+        neighbors = mic.get_neighbors(voxel_idx, radius=radius)
+
+        for n_idx in neighbors:
+            neighbor = mic.voxels[n_idx]
+            if neighbor.reconstruction_id == ReconstructionState.NOT_VISITED:
+                neighbor.reconstruction_id = ReconstructionState.VISITED
+                neighbor.orientation = voxel.orientation.copy()  # PROPAGATION
+                queue.append(n_idx)
 
 
 # ---------------------------------------------------------------------------
