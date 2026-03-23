@@ -23,6 +23,7 @@ from icenine.experimental_data import ExperimentalData
 from icenine.mic_file import MicFile
 from icenine.orientation_search import MCOptimizer, SearchCandidate, run_discrete_search
 from icenine.reconstructor import (
+    AdaptiveVoxelReconstructor,
     BasicVoxelReconstructor,
     ReconstructionSetup,
     _get_voxel_vertices,
@@ -363,4 +364,81 @@ class TestSingleVoxelReconstruction:
 
         assert misori_deg < 10.0, (
             f"Expected misorientation < 10 deg, got {misori_deg:.2f} deg"
+        )
+
+
+# ============================================================================
+# Test: AdaptiveVoxelReconstructor
+# ============================================================================
+
+class TestAdaptiveVoxelReconstructor:
+    """Test the adaptive refinement reconstructor."""
+
+    @pytest.fixture
+    def adaptive_setup(self, sim_config, exp_data, project_root):
+        """Set up AdaptiveVoxelReconstructor."""
+
+        exp_setup = XDMExperimentSetup(sim_config)
+        exp_setup.initialize_experiment()
+        detector_list = exp_setup.get_detector_list()
+        range_map = exp_setup.get_range_to_index_map()
+        sample = Sample()
+        exp_setup.initialize_sample(sample, detector_list[0])
+        simulator = Simulation(exp_setup)
+        structure_list = sample.get_structure_list()
+
+        fz_file = sim_config.fundamental_zone_filename
+        if not fz_file or not Path(fz_file).exists():
+            pytest.skip(f"FZ file not found: {fz_file}")
+        fz_orientations = load_fundamental_zone_file(fz_file)
+
+        setup = setup_reconstruction(
+            sim_config, exp_data=exp_data, fz_orientations=fz_orientations,
+        )
+        return AdaptiveVoxelReconstructor(setup)
+
+    def test_local_optimization_from_perturbation(
+        self, adaptive_setup, ground_truth_mic, cubic_symmetry_quats
+    ):
+        """
+        Start from ground truth + small perturbation, run local_optimization
+        (MC-only path), verify convergence back to ground truth.
+
+        This tests the cheap BFS neighbor path.
+
+        C++ Reference: DiscreteAdaptive.tmpl.cpp:280-317 LocalOptimization
+        """
+        reconstructor = adaptive_setup
+        voxel = ground_truth_mic.voxels[0]
+        vertices = _get_voxel_vertices(voxel)
+        gt_orientation = voxel.orientation
+
+        # Perturb by ~0.5 degrees
+        from scipy.spatial.transform import Rotation
+        perturbation = Rotation.from_rotvec(
+            np.array([0.008, 0.003, -0.003])
+        ).as_matrix()
+        start_orientation = (perturbation @ gt_orientation).astype(np.float32)
+
+        result = reconstructor.local_optimization(
+            voxel_vertices=vertices,
+            phase_index=voxel.phase,
+            initial_orientation=start_orientation,
+            rng=np.random.default_rng(42),
+        )
+
+        # Should find overlap
+        assert result.cost < 1.0, (
+            f"Local optimization should find overlap, got cost={result.cost}"
+        )
+
+        # Should converge close to ground truth
+        q_result = matrix_to_quaternion(result.orientation)
+        q_truth = matrix_to_quaternion(gt_orientation)
+        misori = get_misorientation(q_result, q_truth, cubic_symmetry_quats)
+        misori_deg = math.degrees(misori)
+
+        assert misori_deg < 5.0, (
+            f"Expected misorientation < 5 deg from 0.5° perturbation, "
+            f"got {misori_deg:.2f} deg"
         )
