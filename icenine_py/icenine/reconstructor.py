@@ -37,6 +37,7 @@ from .orientation_search import (
 from .sample import Sample
 from .sampling import (
     generate_local_grid,
+    generate_local_grid_multi_level,
     load_fundamental_zone_file,
     matrix_to_quaternion,
     quaternion_to_matrix,
@@ -322,6 +323,361 @@ class BasicVoxelReconstructor:
                 break
 
         return best_candidate
+
+
+# ---------------------------------------------------------------------------
+# AdaptiveVoxelReconstructor — single voxel, adaptive narrowing
+# ---------------------------------------------------------------------------
+
+class AdaptiveVoxelReconstructor:
+    """
+    Reconstruct a single voxel's crystal orientation using adaptive refinement.
+
+    Multi-level adaptive search with candidate narrowing:
+    1. For each resolution level:
+       a. Generate local grid at fixed resolution (levels 0-1) with shrinking diameter
+       b. Discrete search: FZ candidates × local grid (global cost fn, pixel_radius=3)
+       c. Re-evaluate candidates with local cost fn (pixel_radius=0)
+       d. Quick MC (10 steps, 5 restarts) on all candidates
+       e. Sort, keep top 1/4 as FZ candidates for next level
+       f. Shrink diameter by ÷1.5, increment nQMax
+    2. After all levels:
+       a. FindOptimal: full MC on top candidates with convergence check
+       b. VarianceMinimizing: refine best until variance < 0.02²
+       c. Final overlap evaluation
+
+    C++ Reference: Src/DiscreteAdaptive.tmpl.cpp:108-250 ReconstructVoxel
+    """
+
+    def __init__(self, setup: ReconstructionSetup):
+        self.setup = setup
+        self.params = setup.search_params
+
+    def reconstruct_voxel(
+        self,
+        voxel_vertices: torch.Tensor,
+        phase_index: int = 0,
+        rng: Optional[np.random.Generator] = None,
+    ) -> SearchCandidate:
+        """
+        Reconstruct orientation for a single voxel using adaptive refinement.
+
+        Args:
+            voxel_vertices: Triangle vertices in sample frame, shape (3, 3)
+            phase_index: Crystal phase index
+            rng: Random number generator for MC optimization
+
+        Returns:
+            Best SearchCandidate found
+
+        C++ Reference: DiscreteAdaptive.tmpl.cpp:108-250
+        """
+        eta_limit = self.setup.exp_setup.get_eta_limit()
+
+        # Local cost function (pixel_radius=0) for MC and re-evaluation
+        # C++ Reference: DiscreteAdaptive.tmpl.cpp:120-121 LocalSearchCostFunctions
+        local_cost_fn = VoxelCostFunction(
+            simulator=self.setup.simulator,
+            detector_list=self.setup.detector_list,
+            range_map=self.setup.range_map,
+            exp_data=self.setup.exp_data,
+            sample=self.setup.sample,
+            structure_list=self.setup.structure_list,
+            mode='hard',
+            eta_limit=eta_limit,
+            pixel_radius=0,
+        )
+
+        # MC optimizer uses local cost function
+        mc_optimizer = MCOptimizer(
+            cost_fn=local_cost_fn,
+            voxel_vertices=voxel_vertices,
+            phase_index=phase_index,
+            rng=rng,
+        )
+
+        # Initialize search state
+        # C++ DiscreteAdaptive.tmpl.cpp:139-141
+        fz_orientations = self.setup.fz_orientations  # full FZ set initially
+        diameter = self.params.local_grid_radius
+        n_q_max = 5.0 + self.params.min_local_resolution
+
+        candidates = []
+
+        for level in range(self.params.max_local_resolution + 1):
+            t_level = time.time()
+
+            # Generate local grid: always levels 0-1 with current diameter
+            # C++ DiscreteAdaptive.tmpl.cpp:149
+            local_grid = generate_local_grid_multi_level(diameter, 0, 1)
+
+            # Global cost function with current nQMax
+            # C++ DiscreteAdaptive.tmpl.cpp:65-66 nPixelRadius=3
+            global_cost_fn = VoxelCostFunction(
+                simulator=self.setup.simulator,
+                detector_list=self.setup.detector_list,
+                range_map=self.setup.range_map,
+                exp_data=self.setup.exp_data,
+                sample=self.setup.sample,
+                structure_list=self.setup.structure_list,
+                mode='hard',
+                eta_limit=eta_limit,
+                pixel_radius=3,
+                max_q=n_q_max,
+            )
+
+            # Phase 1: Discrete search
+            n_evals = len(fz_orientations) * len(local_grid)
+            print(f"    Level {level}: discrete search "
+                  f"({len(fz_orientations)} FZ × {len(local_grid)} local "
+                  f"= {n_evals} evals, nQMax={n_q_max:.0f}, "
+                  f"diameter={math.degrees(diameter):.2f}°)", flush=True)
+
+            candidates = run_discrete_search(
+                cost_fn=global_cost_fn,
+                fz_orientations=fz_orientations,
+                local_grid=local_grid,
+                voxel_vertices=voxel_vertices,
+                phase_index=phase_index,
+            )
+            t_discrete = time.time() - t_level
+
+            # Increment nQMax for next level
+            # C++ DiscreteAdaptive.tmpl.cpp:155
+            n_q_max += 1
+
+            if not candidates:
+                print(f"    Level {level}: no candidates found ({t_discrete:.1f}s)",
+                      flush=True)
+                continue
+
+            # Phase 2: Re-evaluate candidates with local cost function (pixel_radius=0)
+            # C++ DiscreteAdaptive.tmpl.cpp:156-165
+            t_reeval = time.time()
+            for cand in candidates:
+                info = local_cost_fn.evaluate(
+                    orientation=cand.orientation,
+                    voxel_vertices=voxel_vertices,
+                    phase_index=phase_index,
+                )
+                cand.cost = info.cost
+                cand.overlap_info = info
+            candidates.sort()
+            t_reeval_elapsed = time.time() - t_reeval
+
+            print(f"    Level {level}: {len(candidates)} candidates "
+                  f"(discrete={t_discrete:.1f}s, reeval={t_reeval_elapsed:.1f}s), "
+                  f"best cost={candidates[0].cost:.4f}", flush=True)
+
+            # Phase 3: Quick MC on all candidates (10 steps, 5 restarts)
+            # C++ DiscreteAdaptive.tmpl.cpp:173-194
+            t_mc = time.time()
+            trial_radius = max(diameter / 3.0, math.radians(0.2))
+            # C++ ContinuousSearch.h:70-73 CalculateSearchParameter
+            # BoxWidth = localGridRadius / 2^localResolution
+            # For trial search: localResolution = min_local_resolution
+            trial_box_width = trial_radius / (
+                2 ** self.params.min_local_resolution
+            )
+            trial_step = trial_box_width * self.params.mc_radius_scale_factor
+
+            for cand in candidates:
+                result = mc_optimizer.optimize(
+                    initial_orientation=cand.orientation,
+                    angular_box_side=trial_box_width,
+                    angular_step=trial_step,
+                    max_mc_steps=10,
+                    max_restarts=5,
+                    max_convergence_cost=self.params.max_convergence_cost,
+                )
+                cand.orientation = result.orientation
+                cand.cost = result.cost
+                cand.overlap_info = result.overlap_info
+            t_quick = time.time() - t_mc
+
+            # Phase 4: Shrink diameter, keep top 1/4
+            # C++ DiscreteAdaptive.tmpl.cpp:196-205
+            diameter /= 1.5
+            candidates.sort()
+            n_keep = max(1, len(candidates) // 4)
+            fz_orientations = np.array([c.orientation for c in candidates[:n_keep]])
+
+            t_total = time.time() - t_level
+            print(f"    Level {level}: quick MC ({t_quick:.1f}s), "
+                  f"kept {n_keep}/{len(candidates)}, "
+                  f"best cost={candidates[0].cost:.4f}, "
+                  f"level total={t_total:.1f}s", flush=True)
+
+        # After all levels: FindOptimal + VarianceMinimizing
+        # C++ DiscreteAdaptive.tmpl.cpp:210-246
+        if not candidates:
+            return SearchCandidate(orientation=np.eye(3), cost=1.0)
+
+        final_radius = max(diameter / 3.0, math.radians(0.2))
+        final_box_width = final_radius / (2 ** self.params.min_local_resolution)
+        final_step = final_box_width * self.params.mc_radius_scale_factor
+
+        # FindOptimal: full MC on top candidates with convergence check
+        # C++ ContinuousSearch.h:316-346
+        n_final = min(
+            len(candidates), self.params.max_discrete_candidates
+        )
+        print(f"    FindOptimal: full MC on {n_final} candidates", flush=True)
+        t_final = time.time()
+
+        best_candidate = SearchCandidate(orientation=np.eye(3), cost=1.0)
+        converged = False
+        for ci, cand in enumerate(candidates[:n_final]):
+            result = mc_optimizer.optimize(
+                initial_orientation=cand.orientation,
+                angular_box_side=final_box_width,
+                angular_step=final_step,
+                max_mc_steps=self.params.max_mc_steps,
+                max_restarts=self.params.successive_restarts,
+                max_convergence_cost=self.params.max_convergence_cost,
+            )
+            if result.cost < best_candidate.cost:
+                best_candidate = result
+                # Convergence check: hit_ratio >= 1.0
+                # C++ ContinuousSearch.h:276-286 HitRatioConvergenceFn with ratio=1.0
+                if (result.overlap_info is not None and
+                        hit_ratio_converged(result.overlap_info, 1.0)):
+                    converged = True
+                    break
+        t_find = time.time() - t_final
+        print(f"    FindOptimal: {ci + 1} evaluated ({t_find:.1f}s), "
+              f"best cost={best_candidate.cost:.4f}"
+              f"{' CONVERGED' if converged else ''}", flush=True)
+
+        # VarianceMinimizing: refine best until variance < 0.02²
+        # C++ DiscreteAdaptive.tmpl.cpp:232
+        t_var = time.time()
+        var_result = mc_optimizer.variance_minimizing_optimize(
+            initial_orientation=best_candidate.orientation,
+            search_box_side=final_box_width,
+            max_mc_steps=self.params.max_mc_steps,
+            successive_restarts=self.params.successive_restarts,
+            max_convergence_cost=0.0,  # C++ sets this to 0 for final optimization
+            convergence_variance=0.02 ** 2,
+        )
+        if var_result.cost < best_candidate.cost:
+            best_candidate = var_result
+        t_var_elapsed = time.time() - t_var
+        print(f"    VarianceMin: ({t_var_elapsed:.1f}s), "
+              f"cost={best_candidate.cost:.4f}", flush=True)
+
+        # Final overlap evaluation
+        # C++ DiscreteAdaptive.tmpl.cpp:234-242
+        final_info = local_cost_fn.evaluate(
+            orientation=best_candidate.orientation,
+            voxel_vertices=voxel_vertices,
+            phase_index=phase_index,
+        )
+        best_candidate.overlap_info = final_info
+        best_candidate.cost = final_info.cost
+
+        return best_candidate
+
+    def evaluate_overlap(
+        self,
+        orientation: np.ndarray,
+        voxel_vertices: torch.Tensor,
+        phase_index: int = 0,
+    ) -> OverlapInfo:
+        """
+        Evaluate overlap info for a given orientation (for BFS acceptance checks).
+
+        C++ Reference: DiscreteAdaptive.tmpl.cpp:255-275 EvaluateOverlapInfo
+        """
+        eta_limit = self.setup.exp_setup.get_eta_limit()
+        local_cost_fn = VoxelCostFunction(
+            simulator=self.setup.simulator,
+            detector_list=self.setup.detector_list,
+            range_map=self.setup.range_map,
+            exp_data=self.setup.exp_data,
+            sample=self.setup.sample,
+            structure_list=self.setup.structure_list,
+            mode='hard',
+            eta_limit=eta_limit,
+            pixel_radius=0,
+        )
+        return local_cost_fn.evaluate(
+            orientation=orientation,
+            voxel_vertices=voxel_vertices,
+            phase_index=phase_index,
+        )
+
+    def local_optimization(
+        self,
+        voxel_vertices: torch.Tensor,
+        phase_index: int,
+        initial_orientation: np.ndarray,
+        rng: Optional[np.random.Generator] = None,
+    ) -> SearchCandidate:
+        """
+        MC-only optimization from a given starting orientation (for BFS neighbors).
+
+        Runs variance-minimizing MC without any discrete search. This is the
+        cheap path used when orientation is inherited from a fitted neighbor.
+
+        Args:
+            voxel_vertices: Triangle vertices in sample frame, shape (3, 3)
+            phase_index: Crystal phase index
+            initial_orientation: Starting 3x3 rotation matrix (from neighbor)
+            rng: Random number generator
+
+        Returns:
+            Optimized SearchCandidate
+
+        C++ Reference: DiscreteAdaptive.tmpl.cpp:280-317 LocalOptimization
+        """
+        eta_limit = self.setup.exp_setup.get_eta_limit()
+        local_cost_fn = VoxelCostFunction(
+            simulator=self.setup.simulator,
+            detector_list=self.setup.detector_list,
+            range_map=self.setup.range_map,
+            exp_data=self.setup.exp_data,
+            sample=self.setup.sample,
+            structure_list=self.setup.structure_list,
+            mode='hard',
+            eta_limit=eta_limit,
+            pixel_radius=0,
+        )
+
+        mc_optimizer = MCOptimizer(
+            cost_fn=local_cost_fn,
+            voxel_vertices=voxel_vertices,
+            phase_index=phase_index,
+            rng=rng,
+        )
+
+        # C++ ContinuousSearch.h:70-73: BoxWidth = localGridRadius / 2^localResolution
+        box_width = self.params.local_grid_radius / (
+            2 ** self.params.min_local_resolution
+        )
+
+        # Variance-minimizing MC
+        # C++ DiscreteAdaptive.tmpl.cpp:305
+        result = mc_optimizer.variance_minimizing_optimize(
+            initial_orientation=initial_orientation,
+            search_box_side=box_width,
+            max_mc_steps=self.params.max_mc_steps,
+            successive_restarts=self.params.successive_restarts,
+            max_convergence_cost=self.params.max_convergence_cost,
+            convergence_variance=0.02 ** 2,
+        )
+
+        # Final overlap evaluation
+        # C++ DiscreteAdaptive.tmpl.cpp:307-314
+        final_info = local_cost_fn.evaluate(
+            orientation=result.orientation,
+            voxel_vertices=voxel_vertices,
+            phase_index=phase_index,
+        )
+        result.overlap_info = final_info
+        result.cost = final_info.cost
+
+        return result
 
 
 # ---------------------------------------------------------------------------
