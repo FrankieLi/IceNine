@@ -418,3 +418,44 @@ Apples-to-apples comparison using identical config (`ReconstructBenchmark.config
 3. **Different config file**: C++ benchmark used `ReconstructBenchmark.config` (MaxQ=8), Python used `Example2.Simulation.config` (MaxQ=16, but overridden by `max_q=8.0`).
 
 **Remaining 0.006 quality difference**: A single peak at omega=-61.23° rasterizes 3 pixels in Python vs 2 in C++. One pixel sits on the triangle edge — borderline rounding in ray-plane intersection. This is within acceptable tolerance and does not indicate a formula bug.
+
+### Adaptive BFS Reconstruction (2026-03-22 to 2026-03-23)
+
+Ported the production C++ reconstruction pipeline to Python:
+
+**Components ported:**
+
+| C++ Source | Python Target | Description |
+|-----------|---------------|-------------|
+| `OrientationSearch.cpp:142-198` | `MCOptimizer._zero_temp_with_variance()` | Welford variance MC |
+| `OrientationSearch.cpp:206-287` | `MCOptimizer.variance_minimizing_optimize()` | Adaptive sampling MC |
+| `DiscreteAdaptive.tmpl.cpp:108-250` | `AdaptiveVoxelReconstructor.reconstruct_voxel()` | Multi-level adaptive search |
+| `DiscreteAdaptive.tmpl.cpp:280-317` | `AdaptiveVoxelReconstructor.local_optimization()` | MC-only path for BFS neighbors |
+| `BreadthFirstReconstructor.tmpl.cpp:112-188` | `BFSReconstruction._fit_from_seed()` | BFS spatial propagation |
+| `ReconstructionStrategies.tmpl.cpp:334-356` | `BFSReconstruction._insert_seed()` | Orientation propagation to neighbors |
+| `ReconstructionStrategies.h:257-263` | `ReconstructionState` | Voxel state machine |
+
+**Key algorithm differences from BasicVoxelReconstructor:**
+
+| Feature | Basic | Adaptive + BFS |
+|---------|-------|----------------|
+| FZ candidates between levels | Full FZ every level | Top 1/4 narrow between levels |
+| Search diameter | Fixed | Shrinks ÷1.5 each level |
+| nQMax | Fixed from config | Starts at 5 + min_level, increments |
+| Quick MC | 20 steps, 0 restarts | 10 steps, 5 restarts |
+| Final optimization | Full MC only | FindOptimal + VarianceMinimizing (σ²=0.02²) |
+| Neighbor voxels | Independent full search | MC-only local_optimization from propagated orientation |
+| Spatial propagation | None | BFS queue with 90% quality threshold |
+
+**ThreeVoxels BFS benchmark:**
+
+| Metric | Serial (Basic) | BFS (Adaptive) |
+|--------|---------------|----------------|
+| Seed voxels | 3 (all independent) | 2 (voxels 1, 2) |
+| BFS neighbors | 0 | 1 (voxel 0, MC-only, 0.9s) |
+| Total time | ~6638s | 252s |
+| Speedup | 1× | ~26× |
+
+Per-seed timing: 105s (voxel 2), 147s (voxel 1). The BFS benefit scales with sample size — for interior voxels in large samples (24K+), most get the cheap MC-only path (~1s each vs ~2200s for full search).
+
+**Not yet ported**: C++ `Refit()` / `RESTART_FIT` — second-pass retry of REFIT voxels with LocalOptimization followed by full search if quality is still low.

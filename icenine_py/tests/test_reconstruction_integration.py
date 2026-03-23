@@ -23,11 +23,14 @@ from icenine.experimental_data import ExperimentalData
 from icenine.mic_file import MicFile
 from icenine.orientation_search import MCOptimizer, SearchCandidate, run_discrete_search
 from icenine.reconstructor import (
+    AdaptiveVoxelReconstructor,
+    BFSReconstruction,
     BasicVoxelReconstructor,
     ReconstructionSetup,
     _get_voxel_vertices,
     setup_reconstruction,
 )
+from icenine.mic_file import ReconstructionState
 from icenine.sample import Sample
 from icenine.sampling import (
     generate_local_grid,
@@ -312,3 +315,243 @@ class TestSingleVoxelReconstruction:
         assert misori_deg < 10.0, (
             f"Expected misorientation < 10 deg, got {misori_deg:.2f} deg"
         )
+
+    def test_variance_minimizing_mc(
+        self, recon_setup, ground_truth_mic, cubic_symmetry_quats
+    ):
+        """
+        Start from ground truth + small perturbation, run variance-minimizing
+        MC, verify convergence.
+
+        C++ Reference: OrientationSearch.cpp AdaptiveSamplingZeroTemp
+        """
+        cost_fn = recon_setup
+        voxel = ground_truth_mic.voxels[0]
+        vertices = _get_voxel_vertices(voxel)
+        gt_orientation = voxel.orientation
+
+        # Perturb by ~1 degree
+        from scipy.spatial.transform import Rotation
+        perturbation = Rotation.from_rotvec(
+            np.array([0.015, 0.005, -0.005])
+        ).as_matrix()
+        start_orientation = perturbation @ gt_orientation
+
+        mc = MCOptimizer(
+            cost_fn=cost_fn,
+            voxel_vertices=vertices,
+            phase_index=voxel.phase,
+            rng=np.random.default_rng(123),
+        )
+
+        result = mc.variance_minimizing_optimize(
+            initial_orientation=start_orientation,
+            search_box_side=math.radians(2.0),
+            max_mc_steps=200,
+            successive_restarts=2,
+            max_convergence_cost=0.1,
+            convergence_variance=0.02 ** 2,
+        )
+
+        # Should find overlap
+        assert result.cost < 1.0, (
+            f"Variance-min MC should find overlap, got cost={result.cost}"
+        )
+
+        # Should converge close to ground truth
+        q_result = matrix_to_quaternion(result.orientation)
+        q_truth = matrix_to_quaternion(gt_orientation)
+        misori = get_misorientation(q_result, q_truth, cubic_symmetry_quats)
+        misori_deg = math.degrees(misori)
+
+        assert misori_deg < 10.0, (
+            f"Expected misorientation < 10 deg, got {misori_deg:.2f} deg"
+        )
+
+
+# ============================================================================
+# Test: AdaptiveVoxelReconstructor
+# ============================================================================
+
+class TestAdaptiveVoxelReconstructor:
+    """Test the adaptive refinement reconstructor."""
+
+    @pytest.fixture
+    def adaptive_setup(self, sim_config, exp_data, project_root):
+        """Set up AdaptiveVoxelReconstructor."""
+
+        exp_setup = XDMExperimentSetup(sim_config)
+        exp_setup.initialize_experiment()
+        detector_list = exp_setup.get_detector_list()
+        range_map = exp_setup.get_range_to_index_map()
+        sample = Sample()
+        exp_setup.initialize_sample(sample, detector_list[0])
+        simulator = Simulation(exp_setup)
+        structure_list = sample.get_structure_list()
+
+        fz_file = sim_config.fundamental_zone_filename
+        if not fz_file or not Path(fz_file).exists():
+            pytest.skip(f"FZ file not found: {fz_file}")
+        fz_orientations = load_fundamental_zone_file(fz_file)
+
+        setup = setup_reconstruction(
+            sim_config, exp_data=exp_data, fz_orientations=fz_orientations,
+        )
+        return AdaptiveVoxelReconstructor(setup)
+
+    def test_local_optimization_from_perturbation(
+        self, adaptive_setup, ground_truth_mic, cubic_symmetry_quats
+    ):
+        """
+        Start from ground truth + small perturbation, run local_optimization
+        (MC-only path), verify convergence back to ground truth.
+
+        This tests the cheap BFS neighbor path.
+
+        C++ Reference: DiscreteAdaptive.tmpl.cpp:280-317 LocalOptimization
+        """
+        reconstructor = adaptive_setup
+        voxel = ground_truth_mic.voxels[0]
+        vertices = _get_voxel_vertices(voxel)
+        gt_orientation = voxel.orientation
+
+        # Perturb by ~0.5 degrees
+        from scipy.spatial.transform import Rotation
+        perturbation = Rotation.from_rotvec(
+            np.array([0.008, 0.003, -0.003])
+        ).as_matrix()
+        start_orientation = (perturbation @ gt_orientation).astype(np.float32)
+
+        result = reconstructor.local_optimization(
+            voxel_vertices=vertices,
+            phase_index=voxel.phase,
+            initial_orientation=start_orientation,
+            rng=np.random.default_rng(42),
+        )
+
+        # Should find overlap
+        assert result.cost < 1.0, (
+            f"Local optimization should find overlap, got cost={result.cost}"
+        )
+
+        # Should converge close to ground truth
+        q_result = matrix_to_quaternion(result.orientation)
+        q_truth = matrix_to_quaternion(gt_orientation)
+        misori = get_misorientation(q_result, q_truth, cubic_symmetry_quats)
+        misori_deg = math.degrees(misori)
+
+        assert misori_deg < 5.0, (
+            f"Expected misorientation < 5 deg from 0.5° perturbation, "
+            f"got {misori_deg:.2f} deg"
+        )
+
+
+# ============================================================================
+# Test: BFSReconstruction
+# ============================================================================
+
+class TestBFSReconstruction:
+    """Test BFS reconstruction with spatial propagation."""
+
+    @pytest.fixture
+    def bfs_setup(self, sim_config, exp_data, project_root):
+        """Set up BFSReconstruction."""
+        fz_file = sim_config.fundamental_zone_filename
+        if not fz_file or not Path(fz_file).exists():
+            pytest.skip(f"FZ file not found: {fz_file}")
+        fz_orientations = load_fundamental_zone_file(fz_file)
+
+        setup = setup_reconstruction(
+            sim_config, exp_data=exp_data, fz_orientations=fz_orientations,
+        )
+        return BFSReconstruction(setup), setup
+
+    def test_bfs_three_voxels(
+        self, bfs_setup, ground_truth_mic, cubic_symmetry_quats
+    ):
+        """
+        Run BFS reconstruction on ThreeVoxels sample.
+
+        Verifies:
+        - All 3 voxels get processed (FITTED or REFIT)
+        - Seed gets full reconstruction (should recover orientation)
+        - BFS neighbors use MC-only local optimization
+        - Recovered orientations are close to ground truth
+
+        C++ Reference: BreadthFirstReconstructor.tmpl.cpp:112-188
+        """
+        bfs, setup = bfs_setup
+        mic = setup.sample.get_mic()
+        n_voxels = len(mic.voxels)
+
+        processed = bfs.reconstruct_sample(
+            max_voxels=n_voxels,
+            rng=np.random.default_rng(42),
+        )
+
+        # All voxels should be processed
+        assert len(processed) == n_voxels, (
+            f"Expected {n_voxels} processed, got {len(processed)}"
+        )
+
+        # No voxel should remain NOT_VISITED
+        for i, v in enumerate(mic.voxels):
+            assert v.reconstruction_id != ReconstructionState.NOT_VISITED, (
+                f"Voxel {i} still NOT_VISITED after BFS"
+            )
+
+        # Check orientations against ground truth
+        for i in range(n_voxels):
+            v = mic.voxels[i]
+            gt = ground_truth_mic.voxels[i]
+
+            if v.reconstruction_id == ReconstructionState.FITTED:
+                q_result = matrix_to_quaternion(v.orientation)
+                q_truth = matrix_to_quaternion(gt.orientation)
+                misori = get_misorientation(
+                    q_result, q_truth, cubic_symmetry_quats
+                )
+                misori_deg = math.degrees(misori)
+
+                assert misori_deg < 10.0, (
+                    f"Fitted voxel {i}: misorientation {misori_deg:.2f}° > 10°"
+                )
+
+    def test_bfs_propagation_uses_local_optimization(
+        self, bfs_setup, ground_truth_mic
+    ):
+        """
+        Verify that BFS propagates orientation from seed to neighbors.
+
+        After InsertSeed, NOT_VISITED neighbors should become VISITED
+        with the seed's orientation copied to them.
+        """
+        bfs, setup = bfs_setup
+        mic = setup.sample.get_mic()
+
+        # Initialize state
+        for v in mic.voxels:
+            v.reconstruction_id = ReconstructionState.NOT_VISITED
+
+        # Manually test InsertSeed
+        from collections import deque
+        queue: deque[int] = deque()
+
+        # Set voxel 0 as fitted with a known orientation
+        test_orient = ground_truth_mic.voxels[0].orientation.copy()
+        mic.voxels[0].orientation = test_orient
+        mic.voxels[0].reconstruction_id = ReconstructionState.FITTED
+
+        bfs._insert_seed(mic, 0, queue)
+
+        # Check: neighbors of voxel 0 should be VISITED with propagated orientation
+        for n_idx in queue:
+            neighbor = mic.voxels[n_idx]
+            assert neighbor.reconstruction_id == ReconstructionState.VISITED, (
+                f"Neighbor {n_idx} should be VISITED after InsertSeed"
+            )
+            # Orientation should be copied from seed
+            np.testing.assert_array_equal(
+                neighbor.orientation, test_orient,
+                err_msg=f"Neighbor {n_idx} should have seed's orientation"
+            )

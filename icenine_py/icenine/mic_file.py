@@ -29,6 +29,19 @@ from pathlib import Path
 from .geometry import euler_to_matrix, matrix_to_euler, euler_to_matrix_torch
 
 
+class ReconstructionState:
+    """
+    Voxel state machine for BFS reconstruction.
+
+    C++ Reference: ReconstructionStrategies.h:257-263 MultiStagedDetails
+    """
+
+    NOT_VISITED = -1
+    VISITED = 0
+    FITTED = 1
+    REFIT = 2
+
+
 @dataclass
 class Voxel:
     """
@@ -48,6 +61,7 @@ class Voxel:
         points_up: Triangle orientation (triangular mesh only)
         id: Unique voxel identifier
         deformation: 3x3 deformation tensor (optional, for strain)
+        reconstruction_id: BFS state (-1=NOT_VISITED, 0=VISITED, 1=FITTED, 2=REFIT)
     """
 
     position: np.ndarray  # (3,) - x, y, z
@@ -61,6 +75,7 @@ class Voxel:
     points_up: bool = True
     id: int = -1
     deformation: Optional[np.ndarray] = None  # (3, 3) optional
+    reconstruction_id: int = -1  # BFS state, see ReconstructionState
 
     def __post_init__(self):
         """Validate voxel data after initialization."""
