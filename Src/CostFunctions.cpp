@@ -35,6 +35,9 @@
 //------------------------------------------------------------------------------------
 #include "CostFunctions.h"
 
+// Global cost function evaluation counter for benchmarking
+long long g_cost_eval_count = 0;
+
 namespace CostFunctions
 {
   //--------------------------------

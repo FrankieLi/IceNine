@@ -353,6 +353,15 @@ class AdaptiveVoxelReconstructor:
     def __init__(self, setup: ReconstructionSetup):
         self.setup = setup
         self.params = setup.search_params
+        # Eval count tracking (set during reconstruct_voxel)
+        self._last_global_evals = 0
+        self._last_local_evals = 0
+
+    @property
+    def last_eval_counts(self) -> tuple:
+        """Return (global_evals, local_evals, total_evals) from most recent reconstruct_voxel call."""
+        total = self._last_global_evals + self._last_local_evals
+        return (self._last_global_evals, self._last_local_evals, total)
 
     def reconstruct_voxel(
         self,
@@ -377,7 +386,7 @@ class AdaptiveVoxelReconstructor:
 
         # Local cost function (pixel_radius=0) for MC and re-evaluation
         # C++ Reference: DiscreteAdaptive.tmpl.cpp:120-121 LocalSearchCostFunctions
-        local_cost_fn = VoxelCostFunction(
+        self._local_cost_fn = local_cost_fn = VoxelCostFunction(
             simulator=self.setup.simulator,
             detector_list=self.setup.detector_list,
             range_map=self.setup.range_map,
@@ -404,6 +413,7 @@ class AdaptiveVoxelReconstructor:
         n_q_max = 5.0 + self.params.min_local_resolution
 
         candidates = []
+        total_global_evals = 0
 
         for level in range(self.params.max_local_resolution + 1):
             t_level = time.time()
@@ -503,6 +513,9 @@ class AdaptiveVoxelReconstructor:
             n_keep = max(1, len(candidates) // 4)
             fz_orientations = np.array([c.orientation for c in candidates[:n_keep]])
 
+            # Accumulate global cost fn evals for this level
+            total_global_evals += global_cost_fn.eval_count
+
             t_total = time.time() - t_level
             print(f"    Level {level}: quick MC ({t_quick:.1f}s), "
                   f"kept {n_keep}/{len(candidates)}, "
@@ -576,6 +589,10 @@ class AdaptiveVoxelReconstructor:
         )
         best_candidate.overlap_info = final_info
         best_candidate.cost = final_info.cost
+
+        # Store eval counts for benchmarking
+        self._last_global_evals = total_global_evals
+        self._last_local_evals = local_cost_fn.eval_count
 
         return best_candidate
 
