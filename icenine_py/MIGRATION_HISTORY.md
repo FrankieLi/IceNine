@@ -59,11 +59,10 @@ Two bugs in detector geometry caused zero pixel overlap between Python and C++ f
 
 **Related fix in `file_io.py`**: `LabFrameOrientation` Euler angles were being double-converted from degrees to radians — `euler_to_matrix()` internally converts degrees, but the code was passing already-converted radians.
 
-### Latent Bug: Sample orientation save/restore (degree/radian mismatch)
-- `sample.get_orientation()` returns Euler angles in **radians**
-- `sample.set_orientation()` expects angles in **degrees** (it calls `passive_euler_matrix()` which converts internally)
-- C++ `SetOrientation` takes **radians** directly (calls `cosf()`)
-- This bug doesn't trigger for the Example2 test case where orientation is `(0,0,0)`, but will break for non-zero sample orientations.
+### Fixed Bug: Sample orientation save/restore (degree/radian mismatch)
+- `sample.get_orientation()` was returning Euler angles in **radians** but `sample.set_orientation()` expects **degrees**
+- `rotate()`, `rotate_axis_angle()` were not updating `orientation_euler` after composition
+- **Fix**: `orientation_euler` now stores degrees. `get_orientation()` returns degrees. `rotate()` and `rotate_axis_angle()` extract Euler angles after updating the matrix. `rotate_z()` does not update `orientation_euler` (hot-path, callers save/restore full matrix).
 
 ### Euler Angle Conventions
 - **Voxel orientations**: Active ZXZ Bunge convention (standard crystallography)
@@ -93,11 +92,16 @@ Fixed all 12 test failures and 17 test errors to achieve a clean test suite (256
 
 ## Remaining Work
 
+### Ported
+- Forward simulation (serial + batched differentiable)
+- Reconstruction: serial (BasicVoxelReconstructor), adaptive (AdaptiveVoxelReconstructor), BFS (BFSReconstruction)
+- Cost functions (batched stages A-D with C extension)
+- Search strategies: discrete grid search, zero-temperature MC, variance-minimizing MC
+
 ### Not Yet Ported
-- Reconstruction algorithms (Reconstructor, BreadthFirstReconstructor, DiscreteAdaptive)
-- Cost functions and search strategies
 - Parallel processing (MPI-based server/client)
-- Continuous optimization (ContinuousSearch)
+- Step size file reading (`_read_step_size_file` stub in `experiment_setup.py`)
+- Crystal symmetry unique reflection list filtering
 
 ### Integration Testing — Pixel-Exact Match Achieved
 
@@ -384,7 +388,7 @@ If all vertices project outside the detector image, C++ correctly leaves `bDetec
 
 **Fix**: In both serial (`calculate_diffraction_overlap`, line 316) and batched (`calculate_diffraction_overlap_batched`, line 519) paths, moved `detector_lit` assignment after the overlap computation. Set it based on `n_lit_int > 0` (triangle has in-bounds pixels, equivalent to C++ `IsInBound`) or `n_overlap_int > 0`. The `pixel_radius > 0` branch was already correct (explicitly checks bounds via `found_in_bounds`).
 
-**Note on `GetConfidence` semantics**: C++ `GetConfidence()` returns `nPeakOverlap / nPeakOnDetector` (fraction of peaks with overlap). Python `OverlapInfo.confidence` returns `quality` (Welford mean of per-peak quality contributions). The Python reconstructor uses `hit_ratio` (= `pixel_overlap / pixel_on_detector`) for convergence decisions, which is closer to the C++ `GetHitRatio()`.
+**`GetConfidence` semantics (fixed)**: Python `OverlapInfo.confidence` now correctly returns `peak_overlap / peak_on_detector`, matching C++ `GetConfidence()`. Previously it returned `quality` (Welford mean).
 
 ### Q-max Behavior Clarification
 
@@ -459,3 +463,17 @@ Ported the production C++ reconstruction pipeline to Python:
 Per-seed timing: 105s (voxel 2), 147s (voxel 1). The BFS benefit scales with sample size — for interior voxels in large samples (24K+), most get the cheap MC-only path (~1s each vs ~2200s for full search).
 
 **Not yet ported**: C++ `Refit()` / `RESTART_FIT` — second-pass retry of REFIT voxels with LocalOptimization followed by full search if quality is still low.
+
+### Bug Fix Batch (2026-03-23)
+
+Five documented bugs fixed in one pass:
+
+1. **Sample orientation degree/radian mismatch** (`sample.py`): `get_orientation()` returned radians but `set_orientation()` expects degrees — `set_orientation(*get_orientation())` silently produced wrong results. `rotate()` and `rotate_axis_angle()` didn't update `orientation_euler`. Fixed: `orientation_euler` now stores degrees, rotation methods extract Euler angles after matrix update, `rotate_z()` skips (hot-path, documented).
+
+2. **OverlapInfo.confidence semantic mismatch** (`cost_functions.py`): `confidence` property returned `quality` (Welford mean) instead of `peak_overlap / peak_on_detector` (C++ `GetConfidence`). Fixed to match C++.
+
+3. **Outdated "Remaining Work"** (`MIGRATION_HISTORY.md`): Listed reconstruction as "Not Yet Ported" despite being fully ported. Updated.
+
+4. **_read_step_size_file print warning** (`experiment_setup.py`): Changed `print()` to `warnings.warn()` for proper Python warning semantics.
+
+5. **Crystal symmetry TODO** (`experiment_setup.py`): Replaced bare TODO with explanation of why deferred (cubic symmetry doesn't need it).

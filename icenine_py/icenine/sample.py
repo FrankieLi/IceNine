@@ -196,9 +196,9 @@ class Sample:
         # Update 3x3 rotation part of 4x4 matrix
         self.sample_to_lab_matrix[:3, :3] = rotation
 
-        # Store Euler angles
+        # Store Euler angles in degrees (matching set_orientation input convention)
         self.orientation_euler = torch.tensor(
-            [phi_rad, theta_rad, psi_rad], dtype=torch.float32
+            [phi, theta, psi], dtype=torch.float32
         )
 
     def set_orientation_matrix(self, rotation_matrix: np.ndarray) -> None:
@@ -213,10 +213,10 @@ class Sample:
         rotation = torch.from_numpy(rotation_matrix.astype(np.float32))
         self.sample_to_lab_matrix[:3, :3] = rotation
 
-        # Extract Euler angles from rotation matrix
+        # Extract Euler angles from rotation matrix (returns radians), store as degrees
         phi, theta, psi = matrix_to_euler(rotation.numpy())
         self.orientation_euler = torch.tensor(
-            [phi, theta, psi], dtype=torch.float32
+            [np.rad2deg(phi), np.rad2deg(theta), np.rad2deg(psi)], dtype=torch.float32
         )
 
     def rotate(self, phi: float, theta: float, psi: float) -> None:
@@ -246,9 +246,11 @@ class Sample:
         rotation_old = self.sample_to_lab_matrix[:3, :3]
         self.sample_to_lab_matrix[:3, :3] = torch.matmul(R_new, rotation_old)
 
-        # Update Euler angles (Note: extraction may not be unique due to gimbal lock)
-        # For now, we don't update orientation_euler to avoid gimbal lock issues
-        # The authoritative source is the rotation matrix itself
+        # Extract Euler angles from the updated matrix (stored in degrees)
+        phi_r, theta_r, psi_r = matrix_to_euler(self.sample_to_lab_matrix[:3, :3].numpy())
+        self.orientation_euler = torch.tensor(
+            [np.rad2deg(phi_r), np.rad2deg(theta_r), np.rad2deg(psi_r)], dtype=torch.float32
+        )
 
     def rotate_axis_angle(self, axis: np.ndarray, angle_deg: float) -> None:
         """
@@ -281,6 +283,12 @@ class Sample:
         rotation_old = self.sample_to_lab_matrix[:3, :3]
         self.sample_to_lab_matrix[:3, :3] = torch.matmul(R, rotation_old)
 
+        # Extract Euler angles from the updated matrix (stored in degrees)
+        phi_r, theta_r, psi_r = matrix_to_euler(self.sample_to_lab_matrix[:3, :3].numpy())
+        self.orientation_euler = torch.tensor(
+            [np.rad2deg(phi_r), np.rad2deg(theta_r), np.rad2deg(psi_r)], dtype=torch.float32
+        )
+
     def rotate_z(self, omega: float) -> None:
         """
         Apply ACTIVE rotation around Z-axis (optimized version).
@@ -293,6 +301,10 @@ class Sample:
         C++ comment: "A ACTIVE rotation is used to go from the sample back to the lab."
 
         The operation is: oSampleToLabMatrix = Rz(omega) @ oSampleToLabMatrix
+
+        Note: This method does NOT update orientation_euler. It is called in the
+        innermost loop of cost function evaluation where callers save/restore the
+        full matrix. Extracting Euler angles here would be a performance regression.
 
         Args:
             omega: Rotation angle around Z-axis in RADIANS
@@ -338,8 +350,11 @@ class Sample:
 
         C++ Reference: Sample.h:97 (GetOrientation)
 
+        Note: C++ returns radians, but Python returns degrees to match
+        set_orientation() which takes degrees.
+
         Returns:
-            Euler angles [phi, theta, psi] in radians
+            Euler angles [phi, theta, psi] in degrees
         """
         return self.orientation_euler.numpy()
 
@@ -505,7 +520,7 @@ class Sample:
         return (
             f"Sample(\n"
             f"  location={location},\n"
-            f"  orientation_euler={orientation} rad,\n"
+            f"  orientation_euler={orientation} deg,\n"
             f"  num_voxels={num_voxels},\n"
             f"  num_phases={num_phases}\n"
             f")"

@@ -124,11 +124,14 @@ class OverlapInfo:
     @property
     def confidence(self) -> float:
         """
-        Confidence metric combining hit ratio and quality.
+        Fraction of peaks with overlap (peak-level hit ratio).
 
-        C++ Reference: CostFunctions.h GetConfidence
+        C++ Reference: CostFunctions.cpp GetConfidence
+        Returns: peak_overlap / peak_on_detector
         """
-        return self.quality
+        if self.peak_on_detector == 0:
+            return 0.0
+        return self.peak_overlap / self.peak_on_detector
 
 
 # ---------------------------------------------------------------------------

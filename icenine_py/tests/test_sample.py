@@ -361,15 +361,12 @@ class TestSampleTransformationsAdvanced:
         """Test Euler angle extraction after setting orientation."""
         sample = Sample()
 
-        # Set specific Euler angles
+        # Set specific Euler angles (degrees)
         phi, theta, psi = 45.0, 30.0, 60.0
         sample.set_orientation(phi, theta, psi)
 
-        # Get orientation back
+        # Get orientation back (now returns degrees, matching set_orientation)
         retrieved = sample.get_orientation()
-
-        # Convert back to degrees
-        retrieved_deg = np.rad2deg(retrieved)
 
         # Should match (within numerical precision)
         # Note: Euler angles may have multiple representations
@@ -378,9 +375,9 @@ class TestSampleTransformationsAdvanced:
 
         sample2 = Sample()
         sample2.set_orientation(
-            retrieved_deg[0],
-            retrieved_deg[1],
-            retrieved_deg[2]
+            retrieved[0],
+            retrieved[1],
+            retrieved[2]
         )
         R_retrieved = sample2.get_orientation_matrix()
 

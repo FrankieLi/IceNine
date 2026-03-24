@@ -13,6 +13,7 @@ The ExperimentSetup classes act as container/orchestration classes that:
 Author: S. F. Li
 """
 
+import warnings
 from dataclasses import dataclass
 from typing import List, Optional
 import numpy as np
@@ -415,9 +416,12 @@ class XDMExperimentSetup(ExperimentSetup):
         # Read as detector info (same file format)
         from .file_io import DetectorInfo
 
-        # TODO: Implement proper step size file reading
-        # For now, return empty list as these files are optional
-        print(f"WARNING: Step size file reading not yet implemented: {filename}")
+        # Step size file reading not yet implemented — these files are optional
+        # and not used by current reconstruction.
+        warnings.warn(
+            f"Step size file reading not yet implemented: {filename}",
+            stacklevel=2,
+        )
         return []
 
     def _validate_experiment_setup(self) -> None:
@@ -548,7 +552,9 @@ class XDMExperimentSetup(ExperimentSetup):
         # Apply symmetry to reflection vectors
         symmetry = self.get_sample_symmetry()
         sample.set_sample_symmetry(symmetry)
-        # TODO: crystal.set_unique_reflection_list(symmetry)
+        # Symmetry-based reflection filtering (crystal.set_unique_reflection_list)
+        # is not needed for cubic symmetry — all reflections are already equivalent.
+        # Implement if non-cubic symmetry support is added.
 
         # Add crystal structure to sample
         sample.add_crystal_structure(crystal)
