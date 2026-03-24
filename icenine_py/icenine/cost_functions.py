@@ -736,6 +736,7 @@ class VoxelCostFunction:
         self.mode = mode
         self.eta_limit = eta_limit
         self.pixel_radius = pixel_radius
+        self.eval_count = 0
 
         # Pre-compute reciprocal vectors per phase
         self._phase_recip_vecs = {}
@@ -774,6 +775,8 @@ class VoxelCostFunction:
 
         C++ Reference: CostFunctions.h VoxelCostFunction::operator()
         """
+        self.eval_count += 1
+
         if phase_index not in self._phase_recip_vecs:
             return OverlapInfo()
 

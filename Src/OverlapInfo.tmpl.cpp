@@ -43,6 +43,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Global cost function evaluation counter (defined in CostFunctions.cpp)
+extern long long g_cost_eval_count;
 
 namespace CostFunctions
 {
@@ -155,6 +157,7 @@ namespace CostFunctions
                                const CSimulationRange &oRangeToIndexMap,
                                const CSimulationData & oExpData )
   {
+    ++g_cost_eval_count;
     const Int nNumPixels    = oVertexList.size();
     const Int nNumPeaks     = vPeakInfo.size();
     const Int nNumDetectors = vDetectorList.size();

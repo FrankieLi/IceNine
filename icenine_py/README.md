@@ -291,7 +291,7 @@ Identical reconstruction on ThreeVoxels (MaxQ=8, 180 omega × 2 detectors, 4886 
 | Per-voxel average | ~8s | 2211.9s |
 | Reconstruction slowdown | 1× | ~276× |
 
-**Per-voxel results:**
+**Per-voxel results (BasicVoxelReconstructor):**
 
 | Voxel | C++ Cost | Python Cost | Python Euler (reconstructed) | Ground Truth Euler | Python Misori |
 |-------|----------|-------------|------------------------------|--------------------|---------------|
@@ -299,9 +299,19 @@ Identical reconstruction on ThreeVoxels (MaxQ=8, 180 omega × 2 detectors, 4886 
 | 1 | 0.080 | 0.201 | (155.62, 45.18, 209.33) | (155.44, 45.18, 29.33) | ~0° (sym equiv) |
 | 2 | 0.818 | 0.111 | (356.80, 3.70, 328.39) | (356.74, 3.70, 328.45) | 0.01° |
 
-Python recovers all 3 orientations to within 0.01° of ground truth (voxel 1: phi2 differs by 180°, which is a cubic symmetry equivalence). C++ finds a different (worse) local minimum for voxel 0, and fails on voxel 2 (cost=0.818).
+Note: This comparison used Python `BasicVoxelReconstructor` vs C++ `DiscreteRefinement` — **different algorithms**. See the identical-algorithm comparison below.
 
-**Timing breakdown (Python, per voxel):** The dominant cost is the level 3 discrete search (4886 FZ × 512 local grid = 2.5M cost function evaluations per voxel). At ~400 us/eval, each level 3 discrete search takes ~1000s. MC optimization is negligible (<5s total).
+#### Identical Algorithm Comparison (AdaptiveVoxelReconstructor)
+
+Same config and data, using the **identical algorithm**: C++ `DiscreteRefinement` vs Python `AdaptiveVoxelReconstructor`. Both sides instrumented with exact evaluation counters.
+
+| Metric | C++ | Python | Ratio |
+|--------|-----|--------|-------|
+| Total time | 2.25s | 97.0s | 43× |
+| Total evals | 150,251 | 213,690 | 1.42× |
+| Avg us/eval | 15.0 | 453.9 | 30× |
+
+Per-voxel: Both find the same orientations for voxels 0 and 1 (same local minima). For voxel 2, Python succeeds (0.13° misori) while C++ fails (cost=0.818) due to candidate count differences from floating-point divergence. See [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) for full per-voxel tables.
 
 #### Unit-Level Validation
 

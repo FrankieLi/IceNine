@@ -49,6 +49,10 @@
 #include "DiscreteAdaptive.h"
 #include <ctime>
 #include <memory>
+#include <chrono>
+
+// Global cost function evaluation counter (defined in CostFunctions.cpp)
+extern long long g_cost_eval_count;
 
 namespace Reconstruction
 {
@@ -91,26 +95,42 @@ namespace Reconstruction
       BasicVoxelReconstructor     Reconstructor( oSimulator, oSetup );
       DiscreteRefinement<SVoxel>  AdpReconstructor( oSimulator, oSetup );
       std::cout << "Num Elements in Queue " << VoxelQueue.Size() << std::endl;
+      int nVoxelIdx = 0;
       while( VoxelQueue.Size() != 0 )
       {
         SVoxel Result;
         Int nCode;
-        time_t oStartTime, oStopTime;
-        time( & oStartTime );
+
+        // Basic (non-adaptive) reconstruction
+        g_cost_eval_count = 0;
+        auto t0 = std::chrono::high_resolution_clock::now();
         std::tie( Result, nCode ) = Reconstructor.ReconstructVoxel( VoxelQueue.First() );
-        time( & oStopTime );
-        double oTimeDiff = difftime( oStopTime, oStartTime );
-        std::cout << "Normal Reconstruction " << oTimeDiff << " sec " << std::endl;
-        
-        time( & oStartTime );
+        auto t1 = std::chrono::high_resolution_clock::now();
+        double basicSec = std::chrono::duration<double>(t1 - t0).count();
+        long long basicEvals = g_cost_eval_count;
+        std::cout << "Normal Reconstruction " << basicSec << " sec, evals=" << basicEvals << std::endl;
+
+        // Adaptive reconstruction
+        g_cost_eval_count = 0;
+        t0 = std::chrono::high_resolution_clock::now();
         std::tie( Result, nCode ) = AdpReconstructor.ReconstructVoxel( VoxelQueue.First() );
-        time( & oStopTime );
-        oTimeDiff = difftime( oStopTime, oStartTime );
-        std::cout << "Adaptive Reconstruction " << oTimeDiff << " sec " << std::endl;
+        t1 = std::chrono::high_resolution_clock::now();
+        double adapSec = std::chrono::duration<double>(t1 - t0).count();
+        long long adapEvals = g_cost_eval_count;
+        std::cout << "Adaptive Reconstruction " << adapSec << " sec, evals=" << adapEvals << std::endl;
+
+        // Per-voxel summary
+        double adapUsPerEval = (adapEvals > 0) ? (adapSec * 1e6 / adapEvals) : 0;
+        std::cout << "VOXEL_SUMMARY voxel=" << nVoxelIdx
+                  << " basic_sec=" << basicSec << " basic_evals=" << basicEvals
+                  << " adap_sec=" << adapSec << " adap_evals=" << adapEvals
+                  << " adap_us_per_eval=" << adapUsPerEval
+                  << std::endl;
 
         VoxelQueue.Pop();
         VoxelQueue.Push( Result );
-      }  
+        nVoxelIdx++;
+      }
     }
     
     //----------------------------------------
