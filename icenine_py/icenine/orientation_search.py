@@ -22,6 +22,7 @@ from .cost_functions import OverlapInfo, VoxelCostFunction
 from .sampling import (
     QuaternionGrid,
     generate_local_grid,
+    get_misorientation,
     matrix_to_quaternion,
     quaternion_to_matrix,
     _quat_multiply,
@@ -139,6 +140,156 @@ def run_discrete_search(
 
     candidates.sort()
     return candidates
+
+
+def _spacing_filter(
+    candidates: List[SearchCandidate],
+    angular_radius: float,
+    symmetry_quats: np.ndarray,
+) -> List[SearchCandidate]:
+    """
+    Filter candidates by angular spacing: reject a candidate if a closer
+    candidate with better cost already exists.
+
+    This matches the C++ Acceptable() logic in DiscreteSearch.h:244-258.
+    The partition scheme mirrors the C++ swap-and-advance pattern from
+    GetSpacedCandidates (DiscreteSearch.h:364-398).
+
+    Args:
+        candidates: List of SearchCandidate (with cost and orientation set)
+        angular_radius: Minimum angular separation (radians)
+        symmetry_quats: (N_sym, 4) symmetry operator quaternions
+
+    Returns:
+        Filtered list of accepted candidates
+    """
+    if len(candidates) <= 1:
+        return candidates
+
+    # Convert orientations to quaternions for misorientation check
+    quats = np.array([matrix_to_quaternion(c.orientation) for c in candidates])
+
+    # Partition: accepted candidates go to front, rejected stay at back.
+    # C++ iterates pCur from element 1, comparing against [pFirstGood, end).
+    # pFirstGood advances when a candidate is NOT acceptable (swap to front).
+    # At the end, [pFirstGood, pCur) contains accepted candidates.
+    #
+    # Rewritten as a simple accept/reject list for clarity.
+    accepted = [candidates[0]]
+    accepted_quats = [quats[0]]
+
+    for i in range(1, len(candidates)):
+        # Check if acceptable: no existing accepted candidate within angular_radius
+        # that also has better (lower) cost
+        acceptable = True
+        for j in range(len(accepted)):
+            mis = get_misorientation(accepted_quats[j], quats[i], symmetry_quats)
+            if mis < angular_radius and accepted[j].cost < candidates[i].cost:
+                acceptable = False
+                break
+        if acceptable:
+            accepted.append(candidates[i])
+            accepted_quats.append(quats[i])
+
+    return accepted
+
+
+def get_symmetry_quaternions(symmetry) -> np.ndarray:
+    """
+    Extract proper rotation quaternions from a CrystalSymmetry object.
+
+    Filters to proper rotations only (det > 0), converts to quaternions.
+
+    Args:
+        symmetry: CrystalSymmetry object
+
+    Returns:
+        (N_sym, 4) array of quaternions [w, x, y, z]
+    """
+    matrices = symmetry.get_rotation_matrices()
+    quats = []
+    for m in matrices:
+        m = np.asarray(m, dtype=np.float64)
+        if np.linalg.det(m) > 0:
+            quats.append(matrix_to_quaternion(m))
+    return np.array(quats)
+
+
+def run_discrete_search_spaced(
+    global_cost_fn: VoxelCostFunction,
+    local_cost_fn: VoxelCostFunction,
+    fz_orientations: np.ndarray,
+    local_grid: np.ndarray,
+    voxel_vertices,
+    angular_radius: float,
+    symmetry_quats: np.ndarray,
+    phase_index: int = 0,
+) -> List[SearchCandidate]:
+    """
+    Discrete search with per-clique angular spacing filter.
+
+    For each FZ orientation (clique):
+    1. Evaluate all local grid perturbations with global cost fn (pixel_radius=3)
+    2. Re-evaluate accepted candidates with local cost fn (pixel_radius=0)
+    3. Apply spacing filter to remove angular-near duplicates
+
+    This matches C++ GetSpacedCandidates (DiscreteSearch.h:316-410) + the
+    re-evaluation in RunDiscreteSearch (DiscreteAdaptive.tmpl.cpp:50-103).
+
+    Args:
+        global_cost_fn: Cost function for initial screening (pixel_radius=3)
+        local_cost_fn: Cost function for re-evaluation (pixel_radius=0)
+        fz_orientations: (N_fz, 3, 3) FZ orientation matrices
+        local_grid: (N_local, 3, 3) local perturbation matrices
+        voxel_vertices: Voxel triangle vertices
+        angular_radius: Spacing filter radius (radians) = search diameter
+        symmetry_quats: (N_sym, 4) crystal symmetry quaternions
+        phase_index: Crystal phase index
+
+    Returns:
+        List of SearchCandidate (sorted by cost), filtered by spacing
+    """
+    all_candidates = []
+
+    for fz_idx in range(len(fz_orientations)):
+        search_center = fz_orientations[fz_idx]
+
+        # Phase 1: Screen with global cost fn (pixel_radius=3)
+        clique_candidates = []
+        for lg_idx in range(len(local_grid)):
+            candidate_orientation = local_grid[lg_idx] @ search_center
+            overlap_info = global_cost_fn.evaluate(
+                orientation=candidate_orientation,
+                voxel_vertices=voxel_vertices,
+                phase_index=phase_index,
+            )
+            if overlap_info.peak_overlap > 0:
+                clique_candidates.append(SearchCandidate(
+                    orientation=candidate_orientation,
+                    cost=0.0,  # will be set by local cost fn below
+                ))
+
+        if not clique_candidates:
+            continue
+
+        # Phase 2: Re-evaluate with local cost fn (pixel_radius=0)
+        # C++: GetSpacedCandidates lines 352-358, cost = 1 - GetConfidence
+        for cand in clique_candidates:
+            info = local_cost_fn.evaluate(
+                orientation=cand.orientation,
+                voxel_vertices=voxel_vertices,
+                phase_index=phase_index,
+            )
+            cand.cost = 1.0 - info.confidence if info.peak_on_detector > 0 else 1.0
+            cand.overlap_info = info
+
+        # Phase 3: Apply spacing filter within this clique
+        # C++: GetSpacedCandidates lines 364-398
+        filtered = _spacing_filter(clique_candidates, angular_radius, symmetry_quats)
+        all_candidates.extend(filtered)
+
+    all_candidates.sort()
+    return all_candidates
 
 
 # ---------------------------------------------------------------------------

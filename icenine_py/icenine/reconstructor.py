@@ -32,8 +32,10 @@ from .orientation_search import (
     MCOptimizer,
     SearchCandidate,
     SearchParameters,
+    get_symmetry_quaternions,
     hit_ratio_converged,
     run_discrete_search,
+    run_discrete_search_spaced,
 )
 from .sample import Sample
 from .sampling import (
@@ -406,6 +408,11 @@ class AdaptiveVoxelReconstructor:
             rng=rng,
         )
 
+        # Crystal symmetry for spacing filter
+        # C++ DiscreteAdaptive.tmpl.cpp:88
+        symmetry = self.setup.exp_setup.get_sample_symmetry()
+        symmetry_quats = get_symmetry_quaternions(symmetry) if symmetry else None
+
         # Initialize search state
         # C++ DiscreteAdaptive.tmpl.cpp:139-141
         fz_orientations = self.setup.fz_orientations  # full FZ set initially
@@ -444,11 +451,14 @@ class AdaptiveVoxelReconstructor:
                   f"= {n_evals} evals, nQMax={n_q_max:.0f}, "
                   f"diameter={math.degrees(diameter):.2f}°)", flush=True)
 
-            candidates = run_discrete_search(
-                cost_fn=global_cost_fn,
+            candidates = run_discrete_search_spaced(
+                global_cost_fn=global_cost_fn,
+                local_cost_fn=local_cost_fn,
                 fz_orientations=fz_orientations,
                 local_grid=local_grid,
                 voxel_vertices=voxel_vertices,
+                angular_radius=diameter,
+                symmetry_quats=symmetry_quats,
                 phase_index=phase_index,
             )
             t_discrete = time.time() - t_level
@@ -462,22 +472,8 @@ class AdaptiveVoxelReconstructor:
                       flush=True)
                 continue
 
-            # Phase 2: Re-evaluate candidates with local cost function (pixel_radius=0)
-            # C++ DiscreteAdaptive.tmpl.cpp:156-165
-            t_reeval = time.time()
-            for cand in candidates:
-                info = local_cost_fn.evaluate(
-                    orientation=cand.orientation,
-                    voxel_vertices=voxel_vertices,
-                    phase_index=phase_index,
-                )
-                cand.cost = info.cost
-                cand.overlap_info = info
-            candidates.sort()
-            t_reeval_elapsed = time.time() - t_reeval
-
             print(f"    Level {level}: {len(candidates)} candidates "
-                  f"(discrete={t_discrete:.1f}s, reeval={t_reeval_elapsed:.1f}s), "
+                  f"(discrete={t_discrete:.1f}s), "
                   f"best cost={candidates[0].cost:.4f}", flush=True)
 
             # Phase 3: Quick MC on all candidates (10 steps, 5 restarts)

@@ -539,3 +539,164 @@ This validation uses the **identical algorithm** on both sides: C++ `DiscreteRef
 6. **Total wall time**: ~2.25s (C++) vs ~97s (Python) = **43× total slowdown** (lower than the previous 276× comparison because the adaptive algorithm does fewer evaluations than BasicVoxelReconstructor).
 
 **Files changed**: `Src/CostFunctions.cpp` (global counter definition), `Src/OverlapInfo.tmpl.cpp` (counter increment), `Src/SerialReconstruction.h` (per-voxel timing + eval count reporting), `icenine_py/icenine/cost_functions.py` (eval_count tracking), `icenine_py/icenine/reconstructor.py` (expose eval counts), `Examples/Example2.ThreeVoxels/run_adaptive_reconstruction.py` (Python adaptive benchmark script).
+
+### Spacing Filter Fix (2026-03-24)
+
+**Problem**: Python did 42% more evaluations than C++ (213,690 vs 150,251). Root cause: C++ `GetSpacedCandidates` (DiscreteSearch.h:316-410) applies a per-clique angular spacing filter using `Acceptable()` (DiscreteSearch.h:244-258). Python was missing this filter entirely, causing candidate counts to balloon through adaptive levels (e.g., Level 3: 588 candidates in Python vs 4 in C++).
+
+**The spacing filter**: For each FZ clique, after re-evaluating candidates with the local cost function (pixel_radius=0, cost = 1 - confidence), the filter walks the sorted candidate list and rejects any candidate if there exists an already-accepted candidate within `angular_radius` (= search diameter) that has a better (lower) cost. Misorientation is computed with crystal symmetry reduction.
+
+**Implementation**: Three new functions in `orientation_search.py`:
+- `_spacing_filter()` — core reject/accept logic matching C++ `Acceptable()`
+- `get_symmetry_quaternions()` — extracts proper rotation quaternions from `CrystalSymmetry`
+- `run_discrete_search_spaced()` — replaces `run_discrete_search` in adaptive path, combining global screening + local re-evaluation + per-clique spacing into one function
+
+`reconstructor.py` `AdaptiveVoxelReconstructor.reconstruct_voxel()` updated to call `run_discrete_search_spaced()` instead of `run_discrete_search()` + separate re-evaluation phase.
+
+**Results after fix:**
+
+| Metric | C++ | Python (before) | Python (after) | After/C++ Ratio |
+|--------|-----|-----------------|----------------|-----------------|
+| Total time | 2.25s | 97.0s | 66.0s | 29× |
+| Total evals | 150,251 | 213,690 | 157,726 | 1.05× |
+| Avg us/eval | 15.0 | 453.9 | 418.7 | 28× |
+
+Candidate counts per level now closely match C++. Voxel 2 now fails similarly to C++ (both cost ~0.8), confirming algorithmic alignment — the previous Python success was an artifact of excess candidates from the missing filter.
+
+**Remaining bottleneck**: Per-eval gap is 28× (15 us C++ vs 419 us Python). This is pure computational overhead, not algorithmic difference.
+
+### Differentiable Cost Function Infrastructure (2026-03-25)
+
+New module `differentiable_cost.py` providing gradient-based orientation optimization infrastructure. Motivated by the goal of integrating the cost function into neural networks.
+
+**Key components:**
+
+| Class | Purpose |
+|-------|---------|
+| `ExperimentalImageStack` | Pre-stacks all (omega × detector) images into single contiguous tensor `(N, 1, H, W)` for batch `grid_sample`. Supports `binary=True` (0.0/1.0 matching existing pipeline) or `binary=False` (preserve intensities). Memory: ~5.6GB for 180×2×2048×2048 float32. |
+| `MultiScaleImageStack` | Gaussian-blurred image pyramid for coarse-to-fine optimization. Pre-blurs at construction via chunked `F.conv2d`. Widens angular basin from ~0.3° to ~2°+ at sigma=10. |
+| `DifferentiableCostFunction` | Replaces Stage D (sequential binary overlap counting) with differentiable bilinear sampling via `F.grid_sample`. Centroid point sampling (triangle centroid only, not full rasterization). |
+| `DifferentiableOverlapInfo` | Dataclass with `quality`/`cost` tensors carrying `grad_fn` for backpropagation. |
+
+**Architecture decisions:**
+
+1. **Separate class, not refactored VoxelCostFunction**: DifferentiableCostFunction reimplements the A-C stages rather than sharing code, to avoid breaking the validated C++-matching pipeline.
+
+2. **Centroid point sampling**: Each peak contributes one bilinear sample at `(v0+v1+v2)/3` instead of full triangle rasterization (~50 pixels). ~50x fewer samples, fully differentiable.
+
+3. **Discrete routing**: Omega-to-wedge mapping (Stage A) and eta filtering use `.detach().numpy()` — no gradients through discrete routing. This is correct because the set of observable peaks doesn't change for small orientation perturbations.
+
+4. **Multi-scale blur**: Broadens diffraction spots so gradient-based optimizers get non-zero signal even at ~2° offset (vs ~0.3° with unblurred images). Coarse-to-fine schedule: start blurry, progressively sharpen.
+
+**Convenience method**: `ExperimentalData.to_image_stack(binary=True)` creates an `ExperimentalImageStack` directly.
+
+**Tests (31 total, 29 passed, 2 skipped):**
+- Phase 1 (20 tests): ExperimentalImageStack construction, binary/intensity modes, round-trip, flat indexing, batch gather, memory, sparse support. Gaussian kernel shape/normalization. MultiScaleImageStack blur preservation, peak spreading, shape matching.
+- Phase 2 (11 tests): Gradient existence (`loss.backward()` → non-zero grads), finite-difference gradient check (autograd vs numerical Jacobian cosine similarity > 0.5), quality positive at ground truth (> 0.1), quality + cost = 1, correlation with hard cost function, wrong-orientation discrimination, all 3 ground truth voxels, invalid phase handling. Two blurred-scale tests skipped (require >16GB RAM).
+
+**Files:** `differentiable_cost.py` (new, ~560 lines), `experimental_data.py` (added `to_image_stack()`), `tests/test_differentiable_cost.py` (new, 31 tests).
+
+**Remaining work (Phases 3-4):**
+- Phase 3: `GradientOrientationOptimizer` — axis-angle parameterization + coarse-to-fine Adam schedule
+- Phase 4: Integration into `AdaptiveVoxelReconstructor` as optional gradient refinement after MC convergence
+
+### MultiScaleImageStack Memory Optimization (2026-03-30)
+
+Resolved ~9-11 GB memory usage during construction of multiple `MultiScaleImageStack` variants (needed for omega_window comparison benchmark). Three root causes and fixes:
+
+**Root cause 1: `torch.maximum()` in `_omega_blend` allocates intermediate temp tensor each shift**
+- Before: 3× tensor size overhead per shift (source, target, temp)
+- Fix: `torch.maximum(a, b, out=a)` eliminates temp → 2× overhead
+- `_prebuilt_downsampled` parameter
+
+**Root cause 2: N independent `MultiScaleImageStack.__init__` calls each ran `_downsample_stack`**
+- Each omega_window variant re-densified all 360 sparse frames independently
+- Fix: `build_shared_base()` classmethod densifies once, `_prebuilt_downsampled` parameter shares result
+
+**Root cause 3: `_downsample_stack` created new 16 MB dense tensor per frame**
+- 360 frames × 16 MB = 5.6 GB allocator pool accumulation
+- Fix: Pre-allocate `buf = torch.zeros(1, 1, H, W)`, reuse with `buf.zero_()`, wrapped in `torch.no_grad()` to prevent autograd graph accumulation
+
+**Result**: Setup memory for 3 omega_window variants reduced from ~9-11 GB to ~2 GB for ManyGrains.
+
+**New API** (added to `differentiable_cost.py`):
+```python
+# Build downsampled stacks once
+shared_ds = MultiScaleImageStack.build_shared_base(image_stack, [1, 4, 8])
+# Reuse across omega_window variants
+for ow in [0, 1, 2]:
+    ms = MultiScaleImageStack(image_stack, [1, 4, 8], omega_window=ow,
+                              _prebuilt_downsampled=shared_ds)
+```
+
+**New benchmarks**:
+- `benchmarks/bench_omega_window.py`: Compares quality vs misorientation for ω±0/1/2 at scale=2 (8× downsampled)
+- `benchmarks/mem_profile_stack.py`: Progressive n_omega profiling (10→180) with `psutil` RSS measurement at each stage
+
+### SparseImageStack (2026-03-30)
+
+New class `SparseImageStack` in `differentiable_cost.py` stores only (row, col) pixel coordinates instead of dense float32 tensors. Loaded from `.d` binary files via `from_image_directory()`.
+
+Memory comparison for ThreeVoxels 180 omegas × 2 detectors × 2048² images:
+- Dense (`ExperimentalImageStack`): ~5.6 GB
+- Sparse (`SparseImageStack`): ~12.5 KB (>400,000× smaller — binary diffraction images are extremely sparse)
+
+The `_downsample_stack()` densifies frames on demand during construction; the downsampled result is stored dense since pooling fills in sparsity.
+
+### Adam Gradient Optimization Benchmark (2026-03-30)
+
+Benchmark `benchmarks/bench_gradient_optimization.py` tests Adam gradient descent on SO(3) via Lie algebra parameterization for orientation recovery. Sweeps: scale × omega_window × perturbation_deg.
+
+**Parameterization**: `theta` (3-vector, axis-angle in radians) → `R = matrix_exp(skew(theta))` via `torch.matrix_exp`. Differentiable end-to-end through `DifferentiableCostFunction`.
+
+**Result: Adam fails at all tested perturbation distances (1°, 2°, 5°)**
+
+Root cause: `F.grid_sample` bilinear sampling of binary images gives **zero gradient in blob interiors** — only non-zero at the 1-pixel blob boundary. The gradient signal is structurally zero for the most important region (near ground truth orientation), making gradient descent unable to converge.
+
+- Scale=1 (4× downsampled): Gradient non-zero up to ~0.3°; zero beyond
+- Scale=2 (8× downsampled): Gradient up to ~0.5° with ω±1 blending; zero beyond
+- Scale=0 excluded: Full-res densification takes ~277s per run; also zero basin past ~0.3°
+
+**Output files**: `benchmarks/grad_opt_threevoxels.csv`, `benchmarks/grad_opt_manygrains.csv`, 6 PNG plots.
+
+### CMA-ES Orientation Optimization Benchmark (2026-03-31)
+
+Benchmark `benchmarks/bench_cmaes_optimization.py` tests CMA-ES (derivative-free Evolution Strategy) for orientation recovery, comparing hard cost vs diff cost (scale=2, ω±1).
+
+**Algorithm**: CMA-ES on SO(3) using Lie algebra 3-vector parameterization. Initial step size `sigma0 = perturbation_rad` (full perturbation magnitude, not /3 — needed so initial population can spread back toward ground truth). All flat-landscape stop conditions disabled (`tolfun=0`, `tolfunhist=0`); relies on `tolx` for genuine convergence detection.
+
+**ThreeVoxels results (3 voxels × 3 perturbations × 2 cost functions = 18 runs)**:
+
+| | hard cost | diff_s2_ow1 |
+|---|---|---|
+| 1° | 0/3 recovered | 0/3 recovered |
+| 2° | 0/3 recovered | 1/3 recovered (0.564°) |
+| 5° | 0/3 recovered | 0/3 recovered |
+
+**Hard cost**: 0/9 successful. Landscape completely flat outside ~0.5° basin — CMA-ES gets no signal, converges to random spurious orientations (40-165° misorientation).
+
+**Diff cost**: 1/9 successful. Partial basin (~1-3°) in orientation space allows occasional recovery. However, false local optima from crystal symmetry (Cu has 24-fold cubic symmetry) trap CMA-ES at wrong orientations with quality 0.1-0.3 (vs ~0.4-0.7 at ground truth).
+
+**Key finding**: Neither single-start Adam nor single-start CMA-ES can reliably recover orientations from perturbations ≥ 1°. The basin of attraction for both cost functions is too narrow relative to the search space. The original adaptive MC (random walk) approach is fundamentally more robust for this problem because it can make random moves without requiring gradient signal.
+
+**Recommended directions**:
+1. **Two-stage**: Use existing `AdaptiveMC` to get within ~0.5°, then apply gradient polishing (Adam or CMA-ES) — gradient IS reliable within the basin
+2. **Multi-start CMA-ES**: Restart from N random initial orientations with a large sigma, take the best result — requires O(N) × 500 evaluations but doesn't need MC
+3. **Distance field soft images**: Replace binary images with distance transform (distance to nearest bright pixel, stored float32) — gradient signal extends ~10-20px from blob, fixes zero-interior problem structurally
+
+**ManyGrains results (20 voxels × 3 perturbations × 2 cost functions = 120 runs, 4.9 min)**:
+
+| | hard cost | diff_s2_ow1 |
+|---|---|---|
+| 1° | 0/20 recovered | 1/20 recovered (vox 63: 0.063°) |
+| 2° | 0/20 recovered | 1/20 recovered (vox 63: 0.056°) |
+| 5° | 0/20 recovered | 0/20 recovered |
+
+**Overall CMA-ES success rate**: Hard 0/120, Diff 3/120 (2.5%). The one voxel that consistently works (idx=63, φ1=322.68°, Φ=6.36°, φ2=43.72°, q=0.84) has an unusually favorable diff-cost landscape.
+
+**Crystal symmetry false optima**: Diff cost frequently converges to orientations at 40-170° misorientation with quality 0.25-0.65 — these are genuine crystal symmetry equivalents (Cu has 24-fold cubic symmetry). Multi-start CMA-ES with symmetry-aware basin detection would be needed to handle this.
+
+**Recommended directions** (confirmed by both benchmarks):
+1. **Two-stage** (best near-term): Use existing `AdaptiveMC` to get within ~0.5°, then apply gradient polishing — gradient IS reliable within the basin
+2. **Multi-start CMA-ES** with symmetry folding: Restart from each of the 24 cubic symmetry equivalents, take the best result
+3. **Distance field soft images**: Replace binary images with distance transform — gradient extends ~10-20px from blobs, fixes zero-interior-gradient structurally
