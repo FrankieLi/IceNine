@@ -28,6 +28,9 @@ dev = [
     "flake8>=6.0.0",
     "mypy>=1.0.0",
 ]
+riemannian = [
+    "geoopt>=0.5.1",
+]
 
 [tool.setuptools]
 packages = ["icenine"]
