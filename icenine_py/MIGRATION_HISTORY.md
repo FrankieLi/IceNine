@@ -773,3 +773,47 @@ Final misorientation (mean°):
 **geoopt API note**: `geoopt.manifolds.SpecialOrthogonal` does not exist in v0.5.1. Used `geoopt.manifolds.Stiefel()` instead; starting from SO(3) and using geodesic retraction keeps the matrix in SO(3) (det = +1 maintained throughout).
 
 **Conclusions**: Riemannian structure helps at small perturbations but does not solve the flat-landscape / narrow-basin problem. The two-stage approach (AdaptiveMC → gradient polish) remains the recommended path.
+
+---
+
+## Riemannian SGD on SO(3) Benchmark (2026-04-01)
+
+**Branch**: `feature/differentiable-cost`
+**File**: `benchmarks/bench_sgd_optimization.py` (NEW)
+
+**Motivation**: Compare SGD-family optimizers against Riemannian Adam on SO(3) to understand whether simpler mechanics (no second moment) are competitive, and to test whether Langevin noise (SGLD) provides probabilistic escape from the flat cost landscape.
+
+**Five optimizers implemented** (all use geodesic retraction `R ← R·exp(−lr·Ω)`, same lr=0.01 as Adam benchmark):
+
+| Optimizer | Implementation | Key difference from Adam |
+|---|---|---|
+| `riemannian_sgd_plain` | geoopt.RiemannianSGD, momentum=0 | No moments, constant lr |
+| `riemannian_sgd_momentum` | geoopt.RiemannianSGD, β=0.9 | Heavy-ball momentum in so(3) |
+| `riemannian_sgd_nesterov` | geoopt.RiemannianSGD, nesterov=True | Look-ahead momentum |
+| `riemannian_sgd_cosine` | geoopt.RiemannianSGD + CosineAnnealingLR | lr_max=0.05 → lr_min=0.001 |
+| `riemannian_sgld` | Pure PyTorch, Langevin noise | Isotropic noise on T_R SO(3), T annealing to 0 |
+| `riemannian_adam_manual` | (baseline copy) | Adam, included for direct comparison |
+
+**Results (ManyGrains, 20 voxels, n_steps=100, lr=0.01)**:
+
+| Optimizer | 1° mean misori | 2° mean misori | 5° mean misori | 1° success (<0.5°) |
+|---|---|---|---|---|
+| riemannian_adam_manual | 1.43° | 1.95° | 5.44° | 32/120 (27%) |
+| riemannian_sgld | 12.06° | 11.52° | 12.42° | 0/120 |
+| riemannian_sgd_plain | 33.55° | 29.53° | 32.19° | 0/120 |
+| riemannian_sgd_momentum | 124.36° | 127.25° | 127.09° | 0/120 |
+| riemannian_sgd_nesterov | 124.15° | 121.65° | 127.89° | 0/120 |
+| riemannian_sgd_cosine | 131.05° | 126.42° | 124.39° | 0/120 |
+
+**Key finding: lr=0.01 is wildly incompatible with raw SGD on this problem.**
+
+Adam's adaptive second-moment scaling effectively normalises the learning rate per-coordinate: `lr_eff ≈ lr / √m̂₂`. When gradients are small (which they are in the flat landscape most of the time), Adam inflates the effective lr to compensate, keeping steps bounded. Raw SGD applies lr directly to the gradient magnitude — when the cost landscape occasionally produces a large gradient near a blob boundary, the step `lr·Ω` overshoots and sends R far from its starting point. The momentum variants amplify this: a single large gradient gets accumulated into `m`, carried forward, and compounds over many steps → divergence to 100°+ misorientation.
+
+**SGLD result**: Even with Langevin noise, lr=0.01 causes divergence (mean misorientation 12°). The noise helps slightly vs. plain SGD by providing random exploration, but the gradient component itself overshoots. A proper SGLD implementation would require a much smaller lr (≈10× smaller) to keep gradient steps bounded, with correspondingly larger noise scale to explore.
+
+**Conclusion**: For this cost function, the lr chosen for Adam (0.01) is completely inappropriate for SGD without adaptive scaling. A fair comparison would require lr-tuning per optimizer (e.g. lr≈0.001 for SGD). The key takeaway is that **Adam's adaptive scaling is not just a convenience — it is essential for this problem** because:
+1. Gradients are nearly zero almost everywhere (flat landscape), so the effective lr from Adam's `1/√m̂₂` normalization compensates correctly
+2. Near blob boundaries where gradients are large, Adam's `√m̂₂` denominator attenuates steps, preventing overshoot
+3. Raw SGD has no such self-regulation and diverges on this problem at standard learning rates
+
+**Future direction**: Tune lr for SGD variants (try 0.0001–0.001) and re-run to get a fair comparison. The cosine schedule variant is most promising as it starts with a larger lr for exploration and decays to a small lr for refinement.
