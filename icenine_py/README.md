@@ -296,7 +296,7 @@ Benchmarks comparing Adam gradient descent and CMA-ES derivative-free optimizati
 
 Riemannian structure gives +37% more successes at 1° perturbation; both Riemannian variants produce identical results, confirming correctness. At 5° all methods fail equally — flat landscape outside the basin dominates.
 
-**Riemannian SGD** (`benchmarks/bench_sgd_optimization.py`): Tests SGD-family optimizers (plain, momentum β=0.9, Nesterov, cosine-annealing LR, and SGLD with Langevin noise) at the same lr=0.01. All fail: momentum/nesterov/cosine diverge to 100–130° misorientation; plain SGD and SGLD reach 12–34°. **Root cause**: lr=0.01 is calibrated for Adam's adaptive scaling (`lr_eff ≈ lr/√m̂₂`); raw SGD applies this lr directly to the (occasionally large) gradient near blob boundaries and overshoots. Adam's second moment is essential for this problem, not just a convenience. A fair SGD comparison would require lr ≈ 0.0001–0.001.
+**Riemannian SGD** (`benchmarks/bench_sgd_optimization.py`): Tests SGD-family optimizers (plain, momentum β=0.9, Nesterov, cosine-annealing LR, and SGLD with Langevin noise). At the same lr=0.01 as Adam, all fail. At the fair lr=0.001 (10× smaller), SGLD approaches Adam (15% vs 27% success at 1° perturbation, ManyGrains). Momentum/Nesterov/cosine diverge even at lr=0.001 due to gradient accumulation amplifying boundary spikes. Plain SGD is stable but slow — Adam's `lr_eff ≈ lr/√m̂₂` normalization simultaneously handles flat-region acceleration AND boundary-spike attenuation, which no fixed lr achieves for raw SGD.
 
 **Recommended approaches** (in order of simplicity):
 1. **Two-stage MC + gradient polish**: Use existing `AdaptiveMC` to reach within ~0.5°, then apply Riemannian Adam — gradient signal IS reliable inside the basin

@@ -677,8 +677,13 @@ def sweep_voxel_multi(
     omega_windows: List[int],
     optimizer_names: List[str],
     n_steps: int,
+    optimizer_lrs: Optional[Dict[str, float]] = None,
 ) -> List[Dict]:
-    """Run all (optimizer, scale, omega_window, perturbation) combos for one voxel."""
+    """Run all (optimizer, scale, omega_window, perturbation) combos for one voxel.
+
+    optimizer_lrs: optional per-optimizer lr override dict. Keys are optimizer names,
+    values are learning rates. Optimizers not in the dict use their default lr.
+    """
     vertices = get_vertices(voxel)
     rows = []
 
@@ -693,10 +698,19 @@ def sweep_voxel_multi(
             for ow in omega_windows:
                 for opt_name in optimizer_names:
                     run_fn = OPTIMIZER_REGISTRY[opt_name]
+                    # Per-optimizer lr override (for fair comparison across optimizer families)
+                    # cosine variant uses lr_max; all others use lr
+                    extra_kwargs: Dict[str, object] = {}
+                    if optimizer_lrs and opt_name in optimizer_lrs:
+                        lr_val = optimizer_lrs[opt_name]
+                        if opt_name == "riemannian_sgd_cosine":
+                            extra_kwargs["lr_max"] = lr_val
+                        else:
+                            extra_kwargs["lr"] = lr_val
                     t0 = time.perf_counter()
                     result = run_fn(
                         diff_fns[ow], voxel, vertices, R_pert,
-                        scale=scale, n_steps=n_steps,
+                        scale=scale, n_steps=n_steps, **extra_kwargs,
                     )
                     elapsed = time.perf_counter() - t0
 
@@ -882,11 +896,14 @@ def run_example(
     optimizer_names: List[str],
     rng: np.random.Generator,
     smoke_test: bool = False,
+    optimizer_lrs: Optional[Dict[str, float]] = None,
 ) -> None:
     print(f"\n{'='*60}")
     print(f"Example: {label}")
     print(f"geoopt available: {_GEOOPT_AVAILABLE}")
     print(f"Optimizers: {optimizer_names}")
+    if optimizer_lrs:
+        print(f"LR overrides: {optimizer_lrs}")
     print(f"{'='*60}")
 
     if smoke_test:
@@ -935,13 +952,24 @@ def run_example(
             perturbations_deg=perturbations_deg,
             rng=rng, scales=scales, omega_windows=omega_windows,
             optimizer_names=optimizer_names, n_steps=n_steps,
+            optimizer_lrs=optimizer_lrs,
         )
         all_rows.extend(rows)
 
     elapsed = time.perf_counter() - t_start
     print(f"\nTotal time: {elapsed/60:.1f} min  ({len(all_rows)} rows)")
 
-    tag = label.lower().replace(" ", "_").replace(".", "")
+    base_tag = label.lower().replace(" ", "_").replace(".", "")
+    # Embed sgd lr in tag when using per-optimizer lrs, so fair-run outputs are separate
+    if optimizer_lrs:
+        sgd_lr_vals = [v for k, v in optimizer_lrs.items() if k != "riemannian_adam_manual"]
+        if sgd_lr_vals and len(set(sgd_lr_vals)) == 1:
+            lr_str = f"_sgdlr{sgd_lr_vals[0]:.0e}".replace("-0", "").replace("+0", "")
+        else:
+            lr_str = ""
+        tag = f"{base_tag}{lr_str}"
+    else:
+        tag = base_tag
     csv_path = benchmark_dir / f"sgd_opt_{tag}.csv"
     save_csv(all_rows, csv_path)
 
@@ -992,6 +1020,16 @@ if __name__ == "__main__":
     parser.add_argument("--n-steps", type=int, default=N_STEPS)
     parser.add_argument("--sgld-temp", type=float, default=SGLD_T_INIT,
                         help=f"SGLD initial temperature (default: {SGLD_T_INIT})")
+    parser.add_argument(
+        "--sgd-lr", type=float, default=None,
+        help="LR for SGD variants (plain/momentum/nesterov/sgld). "
+             "Adam always uses --adam-lr. Use this for fair comparison "
+             "(SGD needs ~10x smaller lr than Adam). Default: same as Adam (0.01).",
+    )
+    parser.add_argument(
+        "--adam-lr", type=float, default=LR,
+        help=f"LR for Adam baseline (default: {LR})",
+    )
     args = parser.parse_args()
 
     # Allow sgld-temp override
@@ -1011,6 +1049,20 @@ if __name__ == "__main__":
     print(f"Available optimizers: {list(OPTIMIZER_REGISTRY.keys())}")
     print(f"Running: {optimizer_names}")
 
+    # Build per-optimizer lr dict for fair comparison
+    sgd_variant_names = [
+        "riemannian_sgd_plain", "riemannian_sgd_momentum",
+        "riemannian_sgd_nesterov", "riemannian_sgd_cosine", "riemannian_sgld",
+    ]
+    optimizer_lrs: Dict[str, float] = {}
+    optimizer_lrs["riemannian_adam_manual"] = args.adam_lr
+    if args.sgd_lr is not None:
+        for name in sgd_variant_names:
+            optimizer_lrs[name] = args.sgd_lr
+        print(f"LR: adam={args.adam_lr}, sgd_variants={args.sgd_lr}")
+    else:
+        print(f"LR: {args.adam_lr} (all optimizers, uniform)")
+
     rng = np.random.default_rng(seed=SEED)
 
     three_dir = project_root / "Examples" / "Example2.ThreeVoxels"
@@ -1029,6 +1081,7 @@ if __name__ == "__main__":
             optimizer_names=optimizer_names,
             rng=rng,
             smoke_test=args.smoke_test,
+            optimizer_lrs=optimizer_lrs if optimizer_lrs else None,
         )
 
     if args.example in ("manygrains", "both"):
@@ -1044,4 +1097,5 @@ if __name__ == "__main__":
             optimizer_names=optimizer_names,
             rng=rng,
             smoke_test=args.smoke_test,
+            optimizer_lrs=optimizer_lrs if optimizer_lrs else None,
         )
