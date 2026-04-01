@@ -78,6 +78,7 @@ For each voxel in the sample:
 | `_rasterize.c` | CPython C extension for fast triangle rasterization and pixel overlap (Sutherland-Hodgman + Bresenham) |
 | `experimental_data.py` | Load experimental detector images for reconstruction |
 | `sampling.py` | SO(3) uniform sampling via Sukharev grids (Yershova & LaValle) |
+| `differentiable_cost.py` | Gradient-capable cost infrastructure: `SparseImageStack`, `MultiScaleImageStack`, `DifferentiableCostFunction` |
 
 ## Quick Start: Reconstruction
 
@@ -211,6 +212,83 @@ print(f"Hit ratio: {result.hit_ratio:.3f}")
 print(f"Orientation:\n{result.orientation}")
 ```
 
+## Differentiable Cost Function
+
+`differentiable_cost.py` provides gradient-capable infrastructure for orientation optimization experiments. It wraps the same physics as `VoxelCostFunction` but uses `F.grid_sample` (bilinear) instead of hard binary rasterization, making it differentiable via PyTorch autograd.
+
+### Classes
+
+**`SparseImageStack`** — memory-efficient image storage. Stores only (row, col) pixel coordinates instead of dense float32 tensors. For typical binary diffraction data: ~12.5 KB (ThreeVoxels) vs 5.6 GB dense — over 400,000× smaller.
+
+```python
+from icenine.differentiable_cost import SparseImageStack
+
+image_stack = SparseImageStack.from_image_directory(
+    directory="ScatteringData_Python",
+    basename="3Grains.sim", ext="d", serial_length=5,
+    n_omega=180, n_detectors=2, num_rows=2048, num_cols=2048, binary=True,
+)
+print(f"{image_stack.memory_bytes / 1024:.1f} KB")  # 12.5 KB
+```
+
+**`MultiScaleImageStack`** — multi-resolution image pyramid with optional omega blending. Downsamples by max-pooling at factors [4×, 8×, ...]; optionally blends each frame with its ±`omega_window` neighbors to widen the angular basin.
+
+To construct multiple omega_window variants efficiently (avoids re-densifying all frames per variant):
+
+```python
+from icenine.differentiable_cost import MultiScaleImageStack
+
+# Densify downsampled stacks once
+shared_ds = MultiScaleImageStack.build_shared_base(image_stack, [1, 4, 8])
+
+# Reuse across omega_window variants (~2 GB total vs ~9-11 GB without sharing)
+ms_ow0 = MultiScaleImageStack(image_stack, [1, 4, 8], omega_window=0, _prebuilt_downsampled=shared_ds)
+ms_ow1 = MultiScaleImageStack(image_stack, [1, 4, 8], omega_window=1, _prebuilt_downsampled=shared_ds)
+```
+
+**`DifferentiableCostFunction`** — drop-in replacement for `VoxelCostFunction` with autograd support. Uses centroid point sampling (one `grid_sample` per peak) instead of full rasterization — ~50× fewer samples, fully differentiable.
+
+```python
+from icenine.differentiable_cost import DifferentiableCostFunction
+import torch
+
+diff_fn = DifferentiableCostFunction(
+    simulator=simulator, detector_list=detector_list, range_map=range_map,
+    image_stack=ms_ow1, sample=sample, structure_list=structure_list,
+)
+
+# Evaluate at scale=2 (8× downsampled)
+R = torch.eye(3, requires_grad=True)
+info = diff_fn.evaluate(R, vertices, phase_index=0, scale=2)
+print(f"quality={info.quality:.4f}")  # torch.Tensor with grad_fn
+info.cost.backward()                  # backprop through cost
+print(R.grad)
+```
+
+### Orientation Optimization Results
+
+Benchmarks comparing Adam gradient descent and CMA-ES derivative-free optimization for orientation recovery from perturbed ground truth:
+
+**Adam gradient descent** (`benchmarks/bench_gradient_optimization.py`): **Fails at all perturbation distances (1°, 2°, 5°)**. Root cause: `grid_sample` bilinear sampling of binary images gives zero gradient in blob interiors — only the 1-pixel blob boundary carries gradient signal. The gradient basin is ~0.3–0.5°, so Adam cannot converge from realistic perturbation distances.
+
+**CMA-ES** (`benchmarks/bench_cmaes_optimization.py`, maxiter=500):
+
+| | Hard cost | Diff cost (scale=2, ω±1) |
+|---|---|---|
+| ThreeVoxels, 1° | 0/3 | 0/3 |
+| ThreeVoxels, 2° | 0/3 | 1/3 (→0.56°) |
+| ThreeVoxels, 5° | 0/3 | 0/3 |
+| ManyGrains, 1° (20v) | 0/20 | 1/20 (→0.06°) |
+| ManyGrains, 2° (20v) | 0/20 | 1/20 (→0.06°) |
+| ManyGrains, 5° (20v) | 0/20 | 0/20 |
+
+**Hard cost** fails because the landscape is completely flat outside the ~0.5° basin — CMA-ES receives no signal and drifts to random orientations (40–165° final misorientation). **Diff cost** occasionally succeeds when a run happens to sample the narrow basin, but is mostly trapped by crystal symmetry false optima (Cu has 24-fold cubic symmetry; symmetry-equivalent orientations achieve quality 0.25–0.65 at 40–170° misorientation).
+
+**Recommended approaches** (in order of simplicity):
+1. **Two-stage MC + gradient polish**: Use existing `AdaptiveMC` to reach within ~0.5°, then apply Adam/CMA-ES — gradient signal IS reliable inside the basin
+2. **Multi-start CMA-ES with symmetry folding**: Restart from all 24 cubic symmetry equivalents, take the best result
+3. **Distance field soft images**: Replace binary images with distance transform (distance to nearest bright pixel, float32) — extends gradient signal ~10–20px beyond each blob, eliminating the zero-interior-gradient problem structurally
+
 ## Config File Format
 
 Forward simulation requires a `.config` file specifying:
@@ -236,7 +314,7 @@ See `Examples/Example2.ThreeVoxels/ConfigFiles/Example2.Simulation.config` for a
 
 ```bash
 cd icenine_py
-uv run pytest tests/ -v                                 # all tests (326 passed, 34 skipped)
+uv run pytest tests/ -v                                 # all tests (~328 passed, ~34 skipped)
 uv run pytest tests/test_simulation.py                   # specific module
 uv run pytest tests/test_reconstruction_integration.py   # reconstruction end-to-end (~40s)
 uv run pytest --cov=icenine tests/                       # with coverage
