@@ -267,11 +267,43 @@ print(R.grad)
 
 ### Orientation Optimization Results
 
-Benchmarks comparing Adam gradient descent and CMA-ES derivative-free optimization for orientation recovery from perturbed ground truth:
+#### Experiment Setup
 
-**Adam gradient descent** (`benchmarks/bench_gradient_optimization.py`): **Fails at all perturbation distances (1°, 2°, 5°)**. Root cause: `grid_sample` bilinear sampling of binary images gives zero gradient in blob interiors — only the 1-pixel blob boundary carries gradient signal. The gradient basin is ~0.3–0.5°, so Adam cannot converge from realistic perturbation distances.
+All gradient/optimizer benchmarks use a controlled orientation-recovery protocol applied to two datasets:
 
-**CMA-ES** (`benchmarks/bench_cmaes_optimization.py`, maxiter=500):
+**Datasets:**
+- **ThreeVoxels** (`Examples/Example2.ThreeVoxels/`): 3-voxel copper polycrystal. All 3 voxels used (hard quality > 0.1). Ground truth Bunge Euler angles: (355.4°, 5.2°, 29.3°), (155.4°, 45.2°, 29.3°), (356.7°, 3.7°, 328.4°).
+- **ManyGrains** (`Examples/Example2.ManyGrains/`): 500-voxel copper polycrystal. 20 voxels selected by scanning up to 500 candidates and drawing a random subset with hard-cost quality > 0.1 (RNG seed=42).
+
+**Physics setup:**
+- Crystal: copper (FCC, a=3.61 Å, space group 225, 24-fold cubic symmetry)
+- Beam energy: 64.351 keV (monochromatic), direction (0,0,1)
+- Max Q: 16 Å⁻¹ (simulation); 8 Å⁻¹ effective during reconstruction (filters weak peaks)
+- Eta limit: 86° (azimuthal acceptance)
+- Omega range: 0°–179° in 1° steps = 180 frames
+- Detectors: 2 flat-panel detectors at ~3.36 cm and ~5.39 cm from sample, 2048×2048 pixels, 14.8 μm pixel pitch
+- Each voxel produces ~15–30 observable peaks across both detectors × 180 frames
+
+**Perturbation construction:**
+Each voxel has one starting orientation per perturbation size, constructed as:
+```
+R_start = R_perturb(axis, angle) @ R_ground_truth
+```
+where `axis` is a uniformly random unit vector drawn from `np.random.default_rng(seed=42)` (one axis per perturbation size, same axis used for all (scale, omega_window, optimizer) combinations for that voxel), and `angle` is the perturbation size in {1°, 2°, 5°}. The perturbation is a left-action rotation that shifts the starting orientation away from ground truth by exactly that geodesic distance on SO(3). The same random axis sequence is reused across all benchmark scripts for direct comparison.
+
+**Cost function variants swept:**
+- `scale`: 0 = full-resolution 2048² images (sharp basin), 1 = 4× downsampled 512² (wider basin), 2 = 8× downsampled 256² (widest basin). All gradient benchmarks sweep scales {1, 2}.
+- `omega_window`: integer ω±k — each detector frame is morphologically dilated by taking the max with its ±k neighbors in omega before evaluation. Values {0, 1, 2} swept. Widens the angular coverage from 1° to (2k+1)° per frame, broadening the cost function basin.
+
+**Convergence metric:** Geodesic misorientation between final R and ground truth: `arccos((tr(R_gt^T R_final) − 1) / 2)`. Success threshold: < 0.5°.
+
+**Per-benchmark result counts:** Each cell in results tables below counts independent optimizer runs over all (voxel, scale, omega_window) combinations: 3 voxels × 2 scales × 3 ω-windows = 18 configs for ThreeVoxels; 20 voxels × 2 scales × 3 ω-windows = 120 configs for ManyGrains.
+
+---
+
+**Adam gradient descent** (`benchmarks/bench_gradient_optimization.py`): Euclidean Adam on θ ∈ ℝ³ (R = exp(skew(θ))), lr=0.01, n_steps=100. **Fails at all perturbation distances.** Root cause: `grid_sample` bilinear sampling of binary images gives zero gradient in blob interiors — only the 1-pixel blob boundary carries gradient signal. The gradient basin is ~0.3–0.5°, so Adam cannot converge from 1° or larger starting offsets.
+
+**CMA-ES** (`benchmarks/bench_cmaes_optimization.py`, maxiter=500, σ₀=perturbation_rad):
 
 | | Hard cost | Diff cost (scale=2, ω±1) |
 |---|---|---|
@@ -284,19 +316,26 @@ Benchmarks comparing Adam gradient descent and CMA-ES derivative-free optimizati
 
 **Hard cost** fails because the landscape is completely flat outside the ~0.5° basin — CMA-ES receives no signal and drifts to random orientations (40–165° final misorientation). **Diff cost** occasionally succeeds when a run happens to sample the narrow basin, but is mostly trapped by crystal symmetry false optima (Cu has 24-fold cubic symmetry; symmetry-equivalent orientations achieve quality 0.25–0.65 at 40–170° misorientation).
 
-**Riemannian Adam** (`benchmarks/bench_riemannian_optimization.py`): Compares three optimizers that respect the SO(3) manifold structure. Euclidean Adam on θ ∈ ℝ³ has two defects: chart distortion (gradient mixes Riemannian component with Jacobian of exp) and moment staleness (moments never parallel-transported to current R). The Riemannian variants project gradients to T_R SO(3) at every step and retract via `R ← R·exp(-lr·Ω_adam)`, keeping R exactly on SO(3):
+**Riemannian Adam** (`benchmarks/bench_riemannian_optimization.py`, n_steps=100, lr=0.01): Euclidean Adam on θ ∈ ℝ³ has two defects: (1) chart distortion — `d(cost)/d(θ)` mixes the Riemannian gradient with the Jacobian of exp, growing as R drifts from R_start; (2) moment staleness — Adam moments accumulate in a fixed chart anchored at R_start, never parallel-transported. The Riemannian variants project gradients to T_R SO(3) at every step and retract via `R ← R·exp(-lr·Ω_adam)`, staying exactly on SO(3):
 
 | Optimizer | ManyGrains 1° | ManyGrains 2° | ManyGrains 5° |
 |---|---|---|---|
-| euclidean_adam (baseline) | 24/120 (20%) | 25/120 (21%) | 4/120 (3%) |
-| riemannian_adam_manual | 32/120 (27%) | 29/120 (24%) | 4/120 (3%) |
-| riemannian_adam_geoopt | 37/120 (31%) | 29/120 (24%) | 5/120 (4%) |
+| euclidean_adam (baseline, θ ∈ ℝ³) | 24/120 (20%) | 25/120 (21%) | 4/120 (3%) |
+| riemannian_adam_manual (pure PyTorch) | 32/120 (27%) | 29/120 (24%) | 4/120 (3%) |
+| riemannian_adam_geoopt (geoopt Stiefel) | 37/120 (31%) | 29/120 (24%) | 5/120 (4%) |
 
-(Success = final misorientation < 0.5°, n_steps=100, lr=0.01, all settings swept over 2 scales × 3 ω-windows)
+Riemannian structure gives +37% more successes at 1° perturbation. Manual and geoopt variants agree closely, confirming correctness. At 5° all methods fail equally — flat landscape dominates.
 
-Riemannian structure gives +37% more successes at 1° perturbation; both Riemannian variants produce identical results, confirming correctness. At 5° all methods fail equally — flat landscape outside the basin dominates.
+**Riemannian SGD** (`benchmarks/bench_sgd_optimization.py`): Same setup as Riemannian Adam. At equal lr=0.01, all SGD variants diverge (momentum/nesterov/cosine reach 100–130° misorientation due to gradient spike accumulation). At the fair lr=0.001 (10× smaller, Adam still at 0.01):
 
-**Riemannian SGD** (`benchmarks/bench_sgd_optimization.py`): Tests SGD-family optimizers (plain, momentum β=0.9, Nesterov, cosine-annealing LR, and SGLD with Langevin noise). At the same lr=0.01 as Adam, all fail. At the fair lr=0.001 (10× smaller), SGLD approaches Adam (15% vs 27% success at 1° perturbation, ManyGrains). Momentum/Nesterov/cosine diverge even at lr=0.001 due to gradient accumulation amplifying boundary spikes. Plain SGD is stable but slow — Adam's `lr_eff ≈ lr/√m̂₂` normalization simultaneously handles flat-region acceleration AND boundary-spike attenuation, which no fixed lr achieves for raw SGD.
+| Optimizer | ManyGrains 1° success | 1° mean misori |
+|---|---|---|
+| riemannian_adam_manual (lr=0.01) | 32/120 (27%) | 1.43° |
+| riemannian_sgld (lr=0.001, Langevin noise, T annealing→0) | 18/120 (15%) | 1.66° |
+| riemannian_sgd_plain (lr=0.001) | 1/120 (<1%) | 2.45° |
+| riemannian_sgd_momentum/nesterov/cosine (lr=0.001) | 0/120 | 20–26° |
+
+SGLD is the best SGD variant due to Langevin noise providing probabilistic exploration. No fixed SGD lr achieves what Adam's `lr_eff ≈ lr/√m̂₂` does: automatic acceleration in flat regions and automatic attenuation of boundary spikes.
 
 **Recommended approaches** (in order of simplicity):
 1. **Two-stage MC + gradient polish**: Use existing `AdaptiveMC` to reach within ~0.5°, then apply Riemannian Adam — gradient signal IS reliable inside the basin
