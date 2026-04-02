@@ -13,7 +13,7 @@ C++ Reference:
 
 import math
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -293,6 +293,20 @@ def run_discrete_search_spaced(
 
 
 # ---------------------------------------------------------------------------
+# SO(3) distance helper (quaternion-based, no symmetry reduction)
+# ---------------------------------------------------------------------------
+
+def _quat_misorientation_deg(q1: np.ndarray, q2: np.ndarray) -> float:
+    """Geodesic distance in degrees between two orientations (no symmetry).
+
+    Uses the half-angle formula: dist = 2 * arccos(|q1 · q2|).
+    """
+    dot = float(np.abs(np.dot(q1, q2)))
+    dot = min(1.0, dot)
+    return float(np.degrees(2.0 * np.arccos(dot)))
+
+
+# ---------------------------------------------------------------------------
 # Zero-temperature Monte Carlo optimizer
 # ---------------------------------------------------------------------------
 
@@ -328,6 +342,7 @@ class MCOptimizer:
         max_mc_steps: int,
         max_restarts: int,
         max_convergence_cost: float = 0.0,
+        trajectory: Optional[List[Dict]] = None,
     ) -> SearchCandidate:
         """
         Run zero-temperature MC optimization from initial orientation.
@@ -339,6 +354,9 @@ class MCOptimizer:
             max_mc_steps: Maximum MC steps
             max_restarts: Maximum number of random restarts
             max_convergence_cost: Early stop if cost drops below this
+            trajectory: Optional list; when provided, accepted-move records are
+                appended as dicts with keys step, event_type, angular_step_deg,
+                cur_step_rad. Non-breaking: ignored when None (default).
 
         Returns:
             Best SearchCandidate found
@@ -348,6 +366,7 @@ class MCOptimizer:
         # Convert initial orientation to quaternion
         best_q = matrix_to_quaternion(initial_orientation)
         optimal_q = best_q.copy()
+        prev_best_q = best_q.copy()  # for trajectory angular-step computation
 
         # Evaluate initial cost
         best_info = self.cost_fn.evaluate(
@@ -401,6 +420,15 @@ class MCOptimizer:
                         1, int(2.0 * (angular_box_side / cur_step) ** 3)
                     ) if cur_step > 0 else max_mc_steps
 
+                    if trajectory is not None:
+                        trajectory.append({
+                            "step": step,
+                            "event_type": "mc_accept",
+                            "angular_step_deg": _quat_misorientation_deg(prev_best_q, best_q),
+                            "cur_step_rad": cur_step,  # already halved
+                        })
+                        prev_best_q = best_q.copy()
+
                     # Early convergence check
                     if global_min_cost < max_convergence_cost:
                         break
@@ -421,6 +449,14 @@ class MCOptimizer:
                 restart_q = self._grid_gen.get_near_identity_point(rx, ry, rz)
                 restart_q = _quat_multiply(restart_q, best_q)
                 optimal_q = restart_q.copy()
+
+                if trajectory is not None:
+                    trajectory.append({
+                        "step": step,
+                        "event_type": "mc_restart",
+                        "angular_step_deg": _quat_misorientation_deg(best_q, optimal_q),
+                        "cur_step_rad": angular_step,  # reset to original step size
+                    })
 
                 # Re-evaluate at restart point
                 restart_mat = quaternion_to_matrix(optimal_q)

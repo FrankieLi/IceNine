@@ -855,3 +855,70 @@ Re-ran all 6 optimizers with SGD variants at lr=0.001 (10× smaller than Adam's 
 - No single fixed lr for SGD captures both behaviors simultaneously
 
 **Best single-start optimizer ranking**: riemannian_adam_geoopt ≈ riemannian_adam_manual > riemannian_sgld (lr=0.001) > riemannian_sgd_plain (lr=0.001) >> momentum variants
+
+---
+
+## Comprehensive HP Sweep — Gradient Methods vs. MC (2026-04-01)
+
+**Branch**: `feature/differentiable-cost`
+**Files added**:
+- `benchmarks/bench_hp_sweep.py` (NEW) — full HP sweep benchmark
+- `icenine/orientation_search.py` (MODIFIED) — `MCOptimizer.optimize()` gains optional `trajectory` parameter
+
+**Motivation**: Prior benchmarks fixed hyperparameters and showed large lr sensitivity. This sweep exhaustively studies all hyperparameters for each optimizer family and compares against `MCOptimizer` to establish a definitive head-to-head comparison. Also captures optimization trajectories (angular step sizes per optimizer step) to understand search dynamics.
+
+### Optimizers and HP grids
+
+| Optimizer | HP Grid | Total configs |
+|---|---|---|
+| `riemannian_adam_geoopt` | lr ∈ {1e-4,...,0.1} × n_steps ∈ {100,200,500} × beta1 ∈ {0.9,0.95} | 42 |
+| `riemannian_adam_manual` | Same as geoopt | 42 |
+| `riemannian_sgd_plain` | lr ∈ {1e-4,...,0.01} × n_steps ∈ {100,200,500} | 15 |
+| `riemannian_sgd_momentum` | lr ∈ {1e-5,...,1e-3} × momentum ∈ {0.5,0.9,0.99} (n_steps=200) | 15 |
+| `riemannian_sgld` | lr ∈ {1e-4,...,0.01} × T_init ∈ {0.001,0.01,0.1} × n_steps ∈ {100,200,500} | 45 |
+| `mc_optimizer` | max_mc_steps ∈ {100,500,1000,3500} × restarts ∈ {0,2,5} × step_frac ∈ {0.25,0.5,1.0} | 36 |
+
+Total: 195 HP configs per voxel × perturbation. All gradient runs use `scale=2, omega_window=1`.
+
+### Scale
+
+- ThreeVoxels: all 3 qualifying voxels × 3 perturbations × 195 HP configs = ~1,755 runs
+- ManyGrains: 100 voxels × 3 perturbations × 195 HP configs = ~58,500 runs (overnight)
+
+### Output CSV schema
+
+Two CSVs per example:
+- `hp_sweep_{example}.csv` — one row per run with all HP, timing, memory, starting orientation, ground truth, final misorientation
+- `hp_sweep_trajectory_{example}.csv` — subsampled step records (linked via `run_id` foreign key)
+
+Gradient trajectory: every `TRAJ_SUBSAMPLE=10` steps, records angular step size and misorientation from ground truth.
+MC trajectory: every accepted global improvement and every restart event — records angular step size and current step size (shows adaptive zoom behavior).
+
+### Key modifications to `orientation_search.py`
+
+Added `trajectory: Optional[List[Dict]] = None` parameter to `MCOptimizer.optimize()`:
+- On each global improvement: appends `{step, event_type="mc_accept", angular_step_deg, cur_step_rad}` (cur_step already halved after improvement)
+- On each restart: appends `{step, event_type="mc_restart", angular_step_deg, cur_step_rad=angular_step}`
+- Non-breaking: default `trajectory=None` preserves original behavior
+- Added `_quat_misorientation_deg(q1, q2)` helper for quaternion geodesic distance
+
+### Benchmark usage
+
+```bash
+cd icenine_py
+
+# Smoke test
+uv run python benchmarks/bench_hp_sweep.py --smoke-test --example threevoxels
+
+# Full ThreeVoxels (gradient optimizers, ~30 min)
+uv run python benchmarks/bench_hp_sweep.py --example threevoxels --optimizer gradient
+
+# MC only (fewer configs but MC is slow per run)
+uv run python benchmarks/bench_hp_sweep.py --example threevoxels --optimizer mc
+
+# Full ManyGrains overnight run
+nohup uv run python benchmarks/bench_hp_sweep.py --example manygrains > hp_sweep_manygrains.log 2>&1 &
+
+# Check progress
+wc -l benchmarks/hp_sweep_manygrains.csv
+```
