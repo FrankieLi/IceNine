@@ -1,5 +1,5 @@
 # ImageData ASCII format
 # num_rows=2048, num_cols=2048
 # Format: j, k, intensity
-749, 1732, 176462.5
-750, 1732, 176462.5
+749, 1732, 176462.515625
+750, 1732, 176462.515625
