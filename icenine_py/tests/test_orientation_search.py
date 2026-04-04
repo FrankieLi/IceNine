@@ -101,3 +101,127 @@ class TestHitRatioConvergence:
         info.pixel_overlap = 7
         info.pixel_on_detector = 10
         assert hit_ratio_converged(info, threshold=0.7)
+
+
+class TestRiemannianAdamOptimizer:
+    """Tests for RiemannianAdamOptimizer."""
+
+    def test_requires_geoopt_error(self, monkeypatch):
+        """RiemannianAdamOptimizer raises RuntimeError when geoopt is unavailable."""
+        import icenine.orientation_search as os_mod
+        monkeypatch.setattr(os_mod, "_GEOOPT_AVAILABLE", False)
+
+        from icenine.orientation_search import RiemannianAdamOptimizer
+
+        with pytest.raises(RuntimeError, match="geoopt is required"):
+            RiemannianAdamOptimizer(
+                hard_cost_fn=None,
+                diff_cost_fn=None,
+                voxel_vertices=None,
+            )
+
+    @pytest.mark.skipif(
+        not __import__("importlib").util.find_spec("geoopt"),
+        reason="geoopt not installed",
+    )
+    def test_returns_search_candidate(self):
+        """RiemannianAdamOptimizer.optimize() returns SearchCandidate with cost < 1.0."""
+        import torch
+
+        from icenine.orientation_search import RiemannianAdamOptimizer, SearchCandidate
+        from icenine.cost_functions import OverlapInfo
+
+        # Hard cost mock: always returns cost=0.3
+        class MockHardInfo:
+            cost = 0.3
+            hit_ratio = 0.8
+            peak_overlap = 5
+            peak_on_detector = 6
+            pixel_overlap = 8
+            pixel_on_detector = 10
+
+        class MockHardCost:
+            def evaluate(self, orientation, voxel_vertices, phase_index):
+                return MockHardInfo()
+
+        # Differentiable cost mock: returns constant tensor (no grad)
+        class MockDiffInfo:
+            cost = torch.tensor(0.3)
+
+        class MockDiffCost:
+            def evaluate(self, R, voxel_vertices, phase_index=0, scale=2):
+                return MockDiffInfo()
+
+        opt = RiemannianAdamOptimizer(
+            hard_cost_fn=MockHardCost(),
+            diff_cost_fn=MockDiffCost(),
+            voxel_vertices=None,
+            phase_index=0,
+            rng=np.random.default_rng(42),
+        )
+        result = opt.optimize(
+            initial_orientation=np.eye(3),
+            angular_box_side=math.radians(2.0),
+            n_steps=5,
+            lr=1e-4,
+            scale=2,
+            max_restarts=1,
+        )
+        assert isinstance(result, SearchCandidate)
+        assert result.cost < 1.0
+
+    @pytest.mark.skipif(
+        not __import__("importlib").util.find_spec("geoopt"),
+        reason="geoopt not installed",
+    )
+    def test_zero_restarts_single_hard_eval_after_adam(self):
+        """With max_restarts=0, hard_cost_fn.evaluate called exactly twice (initial + post-Adam)."""
+        import torch
+        from icenine.orientation_search import RiemannianAdamOptimizer
+
+        eval_count = [0]
+
+        class MockHardInfo:
+            cost = 0.5
+            hit_ratio = 0.0
+            peak_overlap = 1
+            peak_on_detector = 2
+            pixel_overlap = 5
+            pixel_on_detector = 10
+
+        class MockHardCost:
+            def evaluate(self, orientation, voxel_vertices, phase_index):
+                eval_count[0] += 1
+                return MockHardInfo()
+
+        class MockDiffInfo:
+            cost = torch.tensor(0.5)
+
+        class MockDiffCost:
+            def evaluate(self, R, voxel_vertices, phase_index=0, scale=2):
+                return MockDiffInfo()
+
+        opt = RiemannianAdamOptimizer(
+            hard_cost_fn=MockHardCost(),
+            diff_cost_fn=MockDiffCost(),
+            voxel_vertices=None,
+            rng=np.random.default_rng(0),
+        )
+        opt.optimize(
+            initial_orientation=np.eye(3),
+            angular_box_side=math.radians(2.0),
+            n_steps=3,
+            max_restarts=0,
+        )
+        # 1 initial eval + 1 post-Adam eval = 2 total
+        assert eval_count[0] == 2
+
+    def test_search_params_hybrid_defaults(self):
+        """SearchParameters defaults have use_hybrid_optimizer=False."""
+        from icenine.orientation_search import SearchParameters
+
+        p = SearchParameters()
+        assert p.use_hybrid_optimizer is False
+        assert p.adam_n_steps == 100
+        assert abs(p.adam_lr - 1e-4) < 1e-12
+        assert p.adam_scale == 2

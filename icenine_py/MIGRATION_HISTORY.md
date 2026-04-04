@@ -956,3 +956,64 @@ In all 5 gradient `run_one_*` functions, replaced `if step > 0:` guard on `info.
 - `benchmarks/hp_sweep_trajectory_threevoxels.csv` — step-by-step trajectories (3 MB)
 - `benchmarks/hp_sweep_trajectory_manygrains.csv` — trajectories (105 MB, excluded from git via .gitignore)
 - `benchmarks/hp_sweep_*.png` — LR sensitivity, n_steps sensitivity, optimizer comparison, trajectory plots
+
+## Hybrid Riemannian Adam + MC-Restart Optimizer (2026-04-03)
+
+**Branch**: `feature/differentiable-cost`
+**Motivation**: HP sweep showed Riemannian Adam (lr=1e-4, n=100) achieves 96% success at 1° perturbation in 0.44s vs. 92% for MC in 3.19s. Replace the `FindOptimal` phase of `AdaptiveVoxelReconstructor` with a gradient-based optimizer that still falls back to random restarts when stuck.
+
+### Architecture
+
+**`RiemannianAdamOptimizer`** (new class in `orientation_search.py`):
+- Uses `DifferentiableCostFunction` for gradient signal (geoopt Stiefel manifold parameter)
+- Uses `VoxelCostFunction` for convergence decisions (hard binary overlap)
+- MC-style restarts: random perturbation of best quaternion when stuck (same as `MCOptimizer`)
+- SVD re-orthogonalization after each Adam loop (guards Stiefel float drift)
+- Same `requires_grad` guard on `.backward()` as bench_hp_sweep.py bug fix
+
+**Eval counts per restart** (n_steps=100, max_restarts=2):
+- Hybrid: ~4 hard evals + 303 differentiable evals
+- MC equivalent: ~3500 hard evals
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `icenine/orientation_search.py` | Added `_GEOOPT_AVAILABLE` guard, `_require_geoopt()`, `_make_stiefel_param()` helpers; added `use_hybrid_optimizer`, `adam_n_steps`, `adam_lr`, `adam_scale` to `SearchParameters`; added `RiemannianAdamOptimizer` class after `MCOptimizer` |
+| `icenine/reconstructor.py` | Added `diff_cost_fn: Optional[object] = None` to `ReconstructionSetup`; added `RiemannianAdamOptimizer` to imports; added `build_diff_cost_fn()` module-level helper; updated `AdaptiveVoxelReconstructor.reconstruct_voxel()` FindOptimal block with hybrid/MC dispatch |
+| `tests/test_orientation_search.py` | Added 4 tests: `test_requires_geoopt_error`, `test_returns_search_candidate`, `test_zero_restarts_single_hard_eval_after_adam`, `test_search_params_hybrid_defaults` |
+| `benchmarks/bench_hybrid_optimizer.py` | New benchmark script: head-to-head Hybrid Adam vs MC, 5 perturbations × 20 voxels, with time breakdown (t_adam_sec + t_hard_eval_sec), 3 output plots |
+
+### Enabling hybrid optimizer in reconstruction
+
+```python
+from icenine.reconstructor import setup_reconstruction, build_diff_cost_fn
+
+setup = setup_reconstruction(config)
+setup.diff_cost_fn = build_diff_cost_fn(setup)
+setup.search_params.use_hybrid_optimizer = True
+setup.search_params.adam_n_steps = 100
+setup.search_params.adam_lr = 1e-4
+
+reconstructor = AdaptiveVoxelReconstructor(setup)
+```
+
+### Benchmark usage
+
+```bash
+cd icenine_py
+uv sync --extra riemannian
+
+# Smoke test (3 voxels, 2 perturbations)
+uv run python benchmarks/bench_hybrid_optimizer.py --smoke-test --example threevoxels
+
+# Full ThreeVoxels (20 voxels, 5 perturbations)
+uv run python benchmarks/bench_hybrid_optimizer.py --example threevoxels
+```
+
+### Outputs
+
+- `benchmarks/bench_hybrid_{example}.csv` — one row per (voxel, perturbation, optimizer)
+- `benchmarks/bench_hybrid_success_rate_{example}.png` — success rate vs perturbation
+- `benchmarks/bench_hybrid_wall_time_{example}.png` — wall time with stacked Adam/hard-eval breakdown
+- `benchmarks/bench_hybrid_scatter_{example}.png` — per-run MC vs hybrid misorientation scatter

@@ -28,6 +28,35 @@ from .sampling import (
     _quat_multiply,
 )
 
+# ---------------------------------------------------------------------------
+# Optional geoopt dependency (for RiemannianAdamOptimizer)
+# ---------------------------------------------------------------------------
+
+_GEOOPT_AVAILABLE = False
+try:
+    import geoopt as _geoopt
+    import torch as _torch
+    _GEOOPT_AVAILABLE = True
+except ImportError:
+    pass
+
+
+def _require_geoopt() -> None:
+    if not _GEOOPT_AVAILABLE:
+        raise RuntimeError(
+            "geoopt is required for RiemannianAdamOptimizer. "
+            "Install with: uv sync --extra riemannian"
+        )
+
+
+def _make_stiefel_param(R_init: np.ndarray) -> "geoopt.ManifoldParameter":
+    """Wrap a 3×3 rotation matrix as a geoopt Stiefel manifold parameter."""
+    _require_geoopt()
+    manifold = _geoopt.manifolds.Stiefel()
+    return _geoopt.ManifoldParameter(
+        _torch.from_numpy(R_init).float(), manifold=manifold
+    )
+
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -67,6 +96,11 @@ class SearchParameters:
     max_convergence_cost: float = 0.1
     max_deepening_hit_ratio: float = 0.7
     max_accepted_cost: float = 0.9
+    # Hybrid optimizer fields (opt-in; default preserves MC-only behavior)
+    use_hybrid_optimizer: bool = False
+    adam_n_steps: int = 100
+    adam_lr: float = 1e-4
+    adam_scale: int = 2  # index into MultiScaleImageStack scales [1, 4, 8]
 
     @classmethod
     def from_config(cls, config) -> "SearchParameters":
@@ -642,6 +676,133 @@ class MCOptimizer:
             orientation=quaternion_to_matrix(global_best_q),
             cost=global_min_cost,
             overlap_info=global_best_info,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Hybrid Riemannian Adam + MC-restart optimizer
+# ---------------------------------------------------------------------------
+
+class RiemannianAdamOptimizer:
+    """
+    Hybrid optimizer: Riemannian Adam gradient descent with MC-style restarts.
+
+    Uses geoopt's Stiefel manifold RiemannianAdam for fast gradient-based
+    convergence near the basin, then applies random restarts (same strategy as
+    MCOptimizer) when stuck. Hard VoxelCostFunction drives convergence decisions;
+    DifferentiableCostFunction provides the gradient signal.
+
+    Requires geoopt: uv sync --extra riemannian
+    """
+
+    _BETA1 = 0.9
+    _BETA2 = 0.999
+
+    def __init__(
+        self,
+        hard_cost_fn: VoxelCostFunction,
+        diff_cost_fn,  # DifferentiableCostFunction
+        voxel_vertices,
+        phase_index: int = 0,
+        rng: Optional[np.random.Generator] = None,
+    ):
+        _require_geoopt()
+        self.hard_cost_fn = hard_cost_fn
+        self.diff_cost_fn = diff_cost_fn
+        self.voxel_vertices = voxel_vertices
+        self.phase_index = phase_index
+        self._grid_gen = QuaternionGrid()
+        self._rng = rng or np.random.default_rng()
+
+    def optimize(
+        self,
+        initial_orientation: np.ndarray,
+        angular_box_side: float,
+        n_steps: int = 100,
+        lr: float = 1e-4,
+        scale: int = 2,
+        max_restarts: int = 2,
+        max_convergence_cost: float = 0.0,
+    ) -> "SearchCandidate":
+        """
+        Run hybrid Adam + MC-restart optimization from initial orientation.
+
+        For each restart attempt:
+        1. Initialize Stiefel manifold parameter from current orientation.
+        2. Run n_steps of RiemannianAdam using differentiable cost (gradient signal).
+        3. SVD re-orthogonalize the result (guards Stiefel float drift).
+        4. Evaluate with hard cost function.
+        5. If improved, update best; check convergence.
+        6. If not converged and restarts remain, perturb within angular_box_side.
+
+        Args:
+            initial_orientation: Starting 3×3 rotation matrix
+            angular_box_side: Side length of search box for restart perturbations (radians)
+            n_steps: Number of Adam gradient steps per restart
+            lr: Adam learning rate
+            scale: Scale index into MultiScaleImageStack (0=full, 1=4×down, 2=8×down)
+            max_restarts: Maximum number of MC-style restarts after Adam
+            max_convergence_cost: Early stop if hard cost drops below this
+
+        Returns:
+            Best SearchCandidate found (same type as MCOptimizer.optimize)
+        """
+        best_orientation = initial_orientation.copy()
+        best_info = self.hard_cost_fn.evaluate(
+            best_orientation, self.voxel_vertices, self.phase_index
+        )
+        best_cost = best_info.cost
+        current_orientation = initial_orientation.copy()
+
+        for restart in range(max_restarts + 1):
+            R = _make_stiefel_param(current_orientation)
+            optimizer = _geoopt.optim.RiemannianAdam(
+                [R], lr=lr, betas=(self._BETA1, self._BETA2)
+            )
+
+            for step in range(n_steps + 1):
+                if step > 0:
+                    optimizer.zero_grad()
+                with _torch.set_grad_enabled(step > 0):
+                    diff_info = self.diff_cost_fn.evaluate(
+                        R, self.voxel_vertices,
+                        phase_index=self.phase_index, scale=scale,
+                    )
+                if step > 0 and diff_info.cost.requires_grad:
+                    diff_info.cost.backward()
+                    optimizer.step()
+
+            # SVD re-orthogonalize (guards Stiefel float drift; cheap 3×3)
+            candidate_np = R.detach().numpy()
+            U, _, Vt = np.linalg.svd(candidate_np)
+            candidate_np = U @ Vt
+
+            hard_info = self.hard_cost_fn.evaluate(
+                candidate_np, self.voxel_vertices, self.phase_index
+            )
+            if hard_info.cost < best_cost:
+                best_cost = hard_info.cost
+                best_orientation = candidate_np.copy()
+                best_info = hard_info
+
+            if best_cost < max_convergence_cost:
+                break
+
+            if restart < max_restarts:
+                half_box = angular_box_side / 2.0
+                rx = self._rng.uniform(-half_box, half_box)
+                ry = self._rng.uniform(-half_box, half_box)
+                rz = self._rng.uniform(-half_box, half_box)
+                perturb_q = self._grid_gen.get_near_identity_point(rx, ry, rz)
+                best_q = matrix_to_quaternion(best_orientation)
+                current_orientation = quaternion_to_matrix(
+                    _quat_multiply(perturb_q, best_q)
+                )
+
+        return SearchCandidate(
+            orientation=best_orientation,
+            cost=best_cost,
+            overlap_info=best_info,
         )
 
 

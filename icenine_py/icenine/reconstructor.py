@@ -30,6 +30,7 @@ from .forward_simulation import ForwardSimulation
 from .mic_file import MicFile, ReconstructionState
 from .orientation_search import (
     MCOptimizer,
+    RiemannianAdamOptimizer,
     SearchCandidate,
     SearchParameters,
     get_symmetry_quaternions,
@@ -82,6 +83,7 @@ class ReconstructionSetup:
     range_map: SimulationRange
     sample: Sample
     structure_list: List[CrystalStructure]
+    diff_cost_fn: Optional[object] = None  # DifferentiableCostFunction, set for hybrid optimizer
 
 
 def setup_reconstruction(
@@ -141,6 +143,48 @@ def setup_reconstruction(
         range_map=range_map,
         sample=sample,
         structure_list=structure_list,
+    )
+
+
+def build_diff_cost_fn(
+    setup: ReconstructionSetup,
+    downsample_factors: Optional[List[int]] = None,
+    omega_window: int = 1,
+):
+    """
+    Build a DifferentiableCostFunction from an existing ReconstructionSetup.
+
+    This is the standard way to enable the hybrid RiemannianAdamOptimizer.
+    Assign the result to setup.diff_cost_fn and set
+    setup.search_params.use_hybrid_optimizer = True.
+
+    Args:
+        setup: Fully initialized ReconstructionSetup
+        downsample_factors: Downsample levels for MultiScaleImageStack.
+            Default [1, 4, 8] → scale indices 0, 1, 2 in SearchParameters.adam_scale.
+        omega_window: Omega integration window passed to SparseImageStack
+
+    Returns:
+        DifferentiableCostFunction ready for use with RiemannianAdamOptimizer
+    """
+    from .differentiable_cost import DifferentiableCostFunction, MultiScaleImageStack
+
+    if downsample_factors is None:
+        downsample_factors = [1, 4, 8]
+
+    ms = MultiScaleImageStack(
+        setup.exp_data.to_sparse_image_stack(),
+        downsample_factors,
+        omega_window=omega_window,
+    )
+    return DifferentiableCostFunction(
+        simulator=setup.simulator,
+        detector_list=setup.detector_list,
+        range_map=setup.range_map,
+        image_stack=ms,
+        sample=setup.sample,
+        structure_list=setup.structure_list,
+        eta_limit=setup.exp_setup.get_eta_limit(),
     )
 
 
@@ -400,13 +444,28 @@ class AdaptiveVoxelReconstructor:
             pixel_radius=0,
         )
 
-        # MC optimizer uses local cost function
+        # MC optimizer uses local cost function (always built; used in VarianceMinimizing
+        # and as fallback when use_hybrid_optimizer is False)
         mc_optimizer = MCOptimizer(
             cost_fn=local_cost_fn,
             voxel_vertices=voxel_vertices,
             phase_index=phase_index,
             rng=rng,
         )
+
+        # Hybrid optimizer for FindOptimal phase (opt-in via SearchParameters)
+        use_hybrid = (
+            self.params.use_hybrid_optimizer
+            and self.setup.diff_cost_fn is not None
+        )
+        if use_hybrid:
+            find_optimizer: RiemannianAdamOptimizer = RiemannianAdamOptimizer(
+                hard_cost_fn=local_cost_fn,
+                diff_cost_fn=self.setup.diff_cost_fn,
+                voxel_vertices=voxel_vertices,
+                phase_index=phase_index,
+                rng=rng,
+            )
 
         # Crystal symmetry for spacing filter
         # C++ DiscreteAdaptive.tmpl.cpp:88
@@ -527,25 +586,37 @@ class AdaptiveVoxelReconstructor:
         final_box_width = final_radius / (2 ** self.params.min_local_resolution)
         final_step = final_box_width * self.params.mc_radius_scale_factor
 
-        # FindOptimal: full MC on top candidates with convergence check
+        # FindOptimal: full MC (or hybrid Adam) on top candidates with convergence check
         # C++ ContinuousSearch.h:316-346
         n_final = min(
             len(candidates), self.params.max_discrete_candidates
         )
-        print(f"    FindOptimal: full MC on {n_final} candidates", flush=True)
+        optimizer_label = "hybrid Adam" if use_hybrid else "full MC"
+        print(f"    FindOptimal: {optimizer_label} on {n_final} candidates", flush=True)
         t_final = time.time()
 
         best_candidate = SearchCandidate(orientation=np.eye(3), cost=1.0)
         converged = False
         for ci, cand in enumerate(candidates[:n_final]):
-            result = mc_optimizer.optimize(
-                initial_orientation=cand.orientation,
-                angular_box_side=final_box_width,
-                angular_step=final_step,
-                max_mc_steps=self.params.max_mc_steps,
-                max_restarts=self.params.successive_restarts,
-                max_convergence_cost=self.params.max_convergence_cost,
-            )
+            if use_hybrid:
+                result = find_optimizer.optimize(
+                    initial_orientation=cand.orientation,
+                    angular_box_side=final_box_width,
+                    n_steps=self.params.adam_n_steps,
+                    lr=self.params.adam_lr,
+                    scale=self.params.adam_scale,
+                    max_restarts=self.params.successive_restarts,
+                    max_convergence_cost=self.params.max_convergence_cost,
+                )
+            else:
+                result = mc_optimizer.optimize(
+                    initial_orientation=cand.orientation,
+                    angular_box_side=final_box_width,
+                    angular_step=final_step,
+                    max_mc_steps=self.params.max_mc_steps,
+                    max_restarts=self.params.successive_restarts,
+                    max_convergence_cost=self.params.max_convergence_cost,
+                )
             if result.cost < best_candidate.cost:
                 best_candidate = result
                 # Convergence check: hit_ratio >= 1.0
