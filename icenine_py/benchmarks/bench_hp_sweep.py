@@ -1089,7 +1089,7 @@ def plot_nsteps_sensitivity(csv_path: Path, out_path: Path, title_prefix: str) -
 
 
 def plot_optimizer_comparison(csv_path: Path, out_path: Path, title_prefix: str) -> None:
-    """Bar chart: best-HP misorientation per optimizer × perturbation."""
+    """Box plots of best-HP misorientation distribution per optimizer × perturbation."""
     try:
         import pandas as pd
     except ImportError:
@@ -1108,22 +1108,42 @@ def plot_optimizer_comparison(csv_path: Path, out_path: Path, title_prefix: str)
     for ai, pert in enumerate(perts):
         ax = axes[ai]
         sub = df[df["perturbation_deg"] == pert]
-        # For each optimizer, take the best-HP (minimum mean misorientation)
-        best_per_opt = []
+
+        data = []
+        labels = []
+        colors = []
         for opt in opts:
             sub_o = sub[sub["optimizer"] == opt]
             if sub_o.empty:
                 continue
-            grp = sub_o.groupby("hp_id")["final_misorientation_deg"].mean()
-            best_per_opt.append((opt, grp.min()))
+            # Select best HP for this optimizer: HP with lowest mean misorientation
+            best_hp = sub_o.groupby("hp_id")["final_misorientation_deg"].mean().idxmin()
+            vals = sub_o[sub_o["hp_id"] == best_hp]["final_misorientation_deg"].values
+            data.append(vals)
+            labels.append(opt)
+            colors.append(OPTIMIZER_COLORS.get(opt, "gray"))
 
-        labels = [o for o, _ in best_per_opt]
-        values = [v for _, v in best_per_opt]
-        colors = [OPTIMIZER_COLORS.get(o, "gray") for o in labels]
-        ax.bar(labels, values, color=colors, edgecolor="k", alpha=0.8)
+        positions = list(range(len(labels)))
+        bp = ax.boxplot(
+            data,
+            positions=positions,
+            widths=0.5,
+            patch_artist=True,
+            medianprops={"color": "k", "lw": 1.5},
+            flierprops={"marker": ".", "markersize": 3, "alpha": 0.4},
+            whiskerprops={"color": "k"},
+            capprops={"color": "k"},
+        )
+        for patch, color in zip(bp["boxes"], colors):
+            patch.set_facecolor(color)
+            patch.set_alpha(0.5)
+        for flier, color in zip(bp["fliers"], colors):
+            flier.set_markeredgecolor(color)
+
+        ax.set_xticks(positions)
+        ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=7)
         ax.set_title(f"{title_prefix}\nPerturbation = {pert:.0f}°")
-        ax.set_ylabel("Best-HP mean misori (°)" if ai == 0 else "")
-        ax.tick_params(axis="x", rotation=45)
+        ax.set_ylabel("Final misorientation (°) — best HP" if ai == 0 else "")
         ax.grid(True, axis="y", alpha=0.3)
 
     fig.tight_layout()
