@@ -408,6 +408,22 @@ ThreeVoxels results are consistent with ManyGrains: same qualitative pattern, sa
 
 Each run also logs the optimization trajectory. Format: `(step, event_type, angular_step_deg, misori_from_gt_deg, quality)`. Gradient methods record every 10th step; MC records every accepted global improvement and every restart. Trajectory CSV: `benchmarks/hp_sweep_trajectory_{example}.csv` (linked to main CSV by `run_id`).
 
+#### Output Plots
+
+Eight PNG files are generated (four types × two datasets — ThreeVoxels and ManyGrains):
+
+**`hp_sweep_lr_sensitivity_{example}.png`**
+Grid of box plots — one subplot per gradient optimizer (MC excluded; it has no LR parameter). X-axis: learning rate (log scale). Y-axis: distribution of final misorientation (°) across all runs at that LR, aggregated over all voxels, perturbations, and n_steps values. Each box shows the median (center line), interquartile range IQR = Q75−Q25 (box edges), 1.5×IQR whiskers, and individual outliers as dots. Reveals the hard LR cliff: distributions shift from narrow and low (converged) to wide and high (diverged) at a specific learning rate threshold. Also shows bimodality — when two modes exist (some runs converging, others failing) at the same LR.
+
+**`hp_sweep_nsteps_sensitivity_{example}.png`**
+Grid of box plots — one subplot per optimizer (including MC). X-axis: number of optimization steps (n_steps for gradient methods; max_mc_steps for MC). Y-axis: distribution of final misorientation (°). Box statistics same as above (median, IQR, 1.5×IQR whiskers, outliers). Shows whether more steps improve results: at the optimal LR, gradient methods exhibit flat or worsening distributions beyond n=100, while MC shows the expected steady improvement.
+
+**`hp_sweep_optimizer_comparison_{example}.png`**
+Three-panel bar chart — one panel per perturbation size (1°, 2°, 5°). X-axis: optimizer family. Y-axis: best-HP mean misorientation (°) — the minimum mean misorientation achieved by each optimizer across all its HP configurations. Lower bars indicate ceiling performance that each optimizer can reach. Shows that Riemannian Adam dominates at 1°, SGD variants are competitive at 2°, and only MC achieves non-zero success at 5°.
+
+**`hp_sweep_trajectory_{example}.png`**
+Step-size trajectory plot. X-axis: event index — the sequential count of recorded optimization events (one event per 10 gradient steps; one event per accepted MC move or restart). Y-axis: angular step size (°) — the geodesic distance on SO(3) between consecutive recorded states. Solid line = median angular step size across all runs for that optimizer at each event index; shaded band = interquartile range (IQR = Q25 to Q75, i.e. the middle 50% of the run distribution). Gradient methods show smooth monotonic decay as the optimizer converges; MC shows irregular bursts — large random steps on accepted improvements followed by smaller steps as the local optimum is refined.
+
 #### Running the Benchmark
 
 ```bash
@@ -416,6 +432,7 @@ uv sync --extra riemannian
 uv run python benchmarks/bench_hp_sweep.py --example threevoxels
 uv run python benchmarks/bench_hp_sweep.py --example manygrains
 uv run python benchmarks/bench_hp_sweep.py --smoke-test --example threevoxels  # quick test
+uv run python benchmarks/bench_hp_sweep.py --plots-only --example manygrains   # regenerate plots only
 ```
 
 ## Config File Format

@@ -973,7 +973,7 @@ OPTIMIZER_COLORS = {
 
 
 def plot_lr_sensitivity(csv_path: Path, out_path: Path, title_prefix: str) -> None:
-    """Mean final misorientation vs lr, one line per gradient optimizer."""
+    """Box plots of final misorientation distribution vs lr, one subplot per gradient optimizer."""
     try:
         import pandas as pd
     except ImportError:
@@ -986,24 +986,45 @@ def plot_lr_sensitivity(csv_path: Path, out_path: Path, title_prefix: str) -> No
     if not grad_opts:
         return
 
-    fig, ax = plt.subplots(figsize=(9, 5))
-    for opt in grad_opts:
+    ncols = 3
+    nrows = math.ceil(len(grad_opts) / ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4 * nrows), sharey=True)
+    axes_flat = axes.flat if hasattr(axes, "flat") else [axes]
+
+    for ax, opt in zip(axes_flat, grad_opts):
         sub = df[df["optimizer"] == opt].dropna(subset=["lr"])
         if sub.empty:
+            ax.set_visible(False)
             continue
-        grp = sub.groupby("lr")["final_misorientation_deg"]
-        mean_v = grp.mean()
-        std_v = grp.std().fillna(0)
+        lr_vals = sorted(sub["lr"].unique())
+        data = [sub[sub["lr"] == lr]["final_misorientation_deg"].values for lr in lr_vals]
+        positions = list(range(len(lr_vals)))
         color = OPTIMIZER_COLORS.get(opt, "gray")
-        ax.plot(mean_v.index, mean_v.values, "o-", color=color, label=opt, lw=1.5)
-        ax.fill_between(mean_v.index, mean_v - std_v, mean_v + std_v, color=color, alpha=0.12)
+        bp = ax.boxplot(
+            data,
+            positions=positions,
+            widths=0.5,
+            patch_artist=True,
+            medianprops={"color": "k", "lw": 1.5},
+            flierprops={"marker": ".", "markersize": 3, "alpha": 0.4, "markeredgecolor": color},
+            whiskerprops={"color": color},
+            capprops={"color": color},
+        )
+        for patch in bp["boxes"]:
+            patch.set_facecolor(color)
+            patch.set_alpha(0.5)
+        ax.set_xticks(positions)
+        ax.set_xticklabels([f"{lr:.0e}" for lr in lr_vals], rotation=45, fontsize=7)
+        ax.set_xlabel("Learning rate")
+        ax.set_ylabel("Final misorientation (°)")
+        ax.set_title(opt, fontsize=9)
+        ax.grid(True, axis="y", alpha=0.3)
 
-    ax.set_xscale("log")
-    ax.set_xlabel("Learning rate")
-    ax.set_ylabel("Mean final misorientation (°)")
-    ax.set_title(f"{title_prefix} — LR sensitivity")
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.3)
+    # Hide unused subplots
+    for ax in list(axes_flat)[len(grad_opts):]:
+        ax.set_visible(False)
+
+    fig.suptitle(f"{title_prefix} — LR sensitivity (misorientation distribution)", fontsize=11)
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
@@ -1011,7 +1032,7 @@ def plot_lr_sensitivity(csv_path: Path, out_path: Path, title_prefix: str) -> No
 
 
 def plot_nsteps_sensitivity(csv_path: Path, out_path: Path, title_prefix: str) -> None:
-    """Mean final misorientation vs n_steps."""
+    """Box plots of final misorientation distribution vs n_steps, one subplot per optimizer."""
     try:
         import pandas as pd
     except ImportError:
@@ -1022,21 +1043,45 @@ def plot_nsteps_sensitivity(csv_path: Path, out_path: Path, title_prefix: str) -
     if not opts:
         return
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    for opt in opts:
+    ncols = 3
+    nrows = math.ceil(len(opts) / ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4 * nrows), sharey=True)
+    axes_flat = axes.flat if hasattr(axes, "flat") else [axes]
+
+    for ax, opt in zip(axes_flat, opts):
         sub = df[df["optimizer"] == opt].dropna(subset=["n_steps"])
         if sub.empty:
+            ax.set_visible(False)
             continue
-        grp = sub.groupby("n_steps")["final_misorientation_deg"]
-        mean_v = grp.mean()
+        step_vals = sorted(sub["n_steps"].unique())
+        data = [sub[sub["n_steps"] == s]["final_misorientation_deg"].values for s in step_vals]
+        positions = list(range(len(step_vals)))
         color = OPTIMIZER_COLORS.get(opt, "gray")
-        ax.plot(mean_v.index, mean_v.values, "o-", color=color, label=opt, lw=1.5)
+        bp = ax.boxplot(
+            data,
+            positions=positions,
+            widths=0.5,
+            patch_artist=True,
+            medianprops={"color": "k", "lw": 1.5},
+            flierprops={"marker": ".", "markersize": 3, "alpha": 0.4, "markeredgecolor": color},
+            whiskerprops={"color": color},
+            capprops={"color": color},
+        )
+        for patch in bp["boxes"]:
+            patch.set_facecolor(color)
+            patch.set_alpha(0.5)
+        ax.set_xticks(positions)
+        ax.set_xticklabels([str(int(s)) for s in step_vals], fontsize=8)
+        ax.set_xlabel("n_steps / max_mc_steps")
+        ax.set_ylabel("Final misorientation (°)")
+        ax.set_title(opt, fontsize=9)
+        ax.grid(True, axis="y", alpha=0.3)
 
-    ax.set_xlabel("n_steps / max_mc_steps")
-    ax.set_ylabel("Mean final misorientation (°)")
-    ax.set_title(f"{title_prefix} — Steps sensitivity")
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.3)
+    # Hide unused subplots
+    for ax in list(axes_flat)[len(opts):]:
+        ax.set_visible(False)
+
+    fig.suptitle(f"{title_prefix} — Steps sensitivity (misorientation distribution)", fontsize=11)
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
@@ -1256,6 +1301,11 @@ def main() -> None:
     )
     parser.add_argument("--smoke-test", action="store_true", help="Quick smoke test (1 voxel, reduced steps)")
     parser.add_argument("--n-voxels", type=int, default=None, help="Override number of voxels")
+    parser.add_argument(
+        "--plots-only",
+        action="store_true",
+        help="Skip running; just regenerate plots from existing CSVs",
+    )
     args = parser.parse_args()
 
     if args.optimizer == "all":
@@ -1292,16 +1342,37 @@ def main() -> None:
         ))
 
     for label, ex_dir, basename, n_vox_default in examples:
-        run_example(
-            label=label,
-            example_dir=ex_dir,
-            basename=basename,
-            n_voxels_default=n_vox_default,
-            n_voxels_override=args.n_voxels,
-            optimizers_to_run=to_run,
-            perturbations_deg=PERTURBATIONS_DEG,
-            smoke_test=args.smoke_test,
-        )
+        if args.plots_only:
+            tag = label.lower().replace(" ", "_").replace(".", "")
+            benchmark_dir = Path(__file__).parent
+            main_csv = benchmark_dir / f"hp_sweep_{tag}.csv"
+            traj_csv = benchmark_dir / f"hp_sweep_trajectory_{tag}.csv"
+            if not main_csv.exists():
+                print(f"Skipping plots for {label}: {main_csv} not found")
+                continue
+            print(f"Regenerating plots for {label} from {main_csv}")
+            plot_lr_sensitivity(main_csv, benchmark_dir / f"hp_sweep_lr_sensitivity_{tag}.png", label)
+            plot_nsteps_sensitivity(
+                main_csv, benchmark_dir / f"hp_sweep_nsteps_sensitivity_{tag}.png", label
+            )
+            plot_optimizer_comparison(
+                main_csv, benchmark_dir / f"hp_sweep_optimizer_comparison_{tag}.png", label
+            )
+            if traj_csv.exists():
+                plot_trajectory_step_sizes(
+                    traj_csv, main_csv, benchmark_dir / f"hp_sweep_trajectory_{tag}.png", label
+                )
+        else:
+            run_example(
+                label=label,
+                example_dir=ex_dir,
+                basename=basename,
+                n_voxels_default=n_vox_default,
+                n_voxels_override=args.n_voxels,
+                optimizers_to_run=to_run,
+                perturbations_deg=PERTURBATIONS_DEG,
+                smoke_test=args.smoke_test,
+            )
 
 
 if __name__ == "__main__":
