@@ -342,6 +342,82 @@ SGLD is the best SGD variant due to Langevin noise providing probabilistic explo
 2. **Multi-start CMA-ES with symmetry folding**: Restart from all 24 cubic symmetry equivalents, take the best result
 3. **Distance field soft images**: Replace binary images with distance transform (distance to nearest bright pixel, float32) — extends gradient signal ~10–20px beyond each blob, eliminating the zero-interior-gradient problem structurally
 
+---
+
+### Comprehensive HP Sweep — Gradient Methods vs. Monte Carlo
+
+`benchmarks/bench_hp_sweep.py` performs a systematic hyperparameter sweep over all gradient optimizer families and the existing `MCOptimizer`, comparing them head-to-head on both the ThreeVoxels (3 voxels) and ManyGrains (100 voxels) datasets.
+
+**Scope:** 195 HP configurations × 3 perturbation sizes × 100 voxels (ManyGrains) = 58,500 independent optimizer runs.
+**Also recorded:** subsampled optimization trajectories (angular step size + misorientation from ground truth every 10 gradient steps; every accepted MC move).
+
+#### Optimizer Families and HP Grids
+
+| Optimizer | HPs swept | Configs |
+|-----------|-----------|---------|
+| `riemannian_adam_geoopt` | lr ∈ {1e-4..0.1} × n_steps ∈ {100,200,500} × β₁ ∈ {0.9,0.95} | 42 |
+| `riemannian_adam_manual` | same grid | 42 |
+| `riemannian_sgd_plain` | lr × n_steps | 15 |
+| `riemannian_sgd_momentum` | lr × momentum (n_steps=200) | 15 |
+| `riemannian_sgld` | lr × T_init × n_steps | 45 |
+| `mc_optimizer` | max_steps × restarts × angular_step_frac | 36 |
+
+#### Results — Best HP Config per Optimizer
+
+Success threshold: final misorientation < 1°. Results shown for two datasets.
+
+**ManyGrains (100 voxels per cell):**
+
+| Optimizer | Best HP | 1° success | 2° success | 5° success | Time/run |
+|-----------|---------|-----------|-----------|-----------|----------|
+| riemannian_adam_geoopt | lr=1e-4, n=100, β₁=0.9 | **96%** | 41% | 0% | 0.44s |
+| riemannian_adam_manual | lr=1e-4, n=200, β₁=0.9 | 94% | **49%** | 0% | 0.58s |
+| riemannian_sgd_plain | lr=1e-4, n=100 | 88% | **52%** | 0% | 0.30s |
+| riemannian_sgd_momentum | lr=1e-5, n=200, m=0.5 | 94% | 51% | 0% | 0.59s |
+| riemannian_sgld | lr=1e-4, n=100, T=0.01 | 92% | 50% | 0% | 0.29s |
+| mc_optimizer | n=3500, restarts=2, step=0.5 | 92% | 40% | **6%** | 3.19s |
+
+**ThreeVoxels (3 voxels — qualitative; cell values are integer counts 0/1/2/3):**
+
+| Optimizer | 1° success | 2° success | 5° success | Time/run |
+|-----------|-----------|-----------|-----------|----------|
+| riemannian_adam_geoopt | 3/3 | 2/3 | 0/3 | 1.7s |
+| riemannian_adam_manual | 3/3 | 2/3 | 0/3 | 1.1s |
+| riemannian_sgd_plain | 3/3 | 2/3 | 0/3 | 1.1s |
+| riemannian_sgd_momentum | 3/3 | 2/3 | 0/3 | 2.2s |
+| riemannian_sgld | 3/3 | 2/3 | 0/3 | 1.1s |
+| mc_optimizer | 3/3 | 2/3 | 0/3 | 1.2s |
+
+ThreeVoxels results are consistent with ManyGrains: same qualitative pattern, same optimal lr=1e-4, all methods fail at 5°. (3-voxel counts are insufficient for significance; use ManyGrains for quantitative comparison.)
+
+**Key findings:**
+
+1. **Gradient methods beat MC at small perturbations.** At 1° perturbation, best gradient optimizer (Riemannian Adam geoopt, lr=1e-4) achieves 96% success vs. 92% for MC — and is **7× faster** (0.44s vs. 3.19s). This is because at 1° the starting point is already near the basin, and gradient descent finds it efficiently.
+
+2. **Hard LR cliff.** All Adam variants fail completely at lr ≥ 0.05 (0% success at 1° perturbation). The optimal range is lr ∈ [1e-4, 1e-3]. SGD and SGLD have similar cliffs at lr ≥ 5e-3 and lr ≥ 1e-2 respectively. Staying well below the cliff is the most impactful single HP choice.
+
+3. **More steps don't help.** For Adam at the optimal lr=1e-4: n=100 → 96%, n=200 → 94%, n=500 → 88%. Diminishing returns set in quickly; extra steps can even hurt when the optimizer overshoots.
+
+4. **Only MC succeeds at 5°.** At 5° perturbation, all gradient methods completely fail (0% success, stuck in flat landscape ≫0.5° from basin). MC achieves 6% — also poor, but it's the only method with any 5° successes, because random walk can occasionally land near the basin.
+
+5. **SGD variants are surprisingly competitive.** Plain Riemannian SGD (lr=1e-4, n=100, 0.30s) achieves 88% success and **52% at 2°** (highest among all). The slower, simpler algorithm can do better at 2° because SGD's lack of momentum means it doesn't overshoot narrow basins at that range.
+
+6. **Geoopt vs. manual Adam agree closely.** The geoopt Stiefel manifold retraction and the manual `R ← R·exp(−lr·Ω_adam)` retraction give nearly identical results (96% vs. 94% at 1°), confirming implementation correctness.
+
+#### Trajectory Data
+
+Each run also logs the optimization trajectory. Format: `(step, event_type, angular_step_deg, misori_from_gt_deg, quality)`. Gradient methods record every 10th step; MC records every accepted global improvement and every restart. Trajectory CSV: `benchmarks/hp_sweep_trajectory_{example}.csv` (linked to main CSV by `run_id`).
+
+#### Running the Benchmark
+
+```bash
+cd icenine_py
+uv sync --extra riemannian
+uv run python benchmarks/bench_hp_sweep.py --example threevoxels
+uv run python benchmarks/bench_hp_sweep.py --example manygrains
+uv run python benchmarks/bench_hp_sweep.py --smoke-test --example threevoxels  # quick test
+```
+
 ## Config File Format
 
 Forward simulation requires a `.config` file specifying:

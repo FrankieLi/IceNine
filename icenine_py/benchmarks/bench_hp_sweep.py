@@ -234,7 +234,7 @@ def run_one_riemannian_adam_geoopt(
             R_prev_traj = R_np.copy()
             event_idx += 1
 
-        if step > 0:
+        if step > 0 and info.cost.requires_grad:
             info.cost.backward()
             optimizer.step()
 
@@ -284,7 +284,7 @@ def run_one_riemannian_adam_manual(
             R_prev_traj = R_np.copy()
             event_idx += 1
 
-        if step > 0:
+        if step > 0 and info.cost.requires_grad:
             info.cost.backward()
             with torch.no_grad():
                 G = R_param.grad
@@ -343,7 +343,7 @@ def run_one_riemannian_sgd_plain(
             R_prev_traj = R_np.copy()
             event_idx += 1
 
-        if step > 0:
+        if step > 0 and info.cost.requires_grad:
             info.cost.backward()
             optimizer.step()
 
@@ -394,7 +394,7 @@ def run_one_riemannian_sgd_momentum(
             R_prev_traj = R_np.copy()
             event_idx += 1
 
-        if step > 0:
+        if step > 0 and info.cost.requires_grad:
             info.cost.backward()
             optimizer.step()
 
@@ -442,7 +442,7 @@ def run_one_riemannian_sgld(
             R_prev_traj = R_np.copy()
             event_idx += 1
 
-        if step > 0:
+        if step > 0 and info.cost.requires_grad:
             info.cost.backward()
             with torch.no_grad():
                 G = R_param.grad

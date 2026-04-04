@@ -922,3 +922,37 @@ nohup uv run python benchmarks/bench_hp_sweep.py --example manygrains > hp_sweep
 # Check progress
 wc -l benchmarks/hp_sweep_manygrains.csv
 ```
+
+### Results — Completed 2026-04-03
+
+Both benchmarks completed successfully after fixing a `requires_grad` crash (see below).
+
+**ManyGrains (58,500 runs, ~13.4 CPU-hours total):**
+
+| Optimizer | Best HP | 1° success | 2° success | 5° success | Time/run |
+|-----------|---------|-----------|-----------|-----------|----------|
+| riemannian_adam_geoopt | lr=1e-4, n=100, β₁=0.9 | 96% | 41% | 0% | 0.44s |
+| riemannian_adam_manual | lr=1e-4, n=200, β₁=0.9 | 94% | 49% | 0% | 0.58s |
+| riemannian_sgd_plain | lr=1e-4, n=100 | 88% | 52% | 0% | 0.30s |
+| riemannian_sgd_momentum | lr=1e-5, n=200, m=0.5 | 94% | 51% | 0% | 0.59s |
+| riemannian_sgld | lr=1e-4, n=100, T=0.01 | 92% | 50% | 0% | 0.29s |
+| mc_optimizer | n=3500, restarts=2, step=0.5 | 92% | 40% | 6% | 3.19s |
+
+**ThreeVoxels (1,755 runs):** Same qualitative pattern; all methods succeed at 1° (3/3), most succeed at 2° (2/3), none at 5°.
+
+**Key findings:**
+1. Riemannian Adam (lr=1e-4, n=100) achieves 96% success at 1° vs. 92% for MC — and is 7× faster (0.44s vs. 3.19s)
+2. Hard LR cliff: lr ≥ 0.05 → 0% success for all Adam variants. Optimal range: lr ∈ [1e-4, 1e-3]
+3. More steps don't help at optimal lr: n=100 → 96%, n=200 → 94%, n=500 → 88%
+4. Only MC achieves non-zero 5° success (6%) — gradient methods are trapped in flat landscape beyond ~2°
+5. SGD variants surprisingly competitive at 2° perturbation (52%) vs Adam (41–49%)
+
+**Bug fixed during run:**
+In all 5 gradient `run_one_*` functions, replaced `if step > 0:` guard on `info.cost.backward()` with `if step > 0 and info.cost.requires_grad:`. When lr is very large (e.g. 0.1), R diverges → cost evaluates to a constant with `requires_grad=False` → `.backward()` throws `RuntimeError`. The guard skips the update step gracefully and continues recording.
+
+**Output files:**
+- `benchmarks/hp_sweep_manygrains.csv` — 58,500 runs (15 MB)
+- `benchmarks/hp_sweep_threevoxels.csv` — 1,755 runs
+- `benchmarks/hp_sweep_trajectory_threevoxels.csv` — step-by-step trajectories (3 MB)
+- `benchmarks/hp_sweep_trajectory_manygrains.csv` — trajectories (105 MB, excluded from git via .gitignore)
+- `benchmarks/hp_sweep_*.png` — LR sensitivity, n_steps sensitivity, optimizer comparison, trajectory plots
