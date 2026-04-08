@@ -189,8 +189,11 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator):
         if info.quality > QUALITY_THRESHOLD:
             candidates.append((voxel, idx, info.quality, vertices))
 
+    if len(candidates) == 0:
+        raise RuntimeError("No qualifying voxels found")
     if len(candidates) < n:
-        raise RuntimeError(f"Only {len(candidates)} qualifying voxels (need {n})")
+        print(f"  Warning: only {len(candidates)} qualifying voxels; using all of them (requested {n})")
+        n = len(candidates)
 
     chosen_positions = rng.choice(len(candidates), size=n, replace=False)
     chosen = [candidates[i] for i in sorted(chosen_positions)]
@@ -635,7 +638,7 @@ EXAMPLES = {
     ),
     "manygrains": (
         Path(__file__).parent.parent.parent / "Examples" / "Example2.ManyGrains",
-        "ManyGrains",
+        "500Grains.sim",
     ),
 }
 
