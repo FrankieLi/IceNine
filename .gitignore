@@ -2,6 +2,7 @@
 Makefile
 
 /IceNine
+/CostFunctionBenchmark
 CMakeFiles
 XDM++.strain
 cmake_install.cmake

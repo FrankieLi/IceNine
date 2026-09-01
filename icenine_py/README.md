@@ -435,6 +435,41 @@ uv run python benchmarks/bench_hp_sweep.py --smoke-test --example threevoxels  #
 uv run python benchmarks/bench_hp_sweep.py --plots-only --example manygrains   # regenerate plots only
 ```
 
+### Hybrid Riemannian Adam + MC-Restart Optimizer
+
+The HP sweep showed Riemannian Adam (lr=1e-4, n=100) beats MC at small perturbations while being much faster. `RiemannianAdamOptimizer` (in `icenine/orientation_search.py`) productionizes this as a drop-in replacement for `MCOptimizer` in the `FindOptimal` phase of `AdaptiveVoxelReconstructor`: it uses `DifferentiableCostFunction` (geoopt Stiefel manifold parameter) for gradient signal, `VoxelCostFunction` (hard binary overlap) for convergence decisions, and falls back to MC-style random-restart perturbation when stuck. SVD re-orthogonalization runs after each Adam loop to guard against Stiefel float drift.
+
+**Enabling it:**
+
+```python
+from icenine.reconstructor import setup_reconstruction, build_diff_cost_fn
+
+setup = setup_reconstruction(config)
+setup.diff_cost_fn = build_diff_cost_fn(setup)
+setup.search_params.use_hybrid_optimizer = True
+setup.search_params.adam_n_steps = 100
+setup.search_params.adam_lr = 1e-4
+
+reconstructor = AdaptiveVoxelReconstructor(setup)
+```
+
+**Head-to-head results** (`benchmarks/bench_hybrid_optimizer.py`, 20 voxels × 5 perturbations, ManyGrains):
+
+| Perturbation | Hybrid success | MC success | Hybrid speedup |
+|---|---|---|---|
+| 0.5° | 100% | 90% | 2.5× |
+| 1.0° | 60% | 45% | 1.8× |
+| 2–3° | (MC wins, consistent with the HP sweep — gradient methods lack signal this far from the basin) | | |
+
+```bash
+cd icenine_py
+uv sync --extra riemannian
+uv run python benchmarks/bench_hybrid_optimizer.py --smoke-test --example threevoxels  # 3 voxels, 2 perturbations
+uv run python benchmarks/bench_hybrid_optimizer.py --example threevoxels               # full run
+```
+
+Outputs: `benchmarks/bench_hybrid_{example}.csv` (per voxel/perturbation/optimizer), plus success-rate, wall-time (Adam vs. hard-eval breakdown), and MC-vs-hybrid scatter plots.
+
 ## Config File Format
 
 Forward simulation requires a `.config` file specifying:
