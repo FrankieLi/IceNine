@@ -17,15 +17,20 @@ import matplotlib.pyplot as plt
 
 benchmark_dir = Path(__file__).parent
 
-COLS = ["hard_quality", "diff_quality_s0", "diff_quality_s1",
-        "diff_quality_s2", "diff_quality_s2_oblend"]
+COLS = [
+    "hard_quality",
+    "diff_quality_s0",
+    "diff_quality_s1",
+    "diff_quality_s2",
+    "diff_quality_s2_oblend",
+]
 
 STYLES = [
-    ("hard_quality",           "Hard (binary)",           "k",  "-",   2.0),
-    ("diff_quality_s0",        "Diff s0 — 1×",            "C0", "-",   1.6),
-    ("diff_quality_s1",        "Diff s1 — 4×",            "C1", "--",  1.6),
-    ("diff_quality_s2",        "Diff s2 — 8×",            "C3", ":",   1.6),
-    ("diff_quality_s2_oblend", "Diff s2 — 8× + ω±1",     "C2", "-.",  1.6),
+    ("hard_quality", "Hard (binary)", "k", "-", 2.0),
+    ("diff_quality_s0", "Diff s0 — 1×", "C0", "-", 1.6),
+    ("diff_quality_s1", "Diff s1 — 4×", "C1", "--", 1.6),
+    ("diff_quality_s2", "Diff s2 — 8×", "C3", ":", 1.6),
+    ("diff_quality_s2_oblend", "Diff s2 — 8× + ω±1", "C2", "-.", 1.6),
 ]
 
 
@@ -42,13 +47,12 @@ def central_diff(angles: np.ndarray, values: np.ndarray) -> np.ndarray:
     """Central finite difference dV/dθ, one-sided at boundaries."""
     grad = np.empty_like(values)
     grad[1:-1] = (values[2:] - values[:-2]) / (angles[2:] - angles[:-2])
-    grad[0]    = (values[1]  - values[0])   / (angles[1]  - angles[0])
-    grad[-1]   = (values[-1] - values[-2])  / (angles[-1] - angles[-2])
+    grad[0] = (values[1] - values[0]) / (angles[1] - angles[0])
+    grad[-1] = (values[-1] - values[-2]) / (angles[-1] - angles[-2])
     return grad
 
 
-def plot_gradients(csv_path: Path, out_path: Path, title_prefix: str,
-                   group_col: str = "voxel_idx"):
+def plot_gradients(csv_path: Path, out_path: Path, title_prefix: str, group_col: str = "voxel_idx"):
     angles, means = load_mean_curves(csv_path, group_col)
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
@@ -69,7 +73,7 @@ def plot_gradients(csv_path: Path, out_path: Path, title_prefix: str,
 
     for ax, ylabel, subtitle in [
         (ax_abs, "dQ / dθ  (quality per degree)", "Absolute gradient"),
-        (ax_rel, "(dQ/dθ) / Q(0)  (per degree)",  "Relative gradient  [normalised by Q at 0°]"),
+        (ax_rel, "(dQ/dθ) / Q(0)  (per degree)", "Relative gradient  [normalised by Q at 0°]"),
     ]:
         ax.axhline(0, color="gray", lw=0.8, ls="--")
         ax.set_xlabel("Misorientation angle (degrees)")
@@ -101,35 +105,38 @@ def plot_per_voxel_gradients(csv_path: Path, out_path: Path, title_prefix: str):
             q = sub[col].values
             g = central_diff(angles, q)
             per_voxel.append(g)
-        per_voxel = np.array(per_voxel)   # (n_voxels, n_angles)
+        per_voxel = np.array(per_voxel)  # (n_voxels, n_angles)
         mean_g = per_voxel.mean(axis=0)
-        std_g  = per_voxel.std(axis=0)
+        std_g = per_voxel.std(axis=0)
 
         # Spaghetti
         for vi in range(len(voxels)):
             ax_abs.plot(angles, per_voxel[vi], color=color, ls=ls, lw=0.4, alpha=0.2)
-            ax_rel.plot(angles, per_voxel[vi] / (per_voxel[vi][0] if abs(per_voxel[vi][0]) > 1e-9 else 1),
-                        color=color, ls=ls, lw=0.4, alpha=0.2)
+            ax_rel.plot(
+                angles,
+                per_voxel[vi] / (per_voxel[vi][0] if abs(per_voxel[vi][0]) > 1e-9 else 1),
+                color=color,
+                ls=ls,
+                lw=0.4,
+                alpha=0.2,
+            )
 
         ax_abs.plot(angles, mean_g, color=color, ls=ls, lw=lw, label=label)
-        ax_abs.fill_between(angles, mean_g - std_g, mean_g + std_g,
-                            color=color, alpha=0.15)
+        ax_abs.fill_between(angles, mean_g - std_g, mean_g + std_g, color=color, alpha=0.15)
 
         # Relative (normalise each voxel by its own Q at θ=0, then take mean)
-        q0_per_voxel = np.array([
-            df[df["voxel_idx"] == vid].sort_values("angle_deg")[col].iloc[0]
-            for vid in voxels
-        ])
+        q0_per_voxel = np.array(
+            [df[df["voxel_idx"] == vid].sort_values("angle_deg")[col].iloc[0] for vid in voxels]
+        )
         rel = per_voxel / np.maximum(q0_per_voxel[:, None], 1e-9)
         mean_rel = rel.mean(axis=0)
-        std_rel  = rel.std(axis=0)
+        std_rel = rel.std(axis=0)
         ax_rel.plot(angles, mean_rel, color=color, ls=ls, lw=lw, label=label)
-        ax_rel.fill_between(angles, mean_rel - std_rel, mean_rel + std_rel,
-                            color=color, alpha=0.15)
+        ax_rel.fill_between(angles, mean_rel - std_rel, mean_rel + std_rel, color=color, alpha=0.15)
 
     for ax, ylabel, subtitle in [
         (ax_abs, "dQ / dθ  (quality per degree)", "Absolute gradient"),
-        (ax_rel, "(dQ/dθ) / Q(0)  (per degree)",  "Relative gradient  [normalised by voxel Q(0)]"),
+        (ax_rel, "(dQ/dθ) / Q(0)  (per degree)", "Relative gradient  [normalised by voxel Q(0)]"),
     ]:
         ax.axhline(0, color="gray", lw=0.8, ls="--")
         ax.set_xlabel("Misorientation angle (degrees)")

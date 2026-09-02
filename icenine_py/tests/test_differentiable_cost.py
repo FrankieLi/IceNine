@@ -248,9 +248,9 @@ class TestMultiScaleImageStack:
         n_images = base_stack.n_omega * base_stack.n_det
         for i in range(multi.n_scales):
             s = multi.get_at_scale(i)
-            assert s.images.shape[0] == n_images, (
-                f"Scale {i}: expected {n_images} images, got {s.images.shape[0]}"
-            )
+            assert (
+                s.images.shape[0] == n_images
+            ), f"Scale {i}: expected {n_images} images, got {s.images.shape[0]}"
             assert s.H <= base_stack.H
             assert s.W <= base_stack.W
 
@@ -300,9 +300,9 @@ class TestSparseImageStack:
 
         # Dense: 20 × 64 × 64 × 4 = 327,680 bytes
         # Sparse: ~200 pixels × 4 bytes (int16 coords) ≈ 800 bytes
-        assert sparse.memory_bytes < dense.memory_bytes / 10, (
-            f"Sparse ({sparse.memory_bytes}) should be much smaller than dense ({dense.memory_bytes})"
-        )
+        assert (
+            sparse.memory_bytes < dense.memory_bytes / 10
+        ), f"Sparse ({sparse.memory_bytes}) should be much smaller than dense ({dense.memory_bytes})"
 
     def test_round_trip_matches_dense(self):
         """Densified sparse images match dense stack exactly."""
@@ -599,9 +599,9 @@ class TestDifferentiableCostFunction:
         info.cost.backward()
 
         assert orientation.grad is not None, "orientation.grad should be populated after backward()"
-        assert torch.any(orientation.grad != 0), (
-            "Gradient should be non-zero for ground truth orientation"
-        )
+        assert torch.any(
+            orientation.grad != 0
+        ), "Gradient should be non-zero for ground truth orientation"
 
     def test_quality_is_positive_at_ground_truth(self, diff_cost_setup):
         """Ground truth orientation should give positive quality (cost < 1)."""
@@ -612,12 +612,12 @@ class TestDifferentiableCostFunction:
         orientation = torch.from_numpy(voxel.orientation).float()
         info = c["diff_cost_fn"].evaluate(orientation, vertices, phase_index=voxel.phase, scale=0)
 
-        assert info.quality.item() > 0.1, (
-            f"Ground truth orientation should have quality > 0.1, got {info.quality.item():.4f}"
-        )
-        assert info.cost.item() < 0.9, (
-            f"Ground truth cost should be < 0.9, got {info.cost.item():.4f}"
-        )
+        assert (
+            info.quality.item() > 0.1
+        ), f"Ground truth orientation should have quality > 0.1, got {info.quality.item():.4f}"
+        assert (
+            info.cost.item() < 0.9
+        ), f"Ground truth cost should be < 0.9, got {info.cost.item():.4f}"
 
     def test_quality_cost_sum_to_one(self, diff_cost_setup):
         """quality + cost = 1."""
@@ -661,9 +661,9 @@ class TestDifferentiableCostFunction:
                     orient_minus, vertices, phase_index=voxel.phase, scale=0
                 )
 
-                numerical_grad[i, j] = (
-                    info_plus.cost.item() - info_minus.cost.item()
-                ) / (2.0 * eps)
+                numerical_grad[i, j] = (info_plus.cost.item() - info_minus.cost.item()) / (
+                    2.0 * eps
+                )
 
         # Check that gradients are correlated — they won't be exact because
         # discrete omega routing creates discontinuities, but the smooth
@@ -689,9 +689,7 @@ class TestDifferentiableCostFunction:
 
         # Ground truth
         orient_gt = torch.from_numpy(voxel.orientation).float()
-        info_gt = c["diff_cost_fn"].evaluate(
-            orient_gt, vertices, phase_index=voxel.phase, scale=0
-        )
+        info_gt = c["diff_cost_fn"].evaluate(orient_gt, vertices, phase_index=voxel.phase, scale=0)
 
         # Random orientation (identity matrix — very different from ground truth)
         orient_wrong = torch.eye(3, dtype=torch.float32)
@@ -719,9 +717,7 @@ class TestDifferentiableCostFunction:
 
         # Soft cost at ground truth
         orient_t = torch.from_numpy(voxel.orientation).float()
-        soft_info = c["diff_cost_fn"].evaluate(
-            orient_t, vertices, phase_index=voxel.phase, scale=0
-        )
+        soft_info = c["diff_cost_fn"].evaluate(orient_t, vertices, phase_index=voxel.phase, scale=0)
 
         # Both should be positive/non-zero for ground truth
         assert hard_info.quality > 0.1, f"Hard quality too low: {hard_info.quality}"
@@ -742,9 +738,7 @@ class TestDifferentiableCostFunction:
         for idx, voxel in enumerate(c["mic"].voxels[:3]):
             vertices = c["get_vertices"](voxel)
             orient_t = torch.from_numpy(voxel.orientation).float().requires_grad_(True)
-            info = c["diff_cost_fn"].evaluate(
-                orient_t, vertices, phase_index=voxel.phase, scale=0
-            )
+            info = c["diff_cost_fn"].evaluate(orient_t, vertices, phase_index=voxel.phase, scale=0)
 
             assert info.n_peaks > 0, f"Voxel {idx}: no observable peaks"
             assert info.quality.item() > 0.0, f"Voxel {idx}: zero quality"
@@ -778,27 +772,19 @@ class TestDifferentiableCostFunction:
             [[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]],
             dtype=torch.float32,
         )
-        R_perturb = (
-            torch.eye(3)
-            + math.sin(angle_rad) * K
-            + (1 - math.cos(angle_rad)) * (K @ K)
-        )
+        R_perturb = torch.eye(3) + math.sin(angle_rad) * K + (1 - math.cos(angle_rad)) * (K @ K)
         perturbed = R_perturb @ base_orient
 
         # Evaluate at fine scale (1x, original resolution)
-        info_fine = diff_cost_fn.evaluate(
-            perturbed, vertices, phase_index=voxel.phase, scale=0
-        )
+        info_fine = diff_cost_fn.evaluate(perturbed, vertices, phase_index=voxel.phase, scale=0)
         # Evaluate at coarse scale (8x downsample, scale index 1)
-        info_coarse = diff_cost_fn.evaluate(
-            perturbed, vertices, phase_index=voxel.phase, scale=1
-        )
+        info_coarse = diff_cost_fn.evaluate(perturbed, vertices, phase_index=voxel.phase, scale=1)
 
         # At 2° offset, the coarse scale should have higher quality than the
         # fine scale (max_pool dilation widens spots, making them easier to "see")
-        assert info_coarse.quality.item() >= 0.0, (
-            f"Coarse scale should give non-negative quality at 2° offset"
-        )
+        assert (
+            info_coarse.quality.item() >= 0.0
+        ), f"Coarse scale should give non-negative quality at 2° offset"
 
         # If fine scale gives zero but coarse gives non-zero, the basin is wider
         if info_fine.quality.item() < 0.01:
@@ -835,11 +821,7 @@ class TestDifferentiableCostFunction:
             [[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]],
             dtype=torch.float32,
         )
-        R_perturb = (
-            torch.eye(3)
-            + math.sin(angle_rad) * K
-            + (1 - math.cos(angle_rad)) * (K @ K)
-        )
+        R_perturb = torch.eye(3) + math.sin(angle_rad) * K + (1 - math.cos(angle_rad)) * (K @ K)
         perturbed = (R_perturb @ base_orient).requires_grad_(True)
 
         info = diff_cost_fn.evaluate(
@@ -850,9 +832,7 @@ class TestDifferentiableCostFunction:
             info.cost.backward()
             assert perturbed.grad is not None, "Should have gradient at blurred scale"
             grad_norm = perturbed.grad.norm().item()
-            assert grad_norm > 0, (
-                f"Gradient norm should be > 0 at 1° offset with blurred scale"
-            )
+            assert grad_norm > 0, f"Gradient norm should be > 0 at 1° offset with blurred scale"
 
         del multi_stack, diff_cost_fn
 
@@ -874,9 +854,7 @@ class TestDifferentiableCostFunction:
         vertices = c["get_vertices"](voxel)
 
         orient_t = torch.from_numpy(voxel.orientation).float()
-        info = c["diff_cost_fn"].evaluate(
-            orient_t, vertices, phase_index=999, scale=0
-        )
+        info = c["diff_cost_fn"].evaluate(orient_t, vertices, phase_index=999, scale=0)
         assert info.quality.item() == 0.0
         assert info.cost.item() == 1.0
 
@@ -916,9 +894,7 @@ class TestOmegaBlend:
         ms_no_blend = MultiScaleImageStack(stack, downsample_factors=[1, 4], omega_window=0)
         ms_blend = MultiScaleImageStack(stack, downsample_factors=[1, 4], omega_window=0)
 
-        torch.testing.assert_close(
-            ms_no_blend.scales[1].images, ms_blend.scales[1].images
-        )
+        torch.testing.assert_close(ms_no_blend.scales[1].images, ms_blend.scales[1].images)
 
     def test_omega_blend_shape(self):
         """Blended stack has the same shape as unblended."""

@@ -11,7 +11,7 @@ Both optimizers run from the same perturbed starting orientation per voxel.
 Time profiling breaks down the hybrid run into Adam time vs. hard-eval time.
 
 Usage:
-  cd /Users/sfli/Research/IceNine/icenine_py
+  cd icenine_py
   uv sync --extra riemannian
   uv run python benchmarks/bench_hybrid_optimizer.py --smoke-test --example threevoxels
   uv run python benchmarks/bench_hybrid_optimizer.py --example threevoxels
@@ -36,6 +36,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import torch
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -53,20 +54,21 @@ SEED = 42
 N_VOXELS = 20
 QUALITY_THRESHOLD = 0.1
 MAX_SCAN = 500
-FIXED_SCALE = 2       # scale index 2 = 8× downsample
-FIXED_OW = 1          # omega_window for MultiScaleImageStack
+FIXED_SCALE = 2  # scale index 2 = 8× downsample
+FIXED_OW = 1  # omega_window for MultiScaleImageStack
 ADAM_N_STEPS = 100
 ADAM_LR = 1e-4
 ADAM_BETA1 = 0.9
 ADAM_BETA2 = 0.999
 MC_MAX_STEPS = 3500
 MC_RESTARTS = 2
-SUCCESS_THRESHOLD_DEG = 0.5   # misorientation below this = success
+SUCCESS_THRESHOLD_DEG = 0.5  # misorientation below this = success
 
 
 # ---------------------------------------------------------------------------
 # SO(3) helpers
 # ---------------------------------------------------------------------------
+
 
 def misorientation_deg(R1: np.ndarray, R2: np.ndarray) -> float:
     """Geodesic distance on SO(3) in degrees."""
@@ -78,11 +80,14 @@ def misorientation_deg(R1: np.ndarray, R2: np.ndarray) -> float:
 
 def rodrigues_np(axis: np.ndarray, angle_rad: float) -> np.ndarray:
     """Rotation matrix via Rodrigues formula (numpy, axis must be unit)."""
-    K = np.array([
-        [0,        -axis[2],  axis[1]],
-        [axis[2],   0,       -axis[0]],
-        [-axis[1],  axis[0],  0      ],
-    ], dtype=np.float64)
+    K = np.array(
+        [
+            [0, -axis[2], axis[1]],
+            [axis[2], 0, -axis[0]],
+            [-axis[1], axis[0], 0],
+        ],
+        dtype=np.float64,
+    )
     return np.eye(3) + math.sin(angle_rad) * K + (1 - math.cos(angle_rad)) * (K @ K)
 
 
@@ -94,6 +99,7 @@ def random_unit_axis(rng: np.random.Generator) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # Setup
 # ---------------------------------------------------------------------------
+
 
 def setup_example(example_dir: Path, basename: str):
     """Load physics, cost functions, and mic for one example."""
@@ -138,32 +144,55 @@ def setup_example(example_dir: Path, basename: str):
     print(f"  Loading SparseImageStack from {data_dir.name}/ ...")
     image_stack = SparseImageStack.from_image_directory(
         directory=str(data_dir),
-        basename=basename, ext="d", serial_length=5,
-        n_omega=180, n_detectors=2, num_rows=2048, num_cols=2048, binary=True,
+        basename=basename,
+        ext="d",
+        serial_length=5,
+        n_omega=180,
+        n_detectors=2,
+        num_rows=2048,
+        num_cols=2048,
+        binary=True,
     )
     print(f"  SparseImageStack: {image_stack.memory_bytes / 1024:.1f} KB")
 
     exp_data = ExperimentalData.from_image_directory(
         directory=str(data_dir),
-        basename=basename, ext="d", serial_length=5,
-        n_omega=180, n_detectors=2, num_rows=2048, num_cols=2048, mode="sparse",
+        basename=basename,
+        ext="d",
+        serial_length=5,
+        n_omega=180,
+        n_detectors=2,
+        num_rows=2048,
+        num_cols=2048,
+        mode="sparse",
     )
 
     hard_fn = VoxelCostFunction(
-        simulator=simulator, detector_list=detector_list, range_map=range_map,
-        exp_data=exp_data, sample=sample, structure_list=structure_list, mode="hard",
+        simulator=simulator,
+        detector_list=detector_list,
+        range_map=range_map,
+        exp_data=exp_data,
+        sample=sample,
+        structure_list=structure_list,
+        mode="hard",
         eta_limit=eta_limit,
     )
 
     print(f"  Building MultiScaleImageStack omega_window={FIXED_OW} ...")
     shared_ds = MultiScaleImageStack.build_shared_base(image_stack, [1, 4, 8])
     ms = MultiScaleImageStack(
-        image_stack, [1, 4, 8], omega_window=FIXED_OW,
+        image_stack,
+        [1, 4, 8],
+        omega_window=FIXED_OW,
         _prebuilt_downsampled=shared_ds,
     )
     diff_fn = DifferentiableCostFunction(
-        simulator=simulator, detector_list=detector_list, range_map=range_map,
-        image_stack=ms, sample=sample, structure_list=structure_list,
+        simulator=simulator,
+        detector_list=detector_list,
+        range_map=range_map,
+        image_stack=ms,
+        sample=sample,
+        structure_list=structure_list,
         eta_limit=eta_limit,
     )
 
@@ -173,6 +202,7 @@ def setup_example(example_dir: Path, basename: str):
 # ---------------------------------------------------------------------------
 # Voxel selection
 # ---------------------------------------------------------------------------
+
 
 def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator):
     from icenine.geometry import matrix_to_euler
@@ -192,7 +222,9 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator):
     if len(candidates) == 0:
         raise RuntimeError("No qualifying voxels found")
     if len(candidates) < n:
-        print(f"  Warning: only {len(candidates)} qualifying voxels; using all of them (requested {n})")
+        print(
+            f"  Warning: only {len(candidates)} qualifying voxels; using all of them (requested {n})"
+        )
         n = len(candidates)
 
     chosen_positions = rng.choice(len(candidates), size=n, replace=False)
@@ -201,8 +233,10 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator):
     print(f"  Selected {n} voxels from {len(candidates)} candidates:")
     for voxel, vidx, q, _ in chosen:
         euler = matrix_to_euler(voxel.orientation)
-        print(f"    idx={vidx:5d}  φ1={euler[0]:7.2f}°  Φ={euler[1]:6.2f}°  "
-              f"φ2={euler[2]:7.2f}°  hard_q={q:.4f}")
+        print(
+            f"    idx={vidx:5d}  φ1={euler[0]:7.2f}°  Φ={euler[1]:6.2f}°  "
+            f"φ2={euler[2]:7.2f}°  hard_q={q:.4f}"
+        )
 
     return [(v, vi, verts) for v, vi, _, verts in chosen]
 
@@ -210,6 +244,7 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator):
 # ---------------------------------------------------------------------------
 # Timed hybrid optimizer run
 # ---------------------------------------------------------------------------
+
 
 def run_hybrid_timed(
     hard_fn,
@@ -246,7 +281,13 @@ def run_hybrid_timed(
     t_adam_total = 0.0
     n_diff_evals = 0
 
-    from icenine.sampling import QuaternionGrid, matrix_to_quaternion, quaternion_to_matrix, _quat_multiply
+    from icenine.sampling import (
+        QuaternionGrid,
+        matrix_to_quaternion,
+        quaternion_to_matrix,
+        _quat_multiply,
+    )
+
     grid_gen = QuaternionGrid()
 
     for restart in range(max_restarts + 1):
@@ -254,9 +295,7 @@ def run_hybrid_timed(
         R = geoopt.ManifoldParameter(
             torch.from_numpy(current_orientation).float(), manifold=manifold
         )
-        optimizer = geoopt.optim.RiemannianAdam(
-            [R], lr=lr, betas=(ADAM_BETA1, ADAM_BETA2)
-        )
+        optimizer = geoopt.optim.RiemannianAdam([R], lr=lr, betas=(ADAM_BETA1, ADAM_BETA2))
 
         t_adam_start = time.perf_counter()
         for step in range(n_steps + 1):
@@ -312,6 +351,7 @@ def run_hybrid_timed(
 # MC run
 # ---------------------------------------------------------------------------
 
+
 def run_mc_timed(
     hard_fn,
     voxel,
@@ -366,18 +406,23 @@ def run_mc_timed(
 # ---------------------------------------------------------------------------
 
 FIELDNAMES = [
-    "voxel_idx", "perturbation_deg",
+    "voxel_idx",
+    "perturbation_deg",
     "optimizer",
-    "final_misori_deg", "final_quality",
+    "final_misori_deg",
+    "final_quality",
     "wall_time_sec",
-    "t_adam_sec", "t_hard_eval_sec",
-    "n_hard_evals", "n_diff_evals",
+    "t_adam_sec",
+    "t_hard_eval_sec",
+    "n_hard_evals",
+    "n_diff_evals",
 ]
 
 
 # ---------------------------------------------------------------------------
 # Main benchmark loop
 # ---------------------------------------------------------------------------
+
 
 def run_benchmark(
     label: str,
@@ -453,32 +498,36 @@ def run_benchmark(
             )
 
             # Write hybrid row
-            writer.writerow({
-                "voxel_idx": vidx,
-                "perturbation_deg": pert_deg,
-                "optimizer": "hybrid_adam",
-                "final_misori_deg": hybrid_result["final_misori_deg"],
-                "final_quality": hybrid_result["final_quality"],
-                "wall_time_sec": hybrid_wall,
-                "t_adam_sec": hybrid_result["t_adam_sec"],
-                "t_hard_eval_sec": hybrid_result["t_hard_eval_sec"],
-                "n_hard_evals": hybrid_result["n_hard_evals"],
-                "n_diff_evals": hybrid_result["n_diff_evals"],
-            })
+            writer.writerow(
+                {
+                    "voxel_idx": vidx,
+                    "perturbation_deg": pert_deg,
+                    "optimizer": "hybrid_adam",
+                    "final_misori_deg": hybrid_result["final_misori_deg"],
+                    "final_quality": hybrid_result["final_quality"],
+                    "wall_time_sec": hybrid_wall,
+                    "t_adam_sec": hybrid_result["t_adam_sec"],
+                    "t_hard_eval_sec": hybrid_result["t_hard_eval_sec"],
+                    "n_hard_evals": hybrid_result["n_hard_evals"],
+                    "n_diff_evals": hybrid_result["n_diff_evals"],
+                }
+            )
 
             # Write MC row
-            writer.writerow({
-                "voxel_idx": vidx,
-                "perturbation_deg": pert_deg,
-                "optimizer": "mc_optimizer",
-                "final_misori_deg": mc_result["final_misori_deg"],
-                "final_quality": mc_result["final_quality"],
-                "wall_time_sec": mc_result["wall_time_sec"],
-                "t_adam_sec": float("nan"),
-                "t_hard_eval_sec": float("nan"),
-                "n_hard_evals": mc_result["n_hard_evals"],
-                "n_diff_evals": 0,
-            })
+            writer.writerow(
+                {
+                    "voxel_idx": vidx,
+                    "perturbation_deg": pert_deg,
+                    "optimizer": "mc_optimizer",
+                    "final_misori_deg": mc_result["final_misori_deg"],
+                    "final_quality": mc_result["final_quality"],
+                    "wall_time_sec": mc_result["wall_time_sec"],
+                    "t_adam_sec": float("nan"),
+                    "t_hard_eval_sec": float("nan"),
+                    "n_hard_evals": mc_result["n_hard_evals"],
+                    "n_diff_evals": 0,
+                }
+            )
             csv_file.flush()
 
             hybrid_ok = hybrid_result["final_misori_deg"] < SUCCESS_THRESHOLD_DEG
@@ -505,6 +554,7 @@ def run_benchmark(
 # Plotting
 # ---------------------------------------------------------------------------
 
+
 def plot_results(label: str, csv_path: Path) -> None:
     import csv as csv_mod
 
@@ -512,17 +562,23 @@ def plot_results(label: str, csv_path: Path) -> None:
     with open(csv_path) as f:
         reader = csv_mod.DictReader(f)
         for row in reader:
-            rows.append({
-                "voxel_idx": int(row["voxel_idx"]),
-                "perturbation_deg": float(row["perturbation_deg"]),
-                "optimizer": row["optimizer"],
-                "final_misori_deg": float(row["final_misori_deg"]),
-                "final_quality": float(row["final_quality"]) if row["final_quality"] else float("nan"),
-                "wall_time_sec": float(row["wall_time_sec"]),
-                "t_adam_sec": float(row["t_adam_sec"]) if row["t_adam_sec"] else float("nan"),
-                "t_hard_eval_sec": float(row["t_hard_eval_sec"]) if row["t_hard_eval_sec"] else float("nan"),
-                "n_hard_evals": int(float(row["n_hard_evals"])),
-            })
+            rows.append(
+                {
+                    "voxel_idx": int(row["voxel_idx"]),
+                    "perturbation_deg": float(row["perturbation_deg"]),
+                    "optimizer": row["optimizer"],
+                    "final_misori_deg": float(row["final_misori_deg"]),
+                    "final_quality": (
+                        float(row["final_quality"]) if row["final_quality"] else float("nan")
+                    ),
+                    "wall_time_sec": float(row["wall_time_sec"]),
+                    "t_adam_sec": float(row["t_adam_sec"]) if row["t_adam_sec"] else float("nan"),
+                    "t_hard_eval_sec": (
+                        float(row["t_hard_eval_sec"]) if row["t_hard_eval_sec"] else float("nan")
+                    ),
+                    "n_hard_evals": int(float(row["n_hard_evals"])),
+                }
+            )
 
     perturbations = sorted(set(r["perturbation_deg"] for r in rows))
     optimizers = ["hybrid_adam", "mc_optimizer"]
@@ -542,8 +598,14 @@ def plot_results(label: str, csv_path: Path) -> None:
             misori = get_data(opt, pert, "final_misori_deg")
             rate = sum(m < SUCCESS_THRESHOLD_DEG for m in misori) / len(misori) if misori else 0.0
             success_rates.append(100.0 * rate)
-        ax.bar(x + (i - 0.5) * width, success_rates, width, label=labels[opt],
-               color=colors[opt], alpha=0.8)
+        ax.bar(
+            x + (i - 0.5) * width,
+            success_rates,
+            width,
+            label=labels[opt],
+            color=colors[opt],
+            alpha=0.8,
+        )
     ax.set_xlabel("Perturbation (°)")
     ax.set_ylabel(f"Success rate (%) [misori < {SUCCESS_THRESHOLD_DEG}°]")
     ax.set_title(f"Hybrid Adam vs. MC — Success Rate ({label})")
@@ -560,28 +622,56 @@ def plot_results(label: str, csv_path: Path) -> None:
     # Plot 2: Wall time vs perturbation (stacked for hybrid: adam + hard_eval)
     fig, ax = plt.subplots(figsize=(8, 5))
     hybrid_adam_times = [
-        np.mean([r["t_adam_sec"] for r in rows
-                 if r["optimizer"] == "hybrid_adam" and r["perturbation_deg"] == pert
-                 and not math.isnan(r["t_adam_sec"])])
+        np.mean(
+            [
+                r["t_adam_sec"]
+                for r in rows
+                if r["optimizer"] == "hybrid_adam"
+                and r["perturbation_deg"] == pert
+                and not math.isnan(r["t_adam_sec"])
+            ]
+        )
         for pert in perturbations
     ]
     hybrid_hard_times = [
-        np.mean([r["t_hard_eval_sec"] for r in rows
-                 if r["optimizer"] == "hybrid_adam" and r["perturbation_deg"] == pert
-                 and not math.isnan(r["t_hard_eval_sec"])])
+        np.mean(
+            [
+                r["t_hard_eval_sec"]
+                for r in rows
+                if r["optimizer"] == "hybrid_adam"
+                and r["perturbation_deg"] == pert
+                and not math.isnan(r["t_hard_eval_sec"])
+            ]
+        )
         for pert in perturbations
     ]
-    mc_times = [
-        np.mean(get_data("mc_optimizer", pert, "wall_time_sec"))
-        for pert in perturbations
-    ]
+    mc_times = [np.mean(get_data("mc_optimizer", pert, "wall_time_sec")) for pert in perturbations]
 
-    ax.bar(x - width / 2, hybrid_adam_times, width, label="Hybrid: Adam steps",
-           color=colors["hybrid_adam"], alpha=0.8)
-    ax.bar(x - width / 2, hybrid_hard_times, width, bottom=hybrid_adam_times,
-           label="Hybrid: hard eval", color="#90CAF9", alpha=0.8)
-    ax.bar(x + width / 2, mc_times, width, label=labels["mc_optimizer"],
-           color=colors["mc_optimizer"], alpha=0.8)
+    ax.bar(
+        x - width / 2,
+        hybrid_adam_times,
+        width,
+        label="Hybrid: Adam steps",
+        color=colors["hybrid_adam"],
+        alpha=0.8,
+    )
+    ax.bar(
+        x - width / 2,
+        hybrid_hard_times,
+        width,
+        bottom=hybrid_adam_times,
+        label="Hybrid: hard eval",
+        color="#90CAF9",
+        alpha=0.8,
+    )
+    ax.bar(
+        x + width / 2,
+        mc_times,
+        width,
+        label=labels["mc_optimizer"],
+        color=colors["mc_optimizer"],
+        alpha=0.8,
+    )
     ax.set_xlabel("Perturbation (°)")
     ax.set_ylabel("Mean wall time (s)")
     ax.set_title(f"Hybrid Adam vs. MC — Wall Time ({label})")
@@ -595,25 +685,27 @@ def plot_results(label: str, csv_path: Path) -> None:
     print(f"  Saved: {out_path.name}")
 
     # Plot 3: Scatter — MC misori vs hybrid misori per run
-    fig, axes = plt.subplots(1, len(perturbations), figsize=(4 * len(perturbations), 4),
-                             sharey=True, sharex=True)
+    fig, axes = plt.subplots(
+        1, len(perturbations), figsize=(4 * len(perturbations), 4), sharey=True, sharex=True
+    )
     if len(perturbations) == 1:
         axes = [axes]
-    max_misori = max(
-        max((r["final_misori_deg"] for r in rows), default=5.0), 1.0
-    )
+    max_misori = max(max((r["final_misori_deg"] for r in rows), default=5.0), 1.0)
     for ax, pert in zip(axes, perturbations):
         hybrid_misori = get_data("hybrid_adam", pert, "final_misori_deg")
         mc_misori = get_data("mc_optimizer", pert, "final_misori_deg")
         n = min(len(hybrid_misori), len(mc_misori))
-        ax.scatter(mc_misori[:n], hybrid_misori[:n], alpha=0.6, s=20,
-                   color="#5C6BC0", edgecolors="none")
+        ax.scatter(
+            mc_misori[:n], hybrid_misori[:n], alpha=0.6, s=20, color="#5C6BC0", edgecolors="none"
+        )
         lim = max_misori * 1.05
         ax.plot([0, lim], [0, lim], "k--", lw=0.8, alpha=0.5, label="equal")
-        ax.axhline(SUCCESS_THRESHOLD_DEG, color=colors["hybrid_adam"], lw=0.8,
-                   alpha=0.5, linestyle=":")
-        ax.axvline(SUCCESS_THRESHOLD_DEG, color=colors["mc_optimizer"], lw=0.8,
-                   alpha=0.5, linestyle=":")
+        ax.axhline(
+            SUCCESS_THRESHOLD_DEG, color=colors["hybrid_adam"], lw=0.8, alpha=0.5, linestyle=":"
+        )
+        ax.axvline(
+            SUCCESS_THRESHOLD_DEG, color=colors["mc_optimizer"], lw=0.8, alpha=0.5, linestyle=":"
+        )
         ax.set_xlim(0, lim)
         ax.set_ylim(0, lim)
         ax.set_title(f"pert={pert:.1f}°")
@@ -645,13 +737,20 @@ EXAMPLES = {
 
 def main():
     parser = argparse.ArgumentParser(description="Hybrid Adam vs. MC optimizer benchmark")
-    parser.add_argument("--example", choices=list(EXAMPLES.keys()),
-                        default="threevoxels",
-                        help="Which example dataset to use")
-    parser.add_argument("--smoke-test", action="store_true",
-                        help="Quick smoke test: 3 voxels, 2 perturbations")
-    parser.add_argument("--plots-only", action="store_true",
-                        help="Regenerate plots from existing CSV without running benchmark")
+    parser.add_argument(
+        "--example",
+        choices=list(EXAMPLES.keys()),
+        default="threevoxels",
+        help="Which example dataset to use",
+    )
+    parser.add_argument(
+        "--smoke-test", action="store_true", help="Quick smoke test: 3 voxels, 2 perturbations"
+    )
+    parser.add_argument(
+        "--plots-only",
+        action="store_true",
+        help="Regenerate plots from existing CSV without running benchmark",
+    )
     args = parser.parse_args()
 
     example_dir, basename = EXAMPLES[args.example]

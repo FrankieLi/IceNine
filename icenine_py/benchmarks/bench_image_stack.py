@@ -50,8 +50,7 @@ def benchmark(name: str, n_iters: int, fn, warmup: int = 3):
 
     arr = np.array(times)
     print(
-        f"  {name:<50s}  mean={arr.mean():>10.1f} us"
-        f"  min={arr.min():>10.1f} us  (n={n_iters})"
+        f"  {name:<50s}  mean={arr.mean():>10.1f} us" f"  min={arr.min():>10.1f} us  (n={n_iters})"
     )
     return arr.mean()
 
@@ -122,6 +121,7 @@ M = 200
 omega_indices = rng.randint(0, 180, size=M)
 det_indices = rng.randint(0, 2, size=M)
 
+
 # Sequential: get_image() + get_binary_numpy()
 def seq_lookup():
     results = []
@@ -130,15 +130,16 @@ def seq_lookup():
         results.append(img.get_binary_numpy())
     return results
 
+
 mean_seq = benchmark("Sequential get_image() + get_binary_numpy()", 20, seq_lookup)
 
 # Batch: tensor indexing
-flat_indices = torch.tensor(
-    omega_indices * 2 + det_indices, dtype=torch.long
-)
+flat_indices = torch.tensor(omega_indices * 2 + det_indices, dtype=torch.long)
+
 
 def batch_lookup():
     return image_stack.get_images_batch(flat_indices)
+
 
 mean_batch = benchmark("Batch tensor indexing", 20, batch_lookup)
 
@@ -158,6 +159,7 @@ centroids_row = rng.uniform(10, 2038, size=M).astype(np.float32)
 # Sequential: integer pixel lookup from binary numpy
 binary_images = seq_lookup()  # pre-load
 
+
 def seq_pixel_lookup():
     total = 0
     for i in range(M):
@@ -165,6 +167,7 @@ def seq_pixel_lookup():
         cy = int(centroids_row[i])
         total += binary_images[i][cy, cx]
     return total
+
 
 mean_seq_px = benchmark("Sequential binary_img[cy, cx]", 50, seq_pixel_lookup)
 
@@ -175,16 +178,24 @@ grid_x = torch.from_numpy(2.0 * centroids_col / W - 1.0).unsqueeze(0).unsqueeze(
 grid_y = torch.from_numpy(2.0 * centroids_row / H - 1.0).unsqueeze(0).unsqueeze(0)
 
 # For batch grid_sample, we need per-image grids: (M, 1, 1, 2)
-grid_coords = torch.stack([
-    torch.from_numpy(2.0 * centroids_col / W - 1.0),
-    torch.from_numpy(2.0 * centroids_row / H - 1.0),
-], dim=1).unsqueeze(1).unsqueeze(1)  # (M, 1, 1, 2)
+grid_coords = (
+    torch.stack(
+        [
+            torch.from_numpy(2.0 * centroids_col / W - 1.0),
+            torch.from_numpy(2.0 * centroids_row / H - 1.0),
+        ],
+        dim=1,
+    )
+    .unsqueeze(1)
+    .unsqueeze(1)
+)  # (M, 1, 1, 2)
+
 
 def batch_grid_sample():
     return F.grid_sample(
-        batch_images, grid_coords,
-        mode='bilinear', padding_mode='zeros', align_corners=False
+        batch_images, grid_coords, mode="bilinear", padding_mode="zeros", align_corners=False
     )
+
 
 mean_batch_px = benchmark("Batch F.grid_sample (bilinear)", 50, batch_grid_sample)
 
@@ -216,15 +227,20 @@ vertices = _get_voxel_vertices(voxel)
 orientation = voxel.orientation
 phase_index = voxel.phase
 
+
 # Hard evaluate
 def hard_eval():
     return cost_fn.evaluate(orientation, vertices, phase_index)
 
+
 info = hard_eval()
-print(f"  Hard eval reference: quality={info.quality:.4f}, cost={info.cost:.4f}, "
-      f"hit_ratio={info.hit_ratio:.4f}")
+print(
+    f"  Hard eval reference: quality={info.quality:.4f}, cost={info.cost:.4f}, "
+    f"hit_ratio={info.hit_ratio:.4f}"
+)
 
 mean_hard = benchmark("VoxelCostFunction.evaluate() [hard]", 20, hard_eval)
+
 
 # Centroid grid_sample equivalent (manual pipeline)
 # We replicate what DifferentiableCostFunction will do:
@@ -237,8 +253,10 @@ def centroid_eval():
     g_lab_batch = (orientation_t @ g_hkl_batch.T).T
 
     from icenine.diffraction_core import get_scattering_omegas_torch
+
     bragg_result = get_scattering_omegas_torch(
-        g_lab_batch, g_mag_batch,
+        g_lab_batch,
+        g_mag_batch,
         cost_fn.simulator.beam_energy,
         cost_fn.simulator.beam_deflection_chi,
     )
@@ -263,8 +281,10 @@ def centroid_eval():
     cos_w = torch.cos(all_omegas)
     sin_w = torch.sin(all_omegas)
     Rz = torch.zeros(N, 3, 3)
-    Rz[:, 0, 0] = cos_w; Rz[:, 0, 1] = -sin_w
-    Rz[:, 1, 0] = sin_w; Rz[:, 1, 1] = cos_w
+    Rz[:, 0, 0] = cos_w
+    Rz[:, 0, 1] = -sin_w
+    Rz[:, 1, 0] = sin_w
+    Rz[:, 1, 1] = cos_w
     Rz[:, 2, 2] = 1.0
 
     full_rot = Rz @ base_rot
@@ -312,10 +332,13 @@ def centroid_eval():
 
     # Stage B: batch geometry
     orig_matrix = cost_fn.sample.sample_to_lab_matrix
-    cos_w2 = torch.cos(v_omegas); sin_w2 = torch.sin(v_omegas)
+    cos_w2 = torch.cos(v_omegas)
+    sin_w2 = torch.sin(v_omegas)
     Rz2 = torch.zeros(M, 3, 3)
-    Rz2[:, 0, 0] = cos_w2; Rz2[:, 0, 1] = -sin_w2
-    Rz2[:, 1, 0] = sin_w2; Rz2[:, 1, 1] = cos_w2
+    Rz2[:, 0, 0] = cos_w2
+    Rz2[:, 0, 1] = -sin_w2
+    Rz2[:, 1, 0] = sin_w2
+    Rz2[:, 1, 1] = cos_w2
     Rz2[:, 2, 2] = 1.0
 
     base_rot2 = orig_matrix[:3, :3]
@@ -330,7 +353,7 @@ def centroid_eval():
     full_4x4[:, 3, 3] = 1.0
 
     verts_4d = torch.cat([vertices, torch.ones(3, 1)], dim=1)
-    lab_verts = torch.einsum('mij,vj->mvi', full_4x4, verts_4d)[:, :, :3]
+    lab_verts = torch.einsum("mij,vj->mvi", full_4x4, verts_4d)[:, :, :3]
 
     # Stage C: ray-detector intersection (for all detectors)
     n_det = len(detector_list)
@@ -379,13 +402,12 @@ def centroid_eval():
         batch_imgs = image_stack.images[flat_idx]  # (M, 1, H, W)
 
         # Normalize to [-1, 1] for grid_sample
-        grid_x = (2.0 * centroids_col / image_stack.W - 1.0)
-        grid_y = (2.0 * centroids_row / image_stack.H - 1.0)
+        grid_x = 2.0 * centroids_col / image_stack.W - 1.0
+        grid_y = 2.0 * centroids_row / image_stack.H - 1.0
         grid = torch.stack([grid_x, grid_y], dim=1).unsqueeze(1).unsqueeze(1)  # (M, 1, 1, 2)
 
         sampled = F.grid_sample(
-            batch_imgs, grid, mode='bilinear',
-            padding_mode='zeros', align_corners=False
+            batch_imgs, grid, mode="bilinear", padding_mode="zeros", align_corners=False
         ).squeeze()  # (M,)
 
         # Mask by all_hit
@@ -396,6 +418,7 @@ def centroid_eval():
 
     quality = quality_sum / max(n_quality, 1)
     return quality
+
 
 centroid_quality = centroid_eval()
 print(f"  Centroid eval reference: quality={centroid_quality:.4f}")

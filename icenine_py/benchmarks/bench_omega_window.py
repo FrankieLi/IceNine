@@ -52,9 +52,7 @@ SEED = 42
 
 
 def rodrigues(axis: np.ndarray, angle_rad: float) -> np.ndarray:
-    K = np.array([[0, -axis[2], axis[1]],
-                  [axis[2], 0, -axis[0]],
-                  [-axis[1], axis[0], 0]])
+    K = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
     return np.eye(3) + math.sin(angle_rad) * K + (1 - math.cos(angle_rad)) * (K @ K)
 
 
@@ -70,14 +68,14 @@ from icenine.reconstructor import _get_voxel_vertices
 def central_diff(angles, values):
     grad = np.empty_like(values)
     grad[1:-1] = (values[2:] - values[:-2]) / (angles[2:] - angles[:-2])
-    grad[0]    = (values[1]  - values[0])   / (angles[1]  - angles[0])
-    grad[-1]   = (values[-1] - values[-2])  / (angles[-1] - angles[-2])
+    grad[0] = (values[1] - values[0]) / (angles[1] - angles[0])
+    grad[-1] = (values[-1] - values[-2]) / (angles[-1] - angles[-2])
     return grad
 
 
 def setup():
     config_path = EXAMPLE_DIR / "ConfigFiles" / "Example2.Simulation.config"
-    data_dir    = EXAMPLE_DIR / "ScatteringData_Python"
+    data_dir = EXAMPLE_DIR / "ScatteringData_Python"
 
     os.chdir(EXAMPLE_DIR)  # configs use relative paths
 
@@ -137,9 +135,7 @@ def setup():
 
     # Build downsampled base stacks ONCE and share across omega_window variants
     print("  Building shared downsampled base stacks [4x, 8x] ...")
-    shared_ds = MultiScaleImageStack.build_shared_base(
-        image_stack, downsample_factors=[1, 4, 8]
-    )
+    shared_ds = MultiScaleImageStack.build_shared_base(image_stack, downsample_factors=[1, 4, 8])
 
     diff_fns = {}
     for ow in OMEGA_WINDOWS:
@@ -164,6 +160,7 @@ def setup():
 
 def select_voxels(mic, hard_fn, rng, n=N_VOXELS, threshold=0.1, max_scan=500):
     from icenine.geometry import matrix_to_euler
+
     candidates = []
     for i, voxel in enumerate(mic.voxels[:max_scan]):
         vertices = _get_voxel_vertices(voxel)
@@ -175,8 +172,10 @@ def select_voxels(mic, hard_fn, rng, n=N_VOXELS, threshold=0.1, max_scan=500):
     print(f"  Selected {n} voxels from {len(candidates)} candidates:")
     for voxel, vidx, q in chosen:
         euler = matrix_to_euler(voxel.orientation)
-        print(f"    idx={vidx:5d}  phi1={euler[0]:7.2f}°  Phi={euler[1]:6.2f}°  "
-              f"phi2={euler[2]:7.2f}°  hard_q={q:.4f}")
+        print(
+            f"    idx={vidx:5d}  phi1={euler[0]:7.2f}°  Phi={euler[1]:6.2f}°  "
+            f"phi2={euler[2]:7.2f}°  hard_q={q:.4f}"
+        )
     return [(v, vi) for v, vi, _ in chosen]
 
 
@@ -209,8 +208,11 @@ def sweep(voxel_list, diff_fns, rng):
             elapsed = time.perf_counter() - t0
             eta = elapsed / done * (n_total - done) if done else 0
             vals = "  ".join(f"ω±{ow}={buf[ow][ai].mean():.4f}" for ow in OMEGA_WINDOWS)
-            print(f"    vox {vi+1}/{len(voxel_list)}  angle={angle_deg:5.1f}°  {vals}"
-                  f"  [ETA {eta/60:.0f}m]", flush=True)
+            print(
+                f"    vox {vi+1}/{len(voxel_list)}  angle={angle_deg:5.1f}°  {vals}"
+                f"  [ETA {eta/60:.0f}m]",
+                flush=True,
+            )
 
         for ow in OMEGA_WINDOWS:
             results[ow][vi] = buf[ow].mean(axis=1)
@@ -225,10 +227,10 @@ def plot_quality(results, out_path):
     for ow in OMEGA_WINDOWS:
         arr = results[ow]  # (n_voxels, n_angles)
         mean = arr.mean(axis=0)
-        std  = arr.std(axis=0)
+        std = arr.std(axis=0)
         label = f"Diff s2 — 8× + ω±{ow}" if ow > 0 else "Diff s2 — 8× (no blend)"
         color = COLORS[str(ow)]
-        ls    = LINESTYLES[str(ow)]
+        ls = LINESTYLES[str(ow)]
 
         # Spaghetti
         for vi in range(arr.shape[0]):
@@ -242,8 +244,8 @@ def plot_quality(results, out_path):
         ax_rel.plot(ANGLES_DEG, mean / q0, color=color, ls=ls, lw=2.0, label=label)
 
     for ax, ylabel, title in [
-        (ax_q,   "Quality (0–1)",          "Quality vs. misorientation — scale 2 (8×)"),
-        (ax_rel, "Q / Q(0°)",              "Relative quality [normalised to Q at 0°]"),
+        (ax_q, "Quality (0–1)", "Quality vs. misorientation — scale 2 (8×)"),
+        (ax_rel, "Q / Q(0°)", "Relative quality [normalised to Q at 0°]"),
     ]:
         ax.axvline(0, color="gray", lw=0.8, ls="--")
         ax.set_xlabel("Misorientation angle (degrees)")
@@ -268,35 +270,33 @@ def plot_gradient(results, out_path):
         arr = results[ow]  # (n_voxels, n_angles)
         label = f"Diff s2 — 8× + ω±{ow}" if ow > 0 else "Diff s2 — 8× (no blend)"
         color = COLORS[str(ow)]
-        ls    = LINESTYLES[str(ow)]
+        ls = LINESTYLES[str(ow)]
 
         grads = np.array([central_diff(ANGLES_DEG, arr[vi]) for vi in range(arr.shape[0])])
         mean_g = grads.mean(axis=0)
-        std_g  = grads.std(axis=0)
+        std_g = grads.std(axis=0)
 
         # Spaghetti
         for vi in range(grads.shape[0]):
             ax_abs.plot(ANGLES_DEG, grads[vi], color=color, ls=ls, lw=0.5, alpha=0.25)
 
         ax_abs.plot(ANGLES_DEG, mean_g, color=color, ls=ls, lw=2.0, label=label)
-        ax_abs.fill_between(ANGLES_DEG, mean_g - std_g, mean_g + std_g,
-                            color=color, alpha=0.15)
+        ax_abs.fill_between(ANGLES_DEG, mean_g - std_g, mean_g + std_g, color=color, alpha=0.15)
 
         # Relative: normalise each voxel's gradient by its own Q(0°)
         q0 = arr[:, 0:1]  # (n_voxels, 1)
         rel = grads / np.maximum(q0, 1e-9)
         mean_r = rel.mean(axis=0)
-        std_r  = rel.std(axis=0)
+        std_r = rel.std(axis=0)
 
         for vi in range(rel.shape[0]):
             ax_rel.plot(ANGLES_DEG, rel[vi], color=color, ls=ls, lw=0.5, alpha=0.25)
 
         ax_rel.plot(ANGLES_DEG, mean_r, color=color, ls=ls, lw=2.0, label=label)
-        ax_rel.fill_between(ANGLES_DEG, mean_r - std_r, mean_r + std_r,
-                            color=color, alpha=0.15)
+        ax_rel.fill_between(ANGLES_DEG, mean_r - std_r, mean_r + std_r, color=color, alpha=0.15)
 
     for ax, ylabel, title in [
-        (ax_abs, "dQ / dθ  (per degree)",       "Absolute gradient"),
+        (ax_abs, "dQ / dθ  (per degree)", "Absolute gradient"),
         (ax_rel, "(dQ/dθ) / Q(0°)  (per degree)", "Relative gradient"),
     ]:
         ax.axhline(0, color="gray", lw=0.8, ls="--")
@@ -322,8 +322,10 @@ if __name__ == "__main__":
     print("\nSelecting voxels ...")
     voxel_list = select_voxels(mic, hard_fn, rng)
 
-    print(f"\nSweeping {len(voxel_list)} voxels × {len(ANGLES_DEG)} angles × {N_AXES} axes "
-          f"× {len(OMEGA_WINDOWS)} omega_windows ...")
+    print(
+        f"\nSweeping {len(voxel_list)} voxels × {len(ANGLES_DEG)} angles × {N_AXES} axes "
+        f"× {len(OMEGA_WINDOWS)} omega_windows ..."
+    )
     results = sweep(voxel_list, diff_fns, rng)
 
     plot_quality(results, benchmark_dir / "omega_window_comparison.png")

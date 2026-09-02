@@ -31,7 +31,7 @@ Outputs (icenine_py/benchmarks/):
   cmaes_vs_adam_summary.png   — final misorientation: CMA-ES vs Adam side-by-side
 
 Usage:
-  cd /Users/sfli/Research/IceNine/icenine_py
+  cd icenine_py
   uv run python benchmarks/bench_cmaes_optimization.py --smoke-test --example threevoxels
   uv run python benchmarks/bench_cmaes_optimization.py --example threevoxels
   uv run python benchmarks/bench_cmaes_optimization.py --example manygrains
@@ -50,6 +50,7 @@ import cma
 import numpy as np
 import torch
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -78,11 +79,12 @@ PERT_COLORS = {1.0: "C0", 2.0: "C1", 5.0: "C3"}
 # SO(3) helpers (identical to bench_gradient_optimization.py)
 # ---------------------------------------------------------------------------
 
+
 def skew(theta: torch.Tensor) -> torch.Tensor:
     z = torch.zeros(1, dtype=theta.dtype, device=theta.device)
-    row0 = torch.stack([z.squeeze(), -theta[2],  theta[1]])
-    row1 = torch.stack([theta[2],    z.squeeze(), -theta[0]])
-    row2 = torch.stack([-theta[1],   theta[0],   z.squeeze()])
+    row0 = torch.stack([z.squeeze(), -theta[2], theta[1]])
+    row1 = torch.stack([theta[2], z.squeeze(), -theta[0]])
+    row2 = torch.stack([-theta[1], theta[0], z.squeeze()])
     return torch.stack([row0, row1, row2])
 
 
@@ -106,11 +108,14 @@ def misorientation_deg(R1: np.ndarray, R2: np.ndarray) -> float:
 
 
 def rodrigues_np(axis: np.ndarray, angle_rad: float) -> np.ndarray:
-    K = np.array([
-        [0,        -axis[2],  axis[1]],
-        [axis[2],   0,       -axis[0]],
-        [-axis[1],  axis[0],  0      ],
-    ], dtype=np.float64)
+    K = np.array(
+        [
+            [0, -axis[2], axis[1]],
+            [axis[2], 0, -axis[0]],
+            [-axis[1], axis[0], 0],
+        ],
+        dtype=np.float64,
+    )
     return np.eye(3) + math.sin(angle_rad) * K + (1 - math.cos(angle_rad)) * (K @ K)
 
 
@@ -130,6 +135,7 @@ def theta_to_R_np(theta_np: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # Setup (reuses pattern from bench_gradient_optimization.py)
 # ---------------------------------------------------------------------------
+
 
 def setup_example(example_dir: Path, basename: str):
     """Load hard cost fn, differentiable cost fn (s2 ω±1), and mic."""
@@ -173,20 +179,37 @@ def setup_example(example_dir: Path, basename: str):
     print(f"  Loading SparseImageStack from {data_dir.name}/ ...")
     image_stack = SparseImageStack.from_image_directory(
         directory=str(data_dir),
-        basename=basename, ext="d", serial_length=5,
-        n_omega=180, n_detectors=2, num_rows=2048, num_cols=2048, binary=True,
+        basename=basename,
+        ext="d",
+        serial_length=5,
+        n_omega=180,
+        n_detectors=2,
+        num_rows=2048,
+        num_cols=2048,
+        binary=True,
     )
     print(f"  SparseImageStack: {image_stack.memory_bytes / 1024:.1f} KB")
 
     exp_data = ExperimentalData.from_image_directory(
         directory=str(data_dir),
-        basename=basename, ext="d", serial_length=5,
-        n_omega=180, n_detectors=2, num_rows=2048, num_cols=2048, mode="sparse",
+        basename=basename,
+        ext="d",
+        serial_length=5,
+        n_omega=180,
+        n_detectors=2,
+        num_rows=2048,
+        num_cols=2048,
+        mode="sparse",
     )
 
     hard_fn = VoxelCostFunction(
-        simulator=simulator, detector_list=detector_list, range_map=range_map,
-        exp_data=exp_data, sample=sample, structure_list=structure_list, mode="hard",
+        simulator=simulator,
+        detector_list=detector_list,
+        range_map=range_map,
+        exp_data=exp_data,
+        sample=sample,
+        structure_list=structure_list,
+        mode="hard",
     )
 
     print("  Building shared downsampled base stacks [4x, 8x] ...")
@@ -197,8 +220,12 @@ def setup_example(example_dir: Path, basename: str):
         image_stack, [1, 4, 8], omega_window=1, _prebuilt_downsampled=shared_ds
     )
     diff_fn_s2_ow1 = DifferentiableCostFunction(
-        simulator=simulator, detector_list=detector_list, range_map=range_map,
-        image_stack=ms_s2_ow1, sample=sample, structure_list=structure_list,
+        simulator=simulator,
+        detector_list=detector_list,
+        range_map=range_map,
+        image_stack=ms_s2_ow1,
+        sample=sample,
+        structure_list=structure_list,
     )
 
     cost_fns = {
@@ -212,8 +239,16 @@ def setup_example(example_dir: Path, basename: str):
 # Voxel selection (identical pattern to bench_gradient_optimization.py)
 # ---------------------------------------------------------------------------
 
-def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
-                  threshold: float = QUALITY_THRESHOLD, max_scan: int = MAX_SCAN):
+
+def select_voxels(
+    mic,
+    hard_fn,
+    get_vertices,
+    n: int,
+    rng: np.random.Generator,
+    threshold: float = QUALITY_THRESHOLD,
+    max_scan: int = MAX_SCAN,
+):
     from icenine.geometry import matrix_to_euler
 
     print(f"  Scanning up to {max_scan} voxels for hard quality > {threshold} ...")
@@ -237,8 +272,10 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
     print(f"  Selected {n} voxels from {len(candidates)} candidates:")
     for voxel, vidx, q in chosen:
         euler = matrix_to_euler(voxel.orientation)
-        print(f"    idx={vidx:5d}  φ1={euler[0]:7.2f}°  Φ={euler[1]:6.2f}°  "
-              f"φ2={euler[2]:7.2f}°  hard_q={q:.4f}")
+        print(
+            f"    idx={vidx:5d}  φ1={euler[0]:7.2f}°  Φ={euler[1]:6.2f}°  "
+            f"φ2={euler[2]:7.2f}°  hard_q={q:.4f}"
+        )
     return [(v, vi) for v, vi, _ in chosen]
 
 
@@ -246,8 +283,8 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
 # Core CMA-ES optimizer
 # ---------------------------------------------------------------------------
 
-def _eval_cost(cost_fn_label: str, cost_fn, voxel, vertices,
-               theta_np: np.ndarray) -> float:
+
+def _eval_cost(cost_fn_label: str, cost_fn, voxel, vertices, theta_np: np.ndarray) -> float:
     """Evaluate cost for a single candidate theta. Returns float."""
     theta_t = torch.tensor(theta_np, dtype=torch.float32)
     with torch.no_grad():
@@ -265,8 +302,9 @@ def _eval_cost(cost_fn_label: str, cost_fn, voxel, vertices,
             return float(info.cost.item())
 
 
-def run_cmaes(cost_fn_label: str, cost_fn, voxel, vertices,
-              R_init: np.ndarray, maxiter: int = CMA_MAXITER) -> Dict:
+def run_cmaes(
+    cost_fn_label: str, cost_fn, voxel, vertices, R_init: np.ndarray, maxiter: int = CMA_MAXITER
+) -> Dict:
     """Run CMA-ES from R_init.
 
     Returns dict with keys:
@@ -290,14 +328,14 @@ def run_cmaes(cost_fn_label: str, cost_fn, voxel, vertices,
         sigma0 = 1e-4  # minimum step size to avoid degenerate starts
 
     opts = {
-        'maxiter': maxiter,
-        'tolx': 1e-5,               # ~0.0006° — stop when step size converges
-        'tolfun': 0,                # disable within-generation flat stop
-        'tolfunhist': 0,            # disable cross-generation flat stop
-        'tolflatfitness': maxiter,  # allow maxiter flat-fitness generations
-        'tolstagnation': maxiter,   # don't stop on stagnation
-        'verbose': -9,              # suppress all CMA-ES stdout
-        'seed': SEED,
+        "maxiter": maxiter,
+        "tolx": 1e-5,  # ~0.0006° — stop when step size converges
+        "tolfun": 0,  # disable within-generation flat stop
+        "tolfunhist": 0,  # disable cross-generation flat stop
+        "tolflatfitness": maxiter,  # allow maxiter flat-fitness generations
+        "tolstagnation": maxiter,  # don't stop on stagnation
+        "verbose": -9,  # suppress all CMA-ES stdout
+        "seed": SEED,
     }
 
     es = cma.CMAEvolutionStrategy(theta0, sigma0, opts)
@@ -310,8 +348,7 @@ def run_cmaes(cost_fn_label: str, cost_fn, voxel, vertices,
 
     while not es.stop():
         solutions = es.ask()
-        costs = [_eval_cost(cost_fn_label, cost_fn, voxel, vertices, s)
-                 for s in solutions]
+        costs = [_eval_cost(cost_fn_label, cost_fn, voxel, vertices, s) for s in solutions]
         es.tell(solutions, costs)
 
         # Track best so far this generation
@@ -328,7 +365,7 @@ def run_cmaes(cost_fn_label: str, cost_fn, voxel, vertices,
 
     R_final = theta_to_R_np(best_theta)
     stop_reason = es.stop()
-    converged = not any(k in stop_reason for k in ('maxiter', 'maxfevals'))
+    converged = not any(k in stop_reason for k in ("maxiter", "maxfevals"))
 
     return {
         "quality_history": np.array(quality_history),
@@ -346,11 +383,18 @@ def run_cmaes(cost_fn_label: str, cost_fn, voxel, vertices,
 # Per-voxel sweep
 # ---------------------------------------------------------------------------
 
-def sweep_voxel(voxel, vidx: int, cost_fns: Dict,
-                get_vertices, perturbations_deg: List[float],
-                rng: np.random.Generator,
-                cost_fn_labels: List[str], maxiter: int,
-                smoke_test: bool = False) -> List[Dict]:
+
+def sweep_voxel(
+    voxel,
+    vidx: int,
+    cost_fns: Dict,
+    get_vertices,
+    perturbations_deg: List[float],
+    rng: np.random.Generator,
+    cost_fn_labels: List[str],
+    maxiter: int,
+    smoke_test: bool = False,
+) -> List[Dict]:
     """Run CMA-ES for all (cost_fn, perturbation) combos for one voxel."""
     vertices = get_vertices(voxel)
     rows = []
@@ -364,9 +408,7 @@ def sweep_voxel(voxel, vidx: int, cost_fns: Dict,
 
         for cf_label in cost_fn_labels:
             t0 = time.perf_counter()
-            result = run_cmaes(
-                cf_label, cost_fns[cf_label], voxel, vertices, R_pert, maxiter
-            )
+            result = run_cmaes(cf_label, cost_fns[cf_label], voxel, vertices, R_pert, maxiter)
             elapsed = time.perf_counter() - t0
 
             final_misori = result["misorientation_history"][-1]
@@ -380,20 +422,24 @@ def sweep_voxel(voxel, vidx: int, cost_fns: Dict,
                 flush=True,
             )
 
-            for gi, (q, m, ne) in enumerate(zip(
-                result["quality_history"],
-                result["misorientation_history"],
-                result["n_evals_history"],
-            )):
-                rows.append({
-                    "voxel_idx": vidx,
-                    "perturbation_deg": pert_deg,
-                    "cost_fn": cf_label,
-                    "generation": gi,
-                    "n_evals": int(ne),
-                    "quality": float(q),
-                    "misorientation_deg": float(m),
-                })
+            for gi, (q, m, ne) in enumerate(
+                zip(
+                    result["quality_history"],
+                    result["misorientation_history"],
+                    result["n_evals_history"],
+                )
+            ):
+                rows.append(
+                    {
+                        "voxel_idx": vidx,
+                        "perturbation_deg": pert_deg,
+                        "cost_fn": cf_label,
+                        "generation": gi,
+                        "n_evals": int(ne),
+                        "quality": float(q),
+                        "misorientation_deg": float(m),
+                    }
+                )
 
     return rows
 
@@ -402,9 +448,17 @@ def sweep_voxel(voxel, vidx: int, cost_fns: Dict,
 # CSV save
 # ---------------------------------------------------------------------------
 
+
 def save_csv(rows: List[Dict], out_path: Path):
-    fieldnames = ["voxel_idx", "perturbation_deg", "cost_fn",
-                  "generation", "n_evals", "quality", "misorientation_deg"]
+    fieldnames = [
+        "voxel_idx",
+        "perturbation_deg",
+        "cost_fn",
+        "generation",
+        "n_evals",
+        "quality",
+        "misorientation_deg",
+    ]
     with open(out_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -416,9 +470,15 @@ def save_csv(rows: List[Dict], out_path: Path):
 # Plots
 # ---------------------------------------------------------------------------
 
-def convergence_plot(csv_path: Path, out_path_q: Path, out_path_m: Path,
-                     title_prefix: str, perturbations_deg: List[float],
-                     cost_fn_labels: List[str]):
+
+def convergence_plot(
+    csv_path: Path,
+    out_path_q: Path,
+    out_path_m: Path,
+    title_prefix: str,
+    perturbations_deg: List[float],
+    cost_fn_labels: List[str],
+):
     """Quality and misorientation vs. n_evals — one panel per perturbation."""
     import pandas as pd
 
@@ -426,11 +486,10 @@ def convergence_plot(csv_path: Path, out_path_q: Path, out_path_m: Path,
     n_pert = len(perturbations_deg)
 
     for metric, ylabel, out_path in [
-        ("quality",         "Quality (0–1)",     out_path_q),
+        ("quality", "Quality (0–1)", out_path_q),
         ("misorientation_deg", "Misorientation (°)", out_path_m),
     ]:
-        fig, axes = plt.subplots(1, n_pert, figsize=(6 * n_pert, 5),
-                                  sharey=(metric == "quality"))
+        fig, axes = plt.subplots(1, n_pert, figsize=(6 * n_pert, 5), sharey=(metric == "quality"))
         if n_pert == 1:
             axes = [axes]
 
@@ -444,12 +503,12 @@ def convergence_plot(csv_path: Path, out_path_q: Path, out_path_m: Path,
                     continue
                 # Mean over voxels at each generation (use n_evals as x-axis)
                 mean_v = sel.groupby("n_evals")[metric].mean()
-                std_v  = sel.groupby("n_evals")[metric].std().fillna(0)
+                std_v = sel.groupby("n_evals")[metric].std().fillna(0)
                 color = COST_FN_COLORS.get(cf, "gray")
-                ax.plot(mean_v.index, mean_v.values, color=color, lw=2.0,
-                        label=cf)
-                ax.fill_between(mean_v.index, mean_v - std_v, mean_v + std_v,
-                                color=color, alpha=0.15)
+                ax.plot(mean_v.index, mean_v.values, color=color, lw=2.0, label=cf)
+                ax.fill_between(
+                    mean_v.index, mean_v - std_v, mean_v + std_v, color=color, alpha=0.15
+                )
 
             ax.set_xlabel("Function evaluations")
             ax.set_ylabel(ylabel if ai == 0 else "")
@@ -467,27 +526,36 @@ def convergence_plot(csv_path: Path, out_path_q: Path, out_path_m: Path,
         print(f"Saved: {out_path}")
 
 
-def vs_adam_summary(cmaes_csv: Path, adam_csv: Path, out_path: Path,
-                    title_prefix: str, perturbations_deg: List[float],
-                    cost_fn_labels: List[str]):
+def vs_adam_summary(
+    cmaes_csv: Path,
+    adam_csv: Path,
+    out_path: Path,
+    title_prefix: str,
+    perturbations_deg: List[float],
+    cost_fn_labels: List[str],
+):
     """Side-by-side bar chart: final misorientation for CMA-ES vs Adam."""
     import pandas as pd
 
     df_c = pd.read_csv(cmaes_csv)
     # Get final generation per (voxel, perturbation, cost_fn)
-    df_c_final = (df_c.sort_values("generation")
-                  .groupby(["voxel_idx", "perturbation_deg", "cost_fn"])
-                  .last()
-                  .reset_index())
+    df_c_final = (
+        df_c.sort_values("generation")
+        .groupby(["voxel_idx", "perturbation_deg", "cost_fn"])
+        .last()
+        .reset_index()
+    )
 
     df_a = None
     adam_tags = []
     if adam_csv.exists():
         df_a = pd.read_csv(adam_csv)
-        df_a_final = (df_a.sort_values("step")
-                      .groupby(["voxel_idx", "perturbation_deg", "scale", "omega_window"])
-                      .last()
-                      .reset_index())
+        df_a_final = (
+            df_a.sort_values("step")
+            .groupby(["voxel_idx", "perturbation_deg", "scale", "omega_window"])
+            .last()
+            .reset_index()
+        )
         # Use best Adam config (s=2, ow=1) for comparison
         df_a_best = df_a_final[(df_a_final["scale"] == 2) & (df_a_final["omega_window"] == 1)]
         adam_tags = [("adam_s2_ow1", df_a_best)]
@@ -507,8 +575,9 @@ def vs_adam_summary(cmaes_csv: Path, adam_csv: Path, out_path: Path,
         stds = []
 
         for cf in cost_fn_labels:
-            sub = df_c_final[(df_c_final["perturbation_deg"] == pert) &
-                             (df_c_final["cost_fn"] == cf)]["misorientation_deg"]
+            sub = df_c_final[
+                (df_c_final["perturbation_deg"] == pert) & (df_c_final["cost_fn"] == cf)
+            ]["misorientation_deg"]
             means.append(float(sub.mean()) if len(sub) > 0 else np.nan)
             stds.append(float(sub.std()) if len(sub) > 1 else 0.0)
 
@@ -520,8 +589,9 @@ def vs_adam_summary(cmaes_csv: Path, adam_csv: Path, out_path: Path,
         colors = [COST_FN_COLORS.get(cf, "C4") for cf in cost_fn_labels]
         colors += ["C5"] * len(adam_tags)
 
-        bars = ax.bar(x, means, width, yerr=stds, color=colors, capsize=4,
-                      error_kw={"elinewidth": 1.2})
+        bars = ax.bar(
+            x, means, width, yerr=stds, color=colors, capsize=4, error_kw={"elinewidth": 1.2}
+        )
         ax.set_xticks(x)
         ax.set_xticklabels(all_labels, rotation=15, ha="right", fontsize=8)
         ax.set_ylabel("Final misorientation (°)" if ai == 0 else "")
@@ -534,8 +604,14 @@ def vs_adam_summary(cmaes_csv: Path, adam_csv: Path, out_path: Path,
         # Annotate bars
         for bar, mean in zip(bars, means):
             if not np.isnan(mean):
-                ax.text(bar.get_x() + bar.get_width() / 2, mean + 0.05,
-                        f"{mean:.2f}°", ha="center", va="bottom", fontsize=7)
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    mean + 0.05,
+                    f"{mean:.2f}°",
+                    ha="center",
+                    va="bottom",
+                    fontsize=7,
+                )
 
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
@@ -546,6 +622,7 @@ def vs_adam_summary(cmaes_csv: Path, adam_csv: Path, out_path: Path,
 # ---------------------------------------------------------------------------
 # Per-example runner
 # ---------------------------------------------------------------------------
+
 
 def run_example(
     label: str,
@@ -592,8 +669,10 @@ def run_example(
         voxel_list = select_voxels(mic, hard_fn, get_vertices, n_voxels, rng)
 
     total = len(voxel_list) * len(perturbations_deg) * len(cost_fn_labels)
-    print(f"\nRunning {len(voxel_list)} voxels × {len(perturbations_deg)} perts"
-          f" × {len(cost_fn_labels)} cost fns = {total} CMA-ES runs (maxiter={maxiter}) ...")
+    print(
+        f"\nRunning {len(voxel_list)} voxels × {len(perturbations_deg)} perts"
+        f" × {len(cost_fn_labels)} cost fns = {total} CMA-ES runs (maxiter={maxiter}) ..."
+    )
 
     all_rows = []
     t_start = time.perf_counter()
@@ -601,7 +680,10 @@ def run_example(
     for vi, (voxel, vidx) in enumerate(voxel_list):
         print(f"\n  Voxel {vi+1}/{len(voxel_list)}  (mic idx={vidx}) ...")
         rows = sweep_voxel(
-            voxel, vidx, cost_fns, get_vertices,
+            voxel,
+            vidx,
+            cost_fns,
+            get_vertices,
             perturbations_deg=perturbations_deg,
             rng=rng,
             cost_fn_labels=cost_fn_labels,
@@ -628,7 +710,8 @@ def run_example(
 
     adam_csv = benchmark_dir / f"grad_opt_{tag}.csv"
     vs_adam_summary(
-        csv_path, adam_csv,
+        csv_path,
+        adam_csv,
         benchmark_dir / f"cmaes_vs_adam_summary_{tag}.png",
         title_prefix=label,
         perturbations_deg=perturbations_deg,
@@ -642,18 +725,24 @@ def run_example(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CMA-ES orientation benchmark")
-    parser.add_argument("--smoke-test", action="store_true",
-                        help="Quick sanity: 1 voxel, maxiter=10, pert=2°, hard only")
-    parser.add_argument("--example", choices=["threevoxels", "manygrains", "both"],
-                        default="both")
-    parser.add_argument("--maxiter", type=int, default=CMA_MAXITER,
-                        help=f"CMA-ES max generations (default {CMA_MAXITER})")
+    parser.add_argument(
+        "--smoke-test",
+        action="store_true",
+        help="Quick sanity: 1 voxel, maxiter=10, pert=2°, hard only",
+    )
+    parser.add_argument("--example", choices=["threevoxels", "manygrains", "both"], default="both")
+    parser.add_argument(
+        "--maxiter",
+        type=int,
+        default=CMA_MAXITER,
+        help=f"CMA-ES max generations (default {CMA_MAXITER})",
+    )
     args = parser.parse_args()
 
     rng = np.random.default_rng(seed=SEED)
 
     three_dir = project_root / "Examples" / "Example2.ThreeVoxels"
-    many_dir  = project_root / "Examples" / "Example2.ManyGrains"
+    many_dir = project_root / "Examples" / "Example2.ManyGrains"
 
     if args.example in ("threevoxels", "both"):
         run_example(

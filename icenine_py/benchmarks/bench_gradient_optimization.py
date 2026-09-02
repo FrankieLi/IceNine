@@ -33,7 +33,7 @@ Outputs (all in icenine_py/benchmarks/):
   grad_opt_summary_*.png       — 3×3 heatmap of final misorientation
 
 Usage:
-  cd /Users/sfli/Research/IceNine/icenine_py
+  cd icenine_py
   uv run python benchmarks/bench_gradient_optimization.py --smoke-test
   uv run python benchmarks/bench_gradient_optimization.py
 """
@@ -50,6 +50,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -80,21 +81,22 @@ MAX_SCAN = 500
 # Colors / linestyles for (scale, omega_window) combos
 # scale: 0→C0, 1→C1, 2→C3
 # omega_window: 0→':', 1→'-.', 2→'--'
-SCALE_COLORS   = {0: "C0", 1: "C1", 2: "C3"}
-OW_LINESTYLES  = {0: ":",   1: "-.", 2: "--"}
+SCALE_COLORS = {0: "C0", 1: "C1", 2: "C3"}
+OW_LINESTYLES = {0: ":", 1: "-.", 2: "--"}
 
 
 # ---------------------------------------------------------------------------
 # SO(3) helpers
 # ---------------------------------------------------------------------------
 
+
 def skew(theta: torch.Tensor) -> torch.Tensor:
     """3-vector → 3×3 skew-symmetric matrix."""
     assert theta.shape == (3,), f"Expected shape (3,), got {theta.shape}"
     z = torch.zeros(1, dtype=theta.dtype, device=theta.device)
-    row0 = torch.stack([z.squeeze(), -theta[2],  theta[1]])
-    row1 = torch.stack([theta[2],    z.squeeze(), -theta[0]])
-    row2 = torch.stack([-theta[1],   theta[0],   z.squeeze()])
+    row0 = torch.stack([z.squeeze(), -theta[2], theta[1]])
+    row1 = torch.stack([theta[2], z.squeeze(), -theta[0]])
+    row2 = torch.stack([-theta[1], theta[0], z.squeeze()])
     return torch.stack([row0, row1, row2])
 
 
@@ -131,11 +133,14 @@ def misorientation_deg(R1: np.ndarray, R2: np.ndarray) -> float:
 
 def rodrigues_np(axis: np.ndarray, angle_rad: float) -> np.ndarray:
     """Rotation matrix via Rodrigues formula (numpy, axis must be unit)."""
-    K = np.array([
-        [0,        -axis[2],  axis[1]],
-        [axis[2],   0,       -axis[0]],
-        [-axis[1],  axis[0],  0      ],
-    ], dtype=np.float64)
+    K = np.array(
+        [
+            [0, -axis[2], axis[1]],
+            [axis[2], 0, -axis[0]],
+            [-axis[1], axis[0], 0],
+        ],
+        dtype=np.float64,
+    )
     return np.eye(3) + math.sin(angle_rad) * K + (1 - math.cos(angle_rad)) * (K @ K)
 
 
@@ -147,6 +152,7 @@ def random_unit_axis(rng: np.random.Generator) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # Setup
 # ---------------------------------------------------------------------------
+
 
 def setup_example(example_dir: Path, basename: str, omega_windows: List[int]):
     """Load cost functions and mic for one example.
@@ -251,9 +257,7 @@ def setup_example(example_dir: Path, basename: str, omega_windows: List[int]):
     # Without sharing, each MultiScaleImageStack re-densifies all 360 frames,
     # costing ~360 MB per call × n_omega_windows → ~1 GB unnecessary duplication.
     print("  Building shared downsampled base stacks [4x, 8x] ...")
-    shared_ds = MultiScaleImageStack.build_shared_base(
-        image_stack, downsample_factors=[1, 4, 8]
-    )
+    shared_ds = MultiScaleImageStack.build_shared_base(image_stack, downsample_factors=[1, 4, 8])
     sz_mb = sum(s.images.numel() * 4 / 1024 / 1024 for s in shared_ds)
     print(f"  Shared base: {sz_mb:.0f} MB total")
     _t = _mem("build_shared_base done", _t)
@@ -284,8 +288,16 @@ def setup_example(example_dir: Path, basename: str, omega_windows: List[int]):
 # Voxel selection
 # ---------------------------------------------------------------------------
 
-def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
-                  threshold: float = QUALITY_THRESHOLD, max_scan: int = MAX_SCAN):
+
+def select_voxels(
+    mic,
+    hard_fn,
+    get_vertices,
+    n: int,
+    rng: np.random.Generator,
+    threshold: float = QUALITY_THRESHOLD,
+    max_scan: int = MAX_SCAN,
+):
     from icenine.geometry import matrix_to_euler
 
     print(f"  Scanning up to {max_scan} voxels for hard quality > {threshold} ...")
@@ -312,8 +324,10 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
     print(f"  Selected {n} voxels from {len(candidates)} candidates:")
     for voxel, vidx, q in chosen:
         euler = matrix_to_euler(voxel.orientation)
-        print(f"    idx={vidx:5d}  φ1={euler[0]:7.2f}°  Φ={euler[1]:6.2f}°  "
-              f"φ2={euler[2]:7.2f}°  hard_q={q:.4f}")
+        print(
+            f"    idx={vidx:5d}  φ1={euler[0]:7.2f}°  Φ={euler[1]:6.2f}°  "
+            f"φ2={euler[2]:7.2f}°  hard_q={q:.4f}"
+        )
 
     return [(v, vi) for v, vi, _ in chosen]
 
@@ -322,8 +336,10 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
 # Core optimization loop
 # ---------------------------------------------------------------------------
 
-def run_one(diff_fn, voxel, vertices, R_init: np.ndarray, scale: int,
-            n_steps: int = N_STEPS, lr: float = LR) -> Dict:
+
+def run_one(
+    diff_fn, voxel, vertices, R_init: np.ndarray, scale: int, n_steps: int = N_STEPS, lr: float = LR
+) -> Dict:
     """Run Adam optimizer for n_steps starting from R_init.
 
     Returns:
@@ -371,10 +387,18 @@ def run_one(diff_fn, voxel, vertices, R_init: np.ndarray, scale: int,
 # Full sweep
 # ---------------------------------------------------------------------------
 
-def sweep_voxel(voxel, vidx: int, diff_fns: Dict[int, object],
-                get_vertices, perturbations_deg: List[float],
-                rng: np.random.Generator, scales: List[int],
-                omega_windows: List[int], n_steps: int) -> List[Dict]:
+
+def sweep_voxel(
+    voxel,
+    vidx: int,
+    diff_fns: Dict[int, object],
+    get_vertices,
+    perturbations_deg: List[float],
+    rng: np.random.Generator,
+    scales: List[int],
+    omega_windows: List[int],
+    n_steps: int,
+) -> List[Dict]:
     """Run optimizer for all (scale, omega_window, perturbation) combos for one voxel.
 
     Returns a flat list of result dicts, each with metadata keys added.
@@ -393,8 +417,12 @@ def sweep_voxel(voxel, vidx: int, diff_fns: Dict[int, object],
             for ow in omega_windows:
                 t0 = time.perf_counter()
                 result = run_one(
-                    diff_fns[ow], voxel, vertices, R_pert,
-                    scale=scale, n_steps=n_steps,
+                    diff_fns[ow],
+                    voxel,
+                    vertices,
+                    R_pert,
+                    scale=scale,
+                    n_steps=n_steps,
                 )
                 elapsed = time.perf_counter() - t0
 
@@ -408,15 +436,17 @@ def sweep_voxel(voxel, vidx: int, diff_fns: Dict[int, object],
                 )
 
                 for step in range(n_steps + 1):
-                    rows.append({
-                        "voxel_idx": vidx,
-                        "perturbation_deg": pert_deg,
-                        "scale": scale,
-                        "omega_window": ow,
-                        "step": step,
-                        "quality": result["quality_history"][step],
-                        "misorientation_deg": result["misorientation_history"][step],
-                    })
+                    rows.append(
+                        {
+                            "voxel_idx": vidx,
+                            "perturbation_deg": pert_deg,
+                            "scale": scale,
+                            "omega_window": ow,
+                            "step": step,
+                            "quality": result["quality_history"][step],
+                            "misorientation_deg": result["misorientation_history"][step],
+                        }
+                    )
 
     return rows
 
@@ -425,10 +455,19 @@ def sweep_voxel(voxel, vidx: int, diff_fns: Dict[int, object],
 # CSV save
 # ---------------------------------------------------------------------------
 
+
 def save_csv(rows: List[Dict], out_path: Path):
     import csv
-    fieldnames = ["voxel_idx", "perturbation_deg", "scale", "omega_window",
-                  "step", "quality", "misorientation_deg"]
+
+    fieldnames = [
+        "voxel_idx",
+        "perturbation_deg",
+        "scale",
+        "omega_window",
+        "step",
+        "quality",
+        "misorientation_deg",
+    ]
     with open(out_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -440,13 +479,20 @@ def save_csv(rows: List[Dict], out_path: Path):
 # Plots
 # ---------------------------------------------------------------------------
 
+
 def label_for(scale: int, ow: int) -> str:
     return f"s{scale} ω±{ow}"
 
 
-def convergence_plot(csv_path: Path, out_path: Path, title_prefix: str,
-                     scales: List[int], omega_windows: List[int],
-                     perturbations_deg: List[float], n_steps: int):
+def convergence_plot(
+    csv_path: Path,
+    out_path: Path,
+    title_prefix: str,
+    scales: List[int],
+    omega_windows: List[int],
+    perturbations_deg: List[float],
+    n_steps: int,
+):
     """Quality vs. step — one panel per perturbation, lines per (scale, ow) combo."""
     import pandas as pd
 
@@ -467,14 +513,14 @@ def convergence_plot(csv_path: Path, out_path: Path, title_prefix: str,
                     continue
                 # Mean over voxels at each step
                 mean_q = sel.groupby("step")["quality"].mean()
-                std_q  = sel.groupby("step")["quality"].std().fillna(0)
+                std_q = sel.groupby("step")["quality"].std().fillna(0)
                 steps = mean_q.index.values
                 color = SCALE_COLORS[scale]
-                ls    = OW_LINESTYLES[ow]
-                ax.plot(steps, mean_q.values, color=color, ls=ls, lw=1.8,
-                        label=label_for(scale, ow))
-                ax.fill_between(steps, mean_q - std_q, mean_q + std_q,
-                                color=color, alpha=0.12)
+                ls = OW_LINESTYLES[ow]
+                ax.plot(
+                    steps, mean_q.values, color=color, ls=ls, lw=1.8, label=label_for(scale, ow)
+                )
+                ax.fill_between(steps, mean_q - std_q, mean_q + std_q, color=color, alpha=0.12)
 
         ax.set_xlabel("Adam step")
         ax.set_ylabel("Quality (0–1)" if ai == 0 else "")
@@ -490,9 +536,15 @@ def convergence_plot(csv_path: Path, out_path: Path, title_prefix: str,
     print(f"Saved: {out_path}")
 
 
-def misorientation_convergence_plot(csv_path: Path, out_path: Path, title_prefix: str,
-                                    scales: List[int], omega_windows: List[int],
-                                    perturbations_deg: List[float], n_steps: int):
+def misorientation_convergence_plot(
+    csv_path: Path,
+    out_path: Path,
+    title_prefix: str,
+    scales: List[int],
+    omega_windows: List[int],
+    perturbations_deg: List[float],
+    n_steps: int,
+):
     """Misorientation vs. step — one panel per perturbation."""
     import pandas as pd
 
@@ -512,14 +564,14 @@ def misorientation_convergence_plot(csv_path: Path, out_path: Path, title_prefix
                 if sel.empty:
                     continue
                 mean_m = sel.groupby("step")["misorientation_deg"].mean()
-                std_m  = sel.groupby("step")["misorientation_deg"].std().fillna(0)
+                std_m = sel.groupby("step")["misorientation_deg"].std().fillna(0)
                 steps = mean_m.index.values
                 color = SCALE_COLORS[scale]
-                ls    = OW_LINESTYLES[ow]
-                ax.plot(steps, mean_m.values, color=color, ls=ls, lw=1.8,
-                        label=label_for(scale, ow))
-                ax.fill_between(steps, mean_m - std_m, mean_m + std_m,
-                                color=color, alpha=0.12)
+                ls = OW_LINESTYLES[ow]
+                ax.plot(
+                    steps, mean_m.values, color=color, ls=ls, lw=1.8, label=label_for(scale, ow)
+                )
+                ax.fill_between(steps, mean_m - std_m, mean_m + std_m, color=color, alpha=0.12)
 
         ax.axhline(0, color="gray", lw=0.8, ls="--")
         ax.set_xlabel("Adam step")
@@ -536,9 +588,15 @@ def misorientation_convergence_plot(csv_path: Path, out_path: Path, title_prefix
     print(f"Saved: {out_path}")
 
 
-def summary_heatmap(csv_path: Path, out_path: Path, title_prefix: str,
-                    scales: List[int], omega_windows: List[int],
-                    perturbations_deg: List[float], n_steps: int):
+def summary_heatmap(
+    csv_path: Path,
+    out_path: Path,
+    title_prefix: str,
+    scales: List[int],
+    omega_windows: List[int],
+    perturbations_deg: List[float],
+    n_steps: int,
+):
     """3-panel heatmap: rows=scale, cols=omega_window, cell=final misorientation (°)."""
     import pandas as pd
 
@@ -578,8 +636,9 @@ def summary_heatmap(csv_path: Path, out_path: Path, title_prefix: str,
             for oi in range(len(omega_windows)):
                 val = grid[si, oi]
                 if not np.isnan(val):
-                    ax.text(oi, si, f"{val:.2f}°", ha="center", va="center",
-                            fontsize=9, color="black")
+                    ax.text(
+                        oi, si, f"{val:.2f}°", ha="center", va="center", fontsize=9, color="black"
+                    )
 
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
@@ -591,11 +650,12 @@ def summary_heatmap(csv_path: Path, out_path: Path, title_prefix: str,
 # Per-example runner
 # ---------------------------------------------------------------------------
 
+
 def run_example(
     label: str,
     example_dir: Path,
     basename: str,
-    n_voxels: Optional[int],   # None = use all voxels in mic
+    n_voxels: Optional[int],  # None = use all voxels in mic
     scales: List[int],
     omega_windows: List[int],
     perturbations_deg: List[float],
@@ -609,16 +669,14 @@ def run_example(
 
     # Smoke-test overrides
     if smoke_test:
-        n_voxels   = min(n_voxels or 1, 1)
-        n_steps    = 5
-        scales     = [2]
+        n_voxels = min(n_voxels or 1, 1)
+        n_steps = 5
+        scales = [2]
         omega_windows = [0, 1]
         perturbations_deg = [2.0]
         print("  [SMOKE TEST MODE: 1 voxel, 5 steps, scale=2 only]")
 
-    mic, hard_fn, diff_fns, get_vertices = setup_example(
-        example_dir, basename, omega_windows
-    )
+    mic, hard_fn, diff_fns, get_vertices = setup_example(example_dir, basename, omega_windows)
 
     if n_voxels is None:
         # Use ALL voxels (ThreeVoxels: just 3)
@@ -636,15 +694,14 @@ def run_example(
                 print(f"    idx={vidx}  hard_q={info.quality:.4f}  [skipped]")
         print(f"  Using {len(voxel_list)} voxels.")
     else:
-        voxel_list = select_voxels(
-            mic, hard_fn, get_vertices, n_voxels, rng
-        )
+        voxel_list = select_voxels(mic, hard_fn, get_vertices, n_voxels, rng)
 
-    total = (len(voxel_list) * len(perturbations_deg)
-             * len(scales) * len(omega_windows))
-    print(f"\nSweeping {len(voxel_list)} voxels × {len(perturbations_deg)} perts"
-          f" × {len(scales)} scales × {len(omega_windows)} ω_windows = {total} runs"
-          f" of {n_steps} steps each ...")
+    total = len(voxel_list) * len(perturbations_deg) * len(scales) * len(omega_windows)
+    print(
+        f"\nSweeping {len(voxel_list)} voxels × {len(perturbations_deg)} perts"
+        f" × {len(scales)} scales × {len(omega_windows)} ω_windows = {total} runs"
+        f" of {n_steps} steps each ..."
+    )
 
     all_rows = []
     t_start = time.perf_counter()
@@ -652,7 +709,10 @@ def run_example(
     for vi, (voxel, vidx) in enumerate(voxel_list):
         print(f"\n  Voxel {vi+1}/{len(voxel_list)}  (mic idx={vidx}) ...")
         rows = sweep_voxel(
-            voxel, vidx, diff_fns, get_vertices,
+            voxel,
+            vidx,
+            diff_fns,
+            get_vertices,
             perturbations_deg=perturbations_deg,
             rng=rng,
             scales=scales,
@@ -672,22 +732,28 @@ def run_example(
         csv_path,
         benchmark_dir / f"grad_opt_quality_convergence_{tag}.png",
         title_prefix=label,
-        scales=scales, omega_windows=omega_windows,
-        perturbations_deg=perturbations_deg, n_steps=n_steps,
+        scales=scales,
+        omega_windows=omega_windows,
+        perturbations_deg=perturbations_deg,
+        n_steps=n_steps,
     )
     misorientation_convergence_plot(
         csv_path,
         benchmark_dir / f"grad_opt_misori_convergence_{tag}.png",
         title_prefix=label,
-        scales=scales, omega_windows=omega_windows,
-        perturbations_deg=perturbations_deg, n_steps=n_steps,
+        scales=scales,
+        omega_windows=omega_windows,
+        perturbations_deg=perturbations_deg,
+        n_steps=n_steps,
     )
     summary_heatmap(
         csv_path,
         benchmark_dir / f"grad_opt_summary_{tag}.png",
         title_prefix=label,
-        scales=scales, omega_windows=omega_windows,
-        perturbations_deg=perturbations_deg, n_steps=n_steps,
+        scales=scales,
+        omega_windows=omega_windows,
+        perturbations_deg=perturbations_deg,
+        n_steps=n_steps,
     )
 
 
@@ -714,15 +780,15 @@ if __name__ == "__main__":
 
     rng = np.random.default_rng(seed=SEED)
 
-    three_dir  = project_root / "Examples" / "Example2.ThreeVoxels"
-    many_dir   = project_root / "Examples" / "Example2.ManyGrains"
+    three_dir = project_root / "Examples" / "Example2.ThreeVoxels"
+    many_dir = project_root / "Examples" / "Example2.ManyGrains"
 
     if args.example in ("threevoxels", "both"):
         run_example(
             label="ThreeVoxels",
             example_dir=three_dir,
             basename="3Grains.sim",
-            n_voxels=None,              # use all voxels
+            n_voxels=None,  # use all voxels
             scales=SCALES,
             omega_windows=OMEGA_WINDOWS,
             perturbations_deg=PERTURBATIONS_DEG,

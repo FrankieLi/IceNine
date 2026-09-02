@@ -3,18 +3,24 @@ Differentiable cost function infrastructure for gradient-based optimization.
 
 Provides:
 - ExperimentalImageStack: Pre-stacked experimental images as a single contiguous
-  tensor for GPU-friendly batch access via grid_sample.
+  tensor for batch access via grid_sample.
 - MultiScaleImageStack: Max-pool downsampled image pyramid for coarse-to-fine
   optimization. For binary images, max_pool2d is morphological dilation;
   bilinear grid_sample on the downsampled images provides smooth gradients.
 - DifferentiableCostFunction: Replaces Stage D (sequential overlap counting)
   with differentiable bilinear sampling, enabling PyTorch autograd through
   the full orientation → cost pipeline.
+
+CPU-only: the image stacks expose `.to(device)` for the stacked-image tensor,
+but DifferentiableCostFunction.evaluate() allocates its per-call intermediates
+(Rz, full_4x4, etc.) without a device= argument and calls .numpy() directly on
+some of them, so it only runs correctly on CPU today. Passing a CUDA device
+through `.to()` will raise a device-mismatch error inside evaluate().
 """
 
 import math
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -178,7 +184,6 @@ class SparseImageStack:
         self.H = first_img.num_rows
         self.W = first_img.num_cols
 
-        n_total = self.n_omega * self.n_det
         self._pixel_coords: List[torch.Tensor] = []  # (nnz, 2) int16 per image
         self._pixel_values: List[Optional[torch.Tensor]] = []  # (nnz,) or None if binary
 
@@ -216,9 +221,7 @@ class SparseImageStack:
     def to(self, device: torch.device) -> "SparseImageStack":
         """Move sparse data to device. Returns self for chaining."""
         self._pixel_coords = [c.to(device) for c in self._pixel_coords]
-        self._pixel_values = [
-            v.to(device) if v is not None else None for v in self._pixel_values
-        ]
+        self._pixel_values = [v.to(device) if v is not None else None for v in self._pixel_values]
         return self
 
     def flat_index(self, omega_idx: int, det_idx: int) -> int:
@@ -362,28 +365,21 @@ class SparseImageStack:
                                 vals_list.append(intensity)
 
                 if rows_list:
-                    coords = torch.tensor(
-                        list(zip(rows_list, cols_list)), dtype=torch.int16
-                    )
+                    coords = torch.tensor(list(zip(rows_list, cols_list)), dtype=torch.int16)
                     obj._pixel_coords.append(coords)
                     if binary:
                         obj._pixel_values.append(None)
                     else:
-                        obj._pixel_values.append(
-                            torch.tensor(vals_list, dtype=dtype)
-                        )
+                        obj._pixel_values.append(torch.tensor(vals_list, dtype=dtype))
                 else:
                     obj._pixel_coords.append(torch.empty(0, 2, dtype=torch.int16))
-                    obj._pixel_values.append(
-                        None if binary else torch.empty(0, dtype=dtype)
-                    )
+                    obj._pixel_values.append(None if binary else torch.empty(0, dtype=dtype))
 
                 loaded += 1
                 if loaded % 60 == 0 or loaded == total_files:
                     elapsed = _time.time() - t_start
                     print(
-                        f"  Loading sparse images: {loaded}/{total_files} "
-                        f"({elapsed:.1f}s)",
+                        f"  Loading sparse images: {loaded}/{total_files} " f"({elapsed:.1f}s)",
                         flush=True,
                     )
 
@@ -475,10 +471,10 @@ class MultiScaleImageStack:
 
     def __init__(
         self,
-        image_stack,
+        image_stack: Union["ExperimentalImageStack", "SparseImageStack"],
         downsample_factors: Optional[List[int]] = None,
         omega_window: int = 0,
-        _prebuilt_downsampled: Optional[List] = None,
+        _prebuilt_downsampled: Optional[List["ExperimentalImageStack"]] = None,
     ):
         """
         Args:
@@ -520,9 +516,9 @@ class MultiScaleImageStack:
     @classmethod
     def build_shared_base(
         cls,
-        image_stack,
+        image_stack: Union["ExperimentalImageStack", "SparseImageStack"],
         downsample_factors: Optional[List[int]] = None,
-    ) -> List:
+    ) -> List["ExperimentalImageStack"]:
         """Build the downsampled (but unblended) stacks once for sharing.
 
         Returns a list of ExperimentalImageStack objects (one per factor > 1
@@ -537,6 +533,11 @@ class MultiScaleImageStack:
                                        _prebuilt_downsampled=shared)
             ms2 = MultiScaleImageStack(sparse, [1,4,8], omega_window=2,
                                        _prebuilt_downsampled=shared)
+
+        Caution: when omega_window=0, the prebuilt stack objects are shared by
+        reference (not copied) across every MultiScaleImageStack built from
+        the same `shared` list — calling .to(device) on one instance mutates
+        the stacks seen by all the others.
         """
         if downsample_factors is None:
             downsample_factors = [1, 4, 8]
@@ -552,7 +553,9 @@ class MultiScaleImageStack:
                 result.append(ds)
         return result
 
-    def _downsample_stack(self, stack, factor: int) -> ExperimentalImageStack:
+    def _downsample_stack(
+        self, stack: Union["ExperimentalImageStack", "SparseImageStack"], factor: int
+    ) -> ExperimentalImageStack:
         """Densify and max_pool2d-downsample all images. No Gaussian blur.
 
         max_pool2d with kernel=factor on binary images is morphological dilation
@@ -625,10 +628,8 @@ class MultiScaleImageStack:
 
             for shift in range(1, window + 1):
                 # Use out= to write result directly into blended, no temp alloc.
-                torch.maximum(blended[shift:], blended_orig[:-shift],
-                               out=blended[shift:])
-                torch.maximum(blended[:-shift], blended_orig[shift:],
-                               out=blended[:-shift])
+                torch.maximum(blended[shift:], blended_orig[:-shift], out=blended[shift:])
+                torch.maximum(blended[:-shift], blended_orig[shift:], out=blended[:-shift])
 
         result = ExperimentalImageStack.__new__(ExperimentalImageStack)
         result.n_omega = n_omega
@@ -711,6 +712,9 @@ class DifferentiableCostFunction:
         info = diff_cost.evaluate(orientation, voxel_vertices, scale=0)
         info.cost.backward()
         # orientation.grad now contains dcost/dorientation
+
+    CPU-only: see module docstring. `orientation` and `voxel_vertices` must be
+    CPU tensors.
     """
 
     def __init__(
@@ -742,12 +746,8 @@ class DifferentiableCostFunction:
                     recp_vecs = [rv for rv in recp_vecs if rv.q_mag <= max_q]
                 if not recp_vecs:
                     continue
-                g_hkl_batch = torch.stack(
-                    [torch.from_numpy(rv.q_vec).float() for rv in recp_vecs]
-                )
-                g_mag_batch = torch.tensor(
-                    [rv.q_mag for rv in recp_vecs], dtype=torch.float32
-                )
+                g_hkl_batch = torch.stack([torch.from_numpy(rv.q_vec).float() for rv in recp_vecs])
+                g_mag_batch = torch.tensor([rv.q_mag for rv in recp_vecs], dtype=torch.float32)
                 self._phase_recip_vecs[phase_idx] = (g_hkl_batch, g_mag_batch)
 
     def evaluate(
@@ -770,8 +770,12 @@ class DifferentiableCostFunction:
             DifferentiableOverlapInfo with quality/cost tensors carrying grad_fn
         """
         self.eval_count += 1
+        # Graph-connected zero (not torch.tensor(1.0)): a degenerate orientation
+        # must still produce a tensor with grad_fn, or callers relying on
+        # cost.backward() (e.g. RiemannianAdamOptimizer) silently skip the step
+        # instead of raising, masking the failure as a no-op.
         zero_result = DifferentiableOverlapInfo(
-            quality=torch.tensor(0.0), cost=torch.tensor(1.0), n_peaks=0
+            quality=orientation.sum() * 0.0, cost=orientation.sum() * 0.0 + 1.0, n_peaks=0
         )
 
         if phase_index not in self._phase_recip_vecs:
@@ -893,11 +897,6 @@ class DifferentiableCostFunction:
 
         # --- Stage D': Differentiable soft overlap via grid_sample ---
         n_det = len(self.detector_list)
-        # Use detector pixel dimensions for bounds and normalization —
-        # the stack may be downsampled (blurred), but grid_sample's [-1,1]
-        # normalized coords handle the mapping automatically.
-        det_H = self.detector_list[0].num_rows
-        det_W = self.detector_list[0].num_cols
 
         # Accumulate soft quality across detectors
         quality_accum = torch.tensor(0.0)
@@ -905,6 +904,10 @@ class DifferentiableCostFunction:
 
         for det_idx in range(n_det):
             detector = self.detector_list[det_idx]
+            # Read per-detector: detectors are not guaranteed to share pixel
+            # dimensions, so this must not be hoisted above the loop.
+            det_H = detector.num_rows
+            det_W = detector.num_cols
             plane = detector._detector_plane
             plane_n = plane.normal
             plane_d = plane.d
@@ -943,21 +946,25 @@ class DifferentiableCostFunction:
             # Bounds check: only count peaks whose centroids are within detector
             # (The hard cost function does this implicitly in Stage D)
             in_bounds = (
-                (centroids_col >= 0) & (centroids_col < det_W)
-                & (centroids_row >= 0) & (centroids_row < det_H)
+                (centroids_col >= 0)
+                & (centroids_col < det_W)
+                & (centroids_row >= 0)
+                & (centroids_row < det_H)
             )
             valid_det = all_hit & in_bounds  # (M,) bool
 
             # Build flat indices for image lookup
-            flat_idx = torch.from_numpy(
-                (v_wedge * n_det + det_idx).astype(np.int64)
-            )
+            flat_idx = torch.from_numpy((v_wedge * n_det + det_idx).astype(np.int64))
 
             # Gather images for all M peaks (handles both dense and sparse stacks)
             batch_imgs = stack.get_images_batch(flat_idx)  # (M, 1, H, W)
 
-            # Normalize to [-1, 1] for grid_sample (align_corners=True)
-            # pixel 0 → -1, pixel det_W-1 → +1  (works for any stack resolution)
+            # Normalize to [-1, 1] for grid_sample (align_corners=True).
+            # Exact at scale=1 (full resolution). For a downsampled stack this
+            # maps full-res pixel p to p*(out_W-1)/(det_W-1) instead of the
+            # exact (p+0.5)/factor - 0.5, a systematic offset growing toward
+            # the detector edges (≈0.44 downsampled px at factor=8, vanishing
+            # at the center) — acceptable for gradient signal, not exact.
             grid_x = 2.0 * centroids_col / (det_W - 1) - 1.0
             grid_y = 2.0 * centroids_row / (det_H - 1) - 1.0
             grid = torch.stack([grid_x, grid_y], dim=1)  # (M, 2)
@@ -965,8 +972,11 @@ class DifferentiableCostFunction:
 
             # Bilinear sampling (differentiable w.r.t. grid coordinates)
             sampled = F.grid_sample(
-                batch_imgs, grid, mode="bilinear",
-                padding_mode="zeros", align_corners=True,
+                batch_imgs,
+                grid,
+                mode="bilinear",
+                padding_mode="zeros",
+                align_corners=True,
             )  # (M, 1, 1, 1)
             sampled = sampled.squeeze(3).squeeze(2).squeeze(1)  # (M,)
 

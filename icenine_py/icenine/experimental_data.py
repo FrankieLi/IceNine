@@ -10,11 +10,14 @@ C++ Reference:
 """
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from icenine.config_file import ConfigFile
 from icenine.experiment_setup import XDMExperimentSetup
 from icenine.image_data import ImageData
+
+if TYPE_CHECKING:
+    from icenine.differentiable_cost import ExperimentalImageStack, SparseImageStack
 
 
 class ExperimentalData:
@@ -196,6 +199,10 @@ class ExperimentalData:
             mode: ImageData storage mode - 'dense' (default) or 'sparse'.
                   Use 'sparse' for large images to reduce memory from
                   O(n_images × H × W) to O(total_nonzero_pixels).
+                  Note: prepare_for_reconstruction() (which eagerly builds the
+                  uint8 binary caches VoxelCostFunction's hard cost path reads)
+                  only runs for mode='dense', below. Combining mode='sparse'
+                  with the hard VoxelCostFunction is not supported.
 
         Returns:
             ExperimentalData loaded from directory

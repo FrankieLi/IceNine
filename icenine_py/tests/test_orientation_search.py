@@ -13,12 +13,23 @@ import math
 import numpy as np
 import pytest
 
+from scipy.spatial.transform import Rotation
+
 from icenine.orientation_search import (
     SearchCandidate,
     SearchParameters,
+    _spacing_filter,
+    get_symmetry_quaternions,
     hit_ratio_converged,
 )
 from icenine.cost_functions import OverlapInfo
+
+_NO_SYMMETRY = np.zeros((0, 4))
+_RADIUS_1DEG = math.radians(1.0)
+
+
+def _cand(R: np.ndarray, cost: float) -> SearchCandidate:
+    return SearchCandidate(orientation=R.copy(), cost=cost)
 
 
 class TestSearchCandidate:
@@ -103,6 +114,106 @@ class TestHitRatioConvergence:
         assert hit_ratio_converged(info, threshold=0.7)
 
 
+class TestSpacingFilter:
+    """
+    Tests for _spacing_filter, matching the literal C++ Acceptable() /
+    GetSpacedCandidates() single left-to-right pass (DiscreteSearch.h:244-398).
+
+    The algorithm is NOT a simple "keep only the global best within radius"
+    filter: candidate 0 is never itself tested (it seeds the pool), and each
+    later candidate is checked against the *entire remaining pool* — so
+    outcomes are order-dependent. These cases are locked in from the actual
+    C++ semantics (verified against this implementation), not derived by hand.
+    """
+
+    def test_empty_list(self):
+        assert _spacing_filter([], _RADIUS_1DEG, _NO_SYMMETRY) == []
+
+    def test_single_candidate_passthrough(self):
+        result = _spacing_filter([_cand(np.eye(3), 0.3)], _RADIUS_1DEG, _NO_SYMMETRY)
+        assert len(result) == 1
+        assert result[0].cost == 0.3
+
+    def test_worse_first_both_survive(self):
+        """Position 0 is never itself rejected, and a later strictly-better
+        candidate is never rejected either (it dominates the pool) — so a
+        worse-then-better near-duplicate pair both survive."""
+        R = np.eye(3)
+        result = _spacing_filter(
+            [_cand(R, 0.5), _cand(R, 0.1)], _RADIUS_1DEG, _NO_SYMMETRY
+        )
+        assert [c.cost for c in result] == [0.5, 0.1]
+
+    def test_better_first_near_duplicate_rejected(self):
+        """A later near-duplicate with worse cost than the (better) pool is rejected."""
+        R = np.eye(3)
+        result = _spacing_filter(
+            [_cand(R, 0.1), _cand(R, 0.5)], _RADIUS_1DEG, _NO_SYMMETRY
+        )
+        assert [c.cost for c in result] == [0.1]
+
+    def test_widely_separated_candidates_both_kept(self):
+        """Candidates farther apart than angular_radius are never rejected."""
+        R0 = np.eye(3)
+        R1 = Rotation.from_euler("z", 90, degrees=True).as_matrix()
+        result = _spacing_filter(
+            [_cand(R0, 0.4), _cand(R1, 0.2)], _RADIUS_1DEG, _NO_SYMMETRY
+        )
+        assert [c.cost for c in result] == [0.4, 0.2]
+
+    def test_symmetry_equivalent_orientations_collapse(self):
+        """Orientations related by a crystal symmetry op are recognized as
+        near-duplicates (and filtered) only when symmetry_quats is supplied."""
+        sym_mats = [np.eye(3), Rotation.from_euler("z", 180, degrees=True).as_matrix()]
+
+        class FakeSymmetry:
+            def get_rotation_matrices(self):
+                return sym_mats
+
+        sym_quats = get_symmetry_quaternions(FakeSymmetry())
+
+        R0 = np.eye(3)
+        R1 = Rotation.from_euler("z", 180, degrees=True).as_matrix() @ R0
+
+        without_symmetry = _spacing_filter(
+            [_cand(R0, 0.1), _cand(R1, 0.5)], _RADIUS_1DEG, _NO_SYMMETRY
+        )
+        with_symmetry = _spacing_filter(
+            [_cand(R0, 0.1), _cand(R1, 0.5)], _RADIUS_1DEG, sym_quats
+        )
+        assert [c.cost for c in without_symmetry] == [0.1, 0.5]
+        assert [c.cost for c in with_symmetry] == [0.1]
+
+
+class TestGetSymmetryQuaternions:
+    """Tests for get_symmetry_quaternions."""
+
+    def test_filters_improper_rotations(self):
+        """Only proper rotations (det > 0) are kept; inversion (det=-1) is dropped."""
+        mats = [
+            np.eye(3),
+            Rotation.from_euler("z", 90, degrees=True).as_matrix(),
+            -np.eye(3),  # improper: det = -1
+        ]
+
+        class FakeSymmetry:
+            def get_rotation_matrices(self):
+                return mats
+
+        quats = get_symmetry_quaternions(FakeSymmetry())
+        assert quats.shape == (2, 4)
+
+    def test_all_proper_kept(self):
+        mats = [np.eye(3), Rotation.from_euler("z", 180, degrees=True).as_matrix()]
+
+        class FakeSymmetry:
+            def get_rotation_matrices(self):
+                return mats
+
+        quats = get_symmetry_quaternions(FakeSymmetry())
+        assert quats.shape == (2, 4)
+
+
 class TestRiemannianAdamOptimizer:
     """Tests for RiemannianAdamOptimizer."""
 
@@ -129,7 +240,6 @@ class TestRiemannianAdamOptimizer:
         import torch
 
         from icenine.orientation_search import RiemannianAdamOptimizer, SearchCandidate
-        from icenine.cost_functions import OverlapInfo
 
         # Hard cost mock: always returns cost=0.3
         class MockHardInfo:
@@ -169,6 +279,63 @@ class TestRiemannianAdamOptimizer:
         )
         assert isinstance(result, SearchCandidate)
         assert result.cost < 1.0
+
+    @pytest.mark.skipif(
+        not __import__("importlib").util.find_spec("geoopt"),
+        reason="geoopt not installed",
+    )
+    def test_gradient_path_actually_optimizes(self):
+        """The Adam loop's backward()/step() calls genuinely move R: with a
+        differentiable cost that is graph-connected to R (unlike the constant-
+        tensor mocks above, which never exercise requires_grad), 50 Riemannian
+        Adam steps should converge the orientation much closer to the target
+        that minimizes it."""
+        import torch
+
+        from icenine.orientation_search import RiemannianAdamOptimizer
+
+        target_np = Rotation.from_euler("z", 15, degrees=True).as_matrix()
+        target_t = torch.tensor(target_np, dtype=torch.float32)
+
+        class MockDiffInfo:
+            def __init__(self, cost):
+                self.cost = cost
+
+        class MockDiffCost:
+            def evaluate(self, R, voxel_vertices, phase_index=0, scale=2):
+                # Graph-connected to R, so backward() actually produces gradients.
+                return MockDiffInfo(((R - target_t) ** 2).sum())
+
+        class MockHardInfo:
+            def __init__(self, cost):
+                self.cost = cost
+                self.hit_ratio = 0.0
+                self.peak_overlap = 1
+                self.peak_on_detector = 2
+                self.pixel_overlap = 5
+                self.pixel_on_detector = 10
+
+        class MockHardCost:
+            def evaluate(self, orientation, voxel_vertices, phase_index):
+                return MockHardInfo(float(np.linalg.norm(orientation - target_np)))
+
+        opt = RiemannianAdamOptimizer(
+            hard_cost_fn=MockHardCost(),
+            diff_cost_fn=MockDiffCost(),
+            voxel_vertices=None,
+            rng=np.random.default_rng(0),
+        )
+        result = opt.optimize(
+            initial_orientation=np.eye(3),
+            angular_box_side=math.radians(2.0),
+            n_steps=50,
+            lr=0.1,
+            max_restarts=0,
+        )
+
+        initial_dist = float(np.linalg.norm(np.eye(3) - target_np))
+        final_dist = float(np.linalg.norm(result.orientation - target_np))
+        assert final_dist < 0.1 * initial_dist
 
     @pytest.mark.skipif(
         not __import__("importlib").util.find_spec("geoopt"),

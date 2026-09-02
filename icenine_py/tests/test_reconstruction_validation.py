@@ -40,6 +40,7 @@ from icenine.symmetry import create_cubic_symmetry
 # Helpers
 # ============================================================================
 
+
 def _format_matrix(m: np.ndarray) -> str:
     """Format a 3x3 matrix as a compact multi-line string."""
     rows = []
@@ -52,6 +53,7 @@ def _format_matrix(m: np.ndarray) -> str:
 def _rotation_axis_angle(m: np.ndarray):
     """Extract single-axis rotation representation (axis, angle) from rotation matrix."""
     from scipy.spatial.transform import Rotation
+
     r = Rotation.from_matrix(m)
     rotvec = r.as_rotvec()
     angle = np.linalg.norm(rotvec)
@@ -65,6 +67,7 @@ def _rotation_axis_angle(m: np.ndarray):
 # ============================================================================
 # Fixtures
 # ============================================================================
+
 
 @pytest.fixture(scope="module")
 def project_root():
@@ -263,25 +266,39 @@ class TestBlindReconstruction:
             lines.append(f"--- Voxel {r.voxel_index} [{status}] ---")
             lines.append(f"  Time: {r.elapsed_seconds:.1f}s")
             lines.append(f"  Convergence: {r.convergence_code}")
-            lines.append(f"  Cost: {r.cost:.6f}  |  Quality: {r.quality:.6f}  |  Hit ratio: {r.hit_ratio:.3f}")
-            lines.append(f"  Misorientation: {r.misorientation_deg:.4f} deg (threshold: {self.MISORIENTATION_THRESHOLD_DEG} deg)")
+            lines.append(
+                f"  Cost: {r.cost:.6f}  |  Quality: {r.quality:.6f}  |  Hit ratio: {r.hit_ratio:.3f}"
+            )
+            lines.append(
+                f"  Misorientation: {r.misorientation_deg:.4f} deg (threshold: {self.MISORIENTATION_THRESHOLD_DEG} deg)"
+            )
             lines.append("")
             lines.append(f"  Ground truth orientation (rotation matrix):")
             lines.append(_format_matrix(r.ground_truth))
-            lines.append(f"  Ground truth axis-angle: axis=[{r.gt_axis[0]:.5f}, {r.gt_axis[1]:.5f}, {r.gt_axis[2]:.5f}], angle={r.gt_angle_deg:.4f} deg")
+            lines.append(
+                f"  Ground truth axis-angle: axis=[{r.gt_axis[0]:.5f}, {r.gt_axis[1]:.5f}, {r.gt_axis[2]:.5f}], angle={r.gt_angle_deg:.4f} deg"
+            )
             lines.append("")
             lines.append(f"  Reconstructed orientation (rotation matrix):")
             lines.append(_format_matrix(r.reconstructed))
-            lines.append(f"  Reconstructed axis-angle: axis=[{r.recon_axis[0]:.5f}, {r.recon_axis[1]:.5f}, {r.recon_axis[2]:.5f}], angle={r.recon_angle_deg:.4f} deg")
+            lines.append(
+                f"  Reconstructed axis-angle: axis=[{r.recon_axis[0]:.5f}, {r.recon_axis[1]:.5f}, {r.recon_axis[2]:.5f}], angle={r.recon_angle_deg:.4f} deg"
+            )
             lines.append("")
 
         lines.append("=" * 78)
         lines.append(f"SUMMARY")
         lines.append(f"  Total voxels: {len(results)}")
-        lines.append(f"  Passed: {sum(1 for r in results if r.misorientation_deg < self.MISORIENTATION_THRESHOLD_DEG)}/{len(results)}")
+        lines.append(
+            f"  Passed: {sum(1 for r in results if r.misorientation_deg < self.MISORIENTATION_THRESHOLD_DEG)}/{len(results)}"
+        )
         lines.append(f"  Total time: {total_time:.1f}s")
-        lines.append(f"  Mean misorientation: {np.mean([r.misorientation_deg for r in results]):.4f} deg")
-        lines.append(f"  Max misorientation: {np.max([r.misorientation_deg for r in results]):.4f} deg")
+        lines.append(
+            f"  Mean misorientation: {np.mean([r.misorientation_deg for r in results]):.4f} deg"
+        )
+        lines.append(
+            f"  Max misorientation: {np.max([r.misorientation_deg for r in results]):.4f} deg"
+        )
         lines.append(f"  Mean cost: {np.mean([r.cost for r in results]):.6f}")
         lines.append(f"  Overall: {'ALL PASS' if all_pass else 'SOME FAILED'}")
         lines.append("=" * 78)
@@ -312,8 +329,10 @@ class TestBlindReconstruction:
             r = self._reconstruct_voxel(reconstructor, voxel, rng, cubic_symmetry_quats)
             r.voxel_index = idx
             results.append(r)
-            print(f"  Voxel {idx}: misorientation={r.misorientation_deg:.4f} deg, "
-                  f"cost={r.cost:.6f}, time={r.elapsed_seconds:.1f}s")
+            print(
+                f"  Voxel {idx}: misorientation={r.misorientation_deg:.4f} deg, "
+                f"cost={r.cost:.6f}, time={r.elapsed_seconds:.1f}s"
+            )
 
         total_time = time.time() - total_t0
 
@@ -329,9 +348,9 @@ class TestBlindReconstruction:
                 f"Voxel {r.voxel_index}: misorientation {r.misorientation_deg:.4f} deg "
                 f"exceeds threshold {self.MISORIENTATION_THRESHOLD_DEG} deg"
             )
-            assert r.cost < 0.5, (
-                f"Voxel {r.voxel_index}: cost {r.cost:.4f} too high (expected < 0.5)"
-            )
-            assert r.hit_ratio > 0.3, (
-                f"Voxel {r.voxel_index}: hit_ratio {r.hit_ratio:.3f} too low (expected > 0.3)"
-            )
+            assert (
+                r.cost < 0.5
+            ), f"Voxel {r.voxel_index}: cost {r.cost:.4f} too high (expected < 0.5)"
+            assert (
+                r.hit_ratio > 0.3
+            ), f"Voxel {r.voxel_index}: hit_ratio {r.hit_ratio:.3f} too low (expected > 0.3)"

@@ -21,7 +21,7 @@ All gradient runs use scale=2, omega_window=1.
 100 voxels for ManyGrains (5× the previous 20).
 
 Usage:
-  cd /Users/sfli/Research/IceNine/icenine_py
+  cd icenine_py
   uv sync --extra riemannian
   uv run python benchmarks/bench_hp_sweep.py --smoke-test --example threevoxels
   uv run python benchmarks/bench_hp_sweep.py --example threevoxels --optimizer gradient
@@ -51,6 +51,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import torch
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -70,12 +71,13 @@ SEED = 42
 N_VOXELS_MANY = 100
 QUALITY_THRESHOLD = 0.1
 MAX_SCAN = 500
-TRAJ_SUBSAMPLE = 10   # record gradient trajectory every N steps
+TRAJ_SUBSAMPLE = 10  # record gradient trajectory every N steps
 
 # geoopt availability
 _GEOOPT_AVAILABLE = False
 try:
     import geoopt  # type: ignore
+
     _GEOOPT_AVAILABLE = True
 except ImportError:
     pass
@@ -92,6 +94,7 @@ def _require_geoopt() -> None:
 
 try:
     import psutil as _psutil
+
     _PSUTIL_AVAILABLE = True
 except ImportError:
     _PSUTIL_AVAILABLE = False
@@ -102,7 +105,7 @@ def measure_run(fn, *args, **kwargs) -> Tuple[Any, float, float, float]:
     rss_before = 0.0
     if _PSUTIL_AVAILABLE:
         proc = _psutil.Process(os.getpid())
-        rss_before = proc.memory_info().rss / 1024 ** 2
+        rss_before = proc.memory_info().rss / 1024**2
 
     tracemalloc.start()
     t0 = time.perf_counter()
@@ -113,22 +116,23 @@ def measure_run(fn, *args, **kwargs) -> Tuple[Any, float, float, float]:
 
     rss_delta = 0.0
     if _PSUTIL_AVAILABLE:
-        rss_delta = proc.memory_info().rss / 1024 ** 2 - rss_before  # type: ignore[union-attr]
+        rss_delta = proc.memory_info().rss / 1024**2 - rss_before  # type: ignore[union-attr]
 
-    return result, elapsed, peak_bytes / 1024 ** 2, rss_delta
+    return result, elapsed, peak_bytes / 1024**2, rss_delta
 
 
 # ---------------------------------------------------------------------------
 # SO(3) helpers (identical to bench_riemannian_optimization.py)
 # ---------------------------------------------------------------------------
 
+
 def skew(theta: torch.Tensor) -> torch.Tensor:
     """3-vector → 3×3 skew-symmetric matrix."""
     assert theta.shape == (3,)
     z = torch.zeros(1, dtype=theta.dtype, device=theta.device)
-    row0 = torch.stack([z.squeeze(), -theta[2],  theta[1]])
-    row1 = torch.stack([theta[2],    z.squeeze(), -theta[0]])
-    row2 = torch.stack([-theta[1],   theta[0],   z.squeeze()])
+    row0 = torch.stack([z.squeeze(), -theta[2], theta[1]])
+    row1 = torch.stack([theta[2], z.squeeze(), -theta[0]])
+    row2 = torch.stack([-theta[1], theta[0], z.squeeze()])
     return torch.stack([row0, row1, row2])
 
 
@@ -142,11 +146,14 @@ def misorientation_deg(R1: np.ndarray, R2: np.ndarray) -> float:
 
 def rodrigues_np(axis: np.ndarray, angle_rad: float) -> np.ndarray:
     """Rotation matrix via Rodrigues formula (numpy, axis must be unit)."""
-    K = np.array([
-        [0,        -axis[2],  axis[1]],
-        [axis[2],   0,       -axis[0]],
-        [-axis[1],  axis[0],  0      ],
-    ], dtype=np.float64)
+    K = np.array(
+        [
+            [0, -axis[2], axis[1]],
+            [axis[2], 0, -axis[0]],
+            [-axis[1], axis[0], 0],
+        ],
+        dtype=np.float64,
+    )
     return np.eye(3) + math.sin(angle_rad) * K + (1 - math.cos(angle_rad)) * (K @ K)
 
 
@@ -167,9 +174,9 @@ def _omega_to_vec(Omega: torch.Tensor) -> torch.Tensor:
 def _vec_to_skew(v: torch.Tensor) -> torch.Tensor:
     v1, v2, v3 = v[0], v[1], v[2]
     z = torch.zeros(1, dtype=v.dtype, device=v.device).squeeze()
-    row0 = torch.stack([z, -v3,  v2])
-    row1 = torch.stack([v3,  z, -v1])
-    row2 = torch.stack([-v2, v1,  z])
+    row0 = torch.stack([z, -v3, v2])
+    row1 = torch.stack([v3, z, -v1])
+    row2 = torch.stack([-v2, v1, z])
     return torch.stack([row0, row1, row2])
 
 
@@ -179,9 +186,13 @@ def _make_stiefel_param(R_init: np.ndarray) -> "geoopt.ManifoldParameter":
 
 
 def _make_traj_entry(
-    event_idx: int, step: int, event_type: str,
-    angular_step_deg: float, misori_gt_deg: float,
-    quality: float, cur_step_rad: float,
+    event_idx: int,
+    step: int,
+    event_type: str,
+    angular_step_deg: float,
+    misori_gt_deg: float,
+    quality: float,
+    cur_step_rad: float,
 ) -> Dict:
     return {
         "event_idx": event_idx,
@@ -198,9 +209,17 @@ def _make_traj_entry(
 # Gradient run_one_* functions — HP kwargs + trajectory (no full history)
 # ---------------------------------------------------------------------------
 
+
 def run_one_riemannian_adam_geoopt(
-    diff_fn, voxel, vertices, R_init: np.ndarray, scale: int,
-    n_steps: int, lr: float, beta1: float = 0.9, beta2: float = 0.999,
+    diff_fn,
+    voxel,
+    vertices,
+    R_init: np.ndarray,
+    scale: int,
+    n_steps: int,
+    lr: float,
+    beta1: float = 0.9,
+    beta2: float = 0.999,
     traj_subsample: int = TRAJ_SUBSAMPLE,
 ) -> Dict:
     """Riemannian Adam via geoopt.RiemannianAdam — HP-sweep variant (no history arrays)."""
@@ -224,13 +243,17 @@ def run_one_riemannian_adam_geoopt(
 
         if traj_subsample > 0 and step % traj_subsample == 0:
             R_np = R.detach().numpy()
-            traj.append(_make_traj_entry(
-                event_idx, step, "grad_step",
-                misorientation_deg(R_prev_traj, R_np),
-                misorientation_deg(R_gt, R_np),
-                float(info.quality.detach()),
-                float("nan"),
-            ))
+            traj.append(
+                _make_traj_entry(
+                    event_idx,
+                    step,
+                    "grad_step",
+                    misorientation_deg(R_prev_traj, R_np),
+                    misorientation_deg(R_gt, R_np),
+                    float(info.quality.detach()),
+                    float("nan"),
+                )
+            )
             R_prev_traj = R_np.copy()
             event_idx += 1
 
@@ -250,9 +273,17 @@ def run_one_riemannian_adam_geoopt(
 
 
 def run_one_riemannian_adam_manual(
-    diff_fn, voxel, vertices, R_init: np.ndarray, scale: int,
-    n_steps: int, lr: float, beta1: float = 0.9, beta2: float = 0.999,
-    eps: float = 1e-8, traj_subsample: int = TRAJ_SUBSAMPLE,
+    diff_fn,
+    voxel,
+    vertices,
+    R_init: np.ndarray,
+    scale: int,
+    n_steps: int,
+    lr: float,
+    beta1: float = 0.9,
+    beta2: float = 0.999,
+    eps: float = 1e-8,
+    traj_subsample: int = TRAJ_SUBSAMPLE,
 ) -> Dict:
     """Manual Riemannian Adam on SO(3) — HP-sweep variant."""
     R_gt = voxel.orientation
@@ -274,13 +305,17 @@ def run_one_riemannian_adam_manual(
 
         if traj_subsample > 0 and step % traj_subsample == 0:
             R_np = R.detach().numpy()
-            traj.append(_make_traj_entry(
-                event_idx, step, "grad_step",
-                misorientation_deg(R_prev_traj, R_np),
-                misorientation_deg(R_gt, R_np),
-                float(info.quality.detach()),
-                float("nan"),
-            ))
+            traj.append(
+                _make_traj_entry(
+                    event_idx,
+                    step,
+                    "grad_step",
+                    misorientation_deg(R_prev_traj, R_np),
+                    misorientation_deg(R_gt, R_np),
+                    float(info.quality.detach()),
+                    float("nan"),
+                )
+            )
             R_prev_traj = R_np.copy()
             event_idx += 1
 
@@ -291,9 +326,9 @@ def run_one_riemannian_adam_manual(
                 Omega_skew = _project_to_tangent(R_param.detach(), G)
                 omega_vec = _omega_to_vec(Omega_skew)
                 m1 = beta1 * m1 + (1 - beta1) * omega_vec
-                m2 = beta2 * m2 + (1 - beta2) * omega_vec ** 2
-                m1_hat = m1 / (1 - beta1 ** step)
-                m2_hat = m2 / (1 - beta2 ** step)
+                m2 = beta2 * m2 + (1 - beta2) * omega_vec**2
+                m1_hat = m1 / (1 - beta1**step)
+                m2_hat = m2 / (1 - beta2**step)
                 v_vec = m1_hat / (torch.sqrt(m2_hat) + eps)
                 R = R_param.detach() @ torch.matrix_exp(-lr * _vec_to_skew(v_vec))
 
@@ -309,8 +344,14 @@ def run_one_riemannian_adam_manual(
 
 
 def run_one_riemannian_sgd_plain(
-    diff_fn, voxel, vertices, R_init: np.ndarray, scale: int,
-    n_steps: int, lr: float, traj_subsample: int = TRAJ_SUBSAMPLE,
+    diff_fn,
+    voxel,
+    vertices,
+    R_init: np.ndarray,
+    scale: int,
+    n_steps: int,
+    lr: float,
+    traj_subsample: int = TRAJ_SUBSAMPLE,
 ) -> Dict:
     """Plain Riemannian SGD on SO(3) — HP-sweep variant."""
     _require_geoopt()
@@ -333,13 +374,17 @@ def run_one_riemannian_sgd_plain(
 
         if traj_subsample > 0 and step % traj_subsample == 0:
             R_np = R.detach().numpy()
-            traj.append(_make_traj_entry(
-                event_idx, step, "grad_step",
-                misorientation_deg(R_prev_traj, R_np),
-                misorientation_deg(R_gt, R_np),
-                float(info.quality.detach()),
-                float("nan"),
-            ))
+            traj.append(
+                _make_traj_entry(
+                    event_idx,
+                    step,
+                    "grad_step",
+                    misorientation_deg(R_prev_traj, R_np),
+                    misorientation_deg(R_gt, R_np),
+                    float(info.quality.detach()),
+                    float("nan"),
+                )
+            )
             R_prev_traj = R_np.copy()
             event_idx += 1
 
@@ -359,8 +404,14 @@ def run_one_riemannian_sgd_plain(
 
 
 def run_one_riemannian_sgd_momentum(
-    diff_fn, voxel, vertices, R_init: np.ndarray, scale: int,
-    n_steps: int, lr: float, momentum: float = 0.9,
+    diff_fn,
+    voxel,
+    vertices,
+    R_init: np.ndarray,
+    scale: int,
+    n_steps: int,
+    lr: float,
+    momentum: float = 0.9,
     traj_subsample: int = TRAJ_SUBSAMPLE,
 ) -> Dict:
     """Riemannian SGD with momentum on SO(3) — HP-sweep variant."""
@@ -384,13 +435,17 @@ def run_one_riemannian_sgd_momentum(
 
         if traj_subsample > 0 and step % traj_subsample == 0:
             R_np = R.detach().numpy()
-            traj.append(_make_traj_entry(
-                event_idx, step, "grad_step",
-                misorientation_deg(R_prev_traj, R_np),
-                misorientation_deg(R_gt, R_np),
-                float(info.quality.detach()),
-                float("nan"),
-            ))
+            traj.append(
+                _make_traj_entry(
+                    event_idx,
+                    step,
+                    "grad_step",
+                    misorientation_deg(R_prev_traj, R_np),
+                    misorientation_deg(R_gt, R_np),
+                    float(info.quality.detach()),
+                    float("nan"),
+                )
+            )
             R_prev_traj = R_np.copy()
             event_idx += 1
 
@@ -410,8 +465,14 @@ def run_one_riemannian_sgd_momentum(
 
 
 def run_one_riemannian_sgld(
-    diff_fn, voxel, vertices, R_init: np.ndarray, scale: int,
-    n_steps: int, lr: float, t_init: float = 0.01,
+    diff_fn,
+    voxel,
+    vertices,
+    R_init: np.ndarray,
+    scale: int,
+    n_steps: int,
+    lr: float,
+    t_init: float = 0.01,
     traj_subsample: int = TRAJ_SUBSAMPLE,
 ) -> Dict:
     """Stochastic Gradient Langevin Dynamics on SO(3) — HP-sweep variant."""
@@ -432,13 +493,17 @@ def run_one_riemannian_sgld(
 
         if traj_subsample > 0 and step % traj_subsample == 0:
             R_np = R.detach().numpy()
-            traj.append(_make_traj_entry(
-                event_idx, step, "grad_step",
-                misorientation_deg(R_prev_traj, R_np),
-                misorientation_deg(R_gt, R_np),
-                float(info.quality.detach()),
-                float("nan"),
-            ))
+            traj.append(
+                _make_traj_entry(
+                    event_idx,
+                    step,
+                    "grad_step",
+                    misorientation_deg(R_prev_traj, R_np),
+                    misorientation_deg(R_gt, R_np),
+                    float(info.quality.detach()),
+                    float("nan"),
+                )
+            )
             R_prev_traj = R_np.copy()
             event_idx += 1
 
@@ -468,6 +533,7 @@ def run_one_riemannian_sgld(
 # ---------------------------------------------------------------------------
 # MC run_one function
 # ---------------------------------------------------------------------------
+
 
 def run_one_mc(
     hard_fn,
@@ -528,6 +594,7 @@ def run_one_mc(
 # HP grid builder
 # ---------------------------------------------------------------------------
 
+
 def build_hp_grids() -> Dict[str, List[Dict]]:
     """Return the full HP grid for each optimizer as a list of config dicts."""
     grids: Dict[str, List[Dict]] = {}
@@ -535,11 +602,13 @@ def build_hp_grids() -> Dict[str, List[Dict]]:
     # riemannian_adam_geoopt / riemannian_adam_manual: same grid (42 configs)
     adam_configs = [
         {"hp_id": i, "lr": lr, "n_steps": ns, "beta1": b1, "beta2": 0.999}
-        for i, (lr, ns, b1) in enumerate(product(
-            [1e-4, 5e-4, 1e-3, 5e-3, 0.01, 0.05, 0.1],
-            [100, 200, 500],
-            [0.9, 0.95],
-        ))
+        for i, (lr, ns, b1) in enumerate(
+            product(
+                [1e-4, 5e-4, 1e-3, 5e-3, 0.01, 0.05, 0.1],
+                [100, 200, 500],
+                [0.9, 0.95],
+            )
+        )
     ]
     grids["riemannian_adam_geoopt"] = adam_configs
     grids["riemannian_adam_manual"] = [dict(c) for c in adam_configs]
@@ -547,29 +616,35 @@ def build_hp_grids() -> Dict[str, List[Dict]]:
     # riemannian_sgd_plain: 15 configs
     grids["riemannian_sgd_plain"] = [
         {"hp_id": i, "lr": lr, "n_steps": ns}
-        for i, (lr, ns) in enumerate(product(
-            [1e-4, 5e-4, 1e-3, 5e-3, 0.01],
-            [100, 200, 500],
-        ))
+        for i, (lr, ns) in enumerate(
+            product(
+                [1e-4, 5e-4, 1e-3, 5e-3, 0.01],
+                [100, 200, 500],
+            )
+        )
     ]
 
     # riemannian_sgd_momentum: 15 configs (n_steps=200 fixed)
     grids["riemannian_sgd_momentum"] = [
         {"hp_id": i, "lr": lr, "n_steps": 200, "momentum": m}
-        for i, (lr, m) in enumerate(product(
-            [1e-5, 5e-5, 1e-4, 5e-4, 1e-3],
-            [0.5, 0.9, 0.99],
-        ))
+        for i, (lr, m) in enumerate(
+            product(
+                [1e-5, 5e-5, 1e-4, 5e-4, 1e-3],
+                [0.5, 0.9, 0.99],
+            )
+        )
     ]
 
     # riemannian_sgld: 45 configs
     grids["riemannian_sgld"] = [
         {"hp_id": i, "lr": lr, "n_steps": ns, "t_init": T}
-        for i, (lr, T, ns) in enumerate(product(
-            [1e-4, 5e-4, 1e-3, 5e-3, 0.01],
-            [0.001, 0.01, 0.1],
-            [100, 200, 500],
-        ))
+        for i, (lr, T, ns) in enumerate(
+            product(
+                [1e-4, 5e-4, 1e-3, 5e-3, 0.01],
+                [0.001, 0.01, 0.1],
+                [100, 200, 500],
+            )
+        )
     ]
 
     # mc_optimizer: 36 configs
@@ -580,11 +655,13 @@ def build_hp_grids() -> Dict[str, List[Dict]]:
             "successive_restarts": sr,
             "angular_step_frac": asf,
         }
-        for i, (ms, sr, asf) in enumerate(product(
-            [100, 500, 1000, 3500],
-            [0, 2, 5],
-            [0.25, 0.5, 1.0],
-        ))
+        for i, (ms, sr, asf) in enumerate(
+            product(
+                [100, 500, 1000, 3500],
+                [0, 2, 5],
+                [0.25, 0.5, 1.0],
+            )
+        )
     ]
 
     return grids
@@ -597,9 +674,9 @@ def build_hp_grids() -> Dict[str, List[Dict]]:
 _GRADIENT_OPTIMIZERS = {
     "riemannian_adam_geoopt": run_one_riemannian_adam_geoopt,
     "riemannian_adam_manual": run_one_riemannian_adam_manual,
-    "riemannian_sgd_plain":   run_one_riemannian_sgd_plain,
+    "riemannian_sgd_plain": run_one_riemannian_sgd_plain,
     "riemannian_sgd_momentum": run_one_riemannian_sgd_momentum,
-    "riemannian_sgld":        run_one_riemannian_sgld,
+    "riemannian_sgld": run_one_riemannian_sgld,
 }
 
 
@@ -612,6 +689,7 @@ def _hp_kwargs_for_gradient(optimizer_name: str, hp_cfg: Dict) -> Dict:
 # ---------------------------------------------------------------------------
 # Setup (identical to bench_sgd_optimization.py)
 # ---------------------------------------------------------------------------
+
 
 def setup_example(example_dir: Path, basename: str):
     """Load physics, cost functions, and mic for one example."""
@@ -655,31 +733,54 @@ def setup_example(example_dir: Path, basename: str):
     print(f"  Loading SparseImageStack from {data_dir.name}/ ...")
     image_stack = SparseImageStack.from_image_directory(
         directory=str(data_dir),
-        basename=basename, ext="d", serial_length=5,
-        n_omega=180, n_detectors=2, num_rows=2048, num_cols=2048, binary=True,
+        basename=basename,
+        ext="d",
+        serial_length=5,
+        n_omega=180,
+        n_detectors=2,
+        num_rows=2048,
+        num_cols=2048,
+        binary=True,
     )
     print(f"  SparseImageStack: {image_stack.memory_bytes / 1024:.1f} KB")
 
     exp_data = ExperimentalData.from_image_directory(
         directory=str(data_dir),
-        basename=basename, ext="d", serial_length=5,
-        n_omega=180, n_detectors=2, num_rows=2048, num_cols=2048, mode="sparse",
+        basename=basename,
+        ext="d",
+        serial_length=5,
+        n_omega=180,
+        n_detectors=2,
+        num_rows=2048,
+        num_cols=2048,
+        mode="sparse",
     )
 
     hard_fn = VoxelCostFunction(
-        simulator=simulator, detector_list=detector_list, range_map=range_map,
-        exp_data=exp_data, sample=sample, structure_list=structure_list, mode="hard",
+        simulator=simulator,
+        detector_list=detector_list,
+        range_map=range_map,
+        exp_data=exp_data,
+        sample=sample,
+        structure_list=structure_list,
+        mode="hard",
     )
 
     print(f"  Building MultiScaleImageStack omega_window={FIXED_OW} ...")
     shared_ds = MultiScaleImageStack.build_shared_base(image_stack, [1, 4, 8])
     ms = MultiScaleImageStack(
-        image_stack, [1, 4, 8], omega_window=FIXED_OW,
+        image_stack,
+        [1, 4, 8],
+        omega_window=FIXED_OW,
         _prebuilt_downsampled=shared_ds,
     )
     diff_fn = DifferentiableCostFunction(
-        simulator=simulator, detector_list=detector_list, range_map=range_map,
-        image_stack=ms, sample=sample, structure_list=structure_list,
+        simulator=simulator,
+        detector_list=detector_list,
+        range_map=range_map,
+        image_stack=ms,
+        sample=sample,
+        structure_list=structure_list,
     )
 
     return mic, hard_fn, diff_fn, _get_voxel_vertices
@@ -689,8 +790,16 @@ def setup_example(example_dir: Path, basename: str):
 # Voxel selection
 # ---------------------------------------------------------------------------
 
-def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
-                  threshold: float = QUALITY_THRESHOLD, max_scan: int = MAX_SCAN):
+
+def select_voxels(
+    mic,
+    hard_fn,
+    get_vertices,
+    n: int,
+    rng: np.random.Generator,
+    threshold: float = QUALITY_THRESHOLD,
+    max_scan: int = MAX_SCAN,
+):
     from icenine.geometry import matrix_to_euler
 
     print(f"  Scanning up to {max_scan} voxels for hard quality > {threshold} ...")
@@ -714,8 +823,10 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
     print(f"  Selected {n} voxels from {len(candidates)} candidates:")
     for voxel, vidx, q in chosen:
         euler = matrix_to_euler(voxel.orientation)
-        print(f"    idx={vidx:5d}  φ1={euler[0]:7.2f}°  Φ={euler[1]:6.2f}°  "
-              f"φ2={euler[2]:7.2f}°  hard_q={q:.4f}")
+        print(
+            f"    idx={vidx:5d}  φ1={euler[0]:7.2f}°  Φ={euler[1]:6.2f}°  "
+            f"φ2={euler[2]:7.2f}°  hard_q={q:.4f}"
+        )
 
     return [(v, vi) for v, vi, _ in chosen]
 
@@ -725,19 +836,45 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
 # ---------------------------------------------------------------------------
 
 MAIN_FIELDNAMES = [
-    "run_id", "optimizer", "hp_id", "lr", "n_steps", "n_evaluations",
-    "beta1", "beta2", "momentum", "sgld_temp", "angular_step_frac",
-    "successive_restarts", "scale", "omega_window", "perturbation_deg",
+    "run_id",
+    "optimizer",
+    "hp_id",
+    "lr",
+    "n_steps",
+    "n_evaluations",
+    "beta1",
+    "beta2",
+    "momentum",
+    "sgld_temp",
+    "angular_step_frac",
+    "successive_restarts",
+    "scale",
+    "omega_window",
+    "perturbation_deg",
     "voxel_idx",
-    "R_start_phi1", "R_start_Phi", "R_start_phi2",
-    "R_gt_phi1", "R_gt_Phi", "R_gt_phi2",
-    "final_misorientation_deg", "final_quality", "wall_time_sec",
-    "n_peaks", "peak_memory_mb", "process_rss_delta_mb",
+    "R_start_phi1",
+    "R_start_Phi",
+    "R_start_phi2",
+    "R_gt_phi1",
+    "R_gt_Phi",
+    "R_gt_phi2",
+    "final_misorientation_deg",
+    "final_quality",
+    "wall_time_sec",
+    "n_peaks",
+    "peak_memory_mb",
+    "process_rss_delta_mb",
 ]
 
 TRAJ_FIELDNAMES = [
-    "run_id", "event_idx", "step", "event_type",
-    "angular_step_deg", "misori_gt_deg", "quality", "cur_step_rad",
+    "run_id",
+    "event_idx",
+    "step",
+    "event_type",
+    "angular_step_deg",
+    "misori_gt_deg",
+    "quality",
+    "cur_step_rad",
 ]
 
 
@@ -754,6 +891,7 @@ def open_incremental_csv(path: Path, fieldnames: List[str]):
 # ---------------------------------------------------------------------------
 # Per-run result-to-row helper
 # ---------------------------------------------------------------------------
+
 
 def _result_to_main_row(
     run_id: int,
@@ -808,6 +946,7 @@ def _result_to_main_row(
 # ---------------------------------------------------------------------------
 # Main sweep function
 # ---------------------------------------------------------------------------
+
 
 def run_hp_sweep(
     label: str,
@@ -888,9 +1027,7 @@ def run_hp_sweep(
                             )
                             run_fn = run_fn_base
 
-                        result, wall_time, peak_mem, rss_delta = measure_run(
-                            run_fn, **run_kwargs
-                        )
+                        result, wall_time, peak_mem, rss_delta = measure_run(run_fn, **run_kwargs)
 
                         # Build and write main summary row
                         main_row = _result_to_main_row(
@@ -963,12 +1100,12 @@ def run_hp_sweep(
 # ---------------------------------------------------------------------------
 
 OPTIMIZER_COLORS = {
-    "riemannian_adam_geoopt":   "C0",
-    "riemannian_adam_manual":   "C1",
-    "riemannian_sgd_plain":     "C2",
-    "riemannian_sgd_momentum":  "C3",
-    "riemannian_sgld":          "C4",
-    "mc_optimizer":             "C5",
+    "riemannian_adam_geoopt": "C0",
+    "riemannian_adam_manual": "C1",
+    "riemannian_sgd_plain": "C2",
+    "riemannian_sgd_momentum": "C3",
+    "riemannian_sgld": "C4",
+    "mc_optimizer": "C5",
 }
 
 
@@ -981,7 +1118,9 @@ def plot_lr_sensitivity(csv_path: Path, out_path: Path, title_prefix: str) -> No
         return
 
     df = pd.read_csv(csv_path)
-    grad_opts = [o for o in OPTIMIZER_COLORS if o != "mc_optimizer" and o in df["optimizer"].unique()]
+    grad_opts = [
+        o for o in OPTIMIZER_COLORS if o != "mc_optimizer" and o in df["optimizer"].unique()
+    ]
 
     if not grad_opts:
         return
@@ -1021,7 +1160,7 @@ def plot_lr_sensitivity(csv_path: Path, out_path: Path, title_prefix: str) -> No
         ax.grid(True, axis="y", alpha=0.3)
 
     # Hide unused subplots
-    for ax in list(axes_flat)[len(grad_opts):]:
+    for ax in list(axes_flat)[len(grad_opts) :]:
         ax.set_visible(False)
 
     fig.suptitle(f"{title_prefix} — LR sensitivity (misorientation distribution)", fontsize=11)
@@ -1078,7 +1217,7 @@ def plot_nsteps_sensitivity(csv_path: Path, out_path: Path, title_prefix: str) -
         ax.grid(True, axis="y", alpha=0.3)
 
     # Hide unused subplots
-    for ax in list(axes_flat)[len(opts):]:
+    for ax in list(axes_flat)[len(opts) :]:
         ax.set_visible(False)
 
     fig.suptitle(f"{title_prefix} — Steps sensitivity (misorientation distribution)", fontsize=11)
@@ -1152,8 +1291,9 @@ def plot_optimizer_comparison(csv_path: Path, out_path: Path, title_prefix: str)
     print(f"Saved: {out_path}")
 
 
-def plot_trajectory_step_sizes(traj_csv_path: Path, main_csv_path: Path,
-                                out_path: Path, title_prefix: str) -> None:
+def plot_trajectory_step_sizes(
+    traj_csv_path: Path, main_csv_path: Path, out_path: Path, title_prefix: str
+) -> None:
     """Angular step size over event index, one line per optimizer (median across runs)."""
     try:
         import pandas as pd
@@ -1197,6 +1337,7 @@ def plot_trajectory_step_sizes(traj_csv_path: Path, main_csv_path: Path,
 # Per-example runner
 # ---------------------------------------------------------------------------
 
+
 def run_example(
     label: str,
     example_dir: Path,
@@ -1227,6 +1368,7 @@ def run_example(
     if n_voxels is None:
         # Use all qualifying voxels (ThreeVoxels path)
         from icenine.geometry import matrix_to_euler
+
         voxel_list = []
         for idx, voxel in enumerate(mic.voxels):
             vertices = get_vertices(voxel)
@@ -1238,8 +1380,10 @@ def run_example(
             if info.quality > QUALITY_THRESHOLD:
                 euler = matrix_to_euler(voxel.orientation)
                 voxel_list.append((voxel, idx))
-                print(f"    idx={idx}  hard_q={info.quality:.4f}  "
-                      f"φ1={euler[0]:.2f}°  Φ={euler[1]:.2f}°  φ2={euler[2]:.2f}°  [selected]")
+                print(
+                    f"    idx={idx}  hard_q={info.quality:.4f}  "
+                    f"φ1={euler[0]:.2f}°  Φ={euler[1]:.2f}°  φ2={euler[2]:.2f}°  [selected]"
+                )
         print(f"  Using all {len(voxel_list)} qualifying voxels.")
     else:
         voxel_list = select_voxels(mic, hard_fn, get_vertices, n_voxels, rng)
@@ -1319,7 +1463,9 @@ def main() -> None:
         default="all",
         help="Which optimizers to run. 'gradient' runs all gradient methods; 'mc' runs MC only.",
     )
-    parser.add_argument("--smoke-test", action="store_true", help="Quick smoke test (1 voxel, reduced steps)")
+    parser.add_argument(
+        "--smoke-test", action="store_true", help="Quick smoke test (1 voxel, reduced steps)"
+    )
     parser.add_argument("--n-voxels", type=int, default=None, help="Override number of voxels")
     parser.add_argument(
         "--plots-only",
@@ -1347,19 +1493,23 @@ def main() -> None:
 
     examples = []
     if args.example in ("threevoxels", "both"):
-        examples.append((
-            "ThreeVoxels",
-            base_dir / "Example2.ThreeVoxels",
-            "3Grains.sim",
-            None,    # None → use all qualifying voxels (3 for ThreeVoxels)
-        ))
+        examples.append(
+            (
+                "ThreeVoxels",
+                base_dir / "Example2.ThreeVoxels",
+                "3Grains.sim",
+                None,  # None → use all qualifying voxels (3 for ThreeVoxels)
+            )
+        )
     if args.example in ("manygrains", "both"):
-        examples.append((
-            "ManyGrains",
-            base_dir / "Example2.ManyGrains",
-            "500Grains.sim",
-            N_VOXELS_MANY,
-        ))
+        examples.append(
+            (
+                "ManyGrains",
+                base_dir / "Example2.ManyGrains",
+                "500Grains.sim",
+                N_VOXELS_MANY,
+            )
+        )
 
     for label, ex_dir, basename, n_vox_default in examples:
         if args.plots_only:
@@ -1371,7 +1521,9 @@ def main() -> None:
                 print(f"Skipping plots for {label}: {main_csv} not found")
                 continue
             print(f"Regenerating plots for {label} from {main_csv}")
-            plot_lr_sensitivity(main_csv, benchmark_dir / f"hp_sweep_lr_sensitivity_{tag}.png", label)
+            plot_lr_sensitivity(
+                main_csv, benchmark_dir / f"hp_sweep_lr_sensitivity_{tag}.png", label
+            )
             plot_nsteps_sensitivity(
                 main_csv, benchmark_dir / f"hp_sweep_nsteps_sensitivity_{tag}.png", label
             )

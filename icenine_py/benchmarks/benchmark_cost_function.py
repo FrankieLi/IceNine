@@ -51,6 +51,7 @@ from icenine.simulation import Simulation
 # Timer helper
 # =============================================================================
 
+
 def benchmark(name: str, n_iters: int, fn, warmup: int = 3):
     """Run fn n_iters times, report mean/stddev/min in microseconds."""
     for _ in range(min(warmup, n_iters)):
@@ -162,8 +163,10 @@ benchmark(
     "get_scattering_omegas_torch (single)",
     10000,
     lambda: get_scattering_omegas_torch(
-        g_single, g_mag_single,
-        simulator.beam_energy, simulator.beam_deflection_chi,
+        g_single,
+        g_mag_single,
+        simulator.beam_energy,
+        simulator.beam_deflection_chi,
     ),
 )
 
@@ -172,8 +175,10 @@ benchmark(
     f"get_scattering_omegas_torch (all {len(g_hkl_batch)} recip vecs)",
     1000,
     lambda: get_scattering_omegas_torch(
-        g_lab_batch, g_mag_batch,
-        simulator.beam_energy, simulator.beam_deflection_chi,
+        g_lab_batch,
+        g_mag_batch,
+        simulator.beam_energy,
+        simulator.beam_deflection_chi,
     ),
 )
 print()
@@ -188,8 +193,10 @@ print("--- Benchmark 2: Observable peaks (omega + eta filtering) ---")
 def compute_observable_peaks():
     """Same as VoxelCostFunction.evaluate lines 711-760: omega + eta filter."""
     bragg = get_scattering_omegas_torch(
-        g_lab_batch, g_mag_batch,
-        simulator.beam_energy, simulator.beam_deflection_chi,
+        g_lab_batch,
+        g_mag_batch,
+        simulator.beam_energy,
+        simulator.beam_deflection_chi,
     )
     peak_omegas = []
     peak_normals = []

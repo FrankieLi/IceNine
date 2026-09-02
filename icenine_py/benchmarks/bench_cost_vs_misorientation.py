@@ -20,7 +20,7 @@ Adequate for landscape visualization.
 Estimated runtime: ~2h (ThreeVoxels) + ~4h (ManyGrains) = ~6h total.
 
 Usage:
-  cd /Users/sfli/Research/IceNine/icenine_py
+  cd icenine_py
   uv run python benchmarks/bench_cost_vs_misorientation.py
 """
 
@@ -30,6 +30,7 @@ import time
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -47,13 +48,17 @@ benchmark_dir = Path(__file__).parent
 # Physics helpers
 # ---------------------------------------------------------------------------
 
+
 def rodrigues(axis: np.ndarray, angle_rad: float) -> np.ndarray:
     """Rotation matrix via Rodrigues formula (axis must be unit vector)."""
-    K = np.array([
-        [0,       -axis[2],  axis[1]],
-        [axis[2],  0,       -axis[0]],
-        [-axis[1], axis[0],  0      ],
-    ], dtype=np.float64)
+    K = np.array(
+        [
+            [0, -axis[2], axis[1]],
+            [axis[2], 0, -axis[0]],
+            [-axis[1], axis[0], 0],
+        ],
+        dtype=np.float64,
+    )
     return np.eye(3) + math.sin(angle_rad) * K + (1 - math.cos(angle_rad)) * (K @ K)
 
 
@@ -67,6 +72,7 @@ def random_unit_axes(n: int, rng: np.random.Generator) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # Setup
 # ---------------------------------------------------------------------------
+
 
 def setup_example(example_dir: Path, basename: str):
     """Load cost functions, image stacks, and mic for one example."""
@@ -182,9 +188,16 @@ def setup_example(example_dir: Path, basename: str):
 # Voxel selection
 # ---------------------------------------------------------------------------
 
-def select_random_voxels(mic, hard_cost_fn, get_vertices,
-                         n_voxels: int, quality_threshold: float,
-                         max_scan: int, rng: np.random.Generator):
+
+def select_random_voxels(
+    mic,
+    hard_cost_fn,
+    get_vertices,
+    n_voxels: int,
+    quality_threshold: float,
+    max_scan: int,
+    rng: np.random.Generator,
+):
     """
     Scan up to max_scan voxels, collect those with hard quality > threshold,
     then randomly select n_voxels. Returns list of (voxel, idx) tuples.
@@ -203,8 +216,9 @@ def select_random_voxels(mic, hard_cost_fn, get_vertices,
         if info.quality > quality_threshold:
             candidates.append((voxel, idx, info.quality))
         if (idx + 1) % 50 == 0:
-            print(f"    scanned {idx+1}/{max_scan}, {len(candidates)} qualifying so far",
-                  flush=True)
+            print(
+                f"    scanned {idx+1}/{max_scan}, {len(candidates)} qualifying so far", flush=True
+            )
 
     if len(candidates) < n_voxels:
         raise RuntimeError(
@@ -218,8 +232,10 @@ def select_random_voxels(mic, hard_cost_fn, get_vertices,
     print(f"  Selected {n_voxels} voxels (from {len(candidates)} candidates):")
     for voxel, vidx, q in chosen:
         euler = matrix_to_euler(voxel.orientation)
-        print(f"    idx={vidx:5d}  phi1={euler[0]:7.2f}°  Phi={euler[1]:6.2f}°  "
-              f"phi2={euler[2]:7.2f}°  hard_q={q:.4f}")
+        print(
+            f"    idx={vidx:5d}  phi1={euler[0]:7.2f}°  Phi={euler[1]:6.2f}°  "
+            f"phi2={euler[2]:7.2f}°  hard_q={q:.4f}"
+        )
 
     return [(v, vi) for v, vi, _ in chosen]
 
@@ -228,8 +244,10 @@ def select_random_voxels(mic, hard_cost_fn, get_vertices,
 # Sweep
 # ---------------------------------------------------------------------------
 
-def sweep_one_voxel(voxel, hard_cost_fn, diff_cost_fn, get_vertices,
-                    angles_deg: np.ndarray, axes: np.ndarray):
+
+def sweep_one_voxel(
+    voxel, hard_cost_fn, diff_cost_fn, get_vertices, angles_deg: np.ndarray, axes: np.ndarray
+):
     """
     Evaluate all cost functions at each (angle, axis) pair for one voxel.
     axes: (n_axes, 3) — fixed set of rotation axes.
@@ -237,7 +255,7 @@ def sweep_one_voxel(voxel, hard_cost_fn, diff_cost_fn, get_vertices,
     """
     n_angles = len(angles_deg)
     n_axes = len(axes)
-    hard    = np.zeros((n_angles, n_axes))
+    hard = np.zeros((n_angles, n_axes))
     diff_s0 = np.zeros((n_angles, n_axes))
     diff_s1 = np.zeros((n_angles, n_axes))
     diff_s2 = np.zeros((n_angles, n_axes))
@@ -273,6 +291,7 @@ def sweep_one_voxel(voxel, hard_cost_fn, diff_cost_fn, get_vertices,
 # CSV / Plot — single voxel
 # ---------------------------------------------------------------------------
 
+
 def save_csv_single(path: Path, angles_deg: np.ndarray, results: dict):
     """Save per-sample CSV for single-voxel sweep."""
     n_angles, n_axes = results["hard"].shape
@@ -287,8 +306,10 @@ def save_csv_single(path: Path, angles_deg: np.ndarray, results: dict):
                 f"{results['diff_s2'][ai, xi]:.6f},"
                 f"{results['diff_s2_oblend'][ai, xi]:.6f}"
             )
-    header = ("angle_deg,axis_idx,hard_quality,diff_quality_s0,"
-              "diff_quality_s1,diff_quality_s2,diff_quality_s2_oblend")
+    header = (
+        "angle_deg,axis_idx,hard_quality,diff_quality_s0,"
+        "diff_quality_s1,diff_quality_s2,diff_quality_s2_oblend"
+    )
     with open(path, "w") as f:
         f.write(header + "\n")
         f.write("\n".join(rows) + "\n")
@@ -300,17 +321,17 @@ def save_plot_single(path: Path, angles_deg: np.ndarray, results: dict, title: s
     fig, ax = plt.subplots(figsize=(9, 5))
 
     styles = [
-        ("hard",           "Hard (binary overlap)",                  "k",  "-",   2.0),
-        ("diff_s0",        "Diff s0 — 1× (2048²)",                   "C0", "-",   1.8),
-        ("diff_s1",        "Diff s1 — 4× (512²)",                    "C1", "--",  1.8),
-        ("diff_s2",        "Diff s2 — 8× (256², max-pool)",          "C3", ":",   1.8),
-        ("diff_s2_oblend", "Diff s2 — 8× + ω±1 blend",              "C2", "-.",  1.8),
+        ("hard", "Hard (binary overlap)", "k", "-", 2.0),
+        ("diff_s0", "Diff s0 — 1× (2048²)", "C0", "-", 1.8),
+        ("diff_s1", "Diff s1 — 4× (512²)", "C1", "--", 1.8),
+        ("diff_s2", "Diff s2 — 8× (256², max-pool)", "C3", ":", 1.8),
+        ("diff_s2_oblend", "Diff s2 — 8× + ω±1 blend", "C2", "-.", 1.8),
     ]
 
     for key, label, color, ls, lw in styles:
         arr = results[key]
         mean = arr.mean(axis=1)
-        std  = arr.std(axis=1)
+        std = arr.std(axis=1)
         ax.plot(angles_deg, mean, color=color, ls=ls, lw=lw, label=label)
         ax.fill_between(angles_deg, mean - std, mean + std, color=color, alpha=0.15)
 
@@ -332,8 +353,8 @@ def save_plot_single(path: Path, angles_deg: np.ndarray, results: dict, title: s
 # CSV / Plot — multi-voxel
 # ---------------------------------------------------------------------------
 
-def save_csv_multi(path: Path, angles_deg: np.ndarray,
-                   voxel_indices: list, all_results: list):
+
+def save_csv_multi(path: Path, angles_deg: np.ndarray, voxel_indices: list, all_results: list):
     """
     Save multi-voxel CSV.
     Columns: angle_deg, voxel_idx, hard_quality, diff_quality_s0, s1, s2, s2_oblend
@@ -350,27 +371,28 @@ def save_csv_multi(path: Path, angles_deg: np.ndarray,
                 f"{res['diff_s2'][ai].mean():.6f},"
                 f"{res['diff_s2_oblend'][ai].mean():.6f}"
             )
-    header = ("angle_deg,voxel_idx,hard_quality,diff_quality_s0,"
-              "diff_quality_s1,diff_quality_s2,diff_quality_s2_oblend")
+    header = (
+        "angle_deg,voxel_idx,hard_quality,diff_quality_s0,"
+        "diff_quality_s1,diff_quality_s2,diff_quality_s2_oblend"
+    )
     with open(path, "w") as f:
         f.write(header + "\n")
         f.write("\n".join(rows) + "\n")
     print(f"  Saved CSV: {path}")
 
 
-def save_plot_multi(path: Path, angles_deg: np.ndarray,
-                    all_results: list, title: str):
+def save_plot_multi(path: Path, angles_deg: np.ndarray, all_results: list, title: str):
     """
     Plot multi-voxel cost landscape.
     For each cost function: thin semi-transparent lines per voxel (spaghetti),
     thick line = mean across voxels, shaded band = ±1 std across voxels.
     """
     styles = [
-        ("hard",           "Hard (binary overlap)",                  "k",  "-",   2.2),
-        ("diff_s0",        "Diff s0 — 1× (2048²)",                   "C0", "-",   2.0),
-        ("diff_s1",        "Diff s1 — 4× (512²)",                    "C1", "--",  2.0),
-        ("diff_s2",        "Diff s2 — 8× (256², max-pool)",          "C3", ":",   2.0),
-        ("diff_s2_oblend", "Diff s2 — 8× + ω±1 blend",              "C2", "-.",  2.0),
+        ("hard", "Hard (binary overlap)", "k", "-", 2.2),
+        ("diff_s0", "Diff s0 — 1× (2048²)", "C0", "-", 2.0),
+        ("diff_s1", "Diff s1 — 4× (512²)", "C1", "--", 2.0),
+        ("diff_s2", "Diff s2 — 8× (256², max-pool)", "C3", ":", 2.0),
+        ("diff_s2_oblend", "Diff s2 — 8× + ω±1 blend", "C2", "-.", 2.0),
     ]
 
     # per_voxel_means[key] shape: (n_voxels, n_angles)
@@ -382,9 +404,9 @@ def save_plot_multi(path: Path, angles_deg: np.ndarray,
     fig, ax = plt.subplots(figsize=(10, 6))
 
     for key, label, color, ls, lw in styles:
-        arr = per_voxel[key]          # (n_voxels, n_angles)
+        arr = per_voxel[key]  # (n_voxels, n_angles)
         mean = arr.mean(axis=0)
-        std  = arr.std(axis=0)
+        std = arr.std(axis=0)
 
         # Spaghetti: one thin line per voxel
         for vi in range(arr.shape[0]):
@@ -412,9 +434,16 @@ def save_plot_multi(path: Path, angles_deg: np.ndarray,
 # Run examples
 # ---------------------------------------------------------------------------
 
-def run_single_voxel(name: str, example_dir: Path, basename: str,
-                     voxel_idx: int, angles_deg: np.ndarray, n_axes: int,
-                     rng: np.random.Generator):
+
+def run_single_voxel(
+    name: str,
+    example_dir: Path,
+    basename: str,
+    voxel_idx: int,
+    angles_deg: np.ndarray,
+    n_axes: int,
+    rng: np.random.Generator,
+):
     from icenine.geometry import matrix_to_euler
 
     print(f"\n{'='*60}")
@@ -423,8 +452,11 @@ def run_single_voxel(name: str, example_dir: Path, basename: str,
 
     setup = setup_example(example_dir, basename)
     mic, hard_fn, diff_fn, diff_fn_oblend, get_vertices = (
-        setup["mic"], setup["hard_cost_fn"],
-        setup["diff_cost_fn"], setup["diff_cost_fn_oblend"], setup["get_vertices"],
+        setup["mic"],
+        setup["hard_cost_fn"],
+        setup["diff_cost_fn"],
+        setup["diff_cost_fn_oblend"],
+        setup["get_vertices"],
     )
 
     voxel = mic.voxels[voxel_idx]
@@ -442,11 +474,11 @@ def run_single_voxel(name: str, example_dir: Path, basename: str,
     print(f"  Sweeping {len(angles_deg)} angles × {n_axes} axes = {n_total} evals ...")
     t0 = time.perf_counter()
 
-    hard_all       = np.zeros((len(angles_deg), n_axes))
-    diff_s0_all    = np.zeros((len(angles_deg), n_axes))
-    diff_s1_all    = np.zeros((len(angles_deg), n_axes))
-    diff_s2_all    = np.zeros((len(angles_deg), n_axes))
-    diff_s2ob_all  = np.zeros((len(angles_deg), n_axes))
+    hard_all = np.zeros((len(angles_deg), n_axes))
+    diff_s0_all = np.zeros((len(angles_deg), n_axes))
+    diff_s1_all = np.zeros((len(angles_deg), n_axes))
+    diff_s2_all = np.zeros((len(angles_deg), n_axes))
+    diff_s2ob_all = np.zeros((len(angles_deg), n_axes))
 
     base_orient = voxel.orientation
     for ai, angle_deg in enumerate(angles_deg):
@@ -461,12 +493,14 @@ def run_single_voxel(name: str, example_dir: Path, basename: str,
 
             with torch.no_grad():
                 for si, arr in enumerate([diff_s0_all, diff_s1_all, diff_s2_all]):
-                    info_d = diff_fn.evaluate(perturbed_t, vertices,
-                                              phase_index=voxel.phase, scale=si)
+                    info_d = diff_fn.evaluate(
+                        perturbed_t, vertices, phase_index=voxel.phase, scale=si
+                    )
                     arr[ai, xi] = info_d.quality.item()
 
-                info_ob = diff_fn_oblend.evaluate(perturbed_t, vertices,
-                                                  phase_index=voxel.phase, scale=2)
+                info_ob = diff_fn_oblend.evaluate(
+                    perturbed_t, vertices, phase_index=voxel.phase, scale=2
+                )
                 diff_s2ob_all[ai, xi] = info_ob.quality.item()
 
         elapsed = time.perf_counter() - t0
@@ -483,36 +517,53 @@ def run_single_voxel(name: str, example_dir: Path, basename: str,
             flush=True,
         )
 
-    results = {"hard": hard_all, "diff_s0": diff_s0_all,
-               "diff_s1": diff_s1_all, "diff_s2": diff_s2_all,
-               "diff_s2_oblend": diff_s2ob_all}
+    results = {
+        "hard": hard_all,
+        "diff_s0": diff_s0_all,
+        "diff_s1": diff_s1_all,
+        "diff_s2": diff_s2_all,
+        "diff_s2_oblend": diff_s2ob_all,
+    }
 
     tag = name.lower().replace(" ", "_")
     save_csv_single(benchmark_dir / f"misorientation_{tag}.csv", angles_deg, results)
     save_plot_single(
         benchmark_dir / f"misorientation_{tag}.png",
-        angles_deg, results,
-        f"{name}  —  voxel {voxel_idx}  ({n_axes} axes, ±1σ band)"
+        angles_deg,
+        results,
+        f"{name}  —  voxel {voxel_idx}  ({n_axes} axes, ±1σ band)",
     )
     return results
 
 
-def run_multi_voxel(name: str, example_dir: Path, basename: str,
-                    n_voxels: int, angles_deg: np.ndarray, n_axes: int,
-                    rng: np.random.Generator, quality_threshold: float = 0.1,
-                    max_scan: int = 500):
+def run_multi_voxel(
+    name: str,
+    example_dir: Path,
+    basename: str,
+    n_voxels: int,
+    angles_deg: np.ndarray,
+    n_axes: int,
+    rng: np.random.Generator,
+    quality_threshold: float = 0.1,
+    max_scan: int = 500,
+):
     print(f"\n{'='*60}")
     print(f"Example: {name}  ({n_voxels} voxels, {n_axes} axes each)")
     print(f"{'='*60}")
 
     setup = setup_example(example_dir, basename)
     mic, hard_fn, diff_fn, diff_fn_oblend, get_vertices = (
-        setup["mic"], setup["hard_cost_fn"],
-        setup["diff_cost_fn"], setup["diff_cost_fn_oblend"], setup["get_vertices"],
+        setup["mic"],
+        setup["hard_cost_fn"],
+        setup["diff_cost_fn"],
+        setup["diff_cost_fn_oblend"],
+        setup["get_vertices"],
     )
 
     voxel_list = select_random_voxels(
-        mic, hard_fn, get_vertices,
+        mic,
+        hard_fn,
+        get_vertices,
         n_voxels=n_voxels,
         quality_threshold=quality_threshold,
         max_scan=max_scan,
@@ -522,8 +573,10 @@ def run_multi_voxel(name: str, example_dir: Path, basename: str,
     # Use the same set of axes for all voxels at each angle
     axes = random_unit_axes(n_axes, rng)
     n_total = n_voxels * len(angles_deg) * n_axes
-    print(f"\n  Sweeping {n_voxels} voxels × {len(angles_deg)} angles × {n_axes} axes "
-          f"= {n_total} evals ...")
+    print(
+        f"\n  Sweeping {n_voxels} voxels × {len(angles_deg)} angles × {n_axes} axes "
+        f"= {n_total} evals ..."
+    )
 
     all_results = []
     t0 = time.perf_counter()
@@ -531,10 +584,10 @@ def run_multi_voxel(name: str, example_dir: Path, basename: str,
 
     for vi, (voxel, vidx) in enumerate(voxel_list):
         print(f"\n  --- Voxel {vi+1}/{n_voxels} (idx={vidx}) ---", flush=True)
-        hard_all      = np.zeros((len(angles_deg), n_axes))
-        diff_s0_all   = np.zeros((len(angles_deg), n_axes))
-        diff_s1_all   = np.zeros((len(angles_deg), n_axes))
-        diff_s2_all   = np.zeros((len(angles_deg), n_axes))
+        hard_all = np.zeros((len(angles_deg), n_axes))
+        diff_s0_all = np.zeros((len(angles_deg), n_axes))
+        diff_s1_all = np.zeros((len(angles_deg), n_axes))
+        diff_s2_all = np.zeros((len(angles_deg), n_axes))
         diff_s2ob_all = np.zeros((len(angles_deg), n_axes))
 
         base_orient = voxel.orientation
@@ -552,12 +605,14 @@ def run_multi_voxel(name: str, example_dir: Path, basename: str,
 
                 with torch.no_grad():
                     for si, arr in enumerate([diff_s0_all, diff_s1_all, diff_s2_all]):
-                        info_d = diff_fn.evaluate(perturbed_t, vertices,
-                                                  phase_index=voxel.phase, scale=si)
+                        info_d = diff_fn.evaluate(
+                            perturbed_t, vertices, phase_index=voxel.phase, scale=si
+                        )
                         arr[ai, xi] = info_d.quality.item()
 
-                    info_ob = diff_fn_oblend.evaluate(perturbed_t, vertices,
-                                                      phase_index=voxel.phase, scale=2)
+                    info_ob = diff_fn_oblend.evaluate(
+                        perturbed_t, vertices, phase_index=voxel.phase, scale=2
+                    )
                     diff_s2ob_all[ai, xi] = info_ob.quality.item()
 
             evals_done += n_axes
@@ -574,20 +629,27 @@ def run_multi_voxel(name: str, example_dir: Path, basename: str,
                 flush=True,
             )
 
-        all_results.append({
-            "hard": hard_all, "diff_s0": diff_s0_all,
-            "diff_s1": diff_s1_all, "diff_s2": diff_s2_all,
-            "diff_s2_oblend": diff_s2ob_all,
-        })
+        all_results.append(
+            {
+                "hard": hard_all,
+                "diff_s0": diff_s0_all,
+                "diff_s1": diff_s1_all,
+                "diff_s2": diff_s2_all,
+                "diff_s2_oblend": diff_s2ob_all,
+            }
+        )
 
     tag = name.lower().replace(" ", "_")
     save_csv_multi(
         benchmark_dir / f"misorientation_{tag}.csv",
-        angles_deg, voxel_list, all_results,
+        angles_deg,
+        voxel_list,
+        all_results,
     )
     save_plot_multi(
         benchmark_dir / f"misorientation_{tag}.png",
-        angles_deg, all_results,
+        angles_deg,
+        all_results,
         f"{name}  —  {n_voxels} random voxels  (spaghetti = per-voxel, band = ±1σ)",
     )
     return all_results

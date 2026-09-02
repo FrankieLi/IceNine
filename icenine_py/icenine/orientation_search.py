@@ -49,7 +49,7 @@ def _require_geoopt() -> None:
         )
 
 
-def _make_stiefel_param(R_init: np.ndarray) -> "geoopt.ManifoldParameter":
+def _make_stiefel_param(R_init: np.ndarray) -> "_geoopt.ManifoldParameter":
     """Wrap a 3×3 rotation matrix as a geoopt Stiefel manifold parameter."""
     _require_geoopt()
     manifold = _geoopt.manifolds.Stiefel()
@@ -185,9 +185,13 @@ def _spacing_filter(
     Filter candidates by angular spacing: reject a candidate if a closer
     candidate with better cost already exists.
 
-    This matches the C++ Acceptable() logic in DiscreteSearch.h:244-258.
-    The partition scheme mirrors the C++ swap-and-advance pattern from
-    GetSpacedCandidates (DiscreteSearch.h:364-398).
+    This matches the C++ Acceptable() logic in DiscreteSearch.h:244-258 and
+    the swap-and-advance partition in GetSpacedCandidates (DiscreteSearch.h:
+    364-398): each candidate is checked against the *entire remaining pool*
+    [first_good, end) — not just previously-accepted candidates — so a
+    lower-cost candidate later in the list can still reject an earlier one
+    that hasn't been visited yet. Rejected candidates are swapped to the
+    front; the surviving suffix [first_good, end) is the accepted set.
 
     Args:
         candidates: List of SearchCandidate (with cost and orientation set)
@@ -198,34 +202,30 @@ def _spacing_filter(
         Filtered list of accepted candidates
     """
     if len(candidates) <= 1:
-        return candidates
+        return list(candidates)
 
-    # Convert orientations to quaternions for misorientation check
-    quats = np.array([matrix_to_quaternion(c.orientation) for c in candidates])
+    cands = list(candidates)
+    quats = [matrix_to_quaternion(c.orientation) for c in cands]
+    n = len(cands)
 
-    # Partition: accepted candidates go to front, rejected stay at back.
-    # C++ iterates pCur from element 1, comparing against [pFirstGood, end).
-    # pFirstGood advances when a candidate is NOT acceptable (swap to front).
-    # At the end, [pFirstGood, pCur) contains accepted candidates.
-    #
-    # Rewritten as a simple accept/reject list for clarity.
-    accepted = [candidates[0]]
-    accepted_quats = [quats[0]]
-
-    for i in range(1, len(candidates)):
-        # Check if acceptable: no existing accepted candidate within angular_radius
-        # that also has better (lower) cost
+    first_good = 0
+    cur = 1
+    while cur < n:
         acceptable = True
-        for j in range(len(accepted)):
-            mis = get_misorientation(accepted_quats[j], quats[i], symmetry_quats)
-            if mis < angular_radius and accepted[j].cost < candidates[i].cost:
+        for j in range(first_good, n):
+            if j == cur:
+                continue
+            mis = get_misorientation(quats[j], quats[cur], symmetry_quats)
+            if mis < angular_radius and cands[j].cost < cands[cur].cost:
                 acceptable = False
                 break
-        if acceptable:
-            accepted.append(candidates[i])
-            accepted_quats.append(quats[i])
+        if not acceptable:
+            cands[first_good], cands[cur] = cands[cur], cands[first_good]
+            quats[first_good], quats[cur] = quats[cur], quats[first_good]
+            first_good += 1
+        cur += 1
 
-    return accepted
+    return cands[first_good:]
 
 
 def get_symmetry_quaternions(symmetry) -> np.ndarray:
@@ -760,15 +760,13 @@ class RiemannianAdamOptimizer:
                 [R], lr=lr, betas=(self._BETA1, self._BETA2)
             )
 
-            for step in range(n_steps + 1):
-                if step > 0:
-                    optimizer.zero_grad()
-                with _torch.set_grad_enabled(step > 0):
-                    diff_info = self.diff_cost_fn.evaluate(
-                        R, self.voxel_vertices,
-                        phase_index=self.phase_index, scale=scale,
-                    )
-                if step > 0 and diff_info.cost.requires_grad:
+            for step in range(n_steps):
+                optimizer.zero_grad()
+                diff_info = self.diff_cost_fn.evaluate(
+                    R, self.voxel_vertices,
+                    phase_index=self.phase_index, scale=scale,
+                )
+                if diff_info.cost.requires_grad:
                     diff_info.cost.backward()
                     optimizer.step()
 

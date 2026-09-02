@@ -110,8 +110,7 @@ def run_profile(n_omega: int):
     gc.collect()
     t_after_s1 = measure_stage("scale 1 (_downsample factor=4)", t_after_s0)
     sz1 = ds1.images.numel() * 4 / 1024 / 1024
-    print(f"         scale1.images shape = {tuple(ds1.images.shape)}  "
-          f"({sz1:.1f} MB tensor)")
+    print(f"         scale1.images shape = {tuple(ds1.images.shape)}  " f"({sz1:.1f} MB tensor)")
     ms.scales.append(ds1)
 
     # Scale 2: factor=8
@@ -119,8 +118,7 @@ def run_profile(n_omega: int):
     gc.collect()
     t_after_s2 = measure_stage("scale 2 (_downsample factor=8)", t_after_s1)
     sz2 = ds2.images.numel() * 4 / 1024 / 1024
-    print(f"         scale2.images shape = {tuple(ds2.images.shape)}  "
-          f"({sz2:.1f} MB tensor)")
+    print(f"         scale2.images shape = {tuple(ds2.images.shape)}  " f"({sz2:.1f} MB tensor)")
     ms.scales.append(ds2)
 
     # ---- Stage 3: omega_blend on scale 1 ----

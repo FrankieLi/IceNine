@@ -28,7 +28,7 @@ Why Riemannian Adam is more correct than Euclidean Adam on theta:
   moment transport is trivially the identity (flat left-invariant connection on SO(3)).
 
 Usage:
-  cd /Users/sfli/Research/IceNine/icenine_py
+  cd icenine_py
   uv sync --extra riemannian          # install geoopt (optional but recommended)
   uv run python benchmarks/bench_riemannian_optimization.py --smoke-test --example threevoxels
   uv run python benchmarks/bench_riemannian_optimization.py --example threevoxels
@@ -53,6 +53,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import torch
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -76,14 +77,14 @@ QUALITY_THRESHOLD = 0.1
 MAX_SCAN = 500
 
 OPTIMIZER_COLORS = {
-    "euclidean_adam":          "C0",
-    "riemannian_adam_manual":  "C2",
-    "riemannian_adam_geoopt":  "C3",
+    "euclidean_adam": "C0",
+    "riemannian_adam_manual": "C2",
+    "riemannian_adam_geoopt": "C3",
 }
 OPTIMIZER_LINESTYLES = {
-    "euclidean_adam":          "-",
-    "riemannian_adam_manual":  "--",
-    "riemannian_adam_geoopt":  ":",
+    "euclidean_adam": "-",
+    "riemannian_adam_manual": "--",
+    "riemannian_adam_geoopt": ":",
 }
 SCALE_MARKERS = {1: "o", 2: "s"}
 OW_ALPHA = {0: 0.5, 1: 0.8, 2: 1.0}
@@ -93,13 +94,14 @@ OW_ALPHA = {0: 0.5, 1: 0.8, 2: 1.0}
 # SO(3) helpers (identical to bench_gradient_optimization.py)
 # ---------------------------------------------------------------------------
 
+
 def skew(theta: torch.Tensor) -> torch.Tensor:
     """3-vector → 3×3 skew-symmetric matrix (Lie algebra so(3))."""
     assert theta.shape == (3,), f"Expected shape (3,), got {theta.shape}"
     z = torch.zeros(1, dtype=theta.dtype, device=theta.device)
-    row0 = torch.stack([z.squeeze(), -theta[2],  theta[1]])
-    row1 = torch.stack([theta[2],    z.squeeze(), -theta[0]])
-    row2 = torch.stack([-theta[1],   theta[0],   z.squeeze()])
+    row0 = torch.stack([z.squeeze(), -theta[2], theta[1]])
+    row1 = torch.stack([theta[2], z.squeeze(), -theta[0]])
+    row2 = torch.stack([-theta[1], theta[0], z.squeeze()])
     return torch.stack([row0, row1, row2])
 
 
@@ -126,11 +128,14 @@ def misorientation_deg(R1: np.ndarray, R2: np.ndarray) -> float:
 
 def rodrigues_np(axis: np.ndarray, angle_rad: float) -> np.ndarray:
     """Rotation matrix via Rodrigues formula (numpy, axis must be unit)."""
-    K = np.array([
-        [0,        -axis[2],  axis[1]],
-        [axis[2],   0,       -axis[0]],
-        [-axis[1],  axis[0],  0      ],
-    ], dtype=np.float64)
+    K = np.array(
+        [
+            [0, -axis[2], axis[1]],
+            [axis[2], 0, -axis[0]],
+            [-axis[1], axis[0], 0],
+        ],
+        dtype=np.float64,
+    )
     return np.eye(3) + math.sin(angle_rad) * K + (1 - math.cos(angle_rad)) * (K @ K)
 
 
@@ -142,6 +147,7 @@ def random_unit_axis(rng: np.random.Generator) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # Riemannian SO(3) utilities
 # ---------------------------------------------------------------------------
+
 
 def _project_to_tangent(R: torch.Tensor, G: torch.Tensor) -> torch.Tensor:
     """Project Euclidean gradient G (3×3) to tangent space at R ∈ SO(3).
@@ -169,9 +175,9 @@ def _vec_to_skew(v: torch.Tensor) -> torch.Tensor:
     """3-vector → skew-symmetric matrix (same convention as skew())."""
     v1, v2, v3 = v[0], v[1], v[2]
     z = torch.zeros(1, dtype=v.dtype, device=v.device).squeeze()
-    row0 = torch.stack([z, -v3,  v2])
-    row1 = torch.stack([v3,  z, -v1])
-    row2 = torch.stack([-v2, v1,  z])
+    row0 = torch.stack([z, -v3, v2])
+    row1 = torch.stack([v3, z, -v1])
+    row2 = torch.stack([-v2, v1, z])
     return torch.stack([row0, row1, row2])
 
 
@@ -179,9 +185,15 @@ def _vec_to_skew(v: torch.Tensor) -> torch.Tensor:
 # Optimizer 1: Euclidean Adam on theta ∈ ℝ³  (existing approach, baseline)
 # ---------------------------------------------------------------------------
 
+
 def run_one_euclidean_adam(
-    diff_fn, voxel, vertices, R_init: np.ndarray, scale: int,
-    n_steps: int = N_STEPS, lr: float = LR,
+    diff_fn,
+    voxel,
+    vertices,
+    R_init: np.ndarray,
+    scale: int,
+    n_steps: int = N_STEPS,
+    lr: float = LR,
 ) -> Dict:
     """Adam on theta ∈ ℝ³ with R = matrix_exp(skew(theta)).
 
@@ -227,10 +239,18 @@ def run_one_euclidean_adam(
 # Optimizer 2: Manual Riemannian Adam on SO(3)
 # ---------------------------------------------------------------------------
 
+
 def run_one_riemannian_adam_manual(
-    diff_fn, voxel, vertices, R_init: np.ndarray, scale: int,
-    n_steps: int = N_STEPS, lr: float = LR,
-    beta1: float = 0.9, beta2: float = 0.999, eps: float = 1e-8,
+    diff_fn,
+    voxel,
+    vertices,
+    R_init: np.ndarray,
+    scale: int,
+    n_steps: int = N_STEPS,
+    lr: float = LR,
+    beta1: float = 0.9,
+    beta2: float = 0.999,
+    eps: float = 1e-8,
 ) -> Dict:
     """Riemannian Adam on SO(3) — pure PyTorch, no extra dependencies.
 
@@ -273,17 +293,17 @@ def run_one_riemannian_adam_manual(
             info.cost.backward()
 
             with torch.no_grad():
-                G = R_param.grad                        # (3,3) Euclidean gradient
+                G = R_param.grad  # (3,3) Euclidean gradient
                 Omega_skew = _project_to_tangent(R_param.detach(), G)
-                omega_vec = _omega_to_vec(Omega_skew)   # so(3) coordinate
+                omega_vec = _omega_to_vec(Omega_skew)  # so(3) coordinate
 
                 # Adam moment update (parallel transport is identity — no correction)
                 m1 = beta1 * m1 + (1 - beta1) * omega_vec
-                m2 = beta2 * m2 + (1 - beta2) * omega_vec ** 2
+                m2 = beta2 * m2 + (1 - beta2) * omega_vec**2
 
                 # Bias correction
-                m1_hat = m1 / (1 - beta1 ** step)
-                m2_hat = m2 / (1 - beta2 ** step)
+                m1_hat = m1 / (1 - beta1**step)
+                m2_hat = m2 / (1 - beta2**step)
 
                 # Adam update direction in so(3)
                 v_vec = m1_hat / (torch.sqrt(m2_hat) + eps)
@@ -306,14 +326,20 @@ def run_one_riemannian_adam_manual(
 _GEOOPT_AVAILABLE = False
 try:
     import geoopt  # type: ignore
+
     _GEOOPT_AVAILABLE = True
 except ImportError:
     pass
 
 
 def run_one_riemannian_adam_geoopt(
-    diff_fn, voxel, vertices, R_init: np.ndarray, scale: int,
-    n_steps: int = N_STEPS, lr: float = LR,
+    diff_fn,
+    voxel,
+    vertices,
+    R_init: np.ndarray,
+    scale: int,
+    n_steps: int = N_STEPS,
+    lr: float = LR,
 ) -> Dict:
     """Riemannian Adam via geoopt.RiemannianAdam on Stiefel(3,3) ≈ SO(3).
 
@@ -325,18 +351,14 @@ def run_one_riemannian_adam_geoopt(
     geoopt handles tangent projection, moment transport, and retraction.
     """
     if not _GEOOPT_AVAILABLE:
-        raise RuntimeError(
-            "geoopt not installed. Run: uv sync --extra riemannian"
-        )
+        raise RuntimeError("geoopt not installed. Run: uv sync --extra riemannian")
 
     R_gt = voxel.orientation
     # geoopt 0.5.x does not have SpecialOrthogonal; Stiefel(n=3,p=3) = O(3).
     # Starting from a rotation matrix and using the Riemannian retraction keeps
     # det = +1 throughout (verified empirically and analytically via geodesics on O(3)).
     manifold = geoopt.manifolds.Stiefel()
-    R = geoopt.ManifoldParameter(
-        torch.from_numpy(R_init).float(), manifold=manifold
-    )
+    R = geoopt.ManifoldParameter(torch.from_numpy(R_init).float(), manifold=manifold)
     optimizer = geoopt.optim.RiemannianAdam([R], lr=lr)
 
     quality_hist: List[float] = []
@@ -369,8 +391,8 @@ def run_one_riemannian_adam_geoopt(
 # ---------------------------------------------------------------------------
 
 OPTIMIZER_REGISTRY: Dict[str, object] = {
-    "euclidean_adam":          run_one_euclidean_adam,
-    "riemannian_adam_manual":  run_one_riemannian_adam_manual,
+    "euclidean_adam": run_one_euclidean_adam,
+    "riemannian_adam_manual": run_one_riemannian_adam_manual,
 }
 if _GEOOPT_AVAILABLE:
     OPTIMIZER_REGISTRY["riemannian_adam_geoopt"] = run_one_riemannian_adam_geoopt
@@ -379,6 +401,7 @@ if _GEOOPT_AVAILABLE:
 # ---------------------------------------------------------------------------
 # Setup (identical pattern to bench_gradient_optimization.py)
 # ---------------------------------------------------------------------------
+
 
 def setup_example(example_dir: Path, basename: str, omega_windows: List[int]):
     """Load physics, cost functions, and mic for one example."""
@@ -422,20 +445,37 @@ def setup_example(example_dir: Path, basename: str, omega_windows: List[int]):
     print(f"  Loading SparseImageStack from {data_dir.name}/ ...")
     image_stack = SparseImageStack.from_image_directory(
         directory=str(data_dir),
-        basename=basename, ext="d", serial_length=5,
-        n_omega=180, n_detectors=2, num_rows=2048, num_cols=2048, binary=True,
+        basename=basename,
+        ext="d",
+        serial_length=5,
+        n_omega=180,
+        n_detectors=2,
+        num_rows=2048,
+        num_cols=2048,
+        binary=True,
     )
     print(f"  SparseImageStack: {image_stack.memory_bytes / 1024:.1f} KB")
 
     exp_data = ExperimentalData.from_image_directory(
         directory=str(data_dir),
-        basename=basename, ext="d", serial_length=5,
-        n_omega=180, n_detectors=2, num_rows=2048, num_cols=2048, mode="sparse",
+        basename=basename,
+        ext="d",
+        serial_length=5,
+        n_omega=180,
+        n_detectors=2,
+        num_rows=2048,
+        num_cols=2048,
+        mode="sparse",
     )
 
     hard_fn = VoxelCostFunction(
-        simulator=simulator, detector_list=detector_list, range_map=range_map,
-        exp_data=exp_data, sample=sample, structure_list=structure_list, mode="hard",
+        simulator=simulator,
+        detector_list=detector_list,
+        range_map=range_map,
+        exp_data=exp_data,
+        sample=sample,
+        structure_list=structure_list,
+        mode="hard",
     )
 
     print("  Building shared downsampled base stacks [4x, 8x] ...")
@@ -445,12 +485,18 @@ def setup_example(example_dir: Path, basename: str, omega_windows: List[int]):
     for ow in omega_windows:
         print(f"  Building MultiScaleImageStack omega_window={ow} ...")
         ms = MultiScaleImageStack(
-            image_stack, [1, 4, 8], omega_window=ow,
+            image_stack,
+            [1, 4, 8],
+            omega_window=ow,
             _prebuilt_downsampled=shared_ds,
         )
         diff_fns[ow] = DifferentiableCostFunction(
-            simulator=simulator, detector_list=detector_list, range_map=range_map,
-            image_stack=ms, sample=sample, structure_list=structure_list,
+            simulator=simulator,
+            detector_list=detector_list,
+            range_map=range_map,
+            image_stack=ms,
+            sample=sample,
+            structure_list=structure_list,
         )
 
     return mic, hard_fn, diff_fns, _get_voxel_vertices
@@ -460,8 +506,16 @@ def setup_example(example_dir: Path, basename: str, omega_windows: List[int]):
 # Voxel selection (identical to bench_gradient_optimization.py)
 # ---------------------------------------------------------------------------
 
-def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
-                  threshold: float = QUALITY_THRESHOLD, max_scan: int = MAX_SCAN):
+
+def select_voxels(
+    mic,
+    hard_fn,
+    get_vertices,
+    n: int,
+    rng: np.random.Generator,
+    threshold: float = QUALITY_THRESHOLD,
+    max_scan: int = MAX_SCAN,
+):
     from icenine.geometry import matrix_to_euler
 
     print(f"  Scanning up to {max_scan} voxels for hard quality > {threshold} ...")
@@ -485,8 +539,10 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
     print(f"  Selected {n} voxels from {len(candidates)} candidates:")
     for voxel, vidx, q in chosen:
         euler = matrix_to_euler(voxel.orientation)
-        print(f"    idx={vidx:5d}  φ1={euler[0]:7.2f}°  Φ={euler[1]:6.2f}°  "
-              f"φ2={euler[2]:7.2f}°  hard_q={q:.4f}")
+        print(
+            f"    idx={vidx:5d}  φ1={euler[0]:7.2f}°  Φ={euler[1]:6.2f}°  "
+            f"φ2={euler[2]:7.2f}°  hard_q={q:.4f}"
+        )
 
     return [(v, vi) for v, vi, _ in chosen]
 
@@ -495,8 +551,10 @@ def select_voxels(mic, hard_fn, get_vertices, n: int, rng: np.random.Generator,
 # Per-voxel sweep
 # ---------------------------------------------------------------------------
 
+
 def sweep_voxel_multi(
-    voxel, vidx: int,
+    voxel,
+    vidx: int,
     diff_fns: Dict[int, object],
     get_vertices,
     perturbations_deg: List[float],
@@ -523,8 +581,12 @@ def sweep_voxel_multi(
                     run_fn = OPTIMIZER_REGISTRY[opt_name]
                     t0 = time.perf_counter()
                     result = run_fn(
-                        diff_fns[ow], voxel, vertices, R_pert,
-                        scale=scale, n_steps=n_steps,
+                        diff_fns[ow],
+                        voxel,
+                        vertices,
+                        R_pert,
+                        scale=scale,
+                        n_steps=n_steps,
                     )
                     elapsed = time.perf_counter() - t0
 
@@ -539,16 +601,18 @@ def sweep_voxel_multi(
                     )
 
                     for step in range(n_steps + 1):
-                        rows.append({
-                            "optimizer": opt_name,
-                            "voxel_idx": vidx,
-                            "perturbation_deg": pert_deg,
-                            "scale": scale,
-                            "omega_window": ow,
-                            "step": step,
-                            "quality": float(result["quality_history"][step]),
-                            "misorientation_deg": float(result["misorientation_history"][step]),
-                        })
+                        rows.append(
+                            {
+                                "optimizer": opt_name,
+                                "voxel_idx": vidx,
+                                "perturbation_deg": pert_deg,
+                                "scale": scale,
+                                "omega_window": ow,
+                                "step": step,
+                                "quality": float(result["quality_history"][step]),
+                                "misorientation_deg": float(result["misorientation_history"][step]),
+                            }
+                        )
 
     return rows
 
@@ -557,9 +621,18 @@ def sweep_voxel_multi(
 # CSV save
 # ---------------------------------------------------------------------------
 
+
 def save_csv(rows: List[Dict], out_path: Path):
-    fieldnames = ["optimizer", "voxel_idx", "perturbation_deg", "scale",
-                  "omega_window", "step", "quality", "misorientation_deg"]
+    fieldnames = [
+        "optimizer",
+        "voxel_idx",
+        "perturbation_deg",
+        "scale",
+        "omega_window",
+        "step",
+        "quality",
+        "misorientation_deg",
+    ]
     with open(out_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -571,9 +644,18 @@ def save_csv(rows: List[Dict], out_path: Path):
 # Plots
 # ---------------------------------------------------------------------------
 
-def convergence_plot(csv_path: Path, out_quality: Path, out_misori: Path,
-                     title_prefix: str, perturbations_deg: List[float],
-                     optimizer_names: List[str], scale: int, ow: int, n_steps: int):
+
+def convergence_plot(
+    csv_path: Path,
+    out_quality: Path,
+    out_misori: Path,
+    title_prefix: str,
+    perturbations_deg: List[float],
+    optimizer_names: List[str],
+    scale: int,
+    ow: int,
+    n_steps: int,
+):
     """Quality and misorientation vs step — one panel per perturbation."""
     import pandas as pd
 
@@ -582,11 +664,10 @@ def convergence_plot(csv_path: Path, out_quality: Path, out_misori: Path,
     n_pert = len(perturbations_deg)
 
     for metric, ylabel, out_path in [
-        ("quality",           "Quality (0–1)",     out_quality),
+        ("quality", "Quality (0–1)", out_quality),
         ("misorientation_deg", "Misorientation (°)", out_misori),
     ]:
-        fig, axes = plt.subplots(1, n_pert, figsize=(6 * n_pert, 5),
-                                  sharey=(metric == "quality"))
+        fig, axes = plt.subplots(1, n_pert, figsize=(6 * n_pert, 5), sharey=(metric == "quality"))
         if n_pert == 1:
             axes = [axes]
 
@@ -599,13 +680,13 @@ def convergence_plot(csv_path: Path, out_quality: Path, out_misori: Path,
                 if sel.empty:
                     continue
                 mean_v = sel.groupby("step")[metric].mean()
-                std_v  = sel.groupby("step")[metric].std().fillna(0)
+                std_v = sel.groupby("step")[metric].std().fillna(0)
                 color = OPTIMIZER_COLORS.get(opt, "gray")
-                ls    = OPTIMIZER_LINESTYLES.get(opt, "-")
-                ax.plot(mean_v.index, mean_v.values, color=color, ls=ls,
-                        lw=2.0, label=opt)
-                ax.fill_between(mean_v.index, mean_v - std_v, mean_v + std_v,
-                                color=color, alpha=0.12)
+                ls = OPTIMIZER_LINESTYLES.get(opt, "-")
+                ax.plot(mean_v.index, mean_v.values, color=color, ls=ls, lw=2.0, label=opt)
+                ax.fill_between(
+                    mean_v.index, mean_v - std_v, mean_v + std_v, color=color, alpha=0.12
+                )
 
             ax.set_xlabel("Step")
             ax.set_ylabel(ylabel if ai == 0 else "")
@@ -625,18 +706,21 @@ def convergence_plot(csv_path: Path, out_quality: Path, out_misori: Path,
         print(f"Saved: {out_path}")
 
 
-def summary_plot(csv_path: Path, out_path: Path, title_prefix: str,
-                 perturbations_deg: List[float], optimizer_names: List[str],
-                 scale: int, ow: int, n_steps: int):
+def summary_plot(
+    csv_path: Path,
+    out_path: Path,
+    title_prefix: str,
+    perturbations_deg: List[float],
+    optimizer_names: List[str],
+    scale: int,
+    ow: int,
+    n_steps: int,
+):
     """Bar chart: final misorientation by optimizer × perturbation."""
     import pandas as pd
 
     df = pd.read_csv(csv_path)
-    df_final = df[
-        (df["step"] == n_steps) &
-        (df["scale"] == scale) &
-        (df["omega_window"] == ow)
-    ]
+    df_final = df[(df["step"] == n_steps) & (df["scale"] == scale) & (df["omega_window"] == ow)]
 
     n_pert = len(perturbations_deg)
     fig, axes = plt.subplots(1, n_pert, figsize=(5 * n_pert, 5), sharey=True)
@@ -657,21 +741,28 @@ def summary_plot(csv_path: Path, out_path: Path, title_prefix: str,
             stds.append(float(vals.std()) if len(vals) > 1 else 0.0)
             colors.append(OPTIMIZER_COLORS.get(opt, "gray"))
 
-        bars = ax.bar(x, means, width, yerr=stds, color=colors, capsize=4,
-                      error_kw={"elinewidth": 1.2})
+        bars = ax.bar(
+            x, means, width, yerr=stds, color=colors, capsize=4, error_kw={"elinewidth": 1.2}
+        )
         ax.set_xticks(x)
         ax.set_xticklabels(optimizer_names, rotation=20, ha="right", fontsize=8)
         ax.set_ylabel("Final misorientation (°)" if ai == 0 else "")
         ax.set_title(f"{title_prefix} — s={scale} ω±{ow}\nPerturbation = {pert:.0f}°")
-        ax.axhline(0.1, color="green",  lw=0.8, ls="--", label="0.1° target")
+        ax.axhline(0.1, color="green", lw=0.8, ls="--", label="0.1° target")
         ax.axhline(1.0, color="orange", lw=0.8, ls="--", label="1° threshold")
         ax.legend(fontsize=7)
         ax.grid(True, alpha=0.3, axis="y")
 
         for bar, mean in zip(bars, means):
             if not np.isnan(mean):
-                ax.text(bar.get_x() + bar.get_width() / 2, mean + 0.05,
-                        f"{mean:.2f}°", ha="center", va="bottom", fontsize=7)
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    mean + 0.05,
+                    f"{mean:.2f}°",
+                    ha="center",
+                    va="bottom",
+                    fontsize=7,
+                )
 
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
@@ -682,6 +773,7 @@ def summary_plot(csv_path: Path, out_path: Path, title_prefix: str,
 # ---------------------------------------------------------------------------
 # Per-example runner
 # ---------------------------------------------------------------------------
+
 
 def run_example(
     label: str,
@@ -710,13 +802,12 @@ def run_example(
         perturbations_deg = [2.0]
         print("  [SMOKE TEST: 1 voxel, 5 steps, s=2 ω±1, pert=2°]")
 
-    mic, hard_fn, diff_fns, get_vertices = setup_example(
-        example_dir, basename, omega_windows
-    )
+    mic, hard_fn, diff_fns, get_vertices = setup_example(example_dir, basename, omega_windows)
 
     if n_voxels is None:
         # Use all voxels that meet quality threshold
         from icenine.geometry import matrix_to_euler
+
         voxel_list = []
         for idx, voxel in enumerate(mic.voxels):
             vertices = get_vertices(voxel)
@@ -733,11 +824,18 @@ def run_example(
     else:
         voxel_list = select_voxels(mic, hard_fn, get_vertices, n_voxels, rng)
 
-    n_combos = (len(voxel_list) * len(perturbations_deg) *
-                len(scales) * len(omega_windows) * len(optimizer_names))
-    print(f"\nRunning {len(voxel_list)} voxels × {len(perturbations_deg)} perts"
-          f" × {len(scales)} scales × {len(omega_windows)} ow × {len(optimizer_names)} opts"
-          f" = {n_combos} runs (n_steps={n_steps}) ...")
+    n_combos = (
+        len(voxel_list)
+        * len(perturbations_deg)
+        * len(scales)
+        * len(omega_windows)
+        * len(optimizer_names)
+    )
+    print(
+        f"\nRunning {len(voxel_list)} voxels × {len(perturbations_deg)} perts"
+        f" × {len(scales)} scales × {len(omega_windows)} ow × {len(optimizer_names)} opts"
+        f" = {n_combos} runs (n_steps={n_steps}) ..."
+    )
 
     all_rows: List[Dict] = []
     t_start = time.perf_counter()
@@ -745,10 +843,16 @@ def run_example(
     for vi, (voxel, vidx) in enumerate(voxel_list):
         print(f"\n  Voxel {vi+1}/{len(voxel_list)}  (mic idx={vidx}) ...")
         rows = sweep_voxel_multi(
-            voxel, vidx, diff_fns, get_vertices,
+            voxel,
+            vidx,
+            diff_fns,
+            get_vertices,
             perturbations_deg=perturbations_deg,
-            rng=rng, scales=scales, omega_windows=omega_windows,
-            optimizer_names=optimizer_names, n_steps=n_steps,
+            rng=rng,
+            scales=scales,
+            omega_windows=omega_windows,
+            optimizer_names=optimizer_names,
+            n_steps=n_steps,
         )
         all_rows.extend(rows)
 
@@ -769,7 +873,9 @@ def run_example(
         title_prefix=label,
         perturbations_deg=perturbations_deg,
         optimizer_names=optimizer_names,
-        scale=plot_scale, ow=plot_ow, n_steps=n_steps,
+        scale=plot_scale,
+        ow=plot_ow,
+        n_steps=n_steps,
     )
     summary_plot(
         csv_path,
@@ -777,7 +883,9 @@ def run_example(
         title_prefix=label,
         perturbations_deg=perturbations_deg,
         optimizer_names=optimizer_names,
-        scale=plot_scale, ow=plot_ow, n_steps=n_steps,
+        scale=plot_scale,
+        ow=plot_ow,
+        n_steps=n_steps,
     )
 
 
@@ -789,14 +897,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Riemannian SO(3) orientation optimization benchmark"
     )
-    parser.add_argument("--smoke-test", action="store_true",
-                        help="Quick sanity: 1 voxel, 5 steps, s=2 ω±1, pert=2°")
-    parser.add_argument("--example", choices=["threevoxels", "manygrains", "both"],
-                        default="both")
+    parser.add_argument(
+        "--smoke-test", action="store_true", help="Quick sanity: 1 voxel, 5 steps, s=2 ω±1, pert=2°"
+    )
+    parser.add_argument("--example", choices=["threevoxels", "manygrains", "both"], default="both")
     parser.add_argument(
         "--optimizer",
-        choices=["all", "euclidean_adam", "riemannian_adam_manual",
-                 "riemannian_adam_geoopt"],
+        choices=["all", "euclidean_adam", "riemannian_adam_manual", "riemannian_adam_geoopt"],
         default="all",
         help="Which optimizer(s) to run (default: all available)",
     )
@@ -819,7 +926,7 @@ if __name__ == "__main__":
     rng = np.random.default_rng(seed=SEED)
 
     three_dir = project_root / "Examples" / "Example2.ThreeVoxels"
-    many_dir  = project_root / "Examples" / "Example2.ManyGrains"
+    many_dir = project_root / "Examples" / "Example2.ManyGrains"
 
     if args.example in ("threevoxels", "both"):
         run_example(

@@ -15,7 +15,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -48,6 +48,9 @@ from .sampling import (
 )
 from .simulation import Simulation
 from .simulation_range import SimulationRange
+
+if TYPE_CHECKING:
+    from .differentiable_cost import DifferentiableCostFunction
 
 
 # ---------------------------------------------------------------------------
@@ -83,7 +86,7 @@ class ReconstructionSetup:
     range_map: SimulationRange
     sample: Sample
     structure_list: List[CrystalStructure]
-    diff_cost_fn: Optional[object] = None  # DifferentiableCostFunction, set for hybrid optimizer
+    diff_cost_fn: Optional["DifferentiableCostFunction"] = None  # set for hybrid optimizer
 
 
 def setup_reconstruction(
@@ -150,7 +153,7 @@ def build_diff_cost_fn(
     setup: ReconstructionSetup,
     downsample_factors: Optional[List[int]] = None,
     omega_window: int = 1,
-):
+) -> "DifferentiableCostFunction":
     """
     Build a DifferentiableCostFunction from an existing ReconstructionSetup.
 
@@ -162,7 +165,7 @@ def build_diff_cost_fn(
         setup: Fully initialized ReconstructionSetup
         downsample_factors: Downsample levels for MultiScaleImageStack.
             Default [1, 4, 8] → scale indices 0, 1, 2 in SearchParameters.adam_scale.
-        omega_window: Omega integration window passed to SparseImageStack
+        omega_window: Omega integration window passed to MultiScaleImageStack
 
     Returns:
         DifferentiableCostFunction ready for use with RiemannianAdamOptimizer
@@ -470,7 +473,11 @@ class AdaptiveVoxelReconstructor:
         # Crystal symmetry for spacing filter
         # C++ DiscreteAdaptive.tmpl.cpp:88
         symmetry = self.setup.exp_setup.get_sample_symmetry()
-        symmetry_quats = get_symmetry_quaternions(symmetry) if symmetry else None
+        # Empty (not None) when symmetry is NONE: reduce_to_fundamental_zone's
+        # loop over symmetry_quats then no-ops, correctly leaving q unreduced.
+        symmetry_quats = (
+            get_symmetry_quaternions(symmetry) if symmetry else np.zeros((0, 4))
+        )
 
         # Initialize search state
         # C++ DiscreteAdaptive.tmpl.cpp:139-141
@@ -531,6 +538,10 @@ class AdaptiveVoxelReconstructor:
                       flush=True)
                 continue
 
+            # Note: candidates[0].cost here is 1 - confidence (peak-ratio metric
+            # set in run_discrete_search_spaced), not 1 - quality (pixel/detector
+            # ratio) used by the "best cost=" prints below once Phase 3 MC
+            # overwrites .cost — the two are different scales, not comparable.
             print(f"    Level {level}: {len(candidates)} candidates "
                   f"(discrete={t_discrete:.1f}s), "
                   f"best cost={candidates[0].cost:.4f}", flush=True)

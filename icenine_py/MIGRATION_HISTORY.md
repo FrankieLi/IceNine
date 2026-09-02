@@ -574,7 +574,7 @@ New module `differentiable_cost.py` providing gradient-based orientation optimiz
 | Class | Purpose |
 |-------|---------|
 | `ExperimentalImageStack` | Pre-stacks all (omega × detector) images into single contiguous tensor `(N, 1, H, W)` for batch `grid_sample`. Supports `binary=True` (0.0/1.0 matching existing pipeline) or `binary=False` (preserve intensities). Memory: ~5.6GB for 180×2×2048×2048 float32. |
-| `MultiScaleImageStack` | Gaussian-blurred image pyramid for coarse-to-fine optimization. Pre-blurs at construction via chunked `F.conv2d`. Widens angular basin from ~0.3° to ~2°+ at sigma=10. |
+| `MultiScaleImageStack` | Max-pool-downsampled image pyramid for coarse-to-fine optimization (later revised from an earlier Gaussian-blur/`F.conv2d` design — `max_pool2d` is morphological dilation for binary images and avoids the im2col memory blowup of chunked convolution). Widens angular basin from ~0.3° to ~2°+ at factor=8. |
 | `DifferentiableCostFunction` | Replaces Stage D (sequential binary overlap counting) with differentiable bilinear sampling via `F.grid_sample`. Centroid point sampling (triangle centroid only, not full rasterization). |
 | `DifferentiableOverlapInfo` | Dataclass with `quality`/`cost` tensors carrying `grad_fn` for backpropagation. |
 
@@ -635,7 +635,7 @@ for ow in [0, 1, 2]:
 
 ### SparseImageStack (2026-03-30)
 
-New class `SparseImageStack` in `differentiable_cost.py` stores only (row, col) pixel coordinates instead of dense float32 tensors. Loaded from `.d` binary files via `from_image_directory()`.
+New class `SparseImageStack` in `differentiable_cost.py` stores only (row, col) pixel coordinates instead of dense float32 tensors. Loaded from `.d` files (ASCII, despite the extension) via `from_image_directory()`.
 
 Memory comparison for ThreeVoxels 180 omegas × 2 detectors × 2048² images:
 - Dense (`ExperimentalImageStack`): ~5.6 GB
