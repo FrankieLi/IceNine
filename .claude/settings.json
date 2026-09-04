@@ -12,16 +12,10 @@
       "Bash(find:*)",
       "Bash(tree:*)",
       "Bash(diff:*)",
-      "Bash(kill 96757)",
-      "Bash(grep -n \"DiscreteSearchPoints\" /Users/sfli/Research/IceNine/Src/*.h)",
-      "Read(//Users/sfli/Research/IceNine/**)",
-      "Bash(time /Users/sfli/Research/IceNine/IceNine r ConfigFiles/ReconstructQ8.config)",
-      "Bash(grep -l \"reconstruction\\\\|Reconstructor\" /Users/sfli/Research/IceNine/icenine_py/icenine/*.py)",
       "Bash(grep -E \"\\\\.py$\")",
       "Bash(time ../../IceNine r ConfigFiles/ReconstructBenchmark.config)"
     ],
     "additionalDirectories": [
-      "/Users/sfli/.claude/plans",
       "/tmp"
     ]
   },
