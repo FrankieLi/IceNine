@@ -36,6 +36,7 @@ _GEOOPT_AVAILABLE = False
 try:
     import geoopt as _geoopt
     import torch as _torch
+
     _GEOOPT_AVAILABLE = True
 except ImportError:
     pass
@@ -53,14 +54,13 @@ def _make_stiefel_param(R_init: np.ndarray) -> "_geoopt.ManifoldParameter":
     """Wrap a 3×3 rotation matrix as a geoopt Stiefel manifold parameter."""
     _require_geoopt()
     manifold = _geoopt.manifolds.Stiefel()
-    return _geoopt.ManifoldParameter(
-        _torch.from_numpy(R_init).float(), manifold=manifold
-    )
+    return _geoopt.ManifoldParameter(_torch.from_numpy(R_init).float(), manifold=manifold)
 
 
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class SearchCandidate:
@@ -123,6 +123,7 @@ class SearchParameters:
 # Discrete search
 # ---------------------------------------------------------------------------
 
+
 def run_discrete_search(
     cost_fn: VoxelCostFunction,
     fz_orientations: np.ndarray,
@@ -166,11 +167,13 @@ def run_discrete_search(
             )
 
             if overlap_info.peak_overlap > 0:
-                candidates.append(SearchCandidate(
-                    orientation=candidate_orientation,
-                    cost=overlap_info.cost,
-                    overlap_info=overlap_info,
-                ))
+                candidates.append(
+                    SearchCandidate(
+                        orientation=candidate_orientation,
+                        cost=overlap_info.cost,
+                        overlap_info=overlap_info,
+                    )
+                )
 
     candidates.sort()
     return candidates
@@ -298,10 +301,12 @@ def run_discrete_search_spaced(
                 phase_index=phase_index,
             )
             if overlap_info.peak_overlap > 0:
-                clique_candidates.append(SearchCandidate(
-                    orientation=candidate_orientation,
-                    cost=0.0,  # will be set by local cost fn below
-                ))
+                clique_candidates.append(
+                    SearchCandidate(
+                        orientation=candidate_orientation,
+                        cost=0.0,  # will be set by local cost fn below
+                    )
+                )
 
         if not clique_candidates:
             continue
@@ -330,6 +335,7 @@ def run_discrete_search_spaced(
 # SO(3) distance helper (quaternion-based, no symmetry reduction)
 # ---------------------------------------------------------------------------
 
+
 def _quat_misorientation_deg(q1: np.ndarray, q2: np.ndarray) -> float:
     """Geodesic distance in degrees between two orientations (no symmetry).
 
@@ -343,6 +349,7 @@ def _quat_misorientation_deg(q1: np.ndarray, q2: np.ndarray) -> float:
 # ---------------------------------------------------------------------------
 # Zero-temperature Monte Carlo optimizer
 # ---------------------------------------------------------------------------
+
 
 class MCOptimizer:
     """
@@ -414,9 +421,9 @@ class MCOptimizer:
         n_steps_since_improve = 0
 
         # Ergodic step count: estimate how many steps to cover the search box
-        min_ergodic = max(
-            1, int(2.0 * (angular_box_side / cur_step) ** 3)
-        ) if cur_step > 0 else max_mc_steps
+        min_ergodic = (
+            max(1, int(2.0 * (angular_box_side / cur_step) ** 3)) if cur_step > 0 else max_mc_steps
+        )
 
         for step in range(max_mc_steps):
             # Generate random perturbation
@@ -433,9 +440,7 @@ class MCOptimizer:
             trial_mat = quaternion_to_matrix(trial_q)
 
             # Evaluate cost
-            trial_info = self.cost_fn.evaluate(
-                trial_mat, self.voxel_vertices, self.phase_index
-            )
+            trial_info = self.cost_fn.evaluate(trial_mat, self.voxel_vertices, self.phase_index)
 
             if trial_info.cost < current_cost:
                 # Accept improvement
@@ -450,17 +455,21 @@ class MCOptimizer:
 
                     # Halve step size on improvement
                     cur_step *= 0.5
-                    min_ergodic = max(
-                        1, int(2.0 * (angular_box_side / cur_step) ** 3)
-                    ) if cur_step > 0 else max_mc_steps
+                    min_ergodic = (
+                        max(1, int(2.0 * (angular_box_side / cur_step) ** 3))
+                        if cur_step > 0
+                        else max_mc_steps
+                    )
 
                     if trajectory is not None:
-                        trajectory.append({
-                            "step": step,
-                            "event_type": "mc_accept",
-                            "angular_step_deg": _quat_misorientation_deg(prev_best_q, best_q),
-                            "cur_step_rad": cur_step,  # already halved
-                        })
+                        trajectory.append(
+                            {
+                                "step": step,
+                                "event_type": "mc_accept",
+                                "angular_step_deg": _quat_misorientation_deg(prev_best_q, best_q),
+                                "cur_step_rad": cur_step,  # already halved
+                            }
+                        )
                         prev_best_q = best_q.copy()
 
                     # Early convergence check
@@ -485,12 +494,14 @@ class MCOptimizer:
                 optimal_q = restart_q.copy()
 
                 if trajectory is not None:
-                    trajectory.append({
-                        "step": step,
-                        "event_type": "mc_restart",
-                        "angular_step_deg": _quat_misorientation_deg(best_q, optimal_q),
-                        "cur_step_rad": angular_step,  # reset to original step size
-                    })
+                    trajectory.append(
+                        {
+                            "step": step,
+                            "event_type": "mc_restart",
+                            "angular_step_deg": _quat_misorientation_deg(best_q, optimal_q),
+                            "cur_step_rad": angular_step,  # reset to original step size
+                        }
+                    )
 
                 # Re-evaluate at restart point
                 restart_mat = quaternion_to_matrix(optimal_q)
@@ -502,9 +513,11 @@ class MCOptimizer:
                 # Reset step size
                 cur_step = angular_step
                 n_steps_since_improve = 0
-                min_ergodic = max(
-                    1, int(2.0 * (angular_box_side / cur_step) ** 3)
-                ) if cur_step > 0 else max_mc_steps
+                min_ergodic = (
+                    max(1, int(2.0 * (angular_box_side / cur_step) ** 3))
+                    if cur_step > 0
+                    else max_mc_steps
+                )
 
         return SearchCandidate(
             orientation=quaternion_to_matrix(best_q),
@@ -556,9 +569,7 @@ class MCOptimizer:
             trial_q = _quat_multiply(delta_q, optimal_q)
             trial_mat = quaternion_to_matrix(trial_q)
 
-            trial_info = self.cost_fn.evaluate(
-                trial_mat, self.voxel_vertices, self.phase_index
-            )
+            trial_info = self.cost_fn.evaluate(trial_mat, self.voxel_vertices, self.phase_index)
             trial_cost = trial_info.cost
 
             # Welford update (C++ OrientationSearch.cpp:185-187)
@@ -668,8 +679,7 @@ class MCOptimizer:
                 subregion_radius *= 0.5
 
             # Convergence check: cost AND variance both below threshold
-            if (global_min_cost < max_convergence_cost and
-                    abs(variance) < convergence_variance):
+            if global_min_cost < max_convergence_cost and abs(variance) < convergence_variance:
                 break
 
         return SearchCandidate(
@@ -682,6 +692,7 @@ class MCOptimizer:
 # ---------------------------------------------------------------------------
 # Hybrid Riemannian Adam + MC-restart optimizer
 # ---------------------------------------------------------------------------
+
 
 class RiemannianAdamOptimizer:
     """
@@ -756,23 +767,35 @@ class RiemannianAdamOptimizer:
 
         for restart in range(max_restarts + 1):
             R = _make_stiefel_param(current_orientation)
-            optimizer = _geoopt.optim.RiemannianAdam(
-                [R], lr=lr, betas=(self._BETA1, self._BETA2)
-            )
+            optimizer = _geoopt.optim.RiemannianAdam([R], lr=lr, betas=(self._BETA1, self._BETA2))
 
             for step in range(n_steps):
                 optimizer.zero_grad()
                 diff_info = self.diff_cost_fn.evaluate(
-                    R, self.voxel_vertices,
-                    phase_index=self.phase_index, scale=scale,
+                    R,
+                    self.voxel_vertices,
+                    phase_index=self.phase_index,
+                    scale=scale,
                 )
+                if diff_info.n_peaks == 0:
+                    # No observable peaks at this orientation: diff_info.cost
+                    # is a graph-connected zero (so .backward() doesn't raise)
+                    # but its gradient is identically zero — further Adam
+                    # steps here are wasted work, not a genuine convergence.
+                    # Stop this restart's Adam loop now; the hard-cost restart
+                    # logic below will perturb and try again.
+                    break
                 if diff_info.cost.requires_grad:
                     diff_info.cost.backward()
                     optimizer.step()
 
-            # SVD re-orthogonalize (guards Stiefel float drift; cheap 3×3)
+            # SVD re-orthogonalize (guards Stiefel float drift; cheap 3×3).
+            # geoopt's Stiefel manifold is O(3), not SO(3), so U @ Vt can be a
+            # reflection (det=-1); flip the last row of Vt to force det=+1.
             candidate_np = R.detach().numpy()
             U, _, Vt = np.linalg.svd(candidate_np)
+            if np.linalg.det(U @ Vt) < 0:
+                Vt[-1] *= -1
             candidate_np = U @ Vt
 
             hard_info = self.hard_cost_fn.evaluate(
@@ -793,9 +816,7 @@ class RiemannianAdamOptimizer:
                 rz = self._rng.uniform(-half_box, half_box)
                 perturb_q = self._grid_gen.get_near_identity_point(rx, ry, rz)
                 best_q = matrix_to_quaternion(best_orientation)
-                current_orientation = quaternion_to_matrix(
-                    _quat_multiply(perturb_q, best_q)
-                )
+                current_orientation = quaternion_to_matrix(_quat_multiply(perturb_q, best_q))
 
         return SearchCandidate(
             orientation=best_orientation,
@@ -807,6 +828,7 @@ class RiemannianAdamOptimizer:
 # ---------------------------------------------------------------------------
 # Convergence checks
 # ---------------------------------------------------------------------------
+
 
 def hit_ratio_converged(
     overlap_info: OverlapInfo,

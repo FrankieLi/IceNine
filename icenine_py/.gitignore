@@ -49,6 +49,7 @@ dmypy.json
 # Output files
 cpp_outputs/*.json
 validation_report.html
+tests/reconstruction_validation_report.txt
 
 # Large benchmark trajectory files (>10 MB — too large for git)
 benchmarks/hp_sweep_trajectory_manygrains.csv

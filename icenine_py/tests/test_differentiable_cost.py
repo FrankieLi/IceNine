@@ -858,6 +858,23 @@ class TestDifferentiableCostFunction:
         assert info.quality.item() == 0.0
         assert info.cost.item() == 1.0
 
+    def test_zero_result_is_graph_connected(self, diff_cost_setup):
+        """The degenerate (zero-peak) result must carry a grad_fn so callers
+        relying on cost.backward() (e.g. RiemannianAdamOptimizer) get a
+        genuine zero-gradient step rather than a non-differentiable tensor
+        that would raise on .backward()."""
+        c = diff_cost_setup
+        voxel = c["mic"].voxels[0]
+        vertices = c["get_vertices"](voxel)
+
+        orient_t = torch.from_numpy(voxel.orientation).float().requires_grad_(True)
+        info = c["diff_cost_fn"].evaluate(orient_t, vertices, phase_index=999, scale=0)
+        assert info.cost.requires_grad
+        assert info.cost.grad_fn is not None
+        info.cost.backward()  # must not raise
+        assert orient_t.grad is not None
+        assert torch.all(orient_t.grad == 0.0)
+
 
 # ---------------------------------------------------------------------------
 # TestOmegaBlend — omega-direction morphological dilation

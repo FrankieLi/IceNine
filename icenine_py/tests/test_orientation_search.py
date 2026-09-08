@@ -66,6 +66,7 @@ class TestSearchParameters:
 
     def test_from_config(self):
         """Can construct from config-like object."""
+
         class MockConfig:
             local_orientation_grid_radius = math.radians(5.0)
             min_local_resolution = 0
@@ -139,26 +140,20 @@ class TestSpacingFilter:
         candidate is never rejected either (it dominates the pool) — so a
         worse-then-better near-duplicate pair both survive."""
         R = np.eye(3)
-        result = _spacing_filter(
-            [_cand(R, 0.5), _cand(R, 0.1)], _RADIUS_1DEG, _NO_SYMMETRY
-        )
+        result = _spacing_filter([_cand(R, 0.5), _cand(R, 0.1)], _RADIUS_1DEG, _NO_SYMMETRY)
         assert [c.cost for c in result] == [0.5, 0.1]
 
     def test_better_first_near_duplicate_rejected(self):
         """A later near-duplicate with worse cost than the (better) pool is rejected."""
         R = np.eye(3)
-        result = _spacing_filter(
-            [_cand(R, 0.1), _cand(R, 0.5)], _RADIUS_1DEG, _NO_SYMMETRY
-        )
+        result = _spacing_filter([_cand(R, 0.1), _cand(R, 0.5)], _RADIUS_1DEG, _NO_SYMMETRY)
         assert [c.cost for c in result] == [0.1]
 
     def test_widely_separated_candidates_both_kept(self):
         """Candidates farther apart than angular_radius are never rejected."""
         R0 = np.eye(3)
         R1 = Rotation.from_euler("z", 90, degrees=True).as_matrix()
-        result = _spacing_filter(
-            [_cand(R0, 0.4), _cand(R1, 0.2)], _RADIUS_1DEG, _NO_SYMMETRY
-        )
+        result = _spacing_filter([_cand(R0, 0.4), _cand(R1, 0.2)], _RADIUS_1DEG, _NO_SYMMETRY)
         assert [c.cost for c in result] == [0.4, 0.2]
 
     def test_symmetry_equivalent_orientations_collapse(self):
@@ -178,9 +173,7 @@ class TestSpacingFilter:
         without_symmetry = _spacing_filter(
             [_cand(R0, 0.1), _cand(R1, 0.5)], _RADIUS_1DEG, _NO_SYMMETRY
         )
-        with_symmetry = _spacing_filter(
-            [_cand(R0, 0.1), _cand(R1, 0.5)], _RADIUS_1DEG, sym_quats
-        )
+        with_symmetry = _spacing_filter([_cand(R0, 0.1), _cand(R1, 0.5)], _RADIUS_1DEG, sym_quats)
         assert [c.cost for c in without_symmetry] == [0.1, 0.5]
         assert [c.cost for c in with_symmetry] == [0.1]
 
@@ -220,6 +213,7 @@ class TestRiemannianAdamOptimizer:
     def test_requires_geoopt_error(self, monkeypatch):
         """RiemannianAdamOptimizer raises RuntimeError when geoopt is unavailable."""
         import icenine.orientation_search as os_mod
+
         monkeypatch.setattr(os_mod, "_GEOOPT_AVAILABLE", False)
 
         from icenine.orientation_search import RiemannianAdamOptimizer
@@ -257,6 +251,7 @@ class TestRiemannianAdamOptimizer:
         # Differentiable cost mock: returns constant tensor (no grad)
         class MockDiffInfo:
             cost = torch.tensor(0.3)
+            n_peaks = 1
 
         class MockDiffCost:
             def evaluate(self, R, voxel_vertices, phase_index=0, scale=2):
@@ -300,6 +295,7 @@ class TestRiemannianAdamOptimizer:
         class MockDiffInfo:
             def __init__(self, cost):
                 self.cost = cost
+                self.n_peaks = 1
 
         class MockDiffCost:
             def evaluate(self, R, voxel_vertices, phase_index=0, scale=2):
@@ -363,6 +359,7 @@ class TestRiemannianAdamOptimizer:
 
         class MockDiffInfo:
             cost = torch.tensor(0.5)
+            n_peaks = 1
 
         class MockDiffCost:
             def evaluate(self, R, voxel_vertices, phase_index=0, scale=2):
