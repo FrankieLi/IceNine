@@ -27,6 +27,15 @@ dev = [
     "flake8>=6.0.0",
     "mypy>=1.0.0",
 ]
+riemannian = [
+    "geoopt>=0.5.1",
+]
+benchmarks = [
+    "cma>=3.3.0",
+    "matplotlib>=3.7.0",
+    "pandas>=2.0.0",
+    "psutil>=5.9.0",
+]
 
 [tool.setuptools]
 packages = ["icenine"]

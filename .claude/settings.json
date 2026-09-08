@@ -1,4 +1,24 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(file:*)",
+      "Bash(stat:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(diff:*)",
+      "Bash(grep -E \"\\\\.py$\")",
+      "Bash(time ../../IceNine r ConfigFiles/ReconstructBenchmark.config)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -24,21 +44,6 @@
           }
         ]
       }
-    ]
-  },
-  "permissions": {
-    "allow": [
-      "Bash(git:*)",
-      "Bash(ls:*)",
-      "Bash(cat:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(wc:*)",
-      "Bash(file:*)",
-      "Bash(stat:*)",
-      "Bash(find:*)",
-      "Bash(tree:*)",
-      "Bash(diff:*)"
     ]
   }
 }

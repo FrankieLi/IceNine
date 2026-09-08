@@ -15,7 +15,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -30,10 +30,13 @@ from .forward_simulation import ForwardSimulation
 from .mic_file import MicFile, ReconstructionState
 from .orientation_search import (
     MCOptimizer,
+    RiemannianAdamOptimizer,
     SearchCandidate,
     SearchParameters,
+    get_symmetry_quaternions,
     hit_ratio_converged,
     run_discrete_search,
+    run_discrete_search_spaced,
 )
 from .sample import Sample
 from .sampling import (
@@ -46,10 +49,14 @@ from .sampling import (
 from .simulation import Simulation
 from .simulation_range import SimulationRange
 
+if TYPE_CHECKING:
+    from .differentiable_cost import DifferentiableCostFunction
+
 
 # ---------------------------------------------------------------------------
 # Convergence codes
 # ---------------------------------------------------------------------------
+
 
 class ConvergenceCode:
     NOT_CONVERGED = 0
@@ -61,6 +68,7 @@ class ConvergenceCode:
 # ---------------------------------------------------------------------------
 # ReconstructionSetup — holds all loaded data
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ReconstructionSetup:
@@ -80,6 +88,7 @@ class ReconstructionSetup:
     range_map: SimulationRange
     sample: Sample
     structure_list: List[CrystalStructure]
+    diff_cost_fn: Optional["DifferentiableCostFunction"] = None  # set for hybrid optimizer
 
 
 def setup_reconstruction(
@@ -142,9 +151,52 @@ def setup_reconstruction(
     )
 
 
+def build_diff_cost_fn(
+    setup: ReconstructionSetup,
+    downsample_factors: Optional[List[int]] = None,
+    omega_window: int = 1,
+) -> "DifferentiableCostFunction":
+    """
+    Build a DifferentiableCostFunction from an existing ReconstructionSetup.
+
+    This is the standard way to enable the hybrid RiemannianAdamOptimizer.
+    Assign the result to setup.diff_cost_fn and set
+    setup.search_params.use_hybrid_optimizer = True.
+
+    Args:
+        setup: Fully initialized ReconstructionSetup
+        downsample_factors: Downsample levels for MultiScaleImageStack.
+            Default [1, 4, 8] → scale indices 0, 1, 2 in SearchParameters.adam_scale.
+        omega_window: Omega integration window passed to MultiScaleImageStack
+
+    Returns:
+        DifferentiableCostFunction ready for use with RiemannianAdamOptimizer
+    """
+    from .differentiable_cost import DifferentiableCostFunction, MultiScaleImageStack
+
+    if downsample_factors is None:
+        downsample_factors = [1, 4, 8]
+
+    ms = MultiScaleImageStack(
+        setup.exp_data.to_sparse_image_stack(),
+        downsample_factors,
+        omega_window=omega_window,
+    )
+    return DifferentiableCostFunction(
+        simulator=setup.simulator,
+        detector_list=setup.detector_list,
+        range_map=setup.range_map,
+        image_stack=ms,
+        sample=setup.sample,
+        structure_list=setup.structure_list,
+        eta_limit=setup.exp_setup.get_eta_limit(),
+    )
+
+
 # ---------------------------------------------------------------------------
 # BasicVoxelReconstructor — single voxel reconstruction
 # ---------------------------------------------------------------------------
+
 
 class BasicVoxelReconstructor:
     """
@@ -167,11 +219,8 @@ class BasicVoxelReconstructor:
 
         # Pre-generate local grids at all resolution levels
         self._local_grids = {}
-        for level in range(self.params.min_local_resolution,
-                           self.params.max_local_resolution + 1):
-            self._local_grids[level] = generate_local_grid(
-                self.params.local_grid_radius, level
-            )
+        for level in range(self.params.min_local_resolution, self.params.max_local_resolution + 1):
+            self._local_grids[level] = generate_local_grid(self.params.local_grid_radius, level)
 
     def reconstruct_voxel(
         self,
@@ -205,7 +254,7 @@ class BasicVoxelReconstructor:
             exp_data=self.setup.exp_data,
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
-            mode='hard',
+            mode="hard",
             eta_limit=eta_limit,
             pixel_radius=3,
             max_q=5.0,
@@ -217,7 +266,7 @@ class BasicVoxelReconstructor:
             exp_data=self.setup.exp_data,
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
-            mode='hard',
+            mode="hard",
             eta_limit=eta_limit,
             pixel_radius=0,
         )
@@ -234,13 +283,10 @@ class BasicVoxelReconstructor:
 
         # Compute angular step size for MC
         # C++: box_width = local_grid_radius / 2^max_local_resolution
-        box_width = self.params.local_grid_radius / (
-            2 ** self.params.max_local_resolution
-        )
+        box_width = self.params.local_grid_radius / (2**self.params.max_local_resolution)
         mc_step = box_width * self.params.mc_radius_scale_factor
 
-        for level in range(self.params.min_local_resolution,
-                           self.params.max_local_resolution + 1):
+        for level in range(self.params.min_local_resolution, self.params.max_local_resolution + 1):
             local_grid = self._local_grids[level]
             t_level = time.time()
 
@@ -249,9 +295,12 @@ class BasicVoxelReconstructor:
             # The C++ does NOT do adaptive narrowing — it always searches the full
             # FZ set with progressively finer local grids.
             n_evals = len(self.setup.fz_orientations) * len(local_grid)
-            print(f"    Level {level}: discrete search "
-                  f"({len(self.setup.fz_orientations)} FZ × {len(local_grid)} local "
-                  f"= {n_evals} evals)", flush=True)
+            print(
+                f"    Level {level}: discrete search "
+                f"({len(self.setup.fz_orientations)} FZ × {len(local_grid)} local "
+                f"= {n_evals} evals)",
+                flush=True,
+            )
             candidates = run_discrete_search(
                 cost_fn=global_cost_fn,
                 fz_orientations=self.setup.fz_orientations,
@@ -262,12 +311,14 @@ class BasicVoxelReconstructor:
             t_discrete = time.time() - t_level
 
             if not candidates:
-                print(f"    Level {level}: no candidates found ({t_discrete:.1f}s)",
-                      flush=True)
+                print(f"    Level {level}: no candidates found ({t_discrete:.1f}s)", flush=True)
                 continue
 
-            print(f"    Level {level}: {len(candidates)} candidates ({t_discrete:.1f}s), "
-                  f"best cost={candidates[0].cost:.4f}", flush=True)
+            print(
+                f"    Level {level}: {len(candidates)} candidates ({t_discrete:.1f}s), "
+                f"best cost={candidates[0].cost:.4f}",
+                flush=True,
+            )
 
             # Phase 2: Quick MC optimization (20 steps, no restarts)
             t_mc = time.time()
@@ -286,10 +337,13 @@ class BasicVoxelReconstructor:
 
             # Phase 3: Sort and keep top N
             quick_candidates.sort()
-            top_candidates = quick_candidates[:self.params.max_discrete_candidates]
+            top_candidates = quick_candidates[: self.params.max_discrete_candidates]
             t_quick = time.time() - t_mc
-            print(f"    Level {level}: quick MC on {n_quick} candidates ({t_quick:.1f}s), "
-                  f"best cost={top_candidates[0].cost:.4f}", flush=True)
+            print(
+                f"    Level {level}: quick MC on {n_quick} candidates ({t_quick:.1f}s), "
+                f"best cost={top_candidates[0].cost:.4f}",
+                flush=True,
+            )
 
             # Phase 4: Full MC optimization
             t_full = time.time()
@@ -307,18 +361,21 @@ class BasicVoxelReconstructor:
                     best_candidate = result
 
                 # Check convergence
-                if (result.overlap_info is not None and
-                        hit_ratio_converged(result.overlap_info,
-                                            self.params.max_deepening_hit_ratio)):
+                if result.overlap_info is not None and hit_ratio_converged(
+                    result.overlap_info, self.params.max_deepening_hit_ratio
+                ):
                     converged = True
                     break
 
             t_full_mc = time.time() - t_full
             t_total_level = time.time() - t_level
-            print(f"    Level {level}: full MC on {ci + 1} candidates ({t_full_mc:.1f}s), "
-                  f"best cost={best_candidate.cost:.4f}, "
-                  f"level total={t_total_level:.1f}s"
-                  f"{' CONVERGED' if converged else ''}", flush=True)
+            print(
+                f"    Level {level}: full MC on {ci + 1} candidates ({t_full_mc:.1f}s), "
+                f"best cost={best_candidate.cost:.4f}, "
+                f"level total={t_total_level:.1f}s"
+                f"{' CONVERGED' if converged else ''}",
+                flush=True,
+            )
 
             if converged:
                 break
@@ -329,6 +386,7 @@ class BasicVoxelReconstructor:
 # ---------------------------------------------------------------------------
 # AdaptiveVoxelReconstructor — single voxel, adaptive narrowing
 # ---------------------------------------------------------------------------
+
 
 class AdaptiveVoxelReconstructor:
     """
@@ -393,17 +451,38 @@ class AdaptiveVoxelReconstructor:
             exp_data=self.setup.exp_data,
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
-            mode='hard',
+            mode="hard",
             eta_limit=eta_limit,
             pixel_radius=0,
         )
 
-        # MC optimizer uses local cost function
+        # MC optimizer uses local cost function (always built; used in VarianceMinimizing
+        # and as fallback when use_hybrid_optimizer is False)
         mc_optimizer = MCOptimizer(
             cost_fn=local_cost_fn,
             voxel_vertices=voxel_vertices,
             phase_index=phase_index,
             rng=rng,
+        )
+
+        # Hybrid optimizer for FindOptimal phase (opt-in via SearchParameters)
+        use_hybrid = self.params.use_hybrid_optimizer and self.setup.diff_cost_fn is not None
+        if use_hybrid:
+            find_optimizer: RiemannianAdamOptimizer = RiemannianAdamOptimizer(
+                hard_cost_fn=local_cost_fn,
+                diff_cost_fn=self.setup.diff_cost_fn,
+                voxel_vertices=voxel_vertices,
+                phase_index=phase_index,
+                rng=rng,
+            )
+
+        # Crystal symmetry for spacing filter
+        # C++ DiscreteAdaptive.tmpl.cpp:88
+        symmetry = self.setup.exp_setup.get_sample_symmetry()
+        # Empty (not None) when symmetry is NONE: reduce_to_fundamental_zone's
+        # loop over symmetry_quats then no-ops, correctly leaving q unreduced.
+        symmetry_quats = (
+            get_symmetry_quaternions(symmetry) if symmetry is not None else np.zeros((0, 4))
         )
 
         # Initialize search state
@@ -431,7 +510,7 @@ class AdaptiveVoxelReconstructor:
                 exp_data=self.setup.exp_data,
                 sample=self.setup.sample,
                 structure_list=self.setup.structure_list,
-                mode='hard',
+                mode="hard",
                 eta_limit=eta_limit,
                 pixel_radius=3,
                 max_q=n_q_max,
@@ -439,16 +518,22 @@ class AdaptiveVoxelReconstructor:
 
             # Phase 1: Discrete search
             n_evals = len(fz_orientations) * len(local_grid)
-            print(f"    Level {level}: discrete search "
-                  f"({len(fz_orientations)} FZ × {len(local_grid)} local "
-                  f"= {n_evals} evals, nQMax={n_q_max:.0f}, "
-                  f"diameter={math.degrees(diameter):.2f}°)", flush=True)
+            print(
+                f"    Level {level}: discrete search "
+                f"({len(fz_orientations)} FZ × {len(local_grid)} local "
+                f"= {n_evals} evals, nQMax={n_q_max:.0f}, "
+                f"diameter={math.degrees(diameter):.2f}°)",
+                flush=True,
+            )
 
-            candidates = run_discrete_search(
-                cost_fn=global_cost_fn,
+            candidates = run_discrete_search_spaced(
+                global_cost_fn=global_cost_fn,
+                local_cost_fn=local_cost_fn,
                 fz_orientations=fz_orientations,
                 local_grid=local_grid,
                 voxel_vertices=voxel_vertices,
+                angular_radius=diameter,
+                symmetry_quats=symmetry_quats,
                 phase_index=phase_index,
             )
             t_discrete = time.time() - t_level
@@ -458,27 +543,19 @@ class AdaptiveVoxelReconstructor:
             n_q_max += 1
 
             if not candidates:
-                print(f"    Level {level}: no candidates found ({t_discrete:.1f}s)",
-                      flush=True)
+                print(f"    Level {level}: no candidates found ({t_discrete:.1f}s)", flush=True)
                 continue
 
-            # Phase 2: Re-evaluate candidates with local cost function (pixel_radius=0)
-            # C++ DiscreteAdaptive.tmpl.cpp:156-165
-            t_reeval = time.time()
-            for cand in candidates:
-                info = local_cost_fn.evaluate(
-                    orientation=cand.orientation,
-                    voxel_vertices=voxel_vertices,
-                    phase_index=phase_index,
-                )
-                cand.cost = info.cost
-                cand.overlap_info = info
-            candidates.sort()
-            t_reeval_elapsed = time.time() - t_reeval
-
-            print(f"    Level {level}: {len(candidates)} candidates "
-                  f"(discrete={t_discrete:.1f}s, reeval={t_reeval_elapsed:.1f}s), "
-                  f"best cost={candidates[0].cost:.4f}", flush=True)
+            # Note: candidates[0].cost here is 1 - confidence (peak-ratio metric
+            # set in run_discrete_search_spaced), not 1 - quality (pixel/detector
+            # ratio) used by the "best cost=" prints below once Phase 3 MC
+            # overwrites .cost — the two are different scales, not comparable.
+            print(
+                f"    Level {level}: {len(candidates)} candidates "
+                f"(discrete={t_discrete:.1f}s), "
+                f"best cost={candidates[0].cost:.4f}",
+                flush=True,
+            )
 
             # Phase 3: Quick MC on all candidates (10 steps, 5 restarts)
             # C++ DiscreteAdaptive.tmpl.cpp:173-194
@@ -487,9 +564,7 @@ class AdaptiveVoxelReconstructor:
             # C++ ContinuousSearch.h:70-73 CalculateSearchParameter
             # BoxWidth = localGridRadius / 2^localResolution
             # For trial search: localResolution = min_local_resolution
-            trial_box_width = trial_radius / (
-                2 ** self.params.min_local_resolution
-            )
+            trial_box_width = trial_radius / (2**self.params.min_local_resolution)
             trial_step = trial_box_width * self.params.mc_radius_scale_factor
 
             for cand in candidates:
@@ -517,10 +592,13 @@ class AdaptiveVoxelReconstructor:
             total_global_evals += global_cost_fn.eval_count
 
             t_total = time.time() - t_level
-            print(f"    Level {level}: quick MC ({t_quick:.1f}s), "
-                  f"kept {n_keep}/{len(candidates)}, "
-                  f"best cost={candidates[0].cost:.4f}, "
-                  f"level total={t_total:.1f}s", flush=True)
+            print(
+                f"    Level {level}: quick MC ({t_quick:.1f}s), "
+                f"kept {n_keep}/{len(candidates)}, "
+                f"best cost={candidates[0].cost:.4f}, "
+                f"level total={t_total:.1f}s",
+                flush=True,
+            )
 
         # After all levels: FindOptimal + VarianceMinimizing
         # C++ DiscreteAdaptive.tmpl.cpp:210-246
@@ -528,40 +606,54 @@ class AdaptiveVoxelReconstructor:
             return SearchCandidate(orientation=np.eye(3), cost=1.0)
 
         final_radius = max(diameter / 3.0, math.radians(0.2))
-        final_box_width = final_radius / (2 ** self.params.min_local_resolution)
+        final_box_width = final_radius / (2**self.params.min_local_resolution)
         final_step = final_box_width * self.params.mc_radius_scale_factor
 
-        # FindOptimal: full MC on top candidates with convergence check
+        # FindOptimal: full MC (or hybrid Adam) on top candidates with convergence check
         # C++ ContinuousSearch.h:316-346
-        n_final = min(
-            len(candidates), self.params.max_discrete_candidates
-        )
-        print(f"    FindOptimal: full MC on {n_final} candidates", flush=True)
+        n_final = min(len(candidates), self.params.max_discrete_candidates)
+        optimizer_label = "hybrid Adam" if use_hybrid else "full MC"
+        print(f"    FindOptimal: {optimizer_label} on {n_final} candidates", flush=True)
         t_final = time.time()
 
         best_candidate = SearchCandidate(orientation=np.eye(3), cost=1.0)
         converged = False
         for ci, cand in enumerate(candidates[:n_final]):
-            result = mc_optimizer.optimize(
-                initial_orientation=cand.orientation,
-                angular_box_side=final_box_width,
-                angular_step=final_step,
-                max_mc_steps=self.params.max_mc_steps,
-                max_restarts=self.params.successive_restarts,
-                max_convergence_cost=self.params.max_convergence_cost,
-            )
+            if use_hybrid:
+                result = find_optimizer.optimize(
+                    initial_orientation=cand.orientation,
+                    angular_box_side=final_box_width,
+                    n_steps=self.params.adam_n_steps,
+                    lr=self.params.adam_lr,
+                    scale=self.params.adam_scale,
+                    max_restarts=self.params.successive_restarts,
+                    max_convergence_cost=self.params.max_convergence_cost,
+                )
+            else:
+                result = mc_optimizer.optimize(
+                    initial_orientation=cand.orientation,
+                    angular_box_side=final_box_width,
+                    angular_step=final_step,
+                    max_mc_steps=self.params.max_mc_steps,
+                    max_restarts=self.params.successive_restarts,
+                    max_convergence_cost=self.params.max_convergence_cost,
+                )
             if result.cost < best_candidate.cost:
                 best_candidate = result
                 # Convergence check: hit_ratio >= 1.0
                 # C++ ContinuousSearch.h:276-286 HitRatioConvergenceFn with ratio=1.0
-                if (result.overlap_info is not None and
-                        hit_ratio_converged(result.overlap_info, 1.0)):
+                if result.overlap_info is not None and hit_ratio_converged(
+                    result.overlap_info, 1.0
+                ):
                     converged = True
                     break
         t_find = time.time() - t_final
-        print(f"    FindOptimal: {ci + 1} evaluated ({t_find:.1f}s), "
-              f"best cost={best_candidate.cost:.4f}"
-              f"{' CONVERGED' if converged else ''}", flush=True)
+        print(
+            f"    FindOptimal: {ci + 1} evaluated ({t_find:.1f}s), "
+            f"best cost={best_candidate.cost:.4f}"
+            f"{' CONVERGED' if converged else ''}",
+            flush=True,
+        )
 
         # VarianceMinimizing: refine best until variance < 0.02²
         # C++ DiscreteAdaptive.tmpl.cpp:232
@@ -572,13 +664,15 @@ class AdaptiveVoxelReconstructor:
             max_mc_steps=self.params.max_mc_steps,
             successive_restarts=self.params.successive_restarts,
             max_convergence_cost=0.0,  # C++ sets this to 0 for final optimization
-            convergence_variance=0.02 ** 2,
+            convergence_variance=0.02**2,
         )
         if var_result.cost < best_candidate.cost:
             best_candidate = var_result
         t_var_elapsed = time.time() - t_var
-        print(f"    VarianceMin: ({t_var_elapsed:.1f}s), "
-              f"cost={best_candidate.cost:.4f}", flush=True)
+        print(
+            f"    VarianceMin: ({t_var_elapsed:.1f}s), " f"cost={best_candidate.cost:.4f}",
+            flush=True,
+        )
 
         # Final overlap evaluation
         # C++ DiscreteAdaptive.tmpl.cpp:234-242
@@ -615,7 +709,7 @@ class AdaptiveVoxelReconstructor:
             exp_data=self.setup.exp_data,
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
-            mode='hard',
+            mode="hard",
             eta_limit=eta_limit,
             pixel_radius=0,
         )
@@ -657,7 +751,7 @@ class AdaptiveVoxelReconstructor:
             exp_data=self.setup.exp_data,
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
-            mode='hard',
+            mode="hard",
             eta_limit=eta_limit,
             pixel_radius=0,
         )
@@ -670,9 +764,7 @@ class AdaptiveVoxelReconstructor:
         )
 
         # C++ ContinuousSearch.h:70-73: BoxWidth = localGridRadius / 2^localResolution
-        box_width = self.params.local_grid_radius / (
-            2 ** self.params.min_local_resolution
-        )
+        box_width = self.params.local_grid_radius / (2**self.params.min_local_resolution)
 
         # Variance-minimizing MC
         # C++ DiscreteAdaptive.tmpl.cpp:305
@@ -682,7 +774,7 @@ class AdaptiveVoxelReconstructor:
             max_mc_steps=self.params.max_mc_steps,
             successive_restarts=self.params.successive_restarts,
             max_convergence_cost=self.params.max_convergence_cost,
-            convergence_variance=0.02 ** 2,
+            convergence_variance=0.02**2,
         )
 
         # Final overlap evaluation
@@ -701,6 +793,7 @@ class AdaptiveVoxelReconstructor:
 # ---------------------------------------------------------------------------
 # BFSReconstruction — breadth-first spatial propagation
 # ---------------------------------------------------------------------------
+
 
 class BFSReconstruction:
     """
@@ -780,7 +873,8 @@ class BFSReconstruction:
             all_processed.extend(processed)
 
             seed_fitted = sum(
-                1 for i in processed
+                1
+                for i in processed
                 if mic.voxels[i].reconstruction_id == ReconstructionState.FITTED
             )
             seed_refit = len(processed) - seed_fitted
@@ -788,13 +882,18 @@ class BFSReconstruction:
             n_refit += seed_refit
 
             t_elapsed = time.time() - t_seed
-            print(f"  Seed #{n_seeds} done: {len(processed)} voxels "
-                  f"({seed_fitted} fitted, {seed_refit} refit) in {t_elapsed:.1f}s",
-                  flush=True)
+            print(
+                f"  Seed #{n_seeds} done: {len(processed)} voxels "
+                f"({seed_fitted} fitted, {seed_refit} refit) in {t_elapsed:.1f}s",
+                flush=True,
+            )
 
         total_time = time.time() - start_time
-        print(f"\nBFS complete: {n_seeds} seeds, {n_fitted} fitted, "
-              f"{n_refit} refit, {total_time:.1f}s total", flush=True)
+        print(
+            f"\nBFS complete: {n_seeds} seeds, {n_fitted} fitted, "
+            f"{n_refit} refit, {total_time:.1f}s total",
+            flush=True,
+        )
 
         # Save output .mic file
         if output_mic is not None:
@@ -835,10 +934,16 @@ class BFSReconstruction:
         # Compute confidence and hit_ratio
         # C++ CostFunctions.cpp: GetConfidence = peak_overlap / peak_on_detector
         # C++ CostFunctions.cpp: GetHitRatio = pixel_overlap / pixel_on_detector
-        confidence = (overlap_info.peak_overlap / overlap_info.peak_on_detector
-                      if overlap_info.peak_on_detector > 0 else 0.0)
-        hit_ratio = (overlap_info.pixel_overlap / overlap_info.pixel_on_detector
-                     if overlap_info.pixel_on_detector > 0 else 0.0)
+        confidence = (
+            overlap_info.peak_overlap / overlap_info.peak_on_detector
+            if overlap_info.peak_on_detector > 0
+            else 0.0
+        )
+        hit_ratio = (
+            overlap_info.pixel_overlap / overlap_info.pixel_on_detector
+            if overlap_info.pixel_on_detector > 0
+            else 0.0
+        )
 
         # Update seed voxel
         voxel.orientation = result.orientation
@@ -846,17 +951,21 @@ class BFSReconstruction:
         voxel.confidence = confidence
         voxel.overlap_ratio = hit_ratio
 
-        print(f"    Seed voxel {seed_idx}: cost={result.cost:.4f}, "
-              f"hit_ratio={hit_ratio:.3f}, conf={confidence:.3f} ({t_recon:.1f}s)",
-              flush=True)
+        print(
+            f"    Seed voxel {seed_idx}: cost={result.cost:.4f}, "
+            f"hit_ratio={hit_ratio:.3f}, conf={confidence:.3f} ({t_recon:.1f}s)",
+            flush=True,
+        )
 
         # Check acceptance threshold
         # C++ BreadthFirstReconstructor.tmpl.cpp:142-149
         min_accel = self.setup.config.min_acceleration_threshold
         if hit_ratio < min_accel:
             voxel.reconstruction_id = ReconstructionState.REFIT
-            print(f"    Seed rejected (hit_ratio {hit_ratio:.3f} < "
-                  f"threshold {min_accel:.3f})", flush=True)
+            print(
+                f"    Seed rejected (hit_ratio {hit_ratio:.3f} < " f"threshold {min_accel:.3f})",
+                flush=True,
+            )
             return [seed_idx]
 
         # Mark fitted, start BFS
@@ -895,10 +1004,16 @@ class BFSReconstruction:
 
             # Compute hit_ratio from result
             n_info = opt_result.overlap_info
-            n_hit_ratio = (n_info.pixel_overlap / n_info.pixel_on_detector
-                           if n_info and n_info.pixel_on_detector > 0 else 0.0)
-            n_confidence = (n_info.peak_overlap / n_info.peak_on_detector
-                            if n_info and n_info.peak_on_detector > 0 else 0.0)
+            n_hit_ratio = (
+                n_info.pixel_overlap / n_info.pixel_on_detector
+                if n_info and n_info.pixel_on_detector > 0
+                else 0.0
+            )
+            n_confidence = (
+                n_info.peak_overlap / n_info.peak_on_detector
+                if n_info and n_info.peak_on_detector > 0
+                else 0.0
+            )
 
             # Update neighbor voxel
             neighbor.orientation = opt_result.orientation
@@ -917,17 +1032,23 @@ class BFSReconstruction:
                 neighbor.reconstruction_id = ReconstructionState.FITTED
                 solution.append(neighbor_idx)
                 self._insert_seed(mic, neighbor_idx, bfs_queue)
-                print(f"    BFS #{n_bfs} voxel {neighbor_idx}: FITTED "
-                      f"cost={opt_result.cost:.4f}, hit_ratio={n_hit_ratio:.3f} "
-                      f"({t_local_elapsed:.1f}s)", flush=True)
+                print(
+                    f"    BFS #{n_bfs} voxel {neighbor_idx}: FITTED "
+                    f"cost={opt_result.cost:.4f}, hit_ratio={n_hit_ratio:.3f} "
+                    f"({t_local_elapsed:.1f}s)",
+                    flush=True,
+                )
             else:
                 # Reject: mark for later re-fitting
                 neighbor.reconstruction_id = ReconstructionState.REFIT
                 solution.append(neighbor_idx)
-                print(f"    BFS #{n_bfs} voxel {neighbor_idx}: REFIT "
-                      f"cost={opt_result.cost:.4f}, hit_ratio={n_hit_ratio:.3f} "
-                      f"(ratio={n_hit_ratio / best_conf:.3f} < 0.9) "
-                      f"({t_local_elapsed:.1f}s)", flush=True)
+                print(
+                    f"    BFS #{n_bfs} voxel {neighbor_idx}: REFIT "
+                    f"cost={opt_result.cost:.4f}, hit_ratio={n_hit_ratio:.3f} "
+                    f"(ratio={n_hit_ratio / best_conf:.3f} < 0.9) "
+                    f"({t_local_elapsed:.1f}s)",
+                    flush=True,
+                )
 
         return solution
 
@@ -959,6 +1080,7 @@ class BFSReconstruction:
 # ---------------------------------------------------------------------------
 # SerialReconstruction — main loop over all voxels
 # ---------------------------------------------------------------------------
+
 
 class SerialReconstruction:
     """
@@ -1004,8 +1126,10 @@ class SerialReconstruction:
         for idx, voxel in enumerate(voxel_list):
             t_voxel = time.time()
             elapsed = t_voxel - start_time
-            print(f"  Voxel {idx + 1}/{n_voxels} (phase={voxel.phase}, "
-                  f"elapsed={elapsed:.1f}s)", flush=True)
+            print(
+                f"  Voxel {idx + 1}/{n_voxels} (phase={voxel.phase}, " f"elapsed={elapsed:.1f}s)",
+                flush=True,
+            )
 
             # Get voxel vertices
             vertices = _get_voxel_vertices(voxel)
@@ -1020,18 +1144,19 @@ class SerialReconstruction:
             self.results.append(result)
             voxel_time = time.time() - t_voxel
             oi = result.overlap_info
-            hit = (oi.pixel_overlap / oi.pixel_on_detector
-                   if oi and oi.pixel_on_detector > 0 else 0)
-            print(f"  Voxel {idx + 1}/{n_voxels} done: "
-                  f"cost={result.cost:.4f}, hit_ratio={hit:.3f}, "
-                  f"time={voxel_time:.1f}s", flush=True)
+            hit = oi.pixel_overlap / oi.pixel_on_detector if oi and oi.pixel_on_detector > 0 else 0
+            print(
+                f"  Voxel {idx + 1}/{n_voxels} done: "
+                f"cost={result.cost:.4f}, hit_ratio={hit:.3f}, "
+                f"time={voxel_time:.1f}s",
+                flush=True,
+            )
 
             # Update voxel orientation with reconstructed result
             voxel.orientation = result.orientation
 
         elapsed = time.time() - start_time
-        print(f"Reconstruction complete: {n_voxels} voxels in {elapsed:.1f}s",
-              flush=True)
+        print(f"Reconstruction complete: {n_voxels} voxels in {elapsed:.1f}s", flush=True)
 
         # Save output .mic file
         if output_mic is not None:
@@ -1048,16 +1173,22 @@ def _get_voxel_vertices(voxel) -> torch.Tensor:
     sqrt3_half = 0.5 * math.sqrt(3.0)
 
     if voxel.points_up:
-        vertices = torch.tensor([
-            [x, y, z],
-            [x + s, y, z],
-            [x + s * 0.5, y + s * sqrt3_half, z],
-        ], dtype=torch.float32)
+        vertices = torch.tensor(
+            [
+                [x, y, z],
+                [x + s, y, z],
+                [x + s * 0.5, y + s * sqrt3_half, z],
+            ],
+            dtype=torch.float32,
+        )
     else:
-        vertices = torch.tensor([
-            [x, y, z],
-            [x + s * 0.5, y - s * sqrt3_half, z],
-            [x + s, y, z],
-        ], dtype=torch.float32)
+        vertices = torch.tensor(
+            [
+                [x, y, z],
+                [x + s * 0.5, y - s * sqrt3_half, z],
+                [x + s, y, z],
+            ],
+            dtype=torch.float32,
+        )
 
     return vertices

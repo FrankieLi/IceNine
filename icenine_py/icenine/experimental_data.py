@@ -10,11 +10,14 @@ C++ Reference:
 """
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from icenine.config_file import ConfigFile
 from icenine.experiment_setup import XDMExperimentSetup
 from icenine.image_data import ImageData
+
+if TYPE_CHECKING:
+    from icenine.differentiable_cost import ExperimentalImageStack, SparseImageStack
 
 
 class ExperimentalData:
@@ -174,6 +177,7 @@ class ExperimentalData:
         num_cols: int,
         file_start: int = 0,
         det_offset: int = 0,
+        mode: str = "dense",
     ) -> "ExperimentalData":
         """
         Load experimental data from a directory of ASCII image files.
@@ -192,6 +196,13 @@ class ExperimentalData:
             num_cols: Detector image width in pixels
             file_start: Starting file number (default 0)
             det_offset: Detector numbering offset (default 0)
+            mode: ImageData storage mode - 'dense' (default) or 'sparse'.
+                  Use 'sparse' for large images to reduce memory from
+                  O(n_images × H × W) to O(total_nonzero_pixels).
+                  Note: prepare_for_reconstruction() (which eagerly builds the
+                  uint8 binary caches VoxelCostFunction's hard cost path reads)
+                  only runs for mode='dense', below. Combining mode='sparse'
+                  with the hard VoxelCostFunction is not supported.
 
         Returns:
             ExperimentalData loaded from directory
@@ -219,7 +230,7 @@ class ExperimentalData:
                         f"Image file not found: {filepath}"
                     )
 
-                image = ImageData(num_rows, num_cols)
+                image = ImageData(num_rows, num_cols, mode=mode)
                 image.load_ascii(str(filepath))
                 images[omega_idx][det_idx] = image
                 loaded += 1
@@ -234,8 +245,9 @@ class ExperimentalData:
             n_omega_intervals=n_omega,
             n_detectors=n_detectors,
         )
-        print(f"  Preparing binary caches...", flush=True)
-        result.prepare_for_reconstruction()
+        if mode == "dense":
+            print(f"  Preparing binary caches...", flush=True)
+            result.prepare_for_reconstruction()
         return result
 
     def prepare_for_reconstruction(self) -> None:
@@ -248,6 +260,46 @@ class ExperimentalData:
         for omega_idx in range(self.n_omega_intervals):
             for det_idx in range(self.n_detectors):
                 self.images[omega_idx][det_idx].ensure_binary_cache()
+
+    def to_image_stack(
+        self, binary: bool = True
+    ) -> "ExperimentalImageStack":
+        """
+        Convert to a pre-stacked contiguous tensor for batch access.
+
+        This creates an ExperimentalImageStack with all images in a single
+        (n_omega * n_det, 1, H, W) tensor, enabling batch grid_sample
+        and GPU acceleration.
+
+        Args:
+            binary: If True (default), binarize to 0.0/1.0.
+                    If False, preserve original intensities.
+
+        Returns:
+            ExperimentalImageStack ready for differentiable cost function.
+        """
+        from .differentiable_cost import ExperimentalImageStack
+        return ExperimentalImageStack(self, binary=binary)
+
+    def to_sparse_image_stack(
+        self, binary: bool = True
+    ) -> "SparseImageStack":
+        """
+        Convert to a memory-efficient sparse image stack.
+
+        Stores only the coordinates of bright pixels (~26 KB for typical
+        diffraction data vs ~5.6 GB for dense float32). Dense images are
+        materialized on-demand for grid_sample.
+
+        Args:
+            binary: If True (default), store only pixel coordinates (values=1.0).
+                    If False, store coordinates and intensity values.
+
+        Returns:
+            SparseImageStack ready for differentiable cost function.
+        """
+        from .differentiable_cost import SparseImageStack
+        return SparseImageStack(self, binary=binary)
 
     def count_bright_pixels(self) -> int:
         """Count total bright pixels across all images."""

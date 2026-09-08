@@ -539,3 +539,481 @@ This validation uses the **identical algorithm** on both sides: C++ `DiscreteRef
 6. **Total wall time**: ~2.25s (C++) vs ~97s (Python) = **43× total slowdown** (lower than the previous 276× comparison because the adaptive algorithm does fewer evaluations than BasicVoxelReconstructor).
 
 **Files changed**: `Src/CostFunctions.cpp` (global counter definition), `Src/OverlapInfo.tmpl.cpp` (counter increment), `Src/SerialReconstruction.h` (per-voxel timing + eval count reporting), `icenine_py/icenine/cost_functions.py` (eval_count tracking), `icenine_py/icenine/reconstructor.py` (expose eval counts), `Examples/Example2.ThreeVoxels/run_adaptive_reconstruction.py` (Python adaptive benchmark script).
+
+### Spacing Filter Fix (2026-03-24)
+
+**Problem**: Python did 42% more evaluations than C++ (213,690 vs 150,251). Root cause: C++ `GetSpacedCandidates` (DiscreteSearch.h:316-410) applies a per-clique angular spacing filter using `Acceptable()` (DiscreteSearch.h:244-258). Python was missing this filter entirely, causing candidate counts to balloon through adaptive levels (e.g., Level 3: 588 candidates in Python vs 4 in C++).
+
+**The spacing filter**: For each FZ clique, after re-evaluating candidates with the local cost function (pixel_radius=0, cost = 1 - confidence), the filter walks the sorted candidate list and rejects any candidate if there exists an already-accepted candidate within `angular_radius` (= search diameter) that has a better (lower) cost. Misorientation is computed with crystal symmetry reduction.
+
+**Implementation**: Three new functions in `orientation_search.py`:
+- `_spacing_filter()` — core reject/accept logic matching C++ `Acceptable()`
+- `get_symmetry_quaternions()` — extracts proper rotation quaternions from `CrystalSymmetry`
+- `run_discrete_search_spaced()` — replaces `run_discrete_search` in adaptive path, combining global screening + local re-evaluation + per-clique spacing into one function
+
+`reconstructor.py` `AdaptiveVoxelReconstructor.reconstruct_voxel()` updated to call `run_discrete_search_spaced()` instead of `run_discrete_search()` + separate re-evaluation phase.
+
+**Results after fix:**
+
+| Metric | C++ | Python (before) | Python (after) | After/C++ Ratio |
+|--------|-----|-----------------|----------------|-----------------|
+| Total time | 2.25s | 97.0s | 66.0s | 29× |
+| Total evals | 150,251 | 213,690 | 157,726 | 1.05× |
+| Avg us/eval | 15.0 | 453.9 | 418.7 | 28× |
+
+Candidate counts per level now closely match C++. Voxel 2 now fails similarly to C++ (both cost ~0.8), confirming algorithmic alignment — the previous Python success was an artifact of excess candidates from the missing filter.
+
+**Remaining bottleneck**: Per-eval gap is 28× (15 us C++ vs 419 us Python). This is pure computational overhead, not algorithmic difference.
+
+### Differentiable Cost Function Infrastructure (2026-03-25)
+
+New module `differentiable_cost.py` providing gradient-based orientation optimization infrastructure. Motivated by the goal of integrating the cost function into neural networks.
+
+**Key components:**
+
+| Class | Purpose |
+|-------|---------|
+| `ExperimentalImageStack` | Pre-stacks all (omega × detector) images into single contiguous tensor `(N, 1, H, W)` for batch `grid_sample`. Supports `binary=True` (0.0/1.0 matching existing pipeline) or `binary=False` (preserve intensities). Memory: ~5.6GB for 180×2×2048×2048 float32. |
+| `MultiScaleImageStack` | Max-pool-downsampled image pyramid for coarse-to-fine optimization (later revised from an earlier Gaussian-blur/`F.conv2d` design — `max_pool2d` is morphological dilation for binary images and avoids the im2col memory blowup of chunked convolution). Widens angular basin from ~0.3° to ~2°+ at factor=8. |
+| `DifferentiableCostFunction` | Replaces Stage D (sequential binary overlap counting) with differentiable bilinear sampling via `F.grid_sample`. Centroid point sampling (triangle centroid only, not full rasterization). |
+| `DifferentiableOverlapInfo` | Dataclass with `quality`/`cost` tensors carrying `grad_fn` for backpropagation. |
+
+**Architecture decisions:**
+
+1. **Separate class, not refactored VoxelCostFunction**: DifferentiableCostFunction reimplements the A-C stages rather than sharing code, to avoid breaking the validated C++-matching pipeline.
+
+2. **Centroid point sampling**: Each peak contributes one bilinear sample at `(v0+v1+v2)/3` instead of full triangle rasterization (~50 pixels). ~50x fewer samples, fully differentiable.
+
+3. **Discrete routing**: Omega-to-wedge mapping (Stage A) and eta filtering use `.detach().numpy()` — no gradients through discrete routing. This is correct because the set of observable peaks doesn't change for small orientation perturbations.
+
+4. **Multi-scale blur**: Broadens diffraction spots so gradient-based optimizers get non-zero signal even at ~2° offset (vs ~0.3° with unblurred images). Coarse-to-fine schedule: start blurry, progressively sharpen.
+
+**Convenience method**: `ExperimentalData.to_image_stack(binary=True)` creates an `ExperimentalImageStack` directly.
+
+**Tests (31 total, 29 passed, 2 skipped):**
+- Phase 1 (20 tests): ExperimentalImageStack construction, binary/intensity modes, round-trip, flat indexing, batch gather, memory, sparse support. Gaussian kernel shape/normalization. MultiScaleImageStack blur preservation, peak spreading, shape matching.
+- Phase 2 (11 tests): Gradient existence (`loss.backward()` → non-zero grads), finite-difference gradient check (autograd vs numerical Jacobian cosine similarity > 0.5), quality positive at ground truth (> 0.1), quality + cost = 1, correlation with hard cost function, wrong-orientation discrimination, all 3 ground truth voxels, invalid phase handling. Two blurred-scale tests skipped (require >16GB RAM).
+
+**Files:** `differentiable_cost.py` (new, ~560 lines), `experimental_data.py` (added `to_image_stack()`), `tests/test_differentiable_cost.py` (new, 31 tests).
+
+**Remaining work (Phases 3-4):**
+- Phase 3: `GradientOrientationOptimizer` — axis-angle parameterization + coarse-to-fine Adam schedule
+- Phase 4: Integration into `AdaptiveVoxelReconstructor` as optional gradient refinement after MC convergence
+
+### MultiScaleImageStack Memory Optimization (2026-03-30)
+
+Resolved ~9-11 GB memory usage during construction of multiple `MultiScaleImageStack` variants (needed for omega_window comparison benchmark). Three root causes and fixes:
+
+**Root cause 1: `torch.maximum()` in `_omega_blend` allocates intermediate temp tensor each shift**
+- Before: 3× tensor size overhead per shift (source, target, temp)
+- Fix: `torch.maximum(a, b, out=a)` eliminates temp → 2× overhead
+- `_prebuilt_downsampled` parameter
+
+**Root cause 2: N independent `MultiScaleImageStack.__init__` calls each ran `_downsample_stack`**
+- Each omega_window variant re-densified all 360 sparse frames independently
+- Fix: `build_shared_base()` classmethod densifies once, `_prebuilt_downsampled` parameter shares result
+
+**Root cause 3: `_downsample_stack` created new 16 MB dense tensor per frame**
+- 360 frames × 16 MB = 5.6 GB allocator pool accumulation
+- Fix: Pre-allocate `buf = torch.zeros(1, 1, H, W)`, reuse with `buf.zero_()`, wrapped in `torch.no_grad()` to prevent autograd graph accumulation
+
+**Result**: Setup memory for 3 omega_window variants reduced from ~9-11 GB to ~2 GB for ManyGrains.
+
+**New API** (added to `differentiable_cost.py`):
+```python
+# Build downsampled stacks once
+shared_ds = MultiScaleImageStack.build_shared_base(image_stack, [1, 4, 8])
+# Reuse across omega_window variants
+for ow in [0, 1, 2]:
+    ms = MultiScaleImageStack(image_stack, [1, 4, 8], omega_window=ow,
+                              _prebuilt_downsampled=shared_ds)
+```
+
+**New benchmarks**:
+- `benchmarks/bench_omega_window.py`: Compares quality vs misorientation for ω±0/1/2 at scale=2 (8× downsampled)
+- `benchmarks/mem_profile_stack.py`: Progressive n_omega profiling (10→180) with `psutil` RSS measurement at each stage
+
+### SparseImageStack (2026-03-30)
+
+New class `SparseImageStack` in `differentiable_cost.py` stores only (row, col) pixel coordinates instead of dense float32 tensors. Loaded from `.d` files (ASCII, despite the extension) via `from_image_directory()`.
+
+Memory comparison for ThreeVoxels 180 omegas × 2 detectors × 2048² images:
+- Dense (`ExperimentalImageStack`): ~5.6 GB
+- Sparse (`SparseImageStack`): ~12.5 KB (>400,000× smaller — binary diffraction images are extremely sparse)
+
+The `_downsample_stack()` densifies frames on demand during construction; the downsampled result is stored dense since pooling fills in sparsity.
+
+### Adam Gradient Optimization Benchmark (2026-03-30)
+
+Benchmark `benchmarks/bench_gradient_optimization.py` tests Adam gradient descent on SO(3) via Lie algebra parameterization for orientation recovery. Sweeps: scale × omega_window × perturbation_deg.
+
+**Parameterization**: `theta` (3-vector, axis-angle in radians) → `R = matrix_exp(skew(theta))` via `torch.matrix_exp`. Differentiable end-to-end through `DifferentiableCostFunction`.
+
+**Result: Adam fails at all tested perturbation distances (1°, 2°, 5°)**
+
+Root cause: `F.grid_sample` bilinear sampling of binary images gives **zero gradient in blob interiors** — only non-zero at the 1-pixel blob boundary. The gradient signal is structurally zero for the most important region (near ground truth orientation), making gradient descent unable to converge.
+
+- Scale=1 (4× downsampled): Gradient non-zero up to ~0.3°; zero beyond
+- Scale=2 (8× downsampled): Gradient up to ~0.5° with ω±1 blending; zero beyond
+- Scale=0 excluded: Full-res densification takes ~277s per run; also zero basin past ~0.3°
+
+**Output files**: `benchmarks/grad_opt_threevoxels.csv`, `benchmarks/grad_opt_manygrains.csv`, 6 PNG plots.
+
+### CMA-ES Orientation Optimization Benchmark (2026-03-31)
+
+Benchmark `benchmarks/bench_cmaes_optimization.py` tests CMA-ES (derivative-free Evolution Strategy) for orientation recovery, comparing hard cost vs diff cost (scale=2, ω±1).
+
+**Algorithm**: CMA-ES on SO(3) using Lie algebra 3-vector parameterization. Initial step size `sigma0 = perturbation_rad` (full perturbation magnitude, not /3 — needed so initial population can spread back toward ground truth). All flat-landscape stop conditions disabled (`tolfun=0`, `tolfunhist=0`); relies on `tolx` for genuine convergence detection.
+
+**ThreeVoxels results (3 voxels × 3 perturbations × 2 cost functions = 18 runs)**:
+
+| | hard cost | diff_s2_ow1 |
+|---|---|---|
+| 1° | 0/3 recovered | 0/3 recovered |
+| 2° | 0/3 recovered | 1/3 recovered (0.564°) |
+| 5° | 0/3 recovered | 0/3 recovered |
+
+**Hard cost**: 0/9 successful. Landscape completely flat outside ~0.5° basin — CMA-ES gets no signal, converges to random spurious orientations (40-165° misorientation).
+
+**Diff cost**: 1/9 successful. Partial basin (~1-3°) in orientation space allows occasional recovery. However, false local optima from crystal symmetry (Cu has 24-fold cubic symmetry) trap CMA-ES at wrong orientations with quality 0.1-0.3 (vs ~0.4-0.7 at ground truth).
+
+**Key finding**: Neither single-start Adam nor single-start CMA-ES can reliably recover orientations from perturbations ≥ 1°. The basin of attraction for both cost functions is too narrow relative to the search space. The original adaptive MC (random walk) approach is fundamentally more robust for this problem because it can make random moves without requiring gradient signal.
+
+**Recommended directions**:
+1. **Two-stage**: Use existing `AdaptiveMC` to get within ~0.5°, then apply gradient polishing (Adam or CMA-ES) — gradient IS reliable within the basin
+2. **Multi-start CMA-ES**: Restart from N random initial orientations with a large sigma, take the best result — requires O(N) × 500 evaluations but doesn't need MC
+3. **Distance field soft images**: Replace binary images with distance transform (distance to nearest bright pixel, stored float32) — gradient signal extends ~10-20px from blob, fixes zero-interior problem structurally
+
+**ManyGrains results (20 voxels × 3 perturbations × 2 cost functions = 120 runs, 4.9 min)**:
+
+| | hard cost | diff_s2_ow1 |
+|---|---|---|
+| 1° | 0/20 recovered | 1/20 recovered (vox 63: 0.063°) |
+| 2° | 0/20 recovered | 1/20 recovered (vox 63: 0.056°) |
+| 5° | 0/20 recovered | 0/20 recovered |
+
+**Overall CMA-ES success rate**: Hard 0/120, Diff 3/120 (2.5%). The one voxel that consistently works (idx=63, φ1=322.68°, Φ=6.36°, φ2=43.72°, q=0.84) has an unusually favorable diff-cost landscape.
+
+**Crystal symmetry false optima**: Diff cost frequently converges to orientations at 40-170° misorientation with quality 0.25-0.65 — these are genuine crystal symmetry equivalents (Cu has 24-fold cubic symmetry). Multi-start CMA-ES with symmetry-aware basin detection would be needed to handle this.
+
+**Recommended directions** (confirmed by both benchmarks):
+1. **Two-stage** (best near-term): Use existing `AdaptiveMC` to get within ~0.5°, then apply gradient polishing — gradient IS reliable within the basin
+2. **Multi-start CMA-ES** with symmetry folding: Restart from each of the 24 cubic symmetry equivalents, take the best result
+3. **Distance field soft images**: Replace binary images with distance transform — gradient extends ~10-20px from blobs, fixes zero-interior-gradient structurally
+
+---
+
+## Riemannian SO(3) Gradient Optimization Benchmark (2026-04-01)
+
+**Branch**: `feature/differentiable-cost`
+**Files**: `benchmarks/bench_riemannian_optimization.py` (NEW), `pyproject.toml` (added `riemannian` extra)
+
+**Motivation**: The existing `euclidean_adam` optimizer from `bench_gradient_optimization.py` has two fundamental defects when optimizing over SO(3):
+1. **Chart distortion**: Computing `d(cost)/d(theta)` (where `R = exp(skew(theta))`) mixes the Riemannian gradient with the Jacobian of `exp`, introducing distortion that grows as `R` drifts from `R_init`.
+2. **Moment staleness**: Adam's first/second moment estimates accumulate in a fixed chart anchored at `R_init`. After many steps the moments reflect gradients at very different manifold points — they are never parallel-transported to the current `R`.
+
+**Correct Riemannian approach**:
+- Project Euclidean gradient `G = ∂cost/∂R` to tangent space T_R SO(3): `Ω = (R^T G − G^T R) / 2`
+- Represent as 3-vector via `ω = [Ω₃₂, Ω₁₃, Ω₂₁]^T`
+- Accumulate Adam moments in these so(3) coordinates (parallel transport is the identity under the left-trivialized flat connection — no moment rotation needed between steps)
+- Retract via: `R_new = R · exp(-lr · skew(v_adam))` — stays exactly on SO(3)
+
+**Three optimizers benchmarked**:
+
+| Optimizer | Implementation | Description |
+|---|---|---|
+| `euclidean_adam` | Pure PyTorch | Baseline: Adam on θ ∈ ℝ³, R = matrix_exp(skew(θ)) |
+| `riemannian_adam_manual` | Pure PyTorch | Manual Riemannian Adam: project grad, so(3) moments, matrix_exp retraction |
+| `riemannian_adam_geoopt` | geoopt 0.5.1 | `geoopt.RiemannianAdam` on `Stiefel(3,3)` ≈ SO(3) |
+
+Note: geoopt 0.5.x does not expose `SpecialOrthogonal`; `Stiefel(n=p=3)` is the orthogonal group O(3); geodesic retraction from a rotation matrix preserves det = +1 throughout.
+
+**ThreeVoxels results (3 voxels × 3 perts × 2 scales × 3 ω-windows × 3 opts = 162 configs, n_steps=100, lr=0.01, 6.8 min)**:
+
+Success defined as final misorientation < 0.5°:
+
+| Optimizer | 1° pert | 2° pert | 5° pert |
+|---|---|---|---|
+| euclidean_adam | 7/18 | 2/18 | 1/18 |
+| riemannian_adam_manual | 8/18 | 6/18 | 0/18 |
+| riemannian_adam_geoopt | 8/18 | 2/18 | 3/18 |
+
+Final misorientation (mean°):
+
+| Optimizer | 1° pert | 2° pert | 5° pert |
+|---|---|---|---|
+| euclidean_adam | 1.80° | 3.25° | 5.09° |
+| riemannian_adam_manual | 1.16° | 2.47° | 4.77° |
+| riemannian_adam_geoopt | 1.81° | 2.19° | 5.79° |
+
+**ManyGrains results (20 voxels × 3 perts × 2 scales × 3 ω-windows × 3 opts = 1080 configs, n_steps=100, lr=0.01, 8.1 min)**:
+
+Success rate (< 0.5°):
+
+| Optimizer | 1° pert | 2° pert | 5° pert |
+|---|---|---|---|
+| euclidean_adam | 24/120 (20%) | 25/120 (21%) | 4/120 (3%) |
+| riemannian_adam_manual | 32/120 (27%) | 29/120 (24%) | 4/120 (3%) |
+| riemannian_adam_geoopt | 37/120 (31%) | 29/120 (24%) | 5/120 (4%) |
+
+Final misorientation (mean°):
+
+| Optimizer | 1° pert | 2° pert | 5° pert |
+|---|---|---|---|
+| euclidean_adam | 1.91° | 2.40° | 5.99° |
+| riemannian_adam_manual | 1.43° | 1.95° | 5.44° |
+| riemannian_adam_geoopt | 1.31° | 1.96° | 5.66° |
+
+**Key findings**:
+- Both Riemannian optimizers outperform Euclidean Adam at 1° perturbation: +37% (geoopt) and +33% (manual) more successful recoveries on ManyGrains.
+- At 2° perturbation the improvement is modest (+4%). At 5°, all methods fail equally — the basin of attraction problem dominates.
+- The manual implementation confirms the theory: projecting gradients to T_R SO(3) at each step is more accurate than computing `d(cost)/d(theta)` in a fixed chart. The improvement is real but not dramatic — the gradient landscape is still too flat outside ~0.5° for reliable single-start optimization.
+- `riemannian_adam_geoopt` and `riemannian_adam_manual` produce nearly identical results (mean 1.31° vs 1.43° at 1°), confirming the manual implementation is correct.
+
+**geoopt API note**: `geoopt.manifolds.SpecialOrthogonal` does not exist in v0.5.1. Used `geoopt.manifolds.Stiefel()` instead; starting from SO(3) and using geodesic retraction keeps the matrix in SO(3) (det = +1 maintained throughout).
+
+**Conclusions**: Riemannian structure helps at small perturbations but does not solve the flat-landscape / narrow-basin problem. The two-stage approach (AdaptiveMC → gradient polish) remains the recommended path.
+
+---
+
+## Riemannian SGD on SO(3) Benchmark (2026-04-01)
+
+**Branch**: `feature/differentiable-cost`
+**File**: `benchmarks/bench_sgd_optimization.py` (NEW)
+
+**Motivation**: Compare SGD-family optimizers against Riemannian Adam on SO(3) to understand whether simpler mechanics (no second moment) are competitive, and to test whether Langevin noise (SGLD) provides probabilistic escape from the flat cost landscape.
+
+**Five optimizers implemented** (all use geodesic retraction `R ← R·exp(−lr·Ω)`, same lr=0.01 as Adam benchmark):
+
+| Optimizer | Implementation | Key difference from Adam |
+|---|---|---|
+| `riemannian_sgd_plain` | geoopt.RiemannianSGD, momentum=0 | No moments, constant lr |
+| `riemannian_sgd_momentum` | geoopt.RiemannianSGD, β=0.9 | Heavy-ball momentum in so(3) |
+| `riemannian_sgd_nesterov` | geoopt.RiemannianSGD, nesterov=True | Look-ahead momentum |
+| `riemannian_sgd_cosine` | geoopt.RiemannianSGD + CosineAnnealingLR | lr_max=0.05 → lr_min=0.001 |
+| `riemannian_sgld` | Pure PyTorch, Langevin noise | Isotropic noise on T_R SO(3), T annealing to 0 |
+| `riemannian_adam_manual` | (baseline copy) | Adam, included for direct comparison |
+
+**Results (ManyGrains, 20 voxels, n_steps=100, lr=0.01)**:
+
+| Optimizer | 1° mean misori | 2° mean misori | 5° mean misori | 1° success (<0.5°) |
+|---|---|---|---|---|
+| riemannian_adam_manual | 1.43° | 1.95° | 5.44° | 32/120 (27%) |
+| riemannian_sgld | 12.06° | 11.52° | 12.42° | 0/120 |
+| riemannian_sgd_plain | 33.55° | 29.53° | 32.19° | 0/120 |
+| riemannian_sgd_momentum | 124.36° | 127.25° | 127.09° | 0/120 |
+| riemannian_sgd_nesterov | 124.15° | 121.65° | 127.89° | 0/120 |
+| riemannian_sgd_cosine | 131.05° | 126.42° | 124.39° | 0/120 |
+
+**Key finding: lr=0.01 is wildly incompatible with raw SGD on this problem.**
+
+Adam's adaptive second-moment scaling effectively normalises the learning rate per-coordinate: `lr_eff ≈ lr / √m̂₂`. When gradients are small (which they are in the flat landscape most of the time), Adam inflates the effective lr to compensate, keeping steps bounded. Raw SGD applies lr directly to the gradient magnitude — when the cost landscape occasionally produces a large gradient near a blob boundary, the step `lr·Ω` overshoots and sends R far from its starting point. The momentum variants amplify this: a single large gradient gets accumulated into `m`, carried forward, and compounds over many steps → divergence to 100°+ misorientation.
+
+**SGLD result**: Even with Langevin noise, lr=0.01 causes divergence (mean misorientation 12°). The noise helps slightly vs. plain SGD by providing random exploration, but the gradient component itself overshoots. A proper SGLD implementation would require a much smaller lr (≈10× smaller) to keep gradient steps bounded, with correspondingly larger noise scale to explore.
+
+**Conclusion**: For this cost function, the lr chosen for Adam (0.01) is completely inappropriate for SGD without adaptive scaling. A fair comparison would require lr-tuning per optimizer (e.g. lr≈0.001 for SGD). The key takeaway is that **Adam's adaptive scaling is not just a convenience — it is essential for this problem** because:
+1. Gradients are nearly zero almost everywhere (flat landscape), so the effective lr from Adam's `1/√m̂₂` normalization compensates correctly
+2. Near blob boundaries where gradients are large, Adam's `√m̂₂` denominator attenuates steps, preventing overshoot
+3. Raw SGD has no such self-regulation and diverges on this problem at standard learning rates
+
+**Future direction**: Tune lr for SGD variants (try 0.0001–0.001) and re-run to get a fair comparison. The cosine schedule variant is most promising as it starts with a larger lr for exploration and decays to a small lr for refinement.
+
+---
+
+## Riemannian SGD Fair Comparison (lr=0.001 for SGD, lr=0.01 for Adam) (2026-04-01)
+
+**Branch**: `feature/differentiable-cost`
+**New files**: `sgd_opt_{example}_sgdlr1e3.csv`, `sgd_opt_*_sgdlr1e3.png`
+**Code change**: Added `--sgd-lr` / `--adam-lr` argparse flags + `optimizer_lrs` dict threading through `sweep_voxel_multi` and `run_example` for per-optimizer lr override.
+
+Re-ran all 6 optimizers with SGD variants at lr=0.001 (10× smaller than Adam's lr=0.01).
+
+**ManyGrains results (20 voxels, n_steps=100, adam lr=0.01, sgd lr=0.001)**:
+
+| Optimizer | 1° mean | 2° mean | 5° mean | 1° success (<0.5°) |
+|---|---|---|---|---|
+| riemannian_adam_manual (lr=0.01) | 1.43° | 1.95° | 5.44° | 32/120 (27%) |
+| riemannian_sgld (lr=0.001) | 1.66° | 2.22° | 5.49° | 18/120 (15%) |
+| riemannian_sgd_plain (lr=0.001) | 2.45° | 2.53° | 4.96° | 1/120 (<1%) |
+| riemannian_sgd_momentum (lr=0.001) | 26.11° | 21.67° | 18.80° | 0/120 |
+| riemannian_sgd_nesterov (lr=0.001) | 24.36° | 19.64° | 16.18° | 0/120 |
+| riemannian_sgd_cosine (lr=0.001) | 26.11° | 21.67° | 18.80° | 0/120 |
+
+**Key findings**:
+
+1. **SGLD is now competitive**: At lr=0.001, SGLD (1.66° mean) approaches Adam (1.43° mean) and achieves 15% success rate. The Langevin noise provides some useful exploration that pure gradient descent misses. However, Adam still wins by a significant margin — its 27% success rate is nearly 2× SGLD's 15%.
+
+2. **Momentum/Nesterov/cosine still diverge at lr=0.001**: These optimizers still reach 20–26° mean misorientation. The momentum accumulation (β=0.9 means ~10 steps of gradient are summed) amplifies any large gradient encountered, and the effective accumulated step is still too large even at lr=0.001. A fair lr for momentum would be ~0.0001.
+
+3. **Plain SGD is stable but slow**: At lr=0.001, plain SGD reaches mean 2.45° (vs Adam 1.43°) with near-zero success rate. It moves too slowly to reach the basin in 100 steps — Adam's adaptive scaling effectively gives it ~10× larger effective lr in flat regions.
+
+4. **cosine SGD = plain SGD here**: The cosine schedule starts at lr=0.001 and decays to lr_min=0.001/50=~0.00002 — effectively too slow throughout. A fair cosine run would need lr_max ≈ 0.005-0.01 for SGD.
+
+**Overall conclusion**: Adam's adaptive second-moment normalization is doing critical work on this problem:
+- In the flat landscape (most of the time): `lr_eff = lr/√m̂₂` inflates the effective lr when gradients are consistently small, moving faster than plain SGD at the same nominal lr
+- Near blob boundaries: `√m̂₂` attenuates large gradient spikes, preventing divergence
+- No single fixed lr for SGD captures both behaviors simultaneously
+
+**Best single-start optimizer ranking**: riemannian_adam_geoopt ≈ riemannian_adam_manual > riemannian_sgld (lr=0.001) > riemannian_sgd_plain (lr=0.001) >> momentum variants
+
+---
+
+## Comprehensive HP Sweep — Gradient Methods vs. MC (2026-04-01)
+
+**Branch**: `feature/differentiable-cost`
+**Files added**:
+- `benchmarks/bench_hp_sweep.py` (NEW) — full HP sweep benchmark
+- `icenine/orientation_search.py` (MODIFIED) — `MCOptimizer.optimize()` gains optional `trajectory` parameter
+
+**Motivation**: Prior benchmarks fixed hyperparameters and showed large lr sensitivity. This sweep exhaustively studies all hyperparameters for each optimizer family and compares against `MCOptimizer` to establish a definitive head-to-head comparison. Also captures optimization trajectories (angular step sizes per optimizer step) to understand search dynamics.
+
+### Optimizers and HP grids
+
+| Optimizer | HP Grid | Total configs |
+|---|---|---|
+| `riemannian_adam_geoopt` | lr ∈ {1e-4,...,0.1} × n_steps ∈ {100,200,500} × beta1 ∈ {0.9,0.95} | 42 |
+| `riemannian_adam_manual` | Same as geoopt | 42 |
+| `riemannian_sgd_plain` | lr ∈ {1e-4,...,0.01} × n_steps ∈ {100,200,500} | 15 |
+| `riemannian_sgd_momentum` | lr ∈ {1e-5,...,1e-3} × momentum ∈ {0.5,0.9,0.99} (n_steps=200) | 15 |
+| `riemannian_sgld` | lr ∈ {1e-4,...,0.01} × T_init ∈ {0.001,0.01,0.1} × n_steps ∈ {100,200,500} | 45 |
+| `mc_optimizer` | max_mc_steps ∈ {100,500,1000,3500} × restarts ∈ {0,2,5} × step_frac ∈ {0.25,0.5,1.0} | 36 |
+
+Total: 195 HP configs per voxel × perturbation. All gradient runs use `scale=2, omega_window=1`.
+
+### Scale
+
+- ThreeVoxels: all 3 qualifying voxels × 3 perturbations × 195 HP configs = ~1,755 runs
+- ManyGrains: 100 voxels × 3 perturbations × 195 HP configs = ~58,500 runs (overnight)
+
+### Output CSV schema
+
+Two CSVs per example:
+- `hp_sweep_{example}.csv` — one row per run with all HP, timing, memory, starting orientation, ground truth, final misorientation
+- `hp_sweep_trajectory_{example}.csv` — subsampled step records (linked via `run_id` foreign key)
+
+Gradient trajectory: every `TRAJ_SUBSAMPLE=10` steps, records angular step size and misorientation from ground truth.
+MC trajectory: every accepted global improvement and every restart event — records angular step size and current step size (shows adaptive zoom behavior).
+
+### Key modifications to `orientation_search.py`
+
+Added `trajectory: Optional[List[Dict]] = None` parameter to `MCOptimizer.optimize()`:
+- On each global improvement: appends `{step, event_type="mc_accept", angular_step_deg, cur_step_rad}` (cur_step already halved after improvement)
+- On each restart: appends `{step, event_type="mc_restart", angular_step_deg, cur_step_rad=angular_step}`
+- Non-breaking: default `trajectory=None` preserves original behavior
+- Added `_quat_misorientation_deg(q1, q2)` helper for quaternion geodesic distance
+
+### Benchmark usage
+
+```bash
+cd icenine_py
+
+# Smoke test
+uv run python benchmarks/bench_hp_sweep.py --smoke-test --example threevoxels
+
+# Full ThreeVoxels (gradient optimizers, ~30 min)
+uv run python benchmarks/bench_hp_sweep.py --example threevoxels --optimizer gradient
+
+# MC only (fewer configs but MC is slow per run)
+uv run python benchmarks/bench_hp_sweep.py --example threevoxels --optimizer mc
+
+# Full ManyGrains overnight run
+nohup uv run python benchmarks/bench_hp_sweep.py --example manygrains > hp_sweep_manygrains.log 2>&1 &
+
+# Check progress
+wc -l benchmarks/hp_sweep_manygrains.csv
+```
+
+### Results — Completed 2026-04-03
+
+Both benchmarks completed successfully after fixing a `requires_grad` crash (see below).
+
+**ManyGrains (58,500 runs, ~13.4 CPU-hours total):**
+
+| Optimizer | Best HP | 1° success | 2° success | 5° success | Time/run |
+|-----------|---------|-----------|-----------|-----------|----------|
+| riemannian_adam_geoopt | lr=1e-4, n=100, β₁=0.9 | 96% | 41% | 0% | 0.44s |
+| riemannian_adam_manual | lr=1e-4, n=200, β₁=0.9 | 94% | 49% | 0% | 0.58s |
+| riemannian_sgd_plain | lr=1e-4, n=100 | 88% | 52% | 0% | 0.30s |
+| riemannian_sgd_momentum | lr=1e-5, n=200, m=0.5 | 94% | 51% | 0% | 0.59s |
+| riemannian_sgld | lr=1e-4, n=100, T=0.01 | 92% | 50% | 0% | 0.29s |
+| mc_optimizer | n=3500, restarts=2, step=0.5 | 92% | 40% | 6% | 3.19s |
+
+**ThreeVoxels (1,755 runs):** Same qualitative pattern; all methods succeed at 1° (3/3), most succeed at 2° (2/3), none at 5°.
+
+**Key findings:**
+1. Riemannian Adam (lr=1e-4, n=100) achieves 96% success at 1° vs. 92% for MC — and is 7× faster (0.44s vs. 3.19s)
+2. Hard LR cliff: lr ≥ 0.05 → 0% success for all Adam variants. Optimal range: lr ∈ [1e-4, 1e-3]
+3. More steps don't help at optimal lr: n=100 → 96%, n=200 → 94%, n=500 → 88%
+4. Only MC achieves non-zero 5° success (6%) — gradient methods are trapped in flat landscape beyond ~2°
+5. SGD variants surprisingly competitive at 2° perturbation (52%) vs Adam (41–49%)
+
+**Bug fixed during run:**
+In all 5 gradient `run_one_*` functions, replaced `if step > 0:` guard on `info.cost.backward()` with `if step > 0 and info.cost.requires_grad:`. When lr is very large (e.g. 0.1), R diverges → cost evaluates to a constant with `requires_grad=False` → `.backward()` throws `RuntimeError`. The guard skips the update step gracefully and continues recording.
+
+**Output files:**
+- `benchmarks/hp_sweep_manygrains.csv` — 58,500 runs (15 MB)
+- `benchmarks/hp_sweep_threevoxels.csv` — 1,755 runs
+- `benchmarks/hp_sweep_trajectory_threevoxels.csv` — step-by-step trajectories (3 MB)
+- `benchmarks/hp_sweep_trajectory_manygrains.csv` — trajectories (105 MB, excluded from git via .gitignore)
+- `benchmarks/hp_sweep_*.png` — LR sensitivity, n_steps sensitivity, optimizer comparison, trajectory plots
+
+## Hybrid Riemannian Adam + MC-Restart Optimizer (2026-04-03)
+
+**Branch**: `feature/differentiable-cost`
+**Motivation**: HP sweep showed Riemannian Adam (lr=1e-4, n=100) achieves 96% success at 1° perturbation in 0.44s vs. 92% for MC in 3.19s. Replace the `FindOptimal` phase of `AdaptiveVoxelReconstructor` with a gradient-based optimizer that still falls back to random restarts when stuck.
+
+### Architecture
+
+**`RiemannianAdamOptimizer`** (new class in `orientation_search.py`):
+- Uses `DifferentiableCostFunction` for gradient signal (geoopt Stiefel manifold parameter)
+- Uses `VoxelCostFunction` for convergence decisions (hard binary overlap)
+- MC-style restarts: random perturbation of best quaternion when stuck (same as `MCOptimizer`)
+- SVD re-orthogonalization after each Adam loop (guards Stiefel float drift)
+- Same `requires_grad` guard on `.backward()` as bench_hp_sweep.py bug fix
+
+**Eval counts per restart** (n_steps=100, max_restarts=2):
+- Hybrid: ~4 hard evals + 303 differentiable evals
+- MC equivalent: ~3500 hard evals
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `icenine/orientation_search.py` | Added `_GEOOPT_AVAILABLE` guard, `_require_geoopt()`, `_make_stiefel_param()` helpers; added `use_hybrid_optimizer`, `adam_n_steps`, `adam_lr`, `adam_scale` to `SearchParameters`; added `RiemannianAdamOptimizer` class after `MCOptimizer` |
+| `icenine/reconstructor.py` | Added `diff_cost_fn: Optional[object] = None` to `ReconstructionSetup`; added `RiemannianAdamOptimizer` to imports; added `build_diff_cost_fn()` module-level helper; updated `AdaptiveVoxelReconstructor.reconstruct_voxel()` FindOptimal block with hybrid/MC dispatch |
+| `tests/test_orientation_search.py` | Added 4 tests: `test_requires_geoopt_error`, `test_returns_search_candidate`, `test_zero_restarts_single_hard_eval_after_adam`, `test_search_params_hybrid_defaults` |
+| `benchmarks/bench_hybrid_optimizer.py` | New benchmark script: head-to-head Hybrid Adam vs MC, 5 perturbations × 20 voxels, with time breakdown (t_adam_sec + t_hard_eval_sec), 3 output plots |
+
+### Enabling hybrid optimizer in reconstruction
+
+```python
+from icenine.reconstructor import setup_reconstruction, build_diff_cost_fn
+
+setup = setup_reconstruction(config)
+setup.diff_cost_fn = build_diff_cost_fn(setup)
+setup.search_params.use_hybrid_optimizer = True
+setup.search_params.adam_n_steps = 100
+setup.search_params.adam_lr = 1e-4
+
+reconstructor = AdaptiveVoxelReconstructor(setup)
+```
+
+### Benchmark usage
+
+```bash
+cd icenine_py
+uv sync --extra riemannian
+
+# Smoke test (3 voxels, 2 perturbations)
+uv run python benchmarks/bench_hybrid_optimizer.py --smoke-test --example threevoxels
+
+# Full ThreeVoxels (20 voxels, 5 perturbations)
+uv run python benchmarks/bench_hybrid_optimizer.py --example threevoxels
+```
+
+### Outputs
+
+- `benchmarks/bench_hybrid_{example}.csv` — one row per (voxel, perturbation, optimizer)
+- `benchmarks/bench_hybrid_success_rate_{example}.png` — success rate vs perturbation
+- `benchmarks/bench_hybrid_wall_time_{example}.png` — wall time with stacked Adam/hard-eval breakdown
+- `benchmarks/bench_hybrid_scatter_{example}.png` — per-run MC vs hybrid misorientation scatter
