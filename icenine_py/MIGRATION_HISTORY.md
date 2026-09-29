@@ -1055,19 +1055,21 @@ formulated properly first; this phase did that.
   with apex at the voxel's current lab position) + parallax (the voxel moves with
   the stage when ω* shifts). The ring accumulated over a scan is not a single
   conic. Closed-form Jacobian matches simulator finite differences to 1.5×10⁻⁴
-  (median) for all 790 peaks of voxel 0 at r_⊥ = 12–500 µm.
+  (median) for all of voxel 0's recorded peaks (364 at r_⊥ = 12 µm) at r_⊥ = 12–500 µm.
 - **Resolution** (independent-quantisation model, idealised):
   σ_z ≈ 1/√(12P(1/Δω_f² + r_⊥²/(2a²))), σ_⊥ ≈ (a/d)/(κ√(6P)). About the
   rotation axis: frame-limited near the axis, parallax-limited beyond
   r_⊥ ≈ √2·a/Δω_f (≈120 µm for 1.48 µm pixels and 1° frames). Example2 voxel 0:
-  σ_z ≈ 0.010°, σ_⊥ ≈ 0.0008° (real HEDM is ~0.1°). Anisotropy ≈ 12 near the
+  σ_z ≈ 0.016°, σ_⊥ ≈ 0.0012° for the 364 recorded peaks (real HEDM is ~0.1°). Anisotropy ≈ 12 near the
   axis, ≈ 3–4 at 0.5 mm.
 
 ### Gotchas discovered
 
-- **Peak count**: Example2's config has `MaxQ 16`, giving 790 peaks for voxel 0
-  (not "tens"). The printed "Max Q calculated: 24.79" is the geometric limit
-  before the config cap. Reconstruction typically uses Q_max = 8.
+- **Peak count**: Example2's config has `MaxQ 16`. 790 (reflection, branch) pairs
+  hit voxel 0's detector *plane*, but only 364 land on the 2048×2048 pixel grid
+  and are ever recorded (corrected 2026-09-29; the first version of this section
+  said 790). The printed "Max Q calculated: 24.79" is the geometric limit before
+  the config cap. Reconstruction typically uses Q_max = 8.
 - **Structure list index**: Example2's voxels have `phase = 1`;
   `structure_list[0]` is empty.
 - **v0 evaluation was invalid**: the HP-sweep baseline is indexed by starting
@@ -1077,7 +1079,8 @@ formulated properly first; this phase did that.
   windows drop the frame index, and pixels see that rotation only through
   parallax.
 - **Only one detector used**: the prototype's ROI definition assigns each peak
-  to the first detector it hits; the experiment (and the C++ model) use both.
+  to the first detector it hits (all 364 of voxel 0's peaks are on detector 0);
+  the experiment (and the C++ model) use both.
 - **Simulator shortcuts**: noise-free intensities vary smoothly with δ and leak
   information real, thresholded data don't carry.
 - **Sample translation** is zero and the base sample rotation is the identity
@@ -1133,3 +1136,122 @@ real data.
 - D4: a real dataset with known orientations to measure frame spread vs
   1/|sin η| and estimate α.
 - D5: use the reconstruction Q_max (8 Å⁻¹) for the toy (recommended).
+
+## Toy Orientation NN — Stage 0: Fix the Evaluation (2026-09-29)
+
+**Branch**: `feature/nn-orientation-stage0`
+**Goal**: replace the invalid v0 evaluation with one that can tell whether a network
+learned anything: offset + covariance outputs, per-axis errors by perturbation
+magnitude, and predict-nominal and exact-Bayes reference rows. Re-run v0 under it.
+
+### What was added
+
+| File | Content |
+|------|---------|
+| `icenine/orientation_eval.py` | `BatchedObserver`: float64, batched re-implementation of `_simulate_peaks`' per-peak maths. Returns for B candidate offsets: which ROI peaks are recorded, their frame, and their spot vertices. Matches the simulator's presence and frame index exactly and centroids to 5e-4 px, ~1 ms/candidate. `ExactBayes`: posterior of the offset given the thresholded data, by importance sampling restricted to the set reproducing the observed frames and lit-pixel sets (`lit_pixel_set` reproduces the rasteriser's truncate, clip, round and fill exactly). `error_summary`: RMS about the stage axis (z) and perpendicular (x, y), median misorientation, success below 0.5° (the `bench_hp_sweep.py` criterion) and 0.1°. Rotation-vector helpers and priors. |
+| `icenine/orientation_nn.py` | `cholesky_from_raw`, `gaussian_nll_loss` (with optional β-NLL), `spot_overlaps_grid`. `OrientationDataset` now returns offsets in degrees; windows are stored thresholded (uint8). |
+| `icenine/toy_orientation_model.py` | `ToyOffsetNet`: same trunk as v0, head outputs offset (3) + Cholesky factor (6). |
+| `scripts/generate_toy_orientation_dataset.py` | Train set from a ball prior (radius 2.5°); test set at fixed magnitudes 0.25/0.5/1/2° in random directions; thresholded windows. |
+| `scripts/exact_bayes_baseline.py` | Exact posterior for every test case (`--frames-only` for the frames-only floor). |
+| `scripts/train_toy_orientation_nn.py` | `--head offset` (NLL) or `--head quat` (v0), best-validation checkpoint, per-magnitude table vs predict-nominal and exact Bayes, saved predictions. |
+| `tests/test_orientation_eval.py` | 22 tests: rotation conventions, observer vs simulator, exact ẑ shift of every ω*, the pixel-grid rule, `lit_pixel_set` vs the real rasteriser on 400 random triangles straddling the grid edge, NLL vs `MultivariateNormal`, Bayes posterior tightness, per-axis metrics. |
+| `benchmarks/toy_orientation_stage0/` | Bayes posteriors, predictions and result tables behind the numbers below. |
+
+### Correction found during Stage 0: most "ROI peaks" were never recorded
+
+`define_roi_set`, the renderer and the first version of the observer counted a peak
+whenever its ray hit the detector *plane*. The simulator's rasteriser clips spots
+to the 2048×2048 pixel grid, so a spot outside it produces no data. For voxel 0,
+**426 of the 790 ROI peaks (54%) are entirely off the grid** (spot rows reach 3,094)
+and only **364** are recorded. Consequences of the first version, all corrected:
+
+- v0's windows for those 426 peaks contained spots a real detector would never
+  record, so its inputs were partly fictitious.
+- The exact-Bayes floors used their frames and exact vertices as data and were
+  too tight by 2–3×.
+- Every "790 peaks" number in the theory docs (resolution checks, the 5,100 vs
+  2,352 count in the ω-width note; the correct total over the three voxels is 1,083)
+  used the wrong set.
+
+The fix is one rule shared by the renderer and the observer (`spot_overlaps_grid`:
+the bounding box of the rasteriser-truncated vertices meets the grid) plus the
+rasteriser's own clip in the pixel-set comparison. It was caught because a claim I
+wrote ("no spots touch the detector edge") did not survive a direct check. After
+the fix the exact-Bayes sampler is calibrated to within sampling error on all three
+axes (mean squared error of the posterior mean over mean posterior variance
+0.99, 1.02, 1.02; it was 0.94, 0.98, 0.78 before).
+
+### Results (voxel 0, 364 recorded peaks, 1,350 training samples, 30 epochs, one seed, 30 test cases per magnitude)
+
+RMS error in degrees, z = about the stage axis, ⊥ = perpendicular; success = misorientation < 0.5°.
+
+| \|δ\| | predict-nominal z / ⊥ (success) | v0 quaternion head z / ⊥ (success) | offset head z / ⊥ (success) | exact Bayes z / ⊥ |
+|---|---|---|---|---|
+| 0.25° | 0.149 / 0.142 (100%) | 0.386 / 0.129 (87%) | 0.518 / 0.107 (60%) | 1.4e-3 / 6e-5 |
+| 0.50° | 0.308 / 0.279 (53%) | 0.454 / 0.123 (77%) | 0.576 / 0.100 (50%) | 2.0e-3 / 7e-5 |
+| 1.00° | 0.636 / 0.546 (0%) | 0.410 / 0.145 (73%) | 0.501 / 0.111 (63%) | 1.9e-3 / 6e-5 |
+| 2.00° | 1.094 / 1.184 (0%) | 0.562 / 0.221 (30%) | 0.668 / 0.266 (30%) | 1.7e-3 / 8e-5 |
+
+- **Neither network beats the trivial baseline about z until |δ| ≥ 1°** (RMS z
+  error is worse than predicting nominal at 0.25° and 0.5°), and at 0.25° both have
+  a lower success rate than predicting nominal (100%). Perpendicular to the axis
+  both are better than nominal at every magnitude (1.1–1.3× at 0.25°, 2–5× at
+  0.5–2°). Both are far above the noise-free floor: about 2–5×10² times about z and
+  1.5–3×10³ times perpendicular.
+- **Head comparison is not conclusive**: the quaternion head is ahead in this run,
+  but with one seed and n = 30 per bin the difference is within noise. The offset
+  head's covariance is roughly calibrated (mean squared Mahalanobis distance
+  2.0–4.1 against 3.0; predicted σ 0.19–0.50°).
+- **Overfitting**: about 191M parameters (364×32×32×512 in the first layer) on 1,350 samples. The offset head's
+  validation NLL was best at epoch 10 and noisy afterwards while training NLL kept
+  falling; the best-validation checkpoint is what is reported.
+- Not comparable to the HP-sweep success rates (Riemannian Adam 96% at 1°, MC 92%):
+  different voxels and data, and the network is trained for this one voxel and
+  nominal orientation.
+
+### Exact noise-free floors (details in `docs/nn_inverse_problem_formulation.md` §3.6.7)
+
+Median posterior σ (degrees), frames + lit pixels: ⊥ 5.5e-5, z 1.2e-3; frames only:
+⊥ 3e-3, z 2.1e-3. These are 22× (⊥) and 13× (z) below the independent-quantisation
+estimates of §3.6.5 (√P = 19), close to the 1/P scaling of the set-membership
+picture, and independent of the offset size over 0.25–2°. The frames-only z cell
+width √12·σ_z = 7.2e-3° is within 1.3× of the Vernier prediction 2Δω_f/(P+1).
+
+### Findings and gotchas
+
+- **The 32×32 windows are too small for the prior.** On average 34% of the 364
+  windows are empty in the training set, and the empty fraction correlates 0.98
+  with the perpendicular offset (0.36 per degree) but not with the z offset. Spots
+  drift ~16 px/deg along their ring against a 16 px half-width. Most of what v0
+  learns perpendicular to the axis is "which spots have left their window".
+- **v0's information about z comes from the scan limits, not from frames.** Peaks
+  near the +90° end of the ω range drop out in a way that tracks the z offset
+  (correlation −0.83, about 1.2 lost peaks per degree; only 3 peaks lie within 3°
+  of the −90° end); interior peaks are lost only through the perpendicular offset
+  (correlation with z 0.01). That gives well under 1° resolution from ~11 peaks and
+  would not exist for a 360° scan.
+- **Noise-free floors are not a usable target.** 1.2e-3° (4 arcseconds) is far
+  below anything a trained network, or a real experiment, will approach. They are a
+  check on the physics and the sampler; meaningful comparisons are predict-nominal
+  now and the Gauss–Newton baseline and the HP-sweep optimizers next.
+- **`torch.linalg.norm` on length-3 vectors was ~10× slower than an explicit sum of
+  squares** for large batches; the observer uses the latter (3.7× overall).
+- Running the scripts changes the working directory (`setup_example` chdirs to the
+  example folder), so every path argument must be resolved before the call.
+- The old v0 dataset/checkpoint files (2.6 GB, gitignored) were deleted: the
+  dataset format changed.
+
+### Approximations in the exact Bayes baseline
+
+Only the ROI peaks (recorded at the nominal orientation) count as data; peaks that
+would newly appear at the true offset are ignored (slightly wider posterior).
+Overlaps between different peaks' lit pixels are ignored. A spot that overlaps the
+grid's bounding box but clips to nothing is treated as recorded with an empty pixel
+set (very rare).
+
+### Plan status
+
+Stage 0 is done apart from β-NLL training (implemented and unit-tested, not run).
+Stage 1 (forward model with frames and both detectors, windows sized from the
+spot-motion Jacobian, Q_max) is next. The window-size finding above, and the
+open decisions D1–D5 in the previous section, apply.

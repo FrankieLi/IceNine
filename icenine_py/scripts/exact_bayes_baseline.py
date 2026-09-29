@@ -36,7 +36,9 @@ def main():
     parser.add_argument("--seed", type=int, default=7)
     args = parser.parse_args()
 
-    test_path = Path(args.test).resolve()  # build_problem() changes directory
+    # build_problem() changes directory, so resolve every path first
+    test_path = Path(args.test).resolve()
+    out_arg = Path(args.out).resolve() if args.out else None
     data = torch.load(test_path)
     offsets = data["offsets_deg"].double().numpy()
     if args.limit:
@@ -64,7 +66,7 @@ def main():
             print(f"  {i + 1}/{len(offsets)}  ({time.time() - t0:.0f}s)  last: ess {r['ess']:.0f}, "
                   f"sqrt(tr cov) {np.sqrt(np.trace(r['cov'])):.2e} deg")
 
-    out = Path(args.out).resolve() if args.out else Path(str(test_path.with_suffix("")) + ("_bayes_frames.npz" if args.frames_only else "_bayes.npz"))
+    out = out_arg if out_arg else Path(str(test_path.with_suffix("")) + ("_bayes_frames.npz" if args.frames_only else "_bayes.npz"))
     np.savez(out, mean=np.array(means), cov=np.array(covs), ess=np.array(ess), n_present=np.array(n_present),
              offsets_deg=offsets, use_pixels=not args.frames_only)
     print(f"Saved {out}")

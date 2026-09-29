@@ -62,6 +62,18 @@ def _restore_and_rotate(sample: Sample, base_rotation: torch.Tensor, omega: floa
     sample.rotate_z(omega)
 
 
+def spot_overlaps_grid(pixels: List[Tuple[float, float]], num_cols: int, num_rows: int) -> bool:
+    """True if a spot with the given (col, row) vertices overlaps the pixel grid.
+
+    Uses the rasteriser's own vertex truncation (negative -> -1, else int()), so a
+    spot is recorded exactly when the bounding box of its truncated vertices meets
+    [0, num_cols-1] x [0, num_rows-1].
+    """
+    cols = [-1 if c < 0 else int(c) for c, _ in pixels]
+    rows = [-1 if r < 0 else int(r) for _, r in pixels]
+    return max(cols) >= 0 and min(cols) <= num_cols - 1 and max(rows) >= 0 and min(rows) <= num_rows - 1
+
+
 def _project_peak_on_detector(
     simulator: Simulation,
     sample: Sample,
@@ -79,7 +91,9 @@ def _project_peak_on_detector(
 
     Returns (row0, col0, intensity, [(col,row) x3]) -- row0/col0 are the
     centroid of the 3 projected vertices -- or None if the peak is filtered
-    out or any vertex misses the detector.
+    out, any vertex misses the detector plane, or the spot does not overlap the
+    detector's pixel grid (the rasteriser would clip it away, so it is never
+    recorded).
     """
     reflected_dir = get_reflected_ray_dir(sample, scattering_dir, simulator.beam_direction)
     reflected_dir_n = reflected_dir / torch.norm(reflected_dir)
@@ -94,6 +108,9 @@ def _project_peak_on_detector(
         if not hit.item():
             return None
         pixels.append((float(col.item()), float(row.item())))
+
+    if not spot_overlaps_grid(pixels, detector.num_cols, detector.num_rows):
+        return None
 
     row0 = sum(p[1] for p in pixels) / 3.0
     col0 = sum(p[0] for p in pixels) / 3.0

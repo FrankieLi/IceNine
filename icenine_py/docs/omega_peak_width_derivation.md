@@ -233,7 +233,9 @@ width is accurate to $6\times10^{-4}$ even for the closest peaks (Section 7.1).
 
 **Setup.** All three voxels of Example2.ThreeVoxels (Cu, 64.351 keV, beam along
 $+x$, rotation about $z$), all observable reflections and both branches:
-5,100 (reflection, branch) pairs, of which 2,352 are in the voxels' ROI sets.
+5,100 (reflection, branch) pairs, of which 1,083 (364, 369 and 350 for the three voxels) are
+recorded, i.e. their spots land on the detector's 2048$\times$2048 pixel grid (the
+voxels' ROI sets); the rest hit the detector plane outside it.
 Bragg angles span $2.65^\circ$–$14.16^\circ$ and $|\sin\eta|$ spans 0.033–1.
 Everything was computed in float64. The sample's base rotation
 (`sample_to_lab_matrix`) is the identity, so the solver frame and the

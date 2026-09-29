@@ -245,7 +245,14 @@ class BatchedObserver:
         col = (j + self.d_hw[None, :, None]) / self.d_pw[None, :, None]
         row = (k + self.d_hh[None, :, None]) / self.d_ph[None, :, None]
         verts = torch.stack([col, row], dim=-1)
-        present = ok & hit.all(dim=-1)
+        # A spot is only recorded if it overlaps the pixel grid (same rule as
+        # orientation_nn.spot_overlaps_grid: bounding box of truncated vertices).
+        trunc = torch.where(verts < 0, torch.full_like(verts, -1.0), torch.floor(verts))
+        cols, rows = trunc[..., 0], trunc[..., 1]
+        ncols = self.d_ncols[None, :].to(cols.dtype)
+        nrows = self.d_nrows[None, :].to(cols.dtype)
+        on_grid = (cols.amax(-1) >= 0) & (cols.amin(-1) <= ncols - 1) & (rows.amax(-1) >= 0) & (rows.amin(-1) <= nrows - 1)
+        present = ok & hit.all(dim=-1) & on_grid
         return Observation(present=present, frame=frame, omega=omega, verts=verts)
 
     @staticmethod
@@ -254,6 +261,18 @@ class BatchedObserver:
         way the C++ rasteriser does (negative -> -1, else int())."""
         v = obs.verts.reshape(*obs.verts.shape[:2], 6)
         return torch.where(v < 0, torch.full_like(v, -1.0), torch.floor(v)).long()
+
+
+def lit_pixel_set(key: Tuple[int, ...], num_cols: int, num_rows: int) -> frozenset:
+    """Pixels the simulator's rasteriser lights for a spot with truncated vertex
+    key (col0,row0,col1,row1,col2,row2): the same truncate -> Sutherland-Hodgman
+    clip -> round -> scanline fill pipeline as ImageData.add_triangle_scanline."""
+    polygon = [(float(key[0]), float(key[1])), (float(key[2]), float(key[3])), (float(key[4]), float(key[5]))]
+    clipped = ImageData._sutherland_hodgman_clip(polygon, 0.0, float(num_cols - 1), 0.0, float(num_rows - 1))
+    if len(clipped) < 3:
+        return frozenset()
+    pixels = ImageData._scanline_fill([(round(x), round(y)) for x, y in clipped])
+    return frozenset((c, r) for c, r in pixels if 0 <= c < num_cols and 0 <= r < num_rows)
 
 
 # ---------------------------------------------------------------------------
@@ -283,23 +302,16 @@ class ExactBayes:
         self.use_pixels = use_pixels
         self.chunk = chunk
         self._equal_cache: Dict[Tuple[int, ...], bool] = {}
-        self._fill_cache: Dict[Tuple[int, ...], Optional[frozenset]] = {}
+        self._fill_cache: Dict[Tuple[int, ...], frozenset] = {}
 
     # -- pixel sets --------------------------------------------------------
 
-    def _lit_pixels(self, m: int, key: Tuple[int, ...]) -> Optional[frozenset]:
-        """Set of lit pixels for vertex key `key` of peak m, or None if the spot
-        touches the detector edge (then only exact key equality is used)."""
+    def _lit_pixels(self, m: int, key: Tuple[int, ...]) -> frozenset:
         ck = (int(self.obs.d_ncols[m]), int(self.obs.d_nrows[m])) + key
-        if ck in self._fill_cache:
-            return self._fill_cache[ck]
-        ncols, nrows = ck[0], ck[1]
-        xs, ys = key[0::2], key[1::2]
-        if min(xs) < 0 or min(ys) < 0 or max(xs) > ncols - 1 or max(ys) > nrows - 1:
-            out = None
-        else:
-            out = frozenset(ImageData._scanline_fill(list(zip(xs, ys))))
-        self._fill_cache[ck] = out
+        out = self._fill_cache.get(ck)
+        if out is None:
+            out = lit_pixel_set(key, ck[0], ck[1])
+            self._fill_cache[ck] = out
         return out
 
     def _same_pixels(self, m: int, key: Tuple[int, ...], truth_key: Tuple[int, ...]) -> bool:
@@ -308,8 +320,7 @@ class ExactBayes:
         ck = (m,) + key + truth_key
         hit = self._equal_cache.get(ck)
         if hit is None:
-            a, b = self._lit_pixels(m, key), self._lit_pixels(m, truth_key)
-            hit = a is not None and b is not None and a == b
+            hit = self._lit_pixels(m, key) == self._lit_pixels(m, truth_key)
             self._equal_cache[ck] = hit
         return hit
 
@@ -440,8 +451,9 @@ class ExactBayes:
 def error_summary(delta_hat_deg: np.ndarray, delta_true_deg: np.ndarray) -> Dict[str, float]:
     """Per-axis error summary. z = rotation about the stage axis, perp = x and y.
 
-    Reports RMS of each, the RMS total, and the median true misorientation angle
-    between the estimated and true orientations.
+    Reports RMS of each, the RMS total, the median misorientation angle between the
+    estimated and true orientations, and the fraction of cases whose misorientation
+    is below 0.5 deg (the bench_hp_sweep.py success criterion) and below 0.1 deg.
     """
     err = np.asarray(delta_hat_deg, float) - np.asarray(delta_true_deg, float)
     ang = np.linalg.norm(
@@ -457,4 +469,6 @@ def error_summary(delta_hat_deg: np.ndarray, delta_true_deg: np.ndarray) -> Dict
         rms_perp=float(np.sqrt(np.mean((err[:, 0] ** 2 + err[:, 1] ** 2) / 2.0))),
         rms_total=float(np.sqrt(np.mean((err**2).sum(axis=1)))),
         median_angle=float(np.median(ang)),
+        success_0p5=float(np.mean(ang < 0.5)),
+        success_0p1=float(np.mean(ang < 0.1)),
     )

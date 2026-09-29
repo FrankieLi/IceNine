@@ -81,6 +81,7 @@ def main():
     parser.add_argument("--val-frac", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--results-json", default=None)
+    parser.add_argument("--save-predictions", default=None, help="npz with test predictions (and Cholesky factors) for re-evaluation")
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -112,6 +113,7 @@ def main():
         return gaussian_nll_loss(mean, chol, y, beta=args.beta_nll)
 
     t0 = time.time()
+    best_val, best_epoch, best_state = float("inf"), -1, None
     for epoch in range(args.epochs):
         model.train()
         total = 0.0
@@ -125,8 +127,13 @@ def main():
         model.eval()
         with torch.no_grad():
             val = np.mean([loss_fn(windows[val_idx[b]].float(), targets[val_idx[b]]).item() for b in batches(n_val, args.batch_size)])
+        if val < best_val:
+            best_val, best_epoch = float(val), epoch + 1
+            best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
         if epoch % max(1, args.epochs // 10) == 0 or epoch == args.epochs - 1:
-            print(f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):9.4f}  val {val:9.4f}  ({time.time() - t0:.0f}s)")
+            print(f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):11.6f}  val {val:11.6f}  ({time.time() - t0:.0f}s)")
+    model.load_state_dict(best_state)
+    print(f"restored best-validation weights from epoch {best_epoch} (val {best_val:.6f})")
 
     # ---- evaluation ------------------------------------------------------
     pred, chol = predict(model, args.head, te["windows"], args.batch_size)
@@ -145,8 +152,11 @@ def main():
             chol = chol[:n_b] if chol is not None else None
         bayes = bz
 
+    if args.save_predictions:
+        np.savez(args.save_predictions, pred_deg=pred, truth_deg=truth, magnitudes_deg=mags,
+                 chol=chol if chol is not None else np.zeros(0), best_epoch=best_epoch)
     rows = {}
-    print(f"\n{'|delta|':>8} {'method':<14} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11}   (degrees)")
+    print(f"\n{'|delta|':>8} {'method':<14} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)")
     for mag in sorted(set(mags.tolist())):
         m = mags == mag
         entries = [
@@ -156,7 +166,7 @@ def main():
         if bayes is not None:
             entries.append(("exact Bayes", error_summary(bayes["mean"][m], truth[m])))
         for name, s in entries:
-            print(f"{mag:8.2f} {name:<14} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f}")
+            print(f"{mag:8.2f} {name:<14} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}")
         extra = {}
         if bayes is not None:
             floor = float(np.mean(np.sqrt(np.trace(bayes["cov"][m], axis1=1, axis2=2))))

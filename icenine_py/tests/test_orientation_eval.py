@@ -21,6 +21,7 @@ from icenine.orientation_eval import (
     BatchedObserver,
     ExactBayes,
     error_summary,
+    lit_pixel_set,
     offsets_to_matrices,
     offsets_to_quaternions,
     quaternions_to_offsets_deg,
@@ -34,7 +35,9 @@ from icenine.orientation_nn import (
     cholesky_from_raw,
     define_roi_set,
     gaussian_nll_loss,
+    spot_overlaps_grid,
 )
+from icenine.image_data import ImageData
 from icenine.peak_filters import XDMEtaAcceptFn
 from icenine.reconstructor import _get_voxel_vertices
 from icenine.sample import Sample
@@ -89,6 +92,13 @@ class TestErrorSummary:
         s = error_summary(d, d)
         assert s["rms_z"] == 0 and s["rms_perp"] == 0 and s["median_angle"] == pytest.approx(0, abs=1e-9)
 
+    def test_success_rates(self):
+        truth = np.zeros((4, 3))
+        hat = np.array([[0.05, 0, 0], [0.3, 0, 0], [0.7, 0, 0], [0, 0, 0.02]])
+        s = error_summary(hat, truth)
+        assert s["success_0p5"] == pytest.approx(0.75)  # 0.05, 0.3, 0.02 pass; 0.7 fails
+        assert s["success_0p1"] == pytest.approx(0.5)  # 0.05 and 0.02 pass
+
     def test_axis_separation(self):
         truth = np.zeros((4, 3))
         z_err = truth + np.array([0.0, 0.0, 0.3])
@@ -97,6 +107,41 @@ class TestErrorSummary:
         xy_err = truth + np.array([0.3, 0.3, 0.0])
         s = error_summary(xy_err, truth)
         assert s["rms_z"] == 0 and s["rms_perp"] == pytest.approx(0.3)
+
+
+class TestPixelGrid:
+    def test_spot_overlaps_grid_rule(self):
+        assert spot_overlaps_grid([(10.2, 10.7), (11.0, 10.1), (10.5, 11.9)], 2048, 2048)
+        assert not spot_overlaps_grid([(-5.2, 10.0), (-3.0, 11.0), (-4.0, 12.0)], 2048, 2048)  # left of the grid
+        assert not spot_overlaps_grid([(10.0, 2100.0), (11.0, 2101.0), (10.5, 2102.0)], 2048, 2048)  # below it
+        assert spot_overlaps_grid([(-2.0, 10.0), (3.0, 11.0), (1.0, 12.0)], 2048, 2048)  # straddles the edge
+
+    def test_lit_pixel_set_matches_the_rasteriser(self):
+        """lit_pixel_set must reproduce ImageData.add_triangle_scanline exactly,
+        including spots clipped by, or entirely outside, the grid."""
+        rng = np.random.default_rng(0)
+        ncols, nrows = 40, 30
+        n_partial = n_empty = 0
+        for _ in range(400):
+            centre = rng.uniform([-6, -6], [ncols + 6, nrows + 6])
+            v = centre + rng.uniform(-3.5, 3.5, size=(3, 2))
+            img = ImageData(nrows, ncols)
+            img.add_triangle_scanline(torch.tensor(v[0]), torch.tensor(v[1]), torch.tensor(v[2]), 1.0)
+            drawn = {(int(c), int(r)) for r, c in zip(*np.nonzero(img.to_numpy()))}
+            key = tuple(int(-1 if x < 0 else int(x)) for xy in v for x in xy)
+            assert lit_pixel_set(key, ncols, nrows) == drawn
+            n_empty += not drawn
+            n_partial += bool(drawn) and any(x < 0 or x > ncols - 1 for x in v[:, 0])
+        assert n_empty > 20 and n_partial > 10  # the test does exercise clipping
+
+    def test_roi_peaks_are_recorded_peaks(self, problem):
+        """Every ROI peak must overlap the pixel grid at the nominal orientation."""
+        obs = _observer(problem)
+        keys = obs.vertex_keys(obs.observe(torch.zeros(1, 3, dtype=torch.float64)))[0]
+        cols, rows = keys[:, 0::2], keys[:, 1::2]
+        ncols, nrows = obs.d_ncols[:, None], obs.d_nrows[:, None]
+        on_grid = (cols.amax(-1) >= 0) & (cols.amin(-1) <= ncols[:, 0] - 1) & (rows.amax(-1) >= 0) & (rows.amin(-1) <= nrows[:, 0] - 1)
+        assert bool(on_grid.all())
 
 
 class TestOffsetHead:
