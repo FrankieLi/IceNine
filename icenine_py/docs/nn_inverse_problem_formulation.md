@@ -38,7 +38,7 @@ This note makes precise what that map should be.
 Physics results used here are derived and numerically verified in
 `omega_peak_width_derivation.md` (the "derivation note"). The frame-boundary
 geometry in Section 3.1 and the spot-motion and resolution results in Section 3.6
-have been checked numerically (Sections 3.1.6, 3.6.3 and 3.6.5). Section
+have been checked numerically (Sections 3.1.6, 3.6.3, 3.6.5 and 3.6.7). Section
 numbers are written into the headings, so render without pandoc's `-N`, e.g.
 `pandoc nn_inverse_problem_formulation.md -o nn_inverse_problem_formulation.pdf`. The pixel level-set
 structure in Section 3.2 has not.
@@ -98,8 +98,9 @@ $\mathbf{e}_1, \mathbf{e}_2, \mathbf{e}_3$ the standard basis of $\mathbb{R}^3$.
 - **Branch and peak.** As the sample rotates, a reflection satisfies the Bragg
   condition at up to two angles (two **branches**). A (reflection, branch) pair
   is **Bragg-observable** if that angle lies in the scanned range. A **peak** $p$
-  is a Bragg-observable pair whose spot also lands on a detector; the prototype
-  code calls the set of peaks of one voxel its **ROI set**. There are $P$ peaks.
+  is a Bragg-observable pair whose spot passes the $\eta$ filter and lands on a
+  detector's pixel grid (a spot that hits the detector plane outside the grid is
+  clipped away by the rasteriser and never recorded); the prototype code calls the set of peaks of one voxel its **ROI set**. There are $P$ peaks.
 - **Bragg crossing.** $\omega^*_p(\delta)$ is the rotation angle at which peak
   $p$ satisfies the Bragg condition.
 - **Angles.** $\chi_p$ is the angle between $\mathbf{g}_s$ and the rotation axis,
@@ -753,10 +754,10 @@ Reading it:
 - The small row entries of the parallax term are the obliquity correction the
   head-on approximation missed.
 
-**Check.** For all 790 ROI peaks of voxel 0, at $r_\perp$ = 12, 100, 250 and
-$500\,\mu$m, the closed form was compared with central finite differences
+**Check.** For all of voxel 0's ROI peaks (364, 356, 336 and 308 peaks at
+$r_\perp$ = 12, 100, 250 and $500\,\mu$m), the closed form was compared with central finite differences
 (step $10^{-3}$ rad) of the simulator's projected spot centroid. Relative
-Frobenius error: median $1.5\times10^{-4}$, 90th percentile $3\times10^{-4}$,
+Frobenius error: median $1.3$–$1.5\times10^{-4}$, 90th percentile $3\times10^{-4}$,
 maximum 1.1% (near-axis peaks, where the finite-difference step itself sees
 curvature). $|\Gamma_p\,\hat{\mathbf{g}}_{s,p}|$ is zero to machine precision.
 
@@ -821,53 +822,55 @@ $$
 
 ### 3.6.5 Numerical check
 
-Running example, voxel 0: 790 ROI peaks, all assigned to the first detector
-($d = 3.36$ mm, $a = 1.48\,\mu$m, so $a/d = 4.4\times10^{-4}$ rad), 788 with
-usable finite differences. Spot positions were taken from the simulator's
+Running example, voxel 0: 364 ROI peaks (peaks whose spots land on the pixel
+grid; a further 426 hit the detector plane outside it and are never recorded),
+all on the first detector ($d = 3.36$ mm, $a = 1.48\,\mu$m, so
+$a/d = 4.4\times10^{-4}$ rad), 342 with usable finite differences. Spot positions were taken from the simulator's
 projected centroid and differentiated numerically.
 
 - **Ring motion:** voxel 0 is only about $12\,\mu$m from the axis, so parallax is
   negligible and the spot-position Jacobian is rank one, as predicted: its
-  second singular value is 0.6% of the first (median; at most 3%).
+  second singular value is 0.7% of the first (median; at most 3%).
 - **Magnitude of $\nabla\xi_p$:** matches the formula with median relative error
-  0.75% (90th percentile 2.8%). A typical spot moves about 1,010 px/rad
-  (17.6 px/deg) for rotations perpendicular to the axis, and 5.9 px/rad for
+  0.6% (90th percentile 2.3%). A typical spot moves about 940 px/rad
+  (16.4 px/deg) for rotations perpendicular to the axis, and 5.9 px/rad for
   rotation about the axis (parallax only, consistent with the 8 px/rad scale).
-- **Resolution** ($\kappa = 0.43$):
+- **Resolution** ($\kappa = 0.40$):
 
 | | $\sigma_x$, $\sigma_y$ | $\sigma_z$ |
 |---|---|---|
-| $J^{-1}$, frames only | $0.0098^\circ$, $0.0062^\circ$ | $0.010^\circ$ |
-| $J^{-1}$, pixels only | $0.00079^\circ$ | $0.10^\circ$ (parallax only) |
-| $J^{-1}$, frames + pixels | $0.00079^\circ$ | $0.0102^\circ$ |
-| Closed forms (3.6.4) | $0.00086^\circ$ | $0.0103^\circ$ |
+| $J^{-1}$, frames only | $0.013^\circ$, $0.0070^\circ$ | $0.016^\circ$ |
+| $J^{-1}$, pixels only | $0.0013^\circ$ | $0.17^\circ$ (parallax only) |
+| $J^{-1}$, frames + pixels | $0.0012^\circ$ | $0.0155^\circ$ |
+| Closed forms (3.6.4) | $0.0014^\circ$ | $0.0156^\circ$ |
 
-The predicted anisotropy is 12; $J^{-1}$ gives 13.
+The predicted anisotropy is 11; $J^{-1}$ gives 13.
 
 **Off-axis voxels.** The same voxel was moved to larger $r_\perp$ (keeping its
 azimuth and orientation) and the analysis repeated on a random subset of 250 of
 its peaks, so the $\sigma$ values here are larger than in the table above, which
-used all 788. The prediction for the $\hat{\mathbf{z}}$ sensitivity is
+used all 342. The prediction for the $\hat{\mathbf{z}}$ sensitivity is
 $r_\perp|\cos\phi_v|/a$, whose median over uniformly spread $\phi_v$ is
-$0.71\,r_\perp/a$. Here $r_\perp$ labels the distance of the voxel's reference
+$0.71\,r_\perp/a$ (the recorded peaks are not uniform in azimuth, so the measured
+ratio is a little higher). Here $r_\perp$ labels the distance of the voxel's reference
 vertex (its position in the `.mic` file) from the axis; the triangle's centroid,
 which is what enters the formulas, differs by less than $1\,\mu$m (about
 $11.3\,\mu$m for the $12\,\mu$m row).
 
 | $r_\perp$ | Jacobian 2nd/1st singular value (median / max) | $\hat{\mathbf{z}}$ sensitivity, measured / $(r_\perp/a)$ | $\sigma_z$ from $J^{-1}$ | $\sigma_z$ closed form |
 |---|---|---|---|---|
-| $12\,\mu$m | 0.006 / 0.03 | 0.73 | $0.018^\circ$ | $0.018^\circ$ |
-| $50\,\mu$m | 0.026 / 0.14 | 0.72 | $0.017^\circ$ | $0.017^\circ$ |
-| $100\,\mu$m | 0.052 / 0.25 | 0.73 | $0.014^\circ$ | $0.014^\circ$ |
-| $250\,\mu$m | 0.13 / 0.46 | 0.73 | $0.0075^\circ$ | $0.0079^\circ$ |
-| $500\,\mu$m | 0.23 / 0.82 | 0.76 | $0.0039^\circ$ | $0.0043^\circ$ |
+| $12\,\mu$m | 0.007 / 0.035 | 0.73 | $0.018^\circ$ | $0.018^\circ$ |
+| $50\,\mu$m | 0.029 / 0.15 | 0.78 | $0.017^\circ$ | $0.017^\circ$ |
+| $100\,\mu$m | 0.054 / 0.28 | 0.79 | $0.014^\circ$ | $0.014^\circ$ |
+| $250\,\mu$m | 0.14 / 0.60 | 0.80 | $0.0079^\circ$ | $0.0079^\circ$ |
+| $500\,\mu$m | 0.26 / 0.89 | 0.87 | $0.0041^\circ$ | $0.0043^\circ$ |
 
-Over the same range the perpendicular errors stayed between $0.0008^\circ$ and
-$0.0015^\circ$, so the anisotropy fell from about 12 to about 4. The closed
+Over the same range the perpendicular errors stayed between $0.0007^\circ$ and
+$0.0016^\circ$, so the anisotropy fell from about 12 to about 4. The closed
 forms predict about 2.8 at $500\,\mu$m; the difference is that parallax also
 adds perpendicular information, which the $\sigma_\perp$ closed form neglects,
 so the measured $\sigma_\perp$ ($\approx 0.001^\circ$) is below its closed form
-($0.0015^\circ$ for $P = 250$). The Jacobian
+($0.0016^\circ$ for $P = 250$). The Jacobian
 becomes clearly rank two as the voxel moves off the axis, confirming that spots
 no longer move along a single line.
 
@@ -889,7 +892,7 @@ no longer move along a single line.
 
 These are idealised floors, well below the roughly $0.1^\circ$ typical of real
 high-energy X-ray diffraction microscopy (HEDM) reconstructions. The check uses a noise-free, perfectly calibrated
-simulator and all 790 of voxel 0's peaks (reflections up to the config's
+simulator and all 364 of voxel 0's recorded peaks (reflections up to the config's
 $Q_{\max} = 16$ Å$^{-1}$, whereas reconstruction typically uses
 $Q_{\max} = 8$ Å$^{-1}$). Real resolution
 is degraded by detector point-spread, spot footprint, calibration errors in $d$,
@@ -900,7 +903,87 @@ the second detector, which this estimate ignores.
 The independent-error model gives the $1/\sqrt{P}$ scaling. The noise-free
 set-membership picture (Section 3.1.5, point 3) scales as $1/P$ instead, but
 only if frame edges are known to better than $\Delta\omega_f/P$, which is not
-realistic.
+realistic. Section 3.6.7 measures the noise-free value.
+
+### 3.6.7 Measured noise-free floor (exact Bayes, Stage 0)
+
+The estimates above assume independent quantisation errors. The noise-free
+posterior of Section 4.2 can instead be computed exactly (up to sampling error)
+for the running example, which tests them.
+
+**Recorded peaks.** A peak only produces data if its spot lands on the detector's
+2048$\times$2048 pixel grid; the rasteriser clips anything else away. For voxel 0,
+790 (reflection, branch) pairs pass the Bragg and $\eta$ conditions and hit the
+detector *plane*, but only $P = 364$ of them overlap the pixel grid (spot rows
+reach 3,094 on a 2,048-row detector). Everything below uses the 364 recorded
+peaks. (An earlier version of these notes counted all 790 and overstated the
+information; see the correction in `MIGRATION_HISTORY.md`.)
+
+**Method.** For a test offset $\delta_{\text{true}}$, the data are, for each
+recorded peak, whether it is observed, its frame, and (for the "frames + pixels"
+case) the exact set of pixels the simulator's rasteriser lights for its spot,
+including clipping at the grid edge. The consistent set $C(D)$ is every offset
+that reproduces these exactly. Its posterior mean and covariance were estimated
+by importance sampling: a Gaussian proposal around $\delta_{\text{true}}$
+(always a member) is shrunk until members are found, re-centred and inflated on
+the members, and the estimate uses self-normalised weights $1/q(\delta)$.
+Membership is tested with a batched float64 re-implementation of the simulator's
+ray tracing that agreed with it on the presence and frame index of every peak
+checked and on spot centroids to $5\times10^{-4}$ px (`icenine/orientation_eval.py`; tests in
+`tests/test_orientation_eval.py`, including a check of the lit-pixel sets against
+the rasteriser for random triangles straddling the grid edge). The prior is
+uniform in a ball of radius $2.5^\circ$, far larger than the cell, so it is
+effectively flat over $C(D)$. 120 test offsets (30 at each of
+$|\delta| = 0.25, 0.5, 1, 2^\circ$, random directions); median effective sample
+size about 4,300 (frames + pixels) and 3,100 (frames only), minimum 436 and 302.
+
+**Results** (median over test cases, degrees; $x, y$ perpendicular to the stage
+axis, $z$ about it):
+
+| Data | $\sigma_x$, $\sigma_y$ | $\sigma_z$ | $\sqrt{\operatorname{tr}\mathrm{Cov}}$ |
+|---|---|---|---|
+| Frames only | $3.3\times10^{-3}$, $2.8\times10^{-3}$ | $2.1\times10^{-3}$ | $5.2\times10^{-3}$ |
+| Frames + lit pixels | $5.4\times10^{-5}$, $5.6\times10^{-5}$ | $1.2\times10^{-3}$ | $1.2\times10^{-3}$ |
+| Independent-quantisation estimate, frames + pixels (Section 3.6.5) | $1.2\times10^{-3}$ | $1.55\times10^{-2}$ | |
+
+- **The floor is far below the independent-error estimate**: by 22$\times$
+  perpendicular and 13$\times$ about $z$, bracketing $\sqrt{P} = 19$ and much
+  closer to the $1/P$ scaling of the noise-free picture than to $1/\sqrt{P}$.
+- **Frames-only $z$ check of the Vernier result** (Section 3.1.5, point 3): a
+  uniform cell of standard deviation $\sigma_z$ has full width
+  $\sqrt{12}\,\sigma_z = 7.2\times10^{-3}\,{}^\circ$, against
+  $2\Delta\omega_f/(P+1) = 5.5\times10^{-3}\,{}^\circ$ predicted.
+- **Pixels dominate perpendicular to the axis**: adding them tightens $\sigma_\perp$
+  by about 55$\times$ but $\sigma_z$ by only 1.7$\times$, as Section 3.6.2 predicts
+  for a voxel this close to the axis.
+- **The floor does not depend on the size of the offset** over $0.25$–$2^\circ$,
+  as expected in the locally linear regime.
+- **Calibration of the sampler.** The mean squared error of the posterior mean
+  over the 120 cases divided by the mean posterior variance is 0.99 ($x$), 1.02
+  ($y$) and 1.02 ($z$) for frames + pixels (0.92 in total for frames only); it
+  should be 1 for a correct posterior (standard error about 0.13 for $n = 120$).
+
+**Caveats.** These are floors for noise-free, exactly thresholded synthetic data
+and are far below any real experiment (Section 3.6.6). Peaks that are absent at
+the nominal orientation but would appear at $\delta_{\text{true}}$ are not part
+of the ROI data and are ignored, which makes the posterior slightly wider than
+the full-data one; overlaps between different peaks' lit pixels are ignored,
+which is negligible at about one spot per few million pixels. A floor of
+$1.2\times10^{-3}$ degrees (4 arcseconds) is not a target a network trained on
+this data can be expected to approach, and it says nothing about resolution with
+detector noise, calibration error or overlapping peaks.
+
+Three further approximations, none of which changes the conclusions here. (i) The
+recorded-peak rule is the bounding box of the truncated spot vertices meeting the
+pixel grid, which is necessary but not sufficient: a spot that only grazes a grid
+corner can clip to no pixels. This affects 0.07% of the present spots over 300
+prior draws (none at the nominal orientation). (ii) A peak is required to hit only
+its home detector, whereas the serial simulator drops a peak on every detector if
+any vertex misses any detector; for Example2 no peak misses the second detector,
+but this matters once both detectors are used. (iii) The simulator works in
+float32 and the observer in float64, so a vertex within about $10^{-4}$ px of an
+integer can truncate differently; the posterior is self-consistent, since the
+truth is observed with the same code.
 
 # 4. The Bayesian inverse
 
