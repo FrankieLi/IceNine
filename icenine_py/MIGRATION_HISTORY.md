@@ -1290,6 +1290,27 @@ detector).
 - **D4, real data for α**: open; not needed until α matters.
 - **D5, Q_max**: use 8 Å⁻¹, the reconstruction value.
 
+### D2 measured: what the coarse search hands to FindOptimal
+
+`scripts/checks/measure_coarse_residual.py` runs `AdaptiveVoxelReconstructor` with
+`ReconstructQ8.config` (Q_max = 8; 5° grid radius shrinking over 4 levels) on the three
+Example2 voxels against `ScatteringData_Python`, 5 seeds each, and records the
+orientations passed to FindOptimal (`benchmarks/toy_orientation_stage1/coarse_residual.npz`).
+
+- **Voxel 2**: the coarse search fails on every seed (a known failure shared with C++);
+  the best hand-off is ~60° off.
+- **Voxels 0 and 1**: a good candidate reaches FindOptimal in 9 of 10 runs, with error
+  0.07–1.09° (median about 0.35°), almost entirely rotation about the stage axis
+  (0.2–0.7°; about 0.04° perpendicular; one case 0.98° about x). This is the anisotropy
+  predicted in `docs/nn_inverse_problem_formulation.md` §3.6.
+- The top-ranked candidate is often a wrong ~54° solution (4 of 10 runs) even when a
+  good one is passed on, and FindOptimal then sometimes keeps the wrong one (voxel 1,
+  seeds 0 and 1: final errors 54° and 42° from good hand-offs). A network should be
+  evaluated per candidate, as FindOptimal is.
+- **Decision**: training prior = uniform ball of radius 1°, which covers the good
+  hand-offs; test magnitudes 0.1, 0.25, 0.5, 1°. With this prior, 32×32 windows and
+  ±4 frames keep every spot that is present (max drift 16 px, 3 frames).
+
 ### Planned work, in order
 
 1. Peak definition: record each peak on every detector whose pixel grid its spot

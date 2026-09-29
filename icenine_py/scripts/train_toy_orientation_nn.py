@@ -42,13 +42,16 @@ def batches(n, batch_size, rng=None):
         yield idx[a : a + batch_size]
 
 
-def make_prep(meta):
+def make_prep(meta, no_frame: bool = False):
     """Windows -> network input. Observer-rendered (Stage 1) windows are frame-coded
-    uint8 and are decoded to two channels (lit, frame offset); others are cast."""
+    uint8 and are decoded to two channels (lit, frame offset), or to the lit channel
+    only with no_frame (ablation: hides the frame index); others are cast."""
     from icenine.orientation_eval import decode_windows
 
     if meta.get("renderer", "simulator") == "observer":
         k = int(meta["frame_half_width"])
+        if no_frame:
+            return (lambda x: decode_windows(x, k)[..., :1, :, :]), 1
         return (lambda x: decode_windows(x, k)), 2
     return (lambda x: x.float()), 1
 
@@ -97,6 +100,9 @@ def main():
     )
     parser.add_argument("--val-frac", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--no-frame", action="store_true", help="ablation: hide the frame channel (observer data)"
+    )
     parser.add_argument("--results-json", default=None)
     parser.add_argument(
         "--save-predictions",
@@ -113,7 +119,7 @@ def main():
     n_peaks, window = tr["n_peaks"], tr["window_size"]
     R_nom = tr["R_nom"].numpy()
     windows, offsets = tr["windows"], tr["offsets_deg"].float()
-    prep, in_channels = make_prep(tr)
+    prep, in_channels = make_prep(tr, no_frame=args.no_frame)
     n = len(windows)
     perm = rng.permutation(n)
     n_val = max(1, int(n * args.val_frac))
