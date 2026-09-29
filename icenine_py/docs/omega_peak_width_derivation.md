@@ -9,9 +9,10 @@ fontsize: 11pt
 # Status
 
 This is a first-order derivation written for the IceNine toy orientation-NN work.
-It has **not** yet been checked numerically against the simulator, nor
-cross-checked against a crystallography reference. Section 7 lists the checks
-that should be done before relying on it.
+Its relations have been checked numerically against the simulator's Bragg
+solver (`get_scattering_omegas_torch`) on Example2.ThreeVoxels and agree to
+floating-point precision (Section 7.1). It has **not** yet been checked against
+real data or cross-checked against a crystallography reference (Section 7.2).
 
 # 1. Problem
 
@@ -187,9 +188,25 @@ moves by
 $$
 \delta\omega^* = -\frac{\delta f}{f'(\omega^*)} ,
 $$
-which has the same $1/|\sin\eta|$ denominator. Near-axis peaks are both the
-most spread out in $\omega$ and the most sensitive to orientation, so they
-carry the most $\omega$ information.
+which has the same $1/|\sin\eta|$ denominator.
+
+**Worst-case sensitivity.** Writing
+$\delta f = \beta\,\mathbf{n}\cdot(\mathbf{g}\times\mathbf{k})$, the rotation
+axis that moves $\omega^*$ the most is $\mathbf{n}^* \propto \mathbf{g}\times\mathbf{k}$
+(evaluated at $\omega^*$), giving $\max_{\mathbf{n}} |\delta f| = \beta\,|\mathbf{g}\times\mathbf{k}|$.
+The Bragg condition $\mathbf{k}\cdot\mathbf{g} = -\tfrac{1}{2}|\mathbf{g}|^2$
+fixes the angle between $\mathbf{k}$ and $\mathbf{g}$ at $90^\circ + \theta$,
+so $|\mathbf{g}\times\mathbf{k}| = |\mathbf{g}||\mathbf{k}|\cos\theta$.
+Dividing by $|f'(\omega^*)| = |\mathbf{k}||\mathbf{g}|\cos\theta\,|\sin\eta|$:
+$$
+\boxed{\;\max_{\mathbf{n}} \left|\frac{\delta\omega^*}{\beta}\right| = \frac{1}{|\sin\eta|}\;}
+$$
+radians of $\omega$ per radian of orientation error. For Example2 this ranges
+from 1 to about 30, so a $0.1^\circ$ orientation error can move a near-axis
+peak by up to about $3^\circ$ (three $1^\circ$ frames).
+
+Near-axis peaks are therefore both the most spread out in $\omega$ and the most
+sensitive to orientation, so they carry the most $\omega$ information.
 
 ## 6.4 Where the first-order result breaks down
 
@@ -203,15 +220,68 @@ $$
 This is an order-of-magnitude estimate. The first-order formula should be
 reliable when $|\sin\eta| \gg \sqrt{\alpha\tan\theta}$.
 
-# 7. Checks still to do
+In Example2 no observable peak comes close to this regime: the smallest
+$|\sin\eta|$ is 0.033 ($\eta \approx 1.9^\circ$), because reflections with
+$\chi < \theta$ never diffract. At $\Delta E/E = 10^{-3}$ the first-order
+width is accurate to $6\times10^{-4}$ even for the closest peaks (Section 7.1).
 
-1. **Simulator check.** For peaks in an ROI set, apply small rotations, recompute
-   $\omega^*$ with `get_scattering_omegas_torch`, and confirm that
-   $|\delta\omega^*|$ scales as $1/|\sin\eta|$ across peaks (Section 6.3).
-2. **Real-data check.** For peaks with known orientation, plot the number of
+# 7. Verification
+
+## 7.1 Simulator check (done)
+
+**Setup.** All three voxels of Example2.ThreeVoxels (Cu, 64.351 keV, beam along
+$+x$, rotation about $z$), all observable reflections and both branches:
+5,100 (reflection, branch) pairs, of which 2,352 are in the voxels' ROI sets.
+Bragg angles span $2.65^\circ$–$14.16^\circ$ and $|\sin\eta|$ spans 0.033–1.
+Everything was computed in float64. The sample's base rotation
+(`sample_to_lab_matrix`) is the identity, so the solver frame and the
+simulator's lab frame coincide.
+
+**Method.**
+
+- *Width (Section 5).* An energy change $E \to E(1 \pm \epsilon)$ shifts the
+  Bragg angle by $\alpha = \tan\theta\,\epsilon$, so the resulting shift in
+  $\omega^*$ (central difference from the solver) should equal
+  $\alpha/|\sin\eta|$.
+- *Sensitivity (Section 6.3).* Rotate the orientation by a small angle
+  $\beta = 10^{-7}$ rad, re-solve, and compare with $-\delta f/f'$ (random
+  axis) and with $1/|\sin\eta|$ (worst-case axis $\mathbf{g}\times\mathbf{k}$).
+- $\eta$ is computed from the diffracted ray $\mathbf{k}+\mathbf{g}$ as
+  `atan2(|y|, |z|)`, the same expression as `XDMEtaAcceptFn`.
+
+**Results (relative error, over all 5,100 pairs).**
+
+| Check | Median | Max |
+|---|---|---|
+| $f(\omega^*) = 0$ at the solver's $\omega^*$ (normalized by $\lvert\mathbf{k}\rvert\lvert\mathbf{g}\rvert$) | $9\times10^{-17}$ | $1.5\times10^{-15}$ |
+| Section 4: $\lvert f'(\omega^*)\rvert = \lvert\mathbf{k}\rvert\lvert\mathbf{g}\rvert\sqrt{\sin^2\chi-\sin^2\theta}$ | $1\times10^{-16}$ | $6\times10^{-14}$ |
+| Section 5.3: $\lvert\sin\eta\rvert = \sqrt{\sin^2\chi-\sin^2\theta}/\cos\theta$ | $1\times10^{-16}$ | $6\times10^{-14}$ |
+| Section 5.3: $\Delta\omega = \alpha/\lvert\sin\eta\rvert$, $\Delta E/E = 10^{-6}$ | $3\times10^{-10}$ | $1\times10^{-8}$ |
+| Section 5.3: $\Delta\omega = \alpha/\lvert\sin\eta\rvert$, $\Delta E/E = 10^{-3}$ | $1\times10^{-6}$ | $6\times10^{-4}$ |
+| Section 6.3: random axis, measured vs $-\delta f/f'$ | $4\times10^{-8}$ | $3\times10^{-5}$ |
+| Section 6.3: worst-case axis, measured vs $1/\lvert\sin\eta\rvert$ | $7\times10^{-10}$ | $7\times10^{-9}$ |
+
+The largest errors at $\Delta E/E = 10^{-3}$ come from the 8 peaks with
+$|\sin\eta| < 10\sqrt{\alpha\tan\theta}$, consistent with the second-order
+breakdown in Section 6.4.
+
+**What this does and does not show.** It confirms that the formulas are a
+correct first-order description of the Bragg geometry the simulator
+implements. It does not show that the formulas describe the real experiment:
+that depends on the beam-perpendicular-to-axis geometry holding in practice
+and on the true value and sources of $\alpha$.
+
+## 7.2 Still to do
+
+1. **Real-data check.** For peaks with known orientation, plot the number of
    frames each peak spans against $1/|\sin\eta|$. A linear trend confirms the
-   model, and its slope estimates $\alpha$.
-3. **Literature check.** Compare with the rotation-method Lorentz factor in a
+   model, and its slope estimates $\alpha$. Note that a peak narrower than one
+   frame still spans two frames when it straddles a frame boundary, with
+   probability roughly equal to its width divided by the frame width.
+2. **Literature check.** Compare with the rotation-method Lorentz factor in a
    standard crystallography text.
-4. **Config check.** Confirm the units of `BeamEnergyWidth` and whether any
-   code path uses it.
+3. **Config check.** Confirm the units of `BeamEnergyWidth` and whether any
+   code path uses it. For scale: for the most spread-out Example2 peak
+   ($|\sin\eta| \approx 0.033$) to span a full $1^\circ$ frame requires
+   $\alpha \gtrsim 0.033^\circ$; from energy bandwidth alone at
+   $\theta \approx 5^\circ$ that is $\Delta E/E \approx 0.7\%$.
