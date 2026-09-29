@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """
-Generate a windowed local-orientation-refinement dataset for the toy NN.
+Generate the windowed local-orientation-refinement datasets for the toy NN.
 
 Picks one voxel from Example2.ThreeVoxels' ground-truth .mic, defines its ROI
-peak set at the ground-truth orientation, then renders windowed detector
-crops for many small random perturbations around that orientation. Caches the
-result to a .pt file consumed by OrientationDataset / train_toy_orientation_nn.py.
+peak set at the ground-truth orientation, then renders thresholded windows
+around the ROI peaks for many small orientation offsets.
+
+  train: offsets drawn from the prior (uniform in a ball of radius --prior-radius)
+  test:  --test-per-bin offsets at each fixed magnitude in --test-magnitudes,
+         random directions (the bench_hp_sweep-style protocol)
+
+Windows are stored as uint8 lit / not-lit values (thresholded), so the network
+cannot read orientation information from exact simulated intensities.
 
 Usage:
   cd icenine_py
   uv run python scripts/generate_toy_orientation_dataset.py --smoke-test
-  uv run python scripts/generate_toy_orientation_dataset.py --n-samples 20000
+  uv run python scripts/generate_toy_orientation_dataset.py --n-train 1500 --test-per-bin 30
 """
 
 import argparse
@@ -22,6 +28,7 @@ import numpy as np
 import torch
 
 project_root = Path(__file__).parent.parent.parent
+DEFAULT_EXAMPLE = project_root / "Examples" / "Example2.ThreeVoxels"
 
 
 def setup_example(example_dir: Path, basename: str = "3Grains.sim"):
@@ -57,99 +64,98 @@ def setup_example(example_dir: Path, basename: str = "3Grains.sim"):
     return mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, _get_voxel_vertices
 
 
-def select_voxel(mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, get_vertices, voxel_index=None):
-    """Pick a voxel whose ROI set is non-empty (peaks actually land on a detector)."""
+def build_problem(example_dir: Path, voxel_index=None):
+    """Set up physics and pick a voxel with a non-empty ROI set.
+
+    Returns a dict with everything both this script and the Bayes baseline need.
+    """
     from icenine.orientation_nn import define_roi_set
 
+    mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, get_vertices = setup_example(example_dir)
     candidates = [voxel_index] if voxel_index is not None else range(len(mic.voxels))
     for idx in candidates:
         voxel = mic.voxels[idx]
         vertices = get_vertices(voxel)
-        orientation = torch.from_numpy(voxel.orientation).float()
+        R_nom = voxel.orientation.astype(np.float64)
         roi_list = define_roi_set(
-            orientation, vertices, sample, detector_list, range_map, exp_setup, structure_list,
-            simulator, phase_index=voxel.phase,
+            torch.from_numpy(R_nom).float(), vertices, sample, detector_list, range_map, exp_setup,
+            structure_list, simulator, phase_index=voxel.phase,
         )
         if roi_list:
-            return idx, voxel, vertices, orientation, roi_list
+            return dict(
+                voxel_index=idx, voxel=voxel, vertices=vertices, R_nom=R_nom, roi_list=roi_list, sample=sample,
+                detector_list=detector_list, range_map=range_map, exp_setup=exp_setup, simulator=simulator,
+            )
     raise RuntimeError("No voxel in the .mic produced a non-empty ROI set")
 
 
+def render_dataset(problem, offsets_deg: np.ndarray, window_size: int, label: str) -> torch.Tensor:
+    """Render thresholded uint8 windows (N, n_peaks, W, W) for the given offsets."""
+    from icenine.orientation_eval import offsets_to_matrices
+    from icenine.orientation_nn import render_local_windows
+
+    mats = offsets_to_matrices(offsets_deg, problem["R_nom"])
+    n_peaks = len(problem["roi_list"])
+    windows = torch.zeros(len(offsets_deg), n_peaks, window_size, window_size, dtype=torch.uint8)
+    t0 = time.time()
+    for i, mat in enumerate(mats):
+        w, _missing = render_local_windows(
+            torch.from_numpy(mat).float(), problem["roi_list"], problem["vertices"], problem["sample"],
+            problem["detector_list"], problem["range_map"], problem["exp_setup"], problem["simulator"],
+            window_size=window_size,
+        )
+        windows[i] = (w > 0).to(torch.uint8)
+        if (i + 1) % 100 == 0 or (i + 1) == len(mats):
+            print(f"  [{label}] {i + 1}/{len(mats)} ({time.time() - t0:.0f}s)")
+    return windows
+
+
 def main():
+    from icenine.orientation_eval import sample_fixed_magnitude_offsets, sample_prior_offsets
+
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--example", default="threevoxels", choices=["threevoxels"])
     parser.add_argument("--voxel-index", type=int, default=None, help="Force a specific voxel; default auto-selects")
-    parser.add_argument("--n-samples", type=int, default=500)
-    parser.add_argument("--max-angle-deg", type=float, default=2.0, help="Bound on perturbation angle")
+    parser.add_argument("--n-train", type=int, default=1500)
+    parser.add_argument("--test-per-bin", type=int, default=30)
+    parser.add_argument("--test-magnitudes", type=float, nargs="+", default=[0.25, 0.5, 1.0, 2.0])
+    parser.add_argument("--prior-radius", type=float, default=2.5, help="Training prior: uniform ball radius (deg)")
     parser.add_argument("--window-size", type=int, default=32)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--output", default=None, help="Output .pt path (default: derived from --n-samples)")
-    parser.add_argument("--smoke-test", action="store_true", help="Shorthand for --n-samples 300")
+    parser.add_argument("--outdir", default=str(Path(__file__).parent))
+    parser.add_argument("--tag", default="stage0")
+    parser.add_argument("--smoke-test", action="store_true", help="Tiny run: 60 train, 5 per bin")
     args = parser.parse_args()
-
     if args.smoke_test:
-        args.n_samples = 300
+        args.n_train, args.test_per_bin, args.tag = 60, 5, "smoke"
 
-    example_dir = project_root / "Examples" / "Example2.ThreeVoxels"
-    print(f"Loading {args.example} example from {example_dir} ...")
-    mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, get_vertices = setup_example(example_dir)
-    print(f"  Loaded .mic with {len(mic.voxels)} voxels")
-
-    idx, voxel, voxel_vertices, nominal_orientation, roi_list = select_voxel(
-        mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, get_vertices,
-        voxel_index=args.voxel_index,
-    )
-    print(f"  Selected voxel {idx}: {len(roi_list)} ROI peaks")
-
-    from icenine.orientation_nn import render_local_windows, sample_local_perturbations
+    outdir_abs = Path(args.outdir).resolve()  # build_problem() changes directory
+    print(f"Setting up {DEFAULT_EXAMPLE} ...")
+    problem = build_problem(DEFAULT_EXAMPLE, args.voxel_index)
+    n_peaks = len(problem["roi_list"])
+    print(f"  voxel {problem['voxel_index']}: {n_peaks} ROI peaks")
 
     rng = np.random.default_rng(args.seed)
-    matrices, quats = sample_local_perturbations(
-        nominal_orientation, args.n_samples, args.max_angle_deg, rng
+    train_offsets = sample_prior_offsets(args.n_train, args.prior_radius, rng)
+    test_offsets, test_mags = [], []
+    for mag in args.test_magnitudes:
+        test_offsets.append(sample_fixed_magnitude_offsets(args.test_per_bin, mag, rng))
+        test_mags += [mag] * args.test_per_bin
+    test_offsets = np.concatenate(test_offsets)
+
+    meta = dict(
+        window_size=args.window_size, n_peaks=n_peaks, voxel_index=problem["voxel_index"],
+        R_nom=torch.from_numpy(problem["R_nom"]), prior_radius_deg=args.prior_radius, seed=args.seed,
+        example="threevoxels",
     )
-
-    n_peaks = len(roi_list)
-    windows = torch.zeros(args.n_samples, n_peaks, args.window_size, args.window_size, dtype=torch.float32)
-    quaternions = torch.zeros(args.n_samples, 4, dtype=torch.float32)
-    n_missing_total = 0
-
-    t0 = time.time()
-    for i, (mat, q) in enumerate(zip(matrices, quats)):
-        perturbed_orientation = torch.from_numpy(mat).float()
-        sample_windows, missing = render_local_windows(
-            perturbed_orientation, roi_list, voxel_vertices, sample, detector_list,
-            range_map, exp_setup, simulator, window_size=args.window_size,
-        )
-        windows[i] = sample_windows
-        quaternions[i] = torch.from_numpy(q).float()
-        n_missing_total += int(missing.sum().item())
-
-        if (i + 1) % 100 == 0 or (i + 1) == args.n_samples:
-            elapsed = time.time() - t0
-            print(f"  {i + 1}/{args.n_samples} samples ({elapsed:.1f}s, {n_missing_total} missing peaks so far)")
-
-    missing_rate = n_missing_total / (args.n_samples * n_peaks) if n_peaks else 0.0
-    print(f"Missing-peak rate: {missing_rate:.4%} (peak dropped out of ROI set under perturbation)")
-
-    output_path = args.output
-    if output_path is None:
-        output_dir = Path(__file__).parent
-        output_path = output_dir / f"toy_orientation_dataset_{args.example}_v{idx}_n{args.n_samples}.pt"
-
-    torch.save(
-        {
-            "windows": windows,
-            "quaternions": quaternions,
-            "n_peaks": n_peaks,
-            "window_size": args.window_size,
-            "voxel_index": idx,
-            "nominal_orientation": nominal_orientation,
-            "max_angle_deg": args.max_angle_deg,
-            "example": args.example,
-        },
-        output_path,
-    )
-    print(f"Saved dataset to {output_path}")
+    outdir = outdir_abs
+    for name, offsets, extra in (
+        ("train", train_offsets, {}),
+        ("test", test_offsets, {"magnitudes_deg": torch.tensor(test_mags)}),
+    ):
+        windows = render_dataset(problem, offsets, args.window_size, name)
+        path = outdir / f"toy_orientation_{args.tag}_{name}.pt"
+        torch.save({"windows": windows, "offsets_deg": torch.from_numpy(offsets).float(), **meta, **extra}, path)
+        print(f"Saved {path}  ({windows.numel() / 1e6:.0f} MB)")
 
 
 if __name__ == "__main__":

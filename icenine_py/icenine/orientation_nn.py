@@ -314,20 +314,24 @@ def sample_local_perturbations(
 
 
 class OrientationDataset(Dataset):
-    """Wraps cached (windows, quaternion) pairs loaded from a .pt file written
-    by scripts/generate_toy_orientation_dataset.py.
+    """Cached (windows, offset) pairs written by scripts/generate_toy_orientation_dataset.py.
+
+    The file holds `windows` as a uint8 tensor (N, n_peaks, window, window) of
+    thresholded (lit / not lit) pixels and `offsets_deg` (N, 3), the rotation-vector
+    offsets from the nominal orientation in degrees. Windows are returned as float32.
     """
 
     def __init__(self, cache_path: str):
         data = torch.load(cache_path)
-        self.windows: torch.Tensor = data["windows"]  # (N, n_peaks, window, window)
-        self.quaternions: torch.Tensor = data["quaternions"]  # (N, 4), [w,x,y,z]
+        self.windows: torch.Tensor = data["windows"]
+        self.offsets_deg: torch.Tensor = data["offsets_deg"].float()
+        self.meta = {k: v for k, v in data.items() if k not in ("windows", "offsets_deg")}
 
     def __len__(self) -> int:
         return self.windows.shape[0]
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.windows[idx], self.quaternions[idx]
+        return self.windows[idx].float(), self.offsets_deg[idx]
 
 
 def quaternion_regression_loss(q_pred: torch.Tensor, q_true: torch.Tensor) -> torch.Tensor:
@@ -347,3 +351,33 @@ def quat_misorientation_deg_batch(q1: torch.Tensor, q2: torch.Tensor) -> torch.T
     """
     dot = (q1 * q2).sum(dim=-1).abs().clamp(max=1.0)
     return torch.rad2deg(2.0 * torch.acos(dot))
+
+
+def cholesky_from_raw(raw: torch.Tensor, min_diag: float = 1e-4) -> torch.Tensor:
+    """Lower-triangular Cholesky factors from 6 unconstrained numbers per sample.
+
+    raw[..., 0:3] -> diagonal (softplus + min_diag), raw[..., 3:6] -> the strictly
+    lower entries (1,0), (2,0), (2,1). Returns (..., 3, 3).
+    """
+    diag = torch.nn.functional.softplus(raw[..., 0:3]) + min_diag
+    L10, L20, L21 = raw[..., 3], raw[..., 4], raw[..., 5]
+    zero = torch.zeros_like(L10)
+    lower = torch.stack([zero, zero, zero, L10, zero, zero, L20, L21, zero], dim=-1).reshape(*raw.shape[:-1], 3, 3)
+    return torch.diag_embed(diag) + lower
+
+
+def gaussian_nll_loss(mean: torch.Tensor, chol: torch.Tensor, target: torch.Tensor, beta: float = 0.0) -> torch.Tensor:
+    """Multivariate Gaussian negative log-likelihood with covariance L L^T.
+
+    nll = 0.5 |L^-1 (target - mean)|^2 + sum log diag(L)   (constants dropped).
+    beta > 0 gives the beta-NLL reweighting of Seitzer et al. (2022): each sample
+    is weighted by stopgrad(det(cov)^(beta/3)).
+    """
+    r = (target - mean).unsqueeze(-1)
+    z = torch.linalg.solve_triangular(chol, r, upper=False).squeeze(-1)
+    log_diag = torch.log(torch.diagonal(chol, dim1=-2, dim2=-1))
+    nll = 0.5 * (z**2).sum(-1) + log_diag.sum(-1)
+    if beta > 0.0:
+        weight = torch.exp(2.0 * log_diag.sum(-1) * beta / 3.0).detach()
+        nll = nll * weight
+    return nll.mean()
