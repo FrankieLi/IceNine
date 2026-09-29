@@ -444,3 +444,129 @@ class TestExactBayes:
             truth, np.random.default_rng(1), n_per_round=8000
         )
         assert np.trace(pixels["cov"]) < np.trace(frames["cov"])
+
+
+# ============================================================================
+# Stage 1: frame-coded windows from the observer
+# ============================================================================
+
+
+class TestRenderWindows:
+    def test_decode_windows(self):
+        from icenine.orientation_eval import decode_windows
+
+        w = torch.tensor([[0, 1, 5, 9]], dtype=torch.uint8)  # K = 4: codes 1..9 -> offsets -4..4
+        out = decode_windows(w, 4)
+        assert out.shape == (2, 1, 4)
+        assert torch.equal(out[0], torch.tensor([[0.0, 1.0, 1.0, 1.0]]))
+        assert torch.allclose(out[1], torch.tensor([[0.0, -1.0, 0.0, 1.0]]))
+
+    def test_windows_match_lit_pixel_sets(self, problem):
+        """Window content = the rasteriser's lit pixels shifted by the window origin, with
+        code 1 + (frame - frame0 + K); status flags absent / out-of-range spots."""
+        from icenine.orientation_eval import WindowSpec, render_windows
+
+        obs = _observer(problem, problem["roi_all"][::5])
+        spec = WindowSpec.from_nominal(obs, 32, 4)
+        deltas = np.array([[0.0, 0.0, 0.0], [0.2, -0.3, 0.6], [-0.5, 0.4, -1.0]])
+        windows, status = render_windows(obs, spec, deltas)
+        out = obs.observe(torch.from_numpy(deltas))
+        keys = obs.vertex_keys(out)
+        n_checked = 0
+        for n in range(len(deltas)):
+            for m in range(obs.M):
+                if not bool(out.present[n, m]):
+                    assert int(status[n, m]) == 1 and int(windows[n, m].sum()) == 0
+                    continue
+                offset = int(out.frame[n, m]) - int(spec.frame0[m])
+                if abs(offset) > 4:
+                    assert int(status[n, m]) == 2
+                    continue
+                pix = lit_pixel_set(
+                    tuple(keys[n, m].tolist()), int(obs.d_ncols[m]), int(obs.d_nrows[m])
+                )
+                expected = {
+                    (c - spec.col0[m], r - spec.row0[m])
+                    for c, r in pix
+                    if 0 <= c - spec.col0[m] < 32 and 0 <= r - spec.row0[m] < 32
+                }
+                rows, cols = np.nonzero(windows[n, m].numpy())
+                assert set(zip(cols.tolist(), rows.tolist())) == expected
+                assert set(windows[n, m][windows[n, m] > 0].tolist()) <= {1 + offset + 4}
+                n_checked += 1
+        assert n_checked > 50
+
+    def test_sin_eta_near_axis(self, problem):
+        obs = _observer(problem, problem["roi_all"])
+        se = obs.sin_eta(torch.zeros(1, 3, dtype=torch.float64))[0]
+        assert ((se >= 0) & (se <= 1)).all()
+        assert (se < 0.3).any() and (se > 0.9).any()  # both near-axis and far-from-axis spots exist
+
+
+class TestEndToEndVsForwardSimulation:
+    def test_windows_reproduce_simulated_images(self, problem, project_root):
+        """At the nominal orientation the 'all' ROI set is every recorded peak, so the
+        union of the frame-coded windows must equal, pixel for pixel, the thresholded
+        images ForwardSimulation._simulate_peaks produces for that one voxel. At a small
+        offset, every rendered pixel must be lit in the simulated images."""
+        import copy
+
+        from icenine.forward_simulation import ForwardSimulation
+        from icenine.image_data import ImageData
+        from icenine.orientation_eval import WindowSpec, render_windows
+
+        config = ConfigFile.from_file(str(problem["config_path"]))
+        config.out_file_basename = "3Grains.sim"
+        fs = ForwardSimulation(config)
+        fs.exp_setup.initialize_experiment()
+        detector_list = fs.exp_setup.get_detector_list()
+        range_map = fs.exp_setup.get_range_to_index_map()
+        fs.simulator = Simulation(fs.exp_setup)
+        sample = Sample()
+        fs.exp_setup.initialize_sample(sample, detector_list[0])
+
+        obs = _observer(problem, problem["roi_all"])
+        spec = WindowSpec.from_nominal(obs, 32, 4)
+        n_omega = len(fs.exp_setup.get_omega_range_list())
+
+        def simulated_lit(delta_deg):
+            voxel = copy.deepcopy(problem["voxel"])
+            voxel.orientation = offsets_to_matrices(np.array([delta_deg]), problem["R_nom"])[0]
+            sample.get_mic().voxels = [voxel]
+            images = [
+                [ImageData(d.num_rows, d.num_cols, mode="sparse") for d in detector_list]
+                for _ in range(n_omega)
+            ]
+            fs._simulate_peaks(images, detector_list, sample, range_map)
+            lit = set()
+            for w in range(n_omega):
+                for di, img in enumerate(images[w]):
+                    sp = img._pixels_sparse.coalesce()
+                    idx, val = sp.indices(), sp.values()
+                    for r, c in idx[:, val > 0].T.tolist():
+                        lit.add((w, di, c, r))
+            return lit
+
+        def rendered_lit(delta_deg):
+            windows, status = render_windows(obs, spec, np.array([delta_deg]))
+            lit = set()
+            for m in range(obs.M):
+                w = windows[0, m]
+                rows, cols = np.nonzero(w.numpy())
+                for r, c in zip(rows.tolist(), cols.tolist()):
+                    frame = int(spec.frame0[m]) + int(w[r, c]) - 1 - 4
+                    lit.add(
+                        (frame, int(obs.det_idx[m]), c + int(spec.col0[m]), r + int(spec.row0[m]))
+                    )
+            return lit, status
+
+        sim0 = simulated_lit(np.zeros(3))
+        ren0, status0 = rendered_lit(np.zeros(3))
+        assert bool((status0 == 0).all())
+        assert ren0 == sim0
+
+        delta = np.array([0.15, -0.1, 0.3])
+        sim1 = simulated_lit(delta)
+        ren1, _ = rendered_lit(delta)
+        assert ren1 <= sim1  # new peaks may appear at the offset, but nothing rendered is spurious
+        assert len(sim1 - ren1) < 0.02 * len(sim1)

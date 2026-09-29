@@ -42,13 +42,24 @@ def batches(n, batch_size, rng=None):
         yield idx[a : a + batch_size]
 
 
-def predict(model, head, windows, batch_size):
+def make_prep(meta):
+    """Windows -> network input. Observer-rendered (Stage 1) windows are frame-coded
+    uint8 and are decoded to two channels (lit, frame offset); others are cast."""
+    from icenine.orientation_eval import decode_windows
+
+    if meta.get("renderer", "simulator") == "observer":
+        k = int(meta["frame_half_width"])
+        return (lambda x: decode_windows(x, k)), 2
+    return (lambda x: x.float()), 1
+
+
+def predict(model, head, windows, batch_size, prep=None):
     """Predicted offsets (N,3 deg) and, for the offset head, Cholesky factors (N,3,3)."""
     model.eval()
     means, chols = [], []
     with torch.no_grad():
         for b in batches(len(windows), batch_size):
-            x = windows[b].float()
+            x = prep(windows[b]) if prep is not None else windows[b].float()
             if head == "offset":
                 m, L = model(x)
                 means.append(m)
@@ -102,6 +113,7 @@ def main():
     n_peaks, window = tr["n_peaks"], tr["window_size"]
     R_nom = tr["R_nom"].numpy()
     windows, offsets = tr["windows"], tr["offsets_deg"].float()
+    prep, in_channels = make_prep(tr)
     n = len(windows)
     perm = rng.permutation(n)
     n_val = max(1, int(n * args.val_frac))
@@ -114,10 +126,10 @@ def main():
         targets = torch.from_numpy(
             offsets_to_quaternions(offsets.numpy().astype(np.float64), R_nom)
         ).float()
-        model = ToyOrientationNet(n_peaks=n_peaks, window_size=window)
+        model = ToyOrientationNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
     else:
         targets = offsets
-        model = ToyOffsetNet(n_peaks=n_peaks, window_size=window)
+        model = ToyOffsetNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     def loss_fn(x, y):
@@ -134,7 +146,7 @@ def main():
         for b in batches(len(train_idx), args.batch_size, rng):
             ib = train_idx[b]
             opt.zero_grad()
-            loss = loss_fn(windows[ib].float(), targets[ib])
+            loss = loss_fn(prep(windows[ib]), targets[ib])
             loss.backward()
             opt.step()
             total += loss.item() * len(ib)
@@ -142,7 +154,7 @@ def main():
         with torch.no_grad():
             val = np.mean(
                 [
-                    loss_fn(windows[val_idx[b]].float(), targets[val_idx[b]]).item()
+                    loss_fn(prep(windows[val_idx[b]]), targets[val_idx[b]]).item()
                     for b in batches(n_val, args.batch_size)
                 ]
             )
@@ -159,7 +171,7 @@ def main():
     print(f"restored best-validation weights from epoch {best_epoch} (val {best_val:.6f})")
 
     # ---- evaluation ------------------------------------------------------
-    pred, chol = predict(model, args.head, te["windows"], args.batch_size)
+    pred, chol = predict(model, args.head, te["windows"], args.batch_size, prep)
     if args.head == "quat":
         pred = quaternions_to_offsets_deg(pred, R_nom)
     truth = te["offsets_deg"].numpy().astype(np.float64)

@@ -55,6 +55,7 @@ def main():
         data["voxel_index"],
         max_q=None if max_q != max_q else max_q,  # NaN means the config default
         detectors=data.get("detectors", "first"),
+        min_sin_eta=float(data.get("min_sin_eta", 0.0)),
     )
     assert len(problem["roi_list"]) == data["n_peaks"], "ROI set differs from the dataset's"
     assert np.allclose(

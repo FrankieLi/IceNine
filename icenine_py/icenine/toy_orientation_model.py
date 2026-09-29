@@ -21,10 +21,14 @@ from .orientation_nn import cholesky_from_raw
 
 class ToyOrientationNet(nn.Module):
     def __init__(
-        self, n_peaks: int, window_size: int = 32, hidden: Tuple[int, int, int] = (512, 256, 128)
+        self,
+        n_peaks: int,
+        window_size: int = 32,
+        hidden: Tuple[int, int, int] = (512, 256, 128),
+        in_channels: int = 1,
     ):
         super().__init__()
-        in_dim = n_peaks * window_size * window_size
+        in_dim = n_peaks * in_channels * window_size * window_size
         self.fc1 = nn.Linear(in_dim, hidden[0])
         self.fc2 = nn.Linear(hidden[0], hidden[1])
         self.fc3 = nn.Linear(hidden[1], hidden[2])
@@ -48,10 +52,14 @@ class ToyOffsetNet(nn.Module):
     """
 
     def __init__(
-        self, n_peaks: int, window_size: int = 32, hidden: Tuple[int, int, int] = (512, 256, 128)
+        self,
+        n_peaks: int,
+        window_size: int = 32,
+        hidden: Tuple[int, int, int] = (512, 256, 128),
+        in_channels: int = 1,
     ):
         super().__init__()
-        in_dim = n_peaks * window_size * window_size
+        in_dim = n_peaks * in_channels * window_size * window_size
         self.fc1 = nn.Linear(in_dim, hidden[0])
         self.fc2 = nn.Linear(hidden[0], hidden[1])
         self.fc3 = nn.Linear(hidden[1], hidden[2])

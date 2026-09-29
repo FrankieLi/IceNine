@@ -80,11 +80,18 @@ def setup_example(example_dir: Path, basename: str = "3Grains.sim", max_q=None):
     )
 
 
-def build_problem(example_dir: Path, voxel_index=None, max_q=None, detectors: str = "first"):
+def build_problem(
+    example_dir: Path,
+    voxel_index=None,
+    max_q=None,
+    detectors: str = "first",
+    min_sin_eta: float = 0.0,
+):
     """Set up physics and pick a voxel with a non-empty ROI set.
 
-    max_q and detectors are passed to setup_example / define_roi_set; the defaults
-    reproduce Stage 0 (config MaxQ, first detector only).
+    max_q and detectors are passed to setup_example / define_roi_set; min_sin_eta
+    drops near-axis spots (|sin eta| below it at the nominal orientation, decision D3).
+    The defaults reproduce Stage 0 (config MaxQ, first detector only, no filter).
 
     Returns a dict with everything both this script and the Bayes baseline need.
     """
@@ -110,6 +117,14 @@ def build_problem(example_dir: Path, voxel_index=None, max_q=None, detectors: st
             phase_index=voxel.phase,
             detectors=detectors,
         )
+        if roi_list and min_sin_eta > 0.0:
+            from icenine.orientation_eval import BatchedObserver
+
+            obs = BatchedObserver(
+                R_nom, vertices, sample, detector_list, range_map, exp_setup, roi_list
+            )
+            se = obs.sin_eta(torch.zeros(1, 3, dtype=torch.float64))[0].numpy()
+            roi_list = [p for p, s in zip(roi_list, se) if s >= min_sin_eta]
         if roi_list:
             return dict(
                 voxel_index=idx,
@@ -153,6 +168,25 @@ def render_dataset(problem, offsets_deg: np.ndarray, window_size: int, label: st
     return windows
 
 
+def render_dataset_observer(
+    problem, offsets_deg: np.ndarray, window_size: int, frame_half_width: int
+):
+    """Frame-coded exact thresholded windows from the batched observer (Stage 1)."""
+    from icenine.orientation_eval import BatchedObserver, WindowSpec, render_windows
+
+    obs = BatchedObserver(
+        problem["R_nom"],
+        problem["vertices"],
+        problem["sample"],
+        problem["detector_list"],
+        problem["range_map"],
+        problem["exp_setup"],
+        problem["roi_list"],
+    )
+    spec = WindowSpec.from_nominal(obs, window_size, frame_half_width)
+    return render_windows(obs, spec, offsets_deg)
+
+
 def main():
     from icenine.orientation_eval import sample_fixed_magnitude_offsets, sample_prior_offsets
 
@@ -176,6 +210,19 @@ def main():
         default="first",
         help="ROI peaks on the first detector only (Stage 0) or on every detector (Stage 1)",
     )
+    parser.add_argument(
+        "--renderer",
+        choices=["simulator", "observer"],
+        default="simulator",
+        help="simulator: per-peak renderer with intensities (Stage 0); observer: exact "
+        "thresholded pixels with the frame offset coded in the pixel value (Stage 1)",
+    )
+    parser.add_argument(
+        "--frame-half-width", type=int, default=4, help="observer renderer: frames kept (+-K)"
+    )
+    parser.add_argument(
+        "--min-sin-eta", type=float, default=0.0, help="drop spots with |sin eta| below this (D3)"
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--outdir", default=str(Path(__file__).parent))
     parser.add_argument("--tag", default="stage0")
@@ -187,7 +234,11 @@ def main():
     outdir_abs = Path(args.outdir).resolve()  # build_problem() changes directory
     print(f"Setting up {DEFAULT_EXAMPLE} ...")
     problem = build_problem(
-        DEFAULT_EXAMPLE, args.voxel_index, max_q=args.max_q, detectors=args.detectors
+        DEFAULT_EXAMPLE,
+        args.voxel_index,
+        max_q=args.max_q,
+        detectors=args.detectors,
+        min_sin_eta=args.min_sin_eta,
     )
     n_peaks = len(problem["roi_list"])
     print(f"  voxel {problem['voxel_index']}: {n_peaks} ROI peaks")
@@ -208,6 +259,9 @@ def main():
         prior_radius_deg=args.prior_radius,
         max_q=args.max_q if args.max_q is not None else float("nan"),
         detectors=args.detectors,
+        min_sin_eta=args.min_sin_eta,
+        renderer=args.renderer,
+        frame_half_width=args.frame_half_width,
         seed=args.seed,
         example="threevoxels",
     )
@@ -216,7 +270,19 @@ def main():
         ("train", train_offsets, {}),
         ("test", test_offsets, {"magnitudes_deg": torch.tensor(test_mags)}),
     ):
-        windows = render_dataset(problem, offsets, args.window_size, name)
+        if args.renderer == "observer":
+            windows, status = render_dataset_observer(
+                problem, offsets, args.window_size, args.frame_half_width
+            )
+            extra = {**extra, "status": status}
+            s = status.float()
+            print(
+                f"  [{name}] spots inside window {(s == 0).float().mean():.1%}, absent "
+                f"{(s == 1).float().mean():.1%}, frame outside +-K {(s == 2).float().mean():.1%}, "
+                f"left window {(s == 3).float().mean():.1%}"
+            )
+        else:
+            windows = render_dataset(problem, offsets, args.window_size, name)
         path = outdir / f"toy_orientation_{args.tag}_{name}.pt"
         torch.save(
             {"windows": windows, "offsets_deg": torch.from_numpy(offsets).float(), **meta, **extra},
