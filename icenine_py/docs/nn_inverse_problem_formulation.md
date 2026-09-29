@@ -22,9 +22,10 @@ This note makes precise what that map should be.
    can beat. The plane picture holds well for most peaks but fails for the
    near-axis peaks, which are the most informative (Section 3). The same
    geometry gives closed-form angular-resolution estimates in terms of pixel
-   size, frame width and number of frames: the frame width sets the resolution
-   about the rotation axis, the pixel size sets it perpendicular to the axis
-   (Section 3.6).
+   size, frame width, number of frames and the voxel's distance from the
+   rotation axis. Perpendicular to the axis the pixel size sets the resolution;
+   about the axis the frame width sets it for voxels near the axis, and parallax
+   (pixels again) for voxels far from it (Section 3.6).
 3. The principled replacement for "the inverse" is the Bayesian posterior over
    orientation given the data. In the noise-free limit it is the prior
    restricted to that cell (Section 4).
@@ -37,7 +38,7 @@ This note makes precise what that map should be.
 Physics results used here are derived and numerically verified in
 `omega_peak_width_derivation.md` (the "derivation note"). The frame-boundary
 geometry in Section 3.1 and the spot-motion and resolution results in Section 3.6
-have been checked numerically (Sections 3.1.6 and 3.6.4). The pixel level-set
+have been checked numerically (Sections 3.1.6, 3.6.3 and 3.6.5). The pixel level-set
 structure in Section 3.2 has not.
 
 # 1. Setup and notation
@@ -298,14 +299,20 @@ Three consequences:
 1. **Every slab is exactly one frame wide along $\hat{\mathbf{z}}$.** Since
    $\mathbf{n}_p\cdot\hat{\mathbf{z}} = -|\sin\eta_p|$, the slab's extent along
    $\hat{\mathbf{z}}$ is $h_p/|\mathbf{n}_p\cdot\hat{\mathbf{z}}| = \Delta\omega_f$.
-2. **Pixels carry almost no information along $\hat{\mathbf{z}}$.** The rotated
-   crystal at $\omega^* - \beta$ has the same lab orientation as before, so every
-   diffracted ray has the same direction. The spot moves only because the voxel's
-   lab position is rotated by $-\beta$ about the axis, a parallax shift of about
-   $\beta\,r_\perp$, where $r_\perp$ is the voxel's distance from the axis. In the
-   running example ($r_\perp = 12\,\mu$m, $1.48\,\mu$m pixels) a $1^\circ$
-   rotation moves spots by at most about 0.14 pixel. So the $\hat{\mathbf{z}}$
-   component of $\delta$ is determined almost entirely by frame membership.
+2. **Pixels see rotation about $\hat{\mathbf{z}}$ only through parallax.** The
+   rotated crystal at $\omega^* - \beta$ has the same lab orientation as before,
+   so every diffracted ray has the same *direction*. The spot moves only because
+   the ray now starts from a different *place*: the voxel's lab position is
+   rotated by $-\beta$ about the axis, a displacement of $\beta\,r_\perp$, where
+   $r_\perp$ is the voxel's distance from the axis. Section 3.6.2 shows that the
+   spot then shifts by about $\beta\,r_\perp|\cos\phi_v|/a$ pixels, where
+   $\phi_v$ is the voxel's lab azimuth when the peak fires and $a$ is the pixel
+   size. Near the axis this is negligible (running example: $r_\perp = 12\,\mu$m,
+   at most 0.14 pixel for a $1^\circ$ rotation), and the $\hat{\mathbf{z}}$
+   component of $\delta$ is determined almost entirely by frame membership. Far
+   from the axis it is not: beyond roughly $r_\perp \approx \sqrt{2}\,a/\Delta\omega_f$
+   (about $120\,\mu$m for the running example's pixels and frames), parallax
+   becomes the main source of $\hat{\mathbf{z}}$ information (Section 3.6.4).
 3. **Staggered slabs give a Vernier effect along $\hat{\mathbf{z}}$.** Each slab
    is a full frame wide along $\hat{\mathbf{z}}$, but peaks sit at different
    positions within their frames, so the slabs are offset from one another. If
@@ -399,13 +406,17 @@ Three further points:
 - **Spots are about a pixel wide.** The running example's voxel sides (1.5 and
   0.75 $\mu$m) are comparable to its 1.48 $\mu$m pixels, so each spot lights only
   one or a few pixels.
-- **Pixel planes carry little $\hat{\mathbf{z}}$ information** (Section 3.1.5,
-  point 2): their normals are nearly perpendicular to the rotation axis.
+- **Pixel planes carry $\hat{\mathbf{z}}$ information only through parallax**
+  (Section 3.1.5, point 2): negligible for voxels near the rotation axis,
+  important far from it.
 
-The spatial sensitivity is derived and checked in Section 3.6.2: a strain-free
-spot can only slide along its Debye–Scherrer ring, so to first order all six
-families share one normal direction, perpendicular to $\hat{\mathbf{z}}$. The
-level-set structure itself has not been checked numerically. Real detectors integrate partial
+The spatial sensitivity is derived in Section 3.6.2 and given exactly, with a
+numerical check, as the spot-motion Jacobian in Section 3.6.3. For a voxel on
+the rotation axis, a strain-free spot can only slide along its instantaneous
+Debye–Scherrer ring, so to first order all six families share one normal
+direction, perpendicular to $\hat{\mathbf{z}}$. For an off-axis voxel, parallax
+adds a second direction. The level-set structure itself has not been checked
+numerically. Real detectors integrate partial
 pixel coverage and a point-spread function, so real pixel boundaries are soft,
 like the frame boundaries of spread peaks (Section 3.5), whereas the simulator's
 are hard.
@@ -463,18 +474,26 @@ simulator's all-or-nothing fill does not.
 
 This section turns the geometry above into an estimate of how precisely the
 data determine $\delta$, as a function of the pixel size, the frame width and
-the number of frames. The main result is that the resolution is anisotropic:
-the frame width sets it about the rotation axis, and the pixel size sets it
-perpendicular to the axis.
+the number of frames. The main result is that the resolution is anisotropic.
+For a voxel near the rotation axis, the frame width sets it about the axis and
+the pixel size sets it perpendicular to the axis. Farther from the axis,
+parallax lets the pixels constrain rotation about the axis too, and the
+anisotropy shrinks.
 
 ### 3.6.1 Assumptions and new notation
 
 - Single-frame case ($\alpha = 0$) and a strain-free crystal (lattice spacings
   fixed).
 - Each detector is flat, perpendicular to the beam, at distance $d$ from the
-  sample, with square pixels of side $a$ (both in the same length unit). $a/d$ is
-  then the angle one pixel subtends at the sample. Each peak is measured on one
-  detector.
+  rotation axis, with square pixels of side $a$ (both in the same length unit).
+  $a/d$ is then roughly the angle one pixel subtends at the sample. Each peak is
+  measured on one detector.
+- The voxel sits at distance $r_\perp$ from the rotation axis. When peak $p$
+  fires, the voxel's lab position is $\mathbf{x}_{v,p} = R_z(\omega^*_p)\mathbf{x}_v$
+  (with $\mathbf{x}_v$ its sample-frame position), and $\phi_{v,p}$ is its
+  azimuth about $\hat{\mathbf{z}}$ measured from $\hat{\mathbf{x}}$. Results are
+  first order in $r_\perp/d$ and assume $2\theta$ is small enough that rays hit
+  the detector nearly head-on.
 - The scan has $N$ frames of width $\Delta\omega_f$. The number of peaks is
   $P = \nu\,N\,\Delta\omega_f$, where $\nu$ is the number of observable peaks per
   radian of rotation (it depends on the crystal, beam energy, detector coverage,
@@ -484,9 +503,6 @@ perpendicular to the axis.
   variance of a uniform error over one bin, Section 3.4), independent across
   peaks and coordinates. The three vertices of a spot are not counted
   separately.
-- Parallax (spot motion caused by the voxel's own position moving when
-  $\omega^*$ shifts) is neglected; its scale is $r_\perp/a$ px per radian of
-  $\omega^*$ shift, about 8 for the running example.
 
 For peak $p$, work in the lab frame at the moment it diffracts. Let
 $\hat{\mathbf{g}}_p = \mathbf{g}_p/|\mathbf{g}_p|$ with $\mathbf{g}_p = R_z(\omega^*_p)\mathbf{g}_{s,p}$,
@@ -512,14 +528,35 @@ two components of $\delta$.
 $\nabla_L\omega^*_p = -\hat{\mathbf{c}}_p/(\hat{\mathbf{z}}\cdot\hat{\mathbf{c}}_p)$,
 with $|\hat{\mathbf{z}}\cdot\hat{\mathbf{c}}_p| = |\sin\eta_p|$.
 
-**Position: the spot slides along its ring.** With no strain, $|\mathbf{g}_p|$ is
-fixed, and elastic scattering fixes $|\mathbf{k}'| = |\mathbf{k}|$ for the
-diffracted wavevector $\mathbf{k}' = \mathbf{k} + \mathbf{g}$. So $\mathbf{k}'$
-stays on the cone of half-angle $2\theta_p$ about the beam (the
-Debye–Scherrer cone), and the spot can move only along its ring on the
-detector, never radially.
+**What "the ring" means here.** With no strain, $|\mathbf{g}_p|$ is fixed, and
+elastic scattering fixes $|\mathbf{k}'| = |\mathbf{k}|$ for the diffracted
+wavevector $\mathbf{k}' = \mathbf{k} + \mathbf{g}$. So the *direction* of the
+diffracted ray always lies on the cone of half-angle $2\theta_p$ about the beam
+(the Debye–Scherrer cone). The ray starts at the voxel, so at the instant peak
+$p$ fires, the possible spot positions form the intersection of the detector
+plane with that cone placed with its apex at $\mathbf{x}_{v,p}$: for a detector
+perpendicular to the beam, a circle of radius $d_p\tan 2\theta_p$ centred on the
+voxel's projection along the beam, where
+$d_p = d - \mathbf{x}_{v,p}\cdot\hat{\mathbf{x}}$ is the voxel-to-detector
+distance. This **instantaneous ring** is a conic section.
 
-To quantify the motion, note that after a small offset the lab-frame vector
+The ring seen in data accumulated over a scan is not. Different peaks of the
+same reflection family fire at different $\omega^*$, when the voxel is at a
+different lab position, so their instantaneous circles have different centres
+(offset by up to $r_\perp$) and radii. The accumulated locus is a union of
+shifted circles rather than a single conic section. The shift is negligible when
+$r_\perp \ll d$ and pixels are coarse (far field), but not in near-field
+geometry, where $r_\perp$ can be hundreds of micrometres and pixels are about
+$1.5\,\mu$m. The derivation below uses only the instantaneous ring, locally
+around one spot, and never assumes a global ring.
+
+A small orientation offset moves a spot in two ways: the ray's direction
+changes, sliding the spot along its instantaneous ring, and the ray's starting
+point changes, because $\omega^*$ shifts and the voxel moves with the stage
+(parallax).
+
+**Position, part 1: the direction slides along the instantaneous ring.**
+After a small offset, the lab-frame vector
 changes by $d\mathbf{g} = \Omega\times\mathbf{g}$ with
 $\Omega = \delta_L + d\omega^*\,\hat{\mathbf{z}}$: the crystal rotation plus the
 extra stage rotation needed to stay in the Bragg condition. Staying in the
@@ -532,64 +569,246 @@ $$
 d\mathbf{k}' = d\mathbf{g} = |\mathbf{g}|\,\Omega_t\,\hat{\mathbf{c}} .
 $$
 On the cone, $|d\mathbf{k}'| = |\mathbf{k}|\sin 2\theta\,|d\eta|$, so
-$|d\eta| = 2\sin\theta\,|\Omega_t|/\sin 2\theta = |\Omega_t|/\cos\theta$. On a
-detector perpendicular to the beam the ring has radius $d\tan 2\theta$, so the
-spot moves by $d\tan 2\theta\,|d\eta|$. Let $\xi_p$ be the spot's position along
-its ring, in pixels. Since
+$|d\eta| = 2\sin\theta\,|\Omega_t|/\sin 2\theta = |\Omega_t|/\cos\theta$. The
+instantaneous ring has radius $d_p\tan 2\theta$, so the spot moves along it by
+$d_p\tan 2\theta\,|d\eta|$. Let $\xi_p$ be the spot's position along its
+instantaneous ring, in pixels. Since
 $\Omega_t = \delta_L\cdot\hat{\mathbf{t}} + d\omega^*\,(\hat{\mathbf{z}}\cdot\hat{\mathbf{t}})$
 and $d\omega^* = \nabla_L\omega^*\cdot\delta_L$,
 $$
-\nabla_L\xi_p = \frac{d\,\tan 2\theta_p}{a\cos\theta_p}\,
+\nabla_L\xi_p = \frac{d_p\,\tan 2\theta_p}{a\cos\theta_p}\,
 \Big[\hat{\mathbf{t}}_p + (\hat{\mathbf{z}}\cdot\hat{\mathbf{t}}_p)\,\nabla_L\omega^*_p\Big].
 $$
+Because $\hat{\mathbf{z}}\cdot\nabla_L\omega^* = -1$,
+$\hat{\mathbf{z}}\cdot\nabla_L\xi_p = \hat{\mathbf{z}}\cdot\hat{\mathbf{t}}_p - \hat{\mathbf{z}}\cdot\hat{\mathbf{t}}_p = 0$:
+the direction term is exactly blind to rotation about the axis.
 
-**Pixels carry no information about rotation about the axis.** Because
-$\hat{\mathbf{z}}\cdot\nabla_L\omega^* = -1$,
-$\hat{\mathbf{z}}\cdot\nabla_L\xi_p = \hat{\mathbf{z}}\cdot\hat{\mathbf{t}}_p - \hat{\mathbf{z}}\cdot\hat{\mathbf{t}}_p = 0$.
-Every peak's position gradient is perpendicular to $\hat{\mathbf{z}}$, which is
-the formal version of Section 3.1.5, point 2.
+**Position, part 2: parallax.** When $\omega^*$ shifts by $d\omega^*$, the voxel
+moves with the stage by $d\omega^*\,(\hat{\mathbf{z}}\times\mathbf{x}_{v,p})
+= r_\perp\,d\omega^*\,(-\sin\phi_{v,p},\ \cos\phi_{v,p},\ 0)$, a horizontal
+displacement. For a ray hitting the detector nearly head-on, the spot moves by
+this displacement's component in the detector plane, which is along the
+detector's horizontal axis $\hat{\mathbf{e}}_h$ with magnitude
+$r_\perp\cos\phi_{v,p}\,d\omega^*$. In pixels,
+$$
+\Delta\mathbf{u}_p^{\text{par}} \approx \frac{r_\perp\cos\phi_{v,p}}{a}\,(\nabla_L\omega^*_p\cdot\delta_L)\;\hat{\mathbf{e}}_h .
+$$
 
-### 3.6.3 Combining peaks
+These two parts are the intuition. Section 3.6.3 assembles them into a single
+matrix, exact to first order in $\delta$ for any flat detector, without the
+head-on approximation used for part 2.
+
+### 3.6.3 The spot-motion Jacobian
+
+**Definition.** The spot-motion Jacobian $\Gamma_p$ of peak $p$ is the
+$2\times3$ matrix giving how far its spot moves on the detector, in pixels, for
+a small orientation offset:
+$$
+\Delta\mathbf{u}_p \approx \Gamma_p\,\delta .
+$$
+Its rows are the detector column and row; its columns are rotation about the
+sample $\hat{\mathbf{x}}$, $\hat{\mathbf{y}}$ and $\hat{\mathbf{z}}$ axes; its
+entries are in pixels per radian. "Full" means it includes both ways a spot
+moves: the change of the diffracted ray's direction and the change of the ray's
+starting point (parallax).
+
+**Ingredients.** All evaluated at the moment peak $p$ fires, in the lab frame:
+
+- $\mathbf{g}_p = R_z(\omega^*_p)\,\mathbf{g}_{s,p}$ and the diffracted
+  direction $\hat{\mathbf{k}}'_p = (\mathbf{k} + \mathbf{g}_p)/|\mathbf{k}|$;
+- $\nabla_L\omega^*_p = -\hat{\mathbf{c}}_p/(\hat{\mathbf{z}}\cdot\hat{\mathbf{c}}_p)$
+  (Section 3.6.2);
+- $\mathbf{x}_{v,p}$, the lab position of the voxel's centroid, which is the
+  ray's starting point;
+- the detector: unit normal $\hat{\mathbf{n}}$, lab directions of its column
+  and row axes $\hat{\mathbf{e}}_{\text{col}}, \hat{\mathbf{e}}_{\text{row}}$,
+  and pixel size $a$. Write $\Pi$ for the $2\times3$ matrix with rows
+  $\hat{\mathbf{e}}_{\text{col}}^{\top}/a$ and $\hat{\mathbf{e}}_{\text{row}}^{\top}/a$
+  (lab displacement in the detector plane → pixels);
+- $L_p$, the length of the ray from the voxel to the detector;
+- $[\mathbf{v}]_\times$, the skew-symmetric matrix with
+  $[\mathbf{v}]_\times\mathbf{w} = \mathbf{v}\times\mathbf{w}$ (Section 1.2).
+
+**Step 1: where a ray hits the detector.** A ray from $\mathbf{x}_o$ along
+$\hat{\mathbf{k}}'$ meets the detector plane at
+$\mathbf{s} = \mathbf{x}_o + L\,\hat{\mathbf{k}}'$, with $L$ fixed by
+$\hat{\mathbf{n}}\cdot\mathbf{s}$ equalling the plane's offset. Differentiating,
+and eliminating $dL$ with the plane condition
+$\hat{\mathbf{n}}\cdot d\mathbf{s} = 0$,
+$$
+d\mathbf{s} = Q_p\,\big(d\mathbf{x}_o + L_p\,d\hat{\mathbf{k}}'\big),
+\qquad
+Q_p = I - \frac{\hat{\mathbf{k}}'_p\,\hat{\mathbf{n}}^{\top}}{\hat{\mathbf{n}}\cdot\hat{\mathbf{k}}'_p} .
+$$
+$Q_p$ projects a displacement onto the detector plane *along the ray*. It
+accounts for rays hitting the detector at an angle, which Section 3.6.2's
+head-on approximation ignored.
+
+**Step 2: the direction changes.** The incident beam is fixed, so
+$d\hat{\mathbf{k}}' = d\mathbf{g}/|\mathbf{k}|$. From Section 3.6.2,
+$d\mathbf{g} = \Omega\times\mathbf{g}$ with
+$\Omega = \delta_L + (\nabla_L\omega^*\cdot\delta_L)\,\hat{\mathbf{z}}$, so
+$$
+d\hat{\mathbf{k}}' = -\frac{1}{|\mathbf{k}|}\,[\mathbf{g}_p]_\times\big(I + \hat{\mathbf{z}}\,\nabla_L\omega^{*\top}_p\big)\,\delta_L .
+$$
+
+**Step 3: the starting point moves.** The voxel rotates with the stage through
+the extra angle $d\omega^* = \nabla_L\omega^*\cdot\delta_L$:
+$$
+d\mathbf{x}_o = (\hat{\mathbf{z}}\times\mathbf{x}_{v,p})\,\nabla_L\omega^{*\top}_p\,\delta_L .
+$$
+
+**Step 4: assemble.** Convert to pixels with $\Pi$ and to the sample frame with
+$\delta_L = R_z(\omega^*_p)\,\delta$:
+$$
+\Gamma_p = \Pi\,Q_p\Big[\underbrace{-\frac{L_p}{|\mathbf{k}|}\,[\mathbf{g}_p]_\times\big(I + \hat{\mathbf{z}}\,\nabla_L\omega^{*\top}_p\big)}_{\text{ring (direction) term}}
+\;+\;\underbrace{(\hat{\mathbf{z}}\times\mathbf{x}_{v,p})\,\nabla_L\omega^{*\top}_p}_{\text{parallax term}}\Big]\,R_z(\omega^*_p) .
+$$
+This is first order in $\delta$ and makes no further approximation: it holds for
+any flat detector orientation and any voxel position. Because projection along
+parallel rays is affine, it applies equally to the spot's centroid and to each
+vertex of its footprint.
+
+**Special case: detector perpendicular to the beam.** With
+$\hat{\mathbf{n}} = \hat{\mathbf{x}}$, $\hat{\mathbf{c}}_p$ lies in the detector
+plane, $Q_p\hat{\mathbf{c}}_p = \hat{\mathbf{c}}_p$, and
+$L_p = d_p/\cos 2\theta_p$. The ring term becomes
+$(d_p\tan 2\theta_p/(a\cos\theta_p))\,\hat{\mathbf{c}}_p\,[\hat{\mathbf{t}}_p + (\hat{\mathbf{z}}\cdot\hat{\mathbf{t}}_p)\nabla_L\omega^*_p]^{\top}$,
+Section 3.6.2's result, with the spot moving along $\hat{\mathbf{c}}_p$, the ring
+tangent. The parallax term's in-plane part is $r_\perp\cos\phi_{v,p}/a$ along
+the horizontal axis, as in Section 3.6.2, plus an obliquity correction
+proportional to $r_\perp\sin\phi_{v,p}\,\tan 2\theta_p$ that the head-on
+approximation dropped.
+
+**Structural properties.**
+
+1. **Blind axis.** With $\hat{\mathbf{g}}_{s,p}$ the unit vector along
+   $\mathbf{g}_{s,p}$, $\Gamma_p\,\hat{\mathbf{g}}_{s,p} = 0$ exactly, because
+   $[\mathbf{g}]_\times\mathbf{g} = 0$ and $\nabla\omega^*\cdot\hat{\mathbf{g}} = 0$
+   (since $\hat{\mathbf{c}} \perp \mathbf{g}$). Rotation about the peak's own
+   reciprocal vector changes nothing, so $\Gamma_p$ has rank at most two.
+2. **The $\hat{\mathbf{z}}$ column is pure parallax.** Because
+   $(I + \hat{\mathbf{z}}\nabla_L\omega^{*\top})\hat{\mathbf{z}} = \hat{\mathbf{z}} - \hat{\mathbf{z}} = 0$
+   and $\nabla_L\omega^*\cdot\hat{\mathbf{z}} = -1$,
+   $$
+   \Gamma_p\,\hat{\mathbf{z}} = -\Pi\,Q_p\,(\hat{\mathbf{z}}\times\mathbf{x}_{v,p}) :
+   $$
+   minus the voxel's velocity per radian of stage rotation, as seen on the
+   detector along the ray. It vanishes for a voxel on the axis. This is the exact
+   form of Section 3.1.5, point 2.
+3. **Rank.** The ring term alone has rank one (it always moves the spot along
+   $Q_p\hat{\mathbf{c}}_p$). Near the axis the parallax term is small, so the
+   spot moves essentially along a line; off the axis $\Gamma_p$ has rank two.
+4. **Full per-peak observation Jacobian.** Stacking the frame gradient
+   $\nabla\omega^{*\top}_p = \nabla_L\omega^{*\top}_p R_z(\omega^*_p)$ on top of
+   $\Gamma_p$ gives the $3\times3$ map from $\delta$ to (frame angle, column,
+   row). It also annihilates $\hat{\mathbf{g}}_{s,p}$, so each peak constrains
+   at most the two components of $\delta$ perpendicular to its reciprocal
+   vector.
+5. **Geometric reading.** By the singular value decomposition, $\Gamma_p$ maps a
+   ball of orientation offsets of radius $\beta$ to an ellipse of spot positions
+   with semi-axes $\beta$ times its singular values. That ellipse is the region
+   a window around the spot must cover.
+
+**Worked example.** Reflection 362, branch 2, of the running example's voxel 0
+($\omega^* = 7.7^\circ$, spot near column 819, row 1575, voxel lab azimuth
+$-172^\circ$, i.e. upstream of the axis). Entries in px/rad; columns are
+rotation about sample $x$, $y$, $z$:
+
+| $r_\perp$ | | ring term | parallax term | $\Gamma_p$ (closed form) | finite differences |
+|---|---|---|---|---|---|
+| $12\,\mu$m | col | $(-339.5,\ 108.9,\ 0)$ | $(1.7,\ 12.9,\ 7.5)$ | $(-337.8,\ 121.9,\ 7.5)$ | $(-337.7,\ 121.8,\ 7.5)$ |
+| | row | $(197.3,\ -63.3,\ 0)$ | $(0.0,\ -0.3,\ -0.2)$ | $(197.2,\ -63.6,\ -0.2)$ | $(197.3,\ -63.6,\ -0.1)$ |
+| $500\,\mu$m | col | $(-388.1,\ 124.5,\ 0)$ | $(76.7,\ 569.0,\ 329.8)$ | $(-311.4,\ 693.5,\ 329.8)$ | $(-311.4,\ 693.5,\ 329.8)$ |
+| | row | $(225.5,\ -72.3,\ 0)$ | $(-2.1,\ -15.9,\ -9.2)$ | $(223.3,\ -88.2,\ -9.2)$ | $(223.3,\ -88.3,\ -9.2)$ |
+
+Reading it:
+
+- Near the axis the parallax term is tiny and all three columns point the same
+  way on the detector: singular values 415 and 7 px/rad, so the spot moves along
+  a line (the ring tangent), about $7\,$px per degree.
+- The blind axis, $(-0.155, -0.483, 0.862)$, equals the direction of
+  $\mathbf{g}_{s,p}$, $(-0.154, -0.480, 0.864)$.
+- At $500\,\mu$m the voxel sits $0.5$ mm upstream, so the ray is 15% longer and
+  the ring term 15% larger. The parallax term, $(\hat{\mathbf{z}}\times\mathbf{x}_v)$
+  times this peak's frame gradient $\nabla\omega^* = (-0.23, -1.73, -1)$, adds
+  mainly to the column entries and makes the $z$ column large. Singular values
+  become 845 and 175 px/rad: the spot now moves over a 2D region.
+- The small row entries of the parallax term are the obliquity correction the
+  head-on approximation missed.
+
+**Check.** For all 790 ROI peaks of voxel 0, at $r_\perp$ = 12, 100, 250 and
+$500\,\mu$m, the closed form was compared with central finite differences
+(step $10^{-3}$ rad) of the simulator's projected spot centroid. Relative
+Frobenius error: median $1.5\times10^{-4}$, 90th percentile $3\times10^{-4}$,
+maximum 1.1% (near-axis peaks, where the finite-difference step itself sees
+curvature). $|\Gamma_p\,\hat{\mathbf{g}}_{s,p}|$ is zero to machine precision.
+
+### 3.6.4 Combining peaks
 
 With the error model of Section 3.6.1, the information matrix is
 $$
 J = \frac{12}{\Delta\omega_f^2}\sum_{p=1}^{P}\nabla\omega^*_p\,\nabla\omega^{*\top}_p
-\;+\; 12\sum_{p=1}^{P}\nabla\xi_p\,\nabla\xi_p^{\top},
+\;+\; 12\sum_{p=1}^{P}\Gamma_p^{\top}\Gamma_p ,
 $$
-and the covariance of a least-squares estimate of $\delta$ is approximately
-$J^{-1}$. Two structural facts give closed forms.
+with $\Gamma_p$ the spot-motion Jacobian of Section 3.6.3, and the covariance of
+a least-squares estimate of $\delta$ is approximately $J^{-1}$. Using the
+simplified ring and parallax terms of Section 3.6.2, and treating the two
+displacements as independent pixel measurements, gives closed forms.
 
-- **About the rotation axis.** Pixels contribute nothing to $J_{zz}$, and every
-  peak contributes exactly $12/\Delta\omega_f^2$ through its frame, so
-  $J_{zz} = 12P/\Delta\omega_f^2$. When pixel information dominates the
-  perpendicular block, the coupling through the frame terms is negligible and
+- **About the rotation axis.** Every peak contributes exactly
+  $12/\Delta\omega_f^2$ through its frame and
+  $12\,(r_\perp\cos\phi_{v,p}/a)^2$ through parallax. With peaks firing at
+  well-spread $\omega^*$, $\cos^2\phi_{v,p}$ averages to $1/2$, so
+  $J_{zz} \approx 12P\,[\,1/\Delta\omega_f^2 + r_\perp^2/(2a^2)\,]$. When pixel
+  information dominates the perpendicular block, the coupling between blocks is
+  negligible and
   $$
-  \sigma_z \approx \frac{\Delta\omega_f}{\sqrt{12\,P}} = \sqrt{\frac{\Delta\omega_f}{12\,\nu\,N}} .
+  \sigma_z \approx \frac{1}{\sqrt{12\,P\left(\dfrac{1}{\Delta\omega_f^2} + \dfrac{r_\perp^2}{2a^2}\right)}} .
   $$
+  Two limits:
+  - *near the axis* ($r_\perp \ll \sqrt{2}\,a/\Delta\omega_f$): frames dominate,
+    $\sigma_z \approx \Delta\omega_f/\sqrt{12P} = \sqrt{\Delta\omega_f/(12\nu N)}$;
+  - *far from the axis* ($r_\perp \gg \sqrt{2}\,a/\Delta\omega_f$): parallax
+    dominates, $\sigma_z \approx a/(r_\perp\sqrt{6P})$, independent of the frame
+    width.
+
+  The crossover is at $r_\perp^* = \sqrt{2}\,a/\Delta\omega_f$, about $120\,\mu$m
+  for $1.48\,\mu$m pixels and $1^\circ$ frames.
 - **Perpendicular to the axis.** The $\nabla\xi_p$ lie in the plane
   perpendicular to $\hat{\mathbf{z}}$; if their directions are spread over it,
   each perpendicular axis receives half of $12\sum_p|\nabla\xi_p|^2$.
-  Approximating the bracket in $\nabla\xi_p$ by a unit vector,
+  Approximating the bracket in $\nabla\xi_p$ by a unit vector and $d_p$ by $d$,
   $|\nabla\xi_p| \approx \kappa_p\,d/a$ with $\kappa_p = \tan 2\theta_p/\cos\theta_p \approx 2\theta_p$,
   $$
   \sigma_\perp \approx \frac{a/d}{\kappa\,\sqrt{6\,P}} = \frac{a/d}{\kappa\,\sqrt{6\,\nu\,N\,\Delta\omega_f}},
   $$
-  where $\kappa$ is the root-mean-square of $\kappa_p$ over peaks.
+  where $\kappa$ is the root-mean-square of $\kappa_p$ over peaks. (Parallax
+  adds a little perpendicular information too, which this neglects.)
 
-The RMS misorientation is then $\sqrt{2\sigma_\perp^2 + \sigma_z^2}$, and the
-anisotropy is
+The RMS misorientation is then $\sqrt{2\sigma_\perp^2 + \sigma_z^2}$. The two
+formulas share a form: each is $a$ divided by a lever arm and by $\sqrt{6P}$.
+Perpendicular to the axis the lever arm is $\kappa d \approx$ the ring radius;
+about the axis it is $r_\perp$ (far from the axis) or the frame-equivalent
+$\sqrt{2}\,a/\Delta\omega_f$ (near it). The anisotropy is therefore
 $$
-\frac{\sigma_z}{\sigma_\perp} \approx \frac{\sqrt{2}\,\kappa\,\Delta\omega_f}{a/d} .
+\frac{\sigma_z}{\sigma_\perp} \approx \frac{\kappa\,d}{\sqrt{2a^2/\Delta\omega_f^2 + r_\perp^2}}
+\;\longrightarrow\;
+\begin{cases}
+\kappa\,\Delta\omega_f/(\sqrt{2}\,a/d) & \text{near the axis,}\\[2pt]
+\kappa\,d/r_\perp & \text{far from it.}
+\end{cases}
 $$
 
-### 3.6.4 Numerical check
+### 3.6.5 Numerical check
 
 Running example, voxel 0: 790 ROI peaks, all assigned to the first detector
 ($d = 3.36$ mm, $a = 1.48\,\mu$m, so $a/d = 4.4\times10^{-4}$ rad), 788 with
 usable finite differences. Spot positions were taken from the simulator's
 projected centroid and differentiated numerically.
 
-- **Ring motion:** the spot-position Jacobian is rank one, as predicted: its
+- **Ring motion:** voxel 0 is only $12\,\mu$m from the axis, so parallax is
+  negligible and the spot-position Jacobian is rank one, as predicted: its
   second singular value is 0.6% of the first (median; at most 3%).
 - **Magnitude of $\nabla\xi_p$:** matches the formula with median relative error
   0.75% (90th percentile 2.8%). A typical spot moves 1,000 px/rad
@@ -602,18 +821,45 @@ projected centroid and differentiated numerically.
 | $J^{-1}$, frames only | $0.0098^\circ$, $0.0062^\circ$ | $0.010^\circ$ |
 | $J^{-1}$, pixels only | $0.00079^\circ$ | $0.10^\circ$ (parallax only) |
 | $J^{-1}$, frames + pixels | $0.00079^\circ$ | $0.0102^\circ$ |
-| Closed forms (3.6.3) | $0.00086^\circ$ | $0.0103^\circ$ |
+| Closed forms (3.6.4) | $0.00086^\circ$ | $0.0103^\circ$ |
 
 The predicted anisotropy is 12; $J^{-1}$ gives 13.
 
-### 3.6.5 Scaling and caveats
+**Off-axis voxels.** The same voxel was moved to larger $r_\perp$ (keeping its
+azimuth and orientation) and the analysis repeated on a random subset of 250 of
+its peaks, so the $\sigma$ values here are larger than in the table above, which
+used all 788. The prediction for the $\hat{\mathbf{z}}$ sensitivity is
+$r_\perp|\cos\phi_v|/a$, whose median over uniformly spread $\phi_v$ is
+$0.71\,r_\perp/a$.
 
-- **Fixed total sweep** ($N\Delta\omega_f$ constant): $\sigma_z \propto \Delta\omega_f$,
-  so halving the frame width halves the error about the axis; $\sigma_\perp$ is
-  unchanged.
+| $r_\perp$ | Jacobian 2nd/1st singular value (median / max) | $\hat{\mathbf{z}}$ sensitivity, measured / $(r_\perp/a)$ | $\sigma_z$ from $J^{-1}$ | $\sigma_z$ closed form |
+|---|---|---|---|---|
+| $12\,\mu$m | 0.006 / 0.03 | 0.73 | $0.018^\circ$ | $0.018^\circ$ |
+| $50\,\mu$m | 0.026 / 0.14 | 0.72 | $0.017^\circ$ | $0.017^\circ$ |
+| $100\,\mu$m | 0.052 / 0.25 | 0.73 | $0.014^\circ$ | $0.014^\circ$ |
+| $250\,\mu$m | 0.13 / 0.46 | 0.73 | $0.0075^\circ$ | $0.0079^\circ$ |
+| $500\,\mu$m | 0.23 / 0.82 | 0.76 | $0.0039^\circ$ | $0.0043^\circ$ |
+
+Over the same range the perpendicular errors stayed between $0.0008^\circ$ and
+$0.0015^\circ$, so the anisotropy fell from about 12 to about 4. The Jacobian
+becomes clearly rank two as the voxel moves off the axis, confirming that spots
+no longer move along a single line.
+
+### 3.6.6 Scaling and caveats
+
+- **Fixed total sweep** ($N\Delta\omega_f$ constant): for voxels near the axis,
+  $\sigma_z \propto \Delta\omega_f$, so halving the frame width halves the error
+  about the axis; far from the axis, $\sigma_z$ no longer depends on the frame
+  width. $\sigma_\perp$ is unchanged either way.
 - **Fixed frame width:** both errors fall as $1/\sqrt{N}$.
-- **Pixel size and distance** enter only through $a/d$, and only in
-  $\sigma_\perp$.
+- **Pixel size** enters $\sigma_\perp$ through $a/d$ and, far from the axis,
+  $\sigma_z$ through $a/r_\perp$.
+- **Voxel position matters.** Resolution about the rotation axis is not uniform
+  across the sample: it improves with distance from the axis once
+  $r_\perp \gtrsim \sqrt{2}\,a/\Delta\omega_f$.
+- **Validity.** The parallax result is first order in $r_\perp/d$ and assumes
+  near-normal incidence on the detector; it has been checked only up to
+  $r_\perp = 0.5$ mm with $d = 3.36$ mm.
 
 These are idealised floors, well below the roughly $0.1^\circ$ typical of real
 high-energy X-ray diffraction microscopy (HEDM) reconstructions. The check uses a noise-free, perfectly calibrated
