@@ -1017,3 +1017,119 @@ uv run python benchmarks/bench_hybrid_optimizer.py --example threevoxels
 - `benchmarks/bench_hybrid_success_rate_{example}.png` — success rate vs perturbation
 - `benchmarks/bench_hybrid_wall_time_{example}.png` — wall time with stacked Adam/hard-eval breakdown
 - `benchmarks/bench_hybrid_scatter_{example}.png` — per-run MC vs hybrid misorientation scatter
+
+## Toy Orientation NN — Theory Phase (2026-09-28)
+
+**Branch**: `feature/nn-orientation-toy`
+**Scope of the merged PR**: documentation only. The v0 prototype code stays local
+and uncommitted for a follow-up feature branch (see "Prototype status" below).
+
+**Motivation**: explore replacing the iterative orientation search
+(`MCOptimizer`, `RiemannianAdamOptimizer`) with a neural network that predicts a
+voxel's orientation offset from its detector data in one forward pass, starting
+with local refinement around a known nominal orientation on simulated
+Example2.ThreeVoxels data. A v0 smoke test exposed that the problem needed to be
+formulated properly first; this phase did that.
+
+### Documents added (`icenine_py/docs/`, render with pandoc, no `-N`)
+
+| File | Content |
+|------|---------|
+| `omega_peak_width_derivation.md` | Rocking width of a peak in a rotation scan, Δω ≈ α/\|sin η\| (the Lorentz factor's 1/\|sin η\| part), and worst-case sensitivity of ω* to orientation, exactly 1/\|sin η\| rad/rad. Verified against `get_scattering_omegas_torch` on 5,100 (reflection, branch) pairs. |
+| `nn_inverse_problem_formulation.md` | Why the frame/pixel-integrated, thresholded forward model has no inverse; what a supervised network learns instead (posterior mean with squared loss, covariance with Gaussian NLL); geometry of frame and pixel boundaries in orientation space; closed-form spot-motion Jacobian Γ_p (ring + parallax terms); angular-resolution estimates; references. Numerical checks throughout. |
+
+### Key results
+
+- **The target is a posterior, not an inverse.** The thresholded measurement map
+  is piecewise constant in the orientation offset δ, so a region of orientations
+  gives identical data. Squared loss converges to E[δ|D]; Gaussian NLL adds the
+  covariance, which must be a full 3×3 matrix (the consistent set is
+  anisotropic). The training perturbation distribution is the prior. The MMSE is
+  a floor for every method, including MC and Riemannian Adam.
+- **Frame boundaries** are level sets of ω*_p(δ); to first order parallel planes
+  Δω_f·|sin η_p| apart. Holds within 0.5° for the 96% of Example2 peaks with
+  |sin η| ≥ 0.3; strongly curved for near-axis peaks, which carry the most ω
+  information. Rotation about the rotation axis shifts every ω* by exactly the
+  rotation angle (all orders).
+- **Spot motion** = sliding along the instantaneous Debye–Scherrer ring (cone
+  with apex at the voxel's current lab position) + parallax (the voxel moves with
+  the stage when ω* shifts). The ring accumulated over a scan is not a single
+  conic. Closed-form Jacobian matches simulator finite differences to 1.5×10⁻⁴
+  (median) for all 790 peaks of voxel 0 at r_⊥ = 12–500 µm.
+- **Resolution** (independent-quantisation model, idealised):
+  σ_z ≈ 1/√(12P(1/Δω_f² + r_⊥²/(2a²))), σ_⊥ ≈ (a/d)/(κ√(6P)). About the
+  rotation axis: frame-limited near the axis, parallax-limited beyond
+  r_⊥ ≈ √2·a/Δω_f (≈120 µm for 1.48 µm pixels and 1° frames). Example2 voxel 0:
+  σ_z ≈ 0.010°, σ_⊥ ≈ 0.0008° (real HEDM is ~0.1°). Anisotropy ≈ 12 near the
+  axis, ≈ 3–4 at 0.5 mm.
+
+### Gotchas discovered
+
+- **Peak count**: Example2's config has `MaxQ 16`, giving 790 peaks for voxel 0
+  (not "tens"). The printed "Max Q calculated: 24.79" is the geometric limit
+  before the config cap. Reconstruction typically uses Q_max = 8.
+- **Structure list index**: Example2's voxels have `phase = 1`;
+  `structure_list[0]` is empty.
+- **v0 evaluation was invalid**: the HP-sweep baseline is indexed by starting
+  perturbation, v0 reported final-error thresholds, and there was no
+  predict-nominal baseline.
+- **v0 cannot see rotation about the rotation axis** for near-axis voxels: its
+  windows drop the frame index, and pixels see that rotation only through
+  parallax.
+- **Only one detector used**: the prototype's ROI definition assigns each peak
+  to the first detector it hits; the experiment (and the C++ model) use both.
+- **Simulator shortcuts**: noise-free intensities vary smoothly with δ and leak
+  information real, thresholded data don't carry.
+- **Sample translation** is zero and the base sample rotation is the identity
+  in Example2, so solver frame = lab frame.
+
+### Prototype status (local, uncommitted)
+
+`icenine/orientation_nn.py` (ROI definition, single-frame windowed renderer,
+perturbation sampler, dataset, loss/metric), `icenine/toy_orientation_model.py`
+(flatten → FC 512/256/128 → quaternion), `scripts/generate_toy_orientation_dataset.py`,
+`scripts/train_toy_orientation_nn.py`, `tests/test_orientation_nn.py` (14 tests,
+passing), `.gitignore` entry `scripts/*.pt`, and the numerical-check scripts
+behind `nn_inverse_problem_formulation.md` (`scripts/checks/`). The script behind
+the derivation note's §7.1 check was lost with a temporary directory; its method
+is described in that section and is easy to reproduce.
+
+### Remaining plan
+
+**Stage 0 — fix the evaluation.** Output a rotation offset δ plus a Cholesky
+covariance, trained with Gaussian NLL (β-NLL if unstable). Report the ẑ and
+perpendicular error components separately against the closed-form estimates.
+Add a predict-nominal baseline and an exact Bayes baseline (sample the prior,
+keep samples whose exact frame/pixel assignments match; gives the MMSE floor).
+Report by starting-perturbation magnitude like `bench_hp_sweep.py`. Threshold or
+noise the inputs. Re-run the v0 smoke test under this evaluation.
+
+**Stage 1 — forward model and inputs** (in `orientation_nn.py`; leave the
+C++-validated `ForwardSimulation` and cost functions unchanged). Record each peak
+on every detector it hits. Use the reconstruction Q_max. Add per-peak metadata
+(η, θ, nominal frame, ring tangent). Model the rocking width α/|sin η| as a box
+split across frames (α = 0 must reproduce the single-frame renderer). Size each
+peak's window from its spot-motion Jacobian and the frame drift β_max/|sin η|.
+Test voxels at several distances from the axis. Keep peak sets and storage small
+(Q_max, stratified subsets, sparse storage).
+
+**Stage 2 — baselines without learning.** Predict-nominal; exact Bayes; Gauss–
+Newton on (frame index, spot position) with the analytic Jacobians; HP-sweep MC
+and Riemannian Adam at matching starting perturbations.
+
+**Stage 3 — pixel network.** Shared per-peak encoder over frames × window plus
+per-peak context (|sin η|, θ, detector, ring direction, position), masked pooling,
+MLP head → δ + Cholesky factor. Compare per axis with Stage 2 and the floor.
+
+**Stage 4 — realism.** Noise, intensity variation, detector point-spread and
+partial pixel coverage, α from real data, multiple voxels and orientations, then
+real data.
+
+**Open decisions.**
+- D1: α for simulation (sweep {0, 0.01°, 0.03°, 0.1°} until measured; config
+  `BeamEnergyWidth 0.5` has unconfirmed units).
+- D2: training prior = typical residual error after the coarse Sukharev search.
+- D3: near-axis peaks vs window size (drop, per-peak ω-window, or small β_max).
+- D4: a real dataset with known orientations to measure frame spread vs
+  1/|sin η| and estimate α.
+- D5: use the reconstruction Q_max (8 Å⁻¹) for the toy (recommended).

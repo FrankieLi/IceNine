@@ -592,6 +592,23 @@ The batched cost function is organized into four stages:
 
 Stage D processes all M peaks × N detectors in a single C call via `_rasterize.c:stage_d_overlap()`. It uses pre-cached uint8 binary images (`ImageData.get_binary_numpy()`) and implements triangle overlap, pixel-radius search, contiguity validation, and Welford quality aggregation entirely in C. A Python fallback path is available when the C extension is not compiled.
 
+## Design Notes (`docs/`)
+
+Derivations that underpin ongoing work, written in Markdown with LaTeX math
+(render with `pandoc <file>.md -o <file>.pdf`, without `-N`):
+
+- [`docs/omega_peak_width_derivation.md`](docs/omega_peak_width_derivation.md) —
+  angular width of a diffraction peak in a rotation scan (Δω ≈ α/|sin η|) and
+  the sensitivity of the Bragg crossing to orientation (1/|sin η|).
+- [`docs/nn_inverse_problem_formulation.md`](docs/nn_inverse_problem_formulation.md) —
+  what a neural network for orientation refinement should approximate given
+  frame/pixel-integrated data (the posterior, not an inverse), the spot-motion
+  Jacobian, and angular-resolution estimates in terms of pixel size, frame width,
+  number of frames and distance from the rotation axis.
+
+See [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy Orientation NN — Theory
+Phase") for the status of this work and the remaining plan.
+
 ## Citation
 
 S. F. Li and R. M. Suter, "Adaptive reconstruction method for three-dimensional orientation imaging", *Journal of Applied Crystallography*, 2013.

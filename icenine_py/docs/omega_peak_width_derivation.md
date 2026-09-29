@@ -13,6 +13,8 @@ Its relations have been checked numerically against the simulator's Bragg
 solver (`get_scattering_omegas_torch`) on Example2.ThreeVoxels and agree to
 floating-point precision (Section 7.1). It has **not** yet been checked against
 real data or cross-checked against a crystallography reference (Section 7.2).
+Section numbers are written into the headings, so render without pandoc's
+`-N`, e.g. `pandoc omega_peak_width_derivation.md -o omega_peak_width_derivation.pdf`.
 
 # 1. Problem
 

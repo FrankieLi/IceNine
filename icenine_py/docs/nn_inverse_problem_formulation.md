@@ -38,7 +38,9 @@ This note makes precise what that map should be.
 Physics results used here are derived and numerically verified in
 `omega_peak_width_derivation.md` (the "derivation note"). The frame-boundary
 geometry in Section 3.1 and the spot-motion and resolution results in Section 3.6
-have been checked numerically (Sections 3.1.6, 3.6.3 and 3.6.5). The pixel level-set
+have been checked numerically (Sections 3.1.6, 3.6.3 and 3.6.5). Section
+numbers are written into the headings, so render without pandoc's `-N`, e.g.
+`pandoc nn_inverse_problem_formulation.md -o nn_inverse_problem_formulation.pdf`. The pixel level-set
 structure in Section 3.2 has not.
 
 # 1. Setup and notation
@@ -78,7 +80,10 @@ where $[\delta]_\times$ is the $3\times3$ skew-symmetric matrix with
 $[\delta]_\times\mathbf{v} = \delta\times\mathbf{v}$, and $\exp$ is the matrix
 exponential. Equivalently, $\delta$ is a rotation by angle $|\delta|$ about the
 axis $\delta/|\delta|$ (an element of the Lie algebra $\mathfrak{so}(3)$). This
-matches how `sample_local_perturbations` composes perturbations. The true offset
+is how the toy-NN prototype composes perturbations (a left multiplication). The
+prototype draws its perturbations uniformly in a box of the near-identity
+quaternion parameterisation used by IceNine's Monte Carlo search, not uniformly
+in $\delta$, so the prior it implies is not exactly uniform in $\delta$. The true offset
 is $\delta_{\text{true}}$. The training perturbation distribution is a prior
 $\pi(\delta)$. $\nabla$ denotes the gradient with respect to $\delta$, and
 $\mathbf{e}_1, \mathbf{e}_2, \mathbf{e}_3$ the standard basis of $\mathbb{R}^3$.
@@ -87,12 +92,14 @@ $\mathbf{e}_1, \mathbf{e}_2, \mathbf{e}_3$ the standard basis of $\mathbb{R}^3$.
 
 - **Reflection.** Each crystal reflection has a reciprocal-lattice vector
   $\mathbf{g}_{hkl}$ in the crystal frame; in the sample frame it is
-  $\mathbf{g}_s = R(\delta)\,\mathbf{g}_{hkl}$. Its Bragg angle $\theta$ is set
+  $\mathbf{g}_s = R_{\text{nom}}\,\mathbf{g}_{hkl}$ at the nominal orientation,
+  and $\exp([\delta]_\times)\,\mathbf{g}_s$ after the offset. Its Bragg angle $\theta$ is set
   by $|\mathbf{g}| = 2|\mathbf{k}|\sin\theta$.
 - **Branch and peak.** As the sample rotates, a reflection satisfies the Bragg
-  condition at up to two angles (two **branches**). A **peak** $p$ is one
-  (reflection, branch) pair that is observable in the scanned range and lands on
-  a detector. There are $P$ peaks.
+  condition at up to two angles (two **branches**). A (reflection, branch) pair
+  is **Bragg-observable** if that angle lies in the scanned range. A **peak** $p$
+  is a Bragg-observable pair whose spot also lands on a detector; the prototype
+  code calls the set of peaks of one voxel its **ROI set**. There are $P$ peaks.
 - **Bragg crossing.** $\omega^*_p(\delta)$ is the rotation angle at which peak
   $p$ satisfies the Bragg condition.
 - **Angles.** $\chi_p$ is the angle between $\mathbf{g}_s$ and the rotation axis,
@@ -104,11 +111,13 @@ $\mathbf{e}_1, \mathbf{e}_2, \mathbf{e}_3$ the standard basis of $\mathbb{R}^3$.
   $\theta_p$.
 - **Detector position.** $\mathbf{u}_p(\delta) = (x_p, y_p)$ is where peak $p$
   lands, in pixel units. The spot's footprint is the projected voxel triangle,
-  with vertices $\mathbf{u}_{p,v} = (x_{p,v}, y_{p,v})$, $v = 0, 1, 2$.
+  with vertices $\mathbf{u}_{p,i} = (x_{p,i}, y_{p,i})$, $i = 0, 1, 2$.
 - **Intensity.** $L_p(\delta)$ is the peak's integrated intensity, including the
   **Lorentz factor** $1/(\sin 2\theta_p\,|\sin\eta_p|)$ applied by
-  `XDMEtaAcceptFn`, which accounts for how long the reflection stays in the
-  diffracting condition.
+  `XDMEtaAcceptFn` and its batched form `batch_eta_filter`. Its
+  $1/|\sin\eta_p|$ part accounts for how long the reflection stays in the
+  diffracting condition (derivation note, §6.1); the $1/\sin 2\theta_p$ part is
+  not derived in these notes.
 - **Rocking width.** Because of the beam's energy bandwidth and divergence, the
   Bragg condition is satisfied over a small range $\alpha$ of glancing angles
   (the **tolerance**; there is no mosaic contribution under the
@@ -341,7 +350,9 @@ $\tan\theta = 0.1$ the condition gives about $4^\circ$ at $|\sin\eta| = 0.3$ but
 only about $0.14^\circ$ at $|\sin\eta| = 0.033$. This is a heuristic scaling,
 not a bound.
 
-**Check.** All 5,100 observable peaks of the running example's three voxels.
+**Check.** All 5,100 Bragg-observable (reflection, branch) pairs of the running
+example's three voxels, whether or not they hit a detector (the geometry of
+$\omega^*$ does not depend on the detector).
 For each peak and radius $\beta$, 200 random directions on the sphere
 $|\delta| = \beta$: the exact $\omega^*$ from `get_scattering_omegas_torch` was
 compared with the linear prediction, and the gradient (by central differences)
@@ -362,7 +373,10 @@ tilts and the spacing changes.
 | $2^\circ$ | 23 / 36 (27% stop diffracting) | 1.4 / 15 (1% stop) | 0.03 / 0.63 |
 
 - **Parallelism** (largest tilt of the plane normal; largest factor by which the
-  local plane spacing changes, up or down; median / max over peaks):
+  local plane spacing changes, up or down; median / max over peaks). Gradients
+  are only evaluated where the peak still diffracts, so for $|\sin\eta| < 0.1$ at
+  larger $\beta$ the most extreme points drop out; that is why the maximum
+  spacing factor falls from ×7.5 at $0.5^\circ$ to ×2.7 at $1^\circ$:
 
 | $\beta$ | $\lvert\sin\eta\rvert < 0.1$ | $0.1$–$0.3$ | $\ge 0.3$ |
 |---|---|---|---|
@@ -392,11 +406,11 @@ In the simulator, pixel boundaries have the same structure. `add_triangle_scanli
 first truncates each of the spot triangle's three vertices to integer pixel
 coordinates (`image_data.py`, matching the C++ rasteriser), then fills between
 them. The lit-pixel set is therefore a function only of the six integers
-$\lfloor x_{p,v}(\delta)\rfloor$, $\lfloor y_{p,v}(\delta)\rfloor$, $v = 0,1,2$.
-Its boundaries in $\delta$-space are the level sets $\{x_{p,v}(\delta) = \ell\}$
-and $\{y_{p,v}(\delta) = \ell\}$ for integers $\ell$, i.e. six families of
+$\lfloor x_{p,i}(\delta)\rfloor$, $\lfloor y_{p,i}(\delta)\rfloor$, $i = 0,1,2$.
+Its boundaries in $\delta$-space are the level sets $\{x_{p,i}(\delta) = \ell\}$
+and $\{y_{p,i}(\delta) = \ell\}$ for integers $\ell$, i.e. six families of
 surfaces per spot. To first order each family is a set of parallel planes
-spaced one pixel divided by $|\nabla x_{p,v}|$ or $|\nabla y_{p,v}|$.
+spaced one pixel divided by $|\nabla x_{p,i}|$ or $|\nabla y_{p,i}|$.
 
 Three further points:
 
@@ -428,7 +442,7 @@ the connected regions left when the planes are removed (Stanley 2007). In the
 regime where the plane picture holds, the frame and pixel planes of all peaks
 form such an arrangement, and its cells are the fibres of Section 2.1. Given
 data $D$, let $j_p^{\text{obs}}$ be the observed frame of peak $p$. The
-**consistent set** is the convex polytope
+**consistent set** is (in this linear regime) the convex polytope
 $$
 C(D) = \bigcap_{p=1}^{P} \{\delta : \omega^*_p(\delta) \in I_{j_p^{\text{obs}}} \text{ and peak } p \text{ lights its observed pixels}\},
 $$
@@ -624,19 +638,19 @@ starting point (parallax).
   and row axes $\hat{\mathbf{e}}_{\text{col}}, \hat{\mathbf{e}}_{\text{row}}$,
   and pixel size $a$. Write $\Pi$ for the $2\times3$ matrix with rows
   $\hat{\mathbf{e}}_{\text{col}}^{\top}/a$ and $\hat{\mathbf{e}}_{\text{row}}^{\top}/a$
-  (lab displacement in the detector plane → pixels);
-- $L_p$, the length of the ray from the voxel to the detector;
+  (converts a lab displacement in the detector plane to pixels);
+- $\Lambda_p$, the length of the ray from the voxel to the detector;
 - $[\mathbf{v}]_\times$, the skew-symmetric matrix with
   $[\mathbf{v}]_\times\mathbf{w} = \mathbf{v}\times\mathbf{w}$ (Section 1.2).
 
 **Step 1: where a ray hits the detector.** A ray from $\mathbf{x}_o$ along
 $\hat{\mathbf{k}}'$ meets the detector plane at
-$\mathbf{s} = \mathbf{x}_o + L\,\hat{\mathbf{k}}'$, with $L$ fixed by
+$\mathbf{s} = \mathbf{x}_o + \Lambda\,\hat{\mathbf{k}}'$, with $\Lambda$ fixed by
 $\hat{\mathbf{n}}\cdot\mathbf{s}$ equalling the plane's offset. Differentiating,
-and eliminating $dL$ with the plane condition
+and eliminating $d\Lambda$ with the plane condition
 $\hat{\mathbf{n}}\cdot d\mathbf{s} = 0$,
 $$
-d\mathbf{s} = Q_p\,\big(d\mathbf{x}_o + L_p\,d\hat{\mathbf{k}}'\big),
+d\mathbf{s} = Q_p\,\big(d\mathbf{x}_o + \Lambda_p\,d\hat{\mathbf{k}}'\big),
 \qquad
 Q_p = I - \frac{\hat{\mathbf{k}}'_p\,\hat{\mathbf{n}}^{\top}}{\hat{\mathbf{n}}\cdot\hat{\mathbf{k}}'_p} .
 $$
@@ -661,21 +675,23 @@ $$
 **Step 4: assemble.** Convert to pixels with $\Pi$ and to the sample frame with
 $\delta_L = R_z(\omega^*_p)\,\delta$:
 $$
-\Gamma_p = \Pi\,Q_p\Big[\underbrace{-\frac{L_p}{|\mathbf{k}|}\,[\mathbf{g}_p]_\times\big(I + \hat{\mathbf{z}}\,\nabla_L\omega^{*\top}_p\big)}_{\text{ring (direction) term}}
+\Gamma_p = \Pi\,Q_p\Big[\underbrace{-\frac{\Lambda_p}{|\mathbf{k}|}\,[\mathbf{g}_p]_\times\big(I + \hat{\mathbf{z}}\,\nabla_L\omega^{*\top}_p\big)}_{\text{ring (direction) term}}
 \;+\;\underbrace{(\hat{\mathbf{z}}\times\mathbf{x}_{v,p})\,\nabla_L\omega^{*\top}_p}_{\text{parallax term}}\Big]\,R_z(\omega^*_p) .
 $$
 This is first order in $\delta$ and makes no further approximation: it holds for
-any flat detector orientation and any voxel position. Because projection along
-parallel rays is affine, it applies equally to the spot's centroid and to each
-vertex of its footprint.
+any flat detector orientation and any voxel position. It applies to each
+vertex of the spot's footprint, using that vertex's own starting point and ray
+length; because projection along parallel rays is affine, the Jacobian of the
+spot's centroid is the average of the three vertex Jacobians, which is what
+using the voxel's centroid as $\mathbf{x}_{v,p}$ gives.
 
 **Special case: detector perpendicular to the beam.** With
 $\hat{\mathbf{n}} = \hat{\mathbf{x}}$, $\hat{\mathbf{c}}_p$ lies in the detector
 plane, $Q_p\hat{\mathbf{c}}_p = \hat{\mathbf{c}}_p$, and
-$L_p = d_p/\cos 2\theta_p$. The ring term becomes
-$(d_p\tan 2\theta_p/(a\cos\theta_p))\,\hat{\mathbf{c}}_p\,[\hat{\mathbf{t}}_p + (\hat{\mathbf{z}}\cdot\hat{\mathbf{t}}_p)\nabla_L\omega^*_p]^{\top}$,
-Section 3.6.2's result, with the spot moving along $\hat{\mathbf{c}}_p$, the ring
-tangent. The parallax term's in-plane part is $r_\perp\cos\phi_{v,p}/a$ along
+$\Lambda_p = d_p/\cos 2\theta_p$. The ring term becomes
+$(d_p\tan 2\theta_p/\cos\theta_p)\;\Pi\,\hat{\mathbf{c}}_p\,[\hat{\mathbf{t}}_p + (\hat{\mathbf{z}}\cdot\hat{\mathbf{t}}_p)\nabla_L\omega^*_p]^{\top}$,
+Section 3.6.2's result ($\Pi$ supplies the $1/a$), with the spot moving along
+$\hat{\mathbf{c}}_p$, the ring tangent. The parallax term's in-plane part is $r_\perp\cos\phi_{v,p}/a$ along
 the horizontal axis, as in Section 3.6.2, plus an obliquity correction
 proportional to $r_\perp\sin\phi_{v,p}\,\tan 2\theta_p$ that the head-on
 approximation dropped.
@@ -778,7 +794,10 @@ displacements as independent pixel measurements, gives closed forms.
 - **Perpendicular to the axis.** The $\nabla\xi_p$ lie in the plane
   perpendicular to $\hat{\mathbf{z}}$; if their directions are spread over it,
   each perpendicular axis receives half of $12\sum_p|\nabla\xi_p|^2$.
-  Approximating the bracket in $\nabla\xi_p$ by a unit vector and $d_p$ by $d$,
+  Approximating the bracket in $\nabla\xi_p$ by a unit vector and $d_p$ by $d$
+  (the bracket's squared length is exactly $1 + \sin^2\theta_p\cot^2\eta_p$, so
+  this underestimates the information from near-axis peaks, by up to a factor of
+  about 10 in squared length for the running example's nearest-axis peaks),
   $|\nabla\xi_p| \approx \kappa_p\,d/a$ with $\kappa_p = \tan 2\theta_p/\cos\theta_p \approx 2\theta_p$,
   $$
   \sigma_\perp \approx \frac{a/d}{\kappa\,\sqrt{6\,P}} = \frac{a/d}{\kappa\,\sqrt{6\,\nu\,N\,\Delta\omega_f}},
@@ -807,11 +826,11 @@ Running example, voxel 0: 790 ROI peaks, all assigned to the first detector
 usable finite differences. Spot positions were taken from the simulator's
 projected centroid and differentiated numerically.
 
-- **Ring motion:** voxel 0 is only $12\,\mu$m from the axis, so parallax is
+- **Ring motion:** voxel 0 is only about $12\,\mu$m from the axis, so parallax is
   negligible and the spot-position Jacobian is rank one, as predicted: its
   second singular value is 0.6% of the first (median; at most 3%).
 - **Magnitude of $\nabla\xi_p$:** matches the formula with median relative error
-  0.75% (90th percentile 2.8%). A typical spot moves 1,000 px/rad
+  0.75% (90th percentile 2.8%). A typical spot moves about 1,010 px/rad
   (17.6 px/deg) for rotations perpendicular to the axis, and 5.9 px/rad for
   rotation about the axis (parallax only, consistent with the 8 px/rad scale).
 - **Resolution** ($\kappa = 0.43$):
@@ -830,7 +849,10 @@ azimuth and orientation) and the analysis repeated on a random subset of 250 of
 its peaks, so the $\sigma$ values here are larger than in the table above, which
 used all 788. The prediction for the $\hat{\mathbf{z}}$ sensitivity is
 $r_\perp|\cos\phi_v|/a$, whose median over uniformly spread $\phi_v$ is
-$0.71\,r_\perp/a$.
+$0.71\,r_\perp/a$. Here $r_\perp$ labels the distance of the voxel's reference
+vertex (its position in the `.mic` file) from the axis; the triangle's centroid,
+which is what enters the formulas, differs by less than $1\,\mu$m (about
+$11.3\,\mu$m for the $12\,\mu$m row).
 
 | $r_\perp$ | Jacobian 2nd/1st singular value (median / max) | $\hat{\mathbf{z}}$ sensitivity, measured / $(r_\perp/a)$ | $\sigma_z$ from $J^{-1}$ | $\sigma_z$ closed form |
 |---|---|---|---|---|
@@ -841,7 +863,11 @@ $0.71\,r_\perp/a$.
 | $500\,\mu$m | 0.23 / 0.82 | 0.76 | $0.0039^\circ$ | $0.0043^\circ$ |
 
 Over the same range the perpendicular errors stayed between $0.0008^\circ$ and
-$0.0015^\circ$, so the anisotropy fell from about 12 to about 4. The Jacobian
+$0.0015^\circ$, so the anisotropy fell from about 12 to about 4. The closed
+forms predict about 2.8 at $500\,\mu$m; the difference is that parallax also
+adds perpendicular information, which the $\sigma_\perp$ closed form neglects,
+so the measured $\sigma_\perp$ ($\approx 0.001^\circ$) is below its closed form
+($0.0015^\circ$ for $P = 250$). The Jacobian
 becomes clearly rank two as the voxel moves off the axis, confirming that spots
 no longer move along a single line.
 
@@ -863,8 +889,9 @@ no longer move along a single line.
 
 These are idealised floors, well below the roughly $0.1^\circ$ typical of real
 high-energy X-ray diffraction microscopy (HEDM) reconstructions. The check uses a noise-free, perfectly calibrated
-simulator and all 790 observable peaks (up to $|\mathbf{g}| \approx 24.8$ Å$^{-1}$,
-whereas reconstruction typically uses $Q_{\max} = 8$ Å$^{-1}$). Real resolution
+simulator and all 790 of voxel 0's peaks (reflections up to the config's
+$Q_{\max} = 16$ Å$^{-1}$, whereas reconstruction typically uses
+$Q_{\max} = 8$ Å$^{-1}$). Real resolution
 is degraded by detector point-spread, spot footprint, calibration errors in $d$,
 beam centre and detector tilt, strain (which lets spots move radially),
 intensity noise and thresholding, and overlapping peaks. It would be improved by
@@ -965,8 +992,8 @@ Two established routes:
    is in the data and does not go away with more training data. Binning
    uncertainty is exactly of this kind. Plain Gaussian NLL can train poorly;
    Seitzer et al. (2022) diagnose the problem and propose a reweighted loss they
-   call β-NLL (their β is a weighting exponent, unrelated to the rotation angle
-   $\beta$ above).
+   call $\beta$-NLL (their $\beta$ is a weighting exponent, unrelated to the
+   rotation angle $\beta$ above).
 
 Because the consistent set is anisotropic (Section 4.3), the network should
 output a full $3\times3$ covariance (for example via its Cholesky factor), not
@@ -1032,10 +1059,13 @@ physics of the forward model itself, see Suter et al. (2006) and Li & Suter
 HEDM, for localising individual
 Bragg peaks rather than orientations.
 
-# 8. Implications for the plan
+# 8. Implications for the next stages
+
+The staged plan these implications feed into, with its open decisions, is
+recorded in `icenine_py/MIGRATION_HISTORY.md` (toy orientation NN section).
 
 1. **Output and loss.** Predict $\delta$ and a full covariance; train with
-   Gaussian NLL (β-NLL if training is unstable).
+   Gaussian NLL ($\beta$-NLL if training is unstable).
 2. **Exact Bayes baseline (new).** Sample $\delta \sim \pi$ and keep the samples
    whose *exact* frame assignments (computed with `get_scattering_omegas_torch`)
    match the observed ones; their mean and covariance are the posterior mean and
@@ -1045,10 +1075,11 @@ Bragg peaks rather than orientations.
    and as a fast approximation when only peaks with $|\sin\eta| \gtrsim 0.3$ are
    used. Start with frame constraints, then add pixel constraints. Compare the
    network against this, not only against predict-nominal.
-3. **Prior.** Choose $\pi$ to match deployment (decision D2 in the plan).
+3. **Prior.** Choose $\pi$ to match deployment: the residual error typically left
+   by the coarse Sukharev search (an open decision).
 4. **Avoid intensity leakage.** Train on thresholded data $M(\delta)$, or add
    noise to $A(\delta)$; at least evaluate on thresholded inputs.
-5. **Frame spread.** Model $\alpha > 0$ (plan Stage 1) so the network can use
+5. **Frame spread.** Model $\alpha > 0$ in the renderer so the network can use
    sub-frame information from near-axis peaks.
 6. **Report errors per axis.** Because resolution about the rotation axis
    (frame-limited) and perpendicular to it (pixel-limited) differ by an order of
@@ -1102,7 +1133,7 @@ Bragg peaks rather than orientations.
 - Nix, D. A. & Weigend, A. S. (1994). Estimating the mean and variance of the
   target probability distribution. *Proc. IEEE Int. Conf. Neural Networks*,
   vol. 1, 55–60. doi:10.1109/ICNN.1994.374138
-- Papamakarios, G. & Murray, I. (2016). Fast ε-free inference of simulation
+- Papamakarios, G. & Murray, I. (2016). Fast $\varepsilon$-free inference of simulation
   models with Bayesian conditional density estimation. *NeurIPS*.
   arXiv:1605.06376.
 - Seitzer, M., Tavakoli, A., Antic, D. & Martius, G. (2022). On the pitfalls of
