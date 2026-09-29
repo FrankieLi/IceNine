@@ -61,7 +61,16 @@ def setup_example(example_dir: Path, basename: str = "3Grains.sim"):
         mic_path = example_dir / mic_path
     mic = MicFile.read(str(mic_path))
 
-    return mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, _get_voxel_vertices
+    return (
+        mic,
+        sample,
+        detector_list,
+        range_map,
+        exp_setup,
+        simulator,
+        structure_list,
+        _get_voxel_vertices,
+    )
 
 
 def build_problem(example_dir: Path, voxel_index=None):
@@ -71,20 +80,37 @@ def build_problem(example_dir: Path, voxel_index=None):
     """
     from icenine.orientation_nn import define_roi_set
 
-    mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, get_vertices = setup_example(example_dir)
+    mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, get_vertices = (
+        setup_example(example_dir)
+    )
     candidates = [voxel_index] if voxel_index is not None else range(len(mic.voxels))
     for idx in candidates:
         voxel = mic.voxels[idx]
         vertices = get_vertices(voxel)
         R_nom = voxel.orientation.astype(np.float64)
         roi_list = define_roi_set(
-            torch.from_numpy(R_nom).float(), vertices, sample, detector_list, range_map, exp_setup,
-            structure_list, simulator, phase_index=voxel.phase,
+            torch.from_numpy(R_nom).float(),
+            vertices,
+            sample,
+            detector_list,
+            range_map,
+            exp_setup,
+            structure_list,
+            simulator,
+            phase_index=voxel.phase,
         )
         if roi_list:
             return dict(
-                voxel_index=idx, voxel=voxel, vertices=vertices, R_nom=R_nom, roi_list=roi_list, sample=sample,
-                detector_list=detector_list, range_map=range_map, exp_setup=exp_setup, simulator=simulator,
+                voxel_index=idx,
+                voxel=voxel,
+                vertices=vertices,
+                R_nom=R_nom,
+                roi_list=roi_list,
+                sample=sample,
+                detector_list=detector_list,
+                range_map=range_map,
+                exp_setup=exp_setup,
+                simulator=simulator,
             )
     raise RuntimeError("No voxel in the .mic produced a non-empty ROI set")
 
@@ -100,8 +126,14 @@ def render_dataset(problem, offsets_deg: np.ndarray, window_size: int, label: st
     t0 = time.time()
     for i, mat in enumerate(mats):
         w, _missing = render_local_windows(
-            torch.from_numpy(mat).float(), problem["roi_list"], problem["vertices"], problem["sample"],
-            problem["detector_list"], problem["range_map"], problem["exp_setup"], problem["simulator"],
+            torch.from_numpy(mat).float(),
+            problem["roi_list"],
+            problem["vertices"],
+            problem["sample"],
+            problem["detector_list"],
+            problem["range_map"],
+            problem["exp_setup"],
+            problem["simulator"],
             window_size=window_size,
         )
         windows[i] = (w > 0).to(torch.uint8)
@@ -114,11 +146,15 @@ def main():
     from icenine.orientation_eval import sample_fixed_magnitude_offsets, sample_prior_offsets
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--voxel-index", type=int, default=None, help="Force a specific voxel; default auto-selects")
+    parser.add_argument(
+        "--voxel-index", type=int, default=None, help="Force a specific voxel; default auto-selects"
+    )
     parser.add_argument("--n-train", type=int, default=1500)
     parser.add_argument("--test-per-bin", type=int, default=30)
     parser.add_argument("--test-magnitudes", type=float, nargs="+", default=[0.25, 0.5, 1.0, 2.0])
-    parser.add_argument("--prior-radius", type=float, default=2.5, help="Training prior: uniform ball radius (deg)")
+    parser.add_argument(
+        "--prior-radius", type=float, default=2.5, help="Training prior: uniform ball radius (deg)"
+    )
     parser.add_argument("--window-size", type=int, default=32)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--outdir", default=str(Path(__file__).parent))
@@ -143,8 +179,12 @@ def main():
     test_offsets = np.concatenate(test_offsets)
 
     meta = dict(
-        window_size=args.window_size, n_peaks=n_peaks, voxel_index=problem["voxel_index"],
-        R_nom=torch.from_numpy(problem["R_nom"]), prior_radius_deg=args.prior_radius, seed=args.seed,
+        window_size=args.window_size,
+        n_peaks=n_peaks,
+        voxel_index=problem["voxel_index"],
+        R_nom=torch.from_numpy(problem["R_nom"]),
+        prior_radius_deg=args.prior_radius,
+        seed=args.seed,
         example="threevoxels",
     )
     outdir = outdir_abs
@@ -154,7 +194,10 @@ def main():
     ):
         windows = render_dataset(problem, offsets, args.window_size, name)
         path = outdir / f"toy_orientation_{args.tag}_{name}.pt"
-        torch.save({"windows": windows, "offsets_deg": torch.from_numpy(offsets).float(), **meta, **extra}, path)
+        torch.save(
+            {"windows": windows, "offsets_deg": torch.from_numpy(offsets).float(), **meta, **extra},
+            path,
+        )
         print(f"Saved {path}  ({windows.numel() / 1e6:.0f} MB)")
 
 

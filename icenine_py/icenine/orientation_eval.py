@@ -85,7 +85,9 @@ def sample_prior_offsets(n: int, radius_deg: float, rng: np.random.Generator) ->
     return directions * radii
 
 
-def sample_fixed_magnitude_offsets(n: int, magnitude_deg: float, rng: np.random.Generator) -> np.ndarray:
+def sample_fixed_magnitude_offsets(
+    n: int, magnitude_deg: float, rng: np.random.Generator
+) -> np.ndarray:
     """Offsets of a fixed magnitude in uniformly random directions. (n, 3) degrees."""
     directions = rng.normal(size=(n, 3))
     directions /= np.linalg.norm(directions, axis=1, keepdims=True)
@@ -118,7 +120,9 @@ class BatchedObserver:
     ray-plane intersection with the peak's home detector.
     """
 
-    def __init__(self, R_nom, voxel_vertices, sample, detector_list, range_map, exp_setup, roi_list):
+    def __init__(
+        self, R_nom, voxel_vertices, sample, detector_list, range_map, exp_setup, roi_list
+    ):
         self.dtype = torch.float64
         d = self.dtype
         self.roi_list = roi_list
@@ -235,7 +239,9 @@ class BatchedObserver:
         denom = (self.d_normal[None] * rd).sum(-1)  # (B, M)
         denom_ok = denom.abs() > 1e-8
         safe = torch.where(denom_ok, denom, torch.ones_like(denom))
-        numer = -((self.d_normal[None, :, None, :] * lab_v).sum(-1) + self.d_plane[None, :, None])  # (B,M,3)
+        numer = -(
+            (self.d_normal[None, :, None, :] * lab_v).sum(-1) + self.d_plane[None, :, None]
+        )  # (B,M,3)
         t = numer / safe[..., None]
         hit = denom_ok[..., None] & (t > 0)
         inter = lab_v + t[..., None] * rd[:, :, None, :]
@@ -251,7 +257,12 @@ class BatchedObserver:
         cols, rows = trunc[..., 0], trunc[..., 1]
         ncols = self.d_ncols[None, :].to(cols.dtype)
         nrows = self.d_nrows[None, :].to(cols.dtype)
-        on_grid = (cols.amax(-1) >= 0) & (cols.amin(-1) <= ncols - 1) & (rows.amax(-1) >= 0) & (rows.amin(-1) <= nrows - 1)
+        on_grid = (
+            (cols.amax(-1) >= 0)
+            & (cols.amin(-1) <= ncols - 1)
+            & (rows.amax(-1) >= 0)
+            & (rows.amin(-1) <= nrows - 1)
+        )
         present = ok & hit.all(dim=-1) & on_grid
         return Observation(present=present, frame=frame, omega=omega, verts=verts)
 
@@ -267,8 +278,14 @@ def lit_pixel_set(key: Tuple[int, ...], num_cols: int, num_rows: int) -> frozens
     """Pixels the simulator's rasteriser lights for a spot with truncated vertex
     key (col0,row0,col1,row1,col2,row2): the same truncate -> Sutherland-Hodgman
     clip -> round -> scanline fill pipeline as ImageData.add_triangle_scanline."""
-    polygon = [(float(key[0]), float(key[1])), (float(key[2]), float(key[3])), (float(key[4]), float(key[5]))]
-    clipped = ImageData._sutherland_hodgman_clip(polygon, 0.0, float(num_cols - 1), 0.0, float(num_rows - 1))
+    polygon = [
+        (float(key[0]), float(key[1])),
+        (float(key[2]), float(key[3])),
+        (float(key[4]), float(key[5])),
+    ]
+    clipped = ImageData._sutherland_hodgman_clip(
+        polygon, 0.0, float(num_cols - 1), 0.0, float(num_rows - 1)
+    )
     if len(clipped) < 3:
         return frozenset()
     pixels = ImageData._scanline_fill([(round(x), round(y)) for x, y in clipped])
@@ -296,7 +313,13 @@ class ExactBayes:
     with self-normalised importance weights 1/q(delta).
     """
 
-    def __init__(self, observer: BatchedObserver, prior_radius_deg: float, use_pixels: bool = True, chunk: int = 2048):
+    def __init__(
+        self,
+        observer: BatchedObserver,
+        prior_radius_deg: float,
+        use_pixels: bool = True,
+        chunk: int = 2048,
+    ):
         self.obs = observer
         self.prior_radius = float(prior_radius_deg)
         self.use_pixels = use_pixels
@@ -341,8 +364,12 @@ class ExactBayes:
         present = obs.present.all(dim=0)  # peaks present at every probe point
         om = obs.omega[:, present].numpy()  # (7, Mp)
         cent = obs.verts[:, present].mean(dim=2).numpy()  # (7, Mp, 2)
-        grad_w = np.stack([(om[1 + 2 * i] - om[2 + 2 * i]) / (2 * h) for i in range(3)], axis=-1)  # (Mp, 3)
-        grad_u = np.stack([(cent[1 + 2 * i] - cent[2 + 2 * i]) / (2 * h) for i in range(3)], axis=-1)  # (Mp,2,3)
+        grad_w = np.stack(
+            [(om[1 + 2 * i] - om[2 + 2 * i]) / (2 * h) for i in range(3)], axis=-1
+        )  # (Mp, 3)
+        grad_u = np.stack(
+            [(cent[1 + 2 * i] - cent[2 + 2 * i]) / (2 * h) for i in range(3)], axis=-1
+        )  # (Mp,2,3)
         J = (12.0 / o.frame_width_rad**2) * grad_w.T @ grad_w
         if self.use_pixels:
             J = J + 12.0 * np.einsum("pai,paj->ij", grad_u, grad_u)
@@ -369,10 +396,14 @@ class ExactBayes:
             same = (obs.present == present_true[None, :]).all(dim=1)
             if self.use_pixels:
                 keys = o.vertex_keys(obs)  # (S, M, 6)
-                differs = (keys != keys_true[None]).any(dim=-1) & present_true[None, :] & obs.present
+                differs = (
+                    (keys != keys_true[None]).any(dim=-1) & present_true[None, :] & obs.present
+                )
                 for s_i in torch.where(same & differs.any(dim=1))[0].tolist():
                     for m in torch.where(differs[s_i])[0].tolist():
-                        if not self._same_pixels(m, tuple(keys[s_i, m].tolist()), tuple(keys_true[m].tolist())):
+                        if not self._same_pixels(
+                            m, tuple(keys[s_i, m].tolist()), tuple(keys_true[m].tolist())
+                        ):
                             same[s_i] = False
                             break
             sub = member[sl]
@@ -401,8 +432,11 @@ class ExactBayes:
         truth = (obs_true.frame[0], obs_true.present[0], o.vertex_keys(obs_true)[0])
         n_present = int(truth[1].sum())
 
+        self._equal_cache.clear()  # keyed on the truth of the current case
+        self._fill_cache.clear()
         try:
             cov_lin = np.linalg.inv(self.information_matrix(np.asarray(delta_true_deg))) / DEG**2
+            np.linalg.cholesky(cov_lin)  # must be positive definite to draw from
         except np.linalg.LinAlgError:
             cov_lin = np.eye(3) * 0.01**2
         mean = np.asarray(delta_true_deg, dtype=np.float64)
@@ -427,19 +461,35 @@ class ExactBayes:
             if n_acc < 30:
                 scale /= 4.0
                 continue
-            w = np.exp(-logq[m])
+            w = np.exp(-(logq[m] - logq[m].min()))  # shifted for numerical stability
             w /= w.sum()
             xm = x[m]
             new_mean = (w[:, None] * xm).sum(axis=0)
             diff = xm - new_mean
             new_cov = (w[:, None, None] * (diff[:, :, None] * diff[:, None, :])).sum(axis=0)
             ess = 1.0 / (w**2).sum()
-            result = dict(mean=new_mean, cov=new_cov, ess=float(ess), n_accept=n_acc, rounds=log, n_present=n_present)
+            result = dict(
+                mean=new_mean,
+                cov=new_cov,
+                ess=float(ess),
+                n_accept=n_acc,
+                rounds=log,
+                n_present=n_present,
+            )
             if ess >= min_ess and rnd >= 1:
                 break
             mean, cov, scale = new_mean, new_cov * 4.0 + 1e-30 * np.eye(3), 1.0
         if result is None:
-            result = dict(mean=np.asarray(delta_true_deg, float), cov=np.zeros((3, 3)), ess=0.0, n_accept=0, rounds=log, n_present=n_present)
+            # No members were found: report failure explicitly instead of leaking delta_true.
+            nan3 = np.full(3, np.nan)
+            result = dict(
+                mean=nan3,
+                cov=np.full((3, 3), np.nan),
+                ess=0.0,
+                n_accept=0,
+                rounds=log,
+                n_present=n_present,
+            )
         return result
 
 
@@ -451,18 +501,25 @@ class ExactBayes:
 def error_summary(delta_hat_deg: np.ndarray, delta_true_deg: np.ndarray) -> Dict[str, float]:
     """Per-axis error summary. z = rotation about the stage axis, perp = x and y.
 
-    Reports RMS of each, the RMS total, the median misorientation angle between the
+    Assumes the base sample rotation maps sample z to lab z (true for Example2, where
+    it is the identity), so z is the stage axis. Errors are differences of rotation
+    vectors, which is accurate for small offsets. Reports RMS of each, the RMS total, the median misorientation angle between the
     estimated and true orientations, and the fraction of cases whose misorientation
     is below 0.5 deg (the bench_hp_sweep.py success criterion) and below 0.1 deg.
     """
     err = np.asarray(delta_hat_deg, float) - np.asarray(delta_true_deg, float)
-    ang = np.linalg.norm(
-        Rotation.from_matrix(
-            Rotation.from_rotvec(np.asarray(delta_hat_deg) * DEG).as_matrix()
-            @ Rotation.from_rotvec(np.asarray(delta_true_deg) * DEG).as_matrix().transpose(0, 2, 1)
-        ).as_rotvec(),
-        axis=1,
-    ) / DEG
+    ang = (
+        np.linalg.norm(
+            Rotation.from_matrix(
+                Rotation.from_rotvec(np.asarray(delta_hat_deg) * DEG).as_matrix()
+                @ Rotation.from_rotvec(np.asarray(delta_true_deg) * DEG)
+                .as_matrix()
+                .transpose(0, 2, 1)
+            ).as_rotvec(),
+            axis=1,
+        )
+        / DEG
+    )
     return dict(
         n=len(err),
         rms_z=float(np.sqrt(np.mean(err[:, 2] ** 2))),

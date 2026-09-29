@@ -69,19 +69,29 @@ def main():
     from icenine.orientation_nn import gaussian_nll_loss, quaternion_regression_loss
     from icenine.toy_orientation_model import ToyOffsetNet, ToyOrientationNet
 
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--head", choices=["offset", "quat"], default="offset")
     parser.add_argument("--train", required=True)
     parser.add_argument("--test", required=True)
-    parser.add_argument("--bayes", default=None, help="npz from exact_bayes_baseline.py for the same test set")
+    parser.add_argument(
+        "--bayes", default=None, help="npz from exact_bayes_baseline.py for the same test set"
+    )
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--beta-nll", type=float, default=0.0, help="beta-NLL exponent (offset head); 0 = plain NLL")
+    parser.add_argument(
+        "--beta-nll", type=float, default=0.0, help="beta-NLL exponent (offset head); 0 = plain NLL"
+    )
     parser.add_argument("--val-frac", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--results-json", default=None)
-    parser.add_argument("--save-predictions", default=None, help="npz with test predictions (and Cholesky factors) for re-evaluation")
+    parser.add_argument(
+        "--save-predictions",
+        default=None,
+        help="npz with test predictions (and Cholesky factors) for re-evaluation",
+    )
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -96,10 +106,14 @@ def main():
     perm = rng.permutation(n)
     n_val = max(1, int(n * args.val_frac))
     val_idx, train_idx = perm[:n_val], perm[n_val:]
-    print(f"train {len(train_idx)} / val {n_val} samples, {n_peaks} peaks x {window}x{window}, head={args.head}")
+    print(
+        f"train {len(train_idx)} / val {n_val} samples, {n_peaks} peaks x {window}x{window}, head={args.head}"
+    )
 
     if args.head == "quat":
-        targets = torch.from_numpy(offsets_to_quaternions(offsets.numpy().astype(np.float64), R_nom)).float()
+        targets = torch.from_numpy(
+            offsets_to_quaternions(offsets.numpy().astype(np.float64), R_nom)
+        ).float()
         model = ToyOrientationNet(n_peaks=n_peaks, window_size=window)
     else:
         targets = offsets
@@ -126,12 +140,21 @@ def main():
             total += loss.item() * len(ib)
         model.eval()
         with torch.no_grad():
-            val = np.mean([loss_fn(windows[val_idx[b]].float(), targets[val_idx[b]]).item() for b in batches(n_val, args.batch_size)])
+            val = np.mean(
+                [
+                    loss_fn(windows[val_idx[b]].float(), targets[val_idx[b]]).item()
+                    for b in batches(n_val, args.batch_size)
+                ]
+            )
         if val < best_val:
             best_val, best_epoch = float(val), epoch + 1
             best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
         if epoch % max(1, args.epochs // 10) == 0 or epoch == args.epochs - 1:
-            print(f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):11.6f}  val {val:11.6f}  ({time.time() - t0:.0f}s)")
+            print(
+                f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):11.6f}  val {val:11.6f}  ({time.time() - t0:.0f}s)"
+            )
+    if best_state is None:
+        raise RuntimeError("validation loss was never finite; lower --lr or check the data")
     model.load_state_dict(best_state)
     print(f"restored best-validation weights from epoch {best_epoch} (val {best_val:.6f})")
 
@@ -147,16 +170,29 @@ def main():
         bz = np.load(args.bayes)
         n_b = len(bz["mean"])
         if n_b != len(truth):
-            print(f"note: Bayes file covers the first {n_b} of {len(truth)} test cases; using those")
+            print(
+                f"note: Bayes file covers the first {n_b} of {len(truth)} test cases; using those"
+            )
             truth, pred, mags = truth[:n_b], pred[:n_b], mags[:n_b]
             chol = chol[:n_b] if chol is not None else None
+        assert np.allclose(
+            bz["offsets_deg"], truth[:n_b], atol=1e-5
+        ), "Bayes file is for a different test set"
         bayes = bz
 
     if args.save_predictions:
-        np.savez(args.save_predictions, pred_deg=pred, truth_deg=truth, magnitudes_deg=mags,
-                 chol=chol if chol is not None else np.zeros(0), best_epoch=best_epoch)
+        np.savez(
+            args.save_predictions,
+            pred_deg=pred,
+            truth_deg=truth,
+            magnitudes_deg=mags,
+            chol=chol if chol is not None else np.zeros(0),
+            best_epoch=best_epoch,
+        )
     rows = {}
-    print(f"\n{'|delta|':>8} {'method':<14} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)")
+    print(
+        f"\n{'|delta|':>8} {'method':<14} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)"
+    )
     for mag in sorted(set(mags.tolist())):
         m = mags == mag
         entries = [
@@ -164,12 +200,21 @@ def main():
             (f"net ({args.head})", error_summary(pred[m], truth[m])),
         ]
         if bayes is not None:
-            entries.append(("exact Bayes", error_summary(bayes["mean"][m], truth[m])))
+            mb = m & np.isfinite(bayes["mean"]).all(
+                axis=1
+            )  # cases where the sampler found no members are excluded
+            if mb.sum() < m.sum():
+                print(
+                    f"note: exact Bayes failed on {m.sum() - mb.sum()} case(s) at |delta| = {mag}; excluded from its row"
+                )
+            entries.append(("exact Bayes", error_summary(bayes["mean"][mb], truth[mb])))
         for name, s in entries:
-            print(f"{mag:8.2f} {name:<14} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}")
+            print(
+                f"{mag:8.2f} {name:<14} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
+            )
         extra = {}
         if bayes is not None:
-            floor = float(np.mean(np.sqrt(np.trace(bayes["cov"][m], axis1=1, axis2=2))))
+            floor = float(np.nanmean(np.sqrt(np.trace(bayes["cov"][m], axis1=1, axis2=2))))
             extra["bayes_floor_sqrt_trace"] = floor
             print(f"{'':8} {'Bayes floor':<14} {'':>3} sqrt(tr cov) = {floor:.5f}")
         if chol is not None:
@@ -179,7 +224,9 @@ def main():
             z = np.linalg.solve(chol[m], r)[:, :, 0]
             maha = float((z**2).sum(axis=1).mean())
             extra.update(pred_sigma_xyz=sd.tolist(), mean_mahalanobis_sq=maha)
-            print(f"{'':8} {'net sigma xyz':<14} {'':>3} {np.round(sd, 5)}   mean Mahalanobis^2 = {maha:.2f} (3.0 if calibrated)")
+            print(
+                f"{'':8} {'net sigma xyz':<14} {'':>3} {np.round(sd, 5)}   mean Mahalanobis^2 = {maha:.2f} (3.0 if calibrated)"
+            )
         rows[str(mag)] = {name: s for name, s in entries} | extra
 
     if args.results_json:

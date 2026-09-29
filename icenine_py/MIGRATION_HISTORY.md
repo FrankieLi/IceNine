@@ -1148,7 +1148,7 @@ magnitude, and predict-nominal and exact-Bayes reference rows. Re-run v0 under i
 
 | File | Content |
 |------|---------|
-| `icenine/orientation_eval.py` | `BatchedObserver`: float64, batched re-implementation of `_simulate_peaks`' per-peak maths. Returns for B candidate offsets: which ROI peaks are recorded, their frame, and their spot vertices. Matches the simulator's presence and frame index exactly and centroids to 5e-4 px, ~1 ms/candidate. `ExactBayes`: posterior of the offset given the thresholded data, by importance sampling restricted to the set reproducing the observed frames and lit-pixel sets (`lit_pixel_set` reproduces the rasteriser's truncate, clip, round and fill exactly). `error_summary`: RMS about the stage axis (z) and perpendicular (x, y), median misorientation, success below 0.5° (the `bench_hp_sweep.py` criterion) and 0.1°. Rotation-vector helpers and priors. |
+| `icenine/orientation_eval.py` | `BatchedObserver`: float64, batched re-implementation of `_simulate_peaks`' per-peak maths. Returns for B candidate offsets: which ROI peaks are recorded, their frame, and their spot vertices. Agrees with the simulator on presence and frame index for every peak checked and on centroids to 5e-4 px (the test asserts 1e-3), ~1 ms/candidate. `ExactBayes`: posterior of the offset given the thresholded data, by importance sampling restricted to the set reproducing the observed frames and lit-pixel sets (`lit_pixel_set` reproduces the rasteriser's truncate, clip, round and fill exactly). `error_summary`: RMS about the stage axis (z) and perpendicular (x, y), median misorientation, success below 0.5° (the `bench_hp_sweep.py` criterion) and 0.1°. Rotation-vector helpers and priors. |
 | `icenine/orientation_nn.py` | `cholesky_from_raw`, `gaussian_nll_loss` (with optional β-NLL), `spot_overlaps_grid`. `OrientationDataset` now returns offsets in degrees; windows are stored thresholded (uint8). |
 | `icenine/toy_orientation_model.py` | `ToyOffsetNet`: same trunk as v0, head outputs offset (3) + Cholesky factor (6). |
 | `scripts/generate_toy_orientation_dataset.py` | Train set from a ball prior (radius 2.5°); test set at fixed magnitudes 0.25/0.5/1/2° in random directions; thresholded windows. |
@@ -1175,8 +1175,8 @@ and only **364** are recorded. Consequences of the first version, all corrected:
 
 The fix is one rule shared by the renderer and the observer (`spot_overlaps_grid`:
 the bounding box of the rasteriser-truncated vertices meets the grid) plus the
-rasteriser's own clip in the pixel-set comparison. It was caught because a claim I
-wrote ("no spots touch the detector edge") did not survive a direct check. After
+rasteriser's own clip in the pixel-set comparison. It was caught by directly checking
+the statement that no spots touch the detector edge, which failed. After
 the fix the exact-Bayes sampler is calibrated to within sampling error on all three
 axes (mean squared error of the posterior mean over mean posterior variance
 0.99, 1.02, 1.02; it was 0.94, 0.98, 0.78 before).
@@ -1238,6 +1238,13 @@ width √12·σ_z = 7.2e-3° is within 1.3× of the Vernier prediction 2Δω_f/(
   squares** for large batches; the observer uses the latter (3.7× overall).
 - Running the scripts changes the working directory (`setup_example` chdirs to the
   example folder), so every path argument must be resolved before the call.
+- **Code review (Opus): APPROVE** with no critical issues; its warnings were
+  addressed (hard-coded paths removed from `scripts/checks/`, a failed Bayes case now
+  returns NaN instead of the truth, Bayes/test alignment asserted, claims softened,
+  new files Black-formatted). Not done: mypy strict annotations for the new modules
+  (19 errors, the rest of the repo is not clean either), an end-to-end test against
+  `ForwardSimulation` output, and restoring the working directory after
+  `setup_example`.
 - The old v0 dataset/checkpoint files (2.6 GB, gitignored) were deleted: the
   dataset format changed.
 
@@ -1247,7 +1254,15 @@ Only the ROI peaks (recorded at the nominal orientation) count as data; peaks th
 would newly appear at the true offset are ignored (slightly wider posterior).
 Overlaps between different peaks' lit pixels are ignored. A spot that overlaps the
 grid's bounding box but clips to nothing is treated as recorded with an empty pixel
-set (very rare).
+set (0.07% of present spots over 300 prior draws; none at nominal). Peaks are
+required to hit only their home detector, whereas the serial simulator drops a peak
+on every detector if any vertex misses any detector; for Example2 nothing changes,
+but Stage 1 (both detectors) must apply the all-detectors rule. The simulator
+works in float32 and the observer in float64 (a vertex within ~1e-4 px of an integer
+can truncate differently). The network's windows are not exactly the data Bayes
+conditions on: their origin is fractional (`nominal - 16`) and they clip to
+themselves rather than to the detector grid, so the Bayes floor is a generous
+reference, not the floor for the network's exact inputs.
 
 ### Plan status
 

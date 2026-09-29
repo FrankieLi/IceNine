@@ -36,6 +36,7 @@ from icenine.simulation import Simulation
 # Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def project_root():
     return Path(__file__).parent.parent.parent
@@ -92,11 +93,24 @@ def roi_fixture(physics_setup, ground_truth_mic):
         vertices = _get_voxel_vertices(voxel)
         orientation = torch.from_numpy(voxel.orientation).float()
         roi_list = define_roi_set(
-            orientation, vertices, sample, detector_list, range_map, exp_setup,
-            structure_list, simulator, phase_index=voxel.phase,
+            orientation,
+            vertices,
+            sample,
+            detector_list,
+            range_map,
+            exp_setup,
+            structure_list,
+            simulator,
+            phase_index=voxel.phase,
         )
         if roi_list:
-            return voxel, vertices, orientation, roi_list, (sample, detector_list, range_map, exp_setup, simulator)
+            return (
+                voxel,
+                vertices,
+                orientation,
+                roi_list,
+                (sample, detector_list, range_map, exp_setup, simulator),
+            )
 
     pytest.skip("No voxel in three_voxels.mic produced a non-empty ROI set")
 
@@ -104,6 +118,7 @@ def roi_fixture(physics_setup, ground_truth_mic):
 # ============================================================================
 # ROI definition
 # ============================================================================
+
 
 class TestDefineROISet:
     def test_roi_set_nonempty(self, roi_fixture):
@@ -124,12 +139,21 @@ class TestDefineROISet:
         voxel, vertices, orientation, roi_list, ctx = roi_fixture
         sample, detector_list, range_map, exp_setup, simulator = ctx
 
-        _sample2, _detector_list2, _range_map2, _exp_setup2, _simulator2, structure_list = physics_setup
+        _sample2, _detector_list2, _range_map2, _exp_setup2, _simulator2, structure_list = (
+            physics_setup
+        )
 
         rotation_before = sample.sample_to_lab_matrix.clone()
         roi_list_2 = define_roi_set(
-            orientation, vertices, sample, detector_list, range_map, exp_setup,
-            structure_list, simulator, phase_index=voxel.phase,
+            orientation,
+            vertices,
+            sample,
+            detector_list,
+            range_map,
+            exp_setup,
+            structure_list,
+            simulator,
+            phase_index=voxel.phase,
         )
         assert torch.allclose(sample.sample_to_lab_matrix, rotation_before)
 
@@ -142,6 +166,7 @@ class TestDefineROISet:
 # Windowed rendering
 # ============================================================================
 
+
 class TestRenderLocalWindows:
     def test_window_shape(self, roi_fixture):
         voxel, vertices, orientation, roi_list, ctx = roi_fixture
@@ -149,8 +174,15 @@ class TestRenderLocalWindows:
         window_size = 32
 
         windows, missing = render_local_windows(
-            orientation, roi_list, vertices, sample, detector_list, range_map,
-            exp_setup, simulator, window_size=window_size,
+            orientation,
+            roi_list,
+            vertices,
+            sample,
+            detector_list,
+            range_map,
+            exp_setup,
+            simulator,
+            window_size=window_size,
         )
         assert windows.shape == (len(roi_list), window_size, window_size)
         assert missing.shape == (len(roi_list),)
@@ -163,8 +195,15 @@ class TestRenderLocalWindows:
         sample, detector_list, range_map, exp_setup, simulator = ctx
 
         windows, missing = render_local_windows(
-            orientation, roi_list, vertices, sample, detector_list, range_map,
-            exp_setup, simulator, window_size=32,
+            orientation,
+            roi_list,
+            vertices,
+            sample,
+            detector_list,
+            range_map,
+            exp_setup,
+            simulator,
+            window_size=32,
         )
         assert not missing.any()
         # Every rendered window should have some nonzero signal near its center.
@@ -176,8 +215,15 @@ class TestRenderLocalWindows:
 
         rotation_before = sample.sample_to_lab_matrix.clone()
         render_local_windows(
-            orientation, roi_list, vertices, sample, detector_list, range_map,
-            exp_setup, simulator, window_size=32,
+            orientation,
+            roi_list,
+            vertices,
+            sample,
+            detector_list,
+            range_map,
+            exp_setup,
+            simulator,
+            window_size=32,
         )
         assert torch.allclose(sample.sample_to_lab_matrix, rotation_before)
 
@@ -196,19 +242,29 @@ class TestRenderLocalWindows:
         for mat in matrices:
             perturbed = torch.from_numpy(mat).float()
             _windows, missing = render_local_windows(
-                perturbed, roi_list, vertices, sample, detector_list, range_map,
-                exp_setup, simulator, window_size=32,
+                perturbed,
+                roi_list,
+                vertices,
+                sample,
+                detector_list,
+                range_map,
+                exp_setup,
+                simulator,
+                window_size=32,
             )
             total_missing += int(missing.sum().item())
             total_peaks += len(roi_list)
 
         dropout_rate = total_missing / total_peaks
-        assert dropout_rate < 0.5, f"ROI set too unstable under 1deg perturbations: {dropout_rate:.1%} dropout"
+        assert (
+            dropout_rate < 0.5
+        ), f"ROI set too unstable under 1deg perturbations: {dropout_rate:.1%} dropout"
 
 
 # ============================================================================
 # Perturbation sampling
 # ============================================================================
+
 
 class TestSampleLocalPerturbations:
     def test_returns_valid_rotation_matrices(self, roi_fixture):
@@ -243,6 +299,7 @@ class TestSampleLocalPerturbations:
 # ============================================================================
 # Loss / metric
 # ============================================================================
+
 
 class TestLossAndMetric:
     def test_loss_zero_at_identical_quaternions(self):
@@ -289,6 +346,7 @@ class TestLossAndMetric:
 # Model sanity (no full training)
 # ============================================================================
 
+
 class TestToyOrientationNet:
     def test_output_is_unit_quaternion(self, roi_fixture):
         from icenine.toy_orientation_model import ToyOrientationNet
@@ -298,8 +356,15 @@ class TestToyOrientationNet:
         window_size = 32
 
         windows, _missing = render_local_windows(
-            orientation, roi_list, vertices, sample, detector_list, range_map,
-            exp_setup, simulator, window_size=window_size,
+            orientation,
+            roi_list,
+            vertices,
+            sample,
+            detector_list,
+            range_map,
+            exp_setup,
+            simulator,
+            window_size=window_size,
         )
         model = ToyOrientationNet(n_peaks=len(roi_list), window_size=window_size)
         q_pred = model(windows.unsqueeze(0))

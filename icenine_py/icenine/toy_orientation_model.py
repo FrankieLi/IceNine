@@ -16,9 +16,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .orientation_nn import cholesky_from_raw
+
 
 class ToyOrientationNet(nn.Module):
-    def __init__(self, n_peaks: int, window_size: int = 32, hidden: Tuple[int, int, int] = (512, 256, 128)):
+    def __init__(
+        self, n_peaks: int, window_size: int = 32, hidden: Tuple[int, int, int] = (512, 256, 128)
+    ):
         super().__init__()
         in_dim = n_peaks * window_size * window_size
         self.fc1 = nn.Linear(in_dim, hidden[0])
@@ -43,7 +47,9 @@ class ToyOffsetNet(nn.Module):
     orientation_nn.gaussian_nll_loss.
     """
 
-    def __init__(self, n_peaks: int, window_size: int = 32, hidden: Tuple[int, int, int] = (512, 256, 128)):
+    def __init__(
+        self, n_peaks: int, window_size: int = 32, hidden: Tuple[int, int, int] = (512, 256, 128)
+    ):
         super().__init__()
         in_dim = n_peaks * window_size * window_size
         self.fc1 = nn.Linear(in_dim, hidden[0])
@@ -52,8 +58,6 @@ class ToyOffsetNet(nn.Module):
         self.fc4 = nn.Linear(hidden[2], 9)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        from .orientation_nn import cholesky_from_raw
-
         h = F.relu(self.fc1(x.flatten(1)))
         h = F.relu(self.fc2(h))
         h = F.relu(self.fc3(h))

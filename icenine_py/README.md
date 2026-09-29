@@ -79,6 +79,9 @@ For each voxel in the sample:
 | `experimental_data.py` | Load experimental detector images for reconstruction |
 | `sampling.py` | SO(3) uniform sampling via Sukharev grids (Yershova & LaValle) |
 | `differentiable_cost.py` | Gradient-capable cost infrastructure: `SparseImageStack`, `MultiScaleImageStack`, `DifferentiableCostFunction` |
+| `orientation_nn.py` | Toy orientation-NN support: ROI peak set, windowed renderer (`define_roi_set`, `render_local_windows`, `spot_overlaps_grid`), perturbation samplers, dataset, quaternion loss and offset Gaussian NLL (`cholesky_from_raw`, `gaussian_nll_loss`) |
+| `orientation_eval.py` | Stage 0 evaluation: batched float64 `BatchedObserver` (presence, frame, spot vertices for many candidate offsets), `ExactBayes` posterior, `lit_pixel_set`, per-axis `error_summary`, rotation-vector helpers |
+| `toy_orientation_model.py` | `ToyOrientationNet` (v0 quaternion head) and `ToyOffsetNet` (offset + Cholesky covariance head) |
 
 ## Quick Start: Reconstruction
 
@@ -591,6 +594,22 @@ The batched cost function is organized into four stages:
 | D | Per-peak overlap: rasterize + count against experimental images | Batch C extension (`stage_d_overlap`) |
 
 Stage D processes all M peaks × N detectors in a single C call via `_rasterize.c:stage_d_overlap()`. It uses pre-cached uint8 binary images (`ImageData.get_binary_numpy()`) and implements triangle overlap, pixel-radius search, contiguity validation, and Welford quality aggregation entirely in C. A Python fallback path is available when the C extension is not compiled.
+
+## Toy Orientation NN Scripts (`scripts/`)
+
+Prototype pipeline for learning local orientation refinement (status and plan in
+[MIGRATION_HISTORY.md](MIGRATION_HISTORY.md)). Requires the Example2.ThreeVoxels files.
+
+```bash
+cd icenine_py
+uv run python scripts/generate_toy_orientation_dataset.py --n-train 1500 --test-per-bin 30   # train/test .pt (gitignored)
+uv run python scripts/exact_bayes_baseline.py --test scripts/toy_orientation_stage0_test.pt --out benchmarks/toy_orientation_stage0/test_bayes.npz
+uv run python scripts/train_toy_orientation_nn.py --head offset --train scripts/toy_orientation_stage0_train.pt \
+    --test scripts/toy_orientation_stage0_test.pt --bayes benchmarks/toy_orientation_stage0/test_bayes.npz
+```
+
+`scripts/checks/` holds the numerical checks behind the derivations in `docs/`. Results
+of the Stage 0 run are in `benchmarks/toy_orientation_stage0/`.
 
 ## Design Notes (`docs/`)
 

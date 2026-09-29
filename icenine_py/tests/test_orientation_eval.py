@@ -49,6 +49,7 @@ from icenine.toy_orientation_model import ToyOffsetNet
 # Pure-math tests (no example data)
 # ============================================================================
 
+
 class TestRotations:
     def test_rodrigues_matches_scipy(self):
         rng = np.random.default_rng(0)
@@ -90,7 +91,11 @@ class TestErrorSummary:
     def test_zero_error(self):
         d = np.random.default_rng(0).normal(size=(10, 3))
         s = error_summary(d, d)
-        assert s["rms_z"] == 0 and s["rms_perp"] == 0 and s["median_angle"] == pytest.approx(0, abs=1e-9)
+        assert (
+            s["rms_z"] == 0
+            and s["rms_perp"] == 0
+            and s["median_angle"] == pytest.approx(0, abs=1e-9)
+        )
 
     def test_success_rates(self):
         truth = np.zeros((4, 3))
@@ -112,9 +117,15 @@ class TestErrorSummary:
 class TestPixelGrid:
     def test_spot_overlaps_grid_rule(self):
         assert spot_overlaps_grid([(10.2, 10.7), (11.0, 10.1), (10.5, 11.9)], 2048, 2048)
-        assert not spot_overlaps_grid([(-5.2, 10.0), (-3.0, 11.0), (-4.0, 12.0)], 2048, 2048)  # left of the grid
-        assert not spot_overlaps_grid([(10.0, 2100.0), (11.0, 2101.0), (10.5, 2102.0)], 2048, 2048)  # below it
-        assert spot_overlaps_grid([(-2.0, 10.0), (3.0, 11.0), (1.0, 12.0)], 2048, 2048)  # straddles the edge
+        assert not spot_overlaps_grid(
+            [(-5.2, 10.0), (-3.0, 11.0), (-4.0, 12.0)], 2048, 2048
+        )  # left of the grid
+        assert not spot_overlaps_grid(
+            [(10.0, 2100.0), (11.0, 2101.0), (10.5, 2102.0)], 2048, 2048
+        )  # below it
+        assert spot_overlaps_grid(
+            [(-2.0, 10.0), (3.0, 11.0), (1.0, 12.0)], 2048, 2048
+        )  # straddles the edge
 
     def test_lit_pixel_set_matches_the_rasteriser(self):
         """lit_pixel_set must reproduce ImageData.add_triangle_scanline exactly,
@@ -126,7 +137,9 @@ class TestPixelGrid:
             centre = rng.uniform([-6, -6], [ncols + 6, nrows + 6])
             v = centre + rng.uniform(-3.5, 3.5, size=(3, 2))
             img = ImageData(nrows, ncols)
-            img.add_triangle_scanline(torch.tensor(v[0]), torch.tensor(v[1]), torch.tensor(v[2]), 1.0)
+            img.add_triangle_scanline(
+                torch.tensor(v[0]), torch.tensor(v[1]), torch.tensor(v[2]), 1.0
+            )
             drawn = {(int(c), int(r)) for r, c in zip(*np.nonzero(img.to_numpy()))}
             key = tuple(int(-1 if x < 0 else int(x)) for xy in v for x in xy)
             assert lit_pixel_set(key, ncols, nrows) == drawn
@@ -140,7 +153,12 @@ class TestPixelGrid:
         keys = obs.vertex_keys(obs.observe(torch.zeros(1, 3, dtype=torch.float64)))[0]
         cols, rows = keys[:, 0::2], keys[:, 1::2]
         ncols, nrows = obs.d_ncols[:, None], obs.d_nrows[:, None]
-        on_grid = (cols.amax(-1) >= 0) & (cols.amin(-1) <= ncols[:, 0] - 1) & (rows.amax(-1) >= 0) & (rows.amin(-1) <= nrows[:, 0] - 1)
+        on_grid = (
+            (cols.amax(-1) >= 0)
+            & (cols.amin(-1) <= ncols[:, 0] - 1)
+            & (rows.amax(-1) >= 0)
+            & (rows.amin(-1) <= nrows[:, 0] - 1)
+        )
         assert bool(on_grid.all())
 
 
@@ -154,7 +172,9 @@ class TestOffsetHead:
         torch.manual_seed(0)
         L = cholesky_from_raw(torch.randn(6, 6))
         mean, tgt = torch.randn(6, 3), torch.randn(6, 3)
-        ref = -torch.distributions.MultivariateNormal(mean, scale_tril=L).log_prob(tgt) - 1.5 * np.log(2 * np.pi)
+        ref = -torch.distributions.MultivariateNormal(mean, scale_tril=L).log_prob(
+            tgt
+        ) - 1.5 * np.log(2 * np.pi)
         assert torch.allclose(gaussian_nll_loss(mean, L, tgt), ref.mean(), atol=1e-5)
 
     def test_beta_nll_is_finite_and_differs(self):
@@ -179,6 +199,7 @@ class TestOffsetHead:
 # ============================================================================
 # Physics tests (Example2.ThreeVoxels)
 # ============================================================================
+
 
 @pytest.fixture
 def project_root():
@@ -213,21 +234,39 @@ def problem(project_root):
     vertices = _get_voxel_vertices(voxel)
     R_nom = voxel.orientation.astype(np.float64)
     roi = define_roi_set(
-        torch.from_numpy(R_nom).float(), vertices, sample, detector_list, range_map, exp_setup,
-        structure_list, simulator, phase_index=voxel.phase,
+        torch.from_numpy(R_nom).float(),
+        vertices,
+        sample,
+        detector_list,
+        range_map,
+        exp_setup,
+        structure_list,
+        simulator,
+        phase_index=voxel.phase,
     )
     if not roi:
         pytest.skip("empty ROI set")
     return dict(
-        R_nom=R_nom, vertices=vertices, roi=roi, sample=sample, detector_list=detector_list,
-        range_map=range_map, exp_setup=exp_setup, simulator=simulator,
+        R_nom=R_nom,
+        vertices=vertices,
+        roi=roi,
+        sample=sample,
+        detector_list=detector_list,
+        range_map=range_map,
+        exp_setup=exp_setup,
+        simulator=simulator,
     )
 
 
 def _observer(problem, roi=None):
     return BatchedObserver(
-        problem["R_nom"], problem["vertices"], problem["sample"], problem["detector_list"],
-        problem["range_map"], problem["exp_setup"], roi if roi is not None else problem["roi"],
+        problem["R_nom"],
+        problem["vertices"],
+        problem["sample"],
+        problem["detector_list"],
+        problem["range_map"],
+        problem["exp_setup"],
+        roi if roi is not None else problem["roi"],
     )
 
 
@@ -249,7 +288,12 @@ class TestBatchedObserver:
             for m, p in enumerate(roi):
                 g_s = mats[b] @ p.g_hkl.double().numpy()
                 g = torch.from_numpy(g_s)[None]
-                res = get_scattering_omegas_torch(g, torch.norm(g, dim=1), float(es.beam_energy), es.get_beam_deflection_chi_laue())
+                res = get_scattering_omegas_torch(
+                    g,
+                    torch.norm(g, dim=1),
+                    float(es.beam_energy),
+                    es.get_beam_deflection_chi_laue(),
+                )
                 spot, frame = None, None
                 if bool(res.observable[0]):
                     w = float((res.omega1 if p.omega_branch == 1 else res.omega2)[0])
@@ -257,7 +301,10 @@ class TestBatchedObserver:
                     if frame is not None:
                         _restore_and_rotate(sample, base, w)
                         spot = _project_peak_on_detector(
-                            problem["simulator"], sample, problem["detector_list"][p.detector_index], problem["vertices"],
+                            problem["simulator"],
+                            sample,
+                            problem["detector_list"][p.detector_index],
+                            problem["vertices"],
                             torch.from_numpy(g_s / np.linalg.norm(g_s)).float(),
                             XDMEtaAcceptFn(0.0, es.get_eta_limit(), p.form_intensity, p.sin_2theta),
                         )
@@ -266,7 +313,7 @@ class TestBatchedObserver:
                 if spot is not None:
                     assert int(out.frame[b, m]) == frame
                     centroid = out.verts[b, m].mean(dim=0).numpy()
-                    assert np.abs(centroid - np.array([spot[1], spot[0]])).max() < 5e-3
+                    assert np.abs(centroid - np.array([spot[1], spot[0]])).max() < 1e-3
                     n_checked += 1
         assert n_checked > 100
 
@@ -310,6 +357,10 @@ class TestExactBayes:
     def test_pixels_tighten_the_posterior(self, problem):
         obs = _observer(problem)
         truth = np.array([-0.5, 0.3, 0.7])
-        frames = ExactBayes(obs, 2.5, use_pixels=False).posterior(truth, np.random.default_rng(1), n_per_round=8000)
-        pixels = ExactBayes(obs, 2.5, use_pixels=True).posterior(truth, np.random.default_rng(1), n_per_round=8000)
+        frames = ExactBayes(obs, 2.5, use_pixels=False).posterior(
+            truth, np.random.default_rng(1), n_per_round=8000
+        )
+        pixels = ExactBayes(obs, 2.5, use_pixels=True).posterior(
+            truth, np.random.default_rng(1), n_per_round=8000
+        )
         assert np.trace(pixels["cov"]) < np.trace(frames["cov"])

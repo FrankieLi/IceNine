@@ -14,13 +14,17 @@ from pathlib import Path
 import numpy as np
 import torch
 
-ICENINE_PY = Path("/Users/sfli/Research/IceNine/icenine_py")
+ICENINE_PY = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ICENINE_PY / "scripts"))
 from generate_toy_orientation_dataset import setup_example  # noqa: E402
 
 from icenine.constants import KEV_OVER_HBAR_C_IN_ANG  # noqa: E402
 from icenine.diffraction_core import get_scattering_omegas_torch  # noqa: E402
-from icenine.orientation_nn import _project_peak_on_detector, _restore_and_rotate, define_roi_set  # noqa: E402
+from icenine.orientation_nn import (
+    _project_peak_on_detector,
+    _restore_and_rotate,
+    define_roi_set,
+)  # noqa: E402
 from icenine.peak_filters import TrivialAcceptFn  # noqa: E402
 
 DEG = np.pi / 180
@@ -38,7 +42,9 @@ def expm(v):
 
 
 example_dir = ICENINE_PY.parent / "Examples" / "Example2.ThreeVoxels"
-mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, get_vertices = setup_example(example_dir)
+mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, get_vertices = (
+    setup_example(example_dir)
+)
 E = float(exp_setup.beam_energy)
 base = sample.sample_to_lab_matrix[:3, :3].clone()
 accept = TrivialAcceptFn()
@@ -54,8 +60,17 @@ for r_perp in (0.012, 0.05, 0.1, 0.25, 0.5):
     voxel.position = np.array([r_perp * np.cos(phi), r_perp * np.sin(phi), voxel.position[2]])
     R_nom = voxel.orientation.astype(np.float64)
     verts = get_vertices(voxel)
-    roi = define_roi_set(torch.from_numpy(R_nom).float(), verts, sample, detector_list, range_map,
-                         exp_setup, structure_list, simulator, phase_index=voxel.phase)
+    roi = define_roi_set(
+        torch.from_numpy(R_nom).float(),
+        verts,
+        sample,
+        detector_list,
+        range_map,
+        exp_setup,
+        structure_list,
+        simulator,
+        phase_index=voxel.phase,
+    )
     if len(roi) > MAX_PEAKS:
         roi = [roi[i] for i in rng.choice(len(roi), MAX_PEAKS, replace=False)]
 
@@ -67,8 +82,14 @@ for r_perp in (0.012, 0.05, 0.1, 0.25, 0.5):
             return None
         w = float((r.omega1 if p.omega_branch == 1 else r.omega2)[0])
         _restore_and_rotate(sample, base, w)
-        res = _project_peak_on_detector(simulator, sample, detector_list[p.detector_index], verts,
-                                        torch.from_numpy(g_s / np.linalg.norm(g_s)).float(), accept)
+        res = _project_peak_on_detector(
+            simulator,
+            sample,
+            detector_list[p.detector_index],
+            verts,
+            torch.from_numpy(g_s / np.linalg.norm(g_s)).float(),
+            accept,
+        )
         _restore_and_rotate(sample, base, 0.0)
         return None if res is None else np.array([res[1], res[0]])
 
@@ -104,7 +125,7 @@ for r_perp in (0.012, 0.05, 0.1, 0.25, 0.5):
                 r = get_scattering_omegas_torch(g, torch.norm(g, dim=1), E, 0.0, epsilon=0.0)
                 ws.append(float((r.omega1 if p.omega_branch == 1 else r.omega2)[0]))
             gw[i] = (ws[0] - ws[1]) / 2e-7
-        J_frame += np.outer(gw, gw) * 12 / FRAME ** 2
+        J_frame += np.outer(gw, gw) * 12 / FRAME**2
         J_pix += Ju.T @ Ju * 12
     P = len(ratios)
     C = np.linalg.inv(J_frame + J_pix)
@@ -112,7 +133,11 @@ for r_perp in (0.012, 0.05, 0.1, 0.25, 0.5):
     sig = np.sqrt(np.diag(C)) / DEG
     print(f"r_perp = {r_perp * 1000:5.0f} um  (a/Delta_w = {a_pix / FRAME * 1000:.0f} um)  P = {P}")
     print(f"   rank-one ratio sv2/sv1: median {np.median(ratios):.3f}, max {np.max(ratios):.3f}")
-    print(f"   pixel sensitivity to z-rotation: median {np.median(zsens):.1f} px/rad "
-          f"(r_perp/a = {r_perp / a_pix:.1f}); perpendicular: median {np.median(perp):.0f} px/rad")
-    print(f"   sigma_x,y,z = {sig[0]:.1e}, {sig[1]:.1e}, {sig[2]:.1e} deg;  frames-only sigma_z = "
-          f"{np.sqrt(Cz_frames) / DEG:.1e} deg;  Delta_w/sqrt(12P) = {FRAME / np.sqrt(12 * P) / DEG:.1e} deg")
+    print(
+        f"   pixel sensitivity to z-rotation: median {np.median(zsens):.1f} px/rad "
+        f"(r_perp/a = {r_perp / a_pix:.1f}); perpendicular: median {np.median(perp):.0f} px/rad"
+    )
+    print(
+        f"   sigma_x,y,z = {sig[0]:.1e}, {sig[1]:.1e}, {sig[2]:.1e} deg;  frames-only sigma_z = "
+        f"{np.sqrt(Cz_frames) / DEG:.1e} deg;  Delta_w/sqrt(12P) = {FRAME / np.sqrt(12 * P) / DEG:.1e} deg"
+    )

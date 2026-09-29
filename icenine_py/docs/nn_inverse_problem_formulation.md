@@ -928,8 +928,8 @@ by importance sampling: a Gaussian proposal around $\delta_{\text{true}}$
 (always a member) is shrunk until members are found, re-centred and inflated on
 the members, and the estimate uses self-normalised weights $1/q(\delta)$.
 Membership is tested with a batched float64 re-implementation of the simulator's
-ray tracing that matches its presence and frame index exactly and spot centroids
-to $5\times10^{-4}$ px (`icenine/orientation_eval.py`; tests in
+ray tracing that agreed with it on the presence and frame index of every peak
+checked and on spot centroids to $5\times10^{-4}$ px (`icenine/orientation_eval.py`; tests in
 `tests/test_orientation_eval.py`, including a check of the lit-pixel sets against
 the rasteriser for random triangles straddling the grid edge). The prior is
 uniform in a ball of radius $2.5^\circ$, far larger than the cell, so it is
@@ -972,6 +972,18 @@ which is negligible at about one spot per few million pixels. A floor of
 $1.2\times10^{-3}$ degrees (4 arcseconds) is not a target a network trained on
 this data can be expected to approach, and it says nothing about resolution with
 detector noise, calibration error or overlapping peaks.
+
+Three further approximations, none of which changes the conclusions here. (i) The
+recorded-peak rule is the bounding box of the truncated spot vertices meeting the
+pixel grid, which is necessary but not sufficient: a spot that only grazes a grid
+corner can clip to no pixels. This affects 0.07% of the present spots over 300
+prior draws (none at the nominal orientation). (ii) A peak is required to hit only
+its home detector, whereas the serial simulator drops a peak on every detector if
+any vertex misses any detector; for Example2 no peak misses the second detector,
+but this matters once both detectors are used. (iii) The simulator works in
+float32 and the observer in float64, so a vertex within about $10^{-4}$ px of an
+integer can truncate differently; the posterior is self-consistent, since the
+truth is observed with the same code.
 
 # 4. The Bayesian inverse
 

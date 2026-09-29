@@ -71,7 +71,12 @@ def spot_overlaps_grid(pixels: List[Tuple[float, float]], num_cols: int, num_row
     """
     cols = [-1 if c < 0 else int(c) for c, _ in pixels]
     rows = [-1 if r < 0 else int(r) for _, r in pixels]
-    return max(cols) >= 0 and min(cols) <= num_cols - 1 and max(rows) >= 0 and min(rows) <= num_rows - 1
+    return (
+        max(cols) >= 0
+        and min(cols) <= num_cols - 1
+        and max(rows) >= 0
+        and min(rows) <= num_rows - 1
+    )
 
 
 def _project_peak_on_detector(
@@ -309,7 +314,9 @@ def sample_local_perturbations(
 
     grid_gen = QuaternionGrid()
     nominal_np = (
-        nominal_orientation.numpy() if isinstance(nominal_orientation, torch.Tensor) else nominal_orientation
+        nominal_orientation.numpy()
+        if isinstance(nominal_orientation, torch.Tensor)
+        else nominal_orientation
     )
     nominal_q = matrix_to_quaternion(nominal_np)
 
@@ -379,11 +386,15 @@ def cholesky_from_raw(raw: torch.Tensor, min_diag: float = 1e-4) -> torch.Tensor
     diag = torch.nn.functional.softplus(raw[..., 0:3]) + min_diag
     L10, L20, L21 = raw[..., 3], raw[..., 4], raw[..., 5]
     zero = torch.zeros_like(L10)
-    lower = torch.stack([zero, zero, zero, L10, zero, zero, L20, L21, zero], dim=-1).reshape(*raw.shape[:-1], 3, 3)
+    lower = torch.stack([zero, zero, zero, L10, zero, zero, L20, L21, zero], dim=-1).reshape(
+        *raw.shape[:-1], 3, 3
+    )
     return torch.diag_embed(diag) + lower
 
 
-def gaussian_nll_loss(mean: torch.Tensor, chol: torch.Tensor, target: torch.Tensor, beta: float = 0.0) -> torch.Tensor:
+def gaussian_nll_loss(
+    mean: torch.Tensor, chol: torch.Tensor, target: torch.Tensor, beta: float = 0.0
+) -> torch.Tensor:
     """Multivariate Gaussian negative log-likelihood with covariance L L^T.
 
     nll = 0.5 |L^-1 (target - mean)|^2 + sum log diag(L)   (constants dropped).
