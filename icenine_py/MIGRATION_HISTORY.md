@@ -1311,6 +1311,39 @@ orientations passed to FindOptimal (`benchmarks/toy_orientation_stage1/coarse_re
   hand-offs; test magnitudes 0.1, 0.25, 0.5, 1°. With this prior, 32×32 windows and
   ±4 frames keep every spot that is present (max drift 16 px, 3 frames).
 
+### Results: items 1–3 (2026-09-29)
+
+Setup: voxel 0, Q_max = 8, both detectors, near-axis spots dropped (|sin η| < 0.3):
+113 spots. Frame-coded exact windows, 32×32, ±4 frames. Prior: 1° ball. 10,000
+samples (9,000 train, 1,000 validation), 30 epochs, one seed; 30 test cases per
+magnitude. RMS error in degrees (z = about the stage axis, ⊥ = perpendicular);
+success = misorientation < 0.1°.
+
+| \|δ\| | predict-nominal z / ⊥ | offset head z / ⊥ (success) | offset head, no frame channel z / ⊥ (success) | quaternion head z / ⊥ (success) | exact Bayes z / ⊥ |
+|---|---|---|---|---|---|
+| 0.10° | 0.055 / 0.059 | 0.032 / 0.007 (100%) | 0.164 / 0.007 (40%) | 0.034 / 0.023 (100%) | 0.009 / 0.0004 |
+| 0.25° | 0.148 / 0.143 | 0.027 / 0.008 (100%) | 0.192 / 0.009 (50%) | 0.047 / 0.026 (97%) | 0.008 / 0.0003 |
+| 0.50° | 0.249 / 0.306 | 0.037 / 0.016 (100%) | 0.141 / 0.009 (37%) | 0.049 / 0.030 (90%) | 0.007 / 0.0003 |
+| 1.00° | 0.584 / 0.574 | 0.058 / 0.019 (90%) | 0.190 / 0.026 (27%) | 0.083 / 0.038 (50%) | 0.007 / 0.0004 |
+
+- **The new inputs work.** The offset head's median misorientation is 0.02–0.05°
+  (Stage 0: 0.35–0.62°), 100% of cases are within 0.5° at every magnitude, and it beats
+  predict-nominal about z at every magnitude. It is within about 4–8× of the noise-free
+  floor about z and 20–50× perpendicular.
+- **The frame channel is what fixes z.** Hiding it (same data, same model) leaves the
+  perpendicular error unchanged but raises the z error to 0.14–0.19°, worse than
+  predict-nominal at 0.1° and 0.25°. Pixels constrain perpendicular rotation, frames
+  constrain rotation about the axis, as the docs predict.
+- **Offset head vs quaternion head**: the offset head is better perpendicular (2–3×) and
+  its covariance is roughly calibrated (mean squared Mahalanobis distance 1.4–4.1
+  against 3.0).
+- **Confounds vs Stage 0**: several things changed at once (prior 1° vs 2.5°,
+  Q_max 8, both detectors, exact windows, 10,000 vs 1,500 samples). Only the frame
+  ablation isolates a single factor. One seed.
+- **Not yet comparable to FindOptimal**: the network is trained for one voxel and one
+  nominal orientation on noise-free data. On the same Example2 data FindOptimal's final
+  errors were 0.04–0.2° when it succeeded.
+
 ### Planned work, in order
 
 1. Peak definition: record each peak on every detector whose pixel grid its spot
