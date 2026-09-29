@@ -166,6 +166,10 @@ class BatchedObserver:
                     pix_h=float(det.pixel_height),
                 )
             )
+        # All detectors' planes, for the simulator's rule that a vertex missing any
+        # detector plane drops the peak on every detector.
+        self.all_normals = torch.stack([g["normal"] for g in geo])  # (D, 3)
+        self.all_plane_d = torch.tensor([g["plane_d"] for g in geo], dtype=d)  # (D,)
         di = self.det_idx.tolist()
         self.d_normal = torch.stack([geo[i]["normal"] for i in di])  # (M, 3)
         self.d_plane = torch.tensor([geo[i]["plane_d"] for i in di], dtype=d)  # (M,)
@@ -263,7 +267,15 @@ class BatchedObserver:
             & (rows.amax(-1) >= 0)
             & (rows.amin(-1) <= nrows - 1)
         )
-        present = ok & hit.all(dim=-1) & on_grid
+        # Every vertex must hit every detector plane (ForwardSimulation._simulate_peaks).
+        all_planes = torch.ones_like(ok)
+        for dn, dd in zip(self.all_normals, self.all_plane_d):
+            den = (rd * dn).sum(-1)  # (B, M)
+            den_ok = den.abs() > 1e-8
+            num = -((lab_v * dn).sum(-1) + dd)  # (B, M, 3)
+            t_d = num / torch.where(den_ok, den, torch.ones_like(den))[..., None]
+            all_planes = all_planes & den_ok & (t_d > 0).all(dim=-1)
+        present = ok & hit.all(dim=-1) & all_planes & on_grid
         return Observation(present=present, frame=frame, omega=omega, verts=verts)
 
     @staticmethod

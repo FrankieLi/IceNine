@@ -86,6 +86,7 @@ def _project_peak_on_detector(
     voxel_vertices: torch.Tensor,
     scattering_dir: torch.Tensor,
     peak_filter: XDMEtaAcceptFn,
+    require_grid: bool = True,
 ) -> Optional[Tuple[float, float, float, List[Tuple[float, float]]]]:
     """Project a voxel's 3 vertices onto one detector at the sample's current
     rotation state.
@@ -96,9 +97,9 @@ def _project_peak_on_detector(
 
     Returns (row0, col0, intensity, [(col,row) x3]) -- row0/col0 are the
     centroid of the 3 projected vertices -- or None if the peak is filtered
-    out, any vertex misses the detector plane, or the spot does not overlap the
-    detector's pixel grid (the rasteriser would clip it away, so it is never
-    recorded).
+    out, any vertex misses the detector plane, or (if require_grid) the spot does
+    not overlap the detector's pixel grid (the rasteriser would clip it away, so
+    it is never recorded).
     """
     reflected_dir = get_reflected_ray_dir(sample, scattering_dir, simulator.beam_direction)
     reflected_dir_n = reflected_dir / torch.norm(reflected_dir)
@@ -114,12 +115,42 @@ def _project_peak_on_detector(
             return None
         pixels.append((float(col.item()), float(row.item())))
 
-    if not spot_overlaps_grid(pixels, detector.num_cols, detector.num_rows):
+    if require_grid and not spot_overlaps_grid(pixels, detector.num_cols, detector.num_rows):
         return None
 
     row0 = sum(p[1] for p in pixels) / 3.0
     col0 = sum(p[0] for p in pixels) / 3.0
     return row0, col0, intensity, pixels
+
+
+def _project_all_detectors(
+    simulator: Simulation,
+    sample: Sample,
+    detector_list: List[Detector],
+    voxel_vertices: torch.Tensor,
+    scattering_dir: torch.Tensor,
+    peak_filter: XDMEtaAcceptFn,
+) -> Optional[List[Tuple[float, float, float, List[Tuple[float, float]]]]]:
+    """Project a spot onto every detector, following ForwardSimulation._simulate_peaks:
+    if the peak is filtered out or any vertex misses any detector *plane*, the
+    peak is dropped on all detectors (returns None). Otherwise returns one
+    (row0, col0, intensity, pixels) per detector, without the pixel-grid check.
+    """
+    results = []
+    for detector in detector_list:
+        r = _project_peak_on_detector(
+            simulator,
+            sample,
+            detector,
+            voxel_vertices,
+            scattering_dir,
+            peak_filter,
+            require_grid=False,
+        )
+        if r is None:
+            return None
+        results.append(r)
+    return results
 
 
 def define_roi_set(
@@ -132,11 +163,21 @@ def define_roi_set(
     structure_list,
     simulator: Simulation,
     phase_index: int = 0,
+    detectors: str = "first",
 ) -> List[ROIPeak]:
     """Ray-trace the voxel's observable peaks at its nominal orientation once,
     fixing the peak identity (reflection, branch, detector) and window center
     (nominal_row/col) used for the whole dataset.
+
+    detectors:
+      "all"   -- the simulator's semantics: a peak is dropped everywhere if any spot
+                 vertex misses any detector plane; otherwise it gets one entry per
+                 detector whose pixel grid its spot overlaps (Stage 1 onwards).
+      "first" -- one entry, on the first detector whose grid the spot overlaps
+                 (Stage 0 behaviour, kept for reproducibility).
     """
+    if detectors not in ("all", "first"):
+        raise ValueError(f"detectors must be 'all' or 'first', got {detectors!r}")
     structure = structure_list[phase_index]
     reflections = structure.get_reflection_vectors()
     if not reflections:
@@ -174,28 +215,42 @@ def define_roi_set(
                     0.0, eta_limit, float(reflections[i].intensity), float(sin_2theta[i].item())
                 )
 
-                # A peak lands on at most one detector for this geometry; take
-                # the first detector that sees all 3 vertices as its home.
-                for det_idx, detector in enumerate(detector_list):
-                    result = _project_peak_on_detector(
-                        simulator, sample, detector, voxel_vertices, scattering_dir, peak_filter
+                def entry(det_idx: int, row0: float, col0: float) -> ROIPeak:
+                    return ROIPeak(
+                        reflection_index=i,
+                        omega_branch=branch,
+                        detector_index=det_idx,
+                        g_hkl=g_hkl_batch[i].clone(),
+                        form_intensity=float(reflections[i].intensity),
+                        sin_2theta=float(sin_2theta[i].item()),
+                        nominal_omega=omega,
+                        nominal_row=row0,
+                        nominal_col=col0,
                     )
-                    if result is not None:
-                        row0, col0, _intensity, _pixels = result
-                        roi_list.append(
-                            ROIPeak(
-                                reflection_index=i,
-                                omega_branch=branch,
-                                detector_index=det_idx,
-                                g_hkl=g_hkl_batch[i].clone(),
-                                form_intensity=float(reflections[i].intensity),
-                                sin_2theta=float(sin_2theta[i].item()),
-                                nominal_omega=omega,
-                                nominal_row=row0,
-                                nominal_col=col0,
-                            )
+
+                if detectors == "all":
+                    results = _project_all_detectors(
+                        simulator,
+                        sample,
+                        detector_list,
+                        voxel_vertices,
+                        scattering_dir,
+                        peak_filter,
+                    )
+                    if results is None:
+                        continue
+                    for det_idx, (row0, col0, _intensity, pixels) in enumerate(results):
+                        det = detector_list[det_idx]
+                        if spot_overlaps_grid(pixels, det.num_cols, det.num_rows):
+                            roi_list.append(entry(det_idx, row0, col0))
+                else:
+                    for det_idx, detector in enumerate(detector_list):
+                        result = _project_peak_on_detector(
+                            simulator, sample, detector, voxel_vertices, scattering_dir, peak_filter
                         )
-                        break
+                        if result is not None:
+                            roi_list.append(entry(det_idx, result[0], result[1]))
+                            break
     finally:
         _restore_and_rotate(sample, base_rotation, 0.0)
 
@@ -219,9 +274,9 @@ def render_local_windows(
     ROI-definition time), so the peak's actual position drifts within the
     window as the orientation perturbs -- this drift is exactly the signal
     the network learns to read. If a peak stops being observable (Bragg
-    condition fails, falls outside the exposed omega range, or a vertex
-    misses its home detector) under this perturbation, its window is
-    zero-filled and flagged in the returned mask.
+    condition fails, falls outside the exposed omega range, a vertex misses any
+    detector plane, or its spot leaves its detector's pixel grid) under this
+    perturbation, its window is zero-filled and flagged in the returned mask.
 
     Returns:
         windows: (n_peaks, window_size, window_size) float32
@@ -260,11 +315,16 @@ def render_local_windows(
             _restore_and_rotate(sample, base_rotation, omega)
             scattering_dir = g_lab / g_mag
             peak_filter = XDMEtaAcceptFn(0.0, eta_limit, roi.form_intensity, roi.sin_2theta)
-            detector = detector_list[roi.detector_index]
-            result = _project_peak_on_detector(
-                simulator, sample, detector, voxel_vertices, scattering_dir, peak_filter
+            # Simulator semantics: a vertex missing any detector plane drops the peak
+            # everywhere; then the spot must overlap its own detector's pixel grid.
+            results = _project_all_detectors(
+                simulator, sample, detector_list, voxel_vertices, scattering_dir, peak_filter
             )
-            if result is None:
+            detector = detector_list[roi.detector_index]
+            result = None if results is None else results[roi.detector_index]
+            if result is None or not spot_overlaps_grid(
+                result[3], detector.num_cols, detector.num_rows
+            ):
                 missing[i] = True
                 continue
 

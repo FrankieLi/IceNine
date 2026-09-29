@@ -31,8 +31,13 @@ project_root = Path(__file__).parent.parent.parent
 DEFAULT_EXAMPLE = project_root / "Examples" / "Example2.ThreeVoxels"
 
 
-def setup_example(example_dir: Path, basename: str = "3Grains.sim"):
-    """Load physics + ground-truth mic. Same pattern as benchmarks/bench_riemannian_optimization.py."""
+def setup_example(example_dir: Path, basename: str = "3Grains.sim", max_q=None):
+    """Load physics + ground-truth mic. Same pattern as benchmarks/bench_riemannian_optimization.py.
+
+    max_q (1/Angstrom) overrides the config's MaxQ, which limits the reflection list
+    (Example2's config has 16; reconstruction typically uses 8). Note: changes the
+    process's working directory to example_dir.
+    """
     from icenine.config_file import ConfigFile
     from icenine.experiment_setup import XDMExperimentSetup
     from icenine.mic_file import MicFile
@@ -45,6 +50,8 @@ def setup_example(example_dir: Path, basename: str = "3Grains.sim"):
 
     config = ConfigFile.from_file(str(config_path))
     config.out_file_basename = basename
+    if max_q is not None:
+        config.max_q = float(max_q)
 
     exp_setup = XDMExperimentSetup(config)
     exp_setup.initialize_experiment()
@@ -73,15 +80,18 @@ def setup_example(example_dir: Path, basename: str = "3Grains.sim"):
     )
 
 
-def build_problem(example_dir: Path, voxel_index=None):
+def build_problem(example_dir: Path, voxel_index=None, max_q=None, detectors: str = "first"):
     """Set up physics and pick a voxel with a non-empty ROI set.
+
+    max_q and detectors are passed to setup_example / define_roi_set; the defaults
+    reproduce Stage 0 (config MaxQ, first detector only).
 
     Returns a dict with everything both this script and the Bayes baseline need.
     """
     from icenine.orientation_nn import define_roi_set
 
     mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, get_vertices = (
-        setup_example(example_dir)
+        setup_example(example_dir, max_q=max_q)
     )
     candidates = [voxel_index] if voxel_index is not None else range(len(mic.voxels))
     for idx in candidates:
@@ -98,6 +108,7 @@ def build_problem(example_dir: Path, voxel_index=None):
             structure_list,
             simulator,
             phase_index=voxel.phase,
+            detectors=detectors,
         )
         if roi_list:
             return dict(
@@ -156,6 +167,15 @@ def main():
         "--prior-radius", type=float, default=2.5, help="Training prior: uniform ball radius (deg)"
     )
     parser.add_argument("--window-size", type=int, default=32)
+    parser.add_argument(
+        "--max-q", type=float, default=None, help="Override the config MaxQ (1/A); Stage 1 uses 8"
+    )
+    parser.add_argument(
+        "--detectors",
+        choices=["first", "all"],
+        default="first",
+        help="ROI peaks on the first detector only (Stage 0) or on every detector (Stage 1)",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--outdir", default=str(Path(__file__).parent))
     parser.add_argument("--tag", default="stage0")
@@ -166,7 +186,9 @@ def main():
 
     outdir_abs = Path(args.outdir).resolve()  # build_problem() changes directory
     print(f"Setting up {DEFAULT_EXAMPLE} ...")
-    problem = build_problem(DEFAULT_EXAMPLE, args.voxel_index)
+    problem = build_problem(
+        DEFAULT_EXAMPLE, args.voxel_index, max_q=args.max_q, detectors=args.detectors
+    )
     n_peaks = len(problem["roi_list"])
     print(f"  voxel {problem['voxel_index']}: {n_peaks} ROI peaks")
 
@@ -184,6 +206,8 @@ def main():
         voxel_index=problem["voxel_index"],
         R_nom=torch.from_numpy(problem["R_nom"]),
         prior_radius_deg=args.prior_radius,
+        max_q=args.max_q if args.max_q is not None else float("nan"),
+        detectors=args.detectors,
         seed=args.seed,
         example="threevoxels",
     )

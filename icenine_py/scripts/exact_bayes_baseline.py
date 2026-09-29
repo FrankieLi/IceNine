@@ -49,7 +49,13 @@ def main():
     offsets = data["offsets_deg"].double().numpy()
     if args.limit:
         offsets = offsets[: args.limit]
-    problem = build_problem(DEFAULT_EXAMPLE, data["voxel_index"])
+    max_q = data.get("max_q", float("nan"))
+    problem = build_problem(
+        DEFAULT_EXAMPLE,
+        data["voxel_index"],
+        max_q=None if max_q != max_q else max_q,  # NaN means the config default
+        detectors=data.get("detectors", "first"),
+    )
     assert len(problem["roi_list"]) == data["n_peaks"], "ROI set differs from the dataset's"
     assert np.allclose(
         problem["R_nom"], data["R_nom"].numpy()

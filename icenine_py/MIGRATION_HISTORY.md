@@ -1270,3 +1270,34 @@ Stage 0 is done apart from β-NLL training (implemented and unit-tested, not run
 Stage 1 (forward model with frames and both detectors, windows sized from the
 spot-motion Jacobian, Q_max) is next. The window-size finding above, and the
 open decisions D1–D5 in the previous section, apply.
+
+## Toy Orientation NN — Stage 1: Network Inputs (in progress, started 2026-09-29)
+
+**Branch**: `feature/nn-orientation-stage1`
+**Goal**: fix what the network is given as input, which Stage 0 identified as the
+main limitation (no frame index, spots drifting out of 32×32 windows, one
+detector).
+
+### Decisions (agreed 2026-09-29)
+
+- **D1, rocking width α**: start at α = 0 (today's single-frame physics); add
+  α ∈ {0.01°, 0.03°, 0.1°} once the frame input works.
+- **D2, training prior**: measure the typical residual error after the coarse
+  search by running the existing reconstructor on Example2; keep the 2.5° ball
+  until then.
+- **D3, near-axis peaks**: ±4 frames around the nominal frame, and drop peaks with
+  |sin η| < 0.3 for now; revisit with per-peak window lengths later.
+- **D4, real data for α**: open; not needed until α matters.
+- **D5, Q_max**: use 8 Å⁻¹, the reconstruction value.
+
+### Planned work, in order
+
+1. Peak definition: record each peak on every detector whose pixel grid its spot
+   overlaps, applying the simulator's rule that a peak is dropped on all detectors
+   if any spot vertex misses any detector plane; configurable Q_max.
+2. Frame index in the input: windows of a few frames × pixels around each peak's
+   nominal frame.
+3. Windows sized from each peak's spot-motion Jacobian and the perturbation range.
+4. Frame-spread renderer (α/|sin η| profile); α = 0 must reproduce the current
+   output exactly.
+5. Re-run the Stage 0 evaluation on the new inputs and compare.

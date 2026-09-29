@@ -30,6 +30,7 @@ from icenine.orientation_eval import (
     sample_prior_offsets,
 )
 from icenine.orientation_nn import (
+    _project_all_detectors,
     _project_peak_on_detector,
     _restore_and_rotate,
     cholesky_from_raw,
@@ -246,10 +247,26 @@ def problem(project_root):
     )
     if not roi:
         pytest.skip("empty ROI set")
+    roi_all = define_roi_set(
+        torch.from_numpy(R_nom).float(),
+        vertices,
+        sample,
+        detector_list,
+        range_map,
+        exp_setup,
+        structure_list,
+        simulator,
+        phase_index=voxel.phase,
+        detectors="all",
+    )
     return dict(
         R_nom=R_nom,
         vertices=vertices,
         roi=roi,
+        roi_all=roi_all,
+        structure_list=structure_list,
+        voxel=voxel,
+        config_path=config_path,
         sample=sample,
         detector_list=detector_list,
         range_map=range_map,
@@ -271,11 +288,16 @@ def _observer(problem, roi=None):
 
 
 class TestBatchedObserver:
-    def test_matches_simulator(self, problem):
-        """Presence, frame index and spot centroids agree with the serial simulator path."""
+    @pytest.mark.parametrize("mode", ["first", "all"])
+    def test_matches_simulator(self, problem, mode):
+        """Presence, frame index and spot centroids agree with the serial simulator
+        semantics: drop the peak if any vertex misses any detector plane, then
+        require the spot to overlap its own detector's pixel grid."""
         from icenine.diffraction_core import get_scattering_omegas_torch
 
-        roi = problem["roi"][::12]  # ~65 peaks keeps the serial reference fast
+        roi = problem["roi" if mode == "first" else "roi_all"][
+            ::12
+        ]  # keeps the serial reference fast
         obs = _observer(problem, roi)
         offsets = np.array([[0.0, 0.0, 0.0], [0.3, -0.2, 0.5], [-1.0, 0.7, 1.2], [1.5, 1.5, -1.5]])
         out = obs.observe(torch.from_numpy(offsets))
@@ -300,15 +322,21 @@ class TestBatchedObserver:
                     frame = problem["range_map"].angle_to_wedge_index(w)
                     if frame is not None:
                         _restore_and_rotate(sample, base, w)
-                        spot = _project_peak_on_detector(
+                        results = _project_all_detectors(
                             problem["simulator"],
                             sample,
-                            problem["detector_list"][p.detector_index],
+                            problem["detector_list"],
                             problem["vertices"],
                             torch.from_numpy(g_s / np.linalg.norm(g_s)).float(),
                             XDMEtaAcceptFn(0.0, es.get_eta_limit(), p.form_intensity, p.sin_2theta),
                         )
                         _restore_and_rotate(sample, base, 0.0)
+                        det = problem["detector_list"][p.detector_index]
+                        spot = None if results is None else results[p.detector_index]
+                        if spot is not None and not spot_overlaps_grid(
+                            spot[3], det.num_cols, det.num_rows
+                        ):
+                            spot = None
                 assert bool(out.present[b, m]) == (spot is not None)
                 if spot is not None:
                     assert int(out.frame[b, m]) == frame
@@ -316,6 +344,58 @@ class TestBatchedObserver:
                     assert np.abs(centroid - np.array([spot[1], spot[0]])).max() < 1e-3
                     n_checked += 1
         assert n_checked > 100
+
+    def test_all_detectors_mode(self, problem):
+        """'all' keeps the 'first' entries on detector 0, adds entries on other
+        detectors, and every entry is present at the nominal orientation."""
+        key = lambda p: (p.reflection_index, p.omega_branch, p.detector_index)  # noqa: E731
+        first = {key(p) for p in problem["roi"]}
+        all_ = {key(p) for p in problem["roi_all"]}
+        assert {k for k in all_ if k[2] == 0} == first
+        assert any(k[2] == 1 for k in all_)
+        out = _observer(problem, problem["roi_all"]).observe(torch.zeros(1, 3, dtype=torch.float64))
+        assert bool(out.present.all())
+
+    def test_invalid_detectors_mode(self, problem):
+        with pytest.raises(ValueError):
+            define_roi_set(
+                torch.from_numpy(problem["R_nom"]).float(),
+                problem["vertices"],
+                problem["sample"],
+                problem["detector_list"],
+                problem["range_map"],
+                problem["exp_setup"],
+                problem["structure_list"],
+                problem["simulator"],
+                phase_index=problem["voxel"].phase,
+                detectors="second",
+            )
+
+    def test_missing_any_detector_plane_drops_peak_everywhere(self, problem):
+        """Adding a detector plane behind the sample (every ray has t < 0 for it)
+        must remove every peak on every detector, as in _simulate_peaks."""
+        obs = _observer(problem, problem["roi_all"][::20])
+        assert bool(obs.observe(torch.zeros(1, 3, dtype=torch.float64)).present.all())
+        behind = torch.tensor([[1.0, 0.0, 0.0]], dtype=torch.float64)  # plane x = -1 mm
+        obs.all_normals = torch.cat([obs.all_normals, behind])
+        obs.all_plane_d = torch.cat([obs.all_plane_d, torch.tensor([1.0], dtype=torch.float64)])
+        assert not bool(obs.observe(torch.zeros(1, 3, dtype=torch.float64)).present.any())
+
+    def test_max_q_override_limits_reflections(self, problem):
+        """Setting config.max_q before initialize_sample limits the reflection list
+        (how the Stage 1 scripts apply Q_max = 8)."""
+        config = ConfigFile.from_file(str(problem["config_path"]))
+        config.out_file_basename = "3Grains.sim"
+        config.max_q = 8.0
+        exp_setup = XDMExperimentSetup(config)
+        exp_setup.initialize_experiment()
+        sample = Sample()
+        exp_setup.initialize_sample(sample, exp_setup.get_detector_list()[0])
+        phase = problem["voxel"].phase
+        limited = sample.get_structure_list()[phase].get_reflection_vectors()
+        default = problem["structure_list"][phase].get_reflection_vectors()
+        assert 0 < len(limited) < len(default)
+        assert max(r.q_mag for r in limited) <= 8.0 + 1e-9
 
     def test_nominal_offset_reproduces_roi_set(self, problem):
         obs = _observer(problem)
