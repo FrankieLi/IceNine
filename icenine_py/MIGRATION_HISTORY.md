@@ -1270,3 +1270,520 @@ Stage 0 is done apart from β-NLL training (implemented and unit-tested, not run
 Stage 1 (forward model with frames and both detectors, windows sized from the
 spot-motion Jacobian, Q_max) is next. The window-size finding above, and the
 open decisions D1–D5 in the previous section, apply.
+
+## Toy Orientation NN — Stage 1: Network Inputs (done 2026-09-29; items 3–4 deferred)
+
+**Branch**: `feature/nn-orientation-stage1`
+**Goal**: fix what the network is given as input, which Stage 0 identified as the
+main limitation (no frame index, spots drifting out of 32×32 windows, one
+detector).
+
+### Decisions (agreed 2026-09-29)
+
+- **D1, rocking width α**: start at α = 0 (today's single-frame physics); add
+  α ∈ {0.01°, 0.03°, 0.1°} once the frame input works.
+- **D2, training prior**: measure the typical residual error after the coarse
+  search by running the existing reconstructor on Example2; keep the 2.5° ball
+  until then.
+- **D3, near-axis peaks**: ±4 frames around the nominal frame, and drop peaks with
+  |sin η| < 0.3 for now; revisit with per-peak window lengths later.
+- **D4, real data for α**: open; not needed until α matters.
+- **D5, Q_max**: use 8 Å⁻¹, the reconstruction value.
+
+### D2 measured: what the coarse search hands to FindOptimal
+
+`scripts/checks/measure_coarse_residual.py` runs `AdaptiveVoxelReconstructor` with
+`ReconstructQ8.config` (Q_max = 8; 5° grid radius shrinking over 4 levels) on the three
+Example2 voxels against `ScatteringData_Python`, 5 seeds each, and records the
+orientations passed to FindOptimal (`benchmarks/toy_orientation_stage1/coarse_residual.npz`).
+
+- **Voxel 2**: the coarse search fails on every seed (a known failure shared with C++);
+  the best hand-off is ~60° off.
+- **Voxels 0 and 1**: a good candidate reaches FindOptimal in 9 of 10 runs, with error
+  0.07–1.09° (median about 0.35°), almost entirely rotation about the stage axis
+  (0.2–0.7°; about 0.04° perpendicular; one case 0.98° about x). This is the anisotropy
+  predicted in `docs/nn_inverse_problem_formulation.md` §3.6.
+- The top-ranked candidate is often a wrong ~54° solution (4 of 10 runs) even when a
+  good one is passed on, and FindOptimal then sometimes keeps the wrong one (voxel 1,
+  seeds 0 and 1: final errors 54° and 42° from good hand-offs). A network should be
+  evaluated per candidate, as FindOptimal is.
+- **Decision**: training prior = uniform ball of radius 1°, which covers the good
+  hand-offs; test magnitudes 0.1, 0.25, 0.5, 1°. With this prior, 32×32 windows and
+  ±4 frames keep every spot that is present (max drift 16 px, 3 frames).
+
+### Results: items 1–3 (2026-09-29)
+
+Setup: voxel 0, Q_max = 8, both detectors, near-axis spots dropped (|sin η| < 0.3):
+113 spots. Frame-coded exact windows, 32×32, ±4 frames. Prior: 1° ball. 10,000
+samples (9,000 train, 1,000 validation), 30 epochs, one seed; 30 test cases per
+magnitude. RMS error in degrees (z = about the stage axis, ⊥ = perpendicular);
+success = misorientation < 0.1°.
+
+| \|δ\| | predict-nominal z / ⊥ | offset head z / ⊥ (success) | offset head, no frame channel z / ⊥ (success) | quaternion head z / ⊥ (success) | exact Bayes z / ⊥ |
+|---|---|---|---|---|---|
+| 0.10° | 0.055 / 0.059 | 0.032 / 0.007 (100%) | 0.164 / 0.007 (40%) | 0.034 / 0.023 (100%) | 0.009 / 0.0004 |
+| 0.25° | 0.148 / 0.143 | 0.027 / 0.008 (100%) | 0.192 / 0.009 (50%) | 0.047 / 0.026 (97%) | 0.008 / 0.0003 |
+| 0.50° | 0.249 / 0.306 | 0.037 / 0.016 (100%) | 0.141 / 0.009 (37%) | 0.049 / 0.030 (90%) | 0.007 / 0.0003 |
+| 1.00° | 0.584 / 0.574 | 0.058 / 0.019 (90%) | 0.190 / 0.026 (27%) | 0.083 / 0.038 (50%) | 0.007 / 0.0004 |
+
+- **The new inputs work.** The offset head's median misorientation is 0.02–0.05°
+  (Stage 0: 0.35–0.62°), 100% of cases are within 0.5° at every magnitude, and it beats
+  predict-nominal about z at every magnitude. It is within about 4–8× of the noise-free
+  floor about z and 20–50× perpendicular.
+- **The frame channel is what fixes z.** Hiding it (same data, same model) leaves the
+  perpendicular error unchanged but raises the z error to 0.14–0.19°, worse than
+  predict-nominal at 0.1° and 0.25°. Pixels constrain perpendicular rotation, frames
+  constrain rotation about the axis, as the docs predict.
+- **Offset head vs quaternion head**: the offset head is better perpendicular (2–3×) and
+  its covariance is roughly calibrated (mean squared Mahalanobis distance 1.4–4.1
+  against 3.0).
+- **Confounds vs Stage 0**: several things changed at once (prior 1° vs 2.5°,
+  Q_max 8, both detectors, exact windows, 10,000 vs 1,500 samples). Only the frame
+  ablation isolates a single factor. One seed.
+- **Not yet comparable to FindOptimal**: the network is trained for one voxel and one
+  nominal orientation on noise-free data. On the same Example2 data FindOptimal's final
+  errors were 0.04–0.2° when it succeeded.
+
+### Planned work, in order
+
+1. Peak definition: record each peak on every detector whose pixel grid its spot
+   overlaps, applying the simulator's rule that a peak is dropped on all detectors
+   if any spot vertex misses any detector plane; configurable Q_max.
+2. Frame index in the input: windows of a few frames × pixels around each peak's
+   nominal frame.
+3. Windows sized from each peak's spot-motion Jacobian and the perturbation range.
+4. Frame-spread renderer (α/|sin η| profile); α = 0 must reproduce the current
+   output exactly.
+5. Re-run the Stage 0 evaluation on the new inputs and compare.
+
+## Toy Orientation NN — Stage 2: Baselines Without Learning (2026-09-29)
+
+**Branch**: `feature/nn-orientation-stage1`
+
+### What was added
+
+- `icenine/orientation_baselines.py`, `scripts/gauss_newton_baseline.py`:
+  `CentroidGaussNewton` fits the orientation offset to each spot's recorded frame
+  (central rotation angle, variance Δω²/12) and lit-pixel centroid (variance 1/12 px²)
+  by damped Gauss–Newton on the batched observer. It uses exactly the information in
+  the frame-coded windows, and the ROI peak identities are known.
+- `scripts/optimizer_baselines.py`: MC (`MCOptimizer`, 3500 steps, 2 restarts, step 0.5,
+  as in the sweep's headline config) and geoopt Riemannian Adam (lr 1e-4, 100 steps,
+  scale 2, ω window 1) at the test set's magnitudes and directions, using the existing
+  Python-simulated Example2 images (generated at the voxel's ground-truth orientation)
+  with the search started from a displaced orientation, as in `bench_hp_sweep.py`.
+  Reflections limited to |g| ≤ 8 Å⁻¹ like the networks.
+
+### Results (voxel 0, 120 test cases, 30 per magnitude; RMS error in degrees, success = misorientation < 0.1°)
+
+| \|δ\| | Gauss–Newton z / ⊥ (success) | Riemannian Adam z / ⊥ (success) | MC z / ⊥ (success) | exact Bayes z / ⊥ |
+|---|---|---|---|---|
+| 0.10° | 0.045 / 0.003 (100%) | 0.071 / 0.018 (87%) | 0.058 / 0.022 (87%) | 0.009 / 0.0004 |
+| 0.25° | 0.033 / 0.004 (100%) | 0.143 / 0.018 (30%) | 0.150 / 0.072 (37%) | 0.008 / 0.0003 |
+| 0.50° | 0.044 / 0.003 (97%) | 0.250 / 0.018 (20%) | 0.280 / 0.248 (3%) | 0.007 / 0.0003 |
+| 1.00° | 0.045 / 0.003 (100%) | 0.584 / 0.027 (13%) | 0.424 / 0.496 (0%) | 0.007 / 0.0004 |
+
+Cost: Gauss–Newton 7 ms per case (χ²/dof 0.91, so the quantisation noise model fits),
+Adam 0.23 s, MC 1.8 s.
+
+- **Gauss–Newton is a strong baseline.** With no learning it reaches ⊥ 0.003° and z
+  0.03–0.045° at every magnitude. Its z error is 1.5× its own predicted σ (0.027°):
+  frame quantisation errors are not independent across spots, so the independent-error
+  model of `docs/nn_inverse_problem_formulation.md` §3.6.4 is optimistic about z.
+- **Adam and MC leave the stage-axis component (largely) uncorrected on these voxels.**
+  Adam's z error is about the starting z offset (0.58° at 1°, the RMS of a 1° offset's
+  z component), while its perpendicular error is 0.02°. Reproduced with
+  `bench_hp_sweep.py`'s own perturbation generator and runner (30 random axes, voxel 0):
+  Adam success (< 0.5°) 60% at 1° for lr 1e-4 and 60–67% for lr 1e-3 to 1e-2.
+
+### Reconciliation with the earlier, more extensive study
+
+The 96% (Adam) and 92% (MC) figures for 1° in the HP-sweep section above are from the
+**ManyGrains** study (58,500 runs, 100 voxels), not from Example2.ThreeVoxels, and the
+two samples differ in exactly the way `docs/nn_inverse_problem_formulation.md` §3.6
+predicts matters:
+
+| | ThreeVoxels | ManyGrains sweep (100 selected voxels) |
+|---|---|---|
+| distance from the rotation axis r⊥ | 12 µm (all three voxels) | median 370 µm, 95% beyond 120 µm (min 75 µm) |
+| voxel side | 0.75–1.5 µm (≈ 1 pixel) | 9.4 µm (≈ 6 pixels) |
+
+The docs predict that pixels see rotation about the stage axis only through parallax,
+which becomes the main source of that information beyond r⊥ ≈ √2·a/Δω_f ≈ 120 µm. So a
+pixel-overlap cost should determine the stage-axis component for the ManyGrains voxels
+and barely at all for Example2's, which is what the two studies show. Checks against the
+records:
+
+- The earlier ThreeVoxels benchmark (lr 0.01) recorded Riemannian Adam at 1° as 8/18
+  successes (44%), consistent with 43% here.
+- `hp_sweep_threevoxels.csv` (1,755 runs of the extensive sweep, same three voxels), for
+  the ManyGrains headline configs, at 1°: Adam final misorientations 0.57 / 0.63 / 0.22°
+  and MC 0.85 / 0.79 / 0.38° for voxels 0 / 1 / 2 (success 1 of 3 each). At 2° and 5°
+  the headline Adam config succeeds on none of the three.
+- The "all methods succeed at 1° (3/3)" statement for ThreeVoxels above is a best-of-sweep
+  statement (the best of 42 or 36 HP configs per voxel). For fixed configs, 9 of 42 Adam
+  configs and 0 of 36 MC configs succeed on at least two of the three voxels at 1°.
+
+**Not established**: the per-run ManyGrains CSV (`hp_sweep_manygrains.csv`) was never
+committed and is not on this machine (only the log and the trajectory CSV are), and
+ManyGrains' `ScatteringData_Python` is absent, so the dependence on r⊥ (versus voxel size,
+overlapping neighbours or the different reflection set) has not been measured. The two
+samples differ in more than one way. The conclusion above applies to Example2's near-axis
+voxels; it is not evidence against the ManyGrains results.
+
+### Caveats on comparing Gauss–Newton with Adam and MC
+
+- Gauss–Newton is given the peak identities (which predicted spot is which, from the
+  nominal orientation) and the frame index, and starts inside the basin. Adam and MC must
+  associate predicted spots with the image through pixel overlap, so they solve a harder
+  problem; the comparison shows what the information in the frame-coded windows supports,
+  not that the optimizers are worse algorithms.
+- The MC baseline's search box is set from the true perturbation magnitude (1.5 x |delta|), as
+  in the HP-sweep protocol, so MC is told |delta|; Gauss-Newton is not.
+- The optimizers were run with the data at the ground truth and the start displaced; the
+  networks and Gauss–Newton see data displaced from a known nominal. These are the same
+  local problem to first order, not identical.
+
+### Open
+
+- Test the near-axis explanation directly: forward-simulate a few ManyGrains voxels (or
+  move Example2's voxel to r⊥ ≈ 400 µm), and rerun Adam and MC at 1° by r⊥; recover or
+  regenerate `hp_sweep_manygrains.csv`.
+
+## Toy Orientation NN — Stage 3: Iterating on the Set Network (2026-09-29)
+
+Branch `feature/nn-orientation-stage1`. Plan: improve `PeakSetNet` (Step 1), repeat on a
+voxel far from the rotation axis (Step 2), train on ~30 voxels (Step 3). Training runs on the
+Apple GPU (`--device mps`; CPU vs MPS one-epoch losses with `--seed 0` agree: -0.87531 vs
+-0.87529). The network runs on the training device for inference too (float32); predictions are
+moved to the CPU and the error statistics are computed there in float64.
+
+### Step 1: four rounds on voxel 0 (r⊥ = 12 µm), same data and test set as Stage 2
+
+Median misorientation angle (deg) at |δ| = 0.1 / 0.25 / 0.5 / 1.0 (30 cases each), from the
+saved `benchmarks/toy_orientation_stage2/res_*.json` (one clean run each). "set" is the Stage 2
+run (lr 1e-3, 30 epochs, no schedule).
+
+| run | median angle | z RMS | ⊥ RMS | net σ_z | mean Mahalanobis² |
+|---|---|---|---|---|---|
+| set (Stage 2) | 0.045/0.146/0.190/0.581 | 0.054/0.152/0.242/0.585 | 0.015/0.016/0.018/0.019 | 0.51/0.50/0.47/0.42 | 0.8/0.9/1.4/3.7 |
+| r1 optimisation | 0.051/0.141/0.192/0.538 | 0.054/0.149/0.248/0.585 | 0.017/0.019/0.017/0.024 | 0.46/0.46/0.45/0.44 | 2.1/2.5/2.6/5.3 |
+| r2 r1 with `--no-frame` | 0.052/0.142/0.191/0.547 | 0.054/0.148/0.247/0.585 | 0.019/0.016/0.019/0.026 | 0.45/0.45/0.45/0.45 | 2.1/2.0/2.4/4.6 |
+| r3 + measurement features | 0.044/0.140/0.194/0.529 | 0.052/0.149/0.241/0.576 | 0.008/0.008/0.008/0.010 | 0.58/0.56/0.49/0.36 | 2.5/2.3/2.2/4.3 |
+| r4 r3 with mean + sum pooling | 0.065/0.165/0.283/0.451 | 0.041/0.033/0.045/0.057 | 0.042/0.117/0.207/0.356 | 0.04/0.04/0.04/0.04 | 1.9/2.1/3.1/4.0 |
+| fc (Stage 1) | 0.023/0.024/0.036/0.049 | 0.032/0.027/0.037/0.058 | 0.007/0.008/0.016/0.019 | | |
+| Gauss–Newton | 0.040/0.024/0.035/0.036 | 0.045/0.032/0.044/0.045 | 0.003/0.003/0.003/0.003 | | |
+| exact Bayes | 0.007/0.004/0.003/0.004 | 0.009/0.008/0.007/0.007 | 0.000/0.000/0.000/0.000 | | |
+
+Rounds (all lr/clip/cosine/60 epochs from r1 on: `--lr 3e-4 --clip 1.0 --cosine`):
+
+1. **Optimisation.** Gradient clipping, cosine decay and a lower lr remove the erratic
+   validation loss (monotone to epoch 60) but change nothing in accuracy: z is still
+   predict-nominal.
+2. **Frame ablation (`--no-frame`).** Identical to r1 in every column, so the conv-encoded set
+   net never used the frame channel; its z output is the prior.
+3. **Explicit per-peak measurement features** (`measurement_features` in
+   `toy_orientation_model.py`: present flag, lit count, mean frame offset, lit-pixel centroid
+   relative to the window centre; they equal `extract_measurements()`, tested). This fixes the
+   perpendicular axes (⊥ RMS 0.017-0.024 → 0.008-0.010, better than fc and the ⊥ of Stage 1's
+   fc at 0.5/1 deg) but z is still the prior (σ_z ≈ 0.5, it knows it does not know z).
+4. **Sum pooling** (mean and sum instead of mean and max). This fixes z (RMS 0.04-0.06, on par
+   with fc and Gauss–Newton) but loses the ⊥ accuracy, particularly y (σ_y 0.16-0.46).
+
+**Findings.** The stage axis is a global quantity: δ_z ≈ -(mean over peaks of the frame
+residual), so it needs a pooled sum of per-peak frame measurements, and max pooling (which
+discards it) plus a mean of ReLU features was not found by optimisation. Conversely max
+pooling is what gives the ⊥ components. Neither r3 nor r4 alone meets the target (median ≤ fc
+and ≤ 1.5x Gauss–Newton at every bin): r3 is at the prior in z; r4 is at 0.28-0.45 deg in
+⊥ at large δ. The rounds were capped at four, so the obvious combination (mean + max + sum
+pooling, `--pool all`, added to the code after round 4 and covered by the padding test) was
+not run on voxel 0; it is tried on the Step 2 data.
+
+### Step 2: a voxel far from the rotation axis
+
+Generator changes: `--example {threevoxels,manygrains}` (stored in the dataset meta as `example`,
+with `r_perp_um` and `side_um`); `gauss_newton_baseline.py` and `exact_bayes_baseline.py` read the
+example from the dataset meta instead of hard-coding ThreeVoxels.
+
+**Voxel**: `Examples/Example2.ManyGrains/SimInput/rand_500grains_1mm_inFZ.mic`, voxel **77**
+(first candidate near 400 µm): r⊥ = **398.7 µm**, side 9.38 µm (triangle), **118 ROI peaks**
+(Q_max 8, both detectors, |sin η| ≥ 0.3). Dataset `scripts/toy_orientation_stage3_far_*.pt`
+(10 000 train from the 1° ball, 4 x 30 test at 0.1/0.25/0.5/1.0°; 96.8-98.1 % of spots inside
+their windows). Exact Bayes (7 min) and Gauss–Newton (1 s) ran on the test set; MC/Adam were not
+run (ManyGrains has no detector images). The Bayes row is summarised from
+`far_test_bayes.npz` with `scripts/summarize_bayes_npz.py --bayes ... --test ... --out ...` (the trainings started before it
+finished, so their tables have no Bayes row). All networks: lr 3e-4, clip 1, cosine, batch 64,
+`--device mps`; fc 30 epochs, set 60. Results in `benchmarks/toy_orientation_stage3/far_res_*.json`.
+
+Median angle (deg) at |δ| = 0.1 / 0.25 / 0.5 / 1.0, z and ⊥ RMS, mean Mahalanobis²:
+
+| method | median angle | z RMS | ⊥ RMS | net σ (x,y,z) at 0.25 | Mahalanobis² |
+|---|---|---|---|---|---|
+| predict-nominal | 0.100/0.250/0.500/1.000 | 0.055/0.148/0.249/0.584 | 0.059/0.143/0.306/0.574 | | |
+| fc | 0.009/0.008/0.009/0.020 | 0.009/0.007/0.006/0.016 | 0.004/0.004/0.006/0.017 | 0.004, 0.005, 0.008 | 3.7/2.7/4.1/11.1 |
+| set, mean+max pool | 0.040/0.113/0.157/0.450 | 0.068/0.143/0.212/0.489 | 0.013/0.024/0.039/0.096 | 0.098, 0.054, 0.460 | 2.1/2.1/2.3/6.3 |
+| set, mean+sum pool | 0.078/0.156/0.294/0.431 | 0.021/0.022/0.029/0.044 | 0.069/0.128/0.212/0.340 | 0.039, 0.237, 0.028 | 1.6/2.7/3.3/4.1 |
+| **set, mean+max+sum pool** | 0.015/0.013/0.015/0.018 | 0.015/0.014/0.017/0.019 | 0.010/0.010/0.009/0.016 | 0.009, 0.008, 0.015 | 3.3/3.7/3.4/5.6 |
+| Gauss–Newton | 0.012/0.011/0.009/0.008 | 0.013/0.010/0.010/0.008 | 0.003/0.003/0.003/0.003 | | |
+| exact Bayes | 0.001/0.001/0.001/0.001 | 0.001/0.001/0.001/0.001 | 0.000/0.000/0.000/0.000 | | |
+
+Findings.
+
+- Parallax helps every method that can use it, as expected from the near-axis analysis: on
+  voxel 0 (r⊥ = 12 µm) Gauss–Newton had z RMS 0.045° and exact Bayes 0.007-0.009°; at
+  r⊥ = 399 µm they are 0.008-0.013° and 0.001°. fc median error is 0.009-0.020° (voxel 0:
+  0.023-0.049°).
+- **The pooling combination that fixes both axes is mean + max + sum** (the combination not tried
+  in Step 1, `--pool all`): 0.013-0.018° at every magnitude. The single-pool nets reproduce the
+  Step 1 split: mean+max is at the prior in z even here (σ_z 0.46), mean+sum loses ⊥ (σ_y 0.24).
+- The target "median ≤ fc and ≤ 1.5x Gauss–Newton at every bin" is not met by the set net at
+  0.1-0.5° (fc 0.008-0.009; GN 0.009-0.012; set 0.013-0.015); at 1° it beats fc (0.018 vs 0.020).
+  Calibration: Mahalanobis² 3.3-3.7 for δ ≤ 0.5° (calibrated is 3), 5.6 at 1°; fc 2.7-4.1, but
+  11.1 at 1°.
+- Exact Bayes is ~10x below all methods here: the information in the thresholded data is far
+  from exhausted (on voxel 0 the gap was 4-6x).
+
+### Step 3: 30 voxels, one network (held-out voxels test generalization)
+
+**Generator** (`--n-voxels 30 --voxel-seed 0 --r-max-um 500`): 30 target radii evenly spaced over
+r⊥ = 0-500 µm, one random ManyGrains voxel near each (distinct orientations, ≥ 40 peaks; ROI
+sets of 105-130 peaks, Q_max 8, both detectors, |sin η| ≥ 0.3, ±4 frames, 1° prior).
+Every 5th voxel in r⊥ order (offset 2: r⊥ = 32, 126, 215, 301, 372, 457 µm) is **held out**: it
+has no training data. Train: 24 voxels x 500 prior offsets = 12 000 samples; test: every voxel
+x 4 magnitudes (0.1/0.25/0.5/1.0°) x 10 offsets = 1 200 cases (960 in-distribution offsets on
+training voxels, 240 on held-out voxels). Storage: windows `(N, M_max = 130, 32, 32)` uint8
+(zero = absent), per-voxel `context (30, 130, 16)` gathered by `voxel_id`, `R_nom (30, 3, 3)`;
+train file 1.6 GB, test 0.16 GB (`scripts/toy_orientation_stage3_multi_*.pt`, gitignored);
+generation 3 min. `PeakSetNet` needed no change (accepts a `(B, M, D)` context); tests added for
+the context gather and for invariance to zero-padded peaks. No exact Bayes here (too slow for 1 200
+cases and 30 voxels; GN is the reference). `fc` is not applicable (fixed peak count).
+
+**Network**: `PeakSetNet(pool="all")` (measurement features, mean+max+sum pooling), lr 3e-4, clip 1,
+cosine, batch 64, `--device mps`. 60 epochs takes 7 min; a 150-epoch run is also reported
+(best validation at epoch 136). Results from
+`benchmarks/toy_orientation_stage3/multi_res_set_all{,_150ep}.json`.
+
+Median angle (deg) at |δ| = 0.1 / 0.25 / 0.5 / 1.0:
+
+| test set | method | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| in-distribution (24 voxels, 240 per bin) | predict-nominal | 0.100/0.250/0.500/1.000 | 0.057/0.147/0.282/0.601 | 0.058/0.143/0.292/0.565 | |
+| | set, 60 epochs | 0.030/0.030/0.032/0.038 | 0.039/0.041/0.046/0.049 | 0.009/0.009/0.010/0.014 | 4.0/3.5/3.2/4.1 |
+| | set, 150 epochs | 0.029/0.026/0.029/0.032 | 0.038/0.039/0.041/0.042 | 0.007/0.006/0.007/0.011 | 4.1/3.6/3.5/5.7 |
+| | Gauss–Newton | 0.012/0.015/0.012/0.014 | 0.020/0.024/0.022/0.022 | 0.003/0.003/0.003/0.004 | |
+| held-out voxels (6, 60 per bin) | set, 60 epochs | 0.036/0.043/0.046/0.055 | 0.030/0.041/0.047/0.055 | 0.019/0.020/0.020/0.028 | 19.5/21.6/17.4/17.8 |
+| | set, 150 epochs | 0.034/0.037/0.039/0.053 | 0.031/0.043/0.051/0.054 | 0.018/0.016/0.018/0.024 | 31.1/24.5/26.3/34.3 |
+| | Gauss–Newton | 0.014/0.012/0.012/0.010 | 0.017/0.020/0.020/0.016 | 0.004/0.003/0.004/0.004 | |
+
+**Error vs r⊥** (median over voxels of each voxel's median angle over all magnitudes, 60-epoch run;
+6/7/5/6 training voxels and 2/1/2/1 held-out voxels per bin):
+
+| r⊥ bin (µm) | set, train voxels | set, held-out voxels | Gauss–Newton (train voxels) |
+|---|---|---|---|
+| 0-130 | 0.029 | 0.040 | 0.022 |
+| 130-260 | 0.031 | 0.043 | 0.013 |
+| 260-390 | 0.033 | 0.045 | 0.011 |
+| 390-510 | 0.036 | 0.056 | 0.008 |
+
+Across all 30 voxels the correlation of the voxel median error with r⊥ is +0.37 for the network
+and -0.63 for Gauss–Newton.
+
+**Findings.**
+
+- One network trained on 24 voxels works on all of them: 0.026-0.038° median in-distribution,
+  and 0.034-0.055° on the six voxels it never saw (about 1.2-1.6x the in-distribution error, with
+  the largest degradation at 1° and at large r⊥). The per-voxel median error over all magnitudes
+  (offsets up to 1°) is 0.024-0.056° for every one of the 30 voxels.
+- Relative to per-voxel Gauss–Newton it is 2.5-4x worse, and the gap widens with r⊥ because
+  Gauss–Newton exploits the parallax (its error falls from 0.022° to 0.008° with r⊥) and the
+  network does not: its z RMS stays at 0.04° and its voxel error rises slightly with r⊥. The
+  single-voxel specialist for voxel 77 (Step 2) reached 0.013-0.018° there, so the multi-voxel net
+  gives up ~2x at large r⊥ in exchange for generality.
+- Mean Mahalanobis² is 3.2-4.1 in distribution (nearly calibrated) but 17-34 on held-out voxels:
+  the predicted covariance is overconfident by ~2-3x in σ on unseen voxels, and 150 epochs makes
+  it worse (24-34). Do not trust the predicted σ for new voxels without recalibration.
+- 150 epochs (best validation at epoch 136) improves in-distribution by ~10 % and held-out barely;
+  the network is limited by the 24 training voxels / 12 000 samples and by its parameter
+  budget, not by optimisation time.
+
+**Caveats.** The validation split for early stopping is a random 10 % of the training samples, so
+it is in-distribution and cannot detect the held-out degradation. Six held-out voxels give
+per-radius-bin conclusions of only 1-2 voxels each. The held-out voxels come from the same
+sample and distribution as the training voxels; nothing here says how the network behaves on a
+different detector geometry or crystal structure. Test offsets are 10 per voxel and magnitude,
+so per-voxel medians rest on 40 cases.
+
+**Open**: (i) per-peak weights or attention pooling and per-peak Jacobian-times-residual features
+to let the net reproduce Gauss–Newton's parallax use at large r⊥; (ii) more training voxels and
+peaks per voxel, or fine-tuning on a new voxel; (iii) recalibrating the covariance on held-out
+voxels; (iv) a one-voxel simulated image to run Adam/MC at r⊥ ≈ 400 µm (still missing for ManyGrains).
+
+### Stage 3 — NLL diagnostic (2026-09-29/30)
+
+Question: why does `PeakSetNet` (mean+max pooling, measurement features; round r3) fix the
+perpendicular axes on voxel 0 but leave the stage axis z at the prior? Hypothesis: a Gaussian-NLL
+pathology. The NLL gradient on the mean is Σ⁻¹(μ − y), so once σ_⊥ ≈ 0.01-0.02° and σ_z ≈ 0.5°
+the z gradient is ~1000x weaker than the ⊥ ones and z never leaves "don't know" (Seitzer et al.
+2022). Test: change only the loss. Data, architecture, optimiser as r3 (voxel 0, 9000 train,
+`--arch set --pool meanmax --lr 3e-4 --clip 1 --cosine --epochs 60`, batch 32, `--device mps`,
+seed 0), from `benchmarks/toy_orientation_stage3/nll/res_*.json` (one clean run each).
+
+New code: `--loss {nll,decoupled,mse,mse-then-cov,mse-then-nll}` and `--mse-scale` in
+`scripts/train_toy_orientation_nn.py`; `mse_deg_loss` and `decoupled_nll_loss` in
+`icenine/orientation_nn.py` (MSE on the mean, equal weight per axis, in units of (0.1°)², plus the
+NLL of the covariance at stopgrad(mean), so the mean gets exactly the MSE gradient);
+`FrameProbeNet` and `--arch probe` in `icenine/toy_orientation_model.py`. The per-epoch log now
+prints validation RMS (z, ⊥) and mean predicted σ (z, ⊥). The existing `--beta-nll` weights each
+sample by one scalar, so it cannot rebalance z against ⊥ within a sample; it was run anyway.
+
+Median angle (deg) / z RMS / ⊥ RMS / predicted σ_z / mean Mahalanobis², each at |δ| = 0.1 / 0.25 /
+0.5 / 1.0 (30 cases each):
+
+| run | median angle | z RMS | ⊥ RMS | net σ_z | Mahalanobis² |
+|---|---|---|---|---|---|
+| r3 (NLL, meanmax) | 0.044/0.140/0.194/0.529 | 0.052/0.149/0.241/0.576 | 0.008/0.008/0.008/0.010 | 0.58/0.57/0.49/0.36 | 2.5/2.3/2.2/4.3 |
+| E1 β-NLL 0.5 | 0.099/0.227/0.383/0.807 | 0.074/0.147/0.255/0.585 | 0.046/0.120/0.213/0.356 | 0.49/0.48/0.46/0.43 | 0.1/0.4/1.1/4.0 |
+| E1 β-NLL 1.0 | 0.095/0.226/0.387/0.792 | 0.073/0.146/0.249/0.586 | 0.049/0.118/0.207/0.350 | 0.49/0.48/0.46/0.43 | 0.5/0.8/1.7/5.6 |
+| E2 decoupled, meanmax | 0.028/0.023/0.028/0.034 | 0.026/0.024/0.027/0.040 | 0.012/0.010/0.012/0.014 | 0.029/0.028/0.029/0.029 | 3.6/2.5/2.7/4.4 |
+| E3 MSE 30 epochs, then decoupled | 0.025/0.028/0.032/0.033 | 0.019/0.027/0.030/0.041 | 0.013/0.015/0.014/0.015 | 0.029/0.029/0.030/0.031 | 2.7/4.0/3.4/4.8 |
+| E5 decoupled, `--pool all` | 0.020/0.026/0.026/0.030 | 0.016/0.024/0.027/0.040 | 0.011/0.011/0.009/0.011 | 0.027/0.028/0.028/0.028 | 3.2/3.4/2.4/4.3 |
+| E4 probe (frame + dω*/dδ only, MSE) | 0.085/0.081/0.076/0.087 | 0.023/0.035/0.038/0.046 | 0.057/0.063/0.053/0.060 | (fixed) | |
+| fc (Stage 1) | 0.023/0.024/0.036/0.049 | 0.032/0.027/0.037/0.058 | 0.007/0.008/0.016/0.019 | | |
+| Gauss–Newton | 0.040/0.024/0.035/0.036 | 0.045/0.032/0.044/0.045 | 0.003/0.003/0.003/0.003 | | |
+
+Findings.
+
+- **The hypothesis is confirmed.** Changing only the loss takes z from the prior (RMS 0.05-0.58°,
+  σ_z ≈ 0.5°) to 0.024-0.040° with the same architecture, data and pooling. E2 and E3 reach
+  median 0.023-0.034° at every magnitude: at or below fc at 0.5 and 1° (0.036, 0.049) and at
+  0.25-1° on par with Gauss–Newton (0.024-0.036). E3's MSE-only phase already had validation z
+  RMS 0.044° at epoch 20, before any covariance was fitted (`log_msecov.txt`), so the
+  information was reachable with mean pooling and max pooling in place; only the NLL gradient
+  scaling was withholding it.
+- **Per-sample β-NLL does not help, as expected.** Its final-epoch validation z RMS is 0.43 and
+  0.42° (`log_beta05.txt`, `log_beta10.txt`), the prior. The table rows for E1 are worse than
+  r3 only because the best-validation checkpoint is epoch 1-2: the β weight `det(cov)^(β/3)`
+  changes as σ shrinks, so the validation loss is not comparable across epochs and checkpoint
+  selection picks the start. At epoch 60 their ⊥ RMS is 0.008° (as r3), z unchanged.
+- **The frame information survives mean pooling.** The probe (a per-peak MLP of the mean frame
+  offset and dω*/dδ, mean-pooled, no pixels) recovers z to 0.023-0.046° RMS; it has no pixel
+  information, so ⊥ stays at 0.05-0.06° as designed.
+- **σ_z does not balloon; it collapses correctly.** In the NLL runs σ_z stays at 0.4-0.6°
+  throughout (a calibrated "don't know", Mahalanobis² 2-4) while σ_⊥ falls to 0.007-0.010°.
+  With the decoupled loss σ_z falls to ≈ 0.03° along with the error (Mahalanobis² 2.4-4.4).
+- **Costs.** ⊥ RMS is 0.009-0.014° against r3's 0.008° (a mild trade for balancing the axes) and
+  the 1° z RMS is 0.040°. Exact Bayes remains 5-10x lower (0.004-0.007°).
+- `--pool all` with the decoupled loss (E5) is the best voxel-0 run (median 0.020-0.030°), a
+  modest gain over meanmax (0.023-0.034°): with the loss fixed, sum pooling is no longer needed.
+
+Far voxel (ManyGrains 77, r⊥ = 399 µm), decoupled loss, batch 64, 60 epochs, one run each:
+
+| run | median angle | z RMS | ⊥ RMS | net σ_z | Mahalanobis² |
+|---|---|---|---|---|---|
+| NLL, `--pool all` (Step 2) | 0.015/0.013/0.015/0.018 | 0.015/0.014/0.017/0.019 | 0.010/0.010/0.009/0.016 | 0.015 (at 0.25) | 3.3/3.7/3.4/5.6 |
+| decoupled, meanmax | 0.019/0.021/0.023/0.024 | 0.014/0.015/0.021/0.023 | 0.011/0.014/0.013/0.035 | 0.016/0.016/0.017/0.019 | 2.5/3.4/3.5/8.4 |
+| decoupled, `--pool all` | 0.014/0.016/0.020/0.024 | 0.016/0.014/0.019/0.021 | 0.008/0.010/0.010/0.017 | 0.012/0.013/0.015/0.018 | 4.5/3.7/3.6/5.5 |
+| fc | 0.009/0.008/0.009/0.020 | 0.009/0.007/0.006/0.016 | 0.004/0.004/0.006/0.017 | | |
+| Gauss–Newton | 0.012/0.011/0.009/0.008 | 0.013/0.010/0.010/0.008 | 0.003/0.003/0.003/0.003 | | |
+
+On the far voxel the plain-NLL set net with `--pool all` was already good, and the decoupled loss
+does not improve it (0.014-0.024 vs 0.013-0.018°, slightly worse at 0.5-1°), but it does let
+plain `meanmax` pooling (which was at the prior in z there too: σ_z 0.46, z RMS 0.07-0.49°)
+reach 0.019-0.024°. So the loss is what was missing for meanmax; sum pooling was compensating
+for it. It is not a further gain over sum pooling.
+
+Caveats: one seed per run; test sets of 30 cases per magnitude; no run of a full network with
+MSE only (E3's first phase and the probe cover it); the mixing scale (0.1°) was not tuned; the
+β-NLL rows use the epoch 1-2 checkpoint (see above). Not tried: decoupled loss on the 30-voxel
+multi-voxel data (where the network does not exploit parallax; the loss is the first thing to
+change there).
+
+### Stage 3 — multi-voxel retrain with the decoupled loss (2026-09-30)
+
+Question: does the decoupled loss (MSE on the mean + NLL of the covariance at stopgrad(mean),
+`--mse-scale 0.1`) fix the 30-voxel network's gap to Gauss–Newton (GN), parallax use and held-out
+overconfidence? Same data as Step 3. New: `--val-voxels N` in `scripts/train_toy_orientation_nn.py`
+(`split_by_voxel` in `icenine/orientation_nn.py`, tested): N of the 24 training voxels, one per
+r⊥ stratum drawn with `--seed`, are removed from training and used only for early stopping /
+best-checkpoint selection (the test file's six held-out voxels are never used for selection).
+With `--seed 0` and N = 4 the validation voxels are **6, 11, 19, 24 (r⊥ = 99, 181, 326, 410 µm)**;
+training is then 20 voxels / 10 000 samples, validation 2 000 samples. Default (`--val-voxels 0`)
+is still the random 10 % sample split.
+
+All runs: `--arch set --head offset --device mps --lr 3e-4 --clip 1 --cosine --batch-size 64
+--epochs 60` (the settings of the previous multi runs), seed 0, one run each. Results from
+`benchmarks/toy_orientation_stage3/multi_{log,res,pred}_<run>.*`. R3 (150 epochs) was **not** run:
+60 epochs is not under-trained (see below). R5 was added to separate the loss from the val split.
+Median angle (deg) at |δ| = 0.1/0.25/0.5/1.0; "in-dist" = the 24 training-set voxels (960 test
+cases; for the voxel-val runs 4 of these 24 voxels were unseen in training), "held-out" = the 6
+test-file voxels (240 cases).
+
+| run (loss, pool, val split; best epoch) | group | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| previous: NLL, all, sample-val, 60 ep | in-dist | 0.030/0.030/0.032/0.038 | 0.039/0.041/0.046/0.049 | 0.009/0.009/0.010/0.014 | 4.0/3.5/3.2/4.1 |
+| | held-out | 0.036/0.043/0.046/0.055 | 0.030/0.041/0.047/0.055 | 0.019/0.020/0.020/0.028 | 19.5/21.6/17.4/17.8 |
+| previous: NLL, all, sample-val, 150 ep | in-dist | 0.029/0.026/0.029/0.032 | 0.038/0.039/0.041/0.042 | 0.007/0.006/0.007/0.011 | 4.1/3.6/3.5/5.7 |
+| | held-out | 0.034/0.037/0.039/0.053 | 0.031/0.043/0.051/0.054 | 0.018/0.016/0.018/0.024 | 31.1/24.5/26.3/34.3 |
+| R1: decoupled, all, voxel-val (ep 12) | in-dist | 0.040/0.045/0.053/0.071 | 0.041/0.047/0.053/0.060 | 0.018/0.020/0.026/0.041 | 1.6/1.9/2.2/3.3 |
+| | held-out | 0.040/0.047/0.057/0.068 | 0.033/0.040/0.055/0.062 | 0.022/0.026/0.032/0.038 | 1.8/2.8/3.7/3.5 |
+| R2: decoupled, meanmax, voxel-val (ep 20) | in-dist | 0.049/0.048/0.055/0.070 | 0.057/0.054/0.056/0.063 | 0.019/0.019/0.023/0.036 | 2.7/2.4/2.5/3.9 |
+| | held-out | 0.051/0.060/0.060/0.060 | 0.053/0.058/0.061/0.066 | 0.022/0.026/0.026/0.029 | 2.9/3.4/3.6/3.5 |
+| R4: NLL, all, voxel-val (ep 18) | in-dist | 0.051/0.045/0.050/0.061 | 0.054/0.053/0.056/0.066 | 0.019/0.018/0.019/0.026 | 2.5/2.2/2.0/2.6 |
+| | held-out | 0.045/0.048/0.054/0.070 | 0.047/0.050/0.055/0.065 | 0.024/0.021/0.028/0.038 | 3.2/3.0/4.7/5.6 |
+| R5: decoupled, all, sample-val (ep 58) | in-dist | 0.033/0.031/0.035/0.039 | 0.037/0.038/0.041/0.041 | 0.013/0.012/0.014/0.019 | 3.1/3.0/3.3/3.8 |
+| | held-out | 0.036/0.043/0.050/0.057 | 0.033/0.041/0.053/0.052 | 0.017/0.020/0.027/0.032 | 4.8/7.2/11.1/10.4 |
+| Gauss–Newton | in-dist | 0.012/0.015/0.012/0.014 | 0.020/0.024/0.022/0.022 | 0.003/0.003/0.003/0.004 | |
+| | held-out | 0.014/0.012/0.012/0.010 | 0.017/0.020/0.020/0.016 | 0.004/0.003/0.004/0.004 | |
+
+Per-voxel median error (all magnitudes) vs r⊥, correlation over all 30 voxels (net) and median
+over voxels in four r⊥ bins (0-130 / 130-260 / 260-390 / 390-510 µm, the 20-24 training voxels):
+
+| run | corr(err, r⊥) | bin medians | median of per-voxel medians: 20 train / 4 val / 6 held-out voxels |
+|---|---|---|---|
+| previous NLL, all, 60 ep | +0.37 | 0.028/0.031/0.033/0.036 | 0.030 / 0.035 / 0.044 |
+| R1 decoupled, all, voxel-val | +0.27 | 0.043/0.050/0.050/0.049 | 0.048 / 0.067 / 0.053 |
+| R2 decoupled, meanmax, voxel-val | +0.42 | 0.047/0.059/0.058/0.058 | 0.055 / 0.062 / 0.056 |
+| R4 NLL, all, voxel-val | +0.38 | 0.043/0.049/0.053/0.057 | 0.052 / 0.064 / 0.052 |
+| R5 decoupled, all, sample-val | +0.21 | 0.033/0.032/0.035/0.035 | 0.034 / 0.035 / 0.044 |
+| Gauss–Newton | -0.63 | 0.022/0.013/0.011/0.008 | 0.012 / 0.019 / 0.014 |
+
+Answers.
+
+- **(a) Gap to GN: not closed.** The best decoupled run (R5, same protocol as before) is 0.031-0.039°
+  in-distribution against 0.026-0.038° for plain NLL: no change. GN is 0.012-0.015° (2.5-3x
+  better). On voxel 0 the loss took z from the prior to GN level; on 30 voxels z was already
+  learned with plain NLL and `--pool all` (z RMS 0.04°), so there was no NLL pathology left to fix.
+- **(b) Parallax: not used.** No net run shows error falling with r⊥ (corr +0.21 to +0.42, bin
+  medians flat or rising; GN -0.63, 0.022 → 0.008°). z RMS is 0.037-0.041° (R5), 2x GN's 0.020°; no
+  run has z RMS below 0.02° at large r⊥. The loss was not the limiting factor; the pooled
+  representation is (see Open items in Step 3).
+- **(c) Held-out overconfidence: calibration improves, accuracy does not.** With the voxel-wise val
+  split the held-out Mahalanobis² is 1.8-3.7 (R1), 2.9-3.6 (R2) and 3.2-5.6 (R4) against 17-34
+  before, i.e. calibrated. The loss is not what did it: R4 (plain NLL) calibrates as well as R1.
+  R5 (decoupled loss, sample-val) is between: 4.8-11.1. So the gain comes from the checkpoint
+  selection. But the voxel-val checkpoints are early (epoch 12/20/18 of 60; the val-voxel loss is
+  noisy, z RMS on the 4 val voxels bounces between 0.07 and 0.086 over epochs 5-60 while the
+  train loss keeps falling) and those nets are *worse* everywhere, by 1.3-2x
+  (in-dist 0.040-0.071 vs 0.033-0.039 for R5; held-out 0.040-0.070 vs 0.036-0.057). The
+  overconfidence was partly the sharpening of σ during late training (σ_z 0.06 at epoch 12 vs
+  0.04 at epoch 58 on the val voxels; R1 log), which is not accompanied by better error on unseen
+  voxels. What a covariance head can learn from 20-24 voxels is limited: it cannot tell a new voxel
+  from a training voxel, so it fits the in-distribution error level; the held-out (and val-voxel)
+  error is ~1.2-1.6x larger and the Mahalanobis² rises to 5-11 (R5) once σ has shrunk to the
+  training-voxel level. The voxel-val runs avoid this by stopping at a wider σ, at the price of
+  accuracy.
+- **Pooling.** meanmax (R2) is 10-20 % worse than `all` (R1) under the decoupled loss (z RMS 0.053-0.066 vs
+  0.033-0.062); the far-voxel result (loss makes sum pooling unnecessary) does not carry over to
+  the multi-voxel net.
+- **Recommendation.** For accuracy use R5's protocol (sample-val, late checkpoint); for honest σ on
+  new voxels either recalibrate on a held-out set of voxels or use voxel-val, but the noisy
+  4-voxel validation loss picks a poor checkpoint. A smoother selection criterion (validation
+  z/⊥ RMS instead of the training loss, more validation voxels, or averaging the last epochs) is
+  the obvious next step.
+
+Caveats: one seed per run; only 6 held-out voxels (1-2 per r⊥ bin); the "in-dist" test group of
+the voxel-val runs contains the 4 val voxels, which those nets never trained on (the third column
+of the second table separates them: the 4 val voxels are the worst-off group in R1/R4, 0.064-0.067);
+the val voxels influence checkpoint selection, so they are not a clean test either. Best-epoch
+selection on a noisy loss confounds "voxel-wise split" with "early checkpoint"; a last-epoch
+evaluation of R1/R4 was not run. R3 (150 epochs) was not run.

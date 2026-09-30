@@ -371,3 +371,20 @@ class TestToyOrientationNet:
 
         assert q_pred.shape == (1, 4)
         assert torch.isclose(q_pred.norm(), torch.tensor(1.0), atol=1e-5)
+
+
+def test_split_by_voxel_disjoint_deterministic_and_spans_r_perp():
+    from icenine.orientation_nn import split_by_voxel
+
+    r_perp = np.linspace(0.0, 500.0, 24)
+    vid = np.repeat(np.arange(24), 5)
+    tr1, va1, vv1 = split_by_voxel(vid, r_perp, 4, seed=3)
+    tr2, va2, vv2 = split_by_voxel(vid, r_perp, 4, seed=3)
+    assert np.array_equal(tr1, tr2) and np.array_equal(va1, va2) and vv1 == vv2
+    assert len(vv1) == 4 and len(va1) == 20 and len(tr1) + len(va1) == len(vid)
+    assert not set(vid[tr1]) & set(vid[va1])  # no voxel on both sides
+    assert set(vid[va1]) == set(vv1)
+    # one voxel per r_perp quartile
+    assert [v // 6 for v in vv1] == [0, 1, 2, 3]
+    with pytest.raises(ValueError):
+        split_by_voxel(vid, r_perp, 24)

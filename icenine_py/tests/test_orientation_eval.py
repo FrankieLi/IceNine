@@ -30,11 +30,14 @@ from icenine.orientation_eval import (
     sample_prior_offsets,
 )
 from icenine.orientation_nn import (
+    _project_all_detectors,
     _project_peak_on_detector,
     _restore_and_rotate,
     cholesky_from_raw,
+    decoupled_nll_loss,
     define_roi_set,
     gaussian_nll_loss,
+    mse_deg_loss,
     spot_overlaps_grid,
 )
 from icenine.image_data import ImageData
@@ -188,6 +191,39 @@ class TestOffsetHead:
         assert torch.isfinite(weighted) and torch.isfinite(raw.grad).all()
         assert not torch.isclose(plain, weighted)
 
+    def test_decoupled_loss_mean_gradient_is_mse_gradient(self):
+        torch.manual_seed(0)
+        raw = torch.randn(6, 6)
+        mean = torch.randn(6, 3, requires_grad=True)
+        tgt = torch.randn(6, 3)
+        decoupled_nll_loss(mean, cholesky_from_raw(raw), tgt, 0.3).backward()
+        g_dec = mean.grad.clone()
+        mean.grad = None
+        mse_deg_loss(mean, tgt, 0.3).backward()
+        assert torch.allclose(g_dec, mean.grad, atol=1e-6)
+        # independent of sigma: a very different covariance gives the same mean gradient
+        mean.grad = None
+        decoupled_nll_loss(mean, cholesky_from_raw(raw * 3.0 - 2.0), tgt, 0.3).backward()
+        assert torch.allclose(g_dec, mean.grad, atol=1e-6)
+
+    def test_decoupled_loss_covariance_gradient_is_nll_gradient(self):
+        torch.manual_seed(1)
+        raw = torch.randn(5, 6, requires_grad=True)
+        mean, tgt = torch.randn(5, 3, requires_grad=True), torch.randn(5, 3)
+        decoupled_nll_loss(mean, cholesky_from_raw(raw), tgt).backward()
+        g_dec = raw.grad.clone()
+        raw.grad = None
+        gaussian_nll_loss(mean.detach(), cholesky_from_raw(raw), tgt).backward()
+        assert torch.allclose(g_dec, raw.grad, atol=1e-6)
+
+    def test_nll_mean_gradient_scales_with_inverse_variance(self):
+        # the pathology under test: the plain NLL gradient on the mean is Sigma^-1 (mean - y)
+        L = torch.diag(torch.tensor([0.02, 0.02, 0.5]))[None]
+        mean, tgt = torch.zeros(1, 3, requires_grad=True), torch.ones(1, 3)
+        gaussian_nll_loss(mean, L, tgt).backward()
+        g = mean.grad[0].abs()
+        assert torch.isclose(g[0] / g[2], torch.tensor((0.5 / 0.02) ** 2), rtol=1e-4)
+
     def test_model_shapes_and_gradients(self):
         net = ToyOffsetNet(n_peaks=3, window_size=8, hidden=(16, 8, 8))
         mean, chol = net(torch.rand(2, 3, 8, 8))
@@ -246,10 +282,26 @@ def problem(project_root):
     )
     if not roi:
         pytest.skip("empty ROI set")
+    roi_all = define_roi_set(
+        torch.from_numpy(R_nom).float(),
+        vertices,
+        sample,
+        detector_list,
+        range_map,
+        exp_setup,
+        structure_list,
+        simulator,
+        phase_index=voxel.phase,
+        detectors="all",
+    )
     return dict(
         R_nom=R_nom,
         vertices=vertices,
         roi=roi,
+        roi_all=roi_all,
+        structure_list=structure_list,
+        voxel=voxel,
+        config_path=config_path,
         sample=sample,
         detector_list=detector_list,
         range_map=range_map,
@@ -271,11 +323,16 @@ def _observer(problem, roi=None):
 
 
 class TestBatchedObserver:
-    def test_matches_simulator(self, problem):
-        """Presence, frame index and spot centroids agree with the serial simulator path."""
+    @pytest.mark.parametrize("mode", ["first", "all"])
+    def test_matches_simulator(self, problem, mode):
+        """Presence, frame index and spot centroids agree with the serial simulator
+        semantics: drop the peak if any vertex misses any detector plane, then
+        require the spot to overlap its own detector's pixel grid."""
         from icenine.diffraction_core import get_scattering_omegas_torch
 
-        roi = problem["roi"][::12]  # ~65 peaks keeps the serial reference fast
+        roi = problem["roi" if mode == "first" else "roi_all"][
+            ::12
+        ]  # keeps the serial reference fast
         obs = _observer(problem, roi)
         offsets = np.array([[0.0, 0.0, 0.0], [0.3, -0.2, 0.5], [-1.0, 0.7, 1.2], [1.5, 1.5, -1.5]])
         out = obs.observe(torch.from_numpy(offsets))
@@ -300,15 +357,21 @@ class TestBatchedObserver:
                     frame = problem["range_map"].angle_to_wedge_index(w)
                     if frame is not None:
                         _restore_and_rotate(sample, base, w)
-                        spot = _project_peak_on_detector(
+                        results = _project_all_detectors(
                             problem["simulator"],
                             sample,
-                            problem["detector_list"][p.detector_index],
+                            problem["detector_list"],
                             problem["vertices"],
                             torch.from_numpy(g_s / np.linalg.norm(g_s)).float(),
                             XDMEtaAcceptFn(0.0, es.get_eta_limit(), p.form_intensity, p.sin_2theta),
                         )
                         _restore_and_rotate(sample, base, 0.0)
+                        det = problem["detector_list"][p.detector_index]
+                        spot = None if results is None else results[p.detector_index]
+                        if spot is not None and not spot_overlaps_grid(
+                            spot[3], det.num_cols, det.num_rows
+                        ):
+                            spot = None
                 assert bool(out.present[b, m]) == (spot is not None)
                 if spot is not None:
                     assert int(out.frame[b, m]) == frame
@@ -316,6 +379,58 @@ class TestBatchedObserver:
                     assert np.abs(centroid - np.array([spot[1], spot[0]])).max() < 1e-3
                     n_checked += 1
         assert n_checked > 100
+
+    def test_all_detectors_mode(self, problem):
+        """'all' keeps the 'first' entries on detector 0, adds entries on other
+        detectors, and every entry is present at the nominal orientation."""
+        key = lambda p: (p.reflection_index, p.omega_branch, p.detector_index)  # noqa: E731
+        first = {key(p) for p in problem["roi"]}
+        all_ = {key(p) for p in problem["roi_all"]}
+        assert {k for k in all_ if k[2] == 0} == first
+        assert any(k[2] == 1 for k in all_)
+        out = _observer(problem, problem["roi_all"]).observe(torch.zeros(1, 3, dtype=torch.float64))
+        assert bool(out.present.all())
+
+    def test_invalid_detectors_mode(self, problem):
+        with pytest.raises(ValueError):
+            define_roi_set(
+                torch.from_numpy(problem["R_nom"]).float(),
+                problem["vertices"],
+                problem["sample"],
+                problem["detector_list"],
+                problem["range_map"],
+                problem["exp_setup"],
+                problem["structure_list"],
+                problem["simulator"],
+                phase_index=problem["voxel"].phase,
+                detectors="second",
+            )
+
+    def test_missing_any_detector_plane_drops_peak_everywhere(self, problem):
+        """Adding a detector plane behind the sample (every ray has t < 0 for it)
+        must remove every peak on every detector, as in _simulate_peaks."""
+        obs = _observer(problem, problem["roi_all"][::20])
+        assert bool(obs.observe(torch.zeros(1, 3, dtype=torch.float64)).present.all())
+        behind = torch.tensor([[1.0, 0.0, 0.0]], dtype=torch.float64)  # plane x = -1 mm
+        obs.all_normals = torch.cat([obs.all_normals, behind])
+        obs.all_plane_d = torch.cat([obs.all_plane_d, torch.tensor([1.0], dtype=torch.float64)])
+        assert not bool(obs.observe(torch.zeros(1, 3, dtype=torch.float64)).present.any())
+
+    def test_max_q_override_limits_reflections(self, problem):
+        """Setting config.max_q before initialize_sample limits the reflection list
+        (how the Stage 1 scripts apply Q_max = 8)."""
+        config = ConfigFile.from_file(str(problem["config_path"]))
+        config.out_file_basename = "3Grains.sim"
+        config.max_q = 8.0
+        exp_setup = XDMExperimentSetup(config)
+        exp_setup.initialize_experiment()
+        sample = Sample()
+        exp_setup.initialize_sample(sample, exp_setup.get_detector_list()[0])
+        phase = problem["voxel"].phase
+        limited = sample.get_structure_list()[phase].get_reflection_vectors()
+        default = problem["structure_list"][phase].get_reflection_vectors()
+        assert 0 < len(limited) < len(default)
+        assert max(r.q_mag for r in limited) <= 8.0 + 1e-9
 
     def test_nominal_offset_reproduces_roi_set(self, problem):
         obs = _observer(problem)
@@ -364,3 +479,129 @@ class TestExactBayes:
             truth, np.random.default_rng(1), n_per_round=8000
         )
         assert np.trace(pixels["cov"]) < np.trace(frames["cov"])
+
+
+# ============================================================================
+# Stage 1: frame-coded windows from the observer
+# ============================================================================
+
+
+class TestRenderWindows:
+    def test_decode_windows(self):
+        from icenine.orientation_eval import decode_windows
+
+        w = torch.tensor([[0, 1, 5, 9]], dtype=torch.uint8)  # K = 4: codes 1..9 -> offsets -4..4
+        out = decode_windows(w, 4)
+        assert out.shape == (2, 1, 4)
+        assert torch.equal(out[0], torch.tensor([[0.0, 1.0, 1.0, 1.0]]))
+        assert torch.allclose(out[1], torch.tensor([[0.0, -1.0, 0.0, 1.0]]))
+
+    def test_windows_match_lit_pixel_sets(self, problem):
+        """Window content = the rasteriser's lit pixels shifted by the window origin, with
+        code 1 + (frame - frame0 + K); status flags absent / out-of-range spots."""
+        from icenine.orientation_eval import WindowSpec, render_windows
+
+        obs = _observer(problem, problem["roi_all"][::5])
+        spec = WindowSpec.from_nominal(obs, 32, 4)
+        deltas = np.array([[0.0, 0.0, 0.0], [0.2, -0.3, 0.6], [-0.5, 0.4, -1.0]])
+        windows, status = render_windows(obs, spec, deltas)
+        out = obs.observe(torch.from_numpy(deltas))
+        keys = obs.vertex_keys(out)
+        n_checked = 0
+        for n in range(len(deltas)):
+            for m in range(obs.M):
+                if not bool(out.present[n, m]):
+                    assert int(status[n, m]) == 1 and int(windows[n, m].sum()) == 0
+                    continue
+                offset = int(out.frame[n, m]) - int(spec.frame0[m])
+                if abs(offset) > 4:
+                    assert int(status[n, m]) == 2
+                    continue
+                pix = lit_pixel_set(
+                    tuple(keys[n, m].tolist()), int(obs.d_ncols[m]), int(obs.d_nrows[m])
+                )
+                expected = {
+                    (c - spec.col0[m], r - spec.row0[m])
+                    for c, r in pix
+                    if 0 <= c - spec.col0[m] < 32 and 0 <= r - spec.row0[m] < 32
+                }
+                rows, cols = np.nonzero(windows[n, m].numpy())
+                assert set(zip(cols.tolist(), rows.tolist())) == expected
+                assert set(windows[n, m][windows[n, m] > 0].tolist()) <= {1 + offset + 4}
+                n_checked += 1
+        assert n_checked > 50
+
+    def test_sin_eta_near_axis(self, problem):
+        obs = _observer(problem, problem["roi_all"])
+        se = obs.sin_eta(torch.zeros(1, 3, dtype=torch.float64))[0]
+        assert ((se >= 0) & (se <= 1)).all()
+        assert (se < 0.3).any() and (se > 0.9).any()  # both near-axis and far-from-axis spots exist
+
+
+class TestEndToEndVsForwardSimulation:
+    def test_windows_reproduce_simulated_images(self, problem, project_root):
+        """At the nominal orientation the 'all' ROI set is every recorded peak, so the
+        union of the frame-coded windows must equal, pixel for pixel, the thresholded
+        images ForwardSimulation._simulate_peaks produces for that one voxel. At a small
+        offset, every rendered pixel must be lit in the simulated images."""
+        import copy
+
+        from icenine.forward_simulation import ForwardSimulation
+        from icenine.image_data import ImageData
+        from icenine.orientation_eval import WindowSpec, render_windows
+
+        config = ConfigFile.from_file(str(problem["config_path"]))
+        config.out_file_basename = "3Grains.sim"
+        fs = ForwardSimulation(config)
+        fs.exp_setup.initialize_experiment()
+        detector_list = fs.exp_setup.get_detector_list()
+        range_map = fs.exp_setup.get_range_to_index_map()
+        fs.simulator = Simulation(fs.exp_setup)
+        sample = Sample()
+        fs.exp_setup.initialize_sample(sample, detector_list[0])
+
+        obs = _observer(problem, problem["roi_all"])
+        spec = WindowSpec.from_nominal(obs, 32, 4)
+        n_omega = len(fs.exp_setup.get_omega_range_list())
+
+        def simulated_lit(delta_deg):
+            voxel = copy.deepcopy(problem["voxel"])
+            voxel.orientation = offsets_to_matrices(np.array([delta_deg]), problem["R_nom"])[0]
+            sample.get_mic().voxels = [voxel]
+            images = [
+                [ImageData(d.num_rows, d.num_cols, mode="sparse") for d in detector_list]
+                for _ in range(n_omega)
+            ]
+            fs._simulate_peaks(images, detector_list, sample, range_map)
+            lit = set()
+            for w in range(n_omega):
+                for di, img in enumerate(images[w]):
+                    sp = img._pixels_sparse.coalesce()
+                    idx, val = sp.indices(), sp.values()
+                    for r, c in idx[:, val > 0].T.tolist():
+                        lit.add((w, di, c, r))
+            return lit
+
+        def rendered_lit(delta_deg):
+            windows, status = render_windows(obs, spec, np.array([delta_deg]))
+            lit = set()
+            for m in range(obs.M):
+                w = windows[0, m]
+                rows, cols = np.nonzero(w.numpy())
+                for r, c in zip(rows.tolist(), cols.tolist()):
+                    frame = int(spec.frame0[m]) + int(w[r, c]) - 1 - 4
+                    lit.add(
+                        (frame, int(obs.det_idx[m]), c + int(spec.col0[m]), r + int(spec.row0[m]))
+                    )
+            return lit, status
+
+        sim0 = simulated_lit(np.zeros(3))
+        ren0, status0 = rendered_lit(np.zeros(3))
+        assert bool((status0 == 0).all())
+        assert ren0 == sim0
+
+        delta = np.array([0.15, -0.1, 0.3])
+        sim1 = simulated_lit(delta)
+        ren1, _ = rendered_lit(delta)
+        assert ren1 <= sim1  # new peaks may appear at the offset, but nothing rendered is spurious
+        assert len(sim1 - ren1) < 0.02 * len(sim1)

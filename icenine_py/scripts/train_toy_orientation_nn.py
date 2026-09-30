@@ -42,19 +42,35 @@ def batches(n, batch_size, rng=None):
         yield idx[a : a + batch_size]
 
 
-def predict(model, head, windows, batch_size):
-    """Predicted offsets (N,3 deg) and, for the offset head, Cholesky factors (N,3,3)."""
+def make_prep(meta, no_frame: bool = False):
+    """Windows -> network input. Observer-rendered (Stage 1) windows are frame-coded
+    uint8 and are decoded to two channels (lit, frame offset), or to the lit channel
+    only with no_frame (ablation: hides the frame index); others are cast."""
+    from icenine.orientation_eval import decode_windows
+
+    if meta.get("renderer", "simulator") == "observer":
+        k = int(meta["frame_half_width"])
+        if no_frame:
+            return (lambda x: decode_windows(x, k)[..., :1, :, :]), 1
+        return (lambda x: decode_windows(x, k)), 2
+    return (lambda x: x.float()), 1
+
+
+def predict(model, head, windows, batch_size, prep=None, forward=None, vid=None):
+    """Predicted offsets (N,3 deg) and, for the offset head, Cholesky factors (N,3,3).
+    forward(x) or, for multi-voxel data, forward(x, vid_of_batch)."""
     model.eval()
+    forward = forward if forward is not None else model
     means, chols = [], []
     with torch.no_grad():
         for b in batches(len(windows), batch_size):
-            x = windows[b].float()
+            x = prep(windows[b]) if prep is not None else windows[b].float()
             if head == "offset":
-                m, L = model(x)
-                means.append(m)
-                chols.append(L)
+                m, L = forward(x) if vid is None else forward(x, vid[b])
+                means.append(m.cpu())
+                chols.append(L.cpu())
             else:
-                means.append(model(x))
+                means.append(forward(x).cpu())
     if head == "offset":
         return torch.cat(means).numpy(), torch.cat(chols).numpy()
     return torch.cat(means).numpy(), None
@@ -66,13 +82,38 @@ def main():
         offsets_to_quaternions,
         quaternions_to_offsets_deg,
     )
-    from icenine.orientation_nn import gaussian_nll_loss, quaternion_regression_loss
-    from icenine.toy_orientation_model import ToyOffsetNet, ToyOrientationNet
+    from icenine.orientation_nn import (
+        decoupled_nll_loss,
+        gaussian_nll_loss,
+        mse_deg_loss,
+        quaternion_regression_loss,
+        split_by_voxel,
+    )
+    from icenine.toy_orientation_model import (
+        FrameProbeNet,
+        PeakSetNet,
+        ToyOffsetNet,
+        ToyOrientationNet,
+    )
 
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--head", choices=["offset", "quat"], default="offset")
+    parser.add_argument(
+        "--arch",
+        choices=["fc", "set", "probe"],
+        default="fc",
+        help="fc: flatten-everything MLP (Stages 0-1); set: shared per-peak encoder + pooling (Stage 3); "
+        "probe: frame-only mean-pooled diagnostic net (use with --loss mse)",
+    )
+    parser.add_argument(
+        "--extra",
+        nargs="*",
+        default=[],
+        metavar="LABEL=NPZ",
+        help="extra rows for the table: npz files with pred_deg aligned to the test set",
+    )
     parser.add_argument("--train", required=True)
     parser.add_argument("--test", required=True)
     parser.add_argument(
@@ -81,11 +122,47 @@ def main():
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--clip", type=float, default=0.0, help="gradient-norm clip (0 = off)")
+    parser.add_argument(
+        "--cosine", action="store_true", help="cosine learning-rate decay to 0 over --epochs"
+    )
+    parser.add_argument(
+        "--no-meas", action="store_true", help="set net: drop the explicit measurement features"
+    )
+    parser.add_argument("--pool", choices=["meanmax", "meansum", "all"], default="meanmax")
     parser.add_argument(
         "--beta-nll", type=float, default=0.0, help="beta-NLL exponent (offset head); 0 = plain NLL"
     )
+    parser.add_argument(
+        "--loss",
+        choices=["nll", "decoupled", "mse", "mse-then-cov", "mse-then-nll"],
+        default="nll",
+        help="offset head loss. nll: Gaussian NLL (with --beta-nll if > 0); decoupled: MSE on the "
+        "mean + NLL of the covariance at stopgrad(mean); mse: mean only; mse-then-cov / "
+        "mse-then-nll: MSE for the first half of the epochs, then decoupled / plain NLL",
+    )
+    parser.add_argument(
+        "--mse-scale", type=float, default=0.1, help="degrees; unit of the MSE term (decoupled)"
+    )
     parser.add_argument("--val-frac", type=float, default=0.1)
+    parser.add_argument(
+        "--val-voxels",
+        type=int,
+        default=0,
+        help="multi-voxel data: hold out this many training voxels (one per r_perp stratum, "
+        "chosen with --seed) for early stopping instead of a random --val-frac of samples",
+    )
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--device",
+        choices=["cpu", "mps"],
+        default="cpu",
+        help="training and inference device; mps = Apple GPU (float32). Predictions are moved to the CPU "
+        "and error statistics are computed there in float64",
+    )
+    parser.add_argument(
+        "--no-frame", action="store_true", help="ablation: hide the frame channel (observer data)"
+    )
     parser.add_argument("--results-json", default=None)
     parser.add_argument(
         "--save-predictions",
@@ -102,64 +179,158 @@ def main():
     n_peaks, window = tr["n_peaks"], tr["window_size"]
     R_nom = tr["R_nom"].numpy()
     windows, offsets = tr["windows"], tr["offsets_deg"].float()
+    prep_cpu, in_channels = make_prep(tr, no_frame=args.no_frame)
+    dev = torch.device(args.device)
+    prep = lambda x: prep_cpu(x).to(dev)  # noqa: E731
     n = len(windows)
-    perm = rng.permutation(n)
-    n_val = max(1, int(n * args.val_frac))
-    val_idx, train_idx = perm[:n_val], perm[n_val:]
+    if args.val_voxels > 0:
+        assert "voxel_id" in tr, "--val-voxels needs multi-voxel data"
+        train_idx, val_idx, val_voxels = split_by_voxel(
+            tr["voxel_id"].numpy(), tr["r_perp_um"].numpy(), args.val_voxels, args.seed
+        )
+        n_val = len(val_idx)
+        print(
+            "validation voxels (held out of training, r_perp um): "
+            + ", ".join(f"{v} ({tr['r_perp_um'][v]:.0f})" for v in val_voxels)
+        )
+    else:
+        perm = rng.permutation(n)
+        n_val = max(1, int(n * args.val_frac))
+        val_idx, train_idx = perm[:n_val], perm[n_val:]
     print(
         f"train {len(train_idx)} / val {n_val} samples, {n_peaks} peaks x {window}x{window}, head={args.head}"
     )
 
+    multi, vid_train = False, None
     if args.head == "quat":
         targets = torch.from_numpy(
             offsets_to_quaternions(offsets.numpy().astype(np.float64), R_nom)
         ).float()
-        model = ToyOrientationNet(n_peaks=n_peaks, window_size=window)
+        model = ToyOrientationNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
     else:
         targets = offsets
-        model = ToyOffsetNet(n_peaks=n_peaks, window_size=window)
+        if args.arch in ("set", "probe"):
+            assert "context" in tr, "the set architecture needs a dataset with per-peak context"
+            context = tr["context"].float()  # (M, D), or (V, M, D) for multi-voxel data
+            multi = bool(tr.get("multi_voxel", False))
+            vid_train = tr["voxel_id"].to(torch.long) if multi else None
+            if args.arch == "probe":
+                model = FrameProbeNet(
+                    context_dim=context.shape[-1],
+                    frame_half_width=int(tr.get("frame_half_width", 4)),
+                )
+            else:
+                model = PeakSetNet(
+                    window_size=window,
+                    in_channels=in_channels,
+                    context_dim=context.shape[-1],
+                    use_measurements=not args.no_meas,
+                    frame_half_width=int(tr.get("frame_half_width", 4)),
+                    pool=args.pool,
+                )
+        else:
+            model = ToyOffsetNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
+    if args.arch in ("set", "probe"):
+        assert args.head == "offset", "the set architecture predicts an offset and covariance"
+        if multi:
+            forward = lambda x, v: model(x, context[v.to(dev)])  # noqa: E731
+        else:
+            forward = lambda x: model(x, context)  # noqa: E731
+    else:
+        forward = model
+    n_params = sum(p.numel() for p in model.parameters())
+    print(f"architecture {args.arch}: {n_params / 1e6:.2f}M parameters on {dev}", flush=True)
+    model.to(dev)
+    targets = targets.to(dev)
+    if args.arch in ("set", "probe"):
+        context = context.to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
+    sched = (
+        torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs) if args.cosine else None
+    )
 
-    def loss_fn(x, y):
+    two_phase = args.loss in ("mse-then-cov", "mse-then-nll")
+    switch_epoch = args.epochs // 2 if two_phase else 0
+
+    def loss_fn(x, y, v=None, phase=1):
+        """Returns (loss, mean, chol). phase 0 = MSE-only first half of a two-phase run."""
         if args.head == "quat":
-            return quaternion_regression_loss(model(x), y)
-        mean, chol = model(x)
-        return gaussian_nll_loss(mean, chol, y, beta=args.beta_nll)
+            return quaternion_regression_loss(forward(x), y), None, None
+        mean, chol = forward(x) if v is None else forward(x, v)
+        kind = args.loss
+        if two_phase:
+            kind = "mse" if phase == 0 else ("decoupled" if kind == "mse-then-cov" else "nll")
+        if kind == "mse":
+            loss = mse_deg_loss(mean, y, args.mse_scale)
+        elif kind == "decoupled":
+            loss = decoupled_nll_loss(mean, chol, y, args.mse_scale)
+        else:
+            loss = gaussian_nll_loss(mean, chol, y, beta=args.beta_nll)
+        return loss, mean, chol
 
     t0 = time.time()
     best_val, best_epoch, best_state = float("inf"), -1, None
     for epoch in range(args.epochs):
         model.train()
         total = 0.0
+        phase = 0 if epoch < switch_epoch else 1
         for b in batches(len(train_idx), args.batch_size, rng):
             ib = train_idx[b]
             opt.zero_grad()
-            loss = loss_fn(windows[ib].float(), targets[ib])
+            loss = loss_fn(prep(windows[ib]), targets[ib], vid_train[ib] if multi else None, phase)[
+                0
+            ]
             loss.backward()
+            if args.clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
             opt.step()
             total += loss.item() * len(ib)
+        if sched is not None:
+            sched.step()
         model.eval()
+        vals, errs, sds = [], [], []
         with torch.no_grad():
-            val = np.mean(
-                [
-                    loss_fn(windows[val_idx[b]].float(), targets[val_idx[b]]).item()
-                    for b in batches(n_val, args.batch_size)
-                ]
+            for b in batches(n_val, args.batch_size):
+                lv, mv, cv = loss_fn(
+                    prep(windows[val_idx[b]]),
+                    targets[val_idx[b]],
+                    vid_train[val_idx[b]] if multi else None,
+                    phase,
+                )
+                vals.append(lv.item())
+                if mv is not None:
+                    errs.append(((mv - targets[val_idx[b]]) ** 2).cpu())
+                    sds.append(
+                        torch.sqrt((cv @ cv.transpose(-1, -2)).diagonal(dim1=-2, dim2=-1)).cpu()
+                    )
+        val = np.mean(vals)
+        diag = ""
+        if errs:
+            rms = torch.cat(errs).mean(0).sqrt()
+            sd = torch.cat(sds).mean(0)
+            diag = (
+                f"  val rms z {rms[2]:.4f} perp {rms[:2].pow(2).mean().sqrt():.4f}"
+                f"  sigma z {sd[2]:.4f} perp {sd[:2].mean():.4f}"
             )
-        if val < best_val:
+        # In a two-phase run the phase-0 loss is not comparable with phase 1's: only
+        # phase-1 epochs are eligible for the best-validation checkpoint.
+        if phase == 1 and val < best_val:
             best_val, best_epoch = float(val), epoch + 1
             best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
-        if epoch % max(1, args.epochs // 10) == 0 or epoch == args.epochs - 1:
-            print(
-                f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):11.6f}  val {val:11.6f}  ({time.time() - t0:.0f}s)"
-            )
+        print(
+            f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):11.6f}  val {val:11.6f}{diag}  ({time.time() - t0:.0f}s)",
+            flush=True,
+        )
     if best_state is None:
         raise RuntimeError("validation loss was never finite; lower --lr or check the data")
     model.load_state_dict(best_state)
     print(f"restored best-validation weights from epoch {best_epoch} (val {best_val:.6f})")
 
     # ---- evaluation ------------------------------------------------------
-    pred, chol = predict(model, args.head, te["windows"], args.batch_size)
+    vid_test = te["voxel_id"].to(torch.long) if multi else None
+    pred, chol = predict(
+        model, args.head, te["windows"], args.batch_size, prep, forward, vid=vid_test
+    )
     if args.head == "quat":
         pred = quaternions_to_offsets_deg(pred, R_nom)
     truth = te["offsets_deg"].numpy().astype(np.float64)
@@ -180,6 +351,15 @@ def main():
         ), "Bayes file is for a different test set"
         bayes = bz
 
+    extras = {}
+    for item in args.extra:
+        label, _, path = item.partition("=")
+        ez = np.load(path)
+        assert np.allclose(
+            ez["truth_deg"], truth[: len(ez["truth_deg"])], atol=1e-5
+        ), f"{path} is for a different test set"
+        extras[label] = ez["pred_deg"]
+
     if args.save_predictions:
         np.savez(
             args.save_predictions,
@@ -191,43 +371,88 @@ def main():
         )
     rows = {}
     print(
-        f"\n{'|delta|':>8} {'method':<14} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)"
+        f"\n{'|delta|':>8} {'method':<20} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)"
     )
-    for mag in sorted(set(mags.tolist())):
-        m = mags == mag
-        entries = [
-            ("predict-nominal", error_summary(np.zeros((m.sum(), 3)), truth[m])),
-            (f"net ({args.head})", error_summary(pred[m], truth[m])),
-        ]
-        if bayes is not None:
-            mb = m & np.isfinite(bayes["mean"]).all(
-                axis=1
-            )  # cases where the sampler found no members are excluded
-            if mb.sum() < m.sum():
-                print(
-                    f"note: exact Bayes failed on {m.sum() - mb.sum()} case(s) at |delta| = {mag}; excluded from its row"
+    if multi:
+        held = te["held_out"].numpy()[vid_test.numpy()]
+        groups = [("in-dist/", ~held), ("held-out/", held)]
+    else:
+        groups = [("", np.ones(len(mags), dtype=bool))]
+    for tag, gmask in groups:
+        if tag:
+            print(f"\n=== {tag.rstrip('/')} voxels ({int(gmask.sum())} test cases) ===")
+        for mag in sorted(set(mags.tolist())):
+            m = (mags == mag) & gmask
+            entries = [
+                ("predict-nominal", error_summary(np.zeros((m.sum(), 3)), truth[m])),
+                (f"net ({args.arch}/{args.head})", error_summary(pred[m], truth[m])),
+            ]
+            for label, ep in extras.items():
+                entries.insert(
+                    1, (label, error_summary(ep[m[: len(ep)]], truth[: len(ep)][m[: len(ep)]]))
                 )
-            entries.append(("exact Bayes", error_summary(bayes["mean"][mb], truth[mb])))
-        for name, s in entries:
-            print(
-                f"{mag:8.2f} {name:<14} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
+            if bayes is not None:
+                mb = m & np.isfinite(bayes["mean"]).all(
+                    axis=1
+                )  # cases where the sampler found no members are excluded
+                if mb.sum() < m.sum():
+                    print(
+                        f"note: exact Bayes failed on {m.sum() - mb.sum()} case(s) at |delta| = {mag}; excluded from its row"
+                    )
+                entries.append(("exact Bayes", error_summary(bayes["mean"][mb], truth[mb])))
+            for name, s in entries:
+                print(
+                    f"{mag:8.2f} {name:<20} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
+                )
+            extra = {}
+            if bayes is not None:
+                floor = float(np.nanmean(np.sqrt(np.trace(bayes["cov"][m], axis1=1, axis2=2))))
+                extra["bayes_floor_sqrt_trace"] = floor
+                print(f"{'':8} {'Bayes floor':<14} {'':>3} sqrt(tr cov) = {floor:.5f}")
+            if chol is not None:
+                cov = chol[m] @ chol[m].transpose(0, 2, 1)
+                sd = np.sqrt(np.diagonal(cov, axis1=1, axis2=2)).mean(axis=0)
+                r = (truth[m] - pred[m])[:, :, None]
+                z = np.linalg.solve(chol[m], r)[:, :, 0]
+                maha = float((z**2).sum(axis=1).mean())
+                extra.update(pred_sigma_xyz=sd.tolist(), mean_mahalanobis_sq=maha)
+                print(
+                    f"{'':8} {'net sigma xyz':<14} {'':>3} {np.round(sd, 5)}   mean Mahalanobis^2 = {maha:.2f} (3.0 if calibrated)"
+                )
+            rows[tag + str(mag)] = {name: s for name, s in entries} | extra
+
+    if multi:
+        r_perp, n_pk = te["r_perp_um"].numpy(), te["n_peaks_per_voxel"].numpy()
+        per_voxel = []
+        print(
+            f"\n{'voxel':>5} {'r_perp':>7} {'peaks':>5} {'held':>5} {'n':>4}  median angle (deg), all magnitudes"
+        )
+        for v in range(len(r_perp)):
+            mv = vid_test.numpy() == v
+            ang = {"net": error_summary(pred[mv], truth[mv])["median_angle"]}
+            for label, ep in extras.items():
+                assert len(ep) == len(truth), f"--extra {label} does not cover the test set"
+                ang[label] = error_summary(ep[mv], truth[mv])["median_angle"]
+            ang1 = {
+                "net": error_summary(pred[mv & (mags == 1.0)], truth[mv & (mags == 1.0)])[
+                    "median_angle"
+                ]
+            }
+            per_voxel.append(
+                dict(
+                    voxel=v,
+                    r_perp_um=float(r_perp[v]),
+                    n_peaks=int(n_pk[v]),
+                    held_out=bool(te["held_out"][v]),
+                    median_angle=ang,
+                    net_median_angle_1deg=ang1["net"],
+                )
             )
-        extra = {}
-        if bayes is not None:
-            floor = float(np.nanmean(np.sqrt(np.trace(bayes["cov"][m], axis1=1, axis2=2))))
-            extra["bayes_floor_sqrt_trace"] = floor
-            print(f"{'':8} {'Bayes floor':<14} {'':>3} sqrt(tr cov) = {floor:.5f}")
-        if chol is not None:
-            cov = chol[m] @ chol[m].transpose(0, 2, 1)
-            sd = np.sqrt(np.diagonal(cov, axis1=1, axis2=2)).mean(axis=0)
-            r = (truth[m] - pred[m])[:, :, None]
-            z = np.linalg.solve(chol[m], r)[:, :, 0]
-            maha = float((z**2).sum(axis=1).mean())
-            extra.update(pred_sigma_xyz=sd.tolist(), mean_mahalanobis_sq=maha)
             print(
-                f"{'':8} {'net sigma xyz':<14} {'':>3} {np.round(sd, 5)}   mean Mahalanobis^2 = {maha:.2f} (3.0 if calibrated)"
+                f"{v:5d} {r_perp[v]:7.0f} {n_pk[v]:5d} {str(bool(te['held_out'][v])):>5} {mv.sum():4d}  "
+                + "  ".join(f"{k} {x:.4f}" for k, x in ang.items())
             )
-        rows[str(mag)] = {name: s for name, s in entries} | extra
+        rows["per_voxel"] = per_voxel
 
     if args.results_json:
         Path(args.results_json).write_text(json.dumps(rows, indent=2))

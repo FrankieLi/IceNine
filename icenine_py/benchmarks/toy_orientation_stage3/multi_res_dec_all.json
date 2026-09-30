@@ -1,0 +1,614 @@
+{
+  "in-dist/0.10000000149011612": {
+    "predict-nominal": {
+      "n": 240,
+      "rms_z": 0.05652776909928567,
+      "rms_perp": 0.05832928649330822,
+      "rms_total": 0.10000000002489506,
+      "median_angle": 0.09999999987168096,
+      "success_0p5": 1.0,
+      "success_0p1": 0.5208333333333334
+    },
+    "gauss-newton": {
+      "n": 240,
+      "rms_z": 0.01997742593517205,
+      "rms_perp": 0.0033198224473245984,
+      "rms_total": 0.02052169557221833,
+      "median_angle": 0.011586100287051697,
+      "success_0p5": 1.0,
+      "success_0p1": 1.0
+    },
+    "net (set/offset)": {
+      "n": 240,
+      "rms_z": 0.0412237182726209,
+      "rms_perp": 0.01835878710360136,
+      "rms_total": 0.0487184264529463,
+      "median_angle": 0.039525165832104914,
+      "success_0p5": 1.0,
+      "success_0p1": 0.9708333333333333
+    },
+    "pred_sigma_xyz": [
+      0.028305215761065483,
+      0.029356377199292183,
+      0.056759219616651535
+    ],
+    "mean_mahalanobis_sq": 1.6092919025915076
+  },
+  "in-dist/0.25": {
+    "predict-nominal": {
+      "n": 240,
+      "rms_z": 0.14694145875567396,
+      "rms_perp": 0.143017844698134,
+      "rms_total": 0.25000000021088914,
+      "median_angle": 0.2500000003613038,
+      "success_0p5": 1.0,
+      "success_0p1": 0.0
+    },
+    "gauss-newton": {
+      "n": 240,
+      "rms_z": 0.024466053853293958,
+      "rms_perp": 0.0034775600996731592,
+      "rms_total": 0.024955453104401,
+      "median_angle": 0.015134173741208262,
+      "success_0p5": 1.0,
+      "success_0p1": 0.9958333333333333
+    },
+    "net (set/offset)": {
+      "n": 240,
+      "rms_z": 0.047275885085802896,
+      "rms_perp": 0.020211878574629857,
+      "rms_total": 0.055245356200111555,
+      "median_angle": 0.04488386157386283,
+      "success_0p5": 1.0,
+      "success_0p1": 0.9625
+    },
+    "pred_sigma_xyz": [
+      0.028897153213620186,
+      0.030129877850413322,
+      0.05761460214853287
+    ],
+    "mean_mahalanobis_sq": 1.9026482029748244
+  },
+  "in-dist/0.5": {
+    "predict-nominal": {
+      "n": 240,
+      "rms_z": 0.2815222609806424,
+      "rms_perp": 0.2921859138232911,
+      "rms_total": 0.49999999990115634,
+      "median_angle": 0.5000000005665728,
+      "success_0p5": 0.4875,
+      "success_0p1": 0.0
+    },
+    "gauss-newton": {
+      "n": 240,
+      "rms_z": 0.022491855109441475,
+      "rms_perp": 0.003413481550333459,
+      "rms_total": 0.023004070484439105,
+      "median_angle": 0.011902955835902156,
+      "success_0p5": 1.0,
+      "success_0p1": 1.0
+    },
+    "net (set/offset)": {
+      "n": 240,
+      "rms_z": 0.052921029587134384,
+      "rms_perp": 0.02584573344284254,
+      "rms_total": 0.0643167104799312,
+      "median_angle": 0.052729139582947046,
+      "success_0p5": 1.0,
+      "success_0p1": 0.9166666666666666
+    },
+    "pred_sigma_xyz": [
+      0.032132767140865326,
+      0.03375713899731636,
+      0.06071731075644493
+    ],
+    "mean_mahalanobis_sq": 2.166631825366015
+  },
+  "in-dist/1.0": {
+    "predict-nominal": {
+      "n": 240,
+      "rms_z": 0.6012240918269522,
+      "rms_perp": 0.5650352156444574,
+      "rms_total": 0.9999999992149501,
+      "median_angle": 0.9999999990288304,
+      "success_0p5": 0.0,
+      "success_0p1": 0.0
+    },
+    "gauss-newton": {
+      "n": 240,
+      "rms_z": 0.02233744108721293,
+      "rms_perp": 0.0036540899994536146,
+      "rms_total": 0.022927407654877215,
+      "median_angle": 0.013582274100035034,
+      "success_0p5": 1.0,
+      "success_0p1": 1.0
+    },
+    "net (set/offset)": {
+      "n": 240,
+      "rms_z": 0.059625019893592555,
+      "rms_perp": 0.040683087207760094,
+      "rms_total": 0.08285752933089265,
+      "median_angle": 0.07138486087402496,
+      "success_0p5": 1.0,
+      "success_0p1": 0.8083333333333333
+    },
+    "pred_sigma_xyz": [
+      0.03654352203011513,
+      0.038707759231328964,
+      0.06385895609855652
+    ],
+    "mean_mahalanobis_sq": 3.287612429541225
+  },
+  "held-out/0.10000000149011612": {
+    "predict-nominal": {
+      "n": 60,
+      "rms_z": 0.0640104602253439,
+      "rms_perp": 0.05432614928741641,
+      "rms_total": 0.10000000005528821,
+      "median_angle": 0.0999999999928413,
+      "success_0p5": 1.0,
+      "success_0p1": 0.5166666666666667
+    },
+    "gauss-newton": {
+      "n": 60,
+      "rms_z": 0.01720677228251627,
+      "rms_perp": 0.0035575580151413367,
+      "rms_total": 0.017927226512892698,
+      "median_angle": 0.013719924339795433,
+      "success_0p5": 1.0,
+      "success_0p1": 1.0
+    },
+    "net (set/offset)": {
+      "n": 60,
+      "rms_z": 0.03336231442704726,
+      "rms_perp": 0.021841078658404373,
+      "rms_total": 0.0454654754495582,
+      "median_angle": 0.04004604478583896,
+      "success_0p5": 1.0,
+      "success_0p1": 1.0
+    },
+    "pred_sigma_xyz": [
+      0.026885727420449257,
+      0.028269460424780846,
+      0.05496898666024208
+    ],
+    "mean_mahalanobis_sq": 1.783992881645058
+  },
+  "held-out/0.25": {
+    "predict-nominal": {
+      "n": 60,
+      "rms_z": 0.1375588533422955,
+      "rms_perp": 0.14761023264138037,
+      "rms_total": 0.24999999938746412,
+      "median_angle": 0.24999999927821098,
+      "success_0p5": 1.0,
+      "success_0p1": 0.0
+    },
+    "gauss-newton": {
+      "n": 60,
+      "rms_z": 0.02010598528211451,
+      "rms_perp": 0.003407272743549903,
+      "rms_total": 0.020675339398967103,
+      "median_angle": 0.012096016776957562,
+      "success_0p5": 1.0,
+      "success_0p1": 1.0
+    },
+    "net (set/offset)": {
+      "n": 60,
+      "rms_z": 0.039921024184222074,
+      "rms_perp": 0.02566051318247385,
+      "rms_total": 0.05395008846603565,
+      "median_angle": 0.04676138433663572,
+      "success_0p5": 1.0,
+      "success_0p1": 0.9833333333333333
+    },
+    "pred_sigma_xyz": [
+      0.02723626047372818,
+      0.028916144743561745,
+      0.05556531623005867
+    ],
+    "mean_mahalanobis_sq": 2.7706591009032064
+  },
+  "held-out/0.5": {
+    "predict-nominal": {
+      "n": 60,
+      "rms_z": 0.28225002516093545,
+      "rms_perp": 0.29183464867398495,
+      "rms_total": 0.5000000010366851,
+      "median_angle": 0.5000000012580055,
+      "success_0p5": 0.43333333333333335,
+      "success_0p1": 0.0
+    },
+    "gauss-newton": {
+      "n": 60,
+      "rms_z": 0.019561058260391232,
+      "rms_perp": 0.003544536907211989,
+      "rms_total": 0.02019312962469156,
+      "median_angle": 0.011576917613099686,
+      "success_0p5": 1.0,
+      "success_0p1": 1.0
+    },
+    "net (set/offset)": {
+      "n": 60,
+      "rms_z": 0.05543643733899346,
+      "rms_perp": 0.03235056643521198,
+      "rms_total": 0.07187709567169696,
+      "median_angle": 0.05676749677356767,
+      "success_0p5": 1.0,
+      "success_0p1": 0.85
+    },
+    "pred_sigma_xyz": [
+      0.03053828328847885,
+      0.03241724148392677,
+      0.05856093391776085
+    ],
+    "mean_mahalanobis_sq": 3.737816816993713
+  },
+  "held-out/1.0": {
+    "predict-nominal": {
+      "n": 60,
+      "rms_z": 0.5961215531522046,
+      "rms_perp": 0.5677319336988407,
+      "rms_total": 1.000000001607723,
+      "median_angle": 1.000000002506321,
+      "success_0p5": 0.0,
+      "success_0p1": 0.0
+    },
+    "gauss-newton": {
+      "n": 60,
+      "rms_z": 0.01629988657001804,
+      "rms_perp": 0.0035315482062020912,
+      "rms_total": 0.017047872819237975,
+      "median_angle": 0.009978849425653262,
+      "success_0p5": 1.0,
+      "success_0p1": 1.0
+    },
+    "net (set/offset)": {
+      "n": 60,
+      "rms_z": 0.06159313587694656,
+      "rms_perp": 0.037958383774728294,
+      "rms_total": 0.08170307328818857,
+      "median_angle": 0.06799059886191708,
+      "success_0p5": 1.0,
+      "success_0p1": 0.85
+    },
+    "pred_sigma_xyz": [
+      0.0354098416864872,
+      0.03772221505641937,
+      0.06266798079013824
+    ],
+    "mean_mahalanobis_sq": 3.4701078071817397
+  },
+  "per_voxel": [
+    {
+      "voxel": 0,
+      "r_perp_um": 0.0,
+      "n_peaks": 116,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.03416843508429157,
+        "gauss-newton": 0.018003273840657134
+      },
+      "net_median_angle_1deg": 0.049512570810532494
+    },
+    {
+      "voxel": 1,
+      "r_perp_um": 24.804393768310547,
+      "n_peaks": 122,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.0496649075409875,
+        "gauss-newton": 0.01990453535377152
+      },
+      "net_median_angle_1deg": 0.06824732605237391
+    },
+    {
+      "voxel": 2,
+      "r_perp_um": 32.4759635925293,
+      "n_peaks": 119,
+      "held_out": true,
+      "median_angle": {
+        "net": 0.052814277153499754,
+        "gauss-newton": 0.01828219568693691
+      },
+      "net_median_angle_1deg": 0.06724104042718465
+    },
+    {
+      "voxel": 3,
+      "r_perp_um": 57.02546310424805,
+      "n_peaks": 128,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.041191960413472,
+        "gauss-newton": 0.024888194710692924
+      },
+      "net_median_angle_1deg": 0.04736466708914648
+    },
+    {
+      "voxel": 4,
+      "r_perp_um": 65.625,
+      "n_peaks": 114,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.04079257572169473,
+        "gauss-newton": 0.016439657468581614
+      },
+      "net_median_angle_1deg": 0.07349459773558889
+    },
+    {
+      "voxel": 5,
+      "r_perp_um": 92.33353424072266,
+      "n_peaks": 125,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.044505050728246044,
+        "gauss-newton": 0.029044083843641117
+      },
+      "net_median_angle_1deg": 0.05598883373187115
+    },
+    {
+      "voxel": 6,
+      "r_perp_um": 98.7718505859375,
+      "n_peaks": 124,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.054482585569514894,
+        "gauss-newton": 0.024661469654972557
+      },
+      "net_median_angle_1deg": 0.06434625639816971
+    },
+    {
+      "voxel": 7,
+      "r_perp_um": 126.12773895263672,
+      "n_peaks": 130,
+      "held_out": true,
+      "median_angle": {
+        "net": 0.05749281281119716,
+        "gauss-newton": 0.015510018754330135
+      },
+      "net_median_angle_1deg": 0.07208247930566228
+    },
+    {
+      "voxel": 8,
+      "r_perp_um": 144.3262939453125,
+      "n_peaks": 119,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.038287569089472215,
+        "gauss-newton": 0.03411081046310914
+      },
+      "net_median_angle_1deg": 0.04540573623534988
+    },
+    {
+      "voxel": 9,
+      "r_perp_um": 162.6502227783203,
+      "n_peaks": 124,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.049722165141623226,
+        "gauss-newton": 0.028816675665280237
+      },
+      "net_median_angle_1deg": 0.05529767701043363
+    },
+    {
+      "voxel": 10,
+      "r_perp_um": 170.5628204345703,
+      "n_peaks": 123,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.05537261531511046,
+        "gauss-newton": 0.011796518370544008
+      },
+      "net_median_angle_1deg": 0.05777094048137602
+    },
+    {
+      "voxel": 11,
+      "r_perp_um": 181.0613250732422,
+      "n_peaks": 118,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.05686937435339071,
+        "gauss-newton": 0.012772302339630988
+      },
+      "net_median_angle_1deg": 0.08382734578139334
+    },
+    {
+      "voxel": 12,
+      "r_perp_um": 214.80868530273438,
+      "n_peaks": 126,
+      "held_out": true,
+      "median_angle": {
+        "net": 0.05298263413790475,
+        "gauss-newton": 0.01781943868029203
+      },
+      "net_median_angle_1deg": 0.07382385295958319
+    },
+    {
+      "voxel": 13,
+      "r_perp_um": 230.2130584716797,
+      "n_peaks": 118,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.04874331214932686,
+        "gauss-newton": 0.012600951673108384
+      },
+      "net_median_angle_1deg": 0.07545612422416986
+    },
+    {
+      "voxel": 14,
+      "r_perp_um": 241.03102111816406,
+      "n_peaks": 122,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.05167211856611682,
+        "gauss-newton": 0.01030755386800208
+      },
+      "net_median_angle_1deg": 0.07748550450263952
+    },
+    {
+      "voxel": 15,
+      "r_perp_um": 253.81854248046875,
+      "n_peaks": 120,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.04737920118301434,
+        "gauss-newton": 0.007683696836127939
+      },
+      "net_median_angle_1deg": 0.09045797175824496
+    },
+    {
+      "voxel": 16,
+      "r_perp_um": 267.9679870605469,
+      "n_peaks": 124,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.05006166334419406,
+        "gauss-newton": 0.018164774566852237
+      },
+      "net_median_angle_1deg": 0.05006166334419406
+    },
+    {
+      "voxel": 17,
+      "r_perp_um": 300.7308349609375,
+      "n_peaks": 122,
+      "held_out": true,
+      "median_angle": {
+        "net": 0.047083232976101785,
+        "gauss-newton": 0.013181373693014743
+      },
+      "net_median_angle_1deg": 0.05773588366072782
+    },
+    {
+      "voxel": 18,
+      "r_perp_um": 312.062255859375,
+      "n_peaks": 116,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.04509989332319374,
+        "gauss-newton": 0.00784680875382062
+      },
+      "net_median_angle_1deg": 0.06280183985694121
+    },
+    {
+      "voxel": 19,
+      "r_perp_um": 325.97540283203125,
+      "n_peaks": 105,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.07782220465633022,
+        "gauss-newton": 0.027051867825982345
+      },
+      "net_median_angle_1deg": 0.1003677561291991
+    },
+    {
+      "voxel": 20,
+      "r_perp_um": 345.60528564453125,
+      "n_peaks": 113,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.058500230931506574,
+        "gauss-newton": 0.010991287833078543
+      },
+      "net_median_angle_1deg": 0.09202343015941575
+    },
+    {
+      "voxel": 21,
+      "r_perp_um": 365.0231018066406,
+      "n_peaks": 113,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.04642154151164371,
+        "gauss-newton": 0.008217890400075409
+      },
+      "net_median_angle_1deg": 0.08538148545655633
+    },
+    {
+      "voxel": 22,
+      "r_perp_um": 371.8230895996094,
+      "n_peaks": 117,
+      "held_out": true,
+      "median_angle": {
+        "net": 0.04453007516436198,
+        "gauss-newton": 0.00927366477242546
+      },
+      "net_median_angle_1deg": 0.07126779226998939
+    },
+    {
+      "voxel": 23,
+      "r_perp_um": 394.0841369628906,
+      "n_peaks": 107,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.0533464026615488,
+        "gauss-newton": 0.018741403162716358
+      },
+      "net_median_angle_1deg": 0.09345946422717825
+    },
+    {
+      "voxel": 24,
+      "r_perp_um": 409.82806396484375,
+      "n_peaks": 121,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.08320513782853764,
+        "gauss-newton": 0.007447526491988748
+      },
+      "net_median_angle_1deg": 0.09059194892872804
+    },
+    {
+      "voxel": 25,
+      "r_perp_um": 434.5993347167969,
+      "n_peaks": 113,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.04124408291642058,
+        "gauss-newton": 0.011143844148221647
+      },
+      "net_median_angle_1deg": 0.07699726126194714
+    },
+    {
+      "voxel": 26,
+      "r_perp_um": 456.2073974609375,
+      "n_peaks": 116,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.04462416604880404,
+        "gauss-newton": 0.0075553768751806215
+      },
+      "net_median_angle_1deg": 0.09843584577724471
+    },
+    {
+      "voxel": 27,
+      "r_perp_um": 457.265380859375,
+      "n_peaks": 116,
+      "held_out": true,
+      "median_angle": {
+        "net": 0.05930179302677938,
+        "gauss-newton": 0.00881151258496133
+      },
+      "net_median_angle_1deg": 0.09113797153859299
+    },
+    {
+      "voxel": 28,
+      "r_perp_um": 487.22918701171875,
+      "n_peaks": 120,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.0494563642266156,
+        "gauss-newton": 0.0062903810838822625
+      },
+      "net_median_angle_1deg": 0.06737338827470188
+    },
+    {
+      "voxel": 29,
+      "r_perp_um": 501.102294921875,
+      "n_peaks": 122,
+      "held_out": false,
+      "median_angle": {
+        "net": 0.047643747007178855,
+        "gauss-newton": 0.006624260400318728
+      },
+      "net_median_angle_1deg": 0.07080310705526954
+    }
+  ]
+}

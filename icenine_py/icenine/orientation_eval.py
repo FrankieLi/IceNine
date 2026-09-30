@@ -166,6 +166,10 @@ class BatchedObserver:
                     pix_h=float(det.pixel_height),
                 )
             )
+        # All detectors' planes, for the simulator's rule that a vertex missing any
+        # detector plane drops the peak on every detector.
+        self.all_normals = torch.stack([g["normal"] for g in geo])  # (D, 3)
+        self.all_plane_d = torch.tensor([g["plane_d"] for g in geo], dtype=d)  # (D,)
         di = self.det_idx.tolist()
         self.d_normal = torch.stack([geo[i]["normal"] for i in di])  # (M, 3)
         self.d_plane = torch.tensor([geo[i]["plane_d"] for i in di], dtype=d)  # (M,)
@@ -263,8 +267,73 @@ class BatchedObserver:
             & (rows.amax(-1) >= 0)
             & (rows.amin(-1) <= nrows - 1)
         )
-        present = ok & hit.all(dim=-1) & on_grid
+        # Every vertex must hit every detector plane (ForwardSimulation._simulate_peaks).
+        all_planes = torch.ones_like(ok)
+        for dn, dd in zip(self.all_normals, self.all_plane_d):
+            den = (rd * dn).sum(-1)  # (B, M)
+            den_ok = den.abs() > 1e-8
+            num = -((lab_v * dn).sum(-1) + dd)  # (B, M, 3)
+            t_d = num / torch.where(den_ok, den, torch.ones_like(den))[..., None]
+            all_planes = all_planes & den_ok & (t_d > 0).all(dim=-1)
+        present = ok & hit.all(dim=-1) & all_planes & on_grid
         return Observation(present=present, frame=frame, omega=omega, verts=verts)
+
+    def sin_eta(self, delta_deg: torch.Tensor) -> torch.Tensor:
+        """|sin eta| of every ROI peak at the given offsets, (B, M). eta is the azimuth of
+        the diffracted beam about the incident beam, measured from the rotation axis
+        (small |sin eta| = near-axis peaks, which drift many frames per degree)."""
+        _frame, _ok, (_omega, _c, _s, rd) = self.observe_frames(delta_deg)
+        rd_n = rd / _norm(rd, keepdim=True)
+        return torch.sin(torch.atan2(rd_n[..., 1].abs(), rd_n[..., 2].abs())).abs()
+
+    def peak_context(self, h_deg: float = 0.01) -> torch.Tensor:
+        """Per-peak context features at the nominal orientation, (M, 14 + ndet) float32.
+
+        For each ROI spot: its spot-motion Jacobian Gamma (col, row vs. rotation about sample
+        x, y, z; px per degree, /20), the frame gradient d omega*/d delta (dimensionless),
+        |sin eta|, sin theta, a one-hot of its detector, its nominal centroid (col, row) as a
+        fraction of the detector size, and its nominal frame scaled to [-1, 1]. This is
+        everything a shared per-peak encoder needs to know about how the peak responds to an
+        orientation offset, so it can be applied to peaks of any orientation.
+        Central differences of the observer at +-h_deg; spots missing at a probe get zeros.
+        """
+        pts = [np.zeros(3)]
+        for i in range(3):
+            e = np.zeros(3)
+            e[i] = h_deg
+            pts += [e, -e]
+        obs = self.observe(torch.as_tensor(np.array(pts), dtype=self.dtype))
+        cent = obs.verts.mean(dim=2)  # (7, M, 2)
+        om = obs.omega  # (7, M)
+        ok = obs.present.all(dim=0)  # (M,)
+        gamma = torch.stack(
+            [(cent[1 + 2 * i] - cent[2 + 2 * i]) / (2 * h_deg) for i in range(3)], dim=-1
+        )
+        gomega = torch.stack(
+            [(om[1 + 2 * i] - om[2 + 2 * i]) / (2 * h_deg * DEG) for i in range(3)], -1
+        )
+        gamma = torch.where(ok[:, None, None], gamma, torch.zeros_like(gamma))
+        gomega = torch.where(ok[:, None], gomega, torch.zeros_like(gomega))
+        sin_eta = self.sin_eta(torch.zeros(1, 3, dtype=self.dtype))[0]
+        wavenumber = KEV_OVER_HBAR_C_IN_ANG * self.energy
+        sin_theta = _norm(self.g_hkl) / (2.0 * wavenumber)
+        ndet = len(self.all_normals)
+        onehot = torch.nn.functional.one_hot(self.det_idx, ndet).to(self.dtype)
+        centroid = cent[0] / torch.stack([self.d_ncols, self.d_nrows], dim=-1).to(self.dtype)
+        frame = 2.0 * obs.frame[0].to(self.dtype) / self.range_n - 1.0
+        ctx = torch.cat(
+            [
+                (gamma.reshape(-1, 6) / 20.0),
+                gomega,
+                sin_eta[:, None],
+                sin_theta[:, None],
+                onehot,
+                centroid,
+                frame[:, None],
+            ],
+            dim=-1,
+        )
+        return ctx.float()
 
     @staticmethod
     def vertex_keys(obs: Observation) -> torch.Tensor:
@@ -290,6 +359,108 @@ def lit_pixel_set(key: Tuple[int, ...], num_cols: int, num_rows: int) -> frozens
         return frozenset()
     pixels = ImageData._scanline_fill([(round(x), round(y)) for x, y in clipped])
     return frozenset((c, r) for c, r in pixels if 0 <= c < num_cols and 0 <= r < num_rows)
+
+
+@dataclass
+class WindowSpec:
+    """Fixed per-spot window placement for a dataset.
+
+    Each spot's window is window_size x window_size pixels with integer top-left
+    corner (col0, row0) on its detector, centred on the spot's nominal centroid, and
+    covers frames frame0 - K .. frame0 + K around its nominal frame frame0.
+    """
+
+    window_size: int
+    frame_half_width: int  # K
+    col0: np.ndarray  # (M,) int
+    row0: np.ndarray  # (M,) int
+    frame0: np.ndarray  # (M,) int
+
+    @classmethod
+    def from_nominal(
+        cls, observer: "BatchedObserver", window_size: int, frame_half_width: int
+    ) -> "WindowSpec":
+        out = observer.observe(torch.zeros(1, 3, dtype=observer.dtype))
+        if not bool(out.present.all()):
+            raise ValueError("every ROI spot must be present at the nominal orientation")
+        centroid = out.verts[0].mean(dim=1).numpy()  # (M, 2) col, row
+        half = window_size // 2
+        return cls(
+            window_size=window_size,
+            frame_half_width=frame_half_width,
+            col0=np.floor(centroid[:, 0]).astype(np.int64) - half,
+            row0=np.floor(centroid[:, 1]).astype(np.int64) - half,
+            frame0=out.frame[0].numpy().astype(np.int64),
+        )
+
+
+def render_windows(
+    observer: "BatchedObserver", spec: WindowSpec, deltas_deg: np.ndarray, chunk: int = 256
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Frame-coded thresholded windows, rendered from the observer's exact spot data.
+
+    For each offset and ROI spot, the window holds the pixels the simulator's
+    rasteriser lights for that spot (lit_pixel_set, i.e. exactly the thresholded
+    detector data restricted to the window), each set to 1 + (frame - frame0 + K);
+    unlit pixels are 0. With alpha = 0 a spot lights a single frame, so this is a
+    lossless encoding of the (frame, pixels) data inside the window. A spot that is
+    absent, or whose frame lies outside frame0 +- K, gives an all-zero window.
+
+    Returns (windows uint8 (N, M, W, W), status uint8 (N, M)) where status is
+    0 = inside the window, 1 = absent, 2 = frame outside +-K, 3 = lit pixels
+    partly or entirely outside the window.
+    """
+    N, M, W, K = len(deltas_deg), observer.M, spec.window_size, spec.frame_half_width
+    windows = torch.zeros(N, M, W, W, dtype=torch.uint8)
+    status = torch.zeros(N, M, dtype=torch.uint8)
+    ncols = observer.d_ncols.tolist()
+    nrows = observer.d_nrows.tolist()
+    cache: Dict[Tuple[int, ...], frozenset] = {}
+    for a in range(0, N, chunk):
+        d = torch.as_tensor(np.asarray(deltas_deg[a : a + chunk], dtype=np.float64))
+        obs = observer.observe(d)
+        keys = BatchedObserver.vertex_keys(obs).tolist()
+        present = obs.present.tolist()
+        frames = obs.frame.tolist()
+        for i in range(len(d)):
+            n = a + i
+            for m in range(M):
+                if not present[i][m]:
+                    status[n, m] = 1
+                    continue
+                offset = frames[i][m] - int(spec.frame0[m])
+                if abs(offset) > K:
+                    status[n, m] = 2
+                    continue
+                key = tuple(keys[i][m])
+                ck = (m,) + key
+                pix = cache.get(ck)
+                if pix is None:
+                    pix = lit_pixel_set(key, ncols[m], nrows[m])
+                    cache[ck] = pix
+                code = 1 + offset + K
+                c0, r0 = int(spec.col0[m]), int(spec.row0[m])
+                outside = False
+                for c, r in pix:
+                    x, y = c - c0, r - r0
+                    if 0 <= x < W and 0 <= y < W:
+                        windows[n, m, y, x] = code
+                    else:
+                        outside = True
+                if outside:
+                    status[n, m] = 3
+        if len(cache) > 500_000:
+            cache.clear()
+    return windows, status
+
+
+def decode_windows(windows: torch.Tensor, frame_half_width: int) -> torch.Tensor:
+    """Frame-coded uint8 windows (..., W, W) -> float channels (..., 2, W, W):
+    channel 0 = lit (0/1), channel 1 = frame offset / K in [-1, 1] at lit pixels, 0 elsewhere."""
+    w = windows.float()
+    lit = (w > 0).float()
+    frame = torch.where(w > 0, (w - 1.0 - frame_half_width) / frame_half_width, torch.zeros_like(w))
+    return torch.stack([lit, frame], dim=-3)
 
 
 # ---------------------------------------------------------------------------
