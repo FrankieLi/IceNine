@@ -1355,3 +1355,95 @@ success = misorientation < 0.1°.
 4. Frame-spread renderer (α/|sin η| profile); α = 0 must reproduce the current
    output exactly.
 5. Re-run the Stage 0 evaluation on the new inputs and compare.
+
+## Toy Orientation NN — Stage 2: Baselines Without Learning (2026-09-29)
+
+**Branch**: `feature/nn-orientation-stage1`
+
+### What was added
+
+- `icenine/orientation_baselines.py`, `scripts/gauss_newton_baseline.py`:
+  `CentroidGaussNewton` fits the orientation offset to each spot's recorded frame
+  (central rotation angle, variance Δω²/12) and lit-pixel centroid (variance 1/12 px²)
+  by damped Gauss–Newton on the batched observer. It uses exactly the information in
+  the frame-coded windows, and the ROI peak identities are known.
+- `scripts/optimizer_baselines.py`: MC (`MCOptimizer`, 3500 steps, 2 restarts, step 0.5,
+  as in the sweep's headline config) and geoopt Riemannian Adam (lr 1e-4, 100 steps,
+  scale 2, ω window 1) at the test set's magnitudes and directions, using the existing
+  Python-simulated Example2 images (generated at the voxel's ground-truth orientation)
+  with the search started from a displaced orientation, as in `bench_hp_sweep.py`.
+  Reflections limited to |g| ≤ 8 Å⁻¹ like the networks.
+
+### Results (voxel 0, 120 test cases, 30 per magnitude; RMS error in degrees, success = misorientation < 0.1°)
+
+| \|δ\| | Gauss–Newton z / ⊥ (success) | Riemannian Adam z / ⊥ (success) | MC z / ⊥ (success) | exact Bayes z / ⊥ |
+|---|---|---|---|---|
+| 0.10° | 0.045 / 0.003 (100%) | 0.071 / 0.018 (87%) | 0.058 / 0.022 (87%) | 0.009 / 0.0004 |
+| 0.25° | 0.033 / 0.004 (100%) | 0.143 / 0.018 (30%) | 0.150 / 0.072 (37%) | 0.008 / 0.0003 |
+| 0.50° | 0.044 / 0.003 (97%) | 0.250 / 0.018 (20%) | 0.280 / 0.248 (3%) | 0.007 / 0.0003 |
+| 1.00° | 0.045 / 0.003 (100%) | 0.584 / 0.027 (13%) | 0.424 / 0.496 (0%) | 0.007 / 0.0004 |
+
+Cost: Gauss–Newton 7 ms per case (χ²/dof 0.91, so the quantisation noise model fits),
+Adam 0.23 s, MC 1.8 s.
+
+- **Gauss–Newton is a strong baseline.** With no learning it reaches ⊥ 0.003° and z
+  0.03–0.045° at every magnitude. Its z error is 1.5× its own predicted σ (0.027°):
+  frame quantisation errors are not independent across spots, so the independent-error
+  model of `docs/nn_inverse_problem_formulation.md` §3.6.4 is optimistic about z.
+- **Adam and MC leave the stage-axis component (largely) uncorrected on these voxels.**
+  Adam's z error is about the starting z offset (0.58° at 1°, the RMS of a 1° offset's
+  z component), while its perpendicular error is 0.02°. Reproduced with
+  `bench_hp_sweep.py`'s own perturbation generator and runner (30 random axes, voxel 0):
+  Adam success (< 0.5°) 60% at 1° for lr 1e-4 and 60–67% for lr 1e-3 to 1e-2.
+
+### Reconciliation with the earlier, more extensive study
+
+The 96% (Adam) and 92% (MC) figures for 1° in the HP-sweep section above are from the
+**ManyGrains** study (58,500 runs, 100 voxels), not from Example2.ThreeVoxels, and the
+two samples differ in exactly the way `docs/nn_inverse_problem_formulation.md` §3.6
+predicts matters:
+
+| | ThreeVoxels | ManyGrains sweep (100 selected voxels) |
+|---|---|---|
+| distance from the rotation axis r⊥ | 12 µm (all three voxels) | median 370 µm, 95% beyond 120 µm (min 75 µm) |
+| voxel side | 0.75–1.5 µm (≈ 1 pixel) | 9.4 µm (≈ 6 pixels) |
+
+The docs predict that pixels see rotation about the stage axis only through parallax,
+which becomes the main source of that information beyond r⊥ ≈ √2·a/Δω_f ≈ 120 µm. So a
+pixel-overlap cost should determine the stage-axis component for the ManyGrains voxels
+and barely at all for Example2's, which is what the two studies show. Checks against the
+records:
+
+- The earlier ThreeVoxels benchmark (lr 0.01) recorded Riemannian Adam at 1° as 8/18
+  successes (44%), consistent with 43% here.
+- `hp_sweep_threevoxels.csv` (1,755 runs of the extensive sweep, same three voxels), for
+  the ManyGrains headline configs, at 1°: Adam final misorientations 0.57 / 0.63 / 0.22°
+  and MC 0.85 / 0.79 / 0.38° for voxels 0 / 1 / 2 (success 1 of 3 each). At 2° and 5°
+  the headline Adam config succeeds on none of the three.
+- The "all methods succeed at 1° (3/3)" statement for ThreeVoxels above is a best-of-sweep
+  statement (the best of 42 or 36 HP configs per voxel). For fixed configs, 9 of 42 Adam
+  configs and 0 of 36 MC configs succeed on at least two of the three voxels at 1°.
+
+**Not established**: the per-run ManyGrains CSV (`hp_sweep_manygrains.csv`) was never
+committed and is not on this machine (only the log and the trajectory CSV are), and
+ManyGrains' `ScatteringData_Python` is absent, so the dependence on r⊥ (versus voxel size,
+overlapping neighbours or the different reflection set) has not been measured. The two
+samples differ in more than one way. The conclusion above applies to Example2's near-axis
+voxels; it is not evidence against the ManyGrains results.
+
+### Caveats on comparing Gauss–Newton with Adam and MC
+
+- Gauss–Newton is given the peak identities (which predicted spot is which, from the
+  nominal orientation) and the frame index, and starts inside the basin. Adam and MC must
+  associate predicted spots with the image through pixel overlap, so they solve a harder
+  problem; the comparison shows what the information in the frame-coded windows supports,
+  not that the optimizers are worse algorithms.
+- The optimizers were run with the data at the ground truth and the start displaced; the
+  networks and Gauss–Newton see data displaced from a known nominal. These are the same
+  local problem to first order, not identical.
+
+### Open
+
+- Test the near-axis explanation directly: forward-simulate a few ManyGrains voxels (or
+  move Example2's voxel to r⊥ ≈ 400 µm), and rerun Adam and MC at 1° by r⊥; recover or
+  regenerate `hp_sweep_manygrains.csv`.

@@ -184,7 +184,8 @@ def render_dataset_observer(
         problem["roi_list"],
     )
     spec = WindowSpec.from_nominal(obs, window_size, frame_half_width)
-    return render_windows(obs, spec, offsets_deg)
+    windows, status = render_windows(obs, spec, offsets_deg)
+    return windows, status, obs.peak_context()
 
 
 def main():
@@ -271,10 +272,10 @@ def main():
         ("test", test_offsets, {"magnitudes_deg": torch.tensor(test_mags)}),
     ):
         if args.renderer == "observer":
-            windows, status = render_dataset_observer(
+            windows, status, context = render_dataset_observer(
                 problem, offsets, args.window_size, args.frame_half_width
             )
-            extra = {**extra, "status": status}
+            extra = {**extra, "status": status, "context": context}
             s = status.float()
             print(
                 f"  [{name}] spots inside window {(s == 0).float().mean():.1%}, absent "

@@ -286,6 +286,55 @@ class BatchedObserver:
         rd_n = rd / _norm(rd, keepdim=True)
         return torch.sin(torch.atan2(rd_n[..., 1].abs(), rd_n[..., 2].abs())).abs()
 
+    def peak_context(self, h_deg: float = 0.01) -> torch.Tensor:
+        """Per-peak context features at the nominal orientation, (M, 13 + ndet) float32.
+
+        For each ROI spot: its spot-motion Jacobian Gamma (col, row vs. rotation about sample
+        x, y, z; px per degree, /20), the frame gradient d omega*/d delta (dimensionless),
+        |sin eta|, sin theta, a one-hot of its detector, its nominal centroid (col, row) as a
+        fraction of the detector size, and its nominal frame scaled to [-1, 1]. This is
+        everything a shared per-peak encoder needs to know about how the peak responds to an
+        orientation offset, so it can be applied to peaks of any orientation.
+        Central differences of the observer at +-h_deg; spots missing at a probe get zeros.
+        """
+        pts = [np.zeros(3)]
+        for i in range(3):
+            e = np.zeros(3)
+            e[i] = h_deg
+            pts += [e, -e]
+        obs = self.observe(torch.as_tensor(np.array(pts), dtype=self.dtype))
+        cent = obs.verts.mean(dim=2)  # (7, M, 2)
+        om = obs.omega  # (7, M)
+        ok = obs.present.all(dim=0)  # (M,)
+        gamma = torch.stack(
+            [(cent[1 + 2 * i] - cent[2 + 2 * i]) / (2 * h_deg) for i in range(3)], dim=-1
+        )
+        gomega = torch.stack(
+            [(om[1 + 2 * i] - om[2 + 2 * i]) / (2 * h_deg * DEG) for i in range(3)], -1
+        )
+        gamma = torch.where(ok[:, None, None], gamma, torch.zeros_like(gamma))
+        gomega = torch.where(ok[:, None], gomega, torch.zeros_like(gomega))
+        sin_eta = self.sin_eta(torch.zeros(1, 3, dtype=self.dtype))[0]
+        wavenumber = KEV_OVER_HBAR_C_IN_ANG * self.energy
+        sin_theta = _norm(self.g_hkl) / (2.0 * wavenumber)
+        ndet = len(self.all_normals)
+        onehot = torch.nn.functional.one_hot(self.det_idx, ndet).to(self.dtype)
+        centroid = cent[0] / torch.stack([self.d_ncols, self.d_nrows], dim=-1).to(self.dtype)
+        frame = 2.0 * obs.frame[0].to(self.dtype) / self.range_n - 1.0
+        ctx = torch.cat(
+            [
+                (gamma.reshape(-1, 6) / 20.0),
+                gomega,
+                sin_eta[:, None],
+                sin_theta[:, None],
+                onehot,
+                centroid,
+                frame[:, None],
+            ],
+            dim=-1,
+        )
+        return ctx.float()
+
     @staticmethod
     def vertex_keys(obs: Observation) -> torch.Tensor:
         """(B, M, 6) long: spot vertices (col0,row0,col1,row1,col2,row2) truncated the

@@ -56,19 +56,20 @@ def make_prep(meta, no_frame: bool = False):
     return (lambda x: x.float()), 1
 
 
-def predict(model, head, windows, batch_size, prep=None):
+def predict(model, head, windows, batch_size, prep=None, forward=None):
     """Predicted offsets (N,3 deg) and, for the offset head, Cholesky factors (N,3,3)."""
     model.eval()
+    forward = forward if forward is not None else model
     means, chols = [], []
     with torch.no_grad():
         for b in batches(len(windows), batch_size):
             x = prep(windows[b]) if prep is not None else windows[b].float()
             if head == "offset":
-                m, L = model(x)
-                means.append(m)
-                chols.append(L)
+                m, L = forward(x)
+                means.append(m.cpu())
+                chols.append(L.cpu())
             else:
-                means.append(model(x))
+                means.append(forward(x).cpu())
     if head == "offset":
         return torch.cat(means).numpy(), torch.cat(chols).numpy()
     return torch.cat(means).numpy(), None
@@ -81,12 +82,25 @@ def main():
         quaternions_to_offsets_deg,
     )
     from icenine.orientation_nn import gaussian_nll_loss, quaternion_regression_loss
-    from icenine.toy_orientation_model import ToyOffsetNet, ToyOrientationNet
+    from icenine.toy_orientation_model import PeakSetNet, ToyOffsetNet, ToyOrientationNet
 
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--head", choices=["offset", "quat"], default="offset")
+    parser.add_argument(
+        "--arch",
+        choices=["fc", "set"],
+        default="fc",
+        help="fc: flatten-everything MLP (Stages 0-1); set: shared per-peak encoder + pooling (Stage 3)",
+    )
+    parser.add_argument(
+        "--extra",
+        nargs="*",
+        default=[],
+        metavar="LABEL=NPZ",
+        help="extra rows for the table: npz files with pred_deg aligned to the test set",
+    )
     parser.add_argument("--train", required=True)
     parser.add_argument("--test", required=True)
     parser.add_argument(
@@ -100,6 +114,12 @@ def main():
     )
     parser.add_argument("--val-frac", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--device",
+        choices=["cpu", "mps"],
+        default="cpu",
+        help="training device; mps = Apple GPU (float32 only, so evaluation stays on the CPU)",
+    )
     parser.add_argument(
         "--no-frame", action="store_true", help="ablation: hide the frame channel (observer data)"
     )
@@ -119,7 +139,9 @@ def main():
     n_peaks, window = tr["n_peaks"], tr["window_size"]
     R_nom = tr["R_nom"].numpy()
     windows, offsets = tr["windows"], tr["offsets_deg"].float()
-    prep, in_channels = make_prep(tr, no_frame=args.no_frame)
+    prep_cpu, in_channels = make_prep(tr, no_frame=args.no_frame)
+    dev = torch.device(args.device)
+    prep = lambda x: prep_cpu(x).to(dev)  # noqa: E731
     n = len(windows)
     perm = rng.permutation(n)
     n_val = max(1, int(n * args.val_frac))
@@ -135,13 +157,31 @@ def main():
         model = ToyOrientationNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
     else:
         targets = offsets
-        model = ToyOffsetNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
+        if args.arch == "set":
+            assert "context" in tr, "the set architecture needs a dataset with per-peak context"
+            context = tr["context"].float()
+            model = PeakSetNet(
+                window_size=window, in_channels=in_channels, context_dim=context.shape[-1]
+            )
+        else:
+            model = ToyOffsetNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
+    if args.arch == "set":
+        assert args.head == "offset", "the set architecture predicts an offset and covariance"
+        forward = lambda x: model(x, context)  # noqa: E731
+    else:
+        forward = model
+    n_params = sum(p.numel() for p in model.parameters())
+    print(f"architecture {args.arch}: {n_params / 1e6:.2f}M parameters on {dev}", flush=True)
+    model.to(dev)
+    targets = targets.to(dev)
+    if args.arch == "set":
+        context = context.to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     def loss_fn(x, y):
         if args.head == "quat":
-            return quaternion_regression_loss(model(x), y)
-        mean, chol = model(x)
+            return quaternion_regression_loss(forward(x), y)
+        mean, chol = forward(x)
         return gaussian_nll_loss(mean, chol, y, beta=args.beta_nll)
 
     t0 = time.time()
@@ -167,17 +207,17 @@ def main():
         if val < best_val:
             best_val, best_epoch = float(val), epoch + 1
             best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
-        if epoch % max(1, args.epochs // 10) == 0 or epoch == args.epochs - 1:
-            print(
-                f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):11.6f}  val {val:11.6f}  ({time.time() - t0:.0f}s)"
-            )
+        print(
+            f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):11.6f}  val {val:11.6f}  ({time.time() - t0:.0f}s)",
+            flush=True,
+        )
     if best_state is None:
         raise RuntimeError("validation loss was never finite; lower --lr or check the data")
     model.load_state_dict(best_state)
     print(f"restored best-validation weights from epoch {best_epoch} (val {best_val:.6f})")
 
     # ---- evaluation ------------------------------------------------------
-    pred, chol = predict(model, args.head, te["windows"], args.batch_size, prep)
+    pred, chol = predict(model, args.head, te["windows"], args.batch_size, prep, forward)
     if args.head == "quat":
         pred = quaternions_to_offsets_deg(pred, R_nom)
     truth = te["offsets_deg"].numpy().astype(np.float64)
@@ -198,6 +238,15 @@ def main():
         ), "Bayes file is for a different test set"
         bayes = bz
 
+    extras = {}
+    for item in args.extra:
+        label, _, path = item.partition("=")
+        ez = np.load(path)
+        assert np.allclose(
+            ez["truth_deg"], truth[: len(ez["truth_deg"])], atol=1e-5
+        ), f"{path} is for a different test set"
+        extras[label] = ez["pred_deg"]
+
     if args.save_predictions:
         np.savez(
             args.save_predictions,
@@ -209,14 +258,18 @@ def main():
         )
     rows = {}
     print(
-        f"\n{'|delta|':>8} {'method':<14} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)"
+        f"\n{'|delta|':>8} {'method':<20} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)"
     )
     for mag in sorted(set(mags.tolist())):
         m = mags == mag
         entries = [
             ("predict-nominal", error_summary(np.zeros((m.sum(), 3)), truth[m])),
-            (f"net ({args.head})", error_summary(pred[m], truth[m])),
+            (f"net ({args.arch}/{args.head})", error_summary(pred[m], truth[m])),
         ]
+        for label, ep in extras.items():
+            entries.insert(
+                1, (label, error_summary(ep[m[: len(ep)]], truth[: len(ep)][m[: len(ep)]]))
+            )
         if bayes is not None:
             mb = m & np.isfinite(bayes["mean"]).all(
                 axis=1
@@ -228,7 +281,7 @@ def main():
             entries.append(("exact Bayes", error_summary(bayes["mean"][mb], truth[mb])))
         for name, s in entries:
             print(
-                f"{mag:8.2f} {name:<14} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
+                f"{mag:8.2f} {name:<20} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
             )
         extra = {}
         if bayes is not None:
