@@ -250,7 +250,7 @@ class TestGaussNewton:
         s = error_summary(est, d)
         assert s["rms_perp"] < 0.02  # pixels fix the perpendicular components
         assert s["rms_z"] < 0.12  # frames fix the stage-axis component to ~a tenth of a degree
-        assert s["median_angle"] < 0.1 < 0.6  # vs 0.6 for predicting nominal
+        assert s["median_angle"] < 0.1  # vs 0.6 for predicting nominal
 
     def test_nominal_data_gives_small_offset(self, stage1):
         obs, spec = stage1["obs"], stage1["spec"]
@@ -298,3 +298,59 @@ class TestFrameProbeNet:
         x3 = x.clone()
         x3[:, :4, 1] *= -1
         assert not torch.allclose(net(x3, ctx)[0], mean)
+
+
+class TestGaussNewtonStatus:
+    def test_nominal_solve_reports_valid_status(self, stage1):
+        obs, spec = stage1["obs"], stage1["spec"]
+        windows, _ = render_windows(obs, spec, np.zeros((1, 3)))
+        r = CentroidGaussNewton(obs).solve(extract_measurements(windows[0], spec, obs))
+        assert r["status"] in ("step_below_tol", "no_descent", "too_few_spots", "max_iter")
+        assert r["converged"] == (r["status"] in ("step_below_tol", "no_descent"))
+        assert r["converged"]
+
+
+class TestVoxelSelection:
+    @pytest.fixture(scope="class")
+    def gen(self):
+        import sys
+
+        sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+        import generate_toy_orientation_dataset as g
+
+        return g
+
+    @staticmethod
+    def _fake_mic(n=40):
+        from types import SimpleNamespace
+
+        rng = np.random.default_rng(0)
+        vox = [
+            SimpleNamespace(position=(x * 1e-3, 0.0, 0.0), orientation=rng.normal(size=(3, 3)))
+            for x in np.linspace(0, 0.5, n)
+        ]
+        return SimpleNamespace(voxels=vox)
+
+    def test_select_voxels_single_radius(self, gen):
+        targets, cands = gen.select_voxels(self._fake_mic(), 1, 500.0, seed=0)
+        assert len(targets) == 1 and len(cands) == 1 and len(cands[0]) > 0
+
+    def test_rejected_then_reused_grain_never_duplicated(self, gen):
+        # voxels 1 and 3 share grain B; voxel 0 is unusable, so the first list accepts voxel 1,
+        # and the second list (candidates 3 -> grain B again, 2) must skip 3 and take 2.
+        grains = {0: "A", 1: "B", 2: "C", 3: "B", 4: "D"}
+        orient = {k: np.full((3, 3), ord(g)) for k, g in grains.items()}
+        unusable = {0}
+        out = gen.accept_voxels(
+            [[0, 1], [3, 2], [4]],
+            lambda i: orient[i],
+            lambda i: None if i in unusable else i,
+        )
+        assert out == [1, 2, 4]
+        assert len({grains[i] for i in out}) == len(out)
+
+    def test_rejected_voxel_grain_remains_available(self, gen):
+        # voxel 0 (grain A) is rejected as unusable; a later voxel of grain A is still allowed.
+        orient = {0: np.zeros((3, 3)), 1: np.ones((3, 3)), 2: np.zeros((3, 3))}
+        out = gen.accept_voxels([[0, 1], [2]], lambda i: orient[i], lambda i: None if i == 0 else i)
+        assert out == [1, 2]

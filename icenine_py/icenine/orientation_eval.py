@@ -287,7 +287,7 @@ class BatchedObserver:
         return torch.sin(torch.atan2(rd_n[..., 1].abs(), rd_n[..., 2].abs())).abs()
 
     def peak_context(self, h_deg: float = 0.01) -> torch.Tensor:
-        """Per-peak context features at the nominal orientation, (M, 13 + ndet) float32.
+        """Per-peak context features at the nominal orientation, (M, 14 + ndet) float32.
 
         For each ROI spot: its spot-motion Jacobian Gamma (col, row vs. rotation about sample
         x, y, z; px per degree, /20), the frame gradient d omega*/d delta (dimensionless),

@@ -157,7 +157,8 @@ def main():
         "--device",
         choices=["cpu", "mps"],
         default="cpu",
-        help="training device; mps = Apple GPU (float32 only, so evaluation stays on the CPU)",
+        help="training and inference device; mps = Apple GPU (float32). Predictions are moved to the CPU "
+        "and error statistics are computed there in float64",
     )
     parser.add_argument(
         "--no-frame", action="store_true", help="ablation: hide the frame channel (observer data)"
@@ -430,6 +431,7 @@ def main():
             mv = vid_test.numpy() == v
             ang = {"net": error_summary(pred[mv], truth[mv])["median_angle"]}
             for label, ep in extras.items():
+                assert len(ep) == len(truth), f"--extra {label} does not cover the test set"
                 ang[label] = error_summary(ep[mv], truth[mv])["median_angle"]
             ang1 = {
                 "net": error_summary(pred[mv & (mags == 1.0)], truth[mv & (mags == 1.0)])[

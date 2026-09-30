@@ -495,10 +495,13 @@ def decoupled_nll_loss(
     return mse_deg_loss(mean, target, scale_deg) + gaussian_nll_loss(mean.detach(), chol, target)
 
 
-def split_by_voxel(voxel_id, r_perp_um, n_val: int, seed: int = 0):
+def split_by_voxel(
+    voxel_id: np.ndarray, r_perp_um: np.ndarray, n_val: int, seed: int = 0
+) -> Tuple[np.ndarray, np.ndarray, List[int]]:
     """Hold out whole voxels for validation.
 
-    The voxels present in ``voxel_id`` are sorted by r_perp and cut into ``n_val`` equal strata;
+    ``voxel_id`` is per sample; ``r_perp_um`` is indexed by voxel id (length V, the number of
+    voxels), not by sample. The voxels present in ``voxel_id`` are sorted by r_perp and cut into ``n_val`` equal strata;
     one voxel per stratum is drawn with ``seed``, so the validation voxels span r_perp and the
     choice is deterministic. Returns (train_idx, val_idx, val_voxels): sample indices (disjoint
     by voxel) and the chosen voxel ids.

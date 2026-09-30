@@ -1271,7 +1271,7 @@ Stage 1 (forward model with frames and both detectors, windows sized from the
 spot-motion Jacobian, Q_max) is next. The window-size finding above, and the
 open decisions D1–D5 in the previous section, apply.
 
-## Toy Orientation NN — Stage 1: Network Inputs (in progress, started 2026-09-29)
+## Toy Orientation NN — Stage 1: Network Inputs (done 2026-09-29; items 3–4 deferred)
 
 **Branch**: `feature/nn-orientation-stage1`
 **Goal**: fix what the network is given as input, which Stage 0 identified as the
@@ -1438,6 +1438,8 @@ voxels; it is not evidence against the ManyGrains results.
   associate predicted spots with the image through pixel overlap, so they solve a harder
   problem; the comparison shows what the information in the frame-coded windows supports,
   not that the optimizers are worse algorithms.
+- The MC baseline's search box is set from the true perturbation magnitude (1.5 x |delta|), as
+  in the HP-sweep protocol, so MC is told |delta|; Gauss-Newton is not.
 - The optimizers were run with the data at the ground truth and the start displaced; the
   networks and Gauss–Newton see data displaced from a known nominal. These are the same
   local problem to first order, not identical.
@@ -1453,7 +1455,8 @@ voxels; it is not evidence against the ManyGrains results.
 Branch `feature/nn-orientation-stage1`. Plan: improve `PeakSetNet` (Step 1), repeat on a
 voxel far from the rotation axis (Step 2), train on ~30 voxels (Step 3). Training runs on the
 Apple GPU (`--device mps`; CPU vs MPS one-epoch losses with `--seed 0` agree: -0.87531 vs
--0.87529). Evaluation stays float64 on the CPU.
+-0.87529). The network runs on the training device for inference too (float32); predictions are
+moved to the CPU and the error statistics are computed there in float64.
 
 ### Step 1: four rounds on voxel 0 (r⊥ = 12 µm), same data and test set as Stage 2
 
@@ -1508,7 +1511,7 @@ example from the dataset meta instead of hard-coding ThreeVoxels.
 (10 000 train from the 1° ball, 4 x 30 test at 0.1/0.25/0.5/1.0°; 96.8-98.1 % of spots inside
 their windows). Exact Bayes (7 min) and Gauss–Newton (1 s) ran on the test set; MC/Adam were not
 run (ManyGrains has no detector images). The Bayes row is summarised from
-`far_test_bayes.npz` with `scripts/summarize_bayes_npz.py` (the trainings started before it
+`far_test_bayes.npz` with `scripts/summarize_bayes_npz.py --bayes ... --test ... --out ...` (the trainings started before it
 finished, so their tables have no Bayes row). All networks: lr 3e-4, clip 1, cosine, batch 64,
 `--device mps`; fc 30 epochs, set 60. Results in `benchmarks/toy_orientation_stage3/far_res_*.json`.
 

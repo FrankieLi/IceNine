@@ -204,27 +204,43 @@ def render_dataset_observer(
 
 def select_voxels(mic, n_voxels: int, r_max_um: float, seed: int):
     """Candidate voxel indices spanning r_perp in [0, r_max_um]: for each of n_voxels evenly
-    spaced target radii, a random voxel within a small tolerance, with distinct orientations
-    (a voxel's grain is not reused). Returned in order of increasing target radius, together
-    with the candidate lists so the caller can skip voxels with too few peaks."""
+    spaced target radii, up to 60 random voxels within a small tolerance, in random order.
+    Returned in order of increasing target radius. The caller accepts the first usable
+    candidate per radius and skips candidates whose orientation (grain) was already accepted,
+    so no grain is used twice (see main_multi)."""
     rng = np.random.default_rng(seed)
     pos = np.array([v.position for v in mic.voxels], dtype=float)
     r_um = np.hypot(pos[:, 0], pos[:, 1]) * 1e3
     targets = np.linspace(0.0, r_max_um, n_voxels)
-    tol = max(5.0, 0.5 * (targets[1] - targets[0]))
-    used, out = [], []
+    spacing = targets[1] - targets[0] if n_voxels > 1 else r_max_um
+    tol = max(5.0, 0.5 * spacing)
+    out = []
     for t in targets:
         cand = np.nonzero(np.abs(r_um - t) <= tol)[0]
         cand = cand[rng.permutation(len(cand))]
-        chosen = []
-        for c in cand[:60]:
-            R = mic.voxels[c].orientation
-            if all(np.abs(R - u).max() > 1e-6 for u in used):
-                chosen.append(int(c))
-        if chosen:
-            used.append(mic.voxels[chosen[0]].orientation)
-        out.append(chosen)
+        out.append([int(c) for c in cand[:60]])
     return targets, out
+
+
+def accept_voxels(cand_lists, orientation_of, usable, tol: float = 1e-6):
+    """Accept at most one voxel per candidate list (one per target radius).
+
+    Candidates whose orientation matches an already ACCEPTED voxel (same grain) are skipped;
+    ``usable(idx)`` returns a truthy result for an acceptable voxel and None/False otherwise.
+    Returns the list of ``usable`` results for the accepted voxels, in order.
+    """
+    accepted, used = [], []
+    for cands in cand_lists:
+        for idx in cands:
+            R = orientation_of(idx)
+            if any(np.abs(R - u).max() <= tol for u in used):
+                continue
+            res = usable(idx)
+            if res:
+                accepted.append(res)
+                used.append(R)
+                break
+    return accepted
 
 
 def main_multi(args, outdir_abs):
@@ -242,23 +258,22 @@ def main_multi(args, outdir_abs):
     mic = setup[0]
     targets, cand_lists = select_voxels(mic, args.n_voxels, args.r_max_um, args.voxel_seed)
     rng = np.random.default_rng(args.seed)
-    problems = []
-    for t, cands in zip(targets, cand_lists):
-        for idx in cands:
-            try:
-                pr = build_problem(
-                    example_dir,
-                    idx,
-                    max_q=args.max_q,
-                    detectors=args.detectors,
-                    min_sin_eta=args.min_sin_eta,
-                    setup=setup,
-                )
-            except RuntimeError:
-                continue
-            if len(pr["roi_list"]) >= args.min_peaks:
-                problems.append(pr)
-                break
+
+    def usable(idx):
+        try:
+            pr = build_problem(
+                example_dir,
+                idx,
+                max_q=args.max_q,
+                detectors=args.detectors,
+                min_sin_eta=args.min_sin_eta,
+                setup=setup,
+            )
+        except RuntimeError:
+            return None
+        return pr if len(pr["roi_list"]) >= args.min_peaks else None
+
+    problems = accept_voxels(cand_lists, lambda i: mic.voxels[i].orientation, usable)
     V = len(problems)
     r_perp = np.array(
         [np.hypot(*np.asarray(p["voxel"].position, dtype=float)[:2]) * 1e3 for p in problems]
@@ -275,7 +290,7 @@ def main_multi(args, outdir_abs):
         f"held out {int(held_out.sum())}"
     )
     W = args.window_size
-    context = torch.zeros(V, M, 16)
+    context = None  # (V, M, D), D = 14 + number of detectors, allocated on first voxel
     R_nom = torch.zeros(V, 3, 3)
     train_w, train_off, train_vid = [], [], []
     test_w, test_off, test_vid, test_mag = [], [], [], []
@@ -290,7 +305,10 @@ def main_multi(args, outdir_abs):
             pr["roi_list"],
         )
         spec = WindowSpec.from_nominal(obs, W, args.frame_half_width)
-        context[v, : n_peaks[v]] = obs.peak_context()
+        ctx = obs.peak_context()
+        if context is None:
+            context = torch.zeros(V, M, ctx.shape[-1])
+        context[v, : n_peaks[v]] = ctx
         R_nom[v] = torch.from_numpy(pr["R_nom"])
         n_tr = 0 if held_out[v] else args.per_voxel_train
         offs = [sample_prior_offsets(n_tr, args.prior_radius, rng)] if n_tr else []

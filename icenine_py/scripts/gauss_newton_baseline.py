@@ -21,11 +21,11 @@ import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).parent))
-from generate_toy_orientation_dataset import (
+from generate_toy_orientation_dataset import (  # noqa: E402
     build_problem,
     example_dir_for,
     setup_example,
-)  # noqa: E402
+)
 
 
 def main():
@@ -56,6 +56,7 @@ def main():
         setup = None
     preds, covs = np.full((len(truth), 3), np.nan), np.full((len(truth), 3, 3), np.nan)
     info = np.full((len(truth), 4), np.nan)
+    statuses = []
     t0 = time.time()
     for v, mic_index in voxels:
         problem = build_problem(
@@ -84,10 +85,12 @@ def main():
             r = gn.solve(meas)
             preds[n], covs[n] = r["delta"], r["cov"]
             info[n] = (r["n_used"], r["n_iter"], r["converged"], r["chi2"])
+            statuses.append(r["status"])
     dt = time.time() - t0
+    status_counts = ", ".join(f"{k}: {statuses.count(k)}" for k in sorted(set(statuses)))
     print(
         f"{len(truth)} cases in {dt:.1f}s ({dt / len(truth) * 1e3:.0f} ms each); "
-        f"converged {int(info[:, 2].sum())}/{len(truth)}; median spots used {np.median(info[:, 0]):.0f}, "
+        f"converged {int(info[:, 2].sum())}/{len(truth)} ({status_counts}); median spots used {np.median(info[:, 0]):.0f}, "
         f"median iterations {np.median(info[:, 1]):.0f}, median chi2/dof {np.nanmedian(info[:, 3]):.2f}"
     )
     print(

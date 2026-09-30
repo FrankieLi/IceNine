@@ -104,7 +104,7 @@ class CentroidGaussNewton:
         delta = np.zeros(3) if delta0 is None else np.asarray(delta0, dtype=np.float64).copy()
         eye = np.eye(3)
         lam = 1e-3
-        converged, n_iter = False, 0
+        status, n_iter, n_accepted = "max_iter", 0, 0
         for n_iter in range(1, self.max_iter + 1):
             pts = np.stack(
                 [delta] + [delta + s * self.h * eye[i] for i in range(3) for s in (1, -1)]
@@ -112,7 +112,7 @@ class CentroidGaussNewton:
             res, valid = self._residuals(pts, meas, idx)
             ok = valid.all(axis=0)  # spots present at the point and at every probe
             if ok.sum() < 3:
-                converged = False
+                status = "too_few_spots"
                 break
             r0 = res[0][ok].reshape(-1)
             J = np.stack(
@@ -136,13 +136,18 @@ class CentroidGaussNewton:
                         delta = delta + step
                         lam = max(lam / 3.0, 1e-9)
                         improved = True
+                        n_accepted += 1
                         break
                 lam *= 5.0
-            if not improved or np.linalg.norm(step) < self.tol:
-                # No damped step lowers the cost, or the step is negligible: a stationary
-                # point of the (quantised) least-squares objective.
-                converged = True
+            if not improved:
+                # No damped step lowers the cost: a stationary point of the (quantised)
+                # least-squares objective, unless it fails before any step was accepted.
+                status = "no_descent"
                 break
+            if np.linalg.norm(step) < self.tol:
+                status = "step_below_tol"
+                break
+        converged = status == "step_below_tol" or (status == "no_descent" and n_accepted >= 1)
         # covariance at the solution
         pts = np.stack([delta] + [delta + s * self.h * eye[i] for i in range(3) for s in (1, -1)])
         res, valid = self._residuals(pts, meas, idx)
@@ -168,5 +173,6 @@ class CentroidGaussNewton:
             n_used=int(ok.sum()),
             n_iter=n_iter,
             converged=bool(converged),
+            status=status,
             chi2=chi2,
         )

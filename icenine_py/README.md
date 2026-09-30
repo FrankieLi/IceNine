@@ -623,7 +623,7 @@ uv run python scripts/train_toy_orientation_nn.py --arch set --pool all --head o
 ```
 
 Multi-voxel datasets store padded windows `(N, M_max, W, W)`, a per-voxel `context` table
-`(V, M_max, 16)` and a `voxel_id` per sample; the training script gathers the context per batch and
+`(V, M_max, 14 + n_detectors)` and a `voxel_id` per sample; the training script gathers the context per batch and
 reports in-distribution and held-out-voxel tables plus a per-voxel median error vs r_perp.
 `--example`, `--voxel-index` and `--n-voxels` select the sample; the baseline scripts read the
 example from the dataset. Datasets (up to 1.6 GB) are gitignored; small `npz`/`json` results are in
@@ -632,6 +632,8 @@ example from the dataset. Datasets (up to 1.6 GB) are gitignored; small `npz`/`j
 For multi-voxel data `--val-voxels N` holds out N training voxels (one per r_perp stratum, chosen with
 `--seed`) for early stopping instead of a random 10 % of samples; `--loss decoupled` trains the mean
 with MSE and the covariance with NLL at stopgrad(mean).
+
+`--arch probe` trains the frame-probe network (`FrameProbeNet`). `scripts/optimizer_baselines.py` runs the MC and Riemannian-Adam baselines at the test perturbation sizes, `scripts/gauss_newton_baseline.py` the centroid Gauss-Newton baseline (reports a convergence status per case), and `scripts/summarize_bayes_npz.py --bayes B.npz --test T.pt --out R.json` tabulates an exact-Bayes run.
 
 `scripts/checks/` holds the numerical checks behind the derivations in `docs/`. Results
 of the Stage 0 run are in `benchmarks/toy_orientation_stage0/`.
