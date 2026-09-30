@@ -629,6 +629,10 @@ reports in-distribution and held-out-voxel tables plus a per-voxel median error 
 example from the dataset. Datasets (up to 1.6 GB) are gitignored; small `npz`/`json` results are in
 `benchmarks/toy_orientation_stage{1,2,3}/`.
 
+For multi-voxel data `--val-voxels N` holds out N training voxels (one per r_perp stratum, chosen with
+`--seed`) for early stopping instead of a random 10 % of samples; `--loss decoupled` trains the mean
+with MSE and the covariance with NLL at stopgrad(mean).
+
 `scripts/checks/` holds the numerical checks behind the derivations in `docs/`. Results
 of the Stage 0 run are in `benchmarks/toy_orientation_stage0/`.
 

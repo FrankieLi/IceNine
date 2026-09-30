@@ -1694,3 +1694,93 @@ MSE only (E3's first phase and the probe cover it); the mixing scale (0.1°) was
 β-NLL rows use the epoch 1-2 checkpoint (see above). Not tried: decoupled loss on the 30-voxel
 multi-voxel data (where the network does not exploit parallax; the loss is the first thing to
 change there).
+
+### Stage 3 — multi-voxel retrain with the decoupled loss (2026-09-30)
+
+Question: does the decoupled loss (MSE on the mean + NLL of the covariance at stopgrad(mean),
+`--mse-scale 0.1`) fix the 30-voxel network's gap to Gauss–Newton (GN), parallax use and held-out
+overconfidence? Same data as Step 3. New: `--val-voxels N` in `scripts/train_toy_orientation_nn.py`
+(`split_by_voxel` in `icenine/orientation_nn.py`, tested): N of the 24 training voxels, one per
+r⊥ stratum drawn with `--seed`, are removed from training and used only for early stopping /
+best-checkpoint selection (the test file's six held-out voxels are never used for selection).
+With `--seed 0` and N = 4 the validation voxels are **6, 11, 19, 24 (r⊥ = 99, 181, 326, 410 µm)**;
+training is then 20 voxels / 10 000 samples, validation 2 000 samples. Default (`--val-voxels 0`)
+is still the random 10 % sample split.
+
+All runs: `--arch set --head offset --device mps --lr 3e-4 --clip 1 --cosine --batch-size 64
+--epochs 60` (the settings of the previous multi runs), seed 0, one run each. Results from
+`benchmarks/toy_orientation_stage3/multi_{log,res,pred}_<run>.*`. R3 (150 epochs) was **not** run:
+60 epochs is not under-trained (see below). R5 was added to separate the loss from the val split.
+Median angle (deg) at |δ| = 0.1/0.25/0.5/1.0; "in-dist" = the 24 training-set voxels (960 test
+cases; for the voxel-val runs 4 of these 24 voxels were unseen in training), "held-out" = the 6
+test-file voxels (240 cases).
+
+| run (loss, pool, val split; best epoch) | group | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| previous: NLL, all, sample-val, 60 ep | in-dist | 0.030/0.030/0.032/0.038 | 0.039/0.041/0.046/0.049 | 0.009/0.009/0.010/0.014 | 4.0/3.5/3.2/4.1 |
+| | held-out | 0.036/0.043/0.046/0.055 | 0.030/0.041/0.047/0.055 | 0.019/0.020/0.020/0.028 | 19.5/21.6/17.4/17.8 |
+| previous: NLL, all, sample-val, 150 ep | in-dist | 0.029/0.026/0.029/0.032 | 0.038/0.039/0.041/0.042 | 0.007/0.006/0.007/0.011 | 4.1/3.6/3.5/5.7 |
+| | held-out | 0.034/0.037/0.039/0.053 | 0.031/0.043/0.051/0.054 | 0.018/0.016/0.018/0.024 | 31.1/24.5/26.3/34.3 |
+| R1: decoupled, all, voxel-val (ep 12) | in-dist | 0.040/0.045/0.053/0.071 | 0.041/0.047/0.053/0.060 | 0.018/0.020/0.026/0.041 | 1.6/1.9/2.2/3.3 |
+| | held-out | 0.040/0.047/0.057/0.068 | 0.033/0.040/0.055/0.062 | 0.022/0.026/0.032/0.038 | 1.8/2.8/3.7/3.5 |
+| R2: decoupled, meanmax, voxel-val (ep 20) | in-dist | 0.049/0.048/0.055/0.070 | 0.057/0.054/0.056/0.063 | 0.019/0.019/0.023/0.036 | 2.7/2.4/2.5/3.9 |
+| | held-out | 0.051/0.060/0.060/0.060 | 0.053/0.058/0.061/0.066 | 0.022/0.026/0.026/0.029 | 2.9/3.4/3.6/3.5 |
+| R4: NLL, all, voxel-val (ep 18) | in-dist | 0.051/0.045/0.050/0.061 | 0.054/0.053/0.056/0.066 | 0.019/0.018/0.019/0.026 | 2.5/2.2/2.0/2.6 |
+| | held-out | 0.045/0.048/0.054/0.070 | 0.047/0.050/0.055/0.065 | 0.024/0.021/0.028/0.038 | 3.2/3.0/4.7/5.6 |
+| R5: decoupled, all, sample-val (ep 58) | in-dist | 0.033/0.031/0.035/0.039 | 0.037/0.038/0.041/0.041 | 0.013/0.012/0.014/0.019 | 3.1/3.0/3.3/3.8 |
+| | held-out | 0.036/0.043/0.050/0.057 | 0.033/0.041/0.053/0.052 | 0.017/0.020/0.027/0.032 | 4.8/7.2/11.1/10.4 |
+| Gauss–Newton | in-dist | 0.012/0.015/0.012/0.014 | 0.020/0.024/0.022/0.022 | 0.003/0.003/0.003/0.004 | |
+| | held-out | 0.014/0.012/0.012/0.010 | 0.017/0.020/0.020/0.016 | 0.004/0.003/0.004/0.004 | |
+
+Per-voxel median error (all magnitudes) vs r⊥, correlation over all 30 voxels (net) and median
+over voxels in four r⊥ bins (0-130 / 130-260 / 260-390 / 390-510 µm, the 20-24 training voxels):
+
+| run | corr(err, r⊥) | bin medians | median of per-voxel medians: 20 train / 4 val / 6 held-out voxels |
+|---|---|---|---|
+| previous NLL, all, 60 ep | +0.37 | 0.028/0.031/0.033/0.036 | 0.030 / 0.035 / 0.044 |
+| R1 decoupled, all, voxel-val | +0.27 | 0.043/0.050/0.050/0.049 | 0.048 / 0.067 / 0.053 |
+| R2 decoupled, meanmax, voxel-val | +0.42 | 0.047/0.059/0.058/0.058 | 0.055 / 0.062 / 0.056 |
+| R4 NLL, all, voxel-val | +0.38 | 0.043/0.049/0.053/0.057 | 0.052 / 0.064 / 0.052 |
+| R5 decoupled, all, sample-val | +0.21 | 0.033/0.032/0.035/0.035 | 0.034 / 0.035 / 0.044 |
+| Gauss–Newton | -0.63 | 0.022/0.013/0.011/0.008 | 0.012 / 0.019 / 0.014 |
+
+Answers.
+
+- **(a) Gap to GN: not closed.** The best decoupled run (R5, same protocol as before) is 0.031-0.039°
+  in-distribution against 0.026-0.038° for plain NLL: no change. GN is 0.012-0.015° (2.5-3x
+  better). On voxel 0 the loss took z from the prior to GN level; on 30 voxels z was already
+  learned with plain NLL and `--pool all` (z RMS 0.04°), so there was no NLL pathology left to fix.
+- **(b) Parallax: not used.** No net run shows error falling with r⊥ (corr +0.21 to +0.42, bin
+  medians flat or rising; GN -0.63, 0.022 → 0.008°). z RMS is 0.037-0.041° (R5), 2x GN's 0.020°; no
+  run has z RMS below 0.02° at large r⊥. The loss was not the limiting factor; the pooled
+  representation is (see Open items in Step 3).
+- **(c) Held-out overconfidence: calibration improves, accuracy does not.** With the voxel-wise val
+  split the held-out Mahalanobis² is 1.8-3.7 (R1), 2.9-3.6 (R2) and 3.2-5.6 (R4) against 17-34
+  before, i.e. calibrated. The loss is not what did it: R4 (plain NLL) calibrates as well as R1.
+  R5 (decoupled loss, sample-val) is between: 4.8-11.1. So the gain comes from the checkpoint
+  selection. But the voxel-val checkpoints are early (epoch 12/20/18 of 60; the val-voxel loss is
+  noisy, z RMS on the 4 val voxels bounces between 0.07 and 0.086 over epochs 5-60 while the
+  train loss keeps falling) and those nets are *worse* everywhere, by 1.3-2x
+  (in-dist 0.040-0.071 vs 0.033-0.039 for R5; held-out 0.040-0.070 vs 0.036-0.057). The
+  overconfidence was partly the sharpening of σ during late training (σ_z 0.06 at epoch 12 vs
+  0.04 at epoch 58 on the val voxels; R1 log), which is not accompanied by better error on unseen
+  voxels. What a covariance head can learn from 20-24 voxels is limited: it cannot tell a new voxel
+  from a training voxel, so it fits the in-distribution error level; the held-out (and val-voxel)
+  error is ~1.2-1.6x larger and the Mahalanobis² rises to 5-11 (R5) once σ has shrunk to the
+  training-voxel level. The voxel-val runs avoid this by stopping at a wider σ, at the price of
+  accuracy.
+- **Pooling.** meanmax (R2) is 10-20 % worse than `all` (R1) under the decoupled loss (z RMS 0.053-0.066 vs
+  0.033-0.062); the far-voxel result (loss makes sum pooling unnecessary) does not carry over to
+  the multi-voxel net.
+- **Recommendation.** For accuracy use R5's protocol (sample-val, late checkpoint); for honest σ on
+  new voxels either recalibrate on a held-out set of voxels or use voxel-val, but the noisy
+  4-voxel validation loss picks a poor checkpoint. A smoother selection criterion (validation
+  z/⊥ RMS instead of the training loss, more validation voxels, or averaging the last epochs) is
+  the obvious next step.
+
+Caveats: one seed per run; only 6 held-out voxels (1-2 per r⊥ bin); the "in-dist" test group of
+the voxel-val runs contains the 4 val voxels, which those nets never trained on (the third column
+of the second table separates them: the 4 val voxels are the worst-off group in R1/R4, 0.064-0.067);
+the val voxels influence checkpoint selection, so they are not a clean test either. Best-epoch
+selection on a noisy loss confounds "voxel-wise split" with "early checkpoint"; a last-epoch
+evaluation of R1/R4 was not run. R3 (150 epochs) was not run.

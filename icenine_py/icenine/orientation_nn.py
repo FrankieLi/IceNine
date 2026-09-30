@@ -18,6 +18,7 @@ import math
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 
@@ -492,3 +493,25 @@ def decoupled_nll_loss(
     the covariance is still fitted to the residuals the mean actually makes.
     """
     return mse_deg_loss(mean, target, scale_deg) + gaussian_nll_loss(mean.detach(), chol, target)
+
+
+def split_by_voxel(voxel_id, r_perp_um, n_val: int, seed: int = 0):
+    """Hold out whole voxels for validation.
+
+    The voxels present in ``voxel_id`` are sorted by r_perp and cut into ``n_val`` equal strata;
+    one voxel per stratum is drawn with ``seed``, so the validation voxels span r_perp and the
+    choice is deterministic. Returns (train_idx, val_idx, val_voxels): sample indices (disjoint
+    by voxel) and the chosen voxel ids.
+    """
+    voxel_id = np.asarray(voxel_id)
+    r_perp_um = np.asarray(r_perp_um)
+    present = np.unique(voxel_id)
+    if not 0 < n_val < len(present):
+        raise ValueError(f"need 0 < n_val < {len(present)} voxels, got {n_val}")
+    order = present[np.argsort(r_perp_um[present], kind="stable")]
+    rng = np.random.default_rng(seed)
+    val_voxels = []
+    for stratum in np.array_split(order, n_val):
+        val_voxels.append(int(rng.choice(stratum)))
+    is_val = np.isin(voxel_id, val_voxels)
+    return np.flatnonzero(~is_val), np.flatnonzero(is_val), sorted(val_voxels)

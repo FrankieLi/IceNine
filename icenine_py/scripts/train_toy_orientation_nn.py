@@ -87,6 +87,7 @@ def main():
         gaussian_nll_loss,
         mse_deg_loss,
         quaternion_regression_loss,
+        split_by_voxel,
     )
     from icenine.toy_orientation_model import (
         FrameProbeNet,
@@ -144,6 +145,13 @@ def main():
         "--mse-scale", type=float, default=0.1, help="degrees; unit of the MSE term (decoupled)"
     )
     parser.add_argument("--val-frac", type=float, default=0.1)
+    parser.add_argument(
+        "--val-voxels",
+        type=int,
+        default=0,
+        help="multi-voxel data: hold out this many training voxels (one per r_perp stratum, "
+        "chosen with --seed) for early stopping instead of a random --val-frac of samples",
+    )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument(
         "--device",
@@ -174,9 +182,20 @@ def main():
     dev = torch.device(args.device)
     prep = lambda x: prep_cpu(x).to(dev)  # noqa: E731
     n = len(windows)
-    perm = rng.permutation(n)
-    n_val = max(1, int(n * args.val_frac))
-    val_idx, train_idx = perm[:n_val], perm[n_val:]
+    if args.val_voxels > 0:
+        assert "voxel_id" in tr, "--val-voxels needs multi-voxel data"
+        train_idx, val_idx, val_voxels = split_by_voxel(
+            tr["voxel_id"].numpy(), tr["r_perp_um"].numpy(), args.val_voxels, args.seed
+        )
+        n_val = len(val_idx)
+        print(
+            "validation voxels (held out of training, r_perp um): "
+            + ", ".join(f"{v} ({tr['r_perp_um'][v]:.0f})" for v in val_voxels)
+        )
+    else:
+        perm = rng.permutation(n)
+        n_val = max(1, int(n * args.val_frac))
+        val_idx, train_idx = perm[:n_val], perm[n_val:]
     print(
         f"train {len(train_idx)} / val {n_val} samples, {n_peaks} peaks x {window}x{window}, head={args.head}"
     )
