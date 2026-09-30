@@ -1495,3 +1495,47 @@ and ≤ 1.5x Gauss–Newton at every bin): r3 is at the prior in z; r4 is at 0.2
 ⊥ at large δ. The rounds were capped at four, so the obvious combination (mean + max + sum
 pooling, `--pool all`, added to the code after round 4 and covered by the padding test) was
 not run on voxel 0; it is tried on the Step 2 data.
+
+### Step 2: a voxel far from the rotation axis
+
+Generator changes: `--example {threevoxels,manygrains}` (stored in the dataset meta as `example`,
+with `r_perp_um` and `side_um`); `gauss_newton_baseline.py` and `exact_bayes_baseline.py` read the
+example from the dataset meta instead of hard-coding ThreeVoxels.
+
+**Voxel**: `Examples/Example2.ManyGrains/SimInput/rand_500grains_1mm_inFZ.mic`, voxel **77**
+(first candidate near 400 µm): r⊥ = **398.7 µm**, side 9.38 µm (triangle), **118 ROI peaks**
+(Q_max 8, both detectors, |sin η| ≥ 0.3). Dataset `scripts/toy_orientation_stage3_far_*.pt`
+(10 000 train from the 1° ball, 4 x 30 test at 0.1/0.25/0.5/1.0°; 96.8-98.1 % of spots inside
+their windows). Exact Bayes (7 min) and Gauss–Newton (1 s) ran on the test set; MC/Adam were not
+run (ManyGrains has no detector images). The Bayes row is summarised from
+`far_test_bayes.npz` with `scripts/summarize_bayes_npz.py` (the trainings started before it
+finished, so their tables have no Bayes row). All networks: lr 3e-4, clip 1, cosine, batch 64,
+`--device mps`; fc 30 epochs, set 60. Results in `benchmarks/toy_orientation_stage3/far_res_*.json`.
+
+Median angle (deg) at |δ| = 0.1 / 0.25 / 0.5 / 1.0, z and ⊥ RMS, mean Mahalanobis²:
+
+| method | median angle | z RMS | ⊥ RMS | net σ (x,y,z) at 0.25 | Mahalanobis² |
+|---|---|---|---|---|---|
+| predict-nominal | 0.100/0.250/0.500/1.000 | 0.055/0.148/0.249/0.584 | 0.059/0.143/0.306/0.574 | | |
+| fc | 0.009/0.008/0.009/0.020 | 0.009/0.007/0.006/0.016 | 0.004/0.004/0.006/0.017 | 0.004, 0.005, 0.008 | 3.7/2.7/4.1/11.1 |
+| set, mean+max pool | 0.040/0.113/0.157/0.450 | 0.068/0.143/0.212/0.489 | 0.013/0.024/0.039/0.096 | 0.098, 0.054, 0.460 | 2.1/2.1/2.3/6.3 |
+| set, mean+sum pool | 0.078/0.156/0.294/0.431 | 0.021/0.022/0.029/0.044 | 0.069/0.128/0.212/0.340 | 0.039, 0.237, 0.028 | 1.6/2.7/3.3/4.1 |
+| **set, mean+max+sum pool** | 0.015/0.013/0.015/0.018 | 0.015/0.014/0.017/0.019 | 0.010/0.010/0.009/0.016 | 0.009, 0.008, 0.015 | 3.3/3.7/3.4/5.6 |
+| Gauss–Newton | 0.012/0.011/0.009/0.008 | 0.013/0.010/0.010/0.008 | 0.003/0.003/0.003/0.003 | | |
+| exact Bayes | 0.001/0.001/0.001/0.001 | 0.001/0.001/0.001/0.001 | 0.000/0.000/0.000/0.000 | | |
+
+Findings.
+
+- Parallax helps every method that can use it, as expected from the near-axis analysis: on
+  voxel 0 (r⊥ = 12 µm) Gauss–Newton had z RMS 0.045° and exact Bayes 0.007-0.009°; at
+  r⊥ = 399 µm they are 0.008-0.013° and 0.001°. fc median error is 0.009-0.020° (voxel 0:
+  0.023-0.049°).
+- **The pooling combination that fixes both axes is mean + max + sum** (the combination not tried
+  in Step 1, `--pool all`): 0.013-0.018° at every magnitude. The single-pool nets reproduce the
+  Step 1 split: mean+max is at the prior in z even here (σ_z 0.46), mean+sum loses ⊥ (σ_y 0.24).
+- The target "median ≤ fc and ≤ 1.5x Gauss–Newton at every bin" is not met by the set net at
+  0.1-0.5° (fc 0.008-0.009; GN 0.009-0.012; set 0.013-0.015); at 1° it beats fc (0.018 vs 0.020).
+  Calibration: Mahalanobis² 3.3-3.7 for δ ≤ 0.5° (calibrated is 3), 5.6 at 1°; fc 2.7-4.1, but
+  11.1 at 1°.
+- Exact Bayes is ~10x below all methods here: the information in the thresholded data is far
+  from exhausted (on voxel 0 the gap was 4-6x).

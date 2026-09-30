@@ -29,6 +29,15 @@ import torch
 
 project_root = Path(__file__).parent.parent.parent
 DEFAULT_EXAMPLE = project_root / "Examples" / "Example2.ThreeVoxels"
+EXAMPLES = {
+    "threevoxels": DEFAULT_EXAMPLE,
+    "manygrains": project_root / "Examples" / "Example2.ManyGrains",
+}
+
+
+def example_dir_for(name: str) -> Path:
+    """Example directory for a dataset's meta["example"] (default: ThreeVoxels)."""
+    return EXAMPLES[name or "threevoxels"]
 
 
 def setup_example(example_dir: Path, basename: str = "3Grains.sim", max_q=None):
@@ -86,8 +95,11 @@ def build_problem(
     max_q=None,
     detectors: str = "first",
     min_sin_eta: float = 0.0,
+    setup=None,
 ):
     """Set up physics and pick a voxel with a non-empty ROI set.
+
+    setup: the tuple returned by setup_example(), to reuse one physics setup for many voxels.
 
     max_q and detectors are passed to setup_example / define_roi_set; min_sin_eta
     drops near-axis spots (|sin eta| below it at the nominal orientation, decision D3).
@@ -97,8 +109,10 @@ def build_problem(
     """
     from icenine.orientation_nn import define_roi_set
 
+    if setup is None:
+        setup = setup_example(example_dir, max_q=max_q)
     mic, sample, detector_list, range_map, exp_setup, simulator, structure_list, get_vertices = (
-        setup_example(example_dir, max_q=max_q)
+        setup
     )
     candidates = [voxel_index] if voxel_index is not None else range(len(mic.voxels))
     for idx in candidates:
@@ -188,10 +202,162 @@ def render_dataset_observer(
     return windows, status, obs.peak_context()
 
 
+def select_voxels(mic, n_voxels: int, r_max_um: float, seed: int):
+    """Candidate voxel indices spanning r_perp in [0, r_max_um]: for each of n_voxels evenly
+    spaced target radii, a random voxel within a small tolerance, with distinct orientations
+    (a voxel's grain is not reused). Returned in order of increasing target radius, together
+    with the candidate lists so the caller can skip voxels with too few peaks."""
+    rng = np.random.default_rng(seed)
+    pos = np.array([v.position for v in mic.voxels], dtype=float)
+    r_um = np.hypot(pos[:, 0], pos[:, 1]) * 1e3
+    targets = np.linspace(0.0, r_max_um, n_voxels)
+    tol = max(5.0, 0.5 * (targets[1] - targets[0]))
+    used, out = [], []
+    for t in targets:
+        cand = np.nonzero(np.abs(r_um - t) <= tol)[0]
+        cand = cand[rng.permutation(len(cand))]
+        chosen = []
+        for c in cand[:60]:
+            R = mic.voxels[c].orientation
+            if all(np.abs(R - u).max() > 1e-6 for u in used):
+                chosen.append(int(c))
+        if chosen:
+            used.append(mic.voxels[chosen[0]].orientation)
+        out.append(chosen)
+    return targets, out
+
+
+def main_multi(args, outdir_abs):
+    """Multi-voxel dataset (Stage 3 step 3): padded windows, per-voxel context table."""
+    from icenine.orientation_eval import (
+        BatchedObserver,
+        WindowSpec,
+        render_windows,
+        sample_fixed_magnitude_offsets,
+        sample_prior_offsets,
+    )
+
+    example_dir = example_dir_for(args.example)
+    setup = setup_example(example_dir, max_q=args.max_q)
+    mic = setup[0]
+    targets, cand_lists = select_voxels(mic, args.n_voxels, args.r_max_um, args.voxel_seed)
+    rng = np.random.default_rng(args.seed)
+    problems = []
+    for t, cands in zip(targets, cand_lists):
+        for idx in cands:
+            try:
+                pr = build_problem(
+                    example_dir,
+                    idx,
+                    max_q=args.max_q,
+                    detectors=args.detectors,
+                    min_sin_eta=args.min_sin_eta,
+                    setup=setup,
+                )
+            except RuntimeError:
+                continue
+            if len(pr["roi_list"]) >= args.min_peaks:
+                problems.append(pr)
+                break
+    V = len(problems)
+    r_perp = np.array(
+        [np.hypot(*np.asarray(p["voxel"].position, dtype=float)[:2]) * 1e3 for p in problems]
+    )
+    n_peaks = np.array([len(p["roi_list"]) for p in problems])
+    order = np.argsort(r_perp)
+    problems = [problems[i] for i in order]
+    r_perp, n_peaks = r_perp[order], n_peaks[order]
+    held_out = np.zeros(V, dtype=bool)
+    held_out[args.holdout_offset :: args.holdout_every] = True
+    M = int(n_peaks.max())
+    print(
+        f"{V} voxels, r_perp {r_perp.min():.0f}-{r_perp.max():.0f} um, peaks {n_peaks.min()}-{M}, "
+        f"held out {int(held_out.sum())}"
+    )
+    W = args.window_size
+    context = torch.zeros(V, M, 16)
+    R_nom = torch.zeros(V, 3, 3)
+    train_w, train_off, train_vid = [], [], []
+    test_w, test_off, test_vid, test_mag = [], [], [], []
+    for v, pr in enumerate(problems):
+        obs = BatchedObserver(
+            pr["R_nom"],
+            pr["vertices"],
+            pr["sample"],
+            pr["detector_list"],
+            pr["range_map"],
+            pr["exp_setup"],
+            pr["roi_list"],
+        )
+        spec = WindowSpec.from_nominal(obs, W, args.frame_half_width)
+        context[v, : n_peaks[v]] = obs.peak_context()
+        R_nom[v] = torch.from_numpy(pr["R_nom"])
+        n_tr = 0 if held_out[v] else args.per_voxel_train
+        offs = [sample_prior_offsets(n_tr, args.prior_radius, rng)] if n_tr else []
+        if n_tr:
+            w, _ = render_windows(obs, spec, offs[0])
+            pad = torch.zeros(n_tr, M, W, W, dtype=torch.uint8)
+            pad[:, : n_peaks[v]] = w
+            train_w.append(pad)
+            train_off.append(torch.from_numpy(offs[0]).float())
+            train_vid.append(torch.full((n_tr,), v, dtype=torch.long))
+        for mag in args.test_magnitudes:
+            o = sample_fixed_magnitude_offsets(args.per_voxel_test, mag, rng)
+            w, _ = render_windows(obs, spec, o)
+            pad = torch.zeros(len(o), M, W, W, dtype=torch.uint8)
+            pad[:, : n_peaks[v]] = w
+            test_w.append(pad)
+            test_off.append(torch.from_numpy(o).float())
+            test_vid.append(torch.full((len(o),), v, dtype=torch.long))
+            test_mag.append(torch.full((len(o),), mag))
+        print(
+            f"  voxel {v:2d} (mic {pr['voxel_index']:5d}) r_perp {r_perp[v]:5.0f} um  "
+            f"{n_peaks[v]:3d} peaks  {'held out' if held_out[v] else 'train'}",
+            flush=True,
+        )
+    meta = dict(
+        window_size=W,
+        n_peaks=M,
+        n_peaks_per_voxel=torch.from_numpy(n_peaks),
+        voxel_indices=torch.tensor([p["voxel_index"] for p in problems]),
+        r_perp_um=torch.from_numpy(r_perp).float(),
+        held_out=torch.from_numpy(held_out),
+        R_nom=R_nom,
+        context=context,
+        prior_radius_deg=args.prior_radius,
+        max_q=args.max_q if args.max_q is not None else float("nan"),
+        detectors=args.detectors,
+        min_sin_eta=args.min_sin_eta,
+        renderer="observer",
+        frame_half_width=args.frame_half_width,
+        seed=args.seed,
+        example=args.example,
+        multi_voxel=True,
+    )
+    for name, w, off, vid, extra in (
+        ("train", train_w, train_off, train_vid, {}),
+        ("test", test_w, test_off, test_vid, {"magnitudes_deg": torch.cat(test_mag)}),
+    ):
+        windows = torch.cat(w)
+        path = outdir_abs / f"toy_orientation_{args.tag}_{name}.pt"
+        torch.save(
+            {
+                "windows": windows,
+                "offsets_deg": torch.cat(off),
+                "voxel_id": torch.cat(vid),
+                **meta,
+                **extra,
+            },
+            path,
+        )
+        print(f"Saved {path}  ({windows.numel() / 1e9:.2f} GB, {len(windows)} samples)")
+
+
 def main():
     from icenine.orientation_eval import sample_fixed_magnitude_offsets, sample_prior_offsets
 
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--example", choices=sorted(EXAMPLES), default="threevoxels")
     parser.add_argument(
         "--voxel-index", type=int, default=None, help="Force a specific voxel; default auto-selects"
     )
@@ -224,6 +390,19 @@ def main():
     parser.add_argument(
         "--min-sin-eta", type=float, default=0.0, help="drop spots with |sin eta| below this (D3)"
     )
+    parser.add_argument(
+        "--n-voxels",
+        type=int,
+        default=0,
+        help="multi-voxel mode: this many voxels spanning r_perp in [0, --r-max-um]",
+    )
+    parser.add_argument("--voxel-seed", type=int, default=0)
+    parser.add_argument("--r-max-um", type=float, default=500.0)
+    parser.add_argument("--min-peaks", type=int, default=40)
+    parser.add_argument("--per-voxel-train", type=int, default=500)
+    parser.add_argument("--per-voxel-test", type=int, default=10, help="per magnitude, per voxel")
+    parser.add_argument("--holdout-every", type=int, default=5, help="every k-th voxel is held out")
+    parser.add_argument("--holdout-offset", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--outdir", default=str(Path(__file__).parent))
     parser.add_argument("--tag", default="stage0")
@@ -233,16 +412,24 @@ def main():
         args.n_train, args.test_per_bin, args.tag = 60, 5, "smoke"
 
     outdir_abs = Path(args.outdir).resolve()  # build_problem() changes directory
-    print(f"Setting up {DEFAULT_EXAMPLE} ...")
+    if args.n_voxels:
+        return main_multi(args, outdir_abs)
+    example_dir = example_dir_for(args.example)
+    print(f"Setting up {example_dir} ...")
     problem = build_problem(
-        DEFAULT_EXAMPLE,
+        example_dir,
         args.voxel_index,
         max_q=args.max_q,
         detectors=args.detectors,
         min_sin_eta=args.min_sin_eta,
     )
     n_peaks = len(problem["roi_list"])
-    print(f"  voxel {problem['voxel_index']}: {n_peaks} ROI peaks")
+    pos = np.asarray(problem["voxel"].position, dtype=float)
+    r_perp_um = float(np.hypot(pos[0], pos[1]) * 1e3)
+    print(
+        f"  voxel {problem['voxel_index']}: r_perp {r_perp_um:.1f} um, side "
+        f"{problem['voxel'].side_length * 1e3:.2f} um, {n_peaks} ROI peaks"
+    )
 
     rng = np.random.default_rng(args.seed)
     train_offsets = sample_prior_offsets(args.n_train, args.prior_radius, rng)
@@ -264,7 +451,9 @@ def main():
         renderer=args.renderer,
         frame_half_width=args.frame_half_width,
         seed=args.seed,
-        example="threevoxels",
+        example=args.example,
+        r_perp_um=r_perp_um,
+        side_um=float(problem["voxel"].side_length * 1e3),
     )
     outdir = outdir_abs
     for name, offsets, extra in (

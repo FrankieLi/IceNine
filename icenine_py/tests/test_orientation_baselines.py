@@ -80,6 +80,18 @@ class TestPeakSetNet:
         b, _ = net(x, ctx2)
         assert torch.allclose(a, b, atol=1e-5)
 
+    def test_per_sample_context_gather_matches_per_voxel_calls(self):
+        """Multi-voxel batches: context table[voxel_id] (B, M, D) == one call per voxel."""
+        torch.manual_seed(0)
+        net = PeakSetNet(pool="all")
+        x, _ = self._batch(B=4, M=6, present=4)
+        table = torch.randn(2, 6, 16)
+        vid = torch.tensor([0, 1, 1, 0])
+        batched, _ = net(x, table[vid])
+        for i in range(4):
+            single, _ = net(x[i : i + 1], table[vid[i]])
+            assert torch.allclose(batched[i], single[0], atol=1e-5)
+
     def test_no_peaks_present_is_finite(self):
         net = PeakSetNet()
         mean, chol = net(torch.zeros(2, 4, 2, 32, 32), torch.randn(4, 16))

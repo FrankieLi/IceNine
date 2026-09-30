@@ -22,7 +22,7 @@ import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).parent))
-from generate_toy_orientation_dataset import DEFAULT_EXAMPLE, build_problem  # noqa: E402
+from generate_toy_orientation_dataset import build_problem, example_dir_for  # noqa: E402
 
 
 def main():
@@ -51,7 +51,7 @@ def main():
         offsets = offsets[: args.limit]
     max_q = data.get("max_q", float("nan"))
     problem = build_problem(
-        DEFAULT_EXAMPLE,
+        example_dir_for(data.get("example")),
         data["voxel_index"],
         max_q=None if max_q != max_q else max_q,  # NaN means the config default
         detectors=data.get("detectors", "first"),

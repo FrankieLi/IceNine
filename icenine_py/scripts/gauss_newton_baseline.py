@@ -21,7 +21,11 @@ import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).parent))
-from generate_toy_orientation_dataset import DEFAULT_EXAMPLE, build_problem  # noqa: E402
+from generate_toy_orientation_dataset import (
+    build_problem,
+    example_dir_for,
+    setup_example,
+)  # noqa: E402
 
 
 def main():
@@ -38,39 +42,49 @@ def main():
     if data.get("renderer") != "observer":
         raise SystemExit("needs an observer-rendered (frame-coded) dataset")
     max_q = data.get("max_q", float("nan"))
-    problem = build_problem(
-        DEFAULT_EXAMPLE,
-        data["voxel_index"],
-        max_q=None if max_q != max_q else max_q,
-        detectors=data.get("detectors", "first"),
-        min_sin_eta=float(data.get("min_sin_eta", 0.0)),
-    )
-    assert len(problem["roi_list"]) == data["n_peaks"], "ROI set differs from the dataset's"
-    obs = BatchedObserver(
-        problem["R_nom"],
-        problem["vertices"],
-        problem["sample"],
-        problem["detector_list"],
-        problem["range_map"],
-        problem["exp_setup"],
-        problem["roi_list"],
-    )
-    spec = WindowSpec.from_nominal(obs, data["window_size"], data["frame_half_width"])
-    gn = CentroidGaussNewton(obs)
-
+    example_dir = example_dir_for(data.get("example"))
     truth = data["offsets_deg"].double().numpy()
     mags = data["magnitudes_deg"].numpy()
-    preds, covs, info = [], [], []
+    multi = bool(data.get("multi_voxel", False))
+    if multi:
+        vid = data["voxel_id"].numpy()
+        voxels = [(v, int(data["voxel_indices"][v])) for v in range(len(data["voxel_indices"]))]
+        setup = setup_example(example_dir, max_q=None if max_q != max_q else max_q)
+    else:
+        vid = np.zeros(len(truth), dtype=int)
+        voxels = [(0, data["voxel_index"])]
+        setup = None
+    preds, covs = np.full((len(truth), 3), np.nan), np.full((len(truth), 3, 3), np.nan)
+    info = np.full((len(truth), 4), np.nan)
     t0 = time.time()
-    for n in range(len(truth)):
-        meas = extract_measurements(data["windows"][n], spec, obs)
-        r = gn.solve(meas)
-        preds.append(r["delta"])
-        covs.append(r["cov"])
-        info.append((r["n_used"], r["n_iter"], r["converged"], r["chi2"]))
+    for v, mic_index in voxels:
+        problem = build_problem(
+            example_dir,
+            mic_index,
+            max_q=None if max_q != max_q else max_q,
+            detectors=data.get("detectors", "first"),
+            min_sin_eta=float(data.get("min_sin_eta", 0.0)),
+            setup=setup,
+        )
+        n_pk = int(data["n_peaks_per_voxel"][v]) if multi else data["n_peaks"]
+        assert len(problem["roi_list"]) == n_pk, "ROI set differs from the dataset's"
+        obs = BatchedObserver(
+            problem["R_nom"],
+            problem["vertices"],
+            problem["sample"],
+            problem["detector_list"],
+            problem["range_map"],
+            problem["exp_setup"],
+            problem["roi_list"],
+        )
+        spec = WindowSpec.from_nominal(obs, data["window_size"], data["frame_half_width"])
+        gn = CentroidGaussNewton(obs)
+        for n in np.nonzero(vid == v)[0]:
+            meas = extract_measurements(data["windows"][n][:n_pk], spec, obs)
+            r = gn.solve(meas)
+            preds[n], covs[n] = r["delta"], r["cov"]
+            info[n] = (r["n_used"], r["n_iter"], r["converged"], r["chi2"])
     dt = time.time() - t0
-    preds, covs = np.array(preds), np.array(covs)
-    info = np.array(info, dtype=float)
     print(
         f"{len(truth)} cases in {dt:.1f}s ({dt / len(truth) * 1e3:.0f} ms each); "
         f"converged {int(info[:, 2].sum())}/{len(truth)}; median spots used {np.median(info[:, 0]):.0f}, "

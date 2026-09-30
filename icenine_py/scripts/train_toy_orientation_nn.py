@@ -56,8 +56,9 @@ def make_prep(meta, no_frame: bool = False):
     return (lambda x: x.float()), 1
 
 
-def predict(model, head, windows, batch_size, prep=None, forward=None):
-    """Predicted offsets (N,3 deg) and, for the offset head, Cholesky factors (N,3,3)."""
+def predict(model, head, windows, batch_size, prep=None, forward=None, vid=None):
+    """Predicted offsets (N,3 deg) and, for the offset head, Cholesky factors (N,3,3).
+    forward(x) or, for multi-voxel data, forward(x, vid_of_batch)."""
     model.eval()
     forward = forward if forward is not None else model
     means, chols = [], []
@@ -65,7 +66,7 @@ def predict(model, head, windows, batch_size, prep=None, forward=None):
         for b in batches(len(windows), batch_size):
             x = prep(windows[b]) if prep is not None else windows[b].float()
             if head == "offset":
-                m, L = forward(x)
+                m, L = forward(x) if vid is None else forward(x, vid[b])
                 means.append(m.cpu())
                 chols.append(L.cpu())
             else:
@@ -158,6 +159,7 @@ def main():
         f"train {len(train_idx)} / val {n_val} samples, {n_peaks} peaks x {window}x{window}, head={args.head}"
     )
 
+    multi, vid_train = False, None
     if args.head == "quat":
         targets = torch.from_numpy(
             offsets_to_quaternions(offsets.numpy().astype(np.float64), R_nom)
@@ -167,7 +169,9 @@ def main():
         targets = offsets
         if args.arch == "set":
             assert "context" in tr, "the set architecture needs a dataset with per-peak context"
-            context = tr["context"].float()
+            context = tr["context"].float()  # (M, D), or (V, M, D) for multi-voxel data
+            multi = bool(tr.get("multi_voxel", False))
+            vid_train = tr["voxel_id"].to(torch.long) if multi else None
             model = PeakSetNet(
                 window_size=window,
                 in_channels=in_channels,
@@ -180,7 +184,10 @@ def main():
             model = ToyOffsetNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
     if args.arch == "set":
         assert args.head == "offset", "the set architecture predicts an offset and covariance"
-        forward = lambda x: model(x, context)  # noqa: E731
+        if multi:
+            forward = lambda x, v: model(x, context[v.to(dev)])  # noqa: E731
+        else:
+            forward = lambda x: model(x, context)  # noqa: E731
     else:
         forward = model
     n_params = sum(p.numel() for p in model.parameters())
@@ -194,10 +201,10 @@ def main():
         torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs) if args.cosine else None
     )
 
-    def loss_fn(x, y):
+    def loss_fn(x, y, v=None):
         if args.head == "quat":
             return quaternion_regression_loss(forward(x), y)
-        mean, chol = forward(x)
+        mean, chol = forward(x) if v is None else forward(x, v)
         return gaussian_nll_loss(mean, chol, y, beta=args.beta_nll)
 
     t0 = time.time()
@@ -208,7 +215,7 @@ def main():
         for b in batches(len(train_idx), args.batch_size, rng):
             ib = train_idx[b]
             opt.zero_grad()
-            loss = loss_fn(prep(windows[ib]), targets[ib])
+            loss = loss_fn(prep(windows[ib]), targets[ib], vid_train[ib] if multi else None)
             loss.backward()
             if args.clip > 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
@@ -220,7 +227,11 @@ def main():
         with torch.no_grad():
             val = np.mean(
                 [
-                    loss_fn(prep(windows[val_idx[b]]), targets[val_idx[b]]).item()
+                    loss_fn(
+                        prep(windows[val_idx[b]]),
+                        targets[val_idx[b]],
+                        vid_train[val_idx[b]] if multi else None,
+                    ).item()
                     for b in batches(n_val, args.batch_size)
                 ]
             )
@@ -237,7 +248,10 @@ def main():
     print(f"restored best-validation weights from epoch {best_epoch} (val {best_val:.6f})")
 
     # ---- evaluation ------------------------------------------------------
-    pred, chol = predict(model, args.head, te["windows"], args.batch_size, prep, forward)
+    vid_test = te["voxel_id"].to(torch.long) if multi else None
+    pred, chol = predict(
+        model, args.head, te["windows"], args.batch_size, prep, forward, vid=vid_test
+    )
     if args.head == "quat":
         pred = quaternions_to_offsets_deg(pred, R_nom)
     truth = te["offsets_deg"].numpy().astype(np.float64)
@@ -280,45 +294,85 @@ def main():
     print(
         f"\n{'|delta|':>8} {'method':<20} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)"
     )
-    for mag in sorted(set(mags.tolist())):
-        m = mags == mag
-        entries = [
-            ("predict-nominal", error_summary(np.zeros((m.sum(), 3)), truth[m])),
-            (f"net ({args.arch}/{args.head})", error_summary(pred[m], truth[m])),
-        ]
-        for label, ep in extras.items():
-            entries.insert(
-                1, (label, error_summary(ep[m[: len(ep)]], truth[: len(ep)][m[: len(ep)]]))
-            )
-        if bayes is not None:
-            mb = m & np.isfinite(bayes["mean"]).all(
-                axis=1
-            )  # cases where the sampler found no members are excluded
-            if mb.sum() < m.sum():
-                print(
-                    f"note: exact Bayes failed on {m.sum() - mb.sum()} case(s) at |delta| = {mag}; excluded from its row"
+    if multi:
+        held = te["held_out"].numpy()[vid_test.numpy()]
+        groups = [("in-dist/", ~held), ("held-out/", held)]
+    else:
+        groups = [("", np.ones(len(mags), dtype=bool))]
+    for tag, gmask in groups:
+        if tag:
+            print(f"\n=== {tag.rstrip('/')} voxels ({int(gmask.sum())} test cases) ===")
+        for mag in sorted(set(mags.tolist())):
+            m = (mags == mag) & gmask
+            entries = [
+                ("predict-nominal", error_summary(np.zeros((m.sum(), 3)), truth[m])),
+                (f"net ({args.arch}/{args.head})", error_summary(pred[m], truth[m])),
+            ]
+            for label, ep in extras.items():
+                entries.insert(
+                    1, (label, error_summary(ep[m[: len(ep)]], truth[: len(ep)][m[: len(ep)]]))
                 )
-            entries.append(("exact Bayes", error_summary(bayes["mean"][mb], truth[mb])))
-        for name, s in entries:
-            print(
-                f"{mag:8.2f} {name:<20} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
+            if bayes is not None:
+                mb = m & np.isfinite(bayes["mean"]).all(
+                    axis=1
+                )  # cases where the sampler found no members are excluded
+                if mb.sum() < m.sum():
+                    print(
+                        f"note: exact Bayes failed on {m.sum() - mb.sum()} case(s) at |delta| = {mag}; excluded from its row"
+                    )
+                entries.append(("exact Bayes", error_summary(bayes["mean"][mb], truth[mb])))
+            for name, s in entries:
+                print(
+                    f"{mag:8.2f} {name:<20} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
+                )
+            extra = {}
+            if bayes is not None:
+                floor = float(np.nanmean(np.sqrt(np.trace(bayes["cov"][m], axis1=1, axis2=2))))
+                extra["bayes_floor_sqrt_trace"] = floor
+                print(f"{'':8} {'Bayes floor':<14} {'':>3} sqrt(tr cov) = {floor:.5f}")
+            if chol is not None:
+                cov = chol[m] @ chol[m].transpose(0, 2, 1)
+                sd = np.sqrt(np.diagonal(cov, axis1=1, axis2=2)).mean(axis=0)
+                r = (truth[m] - pred[m])[:, :, None]
+                z = np.linalg.solve(chol[m], r)[:, :, 0]
+                maha = float((z**2).sum(axis=1).mean())
+                extra.update(pred_sigma_xyz=sd.tolist(), mean_mahalanobis_sq=maha)
+                print(
+                    f"{'':8} {'net sigma xyz':<14} {'':>3} {np.round(sd, 5)}   mean Mahalanobis^2 = {maha:.2f} (3.0 if calibrated)"
+                )
+            rows[tag + str(mag)] = {name: s for name, s in entries} | extra
+
+    if multi:
+        r_perp, n_pk = te["r_perp_um"].numpy(), te["n_peaks_per_voxel"].numpy()
+        per_voxel = []
+        print(
+            f"\n{'voxel':>5} {'r_perp':>7} {'peaks':>5} {'held':>5} {'n':>4}  median angle (deg), all magnitudes"
+        )
+        for v in range(len(r_perp)):
+            mv = vid_test.numpy() == v
+            ang = {"net": error_summary(pred[mv], truth[mv])["median_angle"]}
+            for label, ep in extras.items():
+                ang[label] = error_summary(ep[mv], truth[mv])["median_angle"]
+            ang1 = {
+                "net": error_summary(pred[mv & (mags == 1.0)], truth[mv & (mags == 1.0)])[
+                    "median_angle"
+                ]
+            }
+            per_voxel.append(
+                dict(
+                    voxel=v,
+                    r_perp_um=float(r_perp[v]),
+                    n_peaks=int(n_pk[v]),
+                    held_out=bool(te["held_out"][v]),
+                    median_angle=ang,
+                    net_median_angle_1deg=ang1["net"],
+                )
             )
-        extra = {}
-        if bayes is not None:
-            floor = float(np.nanmean(np.sqrt(np.trace(bayes["cov"][m], axis1=1, axis2=2))))
-            extra["bayes_floor_sqrt_trace"] = floor
-            print(f"{'':8} {'Bayes floor':<14} {'':>3} sqrt(tr cov) = {floor:.5f}")
-        if chol is not None:
-            cov = chol[m] @ chol[m].transpose(0, 2, 1)
-            sd = np.sqrt(np.diagonal(cov, axis1=1, axis2=2)).mean(axis=0)
-            r = (truth[m] - pred[m])[:, :, None]
-            z = np.linalg.solve(chol[m], r)[:, :, 0]
-            maha = float((z**2).sum(axis=1).mean())
-            extra.update(pred_sigma_xyz=sd.tolist(), mean_mahalanobis_sq=maha)
             print(
-                f"{'':8} {'net sigma xyz':<14} {'':>3} {np.round(sd, 5)}   mean Mahalanobis^2 = {maha:.2f} (3.0 if calibrated)"
+                f"{v:5d} {r_perp[v]:7.0f} {n_pk[v]:5d} {str(bool(te['held_out'][v])):>5} {mv.sum():4d}  "
+                + "  ".join(f"{k} {x:.4f}" for k, x in ang.items())
             )
-        rows[str(mag)] = {name: s for name, s in entries} | extra
+        rows["per_voxel"] = per_voxel
 
     if args.results_json:
         Path(args.results_json).write_text(json.dumps(rows, indent=2))
