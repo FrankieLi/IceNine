@@ -1539,3 +1539,78 @@ Findings.
   11.1 at 1°.
 - Exact Bayes is ~10x below all methods here: the information in the thresholded data is far
   from exhausted (on voxel 0 the gap was 4-6x).
+
+### Step 3: 30 voxels, one network (held-out voxels test generalization)
+
+**Generator** (`--n-voxels 30 --voxel-seed 0 --r-max-um 500`): 30 target radii evenly spaced over
+r⊥ = 0-500 µm, one random ManyGrains voxel near each (distinct orientations, ≥ 40 peaks; ROI
+sets of 105-130 peaks, Q_max 8, both detectors, |sin η| ≥ 0.3, ±4 frames, 1° prior).
+Every 5th voxel in r⊥ order (offset 2: r⊥ = 32, 126, 215, 301, 372, 457 µm) is **held out**: it
+has no training data. Train: 24 voxels x 500 prior offsets = 12 000 samples; test: every voxel
+x 4 magnitudes (0.1/0.25/0.5/1.0°) x 10 offsets = 1 200 cases (960 in-distribution offsets on
+training voxels, 240 on held-out voxels). Storage: windows `(N, M_max = 130, 32, 32)` uint8
+(zero = absent), per-voxel `context (30, 130, 16)` gathered by `voxel_id`, `R_nom (30, 3, 3)`;
+train file 1.6 GB, test 0.16 GB (`scripts/toy_orientation_stage3_multi_*.pt`, gitignored);
+generation 3 min. `PeakSetNet` needed no change (accepts a `(B, M, D)` context); tests added for
+the context gather and for invariance to zero-padded peaks. No exact Bayes here (too slow for 1 200
+cases and 30 voxels; GN is the reference). `fc` is not applicable (fixed peak count).
+
+**Network**: `PeakSetNet(pool="all")` (measurement features, mean+max+sum pooling), lr 3e-4, clip 1,
+cosine, batch 64, `--device mps`. 60 epochs takes 7 min; a 150-epoch run is also reported
+(best validation at epoch 136). Results from
+`benchmarks/toy_orientation_stage3/multi_res_set_all{,_150ep}.json`.
+
+Median angle (deg) at |δ| = 0.1 / 0.25 / 0.5 / 1.0:
+
+| test set | method | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| in-distribution (24 voxels, 240 per bin) | predict-nominal | 0.100/0.250/0.500/1.000 | 0.057/0.147/0.282/0.601 | 0.058/0.143/0.292/0.565 | |
+| | set, 60 epochs | 0.030/0.030/0.032/0.038 | 0.039/0.041/0.046/0.049 | 0.009/0.009/0.010/0.014 | 4.0/3.5/3.2/4.1 |
+| | set, 150 epochs | 0.029/0.026/0.029/0.032 | 0.038/0.039/0.041/0.042 | 0.007/0.006/0.007/0.011 | 4.1/3.6/3.5/5.7 |
+| | Gauss–Newton | 0.012/0.015/0.012/0.014 | 0.020/0.024/0.022/0.022 | 0.003/0.003/0.003/0.004 | |
+| held-out voxels (6, 60 per bin) | set, 60 epochs | 0.036/0.043/0.046/0.055 | 0.030/0.041/0.047/0.055 | 0.019/0.020/0.020/0.028 | 19.5/21.6/17.4/17.8 |
+| | set, 150 epochs | 0.034/0.037/0.039/0.053 | 0.031/0.043/0.051/0.054 | 0.018/0.016/0.018/0.024 | 31.1/24.5/26.3/34.3 |
+| | Gauss–Newton | 0.014/0.012/0.012/0.010 | 0.017/0.020/0.020/0.016 | 0.004/0.003/0.004/0.004 | |
+
+**Error vs r⊥** (median over voxels of each voxel's median angle over all magnitudes, 60-epoch run;
+6/7/5/6 training voxels and 2/1/2/1 held-out voxels per bin):
+
+| r⊥ bin (µm) | set, train voxels | set, held-out voxels | Gauss–Newton (train voxels) |
+|---|---|---|---|
+| 0-130 | 0.029 | 0.040 | 0.022 |
+| 130-260 | 0.031 | 0.043 | 0.013 |
+| 260-390 | 0.033 | 0.045 | 0.011 |
+| 390-510 | 0.036 | 0.056 | 0.008 |
+
+Across all 30 voxels the correlation of the voxel median error with r⊥ is +0.37 for the network
+and -0.63 for Gauss–Newton.
+
+**Findings.**
+
+- One network trained on 24 voxels works on all of them: 0.026-0.038° median in-distribution,
+  and 0.034-0.055° on the six voxels it never saw (about 1.2-1.6x the in-distribution error, with
+  the largest degradation at 1° and at large r⊥). The per-voxel median error over all magnitudes
+  (offsets up to 1°) is 0.024-0.056° for every one of the 30 voxels.
+- Relative to per-voxel Gauss–Newton it is 2.5-4x worse, and the gap widens with r⊥ because
+  Gauss–Newton exploits the parallax (its error falls from 0.022° to 0.008° with r⊥) and the
+  network does not: its z RMS stays at 0.04° and its voxel error rises slightly with r⊥. The
+  single-voxel specialist for voxel 77 (Step 2) reached 0.013-0.018° there, so the multi-voxel net
+  gives up ~2x at large r⊥ in exchange for generality.
+- Mean Mahalanobis² is 3.2-4.1 in distribution (nearly calibrated) but 17-34 on held-out voxels:
+  the predicted covariance is overconfident by ~2-3x in σ on unseen voxels, and 150 epochs makes
+  it worse (24-34). Do not trust the predicted σ for new voxels without recalibration.
+- 150 epochs (best validation at epoch 136) improves in-distribution by ~10 % and held-out barely;
+  the network is limited by the 24 training voxels / 12 000 samples and by its parameter
+  budget, not by optimisation time.
+
+**Caveats.** The validation split for early stopping is a random 10 % of the training samples, so
+it is in-distribution and cannot detect the held-out degradation. Six held-out voxels give
+per-radius-bin conclusions of only 1-2 voxels each. The held-out voxels come from the same
+sample and distribution as the training voxels; nothing here says how the network behaves on a
+different detector geometry or crystal structure. Test offsets are 10 per voxel and magnitude,
+so per-voxel medians rest on 40 cases.
+
+**Open**: (i) per-peak weights or attention pooling and per-peak Jacobian-times-residual features
+to let the net reproduce Gauss–Newton's parallax use at large r⊥; (ii) more training voxels and
+peaks per voxel, or fine-tuning on a new voxel; (iii) recalibrating the covariance on held-out
+voxels; (iv) a one-voxel simulated image to run Adam/MC at r⊥ ≈ 400 µm (still missing for ManyGrains).

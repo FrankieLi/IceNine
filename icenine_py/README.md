@@ -81,7 +81,8 @@ For each voxel in the sample:
 | `differentiable_cost.py` | Gradient-capable cost infrastructure: `SparseImageStack`, `MultiScaleImageStack`, `DifferentiableCostFunction` |
 | `orientation_nn.py` | Toy orientation-NN support: ROI peak set, windowed renderer (`define_roi_set`, `render_local_windows`, `spot_overlaps_grid`), perturbation samplers, dataset, quaternion loss and offset Gaussian NLL (`cholesky_from_raw`, `gaussian_nll_loss`) |
 | `orientation_eval.py` | Stage 0 evaluation: batched float64 `BatchedObserver` (presence, frame, spot vertices for many candidate offsets), `ExactBayes` posterior, `lit_pixel_set`, per-axis `error_summary`, rotation-vector helpers |
-| `toy_orientation_model.py` | `ToyOrientationNet` (v0 quaternion head) and `ToyOffsetNet` (offset + Cholesky covariance head) |
+| `toy_orientation_model.py` | `ToyOrientationNet` (v0 quaternion head), `ToyOffsetNet` (offset + Cholesky covariance head) and `PeakSetNet` (shared per-peak encoder + explicit measurement features + mean/max/sum pooling; any number of peaks, order-invariant, per-voxel context) |
+| `orientation_baselines.py` | Stage 2 non-learning baseline: `extract_measurements` (frame index and lit-pixel centroid per spot) and `CentroidGaussNewton` |
 
 ## Quick Start: Reconstruction
 
@@ -607,6 +608,26 @@ uv run python scripts/exact_bayes_baseline.py --test scripts/toy_orientation_sta
 uv run python scripts/train_toy_orientation_nn.py --head offset --train scripts/toy_orientation_stage0_train.pt \
     --test scripts/toy_orientation_stage0_test.pt --bayes benchmarks/toy_orientation_stage0/test_bayes.npz
 ```
+
+Stages 1-3 (frame-coded windows, baselines, set network, other voxels):
+
+```bash
+G="--renderer observer --max-q 8 --detectors all --min-sin-eta 0.3 --frame-half-width 4 --prior-radius 1 --test-magnitudes 0.1 0.25 0.5 1.0"
+# one voxel of ManyGrains (r_perp 399 um), or 30 voxels spanning r_perp 0-500 um (24 train / 6 held out)
+uv run python scripts/generate_toy_orientation_dataset.py --example manygrains --voxel-index 77 $G --n-train 10000 --tag stage3_far
+uv run python scripts/generate_toy_orientation_dataset.py --example manygrains --n-voxels 30 --per-voxel-train 500 --per-voxel-test 10 $G --tag stage3_multi
+uv run python scripts/gauss_newton_baseline.py --test scripts/toy_orientation_stage3_multi_test.pt --out benchmarks/toy_orientation_stage3/multi_pred_gauss_newton.npz
+uv run python scripts/train_toy_orientation_nn.py --arch set --pool all --head offset --device mps --lr 3e-4 --clip 1 --cosine --epochs 60 \
+    --train scripts/toy_orientation_stage3_multi_train.pt --test scripts/toy_orientation_stage3_multi_test.pt \
+    --extra "gauss-newton=benchmarks/toy_orientation_stage3/multi_pred_gauss_newton.npz"
+```
+
+Multi-voxel datasets store padded windows `(N, M_max, W, W)`, a per-voxel `context` table
+`(V, M_max, 16)` and a `voxel_id` per sample; the training script gathers the context per batch and
+reports in-distribution and held-out-voxel tables plus a per-voxel median error vs r_perp.
+`--example`, `--voxel-index` and `--n-voxels` select the sample; the baseline scripts read the
+example from the dataset. Datasets (up to 1.6 GB) are gitignored; small `npz`/`json` results are in
+`benchmarks/toy_orientation_stage{1,2,3}/`.
 
 `scripts/checks/` holds the numerical checks behind the derivations in `docs/`. Results
 of the Stage 0 run are in `benchmarks/toy_orientation_stage0/`.
