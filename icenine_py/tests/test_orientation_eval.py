@@ -34,8 +34,10 @@ from icenine.orientation_nn import (
     _project_peak_on_detector,
     _restore_and_rotate,
     cholesky_from_raw,
+    decoupled_nll_loss,
     define_roi_set,
     gaussian_nll_loss,
+    mse_deg_loss,
     spot_overlaps_grid,
 )
 from icenine.image_data import ImageData
@@ -188,6 +190,39 @@ class TestOffsetHead:
         weighted.backward()
         assert torch.isfinite(weighted) and torch.isfinite(raw.grad).all()
         assert not torch.isclose(plain, weighted)
+
+    def test_decoupled_loss_mean_gradient_is_mse_gradient(self):
+        torch.manual_seed(0)
+        raw = torch.randn(6, 6)
+        mean = torch.randn(6, 3, requires_grad=True)
+        tgt = torch.randn(6, 3)
+        decoupled_nll_loss(mean, cholesky_from_raw(raw), tgt, 0.3).backward()
+        g_dec = mean.grad.clone()
+        mean.grad = None
+        mse_deg_loss(mean, tgt, 0.3).backward()
+        assert torch.allclose(g_dec, mean.grad, atol=1e-6)
+        # independent of sigma: a very different covariance gives the same mean gradient
+        mean.grad = None
+        decoupled_nll_loss(mean, cholesky_from_raw(raw * 3.0 - 2.0), tgt, 0.3).backward()
+        assert torch.allclose(g_dec, mean.grad, atol=1e-6)
+
+    def test_decoupled_loss_covariance_gradient_is_nll_gradient(self):
+        torch.manual_seed(1)
+        raw = torch.randn(5, 6, requires_grad=True)
+        mean, tgt = torch.randn(5, 3, requires_grad=True), torch.randn(5, 3)
+        decoupled_nll_loss(mean, cholesky_from_raw(raw), tgt).backward()
+        g_dec = raw.grad.clone()
+        raw.grad = None
+        gaussian_nll_loss(mean.detach(), cholesky_from_raw(raw), tgt).backward()
+        assert torch.allclose(g_dec, raw.grad, atol=1e-6)
+
+    def test_nll_mean_gradient_scales_with_inverse_variance(self):
+        # the pathology under test: the plain NLL gradient on the mean is Sigma^-1 (mean - y)
+        L = torch.diag(torch.tensor([0.02, 0.02, 0.5]))[None]
+        mean, tgt = torch.zeros(1, 3, requires_grad=True), torch.ones(1, 3)
+        gaussian_nll_loss(mean, L, tgt).backward()
+        g = mean.grad[0].abs()
+        assert torch.isclose(g[0] / g[2], torch.tensor((0.5 / 0.02) ** 2), rtol=1e-4)
 
     def test_model_shapes_and_gradients(self):
         net = ToyOffsetNet(n_peaks=3, window_size=8, hidden=(16, 8, 8))

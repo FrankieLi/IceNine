@@ -469,3 +469,26 @@ def gaussian_nll_loss(
         weight = torch.exp(2.0 * log_diag.sum(-1) * beta / 3.0).detach()
         nll = nll * weight
     return nll.mean()
+
+
+def mse_deg_loss(mean: torch.Tensor, target: torch.Tensor, scale_deg: float = 0.1) -> torch.Tensor:
+    """0.5 * sum over axes of the squared error, in units of scale_deg**2, batch mean.
+
+    Every axis has the same weight, so the stage axis is not down-weighted when the
+    covariance says it is uncertain.
+    """
+    return (0.5 * ((target - mean) ** 2).sum(-1) / scale_deg**2).mean()
+
+
+def decoupled_nll_loss(
+    mean: torch.Tensor, chol: torch.Tensor, target: torch.Tensor, scale_deg: float = 0.1
+) -> torch.Tensor:
+    """Decoupled mean / covariance loss.
+
+    MSE on the mean (equal weight per axis, see mse_deg_loss) plus the Gaussian NLL of
+    the covariance evaluated at stopgrad(mean). The covariance term sends no gradient to
+    the mean, so the mean's gradient is the plain MSE gradient regardless of sigma (the
+    Seitzer et al. 2022 fix for the 1/sigma^2 scaling of the NLL mean gradient), while
+    the covariance is still fitted to the residuals the mean actually makes.
+    """
+    return mse_deg_loss(mean, target, scale_deg) + gaussian_nll_loss(mean.detach(), chol, target)

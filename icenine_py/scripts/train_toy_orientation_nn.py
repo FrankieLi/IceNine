@@ -82,8 +82,18 @@ def main():
         offsets_to_quaternions,
         quaternions_to_offsets_deg,
     )
-    from icenine.orientation_nn import gaussian_nll_loss, quaternion_regression_loss
-    from icenine.toy_orientation_model import PeakSetNet, ToyOffsetNet, ToyOrientationNet
+    from icenine.orientation_nn import (
+        decoupled_nll_loss,
+        gaussian_nll_loss,
+        mse_deg_loss,
+        quaternion_regression_loss,
+    )
+    from icenine.toy_orientation_model import (
+        FrameProbeNet,
+        PeakSetNet,
+        ToyOffsetNet,
+        ToyOrientationNet,
+    )
 
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -91,9 +101,10 @@ def main():
     parser.add_argument("--head", choices=["offset", "quat"], default="offset")
     parser.add_argument(
         "--arch",
-        choices=["fc", "set"],
+        choices=["fc", "set", "probe"],
         default="fc",
-        help="fc: flatten-everything MLP (Stages 0-1); set: shared per-peak encoder + pooling (Stage 3)",
+        help="fc: flatten-everything MLP (Stages 0-1); set: shared per-peak encoder + pooling (Stage 3); "
+        "probe: frame-only mean-pooled diagnostic net (use with --loss mse)",
     )
     parser.add_argument(
         "--extra",
@@ -120,6 +131,17 @@ def main():
     parser.add_argument("--pool", choices=["meanmax", "meansum", "all"], default="meanmax")
     parser.add_argument(
         "--beta-nll", type=float, default=0.0, help="beta-NLL exponent (offset head); 0 = plain NLL"
+    )
+    parser.add_argument(
+        "--loss",
+        choices=["nll", "decoupled", "mse", "mse-then-cov", "mse-then-nll"],
+        default="nll",
+        help="offset head loss. nll: Gaussian NLL (with --beta-nll if > 0); decoupled: MSE on the "
+        "mean + NLL of the covariance at stopgrad(mean); mse: mean only; mse-then-cov / "
+        "mse-then-nll: MSE for the first half of the epochs, then decoupled / plain NLL",
+    )
+    parser.add_argument(
+        "--mse-scale", type=float, default=0.1, help="degrees; unit of the MSE term (decoupled)"
     )
     parser.add_argument("--val-frac", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=0)
@@ -167,22 +189,28 @@ def main():
         model = ToyOrientationNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
     else:
         targets = offsets
-        if args.arch == "set":
+        if args.arch in ("set", "probe"):
             assert "context" in tr, "the set architecture needs a dataset with per-peak context"
             context = tr["context"].float()  # (M, D), or (V, M, D) for multi-voxel data
             multi = bool(tr.get("multi_voxel", False))
             vid_train = tr["voxel_id"].to(torch.long) if multi else None
-            model = PeakSetNet(
-                window_size=window,
-                in_channels=in_channels,
-                context_dim=context.shape[-1],
-                use_measurements=not args.no_meas,
-                frame_half_width=int(tr.get("frame_half_width", 4)),
-                pool=args.pool,
-            )
+            if args.arch == "probe":
+                model = FrameProbeNet(
+                    context_dim=context.shape[-1],
+                    frame_half_width=int(tr.get("frame_half_width", 4)),
+                )
+            else:
+                model = PeakSetNet(
+                    window_size=window,
+                    in_channels=in_channels,
+                    context_dim=context.shape[-1],
+                    use_measurements=not args.no_meas,
+                    frame_half_width=int(tr.get("frame_half_width", 4)),
+                    pool=args.pool,
+                )
         else:
             model = ToyOffsetNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
-    if args.arch == "set":
+    if args.arch in ("set", "probe"):
         assert args.head == "offset", "the set architecture predicts an offset and covariance"
         if multi:
             forward = lambda x, v: model(x, context[v.to(dev)])  # noqa: E731
@@ -194,28 +222,44 @@ def main():
     print(f"architecture {args.arch}: {n_params / 1e6:.2f}M parameters on {dev}", flush=True)
     model.to(dev)
     targets = targets.to(dev)
-    if args.arch == "set":
+    if args.arch in ("set", "probe"):
         context = context.to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
     sched = (
         torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs) if args.cosine else None
     )
 
-    def loss_fn(x, y, v=None):
+    two_phase = args.loss in ("mse-then-cov", "mse-then-nll")
+    switch_epoch = args.epochs // 2 if two_phase else 0
+
+    def loss_fn(x, y, v=None, phase=1):
+        """Returns (loss, mean, chol). phase 0 = MSE-only first half of a two-phase run."""
         if args.head == "quat":
-            return quaternion_regression_loss(forward(x), y)
+            return quaternion_regression_loss(forward(x), y), None, None
         mean, chol = forward(x) if v is None else forward(x, v)
-        return gaussian_nll_loss(mean, chol, y, beta=args.beta_nll)
+        kind = args.loss
+        if two_phase:
+            kind = "mse" if phase == 0 else ("decoupled" if kind == "mse-then-cov" else "nll")
+        if kind == "mse":
+            loss = mse_deg_loss(mean, y, args.mse_scale)
+        elif kind == "decoupled":
+            loss = decoupled_nll_loss(mean, chol, y, args.mse_scale)
+        else:
+            loss = gaussian_nll_loss(mean, chol, y, beta=args.beta_nll)
+        return loss, mean, chol
 
     t0 = time.time()
     best_val, best_epoch, best_state = float("inf"), -1, None
     for epoch in range(args.epochs):
         model.train()
         total = 0.0
+        phase = 0 if epoch < switch_epoch else 1
         for b in batches(len(train_idx), args.batch_size, rng):
             ib = train_idx[b]
             opt.zero_grad()
-            loss = loss_fn(prep(windows[ib]), targets[ib], vid_train[ib] if multi else None)
+            loss = loss_fn(prep(windows[ib]), targets[ib], vid_train[ib] if multi else None, phase)[
+                0
+            ]
             loss.backward()
             if args.clip > 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
@@ -224,22 +268,37 @@ def main():
         if sched is not None:
             sched.step()
         model.eval()
+        vals, errs, sds = [], [], []
         with torch.no_grad():
-            val = np.mean(
-                [
-                    loss_fn(
-                        prep(windows[val_idx[b]]),
-                        targets[val_idx[b]],
-                        vid_train[val_idx[b]] if multi else None,
-                    ).item()
-                    for b in batches(n_val, args.batch_size)
-                ]
+            for b in batches(n_val, args.batch_size):
+                lv, mv, cv = loss_fn(
+                    prep(windows[val_idx[b]]),
+                    targets[val_idx[b]],
+                    vid_train[val_idx[b]] if multi else None,
+                    phase,
+                )
+                vals.append(lv.item())
+                if mv is not None:
+                    errs.append(((mv - targets[val_idx[b]]) ** 2).cpu())
+                    sds.append(
+                        torch.sqrt((cv @ cv.transpose(-1, -2)).diagonal(dim1=-2, dim2=-1)).cpu()
+                    )
+        val = np.mean(vals)
+        diag = ""
+        if errs:
+            rms = torch.cat(errs).mean(0).sqrt()
+            sd = torch.cat(sds).mean(0)
+            diag = (
+                f"  val rms z {rms[2]:.4f} perp {rms[:2].pow(2).mean().sqrt():.4f}"
+                f"  sigma z {sd[2]:.4f} perp {sd[:2].mean():.4f}"
             )
-        if val < best_val:
+        # In a two-phase run the phase-0 loss is not comparable with phase 1's: only
+        # phase-1 epochs are eligible for the best-validation checkpoint.
+        if phase == 1 and val < best_val:
             best_val, best_epoch = float(val), epoch + 1
             best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
         print(
-            f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):11.6f}  val {val:11.6f}  ({time.time() - t0:.0f}s)",
+            f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):11.6f}  val {val:11.6f}{diag}  ({time.time() - t0:.0f}s)",
             flush=True,
         )
     if best_state is None:

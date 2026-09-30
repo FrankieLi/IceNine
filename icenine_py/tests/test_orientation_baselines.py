@@ -31,7 +31,7 @@ from icenine.reconstructor import _get_voxel_vertices
 from icenine.sample import Sample
 from icenine.simulation import Simulation
 from icenine.orientation_eval import decode_windows
-from icenine.toy_orientation_model import PeakSetNet, measurement_features
+from icenine.toy_orientation_model import FrameProbeNet, PeakSetNet, measurement_features
 
 # ============================================================================
 # PeakSetNet (no example data needed)
@@ -280,3 +280,21 @@ class TestPeakContext:
         assert ctx[:, 2].abs().max() < 0.05 and ctx[:, 5].abs().max() < 0.05
         assert ((ctx[:, 9] >= 0.3) & (ctx[:, 9] <= 1.0)).all()  # |sin eta| after the D3 cut
         assert torch.allclose(ctx[:, 11] + ctx[:, 12], torch.ones(obs.M))  # detector one-hot
+
+
+class TestFrameProbeNet:
+    def test_uses_only_frame_and_dOmega_and_ignores_pixels(self):
+        net = FrameProbeNet()
+        x = torch.zeros(2, 6, 2, 32, 32)
+        x[:, :4, 0, 10:12, 12:14] = 1.0
+        x[:, :4, 1, 10:12, 12:14] = 0.5
+        ctx = torch.randn(6, 16)
+        mean, chol = net(x, ctx)
+        assert mean.shape == (2, 3) and torch.allclose(chol[0], torch.eye(3))
+        # moving the lit pixels (same frame) does not change the output
+        x2 = torch.roll(x, shifts=(5, 3), dims=(3, 4))
+        assert torch.allclose(net(x2, ctx)[0], mean, atol=1e-6)
+        # changing the frame offset does
+        x3 = x.clone()
+        x3[:, :4, 1] *= -1
+        assert not torch.allclose(net(x3, ctx)[0], mean)

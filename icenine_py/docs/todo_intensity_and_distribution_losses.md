@@ -89,27 +89,32 @@ can also be scored against the true posterior (KL divergence, calibration / cove
 not only by mean error. Stage 3 showed why this matters: the 30-voxel net's mean
 Mahalanobis² is 3.2–4.1 on training voxels but 17–34 on held-out voxels (overconfident).
 
-# Related training note (do first)
+# Related training note (done: hypothesis confirmed, 2026-09-30)
 
-The Stage 3 stage-axis failure is most likely a Gaussian-NLL pathology, not an input
-problem: the NLL gradient on the mean is scaled by 1/σ², so once σ_⊥ ≈ 0.02° and
-σ_z ≈ 0.5°, the z-mean gradient is ~600× weaker and z stalls at "don't know"
-(Seitzer et al. 2022, "On the Pitfalls of Heteroscedastic Uncertainty Estimation").
-Sum pooling may have fixed z only by rescaling the signal enough to escape early.
-Untested. Tests (each ~2 min on the GPU, voxel 0, mean+max pooling):
+The Stage 3 stage-axis failure was a Gaussian-NLL pathology, not an input problem: the NLL
+gradient on the mean is scaled by 1/σ², so once σ_⊥ ≈ 0.01° and σ_z ≈ 0.5° the z-mean gradient is
+~1000x weaker and z stays at "don't know" (Seitzer et al. 2022). Tested on voxel 0
+(`MIGRATION_HISTORY.md`, "Stage 3 — NLL diagnostic"; runs in
+`benchmarks/toy_orientation_stage3/nll/`):
 
-1. `--beta-nll 0.5` and `--beta-nll 1.0` (implemented, never trained).
-2. MSE on the mean first, then fit the covariance.
-3. Frame-only probe: a mean-pooled net given only the frame offset and dω*/dδ; it
-   should recover δ_z, confirming the information survives mean pooling.
+1. Per-sample `--beta-nll 0.5 / 1.0`: **no effect** on z (final-epoch z RMS 0.42-0.43°). It
+   scales each sample by one scalar and cannot rebalance z against ⊥ inside a sample.
+2. `--loss decoupled` (MSE on the mean + NLL of the covariance at stopgrad(mean)): **fixes z**
+   with meanmax pooling (z RMS 0.024-0.040°, median 0.023-0.034° at all magnitudes; ⊥ 0.010-0.014°).
+   `--loss mse-then-cov` gives the same. `--pool all` + decoupled is best (0.020-0.030°).
+3. Frame-only probe (`--arch probe`): recovers z to 0.023-0.046° with mean pooling, so the
+   information survives mean pooling.
+4. On the far voxel the loss lets meanmax reach 0.019-0.024° (it was at the prior), but does
+   not beat plain NLL with `--pool all` (0.013-0.018°).
 
-(My earlier explanation, that max pooling discards counts and mean pooling divides
-by the peak count, does not hold: the head receives the mean and the present-peak
-count, and "sum" is a near-constant rescaling of "mean" for ~110 peaks.)
+The earlier explanations (max pooling discards counts; mean pooling divides by the peak count;
+sum pooling rescales the signal) are superseded: sum pooling only compensated for the loss.
+Use `--loss decoupled` for the offset head from now on; the 30-voxel network (Step 3) has not
+been retrained with it.
 
 # Order
 
-1. Fix training (β-NLL / MSE-then-covariance), above.
+1. Fix training: done, decoupled loss above (retrain the 30-voxel network with it).
 2. Per-peak second moments as extra measurement features (cheap, stays binary).
 3. α > 0 renderer with geometric per-pixel and per-frame fractions as soft inputs;
    noise and threshold jitter.

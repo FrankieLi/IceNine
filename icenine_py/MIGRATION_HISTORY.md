@@ -1614,3 +1614,83 @@ so per-voxel medians rest on 40 cases.
 to let the net reproduce Gauss–Newton's parallax use at large r⊥; (ii) more training voxels and
 peaks per voxel, or fine-tuning on a new voxel; (iii) recalibrating the covariance on held-out
 voxels; (iv) a one-voxel simulated image to run Adam/MC at r⊥ ≈ 400 µm (still missing for ManyGrains).
+
+### Stage 3 — NLL diagnostic (2026-09-29/30)
+
+Question: why does `PeakSetNet` (mean+max pooling, measurement features; round r3) fix the
+perpendicular axes on voxel 0 but leave the stage axis z at the prior? Hypothesis: a Gaussian-NLL
+pathology. The NLL gradient on the mean is Σ⁻¹(μ − y), so once σ_⊥ ≈ 0.01-0.02° and σ_z ≈ 0.5°
+the z gradient is ~1000x weaker than the ⊥ ones and z never leaves "don't know" (Seitzer et al.
+2022). Test: change only the loss. Data, architecture, optimiser as r3 (voxel 0, 9000 train,
+`--arch set --pool meanmax --lr 3e-4 --clip 1 --cosine --epochs 60`, batch 32, `--device mps`,
+seed 0), from `benchmarks/toy_orientation_stage3/nll/res_*.json` (one clean run each).
+
+New code: `--loss {nll,decoupled,mse,mse-then-cov,mse-then-nll}` and `--mse-scale` in
+`scripts/train_toy_orientation_nn.py`; `mse_deg_loss` and `decoupled_nll_loss` in
+`icenine/orientation_nn.py` (MSE on the mean, equal weight per axis, in units of (0.1°)², plus the
+NLL of the covariance at stopgrad(mean), so the mean gets exactly the MSE gradient);
+`FrameProbeNet` and `--arch probe` in `icenine/toy_orientation_model.py`. The per-epoch log now
+prints validation RMS (z, ⊥) and mean predicted σ (z, ⊥). The existing `--beta-nll` weights each
+sample by one scalar, so it cannot rebalance z against ⊥ within a sample; it was run anyway.
+
+Median angle (deg) / z RMS / ⊥ RMS / predicted σ_z / mean Mahalanobis², each at |δ| = 0.1 / 0.25 /
+0.5 / 1.0 (30 cases each):
+
+| run | median angle | z RMS | ⊥ RMS | net σ_z | Mahalanobis² |
+|---|---|---|---|---|---|
+| r3 (NLL, meanmax) | 0.044/0.140/0.194/0.529 | 0.052/0.149/0.241/0.576 | 0.008/0.008/0.008/0.010 | 0.58/0.57/0.49/0.36 | 2.5/2.3/2.2/4.3 |
+| E1 β-NLL 0.5 | 0.099/0.227/0.383/0.807 | 0.074/0.147/0.255/0.585 | 0.046/0.120/0.213/0.356 | 0.49/0.48/0.46/0.43 | 0.1/0.4/1.1/4.0 |
+| E1 β-NLL 1.0 | 0.095/0.226/0.387/0.792 | 0.073/0.146/0.249/0.586 | 0.049/0.118/0.207/0.350 | 0.49/0.48/0.46/0.43 | 0.5/0.8/1.7/5.6 |
+| E2 decoupled, meanmax | 0.028/0.023/0.028/0.034 | 0.026/0.024/0.027/0.040 | 0.012/0.010/0.012/0.014 | 0.029/0.028/0.029/0.029 | 3.6/2.5/2.7/4.4 |
+| E3 MSE 30 epochs, then decoupled | 0.025/0.028/0.032/0.033 | 0.019/0.027/0.030/0.041 | 0.013/0.015/0.014/0.015 | 0.029/0.029/0.030/0.031 | 2.7/4.0/3.4/4.8 |
+| E5 decoupled, `--pool all` | 0.020/0.026/0.026/0.030 | 0.016/0.024/0.027/0.040 | 0.011/0.011/0.009/0.011 | 0.027/0.028/0.028/0.028 | 3.2/3.4/2.4/4.3 |
+| E4 probe (frame + dω*/dδ only, MSE) | 0.085/0.081/0.076/0.087 | 0.023/0.035/0.038/0.046 | 0.057/0.063/0.053/0.060 | (fixed) | |
+| fc (Stage 1) | 0.023/0.024/0.036/0.049 | 0.032/0.027/0.037/0.058 | 0.007/0.008/0.016/0.019 | | |
+| Gauss–Newton | 0.040/0.024/0.035/0.036 | 0.045/0.032/0.044/0.045 | 0.003/0.003/0.003/0.003 | | |
+
+Findings.
+
+- **The hypothesis is confirmed.** Changing only the loss takes z from the prior (RMS 0.05-0.58°,
+  σ_z ≈ 0.5°) to 0.024-0.040° with the same architecture, data and pooling. E2 and E3 reach
+  median 0.023-0.034° at every magnitude: at or below fc at 0.5 and 1° (0.036, 0.049) and at
+  0.25-1° on par with Gauss–Newton (0.024-0.036). E3's MSE-only phase already had validation z
+  RMS 0.044° at epoch 20, before any covariance was fitted (`log_msecov.txt`), so the
+  information was reachable with mean pooling and max pooling in place; only the NLL gradient
+  scaling was withholding it.
+- **Per-sample β-NLL does not help, as expected.** Its final-epoch validation z RMS is 0.43 and
+  0.42° (`log_beta05.txt`, `log_beta10.txt`), the prior. The table rows for E1 are worse than
+  r3 only because the best-validation checkpoint is epoch 1-2: the β weight `det(cov)^(β/3)`
+  changes as σ shrinks, so the validation loss is not comparable across epochs and checkpoint
+  selection picks the start. At epoch 60 their ⊥ RMS is 0.008° (as r3), z unchanged.
+- **The frame information survives mean pooling.** The probe (a per-peak MLP of the mean frame
+  offset and dω*/dδ, mean-pooled, no pixels) recovers z to 0.023-0.046° RMS; it has no pixel
+  information, so ⊥ stays at 0.05-0.06° as designed.
+- **σ_z does not balloon; it collapses correctly.** In the NLL runs σ_z stays at 0.4-0.6°
+  throughout (a calibrated "don't know", Mahalanobis² 2-4) while σ_⊥ falls to 0.007-0.010°.
+  With the decoupled loss σ_z falls to ≈ 0.03° along with the error (Mahalanobis² 2.4-4.4).
+- **Costs.** ⊥ RMS is 0.009-0.014° against r3's 0.008° (a mild trade for balancing the axes) and
+  the 1° z RMS is 0.040°. Exact Bayes remains 5-10x lower (0.004-0.007°).
+- `--pool all` with the decoupled loss (E5) is the best voxel-0 run (median 0.020-0.030°), a
+  modest gain over meanmax (0.023-0.034°): with the loss fixed, sum pooling is no longer needed.
+
+Far voxel (ManyGrains 77, r⊥ = 399 µm), decoupled loss, batch 64, 60 epochs, one run each:
+
+| run | median angle | z RMS | ⊥ RMS | net σ_z | Mahalanobis² |
+|---|---|---|---|---|---|
+| NLL, `--pool all` (Step 2) | 0.015/0.013/0.015/0.018 | 0.015/0.014/0.017/0.019 | 0.010/0.010/0.009/0.016 | 0.015 (at 0.25) | 3.3/3.7/3.4/5.6 |
+| decoupled, meanmax | 0.019/0.021/0.023/0.024 | 0.014/0.015/0.021/0.023 | 0.011/0.014/0.013/0.035 | 0.016/0.016/0.017/0.019 | 2.5/3.4/3.5/8.4 |
+| decoupled, `--pool all` | 0.014/0.016/0.020/0.024 | 0.016/0.014/0.019/0.021 | 0.008/0.010/0.010/0.017 | 0.012/0.013/0.015/0.018 | 4.5/3.7/3.6/5.5 |
+| fc | 0.009/0.008/0.009/0.020 | 0.009/0.007/0.006/0.016 | 0.004/0.004/0.006/0.017 | | |
+| Gauss–Newton | 0.012/0.011/0.009/0.008 | 0.013/0.010/0.010/0.008 | 0.003/0.003/0.003/0.003 | | |
+
+On the far voxel the plain-NLL set net with `--pool all` was already good, and the decoupled loss
+does not improve it (0.014-0.024 vs 0.013-0.018°, slightly worse at 0.5-1°), but it does let
+plain `meanmax` pooling (which was at the prior in z there too: σ_z 0.46, z RMS 0.07-0.49°)
+reach 0.019-0.024°. So the loss is what was missing for meanmax; sum pooling was compensating
+for it. It is not a further gain over sum pooling.
+
+Caveats: one seed per run; test sets of 30 cases per magnitude; no run of a full network with
+MSE only (E3's first phase and the probe cover it); the mixing scale (0.1°) was not tuned; the
+β-NLL rows use the epoch 1-2 checkpoint (see above). Not tried: decoupled loss on the 30-voxel
+multi-voxel data (where the network does not exploit parallax; the loss is the first thing to
+change there).

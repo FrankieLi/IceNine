@@ -187,3 +187,40 @@ class PeakSetNet(nn.Module):
         h = F.relu(self.head2(h))
         out = self.head3(h)
         return out[:, :3], cholesky_from_raw(out[:, 3:])
+
+
+class FrameProbeNet(nn.Module):
+    """Diagnostic: can the stage-axis offset survive mean pooling of frame measurements?
+
+    Per peak, only the mean frame offset (measurement_features column 2) and the frame
+    gradient d omega*/d delta (context columns 6:9, see BatchedObserver.peak_context) enter
+    a small shared MLP; the outputs are mean-pooled over the present peaks and a linear
+    head gives the offset. No windows are convolved and there are no pixel features. It
+    returns a fixed identity covariance so it fits the same training loop (train it with
+    --loss mse).
+
+    forward(x, context): x (B, M, C, W, W) float, context (M, D) or (B, M, D).
+    """
+
+    def __init__(self, context_dim: int = 16, frame_half_width: int = 4, feat_dim: int = 64):
+        super().__init__()
+        assert context_dim >= 9
+        self.frame_half_width = frame_half_width
+        self.peak1 = nn.Linear(4, feat_dim)  # frame offset + dOmega/d(delta x, y, z)
+        self.peak2 = nn.Linear(feat_dim, feat_dim)
+        self.head1 = nn.Linear(feat_dim, feat_dim)
+        self.head2 = nn.Linear(feat_dim, 3)
+
+    def forward(self, x: torch.Tensor, context: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        B, M = x.shape[:2]
+        meas = measurement_features(x, self.frame_half_width)
+        present = meas[..., 0] > 0
+        ctx = context if context.dim() == 3 else context[None].expand(B, -1, -1)
+        inp = torch.cat([meas[..., 2:3], ctx[..., 6:9]], dim=-1)
+        f = F.relu(self.peak1(inp))
+        f = F.relu(self.peak2(f))
+        mask = present[..., None].to(f.dtype)
+        pooled = (f * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1.0)
+        mean = self.head2(F.relu(self.head1(pooled)))
+        chol = torch.eye(3, dtype=mean.dtype, device=mean.device).expand(B, 3, 3)
+        return mean, chol
