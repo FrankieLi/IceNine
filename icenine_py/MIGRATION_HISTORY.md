@@ -1447,3 +1447,51 @@ voxels; it is not evidence against the ManyGrains results.
 - Test the near-axis explanation directly: forward-simulate a few ManyGrains voxels (or
   move Example2's voxel to r⊥ ≈ 400 µm), and rerun Adam and MC at 1° by r⊥; recover or
   regenerate `hp_sweep_manygrains.csv`.
+
+## Toy Orientation NN — Stage 3: Iterating on the Set Network (2026-09-29)
+
+Branch `feature/nn-orientation-stage1`. Plan: improve `PeakSetNet` (Step 1), repeat on a
+voxel far from the rotation axis (Step 2), train on ~30 voxels (Step 3). Training runs on the
+Apple GPU (`--device mps`; CPU vs MPS one-epoch losses with `--seed 0` agree: -0.87531 vs
+-0.87529). Evaluation stays float64 on the CPU.
+
+### Step 1: four rounds on voxel 0 (r⊥ = 12 µm), same data and test set as Stage 2
+
+Median misorientation angle (deg) at |δ| = 0.1 / 0.25 / 0.5 / 1.0 (30 cases each), from the
+saved `benchmarks/toy_orientation_stage2/res_*.json` (one clean run each). "set" is the Stage 2
+run (lr 1e-3, 30 epochs, no schedule).
+
+| run | median angle | z RMS | ⊥ RMS | net σ_z | mean Mahalanobis² |
+|---|---|---|---|---|---|
+| set (Stage 2) | 0.045/0.146/0.190/0.581 | 0.054/0.152/0.242/0.585 | 0.015/0.016/0.018/0.019 | 0.51/0.50/0.47/0.42 | 0.8/0.9/1.4/3.7 |
+| r1 optimisation | 0.051/0.141/0.192/0.538 | 0.054/0.149/0.248/0.585 | 0.017/0.019/0.017/0.024 | 0.46/0.46/0.45/0.44 | 2.1/2.5/2.6/5.3 |
+| r2 r1 with `--no-frame` | 0.052/0.142/0.191/0.547 | 0.054/0.148/0.247/0.585 | 0.019/0.016/0.019/0.026 | 0.45/0.45/0.45/0.45 | 2.1/2.0/2.4/4.6 |
+| r3 + measurement features | 0.044/0.140/0.194/0.529 | 0.052/0.149/0.241/0.576 | 0.008/0.008/0.008/0.010 | 0.58/0.56/0.49/0.36 | 2.5/2.3/2.2/4.3 |
+| r4 r3 with mean + sum pooling | 0.065/0.165/0.283/0.451 | 0.041/0.033/0.045/0.057 | 0.042/0.117/0.207/0.356 | 0.04/0.04/0.04/0.04 | 1.9/2.1/3.1/4.0 |
+| fc (Stage 1) | 0.023/0.024/0.036/0.049 | 0.032/0.027/0.037/0.058 | 0.007/0.008/0.016/0.019 | | |
+| Gauss–Newton | 0.040/0.024/0.035/0.036 | 0.045/0.032/0.044/0.045 | 0.003/0.003/0.003/0.003 | | |
+| exact Bayes | 0.007/0.004/0.003/0.004 | 0.009/0.008/0.007/0.007 | 0.000/0.000/0.000/0.000 | | |
+
+Rounds (all lr/clip/cosine/60 epochs from r1 on: `--lr 3e-4 --clip 1.0 --cosine`):
+
+1. **Optimisation.** Gradient clipping, cosine decay and a lower lr remove the erratic
+   validation loss (monotone to epoch 60) but change nothing in accuracy: z is still
+   predict-nominal.
+2. **Frame ablation (`--no-frame`).** Identical to r1 in every column, so the conv-encoded set
+   net never used the frame channel; its z output is the prior.
+3. **Explicit per-peak measurement features** (`measurement_features` in
+   `toy_orientation_model.py`: present flag, lit count, mean frame offset, lit-pixel centroid
+   relative to the window centre; they equal `extract_measurements()`, tested). This fixes the
+   perpendicular axes (⊥ RMS 0.017-0.024 → 0.008-0.010, better than fc and the ⊥ of Stage 1's
+   fc at 0.5/1 deg) but z is still the prior (σ_z ≈ 0.5, it knows it does not know z).
+4. **Sum pooling** (mean and sum instead of mean and max). This fixes z (RMS 0.04-0.06, on par
+   with fc and Gauss–Newton) but loses the ⊥ accuracy, particularly y (σ_y 0.16-0.46).
+
+**Findings.** The stage axis is a global quantity: δ_z ≈ -(mean over peaks of the frame
+residual), so it needs a pooled sum of per-peak frame measurements, and max pooling (which
+discards it) plus a mean of ReLU features was not found by optimisation. Conversely max
+pooling is what gives the ⊥ components. Neither r3 nor r4 alone meets the target (median ≤ fc
+and ≤ 1.5x Gauss–Newton at every bin): r3 is at the prior in z; r4 is at 0.28-0.45 deg in
+⊥ at large δ. The rounds were capped at four, so the obvious combination (mean + max + sum
+pooling, `--pool all`, added to the code after round 4 and covered by the padding test) was
+not run on voxel 0; it is tried on the Step 2 data.

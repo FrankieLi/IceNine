@@ -73,6 +73,33 @@ class ToyOffsetNet(nn.Module):
         return out[:, :3], cholesky_from_raw(out[:, 3:])
 
 
+N_MEAS = 5
+
+
+def measurement_features(x: torch.Tensor, frame_half_width: int) -> torch.Tensor:
+    """Explicit per-peak measurements from decoded windows x (B, M, C, W, W) -> (B, M, 5).
+
+    Features: present flag, lit-pixel count / 20, mean frame offset over lit pixels (frames),
+    and the lit-pixel centroid (col, row) relative to the window centre (px). With a single
+    (lit) channel the frame feature is 0. All features are 0 for absent peaks. These are the
+    same per-spot quantities as orientation_baselines.extract_measurements.
+    """
+    W = x.shape[-1]
+    lit = x[:, :, 0]
+    count = lit.sum(dim=(-2, -1))
+    present = count > 0
+    n = count.clamp(min=1.0)
+    axis = torch.arange(W, dtype=x.dtype, device=x.device) + 0.5 - W / 2.0
+    cx = (lit.sum(dim=-2) * axis).sum(dim=-1) / n
+    cy = (lit.sum(dim=-1) * axis).sum(dim=-1) / n
+    if x.shape[2] > 1:
+        frame = (x[:, :, 1] * lit).sum(dim=(-2, -1)) / n * frame_half_width
+    else:
+        frame = torch.zeros_like(cx)
+    f = torch.stack([present.to(x.dtype), count / 20.0, frame, cx, cy], dim=-1)
+    return f * present[..., None].to(x.dtype)
+
+
 class PeakSetNet(nn.Module):
     """Shared per-peak encoder with masked pooling: predicts an offset and covariance.
 
@@ -97,9 +124,16 @@ class PeakSetNet(nn.Module):
         conv_channels: Tuple[int, int] = (8, 16),
         feat_dim: int = 64,
         hidden: int = 128,
+        use_measurements: bool = True,
+        frame_half_width: int = 4,
+        pool: str = "meanmax",
     ):
         super().__init__()
+        assert pool in ("meanmax", "meansum", "all")
         self.in_channels = in_channels
+        self.use_measurements = use_measurements
+        self.frame_half_width = frame_half_width
+        self.pool = pool
         c1, c2 = conv_channels
         self.conv1 = nn.Conv2d(in_channels + 2, c1, 3, stride=2, padding=1)
         self.conv2 = nn.Conv2d(c1, c2, 3, stride=2, padding=1)
@@ -107,9 +141,13 @@ class PeakSetNet(nn.Module):
         self.fc_window = nn.Linear(c2 * side * side, feat_dim)
         self.fc_context1 = nn.Linear(context_dim, feat_dim)
         self.fc_context2 = nn.Linear(feat_dim, feat_dim)
-        self.fc_peak1 = nn.Linear(2 * feat_dim, feat_dim)
+        if use_measurements:
+            self.fc_meas1 = nn.Linear(N_MEAS, feat_dim)
+            self.fc_meas2 = nn.Linear(feat_dim, feat_dim)
+        n_in = 3 if use_measurements else 2
+        self.fc_peak1 = nn.Linear(n_in * feat_dim, feat_dim)
         self.fc_peak2 = nn.Linear(feat_dim, feat_dim)
-        self.head1 = nn.Linear(2 * feat_dim + 1, hidden)
+        self.head1 = nn.Linear((3 if pool == "all" else 2) * feat_dim + 1, hidden)
         self.head2 = nn.Linear(hidden, hidden)
         self.head3 = nn.Linear(hidden, 9)
         axis = torch.linspace(-1.0, 1.0, window_size)
@@ -127,15 +165,25 @@ class PeakSetNet(nn.Module):
         ctx = context if context.dim() == 3 else context[None].expand(B, -1, -1)
         c = F.relu(self.fc_context1(ctx.reshape(B * M, -1)))
         c = F.relu(self.fc_context2(c))
-        f = F.relu(self.fc_peak1(torch.cat([w, c], dim=-1)))
+        parts = [w, c]
+        if self.use_measurements:
+            m = measurement_features(x, self.frame_half_width).reshape(B * M, -1)
+            m = F.relu(self.fc_meas1(m))
+            parts.append(F.relu(self.fc_meas2(m)))
+        f = F.relu(self.fc_peak1(torch.cat(parts, dim=-1)))
         f = F.relu(self.fc_peak2(f)).reshape(B, M, -1)
         mask = present[..., None]
         n = present.sum(dim=1, keepdim=True).clamp(min=1).to(f.dtype)
-        mean = (f * mask).sum(dim=1) / n
-        mx = f.masked_fill(~mask, float("-inf")).amax(dim=1)
-        mx = torch.where(torch.isfinite(mx), mx, torch.zeros_like(mx))
-        frac = present.float().mean(dim=1, keepdim=True)
-        h = F.relu(self.head1(torch.cat([mean, mx, frac], dim=-1)))
+        total = (f * mask).sum(dim=1)
+        mean = total / n
+        if self.pool == "meansum":
+            pooled = [mean, total / 30.0]  # sum pooling, scaled to O(1) for ~100 peaks
+        else:
+            second = f.masked_fill(~mask, float("-inf")).amax(dim=1)
+            second = torch.where(torch.isfinite(second), second, torch.zeros_like(second))
+            pooled = [mean, second] + ([total / 30.0] if self.pool == "all" else [])
+        count = n / 100.0
+        h = F.relu(self.head1(torch.cat(pooled + [count], dim=-1)))
         h = F.relu(self.head2(h))
         out = self.head3(h)
         return out[:, :3], cholesky_from_raw(out[:, 3:])

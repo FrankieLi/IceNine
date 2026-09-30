@@ -109,6 +109,14 @@ def main():
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--clip", type=float, default=0.0, help="gradient-norm clip (0 = off)")
+    parser.add_argument(
+        "--cosine", action="store_true", help="cosine learning-rate decay to 0 over --epochs"
+    )
+    parser.add_argument(
+        "--no-meas", action="store_true", help="set net: drop the explicit measurement features"
+    )
+    parser.add_argument("--pool", choices=["meanmax", "meansum", "all"], default="meanmax")
     parser.add_argument(
         "--beta-nll", type=float, default=0.0, help="beta-NLL exponent (offset head); 0 = plain NLL"
     )
@@ -161,7 +169,12 @@ def main():
             assert "context" in tr, "the set architecture needs a dataset with per-peak context"
             context = tr["context"].float()
             model = PeakSetNet(
-                window_size=window, in_channels=in_channels, context_dim=context.shape[-1]
+                window_size=window,
+                in_channels=in_channels,
+                context_dim=context.shape[-1],
+                use_measurements=not args.no_meas,
+                frame_half_width=int(tr.get("frame_half_width", 4)),
+                pool=args.pool,
             )
         else:
             model = ToyOffsetNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
@@ -177,6 +190,9 @@ def main():
     if args.arch == "set":
         context = context.to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
+    sched = (
+        torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs) if args.cosine else None
+    )
 
     def loss_fn(x, y):
         if args.head == "quat":
@@ -194,8 +210,12 @@ def main():
             opt.zero_grad()
             loss = loss_fn(prep(windows[ib]), targets[ib])
             loss.backward()
+            if args.clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
             opt.step()
             total += loss.item() * len(ib)
+        if sched is not None:
+            sched.step()
         model.eval()
         with torch.no_grad():
             val = np.mean(

@@ -30,7 +30,8 @@ from icenine.orientation_nn import define_roi_set
 from icenine.reconstructor import _get_voxel_vertices
 from icenine.sample import Sample
 from icenine.simulation import Simulation
-from icenine.toy_orientation_model import PeakSetNet
+from icenine.orientation_eval import decode_windows
+from icenine.toy_orientation_model import PeakSetNet, measurement_features
 
 # ============================================================================
 # PeakSetNet (no example data needed)
@@ -92,6 +93,34 @@ class TestPeakSetNet:
         mean, chol = net(x, ctx)
         gaussian_nll_loss(mean, chol, torch.zeros(3, 3)).backward()
         assert all(torch.isfinite(p.grad).all() for p in net.parameters())
+
+
+class TestMeasurementFeatures:
+    def test_synthetic_window(self):
+        x = torch.zeros(1, 2, 2, 32, 32)
+        x[0, 0, 0, 10:12, 12:15] = 1.0  # rows 10-11, cols 12-14
+        x[0, 0, 1, 10:12, 12:15] = 0.5  # frame offset 0.5 * K
+        f = measurement_features(x, 4)[0]
+        assert torch.allclose(f[0], torch.tensor([1.0, 6 / 20.0, 2.0, 13.5 - 16, 11.0 - 16]))
+        assert torch.equal(f[1], torch.zeros(5))  # absent peak
+
+    def test_no_frame_channel_gives_zero_frame_feature(self):
+        x = torch.zeros(1, 1, 1, 32, 32)
+        x[0, 0, 0, 4:6, 4:6] = 1.0
+        assert measurement_features(x, 4)[0, 0, 2] == 0
+
+    @pytest.mark.parametrize("pool", ["meanmax", "meansum", "all"])
+    def test_padding_peaks_do_not_change_output(self, pool):
+        """Extra all-zero peaks (any context) must not change the prediction."""
+        torch.manual_seed(0)
+        net = PeakSetNet(pool=pool)
+        x = torch.zeros(2, 6, 2, 32, 32)
+        x[:, :4, 0, 8:10, 8:10] = 1.0
+        x[:, :4, 1, 8:10, 8:10] = -0.25
+        ctx = torch.randn(6, 16)
+        a, _ = net(x[:, :4], ctx[:4])
+        b, _ = net(x, ctx)
+        assert torch.allclose(a, b, atol=1e-5)
 
 
 # ============================================================================
@@ -171,6 +200,28 @@ class TestMeasurements:
         # the lit-pixel centroid is within about a pixel of the exact spot centroid
         truth = out.verts[0].mean(dim=1).numpy()[u]
         assert np.abs(meas.centroid[u] - truth).max() < 2.0
+
+
+class TestMeasurementFeaturesMatchExtraction:
+    def test_features_equal_extract_measurements(self, stage1):
+        obs, spec = stage1["obs"], stage1["spec"]
+        delta = np.array([[0.2, -0.3, 0.5]])
+        windows, _ = render_windows(obs, spec, delta)
+        meas = extract_measurements(windows[0], spec, obs)
+        x = decode_windows(windows, 4)  # (1, M, 2, W, W)
+        f = measurement_features(x.double(), 4)[0].numpy()
+        u = meas.used
+        assert np.array_equal(f[:, 0] > 0, u)
+        frame = np.array([spec.frame0[m] for m in range(obs.M)]) + f[:, 2]
+        expect = np.full(obs.M, np.nan)
+        bin_of = {int(w): b for b, w in enumerate(obs.range_index.tolist()) if w >= 0}
+        for m in np.nonzero(u)[0]:
+            b = bin_of[int(round(frame[m]))]
+            expect[m] = obs.range_low + (b + 0.5) * obs.range_width
+        assert np.allclose(expect[u], meas.omega[u])
+        cx = spec.col0 + 16 + f[:, 3]
+        cy = spec.row0 + 16 + f[:, 4]
+        assert np.allclose(cx[u], meas.centroid[u, 0]) and np.allclose(cy[u], meas.centroid[u, 1])
 
 
 class TestGaussNewton:
