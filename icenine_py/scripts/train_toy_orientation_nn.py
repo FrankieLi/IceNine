@@ -91,6 +91,7 @@ def main():
     )
     from icenine.toy_orientation_model import (
         FrameProbeNet,
+        GNLayerNet,
         PeakSetNet,
         ToyOffsetNet,
         ToyOrientationNet,
@@ -102,10 +103,38 @@ def main():
     parser.add_argument("--head", choices=["offset", "quat"], default="offset")
     parser.add_argument(
         "--arch",
-        choices=["fc", "set", "probe"],
+        choices=["fc", "set", "probe", "gn"],
         default="fc",
         help="fc: flatten-everything MLP (Stages 0-1); set: shared per-peak encoder + pooling (Stage 3); "
-        "probe: frame-only mean-pooled diagnostic net (use with --loss mse)",
+        "probe: frame-only mean-pooled diagnostic net (use with --loss mse); "
+        "gn: learned Gauss-Newton layer (needs --aux)",
+    )
+    parser.add_argument(
+        "--aux",
+        default=None,
+        help="aux table from make_dataset_aux.py (nominal offsets, pair index) for the same voxels",
+    )
+    parser.add_argument(
+        "--subpixel",
+        action="store_true",
+        help="set net: measurement = centroid/frame minus the exact nominal (needs --aux)",
+    )
+    parser.add_argument("--gn-iters", type=int, default=1, help="gn arch: unrolled IRLS iterations")
+    parser.add_argument(
+        "--pairing", action="store_true", help="gn arch: entries see their other-detector partner"
+    )
+    parser.add_argument(
+        "--ema",
+        type=float,
+        default=0.0,
+        help="weight EMA decay per step (0 = off); validation is evaluated on the EMA weights",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        choices=["best", "ema", "last"],
+        default="best",
+        help="final weights: best validation epoch (default), the EMA at the last epoch "
+        "(needs --ema), or the last epoch",
     )
     parser.add_argument(
         "--extra",
@@ -209,12 +238,23 @@ def main():
         model = ToyOrientationNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
     else:
         targets = offsets
-        if args.arch in ("set", "probe"):
+        if args.arch in ("set", "probe", "gn"):
             assert "context" in tr, "the set architecture needs a dataset with per-peak context"
             context = tr["context"].float()  # (M, D), or (V, M, D) for multi-voxel data
             multi = bool(tr.get("multi_voxel", False))
             vid_train = tr["voxel_id"].to(torch.long) if multi else None
-            if args.arch == "probe":
+            if args.arch == "gn":
+                assert args.aux, "--arch gn needs --aux"
+                model = GNLayerNet(
+                    window_size=window,
+                    in_channels=in_channels,
+                    context_dim=context.shape[-1],
+                    n_iter=args.gn_iters,
+                    frame_half_width=int(tr.get("frame_half_width", 4)),
+                    frame_width_rad=float(torch.load(args.aux)["frame_width_rad"]),
+                    pairing=args.pairing,
+                )
+            elif args.arch == "probe":
                 model = FrameProbeNet(
                     context_dim=context.shape[-1],
                     frame_half_width=int(tr.get("frame_half_width", 4)),
@@ -230,20 +270,39 @@ def main():
                 )
         else:
             model = ToyOffsetNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
-    if args.arch in ("set", "probe"):
+    aux_tab = {}
+    if args.aux:
+        az = torch.load(args.aux)
+        assert (
+            bool(az["multi_voxel"]) == multi and az["n_peaks"] == n_peaks
+        ), "aux is for other data"
+        assert torch.equal(
+            az["voxel_indices"].long(),
+            (tr["voxel_indices"] if multi else torch.tensor([tr["voxel_index"]])).long(),
+        ), "aux is for other voxels"
+        aux_tab = {"nom_off": az["nom_off"].float(), "pair_index": az["pair_index"].long()}
+        if args.arch == "set" and not args.subpixel:
+            aux_tab.pop("nom_off")
+    if args.arch in ("set", "probe", "gn"):
         assert args.head == "offset", "the set architecture predicts an offset and covariance"
+
+    def make_forward(m):
+        if args.arch not in ("set", "probe", "gn"):
+            return m
         if multi:
-            forward = lambda x, v: model(x, context[v.to(dev)])  # noqa: E731
-        else:
-            forward = lambda x: model(x, context)  # noqa: E731
-    else:
-        forward = model
+            return lambda x, v: m(  # noqa: E731
+                x, context[v.to(dev)], {k: t[v.to(dev)] for k, t in aux_tab.items()}
+            )
+        return lambda x: m(x, context, dict(aux_tab))  # noqa: E731
+
+    forward = make_forward(model)
     n_params = sum(p.numel() for p in model.parameters())
     print(f"architecture {args.arch}: {n_params / 1e6:.2f}M parameters on {dev}", flush=True)
     model.to(dev)
     targets = targets.to(dev)
-    if args.arch in ("set", "probe"):
+    if args.arch in ("set", "probe", "gn"):
         context = context.to(dev)
+        aux_tab = {k: t.to(dev) for k, t in aux_tab.items()}
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
     sched = (
         torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs) if args.cosine else None
@@ -252,11 +311,12 @@ def main():
     two_phase = args.loss in ("mse-then-cov", "mse-then-nll")
     switch_epoch = args.epochs // 2 if two_phase else 0
 
-    def loss_fn(x, y, v=None, phase=1):
+    def loss_fn(x, y, v=None, phase=1, fwd=None):
         """Returns (loss, mean, chol). phase 0 = MSE-only first half of a two-phase run."""
+        fwd = fwd if fwd is not None else forward
         if args.head == "quat":
-            return quaternion_regression_loss(forward(x), y), None, None
-        mean, chol = forward(x) if v is None else forward(x, v)
+            return quaternion_regression_loss(fwd(x), y), None, None
+        mean, chol = fwd(x) if v is None else fwd(x, v)
         kind = args.loss
         if two_phase:
             kind = "mse" if phase == 0 else ("decoupled" if kind == "mse-then-cov" else "nll")
@@ -268,6 +328,17 @@ def main():
             loss = gaussian_nll_loss(mean, chol, y, beta=args.beta_nll)
         return loss, mean, chol
 
+    import copy
+
+    ema_model = None
+    if args.ema > 0:
+        ema_model = copy.deepcopy(model)
+        for p_ in ema_model.parameters():
+            p_.requires_grad_(False)
+    eval_fwd = make_forward(ema_model) if ema_model is not None else forward
+    eval_model = ema_model if ema_model is not None else model
+    if args.checkpoint == "ema":
+        assert ema_model is not None, "--checkpoint ema needs --ema"
     t0 = time.time()
     best_val, best_epoch, best_state = float("inf"), -1, None
     for epoch in range(args.epochs):
@@ -284,10 +355,17 @@ def main():
             if args.clip > 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
             opt.step()
+            if ema_model is not None:
+                with torch.no_grad():
+                    for pe, pm in zip(ema_model.parameters(), model.parameters()):
+                        pe.mul_(args.ema).add_(pm.detach(), alpha=1.0 - args.ema)
+                    for be, bm in zip(ema_model.buffers(), model.buffers()):
+                        be.copy_(bm)
             total += loss.item() * len(ib)
         if sched is not None:
             sched.step()
         model.eval()
+        eval_model.eval()
         vals, errs, sds = [], [], []
         with torch.no_grad():
             for b in batches(n_val, args.batch_size):
@@ -296,6 +374,7 @@ def main():
                     targets[val_idx[b]],
                     vid_train[val_idx[b]] if multi else None,
                     phase,
+                    eval_fwd,
                 )
                 vals.append(lv.item())
                 if mv is not None:
@@ -316,15 +395,23 @@ def main():
         # phase-1 epochs are eligible for the best-validation checkpoint.
         if phase == 1 and val < best_val:
             best_val, best_epoch = float(val), epoch + 1
-            best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+            best_state = {k: v.detach().clone() for k, v in eval_model.state_dict().items()}
         print(
             f"epoch {epoch + 1:3d}/{args.epochs}  train {total / len(train_idx):11.6f}  val {val:11.6f}{diag}  ({time.time() - t0:.0f}s)",
             flush=True,
         )
     if best_state is None:
         raise RuntimeError("validation loss was never finite; lower --lr or check the data")
-    model.load_state_dict(best_state)
-    print(f"restored best-validation weights from epoch {best_epoch} (val {best_val:.6f})")
+    if args.checkpoint == "best":
+        model.load_state_dict(best_state)
+        print(f"restored best-validation weights from epoch {best_epoch} (val {best_val:.6f})")
+    elif args.checkpoint == "ema":
+        model.load_state_dict(ema_model.state_dict())
+        best_epoch = args.epochs
+        print(f"using the EMA weights (decay {args.ema}) at the last epoch (val {val:.6f})")
+    else:
+        best_epoch = args.epochs
+        print(f"using the last-epoch weights (val {val:.6f})")
 
     # ---- evaluation ------------------------------------------------------
     vid_test = te["voxel_id"].to(torch.long) if multi else None
@@ -453,6 +540,23 @@ def main():
                 + "  ".join(f"{k} {x:.4f}" for k, x in ang.items())
             )
         rows["per_voxel"] = per_voxel
+        rv = np.array([d["r_perp_um"] for d in per_voxel])
+        held = np.array([d["held_out"] for d in per_voxel])
+        summary = {}
+        for label in ["net"] + list(extras):
+            ev = np.array([d["median_angle"][label] for d in per_voxel])
+            summary[label] = dict(
+                corr_err_rperp=float(np.corrcoef(rv, ev)[0, 1]),
+                slope_err_per_100um=float(np.polyfit(rv, ev, 1)[0] * 100.0),
+                median_voxel_err_in_dist=float(np.median(ev[~held])),
+                median_voxel_err_held_out=float(np.median(ev[held])),
+            )
+            print(
+                f"{label:>14}: corr(voxel median error, r_perp) = {summary[label]['corr_err_rperp']:+.2f}, "
+                f"median per-voxel error in-dist {summary[label]['median_voxel_err_in_dist']:.4f} "
+                f"held-out {summary[label]['median_voxel_err_held_out']:.4f}"
+            )
+        rows["summary"] = summary
 
     if args.results_json:
         Path(args.results_json).write_text(json.dumps(rows, indent=2))

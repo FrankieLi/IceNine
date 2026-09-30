@@ -1787,3 +1787,74 @@ of the second table separates them: the 4 val voxels are the worst-off group in 
 the val voxels influence checkpoint selection, so they are not a clean test either. Best-epoch
 selection on a noisy loss confounds "voxel-wise split" with "early checkpoint"; a last-epoch
 evaluation of R1/R4 was not run. R3 (150 epochs) was not run.
+
+## Toy Orientation NN — Architecture (parallax) (2026-09-30)
+
+Branch `feature/nn-orientation-arch`. Goal (plan `warm-plotting-platypus`): an architecture whose
+multi-voxel error falls with r⊥ like Gauss–Newton (GN), i.e. that uses parallax, and that survives
+realistic nuisance signal. Data and protocol as in Stage 3 step 3 (30 ManyGrains voxels, 24 train /
+6 held out, 0.1/0.25/0.5/1.0°); new runs use `--val-voxels 4` (voxels 6, 11, 19, 24), `--ema 0.998
+--checkpoint ema` (EMA weights at the last epoch instead of best-epoch selection), 60 epochs, lr 3e-4,
+clip 1, cosine, batch 64, mps, decoupled loss, seeds 0 and 1. Numbers are means of the two seeds,
+from `benchmarks/toy_orientation_arch/*res*.json` (tables: `*_summary.txt`,
+`scripts/summarize_results.py`).
+
+### Step 1: diagnostics without training
+
+New code: `extract_measurements(..., detectors=[..])` (GN on one detector), `CentroidGaussNewton.information`
+(J^T W J), `.solve_linear` (one undamped GN step from nominal), `orientation_eval.pair_index` /
+`nominal_offsets`, `scripts/arch_diagnostics.py`, `scripts/dataset_problems.py`,
+`scripts/make_dataset_aux.py` (sidecar with per-peak exact nominal offsets and pair index, so the
+existing gitignored datasets are reused without re-rendering), `--aux/--subpixel` in the trainer.
+Outputs: `diag_{stage1,far,multi}.json`, `diag_multi_summary.txt`.
+
+**Pairing.** ROI sets have 105-130 entries (mean 119: 63 on detector 0, 56 on detector 1). Entries
+sharing (reflection, ω-branch) on the two detectors are the same ray: 50-62 pairs per voxel, i.e.
+94 % of entries are paired (voxel 0: 53 pairs of 113; voxel 77: 53 of 118). On average 111 of 119
+entries per test sample have their partner also recorded.
+
+**GN per detector, 30 multi-voxel test voxels** (median over voxels in r⊥ bins; median angle / z RMS / ⊥ RMS, degrees):
+
+| r⊥ bin (µm) | both detectors | detector 0 only | detector 1 only |
+|---|---|---|---|
+| 0-130 | 0.019 / 0.032 / 0.0029 | 0.022 / 0.032 / 0.0052 | 0.022 / 0.032 / 0.0032 |
+| 130-260 | 0.013 / 0.017 / 0.0031 | 0.015 / 0.019 / 0.0052 | 0.018 / 0.024 / 0.0034 |
+| 260-390 | 0.011 / 0.012 / 0.0033 | 0.014 / 0.015 / 0.0048 | 0.011 / 0.013 / 0.0037 |
+| 390-510 | 0.0076 / 0.0064 / 0.0044 | 0.011 / 0.0079 / 0.0054 | 0.0099 / 0.010 / 0.0044 |
+| corr(error, r⊥) | -0.63 | -0.58 | -0.76 |
+| corr(z RMS, r⊥) | -0.84 | -0.79 | -0.88 |
+
+- The stage axis z is the error. GN's z RMS falls 0.032 → 0.006° from r⊥ = 0 to 500 µm (corr -0.84)
+  while ⊥ RMS is flat (0.003-0.004°). This is the parallax: the Fisher sigma_z from J^T W J is 0.023° → 0.007°
+  (corr -0.96 with r⊥) and the weakest eigenvector of J^T W J is ≥ 95 % z at every radius.
+- Each detector alone reproduces the parallax (z RMS corr -0.79/-0.88). Both detectors together
+  improve ⊥ by ~1.5x (0.003 vs 0.005 on detector 0) and z by 0-20 %, not by a factor: the two
+  detectors are mostly redundant for z on these data (ΔL ≈ 2 mm is small next to the rotation-axis lever arm).
+- **Conditioning:** cond(J^T W J) = 48 (r⊥ < 130 µm) → 5 (r⊥ > 390 µm) in sigma-normalised units:
+  well posed from pixels and frames alone at every radius, poorer near the axis because the pixel
+  columns of J for z scale with r⊥.
+- **Linearisation is not a limit:** one undamped GN step from nominal (`solve_linear`) reaches the converged GN
+  error (median angle 0.0194/0.0138/0.0120/0.0076 vs 0.0191/0.0127/0.0110/0.0076 by bin, corr -0.63). So a network layer
+  that solves the linear normal equations at the nominal point can in principle reach GN.
+
+**Sub-pixel bias.** `measurement_features` measures relative to the window centre; the exact nominal
+centroid differs by the fractional position (0-1 px, a fixed per-peak number) and the nominal crossing
+is off the frame centre by -0.5..0.5 frames. A test confirms that feature minus `nominal_offsets` is
+exactly (lit centroid - exact nominal centroid). Retraining the multi-voxel set net with the corrected
+measurement (`--subpixel`) versus the same protocol without it (2 seeds each; median angle / ⊥ RMS at
+0.1/0.25/0.5/1.0°):
+
+| run | group | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| set, window-centre measurement | in-dist | 0.034/0.035/0.040/0.044 | 0.039/0.042/0.047/0.046 | 0.015/0.015/0.017/0.025 | 3.6/4.1/4.5/5.6 |
+| | held-out | 0.038/0.042/0.053/0.058 | 0.036/0.042/0.054/0.054 | 0.019/0.022/0.026/0.032 | 5.5/7.4/10.2/11.0 |
+| set, `--subpixel` | in-dist | 0.033/0.035/0.033/0.043 | 0.039/0.039/0.038/0.041 | 0.011/0.013/0.014/0.023 | 3.1/3.6/3.4/5.1 |
+| | held-out | 0.029/0.034/0.039/0.053 | 0.040/0.037/0.038/0.049 | 0.012/0.015/0.019/0.029 | 4.0/4.8/6.0/9.3 |
+| Gauss–Newton | in-dist / held-out | 0.012-0.015 / 0.010-0.014 | 0.020-0.024 / 0.016-0.020 | 0.003-0.004 | |
+
+Correlation of per-voxel error with r⊥: +0.29 for both nets (GN -0.63). **Result:** the bias was a real
+but small contributor: ⊥ RMS improves by 25-35 % and held-out median by 10-25 %, calibration improves
+(held-out Mahalanobis² 4-9 vs 5.5-11); z RMS (0.04°) and the r⊥ trend do not change, so it does not
+explain the 3x gap to GN. The baseline here (EMA weights, voxel-wise validation) reproduces the earlier
+best set net (held-out 0.036/0.043/0.050/0.057 -> 0.038/0.042/0.053/0.058), so the comparison is like for like.
+Caveats: 2 seeds; per-seed spread not tabulated (only the mean is quoted); 6 held-out voxels.

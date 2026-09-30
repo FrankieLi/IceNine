@@ -1,0 +1,54 @@
+GN both: median over voxels of (median angle / z rms / perp rms), by r_perp bin
+    0-130 um (n= 8) 0.0191 0.0323 0.0029
+  130-260 um (n= 8) 0.0127 0.0173 0.0031
+  260-390 um (n= 7) 0.0110 0.0120 0.0033
+  390-510 um (n= 7) 0.0076 0.0064 0.0044
+  corr(median_angle, r_perp) = -0.63
+  corr(rms_z, r_perp) = -0.84
+  corr(rms_perp, r_perp) = +0.57
+GN det0: median over voxels of (median angle / z rms / perp rms), by r_perp bin
+    0-130 um (n= 8) 0.0222 0.0323 0.0052
+  130-260 um (n= 8) 0.0153 0.0187 0.0052
+  260-390 um (n= 7) 0.0142 0.0150 0.0048
+  390-510 um (n= 7) 0.0108 0.0079 0.0054
+  corr(median_angle, r_perp) = -0.58
+  corr(rms_z, r_perp) = -0.79
+  corr(rms_perp, r_perp) = +0.21
+GN det1: median over voxels of (median angle / z rms / perp rms), by r_perp bin
+    0-130 um (n= 8) 0.0216 0.0323 0.0032
+  130-260 um (n= 8) 0.0184 0.0236 0.0034
+  260-390 um (n= 7) 0.0113 0.0133 0.0037
+  390-510 um (n= 7) 0.0099 0.0101 0.0044
+  corr(median_angle, r_perp) = -0.76
+  corr(rms_z, r_perp) = -0.88
+  corr(rms_perp, r_perp) = +0.64
+GN linear_both: median over voxels of (median angle / z rms / perp rms), by r_perp bin
+    0-130 um (n= 8) 0.0194 0.0320 0.0031
+  130-260 um (n= 8) 0.0138 0.0175 0.0034
+  260-390 um (n= 7) 0.0120 0.0125 0.0038
+  390-510 um (n= 7) 0.0076 0.0062 0.0044
+  corr(median_angle, r_perp) = -0.63
+  corr(rms_z, r_perp) = -0.83
+  corr(rms_perp, r_perp) = +0.59
+J^T W J at nominal (config both): median over bins of sigma_z, sigma_perp (deg), cond, z-share
+ both
+    0-130 sigma_z 0.0233 sigma_perp 0.0035 cond 47.6 zshare 1.00
+  130-260 sigma_z 0.0142 sigma_perp 0.0036 cond 17.7 zshare 0.99
+  260-390 sigma_z 0.0098 sigma_perp 0.0037 cond 8.6 zshare 0.97
+  390-510 sigma_z 0.0071 sigma_perp 0.0037 cond 4.9 zshare 0.95
+  corr(sigma_z, r_perp) = -0.96
+ det0
+    0-130 sigma_z 0.0319 sigma_perp 0.0065 cond 28.2 zshare 1.00
+  130-260 sigma_z 0.0195 sigma_perp 0.0064 cond 10.2 zshare 0.99
+  260-390 sigma_z 0.0135 sigma_perp 0.0064 cond 4.9 zshare 0.95
+  390-510 sigma_z 0.0095 sigma_perp 0.0063 cond 3.3 zshare 0.89
+  corr(sigma_z, r_perp) = -0.96
+ det1
+    0-130 sigma_z 0.0342 sigma_perp 0.0042 cond 70.1 zshare 1.00
+  130-260 sigma_z 0.0210 sigma_perp 0.0043 cond 26.6 zshare 0.99
+  260-390 sigma_z 0.0144 sigma_perp 0.0044 cond 12.9 zshare 0.98
+  390-510 sigma_z 0.0107 sigma_perp 0.0046 cond 7.1 zshare 0.96
+  corr(sigma_z, r_perp) = -0.96
+entries 105-130 (mean 119.1); det0 63.1 det1 56.0
+pairs 50-62 (mean 56.0); paired entries = 94%
+mean entries whose partner is also recorded per sample: 111.1 of 119.1

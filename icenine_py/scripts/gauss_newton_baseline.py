@@ -35,10 +35,27 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--test", required=True)
     parser.add_argument("--out", required=True)
+    parser.add_argument(
+        "--corrupt",
+        default="none",
+        choices=["none", "neighbours", "noise", "all"],
+        help="fit the deterministically corrupted test windows (see orientation_eval.corrupt_dataset)",
+    )
+    parser.add_argument(
+        "--huber", type=float, default=None, help="robust fit: Huber threshold (sigma units)"
+    )
     args = parser.parse_args()
 
     test_path, out_path = Path(args.test).resolve(), Path(args.out).resolve()  # before chdir
     data = torch.load(test_path)
+    from icenine.orientation_eval import corrupt_dataset
+
+    data["windows"] = corrupt_dataset(
+        data["windows"],
+        data.get("dis_windows"),
+        args.corrupt,
+        int(data["frame_half_width"]),
+    )
     if data.get("renderer") != "observer":
         raise SystemExit("needs an observer-rendered (frame-coded) dataset")
     max_q = data.get("max_q", float("nan"))
@@ -79,7 +96,7 @@ def main():
             problem["roi_list"],
         )
         spec = WindowSpec.from_nominal(obs, data["window_size"], data["frame_half_width"])
-        gn = CentroidGaussNewton(obs)
+        gn = CentroidGaussNewton(obs, huber_c=args.huber)
         for n in np.nonzero(vid == v)[0]:
             meas = extract_measurements(data["windows"][n][:n_pk], spec, obs)
             r = gn.solve(meas)

@@ -96,6 +96,7 @@ def build_problem(
     detectors: str = "first",
     min_sin_eta: float = 0.0,
     setup=None,
+    orientation=None,
 ):
     """Set up physics and pick a voxel with a non-empty ROI set.
 
@@ -104,6 +105,9 @@ def build_problem(
     max_q and detectors are passed to setup_example / define_roi_set; min_sin_eta
     drops near-axis spots (|sin eta| below it at the nominal orientation, decision D3).
     The defaults reproduce Stage 0 (config MaxQ, first detector only, no filter).
+
+    orientation: replace the voxel's orientation (3x3) while keeping its position and vertices,
+    e.g. a twin of the voxel (used for distractor sources).
 
     Returns a dict with everything both this script and the Bayes baseline need.
     """
@@ -118,7 +122,7 @@ def build_problem(
     for idx in candidates:
         voxel = mic.voxels[idx]
         vertices = get_vertices(voxel)
-        R_nom = voxel.orientation.astype(np.float64)
+        R_nom = (voxel.orientation if orientation is None else orientation).astype(np.float64)
         roi_list = define_roi_set(
             torch.from_numpy(R_nom).float(),
             vertices,
@@ -243,6 +247,62 @@ def accept_voxels(cand_lists, orientation_of, usable, tol: float = 1e-6):
     return accepted
 
 
+def sigma3_matrix() -> np.ndarray:
+    """Cubic twin operator: 60 degrees about [111] in the crystal frame."""
+    from scipy.spatial.transform import Rotation
+
+    return Rotation.from_rotvec(np.radians(60.0) * np.ones(3) / np.sqrt(3.0)).as_matrix()
+
+
+def build_distractor_sources(
+    example_dir, mic, target_index, setup, args, max_q, detectors, min_sin_eta
+):
+    """Observers for the spots of the target's neighbours, for distractor rendering.
+
+    Up to --neighbors mic voxels nearest to the target (in the sample plane, excluding ones
+    closer than 1 um, within --neighbor-radius-um), each with its own orientation, vertices
+    and ROI set; plus, with --twin, a Sigma3 twin (orientation R @ T) at the nearest
+    neighbour's position. Returns (observers, descriptions).
+    """
+    from icenine.orientation_eval import BatchedObserver
+
+    pos = np.array([v.position for v in mic.voxels], dtype=float)
+    d_um = np.hypot(*(pos[:, :2] - pos[target_index, :2]).T) * 1e3
+    order = np.argsort(d_um)
+    near = [int(i) for i in order if 1.0 < d_um[i] <= args.neighbor_radius_um][: args.neighbors]
+    specs = [(i, None, f"voxel {i} ({d_um[i]:.0f} um)") for i in near]
+    if args.twin and near:
+        T = sigma3_matrix()
+        specs.append((near[0], mic.voxels[near[0]].orientation @ T, f"twin of voxel {near[0]}"))
+    observers, desc = [], []
+    for idx, orient, name in specs:
+        try:
+            pr = build_problem(
+                example_dir,
+                idx,
+                max_q=max_q,
+                detectors=detectors,
+                min_sin_eta=min_sin_eta,
+                setup=setup,
+                orientation=orient,
+            )
+        except RuntimeError:
+            continue
+        observers.append(
+            BatchedObserver(
+                pr["R_nom"],
+                pr["vertices"],
+                pr["sample"],
+                pr["detector_list"],
+                pr["range_map"],
+                pr["exp_setup"],
+                pr["roi_list"],
+            )
+        )
+        desc.append(name)
+    return observers, desc
+
+
 def main_multi(args, outdir_abs):
     """Multi-voxel dataset (Stage 3 step 3): padded windows, per-voxel context table."""
     from icenine.orientation_eval import (
@@ -294,6 +354,9 @@ def main_multi(args, outdir_abs):
     R_nom = torch.zeros(V, 3, 3)
     train_w, train_off, train_vid = [], [], []
     test_w, test_off, test_vid, test_mag = [], [], [], []
+    train_dis, test_dis = [], []
+    dis_rng = np.random.default_rng(args.seed + 1000)
+    sigma_comp = args.neighbor_sigma_deg / np.sqrt(3.0)
     for v, pr in enumerate(problems):
         obs = BatchedObserver(
             pr["R_nom"],
@@ -311,11 +374,41 @@ def main_multi(args, outdir_abs):
         context[v, : n_peaks[v]] = ctx
         R_nom[v] = torch.from_numpy(pr["R_nom"])
         n_tr = 0 if held_out[v] else args.per_voxel_train
+        sources, src_desc = [], []
+        if args.neighbors or args.twin:
+            sources, src_desc = build_distractor_sources(
+                example_dir,
+                mic,
+                pr["voxel_index"],
+                setup,
+                args,
+                args.max_q,
+                args.detectors,
+                args.min_sin_eta,
+            )
+
+        def dis_layer(offsets):
+            """Distractor layer for these target offsets: each source is perturbed by the
+            target's offset plus its own random misorientation (sigma --neighbor-sigma-deg)."""
+            if not sources:
+                return None
+            from icenine.orientation_eval import render_distractor_windows
+
+            dsrc = [offsets + dis_rng.normal(0.0, sigma_comp, size=offsets.shape) for _ in sources]
+            active = [dis_rng.random(len(offsets)) < args.neighbor_p for _ in sources]
+            d = render_distractor_windows(obs, spec, sources, dsrc, source_active=active)
+            pad_d = torch.zeros(len(offsets), M, W, W, dtype=torch.uint8)
+            pad_d[:, : n_peaks[v]] = d
+            return pad_d
+
         offs = [sample_prior_offsets(n_tr, args.prior_radius, rng)] if n_tr else []
         if n_tr:
             w, _ = render_windows(obs, spec, offs[0])
             pad = torch.zeros(n_tr, M, W, W, dtype=torch.uint8)
             pad[:, : n_peaks[v]] = w
+            dl = dis_layer(offs[0])
+            if dl is not None:
+                train_dis.append(dl)
             train_w.append(pad)
             train_off.append(torch.from_numpy(offs[0]).float())
             train_vid.append(torch.full((n_tr,), v, dtype=torch.long))
@@ -324,13 +417,17 @@ def main_multi(args, outdir_abs):
             w, _ = render_windows(obs, spec, o)
             pad = torch.zeros(len(o), M, W, W, dtype=torch.uint8)
             pad[:, : n_peaks[v]] = w
+            dl = dis_layer(o)
+            if dl is not None:
+                test_dis.append(dl)
             test_w.append(pad)
             test_off.append(torch.from_numpy(o).float())
             test_vid.append(torch.full((len(o),), v, dtype=torch.long))
             test_mag.append(torch.full((len(o),), mag))
         print(
             f"  voxel {v:2d} (mic {pr['voxel_index']:5d}) r_perp {r_perp[v]:5.0f} um  "
-            f"{n_peaks[v]:3d} peaks  {'held out' if held_out[v] else 'train'}",
+            f"{n_peaks[v]:3d} peaks  {'held out' if held_out[v] else 'train'}"
+            + (f"  sources: {', '.join(src_desc)}" if src_desc else ""),
             flush=True,
         )
     meta = dict(
@@ -352,11 +449,13 @@ def main_multi(args, outdir_abs):
         example=args.example,
         multi_voxel=True,
     )
-    for name, w, off, vid, extra in (
-        ("train", train_w, train_off, train_vid, {}),
-        ("test", test_w, test_off, test_vid, {"magnitudes_deg": torch.cat(test_mag)}),
+    for name, w, off, vid, extra, dis in (
+        ("train", train_w, train_off, train_vid, {}, train_dis),
+        ("test", test_w, test_off, test_vid, {"magnitudes_deg": torch.cat(test_mag)}, test_dis),
     ):
         windows = torch.cat(w)
+        if dis:
+            extra = {**extra, "dis_windows": torch.cat(dis)}
         path = outdir_abs / f"toy_orientation_{args.tag}_{name}.pt"
         torch.save(
             {
@@ -421,6 +520,28 @@ def main():
     parser.add_argument("--per-voxel-test", type=int, default=10, help="per magnitude, per voxel")
     parser.add_argument("--holdout-every", type=int, default=5, help="every k-th voxel is held out")
     parser.add_argument("--holdout-offset", type=int, default=2)
+    parser.add_argument(
+        "--neighbors",
+        type=int,
+        default=0,
+        help="multi-voxel mode: render spots of this many nearest mic voxels as a distractor layer",
+    )
+    parser.add_argument("--neighbor-radius-um", type=float, default=30.0)
+    parser.add_argument(
+        "--neighbor-p",
+        type=float,
+        default=0.5,
+        help="probability that each distractor source is present in a given sample",
+    )
+    parser.add_argument(
+        "--neighbor-sigma-deg",
+        type=float,
+        default=0.3,
+        help="random misorientation of each neighbour relative to the target's perturbed orientation",
+    )
+    parser.add_argument(
+        "--twin", action="store_true", help="add a Sigma3 twin of the nearest voxel"
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--outdir", default=str(Path(__file__).parent))
     parser.add_argument("--tag", default="stage0")

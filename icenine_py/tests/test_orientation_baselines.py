@@ -354,3 +354,215 @@ class TestVoxelSelection:
         orient = {0: np.zeros((3, 3)), 1: np.ones((3, 3)), 2: np.zeros((3, 3))}
         out = gen.accept_voxels([[0, 1], [2]], lambda i: orient[i], lambda i: None if i == 0 else i)
         assert out == [1, 2]
+
+
+# ============================================================================
+# Learned Gauss-Newton layer and detector pairing (parallax architecture, Steps 2-3)
+# ============================================================================
+
+
+class TestGNLayer:
+    def test_normal_equations_match_weighted_lstsq(self):
+        from icenine.toy_orientation_model import gn_normal_equations
+
+        rng = np.random.default_rng(0)
+        J = rng.normal(size=(2, 9, 3, 3))
+        d_true = rng.normal(size=(2, 3))
+        y = np.einsum("bmrc,bc->bmr", J, d_true) + 0.01 * rng.normal(size=(2, 9, 3))
+        w = rng.uniform(0.2, 2.0, size=(2, 9, 3))
+        w[:, 5] = 0.0  # zero weight removes a peak
+        d, Ainv = gn_normal_equations(*(torch.from_numpy(a) for a in (J, y, w)))
+        for b in range(2):
+            sw = np.sqrt(w[b]).reshape(-1)
+            Jb = J[b].reshape(-1, 3)
+            ref = np.linalg.lstsq(Jb * sw[:, None], y[b].reshape(-1) * sw, rcond=None)[0]
+            assert np.allclose(d[b].numpy(), ref, atol=1e-10)
+            assert np.allclose(
+                Ainv[b].numpy(), np.linalg.inv((Jb * sw[:, None]).T @ (Jb * sw[:, None]))
+            )
+
+    def test_unit_weights_reproduce_linear_gauss_newton_step(self, stage1):
+        """W = 1, dy = 0 (the initial state): the layer is CentroidGaussNewton's undamped step."""
+        from icenine.orientation_eval import nominal_offsets
+        from icenine.toy_orientation_model import GNLayerNet
+
+        obs, spec = stage1["obs"], stage1["spec"]
+        delta = np.array([[0.2, -0.3, 0.5], [-0.4, 0.1, -0.6]])
+        windows, _ = render_windows(obs, spec, delta)
+        net = GNLayerNet(frame_width_rad=obs.frame_width_rad, ridge=0.0, delta_scale=0.05)
+        x = decode_windows(windows, 4).float()
+        aux = dict(nom_off=torch.from_numpy(nominal_offsets(obs)).float())
+        mean, chol = net(x, obs.peak_context(), aux)
+        gn = CentroidGaussNewton(obs)
+        for i in range(len(delta)):
+            ref = gn.solve_linear(extract_measurements(windows[i], spec, obs))
+            assert np.allclose(mean[i].detach().numpy(), ref, atol=2e-3), (mean[i], ref)
+            # the covariance is (J^T W J)^-1 of the same model
+            cov = (chol[i] @ chol[i].T).detach().numpy()
+            meas = extract_measurements(windows[i], spec, obs)
+            ref_cov = np.linalg.inv(gn.information(meas))
+            assert np.allclose(np.diag(cov), np.diag(ref_cov), rtol=0.03)
+
+    @pytest.mark.parametrize("pairing", [False, True])
+    def test_permutation_and_padding_invariance(self, pairing):
+        from icenine.toy_orientation_model import GNLayerNet
+
+        torch.manual_seed(0)
+        net = GNLayerNet(pairing=pairing, n_iter=2)
+        for p in net.parameters():  # leave the zero-initialised heads
+            if p.abs().sum() == 0:
+                torch.nn.init.normal_(p, std=0.1)
+        M = 8
+        x = torch.zeros(2, M, 2, 32, 32)
+        x[:, :6, 0, 10:12, 12:14] = 1.0
+        x[:, :6, 1, 10:12, 12:14] = torch.rand(2, 6, 1, 1) - 0.5
+        x[1, 2, 0, 12:14, 10:12] = 1.0
+        ctx = torch.randn(M, 16)
+        nom = torch.rand(M, 3)
+        pidx = torch.tensor([3, 2, 1, 0, 5, 4, -1, -1])
+        a, La = net(x, ctx, dict(nom_off=nom, pair_index=pidx))
+        perm = torch.randperm(M)
+        inv = torch.argsort(perm)
+        pidx_p = torch.where(pidx[perm] >= 0, inv[pidx[perm].clamp(min=0)], pidx[perm])
+        b, Lb = net(x[:, perm], ctx[perm], dict(nom_off=nom[perm], pair_index=pidx_p))
+        assert torch.allclose(a, b, atol=1e-5) and torch.allclose(La, Lb, atol=1e-5)
+        # padding: extra absent peaks with arbitrary context/offsets do not change the output
+        xp = torch.cat([x, torch.zeros(2, 3, 2, 32, 32)], dim=1)
+        ctxp = torch.cat([ctx, torch.randn(3, 16) * 10])
+        nomp = torch.cat([nom, torch.rand(3, 3)])
+        pp = torch.cat([pidx, torch.tensor([-1, -1, -1])])
+        c, Lc = net(xp, ctxp, dict(nom_off=nomp, pair_index=pp))
+        assert torch.allclose(a, c, atol=1e-5) and torch.allclose(La, Lc, atol=1e-5)
+
+    def test_gradients_flow_and_are_finite(self):
+        from icenine.orientation_nn import decoupled_nll_loss
+        from icenine.toy_orientation_model import GNLayerNet
+
+        net = GNLayerNet(pairing=True, n_iter=2)
+        x = torch.zeros(3, 6, 2, 32, 32)
+        x[:, :5, 0, 10:12, 12:14] = 1.0
+        ctx = torch.randn(6, 16)
+        aux = dict(nom_off=torch.zeros(6, 3), pair_index=torch.tensor([1, 0, 3, 2, -1, -1]))
+        mean, chol = net(x, ctx, aux)
+        decoupled_nll_loss(mean, chol, torch.zeros(3, 3)).backward()
+        assert all(torch.isfinite(p.grad).all() for p in net.parameters() if p.grad is not None)
+
+
+class TestPairingAndNominalOffsets:
+    def test_pair_index_links_the_two_detector_entries_of_a_ray(self, stage1):
+        from icenine.orientation_eval import pair_index
+
+        obs = stage1["obs"]
+        roi = obs.roi_list
+        pidx = pair_index(roi)
+        assert (pidx >= 0).sum() > 40  # most entries are paired
+        for i, j in enumerate(pidx):
+            if j < 0:
+                continue
+            assert pidx[j] == i  # symmetric
+            assert roi[i].reflection_index == roi[j].reflection_index
+            assert roi[i].omega_branch == roi[j].omega_branch
+            assert roi[i].detector_index != roi[j].detector_index
+            assert abs(roi[i].nominal_omega - roi[j].nominal_omega) < 1e-9  # same ray, same omega
+
+    def test_pair_index_unpaired_and_three_way_cases(self):
+        from types import SimpleNamespace as NS
+
+        from icenine.orientation_eval import pair_index
+
+        def p(r, b, d):
+            return NS(reflection_index=r, omega_branch=b, detector_index=d)
+
+        roi = [p(0, 1, 0), p(0, 1, 1), p(1, 1, 0), p(0, 2, 1), p(2, 1, 1), p(2, 1, 0)]
+        assert pair_index(roi).tolist() == [1, 0, -1, -1, 5, 4]
+
+    def test_features_minus_nominal_offsets_are_measurement_minus_exact_nominal(self, stage1):
+        """At the nominal orientation the corrected features are the pure quantisation error."""
+        from icenine.orientation_eval import nominal_offsets
+
+        obs, spec = stage1["obs"], stage1["spec"]
+        windows, _ = render_windows(obs, spec, np.zeros((1, 3)))
+        off = torch.from_numpy(nominal_offsets(obs))
+        x = decode_windows(windows, 4).double()
+        f = measurement_features(x, 4, off)[0].numpy()
+        meas = extract_measurements(windows[0], spec, obs)
+        nom = obs.observe(torch.zeros(1, 3, dtype=torch.float64))
+        exact = nom.verts[0].mean(dim=1).numpy()
+        u = meas.used
+        cx = meas.centroid[u, 0] - exact[u, 0]
+        cy = meas.centroid[u, 1] - exact[u, 1]
+        assert np.allclose(f[u, 3], cx) and np.allclose(f[u, 4], cy)
+        assert np.abs(cx).max() < 1.0 and np.abs(cy).max() < 1.0
+        # the uncorrected features carry the 0-1 px sub-pixel offset (a large, fixed bias)
+        g = measurement_features(x, 4)[0].numpy()
+        assert np.abs(g[u, 3]).mean() > np.abs(f[u, 3]).mean()
+        # frame: (omega_centre - omega_nom)/width == -(f)... the corrected feature equals that
+        wid = obs.range_width
+        expect = (meas.omega[u] - nom.omega[0].numpy()[u]) / wid
+        assert np.allclose(f[u, 2], expect, atol=1e-9)
+
+    def test_gn_detector_mask_drops_the_other_detector(self, stage1):
+        obs, spec = stage1["obs"], stage1["spec"]
+        windows, _ = render_windows(obs, spec, np.zeros((1, 3)))
+        all_ = extract_measurements(windows[0], spec, obs)
+        d0 = extract_measurements(windows[0], spec, obs, detectors=[0])
+        d1 = extract_measurements(windows[0], spec, obs, detectors=[1])
+        assert d0.used.sum() + d1.used.sum() == all_.used.sum()
+        assert not (d0.used & d1.used).any()
+
+
+class TestDistractors:
+    def _shifted_source(self, stage1, shift_mm):
+        obs = stage1["obs"]
+        verts = obs.vertices.numpy() + np.array([shift_mm, 0.0, 0.0])
+        # same orientation/ROI identity, displaced voxel: a same-grain neighbour
+        src = BatchedObserver.__new__(BatchedObserver)
+        src.__dict__.update(obs.__dict__)
+        src.vertices = torch.as_tensor(verts, dtype=obs.dtype)
+        return src
+
+    def test_identical_source_reproduces_the_target_windows(self, stage1):
+        from icenine.orientation_eval import render_distractor_windows
+
+        obs, spec = stage1["obs"], stage1["spec"]
+        delta = np.array([[0.2, -0.3, 0.5], [0.0, 0.1, -0.2]])
+        windows, _ = render_windows(obs, spec, delta)
+        layer = render_distractor_windows(obs, spec, [obs], [delta])
+        assert torch.equal(layer, windows)
+
+    def test_displaced_neighbour_adds_pixels_and_never_alters_the_target(self, stage1):
+        from icenine.orientation_eval import combine_windows, render_distractor_windows
+
+        obs, spec = stage1["obs"], stage1["spec"]
+        delta = np.array([[0.2, -0.3, 0.5], [0.0, 0.1, -0.2]])
+        windows, _ = render_windows(obs, spec, delta)
+        src = self._shifted_source(stage1, 0.012)
+        layer = render_distractor_windows(obs, spec, [src], [delta + 0.05])
+        assert (layer > 0).sum() > 100  # the neighbour lands in the target's windows
+        comb = combine_windows(windows, layer)
+        lit = windows > 0
+        assert torch.equal(comb[lit], windows[lit])  # target pixels (and frame codes) unchanged
+        assert ((comb > 0) & ~lit).sum() > 0  # the distractor adds lit pixels elsewhere
+        assert torch.equal(comb[~lit & (layer == 0)], windows[~lit & (layer == 0)])
+        # the target's own window rendering is independent of the distractor layer
+        windows2, _ = render_windows(obs, spec, delta)
+        assert torch.equal(windows, windows2)
+
+    def test_corruptions_are_deterministic_and_bounded(self):
+        from icenine.orientation_eval import CorruptionConfig, corrupt_dataset, corrupt_windows
+
+        rng = torch.Generator().manual_seed(0)
+        w = torch.zeros(6, 10, 32, 32, dtype=torch.uint8)
+        w[:, :8, 10:13, 12:15] = 5
+        dis = torch.zeros_like(w)
+        dis[:, :, 20:22, 20:22] = 3
+        assert torch.equal(corrupt_windows(w, dis, None, 4), w)
+        only_nb = corrupt_windows(w, dis, CorruptionConfig.named("neighbours"), 4, rng)
+        assert torch.equal(only_nb[w > 0], w[w > 0]) and (only_nb[:, :, 20:22, 20:22] == 3).all()
+        a = corrupt_dataset(w, dis, "all", 4, seed=3)
+        b = corrupt_dataset(w, dis, "all", 4, seed=3)
+        assert torch.equal(a, b) and int(a.max()) <= 9 and a.dtype == torch.uint8
+        dropped = corrupt_windows(w, None, CorruptionConfig(False, 1.0, 0.0, 0.0, 0.0), 4)
+        assert int(dropped.sum()) == 0
+        noisy = corrupt_dataset(w, None, "noise", 4, seed=1)
+        assert (noisy != w).any()

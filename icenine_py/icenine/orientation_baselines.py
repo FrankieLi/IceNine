@@ -19,7 +19,7 @@ docs 3.6.4, evaluated on the peaks actually recorded.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -48,9 +48,16 @@ def frame_center_omega(observer: BatchedObserver, frame_index: np.ndarray) -> np
 
 
 def extract_measurements(
-    windows: torch.Tensor, spec: WindowSpec, observer: BatchedObserver
+    windows: torch.Tensor,
+    spec: WindowSpec,
+    observer: BatchedObserver,
+    detectors: Optional[Sequence[int]] = None,
 ) -> Measurements:
-    """Frame index and lit-pixel centroid of every spot in one sample's windows (M, W, W)."""
+    """Frame index and lit-pixel centroid of every spot in one sample's windows (M, W, W).
+
+    detectors: keep only spots recorded on these detector indices (default: all), the
+    others are marked unused, so the fit sees one detector alone (diagnostics).
+    """
     M, K = windows.shape[0], spec.frame_half_width
     w = windows.numpy().astype(np.int64)
     used = np.zeros(M, dtype=bool)
@@ -65,6 +72,8 @@ def extract_measurements(
         centroid[m] = (spec.col0[m] + cols.mean() + 0.5, spec.row0[m] + rows.mean() + 0.5)
     omega = frame_center_omega(observer, frame)
     used &= np.isfinite(omega)
+    if detectors is not None:
+        used &= np.isin(observer.det_idx.numpy(), list(detectors))
     return Measurements(used=used, omega=omega, centroid=centroid)
 
 
@@ -81,7 +90,12 @@ class CentroidGaussNewton:
         fd_step_deg: float = 0.002,
         max_iter: int = 30,
         tol_deg: float = 1e-7,
+        huber_c: Optional[float] = None,
     ):
+        """huber_c: if set, robust fit: Huber loss with this threshold (in units of the
+        quantisation sigma, i.e. normalised residuals) fitted by iteratively reweighted
+        Levenberg-Marquardt; None = plain least squares (the Stage 2 baseline)."""
+        self.huber_c = huber_c
         self.obs = observer
         self.h = fd_step_deg
         self.max_iter = max_iter
@@ -98,6 +112,47 @@ class CentroidGaussNewton:
         r_c = (cen - meas.centroid[idx][None]) / self.sigma_px
         res = np.concatenate([r_om[..., None], r_c], axis=-1)
         return res, o.present.numpy()[:, idx]
+
+    def _weights(self, r: np.ndarray) -> np.ndarray:
+        """Per-residual IRLS weights (all ones for plain least squares)."""
+        if self.huber_c is None:
+            return np.ones_like(r)
+        return np.minimum(1.0, self.huber_c / np.maximum(np.abs(r), 1e-12))
+
+    def _cost(self, r: np.ndarray) -> float:
+        if self.huber_c is None:
+            return 0.5 * float(r @ r)
+        c, a = self.huber_c, np.abs(r)
+        return float(np.where(a <= c, 0.5 * a * a, c * a - 0.5 * c * c).sum())
+
+    def _linearize(self, meas: Measurements, delta: np.ndarray):
+        """Weighted residual vector r0 (n,) and Jacobian J (n, 3, per degree) at delta."""
+        idx = np.nonzero(meas.used)[0]
+        eye = np.eye(3)
+        pts = np.stack([delta] + [delta + s * self.h * eye[i] for i in range(3) for s in (1, -1)])
+        res, valid = self._residuals(pts, meas, idx)
+        ok = valid.all(axis=0)
+        J = np.stack(
+            [
+                (res[1 + 2 * i][ok] - res[2 + 2 * i][ok]).reshape(-1) / (2 * self.h)
+                for i in range(3)
+            ],
+            axis=1,
+        )
+        return res[0][ok].reshape(-1), J
+
+    def information(self, meas: Measurements, delta: Optional[np.ndarray] = None) -> np.ndarray:
+        """J^T W J (3x3, per degree^2) of the used spots at delta (default nominal): the
+        Fisher information of the independent-quantisation model, for conditioning diagnostics."""
+        delta = np.zeros(3) if delta is None else np.asarray(delta, dtype=np.float64)
+        _r0, J = self._linearize(meas, delta)
+        return J.T @ J
+
+    def solve_linear(self, meas: Measurements) -> np.ndarray:
+        """One undamped Gauss-Newton step from the nominal orientation (the linear-model
+        least-squares estimate, what a network layer with unit weights computes)."""
+        r0, J = self._linearize(meas, np.zeros(3))
+        return -np.linalg.solve(J.T @ J, J.T @ r0)
 
     def solve(self, meas: Measurements, delta0: Optional[np.ndarray] = None) -> Dict[str, object]:
         idx = np.nonzero(meas.used)[0]
@@ -122,8 +177,8 @@ class CentroidGaussNewton:
                 ],
                 axis=1,
             )
-            A, g = J.T @ J, J.T @ r0
-            cost0 = 0.5 * float(r0 @ r0)
+            wt = self._weights(r0)
+            A, g = J.T @ (wt[:, None] * J), J.T @ (wt * r0)
             improved = False
             for _ in range(8):
                 step = np.linalg.solve(A + lam * np.diag(np.diag(A)), -g)
@@ -132,7 +187,7 @@ class CentroidGaussNewton:
                 if common.sum() >= 3:
                     r_new = trial[0][common].reshape(-1)
                     r_old = res[0][common].reshape(-1)
-                    if 0.5 * float(r_new @ r_new) < 0.5 * float(r_old @ r_old):
+                    if self._cost(r_new) < self._cost(r_old):
                         delta = delta + step
                         lam = max(lam / 3.0, 1e-9)
                         improved = True
@@ -163,7 +218,8 @@ class CentroidGaussNewton:
                 axis=1,
             )
             try:
-                cov = np.linalg.inv(J.T @ J)
+                wt = self._weights(res[0][ok].reshape(-1))
+                cov = np.linalg.inv(J.T @ (wt[:, None] * J))
             except np.linalg.LinAlgError:
                 pass
             chi2 = float((res[0][ok] ** 2).sum() / max(1, res[0][ok].size - 3))
