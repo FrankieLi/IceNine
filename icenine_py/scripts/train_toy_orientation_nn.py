@@ -78,6 +78,9 @@ def predict(model, head, windows, batch_size, prep=None, forward=None, vid=None)
 
 def main():
     from icenine.orientation_eval import (
+        CorruptionConfig,
+        corrupt_dataset,
+        corrupt_windows,
         error_summary,
         offsets_to_quaternions,
         quaternions_to_offsets_deg,
@@ -191,6 +194,25 @@ def main():
     )
     parser.add_argument(
         "--no-frame", action="store_true", help="ablation: hide the frame channel (observer data)"
+    )
+    parser.add_argument(
+        "--corrupt-train",
+        choices=["none", "neighbours", "noise", "all"],
+        default="none",
+        help="corrupt training windows on the fly (needs dis_windows for neighbours/all)",
+    )
+    parser.add_argument(
+        "--eval-variants",
+        default="clean",
+        help="comma list of test-set corruptions (clean,neighbours,noise,all); the test windows "
+        "are corrupted deterministically (orientation_eval.corrupt_dataset)",
+    )
+    parser.add_argument(
+        "--extra-variant",
+        nargs="*",
+        default=[],
+        metavar="VARIANT/LABEL=NPZ",
+        help="extra rows for a non-clean variant, e.g. neighbours/gn=pred.npz",
     )
     parser.add_argument("--results-json", default=None)
     parser.add_argument(
@@ -339,6 +361,28 @@ def main():
     eval_model = ema_model if ema_model is not None else model
     if args.checkpoint == "ema":
         assert ema_model is not None, "--checkpoint ema needs --ema"
+    corr_cfg = CorruptionConfig.named(args.corrupt_train)
+    K_fh = int(tr.get("frame_half_width", 4))
+    dis_train = tr.get("dis_windows")
+    if corr_cfg is not None and corr_cfg.neighbours:
+        assert dis_train is not None, "--corrupt-train neighbours/all needs dis_windows"
+    corr_gen = torch.Generator().manual_seed(args.seed + 7)
+
+    def train_windows(ib):
+        w = windows[ib]
+        if corr_cfg is None:
+            return w
+        d = None if dis_train is None else dis_train[ib]
+        return corrupt_windows(w, d, corr_cfg, K_fh, corr_gen)
+
+    if corr_cfg is not None:
+        val_w = corrupt_dataset(
+            windows[val_idx],
+            None if dis_train is None else dis_train[val_idx],
+            args.corrupt_train,
+            K_fh,
+            seed=args.seed + 99,
+        )
     t0 = time.time()
     best_val, best_epoch, best_state = float("inf"), -1, None
     for epoch in range(args.epochs):
@@ -348,9 +392,9 @@ def main():
         for b in batches(len(train_idx), args.batch_size, rng):
             ib = train_idx[b]
             opt.zero_grad()
-            loss = loss_fn(prep(windows[ib]), targets[ib], vid_train[ib] if multi else None, phase)[
-                0
-            ]
+            loss = loss_fn(
+                prep(train_windows(ib)), targets[ib], vid_train[ib] if multi else None, phase
+            )[0]
             loss.backward()
             if args.clip > 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
@@ -370,7 +414,7 @@ def main():
         with torch.no_grad():
             for b in batches(n_val, args.batch_size):
                 lv, mv, cv = loss_fn(
-                    prep(windows[val_idx[b]]),
+                    prep(val_w[b] if corr_cfg is not None else windows[val_idx[b]]),
                     targets[val_idx[b]],
                     vid_train[val_idx[b]] if multi else None,
                     phase,
@@ -414,149 +458,170 @@ def main():
         print(f"using the last-epoch weights (val {val:.6f})")
 
     # ---- evaluation ------------------------------------------------------
-    vid_test = te["voxel_id"].to(torch.long) if multi else None
-    pred, chol = predict(
-        model, args.head, te["windows"], args.batch_size, prep, forward, vid=vid_test
-    )
-    if args.head == "quat":
-        pred = quaternions_to_offsets_deg(pred, R_nom)
-    truth = te["offsets_deg"].numpy().astype(np.float64)
-    mags = te["magnitudes_deg"].numpy()
+    def evaluate(variant, win_te, extra_items, save_path):
+        print(f"\n##### test set variant: {variant} #####")
+        vid_test = te["voxel_id"].to(torch.long) if multi else None
+        pred, chol = predict(model, args.head, win_te, args.batch_size, prep, forward, vid=vid_test)
+        if args.head == "quat":
+            pred = quaternions_to_offsets_deg(pred, R_nom)
+        truth = te["offsets_deg"].numpy().astype(np.float64)
+        mags = te["magnitudes_deg"].numpy()
 
-    bayes = None
-    if args.bayes:
-        bz = np.load(args.bayes)
-        n_b = len(bz["mean"])
-        if n_b != len(truth):
-            print(
-                f"note: Bayes file covers the first {n_b} of {len(truth)} test cases; using those"
+        bayes = None
+        if args.bayes:
+            bz = np.load(args.bayes)
+            n_b = len(bz["mean"])
+            if n_b != len(truth):
+                print(
+                    f"note: Bayes file covers the first {n_b} of {len(truth)} test cases; using those"
+                )
+                truth, pred, mags = truth[:n_b], pred[:n_b], mags[:n_b]
+                chol = chol[:n_b] if chol is not None else None
+            assert np.allclose(
+                bz["offsets_deg"], truth[:n_b], atol=1e-5
+            ), "Bayes file is for a different test set"
+            bayes = bz
+
+        extras = {}
+        for item in extra_items:
+            label, _, path = item.partition("=")
+            ez = np.load(path)
+            assert np.allclose(
+                ez["truth_deg"], truth[: len(ez["truth_deg"])], atol=1e-5
+            ), f"{path} is for a different test set"
+            extras[label] = ez["pred_deg"]
+
+        if save_path:
+            np.savez(
+                save_path,
+                pred_deg=pred,
+                truth_deg=truth,
+                magnitudes_deg=mags,
+                chol=chol if chol is not None else np.zeros(0),
+                best_epoch=best_epoch,
             )
-            truth, pred, mags = truth[:n_b], pred[:n_b], mags[:n_b]
-            chol = chol[:n_b] if chol is not None else None
-        assert np.allclose(
-            bz["offsets_deg"], truth[:n_b], atol=1e-5
-        ), "Bayes file is for a different test set"
-        bayes = bz
-
-    extras = {}
-    for item in args.extra:
-        label, _, path = item.partition("=")
-        ez = np.load(path)
-        assert np.allclose(
-            ez["truth_deg"], truth[: len(ez["truth_deg"])], atol=1e-5
-        ), f"{path} is for a different test set"
-        extras[label] = ez["pred_deg"]
-
-    if args.save_predictions:
-        np.savez(
-            args.save_predictions,
-            pred_deg=pred,
-            truth_deg=truth,
-            magnitudes_deg=mags,
-            chol=chol if chol is not None else np.zeros(0),
-            best_epoch=best_epoch,
-        )
-    rows = {}
-    print(
-        f"\n{'|delta|':>8} {'method':<20} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)"
-    )
-    if multi:
-        held = te["held_out"].numpy()[vid_test.numpy()]
-        groups = [("in-dist/", ~held), ("held-out/", held)]
-    else:
-        groups = [("", np.ones(len(mags), dtype=bool))]
-    for tag, gmask in groups:
-        if tag:
-            print(f"\n=== {tag.rstrip('/')} voxels ({int(gmask.sum())} test cases) ===")
-        for mag in sorted(set(mags.tolist())):
-            m = (mags == mag) & gmask
-            entries = [
-                ("predict-nominal", error_summary(np.zeros((m.sum(), 3)), truth[m])),
-                (f"net ({args.arch}/{args.head})", error_summary(pred[m], truth[m])),
-            ]
-            for label, ep in extras.items():
-                entries.insert(
-                    1, (label, error_summary(ep[m[: len(ep)]], truth[: len(ep)][m[: len(ep)]]))
-                )
-            if bayes is not None:
-                mb = m & np.isfinite(bayes["mean"]).all(
-                    axis=1
-                )  # cases where the sampler found no members are excluded
-                if mb.sum() < m.sum():
-                    print(
-                        f"note: exact Bayes failed on {m.sum() - mb.sum()} case(s) at |delta| = {mag}; excluded from its row"
-                    )
-                entries.append(("exact Bayes", error_summary(bayes["mean"][mb], truth[mb])))
-            for name, s in entries:
-                print(
-                    f"{mag:8.2f} {name:<20} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
-                )
-            extra = {}
-            if bayes is not None:
-                floor = float(np.nanmean(np.sqrt(np.trace(bayes["cov"][m], axis1=1, axis2=2))))
-                extra["bayes_floor_sqrt_trace"] = floor
-                print(f"{'':8} {'Bayes floor':<14} {'':>3} sqrt(tr cov) = {floor:.5f}")
-            if chol is not None:
-                cov = chol[m] @ chol[m].transpose(0, 2, 1)
-                sd = np.sqrt(np.diagonal(cov, axis1=1, axis2=2)).mean(axis=0)
-                r = (truth[m] - pred[m])[:, :, None]
-                z = np.linalg.solve(chol[m], r)[:, :, 0]
-                maha = float((z**2).sum(axis=1).mean())
-                extra.update(pred_sigma_xyz=sd.tolist(), mean_mahalanobis_sq=maha)
-                print(
-                    f"{'':8} {'net sigma xyz':<14} {'':>3} {np.round(sd, 5)}   mean Mahalanobis^2 = {maha:.2f} (3.0 if calibrated)"
-                )
-            rows[tag + str(mag)] = {name: s for name, s in entries} | extra
-
-    if multi:
-        r_perp, n_pk = te["r_perp_um"].numpy(), te["n_peaks_per_voxel"].numpy()
-        per_voxel = []
+        rows = {}
         print(
-            f"\n{'voxel':>5} {'r_perp':>7} {'peaks':>5} {'held':>5} {'n':>4}  median angle (deg), all magnitudes"
+            f"\n{'|delta|':>8} {'method':<20} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)"
         )
-        for v in range(len(r_perp)):
-            mv = vid_test.numpy() == v
-            ang = {"net": error_summary(pred[mv], truth[mv])["median_angle"]}
-            for label, ep in extras.items():
-                assert len(ep) == len(truth), f"--extra {label} does not cover the test set"
-                ang[label] = error_summary(ep[mv], truth[mv])["median_angle"]
-            ang1 = {
-                "net": error_summary(pred[mv & (mags == 1.0)], truth[mv & (mags == 1.0)])[
-                    "median_angle"
+        if multi:
+            held = te["held_out"].numpy()[vid_test.numpy()]
+            groups = [("in-dist/", ~held), ("held-out/", held)]
+        else:
+            groups = [("", np.ones(len(mags), dtype=bool))]
+        for tag, gmask in groups:
+            if tag:
+                print(f"\n=== {tag.rstrip('/')} voxels ({int(gmask.sum())} test cases) ===")
+            for mag in sorted(set(mags.tolist())):
+                m = (mags == mag) & gmask
+                entries = [
+                    ("predict-nominal", error_summary(np.zeros((m.sum(), 3)), truth[m])),
+                    (f"net ({args.arch}/{args.head})", error_summary(pred[m], truth[m])),
                 ]
-            }
-            per_voxel.append(
-                dict(
-                    voxel=v,
-                    r_perp_um=float(r_perp[v]),
-                    n_peaks=int(n_pk[v]),
-                    held_out=bool(te["held_out"][v]),
-                    median_angle=ang,
-                    net_median_angle_1deg=ang1["net"],
+                for label, ep in extras.items():
+                    entries.insert(
+                        1, (label, error_summary(ep[m[: len(ep)]], truth[: len(ep)][m[: len(ep)]]))
+                    )
+                if bayes is not None:
+                    mb = m & np.isfinite(bayes["mean"]).all(
+                        axis=1
+                    )  # cases where the sampler found no members are excluded
+                    if mb.sum() < m.sum():
+                        print(
+                            f"note: exact Bayes failed on {m.sum() - mb.sum()} case(s) at |delta| = {mag}; excluded from its row"
+                        )
+                    entries.append(("exact Bayes", error_summary(bayes["mean"][mb], truth[mb])))
+                for name, s in entries:
+                    print(
+                        f"{mag:8.2f} {name:<20} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
+                    )
+                extra = {}
+                if bayes is not None:
+                    floor = float(np.nanmean(np.sqrt(np.trace(bayes["cov"][m], axis1=1, axis2=2))))
+                    extra["bayes_floor_sqrt_trace"] = floor
+                    print(f"{'':8} {'Bayes floor':<14} {'':>3} sqrt(tr cov) = {floor:.5f}")
+                if chol is not None:
+                    cov = chol[m] @ chol[m].transpose(0, 2, 1)
+                    sd = np.sqrt(np.diagonal(cov, axis1=1, axis2=2)).mean(axis=0)
+                    r = (truth[m] - pred[m])[:, :, None]
+                    z = np.linalg.solve(chol[m], r)[:, :, 0]
+                    maha = float((z**2).sum(axis=1).mean())
+                    extra.update(pred_sigma_xyz=sd.tolist(), mean_mahalanobis_sq=maha)
+                    print(
+                        f"{'':8} {'net sigma xyz':<14} {'':>3} {np.round(sd, 5)}   mean Mahalanobis^2 = {maha:.2f} (3.0 if calibrated)"
+                    )
+                rows[tag + str(mag)] = {name: s for name, s in entries} | extra
+
+        if multi:
+            r_perp, n_pk = te["r_perp_um"].numpy(), te["n_peaks_per_voxel"].numpy()
+            per_voxel = []
+            print(
+                f"\n{'voxel':>5} {'r_perp':>7} {'peaks':>5} {'held':>5} {'n':>4}  median angle (deg), all magnitudes"
+            )
+            for v in range(len(r_perp)):
+                mv = vid_test.numpy() == v
+                ang = {"net": error_summary(pred[mv], truth[mv])["median_angle"]}
+                for label, ep in extras.items():
+                    assert len(ep) == len(truth), f"--extra {label} does not cover the test set"
+                    ang[label] = error_summary(ep[mv], truth[mv])["median_angle"]
+                ang1 = {
+                    "net": error_summary(pred[mv & (mags == 1.0)], truth[mv & (mags == 1.0)])[
+                        "median_angle"
+                    ]
+                }
+                per_voxel.append(
+                    dict(
+                        voxel=v,
+                        r_perp_um=float(r_perp[v]),
+                        n_peaks=int(n_pk[v]),
+                        held_out=bool(te["held_out"][v]),
+                        median_angle=ang,
+                        net_median_angle_1deg=ang1["net"],
+                    )
                 )
-            )
-            print(
-                f"{v:5d} {r_perp[v]:7.0f} {n_pk[v]:5d} {str(bool(te['held_out'][v])):>5} {mv.sum():4d}  "
-                + "  ".join(f"{k} {x:.4f}" for k, x in ang.items())
-            )
-        rows["per_voxel"] = per_voxel
-        rv = np.array([d["r_perp_um"] for d in per_voxel])
-        held = np.array([d["held_out"] for d in per_voxel])
-        summary = {}
-        for label in ["net"] + list(extras):
-            ev = np.array([d["median_angle"][label] for d in per_voxel])
-            summary[label] = dict(
-                corr_err_rperp=float(np.corrcoef(rv, ev)[0, 1]),
-                slope_err_per_100um=float(np.polyfit(rv, ev, 1)[0] * 100.0),
-                median_voxel_err_in_dist=float(np.median(ev[~held])),
-                median_voxel_err_held_out=float(np.median(ev[held])),
-            )
-            print(
-                f"{label:>14}: corr(voxel median error, r_perp) = {summary[label]['corr_err_rperp']:+.2f}, "
-                f"median per-voxel error in-dist {summary[label]['median_voxel_err_in_dist']:.4f} "
-                f"held-out {summary[label]['median_voxel_err_held_out']:.4f}"
-            )
-        rows["summary"] = summary
+                print(
+                    f"{v:5d} {r_perp[v]:7.0f} {n_pk[v]:5d} {str(bool(te['held_out'][v])):>5} {mv.sum():4d}  "
+                    + "  ".join(f"{k} {x:.4f}" for k, x in ang.items())
+                )
+            rows["per_voxel"] = per_voxel
+            rv = np.array([d["r_perp_um"] for d in per_voxel])
+            held = np.array([d["held_out"] for d in per_voxel])
+            summary = {}
+            for label in ["net"] + list(extras):
+                ev = np.array([d["median_angle"][label] for d in per_voxel])
+                summary[label] = dict(
+                    corr_err_rperp=float(np.corrcoef(rv, ev)[0, 1]),
+                    slope_err_per_100um=float(np.polyfit(rv, ev, 1)[0] * 100.0),
+                    median_voxel_err_in_dist=float(np.median(ev[~held])),
+                    median_voxel_err_held_out=float(np.median(ev[held])),
+                )
+                print(
+                    f"{label:>14}: corr(voxel median error, r_perp) = {summary[label]['corr_err_rperp']:+.2f}, "
+                    f"median per-voxel error in-dist {summary[label]['median_voxel_err_in_dist']:.4f} "
+                    f"held-out {summary[label]['median_voxel_err_held_out']:.4f}"
+                )
+            rows["summary"] = summary
+
+        return rows
+
+    variants = [v for v in args.eval_variants.split(",") if v]
+    all_rows = {}
+    for variant in variants:
+        win_te = corrupt_dataset(
+            te["windows"],
+            te.get("dis_windows"),
+            "none" if variant == "clean" else variant,
+            int(te.get("frame_half_width", 4)),
+        )
+        items = list(args.extra) if variant == "clean" else []
+        items += [
+            it.split("/", 1)[1] for it in args.extra_variant if it.split("/", 1)[0] == variant
+        ]
+        save = args.save_predictions
+        if save and variant != "clean":
+            save = save.replace(".npz", f"_{variant}.npz")
+        all_rows[variant] = evaluate(variant, win_te, items, save)
+    rows = all_rows[variants[0]] if len(variants) == 1 else all_rows
 
     if args.results_json:
         Path(args.results_json).write_text(json.dumps(rows, indent=2))

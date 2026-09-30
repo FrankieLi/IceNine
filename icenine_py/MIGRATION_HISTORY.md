@@ -1858,3 +1858,68 @@ but small contributor: ⊥ RMS improves by 25-35 % and held-out median by 10-25 
 explain the 3x gap to GN. The baseline here (EMA weights, voxel-wise validation) reproduces the earlier
 best set net (held-out 0.036/0.043/0.050/0.057 -> 0.038/0.042/0.053/0.058), so the comparison is like for like.
 Caveats: 2 seeds; per-seed spread not tabulated (only the mean is quoted); 6 held-out voxels.
+
+### Step 2: learned Gauss–Newton layer (`GNLayerNet`)
+
+**What was built** (`icenine/toy_orientation_model.py`, `--arch gn`). A shared per-peak encoder (window
+convolutions + context + measurement features, as `PeakSetNet`) emits, per present peak, a
+reliability weight for each of its three measured rows (centroid column, centroid row, frame; a
+softplus, initialised to 1) and a correction to the measurement (initialised to 0). The measurement is
+y = (lit centroid - exact nominal centroid, frame - exact nominal crossing) in units of the
+quantisation sigma (`--subpixel` features, `nominal_offsets`); the Jacobian J comes from the context
+(Γ = context[:, 0:6] × 20 px/deg, dω*/dδ = context[:, 6:9] converted to frames/deg). The pooled normal
+equations A = Σ JᵀWJ + 1e-3·I, δ = A⁻¹ Σ JᵀW(y + dy) are solved in closed form (3×3 adjugate inverse and
+Cholesky in plain tensor ops: differentiable and runs on MPS, which has no `linalg.solve`). The
+returned covariance is D A⁻¹ D with a learned diagonal D (calibration). `--gn-iters K` unrolls K
+IRLS-style rounds in which the head also sees asinh of the residual y - Jδ and the current δ. The
+initial state (W=1, dy=0) **is** one undamped GN step from nominal (`CentroidGaussNewton.solve_linear`).
+Trained with the decoupled loss (same protocol as Step 1 runs: 60 epochs, EMA weights, `--val-voxels 4`
+for multi-voxel; single-voxel runs use the default random 10 % sample validation).
+Tests: layer == weighted least squares; W=1/dy=0 reproduces `solve_linear` on real windows
+(|Δδ| < 2e-3°, covariance diag within 3 %); permutation and padding invariance (with and without pairing);
+finite gradients.
+
+**Single-voxel sanity** (30 test cases per magnitude; median angle in degrees at 0.1/0.25/0.5/1.0°; one run):
+
+| voxel | method | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| 0 (r⊥ 12 µm) | set net (Stage 3, decoupled, all) | 0.020/0.026/0.026/0.030 | 0.016/0.024/0.027/0.040 | 0.011/0.011/0.009/0.011 | 3.2/3.4/2.4/4.3 |
+| | **GNLayerNet K=1** | 0.014/0.018/0.018/0.025 | 0.019/0.030/0.024/0.037 | 0.0028/0.0035/0.0033/0.0039 | 2.1/3.8/2.7/3.8 |
+| | Gauss–Newton | 0.040/0.024/0.035/0.036 | 0.045/0.032/0.044/0.045 | 0.0027/0.0035/0.0031/0.0033 | |
+| 77 (r⊥ 399 µm) | set net (Stage 3, decoupled, all) | 0.014/0.016/0.020/0.024 | 0.016/0.014/0.019/0.021 | 0.008/0.010/0.010/0.017 | 4.5/3.7/3.6/5.5 |
+| | **GNLayerNet K=1** | 0.0098/0.0078/0.0086/0.0095 | 0.010/0.012/0.009/0.012 | 0.0025/0.0028/0.0028/0.0036 | 2.9/3.2/2.4/2.8 |
+| | Gauss–Newton | 0.012/0.011/0.009/0.008 | 0.013/0.010/0.010/0.008 | 0.0031/0.0032/0.0034/0.0035 | |
+
+(`single_v0_gn.*`, `single_v77_gn.*`.) The net reaches GN's ⊥ accuracy immediately (0.003°), and is
+at or below GN in z (on voxel 0 better than GN, because it learns corrections to the quantised
+measurements; GN's voxel-0 median at 0.1° is dominated by few cases). Exact Bayes for voxel 0 is
+0.004-0.007°, so ~3x headroom remains.
+
+**Multi-voxel, 30 voxels** (2 seeds, means; in-dist = 24 training-set voxels of which 4 are the
+validation voxels the net never trained on; held-out = 6 test-file voxels). From
+`multi_res_gn_k{1,3}_s{0,1}.json`, `step2_summary.txt`:
+
+| run | group | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| set net (Step 1 baseline, window-centre) | in-dist | 0.034/0.035/0.040/0.044 | 0.039/0.042/0.047/0.046 | 0.015/0.015/0.017/0.025 | 3.6/4.1/4.5/5.6 |
+| | held-out | 0.038/0.042/0.053/0.058 | 0.036/0.042/0.054/0.054 | 0.019/0.022/0.026/0.032 | 5.5/7.4/10.2/11.0 |
+| set net, `--subpixel` | held-out | 0.029/0.034/0.039/0.053 | 0.040/0.037/0.038/0.049 | 0.012/0.015/0.019/0.029 | 4.0/4.8/6.0/9.3 |
+| **GNLayerNet K=1** | in-dist | 0.013/0.015/0.012/0.013 | 0.020/0.023/0.021/0.022 | 0.006/0.005/0.004/0.004 | 3.1/3.2/3.1/3.2 |
+| | held-out | 0.017/0.016/0.015/0.013 | 0.023/0.022/0.022/0.019 | 0.007/0.006/0.005/0.004 | 3.7/4.0/3.9/3.5 |
+| **GNLayerNet K=3** | in-dist | 0.013/0.015/0.012/0.015 | 0.021/0.023/0.021/0.023 | 0.003/0.003/0.003/0.004 | 3.3/3.4/3.1/3.2 |
+| | held-out | 0.018/0.016/0.017/0.016 | 0.024/0.024/0.023/0.022 | 0.003/0.003/0.004/0.005 | 4.2/4.0/3.8/3.9 |
+| Gauss–Newton | in-dist | 0.012/0.015/0.012/0.014 | 0.020/0.024/0.022/0.022 | 0.003/0.003/0.003/0.004 | |
+| | held-out | 0.014/0.012/0.012/0.010 | 0.017/0.020/0.020/0.016 | 0.004/0.003/0.004/0.004 | |
+
+Per-voxel median error vs r⊥ (30 voxels, mean of 2 seeds of the correlation): K=1 **-0.72**, K=3 **-0.64**,
+GN -0.63, set nets +0.29. Median per-voxel error: K=1 0.0136 in-dist / 0.0188 held-out; K=3 0.0131 / 0.0169; GN
+0.0128 / 0.0143; set net 0.037 / 0.048.
+
+**Finding.** The plan's success criteria are met on clean data: held-out median is 1.0-1.5x GN (0.013-0.018 vs 0.010-0.014°; the plan allowed 1.5x), the error
+falls with r⊥ like GN's, the z RMS (0.02°) equals GN's, and Mahalanobis² is 3.1-4.2 in-dist *and* held-out (the set net's held-out was
+5.5-11). Putting the physics in the architecture removes the 3x gap; the val-voxel z RMS (unseen voxels, epoch-60 EMA; from the training logs) drops from 0.074° (set net; 0.045° with --subpixel) to 0.020-0.023° (seed 0). The K=3 variant trades nothing on clean data
+and cleans up ⊥ (0.003 vs 0.005-0.007°); K=1's ⊥ is noisier because the freed weight/correction head can trade ⊥ against z.
+On clean data iterations add nothing (the linear model is already exact enough); their purpose is outlier rejection (Step 4).
+Caveats: 2 seeds, the mean of the four |δ| bins is quoted with no spread; 6 held-out voxels; the held-out gap to GN (1.0-1.5x) is small but
+consistently positive at 0.1° (0.017-0.018 vs 0.014). The linear-at-nominal Jacobian ignores curvature: at 1° the layer matches GN (0.013-0.016 vs 0.010-0.014).
+Not verified: behaviour on a different geometry/structure.

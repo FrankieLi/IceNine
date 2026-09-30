@@ -82,7 +82,14 @@ For each voxel in the sample:
 | `orientation_nn.py` | Toy orientation-NN support: ROI peak set, windowed renderer (`define_roi_set`, `render_local_windows`, `spot_overlaps_grid`), perturbation samplers, dataset, quaternion loss and offset Gaussian NLL (`cholesky_from_raw`, `gaussian_nll_loss`) |
 | `orientation_eval.py` | Stage 0 evaluation: batched float64 `BatchedObserver` (presence, frame, spot vertices for many candidate offsets), `ExactBayes` posterior, `lit_pixel_set`, per-axis `error_summary`, rotation-vector helpers |
 | `toy_orientation_model.py` | `ToyOrientationNet` (v0 quaternion head), `ToyOffsetNet` (offset + Cholesky covariance head) and `PeakSetNet` (shared per-peak encoder + explicit measurement features + mean/max/sum pooling; any number of peaks, order-invariant, per-voxel context) |
-| `orientation_baselines.py` | Stage 2 non-learning baseline: `extract_measurements` (frame index and lit-pixel centroid per spot) and `CentroidGaussNewton` |
+| `orientation_baselines.py` | Stage 2 non-learning baseline: `extract_measurements` (frame index and lit-pixel centroid per spot; optional per-detector mask) and `CentroidGaussNewton` (plain or Huber-robust `huber_c`, `information` = J^T W J, `solve_linear` = one undamped step from nominal) |
+
+Architecture (parallax) additions to the toy orientation NN (see MIGRATION_HISTORY.md, "Toy Orientation NN — Architecture (parallax)"):
+
+- `toy_orientation_model.GNLayerNet` (`--arch gn`): a learned Gauss-Newton layer. A shared per-peak encoder emits reliability weights and measurement corrections; the measurement (centroid/frame minus the *exact* nominal prediction) and the Jacobian from the per-peak context are combined by pooled normal equations (closed-form 3x3 solve, MPS-safe), with the covariance `D A^-1 D`. `--gn-iters K` unrolls IRLS rounds, `--pairing` lets each entry see its other-detector partner. `PeakSetNet` takes the same exact-nominal measurement with `--subpixel`.
+- `orientation_eval.nominal_offsets` / `pair_index` build the per-peak exact nominal offsets and the detector-pair index; `scripts/make_dataset_aux.py` writes them as a sidecar (`--aux`) for an existing dataset. `scripts/arch_diagnostics.py` runs the per-detector / conditioning diagnostics.
+- Realism: `orientation_eval.render_distractor_windows` (neighbour-voxel and Sigma3-twin spots as a separate layer), `combine_windows` (target pixels always win), `CorruptionConfig`, `corrupt_windows`, `corrupt_dataset` (missing spots, edge-pixel jitter, hot pixels, spurious blobs). The generator's `--neighbors N --twin` writes the layer as `dis_windows`; the trainer takes `--corrupt-train`, `--eval-variants`, `--extra-variant`; `scripts/gauss_newton_baseline.py` takes `--corrupt`, `--huber`.
+- Trainer: `--ema` / `--checkpoint {best,ema,last}` (EMA weights instead of noisy best-epoch selection); the results json gains a `summary` with corr(per-voxel error, r_perp). `scripts/summarize_results.py` averages seeds into tables.
 
 ## Quick Start: Reconstruction
 
