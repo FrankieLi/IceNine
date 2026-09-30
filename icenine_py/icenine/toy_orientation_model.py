@@ -398,6 +398,8 @@ class GNLayerNet(nn.Module):
         if pairing:
             self.pair1 = nn.Linear(2 * feat_dim + 1, feat_dim)
             self.pair2 = nn.Linear(feat_dim, feat_dim)
+            nn.init.zeros_(self.pair2.weight)  # start as the unpaired network
+            nn.init.zeros_(self.pair2.bias)
         head_in = feat_dim + 6 + (4 if pairing else 0)
         self.head1 = nn.Linear(head_in, hidden)
         self.head2 = nn.Linear(hidden, 6)  # 3 weights + 3 measurement corrections
