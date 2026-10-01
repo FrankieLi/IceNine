@@ -40,7 +40,13 @@ def axis_stats(pred, truth):
 
 
 def main():
-    from icenine.orientation_baselines import CentroidGaussNewton, extract_measurements
+    import torch
+    from icenine.orientation_baselines import (
+        CentroidGaussNewton,
+        Measurements,
+        extract_measurements,
+        frame_center_omega,
+    )
     from icenine.orientation_eval import pair_index
 
     ap = argparse.ArgumentParser(description=__doc__)
@@ -84,10 +90,7 @@ def main():
         truth = truth_all[idx]
         # conditioning of J^T W J at nominal for each detector config (nominal windows: the
         # nominal orientation's own spots, all present by construction)
-        from icenine.orientation_baselines import Measurements
-        from icenine.orientation_baselines import frame_center_omega
-
-        nom = obs.observe(__import__("torch").zeros(1, 3, dtype=obs.dtype))
+        nom = obs.observe(torch.zeros(1, 3, dtype=obs.dtype))
         cent = nom.verts[0].mean(dim=1).numpy()
         omg = frame_center_omega(obs, nom.frame[0].numpy())
         cond = {}

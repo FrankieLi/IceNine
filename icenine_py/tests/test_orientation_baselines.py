@@ -673,3 +673,104 @@ class TestRobustGaussNewton:
                 np.linalg.norm(CentroidGaussNewton(obs, huber_c=c).solve(mb)["delta"] - clean_fit)
             )
         assert shifts[1] < shifts[0]
+
+
+class TestReviewFixes:
+    """Guards and helpers added after the branch review."""
+
+    def test_ema_update_and_checkpoint_selection(self):
+        from icenine.orientation_nn import ema_update, select_checkpoint_state
+
+        torch.manual_seed(0)
+        model = torch.nn.Sequential(torch.nn.Linear(2, 2), torch.nn.BatchNorm1d(2))
+        ema = torch.nn.Sequential(torch.nn.Linear(2, 2), torch.nn.BatchNorm1d(2))
+        ema.load_state_dict(model.state_dict())
+        w0 = model[0].weight.detach().clone()
+        with torch.no_grad():
+            model[0].weight.add_(1.0)
+            model[1].running_mean.fill_(3.0)
+        ema_update(ema, model, 0.9)
+        assert torch.allclose(ema[0].weight, 0.9 * w0 + 0.1 * (w0 + 1.0), atol=1e-6)
+        assert torch.equal(ema[1].running_mean, model[1].running_mean)  # buffers are copied
+        assert not any(p.requires_grad is False for p in model.parameters())
+        # decay 1 freezes the EMA
+        frozen = ema[0].weight.detach().clone()
+        ema_update(ema, model, 1.0)
+        assert torch.equal(ema[0].weight, frozen)
+
+        best = {k: v + 5 for k, v in model.state_dict().items() if v.is_floating_point()}
+        assert select_checkpoint_state("best", model, best, ema) is best
+        s = select_checkpoint_state("ema", model, best, ema)
+        assert torch.equal(s["0.weight"], ema[0].weight)
+        s = select_checkpoint_state("last", model, best, ema)
+        assert torch.equal(s["0.weight"], model[0].weight)
+        with pytest.raises(ValueError):
+            select_checkpoint_state("ema", model, best, None)
+        with pytest.raises(ValueError):
+            select_checkpoint_state("best", model, None, ema)
+        with pytest.raises(ValueError):
+            select_checkpoint_state("other", model, best, ema)
+
+    def test_distractor_frame_filter_and_coding(self, stage1):
+        """A source spot on frame f lands in a window iff |f - frame0| <= K, with code
+        1 + (f - frame0) + K."""
+        import dataclasses
+
+        from icenine.orientation_eval import render_distractor_windows
+
+        obs, spec = stage1["obs"], stage1["spec"]
+        K = spec.frame_half_width
+        delta = np.zeros((1, 3))  # source spots sit exactly on their nominal frame frame0
+        base = render_distractor_windows(obs, spec, [obs], [delta])[0]
+        lit = base > 0
+        assert lit.any() and (base[lit] == K + 1).all()  # same frame: the centre code
+        for s in (1, K):  # target window centred s frames away from the source spot: inside
+            sp = dataclasses.replace(spec, frame0=spec.frame0 + s)
+            out = render_distractor_windows(obs, sp, [obs], [delta])[0]
+            assert (out > 0).sum() == lit.sum()
+            assert (out[out > 0] == K + 1 - s).all()
+        sp = dataclasses.replace(spec, frame0=spec.frame0 + K + 1)  # outside +-K: filtered out
+        assert int(render_distractor_windows(obs, sp, [obs], [delta]).sum()) == 0
+
+    def test_default_ridge_is_close_to_the_undamped_gn_step(self, stage1):
+        from icenine.orientation_eval import nominal_offsets
+        from icenine.toy_orientation_model import GNLayerNet
+
+        obs, spec = stage1["obs"], stage1["spec"]
+        windows, _ = render_windows(obs, spec, np.array([[0.2, -0.3, 0.5], [-0.4, 0.1, -0.6]]))
+        x = decode_windows(windows, 4).float()
+        aux = dict(nom_off=torch.from_numpy(nominal_offsets(obs)).float())
+        out = []
+        for ridge in (0.0, 1e-3):
+            torch.manual_seed(0)
+            net = GNLayerNet(frame_width_rad=obs.frame_width_rad, ridge=ridge, delta_scale=0.05)
+            out.append(net(x, obs.peak_context(), aux)[0].detach())
+        assert torch.allclose(out[0], out[1], atol=5e-3), (out[0], out[1])
+        assert GNLayerNet(frame_width_rad=obs.frame_width_rad).ridge == 1e-3
+
+    def test_corruption_of_padded_entries_and_the_valid_mask(self):
+        from icenine.orientation_eval import corrupt_dataset, corrupt_windows, CorruptionConfig
+
+        w = torch.zeros(8, 6, 32, 32, dtype=torch.uint8)
+        w[:, :4, 10:13, 12:15] = 5  # entries 4, 5 are zero padding
+        valid = torch.zeros(8, 6, dtype=torch.bool)
+        valid[:, :4] = True
+        cfg = CorruptionConfig(False, 0.0, 1.0, 1.0, 0.0)  # a hot pixel and a blob everywhere
+        default = corrupt_windows(w, None, cfg, 4, torch.Generator().manual_seed(0))
+        assert (default[:, 4:] > 0).any()  # default: padded entries can be corrupted
+        masked = corrupt_windows(w, None, cfg, 4, torch.Generator().manual_seed(0), valid=valid)
+        assert int(masked[:, 4:].sum()) == 0
+        # the draws are unchanged: valid entries are identical with and without the mask
+        assert torch.equal(masked[:, :4], default[:, :4])
+        a = corrupt_dataset(w, None, "all", 4, seed=2, chunk=3)
+        b = corrupt_dataset(w, None, "all", 4, seed=2, chunk=3, valid=valid)
+        assert (a[:, 4:] > 0).any() and int(b[:, 4:].sum()) == 0
+
+    def test_inv3_matches_linalg_inv_and_survives_singular_input(self):
+        from icenine.toy_orientation_model import inv3
+
+        torch.manual_seed(0)
+        A = torch.randn(50, 3, 3, dtype=torch.float64)
+        A = A @ A.transpose(-1, -2) + torch.eye(3, dtype=torch.float64)
+        assert torch.allclose(inv3(A), torch.linalg.inv(A), atol=1e-9)
+        assert torch.isfinite(inv3(torch.zeros(1, 3, 3, dtype=torch.float64))).all()

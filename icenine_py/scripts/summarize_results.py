@@ -23,7 +23,7 @@ def load(pat):
     return [json.load(open(f)) for f in sorted(glob.glob(pat))]
 
 
-def get(rs, group, key, field, which):
+def get(rs, group, field, which):
     out = []
     for r in rs:
         r = r.get(prefix.rstrip("/"), r) if prefix else r
@@ -52,18 +52,17 @@ for a in args:
         print(label, "no files")
         continue
     for group in ("in-dist", "held-out"):
-        ma = get(rs, group, None, "median_angle", "net")
-        z = get(rs, group, None, "rms_z", "net")
-        p = get(rs, group, None, "rms_perp", "net")
-        mh = get(rs, group, None, "maha", "net")
+        ma = get(rs, group, "median_angle", "net")
+        z = get(rs, group, "rms_z", "net")
+        p = get(rs, group, "rms_perp", "net")
+        mh = get(rs, group, "maha", "net")
         print(
             f"{label + f' (n={len(rs)})':<26} {group:<9} {fmt(ma):<28} {fmt(z):<28} {fmt(p):<28} {fmt(mh)}"
         )
-        gkey = (group, pat.split("/")[-1][:0])
         rr = rs[0].get(prefix.rstrip("/"), rs[0]) if prefix else rs[0]
         if group not in gn_done and "gn" in rr[f"{group}/0.25"]:
             gn_done.add(group)
-            g = [get(rs, group, None, f, "gn") for f in ("median_angle", "rms_z", "rms_perp")]
+            g = [get(rs, group, f, "gn") for f in ("median_angle", "rms_z", "rms_perp")]
             print(
                 f"{'Gauss-Newton':<26} {group:<9} {fmt(g[0]):<28} {fmt(g[1]):<28} {fmt(g[2]):<28}"
             )

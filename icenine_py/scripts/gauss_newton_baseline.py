@@ -53,6 +53,9 @@ def main():
     data = torch.load(test_path)
     from icenine.orientation_eval import corrupt_dataset
 
+    assert (
+        args.corrupt not in ("neighbours", "all") or data.get("dis_windows") is not None
+    ), "--corrupt neighbours/all needs dis_windows in the test set"
     data["windows"] = corrupt_dataset(
         data["windows"],
         data.get("dis_windows"),

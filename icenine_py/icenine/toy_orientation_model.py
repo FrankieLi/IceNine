@@ -273,6 +273,9 @@ def inv3(A: torch.Tensor) -> torch.Tensor:
         ],
         dim=-1,
     ).reshape(*A.shape)
+    # guard against exactly singular A (no effect when |det| >= 1e-30): keep the sign, clamp |det|
+    sign = torch.where(det < 0, -torch.ones_like(det), torch.ones_like(det))
+    det = sign * det.abs().clamp(min=1e-30)
     return adj / det[..., None, None]
 
 
@@ -357,9 +360,10 @@ class GNLayerNet(nn.Module):
     Jacobian Gamma and d omega*/d delta; this is what carries the r_perp parallax) are combined by
     the pooled normal equations  A = sum J^T W J + ridge,  delta = A^-1 sum J^T W (y + dy).
     The covariance is D A^-1 D with a learned diagonal D (calibration). With weights 1 and
-    corrections 0 (the initial state) the layer *is* one undamped Gauss-Newton step from the
-    nominal orientation (CentroidGaussNewton.solve_linear), which on this problem equals the
-    converged solution to within quantisation noise for offsets up to 1 degree.
+    corrections 0 (the initial state) the layer equals, at ridge 0, one undamped Gauss-Newton
+    step from the nominal orientation (CentroidGaussNewton.solve_linear), which on this problem
+    equals the converged solution to within quantisation noise for offsets up to 1 degree. The
+    default ridge 1e-3 (in sigma units) differs from that step only slightly for well-conditioned A.
 
     n_iter > 1 unrolls an IRLS-style loop: the weight/correction head additionally sees the
     residual y - J delta and the current delta, so it can down-weight outliers.

@@ -78,13 +78,19 @@ def main():
     d = Path(args.dir)
 
     meta_path = d / "dis_test_meta.npz"
+    test_file = Path(args.test).resolve()
+    test_key = f"{test_file}:{test_file.stat().st_size}"  # the cache is only valid for this file
+    meta = None
     if meta_path.exists():
-        meta = np.load(meta_path)
+        cached = np.load(meta_path)
+        if "test_key" in cached.files and str(cached["test_key"]) == test_key:
+            meta = cached
+    if meta is not None:
         vid, held, r_perp = meta["voxel_id"], meta["held_out"], meta["r_perp_um"]
     else:
         te = torch.load(args.test)
         vid, held, r_perp = te["voxel_id"].numpy(), te["held_out"].numpy(), te["r_perp_um"].numpy()
-        np.savez(meta_path, voxel_id=vid, held_out=held, r_perp_um=r_perp)
+        np.savez(meta_path, voxel_id=vid, held_out=held, r_perp_um=r_perp, test_key=test_key)
 
     results = {}
     for variant in VARIANTS:

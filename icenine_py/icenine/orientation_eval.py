@@ -148,6 +148,13 @@ class BatchedObserver:
             [-1 if i is None else int(i) for i in range_map.index_list], dtype=torch.long
         )
         self.frame_width_rad = abs(self.range_width)
+        # The Jacobian uses |range_width| while nominal_offsets / measurement_features use the signed
+        # width and assume the frame index of a bin equals its position; both hold only if:
+        assert self.range_width > 0, f"range_width must be positive, got {self.range_width}"
+        _valid = self.range_index[self.range_index >= 0]
+        assert len(_valid) == 0 or bool(
+            (_valid[1:] - _valid[:-1] == 1).all()
+        ), "range_index must be contiguous and increasing over the valid omega bins"
 
         # Per-peak home-detector geometry, gathered once.
         geo = []
@@ -611,8 +618,15 @@ def corrupt_windows(
     cfg: Optional[CorruptionConfig],
     frame_half_width: int,
     gen: Optional[torch.Generator] = None,
+    valid: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
-    """Apply cfg to uint8 windows (..., W, W) (leading dims free). Random draws come from gen."""
+    """Apply cfg to uint8 windows (..., W, W) (leading dims free). Random draws come from gen.
+
+    valid: optional bool mask over the leading dims (e.g. entry index < n_peaks). Entries marked
+    invalid (zero padding) are returned all-zero, so corruption cannot create "present" spots in
+    them. The random draws are unchanged. Default None: every entry, padding included, is
+    corrupted (the behaviour of all reported runs).
+    """
     if cfg is None:
         return windows
     x = combine_windows(windows, distractors if cfg.neighbours else None).clone()
@@ -644,7 +658,6 @@ def corrupt_windows(
         has = rnd(*lead) < cfg.p_hot
         pos = (rnd(*lead, 2) * torch.tensor([H, W], device=x.device)).long()
         code = (rnd(*lead) * n_codes).long().clamp(max=n_codes - 1) + 1
-        hot = torch.zeros_like(x, dtype=torch.bool)
         yy = torch.arange(H, device=x.device).view(*([1] * len(lead)), H, 1)
         xx = torch.arange(W, device=x.device).view(*([1] * len(lead)), 1, W)
         hot = (
@@ -669,6 +682,8 @@ def corrupt_windows(
     if cfg.p_miss > 0:
         miss = rnd(*lead) < cfg.p_miss
         x = torch.where(miss[..., None, None], torch.zeros_like(x), x)
+    if valid is not None:
+        x = torch.where(valid.to(x.device)[..., None, None], x, torch.zeros_like(x))
     return x
 
 
@@ -679,8 +694,12 @@ def corrupt_dataset(
     frame_half_width: int,
     seed: int = 12345,
     chunk: int = 100,
+    valid: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """Deterministically corrupted copy of a whole window array (the fixed test sets).
+
+    valid: optional bool mask over the leading dims of windows (see corrupt_windows); default
+    None corrupts padded entries too (as in the reported runs).
 
     name: CorruptionConfig.named ("none", "neighbours", "noise", "all"); the same seed and
     chunking always give the same corrupted windows, so the Gauss-Newton baseline and the
@@ -693,7 +712,10 @@ def corrupt_dataset(
     out = torch.empty_like(windows)
     for a in range(0, len(windows), chunk):
         d = None if distractors is None else distractors[a : a + chunk]
-        out[a : a + chunk] = corrupt_windows(windows[a : a + chunk], d, cfg, frame_half_width, gen)
+        v = None if valid is None else valid[a : a + chunk]
+        out[a : a + chunk] = corrupt_windows(
+            windows[a : a + chunk], d, cfg, frame_half_width, gen, valid=v
+        )
     return out
 
 

@@ -87,6 +87,8 @@ def main():
     )
     from icenine.orientation_nn import (
         decoupled_nll_loss,
+        ema_update,
+        select_checkpoint_state,
         gaussian_nll_loss,
         mse_deg_loss,
         quaternion_regression_loss,
@@ -305,6 +307,7 @@ def main():
         aux_tab = {"nom_off": az["nom_off"].float(), "pair_index": az["pair_index"].long()}
         if args.arch == "set" and not args.subpixel:
             aux_tab.pop("nom_off")
+    assert args.aux or not args.subpixel, "--subpixel needs --aux"
     if args.arch in ("set", "probe", "gn"):
         assert args.head == "offset", "the set architecture predicts an offset and covariance"
 
@@ -400,11 +403,7 @@ def main():
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
             opt.step()
             if ema_model is not None:
-                with torch.no_grad():
-                    for pe, pm in zip(ema_model.parameters(), model.parameters()):
-                        pe.mul_(args.ema).add_(pm.detach(), alpha=1.0 - args.ema)
-                    for be, bm in zip(ema_model.buffers(), model.buffers()):
-                        be.copy_(bm)
+                ema_update(ema_model, model, args.ema)
             total += loss.item() * len(ib)
         if sched is not None:
             sched.step()
@@ -446,11 +445,10 @@ def main():
         )
     if best_state is None:
         raise RuntimeError("validation loss was never finite; lower --lr or check the data")
+    model.load_state_dict(select_checkpoint_state(args.checkpoint, model, best_state, ema_model))
     if args.checkpoint == "best":
-        model.load_state_dict(best_state)
         print(f"restored best-validation weights from epoch {best_epoch} (val {best_val:.6f})")
     elif args.checkpoint == "ema":
-        model.load_state_dict(ema_model.state_dict())
         best_epoch = args.epochs
         print(f"using the EMA weights (decay {args.ema}) at the last epoch (val {val:.6f})")
     else:
@@ -605,6 +603,10 @@ def main():
         return rows
 
     variants = [v for v in args.eval_variants.split(",") if v]
+    if any(v in ("neighbours", "all") for v in variants):
+        assert (
+            te.get("dis_windows") is not None
+        ), "--eval-variants neighbours/all needs dis_windows in the test set"
     all_rows = {}
     for variant in variants:
         win_te = corrupt_dataset(

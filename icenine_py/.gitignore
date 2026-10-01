@@ -56,3 +56,6 @@ benchmarks/hp_sweep_trajectory_manygrains.csv
 
 # Toy orientation NN dataset cache and checkpoints
 scripts/*.pt
+
+# Scratch completion flags written by the benchmark run scripts
+benchmarks/**/*_done.flag

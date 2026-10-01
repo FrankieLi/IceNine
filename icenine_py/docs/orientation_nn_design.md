@@ -179,8 +179,7 @@ Train $N=12{,}000$ (24 voxels $\times$ 500 offsets, 3.2 GB); test $N=1200$ (30 v
 `context[voxel_id]` per batch; padding rows are all zero (inert; tested). **Aux sidecar** (`make_dataset_aux.py`): `nom_off (V,M,3)`, `pair_index
 (V,M)` ($-1$ none), `det_idx (V,M)`, `frame_width_rad`, `multi_voxel`, `n_peaks`, `voxel_indices` (the trainer asserts the last two match);
 the Stage 3 aux file is reused for the distractor data. `toy_orientation_arch_dis_val.pt` (200 samples = 50 per voxel for training voxels 6, 11, 19, 24, `magnitudes_deg=0`, numpy seed 0, drawn
-from `toy_orientation_arch_dis_train.pt`) is used only to choose the Huber threshold; the script that made it (`mkval.py`) is not in
-the repo.
+from `toy_orientation_arch_dis_train.pt`) is used only to choose the Huber threshold; `scripts/make_dis_val.py` recreates it (verified sample-for-sample against the file used).
 
 Voxel selection. `select_voxels` picks, for each of 30 radii evenly spaced in $[0,500]\ \mu$m, up to 60 random candidates (`--voxel-seed 0`); `accept_voxels` takes the first usable one per radius and never reuses a grain (tested with fakes). Sorted by $r_\perp$, every 5th voxel from index 2 is **held out** (indices 2, 7, 12, 17, 22, 27; $r_\perp=32,126,215,301,372,457\ \mu$m): no training samples, 240 of the 1200 test cases.
 
@@ -197,14 +196,14 @@ Neighbour-model caveat (checked from the `.mic`). In the 30-voxel data all 60 ne
 the neighbour's orientation equals the target's (same grain, misorientation $<10^{-3}$ degrees). For those the distractor is the target's own grain seen from an adjacent
 voxel, following the target's $\delta$ plus $0.3^\circ$ rms; the other 15 cross a grain boundary. The twin is a $\Sigma3$ ($60^\circ$ about $[111]$) twin of the
 nearest neighbour; since that neighbour is in the target's own grain for 23 of 30 voxels (computed from the `.mic`), the twin is usually $\Sigma3$-related to the target, and its
-twin-invariant reflections land on the target's own spots. Results hold for this mixture only.
+twin-invariant reflections land on the target's own spots. Results hold for this mixture only. Distractor sources render only spots in their *own* filtered ROI set (`min_sin_eta`, `max_q`), so the distractor model understates contamination.
 
 **Pixel corruption** (`CorruptionConfig`; per sample and entry independently, in this order): `neighbours=True` (overlay `dis_windows`); `p_flip=0.05` (each lit
 pixel dropped, each 4-neighbour of a lit pixel lit with its code: edge jitter); `p_hot=0.05` (one isolated hot pixel, random frame code); `p_blob=0.1` (one
 $2$--$4\times2$--$4$ px blob, random frame code); `p_miss=0.1` (whole window zeroed). Variants (`CorruptionConfig.named`): `clean`/`none`, `neighbours` (layer only),
 `noise` (pixel terms only), `all`. `corrupt_dataset(windows, distractors, name, K, seed=12345, chunk=100)` gives a deterministic copy so all methods see identical test inputs.
 Quirk (from the code, not tested): corruption also hits zero-padded entries, which can then count as "present"; their $J=0$ so they add nothing to $A$ or $b$ and can only perturb the pooled covariance features.
-The GN baselines slice windows to the true peak count and do not see them.
+The GN baselines slice windows to the true peak count and do not see them. `corrupt_windows` / `corrupt_dataset` take an optional `valid` mask that zeroes padded entries (tested); it was not used in the reported runs.
 
 # 3. Model
 
@@ -495,6 +494,9 @@ uv run python scripts/make_dataset_aux.py \
 uv run python scripts/generate_toy_orientation_dataset.py $G \
     --neighbors 2 --twin --tag arch_dis
 
+# 1b. Huber-c validation set (200 samples; numpy seed 0, voxels 6 11 19 24)
+uv run python scripts/make_dis_val.py
+
 # 2. GN and Huber-GN on each test variant (clean = --corrupt none)
 for V in clean neighbours noise all; do
   C=$V; [ "$V" = clean ] && C=none
@@ -547,6 +549,6 @@ uv run python scripts/optimizer_baselines.py --test ${S}_stage1_test.pt \
     --out-dir benchmarks/toy_orientation_stage2
 ```
 
-Gaps in the record. (1) The single-voxel `GNLayerNet` runs are not in the commands above: `single_v77_gn` used `--arch gn` on `stage3_far_{train,test}.pt` with `--aux stage3_far_aux.pt --extra gn=benchmarks/toy_orientation_stage3/far_pred_gauss_newton.npz`, lr 3e-4; `single_v0_gn` is the analogous run on the voxel-0 files (its exact command is unverified). (2) The Table 7.1 `PeakSetNet --subpixel` row is `--arch set --pool all --loss decoupled --subpixel` (flags as reported, not stored in the result files). (3) The original run scripts (`run_s2.sh`, `run_s3*.sh`, `run_s4.sh`) lived in a session scratchpad and are not in the repo. (4) Unverified: the commands for `toy_orientation_arch_dis_val.pt` (Section 2.6, script `mkval.py` not in the repo), for the Huber-validation GN predictions under `benchmarks/toy_orientation_arch/val/`, and for the Stage 1 single-voxel set (tag and sample count follow MIGRATION_HISTORY; not re-run).
+Gaps in the record. (1) The single-voxel `GNLayerNet` runs are not in the commands above: `single_v77_gn` used `--arch gn` on `stage3_far_{train,test}.pt` with `--aux stage3_far_aux.pt --extra gn=benchmarks/toy_orientation_stage3/far_pred_gauss_newton.npz`, lr 3e-4; `single_v0_gn` is the analogous run on the voxel-0 files (its exact command is unverified). (2) The Table 7.1 `PeakSetNet --subpixel` row is `--arch set --pool all --loss decoupled --subpixel` (flags as reported, not stored in the result files). (3) The original run scripts (`run_s2.sh`, `run_s3*.sh`, `run_s4.sh`) lived in a session scratchpad and are not in the repo. (4) Unverified: for the Huber-validation GN predictions under `benchmarks/toy_orientation_arch/val/`, and for the Stage 1 single-voxel set (tag and sample count follow MIGRATION_HISTORY; not re-run).
 
 Tests: `uv run pytest tests/test_orientation_nn.py tests/test_orientation_eval.py tests/test_orientation_baselines.py`.

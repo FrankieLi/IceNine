@@ -495,6 +495,36 @@ def decoupled_nll_loss(
     return mse_deg_loss(mean, target, scale_deg) + gaussian_nll_loss(mean.detach(), chol, target)
 
 
+def ema_update(ema_model: torch.nn.Module, model: torch.nn.Module, decay: float) -> None:
+    """In-place EMA of the weights (ema = decay * ema + (1 - decay) * model); buffers are copied."""
+    with torch.no_grad():
+        for pe, pm in zip(ema_model.parameters(), model.parameters()):
+            pe.mul_(decay).add_(pm.detach(), alpha=1.0 - decay)
+        for be, bm in zip(ema_model.buffers(), model.buffers()):
+            be.copy_(bm)
+
+
+def select_checkpoint_state(
+    mode: str,
+    model: torch.nn.Module,
+    best_state: Optional[dict],
+    ema_model: Optional[torch.nn.Module],
+) -> dict:
+    """State dict for the final weights: "best" (best-validation epoch), "ema" (EMA at the last
+    epoch; needs ema_model) or "last" (the model as it is after the last epoch)."""
+    if mode == "best":
+        if best_state is None:
+            raise ValueError("no best-validation state was recorded")
+        return best_state
+    if mode == "ema":
+        if ema_model is None:
+            raise ValueError("--checkpoint ema needs --ema")
+        return ema_model.state_dict()
+    if mode == "last":
+        return model.state_dict()
+    raise ValueError(f"unknown checkpoint mode {mode!r}")
+
+
 def split_by_voxel(
     voxel_id: np.ndarray, r_perp_um: np.ndarray, n_val: int, seed: int = 0
 ) -> Tuple[np.ndarray, np.ndarray, List[int]]:

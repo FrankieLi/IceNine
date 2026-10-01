@@ -1790,13 +1790,13 @@ evaluation of R1/R4 was not run. R3 (150 epochs) was not run.
 
 ## Toy Orientation NN — Architecture (parallax) (2026-09-30)
 
-**Architecture branch summary (Steps 1-4).** Putting the physics into the network (a learned Gauss–Newton layer, `GNLayerNet`) removes the
+**Architecture branch summary (Steps 1-4 and 3b).** Putting the physics into the network (a learned Gauss–Newton layer, `GNLayerNet`) removes the
 3x gap of the pooled set net on clean multi-voxel data: it is at GN's accuracy on seen voxels, 1.1-1.7x GN on unseen voxels (see the
 re-check under Step 2), with GN's falling error vs r⊥ and Mahalanobis² 2-4. Detector pairing (Step 3) neither helps nor hurts on clean data.
 With realistic corruption (Step 4: neighbour/twin spots, spurious blobs, missing spots, edge jitter) plain GN degrades ~20x (median 0.22-0.33° vs
 0.012-0.014°) and a Huber-robust GN cuts that by about a third, but a GNLayerNet *trained on corrupted windows* reaches 0.06-0.08° (median) on the same data, 2-3x better
 than robust GN, while a net trained on clean data only is not better than robust GN and barely better than plain GN. On pixel-level noise alone (no distractor spots) robust GN is as good as or
-better than the net. Pairing gives at most a few per cent on corrupted data. Remaining errors on distractor data are heavy-tailed (perp RMS 0.05° vs 0.004°
+better than the net. Pairing gives at most a few per cent on corrupted data (Step 3b fixed an inert pairing MLP in `GNLayerNet`; the fixed pairing is still within seed spread of the unpaired net). Remaining errors on distractor data are heavy-tailed (perp RMS 0.05° vs 0.004°
 clean). Details and caveats below.
 
 Branch `feature/nn-orientation-arch`. Goal (plan `warm-plotting-platypus`): an architecture whose
@@ -2122,3 +2122,14 @@ In-dist medians (fixed vs unpaired vs inert): clean 0.0188 / 0.0185 / 0.0185, ne
 (c) *Error vs r⊥:* unchanged. Clean -0.63 (fixed) vs -0.60 (inert), -0.61 (unpaired), GN -0.63, with seed spread (-0.49 to -0.77) larger than the differences; under distractors the trend is still lost (-0.08 to -0.16 on `neighbours`/`all`).
 
 **Caveats.** 2 seeds, 6 held-out voxels, one lr (1e-4) and T = 3 (lr 3e-4 and the gate variant were not run); differences of ~0.003° are inside the seed spread. The weights of the fixed runs are not saved, so that the pair MLP actually moved away from zero is inferred from the tests (gradient flows) and from the training curves differing from the inert runs, not measured directly. `gnpairv1`'s instability was not reproduced with the zero-initialised linear update at lr 1e-4. Conclusion for Step 3/4: the "no clear benefit of pairing" finding now holds for live encoder-level mixing as well, on this simulated geometry.
+
+### Review fixes (2026-10-01)
+
+Guards, tests and hygiene after the branch review; no behaviour change, the saved benchmark numbers are unaffected.
+- `BatchedObserver` asserts `range_width > 0` and a contiguous, increasing `range_index` over valid omega bins (the Jacobian uses `|range_width|`, `nominal_offsets` the signed width and wedge index = bin order).
+- Silent no-ops now assert: `--eval-variants neighbours/all` and `gauss_newton_baseline.py --corrupt neighbours/all` without `dis_windows`; `--subpixel` without `--aux`.
+- `summarize_arch_step4.py` keys the cached `dis_test_meta.npz` to the test file (path + size) and rebuilds on mismatch.
+- `corrupt_windows` / `corrupt_dataset` take an optional `valid` mask (default None = corrupt padded entries too, as in all reported runs; the mask was not used in them).
+- `scripts/make_dis_val.py` recreates `toy_orientation_arch_dis_val.pt` (checked sample-for-sample against the existing file).
+- `ema_update` / `select_checkpoint_state` factored out of the trainer (`orientation_nn.py`); `inv3` clamps |det| to 1e-30; small script cleanups; `.gitignore` for `*_done.flag`.
+- New tests (`TestReviewFixes`): EMA and checkpoint selection, distractor frame filter/coding, default ridge vs the undamped GN step, padded-entry corruption and the mask, `inv3`.
