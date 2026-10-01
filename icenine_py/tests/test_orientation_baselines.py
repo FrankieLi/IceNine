@@ -566,3 +566,29 @@ class TestDistractors:
         assert int(dropped.sum()) == 0
         noisy = corrupt_dataset(w, None, "noise", 4, seed=1)
         assert (noisy != w).any()
+
+
+class TestRobustGaussNewton:
+    def test_huge_threshold_is_plain_gauss_newton_and_huber_resists_gross_outliers(self, stage1):
+        obs, spec = stage1["obs"], stage1["spec"]
+        delta = np.array([[0.2, -0.3, 0.5]])
+        windows, _ = render_windows(obs, spec, delta)
+        meas = extract_measurements(windows[0], spec, obs)
+        plain = CentroidGaussNewton(obs).solve(meas)["delta"]
+        same = CentroidGaussNewton(obs, huber_c=1e6).solve(meas)["delta"]
+        assert np.allclose(plain, same, atol=1e-5)
+        # displace the lit spot of 20 entries by 6 px (gross outliers): the robust fit moves
+        # less from its own clean-data fit than the plain fit does
+        bad = windows.clone()
+        present = torch.nonzero((bad[0] > 0).flatten(1).any(1)).flatten()[:20]
+        bad[0, present] = torch.roll(bad[0, present], shifts=6, dims=-1)
+        mb = extract_measurements(bad[0], spec, obs)
+        shifts = []
+        for c, clean_fit in (
+            (None, plain),
+            (1.0, CentroidGaussNewton(obs, huber_c=1.0).solve(meas)["delta"]),
+        ):
+            shifts.append(
+                np.linalg.norm(CentroidGaussNewton(obs, huber_c=c).solve(mb)["delta"] - clean_fit)
+            )
+        assert shifts[1] < shifts[0]

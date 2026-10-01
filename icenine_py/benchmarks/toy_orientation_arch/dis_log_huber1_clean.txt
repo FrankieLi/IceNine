@@ -1,0 +1,17 @@
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+1200 cases in 28.9s (24 ms each); converged 1200/1200 (no_descent: 132, step_below_tol: 1068); median spots used 118, median iterations 15, median chi2/dof 1.35
+ |delta|      rms_z   rms_perp  median_ang  <0.1deg   predicted sigma (x,y,z)
+    0.10    0.02415    0.00319     0.01246     100%   [0.00376 0.00372 0.01661]
+    0.25    0.02715    0.00331     0.01454     100%   [0.00376 0.00373 0.01664]
+    0.50    0.02561    0.00333     0.01217     100%   [0.00377 0.00374 0.01672]
+    1.00    0.02557    0.00321     0.01282      99%   [0.00378 0.00376 0.01676]
+saved /Users/sfli/Research/IceNine/icenine_py/benchmarks/toy_orientation_arch/dis_pred_huber1_clean.npz

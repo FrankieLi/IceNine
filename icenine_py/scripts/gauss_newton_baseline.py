@@ -44,6 +44,9 @@ def main():
     parser.add_argument(
         "--huber", type=float, default=None, help="robust fit: Huber threshold (sigma units)"
     )
+    parser.add_argument(
+        "--max-iter", type=int, default=30, help="Levenberg-Marquardt iteration cap"
+    )
     args = parser.parse_args()
 
     test_path, out_path = Path(args.test).resolve(), Path(args.out).resolve()  # before chdir
@@ -96,7 +99,7 @@ def main():
             problem["roi_list"],
         )
         spec = WindowSpec.from_nominal(obs, data["window_size"], data["frame_half_width"])
-        gn = CentroidGaussNewton(obs, huber_c=args.huber)
+        gn = CentroidGaussNewton(obs, huber_c=args.huber, max_iter=args.max_iter)
         for n in np.nonzero(vid == v)[0]:
             meas = extract_measurements(data["windows"][n][:n_pk], spec, obs)
             r = gn.solve(meas)
