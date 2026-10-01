@@ -658,6 +658,8 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   frame/pixel-integrated data (the posterior, not an inverse), the spot-motion
   Jacobian, and angular-resolution estimates in terms of pixel size, frame width,
   number of frames and distance from the rotation axis.
+- [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) — design of the
+  current toy orientation network: data pipeline, `GNLayerNet`, training, evaluation, tests and results.
 
 See [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy Orientation NN — Theory
 Phase") for the status of this work and the remaining plan.
