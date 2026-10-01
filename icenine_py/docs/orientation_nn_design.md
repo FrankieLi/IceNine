@@ -472,7 +472,7 @@ advantage over robust GN may shrink out of family; the neighbour-model caveat of
 
 Open questions: what the weight head learns on distractor data and why the partner check does not reject neighbour spots; out-of-family corruption sweeps; more seeds and confidence intervals; recalibration of $\hat\Sigma$ on held-out voxels; the $\sim1.2\times$ held-out gap to GN on clean data; the heavy $\perp$ tail on distractor data.
 
-Roadmap (all unimplemented): per-peak second moments, an $\alpha>0$ renderer, a Sinkhorn render-and-compare loss and posterior scoring against exact Bayes (KL, coverage) -- `docs/todo_intensity_and_distribution_losses.md`; iNeRF-/BARF-style refinement and self-supervised training on real data (parked) -- `docs/research_ideas_nerf.md`; why the coarse search and `FindOptimal` return neighbour or twin orientations -- `docs/todo_findoptimal_wrong_candidates.md`; rocking width $\alpha$ for real data -- `MIGRATION_HISTORY.md`, Stage 1 decisions D1, D4.
+Roadmap (all unimplemented): per-peak second moments, an $\alpha>0$ renderer, a Sinkhorn render-and-compare loss and posterior scoring against exact Bayes (KL, coverage) -- `docs/todo_intensity_and_distribution_losses.md`; iNeRF-/BARF-style refinement and self-supervised training on real data (parked) -- `docs/research_ideas_nerf.md`; why the coarse search and `FindOptimal` return neighbour or twin orientations -- `docs/todo_findoptimal_wrong_candidates.md`; multiple detectors with many grains and voxels far from the rotation axis, where detector pairing is expected to matter most -- `docs/todo_multidetector_many_grains.md`; rocking width $\alpha$ for real data -- `MIGRATION_HISTORY.md`, Stage 1 decisions D1, D4.
 
 # 9. How to reproduce
 
