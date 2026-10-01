@@ -434,18 +434,99 @@ class TestGNLayer:
         c, Lc = net(xp, ctxp, dict(nom_off=nomp, pair_index=pp))
         assert torch.allclose(a, c, atol=1e-5) and torch.allclose(La, Lc, atol=1e-5)
 
-    def test_gradients_flow_and_are_finite(self):
+    @staticmethod
+    def _gn_batch(M=8):
+        torch.manual_seed(1)
+        x = torch.rand(3, M, 2, 32, 32) * (torch.rand(3, M, 2, 32, 32) > 0.9).float()
+        x[:, :6, 0, 10:12, 12:14] = 1.0
+        x[:, :6, 1, 10:12, 12:14] = torch.rand(3, 6, 1, 1) - 0.5
+        x[:, 6:] = 0.0  # two absent entries
+        ctx = torch.randn(M, 16)
+        aux = dict(
+            nom_off=torch.rand(M, 3) - 0.5,
+            pair_index=torch.tensor([1, 0, 3, 2, 5, 4, -1, -1]),
+        )
+        return x, ctx, aux
+
+    @staticmethod
+    def _backward(net, x, ctx, aux):
         from icenine.orientation_nn import decoupled_nll_loss
+
+        net.zero_grad()
+        mean, chol = net(x, ctx, aux) if aux is not None else net(x, ctx)
+        decoupled_nll_loss(mean, chol, torch.zeros(3, 3)).backward()
+
+    @pytest.mark.parametrize("kind", ["gn", "gn_paired", "set"])
+    def test_gradients_flow_and_are_finite(self, kind):
+        """After a few tiny steps off the zero-initialised layers (gradient reaches pair1 only
+        after head2/cov2 and then pair2 have left zero), every parameter gets a non-zero, finite
+        gradient (regression: the pair MLP once never trained)."""
         from icenine.toy_orientation_model import GNLayerNet
 
-        net = GNLayerNet(pairing=True, n_iter=2)
-        x = torch.zeros(3, 6, 2, 32, 32)
-        x[:, :5, 0, 10:12, 12:14] = 1.0
-        ctx = torch.randn(6, 16)
-        aux = dict(nom_off=torch.zeros(6, 3), pair_index=torch.tensor([1, 0, 3, 2, -1, -1]))
-        mean, chol = net(x, ctx, aux)
-        decoupled_nll_loss(mean, chol, torch.zeros(3, 3)).backward()
-        assert all(torch.isfinite(p.grad).all() for p in net.parameters() if p.grad is not None)
+        x, ctx, aux = self._gn_batch()
+        if kind == "set":
+            net, aux = PeakSetNet(), None
+        else:
+            net = GNLayerNet(pairing=(kind == "gn_paired"), n_iter=3)
+        self._backward(net, x, ctx, aux)
+        assert all(torch.isfinite(p.grad).all() for p in net.parameters())
+        for _ in range(3):  # zero-initialised layers pass no gradient to their inputs yet
+            with torch.no_grad():
+                for p in net.parameters():
+                    p -= 1e-2 * torch.sign(p.grad)
+            self._backward(net, x, ctx, aux)
+        dead = [n for n, p in net.named_parameters() if not (p.grad.abs().sum() > 0)]
+        assert not dead, dead
+        assert all(torch.isfinite(p.grad).all() for p in net.parameters())
+
+    def test_pair_mlp_trains_from_the_zero_init(self):
+        """pair2 is zero-initialised and linear: it leaves zero under SGD, and then pair1 trains."""
+        from icenine.toy_orientation_model import GNLayerNet
+
+        x, ctx, aux = self._gn_batch()
+        net = GNLayerNet(pairing=True, n_iter=3)
+        assert net.pair2.weight.abs().sum() == 0
+        opt = torch.optim.SGD(net.parameters(), lr=1e-2)
+        for _ in range(60):
+            self._backward(net, x, ctx, aux)
+            opt.step()
+        assert net.pair2.weight.abs().sum() > 0
+        self._backward(net, x, ctx, aux)
+        assert net.pair2.weight.grad.abs().sum() > 0 and net.pair1.weight.grad.abs().sum() > 0
+
+    def test_paired_net_equals_unpaired_net_at_initialisation(self):
+        """pair2 = 0: the mixing is off. With the head's extra partner-residual inputs zeroed
+        and the shared weights copied, the paired net is the unpaired one; turning pair2 on
+        changes the output of paired entries only."""
+        import copy
+
+        from icenine.toy_orientation_model import GNLayerNet
+
+        x, ctx, aux = self._gn_batch()
+        torch.manual_seed(0)
+        plain, paired = GNLayerNet(n_iter=3), GNLayerNet(pairing=True, n_iter=3)
+        for q in (plain, paired):  # leave the zero-initialised heads
+            for p in (q.head2.weight, q.cov2.weight, q.cov2.bias):
+                torch.nn.init.normal_(p, std=0.1)
+        sd = plain.state_dict()
+        paired.load_state_dict(
+            {k: v for k, v in sd.items() if "head1.weight" not in k}, strict=False
+        )
+        with torch.no_grad():
+            paired.head1.weight.zero_()
+            paired.head1.weight[:, : sd["head1.weight"].shape[1]] = sd["head1.weight"]
+        a, La = plain(x, ctx, aux)
+        b, Lb = paired(x, ctx, aux)
+        assert torch.allclose(a, b, atol=1e-6) and torch.allclose(La, Lb, atol=1e-6)
+        # pair1 is irrelevant while pair2 = 0
+        other = copy.deepcopy(paired)
+        torch.nn.init.normal_(other.pair1.weight, std=1.0)
+        c, _ = other(x, ctx, aux)
+        assert torch.allclose(b, c, atol=1e-6)
+        # the path is live once pair2 is non-zero
+        torch.nn.init.normal_(other.pair2.weight, std=0.3)
+        d, _ = other(x, ctx, aux)
+        assert not torch.allclose(b, d, atol=1e-4)
 
 
 class TestPairingAndNominalOffsets:

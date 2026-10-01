@@ -364,7 +364,9 @@ class GNLayerNet(nn.Module):
     n_iter > 1 unrolls an IRLS-style loop: the weight/correction head additionally sees the
     residual y - J delta and the current delta, so it can down-weight outliers.
     pairing=True: each entry also sees the other-detector entry of the same ray (aux
-    "pair_index"): their encodings are mixed before the heads, and the head sees the partner's
+    "pair_index"): their encodings are mixed before the heads by a residual update
+    f += has * pair2(relu(pair1([f, f_partner, has]))) (pair2 zero-initialised and linear, so
+    the net starts as the unpaired one and the update trains), and the head sees the partner's
     residual (a pair-consistency check).
 
     forward(x, context, aux): x (B, M, 2, W, W) decoded windows, context (M, D) or (B, M, D),
@@ -445,7 +447,10 @@ class GNLayerNet(nn.Module):
             has = ((pidx >= 0) & torch.gather(present, 1, safe)) & present
             hm = has[..., None].to(f.dtype)
             fp = torch.gather(f, 1, safe[..., None].expand(-1, -1, f.shape[-1])) * hm
-            f = f + F.relu(self.pair2(F.relu(self.pair1(torch.cat([f, fp, hm], dim=-1)))))
+            # residual update with a linear output (a ReLU after the zero-initialised layer has
+            # ReLU'(0) = 0 and kills the gradient of pair1/pair2 forever); masked so that
+            # entries without a partner are unchanged
+            f = f + hm * self.pair2(F.relu(self.pair1(torch.cat([f, fp, hm], dim=-1))))
         delta = torch.zeros(B, 3, dtype=y.dtype, device=y.device)
         for _ in range(self.n_iter):
             rho = y - torch.einsum("bmrc,bc->bmr", J, delta)  # residual at current delta

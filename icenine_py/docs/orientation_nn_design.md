@@ -217,7 +217,7 @@ Here $y$ is the measurement in $\sigma$ units, $J$ the per-peak Jacobian, $s=0.0
  x (B,M,2,W,W) -> measurement_features(nom_off) -> y (B,M,3) [sigma units]
  context (B,M,16): Gamma, d omega*/d delta        -> J (B,M,3,3)
  (x, ctx, meas) -> PeakEncoder -> f (B,M,64)
-   [pairing: f <- f + relu(MLP([f, f_partner, has]))  INERT, see 3.4]
+   [pairing: f <- f + has * pair2(relu(pair1([f, f_partner, has])))  (pair2 zero-init, linear; see 3.4)]
  repeat T times (shared head weights), starting at delta' = 0:
    rho = y - J delta'
    head([f, asinh(rho), delta' (, asinh(rho_partner), has)])
@@ -271,12 +271,12 @@ are not independent across peaks (the clean GN run in `dis_log_gn_clean.txt` giv
 and $\delta'$, so it can down-weight outliers; each round re-solves from the nominal linearisation (the Jacobian is not recomputed). On clean data iterations add nothing. Corruption-aware
 training is what matters under corruption; whether the iterations help there was not tested (no $T=1$ corruption-trained run).
 
-`pairing=True` (`--pairing`): the head also sees $\mathrm{asinh}$ of the partner entry's residual (the other-detector entry of the same diffracted ray,
-`aux["pair_index"]`) and a has-partner flag, a pair-consistency check. Both detectors' rows still enter $A$ through their own $J$ rows. The code
-also adds $f\leftarrow f+\mathrm{ReLU}(\mathrm{MLP}([f,f_{\text{partner}},\text{has}]))$ with a zero-initialised output layer, but because a ReLU follows that zero
-layer, this path receives exactly zero gradient and stays at zero (`toy_orientation_model.py` lines 398--402 and 448; verified by backward): **in all paired runs only the partner-residual input is active**, and 12,480 of the 115,393 parameters are inert. An earlier,
-non-zero-initialised version (`gnpairv1`) did train this path and was unstable. The "no clear benefit" conclusions of Section 7 therefore test only the
-partner-residual input, not encoder-level mixing of the two detectors; a code fix is a separate decision.
+`pairing=True` (`--pairing`) adds two things, both using the other-detector entry of the same diffracted ray (`aux["pair_index"]`; its encoding $f_{\text{partner}}$, zero if absent):
+
+1. **Encoder-level mixing:** $f\leftarrow f+\text{has}\cdot W_2\,\mathrm{ReLU}(W_1[f,f_{\text{partner}},\text{has}])$, `pair1` $129\to64$, `pair2` $64\to64$ (12,480 parameters), masked by the has-partner flag so unpaired entries are unchanged.
+   `pair2` is zero-initialised and has *no* ReLU after it, so the network starts as the unpaired one and the update trains (`pair2` gets gradient immediately, `pair1` once `pair2` has left zero, as `head2`/`cov2` are also zero-initialised).
+   This was a bug until 2026-10-01: the update used to be $\mathrm{ReLU}(W_2\ldots)$; with $W_2=0$ the pre-activation is exactly 0, $\mathrm{ReLU}'(0)=0$ in PyTorch, and `pair1`/`pair2` received exactly zero gradient forever, so all earlier paired runs ("inert mixing" in Section 7) used only item 2. An even earlier non-zero-initialised version (`gnpairv1`) trained this path and was unstable; the zero-initialised linear version was stable at lr 1e-4 in all four fixed runs, no gate or normalisation was needed.
+2. **Partner residual:** the head also sees $\mathrm{asinh}$ of the partner entry's residual and the has-flag, a pair-consistency check. Both detectors' rows still enter $A$ through their own $J$ rows.
 
 | Tensor | Shape | Notes |
 |---------|------------|------------|
@@ -287,7 +287,7 @@ partner-residual input, not encoder-level mixing of the two detectors; a code fi
 | $A$, $A^{-1}$; output | `(B,3,3)`; `delta_hat (B,3)` deg, `L (B,3,3)` | $\hat\Sigma=LL^\top$ |
 
 `PeakEncoder`: windows $\mathrm{conv}(4\to8,3,\text{stride }2)\to\mathrm{conv}(8\to16,3,\text{stride }2)\to\mathrm{fc}(1024\to64)$ (4 channels: lit, frame, two coordinate channels in
-$[-1,1]$); context MLP $16\to64\to64$; measurement MLP $5\to64\to64$; concatenation (192) $\to64\to64$; ReLU. `GNLayerNet` has 102,657 parameters (115,393 with pairing, of which 12,480 are in the inert pair MLP; computed),
+$[-1,1]$); context MLP $16\to64\to64$; measurement MLP $5\to64\to64$; concatenation (192) $\to64\to64$; ReLU. `GNLayerNet` has 102,657 parameters (115,393 with pairing, of which 12,480 are in the pair MLP; computed),
 independent of $M$ and $T$, and is invariant to peak order and zero padding (tested, with and without pairing).
 
 ## 3.5 Other architectures still in the code
@@ -372,7 +372,7 @@ ThreeVoxels voxel 0 (skipped if absent; every physics test uses that voxel).
 | bl::TestMeasurements (2), TestMeasurementFeaturesMatchExtraction, TestGaussNewton (3), TestGaussNewtonStatus | extraction consistent with the observer; GN far better than nominal at $0.6^\circ$, small at nominal, $\sigma_z>3\sigma_\perp$, status consistent (phys) |
 | bl::TestPeakContext, TestFrameProbeNet, TestVoxelSelection (3) | context shape (M,16), column 8 $=-1$, one-hot (phys); probe uses only frame and $\partial\omega^*/\partial\delta$; radius selection, a grain never reused (synthetic mics) |
 | bl::TestGNLayer::{normal_equations_match_weighted_lstsq, unit_weights_reproduce_linear_gauss_newton_step} | `gn_normal_equations`/`inv3` equal weighted least squares; $w=1,\Delta y=0$ gives `solve_linear` and covariance diagonal within 3% (phys) |
-| bl::TestGNLayer::{permutation_and_padding_invariance[False,True], gradients_flow_and_are_finite} | order and padding invariance with and without pairing (the test re-initialises the zero-initialised pair parameters, so it exercises the pair path with non-zero weights); gradients finite ($T=2$, pairing; finiteness only, not non-zero) |
+| bl::TestGNLayer::{permutation_and_padding_invariance[False,True], gradients_flow_and_are_finite[gn,gn_paired,set], pair_mlp_trains_from_the_zero_init, paired_net_equals_unpaired_net_at_initialisation} | order and padding invariance with and without pairing (the test re-initialises the zero-initialised pair parameters, so it exercises the pair path with non-zero weights); every parameter of `GNLayerNet` (paired, unpaired, $T=3$) and `PeakSetNet` gets a non-zero finite gradient after a few small steps off the zero-initialised layers (fails on the pre-fix code); `pair2` leaves zero under SGD and then `pair1` trains; at initialisation the paired net equals the unpaired one (extra head inputs zeroed), `pair1` is irrelevant while `pair2`=0, and the pair path is live once `pair2`$\neq0$ |
 | bl::TestPairingAndNominalOffsets (4), TestDistractors (3), TestRobustGaussNewton | `pair_index` symmetric and correct incl. unpaired/3-way; features minus `nominal_offsets` = measurement minus exact nominal; distractors never alter target pixels, corruptions deterministic and bounded; Huber with huge $c$ equals plain GN and resists 20 gross outliers (phys) |
 
 **Not tested:**
@@ -380,7 +380,7 @@ ThreeVoxels voxel 0 (skipped if absent; every physics test uses that voxel).
 - The trainer end to end (loss selection, EMA, checkpoints, `--val-voxels`, corruption-aware training, MPS vs CPU) and the generator's multi-voxel path, `build_distractor_sources`, `make_dataset_aux.py`, the GN/exact-Bayes/optimiser scripts and `summarize_*` (only `split_by_voxel` and the loss functions are unit tested).
 - Physics on ManyGrains voxels or at large $r_\perp$: all physics tests use ThreeVoxels voxel 0 ($r_\perp=12\ \mu$m), so the parallax columns of the context are untested far from the axis.
 - Accuracy and calibration of any trained network (no regression test on result numbers).
-- `GNLayerNet` beyond equivalence at initialisation: outlier rejection for $T>1$, off-diagonals of `chol3`, the learned $D$; that every parameter receives a non-zero gradient (the pair MLP does not, Section 3.4).
+- `GNLayerNet` beyond equivalence at initialisation: outlier rejection for $T>1$, off-diagonals of `chol3`, the learned $D$; whether the trained pair MLP learns anything useful (only that it receives gradient; weights are not saved).
 - Corruption statistics (rates, blob sizes, code ranges), corruption of padded entries, multi-source/twin distractors with real neighbours; `ExactBayes` calibration and three or more detectors; other geometries, $\alpha>0$, other noise models.
 
 # 7. Current results
@@ -400,13 +400,15 @@ which includes the 4 validation voxels (no training samples; seed dependent, Sec
 | `GNLayerNet` $T=1$, lr 3e-4 | .013/.015/.012/.013 | .017/.016/.015/.013 | $-0.72$ [$-0.64$/$-0.79$] | .0136 / .0188 | 3.1--3.2 / 3.5--4.0 | .93/1.12; 1.15/1.43 |
 | `GNLayerNet` $T=3$, lr 3e-4 | .013/.015/.012/.015 | .018/.016/.017/.016 | $-0.64$ [$-0.43$/$-0.85$] | .0131 / .0169 | 3.1--3.4 / 3.8--4.2 | 1.17/.91; **1.74**/1.10 |
 | `GNLayerNet` $T=3$, lr 1e-4 | .013/.016/.013/.013 | .016/.016/.015/.015 | $-0.61$ [$-0.75$/$-0.47$] | .0138 / .0163 | 2.8--3.2 / 3.5--3.7 | .92/1.19; 1.24/1.38 |
-| `GNLayerNet` $T=3$ paired$^*$, lr 1e-4 | .011/.014/.012/.014 | .013/.015/.016/.016 | $-0.60$ [$-0.70$/$-0.50$] | .0143 / .0145 | 2.8--3.2 / 3.9--4.5 | .93/1.04; 1.13/1.40 |
+| `GNLayerNet` $T=3$ paired, inert mixing$^*$, lr 1e-4 | .011/.014/.012/.014 | .013/.015/.016/.016 | $-0.60$ [$-0.70$/$-0.50$] | .0143 / .0145 | 2.8--3.2 / 3.9--4.5 | .93/1.04; 1.13/1.40 |
+| `GNLayerNet` $T=3$ paired, fixed mixing$^\dagger$, lr 1e-4 | .013/.015/.013/.014 | .015/.016/.015/.013 | $-0.63$ [$-0.49$/$-0.77$] | .0145 / .0166 | 2.7--3.4 / 3.1--3.7 | -- |
 | plain GN | .012/.015/.012/.014 | .014/.012/.012/.010 | $-0.63$ | .0127 / .0143 | -- | -- |
 
-$^*$ "Paired" runs use only the partner-residual input; the pair-encoding MLP is inert (Section 3.4).
+$^*$ "Inert mixing": the runs made before 2026-10-01, in which only the partner-residual input was active; the pair-encoding MLP got zero gradient (Section 3.4).
+$^\dagger$ After the fix (Section 3.4): encoder-level mixing trains; two seeds, `multi_res_gnpairfix_k3_lr1e-4_s{0,1}`, `pairfix_clean_summary.txt`. Held-out per seed (s0 / s1), medians at the four bins: .014/.015/.015/.013 / .016/.017/.016/.014; z RMS .019--.023 and $\perp$ RMS .003--.005 (inert .017--.028 / .003--.007, unpaired .021--.033 / .003--.004; GN .016--.020 / .003--.004).
 
 The Step 2 commit subject (e6f4072) says the net "reaches Gauss-Newton parity"; that overstates the held-out result. Reading the table: the net is close to GN on the 24 training-set voxels (0.9--1.2$\times$) and 1.1--1.7$\times$ GN on unseen ones, with GN's parallax trend (negative correlation in every run, strength seed dependent); on clean data the net's held-out error is
-1.05--1.35$\times$ its own in-dist error. The set network's $3\times$ gap is removed in every run. Pairing (partner residual only) neither helps nor hurts on clean data beyond seed spread.
+1.05--1.35$\times$ its own in-dist error. The set network's $3\times$ gap is removed in every run. Pairing neither helps nor hurts on clean data beyond seed spread, with inert mixing (partner residual only) and with live mixing alike (fixed pairing: same medians, $\perp$ and $z$ RMS inside the spread; held-out Mah$^2$ 3.3--3.5 vs 3.9--4.5 inert and 3.5--3.7 unpaired).
 
 Single-voxel checks (30 cases per bin, one run each; `single_v0_gn.json`, `single_v77_gn.json`, `benchmarks/toy_orientation_stage3/far_res_bayes.json`):
 
@@ -420,7 +422,7 @@ MC and Riemannian Adam on voxel 0 (from `benchmarks/toy_orientation_stage2/pred_
 ## 7.2 Corrupted data (Step 4)
 
 Dataset `toy_orientation_arch_dis_*` (seed 42; 12,000/1,200 samples; clean windows identical to the Stage 3 data). Median angle pooled over the four bins (it does not depend on $\lvert\delta\rvert$ in any row; per-bin values are in `step4_summary.txt`). "Clean-trained":
-the same architecture trained on the clean windows of this file; "corr-trained": `--corrupt-train all`; "paired": corr-trained with `--pairing` (partner-residual input only, Section 3.4); all nets are $T=3$ `GNLayerNet`; Huber $c=1$; nets are 2-seed means, held-out per-seed values in brackets; $<0.1^\circ$ is the held-out fraction; Mah$^2$ is in-dist / held-out. "In-dist" includes the 4 validation voxels (Section 4).
+the same architecture trained on the clean windows of this file; "corr-trained": `--corrupt-train all`; "paired, inert": corr-trained with `--pairing` before the fix (partner-residual input only, Section 3.4); "paired, fixed": the same after the fix (live encoder mixing; `dis_res_gnpairfix_k3_corr`, `step4_pairfix_summary.txt`); all nets are $T=3$ `GNLayerNet`; Huber $c=1$; nets are 2-seed means, held-out per-seed values in brackets; $<0.1^\circ$ is the held-out fraction; Mah$^2$ is in-dist / held-out. "In-dist" includes the 4 validation voxels (Section 4).
 
 | Test set | Method | Median in-dist | Median held-out [seeds] | $<0.1^\circ$ | Mah$^2$ |
 |------|---------|---------|---------------|------|---------|
@@ -428,29 +430,33 @@ the same architecture trained on the clean windows of this file; "corr-trained":
 | | Huber GN | .0125 | .0144 | 1.00 | |
 | | net, clean-trained | .0138 | .0152 [.0143, .0161] | 1.00 | 3.0 / 3.6 |
 | | net, corr-trained | .0185 | .0193 [.0176, .0210] | 1.00 | 2.1 / 2.2 |
-| | paired, corr-trained | .0185 | .0186 [.0185, .0186] | 1.00 | 2.3 / 2.3 |
+| | paired, inert mixing | .0185 | .0186 [.0185, .0186] | 1.00 | 2.3 / 2.3 |
+| | paired, fixed | .0188 | .0199 [.0214, .0183] | 1.00 | 2.3 / 2.5 |
 | neighbours | plain GN | .2253 | .3428 | 0.20 | |
 | | Huber GN | .1375 | .2223 | 0.33 | |
 | | net, clean-trained | .1934 | .2706 [.2916, .2496] | 0.23 | 1556 / 1951 |
 | | net, corr-trained | .0576 | .0719 [.0723, .0715] | 0.66 | 3.0 / 2.9 |
-| | paired, corr-trained | .0594 | .0710 [.0702, .0718] | 0.65 | 3.0 / 2.7 |
+| | paired, inert mixing | .0594 | .0710 [.0702, .0718] | 0.65 | 3.0 / 2.7 |
+| | paired, fixed | .0585 | .0706 [.0739, .0673] | 0.68 | 3.0 / 2.9 |
 | noise | plain GN | .0545 | .0573 | 0.85 | |
 | | Huber GN | **.0177** | **.0215** | 1.00 | |
 | | net, clean-trained | .0704 | .0741 [.0746, .0736] | 0.71 | 223 / 272 |
 | | net, corr-trained | .0241 | .0242 [.0227, .0258] | 0.99 | 3.0 / 3.0 |
-| | paired, corr-trained | .0233 | .0231 [.0228, .0233] | 1.00 | 3.0 / 3.0 |
+| | paired, inert mixing | .0233 | .0231 [.0228, .0233] | 1.00 | 3.0 / 3.0 |
+| | paired, fixed | .0250 | .0257 [.0262, .0253] | 0.99 | 3.0 / 3.3 |
 | all | plain GN | .2228 | .3311 | 0.20 | |
 | | Huber GN | .1405 | .2239 | 0.32 | |
 | | net, clean-trained | .2033 | .2757 [.3016, .2498] | 0.16 | 1462 / 1796 |
 | | net, corr-trained | **.0615** | **.0821** [.0827, .0815] | 0.64 | 2.9 / 2.6 |
-| | paired, corr-trained | **.0616** | **.0762** [.0734, .0789] | 0.62 | 2.8 / 2.5 |
+| | paired, inert mixing | **.0616** | **.0762** [.0734, .0789] | 0.62 | 2.8 / 2.5 |
+| | paired, fixed | .0629 | .0775 [.0780, .0770] | 0.64 | 2.8 / 2.8 |
 
 1. Distractor spots break GN (about $20\times$ worse than clean, 20--34% of cases within $0.1^\circ$); Huber GN removes about a third of the error and loses the parallax trend. Pixel noise alone costs plain GN $4\times$; Huber GN recovers nearly all of it.
 2. The corruption-trained net is 2--3$\times$ better than Huber GN on `neighbours` and `all`, with mean Mahalanobis$^2$ near 3 (2.5--3.0 held-out too; coverage not checked); on `noise` alone Huber GN is as good or better (0.0215 vs 0.0242; every net seed is worse). Errors are heavy-tailed: held-out $\perp$ RMS 0.05
    vs 0.004 clean, 34--38% of held-out cases above $0.1^\circ$.
 3. Corruption-aware training is what matters; whether the iterations help under corruption was not tested (no $T=1$ corruption-trained run). The clean-trained net lies between plain and Huber GN on distractors (9--21% better than plain GN: in-dist .1934/.2033 vs .2253/.2228, held-out .2706/.2757 vs .3428/.3311), is worse on `noise` (0.074 vs 0.057) and wildly overconfident; corruption-aware training costs clean-data accuracy (held-out 0.0176--0.0210 vs 0.0143--0.0161 vs 0.0119 GN) and makes the covariance underconfident on clean data (Mah$^2$ 2.1--2.3).
 4. Held-out voxels are harder under distractors for every method (held-out/in-dist: net 1.3$\times$, plain GN 1.5$\times$, Huber GN 1.6$\times$); the $r_\perp$ trend is lost for all (corr $-0.09$ to $-0.18$ for plain GN and the corruption-trained nets, $-0.17$ to $+0.04$ for the clean-trained net, $+0.13$/$+0.14$ for Huber GN).
-5. Pairing (partner-residual input only) has no clear benefit (differences $\le0.002^\circ$ except held-out `all`: paired .0734/.0789 vs unpaired .0827/.0815, 2 seeds, 6 voxels: suggestive). Untested hypothesis: a neighbour spot lands consistently on both detectors, so the partner check cannot reject it. Because the pair-encoding MLP is inert, these results say nothing about encoder-level detector mixing.
+5. Pairing has no clear benefit, with or without live encoder mixing. Inert mixing (partner residual only): differences $\le0.002^\circ$ except held-out `all` (.0734/.0789 vs unpaired .0827/.0815). Fixed mixing (2 seeds, 6 voxels): `neighbours` .0706 vs .0719 unpaired, `noise` .0257 vs .0242 (slightly worse), `all` .0775 [.0780, .0770] vs .0821 [.0827, .0815], i.e. the small held-out `all` gain is reproduced at the same size, not enlarged, so it is suggestive at best; error-vs-$r_\perp$ correlations are unchanged (clean $-0.58$/$-0.74$, `all` $-0.08$/$-0.10$). Untested hypothesis: a neighbour spot lands consistently on both detectors, so the partner check cannot reject it.
 
 Caveats. Two seeds, six held-out voxels; seed spreads of the held-out median are given in Section 5. Train and test corruptions are the same family with the same neighbour sets per voxel (new random draws, not new kinds of nuisance), so the
 advantage over robust GN may shrink out of family; the neighbour-model caveat of Section 2.7 applies. Robust GN is one fixed construction. Learning rate and $T$ were not re-tuned for corrupted data. What the weight head learned has not been analysed.
@@ -501,7 +507,8 @@ for V in clean neighbours noise all; do
 done
 
 # 3. nets: this is the corruption-trained net. Drop --corrupt-train for
-#    the clean-trained control; add --pairing for the paired net; seeds 0
+#    the clean-trained control; add --pairing for the paired net (run the fixed code: names with a
+#    `_pairfix` suffix, e.g. dis_res_gnpairfix_k3_corr, multi_res_gnpairfix_k3_lr1e-4); seeds 0
 #    and 1. The clean multi-voxel nets use stage3_multi_{train,test}.pt,
 #    --lr 3e-4 or 1e-4, --gn-iters 1 or 3 (flags as in MIGRATION_HISTORY)
 #    and --extra gn=benchmarks/toy_orientation_stage3/\
@@ -522,7 +529,8 @@ uv run python scripts/summarize_results.py "K3=$D/multi_res_gn_k3_s?.json"
 uv run python scripts/summarize_arch_step4.py \
     --test ${S}_arch_dis_test.pt --huber 1 --seeds 0 1 \
     --runs "corr-trained=dis_res_gn_k3_corr" \
-    "paired=dis_res_gnpair_k3_corr" \
+    "paired-inert=dis_res_gnpair_k3_corr" \
+    "paired-fixed=dis_res_gnpairfix_k3_corr" \
     "clean-trained=dis_res_gn_k3_cleantrain" \
     --out $D/step4_summary.json
 ```
