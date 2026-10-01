@@ -1802,7 +1802,7 @@ clean). Details and caveats below.
 Branch `feature/nn-orientation-arch`. Goal (plan `warm-plotting-platypus`): an architecture whose
 multi-voxel error falls with r⊥ like Gauss–Newton (GN), i.e. that uses parallax, and that survives
 realistic nuisance signal. Data and protocol as in Stage 3 step 3 (30 ManyGrains voxels, 24 train /
-6 held out, 0.1/0.25/0.5/1.0°); new runs use `--val-voxels 4` (voxels 6, 11, 19, 24), `--ema 0.998
+6 held out, 0.1/0.25/0.5/1.0°); new runs use `--val-voxels 4` (voxels 6, 11, 19, 24 [Correction 2026-10-01: seed 0 only; seed 1 uses 3, 11, 20, 29]), `--ema 0.998
 --checkpoint ema` (EMA weights at the last epoch instead of best-epoch selection), 60 epochs, lr 3e-4,
 clip 1, cosine, batch 64, mps, decoupled loss, seeds 0 and 1. Numbers are means of the two seeds,
 from `benchmarks/toy_orientation_arch/*res*.json` (tables: `*_summary.txt`,
@@ -1963,6 +1963,16 @@ The pair MLP's output layer is zero-initialised (the network starts as the unpai
 learning rate of 3e-4 with zero-init gave 0.016/0.019 and lr 1e-4 fixed it. To compare like with like, the unpaired K=3 net was re-run at lr 1e-4.
 Tests: `pair_index` links exactly the same-reflection, same-branch, other-detector entry (symmetric, equal nominal ω), incl. unpaired/3-detector
 cases; GNLayerNet permutation/padding invariance holds with pairing (partner indices permuted consistently).
+
+[Correction 2026-10-01: the pair-encoding MLP described above never trains. `GNLayerNet.forward` applies
+`f = f + relu(pair2(relu(pair1(...))))` with `pair2` zero-initialised (`toy_orientation_model.py` lines 398-402, 448), so the
+pre-activation of the ReLU is exactly 0, ReLU'(0) = 0, and `pair1`/`pair2` receive exactly zero gradient forever (verified by backward;
+`head`/`cov` parameters do get gradient). In every paired run (`gnpair*`) pairing therefore acted only through the head's
+asinh(partner residual) input and the has-partner flag; 12,480 of the 115,393 parameters are inert. The statement that zero-initialisation
+"fixed" the instability is better read as zero-initialisation switching the mixing path off; only the unstable `gnpairv1` had live mixing.
+The Step 3 and Step 4 conclusions on pairing ("no clear benefit") therefore test only the partner-residual input, not encoder-level mixing
+of the two detectors. The unit tests missed it: the invariance test re-initialises the zero parameters and the gradient test checks only
+finiteness. See `docs/orientation_nn_design.md` Section 3.4. No code change was made in this correction.]
 
 **Clean data, 30 voxels, K=3, 2 seeds** (`step3_summary.txt`; median angle / z RMS / ⊥ RMS at 0.1/0.25/0.5/1.0°):
 

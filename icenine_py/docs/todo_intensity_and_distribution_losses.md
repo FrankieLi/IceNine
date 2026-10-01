@@ -21,8 +21,10 @@ should the measure of fit compare distributions? Neither is the current bottlene
 
 - On the same binarised data, the exact-Bayes posterior mean reaches ~0.004° and
   Gauss–Newton ~0.03° (voxel 0, r⊥ = 12 µm) / ~0.01° (ManyGrains voxel 77,
-  r⊥ = 399 µm). The networks are 5–10× above the Bayes floor, so the information is
-  in the binary data; the networks do not extract it.
+  r⊥ = 399 µm). The pooled set networks were 5–10× above the Bayes floor; `GNLayerNet`
+  (Step 2) is 2–7× above the exact-Bayes median at voxel 0 and 9–16× at voxel 77
+  (per bin, `docs/orientation_nn_design.md` Section 8), so the information is in the
+  binary data; the networks do not extract all of it.
 - For supervised training, binary inputs do not make the loss surface discontinuous:
   gradients are with respect to the weights, not δ. Binarisation only makes several δ
   map to the same input, which is already priced into the Bayes floor.
@@ -86,14 +88,16 @@ distance.
 The networks already output a distribution (Gaussian mean + full covariance, trained
 with NLL). With the exact-Bayes samples (`scripts/exact_bayes_baseline.py`) the output
 can also be scored against the true posterior (KL divergence, calibration / coverage),
-not only by mean error. Stage 3 showed why this matters: the 30-voxel net's mean
-Mahalanobis² is 3.2–4.1 on training voxels but 17–34 on held-out voxels (overconfident).
+not only by mean error. Stage 3 showed why this matters: the 30-voxel set net's mean
+Mahalanobis² was 3.2–4.1 on training voxels but 17–34 on held-out voxels (overconfident;
+superseded: `GNLayerNet` has 3.5–4.5 on held-out clean data, see
+`docs/orientation_nn_design.md` Section 7; coverage was still not checked).
 
 # Related training note (done: hypothesis confirmed, 2026-09-30)
 
 The Stage 3 stage-axis failure was a Gaussian-NLL pathology, not an input problem: the NLL
 gradient on the mean is scaled by 1/σ², so once σ_⊥ ≈ 0.01° and σ_z ≈ 0.5° the z-mean gradient is
-~1000x weaker and z stays at "don't know" (Seitzer et al. 2022). Tested on voxel 0
+~2500x weaker (the variance ratio (0.5/0.01)²) and z stays at "don't know" (Seitzer et al. 2022). Tested on voxel 0
 (`MIGRATION_HISTORY.md`, "Stage 3 — NLL diagnostic"; runs in
 `benchmarks/toy_orientation_stage3/nll/`):
 
@@ -109,12 +113,13 @@ gradient on the mean is scaled by 1/σ², so once σ_⊥ ≈ 0.01° and σ_z ≈
 
 The earlier explanations (max pooling discards counts; mean pooling divides by the peak count;
 sum pooling rescales the signal) are superseded: sum pooling only compensated for the loss.
-Use `--loss decoupled` for the offset head from now on; the 30-voxel network (Step 3) has not
-been retrained with it.
+Use `--loss decoupled` for the offset head from now on. [Update 2026-10-01: the 30-voxel
+network has since been retrained with it (decoupled set net, then `GNLayerNet`, which replaced it);
+see `docs/orientation_nn_design.md`.]
 
 # Order
 
-1. Fix training: done, decoupled loss above (retrain the 30-voxel network with it).
+1. Fix training: done, decoupled loss above (the 30-voxel network was retrained with it; `GNLayerNet` replaced the set net).
 2. Per-peak second moments as extra measurement features (cheap, stays binary).
 3. α > 0 renderer with geometric per-pixel and per-frame fractions as soft inputs;
    noise and threshold jitter.
