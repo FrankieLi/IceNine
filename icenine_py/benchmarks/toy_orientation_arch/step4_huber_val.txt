@@ -1,0 +1,14 @@
+Huber threshold selection: 200 samples from 4 training-set voxels (6,11,19,24), |delta| 0.14-1.0 deg, windows corrupted with the fixed seed. Not the test set.
+variant method rms_z rms_perp median_angle frac<0.1
+clean gn 0.02207 0.00341 0.01351 100%
+clean huber0.5 0.02589 0.00364 0.01790 100%
+clean huber1 0.02375 0.00334 0.01579 100%
+clean huber2 0.02134 0.00327 0.01247 100%
+clean huber3 0.02211 0.00335 0.01344 100%
+clean huber5 0.02210 0.00339 0.01351 100%
+all gn 0.38659 0.06039 0.09454 52%
+all huber0.5 0.19674 0.05132 0.03363 66%
+all huber1 0.20660 0.05164 0.03249 66%
+all huber2 0.24342 0.05260 0.03282 66%
+all huber3 0.28438 0.05378 0.03688 65%
+all huber5 0.34573 0.05519 0.04263 63%

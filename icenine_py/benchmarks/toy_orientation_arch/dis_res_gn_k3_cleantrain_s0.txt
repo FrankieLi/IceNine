@@ -1,0 +1,397 @@
+validation voxels (held out of training, r_perp um): 6 (99), 11 (181), 19 (326), 24 (410)
+train 10000 / val 2000 samples, 130 peaks x 32x32, head=offset
+architecture gn: 0.10M parameters on mps
+epoch   1/60  train  -13.779828  val  -13.071050  val rms z 0.0235 perp 0.0038  sigma z 0.0139 perp 0.0038  (5s)
+epoch   2/60  train  -13.788698  val  -13.212938  val rms z 0.0233 perp 0.0037  sigma z 0.0143 perp 0.0039  (10s)
+epoch   3/60  train  -13.654638  val  -13.304588  val rms z 0.0232 perp 0.0037  sigma z 0.0148 perp 0.0039  (15s)
+epoch   4/60  train  -13.453010  val  -13.361624  val rms z 0.0232 perp 0.0037  sigma z 0.0154 perp 0.0040  (20s)
+epoch   5/60  train  -12.989401  val  -13.383102  val rms z 0.0234 perp 0.0038  sigma z 0.0162 perp 0.0041  (26s)
+epoch   6/60  train  -12.030972  val  -13.330612  val rms z 0.0235 perp 0.0040  sigma z 0.0173 perp 0.0045  (35s)
+epoch   7/60  train  -11.717616  val  -13.101044  val rms z 0.0242 perp 0.0048  sigma z 0.0187 perp 0.0052  (45s)
+epoch   8/60  train  -11.662610  val  -12.690774  val rms z 0.0265 perp 0.0062  sigma z 0.0205 perp 0.0063  (54s)
+epoch   9/60  train  -11.672628  val  -12.212521  val rms z 0.0302 perp 0.0084  sigma z 0.0223 perp 0.0074  (63s)
+epoch  10/60  train  -11.674957  val  -11.783233  val rms z 0.0340 perp 0.0106  sigma z 0.0239 perp 0.0084  (73s)
+epoch  11/60  train  -11.681754  val  -11.477388  val rms z 0.0368 perp 0.0124  sigma z 0.0249 perp 0.0092  (82s)
+epoch  12/60  train  -11.680078  val  -11.288785  val rms z 0.0386 perp 0.0135  sigma z 0.0257 perp 0.0097  (92s)
+epoch  13/60  train  -11.695974  val  -11.181441  val rms z 0.0395 perp 0.0142  sigma z 0.0261 perp 0.0101  (101s)
+epoch  14/60  train  -11.684612  val  -11.116959  val rms z 0.0398 perp 0.0146  sigma z 0.0264 perp 0.0104  (110s)
+epoch  15/60  train  -11.693992  val  -11.084325  val rms z 0.0398 perp 0.0148  sigma z 0.0265 perp 0.0106  (120s)
+epoch  16/60  train  -11.711838  val  -11.066674  val rms z 0.0396 perp 0.0149  sigma z 0.0265 perp 0.0107  (129s)
+epoch  17/60  train  -11.711144  val  -11.055504  val rms z 0.0392 perp 0.0149  sigma z 0.0264 perp 0.0109  (139s)
+epoch  18/60  train  -11.718822  val  -11.052066  val rms z 0.0386 perp 0.0148  sigma z 0.0263 perp 0.0110  (148s)
+epoch  19/60  train  -11.756790  val  -11.051946  val rms z 0.0379 perp 0.0147  sigma z 0.0260 perp 0.0111  (157s)
+epoch  20/60  train  -11.785110  val  -11.061933  val rms z 0.0372 perp 0.0146  sigma z 0.0258 perp 0.0111  (167s)
+epoch  21/60  train  -11.826868  val  -11.080601  val rms z 0.0365 perp 0.0144  sigma z 0.0255 perp 0.0111  (176s)
+epoch  22/60  train  -11.894699  val  -11.119790  val rms z 0.0357 perp 0.0142  sigma z 0.0252 perp 0.0111  (186s)
+epoch  23/60  train  -11.950652  val  -11.176212  val rms z 0.0348 perp 0.0138  sigma z 0.0248 perp 0.0109  (195s)
+epoch  24/60  train  -11.962648  val  -11.236607  val rms z 0.0339 perp 0.0134  sigma z 0.0245 perp 0.0108  (205s)
+epoch  25/60  train  -11.963842  val  -11.307766  val rms z 0.0328 perp 0.0130  sigma z 0.0242 perp 0.0107  (214s)
+epoch  26/60  train  -11.909512  val  -11.389322  val rms z 0.0315 perp 0.0126  sigma z 0.0240 perp 0.0106  (223s)
+epoch  27/60  train  -11.822424  val  -11.486863  val rms z 0.0299 perp 0.0122  sigma z 0.0239 perp 0.0107  (233s)
+epoch  28/60  train  -11.997656  val  -11.612779  val rms z 0.0279 perp 0.0115  sigma z 0.0238 perp 0.0105  (242s)
+epoch  29/60  train  -13.195343  val  -12.007020  val rms z 0.0248 perp 0.0096  sigma z 0.0230 perp 0.0090  (252s)
+epoch  30/60  train  -13.691829  val  -12.577256  val rms z 0.0220 perp 0.0072  sigma z 0.0218 perp 0.0072  (261s)
+epoch  31/60  train  -13.836635  val  -13.061521  val rms z 0.0205 perp 0.0056  sigma z 0.0209 perp 0.0059  (270s)
+epoch  32/60  train  -13.904947  val  -13.405677  val rms z 0.0199 perp 0.0046  sigma z 0.0203 perp 0.0051  (280s)
+epoch  33/60  train  -13.957209  val  -13.642294  val rms z 0.0195 perp 0.0039  sigma z 0.0199 perp 0.0046  (289s)
+epoch  34/60  train  -13.964491  val  -13.786378  val rms z 0.0194 perp 0.0036  sigma z 0.0198 perp 0.0042  (299s)
+epoch  35/60  train  -13.993446  val  -13.874552  val rms z 0.0194 perp 0.0035  sigma z 0.0196 perp 0.0039  (308s)
+epoch  36/60  train  -13.997368  val  -13.925303  val rms z 0.0195 perp 0.0034  sigma z 0.0195 perp 0.0038  (318s)
+epoch  37/60  train  -14.006522  val  -13.953685  val rms z 0.0197 perp 0.0033  sigma z 0.0195 perp 0.0036  (327s)
+epoch  38/60  train  -14.023755  val  -13.970698  val rms z 0.0198 perp 0.0033  sigma z 0.0194 perp 0.0035  (336s)
+epoch  39/60  train  -14.042356  val  -13.981605  val rms z 0.0199 perp 0.0033  sigma z 0.0193 perp 0.0035  (346s)
+epoch  40/60  train  -14.048437  val  -13.986613  val rms z 0.0201 perp 0.0032  sigma z 0.0192 perp 0.0034  (355s)
+epoch  41/60  train  -14.062006  val  -13.988882  val rms z 0.0202 perp 0.0032  sigma z 0.0191 perp 0.0034  (365s)
+epoch  42/60  train  -14.067360  val  -13.989520  val rms z 0.0202 perp 0.0032  sigma z 0.0189 perp 0.0033  (374s)
+epoch  43/60  train  -14.079280  val  -13.989348  val rms z 0.0203 perp 0.0032  sigma z 0.0188 perp 0.0033  (383s)
+epoch  44/60  train  -14.090374  val  -13.987761  val rms z 0.0204 perp 0.0032  sigma z 0.0187 perp 0.0033  (393s)
+epoch  45/60  train  -14.088645  val  -13.985868  val rms z 0.0204 perp 0.0032  sigma z 0.0186 perp 0.0033  (402s)
+epoch  46/60  train  -14.095649  val  -13.984515  val rms z 0.0204 perp 0.0032  sigma z 0.0185 perp 0.0033  (412s)
+epoch  47/60  train  -14.100435  val  -13.983374  val rms z 0.0205 perp 0.0032  sigma z 0.0185 perp 0.0033  (421s)
+epoch  48/60  train  -14.106020  val  -13.982562  val rms z 0.0205 perp 0.0032  sigma z 0.0184 perp 0.0032  (430s)
+epoch  49/60  train  -14.110519  val  -13.980858  val rms z 0.0205 perp 0.0032  sigma z 0.0183 perp 0.0032  (440s)
+epoch  50/60  train  -14.110143  val  -13.979997  val rms z 0.0205 perp 0.0032  sigma z 0.0183 perp 0.0032  (449s)
+epoch  51/60  train  -14.112653  val  -13.980054  val rms z 0.0205 perp 0.0032  sigma z 0.0182 perp 0.0032  (459s)
+epoch  52/60  train  -14.119846  val  -13.979092  val rms z 0.0205 perp 0.0032  sigma z 0.0181 perp 0.0032  (468s)
+epoch  53/60  train  -14.116980  val  -13.979179  val rms z 0.0205 perp 0.0032  sigma z 0.0181 perp 0.0032  (477s)
+epoch  54/60  train  -14.118729  val  -13.978181  val rms z 0.0205 perp 0.0032  sigma z 0.0181 perp 0.0032  (487s)
+epoch  55/60  train  -14.119026  val  -13.978962  val rms z 0.0204 perp 0.0032  sigma z 0.0181 perp 0.0032  (496s)
+epoch  56/60  train  -14.120302  val  -13.978205  val rms z 0.0205 perp 0.0032  sigma z 0.0180 perp 0.0032  (506s)
+epoch  57/60  train  -14.121191  val  -13.977193  val rms z 0.0205 perp 0.0032  sigma z 0.0180 perp 0.0032  (515s)
+epoch  58/60  train  -14.121522  val  -13.977171  val rms z 0.0205 perp 0.0032  sigma z 0.0180 perp 0.0032  (524s)
+epoch  59/60  train  -14.122243  val  -13.977028  val rms z 0.0205 perp 0.0032  sigma z 0.0180 perp 0.0032  (534s)
+epoch  60/60  train  -14.122082  val  -13.977059  val rms z 0.0205 perp 0.0032  sigma z 0.0180 perp 0.0032  (543s)
+using the EMA weights (decay 0.998) at the last epoch (val -13.977059)
+
+##### test set variant: clean #####
+
+ |delta| method                 n      rms_z   rms_perp  median_ang  <0.5deg  <0.1deg   (degrees)
+
+=== in-dist voxels (960 test cases) ===
+    0.10 predict-nominal      240    0.05653    0.05833     0.10000     100%      52%
+    0.10 huber                240    0.02487    0.00306     0.01136     100%     100%
+    0.10 gn                   240    0.01998    0.00332     0.01159     100%     100%
+    0.10 net (gn/offset)      240    0.01862    0.00279     0.01084     100%     100%
+         net sigma xyz      [0.00291 0.0031  0.01813]   mean Mahalanobis^2 = 2.76 (3.0 if calibrated)
+    0.25 predict-nominal      240    0.14694    0.14302     0.25000     100%       0%
+    0.25 huber                240    0.02781    0.00328     0.01539     100%     100%
+    0.25 gn                   240    0.02447    0.00348     0.01513     100%     100%
+    0.25 net (gn/offset)      240    0.02261    0.00284     0.01391     100%     100%
+         net sigma xyz      [0.00294 0.00309 0.01807]   mean Mahalanobis^2 = 3.11 (3.0 if calibrated)
+    0.50 predict-nominal      240    0.28152    0.29219     0.50000      49%       0%
+    0.50 huber                240    0.02590    0.00325     0.01151     100%     100%
+    0.50 gn                   240    0.02249    0.00341     0.01190     100%     100%
+    0.50 net (gn/offset)      240    0.02037    0.00285     0.01134     100%     100%
+         net sigma xyz      [0.00301 0.0031  0.01821]   mean Mahalanobis^2 = 2.69 (3.0 if calibrated)
+    1.00 predict-nominal      240    0.60122    0.56504     1.00000       0%       0%
+    1.00 huber                240    0.02625    0.00313     0.01350     100%      99%
+    1.00 gn                   240    0.02234    0.00365     0.01358     100%     100%
+    1.00 net (gn/offset)      240    0.02263    0.00347     0.01211     100%     100%
+         net sigma xyz      [0.0032  0.00321 0.01967]   mean Mahalanobis^2 = 3.33 (3.0 if calibrated)
+
+=== held-out voxels (240 test cases) ===
+    0.10 predict-nominal       60    0.06401    0.05433     0.10000     100%      52%
+    0.10 huber                 60    0.02102    0.00366     0.01712     100%     100%
+    0.10 gn                    60    0.01721    0.00356     0.01372     100%     100%
+    0.10 net (gn/offset)       60    0.02153    0.00270     0.01528     100%     100%
+         net sigma xyz      [0.00286 0.00311 0.01829]   mean Mahalanobis^2 = 3.35 (3.0 if calibrated)
+    0.25 predict-nominal       60    0.13756    0.14761     0.25000     100%       0%
+    0.25 huber                 60    0.02432    0.00341     0.01383     100%     100%
+    0.25 gn                    60    0.02011    0.00341     0.01210     100%     100%
+    0.25 net (gn/offset)       60    0.02127    0.00292     0.01600     100%     100%
+         net sigma xyz      [0.00288 0.0031  0.01825]   mean Mahalanobis^2 = 3.14 (3.0 if calibrated)
+    0.50 predict-nominal       60    0.28225    0.29183     0.50000      43%       0%
+    0.50 huber                 60    0.02441    0.00366     0.01434     100%     100%
+    0.50 gn                    60    0.01956    0.00354     0.01158     100%     100%
+    0.50 net (gn/offset)       60    0.02141    0.00321     0.01266     100%     100%
+         net sigma xyz      [0.00294 0.00311 0.01836]   mean Mahalanobis^2 = 3.37 (3.0 if calibrated)
+    1.00 predict-nominal       60    0.59612    0.56773     1.00000       0%       0%
+    1.00 huber                 60    0.02262    0.00352     0.01183     100%     100%
+    1.00 gn                    60    0.01630    0.00353     0.00998     100%     100%
+    1.00 net (gn/offset)       60    0.02054    0.00369     0.01464     100%     100%
+         net sigma xyz      [0.00319 0.00318 0.01986]   mean Mahalanobis^2 = 3.96 (3.0 if calibrated)
+
+voxel  r_perp peaks  held    n  median angle (deg), all magnitudes
+    0       0   116 False   40  net 0.0208  gn 0.0180  huber 0.0203
+    1      25   122 False   40  net 0.0255  gn 0.0199  huber 0.0257
+    2      32   119  True   40  net 0.0193  gn 0.0183  huber 0.0208
+    3      57   128 False   40  net 0.0311  gn 0.0249  huber 0.0278
+    4      66   114 False   40  net 0.0210  gn 0.0164  huber 0.0299
+    5      92   125 False   40  net 0.0229  gn 0.0290  huber 0.0297
+    6      99   124 False   40  net 0.0286  gn 0.0247  huber 0.0337
+    7     126   130  True   40  net 0.0159  gn 0.0155  huber 0.0198
+    8     144   119 False   40  net 0.0119  gn 0.0341  huber 0.0438
+    9     163   124 False   40  net 0.0167  gn 0.0288  huber 0.0302
+   10     171   123 False   40  net 0.0123  gn 0.0118  huber 0.0132
+   11     181   118 False   40  net 0.0147  gn 0.0128  huber 0.0159
+   12     215   126  True   40  net 0.0267  gn 0.0178  huber 0.0230
+   13     230   118 False   40  net 0.0118  gn 0.0126  huber 0.0132
+   14     241   122 False   40  net 0.0111  gn 0.0103  huber 0.0097
+   15     254   120 False   40  net 0.0076  gn 0.0077  huber 0.0090
+   16     268   124 False   40  net 0.0090  gn 0.0182  huber 0.0109
+   17     301   122  True   40  net 0.0129  gn 0.0132  huber 0.0152
+   18     312   116 False   40  net 0.0129  gn 0.0078  huber 0.0088
+   19     326   105 False   40  net 0.0122  gn 0.0271  huber 0.0221
+   20     346   113 False   40  net 0.0071  gn 0.0110  huber 0.0066
+   21     365   113 False   40  net 0.0135  gn 0.0082  huber 0.0107
+   22     372   117  True   40  net 0.0129  gn 0.0093  huber 0.0145
+   23     394   107 False   40  net 0.0174  gn 0.0187  huber 0.0163
+   24     410   121 False   40  net 0.0115  gn 0.0074  huber 0.0090
+   25     435   113 False   40  net 0.0070  gn 0.0111  huber 0.0075
+   26     456   116 False   40  net 0.0072  gn 0.0076  huber 0.0063
+   27     457   116  True   40  net 0.0080  gn 0.0088  huber 0.0083
+   28     487   120 False   40  net 0.0077  gn 0.0063  huber 0.0055
+   29     501   122 False   40  net 0.0074  gn 0.0066  huber 0.0064
+           net: corr(voxel median error, r_perp) = -0.75, median per-voxel error in-dist 0.0123 held-out 0.0144
+            gn: corr(voxel median error, r_perp) = -0.63, median per-voxel error in-dist 0.0127 held-out 0.0143
+         huber: corr(voxel median error, r_perp) = -0.73, median per-voxel error in-dist 0.0132 held-out 0.0175
+
+##### test set variant: neighbours #####
+
+ |delta| method                 n      rms_z   rms_perp  median_ang  <0.5deg  <0.1deg   (degrees)
+
+=== in-dist voxels (960 test cases) ===
+    0.10 predict-nominal      240    0.05653    0.05833     0.10000     100%      52%
+    0.10 huber                240    0.38064    0.06326     0.15142      82%      46%
+    0.10 gn                   240    0.45171    0.08267     0.24441      72%      32%
+    0.10 net (gn/offset)      240    0.46536    0.06656     0.20000      70%      34%
+         net sigma xyz      [0.003   0.00313 0.01825]   mean Mahalanobis^2 = 2049.44 (3.0 if calibrated)
+    0.25 predict-nominal      240    0.14694    0.14302     0.25000     100%       0%
+    0.25 huber                240    0.37915    0.06380     0.11366      83%      48%
+    0.25 gn                   240    0.44779    0.08116     0.21211      75%      36%
+    0.25 net (gn/offset)      240    0.46638    0.06668     0.19689      75%      40%
+         net sigma xyz      [0.00301 0.00313 0.01831]   mean Mahalanobis^2 = 1914.46 (3.0 if calibrated)
+    0.50 predict-nominal      240    0.28152    0.29219     0.50000      49%       0%
+    0.50 huber                240    0.37868    0.06474     0.15750      83%      42%
+    0.50 gn                   240    0.44549    0.07774     0.24155      73%      36%
+    0.50 net (gn/offset)      240    0.45687    0.06540     0.22359      72%      36%
+         net sigma xyz      [0.00307 0.00313 0.01843]   mean Mahalanobis^2 = 2052.94 (3.0 if calibrated)
+    1.00 predict-nominal      240    0.60122    0.56504     1.00000       0%       0%
+    1.00 huber                240    0.33823    0.06124     0.12725      84%      45%
+    1.00 gn                   240    0.44660    0.07713     0.22709      71%      33%
+    1.00 net (gn/offset)      240    0.47764    0.06164     0.21166      70%      35%
+         net sigma xyz      [0.00324 0.00322 0.01977]   mean Mahalanobis^2 = 1587.00 (3.0 if calibrated)
+
+=== held-out voxels (240 test cases) ===
+    0.10 predict-nominal       60    0.06401    0.05433     0.10000     100%      52%
+    0.10 huber                 60    0.27590    0.07339     0.17700      88%      35%
+    0.10 gn                    60    0.66027    0.09938     0.30776      60%      22%
+    0.10 net (gn/offset)       60    0.59945    0.07797     0.25314      65%      23%
+         net sigma xyz      [0.00296 0.00316 0.01859]   mean Mahalanobis^2 = 2104.58 (3.0 if calibrated)
+    0.25 predict-nominal       60    0.13756    0.14761     0.25000     100%       0%
+    0.25 huber                 60    0.30976    0.06899     0.27122      85%      25%
+    0.25 gn                    60    0.66919    0.10379     0.36869      65%      17%
+    0.25 net (gn/offset)       60    0.61757    0.07371     0.32689      65%      20%
+         net sigma xyz      [0.00298 0.00316 0.01868]   mean Mahalanobis^2 = 2206.88 (3.0 if calibrated)
+    0.50 predict-nominal       60    0.28225    0.29183     0.50000      43%       0%
+    0.50 huber                 60    0.25919    0.07010     0.18951      93%      37%
+    0.50 gn                    60    0.58075    0.09903     0.32560      65%      20%
+    0.50 net (gn/offset)       60    0.53372    0.07302     0.27801      68%      25%
+         net sigma xyz      [0.00302 0.00315 0.01891]   mean Mahalanobis^2 = 1823.47 (3.0 if calibrated)
+    1.00 predict-nominal       60    0.59612    0.56773     1.00000       0%       0%
+    1.00 huber                 60    0.29291    0.06824     0.24049      90%      33%
+    1.00 gn                    60    0.65103    0.09699     0.36824      62%      23%
+    1.00 net (gn/offset)       60    0.60967    0.06854     0.29780      65%      27%
+         net sigma xyz      [0.00324 0.00324 0.02068]   mean Mahalanobis^2 = 1719.94 (3.0 if calibrated)
+
+voxel  r_perp peaks  held    n  median angle (deg), all magnitudes
+    0       0   116 False   40  net 0.1602  gn 0.1623  huber 0.1124
+    1      25   122 False   40  net 0.4050  gn 0.3177  huber 0.1389
+    2      32   119  True   40  net 0.6655  gn 0.7580  huber 0.1603
+    3      57   128 False   40  net 0.2986  gn 0.1786  huber 0.1131
+    4      66   114 False   40  net 0.0218  gn 0.0199  huber 0.0299
+    5      92   125 False   40  net 0.0971  gn 0.1827  huber 0.1072
+    6      99   124 False   40  net 0.9381  gn 0.8694  huber 0.4045
+    7     126   130  True   40  net 1.2374  gn 1.4008  huber 0.4777
+    8     144   119 False   40  net 0.3529  gn 0.2971  huber 0.2082
+    9     163   124 False   40  net 0.0166  gn 0.0243  huber 0.0293
+   10     171   123 False   40  net 0.8446  gn 0.8402  huber 0.8113
+   11     181   118 False   40  net 0.2129  gn 0.2153  huber 0.1326
+   12     215   126  True   40  net 0.1307  gn 0.1699  huber 0.0933
+   13     230   118 False   40  net 1.2111  gn 1.1429  huber 0.8637
+   14     241   122 False   40  net 0.3911  gn 0.4236  huber 0.2687
+   15     254   120 False   40  net 0.1513  gn 0.1649  huber 0.0431
+   16     268   124 False   40  net 0.6151  gn 0.7151  huber 0.7289
+   17     301   122  True   40  net 0.1713  gn 0.1983  huber 0.2177
+   18     312   116 False   40  net 0.5906  gn 0.6500  huber 0.6138
+   19     326   105 False   40  net 0.0142  gn 0.0269  huber 0.0221
+   20     346   113 False   40  net 0.2313  gn 0.2924  huber 0.2590
+   21     365   113 False   40  net 0.1643  gn 0.2401  huber 0.1316
+   22     372   117  True   40  net 0.1888  gn 0.3002  huber 0.2161
+   23     394   107 False   40  net 0.5916  gn 0.6230  huber 0.5393
+   24     410   121 False   40  net 0.0185  gn 0.0103  huber 0.0094
+   25     435   113 False   40  net 0.3251  gn 0.3547  huber 0.2943
+   26     456   116 False   40  net 0.2742  gn 0.2685  huber 0.1952
+   27     457   116  True   40  net 0.4580  gn 0.4433  huber 0.3820
+   28     487   120 False   40  net 0.1063  gn 0.1058  huber 0.0539
+   29     501   122 False   40  net 0.6031  gn 0.5991  huber 0.4928
+           net: corr(voxel median error, r_perp) = -0.14, median per-voxel error in-dist 0.2864 held-out 0.3234
+            gn: corr(voxel median error, r_perp) = -0.11, median per-voxel error in-dist 0.2805 held-out 0.3718
+         huber: corr(voxel median error, r_perp) = +0.13, median per-voxel error in-dist 0.1671 held-out 0.2169
+
+##### test set variant: noise #####
+
+ |delta| method                 n      rms_z   rms_perp  median_ang  <0.5deg  <0.1deg   (degrees)
+
+=== in-dist voxels (960 test cases) ===
+    0.10 predict-nominal      240    0.05653    0.05833     0.10000     100%      52%
+    0.10 huber                240    0.03116    0.00438     0.01679     100%     100%
+    0.10 gn                   240    0.06303    0.01790     0.04537     100%      86%
+    0.10 net (gn/offset)      240    0.08770    0.02472     0.06195     100%      78%
+         net sigma xyz      [0.00313 0.00331 0.01918]   mean Mahalanobis^2 = 137.40 (3.0 if calibrated)
+    0.25 predict-nominal      240    0.14694    0.14302     0.25000     100%       0%
+    0.25 huber                240    0.02964    0.00479     0.01781     100%      99%
+    0.25 gn                   240    0.05905    0.01952     0.04840     100%      90%
+    0.25 net (gn/offset)      240    0.08190    0.02621     0.06049     100%      78%
+         net sigma xyz      [0.00315 0.00329 0.0191 ]   mean Mahalanobis^2 = 163.43 (3.0 if calibrated)
+    0.50 predict-nominal      240    0.28152    0.29219     0.50000      49%       0%
+    0.50 huber                240    0.03002    0.00495     0.01766     100%      99%
+    0.50 gn                   240    0.06471    0.02450     0.05312     100%      86%
+    0.50 net (gn/offset)      240    0.09345    0.02909     0.06590     100%      71%
+         net sigma xyz      [0.00323 0.00329 0.01927]   mean Mahalanobis^2 = 196.44 (3.0 if calibrated)
+    1.00 predict-nominal      240    0.60122    0.56504     1.00000       0%       0%
+    1.00 huber                240    0.03344    0.00531     0.01804     100%      98%
+    1.00 gn                   240    0.07784    0.03871     0.07591     100%      72%
+    1.00 net (gn/offset)      240    0.09927    0.03685     0.08314     100%      61%
+         net sigma xyz      [0.00339 0.00339 0.02064]   mean Mahalanobis^2 = 287.10 (3.0 if calibrated)
+
+=== held-out voxels (240 test cases) ===
+    0.10 predict-nominal       60    0.06401    0.05433     0.10000     100%      52%
+    0.10 huber                 60    0.02762    0.00493     0.02142     100%     100%
+    0.10 gn                    60    0.05530    0.01801     0.04840     100%      92%
+    0.10 net (gn/offset)       60    0.07903    0.02419     0.06435     100%      78%
+         net sigma xyz      [0.00307 0.00331 0.01933]   mean Mahalanobis^2 = 129.69 (3.0 if calibrated)
+    0.25 predict-nominal       60    0.13756    0.14761     0.25000     100%       0%
+    0.25 huber                 60    0.03072    0.00470     0.02054     100%     100%
+    0.25 gn                    60    0.06318    0.02205     0.04484     100%      93%
+    0.25 net (gn/offset)       60    0.07318    0.02736     0.06303     100%      82%
+         net sigma xyz      [0.00308 0.0033  0.01929]   mean Mahalanobis^2 = 166.60 (3.0 if calibrated)
+    0.50 predict-nominal       60    0.28225    0.29183     0.50000      43%       0%
+    0.50 huber                 60    0.03169    0.00517     0.02095     100%      98%
+    0.50 gn                    60    0.06711    0.02759     0.05874     100%      85%
+    0.50 net (gn/offset)       60    0.09260    0.03297     0.07739     100%      68%
+         net sigma xyz      [0.00313 0.00329 0.01923]   mean Mahalanobis^2 = 223.86 (3.0 if calibrated)
+    1.00 predict-nominal       60    0.59612    0.56773     1.00000       0%       0%
+    1.00 huber                 60    0.03036    0.00633     0.02270     100%     100%
+    1.00 gn                    60    0.07502    0.04067     0.07951     100%      72%
+    1.00 net (gn/offset)       60    0.09258    0.04167     0.08899     100%      57%
+         net sigma xyz      [0.00338 0.00338 0.02084]   mean Mahalanobis^2 = 348.08 (3.0 if calibrated)
+
+voxel  r_perp peaks  held    n  median angle (deg), all magnitudes
+    0       0   116 False   40  net 0.0518  gn 0.0705  huber 0.0274
+    1      25   122 False   40  net 0.0589  gn 0.0699  huber 0.0290
+    2      32   119  True   40  net 0.0822  gn 0.0748  huber 0.0260
+    3      57   128 False   40  net 0.0745  gn 0.0553  huber 0.0145
+    4      66   114 False   40  net 0.0927  gn 0.0714  huber 0.0268
+    5      92   125 False   40  net 0.0910  gn 0.0721  huber 0.0250
+    6      99   124 False   40  net 0.0815  gn 0.0761  huber 0.0362
+    7     126   130  True   40  net 0.1022  gn 0.0504  huber 0.0276
+    8     144   119 False   40  net 0.0822  gn 0.0609  huber 0.0344
+    9     163   124 False   40  net 0.0787  gn 0.0623  huber 0.0362
+   10     171   123 False   40  net 0.1076  gn 0.0671  huber 0.0252
+   11     181   118 False   40  net 0.0832  gn 0.0558  huber 0.0234
+   12     215   126  True   40  net 0.0685  gn 0.0670  huber 0.0329
+   13     230   118 False   40  net 0.0934  gn 0.0583  huber 0.0173
+   14     241   122 False   40  net 0.0685  gn 0.0459  huber 0.0138
+   15     254   120 False   40  net 0.0628  gn 0.0476  huber 0.0161
+   16     268   124 False   40  net 0.0619  gn 0.0461  huber 0.0178
+   17     301   122  True   40  net 0.0752  gn 0.0482  huber 0.0223
+   18     312   116 False   40  net 0.0498  gn 0.0514  huber 0.0147
+   19     326   105 False   40  net 0.0597  gn 0.0620  huber 0.0249
+   20     346   113 False   40  net 0.0730  gn 0.0540  huber 0.0157
+   21     365   113 False   40  net 0.0643  gn 0.0454  huber 0.0142
+   22     372   117  True   40  net 0.0648  gn 0.0479  huber 0.0182
+   23     394   107 False   40  net 0.0645  gn 0.0494  huber 0.0202
+   24     410   121 False   40  net 0.0587  gn 0.0439  huber 0.0122
+   25     435   113 False   40  net 0.0615  gn 0.0370  huber 0.0144
+   26     456   116 False   40  net 0.0551  gn 0.0400  huber 0.0108
+   27     457   116  True   40  net 0.0753  gn 0.0570  huber 0.0123
+   28     487   120 False   40  net 0.0589  gn 0.0452  huber 0.0102
+   29     501   122 False   40  net 0.0497  gn 0.0363  huber 0.0092
+           net: corr(voxel median error, r_perp) = -0.49, median per-voxel error in-dist 0.0644 held-out 0.0752
+            gn: corr(voxel median error, r_perp) = -0.80, median per-voxel error in-dist 0.0547 held-out 0.0537
+         huber: corr(voxel median error, r_perp) = -0.72, median per-voxel error in-dist 0.0176 held-out 0.0241
+
+##### test set variant: all #####
+
+ |delta| method                 n      rms_z   rms_perp  median_ang  <0.5deg  <0.1deg   (degrees)
+
+=== in-dist voxels (960 test cases) ===
+    0.10 predict-nominal      240    0.05653    0.05833     0.10000     100%      52%
+    0.10 huber                240    0.35936    0.06330     0.14416      82%      44%
+    0.10 gn                   240    0.43802    0.08114     0.22441      72%      28%
+    0.10 net (gn/offset)      240    0.45969    0.06649     0.20876      70%      25%
+         net sigma xyz      [0.00321 0.00334 0.01932]   mean Mahalanobis^2 = 1775.64 (3.0 if calibrated)
+    0.25 predict-nominal      240    0.14694    0.14302     0.25000     100%       0%
+    0.25 huber                240    0.36798    0.06378     0.11591      82%      47%
+    0.25 gn                   240    0.43881    0.08007     0.21380      78%      37%
+    0.25 net (gn/offset)      240    0.45651    0.06804     0.19890      75%      32%
+         net sigma xyz      [0.00321 0.00332 0.01934]   mean Mahalanobis^2 = 1724.26 (3.0 if calibrated)
+    0.50 predict-nominal      240    0.28152    0.29219     0.50000      49%       0%
+    0.50 huber                240    0.36653    0.06459     0.16043      83%      42%
+    0.50 gn                   240    0.43365    0.07683     0.23017      74%      29%
+    0.50 net (gn/offset)      240    0.44703    0.06729     0.22612      74%      27%
+         net sigma xyz      [0.00328 0.00332 0.01948]   mean Mahalanobis^2 = 1841.64 (3.0 if calibrated)
+    1.00 predict-nominal      240    0.60122    0.56504     1.00000       0%       0%
+    1.00 huber                240    0.32599    0.06155     0.13810      84%      44%
+    1.00 gn                   240    0.43450    0.08338     0.21674      72%      23%
+    1.00 net (gn/offset)      240    0.46573    0.06881     0.22015      71%      24%
+         net sigma xyz      [0.00342 0.0034  0.02074]   mean Mahalanobis^2 = 1559.51 (3.0 if calibrated)
+
+=== held-out voxels (240 test cases) ===
+    0.10 predict-nominal       60    0.06401    0.05433     0.10000     100%      52%
+    0.10 huber                 60    0.27991    0.07443     0.18461      88%      33%
+    0.10 gn                    60    0.63651    0.09922     0.30704      62%      22%
+    0.10 net (gn/offset)       60    0.57747    0.07972     0.26368      68%      18%
+         net sigma xyz      [0.00316 0.00336 0.01968]   mean Mahalanobis^2 = 1882.87 (3.0 if calibrated)
+    0.25 predict-nominal       60    0.13756    0.14761     0.25000     100%       0%
+    0.25 huber                 60    0.31532    0.07072     0.24900      87%      27%
+    0.25 gn                    60    0.64803    0.10241     0.35299      68%      13%
+    0.25 net (gn/offset)       60    0.58669    0.07391     0.31220      70%      13%
+         net sigma xyz      [0.00317 0.00335 0.01973]   mean Mahalanobis^2 = 1912.25 (3.0 if calibrated)
+    0.50 predict-nominal       60    0.28225    0.29183     0.50000      43%       0%
+    0.50 huber                 60    0.25360    0.07007     0.22438      95%      37%
+    0.50 gn                    60    0.54095    0.10110     0.31641      68%      23%
+    0.50 net (gn/offset)       60    0.50445    0.07823     0.28834      68%      18%
+         net sigma xyz      [0.0032  0.00333 0.01977]   mean Mahalanobis^2 = 1703.11 (3.0 if calibrated)
+    1.00 predict-nominal       60    0.59612    0.56773     1.00000       0%       0%
+    1.00 huber                 60    0.30036    0.06960     0.23288      85%      32%
+    1.00 gn                    60    0.63586    0.09790     0.33277      62%      22%
+    1.00 net (gn/offset)       60    0.58971    0.07415     0.30757      70%      18%
+         net sigma xyz      [0.00343 0.00344 0.02169]   mean Mahalanobis^2 = 1654.34 (3.0 if calibrated)
+
+voxel  r_perp peaks  held    n  median angle (deg), all magnitudes
+    0       0   116 False   40  net 0.1628  gn 0.1762  huber 0.1232
+    1      25   122 False   40  net 0.4136  gn 0.3172  huber 0.1444
+    2      32   119  True   40  net 0.6275  gn 0.7045  huber 0.1549
+    3      57   128 False   40  net 0.3512  gn 0.2372  huber 0.1034
+    4      66   114 False   40  net 0.0955  gn 0.0737  huber 0.0285
+    5      92   125 False   40  net 0.1102  gn 0.1893  huber 0.0914
+    6      99   124 False   40  net 0.9211  gn 0.8766  huber 0.4032
+    7     126   130  True   40  net 1.1540  gn 1.3426  huber 0.4776
+    8     144   119 False   40  net 0.3878  gn 0.3254  huber 0.2247
+    9     163   124 False   40  net 0.0734  gn 0.0623  huber 0.0363
+   10     171   123 False   40  net 0.7783  gn 0.8214  huber 0.6738
+   11     181   118 False   40  net 0.1471  gn 0.1817  huber 0.1323
+   12     215   126  True   40  net 0.1575  gn 0.1718  huber 0.0925
+   13     230   118 False   40  net 1.1657  gn 1.0978  huber 0.8295
+   14     241   122 False   40  net 0.3770  gn 0.4055  huber 0.2502
+   15     254   120 False   40  net 0.1164  gn 0.1703  huber 0.0589
+   16     268   124 False   40  net 0.5672  gn 0.6965  huber 0.6997
+   17     301   122  True   40  net 0.1726  gn 0.1931  huber 0.2121
+   18     312   116 False   40  net 0.5653  gn 0.6019  huber 0.5528
+   19     326   105 False   40  net 0.0600  gn 0.0620  huber 0.0249
+   20     346   113 False   40  net 0.2282  gn 0.2731  huber 0.2454
+   21     365   113 False   40  net 0.1701  gn 0.2203  huber 0.1478
+   22     372   117  True   40  net 0.1711  gn 0.2933  huber 0.2353
+   23     394   107 False   40  net 0.5584  gn 0.5893  huber 0.5072
+   24     410   121 False   40  net 0.0574  gn 0.0443  huber 0.0142
+   25     435   113 False   40  net 0.3082  gn 0.3220  huber 0.2929
+   26     456   116 False   40  net 0.2615  gn 0.2355  huber 0.1996
+   27     457   116  True   40  net 0.4246  gn 0.4419  huber 0.3595
+   28     487   120 False   40  net 0.1235  gn 0.1172  huber 0.0535
+   29     501   122 False   40  net 0.5986  gn 0.5813  huber 0.4749
+           net: corr(voxel median error, r_perp) = -0.17, median per-voxel error in-dist 0.2848 held-out 0.2986
+            gn: corr(voxel median error, r_perp) = -0.14, median per-voxel error in-dist 0.2551 held-out 0.3676
+         huber: corr(voxel median error, r_perp) = +0.14, median per-voxel error in-dist 0.1737 held-out 0.2237
+saved benchmarks/toy_orientation_arch/dis_res_gn_k3_cleantrain_s0.json

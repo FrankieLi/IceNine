@@ -1,0 +1,2082 @@
+{
+  "clean": {
+    "in-dist/0.10000000149011612": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.05652776909928567,
+        "rms_perp": 0.05832928649330822,
+        "rms_total": 0.10000000002489506,
+        "median_angle": 0.09999999987168096,
+        "success_0p5": 1.0,
+        "success_0p1": 0.5208333333333334
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.023055679165785617,
+        "rms_perp": 0.003076265385087126,
+        "rms_total": 0.023462548012409296,
+        "median_angle": 0.013878653296348492,
+        "success_0p5": 1.0,
+        "success_0p1": 1.0
+      },
+      "pred_sigma_xyz": [
+        0.00411643460392952,
+        0.004140052478760481,
+        0.024339139461517334
+      ],
+      "mean_mahalanobis_sq": 1.8532012803796978
+    },
+    "in-dist/0.25": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.14694145875567396,
+        "rms_perp": 0.143017844698134,
+        "rms_total": 0.25000000021088914,
+        "median_angle": 0.2500000003613038,
+        "success_0p5": 1.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.026151660378041792,
+        "rms_perp": 0.003281695883744581,
+        "rms_total": 0.026560278542877014,
+        "median_angle": 0.017126329255454688,
+        "success_0p5": 1.0,
+        "success_0p1": 0.9958333333333333
+      },
+      "pred_sigma_xyz": [
+        0.004333713091909885,
+        0.004373966716229916,
+        0.025409165769815445
+      ],
+      "mean_mahalanobis_sq": 2.0967339434472314
+    },
+    "in-dist/0.5": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.2815222609806424,
+        "rms_perp": 0.2921859138232911,
+        "rms_total": 0.49999999990115634,
+        "median_angle": 0.5000000005665728,
+        "success_0p5": 0.4875,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.026925072185984857,
+        "rms_perp": 0.0045002779905113435,
+        "rms_total": 0.02766702940693592,
+        "median_angle": 0.017546913505992544,
+        "success_0p5": 1.0,
+        "success_0p1": 1.0
+      },
+      "pred_sigma_xyz": [
+        0.004945795051753521,
+        0.005065419245511293,
+        0.028188876807689667
+      ],
+      "mean_mahalanobis_sq": 2.356513356736798
+    },
+    "in-dist/1.0": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.6012240918269522,
+        "rms_perp": 0.5650352156444574,
+        "rms_total": 0.9999999992149501,
+        "median_angle": 0.9999999990288304,
+        "success_0p5": 0.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.030834240675729783,
+        "rms_perp": 0.008546701011355734,
+        "rms_total": 0.033118614016951965,
+        "median_angle": 0.023413122734134848,
+        "success_0p5": 1.0,
+        "success_0p1": 1.0
+      },
+      "pred_sigma_xyz": [
+        0.00856045912951231,
+        0.008677685633301735,
+        0.036800067871809006
+      ],
+      "mean_mahalanobis_sq": 2.372289034251619
+    },
+    "held-out/0.10000000149011612": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.0640104602253439,
+        "rms_perp": 0.05432614928741641,
+        "rms_total": 0.10000000005528821,
+        "median_angle": 0.0999999999928413,
+        "success_0p5": 1.0,
+        "success_0p1": 0.5166666666666667
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.026375600306610094,
+        "rms_perp": 0.0030493230380011426,
+        "rms_total": 0.026725812120761073,
+        "median_angle": 0.01696802097248743,
+        "success_0p5": 1.0,
+        "success_0p1": 1.0
+      },
+      "pred_sigma_xyz": [
+        0.00401418749243021,
+        0.004213298205286264,
+        0.024253640323877335
+      ],
+      "mean_mahalanobis_sq": 2.288259599257579
+    },
+    "held-out/0.25": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.1375588533422955,
+        "rms_perp": 0.14761023264138037,
+        "rms_total": 0.24999999938746412,
+        "median_angle": 0.24999999927821098,
+        "success_0p5": 1.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.02871638177343347,
+        "rms_perp": 0.0033659143827800535,
+        "rms_total": 0.02910823494171354,
+        "median_angle": 0.01577395902455904,
+        "success_0p5": 1.0,
+        "success_0p1": 1.0
+      },
+      "pred_sigma_xyz": [
+        0.004255824256688356,
+        0.004426628351211548,
+        0.025366179645061493
+      ],
+      "mean_mahalanobis_sq": 2.403210947492348
+    },
+    "held-out/0.5": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.28225002516093545,
+        "rms_perp": 0.29183464867398495,
+        "rms_total": 0.5000000010366851,
+        "median_angle": 0.5000000012580055,
+        "success_0p5": 0.43333333333333335,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.03100805355908408,
+        "rms_perp": 0.004584826881985508,
+        "rms_total": 0.03167870989479497,
+        "median_angle": 0.020240983205232085,
+        "success_0p5": 1.0,
+        "success_0p1": 1.0
+      },
+      "pred_sigma_xyz": [
+        0.0048678601160645485,
+        0.005066640675067902,
+        0.028036588802933693
+      ],
+      "mean_mahalanobis_sq": 2.850718897819056
+    },
+    "held-out/1.0": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.5961215531522046,
+        "rms_perp": 0.5677319336988407,
+        "rms_total": 1.000000001607723,
+        "median_angle": 1.000000002506321,
+        "success_0p5": 0.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.0328065669168182,
+        "rms_perp": 0.008571634218649898,
+        "rms_total": 0.03497451442442526,
+        "median_angle": 0.02802627755471562,
+        "success_0p5": 1.0,
+        "success_0p1": 1.0
+      },
+      "pred_sigma_xyz": [
+        0.008103433065116405,
+        0.009108549915254116,
+        0.03643309697508812
+      ],
+      "mean_mahalanobis_sq": 2.6450252594203465
+    },
+    "per_voxel": [
+      {
+        "voxel": 0,
+        "r_perp_um": 0.0,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.01821406609009566
+        },
+        "net_median_angle_1deg": 0.01867012172400379
+      },
+      {
+        "voxel": 1,
+        "r_perp_um": 24.804393768310547,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.023413370666442647
+        },
+        "net_median_angle_1deg": 0.02457778590147526
+      },
+      {
+        "voxel": 2,
+        "r_perp_um": 32.4759635925293,
+        "n_peaks": 119,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.022338016541576383
+        },
+        "net_median_angle_1deg": 0.022338016541576383
+      },
+      {
+        "voxel": 3,
+        "r_perp_um": 57.02546310424805,
+        "n_peaks": 128,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.029649429526833686
+        },
+        "net_median_angle_1deg": 0.021657679895992675
+      },
+      {
+        "voxel": 4,
+        "r_perp_um": 65.625,
+        "n_peaks": 114,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.028250303170790827
+        },
+        "net_median_angle_1deg": 0.02942395232947024
+      },
+      {
+        "voxel": 5,
+        "r_perp_um": 92.33353424072266,
+        "n_peaks": 125,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.021040874761226278
+        },
+        "net_median_angle_1deg": 0.024242570971240787
+      },
+      {
+        "voxel": 6,
+        "r_perp_um": 98.7718505859375,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.022973318736709
+        },
+        "net_median_angle_1deg": 0.023725579828431695
+      },
+      {
+        "voxel": 7,
+        "r_perp_um": 126.12773895263672,
+        "n_peaks": 130,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.01732710658846921
+        },
+        "net_median_angle_1deg": 0.025831665927240302
+      },
+      {
+        "voxel": 8,
+        "r_perp_um": 144.3262939453125,
+        "n_peaks": 119,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.021043411079719368
+        },
+        "net_median_angle_1deg": 0.02220551403125884
+      },
+      {
+        "voxel": 9,
+        "r_perp_um": 162.6502227783203,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.026764679917035072
+        },
+        "net_median_angle_1deg": 0.027916994342206652
+      },
+      {
+        "voxel": 10,
+        "r_perp_um": 170.5628204345703,
+        "n_peaks": 123,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.018471384752102728
+        },
+        "net_median_angle_1deg": 0.020009100297753935
+      },
+      {
+        "voxel": 11,
+        "r_perp_um": 181.0613250732422,
+        "n_peaks": 118,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.023101603164774463
+        },
+        "net_median_angle_1deg": 0.02561814479496195
+      },
+      {
+        "voxel": 12,
+        "r_perp_um": 214.80868530273438,
+        "n_peaks": 126,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.03140634880344573
+        },
+        "net_median_angle_1deg": 0.023973447946867753
+      },
+      {
+        "voxel": 13,
+        "r_perp_um": 230.2130584716797,
+        "n_peaks": 118,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.01640868267581099
+        },
+        "net_median_angle_1deg": 0.023289804241337836
+      },
+      {
+        "voxel": 14,
+        "r_perp_um": 241.03102111816406,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.015861479285974416
+        },
+        "net_median_angle_1deg": 0.02327936047398475
+      },
+      {
+        "voxel": 15,
+        "r_perp_um": 253.81854248046875,
+        "n_peaks": 120,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.01609732023537501
+        },
+        "net_median_angle_1deg": 0.02304040947754066
+      },
+      {
+        "voxel": 16,
+        "r_perp_um": 267.9679870605469,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.016775313395727715
+        },
+        "net_median_angle_1deg": 0.021525462475924823
+      },
+      {
+        "voxel": 17,
+        "r_perp_um": 300.7308349609375,
+        "n_peaks": 122,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.01639145877485419
+        },
+        "net_median_angle_1deg": 0.022487272361089272
+      },
+      {
+        "voxel": 18,
+        "r_perp_um": 312.062255859375,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.01787449084176123
+        },
+        "net_median_angle_1deg": 0.02920206453580142
+      },
+      {
+        "voxel": 19,
+        "r_perp_um": 325.97540283203125,
+        "n_peaks": 105,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.01751376835167585
+        },
+        "net_median_angle_1deg": 0.02716160850590669
+      },
+      {
+        "voxel": 20,
+        "r_perp_um": 345.60528564453125,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.013453198075041474
+        },
+        "net_median_angle_1deg": 0.020255775092360526
+      },
+      {
+        "voxel": 21,
+        "r_perp_um": 365.0231018066406,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.014513698267887863
+        },
+        "net_median_angle_1deg": 0.02747575771064898
+      },
+      {
+        "voxel": 22,
+        "r_perp_um": 371.8230895996094,
+        "n_peaks": 117,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.028398629798767235
+        },
+        "net_median_angle_1deg": 0.032495139718134725
+      },
+      {
+        "voxel": 23,
+        "r_perp_um": 394.0841369628906,
+        "n_peaks": 107,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02235449467463046
+        },
+        "net_median_angle_1deg": 0.03907911888093783
+      },
+      {
+        "voxel": 24,
+        "r_perp_um": 409.82806396484375,
+        "n_peaks": 121,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.013718869039394278
+        },
+        "net_median_angle_1deg": 0.018653958480281778
+      },
+      {
+        "voxel": 25,
+        "r_perp_um": 434.5993347167969,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.012380109512699326
+        },
+        "net_median_angle_1deg": 0.025016480576725918
+      },
+      {
+        "voxel": 26,
+        "r_perp_um": 456.2073974609375,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.016439923199745986
+        },
+        "net_median_angle_1deg": 0.023347595977846015
+      },
+      {
+        "voxel": 27,
+        "r_perp_um": 457.265380859375,
+        "n_peaks": 116,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.014349235050905528
+        },
+        "net_median_angle_1deg": 0.030169934565705638
+      },
+      {
+        "voxel": 28,
+        "r_perp_um": 487.22918701171875,
+        "n_peaks": 120,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.009874387318371484
+        },
+        "net_median_angle_1deg": 0.01759762842110064
+      },
+      {
+        "voxel": 29,
+        "r_perp_um": 501.102294921875,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.014821589534271156
+        },
+        "net_median_angle_1deg": 0.017573544984988386
+      }
+    ],
+    "summary": {
+      "net": {
+        "corr_err_rperp": -0.5841742328821774,
+        "slope_err_per_100um": -0.002125619880364834,
+        "median_voxel_err_in_dist": 0.01769412959671854,
+        "median_voxel_err_held_out": 0.019832561565022798
+      }
+    }
+  },
+  "neighbours": {
+    "in-dist/0.10000000149011612": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.05652776909928567,
+        "rms_perp": 0.05832928649330822,
+        "rms_total": 0.10000000002489506,
+        "median_angle": 0.09999999987168096,
+        "success_0p5": 1.0,
+        "success_0p1": 0.5208333333333334
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.06071350116823581,
+        "rms_perp": 0.04753214251981547,
+        "rms_total": 0.09058001086969171,
+        "median_angle": 0.058137232828455065,
+        "success_0p5": 1.0,
+        "success_0p1": 0.6708333333333333
+      },
+      "pred_sigma_xyz": [
+        0.038447242230176926,
+        0.039455536752939224,
+        0.05345412716269493
+      ],
+      "mean_mahalanobis_sq": 2.364300897849557
+    },
+    "in-dist/0.25": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.14694145875567396,
+        "rms_perp": 0.143017844698134,
+        "rms_total": 0.25000000021088914,
+        "median_angle": 0.2500000003613038,
+        "success_0p5": 1.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.05978318476758378,
+        "rms_perp": 0.04848373582681446,
+        "rms_total": 0.09096908519054,
+        "median_angle": 0.04966607463410587,
+        "success_0p5": 1.0,
+        "success_0p1": 0.7458333333333333
+      },
+      "pred_sigma_xyz": [
+        0.03442191705107689,
+        0.03547152131795883,
+        0.051558371633291245
+      ],
+      "mean_mahalanobis_sq": 2.4379089966342353
+    },
+    "in-dist/0.5": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.2815222609806424,
+        "rms_perp": 0.2921859138232911,
+        "rms_total": 0.49999999990115634,
+        "median_angle": 0.5000000005665728,
+        "success_0p5": 0.4875,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.06385958376237696,
+        "rms_perp": 0.050955765800828445,
+        "rms_total": 0.09628617021671282,
+        "median_angle": 0.06705210176808726,
+        "success_0p5": 1.0,
+        "success_0p1": 0.6666666666666666
+      },
+      "pred_sigma_xyz": [
+        0.0345408171415329,
+        0.035668499767780304,
+        0.055101897567510605
+      ],
+      "mean_mahalanobis_sq": 3.245332301593124
+    },
+    "in-dist/1.0": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.6012240918269522,
+        "rms_perp": 0.5650352156444574,
+        "rms_total": 0.9999999992149501,
+        "median_angle": 0.9999999990288304,
+        "success_0p5": 0.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.06252913093891169,
+        "rms_perp": 0.047603952862978714,
+        "rms_total": 0.09188125419440552,
+        "median_angle": 0.05974781048070463,
+        "success_0p5": 1.0,
+        "success_0p1": 0.7166666666666667
+      },
+      "pred_sigma_xyz": [
+        0.03647385165095329,
+        0.03675578907132149,
+        0.05948110669851303
+      ],
+      "mean_mahalanobis_sq": 2.733657350726365
+    },
+    "held-out/0.10000000149011612": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.0640104602253439,
+        "rms_perp": 0.05432614928741641,
+        "rms_total": 0.10000000005528821,
+        "median_angle": 0.0999999999928413,
+        "success_0p5": 1.0,
+        "success_0p1": 0.5166666666666667
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.06628835786214204,
+        "rms_perp": 0.05168043757832834,
+        "rms_total": 0.09867057132009724,
+        "median_angle": 0.06162100204100804,
+        "success_0p5": 1.0,
+        "success_0p1": 0.7333333333333333
+      },
+      "pred_sigma_xyz": [
+        0.051005542278289795,
+        0.045232679694890976,
+        0.058285702019929886
+      ],
+      "mean_mahalanobis_sq": 2.3727720358728916
+    },
+    "held-out/0.25": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.1375588533422955,
+        "rms_perp": 0.14761023264138037,
+        "rms_total": 0.24999999938746412,
+        "median_angle": 0.24999999927821098,
+        "success_0p5": 1.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.06863678375616855,
+        "rms_perp": 0.04898859838119064,
+        "rms_total": 0.09752319532858957,
+        "median_angle": 0.07604159313084269,
+        "success_0p5": 1.0,
+        "success_0p1": 0.7
+      },
+      "pred_sigma_xyz": [
+        0.054365627467632294,
+        0.05497139319777489,
+        0.06351024657487869
+      ],
+      "mean_mahalanobis_sq": 2.510180010221981
+    },
+    "held-out/0.5": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.28225002516093545,
+        "rms_perp": 0.29183464867398495,
+        "rms_total": 0.5000000010366851,
+        "median_angle": 0.5000000012580055,
+        "success_0p5": 0.43333333333333335,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.05902437997916754,
+        "rms_perp": 0.05397401861049673,
+        "rms_total": 0.09648972381480657,
+        "median_angle": 0.06434263464835396,
+        "success_0p5": 1.0,
+        "success_0p1": 0.6666666666666666
+      },
+      "pred_sigma_xyz": [
+        0.04060915857553482,
+        0.04101334884762764,
+        0.05927710235118866
+      ],
+      "mean_mahalanobis_sq": 2.623600279931647
+    },
+    "held-out/1.0": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.5961215531522046,
+        "rms_perp": 0.5677319336988407,
+        "rms_total": 1.000000001607723,
+        "median_angle": 1.000000002506321,
+        "success_0p5": 0.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.07255762952663425,
+        "rms_perp": 0.05706618133591894,
+        "rms_total": 0.1085251478094007,
+        "median_angle": 0.0828898113608948,
+        "success_0p5": 1.0,
+        "success_0p1": 0.6166666666666667
+      },
+      "pred_sigma_xyz": [
+        0.04408331215381622,
+        0.04443565756082535,
+        0.06346829235553741
+      ],
+      "mean_mahalanobis_sq": 2.94680457202698
+    },
+    "per_voxel": [
+      {
+        "voxel": 0,
+        "r_perp_um": 0.0,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.09624884438748019
+        },
+        "net_median_angle_1deg": 0.12040080740903664
+      },
+      {
+        "voxel": 1,
+        "r_perp_um": 24.804393768310547,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.07860584884561621
+        },
+        "net_median_angle_1deg": 0.10177168289130006
+      },
+      {
+        "voxel": 2,
+        "r_perp_um": 32.4759635925293,
+        "n_peaks": 119,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.09592932440561411
+        },
+        "net_median_angle_1deg": 0.07656200962646974
+      },
+      {
+        "voxel": 3,
+        "r_perp_um": 57.02546310424805,
+        "n_peaks": 128,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.05934289088384667
+        },
+        "net_median_angle_1deg": 0.06375233612796978
+      },
+      {
+        "voxel": 4,
+        "r_perp_um": 65.625,
+        "n_peaks": 114,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.028610047225333342
+        },
+        "net_median_angle_1deg": 0.03656286391993602
+      },
+      {
+        "voxel": 5,
+        "r_perp_um": 92.33353424072266,
+        "n_peaks": 125,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.052668279128431625
+        },
+        "net_median_angle_1deg": 0.06041131857994195
+      },
+      {
+        "voxel": 6,
+        "r_perp_um": 98.7718505859375,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.07003084472146162
+        },
+        "net_median_angle_1deg": 0.09089797386587033
+      },
+      {
+        "voxel": 7,
+        "r_perp_um": 126.12773895263672,
+        "n_peaks": 130,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.07076277916968032
+        },
+        "net_median_angle_1deg": 0.08165261247319297
+      },
+      {
+        "voxel": 8,
+        "r_perp_um": 144.3262939453125,
+        "n_peaks": 119,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.09303092878134978
+        },
+        "net_median_angle_1deg": 0.07190430356720809
+      },
+      {
+        "voxel": 9,
+        "r_perp_um": 162.6502227783203,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.026293753938344336
+        },
+        "net_median_angle_1deg": 0.029073802112078287
+      },
+      {
+        "voxel": 10,
+        "r_perp_um": 170.5628204345703,
+        "n_peaks": 123,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.07448096442839339
+        },
+        "net_median_angle_1deg": 0.0674250317694848
+      },
+      {
+        "voxel": 11,
+        "r_perp_um": 181.0613250732422,
+        "n_peaks": 118,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.05930907253912357
+        },
+        "net_median_angle_1deg": 0.05920597591171749
+      },
+      {
+        "voxel": 12,
+        "r_perp_um": 214.80868530273438,
+        "n_peaks": 126,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.05565057765748528
+        },
+        "net_median_angle_1deg": 0.08753565153636562
+      },
+      {
+        "voxel": 13,
+        "r_perp_um": 230.2130584716797,
+        "n_peaks": 118,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.08487729973358246
+        },
+        "net_median_angle_1deg": 0.08487729973358246
+      },
+      {
+        "voxel": 14,
+        "r_perp_um": 241.03102111816406,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.09146333403198006
+        },
+        "net_median_angle_1deg": 0.06704536886867793
+      },
+      {
+        "voxel": 15,
+        "r_perp_um": 253.81854248046875,
+        "n_peaks": 120,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02889848129812902
+        },
+        "net_median_angle_1deg": 0.037361577548893014
+      },
+      {
+        "voxel": 16,
+        "r_perp_um": 267.9679870605469,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.03685702849268277
+        },
+        "net_median_angle_1deg": 0.03424278311288244
+      },
+      {
+        "voxel": 17,
+        "r_perp_um": 300.7308349609375,
+        "n_peaks": 122,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.07539412871517337
+        },
+        "net_median_angle_1deg": 0.09974885476120099
+      },
+      {
+        "voxel": 18,
+        "r_perp_um": 312.062255859375,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.09550789601282779
+        },
+        "net_median_angle_1deg": 0.05759637087731491
+      },
+      {
+        "voxel": 19,
+        "r_perp_um": 325.97540283203125,
+        "n_peaks": 105,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.01865584660706697
+        },
+        "net_median_angle_1deg": 0.027769507029538107
+      },
+      {
+        "voxel": 20,
+        "r_perp_um": 345.60528564453125,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.06177832243515055
+        },
+        "net_median_angle_1deg": 0.09296425252748572
+      },
+      {
+        "voxel": 21,
+        "r_perp_um": 365.0231018066406,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.1027807873726049
+        },
+        "net_median_angle_1deg": 0.08915199610354617
+      },
+      {
+        "voxel": 22,
+        "r_perp_um": 371.8230895996094,
+        "n_peaks": 117,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.06850717460266323
+        },
+        "net_median_angle_1deg": 0.07642827536644643
+      },
+      {
+        "voxel": 23,
+        "r_perp_um": 394.0841369628906,
+        "n_peaks": 107,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.09171388810505715
+        },
+        "net_median_angle_1deg": 0.09749360254904924
+      },
+      {
+        "voxel": 24,
+        "r_perp_um": 409.82806396484375,
+        "n_peaks": 121,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.012276086162323008
+        },
+        "net_median_angle_1deg": 0.01903731902352676
+      },
+      {
+        "voxel": 25,
+        "r_perp_um": 434.5993347167969,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.08769648106837813
+        },
+        "net_median_angle_1deg": 0.051837471800919466
+      },
+      {
+        "voxel": 26,
+        "r_perp_um": 456.2073974609375,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.043506671805031746
+        },
+        "net_median_angle_1deg": 0.056169777421594805
+      },
+      {
+        "voxel": 27,
+        "r_perp_um": 457.265380859375,
+        "n_peaks": 116,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.0772257414782506
+        },
+        "net_median_angle_1deg": 0.08114388946317828
+      },
+      {
+        "voxel": 28,
+        "r_perp_um": 487.22918701171875,
+        "n_peaks": 120,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.023791606513958397
+        },
+        "net_median_angle_1deg": 0.02197191776925718
+      },
+      {
+        "voxel": 29,
+        "r_perp_um": 501.102294921875,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.08274902000394865
+        },
+        "net_median_angle_1deg": 0.10607742736206448
+      }
+    ],
+    "summary": {
+      "net": {
+        "corr_err_rperp": -0.12374257656287464,
+        "slope_err_per_100um": -0.0021859900192868495,
+        "median_voxel_err_in_dist": 0.06590458357830609,
+        "median_voxel_err_held_out": 0.07307845394242685
+      }
+    }
+  },
+  "noise": {
+    "in-dist/0.10000000149011612": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.05652776909928567,
+        "rms_perp": 0.05832928649330822,
+        "rms_total": 0.10000000002489506,
+        "median_angle": 0.09999999987168096,
+        "success_0p5": 1.0,
+        "success_0p1": 0.5208333333333334
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.02994521339973021,
+        "rms_perp": 0.0053779998269785365,
+        "rms_total": 0.030895979832873788,
+        "median_angle": 0.019946158518859405,
+        "success_0p5": 1.0,
+        "success_0p1": 1.0
+      },
+      "pred_sigma_xyz": [
+        0.005500867497175932,
+        0.005527610890567303,
+        0.02947605587542057
+      ],
+      "mean_mahalanobis_sq": 2.86375819103769
+    },
+    "in-dist/0.25": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.14694145875567396,
+        "rms_perp": 0.143017844698134,
+        "rms_total": 0.25000000021088914,
+        "median_angle": 0.2500000003613038,
+        "success_0p5": 1.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.03174503578869017,
+        "rms_perp": 0.005604484828165884,
+        "rms_total": 0.032719532356124875,
+        "median_angle": 0.023198707182176204,
+        "success_0p5": 1.0,
+        "success_0p1": 0.9958333333333333
+      },
+      "pred_sigma_xyz": [
+        0.005714037921279669,
+        0.005787973292171955,
+        0.030404595658183098
+      ],
+      "mean_mahalanobis_sq": 3.0169100631254975
+    },
+    "in-dist/0.5": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.2815222609806424,
+        "rms_perp": 0.2921859138232911,
+        "rms_total": 0.49999999990115634,
+        "median_angle": 0.5000000005665728,
+        "success_0p5": 0.4875,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.03446952087064471,
+        "rms_perp": 0.006846354872908583,
+        "rms_total": 0.035803533612527826,
+        "median_angle": 0.02537206716532897,
+        "success_0p5": 1.0,
+        "success_0p1": 0.9875
+      },
+      "pred_sigma_xyz": [
+        0.0065331715159118176,
+        0.006742608733475208,
+        0.03354823961853981
+      ],
+      "mean_mahalanobis_sq": 3.1638724978208885
+    },
+    "in-dist/1.0": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.6012240918269522,
+        "rms_perp": 0.5650352156444574,
+        "rms_total": 0.9999999992149501,
+        "median_angle": 0.9999999990288304,
+        "success_0p5": 0.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.04309824228472965,
+        "rms_perp": 0.011500496354168865,
+        "rms_total": 0.04606496847733386,
+        "median_angle": 0.03332410067832338,
+        "success_0p5": 1.0,
+        "success_0p1": 0.9833333333333333
+      },
+      "pred_sigma_xyz": [
+        0.011308819986879826,
+        0.011569401249289513,
+        0.04341264069080353
+      ],
+      "mean_mahalanobis_sq": 2.712447436987754
+    },
+    "held-out/0.10000000149011612": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.0640104602253439,
+        "rms_perp": 0.05432614928741641,
+        "rms_total": 0.10000000005528821,
+        "median_angle": 0.0999999999928413,
+        "success_0p5": 1.0,
+        "success_0p1": 0.5166666666666667
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.03206451724180898,
+        "rms_perp": 0.005039162037952075,
+        "rms_total": 0.03284691117958796,
+        "median_angle": 0.02092630386701317,
+        "success_0p5": 1.0,
+        "success_0p1": 1.0
+      },
+      "pred_sigma_xyz": [
+        0.005360535811632872,
+        0.005718914791941643,
+        0.0294759813696146
+      ],
+      "mean_mahalanobis_sq": 2.8272694121487514
+    },
+    "held-out/0.25": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.1375588533422955,
+        "rms_perp": 0.14761023264138037,
+        "rms_total": 0.24999999938746412,
+        "median_angle": 0.24999999927821098,
+        "success_0p5": 1.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.03526646222368941,
+        "rms_perp": 0.00709331818398087,
+        "rms_total": 0.036665428996444316,
+        "median_angle": 0.02546236182660868,
+        "success_0p5": 1.0,
+        "success_0p1": 0.9833333333333333
+      },
+      "pred_sigma_xyz": [
+        0.005656823981553316,
+        0.005913318134844303,
+        0.03058498539030552
+      ],
+      "mean_mahalanobis_sq": 4.130076649668615
+    },
+    "held-out/0.5": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.28225002516093545,
+        "rms_perp": 0.29183464867398495,
+        "rms_total": 0.5000000010366851,
+        "median_angle": 0.5000000012580055,
+        "success_0p5": 0.43333333333333335,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.0383989814200786,
+        "rms_perp": 0.006229973086238982,
+        "rms_total": 0.0393967879834139,
+        "median_angle": 0.026972919206439974,
+        "success_0p5": 1.0,
+        "success_0p1": 1.0
+      },
+      "pred_sigma_xyz": [
+        0.006349693052470684,
+        0.0066817025654017925,
+        0.0331403948366642
+      ],
+      "mean_mahalanobis_sq": 3.2279183519941648
+    },
+    "held-out/1.0": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.5961215531522046,
+        "rms_perp": 0.5677319336988407,
+        "rms_total": 1.000000001607723,
+        "median_angle": 1.000000002506321,
+        "success_0p5": 0.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.04456276628031419,
+        "rms_perp": 0.011949768483931873,
+        "rms_total": 0.047659564330709635,
+        "median_angle": 0.03345959263815898,
+        "success_0p5": 1.0,
+        "success_0p1": 0.9666666666666667
+      },
+      "pred_sigma_xyz": [
+        0.010850135236978531,
+        0.01213716622442007,
+        0.04312093183398247
+      ],
+      "mean_mahalanobis_sq": 3.2961098034862117
+    },
+    "per_voxel": [
+      {
+        "voxel": 0,
+        "r_perp_um": 0.0,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.0300660807269474
+        },
+        "net_median_angle_1deg": 0.04360548834544023
+      },
+      {
+        "voxel": 1,
+        "r_perp_um": 24.804393768310547,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.03363839722005063
+        },
+        "net_median_angle_1deg": 0.03346110861467534
+      },
+      {
+        "voxel": 2,
+        "r_perp_um": 32.4759635925293,
+        "n_peaks": 119,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.022724938682685658
+        },
+        "net_median_angle_1deg": 0.03657392711829385
+      },
+      {
+        "voxel": 3,
+        "r_perp_um": 57.02546310424805,
+        "n_peaks": 128,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.03326207169720949
+        },
+        "net_median_angle_1deg": 0.032018060405389986
+      },
+      {
+        "voxel": 4,
+        "r_perp_um": 65.625,
+        "n_peaks": 114,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.03798694227240468
+        },
+        "net_median_angle_1deg": 0.04953489517202761
+      },
+      {
+        "voxel": 5,
+        "r_perp_um": 92.33353424072266,
+        "n_peaks": 125,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.024175731077107004
+        },
+        "net_median_angle_1deg": 0.029879412269826412
+      },
+      {
+        "voxel": 6,
+        "r_perp_um": 98.7718505859375,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.03367095792716167
+        },
+        "net_median_angle_1deg": 0.03392025020124331
+      },
+      {
+        "voxel": 7,
+        "r_perp_um": 126.12773895263672,
+        "n_peaks": 130,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.028581627304035087
+        },
+        "net_median_angle_1deg": 0.032943686745100384
+      },
+      {
+        "voxel": 8,
+        "r_perp_um": 144.3262939453125,
+        "n_peaks": 119,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02030566843148866
+        },
+        "net_median_angle_1deg": 0.029720270472048706
+      },
+      {
+        "voxel": 9,
+        "r_perp_um": 162.6502227783203,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.027082976520429895
+        },
+        "net_median_angle_1deg": 0.02814948480382837
+      },
+      {
+        "voxel": 10,
+        "r_perp_um": 170.5628204345703,
+        "n_peaks": 123,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.037839855748482
+        },
+        "net_median_angle_1deg": 0.037957704232220564
+      },
+      {
+        "voxel": 11,
+        "r_perp_um": 181.0613250732422,
+        "n_peaks": 118,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.028288200513271272
+        },
+        "net_median_angle_1deg": 0.044688053744022446
+      },
+      {
+        "voxel": 12,
+        "r_perp_um": 214.80868530273438,
+        "n_peaks": 126,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.037718978755094876
+        },
+        "net_median_angle_1deg": 0.046298284872941575
+      },
+      {
+        "voxel": 13,
+        "r_perp_um": 230.2130584716797,
+        "n_peaks": 118,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.022557003640919157
+        },
+        "net_median_angle_1deg": 0.021330194371463523
+      },
+      {
+        "voxel": 14,
+        "r_perp_um": 241.03102111816406,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02557529616810117
+        },
+        "net_median_angle_1deg": 0.05001153970209617
+      },
+      {
+        "voxel": 15,
+        "r_perp_um": 253.81854248046875,
+        "n_peaks": 120,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.025042318731909735
+        },
+        "net_median_angle_1deg": 0.0344684876209659
+      },
+      {
+        "voxel": 16,
+        "r_perp_um": 267.9679870605469,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02452647954936864
+        },
+        "net_median_angle_1deg": 0.03305011433186987
+      },
+      {
+        "voxel": 17,
+        "r_perp_um": 300.7308349609375,
+        "n_peaks": 122,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.02385245869855155
+        },
+        "net_median_angle_1deg": 0.027291761402604333
+      },
+      {
+        "voxel": 18,
+        "r_perp_um": 312.062255859375,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02595922769084111
+        },
+        "net_median_angle_1deg": 0.026201155180321064
+      },
+      {
+        "voxel": 19,
+        "r_perp_um": 325.97540283203125,
+        "n_peaks": 105,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02377491486750951
+        },
+        "net_median_angle_1deg": 0.025975195359697667
+      },
+      {
+        "voxel": 20,
+        "r_perp_um": 345.60528564453125,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.018535757350504438
+        },
+        "net_median_angle_1deg": 0.020293266540544593
+      },
+      {
+        "voxel": 21,
+        "r_perp_um": 365.0231018066406,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.022662003122147424
+        },
+        "net_median_angle_1deg": 0.028759349927039365
+      },
+      {
+        "voxel": 22,
+        "r_perp_um": 371.8230895996094,
+        "n_peaks": 117,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.029236140938601496
+        },
+        "net_median_angle_1deg": 0.03355848758121914
+      },
+      {
+        "voxel": 23,
+        "r_perp_um": 394.0841369628906,
+        "n_peaks": 107,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.028971610728727407
+        },
+        "net_median_angle_1deg": 0.05134027897040008
+      },
+      {
+        "voxel": 24,
+        "r_perp_um": 409.82806396484375,
+        "n_peaks": 121,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.01961557907600814
+        },
+        "net_median_angle_1deg": 0.028422319743527706
+      },
+      {
+        "voxel": 25,
+        "r_perp_um": 434.5993347167969,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.024620708475556828
+        },
+        "net_median_angle_1deg": 0.03301756055999679
+      },
+      {
+        "voxel": 26,
+        "r_perp_um": 456.2073974609375,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.021953733180873382
+        },
+        "net_median_angle_1deg": 0.04300693738722586
+      },
+      {
+        "voxel": 27,
+        "r_perp_um": 457.265380859375,
+        "n_peaks": 116,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.01900695141964172
+        },
+        "net_median_angle_1deg": 0.027793051383637846
+      },
+      {
+        "voxel": 28,
+        "r_perp_um": 487.22918701171875,
+        "n_peaks": 120,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02189666347647163
+        },
+        "net_median_angle_1deg": 0.041388028591219816
+      },
+      {
+        "voxel": 29,
+        "r_perp_um": 501.102294921875,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02113824763973639
+        },
+        "net_median_angle_1deg": 0.02902197041603706
+      }
+    ],
+    "summary": {
+      "net": {
+        "corr_err_rperp": -0.5721514740954529,
+        "slope_err_per_100um": -0.0021336569710994836,
+        "median_voxel_err_in_dist": 0.02483151360373328,
+        "median_voxel_err_held_out": 0.02621704300129332
+      }
+    }
+  },
+  "all": {
+    "in-dist/0.10000000149011612": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.05652776909928567,
+        "rms_perp": 0.05832928649330822,
+        "rms_total": 0.10000000002489506,
+        "median_angle": 0.09999999987168096,
+        "success_0p5": 1.0,
+        "success_0p1": 0.5208333333333334
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.06340718264464075,
+        "rms_perp": 0.05069978153417881,
+        "rms_total": 0.09571523654130386,
+        "median_angle": 0.06499663392200407,
+        "success_0p5": 1.0,
+        "success_0p1": 0.675
+      },
+      "pred_sigma_xyz": [
+        0.04308638721704483,
+        0.04469002038240433,
+        0.059970684349536896
+      ],
+      "mean_mahalanobis_sq": 2.510596166554305
+    },
+    "in-dist/0.25": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.14694145875567396,
+        "rms_perp": 0.143017844698134,
+        "rms_total": 0.25000000021088914,
+        "median_angle": 0.2500000003613038,
+        "success_0p5": 1.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.061471564244422024,
+        "rms_perp": 0.0504818679719517,
+        "rms_total": 0.0942103561108397,
+        "median_angle": 0.05326409891720188,
+        "success_0p5": 1.0,
+        "success_0p1": 0.7208333333333333
+      },
+      "pred_sigma_xyz": [
+        0.03941212594509125,
+        0.04181329533457756,
+        0.05801401659846306
+      ],
+      "mean_mahalanobis_sq": 2.695161408615305
+    },
+    "in-dist/0.5": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.2815222609806424,
+        "rms_perp": 0.2921859138232911,
+        "rms_total": 0.49999999990115634,
+        "median_angle": 0.5000000005665728,
+        "success_0p5": 0.4875,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.06644869498025087,
+        "rms_perp": 0.05242767823300849,
+        "rms_total": 0.09956280407052708,
+        "median_angle": 0.06992013129945729,
+        "success_0p5": 1.0,
+        "success_0p1": 0.6708333333333333
+      },
+      "pred_sigma_xyz": [
+        0.04022139310836792,
+        0.041474077850580215,
+        0.06193320453166962
+      ],
+      "mean_mahalanobis_sq": 3.0634839525126165
+    },
+    "in-dist/1.0": {
+      "predict-nominal": {
+        "n": 240,
+        "rms_z": 0.6012240918269522,
+        "rms_perp": 0.5650352156444574,
+        "rms_total": 0.9999999992149501,
+        "median_angle": 0.9999999990288304,
+        "success_0p5": 0.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 240,
+        "rms_z": 0.06625084867755023,
+        "rms_perp": 0.0499222533644186,
+        "rms_total": 0.09681754857699128,
+        "median_angle": 0.06859331131845975,
+        "success_0p5": 1.0,
+        "success_0p1": 0.675
+      },
+      "pred_sigma_xyz": [
+        0.04287935793399811,
+        0.04332142323255539,
+        0.06681360304355621
+      ],
+      "mean_mahalanobis_sq": 2.5902576627526996
+    },
+    "held-out/0.10000000149011612": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.0640104602253439,
+        "rms_perp": 0.05432614928741641,
+        "rms_total": 0.10000000005528821,
+        "median_angle": 0.0999999999928413,
+        "success_0p5": 1.0,
+        "success_0p1": 0.5166666666666667
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.06840427988134712,
+        "rms_perp": 0.05490424785695591,
+        "rms_total": 0.10347994188035557,
+        "median_angle": 0.07253322192555192,
+        "success_0p5": 1.0,
+        "success_0p1": 0.6833333333333333
+      },
+      "pred_sigma_xyz": [
+        0.056375060230493546,
+        0.05191004276275635,
+        0.06486718356609344
+      ],
+      "mean_mahalanobis_sq": 2.514481140063818
+    },
+    "held-out/0.25": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.1375588533422955,
+        "rms_perp": 0.14761023264138037,
+        "rms_total": 0.24999999938746412,
+        "median_angle": 0.24999999927821098,
+        "success_0p5": 1.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.07068397034155308,
+        "rms_perp": 0.05446377013141402,
+        "rms_total": 0.10454103585243722,
+        "median_angle": 0.07828577555727168,
+        "success_0p5": 1.0,
+        "success_0p1": 0.5833333333333334
+      },
+      "pred_sigma_xyz": [
+        0.061381589621305466,
+        0.06380538642406464,
+        0.07040998339653015
+      ],
+      "mean_mahalanobis_sq": 2.3868830614386076
+    },
+    "held-out/0.5": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.28225002516093545,
+        "rms_perp": 0.29183464867398495,
+        "rms_total": 0.5000000010366851,
+        "median_angle": 0.5000000012580055,
+        "success_0p5": 0.43333333333333335,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.06260122965236598,
+        "rms_perp": 0.05736699796334418,
+        "rms_total": 0.10247369840422925,
+        "median_angle": 0.0780413735515813,
+        "success_0p5": 1.0,
+        "success_0p1": 0.65
+      },
+      "pred_sigma_xyz": [
+        0.04747673496603966,
+        0.048694346100091934,
+        0.06594255566596985
+      ],
+      "mean_mahalanobis_sq": 2.460887920173056
+    },
+    "held-out/1.0": {
+      "predict-nominal": {
+        "n": 60,
+        "rms_z": 0.5961215531522046,
+        "rms_perp": 0.5677319336988407,
+        "rms_total": 1.000000001607723,
+        "median_angle": 1.000000002506321,
+        "success_0p5": 0.0,
+        "success_0p1": 0.0
+      },
+      "net (gn/offset)": {
+        "n": 60,
+        "rms_z": 0.07641793443365386,
+        "rms_perp": 0.06512694852654219,
+        "rms_total": 0.11967764850574215,
+        "median_angle": 0.08194106166493195,
+        "success_0p5": 1.0,
+        "success_0p1": 0.6166666666666667
+      },
+      "pred_sigma_xyz": [
+        0.050471920520067215,
+        0.05353266000747681,
+        0.07114111632108688
+      ],
+      "mean_mahalanobis_sq": 3.3107842863826584
+    },
+    "per_voxel": [
+      {
+        "voxel": 0,
+        "r_perp_um": 0.0,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.10366157185814487
+        },
+        "net_median_angle_1deg": 0.13302726457941622
+      },
+      {
+        "voxel": 1,
+        "r_perp_um": 24.804393768310547,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.08840433788858215
+        },
+        "net_median_angle_1deg": 0.10973448567775747
+      },
+      {
+        "voxel": 2,
+        "r_perp_um": 32.4759635925293,
+        "n_peaks": 119,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.08560151178094681
+        },
+        "net_median_angle_1deg": 0.08003573953402338
+      },
+      {
+        "voxel": 3,
+        "r_perp_um": 57.02546310424805,
+        "n_peaks": 128,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.0647462096873419
+        },
+        "net_median_angle_1deg": 0.06144348615151303
+      },
+      {
+        "voxel": 4,
+        "r_perp_um": 65.625,
+        "n_peaks": 114,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.03868847903675232
+        },
+        "net_median_angle_1deg": 0.05252168257260137
+      },
+      {
+        "voxel": 5,
+        "r_perp_um": 92.33353424072266,
+        "n_peaks": 125,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.06201098075795373
+        },
+        "net_median_angle_1deg": 0.06884362087302398
+      },
+      {
+        "voxel": 6,
+        "r_perp_um": 98.7718505859375,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.07950035754513751
+        },
+        "net_median_angle_1deg": 0.09335505605777564
+      },
+      {
+        "voxel": 7,
+        "r_perp_um": 126.12773895263672,
+        "n_peaks": 130,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.06710336873073347
+        },
+        "net_median_angle_1deg": 0.0706810447879711
+      },
+      {
+        "voxel": 8,
+        "r_perp_um": 144.3262939453125,
+        "n_peaks": 119,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.10431457862316408
+        },
+        "net_median_angle_1deg": 0.08221427242565765
+      },
+      {
+        "voxel": 9,
+        "r_perp_um": 162.6502227783203,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.026411231554817387
+        },
+        "net_median_angle_1deg": 0.027704841875895593
+      },
+      {
+        "voxel": 10,
+        "r_perp_um": 170.5628204345703,
+        "n_peaks": 123,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.07462951297077142
+        },
+        "net_median_angle_1deg": 0.06609227272235575
+      },
+      {
+        "voxel": 11,
+        "r_perp_um": 181.0613250732422,
+        "n_peaks": 118,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.07254396800867455
+        },
+        "net_median_angle_1deg": 0.08322885616947229
+      },
+      {
+        "voxel": 12,
+        "r_perp_um": 214.80868530273438,
+        "n_peaks": 126,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.0737875780787046
+        },
+        "net_median_angle_1deg": 0.08991270744935784
+      },
+      {
+        "voxel": 13,
+        "r_perp_um": 230.2130584716797,
+        "n_peaks": 118,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.0912646182002855
+        },
+        "net_median_angle_1deg": 0.0881179256684664
+      },
+      {
+        "voxel": 14,
+        "r_perp_um": 241.03102111816406,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.09559802285425875
+        },
+        "net_median_angle_1deg": 0.0772400436582291
+      },
+      {
+        "voxel": 15,
+        "r_perp_um": 253.81854248046875,
+        "n_peaks": 120,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.04810750941835704
+        },
+        "net_median_angle_1deg": 0.046687481367743616
+      },
+      {
+        "voxel": 16,
+        "r_perp_um": 267.9679870605469,
+        "n_peaks": 124,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.06164210398912577
+        },
+        "net_median_angle_1deg": 0.06173904055933717
+      },
+      {
+        "voxel": 17,
+        "r_perp_um": 300.7308349609375,
+        "n_peaks": 122,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.07992698628480195
+        },
+        "net_median_angle_1deg": 0.08585234024786649
+      },
+      {
+        "voxel": 18,
+        "r_perp_um": 312.062255859375,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.09421662909711712
+        },
+        "net_median_angle_1deg": 0.05155622141332346
+      },
+      {
+        "voxel": 19,
+        "r_perp_um": 325.97540283203125,
+        "n_peaks": 105,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02341046629489684
+        },
+        "net_median_angle_1deg": 0.025975195359697667
+      },
+      {
+        "voxel": 20,
+        "r_perp_um": 345.60528564453125,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.0691175860650961
+        },
+        "net_median_angle_1deg": 0.10600832260617049
+      },
+      {
+        "voxel": 21,
+        "r_perp_um": 365.0231018066406,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.10959769271059434
+        },
+        "net_median_angle_1deg": 0.09732531036699171
+      },
+      {
+        "voxel": 22,
+        "r_perp_um": 371.8230895996094,
+        "n_peaks": 117,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.07600584627659199
+        },
+        "net_median_angle_1deg": 0.08632533982909593
+      },
+      {
+        "voxel": 23,
+        "r_perp_um": 394.0841369628906,
+        "n_peaks": 107,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.10785087247408039
+        },
+        "net_median_angle_1deg": 0.11613655739304632
+      },
+      {
+        "voxel": 24,
+        "r_perp_um": 409.82806396484375,
+        "n_peaks": 121,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.02007918293858678
+        },
+        "net_median_angle_1deg": 0.02795271498167524
+      },
+      {
+        "voxel": 25,
+        "r_perp_um": 434.5993347167969,
+        "n_peaks": 113,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.08812420382998265
+        },
+        "net_median_angle_1deg": 0.06328895691089073
+      },
+      {
+        "voxel": 26,
+        "r_perp_um": 456.2073974609375,
+        "n_peaks": 116,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.05635591872046085
+        },
+        "net_median_angle_1deg": 0.059734106017244194
+      },
+      {
+        "voxel": 27,
+        "r_perp_um": 457.265380859375,
+        "n_peaks": 116,
+        "held_out": true,
+        "median_angle": {
+          "net": 0.08751575587906699
+        },
+        "net_median_angle_1deg": 0.08412678111713959
+      },
+      {
+        "voxel": 28,
+        "r_perp_um": 487.22918701171875,
+        "n_peaks": 120,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.04027984593252548
+        },
+        "net_median_angle_1deg": 0.054923308683775
+      },
+      {
+        "voxel": 29,
+        "r_perp_um": 501.102294921875,
+        "n_peaks": 122,
+        "held_out": false,
+        "median_angle": {
+          "net": 0.08550892552750158
+        },
+        "net_median_angle_1deg": 0.10596086722663574
+      }
+    ],
+    "summary": {
+      "net": {
+        "corr_err_rperp": -0.07629505869732707,
+        "slope_err_per_100um": -0.0012516930031730273,
+        "median_voxel_err_in_dist": 0.07358674048972298,
+        "median_voxel_err_held_out": 0.07796641628069698
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+train 9000 / val 1000 samples, 113 peaks x 32x32, head=offset
+architecture gn: 0.10M parameters on mps
+epoch   1/60  train  -12.768269  val  -12.545996  val rms z 0.0424 perp 0.0037  sigma z 0.0279 perp 0.0037  (6s)
+epoch   2/60  train  -12.848019  val  -12.594931  val rms z 0.0423 perp 0.0037  sigma z 0.0288 perp 0.0037  (9s)
+epoch   3/60  train  -12.865169  val  -12.655910  val rms z 0.0420 perp 0.0037  sigma z 0.0300 perp 0.0037  (12s)
+epoch   4/60  train  -12.870951  val  -12.727251  val rms z 0.0416 perp 0.0037  sigma z 0.0315 perp 0.0036  (15s)
+epoch   5/60  train  -12.887304  val  -12.788869  val rms z 0.0410 perp 0.0037  sigma z 0.0330 perp 0.0036  (18s)
+epoch   6/60  train  -12.890604  val  -12.833968  val rms z 0.0404 perp 0.0037  sigma z 0.0342 perp 0.0036  (21s)
+epoch   7/60  train  -12.895268  val  -12.865781  val rms z 0.0398 perp 0.0037  sigma z 0.0352 perp 0.0036  (24s)
+epoch   8/60  train  -12.909200  val  -12.886872  val rms z 0.0393 perp 0.0037  sigma z 0.0359 perp 0.0036  (27s)
+epoch   9/60  train  -12.920627  val  -12.900651  val rms z 0.0388 perp 0.0037  sigma z 0.0363 perp 0.0037  (31s)
+epoch  10/60  train  -12.930706  val  -12.910503  val rms z 0.0383 perp 0.0037  sigma z 0.0365 perp 0.0037  (37s)
+epoch  11/60  train  -12.953840  val  -12.920539  val rms z 0.0378 perp 0.0037  sigma z 0.0365 perp 0.0037  (43s)
+epoch  12/60  train  -12.978547  val  -12.931270  val rms z 0.0373 perp 0.0038  sigma z 0.0363 perp 0.0037  (48s)
+epoch  13/60  train  -13.009342  val  -12.943253  val rms z 0.0367 perp 0.0038  sigma z 0.0360 perp 0.0037  (54s)
+epoch  14/60  train  -13.024485  val  -12.955812  val rms z 0.0362 perp 0.0038  sigma z 0.0356 perp 0.0037  (60s)
+epoch  15/60  train  -13.040627  val  -12.968398  val rms z 0.0356 perp 0.0038  sigma z 0.0351 perp 0.0038  (66s)
+epoch  16/60  train  -13.060537  val  -12.981389  val rms z 0.0350 perp 0.0038  sigma z 0.0346 perp 0.0038  (72s)
+epoch  17/60  train  -13.078732  val  -12.995049  val rms z 0.0345 perp 0.0038  sigma z 0.0341 perp 0.0038  (78s)
+epoch  18/60  train  -13.098196  val  -13.008958  val rms z 0.0340 perp 0.0038  sigma z 0.0335 perp 0.0038  (84s)
+epoch  19/60  train  -13.116439  val  -13.023408  val rms z 0.0335 perp 0.0038  sigma z 0.0330 perp 0.0038  (89s)
+epoch  20/60  train  -13.128961  val  -13.036698  val rms z 0.0330 perp 0.0038  sigma z 0.0325 perp 0.0038  (95s)
+epoch  21/60  train  -13.140829  val  -13.049473  val rms z 0.0327 perp 0.0038  sigma z 0.0321 perp 0.0038  (101s)
+epoch  22/60  train  -13.154736  val  -13.062530  val rms z 0.0323 perp 0.0038  sigma z 0.0318 perp 0.0038  (107s)
+epoch  23/60  train  -13.157347  val  -13.072107  val rms z 0.0320 perp 0.0038  sigma z 0.0314 perp 0.0038  (113s)
+epoch  24/60  train  -13.156031  val  -13.080068  val rms z 0.0317 perp 0.0038  sigma z 0.0311 perp 0.0038  (119s)
+epoch  25/60  train  -13.164894  val  -13.086153  val rms z 0.0315 perp 0.0038  sigma z 0.0308 perp 0.0038  (125s)
+epoch  26/60  train  -13.166597  val  -13.090519  val rms z 0.0313 perp 0.0038  sigma z 0.0305 perp 0.0038  (131s)
+epoch  27/60  train  -13.172507  val  -13.094655  val rms z 0.0311 perp 0.0038  sigma z 0.0302 perp 0.0038  (136s)
+epoch  28/60  train  -13.171851  val  -13.097652  val rms z 0.0310 perp 0.0038  sigma z 0.0300 perp 0.0038  (142s)
+epoch  29/60  train  -13.176263  val  -13.100394  val rms z 0.0308 perp 0.0038  sigma z 0.0298 perp 0.0038  (148s)
+epoch  30/60  train  -13.178987  val  -13.102745  val rms z 0.0307 perp 0.0038  sigma z 0.0296 perp 0.0038  (154s)
+epoch  31/60  train  -13.185821  val  -13.104354  val rms z 0.0306 perp 0.0038  sigma z 0.0295 perp 0.0038  (160s)
+epoch  32/60  train  -13.183218  val  -13.105280  val rms z 0.0305 perp 0.0039  sigma z 0.0294 perp 0.0038  (166s)
+epoch  33/60  train  -13.187804  val  -13.105637  val rms z 0.0304 perp 0.0039  sigma z 0.0292 perp 0.0038  (172s)
+epoch  34/60  train  -13.186604  val  -13.106422  val rms z 0.0303 perp 0.0039  sigma z 0.0291 perp 0.0038  (177s)
+epoch  35/60  train  -13.198183  val  -13.108947  val rms z 0.0302 perp 0.0039  sigma z 0.0290 perp 0.0038  (183s)
+epoch  36/60  train  -13.195071  val  -13.110026  val rms z 0.0302 perp 0.0039  sigma z 0.0289 perp 0.0038  (189s)
+epoch  37/60  train  -13.194898  val  -13.110311  val rms z 0.0301 perp 0.0039  sigma z 0.0288 perp 0.0038  (195s)
+epoch  38/60  train  -13.198201  val  -13.111849  val rms z 0.0300 perp 0.0039  sigma z 0.0287 perp 0.0038  (201s)
+epoch  39/60  train  -13.204063  val  -13.113145  val rms z 0.0300 perp 0.0039  sigma z 0.0287 perp 0.0038  (207s)
+epoch  40/60  train  -13.203676  val  -13.114240  val rms z 0.0299 perp 0.0039  sigma z 0.0286 perp 0.0038  (213s)
+epoch  41/60  train  -13.204250  val  -13.115248  val rms z 0.0298 perp 0.0039  sigma z 0.0285 perp 0.0038  (219s)
+epoch  42/60  train  -13.205783  val  -13.115720  val rms z 0.0298 perp 0.0039  sigma z 0.0285 perp 0.0038  (224s)
+epoch  43/60  train  -13.210535  val  -13.117795  val rms z 0.0297 perp 0.0039  sigma z 0.0284 perp 0.0038  (230s)
+epoch  44/60  train  -13.211783  val  -13.118692  val rms z 0.0297 perp 0.0039  sigma z 0.0284 perp 0.0038  (236s)
+epoch  45/60  train  -13.211187  val  -13.119460  val rms z 0.0297 perp 0.0039  sigma z 0.0283 perp 0.0038  (242s)
+epoch  46/60  train  -13.210510  val  -13.120500  val rms z 0.0296 perp 0.0039  sigma z 0.0283 perp 0.0038  (248s)
+epoch  47/60  train  -13.213263  val  -13.121076  val rms z 0.0296 perp 0.0039  sigma z 0.0282 perp 0.0038  (254s)
+epoch  48/60  train  -13.213399  val  -13.121256  val rms z 0.0296 perp 0.0039  sigma z 0.0282 perp 0.0038  (260s)
+epoch  49/60  train  -13.213964  val  -13.121564  val rms z 0.0295 perp 0.0039  sigma z 0.0282 perp 0.0038  (265s)
+epoch  50/60  train  -13.214025  val  -13.121638  val rms z 0.0295 perp 0.0039  sigma z 0.0281 perp 0.0038  (271s)
+epoch  51/60  train  -13.213542  val  -13.121293  val rms z 0.0295 perp 0.0039  sigma z 0.0281 perp 0.0038  (277s)
+epoch  52/60  train  -13.215552  val  -13.121528  val rms z 0.0295 perp 0.0039  sigma z 0.0281 perp 0.0038  (283s)
+epoch  53/60  train  -13.216563  val  -13.121911  val rms z 0.0295 perp 0.0039  sigma z 0.0280 perp 0.0038  (289s)
+epoch  54/60  train  -13.216020  val  -13.122099  val rms z 0.0295 perp 0.0039  sigma z 0.0281 perp 0.0038  (295s)
+epoch  55/60  train  -13.216759  val  -13.122162  val rms z 0.0295 perp 0.0039  sigma z 0.0280 perp 0.0038  (301s)
+epoch  56/60  train  -13.217536  val  -13.122414  val rms z 0.0295 perp 0.0039  sigma z 0.0280 perp 0.0038  (306s)
+epoch  57/60  train  -13.217656  val  -13.122489  val rms z 0.0294 perp 0.0039  sigma z 0.0280 perp 0.0038  (312s)
+epoch  58/60  train  -13.217310  val  -13.122673  val rms z 0.0294 perp 0.0039  sigma z 0.0280 perp 0.0038  (318s)
+epoch  59/60  train  -13.217545  val  -13.122784  val rms z 0.0294 perp 0.0039  sigma z 0.0280 perp 0.0038  (324s)
+epoch  60/60  train  -13.217578  val  -13.122863  val rms z 0.0294 perp 0.0039  sigma z 0.0280 perp 0.0038  (330s)
+using the EMA weights (decay 0.998) at the last epoch (val -13.122863)
+
+ |delta| method                 n      rms_z   rms_perp  median_ang  <0.5deg  <0.1deg   (degrees)
+    0.10 predict-nominal       30    0.05523    0.05895     0.10000     100%      47%
+    0.10 gn                    30    0.04454    0.00268     0.04008     100%     100%
+    0.10 net (gn/offset)       30    0.01907    0.00277     0.01417     100%     100%
+         net sigma xyz      [0.00255 0.00381 0.02386]   mean Mahalanobis^2 = 2.10 (3.0 if calibrated)
+    0.25 predict-nominal       30    0.14782    0.14256     0.25000     100%       0%
+    0.25 gn                    30    0.03246    0.00346     0.02419     100%     100%
+    0.25 net (gn/offset)       30    0.03030    0.00347     0.01757     100%     100%
+         net sigma xyz      [0.00269 0.00381 0.02446]   mean Mahalanobis^2 = 3.79 (3.0 if calibrated)
+    0.50 predict-nominal       30    0.24933    0.30646     0.50000      40%       0%
+    0.50 gn                    30    0.04400    0.00309     0.03478     100%      97%
+    0.50 net (gn/offset)       30    0.02447    0.00332     0.01839     100%     100%
+         net sigma xyz      [0.00317 0.00398 0.02764]   mean Mahalanobis^2 = 2.73 (3.0 if calibrated)
+    1.00 predict-nominal       30    0.58445    0.57377     1.00000       0%       0%
+    1.00 gn                    30    0.04459    0.00326     0.03618     100%     100%
+    1.00 net (gn/offset)       30    0.03738    0.00394     0.02492     100%     100%
+         net sigma xyz      [0.0035  0.00444 0.0283 ]   mean Mahalanobis^2 = 3.83 (3.0 if calibrated)
+saved benchmarks/toy_orientation_arch/single_v0_gn.json

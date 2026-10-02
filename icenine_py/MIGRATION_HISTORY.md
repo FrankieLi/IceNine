@@ -1787,3 +1787,360 @@ of the second table separates them: the 4 val voxels are the worst-off group in 
 the val voxels influence checkpoint selection, so they are not a clean test either. Best-epoch
 selection on a noisy loss confounds "voxel-wise split" with "early checkpoint"; a last-epoch
 evaluation of R1/R4 was not run. R3 (150 epochs) was not run.
+
+## Toy Orientation NN — Architecture (parallax) (2026-09-30)
+
+**Architecture branch summary (Steps 1-4 and 3b).** Putting the physics into the network (a learned Gauss–Newton layer, `GNLayerNet`) removes the
+3x gap of the pooled set net on clean multi-voxel data: it is at GN's accuracy on seen voxels, 1.1-1.7x GN on unseen voxels (see the
+re-check under Step 2), with GN's falling error vs r⊥ and Mahalanobis² 2-4. Detector pairing (Step 3) neither helps nor hurts on clean data.
+With realistic corruption (Step 4: neighbour/twin spots, spurious blobs, missing spots, edge jitter) plain GN degrades ~20x (median 0.22-0.33° vs
+0.012-0.014°) and a Huber-robust GN cuts that by about a third, but a GNLayerNet *trained on corrupted windows* reaches 0.06-0.08° (median) on the same data, 2-3x better
+than robust GN, while a net trained on clean data only is not better than robust GN and barely better than plain GN. On pixel-level noise alone (no distractor spots) robust GN is as good as or
+better than the net. Pairing gives at most a few per cent on corrupted data (Step 3b fixed an inert pairing MLP in `GNLayerNet`; the fixed pairing is still within seed spread of the unpaired net). Remaining errors on distractor data are heavy-tailed (perp RMS 0.05° vs 0.004°
+clean). Details and caveats below.
+
+Branch `feature/nn-orientation-arch`. Goal (plan `warm-plotting-platypus`): an architecture whose
+multi-voxel error falls with r⊥ like Gauss–Newton (GN), i.e. that uses parallax, and that survives
+realistic nuisance signal. Data and protocol as in Stage 3 step 3 (30 ManyGrains voxels, 24 train /
+6 held out, 0.1/0.25/0.5/1.0°); new runs use `--val-voxels 4` (voxels 6, 11, 19, 24 [Correction 2026-10-01: seed 0 only; seed 1 uses 3, 11, 20, 29]), `--ema 0.998
+--checkpoint ema` (EMA weights at the last epoch instead of best-epoch selection), 60 epochs, lr 3e-4,
+clip 1, cosine, batch 64, mps, decoupled loss, seeds 0 and 1. Numbers are means of the two seeds,
+from `benchmarks/toy_orientation_arch/*res*.json` (tables: `*_summary.txt`,
+`scripts/summarize_results.py`).
+
+### Step 1: diagnostics without training
+
+New code: `extract_measurements(..., detectors=[..])` (GN on one detector), `CentroidGaussNewton.information`
+(J^T W J), `.solve_linear` (one undamped GN step from nominal), `orientation_eval.pair_index` /
+`nominal_offsets`, `scripts/arch_diagnostics.py`, `scripts/dataset_problems.py`,
+`scripts/make_dataset_aux.py` (sidecar with per-peak exact nominal offsets and pair index, so the
+existing gitignored datasets are reused without re-rendering), `--aux/--subpixel` in the trainer.
+Outputs: `diag_{stage1,far,multi}.json`, `diag_multi_summary.txt`.
+
+**Pairing.** ROI sets have 105-130 entries (mean 119: 63 on detector 0, 56 on detector 1). Entries
+sharing (reflection, ω-branch) on the two detectors are the same ray: 50-62 pairs per voxel, i.e.
+94 % of entries are paired (voxel 0: 53 pairs of 113; voxel 77: 53 of 118). On average 111 of 119
+entries per test sample have their partner also recorded.
+
+**GN per detector, 30 multi-voxel test voxels** (median over voxels in r⊥ bins; median angle / z RMS / ⊥ RMS, degrees):
+
+| r⊥ bin (µm) | both detectors | detector 0 only | detector 1 only |
+|---|---|---|---|
+| 0-130 | 0.019 / 0.032 / 0.0029 | 0.022 / 0.032 / 0.0052 | 0.022 / 0.032 / 0.0032 |
+| 130-260 | 0.013 / 0.017 / 0.0031 | 0.015 / 0.019 / 0.0052 | 0.018 / 0.024 / 0.0034 |
+| 260-390 | 0.011 / 0.012 / 0.0033 | 0.014 / 0.015 / 0.0048 | 0.011 / 0.013 / 0.0037 |
+| 390-510 | 0.0076 / 0.0064 / 0.0044 | 0.011 / 0.0079 / 0.0054 | 0.0099 / 0.010 / 0.0044 |
+| corr(error, r⊥) | -0.63 | -0.58 | -0.76 |
+| corr(z RMS, r⊥) | -0.84 | -0.79 | -0.88 |
+
+- The stage axis z is the error. GN's z RMS falls 0.032 → 0.006° from r⊥ = 0 to 500 µm (corr -0.84)
+  while ⊥ RMS is flat (0.003-0.004°). This is the parallax: the Fisher sigma_z from J^T W J is 0.023° → 0.007°
+  (corr -0.96 with r⊥) and the weakest eigenvector of J^T W J is ≥ 95 % z at every radius.
+- Each detector alone reproduces the parallax (z RMS corr -0.79/-0.88). Both detectors together
+  improve ⊥ by ~1.5x (0.003 vs 0.005 on detector 0) and z by 0-20 %, not by a factor: the two
+  detectors are mostly redundant for z on these data (ΔL ≈ 2 mm is small next to the rotation-axis lever arm).
+- **Conditioning:** cond(J^T W J) = 48 (r⊥ < 130 µm) → 5 (r⊥ > 390 µm) in sigma-normalised units:
+  well posed from pixels and frames alone at every radius, poorer near the axis because the pixel
+  columns of J for z scale with r⊥.
+- **Linearisation is not a limit:** one undamped GN step from nominal (`solve_linear`) reaches the converged GN
+  error (median angle 0.0194/0.0138/0.0120/0.0076 vs 0.0191/0.0127/0.0110/0.0076 by bin, corr -0.63). So a network layer
+  that solves the linear normal equations at the nominal point can in principle reach GN.
+
+**Sub-pixel bias.** `measurement_features` measures relative to the window centre; the exact nominal
+centroid differs by the fractional position (0-1 px, a fixed per-peak number) and the nominal crossing
+is off the frame centre by -0.5..0.5 frames. A test confirms that feature minus `nominal_offsets` is
+exactly (lit centroid - exact nominal centroid). Retraining the multi-voxel set net with the corrected
+measurement (`--subpixel`) versus the same protocol without it (2 seeds each; median angle / ⊥ RMS at
+0.1/0.25/0.5/1.0°):
+
+| run | group | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| set, window-centre measurement | in-dist | 0.034/0.035/0.040/0.044 | 0.039/0.042/0.047/0.046 | 0.015/0.015/0.017/0.025 | 3.6/4.1/4.5/5.6 |
+| | held-out | 0.038/0.042/0.053/0.058 | 0.036/0.042/0.054/0.054 | 0.019/0.022/0.026/0.032 | 5.5/7.4/10.2/11.0 |
+| set, `--subpixel` | in-dist | 0.033/0.035/0.033/0.043 | 0.039/0.039/0.038/0.041 | 0.011/0.013/0.014/0.023 | 3.1/3.6/3.4/5.1 |
+| | held-out | 0.029/0.034/0.039/0.053 | 0.040/0.037/0.038/0.049 | 0.012/0.015/0.019/0.029 | 4.0/4.8/6.0/9.3 |
+| Gauss–Newton | in-dist / held-out | 0.012-0.015 / 0.010-0.014 | 0.020-0.024 / 0.016-0.020 | 0.003-0.004 | |
+
+Correlation of per-voxel error with r⊥: +0.29 for both nets (GN -0.63). **Result:** the bias was a real
+but small contributor: ⊥ RMS improves by 25-35 % and held-out median by 10-25 %, calibration improves
+(held-out Mahalanobis² 4-9 vs 5.5-11); z RMS (0.04°) and the r⊥ trend do not change, so it does not
+explain the 3x gap to GN. The baseline here (EMA weights, voxel-wise validation) reproduces the earlier
+best set net (held-out 0.036/0.043/0.050/0.057 -> 0.038/0.042/0.053/0.058), so the comparison is like for like.
+Caveats: 2 seeds; per-seed spread not tabulated (only the mean is quoted); 6 held-out voxels.
+
+### Step 2: learned Gauss–Newton layer (`GNLayerNet`)
+
+**What was built** (`icenine/toy_orientation_model.py`, `--arch gn`). A shared per-peak encoder (window
+convolutions + context + measurement features, as `PeakSetNet`) emits, per present peak, a
+reliability weight for each of its three measured rows (centroid column, centroid row, frame; a
+softplus, initialised to 1) and a correction to the measurement (initialised to 0). The measurement is
+y = (lit centroid - exact nominal centroid, frame - exact nominal crossing) in units of the
+quantisation sigma (`--subpixel` features, `nominal_offsets`); the Jacobian J comes from the context
+(Γ = context[:, 0:6] × 20 px/deg, dω*/dδ = context[:, 6:9] converted to frames/deg). The pooled normal
+equations A = Σ JᵀWJ + 1e-3·I, δ = A⁻¹ Σ JᵀW(y + dy) are solved in closed form (3×3 adjugate inverse and
+Cholesky in plain tensor ops: differentiable and runs on MPS, which has no `linalg.solve`). The
+returned covariance is D A⁻¹ D with a learned diagonal D (calibration). `--gn-iters K` unrolls K
+IRLS-style rounds in which the head also sees asinh of the residual y - Jδ and the current δ. The
+initial state (W=1, dy=0) **is** one undamped GN step from nominal (`CentroidGaussNewton.solve_linear`).
+Trained with the decoupled loss (same protocol as Step 1 runs: 60 epochs, EMA weights, `--val-voxels 4`
+for multi-voxel; single-voxel runs use the default random 10 % sample validation).
+Tests: layer == weighted least squares; W=1/dy=0 reproduces `solve_linear` on real windows
+(|Δδ| < 2e-3°, covariance diag within 3 %); permutation and padding invariance (with and without pairing);
+finite gradients.
+
+**Single-voxel sanity** (30 test cases per magnitude; median angle in degrees at 0.1/0.25/0.5/1.0°; one run):
+
+| voxel | method | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| 0 (r⊥ 12 µm) | set net (Stage 3, decoupled, all) | 0.020/0.026/0.026/0.030 | 0.016/0.024/0.027/0.040 | 0.011/0.011/0.009/0.011 | 3.2/3.4/2.4/4.3 |
+| | **GNLayerNet K=1** | 0.014/0.018/0.018/0.025 | 0.019/0.030/0.024/0.037 | 0.0028/0.0035/0.0033/0.0039 | 2.1/3.8/2.7/3.8 |
+| | Gauss–Newton | 0.040/0.024/0.035/0.036 | 0.045/0.032/0.044/0.045 | 0.0027/0.0035/0.0031/0.0033 | |
+| 77 (r⊥ 399 µm) | set net (Stage 3, decoupled, all) | 0.014/0.016/0.020/0.024 | 0.016/0.014/0.019/0.021 | 0.008/0.010/0.010/0.017 | 4.5/3.7/3.6/5.5 |
+| | **GNLayerNet K=1** | 0.0098/0.0078/0.0086/0.0095 | 0.010/0.012/0.009/0.012 | 0.0025/0.0028/0.0028/0.0036 | 2.9/3.2/2.4/2.8 |
+| | Gauss–Newton | 0.012/0.011/0.009/0.008 | 0.013/0.010/0.010/0.008 | 0.0031/0.0032/0.0034/0.0035 | |
+
+(`single_v0_gn.*`, `single_v77_gn.*`.) The net reaches GN's ⊥ accuracy immediately (0.003°), and is
+at or below GN in z (on voxel 0 better than GN, because it learns corrections to the quantised
+measurements; GN's voxel-0 median at 0.1° is dominated by few cases). Exact Bayes for voxel 0 is
+0.004-0.007°, so ~3x headroom remains.
+
+**Multi-voxel, 30 voxels** (2 seeds, means; in-dist = 24 training-set voxels of which 4 are the
+validation voxels the net never trained on; held-out = 6 test-file voxels). From
+`multi_res_gn_k{1,3}_s{0,1}.json`, `step2_summary.txt`:
+
+| run | group | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| set net (Step 1 baseline, window-centre) | in-dist | 0.034/0.035/0.040/0.044 | 0.039/0.042/0.047/0.046 | 0.015/0.015/0.017/0.025 | 3.6/4.1/4.5/5.6 |
+| | held-out | 0.038/0.042/0.053/0.058 | 0.036/0.042/0.054/0.054 | 0.019/0.022/0.026/0.032 | 5.5/7.4/10.2/11.0 |
+| set net, `--subpixel` | held-out | 0.029/0.034/0.039/0.053 | 0.040/0.037/0.038/0.049 | 0.012/0.015/0.019/0.029 | 4.0/4.8/6.0/9.3 |
+| **GNLayerNet K=1** | in-dist | 0.013/0.015/0.012/0.013 | 0.020/0.023/0.021/0.022 | 0.006/0.005/0.004/0.004 | 3.1/3.2/3.1/3.2 |
+| | held-out | 0.017/0.016/0.015/0.013 | 0.023/0.022/0.022/0.019 | 0.007/0.006/0.005/0.004 | 3.7/4.0/3.9/3.5 |
+| **GNLayerNet K=3** | in-dist | 0.013/0.015/0.012/0.015 | 0.021/0.023/0.021/0.023 | 0.003/0.003/0.003/0.004 | 3.3/3.4/3.1/3.2 |
+| | held-out | 0.018/0.016/0.017/0.016 | 0.024/0.024/0.023/0.022 | 0.003/0.003/0.004/0.005 | 4.2/4.0/3.8/3.9 |
+| Gauss–Newton | in-dist | 0.012/0.015/0.012/0.014 | 0.020/0.024/0.022/0.022 | 0.003/0.003/0.003/0.004 | |
+| | held-out | 0.014/0.012/0.012/0.010 | 0.017/0.020/0.020/0.016 | 0.004/0.003/0.004/0.004 | |
+
+Per-voxel median error vs r⊥ (30 voxels, mean of 2 seeds of the correlation): K=1 **-0.72**, K=3 **-0.64**,
+GN -0.63, set nets +0.29. Median per-voxel error: K=1 0.0136 in-dist / 0.0188 held-out; K=3 0.0131 / 0.0169; GN
+0.0128 / 0.0143; set net 0.037 / 0.048.
+
+**Finding.** The plan's success criteria are met on clean data: held-out median is 1.0-1.5x GN **in the 2-seed mean (this overstates it per seed, see the re-check below)** (0.013-0.018 vs 0.010-0.014°; the plan allowed 1.5x), the error
+falls with r⊥ like GN's, the z RMS (0.02°) equals GN's, and Mahalanobis² is 3.1-4.2 in-dist *and* held-out (the set net's held-out was
+5.5-11). Putting the physics in the architecture removes the 3x gap; the val-voxel z RMS (unseen voxels, epoch-60 EMA; from the training logs) drops from 0.074° (set net; 0.045° with --subpixel) to 0.020-0.023° (seed 0). The K=3 variant trades nothing on clean data
+and cleans up ⊥ (0.003 vs 0.005-0.007°); K=1's ⊥ is noisier because the freed weight/correction head can trade ⊥ against z.
+On clean data iterations add nothing (the linear model is already exact enough); their purpose is outlier rejection (Step 4).
+Caveats: 2 seeds, the mean of the four |δ| bins is quoted with no spread; 6 held-out voxels; the held-out gap to GN (1.0-1.5x) is small but
+consistently positive at 0.1° (0.017-0.018 vs 0.014). The linear-at-nominal Jacobian ignores curvature: at 1° the layer matches GN (0.013-0.016 vs 0.010-0.014).
+Not verified: behaviour on a different geometry/structure.
+
+**Re-check of the "Gauss–Newton parity" claim (Step 4 session, from the saved per-seed jsons).** Ratio of the net's median angle to
+GN's, mean of the four |δ| bins, per seed (`multi_res_gn_k1_s*`, `multi_res_gn_k3_s*`; the Step 3 lr 1e-4 and paired runs for comparison):
+
+| run | in-dist s0 / s1 | held-out s0 / s1 | corr(voxel error, r⊥) s0 / s1 |
+|---|---|---|---|
+| K=1, lr 3e-4 | 0.93 / 1.12 | 1.15 / 1.43 | -0.64 / -0.79 |
+| K=3, lr 3e-4 | 1.17 / 0.91 | **1.74** / 1.10 | -0.43 / -0.85 |
+| K=3, lr 1e-4 | 0.92 / 1.19 | 1.24 / 1.38 | -0.75 / -0.47 |
+| K=3 paired, lr 1e-4 | 0.93 / 1.04 | 1.13 / 1.40 | -0.70 / -0.50 |
+
+(GN: corr -0.63.) So: on the 24 training-set voxels the net is at parity (0.9-1.2x GN); on the 6 unseen voxels it is 1.1-1.7x GN
+and the "within 1.5x" criterion fails for one of eight runs (K=3 s0, 1.74x; seed spread alone moves K=3 from 1.10x to 1.74x);
+the sign of the r⊥ trend holds in every run (-0.43 to -0.85) but its strength varies by seed. **The accurate statement is
+"close to GN on seen voxels, 1.1-1.7x GN on unseen voxels, with GN's parallax trend"**, not exact parity. The 3x gap of the set
+net is removed in every run (set net held-out ~3.5x). The commit subject of e6f4072 ("reaches Gauss–Newton parity on 30 voxels")
+is therefore an overstatement for held-out voxels; the numbers above are the record.
+
+### Step 3: detector pairing (`--pairing`)
+
+**Implementation (a deviation from the plan's "reflection token").** Instead of a separate token holding both
+windows, every entry keeps its own window encoding and is given its partner's: `pair_index` (same
+reflection and ω-branch, other detector; `orientation_eval.pair_index`, stored in the aux sidecar, padded
+per voxel) gathers the partner's encoding; `f ← f + MLP([f, f_partner, has_partner])`. In the IRLS iterations the weight head
+additionally sees asinh of the partner's residual (y - Jδ) and the flag, which is the L1-L2 consistency check:
+a spot whose partner disagrees with the current δ is down-weighted. Both detector rows enter the normal equations through their own J rows, as before.
+The pair MLP's output layer is zero-initialised (the network starts as the unpaired one); a first attempt without that was unstable
+(`multi_res_gnpairv1_k3_s0.*`: per-voxel median error 0.029 vs 0.013 unpaired; training loss oscillating), a
+learning rate of 3e-4 with zero-init gave 0.016/0.019 and lr 1e-4 fixed it. To compare like with like, the unpaired K=3 net was re-run at lr 1e-4.
+Tests: `pair_index` links exactly the same-reflection, same-branch, other-detector entry (symmetric, equal nominal ω), incl. unpaired/3-detector
+cases; GNLayerNet permutation/padding invariance holds with pairing (partner indices permuted consistently).
+
+[Correction 2026-10-01: the pair-encoding MLP described above never trains. `GNLayerNet.forward` applies
+`f = f + relu(pair2(relu(pair1(...))))` with `pair2` zero-initialised (`toy_orientation_model.py` lines 398-402, 448), so the
+pre-activation of the ReLU is exactly 0, ReLU'(0) = 0, and `pair1`/`pair2` receive exactly zero gradient forever (verified by backward;
+`head`/`cov` parameters do get gradient). In every paired run (`gnpair*`) pairing therefore acted only through the head's
+asinh(partner residual) input and the has-partner flag; 12,480 of the 115,393 parameters are inert. The statement that zero-initialisation
+"fixed" the instability is better read as zero-initialisation switching the mixing path off; only the unstable `gnpairv1` had live mixing.
+The Step 3 and Step 4 conclusions on pairing ("no clear benefit") therefore test only the partner-residual input, not encoder-level mixing
+of the two detectors. The unit tests missed it: the invariance test re-initialises the zero parameters and the gradient test checks only
+finiteness. See `docs/orientation_nn_design.md` Section 3.4. No code change was made in this correction.]
+
+**Clean data, 30 voxels, K=3, 2 seeds** (`step3_summary.txt`; median angle / z RMS / ⊥ RMS at 0.1/0.25/0.5/1.0°):
+
+| run | group | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| paired, lr 1e-4 | in-dist | 0.011/0.014/0.012/0.014 | 0.018/0.024/0.023/0.023 | 0.003/0.004/0.004/0.005 | 2.8/3.2/3.1/3.1 |
+| | held-out | 0.013/0.015/0.016/0.016 | 0.020/0.022/0.025/0.021 | 0.003/0.004/0.004/0.005 | 4.4/3.9/4.2/4.5 |
+| unpaired, lr 1e-4 | in-dist | 0.013/0.016/0.013/0.013 | 0.021/0.025/0.022/0.023 | 0.003/0.003/0.003/0.004 | 2.9/3.2/2.8/3.2 |
+| | held-out | 0.016/0.016/0.015/0.015 | 0.027/0.026/0.023/0.021 | 0.003/0.003/0.004/0.004 | 3.7/3.5/3.5/3.6 |
+| unpaired, lr 3e-4 (Step 2) | held-out | 0.018/0.016/0.017/0.016 | 0.024/0.024/0.023/0.022 | 0.003/0.003/0.004/0.005 | 4.2/4.0/3.8/3.9 |
+| Gauss–Newton | held-out | 0.014/0.012/0.012/0.010 | 0.017/0.020/0.020/0.016 | 0.004/0.003/0.004/0.004 | |
+
+corr(voxel error, r⊥): paired -0.60, unpaired -0.61 (lr 1e-4) / -0.64 (lr 3e-4); GN -0.63. **Finding:** on clean data
+pairing neither helps nor hurts beyond seed noise (held-out median 0.013-0.016 vs 0.015-0.016; in-dist 0.011-0.014 vs 0.013-0.016; the
+paired net's ⊥ at 1° is slightly worse, 0.005 vs 0.004). This is expected: on clean data the two detectors' rows in the normal equations already
+carry the pair information (Step 1: detectors are largely redundant for z), and there are no outliers to reject. The value of pairing, if any,
+is in the corrupted-data test (Step 4 below). Caveat: 2 seeds; differences of ~0.002° are within seed spread (not tabulated).
+
+### Step 4: distractors and noise
+
+**Corruptions (verified against `orientation_eval.CorruptionConfig` / `corrupt_windows` and the generator).** Applied to the frame-coded windows,
+independently per entry:
+- *neighbours* (distractor layer, rendered at dataset-generation time by `render_distractor_windows`): the spots of the 2 nearest ManyGrains mic voxels (≈9 µm away) and a Σ3
+  twin of the nearest one (`--neighbors 2 --twin`, defaults `--neighbor-p 0.5 --neighbor-sigma-deg 0.3`): each source follows the target's perturbed orientation plus its own random misorientation
+  (0.3° total), and is present in a given sample with probability 0.5. Its lit pixels (with their frame codes) are drawn into every target window they overlap; the
+  target's own pixels always win (`combine_windows`), so the target's spots are never altered (tested).
+- *noise* (`p_miss`, `p_flip`, `p_hot`, `p_blob` = 0.1, 0.05, 0.05, 0.1): a whole spot is not recorded (window zeroed, 10 %); each lit pixel is dropped and each 4-neighbour of a lit pixel is lit
+  with probability 0.05 (threshold jitter at the spot edge); one isolated hot pixel (5 %); one spurious 2-4 px blob at a random frame (10 %).
+- Variants: `clean`, `neighbours` (layer only), `noise` (pixel-level only), `all` (both). Test windows are corrupted deterministically (`corrupt_dataset`, fixed seed), so GN and the nets see identical inputs; training windows are corrupted on the fly (`--corrupt-train all`).
+Not implemented (not in the plan's list either): a per-sample random corruption severity, partial-spot occlusion, intensity/threshold jitter beyond the edge flips, noise correlated across the two detectors.
+
+**Data.** Same 30 voxels, selection and protocol as Step 2/3 but a new dataset (`scripts/toy_orientation_arch_dis_{train,test}.pt`, gitignored, 3.2 GB / 0.3 GB, seed 42; 12000 train / 1200 test
+samples; `dis_windows` holds the distractor layer). The `--aux` sidecar of the Step 2/3 data is reused (same voxels, ROI sets and contexts; checked equal. The clean windows and offsets of the test file are identical to `toy_orientation_stage3_multi_test.pt`, the generator seed being the same).
+
+**Compared.** (a) plain GN; (b) Huber-robust GN (`CentroidGaussNewton(huber_c=c)`: IRLS-weighted Levenberg–Marquardt on the normalised residuals); (c) GNLayerNet K=3 trained with `--corrupt-train all`;
+(d) the same with `--pairing`; (e) GNLayerNet K=3 trained on the *clean* windows of the same file (to separate "has an IRLS head" from "was trained on corruption"). Nets: lr 1e-4, 60 epochs, EMA 0.998, `--val-voxels 4` (validation windows corrupted too), decoupled loss, seeds 0 and 1:
+```
+uv run python scripts/train_toy_orientation_nn.py --head offset --loss decoupled --device mps --clip 1 --cosine --batch-size 64 --epochs 60 --ema 0.998 --checkpoint ema \\
+  --lr 1e-4 --arch gn --gn-iters 3 [--pairing] [--corrupt-train all] --train scripts/toy_orientation_arch_dis_train.pt --test scripts/toy_orientation_arch_dis_test.pt \\
+  --aux scripts/toy_orientation_stage3_multi_aux.pt --val-voxels 4 --eval-variants clean,neighbours,noise,all --seed S --results-json ... --save-predictions ...
+```
+(`dis_res_gn_k3_corr_s{0,1}`, `dis_res_gnpair_k3_corr_s{0,1}`, `dis_res_gn_k3_cleantrain_s{0,1}`.) GN: `scripts/gauss_newton_baseline.py --corrupt V [--huber c]`. All numbers below are produced by
+`scripts/summarize_arch_step4.py` from the saved predictions (`step4_summary.{txt,json}`: every cell, per-bin medians, per-seed values), not from the trainer's own tables.
+The clean-variant predictions `dis_res_gn_k3_cleantrain_s{0,1}.npz` are byte-identical to `multi_res_gn_k3_lr1e-4_s{0,1}.npz` (the same deterministic run, evaluated again on the corrupted test sets); the `_all`/`_neighbours`/`_noise` predictions exist only under the `cleantrain` name, so both sets of files are kept.
+**Padding caveat.** Padded entries of the multi-voxel arrays are corrupted too in all reported runs (`--mask-padding` was not used): they have J = 0, so they do not move the estimate delta, but hot pixels/blobs can make them look "present", so they enter the pooled covariance features and the count n; the Gauss-Newton baseline slices `[:n_pk]`, so the comparison is slightly asymmetric against the net. Use `--mask-padding` for future runs.
+
+**Huber threshold: chosen on a validation split, not on the test set.** 200 samples from four *training-set* voxels (6, 11, 19, 24; `step4_huber_val.txt`), windows corrupted with `all`:
+median angle plain GN 0.095°, Huber c = 0.5 / **1** / 2 / 3 / 5: 0.0336 / **0.0325** / 0.0328 / 0.0369 / 0.0426° (on clean validation windows: 0.0179 / 0.0158 / 0.0125 / 0.0134 / 0.0135 vs GN 0.0135°).
+c = 1 minimises the corrupted-validation median and c = 1 and 2 are within 1 %; c = 1 is used for all variants, with a clean-data cost (below). (An earlier session had picked c per test variant by looking at test results; those
+numbers are not used. Logs for c = 0.5-5 on test variants are in the directory but are not part of any table.) Checked afterwards: with `--max-iter 200` (22 % of c = 1 fits hit the default cap of 30 on `all`) every fit converges and the median
+error is unchanged (0.156-0.174° vs 0.14-0.22° in-dist/held-out above; `dis_*_huber1it200_*`), so the iteration cap is not what limits the robust fit.
+
+**Results** (test set: 30 voxels, 24 in-dist / 6 held-out, 40 samples each = 10 at each |δ| of 0.1/0.25/0.5/1.0°; 2 seeds for nets, means shown, per-seed in brackets).
+Median angle is pooled over the four |δ| bins (it does not depend on |δ| in any row; per-bin values are in `step4_summary.txt`); in-dist = 24 training-set voxels (4 of them
+the network's validation voxels), held-out = 6 voxels never seen. RMS and "< 0.1°" (fraction of cases) are held-out; Mah² in-dist / held-out; corr = per-voxel median error vs r⊥ (30 voxels; GN on clean -0.63).
+
+| test set | method | median in-dist | median held-out [seeds] | < 0.1° | z / ⊥ RMS | Mah² | corr(err, r⊥) [seeds] |
+|---|---|---|---|---|---|---|---|
+| clean | plain GN | 0.0131 | 0.0119 | 1.00 | 0.018 / 0.004 | | -0.63 |
+| | Huber GN (c=1) | 0.0125 | 0.0144 | 1.00 | 0.023 / 0.004 | | -0.73 |
+| | GNLayerNet, clean-trained | 0.0138 | 0.0152 [0.0143, 0.0161] | 1.00 | 0.025 / 0.004 | 3.0 / 3.6 | -0.75, -0.47 |
+| | GNLayerNet, corrupted-trained | 0.0185 | 0.0193 [0.0176, 0.0210] | 1.00 | 0.028 / 0.004 | 2.1 / 2.2 | -0.72, -0.71 |
+| | paired, corrupted-trained | 0.0185 | 0.0186 [0.0185, 0.0186] | 1.00 | 0.027 / 0.005 | 2.3 / 2.3 | -0.73, -0.79 |
+| neighbours | plain GN | 0.2253 | 0.3428 | 0.20 | 0.641 / 0.100 | | -0.11 |
+| | Huber GN (c=1) | 0.1375 | 0.2223 | 0.33 | 0.285 / 0.070 | | +0.13 |
+| | GNLayerNet, clean-trained | 0.1934 | 0.2706 [0.2916, 0.2496] | 0.23 | 0.513 / 0.091 | 1556 / 1951 | -0.14, +0.04 |
+| | GNLayerNet, corrupted-trained | 0.0576 | 0.0719 [0.0723, 0.0715] | 0.66 | 0.068 / 0.051 | 3.0 / 2.9 | -0.18, -0.09 |
+| | paired, corrupted-trained | 0.0594 | 0.0710 [0.0702, 0.0718] | 0.65 | 0.068 / 0.052 | 3.0 / 2.7 | -0.10, -0.11 |
+| noise | plain GN | 0.0545 | 0.0573 | 0.85 | 0.066 / 0.028 | | -0.80 |
+| | Huber GN (c=1) | **0.0177** | **0.0215** | 1.00 | 0.030 / 0.005 | | -0.72 |
+| | GNLayerNet, clean-trained | 0.0704 | 0.0741 [0.0746, 0.0736] | 0.71 | 0.076 / 0.040 | 223 / 272 | -0.49, -0.27 |
+| | GNLayerNet, corrupted-trained | 0.0241 | 0.0242 [0.0227, 0.0258] | 0.99 | 0.036 / 0.006 | 3.0 / 3.0 | -0.61, -0.71 |
+| | paired, corrupted-trained | 0.0233 | 0.0231 [0.0228, 0.0233] | 1.00 | 0.035 / 0.006 | 3.0 / 3.0 | -0.69, -0.76 |
+| all | plain GN | 0.2228 | 0.3311 | 0.20 | 0.617 / 0.100 | | -0.14 |
+| | Huber GN (c=1) | 0.1405 | 0.2239 | 0.32 | 0.288 / 0.071 | | +0.14 |
+| | GNLayerNet, clean-trained | 0.2033 | 0.2757 [0.3016, 0.2498] | 0.16 | 0.493 / 0.094 | 1462 / 1796 | -0.17, +0.04 |
+| | GNLayerNet, corrupted-trained | **0.0615** | **0.0821** [0.0827, 0.0815] | 0.64 | 0.071 / 0.054 | 2.9 / 2.6 | -0.17, -0.12 |
+| | paired, corrupted-trained | **0.0616** | **0.0762** [0.0734, 0.0789] | 0.62 | 0.071 / 0.055 | 2.8 / 2.5 | -0.12, -0.12 |
+
+Per-bin held-out medians on `all` (|δ| = 0.1/0.25/0.5/1.0°): plain GN 0.307/0.353/0.316/0.333; Huber 0.185/0.249/0.224/0.233; corrupted-trained net 0.064/0.084/0.073/0.086; paired 0.064/0.083/0.076/0.086; clean-trained net 0.264/0.288/0.256/0.278. In-dist seed values for the corrupted-trained nets agree to ≤ 0.004° (`all`: 0.0614/0.0615 unpaired, 0.0625/0.0608 paired).
+
+**Findings.**
+1. *Distractor spots break GN and the robust variant helps only partly.* Plain GN goes from 0.012-0.013° to 0.22-0.34° (≈20x; only 20-34 % of cases within 0.1°); Huber GN cuts that by about a third (0.14° in-dist, 0.22° held-out) and loses the parallax
+   trend (corr +0.13/+0.14). Pixel-level noise alone costs plain GN 4x (0.055°) and Huber GN recovers nearly all of it (0.018-0.022°).
+2. *A GNLayerNet trained on corrupted windows is 2-3x better than robust GN on distractor data* (`all`: 0.0615° in-dist / 0.082° held-out vs 0.1405 / 0.224; 64 % vs 32 % of held-out cases below 0.1°) and its
+   covariance stays calibrated (Mahalanobis² 2.5-3.0, in-dist and held-out). The comparison is fair in the sense that the robust baseline's only free parameter was set on separate validation voxels, but note the net sees the corruption family it
+   is tested on (see caveats). Where the *only* nuisance is pixel noise the robust GN is as good or better (0.0215 vs 0.0242° held-out, 2 seeds, every seed worse than Huber): the plan's criterion "matches or beats robust GN" is **met for neighbours/all, not for noise**.
+3. *Corruption-aware training is what matters, not the IRLS head.* The same architecture trained on clean windows is no better than plain GN on `neighbours`/`all` (0.20-0.28° vs 0.22-0.33°; worse than Huber GN) and its Mahalanobis² explodes (1500-2000: confidently wrong), and on `noise` it is worse than plain GN (0.074 vs 0.057°). 
+   Corruption-aware training costs accuracy on clean data (held-out 0.0176-0.0210° vs 0.0143-0.0161° clean-trained vs 0.012° GN: 1.2-1.4x worse than the clean-trained net). Robust GN also costs ≈ 20 % on clean held-out (0.0144 vs 0.0119°) at c = 1.
+4. *Generalisation to unseen voxels degrades under distractors.* Clean: held-out ≈ in-dist (0.0193 vs 0.0185°). `all`: 0.082 vs 0.0615° (1.3x); `neighbours` 0.072 vs 0.058° (1.25x). The gap is not specific to the net: plain GN's is 1.5x (0.331 vs 0.223°) and Huber GN's 1.6x (0.224 vs 0.141°), and on clean data GN's held-out error is *lower* than in-dist, so under distractors the 6 held-out voxels are simply harder, and the net's gap (1.3x) is no worse than GN's. It is still a gap that the clean data did not show.
+5. *Pairing: no clear benefit.* `neighbours`, `noise`, in-dist `all`, clean: differences ≤ 0.001° (inside the seed spread). Only held-out `all` shows paired < unpaired (0.0734/0.0789 vs 0.0827/0.0815, ≈ 7 %, both paired seeds below both unpaired seeds), with 2 seeds and 6 voxels that is suggestive, not established. The partner-residual consistency check does not buy the large gain one might expect; one hypothesis (untested) is that a distractor spot from a neighbour voxel 9 µm away
+   lands consistently on both detectors, so the pair check cannot reject it.
+6. *Parallax is lost under distractors for every method.* Error-vs-r⊥ correlation drops from -0.6…-0.8 (clean, noise) to -0.1…-0.18 (neighbours, all) for plain GN and for the nets alike, and is positive for Huber GN. The remaining error is heavy-tailed: ⊥ RMS 0.05° vs 0.004° on clean (median 0.06-0.08°, but 34-38 % of held-out cases above 0.1°).
+   The net's gain over Huber GN is largest in z (RMS 0.071 vs 0.288°, 4x) and smaller in ⊥ (0.054 vs 0.071°, 1.3x): the ⊥ tail, not the z error, is what the net leaves.
+
+**Success criteria of the plan (corrupted data).** "Beats plain GN": yes on all three corrupted sets (≥ 2.4x). "Matches or beats robust GN": yes on neighbours/all (2-3x), no on noise-only (Huber 0.9x of the net's error). "Mahalanobis² 2-5 held-out": yes (2.5-3.0) for the corrupted-trained nets, no for clean-trained ones.
+
+**Caveats / not verified.**
+- 2 seeds, 6 held-out voxels, 10 samples per voxel and |δ|; the seed spread of the held-out median is up to 0.003° (clean), 0.0055° (corrupted-trained nets on `all`: paired 0.0734 vs 0.0789) and 0.04° (clean-trained net on `all`); no confidence intervals.
+- Train and test corruptions come from the same family and parameters (same p's, same neighbour set per voxel, same twin construction); the test distractors are new random draws, not new *kinds* of nuisance. The net's advantage over robust GN may shrink out of family (different rates, other grains, intensity effects); not tested. A real-data check is the real test.
+- The neighbour layer uses at most 3 sources per voxel from the same mic; a voxel with a dense neighbourhood or genuinely overlapping twin spots may be harder.
+- Robust GN is one fixed construction (Huber on normalised residuals, one start at nominal, LM, c = 1); a different robust loss, multi-start, or explicit spot-to-source assignment could narrow the gap. Threshold selection used only 4 voxels × 50 samples.
+- Net lr/K were taken from Step 3 (lr 1e-4, K = 3), not re-tuned for corrupted data.
+- Not analysed: what the weight head learned (does it down-weight distractor entries?); the dependence on the number of distractor pixels in a window; the tail failures.
+- The seed-0 corrupted unpaired net was trained earlier (before the interruption); a rerun with the same command reproduced its first 19 epochs exactly, so it is the same configuration; its result was kept.
+
+**Deferred.** Out-of-family corruption sweeps (rates, intensity); a weight-head analysis; per-sample severity as training augmentation; more seeds for the pairing question; Step 1-3 style diagnostics on corrupted data; real data.
+
+### Step 3b: pairing fix (2026-10-01)
+
+**Bug.** See the 2026-10-01 correction under Step 3: with `pair2` zero-initialised and `f = f + relu(pair2(relu(pair1(...))))`, the pair MLP got exactly zero gradient forever.
+
+**Fix** (`GNLayerNet.forward`): `f = f + hm * pair2(relu(pair1(cat[f, f_partner, hm])))`. No ReLU after the zero-initialised `pair2`, so step 0 is still the unpaired network and the update is trainable; masked by the has-partner flag `hm`, so unpaired entries are unchanged. Gradient reaches `pair2` as soon as `head2`/`cov2` (also zero-initialised) have left zero, and `pair1` once `pair2` has. No gate or LayerNorm was added: the simplest variant trained stably at lr 1e-4 in all four runs (no NaN, no divergence; the loss curves look like the unpaired ones), so the gate variant was not tried. Parameter count unchanged (115,393). The old behaviour is not kept as an option.
+
+**Tests** (`tests/test_orientation_baselines.py::TestGNLayer`): `gradients_flow_and_are_finite[gn, gn_paired, set]` now requires a non-zero finite gradient for every parameter of `GNLayerNet` (unpaired, paired, T=3) and `PeakSetNet` after three small steps off the zero-initialised layers; `pair_mlp_trains_from_the_zero_init`; `paired_net_equals_unpaired_net_at_initialisation` (extra head inputs zeroed, shared weights copied; `pair1` irrelevant while `pair2` = 0; path live once `pair2` != 0). The gradient tests and `pair_mlp_trains...` fail on the pre-fix code (checked by stashing the model change). The permutation/padding tests still pass with pairing.
+
+**Reruns** (same data, settings and seeds as the original runs: `--head offset --arch gn --gn-iters 3 --pairing --loss decoupled --device mps --lr 1e-4 --clip 1 --cosine --batch-size 64 --epochs 60 --ema 0.998 --checkpoint ema --val-voxels 4`; clean: `scripts/toy_orientation_stage3_multi_{train,test}.pt`, `--aux scripts/toy_orientation_stage3_multi_aux.pt`, `--extra gn=benchmarks/toy_orientation_stage3/multi_pred_gauss_newton.npz`; corrupted: `scripts/toy_orientation_arch_dis_{train,test}.pt`, same aux, `--corrupt-train all --eval-variants clean,neighbours,noise,all`; seeds 0, 1). Outputs `benchmarks/toy_orientation_arch/{multi_res_gnpairfix_k3_lr1e-4,dis_res_gnpairfix_k3_corr}_s{0,1}.*`; tables `pairfix_clean_summary.txt` (`summarize_results.py`) and `step4_pairfix_summary.{txt,json}` (`summarize_arch_step4.py --runs ... "paired-fixed=dis_res_gnpairfix_k3_corr"`). The old runs are untouched. (The first attempt at the corrupted runs was killed by a background time limit at epoch 35 and rerun from scratch; the reported runs are the complete ones.)
+
+**Clean multi-voxel, T=3, lr 1e-4** (30 voxels; medians at |δ| = 0.1/0.25/0.5/1.0°; in-dist includes the 4 validation voxels; per-seed values `s0 | s1`):
+
+| run | group | median angle | z RMS | ⊥ RMS | Mahalanobis² |
+|---|---|---|---|---|---|
+| paired, fixed | in-dist s0 | 0.014/0.016/0.013/0.014 | 0.021/0.026/0.023/0.024 | 0.003/0.003/0.003/0.004 | 2.7/3.1/2.9/3.3 |
+| | in-dist s1 | 0.013/0.015/0.014/0.014 | 0.019/0.024/0.023/0.022 | 0.003/0.003/0.004/0.004 | 3.0/3.4/3.1/3.0 |
+| | held-out s0 | 0.014/0.015/0.015/0.013 | 0.019/0.021/0.020/0.021 | 0.003/0.004/0.004/0.004 | 3.1/3.2/3.4/3.6 |
+| | held-out s1 | 0.016/0.017/0.016/0.014 | 0.022/0.023/0.022/0.019 | 0.003/0.003/0.004/0.005 | 3.6/3.7/3.3/3.3 |
+| paired, inert (old) | held-out s0 | 0.012/0.014/0.014/0.013 | 0.017/0.020/0.022/0.018 | 0.003/0.003/0.004/0.004 | 3.6/3.3/3.9/4.2 |
+| | held-out s1 | 0.014/0.016/0.017/0.019 | 0.024/0.025/0.028/0.023 | 0.004/0.004/0.004/0.007 | 5.1/4.4/4.4/4.9 |
+| unpaired | held-out s0 | 0.015/0.016/0.013/0.015 | 0.022/0.021/0.021/0.021 | 0.003/0.003/0.003/0.004 | 3.4/3.1/3.4/4.0 |
+| | held-out s1 | 0.017/0.016/0.017/0.015 | 0.033/0.031/0.025/0.021 | 0.004/0.004/0.004/0.004 | 4.1/3.9/3.6/3.2 |
+| Gauss-Newton | held-out | 0.014/0.012/0.012/0.010 | 0.017/0.020/0.020/0.016 | 0.004/0.003/0.004/0.004 | |
+
+Two-seed means (in-dist | held-out): fixed 0.013/0.015/0.013/0.014 | 0.015/0.016/0.015/0.013; inert 0.011/0.014/0.012/0.014 | 0.013/0.015/0.016/0.016; unpaired 0.013/0.016/0.013/0.013 | 0.016/0.016/0.015/0.015. Held-out Mahalanobis² (means over bins): fixed 3.3-3.5, inert 3.9-4.5, unpaired 3.5-3.7. Per-voxel median error, in-dist / held-out: fixed 0.0145 / 0.0166, inert 0.0143 / 0.0145, unpaired 0.0138 / 0.0163, GN 0.0127 / 0.0143. corr(voxel median error, r⊥) (s0, s1): fixed -0.49, -0.77 (mean -0.63); inert -0.70, -0.50; unpaired -0.75, -0.47; GN -0.63.
+
+**Corrupted-trained nets** (T=3, lr 1e-4; held-out median angle pooled over the four bins, `[seed 0, seed 1]`; in-dist and the per-bin values are in `step4_pairfix_summary.txt`):
+
+| test set | unpaired | paired, inert (old) | paired, fixed | Huber GN | plain GN |
+|---|---|---|---|---|---|
+| clean | 0.0193 [0.0176, 0.0210] | 0.0186 [0.0185, 0.0186] | 0.0199 [0.0214, 0.0183] | 0.0144 | 0.0119 |
+| neighbours | 0.0719 [0.0723, 0.0715] | 0.0710 [0.0702, 0.0718] | 0.0706 [0.0739, 0.0673] | 0.2223 | 0.3428 |
+| noise | 0.0242 [0.0227, 0.0258] | 0.0231 [0.0228, 0.0233] | 0.0257 [0.0262, 0.0253] | 0.0215 | 0.0573 |
+| all | 0.0821 [0.0827, 0.0815] | 0.0762 [0.0734, 0.0789] | 0.0775 [0.0780, 0.0770] | 0.2239 | 0.3311 |
+
+In-dist medians (fixed vs unpaired vs inert): clean 0.0188 / 0.0185 / 0.0185, neighbours 0.0585 / 0.0576 / 0.0594, noise 0.0250 / 0.0241 / 0.0233, all 0.0629 / 0.0615 / 0.0616. Held-out Mahalanobis² (fixed): clean 2.5, neighbours 2.9, noise 3.3, all 2.8. Held-out per-bin medians on `all`: fixed 0.068/0.081/0.082/0.079, inert 0.064/0.083/0.076/0.086, unpaired 0.064/0.084/0.073/0.086. corr(voxel median error, r⊥) (s0, s1): clean -0.58, -0.74; neighbours -0.12, -0.16; noise -0.57, -0.62; all -0.08, -0.10 (unpaired -0.17/-0.12 on `all`, inert -0.12/-0.12).
+
+**Findings.**
+(a) *Clean data: encoder-level pairing neither helps nor hurts.* Held-out/in-dist medians, z/⊥ RMS and Mahalanobis² of the fixed net lie inside the spread of the unpaired and inert-paired runs (differences ≤ 0.003°, comparable to the seed-to-seed spread of one configuration, e.g. unpaired held-out 0.0144 vs 0.0181 per-voxel). Held-out ⊥ RMS is 0.003-0.005° in every run, so the ray-direction difference between the two detectors does not improve ⊥ beyond what the two detectors' rows in the normal equations already provide; z RMS (0.019-0.024° held-out) is not better than GN's 0.016-0.020°. The fixed net's held-out Mahalanobis² (3.3-3.5) is slightly lower than the inert (3.9-4.5) and unpaired (3.5-3.7) ones, a small effect in two seeds. The gap to GN (held-out 1.0-1.5x) remains.
+(b) *Corrupted data: no separation.* Fixed pairing is within seed spread of the unpaired net on `neighbours` (0.0706 vs 0.0719), `noise` (slightly worse, 0.0257 vs 0.0242, 0.0231 inert) and `all` (0.0775 vs 0.0821). The earlier "suggestive" gain of the inert-paired net on held-out `all` (0.0762, 7 % below unpaired) is reproduced in size by the fixed net (0.0775, 6 % below) with both seeds (0.0780, 0.0770) below both unpaired seeds (0.0827, 0.0815) but also within 0.004° of the inert ones; this is as before suggestive, not established (2 seeds, 6 held-out voxels), and it is not larger with live mixing, so the partner-residual input and the encoder mixing give the same, small amount. The untested hypothesis stands: a neighbour spot lands consistently on both detectors and cannot be rejected by a pair-consistency check.
+(c) *Error vs r⊥:* unchanged. Clean -0.63 (fixed) vs -0.60 (inert), -0.61 (unpaired), GN -0.63, with seed spread (-0.49 to -0.77) larger than the differences; under distractors the trend is still lost (-0.08 to -0.16 on `neighbours`/`all`).
+
+**Caveats.** 2 seeds, 6 held-out voxels, one lr (1e-4) and T = 3 (lr 3e-4 and the gate variant were not run); differences of ~0.003° are inside the seed spread. The weights of the fixed runs are not saved, so that the pair MLP actually moved away from zero is inferred from the tests (gradient flows) and from the training curves differing from the inert runs, not measured directly. `gnpairv1`'s instability was not reproduced with the zero-initialised linear update at lr 1e-4. Conclusion for Step 3/4: the "no clear benefit of pairing" finding now holds for live encoder-level mixing as well, on this simulated geometry.
+
+### Review fixes (2026-10-01)
+
+Guards, tests and hygiene after the branch review; no behaviour change, the saved benchmark numbers are unaffected.
+- `BatchedObserver` asserts `range_width > 0` and a contiguous, increasing `range_index` over valid omega bins (the Jacobian uses `|range_width|`, `nominal_offsets` the signed width and wedge index = bin order).
+- Silent no-ops now assert: `--eval-variants neighbours/all` and `gauss_newton_baseline.py --corrupt neighbours/all` without `dis_windows`; `--subpixel` without `--aux`.
+- `summarize_arch_step4.py` keys the cached `dis_test_meta.npz` to the test file (path + size) and rebuilds on mismatch.
+- `corrupt_windows` / `corrupt_dataset` take an optional `valid` mask (default None = corrupt padded entries too, as in all reported runs; the mask was not used in them).
+- `scripts/make_dis_val.py` recreates `toy_orientation_arch_dis_val.pt` (checked sample-for-sample against the existing file).
+- `ema_update` / `select_checkpoint_state` factored out of the trainer (`orientation_nn.py`); `inv3` clamps |det| to 1e-30; small script cleanups; `.gitignore` for `*_done.flag`.
+- New tests (`TestReviewFixes`): EMA and checkpoint selection, distractor frame filter/coding, default ridge vs the undamped GN step, padded-entry corruption and the mask, `inv3`.
+
+### Review fixes (pre-merge)
+
+Second review pass on PR #29; no saved benchmark number changed and nothing was rerun.
+- Trainer: `--save-predictions` naming now goes through `variant_path` (stem + suffix, default `.npz`; previously a path without `.npz` made every corrupted variant overwrite the clean predictions). New `--mask-padding` (default off, so reported runs stay reproducible) passes the valid-entry mask to the train, validation and test corruption. `--subpixel` with `--arch probe` asserts (it was silently ignored); the `--aux` table is loaded once; the results json is always `{variant: rows}` (`summarize_results.py` reads this and the older single-variant layout, and derives the |delta| bin keys from the file). "saved ..." messages print the path as given, not the absolute one.
+- `GNLayerNet` warns when called without `aux["nom_off"]` (the window-centre fallback reintroduces the sub-pixel bias). `gauss_newton_baseline.py` checks the renderer before corrupting windows.
+- `CentroidGaussNewton.solve` now uses `_linearize` (bit-identical results; `_linearize` returns the kept-spot mask too); `information()` is documented as J^T J without Huber weights, unlike the covariance returned by `solve`.
+- Type annotations on the remaining untyped functions of the branch, `main()` guards in the summarize scripts, long lines wrapped, the Huber-choice predictions (`dis_pred_huber*.npz`, `val/val_*.npz`) committed so the threshold choice is reproducible from the repo. Summaries of the committed results (`summarize_results.py`, `summarize_diagnostics.py`, `summarize_arch_step4.py`) are identical before and after.
+- Tests: `tests/test_toy_scripts.py` (prediction naming, padding mask, both json layouts, the GN warning).

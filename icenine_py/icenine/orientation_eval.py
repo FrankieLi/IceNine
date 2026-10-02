@@ -16,7 +16,7 @@ angles in this module's public API are degrees, internals use radians.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -148,6 +148,13 @@ class BatchedObserver:
             [-1 if i is None else int(i) for i in range_map.index_list], dtype=torch.long
         )
         self.frame_width_rad = abs(self.range_width)
+        # The Jacobian uses |range_width| while nominal_offsets / measurement_features use the
+        # signed width and assume the frame index of a bin equals its position; both hold only if:
+        assert self.range_width > 0, f"range_width must be positive, got {self.range_width}"
+        _valid = self.range_index[self.range_index >= 0]
+        assert len(_valid) == 0 or bool(
+            (_valid[1:] - _valid[:-1] == 1).all()
+        ), "range_index must be contiguous and increasing over the valid omega bins"
 
         # Per-peak home-detector geometry, gathered once.
         geo = []
@@ -343,6 +350,53 @@ class BatchedObserver:
         return torch.where(v < 0, torch.full_like(v, -1.0), torch.floor(v)).long()
 
 
+def nominal_offsets(observer: "BatchedObserver") -> np.ndarray:
+    """Exact nominal sub-window offsets per ROI peak, (M, 3) float64.
+
+    Column 0/1: the nominal spot centroid's fractional position inside its pixel
+    (col - floor(col), row - floor(row)), i.e. the offset between the window centre
+    (WindowSpec.from_nominal cuts at floor(centroid) - W/2) and the exact nominal centroid.
+    Column 2: the nominal crossing omega relative to the centre of its nominal frame, in
+    frames: (omega_nom - omega_centre(frame0)) / range_width, in [-0.5, 0.5).
+    measurement_features gives (lit centroid - window centre, frame - frame0); subtracting
+    these columns turns them into (measurement - exact nominal prediction).
+    """
+    out = observer.observe(torch.zeros(1, 3, dtype=observer.dtype))
+    cen = out.verts[0].mean(dim=1).numpy()
+    frac = cen - np.floor(cen)
+    bin_of = {int(w): b for b, w in enumerate(observer.range_index.tolist()) if w >= 0}
+    om = out.omega[0].numpy()
+    fr = out.frame[0].numpy()
+    ff = np.zeros(observer.M)
+    for m in range(observer.M):
+        b = bin_of.get(int(fr[m]))
+        if b is not None:
+            centre = observer.range_low + (b + 0.5) * observer.range_width
+            ff[m] = (om[m] - centre) / observer.range_width
+    return np.concatenate([frac, ff[:, None]], axis=1)
+
+
+def pair_index(roi_list: Sequence[Any]) -> np.ndarray:
+    """(M,) int: index of the other-detector entry of the same diffracted ray, or -1.
+
+    Two ROI entries are the same ray when they share (reflection_index, omega_branch) and
+    differ in detector_index (define_roi_set with detectors="all" makes one entry per
+    detector the spot overlaps). With more than two detectors the partner is the entry on
+    the next detector index (cyclic) that is present.
+    """
+    groups = {}
+    for i, p in enumerate(roi_list):
+        groups.setdefault((p.reflection_index, p.omega_branch), []).append(i)
+    out = np.full(len(roi_list), -1, dtype=np.int64)
+    for members in groups.values():
+        if len(members) < 2:
+            continue
+        members = sorted(members, key=lambda i: roi_list[i].detector_index)
+        for a, i in enumerate(members):
+            out[i] = members[(a + 1) % len(members)]
+    return out
+
+
 def lit_pixel_set(key: Tuple[int, ...], num_cols: int, num_rows: int) -> frozenset:
     """Pixels the simulator's rasteriser lights for a spot with truncated vertex
     key (col0,row0,col1,row1,col2,row2): the same truncate -> Sutherland-Hodgman
@@ -452,6 +506,217 @@ def render_windows(
         if len(cache) > 500_000:
             cache.clear()
     return windows, status
+
+
+def render_distractor_windows(
+    observer: "BatchedObserver",
+    spec: WindowSpec,
+    sources: List["BatchedObserver"],
+    source_deltas_deg: List[np.ndarray],
+    chunk: int = 128,
+    source_active: Optional[List[np.ndarray]] = None,
+) -> torch.Tensor:
+    """Spots of *other* scatterers (neighbour voxels, twins) that land in the target's windows.
+
+    sources: one BatchedObserver per distractor source (its own orientation, voxel vertices and
+    ROI peak set); source_deltas_deg[s] (N, 3) is that source's orientation offset for each of
+    the N samples. Every present source spot whose lit pixels overlap a target window of the
+    same detector and whose frame lies within the window's +-K frames is drawn into that window
+    with the same frame coding as render_windows. Returns uint8 (N, M, W, W), zero where no
+    distractor pixel falls. source_active[s] (N,) bool switches source s on/off per sample
+    (default: always on). It is a separate layer: combine_windows overlays it on the target's
+    own windows, where the target's pixels always win, so the target's spots are never altered.
+    """
+    N, M, W, K = len(source_deltas_deg[0]), observer.M, spec.window_size, spec.frame_half_width
+    out = torch.zeros(N, M, W, W, dtype=torch.uint8)
+    tdet = observer.det_idx.numpy()
+    col0, row0, frame0 = spec.col0, spec.row0, spec.frame0
+    cache: Dict[Tuple[int, ...], frozenset] = {}
+    for si, (src, dsrc) in enumerate(zip(sources, source_deltas_deg)):
+        active = None if source_active is None else np.asarray(source_active[si], dtype=bool)
+        sdet = src.det_idx.numpy()
+        ncols, nrows = src.d_ncols.tolist(), src.d_nrows.tolist()
+        same_det = sdet[:, None] == tdet[None, :]  # (Q, M)
+        for a in range(0, N, chunk):
+            o = src.observe(torch.as_tensor(np.asarray(dsrc[a : a + chunk], dtype=np.float64)))
+            keys = BatchedObserver.vertex_keys(o).numpy()  # (B, Q, 6)
+            present = o.present.numpy()
+            if active is not None:
+                present = present & active[a : a + chunk, None]
+            frames = o.frame.numpy()  # (B, Q)
+            cs, rs = keys[..., 0::2], keys[..., 1::2]
+            # bounding box of the lit pixels (rounding can add one pixel: margin 1)
+            c_lo, c_hi = cs.min(-1) - 1, cs.max(-1) + 1
+            r_lo, r_hi = rs.min(-1) - 1, rs.max(-1) + 1
+            hit = (
+                present[:, :, None]
+                & same_det[None]
+                & (c_hi[:, :, None] >= col0[None, None])
+                & (c_lo[:, :, None] < (col0 + W)[None, None])
+                & (r_hi[:, :, None] >= row0[None, None])
+                & (r_lo[:, :, None] < (row0 + W)[None, None])
+                & (np.abs(frames[:, :, None] - frame0[None, None]) <= K)
+            )
+            for i, q, m in zip(*np.nonzero(hit)):
+                key = tuple(int(k) for k in keys[i, q])
+                ck = (int(q),) + key
+                pix = cache.get(ck)
+                if pix is None:
+                    pix = lit_pixel_set(key, ncols[q], nrows[q])
+                    cache[ck] = pix
+                code = 1 + int(frames[i, q]) - int(frame0[m]) + K
+                n = a + i
+                for c, r in pix:
+                    x, y = c - int(col0[m]), r - int(row0[m])
+                    if 0 <= x < W and 0 <= y < W and out[n, m, y, x] == 0:
+                        out[n, m, y, x] = code
+            if len(cache) > 500_000:
+                cache.clear()
+    return out
+
+
+def combine_windows(windows: torch.Tensor, distractors: Optional[torch.Tensor]) -> torch.Tensor:
+    """Overlay a distractor layer under the target's windows: target pixels always win."""
+    if distractors is None:
+        return windows
+    return torch.where(windows > 0, windows, distractors)
+
+
+@dataclass
+class CorruptionConfig:
+    """Random corruptions applied to frame-coded windows (per entry, independently).
+
+    p_miss: the whole spot is not recorded (window zeroed); p_flip: each lit pixel is dropped
+    and each 4-neighbour of a lit pixel is lit with this probability (threshold jitter at the
+    spot edge); p_hot: a window gets one isolated hot pixel with this probability; p_blob: a
+    window gets a spurious 2-4 px blob (one random frame) with this probability. neighbours:
+    overlay the dataset's distractor layer (neighbour voxels / twin spots) before the rest.
+    """
+
+    neighbours: bool = True
+    p_miss: float = 0.1
+    p_flip: float = 0.05
+    p_hot: float = 0.05
+    p_blob: float = 0.1
+
+    @classmethod
+    def named(cls, name: str) -> Optional["CorruptionConfig"]:
+        if name in ("none", "clean"):
+            return None
+        if name == "neighbours":
+            return cls(True, 0.0, 0.0, 0.0, 0.0)
+        if name == "noise":
+            return cls(False)
+        if name == "all":
+            return cls(True)
+        raise ValueError(f"unknown corruption {name!r}")
+
+
+def corrupt_windows(
+    windows: torch.Tensor,
+    distractors: Optional[torch.Tensor],
+    cfg: Optional[CorruptionConfig],
+    frame_half_width: int,
+    gen: Optional[torch.Generator] = None,
+    valid: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
+    """Apply cfg to uint8 windows (..., W, W) (leading dims free). Random draws come from gen.
+
+    valid: optional bool mask over the leading dims (e.g. entry index < n_peaks). Entries marked
+    invalid (zero padding) are returned all-zero, so corruption cannot create "present" spots in
+    them. The random draws are unchanged. Default None: every entry, padding included, is
+    corrupted (the behaviour of all reported runs).
+    """
+    if cfg is None:
+        return windows
+    x = combine_windows(windows, distractors if cfg.neighbours else None).clone()
+    shape = x.shape
+    lead = shape[:-2]
+    H, W = shape[-2:]
+
+    def rnd(*size: int) -> torch.Tensor:
+        return torch.rand(*size, generator=gen, device="cpu").to(x.device)
+
+    if cfg.p_flip > 0:
+        lit = x > 0
+        padded = torch.nn.functional.pad(x.float(), (1, 1, 1, 1))
+        # brightest (max) neighbour code = a neighbouring lit pixel's frame code
+        nb = torch.stack(
+            [
+                padded[..., 0:-2, 1:-1],
+                padded[..., 2:, 1:-1],
+                padded[..., 1:-1, 0:-2],
+                padded[..., 1:-1, 2:],
+            ]
+        ).amax(0)
+        grow = (~lit) & (nb > 0) & (rnd(*shape) < cfg.p_flip)
+        drop = lit & (rnd(*shape) < cfg.p_flip)
+        x = torch.where(drop, torch.zeros_like(x), x)
+        x = torch.where(grow, nb.to(x.dtype), x)
+    n_codes = 2 * frame_half_width + 1
+    if cfg.p_hot > 0:
+        has = rnd(*lead) < cfg.p_hot
+        pos = (rnd(*lead, 2) * torch.tensor([H, W], device=x.device)).long()
+        code = (rnd(*lead) * n_codes).long().clamp(max=n_codes - 1) + 1
+        yy = torch.arange(H, device=x.device).view(*([1] * len(lead)), H, 1)
+        xx = torch.arange(W, device=x.device).view(*([1] * len(lead)), 1, W)
+        hot = (
+            (yy == pos[..., 0, None, None]) & (xx == pos[..., 1, None, None]) & has[..., None, None]
+        )
+        x = torch.where(hot & (x == 0), code[..., None, None].to(x.dtype), x)
+    if cfg.p_blob > 0:
+        has = rnd(*lead) < cfg.p_blob
+        size = (rnd(*lead, 2) * 3).long().clamp(max=2) + 2  # 2..4
+        pos = (rnd(*lead, 2) * torch.tensor([H - 4, W - 4], device=x.device)).long()
+        code = (rnd(*lead) * n_codes).long().clamp(max=n_codes - 1) + 1
+        yy = torch.arange(H, device=x.device).view(*([1] * len(lead)), H, 1)
+        xx = torch.arange(W, device=x.device).view(*([1] * len(lead)), 1, W)
+        blob = (
+            (yy >= pos[..., 0, None, None])
+            & (yy < (pos[..., 0] + size[..., 0])[..., None, None])
+            & (xx >= pos[..., 1, None, None])
+            & (xx < (pos[..., 1] + size[..., 1])[..., None, None])
+            & has[..., None, None]
+        )
+        x = torch.where(blob & (x == 0), code[..., None, None].to(x.dtype), x)
+    if cfg.p_miss > 0:
+        miss = rnd(*lead) < cfg.p_miss
+        x = torch.where(miss[..., None, None], torch.zeros_like(x), x)
+    if valid is not None:
+        x = torch.where(valid.to(x.device)[..., None, None], x, torch.zeros_like(x))
+    return x
+
+
+def corrupt_dataset(
+    windows: torch.Tensor,
+    distractors: Optional[torch.Tensor],
+    name: str,
+    frame_half_width: int,
+    seed: int = 12345,
+    chunk: int = 100,
+    valid: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
+    """Deterministically corrupted copy of a whole window array (the fixed test sets).
+
+    valid: optional bool mask over the leading dims of windows (see corrupt_windows); default
+    None corrupts padded entries too (as in the reported runs).
+
+    name: CorruptionConfig.named ("none", "neighbours", "noise", "all"); the same seed and
+    chunking always give the same corrupted windows, so the Gauss-Newton baseline and the
+    networks are evaluated on identical inputs.
+    """
+    cfg = CorruptionConfig.named(name)
+    if cfg is None:
+        return windows
+    gen = torch.Generator().manual_seed(seed)
+    out = torch.empty_like(windows)
+    for a in range(0, len(windows), chunk):
+        d = None if distractors is None else distractors[a : a + chunk]
+        v = None if valid is None else valid[a : a + chunk]
+        out[a : a + chunk] = corrupt_windows(
+            windows[a : a + chunk], d, cfg, frame_half_width, gen, valid=v
+        )
+    return out
 
 
 def decode_windows(windows: torch.Tensor, frame_half_width: int) -> torch.Tensor:

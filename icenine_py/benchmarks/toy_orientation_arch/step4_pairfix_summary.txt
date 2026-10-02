@@ -1,0 +1,74 @@
+variant    method                                  group     median  <0.1   zRMS   pRMS    Mah2  per-bin median (0.1/0.25/0.5/1.0)
+clean      plain GN                                in-dist   0.0131  1.00  0.022  0.003          0.012/0.015/0.012/0.014
+clean      plain GN                                held-out  0.0119  1.00  0.018  0.004          0.014/0.012/0.012/0.010
+                                                   corr(voxel median error, r_perp) = -0.63; median voxel error in-dist 0.0127 held-out 0.0143
+clean      Huber GN (c=1)                          in-dist   0.0125  1.00  0.026  0.003          0.011/0.015/0.012/0.014
+clean      Huber GN (c=1)                          held-out  0.0144  1.00  0.023  0.004          0.017/0.014/0.014/0.012
+                                                   corr(voxel median error, r_perp) = -0.73; median voxel error in-dist 0.0132 held-out 0.0175
+clean      corr-trained (n=2)                      in-dist   0.0185  1.00  0.028  0.004     2.1  0.016/0.018/0.019/0.021  seeds: 0.0166 0.0205
+clean      corr-trained (n=2)                      held-out  0.0193  1.00  0.028  0.004     2.2  0.019/0.016/0.017/0.025  seeds: 0.0176 0.0210
+                                                   corr(voxel median error, r_perp) = -0.72, -0.71 (per seed); median voxel error in-dist 0.0189 held-out 0.0219
+clean      paired (n=2)                            in-dist   0.0185  1.00  0.028  0.005     2.3  0.016/0.018/0.019/0.022  seeds: 0.0181 0.0190
+clean      paired (n=2)                            held-out  0.0186  1.00  0.027  0.005     2.3  0.016/0.016/0.015/0.026  seeds: 0.0185 0.0186
+                                                   corr(voxel median error, r_perp) = -0.73, -0.79 (per seed); median voxel error in-dist 0.0190 held-out 0.0193
+clean      paired-fixed (n=2)                      in-dist   0.0188  1.00  0.028  0.005     2.3  0.016/0.018/0.019/0.022  seeds: 0.0182 0.0194
+clean      paired-fixed (n=2)                      held-out  0.0199  1.00  0.029  0.005     2.5  0.016/0.016/0.018/0.026  seeds: 0.0214 0.0183
+                                                   corr(voxel median error, r_perp) = -0.58, -0.74 (per seed); median voxel error in-dist 0.0187 held-out 0.0195
+clean      clean-trained (n=2)                     in-dist   0.0138  1.00  0.023  0.004     3.0  0.013/0.016/0.013/0.013  seeds: 0.0122 0.0154
+clean      clean-trained (n=2)                     held-out  0.0152  1.00  0.025  0.004     3.6  0.016/0.016/0.015/0.015  seeds: 0.0143 0.0161
+                                                   corr(voxel median error, r_perp) = -0.75, -0.47 (per seed); median voxel error in-dist 0.0138 held-out 0.0163
+neighbours plain GN                                in-dist   0.2253  0.34  0.448  0.080          0.244/0.212/0.242/0.227
+neighbours plain GN                                held-out  0.3428  0.20  0.641  0.100          0.308/0.369/0.326/0.368
+                                                   corr(voxel median error, r_perp) = -0.11; median voxel error in-dist 0.2805 held-out 0.3718
+neighbours Huber GN (c=1)                          in-dist   0.1375  0.45  0.370  0.063          0.151/0.114/0.158/0.127
+neighbours Huber GN (c=1)                          held-out  0.2223  0.33  0.285  0.070          0.177/0.271/0.190/0.240
+                                                   corr(voxel median error, r_perp) = +0.13; median voxel error in-dist 0.1671 held-out 0.2169
+neighbours corr-trained (n=2)                      in-dist   0.0576  0.70  0.062  0.048     3.0  0.057/0.051/0.065/0.058  seeds: 0.0560 0.0593
+neighbours corr-trained (n=2)                      held-out  0.0719  0.66  0.068  0.051     2.9  0.061/0.075/0.074/0.084  seeds: 0.0723 0.0715
+                                                   corr(voxel median error, r_perp) = -0.18, -0.09 (per seed); median voxel error in-dist 0.0721 held-out 0.0682
+neighbours paired (n=2)                            in-dist   0.0594  0.70  0.062  0.048     3.0  0.058/0.052/0.068/0.059  seeds: 0.0583 0.0604
+neighbours paired (n=2)                            held-out  0.0710  0.65  0.068  0.052     2.7  0.055/0.074/0.079/0.080  seeds: 0.0702 0.0718
+                                                   corr(voxel median error, r_perp) = -0.10, -0.11 (per seed); median voxel error in-dist 0.0691 held-out 0.0652
+neighbours paired-fixed (n=2)                      in-dist   0.0585  0.71  0.062  0.047     3.0  0.058/0.051/0.067/0.058  seeds: 0.0590 0.0580
+neighbours paired-fixed (n=2)                      held-out  0.0706  0.68  0.068  0.051     2.9  0.058/0.074/0.071/0.075  seeds: 0.0739 0.0673
+                                                   corr(voxel median error, r_perp) = -0.12, -0.16 (per seed); median voxel error in-dist 0.0657 held-out 0.0671
+neighbours clean-trained (n=2)                     in-dist   0.1934  0.38  0.413  0.068  1555.9  0.193/0.179/0.201/0.198  seeds: 0.2076 0.1791
+neighbours clean-trained (n=2)                     held-out  0.2706  0.23  0.513  0.091  1950.5  0.257/0.300/0.246/0.270  seeds: 0.2916 0.2496
+                                                   corr(voxel median error, r_perp) = -0.14, +0.04 (per seed); median voxel error in-dist 0.2613 held-out 0.3026
+noise      plain GN                                in-dist   0.0545  0.84  0.067  0.026          0.045/0.048/0.053/0.076
+noise      plain GN                                held-out  0.0573  0.85  0.066  0.028          0.048/0.045/0.059/0.080
+                                                   corr(voxel median error, r_perp) = -0.80; median voxel error in-dist 0.0547 held-out 0.0537
+noise      Huber GN (c=1)                          in-dist   0.0177  0.99  0.031  0.005          0.017/0.018/0.018/0.018
+noise      Huber GN (c=1)                          held-out  0.0215  1.00  0.030  0.005          0.021/0.021/0.021/0.023
+                                                   corr(voxel median error, r_perp) = -0.72; median voxel error in-dist 0.0176 held-out 0.0241
+noise      corr-trained (n=2)                      in-dist   0.0241  0.99  0.035  0.007     3.0  0.021/0.023/0.023/0.029  seeds: 0.0235 0.0248
+noise      corr-trained (n=2)                      held-out  0.0242  0.99  0.036  0.006     3.0  0.022/0.020/0.023/0.031  seeds: 0.0227 0.0258
+                                                   corr(voxel median error, r_perp) = -0.61, -0.71 (per seed); median voxel error in-dist 0.0229 held-out 0.0238
+noise      paired (n=2)                            in-dist   0.0233  0.99  0.034  0.006     3.0  0.022/0.021/0.023/0.028  seeds: 0.0232 0.0233
+noise      paired (n=2)                            held-out  0.0231  1.00  0.035  0.006     3.0  0.021/0.021/0.021/0.032  seeds: 0.0228 0.0233
+                                                   corr(voxel median error, r_perp) = -0.69, -0.76 (per seed); median voxel error in-dist 0.0230 held-out 0.0246
+noise      paired-fixed (n=2)                      in-dist   0.0250  0.99  0.035  0.007     3.0  0.022/0.023/0.025/0.030  seeds: 0.0252 0.0249
+noise      paired-fixed (n=2)                      held-out  0.0257  0.99  0.037  0.007     3.3  0.022/0.023/0.026/0.032  seeds: 0.0262 0.0253
+                                                   corr(voxel median error, r_perp) = -0.57, -0.62 (per seed); median voxel error in-dist 0.0248 held-out 0.0263
+noise      clean-trained (n=2)                     in-dist   0.0704  0.72  0.081  0.036   222.9  0.065/0.066/0.067/0.082  seeds: 0.0681 0.0726
+noise      clean-trained (n=2)                     held-out  0.0741  0.71  0.076  0.040   271.6  0.066/0.066/0.076/0.084  seeds: 0.0746 0.0736
+                                                   corr(voxel median error, r_perp) = -0.49, -0.27 (per seed); median voxel error in-dist 0.0681 held-out 0.0740
+all        plain GN                                in-dist   0.2228  0.29  0.436  0.080          0.224/0.214/0.230/0.217
+all        plain GN                                held-out  0.3311  0.20  0.617  0.100          0.307/0.353/0.316/0.333
+                                                   corr(voxel median error, r_perp) = -0.14; median voxel error in-dist 0.2551 held-out 0.3676
+all        Huber GN (c=1)                          in-dist   0.1405  0.44  0.355  0.063          0.144/0.116/0.160/0.138
+all        Huber GN (c=1)                          held-out  0.2239  0.32  0.288  0.071          0.185/0.249/0.224/0.233
+                                                   corr(voxel median error, r_perp) = +0.14; median voxel error in-dist 0.1737 held-out 0.2237
+all        corr-trained (n=2)                      in-dist   0.0615  0.69  0.064  0.050     2.9  0.062/0.057/0.069/0.060  seeds: 0.0614 0.0615
+all        corr-trained (n=2)                      held-out  0.0821  0.64  0.071  0.054     2.6  0.064/0.084/0.073/0.086  seeds: 0.0827 0.0815
+                                                   corr(voxel median error, r_perp) = -0.17, -0.12 (per seed); median voxel error in-dist 0.0715 held-out 0.0759
+all        paired (n=2)                            in-dist   0.0616  0.69  0.063  0.050     2.8  0.063/0.055/0.071/0.057  seeds: 0.0625 0.0608
+all        paired (n=2)                            held-out  0.0762  0.62  0.071  0.055     2.5  0.064/0.083/0.076/0.086  seeds: 0.0734 0.0789
+                                                   corr(voxel median error, r_perp) = -0.12, -0.12 (per seed); median voxel error in-dist 0.0713 held-out 0.0716
+all        paired-fixed (n=2)                      in-dist   0.0629  0.69  0.064  0.050     2.8  0.064/0.056/0.067/0.062  seeds: 0.0650 0.0607
+all        paired-fixed (n=2)                      held-out  0.0775  0.64  0.070  0.056     2.8  0.068/0.081/0.082/0.079  seeds: 0.0780 0.0770
+                                                   corr(voxel median error, r_perp) = -0.08, -0.10 (per seed); median voxel error in-dist 0.0723 held-out 0.0780
+all        clean-trained (n=2)                     in-dist   0.2033  0.28  0.404  0.072  1462.3  0.204/0.191/0.207/0.208  seeds: 0.2138 0.1927
+all        clean-trained (n=2)                     held-out  0.2757  0.16  0.493  0.094  1795.9  0.264/0.288/0.256/0.278  seeds: 0.3016 0.2498
+                                                   corr(voxel median error, r_perp) = -0.17, +0.04 (per seed); median voxel error in-dist 0.2581 held-out 0.2812
+saved benchmarks/toy_orientation_arch/step4_pairfix_summary.json

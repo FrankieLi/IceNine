@@ -79,10 +79,17 @@ For each voxel in the sample:
 | `experimental_data.py` | Load experimental detector images for reconstruction |
 | `sampling.py` | SO(3) uniform sampling via Sukharev grids (Yershova & LaValle) |
 | `differentiable_cost.py` | Gradient-capable cost infrastructure: `SparseImageStack`, `MultiScaleImageStack`, `DifferentiableCostFunction` |
-| `orientation_nn.py` | Toy orientation-NN support: ROI peak set, windowed renderer (`define_roi_set`, `render_local_windows`, `spot_overlaps_grid`), perturbation samplers, dataset, quaternion loss and offset Gaussian NLL (`cholesky_from_raw`, `gaussian_nll_loss`) |
-| `orientation_eval.py` | Stage 0 evaluation: batched float64 `BatchedObserver` (presence, frame, spot vertices for many candidate offsets), `ExactBayes` posterior, `lit_pixel_set`, per-axis `error_summary`, rotation-vector helpers |
-| `toy_orientation_model.py` | `ToyOrientationNet` (v0 quaternion head), `ToyOffsetNet` (offset + Cholesky covariance head) and `PeakSetNet` (shared per-peak encoder + explicit measurement features + mean/max/sum pooling; any number of peaks, order-invariant, per-voxel context) |
-| `orientation_baselines.py` | Stage 2 non-learning baseline: `extract_measurements` (frame index and lit-pixel centroid per spot) and `CentroidGaussNewton` |
+| `orientation_nn.py` | Toy orientation-NN support: ROI peak set, windowed renderer (`define_roi_set`, `render_local_windows`, `spot_overlaps_grid`), perturbation samplers, dataset, quaternion loss and offset Gaussian NLL (`cholesky_from_raw`, `gaussian_nll_loss`), `mse_deg_loss` and `decoupled_nll_loss` (MSE on the mean, NLL on the covariance at stopgrad(mean)), `split_by_voxel` (validation voxels, one per r_perp stratum) |
+| `orientation_eval.py` | Stage 0 evaluation: batched float64 `BatchedObserver` (presence, frame, spot vertices for many candidate offsets), `ExactBayes` posterior, `lit_pixel_set`, per-axis `error_summary`, rotation-vector helpers; frame-coded window helpers `WindowSpec`, `render_windows`, `decode_windows`, plus `combine_windows` / `corrupt_windows` for distractors and corruption |
+| `toy_orientation_model.py` | `ToyOrientationNet` (v0 quaternion head), `ToyOffsetNet` (offset + Cholesky covariance head) and `PeakSetNet` (shared per-peak encoder + explicit measurement features + mean/max/sum pooling; any number of peaks, order-invariant, per-voxel context), `GNLayerNet` (learned Gauss-Newton layer, current architecture) and `FrameProbeNet` (frame-only diagnostic net) |
+| `orientation_baselines.py` | Stage 2 non-learning baseline: `extract_measurements` (frame index and lit-pixel centroid per spot; optional per-detector mask) and `CentroidGaussNewton` (plain or Huber-robust `huber_c`, `information` = J^T W J, `solve_linear` = one undamped step from nominal) |
+
+Architecture (parallax) additions to the toy orientation NN (see MIGRATION_HISTORY.md, "Toy Orientation NN — Architecture (parallax)"):
+
+- `toy_orientation_model.GNLayerNet` (`--arch gn`): a learned Gauss-Newton layer. A shared per-peak encoder emits reliability weights and measurement corrections; the measurement (centroid/frame minus the *exact* nominal prediction) and the Jacobian from the per-peak context are combined by pooled normal equations (closed-form 3x3 solve, MPS-safe), with the covariance `D A^-1 D`. `--gn-iters T` unrolls IRLS rounds, `--pairing` mixes each entry's encoding with its other-detector partner's through a zero-initialised linear residual MLP (trainable since the 2026-10-01 fix; before it, the ReLU after the zero-initialised layer made that MLP inert) and gives the head the partner entry's residual and a has-partner flag (see `docs/orientation_nn_design.md` Section 3.4). `PeakSetNet` takes the same exact-nominal measurement with `--subpixel`.
+- `orientation_eval.nominal_offsets` / `pair_index` build the per-peak exact nominal offsets and the detector-pair index; `scripts/make_dataset_aux.py` writes them as a sidecar (`--aux`) for an existing dataset. `scripts/arch_diagnostics.py` runs the per-detector / conditioning diagnostics. `scripts/make_dis_val.py` rebuilds the 200-sample validation set used to choose the Huber threshold (`toy_orientation_arch_dis_val.pt`).
+- Realism: `orientation_eval.render_distractor_windows` (neighbour-voxel and Sigma3-twin spots as a separate layer), `combine_windows` (target pixels always win), `CorruptionConfig`, `corrupt_windows`, `corrupt_dataset` (missing spots, edge-pixel jitter, hot pixels, spurious blobs). The generator's `--neighbors N --twin` writes the layer as `dis_windows`; the trainer takes `--corrupt-train`, `--eval-variants`, `--extra-variant`; `scripts/gauss_newton_baseline.py` takes `--corrupt`, `--huber`.
+- Trainer: `--mask-padding` (keep zero-padded peak entries all-zero under corruption; off in the reported runs), `--ema` / `--checkpoint {best,ema,last}` (EMA weights instead of noisy best-epoch selection); the results json gains a `summary` with corr(per-voxel error, r_perp). `scripts/summarize_results.py` averages seeds into tables. `scripts/summarize_arch_step4.py` scores plain/Huber Gauss-Newton and the nets on clean and corrupted test sets from saved predictions (same code, same samples), with per-seed medians and the error-vs-r_perp correlation.
 
 ## Quick Start: Reconstruction
 
@@ -626,7 +633,7 @@ Multi-voxel datasets store padded windows `(N, M_max, W, W)`, a per-voxel `conte
 `(V, M_max, 14 + n_detectors)` and a `voxel_id` per sample; the training script gathers the context per batch and
 reports in-distribution and held-out-voxel tables plus a per-voxel median error vs r_perp.
 `--example`, `--voxel-index` and `--n-voxels` select the sample; the baseline scripts read the
-example from the dataset. Datasets (up to 1.6 GB) are gitignored; small `npz`/`json` results are in
+example from the dataset. Datasets (up to 3.2 GB) are gitignored; small `npz`/`json` results are in
 `benchmarks/toy_orientation_stage{1,2,3}/`.
 
 For multi-voxel data `--val-voxels N` holds out N training voxels (one per r_perp stratum, chosen with
@@ -634,6 +641,8 @@ For multi-voxel data `--val-voxels N` holds out N training voxels (one per r_per
 with MSE and the covariance with NLL at stopgrad(mean).
 
 `--arch probe` trains the frame-probe network (`FrameProbeNet`). `scripts/optimizer_baselines.py` runs the MC and Riemannian-Adam baselines at the test perturbation sizes, `scripts/gauss_newton_baseline.py` the centroid Gauss-Newton baseline (reports a convergence status per case), and `scripts/summarize_bayes_npz.py --bayes B.npz --test T.pt --out R.json` tabulates an exact-Bayes run.
+
+Commands for the `GNLayerNet` (`--arch gn`) and Step 4 (distractor/corruption) experiments, including the data, baseline and summary scripts, are in `docs/orientation_nn_design.md` Section 9.
 
 `scripts/checks/` holds the numerical checks behind the derivations in `docs/`. Results
 of the Stage 0 run are in `benchmarks/toy_orientation_stage0/`.
@@ -651,9 +660,12 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   frame/pixel-integrated data (the posterior, not an inverse), the spot-motion
   Jacobian, and angular-resolution estimates in terms of pixel size, frame width,
   number of frames and distance from the rotation axis.
+- [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) — design of the
+  current toy orientation network: data pipeline, `GNLayerNet`, training, evaluation, tests and results.
 
-See [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy Orientation NN — Theory
-Phase") for the status of this work and the remaining plan.
+See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
+current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
+Orientation NN — Theory Phase" onward) for the step-by-step record.
 
 ## Citation
 
