@@ -16,7 +16,7 @@ angles in this module's public API are degrees, internals use radians.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -148,8 +148,8 @@ class BatchedObserver:
             [-1 if i is None else int(i) for i in range_map.index_list], dtype=torch.long
         )
         self.frame_width_rad = abs(self.range_width)
-        # The Jacobian uses |range_width| while nominal_offsets / measurement_features use the signed
-        # width and assume the frame index of a bin equals its position; both hold only if:
+        # The Jacobian uses |range_width| while nominal_offsets / measurement_features use the
+        # signed width and assume the frame index of a bin equals its position; both hold only if:
         assert self.range_width > 0, f"range_width must be positive, got {self.range_width}"
         _valid = self.range_index[self.range_index >= 0]
         assert len(_valid) == 0 or bool(
@@ -376,7 +376,7 @@ def nominal_offsets(observer: "BatchedObserver") -> np.ndarray:
     return np.concatenate([frac, ff[:, None]], axis=1)
 
 
-def pair_index(roi_list) -> np.ndarray:
+def pair_index(roi_list: Sequence[Any]) -> np.ndarray:
     """(M,) int: index of the other-detector entry of the same diffracted ray, or -1.
 
     Two ROI entries are the same ray when they share (reflection_index, omega_branch) and
@@ -634,7 +634,7 @@ def corrupt_windows(
     lead = shape[:-2]
     H, W = shape[-2:]
 
-    def rnd(*size):
+    def rnd(*size: int) -> torch.Tensor:
         return torch.rand(*size, generator=gen, device="cpu").to(x.device)
 
     if cfg.p_flip > 0:

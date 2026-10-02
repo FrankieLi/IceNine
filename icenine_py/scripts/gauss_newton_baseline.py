@@ -39,7 +39,8 @@ def main():
         "--corrupt",
         default="none",
         choices=["none", "neighbours", "noise", "all"],
-        help="fit the deterministically corrupted test windows (see orientation_eval.corrupt_dataset)",
+        help="fit the deterministically corrupted test windows "
+        "(see orientation_eval.corrupt_dataset)",
     )
     parser.add_argument(
         "--huber", type=float, default=None, help="robust fit: Huber threshold (sigma units)"
@@ -51,6 +52,8 @@ def main():
 
     test_path, out_path = Path(args.test).resolve(), Path(args.out).resolve()  # before chdir
     data = torch.load(test_path)
+    if data.get("renderer") != "observer":
+        raise SystemExit("needs an observer-rendered (frame-coded) dataset")
     from icenine.orientation_eval import corrupt_dataset
 
     assert (
@@ -62,8 +65,6 @@ def main():
         args.corrupt,
         int(data["frame_half_width"]),
     )
-    if data.get("renderer") != "observer":
-        raise SystemExit("needs an observer-rendered (frame-coded) dataset")
     max_q = data.get("max_q", float("nan"))
     example_dir = example_dir_for(data.get("example"))
     truth = data["offsets_deg"].double().numpy()
@@ -129,7 +130,7 @@ def main():
         )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     np.savez(out_path, pred_deg=preds, cov=covs, truth_deg=truth, magnitudes_deg=mags, info=info)
-    print(f"saved {out_path}")
+    print(f"saved {args.out}")
 
 
 if __name__ == "__main__":

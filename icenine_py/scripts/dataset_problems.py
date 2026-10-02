@@ -25,7 +25,7 @@ def load_meta(path):
 
 
 def iter_voxels(data):
-    """Yield dict(v, r_perp_um, n_pk, sample_idx, obs, spec, problem) for every voxel in the dataset.
+    """Yield dict(v, r_perp_um, n_pk, sample_idx, obs, spec, problem) for each voxel of the dataset.
 
     Changes the working directory (the physics setup does). Open the dataset file with an
     absolute path before calling this."""

@@ -10,17 +10,20 @@ Usage:
   cd icenine_py
   uv run python scripts/summarize_arch_step4.py --test scripts/toy_orientation_arch_dis_test.pt \
       --huber 1 --runs "GNLayerNet (corrupted-trained)=dis_res_gn_k3_corr" \
-      "paired=dis_res_gnpair_k3_corr" --seeds 0 1 --out benchmarks/toy_orientation_arch/step4_summary.json
+      "paired=dis_res_gnpair_k3_corr" --seeds 0 1 \
+      --out benchmarks/toy_orientation_arch/step4_summary.json
 
 Per method, variant and group (in-dist / held-out voxels): median misorientation angle pooled over
 the four |delta| bins and per bin (0.1/0.25/0.5/1.0), the fraction of cases below 0.1 deg, z and
 perpendicular RMS, mean Mahalanobis^2 (nets), and over the 30 voxels the correlation of the
-per-voxel median error with r_perp. Nets are averaged over seeds; per-seed pooled medians are listed.
+per-voxel median error with r_perp. Nets are averaged over seeds; per-seed pooled medians are
+listed.
 """
 
 import argparse
 import json
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
@@ -31,7 +34,15 @@ VARIANTS = ["clean", "neighbours", "noise", "all"]
 MAGS = [0.1, 0.25, 0.5, 1.0]
 
 
-def stats(pred, truth, mags, vid, held, r_perp, chol=None):
+def stats(
+    pred: np.ndarray,
+    truth: np.ndarray,
+    mags: np.ndarray,
+    vid: np.ndarray,
+    held: np.ndarray,
+    r_perp: np.ndarray,
+    chol: Optional[np.ndarray] = None,
+) -> Dict[str, Any]:
     ok = np.isfinite(pred).all(axis=1)
     out = {"n_nan": int((~ok).sum())}
     ev = np.full(len(r_perp), np.nan)
@@ -64,7 +75,7 @@ def stats(pred, truth, mags, vid, held, r_perp, chol=None):
     return out
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--test", required=True)
     ap.add_argument("--dir", default="benchmarks/toy_orientation_arch")
@@ -145,9 +156,10 @@ def main():
                 seeds = ""
                 if "seeds" in r:
                     seeds = "  seeds: " + " ".join(f"{x[g]['median_angle']:.4f}" for x in rows)
+                name = label + (f" (n={len(rows)})" if "seeds" in r else "")
                 print(
-                    f"{variant:<11}{label + (f' (n={len(rows)})' if 'seeds' in r else ''):<40}{g:<9}"
-                    f"{m('median_angle'):7.4f}{m('success_0p1'):6.2f}{m('rms_z'):7.3f}{m('rms_perp'):7.3f}"
+                    f"{variant:<11}{name:<40}{g:<9}{m('median_angle'):7.4f}{m('success_0p1'):6.2f}"
+                    f"{m('rms_z'):7.3f}{m('rms_perp'):7.3f}"
                     f"{mah}  {'/'.join(f'{x:.3f}' for x in pm)}{seeds}"
                 )
             rows = r["seeds"] if "seeds" in r else [r]
@@ -156,7 +168,8 @@ def main():
                 f"{'':<11}{'':<40}corr(voxel median error, r_perp) = "
                 + ", ".join(f"{c:+.2f}" for c in cs)
                 + (" (per seed)" if len(cs) > 1 else "")
-                + f"; median voxel error in-dist {avg([x['in-dist']['median_voxel_err'] for x in rows]):.4f}"
+                + f"; median voxel error in-dist "
+                f"{avg([x['in-dist']['median_voxel_err'] for x in rows]):.4f}"
                 f" held-out {avg([x['held-out']['median_voxel_err'] for x in rows]):.4f}"
             )
     if args.out:

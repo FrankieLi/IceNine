@@ -123,7 +123,8 @@ def main():
         )
         rows.append(row)
         print(
-            f"voxel {row['voxel']:2d} r_perp {row['r_perp_um']:5.0f} entries {n_pk} pairs {row['n_pairs']} "
+            f"voxel {row['voxel']:2d} r_perp {row['r_perp_um']:5.0f} entries {n_pk} "
+            f"pairs {row['n_pairs']} "
             + " | ".join(
                 f"{k}: med {row['gn'][k]['median_angle']:.4f} z {row['gn'][k]['rms_z']:.4f} "
                 f"perp {row['gn'][k]['rms_perp']:.4f}"
@@ -134,7 +135,7 @@ def main():
         )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(rows, indent=1))
-    print(f"saved {out_path}")
+    print(f"saved {args.out}")
 
 
 if __name__ == "__main__":

@@ -23,6 +23,7 @@ import argparse
 import os
 import time
 from pathlib import Path
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -255,8 +256,15 @@ def sigma3_matrix() -> np.ndarray:
 
 
 def build_distractor_sources(
-    example_dir, mic, target_index, setup, args, max_q, detectors, min_sin_eta
-):
+    example_dir: Any,
+    mic: Any,
+    target_index: int,
+    setup: Any,
+    args: argparse.Namespace,
+    max_q: Optional[float],
+    detectors: Any,
+    min_sin_eta: float,
+) -> Tuple[List[Any], List[str]]:
     """Observers for the spots of the target's neighbours, for distractor rendering.
 
     Up to --neighbors mic voxels nearest to the target (in the sample plane, excluding ones
@@ -537,7 +545,8 @@ def main():
         "--neighbor-sigma-deg",
         type=float,
         default=0.3,
-        help="random misorientation of each neighbour relative to the target's perturbed orientation",
+        help="random misorientation of each neighbour relative to the target's perturbed "
+        "orientation",
     )
     parser.add_argument(
         "--twin", action="store_true", help="add a Sigma3 twin of the nearest voxel"

@@ -10,6 +10,7 @@ instead of an iterative search.
 See icenine_py/MIGRATION_HISTORY.md for the approved plan this implements.
 """
 
+import warnings
 from typing import Dict, Optional, Tuple
 
 import torch
@@ -419,12 +420,20 @@ class GNLayerNet(nn.Module):
         nn.init.zeros_(self.cov2.weight)
         nn.init.zeros_(self.cov2.bias)
 
-    def physics(self, x, context, aux):
+    def physics(
+        self, x: torch.Tensor, context: torch.Tensor, aux: Optional[Dict[str, torch.Tensor]]
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """(present (B, M), y (B, M, 3), J (B, M, 3, 3), ctx (B, M, D), meas (B, M, 5)):
         the measurement and Jacobian in sigma units, J per delta_scale degrees."""
         B, M = x.shape[:2]
         ctx = context if context.dim() == 3 else context[None].expand(B, -1, -1)
         nom_off = None if aux is None else aux.get("nom_off")
+        if nom_off is None:
+            warnings.warn(
+                "GNLayerNet without aux['nom_off']: measurements fall back to the window centre, "
+                "which carries a sub-pixel bias (pass the make_dataset_aux.py table via --aux)",
+                stacklevel=3,
+            )
         meas = measurement_features(x, self.frame_half_width, nom_off)
         present = meas[..., 0] > 0
         pm = present[..., None].to(x.dtype)
