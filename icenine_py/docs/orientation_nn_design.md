@@ -466,7 +466,7 @@ advantage over robust GN may shrink out of family; the neighbour-model caveat of
 - **Fixed peaks and windows.** Peaks absent at nominal are invisible; about 2--3% of spots at the $1^\circ$ prior are not fully inside their windows (voxel 77); near-axis peaks are dropped; windows are not sized from the Jacobian. The layer linearises at nominal (negligible up to $1^\circ$, no re-linearisation for larger priors).
 - **Generalisation and calibration.** Six held-out voxels from one sample, geometry and structure; on clean data held-out error is 1.1--1.7$\times$ GN's and 1.05--1.35$\times$ the same net's in-dist error. $\hat\Sigma$ is checked on this distribution only, and only through the mean Mahalanobis$^2$ (3.5--4.5 held-out clean, up to 1.5$\times$ overconfident; corruption-trained nets underconfident on clean data): the older set network was overconfident on unseen voxels (superseded; Mah$^2$ 17--34) and the clean-trained GN net is
   catastrophically overconfident under corruption.
-- **Corruption realism.** Same-family train/test, at most 3 sources, no intensity effects; neighbours are mostly same-grain and the twin is usually $\Sigma3$-related to the target (2.7).
+- **Corruption realism.** Same-family train/test, at most 3 sources, no intensity effects; neighbours are mostly same-grain and the twin is usually $\Sigma3$-related to the target (2.7). Padded entries of the multi-voxel arrays are corrupted too in all reported runs (`--mask-padding` was not used): they have J = 0, so they do not move the estimate delta, but hot pixels/blobs can make them look "present", so they enter the pooled covariance features and the count n; the Gauss-Newton baseline slices `[:n_pk]`, so the comparison is slightly asymmetric against the net. Use `--mask-padding` for future runs.
 - **No integration with `FindOptimal`.** The coarse-search hand-off sometimes selects a wrong ~54$^\circ$ solution (neighbour voxel or $\Sigma3$ twin); a refiner should be evaluated per candidate.
 
 Open questions: what the weight head learns on distractor data and why the partner check does not reject neighbour spots; out-of-family corruption sweeps; more seeds and confidence intervals; recalibration of $\hat\Sigma$ on held-out voxels; the $\sim1.2\times$ held-out gap to GN on clean data; the heavy $\perp$ tail on distractor data.
@@ -536,6 +536,8 @@ uv run python scripts/summarize_arch_step4.py \
     "clean-trained=dis_res_gn_k3_cleantrain" \
     --out $D/step4_summary.json
 ```
+
+The clean-variant predictions of `dis_res_gn_k3_cleantrain_s{0,1}.npz` are byte-identical to `multi_res_gn_k3_lr1e-4_s{0,1}.npz` (same deterministic run); the corrupted-variant files exist only under the `cleantrain` name, so both are kept.
 
 Single-voxel baselines (exact Bayes; MC and Adam also need the Python-simulated ThreeVoxels images; the dataset command is as in MIGRATION_HISTORY, not re-run):
 

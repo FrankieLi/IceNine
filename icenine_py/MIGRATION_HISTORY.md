@@ -2016,6 +2016,8 @@ uv run python scripts/train_toy_orientation_nn.py --head offset --loss decoupled
 ```
 (`dis_res_gn_k3_corr_s{0,1}`, `dis_res_gnpair_k3_corr_s{0,1}`, `dis_res_gn_k3_cleantrain_s{0,1}`.) GN: `scripts/gauss_newton_baseline.py --corrupt V [--huber c]`. All numbers below are produced by
 `scripts/summarize_arch_step4.py` from the saved predictions (`step4_summary.{txt,json}`: every cell, per-bin medians, per-seed values), not from the trainer's own tables.
+The clean-variant predictions `dis_res_gn_k3_cleantrain_s{0,1}.npz` are byte-identical to `multi_res_gn_k3_lr1e-4_s{0,1}.npz` (the same deterministic run, evaluated again on the corrupted test sets); the `_all`/`_neighbours`/`_noise` predictions exist only under the `cleantrain` name, so both sets of files are kept.
+**Padding caveat.** Padded entries of the multi-voxel arrays are corrupted too in all reported runs (`--mask-padding` was not used): they have J = 0, so they do not move the estimate delta, but hot pixels/blobs can make them look "present", so they enter the pooled covariance features and the count n; the Gauss-Newton baseline slices `[:n_pk]`, so the comparison is slightly asymmetric against the net. Use `--mask-padding` for future runs.
 
 **Huber threshold: chosen on a validation split, not on the test set.** 200 samples from four *training-set* voxels (6, 11, 19, 24; `step4_huber_val.txt`), windows corrupted with `all`:
 median angle plain GN 0.095°, Huber c = 0.5 / **1** / 2 / 3 / 5: 0.0336 / **0.0325** / 0.0328 / 0.0369 / 0.0426° (on clean validation windows: 0.0179 / 0.0158 / 0.0125 / 0.0134 / 0.0135 vs GN 0.0135°).
@@ -2133,3 +2135,12 @@ Guards, tests and hygiene after the branch review; no behaviour change, the save
 - `scripts/make_dis_val.py` recreates `toy_orientation_arch_dis_val.pt` (checked sample-for-sample against the existing file).
 - `ema_update` / `select_checkpoint_state` factored out of the trainer (`orientation_nn.py`); `inv3` clamps |det| to 1e-30; small script cleanups; `.gitignore` for `*_done.flag`.
 - New tests (`TestReviewFixes`): EMA and checkpoint selection, distractor frame filter/coding, default ridge vs the undamped GN step, padded-entry corruption and the mask, `inv3`.
+
+### Review fixes (pre-merge)
+
+Second review pass on PR #29; no saved benchmark number changed and nothing was rerun.
+- Trainer: `--save-predictions` naming now goes through `variant_path` (stem + suffix, default `.npz`; previously a path without `.npz` made every corrupted variant overwrite the clean predictions). New `--mask-padding` (default off, so reported runs stay reproducible) passes the valid-entry mask to the train, validation and test corruption. `--subpixel` with `--arch probe` asserts (it was silently ignored); the `--aux` table is loaded once; the results json is always `{variant: rows}` (`summarize_results.py` reads this and the older single-variant layout, and derives the |delta| bin keys from the file). "saved ..." messages print the path as given, not the absolute one.
+- `GNLayerNet` warns when called without `aux["nom_off"]` (the window-centre fallback reintroduces the sub-pixel bias). `gauss_newton_baseline.py` checks the renderer before corrupting windows.
+- `CentroidGaussNewton.solve` now uses `_linearize` (bit-identical results; `_linearize` returns the kept-spot mask too); `information()` is documented as J^T J without Huber weights, unlike the covariance returned by `solve`.
+- Type annotations on the remaining untyped functions of the branch, `main()` guards in the summarize scripts, long lines wrapped, the Huber-choice predictions (`dis_pred_huber*.npz`, `val/val_*.npz`) committed so the threshold choice is reproducible from the repo. Summaries of the committed results (`summarize_results.py`, `summarize_diagnostics.py`, `summarize_arch_step4.py`) are identical before and after.
+- Tests: `tests/test_toy_scripts.py` (prediction naming, padding mask, both json layouts, the GN warning).
