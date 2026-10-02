@@ -31,9 +31,29 @@ import argparse
 import json
 import time
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import torch
+
+
+def variant_path(save: str, variant: str) -> str:
+    """Prediction file for a test-set variant: the clean variant keeps `save` as given,
+    the others get `_<variant>` inserted before the suffix (default .npz)."""
+    if variant == "clean":
+        return save
+    p = Path(save)
+    return str(p.with_name(f"{p.stem}_{variant}{p.suffix or '.npz'}"))
+
+
+def padding_mask(data: dict) -> Optional[torch.Tensor]:
+    """(N, M) bool: entry m of sample n is a real peak of its voxel (not zero padding), for
+    multi-voxel data; None for single-voxel data (no padding)."""
+    npk = data.get("n_peaks_per_voxel")
+    if npk is None:
+        return None
+    vid = data["voxel_id"].long()
+    return torch.arange(int(data["n_peaks"]))[None, :] < npk.long()[vid][:, None]
 
 
 def batches(n, batch_size, rng=None):
@@ -204,6 +224,12 @@ def main():
         help="corrupt training windows on the fly (needs dis_windows for neighbours/all)",
     )
     parser.add_argument(
+        "--mask-padding",
+        action="store_true",
+        help="multi-voxel data: keep the zero-padded peak entries all-zero when corrupting "
+        "(default off: hot pixels/blobs also land in padding, as in the reported runs)",
+    )
+    parser.add_argument(
         "--eval-variants",
         default="clean",
         help="comma list of test-set corruptions (clean,neighbours,noise,all); the test windows "
@@ -227,7 +253,9 @@ def main():
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
 
+    assert not (args.subpixel and args.arch == "probe"), "--subpixel is ignored by --arch probe"
     tr = torch.load(args.train)
+    az = torch.load(args.aux) if args.aux else None
     te = torch.load(args.test)
     n_peaks, window = tr["n_peaks"], tr["window_size"]
     R_nom = tr["R_nom"].numpy()
@@ -275,7 +303,7 @@ def main():
                     context_dim=context.shape[-1],
                     n_iter=args.gn_iters,
                     frame_half_width=int(tr.get("frame_half_width", 4)),
-                    frame_width_rad=float(torch.load(args.aux)["frame_width_rad"]),
+                    frame_width_rad=float(az["frame_width_rad"]),
                     pairing=args.pairing,
                 )
             elif args.arch == "probe":
@@ -295,8 +323,7 @@ def main():
         else:
             model = ToyOffsetNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
     aux_tab = {}
-    if args.aux:
-        az = torch.load(args.aux)
+    if az is not None:
         assert (
             bool(az["multi_voxel"]) == multi and az["n_peaks"] == n_peaks
         ), "aux is for other data"
@@ -371,12 +398,15 @@ def main():
         assert dis_train is not None, "--corrupt-train neighbours/all needs dis_windows"
     corr_gen = torch.Generator().manual_seed(args.seed + 7)
 
+    valid_train = padding_mask(tr) if args.mask_padding else None
+
     def train_windows(ib):
         w = windows[ib]
         if corr_cfg is None:
             return w
         d = None if dis_train is None else dis_train[ib]
-        return corrupt_windows(w, d, corr_cfg, K_fh, corr_gen)
+        v = None if valid_train is None else valid_train[ib]
+        return corrupt_windows(w, d, corr_cfg, K_fh, corr_gen, valid=v)
 
     if corr_cfg is not None:
         val_w = corrupt_dataset(
@@ -385,6 +415,7 @@ def main():
             args.corrupt_train,
             K_fh,
             seed=args.seed + 99,
+            valid=None if valid_train is None else valid_train[val_idx],
         )
     t0 = time.time()
     best_val, best_epoch, best_state = float("inf"), -1, None
@@ -471,7 +502,8 @@ def main():
             n_b = len(bz["mean"])
             if n_b != len(truth):
                 print(
-                    f"note: Bayes file covers the first {n_b} of {len(truth)} test cases; using those"
+                    f"note: Bayes file covers the first {n_b} of {len(truth)} test cases; "
+                    "using those"
                 )
                 truth, pred, mags = truth[:n_b], pred[:n_b], mags[:n_b]
                 chol = chol[:n_b] if chol is not None else None
@@ -500,7 +532,8 @@ def main():
             )
         rows = {}
         print(
-            f"\n{'|delta|':>8} {'method':<20} {'n':>3} {'rms_z':>10} {'rms_perp':>10} {'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)"
+            f"\n{'|delta|':>8} {'method':<20} {'n':>3} {'rms_z':>10} {'rms_perp':>10} "
+            f"{'median_ang':>11} {'<0.5deg':>8} {'<0.1deg':>8}   (degrees)"
         )
         if multi:
             held = te["held_out"].numpy()[vid_test.numpy()]
@@ -526,12 +559,15 @@ def main():
                     )  # cases where the sampler found no members are excluded
                     if mb.sum() < m.sum():
                         print(
-                            f"note: exact Bayes failed on {m.sum() - mb.sum()} case(s) at |delta| = {mag}; excluded from its row"
+                            f"note: exact Bayes failed on {m.sum() - mb.sum()} case(s) at "
+                            f"|delta| = {mag}; excluded from its row"
                         )
                     entries.append(("exact Bayes", error_summary(bayes["mean"][mb], truth[mb])))
                 for name, s in entries:
                     print(
-                        f"{mag:8.2f} {name:<20} {s['n']:3d} {s['rms_z']:10.5f} {s['rms_perp']:10.5f} {s['median_angle']:11.5f} {s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
+                        f"{mag:8.2f} {name:<20} {s['n']:3d} {s['rms_z']:10.5f} "
+                        f"{s['rms_perp']:10.5f} {s['median_angle']:11.5f} "
+                        f"{s['success_0p5']:8.0%} {s['success_0p1']:8.0%}"
                     )
                 extra = {}
                 if bayes is not None:
@@ -546,7 +582,8 @@ def main():
                     maha = float((z**2).sum(axis=1).mean())
                     extra.update(pred_sigma_xyz=sd.tolist(), mean_mahalanobis_sq=maha)
                     print(
-                        f"{'':8} {'net sigma xyz':<14} {'':>3} {np.round(sd, 5)}   mean Mahalanobis^2 = {maha:.2f} (3.0 if calibrated)"
+                        f"{'':8} {'net sigma xyz':<14} {'':>3} {np.round(sd, 5)}   "
+                        f"mean Mahalanobis^2 = {maha:.2f} (3.0 if calibrated)"
                     )
                 rows[tag + str(mag)] = {name: s for name, s in entries} | extra
 
@@ -554,7 +591,8 @@ def main():
             r_perp, n_pk = te["r_perp_um"].numpy(), te["n_peaks_per_voxel"].numpy()
             per_voxel = []
             print(
-                f"\n{'voxel':>5} {'r_perp':>7} {'peaks':>5} {'held':>5} {'n':>4}  median angle (deg), all magnitudes"
+                f"\n{'voxel':>5} {'r_perp':>7} {'peaks':>5} {'held':>5} {'n':>4}  "
+                "median angle (deg), all magnitudes"
             )
             for v in range(len(r_perp)):
                 mv = vid_test.numpy() == v
@@ -578,7 +616,8 @@ def main():
                     )
                 )
                 print(
-                    f"{v:5d} {r_perp[v]:7.0f} {n_pk[v]:5d} {str(bool(te['held_out'][v])):>5} {mv.sum():4d}  "
+                    f"{v:5d} {r_perp[v]:7.0f} {n_pk[v]:5d} "
+                    f"{str(bool(te['held_out'][v])):>5} {mv.sum():4d}  "
                     + "  ".join(f"{k} {x:.4f}" for k, x in ang.items())
                 )
             rows["per_voxel"] = per_voxel
@@ -594,8 +633,9 @@ def main():
                     median_voxel_err_held_out=float(np.median(ev[held])),
                 )
                 print(
-                    f"{label:>14}: corr(voxel median error, r_perp) = {summary[label]['corr_err_rperp']:+.2f}, "
-                    f"median per-voxel error in-dist {summary[label]['median_voxel_err_in_dist']:.4f} "
+                    f"{label:>14}: corr(voxel median error, r_perp) = "
+                    f"{summary[label]['corr_err_rperp']:+.2f}, median per-voxel error in-dist "
+                    f"{summary[label]['median_voxel_err_in_dist']:.4f} "
                     f"held-out {summary[label]['median_voxel_err_held_out']:.4f}"
                 )
             rows["summary"] = summary
@@ -607,6 +647,7 @@ def main():
         assert (
             te.get("dis_windows") is not None
         ), "--eval-variants neighbours/all needs dis_windows in the test set"
+    valid_te = padding_mask(te) if args.mask_padding else None
     all_rows = {}
     for variant in variants:
         win_te = corrupt_dataset(
@@ -614,19 +655,20 @@ def main():
             te.get("dis_windows"),
             "none" if variant == "clean" else variant,
             int(te.get("frame_half_width", 4)),
+            valid=valid_te,
         )
         items = list(args.extra) if variant == "clean" else []
         items += [
             it.split("/", 1)[1] for it in args.extra_variant if it.split("/", 1)[0] == variant
         ]
         save = args.save_predictions
-        if save and variant != "clean":
-            save = save.replace(".npz", f"_{variant}.npz")
+        if save:
+            save = variant_path(save, variant)
         all_rows[variant] = evaluate(variant, win_te, items, save)
-    rows = all_rows[variants[0]] if len(variants) == 1 else all_rows
 
     if args.results_json:
-        Path(args.results_json).write_text(json.dumps(rows, indent=2))
+        # {variant: rows}; summarize_results.py also reads the older single-variant layout
+        Path(args.results_json).write_text(json.dumps(all_rows, indent=2))
         print(f"saved {args.results_json}")
 
 
