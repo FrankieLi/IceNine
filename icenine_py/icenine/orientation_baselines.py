@@ -125,8 +125,13 @@ class CentroidGaussNewton:
         c, a = self.huber_c, np.abs(r)
         return float(np.where(a <= c, 0.5 * a * a, c * a - 0.5 * c * c).sum())
 
-    def _linearize(self, meas: Measurements, delta: np.ndarray):
-        """Weighted residual vector r0 (n,) and Jacobian J (n, 3, per degree) at delta."""
+    def _linearize(
+        self, meas: Measurements, delta: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Linearise at delta by central differences (the used spots present at delta and at
+        every probe). Returns the sigma-normalised residual vector r0 (3 per kept spot, no
+        Huber weights), the Jacobian J (3 per kept spot x 3, per degree) of r0, and the (n_used,)
+        bool mask of kept spots."""
         idx = np.nonzero(meas.used)[0]
         eye = np.eye(3)
         pts = np.stack([delta] + [delta + s * self.h * eye[i] for i in range(3) for s in (1, -1)])
@@ -139,19 +144,21 @@ class CentroidGaussNewton:
             ],
             axis=1,
         )
-        return res[0][ok].reshape(-1), J
+        return res[0][ok].reshape(-1), J, ok
 
     def information(self, meas: Measurements, delta: Optional[np.ndarray] = None) -> np.ndarray:
-        """J^T W J (3x3, per degree^2) of the used spots at delta (default nominal): the
-        Fisher information of the independent-quantisation model, for conditioning diagnostics."""
+        """J^T J (3x3, per degree^2) of the used spots at delta (default nominal), with
+        sigma-normalised residuals: the Fisher information of the independent-quantisation
+        model, for conditioning diagnostics. It carries no Huber IRLS weights even when
+        huber_c is set, unlike the covariance returned by solve() (J^T W_huber J)."""
         delta = np.zeros(3) if delta is None else np.asarray(delta, dtype=np.float64)
-        _r0, J = self._linearize(meas, delta)
+        _r0, J, _ok = self._linearize(meas, delta)
         return J.T @ J
 
     def solve_linear(self, meas: Measurements) -> np.ndarray:
         """One undamped Gauss-Newton step from the nominal orientation (the linear-model
         least-squares estimate, what a network layer with unit weights computes)."""
-        r0, J = self._linearize(meas, np.zeros(3))
+        r0, J, _ok = self._linearize(meas, np.zeros(3))
         return -np.linalg.solve(J.T @ J, J.T @ r0)
 
     def solve(self, meas: Measurements, delta0: Optional[np.ndarray] = None) -> Dict[str, object]:
@@ -161,22 +168,10 @@ class CentroidGaussNewton:
         lam = 1e-3
         status, n_iter, n_accepted = "max_iter", 0, 0
         for n_iter in range(1, self.max_iter + 1):
-            pts = np.stack(
-                [delta] + [delta + s * self.h * eye[i] for i in range(3) for s in (1, -1)]
-            )
-            res, valid = self._residuals(pts, meas, idx)
-            ok = valid.all(axis=0)  # spots present at the point and at every probe
+            r0, J, ok = self._linearize(meas, delta)  # spots present at delta and every probe
             if ok.sum() < 3:
                 status = "too_few_spots"
                 break
-            r0 = res[0][ok].reshape(-1)
-            J = np.stack(
-                [
-                    (res[1 + 2 * i][ok] - res[2 + 2 * i][ok]).reshape(-1) / (2 * self.h)
-                    for i in range(3)
-                ],
-                axis=1,
-            )
             wt = self._weights(r0)
             A, g = J.T @ (wt[:, None] * J), J.T @ (wt * r0)
             improved = False
@@ -186,7 +181,7 @@ class CentroidGaussNewton:
                 common = ok & tvalid[0]
                 if common.sum() >= 3:
                     r_new = trial[0][common].reshape(-1)
-                    r_old = res[0][common].reshape(-1)
+                    r_old = r0.reshape(-1, 3)[common[ok]].reshape(-1)
                     if self._cost(r_new) < self._cost(r_old):
                         delta = delta + step
                         lam = max(lam / 3.0, 1e-9)
@@ -204,25 +199,16 @@ class CentroidGaussNewton:
                 break
         converged = status == "step_below_tol" or (status == "no_descent" and n_accepted >= 1)
         # covariance at the solution
-        pts = np.stack([delta] + [delta + s * self.h * eye[i] for i in range(3) for s in (1, -1)])
-        res, valid = self._residuals(pts, meas, idx)
-        ok = valid.all(axis=0)
+        r0, J, ok = self._linearize(meas, delta)
         cov = np.full((3, 3), np.nan)
         chi2 = np.nan
         if ok.sum() >= 3:
-            J = np.stack(
-                [
-                    (res[1 + 2 * i][ok] - res[2 + 2 * i][ok]).reshape(-1) / (2 * self.h)
-                    for i in range(3)
-                ],
-                axis=1,
-            )
             try:
-                wt = self._weights(res[0][ok].reshape(-1))
+                wt = self._weights(r0)
                 cov = np.linalg.inv(J.T @ (wt[:, None] * J))
             except np.linalg.LinAlgError:
                 pass
-            chi2 = float((res[0][ok] ** 2).sum() / max(1, res[0][ok].size - 3))
+            chi2 = float((r0**2).sum() / max(1, r0.size - 3))
         return dict(
             delta=delta,
             cov=cov,
