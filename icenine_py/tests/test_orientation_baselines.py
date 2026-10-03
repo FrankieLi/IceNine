@@ -629,23 +629,27 @@ class TestDistractors:
         windows2, _ = render_windows(obs, spec, delta)
         assert torch.equal(windows, windows2)
 
-    def test_corruptions_are_deterministic_and_bounded(self):
-        from icenine.orientation_eval import CorruptionConfig, corrupt_dataset, corrupt_windows
+    def test_realism_variants_are_deterministic_and_bounded(self):
+        from icenine.orientation_eval import (
+            RealismConfig,
+            make_realistic_dataset,
+            make_realistic_windows,
+        )
 
         rng = torch.Generator().manual_seed(0)
         w = torch.zeros(6, 10, 32, 32, dtype=torch.uint8)
         w[:, :8, 10:13, 12:15] = 5
         dis = torch.zeros_like(w)
         dis[:, :, 20:22, 20:22] = 3
-        assert torch.equal(corrupt_windows(w, dis, None, 4), w)
-        only_nb = corrupt_windows(w, dis, CorruptionConfig.named("neighbours"), 4, rng)
+        assert torch.equal(make_realistic_windows(w, dis, None, 4), w)
+        only_nb = make_realistic_windows(w, dis, RealismConfig.named("neighbours"), 4, rng)
         assert torch.equal(only_nb[w > 0], w[w > 0]) and (only_nb[:, :, 20:22, 20:22] == 3).all()
-        a = corrupt_dataset(w, dis, "all", 4, seed=3)
-        b = corrupt_dataset(w, dis, "all", 4, seed=3)
+        a = make_realistic_dataset(w, dis, "all", 4, seed=3)
+        b = make_realistic_dataset(w, dis, "all", 4, seed=3)
         assert torch.equal(a, b) and int(a.max()) <= 9 and a.dtype == torch.uint8
-        dropped = corrupt_windows(w, None, CorruptionConfig(False, 1.0, 0.0, 0.0, 0.0), 4)
+        dropped = make_realistic_windows(w, None, RealismConfig(False, 1.0, 0.0, 0.0, 0.0), 4)
         assert int(dropped.sum()) == 0
-        noisy = corrupt_dataset(w, None, "noise", 4, seed=1)
+        noisy = make_realistic_dataset(w, None, "noise", 4, seed=1)
         assert (noisy != w).any()
 
 
@@ -748,23 +752,49 @@ class TestReviewFixes:
         assert torch.allclose(out[0], out[1], atol=5e-3), (out[0], out[1])
         assert GNLayerNet(frame_width_rad=obs.frame_width_rad).ridge == 1e-3
 
-    def test_corruption_of_padded_entries_and_the_valid_mask(self):
-        from icenine.orientation_eval import corrupt_dataset, corrupt_windows, CorruptionConfig
+    def test_realism_of_padded_entries_and_the_valid_mask(self):
+        from icenine.orientation_eval import (
+            make_realistic_dataset,
+            make_realistic_windows,
+            RealismConfig,
+        )
 
         w = torch.zeros(8, 6, 32, 32, dtype=torch.uint8)
         w[:, :4, 10:13, 12:15] = 5  # entries 4, 5 are zero padding
         valid = torch.zeros(8, 6, dtype=torch.bool)
         valid[:, :4] = True
-        cfg = CorruptionConfig(False, 0.0, 1.0, 1.0, 0.0)  # a hot pixel and a blob everywhere
-        default = corrupt_windows(w, None, cfg, 4, torch.Generator().manual_seed(0))
-        assert (default[:, 4:] > 0).any()  # default: padded entries can be corrupted
-        masked = corrupt_windows(w, None, cfg, 4, torch.Generator().manual_seed(0), valid=valid)
+        cfg = RealismConfig(False, 0.0, 1.0, 1.0, 0.0)  # a hot pixel and a blob everywhere
+        default = make_realistic_windows(w, None, cfg, 4, torch.Generator().manual_seed(0))
+        assert (default[:, 4:] > 0).any()  # default: padded entries can be made realistic
+        masked = make_realistic_windows(
+            w, None, cfg, 4, torch.Generator().manual_seed(0), valid=valid
+        )
         assert int(masked[:, 4:].sum()) == 0
         # the draws are unchanged: valid entries are identical with and without the mask
         assert torch.equal(masked[:, :4], default[:, :4])
-        a = corrupt_dataset(w, None, "all", 4, seed=2, chunk=3)
-        b = corrupt_dataset(w, None, "all", 4, seed=2, chunk=3, valid=valid)
+        a = make_realistic_dataset(w, None, "all", 4, seed=2, chunk=3)
+        b = make_realistic_dataset(w, None, "all", 4, seed=2, chunk=3, valid=valid)
         assert (a[:, 4:] > 0).any() and int(b[:, 4:].sum()) == 0
+
+    def test_historical_corruption_names_still_resolve(self):
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        import icenine.orientation_eval as oe
+
+        assert oe.CorruptionConfig is oe.RealismConfig
+        assert oe.corrupt_windows is oe.make_realistic_windows
+        assert oe.corrupt_dataset is oe.make_realistic_dataset
+        scripts = Path(__file__).resolve().parents[1] / "scripts"
+        for script, new, old in [
+            ("gauss_newton_baseline.py", "--realistic", "--corrupt"),
+            ("train_toy_orientation_nn.py", "--realistic-train", "--corrupt-train"),
+        ]:
+            out = subprocess.run(
+                [sys.executable, str(scripts / script), "--help"], capture_output=True, text=True
+            ).stdout
+            assert new in out and old in out  # both option strings share one argument
 
     def test_inv3_matches_linalg_inv_and_survives_singular_input(self):
         from icenine.toy_orientation_model import inv3

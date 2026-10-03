@@ -36,11 +36,13 @@ def main():
     parser.add_argument("--test", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument(
-        "--corrupt",
+        "--realistic",
+        "--corrupt",  # historical name
+        dest="realistic",
         default="none",
         choices=["none", "neighbours", "noise", "all"],
-        help="fit the deterministically corrupted test windows "
-        "(see orientation_eval.corrupt_dataset)",
+        help="fit the deterministically realistic test windows "
+        "(see orientation_eval.make_realistic_dataset; old name --corrupt)",
     )
     parser.add_argument(
         "--huber", type=float, default=None, help="robust fit: Huber threshold (sigma units)"
@@ -54,15 +56,15 @@ def main():
     data = torch.load(test_path)
     if data.get("renderer") != "observer":
         raise SystemExit("needs an observer-rendered (frame-coded) dataset")
-    from icenine.orientation_eval import corrupt_dataset
+    from icenine.orientation_eval import make_realistic_dataset
 
     assert (
-        args.corrupt not in ("neighbours", "all") or data.get("dis_windows") is not None
-    ), "--corrupt neighbours/all needs dis_windows in the test set"
-    data["windows"] = corrupt_dataset(
+        args.realistic not in ("neighbours", "all") or data.get("dis_windows") is not None
+    ), "--realistic neighbours/all needs dis_windows in the test set"
+    data["windows"] = make_realistic_dataset(
         data["windows"],
         data.get("dis_windows"),
-        args.corrupt,
+        args.realistic,
         int(data["frame_half_width"]),
     )
     max_q = data.get("max_q", float("nan"))
