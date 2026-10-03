@@ -29,7 +29,7 @@ Headline results (Section 7; 30 ManyGrains voxels, offsets up to $1^\circ$, simu
   distance from the rotation axis (parallax), and its mean Mahalanobis$^2$ is near 3 (coverage not
   checked). The earlier pooled set network was 3$\times$ worse than GN.
 - With neighbour/twin spots and pixel noise, plain GN degrades about $20\times$ and Huber-robust GN
-  recovers a third of it. The network trained on corrupted windows is 2--3$\times$ better than robust
+  recovers a third of it. The network trained on corrupted windows (deliberately perturbed synthetic data, Section 2.7) is 2--3$\times$ better than robust
   GN on distractor data, but not on pixel noise alone; trained on clean data only, it lies between
   plain and robust GN on distractor data and is confidently wrong. There is no real-data result.
 
@@ -184,6 +184,8 @@ from `toy_orientation_arch_dis_train.pt`) is used only to choose the Huber thres
 Voxel selection. `select_voxels` picks, for each of 30 radii evenly spaced in $[0,500]\ \mu$m, up to 60 random candidates (`--voxel-seed 0`); `accept_voxels` takes the first usable one per radius and never reuses a grain (tested with fakes). Sorted by $r_\perp$, every 5th voxel from index 2 is **held out** (indices 2, 7, 12, 17, 22, 27; $r_\perp=32,126,215,301,372,457\ \mu$m): no training samples, 240 of the 1200 test cases.
 
 ## 2.7 Distractors and corruption
+
+**Terminology: "corruption" is deliberate simulation, not bad data.** In this document *corruption*, *corrupted data/windows* and *corrupted test sets* mean measurement nuisances that we add on purpose to otherwise exact synthetic detector windows, to test robustness to what real data contain: spots of neighbouring voxels and a twin (`neighbours`), and missing spots, threshold jitter at spot edges, hot pixels and spurious blobs (`noise`). They do not mean damaged files, bugs or faulty experimental data. The orientation labels are always exact; only the windows a method sees are perturbed. *Clean* means the same windows without these perturbations; *corruption-trained* (also written corrupted-trained or corr-trained) means a network trained on windows perturbed this way.
 
 Both change only the windows, never $\delta$. **Distractor layer** (`--neighbors 2 --twin`; defaults `--neighbor-radius-um 30`, `--neighbor-p 0.5`,
 `--neighbor-sigma-deg 0.3`): `build_distractor_sources` takes up to `--neighbors` mic voxels nearest the target in the sample plane (not closer than
@@ -419,6 +421,8 @@ Single-voxel checks (30 cases per bin, one run each; `single_v0_gn.json`, `singl
 MC and Riemannian Adam on voxel 0 (from `benchmarks/toy_orientation_stage2/pred_*.npz`) reach medians .048/.145/.360/.672 and .056/.131/.185/.523 and leave $\delta_z$ largely uncorrected on these near-axis voxels (their 96%/92% success at $1^\circ$ in the ManyGrains sweep was a different, far-from-axis sample; the $r_\perp$ dependence was not measured).
 
 ## 7.2 Corrupted data (Step 4)
+
+"Corrupted" means the deliberately added nuisances of Section 2.7 (neighbour/twin spots and pixel noise on exact synthetic windows), not faulty data.
 
 Dataset `toy_orientation_arch_dis_*` (seed 42; 12,000/1,200 samples; clean windows identical to the Stage 3 data). Median angle pooled over the four bins (it does not depend on $\lvert\delta\rvert$ in any row; per-bin values are in `step4_summary.txt`). "Clean-trained":
 the same architecture trained on the clean windows of this file; "corr-trained": `--corrupt-train all`; "paired, inert": corr-trained with `--pairing` before the fix (partner-residual input only, Section 3.4); "paired, fixed": the same after the fix (live encoder mixing; `dis_res_gnpairfix_k3_corr`, `step4_pairfix_summary.txt`); all nets are $T=3$ `GNLayerNet`; Huber $c=1$; nets are 2-seed means, held-out per-seed values in brackets; $<0.1^\circ$ is the held-out fraction; Mah$^2$ is in-dist / held-out. "In-dist" includes the 4 validation voxels (Section 4).

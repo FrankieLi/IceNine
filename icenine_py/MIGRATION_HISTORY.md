@@ -1793,7 +1793,7 @@ evaluation of R1/R4 was not run. R3 (150 epochs) was not run.
 **Architecture branch summary (Steps 1-4 and 3b).** Putting the physics into the network (a learned Gauss–Newton layer, `GNLayerNet`) removes the
 3x gap of the pooled set net on clean multi-voxel data: it is at GN's accuracy on seen voxels, 1.1-1.7x GN on unseen voxels (see the
 re-check under Step 2), with GN's falling error vs r⊥ and Mahalanobis² 2-4. Detector pairing (Step 3) neither helps nor hurts on clean data.
-With realistic corruption (Step 4: neighbour/twin spots, spurious blobs, missing spots, edge jitter) plain GN degrades ~20x (median 0.22-0.33° vs
+With realistic corruption (deliberately simulated nuisances added to exact synthetic windows, not faulty data; Step 4: neighbour/twin spots, spurious blobs, missing spots, edge jitter) plain GN degrades ~20x (median 0.22-0.33° vs
 0.012-0.014°) and a Huber-robust GN cuts that by about a third, but a GNLayerNet *trained on corrupted windows* reaches 0.06-0.08° (median) on the same data, 2-3x better
 than robust GN, while a net trained on clean data only is not better than robust GN and barely better than plain GN. On pixel-level noise alone (no distractor spots) robust GN is as good as or
 better than the net. Pairing gives at most a few per cent on corrupted data (Step 3b fixed an inert pairing MLP in `GNLayerNet`; the fixed pairing is still within seed spread of the unpaired net). Remaining errors on distractor data are heavy-tailed (perp RMS 0.05° vs 0.004°
@@ -1992,6 +1992,8 @@ carry the pair information (Step 1: detectors are largely redundant for z), and 
 is in the corrupted-data test (Step 4 below). Caveat: 2 seeds; differences of ~0.002° are within seed spread (not tabulated).
 
 ### Step 4: distractors and noise
+
+**Terminology.** "Corruption" / "corrupted data" here means measurement nuisances added on purpose to otherwise exact synthetic windows to test robustness; it does not mean damaged files, bugs or bad experimental data. Orientation labels are always exact. "Clean" = without these perturbations; "corrupted-trained" = trained on windows perturbed on the fly. Full definition: `docs/orientation_nn_design.md` Section 2.7.
 
 **Corruptions (verified against `orientation_eval.CorruptionConfig` / `corrupt_windows` and the generator).** Applied to the frame-coded windows,
 independently per entry:
