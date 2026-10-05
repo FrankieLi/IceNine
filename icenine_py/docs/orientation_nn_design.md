@@ -543,6 +543,19 @@ uv run python scripts/summarize_arch_step4.py \
 
 The clean-variant predictions of `dis_res_gn_k3_cleantrain_s{0,1}.npz` are byte-identical to `multi_res_gn_k3_lr1e-4_s{0,1}.npz` (same deterministic run); the realistic-variant files exist only under the `cleantrain` name, so both are kept.
 
+Saving weights and the perturbation sweep (2026-10-04). `--save-model` was added to the trainer afterwards; the four unpaired T=3 nets were retrained one at a time with the commands above plus `--save-model scripts/toy_orientation_sweep_model_{clean,realistic}_s{0,1}.pt` (clean-trained: the `multi_res_gn_k3_lr1e-4` flags on `stage3_multi`, no `--realistic-train`; realism-trained: as in item 3) and reproduce the committed predictions bit-for-bit. Two trainings sharing the MPS GPU are not bit-reproducible, so run them sequentially. Then, from `icenine_py/`:
+
+```bash
+M=scripts/toy_orientation_sweep_model
+uv run python scripts/perturbation_sweep.py run --workers 10 --out-dir benchmarks/toy_orientation_sweep \
+    --models clean_s0=${M}_clean_s0.pt clean_s1=${M}_clean_s1.pt \
+             realistic_s0=${M}_realistic_s0.pt realistic_s1=${M}_realistic_s1.pt
+uv run python scripts/perturbation_sweep.py summarize --out-dir benchmarks/toy_orientation_sweep
+uv run pytest tests/test_perturbation_sweep.py
+```
+
+(about 22 minutes of wall time with 10 CPU workers; per-voxel results are cached in `scripts/perturbation_sweep_cache/` so an interrupted run resumes.) Protocol and results: `MIGRATION_HISTORY.md`, "Perturbation sweep".
+
 Single-voxel baselines (exact Bayes; MC and Adam also need the Python-simulated ThreeVoxels images; the dataset command is as in MIGRATION_HISTORY, not re-run):
 
 ```bash

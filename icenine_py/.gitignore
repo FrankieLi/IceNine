@@ -59,3 +59,4 @@ scripts/*.pt
 
 # Scratch completion flags written by the benchmark run scripts
 benchmarks/**/*_done.flag
+scripts/perturbation_sweep_cache/

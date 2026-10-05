@@ -644,6 +644,8 @@ with MSE and the covariance with NLL at stopgrad(mean).
 
 Commands for the `GNLayerNet` (`--arch gn`) and Step 4 (distractor/realism layer) experiments, including the data, baseline and summary scripts, are in `docs/orientation_nn_design.md` Section 9.
 
+`train_toy_orientation_nn.py --save-model PATH` saves the final weights, the constructor arguments and the input settings (loaded by `load_model` in `scripts/perturbation_sweep.py`). `scripts/perturbation_sweep.py` is the single-voxel perturbation sweep: 50 random voxels (not among the dataset's 30), each started at a random rotation of angle r (0.05-5 deg) from its true orientation, one-shot and re-centred, on clean and realistic windows; `run` renders and evaluates (CPU worker pool), `summarize` rebuilds the tables, JSON and plot from the raw npz. Results are in `benchmarks/toy_orientation_sweep/` (see `MIGRATION_HISTORY.md`, "Perturbation sweep"); tests in `tests/test_perturbation_sweep.py`.
+
 `scripts/checks/` holds the numerical checks behind the derivations in `docs/`. Results
 of the Stage 0 run are in `benchmarks/toy_orientation_stage0/`.
 

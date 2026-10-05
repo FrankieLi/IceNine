@@ -2160,3 +2160,67 @@ Second review pass on PR #29; no saved benchmark number changed and nothing was 
 | `corr` in result filenames | realism-trained (files not renamed) |
 
 Variant names (`clean`, `neighbours`, `noise`, `all`) and the `RealismConfig` fields (`p_miss`, `p_flip`, `p_hot`, `p_blob`) are unchanged. The old Python names are module-level aliases in `orientation_eval.py`, and the old flags are extra option strings of the same arguments (tested in `TestReviewFixes`).
+
+
+## Toy Orientation NN — Perturbation sweep (2026-10-04)
+
+**Question.** How does the network's error grow as the nominal orientation gets further from the truth? Randomly sampled voxels of the 500-grain sample are each tested on their own: the nominal is the voxel's true `.mic` orientation rotated by a random rotation of angle r, the net sees windows rendered exactly as in the dataset generator, and its error is the angle between its answer and the true orientation. No other baselines (the truth is known).
+
+**Plan / what was built.**
+1. `train_toy_orientation_nn.py --save-model PATH` (new): saves the final weights plus `model_kwargs` (constructor arguments), `no_frame`, `frame_half_width`, `window_size`, `realistic_train`, `mask_padding`, `seed`, and the trainer's argparse namespace. Weights were never saved before. Files go to `scripts/toy_orientation_sweep_model_{clean,realistic}_s{0,1}.pt` (gitignored by `scripts/*.pt`).
+2. Retrained the four headline nets (unpaired `GNLayerNet`, T=3, lr 1e-4, 60 epochs, EMA 0.998, `--val-voxels 4`, seeds 0 and 1) with the recorded commands (design doc Section 9): clean-trained = `multi_res_gn_k3_lr1e-4` on `toy_orientation_stage3_multi_{train,test}.pt`; realism-trained = `dis_res_gn_k3_corr` (`--realistic-train all`, `toy_orientation_arch_dis_{train,test}.pt`); both with `--aux scripts/toy_orientation_stage3_multi_aux.pt`. Outputs went to a scratch directory, not over the committed results.
+3. `scripts/perturbation_sweep.py` (new, tests in `tests/test_perturbation_sweep.py`).
+
+**Reproduction check.** All four retrains reproduce the committed predictions bit-for-bit (`pred_deg` and `chol`, max abs diff 0.0, for the clean test set and, for the realism-trained nets, all four variants; `benchmarks/toy_orientation_sweep/retrain_reproduction.txt`). One caveat: two trainings run concurrently on the one MPS GPU diverged from the committed logs in the 6th digit by epoch 4 (GPU non-determinism under sharing), so they were killed and the four runs redone one at a time; run alone, they are exact.
+
+**Protocol.**
+- Voxels: 50 drawn uniformly at random (`--voxel-seed 0`, a seeded permutation of the eligible voxels, taking the first usable ones) from the 24,570 voxels, with r_perp <= 500 um, excluding the 30 voxels of `stage3_multi`/`arch_dis` (read from the dataset files; the same 30 in both), and requiring >= 40 ROI peaks at the true orientation plus a valid window spec. 20,601 eligible, none rejected. They span r_perp 57-499 um (terciles 57-246 / 249-371 / 381-499 um; 17/16/17 voxels), 46 distinct grains, 35 within 1.25 voxel pitch of another grain, 4 in a grain that also contains one of the 30 dataset voxels. Per-voxel index, position, r_perp, grain id, boundary flag and cross-grain-neighbour count are in the raw npz.
+- Perturbation: for each (voxel, r) 20 directions with uniformly random axes; delta (length exactly r) and nominal R_nom = exp(-[delta]x) R_true, so exp([delta]x) R_nom = R_true, the dataset convention (`offsets_to_matrices`). The net predicts delta; error = angle of exp([delta_hat]x) R_nom R_true^T. Radii 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5 deg (10 radii x 20 directions x 50 voxels = 10,000 cases per window variant).
+- Windows per case: its own nominal (so its own ROI set, `define_roi_set` + `|sin eta| >= 0.3`, observer, window spec, context, sub-pixel offsets), Q_max 8, both detectors, 32x32, K=4, alpha=0, rendered at the true orientation. `clean` = windows only. `all` = generator's distractor layer (2 nearest mic neighbours within 30 um + a Sigma3 twin of the nearest; each source present with probability 0.5 at an independent 0.3 deg rms offset) plus `make_realistic_dataset("all")` with a fixed seed per (voxel, radius), and the valid (padding) mask (the committed runs did not use it).
+- Distractor sources: the sources sit at their own mic orientations (the target's truth is its mic orientation, so a same-grain neighbour is the target's own grain). In the generator the sources follow the target's delta from its nominal; here the target's "delta" is absorbed in the nominal, so each source is the neighbour's mic orientation plus the 0.3 deg rms Gaussian offset only.
+- Failure rule: a case fails at pass 1 if the perturbed nominal has no ROI peak, fewer than 40 ROI entries, an invalid window spec, or fewer than `--min-present 20` windows with a lit pixel (counts in `all` include distractor/noise pixels). Failures are counted per radius/variant and excluded from the medians (not silently dropped: see the failure rows and `n_ok`). Padding to 130 entries.
+- One-shot = pass 1. Iterated = 3 passes; each pass rebuilds ROI set, windows and context at the previous estimate, re-renders the SAME true orientation with the same distractor draws and the same realism seed (the noise realisation is the same draw but entry indices belong to the new ROI set, so it is not the same pixel noise on the same spot). A case that cannot continue (ROI/spec/too few present) keeps its last estimate; stops are counted.
+- Metrics per (variant, model, r, pass): median and RMS angle, RMS z and perp (rotation-vector components of the error, sample frame), fraction < 0.1 deg, fraction improved (error < r), mean Mahalanobis^2, n_ok, and the same split by r_perp tercile.
+
+**Commands.**
+```
+cd icenine_py
+# retrain (one at a time; add --save-model), e.g. realism-trained seed 0:
+uv run python scripts/train_toy_orientation_nn.py --head offset --arch gn --gn-iters 3 --loss decoupled --device mps \
+  --lr 1e-4 --clip 1 --cosine --batch-size 64 --epochs 60 --ema 0.998 --checkpoint ema --val-voxels 4 --realistic-train all \
+  --eval-variants clean,neighbours,noise,all --seed 0 --train scripts/toy_orientation_arch_dis_train.pt \
+  --test scripts/toy_orientation_arch_dis_test.pt --aux scripts/toy_orientation_stage3_multi_aux.pt \
+  --save-model scripts/toy_orientation_sweep_model_realistic_s0.pt --save-predictions <scratch>/real_s0.npz
+# sweep + summary + plot (10 workers, CPU, 1340 s wall time)
+M=scripts/toy_orientation_sweep_model
+uv run python scripts/perturbation_sweep.py run --workers 10 --out-dir benchmarks/toy_orientation_sweep \
+  --models clean_s0=${M}_clean_s0.pt clean_s1=${M}_clean_s1.pt realistic_s0=${M}_realistic_s0.pt realistic_s1=${M}_realistic_s1.pt
+uv run python scripts/perturbation_sweep.py summarize --out-dir benchmarks/toy_orientation_sweep   # re-make txt/json/png
+```
+Outputs in `benchmarks/toy_orientation_sweep/`: `perturbation_sweep_raw.npz` (per-case arrays `[voxel, radius, direction, variant, model, pass]`), `perturbation_sweep_summary.{txt,json}` (all metrics, per seed, per tercile, failure and stop counts), `perturbation_sweep.png`, `retrain_reproduction.txt`, `run.log`.
+
+**Results** (median angular error in degrees, mean of the two seeds; 1000 cases per radius, 940 at r = 5 deg in clean windows; one-shot -> iterated x3; per-seed values and everything else in the summary files):
+
+| r (deg) | clean-trained, clean windows | realism-trained, clean windows | clean-trained, `all` windows | realism-trained, `all` windows |
+|---|---|---|---|---|
+| 0.05 | .0125 -> .0124 | .0122 -> .0121 | .274 -> .278 | .062 -> .065 |
+| 0.1 | .0125 -> .0124 | .0131 -> .0121 | .259 -> .263 | .059 -> .063 |
+| 0.25 | .0123 -> .0124 | .0137 -> .0121 | .243 -> .251 | .064 -> .064 |
+| 0.5 | .0116 -> .0124 | .0156 -> .0121 | .253 -> .264 | .063 -> .065 |
+| 0.75 | .0122 -> .0124 | .0177 -> .0121 | .245 -> .261 | .067 -> .065 |
+| 1 | .0130 -> .0124 | .0208 -> .0121 | .241 -> .266 | .071 -> .066 |
+| 1.5 | .0194 -> .0125 | .0281 -> .0122 | .277 -> .272 | .088 -> .061 |
+| 2 | .0303 -> .0125 | .0382 -> .0121 | .413 -> .280 | .171 -> .072 |
+| 3 | .0606 -> .0125 | .0662 -> .0121 | 1.11 -> .291 | 1.01 -> .079 |
+| 5 | .168 -> .0125 | .273 -> .0120 | 3.85 -> .800 | 4.24 -> 1.97 |
+
+Failures at pass 1 (of 1000 cases): clean windows 0 at every radius except r = 5 deg, 60 (all "fewer than 20 present windows"); `all` windows 0 except 6 at r = 5 deg. Early stops in later passes: none in clean windows; in `all` windows 6 / 1 / 1 / 5 case-stops for clean_s0 / clean_s1 / realistic_s0 / realistic_s1 (all at r = 5 deg except one spec failure at 0.5 deg).
+
+Reading (what the data support, with 50 voxels and 2 seeds):
+- Inside the training ball (r <= 1 deg) the one-shot errors on clean windows are 0.012-0.021 deg and the realism-trained error rises slowly with r (0.012 -> 0.021 deg), while the clean-trained one is flat (0.012-0.013). Beyond 1 deg the one-shot error grows roughly like r^1.5-2 for both (about 0.03 at 2 deg, 0.06 at 3 deg, 0.17-0.27 at 5 deg), i.e. it stays well below r (error < r in 100% of clean-window cases) but loses sub-0.1 deg accuracy (fraction < 0.1 deg: 0.80 at 3 deg, 0.10-0.20 at 5 deg).
+- Re-centring fixes that: after 2-3 passes the clean-window error is at its floor (~0.012 deg, independent of r, all cases < 0.1 deg for every r including 5 deg) because the second pass starts within the training ball. The floor is the same as the r = 0.05 deg error. 5 deg is extrapolation (trained in a 1 deg ball), and on clean windows that extrapolated first step is still good enough to bring the estimate inside the ball.
+- With realistic (`all`) windows the error floor is set by the distractors, not by r: clean-trained ~0.25 deg (mean Mahalanobis^2 ~1,000-2,000, i.e. confidently wrong), realism-trained ~0.06-0.07 deg (Mahalanobis^2 ~3). These floors agree with the committed held-out numbers (`.2033`/`.0615`, 30-voxel test). The realism-trained net stays at its floor up to r = 1.5 deg one-shot (0.088), rises to 0.17 at 2 deg and fails at >= 3 deg one-shot (1.0 deg at 3; 4.2 at 5, about the same as no correction); iterating recovers it to 0.079 at 3 deg but not at 5 deg (median 1.97 after 3 passes, 24% of cases < 0.1 deg; wide spread between seeds: 1.30 / 2.63). For the clean-trained net the ~0.25 floor is not improved by iterating.
+- Iterating does not help inside 1 deg on realistic windows (differences <= 0.003 deg at r <= 0.75; clean-trained: slightly worse, 0.241 -> 0.266 at 1 deg).
+- r_perp: on clean windows the error falls with r_perp (floor 0.023 / 0.012 / 0.010 deg for the three terciles, the parallax effect again); on realistic windows no clear trend. Voxels near a grain boundary (35 of 50) are not worse than the others (r = 1: 0.065 vs 0.09 deg for the realism-trained net); with 15 interior voxels this is not a finding.
+
+**Caveats.** (1) Trained within a 1 deg ball, so r > 1 deg is extrapolation. (2) Single-voxel windows, not a full-sample render: neighbours/twin come from the generator's source model only (2 neighbours + twin, same-family nuisances as in training), not from a rendering of everything that actually overlaps. (3) 50 voxels x 20 directions per radius, 2 seeds per model type; standard errors/intervals were not computed, voxel-to-voxel variation is not separated from direction-to-direction. (4) The failure rule counts windows with any lit pixel, so noise and distractors can mask a low peak count in `all` windows (6 vs 60 failures at 5 deg). (5) Iteration reuses distractor draws and the realism seed but pixel noise is attached to entry indices of a rebuilt ROI set. (6) Only the median is plotted; RMS, z/perp components and the fractions are in the summary. (7) The padding mask was applied here but not in the committed runs, so the `all` numbers are not pixel-identical to the committed test protocol, though the floors agree. (8) The perturbed nominal's ROI set and window centres differ from the dataset's (they are defined at the perturbed nominal, as a real hand-off would), a slight protocol difference from the datasets, where the ROI set is defined at the truth.

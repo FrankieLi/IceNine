@@ -1,0 +1,12 @@
+Retrained nets (unpaired GNLayerNet T=3, lr 1e-4, 60 epochs, EMA 0.998, mps, solo runs) vs committed predictions in benchmarks/toy_orientation_arch/. Max abs difference over pred_deg and chol (1200 test cases):
+realism-trained s0 _clean: diff identical maxabs 0.0 
+realism-trained s0 _neighbours: diff identical maxabs 0.0 
+realism-trained s0 _noise: diff identical maxabs 0.0 
+realism-trained s0 _all: diff identical maxabs 0.0 
+clean-trained s0 (vs multi_res_gn_k3_lr1e-4_s0.npz, clean test): diff identical maxabs 0.0 
+realism-trained s1 _clean: diff identical maxabs 0.0 
+realism-trained s1 _neighbours: diff identical maxabs 0.0 
+realism-trained s1 _noise: diff identical maxabs 0.0 
+realism-trained s1 _all: diff identical maxabs 0.0 
+clean-trained s1 (vs multi_res_gn_k3_lr1e-4_s1.npz, clean test): diff identical maxabs 0.0 
+Concurrent runs (two trainings sharing the MPS GPU) diverged from the committed logs at the 6th digit by epoch 4; the four runs above were run one at a time and are bit-identical.
