@@ -247,6 +247,13 @@ def main():
     )
     parser.add_argument("--results-json", default=None)
     parser.add_argument(
+        "--save-model",
+        default=None,
+        help="torch file with the final weights (state_dict), the constructor arguments to "
+        "rebuild the model and the input settings inference needs (load_model in "
+        "scripts/perturbation_sweep.py)",
+    )
+    parser.add_argument(
         "--save-predictions",
         default=None,
         help="npz with test predictions (and Cholesky factors) for re-evaluation",
@@ -286,11 +293,13 @@ def main():
     )
 
     multi, vid_train = False, None
+    model_kwargs: dict = {}
     if args.head == "quat":
         targets = torch.from_numpy(
             offsets_to_quaternions(offsets.numpy().astype(np.float64), R_nom)
         ).float()
-        model = ToyOrientationNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
+        model_kwargs = dict(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
+        model = ToyOrientationNet(**model_kwargs)
     else:
         targets = offsets
         if args.arch in ("set", "probe", "gn"):
@@ -300,7 +309,7 @@ def main():
             vid_train = tr["voxel_id"].to(torch.long) if multi else None
             if args.arch == "gn":
                 assert args.aux, "--arch gn needs --aux"
-                model = GNLayerNet(
+                model_kwargs = dict(
                     window_size=window,
                     in_channels=in_channels,
                     context_dim=context.shape[-1],
@@ -309,13 +318,15 @@ def main():
                     frame_width_rad=float(az["frame_width_rad"]),
                     pairing=args.pairing,
                 )
+                model = GNLayerNet(**model_kwargs)
             elif args.arch == "probe":
-                model = FrameProbeNet(
+                model_kwargs = dict(
                     context_dim=context.shape[-1],
                     frame_half_width=int(tr.get("frame_half_width", 4)),
                 )
+                model = FrameProbeNet(**model_kwargs)
             else:
-                model = PeakSetNet(
+                model_kwargs = dict(
                     window_size=window,
                     in_channels=in_channels,
                     context_dim=context.shape[-1],
@@ -323,8 +334,10 @@ def main():
                     frame_half_width=int(tr.get("frame_half_width", 4)),
                     pool=args.pool,
                 )
+                model = PeakSetNet(**model_kwargs)
         else:
-            model = ToyOffsetNet(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
+            model_kwargs = dict(n_peaks=n_peaks, window_size=window, in_channels=in_channels)
+            model = ToyOffsetNet(**model_kwargs)
     aux_tab = {}
     if az is not None:
         assert (
@@ -488,6 +501,27 @@ def main():
     else:
         best_epoch = args.epochs
         print(f"using the last-epoch weights (val {val:.6f})")
+
+    if args.save_model:
+        torch.save(
+            {
+                "arch": args.arch,
+                "head": args.head,
+                "model_kwargs": model_kwargs,
+                "state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()},
+                "no_frame": args.no_frame,
+                "frame_half_width": K_fh,
+                "window_size": int(window),
+                "n_peaks": int(n_peaks),
+                "realistic_train": args.realistic_train,
+                "mask_padding": args.mask_padding,
+                "seed": args.seed,
+                "best_epoch": best_epoch,
+                "args": vars(args),
+            },
+            args.save_model,
+        )
+        print(f"saved model {args.save_model}")
 
     # ---- evaluation ------------------------------------------------------
     def evaluate(variant, win_te, extra_items, save_path):
