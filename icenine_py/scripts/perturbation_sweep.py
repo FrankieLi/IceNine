@@ -141,6 +141,27 @@ def mahalanobis_sq(truth_deg: np.ndarray, pred_deg: np.ndarray, chol: np.ndarray
     return (z**2).sum(-1)
 
 
+def case_draws(
+    sweep_seed: int,
+    voxel_index: int,
+    ri: int,
+    r: float,
+    n_dirs: int,
+    n_sources: int,
+    sigma_comp: float,
+    neighbor_p: float,
+) -> Tuple[np.ndarray, List[Tuple[np.ndarray, np.ndarray]]]:
+    """The seeded random inputs of one (voxel, radius): the perturbation rotation vectors
+    delta0 (n_dirs, 3) deg of length exactly r, and per direction the distractor draws
+    (source offsets (S, 3) deg, source active (S,)). Shared with scripts/optimizer_sweep.py so
+    the baselines see exactly the same cases as the network."""
+    rng = np.random.default_rng([sweep_seed, voxel_index, ri])
+    delta0 = random_rotvecs(n_dirs, r, rng)
+    src_off = rng.normal(0.0, sigma_comp, size=(n_dirs, n_sources, 3))
+    src_act = rng.random((n_dirs, n_sources)) < neighbor_p
+    return delta0, [(src_off[j], src_act[j]) for j in range(n_dirs)]
+
+
 def load_model(path: str) -> Tuple[torch.nn.Module, Dict[str, Any]]:
     """Rebuild a network saved by train_toy_orientation_nn.py --save-model (eval mode, CPU)."""
     from icenine.toy_orientation_model import GNLayerNet
@@ -224,12 +245,15 @@ def render_batch(
     variant: str,
     seed: int,
     args: SimpleNamespace,
+    layers: Optional[Dict[str, torch.Tensor]] = None,
 ) -> Dict[str, torch.Tensor]:
     """Windows (+ context, nominal offsets, valid mask) for a batch of cases, each with its own
     prepared nominal (None = case not run: zero windows). delta_true (B, 3) is the truth's offset
     from each case's nominal. For variant "all" the distractor layer of each case uses its fixed
     draws dis_draws[j] = (source offsets (S, 3) deg, source active (S,)), and the whole batch goes
-    through make_realistic_dataset with a fixed seed and the padding mask."""
+    through make_realistic_dataset with a fixed seed and the padding mask. If `layers` is a dict
+    it is filled with the pre-realism target windows ("clean") and the distractor layer ("dis"),
+    which the optimizer baselines need to turn the realism into image edits."""
     from icenine.orientation_eval import (
         make_realistic_dataset,
         render_distractor_windows,
@@ -263,6 +287,8 @@ def render_batch(
         ctx[j, : p.n] = p.context
         nom[j, : p.n] = p.nom_off
         valid[j, : p.n] = True
+    if layers is not None:
+        layers["clean"], layers["dis"] = win.clone(), dis
     if variant != "clean":
         win = make_realistic_dataset(
             win, dis, variant, args.frame_half_width, seed=seed, valid=valid
@@ -343,11 +369,7 @@ def sweep_voxel(voxel_index: int, voxel_pos: int) -> Dict[str, np.ndarray]:
     )
     K = a.frame_half_width
     for ri, r in enumerate(radii):
-        rng = np.random.default_rng([a.sweep_seed, voxel_index, ri])
-        delta0 = random_rotvecs(D, r, rng)
-        src_off = rng.normal(0.0, sigma_comp, size=(D, S, 3))
-        src_act = rng.random((D, S)) < a.neighbor_p
-        draws = [(src_off[j], src_act[j]) for j in range(D)]
+        delta0, draws = case_draws(a.sweep_seed, voxel_index, ri, r, D, S, sigma_comp, a.neighbor_p)
         R_nom0 = perturbed_nominal(R_true, delta0)
         prep1: List[Optional[Prepared]] = []
         reason1 = np.zeros(D, dtype=np.int8)

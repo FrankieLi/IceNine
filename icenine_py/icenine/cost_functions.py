@@ -704,6 +704,7 @@ class VoxelCostFunction:
         eta_limit: float = math.pi / 2.0,
         pixel_radius: int = 0,
         max_q: float = 0.0,
+        min_sin_eta: float = 0.0,
     ):
         """
         Args:
@@ -726,8 +727,14 @@ class VoxelCostFunction:
                    only reciprocal vectors with |q| <= max_q are used. When 0,
                    uses all vectors. C++ uses nQMaxDiscrete=5 for discrete search.
                    C++ Reference: DiscreteSearch.h:298-300
+            min_sin_eta: Optional lower bound on |sin eta| of the diffracted beam
+                   (eta as in the eta filter above): peaks nearer the rotation axis
+                   are skipped. 0 (default) = no filter (the C++ behaviour). Used to
+                   give the optimizers the same eligible spots as the orientation
+                   network (generate_toy_orientation_dataset.build_problem).
         """
         self.simulator = simulator
+        self.min_sin_eta = min_sin_eta
         self.detector_list = detector_list
         self.range_map = range_map
         self.exp_data = exp_data
@@ -845,6 +852,8 @@ class VoxelCostFunction:
         rz_val = torch.abs(reflected[:, 2]) / safe_norms
         eta = torch.atan2(ry, rz_val)  # (N,)
         valid = (eta < self.eta_limit) & (rd_norms > 0)  # (N,) bool
+        if self.min_sin_eta > 0.0:
+            valid = valid & (torch.sin(eta) >= self.min_sin_eta)
 
         peak_omegas_t = all_omegas[valid]  # (M,) tensor
         peak_normals_t = all_normals[valid]  # (M, 3) tensor
