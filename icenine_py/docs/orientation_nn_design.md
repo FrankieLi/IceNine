@@ -556,6 +556,16 @@ uv run pytest tests/test_perturbation_sweep.py
 
 (about 22 minutes of wall time with 10 CPU workers; per-voxel results are cached in `scripts/perturbation_sweep_cache/` so an interrupted run resumes.) Protocol and results: `MIGRATION_HISTORY.md`, "Perturbation sweep".
 
+Existing-optimizer baselines on the same sweep cases (MC, Riemannian Adam, plain and Huber Gauss-Newton; per-case images built from pixel sets, no full-sample render; about 2 h with 10 CPU workers, resumable via `scripts/optimizer_sweep_cache/`):
+
+```bash
+uv run python scripts/optimizer_sweep.py run --workers 10 --out-dir benchmarks/toy_orientation_sweep
+uv run python scripts/optimizer_sweep.py summarize --out-dir benchmarks/toy_orientation_sweep   # txt, json, perturbation_sweep_vs_optimizers.png
+uv run pytest tests/test_optimizer_sweep.py
+```
+
+Protocol and results: `MIGRATION_HISTORY.md`, "Comparison with existing optimizers".
+
 Single-voxel baselines (exact Bayes; MC and Adam also need the Python-simulated ThreeVoxels images; the dataset command is as in MIGRATION_HISTORY, not re-run):
 
 ```bash

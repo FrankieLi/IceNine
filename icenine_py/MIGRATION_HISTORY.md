@@ -2224,3 +2224,72 @@ Reading (what the data support, with 50 voxels and 2 seeds):
 - r_perp: on clean windows the error falls with r_perp (floor 0.023 / 0.012 / 0.010 deg for the three terciles, the parallax effect again); on realistic windows no clear trend. Voxels near a grain boundary (35 of 50) are not worse than the others (r = 1: 0.065 vs 0.09 deg for the realism-trained net); with 15 interior voxels this is not a finding.
 
 **Caveats.** (1) Trained within a 1 deg ball, so r > 1 deg is extrapolation. (2) Single-voxel windows, not a full-sample render: neighbours/twin come from the generator's source model only (2 neighbours + twin, same-family nuisances as in training), not from a rendering of everything that actually overlaps. (3) 50 voxels x 20 directions per radius, 2 seeds per model type; standard errors/intervals were not computed, voxel-to-voxel variation is not separated from direction-to-direction. (4) The failure rule counts windows with any lit pixel, so noise and distractors can mask a low peak count in `all` windows (6 vs 60 failures at 5 deg). (5) Iteration reuses distractor draws and the realism seed but pixel noise is attached to entry indices of a rebuilt ROI set. (6) Only the median is plotted; RMS, z/perp components and the fractions are in the summary. (7) The padding mask was applied here but not in the committed runs, so the `all` numbers are not pixel-identical to the committed test protocol, though the floors agree. (8) The perturbed nominal's ROI set and window centres differ from the dataset's (they are defined at the perturbed nominal, as a real hand-off would), a slight protocol difference from the datasets, where the ROI set is defined at the truth.
+
+### Comparison with existing optimizers (2026-10-05)
+
+**Question.** On exactly the sweep's cases, how do the project's non-learned optimizers compare with the network? Cases are reproduced, not re-drawn: `perturbation_sweep.case_draws` (factored out of `sweep_voxel`) gives the same seeded directions and distractor draws, the voxels come from the sweep's raw npz, and every task asserts that its per-case ROI counts and pass-1 failure codes (both variants, hence the realism windows' present counts) equal the sweep's. Error = angle of R_est R_true^T, the sweep's metric (no crystal-symmetry reduction; irrelevant for r <= 5 deg). 50 voxels x 10 radii x 20 directions = 1000 cases per radius and variant, 500 tasks, all run for every method (no reduction was needed: the projection from the 1-voxel pilot was 2 h; the full run took 1 h 49 min on 10 workers). Summaries use the cases where the net ran at pass 1 (n = 1000 per radius, 940 at r = 5 clean, 994 at r = 5 realistic), the same set for every column.
+
+**Methods** (`scripts/optimizer_sweep.py`, existing code and settings):
+- **MC**: `MCOptimizer` on the binary pixel-overlap cost via `bench_hp_sweep.run_one_mc`: 3500 steps, 2 restarts, step fraction 0.5, search box 1.5 r. **It is told r through the box (an advantage the net does not have).** Note that `MCOptimizer` restarts after `2 (box/step)^3` steps without improvement and stops after the second restart, so when it sees no signal it ends after ~50 steps; the seed in `optimizer_baselines.py` has no effect (unseeded `default_rng`), here the generator is made deterministic per case.
+- **Adam**: `run_one_riemannian_adam_geoopt` on the differentiable cost, scale 2 (8x max-pool), omega window 1, lr 1e-4, 100 steps. Not told r.
+- **GN / Huber GN (c = 1)**: `CentroidGaussNewton` on the net's windows, one-shot at the perturbed nominal and iterated x3 with the sweep's re-centring (same pass loop, same re-rendering and gating). Runtime counts measurement extraction + solve, not window rendering.
+- All: |g| <= 8, both detectors, the net's eligibility. The cost functions gained an optional `min_sin_eta` (default 0 = unchanged) so `|sin eta| >= 0.3` and the config's EtaLimit (86 deg, not the cost default 90) apply to MC and Adam as to the net's ROI set.
+
+**What each method sees.**
+- Net / GN: 32x32 windows around the ROI spots of the case's perturbed nominal, +-4 frames, frame-coded; distractors and noise exist only inside windows.
+- MC / Adam (new, no full-sample image exists): per-case detector images made from pixel sets, the lit pixels the simulator's rasteriser would give (`lit_pixel_set`). `clean` = every spot of the target voxel at its TRUE orientation (|g| <= 8, all frames, both detectors; no |sin eta| cut in the image, the cost applies it). `all` = that plus (i) every active distractor source (2 neighbours + the Sigma3 twin, the sweep's draws) over the WHOLE detector, plus (ii) the sweep's realism edits transplanted pixel by pixel: the difference between the net's windows before and after `make_realistic_dataset` (pixels dropped or grown, hot pixels, blobs; a window zeroed as a missing spot removes all its pixels, target and distractor) is applied at the window's detector position and frame. The edits are made on the pass-1 windows, so they follow that nominal's window grid. Checks (`tests/test_optimizer_sweep.py`, probe on one voxel): the target-only image gives hard-cost quality exactly 1.0 at the truth (54 peaks); every pixel of the net's realistic windows is in the realistic image and every removed pixel was present before the edit; the coarse image stack equals `MultiScaleImageStack` (scale, omega window 1) exactly. So the optimizers see the whole detector (all of the voxel's spots, more than the net's ROI windows) but the same random nuisances inside the windows. Differences: pixel noise outside the net's windows does not exist (there is none to inject: the noise is defined per window), noise pixels that fall off the detector or outside the frame range are dropped, spots whose frame has left the +-4 window (large r) are still in the image, and the image holds pixel sets of the simulator's own spots with no intensity/blur.
+- Cost at the true orientation on the exact (clean) images (stored per case, `q_true`): the hard cost's quality is 1.0 for the first checked voxel, but its median over the 50 voxels is 0.93 (per-voxel medians 0.90-0.97, 1.0 for only that one voxel). The images are exact there (checked on voxels 3108 and 2910: pixel overlap = pixels on the detector and every peak overlaps), so I attribute the ceiling to the cost's own per-peak detector factor (quality_i = pixel ratio x detectors-overlapping / n_det in `OverlapInfo.update_quality`, which is below 1 for spots recorded on one detector), not to the images; I did not trace it further. On `all` images the median is 0.76; Adam's soft scale-2 cost is 0.66 on both.
+
+**Results**: median angular error (deg), mean of the two net seeds for the net columns (the `clean-trained` net is in the summary files). `x3` = iterated.
+
+Clean data:
+
+| r (deg) | MC | Adam | GN | GN x3 | Huber | Huber x3 | net (realism-trained) one-shot | net x3 |
+|---|---|---|---|---|---|---|---|---|
+| 0.05 | .0274 | .134 | .0130 | .0127 | .0123 | .0126 | .0122 | .0121 |
+| 0.1 | .0573 | .133 | .0128 | .0127 | .0123 | .0126 | .0131 | .0121 |
+| 0.25 | .136 | .119 | .0122 | .0127 | .0120 | .0126 | .0137 | .0121 |
+| 0.5 | .288 | .145 | .0127 | .0127 | .0118 | .0126 | .0156 | .0121 |
+| 0.75 | .424 | .235 | .0130 | .0127 | .0123 | .0126 | .0177 | .0121 |
+| 1 | .608 | .344 | .0135 | .0127 | .0122 | .0126 | .0208 | .0121 |
+| 1.5 | 1.11 | .575 | .0217 | .0127 | .0149 | .0126 | .0281 | .0122 |
+| 2 | 1.64 | .875 | .0328 | .0127 | .0202 | .0126 | .0382 | .0121 |
+| 3 | 2.26 | 2.17 | .0641 | .0127 | .0406 | .0126 | .0662 | .0121 |
+| 5 | 4.50 | 4.80 | .127 | .0122 | .0868 | .0123 | .273 | .0120 |
+
+Realistic (`all`) data:
+
+| r (deg) | MC | Adam | GN | GN x3 | Huber | Huber x3 | net (realism-trained) one-shot | net x3 |
+|---|---|---|---|---|---|---|---|---|
+| 0.05 | .0282 | .269 | .274 | .284 | .196 | .196 | .0622 | .0652 |
+| 0.1 | .0566 | .246 | .249 | .263 | .171 | .172 | .0589 | .0626 |
+| 0.25 | .137 | .201 | .249 | .258 | .173 | .177 | .0637 | .0644 |
+| 0.5 | .287 | .187 | .261 | .271 | .175 | .177 | .0632 | .0654 |
+| 0.75 | .422 | .276 | .256 | .266 | .184 | .190 | .0665 | .0646 |
+| 1 | .576 | .373 | .258 | .280 | .179 | .186 | .0707 | .0664 |
+| 1.5 | 1.05 | .613 | .306 | .289 | .182 | .188 | .0880 | .0613 |
+| 2 | 1.65 | .911 | .464 | .290 | .187 | .206 | .171 | .0720 |
+| 3 | 2.45 | 2.20 | 1.11 | .294 | .278 | .218 | 1.01 | .0789 |
+| 5 | 4.38 | 4.83 | 3.80 | .876 | 2.64 | .232 | 4.24 | 1.97 |
+
+RMS, fraction < 0.1 deg, fraction improved, runtimes, the clean-trained net, and every paired comparison are in `benchmarks/toy_orientation_sweep/optimizer_sweep_summary.{txt,json}`; plot `perturbation_sweep_vs_optimizers.png`; per-case raw arrays `[voxel, radius, direction, variant, method, pass]` in `optimizer_sweep_raw.npz` (3 MB, committed), log `optimizer_run.log`.
+
+Paired comparisons (identical cases, realism-trained net iterated x3 has the smaller error; seed mean, fraction of 1000 cases):
+
+| r (deg) | clean: vs MC | vs Adam | vs GN x3 | vs Huber x3 | realistic: vs MC | vs Adam | vs GN x3 | vs Huber x3 |
+|---|---|---|---|---|---|---|---|---|
+| 0.05 | .76 | .99 | .48 | .49 | .26 | .95 | .95 | .82 |
+| 0.5 | .99 | 1.00 | .48 | .49 | .91 | .90 | .96 | .80 |
+| 1 | .99 | 1.00 | .48 | .48 | .96 | .96 | .94 | .80 |
+| 2 | .99 | 1.00 | .49 | .49 | .97 | .99 | .93 | .79 |
+| 3 | 1.00 | 1.00 | .49 | .49 | .94 | .94 | .85 | .72 |
+| 5 | .99 | 1.00 | .48 | .49 | .70 | .81 | .43 | .26 |
+
+Median runtime per case (s, data preparation excluded): MC 2.4, Adam 0.30, GN x3 0.02-0.03, Huber x3 0.04-0.13; the net was not timed here (one batched forward pass per case, three for x3).
+
+Reading (50 voxels x 20 directions, 2 net seeds; no confidence intervals):
+- Clean data: GN and Huber GN reach the quantisation floor (0.012-0.013 deg) from every start up to 5 deg once iterated (one-shot degrades like the net's: 0.13 deg at 5 deg), and the net iterated x3 sits on the same floor; the paired win rate against GN x3 is 0.48 (a coin flip at the floor). So on clean data the net offers no accuracy gain over the existing centroid GN, only (potentially) speed/robustness elsewhere. MC and Adam, on the sharp pixel-overlap/coarse costs, do not converge to the floor: MC's median error is about 0.5-0.6 r (it moves toward the truth in 77-89% of cases but stops short; < 0.1 deg only for r <= 0.1), Adam's is 0.13 deg at r = 0.05 and 0.34 at 1 deg.
+- Realistic data: plain GN is dominated by the distractors (0.26-0.29 deg floor, like the clean-trained net; paired win rate of the realism-trained net 0.93-0.96 for r <= 3); Huber GN halves it (0.17-0.22) but stays about 3x above the realism-trained net (0.065); the net wins 80% of paired cases up to r = 2. At r = 5 deg the iterated Huber GN (0.23) clearly beats the iterated net (1.97): the net wins only 26% of paired cases there. MC (told r) is the only method that beats the net at the smallest radii (r = 0.05: 0.028 vs 0.065, net wins 26% of cases; r = 0.1: equal, 45%), because its error scales with r while the net's floor is constant; from r = 0.25 the net is better (76% -> 96%).
+- Adam (HP-sweep-best setting) is worse than the net everywhere (net wins >= 80% of cases at every radius, both variants). Its lr 1e-4 x 100 steps limits the travel to about 0.6 deg, so it cannot correct r >~ 1 deg (errors 2-5 deg at r = 3-5), and for r <= 0.1 it moves away from the truth (error 0.13-0.27 deg > r: the scale-2 cost's optimum is offset from the truth, its value at the truth being 0.66).
+
+**Caveats.** (1) MC is told r. (2) The optimizers' images are an approximation of "the same data": whole-detector distractors, target spots at |g| <= 8 with no cut, window-level realism edits transplanted, but the cost sees all eligible peaks at the candidate orientation, not the net's fixed ROI set; the costs at the truth are below 1 even on exact images (see above), so their ceiling is not 1 and, on `all` images, the optimum need not sit exactly at the truth. (3) The Adam cost has a systematic coordinate offset at scale 2 (`differentiable_cost.py` comments), which sets its small-r error. (4) The settings are the HP-sweep protocol's, not tuned per radius: Adam with a larger lr or more steps, or MC with more steps, would do better at large r; this compares the existing protocol, not the best achievable. (5) GN runtimes exclude window rendering; the net's were not measured. (6) Same single-voxel caveats as the sweep; sources use the generator's model.
