@@ -532,72 +532,80 @@ def seed_groups(models: Sequence[str]) -> Dict[str, List[int]]:
 
 
 def format_summary(raw: Dict[str, np.ndarray], summ: Dict[str, Any]) -> str:
-    """Plain-text tables: per variant and model type, by radius, one-shot and iterated."""
+    """Plain-text tables: per window variant and model type, one row per radius."""
     radii = [f"{r:g}" for r in raw["radii"]]
     models = [str(m) for m in raw["models"]]
     P = raw["err_angle"].shape[-1]
-    lines: List[str] = []
-    V, R, D = raw["fail_pass1"].shape[0], len(radii), raw["fail_pass1"].shape[2]
-    lines.append(
-        f"Perturbation sweep: {V} voxels x {R} radii x {D} directions = {V * R * D} cases per "
-        f"variant; models {', '.join(models)}; up to {P} passes."
-    )
-    lines.append(
-        "Errors are the angle (deg) between the final estimate and the true orientation, over the "
-        "cases where the net could run at pass 1 (n_ok). Seed columns: s0 | s1 | mean.\n"
-    )
+    mt = summ["metrics"]
+    n_vox, n_dir = raw["fail_pass1"].shape[0], raw["fail_pass1"].shape[2]
+    lines: List[str] = [
+        f"Perturbation sweep: {n_vox} voxels x {len(radii)} radii x {n_dir} directions = "
+        f"{n_vox * n_dir} cases per radius and variant; models {', '.join(models)}; "
+        f"up to {P} passes (pass 1 = one-shot, pass {P} = iterated).",
+        "Error = angle (deg) between the estimate and the true orientation, over the cases where "
+        "the net could run at pass 1 (n_ok). Per-seed values are given as s0/s1.",
+        "",
+    ]
     for v in VARIANTS:
         lines.append(f"=== windows: {v} ===")
-        lines.append("failures at pass 1 (cases / reason counts) per radius:")
         fl = summ["failures"][v]
-        lines.append(
-            "  r(deg)   "
-            + "  ".join(f"{r:>6}" for r in radii)
-            + "\n  n_fail   "
-            + "  ".join(f"{fl[r]['n_fail']:>6d}" for r in radii)
-        )
+        lines.append("failures at pass 1 (net could not run), counts per radius:")
+        lines.append("  r(deg)       " + " ".join(f"{r:>6}" for r in radii))
+        lines.append("  n_fail       " + " ".join(f"{fl[r]['n_fail']:>6d}" for r in radii))
         for reason in ("no_roi", "few_roi", "spec", "few_present"):
             if any(fl[r][reason] for r in radii):
-                lines.append(f"    {reason:<9}" + "  ".join(f"{fl[r][reason]:>6d}" for r in radii))
-        lines.append(f"({D * V} cases per radius)\n")
+                lines.append(f"    {reason:<11}" + " ".join(f"{fl[r][reason]:>6d}" for r in radii))
+        for m in models[:1]:
+            stops = summ["stops"][v][m]
+            tot = sum(sum(stops[r].values()) for r in radii)
+            lines.append(f"  later passes stopped early (model {m}): {tot} case-stops")
+        lines.append("")
         for tname, idx in seed_groups(models).items():
-            for stat, label in (
-                ("median_angle", "median error (deg)"),
-                ("frac_lt_0p1", "fraction < 0.1 deg"),
-                ("frac_improved", "fraction error < r"),
-                ("mean_maha2", "mean Mahalanobis^2"),
-                ("rms_angle", "RMS error (deg)"),
-                ("rms_z", "RMS z (deg)"),
-                ("rms_perp", "RMS perp (deg)"),
-            ):
-                lines.append(f"-- {tname}: {label}  (s0 | s1 | mean)")
-                lines.append("  r(deg)    " + "".join(f"{r:>27}" for r in radii))
-                passes = range(P) if stat == "median_angle" else (0, P - 1)
-                for p in passes:
-                    tag = "one-shot " if p == 0 else f"pass {p + 1}   "
-                    cells = []
-                    for r in radii:
-                        vals = [summ["metrics"]["all"][v][models[i]][r][p][stat] for i in idx]
-                        s = " ".join(f"{x:8.4g}" for x in vals) + f" {np.mean(vals):8.4g}"
-                        cells.append(f"{s:>27}")
-                    lines.append(f"  {tag}  " + "".join(cells))
-            lines.append("")
-        lines.append(
-            "-- by r_perp tercile (median error, deg; mean over seeds; one-shot / iterated)"
-        )
-        for tname, idx in seed_groups(models).items():
+            head = MODEL_TYPES.get(tname, tname)
+            lines.append(f"-- {head} (seeds {len(idx)}); {v} windows")
+            lines.append(
+                f"{'r':>5} {'n_ok':>5} | {'median one-shot s0/s1 (mean)':>32} | "
+                f"{'median pass ' + str(P) + ' s0/s1 (mean)':>32} | {'<0.1deg':>13} | "
+                f"{'err<r':>13} | {'Mah^2':>13} | {'rms z/perp (iter)':>17}"
+            )
+            for r in radii:
+
+                def val(stat, p):
+                    return [mt["all"][v][models[i]][r][p][stat] for i in idx]
+
+                def pair(stat, p):
+                    x = val(stat, p)
+                    return "/".join(f"{y:.4f}" for y in x) + f" ({np.mean(x):.4f})"
+
+                def mean2(stat):
+                    return f"{np.mean(val(stat, 0)):.3f}/{np.mean(val(stat, P - 1)):.3f}"
+
+                lines.append(
+                    f"{r:>5} {int(np.mean(val('n_ok', 0))):>5} | {pair('median_angle', 0):>32} | "
+                    f"{pair('median_angle', P - 1):>32} | {mean2('frac_lt_0p1'):>13} | "
+                    f"{mean2('frac_improved'):>13} | "
+                    f"{np.mean(val('mean_maha2', 0)):6.3g}/{np.mean(val('mean_maha2', P - 1)):<6.3g} | "
+                    f"{np.mean(val('rms_z', P - 1)):.4f}/{np.mean(val('rms_perp', P - 1)):.4f}"
+                )
+            lines.append("  (<0.1deg, err<r, Mah^2: seed means, one-shot/iterated)")
+            lines.append(f"  median error per pass (mean over seeds), by radius:")
+            for p in range(P):
+                lines.append(
+                    f"    pass {p + 1}: "
+                    + " ".join(
+                        f"{np.mean([mt['all'][v][models[i]][r][p]['median_angle'] for i in idx]):.4f}"
+                        for r in radii
+                    )
+                )
+            lines.append("  median error by r_perp tercile (seed mean, one-shot/iterated):")
             for g in ("rperp_tercile1", "rperp_tercile2", "rperp_tercile3"):
                 row = []
                 for r in radii:
-                    a = np.mean(
-                        [summ["metrics"][g][v][models[i]][r][0]["median_angle"] for i in idx]
-                    )
-                    b = np.mean(
-                        [summ["metrics"][g][v][models[i]][r][P - 1]["median_angle"] for i in idx]
-                    )
-                    row.append(f"{a:6.3f}/{b:6.3f}")
-                lines.append(f"  {tname:<16}{g[-8:]:<10}" + " ".join(row))
-        lines.append("")
+                    a = np.mean([mt[g][v][models[i]][r][0]["median_angle"] for i in idx])
+                    b = np.mean([mt[g][v][models[i]][r][P - 1]["median_angle"] for i in idx])
+                    row.append(f"{a:.3f}/{b:.3f}")
+                lines.append(f"    {g[-8:]:<9}" + " ".join(f"{x:>11}" for x in row))
+            lines.append("")
     lines.append(
         f"terciles of r_perp (um): edges {np.round(summ['tercile_edges_um'], 1).tolist()}, ranges "
         f"{[[round(x) for x in rg] for rg in summ['tercile_ranges_um']]}, voxels "

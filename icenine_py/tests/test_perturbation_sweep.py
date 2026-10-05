@@ -178,4 +178,4 @@ def test_summarize_counts_failures_and_metrics():
     assert m["n_ok"] == V * D - 2 and m["frac_lt_0p1"] == 1.0 and m["frac_improved"] == 1.0
     assert abs(m["mean_maha2"] - 3.0) < 1e-6
     assert sum(s["tercile_n_voxels"]) == V
-    assert "clean-trained" not in ps.format_summary(raw, s)  # runs on a tiny synthetic raw
+    assert "median one-shot" in ps.format_summary(raw, s)  # formats a tiny synthetic raw
