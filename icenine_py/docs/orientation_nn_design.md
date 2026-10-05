@@ -29,7 +29,7 @@ Headline results (Section 7; 30 ManyGrains voxels, offsets up to $1^\circ$, simu
   distance from the rotation axis (parallax), and its mean Mahalanobis$^2$ is near 3 (coverage not
   checked). The earlier pooled set network was 3$\times$ worse than GN.
 - With neighbour/twin spots and pixel noise, plain GN degrades about $20\times$ and Huber-robust GN
-  recovers a third of it. The network trained on corrupted windows is 2--3$\times$ better than robust
+  recovers a third of it. The network trained on realistic windows (deliberately perturbed synthetic data, Section 2.7) is 2--3$\times$ better than robust
   GN on distractor data, but not on pixel noise alone; trained on clean data only, it lies between
   plain and robust GN on distractor data and is confidently wrong. There is no real-data result.
 
@@ -74,7 +74,7 @@ The Bayes risk floors every method (TN §2, §4, §5). Three results shape the d
 
 | Assumption | Value |
 |---------|---------------------------|
-| Data | Thresholded lit/unlit pixels from the observer's forward model; rocking width $\alpha=0$ (each peak in one frame; $\alpha>0$ not implemented); no noise except the corruption layer (2.7) |
+| Data | Thresholded lit/unlit pixels from the observer's forward model; rocking width $\alpha=0$ (each peak in one frame; $\alpha>0$ not implemented); no noise except the realism layer (2.7) |
 | Peaks | $Q_{\max}=8$ Angstrom$^{-1}$ (`--max-q 8`); both detectors; only $\lvert\sin\eta\rvert\ge0.3$ at nominal (`--min-sin-eta 0.3`, near-axis peaks drift many frames per degree); identity fixed at nominal (new peaks ignored, vanished peaks give blank windows) |
 | Windows | $32\times32$ px about the nominal centroid, $\pm4$ frames about the nominal frame; anything outside is blanked |
 | Prior, test | train: uniform ball $\lvert\delta\rvert\le1^\circ$; test: $\lvert\delta\rvert\in\{0.1,0.25,0.5,1.0\}^\circ$, random directions |
@@ -101,7 +101,7 @@ Data flow (code: `icenine/orientation_{nn,eval}.py`, `toy_orientation_model.py`,
    |- WindowSpec.from_nominal -> window origin, frame0
    |- render_windows(delta)   -> uint8 windows (N,M,W,W)
    |- render_distractor_windows -> dis_windows (optional)
- dataset .pt -> corrupt_windows -> decode_windows -> x (B,M,2,W,W)
+ dataset .pt -> make_realistic_windows -> decode_windows -> x (B,M,2,W,W)
  GNLayerNet(x, context[voxel_id], aux[voxel_id])
    -> delta_hat (B,3) deg, L (B,3,3)
  training: decoupled loss; evaluation: error_summary vs truth,
@@ -183,7 +183,9 @@ from `toy_orientation_arch_dis_train.pt`) is used only to choose the Huber thres
 
 Voxel selection. `select_voxels` picks, for each of 30 radii evenly spaced in $[0,500]\ \mu$m, up to 60 random candidates (`--voxel-seed 0`); `accept_voxels` takes the first usable one per radius and never reuses a grain (tested with fakes). Sorted by $r_\perp$, every 5th voxel from index 2 is **held out** (indices 2, 7, 12, 17, 22, 27; $r_\perp=32,126,215,301,372,457\ \mu$m): no training samples, 240 of the 1200 test cases.
 
-## 2.7 Distractors and corruption
+## 2.7 Realistic data: distractors and detector noise
+
+**Terminology: realistic data.** *Realistic* windows (test sets, training) are the exact synthetic windows with two kinds of deliberately simulated complexity added, to approach what real detector data contain: (1) *overlap* (`neighbours` variant): genuine diffraction spots of neighbouring voxels and a Σ3 twin that land in the target's windows — real signal from other grains, making the data more complex rather than noisier; (2) *detector noise* (`noise` variant): missing spots, threshold jitter at spot edges, hot pixels and spurious blobs. `all` combines both. *Clean* (ideal) windows have neither. Orientation labels are always exact; only the windows a method sees change. *Realism-trained* = trained on windows made realistic on the fly (`--realistic-train all`). The model is still a toy: same-family train/test nuisances, at most 3 sources, no intensity effects (see the caveats). Earlier versions of this work (and committed logs, result filenames with `corr`, and the old aliases `--corrupt-train`, `--corrupt`, `CorruptionConfig`, `corrupt_windows`, `corrupt_dataset`) called this *corruption*; it never meant faulty data.
 
 Both change only the windows, never $\delta$. **Distractor layer** (`--neighbors 2 --twin`; defaults `--neighbor-radius-um 30`, `--neighbor-p 0.5`,
 `--neighbor-sigma-deg 0.3`): `build_distractor_sources` takes up to `--neighbors` mic voxels nearest the target in the sample plane (not closer than
@@ -198,12 +200,12 @@ voxel, following the target's $\delta$ plus $0.3^\circ$ rms; the other 15 cross 
 nearest neighbour; since that neighbour is in the target's own grain for 23 of 30 voxels (computed from the `.mic`), the twin is usually $\Sigma3$-related to the target, and its
 twin-invariant reflections land on the target's own spots. Results hold for this mixture only. Distractor sources render only spots in their *own* filtered ROI set (`min_sin_eta`, `max_q`), so the distractor model understates contamination.
 
-**Pixel corruption** (`CorruptionConfig`; per sample and entry independently, in this order): `neighbours=True` (overlay `dis_windows`); `p_flip=0.05` (each lit
+**Detector noise** (`RealismConfig`; per sample and entry independently, in this order): `neighbours=True` (overlay `dis_windows`); `p_flip=0.05` (each lit
 pixel dropped, each 4-neighbour of a lit pixel lit with its code: edge jitter); `p_hot=0.05` (one isolated hot pixel, random frame code); `p_blob=0.1` (one
-$2$--$4\times2$--$4$ px blob, random frame code); `p_miss=0.1` (whole window zeroed). Variants (`CorruptionConfig.named`): `clean`/`none`, `neighbours` (layer only),
-`noise` (pixel terms only), `all`. `corrupt_dataset(windows, distractors, name, K, seed=12345, chunk=100)` gives a deterministic copy so all methods see identical test inputs.
-Quirk (from the code, not tested): corruption also hits zero-padded entries, which can then count as "present"; their $J=0$ so they add nothing to $A$ or $b$ and can only perturb the pooled covariance features.
-The GN baselines slice windows to the true peak count and do not see them. `corrupt_windows` / `corrupt_dataset` take an optional `valid` mask that zeroes padded entries (tested); it was not used in the reported runs.
+$2$--$4\times2$--$4$ px blob, random frame code); `p_miss=0.1` (whole window zeroed). Variants (`RealismConfig.named`): `clean`/`none`, `neighbours` (layer only),
+`noise` (pixel terms only), `all`. `make_realistic_dataset(windows, distractors, name, K, seed=12345, chunk=100)` gives a deterministic copy so all methods see identical test inputs.
+Quirk (from the code, not tested): the realism layer also hits zero-padded entries, which can then count as "present"; their $J=0$ so they add nothing to $A$ or $b$ and can only perturb the pooled covariance features.
+The GN baselines slice windows to the true peak count and do not see them. `make_realistic_windows` / `make_realistic_dataset` take an optional `valid` mask that zeroes padded entries (tested); it was not used in the reported runs.
 
 # 3. Model
 
@@ -267,8 +269,8 @@ are not independent across peaks (the clean GN run in `dis_log_gn_clean.txt` giv
 ## 3.4 Iterations, pairing, shapes
 
 `n_iter` $=T$ (`--gn-iters`) unrolls IRLS-style rounds with *shared* head weights. Each round the head also sees the residual at the current estimate, $\mathrm{asinh}(y-J\delta')$,
-and $\delta'$, so it can down-weight outliers; each round re-solves from the nominal linearisation (the Jacobian is not recomputed). On clean data iterations add nothing. Corruption-aware
-training is what matters under corruption; whether the iterations help there was not tested (no $T=1$ corruption-trained run).
+and $\delta'$, so it can down-weight outliers; each round re-solves from the nominal linearisation (the Jacobian is not recomputed). On clean data iterations add nothing. Realism-aware
+training is what matters on realistic data; whether the iterations help there was not tested (no $T=1$ realism-trained run).
 
 `pairing=True` (`--pairing`) adds two things, both using the other-detector entry of the same diffracted ray (`aux["pair_index"]`; its encoding $f_{\text{partner}}$, zero if absent):
 
@@ -317,9 +319,9 @@ cuts $N$ equal strata and draws one voxel per stratum with `--seed`; their sampl
 train and 2,000 validation samples), seed 1 gives 3, 11, 20, 29 (computed with `split_by_voxel`; MIGRATION_HISTORY quotes seed 0 only). The six held-out test voxels are never used for selection; the validation voxels are among the 24
 "in-dist" test voxels, so that group contains unseen-voxel cases that differ by seed.
 
-**Devices.** `--device {cpu,mps}`: network training and inference in float32 (headline runs on the Apple GPU: 60 epochs took 400 s ($T=1$) to 540 s ($T=3$) on clean data, 950--1,050 s with corruption; one clean $T=3$ run, lr 1e-4, logged 4,441 s). Data stay on the CPU; the observer, `ExactBayes`, the GN baselines (about 10 ms per case, Huber GN 24--34 ms) and all error statistics are float64 on the CPU.
+**Devices.** `--device {cpu,mps}`: network training and inference in float32 (headline runs on the Apple GPU: 60 epochs took 400 s ($T=1$) to 540 s ($T=3$) on clean data, 950--1,050 s with the realism layer; one clean $T=3$ run, lr 1e-4, logged 4,441 s). Data stay on the CPU; the observer, `ExactBayes`, the GN baselines (about 10 ms per case, Huber GN 24--34 ms) and all error statistics are float64 on the CPU.
 
-**Corruption-aware training.** `--corrupt-train {none,neighbours,noise,all}`: each training batch is corrupted on the fly (`corrupt_windows`, generator `--seed + 7`); validation windows are corrupted once (`--seed + 99`) so the
+**Realism-aware training.** `--realistic-train {none,neighbours,noise,all}`: each training batch is made realistic on the fly (`make_realistic_windows`, generator `--seed + 7`); validation windows are made realistic once (`--seed + 99`) so the
 validation loss is comparable across epochs; `neighbours` and `all` need `dis_windows`. Test variants: `--eval-variants clean,neighbours,noise,all` (deterministic, seed 12345).
 
 Headline runs: `--arch gn --head offset --loss decoupled --device mps` with the optimiser settings above and `--val-voxels 4`, seeds 0 and 1 (Section 9; the clean runs' flags are as in MIGRATION_HISTORY, the result files do not store them).
@@ -343,12 +345,12 @@ cases; the Pearson correlation with $r_\perp$ over the 30 voxels (`corr_err_rper
   central-difference Jacobians (`fd_step_deg=0.002`), start at nominal, `max_iter=30`, `tol_deg=1e-7`; returns `delta`, `cov` $=(J^\top\mathrm{diag}(w)J)^{-1}$ with $J$ the Jacobian of the normalised residuals and $w$ the IRLS weights (all 1 for plain GN), `n_used`, `status`, $\chi^2$/dof. Limits: it is given the peak
   identities and the basin and sees only per-spot centroid and frame; about 7 ms per case.
 - *Huber GN* (`huber_c`, `--huber c`): the same with Huber loss on normalised residuals via IRLS (weight $\min(1,c/\lvert r\rvert)$); one start, one robust loss. $c$ was chosen on a validation split, not the test set: 200 prior-ball samples from the four validation voxels
-  (6, 11, 19, 24), windows corrupted with `all`; $c=1$ minimised the corrupted-validation median (`step4_huber_val.txt`). $c=1$ is used for all variants, including clean data (about 20% worse held-out median there: 0.0144 vs 0.0119). With `--max-iter 200` all fits converge and the median is unchanged (MIGRATION_HISTORY).
+  (6, 11, 19, 24), windows made realistic with `all`; $c=1$ minimised the realistic-validation median (`step4_huber_val.txt`). $c=1$ is used for all variants, including clean data (about 20% worse held-out median there: 0.0144 vs 0.0119). With `--max-iter 200` all fits converge and the median is unchanged (MIGRATION_HISTORY).
 - *MC and Riemannian Adam* (`optimizer_baselines.py`): the `bench_hp_sweep.py` protocol on the Python-simulated ThreeVoxels images at voxel 0's truth; each optimiser starts at $\exp([\delta]_\times)R_{\text{nom}}$ and searches for the truth. MC: 3500 steps, 2
-  restarts, step fraction 0.5, search box $1.5\lvert\delta\rvert$ (it is told $\lvert\delta\rvert$). Adam (geoopt): scale 2, $\omega$ window 1, lr $10^{-4}$, 100 steps. Limits: voxel 0 only (ManyGrains has no images); a harder spot-association problem; one run, 30 cases per bin; never run on corrupted data.
+  restarts, step fraction 0.5, search box $1.5\lvert\delta\rvert$ (it is told $\lvert\delta\rvert$). Adam (geoopt): scale 2, $\omega$ window 1, lr $10^{-4}$, 100 steps. Limits: voxel 0 only (ManyGrains has no images); a harder spot-association problem; one run, 30 cases per bin; never run on realistic data.
 
-**Seeds.** Dataset: generator `--seed 42` (one stream), `--voxel-seed 0`, distractor draws `seed+1000`. Trainer `--seed s` sets initialisation, batch order and the validation-voxel draw (headline nets $s\in\{0,1\}$); training/validation corruption `s+7`/`s+99`; test
-corruption fixed 12345 for all methods; exact Bayes `--seed 7`; MC `seed + case index`. Network results are 2-seed means (per-seed values where tabulated); one dataset draw, no confidence intervals; GN is deterministic. Seed spread of the held-out median (two seeds)
+**Seeds.** Dataset: generator `--seed 42` (one stream), `--voxel-seed 0`, distractor draws `seed+1000`. Trainer `--seed s` sets initialisation, batch order and the validation-voxel draw (headline nets $s\in\{0,1\}$); training/validation realism draws `s+7`/`s+99`; test
+realism draws fixed 12345 for all methods; exact Bayes `--seed 7`; MC `seed + case index`. Network results are 2-seed means (per-seed values where tabulated); one dataset draw, no confidence intervals; GN is deterministic. Seed spread of the held-out median (two seeds)
 reaches 0.006--0.008$^\circ$ for Step 2/3 nets on clean data (mean of the four bin medians; $T=3$, lr 3e-4: 0.0206 vs 0.0130), 0.003$^\circ$ for Step 4 nets on clean data, 0.0055$^\circ$ for paired nets on `all`
 and 0.05$^\circ$ for the clean-trained net on `all` (0.3016 vs 0.2498).
 
@@ -372,15 +374,15 @@ ThreeVoxels voxel 0 (skipped if absent; every physics test uses that voxel).
 | bl::TestPeakContext, TestFrameProbeNet, TestVoxelSelection (3) | context shape (M,16), column 8 $=-1$, one-hot (phys); probe uses only frame and $\partial\omega^*/\partial\delta$; radius selection, a grain never reused (synthetic mics) |
 | bl::TestGNLayer::{normal_equations_match_weighted_lstsq, unit_weights_reproduce_linear_gauss_newton_step} | `gn_normal_equations`/`inv3` equal weighted least squares; $w=1,\Delta y=0$ gives `solve_linear` and covariance diagonal within 3% (phys) |
 | bl::TestGNLayer::{permutation_and_padding_invariance[False,True], gradients_flow_and_are_finite[gn,gn_paired,set], pair_mlp_trains_from_the_zero_init, paired_net_equals_unpaired_net_at_initialisation} | order and padding invariance with and without pairing (the test re-initialises the zero-initialised pair parameters, so it exercises the pair path with non-zero weights); every parameter of `GNLayerNet` (paired, unpaired, $T=3$) and `PeakSetNet` gets a non-zero finite gradient after a few small steps off the zero-initialised layers (fails on the pre-fix code); `pair2` leaves zero under SGD and then `pair1` trains; at initialisation the paired net equals the unpaired one (extra head inputs zeroed), `pair1` is irrelevant while `pair2`=0, and the pair path is live once `pair2`$\neq0$ |
-| bl::TestPairingAndNominalOffsets (4), TestDistractors (3), TestRobustGaussNewton | `pair_index` symmetric and correct incl. unpaired/3-way; features minus `nominal_offsets` = measurement minus exact nominal; distractors never alter target pixels, corruptions deterministic and bounded; Huber with huge $c$ equals plain GN and resists 20 gross outliers (phys) |
+| bl::TestPairingAndNominalOffsets (4), TestDistractors (3), TestRobustGaussNewton | `pair_index` symmetric and correct incl. unpaired/3-way; features minus `nominal_offsets` = measurement minus exact nominal; distractors never alter target pixels, realism variants deterministic and bounded; Huber with huge $c$ equals plain GN and resists 20 gross outliers (phys) |
 
 **Not tested:**
 
-- The trainer end to end (loss selection, EMA, checkpoints, `--val-voxels`, corruption-aware training, MPS vs CPU) and the generator's multi-voxel path, `build_distractor_sources`, `make_dataset_aux.py`, the GN/exact-Bayes/optimiser scripts and `summarize_*` (only `split_by_voxel` and the loss functions are unit tested).
+- The trainer end to end (loss selection, EMA, checkpoints, `--val-voxels`, realism-aware training, MPS vs CPU) and the generator's multi-voxel path, `build_distractor_sources`, `make_dataset_aux.py`, the GN/exact-Bayes/optimiser scripts and `summarize_*` (only `split_by_voxel` and the loss functions are unit tested).
 - Physics on ManyGrains voxels or at large $r_\perp$: all physics tests use ThreeVoxels voxel 0 ($r_\perp=12\ \mu$m), so the parallax columns of the context are untested far from the axis.
 - Accuracy and calibration of any trained network (no regression test on result numbers).
 - `GNLayerNet` beyond equivalence at initialisation: outlier rejection for $T>1$, off-diagonals of `chol3`, the learned $D$; whether the trained pair MLP learns anything useful (only that it receives gradient; weights are not saved).
-- Corruption statistics (rates, blob sizes, code ranges), corruption of padded entries, multi-source/twin distractors with real neighbours; `ExactBayes` calibration and three or more detectors; other geometries, $\alpha>0$, other noise models.
+- Nuisance statistics (rates, blob sizes, code ranges), realism of padded entries, multi-source/twin distractors with real neighbours; `ExactBayes` calibration and three or more detectors; other geometries, $\alpha>0$, other noise models.
 
 # 7. Current results
 
@@ -418,58 +420,60 @@ Single-voxel checks (30 cases per bin, one run each; `single_v0_gn.json`, `singl
 
 MC and Riemannian Adam on voxel 0 (from `benchmarks/toy_orientation_stage2/pred_*.npz`) reach medians .048/.145/.360/.672 and .056/.131/.185/.523 and leave $\delta_z$ largely uncorrected on these near-axis voxels (their 96%/92% success at $1^\circ$ in the ManyGrains sweep was a different, far-from-axis sample; the $r_\perp$ dependence was not measured).
 
-## 7.2 Corrupted data (Step 4)
+## 7.2 Realistic data (Step 4)
+
+"Realistic" means the deliberately simulated complexity of Section 2.7 (overlapping neighbour/twin spots and detector noise on exact synthetic windows), not faulty data; labels stay exact.
 
 Dataset `toy_orientation_arch_dis_*` (seed 42; 12,000/1,200 samples; clean windows identical to the Stage 3 data). Median angle pooled over the four bins (it does not depend on $\lvert\delta\rvert$ in any row; per-bin values are in `step4_summary.txt`). "Clean-trained":
-the same architecture trained on the clean windows of this file; "corr-trained": `--corrupt-train all`; "paired, inert": corr-trained with `--pairing` before the fix (partner-residual input only, Section 3.4); "paired, fixed": the same after the fix (live encoder mixing; `dis_res_gnpairfix_k3_corr`, `step4_pairfix_summary.txt`); all nets are $T=3$ `GNLayerNet`; Huber $c=1$; nets are 2-seed means, held-out per-seed values in brackets; $<0.1^\circ$ is the held-out fraction; Mah$^2$ is in-dist / held-out. "In-dist" includes the 4 validation voxels (Section 4).
+the same architecture trained on the clean windows of this file; "realism-trained": `--realistic-train all`; "paired, inert": realism-trained with `--pairing` before the fix (partner-residual input only, Section 3.4); "paired, fixed": the same after the fix (live encoder mixing; `dis_res_gnpairfix_k3_corr`, `step4_pairfix_summary.txt`); all nets are $T=3$ `GNLayerNet`; Huber $c=1$; nets are 2-seed means, held-out per-seed values in brackets; $<0.1^\circ$ is the held-out fraction; Mah$^2$ is in-dist / held-out. "In-dist" includes the 4 validation voxels (Section 4).
 
 | Test set | Method | Median in-dist | Median held-out [seeds] | $<0.1^\circ$ | Mah$^2$ |
 |------|---------|---------|---------------|------|---------|
 | clean | plain GN | .0131 | .0119 | 1.00 | |
 | | Huber GN | .0125 | .0144 | 1.00 | |
 | | net, clean-trained | .0138 | .0152 [.0143, .0161] | 1.00 | 3.0 / 3.6 |
-| | net, corr-trained | .0185 | .0193 [.0176, .0210] | 1.00 | 2.1 / 2.2 |
+| | net, realism-trained | .0185 | .0193 [.0176, .0210] | 1.00 | 2.1 / 2.2 |
 | | paired, inert mixing | .0185 | .0186 [.0185, .0186] | 1.00 | 2.3 / 2.3 |
 | | paired, fixed | .0188 | .0199 [.0214, .0183] | 1.00 | 2.3 / 2.5 |
 | neighbours | plain GN | .2253 | .3428 | 0.20 | |
 | | Huber GN | .1375 | .2223 | 0.33 | |
 | | net, clean-trained | .1934 | .2706 [.2916, .2496] | 0.23 | 1556 / 1951 |
-| | net, corr-trained | .0576 | .0719 [.0723, .0715] | 0.66 | 3.0 / 2.9 |
+| | net, realism-trained | .0576 | .0719 [.0723, .0715] | 0.66 | 3.0 / 2.9 |
 | | paired, inert mixing | .0594 | .0710 [.0702, .0718] | 0.65 | 3.0 / 2.7 |
 | | paired, fixed | .0585 | .0706 [.0739, .0673] | 0.68 | 3.0 / 2.9 |
 | noise | plain GN | .0545 | .0573 | 0.85 | |
 | | Huber GN | **.0177** | **.0215** | 1.00 | |
 | | net, clean-trained | .0704 | .0741 [.0746, .0736] | 0.71 | 223 / 272 |
-| | net, corr-trained | .0241 | .0242 [.0227, .0258] | 0.99 | 3.0 / 3.0 |
+| | net, realism-trained | .0241 | .0242 [.0227, .0258] | 0.99 | 3.0 / 3.0 |
 | | paired, inert mixing | .0233 | .0231 [.0228, .0233] | 1.00 | 3.0 / 3.0 |
 | | paired, fixed | .0250 | .0257 [.0262, .0253] | 0.99 | 3.0 / 3.3 |
 | all | plain GN | .2228 | .3311 | 0.20 | |
 | | Huber GN | .1405 | .2239 | 0.32 | |
 | | net, clean-trained | .2033 | .2757 [.3016, .2498] | 0.16 | 1462 / 1796 |
-| | net, corr-trained | **.0615** | **.0821** [.0827, .0815] | 0.64 | 2.9 / 2.6 |
+| | net, realism-trained | **.0615** | **.0821** [.0827, .0815] | 0.64 | 2.9 / 2.6 |
 | | paired, inert mixing | **.0616** | **.0762** [.0734, .0789] | 0.62 | 2.8 / 2.5 |
 | | paired, fixed | .0629 | .0775 [.0780, .0770] | 0.64 | 2.8 / 2.8 |
 
 1. Distractor spots break GN (about $20\times$ worse than clean, 20--34% of cases within $0.1^\circ$); Huber GN removes about a third of the error and loses the parallax trend. Pixel noise alone costs plain GN $4\times$; Huber GN recovers nearly all of it.
-2. The corruption-trained net is 2--3$\times$ better than Huber GN on `neighbours` and `all`, with mean Mahalanobis$^2$ near 3 (2.5--3.0 held-out too; coverage not checked); on `noise` alone Huber GN is as good or better (0.0215 vs 0.0242; every net seed is worse). Errors are heavy-tailed: held-out $\perp$ RMS 0.05
+2. The realism-trained net is 2--3$\times$ better than Huber GN on `neighbours` and `all`, with mean Mahalanobis$^2$ near 3 (2.5--3.0 held-out too; coverage not checked); on `noise` alone Huber GN is as good or better (0.0215 vs 0.0242; every net seed is worse). Errors are heavy-tailed: held-out $\perp$ RMS 0.05
    vs 0.004 clean, 34--38% of held-out cases above $0.1^\circ$.
-3. Corruption-aware training is what matters; whether the iterations help under corruption was not tested (no $T=1$ corruption-trained run). The clean-trained net lies between plain and Huber GN on distractors (9--21% better than plain GN: in-dist .1934/.2033 vs .2253/.2228, held-out .2706/.2757 vs .3428/.3311), is worse on `noise` (0.074 vs 0.057) and wildly overconfident; corruption-aware training costs clean-data accuracy (held-out 0.0176--0.0210 vs 0.0143--0.0161 vs 0.0119 GN) and makes the covariance underconfident on clean data (Mah$^2$ 2.1--2.3).
-4. Held-out voxels are harder under distractors for every method (held-out/in-dist: net 1.3$\times$, plain GN 1.5$\times$, Huber GN 1.6$\times$); the $r_\perp$ trend is lost for all (corr $-0.09$ to $-0.18$ for plain GN and the corruption-trained nets, $-0.17$ to $+0.04$ for the clean-trained net, $+0.13$/$+0.14$ for Huber GN).
+3. Realism-aware training is what matters; whether the iterations help on realistic data was not tested (no $T=1$ realism-trained run). The clean-trained net lies between plain and Huber GN on distractors (9--21% better than plain GN: in-dist .1934/.2033 vs .2253/.2228, held-out .2706/.2757 vs .3428/.3311), is worse on `noise` (0.074 vs 0.057) and wildly overconfident; realism-aware training costs clean-data accuracy (held-out 0.0176--0.0210 vs 0.0143--0.0161 vs 0.0119 GN) and makes the covariance underconfident on clean data (Mah$^2$ 2.1--2.3).
+4. Held-out voxels are harder under distractors for every method (held-out/in-dist: net 1.3$\times$, plain GN 1.5$\times$, Huber GN 1.6$\times$); the $r_\perp$ trend is lost for all (corr $-0.09$ to $-0.18$ for plain GN and the realism-trained nets, $-0.17$ to $+0.04$ for the clean-trained net, $+0.13$/$+0.14$ for Huber GN).
 5. Pairing has no clear benefit, with or without live encoder mixing. Inert mixing (partner residual only): differences $\le0.002^\circ$ except held-out `all` (.0734/.0789 vs unpaired .0827/.0815). Fixed mixing (2 seeds, 6 voxels): `neighbours` .0706 vs .0719 unpaired, `noise` .0257 vs .0242 (slightly worse), `all` .0775 [.0780, .0770] vs .0821 [.0827, .0815], i.e. the small held-out `all` gain is reproduced at the same size, not enlarged, so it is suggestive at best; error-vs-$r_\perp$ correlations are unchanged (clean $-0.58$/$-0.74$, `all` $-0.08$/$-0.10$). Untested hypothesis: a neighbour spot lands consistently on both detectors, so the partner check cannot reject it.
 
-Caveats. Two seeds, six held-out voxels; seed spreads of the held-out median are given in Section 5. Train and test corruptions are the same family with the same neighbour sets per voxel (new random draws, not new kinds of nuisance), so the
-advantage over robust GN may shrink out of family; the neighbour-model caveat of Section 2.7 applies. Robust GN is one fixed construction. Learning rate and $T$ were not re-tuned for corrupted data. What the weight head learned has not been analysed.
+Caveats. Two seeds, six held-out voxels; seed spreads of the held-out median are given in Section 5. Train and test nuisances are the same family with the same neighbour sets per voxel (new random draws, not new kinds of nuisance), so the
+advantage over robust GN may shrink out of family; the neighbour-model caveat of Section 2.7 applies. Robust GN is one fixed construction. Learning rate and $T$ were not re-tuned for realistic data. What the weight head learned has not been analysed.
 
 # 8. Known limitations, open questions, roadmap
 
 - **Simulation only.** No real data; $\alpha=0$, known peak identities, nominal orientation within $1^\circ$. Real near-field HEDM resolution is about $0.1^\circ$ (theory note); the toy's clean errors ($0.01^\circ$) are noise-free quantisation only and the Bayes floor (0.001$^\circ$ at voxel 77, 0.004--0.008$^\circ$ at voxel 0; `GNLayerNet` median errors are 2--7$\times$ the exact-Bayes median at voxel 0 and 9--16$\times$ at voxel 77, per bin) is not reachable.
 - **Fixed peaks and windows.** Peaks absent at nominal are invisible; about 2--3% of spots at the $1^\circ$ prior are not fully inside their windows (voxel 77); near-axis peaks are dropped; windows are not sized from the Jacobian. The layer linearises at nominal (negligible up to $1^\circ$, no re-linearisation for larger priors).
-- **Generalisation and calibration.** Six held-out voxels from one sample, geometry and structure; on clean data held-out error is 1.1--1.7$\times$ GN's and 1.05--1.35$\times$ the same net's in-dist error. $\hat\Sigma$ is checked on this distribution only, and only through the mean Mahalanobis$^2$ (3.5--4.5 held-out clean, up to 1.5$\times$ overconfident; corruption-trained nets underconfident on clean data): the older set network was overconfident on unseen voxels (superseded; Mah$^2$ 17--34) and the clean-trained GN net is
-  catastrophically overconfident under corruption.
-- **Corruption realism.** Same-family train/test, at most 3 sources, no intensity effects; neighbours are mostly same-grain and the twin is usually $\Sigma3$-related to the target (2.7). Padded entries of the multi-voxel arrays are corrupted too in all reported runs (`--mask-padding` was not used): they have J = 0, so they do not move the estimate delta, but hot pixels/blobs can make them look "present", so they enter the pooled covariance features and the count n; the Gauss-Newton baseline slices `[:n_pk]`, so the comparison is slightly asymmetric against the net. Use `--mask-padding` for future runs.
+- **Generalisation and calibration.** Six held-out voxels from one sample, geometry and structure; on clean data held-out error is 1.1--1.7$\times$ GN's and 1.05--1.35$\times$ the same net's in-dist error. $\hat\Sigma$ is checked on this distribution only, and only through the mean Mahalanobis$^2$ (3.5--4.5 held-out clean, up to 1.5$\times$ overconfident; realism-trained nets underconfident on clean data): the older set network was overconfident on unseen voxels (superseded; Mah$^2$ 17--34) and the clean-trained GN net is
+  catastrophically overconfident on realistic data.
+- **Realism caveats.** Same-family train/test, at most 3 sources, no intensity effects; neighbours are mostly same-grain and the twin is usually $\Sigma3$-related to the target (2.7). The realism layer also hits padded entries of the multi-voxel arrays in all reported runs (`--mask-padding` was not used): they have J = 0, so they do not move the estimate delta, but hot pixels/blobs can make them look "present", so they enter the pooled covariance features and the count n; the Gauss-Newton baseline slices `[:n_pk]`, so the comparison is slightly asymmetric against the net. Use `--mask-padding` for future runs.
 - **No integration with `FindOptimal`.** The coarse-search hand-off sometimes selects a wrong ~54$^\circ$ solution (neighbour voxel or $\Sigma3$ twin); a refiner should be evaluated per candidate.
 
-Open questions: what the weight head learns on distractor data and why the partner check does not reject neighbour spots; out-of-family corruption sweeps; more seeds and confidence intervals; recalibration of $\hat\Sigma$ on held-out voxels; the $\sim1.2\times$ held-out gap to GN on clean data; the heavy $\perp$ tail on distractor data.
+Open questions: what the weight head learns on distractor data and why the partner check does not reject neighbour spots; out-of-family nuisance sweeps; more seeds and confidence intervals; recalibration of $\hat\Sigma$ on held-out voxels; the $\sim1.2\times$ held-out gap to GN on clean data; the heavy $\perp$ tail on distractor data.
 
 Roadmap (all unimplemented): per-peak second moments, an $\alpha>0$ renderer, a Sinkhorn render-and-compare loss and posterior scoring against exact Bayes (KL, coverage) -- `docs/todo_intensity_and_distribution_losses.md`; iNeRF-/BARF-style refinement and self-supervised training on real data (parked) -- `docs/research_ideas_nerf.md`; why the coarse search and `FindOptimal` return neighbour or twin orientations -- `docs/todo_findoptimal_wrong_candidates.md`; multiple detectors with many grains and voxels far from the rotation axis, where detector pairing is expected to matter most -- `docs/todo_multidetector_many_grains.md`; rocking width $\alpha$ for real data -- `MIGRATION_HISTORY.md`, Stage 1 decisions D1, D4.
 
@@ -497,18 +501,18 @@ uv run python scripts/generate_toy_orientation_dataset.py $G \
 # 1b. Huber-c validation set (200 samples; numpy seed 0, voxels 6 11 19 24)
 uv run python scripts/make_dis_val.py
 
-# 2. GN and Huber-GN on each test variant (clean = --corrupt none)
+# 2. GN and Huber-GN on each test variant (clean = --realistic none)
 for V in clean neighbours noise all; do
   C=$V; [ "$V" = clean ] && C=none
   uv run python scripts/gauss_newton_baseline.py \
-      --test ${S}_arch_dis_test.pt --corrupt $C \
+      --test ${S}_arch_dis_test.pt --realistic $C \
       --out $D/dis_pred_gn_$V.npz
   uv run python scripts/gauss_newton_baseline.py \
-      --test ${S}_arch_dis_test.pt --corrupt $C --huber 1 \
+      --test ${S}_arch_dis_test.pt --realistic $C --huber 1 \
       --out $D/dis_pred_huber1_$V.npz
 done
 
-# 3. nets: this is the corruption-trained net. Drop --corrupt-train for
+# 3. nets: this is the realism-trained net. Drop --realistic-train for
 #    the clean-trained control; add --pairing for the paired net (run the fixed code: names with a
 #    `_pairfix` suffix, e.g. dis_res_gnpairfix_k3_corr, multi_res_gnpairfix_k3_lr1e-4); seeds 0
 #    and 1. The clean multi-voxel nets use stage3_multi_{train,test}.pt,
@@ -519,14 +523,14 @@ done
 uv run python scripts/train_toy_orientation_nn.py --head offset \
     --arch gn --gn-iters 3 --loss decoupled --device mps --lr 1e-4 \
     --clip 1 --cosine --batch-size 64 --epochs 60 --ema 0.998 \
-    --checkpoint ema --val-voxels 4 --corrupt-train all \
+    --checkpoint ema --val-voxels 4 --realistic-train all \
     --eval-variants clean,neighbours,noise,all --seed 0 \
     --train ${S}_arch_dis_train.pt --test ${S}_arch_dis_test.pt \
     --aux ${S}_stage3_multi_aux.pt \
     --results-json $D/dis_res_gn_k3_corr_s0.json \
     --save-predictions $D/dis_res_gn_k3_corr_s0.npz
 
-# 4. tables
+# 4. tables (the run label "corr-trained" = realism-trained; kept so the committed summaries reproduce)
 uv run python scripts/summarize_results.py "K3=$D/multi_res_gn_k3_s?.json"
 uv run python scripts/summarize_arch_step4.py \
     --test ${S}_arch_dis_test.pt --huber 1 --seeds 0 1 \
@@ -537,7 +541,7 @@ uv run python scripts/summarize_arch_step4.py \
     --out $D/step4_summary.json
 ```
 
-The clean-variant predictions of `dis_res_gn_k3_cleantrain_s{0,1}.npz` are byte-identical to `multi_res_gn_k3_lr1e-4_s{0,1}.npz` (same deterministic run); the corrupted-variant files exist only under the `cleantrain` name, so both are kept.
+The clean-variant predictions of `dis_res_gn_k3_cleantrain_s{0,1}.npz` are byte-identical to `multi_res_gn_k3_lr1e-4_s{0,1}.npz` (same deterministic run); the realistic-variant files exist only under the `cleantrain` name, so both are kept.
 
 Single-voxel baselines (exact Bayes; MC and Adam also need the Python-simulated ThreeVoxels images; the dataset command is as in MIGRATION_HISTORY, not re-run):
 

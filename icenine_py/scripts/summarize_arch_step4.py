@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Step 4 table: Gauss-Newton (plain / Huber) and GNLayerNet runs on clean and corrupted test sets.
+"""Step 4 table: Gauss-Newton (plain / Huber) and GNLayerNet runs on clean and realistic test sets.
 
 Reads the saved predictions (npz) rather than the result jsons, so every method is scored by
 the same code on the same samples. Net predictions: <dir>/<run>_s<seed>.npz for the clean
@@ -9,7 +9,7 @@ variant and <dir>/<run>_s<seed>_<variant>.npz otherwise (what train_toy_orientat
 Usage:
   cd icenine_py
   uv run python scripts/summarize_arch_step4.py --test scripts/toy_orientation_arch_dis_test.pt \
-      --huber 1 --runs "GNLayerNet (corrupted-trained)=dis_res_gn_k3_corr" \
+      --huber 1 --runs "GNLayerNet (realism-trained)=dis_res_gn_k3_corr" \
       "paired=dis_res_gnpair_k3_corr" --seeds 0 1 \
       --out benchmarks/toy_orientation_arch/step4_summary.json
 

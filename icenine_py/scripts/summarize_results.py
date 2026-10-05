@@ -8,7 +8,7 @@ then corr(voxel error, r_perp) and the median per-voxel error. The 'gn' extra ro
 
 Reads both layouts of the results json: the current one, {variant: rows}, and the older one
 written for a single eval variant, where the rows were stored directly. --variant picks the
-test-set corruption (default clean).
+test-set realistic variant (default clean).
 """
 
 import glob

@@ -583,8 +583,8 @@ def combine_windows(windows: torch.Tensor, distractors: Optional[torch.Tensor]) 
 
 
 @dataclass
-class CorruptionConfig:
-    """Random corruptions applied to frame-coded windows (per entry, independently).
+class RealismConfig:
+    """Random realistic nuisances applied to frame-coded windows (per entry, independently).
 
     p_miss: the whole spot is not recorded (window zeroed); p_flip: each lit pixel is dropped
     and each 4-neighbour of a lit pixel is lit with this probability (threshold jitter at the
@@ -600,7 +600,7 @@ class CorruptionConfig:
     p_blob: float = 0.1
 
     @classmethod
-    def named(cls, name: str) -> Optional["CorruptionConfig"]:
+    def named(cls, name: str) -> Optional["RealismConfig"]:
         if name in ("none", "clean"):
             return None
         if name == "neighbours":
@@ -609,13 +609,13 @@ class CorruptionConfig:
             return cls(False)
         if name == "all":
             return cls(True)
-        raise ValueError(f"unknown corruption {name!r}")
+        raise ValueError(f"unknown realism variant {name!r}")
 
 
-def corrupt_windows(
+def make_realistic_windows(
     windows: torch.Tensor,
     distractors: Optional[torch.Tensor],
-    cfg: Optional[CorruptionConfig],
+    cfg: Optional[RealismConfig],
     frame_half_width: int,
     gen: Optional[torch.Generator] = None,
     valid: Optional[torch.Tensor] = None,
@@ -623,9 +623,9 @@ def corrupt_windows(
     """Apply cfg to uint8 windows (..., W, W) (leading dims free). Random draws come from gen.
 
     valid: optional bool mask over the leading dims (e.g. entry index < n_peaks). Entries marked
-    invalid (zero padding) are returned all-zero, so corruption cannot create "present" spots in
+    invalid (zero padding) are returned all-zero, so the realism layer cannot create "present" spots in
     them. The random draws are unchanged. Default None: every entry, padding included, is
-    corrupted (the behaviour of all reported runs).
+    made realistic (the behaviour of all reported runs).
     """
     if cfg is None:
         return windows
@@ -687,7 +687,7 @@ def corrupt_windows(
     return x
 
 
-def corrupt_dataset(
+def make_realistic_dataset(
     windows: torch.Tensor,
     distractors: Optional[torch.Tensor],
     name: str,
@@ -696,16 +696,16 @@ def corrupt_dataset(
     chunk: int = 100,
     valid: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
-    """Deterministically corrupted copy of a whole window array (the fixed test sets).
+    """Deterministically realistic copy of a whole window array (the fixed test sets).
 
-    valid: optional bool mask over the leading dims of windows (see corrupt_windows); default
-    None corrupts padded entries too (as in the reported runs).
+    valid: optional bool mask over the leading dims of windows (see make_realistic_windows);
+    default None applies it to padded entries too (as in the reported runs).
 
-    name: CorruptionConfig.named ("none", "neighbours", "noise", "all"); the same seed and
-    chunking always give the same corrupted windows, so the Gauss-Newton baseline and the
+    name: RealismConfig.named ("none", "neighbours", "noise", "all"); the same seed and
+    chunking always give the same realistic windows, so the Gauss-Newton baseline and the
     networks are evaluated on identical inputs.
     """
-    cfg = CorruptionConfig.named(name)
+    cfg = RealismConfig.named(name)
     if cfg is None:
         return windows
     gen = torch.Generator().manual_seed(seed)
@@ -713,10 +713,16 @@ def corrupt_dataset(
     for a in range(0, len(windows), chunk):
         d = None if distractors is None else distractors[a : a + chunk]
         v = None if valid is None else valid[a : a + chunk]
-        out[a : a + chunk] = corrupt_windows(
+        out[a : a + chunk] = make_realistic_windows(
             windows[a : a + chunk], d, cfg, frame_half_width, gen, valid=v
         )
     return out
+
+
+# Deprecated aliases: "corruption" is the historical name of the realism layer.
+CorruptionConfig = RealismConfig  # historical name
+corrupt_windows = make_realistic_windows  # historical name
+corrupt_dataset = make_realistic_dataset  # historical name
 
 
 def decode_windows(windows: torch.Tensor, frame_half_width: int) -> torch.Tensor:

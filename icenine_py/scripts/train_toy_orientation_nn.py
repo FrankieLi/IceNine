@@ -98,9 +98,9 @@ def predict(model, head, windows, batch_size, prep=None, forward=None, vid=None)
 
 def main():
     from icenine.orientation_eval import (
-        CorruptionConfig,
-        corrupt_dataset,
-        corrupt_windows,
+        RealismConfig,
+        make_realistic_dataset,
+        make_realistic_windows,
         error_summary,
         offsets_to_quaternions,
         quaternions_to_offsets_deg,
@@ -218,22 +218,25 @@ def main():
         "--no-frame", action="store_true", help="ablation: hide the frame channel (observer data)"
     )
     parser.add_argument(
-        "--corrupt-train",
+        "--realistic-train",
+        "--corrupt-train",  # historical name
+        dest="realistic_train",
         choices=["none", "neighbours", "noise", "all"],
         default="none",
-        help="corrupt training windows on the fly (needs dis_windows for neighbours/all)",
+        help="make training windows realistic on the fly (needs dis_windows for neighbours/all; "
+        "old name --corrupt-train)",
     )
     parser.add_argument(
         "--mask-padding",
         action="store_true",
-        help="multi-voxel data: keep the zero-padded peak entries all-zero when corrupting "
+        help="multi-voxel data: keep the zero-padded peak entries all-zero when applying the realism layer "
         "(default off: hot pixels/blobs also land in padding, as in the reported runs)",
     )
     parser.add_argument(
         "--eval-variants",
         default="clean",
-        help="comma list of test-set corruptions (clean,neighbours,noise,all); the test windows "
-        "are corrupted deterministically (orientation_eval.corrupt_dataset)",
+        help="comma list of test-set variants (clean,neighbours,noise,all); the test windows "
+        "are made realistic deterministically (orientation_eval.make_realistic_dataset)",
     )
     parser.add_argument(
         "--extra-variant",
@@ -391,28 +394,28 @@ def main():
     eval_model = ema_model if ema_model is not None else model
     if args.checkpoint == "ema":
         assert ema_model is not None, "--checkpoint ema needs --ema"
-    corr_cfg = CorruptionConfig.named(args.corrupt_train)
+    realism_cfg = RealismConfig.named(args.realistic_train)
     K_fh = int(tr.get("frame_half_width", 4))
     dis_train = tr.get("dis_windows")
-    if corr_cfg is not None and corr_cfg.neighbours:
-        assert dis_train is not None, "--corrupt-train neighbours/all needs dis_windows"
-    corr_gen = torch.Generator().manual_seed(args.seed + 7)
+    if realism_cfg is not None and realism_cfg.neighbours:
+        assert dis_train is not None, "--realistic-train neighbours/all needs dis_windows"
+    realism_gen = torch.Generator().manual_seed(args.seed + 7)
 
     valid_train = padding_mask(tr) if args.mask_padding else None
 
     def train_windows(ib):
         w = windows[ib]
-        if corr_cfg is None:
+        if realism_cfg is None:
             return w
         d = None if dis_train is None else dis_train[ib]
         v = None if valid_train is None else valid_train[ib]
-        return corrupt_windows(w, d, corr_cfg, K_fh, corr_gen, valid=v)
+        return make_realistic_windows(w, d, realism_cfg, K_fh, realism_gen, valid=v)
 
-    if corr_cfg is not None:
-        val_w = corrupt_dataset(
+    if realism_cfg is not None:
+        val_w = make_realistic_dataset(
             windows[val_idx],
             None if dis_train is None else dis_train[val_idx],
-            args.corrupt_train,
+            args.realistic_train,
             K_fh,
             seed=args.seed + 99,
             valid=None if valid_train is None else valid_train[val_idx],
@@ -444,7 +447,7 @@ def main():
         with torch.no_grad():
             for b in batches(n_val, args.batch_size):
                 lv, mv, cv = loss_fn(
-                    prep(val_w[b] if corr_cfg is not None else windows[val_idx[b]]),
+                    prep(val_w[b] if realism_cfg is not None else windows[val_idx[b]]),
                     targets[val_idx[b]],
                     vid_train[val_idx[b]] if multi else None,
                     phase,
@@ -650,7 +653,7 @@ def main():
     valid_te = padding_mask(te) if args.mask_padding else None
     all_rows = {}
     for variant in variants:
-        win_te = corrupt_dataset(
+        win_te = make_realistic_dataset(
             te["windows"],
             te.get("dis_windows"),
             "none" if variant == "clean" else variant,
