@@ -102,7 +102,7 @@ class Study:
                 continue
             d[k] = reorder(r[k], r["voxel_indices"], self.vox)
         d["radii_idx"] = np.array(ris)
-        key = pipe if variant is None else f"{pipe}[{variant}]"
+        key = pipe
         self.raws[key] = d
         return True
 
@@ -425,9 +425,9 @@ def decisions(st: Study, res: Dict[str, Any], vname: str, vi: int) -> List[str]:
     if "H3" in st.raws:
         out.append("  Post hoc (a): H3 falling back to HG where pass-1 sigma_max > tau (radii with HG):")
         eh, eg = st.pipe_err("H3"), st.pipe_err("HG")
+        ri_h3 = list(st.raws["H3"]["radii_idx"])
         if eg is not None:
             sig1 = st.raws["H3"]["sig1"]
-            ri_h3 = list(st.raws["H3"]["radii_idx"])
             for tau in TAU_GRID:
                 for ri in st.raws["HG"]["radii_idx"]:
                     k = ri_h3.index(ri)
@@ -493,11 +493,14 @@ def main() -> None:
     ap.add_argument("--model", default="realistic_s0")
     ap.add_argument("--name", default="summary")
     ap.add_argument("--n-voxels", type=int, default=0)
+    ap.add_argument("--variant", default=None, help="raw files restricted to one variant (s1 / clean_s0)")
+    ap.add_argument("--pipes", nargs="*", default=["H0", "H1", "H3", "H3c", "H3m", "HG"])
     args = ap.parse_args()
     out_dir = Path(args.out_dir)
     st = Study(out_dir, args.model, args.n_voxels)
-    for p in ("H0", "H1", "H3", "H3c", "H3m", "HG"):
-        st.load(p)
+    for p in args.pipes:
+        if not st.load(p, variant=args.variant) and args.variant:
+            print(f"(no {p} raw for {args.model}/{args.variant})")
     res = build(st)
     lines: List[str] = [
         "Hybrid network -> FindOptimal: per-voxel images (<= 3 distractor sources), not full-sample",
