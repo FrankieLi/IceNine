@@ -90,3 +90,6 @@ Run the mechanical checks first, then judge only what a script cannot.
    - leakage and pairing logic (train/test overlap, voxel or grain order, paired versus unpaired);
    - symmetry-specific framing where a generic one is intended (the owner prefers
      symmetry-agnostic framing, not CSL-centred).
+
+A matched number is not a verified one: transcription errors in 1-2 digit decimals can pass the
+audit, so spot-check key numbers against the source files.

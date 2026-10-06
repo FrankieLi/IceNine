@@ -4,7 +4,10 @@ set -e
 SLUG="$1"
 TITLE="$2"
 SUB="${3:-}"
-[ -n "$SLUG" ] && [ -n "$TITLE" ] || { echo 'usage: new_todo.sh <slug> "<title>" ["<subtitle>"]' >&2; exit 2; }
+if [ -z "$SLUG" ] || [ -z "$TITLE" ]; then
+    echo 'usage: new_todo.sh <slug> "<title>" ["<subtitle>"]' >&2
+    exit 2
+fi
 ROOT=$(git rev-parse --show-toplevel)
 OUT="$ROOT/icenine_py/docs/todo_$SLUG.md"
 mkdir -p "$(dirname "$OUT")"

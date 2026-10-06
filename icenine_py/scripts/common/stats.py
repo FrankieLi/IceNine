@@ -4,14 +4,15 @@ Import convention (same as scripts/findoptimal_robustness): the importing script
 ``icenine_py/scripts/common`` on ``sys.path`` and does ``import stats``.
 """
 
+import importlib.util
 import sys
 from pathlib import Path
-from typing import Sequence, Tuple
+from typing import Any, Sequence, Tuple
 
 import numpy as np
 from scipy.stats import binomtest
 
-_CSL_DIR = Path(__file__).resolve().parent.parent / "findoptimal_robustness"
+_CSL_PATH = Path(__file__).resolve().parent.parent / "findoptimal_robustness" / "csl.py"
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> Tuple[float, float]:
@@ -42,22 +43,27 @@ def paired_discordant(wrong_a: Sequence[bool], wrong_b: Sequence[bool]) -> Tuple
     return int(np.sum(a & ~b)), int(np.sum(~a & b))
 
 
-def win_rate(err_a: Sequence[float], err_b: Sequence[float], tie: float = 0.002) -> float:
-    """Fraction of pairs where A has the smaller error; |a - b| <= tie counts one half.
+def win_rate(
+    err_a: Sequence[float], err_b: Sequence[float], tie: float = 0.002
+) -> Tuple[float, float, int]:
+    """(rate, tie_fraction, n): the fraction of pairs where A has the smaller error, with a tie
+    (|a - b| < tie, strict) counting one half.
 
-    Pairs with a NaN on either side are dropped; returns NaN if no pair remains.
+    Pairs with a non-finite value on either side are dropped; n is the number of pairs kept.
+    With no pair left, returns (nan, nan, 0).
     """
     a = np.asarray(err_a, dtype=np.float64)
     b = np.asarray(err_b, dtype=np.float64)
     if a.shape != b.shape:
         raise ValueError(f"shape mismatch: {a.shape} vs {b.shape}")
-    keep = ~(np.isnan(a) | np.isnan(b))
+    keep = np.isfinite(a) & np.isfinite(b)
     a, b = a[keep], b[keep]
     if a.size == 0:
-        return float("nan")
-    wins = (a < b) & (np.abs(a - b) > tie)
-    ties = np.abs(a - b) <= tie
-    return float((wins.sum() + 0.5 * ties.sum()) / a.size)
+        return (float("nan"), float("nan"), 0)
+    d = a - b
+    ties = np.abs(d) < tie
+    wins = (d < 0) & ~ties
+    return (float((wins.sum() + 0.5 * ties.sum()) / a.size), float(ties.mean()), int(a.size))
 
 
 def reorder(
@@ -82,13 +88,22 @@ def reorder(
     return np.take(values, idx, axis=axis)
 
 
+def _load_csl() -> Any:
+    """Load csl.py under a private module name (no sys.path change)."""
+    name = "_icenine_common_csl"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, _CSL_PATH)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def misorientation_deg_cubic(R_a: np.ndarray, R_b: np.ndarray) -> np.ndarray:
     """Cubic-symmetry-reduced misorientation angle in degrees of rotation matrices (batched).
 
     Thin wrapper over ``csl.reduced_misorientation_deg`` (scripts/findoptimal_robustness).
     """
-    if str(_CSL_DIR) not in sys.path:
-        sys.path.insert(0, str(_CSL_DIR))
-    import csl  # noqa: PLC0415
-
-    return np.asarray(csl.reduced_misorientation_deg(R_a, R_b))
+    return np.asarray(_load_csl().reduced_misorientation_deg(R_a, R_b))

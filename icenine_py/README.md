@@ -679,7 +679,7 @@ Rules and checks that used to be repeated in LLM prompts live in code. Paths are
 
 | Script | Purpose and usage |
 |---|---|
-| `.claude/hooks/check-bash-command.sh` | Claude Code PreToolUse hook: blocks bare `python`/`pytest`/`pip` and `git add -A/--all/./-u`, `git commit -a/-am/--all` (handles `&&`, `;`, `|`, newlines; ignores quoted text). Wired in `.claude/settings.json`. |
+| `.claude/hooks/check-bash-command.sh` | Claude Code PreToolUse hook: denies bare `python*`/`pytest`/`pip*` (also behind `nohup`, `nice`, `env`, `time`, `sudo`, subshells), `git add -A/--all/./://*/-u`, `git commit -a/-am/--all/--no-verify`, and `ALLOW_*` assignments (handles `&&`, `;`, pipes, newlines, backslash continuations; ignores quoted text and heredoc bodies). Wired in `.claude/settings.json`. |
 | `.githooks/pre-commit` | Runs `scripts/dev/precommit_check.py` on staged changes: forbidden paths (`*.pt`, `*.pkl`, `*.joblib`, `cache/`, big `.npz`, `CLAUDE.md`/`.claude/**`), files over 10 MB, absolute home paths, Black on new `.py` files, lines over 100 characters, "realistic" terminology. Overrides: `ALLOW_CLAUDE_CONFIG=1`, `ALLOW_LARGE=1`, `ALLOW_ABS_PATHS=1`, `noqa: realistic`. |
 | `scripts/dev/install_hooks.sh` | `git config core.hooksPath .githooks`; prints how to undo it. |
 | `scripts/dev/start_task.sh <task> [--push]` | Create `feature/<parent>-<task>` off the current feature branch and record its parent. |
@@ -687,7 +687,7 @@ Rules and checks that used to be repeated in LLM prompts live in code. Paths are
 | `icenine_py/scripts/common/stats.py` | `wilson`, `mcnemar_exact`, `paired_discordant`, `win_rate`, `reorder` (id-checked re-indexing), `misorientation_deg_cubic`. Usage: put `scripts/common` on `sys.path`, `import stats`. |
 | `icenine_py/scripts/common/doc_tables.py` | `markdown_table(rows, columns, formats)` and `write_tables(path, {name: md})` (marker-delimited blocks). |
 | `scripts/dev/sync_doc_tables.py --doc D.md --tables T.md [--check]` | Copy generated blocks into the matching `<!-- table:NAME -->` markers; `--check` exits 1 on a difference. |
-| `scripts/dev/audit_numbers.py --doc D.md --section "Heading" --sources FILES... [--strict]` | List numbers in a doc section that no source value matches (precision-aware, percent/fraction aware). Advisory; prints a chance-match rate, because low-precision decimals match almost anything. |
+| `scripts/dev/audit_numbers.py --doc D.md --section "Heading" --sources FILES... [--strict]` | List numbers in a doc section that no source value matches (precision-aware; x100, /100 and sibling k/n ratios only for percentages and fractions). `-v` shows the nearest source value and file:key; `--per-file` requires each paragraph or table row to match within one source file. Advisory; prints the chance-match rate per precision bucket. A match is not verification: low-precision decimals match almost anything. |
 | `icenine_py/scripts/common/preflight.py`, `scripts/dev/timing_preflight.py [--require] [--json out]` | Record load, power source, thread settings and busy processes before a timing run; `require_quiet` refuses a busy machine. |
 | `scripts/dev/job_status.sh`, `scripts/dev/checkpoint.sh [note]` | Read-only snapshot of running jobs, recent logs, `.done` markers and git state; the checkpoint saves it to `.claude/checkpoints/`. |
 | `scripts/dev/new_todo.sh <slug> "<title>" ["<subtitle>"]` | Scaffold `icenine_py/docs/todo_<slug>.md`. |

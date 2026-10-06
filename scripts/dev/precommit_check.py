@@ -17,15 +17,24 @@ MAX_NPZ_BYTES = 5 * 1024 * 1024
 MAX_LINE = 100
 FORBIDDEN_GLOBS = ["*.pt", "*.pkl", "*.joblib"]
 ABS_PATH_RE = re.compile(r"/(?:Users|home)/[A-Za-z0-9_.-]+/")
-CORRUPT_RE = re.compile(r"\bcorrupt(ed|ion)?\b", re.IGNORECASE)
-CORRUPT_ALIASES = (
+CORRUPT_RE = re.compile(r"\bcorrupt(s|ed|ion|ing)?\b", re.IGNORECASE)  # noqa: realistic
+CORRUPT_ALIASES = (  # noqa: realistic
     "corrupt_windows",
     "corrupt_dataset",
     "CorruptionConfig",
     "--corrupt-train",
     "--corrupt",
 )
+DIFF_OPTS = [
+    "-c",
+    "core.quotePath=false",
+    "diff",
+    "--no-ext-diff",
+    "--src-prefix=a/",
+    "--dst-prefix=b/",
+]
 NOQA = "noqa: realistic"
+REALISTIC_MSG = 'say "realistic" instead of "corrupt*"'  # noqa: realistic
 
 Added = Dict[str, List[Tuple[int, str]]]
 
@@ -35,9 +44,15 @@ def _git(repo: Path, *args: str) -> str:
     return str(res.stdout)
 
 
+def _strip_aliases(text: str) -> str:
+    for alias in sorted(CORRUPT_ALIASES, key=len, reverse=True):
+        text = text.replace(alias, " ")
+    return text
+
+
 def staged_files(repo: Path) -> List[Tuple[str, str]]:
     """(status, path) of added/copied/modified/renamed staged files."""
-    raw = _git(repo, "diff", "--cached", "--name-status", "--diff-filter=ACMR", "-z")
+    raw = _git(repo, *DIFF_OPTS, "--cached", "--name-status", "--diff-filter=ACMR", "-z")
     parts = raw.split("\0")
     files: List[Tuple[str, str]] = []
     i = 0
@@ -54,13 +69,13 @@ def staged_files(repo: Path) -> List[Tuple[str, str]]:
 
 def added_lines(repo: Path) -> Added:
     """Added lines per staged text file as (new line number, text)."""
-    raw = _git(repo, "diff", "--cached", "-U0", "--diff-filter=ACMR", "--no-color")
+    raw = _git(repo, *DIFF_OPTS, "--cached", "-U0", "--diff-filter=ACMR", "--no-color")
     out: Added = {}
     path: Optional[str] = None
     lineno = 0
     for line in raw.splitlines():
         if line.startswith("+++ "):
-            path = line[6:] if line.startswith("+++ b/") else None
+            path = line[6:].rstrip("\t") if line.startswith("+++ b/") else None
         elif line.startswith("@@"):
             m = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)", line)
             lineno = int(m.group(1)) if m else 0
@@ -101,12 +116,8 @@ def check(repo: Path, env: Optional[Mapping[str, str]] = None) -> List[str]:
         for n, text in lines:
             if env.get("ALLOW_ABS_PATHS") != "1" and ABS_PATH_RE.search(text):
                 problems.append(f"{path}:{n}: absolute home path (set ALLOW_ABS_PATHS=1)")
-            if (
-                CORRUPT_RE.search(text)
-                and NOQA not in text
-                and not any(a in text for a in CORRUPT_ALIASES)
-            ):
-                problems.append(f'{path}:{n}: say "realistic" instead of "corrupt*"')
+            if NOQA not in text and CORRUPT_RE.search(_strip_aliases(text)):
+                problems.append(f"{path}:{n}: {REALISTIC_MSG}")
             if path.startswith("icenine_py/") and path.endswith(".py") and len(text) > MAX_LINE:
                 problems.append(f"{path}:{n}: line longer than {MAX_LINE} characters")
 

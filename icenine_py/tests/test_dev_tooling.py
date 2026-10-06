@@ -88,6 +88,34 @@ HOOK_CASES = [
     ('echo "run pytest later"', False),
     ("ls -la && git status", False),
     ("git commit -m \"$(cat <<'EOF'\nmsg with git add . inside\nEOF\n)\"", False),
+    # review round: continuations, heredocs, wrappers, subshells, versions, :/ and overrides
+    ("uv run \\\n  pytest tests/", False),
+    ("cat > run.sh <<EOF\npython x.py\npytest\nEOF\nls", False),
+    ("cat <<'EOF' > x.md\ngit add -A\nEOF", False),
+    ("python3 \\\n  script.py", True),
+    ("nohup python3 x.py &", True),
+    ("nice -n 19 python3 x.py", True),
+    ("nice -n 19 uv run python x.py", False),
+    ("env -u VIRTUAL_ENV python3 x.py", True),
+    ("env -u VIRTUAL_ENV uv run pytest", False),
+    ("FOO=1 BAR=2 pytest -q", True),
+    ("time pip install x", True),
+    ("sudo -n pip3 install x", True),
+    ("(python3 x.py)", True),
+    ("{ pytest; }", True),
+    ("echo $(python3 -c 1)", True),
+    ("pip3 install x", True),
+    ("python3.11 x.py", True),
+    ("git add :/", True),
+    ("git add '*'", False),  # quoted glob is stripped; a bare * is blocked below
+    ("git add *", True),
+    ("git commit --no-verify -m x", True),
+    ("git commit -nm x", True),
+    ("git commit -m 'about --no-verify'", False),
+    ("ALLOW_LARGE=1 git commit -m x", True),
+    ("ALLOW_CLAUDE_CONFIG=1 git commit -m x", True),
+    ("export ALLOW_ABS_PATHS=1", True),
+    ("echo ALLOW_LARGE", False),
 ]
 
 
@@ -99,7 +127,9 @@ def test_bash_hook(command: str, blocked: bool) -> None:
         [str(HOOK)], input=payload, capture_output=True, text=True, check=True
     ).stdout.strip()
     if blocked:
-        assert json.loads(out)["decision"] == "block", command
+        spec = json.loads(out)["hookSpecificOutput"]
+        assert spec["hookEventName"] == "PreToolUse" and spec["permissionDecision"] == "deny"
+        assert spec["permissionDecisionReason"], command
     else:
         assert out == "", command
 
@@ -113,7 +143,7 @@ def test_bash_hook_empty_input() -> None:
 def test_settings_uses_hook_script_and_tests_hook_uses_uv() -> None:
     settings = json.loads((REPO / ".claude" / "settings.json").read_text())
     pre = settings["hooks"]["PreToolUse"][0]["hooks"][0]
-    assert pre["command"].endswith("check-bash-command.sh")
+    assert pre["command"] == '"$CLAUDE_PROJECT_DIR"/.claude/hooks/check-bash-command.sh'
     assert pre["timeout"] == 5
     run_tests = (REPO / ".claude" / "hooks" / "run-tests-on-change.sh").read_text()
     assert "&& pytest" not in run_tests and "uv run pytest" in run_tests
@@ -197,18 +227,20 @@ def test_precommit_long_added_line_in_modified_file(repo: Path) -> None:
 def test_precommit_realistic_terminology(repo: Path) -> None:
     body = "\n".join(
         [
-            "the corrupted data",  # 1 flagged
-            "Corruption of the beam",  # 2 flagged
+            "the corrupted data",  # 1 flagged  # noqa: realistic
+            "Corruption of the beam",  # 2 flagged  # noqa: realistic
             "corrupt_windows(x)",  # 3 alias
             "--corrupt-train flag",  # 4 alias
             "a corrupt thing  noqa: realistic",  # 5 noqa
             "uncorrupted is fine",  # 6 not a word match
+            "it corrupts and is corrupting",  # 7 flagged  # noqa: realistic
+            "corrupt_windows and corrupted together",  # 8  # noqa: realistic
             "",
         ]
     )
     _stage(repo, "t.md", body)
     msgs = precommit_check.check(repo, {})
-    assert [m.split(":")[1] for m in msgs] == ["1", "2"]
+    assert [m.split(":")[1] for m in msgs] == ["1", "2", "7", "8"]
 
 
 def test_precommit_cli_silent_when_clean_and_exit_code(repo: Path) -> None:
@@ -224,12 +256,25 @@ def test_precommit_cli_silent_when_clean_and_exit_code(repo: Path) -> None:
 def test_githook_and_installer_exist_and_are_not_activated() -> None:
     assert os.access(REPO / ".githooks" / "pre-commit", os.X_OK)
     assert os.access(DEV / "install_hooks.sh", os.X_OK)
+    res = subprocess.run(
+        ["git", "config", "--get", "core.hooksPath"], cwd=REPO, capture_output=True, text=True
+    )
+    assert res.stdout.strip() == "", "core.hooksPath must stay unset until the owner activates it"
     assert "scripts/dev/precommit_check.py" in (REPO / ".githooks" / "pre-commit").read_text()
 
 
 # ---------------------------------------------------------------------------------------------
 # C. task scripts
 # ---------------------------------------------------------------------------------------------
+
+
+def _script_env(
+    repo: Path, extra: Dict[str, str], name: str, *args: str
+) -> subprocess.CompletedProcess:
+    env = {**os.environ, **GIT_ENV, **extra}
+    return subprocess.run(
+        [str(DEV / name), *args], cwd=repo, env=env, capture_output=True, text=True
+    )
 
 
 def _script(repo: Path, name: str, *args: str, stdin: str = "") -> subprocess.CompletedProcess:
@@ -268,9 +313,69 @@ def test_finish_task_guesses_parent_with_yes(repo: Path) -> None:
     (repo / "g.txt").write_text("g\n")
     _git(repo, "add", "g.txt")
     _git(repo, "commit", "-q", "-m", "add g")
-    res = _script(repo, "finish_task.sh", "--no-tests", "--yes", "-m", "custom merge")
+    res = _script(repo, "finish_task.sh", "--no-tests", "-m", "custom merge", stdin="y\n")
     assert res.returncode == 0, res.stderr
     assert _git(repo, "log", "-1", "--format=%s") == "custom merge"
+
+
+def _task_branch(repo: Path, fname: str = "h.py") -> None:
+    _git(repo, "checkout", "-q", "-b", "feature/z")
+    _git(repo, "checkout", "-q", "-b", "feature/z-job")
+    _git(repo, "config", "branch.feature/z-job.parent", "feature/z")
+    (repo / fname).write_text("x = 1\n")
+    _git(repo, "add", fname)
+    _git(repo, "commit", "-q", "-m", "add " + fname)
+
+
+def test_finish_task_refusals(repo: Path) -> None:
+    res = _script(repo, "finish_task.sh", "--no-tests")  # develop is not a task branch
+    assert res.returncode == 1 and "feature/*" in res.stderr
+    _task_branch(repo)
+    (repo / "README").write_text("dirty\n")  # tracked file modified
+    res = _script(repo, "finish_task.sh", "--no-tests")
+    assert res.returncode == 1 and "uncommitted" in res.stderr
+    _git(repo, "checkout", "--", "README")
+    _git(repo, "config", "branch.feature/z-job.parent", "develop")
+    res = _script(repo, "finish_task.sh", "--no-tests")
+    assert res.returncode == 1 and "refusing" in res.stderr
+    assert _git(repo, "rev-parse", "--abbrev-ref", "HEAD") == "feature/z-job"
+
+
+def test_finish_task_failing_tests_or_build_do_not_merge(repo: Path) -> None:
+    _task_branch(repo)
+    head = _git(repo, "rev-parse", "feature/z")
+    env = {"FINISH_TASK_TEST_CMD": "exit 3"}
+    res = _script_env(repo, env, "finish_task.sh")
+    assert res.returncode != 0
+    assert _git(repo, "rev-parse", "feature/z") == head
+    assert _git(repo, "rev-parse", "--abbrev-ref", "HEAD") == "feature/z-job"
+    # a C++ change triggers the build command; a failing build must stop the merge
+    (repo / "src.cpp").write_text("int x;\n")
+    _git(repo, "add", "src.cpp")
+    _git(repo, "commit", "-q", "-m", "cpp")
+    env = {"FINISH_TASK_TEST_CMD": "true", "FINISH_TASK_BUILD_CMD": "false"}
+    res = _script_env(repo, env, "finish_task.sh")
+    assert res.returncode != 0 and _git(repo, "rev-parse", "feature/z") == head
+    env = {"FINISH_TASK_TEST_CMD": "true", "FINISH_TASK_BUILD_CMD": "true"}
+    assert _script_env(repo, env, "finish_task.sh").returncode == 0
+    assert _git(repo, "rev-parse", "--abbrev-ref", "HEAD") == "feature/z"
+
+
+def test_finish_task_txt_does_not_trigger_build(repo: Path) -> None:
+    _task_branch(repo, "notes.txt")
+    env = {"FINISH_TASK_TEST_CMD": "true", "FINISH_TASK_BUILD_CMD": "false"}
+    assert _script_env(repo, env, "finish_task.sh").returncode == 0
+
+
+def test_finish_task_guess_rules(repo: Path) -> None:
+    _git(repo, "checkout", "-q", "-b", "feature/q-job")  # parent feature/q does not exist
+    res = _script(repo, "finish_task.sh", "--no-tests", stdin="y\n")
+    assert res.returncode == 1 and "does not exist" in res.stderr
+    _git(repo, "branch", "feature/q")
+    res = _script(repo, "finish_task.sh", "--no-tests", "--yes")  # --yes never guesses
+    assert res.returncode == 1 and "does not guess" in res.stderr
+    res = _script(repo, "finish_task.sh", "--no-tests", stdin="n\n")
+    assert res.returncode == 1
 
 
 # ---------------------------------------------------------------------------------------------
@@ -306,9 +411,14 @@ def test_win_rate_ties_and_nan() -> None:
     a = np.array([0.1, 0.5, 0.3, np.nan, 0.2])
     b = np.array([0.2, 0.4, 0.3005, 0.1, np.nan])
     # pairs kept: (0.1,0.2) win, (0.5,0.4) loss, (0.3,0.3005) tie -> (1 + 0.5) / 3
-    assert stats.win_rate(a, b) == pytest.approx(0.5)
-    assert stats.win_rate(a, b, tie=0.0) == pytest.approx(2 / 3)
-    assert math.isnan(stats.win_rate([np.nan], [1.0]))
+    rate, tie_frac, n = stats.win_rate(a, b)
+    assert (rate, tie_frac, n) == (pytest.approx(0.5), pytest.approx(1 / 3), 3)
+    assert stats.win_rate(a, b, tie=0.0) == (pytest.approx(2 / 3), 0.0, 3)
+    rate, tie_frac, n = stats.win_rate([np.nan], [1.0])
+    assert math.isnan(rate) and math.isnan(tie_frac) and n == 0
+    # the tie is strict: a difference of exactly `tie` is not a tie; inf pairs are dropped
+    assert stats.win_rate([0.0, np.inf], [0.5, 1.0], tie=0.5) == (1.0, 0.0, 1)
+    assert stats.win_rate([0.0], [0.4999], tie=0.5) == (0.5, 1.0, 1)
 
 
 def test_reorder() -> None:
@@ -354,6 +464,20 @@ def test_markdown_table_formatting() -> None:
         "| not evaluated | not evaluated | not evaluated |",
     ]
     assert doc_tables.markdown_table(rows, ["name", "x", "n"], {"n": "d"}) == t
+
+
+def test_markdown_table_ints_floats_and_row_labels() -> None:
+    rows: List[Optional[Dict[str, object]]] = [
+        {"name": "a", "k": 123456, "x": 123456.0, "np": np.int64(7), "f": np.float32(0.5)},
+        None,
+    ]
+    t = doc_tables.markdown_table(rows, ["name", "k", "x", "np", "f"], labels=["a", "missing row"])
+    lines = t.splitlines()
+    assert lines[2] == "| a | 123456 | 1.23e+05 | 7 | 0.5 |"  # ints exact, floats 3 sig. figs
+    ne = "not evaluated"
+    assert lines[3] == f"| missing row | {ne} | {ne} | {ne} | {ne} |"
+    # a per-column format still wins
+    assert "| 1.2e+05 |" in doc_tables.markdown_table([{"x": 123456.0}], ["x"], {"x": ".2g"})
 
 
 def test_sync_round_trip_idempotent_and_check(tmp_path: Path) -> None:
@@ -444,13 +568,47 @@ def test_audit_numbers_synthetic(tmp_path: Path, capsys: pytest.CaptureFixture) 
 def test_audit_numbers_percent_fraction_and_missing_section(tmp_path: Path) -> None:
     nums = audit_numbers.extract_numbers(["Rate 98-99% and 0.34 ok, ratio 21/50."])
     assert [n["text"] for n in nums] == ["21/50", "98", "99%", "0.34"]
-    vals = (
-        np.unique([0.99, 0.98, 21.0, 50.0, 0.34]),
-        np.unique([0.99, 99.0, 98.0, 0.34, 34.0, 21, 50]),
-    )
-    assert audit_numbers.audit(nums, vals) == []
+    st = audit_numbers.Store()
+    for v in [0.99, 0.98, 21.0, 50.0, 0.34]:
+        st.add(v, 0, "k")
+    st.files.append("src.json")
+    st.seal()
+    assert audit_numbers.audit(nums, st) == []
     with pytest.raises(ValueError):
         audit_numbers.find_section(["# A"], "B")
+
+
+def test_audit_scaling_only_for_percentages_and_fractions(tmp_path: Path) -> None:
+    st = audit_numbers.Store()
+    st.files.append("s.json")
+    for v in [0.34, 3400.0, -12.0]:
+        st.add(v, 0, "k")
+    st.seal()
+
+    def un(text: str) -> List[str]:
+        nums = audit_numbers.extract_numbers([text])
+        return [d["text"] for d in audit_numbers.audit(nums, st)]
+
+    assert un("rate 34.0%") == []  # percentage <- source fraction
+    assert un("fraction 0.34") == []
+    assert un("count 34") == ["34"]  # plain integer: no /100
+    assert un("count 3400") == []
+    assert un("big 340000") == ["340000"]  # no x100 for plain integers
+    assert un("minus -12") == []  # compared on |value|
+
+
+def test_audit_verbose_and_per_file(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    doc = tmp_path / "docs" / "d.md"
+    doc.parent.mkdir()
+    doc.write_text("# S\n\nRates 34.0% and 12.5% here.\n\n| a |\n|---|\n| 34.0% |\n")
+    (tmp_path / "one.json").write_text(json.dumps({"a": {"rate": 0.34}}))
+    (tmp_path / "two.txt").write_text("other 12.5 value\n")
+    argv = ["--doc", str(doc), "--section", "S", "--sources", str(tmp_path / "*.*")]
+    assert audit_numbers.main([*argv, "-v", "--per-file", "--strict"]) == 1
+    out = capsys.readouterr().out
+    assert "one.json:a.rate" in out and "two.txt:line 1" in out
+    assert "no single source file matches all of '34.0%', '12.5%'" in out
+    assert "chance-match rate" in out and "dp:" in out  # per precision bucket
 
 
 # ---------------------------------------------------------------------------------------------
@@ -465,6 +623,7 @@ def test_preflight_structure_with_mocked_subprocess(monkeypatch: pytest.MonkeyPa
         return "  PID  %CPU COMM\n  1 0.5 init\n 4242 95.0 /bin/hog\n"
 
     monkeypatch.setattr(preflight, "_run", fake_run)
+    monkeypatch.setattr(preflight, "SAMPLE_GAP_S", 0.0)
     info = preflight.preflight()
     for key in [
         "timestamp",
@@ -481,6 +640,25 @@ def test_preflight_structure_with_mocked_subprocess(monkeypatch: pytest.MonkeyPa
     assert info["power"] == "battery"
     assert [p["pid"] for p in info["busy_processes"]] == [4242]
     json.dumps(info)  # serialisable
+
+
+def test_busy_processes_two_samples_and_ignore_list(monkeypatch: pytest.MonkeyPatch) -> None:
+    samples = [
+        {1: _p(1, 90, "/bin/steady"), 2: _p(2, 90, "/bin/spike"), 3: _p(3, 90, "/x/WindowServer")},
+        {1: _p(1, 95, "/bin/steady"), 2: _p(2, 5, "/bin/spike"), 3: _p(3, 99, "/x/WindowServer")},
+    ]
+    monkeypatch.setattr(preflight, "_sample_cpu", lambda: samples.pop(0))
+    monkeypatch.setattr(preflight, "_ancestor_pids", lambda: {os.getpid()})
+    monkeypatch.setattr(preflight, "SAMPLE_GAP_S", 0.0)
+    assert [p["pid"] for p in preflight._busy_processes()] == [1]
+    # the ancestors of this process are never reported
+    samples[:] = [{1: _p(1, 90, "uv")}, {1: _p(1, 90, "uv")}]
+    monkeypatch.setattr(preflight, "_ancestor_pids", lambda: {1})
+    assert preflight._busy_processes() == []
+
+
+def _p(pid: int, cpu: float, command: str) -> Dict[str, object]:
+    return {"pid": pid, "cpu": cpu, "command": command}
 
 
 def test_require_quiet_logic() -> None:

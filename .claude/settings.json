@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/check-bash-command.sh",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-bash-command.sh",
             "timeout": 5,
             "statusMessage": "Checking for bare Python commands..."
           }

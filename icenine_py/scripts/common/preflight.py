@@ -4,7 +4,8 @@ import datetime
 import os
 import platform
 import subprocess
-from typing import Any, Dict, List, Optional
+import time
+from typing import Any, Dict, List, Optional, Set
 
 
 class MachineBusyError(RuntimeError):
@@ -40,22 +41,66 @@ def _torch_threads() -> Optional[int]:
         return None
 
 
-def _busy_processes(threshold: float = 20.0) -> List[Dict[str, Any]]:
-    out = _run(["ps", "-Ao", "pid,pcpu,comm"])
+IGNORED_COMMANDS = {
+    "WindowServer",
+    "mds",
+    "mds_stores",
+    "mdworker",
+    "mdworker_shared",
+    "kernel_task",
+}
+SAMPLE_GAP_S = 1.0
+
+
+def _ancestor_pids() -> Set[int]:
+    """This process and its ancestors (the uv / python wrappers that launched it)."""
+    pids = {os.getpid()}
+    out = _run(["ps", "-Ao", "pid,ppid"])
     if not out:
-        return []
-    me = os.getpid()
-    busy = []
+        return pids | {os.getppid()}
+    parent = {}
     for line in out.splitlines()[1:]:
+        parts = line.split()
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            parent[int(parts[0])] = int(parts[1])
+    pid = os.getpid()
+    while pid in parent and parent[pid] > 1 and parent[pid] not in pids:
+        pid = parent[pid]
+        pids.add(pid)
+    return pids
+
+
+def _sample_cpu() -> Dict[int, Dict[str, Any]]:
+    out = _run(["ps", "-Ao", "pid,pcpu,comm"])
+    procs: Dict[int, Dict[str, Any]] = {}
+    for line in (out or "").splitlines()[1:]:
         parts = line.split(None, 2)
         if len(parts) < 3:
             continue
         try:
-            pid, cpu = int(parts[0]), float(parts[1])
+            procs[int(parts[0])] = {
+                "pid": int(parts[0]),
+                "cpu": float(parts[1]),
+                "command": parts[2],
+            }
         except ValueError:
             continue
-        if pid != me and cpu > threshold:
-            busy.append({"pid": pid, "cpu": cpu, "command": parts[2]})
+    return procs
+
+
+def _busy_processes(threshold: float = 20.0) -> List[Dict[str, Any]]:
+    """Other processes above ``threshold`` % CPU in two samples SAMPLE_GAP_S apart, excluding
+    this process's ancestors and a default ignore list of system daemons."""
+    first = _sample_cpu()
+    time.sleep(SAMPLE_GAP_S)
+    second = _sample_cpu()
+    skip = _ancestor_pids()
+    busy = []
+    for pid, p in second.items():
+        if pid in skip or os.path.basename(p["command"]) in IGNORED_COMMANDS:
+            continue
+        if p["cpu"] > threshold and first.get(pid, {"cpu": 0.0})["cpu"] > threshold:
+            busy.append(p)
     return busy
 
 

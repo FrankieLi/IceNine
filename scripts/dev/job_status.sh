@@ -1,10 +1,11 @@
 #!/bin/bash
 # Read-only snapshot of running jobs, recent logs, done markers and git state.
-ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || ROOT=$(pwd)
+ROOT=$(GIT_OPTIONAL_LOCKS=0 git rev-parse --show-toplevel 2>/dev/null) || ROOT=$(pwd)
 cd "$ROOT" || exit 0
 
 echo "== running jobs (pid, elapsed, command) =="
-ps -Ao pid,etime,command | grep -E "uv run python scripts/|run_all\.sh" | grep -v grep || echo "(none)"
+ps -Ao pid,etime,command |
+    grep -E "uv run python scripts/|run_all\.sh" | grep -v grep || echo "(none)"
 
 echo
 echo "== logs modified in the last 48 h =="
@@ -22,18 +23,18 @@ find icenine_py/scripts -name '*.done' 2>/dev/null | sort | head -50
 echo
 
 echo "== git =="
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+BRANCH=$(GIT_OPTIONAL_LOCKS=0 git rev-parse --abbrev-ref HEAD 2>/dev/null)
 echo "branch: $BRANCH"
-STATUS=$(git status --short 2>/dev/null)
+STATUS=$(GIT_OPTIONAL_LOCKS=0 git status --short 2>/dev/null)
 echo "status: $(printf '%s' "$STATUS" | grep -c . ) changed/untracked entries"
 printf '%s\n' "$STATUS" | head -20
-PARENT=$(git config "branch.$BRANCH.parent" 2>/dev/null)
+PARENT=$(GIT_OPTIONAL_LOCKS=0 git config "branch.$BRANCH.parent" 2>/dev/null)
 echo "-- commits not on ${PARENT:-develop}:"
-git log --oneline "${PARENT:-develop}..HEAD" 2>/dev/null | head -20
+GIT_OPTIONAL_LOCKS=0 git log --oneline "${PARENT:-develop}..HEAD" 2>/dev/null | head -20
 echo "-- commits not on develop:"
-git log --oneline develop..HEAD 2>/dev/null | head -20
+GIT_OPTIONAL_LOCKS=0 git log --oneline develop..HEAD 2>/dev/null | head -20
 echo "-- unpushed commits:"
-git log --oneline '@{upstream}..HEAD' 2>/dev/null | head -20 || true
+GIT_OPTIONAL_LOCKS=0 git log --oneline '@{upstream}..HEAD' 2>/dev/null | head -20 || true
 echo "-- worktrees:"
-git worktree list 2>/dev/null
+GIT_OPTIONAL_LOCKS=0 git worktree list 2>/dev/null
 exit 0
