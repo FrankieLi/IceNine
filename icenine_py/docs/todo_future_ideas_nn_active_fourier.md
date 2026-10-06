@@ -21,8 +21,9 @@ case spends its time and where the truth is lost (S2 pruning).
 
 **Why it might help.**
 - In the no-start case, `reconstruct_voxel` spends about 44.5k global evaluations on the coarse
-  discrete search, against 5–8k local ones (about 25 s per voxel on 10 workers). Task 3 of the
-  current feature measures this split on a single worker.
+  discrete search, against 4.7–7.6k local ones (about 25 s per voxel on 10 workers). Task 3 measured this split on
+  a single worker: baseline 19.8 s per voxel (clean), of which 17.0 s is the global and 2.39 s the
+  local evaluations; 98.3% of the time is inside `evaluate`.
 - The current net (`GNLayerNet`) is only a local refiner. It needs a nominal orientation to
   predict the ROI windows it reads, so it cannot start from nothing.
 
@@ -41,10 +42,10 @@ case spends its time and where the truth is lost (S2 pruning).
     matter much less for other crystal systems and applications.
 - **Use.** As a candidate generator: hand its top-k to `refine_from_candidates` (FindOptimal),
   which needs no symmetry-specific check. Using the network only to propose candidates, and
-  keeping the physics-based cost as the final judge, is also what made Tasks 1 and 2 work.
+  keeping the physics-based cost as the final judge, is the same propose-then-verify pattern used in Tasks 1 and 2.
 
 **Experiments (sketch).**
-1. Top-1 and top-k basin hit rates (within 1° and 3°, cubic-reduced) on the 200-voxel E0 set,
+1. Top-1 and top-k basin hit rates (within 1° and 3°, symmetry-reduced) on the 200-voxel E0 set,
    clean and realistic, with whole grains held out of training.
 2. End to end: net top-k → FindOptimal. Measure the wrong rate with Wilson CI, the median
    error and the wall time, against the baseline and the proxy rerank. F1/F1b are reference
@@ -112,8 +113,7 @@ consequences.
 2. **Orientation resolution.** It should improve with |G|: larger |q| gives a larger spot
    displacement for a given rotation.
    - Relate this to the measured sharpness of the cost function (0.2–0.5°), the Q_max = 8 choice,
-     and the finding that low-Q reflections alone do not separate near-degenerate alternatives
-     (Task 2, where the cubic case was CSL relatives).
+     and the Task 2 result that low-Q reflections carry most of the signal (trained F-lowQ Q5 recall 0.962 against E2's 0.985) although the raw low-Q cost ranks poorly (recall 0.804); the cubic near-degenerate case was CSL relatives.
 3. **Coupling.** Position and orientation errors trade off: a small rotation and a small shift can
    move a spot by the same amount. Which combinations of detector distances and reflections remove
    that degeneracy?
@@ -129,6 +129,7 @@ consequences.
   2011). Grain maps are piecewise constant, which is exactly the prior that discrete
   tomography uses to reconstruct from few projections. That prior may give the resolution versus
   number of images trade-off for Idea 2.
+- Also to check: Johnson et al., J. Appl. Cryst. 41 (2008) 310–318 (DCT, part II), and Reischig et al., J. Appl. Cryst. (2013) (DCT indexing).
 - Read both for their resolution analyses (spatial resolution vs pixel size and number of spots;
   orientation sensitivity) and compare with the adaptive forward-model approach (Li & Suter 2013).
 - The references above are from memory and still to be checked.
@@ -137,7 +138,6 @@ consequences.
 
 - Framing (owner, 2026-10-06): these ideas should not centre on CSL traps. They matter mainly
   for cubic symmetry, so prefer symmetry-agnostic methods and metrics.
-
 - Idea 1 extends the hybrid NN study (`todo_hybrid_nn_refinement.md`) from "a start exists" to
   "no start".
 - Idea 2 reuses the candidate-list machinery and the dedup idea
