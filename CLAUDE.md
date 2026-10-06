@@ -170,3 +170,36 @@ These rules apply to ALL work, not just when using slash commands:
 1. **Plan documentation**: When entering plan mode, save the plan to `icenine_py/MIGRATION_HISTORY.md` under a new section (if it relates to the Python port) or the appropriate doc.
 2. **Completion summaries**: After executing a plan, summarize what was accomplished in `icenine_py/MIGRATION_HISTORY.md`, then delete the plan file from `.claude/plans/`.
 3. **Feature documentation**: When a new feature or module is added, update `icenine_py/README.md` to reflect it (new modules, changed structure, new dependencies, etc.).
+
+## Memory (shmem)
+<!-- shmem-memory-snippet: v2-cli -->
+
+This project uses shmem for cross-session memory. Hooks save the conversation
+automatically — never call `shmem add` unless the user explicitly says "remember this".
+
+### Reading from memory — default-on, not opt-in
+
+**At session start**, before responding to the user's first message, run:
+```bash
+shmem ask "What was the last thing we worked on in this directory?"
+```
+
+Do this every session. The cost of a miss (silently generating an answer that
+contradicts memory) is much worse than the cost of a redundant query.
+
+**Trigger phrases.** If the user's message contains any of these, your first
+action must be `shmem ask` *before* generating a response:
+- "where were we", "pick up", "last time", "we discussed", "remember when",
+  "per your earlier comment", "as we said"
+- A name (person, project, decision, file) you don't have in conversation context
+- Historical-state questions ("have we shipped X", "status of Y", "did we decide Z")
+- Architectural / design decisions where prior context would matter
+
+**Default to asking when unsure.** The signal to reach for memory is "this
+prompt references something not in my visible context," not "the user used a
+magic word." If you can't fully ground the answer from what you can see, ask.
+
+```bash
+shmem ask "<the question>"        # synthesized answer (preferred for most reads)
+shmem query "<keywords>"          # raw timestamped facts; useful with --since 1h, --source user
+```
