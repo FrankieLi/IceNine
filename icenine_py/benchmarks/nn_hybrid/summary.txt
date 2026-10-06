@@ -19,6 +19,7 @@ Consistency checks:
 
 === clean ===
 pass-1 successes per radius: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 940]; fall-backs (no net estimate): [0, 0, 0, 0, 0, 0, 0, 0, 0, 60]
+fall-back cases (60): H0: median 41.9 deg, wrong 100.0%; H3: median 41.9 deg, wrong 100.0%
 
 median error (deg, cubic-reduced) (clean)
   r(deg)          H0        N1        N3        H1        H3       H3c       H3m        HG
@@ -99,56 +100,56 @@ paired win rate of H3 vs ... (ties = half; tie fraction in brackets) (clean)
   5            0.52 [0.94]     1.00 [0.00]     0.81 [0.07]     1.00 [0.00]     0.59 [0.21]
 
 paired win rate of H1 vs ... (ties = half; tie fraction in brackets) (clean)
-  r(deg)                N3              H0              MC          Huber3
-  0.05         0.50 [0.34]     0.70 [0.11]     0.84 [0.07]     0.59 [0.18]
-  0.1          0.47 [0.23]     0.76 [0.07]     0.93 [0.03]     0.56 [0.17]
-  0.25         0.44 [0.23]     0.82 [0.06]     0.97 [0.01]     0.52 [0.18]
-  0.5          0.40 [0.21]     0.86 [0.04]     0.99 [0.00]     0.49 [0.19]
-  0.75         0.34 [0.15]     0.86 [0.04]     0.99 [0.00]     0.43 [0.13]
-  1            0.32 [0.14]     0.87 [0.03]     0.99 [0.00]     0.39 [0.12]
-  1.5          0.32 [0.12]     0.91 [0.01]     0.99 [0.00]     0.38 [0.10]
-  2            0.31 [0.11]     0.95 [0.01]     0.99 [0.00]     0.38 [0.09]
-  3            0.32 [0.10]     1.00 [0.00]     0.99 [0.00]     0.37 [0.09]
-  5            0.20 [0.07]     1.00 [0.00]     0.99 [0.00]     0.24 [0.06]
+  r(deg)                N3              H0              H3              MC          Huber3
+  0.05         0.50 [0.34]     0.70 [0.11]     0.48 [0.35]     0.84 [0.07]     0.59 [0.18]
+  0.1          0.47 [0.23]     0.76 [0.07]     0.43 [0.24]     0.93 [0.03]     0.56 [0.17]
+  0.25         0.44 [0.23]     0.82 [0.06]     0.42 [0.24]     0.97 [0.01]     0.52 [0.18]
+  0.5          0.40 [0.21]     0.86 [0.04]     0.38 [0.21]     0.99 [0.00]     0.49 [0.19]
+  0.75         0.34 [0.15]     0.86 [0.04]     0.32 [0.16]     0.99 [0.00]     0.43 [0.13]
+  1            0.32 [0.14]     0.87 [0.03]     0.30 [0.13]     0.99 [0.00]     0.39 [0.12]
+  1.5          0.32 [0.12]     0.91 [0.01]     0.30 [0.11]     0.99 [0.00]     0.38 [0.10]
+  2            0.31 [0.11]     0.95 [0.01]     0.30 [0.11]     0.99 [0.00]     0.38 [0.09]
+  3            0.32 [0.10]     1.00 [0.00]     0.30 [0.10]     0.99 [0.00]     0.37 [0.09]
+  5            0.20 [0.07]     1.00 [0.00]     0.19 [0.07]     0.99 [0.00]     0.24 [0.06]
 
 paired win rate of H3c vs ... (ties = half; tie fraction in brackets) (clean)
-  r(deg)                N3              H0              H1              MC          Huber3
-  0.05         0.52 [0.93]     0.70 [0.10]     0.52 [0.35]     0.83 [0.07]     0.60 [0.18]
-  0.1          0.53 [0.92]     0.78 [0.09]     0.56 [0.24]     0.94 [0.03]     0.61 [0.19]
-  0.25         0.52 [0.93]     0.85 [0.04]     0.58 [0.24]     0.98 [0.01]     0.60 [0.19]
-  0.5          0.52 [0.92]     0.90 [0.05]     0.62 [0.21]     0.99 [0.00]     0.60 [0.19]
-  0.75         0.52 [0.94]     0.91 [0.03]     0.68 [0.16]     0.99 [0.00]     0.60 [0.19]
-  1            0.52 [0.93]     0.92 [0.03]     0.70 [0.13]     0.99 [0.00]     0.60 [0.20]
-  1.5          0.52 [0.92]     0.96 [0.02]     0.70 [0.11]     1.00 [0.00]     0.60 [0.20]
-  2            0.52 [0.93]     0.98 [0.01]     0.70 [0.11]     0.99 [0.00]     0.59 [0.20]
-  3            0.52 [0.93]     1.00 [0.00]     0.70 [0.10]     1.00 [0.00]     0.60 [0.19]
-  5            0.52 [0.94]     1.00 [0.00]     0.81 [0.07]     1.00 [0.00]     0.59 [0.21]
+  r(deg)                N3              H0              H1              H3              MC          Huber3
+  0.05         0.52 [0.93]     0.70 [0.10]     0.52 [0.35]     0.50 [1.00]     0.83 [0.07]     0.60 [0.18]
+  0.1          0.53 [0.92]     0.78 [0.09]     0.56 [0.24]     0.50 [1.00]     0.94 [0.03]     0.61 [0.19]
+  0.25         0.52 [0.93]     0.85 [0.04]     0.58 [0.24]     0.50 [1.00]     0.98 [0.01]     0.60 [0.19]
+  0.5          0.52 [0.92]     0.90 [0.05]     0.62 [0.21]     0.50 [1.00]     0.99 [0.00]     0.60 [0.19]
+  0.75         0.52 [0.94]     0.91 [0.03]     0.68 [0.16]     0.50 [1.00]     0.99 [0.00]     0.60 [0.19]
+  1            0.52 [0.93]     0.92 [0.03]     0.70 [0.13]     0.50 [1.00]     0.99 [0.00]     0.60 [0.20]
+  1.5          0.52 [0.92]     0.96 [0.02]     0.70 [0.11]     0.50 [1.00]     1.00 [0.00]     0.60 [0.20]
+  2            0.52 [0.93]     0.98 [0.01]     0.70 [0.11]     0.50 [1.00]     0.99 [0.00]     0.59 [0.20]
+  3            0.52 [0.93]     1.00 [0.00]     0.70 [0.10]     0.50 [1.00]     1.00 [0.00]     0.60 [0.19]
+  5            0.52 [0.94]     1.00 [0.00]     0.81 [0.07]     0.50 [1.00]     1.00 [0.00]     0.59 [0.21]
 
 paired win rate of H3m vs ... (ties = half; tie fraction in brackets) (clean)
-  r(deg)                N3              H0              H1              MC          Huber3
-  0.05         0.59 [0.77]     0.74 [0.11]     0.60 [0.30]     0.84 [0.05]     0.67 [0.17]
-  0.1          0.59 [0.77]     0.80 [0.10]     0.62 [0.21]     0.95 [0.03]     0.66 [0.17]
-  0.25         0.59 [0.77]     0.86 [0.04]     0.63 [0.21]     0.98 [0.01]     0.66 [0.17]
-  0.5          0.58 [0.79]     0.90 [0.05]     0.66 [0.19]     0.99 [0.00]     0.65 [0.19]
-  0.75         0.59 [0.76]     0.92 [0.03]     0.72 [0.14]     1.00 [0.00]     0.67 [0.18]
-  1            0.58 [0.78]     0.93 [0.03]     0.74 [0.12]     0.99 [0.00]     0.66 [0.18]
-  1.5          0.58 [0.79]     0.96 [0.02]     0.74 [0.12]     1.00 [0.00]     0.66 [0.18]
-  2            0.59 [0.76]     0.98 [0.01]     0.74 [0.12]     0.99 [0.00]     0.67 [0.19]
-  3            0.59 [0.76]     1.00 [0.00]     0.74 [0.09]     1.00 [0.00]     0.68 [0.18]
-  5            0.58 [0.79]     1.00 [0.00]     0.84 [0.08]     0.99 [0.00]     0.65 [0.18]
+  r(deg)                N3              H0              H1              H3              MC          Huber3
+  0.05         0.59 [0.77]     0.74 [0.11]     0.60 [0.30]     0.57 [0.75]     0.84 [0.05]     0.67 [0.17]
+  0.1          0.59 [0.77]     0.80 [0.10]     0.62 [0.21]     0.55 [0.74]     0.95 [0.03]     0.66 [0.17]
+  0.25         0.59 [0.77]     0.86 [0.04]     0.63 [0.21]     0.56 [0.74]     0.98 [0.01]     0.66 [0.17]
+  0.5          0.58 [0.79]     0.90 [0.05]     0.66 [0.19]     0.56 [0.75]     0.99 [0.00]     0.65 [0.19]
+  0.75         0.59 [0.76]     0.92 [0.03]     0.72 [0.14]     0.57 [0.73]     1.00 [0.00]     0.67 [0.18]
+  1            0.58 [0.78]     0.93 [0.03]     0.74 [0.12]     0.56 [0.76]     0.99 [0.00]     0.66 [0.18]
+  1.5          0.58 [0.79]     0.96 [0.02]     0.74 [0.12]     0.57 [0.75]     1.00 [0.00]     0.66 [0.18]
+  2            0.59 [0.76]     0.98 [0.01]     0.74 [0.12]     0.57 [0.73]     0.99 [0.00]     0.67 [0.19]
+  3            0.59 [0.76]     1.00 [0.00]     0.74 [0.09]     0.57 [0.74]     1.00 [0.00]     0.68 [0.18]
+  5            0.58 [0.79]     1.00 [0.00]     0.84 [0.08]     0.56 [0.77]     0.99 [0.00]     0.65 [0.18]
 
 paired win rate of HG vs ... (ties = half; tie fraction in brackets) (clean)
-  r(deg)                N3              H0              H1              MC          Huber3
-  0.05                                                                                    
-  0.1                                                                                     
-  0.25                                                                                    
-  0.5                                                                                     
-  0.75                                                                                    
-  1                                                                                       
-  1.5          0.53 [0.90]     0.96 [0.02]     0.71 [0.11]     1.00 [0.00]     0.60 [0.18]
-  2            0.53 [0.92]     0.98 [0.01]     0.70 [0.11]     0.99 [0.00]     0.60 [0.18]
-  3            0.53 [0.91]     1.00 [0.00]     0.70 [0.10]     1.00 [0.00]     0.61 [0.18]
-  5            0.53 [0.86]     1.00 [0.00]     0.81 [0.07]     1.00 [0.00]     0.60 [0.19]
+  r(deg)                N3              H0              H1              H3              MC          Huber3
+  0.05                                                                                                    
+  0.1                                                                                                     
+  0.25                                                                                                    
+  0.5                                                                                                     
+  0.75                                                                                                    
+  1                                                                                                       
+  1.5          0.53 [0.90]     0.96 [0.02]     0.71 [0.11]     0.51 [0.97]     1.00 [0.00]     0.60 [0.18]
+  2            0.53 [0.92]     0.98 [0.01]     0.70 [0.11]     0.51 [0.98]     0.99 [0.00]     0.60 [0.18]
+  3            0.53 [0.91]     1.00 [0.00]     0.70 [0.10]     0.51 [0.98]     1.00 [0.00]     0.61 [0.18]
+  5            0.53 [0.86]     1.00 [0.00]     0.81 [0.07]     0.51 [0.91]     1.00 [0.00]     0.60 [0.19]
 
 mean cost evaluations per case (finisher) (clean)
   r(deg)          H0        N1        N3        H1        H3       H3c       H3m        HG
@@ -163,15 +164,24 @@ mean cost evaluations per case (finisher) (clean)
   3              404       nan       nan  2.25e+03  2.35e+03  2.35e+03       886  2.35e+03
   5              363       nan       nan  1.82e+03  2.37e+03  2.37e+03       798  2.36e+03
 
-mean seconds per case by stage, 10 workers (contended) (clean)
+mean seconds per case by stage, 10 workers (contended), all radii (clean); FindOpt / VarMin / eval are inclusive
   pipe     prepare    render   forward        GN   FindOpt    VarMin eval(all)  finisher   evals
   H0         0.131     0.017     0.016     0.000     0.129     0.635     0.722     0.766     1123
   H1         0.129     0.017     0.015     0.000     0.091     1.453     1.457     1.545     2271
   H3         0.129     0.016     0.016     0.000     0.078     1.527     1.513     1.606     2357
   H3c        0.131     0.017     0.016     0.000     0.078     1.527     1.513     1.606     2357
   H3m        0.130     0.017     0.016     0.000     0.581     0.000     0.551     0.584      859
-  HG         0.178     0.021     0.015     0.168     0.077     1.513     1.499     1.591     2355
   H0 (stored findoptimal_b_raw): mean finisher seconds 0.818, evals 1123
+
+mean seconds per case by stage, 10 workers (contended), r = 1.5, 2, 3, 5 (clean); FindOpt / VarMin / eval are inclusive
+  pipe     prepare    render   forward        GN   FindOpt    VarMin eval(all)  finisher   evals
+  H0         0.130     0.016     0.016     0.000     0.121     0.208     0.311     0.330      489
+  H1         0.129     0.016     0.015     0.000     0.111     1.351     1.379     1.463     2144
+  H3         0.129     0.016     0.015     0.000     0.078     1.530     1.517     1.609     2355
+  H3c        0.130     0.016     0.016     0.000     0.078     1.530     1.517     1.609     2355
+  H3m        0.130     0.016     0.015     0.000     0.576     0.000     0.547     0.580      849
+  HG         0.178     0.021     0.015     0.168     0.077     1.513     1.499     1.591     2355
+  H0 (stored findoptimal_b_raw): mean finisher seconds 0.362, evals 489
 
 Success criteria, clean data (H3 = net x3 -> FindOptimal):
   [MET    ] C1 H3 median <= 0.035 deg and fraction < 0.1 deg >= 0.9 for r <= 3: medians 0.0105, 0.0104, 0.0105, 0.0105, 0.0105, 0.0105, 0.0105, 0.0105, 0.0107; frac<0.1 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00
@@ -183,16 +193,16 @@ Success criteria, clean data (H3 = net x3 -> FindOptimal):
 
 Decision points, clean data:
   D1 H1 within 0.005 deg of H3 at r <= 2 (median H1 - H3): +0.0000, +0.0010, +0.0018, +0.0027, +0.0045, +0.0060, +0.0073, +0.0076 -> keep x3
-  D2 H3 above 0.035 deg floor; cost at truth vs at result; min-cost rule (H0,H3):
-      r=0.05: H3>0.035 deg in 2% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.00929 vs H3 0.0105, wrong 0.00% vs 0.00%
-      r=0.1: H3>0.035 deg in 1% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.00969 vs H3 0.0104, wrong 0.00% vs 0.00%
-      r=0.25: H3>0.035 deg in 2% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0101 vs H3 0.0105, wrong 0.00% vs 0.00%
-      r=0.5: H3>0.035 deg in 2% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0103 vs H3 0.0105, wrong 0.00% vs 0.00%
-      r=0.75: H3>0.035 deg in 2% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0103 vs H3 0.0105, wrong 0.00% vs 0.00%
-      r=1: H3>0.035 deg in 2% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0103 vs H3 0.0105, wrong 0.00% vs 0.00%
-      r=1.5: H3>0.035 deg in 2% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0104 vs H3 0.0105, wrong 0.00% vs 0.00%
-      r=2: H3>0.035 deg in 2% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0105 vs H3 0.0105, wrong 0.00% vs 0.00%
-      r=3: H3>0.035 deg in 2% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0107 vs H3 0.0107, wrong 0.00% vs 0.00%
+  D2 H3 above the 0.035 deg floor; fraction of cases in which the truth has a lower cost than the finisher's result (all cases and the tail); min-cost rule (needs BOTH the H0 and the H3 finisher, about 1.5x the H3 finisher cost):
+      r=0.05: H3 > 0.035 deg in 2% of cases. cost(truth) < cost(result): H3 all cases 97.9% (tail > 0.035 deg 100.0%); H0 all cases 94.4% (tail 100.0%). min-cost(H0,H3): median 0.00929 vs H3 0.0105, wrong 0.00% vs 0.00%
+      r=0.1: H3 > 0.035 deg in 1% of cases. cost(truth) < cost(result): H3 all cases 97.8% (tail > 0.035 deg 100.0%); H0 all cases 95.7% (tail 100.0%). min-cost(H0,H3): median 0.00969 vs H3 0.0104, wrong 0.00% vs 0.00%
+      r=0.25: H3 > 0.035 deg in 2% of cases. cost(truth) < cost(result): H3 all cases 97.7% (tail > 0.035 deg 100.0%); H0 all cases 97.7% (tail 100.0%). min-cost(H0,H3): median 0.0101 vs H3 0.0105, wrong 0.00% vs 0.00%
+      r=0.5: H3 > 0.035 deg in 2% of cases. cost(truth) < cost(result): H3 all cases 97.9% (tail > 0.035 deg 100.0%); H0 all cases 98.2% (tail 100.0%). min-cost(H0,H3): median 0.0103 vs H3 0.0105, wrong 0.00% vs 0.00%
+      r=0.75: H3 > 0.035 deg in 2% of cases. cost(truth) < cost(result): H3 all cases 97.8% (tail > 0.035 deg 100.0%); H0 all cases 98.5% (tail 100.0%). min-cost(H0,H3): median 0.0103 vs H3 0.0105, wrong 0.00% vs 0.00%
+      r=1: H3 > 0.035 deg in 2% of cases. cost(truth) < cost(result): H3 all cases 97.8% (tail > 0.035 deg 100.0%); H0 all cases 99.3% (tail 100.0%). min-cost(H0,H3): median 0.0103 vs H3 0.0105, wrong 0.00% vs 0.00%
+      r=1.5: H3 > 0.035 deg in 2% of cases. cost(truth) < cost(result): H3 all cases 97.6% (tail > 0.035 deg 100.0%); H0 all cases 99.6% (tail 100.0%). min-cost(H0,H3): median 0.0104 vs H3 0.0105, wrong 0.00% vs 0.00%
+      r=2: H3 > 0.035 deg in 2% of cases. cost(truth) < cost(result): H3 all cases 98.6% (tail > 0.035 deg 100.0%); H0 all cases 100.0% (tail 100.0%). min-cost(H0,H3): median 0.0105 vs H3 0.0105, wrong 0.00% vs 0.00%
+      r=3: H3 > 0.035 deg in 2% of cases. cost(truth) < cost(result): H3 all cases 98.6% (tail > 0.035 deg 100.0%); H0 all cases 100.0% (tail 100.0%). min-cost(H0,H3): median 0.0107 vs H3 0.0107, wrong 0.00% vs 0.00%
   D3: no case has b > default box
   D4 r=0.05: median H3m - H3 = -0.0021 deg; finisher time 0.62s vs 1.60s (0.39x) -> H3m recommended
   D4 r=0.1: median H3m - H3 = -0.0014 deg; finisher time 0.59s vs 1.60s (0.37x) -> H3m recommended
@@ -224,7 +234,7 @@ Decision points, clean data:
       tau=1 r=2: HG used in 0%; median 0.0105 (H3 0.0105, HG 0.0105); wrong 0.00% (H3 0.00%, HG 0.00%)
       tau=1 r=3: HG used in 0%; median 0.0107 (H3 0.0107, HG 0.0105); wrong 0.00% (H3 0.00%, HG 0.00%)
       tau=1 r=5: HG used in 0%; median 0.0107 (H3 0.0107, HG 0.0105); wrong 0.00% (H3 0.00%, HG 0.00%)
-  Post hoc (b): min cost of H0 and H3 (all radii):
+  Post hoc (b): min cost of H0 and H3 (needs both finishers; all radii):
       r=0.05: median 0.00929 (H3 0.0105, H0 0.0197); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 40%
       r=0.1: median 0.00969 (H3 0.0104, H0 0.0257); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 31%
       r=0.25: median 0.0101 (H3 0.0105, H0 0.0426); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 19%
@@ -238,6 +248,7 @@ Decision points, clean data:
 
 === realistic ===
 pass-1 successes per radius: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 994]; fall-backs (no net estimate): [0, 0, 0, 0, 0, 0, 0, 0, 0, 6]
+fall-back cases (6): H0: median 47.8 deg, wrong 100.0%; H3: median 47.8 deg, wrong 100.0%
 
 median error (deg, cubic-reduced) (realistic)
   r(deg)          H0        N1        N3        H1        H3       H3c       H3m        HG
@@ -318,56 +329,56 @@ paired win rate of H3 vs ... (ties = half; tie fraction in brackets) (realistic)
   5            0.68 [0.11]     0.88 [0.06]     0.85 [0.06]     0.73 [0.00]     0.44 [0.02]
 
 paired win rate of H1 vs ... (ties = half; tie fraction in brackets) (realistic)
-  r(deg)                N3              H0              MC          Huber3
-  0.05         0.80 [0.09]     0.48 [0.07]     0.59 [0.05]     0.88 [0.03]
-  0.1          0.81 [0.07]     0.57 [0.06]     0.80 [0.04]     0.86 [0.04]
-  0.25         0.79 [0.07]     0.68 [0.04]     0.93 [0.01]     0.87 [0.04]
-  0.5          0.77 [0.05]     0.76 [0.05]     0.98 [0.00]     0.85 [0.04]
-  0.75         0.75 [0.05]     0.80 [0.02]     0.98 [0.00]     0.82 [0.03]
-  1            0.78 [0.03]     0.82 [0.03]     0.99 [0.00]     0.84 [0.03]
-  1.5          0.74 [0.04]     0.87 [0.01]     0.99 [0.00]     0.82 [0.03]
-  2            0.65 [0.03]     0.89 [0.01]     0.97 [0.00]     0.75 [0.02]
-  3            0.41 [0.02]     0.94 [0.01]     0.88 [0.00]     0.52 [0.01]
-  5            0.10 [0.00]     0.77 [0.13]     0.46 [0.00]     0.03 [0.00]
+  r(deg)                N3              H0              H3              MC          Huber3
+  0.05         0.80 [0.09]     0.48 [0.07]     0.50 [0.15]     0.59 [0.05]     0.88 [0.03]
+  0.1          0.81 [0.07]     0.57 [0.06]     0.51 [0.14]     0.80 [0.04]     0.86 [0.04]
+  0.25         0.79 [0.07]     0.68 [0.04]     0.49 [0.12]     0.93 [0.01]     0.87 [0.04]
+  0.5          0.77 [0.05]     0.76 [0.05]     0.51 [0.10]     0.98 [0.00]     0.85 [0.04]
+  0.75         0.75 [0.05]     0.80 [0.02]     0.47 [0.11]     0.98 [0.00]     0.82 [0.03]
+  1            0.78 [0.03]     0.82 [0.03]     0.50 [0.09]     0.99 [0.00]     0.84 [0.03]
+  1.5          0.74 [0.04]     0.87 [0.01]     0.46 [0.09]     0.99 [0.00]     0.82 [0.03]
+  2            0.65 [0.03]     0.89 [0.01]     0.36 [0.07]     0.97 [0.00]     0.75 [0.02]
+  3            0.41 [0.02]     0.94 [0.01]     0.21 [0.04]     0.88 [0.00]     0.52 [0.01]
+  5            0.10 [0.00]     0.77 [0.13]     0.15 [0.06]     0.46 [0.00]     0.03 [0.00]
 
 paired win rate of H3c vs ... (ties = half; tie fraction in brackets) (realistic)
-  r(deg)                N3              H0              H1              MC          Huber3
-  0.05         0.79 [0.33]     0.47 [0.07]     0.48 [0.15]     0.58 [0.07]     0.87 [0.03]
-  0.1          0.77 [0.34]     0.53 [0.07]     0.46 [0.13]     0.77 [0.04]     0.87 [0.04]
-  0.25         0.79 [0.34]     0.64 [0.06]     0.47 [0.10]     0.93 [0.01]     0.87 [0.04]
-  0.5          0.78 [0.34]     0.73 [0.02]     0.47 [0.09]     0.98 [0.00]     0.86 [0.04]
-  0.75         0.79 [0.34]     0.80 [0.04]     0.52 [0.11]     0.98 [0.00]     0.86 [0.04]
-  1            0.80 [0.32]     0.82 [0.03]     0.48 [0.08]     0.99 [0.00]     0.87 [0.03]
-  1.5          0.78 [0.33]     0.87 [0.02]     0.52 [0.09]     0.99 [0.00]     0.86 [0.03]
-  2            0.79 [0.32]     0.92 [0.01]     0.62 [0.07]     0.99 [0.00]     0.86 [0.04]
-  3            0.80 [0.28]     0.98 [0.00]     0.78 [0.04]     0.97 [0.00]     0.83 [0.03]
-  5            0.71 [0.11]     0.90 [0.03]     0.87 [0.04]     0.75 [0.00]     0.45 [0.02]
+  r(deg)                N3              H0              H1              H3              MC          Huber3
+  0.05         0.79 [0.33]     0.47 [0.07]     0.48 [0.15]     0.49 [0.84]     0.58 [0.07]     0.87 [0.03]
+  0.1          0.77 [0.34]     0.53 [0.07]     0.46 [0.13]     0.47 [0.85]     0.77 [0.04]     0.87 [0.04]
+  0.25         0.79 [0.34]     0.64 [0.06]     0.47 [0.10]     0.47 [0.85]     0.93 [0.01]     0.87 [0.04]
+  0.5          0.78 [0.34]     0.73 [0.02]     0.47 [0.09]     0.48 [0.84]     0.98 [0.00]     0.86 [0.04]
+  0.75         0.79 [0.34]     0.80 [0.04]     0.52 [0.11]     0.49 [0.85]     0.98 [0.00]     0.86 [0.04]
+  1            0.80 [0.32]     0.82 [0.03]     0.48 [0.08]     0.48 [0.83]     0.99 [0.00]     0.87 [0.03]
+  1.5          0.78 [0.33]     0.87 [0.02]     0.52 [0.09]     0.49 [0.85]     0.99 [0.00]     0.86 [0.03]
+  2            0.79 [0.32]     0.92 [0.01]     0.62 [0.07]     0.48 [0.83]     0.99 [0.00]     0.86 [0.04]
+  3            0.80 [0.28]     0.98 [0.00]     0.78 [0.04]     0.48 [0.82]     0.97 [0.00]     0.83 [0.03]
+  5            0.71 [0.11]     0.90 [0.03]     0.87 [0.04]     0.53 [0.52]     0.75 [0.00]     0.45 [0.02]
 
 paired win rate of H3m vs ... (ties = half; tie fraction in brackets) (realistic)
-  r(deg)                N3              H0              H1              MC          Huber3
-  0.05         0.71 [0.37]     0.38 [0.05]     0.37 [0.10]     0.44 [0.04]     0.87 [0.03]
-  0.1          0.71 [0.38]     0.44 [0.04]     0.35 [0.09]     0.63 [0.03]     0.87 [0.04]
-  0.25         0.72 [0.36]     0.54 [0.03]     0.38 [0.09]     0.85 [0.01]     0.88 [0.03]
-  0.5          0.72 [0.36]     0.62 [0.03]     0.40 [0.08]     0.94 [0.01]     0.87 [0.04]
-  0.75         0.72 [0.37]     0.70 [0.02]     0.41 [0.07]     0.96 [0.00]     0.87 [0.03]
-  1            0.72 [0.35]     0.72 [0.02]     0.38 [0.04]     0.97 [0.00]     0.88 [0.03]
-  1.5          0.71 [0.36]     0.81 [0.02]     0.41 [0.05]     0.99 [0.00]     0.87 [0.03]
-  2            0.73 [0.35]     0.90 [0.01]     0.51 [0.04]     0.98 [0.00]     0.86 [0.04]
-  3            0.71 [0.32]     0.97 [0.00]     0.68 [0.02]     0.96 [0.00]     0.79 [0.03]
-  5            0.64 [0.23]     0.94 [0.00]     0.91 [0.00]     0.75 [0.00]     0.32 [0.01]
+  r(deg)                N3              H0              H1              H3              MC          Huber3
+  0.05         0.71 [0.37]     0.38 [0.05]     0.37 [0.10]     0.36 [0.27]     0.44 [0.04]     0.87 [0.03]
+  0.1          0.71 [0.38]     0.44 [0.04]     0.35 [0.09]     0.36 [0.28]     0.63 [0.03]     0.87 [0.04]
+  0.25         0.72 [0.36]     0.54 [0.03]     0.38 [0.09]     0.36 [0.27]     0.85 [0.01]     0.88 [0.03]
+  0.5          0.72 [0.36]     0.62 [0.03]     0.40 [0.08]     0.37 [0.26]     0.94 [0.01]     0.87 [0.04]
+  0.75         0.72 [0.37]     0.70 [0.02]     0.41 [0.07]     0.37 [0.28]     0.96 [0.00]     0.87 [0.03]
+  1            0.72 [0.35]     0.72 [0.02]     0.38 [0.04]     0.36 [0.24]     0.97 [0.00]     0.88 [0.03]
+  1.5          0.71 [0.36]     0.81 [0.02]     0.41 [0.05]     0.36 [0.26]     0.99 [0.00]     0.87 [0.03]
+  2            0.73 [0.35]     0.90 [0.01]     0.51 [0.04]     0.35 [0.25]     0.98 [0.00]     0.86 [0.04]
+  3            0.71 [0.32]     0.97 [0.00]     0.68 [0.02]     0.32 [0.23]     0.96 [0.00]     0.79 [0.03]
+  5            0.64 [0.23]     0.94 [0.00]     0.91 [0.00]     0.39 [0.10]     0.75 [0.00]     0.32 [0.01]
 
 paired win rate of HG vs ... (ties = half; tie fraction in brackets) (realistic)
-  r(deg)                N3              H0              H1              MC          Huber3
-  0.05                                                                                    
-  0.1                                                                                     
-  0.25                                                                                    
-  0.5                                                                                     
-  0.75                                                                                    
-  1                                                                                       
-  1.5          0.79 [0.26]     0.87 [0.02]     0.53 [0.07]     0.99 [0.00]     0.86 [0.04]
-  2            0.79 [0.22]     0.93 [0.01]     0.63 [0.07]     1.00 [0.00]     0.87 [0.04]
-  3            0.82 [0.13]     0.99 [0.00]     0.80 [0.04]     0.99 [0.00]     0.87 [0.03]
-  5            0.93 [0.02]     0.99 [0.00]     0.98 [0.00]     0.98 [0.00]     0.87 [0.04]
+  r(deg)                N3              H0              H1              H3              MC          Huber3
+  0.05                                                                                                    
+  0.1                                                                                                     
+  0.25                                                                                                    
+  0.5                                                                                                     
+  0.75                                                                                                    
+  1                                                                                                       
+  1.5          0.79 [0.26]     0.87 [0.02]     0.53 [0.07]     0.50 [0.47]     0.99 [0.00]     0.86 [0.04]
+  2            0.79 [0.22]     0.93 [0.01]     0.63 [0.07]     0.51 [0.35]     1.00 [0.00]     0.87 [0.04]
+  3            0.82 [0.13]     0.99 [0.00]     0.80 [0.04]     0.53 [0.22]     0.99 [0.00]     0.87 [0.03]
+  5            0.93 [0.02]     0.99 [0.00]     0.98 [0.00]     0.78 [0.05]     0.98 [0.00]     0.87 [0.04]
 
 mean cost evaluations per case (finisher) (realistic)
   r(deg)          H0        N1        N3        H1        H3       H3c       H3m        HG
@@ -382,15 +393,24 @@ mean cost evaluations per case (finisher) (realistic)
   3              415       nan       nan  1.29e+03  3.07e+03  2.53e+03  2.38e+03  3.29e+03
   5              373       nan       nan       407  1.73e+03  1.47e+03   2.6e+03  3.62e+03
 
-mean seconds per case by stage, 10 workers (contended) (realistic)
+mean seconds per case by stage, 10 workers (contended), all radii (realistic); FindOpt / VarMin / eval are inclusive
   pipe     prepare    render   forward        GN   FindOpt    VarMin eval(all)  finisher   evals
   H0         0.132     0.059     0.015     0.000     0.132     0.799     0.878     0.932     1358
   H1         0.131     0.058     0.015     0.000     0.119     1.547     1.570     1.667     2438
   H3         0.130     0.058     0.015     0.000     0.113     1.819     1.821     1.933     2829
   H3c        0.131     0.058     0.016     0.000     0.113     1.488     1.508     1.601     2344
   H3m        0.131     0.059     0.015     0.000     1.568     0.000     1.485     1.576     2313
-  HG         0.181     0.076     0.015     0.248     0.111     2.070     2.055     2.181     3222
   H0 (stored findoptimal_b_raw): mean finisher seconds 0.993, evals 1358
+
+mean seconds per case by stage, 10 workers (contended), r = 1.5, 2, 3, 5 (realistic); FindOpt / VarMin / eval are inclusive
+  pipe     prepare    render   forward        GN   FindOpt    VarMin eval(all)  finisher   evals
+  H0         0.131     0.053     0.016     0.000     0.126     0.222     0.329     0.349      511
+  H1         0.131     0.053     0.015     0.000     0.128     1.033     1.095     1.162     1700
+  H3         0.131     0.053     0.015     0.000     0.115     1.725     1.735     1.841     2682
+  H3c        0.131     0.053     0.016     0.000     0.115     1.411     1.439     1.527     2227
+  H3m        0.132     0.054     0.015     0.000     1.632     0.000     1.546     1.641     2398
+  HG         0.181     0.076     0.015     0.248     0.111     2.070     2.055     2.181     3222
+  H0 (stored findoptimal_b_raw): mean finisher seconds 0.382, evals 511
 
 Success criteria, realistic data (H3 = net x3 -> FindOptimal):
   [MET    ] C1 H3 median <= 0.035 deg and fraction < 0.1 deg >= 0.9 for r <= 3: medians 0.0205, 0.0197, 0.02, 0.0212, 0.02, 0.0203, 0.0207, 0.0218, 0.0214; frac<0.1 0.98, 0.98, 0.98, 0.98, 0.97, 0.97, 0.97, 0.96, 0.92
@@ -402,16 +422,16 @@ Success criteria, realistic data (H3 = net x3 -> FindOptimal):
 
 Decision points, realistic data:
   D1 H1 within 0.005 deg of H3 at r <= 2 (median H1 - H3): +0.0003, +0.0008, +0.0002, -0.0004, +0.0012, +0.0004, +0.0029, +0.0122 -> keep x3
-  D2 H3 above 0.035 deg floor; cost at truth vs at result; min-cost rule (H0,H3):
-      r=0.05: H3>0.035 deg in 27% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0137 vs H3 0.0205, wrong 0.00% vs 0.00%
-      r=0.1: H3>0.035 deg in 26% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.014 vs H3 0.0197, wrong 0.00% vs 0.00%
-      r=0.25: H3>0.035 deg in 27% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0163 vs H3 0.02, wrong 0.00% vs 0.00%
-      r=0.5: H3>0.035 deg in 27% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0178 vs H3 0.0212, wrong 0.00% vs 0.00%
-      r=0.75: H3>0.035 deg in 26% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0181 vs H3 0.02, wrong 0.00% vs 0.00%
-      r=1: H3>0.035 deg in 26% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0183 vs H3 0.0203, wrong 0.00% vs 0.00%
-      r=1.5: H3>0.035 deg in 25% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0189 vs H3 0.0207, wrong 0.00% vs 0.00%
-      r=2: H3>0.035 deg in 28% of cases; of those cost(truth)<cost(H3) in 97%; min-cost(H0,H3) median 0.0199 vs H3 0.0218, wrong 0.00% vs 0.10%
-      r=3: H3>0.035 deg in 30% of cases; of those cost(truth)<cost(H3) in 100%; min-cost(H0,H3) median 0.0214 vs H3 0.0214, wrong 4.00% vs 4.10%
+  D2 H3 above the 0.035 deg floor; fraction of cases in which the truth has a lower cost than the finisher's result (all cases and the tail); min-cost rule (needs BOTH the H0 and the H3 finisher, about 1.5x the H3 finisher cost):
+      r=0.05: H3 > 0.035 deg in 27% of cases. cost(truth) < cost(result): H3 all cases 95.5% (tail > 0.035 deg 99.6%); H0 all cases 93.8% (tail 99.6%). min-cost(H0,H3): median 0.0137 vs H3 0.0205, wrong 0.00% vs 0.00%
+      r=0.1: H3 > 0.035 deg in 26% of cases. cost(truth) < cost(result): H3 all cases 96.6% (tail > 0.035 deg 99.6%); H0 all cases 95.2% (tail 99.7%). min-cost(H0,H3): median 0.014 vs H3 0.0197, wrong 0.00% vs 0.00%
+      r=0.25: H3 > 0.035 deg in 27% of cases. cost(truth) < cost(result): H3 all cases 96.0% (tail > 0.035 deg 99.6%); H0 all cases 96.9% (tail 100.0%). min-cost(H0,H3): median 0.0163 vs H3 0.02, wrong 0.00% vs 0.00%
+      r=0.5: H3 > 0.035 deg in 27% of cases. cost(truth) < cost(result): H3 all cases 95.6% (tail > 0.035 deg 99.6%); H0 all cases 97.4% (tail 99.8%). min-cost(H0,H3): median 0.0178 vs H3 0.0212, wrong 0.00% vs 0.00%
+      r=0.75: H3 > 0.035 deg in 26% of cases. cost(truth) < cost(result): H3 all cases 96.5% (tail > 0.035 deg 99.6%); H0 all cases 98.6% (tail 100.0%). min-cost(H0,H3): median 0.0181 vs H3 0.02, wrong 0.00% vs 0.00%
+      r=1: H3 > 0.035 deg in 26% of cases. cost(truth) < cost(result): H3 all cases 96.0% (tail > 0.035 deg 99.6%); H0 all cases 99.2% (tail 100.0%). min-cost(H0,H3): median 0.0183 vs H3 0.0203, wrong 0.00% vs 0.00%
+      r=1.5: H3 > 0.035 deg in 25% of cases. cost(truth) < cost(result): H3 all cases 96.3% (tail > 0.035 deg 100.0%); H0 all cases 99.4% (tail 99.9%). min-cost(H0,H3): median 0.0189 vs H3 0.0207, wrong 0.00% vs 0.00%
+      r=2: H3 > 0.035 deg in 28% of cases. cost(truth) < cost(result): H3 all cases 95.3% (tail > 0.035 deg 97.5%); H0 all cases 99.6% (tail 100.0%). min-cost(H0,H3): median 0.0199 vs H3 0.0218, wrong 0.00% vs 0.10%
+      r=3: H3 > 0.035 deg in 30% of cases. cost(truth) < cost(result): H3 all cases 95.8% (tail > 0.035 deg 100.0%); H0 all cases 100.0% (tail 100.0%). min-cost(H0,H3): median 0.0214 vs H3 0.0214, wrong 4.00% vs 4.10%
   D3 r=0.05: 175 cases with b > default; median H3c 0.0338 vs H3 0.0223; wrong 0.00% vs 0.00%; H3c win 0.46
   D3 r=0.1: 160 cases with b > default; median H3c 0.0359 vs H3 0.0256; wrong 0.00% vs 0.00%; H3c win 0.32
   D3 r=0.25: 165 cases with b > default; median H3c 0.037 vs H3 0.0244; wrong 0.00% vs 0.00%; H3c win 0.33
@@ -453,7 +473,7 @@ Decision points, realistic data:
       tau=1 r=2: HG used in 0%; median 0.0218 (H3 0.0218, HG 0.0215); wrong 0.10% (H3 0.10%, HG 0.00%)
       tau=1 r=3: HG used in 0%; median 0.0214 (H3 0.0214, HG 0.0199); wrong 4.10% (H3 4.10%, HG 0.00%)
       tau=1 r=5: HG used in 0%; median 0.175 (H3 0.175, HG 0.0199); wrong 43.56% (H3 43.56%, HG 2.31%)
-  Post hoc (b): min cost of H0 and H3 (all radii):
+  Post hoc (b): min cost of H0 and H3 (needs both finishers; all radii):
       r=0.05: median 0.0137 (H3 0.0205, H0 0.0189); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 59%
       r=0.1: median 0.014 (H3 0.0197, H0 0.0248); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 48%
       r=0.25: median 0.0163 (H3 0.02, H0 0.037); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 30%

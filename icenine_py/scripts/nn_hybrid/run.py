@@ -32,6 +32,7 @@ Usage (from icenine_py/):
 import argparse
 import contextlib
 import io
+import json
 import os
 import sys
 import time
@@ -122,7 +123,13 @@ def init_worker(wargs: Dict[str, Any]) -> None:
     for name in wargs["use_models"]:
         _NETS[name] = ps.load_model(paths[name])[0]
     _T.count_evaluations(VoxelCostFunction)
-    _T.patch(MCOptimizer, "optimize", "find_optimal")
+    max_steps = fs._W.rec.params.max_mc_steps
+
+    def optimize_stage(args: tuple, kwargs: dict) -> str:
+        """FindOptimal runs the reconstructor's MC step budget, H3m's MC (run_one_mc) another."""
+        return "find_optimal" if kwargs.get("max_mc_steps") == max_steps else "mc_optimize"
+
+    _T.patch(MCOptimizer, "optimize", optimize_stage)
     _T.patch(MCOptimizer, "variance_minimizing_optimize", "variance_min")
     _T.label(fs._W.local_fn, "local")
 
@@ -283,8 +290,10 @@ def refine_fo(
             local_cost_fn=lf,
             mc_optimizer=mc,
         )
-    return np.asarray(res.orientation, dtype=np.float64), float(res.cost), bool(
-        rec.last_find_optimal.get("converged", False)
+    return (
+        np.asarray(res.orientation, dtype=np.float64),
+        float(res.cost),
+        bool(rec.last_find_optimal.get("converged", False)),
     )
 
 
@@ -332,7 +341,7 @@ def task(item: Tuple[Any, ...]) -> Tuple[int, int, float]:
     )  # fmt: skip
     h3_cache = None
     if pipe == "H3c":
-        p3 = Path(str(path).replace("H3c_", "H3_"))
+        p3 = Path(path).with_name(Path(path).name.replace("H3c_", "H3_", 1))
         h3_cache = np.load(p3) if p3.exists() else None
     for vb in variant_batches(ctx, vidx, vpos, ri, ref_nroi, ref_fail, variants):
         vi, vctx = vb.vi, vb.vctx
@@ -341,7 +350,7 @@ def task(item: Tuple[Any, ...]) -> Tuple[int, int, float]:
         snap = _T.snapshot()
         R_gn = None
         if pipe == "HG":
-            R_gn, gn_ok = gn_estimates(ctx, vidx, vb)
+            R_gn, _gn_ok = gn_estimates(ctx, vidx, vb)
             out["R_gn"][:, vi] = R_gn
             # net from the GN estimate: re-render the true orientation at that nominal
             dstart = ps.relative_offset_deg(vctx.R_true, R_gn)
@@ -391,8 +400,8 @@ def task(item: Tuple[Any, ...]) -> Tuple[int, int, float]:
             out["fallback"][j, vi] = fallback
             out["start"][j, vi] = start
             seed = b_seed(a, vpos, ri, j, vi)
-            attach = fs.attach_images
-            attach(case_keys(ctx, vb, j))
+            keys = case_keys(ctx, vb, j)
+            fs.attach_images(keys)
             diameter: Optional[float] = None
             box = np.nan
             copied = False
@@ -421,10 +430,12 @@ def task(item: Tuple[Any, ...]) -> Tuple[int, int, float]:
             n0 = lf.eval_count
             t0 = time.perf_counter()
             if pipe == "H3m" and not fallback:
-                # run_one_mc uses the search box 1.5 r: r = box / 1.5 gives a box of 3 sigma_max
-                o = osw.run_mc_adam(
-                    ctx, vctx, case_keys(ctx, vb, j), start, float(box) / 1.5, ["mc"], seed
-                )["mc"]
+                # run_one_mc uses the search box 1.5 r: r = box / 1.5 gives a box of 3 sigma_max.
+                # run_mc_adam also groups the pixels and evaluates the start / truth quality; only
+                # its own timing of the MC (o["seconds"]) is the finisher time. (The stored H3m
+                # raws were made before this fix: their t_finish includes that harness work.)
+                o = osw.run_mc_adam(ctx, vctx, keys, start, float(box) / 1.5, ["mc"], seed)["mc"]
+                t_fin = float(o["seconds"])
                 R_f = np.asarray(o["R_final"], dtype=np.float64)
                 cost_f = float(
                     lf.evaluate(R_f.astype(np.float32), vctx.vertices, vctx.voxel.phase).cost
@@ -434,7 +445,8 @@ def task(item: Tuple[Any, ...]) -> Tuple[int, int, float]:
             else:
                 R_f, cost_f, conv = refine_fo(start, vctx, seed, diameter)
                 out["evals"][j, vi] = lf.eval_count - n0
-            out["t_finish"][j, vi] = time.perf_counter() - t0
+                t_fin = time.perf_counter() - t0
+            out["t_finish"][j, vi] = t_fin
             dd = _T.delta_since(snap, "inclusive")  # find_optimal / variance_min / evaluate overlap
             out["t_fo"][j, vi] = dd.get("find_optimal", 0.0)
             out["t_vm"][j, vi] = dd.get("variance_min", 0.0)
@@ -525,13 +537,13 @@ def do_run(args: argparse.Namespace, cache: Path, out_dir: Path) -> float:
     run_pool(todo, args.workers, wargs, args.pipeline)
     wall = time.time() - t0
     print(f"{args.pipeline} finished; wall {wall:.0f}s", flush=True)
-    import json
-
     out_dir.mkdir(parents=True, exist_ok=True)
     wt = out_dir / "wall_times.json"
     d = json.loads(wt.read_text()) if wt.exists() else {}
-    d[f"{args.pipeline}_{args.model}" + ("" if len(args.variants) == 2 else "_" + args.variants[0])] = dict(
-        wall_s=wall, tasks=len(todo), workers=args.workers)
+    d[
+        f"{args.pipeline}_{args.model}"
+        + ("" if len(args.variants) == 2 else "_" + args.variants[0])
+    ] = dict(wall_s=wall, tasks=len(todo), workers=args.workers)
     wt.write_text(json.dumps(d, indent=1))
     assemble(items, args, out_dir)
     return wall

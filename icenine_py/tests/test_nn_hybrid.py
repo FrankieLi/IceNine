@@ -2,7 +2,9 @@
 reproducing the stored FindOptimal experiment B."""
 
 import math
+import os
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -21,8 +23,19 @@ needs_data = pytest.mark.skipif(
 )
 
 
+def _import(name: str):
+    """Import a scripts/nn_hybrid module without leaking the OMP / MKL thread settings that
+    the sweep scripts put in os.environ when imported."""
+    keep = dict(os.environ)
+    try:
+        return __import__(name)
+    finally:
+        for k in set(os.environ) - set(keep):
+            del os.environ[k]
+
+
 def test_covariance_box_sizing():
-    import run as nh
+    nh = _import("run")
     from icenine.config_file import ConfigFile
     from icenine.orientation_search import SearchParameters
 
@@ -47,11 +60,18 @@ def test_covariance_box_sizing():
 
 @pytest.fixture(scope="module")
 def worker():
-    import run as nh
+    """One in-process worker (physics, net, timer patches), torn down afterwards."""
+    import torch
 
+    nh = _import("run")
+    threads = torch.get_num_threads()
     cfg, sweep = nh.worker_args(["realistic_s0"])
     nh.init_worker(cfg)
-    return nh, sweep
+    try:
+        yield nh, sweep
+    finally:
+        nh._T.uninstall()
+        torch.set_num_threads(threads)
 
 
 @needs_data
@@ -108,3 +128,130 @@ def test_findoptimal_alone_reproduces_stored_experiment_b(worker):
         assert cost == b["cost_final"][bpos, ri, j, vb.vi]
         checked += 1
     assert checked == 2
+
+
+# ---------------------------------------------------------------------------
+# summary.py helpers
+# ---------------------------------------------------------------------------
+
+
+def test_wilson_interval():
+    sm = _import("summary")
+    lo, hi = sm.wilson(0, 1000)
+    assert lo == pytest.approx(0.0, abs=1e-12) and hi == pytest.approx(0.0038, abs=2e-4)
+    lo, hi = sm.wilson(50, 100)
+    assert (lo, hi) == pytest.approx((0.404, 0.596), abs=2e-3)
+    assert all(np.isnan(sm.wilson(0, 0)))
+
+
+def test_win_rate_tie_handling():
+    sm = _import("summary")
+    a = np.array([0.10, 0.20, 0.301, 0.5, np.nan])
+    b = np.array([0.20, 0.10, 0.300, 0.5, 0.1])
+    win, tie, n = sm.win_rate(a, b)  # win, loss, tie (|d| < 0.002), tie, ignored
+    assert n == 4 and tie == pytest.approx(0.5)
+    assert win == pytest.approx((1 + 0.5 * 2) / 4)
+    assert np.isnan(sm.win_rate(np.array([np.nan]), np.array([1.0]))[0])
+
+
+def test_reorder_permuted_and_partial_voxel_lists():
+    sm = _import("summary")
+    arr = np.array([[10.0], [20.0], [30.0]])
+    src = np.array([5, 1, 9])
+    out = sm.reorder(arr, src, np.array([9, 5, 1]))
+    assert out[:, 0].tolist() == [30.0, 10.0, 20.0]
+    part = sm.reorder(arr, src, np.array([1, 7]))  # voxel 7 absent: NaN
+    assert part[0, 0] == 20.0 and np.isnan(part[1, 0])
+    ints = sm.reorder(np.array([3, 4]), np.array([1, 2]), np.array([2, 8]))
+    assert ints.tolist() == [4, 0]
+
+
+# ---------------------------------------------------------------------------
+# stage_timer.py
+# ---------------------------------------------------------------------------
+
+
+class _Cls:
+    def method(self, x):
+        return x + 1
+
+    @staticmethod
+    def smeth(x):
+        return x * 2
+
+    def evaluate(self, x):
+        return x
+
+
+class _Sub(_Cls):
+    pass  # inherits method / evaluate
+
+
+def test_stage_timer_nesting_and_exclusive_time():
+    st = _import("stage_timer").StageTimer()
+    with st.stage("outer"):
+        time.sleep(0.02)
+        with st.stage("inner"):
+            time.sleep(0.03)
+    assert st.calls["outer"] == 1 and st.calls["inner"] == 1
+    assert st.inclusive["outer"] >= st.inclusive["inner"] >= 0.03
+    assert st.exclusive["outer"] == pytest.approx(
+        st.inclusive["outer"] - st.inclusive["inner"], abs=1e-6
+    )
+    assert st.exclusive["inner"] == pytest.approx(st.inclusive["inner"])
+    before = st.snapshot()
+    with st.stage("inner"):
+        pass
+    assert set(st.delta_since(before, "inclusive")) == {"inner"}
+
+
+def test_stage_timer_patch_uninstall_restores_identity():
+    st = _import("stage_timer").StageTimer()
+    orig_method = _Cls.__dict__["method"]
+    orig_static = _Cls.__dict__["smeth"]
+    st.patch(_Cls, "method", "m")
+    st.patch(_Cls, "smeth", "s")
+    st.patch(_Sub, "method", "inherited")  # attribute inherited from _Cls
+    assert _Cls().method(1) == 2 and _Cls.smeth(3) == 6 and _Sub().method(1) == 2
+    assert isinstance(_Cls.__dict__["smeth"], staticmethod)
+    # _Sub's wrapper wraps _Cls's already-patched wrapper, so "m" is entered by both calls
+    assert st.calls["m"] == 2 and st.calls["s"] == 1 and st.calls["inherited"] == 1
+    st.uninstall()
+    assert _Cls.__dict__["method"] is orig_method
+    assert _Cls.__dict__["smeth"] is orig_static
+    assert "method" not in _Sub.__dict__  # the inherited attribute is deleted again
+
+
+def test_stage_timer_refuses_double_install_and_uses_callable_names():
+    st = _import("stage_timer").StageTimer()
+    with st.installed():
+        st.patch(_Cls, "method", lambda a, k: "big" if a[1] > 5 else "small")
+        with pytest.raises(RuntimeError):
+            st.patch(_Cls, "method", "again")
+        _Cls().method(10)
+        _Cls().method(1)
+    assert st.calls["big"] == 1 and st.calls["small"] == 1
+    assert _Cls().method(1) == 2 and st.calls["big"] == 1  # uninstalled by the context manager
+
+
+def test_stage_timer_evaluation_counts_by_role_without_strong_refs():
+    import gc
+    import weakref
+
+    st = _import("stage_timer").StageTimer()
+    with st.installed():
+        st.count_evaluations(_Cls)
+        a, b = _Cls(), _Cls()
+        st.label(a, "global")
+        st.label(b, "local")
+        before = st.snapshot()
+        a.evaluate(1), b.evaluate(1), b.evaluate(2)
+        assert st.evaluations(b) == 2
+        assert st.evaluations_by_role() == {"global": 1, "local": 2}
+        assert st.evaluations_since(before) == {"global": 1, "local": 2}
+        st.reset()
+        assert st.evaluations_by_role() == {"global": 0, "local": 0}
+        ref = weakref.ref(a)
+        del a
+        gc.collect()
+        assert ref() is None  # the timer holds no strong reference

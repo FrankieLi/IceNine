@@ -36,7 +36,14 @@ OUT_DIR = ICENINE_PY / "benchmarks" / "nn_hybrid"
 VARIANT_LABEL = {0: "clean", 1: "realistic"}
 TIE_DEG = 0.002
 PIPES = ["H0", "N1", "N3", "H1", "H3", "H3c", "H3m", "HG"]
+# FindOptimal's default search box (ReconstructQ8): max(d / 3, 0.2 deg), d = 5 deg / 1.5^4
+DEFAULT_BOX_DEG = 5.0 / 1.5**4 / 3.0
 TAU_GRID = [0.1, 0.2, 0.3, 0.5, 1.0]
+
+
+def fj(spec: str, xs: Any) -> str:
+    """Comma-joined format of a sequence."""
+    return ", ".join(format(x, spec) for x in xs)
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> Tuple[float, float]:
@@ -53,7 +60,9 @@ def reorder(arr: np.ndarray, src: np.ndarray, dst: np.ndarray) -> np.ndarray:
     """arr's first axis is in voxel order `src`; return it in order `dst` (voxels absent from
     `src`, as in a pilot on a subset, are NaN / zero)."""
     pos = {int(v): i for i, v in enumerate(src)}
-    out = np.full((len(dst),) + arr.shape[1:], np.nan if arr.dtype.kind == "f" else 0, dtype=arr.dtype)
+    out = np.full(
+        (len(dst),) + arr.shape[1:], np.nan if arr.dtype.kind == "f" else 0, dtype=arr.dtype
+    )
     for k, v in enumerate(dst):
         if int(v) in pos:
             out[k] = arr[pos[int(v)]]
@@ -74,15 +83,17 @@ class Study:
         self.radii = sw["radii"]
         self.mi = [str(m) for m in sw["models"]].index(model)
         self.mask = (sw["fail_pass1"] == 0)[:nv]  # (V, R, D, 2) pass-1 successes
-        self.sweep = {k: sw[k][:nv] if k in ("err_angle", "n_roi", "fail_pass1") else sw[k] for k in sw.files}
+        self.sweep = {
+            k: sw[k][:nv] if k in ("err_angle", "n_roi", "fail_pass1") else sw[k] for k in sw.files
+        }
         a = np.load(SWEEP_DIR / "findoptimal_a_raw.npz")
         self.R_true = np.stack(
             [a["R_true"][np.nonzero((a["voxel_indices"] == v) & (a["variant_index"] == 0))[0][0]]
              for v in self.vox]
         )  # fmt: skip
         b = np.load(SWEEP_DIR / "findoptimal_b_raw.npz")
-        self.b = {k: reorder(b[k], b["voxel_indices"], self.vox)
-                  for k in ("R_final", "cost_final", "cost_true", "runtime", "evals", "ran")}  # fmt: skip
+        keys = ("R_final", "cost_final", "cost_true", "runtime", "evals", "ran")
+        self.b = {k: reorder(b[k], b["voxel_indices"], self.vox) for k in keys}
         self.opt = np.load(SWEEP_DIR / "optimizer_sweep_raw.npz")
         self.opt = {k: self.opt[k][:nv] for k in ("err_angle", "voxel_indices")}
         assert (self.opt["voxel_indices"] == self.vox).all()
@@ -136,7 +147,9 @@ class Study:
         return self.err(full, reduce)
 
     def baseline_err(self, name: str) -> np.ndarray:
-        """Unreduced angle of the optimizer sweep's `mc` (one-shot) or `huber` (x3)."""
+        """Angle of the optimizer sweep's `mc` (one-shot) or `huber` (x3). These are stored
+        UNREDUCED (no cubic reduction); next to the reduced errors of our pipelines this is
+        immaterial for r <= 5 deg, where their errors stay far below a symmetry flip."""
         mi, p = {"MC": (0, 0), "Huber3": (3, 2)}[name]
         return self.opt["err_angle"][:, :, :, :, mi, p].astype(np.float64)
 
@@ -199,12 +212,12 @@ def build(st: Study) -> Dict[str, Any]:
                 if np.isfinite(e).sum() == 0:
                     continue
                 d = stats(e, pick(errs_u[p], ri, vi, m))
-                for q in ("N3", "H0", "H1"):
+                for q in ("N3", "H0", "H1", "H3"):
                     if q != p and errs.get(q) is not None:
-                        w, t, n = win_rate(e, pick(errs[q], ri, vi, m))
+                        w, t, _n = win_rate(e, pick(errs[q], ri, vi, m))
                         d[f"win_vs_{q}"], d[f"tie_vs_{q}"] = w, t
                 for q in ("MC", "Huber3"):
-                    w, t, n = win_rate(e, pick(base[q], ri, vi, m))
+                    w, t, _n = win_rate(e, pick(base[q], ri, vi, m))
                     d[f"win_vs_{q}"], d[f"tie_vs_{q}"] = w, t
                 ev = None
                 if p in st.raws and ri in st.raws[p]["radii_idx"]:
@@ -231,7 +244,9 @@ def fmt(x: float, p: int = 3) -> str:
     return "  nan" if x is None or not np.isfinite(x) else f"{x:.{p}g}"
 
 
-def table(res: Dict[str, Any], radii: np.ndarray, vname: str, key: str, label: str, pct: bool = False) -> str:
+def table(
+    res: Dict[str, Any], radii: np.ndarray, vname: str, key: str, label: str, pct: bool = False
+) -> str:
     pipes = [p for p in PIPES if any(p in res[vname][ri] for ri in range(10))]
     lines = [f"{label} ({vname})", "  r(deg)  " + "".join(f"{p:>10s}" for p in pipes)]
     for ri in range(10):
@@ -246,7 +261,10 @@ def table(res: Dict[str, Any], radii: np.ndarray, vname: str, key: str, label: s
 
 def wrong_table(res: Dict[str, Any], radii: np.ndarray, vname: str) -> str:
     pipes = [p for p in PIPES if any(p in res[vname][ri] for ri in range(10))]
-    lines = [f"wrong rate % [95% Wilson] ({vname})", "  r(deg)  " + "".join(f"{p:>20s}" for p in pipes)]
+    lines = [
+        f"wrong rate % [95% Wilson] ({vname})",
+        "  r(deg)  " + "".join(f"{p:>20s}" for p in pipes),
+    ]
     for ri in range(10):
         cells = []
         for p in pipes:
@@ -259,7 +277,7 @@ def wrong_table(res: Dict[str, Any], radii: np.ndarray, vname: str) -> str:
 
 
 def win_table(res: Dict[str, Any], radii: np.ndarray, vname: str, pipe: str) -> str:
-    cols = [c for c in ("N3", "H0", "H1", "MC", "Huber3") if c != pipe]
+    cols = [c for c in ("N3", "H0", "H1", "H3", "MC", "Huber3") if c != pipe]
     lines = [f"paired win rate of {pipe} vs ... (ties = half; tie fraction in brackets) ({vname})",
              "  r(deg)  " + "".join(f"{c:>16s}" for c in cols)]  # fmt: skip
     for ri in range(10):
@@ -274,22 +292,35 @@ def win_table(res: Dict[str, Any], radii: np.ndarray, vname: str, pipe: str) -> 
     return "\n".join(lines)
 
 
-def time_table(st: Study, vi: int) -> str:
-    """Mean seconds per case (pass-1 successes) by stage, per pipeline (all radii run)."""
+def time_table(st: Study, vi: int, ris: Optional[List[int]] = None) -> str:
+    """Mean seconds per case (pass-1 successes) by stage and pipeline over the radii `ris` (default
+    all). Pipelines not run at every radius of `ris` are skipped (compare them in the common block).
+    The GN column includes the harness prepare / render of GN passes 2-3."""
+    ris = list(range(10)) if ris is None else ris
     keys = [("t_prep", "prepare"), ("t_render", "render"), ("t_forward", "forward"), ("t_gn", "GN"),
-            ("t_fo", "FindOpt"), ("t_vm", "VarMin"), ("t_eval", "eval(all)"), ("t_finish", "finisher")]  # fmt: skip
-    lines = [f"mean seconds per case by stage, 10 workers (contended) ({VARIANT_LABEL[vi]})",
+            ("t_fo", "FindOpt"), ("t_vm", "VarMin"), ("t_eval", "eval(all)"),
+            ("t_finish", "finisher")]  # fmt: skip
+    label = "all radii" if len(ris) == 10 else f"r = {', '.join(f'{st.radii[i]:g}' for i in ris)}"
+    lines = [f"mean seconds per case by stage, 10 workers (contended), {label} "
+             f"({VARIANT_LABEL[vi]}); FindOpt / VarMin / eval are inclusive",
              "  pipe  " + "".join(f"{k[1]:>10s}" for k in keys) + "   evals"]  # fmt: skip
     for p, d in st.raws.items():
-        if "t_finish" not in d:
+        if "t_finish" not in d or not set(ris) <= set(d["radii_idx"].tolist()):
             continue
-        m = np.isfinite(d["t_finish"][..., vi]) & (d["fail_pass1"][..., vi] == 0)
-        cells = [f"{np.mean(d[k][..., vi][m]) if m.any() else np.nan:>10.3f}" for k, _ in keys]
-        ev = np.mean(d["evals"][..., vi][m]) if m.any() else np.nan
+        sel = [list(d["radii_idx"]).index(i) for i in ris]
+        msk = st.mask[:, ris, :, vi]
+        m = np.isfinite(d["t_finish"][:, sel, :, vi]) & msk
+        cells = [
+            f"{np.mean(d[k][:, sel, :, vi][m]) if m.any() else np.nan:>10.3f}" for k, _ in keys
+        ]
+        ev = np.mean(d["evals"][:, sel, :, vi][m]) if m.any() else np.nan
         lines.append(f"  {p:<5s} " + "".join(cells) + f"{ev:>9.0f}")
-    lines.append("  H0 (stored findoptimal_b_raw): mean finisher seconds "
-                 f"{np.nanmean(st.b['runtime'][..., vi][st.mask[..., vi]]):.3f}, "
-                 f"evals {np.mean(st.b['evals'][..., vi][st.mask[..., vi]]):.0f}")  # fmt: skip
+    bm = st.mask[:, ris, :, vi]
+    lines.append(
+        "  H0 (stored findoptimal_b_raw): mean finisher seconds "
+        f"{np.nanmean(st.b['runtime'][:, ris, :, vi][bm]):.3f}, "
+        f"evals {np.mean(st.b['evals'][:, ris, :, vi][bm]):.0f}"
+    )
     return "\n".join(lines)
 
 
@@ -310,6 +341,8 @@ def criteria(st: Study, res: Dict[str, Any], vname: str) -> List[str]:
     ge075 = [ri for ri in range(10) if radii[ri] >= 0.75]
     le05 = [ri for ri in range(10) if radii[ri] <= 0.5]
     out = [f"Success criteria, {vname} data (H3 = net x3 -> FindOptimal):"]
+    if "H3" not in res[vname][0]:
+        return out + ["  not evaluated (no H3 data for this variant)"]
 
     def line(name: str, ok: bool, detail: str) -> None:
         out.append(f"  [{'MET    ' if ok else 'NOT MET'}] {name}: {detail}")
@@ -317,22 +350,34 @@ def criteria(st: Study, res: Dict[str, Any], vname: str) -> List[str]:
     ms = [med(res, vname, ri, "H3") for ri in le3]
     fs_ = [med(res, vname, ri, "H3", "f01") for ri in le3]
     ok = all(m <= 0.035 for m in ms) and all(f >= 0.9 for f in fs_)
-    line("C1 H3 median <= 0.035 deg and fraction < 0.1 deg >= 0.9 for r <= 3", ok,
-         "medians " + ", ".join(f"{m:.3g}" for m in ms) + "; frac<0.1 " + ", ".join(f"{f:.2f}" for f in fs_))  # fmt: skip
+    line(
+        "C1 H3 median <= 0.035 deg and fraction < 0.1 deg >= 0.9 for r <= 3",
+        ok,
+        f"medians {fj('.3g', ms)}; frac<0.1 {fj('.2f', fs_)}",
+    )
     w = [med(res, vname, ri, "H3", "wrong") for ri in le3]
-    line("C2 H3 wrong <= 1% for r <= 3", all(x <= 0.01 for x in w),
-         ", ".join(f"{100*x:.2f}%" for x in w))  # fmt: skip
+    line(
+        "C2 H3 wrong <= 1% for r <= 3",
+        all(x <= 0.01 for x in w),
+        ", ".join(f"{100 * x:.2f}%" for x in w),
+    )
     w = [med(res, vname, ri, "H3", "win_vs_N3") for ri in le3]
-    line("C3 H3 beats N3 in >= 70% paired for r <= 3", all(x >= 0.7 for x in w),
-         ", ".join(f"{x:.2f}" for x in w))  # fmt: skip
+    line("C3 H3 beats N3 in >= 70% paired for r <= 3", all(x >= 0.7 for x in w), fj(".2f", w))
     w = [med(res, vname, ri, "H3", "win_vs_H0") for ri in ge075]
-    line("C4 H3 beats H0 in >= 70% for r >= 0.75", all(x >= 0.7 for x in w),
-         "r=" + ",".join(f"{radii[ri]:g}" for ri in ge075) + ": " + ", ".join(f"{x:.2f}" for x in w))  # fmt: skip
+    rs = ",".join(f"{radii[ri]:g}" for ri in ge075)
+    line(
+        "C4 H3 beats H0 in >= 70% for r >= 0.75",
+        all(x >= 0.7 for x in w),
+        f"r={rs}: {fj('.2f', w)}",
+    )
     dm = [med(res, vname, ri, "H3") - med(res, vname, ri, "H0") for ri in le05]
     w = [med(res, vname, ri, "H3", "win_vs_H0") for ri in le05]
     ok = all(d <= 0.005 for d in dm) and all(x >= 0.45 for x in w)
-    line("C5 r <= 0.5: H3 median within 0.005 deg of H0 and win >= 45%", ok,
-         "median diff " + ", ".join(f"{d:+.3f}" for d in dm) + "; win " + ", ".join(f"{x:.2f}" for x in w))  # fmt: skip
+    line(
+        "C5 r <= 0.5: H3 median within 0.005 deg of H0 and win >= 45%",
+        ok,
+        f"median diff {fj('+.3f', dm)}; win {fj('.2f', w)}",
+    )
     ri5 = 9
     mg = med(res, vname, ri5, "HG")
     line("C6 HG median <= 0.1 deg at r = 5", np.isfinite(mg) and mg <= 0.1, f"HG median {mg:.3g}")
@@ -347,15 +392,24 @@ def decisions(st: Study, res: Dict[str, Any], vname: str, vi: int) -> List[str]:
     if all(p in res[vname][ri] for ri in le2 for p in ("H1", "H3")):
         dd = [med(res, vname, ri, "H1") - med(res, vname, ri, "H3") for ri in le2]
         ok = all(d <= 0.005 for d in dd)
-        out.append(f"  D1 H1 within 0.005 deg of H3 at r <= 2 (median H1 - H3): "
-                   + ", ".join(f"{d:+.4f}" for d in dd) + f" -> {'recommend x1' if ok else 'keep x3'}")  # fmt: skip
+        verdict = "recommend x1" if ok else "keep x3"
+        out.append(
+            f"  D1 H1 within 0.005 deg of H3 at r <= 2 (median H1 - H3): {fj('+.4f', dd)} "
+            f"-> {verdict}"
+        )
     else:
         out.append("  D1 not evaluated (H1 or H3 missing)")
     # D2: floor
     if "H3" in st.raws:
         d = st.raws["H3"]
+        d0 = st.raws.get("H0")
         ri_ = list(d["radii_idx"])
         rows = []
+
+        def below(ct: np.ndarray, cf: np.ndarray) -> float:
+            """Fraction of cases where the truth has a lower cost than the finisher's result."""
+            return float(np.mean(ct < cf - 1e-12)) if len(cf) else np.nan
+
         for ri in range(10):
             if ri not in ri_ or radii[ri] > 3:
                 continue
@@ -364,15 +418,30 @@ def decisions(st: Study, res: Dict[str, Any], vname: str, vi: int) -> List[str]:
             e3 = st.pipe_err("H3")[:, ri, :, vi][m]
             cf = d["cost_final"][:, k, :, vi][m]
             ct = d["cost_true"][:, k, :, vi][m]
-            c0 = st.b["cost_final"][:, ri, :, vi][m]
             floor = np.isfinite(e3) & (e3 > 0.035)
-            better_true = float(np.mean(ct[floor] < cf[floor] - 1e-12)) if floor.any() else np.nan
+            if d0 is not None and ri in d0["radii_idx"]:
+                k0 = list(d0["radii_idx"]).index(ri)
+                c0, ct0 = d0["cost_final"][:, k0, :, vi][m], d0["cost_true"][:, k0, :, vi][m]
+            else:
+                c0, ct0 = st.b["cost_final"][:, ri, :, vi][m], st.b["cost_true"][:, ri, :, vi][m]
             e0 = st.pipe_err("H0")[:, ri, :, vi][m]
+            e0t = np.isfinite(e0) & (e0 > 0.035)
             mc = np.where(c0 < cf, e0, e3)
-            rows.append(f"r={radii[ri]:g}: H3>0.035 deg in {100*floor.mean():.0f}% of cases; of those "
-                        f"cost(truth)<cost(H3) in {100*better_true:.0f}%; min-cost(H0,H3) median "
-                        f"{np.nanmedian(mc):.3g} vs H3 {np.nanmedian(e3):.3g}, wrong {100*np.mean(mc[np.isfinite(mc)]>1):.2f}% vs {100*np.mean(e3[np.isfinite(e3)]>1):.2f}%")  # fmt: skip
-        out.append("  D2 H3 above 0.035 deg floor; cost at truth vs at result; min-cost rule (H0,H3):")
+            wr = lambda e: 100 * np.mean(e[np.isfinite(e)] > 1)  # noqa: E731
+            rows.append(
+                f"r={radii[ri]:g}: H3 > 0.035 deg in {100 * floor.mean():.0f}% of cases. "
+                f"cost(truth) < cost(result): H3 all cases {100 * below(ct, cf):.1f}% "
+                f"(tail > 0.035 deg {100 * below(ct[floor], cf[floor]):.1f}%); "
+                f"H0 all cases {100 * below(ct0, c0):.1f}% "
+                f"(tail {100 * below(ct0[e0t], c0[e0t]):.1f}%). "
+                f"min-cost(H0,H3): median {np.nanmedian(mc):.3g} vs H3 {np.nanmedian(e3):.3g}, "
+                f"wrong {wr(mc):.2f}% vs {wr(e3):.2f}%"
+            )
+        out.append(
+            "  D2 H3 above the 0.035 deg floor; fraction of cases in which the truth has a lower "
+            "cost than the finisher's result (all cases and the tail); min-cost rule (needs BOTH "
+            "the H0 and the H3 finisher, about 1.5x the H3 finisher cost):"
+        )
         out += ["      " + r for r in rows]
     # D3 H3c vs H3 where the covariance box exceeds the default
     if "H3c" in st.raws and "H3" in st.raws:
@@ -383,23 +452,33 @@ def decisions(st: Study, res: Dict[str, Any], vname: str, vi: int) -> List[str]:
             if ri not in c["radii_idx"]:
                 continue
             k = list(c["radii_idx"]).index(ri)
-            big = (c["box_deg"][:, k, :, vi] > 0) & ~c["copied"][:, k, :, vi] & st.mask[:, ri, :, vi]
+            big = (
+                (c["box_deg"][:, k, :, vi] > DEFAULT_BOX_DEG * (1 + 1e-9))
+                & ~c["copied"][:, k, :, vi]
+                & st.mask[:, ri, :, vi]
+            )
             if big.sum() == 0:
                 continue
             a_, b_ = ec[:, ri, :, vi][big], eh[:, ri, :, vi][big]
-            w, t, n = win_rate(a_, b_)
-            out.append(f"  D3 r={radii[ri]:g}: {int(big.sum())} cases with b > default; median H3c "
-                       f"{np.nanmedian(a_):.3g} vs H3 {np.nanmedian(b_):.3g}; wrong "
-                       f"{100*np.mean(a_>1):.2f}% vs {100*np.mean(b_>1):.2f}%; H3c win {w:.2f}")  # fmt: skip
+            w, t, _n = win_rate(a_, b_)
+            out.append(
+                f"  D3 r={radii[ri]:g}: {int(big.sum())} cases with b > default; median H3c "
+                f"{np.nanmedian(a_):.3g} vs H3 {np.nanmedian(b_):.3g}; wrong "
+                f"{100 * np.mean(a_ > 1):.2f}% vs {100 * np.mean(b_ > 1):.2f}%; H3c win {w:.2f}"
+            )
             sel_all.append((a_, b_))
         if sel_all:
             a_ = np.concatenate([s[0] for s in sel_all])
             b_ = np.concatenate([s[1] for s in sel_all])
             w, t, n = win_rate(a_, b_)
             better = np.nanmedian(a_) < np.nanmedian(b_) - 0.002 and w > 0.5
-            out.append(f"  D3 pooled ({n} cases): median H3c {np.nanmedian(a_):.3g} vs H3 "
-                       f"{np.nanmedian(b_):.3g}, win {w:.2f} -> "
-                       f"{'keep the covariance box' if better else 'drop the covariance box (not better)'}")  # fmt: skip
+            verdict = (
+                "keep the covariance box" if better else "drop the covariance box (not better)"
+            )
+            out.append(
+                f"  D3 pooled ({n} cases): median H3c {np.nanmedian(a_):.3g} vs H3 "
+                f"{np.nanmedian(b_):.3g}, win {w:.2f} -> {verdict}"
+            )
         else:
             out.append("  D3: no case has b > default box")
     else:
@@ -416,14 +495,18 @@ def decisions(st: Study, res: Dict[str, Any], vname: str, vi: int) -> List[str]:
             tm = np.nanmean(mm["t_finish"][:, k, :, vi][m])
             th = np.nanmean(hh["t_finish"][:, k, :, vi][m])
             dmed = np.nanmedian(em[:, ri, :, vi][m]) - np.nanmedian(eh[:, ri, :, vi][m])
-            out.append(f"  D4 r={radii[ri]:g}: median H3m - H3 = {dmed:+.4f} deg; finisher time "
-                       f"{tm:.2f}s vs {th:.2f}s ({tm/th:.2f}x) -> "
-                       f"{'H3m recommended' if abs(dmed) <= 0.01 and tm < 0.5 * th else 'no'}")  # fmt: skip
+            verdict = "H3m recommended" if abs(dmed) <= 0.01 and tm < 0.5 * th else "no"
+            out.append(
+                f"  D4 r={radii[ri]:g}: median H3m - H3 = {dmed:+.4f} deg; finisher time "
+                f"{tm:.2f}s vs {th:.2f}s ({tm / th:.2f}x) -> {verdict}"
+            )
     else:
         out.append("  D4 not evaluated")
     # post hoc rules
     if "H3" in st.raws:
-        out.append("  Post hoc (a): H3 falling back to HG where pass-1 sigma_max > tau (radii with HG):")
+        out.append(
+            "  Post hoc (a): H3 falling back to HG where pass-1 sigma_max > tau (radii with HG):"
+        )
         eh, eg = st.pipe_err("H3"), st.pipe_err("HG")
         ri_h3 = list(st.raws["H3"]["radii_idx"])
         if eg is not None:
@@ -434,12 +517,14 @@ def decisions(st: Study, res: Dict[str, Any], vname: str, vi: int) -> List[str]:
                     m = st.mask[:, ri, :, vi]
                     use = sig1[:, k, :, vi][m] > tau
                     e = np.where(use, eg[:, ri, :, vi][m], eh[:, ri, :, vi][m])
-                    out.append(f"      tau={tau:g} r={radii[ri]:g}: HG used in {100*use.mean():.0f}%; "
-                               f"median {np.nanmedian(e):.3g} (H3 {np.nanmedian(eh[:, ri, :, vi][m]):.3g}, "
-                               f"HG {np.nanmedian(eg[:, ri, :, vi][m]):.3g}); wrong "
-                               f"{100*np.mean(e>1):.2f}% (H3 {100*np.mean(eh[:, ri, :, vi][m]>1):.2f}%, "
-                               f"HG {100*np.mean(eg[:, ri, :, vi][m]>1):.2f}%)")  # fmt: skip
-        out.append("  Post hoc (b): min cost of H0 and H3 (all radii):")
+                    h3, hg = eh[:, ri, :, vi][m], eg[:, ri, :, vi][m]
+                    out.append(
+                        f"      tau={tau:g} r={radii[ri]:g}: HG used in {100 * use.mean():.0f}%; "
+                        f"median {np.nanmedian(e):.3g} (H3 {np.nanmedian(h3):.3g}, "
+                        f"HG {np.nanmedian(hg):.3g}); wrong {100 * np.mean(e > 1):.2f}% "
+                        f"(H3 {100 * np.mean(h3 > 1):.2f}%, HG {100 * np.mean(hg > 1):.2f}%)"
+                    )
+        out.append("  Post hoc (b): min cost of H0 and H3 (needs both finishers; all radii):")
         for ri in range(10):
             if ri not in ri_h3:
                 continue
@@ -450,9 +535,12 @@ def decisions(st: Study, res: Dict[str, Any], vname: str, vi: int) -> List[str]:
             e0 = st.pipe_err("H0")[:, ri, :, vi][m]
             e3 = eh[:, ri, :, vi][m]
             e = np.where(c0 < cf, e0, e3)
-            out.append(f"      r={radii[ri]:g}: median {np.nanmedian(e):.3g} (H3 {np.nanmedian(e3):.3g}, "
-                       f"H0 {np.nanmedian(e0):.3g}); wrong {100*np.mean(e>1):.2f}% "
-                       f"(H3 {100*np.mean(e3>1):.2f}%, H0 {100*np.mean(e0>1):.2f}%); picks H0 {100*np.mean(c0<cf):.0f}%")  # fmt: skip
+            out.append(
+                f"      r={radii[ri]:g}: median {np.nanmedian(e):.3g} (H3 {np.nanmedian(e3):.3g}, "
+                f"H0 {np.nanmedian(e0):.3g}); wrong {100 * np.mean(e > 1):.2f}% "
+                f"(H3 {100 * np.mean(e3 > 1):.2f}%, H0 {100 * np.mean(e0 > 1):.2f}%); "
+                f"picks H0 {100 * np.mean(c0 < cf):.0f}%"
+            )
     return out
 
 
@@ -465,7 +553,9 @@ def checks(st: Study) -> List[str]:
             continue
         ri_ = list(d["radii_idx"])
         if pipe == "HG":
-            out.append("  HG: nets start at the Huber GN estimate (not comparable to the sweep's N1/N3)")
+            out.append(
+                "  HG: nets start at the Huber GN estimate (not comparable to the sweep's N1/N3)"
+            )
             continue
         # net estimates vs the stored perturbation sweep
         for tag, key, p in (("N1", "R_x1", 0), ("N3", "R_x3", 2)):
@@ -474,17 +564,38 @@ def checks(st: Study) -> List[str]:
             e = st.err(R, reduce=False)
             ref = st.net_err_sweep(p)
             ok = np.isfinite(e) & np.isfinite(ref)
-            both_nan = (np.isnan(e) == np.isnan(ref)) | ~np.isfinite(R[..., 0, 0])
             sel = np.zeros_like(ok)
             sel[:, ri_] = True
             diff = np.abs(e - ref)[ok & sel]
-            out.append(f"  {pipe}: {tag} vs sweep err_angle: n={len(diff)}, max |diff| = {diff.max():.2e} deg")
+            out.append(
+                f"  {pipe}: {tag} vs sweep err_angle: n={len(diff)}, "
+                f"max |diff| = {diff.max():.2e} deg"
+            )
         if pipe == "H0":
             R, Rb = d["R_final"], st.b["R_final"][:, ri_]
             ran = d["ran"]
             nneq = int((np.abs(R - Rb).max(axis=(-1, -2))[ran] > 0).sum())
-            out.append(f"  H0: R_final identical to findoptimal_b_raw in {int(ran.sum()) - nneq}/{int(ran.sum())} cases")
+            n_ran = int(ran.sum())
+            out.append(
+                f"  H0: R_final identical to findoptimal_b_raw in {n_ran - nneq}/{n_ran} cases"
+            )
     return out
+
+
+def fallback_line(st: Study, res: Dict[str, Any], vname: str, vi: int) -> str:
+    """Median and wrong rate of the fall-back cases (pass 1 failed, FindOptimal from the start),
+    which are excluded from every table; H3 / HG start from the perturbed nominal there."""
+    fb = (st.sweep["n_roi"] > 0) & ~st.mask[..., vi]
+    out = []
+    for p in ("H0", "H3"):
+        e = st.pipe_err(p)
+        if e is None:
+            continue
+        x = e[..., vi][fb]
+        x = x[np.isfinite(x)]
+        if len(x):
+            out.append(f"{p}: median {np.median(x):.3g} deg, wrong {100 * np.mean(x > 1):.1f}%")
+    return f"fall-back cases ({int(fb.sum())}): " + "; ".join(out)
 
 
 def main() -> None:
@@ -493,7 +604,9 @@ def main() -> None:
     ap.add_argument("--model", default="realistic_s0")
     ap.add_argument("--name", default="summary")
     ap.add_argument("--n-voxels", type=int, default=0)
-    ap.add_argument("--variant", default=None, help="raw files restricted to one variant (s1 / clean_s0)")
+    ap.add_argument(
+        "--variant", default=None, help="raw files restricted to one variant (s1 / clean_s0)"
+    )
     ap.add_argument("--pipes", nargs="*", default=["H0", "H1", "H3", "H3c", "H3m", "HG"])
     args = ap.parse_args()
     out_dir = Path(args.out_dir)
@@ -503,7 +616,8 @@ def main() -> None:
             print(f"(no {p} raw for {args.model}/{args.variant})")
     res = build(st)
     lines: List[str] = [
-        "Hybrid network -> FindOptimal: per-voxel images (<= 3 distractor sources), not full-sample",
+        "Hybrid network -> FindOptimal: per-voxel images (<= 3 distractor sources), not "
+        "full-sample",
         "renders. Noise pairing: H1 is the strictly paired hybrid (net pass 1 and the finisher see",
         "the same image); passes 2-3 and HG re-render. 'realistic' = the sweep variant 'all'.",
         f"net model: {args.model}; voxels {len(st.vox)}; radii {list(map(float, st.radii))}",
@@ -511,9 +625,17 @@ def main() -> None:
     ]
     lines += checks(st) + [""]
     for vi, vname in VARIANT_LABEL.items():
+        if not any(p != "H0" and p in res[vname][ri] for ri in range(10) for p in PIPES):
+            lines += [f"=== {vname} === not evaluated (no pipeline data for this variant)", ""]
+            continue
         n_ok = [res[vname][ri]["_n_success"] for ri in range(10)]
         n_fb = [res[vname][ri]["_n_fallback"] for ri in range(10)]
-        lines += [f"=== {vname} ===", f"pass-1 successes per radius: {n_ok}; fall-backs (no net estimate): {n_fb}", ""]
+        lines += [
+            f"=== {vname} ===",
+            f"pass-1 successes per radius: {n_ok}; fall-backs (no net estimate): {n_fb}",
+            fallback_line(st, res, vname, vi),
+            "",
+        ]
         lines += [table(res, st.radii, vname, "median", "median error (deg, cubic-reduced)"), ""]
         lines += [table(res, st.radii, vname, "rms", "RMS error (deg, reduced)"), ""]
         lines += [table(res, st.radii, vname, "rms_unred", "RMS error (deg, unreduced)"), ""]
@@ -522,8 +644,12 @@ def main() -> None:
         for p in ("H3", "H1", "H3c", "H3m", "HG"):
             if any(p in res[vname][ri] for ri in range(10)):
                 lines += [win_table(res, st.radii, vname, p), ""]
-        lines += [table(res, st.radii, vname, "evals_mean", "mean cost evaluations per case (finisher)"), ""]
+        lines += [
+            table(res, st.radii, vname, "evals_mean", "mean cost evaluations per case (finisher)"),
+            "",
+        ]
         lines += [time_table(st, vi), ""]
+        lines += [time_table(st, vi, [6, 7, 8, 9]), ""]
         lines += criteria(st, res, vname) + [""]
         lines += decisions(st, res, vname, vi) + [""]
     txt = "\n".join(lines)
