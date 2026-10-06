@@ -26,6 +26,7 @@ dev = [
     "black>=23.0.0",
     "flake8>=6.0.0",
     "mypy>=1.0.0",
+    "scikit-learn>=1.6.1",
 ]
 riemannian = [
     "geoopt>=0.5.1",

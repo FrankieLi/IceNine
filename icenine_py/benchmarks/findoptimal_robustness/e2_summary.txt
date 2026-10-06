@@ -1,0 +1,57 @@
+[train both variants, held-out voxels, test on both]
+  cost         AUC A 0.963 (n=71388)  B 0.851  C 0.969 (n=96823)   prune recall 0.900 (n=2134)  final precision 0.965 (n=514)
+  LR           AUC A 0.991 (n=71388)  B 0.930  C 0.994 (n=96823)   prune recall 0.980 (n=2134)  final precision 0.928 (n=514)
+  LR-nocost    AUC A 0.992 (n=71388)  B 0.930  C 0.994 (n=96823)   prune recall 0.980 (n=2134)  final precision 0.926 (n=514)
+  GBT          AUC A 0.997 (n=71388)  B 0.937  C 0.998 (n=96823)   prune recall 0.985 (n=2134)  final precision 0.986 (n=514)
+  GBT-nocost   AUC A 0.997 (n=71388)  B 0.936  C 0.998 (n=96823)   prune recall 0.985 (n=2134)  final precision 0.992 (n=514)
+[train both variants, held-out voxels, test on clean]
+  cost         AUC A 0.961 (n=34747)  B 0.851  C 0.966 (n=42742)   prune recall 0.876 (n=1038)  final precision 0.986 (n=219)
+  LR           AUC A 0.994 (n=34747)  B 0.931  C 0.994 (n=42742)   prune recall 0.970 (n=1038)  final precision 0.995 (n=219)
+  LR-nocost    AUC A 0.994 (n=34747)  B 0.931  C 0.994 (n=42742)   prune recall 0.970 (n=1038)  final precision 0.995 (n=219)
+  GBT          AUC A 1.000 (n=34747)  B 0.938  C 1.000 (n=42742)   prune recall 0.977 (n=1038)  final precision 1.000 (n=219)
+  GBT-nocost   AUC A 1.000 (n=34747)  B 0.937  C 1.000 (n=42742)   prune recall 0.977 (n=1038)  final precision 1.000 (n=219)
+[train both variants, held-out voxels, test on all]
+  cost         AUC A 0.963 (n=36641)  B 0.850  C 0.970 (n=54081)   prune recall 0.923 (n=1096)  final precision 0.949 (n=295)
+  LR           AUC A 0.988 (n=36641)  B 0.929  C 0.993 (n=54081)   prune recall 0.989 (n=1096)  final precision 0.878 (n=295)
+  LR-nocost    AUC A 0.988 (n=36641)  B 0.928  C 0.994 (n=54081)   prune recall 0.989 (n=1096)  final precision 0.875 (n=295)
+  GBT          AUC A 0.994 (n=36641)  B 0.936  C 0.996 (n=54081)   prune recall 0.993 (n=1096)  final precision 0.976 (n=295)
+  GBT-nocost   AUC A 0.994 (n=36641)  B 0.936  C 0.997 (n=54081)   prune recall 0.992 (n=1096)  final precision 0.986 (n=295)
+[train clean voxels only, test all on held-out voxels]
+  cost         AUC A 0.963 (n=36641)  B 0.850  C 0.970 (n=54081)   prune recall 0.923 (n=1096)  final precision 0.949 (n=295)
+  LR           AUC A 0.979 (n=36641)  B 0.932  C 0.991 (n=54081)   prune recall 0.987 (n=1096)  final precision 0.647 (n=295)
+  LR-nocost    AUC A 0.979 (n=36641)  B 0.932  C 0.991 (n=54081)   prune recall 0.986 (n=1096)  final precision 0.644 (n=295)
+  GBT          AUC A 0.989 (n=36641)  B 0.939  C 0.995 (n=54081)   prune recall 0.993 (n=1096)  final precision 0.831 (n=295)
+  GBT-nocost   AUC A 0.989 (n=36641)  B 0.938  C 0.995 (n=54081)   prune recall 0.994 (n=1096)  final precision 0.834 (n=295)
+[train all voxels only, test clean on held-out voxels]
+  cost         AUC A 0.961 (n=34747)  B 0.851  C 0.966 (n=42742)   prune recall 0.876 (n=1038)  final precision 0.986 (n=219)
+  LR           AUC A 0.994 (n=34747)  B 0.930  C 0.994 (n=42742)   prune recall 0.974 (n=1038)  final precision 0.991 (n=219)
+  LR-nocost    AUC A 0.995 (n=34747)  B 0.930  C 0.995 (n=42742)   prune recall 0.975 (n=1038)  final precision 0.995 (n=219)
+  GBT          AUC A 1.000 (n=34747)  B 0.937  C 1.000 (n=42742)   prune recall 0.981 (n=1038)  final precision 1.000 (n=219)
+  GBT-nocost   AUC A 1.000 (n=34747)  B 0.937  C 1.000 (n=42742)   prune recall 0.979 (n=1038)  final precision 1.000 (n=219)
+[AUC basin vs candidates within 3 deg of an exact CSL relative, by class]
+  Sigma11    n_neg   5798  cost 0.991  LR 0.995  GBT 1.000
+  Sigma13a   n_neg   5072  cost 0.985  LR 0.997  GBT 0.999
+  Sigma13b   n_neg   8012  cost 0.982  LR 0.998  GBT 1.000
+  Sigma15    n_neg    751  cost 0.976  LR 0.997  GBT 0.999
+  Sigma17a   n_neg   3010  cost 0.984  LR 0.996  GBT 0.999
+  Sigma17b   n_neg   5285  cost 0.996  LR 0.998  GBT 0.999
+  Sigma19a   n_neg   5095  cost 0.998  LR 0.998  GBT 0.999
+  Sigma19b   n_neg   7937  cost 0.981  LR 0.998  GBT 1.000
+  Sigma21a   n_neg   6895  cost 0.982  LR 0.998  GBT 1.000
+  Sigma21b   n_neg    728  cost 0.989  LR 0.996  GBT 0.998
+  Sigma23    n_neg    116  cost 0.988  LR 0.998  GBT 0.993
+  Sigma25a   n_neg   4672  cost 0.985  LR 0.997  GBT 1.000
+  Sigma25b   n_neg     90  cost 0.997  LR 0.998  GBT 0.997
+  Sigma27a   n_neg   3677  cost 0.998  LR 0.998  GBT 1.000
+  Sigma27b   n_neg    424  cost 0.980  LR 0.975  GBT 0.988
+  Sigma29a   n_neg   1260  cost 0.987  LR 0.997  GBT 1.000
+  Sigma29b   n_neg     71  cost 0.999  LR 0.998  GBT 1.000
+  Sigma3     n_neg  10932  cost 0.896  LR 0.972  GBT 0.986
+  Sigma5     n_neg   6632  cost 0.923  LR 0.996  GBT 1.000
+  Sigma7     n_neg   9050  cost 0.958  LR 0.995  GBT 1.000
+  Sigma9     n_neg   6515  cost 0.982  LR 0.998  GBT 1.000
+[learning curve, 25 train voxels] GBT_auc 0.988+-0.007  GBT_prune 0.977+-0.011  LR_auc 0.989+-0.002  LR_prune 0.976+-0.009  GBT_final 0.929+-0.038  LR_final 0.917+-0.035
+[learning curve, 50 train voxels] GBT_auc 0.989+-0.013  GBT_prune 0.982+-0.007  LR_auc 0.991+-0.002  LR_prune 0.980+-0.006  GBT_final 0.965+-0.030  LR_final 0.928+-0.019
+[learning curve, 100 train voxels] GBT_auc 0.995+-0.004  GBT_prune 0.985+-0.006  LR_auc 0.991+-0.002  LR_prune 0.979+-0.006  GBT_final 0.976+-0.021  LR_final 0.928+-0.019
+[learning curve, 150 train voxels] GBT_auc 0.997+-0.002  GBT_prune 0.985+-0.005  LR_auc 0.991+-0.002  LR_prune 0.980+-0.008  GBT_final 0.988+-0.016  LR_final 0.929+-0.018
+[cost baseline, all held-out] AUC A 0.963  prune recall 0.900  final precision 0.965

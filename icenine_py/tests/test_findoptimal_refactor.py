@@ -108,3 +108,85 @@ def test_refine_from_candidates_empty_returns_identity():
     rec, voxel, _ = _build()
     res = rec.refine_from_candidates([], _get_voxel_vertices(voxel), voxel.phase)
     assert res.cost == 1.0 and np.array_equal(res.orientation, np.eye(3))
+
+
+def test_recorder_hook_leaves_reconstruct_voxel_bit_identical():
+    """With a recorder attached (and the knobs at their defaults) reconstruct_voxel returns exactly
+    the GOLDEN numbers, and the recorder sees every stage."""
+    rec, voxel, R_true = _build()
+    events = []
+    rec.recorder = lambda name, data: events.append((name, data))
+    res = rec.reconstruct_voxel(
+        _get_voxel_vertices(voxel), voxel.phase, rng=np.random.default_rng(7)
+    )
+    err = _rotvec_deg(res.orientation, R_true)
+    np.testing.assert_allclose(err, GOLDEN[0], atol=1e-9)
+    assert res.cost == pytest.approx(GOLDEN[1], abs=1e-12)
+    names = [n for n, _ in events]
+    assert names[0] == "discrete" and names[1] == "quick_mc"
+    assert names.count("find_candidate") == rec.last_find_optimal["n_evaluated"]
+    assert names[-2:] == ["variance", "final"]
+    quick = dict(events[1][1])
+    assert sorted(quick["perm"].tolist()) == list(range(len(quick["perm"])))
+    assert np.all(np.diff(quick["cost"]) >= 0)  # sorted best first
+    np.testing.assert_allclose(events[-1][1]["R"], res.orientation)
+
+
+def _run_golden_problem(configure=None):
+    """reconstruct_voxel on the GOLDEN problem with the recorder attached; `configure(rec, R_true)`
+    may set knobs. Returns (result, events, R_true)."""
+    rec, voxel, R_true = _build()
+    events = []
+    rec.recorder = lambda name, data: events.append((name, data))
+    if configure is not None:
+        configure(rec, R_true)
+    res = rec.reconstruct_voxel(
+        _get_voxel_vertices(voxel), voxel.phase, rng=np.random.default_rng(7)
+    )
+    return res, events, R_true
+
+
+def _assert_golden(res, R_true):
+    np.testing.assert_allclose(_rotvec_deg(res.orientation, R_true), GOLDEN[0], atol=1e-9)
+    assert res.cost == pytest.approx(GOLDEN[1], abs=1e-12)
+
+
+def test_rank_key_with_post_mc_costs_reproduces_golden():
+    def configure(rec, R_true):
+        rec.rank_key = lambda level, cands: np.array([c.cost for c in cands])
+
+    res, _, R_true = _run_golden_problem(configure)
+    _assert_golden(res, R_true)
+
+
+def test_extra_candidates_returning_nothing_reproduces_golden():
+    def configure(rec, R_true):
+        rec.extra_candidates = lambda level, cands: []
+
+    res, _, R_true = _run_golden_problem(configure)
+    _assert_golden(res, R_true)
+
+
+def test_keep_fraction_changes_n_keep():
+    """The GOLDEN problem has one candidate per level, so three extra candidates are added (which
+    also exercises extra_candidates): 4 candidates, n_keep = int(4 * f)."""
+
+    def with_fraction(f):
+        def configure(rec, R_true):
+            rec.keep_fraction = f
+            rec.extra_candidates = lambda level, cands: [
+                SearchCandidate(
+                    orientation=Rotation.from_rotvec(np.radians(v)).as_matrix() @ R_true, cost=1.0
+                )
+                for v in ([0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5])
+            ]
+
+        return configure
+
+    n_keep = {}
+    for f in (0.25, 0.5):
+        _, events, _ = _run_golden_problem(with_fraction(f))
+        quick = [d for n, d in events if n == "quick_mc"][0]
+        assert len(quick["cost"]) == 4
+        n_keep[f] = quick["n_keep"]
+    assert n_keep == {0.25: 1, 0.5: 2}

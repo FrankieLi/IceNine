@@ -15,7 +15,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -421,6 +421,26 @@ class AdaptiveVoxelReconstructor:
         # the quick MC, and FindOptimal's winner (candidate index, converged flag)
         self.last_level_best: List[Tuple[int, np.ndarray, float]] = []
         self.last_find_optimal: Dict[str, Any] = {}
+        # Optional non-invasive recorder: called as recorder(event, data) with copies of the
+        # search state ("discrete", "quick_mc", "find_candidate", "find_final", "variance",
+        # "final"). It never touches the random stream, so results are bit-identical with or
+        # without it. Default None = off.
+        self.recorder: Optional[Callable[[str, Dict[str, Any]], None]] = None
+        # Search knobs probed by scripts/findoptimal_robustness (defaults = the C++ behaviour)
+        self.keep_fraction: float = 0.25  # fraction of candidates kept per level
+        # also keep the top keep_fraction by the discrete-stage score (union with the post-MC rank)
+        self.keep_union_discrete: bool = False
+        self.n_q_start_offset: float = 0.0  # added to the initial n_q_max (5 + min resolution)
+        self.global_pixel_radius: int = 3  # pixel radius of the coarse (global) cost function
+        # Optional hook: extra_candidates(level, candidates) -> extra SearchCandidates (orientation
+        # only; the quick MC fills their cost) added before the quick MC of that level (F1b).
+        # Default off; see MIGRATION_HISTORY 'FindOptimal robustness'.
+        self.extra_candidates: Optional[
+            Callable[[int, List[SearchCandidate]], List[SearchCandidate]]
+        ] = None
+        # Optional hook: rank_key(level, candidates) -> array, lower = better, replaces the
+        # post-quick-MC local cost as the sort key used for pruning (and the hand-off order)
+        self.rank_key: Optional[Callable[[int, List[SearchCandidate]], np.ndarray]] = None
 
     @property
     def last_eval_counts(self) -> tuple:
@@ -469,7 +489,7 @@ class AdaptiveVoxelReconstructor:
         # C++ DiscreteAdaptive.tmpl.cpp:139-141
         fz_orientations = self.setup.fz_orientations  # full FZ set initially
         diameter = self.params.local_grid_radius
-        n_q_max = 5.0 + self.params.min_local_resolution
+        n_q_max = 5.0 + self.params.min_local_resolution + self.n_q_start_offset
 
         candidates = []
         total_global_evals = 0
@@ -494,7 +514,7 @@ class AdaptiveVoxelReconstructor:
                 structure_list=self.setup.structure_list,
                 mode="hard",
                 eta_limit=eta_limit,
-                pixel_radius=3,
+                pixel_radius=self.global_pixel_radius,
                 max_q=n_q_max,
                 min_sin_eta=self.min_sin_eta,
             )
@@ -540,9 +560,27 @@ class AdaptiveVoxelReconstructor:
                 flush=True,
             )
 
+            if self.extra_candidates is not None:
+                # NOTE: these bypass the spacing filter of the discrete stage and enlarge the
+                # list that n_keep is computed from below
+                candidates = list(candidates) + list(self.extra_candidates(level, candidates))
+            if self.recorder is not None:
+                self.recorder(
+                    "discrete",
+                    dict(
+                        level=level,
+                        n_q_max=n_q_max - 1,
+                        diameter=diameter,
+                        R=np.stack([c.orientation for c in candidates]).copy(),
+                        score=np.array([c.cost for c in candidates]),
+                    ),
+                )
+
             # Phase 3: Quick MC on all candidates (10 steps, 5 restarts)
             # C++ DiscreteAdaptive.tmpl.cpp:173-194
             t_mc = time.time()
+            ids = {id(c): i for i, c in enumerate(candidates)}
+            disc_scores = np.array([c.cost for c in candidates])
             trial_radius = max(diameter / 3.0, math.radians(0.2))
             # C++ ContinuousSearch.h:70-73 CalculateSearchParameter
             # BoxWidth = localGridRadius / 2^localResolution
@@ -567,12 +605,39 @@ class AdaptiveVoxelReconstructor:
             # Phase 4: Shrink diameter, keep top 1/4
             # C++ DiscreteAdaptive.tmpl.cpp:196-205
             diameter /= 1.5
-            candidates.sort()
+            pre_sort = list(candidates)  # discrete-stage order (the quick MC mutated in place)
+            if self.rank_key is not None:
+                key = np.asarray(self.rank_key(level, candidates))
+                assert len(key) == len(candidates), "rank_key must return one key per candidate"
+                order = np.argsort(key, kind="stable")
+                candidates = [candidates[i] for i in order]
+            else:
+                candidates.sort()
             self.last_level_best.append(
                 (level, candidates[0].orientation.copy(), float(candidates[0].cost))
             )
-            n_keep = max(1, len(candidates) // 4)
-            fz_orientations = np.array([c.orientation for c in candidates[:n_keep]])
+            n_keep = max(1, int(len(candidates) * self.keep_fraction))
+            kept_list = list(candidates[:n_keep])
+            if self.keep_union_discrete:
+                # top n_keep by the discrete-stage score as well; the candidate objects carry the
+                # post-quick-MC orientation (it is the one kept, not the discrete-stage one)
+                by_disc = np.argsort(disc_scores, kind="stable")[:n_keep]
+                in_kept = {id(c) for c in kept_list}
+                kept_list += [
+                    pre_sort[int(i)] for i in by_disc if id(pre_sort[int(i)]) not in in_kept
+                ]
+            fz_orientations = np.array([c.orientation for c in kept_list])
+            if self.recorder is not None:
+                self.recorder(
+                    "quick_mc",
+                    dict(
+                        level=level,
+                        perm=np.array([ids[id(c)] for c in candidates]),  # sorted -> discrete idx
+                        R=np.stack([c.orientation for c in candidates]).copy(),
+                        cost=np.array([c.cost for c in candidates]),
+                        n_keep=n_keep,
+                    ),
+                )
 
             # Accumulate global cost fn evals for this level
             total_global_evals += global_cost_fn.eval_count
@@ -580,7 +645,7 @@ class AdaptiveVoxelReconstructor:
             t_total = time.time() - t_level
             print(
                 f"    Level {level}: quick MC ({t_quick:.1f}s), "
-                f"kept {n_keep}/{len(candidates)}, "
+                f"kept {len(kept_list)}/{len(candidates)}, "
                 f"best cost={candidates[0].cost:.4f}, "
                 f"level total={t_total:.1f}s",
                 flush=True,
@@ -734,6 +799,16 @@ class AdaptiveVoxelReconstructor:
                     max_restarts=self.params.successive_restarts,
                     max_convergence_cost=self.params.max_convergence_cost,
                 )
+            if self.recorder is not None:
+                self.recorder(
+                    "find_candidate",
+                    dict(
+                        index=ci,
+                        R_in=np.asarray(cand.orientation).copy(),
+                        R_out=np.asarray(result.orientation).copy(),
+                        cost=float(result.cost),
+                    ),
+                )
             if result.cost < best_candidate.cost:
                 best_candidate = result
                 best_ci = ci
@@ -769,6 +844,11 @@ class AdaptiveVoxelReconstructor:
             max_convergence_cost=0.0,  # C++ sets this to 0 for final optimization
             convergence_variance=0.02**2,
         )
+        if self.recorder is not None:
+            self.recorder(
+                "variance",
+                dict(R=np.asarray(var_result.orientation).copy(), cost=float(var_result.cost)),
+            )
         if var_result.cost < best_candidate.cost:
             best_candidate = var_result
         t_var_elapsed = time.time() - t_var
@@ -786,6 +866,11 @@ class AdaptiveVoxelReconstructor:
         )
         best_candidate.overlap_info = final_info
         best_candidate.cost = final_info.cost
+        if self.recorder is not None:
+            self.recorder(
+                "final",
+                dict(R=np.asarray(best_candidate.orientation).copy(), cost=float(final_info.cost)),
+            )
 
         if standalone:
             self._last_global_evals = 0
