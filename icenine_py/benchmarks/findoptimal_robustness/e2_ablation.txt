@@ -1,0 +1,6 @@
+all features                                               AUC A 0.9967  B 0.937  C 0.9978  prune recall 0.985  final precision 0.986  (62 features)
+no cost features                                           AUC A 0.9970  B 0.936  C 0.9980  prune recall 0.985  final precision 0.992  (60 features)
+no CSL-aware features                                      AUC A 0.9936  B 0.927  C 0.9950  prune recall 0.985  final precision 0.975  (37 features)
+no CSL-aware, no cost                                      AUC A 0.9943  B 0.928  C 0.9956  prune recall 0.981  final precision 0.982  (35 features)
+no pixel-radius-3 features                                 AUC A 0.9936  B 0.853  C 0.9925  prune recall 0.965  final precision 0.992  (44 features)
+only overall hit fractions (hit0, hit_any, hit1, hit3)     AUC A 0.9915  B 0.919  C 0.9923  prune recall 0.982  final precision 1.000  (5 features)

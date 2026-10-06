@@ -1,0 +1,12 @@
+=== clean ===
+E0 baseline, seed 0                                                              n= 200 wrong   67 = 0.335 [0.273,0.403]  evals 49190 (extra 0)  time 24.5s
+C-a classifier rerank (GBT)                                                      n= 200 wrong    8 = 0.040 [0.020,0.077]  evals 51229 (extra 2039)  time 26.6s  vs its counterpart: fixed 59, broken 0
+C-a + F1 (Sigma<=29)                                                             n= 200 wrong    4 = 0.020 [0.008,0.050]  evals 56040 (extra 6850)  time 27.9s
+F1 final = lowest cost among {answer, refined relatives} (same candidates)       n= 600 wrong   20 = 0.033 [0.022,0.051]  evals 54485 (extra 5295)  time 27.2s
+C-b final = classifier (GBT) among the same candidates                           n= 600 wrong   20 = 0.033 [0.022,0.051]  evals 54498 (extra 5308)  time 27.2s  vs its counterpart: fixed 0, broken 0
+=== all ===
+E0 baseline, seed 0                                                              n= 200 wrong   52 = 0.260 [0.204,0.325]  evals 52406 (extra 0)  time 26.5s
+C-a classifier rerank (GBT)                                                      n= 200 wrong    9 = 0.045 [0.024,0.083]  evals 55627 (extra 3221)  time 29.8s  vs its counterpart: fixed 46, broken 3
+C-a + F1 (Sigma<=29)                                                             n= 200 wrong    7 = 0.035 [0.017,0.070]  evals 60744 (extra 8338)  time 30.7s
+F1 final = lowest cost among {answer, refined relatives} (same candidates)       n= 600 wrong   20 = 0.033 [0.022,0.051]  evals 57813 (extra 5407)  time 29.2s
+C-b final = classifier (GBT) among the same candidates                           n= 600 wrong   25 = 0.042 [0.028,0.061]  evals 57825 (extra 5419)  time 29.2s  vs its counterpart: fixed 0, broken 5
