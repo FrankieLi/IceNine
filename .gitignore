@@ -18,3 +18,4 @@ ExtLib
 # Local-only files (kept on disk, not tracked)
 /MicAnalyzer/
 /Examples/Example2.ThreeVoxels/ScatteringData_Q8/
+icenine_py/scripts/nn_hybrid/cache/
