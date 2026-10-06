@@ -8,10 +8,19 @@ fontsize: 11pt
 
 # Status
 
-**Open, not investigated.** Found while measuring what the coarse search hands to
-FindOptimal (decision D2 of the toy orientation-NN work, `MIGRATION_HISTORY.md`).
-This is a reconstructor issue, outside the toy-NN branch's scope. What is
-established is *what* the wrong answers are; *why* the search prefers them is not.
+**Investigated (2026-10-06); see `docs/findoptimal_robustness_report.md`.** Cause: at the pruning
+step of each level (keep the best quarter by the post-quick-MC local cost) the candidate nearest the
+truth, 1-2 degrees off, has a cost near 1 (the cost is sharp to 0.2-0.5 degrees) and loses a ranking
+among near-1 costs to a wrong candidate, usually a CSL relative (Sigma3 62-66% of the wrong answers).
+In 200 voxels x 3 seeds, 34.0% (clean) and 23.8% (realistic) of the full reconstructions are wrong;
+in 83-88% of the wrong runs the truth basin is present and pruned (S2), 4-6% it is never a level-0
+candidate (S1), 4-13% it reaches FindOptimal and is lost there (S3). Hypothesis 1 (coarse-cost
+settings) is only partly right: coarse Q_max 8 from level 0 helps a little, a smaller pixel
+tolerance is much worse; hypothesis 2 (FindOptimal logic) explains only the S3 minority. Fixes: a
+CSL-relative check after the search (F1) takes the wrong rate to 3.5% / 3.3% for +11% evaluations; the
+CSL relatives added at every level (F1b) gives 0% / 1.5%; keeping more candidates (F2a) 11% / 5.5%; a
+learned one-pass classifier as the pruning rank 4.5% / 5.0%, not better than F1. The original
+investigation notes below are kept as written.
 
 # Observation
 
