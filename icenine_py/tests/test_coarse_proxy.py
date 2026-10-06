@@ -3,6 +3,8 @@
 import os
 import sys
 from pathlib import Path
+from types import ModuleType
+from typing import Any, Tuple
 
 import numpy as np
 import pytest
@@ -21,7 +23,7 @@ needs_cache = pytest.mark.skipif(
 )
 
 
-def _import(name: str):
+def _import(name: str) -> ModuleType:
     """Import without leaking the thread settings the sweep scripts put into os.environ."""
     keep = dict(os.environ)
     try:
@@ -31,12 +33,12 @@ def _import(name: str):
             del os.environ[k]
 
 
-def env_voxel(C) -> int:
+def env_voxel(C: ModuleType) -> int:
     return int(dict(np.load(C.OUT_DIR / "voxels.npz"))["voxel_indices"][0])
 
 
 @pytest.fixture(scope="module")
-def env():
+def env() -> Tuple[Any, ...]:
     C = _import("common")
     F = _import("features")
     from optimizer_sweep import voxel_context
@@ -60,7 +62,7 @@ def env():
 
 @needs_cache
 @pytest.mark.parametrize("q", [4.0, 5.0])
-def test_low_q_peak_table_is_the_restricted_full_table(env, q):
+def test_low_q_peak_table_is_the_restricted_full_table(env: Tuple[Any, ...], q: float) -> None:
     C, F, W, vctx, keys, Rs = env
     phase = vctx.voxel.phase
     full = F.FeatureExtractor(W.local_fn, W.ctx.geo, phase)
@@ -89,10 +91,13 @@ def test_low_q_peak_table_is_the_restricted_full_table(env, q):
             for off, k in enumerate(("hit0", "hit3")):
                 assert fl[5 + 3 * j + off] == pytest.approx(ff[5 + 3 * j + off])
     assert n_checked > 0
+    # the CSL-aware reflection masks are the full masks restricted to the kept reflections
+    for sg in F.SIGMAS:
+        assert np.array_equal(low.shared[sg], full.shared[sg][:, low.refl_full]), sg
 
 
 @needs_cache
-def test_q_max_none_leaves_features_unchanged(env):
+def test_q_max_none_leaves_features_unchanged(env: Tuple[Any, ...]) -> None:
     C, F, W, vctx, keys, Rs = env
     phase = vctx.voxel.phase
     a = F.FeatureExtractor(W.local_fn, W.ctx.geo, phase)
@@ -106,21 +111,46 @@ def test_q_max_none_leaves_features_unchanged(env):
     # and they equal the features stored in the E2 dataset (built before q_max existed)
     e2 = np.load(C.CACHE_DIR / "e2" / f"v{env_voxel(C)}_clean.npz")
     for i in (0, 5, 300, len(e2["R"]) - 1):
-        assert np.allclose(a.features(e2["R"][i], vctx.vertices, phase), e2["X"][i], atol=1e-9)
+        assert np.array_equal(a.features(e2["R"][i], vctx.vertices, phase), e2["X"][i])
 
 
 @needs_cache
-def test_low_q_costs_use_max_q_and_follow_the_images(env):
+def test_low_q_costs_use_max_q_and_follow_the_images(env: Tuple[Any, ...]) -> None:
+    """The two cost columns equal independently built cost functions with max_q = 5 (26
+    reflections) at pixel radius 0 and 3, and follow the attached images."""
+    from icenine.cost_functions import VoxelCostFunction
+
     C, F, W, vctx, keys, Rs = env
-    phase = vctx.voxel.phase
+    phase, lf = vctx.voxel.phase, W.local_fn
+
+    def reference(radius: int) -> Any:
+        return VoxelCostFunction(
+            simulator=lf.simulator, detector_list=lf.detector_list, range_map=lf.range_map,
+            exp_data=lf.exp_data, sample=lf.sample, structure_list=lf.structure_list,
+            mode="hard", eta_limit=lf.eta_limit, pixel_radius=radius, max_q=5.0,
+            min_sin_eta=lf.min_sin_eta,
+        )  # fmt: skip
+
     low = F.FeatureExtractor(W.local_fn, W.ctx.geo, phase, q_max=5.0)
     low.set_image(keys)
-    f = low.features(Rs[0], vctx.vertices, phase)
-    c0, c3 = low._low_q_cost_fns()
-    assert len(c0._phase_recip_vecs[phase][1]) == len(low.g_mag) == 26
-    assert f[-2] == pytest.approx(c0.evaluate(Rs[0].astype(np.float32), vctx.vertices, phase).cost)
-    assert c0.pixel_radius == 0 and c3.pixel_radius == 3
-    assert 0.0 <= f[-2] <= 1.0 and f[-1] <= f[-2] + 1.0
+    ref0, ref3 = reference(0), reference(3)
+    assert len(ref0._phase_recip_vecs[phase][1]) == len(low.g_mag) == 26
+    R32 = Rs[1].astype(np.float32)
+    f_clean = low.features(Rs[1], vctx.vertices, phase)
+    assert f_clean[-2] == ref0.evaluate(R32, vctx.vertices, phase).cost
+    assert f_clean[-1] == ref3.evaluate(R32, vctx.vertices, phase).cost
+    # the realistic images of the same voxel: the cost changes and matches the reference again
+    keys_all = np.load(C.CACHE_DIR / "images" / f"v{env_voxel(C)}_all.npz")["keys"]
+    C.attach(keys_all)
+    try:
+        low.set_image(keys_all)
+        ref0, ref3 = reference(0), reference(3)  # exp_data re-read at construction
+        f_all = low.features(Rs[1], vctx.vertices, phase)
+        assert f_all[-2] != f_clean[-2] or f_all[-1] != f_clean[-1]
+        assert f_all[-2] == ref0.evaluate(R32, vctx.vertices, phase).cost
+        assert f_all[-1] == ref3.evaluate(R32, vctx.vertices, phase).cost
+    finally:
+        C.attach(keys)
 
 
 def test_folds_are_disjoint_by_grain_and_voxel():

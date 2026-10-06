@@ -118,45 +118,123 @@ e2full|reg          0.994  0.931  0.996 | 0.997 0.989 0.994 0.972 0.994 | 0.990 
 
 [6] end to end, 200 voxels x 2 variants, seed 0 (paired with E0 seed 0)
 --- clean ---
-  E0 baseline                        n=200 wrong  67 = 0.335 [0.273,0.403]  fixed   0 broken  0  med.err(right) 0.0301  evals global 44478 local 4711 (total 49190, with proxy 49190, base 49190) scored 0  wall 24.5s (base 24.5s, proxy 0.00s)
-  F1 (Sigma<=29)                     n=200 wrong   3 = 0.015 [0.005,0.043]  fixed  64 broken  0  med.err(right) 0.0272  evals global 44478 local 10044 (total 54523, with proxy 54523, base 49190) scored 0  wall 27.2s (base 24.5s, proxy 0.00s)
-  F1b                                n=200 wrong   0 = 0.000 [0.000,0.019]  fixed  67 broken  0  med.err(right) 0.0200  evals global 45492 local 17519 (total 63011, with proxy 63011, base 49190) scored 0  wall 35.4s (base 24.5s, proxy 0.00s)
-  E2 rerank (GBT, full pass)         n=200 wrong   8 = 0.040 [0.020,0.077]  fixed  59 broken  0  med.err(right) 0.0285  evals global 44505 local 5986 (total 50491, with proxy 51528, base 49190) scored 246  wall 26.6s (base 24.5s, proxy 0.00s)
-  E2 rerank + F1                     n=200 wrong   4 = 0.020 [0.008,0.050]  fixed  63 broken  0  med.err(right) 0.0285  evals global 44505 local 10798 (total 55302, with proxy 56339, base 49190) scored 246  wall 29.1s (base 24.5s, proxy 0.00s)
-  proxy p_i                          n=200 wrong  13 = 0.065 [0.038,0.108]  fixed  55 broken  1  med.err(right) 0.0281  evals global 44494 local 5739 (total 50233, with proxy 50941, base 49190) scored 240  wall 25.5s (base 24.5s, proxy 0.46s)
-  proxy p_i + F1                     n=200 wrong   0 = 0.000 [0.000,0.019]  fixed  67 broken  0  med.err(right) 0.0282  evals global 44494 local 10646 (total 55140, with proxy 55848, base 49190) scored 240  wall 27.9s (base 24.5s, proxy 0.46s)
+  E0 baseline                        n=200 wrong  67 = 0.335 [0.273,0.403]  fixed   0 broken  0  med.err(right) 0.0301  evals global 44478 local 4711 (total 49190, incl. proxy (1-worker eq) 49190, base 49190) scored 0  wall 24.5s (base 24.5s, proxy 0.00s)
+  F1 (Sigma<=29)                     n=200 wrong   3 = 0.015 [0.005,0.043]  fixed  64 broken  0  med.err(right) 0.0272  evals global 44478 local 10044 (total 54523, incl. proxy (1-worker eq) 54523, base 49190) scored 0  wall 27.2s (base 24.5s, proxy 0.00s)
+  F1b                                n=200 wrong   0 = 0.000 [0.000,0.019]  fixed  67 broken  0  med.err(right) 0.0200  evals global 45492 local 17519 (total 63011, incl. proxy (1-worker eq) 63011, base 49190) scored 0  wall 35.4s (base 24.5s, proxy 0.00s)
+  E2 rerank (GBT, full pass)         n=200 wrong   8 = 0.040 [0.020,0.077]  fixed  59 broken  0  med.err(right) 0.0285  evals global 44505 local 5986 (total 50491, incl. proxy (1-worker eq) 51528, base 49190) scored 246  wall 26.6s (base 24.5s, proxy 0.00s)
+  E2 rerank + F1                     n=200 wrong   4 = 0.020 [0.008,0.050]  fixed  63 broken  0  med.err(right) 0.0285  evals global 44505 local 10798 (total 55302, incl. proxy (1-worker eq) 56339, base 49190) scored 246  wall 29.1s (base 24.5s, proxy 0.00s)
+  proxy p_i                          n=200 wrong  13 = 0.065 [0.038,0.108]  fixed  55 broken  1  med.err(right) 0.0281  evals global 44494 local 5739 (total 50233, incl. proxy (1-worker eq) 50941, base 49190) scored 240  wall 25.5s (base 24.5s, proxy 0.46s)
+  proxy p_i + F1                     n=200 wrong   0 = 0.000 [0.000,0.019]  fixed  67 broken  0  med.err(right) 0.0282  evals global 44494 local 10646 (total 55140, incl. proxy (1-worker eq) 55848, base 49190) scored 240  wall 27.9s (base 24.5s, proxy 0.46s)
   per-run change vs the baseline (mean over the paired runs):
     E2 rerank (GBT, full pass)     d global     +26  d local   +1275  scoring (equivalents)  +1037  d total   +2338 (+4.8%)  d wall (10 workers) +2.1s
     E2 rerank + F1                 d global     +26  d local   +6086  scoring (equivalents)  +1037  d total   +7150 (+14.5%)  d wall (10 workers) +4.6s
     proxy p_i                      d global     +16  d local   +1027  scoring (equivalents)   +708  d total   +1751 (+3.6%)  d wall (10 workers) +0.9s
     proxy p_i + F1                 d global     +16  d local   +5935  scoring (equivalents)   +708  d total   +6659 (+13.5%)  d wall (10 workers) +3.4s
+  paired exact McNemar tests (seed 0, same runs):
+    proxy p_i vs E2 rerank (GBT, full pass): discordant 6 (only the first wrong) vs 1 (only the second wrong), exact McNemar p = 0.125 (n=200)
+    proxy p_i + F1 vs F1 (Sigma<=29): discordant 0 (only the first wrong) vs 3 (only the second wrong), exact McNemar p = 0.25 (n=200)
+    proxy p_i + F1 vs E2 rerank + F1: discordant 0 (only the first wrong) vs 4 (only the second wrong), exact McNemar p = 0.125 (n=200)
+    proxy p_i + F1 vs F1b: discordant 0 (only the first wrong) vs 0 (only the second wrong), exact McNemar p = 1 (n=200)
 --- realistic ---
-  E0 baseline                        n=200 wrong  52 = 0.260 [0.204,0.325]  fixed   0 broken  0  med.err(right) 0.0278  evals global 44778 local 7628 (total 52406, with proxy 52406, base 52406) scored 0  wall 26.5s (base 26.5s, proxy 0.00s)
-  F1 (Sigma<=29)                     n=200 wrong   8 = 0.040 [0.020,0.077]  fixed  44 broken  0  med.err(right) 0.0257  evals global 44778 local 13007 (total 57785, with proxy 57785, base 52406) scored 0  wall 29.2s (base 26.5s, proxy 0.00s)
-  F1b                                n=200 wrong   3 = 0.015 [0.005,0.043]  fixed  50 broken  1  med.err(right) 0.0176  evals global 45789 local 20143 (total 65931, with proxy 65931, base 52406) scored 0  wall 37.3s (base 26.5s, proxy 0.00s)
-  E2 rerank (GBT, full pass)         n=200 wrong   9 = 0.045 [0.024,0.083]  fixed  46 broken  3  med.err(right) 0.0228  evals global 44824 local 9625 (total 54449, with proxy 56106, base 52406) scored 393  wall 29.8s (base 26.5s, proxy 0.00s)
-  E2 rerank + F1                     n=200 wrong   7 = 0.035 [0.017,0.070]  fixed  47 broken  2  med.err(right) 0.0228  evals global 44824 local 14743 (total 59566, with proxy 61223, base 52406) scored 393  wall 32.6s (base 26.5s, proxy 0.00s)
-  proxy p_i                          n=200 wrong  15 = 0.075 [0.046,0.120]  fixed  40 broken  3  med.err(right) 0.0285  evals global 44805 local 9111 (total 53916, with proxy 55046, base 52406) scored 384  wall 28.2s (base 26.5s, proxy 0.74s)
-  proxy p_i + F1                     n=200 wrong   4 = 0.020 [0.008,0.050]  fixed  50 broken  2  med.err(right) 0.0296  evals global 44805 local 14278 (total 59084, with proxy 60214, base 52406) scored 384  wall 30.9s (base 26.5s, proxy 0.74s)
+  E0 baseline                        n=200 wrong  52 = 0.260 [0.204,0.325]  fixed   0 broken  0  med.err(right) 0.0278  evals global 44778 local 7628 (total 52406, incl. proxy (1-worker eq) 52406, base 52406) scored 0  wall 26.5s (base 26.5s, proxy 0.00s)
+  F1 (Sigma<=29)                     n=200 wrong   8 = 0.040 [0.020,0.077]  fixed  44 broken  0  med.err(right) 0.0257  evals global 44778 local 13007 (total 57785, incl. proxy (1-worker eq) 57785, base 52406) scored 0  wall 29.2s (base 26.5s, proxy 0.00s)
+  F1b                                n=200 wrong   3 = 0.015 [0.005,0.043]  fixed  50 broken  1  med.err(right) 0.0176  evals global 45789 local 20143 (total 65931, incl. proxy (1-worker eq) 65931, base 52406) scored 0  wall 37.3s (base 26.5s, proxy 0.00s)
+  E2 rerank (GBT, full pass)         n=200 wrong   9 = 0.045 [0.024,0.083]  fixed  46 broken  3  med.err(right) 0.0228  evals global 44824 local 9625 (total 54449, incl. proxy (1-worker eq) 56106, base 52406) scored 393  wall 29.8s (base 26.5s, proxy 0.00s)
+  E2 rerank + F1                     n=200 wrong   7 = 0.035 [0.017,0.070]  fixed  47 broken  2  med.err(right) 0.0228  evals global 44824 local 14743 (total 59566, incl. proxy (1-worker eq) 61223, base 52406) scored 393  wall 32.6s (base 26.5s, proxy 0.00s)
+  proxy p_i                          n=200 wrong  15 = 0.075 [0.046,0.120]  fixed  40 broken  3  med.err(right) 0.0285  evals global 44805 local 9111 (total 53916, incl. proxy (1-worker eq) 55046, base 52406) scored 384  wall 28.2s (base 26.5s, proxy 0.74s)
+  proxy p_i + F1                     n=200 wrong   4 = 0.020 [0.008,0.050]  fixed  50 broken  2  med.err(right) 0.0296  evals global 44805 local 14278 (total 59084, incl. proxy (1-worker eq) 60214, base 52406) scored 384  wall 30.9s (base 26.5s, proxy 0.74s)
   per-run change vs the baseline (mean over the paired runs):
     E2 rerank (GBT, full pass)     d global     +45  d local   +1997  scoring (equivalents)  +1657  d total   +3700 (+7.1%)  d wall (10 workers) +3.3s
     E2 rerank + F1                 d global     +45  d local   +7115  scoring (equivalents)  +1657  d total   +8817 (+16.8%)  d wall (10 workers) +6.1s
     proxy p_i                      d global     +27  d local   +1483  scoring (equivalents)  +1130  d total   +2640 (+5.0%)  d wall (10 workers) +1.7s
     proxy p_i + F1                 d global     +27  d local   +6650  scoring (equivalents)  +1130  d total   +7808 (+14.9%)  d wall (10 workers) +4.4s
+  paired exact McNemar tests (seed 0, same runs):
+    proxy p_i vs E2 rerank (GBT, full pass): discordant 12 (only the first wrong) vs 6 (only the second wrong), exact McNemar p = 0.238 (n=200)
+    proxy p_i + F1 vs F1 (Sigma<=29): discordant 3 (only the first wrong) vs 7 (only the second wrong), exact McNemar p = 0.344 (n=200)
+    proxy p_i + F1 vs E2 rerank + F1: discordant 3 (only the first wrong) vs 6 (only the second wrong), exact McNemar p = 0.508 (n=200)
+    proxy p_i + F1 vs F1b: discordant 4 (only the first wrong) vs 3 (only the second wrong), exact McNemar p = 1 (n=200)
 
 [7] success criteria
-  label: Spearman of the censored y_bcost >= 0.8 -> met (0.861)
-  offline: best deployable proxy recall within 0.01 of E2 -> met (gap 0.008)
-  [clean] rerank proxy p_i: wrong 13/200 <= E2 rerank 8/200 -> NOT met; proxy time per run 0.37s vs E2 0.54s -> met
+  label: Spearman of the censored y_bcost >= 0.8 -> pooled met (0.861); within-case mean 0.790 is borderline BELOW 0.8 (L2 0.783); ranking happens within a case and level, but the classifiers tie the regression offline (D3), so a fallback would not change the offline recall
+  informational D1 sub-check (NOT a plan success criterion; borderline): best deployable proxy recall within 0.01 of E2 -> met against e2full|clf3 (gap 0.008); against the best E2 variant the gap is 0.011 pooled (e2full|clf_lm 0.988), 0.017 clean, 0.006 realistic; the deployable model was picked as the best of 6 held-out results (mildly optimistic)
+  [clean] rerank proxy p_i: wrong 13/200 <= E2 rerank 8/200 -> NOT met; proxy time per run 0.37s (240 scored) vs E2 0.54s as timed (246 scored) -> met; vs a deployable E2 without the free Q8 cost 0.41s -> met
   [clean] (ii)-criterion proxy p_i: wrong 0.065 <= 0.05 and evals incl. proxy 50941 <= baseline 49190 -> NOT met
+  [clean] CAVEAT (iii): wrong counts are small; paired tests: proxy p_i + F1 vs F1 (Sigma<=29): discordant 0 (only the first wrong) vs 3 (only the second wrong), exact McNemar p = 0.25 (n=200) ; proxy p_i + F1 vs E2 rerank + F1: discordant 0 (only the first wrong) vs 4 (only the second wrong), exact McNemar p = 0.125 (n=200)
   [clean] (iii) proxy p_i + F1: wrong 0 <= F1 3 and evals 55848 < F1b 63011 -> met
-  [realistic] rerank proxy p_i: wrong 15/200 <= E2 rerank 9/200 -> NOT met; proxy time per run 0.59s vs E2 0.86s -> met
+  [realistic] rerank proxy p_i: wrong 15/200 <= E2 rerank 9/200 -> NOT met; proxy time per run 0.59s (384 scored) vs E2 0.86s as timed (393 scored) -> met; vs a deployable E2 without the free Q8 cost 0.66s -> met
   [realistic] (ii)-criterion proxy p_i: wrong 0.075 <= 0.05 and evals incl. proxy 55046 <= baseline 52406 -> NOT met
+  [realistic] CAVEAT (iii): wrong counts are small; paired tests: proxy p_i + F1 vs F1 (Sigma<=29): discordant 3 (only the first wrong) vs 7 (only the second wrong), exact McNemar p = 0.344 (n=200) ; proxy p_i + F1 vs E2 rerank + F1: discordant 3 (only the first wrong) vs 6 (only the second wrong), exact McNemar p = 0.508 (n=200)
   [realistic] (iii) proxy p_i + F1: wrong 4 <= F1 8 and evals 60214 < F1b 65931 -> met
 
-[8] proxy rows with seeds 1-2 (paired with E0 seeds 0-2)
-  p_i/clean              proxy p_i seeds 0-2                n=600 wrong  42 = 0.070 [0.052,0.093]  fixed 167 broken  5  med.err(right) 0.0277  evals global 44495 local 5770 (total 50265, with proxy 50975, base 49196) scored 241  wall 25.6s (base 24.5s, proxy 0.47s)
-  p_i/all                proxy p_i seeds 0-2                n=600 wrong  33 = 0.055 [0.039,0.076]  fixed 117 broken  7  med.err(right) 0.0270  evals global 44807 local 9217 (total 54024, with proxy 55156, base 52409) scored 384  wall 28.5s (base 26.7s, proxy 0.74s)
+[8] proxy rows over seeds 0-2 (paired with E0 seeds 0-2; F1b exists for seed 0 only)
+  -- clean --
+  E0 baseline (3 seeds)              n=600 wrong 204 = 0.340 [0.303,0.379]  fixed   0 broken  0  med.err(right) 0.0301  evals global 44479 local 4717 (total 49196, incl. proxy (1-worker eq) 49196, base 49196) scored 0  wall 24.5s (base 24.5s, proxy 0.00s)
+  F1 (Sigma<=29, 3 seeds)            n=600 wrong  21 = 0.035 [0.023,0.053]  fixed 183 broken  0  med.err(right) 0.0263  evals global 44479 local 10006 (total 54485, incl. proxy (1-worker eq) 54485, base 49196) scored 0  wall 27.1s (base 24.5s, proxy 0.00s)
+  proxy p_i (3 seeds)                n=600 wrong  42 = 0.070 [0.052,0.093]  fixed 167 broken  5  med.err(right) 0.0277  evals global 44495 local 5770 (total 50265, incl. proxy (1-worker eq) 50975, base 49196) scored 241  wall 25.6s (base 24.5s, proxy 0.47s)
+  proxy p_i + F1 (3 seeds)           n=600 wrong   0 = 0.000 [0.000,0.006]  fixed 204 broken  0  med.err(right) 0.0274  evals global 44495 local 10690 (total 55185, incl. proxy (1-worker eq) 55894, base 49196) scored 241  wall 28.1s (base 24.5s, proxy 0.47s)
+    proxy p_i + F1 (3 seeds) vs F1 (Sigma<=29, 3 seeds): discordant 0 (only the first wrong) vs 21 (only the second wrong), exact McNemar p = 9.54e-07 (n=600)
+  -- realistic --
+  E0 baseline (3 seeds)              n=600 wrong 143 = 0.238 [0.206,0.274]  fixed   0 broken  0  med.err(right) 0.0277  evals global 44779 local 7630 (total 52409, incl. proxy (1-worker eq) 52409, base 52409) scored 0  wall 26.7s (base 26.7s, proxy 0.00s)
+  F1 (Sigma<=29, 3 seeds)            n=600 wrong  20 = 0.033 [0.022,0.051]  fixed 123 broken  0  med.err(right) 0.0265  evals global 44779 local 13034 (total 57813, incl. proxy (1-worker eq) 57813, base 52409) scored 0  wall 29.4s (base 26.7s, proxy 0.00s)
+  proxy p_i (3 seeds)                n=600 wrong  33 = 0.055 [0.039,0.076]  fixed 117 broken  7  med.err(right) 0.0270  evals global 44807 local 9217 (total 54024, incl. proxy (1-worker eq) 55156, base 52409) scored 384  wall 28.5s (base 26.7s, proxy 0.74s)
+  proxy p_i + F1 (3 seeds)           n=600 wrong   9 = 0.015 [0.008,0.028]  fixed 137 broken  3  med.err(right) 0.0272  evals global 44807 local 14327 (total 59134, incl. proxy (1-worker eq) 60266, base 52409) scored 384  wall 31.1s (base 26.7s, proxy 0.74s)
+    proxy p_i + F1 (3 seeds) vs F1 (Sigma<=29, 3 seeds): discordant 4 (only the first wrong) vs 15 (only the second wrong), exact McNemar p = 0.0192 (n=600)
+
+[8b] evaluation split, baseline vs proxy row (i) (20 voxels x 2 variants, seed 0)
+  -- clean, 20 voxels, mean per run (cost evaluations; proxy's own low-Q costs are listed under 'proxy') --
+  stage|kind                  baseline     proxy    change
+  discrete_L0|local                178       178        +0
+  discrete_L0|pixel3             43974     43974        +0
+  discrete_L1|local                104       112        +8
+  discrete_L1|pixel3               382       382        +0
+  discrete_L2|local                 54        70       +16
+  discrete_L2|pixel3                98       104        +6
+  discrete_L3|local                 22        30        +8
+  discrete_L3|pixel3                22        31        +8
+  final_eval|local                   1         1        +0
+  findoptimal|local                475       956      +481
+  proxy|local                        0       239      +239
+  proxy|pixel3                       0       239      +239
+  quick_mc_L0|local               1887      1887        +0
+  quick_mc_L1|local                493       524       +30
+  quick_mc_L2|local                125       167       +42
+  quick_mc_L3|local                 29        53       +25
+  variance|local                  1239      1750      +511
+  n_findoptimal                    2.6       4.8      +2.2
+  n_cand_L0                      171.5     171.5      +0.0
+  n_cand_L1                       44.9      47.6      +2.8
+  n_cand_L2                       11.3      15.2      +3.8
+  n_cand_L3                        2.6       4.8      +2.2
+  total local (reconstructor)      4607      5728     +1121
+  total pixel3 (reconstructor)     44476     44490       +14
+  wall (s, 10 workers)           24.02     24.69     +0.67
+  -- realistic, 20 voxels, mean per run (cost evaluations; proxy's own low-Q costs are listed under 'proxy') --
+  stage|kind                  baseline     proxy    change
+  discrete_L0|local                297       297        +0
+  discrete_L0|pixel3             43974     43974        +0
+  discrete_L1|local                178       191       +12
+  discrete_L1|pixel3               631       631        +0
+  discrete_L2|local                104       125       +21
+  discrete_L2|pixel3               171       180        +9
+  discrete_L3|local                 42        56       +14
+  discrete_L3|pixel3                43        58       +15
+  final_eval|local                   1         1        +0
+  findoptimal|local                940      2020     +1080
+  proxy|local                        0       401      +401
+  proxy|pixel3                       0       401      +401
+  quick_mc_L0|local               3101      3101        +0
+  quick_mc_L1|local                848       896       +48
+  quick_mc_L2|local                224       298       +73
+  quick_mc_L3|local                 55       114       +59
+  variance|local                  2192      1995      -197
+  n_findoptimal                    5.0      10.4      +5.4
+  n_cand_L0                      281.9     281.9      +0.0
+  n_cand_L1                       77.1      81.5      +4.4
+  n_cand_L2                       20.4      27.1      +6.6
+  n_cand_L3                        5.0      10.4      +5.4
+  total local (reconstructor)      7983      9094     +1111
+  total pixel3 (reconstructor)     44818     44842       +24
+  wall (s, 10 workers)           26.60     27.68     +1.08
 
 [9] domain shift: recall on the proxy runs' own candidates
   p_i clean offline reference (baseline candidates, seed 0, held-out): keep 1/4 0.960, 1/8 0.946 (n=522)

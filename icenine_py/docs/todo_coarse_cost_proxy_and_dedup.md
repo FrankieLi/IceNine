@@ -65,9 +65,10 @@ pruning recall at keep 1/4, levels 0-2): raw cost 0.900, raw Q5 cost 0.804, untr
 0.953, F-lowQ Q5 0.962, F-lowQ Q5 plus the free post-quick-MC Q8 cost 0.977 (regression on the
 basin cost; a classifier gives the same), E2 full pass 0.985. End to end (200 voxels x 2 variants,
 seed 0): proxy rerank 6.5% / 7.5% wrong (clean / realistic) against 33.5% / 26.0% for the baseline
-and 4.0% / 4.5% for the E2 rerank; proxy + F1 0.0% / 2.0% at about F1's evaluations. Cost: one
+and 4.0% / 4.5% for the E2 rerank; proxy + F1 0.0% / 2.0% at about F1's evaluations (3 seeds: 0.0% / 1.5% against F1's 3.5% / 3.3%). Cost: one
 low-Q pass is 2.9 and the E2 pass 4.2 Q8-local-evaluation equivalents (1.52 ms vs 2.19 ms; Python
-overhead dominates). Keep 1/8 was not run (offline recall 0.963 < 0.98).
+overhead dominates); inside `rank_key` the E2 pass's Q8 local cost is free, so a deployable E2 is
+about 3.2 equivalents and the proxy's advantage about 1.1x. Keep 1/8 was not run (offline recall 0.963 < 0.98).
 
 # Idea 2: low-cost clustering of N candidate orientations to remove duplicates
 

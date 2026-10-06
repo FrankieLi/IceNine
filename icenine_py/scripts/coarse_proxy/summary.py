@@ -83,13 +83,15 @@ def with_f1(base: Dict[Any, Any], f1_dir: Path, var: str, e0: Dict[Any, Any]) ->
     the refined relatives; extra evaluations as in summarize_fixes (time scaled as there)."""
     out = {}
     for (vpos, s), r in base.items():
-        f = f1_dir / f"v{r['v']}_{var}.npz"
+        # baseline F1 cache holds s0..s2 in one file; a proxy run's F1 holds seed 0 in v*.npz and
+        # seeds 1-2 in v*_s12.npz (f1_run.py --source-seeds 1 2)
+        name = f"v{r['v']}_{var}" + ("_s12" if (s > 0 and f1_dir.name != "f1") else "")
+        f = f1_dir / f"{name}.npz"
         if not f.exists():
             continue
         R, c, extra = SF.f1_answer(
-            np.load(f), 0 if f1_dir.name != "f1" else s, 29,
-            dict(R=r["R"], cost=r["cost"]), e0[(vpos, s)]["R_true"],
-        )  # fmt: skip
+            np.load(f), s, 29, dict(R=r["R"], cost=r["cost"]), e0[(vpos, s)]["R_true"]
+        )
         tot = r["eg"] + r["el"]
         out[(vpos, s)] = dict(
             r, R=R, cost=c, el=r["el"] + extra, rt=r["rt"] + extra * r["rt"] / max(tot, 1)
@@ -112,6 +114,7 @@ def row(name: str, runs: Dict[Any, Any], e0: Dict[Any, Any], eq: float = 0.0) ->
     lc = np.array([runs[k]["el"] for k in keys], float)
     sc = np.array([runs[k]["n_scored"] for k in keys], float)
     return dict(
+        _errs=dict(zip(keys, err.tolist())),
         name=name, n=n, wrong=int((err > 1).sum()), rate=p, lo=lo, hi=hi,
         fixed=int(((err <= 1) & (base > 1)).sum()), broken=int(((err > 1) & (base <= 1)).sum()),
         base_wrong=int((base > 1).sum()), median_err_right=float(np.median(right)),
@@ -124,12 +127,36 @@ def row(name: str, runs: Dict[Any, Any], e0: Dict[Any, Any], eq: float = 0.0) ->
     )  # fmt: skip
 
 
+def mcnemar(a: Optional[Dict], b: Optional[Dict]) -> Optional[Dict[str, Any]]:
+    """Exact (two-sided binomial) McNemar test of two rows on their common runs: wrong = error
+    above 1 deg. Returns the discordant counts (a wrong / b right, a right / b wrong) and p."""
+    from scipy.stats import binomtest
+
+    if not a or not b:
+        return None
+    keys = sorted(set(a["_errs"]) & set(b["_errs"]))
+    wa = np.array([a["_errs"][k] > C.WRONG_DEG for k in keys])
+    wb = np.array([b["_errs"][k] > C.WRONG_DEG for k in keys])
+    n_a, n_b = int((wa & ~wb).sum()), int((~wa & wb).sum())
+    p = 1.0 if n_a + n_b == 0 else float(binomtest(min(n_a, n_b), n_a + n_b, 0.5).pvalue)
+    return dict(a=a["name"], b=b["name"], n=len(keys), a_only_wrong=n_a, b_only_wrong=n_b, p=p)
+
+
+def fmt_mc(m: Optional[Dict[str, Any]]) -> str:
+    if not m:
+        return NE
+    return (
+        f"{m['a']} vs {m['b']}: discordant {m['a_only_wrong']} (only the first wrong) vs "
+        f"{m['b_only_wrong']} (only the second wrong), exact McNemar p = {m['p']:.3g} (n={m['n']})"
+    )
+
+
 def fmt_row(r: Dict[str, Any]) -> str:
     return (
         f"{r['name']:34s} n={r['n']:3d} wrong {r['wrong']:3d} = {r['rate']:.3f} "
         f"[{r['lo']:.3f},{r['hi']:.3f}]  fixed {r['fixed']:3d} broken {r['broken']:2d}  "
         f"med.err(right) {r['median_err_right']:.4f}  evals global {r['evals_global']:.0f} "
-        f"local {r['evals_local']:.0f} (total {r['evals_total']:.0f}, with proxy "
+        f"local {r['evals_local']:.0f} (total {r['evals_total']:.0f}, incl. proxy (1-worker eq) "
         f"{r['evals_with_proxy_eq']:.0f}, base {r['base_evals']:.0f}) scored {r['scored']:.0f}  "
         f"wall {r['wall']:.1f}s (base {r['base_wall']:.1f}s, proxy {r['proxy_sec']:.2f}s)"
     )
@@ -269,26 +296,65 @@ def main() -> None:
                 f"({(r['evals_with_proxy_eq'] / b0['evals_total'] - 1) * 100:+.1f}%)  "
                 f"d wall (10 workers) {r['wall'] - b0['wall']:+.1f}s"
             )
+        by_name = {r["name"]: r for r in rows}
+        tests = [
+            mcnemar(by_name.get("proxy p_i"), by_name.get("E2 rerank (GBT, full pass)")),
+            mcnemar(by_name.get("proxy p_i + F1"), by_name.get("F1 (Sigma<=29)")),
+            mcnemar(by_name.get("proxy p_i + F1"), by_name.get("E2 rerank + F1")),
+            mcnemar(by_name.get("proxy p_i + F1"), by_name.get("F1b")),
+        ]
+        out.setdefault("paired_tests", {})[var] = [t for t in tests if t]
+        L.append("  paired exact McNemar tests (seed 0, same runs):")
+        L += ["    " + fmt_mc(t) for t in tests if t]
+        for r in rows:
+            r.pop("_errs", None)
         e2e[var] = rows
     out["end_to_end"] = e2e
     # 7. success criteria
     L.append("\n[7] success criteria")
     L += criteria(out, e2e, tm)
-    # 8. seeds 1-2 of the best row, if run
+    # 8. seeds 1-2 of the proxy rows
     ms: Dict[str, Any] = {}
+    L.append(
+        "\n[8] proxy rows over seeds 0-2 (paired with E0 seeds 0-2; F1b exists for seed 0 only)"
+    )
     for tag in tags:
         for var in C.VARIANTS:
             e0 = runs_e0(var, [0, 1, 2])
             pr = runs_files(B.CACHE / "e2e" / tag, var, [0, 1, 2], True)
-            if any(k[1] > 0 for k in pr):
-                ms[f"{tag}/{var}"] = row(f"proxy {tag} seeds 0-2", pr, e0, eq_proxy)
-    L.append("\n[8] proxy rows with seeds 1-2 (paired with E0 seeds 0-2)")
-    if ms:
-        for k, r in ms.items():
-            L.append(f"  {k:22s} {fmt_row(r)}")
-    else:
+            if not any(k[1] > 0 for k in pr):
+                continue
+            rows8 = [
+                row("E0 baseline (3 seeds)", e0, e0),
+                row("F1 (Sigma<=29, 3 seeds)", with_f1(e0, C.CACHE_DIR / "f1", var, e0), e0),
+                row(f"proxy {tag} (3 seeds)", pr, e0, eq_proxy),
+            ]
+            f1d = B.CACHE / "e2e" / f"f1_{tag}"
+            if f1d.exists():
+                rows8.append(
+                    row(f"proxy {tag} + F1 (3 seeds)", with_f1(pr, f1d, var, e0), e0, eq_proxy)
+                )
+            rows8 = [r for r in rows8 if r]
+            L.append(f"  -- {'realistic' if var == 'all' else 'clean'} --")
+            L += ["  " + fmt_row(r) for r in rows8]
+            nm = {r["name"]: r for r in rows8}
+            mc = mcnemar(nm.get(f"proxy {tag} + F1 (3 seeds)"), nm.get("F1 (Sigma<=29, 3 seeds)"))
+            if mc:
+                L.append("    " + fmt_mc(mc))
+            ms[f"{tag}/{var}"] = dict(
+                rows=[{k: v for k, v in r.items() if k != "_errs"} for r in rows8], mcnemar=mc
+            )
+    if not ms:
         L.append("  " + NE)
     out["multi_seed"] = ms
+    # 8b. where the extra local evaluations go (scripts/coarse_proxy/eval_split.py)
+    L.append("\n[8b] evaluation split, baseline vs proxy row (i) (20 voxels x 2 variants, seed 0)")
+    sp = jload(B.OUT / "eval_split.json")
+    if sp:
+        L += sp["lines"]
+    else:
+        L.append("  " + NE)
+    out["eval_split"] = sp
     # 9. domain shift
     L.append("\n[9] domain shift: recall on the proxy runs' own candidates")
     ds = domain_shift(tags)
@@ -307,16 +373,38 @@ def criteria(out: Dict[str, Any], e2e: Dict[str, Any], tm: Optional[Dict[str, An
     L: List[str] = []
     lv = out.get("label_validation")
     if lv:
-        v = f"{verdict(lv['spearman_pooled'] >= 0.8)} ({lv['spearman_pooled']:.3f})"
+        v = (
+            f"pooled {verdict(lv['spearman_pooled'] >= 0.8)} ({lv['spearman_pooled']:.3f}); "
+            f"within-case mean {lv['spearman_within_case_mean']:.3f} is borderline BELOW 0.8 "
+            f"(L2 {lv['by_level']['2']['spearman']:.3f}); ranking happens within a case and "
+            f"level, but the classifiers tie the regression offline (D3), so a fallback would "
+            f"not change the offline recall"
+        )
     else:
         v = NE
     L.append(f"  label: Spearman of the censored y_bcost >= 0.8 -> {v}")
     d = (out.get("offline_decisions") or {}).get("D1")
-    if d:
-        v = f"{verdict(not d['adds_nothing_beyond_e2'])} (gap {d['e2_gap']:.3f})"
+    off = jload(B.OUT / "offline_metrics.json")
+    if d and off:
+        k, rec = "recall_L012_1/4", {}
+        for tv in ("both", "clean", "all"):
+            best = max((m for m in off[tv] if m.startswith("e2full")), key=lambda m: off[tv][m][k])
+            rec[tv] = (off[tv][d["best_deployable"]][k], best, off[tv][best][k])
+        v = (
+            f"{verdict(not d['adds_nothing_beyond_e2'])} against e2full|clf3 "
+            f"(gap {d['e2_gap']:.3f}); against the best E2 variant the gap is "
+            f"{rec['both'][2] - rec['both'][0]:.3f} pooled "
+            f"({rec['both'][1]} {rec['both'][2]:.3f}), "
+            f"{rec['clean'][2] - rec['clean'][0]:.3f} clean, "
+            f"{rec['all'][2] - rec['all'][0]:.3f} realistic; the deployable model was picked as "
+            f"the best of 6 held-out results (mildly optimistic)"
+        )
     else:
         v = NE
-    L.append(f"  offline: best deployable proxy recall within 0.01 of E2 -> {v}")
+    L.append(
+        f"  informational D1 sub-check (NOT a plan success criterion; borderline): best deployable "
+        f"proxy recall within 0.01 of E2 -> {v}"
+    )
     by = {var: {r["name"]: r for r in rows} for var, rows in e2e.items()}
     found = False
     for var in C.VARIANTS:
@@ -333,6 +421,12 @@ def criteria(out: Dict[str, Any], e2e: Dict[str, Any], tm: Optional[Dict[str, An
             if name.endswith("+ F1"):
                 if f1 and f1b:
                     ok = r["wrong"] <= f1["wrong"] and r["evals_with_proxy_eq"] < f1b["evals_total"]
+                    mcs = " ; ".join(
+                        fmt_mc(t)
+                        for t in out.get("paired_tests", {}).get(var, [])
+                        if t["a"] == name and t["b"] in ("F1 (Sigma<=29)", "E2 rerank + F1")
+                    )
+                    L.append(f"  [{nm}] CAVEAT (iii): wrong counts are small; paired tests: {mcs}")
                     L.append(
                         f"  [{nm}] (iii) {name}: wrong {r['wrong']} <= F1 {f1['wrong']} and evals "
                         f"{r['evals_with_proxy_eq']:.0f} < F1b {f1b['evals_total']:.0f} -> "
@@ -345,8 +439,14 @@ def criteria(out: Dict[str, Any], e2e: Dict[str, Any], tm: Optional[Dict[str, An
                     pe = tm["seconds_median"]
                     t_p = r["scored"] * (pe["lowq5_full"] + pe["model_predict_per_candidate"])
                     t_e = e2["scored"] * (pe["e2_full"] + pe["model_predict_per_candidate"])
+                    t_d = e2["scored"] * (
+                        pe["e2_full"] - pe["local_q8"] + pe["model_predict_per_candidate"]
+                    )
                     msg = (
-                        f"; proxy time per run {t_p:.2f}s vs E2 {t_e:.2f}s -> {verdict(t_p < t_e)}"
+                        f"; proxy time per run {t_p:.2f}s ({r['scored']:.0f} scored) vs E2 "
+                        f"{t_e:.2f}s as timed ({e2['scored']:.0f} scored) -> {verdict(t_p < t_e)}; "
+                        f"vs a deployable E2 without the free Q8 cost {t_d:.2f}s -> "
+                        f"{verdict(t_p < t_d)}"
                     )
                 L.append(
                     f"  [{nm}] rerank {name}: wrong {r['wrong']}/{r['n']} <= E2 rerank "

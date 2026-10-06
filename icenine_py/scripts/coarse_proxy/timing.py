@@ -30,7 +30,8 @@ import models as MD  # noqa: E402
 N_CASES, PER_CASE = 25, 40
 
 
-def med_time(fn: Callable[[], Any], reps: int = 1) -> float:
+def time_per_call(fn: Callable[[], Any], reps: int = 1) -> float:
+    """Seconds per call, averaged over `reps` calls (the medians are taken by the caller)."""
     t0 = time.perf_counter()
     for _ in range(reps):
         fn()
@@ -84,20 +85,20 @@ def main() -> None:
             Rf = R.astype(np.float32)
             for f in [*fe.values(), fe_full]:
                 f.features(R, vert, ph)  # warm-up
-            t["local_q8"].append(med_time(lambda: W.local_fn.evaluate(Rf, vert, ph)))
-            t["global_q5_r3"].append(med_time(lambda: g5.evaluate(Rf, vert, ph)))
+            t["local_q8"].append(time_per_call(lambda: W.local_fn.evaluate(Rf, vert, ph)))
+            t["global_q5_r3"].append(time_per_call(lambda: g5.evaluate(Rf, vert, ph)))
             for q in (4, 5):
                 f = fe[float(q)]
                 t[f"lowq{q}_geom"].append(
-                    med_time(lambda: f.features(R, vert, ph, with_cost=False))
+                    time_per_call(lambda: f.features(R, vert, ph, with_cost=False))
                 )
-                t[f"lowq{q}_full"].append(med_time(lambda: f.features(R, vert, ph)))
-            t["e2_full"].append(med_time(lambda: fe_full.features(R, vert, ph)))
+                t[f"lowq{q}_full"].append(time_per_call(lambda: f.features(R, vert, ph)))
+            t["e2_full"].append(time_per_call(lambda: fe_full.features(R, vert, ph)))
     med = {k: float(np.median(v)) for k, v in t.items()}
     # model prediction, batch 200, per candidate
     X = MD.feature_matrix(a.set, D)[:200]
     m = joblib.load(MD.model_path(a.set, a.target, 0))
-    reps = [med_time(lambda: MD.predict_score(a.target, m, X)) for _ in range(20)]
+    reps = [time_per_call(lambda: MD.predict_score(a.target, m, X)) for _ in range(20)]
     med["model_predict_per_candidate"] = float(np.median(reps)) / 200
     unit = med["local_q8"]
     out = dict(

@@ -25,7 +25,7 @@ import base as B  # noqa: E402
 C = B.C
 import features as F  # noqa: E402
 
-_FE: Dict[float, Any] = {}
+_FE: Dict[Tuple[float, int], Any] = {}
 
 
 def task(item: Tuple[Any, ...]) -> str:
@@ -41,9 +41,9 @@ def task(item: Tuple[Any, ...]) -> str:
     R = np.load(C.CACHE_DIR / "e2" / f"v{vidx}_{variant}.npz")["R"]
     out = {}
     for q in B.Q_LEVELS:
-        if q not in _FE:
-            _FE[q] = F.FeatureExtractor(W.local_fn, W.ctx.geo, phase, q_max=q)
-        fe = _FE[q]
+        if (q, phase) not in _FE:
+            _FE[(q, phase)] = F.FeatureExtractor(W.local_fn, W.ctx.geo, phase, q_max=q)
+        fe = _FE[(q, phase)]
         fe.set_image(keys)
         out[f"X{int(q)}"] = np.stack([fe.features(r, vertices, phase) for r in R])
     np.savez_compressed(path, **out)

@@ -48,11 +48,10 @@ def _prep(vidx: int, variant: str, q: int) -> Tuple[Any, Any, Any]:
     keys = np.load(C.CACHE_DIR / "images" / f"v{vidx}_{variant}.npz")["keys"]
     C.attach(keys)
     vctx = voxel_context(W.ctx, vidx)
-    if ("fe", q) not in _STATE:
-        _STATE[("fe", q)] = F.FeatureExtractor(
-            W.local_fn, W.ctx.geo, vctx.voxel.phase, q_max=float(q)
-        )
-    fe = _STATE[("fe", q)]
+    key = ("fe", q, vctx.voxel.phase)
+    if key not in _STATE:
+        _STATE[key] = F.FeatureExtractor(W.local_fn, W.ctx.geo, vctx.voxel.phase, q_max=float(q))
+    fe = _STATE[key]
     fe.set_image(keys)
     return W, vctx, fe
 
@@ -95,13 +94,14 @@ def task_run(item: Tuple[Any, ...]) -> str:
 
     rec = C.Recorder()
     W.rec.rank_key, W.rec.recorder = rank_key, rec
+    prev_keep = W.rec.keep_fraction
     W.rec.keep_fraction = cfg["keep"]
     t0 = time.perf_counter()
     try:
         with C.quiet():
             res = W.rec.reconstruct_voxel(vertices, phase, rng=C.run_seed(vpos, seed))
     finally:
-        W.rec.rank_key, W.rec.recorder, W.rec.keep_fraction = None, None, 0.25
+        W.rec.rank_key, W.rec.recorder, W.rec.keep_fraction = None, None, prev_keep
     dt = time.perf_counter() - t0
     g, loc, _ = W.rec.last_eval_counts
     arr = rec.to_arrays()
