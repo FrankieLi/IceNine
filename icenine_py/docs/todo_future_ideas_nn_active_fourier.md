@@ -33,18 +33,22 @@ case spends its time and where the truth is lost (S2 pruning).
   - a spot list, (ω, detector x, y, detector distance) per spot, fed to a permutation-invariant
     set network.
 - **Output.**
-  - Cubic symmetry is 24-fold: predict in the fundamental zone or use a symmetry-invariant loss.
-  - The answer can be multi-modal (Σ3 twins and other CSL relatives look alike), so output the
-    top-k orientations or a mixture rather than a single point.
+  - Respect the crystal symmetry, whatever it is: predict in the fundamental zone or use a
+    symmetry-invariant loss.
+  - The answer can be multi-modal (distinct orientations whose spots largely coincide), so output
+    the top-k orientations or a mixture rather than a single point.
+  - Keep this symmetry-agnostic. Twins and other CSL relatives are the cubic example, but they
+    matter much less for other crystal systems and applications.
 - **Use.** As a candidate generator: hand its top-k to `refine_from_candidates` (FindOptimal),
-  optionally with the F1 CSL-relative check. Using the network only to propose candidates, and
+  which needs no symmetry-specific check. Using the network only to propose candidates, and
   keeping the physics-based cost as the final judge, is also what made Tasks 1 and 2 work.
 
 **Experiments (sketch).**
 1. Top-1 and top-k basin hit rates (within 1° and 3°, cubic-reduced) on the 200-voxel E0 set,
    clean and realistic, with whole grains held out of training.
-2. End to end: net top-k → FindOptimal (→ F1). Measure the wrong rate with Wilson CI, the median
-   error and the wall time, against the baseline, F1, F1b and proxy + F1.
+2. End to end: net top-k → FindOptimal. Measure the wrong rate with Wilson CI, the median
+   error and the wall time, against the baseline and the proxy rerank. F1/F1b are reference
+   points only, since they are cubic-specific.
 3. Cost: net time vs the coarse search time from Task 3. It only helps if it is much cheaper than
    about 44k evaluations at the same wrong rate.
 
@@ -62,9 +66,10 @@ Training data comes from the Python forward model, which is validated against C+
 **Why it might help.**
 - It saves beam time and enables in-situ or time-resolved experiments, where full ω scans are
   costly.
-- The FindOptimal study showed that the hard cases are the truth versus a few CSL relatives. Their
-  predicted spots differ on specific reflections and ω ranges, so a well-chosen image could settle
-  a case that many uninformative images would not.
+- The hard cases are the truth against a few near-degenerate alternatives; in cubic Cu these were
+  CSL relatives. Any such pair's predicted spots differ on specific reflections and ω ranges, so a
+  well-chosen image could settle a case that many uninformative images would not. The acquisition
+  rule works from the candidates' predicted spots, so it needs no knowledge of the symmetry.
 - The reconstructor already holds a candidate list per level (recorder, `extra_candidates`,
   `rank_key` hooks).
 
@@ -107,7 +112,8 @@ consequences.
 2. **Orientation resolution.** It should improve with |G|: larger |q| gives a larger spot
    displacement for a given rotation.
    - Relate this to the measured sharpness of the cost function (0.2–0.5°), the Q_max = 8 choice,
-     and the finding that low-Q reflections alone cannot separate CSL relatives (Task 2).
+     and the finding that low-Q reflections alone do not separate near-degenerate alternatives
+     (Task 2, where the cubic case was CSL relatives).
 3. **Coupling.** Position and orientation errors trade off: a small rotation and a small shift can
    move a spot by the same amount. Which combinations of detector distances and reflections remove
    that degeneracy?
@@ -129,10 +135,13 @@ consequences.
 
 # Relation to other work
 
+- Framing (owner, 2026-10-06): these ideas should not centre on CSL traps. They matter mainly
+  for cubic symmetry, so prefer symmetry-agnostic methods and metrics.
+
 - Idea 1 extends the hybrid NN study (`todo_hybrid_nn_refinement.md`) from "a start exists" to
   "no start".
 - Idea 2 reuses the candidate-list machinery and the dedup idea
-  (`todo_coarse_cost_proxy_and_dedup.md` Idea 2), and targets the CSL traps from
-  `findoptimal_robustness_report.md`.
+  (`todo_coarse_cost_proxy_and_dedup.md` Idea 2). It targets near-degenerate alternative
+  solutions in general (the CSL traps of `findoptimal_robustness_report.md` are the cubic case).
 - Idea 3 is the theory behind Q_max, pixel size and image-count choices, and would set the limits
   that Ideas 1 and 2 are judged against.
