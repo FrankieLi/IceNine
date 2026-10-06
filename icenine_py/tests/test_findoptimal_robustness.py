@@ -1,0 +1,69 @@
+"""CSL tools and (later) feature / split helpers of scripts/findoptimal_robustness."""
+
+import sys
+from pathlib import Path
+
+import numpy as np
+from scipy.spatial.transform import Rotation
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "findoptimal_robustness"))
+
+import csl  # noqa: E402
+
+
+def test_cubic_ops_group():
+    assert csl.OPS.shape == (24, 3, 3)
+    assert np.allclose(np.linalg.det(csl.OPS), 1.0)
+    prod = csl.OPS[3] @ csl.OPS[7]
+    assert any(np.allclose(prod, o, atol=1e-9) for o in csl.OPS)
+
+
+def test_sigma3_relatives_are_60deg_about_111_and_four_distinct():
+    R = Rotation.random(random_state=3).as_matrix()
+    rel, labels = csl.csl_relatives(R, sigmas=[3])
+    assert len(rel) == 4 and set(labels) == {"3"}
+    for Rk in rel:
+        M = R.T @ Rk  # crystal-frame misorientation, some symmetric variant
+        # the reduced angle is 60 deg, and the axis (in the best symmetric variant) is <111>
+        assert abs(csl.reduced_misorientation_deg(R, Rk) - 60.0) < 1e-6
+        both = csl.OPS[:, None] @ M @ csl.OPS[None]
+        rv = Rotation.from_matrix(both.reshape(-1, 3, 3)).as_rotvec()
+        ang = np.degrees(np.linalg.norm(rv, axis=1))
+        k = int(np.argmin(ang))
+        ax = np.sort(np.abs(rv[k] / np.linalg.norm(rv[k])))
+        assert np.allclose(ax, 1 / np.sqrt(3), atol=1e-6)
+    # pairwise distinct modulo symmetry
+    for i in range(4):
+        for j in range(i):
+            assert csl.reduced_misorientation_deg(rel[i], rel[j]) > 1.0
+
+
+def test_relative_counts_and_classification():
+    R = Rotation.random(random_state=5).as_matrix()
+    counts = {}
+    for e in csl.csl_table(11):
+        rel, lab = csl.csl_relatives(R, sigmas=[e.sigma])
+        counts[e.label] = sum(1 for x in lab if x == e.label)
+        # every relative classifies as its own Sigma (or a lower one with the same rotation)
+        c = csl.csl_classify(R, rel[0], max_sigma=11)
+        assert c["sigma"] <= e.sigma and c["deviation"] < 0.05
+    assert counts["3"] == 4
+    assert counts["5"] == 6  # 36.87 deg <100>: 24 / |stabiliser| = 6 distinct orientations
+    assert csl.csl_classify(R, R)["sigma"] == 1
+    rand = Rotation.random(random_state=11).as_matrix()
+    assert csl.csl_classify(R, rand)["angle"] > 1.0
+
+
+def test_table_has_expected_sigmas():
+    sig = {e.sigma for e in csl.csl_table(29)}
+    assert sig == {3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29}
+
+
+def test_invariant_reflections_sigma3():
+    R = np.eye(3)
+    rel, _ = csl.csl_relatives(R, sigmas=[3])
+    hk = np.array([[1, 1, 1], [1, 1, -1], [2, 0, 0], [1, 1, 0], [3, 1, 1]], dtype=float)
+    inv = csl.invariant_reflection_mask(hk, R, rel)
+    # twin about [111]: the (111) direction is shared with the relative whose axis is [111]
+    assert inv[:, 0].any()
+    assert not inv[:, 2].all()  # {200} is not preserved by every Sigma3 variant
