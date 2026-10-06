@@ -19,7 +19,9 @@ settings) is only partly right: coarse Q_max 8 from level 0 helps a little, a sm
 tolerance is much worse; hypothesis 2 (FindOptimal logic) explains only the S3 minority. Fixes: a
 CSL-relative check after the search (F1) takes the wrong rate to 3.5% / 3.3% for +11% evaluations; the
 CSL relatives added at every level (F1b) gives 0% / 1.5%; keeping more candidates (F2a) 11% / 5.5%; a
-learned one-pass classifier as the pruning rank 4.5% / 5.0%, not better than F1. The original
+learned one-pass classifier as the pruning rank 4.0% / 4.5%, not better than F1. Follow-up ideas
+(a Q_max-8 cost proxy from low-Q_max evaluations; cheap de-duplication of candidates):
+`docs/todo_coarse_cost_proxy_and_dedup.md`. The original
 investigation notes below are kept as written.
 
 # Observation
