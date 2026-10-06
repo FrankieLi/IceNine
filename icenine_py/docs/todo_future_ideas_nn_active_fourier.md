@@ -116,12 +116,11 @@ consequences.
    are enough.
 
 **Check against DCT.**
-- "DCT" in this field usually means **Diffraction Contrast Tomography**: grain mapping from
-  diffraction spots treated as projections, reconstructed with ART/SIRT-type algorithms (Ludwig et
-  al., J. Appl. Cryst. 2008 and later). The note said "Discrete Contrast Tomography"; confirm which
-  one was meant.
-- **Discrete tomography** (e.g. DART, Batenburg & Sijbers, IEEE Trans. Image Process. 2011) is
-  also relevant. Grain maps are piecewise constant, which is exactly the prior that discrete
+- **Diffraction Contrast Tomography (DCT)**, confirmed by the project owner as the intended
+  comparison: grain mapping from diffraction spots treated as projections, reconstructed with
+  ART/SIRT-type algorithms (Ludwig et al., J. Appl. Cryst. 2008 and later).
+- Secondary: **discrete tomography** (e.g. DART, Batenburg & Sijbers, IEEE Trans. Image Process.
+  2011). Grain maps are piecewise constant, which is exactly the prior that discrete
   tomography uses to reconstruct from few projections. That prior may give the resolution versus
   number of images trade-off for Idea 2.
 - Read both for their resolution analyses (spatial resolution vs pixel size and number of spots;
