@@ -351,6 +351,12 @@ Backed by the learning curve of Section 6 (25 voxels already give most of the pr
    all features, with a trained tree on those five); a hand-made pruning key that combines the exact and the
    tolerant (radius 1 and 3) hit rates might give much of the gain without a trained model.
 
+**Decision (2026-10-06, project owner).** The recommendation above stands, but F1 and F1b are left OFF by
+default for now so the Python port keeps matching the C++ reconstruction. They remain opt-in
+(`AdaptiveVoxelReconstructor.extra_candidates` for F1b; the post-search step in
+`scripts/findoptimal_robustness/f1_run.py` for F1) and can be re-enabled if real data show CSL traps or
+the fix is ported to C++.
+
 # 9. Caveats
 
 - One sample (500 grains, one 2-detector geometry, copper, Q_max 8, |sin eta| >= 0.3); per-voxel

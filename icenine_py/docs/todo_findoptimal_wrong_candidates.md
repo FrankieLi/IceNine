@@ -24,6 +24,8 @@ learned one-pass classifier as the pruning rank 4.0% / 4.5%, not better than F1.
 `docs/todo_coarse_cost_proxy_and_dedup.md`. The original
 investigation notes below are kept as written.
 
+The fixes exist as opt-in knobs (F1b: `extra_candidates`; F1: `scripts/findoptimal_robustness/f1_run.py`), default off by owner decision (2026-10-06) to match the C++ behaviour; see `MIGRATION_HISTORY.md`, "FindOptimal robustness".
+
 # Observation
 
 `scripts/checks/measure_coarse_residual.py` runs `AdaptiveVoxelReconstructor` with

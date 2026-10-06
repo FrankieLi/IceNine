@@ -433,7 +433,13 @@ class AdaptiveVoxelReconstructor:
         self.n_q_start_offset: float = 0.0  # added to the initial n_q_max (5 + min resolution)
         self.global_pixel_radius: int = 3  # pixel radius of the coarse (global) cost function
         # Optional hook: extra_candidates(level, candidates) -> extra SearchCandidates (orientation
-        # only; the quick MC fills their cost) added before the quick MC of that level
+        # only; the quick MC fills their cost) added before the quick MC of that level.
+        # This is the F1b knob (CSL relatives of the best candidates at every coarse level, see
+        # scripts/findoptimal_robustness/fixes_run.py make_expander). OFF by default (None) by
+        # project decision (2026-10-06) so the port keeps matching the C++ reconstruction; it cuts
+        # the wrong rate from 34%/24% to 0%/1.5% for about +28% evaluations. The F1 post-search
+        # check is not an attribute: it lives in scripts/findoptimal_robustness/f1_run.py and uses
+        # refine_from_candidates, and is likewise not applied by reconstruct_voxel.
         self.extra_candidates: Optional[
             Callable[[int, List[SearchCandidate]], List[SearchCandidate]]
         ] = None
