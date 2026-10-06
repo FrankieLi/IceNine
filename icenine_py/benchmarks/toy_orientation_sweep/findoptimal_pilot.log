@@ -1,0 +1,692 @@
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+  [A 1/4] voxel 7336 #0 done in 21s (23s total)
+  [A 2/4] voxel 3108 #0 done in 22s (24s total)
+  [A 3/4] voxel 7336 #1 done in 22s (24s total)
+  [A 4/4] voxel 3108 #1 done in 27s (29s total)
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+    FindOptimal: full MC on 1 candidates
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+    FindOptimal: full MC on 1 candidates
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+    FindOptimal: full MC on 1 candidates
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0285
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9824
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0724
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9758
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9791
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (1.1s), cost=0.0724
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9782
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2392
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9985
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9667
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9986
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (1.5s), cost=0.0285
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9846
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0929
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9931
+    VarianceMin: (1.0s), cost=0.0868
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9758
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0751
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9774
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9762
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (1.1s), cost=0.0339
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9762
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1362
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=0.9756
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9947
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=0.9847
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (1.0s), cost=0.0751
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9760
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1148
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9590
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9694
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.2s), cost=0.9286
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (1.1s), cost=0.1362
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0864
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9815
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9815
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9813
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9768
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9977
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9912
+    VarianceMin: (0.9s), cost=0.0313
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9648
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9854
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0252
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9985
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    VarianceMin: (0.1s), cost=0.9983
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (1.8s), cost=0.1148
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9932
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1523
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9705
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9787
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=0.9787
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9810
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9990
+    VarianceMin: (0.1s), cost=0.9848
+    VarianceMin: (0.1s), cost=0.9791
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9960
+    VarianceMin: (1.4s), cost=0.1128
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9921
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0870
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9977
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=0.9764
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9995
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=0.9742
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9868
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=0.9762
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (2.6s), cost=0.0252
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0820
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9873
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    VarianceMin: (0.1s), cost=0.9864
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9983
+    VarianceMin: (0.1s), cost=1.0000
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=0.9590
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9643
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9860
+    VarianceMin: (0.1s), cost=0.9699
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.2s), cost=0.9286
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9977
+    FindOptimal: 1 evaluated (0.1s), best cost=0.9685
+    VarianceMin: (0.1s), cost=0.9905
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (1.9s), cost=0.0870
+    VarianceMin: (0.1s), cost=0.9625
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=1.0000
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0856
+    VarianceMin: (0.1s), cost=1.0000
+  [B 1/4] voxel 3108 #9 done in 10s (12s total)
+    VarianceMin: (1.2s), cost=0.0451
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.1s), cost=1.0000
+  [B 2/4] voxel 7336 #9 done in 10s (12s total)
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0058
+    VarianceMin: (1.5s), cost=0.0856
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (1.4s), cost=0.0058
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0866
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0585
+    VarianceMin: (2.0s), cost=0.0585
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0384
+    VarianceMin: (2.2s), cost=0.0866
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2398
+    VarianceMin: (0.5s), cost=0.0744
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0788
+    VarianceMin: (1.5s), cost=0.0384
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1138
+    VarianceMin: (1.6s), cost=0.0788
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0926
+    VarianceMin: (1.7s), cost=0.1138
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0392
+    VarianceMin: (1.5s), cost=0.0926
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0792
+    VarianceMin: (1.7s), cost=0.0392
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1189
+    VarianceMin: (1.2s), cost=0.0792
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1337
+    VarianceMin: (1.8s), cost=0.0677
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0416
+    VarianceMin: (1.9s), cost=0.1033
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0767
+    VarianceMin: (1.5s), cost=0.0416
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0126
+    VarianceMin: (1.4s), cost=0.0767
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0814
+    VarianceMin: (1.1s), cost=0.0814
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2875
+    VarianceMin: (2.0s), cost=0.0126
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0047
+    VarianceMin: (0.9s), cost=0.0808
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2329
+    VarianceMin: (1.3s), cost=0.1139
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0714 CONVERGED
+    VarianceMin: (1.8s), cost=0.0047
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0592
+    VarianceMin: (1.4s), cost=0.0714
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0744
+    VarianceMin: (1.6s), cost=0.0592
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2126
+    VarianceMin: (0.9s), cost=0.0744
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3055
+    VarianceMin: (1.3s), cost=0.0227
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0444
+    VarianceMin: (1.9s), cost=0.0875
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2905
+    VarianceMin: (1.6s), cost=0.0444
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0138
+    VarianceMin: (1.5s), cost=0.0138
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.0s), best cost=0.0000 CONVERGED
+    VarianceMin: (1.7s), cost=0.0000
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3155
+    VarianceMin: (4.3s), cost=0.2064
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2860
+    VarianceMin: (0.9s), cost=0.2183
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1998
+    VarianceMin: (1.0s), cost=0.1998
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2651
+    VarianceMin: (3.1s), cost=0.2860
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3637
+    VarianceMin: (1.7s), cost=0.2193
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2166
+    VarianceMin: (1.5s), cost=0.2166
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2735
+    VarianceMin: (2.0s), cost=0.3314
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3276
+    VarianceMin: (1.4s), cost=0.2663
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2960
+    VarianceMin: (1.0s), cost=0.2960
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1460
+    VarianceMin: (2.7s), cost=0.3276
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3324
+    VarianceMin: (1.7s), cost=0.1460
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3852
+    VarianceMin: (1.7s), cost=0.3077
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3456
+    VarianceMin: (0.9s), cost=0.2609
+    FindOptimal: full MC on 1 candidates
+    VarianceMin: (0.7s), cost=0.2996
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2640
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3310
+    VarianceMin: (0.6s), cost=0.2106
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2191
+    VarianceMin: (1.5s), cost=0.2191
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1968
+    VarianceMin: (2.8s), cost=0.3310
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3904
+    VarianceMin: (1.5s), cost=0.3124
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3878
+    VarianceMin: (3.0s), cost=0.1968
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1687
+    VarianceMin: (1.5s), cost=0.3095
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2871
+    VarianceMin: (3.6s), cost=0.1687
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1842
+    VarianceMin: (1.0s), cost=0.1842
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2722
+    VarianceMin: (5.1s), cost=0.2419
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2452
+    VarianceMin: (1.6s), cost=0.2722
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2406
+    VarianceMin: (2.1s), cost=0.2452
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3134
+    VarianceMin: (1.8s), cost=0.2406
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3108
+    VarianceMin: (1.1s), cost=0.2877
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3165
+    VarianceMin: (1.3s), cost=0.2645
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3370
+    VarianceMin: (1.0s), cost=0.3165
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2667
+    VarianceMin: (1.0s), cost=0.2109
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1582
+    VarianceMin: (1.5s), cost=0.1582
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.1750
+    VarianceMin: (2.8s), cost=0.2667
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3050
+    VarianceMin: (2.2s), cost=0.1750
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3128
+    VarianceMin: (1.9s), cost=0.2417
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3135
+    VarianceMin: (1.3s), cost=0.3128
+  [B 3/4] voxel 7336 #0 done in 68s (70s total)
+    VarianceMin: (1.3s), cost=0.3025
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.4250
+    VarianceMin: (0.5s), cost=0.3313
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2290
+    VarianceMin: (1.1s), cost=0.2220
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.3505
+    VarianceMin: (0.8s), cost=0.2702
+    FindOptimal: full MC on 1 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.2986
+    VarianceMin: (2.2s), cost=0.2986
+  [B 4/4] voxel 3108 #0 done in 74s (76s total)
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+PILOT A: 4 runs, wall 30s, per-run reconstruct_voxel runtime [19.4, 20.4, 20.6, 25.6] s
+PILOT B: 4 tasks (160 cases), wall 76s, per-case refine runtime median 0.45 s mean 0.97 s max 5.24 s
+PROJECTION B, full 50 voxels x 10 radii x 20 dirs x 2 variants = 20000 cases: ~0.54 h refine time on 10 workers (+ image preparation; pilot wall/case x workers = 1.90 s -> 1.05 h)
+PROJECTION A, 100 runs: ~0.06 h on 10 workers

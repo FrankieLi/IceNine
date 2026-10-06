@@ -566,6 +566,18 @@ uv run pytest tests/test_optimizer_sweep.py
 
 Protocol and results: `MIGRATION_HISTORY.md`, "Comparison with existing optimizers".
 
+Multi-level reconstruction (FindOptimal) on the same cases: experiment A runs `AdaptiveVoxelReconstructor.reconstruct_voxel` from scratch once per voxel and variant (no starting guess), experiment B runs only its final stage (`refine_from_candidates`: FindOptimal + VarianceMinimizing + final evaluation) from each case's perturbed start; errors are reduced by cubic symmetry. About 5 min (A) + 1 h (B) with 10 CPU workers, resumable via `scripts/findoptimal_sweep_cache/`:
+
+```bash
+uv run python scripts/findoptimal_sweep.py pilot --workers 10      # timing pilot (2 voxels)
+uv run python scripts/findoptimal_sweep.py run-a --workers 10
+uv run python scripts/findoptimal_sweep.py run-b --workers 10 --n-dirs 20
+uv run python scripts/findoptimal_sweep.py summarize   # findoptimal_sweep_summary.{txt,json}, perturbation_sweep_vs_findoptimal.png
+uv run pytest tests/test_findoptimal_sweep.py tests/test_findoptimal_refactor.py
+```
+
+Protocol and results: `MIGRATION_HISTORY.md`, "Comparison with multi-level reconstruction (FindOptimal)".
+
 Single-voxel baselines (exact Bayes; MC and Adam also need the Python-simulated ThreeVoxels images; the dataset command is as in MIGRATION_HISTORY, not re-run):
 
 ```bash
