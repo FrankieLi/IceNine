@@ -2422,3 +2422,126 @@ Budget: ~3.5-4 h on 10 workers.
 **Task 3: does the NN reduce total run time?** (`scripts/nn_hybrid/stage_timer.py`, profiling scripts). Use cases U0 (no start), U1 (start within 0.1 deg), U2 (start 0.5-3 deg); stage timers and evaluation counters by wrapping; single-worker interleaved timing with `OMP/MKL_NUM_THREADS=1`; cProfile and torch.profiler. "Helps" = >= 20% lower median wall time at matched accuracy (U0), beats H0 on time and accuracy (U1), >= 1.5x faster than H0 + fallback or the only method with wrong <= 1% (U2). Budget ~3.5 h single worker + 0.5 h profiling.
 
 Total budget ~10-11 h wall. Caveats carried in every table: per-voxel images (at most 3 distractor sources), not full-sample renders; noise is only strictly paired for pass 1 + finisher (H1 is the strictly paired hybrid).
+
+### Task 1 results: hybrid network -> seeded FindOptimal (2026-10-06)
+
+Code (reviewed and revised after the first write-up; numbers below are those of the regenerated summaries): `scripts/nn_hybrid/` (`run.py`, `summary.py`, `stage_timer.py`, `run_all.sh`), tests `tests/test_nn_hybrid.py`, results `benchmarks/nn_hybrid/` (`summary.txt` / `summary.json` are the full tables; `summary_s1_replicate.txt`, `summary_clean_s0_fallback.txt`, `pilot_summary.txt`, `wall_times.json`, raw `*_raw.npz`). Nothing in `icenine/` changed. Cases: 50 voxels x 10 radii x 20 directions x 2 variants = 20,000 per pipeline; metrics over the sweep's pass-1 success mask (9,000 cases per variant at r <= 3, and at r = 5 940 clean / 994 realistic: 9,940 clean + 9,994 realistic = 19,934 in all; the 60 clean and 6 realistic r = 5 cases whose pass 1 failed are fall-backs, FindOptimal from the start, counted in none of the tables; they have median 41.9 / 47.8 deg and 100% wrong, H0 and H3 identical). Error = cubic-reduced misorientation; wrong = > 1 deg; "realistic" is the sweep variant `all`. Net: `realistic_s0` on both variants.
+
+**Checks.** The net passes of the copied pass loop reproduce `perturbation_sweep_raw` err_angle to 2.4e-07 deg (19,934 cases); H0 (FindOptimal alone, our images and seeds) reproduces `findoptimal_b_raw` R_final bit-for-bit in 20,000/20,000 cases, with equal evaluation counts. `tests/test_findoptimal_refactor.py` still passes. Gotcha found: `findoptimal_b_raw` (and the new raws) store the voxel axis sorted by voxel index, the perturbation / optimizer / A raws in sweep order; everything is re-indexed.
+
+
+**Realistic data, median error (deg, cubic-reduced)**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.0189 | 0.0677 | 0.0207 | 0.0205 | 0.0214 | 0.0307 | - |
+| 0.1 | 0.0248 | 0.0623 | 0.0205 | 0.0197 | 0.0208 | 0.0313 | - |
+| 0.25 | 0.037 | 0.0652 | 0.0203 | 0.02 | 0.0219 | 0.0301 | - |
+| 0.5 | 0.0552 | 0.0667 | 0.0208 | 0.0212 | 0.0217 | 0.0304 | - |
+| 0.75 | 0.0739 | 0.0658 | 0.0212 | 0.02 | 0.0209 | 0.0301 | - |
+| 1 | 0.0905 | 0.0666 | 0.0207 | 0.0203 | 0.0207 | 0.0313 | - |
+| 1.5 | 0.223 | 0.062 | 0.0236 | 0.0207 | 0.0213 | 0.0294 | 0.0212 |
+| 2 | 0.869 | 0.073 | 0.034 | 0.0218 | 0.022 | 0.0332 | 0.0215 |
+| 3 | 2.98 | 0.0803 | 0.0945 | 0.0214 | 0.0225 | 0.0407 | 0.0199 |
+| 5 | 6.02 | 1.3 | 4.3 | 0.175 | 0.132 | 1.25 | 0.0199 |
+
+**Realistic data, fraction < 0.1 deg**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.990 | 0.640 | 0.973 | 0.978 | 0.957 | 0.816 | - |
+| 0.1 | 0.961 | 0.664 | 0.974 | 0.980 | 0.960 | 0.836 | - |
+| 0.25 | 0.862 | 0.644 | 0.974 | 0.976 | 0.961 | 0.842 | - |
+| 0.5 | 0.720 | 0.654 | 0.979 | 0.978 | 0.963 | 0.839 | - |
+| 0.75 | 0.570 | 0.647 | 0.970 | 0.975 | 0.966 | 0.832 | - |
+| 1 | 0.533 | 0.650 | 0.979 | 0.973 | 0.960 | 0.830 | - |
+| 1.5 | 0.339 | 0.664 | 0.953 | 0.971 | 0.950 | 0.836 | 0.978 |
+| 2 | 0.172 | 0.613 | 0.844 | 0.962 | 0.942 | 0.801 | 0.971 |
+| 3 | 0.012 | 0.568 | 0.508 | 0.916 | 0.908 | 0.740 | 0.973 |
+| 5 | 0.000 | 0.238 | 0.016 | 0.472 | 0.480 | 0.308 | 0.958 |
+
+**Realistic data, wrong rate (> 1 deg, %)**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.1 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.25 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.5 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.75 | 0.10 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 1 | 0.90 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 1.5 | 15.90 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| 2 | 46.80 | 0.70 | 1.10 | 0.10 | 0.30 | 0.70 | 0.00 |
+| 3 | 94.60 | 6.70 | 19.40 | 4.10 | 3.90 | 6.60 | 0.00 |
+| 5 | 100.00 | 52.92 | 95.17 | 43.56 | 40.34 | 52.21 | 2.31 |
+
+**Clean data, median error (deg, cubic-reduced)**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.0197 | 0.0111 | 0.0105 | 0.0105 | 0.0105 | 0.00847 | - |
+| 0.1 | 0.0257 | 0.0111 | 0.0114 | 0.0104 | 0.0104 | 0.00895 | - |
+| 0.25 | 0.0426 | 0.0111 | 0.0123 | 0.0105 | 0.0105 | 0.00871 | - |
+| 0.5 | 0.0557 | 0.0111 | 0.0131 | 0.0105 | 0.0105 | 0.009 | - |
+| 0.75 | 0.0748 | 0.011 | 0.0151 | 0.0105 | 0.0105 | 0.00865 | - |
+| 1 | 0.0892 | 0.0111 | 0.0165 | 0.0105 | 0.0105 | 0.0089 | - |
+| 1.5 | 0.234 | 0.011 | 0.0178 | 0.0105 | 0.0105 | 0.00887 | 0.0104 |
+| 2 | 1.18 | 0.011 | 0.0181 | 0.0105 | 0.0105 | 0.00835 | 0.0105 |
+| 3 | 3.07 | 0.0111 | 0.0206 | 0.0107 | 0.0107 | 0.00833 | 0.0105 |
+| 5 | 23.9 | 0.0111 | 0.0365 | 0.0107 | 0.0107 | 0.00915 | 0.0105 |
+
+**Clean data, fraction < 0.1 deg**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.985 | 1.000 | 1.000 | 1.000 | 1.000 | 0.998 | - |
+| 0.1 | 0.958 | 1.000 | 1.000 | 0.999 | 0.999 | 1.000 | - |
+| 0.25 | 0.861 | 1.000 | 1.000 | 0.999 | 0.999 | 0.998 | - |
+| 0.5 | 0.707 | 1.000 | 1.000 | 1.000 | 1.000 | 0.999 | - |
+| 0.75 | 0.584 | 1.000 | 0.998 | 1.000 | 1.000 | 1.000 | - |
+| 1 | 0.522 | 1.000 | 0.997 | 1.000 | 1.000 | 0.998 | - |
+| 1.5 | 0.339 | 1.000 | 0.997 | 0.999 | 0.999 | 0.997 | 0.999 |
+| 2 | 0.164 | 1.000 | 0.990 | 0.999 | 0.999 | 0.998 | 1.000 |
+| 3 | 0.008 | 1.000 | 0.965 | 1.000 | 1.000 | 1.000 | 1.000 |
+| 5 | 0.000 | 1.000 | 0.871 | 0.999 | 0.999 | 0.999 | 0.999 |
+
+**Clean data, wrong rate (> 1 deg, %)**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.1 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.25 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.5 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.75 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 1 | 1.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 1.5 | 18.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| 2 | 52.70 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| 3 | 96.10 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| 5 | 100.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+
+
+Paired win rates (realistic, ties half; full tables incl. MC and Huber in `summary.txt`): H3 vs N3 0.79-0.81 for every r <= 3 (0.68 at r = 5); H3 vs H0 0.49, 0.55, 0.68, 0.75, 0.81, 0.83, 0.87, 0.93, 0.98, 0.88 for r = 0.05 ... 5; H3 vs H1 about 0.50 for r <= 1.5, 0.64 (r = 2), 0.79 (r = 3), 0.85 (r = 5); HG vs H3 0.50 / 0.51 / 0.53 / 0.78 at r = 1.5 / 2 / 3 / 5. Mean finisher cost evaluations per case (realistic): H0 3060 at r = 0.05, 2260 at 0.25, 1300 at 0.5, 696 at 1.5, 373 at 5; H1 about 2900 (r <= 1), 2360 (r = 2), 1290 (r = 3); H3 2890-3070 (r <= 3), 1730 (r = 5); H3c about 2420; H3m about 2240; HG 2940-3620.
+
+**Time (10 workers, contended, mean seconds per realistic case; all radii).** Net stage: prepare 0.13 + render 0.06 + forward pass 0.015, about 0.2 s per case (about 0.15 s without the harness rendering). Finisher: H0 0.93 s (1358 evaluations), H1 1.67 s (2438), H3 1.93 s (2829), H3c 1.60 s (2344), H3m 1.58 s (2313), HG 2.18 s (3222) plus 0.25 s Huber GN. About 94% of the finisher time is cost evaluations (about 0.65 ms each: H3 1.82 s of evaluations in a 1.93 s finisher). Time inclusive of its evaluations: FindOptimal 0.11 s and VarianceMinimizing 1.82 s for H3. VarianceMinimizing time depends on how close the start is to the truth (H0: 1.98 s at r = 0.05 falling to 0.15 s at r = 5; H3: about 1.9 s at every r <= 3); `converged` is False in every case of every pipeline, H0 included, and `refine_from_candidates` always runs VarianceMinimizing, so no convergence explanation is offered. On the radii common to all pipelines (r = 1.5, 2, 3, 5; `summary.txt`) the finisher takes H0 0.35 s (511 evaluations), H1 1.16 s (1700), H3 1.84 s (2682), H3c 1.53 s (2227), H3m 1.64 s (2398), HG 2.18 s (3222), so HG costs +0.34 s over H3 there (plus 0.25 s of Huber GN, a figure that includes the harness's own prepare / render of GN passes 2-3). The stored H3m times include harness work (pixel grouping and the start / truth quality evaluations of `run_mc_adam`, and its stage appears under the old name `find_optimal`); `run.py` now times only the MC (`o["seconds"]`, stage `mc_optimize`): on one voxel the same bit-identical H3m result took 0.65 s against 0.79 s stored (about 18% less), which biases D4's time ratio against H3m, but D4 is decided on accuracy. Pipeline wall times (10 workers, `wall_times.json`): H3 66 min, H0 36, H1 61, H3c 11 (copies H3 where the box is not larger), H3m 43, HG 32 (4 radii), s1 replicate 37 (realistic only), clean_s0 fall-back about 30; total about 5 h, longer than the planned 3.5-4 h because the hybrid finishers start near the truth and run about twice as long as H0 on average.
+
+**Success criteria (realistic, `realistic_s0`).**
+- C1 H3 median <= 0.035 deg and fraction < 0.1 deg >= 0.9 for r <= 3: **MET** (medians 0.0197-0.0218 deg, fraction 0.916-0.980; worst r = 3 with 0.916).
+- C2 H3 wrong <= 1% for r <= 3: **NOT MET** only at r = 3 (4.10%, interval 3.0-5.5); r = 2 is 0.10%, all r <= 1.5 are 0.00%. (N3 has 6.7% at r = 3, H1 19.4%.)
+- C3 H3 beats N3 in >= 70% paired for r <= 3: **MET** (0.79-0.81).
+- C4 H3 beats H0 in >= 70% for r >= 0.75: **MET** (0.81, 0.83, 0.87, 0.93, 0.98, 0.88).
+- C5 at r <= 0.5 H3 not worse than H0 (median within 0.005 deg, win >= 45%): **MET** (median H3 - H0 = +0.002, -0.005, -0.017, -0.034 deg at r = 0.05, 0.1, 0.25, 0.5; win 0.49, 0.55, 0.68, 0.75). At r = 0.05 H0 is marginally better (0.0189 against 0.0205 deg).
+- C6 HG median <= 0.1 deg at r = 5: **MET** (0.0199 deg; 2.31% wrong, interval 1.5-3.4; H3 at r = 5: median 0.175 deg, 43.6% wrong).
+Seed replicate (`realistic_s1`, H3 only): C3-C5 met; C1 not met (median 0.0237 deg but fraction < 0.1 deg 0.887 at r = 3 against 0.9); C2 not met at r = 3 (7.4%) and r = 2 (1.1%), 0.2% at r = 1.5; medians 0.0207-0.0237 deg for r <= 3; wins vs N3 0.79-0.81, vs H0 0.79-0.94 for r >= 0.75. So the r = 3 corner is borderline for C1 and fails C2 in both seeds, and r = 2 is 0.1% / 1.1% wrong.
+Clean data (H3): C1, C2, C4, C5, C6 met (median 0.0104-0.0107 deg, wrong 0.00% at every radius, H3 beats H0 0.91-1.00 for r >= 0.75). C3 reads "not met" (0.52) only because H3 and N3 agree within the 0.002 deg tie band in 93% of cases: the net alone already reaches 0.011 deg on clean data and FindOptimal adds nothing. Because of that formal miss the risk-8 fall-back was run: H3 with `clean_s0` on clean data gives the same picture (median 0.0102-0.0103 deg, wrong 0.00% everywhere, wins vs H0 0.91-1.00, vs N3 0.51-0.52 = ties; `summary_clean_s0_fallback.txt`), so the clean-data conclusion does not depend on the network.
+
+**Decision points.**
+- D1 (H1 within 0.005 deg of H3 at r <= 2 -> recommend x1): median H1 - H3 = +0.0003, +0.0008, +0.0002, -0.0004, +0.0012, +0.0004, +0.0029, +0.0122 deg for r = 0.05 ... 2, so within 0.005 up to r = 1.5 but not at r = 2; H1 is also worse in the tail (r = 2: 1.10% wrong against 0.10%; r = 3: 19.4% against 4.1%; fraction < 0.1 deg 0.844 against 0.962 at r = 2). **Decision: keep x3** (x1 is equivalent for r <= 1.5 and saves two net passes, about 0.2 s of preparation and rendering, but the finisher time is unchanged).
+- D2 (H3 stuck at a floor): the net's floor is 0.065 deg; H3 reaches 0.020 deg, but 25-30% of its cases stay above 0.035 deg. The finisher's result has a higher cost than the truth in about 96% of ALL cases (H3: 95.3-96.6% per radius for r <= 3, 95.5% at r = 0.05, 95.8% at r = 3; H0: 93.8% at r = 0.05 rising to 100% at r = 3), not only in the tail (97.5-100%), so the finisher generally stops before the cost minimum; the cause (step size, variance stopping rule, or MC stochasticity) is not diagnosed (the earlier "flat plateau" reading was unsupported). The min-cost rule (b) of H0 and H3 (needs both finishers, about 1.5x the H3 finisher cost: H0 adds on average 0.93 s and 1358 evaluations, 3060 at r = 0.05) lowers the median to 0.0137-0.0214 deg (0.0137 against 0.0205 at r = 0.05, 0.0181 against 0.0200 at r = 0.75, 0.0214 unchanged at r = 3), H0 being chosen in 59% of cases at r = 0.05, 12% at r = 1.5, 2% at r = 3, and leaves the wrong rate unchanged (r = 3: 4.00% against 4.10%). The plan's extra FindOptimal from the H0 result was not run (the min-cost rule is the cheaper version of it, since the H0 run is already available in the study).
+- D3 (H3c vs H3 where b > 0.329 deg): b exceeds the default box in 160-192 of 1000 cases per radius at r <= 3 (540 of 994 at r = 5). Pooled over those 2093 cases H3c is worse: median 0.0494 against 0.0339 deg, H3c wins 43%. Per-radius medians 0.034-0.041 against 0.022-0.030 deg; wrong rates equal or slightly lower only at r = 3 (10.9% against 12.0% in that subset) and r = 5 (61.5% against 67.4%), higher at r = 2 (1.64% against 0.55%). **Decision: drop the covariance box.**
+- D4 (H3m within 0.01 deg of H3 at under half the time): realistic: median H3m - H3 = +0.009 to +0.019 deg and time 0.75-0.80 of H3 (not under half), fraction < 0.1 deg 0.82-0.84 against 0.97-0.98 for r <= 1.5 (0.801 against 0.962 at r = 2, 0.740 against 0.916 at r = 3): **no, H3m is not recommended** (the stored H3m times include harness work, see Time; removing it would give about 0.62x, still not under half). Clean data: H3m is 0.0014-0.0023 deg better at 0.33-0.39x the time, because on clean data FindOptimal and the variance loop add nothing; that is a property of the clean data, not a recommendation for the realistic case.
+- Post hoc (a), falling back to HG where the pass-1 predicted sigma_max exceeds tau: sigma_max does not flag the failures. tau = 0.1 deg selects HG in 22% / 46% / 82% / 99% of cases at r = 1.5 / 2 / 3 / 5 and gives 0.00% / 0.00% / 1.00% / 2.92% wrong; tau >= 0.2 selects HG in 1-5% of cases at r <= 3 and leaves r = 3 at 4.1% and (tau = 0.2) r = 5 at 37.6% wrong. HG alone is 0.00% at r <= 3 and 2.31% at r = 5, so a sigma_max rule is no better than using HG whenever a large start (r >= 2) is possible.
+
+**Findings.** (1) Net x3 -> FindOptimal (H3) has a median of about 0.020 deg at every r <= 3, 3x lower than the net alone (0.062-0.080) and lower than FindOptimal alone for r >= 0.25 (0.037-2.98 deg); H0 is marginally better at r = 0.05 (0.0189 against 0.0205 deg) and H3 slightly better at r = 0.1 (0.0197 against 0.0248, win 0.55). (2) Its remaining tail is a net failure (r = 3: 4.1% wrong, r = 5: 43.6%), which FindOptimal's 0.33 deg box cannot repair. (3) Huber Gauss-Newton x3, then net x3, then FindOptimal (HG) removes the tail: median 0.020-0.021 deg and 0.00% wrong for r = 1.5-3, 2.31% wrong at r = 5, for +0.25 s of GN and, on the common radii 1.5-5, +0.34 s finisher time over H3 (2.18 s against 1.84 s); it ties H3 at r = 1.5-2 (win 0.50 / 0.51), is better at r = 3 (0.53) and r = 5 (0.78). (4) With a start known to be within 0.1 deg, H0 and H3 cost the same number of evaluations (about 3000), H0 is marginally more accurate at r = 0.05 and H3 slightly more accurate at r = 0.1; H3's evaluation count stays near 2900 while H0's falls with r (1300 at 0.5, 696 at 1.5), so for starts this close FindOptimal alone is the cheaper choice for the same accuracy and the hybrid pays only where H0's accuracy degrades (win rates 0.68-0.75 at r = 0.25-0.5, Task 3 quantifies the time on one worker).
+
+**Caveats.** Per-voxel images (at most 3 distractor sources), not full-sample renders. Noise pairing: the finisher always sees case B's image; the net's pass 1 sees the same noise, but passes 2-3 (and the HG net stage) re-render the windows, so only H1 is strictly paired; H3 / HG results are paired in voxel, direction and truth but not in the noise of the net's later passes. Times are 10-worker contended times; single-worker times belong to Task 3. The second net seed (`realistic_s1`) was run for H3 only. H3m uses the optimizer sweep's MC (hard pixel cost, 3500 steps x 2 restarts), not the reconstructor's cost function. The sub-task branch is `feature/nn-hybrid-proxy-profiling-hybrid`, because git cannot hold `feature/nn-hybrid-proxy-profiling` and `feature/nn-hybrid-proxy-profiling/hybrid` together.

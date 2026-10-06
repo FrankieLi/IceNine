@@ -8,11 +8,7 @@ fontsize: 11pt
 
 # Status
 
-**Deferred, not started.** The project owner asked to revisit this after the perturbation-sweep
-work (single-voxel sweep, comparison with MC/Adam/GN and the multi-level FindOptimal
-reconstruction) is finished. Results it builds on: `MIGRATION_HISTORY.md`, "Toy Orientation NN
-— Perturbation sweep (2026-10-04)" and its "Comparison with existing optimizers" subsection;
-`benchmarks/toy_orientation_sweep/`.
+**In progress (2026-10-06): implemented as Task 1 of `feature/nn-hybrid-proxy-profiling`** (`scripts/nn_hybrid/`, results in `benchmarks/nn_hybrid/`, see `MIGRATION_HISTORY.md`, "Hybrid NN finisher, Q_max-8 cost proxy, run-time profiling"). Originally raised after the perturbation-sweep work (`MIGRATION_HISTORY.md`, "Toy Orientation NN — Perturbation sweep (2026-10-04)"; `benchmarks/toy_orientation_sweep/`). **Task 1 done (2026-10-06)**: net x3 -> seeded FindOptimal reaches a median of about 0.020 deg for r <= 3 (net alone 0.062-0.080, FindOptimal alone 0.037-2.98), with a net-failure tail at r = 3 (4.1% wrong); Huber GN -> net -> FindOptimal removes it (0.00% wrong for r <= 3, 2.3% at r = 5); the covariance-sized box and the net -> MC finisher did not help. Results: `MIGRATION_HISTORY.md`, "Task 1 results". Open: run-time cost on one worker (Task 3) and denser realism (full-sample renders).
 
 # Why
 

@@ -1,0 +1,42 @@
+{
+ "H3_realistic_s0": {
+  "wall_s": 3960.9469752311707,
+  "tasks": 500,
+  "workers": 10
+ },
+ "H0_realistic_s0": {
+  "wall_s": 2137.35608792305,
+  "tasks": 500,
+  "workers": 10
+ },
+ "H1_realistic_s0": {
+  "wall_s": 3635.6691901683807,
+  "tasks": 500,
+  "workers": 10
+ },
+ "H3c_realistic_s0": {
+  "wall_s": 637.7885921001434,
+  "tasks": 500,
+  "workers": 10
+ },
+ "H3m_realistic_s0": {
+  "wall_s": 2595.9886739254,
+  "tasks": 500,
+  "workers": 10
+ },
+ "HG_realistic_s0": {
+  "wall_s": 1909.5512268543243,
+  "tasks": 200,
+  "workers": 10
+ },
+ "H3_realistic_s1_all": {
+  "wall_s": 2227.4551351070404,
+  "tasks": 500,
+  "workers": 10
+ },
+ "H3_clean_s0_clean": {
+  "wall_s": 1823.4075829982758,
+  "tasks": 500,
+  "workers": 10
+ }
+}
