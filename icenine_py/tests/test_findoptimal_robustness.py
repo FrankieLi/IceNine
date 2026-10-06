@@ -10,6 +10,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "findoptimal_r
 
 import csl  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "benchmarks"))
+
 
 def test_cubic_ops_group():
     assert csl.OPS.shape == (24, 3, 3)
@@ -57,6 +61,7 @@ def test_relative_counts_and_classification():
 def test_table_has_expected_sigmas():
     sig = {e.sigma for e in csl.csl_table(29)}
     assert sig == {3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29}
+    assert len(csl.csl_table(29)) == 21  # 3,5,7,9,11,13ab,15,17ab,19ab,21ab,23,25ab,27ab,29ab
 
 
 def test_invariant_reflections_sigma3():
@@ -67,3 +72,47 @@ def test_invariant_reflections_sigma3():
     # twin about [111]: the (111) direction is shared with the relative whose axis is [111]
     assert inv[:, 0].any()
     assert not inv[:, 2].all()  # {200} is not preserved by every Sigma3 variant
+
+
+def test_voxel_disjoint_folds():
+    import e2_models as M
+
+    vpos = np.repeat(np.arange(208), 5)  # several candidates per voxel
+    f = M.fold_of(vpos)
+    assert set(f) == set(range(M.FOLDS))
+    for v in range(208):  # a voxel is entirely in one fold
+        assert len(set(f[vpos == v])) == 1
+    sizes = [len(set(vpos[f == k])) for k in range(M.FOLDS)]
+    assert max(sizes) - min(sizes) <= 1
+    assert np.array_equal(f, M.fold_of(vpos))  # deterministic
+
+
+def test_feature_extractor_shape_and_determinism():
+    import pytest
+
+    from test_findoptimal_refactor import _build  # noqa: E402
+    import features as F
+    from optimizer_sweep import Geometry
+    from icenine.reconstructor import _get_voxel_vertices
+
+    rec, voxel, R_true = _build()
+    lf = rec._make_local_cost_fn()
+    phase = voxel.phase
+    if phase not in lf._phase_recip_vecs:
+        pytest.skip("no reflections for the voxel phase")
+    geo = Geometry(2, 180, 2048, 2048)
+    fe = F.FeatureExtractor(lf, geo, phase)
+    rng = np.random.default_rng(0)
+    keys = np.unique(rng.integers(0, 2 * 180 * 2048 * 2048, 200000))
+    fe.set_image(keys)
+    v = _get_voxel_vertices(voxel)
+    f1 = fe.features(R_true, v, phase)
+    f2 = fe.features(R_true, v, phase)
+    assert f1.shape == (len(fe.feature_names()),)
+    np.testing.assert_array_equal(f1, f2)
+    assert np.isfinite(f1).all()
+    # an empty image lights nothing: all hit features are zero
+    fe.set_image(np.zeros(0, dtype=np.int64))
+    f0 = fe.features(R_true, v, phase)
+    names = fe.feature_names()
+    assert f0[names.index("hit3")] == 0.0 and f0[names.index("log_n_pairs")] > 0
