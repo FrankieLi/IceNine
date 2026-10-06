@@ -4,44 +4,28 @@ description: Finish current task branch - run tests, review changes, merge back 
 user-invocable: true
 ---
 
-Finish the current task branch and merge it back to the parent feature branch.
+Finish the current task branch and merge it back to the parent feature branch. Task branches are
+named `feature/<parent>-<task>`; the parent is recorded in `git config branch.<task>.parent`.
 
-Follow these steps in order:
+## Step 1: Review changes (needs judgement, stays here)
+- Find the parent: `git config branch.$(git rev-parse --abbrev-ref HEAD).parent`. If none is
+  recorded, ask the user to confirm the guess (the branch name without its last `-<segment>`).
+  If the branch is not a task branch, abort and suggest `/finish-feature`.
+- Run `git diff <parent>...HEAD`, review it, summarise what changed and any concerns. Ask the
+  user whether to proceed.
 
-## Step 1: Identify branches
-- Get the current branch name
-- The parent branch is everything up to the last `/` segment (e.g., `feature/foo/fix-bar` → parent is `feature/foo`)
-- If the current branch is not a task branch (doesn't have 3+ path segments), abort and suggest using `/finish-feature` instead
+## Step 2: Document what was accomplished
+- Append a brief summary to `icenine_py/MIGRATION_HISTORY.md` under the appropriate section.
+- If a new module or feature was added, update `icenine_py/README.md`.
+- If a plan file exists in `.claude/plans/`, delete it; the summary replaces it.
+- Commit the documentation updates (stage files by explicit path) before merging.
 
-## Step 2: Run tests
-- If there are Python files changed (`git diff --name-only <parent>...HEAD | grep '\.py$'`), run:
-  ```
-  cd icenine_py && uv run pytest tests/ -v
-  ```
-- If there are C++ files changed, run:
-  ```
-  cmake -DCMAKE_BUILD_TYPE=Release . && make -j8
-  ```
-- If tests fail, STOP and report the failures. Do NOT proceed to merge.
+## Step 3: Tests and merge (deterministic, after the user confirms)
+Run `scripts/dev/finish_task.sh [--yes] [--push]`. It runs the Python suite
+(`cd icenine_py && uv run pytest tests/ -q`) if `.py` files changed and the C++ Release build if
+C++ files changed, stops on failure, merges into the parent with `--no-ff` and the message
+"Merge task <task>: <subject of the last commit>" (override with `-m`), deletes the task branch
+locally and remotely, and pushes the parent only with `--push`. Use `--no-tests` only when the
+tests were just run.
 
-## Step 3: Review changes
-- Run `git diff <parent>...HEAD` and review the changes
-- Provide a brief summary of what changed and any concerns
-- Ask the user if they want to proceed with the merge
-
-## Step 4: Document what was accomplished
-- Append a brief summary of the completed work to `icenine_py/MIGRATION_HISTORY.md` under the appropriate phase section (add a new sub-heading if needed)
-- If a new module or feature was added, update `icenine_py/README.md` to reflect it
-- If a plan file exists in `.claude/plans/`, delete it — the summary in MIGRATION_HISTORY.md replaces it
-- Commit the documentation updates before merging
-
-## Step 5: Merge (only after user confirms)
-- Checkout the parent branch: `git checkout <parent>`
-- Merge the task branch: `git merge --no-ff <task-branch> -m "Merge <task-branch>: <brief summary>"`
-- Push the parent branch: `git push origin <parent>`
-- Delete the task branch locally and remotely:
-  ```
-  git branch -d <task-branch>
-  git push origin --delete <task-branch>
-  ```
-- Confirm the merge and show `git log --oneline -5`
+Confirm the merge and show `git log --oneline -5`.
