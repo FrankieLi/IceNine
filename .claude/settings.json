@@ -43,39 +43,6 @@
             "timeout": 60
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "shmem hook tool-use --caller-agent claude-code",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "shmem hook response --caller-agent claude-code",
-            "statusMessage": "Saving response to memory...",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "shmem hook user-message --caller-agent claude-code",
-            "statusMessage": "Saving to memory...",
-            "timeout": 10
-          }
-        ]
       }
     ]
   }
