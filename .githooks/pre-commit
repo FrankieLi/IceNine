@@ -1,0 +1,6 @@
+#!/bin/bash
+# Git pre-commit hook: runs scripts/dev/precommit_check.py on the staged changes.
+# Activate with scripts/dev/install_hooks.sh (not activated automatically).
+ROOT=$(git rev-parse --show-toplevel) || exit 1
+cd "$ROOT" || exit 1
+exec uv run --project icenine_py python scripts/dev/precommit_check.py
