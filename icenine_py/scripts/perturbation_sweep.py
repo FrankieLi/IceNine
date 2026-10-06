@@ -107,7 +107,8 @@ def random_rotvecs(n: int, angle_deg: float, rng: np.random.Generator) -> np.nda
 
 
 def relative_offset_deg(R_true: np.ndarray, R_nom: np.ndarray) -> np.ndarray:
-    """delta (deg) with exp([delta]x) R_nom = R_true, i.e. rotvec(R_true R_nom^T). Batched or not."""
+    """delta (deg) with exp([delta]x) R_nom = R_true, i.e. rotvec(R_true R_nom^T).
+    Batched or not."""
     return Rotation.from_matrix(np.asarray(R_true) @ np.swapaxes(R_nom, -1, -2)).as_rotvec() / DEG
 
 
@@ -120,7 +121,14 @@ def perturbed_nominal(R_true: np.ndarray, delta_deg: np.ndarray) -> np.ndarray:
     return offsets_to_matrices(-np.asarray(delta_deg, dtype=np.float64), R_true)
 
 
-def recentre(R_nom: np.ndarray, delta_hat_deg: np.ndarray, R_true: np.ndarray):
+def _pass_median(mt: Any, v: str, models: List[str], idx: Sequence[int], r: Any, p: int) -> float:
+    """Mean over the seed models idx of the pass-p median error at radius r."""
+    return float(np.mean([mt["all"][v][models[i]][r][p]["median_angle"] for i in idx]))
+
+
+def recentre(
+    R_nom: np.ndarray, delta_hat_deg: np.ndarray, R_true: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
     """New nominal = current estimate exp([delta_hat]x) R_nom, and the unchanged truth's offset
     from it (what the re-rendered windows must be drawn at). Returns (R_new, delta_true_new)."""
     from icenine.orientation_eval import offsets_to_matrices
@@ -297,7 +305,9 @@ def render_batch(
     return dict(windows=win, context=ctx, nom_off=nom, valid=valid, n_present=n_present)
 
 
-def run_net(net: torch.nn.Module, batch: Dict[str, torch.Tensor], rows: np.ndarray, K: int):
+def run_net(
+    net: torch.nn.Module, batch: Dict[str, torch.Tensor], rows: np.ndarray, K: int
+) -> Tuple[np.ndarray, np.ndarray]:
     """Network on the selected cases. Returns (delta_hat (n, 3) deg, chol (n, 3, 3)) float64."""
     from icenine.orientation_eval import decode_windows
 
@@ -465,7 +475,9 @@ METRICS = [
 ]
 
 
-def case_metrics(raw: Dict[str, np.ndarray], sel: np.ndarray, vi: int, mi: int, ri: int, p: int):
+def case_metrics(
+    raw: Dict[str, np.ndarray], sel: np.ndarray, vi: int, mi: int, ri: int, p: int
+) -> Dict[str, float]:
     """Metrics over cases sel (V, D bool, pass-1 successes) at radius index ri, pass p."""
     r = raw["radii"][ri]
     ang = raw["err_angle"][:, ri, :, vi, mi, p][sel]
@@ -606,18 +618,16 @@ def format_summary(raw: Dict[str, np.ndarray], summ: Dict[str, Any]) -> str:
                     f"{r:>5} {int(np.mean(val('n_ok', 0))):>5} | {pair('median_angle', 0):>32} | "
                     f"{pair('median_angle', P - 1):>32} | {mean2('frac_lt_0p1'):>13} | "
                     f"{mean2('frac_improved'):>13} | "
-                    f"{np.mean(val('mean_maha2', 0)):6.3g}/{np.mean(val('mean_maha2', P - 1)):<6.3g} | "
+                    f"{np.mean(val('mean_maha2', 0)):6.3g}/"
+                    f"{np.mean(val('mean_maha2', P - 1)):<6.3g} | "
                     f"{np.mean(val('rms_z', P - 1)):.4f}/{np.mean(val('rms_perp', P - 1)):.4f}"
                 )
             lines.append("  (<0.1deg, err<r, Mah^2: seed means, one-shot/iterated)")
-            lines.append(f"  median error per pass (mean over seeds), by radius:")
+            lines.append("  median error per pass (mean over seeds), by radius:")
             for p in range(P):
                 lines.append(
                     f"    pass {p + 1}: "
-                    + " ".join(
-                        f"{np.mean([mt['all'][v][models[i]][r][p]['median_angle'] for i in idx]):.4f}"
-                        for r in radii
-                    )
+                    + " ".join(f"{_pass_median(mt, v, models, idx, r, p):.4f}" for r in radii)
                 )
             lines.append("  median error by r_perp tercile (seed mean, one-shot/iterated):")
             for g in ("rperp_tercile1", "rperp_tercile2", "rperp_tercile3"):

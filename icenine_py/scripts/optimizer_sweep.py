@@ -32,7 +32,8 @@ net's ROI windows), but the same random nuisances inside the windows. Both cost 
 net's eligibility: |g| <= Q_max, both detectors, |sin eta| >= min_sin_eta.
 
 Usage (from icenine_py/):
-  uv run python scripts/optimizer_sweep.py run --workers 10 --out-dir benchmarks/toy_orientation_sweep
+  uv run python scripts/optimizer_sweep.py run --workers 10 \
+      --out-dir benchmarks/toy_orientation_sweep
   uv run python scripts/optimizer_sweep.py summarize --out-dir benchmarks/toy_orientation_sweep
 """
 
@@ -141,7 +142,8 @@ def realism_edit(
 
 
 def group_pixels(keys: np.ndarray, geo: Geometry) -> Dict[int, np.ndarray]:
-    """img_id -> sorted flat in-image pixel positions (row * W + col) of a sorted unique key array."""
+    """img_id -> sorted flat in-image pixel positions (row * W + col) of a sorted unique key
+    array."""
     keys = np.asarray(keys, dtype=np.int64)
     hw = geo.H * geo.W
     img, pos = keys // hw, keys % hw

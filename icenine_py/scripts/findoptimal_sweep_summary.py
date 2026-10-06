@@ -217,7 +217,9 @@ def summarize_a(a: Dict[str, np.ndarray]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def b_errors(b: Dict[str, np.ndarray], sweep: Dict[str, np.ndarray], R_true_by_voxel: Any):
+def b_errors(
+    b: Dict[str, np.ndarray], sweep: Dict[str, np.ndarray], R_true_by_voxel: Any
+) -> Tuple[np.ndarray, np.ndarray]:
     """(err_sym, err_plain) with shape (V, R, D, 2) of the B results (NaN where not run)."""
     vox = b["voxel_indices"]
     Rt = np.stack([R_true_by_voxel(int(v)) for v in vox])[:, None, None, None]  # (V,1,1,1,3,3)
@@ -357,14 +359,16 @@ def format_text(
             f"wrong (>{WRONG_DEG:g} deg) {s['n_wrong']}/{s['n']}"
         )
         L.append(
-            f"    excluding the wrong ones: median {s['median_right']:.4f}  RMS {s['rms_right']:.4f}  "
-            f"max {s['max_right']:.4f}"
+            f"    excluding the wrong ones: median {s['median_right']:.4f}  "
+            f"RMS {s['rms_right']:.4f}  max {s['max_right']:.4f}"
         )
         L.append(
-            f"    runtime/voxel: median {s['runtime_median']:.1f} s, mean {s['runtime_mean']:.1f} s; "
+            f"    runtime/voxel: median {s['runtime_median']:.1f} s, "
+            f"mean {s['runtime_mean']:.1f} s; "
             f"cost evals: global (pixel_radius 3) median {s['evals_global_median']:.0f}, "
             f"local median {s['evals_local_median']:.0f}; FindOptimal converged (hit ratio) "
-            f"{s['find_converged']}/{s['n']}, winner = best candidate {s['find_winner_rank0']}/{s['n']}"
+            f"{s['find_converged']}/{s['n']}, winner = best candidate "
+            f"{s['find_winner_rank0']}/{s['n']}"
         )
         L.append(
             f"    first level whose best candidate is within {fs.LOCK_ON_DEG:g} deg of the final "
@@ -436,8 +440,8 @@ def format_text(
         L.append("")
         L.append("-- FindOptimal details per radius")
         L.append(
-            f"{'r':>5} {'runtime(s)':>10} {'evals':>7} {'hitratio-conv':>14} {'cost>=1(identity)':>18} "
-            f"{'cost<truth':>11} {'worse>r':>8} {'max|sym-plain|':>15}"
+            f"{'r':>5} {'runtime(s)':>10} {'evals':>7} {'hitratio-conv':>14} "
+            f"{'cost>=1(identity)':>18} {'cost<truth':>11} {'worse>r':>8} {'max|sym-plain|':>15}"
         )
         for r in radii:
             s = vo[r]
@@ -447,8 +451,10 @@ def format_text(
                 f"{s['frac_cost_below_truth_cost']:>11.3f} {s['frac_worse_than_start']:>8.3f} "
                 f"{s['max_sym_minus_plain_abs']:>15.2g}"
             )
+        mc_s = float(np.median([oo[r]["MC"]["median_runtime_s"] for r in radii]))
         L.append(
-            "  (runtime and evals: median per case, refine_from_candidates only; MC median 2.4 s)"
+            "  (runtime and evals: median per case, refine_from_candidates only; "
+            f"MC median {mc_s:.1f} s)"
         )
         L.append("")
         for tag in ("x3", "one-shot"):
@@ -457,16 +463,14 @@ def format_text(
                 "has the smaller error than FindOptimal (seed mean)"
             )
             L.append("   " + " ".join(f"{r:>6}" for r in radii))
+            key = f"net realistic {tag} < FindOptimal"
             L.append(
-                "   "
-                + " ".join(
-                    f"{_f(vo[r]['paired'][f'net realistic {tag} < FindOptimal']['win_mean'], '.3f'):>6}"
-                    for r in radii
-                )
+                "   " + " ".join(f"{_f(vo[r]['paired'][key]['win_mean'], '.3f'):>6}" for r in radii)
             )
             L.append("")
     L.append(
-        "=== symmetry reduction on the sweep's other methods (random cases, R_est = exp(err) R_true) ==="
+        "=== symmetry reduction on the sweep's other methods "
+        "(random cases, R_est = exp(err) R_true) ==="
     )
     for k, s in symc.items():
         L.append(

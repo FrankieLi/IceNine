@@ -2,7 +2,8 @@
 reconstruct_voxel) leaves reconstruct_voxel unchanged, and runs standalone.
 
 The golden numbers (GOLDEN) were recorded with reconstruct_voxel BEFORE the refactor, on a small
-deterministic problem (ThreeVoxels voxel 0, a 3-orientation FZ set, one level, 150 MC steps, seed 7).
+deterministic problem (ThreeVoxels voxel 0, a 3-orientation FZ set, one level, 150 MC steps,
+seed 7).
 Skipped without the ThreeVoxels Python-simulated data.
 """
 
@@ -101,3 +102,9 @@ def test_refine_from_candidates_standalone_converges():
     g, loc, tot = rec.last_eval_counts
     assert g == 0 and loc > 0 and tot == loc
     assert math.isfinite(res.cost) and res.overlap_info is not None
+
+
+def test_refine_from_candidates_empty_returns_identity():
+    rec, voxel, _ = _build()
+    res = rec.refine_from_candidates([], _get_voxel_vertices(voxel), voxel.phase)
+    assert res.cost == 1.0 and np.array_equal(res.orientation, np.eye(3))

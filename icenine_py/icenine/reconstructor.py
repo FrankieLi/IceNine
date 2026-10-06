@@ -669,20 +669,26 @@ class AdaptiveVoxelReconstructor:
             voxel_vertices: Triangle vertices in sample frame, shape (3, 3)
             phase_index: Crystal phase index
             diameter: Search diameter (radians) the coarse levels ended with. The FindOptimal /
-                VarianceMinimizing search box is max(diameter / 3, 0.2 deg) / 2^min_local_resolution,
-                independent of how far a candidate is from the optimum. Default: the diameter
+                VarianceMinimizing search box is
+                max(diameter / 3, 0.2 deg) / 2^min_local_resolution, independent of how far a
+                candidate is from the optimum. Default: the diameter
                 reconstruct_voxel reaches after all its levels,
                 local_grid_radius / 1.5^(max_local_resolution + 1).
             rng: Random generator, used only when the optimizers are built here.
             local_cost_fn, mc_optimizer, find_optimizer: the objects reconstruct_voxel built (so
-                its eval counts and random stream continue); built here when omitted.
+                its eval counts and random stream continue); built here when omitted. Passing
+                mc_optimizer without find_optimizer disables the hybrid (Adam) optimizer: full
+                MC is used for FindOptimal.
 
         Returns:
-            Best SearchCandidate, with final overlap info and cost. When called directly,
+            Best SearchCandidate, with final overlap info and cost; the identity orientation with
+            cost 1.0 when candidates is empty (as reconstruct_voxel). When called directly,
             self.last_eval_counts is (0, local evals, local evals).
 
         C++ Reference: DiscreteAdaptive.tmpl.cpp:210-246
         """
+        if not candidates:
+            return SearchCandidate(orientation=np.eye(3), cost=1.0)
         standalone = local_cost_fn is None
         if local_cost_fn is None:
             local_cost_fn = self._make_local_cost_fn()

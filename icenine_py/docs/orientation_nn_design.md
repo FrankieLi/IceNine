@@ -566,7 +566,7 @@ uv run pytest tests/test_optimizer_sweep.py
 
 Protocol and results: `MIGRATION_HISTORY.md`, "Comparison with existing optimizers".
 
-Multi-level reconstruction (FindOptimal) on the same cases: experiment A runs `AdaptiveVoxelReconstructor.reconstruct_voxel` from scratch once per voxel and variant (no starting guess), experiment B runs only its final stage (`refine_from_candidates`: FindOptimal + VarianceMinimizing + final evaluation) from each case's perturbed start; errors are reduced by cubic symmetry. About 5 min (A) + 1 h (B) with 10 CPU workers, resumable via `scripts/findoptimal_sweep_cache/`:
+Multi-level reconstruction (FindOptimal) on the same cases: experiment A runs `AdaptiveVoxelReconstructor.reconstruct_voxel` from scratch once per voxel and variant (no starting guess), experiment B runs only its final stage (`refine_from_candidates`: FindOptimal + VarianceMinimizing + final evaluation) from each case's perturbed start; errors are reduced by cubic symmetry. About 5 min (A) + 32 min (B) (the 1 h was the pilot projection) with 10 CPU workers, resumable via `scripts/findoptimal_sweep_cache/`:
 
 ```bash
 uv run python scripts/findoptimal_sweep.py pilot --workers 10      # timing pilot (2 voxels)

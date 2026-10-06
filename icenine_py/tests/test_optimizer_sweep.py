@@ -199,12 +199,33 @@ def test_min_sin_eta_filter_only_removes_peaks(physics):
     ctx, sweep = physics
     vctx = osw.voxel_context(ctx, int(sweep["voxel_indices"][0]))
     h = ctx.hard_fn
+    groups = osw.group_pixels(vctx.target_keys, ctx.geo)
     kw = dict(
         simulator=h.simulator, detector_list=h.detector_list, range_map=h.range_map,
-        exp_data=h.exp_data, sample=h.sample, structure_list=h.structure_list,
+        exp_data=osw.PixelSetData(groups, ctx.geo, ctx.zeros), sample=h.sample, structure_list=h.structure_list,
         eta_limit=h.eta_limit, max_q=8.0,
     )  # fmt: skip
     R = vctx.R_true.astype(np.float32)
     n0 = VoxelCostFunction(**kw).evaluate(R, vctx.vertices, vctx.voxel.phase).n_quality_points
     n1 = VoxelCostFunction(min_sin_eta=0.3, **kw).evaluate(R, vctx.vertices, vctx.voxel.phase)
     assert 0 < n1.n_quality_points <= n0
+
+
+def test_differentiable_min_sin_eta_filter_only_removes_peaks(physics):
+    from icenine.differentiable_cost import DifferentiableCostFunction
+
+    ctx, sweep = physics
+    vctx = osw.voxel_context(ctx, int(sweep["voxel_indices"][0]))
+    d = ctx.diff_fn
+    stack = osw.CoarseStack(osw.group_pixels(vctx.target_keys, ctx.geo), ctx.geo)
+    kw = dict(
+        simulator=d.simulator, detector_list=d.detector_list, range_map=d.range_map,
+        image_stack=stack, sample=d.sample, structure_list=d.structure_list,
+        eta_limit=d.eta_limit, max_q=8.0,
+    )  # fmt: skip
+    R = torch.from_numpy(vctx.R_true.astype(np.float32))
+    ev = lambda **x: DifferentiableCostFunction(**kw, **x).evaluate(  # noqa: E731
+        R, vctx.vertices, vctx.voxel.phase, scale=osw.SCALE_INDEX
+    )
+    n0, n1 = ev().n_peaks, ev(min_sin_eta=0.3).n_peaks
+    assert 0 < n1 <= n0

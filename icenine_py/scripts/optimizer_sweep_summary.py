@@ -41,7 +41,9 @@ def _stats(err: np.ndarray, r: float) -> Dict[str, float]:
     )
 
 
-def compute(opt: Dict[str, np.ndarray], sweep: Dict[str, np.ndarray], net_summary: Dict[str, Any]):
+def compute(
+    opt: Dict[str, np.ndarray], sweep: Dict[str, np.ndarray], net_summary: Dict[str, Any]
+) -> Dict[str, Any]:
     """Summary dict: per variant, per radius, per column statistics (optimizers, on the cases where
     the net could run at pass 1 and the optimizer produced an answer), the net's numbers from the
     sweep summary (seed means), and paired comparisons on identical cases."""
