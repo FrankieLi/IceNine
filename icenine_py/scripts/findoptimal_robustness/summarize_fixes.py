@@ -111,9 +111,11 @@ def main():
         )
         rows.append(base_s0)
         # F1 (all seeds)
-        for S in SIGS:
+        for S, only0 in [(11, False), (29, False), (29, True)]:
             errs, evs, rts, nfix, nbreak = [], [], [], 0, 0
             for k in keys0:
+                if only0 and k[2] != 0:
+                    continue
                 vpos, _, s = k
                 fp = C.CACHE_DIR / "f1" / f"v{E0[k]['v']}_{var}.npz"
                 if not fp.exists():
@@ -204,7 +206,7 @@ def main():
             d_fix = C.CACHE_DIR / "fix" / fix
             if not d_fix.exists():
                 continue
-            errs, evs, rts, pair_base = [], [], [], []
+            errs, evs, rts, pair_base, d_ev, d_rt = [], [], [], [], [], []
             for vpos, v in enumerate(vox):
                 fs_ = sorted(d_fix.glob(f"v{v}_{var}_s*.npz"))
                 if not fs_ or (vpos, var, 0) not in E0:
@@ -217,31 +219,41 @@ def main():
                 evs.append(int(d["s0_evals_global"] + d["s0_evals_local"]))
                 rts.append(float(d["s0_runtime"]))
                 pair_base.append(float(C.err_deg(E0[k]["R"], E0[k]["R_true"])))
+                d_ev.append(evs[-1] - E0[k]["evals"])
+                d_rt.append(rts[-1] - E0[k]["rt"])
             if errs:
                 errs, pb = np.array(errs), np.array(pair_base)
-                b0 = row("base", pb, np.array([0.0]), np.array([0.0]), 0.0, 0.0)
                 nfix = int(((errs <= 1) & (pb > 1)).sum())
                 nbr = int(((errs > 1) & (pb <= 1)).sum())
+                nW, nR = int((pb > 1).sum()), int((pb <= 1).sum())
+                full = len(k_s0)
+                NW_tot = int((err0[k_s0] > 1).sum())
+                NR_tot = full - NW_tot
+                ex = dict(fixed=nfix, broken=nbr, baseline_wrong_same_cases=nW, n_paired=len(pb))
+                subset = len(pb) < 0.9 * full
+                if subset:
+                    still = C.wilson(nW - nfix, nW)
+                    brk = C.wilson(nbr, nR)
+                    est = ((nW - nfix) / max(nW, 1) * NW_tot + nbr / max(nR, 1) * NR_tot) / full
+                    lo_e = (still[1] * NW_tot + brk[1] * NR_tot) / full
+                    hi_e = (still[2] * NW_tot + brk[2] * NR_tot) / full
+                    ex.update(
+                        subset=True,
+                        est_overall_rate=est,
+                        est_lo=lo_e,
+                        est_hi=hi_e,
+                        still_wrong_of_baseline_wrong=still,
+                        broken_of_baseline_right=brk,
+                    )
                 rows.append(
                     row(
-                        f"{fix} (seed 0)",
+                        f"{fix} (seed 0{', wrong+right subset' if subset else ''})",
                         errs,
-                        np.array(evs),
-                        np.array(rts),
-                        np.mean(
-                            [
-                                E0[(vpos, var, 0)]["evals"]
-                                for vpos in range(len(vox))
-                                if (vpos, var, 0) in E0
-                            ]
-                        ),
+                        base_s0["evals_mean"] + np.array(d_ev),
+                        base_s0["runtime_mean"] + np.array(d_rt),
+                        base_s0["evals_mean"],
                         base_s0["runtime_mean"],
-                        dict(
-                            fixed=nfix,
-                            broken=nbr,
-                            baseline_wrong_same_cases=int((pb > 1).sum()),
-                            n_paired=len(pb),
-                        ),
+                        ex,
                     )
                 )
         out[var] = rows
@@ -251,7 +263,14 @@ def main():
         )
         for r in rows:
             note = f"fixed {r['fixed']}, broken {r['broken']}" if "fixed" in r else ""
-            if "baseline_wrong_same_cases" in r:
+            if r.get("subset"):
+                sw, bb = r["still_wrong_of_baseline_wrong"], r["broken_of_baseline_right"]
+                note += (
+                    f" SUBSET: still wrong {r['baseline_wrong_same_cases'] - r['fixed']}/{r['baseline_wrong_same_cases']} of the baseline-wrong runs "
+                    f"({sw[0]:.2f} [{sw[1]:.2f},{sw[2]:.2f}]); broken {r['broken']}/{r['n_paired'] - r['baseline_wrong_same_cases']} of the baseline-right runs "
+                    f"({bb[0]:.3f} [{bb[1]:.3f},{bb[2]:.3f}]); implied overall wrong rate {r['est_overall_rate']:.3f}"
+                )
+            elif "baseline_wrong_same_cases" in r:
                 note += f" (baseline wrong on these cases: {r['baseline_wrong_same_cases']}/{r['n_paired']})"
             lines.append(
                 f"{r['name']:42s} {r['n']:4d} {r['wrong']:5d} {r['rate']:7.3f} [{r['lo']:.3f},{r['hi']:.3f}] "

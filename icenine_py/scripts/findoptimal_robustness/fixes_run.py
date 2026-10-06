@@ -108,6 +108,11 @@ def main():
     ap.add_argument("--fix", required=True, choices=sorted(FIXES))
     ap.add_argument("--seeds", type=int, nargs="+", default=[0])
     ap.add_argument("--workers", type=int, default=10)
+    ap.add_argument(
+        "--subset-wr",
+        action="store_true",
+        help="only the E0 seed-0 wrong runs plus an equal number of right runs (seeded draw)",
+    )
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--n-voxels", type=int, default=C.N_VOXELS)
     a = ap.parse_args()
@@ -116,10 +121,25 @@ def main():
     cache.mkdir(parents=True, exist_ok=True)
     vox = [int(v) for v in info["voxel_indices"]]
     its = []
+    chosen = None
+    if a.subset_wr:
+        wrong, right = [], []
+        for vpos, v in enumerate(vox[: a.n_voxels]):
+            for var in C.VARIANTS:
+                e0 = C.CACHE_DIR / "e0" / f"v{v}_{var}.npz"
+                if not e0.exists() or "unbuildable" in np.load(e0).files:
+                    continue
+                d = np.load(e0)
+                bad = float(C.err_deg(d["s0_R_final"], d["R_true"])) > C.WRONG_DEG
+                (wrong if bad else right).append((v, var))
+        pick = np.random.default_rng(0).permutation(len(right))[: len(wrong)]
+        chosen = set(wrong) | {right[i] for i in pick}
     for vpos, v in enumerate(vox[: a.n_voxels + 8]):
         for var in C.VARIANTS:
             e0 = C.CACHE_DIR / "e0" / f"v{v}_{var}.npz"
             if not e0.exists() or "unbuildable" in np.load(e0).files:
+                continue
+            if chosen is not None and (v, var) not in chosen:
                 continue
             tag = "".join(str(s) for s in a.seeds)
             out = cache / f"v{v}_{var}_s{tag}.npz"

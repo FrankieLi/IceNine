@@ -63,7 +63,7 @@ def quick_mc(W, rng, vertices, phase, R, diameter):
 
 
 def task(item):
-    vidx, vpos, variant, n_seeds, e0_path, path = item
+    vidx, vpos, variant, n_seeds, e0_path, path, src_path = item
     W = C.get_worker()
     t_start = time.time()
     d = np.load(e0_path)
@@ -80,7 +80,7 @@ def task(item):
     out = {}
     for s in range(n_seeds):
         rng = np.random.default_rng([20_000 + vpos, s])
-        g = d[f"s{s}_R_final"]
+        g = np.load(src_path)["R_final"] if src_path else d[f"s{s}_R_final"]
         diameter = float(d[f"s{s}_L3_disc_diameter"])
         rel, labels = csl.csl_relatives(g, max_sigma=29)
         n0 = lf.eval_count
@@ -125,10 +125,15 @@ def main():
     ap.add_argument("cmd", choices=["run"])
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--n-seeds", type=int, default=C.N_SEEDS)
+    ap.add_argument(
+        "--source",
+        default="",
+        help="cache dir of runs with R_final (seed 0 only), e.g. e2_rerank_GBT; default: E0 answers",
+    )
     ap.add_argument("--limit", type=int, default=0, help="only the first N tasks (testing)")
     a = ap.parse_args()
     info = dict(np.load(C.OUT_DIR / "voxels.npz"))
-    cache = C.CACHE_DIR / "f1"
+    cache = C.CACHE_DIR / ("f1" if not a.source else f"f1_{a.source}")
     cache.mkdir(parents=True, exist_ok=True)
     vox = [int(v) for v in info["voxel_indices"]]
     its = []
@@ -136,8 +141,19 @@ def main():
         for var in C.VARIANTS:
             e0 = C.CACHE_DIR / "e0" / f"v{v}_{var}.npz"
             out = cache / f"v{v}_{var}.npz"
-            if e0.exists() and not out.exists():
-                its.append((v, vpos, var, a.n_seeds, str(e0), str(out)))
+            src = C.CACHE_DIR / a.source / f"v{v}_{var}.npz" if a.source else None
+            if e0.exists() and not out.exists() and (src is None or src.exists()):
+                its.append(
+                    (
+                        v,
+                        vpos,
+                        var,
+                        1 if src else a.n_seeds,
+                        str(e0),
+                        str(out),
+                        str(src) if src else "",
+                    )
+                )
     if a.limit:
         its = its[: a.limit]
     print(len(its), "tasks", flush=True)

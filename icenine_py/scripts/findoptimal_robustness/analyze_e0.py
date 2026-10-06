@@ -216,7 +216,7 @@ def main() -> None:
             frac_best_in = float(
                 np.mean([r["find_in_err"] and min(r["find_in_err"]) < 3 for r in s3])
             )
-            fo_basin_cost_higher = np.mean(
+            fo_basin_cost_higher = np.nanmean(
                 [
                     (
                         min(c for c, e in zip(r["find_cost"], r["find_err"]) if e < 1.0)

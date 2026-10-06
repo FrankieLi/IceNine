@@ -3,8 +3,9 @@
 
 Dataset: cache/e2/*.npz (e2_dataset.py). Models: logistic regression and histogram gradient-boosted
 trees, with and without the two cost features, trained to predict "within 3 deg of the truth".
-Everything is split by VOXEL: 4 folds of 50 voxels (both variants of a voxel always together); a
-model is evaluated only on voxels it never saw. Predictions of the 4 held-out folds are pooled.
+Everything is split by GRAIN: 4 folds of about 50 voxels (both variants of a voxel and all voxels of
+a grain together; the 200 voxels come from 158 grains); a model is evaluated only on grains it
+never saw. Predictions of the 4 held-out folds are pooled.
 
 Evaluation sets (held-out voxels):
   A contested   harvested candidates that matter for the search: level-0..2 candidates with a
@@ -52,11 +53,23 @@ def load_dataset() -> Dict[str, np.ndarray]:
 
 
 def fold_of(vpos: np.ndarray, seed: int = 0) -> np.ndarray:
+    """Fold of each voxel position, GRAIN-disjoint: all voxels of one grain (same orientation, hence
+    the same CSL relatives) are in one fold; grains are assigned greedily, largest first, to the
+    fold with the fewest voxels (ties broken by a seeded shuffle)."""
+    grain = np.load(C.OUT_DIR / "voxels.npz")["voxel_grain_id"]
+    n = len(grain)
+    ids, counts = np.unique(grain, return_counts=True)
     rng = np.random.default_rng(seed)
-    perm = rng.permutation(C.N_VOXELS + 8)
-    f = np.empty(C.N_VOXELS + 8, dtype=int)
-    f[perm] = np.arange(len(perm)) % FOLDS
-    return f[vpos]
+    order = rng.permutation(len(ids))
+    order = order[np.argsort(-counts[order], kind="stable")]
+    load = np.zeros(FOLDS, dtype=int)
+    fold_of_grain = {}
+    for k in order:
+        f = int(np.argmin(load))
+        fold_of_grain[int(ids[k])] = f
+        load[f] += counts[k]
+    per_voxel = np.array([fold_of_grain[int(g)] for g in grain])
+    return per_voxel[np.asarray(vpos)]
 
 
 def make_model(kind: str):
@@ -248,7 +261,7 @@ def main():
         res = metrics(subset(D, m), {k: v[m] for k, v in S.items()})
         results[f"cv_train_both_test_{tv}"] = res
         lines.append(f"[train both variants, held-out voxels, test on {tv}]\n" + fmt(res))
-    np.savez_compressed(C.OUT_DIR / "e2_cv_scores.npz", **{f"score_{k}": v for k, v in S.items()})
+    np.savez_compressed(C.CACHE_DIR / "e2_cv_scores.npz", **{f"score_{k}": v for k, v in S.items()})
     # ROC curves on set A (pooled held-out)
     from sklearn.metrics import roc_curve
 

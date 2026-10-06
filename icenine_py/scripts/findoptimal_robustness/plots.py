@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import matplotlib
+import matplotlib.ticker
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -89,57 +90,89 @@ def plot_where_lost():
     fig.savefig(C.OUT_DIR / "where_lost.png", dpi=150)
 
 
+def fix_color(nm):
+    if nm.startswith("E0"):
+        return GREY
+    if nm.startswith("F1b"):
+        return GREEN
+    if nm.startswith("F1"):
+        return GREEN
+    if nm.startswith("F2"):
+        return BLUE
+    if nm.startswith("F3"):
+        return ORANGE
+    if nm.startswith("F4"):
+        return PURPLE
+    return VERM  # classifier rows
+
+
+SHORT = [
+    ("E0 baseline, seed 0", "baseline"),
+    ("F1 CSL relatives Sigma<=11", "F1 post hoc CSL check, Sigma<=11"),
+    ("F1 CSL relatives Sigma<=29 (seed 0)", "F1 post hoc CSL check, Sigma<=29 (seed 0)"),
+    ("F1 CSL relatives Sigma<=29", "F1 post hoc CSL check, Sigma<=29 (3 seeds)"),
+    ("F1b", "F1b CSL expansion at every level"),
+    ("F2a", "F2a keep best 1/2 per level"),
+    ("F2b", "F2b keep union with discrete-score top 1/4"),
+    ("F3a", "F3a coarse levels at Q_max 8"),
+    ("F3b", "F3b coarse pixel radius 1"),
+    ("F4+F1 best of 2", "F4+F1 best of 2 seeds + CSL check"),
+    ("F4+F1 best of 3", "F4+F1 best of 3 seeds + CSL check"),
+    ("F4 best of 2", "F4 best of 2 seeds"),
+    ("F4 best of 3", "F4 best of 3 seeds"),
+    ("C-a + F1", "classifier rerank + F1"),
+    ("C-a classifier rerank", "classifier rerank (GBT)"),
+    ("C-b", "classifier chooses final among F1 candidates"),
+]
+
+
+def short_name(nm):
+    for key, lab in SHORT:
+        if nm.startswith(key):
+            return lab
+    return None
+
+
 def plot_fixes():
     F = json.loads((C.OUT_DIR / "fixes_summary.json").read_text())
     extra = {}
     p = C.OUT_DIR / "e2_endtoend.json"
     if p.exists():
         extra = json.loads(p.read_text())
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.6), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.2), sharey=True)
+    legend = {}
     for ax, var in zip(axes, C.VARIANTS):
-        rows = list(F.get(var, [])) + list(extra.get(var, []))
+        rows = list(F.get(var, [])) + [r for r in extra.get(var, []) if r["name"].startswith("C-")]
         for r in rows:
             nm = r["name"]
-            col = (
-                GREY
-                if nm.startswith("E0")
-                else (
-                    GREEN
-                    if nm.startswith("F1") and "b" not in nm.split()[0]
-                    else (
-                        BLUE
-                        if nm.startswith("F2")
-                        else (
-                            ORANGE
-                            if nm.startswith("F3")
-                            else PURPLE if nm.startswith("F4") else VERM
-                        )
-                    )
-                )
-            )
+            lab = short_name(nm)
+            if lab is None or nm.startswith("E0 baseline (all"):
+                continue
+            if "F1 final" in nm:
+                continue
+            num = legend.setdefault(lab, len(legend) + 1)
+            if r.get("subset"):
+                rate, lo, hi = r["est_overall_rate"], r["est_lo"], r["est_hi"]
+            else:
+                rate, lo, hi = r["rate"], r["lo"], r["hi"]
+            x = r["evals_mean"] / 1e3
             ax.errorbar(
-                r["evals_mean"] / 1e3,
-                r["rate"],
-                yerr=[[r["rate"] - r["lo"]], [r["hi"] - r["rate"]]],
-                fmt="o",
-                color=col,
-                ms=5,
-                capsize=2,
-                lw=1,
-            )
-            ax.annotate(
-                nm.replace(" (seed 0)", "").replace("CSL relatives ", ""),
-                (r["evals_mean"] / 1e3, r["rate"]),
-                fontsize=6.5,
-                xytext=(4, 3),
-                textcoords="offset points",
-            )
+                x, rate, yerr=[[rate - lo], [hi - rate]],
+                fmt="o", color=fix_color(nm), ms=5, capsize=2, lw=1,
+            )  # fmt: skip
+            ax.annotate(str(num), (x, rate), fontsize=8, xytext=(5, 4), textcoords="offset points")
         ax.set_xlabel("cost evaluations per answer (thousands)")
-        ax.set_title(f"{VLABEL[var]}", fontsize=10)
+        ax.set_title(VLABEL[var], fontsize=10)
         style(ax)
-    axes[0].set_ylabel("wrong rate (> 1 deg), 95% Wilson CI")
-    fig.suptitle("Wrong rate against cost for each fix and the classifier", fontsize=10)
-    fig.tight_layout()
+    axes[0].set_ylabel("wrong rate (> 1 deg), 95% CI")
+    txt = "\n".join(f"{n}  {lab}" for lab, n in legend.items())
+    fig.text(0.995, 0.5, txt, fontsize=7.5, va="center", ha="right")
+    fig.suptitle(
+        "Wrong rate against cost (F2, F3 on the wrong+right subset: implied overall rate, "
+        "conservative CI; classifier and F1b/F4: all 200 voxels)",
+        fontsize=9,
+    )
+    fig.tight_layout(rect=(0, 0, 0.76, 0.96))
     fig.savefig(C.OUT_DIR / "fixes_wrong_rate_vs_cost.png", dpi=150)
 
 
@@ -188,6 +221,7 @@ def plot_learning():
         ax.set_xlabel("training voxels (both variants each)")
         ax.set_title(ttl, fontsize=9)
         ax.set_xscale("log")
+        ax.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
         ax.set_xticks(x)
         ax.set_xticklabels(x)
         style(ax)

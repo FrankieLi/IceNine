@@ -74,16 +74,25 @@ def test_invariant_reflections_sigma3():
     assert not inv[:, 2].all()  # {200} is not preserved by every Sigma3 variant
 
 
-def test_voxel_disjoint_folds():
+def test_grain_disjoint_folds():
     import e2_models as M
+    import common as C
 
-    vpos = np.repeat(np.arange(208), 5)  # several candidates per voxel
+    voxels = C.OUT_DIR / "voxels.npz"
+    if not voxels.exists():
+        import pytest
+
+        pytest.skip("study voxel list not available")
+    grain = np.load(voxels)["voxel_grain_id"]
+    vpos = np.repeat(np.arange(len(grain)), 5)  # several candidates per voxel
     f = M.fold_of(vpos)
     assert set(f) == set(range(M.FOLDS))
-    for v in range(208):  # a voxel is entirely in one fold
+    for v in range(len(grain)):  # a voxel is entirely in one fold
         assert len(set(f[vpos == v])) == 1
+    for g in np.unique(grain):  # and a grain too
+        assert len(set(f[np.isin(vpos, np.nonzero(grain == g)[0])])) == 1
     sizes = [len(set(vpos[f == k])) for k in range(M.FOLDS)]
-    assert max(sizes) - min(sizes) <= 1
+    assert max(sizes) - min(sizes) <= 3
     assert np.array_equal(f, M.fold_of(vpos))  # deterministic
 
 
