@@ -2406,3 +2406,13 @@ Report: `docs/findoptimal_robustness_report.md`; scripts: `scripts/findoptimal_r
 - Trained classifier models live only in the gitignored cache (`scripts/findoptimal_robustness/cache/models/`); they must be retrained to be used.
 - All results use per-voxel images with at most 3 distractor sources, not full-sample renders.
 - F2/F3 are seed-0 subset estimates (wrong+right subset with implied overall rates).
+
+## Developer tooling (2026-10-06)
+
+**Plan (short form).** Turn rules and checks that were repeated in LLM prompts into code that runs without an LLM, and shrink the LLM prompts to planning, interpretation, logic review and writing. Deliverables: (A) a Bash PreToolUse hook script (bare python/pytest/pip, blanket `git add`/`git commit -a`); (B) a committed but not activated git pre-commit hook with Python-implemented checks; (C) task-branch scripts and skills (`feature/<parent>-<task>` naming, because git cannot hold `feature/x/task` beside `feature/x`); (D) `scripts/common/stats.py`; (E) doc-table generation and sync; (F) a number audit; (G) a timing preflight; (H) job status and checkpoint; (I) a TODO scaffold; (J) an implementer agent and a claims-audit section for the reviewer; (K) README, this section and CLAUDE.md. Built in a separate worktree (`IceNine-tooling`) while a single-worker timing job ran in the main tree; targeted tests only under `nice` while it ran.
+
+### Completion summary (2026-10-06)
+
+All of A-K implemented on `feature/dev-tooling`; tests in `tests/test_dev_tooling.py` (64 passed). Scripts are listed in the README section "Developer tooling". The git hooks are not activated; the main session runs `scripts/dev/install_hooks.sh` after the merge (and after the other feature's agent has committed, since `core.hooksPath` is shared by all worktrees). Not changed: `scripts/nn_hybrid`, `scripts/coarse_proxy`, `scripts/profiling`, `icenine/`; adopting `stats`, `doc_tables` and `preflight` there is a later step.
+
+**Number audit on the FindOptimal robustness section above.** `audit_numbers.py` extracts 128 numbers and matches 126 against `benchmarks/findoptimal_robustness/*`; the two unmatched are real non-source numbers (the test count 537 and the derived 853 right runs). The calibration line shows the limit: shifting every number by 3 in its last printed digit still matches about 80%, because the source files contain thousands of values and low-precision decimals (0.2, 0.94) match almost anything. The audit catches wrong-magnitude and invented numbers, not small transcription errors; counts and high-precision values are the strongest checks.

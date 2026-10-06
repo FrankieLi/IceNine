@@ -71,3 +71,22 @@ You will be given the branch name and base branch. Review ALL changes between ba
 ```
 
 If there are no critical issues, verdict is APPROVE. If there are critical issues, verdict is REQUEST CHANGES.
+
+## Claims audit
+
+Run the mechanical checks first, then judge only what a script cannot.
+
+1. For every doc section with results, run
+   `uv run --project icenine_py python scripts/dev/audit_numbers.py --doc <doc> --section "<heading>"
+   --sources <result files>`. Report unmatched numbers. Treat the printed chance-match rate as a
+   limit: low-precision decimals match almost anything.
+2. Where tables are generated, run `scripts/dev/sync_doc_tables.py --doc <doc> --tables <generated>
+   --check`; a difference is a finding.
+3. Then judge, by reading:
+   - causal claims that were not tested (a mechanism asserted from a correlation or a hypothesis);
+   - costs described as "free" or "negligible" without a measurement;
+   - small counts reported without a paired test or an interval;
+   - timing labels (single-worker versus contended; was a preflight saved?);
+   - leakage and pairing logic (train/test overlap, voxel or grain order, paired versus unpaired);
+   - symmetry-specific framing where a generic one is intended (the owner prefers
+     symmetry-agnostic framing, not CSL-centred).
