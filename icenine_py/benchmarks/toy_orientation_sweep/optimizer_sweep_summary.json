@@ -1,0 +1,5466 @@
+{
+ "radii": [
+  0.05,
+  0.1,
+  0.25,
+  0.5,
+  0.75,
+  1.0,
+  1.5,
+  2.0,
+  3.0,
+  5.0
+ ],
+ "variants": {
+  "clean": {
+   "0.05": {
+    "MC": {
+     "n": 1000,
+     "median": 0.027445660904049873,
+     "rms": 0.03332982432773805,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 0.886,
+     "median_runtime_s": 2.371307849884033
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.13409330695867538,
+     "rms": 0.19878709992476531,
+     "frac_lt_0p1": 0.321,
+     "frac_improved": 0.038,
+     "median_runtime_s": 0.30042028427124023
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.01300943223759532,
+     "rms": 0.01802136719730266,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 0.992,
+     "median_runtime_s": 0.006494666449725628
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.012697250582277775,
+     "rms": 0.017967707805876667,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.018979687243700027
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.012346691451966763,
+     "rms": 0.02055048401072397,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 0.98,
+     "median_runtime_s": 0.02320820838212967
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.01260637678205967,
+     "rms": 0.02050459490615764,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 0.98,
+     "median_runtime_s": 0.03452795743942261
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.012545104138553143,
+     "rms": 0.019893646377778944,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 0.98
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.012447335757315159,
+     "rms": 0.019546258386769454,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 0.98
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.012205588165670633,
+     "rms": 0.020382202158718846,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 0.9624999999999999
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.012087966781109571,
+     "rms": 0.021192194541274634,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 0.96
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.813,
+       0.702
+      ],
+      "win_mean": 0.7575
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.589,
+       0.42
+      ],
+      "win_mean": 0.5045
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.595,
+       0.416
+      ],
+      "win_mean": 0.5055
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.566,
+       0.482
+      ],
+      "win_mean": 0.524
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.571,
+       0.477
+      ],
+      "win_mean": 0.524
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.814,
+       0.705
+      ],
+      "win_mean": 0.7595
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.434
+      ],
+      "win_mean": 0.507
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.44
+      ],
+      "win_mean": 0.51
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.817,
+       0.739
+      ],
+      "win_mean": 0.778
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.997,
+       0.986
+      ],
+      "win_mean": 0.9915
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.524,
+       0.401
+      ],
+      "win_mean": 0.4625
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.529,
+       0.406
+      ],
+      "win_mean": 0.4675
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.57,
+       0.437
+      ],
+      "win_mean": 0.5035
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.572,
+       0.435
+      ],
+      "win_mean": 0.5035
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.809,
+       0.712
+      ],
+      "win_mean": 0.7605
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.996,
+       0.979
+      ],
+      "win_mean": 0.9875
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.574,
+       0.374
+      ],
+      "win_mean": 0.474
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.38
+      ],
+      "win_mean": 0.48
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.574,
+       0.394
+      ],
+      "win_mean": 0.484
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.4
+      ],
+      "win_mean": 0.49
+     }
+    }
+   },
+   "0.1": {
+    "MC": {
+     "n": 1000,
+     "median": 0.05730798281729221,
+     "rms": 0.06932151807295729,
+     "frac_lt_0p1": 0.87,
+     "frac_improved": 0.87,
+     "median_runtime_s": 2.374882698059082
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.13296853005886078,
+     "rms": 0.18755731424987013,
+     "frac_lt_0p1": 0.349,
+     "frac_improved": 0.349,
+     "median_runtime_s": 0.30312472581863403
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.012778675183653831,
+     "rms": 0.018036927342442482,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.006880687549710274
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.01269722729921341,
+     "rms": 0.017967708230885115,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.019533749669790268
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.012346675153821707,
+     "rms": 0.02052477658403187,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.024431811645627022
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.012606333941221237,
+     "rms": 0.020504597787908384,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.03571029007434845
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.0125481141731143,
+     "rms": 0.01987214091561091,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.012447408400475979,
+     "rms": 0.019548849306122447,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.013078298419713974,
+     "rms": 0.02115290941768965,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.012118856888264418,
+     "rms": 0.021185922249469684,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.931,
+       0.879
+      ],
+      "win_mean": 0.905
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.569,
+       0.44
+      ],
+      "win_mean": 0.5045
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.442
+      ],
+      "win_mean": 0.511
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.562,
+       0.471
+      ],
+      "win_mean": 0.5165
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.568,
+       0.464
+      ],
+      "win_mean": 0.516
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.935,
+       0.881
+      ],
+      "win_mean": 0.908
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.43
+      ],
+      "win_mean": 0.505
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.44
+      ],
+      "win_mean": 0.51
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.913,
+       0.89
+      ],
+      "win_mean": 0.9015
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.993,
+       0.986
+      ],
+      "win_mean": 0.9895
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.487,
+       0.399
+      ],
+      "win_mean": 0.443
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.485,
+       0.412
+      ],
+      "win_mean": 0.4485
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.526,
+       0.444
+      ],
+      "win_mean": 0.485
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.529,
+       0.451
+      ],
+      "win_mean": 0.49
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.931,
+       0.88
+      ],
+      "win_mean": 0.9055
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.991,
+       0.974
+      ],
+      "win_mean": 0.9824999999999999
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.569,
+       0.374
+      ],
+      "win_mean": 0.4715
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.385
+      ],
+      "win_mean": 0.4825
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.567,
+       0.389
+      ],
+      "win_mean": 0.478
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.4
+      ],
+      "win_mean": 0.49
+     }
+    }
+   },
+   "0.25": {
+    "MC": {
+     "n": 1000,
+     "median": 0.13643784075975418,
+     "rms": 0.1653052191481754,
+     "frac_lt_0p1": 0.329,
+     "frac_improved": 0.885,
+     "median_runtime_s": 2.38299298286438
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.1194159984588623,
+     "rms": 0.15578371335982316,
+     "frac_lt_0p1": 0.402,
+     "frac_improved": 0.917,
+     "median_runtime_s": 0.300714373588562
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.012154273688793182,
+     "rms": 0.01800229759271155,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.00801047869026661
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.01269723242148757,
+     "rms": 0.017967708265011227,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.021013103425502777
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.01195664843544364,
+     "rms": 0.02052511541886409,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.02543233335018158
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.012606366537511349,
+     "rms": 0.02050459906403538,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.03884979337453842
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.01225680811330676,
+     "rms": 0.01982584763515694,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.012447560206055641,
+     "rms": 0.019548418796287062,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.013722613453865051,
+     "rms": 0.022434108150303993,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.012113080359995365,
+     "rms": 0.021179832391536868,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.979,
+       0.961
+      ],
+      "win_mean": 0.97
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.996,
+       0.995
+      ],
+      "win_mean": 0.9955
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.556,
+       0.451
+      ],
+      "win_mean": 0.5035000000000001
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.559,
+       0.456
+      ],
+      "win_mean": 0.5075000000000001
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.567,
+       0.476
+      ],
+      "win_mean": 0.5215
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.579,
+       0.467
+      ],
+      "win_mean": 0.523
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.982,
+       0.959
+      ],
+      "win_mean": 0.9704999999999999
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.996,
+       0.997
+      ],
+      "win_mean": 0.9964999999999999
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.451
+      ],
+      "win_mean": 0.5155
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.438
+      ],
+      "win_mean": 0.509
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.479
+      ],
+      "win_mean": 0.5195000000000001
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.964,
+       0.965
+      ],
+      "win_mean": 0.9644999999999999
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.991,
+       0.985
+      ],
+      "win_mean": 0.988
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.454,
+       0.374
+      ],
+      "win_mean": 0.41400000000000003
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.454,
+       0.384
+      ],
+      "win_mean": 0.41900000000000004
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.462,
+       0.397
+      ],
+      "win_mean": 0.4295
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.469,
+       0.409
+      ],
+      "win_mean": 0.43899999999999995
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.976,
+       0.965
+      ],
+      "win_mean": 0.9704999999999999
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.993,
+       0.982
+      ],
+      "win_mean": 0.9875
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.564,
+       0.377
+      ],
+      "win_mean": 0.4705
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.381
+      ],
+      "win_mean": 0.4805
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.569,
+       0.387
+      ],
+      "win_mean": 0.478
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.579,
+       0.4
+      ],
+      "win_mean": 0.4895
+     }
+    }
+   },
+   "0.5": {
+    "MC": {
+     "n": 1000,
+     "median": 0.2876632809638977,
+     "rms": 0.3399499165612065,
+     "frac_lt_0p1": 0.095,
+     "frac_improved": 0.886,
+     "median_runtime_s": 2.3746728897094727
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.1448972299695015,
+     "rms": 0.19413788750574634,
+     "frac_lt_0p1": 0.246,
+     "frac_improved": 0.998,
+     "median_runtime_s": 0.3017512559890747
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.012725886423140764,
+     "rms": 0.01812480813946359,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.008105998858809471
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.01269723242148757,
+     "rms": 0.017967708284378003,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.02098381146788597
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.011816240381449461,
+     "rms": 0.02053733676060752,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.025570396333932877
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.012606322299689054,
+     "rms": 0.020504598616403434,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.041051290929317474
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.011575278826057911,
+     "rms": 0.0190447628634354,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.012447587214410305,
+     "rms": 0.01954428873107443,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.015597928315401077,
+     "rms": 0.024404853398860872,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.012136387173086405,
+     "rms": 0.02117907662010372,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.992,
+       0.985
+      ],
+      "win_mean": 0.9884999999999999
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.999,
+       0.998
+      ],
+      "win_mean": 0.9984999999999999
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.584,
+       0.448
+      ],
+      "win_mean": 0.516
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.601,
+       0.438
+      ],
+      "win_mean": 0.5195
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.567,
+       0.447
+      ],
+      "win_mean": 0.507
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.598,
+       0.469
+      ],
+      "win_mean": 0.5335
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.993,
+       0.987
+      ],
+      "win_mean": 0.99
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.999,
+       0.997
+      ],
+      "win_mean": 0.998
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.591,
+       0.463
+      ],
+      "win_mean": 0.527
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.438
+      ],
+      "win_mean": 0.509
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.553,
+       0.467
+      ],
+      "win_mean": 0.51
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.99,
+       0.986
+      ],
+      "win_mean": 0.988
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.993,
+       0.993
+      ],
+      "win_mean": 0.993
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.396,
+       0.358
+      ],
+      "win_mean": 0.377
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.404,
+       0.359
+      ],
+      "win_mean": 0.3815
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.418,
+       0.357
+      ],
+      "win_mean": 0.38749999999999996
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.445,
+       0.367
+      ],
+      "win_mean": 0.406
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.992,
+       0.988
+      ],
+      "win_mean": 0.99
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.997,
+       0.994
+      ],
+      "win_mean": 0.9955
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.564,
+       0.383
+      ],
+      "win_mean": 0.4735
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.38
+      ],
+      "win_mean": 0.48
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.558,
+       0.374
+      ],
+      "win_mean": 0.466
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.571,
+       0.401
+      ],
+      "win_mean": 0.486
+     }
+    }
+   },
+   "0.75": {
+    "MC": {
+     "n": 1000,
+     "median": 0.424224391579628,
+     "rms": 0.542365531845366,
+     "frac_lt_0p1": 0.055,
+     "frac_improved": 0.859,
+     "median_runtime_s": 2.373706340789795
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.23468435555696487,
+     "rms": 0.29491906019466685,
+     "frac_lt_0p1": 0.121,
+     "frac_improved": 0.999,
+     "median_runtime_s": 0.3013456463813782
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.013003977946937084,
+     "rms": 0.018460887519519426,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.007967958226799965
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.01269723242148757,
+     "rms": 0.017967708326543957,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.021146750077605247
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.01234668493270874,
+     "rms": 0.02085314138661173,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.025405727326869965
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.012606340926140547,
+     "rms": 0.020504599303774084,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.04451018571853638
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.012248076032847166,
+     "rms": 0.01932131795532316,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.012448181863874197,
+     "rms": 0.019544055694059488,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.017742570489645004,
+     "rms": 0.02779572807258965,
+     "frac_lt_0p1": 0.999,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.012077566236257553,
+     "rms": 0.021181016927938584,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.996,
+       0.994
+      ],
+      "win_mean": 0.995
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       0.999
+      ],
+      "win_mean": 0.9995
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.603,
+       0.421
+      ],
+      "win_mean": 0.512
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.576,
+       0.387
+      ],
+      "win_mean": 0.4815
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.559,
+       0.473
+      ],
+      "win_mean": 0.516
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.572,
+       0.467
+      ],
+      "win_mean": 0.5195
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.996,
+       0.99
+      ],
+      "win_mean": 0.993
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       0.999
+      ],
+      "win_mean": 0.9995
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.599,
+       0.478
+      ],
+      "win_mean": 0.5385
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.44
+      ],
+      "win_mean": 0.51
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.571,
+       0.476
+      ],
+      "win_mean": 0.5235
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.994,
+       0.992
+      ],
+      "win_mean": 0.993
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.994,
+       0.993
+      ],
+      "win_mean": 0.9935
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.351,
+       0.343
+      ],
+      "win_mean": 0.347
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.336,
+       0.325
+      ],
+      "win_mean": 0.3305
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.332,
+       0.31
+      ],
+      "win_mean": 0.321
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.342,
+       0.31
+      ],
+      "win_mean": 0.326
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.994,
+       0.994
+      ],
+      "win_mean": 0.994
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.999,
+       0.997
+      ],
+      "win_mean": 0.998
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.586,
+       0.396
+      ],
+      "win_mean": 0.491
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.383
+      ],
+      "win_mean": 0.4815
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.566,
+       0.39
+      ],
+      "win_mean": 0.478
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.571,
+       0.406
+      ],
+      "win_mean": 0.4885
+     }
+    }
+   },
+   "1": {
+    "MC": {
+     "n": 1000,
+     "median": 0.6081899404525757,
+     "rms": 0.817374318372324,
+     "frac_lt_0p1": 0.053,
+     "frac_improved": 0.77,
+     "median_runtime_s": 2.3832383155822754
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.34396831691265106,
+     "rms": 0.4103298936407873,
+     "frac_lt_0p1": 0.092,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.3054245710372925
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.013494390062987804,
+     "rms": 0.018890850456154854,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.008012291975319386
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.01269723242148757,
+     "rms": 0.017967708321083426,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.021597106009721756
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.012231932487338781,
+     "rms": 0.0207576559883504,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.02546226978302002
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.012606351636350155,
+     "rms": 0.020504598001489027,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.04820583388209343
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.01304697385057807,
+     "rms": 0.020194691442281157,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.012449597008526325,
+     "rms": 0.019541660751871307,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.020847313106060028,
+     "rms": 0.03142543682190477,
+     "frac_lt_0p1": 0.991,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.012115569319576025,
+     "rms": 0.02119956875199204,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.988,
+       0.987
+      ],
+      "win_mean": 0.9875
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       0.999
+      ],
+      "win_mean": 0.9995
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.591,
+       0.438
+      ],
+      "win_mean": 0.5145
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.549,
+       0.377
+      ],
+      "win_mean": 0.463
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.53,
+       0.425
+      ],
+      "win_mean": 0.47750000000000004
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.552,
+       0.434
+      ],
+      "win_mean": 0.493
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.992,
+       0.985
+      ],
+      "win_mean": 0.9884999999999999
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.633,
+       0.486
+      ],
+      "win_mean": 0.5595
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.439
+      ],
+      "win_mean": 0.5095
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.575,
+       0.481
+      ],
+      "win_mean": 0.528
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.983,
+       0.985
+      ],
+      "win_mean": 0.984
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.999,
+       0.996
+      ],
+      "win_mean": 0.9975
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.303,
+       0.289
+      ],
+      "win_mean": 0.296
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.28,
+       0.254
+      ],
+      "win_mean": 0.267
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.25,
+       0.268
+      ],
+      "win_mean": 0.259
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.26,
+       0.273
+      ],
+      "win_mean": 0.2665
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.991,
+       0.989
+      ],
+      "win_mean": 0.99
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.999,
+       0.999
+      ],
+      "win_mean": 0.999
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.601,
+       0.398
+      ],
+      "win_mean": 0.4995
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.382
+      ],
+      "win_mean": 0.481
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.562,
+       0.376
+      ],
+      "win_mean": 0.46900000000000003
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.567,
+       0.4
+      ],
+      "win_mean": 0.4835
+     }
+    }
+   },
+   "1.5": {
+    "MC": {
+     "n": 1000,
+     "median": 1.1105541586875916,
+     "rms": 1.475667861941008,
+     "frac_lt_0p1": 0.034,
+     "frac_improved": 0.646,
+     "median_runtime_s": 2.3753199577331543
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.5748734474182129,
+     "rms": 0.6632928667096357,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.3066425919532776
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.021664472296833992,
+     "rms": 0.02662518540258905,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.007908604107797146
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.012697231955826283,
+     "rms": 0.0179677083502132,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.02142789587378502
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.014938469976186752,
+     "rms": 0.023062019657691453,
+     "frac_lt_0p1": 0.998,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.025601811707019806
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.012606369331479073,
+     "rms": 0.02050459615695681,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.05164681375026703
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.019438743591308594,
+     "rms": 0.029179455640345367,
+     "frac_lt_0p1": 0.999,
+     "frac_improved": 1.0
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.012450565584003925,
+     "rms": 0.01953990584948578,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.028057025745511055,
+     "rms": 0.03877480820910589,
+     "frac_lt_0p1": 0.984,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.012154670432209969,
+     "rms": 0.021200340852137733,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.995,
+       0.993
+      ],
+      "win_mean": 0.994
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.513,
+       0.43
+      ],
+      "win_mean": 0.47150000000000003
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.315,
+       0.232
+      ],
+      "win_mean": 0.2735
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.384,
+       0.32
+      ],
+      "win_mean": 0.352
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.328,
+       0.288
+      ],
+      "win_mean": 0.308
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.996,
+       0.994
+      ],
+      "win_mean": 0.995
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.793,
+       0.642
+      ],
+      "win_mean": 0.7175
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.436
+      ],
+      "win_mean": 0.508
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.673,
+       0.543
+      ],
+      "win_mean": 0.6080000000000001
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.988,
+       0.991
+      ],
+      "win_mean": 0.9895
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.364,
+       0.359
+      ],
+      "win_mean": 0.3615
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.189,
+       0.195
+      ],
+      "win_mean": 0.192
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.238,
+       0.248
+      ],
+      "win_mean": 0.243
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.178,
+       0.192
+      ],
+      "win_mean": 0.185
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.995,
+       0.989
+      ],
+      "win_mean": 0.992
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.758,
+       0.604
+      ],
+      "win_mean": 0.681
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.389
+      ],
+      "win_mean": 0.4845
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.636,
+       0.499
+      ],
+      "win_mean": 0.5675
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.57,
+       0.4
+      ],
+      "win_mean": 0.485
+     }
+    }
+   },
+   "2": {
+    "MC": {
+     "n": 1000,
+     "median": 1.6377805471420288,
+     "rms": 1.9912679418950285,
+     "frac_lt_0p1": 0.026,
+     "frac_improved": 0.634,
+     "median_runtime_s": 2.4241127967834473
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.875324159860611,
+     "rms": 1.0003449409537997,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.999,
+     "median_runtime_s": 0.30826762318611145
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.032818909734487534,
+     "rms": 0.04197476651683944,
+     "frac_lt_0p1": 0.995,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.007906770333647728
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.012697224970906973,
+     "rms": 0.017967708111390108,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.021511124446988106
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.02020815573632717,
+     "rms": 0.031347062016253376,
+     "frac_lt_0p1": 0.996,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.025970458984375
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.012606353964656591,
+     "rms": 0.020504597728129376,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.05417729169130325
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.030335893854498863,
+     "rms": 0.04307479869207541,
+     "frac_lt_0p1": 0.976,
+     "frac_improved": 1.0
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.012454032897949219,
+     "rms": 0.019538983104970833,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.038151998072862625,
+     "rms": 0.04954301640389831,
+     "frac_lt_0p1": 0.969,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.012072852347046137,
+     "rms": 0.021196377547295975,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.985,
+       0.985
+      ],
+      "win_mean": 0.985
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.532,
+       0.473
+      ],
+      "win_mean": 0.5025
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.166,
+       0.103
+      ],
+      "win_mean": 0.1345
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.314,
+       0.271
+      ],
+      "win_mean": 0.2925
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.188,
+       0.129
+      ],
+      "win_mean": 0.1585
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.995,
+       0.994
+      ],
+      "win_mean": 0.9944999999999999
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.891,
+       0.778
+      ],
+      "win_mean": 0.8345
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.433
+      ],
+      "win_mean": 0.5065
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.794,
+       0.651
+      ],
+      "win_mean": 0.7225
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.983,
+       0.982
+      ],
+      "win_mean": 0.9824999999999999
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.412,
+       0.429
+      ],
+      "win_mean": 0.4205
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.089,
+       0.116
+      ],
+      "win_mean": 0.10250000000000001
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.223,
+       0.252
+      ],
+      "win_mean": 0.2375
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.09,
+       0.118
+      ],
+      "win_mean": 0.104
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.993,
+       0.992
+      ],
+      "win_mean": 0.9924999999999999
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.875,
+       0.779
+      ],
+      "win_mean": 0.827
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.399
+      ],
+      "win_mean": 0.4895
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.769,
+       0.623
+      ],
+      "win_mean": 0.696
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.578,
+       0.4
+      ],
+      "win_mean": 0.489
+     }
+    }
+   },
+   "3": {
+    "MC": {
+     "n": 1000,
+     "median": 2.2624629735946655,
+     "rms": 2.9248207737001803,
+     "frac_lt_0p1": 0.029,
+     "frac_improved": 0.658,
+     "median_runtime_s": 2.4440975189208984
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 2.1651711463928223,
+     "rms": 2.2447384401097183,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.978,
+     "median_runtime_s": 0.30728447437286377
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.06410165876150131,
+     "rms": 0.08286587662484281,
+     "frac_lt_0p1": 0.786,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.007885852828621864
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.012697222176939249,
+     "rms": 0.01796770828704595,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.022123146802186966
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.04061815142631531,
+     "rms": 0.05848221261163955,
+     "frac_lt_0p1": 0.929,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.026902563869953156
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.012606353498995304,
+     "rms": 0.02050459984054637,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.05739110708236694
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.06059945374727249,
+     "rms": 0.08218307005897674,
+     "frac_lt_0p1": 0.8005,
+     "frac_improved": 1.0
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.012462064158171415,
+     "rms": 0.01954464265132723,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.06623123586177826,
+     "rms": 0.08180123538934095,
+     "frac_lt_0p1": 0.7885,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.012123305350542068,
+     "rms": 0.021158701115755074,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.978,
+       0.977
+      ],
+      "win_mean": 0.9775
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.484,
+       0.497
+      ],
+      "win_mean": 0.4905
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.021,
+       0.024
+      ],
+      "win_mean": 0.0225
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.241,
+       0.28
+      ],
+      "win_mean": 0.2605
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.028,
+       0.031
+      ],
+      "win_mean": 0.0295
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.997,
+       0.997
+      ],
+      "win_mean": 0.997
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.943,
+       0.91
+      ],
+      "win_mean": 0.9265
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.43
+      ],
+      "win_mean": 0.505
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.884,
+       0.825
+      ],
+      "win_mean": 0.8545
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.56,
+       0.48
+      ],
+      "win_mean": 0.52
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.98,
+       0.973
+      ],
+      "win_mean": 0.9764999999999999
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.494,
+       0.456
+      ],
+      "win_mean": 0.475
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.023,
+       0.021
+      ],
+      "win_mean": 0.022
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.291,
+       0.27
+      ],
+      "win_mean": 0.28049999999999997
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.028,
+       0.03
+      ],
+      "win_mean": 0.028999999999999998
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.997,
+       0.995
+      ],
+      "win_mean": 0.996
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.941,
+       0.908
+      ],
+      "win_mean": 0.9245
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.579,
+       0.397
+      ],
+      "win_mean": 0.488
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.879,
+       0.805
+      ],
+      "win_mean": 0.8420000000000001
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.58,
+       0.396
+      ],
+      "win_mean": 0.488
+     }
+    }
+   },
+   "5": {
+    "MC": {
+     "n": 940,
+     "median": 4.500276803970337,
+     "rms": 5.580774948654607,
+     "frac_lt_0p1": 0.02127659574468085,
+     "frac_improved": 0.5840425531914893,
+     "median_runtime_s": 2.4514827728271484
+    },
+    "Adam": {
+     "n": 940,
+     "median": 4.802457332611084,
+     "rms": 4.752222960066953,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.9308510638297872,
+     "median_runtime_s": 0.30880239605903625
+    },
+    "GN": {
+     "n": 940,
+     "median": 0.12739261239767075,
+     "rms": 0.16344968402149387,
+     "frac_lt_0p1": 0.33617021276595743,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.008504853583872318
+    },
+    "GN x3": {
+     "n": 940,
+     "median": 0.012154273688793182,
+     "rms": 0.018132454533950834,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.023401811718940735
+    },
+    "Huber": {
+     "n": 940,
+     "median": 0.0867893435060978,
+     "rms": 0.1143783066632875,
+     "frac_lt_0p1": 0.5989361702127659,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.02765526995062828
+    },
+    "Huber x3": {
+     "n": 940,
+     "median": 0.012346768751740456,
+     "rms": 0.02075123687628344,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.05989029258489609
+    },
+    "net clean one-shot": {
+     "n": 940,
+     "median": 0.1679922416806221,
+     "rms": 0.2385666903674476,
+     "frac_lt_0p1": 0.19574468085106383,
+     "frac_improved": 1.0
+    },
+    "net clean x3": {
+     "n": 940,
+     "median": 0.012465433217585087,
+     "rms": 0.0197714341974577,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 940,
+     "median": 0.2725691497325897,
+     "rms": 0.38981741963975136,
+     "frac_lt_0p1": 0.10319148936170214,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 940,
+     "median": 0.012046894989907742,
+     "rms": 0.02120976767250593,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 940,
+      "win_per_seed": [
+       0.9606382978723405,
+       0.9638297872340426
+      ],
+      "win_mean": 0.9622340425531914
+     },
+     "net clean one-shot < Adam": {
+      "n": 940,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean one-shot < GN": {
+      "n": 940,
+      "win_per_seed": [
+       0.3446808510638298,
+       0.32659574468085106
+      ],
+      "win_mean": 0.33563829787234045
+     },
+     "net clean one-shot < GN x3": {
+      "n": 940,
+      "win_per_seed": [
+       0.0010638297872340426,
+       0.0010638297872340426
+      ],
+      "win_mean": 0.0010638297872340426
+     },
+     "net clean one-shot < Huber": {
+      "n": 940,
+      "win_per_seed": [
+       0.19042553191489361,
+       0.16489361702127658
+      ],
+      "win_mean": 0.1776595744680851
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 940,
+      "win_per_seed": [
+       0.0010638297872340426,
+       0.002127659574468085
+      ],
+      "win_mean": 0.001595744680851064
+     },
+     "net clean x3 < MC": {
+      "n": 940,
+      "win_per_seed": [
+       0.9914893617021276,
+       0.9914893617021276
+      ],
+      "win_mean": 0.9914893617021276
+     },
+     "net clean x3 < Adam": {
+      "n": 940,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net clean x3 < GN": {
+      "n": 940,
+      "win_per_seed": [
+       0.9882978723404255,
+       0.9744680851063829
+      ],
+      "win_mean": 0.9813829787234043
+     },
+     "net clean x3 < GN x3": {
+      "n": 940,
+      "win_per_seed": [
+       0.575531914893617,
+       0.42872340425531913
+      ],
+      "win_mean": 0.502127659574468
+     },
+     "net clean x3 < Huber": {
+      "n": 940,
+      "win_per_seed": [
+       0.9680851063829787,
+       0.9553191489361702
+      ],
+      "win_mean": 0.9617021276595745
+     },
+     "net clean x3 < Huber x3": {
+      "n": 940,
+      "win_per_seed": [
+       0.5606382978723404,
+       0.4776595744680851
+      ],
+      "win_mean": 0.5191489361702127
+     },
+     "net realistic one-shot < MC": {
+      "n": 940,
+      "win_per_seed": [
+       0.948936170212766,
+       0.9276595744680851
+      ],
+      "win_mean": 0.9382978723404256
+     },
+     "net realistic one-shot < Adam": {
+      "n": 940,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net realistic one-shot < GN": {
+      "n": 940,
+      "win_per_seed": [
+       0.2904255319148936,
+       0.11702127659574468
+      ],
+      "win_mean": 0.20372340425531915
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 940,
+      "win_per_seed": [
+       0.0,
+       0.0010638297872340426
+      ],
+      "win_mean": 0.0005319148936170213
+     },
+     "net realistic one-shot < Huber": {
+      "n": 940,
+      "win_per_seed": [
+       0.16170212765957448,
+       0.06702127659574468
+      ],
+      "win_mean": 0.11436170212765959
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 940,
+      "win_per_seed": [
+       0.0031914893617021275,
+       0.002127659574468085
+      ],
+      "win_mean": 0.0026595744680851063
+     },
+     "net realistic x3 < MC": {
+      "n": 940,
+      "win_per_seed": [
+       0.9936170212765958,
+       0.9936170212765958
+      ],
+      "win_mean": 0.9936170212765958
+     },
+     "net realistic x3 < Adam": {
+      "n": 940,
+      "win_per_seed": [
+       1.0,
+       1.0
+      ],
+      "win_mean": 1.0
+     },
+     "net realistic x3 < GN": {
+      "n": 940,
+      "win_per_seed": [
+       0.9872340425531915,
+       0.9819148936170212
+      ],
+      "win_mean": 0.9845744680851063
+     },
+     "net realistic x3 < GN x3": {
+      "n": 940,
+      "win_per_seed": [
+       0.5680851063829787,
+       0.39361702127659576
+      ],
+      "win_mean": 0.48085106382978726
+     },
+     "net realistic x3 < Huber": {
+      "n": 940,
+      "win_per_seed": [
+       0.9702127659574468,
+       0.9595744680851064
+      ],
+      "win_mean": 0.9648936170212765
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 940,
+      "win_per_seed": [
+       0.5797872340425532,
+       0.4085106382978723
+      ],
+      "win_mean": 0.4941489361702127
+     }
+    }
+   }
+  },
+  "all": {
+   "0.05": {
+    "MC": {
+     "n": 1000,
+     "median": 0.02818209584802389,
+     "rms": 0.03385461640950149,
+     "frac_lt_0p1": 1.0,
+     "frac_improved": 0.881,
+     "median_runtime_s": 2.3788342475891113
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.26893457770347595,
+     "rms": 0.3590977777914841,
+     "frac_lt_0p1": 0.126,
+     "frac_improved": 0.022,
+     "median_runtime_s": 0.2989698350429535
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.27439336478710175,
+     "rms": 0.4713553854925294,
+     "frac_lt_0p1": 0.289,
+     "frac_improved": 0.155,
+     "median_runtime_s": 0.008675770834088326
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.28436432778835297,
+     "rms": 0.49413377627931926,
+     "frac_lt_0p1": 0.277,
+     "frac_improved": 0.143,
+     "median_runtime_s": 0.02597537636756897
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.1958823800086975,
+     "rms": 0.40579760116884955,
+     "frac_lt_0p1": 0.394,
+     "frac_improved": 0.301,
+     "median_runtime_s": 0.03654493764042854
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.19557838141918182,
+     "rms": 0.4154295056509987,
+     "frac_lt_0p1": 0.393,
+     "frac_improved": 0.305,
+     "median_runtime_s": 0.08780550211668015
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.27387528121471405,
+     "rms": 0.4358038015257765,
+     "frac_lt_0p1": 0.244,
+     "frac_improved": 0.08249999999999999
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.27751293778419495,
+     "rms": 0.4527497102963246,
+     "frac_lt_0p1": 0.2345,
+     "frac_improved": 0.082
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.06224803812801838,
+     "rms": 0.09958199386325248,
+     "frac_lt_0p1": 0.679,
+     "frac_improved": 0.4335
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.06518110632896423,
+     "rms": 0.10379383746131352,
+     "frac_lt_0p1": 0.6555,
+     "frac_improved": 0.434
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.03,
+       0.036
+      ],
+      "win_mean": 0.033
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.468,
+       0.516
+      ],
+      "win_mean": 0.492
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.408,
+       0.542
+      ],
+      "win_mean": 0.475
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.514,
+       0.593
+      ],
+      "win_mean": 0.5535
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.194,
+       0.283
+      ],
+      "win_mean": 0.2385
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.207,
+       0.295
+      ],
+      "win_mean": 0.251
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.035,
+       0.028
+      ],
+      "win_mean": 0.0315
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.457,
+       0.503
+      ],
+      "win_mean": 0.48
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.352,
+       0.523
+      ],
+      "win_mean": 0.4375
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.447,
+       0.593
+      ],
+      "win_mean": 0.52
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.169,
+       0.26
+      ],
+      "win_mean": 0.21450000000000002
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.174,
+       0.281
+      ],
+      "win_mean": 0.2275
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.284,
+       0.259
+      ],
+      "win_mean": 0.27149999999999996
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.95,
+       0.956
+      ],
+      "win_mean": 0.953
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.957,
+       0.949
+      ],
+      "win_mean": 0.953
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.953,
+       0.95
+      ],
+      "win_mean": 0.9515
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.834,
+       0.826
+      ],
+      "win_mean": 0.83
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.838,
+       0.829
+      ],
+      "win_mean": 0.8334999999999999
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.273,
+       0.253
+      ],
+      "win_mean": 0.263
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.943,
+       0.952
+      ],
+      "win_mean": 0.9475
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.955,
+       0.936
+      ],
+      "win_mean": 0.9455
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.958,
+       0.943
+      ],
+      "win_mean": 0.9504999999999999
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.829,
+       0.807
+      ],
+      "win_mean": 0.8180000000000001
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.827,
+       0.804
+      ],
+      "win_mean": 0.8155
+     }
+    }
+   },
+   "0.1": {
+    "MC": {
+     "n": 1000,
+     "median": 0.056636808440089226,
+     "rms": 0.0683813199296669,
+     "frac_lt_0p1": 0.877,
+     "frac_improved": 0.877,
+     "median_runtime_s": 2.382509231567383
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.24580801278352737,
+     "rms": 0.33899016045979546,
+     "frac_lt_0p1": 0.143,
+     "frac_improved": 0.143,
+     "median_runtime_s": 0.30212947726249695
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.24947762489318848,
+     "rms": 0.4718420885403391,
+     "frac_lt_0p1": 0.313,
+     "frac_improved": 0.313,
+     "median_runtime_s": 0.008743146434426308
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.2626645117998123,
+     "rms": 0.49330693514589696,
+     "frac_lt_0p1": 0.299,
+     "frac_improved": 0.299,
+     "median_runtime_s": 0.025862500071525574
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.17092207819223404,
+     "rms": 0.40396424283194293,
+     "frac_lt_0p1": 0.429,
+     "frac_improved": 0.429,
+     "median_runtime_s": 0.03625718504190445
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.17244545370340347,
+     "rms": 0.4157314057370741,
+     "frac_lt_0p1": 0.428,
+     "frac_improved": 0.428,
+     "median_runtime_s": 0.08892731368541718
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.25929462164640427,
+     "rms": 0.4363852548083229,
+     "frac_lt_0p1": 0.242,
+     "frac_improved": 0.242
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.2626296579837799,
+     "rms": 0.45362991727055396,
+     "frac_lt_0p1": 0.2295,
+     "frac_improved": 0.2295
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.058931900188326836,
+     "rms": 0.09717743713350424,
+     "frac_lt_0p1": 0.683,
+     "frac_improved": 0.683
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.06263869255781174,
+     "rms": 0.1016401156590489,
+     "frac_lt_0p1": 0.672,
+     "frac_improved": 0.672
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.129,
+       0.124
+      ],
+      "win_mean": 0.1265
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.422,
+       0.46
+      ],
+      "win_mean": 0.441
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.403,
+       0.529
+      ],
+      "win_mean": 0.466
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.502,
+       0.575
+      ],
+      "win_mean": 0.5385
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.175,
+       0.274
+      ],
+      "win_mean": 0.2245
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.19,
+       0.297
+      ],
+      "win_mean": 0.2435
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.124,
+       0.108
+      ],
+      "win_mean": 0.11599999999999999
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.411,
+       0.443
+      ],
+      "win_mean": 0.427
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.337,
+       0.527
+      ],
+      "win_mean": 0.43200000000000005
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.425,
+       0.576
+      ],
+      "win_mean": 0.5005
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.149,
+       0.261
+      ],
+      "win_mean": 0.20500000000000002
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.161,
+       0.28
+      ],
+      "win_mean": 0.22050000000000003
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.465,
+       0.467
+      ],
+      "win_mean": 0.466
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.947,
+       0.954
+      ],
+      "win_mean": 0.9504999999999999
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.949,
+       0.928
+      ],
+      "win_mean": 0.9385
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.946,
+       0.936
+      ],
+      "win_mean": 0.9410000000000001
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.81,
+       0.807
+      ],
+      "win_mean": 0.8085
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.81,
+       0.811
+      ],
+      "win_mean": 0.8105
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.452,
+       0.453
+      ],
+      "win_mean": 0.4525
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.949,
+       0.953
+      ],
+      "win_mean": 0.951
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.942,
+       0.926
+      ],
+      "win_mean": 0.9339999999999999
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.95,
+       0.935
+      ],
+      "win_mean": 0.9425
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.822,
+       0.795
+      ],
+      "win_mean": 0.8085
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.823,
+       0.79
+      ],
+      "win_mean": 0.8065
+     }
+    }
+   },
+   "0.25": {
+    "MC": {
+     "n": 1000,
+     "median": 0.13653875142335892,
+     "rms": 0.16738697902729682,
+     "frac_lt_0p1": 0.312,
+     "frac_improved": 0.88,
+     "median_runtime_s": 2.388669013977051
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.20071063190698624,
+     "rms": 0.27896796270490526,
+     "frac_lt_0p1": 0.163,
+     "frac_improved": 0.628,
+     "median_runtime_s": 0.30376487970352173
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.24942205101251602,
+     "rms": 0.46601310217624253,
+     "frac_lt_0p1": 0.297,
+     "frac_improved": 0.5,
+     "median_runtime_s": 0.008897228166460991
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.2578583061695099,
+     "rms": 0.49029239890230664,
+     "frac_lt_0p1": 0.299,
+     "frac_improved": 0.489,
+     "median_runtime_s": 0.0261076670140028
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.17319666594266891,
+     "rms": 0.3975544926223392,
+     "frac_lt_0p1": 0.412,
+     "frac_improved": 0.591,
+     "median_runtime_s": 0.03675118833780289
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.17720337212085724,
+     "rms": 0.4077798474643268,
+     "frac_lt_0p1": 0.406,
+     "frac_improved": 0.59,
+     "median_runtime_s": 0.09037241339683533
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.2424701377749443,
+     "rms": 0.43013748644945193,
+     "frac_lt_0p1": 0.2485,
+     "frac_improved": 0.5055000000000001
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.2510870471596718,
+     "rms": 0.45392327581738384,
+     "frac_lt_0p1": 0.2435,
+     "frac_improved": 0.498
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.06374571099877357,
+     "rms": 0.0983630259212205,
+     "frac_lt_0p1": 0.6775,
+     "frac_improved": 0.991
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.06440100073814392,
+     "rms": 0.10254251314226287,
+     "frac_lt_0p1": 0.657,
+     "frac_improved": 0.987
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.317,
+       0.311
+      ],
+      "win_mean": 0.314
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.401,
+       0.399
+      ],
+      "win_mean": 0.4
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.445,
+       0.561
+      ],
+      "win_mean": 0.503
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.538,
+       0.605
+      ],
+      "win_mean": 0.5715
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.209,
+       0.295
+      ],
+      "win_mean": 0.252
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.221,
+       0.308
+      ],
+      "win_mean": 0.2645
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.303,
+       0.306
+      ],
+      "win_mean": 0.3045
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.385,
+       0.39
+      ],
+      "win_mean": 0.3875
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.384,
+       0.528
+      ],
+      "win_mean": 0.456
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.45,
+       0.59
+      ],
+      "win_mean": 0.52
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.169,
+       0.249
+      ],
+      "win_mean": 0.20900000000000002
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.174,
+       0.269
+      ],
+      "win_mean": 0.2215
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.753,
+       0.771
+      ],
+      "win_mean": 0.762
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.937,
+       0.945
+      ],
+      "win_mean": 0.9410000000000001
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.937,
+       0.935
+      ],
+      "win_mean": 0.936
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.937,
+       0.931
+      ],
+      "win_mean": 0.934
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.799,
+       0.796
+      ],
+      "win_mean": 0.7975000000000001
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.802,
+       0.796
+      ],
+      "win_mean": 0.799
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.763,
+       0.761
+      ],
+      "win_mean": 0.762
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.929,
+       0.944
+      ],
+      "win_mean": 0.9365
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.937,
+       0.925
+      ],
+      "win_mean": 0.931
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.941,
+       0.928
+      ],
+      "win_mean": 0.9345
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.813,
+       0.784
+      ],
+      "win_mean": 0.7985
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.81,
+       0.781
+      ],
+      "win_mean": 0.7955000000000001
+     }
+    }
+   },
+   "0.5": {
+    "MC": {
+     "n": 1000,
+     "median": 0.2873065918684006,
+     "rms": 0.34119956156446085,
+     "frac_lt_0p1": 0.104,
+     "frac_improved": 0.876,
+     "median_runtime_s": 2.381866455078125
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.1867285743355751,
+     "rms": 0.25452332714809056,
+     "frac_lt_0p1": 0.157,
+     "frac_improved": 0.963,
+     "median_runtime_s": 0.30274519324302673
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.26116131246089935,
+     "rms": 0.4669349355543216,
+     "frac_lt_0p1": 0.268,
+     "frac_improved": 0.707,
+     "median_runtime_s": 0.009110395796597004
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.2705208361148834,
+     "rms": 0.4941969168654361,
+     "frac_lt_0p1": 0.27,
+     "frac_improved": 0.699,
+     "median_runtime_s": 0.026475001126527786
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.1747809424996376,
+     "rms": 0.3953084120396711,
+     "frac_lt_0p1": 0.406,
+     "frac_improved": 0.805,
+     "median_runtime_s": 0.03787060081958771
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.17669694870710373,
+     "rms": 0.41219520781018953,
+     "frac_lt_0p1": 0.411,
+     "frac_improved": 0.795,
+     "median_runtime_s": 0.09253831207752228
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.2532050907611847,
+     "rms": 0.42869602218560193,
+     "frac_lt_0p1": 0.254,
+     "frac_improved": 0.737
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.26401758193969727,
+     "rms": 0.45708826331615515,
+     "frac_lt_0p1": 0.217,
+     "frac_improved": 0.7215
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.06317640468478203,
+     "rms": 0.09997797438343986,
+     "frac_lt_0p1": 0.679,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.0653713271021843,
+     "rms": 0.10183027481319329,
+     "frac_lt_0p1": 0.668,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.499,
+       0.534
+      ],
+      "win_mean": 0.5165
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.4,
+       0.436
+      ],
+      "win_mean": 0.41800000000000004
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.467,
+       0.64
+      ],
+      "win_mean": 0.5535
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.559,
+       0.674
+      ],
+      "win_mean": 0.6165
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.193,
+       0.296
+      ],
+      "win_mean": 0.2445
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.199,
+       0.326
+      ],
+      "win_mean": 0.2625
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.484,
+       0.522
+      ],
+      "win_mean": 0.503
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.392,
+       0.401
+      ],
+      "win_mean": 0.3965
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.373,
+       0.552
+      ],
+      "win_mean": 0.4625
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.442,
+       0.597
+      ],
+      "win_mean": 0.5195
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.15,
+       0.235
+      ],
+      "win_mean": 0.1925
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.161,
+       0.253
+      ],
+      "win_mean": 0.20700000000000002
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.91,
+       0.906
+      ],
+      "win_mean": 0.908
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.889,
+       0.893
+      ],
+      "win_mean": 0.891
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.945,
+       0.951
+      ],
+      "win_mean": 0.948
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.951,
+       0.955
+      ],
+      "win_mean": 0.953
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.771,
+       0.786
+      ],
+      "win_mean": 0.7785
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.771,
+       0.792
+      ],
+      "win_mean": 0.7815000000000001
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.905,
+       0.91
+      ],
+      "win_mean": 0.9075
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.893,
+       0.906
+      ],
+      "win_mean": 0.8995
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.949,
+       0.939
+      ],
+      "win_mean": 0.944
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.963,
+       0.956
+      ],
+      "win_mean": 0.9595
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.824,
+       0.787
+      ],
+      "win_mean": 0.8055
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.823,
+       0.785
+      ],
+      "win_mean": 0.804
+     }
+    }
+   },
+   "0.75": {
+    "MC": {
+     "n": 1000,
+     "median": 0.4222976267337799,
+     "rms": 0.5373544340415466,
+     "frac_lt_0p1": 0.064,
+     "frac_improved": 0.862,
+     "median_runtime_s": 2.3813557624816895
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.2759651094675064,
+     "rms": 0.3413791737985107,
+     "frac_lt_0p1": 0.085,
+     "frac_improved": 0.997,
+     "median_runtime_s": 0.30178362131118774
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.25601303577423096,
+     "rms": 0.45994704791000435,
+     "frac_lt_0p1": 0.276,
+     "frac_improved": 0.89,
+     "median_runtime_s": 0.009063374251127243
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.2659490406513214,
+     "rms": 0.487314408663898,
+     "frac_lt_0p1": 0.29,
+     "frac_improved": 0.871,
+     "median_runtime_s": 0.0268720630556345
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.18407224118709564,
+     "rms": 0.38650092267302355,
+     "frac_lt_0p1": 0.404,
+     "frac_improved": 0.938,
+     "median_runtime_s": 0.03806570917367935
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.1895243301987648,
+     "rms": 0.40303906397976946,
+     "frac_lt_0p1": 0.406,
+     "frac_improved": 0.933,
+     "median_runtime_s": 0.09389181435108185
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.2448229342699051,
+     "rms": 0.4176362841368745,
+     "frac_lt_0p1": 0.2425,
+     "frac_improved": 0.9285
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.26127001643180847,
+     "rms": 0.449011222035098,
+     "frac_lt_0p1": 0.23149999999999998,
+     "frac_improved": 0.9005000000000001
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.06646029278635979,
+     "rms": 0.0969203743662295,
+     "frac_lt_0p1": 0.6699999999999999,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.06464830040931702,
+     "rms": 0.10032539737568064,
+     "frac_lt_0p1": 0.6655,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.627,
+       0.679
+      ],
+      "win_mean": 0.653
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.494,
+       0.558
+      ],
+      "win_mean": 0.526
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.468,
+       0.657
+      ],
+      "win_mean": 0.5625
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.526,
+       0.657
+      ],
+      "win_mean": 0.5915
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.203,
+       0.322
+      ],
+      "win_mean": 0.2625
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.242,
+       0.351
+      ],
+      "win_mean": 0.2965
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.604,
+       0.643
+      ],
+      "win_mean": 0.6234999999999999
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.494,
+       0.526
+      ],
+      "win_mean": 0.51
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.399,
+       0.547
+      ],
+      "win_mean": 0.47300000000000003
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.421,
+       0.583
+      ],
+      "win_mean": 0.502
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.159,
+       0.267
+      ],
+      "win_mean": 0.21300000000000002
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.168,
+       0.279
+      ],
+      "win_mean": 0.22350000000000003
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.944,
+       0.949
+      ],
+      "win_mean": 0.9464999999999999
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.943,
+       0.952
+      ],
+      "win_mean": 0.9475
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.947,
+       0.952
+      ],
+      "win_mean": 0.9495
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.911,
+       0.917
+      ],
+      "win_mean": 0.914
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.752,
+       0.77
+      ],
+      "win_mean": 0.761
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.753,
+       0.764
+      ],
+      "win_mean": 0.7585
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.941,
+       0.952
+      ],
+      "win_mean": 0.9464999999999999
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.926,
+       0.946
+      ],
+      "win_mean": 0.9359999999999999
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.966,
+       0.957
+      ],
+      "win_mean": 0.9615
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.948,
+       0.932
+      ],
+      "win_mean": 0.94
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.828,
+       0.798
+      ],
+      "win_mean": 0.813
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.82,
+       0.79
+      ],
+      "win_mean": 0.8049999999999999
+     }
+    }
+   },
+   "1": {
+    "MC": {
+     "n": 1000,
+     "median": 0.5756211280822754,
+     "rms": 0.7851291714162904,
+     "frac_lt_0p1": 0.042,
+     "frac_improved": 0.802,
+     "median_runtime_s": 2.3862147331237793
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.37307286262512207,
+     "rms": 0.45626843356813324,
+     "frac_lt_0p1": 0.056,
+     "frac_improved": 0.997,
+     "median_runtime_s": 0.3039945960044861
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.25780507922172546,
+     "rms": 0.4655634375582455,
+     "frac_lt_0p1": 0.24,
+     "frac_improved": 0.961,
+     "median_runtime_s": 0.008918874897062778
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.2802458256483078,
+     "rms": 0.4971114909870563,
+     "frac_lt_0p1": 0.288,
+     "frac_improved": 0.953,
+     "median_runtime_s": 0.02685108408331871
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.17881889641284943,
+     "rms": 0.3911022359858179,
+     "frac_lt_0p1": 0.405,
+     "frac_improved": 0.984,
+     "median_runtime_s": 0.038894377648830414
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.18627943843603134,
+     "rms": 0.41665464387987416,
+     "frac_lt_0p1": 0.406,
+     "frac_improved": 0.977,
+     "median_runtime_s": 0.09733107686042786
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.2414025068283081,
+     "rms": 0.4214929827846268,
+     "frac_lt_0p1": 0.22,
+     "frac_improved": 0.9735
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.26581093668937683,
+     "rms": 0.4595514753005824,
+     "frac_lt_0p1": 0.241,
+     "frac_improved": 0.965
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.07072761654853821,
+     "rms": 0.104336490738972,
+     "frac_lt_0p1": 0.658,
+     "frac_improved": 1.0
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.06638561189174652,
+     "rms": 0.09893883793907354,
+     "frac_lt_0p1": 0.6625000000000001,
+     "frac_improved": 1.0
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.721,
+       0.779
+      ],
+      "win_mean": 0.75
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.591,
+       0.665
+      ],
+      "win_mean": 0.628
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.51,
+       0.673
+      ],
+      "win_mean": 0.5915
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.531,
+       0.644
+      ],
+      "win_mean": 0.5875
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.191,
+       0.331
+      ],
+      "win_mean": 0.261
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.236,
+       0.364
+      ],
+      "win_mean": 0.3
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.706,
+       0.754
+      ],
+      "win_mean": 0.73
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.577,
+       0.62
+      ],
+      "win_mean": 0.5985
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.436,
+       0.612
+      ],
+      "win_mean": 0.524
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.45,
+       0.601
+      ],
+      "win_mean": 0.5255
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.149,
+       0.232
+      ],
+      "win_mean": 0.1905
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.178,
+       0.274
+      ],
+      "win_mean": 0.226
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.96,
+       0.97
+      ],
+      "win_mean": 0.965
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.955,
+       0.956
+      ],
+      "win_mean": 0.9555
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.945,
+       0.951
+      ],
+      "win_mean": 0.948
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.888,
+       0.908
+      ],
+      "win_mean": 0.898
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.743,
+       0.75
+      ],
+      "win_mean": 0.7464999999999999
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.744,
+       0.755
+      ],
+      "win_mean": 0.7495
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.963,
+       0.966
+      ],
+      "win_mean": 0.9644999999999999
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.957,
+       0.956
+      ],
+      "win_mean": 0.9564999999999999
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.969,
+       0.963
+      ],
+      "win_mean": 0.966
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.952,
+       0.932
+      ],
+      "win_mean": 0.942
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.826,
+       0.798
+      ],
+      "win_mean": 0.812
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.816,
+       0.781
+      ],
+      "win_mean": 0.7985
+     }
+    }
+   },
+   "1.5": {
+    "MC": {
+     "n": 1000,
+     "median": 1.0514984130859375,
+     "rms": 1.407768041645162,
+     "frac_lt_0p1": 0.038,
+     "frac_improved": 0.682,
+     "median_runtime_s": 2.3778929710388184
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.61265629529953,
+     "rms": 0.7017231186949112,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.998,
+     "median_runtime_s": 0.3041817843914032
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.30564016103744507,
+     "rms": 0.4707033971974957,
+     "frac_lt_0p1": 0.098,
+     "frac_improved": 0.998,
+     "median_runtime_s": 0.0091883959248662
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.28913262486457825,
+     "rms": 0.4929686517658188,
+     "frac_lt_0p1": 0.289,
+     "frac_improved": 0.996,
+     "median_runtime_s": 0.027121521532535553
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.1815681904554367,
+     "rms": 0.3761901726097215,
+     "frac_lt_0p1": 0.407,
+     "frac_improved": 0.996,
+     "median_runtime_s": 0.040199585258960724
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.18829791992902756,
+     "rms": 0.4105184406743157,
+     "frac_lt_0p1": 0.402,
+     "frac_improved": 0.993,
+     "median_runtime_s": 0.10183466970920563
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.2773050516843796,
+     "rms": 0.41764982183600563,
+     "frac_lt_0p1": 0.132,
+     "frac_improved": 0.998
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.27152858674526215,
+     "rms": 0.4564119553973473,
+     "frac_lt_0p1": 0.235,
+     "frac_improved": 0.9975
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.08796946331858635,
+     "rms": 0.20601177764277034,
+     "frac_lt_0p1": 0.5585,
+     "frac_improved": 0.9984999999999999
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.061299845576286316,
+     "rms": 0.13560509027215562,
+     "frac_lt_0p1": 0.687,
+     "frac_improved": 0.999
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.84,
+       0.88
+      ],
+      "win_mean": 0.86
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.734,
+       0.813
+      ],
+      "win_mean": 0.7735
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.545,
+       0.698
+      ],
+      "win_mean": 0.6214999999999999
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.439,
+       0.558
+      ],
+      "win_mean": 0.49850000000000005
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.199,
+       0.326
+      ],
+      "win_mean": 0.2625
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.25,
+       0.369
+      ],
+      "win_mean": 0.3095
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.832,
+       0.862
+      ],
+      "win_mean": 0.847
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.753,
+       0.783
+      ],
+      "win_mean": 0.768
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.555,
+       0.705
+      ],
+      "win_mean": 0.63
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.428,
+       0.592
+      ],
+      "win_mean": 0.51
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.173,
+       0.245
+      ],
+      "win_mean": 0.209
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.17,
+       0.276
+      ],
+      "win_mean": 0.22300000000000003
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.953,
+       0.951
+      ],
+      "win_mean": 0.952
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.953,
+       0.954
+      ],
+      "win_mean": 0.9535
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.913,
+       0.916
+      ],
+      "win_mean": 0.9145000000000001
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.792,
+       0.809
+      ],
+      "win_mean": 0.8005
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.66,
+       0.667
+      ],
+      "win_mean": 0.6635
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.642,
+       0.648
+      ],
+      "win_mean": 0.645
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.97,
+       0.972
+      ],
+      "win_mean": 0.971
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.994,
+       0.989
+      ],
+      "win_mean": 0.9915
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.975,
+       0.971
+      ],
+      "win_mean": 0.973
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.948,
+       0.938
+      ],
+      "win_mean": 0.943
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.86,
+       0.837
+      ],
+      "win_mean": 0.8485
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.814,
+       0.781
+      ],
+      "win_mean": 0.7975
+     }
+    }
+   },
+   "2": {
+    "MC": {
+     "n": 1000,
+     "median": 1.6475386023521423,
+     "rms": 2.001344753873009,
+     "frac_lt_0p1": 0.024,
+     "frac_improved": 0.633,
+     "median_runtime_s": 2.4272308349609375
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 0.9111632704734802,
+     "rms": 1.032537347347076,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.999,
+     "median_runtime_s": 0.30849677324295044
+    },
+    "GN": {
+     "n": 1000,
+     "median": 0.4640797823667526,
+     "rms": 0.5633524692230707,
+     "frac_lt_0p1": 0.023,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.009326187893748283
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.28974492847919464,
+     "rms": 0.5065195605452171,
+     "frac_lt_0p1": 0.272,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.028119709342718124
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.1871834099292755,
+     "rms": 0.369030052572869,
+     "frac_lt_0p1": 0.36,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.042549166828393936
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.20631520450115204,
+     "rms": 0.4211861857651717,
+     "frac_lt_0p1": 0.388,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.10803533345460892
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 0.4127267599105835,
+     "rms": 0.5424403270656374,
+     "frac_lt_0p1": 0.0455,
+     "frac_improved": 0.9995
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.2804189473390579,
+     "rms": 0.46483560291713516,
+     "frac_lt_0p1": 0.2105,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 0.17110850661993027,
+     "rms": 0.5446550284302126,
+     "frac_lt_0p1": 0.273,
+     "frac_improved": 0.99
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.0720277838408947,
+     "rms": 0.2722535406379015,
+     "frac_lt_0p1": 0.633,
+     "frac_improved": 0.9935
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.848,
+       0.862
+      ],
+      "win_mean": 0.855
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.878,
+       0.893
+      ],
+      "win_mean": 0.8855
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.529,
+       0.625
+      ],
+      "win_mean": 0.577
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.335,
+       0.384
+      ],
+      "win_mean": 0.35950000000000004
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.157,
+       0.233
+      ],
+      "win_mean": 0.195
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.212,
+       0.268
+      ],
+      "win_mean": 0.24
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.872,
+       0.89
+      ],
+      "win_mean": 0.881
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.916,
+       0.959
+      ],
+      "win_mean": 0.9375
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.716,
+       0.824
+      ],
+      "win_mean": 0.77
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.438,
+       0.594
+      ],
+      "win_mean": 0.516
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.223,
+       0.275
+      ],
+      "win_mean": 0.249
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.171,
+       0.298
+      ],
+      "win_mean": 0.2345
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.902,
+       0.892
+      ],
+      "win_mean": 0.897
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.895,
+       0.864
+      ],
+      "win_mean": 0.8795
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.776,
+       0.777
+      ],
+      "win_mean": 0.7765
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.561,
+       0.579
+      ],
+      "win_mean": 0.5700000000000001
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.452,
+       0.481
+      ],
+      "win_mean": 0.4665
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.434,
+       0.447
+      ],
+      "win_mean": 0.4405
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.977,
+       0.961
+      ],
+      "win_mean": 0.969
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.993,
+       0.979
+      ],
+      "win_mean": 0.986
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.981,
+       0.968
+      ],
+      "win_mean": 0.9744999999999999
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.947,
+       0.922
+      ],
+      "win_mean": 0.9345
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.89,
+       0.856
+      ],
+      "win_mean": 0.873
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.809,
+       0.774
+      ],
+      "win_mean": 0.7915000000000001
+     }
+    }
+   },
+   "3": {
+    "MC": {
+     "n": 1000,
+     "median": 2.4523860216140747,
+     "rms": 3.0260817749990463,
+     "frac_lt_0p1": 0.023,
+     "frac_improved": 0.614,
+     "median_runtime_s": 2.446206569671631
+    },
+    "Adam": {
+     "n": 1000,
+     "median": 2.1991989612579346,
+     "rms": 2.29517803797234,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.953,
+     "median_runtime_s": 0.30839526653289795
+    },
+    "GN": {
+     "n": 1000,
+     "median": 1.108833134174347,
+     "rms": 1.218522383215853,
+     "frac_lt_0p1": 0.004,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.00967787578701973
+    },
+    "GN x3": {
+     "n": 1000,
+     "median": 0.29391686618328094,
+     "rms": 0.5106049047598644,
+     "frac_lt_0p1": 0.267,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.029563479125499725
+    },
+    "Huber": {
+     "n": 1000,
+     "median": 0.2777591496706009,
+     "rms": 0.43555170445132424,
+     "frac_lt_0p1": 0.157,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.046251021325588226
+    },
+    "Huber x3": {
+     "n": 1000,
+     "median": 0.21783547103405,
+     "rms": 0.4270637464596152,
+     "frac_lt_0p1": 0.378,
+     "frac_improved": 1.0,
+     "median_runtime_s": 0.11442166566848755
+    },
+    "net clean one-shot": {
+     "n": 1000,
+     "median": 1.1110949516296387,
+     "rms": 1.2781758199236186,
+     "frac_lt_0p1": 0.006,
+     "frac_improved": 0.998
+    },
+    "net clean x3": {
+     "n": 1000,
+     "median": 0.2910130172967911,
+     "rms": 0.48228634551916916,
+     "frac_lt_0p1": 0.2155,
+     "frac_improved": 1.0
+    },
+    "net realistic one-shot": {
+     "n": 1000,
+     "median": 1.0075348317623138,
+     "rms": 1.5107943958557661,
+     "frac_lt_0p1": 0.0205,
+     "frac_improved": 0.965
+    },
+    "net realistic x3": {
+     "n": 1000,
+     "median": 0.07893452793359756,
+     "rms": 0.8793193653634547,
+     "frac_lt_0p1": 0.5805,
+     "frac_improved": 0.9684999999999999
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.762,
+       0.771
+      ],
+      "win_mean": 0.7665
+     },
+     "net clean one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.937,
+       0.925
+      ],
+      "win_mean": 0.931
+     },
+     "net clean one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.444,
+       0.515
+      ],
+      "win_mean": 0.47950000000000004
+     },
+     "net clean one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.097,
+       0.164
+      ],
+      "win_mean": 0.1305
+     },
+     "net clean one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.04,
+       0.086
+      ],
+      "win_mean": 0.063
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.072,
+       0.114
+      ],
+      "win_mean": 0.093
+     },
+     "net clean x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.919,
+       0.926
+      ],
+      "win_mean": 0.9225000000000001
+     },
+     "net clean x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       1.0,
+       0.999
+      ],
+      "win_mean": 0.9995
+     },
+     "net clean x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.907,
+       0.939
+      ],
+      "win_mean": 0.923
+     },
+     "net clean x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.472,
+       0.616
+      ],
+      "win_mean": 0.544
+     },
+     "net clean x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.496,
+       0.548
+      ],
+      "win_mean": 0.522
+     },
+     "net clean x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.192,
+       0.302
+      ],
+      "win_mean": 0.247
+     },
+     "net realistic one-shot < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.764,
+       0.751
+      ],
+      "win_mean": 0.7575000000000001
+     },
+     "net realistic one-shot < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.825,
+       0.796
+      ],
+      "win_mean": 0.8105
+     },
+     "net realistic one-shot < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.519,
+       0.514
+      ],
+      "win_mean": 0.5165
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.2,
+       0.18
+      ],
+      "win_mean": 0.19
+     },
+     "net realistic one-shot < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.153,
+       0.137
+      ],
+      "win_mean": 0.14500000000000002
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.145,
+       0.139
+      ],
+      "win_mean": 0.14200000000000002
+     },
+     "net realistic x3 < MC": {
+      "n": 1000,
+      "win_per_seed": [
+       0.956,
+       0.918
+      ],
+      "win_mean": 0.937
+     },
+     "net realistic x3 < Adam": {
+      "n": 1000,
+      "win_per_seed": [
+       0.963,
+       0.922
+      ],
+      "win_mean": 0.9425
+     },
+     "net realistic x3 < GN": {
+      "n": 1000,
+      "win_per_seed": [
+       0.939,
+       0.901
+      ],
+      "win_mean": 0.9199999999999999
+     },
+     "net realistic x3 < GN x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.871,
+       0.837
+      ],
+      "win_mean": 0.854
+     },
+     "net realistic x3 < Huber": {
+      "n": 1000,
+      "win_per_seed": [
+       0.883,
+       0.844
+      ],
+      "win_mean": 0.8634999999999999
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 1000,
+      "win_per_seed": [
+       0.74,
+       0.691
+      ],
+      "win_mean": 0.7155
+     }
+    }
+   },
+   "5": {
+    "MC": {
+     "n": 994,
+     "median": 4.380170822143555,
+     "rms": 5.4267917366301575,
+     "frac_lt_0p1": 0.022132796780684104,
+     "frac_improved": 0.5845070422535211,
+     "median_runtime_s": 2.4627153873443604
+    },
+    "Adam": {
+     "n": 994,
+     "median": 4.827288389205933,
+     "rms": 4.818395962855743,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.7293762575452716,
+     "median_runtime_s": 0.30982542037963867
+    },
+    "GN": {
+     "n": 994,
+     "median": 3.8027663230895996,
+     "rms": 3.6952482836155958,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.9919517102615694,
+     "median_runtime_s": 0.009931251406669617
+    },
+    "GN x3": {
+     "n": 994,
+     "median": 0.8762145936489105,
+     "rms": 1.7545741003795303,
+     "frac_lt_0p1": 0.09054325955734406,
+     "frac_improved": 0.9869215291750503,
+     "median_runtime_s": 0.031356874853372574
+    },
+    "Huber": {
+     "n": 994,
+     "median": 2.639260172843933,
+     "rms": 2.83188759625383,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.993963782696177,
+     "median_runtime_s": 0.047097332775592804
+    },
+    "Huber x3": {
+     "n": 994,
+     "median": 0.2318565621972084,
+     "rms": 0.9051474038779356,
+     "frac_lt_0p1": 0.352112676056338,
+     "frac_improved": 0.9929577464788732,
+     "median_runtime_s": 0.13129740953445435
+    },
+    "net clean one-shot": {
+     "n": 994,
+     "median": 3.851200580596924,
+     "rms": 3.773577277264204,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.9592555331991952
+    },
+    "net clean x3": {
+     "n": 994,
+     "median": 0.7995544075965881,
+     "rms": 2.1521938870669417,
+     "frac_lt_0p1": 0.0960764587525151,
+     "frac_improved": 0.960261569416499
+    },
+    "net realistic one-shot": {
+     "n": 994,
+     "median": 4.244249105453491,
+     "rms": 4.22891686351084,
+     "frac_lt_0p1": 0.0,
+     "frac_improved": 0.8108651911468813
+    },
+    "net realistic x3": {
+     "n": 994,
+     "median": 1.966716229915619,
+     "rms": 3.3281964243372117,
+     "frac_lt_0p1": 0.2404426559356137,
+     "frac_improved": 0.8224346076458753
+    },
+    "paired": {
+     "net clean one-shot < MC": {
+      "n": 994,
+      "win_per_seed": [
+       0.5724346076458753,
+       0.6096579476861167
+      ],
+      "win_mean": 0.5910462776659959
+     },
+     "net clean one-shot < Adam": {
+      "n": 994,
+      "win_per_seed": [
+       0.8631790744466801,
+       0.9164989939637826
+      ],
+      "win_mean": 0.8898390342052314
+     },
+     "net clean one-shot < GN": {
+      "n": 994,
+      "win_per_seed": [
+       0.3812877263581489,
+       0.5050301810865191
+      ],
+      "win_mean": 0.443158953722334
+     },
+     "net clean one-shot < GN x3": {
+      "n": 994,
+      "win_per_seed": [
+       0.014084507042253521,
+       0.02112676056338028
+      ],
+      "win_mean": 0.017605633802816902
+     },
+     "net clean one-shot < Huber": {
+      "n": 994,
+      "win_per_seed": [
+       0.0613682092555332,
+       0.10261569416498995
+      ],
+      "win_mean": 0.08199195171026158
+     },
+     "net clean one-shot < Huber x3": {
+      "n": 994,
+      "win_per_seed": [
+       0.009054325955734407,
+       0.011066398390342052
+      ],
+      "win_mean": 0.01006036217303823
+     },
+     "net clean x3 < MC": {
+      "n": 994,
+      "win_per_seed": [
+       0.7967806841046278,
+       0.823943661971831
+      ],
+      "win_mean": 0.8103621730382293
+     },
+     "net clean x3 < Adam": {
+      "n": 994,
+      "win_per_seed": [
+       0.9446680080482898,
+       0.9627766599597586
+      ],
+      "win_mean": 0.9537223340040242
+     },
+     "net clean x3 < GN": {
+      "n": 994,
+      "win_per_seed": [
+       0.9336016096579477,
+       0.9466800804828974
+      ],
+      "win_mean": 0.9401408450704225
+     },
+     "net clean x3 < GN x3": {
+      "n": 994,
+      "win_per_seed": [
+       0.41448692152917505,
+       0.5181086519114688
+      ],
+      "win_mean": 0.46629778672032196
+     },
+     "net clean x3 < Huber": {
+      "n": 994,
+      "win_per_seed": [
+       0.8108651911468813,
+       0.8350100603621731
+      ],
+      "win_mean": 0.8229376257545271
+     },
+     "net clean x3 < Huber x3": {
+      "n": 994,
+      "win_per_seed": [
+       0.1227364185110664,
+       0.16498993963782696
+      ],
+      "win_mean": 0.14386317907444668
+     },
+     "net realistic one-shot < MC": {
+      "n": 994,
+      "win_per_seed": [
+       0.5422535211267606,
+       0.5110663983903421
+      ],
+      "win_mean": 0.5266599597585513
+     },
+     "net realistic one-shot < Adam": {
+      "n": 994,
+      "win_per_seed": [
+       0.8078470824949698,
+       0.6901408450704225
+      ],
+      "win_mean": 0.7489939637826961
+     },
+     "net realistic one-shot < GN": {
+      "n": 994,
+      "win_per_seed": [
+       0.30784708249496984,
+       0.2635814889336016
+      ],
+      "win_mean": 0.2857142857142857
+     },
+     "net realistic one-shot < GN x3": {
+      "n": 994,
+      "win_per_seed": [
+       0.03621730382293763,
+       0.03722334004024145
+      ],
+      "win_mean": 0.03672032193158954
+     },
+     "net realistic one-shot < Huber": {
+      "n": 994,
+      "win_per_seed": [
+       0.11971830985915492,
+       0.10663983903420524
+      ],
+      "win_mean": 0.11317907444668007
+     },
+     "net realistic one-shot < Huber x3": {
+      "n": 994,
+      "win_per_seed": [
+       0.007042253521126761,
+       0.008048289738430584
+      ],
+      "win_mean": 0.007545271629778673
+     },
+     "net realistic x3 < MC": {
+      "n": 994,
+      "win_per_seed": [
+       0.7394366197183099,
+       0.6629778672032193
+      ],
+      "win_mean": 0.7012072434607646
+     },
+     "net realistic x3 < Adam": {
+      "n": 994,
+      "win_per_seed": [
+       0.8742454728370221,
+       0.7394366197183099
+      ],
+      "win_mean": 0.8068410462776661
+     },
+     "net realistic x3 < GN": {
+      "n": 994,
+      "win_per_seed": [
+       0.7484909456740443,
+       0.6227364185110664
+      ],
+      "win_mean": 0.6856136820925554
+     },
+     "net realistic x3 < GN x3": {
+      "n": 994,
+      "win_per_seed": [
+       0.47484909456740443,
+       0.3822937625754527
+      ],
+      "win_mean": 0.4285714285714286
+     },
+     "net realistic x3 < Huber": {
+      "n": 994,
+      "win_per_seed": [
+       0.6539235412474849,
+       0.5211267605633803
+      ],
+      "win_mean": 0.5875251509054326
+     },
+     "net realistic x3 < Huber x3": {
+      "n": 994,
+      "win_per_seed": [
+       0.28672032193158953,
+       0.23943661971830985
+      ],
+      "win_mean": 0.2630784708249497
+     }
+    }
+   }
+  }
+ },
+ "diagnostics": {
+  "clean_mc_quality_at_truth_median": 0.9330846071243286,
+  "clean_adam_quality_at_truth_median": 0.6621090769767761,
+  "all_mc_quality_at_truth_median": 0.7625948190689087,
+  "all_adam_quality_at_truth_median": 0.6645323038101196
+ }
+}

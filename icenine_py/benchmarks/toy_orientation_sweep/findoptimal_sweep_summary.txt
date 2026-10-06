@@ -1,0 +1,240 @@
+FindOptimal (AdaptiveVoxelReconstructor) on the perturbation-sweep cases. Settings: ReconstructQ8.config SearchParameters (5 deg grid radius, 4 levels, 200 MC steps, 2 restarts, MC radius scale 0.4, convergence cost 1e-4, 30 candidates), Q_max 8, |sin eta| >= 0.3. Error = cubic-symmetry-reduced misorientation (deg).
+
+=== A: full multi-level reconstruction from scratch (50 voxels per variant) ===
+[clean] n=50  median 0.0691  RMS 35.0647  max 60.000  IQR 0.0190-59.9427  <0.1deg 0.520  wrong (>1 deg) 21/50
+    excluding the wrong ones: median 0.0281  RMS 0.0501  max 0.1496
+    runtime/voxel: median 26.8 s, mean 26.7 s; cost evals: global (pixel_radius 3) median 44474, local median 4656; FindOptimal converged (hit ratio) 0/50, winner = best candidate 46/50
+    first level whose best candidate is within 2 deg of the final answer (-1 = none): {'-1': 3, '0': 21, '1': 15, '2': 10, '3': 1}
+    wrong solutions: ~60 deg (Sigma3-twin-like) 14, 36-39 deg 6, other 1; final cost above the cost at the truth (search miss, not a cost preference): 21/21; an earlier level's best candidate was within 10 deg of the truth but the last was not: 2; plain error differs from the symmetry-reduced one (equivalent orientation returned): 16/50
+    CSL classification of the wrong solutions: {'Sigma11': 1, 'Sigma3': 14, 'Sigma5': 2, 'Sigma7': 4}
+      wrong: voxel 7336 err 59.99 deg (plain 59.99) cost 0.641 vs truth 0.000; axis [0.578, 0.578, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.05 deg <= Brandon 8.66); level-best errors [59.89, 59.98, 59.98, 59.98]
+      wrong: voxel 2910 err 60.00 deg (plain 70.53) cost 0.729 vs truth 0.048; axis [0.577, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.01 deg <= Brandon 8.66); level-best errors [36.83, 36.83, 36.82, 36.82]
+      wrong: voxel 16182 err 59.98 deg (plain 70.51) cost 0.735 vs truth 0.054; axis [0.578, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.03 deg <= Brandon 8.66); level-best errors [4.77, 59.69, 59.93, 59.93]
+      wrong: voxel 21356 err 59.97 deg (plain 109.47) cost 0.739 vs truth 0.066; axis [0.578, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.05 deg <= Brandon 8.66); level-best errors [59.77, 60.0, 60.0, 60.0]
+      wrong: voxel 20206 err 59.99 deg (plain 70.53) cost 0.686 vs truth 0.091; axis [0.577, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.01 deg <= Brandon 8.66); level-best errors [59.78, 59.98, 60.0, 60.0]
+      wrong: voxel 3142 err 38.15 deg (plain 73.46) cost 0.822 vs truth 0.057; axis [0.578, 0.578, 0.576] is 0.1 deg from <111>; Sigma7 (dev 0.08 deg <= Brandon 5.67); level-best errors [38.12, 38.12, 38.12, 38.18]
+      wrong: voxel 13884 err 59.95 deg (plain 70.51) cost 0.742 vs truth 0.056; axis [0.578, 0.578, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.06 deg <= Brandon 8.66); level-best errors [38.23, 59.76, 59.76, 59.76]
+      wrong: voxel 24550 err 36.86 deg (plain 36.86) cost 0.787 vs truth 0.081; axis [1.0, 0.004, 0.001] is 0.2 deg from <100>; Sigma5 (dev 0.15 deg <= Brandon 6.71); level-best errors [38.25, 38.25, 38.25, 38.25]
+      wrong: voxel 14217 err 36.93 deg (plain 53.07) cost 0.820 vs truth 0.092; axis [1.0, 0.003, 0.002] is 0.2 deg from <100>; Sigma5 (dev 0.15 deg <= Brandon 6.71); level-best errors [36.85, 36.85, 36.94, 36.94]
+      wrong: voxel 2489 err 50.45 deg (plain 82.24) cost 0.915 vs truth 0.040; axis [0.71, 0.705, 0.002] is 0.2 deg from <110>; Sigma11 (dev 0.20 deg <= Brandon 4.52); level-best errors [9.0, 9.0, 8.72, 8.72]
+      wrong: voxel 9484 err 59.94 deg (plain 60.06) cost 0.784 vs truth 0.069; axis [0.579, 0.577, 0.576] is 0.1 deg from <111>; Sigma3 (dev 0.12 deg <= Brandon 8.66); level-best errors [38.22, 38.22, 59.77, 59.77]
+      wrong: voxel 970 err 59.99 deg (plain 70.51) cost 0.679 vs truth 0.059; axis [0.578, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.03 deg <= Brandon 8.66); level-best errors [59.91, 59.91, 59.91, 59.91]
+      wrong: voxel 12213 err 59.97 deg (plain 70.53) cost 0.745 vs truth 0.068; axis [0.578, 0.577, 0.576] is 0.1 deg from <111>; Sigma3 (dev 0.09 deg <= Brandon 8.66); level-best errors [59.96, 59.96, 59.96, 59.99]
+      wrong: voxel 121 err 59.94 deg (plain 59.94) cost 0.762 vs truth 0.071; axis [0.579, 0.578, 0.575] is 0.1 deg from <111>; Sigma3 (dev 0.16 deg <= Brandon 8.66); level-best errors [6.49, 59.75, 59.9, 59.9]
+      wrong: voxel 2347 err 59.99 deg (plain 70.51) cost 0.729 vs truth 0.078; axis [0.578, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.02 deg <= Brandon 8.66); level-best errors [59.81, 59.96, 59.96, 59.96]
+      wrong: voxel 9150 err 38.27 deg (plain 38.27) cost 0.860 vs truth 0.091; axis [0.579, 0.577, 0.576] is 0.1 deg from <111>; Sigma7 (dev 0.08 deg <= Brandon 5.67); level-best errors [38.23, 38.32, 38.32, 38.23]
+      wrong: voxel 5384 err 60.00 deg (plain 60.00) cost 0.730 vs truth 0.067; axis [0.577, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.00 deg <= Brandon 8.66); level-best errors [59.84, 59.84, 59.97, 59.97]
+      wrong: voxel 9421 err 60.00 deg (plain 70.53) cost 0.695 vs truth 0.043; axis [0.577, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.00 deg <= Brandon 8.66); level-best errors [59.83, 59.67, 59.96, 59.96]
+      wrong: voxel 24474 err 38.29 deg (plain 38.29) cost 0.874 vs truth 0.069; axis [0.58, 0.577, 0.575] is 0.2 deg from <111>; Sigma7 (dev 0.16 deg <= Brandon 5.67); level-best errors [30.98, 38.39, 38.39, 38.39]
+      wrong: voxel 17771 err 38.19 deg (plain 38.19) cost 0.846 vs truth 0.057; axis [0.578, 0.578, 0.576] is 0.1 deg from <111>; Sigma7 (dev 0.06 deg <= Brandon 5.67); level-best errors [38.15, 38.15, 38.15, 38.2]
+      wrong: voxel 3424 err 59.99 deg (plain 70.53) cost 0.721 vs truth 0.084; axis [0.577, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.01 deg <= Brandon 8.66); level-best errors [38.11, 38.24, 59.86, 59.99]
+[all] n=50  median 0.0515  RMS 31.1016  max 59.999  IQR 0.0163-38.0959  <0.1deg 0.600  wrong (>1 deg) 17/50
+    excluding the wrong ones: median 0.0248  RMS 0.0469  max 0.1141
+    runtime/voxel: median 29.2 s, mean 28.6 s; cost evals: global (pixel_radius 3) median 44748, local median 7790; FindOptimal converged (hit ratio) 0/50, winner = best candidate 46/50
+    first level whose best candidate is within 2 deg of the final answer (-1 = none): {'-1': 1, '0': 16, '1': 18, '2': 8, '3': 7}
+    wrong solutions: ~60 deg (Sigma3-twin-like) 11, 36-39 deg 4, other 2; final cost above the cost at the truth (search miss, not a cost preference): 17/17; an earlier level's best candidate was within 10 deg of the truth but the last was not: 1; plain error differs from the symmetry-reduced one (equivalent orientation returned): 13/50
+    CSL classification of the wrong solutions: {'Sigma17': 1, 'Sigma3': 11, 'Sigma5': 2, 'Sigma7': 1, 'no low-Sigma CSL': 2}
+      wrong: voxel 7336 err 60.00 deg (plain 60.00) cost 0.673 vs truth 0.180; axis [0.58, 0.576, 0.576] is 0.2 deg from <111>; Sigma3 (dev 0.16 deg <= Brandon 8.66); level-best errors [55.35, 59.9, 59.9, 59.89]
+      wrong: voxel 16182 err 37.91 deg (plain 37.91) cost 0.703 vs truth 0.270; axis [0.873, 0.358, 0.332] is 25.5 deg from <111>; no CSL Sigma<=29 within Brandon; level-best errors [37.97, 37.97, 37.97, 37.98]
+      wrong: voxel 20206 err 59.75 deg (plain 59.75) cost 0.712 vs truth 0.270; axis [0.582, 0.576, 0.574] is 0.3 deg from <111>; Sigma3 (dev 0.41 deg <= Brandon 8.66); level-best errors [60.0, 60.0, 60.0, 59.74]
+      wrong: voxel 3142 err 38.16 deg (plain 73.45) cost 0.856 vs truth 0.202; axis [0.578, 0.578, 0.577] is 0.1 deg from <111>; Sigma7 (dev 0.07 deg <= Brandon 5.67); level-best errors [38.41, 37.96, 38.06, 38.06]
+      wrong: voxel 20480 err 59.98 deg (plain 59.98) cost 0.849 vs truth 0.308; axis [0.578, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.03 deg <= Brandon 8.66); level-best errors [59.67, 59.86, 59.97, 59.97]
+      wrong: voxel 13884 err 59.99 deg (plain 59.99) cost 0.762 vs truth 0.272; axis [0.577, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.01 deg <= Brandon 8.66); level-best errors [59.66, 59.77, 59.87, 59.88]
+      wrong: voxel 1053 err 48.47 deg (plain 74.15) cost 0.718 vs truth 0.240; axis [0.819, 0.527, 0.225] is 17.8 deg from <110>; no CSL Sigma<=29 within Brandon; level-best errors [48.13, 48.56, 48.56, 48.43]
+      wrong: voxel 2489 err 59.97 deg (plain 59.97) cost 0.796 vs truth 0.286; axis [0.578, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.04 deg <= Brandon 8.66); level-best errors [31.96, 59.79, 59.93, 59.93]
+      wrong: voxel 9484 err 59.88 deg (plain 59.88) cost 0.843 vs truth 0.346; axis [0.579, 0.578, 0.575] is 0.2 deg from <111>; Sigma3 (dev 0.23 deg <= Brandon 8.66); level-best errors [14.88, 59.85, 59.85, 59.85]
+      wrong: voxel 970 err 29.60 deg (plain 29.60) cost 0.459 vs truth 0.268; axis [0.998, 0.058, 0.033] is 3.8 deg from <100>; Sigma17 (dev 2.45 deg <= Brandon 3.64); level-best errors [36.73, 36.94, 50.77, 29.49]
+      wrong: voxel 19705 err 59.99 deg (plain 70.54) cost 0.772 vs truth 0.242; axis [0.578, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.02 deg <= Brandon 8.66); level-best errors [59.93, 59.93, 59.99, 59.99]
+      wrong: voxel 9001 err 36.88 deg (plain 95.73) cost 0.828 vs truth 0.210; axis [1.0, 0.0, 0.0] is 0.0 deg from <100>; Sigma5 (dev 0.02 deg <= Brandon 6.71); level-best errors [59.77, 38.17, 38.17, 36.79]
+      wrong: voxel 7723 err 59.95 deg (plain 70.55) cost 0.766 vs truth 0.285; axis [0.579, 0.577, 0.576] is 0.1 deg from <111>; Sigma3 (dev 0.15 deg <= Brandon 8.66); level-best errors [59.98, 59.98, 59.89, 59.89]
+      wrong: voxel 9421 err 60.00 deg (plain 70.53) cost 0.695 vs truth 0.188; axis [0.577, 0.577, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.00 deg <= Brandon 8.66); level-best errors [59.88, 59.92, 59.9, 59.84]
+      wrong: voxel 24474 err 59.92 deg (plain 131.82) cost 0.420 vs truth 0.244; axis [0.579, 0.577, 0.576] is 0.1 deg from <111>; Sigma3 (dev 0.14 deg <= Brandon 8.66); level-best errors [8.16, 59.74, 59.75, 59.84]
+      wrong: voxel 17771 err 59.98 deg (plain 70.56) cost 0.774 vs truth 0.282; axis [0.578, 0.578, 0.577] is 0.0 deg from <111>; Sigma3 (dev 0.04 deg <= Brandon 8.66); level-best errors [41.29, 41.29, 59.93, 59.93]
+      wrong: voxel 11774 err 36.85 deg (plain 36.85) cost 0.811 vs truth 0.219; axis [1.0, 0.001, 0.0] is 0.0 deg from <100>; Sigma5 (dev 0.03 deg <= Brandon 6.71); level-best errors [36.73, 36.87, 36.87, 36.89]
+
+=== B: FindOptimal + VarianceMinimizing from the perturbed start (20 directions per radius; cases where the net could run) ===
+--- clean data ---
+-- median error (deg)
+    r     n  FindOptimal                     MC                   Adam                  GN x3       net realistic x3 net realistic one-shot
+ 0.05  1000       0.0197                 0.0274                 0.1341                 0.0127                 0.0121                 0.0122
+  0.1  1000       0.0257                 0.0573                 0.1330                 0.0127                 0.0121                 0.0131
+ 0.25  1000       0.0426                 0.1364                 0.1194                 0.0127                 0.0121                 0.0137
+  0.5  1000       0.0557                 0.2877                 0.1449                 0.0127                 0.0121                 0.0156
+ 0.75  1000       0.0748                 0.4242                 0.2347                 0.0127                 0.0121                 0.0177
+    1  1000       0.0892                 0.6082                 0.3440                 0.0127                 0.0121                 0.0208
+  1.5  1000       0.2338                 1.1106                 0.5749                 0.0127                 0.0122                 0.0281
+    2  1000       1.1752                 1.6378                 0.8753                 0.0127                 0.0121                 0.0382
+    3  1000       3.0747                 2.2625                 2.1652                 0.0127                 0.0121                 0.0662
+    5   940      23.8923                 4.5003                 4.8025                 0.0122                 0.0120                 0.2726
+
+-- RMS error (deg)
+    r     n  FindOptimal                     MC                   Adam                  GN x3       net realistic x3 net realistic one-shot
+ 0.05  1000       0.0357                 0.0333                 0.1988                 0.0180                 0.0212                 0.0204
+  0.1  1000       0.0452                 0.0693                 0.1876                 0.0180                 0.0212                 0.0212
+ 0.25  1000       0.0675                 0.1653                 0.1558                 0.0180                 0.0212                 0.0224
+  0.5  1000       0.1294                 0.3399                 0.1941                 0.0180                 0.0212                 0.0244
+ 0.75  1000       0.1891                 0.5424                 0.2949                 0.0180                 0.0212                 0.0278
+    1  1000       0.2822                 0.8174                 0.4103                 0.0180                 0.0212                 0.0314
+  1.5  1000       1.8963                 1.4757                 0.6633                 0.0180                 0.0212                 0.0388
+    2  1000       8.2197                 1.9913                 1.0003                 0.0180                 0.0212                 0.0495
+    3  1000      19.4321                 2.9248                 2.2447                 0.0180                 0.0212                 0.0818
+    5   940      32.5576                 5.5808                 4.7522                 0.0181                 0.0212                 0.3898
+
+-- fraction < 0.1 deg
+    r     n  FindOptimal                     MC                   Adam                  GN x3       net realistic x3 net realistic one-shot
+ 0.05  1000        0.985                  1.000                  0.321                  1.000                  1.000                  1.000
+  0.1  1000        0.958                  0.870                  0.349                  1.000                  1.000                  1.000
+ 0.25  1000        0.861                  0.329                  0.402                  1.000                  1.000                  1.000
+  0.5  1000        0.707                  0.095                  0.246                  1.000                  1.000                  1.000
+ 0.75  1000        0.584                  0.055                  0.121                  1.000                  1.000                  0.999
+    1  1000        0.522                  0.053                  0.092                  1.000                  1.000                  0.991
+  1.5  1000        0.339                  0.034                  0.000                  1.000                  1.000                  0.984
+    2  1000        0.164                  0.026                  0.000                  1.000                  1.000                  0.969
+    3  1000        0.008                  0.029                  0.000                  1.000                  1.000                  0.788
+    5   940        0.000                  0.021                  0.000                  1.000                  1.000                  0.103
+
+-- fraction improved (error < r)
+    r     n  FindOptimal                     MC                   Adam                  GN x3       net realistic x3 net realistic one-shot
+ 0.05  1000        0.858                  0.886                  0.038                  1.000                  0.960                  0.962
+  0.1  1000        0.958                  0.870                  0.349                  1.000                  1.000                  1.000
+ 0.25  1000        1.000                  0.885                  0.917                  1.000                  1.000                  1.000
+  0.5  1000        0.995                  0.886                  0.998                  1.000                  1.000                  1.000
+ 0.75  1000        1.000                  0.859                  0.999                  1.000                  1.000                  1.000
+    1  1000        0.990                  0.770                  1.000                  1.000                  1.000                  1.000
+  1.5  1000        0.873                  0.646                  1.000                  1.000                  1.000                  1.000
+    2  1000        0.726                  0.634                  0.999                  1.000                  1.000                  1.000
+    3  1000        0.453                  0.658                  0.978                  1.000                  1.000                  1.000
+    5   940        0.230                  0.584                  0.931                  1.000                  1.000                  1.000
+
+-- FindOptimal if a result with cost >= 1 (no overlap; reconstruct_voxel then returns the identity matrix) is replaced by the unchanged input (error = r)
+    r    median       RMS   <0.1deg
+ 0.05    0.0197    0.0357     0.985
+  0.1    0.0257    0.0452     0.958
+ 0.25    0.0426    0.0675     0.861
+  0.5    0.0557    0.1294     0.707
+ 0.75    0.0748    0.1891     0.584
+    1    0.0892    0.2822     0.522
+  1.5    0.2338    0.8237     0.339
+    2    1.1752    2.6913     0.164
+    3    3.0000    6.8824     0.008
+    5    5.0000   11.1293     0.000
+
+-- FindOptimal details per radius
+    r runtime(s)   evals  hitratio-conv  cost>=1(identity)  cost<truth  worse>r  max|sym-plain|
+ 0.05      1.641    2304          0.025              0.000       0.009    0.142               0
+  0.1      1.556    2205          0.020              0.000       0.004    0.042               0
+ 0.25      1.229    1710          0.000              0.000       0.005    0.000               0
+  0.5      0.735    1017          0.000              0.000       0.002    0.005               0
+ 0.75      0.528     726          0.000              0.000       0.001    0.000               0
+    1      0.486     676          0.000              0.000       0.002    0.010               0
+  1.5      0.368     478          0.000              0.002       0.000    0.127               0
+    2      0.326     424          0.000              0.033       0.000    0.274               0
+    3      0.299     423          0.000              0.193       0.000    0.547               0
+    5      0.253     318          0.000              0.532       0.000    0.770               0
+  (runtime and evals: median per case, refine_from_candidates only; MC median 2.4 s)
+
+-- paired: fraction of identical cases where the realistic-trained net (x3) has the smaller error than FindOptimal (seed mean)
+     0.05    0.1   0.25    0.5   0.75      1    1.5      2      3      5
+    0.633  0.718  0.808  0.862  0.881  0.894  0.934  0.966  0.996  1.000
+
+-- paired: fraction of identical cases where the realistic-trained net (one-shot) has the smaller error than FindOptimal (seed mean)
+     0.05    0.1   0.25    0.5   0.75      1    1.5      2      3      5
+    0.647  0.709  0.794  0.831  0.843  0.835  0.876  0.913  0.993  1.000
+
+--- all data ---
+-- median error (deg)
+    r     n  FindOptimal                     MC                   Adam                  GN x3       net realistic x3 net realistic one-shot
+ 0.05  1000       0.0189                 0.0282                 0.2689                 0.2844                 0.0652                 0.0622
+  0.1  1000       0.0248                 0.0566                 0.2458                 0.2627                 0.0626                 0.0589
+ 0.25  1000       0.0370                 0.1365                 0.2007                 0.2579                 0.0644                 0.0637
+  0.5  1000       0.0552                 0.2873                 0.1867                 0.2705                 0.0654                 0.0632
+ 0.75  1000       0.0739                 0.4223                 0.2760                 0.2659                 0.0646                 0.0665
+    1  1000       0.0905                 0.5756                 0.3731                 0.2802                 0.0664                 0.0707
+  1.5  1000       0.2231                 1.0515                 0.6127                 0.2891                 0.0613                 0.0880
+    2  1000       0.8688                 1.6475                 0.9112                 0.2897                 0.0720                 0.1711
+    3  1000       2.9805                 2.4524                 2.1992                 0.2939                 0.0789                 1.0075
+    5   994       6.0189                 4.3802                 4.8273                 0.8762                 1.9667                 4.2442
+
+-- RMS error (deg)
+    r     n  FindOptimal                     MC                   Adam                  GN x3       net realistic x3 net realistic one-shot
+ 0.05  1000       0.0341                 0.0339                 0.3591                 0.4941                 0.1038                 0.0996
+  0.1  1000       0.0446                 0.0684                 0.3390                 0.4933                 0.1016                 0.0972
+ 0.25  1000       0.0683                 0.1674                 0.2790                 0.4903                 0.1025                 0.0984
+  0.5  1000       0.1229                 0.3412                 0.2545                 0.4942                 0.1018                 0.1000
+ 0.75  1000       0.1984                 0.5374                 0.3414                 0.4873                 0.1003                 0.0969
+    1  1000       0.2931                 0.7851                 0.4563                 0.4971                 0.0989                 0.1043
+  1.5  1000       1.9110                 1.4078                 0.7017                 0.4930                 0.1356                 0.2060
+    2  1000       5.5876                 2.0013                 1.0325                 0.5065                 0.2723                 0.5447
+    3  1000      15.9110                 3.0261                 2.2952                 0.5106                 0.8793                 1.5108
+    5   994      29.7426                 5.4268                 4.8184                 1.7546                 3.3282                 4.2289
+
+-- fraction < 0.1 deg
+    r     n  FindOptimal                     MC                   Adam                  GN x3       net realistic x3 net realistic one-shot
+ 0.05  1000        0.990                  1.000                  0.126                  0.277                  0.655                  0.679
+  0.1  1000        0.961                  0.877                  0.143                  0.299                  0.672                  0.683
+ 0.25  1000        0.862                  0.312                  0.163                  0.299                  0.657                  0.677
+  0.5  1000        0.720                  0.104                  0.157                  0.270                  0.668                  0.679
+ 0.75  1000        0.570                  0.064                  0.085                  0.290                  0.665                  0.670
+    1  1000        0.533                  0.042                  0.056                  0.288                  0.663                  0.658
+  1.5  1000        0.339                  0.038                  0.000                  0.289                  0.687                  0.558
+    2  1000        0.172                  0.024                  0.000                  0.272                  0.633                  0.273
+    3  1000        0.012                  0.023                  0.000                  0.267                  0.581                  0.021
+    5   994        0.000                  0.022                  0.000                  0.091                  0.240                  0.000
+
+-- fraction improved (error < r)
+    r     n  FindOptimal                     MC                   Adam                  GN x3       net realistic x3 net realistic one-shot
+ 0.05  1000        0.861                  0.881                  0.022                  0.143                  0.434                  0.433
+  0.1  1000        0.961                  0.877                  0.143                  0.299                  0.672                  0.683
+ 0.25  1000        0.996                  0.880                  0.628                  0.489                  0.987                  0.991
+  0.5  1000        0.997                  0.876                  0.963                  0.699                  1.000                  1.000
+ 0.75  1000        0.997                  0.862                  0.997                  0.871                  1.000                  1.000
+    1  1000        0.991                  0.802                  0.997                  0.953                  1.000                  1.000
+  1.5  1000        0.907                  0.682                  0.998                  0.996                  0.999                  0.998
+    2  1000        0.746                  0.633                  0.999                  1.000                  0.994                  0.990
+    3  1000        0.512                  0.614                  0.953                  1.000                  0.968                  0.965
+    5   994        0.270                  0.585                  0.729                  0.987                  0.822                  0.811
+
+-- FindOptimal if a result with cost >= 1 (no overlap; reconstruct_voxel then returns the identity matrix) is replaced by the unchanged input (error = r)
+    r    median       RMS   <0.1deg
+ 0.05    0.0189    0.0341     0.990
+  0.1    0.0248    0.0446     0.961
+ 0.25    0.0370    0.0683     0.862
+  0.5    0.0552    0.1229     0.720
+ 0.75    0.0739    0.1984     0.570
+    1    0.0905    0.2931     0.533
+  1.5    0.2231    1.9110     0.339
+    2    0.8688    2.5494     0.172
+    3    2.9805    6.5470     0.012
+    5    5.0000   11.7426     0.000
+
+-- FindOptimal details per radius
+    r runtime(s)   evals  hitratio-conv  cost>=1(identity)  cost<truth  worse>r  max|sym-plain|
+ 0.05      1.873    2590          0.000              0.000       0.046    0.139               0
+  0.1      1.776    2447          0.000              0.000       0.031    0.039               0
+ 0.25      1.375    1853          0.000              0.000       0.023    0.004               0
+  0.5      0.682     929          0.000              0.000       0.016    0.003               0
+ 0.75      0.492     643          0.000              0.000       0.007    0.003               0
+    1      0.435     555          0.000              0.000       0.004    0.009               0
+  1.5      0.353     467          0.000              0.000       0.002    0.093               0
+    2      0.329     423          0.000              0.015       0.001    0.254               0
+    3      0.307     423          0.000              0.129       0.000    0.488               0
+    5      0.277     423          0.000              0.427       0.000    0.730               0
+  (runtime and evals: median per case, refine_from_candidates only; MC median 2.4 s)
+
+-- paired: fraction of identical cases where the realistic-trained net (x3) has the smaller error than FindOptimal (seed mean)
+     0.05    0.1   0.25    0.5   0.75      1    1.5      2      3      5
+    0.237  0.291  0.376  0.486  0.580  0.623  0.745  0.861  0.953  0.906
+
+-- paired: fraction of identical cases where the realistic-trained net (one-shot) has the smaller error than FindOptimal (seed mean)
+     0.05    0.1   0.25    0.5   0.75      1    1.5      2      3      5
+    0.234  0.292  0.379  0.489  0.576  0.599  0.671  0.734  0.873  0.878
+
+=== symmetry reduction on the sweep's other methods (random cases, R_est = exp(err) R_true) ===
+              net clean_s0: n  20000  max plain error over all cases 14.168 deg  max |sym - plain| 0  cases where reduction lowers the error 0
+              net clean_s1: n  20000  max plain error over all cases 7.171 deg  max |sym - plain| 0  cases where reduction lowers the error 0
+          net realistic_s0: n  20000  max plain error over all cases 9.855 deg  max |sym - plain| 0  cases where reduction lowers the error 0
+          net realistic_s1: n  20000  max plain error over all cases 10.697 deg  max |sym - plain| 0  cases where reduction lowers the error 0
+                    opt mc: n  20000  max plain error over all cases 25.565 deg  max |sym - plain| 0  cases where reduction lowers the error 0
+                  opt adam: n  20000  max plain error over all cases 5.949 deg  max |sym - plain| 0  cases where reduction lowers the error 0
+                    opt gn: n  20000  max plain error over all cases 5.997 deg  max |sym - plain| 0  cases where reduction lowers the error 0
+                 opt huber: n  20000  max plain error over all cases 6.570 deg  max |sym - plain| 0  cases where reduction lowers the error 0

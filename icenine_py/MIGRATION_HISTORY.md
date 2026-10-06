@@ -2160,3 +2160,213 @@ Second review pass on PR #29; no saved benchmark number changed and nothing was 
 | `corr` in result filenames | realism-trained (files not renamed) |
 
 Variant names (`clean`, `neighbours`, `noise`, `all`) and the `RealismConfig` fields (`p_miss`, `p_flip`, `p_hot`, `p_blob`) are unchanged. The old Python names are module-level aliases in `orientation_eval.py`, and the old flags are extra option strings of the same arguments (tested in `TestReviewFixes`).
+
+
+## Toy Orientation NN — Perturbation sweep (2026-10-04)
+
+**Question.** How does the network's error grow as the nominal orientation gets further from the truth? Randomly sampled voxels of the 500-grain sample are each tested on their own: the nominal is the voxel's true `.mic` orientation rotated by a random rotation of angle r, the net sees windows rendered exactly as in the dataset generator, and its error is the angle between its answer and the true orientation. No other baselines (the truth is known).
+
+**Plan / what was built.**
+1. `train_toy_orientation_nn.py --save-model PATH` (new): saves the final weights plus `model_kwargs` (constructor arguments), `no_frame`, `frame_half_width`, `window_size`, `realistic_train`, `mask_padding`, `seed`, and the trainer's argparse namespace. Weights were never saved before. Files go to `scripts/toy_orientation_sweep_model_{clean,realistic}_s{0,1}.pt` (gitignored by `scripts/*.pt`).
+2. Retrained the four headline nets (unpaired `GNLayerNet`, T=3, lr 1e-4, 60 epochs, EMA 0.998, `--val-voxels 4`, seeds 0 and 1) with the recorded commands (design doc Section 9): clean-trained = `multi_res_gn_k3_lr1e-4` on `toy_orientation_stage3_multi_{train,test}.pt`; realism-trained = `dis_res_gn_k3_corr` (`--realistic-train all`, `toy_orientation_arch_dis_{train,test}.pt`); both with `--aux scripts/toy_orientation_stage3_multi_aux.pt`. Outputs went to a scratch directory, not over the committed results.
+3. `scripts/perturbation_sweep.py` (new, tests in `tests/test_perturbation_sweep.py`).
+
+**Reproduction check.** All four retrains reproduce the committed predictions bit-for-bit (`pred_deg` and `chol`, max abs diff 0.0, for the clean test set and, for the realism-trained nets, all four variants; `benchmarks/toy_orientation_sweep/retrain_reproduction.txt`). One caveat: two trainings run concurrently on the one MPS GPU diverged from the committed logs in the 6th digit by epoch 4 (GPU non-determinism under sharing), so they were killed and the four runs redone one at a time; run alone, they are exact.
+
+**Protocol.**
+- Voxels: 50 drawn uniformly at random (`--voxel-seed 0`, a seeded permutation of the eligible voxels, taking the first usable ones) from the 24,570 voxels, with r_perp <= 500 um, excluding the 30 voxels of `stage3_multi`/`arch_dis` (read from the dataset files; the same 30 in both), and requiring >= 40 ROI peaks at the true orientation plus a valid window spec. 20,601 eligible, none rejected. They span r_perp 57-499 um (terciles 57-246 / 249-371 / 381-499 um; 17/16/17 voxels), 46 distinct grains, 35 within 1.25 voxel pitch of another grain, 4 in a grain that also contains one of the 30 dataset voxels. Per-voxel index, position, r_perp, grain id, boundary flag and cross-grain-neighbour count are in the raw npz.
+- Perturbation: for each (voxel, r) 20 directions with uniformly random axes; delta (length exactly r) and nominal R_nom = exp(-[delta]x) R_true, so exp([delta]x) R_nom = R_true, the dataset convention (`offsets_to_matrices`). The net predicts delta; error = angle of exp([delta_hat]x) R_nom R_true^T. Radii 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5 deg (10 radii x 20 directions x 50 voxels = 10,000 cases per window variant).
+- Windows per case: its own nominal (so its own ROI set, `define_roi_set` + `|sin eta| >= 0.3`, observer, window spec, context, sub-pixel offsets), Q_max 8, both detectors, 32x32, K=4, alpha=0, rendered at the true orientation. `clean` = windows only. `all` = generator's distractor layer (2 nearest mic neighbours within 30 um + a Sigma3 twin of the nearest; each source present with probability 0.5 at an independent 0.3 deg rms offset) plus `make_realistic_dataset("all")` with a fixed seed per (voxel, radius), and the valid (padding) mask (the committed runs did not use it).
+- Distractor sources: the sources sit at their own mic orientations (the target's truth is its mic orientation, so a same-grain neighbour is the target's own grain). In the generator the sources follow the target's delta from its nominal; here the target's "delta" is absorbed in the nominal, so each source is the neighbour's mic orientation plus the 0.3 deg rms Gaussian offset only.
+- Failure rule: a case fails at pass 1 if the perturbed nominal has no ROI peak, fewer than 40 ROI entries, an invalid window spec, or fewer than `--min-present 20` windows with a lit pixel (counts in `all` include distractor/noise pixels). Failures are counted per radius/variant and excluded from the medians (not silently dropped: see the failure rows and `n_ok`). Padding to 130 entries.
+- One-shot = pass 1. Iterated = 3 passes; each pass rebuilds ROI set, windows and context at the previous estimate, re-renders the SAME true orientation with the same distractor draws and the same realism seed (the noise realisation is the same draw but entry indices belong to the new ROI set, so it is not the same pixel noise on the same spot). A case that cannot continue (ROI/spec/too few present) keeps its last estimate; stops are counted.
+- Metrics per (variant, model, r, pass): median and RMS angle, RMS z and perp (rotation-vector components of the error, sample frame), fraction < 0.1 deg, fraction improved (error < r), mean Mahalanobis^2, n_ok, and the same split by r_perp tercile.
+
+**Commands.**
+```
+cd icenine_py
+# retrain (one at a time; add --save-model), e.g. realism-trained seed 0:
+uv run python scripts/train_toy_orientation_nn.py --head offset --arch gn --gn-iters 3 --loss decoupled --device mps \
+  --lr 1e-4 --clip 1 --cosine --batch-size 64 --epochs 60 --ema 0.998 --checkpoint ema --val-voxels 4 --realistic-train all \
+  --eval-variants clean,neighbours,noise,all --seed 0 --train scripts/toy_orientation_arch_dis_train.pt \
+  --test scripts/toy_orientation_arch_dis_test.pt --aux scripts/toy_orientation_stage3_multi_aux.pt \
+  --save-model scripts/toy_orientation_sweep_model_realistic_s0.pt --save-predictions <scratch>/real_s0.npz
+# sweep + summary + plot (10 workers, CPU, 1340 s wall time)
+M=scripts/toy_orientation_sweep_model
+uv run python scripts/perturbation_sweep.py run --workers 10 --out-dir benchmarks/toy_orientation_sweep \
+  --models clean_s0=${M}_clean_s0.pt clean_s1=${M}_clean_s1.pt realistic_s0=${M}_realistic_s0.pt realistic_s1=${M}_realistic_s1.pt
+uv run python scripts/perturbation_sweep.py summarize --out-dir benchmarks/toy_orientation_sweep   # re-make txt/json/png
+```
+Outputs in `benchmarks/toy_orientation_sweep/`: `perturbation_sweep_raw.npz` (per-case arrays `[voxel, radius, direction, variant, model, pass]`), `perturbation_sweep_summary.{txt,json}` (all metrics, per seed, per tercile, failure and stop counts), `perturbation_sweep.png`, `retrain_reproduction.txt`, `run.log`.
+
+**Results** (median angular error in degrees, mean of the two seeds; 1000 cases per radius, 940 at r = 5 deg in clean windows; one-shot -> iterated x3; per-seed values and everything else in the summary files):
+
+| r (deg) | clean-trained, clean windows | realism-trained, clean windows | clean-trained, `all` windows | realism-trained, `all` windows |
+|---|---|---|---|---|
+| 0.05 | .0125 -> .0124 | .0122 -> .0121 | .274 -> .278 | .062 -> .065 |
+| 0.1 | .0125 -> .0124 | .0131 -> .0121 | .259 -> .263 | .059 -> .063 |
+| 0.25 | .0123 -> .0124 | .0137 -> .0121 | .243 -> .251 | .064 -> .064 |
+| 0.5 | .0116 -> .0124 | .0156 -> .0121 | .253 -> .264 | .063 -> .065 |
+| 0.75 | .0122 -> .0124 | .0177 -> .0121 | .245 -> .261 | .067 -> .065 |
+| 1 | .0130 -> .0124 | .0208 -> .0121 | .241 -> .266 | .071 -> .066 |
+| 1.5 | .0194 -> .0125 | .0281 -> .0122 | .277 -> .272 | .088 -> .061 |
+| 2 | .0303 -> .0125 | .0382 -> .0121 | .413 -> .280 | .171 -> .072 |
+| 3 | .0606 -> .0125 | .0662 -> .0121 | 1.11 -> .291 | 1.01 -> .079 |
+| 5 | .168 -> .0125 | .273 -> .0120 | 3.85 -> .800 | 4.24 -> 1.97 |
+
+Failures at pass 1 (of 1000 cases): clean windows 0 at every radius except r = 5 deg, 60 (all "fewer than 20 present windows"); `all` windows 0 except 6 at r = 5 deg. Early stops in later passes: none in clean windows; in `all` windows 6 / 1 / 1 / 5 case-stops for clean_s0 / clean_s1 / realistic_s0 / realistic_s1 (all at r = 5 deg except one spec failure at 0.5 deg).
+
+Reading (what the data support, with 50 voxels and 2 seeds):
+- Inside the training ball (r <= 1 deg) the one-shot errors on clean windows are 0.012-0.021 deg and the realism-trained error rises slowly with r (0.012 -> 0.021 deg), while the clean-trained one is flat (0.012-0.013). Beyond 1 deg the one-shot error grows roughly like r^1.5-2 for both (about 0.03 at 2 deg, 0.06 at 3 deg, 0.17-0.27 at 5 deg), i.e. it stays well below r (error < r in 100% of clean-window cases) but loses sub-0.1 deg accuracy (fraction < 0.1 deg: 0.80 at 3 deg, 0.10-0.20 at 5 deg).
+- Re-centring fixes that: after 2-3 passes the clean-window error is at its floor (~0.012 deg, independent of r, all cases < 0.1 deg for every r including 5 deg) because the second pass starts within the training ball. The floor is the same as the r = 0.05 deg error. 5 deg is extrapolation (trained in a 1 deg ball), and on clean windows that extrapolated first step is still good enough to bring the estimate inside the ball.
+- With realistic (`all`) windows the error floor is set by the distractors, not by r: clean-trained ~0.25 deg (mean Mahalanobis^2 ~1,000-2,000, i.e. confidently wrong), realism-trained ~0.06-0.07 deg (Mahalanobis^2 ~3). These floors agree with the committed held-out numbers (`.2033`/`.0615`, 30-voxel test). The realism-trained net stays at its floor up to r = 1.5 deg one-shot (0.088), rises to 0.17 at 2 deg and fails at >= 3 deg one-shot (1.0 deg at 3; 4.2 at 5, about the same as no correction); iterating recovers it to 0.079 at 3 deg but not at 5 deg (median 1.97 after 3 passes, 24% of cases < 0.1 deg; wide spread between seeds: 1.30 / 2.63). For the clean-trained net the ~0.25 floor is not improved by iterating.
+- Iterating does not help inside 1 deg on realistic windows (differences <= 0.003 deg at r <= 0.75; clean-trained: slightly worse, 0.241 -> 0.266 at 1 deg).
+- r_perp: on clean windows the error falls with r_perp (floor 0.023 / 0.012 / 0.010 deg for the three terciles, the parallax effect again); on realistic windows no clear trend. Voxels near a grain boundary (35 of 50) are not worse than the others (r = 1: 0.065 vs 0.09 deg for the realism-trained net); with 15 interior voxels this is not a finding.
+
+**Caveats.** (1) Trained within a 1 deg ball, so r > 1 deg is extrapolation. (2) Single-voxel windows, not a full-sample render: neighbours/twin come from the generator's source model only (2 neighbours + twin, same-family nuisances as in training), not from a rendering of everything that actually overlaps. (3) 50 voxels x 20 directions per radius, 2 seeds per model type; standard errors/intervals were not computed, voxel-to-voxel variation is not separated from direction-to-direction. (4) The failure rule counts windows with any lit pixel, so noise and distractors can mask a low peak count in `all` windows (6 vs 60 failures at 5 deg). (5) Iteration reuses distractor draws and the realism seed but pixel noise is attached to entry indices of a rebuilt ROI set. (6) Only the median is plotted; RMS, z/perp components and the fractions are in the summary. (7) The padding mask was applied here but not in the committed runs, so the `all` numbers are not pixel-identical to the committed test protocol, though the floors agree. (8) The perturbed nominal's ROI set and window centres differ from the dataset's (they are defined at the perturbed nominal, as a real hand-off would), a slight protocol difference from the datasets, where the ROI set is defined at the truth.
+
+### Comparison with existing optimizers (2026-10-05)
+
+**Question.** On exactly the sweep's cases, how do the project's non-learned optimizers compare with the network? Cases are reproduced, not re-drawn: `perturbation_sweep.case_draws` (factored out of `sweep_voxel`) gives the same seeded directions and distractor draws, the voxels come from the sweep's raw npz, and every task asserts that its per-case ROI counts and pass-1 failure codes (both variants, hence the realism windows' present counts) equal the sweep's. Error = angle of R_est R_true^T, the sweep's metric (no crystal-symmetry reduction; irrelevant for r <= 5 deg). 50 voxels x 10 radii x 20 directions = 1000 cases per radius and variant, 500 tasks, all run for every method (no reduction was needed: the projection from the 1-voxel pilot was 2 h; the full run took 1 h 49 min on 10 workers). Summaries use the cases where the net ran at pass 1 (n = 1000 per radius, 940 at r = 5 clean, 994 at r = 5 realistic), the same set for every column.
+
+**Methods** (`scripts/optimizer_sweep.py`, existing code and settings):
+- **MC**: `MCOptimizer` on the binary pixel-overlap cost via `bench_hp_sweep.run_one_mc`: 3500 steps, 2 restarts, step fraction 0.5, search box 1.5 r. **It is told r through the box (an advantage the net does not have).** Note that `MCOptimizer` restarts after `2 (box/step)^3` steps without improvement and stops after the second restart, so when it sees no signal it ends after ~50 steps; the seed in `optimizer_baselines.py` has no effect (unseeded `default_rng`), here the generator is made deterministic per case.
+- **Adam**: `run_one_riemannian_adam_geoopt` on the differentiable cost, scale 2 (8x max-pool), omega window 1, lr 1e-4, 100 steps. Not told r.
+- **GN / Huber GN (c = 1)**: `CentroidGaussNewton` on the net's windows, one-shot at the perturbed nominal and iterated x3 with the sweep's re-centring (same pass loop, same re-rendering and gating). Runtime counts measurement extraction + solve, not window rendering.
+- All: |g| <= 8, both detectors, the net's eligibility. The cost functions gained an optional `min_sin_eta` (default 0 = unchanged) so `|sin eta| >= 0.3` and the config's EtaLimit (86 deg, not the cost default 90) apply to MC and Adam as to the net's ROI set.
+
+**What each method sees.**
+- Net / GN: 32x32 windows around the ROI spots of the case's perturbed nominal, +-4 frames, frame-coded; distractors and noise exist only inside windows.
+- MC / Adam (new, no full-sample image exists): per-case detector images made from pixel sets, the lit pixels the simulator's rasteriser would give (`lit_pixel_set`). `clean` = every spot of the target voxel at its TRUE orientation (|g| <= 8, all frames, both detectors; no |sin eta| cut in the image, the cost applies it). `all` = that plus (i) every active distractor source (2 neighbours + the Sigma3 twin, the sweep's draws) over the WHOLE detector, plus (ii) the sweep's realism edits transplanted pixel by pixel: the difference between the net's windows before and after `make_realistic_dataset` (pixels dropped or grown, hot pixels, blobs; a window zeroed as a missing spot removes all its pixels, target and distractor) is applied at the window's detector position and frame. The edits are made on the pass-1 windows, so they follow that nominal's window grid. Checks (`tests/test_optimizer_sweep.py`, probe on one voxel): the target-only image gives hard-cost quality exactly 1.0 at the truth (54 peaks); every pixel of the net's realistic windows is in the realistic image and every removed pixel was present before the edit; the coarse image stack equals `MultiScaleImageStack` (scale, omega window 1) exactly. So the optimizers see the whole detector (all of the voxel's spots, more than the net's ROI windows) but the same random nuisances inside the windows. Differences: pixel noise outside the net's windows does not exist (there is none to inject: the noise is defined per window), noise pixels that fall off the detector or outside the frame range are dropped, spots whose frame has left the +-4 window (large r) are still in the image, and the image holds pixel sets of the simulator's own spots with no intensity/blur.
+- Cost at the true orientation on the exact (clean) images (stored per case, `q_true`): the hard cost's quality is 1.0 for the first checked voxel, but its median over the 50 voxels is 0.93 (per-voxel medians 0.90-0.97, 1.0 for only that one voxel). The images are exact there (checked on voxels 3108 and 2910: pixel overlap = pixels on the detector and every peak overlaps), so I attribute the ceiling to the cost's own per-peak detector factor (quality_i = pixel ratio x detectors-overlapping / n_det in `OverlapInfo.update_quality`, which is below 1 for spots recorded on one detector), not to the images; I did not trace it further. On `all` images the median is 0.76; Adam's soft scale-2 cost is 0.66 on both.
+
+**Results**: median angular error (deg), mean of the two net seeds for the net columns (the `clean-trained` net is in the summary files). `x3` = iterated.
+
+Clean data:
+
+| r (deg) | MC | Adam | GN | GN x3 | Huber | Huber x3 | net (realism-trained) one-shot | net x3 |
+|---|---|---|---|---|---|---|---|---|
+| 0.05 | .0274 | .134 | .0130 | .0127 | .0123 | .0126 | .0122 | .0121 |
+| 0.1 | .0573 | .133 | .0128 | .0127 | .0123 | .0126 | .0131 | .0121 |
+| 0.25 | .136 | .119 | .0122 | .0127 | .0120 | .0126 | .0137 | .0121 |
+| 0.5 | .288 | .145 | .0127 | .0127 | .0118 | .0126 | .0156 | .0121 |
+| 0.75 | .424 | .235 | .0130 | .0127 | .0123 | .0126 | .0177 | .0121 |
+| 1 | .608 | .344 | .0135 | .0127 | .0122 | .0126 | .0208 | .0121 |
+| 1.5 | 1.11 | .575 | .0217 | .0127 | .0149 | .0126 | .0281 | .0122 |
+| 2 | 1.64 | .875 | .0328 | .0127 | .0202 | .0126 | .0382 | .0121 |
+| 3 | 2.26 | 2.17 | .0641 | .0127 | .0406 | .0126 | .0662 | .0121 |
+| 5 | 4.50 | 4.80 | .127 | .0122 | .0868 | .0123 | .273 | .0120 |
+
+Realistic (`all`) data:
+
+| r (deg) | MC | Adam | GN | GN x3 | Huber | Huber x3 | net (realism-trained) one-shot | net x3 |
+|---|---|---|---|---|---|---|---|---|
+| 0.05 | .0282 | .269 | .274 | .284 | .196 | .196 | .0622 | .0652 |
+| 0.1 | .0566 | .246 | .249 | .263 | .171 | .172 | .0589 | .0626 |
+| 0.25 | .137 | .201 | .249 | .258 | .173 | .177 | .0637 | .0644 |
+| 0.5 | .287 | .187 | .261 | .271 | .175 | .177 | .0632 | .0654 |
+| 0.75 | .422 | .276 | .256 | .266 | .184 | .190 | .0665 | .0646 |
+| 1 | .576 | .373 | .258 | .280 | .179 | .186 | .0707 | .0664 |
+| 1.5 | 1.05 | .613 | .306 | .289 | .182 | .188 | .0880 | .0613 |
+| 2 | 1.65 | .911 | .464 | .290 | .187 | .206 | .171 | .0720 |
+| 3 | 2.45 | 2.20 | 1.11 | .294 | .278 | .218 | 1.01 | .0789 |
+| 5 | 4.38 | 4.83 | 3.80 | .876 | 2.64 | .232 | 4.24 | 1.97 |
+
+RMS, fraction < 0.1 deg, fraction improved, runtimes, the clean-trained net, and every paired comparison are in `benchmarks/toy_orientation_sweep/optimizer_sweep_summary.{txt,json}`; plot `perturbation_sweep_vs_optimizers.png`; per-case raw arrays `[voxel, radius, direction, variant, method, pass]` in `optimizer_sweep_raw.npz` (3 MB, committed), log `optimizer_run.log`.
+
+Paired comparisons (identical cases, realism-trained net iterated x3 has the smaller error; seed mean, fraction of 1000 cases):
+
+| r (deg) | clean: vs MC | vs Adam | vs GN x3 | vs Huber x3 | realistic: vs MC | vs Adam | vs GN x3 | vs Huber x3 |
+|---|---|---|---|---|---|---|---|---|
+| 0.05 | .76 | .99 | .48 | .49 | .26 | .95 | .95 | .82 |
+| 0.5 | .99 | 1.00 | .48 | .49 | .91 | .90 | .96 | .80 |
+| 1 | .99 | 1.00 | .48 | .48 | .96 | .96 | .94 | .80 |
+| 2 | .99 | 1.00 | .49 | .49 | .97 | .99 | .93 | .79 |
+| 3 | 1.00 | 1.00 | .49 | .49 | .94 | .94 | .85 | .72 |
+| 5 | .99 | 1.00 | .48 | .49 | .70 | .81 | .43 | .26 |
+
+Median runtime per case (s, data preparation excluded): MC 2.4, Adam 0.30, GN x3 0.02-0.03, Huber x3 0.04-0.13; the net was not timed here (one batched forward pass per case, three for x3).
+
+Reading (50 voxels x 20 directions, 2 net seeds; no confidence intervals):
+- Clean data: GN and Huber GN reach the quantisation floor (0.012-0.013 deg) from every start up to 5 deg once iterated (one-shot degrades like the net's: 0.13 deg at 5 deg), and the net iterated x3 sits on the same floor; the paired win rate against GN x3 is 0.48 (a coin flip at the floor). So on clean data the net offers no accuracy gain over the existing centroid GN, only (potentially) speed/robustness elsewhere. MC and Adam, on the sharp pixel-overlap/coarse costs, do not converge to the floor: MC's median error is about 0.5-0.6 r (it moves toward the truth in 77-89% of cases but stops short; < 0.1 deg only for r <= 0.1), Adam's is 0.13 deg at r = 0.05 and 0.34 at 1 deg.
+- Realistic data: plain GN is dominated by the distractors (0.26-0.29 deg floor, like the clean-trained net; paired win rate of the realism-trained net 0.93-0.96 for r <= 3); Huber GN halves it (0.17-0.22) but stays about 3x above the realism-trained net (0.065); the net wins 80% of paired cases up to r = 2. At r = 5 deg the iterated Huber GN (0.23) clearly beats the iterated net (1.97): the net wins only 26% of paired cases there. MC (told r) is the only method that beats the net at the smallest radii (r = 0.05: 0.028 vs 0.065, net wins 26% of cases; r = 0.1: equal, 45%), because its error scales with r while the net's floor is constant; from r = 0.25 the net is better (76% -> 96%).
+- Adam (HP-sweep-best setting) is worse than the net everywhere (net wins >= 80% of cases at every radius, both variants). Its lr 1e-4 x 100 steps limits the travel to about 0.6 deg, so it cannot correct r >~ 1 deg (errors 2-5 deg at r = 3-5), and for r <= 0.1 it moves away from the truth (error 0.13-0.27 deg > r: the scale-2 cost's optimum is offset from the truth, its value at the truth being 0.66).
+
+**Caveats.** (1) MC is told r. (2) The optimizers' images are an approximation of "the same data": whole-detector distractors, target spots at |g| <= 8 with no cut, window-level realism edits transplanted, but the cost sees all eligible peaks at the candidate orientation, not the net's fixed ROI set; the costs at the truth are below 1 even on exact images (see above), so their ceiling is not 1 and, on `all` images, the optimum need not sit exactly at the truth. (3) The Adam cost has a systematic coordinate offset at scale 2 (`differentiable_cost.py` comments), which sets its small-r error. (4) The settings are the HP-sweep protocol's, not tuned per radius: Adam with a larger lr or more steps, or MC with more steps, would do better at large r; this compares the existing protocol, not the best achievable. (5) GN runtimes exclude window rendering; the net's were not measured. (6) Same single-voxel caveats as the sweep; sources use the generator's model.
+
+**Caveat on identical noise (added after review).** The optimizers' realistic images carry only the pass-1 realism edits. The net's passes 2-3 re-render the windows, and their pixel noise attaches to the entry indices of the rebuilt ROI set, so "same nuisances" holds strictly for the one-shot comparison only; the iterated-net comparison on realistic data is therefore not on identical noise. The one-shot paired numbers in the summaries are strictly like-for-like. The committed raw npz files and logs contain absolute local paths (not secrets).
+
+
+### Comparison with multi-level reconstruction (FindOptimal) (2026-10-05)
+
+**Question.** How does the project's multi-level adaptive reconstruction (`AdaptiveVoxelReconstructor`: coarse levels -> FindOptimal -> VarianceMinimizing -> final overlap) do on the sweep's single-voxel cases? Two experiments, `scripts/findoptimal_sweep.py` (summary and plot: `findoptimal_sweep_summary.py`), on the same 50 voxels and the same per-voxel clean and realistic (`all`) detector images the optimizer sweep builds (its pixel-set helpers; nothing simulates the whole sample; each task asserts the case is aligned with the network sweep).
+
+**Refactor (behaviour unchanged).** The part of `reconstruct_voxel` after the coarse levels is now `AdaptiveVoxelReconstructor.refine_from_candidates(candidates, voxel_vertices, phase_index, diameter, ...)`, which `reconstruct_voxel` itself calls with the objects it built (same cost function, same MC optimizer and random stream, same eval counts); helpers `_make_local_cost_fn` / `_make_optimizers` hold the construction code that moved. `AdaptiveVoxelReconstructor(setup, min_sin_eta=0.0)` passes the new cost option to every cost function it builds (default off). Diagnostics `last_level_best` and `last_find_optimal` are recorded. Proof: `tests/test_findoptimal_refactor.py::test_reconstruct_voxel_unchanged_by_refactor` compares a deterministic `reconstruct_voxel` run (ThreeVoxels voxel 0, 3-orientation FZ set, 1 level, 150 MC steps, seed 7) with values recorded from the pre-refactor code (orientation error vector to 1e-9 and cost); `test_refine_from_candidates_standalone_converges` runs the new method on its own. The pre-refactor code was run twice and gave identical numbers (deterministic).
+
+**Settings (both experiments).** `SearchParameters.from_config` of `Examples/Example2.ThreeVoxels/ConfigFiles/ReconstructQ8.config` (there is no ManyGrains reconstruction config; the geometry/detector files of the two examples are identical): grid radius 5 deg, `MinLocalResolution 0` / `MaxLocalResolution 3` (4 levels, diameter 5 -> 0.99 deg, divided by 1.5 per level), `MaxMCSteps 200`, `MCRadiusScaleFactor 0.4`, `SuccessiveRestarts 2`, `MaxConvergenceCost 1e-4`, `MaxDiscreteCandidates 30`, hard (binary pixel) cost, pixel radius 3 for the coarse screening and 0 afterwards, the level Q_max 5, 6, 7, 8 (`nQMax = 5 + level`), the local cost function with the simulator's reflection list at Q_max 8 (config MaxQ overridden to 8 as in the sweep), the ManyGrains physics, `MyFZ.dat`, `|sin eta| >= 0.3` through the new `min_sin_eta` (the reconstructor passes it through, so it is applied exactly as for the net, MC and Adam), EtaLimit 86 deg. No hybrid/Adam optimizer (FindOptimal is full MC).
+
+**Experiment A (global, no starting guess, so no r).** `reconstruct_voxel` from scratch, once per voxel and variant (50 x 2 = 100 runs), rng seeded per voxel. The image of a voxel is the one the optimizer sweep gave its case at the smallest radius, direction 0 (r = 0.05 deg: the realism windows sit at the truth). It sees the whole detector (every spot of the target with |g| <= 8 [+ distractors and the realism edits in `all`]), not the net's ROI windows.
+
+**Experiment B (local, depends on r).** `refine_from_candidates` with the case's perturbed nominal as the single candidate: FindOptimal (full MC, convergence check) + VarianceMinimizing + final evaluation, as `reconstruct_voxel` runs them. **Search size: reconstruct_voxel's FindOptimal does not use r.** Its box is `max(d/3, 0.2 deg) / 2^MinLocalResolution` with d the diameter after the levels (5 deg / 1.5^4 = 0.99 deg), i.e. 0.329 deg, MC step 0.4 x 0.329 = 0.132 deg, 200 steps, 2 restarts, with a convergence stop at `hit_ratio >= 1` (never reached here: 0/100 in A, <= 2.5% in B); the same box for r = 0.05 and r = 5 deg. B was run on all 20 directions x 10 radii x 50 voxels x 2 variants = 20,000 cases (the timing pilot, 2 voxels x radii 0.05 and 5 x 20 directions + A on 2 voxels, projected 1.05 h on 10 workers, far below the 4 h limit; the actual run took 5 min (A) + 32 min (B)); images exactly as the optimizer sweep builds them per case (seed per case); error summaries on the cases where the net could run at pass 1 (n = 1000 per radius and variant, 940 clean and 994 realistic at r = 5 deg), the same set as the other columns. A start that FindOptimal cannot improve is returned as is only if some candidate scores cost < 1; when MC finds no overlap at all (cost >= 1) `reconstruct_voxel`'s code returns the identity matrix (its initial best candidate), and that is what is scored (see the fallback table below).
+
+**Error metric.** Misorientation angle to the true `.mic` orientation reduced by cubic symmetry: min over the 24 proper cubic operators S of angle(R_est S R_true^T) (`findoptimal_sweep.misorientation_deg`, operators from `icenine.symmetry.create_cubic_symmetry`; tested against `sampling.get_misorientation` and on a symmetry-equivalent rotation in `tests/test_findoptimal_sweep.py`). The sweep's other methods report the plain angle of R_est R_true^T; at r <= 5 deg their errors are far below 45 deg, and no cubic operator other than the identity is closer than 90 deg, so reduction cannot change them. Checked on 20,000 random cases per method (R_est rebuilt from the stored error vector and the voxel's mic orientation): max |reduced - plain| = 0 and no case lowered, for all four network models, MC, Adam, GN and Huber GN (largest plain error anywhere: 25.6 deg (MC), network 14.2 deg, Adam/GN/Huber 6.0-6.6 deg). For FindOptimal B likewise max |reduced - plain| = 0 at every radius; in A they differ for 16/50 (clean) and 13/50 (realistic) voxels (an equivalent orientation was returned).
+
+**Results A (50 voxels per variant).**
+
+| | clean | realistic |
+|---|---|---|
+| median / RMS / max error (deg) | 0.069 / 35.1 / 60.0 | 0.052 / 31.1 / 60.0 |
+| fraction < 0.1 deg | 0.52 | 0.60 |
+| **wrong (> 1 deg)** | **21/50** | **17/50** |
+| median / RMS / max over the voxels it got right | 0.028 / 0.050 / 0.150 (n = 29) | 0.025 / 0.047 / 0.114 (n = 33) |
+| runtime per voxel (median) | 26.8 s | 29.2 s |
+| cost evals (median): global, pixel radius 3 / local | 44,474 / 4,656 | 44,748 / 7,790 |
+| FindOptimal winner = best coarse candidate | 46/50 | 46/50 |
+
+For comparison the net iterated x3 has a median 0.0121 (clean) and 0.062-0.079 (realistic, r <= 3 deg) from a start that is already within r; MC 0.027 at r = 0.05; GN x3 0.0127 / 0.26-0.29. A needs no starting guess, but its right answers (0.025-0.03 deg median) are 2x worse than the net's clean floor, and about 40% of the voxels are wrong: the median over all voxels is not a meaningful accuracy number here, which is why the plot also shows the median over the correct ones (dashed).
+
+All 38 wrong solutions (clean 21, realistic 17) are coincidence-site-lattice (CSL) neighbours of the truth or close to one. Method (`findoptimal_sweep_summary.classify_csl`): crystal-frame misorientation M = R_true^T R_final S over the 24 cubic operators, smallest angle, axis folded into the cubic fundamental family; the lowest-Sigma CSL (odd Sigma <= 29, ideal angle/axis from tan(theta/2) = sqrt(N)/m) whose deviation (smallest angle between M and the ideal rotation over the cubic group on both sides) is within the Brandon limit 15 deg / sqrt(Sigma) is assigned. Counts (clean + realistic): **Sigma3 25** (60 deg about <111>, axes within 0.3 deg of <111>, deviation from the ideal 60 deg <= 0.41 deg), **Sigma7 5** (38.2 deg about <111>), **Sigma5 4** (36.9 deg about <100>), **Sigma11 1** (voxel 2489 clean, 50.45 deg about <110>), **Sigma17 1** (voxel 970 realistic: 29.6 deg, axis 3.8 deg from <100>, Sigma17a = 28.07 deg; deviation 2.45 deg against a Brandon limit of 3.64 deg: borderline), and **2 matching no CSL with Sigma <= 29** (voxel 16182 realistic: 37.9 deg, axis 25.5 deg from <111>; voxel 1053 realistic: 48.5 deg, axis 17.8 deg from <110>). No Sigma13. So the dominant failure is the Sigma3 twin (as in `docs/todo_findoptimal_wrong_candidates.md`), and the other relations are the low-Sigma CSLs, which share a subset of reflections with the truth: consistent with the known wrong-candidate issue. **In every wrong case the cost at the true orientation is lower than at the returned answer** (21/21 and 17/17: 0.0-0.09 vs 0.64-0.92 clean, 0.18-0.35 vs 0.42-0.86 realistic), so the failure is in the search (coarse levels keep the CSL orientation, FindOptimal polishes it), not in a cost that prefers the wrong orientation. In 3 of the 38 (voxels 16182 and 121 clean, 24474 realistic) an earlier level's best candidate was within 10 deg of the truth (4.8-8.2 deg) and the last level's was not, i.e. the coarse ranking dropped the right basin; in one more (voxel 2489 clean) the last level's best candidate was 8.7 deg off but FindOptimal returned another candidate (the Sigma11 one); in the other 34 no level's best candidate was within 10 deg of the truth. FindOptimal's winner is the best coarse candidate (index 0) in 46/50 runs per variant (clean: 17/21 wrong and 29/29 right; realistic: 17/17 wrong and 29/33 right): it rarely overrides the coarse ranking.
+
+**Results B** (`findoptimal_sweep_summary.txt` has the RMS, fractions improved, per-radius details, one-shot net and clean-trained columns). Median error (deg); net = realism-trained, mean of 2 seeds, iterated x3; MC is told r; n = 1000 per cell (940 at r = 5 clean, 994 realistic).
+
+| r (deg) | clean: FindOptimal | MC | GN x3 | net x3 | realistic: FindOptimal | MC | GN x3 | net x3 |
+|---|---|---|---|---|---|---|---|---|
+| 0.05 | .0197 | .0274 | .0127 | .0121 | .0189 | .0282 | .284 | .0652 |
+| 0.1 | .0257 | .0573 | .0127 | .0121 | .0248 | .0566 | .263 | .0626 |
+| 0.25 | .0426 | .136 | .0127 | .0121 | .0370 | .137 | .258 | .0644 |
+| 0.5 | .0557 | .288 | .0127 | .0121 | .0552 | .287 | .271 | .0654 |
+| 0.75 | .0748 | .424 | .0127 | .0121 | .0739 | .422 | .266 | .0646 |
+| 1 | .0892 | .608 | .0127 | .0121 | .0905 | .576 | .280 | .0664 |
+| 1.5 | .234 | 1.11 | .0127 | .0122 | .223 | 1.05 | .289 | .0613 |
+| 2 | 1.18 | 1.64 | .0127 | .0121 | .869 | 1.65 | .290 | .0720 |
+| 3 | 3.07 | 2.26 | .0127 | .0121 | 2.98 | 2.45 | .294 | .0789 |
+| 5 | 23.9 | 4.50 | .0122 | .0120 | 6.02 | 4.38 | .876 | 1.97 |
+
+Fraction of cases < 0.1 deg (FindOptimal; clean / realistic): .985/.990 (0.05), .958/.961 (0.1), .861/.862 (0.25), .707/.720 (0.5), .584/.570 (0.75), .522/.533 (1), .339/.339 (1.5), .164/.172 (2), .008/.012 (3), 0/0 (5). Median runtime of `refine_from_candidates` per case (s, clean; realistic similar): 1.64 (0.05), 1.56, 1.23, 0.73, 0.53, 0.49 (1), 0.37, 0.33, 0.30, 0.25 (5), against 2.4 for the MC protocol of the optimizer sweep; median cost evaluations 2,300 down to 320. With the fixed 0.329 deg box the number of evaluations falls as r grows (presumably because the search stops sooner when it finds no improvement; not examined).
+
+Paired: fraction of identical cases where the realism-trained net (iterated x3) has the smaller error than FindOptimal (seed mean; one-shot in the summary):
+
+| r (deg) | 0.05 | 0.1 | 0.25 | 0.5 | 0.75 | 1 | 1.5 | 2 | 3 | 5 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| clean | .63 | .72 | .81 | .86 | .88 | .89 | .93 | .97 | 1.00 | 1.00 |
+| realistic | .24 | .29 | .38 | .49 | .58 | .62 | .75 | .86 | .95 | .91 |
+
+Fallback when MC finds no overlap (cost >= 1, identity returned): the fraction of such cases is 0 for r <= 1 deg, then 0.002 / 0.033 / 0.193 / 0.532 (clean) and 0 / 0.015 / 0.129 / 0.427 (realistic) at r = 1.5 / 2 / 3 / 5 deg. If those results are replaced by the unchanged input (error = r) the medians are 3.00 / 5.00 (clean, r = 3 / 5) and 2.98 / 5.00 (realistic) and the RMS 6.9 / 11.1 and 6.5 / 11.7; the tables above are the reconstructor's actual output.
+
+Reading (50 voxels x 20 directions per radius, one realisation of the images; no confidence intervals):
+- Used as a local refiner (B), FindOptimal's error grows slowly with r (clean: 0.020 at r = 0.05, 0.043 at 0.25, 0.089 at 1 deg): its 0.329 deg box cannot undo more than about 1-1.5 deg; at r >= 2 deg median errors are 0.9-1.2, then 3 (about the start) and, at r = 5, the search often finds nothing (43-53% identity). Within r <= 1 deg 96-100% of cases improve (error < r, clean, r >= 0.1; 86% at 0.05), but it does not reach the net's/GN's floor (0.012 clean): fraction < 0.1 deg falls from 0.99 (r = 0.05) to 0.52 (r = 1).
+- On clean data the net iterated x3 is better than FindOptimal in 63% (r = 0.05) to 100% of cases (r >= 3), GN x3 sits at the same floor as the net. On realistic data the picture is mixed at small r: FindOptimal's median error (0.019-0.055 deg for r <= 0.5) is below the realism-trained net's 0.063-0.065, and the net wins only 24-49% of paired cases up to r = 0.5, 58-62% at 0.75-1 deg, 75-86% at 1.5-2 and >= 90% at >= 3 deg. The same pattern as MC's, presumably for the same reason: its error scales with the start's distance while the net has a distractor-set floor. It is also much better than GN x3 / Huber x3 on realistic data below r ~ 1 deg (0.02-0.09 vs 0.17-0.28); I did not test why (it uses the whole-detector pixel overlap rather than windows).
+- A (global) and B are different things: B's start is within r of the truth; A's has to find the basin. A's right answers (n = 29 clean, 33 realistic) have a median of 0.025-0.028 deg, about B's error at r ~ 0.1 deg (0.025-0.026), but 34-42% of the voxels are lost to CSL neighbours that the coarse search prefers.
+
+**Caveats.** (1) Images are the optimizer sweep's approximation of the data (whole-detector pixel sets of the simulator's spots, window-level realism edits transplanted); the reconstructor sees all eligible peaks at the candidate orientation, the net only its ROI windows. (2) A uses one image per voxel (case r = 0.05, direction 0) and one seed per voxel; 50 voxels, so 21/50 vs 17/50 wrong is not a difference between variants (a different realisation could change several voxels; 11 voxels are wrong in both variants: 7336, 16182, 20206, 3142, 13884, 2489, 9484, 970, 9421, 24474, 17771). The Q_max 8 / `min_sin_eta` choices follow the net; the reconstruction's own default (no filter, Q_max from the config) was not run. (3) The search settings are ReconstructQ8's (200 MC steps, not the HP-sweep 3500), and FindOptimal here has no knowledge of r; a start-aware box would do better at r > 1 deg (not tested; MC with a 1.5 r box in the optimizer sweep does not either). (4) The identity return when MC finds nothing is the reconstructor's behaviour, kept; see the fallback numbers. (5) Runtimes are CPU wall time per case on 10 single-thread workers, not benchmarked in isolation; pilot per-case mean 0.97 s, full-run medians in the table. (6) The Brandon-criterion assignment is by lowest Sigma within tolerance and uses Sigma <= 29: at the borderline (voxel 970) or for the 2 unmatched cases a different Sigma list could change the label.
+
+**Commands.**
+```
+cd icenine_py
+uv run python scripts/findoptimal_sweep.py pilot --workers 10                  # timing pilot, log in findoptimal_pilot.log
+nohup sh -c "uv run python scripts/findoptimal_sweep.py run-a --workers 10 && uv run python scripts/findoptimal_sweep.py run-b --workers 10 --n-dirs 20" > benchmarks/toy_orientation_sweep/findoptimal_run.log 2>&1 &
+uv run python scripts/findoptimal_sweep.py summarize   # findoptimal_sweep_summary.{txt,json}, perturbation_sweep_vs_findoptimal.png
+```
+Outputs in `benchmarks/toy_orientation_sweep/`: `findoptimal_a_raw.npz`, `findoptimal_b_raw.npz` (1.6 MB), `findoptimal_sweep_summary.{txt,json}`, `perturbation_sweep_vs_findoptimal.png`, `findoptimal_pilot.log`, `findoptimal_run.log`. Per-task results are cached in `scripts/findoptimal_sweep_cache/` (gitignored).
+
+**Caveat on identical noise (added after review).** The optimizers' realistic images carry only the pass-1 realism edits. The net's passes 2-3 re-render the windows, and their pixel noise attaches to the entry indices of the rebuilt ROI set, so "same nuisances" holds strictly for the one-shot comparison only; the iterated-net comparison on realistic data is therefore not on identical noise. The one-shot paired numbers in the summaries are strictly like-for-like. The committed raw npz files and logs contain absolute local paths (not secrets).

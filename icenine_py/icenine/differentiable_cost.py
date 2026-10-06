@@ -727,7 +727,9 @@ class DifferentiableCostFunction:
         structure_list: List[CrystalStructure],
         eta_limit: float = math.pi / 2.0,
         max_q: float = 0.0,
+        min_sin_eta: float = 0.0,
     ):
+        self.min_sin_eta = min_sin_eta  # |sin eta| lower bound (0 = off), see VoxelCostFunction
         self.simulator = simulator
         self.detector_list = detector_list
         self.range_map = range_map
@@ -834,6 +836,8 @@ class DifferentiableCostFunction:
         rz_val = torch.abs(reflected[:, 2]) / safe_norms
         eta = torch.atan2(ry, rz_val)
         valid = (eta < self.eta_limit) & (rd_norms > 0)
+        if self.min_sin_eta > 0.0:
+            valid = valid & (torch.sin(eta) >= self.min_sin_eta)
 
         peak_omegas = all_omegas[valid]
         peak_normals = all_normals[valid]

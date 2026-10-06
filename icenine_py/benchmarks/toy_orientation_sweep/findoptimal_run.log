@@ -1,0 +1,806 @@
+experiment A: 100 tasks (0 cached), 10 workers
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+  [A 1/100] voxel 3108 #0 done in 26s (28s total)
+  [A 2/100] voxel 16182 #0 done in 26s (28s total)
+  [A 3/100] voxel 7336 #1 done in 26s (29s total)
+  [A 4/100] voxel 7336 #0 done in 27s (29s total)
+  [A 5/100] voxel 16182 #1 done in 27s (30s total)
+  [A 6/100] voxel 2910 #0 done in 29s (32s total)
+  [A 7/100] voxel 16269 #0 done in 30s (32s total)
+  [A 8/100] voxel 2910 #1 done in 33s (36s total)
+  [A 9/100] voxel 16269 #1 done in 34s (37s total)
+  [A 10/100] voxel 3108 #1 done in 35s (37s total)
+  [A 11/100] voxel 21356 #0 done in 26s (54s total)
+  [A 12/100] voxel 20406 #0 done in 27s (56s total)
+  [A 13/100] voxel 20206 #0 done in 27s (57s total)
+  [A 14/100] voxel 3142 #0 done in 27s (59s total)
+  [A 15/100] voxel 21356 #1 done in 31s (59s total)
+  [A 16/100] voxel 20406 #1 done in 32s (62s total)
+  [A 17/100] voxel 3142 #1 done in 26s (62s total)
+  [A 18/100] voxel 20480 #0 done in 27s (64s total)
+  [A 19/100] voxel 20206 #1 done in 34s (66s total)
+  [A 20/100] voxel 20480 #1 done in 32s (70s total)
+  [A 21/100] voxel 2177 #0 done in 28s (82s total)
+  [A 22/100] voxel 13884 #0 done in 27s (84s total)
+  [A 23/100] voxel 2177 #1 done in 31s (87s total)
+  [A 24/100] voxel 13884 #1 done in 29s (88s total)
+  [A 25/100] voxel 10531 #0 done in 30s (89s total)
+  [A 26/100] voxel 16905 #0 done in 28s (90s total)
+  [A 27/100] voxel 10531 #1 done in 29s (91s total)
+  [A 28/100] voxel 16905 #1 done in 28s (92s total)
+  [A 29/100] voxel 17451 #0 done in 33s (99s total)
+  [A 30/100] voxel 17451 #1 done in 33s (102s total)
+  [A 31/100] voxel 24550 #0 done in 27s (109s total)
+  [A 32/100] voxel 24550 #1 done in 32s (117s total)
+  [A 33/100] voxel 1053 #0 done in 31s (118s total)
+  [A 34/100] voxel 14217 #0 done in 30s (119s total)
+  [A 35/100] voxel 18541 #0 done in 29s (120s total)
+  [A 36/100] voxel 18541 #1 done in 29s (121s total)
+  [A 37/100] voxel 14217 #1 done in 32s (122s total)
+  [A 38/100] voxel 1053 #1 done in 34s (122s total)
+  [A 39/100] voxel 3866 #0 done in 30s (129s total)
+  [A 40/100] voxel 3866 #1 done in 28s (130s total)
+  [A 41/100] voxel 2489 #0 done in 25s (134s total)
+  [A 42/100] voxel 9484 #0 done in 28s (145s total)
+  [A 43/100] voxel 2489 #1 done in 30s (147s total)
+  [A 44/100] voxel 970 #0 done in 29s (151s total)
+  [A 45/100] voxel 9484 #1 done in 32s (151s total)
+  [A 46/100] voxel 7109 #0 done in 32s (152s total)
+  [A 47/100] voxel 7109 #1 done in 32s (153s total)
+  [A 48/100] voxel 970 #1 done in 35s (157s total)
+  [A 49/100] voxel 19705 #1 done in 27s (157s total)
+  [A 50/100] voxel 19705 #0 done in 33s (162s total)
+  [A 51/100] voxel 9001 #0 done in 29s (163s total)
+  [A 52/100] voxel 9001 #1 done in 24s (170s total)
+  [A 53/100] voxel 13074 #0 done in 25s (172s total)
+  [A 54/100] voxel 12213 #1 done in 25s (178s total)
+  [A 55/100] voxel 121 #0 done in 23s (180s total)
+  [A 56/100] voxel 12213 #0 done in 29s (181s total)
+  [A 57/100] voxel 13074 #1 done in 31s (182s total)
+  [A 58/100] voxel 14240 #0 done in 30s (183s total)
+  [A 59/100] voxel 13850 #0 done in 29s (192s total)
+  [A 60/100] voxel 14240 #1 done in 35s (192s total)
+  [A 61/100] voxel 121 #1 done in 34s (196s total)
+  [A 62/100] voxel 2347 #0 done in 25s (197s total)
+  [A 63/100] voxel 13850 #1 done in 31s (201s total)
+  [A 64/100] voxel 9150 #0 done in 28s (208s total)
+  [A 65/100] voxel 5384 #0 done in 28s (210s total)
+  [A 66/100] voxel 9150 #1 done in 30s (210s total)
+  [A 67/100] voxel 2347 #1 done in 35s (213s total)
+  [A 68/100] voxel 5384 #1 done in 30s (213s total)
+  [A 69/100] voxel 19089 #0 done in 26s (218s total)
+  [A 70/100] voxel 19089 #1 done in 30s (221s total)
+  [A 71/100] voxel 21741 #0 done in 32s (227s total)
+  [A 72/100] voxel 21741 #1 done in 31s (228s total)
+  [A 73/100] voxel 7723 #0 done in 30s (231s total)
+  [A 74/100] voxel 7723 #1 done in 26s (234s total)
+  [A 75/100] voxel 9421 #0 done in 29s (239s total)
+  [A 76/100] voxel 24474 #0 done in 29s (242s total)
+  [A 77/100] voxel 8383 #0 done in 26s (244s total)
+  [A 78/100] voxel 9421 #1 done in 34s (244s total)
+  [A 79/100] voxel 24474 #1 done in 34s (248s total)
+  [A 80/100] voxel 8383 #1 done in 30s (252s total)
+  [A 81/100] voxel 12695 #0 done in 30s (257s total)
+  [A 82/100] voxel 11143 #0 done in 28s (258s total)
+  [A 83/100] voxel 12695 #1 done in 32s (261s total)
+  [A 84/100] voxel 11143 #1 done in 28s (263s total)
+  [A 85/100] voxel 17771 #0 done in 27s (265s total)
+  [A 86/100] voxel 17771 #1 done in 27s (268s total)
+  [A 87/100] voxel 2943 #0 done in 28s (271s total)
+  [A 88/100] voxel 8787 #0 done in 29s (276s total)
+  [A 89/100] voxel 2943 #1 done in 33s (277s total)
+  [A 90/100] voxel 8787 #1 done in 26s (278s total)
+  [A 91/100] voxel 3424 #0 done in 30s (287s total)
+  [A 92/100] voxel 14578 #1 done in 26s (289s total)
+  [A 93/100] voxel 14578 #0 done in 29s (290s total)
+  [A 94/100] voxel 3424 #1 done in 32s (290s total)
+  [A 95/100] voxel 21750 #0 done in 29s (294s total)
+  [A 96/100] voxel 19118 #0 done in 23s (294s total)
+  [A 97/100] voxel 21750 #1 done in 31s (299s total)
+  [A 98/100] voxel 11774 #1 done in 25s (303s total)
+  [A 99/100] voxel 11774 #0 done in 26s (303s total)
+  [A 100/100] voxel 19118 #1 done in 27s (304s total)
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+experiment A finished; wall 304s
+saved /Users/sfli/Research/IceNine/icenine_py/benchmarks/toy_orientation_sweep/findoptimal_a_raw.npz
+experiment B: 500 tasks (0 cached), 10 workers
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+/Users/sfli/Research/IceNine/icenine_py/icenine/experiment_setup.py:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+  [B 1/500] voxel 7336 #9 done in 13s (15s total)
+  [B 2/500] voxel 7336 #8 done in 13s (16s total)
+  [B 3/500] voxel 7336 #7 done in 17s (20s total)
+  [B 4/500] voxel 7336 #6 done in 25s (27s total)
+  [B 5/500] voxel 7336 #5 done in 31s (33s total)
+  [B 6/500] voxel 7336 #4 done in 34s (37s total)
+  [B 7/500] voxel 7336 #3 done in 43s (45s total)
+  [B 8/500] voxel 3108 #4 done in 29s (62s total)
+  [B 9/500] voxel 3108 #6 done in 21s (66s total)
+  [B 10/500] voxel 3108 #5 done in 33s (70s total)
+  [B 11/500] voxel 7336 #2 done in 70s (72s total)
+  [B 12/500] voxel 3108 #3 done in 45s (72s total)
+  [B 13/500] voxel 3108 #2 done in 57s (77s total)
+  [B 14/500] voxel 3108 #8 done in 12s (79s total)
+  [B 15/500] voxel 3108 #7 done in 18s (80s total)
+  [B 16/500] voxel 3108 #9 done in 13s (83s total)
+  [B 17/500] voxel 7336 #1 done in 88s (91s total)
+  [B 18/500] voxel 7336 #0 done in 89s (91s total)
+  [B 19/500] voxel 3108 #0 done in 95s (110s total)
+  [B 20/500] voxel 3108 #1 done in 94s (110s total)
+  [B 21/500] voxel 2910 #7 done in 21s (112s total)
+  [B 22/500] voxel 2910 #6 done in 23s (114s total)
+  [B 23/500] voxel 2910 #5 done in 32s (114s total)
+  [B 24/500] voxel 2910 #4 done in 35s (115s total)
+  [B 25/500] voxel 2910 #3 done in 43s (122s total)
+  [B 26/500] voxel 2910 #9 done in 12s (122s total)
+  [B 27/500] voxel 2910 #8 done in 14s (124s total)
+  [B 28/500] voxel 2910 #2 done in 63s (140s total)
+  [B 29/500] voxel 16182 #6 done in 24s (148s total)
+  [B 30/500] voxel 16182 #3 done in 33s (148s total)
+  [B 31/500] voxel 16182 #5 done in 27s (149s total)
+  [B 32/500] voxel 16182 #4 done in 34s (156s total)
+  [B 33/500] voxel 16182 #7 done in 18s (158s total)
+  [B 34/500] voxel 16182 #9 done in 13s (161s total)
+  [B 35/500] voxel 16182 #8 done in 14s (162s total)
+  [B 36/500] voxel 2910 #1 done in 104s (176s total)
+  [B 37/500] voxel 16182 #2 done in 68s (182s total)
+  [B 38/500] voxel 2910 #0 done in 111s (183s total)
+  [B 39/500] voxel 16269 #3 done in 26s (187s total)
+  [B 40/500] voxel 16269 #4 done in 26s (188s total)
+  [B 41/500] voxel 16269 #5 done in 20s (197s total)
+  [B 42/500] voxel 16182 #0 done in 86s (198s total)
+  [B 43/500] voxel 16269 #7 done in 16s (199s total)
+  [B 44/500] voxel 16182 #1 done in 86s (200s total)
+  [B 45/500] voxel 16269 #9 done in 12s (200s total)
+  [B 46/500] voxel 16269 #2 done in 43s (201s total)
+  [B 47/500] voxel 16269 #8 done in 14s (201s total)
+  [B 48/500] voxel 16269 #0 done in 53s (203s total)
+  [B 49/500] voxel 16269 #6 done in 21s (204s total)
+  [B 50/500] voxel 16269 #1 done in 55s (211s total)
+  [B 51/500] voxel 21356 #7 done in 16s (219s total)
+  [B 52/500] voxel 21356 #8 done in 15s (219s total)
+  [B 53/500] voxel 21356 #6 done in 22s (223s total)
+  [B 54/500] voxel 21356 #9 done in 13s (225s total)
+  [B 55/500] voxel 21356 #3 done in 31s (231s total)
+  [B 56/500] voxel 21356 #5 done in 31s (232s total)
+  [B 57/500] voxel 21356 #4 done in 37s (238s total)
+  [B 58/500] voxel 20406 #4 done in 33s (264s total)
+  [B 59/500] voxel 20406 #6 done in 27s (265s total)
+  [B 60/500] voxel 20406 #5 done in 38s (270s total)
+  [B 61/500] voxel 21356 #2 done in 74s (273s total)
+  [B 62/500] voxel 20406 #3 done in 50s (275s total)
+  [B 63/500] voxel 20406 #7 done in 16s (280s total)
+  [B 64/500] voxel 20406 #8 done in 15s (280s total)
+  [B 65/500] voxel 20406 #9 done in 15s (284s total)
+  [B 66/500] voxel 20406 #2 done in 67s (290s total)
+  [B 67/500] voxel 20406 #0 done in 75s (293s total)
+  [B 68/500] voxel 21356 #1 done in 100s (298s total)
+  [B 69/500] voxel 21356 #0 done in 104s (300s total)
+  [B 70/500] voxel 20406 #1 done in 81s (300s total)
+  [B 71/500] voxel 20206 #3 done in 30s (310s total)
+  [B 72/500] voxel 20206 #9 done in 13s (313s total)
+  [B 73/500] voxel 20206 #6 done in 20s (313s total)
+  [B 74/500] voxel 20206 #8 done in 13s (314s total)
+  [B 75/500] voxel 20206 #7 done in 17s (315s total)
+  [B 76/500] voxel 20206 #4 done in 33s (317s total)
+  [B 77/500] voxel 20206 #5 done in 32s (322s total)
+  [B 78/500] voxel 20206 #2 done in 63s (343s total)
+  [B 79/500] voxel 3142 #6 done in 22s (344s total)
+  [B 80/500] voxel 3142 #4 done in 29s (344s total)
+  [B 81/500] voxel 3142 #3 done in 31s (344s total)
+  [B 82/500] voxel 3142 #5 done in 28s (345s total)
+  [B 83/500] voxel 20206 #0 done in 73s (345s total)
+  [B 84/500] voxel 20206 #1 done in 76s (351s total)
+  [B 85/500] voxel 3142 #8 done in 13s (357s total)
+  [B 86/500] voxel 3142 #9 done in 13s (357s total)
+  [B 87/500] voxel 3142 #2 done in 49s (363s total)
+  [B 88/500] voxel 3142 #7 done in 21s (364s total)
+  [B 89/500] voxel 3142 #1 done in 52s (365s total)
+  [B 90/500] voxel 3142 #0 done in 68s (378s total)
+  [B 91/500] voxel 20480 #8 done in 14s (379s total)
+  [B 92/500] voxel 20480 #3 done in 30s (382s total)
+  [B 93/500] voxel 20480 #6 done in 20s (382s total)
+  [B 94/500] voxel 20480 #7 done in 20s (384s total)
+  [B 95/500] voxel 20480 #4 done in 27s (385s total)
+  [B 96/500] voxel 20480 #5 done in 33s (390s total)
+  [B 97/500] voxel 20480 #2 done in 49s (394s total)
+  [B 98/500] voxel 20480 #9 done in 16s (394s total)
+  [B 99/500] voxel 20480 #1 done in 60s (405s total)
+  [B 100/500] voxel 2177 #7 done in 19s (413s total)
+  [B 101/500] voxel 20480 #0 done in 69s (414s total)
+  [B 102/500] voxel 2177 #5 done in 24s (414s total)
+  [B 103/500] voxel 2177 #4 done in 31s (416s total)
+  [B 104/500] voxel 2177 #6 done in 25s (419s total)
+  [B 105/500] voxel 2177 #8 done in 15s (420s total)
+  [B 106/500] voxel 2177 #3 done in 37s (422s total)
+  [B 107/500] voxel 2177 #9 done in 15s (428s total)
+  [B 108/500] voxel 2177 #2 done in 60s (443s total)
+  [B 109/500] voxel 2177 #1 done in 65s (447s total)
+  [B 110/500] voxel 13884 #6 done in 23s (451s total)
+  [B 111/500] voxel 2177 #0 done in 72s (451s total)
+  [B 112/500] voxel 13884 #4 done in 32s (452s total)
+  [B 113/500] voxel 13884 #5 done in 31s (453s total)
+  [B 114/500] voxel 13884 #7 done in 16s (459s total)
+  [B 115/500] voxel 13884 #3 done in 40s (460s total)
+  [B 116/500] voxel 13884 #8 done in 14s (461s total)
+  [B 117/500] voxel 13884 #9 done in 12s (463s total)
+  [B 118/500] voxel 13884 #2 done in 53s (469s total)
+  [B 119/500] voxel 10531 #6 done in 21s (484s total)
+  [B 120/500] voxel 10531 #7 done in 18s (487s total)
+  [B 121/500] voxel 13884 #0 done in 76s (489s total)
+  [B 122/500] voxel 13884 #1 done in 77s (491s total)
+  [B 123/500] voxel 10531 #5 done in 31s (492s total)
+  [B 124/500] voxel 10531 #8 done in 14s (498s total)
+  [B 125/500] voxel 10531 #9 done in 13s (501s total)
+  [B 126/500] voxel 10531 #4 done in 41s (501s total)
+  [B 127/500] voxel 10531 #3 done in 48s (507s total)
+  [B 128/500] voxel 16905 #6 done in 23s (529s total)
+  [B 129/500] voxel 16905 #4 done in 31s (532s total)
+  [B 130/500] voxel 16905 #3 done in 36s (534s total)
+  [B 131/500] voxel 16905 #5 done in 34s (535s total)
+  [B 132/500] voxel 10531 #2 done in 90s (543s total)
+  [B 133/500] voxel 10531 #1 done in 94s (546s total)
+  [B 134/500] voxel 16905 #9 done in 15s (549s total)
+  [B 135/500] voxel 16905 #8 done in 19s (550s total)
+  [B 136/500] voxel 16905 #7 done in 25s (554s total)
+  [B 137/500] voxel 10531 #0 done in 104s (555s total)
+  [B 138/500] voxel 16905 #2 done in 73s (565s total)
+  [B 139/500] voxel 16905 #0 done in 87s (576s total)
+  [B 140/500] voxel 17451 #6 done in 22s (577s total)
+  [B 141/500] voxel 17451 #4 done in 28s (578s total)
+  [B 142/500] voxel 16905 #1 done in 88s (578s total)
+  [B 143/500] voxel 17451 #5 done in 28s (582s total)
+  [B 144/500] voxel 17451 #7 done in 19s (583s total)
+  [B 145/500] voxel 17451 #3 done in 39s (589s total)
+  [B 146/500] voxel 17451 #9 done in 12s (590s total)
+  [B 147/500] voxel 17451 #8 done in 16s (592s total)
+  [B 148/500] voxel 17451 #2 done in 62s (607s total)
+  [B 149/500] voxel 17451 #0 done in 77s (612s total)
+  [B 150/500] voxel 17451 #1 done in 71s (615s total)
+  [B 151/500] voxel 24550 #5 done in 29s (619s total)
+  [B 152/500] voxel 24550 #6 done in 29s (621s total)
+  [B 153/500] voxel 24550 #3 done in 40s (624s total)
+  [B 154/500] voxel 24550 #4 done in 37s (625s total)
+  [B 155/500] voxel 24550 #7 done in 19s (626s total)
+  [B 156/500] voxel 24550 #9 done in 13s (628s total)
+  [B 157/500] voxel 24550 #8 done in 15s (628s total)
+  [B 158/500] voxel 24550 #2 done in 72s (654s total)
+  [B 159/500] voxel 1053 #6 done in 26s (654s total)
+  [B 160/500] voxel 24550 #1 done in 79s (658s total)
+  [B 161/500] voxel 1053 #5 done in 35s (663s total)
+  [B 162/500] voxel 1053 #4 done in 41s (667s total)
+  [B 163/500] voxel 1053 #3 done in 44s (669s total)
+  [B 164/500] voxel 1053 #8 done in 16s (671s total)
+  [B 165/500] voxel 24550 #0 done in 95s (673s total)
+  [B 166/500] voxel 1053 #9 done in 15s (673s total)
+  [B 167/500] voxel 1053 #7 done in 22s (676s total)
+  [B 168/500] voxel 14217 #6 done in 19s (695s total)
+  [B 169/500] voxel 1053 #2 done in 74s (698s total)
+  [B 170/500] voxel 1053 #1 done in 80s (701s total)
+  [B 171/500] voxel 14217 #4 done in 31s (704s total)
+  [B 172/500] voxel 1053 #0 done in 86s (705s total)
+  [B 173/500] voxel 14217 #3 done in 36s (707s total)
+  [B 174/500] voxel 14217 #5 done in 36s (709s total)
+  [B 175/500] voxel 14217 #7 done in 16s (712s total)
+  [B 176/500] voxel 14217 #8 done in 14s (712s total)
+  [B 177/500] voxel 14217 #9 done in 12s (714s total)
+  [B 178/500] voxel 14217 #2 done in 52s (721s total)
+  [B 179/500] voxel 18541 #6 done in 21s (735s total)
+  [B 180/500] voxel 14217 #0 done in 72s (735s total)
+  [B 181/500] voxel 18541 #3 done in 27s (736s total)
+  [B 182/500] voxel 18541 #4 done in 27s (739s total)
+  [B 183/500] voxel 18541 #7 done in 18s (739s total)
+  [B 184/500] voxel 18541 #5 done in 27s (739s total)
+  [B 185/500] voxel 18541 #9 done in 15s (750s total)
+  [B 186/500] voxel 18541 #8 done in 16s (751s total)
+  [B 187/500] voxel 14217 #1 done in 88s (755s total)
+  [B 188/500] voxel 18541 #2 done in 58s (765s total)
+  [B 189/500] voxel 18541 #1 done in 61s (766s total)
+  [B 190/500] voxel 18541 #0 done in 73s (777s total)
+  [B 191/500] voxel 3866 #5 done in 27s (778s total)
+  [B 192/500] voxel 3866 #8 done in 14s (779s total)
+  [B 193/500] voxel 3866 #4 done in 32s (781s total)
+  [B 194/500] voxel 3866 #7 done in 17s (782s total)
+  [B 195/500] voxel 3866 #6 done in 29s (783s total)
+  [B 196/500] voxel 3866 #3 done in 46s (785s total)
+  [B 197/500] voxel 3866 #9 done in 13s (790s total)
+  [B 198/500] voxel 3866 #2 done in 74s (813s total)
+  [B 199/500] voxel 2489 #5 done in 31s (816s total)
+  [B 200/500] voxel 2489 #4 done in 34s (817s total)
+  [B 201/500] voxel 2489 #6 done in 27s (818s total)
+  [B 202/500] voxel 2489 #3 done in 37s (819s total)
+  [B 203/500] voxel 2489 #9 done in 13s (831s total)
+  [B 204/500] voxel 2489 #8 done in 16s (831s total)
+  [B 205/500] voxel 3866 #1 done in 93s (832s total)
+  [B 206/500] voxel 2489 #7 done in 24s (837s total)
+  [B 207/500] voxel 3866 #0 done in 103s (839s total)
+  [B 208/500] voxel 2489 #2 done in 74s (855s total)
+  [B 209/500] voxel 9484 #6 done in 24s (863s total)
+  [B 210/500] voxel 9484 #4 done in 32s (864s total)
+  [B 211/500] voxel 2489 #1 done in 88s (867s total)
+  [B 212/500] voxel 9484 #5 done in 32s (868s total)
+  [B 213/500] voxel 9484 #3 done in 39s (871s total)
+  [B 214/500] voxel 9484 #7 done in 19s (873s total)
+  [B 215/500] voxel 9484 #9 done in 14s (877s total)
+  [B 216/500] voxel 9484 #8 done in 15s (878s total)
+  [B 217/500] voxel 2489 #0 done in 102s (880s total)
+  [B 218/500] voxel 9484 #2 done in 65s (896s total)
+  [B 219/500] voxel 7109 #6 done in 21s (901s total)
+  [B 220/500] voxel 9484 #0 done in 85s (903s total)
+  [B 221/500] voxel 9484 #1 done in 84s (904s total)
+  [B 222/500] voxel 7109 #5 done in 32s (910s total)
+  [B 223/500] voxel 7109 #4 done in 34s (911s total)
+  [B 224/500] voxel 7109 #8 done in 14s (915s total)
+  [B 225/500] voxel 7109 #7 done in 19s (915s total)
+  [B 226/500] voxel 7109 #9 done in 13s (917s total)
+  [B 227/500] voxel 7109 #3 done in 48s (922s total)
+  [B 228/500] voxel 970 #5 done in 28s (944s total)
+  [B 229/500] voxel 970 #4 done in 31s (946s total)
+  [B 230/500] voxel 970 #6 done in 25s (947s total)
+  [B 231/500] voxel 7109 #2 done in 78s (949s total)
+  [B 232/500] voxel 970 #3 done in 35s (949s total)
+  [B 233/500] voxel 7109 #1 done in 89s (957s total)
+  [B 234/500] voxel 970 #9 done in 14s (961s total)
+  [B 235/500] voxel 970 #7 done in 18s (962s total)
+  [B 236/500] voxel 970 #8 done in 16s (962s total)
+  [B 237/500] voxel 970 #2 done in 51s (963s total)
+  [B 238/500] voxel 7109 #0 done in 96s (963s total)
+  [B 239/500] voxel 970 #0 done in 67s (971s total)
+  [B 240/500] voxel 970 #1 done in 63s (973s total)
+  [B 241/500] voxel 19705 #6 done in 23s (985s total)
+  [B 242/500] voxel 19705 #9 done in 13s (986s total)
+  [B 243/500] voxel 19705 #8 done in 16s (987s total)
+  [B 244/500] voxel 19705 #7 done in 24s (987s total)
+  [B 245/500] voxel 19705 #5 done in 38s (1000s total)
+  [B 246/500] voxel 19705 #4 done in 49s (1011s total)
+  [B 247/500] voxel 19705 #3 done in 50s (1011s total)
+  [B 248/500] voxel 19705 #1 done in 75s (1024s total)
+  [B 249/500] voxel 9001 #4 done in 27s (1027s total)
+  [B 250/500] voxel 9001 #3 done in 43s (1030s total)
+  [B 251/500] voxel 19705 #0 done in 85s (1034s total)
+  [B 252/500] voxel 9001 #6 done in 25s (1036s total)
+  [B 253/500] voxel 9001 #9 done in 11s (1041s total)
+  [B 254/500] voxel 9001 #8 done in 15s (1042s total)
+  [B 255/500] voxel 9001 #5 done in 33s (1044s total)
+  [B 256/500] voxel 19705 #2 done in 87s (1044s total)
+  [B 257/500] voxel 9001 #7 done in 23s (1047s total)
+  [B 258/500] voxel 13074 #4 done in 23s (1067s total)
+  [B 259/500] voxel 9001 #2 done in 82s (1069s total)
+  [B 260/500] voxel 13074 #6 done in 24s (1071s total)
+  [B 261/500] voxel 13074 #5 done in 29s (1072s total)
+  [B 262/500] voxel 13074 #3 done in 32s (1074s total)
+  [B 263/500] voxel 9001 #1 done in 96s (1082s total)
+  [B 264/500] voxel 13074 #8 done in 13s (1082s total)
+  [B 265/500] voxel 9001 #0 done in 97s (1083s total)
+  [B 266/500] voxel 13074 #7 done in 17s (1083s total)
+  [B 267/500] voxel 13074 #9 done in 12s (1083s total)
+  [B 268/500] voxel 13074 #2 done in 50s (1091s total)
+  [B 269/500] voxel 13074 #0 done in 63s (1097s total)
+  [B 270/500] voxel 13074 #1 done in 63s (1100s total)
+  [B 271/500] voxel 12213 #6 done in 21s (1104s total)
+  [B 272/500] voxel 12213 #7 done in 17s (1108s total)
+  [B 273/500] voxel 12213 #5 done in 26s (1109s total)
+  [B 274/500] voxel 12213 #8 done in 14s (1111s total)
+  [B 275/500] voxel 12213 #9 done in 12s (1112s total)
+  [B 276/500] voxel 12213 #3 done in 32s (1114s total)
+  [B 277/500] voxel 12213 #4 done in 32s (1115s total)
+  [B 278/500] voxel 14240 #6 done in 23s (1137s total)
+  [B 279/500] voxel 14240 #4 done in 31s (1143s total)
+  [B 280/500] voxel 12213 #2 done in 67s (1149s total)
+  [B 281/500] voxel 14240 #5 done in 36s (1150s total)
+  [B 282/500] voxel 14240 #7 done in 18s (1155s total)
+  [B 283/500] voxel 14240 #8 done in 14s (1157s total)
+  [B 284/500] voxel 14240 #9 done in 11s (1160s total)
+  [B 285/500] voxel 14240 #3 done in 51s (1162s total)
+  [B 286/500] voxel 12213 #1 done in 90s (1164s total)
+  [B 287/500] voxel 12213 #0 done in 93s (1165s total)
+  [B 288/500] voxel 14240 #2 done in 63s (1172s total)
+  [B 289/500] voxel 14240 #1 done in 70s (1178s total)
+  [B 290/500] voxel 121 #7 done in 19s (1190s total)
+  [B 291/500] voxel 121 #8 done in 14s (1192s total)
+  [B 292/500] voxel 121 #6 done in 27s (1192s total)
+  [B 293/500] voxel 121 #5 done in 30s (1194s total)
+  [B 294/500] voxel 121 #3 done in 35s (1195s total)
+  [B 295/500] voxel 121 #9 done in 12s (1203s total)
+  [B 296/500] voxel 14240 #0 done in 98s (1203s total)
+  [B 297/500] voxel 121 #4 done in 46s (1208s total)
+  [B 298/500] voxel 13850 #3 done in 30s (1225s total)
+  [B 299/500] voxel 121 #2 done in 69s (1225s total)
+  [B 300/500] voxel 13850 #5 done in 23s (1226s total)
+  [B 301/500] voxel 13850 #6 done in 19s (1227s total)
+  [B 302/500] voxel 13850 #4 done in 27s (1229s total)
+  [B 303/500] voxel 121 #0 done in 85s (1235s total)
+  [B 304/500] voxel 13850 #8 done in 13s (1239s total)
+  [B 305/500] voxel 13850 #9 done in 13s (1239s total)
+  [B 306/500] voxel 13850 #7 done in 15s (1239s total)
+  [B 307/500] voxel 13850 #2 done in 46s (1240s total)
+  [B 308/500] voxel 121 #1 done in 86s (1241s total)
+  [B 309/500] voxel 2347 #7 done in 17s (1258s total)
+  [B 310/500] voxel 2347 #6 done in 21s (1262s total)
+  [B 311/500] voxel 13850 #1 done in 70s (1262s total)
+  [B 312/500] voxel 13850 #0 done in 71s (1263s total)
+  [B 313/500] voxel 2347 #4 done in 24s (1263s total)
+  [B 314/500] voxel 2347 #5 done in 26s (1266s total)
+  [B 315/500] voxel 2347 #8 done in 14s (1272s total)
+  [B 316/500] voxel 2347 #9 done in 12s (1274s total)
+  [B 317/500] voxel 2347 #3 done in 45s (1283s total)
+  [B 318/500] voxel 2347 #2 done in 54s (1288s total)
+  [B 319/500] voxel 2347 #1 done in 65s (1295s total)
+  [B 320/500] voxel 9150 #4 done in 25s (1296s total)
+  [B 321/500] voxel 9150 #3 done in 32s (1297s total)
+  [B 322/500] voxel 9150 #6 done in 18s (1301s total)
+  [B 323/500] voxel 9150 #5 done in 28s (1302s total)
+  [B 324/500] voxel 9150 #7 done in 16s (1304s total)
+  [B 325/500] voxel 9150 #8 done in 13s (1307s total)
+  [B 326/500] voxel 9150 #9 done in 12s (1308s total)
+  [B 327/500] voxel 9150 #2 done in 48s (1312s total)
+  [B 328/500] voxel 2347 #0 done in 87s (1314s total)
+  [B 329/500] voxel 9150 #1 done in 63s (1326s total)
+  [B 330/500] voxel 9150 #0 done in 65s (1327s total)
+  [B 331/500] voxel 5384 #6 done in 20s (1332s total)
+  [B 332/500] voxel 5384 #7 done in 18s (1332s total)
+  [B 333/500] voxel 5384 #5 done in 29s (1337s total)
+  [B 334/500] voxel 5384 #3 done in 34s (1338s total)
+  [B 335/500] voxel 5384 #4 done in 31s (1338s total)
+  [B 336/500] voxel 5384 #9 done in 13s (1340s total)
+  [B 337/500] voxel 5384 #8 done in 14s (1340s total)
+  [B 338/500] voxel 5384 #2 done in 48s (1350s total)
+  [B 339/500] voxel 19089 #6 done in 21s (1361s total)
+  [B 340/500] voxel 5384 #0 done in 67s (1364s total)
+  [B 341/500] voxel 19089 #4 done in 28s (1366s total)
+  [B 342/500] voxel 19089 #7 done in 19s (1369s total)
+  [B 343/500] voxel 19089 #5 done in 30s (1369s total)
+  [B 344/500] voxel 19089 #8 done in 14s (1375s total)
+  [B 345/500] voxel 5384 #1 done in 74s (1376s total)
+  [B 346/500] voxel 19089 #9 done in 12s (1377s total)
+  [B 347/500] voxel 19089 #3 done in 48s (1385s total)
+  [B 348/500] voxel 19089 #2 done in 62s (1399s total)
+  [B 349/500] voxel 21741 #5 done in 29s (1406s total)
+  [B 350/500] voxel 21741 #3 done in 33s (1408s total)
+  [B 351/500] voxel 19089 #1 done in 78s (1410s total)
+  [B 352/500] voxel 21741 #6 done in 25s (1411s total)
+  [B 353/500] voxel 19089 #0 done in 82s (1414s total)
+  [B 354/500] voxel 21741 #4 done in 42s (1418s total)
+  [B 355/500] voxel 21741 #8 done in 14s (1420s total)
+  [B 356/500] voxel 21741 #9 done in 13s (1421s total)
+  [B 357/500] voxel 21741 #7 done in 23s (1422s total)
+  [B 358/500] voxel 21741 #2 done in 65s (1434s total)
+  [B 359/500] voxel 21741 #0 done in 79s (1446s total)
+  [B 360/500] voxel 7723 #4 done in 26s (1446s total)
+  [B 361/500] voxel 7723 #6 done in 24s (1446s total)
+  [B 362/500] voxel 7723 #7 done in 15s (1449s total)
+  [B 363/500] voxel 21741 #1 done in 81s (1450s total)
+  [B 364/500] voxel 7723 #5 done in 30s (1452s total)
+  [B 365/500] voxel 7723 #3 done in 41s (1458s total)
+  [B 366/500] voxel 7723 #9 done in 13s (1459s total)
+  [B 367/500] voxel 7723 #8 done in 13s (1459s total)
+  [B 368/500] voxel 7723 #2 done in 55s (1470s total)
+  [B 369/500] voxel 9421 #6 done in 22s (1481s total)
+  [B 370/500] voxel 7723 #1 done in 76s (1487s total)
+  [B 371/500] voxel 9421 #4 done in 29s (1487s total)
+  [B 372/500] voxel 9421 #7 done in 19s (1489s total)
+  [B 373/500] voxel 9421 #5 done in 32s (1490s total)
+  [B 374/500] voxel 7723 #0 done in 81s (1491s total)
+  [B 375/500] voxel 9421 #3 done in 39s (1491s total)
+  [B 376/500] voxel 9421 #8 done in 14s (1495s total)
+  [B 377/500] voxel 9421 #9 done in 12s (1499s total)
+  [B 378/500] voxel 9421 #2 done in 57s (1507s total)
+  [B 379/500] voxel 9421 #1 done in 65s (1514s total)
+  [B 380/500] voxel 24474 #6 done in 19s (1519s total)
+  [B 381/500] voxel 9421 #0 done in 74s (1520s total)
+  [B 382/500] voxel 24474 #7 done in 16s (1523s total)
+  [B 383/500] voxel 24474 #3 done in 32s (1523s total)
+  [B 384/500] voxel 24474 #4 done in 36s (1527s total)
+  [B 385/500] voxel 24474 #8 done in 13s (1528s total)
+  [B 386/500] voxel 24474 #9 done in 11s (1530s total)
+  [B 387/500] voxel 24474 #5 done in 38s (1534s total)
+  [B 388/500] voxel 24474 #2 done in 58s (1548s total)
+  [B 389/500] voxel 8383 #6 done in 17s (1550s total)
+  [B 390/500] voxel 8383 #4 done in 25s (1552s total)
+  [B 391/500] voxel 8383 #3 done in 31s (1558s total)
+  [B 392/500] voxel 8383 #5 done in 30s (1560s total)
+  [B 393/500] voxel 8383 #8 done in 13s (1564s total)
+  [B 394/500] voxel 24474 #1 done in 75s (1564s total)
+  [B 395/500] voxel 8383 #9 done in 12s (1564s total)
+  [B 396/500] voxel 8383 #7 done in 17s (1565s total)
+  [B 397/500] voxel 8383 #2 done in 51s (1574s total)
+  [B 398/500] voxel 24474 #0 done in 93s (1580s total)
+  [B 399/500] voxel 8383 #1 done in 62s (1584s total)
+  [B 400/500] voxel 8383 #0 done in 69s (1588s total)
+  [B 401/500] voxel 12695 #5 done in 26s (1590s total)
+  [B 402/500] voxel 12695 #4 done in 29s (1593s total)
+  [B 403/500] voxel 12695 #3 done in 33s (1597s total)
+  [B 404/500] voxel 12695 #6 done in 23s (1597s total)
+  [B 405/500] voxel 12695 #7 done in 18s (1598s total)
+  [B 406/500] voxel 12695 #8 done in 14s (1599s total)
+  [B 407/500] voxel 12695 #9 done in 13s (1601s total)
+  [B 408/500] voxel 12695 #2 done in 53s (1617s total)
+  [B 409/500] voxel 11143 #5 done in 21s (1620s total)
+  [B 410/500] voxel 11143 #6 done in 20s (1621s total)
+  [B 411/500] voxel 12695 #1 done in 66s (1626s total)
+  [B 412/500] voxel 11143 #3 done in 31s (1628s total)
+  [B 413/500] voxel 12695 #0 done in 70s (1629s total)
+  [B 414/500] voxel 11143 #7 done in 14s (1631s total)
+  [B 415/500] voxel 11143 #4 done in 35s (1633s total)
+  [B 416/500] voxel 11143 #8 done in 13s (1633s total)
+  [B 417/500] voxel 11143 #9 done in 12s (1634s total)
+  [B 418/500] voxel 17771 #6 done in 19s (1652s total)
+  [B 419/500] voxel 11143 #2 done in 58s (1655s total)
+  [B 420/500] voxel 17771 #4 done in 29s (1662s total)
+  [B 421/500] voxel 17771 #5 done in 33s (1667s total)
+  [B 422/500] voxel 17771 #3 done in 36s (1667s total)
+  [B 423/500] voxel 17771 #8 done in 12s (1667s total)
+  [B 424/500] voxel 17771 #7 done in 18s (1670s total)
+  [B 425/500] voxel 11143 #1 done in 81s (1674s total)
+  [B 426/500] voxel 17771 #9 done in 12s (1674s total)
+  [B 427/500] voxel 11143 #0 done in 84s (1674s total)
+  [B 428/500] voxel 17771 #2 done in 53s (1682s total)
+  [B 429/500] voxel 2943 #6 done in 19s (1694s total)
+  [B 430/500] voxel 2943 #7 done in 16s (1697s total)
+  [B 431/500] voxel 2943 #5 done in 25s (1699s total)
+  [B 432/500] voxel 17771 #0 done in 72s (1699s total)
+  [B 433/500] voxel 2943 #4 done in 28s (1702s total)
+  [B 434/500] voxel 2943 #3 done in 34s (1704s total)
+  [B 435/500] voxel 2943 #8 done in 13s (1707s total)
+  [B 436/500] voxel 17771 #1 done in 82s (1710s total)
+  [B 437/500] voxel 2943 #9 done in 12s (1710s total)
+  [B 438/500] voxel 2943 #2 done in 61s (1729s total)
+  [B 439/500] voxel 8787 #3 done in 27s (1731s total)
+  [B 440/500] voxel 8787 #5 done in 23s (1733s total)
+  [B 441/500] voxel 8787 #6 done in 24s (1733s total)
+  [B 442/500] voxel 8787 #4 done in 27s (1734s total)
+  [B 443/500] voxel 2943 #1 done in 73s (1740s total)
+  [B 444/500] voxel 8787 #9 done in 11s (1743s total)
+  [B 445/500] voxel 8787 #8 done in 13s (1743s total)
+  [B 446/500] voxel 8787 #7 done in 16s (1745s total)
+  [B 447/500] voxel 2943 #0 done in 83s (1749s total)
+  [B 448/500] voxel 8787 #2 done in 61s (1763s total)
+  [B 449/500] voxel 3424 #6 done in 16s (1765s total)
+  [B 450/500] voxel 8787 #1 done in 69s (1767s total)
+  [B 451/500] voxel 3424 #5 done in 25s (1769s total)
+  [B 452/500] voxel 3424 #4 done in 32s (1776s total)
+  [B 453/500] voxel 3424 #3 done in 34s (1778s total)
+  [B 454/500] voxel 3424 #8 done in 13s (1779s total)
+  [B 455/500] voxel 3424 #9 done in 13s (1780s total)
+  [B 456/500] voxel 3424 #7 done in 18s (1781s total)
+  [B 457/500] voxel 8787 #0 done in 83s (1782s total)
+  [B 458/500] voxel 3424 #2 done in 49s (1788s total)
+  [B 459/500] voxel 3424 #0 done in 66s (1799s total)
+  [B 460/500] voxel 3424 #1 done in 66s (1800s total)
+  [B 461/500] voxel 14578 #6 done in 21s (1803s total)
+  [B 462/500] voxel 14578 #7 done in 15s (1803s total)
+  [B 463/500] voxel 14578 #4 done in 26s (1806s total)
+  [B 464/500] voxel 14578 #5 done in 26s (1807s total)
+  [B 465/500] voxel 14578 #3 done in 32s (1811s total)
+  [B 466/500] voxel 14578 #8 done in 14s (1813s total)
+  [B 467/500] voxel 14578 #9 done in 12s (1813s total)
+  [B 468/500] voxel 14578 #2 done in 56s (1834s total)
+  [B 469/500] voxel 21750 #5 done in 24s (1837s total)
+  [B 470/500] voxel 14578 #1 done in 63s (1838s total)
+  [B 471/500] voxel 21750 #4 done in 30s (1841s total)
+  [B 472/500] voxel 21750 #6 done in 29s (1842s total)
+  [B 473/500] voxel 21750 #3 done in 36s (1843s total)
+  [B 474/500] voxel 14578 #0 done in 76s (1846s total)
+  [B 475/500] voxel 21750 #8 done in 12s (1849s total)
+  [B 476/500] voxel 21750 #9 done in 12s (1850s total)
+  [B 477/500] voxel 21750 #7 done in 16s (1850s total)
+  [B 478/500] voxel 21750 #2 done in 57s (1863s total)
+  [B 479/500] voxel 19118 #6 done in 18s (1868s total)
+  [B 480/500] voxel 19118 #5 done in 25s (1876s total)
+  [B 481/500] voxel 19118 #4 done in 28s (1876s total)
+  [B 482/500] voxel 19118 #3 done in 31s (1877s total)
+  [B 483/500] voxel 19118 #7 done in 15s (1879s total)
+  [B 484/500] voxel 19118 #8 done in 14s (1882s total)
+  [B 485/500] voxel 21750 #0 done in 82s (1884s total)
+  [B 486/500] voxel 19118 #9 done in 11s (1886s total)
+  [B 487/500] voxel 19118 #2 done in 45s (1888s total)
+  [B 488/500] voxel 21750 #1 done in 92s (1895s total)
+  [B 489/500] voxel 19118 #0 done in 59s (1899s total)
+  [B 490/500] voxel 19118 #1 done in 60s (1902s total)
+  [B 491/500] voxel 11774 #5 done in 22s (1909s total)
+  [B 492/500] voxel 11774 #4 done in 25s (1909s total)
+  [B 493/500] voxel 11774 #6 done in 23s (1911s total)
+  [B 494/500] voxel 11774 #7 done in 16s (1911s total)
+  [B 495/500] voxel 11774 #8 done in 13s (1912s total)
+  [B 496/500] voxel 11774 #9 done in 12s (1914s total)
+  [B 497/500] voxel 11774 #3 done in 35s (1917s total)
+  [B 498/500] voxel 11774 #2 done in 43s (1922s total)
+  [B 499/500] voxel 11774 #0 done in 55s (1932s total)
+  [B 500/500] voxel 11774 #1 done in 55s (1933s total)
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+experiment B finished; wall 1933s
+saved /Users/sfli/Research/IceNine/icenine_py/benchmarks/toy_orientation_sweep/findoptimal_b_raw.npz
