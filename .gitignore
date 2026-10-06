@@ -15,3 +15,6 @@ ExtLib
 *.a
 *.DS_Store
 *Examples/Example1.Sharp.Gen/
+# Local-only files (kept on disk, not tracked)
+/MicAnalyzer/
+/Examples/Example2.ThreeVoxels/ScatteringData_Q8/
