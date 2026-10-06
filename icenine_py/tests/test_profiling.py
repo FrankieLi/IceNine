@@ -155,3 +155,34 @@ def test_u0_verdict_rule_on_synthetic_numbers(pc):
     out2, _ = S.u0_verdicts(slow, t2)
     assert out2["e2 vs baseline"]["helps"] is False  # +15% time exceeds the 10% allowance
     assert out2["proxy+F1 vs F1b"]["helps"] is False  # slower than F1b
+
+
+def test_h1_case_is_bit_identical_with_and_without_the_patches(pc):
+    """One U1/U2 case (voxel 0, r = 0.5 deg, direction 0, both variants) of the H1 pipeline:
+    network stage + FindOptimal give the same orientation and evaluation count with the stage
+    wrappers installed and after they are uninstalled."""
+    sweep_raw = ROOT / "benchmarks" / "toy_orientation_sweep" / "perturbation_sweep_raw.npz"
+    model = ROOT / "scripts" / "toy_orientation_sweep_model_realistic_s0.pt"
+    if not sweep_raw.exists() or not model.exists():
+        pytest.skip("sweep raw / network not present")
+    import prof_seeded as SD
+
+    wargs, sweep = SD.NH.worker_args([SD.MODEL])
+    SD.init_worker(wargs)  # installs the wrappers
+    vidx = int(sweep["voxel_indices"][0])
+    item = (vidx, 0, 3, 0, [0], 0, sweep["n_roi"][0, 3], sweep["fail_pass1"][0, 3])
+    keep = SD.pipes_for
+    SD.pipes_for = lambda ri: ["H1"]
+    try:
+        with_patches = SD.run_task(item)
+        SD._S["I"].uninstall()
+        without = SD.run_task(item)
+    finally:
+        SD.pipes_for = keep
+        SD._S["T"].uninstall()
+    assert len(with_patches) == len(without) == 2
+    for a, b in zip(with_patches, without):
+        assert a["R_final"] == b["R_final"] and a["evals"] == b["evals"]
+        assert a["err"] == b["err"]
+    assert sum(a["stages"]["inclusive"].get("finisher", 0) for a in with_patches) > 0
+    assert all("find_optimal" not in b["stages"]["inclusive"] for b in without)  # patches gone

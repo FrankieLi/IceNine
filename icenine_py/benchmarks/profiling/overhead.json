@@ -1,0 +1,48 @@
+{
+ "isolation": {
+  "note": "overhead",
+  "time": "2026-10-06 11:45:48",
+  "loadavg": [
+   1.427734375,
+   1.37109375,
+   1.75146484375
+  ],
+  "power": "Now drawing from 'AC Power'",
+  "battery": "-InternalBattery-0 (id=23986275)\t100%; charged; 0:00 remaining present: true",
+  "thermal": "Note: No thermal warning level has been recorded | Note: No performance warning level has been recorded | Note: No CPU power status has been recorded",
+  "processes_over_5pct_cpu": [
+   "103.8% Code Helper (Plugin)"
+  ],
+  "OMP_NUM_THREADS": "1",
+  "MKL_NUM_THREADS": "1",
+  "torch_threads": 1,
+  "cpu": "Apple M2 Max",
+  "cores": "8 P + 4 E"
+ },
+ "per_call": {
+  "plain_s": 6.385239500000001e-08,
+  "wrapped_s": 1.7742317725e-06,
+  "overhead_s": 1.7103793775000002e-06,
+  "n": 400000
+ },
+ "paired": {
+  "walls": {
+   "plain": [
+    18.138113417,
+    18.09717254200001
+   ],
+   "wrapped": [
+    18.337661083,
+    18.358627667,
+    18.35092812500001
+   ]
+  },
+  "evaluate_calls": 47394,
+  "voxel": 7336,
+  "variant": "clean",
+  "median_plain_s": 18.117642979500005,
+  "median_wrapped_s": 18.35092812500001,
+  "wrapped_over_plain": 1.0128761310598717
+ },
+ "share_of_run_from_per_call": 0.00447418686354267
+}

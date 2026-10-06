@@ -46,6 +46,7 @@ U0_ROW3 = {
 }
 TOL_MED = 0.005  # "median error within +0.005 deg"
 FALLBACK = "H0+fallback"
+HG_RI = {6, 7, 8, 9}  # radii at which HG is run (1.5, 2, 3, 5 deg)
 
 
 def f3(x: float) -> str:
@@ -179,11 +180,14 @@ def u0_tables(recs: List[Dict[str, Any]], t2: Dict[str, Any]) -> Tuple[Dict[str,
                 f"{ident:>3d}/{len(rp):<4d}"
             )
         sp = rep_spread([r for r in rv], ("vidx", "pipe"), tval)
-        lines.append(
-            f"  repeats (3 x on {sp['n_cases'] // len(U0_PIPES)} voxels): per-case "
-            f"(max-min)/median of the 3 timings: median {fr(sp['median'])}, "
-            f"90th pct {fr(sp['p90'])}"
-        )
+        if sp["n_cases"]:
+            lines.append(
+                f"  repeats (3 x on {sp['n_cases'] // len(U0_PIPES)} voxels): per-case "
+                f"(max-min)/median of the 3 timings: median {fr(sp['median'])}, "
+                f"90th pct {fr(sp['p90'])}"
+            )
+        else:
+            lines.append("  no repeats (realistic)")
         res[var]["repeat_spread"] = sp
         # accuracy of this subset vs the 200-voxel run of Task 2
         lines.append("  accuracy on these voxels vs the 200-voxel runs of Task 2 (wrong rate):")
@@ -310,6 +314,7 @@ def seeded_tables(
     rep0 = {tuple(r[k] for k in key): r for r in recs if r["rep"] == 0}
     errs = {k: r["err"] for k, r in rep0.items()}
     fb = {k: r["fallback"] for k, r in rep0.items()}
+    _STORE.update(tprod=tprod, full=full)
 
     def sel(pipe: str, var: str, ris: Sequence[int], d: Dict[Tuple, float]) -> List[float]:
         return [v for k, v in d.items() if k[4] == pipe and k[3] == var and k[1] in ris]
@@ -465,31 +470,113 @@ def seeded_tables(
     return res, lines
 
 
+_STORE: Dict[str, Any] = {}
+
+
+def band_info(pipe: str, var: str, ris: Sequence[int]) -> Dict[str, Any]:
+    """Timing statistics (this study) and full-run accuracy (Task 1) of a pipeline over radii."""
+    vals = [v for k, v in _STORE["tprod"].items() if k[4] == pipe and k[3] == var and k[1] in ris]
+    full = _STORE["full"].stats_band(pipe, ris, VARIANTS.index(var))
+    return dict(time=tstat(vals), full=full)
+
+
+def u2_eval(
+    p: str, var: str, ris: Sequence[int], u0: Dict[str, Any], t2: Dict[str, Any]
+) -> Dict[str, Any]:
+    """The plan's U2 rule for one NN pipeline, variant and radius set. Times are MEANS per case
+    for the pipeline, H0 and the fallbacks (H0 + fallback = mean H0 time + H0's wrong rate x the
+    mean time of the fallback pipeline, with an ideal trigger). Fallbacks: the baseline
+    reconstruction (symmetry-agnostic) and F1b (cubic-specific, Task 2 seed-0 accuracy)."""
+    b, h = band_info(p, var, ris), band_info("H0", var, ris)
+    fp, f0 = b["full"], h["full"]
+    p0, n0 = f0["wrong"], f0["n"]
+    t_p, t_h0 = b["time"]["mean"], h["time"]["mean"]
+    t_full = u0[var]["baseline"]["time"]["mean"]
+    t_f1b = u0[var]["F1b"]["time"]["mean"]
+    full_row, f1b_row = _t2_row(t2, var, "baseline"), _t2_row(t2, var, "F1b")
+    w_fb, w_fb2 = p0 * full_row["rate"], p0 * f1b_row["rate"]
+    hi_fb = wilson(int(round(w_fb * n0)), n0)[2]
+    hi_fb2 = wilson(int(round(w_fb2 * n0)), n0)[2]
+    opts = {
+        "H0": (f0["wrong"], f0["wrong_hi"], f0["median"]),
+        "full reconstruction": (full_row["rate"], full_row["hi"], full_row["median_err_right"]),
+        FALLBACK: (w_fb, hi_fb, f0["median"]),
+        "H0 + F1b fallback (cubic)": (w_fb2, hi_fb2, f0["median"]),
+    }
+    cubic = "H0 + F1b fallback (cubic)"
+    agn = {k: v for k, v in opts.items() if k != cubic}
+
+    def judge(o: Dict[str, Any], sp: float) -> Tuple[str, bool, bool, bool]:
+        best_ = min(o, key=lambda k: o[k][0])
+        m_ = fp["wrong"] <= o[best_][1] and fp["median"] <= o[best_][2] + TOL_MED
+        a_ = bool(m_ and sp >= 1.5)
+        only_ = bool(fp["wrong"] <= 0.01 and all(v[0] > 0.01 for v in o.values()))
+        return best_, bool(m_), a_, only_
+
+    t_fb, t_fb2 = t_h0 + p0 * t_full, t_h0 + p0 * t_f1b
+    sp1, sp2 = t_fb / t_p, t_fb2 / t_p
+    # symmetry-agnostic comparators (H0, full reconstruction, H0 + baseline fallback) ...
+    best, matched, a, only = judge(agn, sp1)
+    # ... and with the cubic-specific H0 + F1b fallback added (faster must hold against both)
+    best_c, matched_c, a_c, only_c = judge(opts, min(sp1, sp2))
+    return dict(
+        helps=bool(a or only), a=a, only=only, matched=bool(matched), best=best, t_p=t_p,
+        helps_cubic=bool(a_c or only_c), a_cubic=a_c, only_cubic=only_c,
+        matched_cubic=matched_c, best_cubic=best_c,
+        t_h0=t_h0, t_fb=t_fb, t_fb2=t_fb2, speed_fb=sp1, speed_fb_f1b=sp2,
+        speedup_full=t_full / t_p, wrong=fp["wrong"], wrong_lo=fp["wrong_lo"],
+        wrong_hi=fp["wrong_hi"], median=fp["median"], h0_wrong=p0, h0_median=f0["median"],
+        w_fb=w_fb, w_fb2=w_fb2, t_full=t_full, full_wrong=full_row["rate"],
+    )  # fmt: skip
+
+
+def u2_line(p: str, var: str, e: Dict[str, Any]) -> str:
+    return (
+        f"{VAR_NAME[var]}: {p} mean {f3(e['t_p'])} s, wrong {fr(e['wrong'])} "
+        f"[{fr(e['wrong_lo'])}, {fr(e['wrong_hi'])}], med err {f3(e['median'])}; H0 mean "
+        f"{f3(e['t_h0'])} s wrong {fr(e['h0_wrong'])}; H0+fallback (ideal trigger, baseline "
+        f"reconstruction {f3(e['t_full'])} s) {f3(e['t_fb'])} s wrong {fr(e['w_fb'])}; "
+        f"H0+F1b fallback {f3(e['t_fb2'])} s wrong {fr(e['w_fb2'])}; full reconstruction wrong "
+        f"{fr(e['full_wrong'])}; best non-NN option {e['best']}; matched {e['matched']}; "
+        f"{f3(e['speed_fb'])}x faster than H0+fallback, {f3(e['speed_fb_f1b'])}x than H0+F1b "
+        f"fallback; symmetry-agnostic comparators: best {e['best']}, matched {e['matched']}, (a) "
+        f"{e['a']}, only <=1% {e['only']} -> {e['helps']}; with the cubic F1b fallback: best "
+        f"{e['best_cubic']}, matched {e['matched_cubic']}, (a) {e['a_cubic']}, only <=1% "
+        f"{e['only_cubic']} -> {e['helps_cubic']}; speed-up vs full "
+        f"reconstruction {f3(e['speedup_full'])}x"
+    )
+
+
 def seeded_verdicts(
     res: Dict[str, Any], u0: Dict[str, Any], t2: Dict[str, Any]
 ) -> Tuple[Dict[str, Any], List[str]]:
     out: Dict[str, Any] = {}
     lines: List[str] = ["-- U1 / U2 verdicts --"]
-    # U1: helps only if it beats H0 on time AND accuracy
+    # U1: helps only if it beats H0 on time AND accuracy. The plan does not define "beats on
+    # accuracy"; the rule used here has a 0.002 deg tie (as the paired win rates of Task 1) or
+    # non-overlapping wrong-rate intervals; the literal reading (any lower median) is also given.
     for p in ("H1", "H3"):
-        ok_v, parts = [], []
+        ok_v, lit_v, parts = [], [], []
         for var in VARIANTS:
             b = res["bands"]["U1 (r 0.05, 0.1)"][var]
             tp, t0 = b[p]["time"]["median"], b["H0"]["time"]["median"]
             fp, f0 = b[p]["full"], b["H0"]["full"]
             acc = (fp["median"] < f0["median"] - 0.002) or (fp["wrong_hi"] < f0["wrong_lo"])
+            lit = (fp["median"] < f0["median"]) or (fp["wrong_hi"] < f0["wrong_lo"])
             ok = bool(tp < t0 and acc)
             ok_v.append(ok)
+            lit_v.append(bool(tp < t0 and lit))
             parts.append(
                 f"{VAR_NAME[var]}: time {f3(tp)} vs {f3(t0)} s ({100 * (tp / t0 - 1):+.1f}%), "
                 f"full-run median err {f3(fp['median'])} vs {f3(f0['median'])}, wrong "
-                f"{fr(fp['wrong'])} vs {fr(f0['wrong'])}; beats on accuracy {acc}, on time "
-                f"{tp < t0} -> {ok}"
+                f"{fr(fp['wrong'])} vs {fr(f0['wrong'])}; beats on accuracy (0.002 deg tie) "
+                f"{acc}, literal {lit}, on time {tp < t0} -> {ok}"
             )
-        out[f"U1 {p} vs H0"] = dict(helps=all(ok_v))
-        lines.append(f"  U1 {p} vs H0: helps = {all(ok_v)}")
+        out[f"U1 {p} vs H0"] = dict(helps=all(ok_v), helps_literal=all(lit_v))
+        lines.append(
+            f"  U1 {p} vs H0: helps = {all(ok_v)} (literal rule without the tie: {all(lit_v)})"
+        )
         lines += [f"      {s}" for s in parts]
-    # MC told r for reference
     for var in VARIANTS:
         b = res["bands"]["U1 (r 0.05, 0.1)"][var]
         lines.append(
@@ -497,74 +584,63 @@ def seeded_verdicts(
             f"full-run median err {f3(b['MCr']['full']['median'])}; "
             f"H0 {f3(b['H0']['time']['median'])} s)"
         )
-    # U2
-    full_t = {var: u0[var]["baseline"]["time"]["median"] for var in VARIANTS}
-    full_w = {var: _t2_row(t2, var, "baseline") for var in VARIANTS}
+    # U2: pooled bands (means) and every radius
     out["U2"] = {}
-    for band in ("U2 (r 0.5 .. 3)", "U2 stress (r 5)"):
+    sets = [
+        ("U2 (r 0.5 .. 3)", ("H1", "H3"), [3, 4, 5, 6, 7, 8]),
+        ("U2 HG band (r 1.5 .. 3)", ("HG",), [6, 7, 8]),
+        ("U2 stress (r 5)", ("H1", "H3", "HG"), [9]),
+    ]
+    for label, pp, ris in sets:
+        for p in pp:
+            ev = {var: u2_eval(p, var, ris, u0, t2) for var in VARIANTS}
+            out["U2"].setdefault(label, {})[p] = dict(
+                ev,
+                helps_overall=all(e["helps"] for e in ev.values()),
+                helps_overall_cubic=all(e["helps_cubic"] for e in ev.values()),
+            )
+            lines.append(
+                f"  {label} {p}: helps = {out['U2'][label][p]['helps_overall']} "
+                f"(with the cubic F1b fallback: {out['U2'][label][p]['helps_overall_cubic']})"
+            )
+            lines += [f"      {u2_line(p, v, e)}" for v, e in ev.items()]
+    lines.append("  per radius (mean times; helps needs both variants):")
+    for ri in range(3, 10):
         for p in ("H1", "H3", "HG"):
-            if p not in res["bands"][band]["clean"]:
+            if p == "HG" and ri not in HG_RI:
                 continue
-            ok_v, parts = [], []
-            for var in VARIANTS:
-                b = res["bands"][band][var]
-                fp, f0 = b[p]["full"], b["H0"]["full"]
-                p0 = f0["wrong"]
-                t_h0 = b["H0"]["time"]["median"]
-                t_fb = t_h0 + p0 * full_t[var]  # ideal trigger: fall back exactly when H0 is wrong
-                w_fb = p0 * full_w[var]["rate"]  # fallback answer = a full reconstruction
-                k_fb = int(round(w_fb * f0["n"]))
-                _, lo_fb, hi_fb = wilson(k_fb, f0["n"])
-                opts = {
-                    "H0": (f0["wrong"], f0["wrong_hi"], f0["median"], t_h0),
-                    "full reconstruction": (
-                        full_w[var]["rate"],
-                        full_w[var]["hi"],
-                        full_w[var]["median_err_right"],
-                        full_t[var],
-                    ),
-                    FALLBACK: (w_fb, hi_fb, f0["median"], t_fb),
-                }
-                best = min(opts, key=lambda o: opts[o][0])
-                bw, bhi, bmed, _ = opts[best]
-                matched = fp["wrong"] <= bhi and fp["median"] <= bmed + TOL_MED
-                tp = b[p]["time"]["median"]
-                speed = t_fb / tp
-                a = matched and speed >= 1.5
-                only = fp["wrong"] <= 0.01 and all(o[0] > 0.01 for o in opts.values())
-                ok = bool(a or only)
-                ok_v.append(ok)
-                parts.append(
-                    f"{VAR_NAME[var]}: {p} time {f3(tp)} s, wrong {fr(fp['wrong'])} "
-                    f"[{fr(fp['wrong_lo'])}, {fr(fp['wrong_hi'])}], med err {f3(fp['median'])}; "
-                    f"H0 {f3(t_h0)} s wrong {fr(f0['wrong'])}; H0+fallback (ideal trigger) "
-                    f"{f3(t_fb)} s wrong {fr(w_fb)}; full reconstruction {f3(full_t[var])} s "
-                    f"wrong {fr(full_w[var]['rate'])}; best non-NN option {best}; "
-                    f"matched {matched}, "
-                    f"{f3(speed)}x faster than H0+fallback; (a) {a}, only <=1% {only} -> {ok}; "
-                    f"speed-up vs full reconstruction {f3(full_t[var] / tp)}x"
-                )
-                out["U2"].setdefault(band, {}).setdefault(p, {})[var] = dict(
-                    helps=ok,
-                    speed_vs_h0_fallback=speed,
-                    speedup_vs_full=full_t[var] / tp,
-                    matched=bool(matched),
-                    only_le_1pct=bool(only),
-                    best_non_nn=best,
-                )
-            lines.append(f"  {band} {p}: helps = {all(ok_v)}")
-            lines += [f"      {s}" for s in parts]
-            out["U2"][band][p]["helps_overall"] = all(ok_v)
-    # per radius within U2 (informational): where does each NN pipeline reach <= 1% wrong and
-    # what is its speed-up vs H0 + fallback and vs full reconstruction
-    lines.append("  per radius, realistic data (speed-up vs the full reconstruction in brackets):")
-    for ri in (3, 4, 5, 6, 7, 8, 9):
-        cells = []
-        for p in ("H0", "H1", "H3", "HG", "MCr"):
-            t = res["per_radius"][str(RADII[ri])].get(p)
-            if t and t["n"]:
-                cells.append(f"{p} {f3(t['median'])}s")
-        lines.append(f"    r={RADII[ri]:g}: " + ", ".join(cells))
+            ev = {var: u2_eval(p, var, [ri], u0, t2) for var in VARIANTS}
+            out["U2"].setdefault(f"r={RADII[ri]:g}", {})[p] = dict(
+                ev,
+                helps_overall=all(e["helps"] for e in ev.values()),
+                helps_overall_cubic=all(e["helps_cubic"] for e in ev.values()),
+            )
+            c, r_ = ev["clean"], ev["all"]
+            lines.append(
+                f"    r={RADII[ri]:g} {p}: helps "
+                f"{out['U2'][f'r={RADII[ri]:g}'][p]['helps_overall']} "
+                f"(cubic fallback {out['U2'][f'r={RADII[ri]:g}'][p]['helps_overall_cubic']})"
+                f"; mean time clean/realistic {f3(c['t_p'])}/{f3(r_['t_p'])} s vs H0+fallback "
+                f"{f3(c['t_fb'])}/{f3(r_['t_fb'])} s ({f3(c['speed_fb'])}x/{f3(r_['speed_fb'])}x), "
+                f"vs H0+F1b fallback {f3(c['t_fb2'])}/{f3(r_['t_fb2'])} s "
+                f"({f3(c['speed_fb_f1b'])}x/{f3(r_['speed_fb_f1b'])}x); wrong {fr(c['wrong'])}/"
+                f"{fr(r_['wrong'])} vs H0 {fr(c['h0_wrong'])}/{fr(r_['h0_wrong'])}, "
+                f"H0+fallback {fr(c['w_fb'])}/{fr(r_['w_fb'])}; speed-up vs full reconstruction "
+                f"{f3(c['speedup_full'])}x/{f3(r_['speedup_full'])}x"
+            )
+    lines.append(
+        "  per radius, mean production seconds per case [speed-up vs the full reconstruction]:"
+    )
+    for var in VARIANTS:
+        t_full = u0[var]["baseline"]["time"]["mean"]
+        lines.append(f"    {VAR_NAME[var]} (full reconstruction mean {f3(t_full)} s)")
+        for ri in range(3, 10):
+            cells = []
+            for p in ("H0", "H1", "H3", "HG", "MCr"):
+                t = band_info(p, var, [ri])["time"]
+                if t["n"]:
+                    cells.append(f"{p} {f3(t['mean'])} s [{f3(t_full / t['mean'])}x]")
+            lines.append(f"      r={RADII[ri]:g}: " + ", ".join(cells))
     return out, lines
 
 
@@ -740,6 +816,25 @@ def profiler_lines() -> Tuple[Dict[str, Any], List[str]]:
                     f"      max |MPS - CPU| mean {row['max_abs_diff_mean_deg']:.2e} deg, "
                     f"chol {row['max_abs_diff_chol']:.2e}"
                 )
+            if "mps_resident" in row:
+                c1 = row["cpu_1thread"]["median"]
+                lines.append(
+                    f"      MPS speed-up over CPU 1 thread: resident "
+                    f"{f3(c1 / row['mps_resident']['median'])}x, with transfer "
+                    f"{f3(c1 / row['mps_with_transfer']['median'])}x"
+                )
+    p = OUT / "overhead.json"
+    if p.exists():
+        d = json.loads(p.read_text())
+        out["overhead"] = d
+        lines.append(
+            f"  stage-wrapper overhead: "
+            f"{d['per_call']['overhead_s'] * 1e6:.2f} us per evaluate call "
+            f"({d['paired']['evaluate_calls']} calls in a baseline run = "
+            f"{100 * d['share_of_run_from_per_call']:.2f}% of it); paired plain vs wrapped run "
+            f"of voxel {d['paired']['voxel']}: {d['paired']['median_plain_s']:.2f} vs "
+            f"{d['paired']['median_wrapped_s']:.2f} s (x{d['paired']['wrapped_over_plain']:.4f})"
+        )
     p = OUT / "torch_profiler_net.txt"
     if p.exists():
         txt = p.read_text().splitlines()
