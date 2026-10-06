@@ -1,0 +1,44 @@
+{
+ "q_levels": [
+  3.015,
+  3.481,
+  4.923,
+  5.773,
+  6.029,
+  6.962,
+  7.587,
+  7.784
+ ],
+ "reflections_per_family": [
+  8,
+  6,
+  12,
+  24,
+  8,
+  6,
+  24,
+  24
+ ],
+ "n_reflections": 112,
+ "per_cutoff": {
+  "3": {
+   "families": [],
+   "n_reflections": 0
+  },
+  "4": {
+   "families": [
+    0,
+    1
+   ],
+   "n_reflections": 14
+  },
+  "5": {
+   "families": [
+    0,
+    1,
+    2
+   ],
+   "n_reflections": 26
+  }
+ }
+}

@@ -1,6 +1,6 @@
 ---
 title: "TODO: a high-Q_max cost proxy and cheap candidate de-duplication for the coarse search"
-subtitle: "Two ideas raised after the FindOptimal robustness study (2026-10-06); not started"
+subtitle: "Two ideas raised after the FindOptimal robustness study (2026-10-06); Idea 1 evaluated 2026-10-06, Idea 2 not started"
 date: "2026-10-06"
 geometry: margin=1in
 fontsize: 11pt
@@ -8,11 +8,17 @@ fontsize: 11pt
 
 # Status
 
-**Ideas, not started.** Raised by the project owner after the FindOptimal robustness study
-(`docs/findoptimal_robustness_report.md`, `MIGRATION_HISTORY.md` "FindOptimal robustness — wrong
-candidates and CSL traps"). Both target the stage where that study found the truth is lost: the
-coarse levels of `AdaptiveVoxelReconstructor.reconstruct_voxel`, where 83–88% of wrong runs had a
-truth-basin candidate that was then pruned (S2).
+**Idea 1 (Q_max proxy): evaluated** (2026-10-06, `scripts/coarse_proxy/`, `benchmarks/coarse_proxy/`,
+`MIGRATION_HISTORY.md` "Task 2 results"). Outcome in one line: a proxy from a one-pass low-Q_max
+feature table plus the free post-quick-MC Q_max-8 cost ranks the coarse candidates clearly better
+than the cost alone, and is cheaper per candidate than the E2 full-pass classifier, but as the
+pruning key it was NOT as accurate end to end (wrong rate 6.5% / 7.5% against E2 rerank 4.0% /
+4.5%); the numbers and what is untested are in the Task 2 results. **Idea 2 (de-duplication): not
+started.** Both ideas target the stage where the FindOptimal robustness study found the truth is
+lost: the coarse levels of `AdaptiveVoxelReconstructor.reconstruct_voxel`, where 83-88% of wrong
+runs had a truth-basin candidate that was then pruned (S2). Raised by the project owner after
+that study (`docs/findoptimal_robustness_report.md`, `MIGRATION_HISTORY.md` "FindOptimal
+robustness — wrong candidates and CSL traps").
 
 # Idea 1: a proxy that predicts the Q_max = 8 score from a cheap low-Q_max evaluation
 
@@ -52,6 +58,17 @@ current ranking logic and is easier to sanity-check.
 **Risks.** The mapping depends on structure (copper FCC here), Q_max, detector geometry and realism
 (noise, overlap); the E2 classifier lost final-choice precision when trained on clean data and
 tested on realistic data (0.83). Train with realistic data and hold out by grain.
+
+**Result (2026-10-06, `MIGRATION_HISTORY.md` "Task 2 results").** Q_max = 3 holds no reflection;
+Q4 = {111}, {200} (14 reflections), Q5 adds {220} (26 of 112). Offline (grain-disjoint folds,
+pruning recall at keep 1/4, levels 0-2): raw cost 0.900, raw Q5 cost 0.804, untrained hit-rate key
+0.953, F-lowQ Q5 0.962, F-lowQ Q5 plus the free post-quick-MC Q8 cost 0.977 (regression on the
+basin cost; a classifier gives the same), E2 full pass 0.985. End to end (200 voxels x 2 variants,
+seed 0): proxy rerank 6.5% / 7.5% wrong (clean / realistic) against 33.5% / 26.0% for the baseline
+and 4.0% / 4.5% for the E2 rerank; proxy + F1 0.0% / 2.0% at about F1's evaluations (3 seeds: 0.0% / 1.5% against F1's 3.5% / 3.3%). Cost: one
+low-Q pass is 2.9 and the E2 pass 4.2 Q8-local-evaluation equivalents (1.52 ms vs 2.19 ms; Python
+overhead dominates); inside `rank_key` the E2 pass's Q8 local cost is free, so a deployable E2 is
+about 3.2 equivalents and the proxy's advantage about 1.1x. Keep 1/8 was not run (offline recall 0.963 < 0.98).
 
 # Idea 2: low-cost clustering of N candidate orientations to remove duplicates
 
