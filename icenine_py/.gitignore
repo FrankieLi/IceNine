@@ -61,3 +61,4 @@ scripts/*.pt
 benchmarks/**/*_done.flag
 scripts/perturbation_sweep_cache/
 scripts/optimizer_sweep_cache/
+scripts/findoptimal_sweep_cache/
