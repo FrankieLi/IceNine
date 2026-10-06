@@ -5,7 +5,8 @@ One task = one (voxel, variant): the candidates of cache/e2 (harvested search ca
 FindOptimal results, synthetic perturbed truths / CSL relatives; R matrices as stored there) get
 the features of `FeatureExtractor(q_max=Q)` for Q = 4 and 5 (|q| <= Q Angstrom^-1; Q = 3 holds
 no reflection, see the report): one forward pass over the reflections with |q| <= Q plus the
-two cost columns at max_q = Q (pixel radius 0 and 3). Output cache/lowq/v{voxel}_{variant}.npz with X4, X5.
+two cost columns at max_q = Q (pixel radius 0 and 3).
+Output cache/lowq/v{voxel}_{variant}.npz with X4, X5.
 
   uv run python scripts/coarse_proxy/lowq_dataset.py run --workers 10
 """

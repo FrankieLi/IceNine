@@ -1,0 +1,26 @@
+{
+ "n_candidates": 1000,
+ "seconds_median": {
+  "local_q8": 0.0005195204999994818,
+  "global_q5_r3": 0.0003871660000003274,
+  "lowq4_geom": 0.0006818750000006091,
+  "lowq4_full": 0.0014178750000000129,
+  "lowq5_geom": 0.0007419164999995509,
+  "lowq5_full": 0.0015241669999994656,
+  "e2_full": 0.0021855210000003567,
+  "model_predict_per_candidate": 6.379895000003799e-06
+ },
+ "equivalents_of_local_q8": {
+  "local_q8": 1.0,
+  "global_q5_r3": 0.7452371946837778,
+  "lowq4_geom": 1.3125083610777424,
+  "lowq4_full": 2.729199328999389,
+  "lowq5_geom": 1.4280793539432821,
+  "lowq5_full": 2.933795682751664,
+  "e2_full": 4.206804158839808,
+  "model_predict_per_candidate": 0.012280352748371167
+ },
+ "set": "lowq5+c8",
+ "target": "reg",
+ "threads": 1
+}

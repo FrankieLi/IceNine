@@ -227,15 +227,7 @@ def main() -> None:
     # 6. end to end
     tags = a.rows
     if tags is None:
-        tags = (
-            sorted(
-                p.name
-                for p in (B.CACHE / "e2e").glob("*")
-                if p.is_dir() and "harvest" not in p.name
-            )
-            if (B.CACHE / "e2e").exists()
-            else []
-        )
+        tags = _tags()
     L.append("\n[6] end to end, 200 voxels x 2 variants, seed 0 (paired with E0 seed 0)")
     e2e: Dict[str, Any] = {}
     for var in C.VARIANTS:
@@ -264,6 +256,19 @@ def main() -> None:
         rows = [r for r in rows if r]
         for r in rows:
             L.append("  " + fmt_row(r))
+        b0 = rows[0]
+        L.append("  per-run change vs the baseline (mean over the paired runs):")
+        for r in rows[1:]:
+            if r["scored"] == 0 and "rerank" not in r["name"] and "proxy" not in r["name"]:
+                continue
+            eq = r["evals_with_proxy_eq"] - r["evals_total"]
+            L.append(
+                f"    {r['name']:30s} d global {r['evals_global'] - b0['evals_global']:+7.0f}  "
+                f"d local {r['evals_local'] - b0['evals_local']:+7.0f}  scoring (equivalents) "
+                f"{eq:+6.0f}  d total {r['evals_with_proxy_eq'] - b0['evals_total']:+7.0f} "
+                f"({(r['evals_with_proxy_eq'] / b0['evals_total'] - 1) * 100:+.1f}%)  "
+                f"d wall (10 workers) {r['wall'] - b0['wall']:+.1f}s"
+            )
         e2e[var] = rows
     out["end_to_end"] = e2e
     # 7. success criteria

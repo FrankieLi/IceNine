@@ -1,0 +1,165 @@
+=== Q_max-8 cost proxy: summary (caveat: per-voxel images, <= 3 distractor sources; 10-worker wall times are noisy) ===
+
+[1] |q| families (Cu) and the cut-offs
+  q_levels [3.015, 3.481, 4.923, 5.773, 6.029, 6.962, 7.587, 7.784]  reflections per family [8, 6, 12, 24, 8, 6, 24, 24]
+  Q<=3: families []  (0 reflections)
+  Q<=4: families [0, 1]  (14 reflections)
+  Q<=5: families [0, 1, 2]  (26 reflections)
+  Q3 contains no reflection and is dropped; Q4 = {111},{200}; Q5 adds {220}.
+
+[2] y_bcost label validation (censored branch, refined candidates)
+  n=2000  Spearman(y_bcost, refined cost) pooled 0.861, mean within case 0.790  -> regression label kept
+  by level {'0': {'n': 1605, 'spearman': 0.810315351259381}, '1': {'n': 336, 'spearman': 0.8719838355215308}, '2': {'n': 58, 'spearman': 0.7828815935007828}}
+
+[3] offline metrics (grain-disjoint held-out folds; trained on clean+realistic)
+  -- test on both: see offline_metrics.txt
+  -- test on clean: see offline_metrics.txt
+  -- test on realistic: see offline_metrics.txt
+[held-out grains, test on both]
+model               AUC A      B      C | recall 1/4: L0    L1    L2    L3@1  L0-2 | recall 1/8: L0    L1    L2    L3@1  L0-2 |  E     rho
+cost8               0.963  0.851  0.969 | 0.896 0.873 0.936 0.948 0.900 | 0.746 0.815 0.848 0.941 0.799 | 0.965  0.651
+cost_q4             0.885  0.831  0.916 | 0.770 0.735 0.843 0.959 0.780 | 0.558 0.623 0.802 0.955 0.651 | 0.969  0.454
+cost_q5             0.919  0.843  0.937 | 0.743 0.791 0.896 0.964 0.804 | 0.582 0.713 0.855 0.960 0.706 | 0.963  0.494
+hand                0.987  0.897  0.989 | 0.944 0.946 0.971 0.964 0.953 | 0.882 0.921 0.928 0.957 0.909 | 0.969  0.657
+cache4|clf3         0.986  0.914  0.986 | 0.920 0.953 0.974 0.964 0.947 | 0.846 0.935 0.957 0.959 0.908 | 0.967  0.122
+cache4|clf_lm       0.987  0.914  0.987 | 0.916 0.954 0.971 0.966 0.945 | 0.853 0.940 0.955 0.962 0.912 | 0.965  0.121
+cache4|reg          0.987  0.917  0.989 | 0.899 0.942 0.974 0.950 0.935 | 0.823 0.921 0.955 0.945 0.895 | 0.930  0.338
+cache5|clf3         0.989  0.916  0.990 | 0.956 0.960 0.974 0.969 0.963 | 0.909 0.944 0.958 0.964 0.935 | 0.977  0.121
+cache5|clf_lm       0.989  0.916  0.990 | 0.951 0.962 0.973 0.974 0.961 | 0.905 0.943 0.958 0.972 0.933 | 0.973  0.123
+cache5|reg          0.993  0.919  0.995 | 0.946 0.958 0.979 0.940 0.960 | 0.918 0.946 0.958 0.926 0.939 | 0.930  0.420
+lowq4|clf3          0.992  0.915  0.991 | 0.937 0.950 0.979 0.990 0.954 | 0.870 0.936 0.970 0.988 0.921 | 0.990  0.116
+lowq4|clf_lm        0.990  0.915  0.990 | 0.933 0.950 0.974 0.990 0.951 | 0.866 0.933 0.970 0.990 0.919 | 0.994  0.120
+lowq4|reg           0.991  0.916  0.993 | 0.932 0.939 0.976 0.985 0.947 | 0.875 0.933 0.971 0.978 0.923 | 0.988  0.394
+lowq5|clf3          0.995  0.920  0.995 | 0.937 0.960 0.978 0.988 0.956 | 0.915 0.946 0.970 0.985 0.941 | 0.990  0.126
+lowq5|clf_lm        0.995  0.921  0.995 | 0.933 0.958 0.979 0.990 0.955 | 0.909 0.950 0.973 0.986 0.941 | 0.986  0.121
+lowq5|reg           0.998  0.916  0.998 | 0.951 0.958 0.979 0.986 0.962 | 0.923 0.943 0.973 0.985 0.944 | 0.990  0.512
+lowq4+c8|clf3       0.990  0.912  0.991 | 0.972 0.960 0.976 0.991 0.969 | 0.947 0.946 0.971 0.990 0.954 | 0.996  0.333
+lowq4+c8|clf_lm     0.989  0.911  0.990 | 0.968 0.958 0.974 0.990 0.967 | 0.944 0.950 0.968 0.990 0.953 | 0.988  0.337
+lowq4+c8|reg        0.997  0.909  0.997 | 0.971 0.961 0.974 0.985 0.969 | 0.952 0.946 0.966 0.983 0.954 | 0.981  0.627
+lowq5+c8|clf3       0.994  0.915  0.995 | 0.981 0.965 0.979 0.990 0.975 | 0.961 0.957 0.971 0.986 0.963 | 0.994  0.338
+lowq5+c8|clf_lm     0.994  0.915  0.995 | 0.985 0.967 0.978 0.990 0.977 | 0.958 0.960 0.970 0.986 0.962 | 0.984  0.338
+lowq5+c8|reg        0.998  0.910  0.998 | 0.984 0.968 0.979 0.985 0.977 | 0.965 0.948 0.971 0.981 0.961 | 0.986  0.654
+e2full|clf3         0.997  0.937  0.998 | 0.996 0.975 0.982 0.985 0.985 | 0.991 0.971 0.976 0.985 0.980 | 0.986  0.297
+e2full|clf_lm       0.997  0.936  0.998 | 0.996 0.983 0.984 0.986 0.988 | 0.992 0.974 0.978 0.986 0.982 | 0.990  0.292
+e2full|reg          0.998  0.931  0.998 | 0.995 0.983 0.982 0.983 0.987 | 0.989 0.974 0.974 0.979 0.979 | 0.982  0.671
+
+[held-out grains, test on clean]
+model               AUC A      B      C | recall 1/4: L0    L1    L2    L3@1  L0-2 | recall 1/8: L0    L1    L2    L3@1  L0-2 |  E     rho
+cost8               0.961  0.851  0.966 | 0.885 0.840 0.905 0.966 0.876 | 0.735 0.781 0.814 0.966 0.773 | 0.986  0.558
+cost_q4             0.879  0.827  0.910 | 0.768 0.684 0.810 0.981 0.751 | 0.538 0.578 0.766 0.981 0.617 | 0.995  0.407
+cost_q5             0.913  0.840  0.931 | 0.727 0.766 0.871 0.981 0.781 | 0.574 0.687 0.820 0.981 0.682 | 0.982  0.390
+hand                0.990  0.900  0.990 | 0.941 0.929 0.959 1.000 0.942 | 0.875 0.906 0.902 1.000 0.893 | 0.995  0.587
+cache4|clf3         0.987  0.916  0.984 | 0.918 0.929 0.956 0.996 0.933 | 0.827 0.920 0.946 0.996 0.892 | 1.000  0.136
+cache4|clf_lm       0.988  0.917  0.986 | 0.911 0.937 0.953 0.996 0.932 | 0.839 0.923 0.946 0.996 0.898 | 1.000  0.134
+cache4|reg          0.988  0.919  0.988 | 0.890 0.915 0.959 0.996 0.918 | 0.814 0.892 0.956 0.996 0.881 | 1.000  0.333
+cache5|clf3         0.990  0.917  0.989 | 0.959 0.937 0.959 0.996 0.952 | 0.906 0.920 0.946 0.996 0.922 | 1.000  0.143
+cache5|clf_lm       0.989  0.916  0.988 | 0.949 0.940 0.956 0.996 0.948 | 0.898 0.915 0.946 0.996 0.917 | 1.000  0.143
+cache5|reg          0.997  0.921  0.996 | 0.931 0.937 0.966 0.992 0.943 | 0.903 0.917 0.949 0.992 0.921 | 1.000  0.409
+lowq4|clf3          0.991  0.917  0.989 | 0.923 0.934 0.963 1.000 0.938 | 0.852 0.912 0.956 1.000 0.902 | 1.000  0.116
+lowq4|clf_lm        0.989  0.917  0.987 | 0.918 0.932 0.956 1.000 0.934 | 0.852 0.909 0.956 1.000 0.901 | 1.000  0.119
+lowq4|reg           0.988  0.919  0.990 | 0.926 0.915 0.959 1.000 0.932 | 0.860 0.906 0.956 1.000 0.903 | 1.000  0.357
+lowq5|clf3          0.996  0.921  0.995 | 0.931 0.943 0.956 1.000 0.942 | 0.903 0.926 0.956 1.000 0.926 | 1.000  0.113
+lowq5|clf_lm        0.997  0.922  0.995 | 0.921 0.943 0.959 1.000 0.939 | 0.895 0.932 0.956 1.000 0.925 | 1.000  0.107
+lowq5|reg           0.999  0.918  0.999 | 0.941 0.943 0.959 0.996 0.947 | 0.903 0.917 0.956 0.996 0.923 | 1.000  0.459
+lowq4+c8|clf3       0.988  0.913  0.988 | 0.962 0.949 0.963 1.000 0.958 | 0.934 0.920 0.953 1.000 0.934 | 1.000  0.267
+lowq4+c8|clf_lm     0.987  0.913  0.988 | 0.959 0.943 0.959 1.000 0.954 | 0.923 0.929 0.953 1.000 0.934 | 1.000  0.271
+lowq4+c8|reg        0.998  0.912  0.998 | 0.964 0.952 0.959 1.000 0.959 | 0.944 0.926 0.953 1.000 0.940 | 1.000  0.562
+lowq5+c8|clf3       0.994  0.916  0.994 | 0.980 0.954 0.959 1.000 0.965 | 0.954 0.937 0.956 1.000 0.949 | 1.000  0.304
+lowq5+c8|clf_lm     0.995  0.916  0.995 | 0.982 0.954 0.963 1.000 0.967 | 0.949 0.943 0.956 1.000 0.949 | 1.000  0.304
+lowq5+c8|reg        0.999  0.910  0.999 | 0.977 0.957 0.963 1.000 0.966 | 0.957 0.929 0.956 1.000 0.947 | 1.000  0.610
+e2full|clf3         1.000  0.938  1.000 | 0.995 0.963 0.969 1.000 0.977 | 0.990 0.957 0.966 1.000 0.972 | 1.000  0.277
+e2full|clf_lm       1.000  0.937  1.000 | 0.995 0.977 0.976 0.996 0.984 | 0.992 0.960 0.969 0.996 0.975 | 1.000  0.276
+e2full|reg          1.000  0.931  1.000 | 0.992 0.977 0.969 0.996 0.981 | 0.987 0.963 0.966 0.996 0.973 | 1.000  0.642
+
+[held-out grains, test on all]
+model               AUC A      B      C | recall 1/4: L0    L1    L2    L3@1  L0-2 | recall 1/8: L0    L1    L2    L3@1  L0-2 |  E     rho
+cost8               0.963  0.850  0.970 | 0.907 0.905 0.964 0.934 0.923 | 0.756 0.847 0.879 0.921 0.824 | 0.949  0.706
+cost_q4             0.890  0.836  0.921 | 0.771 0.785 0.873 0.940 0.807 | 0.578 0.665 0.834 0.934 0.684 | 0.949  0.482
+cost_q5             0.923  0.846  0.940 | 0.759 0.815 0.918 0.950 0.826 | 0.590 0.738 0.885 0.943 0.729 | 0.949  0.551
+hand                0.984  0.894  0.988 | 0.947 0.962 0.982 0.934 0.963 | 0.889 0.935 0.952 0.921 0.923 | 0.949  0.702
+cache4|clf3         0.985  0.912  0.987 | 0.922 0.975 0.991 0.937 0.961 | 0.864 0.948 0.967 0.927 0.923 | 0.942  0.120
+cache4|clf_lm       0.985  0.912  0.987 | 0.922 0.970 0.988 0.940 0.958 | 0.867 0.956 0.964 0.934 0.926 | 0.939  0.119
+cache4|reg          0.983  0.914  0.989 | 0.907 0.967 0.988 0.912 0.952 | 0.832 0.948 0.955 0.902 0.908 | 0.878  0.343
+cache5|clf3         0.987  0.916  0.991 | 0.952 0.981 0.988 0.946 0.973 | 0.912 0.967 0.970 0.937 0.948 | 0.959  0.115
+cache5|clf_lm       0.988  0.916  0.992 | 0.952 0.984 0.988 0.956 0.974 | 0.912 0.970 0.970 0.953 0.949 | 0.953  0.118
+cache5|reg          0.988  0.917  0.993 | 0.960 0.978 0.991 0.896 0.975 | 0.932 0.973 0.967 0.871 0.956 | 0.878  0.426
+lowq4|clf3          0.991  0.913  0.992 | 0.950 0.965 0.994 0.981 0.968 | 0.887 0.959 0.982 0.978 0.940 | 0.983  0.112
+lowq4|clf_lm        0.990  0.913  0.991 | 0.947 0.967 0.991 0.981 0.967 | 0.879 0.956 0.982 0.981 0.936 | 0.990  0.117
+lowq4|reg           0.992  0.912  0.994 | 0.937 0.962 0.991 0.972 0.962 | 0.889 0.959 0.985 0.959 0.942 | 0.980  0.408
+lowq5|clf3          0.993  0.918  0.995 | 0.942 0.975 0.997 0.978 0.970 | 0.927 0.965 0.982 0.972 0.956 | 0.983  0.129
+lowq5|clf_lm        0.993  0.920  0.995 | 0.945 0.973 0.997 0.981 0.970 | 0.922 0.967 0.988 0.975 0.957 | 0.976  0.124
+lowq5|reg           0.995  0.915  0.996 | 0.960 0.973 0.997 0.978 0.975 | 0.942 0.967 0.988 0.975 0.964 | 0.983  0.531
+lowq4+c8|clf3       0.991  0.911  0.992 | 0.982 0.970 0.988 0.984 0.980 | 0.960 0.970 0.988 0.981 0.972 | 0.993  0.372
+lowq4+c8|clf_lm     0.990  0.910  0.992 | 0.977 0.973 0.988 0.981 0.979 | 0.965 0.970 0.982 0.981 0.972 | 0.980  0.376
+lowq4+c8|reg        0.995  0.906  0.996 | 0.977 0.970 0.988 0.972 0.978 | 0.960 0.965 0.979 0.968 0.967 | 0.966  0.659
+lowq5+c8|clf3       0.994  0.914  0.995 | 0.982 0.975 0.997 0.981 0.984 | 0.967 0.975 0.985 0.975 0.975 | 0.990  0.359
+lowq5+c8|clf_lm     0.993  0.913  0.994 | 0.987 0.978 0.991 0.981 0.985 | 0.967 0.975 0.982 0.975 0.974 | 0.973  0.360
+lowq5+c8|reg        0.995  0.909  0.996 | 0.990 0.978 0.994 0.972 0.987 | 0.972 0.967 0.985 0.965 0.974 | 0.976  0.674
+e2full|clf3         0.994  0.936  0.996 | 0.997 0.986 0.994 0.972 0.993 | 0.992 0.984 0.985 0.972 0.987 | 0.976  0.312
+e2full|clf_lm       0.994  0.936  0.996 | 0.997 0.989 0.991 0.978 0.993 | 0.992 0.986 0.985 0.978 0.988 | 0.983  0.305
+e2full|reg          0.994  0.931  0.996 | 0.997 0.989 0.994 0.972 0.994 | 0.990 0.984 0.982 0.965 0.985 | 0.969  0.688
+
+[4] decision points (pooled held-out, recall L0-2 at keep 1/4 unless noted)
+  D1: F-cache Q5 clf3 recall 0.963 (reg 0.960; E2 full 0.985) -> low-Q signal mostly lost: False. Best deployable lowq5+c8|reg 0.977, gap to E2 0.008 -> adds nothing beyond E2 (gap > 0.01): False
+  D2: lowq5+c8|clf3 recall at keep 1/8 = 0.963 (>= 0.98: False)
+  D3 lowq4+c8: reg 0.969 vs best classifier 0.969 -> carry reg
+  D3 lowq5+c8: reg 0.977 vs best classifier 0.977 -> carry reg
+
+[5] cost accounting, one worker, median of 1000 candidates
+  local_q8                           0.520 ms  =    1.00 local Q8 evaluations
+  global_q5_r3                       0.387 ms  =    0.75 local Q8 evaluations
+  lowq4_geom                         0.682 ms  =    1.31 local Q8 evaluations
+  lowq4_full                         1.418 ms  =    2.73 local Q8 evaluations
+  lowq5_geom                         0.742 ms  =    1.43 local Q8 evaluations
+  lowq5_full                         1.524 ms  =    2.93 local Q8 evaluations
+  e2_full                            2.186 ms  =    4.21 local Q8 evaluations
+  model_predict_per_candidate        0.006 ms  =    0.01 local Q8 evaluations
+  per scored candidate: proxy (lowq5 pass + prediction) 2.95 eq; E2 (full pass + prediction) 4.22 eq (model timed: lowq5+c8|reg for both)
+
+[6] end to end, 200 voxels x 2 variants, seed 0 (paired with E0 seed 0)
+--- clean ---
+  E0 baseline                        n=200 wrong  67 = 0.335 [0.273,0.403]  fixed   0 broken  0  med.err(right) 0.0301  evals global 44478 local 4711 (total 49190, with proxy 49190, base 49190) scored 0  wall 24.5s (base 24.5s, proxy 0.00s)
+  F1 (Sigma<=29)                     n=200 wrong   3 = 0.015 [0.005,0.043]  fixed  64 broken  0  med.err(right) 0.0272  evals global 44478 local 10044 (total 54523, with proxy 54523, base 49190) scored 0  wall 27.2s (base 24.5s, proxy 0.00s)
+  F1b                                n=200 wrong   0 = 0.000 [0.000,0.019]  fixed  67 broken  0  med.err(right) 0.0200  evals global 45492 local 17519 (total 63011, with proxy 63011, base 49190) scored 0  wall 35.4s (base 24.5s, proxy 0.00s)
+  E2 rerank (GBT, full pass)         n=200 wrong   8 = 0.040 [0.020,0.077]  fixed  59 broken  0  med.err(right) 0.0285  evals global 44505 local 5986 (total 50491, with proxy 51528, base 49190) scored 246  wall 26.6s (base 24.5s, proxy 0.00s)
+  E2 rerank + F1                     n=200 wrong   4 = 0.020 [0.008,0.050]  fixed  63 broken  0  med.err(right) 0.0285  evals global 44505 local 10798 (total 55302, with proxy 56339, base 49190) scored 246  wall 29.1s (base 24.5s, proxy 0.00s)
+  proxy p_i                          n=200 wrong  13 = 0.065 [0.038,0.108]  fixed  55 broken  1  med.err(right) 0.0281  evals global 44494 local 5739 (total 50233, with proxy 50941, base 49190) scored 240  wall 25.5s (base 24.5s, proxy 0.46s)
+  proxy p_i + F1                     n=200 wrong   0 = 0.000 [0.000,0.019]  fixed  67 broken  0  med.err(right) 0.0282  evals global 44494 local 10646 (total 55140, with proxy 55848, base 49190) scored 240  wall 27.9s (base 24.5s, proxy 0.46s)
+  per-run change vs the baseline (mean over the paired runs):
+    E2 rerank (GBT, full pass)     d global     +26  d local   +1275  scoring (equivalents)  +1037  d total   +2338 (+4.8%)  d wall (10 workers) +2.1s
+    E2 rerank + F1                 d global     +26  d local   +6086  scoring (equivalents)  +1037  d total   +7150 (+14.5%)  d wall (10 workers) +4.6s
+    proxy p_i                      d global     +16  d local   +1027  scoring (equivalents)   +708  d total   +1751 (+3.6%)  d wall (10 workers) +0.9s
+    proxy p_i + F1                 d global     +16  d local   +5935  scoring (equivalents)   +708  d total   +6659 (+13.5%)  d wall (10 workers) +3.4s
+--- realistic ---
+  E0 baseline                        n=200 wrong  52 = 0.260 [0.204,0.325]  fixed   0 broken  0  med.err(right) 0.0278  evals global 44778 local 7628 (total 52406, with proxy 52406, base 52406) scored 0  wall 26.5s (base 26.5s, proxy 0.00s)
+  F1 (Sigma<=29)                     n=200 wrong   8 = 0.040 [0.020,0.077]  fixed  44 broken  0  med.err(right) 0.0257  evals global 44778 local 13007 (total 57785, with proxy 57785, base 52406) scored 0  wall 29.2s (base 26.5s, proxy 0.00s)
+  F1b                                n=200 wrong   3 = 0.015 [0.005,0.043]  fixed  50 broken  1  med.err(right) 0.0176  evals global 45789 local 20143 (total 65931, with proxy 65931, base 52406) scored 0  wall 37.3s (base 26.5s, proxy 0.00s)
+  E2 rerank (GBT, full pass)         n=200 wrong   9 = 0.045 [0.024,0.083]  fixed  46 broken  3  med.err(right) 0.0228  evals global 44824 local 9625 (total 54449, with proxy 56106, base 52406) scored 393  wall 29.8s (base 26.5s, proxy 0.00s)
+  E2 rerank + F1                     n=200 wrong   7 = 0.035 [0.017,0.070]  fixed  47 broken  2  med.err(right) 0.0228  evals global 44824 local 14743 (total 59566, with proxy 61223, base 52406) scored 393  wall 32.6s (base 26.5s, proxy 0.00s)
+  proxy p_i                          n=200 wrong  15 = 0.075 [0.046,0.120]  fixed  40 broken  3  med.err(right) 0.0285  evals global 44805 local 9111 (total 53916, with proxy 55046, base 52406) scored 384  wall 28.2s (base 26.5s, proxy 0.74s)
+  proxy p_i + F1                     n=200 wrong   4 = 0.020 [0.008,0.050]  fixed  50 broken  2  med.err(right) 0.0296  evals global 44805 local 14278 (total 59084, with proxy 60214, base 52406) scored 384  wall 30.9s (base 26.5s, proxy 0.74s)
+  per-run change vs the baseline (mean over the paired runs):
+    E2 rerank (GBT, full pass)     d global     +45  d local   +1997  scoring (equivalents)  +1657  d total   +3700 (+7.1%)  d wall (10 workers) +3.3s
+    E2 rerank + F1                 d global     +45  d local   +7115  scoring (equivalents)  +1657  d total   +8817 (+16.8%)  d wall (10 workers) +6.1s
+    proxy p_i                      d global     +27  d local   +1483  scoring (equivalents)  +1130  d total   +2640 (+5.0%)  d wall (10 workers) +1.7s
+    proxy p_i + F1                 d global     +27  d local   +6650  scoring (equivalents)  +1130  d total   +7808 (+14.9%)  d wall (10 workers) +4.4s
+
+[7] success criteria
+  label: Spearman of the censored y_bcost >= 0.8 -> met (0.861)
+  offline: best deployable proxy recall within 0.01 of E2 -> met (gap 0.008)
+  [clean] rerank proxy p_i: wrong 13/200 <= E2 rerank 8/200 -> NOT met; proxy time per run 0.37s vs E2 0.54s -> met
+  [clean] (ii)-criterion proxy p_i: wrong 0.065 <= 0.05 and evals incl. proxy 50941 <= baseline 49190 -> NOT met
+  [clean] (iii) proxy p_i + F1: wrong 0 <= F1 3 and evals 55848 < F1b 63011 -> met
+  [realistic] rerank proxy p_i: wrong 15/200 <= E2 rerank 9/200 -> NOT met; proxy time per run 0.59s vs E2 0.86s -> met
+  [realistic] (ii)-criterion proxy p_i: wrong 0.075 <= 0.05 and evals incl. proxy 55046 <= baseline 52406 -> NOT met
+  [realistic] (iii) proxy p_i + F1: wrong 4 <= F1 8 and evals 60214 < F1b 65931 -> met
+
+[8] proxy rows with seeds 1-2 (paired with E0 seeds 0-2)
+  p_i/clean              proxy p_i seeds 0-2                n=600 wrong  42 = 0.070 [0.052,0.093]  fixed 167 broken  5  med.err(right) 0.0277  evals global 44495 local 5770 (total 50265, with proxy 50975, base 49196) scored 241  wall 25.6s (base 24.5s, proxy 0.47s)
+  p_i/all                proxy p_i seeds 0-2                n=600 wrong  33 = 0.055 [0.039,0.076]  fixed 117 broken  7  med.err(right) 0.0270  evals global 44807 local 9217 (total 54024, with proxy 55156, base 52409) scored 384  wall 28.5s (base 26.7s, proxy 0.74s)
+
+[9] domain shift: recall on the proxy runs' own candidates
+  p_i clean offline reference (baseline candidates, seed 0, held-out): keep 1/4 0.960, 1/8 0.946 (n=522)
+  p_i clean: recall L0-2 on the run's own candidates keep 1/4 0.986, 1/8 0.978 (n=581 level groups)
+  p_i all offline reference (baseline candidates, seed 0, held-out): keep 1/4 0.984, 1/8 0.971 (n=549)
+  p_i all: recall L0-2 on the run's own candidates keep 1/4 0.990, 1/8 0.980 (n=592 level groups)
