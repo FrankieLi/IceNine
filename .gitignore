@@ -21,3 +21,4 @@ ExtLib
 
 # Session checkpoints written by scripts/dev/checkpoint.sh
 .claude/checkpoints/
+__pycache__/
