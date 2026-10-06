@@ -1,0 +1,10 @@
+{
+ "prepare": 1.1699,
+ "render_physics": 0.0746,
+ "render_distractors": 0.1474,
+ "render_realism": 0.0152,
+ "decode": 0.0077,
+ "forward": 0.0893,
+ "render": 0.0036,
+ "net": 0.0023
+}

@@ -1,0 +1,20 @@
+{
+ "note": "torch-profiler",
+ "time": "2026-10-06 11:11:46",
+ "loadavg": [
+  3.1708984375,
+  6.5263671875,
+  4.92236328125
+ ],
+ "power": "Now drawing from 'AC Power'",
+ "battery": "-InternalBattery-0 (id=23986275)\t100%; charged; 0:00 remaining present: true",
+ "thermal": "Note: No thermal warning level has been recorded | Note: No performance warning level has been recorded | Note: No CPU power status has been recorded",
+ "processes_over_5pct_cpu": [
+  "46.1% IMTransferAgent"
+ ],
+ "OMP_NUM_THREADS": "1",
+ "MKL_NUM_THREADS": "1",
+ "torch_threads": 1,
+ "cpu": "Apple M2 Max",
+ "cores": "8 P + 4 E"
+}

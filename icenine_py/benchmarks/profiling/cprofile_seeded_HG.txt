@@ -1,0 +1,39 @@
+cProfile of HG: 5 cases, radius indices [6, 7, 8, 9, 6] (variants alternate clean / realistic, voxel 0, direction 0); wall under the profiler, s: [2.29, 4.54, 1.85, 1.63, 2.28]; top 30 by cumulative time
+         16359940 function calls (16342805 primitive calls) in 12.562 seconds
+
+   Ordered by: cumulative time
+   List reduced from 410 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        5    0.001    0.000   12.580    2.516 prof_seeded.py:71(run_pipeline)
+16730/135    0.086    0.000   12.500    0.093 stage_timer.py:111(wrapper)
+        5    0.000    0.000   10.507    2.101 run.py:271(refine_fo)
+        5    0.000    0.000   10.507    2.101 reconstructor.py:717(refine_from_candidates)
+        5    0.011    0.002   10.042    2.008 orientation_search.py:592(variance_minimizing_optimize)
+     1449    0.086    0.000    9.990    0.007 orientation_search.py:528(_zero_temp_with_variance)
+    16600    1.387    0.000    9.790    0.001 cost_functions.py:766(evaluate)
+    16600    3.599    0.000    6.781    0.000 cost_functions.py:369(calculate_diffraction_overlap_batched)
+       30    0.001    0.000    1.405    0.047 perturbation_sweep.py:194(prepare_nominal)
+       30    0.000    0.000    1.337    0.045 generate_toy_orientation_dataset.py:93(build_problem)
+       30    0.030    0.001    1.318    0.044 orientation_nn.py:157(define_roi_set)
+    17321    0.740    0.000    1.186    0.000 diffraction_core.py:59(get_scattering_omegas_torch)
+     3358    0.009    0.000    1.028    0.000 orientation_nn.py:127(_project_all_detectors)
+     6406    0.069    0.000    1.019    0.000 orientation_nn.py:83(_project_peak_on_detector)
+        5    0.001    0.000    0.898    0.180 optimizer_sweep.py:501(run_gn)
+        5    0.000    0.000    0.652    0.130 run.py:137(net_stage)
+    18288    0.018    0.000    0.612    0.000 diffraction_core.py:620(get_illuminated_pixel)
+  2548874    0.465    0.000    0.558    0.000 optimizer_sweep.py:181(get_image)
+        5    0.004    0.001    0.461    0.092 orientation_search.py:378(optimize)
+   174738    0.389    0.000    0.389    0.000 {method 'sum' of 'torch._C.TensorBase' objects}
+    18288    0.010    0.000    0.376    0.000 detector.py:496(intersect_ray)
+    18288    0.226    0.000    0.365    0.000 geometry.py:447(intersect_plane)
+    16582    0.023    0.000    0.347    0.000 sampling.py:271(get_near_identity_point)
+  2532274    0.272    0.000    0.320    0.000 optimizer_sweep.py:163(get_binary_numpy)
+      631    0.105    0.000    0.319    0.001 orientation_eval.py:243(observe)
+    16582    0.031    0.000    0.314    0.000 sampling.py:235(barycentric_to_quaternion)
+    17471    0.047    0.000    0.312    0.000 functional.py:225(einsum)
+       15    0.005    0.000    0.298    0.020 orientation_baselines.py:164(solve)
+   116074    0.249    0.000    0.282    0.000 sampling.py:125(slerp)
+       25    0.002    0.000    0.273    0.011 perturbation_sweep.py:248(render_batch)
+
+
