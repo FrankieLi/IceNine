@@ -140,10 +140,17 @@ def main() -> None:
         default="",
         help="cache dir of runs with R_final (seed 0 only), e.g. e2_rerank_GBT; default E0 answers",
     )
+    ap.add_argument(
+        "--cache-root",
+        default="",
+        help="directory holding the --source dir and receiving f1_<source> "
+        "(default: this study's cache, so existing behaviour is unchanged)",
+    )
     ap.add_argument("--limit", type=int, default=0, help="only the first N tasks (testing)")
     a = ap.parse_args()
+    root = Path(a.cache_root).resolve() if a.cache_root else C.CACHE_DIR
     info = dict(np.load(C.OUT_DIR / "voxels.npz"))
-    cache = C.CACHE_DIR / ("f1" if not a.source else f"f1_{a.source}")
+    cache = root / ("f1" if not a.source else f"f1_{a.source}")
     cache.mkdir(parents=True, exist_ok=True)
     vox = [int(v) for v in info["voxel_indices"]]
     its = []
@@ -151,7 +158,7 @@ def main() -> None:
         for var in C.VARIANTS:
             e0 = C.CACHE_DIR / "e0" / f"v{v}_{var}.npz"
             out = cache / f"v{v}_{var}.npz"
-            src = C.CACHE_DIR / a.source / f"v{v}_{var}.npz" if a.source else None
+            src = root / a.source / f"v{v}_{var}.npz" if a.source else None
             if e0.exists() and not out.exists() and (src is None or src.exists()):
                 its.append(
                     (

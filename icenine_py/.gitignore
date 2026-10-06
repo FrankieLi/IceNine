@@ -63,6 +63,7 @@ scripts/perturbation_sweep_cache/
 scripts/optimizer_sweep_cache/
 scripts/findoptimal_sweep_cache/
 scripts/findoptimal_robustness/cache/
+scripts/coarse_proxy/cache/
 
 # Local-only files (kept on disk, not tracked)
 bench_hp_*.log
