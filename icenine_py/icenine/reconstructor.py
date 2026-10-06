@@ -15,7 +15,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -408,12 +408,19 @@ class AdaptiveVoxelReconstructor:
     C++ Reference: Src/DiscreteAdaptive.tmpl.cpp:108-250 ReconstructVoxel
     """
 
-    def __init__(self, setup: ReconstructionSetup):
+    def __init__(self, setup: ReconstructionSetup, min_sin_eta: float = 0.0):
+        """min_sin_eta: optional lower bound on |sin eta| of the diffracted beam, applied to every
+        cost function reconstruct_voxel builds (default 0 = off, the C++ behaviour)."""
         self.setup = setup
         self.params = setup.search_params
+        self.min_sin_eta = min_sin_eta
         # Eval count tracking (set during reconstruct_voxel)
         self._last_global_evals = 0
         self._last_local_evals = 0
+        # Diagnostics of the most recent call: per-level best candidate (orientation, cost) after
+        # the quick MC, and FindOptimal's winner (candidate index, converged flag)
+        self.last_level_best: List[Tuple[int, np.ndarray, float]] = []
+        self.last_find_optimal: Dict[str, Any] = {}
 
     @property
     def last_eval_counts(self) -> tuple:
@@ -444,37 +451,10 @@ class AdaptiveVoxelReconstructor:
 
         # Local cost function (pixel_radius=0) for MC and re-evaluation
         # C++ Reference: DiscreteAdaptive.tmpl.cpp:120-121 LocalSearchCostFunctions
-        self._local_cost_fn = local_cost_fn = VoxelCostFunction(
-            simulator=self.setup.simulator,
-            detector_list=self.setup.detector_list,
-            range_map=self.setup.range_map,
-            exp_data=self.setup.exp_data,
-            sample=self.setup.sample,
-            structure_list=self.setup.structure_list,
-            mode="hard",
-            eta_limit=eta_limit,
-            pixel_radius=0,
+        self._local_cost_fn = local_cost_fn = self._make_local_cost_fn()
+        mc_optimizer, find_optimizer = self._make_optimizers(
+            local_cost_fn, voxel_vertices, phase_index, rng
         )
-
-        # MC optimizer uses local cost function (always built; used in VarianceMinimizing
-        # and as fallback when use_hybrid_optimizer is False)
-        mc_optimizer = MCOptimizer(
-            cost_fn=local_cost_fn,
-            voxel_vertices=voxel_vertices,
-            phase_index=phase_index,
-            rng=rng,
-        )
-
-        # Hybrid optimizer for FindOptimal phase (opt-in via SearchParameters)
-        use_hybrid = self.params.use_hybrid_optimizer and self.setup.diff_cost_fn is not None
-        if use_hybrid:
-            find_optimizer: RiemannianAdamOptimizer = RiemannianAdamOptimizer(
-                hard_cost_fn=local_cost_fn,
-                diff_cost_fn=self.setup.diff_cost_fn,
-                voxel_vertices=voxel_vertices,
-                phase_index=phase_index,
-                rng=rng,
-            )
 
         # Crystal symmetry for spacing filter
         # C++ DiscreteAdaptive.tmpl.cpp:88
@@ -493,6 +473,8 @@ class AdaptiveVoxelReconstructor:
 
         candidates = []
         total_global_evals = 0
+        self.last_level_best = []
+        self.last_find_optimal = {}
 
         for level in range(self.params.max_local_resolution + 1):
             t_level = time.time()
@@ -514,6 +496,7 @@ class AdaptiveVoxelReconstructor:
                 eta_limit=eta_limit,
                 pixel_radius=3,
                 max_q=n_q_max,
+                min_sin_eta=self.min_sin_eta,
             )
 
             # Phase 1: Discrete search
@@ -585,6 +568,9 @@ class AdaptiveVoxelReconstructor:
             # C++ DiscreteAdaptive.tmpl.cpp:196-205
             diameter /= 1.5
             candidates.sort()
+            self.last_level_best.append(
+                (level, candidates[0].orientation.copy(), float(candidates[0].cost))
+            )
             n_keep = max(1, len(candidates) // 4)
             fz_orientations = np.array([c.orientation for c in candidates[:n_keep]])
 
@@ -600,10 +586,113 @@ class AdaptiveVoxelReconstructor:
                 flush=True,
             )
 
-        # After all levels: FindOptimal + VarianceMinimizing
+        # After all levels: FindOptimal + VarianceMinimizing + final overlap evaluation
         # C++ DiscreteAdaptive.tmpl.cpp:210-246
         if not candidates:
             return SearchCandidate(orientation=np.eye(3), cost=1.0)
+
+        best_candidate = self.refine_from_candidates(
+            candidates,
+            voxel_vertices,
+            phase_index,
+            diameter,
+            local_cost_fn=local_cost_fn,
+            mc_optimizer=mc_optimizer,
+            find_optimizer=find_optimizer,
+        )
+
+        # Store eval counts for benchmarking
+        self._last_global_evals = total_global_evals
+        self._last_local_evals = local_cost_fn.eval_count
+
+        return best_candidate
+
+    def _make_local_cost_fn(self) -> VoxelCostFunction:
+        """Local cost function (pixel_radius=0) used for MC, re-evaluation and the final overlap."""
+        return VoxelCostFunction(
+            simulator=self.setup.simulator,
+            detector_list=self.setup.detector_list,
+            range_map=self.setup.range_map,
+            exp_data=self.setup.exp_data,
+            sample=self.setup.sample,
+            structure_list=self.setup.structure_list,
+            mode="hard",
+            eta_limit=self.setup.exp_setup.get_eta_limit(),
+            pixel_radius=0,
+            min_sin_eta=self.min_sin_eta,
+        )
+
+    def _make_optimizers(
+        self,
+        local_cost_fn: VoxelCostFunction,
+        voxel_vertices: torch.Tensor,
+        phase_index: int,
+        rng: Optional[np.random.Generator],
+    ) -> Tuple[MCOptimizer, Optional[RiemannianAdamOptimizer]]:
+        """The MC optimizer (always built: used by VarianceMinimizing and as the FindOptimal
+        optimizer unless hybrid) and, when SearchParameters.use_hybrid_optimizer is set and
+        setup.diff_cost_fn exists, the hybrid Adam optimizer for FindOptimal (else None)."""
+        mc_optimizer = MCOptimizer(
+            cost_fn=local_cost_fn,
+            voxel_vertices=voxel_vertices,
+            phase_index=phase_index,
+            rng=rng,
+        )
+        find_optimizer: Optional[RiemannianAdamOptimizer] = None
+        if self.params.use_hybrid_optimizer and self.setup.diff_cost_fn is not None:
+            find_optimizer = RiemannianAdamOptimizer(
+                hard_cost_fn=local_cost_fn,
+                diff_cost_fn=self.setup.diff_cost_fn,
+                voxel_vertices=voxel_vertices,
+                phase_index=phase_index,
+                rng=rng,
+            )
+        return mc_optimizer, find_optimizer
+
+    def refine_from_candidates(
+        self,
+        candidates: List[SearchCandidate],
+        voxel_vertices: torch.Tensor,
+        phase_index: int = 0,
+        diameter: Optional[float] = None,
+        rng: Optional[np.random.Generator] = None,
+        local_cost_fn: Optional[VoxelCostFunction] = None,
+        mc_optimizer: Optional[MCOptimizer] = None,
+        find_optimizer: Optional[RiemannianAdamOptimizer] = None,
+    ) -> SearchCandidate:
+        """
+        The final stage of reconstruct_voxel: FindOptimal, VarianceMinimizing, final overlap.
+
+        Args:
+            candidates: Candidates sorted best first (the coarse levels' hand-off in
+                reconstruct_voxel; may be a single user-supplied orientation).
+            voxel_vertices: Triangle vertices in sample frame, shape (3, 3)
+            phase_index: Crystal phase index
+            diameter: Search diameter (radians) the coarse levels ended with. The FindOptimal /
+                VarianceMinimizing search box is max(diameter / 3, 0.2 deg) / 2^min_local_resolution,
+                independent of how far a candidate is from the optimum. Default: the diameter
+                reconstruct_voxel reaches after all its levels,
+                local_grid_radius / 1.5^(max_local_resolution + 1).
+            rng: Random generator, used only when the optimizers are built here.
+            local_cost_fn, mc_optimizer, find_optimizer: the objects reconstruct_voxel built (so
+                its eval counts and random stream continue); built here when omitted.
+
+        Returns:
+            Best SearchCandidate, with final overlap info and cost. When called directly,
+            self.last_eval_counts is (0, local evals, local evals).
+
+        C++ Reference: DiscreteAdaptive.tmpl.cpp:210-246
+        """
+        standalone = local_cost_fn is None
+        if local_cost_fn is None:
+            local_cost_fn = self._make_local_cost_fn()
+        if mc_optimizer is None:
+            mc_optimizer, find_optimizer = self._make_optimizers(
+                local_cost_fn, voxel_vertices, phase_index, rng
+            )
+        use_hybrid = find_optimizer is not None
+        if diameter is None:
+            diameter = self.params.local_grid_radius / 1.5 ** (self.params.max_local_resolution + 1)
 
         final_radius = max(diameter / 3.0, math.radians(0.2))
         final_box_width = final_radius / (2**self.params.min_local_resolution)
@@ -618,6 +707,7 @@ class AdaptiveVoxelReconstructor:
 
         best_candidate = SearchCandidate(orientation=np.eye(3), cost=1.0)
         converged = False
+        best_ci = -1
         for ci, cand in enumerate(candidates[:n_final]):
             if use_hybrid:
                 result = find_optimizer.optimize(
@@ -640,6 +730,7 @@ class AdaptiveVoxelReconstructor:
                 )
             if result.cost < best_candidate.cost:
                 best_candidate = result
+                best_ci = ci
                 # Convergence check: hit_ratio >= 1.0
                 # C++ ContinuousSearch.h:276-286 HitRatioConvergenceFn with ratio=1.0
                 if result.overlap_info is not None and hit_ratio_converged(
@@ -648,6 +739,12 @@ class AdaptiveVoxelReconstructor:
                     converged = True
                     break
         t_find = time.time() - t_final
+        self.last_find_optimal = dict(
+            winner_index=best_ci,
+            n_evaluated=ci + 1,
+            n_candidates=len(candidates),
+            converged=converged,
+        )
         print(
             f"    FindOptimal: {ci + 1} evaluated ({t_find:.1f}s), "
             f"best cost={best_candidate.cost:.4f}"
@@ -684,9 +781,9 @@ class AdaptiveVoxelReconstructor:
         best_candidate.overlap_info = final_info
         best_candidate.cost = final_info.cost
 
-        # Store eval counts for benchmarking
-        self._last_global_evals = total_global_evals
-        self._last_local_evals = local_cost_fn.eval_count
+        if standalone:
+            self._last_global_evals = 0
+            self._last_local_evals = local_cost_fn.eval_count
 
         return best_candidate
 
