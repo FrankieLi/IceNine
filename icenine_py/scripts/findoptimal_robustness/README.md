@@ -17,7 +17,7 @@ All commands run from `icenine_py/`, with `uv run python`. Raw per-run caches go
 | `fixes_run.py` | F1b, F2a/b, F3a/b/c: full re-runs with a search knob changed (`--subset-wr`: wrong runs + equal right runs) |
 | `summarize_fixes.py`, `f1_remaining.py` | wrong rate (Wilson CI), cost and what remains wrong |
 | `features.py` | one-pass candidate features (hit fractions by family/detector, CSL-shared vs non-shared reflections) |
-| `e2_dataset.py`, `e2_models.py` | candidate dataset (harvested + synthetic), LR / gradient-boosted trees, voxel-disjoint folds, ROC, learning curve |
+| `e2_dataset.py`, `e2_models.py` | candidate dataset (harvested + synthetic), LR / gradient-boosted trees, grain-disjoint folds, ROC, learning curve |
 | `e2_endtoend.py`, `e2_summary.py` | classifier as pruning reranker (`rerank`) and as final chooser (`final`) |
 | `plots.py` | the four plots |
 | `run_chain*.sh` | the job chains that were run |

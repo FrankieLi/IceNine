@@ -7,7 +7,6 @@ benchmarks/findoptimal_robustness/e2_endtoend.json (classifier rows, written by 
 writes fixes_summary.{txt,json}.
 """
 
-import json
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -57,7 +56,10 @@ def load_e0(info):
                 continue
             for s in range(C.N_SEEDS):
                 D[(vpos, var, s)] = dict(
-                    v=v, R=d[f"s{s}_R_final"], R_true=d["R_true"], cost=float(d[f"s{s}_cost_final"]),
+                    v=v,
+                    R=d[f"s{s}_R_final"],
+                    R_true=d["R_true"],
+                    cost=float(d[f"s{s}_cost_final"]),
                     evals=int(d[f"s{s}_evals_global"] + d[f"s{s}_evals_local"]),
                     rt=float(d[f"s{s}_runtime"]),
                 )  # fmt: skip
@@ -259,22 +261,32 @@ def main():
         out[var] = rows
         lines.append(f"=== {var} ===")
         lines.append(
-            f"{'method':42s} {'n':>4s} {'wrong':>5s} {'rate [95% CI]':>22s} {'med err right':>13s} {'evals/run':>10s} {'extra':>9s} {'time/run':>9s} {'extra t':>8s}  note"
+            f"{'method':42s} {'n':>4s} {'wrong':>5s} {'rate [95% CI]':>22s} {'med err right':>13s} "
+            f"{'evals/run':>10s} {'extra':>9s} {'time/run':>9s} {'extra t':>8s}  note"
         )
         for r in rows:
             note = f"fixed {r['fixed']}, broken {r['broken']}" if "fixed" in r else ""
             if r.get("subset"):
                 sw, bb = r["still_wrong_of_baseline_wrong"], r["broken_of_baseline_right"]
+                bw = r["baseline_wrong_same_cases"]
                 note += (
-                    f" SUBSET: still wrong {r['baseline_wrong_same_cases'] - r['fixed']}/{r['baseline_wrong_same_cases']} of the baseline-wrong runs "
-                    f"({sw[0]:.2f} [{sw[1]:.2f},{sw[2]:.2f}]); broken {r['broken']}/{r['n_paired'] - r['baseline_wrong_same_cases']} of the baseline-right runs "
-                    f"({bb[0]:.3f} [{bb[1]:.3f},{bb[2]:.3f}]); implied overall wrong rate {r['est_overall_rate']:.3f}"
+                    f" SUBSET: still wrong {bw - r['fixed']}/{bw} of the baseline-wrong runs "
+                    f"({sw[0]:.2f} [{sw[1]:.2f},{sw[2]:.2f}]); broken "
+                    f"{r['broken']}/{r['n_paired'] - bw} of the baseline-right runs "
+                    f"({bb[0]:.3f} [{bb[1]:.3f},{bb[2]:.3f}]); implied overall wrong rate "
+                    f"{r['est_overall_rate']:.3f}"
                 )
             elif "baseline_wrong_same_cases" in r:
-                note += f" (baseline wrong on these cases: {r['baseline_wrong_same_cases']}/{r['n_paired']})"
+                note += (
+                    f" (baseline wrong on these cases: "
+                    f"{r['baseline_wrong_same_cases']}/{r['n_paired']})"
+                )
             lines.append(
-                f"{r['name']:42s} {r['n']:4d} {r['wrong']:5d} {r['rate']:7.3f} [{r['lo']:.3f},{r['hi']:.3f}] "
-                f"{r['median_err_right']:13.4f} {r['evals_mean']:10.0f} {r['extra_evals']:9.0f} {r['runtime_mean']:9.1f} {r['extra_runtime']:8.1f}  {note}"
+                f"{r['name']:42s} {r['n']:4d} {r['wrong']:5d} {r['rate']:7.3f} "
+                f"[{r['lo']:.3f},{r['hi']:.3f}] "
+                f"{r['median_err_right']:13.4f} {r['evals_mean']:10.0f} "
+                f"{r['extra_evals']:9.0f} {r['runtime_mean']:9.1f} "
+                f"{r['extra_runtime']:8.1f}  {note}"
             )
     txt = "\n".join(lines)
     (C.OUT_DIR / "fixes_summary.txt").write_text(txt + "\n")

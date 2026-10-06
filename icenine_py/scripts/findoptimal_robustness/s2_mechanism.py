@@ -29,8 +29,7 @@ def main():
             p = f"s{r['seed']}_L{L}_qmc_"
             e = C.err_deg(d[p + "R"], d["R_true"])
             cost = d[p + "cost"]
-            b = int(np.argmax(e < 3.0)) if (e < 3.0).any() else None
-            if b is None:
+            if not (e < 3.0).any():
                 continue
             bb = int(np.where(e < 3.0)[0][0])
             c0 = csl.csl_classify(d["R_true"], d[p + "R"][0])
@@ -43,9 +42,12 @@ def main():
             from collections import Counter
 
             lines.append(
-                f"[{var}] S2@{L} n={len(v)}: median cost best basin(3) cand {np.median(a[:, 0]):.3f} vs first-ranked {np.median(a[:, 1]):.3f} "
-                f"(basin cand cost higher in {np.mean(a[:, 0] > a[:, 1]):.2f}); median error basin cand {np.median(a[:, 2]):.2f} deg, first-ranked {np.median(a[:, 3]):.1f} deg; "
-                f"cost at the exact truth {np.median(a[:, 4]):.3f}; first-ranked is CSL: {dict(Counter(labs).most_common(5))}"
+                f"[{var}] S2@{L} n={len(v)}: median cost best basin(3) cand "
+                f"{np.median(a[:, 0]):.3f} vs first-ranked {np.median(a[:, 1]):.3f} "
+                f"(basin cand cost higher in {np.mean(a[:, 0] > a[:, 1]):.2f}); median error basin "
+                f"cand {np.median(a[:, 2]):.2f} deg, first-ranked {np.median(a[:, 3]):.1f} deg; "
+                f"cost at the exact truth {np.median(a[:, 4]):.3f}; first-ranked is CSL: "
+                f"{dict(Counter(labs).most_common(5))}"
             )
     (C.OUT_DIR / "s2_mechanism.txt").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))

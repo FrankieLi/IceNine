@@ -49,11 +49,12 @@ def main():
         lines.append("  E0 class: " + str(dict(Counter(c[0].split("@")[0] for c, _, _, _ in rem))))
         lines.append(
             "  CSL class of the original wrong answer: "
-            + str(dict(Counter(c[1] for c, _, _, _ in rem)))
+            + str(dict(Counter(str(c[1]) for c, _, _, _ in rem)))
         )
         near = sum(m < 3.0 for _, _, m, _ in rem)
         lines.append(
-            f"  a relative's quick-MC result within 3 deg of the truth in {near}/{len(rem)} of them (the relatives covered the truth but the cost ranking did not pick it)"
+            f"  a relative's quick-MC result within 3 deg of the truth in {near}/{len(rem)} of "
+            "them (the relatives covered the truth but the cost ranking did not pick it)"
         )
         lines.append(
             "  final errors (deg): "

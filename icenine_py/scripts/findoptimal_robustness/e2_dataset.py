@@ -146,7 +146,6 @@ def main():
     e0 = C.CACHE_DIR / "e0"
     files = [e0 / f"v{v}_{var}.npz" for v in vox for var in C.VARIANTS]
     pool = residual_pool(e0, [f for f in files if f.exists()])
-    np.save(C.OUT_DIR / "residual_pool.npy", pool)
     print(
         f"residual pool: n={len(pool)}, quantiles {np.round(np.quantile(pool, [0.1, 0.5, 0.9]), 2)}"
     )
@@ -161,6 +160,8 @@ def main():
     if a.limit:
         its = its[: a.limit]
     print(len(its), "tasks", flush=True)
+    if its:  # only when work runs: a no-op invocation must not overwrite the committed pool
+        np.save(C.OUT_DIR / "residual_pool.npy", pool)
     C.run_pool(task, its, a.workers, "e2")
 
 

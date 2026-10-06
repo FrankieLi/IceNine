@@ -10,8 +10,7 @@ Pure functions of (orientation, images, voxel); deterministic.
 
 import sys
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -21,6 +20,35 @@ import csl  # noqa: E402
 
 SIGMAS = (3, 5, 7, 9, 11)
 RADII = (1, 3)
+
+
+def feature_names(n_fam: int, n_det: int) -> List[str]:
+    """Names of the feature vector columns, in `FeatureExtractor.features` order."""
+    n = ["log_n_pairs", "hit0", "hit_any", "hit1", "hit3"]
+    n += [f"fam{f}_{k}" for f in range(n_fam) for k in ("hit0", "hit3", "frac")]
+    n += [f"det{d}_{k}" for d in range(n_det) for k in ("hit0", "hit3", "frac")]
+    for sg in SIGMAS:
+        n += [
+            f"S{sg}_{k}"
+            for k in (
+                "shared_frac",
+                "hit0_shared",
+                "hit0_nonshared_min",
+                "hit3_nonshared_min",
+                "hit0_nonshared_mean",
+            )
+        ]
+    n += ["cost_local", "cost_global3"]
+    return n
+
+
+def feature_names_for_width(width: int, n_det: int = 2) -> List[str]:
+    """Feature names for a stored feature matrix of `width` columns (the study's geometry has
+    2 detectors; the number of |q| families follows from the width)."""
+    n_fam = (width - len(feature_names(0, n_det))) // 3
+    names = feature_names(n_fam, n_det)
+    assert len(names) == width, (len(names), width)
+    return names
 
 
 class FeatureExtractor:
@@ -185,25 +213,8 @@ class FeatureExtractor:
         )  # fmt: skip
 
     # -- features ---------------------------------------------------------------------------
-    names: List[str] = []
-
     def feature_names(self) -> List[str]:
-        n = ["log_n_pairs", "hit0", "hit_any", "hit1", "hit3"]
-        n += [f"fam{f}_{k}" for f in range(self.n_fam) for k in ("hit0", "hit3", "frac")]
-        n += [f"det{d}_{k}" for d in range(self.geo.n_det) for k in ("hit0", "hit3", "frac")]
-        for sg in SIGMAS:
-            n += [
-                f"S{sg}_{k}"
-                for k in (
-                    "shared_frac",
-                    "hit0_shared",
-                    "hit0_nonshared_min",
-                    "hit3_nonshared_min",
-                    "hit0_nonshared_mean",
-                )
-            ]
-        n += ["cost_local", "cost_global3"]
-        return n
+        return feature_names(self.n_fam, self.geo.n_det)
 
     def features(
         self, R: np.ndarray, vertices: torch.Tensor, phase: int, with_cost: bool = True
@@ -238,8 +249,10 @@ class FeatureExtractor:
             c_loc = lf.evaluate(np.asarray(R, dtype=np.float32), vertices, phase).cost
             old = lf.pixel_radius
             lf.pixel_radius = 3
-            c_g = lf.evaluate(np.asarray(R, dtype=np.float32), vertices, phase).cost
-            lf.pixel_radius = old
+            try:
+                c_g = lf.evaluate(np.asarray(R, dtype=np.float32), vertices, phase).cost
+            finally:
+                lf.pixel_radius = old
             f += [float(c_loc), float(c_g)]
         else:
             f += [np.nan, np.nan]

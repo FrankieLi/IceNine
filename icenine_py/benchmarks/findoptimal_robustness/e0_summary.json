@@ -86,7 +86,10 @@
    "Sigma29a": 1
   },
   "right_median_err": 0.030099382521282917,
-  "wrong_final_cost_above_truth_cost": null,
+  "wrong_final_cost_above_truth_cost": {
+   "n": 204,
+   "of": 204
+  },
   "present3_by_level": [
    0.98,
    0.87,
@@ -225,7 +228,10 @@
    "Sigma19a": 2
   },
   "right_median_err": 0.027711525172749097,
-  "wrong_final_cost_above_truth_cost": null,
+  "wrong_final_cost_above_truth_cost": {
+   "n": 143,
+   "of": 143
+  },
   "present3_by_level": [
    0.9916666666666667,
    0.9183333333333333,

@@ -23,7 +23,6 @@ Evaluation sets (held-out voxels):
 """
 
 import argparse
-import json
 import sys
 import time
 from pathlib import Path
@@ -57,7 +56,6 @@ def fold_of(vpos: np.ndarray, seed: int = 0) -> np.ndarray:
     the same CSL relatives) are in one fold; grains are assigned greedily, largest first, to the
     fold with the fewest voxels (ties broken by a seeded shuffle)."""
     grain = np.load(C.OUT_DIR / "voxels.npz")["voxel_grain_id"]
-    n = len(grain)
     ids, counts = np.unique(grain, return_counts=True)
     rng = np.random.default_rng(seed)
     order = rng.permutation(len(ids))
@@ -72,7 +70,7 @@ def fold_of(vpos: np.ndarray, seed: int = 0) -> np.ndarray:
     return per_voxel[np.asarray(vpos)]
 
 
-def make_model(kind: str):
+def make_model(kind: str) -> Any:
     from sklearn.ensemble import HistGradientBoostingClassifier
     from sklearn.linear_model import LogisticRegression
     from sklearn.pipeline import make_pipeline
@@ -92,13 +90,13 @@ def cols(with_cost: bool, n_feat: int) -> slice:
     return slice(0, n_feat) if with_cost else slice(0, n_feat - COST_COLS)
 
 
-def fit(kind: str, X: np.ndarray, err: np.ndarray, with_cost: bool):
+def fit(kind: str, X: np.ndarray, err: np.ndarray, with_cost: bool) -> Any:
     m = make_model(kind)
     m.fit(X[:, cols(with_cost, X.shape[1])], (err < 3.0).astype(int))
     return m
 
 
-def score(m, X: np.ndarray, with_cost: bool) -> np.ndarray:
+def score(m: Any, X: np.ndarray, with_cost: bool) -> np.ndarray:
     return m.predict_proba(X[:, cols(with_cost, X.shape[1])])[:, 1]
 
 
@@ -123,9 +121,8 @@ def eval_sets(D: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
 
 
 def groups(D: Dict[str, np.ndarray], kind: str) -> List[np.ndarray]:
-    """Index arrays of the groups of evaluation D (pruning levels 0-2) or E (FindOptimal results)."""
+    """Index arrays of the groups of evaluation D (pruning, levels 0-2) or E (FindOptimal)."""
     idx = np.arange(len(D["err"]))
-    out = []
     key_cols = ("vpos", "variant", "seed", "level")
     if kind == "D":
         sel = (D["source"] == 0) & (D["level"] <= 2)
@@ -227,11 +224,11 @@ def cv_scores(
     return S
 
 
-def subset(D, mask):
+def subset(D: Dict[str, np.ndarray], mask: np.ndarray) -> Dict[str, np.ndarray]:
     return {k: v[mask] for k, v in D.items()}
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("cmd", choices=["run"])
     ap.add_argument("--save-models", action="store_true")
@@ -245,12 +242,14 @@ def main():
     results: Dict[str, Any] = {"n_candidates": n}
     lines: List[str] = []
 
-    def fmt(res):
+    def fmt(res: Dict[str, Dict[str, Any]]) -> List[str]:
         o = []
         for name, r in res.items():
             o.append(
-                f"  {name:12s} AUC A {r['auc_A']:.3f} (n={r['n_A']})  B {r['auc_B']:.3f}  C {r['auc_C']:.3f} (n={r['n_C']})   "
-                f"prune recall {r['prune_recall']:.3f} (n={r['n_prune_groups']})  final precision {r['final_precision']:.3f} (n={r['n_final_groups']})"
+                f"  {name:12s} AUC A {r['auc_A']:.3f} (n={r['n_A']})  B {r['auc_B']:.3f}  C "
+                f"{r['auc_C']:.3f} (n={r['n_C']})   "
+                f"prune recall {r['prune_recall']:.3f} (n={r['n_prune_groups']})  final precision "
+                f"{r['final_precision']:.3f} (n={r['n_final_groups']})"
             )
         return "\n".join(o)
 
@@ -299,7 +298,8 @@ def main():
     lines.append(
         "[AUC basin vs candidates within 3 deg of an exact CSL relative, by class]\n"
         + "\n".join(
-            f"  Sigma{k:5s} n_neg {v['n_neg']:6d}  cost {v['auc_cost']:.3f}  LR {v['auc_lr']:.3f}  GBT {v['auc_gbt']:.3f}"
+            f"  Sigma{k:5s} n_neg {v['n_neg']:6d}  cost {v['auc_cost']:.3f}  LR {v['auc_lr']:.3f}  "
+            f"GBT {v['auc_gbt']:.3f}"
             for k, v in by_class.items()
         )
     )
@@ -334,9 +334,9 @@ def main():
     lc["cost_baseline"] = base
     results["learning_curve"] = lc
     lines.append(
-        f"[cost baseline, all held-out] AUC A {base['auc_A']:.3f}  prune recall {base['prune_recall']:.3f}  final precision {base['final_precision']:.3f}"
+        f"[cost baseline, all held-out] AUC A {base['auc_A']:.3f}  prune recall "
+        f"{base['prune_recall']:.3f}  final precision {base['final_precision']:.3f}"
     )
-    # feature importance (permutation-free): LR coefficients of the last fold are unstable; report GBT impurity-free proxy via drop in AUC? skipped
     C.save_json(C.OUT_DIR / "e2_results.json", results)
     (C.OUT_DIR / "e2_summary.txt").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))

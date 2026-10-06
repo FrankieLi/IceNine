@@ -11,7 +11,7 @@ import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
@@ -82,8 +82,6 @@ def build_case(
     context; None if the case cannot be built (the nominal at the truth is not renderable).
     Mirrors findoptimal_sweep.case_images for radius index 0, direction 0 without the sweep
     alignment assertions (the first 50 voxels are checked against the stored experiment A)."""
-    from typing import Any as _A
-
     ctx = get_worker().ctx
     a = ctx.args
     vctx = osw.voxel_context(ctx, vidx)
@@ -94,13 +92,12 @@ def build_case(
         a.sweep_seed, vidx, 0, r, D, len(vctx.sources), sigma_comp, a.neighbor_p
     )
     R_nom0 = ps.perturbed_nominal(vctx.R_true, delta0)
-    prep1: List[Optional[_A]] = []
+    prep1: List[Optional[Any]] = []
     for j in range(D):
         p, _ = ps.prepare_nominal(ctx, vidx, R_nom0[j])
         prep1.append(p)
     if prep1[0] is None:
         return None
-    vi = VARIANTS.index(variant)
     seed = a.realism_seed + 1000003 * vpos + 0
     layers: Dict[str, torch.Tensor] = {}
     b1 = ps.render_batch(prep1, delta0, draws, vctx.sources, variant, seed, a, layers=layers)
@@ -120,7 +117,6 @@ def build_case(
             ctx.geo,
         )
     keys = osw.case_image_keys(ctx, vctx, variant, draws[0], edit)
-    del vi
     return keys, vctx.R_true, vctx
 
 

@@ -122,9 +122,10 @@ The cost at the truth is below the cost of the returned answer in 347 of 347 wro
   some but not all, 85 never; under independent seeds with the pooled rate one expects 7.9, 134.6,
   57.5. Realistic: 13, 80, 107 against 2.7, 108.9, 88.4. So the failure is strongly voxel-dependent
   (systematic), and a second seed also helps a lot (F4).
-- **Dependences.** The wrong rate does not depend on r_perp (clean quartiles 0.34, 0.33, 0.35, 0.34;
-  realistic 0.31, 0.21, 0.21, 0.22), and not on proximity to a grain boundary (clean 31.8% near
-  against 41.1% not near; realistic 23.1% against 26.2%; if anything the opposite sign). With the
+- **Dependences.** No consistent dependence of the wrong rate on r_perp (clean quartiles 0.34, 0.33,
+  0.35, 0.34; realistic 0.31, 0.21, 0.21, 0.22, i.e. the first quartile is higher) or on proximity to
+  a grain boundary (clean 31.8% near, n=459, against 41.1% not near, n=141; realistic 23.1% against
+  26.2%; if anything the opposite sign); the runs are not independent, so these are descriptive. With the
   fraction of the truth's eligible reflections that are shared with at least one Sigma relative
   (`e0_dependence.txt`), the dependence is weak: Spearman +0.09 (Sigma3) and +0.10 (Sigma7) in clean,
   +0.11 and +0.12 in realistic data (p about 0.01; over runs, not independent), wrong rate by tertile
@@ -168,17 +169,17 @@ per evaluation; the re-run fixes' times are measured.)
 **What the results say.**
 
 - **F1 is the clear winner on cost.** For a wrong answer that is a CSL relative of the truth, generating
-  all its distinct Sigma relatives (Sigma<=29: 264 orientations), running the same quick MC on each,
+  all its distinct Sigma relatives (Sigma<=29: 270 orientations), running the same quick MC on each,
   and refining the best three per Sigma subset recovers the truth: 90% (clean) and 86% (realistic) of
-  the wrong runs fixed, 0 of 1200 right runs broken, for +11% evaluations and +10% time. Sigma<=11
-  (38 relatives) gets almost all of it. In 6 of the 21 clean and 2 of the 20 realistic runs still wrong
+  the wrong runs fixed, 0 of the 853 right runs broken, for +11% evaluations and +10% time. Sigma<=11
+  (42 relatives) gets almost all of it. In 6 of the 21 clean and 2 of the 20 realistic runs still wrong
   afterwards a relative's quick-MC result was within 3 degrees of the truth but did not rank first by
   cost. About half of the original wrong answers of the remaining runs (11 of 21 clean, 13 of 20
   realistic) have no Sigma <= 29 relation to the truth; those are not relatives of the truth, so F1
   cannot reach them (`f1_remaining.txt`; their E0 classes: all S2 in clean data, S2 12, S3 5, S1 3
   in realistic data).
 - **F1b (put the relatives into the candidate set at every level) is the best single search change**
-  (0/200 and 3/200 wrong) at +28% evaluations. Its advantage over F1 (1.5% and 4.0% on the same seed)
+  (0/200 and 3/200 wrong) at +26-28% evaluations (+41-44% measured time). Its advantage over F1 (1.5% and 4.0% on the same seed)
   is within the intervals at n=200.
 - **F2: keeping more helps**, but less than F1: keep 1/2 per level cuts the rate to about 11% / 5.5%
   at +15-23% evaluations; the cheaper dual-ranking union (F2b) is as good in clean data and worse in
@@ -200,8 +201,8 @@ per evaluation; the re-run fixes' times are measured.)
 of E0 seeds 0 and 1 (post-quick-MC candidates of all levels and FindOptimal's results: 242,396
 candidates) and (ii) synthetic hard examples: the truth perturbed by residuals (24 per case) and every
 distinct Sigma<=29 relative of the truth perturbed by a residual (270 per case), residual angles drawn
-from the E0 error of the nearest candidate to the truth at levels 0-2 (n=486, median 0.8, 90th
-percentile 3.0 degrees, random axis). Total 359,996 candidates; positives (< 3 degrees) are 4.9%.
+from the E0 error of the nearest candidate to the truth at levels 0-2 (n=3441, median 0.58, 90th
+percentile 2.22 degrees, random axis). Total 359,996 candidates; positives (< 3 degrees) are 4.9%.
 
 **Features (62), from one forward pass per candidate** (about 6 ms): number of eligible (peak,
 detector) pairs; hit fractions with the centre pixel, centre or any triangle vertex, +-1 and +-3 pixel
@@ -216,8 +217,10 @@ degrees", balanced class weights, fixed hyperparameters.
 **Protocol.** Four folds of about 50 voxels split by GRAIN (both variants of a voxel and all voxels of
 a grain together: the 200 voxels come from 158 grains, and 28 grains have voxels in more than one
 voxel-disjoint fold, which could leak orientations and CSL relatives; the first analysis used
-voxel-disjoint folds, kept in `*_voxel_disjoint_folds.*` and within 0.004 AUC and 0.004 pruning recall
-of the grain-disjoint numbers below). A model is evaluated only on grains it never saw. Evaluation sets: A "contested" (candidates that matter: ranking below twice the
+voxel-disjoint folds, kept in `*_voxel_disjoint_folds.*`. The headline all-feature numbers differ by
+at most 0.004 in AUC and pruning recall from the grain-disjoint ones below, but other numbers differ
+more: AUC B without radius-1/3 features 0.853 against 0.868, final precision train-clean/test-realistic
+0.831 against 0.847, end-to-end C-a+F1 realistic 3.5% against 2.0%, C-b final realistic 4.2% against 5.0%). A model is evaluated only on grains it never saw. Evaluation sets: A "contested" (candidates that matter: ranking below twice the
 typical cut, the last level, FindOptimal results; basin < 1 degree against trap > 3 degrees; n=71,388),
 B synthetic basin against synthetic CSL relatives (n=117,600), C basin against candidates within 3
 degrees of an exact CSL relative (n=96,823), D pruning recall (per level group with a basin candidate:
@@ -239,8 +242,8 @@ the trees).
 
 **Ablation (`e2_ablation.txt`, trees, grain-disjoint).** All 62 features: AUC A 0.9967, pruning recall
 0.985. Without the cost features: 0.9970, 0.985. Without the CSL-aware features: 0.9936, 0.985 (AUC B
-0.927 against 0.937). Without any radius-1 or radius-3 feature: 0.9936 and 0.965 (AUC B drops to
-0.853). Only the five overall hit fractions (centre, any vertex, +-1 and +-3 boxes, and the number of pairs):
+0.927 against 0.937). Without any tolerant (radius 1 and 3) feature: 0.9936 and 0.965 (AUC B drops to
+0.853, against 0.868 in the voxel-disjoint run: a gap of 0.015). Only the five overall hit fractions (centre, any vertex, +-1 and +-3 boxes, and the number of pairs):
 0.9915, 0.982. So the gain over the cost comes mainly from combining the exact hit rate with the
 tolerant hit rates, not from the CSL-specific features (they add about 0.003 AUC) and not from the
 cost features.
@@ -315,7 +318,7 @@ Backed by the learning curve of Section 6 (25 voxels already give most of the pr
   between voxels (not covered: images here are per voxel).
 - **Held-out protocol.** By voxel at a minimum, but by grain (a grain's voxels share the
   orientation and all its CSL relatives, so they must stay together: done in the final analysis, the 200
-  voxels come from 158 grains; the voxel-disjoint split gave nearly the same numbers), and by sample for any claim about
+  voxels come from 158 grains; the voxel-disjoint split gave similar headline AUC and pruning recall, but differences up to 0.015 in some AUCs and 1-1.5 points in some end-to-end rates), and by sample for any claim about
   a new material or geometry.
 - **Domain-shift risks for real data and mitigations.** (1) Different noise, background and
   detector response than the synthetic images: train on measured-noise-like realism and calibrate the hit
@@ -335,16 +338,19 @@ Backed by the learning curve of Section 6 (25 voxels already give most of the pr
 1. **Add F1 (CSL check after the search) now.** About 150 lines, no training data, +11% evaluations,
    removes 86-90% of the failures (34% to 3.5% clean, 24% to 3.3% realistic, on 600 runs each), 0 right runs
    broken. Sigma<=11 gives almost all of it for half the cost.
-2. **Consider F1b where robustness matters more than 30% extra time** (0.0% clean and 1.5% realistic wrong
-   on 200 voxels). Whether it is significantly better than F1 needs more voxels.
+2. **Consider F1b where robustness matters more than about 40% extra time** (0.0% clean and 1.5% realistic wrong
+   on 200 voxels; measured +10.9 s on 24.5 / 26.5 s per run, i.e. +41-44% time for +26-28% evaluations). Whether it is significantly better than F1 needs more voxels.
 3. **Cheap structural improvement: keep more candidates per level** (F2a, keep 1/2: to about 11% / 5.5%
    at +15-23% evaluations), or at least rank the survivors by something that tolerates the 1-2 degree
    offset of a coarse candidate. Do not reduce the global pixel tolerance (F3b is much worse). Do
    not run extra seeds as the main remedy (F4: 2 to 3 times the cost for less than F1).
 4. **The classifier is not needed for the CSL failure.** It is the better fix of the cause (S2) and is
    cheap to evaluate, but on this data it is no better than F1; it is worth a trial only if real data
-   show failures that are not CSL relatives (the remaining failures after F1 are non-CSL: 21/600 and 20/600) and only
-   with training data that includes realistic data. Never use it as the final chooser; the cost does
+   show traps that the CSL check cannot reach. That holds for about half of the failures remaining
+   after F1 (21/600 clean and 20/600 realistic): 11 of 21 and 13 of 20 have no Sigma <= 29 relation
+   to the truth, while the rest are low-Sigma relatives (Sigma7 x5, Sigma19b, Sigma3, Sigma21a, Sigma25a, Sigma17a,
+   Sigma5, ...) that F1 found but did not rank first (`f1_remaining.txt`). Train only
+   with data that includes realistic data. Never use it as the final chooser; the cost does
    that job.
 5. **A change to test next (inferred, not tested):** the ablation says five overall hit fractions
    (exact and tolerant) carry most of the trained model's gain (pruning recall 0.982 against 0.985 for
@@ -373,6 +379,10 @@ the fix is ported to C++.
 - Cost units: one "evaluation" is one cost-function call; global (radius-3, partial Q) and
   local calls cost about the same in wall time; classifier scoring is counted as 3 evaluations
   per candidate, measured time gives +2-3 s per run. The runtime of F1 and F4+F1 rows is estimated from evaluation counts.
+- Label mismatch: the classifier is trained on "within 3 degrees" (`e2_models.py`, err < 3.0), but
+  evaluation sets A, C and E score the basin as < 1 degree, so A and C drop the 1-3 degree
+  candidates entirely, while E, the end-to-end rerank and pruning recall D (3 degrees) mix the two
+  definitions. The numbers are therefore not all on one label.
 - The S-classes use the 3-degree basin and the post-quick-MC orientation; other thresholds were not
   scanned. Candidates within 3 degrees but beyond 1 degree count as "present".
 - The analysis assumes the data images are those of the voxel itself; in a BFS reconstruction

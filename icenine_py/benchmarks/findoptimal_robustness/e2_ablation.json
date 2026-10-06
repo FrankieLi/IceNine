@@ -47,7 +47,7 @@
   "final_precision": 0.9824902723735408,
   "n_final_groups": 514
  },
- "no pixel-radius-3 features": {
+ "no tolerant (radius 1 and 3) features": {
   "auc_A": 0.9935764655567099,
   "n_A": 71388,
   "auc_B": 0.8528449300733024,

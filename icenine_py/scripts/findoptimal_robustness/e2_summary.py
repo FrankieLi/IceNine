@@ -77,7 +77,7 @@ def main(model="GBT"):
                 e2 = np.array(e2)
                 rows.append(
                     SF.row(
-                        f"C-a + F1 (Sigma<=29)",
+                        "C-a + F1 (Sigma<=29)",
                         e2,
                         np.array(v2),
                         np.array(v2) * rt0.mean() / ev0.mean(),
@@ -137,7 +137,9 @@ def main(model="GBT"):
                 else ""
             )
             lines.append(
-                f"{r['name']:80s} n={r['n']:4d} wrong {r['wrong']:4d} = {r['rate']:.3f} [{r['lo']:.3f},{r['hi']:.3f}]  evals {r['evals_mean']:.0f} (extra {r['extra_evals']:.0f})  time {r['runtime_mean']:.1f}s{note}"
+                f"{r['name']:80s} n={r['n']:4d} wrong {r['wrong']:4d} = {r['rate']:.3f} "
+                f"[{r['lo']:.3f},{r['hi']:.3f}]  evals {r['evals_mean']:.0f} (extra "
+                f"{r['extra_evals']:.0f})  time {r['runtime_mean']:.1f}s{note}"
             )
     (C.OUT_DIR / "e2_endtoend.txt").write_text("\n".join(lines) + "\n")
     C.save_json(C.OUT_DIR / "e2_endtoend.json", out)

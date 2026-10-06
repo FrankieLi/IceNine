@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Which feature groups carry the classifier? GBT (4 voxel-disjoint folds) with feature groups
-removed: CSL-aware features, per-family/detector breakdown, pixel-radius-3 features."""
+"""Which feature groups carry the classifier? GBT (4 grain-disjoint folds) with feature groups
+removed: CSL-aware features, per-family/detector breakdown, tolerant (radius 1 and 3) features."""
 
 import sys
 from pathlib import Path
@@ -15,21 +15,7 @@ import features as F  # noqa: E402
 
 def main():
     D = M.load_dataset()
-    nm = ["log_n_pairs", "hit0", "hit_any", "hit1", "hit3"]
-    nm += [f"fam{f}_{k}" for f in range(8) for k in ("hit0", "hit3", "frac")]
-    nm += [f"det{d}_{k}" for d in range(2) for k in ("hit0", "hit3", "frac")]
-    for sg in F.SIGMAS:
-        nm += [
-            f"S{sg}_{k}"
-            for k in (
-                "shared_frac",
-                "hit0_shared",
-                "hit0_nonshared_min",
-                "hit3_nonshared_min",
-                "hit0_nonshared_mean",
-            )
-        ]
-    nm += ["cost_local", "cost_global3"]
+    nm = F.feature_names_for_width(D["X"].shape[1])
     assert len(nm) == D["X"].shape[1]
     groups = {
         "all features": [],
@@ -37,7 +23,7 @@ def main():
         "no CSL-aware features": [n for n in nm if n.startswith("S")],
         "no CSL-aware, no cost": [n for n in nm if n.startswith("S")]
         + ["cost_local", "cost_global3"],
-        "no pixel-radius-3 features": [
+        "no tolerant (radius 1 and 3) features": [
             n for n in nm if "hit3" in n or n in ("hit1", "cost_global3")
         ],
         "only overall hit fractions (hit0, hit_any, hit1, hit3)": [
@@ -58,7 +44,9 @@ def main():
         r = M.metrics(D, {"GBT": sc})["GBT"]
         res[gname] = r
         lines.append(
-            f"{gname:58s} AUC A {r['auc_A']:.4f}  B {r['auc_B']:.3f}  C {r['auc_C']:.4f}  prune recall {r['prune_recall']:.3f}  final precision {r['final_precision']:.3f}  ({len(keep)} features)"
+            f"{gname:58s} AUC A {r['auc_A']:.4f}  B {r['auc_B']:.3f}  C {r['auc_C']:.4f}  prune "
+            f"recall {r['prune_recall']:.3f}  final precision {r['final_precision']:.3f}  "
+            f"({len(keep)} features)"
         )
     (C.OUT_DIR / "e2_ablation.txt").write_text("\n".join(lines) + "\n")
     C.save_json(C.OUT_DIR / "e2_ablation.json", res)

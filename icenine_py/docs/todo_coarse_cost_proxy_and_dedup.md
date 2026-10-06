@@ -89,6 +89,6 @@ representative, so the kept slots go to distinct orientations.
 # Relation to other work
 
 - Complements F1/F1b (CSL-relative checks), which fix most failures today; these ideas aim to keep
-  the truth from being pruned in the first place, possibly at lower cost than F1b (+28%).
+  the truth from being pruned in the first place, possibly at lower cost than F1b (+26-28% evaluations, about +41-44% measured time).
 - The `rank_key` hook and the instrumented E0 recorder in `icenine/reconstructor.py` and
   `scripts/findoptimal_robustness/` make both ideas testable without further reconstructor changes.

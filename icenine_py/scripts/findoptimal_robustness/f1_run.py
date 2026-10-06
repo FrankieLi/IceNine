@@ -15,6 +15,7 @@ import math
 import sys
 import time
 from pathlib import Path
+from typing import Any, Tuple
 
 import numpy as np
 
@@ -26,7 +27,9 @@ TOP_K = 3
 SIG_SMALL = 11
 
 
-def refine_one(W, rng, vertices, phase, R):
+def refine_one(
+    W: Any, rng: np.random.Generator, vertices: np.ndarray, phase: int, R: np.ndarray
+) -> Tuple[np.ndarray, float, int]:
     from icenine.orientation_search import MCOptimizer, SearchCandidate
 
     lf = W.local_fn
@@ -43,7 +46,14 @@ def refine_one(W, rng, vertices, phase, R):
     return np.asarray(res.orientation, dtype=np.float64), float(res.cost), lf.eval_count - n0
 
 
-def quick_mc(W, rng, vertices, phase, R, diameter):
+def quick_mc(
+    W: Any,
+    rng: np.random.Generator,
+    vertices: np.ndarray,
+    phase: int,
+    R: np.ndarray,
+    diameter: float,
+) -> Tuple[np.ndarray, float]:
     from icenine.orientation_search import MCOptimizer
 
     p = W.rec.params
@@ -62,7 +72,7 @@ def quick_mc(W, rng, vertices, phase, R, diameter):
     return np.asarray(res.orientation, dtype=np.float64), float(res.cost)
 
 
-def task(item):
+def task(item: Tuple[Any, ...]) -> str:
     vidx, vpos, variant, n_seeds, e0_path, path, src_path = item
     W = C.get_worker()
     t_start = time.time()
@@ -120,7 +130,7 @@ def task(item):
     return f"voxel {vidx} {variant} F1 done in {time.time() - t_start:.0f}s"
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("cmd", choices=["run"])
     ap.add_argument("--workers", type=int, default=10)
@@ -128,7 +138,7 @@ def main():
     ap.add_argument(
         "--source",
         default="",
-        help="cache dir of runs with R_final (seed 0 only), e.g. e2_rerank_GBT; default: E0 answers",
+        help="cache dir of runs with R_final (seed 0 only), e.g. e2_rerank_GBT; default E0 answers",
     )
     ap.add_argument("--limit", type=int, default=0, help="only the first N tasks (testing)")
     a = ap.parse_args()

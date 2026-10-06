@@ -18,6 +18,7 @@ import argparse
 import sys
 import time
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 
@@ -35,10 +36,10 @@ FIXES = {
 }
 
 
-def make_expander(top_k: int, max_sigma: int = 11):
+def make_expander(top_k: int, max_sigma: int = 11) -> Callable[[int, List[Any]], List[Any]]:
     from icenine.orientation_search import SearchCandidate
 
-    def expand(level, candidates):
+    def expand(level: int, candidates: List[Any]) -> List[Any]:
         order = sorted(range(len(candidates)), key=lambda i: candidates[i].cost)[:top_k]
         extra = []
         for i in order:
@@ -51,7 +52,7 @@ def make_expander(top_k: int, max_sigma: int = 11):
     return expand
 
 
-def apply_knobs(rec, knobs):
+def apply_knobs(rec: Any, knobs: Dict[str, Any]) -> None:
     rec.keep_fraction, rec.keep_union_discrete = 0.25, False
     rec.n_q_start_offset, rec.global_pixel_radius = 0.0, 3
     rec.extra_candidates = None
@@ -65,7 +66,7 @@ def apply_knobs(rec, knobs):
             setattr(rec, k, v)
 
 
-def task(item):
+def task(item: Tuple[Any, ...]) -> str:
     fix, vidx, vpos, variant, seeds, path = item
     W = C.get_worker()
     t_start = time.time()
@@ -93,7 +94,7 @@ def task(item):
         out[f"s{s}_evals_local"] = loc
         arr = rec.to_arrays()
         for k, v in arr.items():
-            if k.startswith("L") and k.endswith("_qmc_R") or k.endswith("_qmc_cost"):
+            if (k.startswith("L") and k.endswith("_qmc_R")) or k.endswith("_qmc_cost"):
                 out[f"s{s}_{k}"] = v
             if k.startswith("L") and k.endswith("_qmc_n_keep"):
                 out[f"s{s}_{k}"] = v
@@ -102,7 +103,7 @@ def task(item):
     return f"{fix} voxel {vidx} {variant} done in {time.time() - t_start:.0f}s"
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("cmd", choices=["run"])
     ap.add_argument("--fix", required=True, choices=sorted(FIXES))
@@ -134,7 +135,8 @@ def main():
                 (wrong if bad else right).append((v, var))
         pick = np.random.default_rng(0).permutation(len(right))[: len(wrong)]
         chosen = set(wrong) | {right[i] for i in pick}
-    for vpos, v in enumerate(vox[: a.n_voxels + 8]):
+    n_run = a.n_voxels if chosen is None else a.n_voxels + 8  # spare voxels only in subset runs
+    for vpos, v in enumerate(vox[:n_run]):
         for var in C.VARIANTS:
             e0 = C.CACHE_DIR / "e0" / f"v{v}_{var}.npz"
             if not e0.exists() or "unbuildable" in np.load(e0).files:

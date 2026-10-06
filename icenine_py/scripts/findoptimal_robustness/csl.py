@@ -68,8 +68,10 @@ def _reduced_rotation_angle(C: np.ndarray) -> float:
 
 def csl_table(max_sigma: int = 29) -> List[CSLEntry]:
     """Cubic CSL rotations with odd Sigma <= max_sigma, one entry per distinct (Sigma, reduced
-    angle): for an axis [uvw] and integer m, tan(theta/2) = n sqrt(N)/m with N = u^2+v^2+w^2, gcd(m, n) = 1, gives
-    Sigma = m^2 + n^2 N (halved while even). Sorted by Sigma; variants of one Sigma get a, b, ..."""
+    angle): for an axis [uvw] and integer m, tan(theta/2) = n sqrt(N)/m with N = u^2+v^2+w^2,
+    gcd(m, n) = 1, gives Sigma = m^2 + n^2 N (halved while even). Sorted by Sigma; variants of
+    one Sigma get a, b, ...
+    """
     global _TABLE
     if _TABLE is None or max(e.sigma for e in _TABLE) < max_sigma:
         seen: Dict[Tuple[int, float], Tuple[int, float, Tuple[int, int, int]]] = {}

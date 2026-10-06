@@ -7,6 +7,7 @@
    S2 rank of best basin(3) candidate: {'median_rank': 28.0, 'median_n_keep': 12.0, 'median_n_cand': 51.0, 'frac_rank_lt_2x_keep': 0.7049180327868853, 'frac_kept_if_ranked_by_discrete_score': 0.5792349726775956}
    S3 detail: {'n': 9, 'frac_basin_in_input': 1.0, 'n_findoptimal_refined_basin_cand_below_1deg': 5, 'frac_basin_result_cost_above_winner_cost': 1.0}
    CSL class of wrong answers: {'Sigma3': 126, 'Sigma5': 31, 'Sigma7': 26, 'Sigma11': 3, 'none': 11, 'Sigma25a': 1, 'Sigma13b': 2, 'Sigma19b': 2, 'Sigma21a': 1, 'Sigma29a': 1}
+   wrong answers with a cost above the cost at the truth: 204/204
    basin(3) present by level [0.98, 0.87, 0.733, 0.675], kept [0.86, 0.73, 0.673, 0.642], median #candidates [172.5, 45.0, 11.0, 2.0]
    right answers: median error 0.0301 deg; runtime median 24.8 s; evals global median 44478, local 4676
    wrong rate by r_perp quartile (um): 9-265: 0.34, 265-352: 0.33, 352-430: 0.35, 430-500: 0.34
@@ -21,6 +22,7 @@
    S2 rank of best basin(3) candidate: {'median_rank': 38.0, 'median_n_keep': 26.0, 'median_n_cand': 105.0, 'frac_rank_lt_2x_keep': 0.7478991596638656, 'frac_kept_if_ranked_by_discrete_score': 0.6470588235294118}
    S3 detail: {'n': 19, 'frac_basin_in_input': 1.0, 'n_findoptimal_refined_basin_cand_below_1deg': 17, 'frac_basin_result_cost_above_winner_cost': 1.0}
    CSL class of wrong answers: {'Sigma3': 94, 'Sigma9': 2, 'none': 13, 'Sigma7': 11, 'Sigma5': 17, 'Sigma25a': 1, 'Sigma17a': 2, 'Sigma11': 1, 'Sigma19a': 2}
+   wrong answers with a cost above the cost at the truth: 143/143
    basin(3) present by level [0.992, 0.918, 0.832, 0.793], kept [0.903, 0.833, 0.793, 0.75], median #candidates [248.0, 67.0, 17.0, 4.0]
    right answers: median error 0.0277 deg; runtime median 26.5 s; evals global median 44712, local 7306
    wrong rate by r_perp quartile (um): 9-265: 0.31, 265-352: 0.21, 352-430: 0.21, 430-500: 0.22

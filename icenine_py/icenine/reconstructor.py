@@ -433,13 +433,8 @@ class AdaptiveVoxelReconstructor:
         self.n_q_start_offset: float = 0.0  # added to the initial n_q_max (5 + min resolution)
         self.global_pixel_radius: int = 3  # pixel radius of the coarse (global) cost function
         # Optional hook: extra_candidates(level, candidates) -> extra SearchCandidates (orientation
-        # only; the quick MC fills their cost) added before the quick MC of that level.
-        # This is the F1b knob (CSL relatives of the best candidates at every coarse level, see
-        # scripts/findoptimal_robustness/fixes_run.py make_expander). OFF by default (None) by
-        # project decision (2026-10-06) so the port keeps matching the C++ reconstruction; it cuts
-        # the wrong rate from 34%/24% to 0%/1.5% for about +28% evaluations. The F1 post-search
-        # check is not an attribute: it lives in scripts/findoptimal_robustness/f1_run.py and uses
-        # refine_from_candidates, and is likewise not applied by reconstruct_voxel.
+        # only; the quick MC fills their cost) added before the quick MC of that level (F1b).
+        # Default off; see MIGRATION_HISTORY 'FindOptimal robustness'.
         self.extra_candidates: Optional[
             Callable[[int, List[SearchCandidate]], List[SearchCandidate]]
         ] = None
@@ -566,6 +561,8 @@ class AdaptiveVoxelReconstructor:
             )
 
             if self.extra_candidates is not None:
+                # NOTE: these bypass the spacing filter of the discrete stage and enlarge the
+                # list that n_keep is computed from below
                 candidates = list(candidates) + list(self.extra_candidates(level, candidates))
             if self.recorder is not None:
                 self.recorder(
@@ -608,8 +605,11 @@ class AdaptiveVoxelReconstructor:
             # Phase 4: Shrink diameter, keep top 1/4
             # C++ DiscreteAdaptive.tmpl.cpp:196-205
             diameter /= 1.5
+            pre_sort = list(candidates)  # discrete-stage order (the quick MC mutated in place)
             if self.rank_key is not None:
-                order = np.argsort(np.asarray(self.rank_key(level, candidates)), kind="stable")
+                key = np.asarray(self.rank_key(level, candidates))
+                assert len(key) == len(candidates), "rank_key must return one key per candidate"
+                order = np.argsort(key, kind="stable")
                 candidates = [candidates[i] for i in order]
             else:
                 candidates.sort()
@@ -619,11 +619,13 @@ class AdaptiveVoxelReconstructor:
             n_keep = max(1, int(len(candidates) * self.keep_fraction))
             kept_list = list(candidates[:n_keep])
             if self.keep_union_discrete:
-                # top n_keep by the discrete-stage score as well (ids maps to the pre-sort index)
+                # top n_keep by the discrete-stage score as well; the candidate objects carry the
+                # post-quick-MC orientation (it is the one kept, not the discrete-stage one)
                 by_disc = np.argsort(disc_scores, kind="stable")[:n_keep]
                 in_kept = {id(c) for c in kept_list}
-                lookup = {i: c for c in candidates for i in [ids[id(c)]]}
-                kept_list += [lookup[int(i)] for i in by_disc if id(lookup[int(i)]) not in in_kept]
+                kept_list += [
+                    pre_sort[int(i)] for i in by_disc if id(pre_sort[int(i)]) not in in_kept
+                ]
             fz_orientations = np.array([c.orientation for c in kept_list])
             if self.recorder is not None:
                 self.recorder(

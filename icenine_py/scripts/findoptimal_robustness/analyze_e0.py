@@ -14,7 +14,6 @@ Definitions (per run, error = cubic-symmetry-reduced misorientation to the truth
   S3  wrong, a basin(3) candidate is in the hand-off, FindOptimal returns something else
 """
 
-import json
 import sys
 from collections import Counter
 from pathlib import Path
@@ -35,6 +34,7 @@ def run_metrics(d: Any, s: int, R_true: np.ndarray) -> Dict[str, Any]:
     final_err = float(C.err_deg(d[p + "R_final"], R_true))
     m: Dict[str, Any] = dict(final_err=final_err, wrong=final_err > C.WRONG_DEG)
     m["cost_final"] = float(d[p + "cost_final"])
+    m["cost_true"] = float(d["cost_true"])
     m["runtime"] = float(d[p + "runtime"])
     m["evals_global"] = int(d[p + "evals_global"])
     m["evals_local"] = int(d[p + "evals_local"])
@@ -55,7 +55,6 @@ def run_metrics(d: Any, s: int, R_true: np.ndarray) -> Dict[str, Any]:
             nkeep.append(0)
             continue
         R = d[p + f"L{L}_qmc_R"]
-        cost = d[p + f"L{L}_qmc_cost"]
         perm = d[p + f"L{L}_qmc_perm"]
         nk = int(d[p + f"L{L}_qmc_n_keep"])
         e = C.err_deg(R, R_true)  # sorted order (post quick MC)
@@ -241,7 +240,11 @@ def main() -> None:
         # error of right answers
         right = [r["final_err"] for r in R if not r["wrong"]]
         s["right_median_err"] = float(np.median(right))
-        s["wrong_final_cost_above_truth_cost"] = None
+        n_above = sum(r["cost_final"] > r["cost_true"] for r in wrongs)
+        s["wrong_final_cost_above_truth_cost"] = dict(n=int(n_above), of=len(wrongs))
+        lines.append(
+            f"   wrong answers with a cost above the cost at the truth: {n_above}/{len(wrongs)}"
+        )
         # level progress: fraction of runs with basin(3) present / kept per level
         s["present3_by_level"] = [
             float(np.mean([r["present"][3.0][L] for r in R])) for L in range(N_LEVELS)
@@ -260,7 +263,8 @@ def main() -> None:
         lines.append(
             f"   right answers: median error {s['right_median_err']:.4f} deg; runtime median "
             f"{np.median([r['runtime'] for r in R]):.1f} s; evals global median "
-            f"{np.median([r['evals_global'] for r in R]):.0f}, local {np.median([r['evals_local'] for r in R]):.0f}"
+            f"{np.median([r['evals_global'] for r in R]):.0f}, local "
+            f"{np.median([r['evals_local'] for r in R]):.0f}"
         )
         # dependences
         for name, key in (("r_perp", "r_perp"),):
@@ -284,7 +288,8 @@ def main() -> None:
                     float(np.mean([r["wrong"] for r in sel])),
                 ]
                 lines.append(
-                    f"   near grain boundary = {flag}: n={len(sel)}, wrong {np.mean([r['wrong'] for r in sel]):.3f}"
+                    f"   near grain boundary = {flag}: n={len(sel)}, wrong "
+                    f"{np.mean([r['wrong'] for r in sel]):.3f}"
                 )
         summ[var] = s
     (C.OUT_DIR / "e0_summary.txt").write_text("\n".join(lines) + "\n")

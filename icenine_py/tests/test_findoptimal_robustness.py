@@ -1,4 +1,4 @@
-"""CSL tools and (later) feature / split helpers of scripts/findoptimal_robustness."""
+"""CSL tools and feature / split helpers of scripts/findoptimal_robustness."""
 
 import sys
 from pathlib import Path
@@ -69,9 +69,10 @@ def test_invariant_reflections_sigma3():
     rel, _ = csl.csl_relatives(R, sigmas=[3])
     hk = np.array([[1, 1, 1], [1, 1, -1], [2, 0, 0], [1, 1, 0], [3, 1, 1]], dtype=float)
     inv = csl.invariant_reflection_mask(hk, R, rel)
-    # twin about [111]: the (111) direction is shared with the relative whose axis is [111]
-    assert inv[:, 0].any()
-    assert not inv[:, 2].all()  # {200} is not preserved by every Sigma3 variant
+    # twin about [111]: each of (111) and (11-1) lies on the axis of exactly one of the 4 twin
+    # variants, no {200} direction lies on a twin axis, (110) is shared by 2 and (311) by 2
+    assert inv.shape == (4, 5)
+    assert inv.sum(axis=0).tolist() == [1, 1, 0, 2, 2]
 
 
 def test_grain_disjoint_folds():

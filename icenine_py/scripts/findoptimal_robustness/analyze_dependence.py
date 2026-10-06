@@ -17,29 +17,13 @@ import features as F  # noqa: E402
 
 def main():
     runs = dict(np.load(C.OUT_DIR / "e0_runs.npz"))
-    names = None
     tf = {}
     for v in np.unique(runs["vidx"]):
         for vi, var in enumerate(C.VARIANTS):
             f = C.CACHE_DIR / "e2" / f"v{v}_{var}.npz"
             if f.exists():
                 tf[(int(v), vi)] = np.load(f)["truth_features"]
-    # feature names (independent of the voxel)
-    nm = ["log_n_pairs", "hit0", "hit_any", "hit1", "hit3"]
-    nfam, ndet = 8, 2
-    nm += [f"fam{f}_{k}" for f in range(nfam) for k in ("hit0", "hit3", "frac")]
-    nm += [f"det{d}_{k}" for d in range(ndet) for k in ("hit0", "hit3", "frac")]
-    for sg in F.SIGMAS:
-        nm += [
-            f"S{sg}_{k}"
-            for k in (
-                "shared_frac",
-                "hit0_shared",
-                "hit0_nonshared_min",
-                "hit3_nonshared_min",
-                "hit0_nonshared_mean",
-            )
-        ]
+    nm = F.feature_names_for_width(len(next(iter(tf.values()))))
     lines = []
     out = {}
     for vi, var in enumerate(C.VARIANTS):
@@ -61,7 +45,8 @@ def main():
                 tab.append((float(a), float(b), int(m.sum()), float(w[m].mean())))
             out[f"{var}/{col}"] = dict(spearman=float(rho), p=float(p), tertiles=tab)
             lines.append(
-                f"  {col:18s} Spearman(wrong, x) = {rho:+.3f} (p={p:.2g}, n={ok.sum()} runs); wrong rate by tertile: "
+                f"  {col:18s} Spearman(wrong, x) = {rho:+.3f} (p={p:.2g}, n={ok.sum()} runs); "
+                "wrong rate by tertile: "
                 + ", ".join(f"[{a:.2f},{b:.2f}] {r:.2f}" for a, b, n, r in tab)
             )
         # Sigma3-wrong runs vs Sigma3 shared frac: only wrong runs classed Sigma3
@@ -73,7 +58,8 @@ def main():
         )
         s3 = cls == "3"
         lines.append(
-            f"  mean S3_shared_frac: Sigma3-wrong runs {np.nanmean(xs3[s3]):.3f} (n={s3.sum()}), all other runs {np.nanmean(xs3[~s3]):.3f}"
+            f"  mean S3_shared_frac: Sigma3-wrong runs {np.nanmean(xs3[s3]):.3f} (n={s3.sum()}), "
+            f"all other runs {np.nanmean(xs3[~s3]):.3f}"
         )
     (C.OUT_DIR / "e0_dependence.txt").write_text("\n".join(lines) + "\n")
     C.save_json(C.OUT_DIR / "e0_dependence.json", out)

@@ -4,7 +4,7 @@
 rerank  (a) rank_key hook: at the end of every level the candidates are ordered by the
         classifier's score (probability of "within 3 deg of the truth") instead of the post-MC
         local cost before the top 1/4 is kept. Full reconstruct_voxel runs, seed 0, same images and
-        rng as E0. The model of the fold NOT containing the voxel is used (voxel-disjoint).
+        rng as E0. The model of the fold NOT containing the voxel is used (grain-disjoint).
 final   (b) post hoc on the F1 data: among the original answer and the refined CSL relatives
         (Sigma <= 29, the F1 candidate set) the classifier's top score is returned instead of the
         lowest local cost. No new search.
@@ -17,6 +17,7 @@ import argparse
 import sys
 import time
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
@@ -25,10 +26,10 @@ import common as C  # noqa: E402
 import e2_models as M  # noqa: E402
 import features as F  # noqa: E402
 
-_STATE = {}
+_STATE: Dict[Any, Any] = {}
 
 
-def _prep(vidx, variant, kind):
+def _prep(vidx: int, variant: str, kind: str) -> Tuple[Any, Any, Any]:
     from optimizer_sweep import voxel_context
 
     W = C.get_worker()
@@ -43,7 +44,7 @@ def _prep(vidx, variant, kind):
     return W, vctx, fe
 
 
-def _model(fold, kind):
+def _model(fold: int, kind: str) -> Any:
     import joblib
 
     key = (fold, kind)
@@ -52,7 +53,7 @@ def _model(fold, kind):
     return _STATE[key]
 
 
-def task_rerank(item):
+def task_rerank(item: Tuple[Any, ...]) -> str:
     vidx, vpos, variant, kind, path = item
     t_start = time.time()
     W, vctx, fe = _prep(vidx, variant, kind)
@@ -61,7 +62,7 @@ def task_rerank(item):
     vertices, phase = vctx.vertices, vctx.voxel.phase
     n_scored = [0]
 
-    def rank_key(level, cands):
+    def rank_key(level: int, cands: List[Any]) -> np.ndarray:
         X = np.stack([fe.features(c.orientation, vertices, phase) for c in cands])
         n_scored[0] += len(cands)
         return -M.score(model, X, True)
@@ -80,7 +81,7 @@ def task_rerank(item):
     return f"rerank {kind} voxel {vidx} {variant} {time.time() - t_start:.0f}s"
 
 
-def task_final(item):
+def task_final(item: Tuple[Any, ...]) -> str:
     vidx, vpos, variant, kind, path = item
     t_start = time.time()
     W, vctx, fe = _prep(vidx, variant, kind)
@@ -102,7 +103,7 @@ def task_final(item):
     return f"final {kind} voxel {vidx} {variant} {time.time() - t_start:.0f}s"
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("mode", choices=["rerank", "final"])
     ap.add_argument("--model", default="GBT")
