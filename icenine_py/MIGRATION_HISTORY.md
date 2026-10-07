@@ -2916,3 +2916,59 @@ Not regenerated: `nn_hybrid/pilot_summary.txt` (pilot subset; its command line w
 `coarse_proxy/offline_metrics.*`, `e0_dependence.*`, `e2_ablation.*`, `e2_results*.json`, `f1_remaining.txt`,
 `s2_mechanism.txt` (do not use the replaced helpers, or need a model fit / training run; unit tests cover the
 helpers). 
+
+### T3 `lowq-batch`: batched F-lowQ Q5 feature pass (2026-10-06)
+
+**Change.** `FeatureExtractor.features_batch(Rs, vertices, phase, with_cost=True)` in
+`scripts/findoptimal_robustness/features.py` scores all candidates of one level in one pass: the geometry
+(Bragg angles, reflection, ray-detector intersection, lit-pixel lookups) is vectorised over candidates and peaks,
+the aggregates are integer counts per candidate (`np.bincount`, exact in float64), and the two cost columns reuse
+the same geometry (the per-candidate path recomputes it twice) and call the existing C stage-D routine once per
+candidate and radius, with the rows of each candidate in the cost function's order (the quality is a running
+mean). Cost-function evaluation counters are advanced as the per-candidate path advances them. Chunks of 256
+candidates; without the C stage-D extension it falls back to the per-candidate loop. `features` is unchanged and
+stays the default and the reference; `scripts/coarse_proxy/endtoend.py --batched` opts in to the batched pass
+(`proxy_features(..., batched=True)`). Nothing in `icenine/` changed.
+
+**Equality.** Two details were needed for bit-identity: a batched `torch.matmul` of the rotations with the
+reciprocal vectors differs from the 2-D matmul in the last bit (52346 of 271152 elements in one test), so
+`g_lab` is built with one 2-D matmul per candidate, and it must keep the strided `(R @ g.T).T` layout (a
+contiguous copy changes the last bit of the omegas). Intermediate states on the 5500 ad hoc candidates (the
+Q_max-5 columns were identical throughout; only the unrestricted extractor with 112 reflections differed): batched
+matmul, 5 rows differed (up to 0.037 in a hit rate, 0.003 in a cost); per-candidate matmul but contiguous layout,
+2 rows (cost columns). With both, `features_batch` equals `features` exactly (`np.array_equal`,
+all columns including both costs) on the E2 candidates of 6 random cases (5500 candidates, Q_max 5 and the
+unrestricted extractor; ad hoc check) and on the 5000 candidates of the timing run (25 cases, Q_max 5:
+5000 / 5000 rows identical; `timing_batch.json`). `tests/test_coarse_proxy.py::test_features_batch_equals_per_candidate`
+covers Q_max 5 and None, batch sizes 1, 7 and the whole set, the evaluation counters, `with_cost=False` and the empty
+batch on one voxel's E2 candidates. Not tested: other detector geometries or crystal phases than the study's.
+
+**Timing (single-worker, all thread counts 1, `require_quiet()` preflight saved as
+`benchmarks/coarse_proxy/timing_batch_preflight.json`).** Q_max-5 pass with both low-Q costs; 25 random cases x 200
+candidates, 3 repetitions, methods interleaved in each repetition; per candidate = total / 200; median over cases.
+One Q_max-8 local evaluation (the unit) was 0.529 ms in the same run. "proxy" adds the GBT prediction
+(0.0064 ms per candidate, batch 200, from `timing.json`).
+
+<!-- table:t3_lowq_batch_timing -->
+| path | batch | ms | speedup | equiv | proxy |
+|---|---|---|---|---|---|
+| per-candidate (reference) | 1 | 1.555 | 1.0 | 2.94 | 2.95 |
+| batched | 1 | 1.074 | 1.4 | 2.03 | 2.04 |
+| batched | 50 | 0.151 | 10.3 | 0.28 | 0.30 |
+| batched | 200 | 0.133 | 11.6 | 0.25 | 0.26 |
+<!-- /table:t3_lowq_batch_timing -->
+
+(Batch size 1 is the batched code called once per candidate: its 1.07 ms is the fixed per-call overhead. Geometry
+only, without the two costs: 0.734 ms per candidate per-candidate, 0.124 ms batched at 200.)
+
+**New proxy cost.** At batch 200 the F-lowQ Q5 pass is 0.25 evaluation equivalents (2.94 per candidate in this run, 2.93 in
+Task 2), the proxy with its GBT prediction 0.26 (2.95), a factor 11.6; at batch 50, 0.28 and 0.30. A deployable E2 pass was estimated
+at about 3.2 equivalents (Task 2 accounting, not re-timed here), so the proxy is now about 12x cheaper than that,
+not 1.1x. Scoring the 240 / 384 candidates of one proxy run would take about 32 / 51 ms at the batch-200 rate
+(computed from the per-candidate time, not measured end to end), against 0.37 / 0.59 s in Task 2. The levels of a
+real run have fewer candidates than 200 per call; the realized gain end to end depends on the batch sizes of
+`rank_key` (not measured here; T4 will time it).
+
+Tests: `tests/test_coarse_proxy.py` 11 passed (2 new); full suite 666 passed, 34 skipped, 1 deselected, 0 failed.
+Audit of this section: the numbers not found in the source JSONs are unit conversions (the JSON is in seconds, the
+text in ms), the ad hoc equality check counts above (not saved), and figures quoted from Task 2 (3.2, 0.59).
