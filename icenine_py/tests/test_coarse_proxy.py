@@ -273,6 +273,9 @@ def test_features_batch_equals_per_candidate(env: Tuple[Any, ...], q_max: Any) -
     after = [fn.eval_count for fn in fe._low_q_cost_fns()] if q_max else [W.local_fn.eval_count]
     n = 3 * len(R)  # three passes of the loop above
     assert [a - b for a, b in zip(after, counters)] == ([n, n] if q_max else [2 * n])
+    # chunk recursion: chunk=7 on the whole set gives the same features
+    chunked = fe.features_batch(R, vert, phase, chunk=7)
+    assert np.array_equal(chunked, ref)
     # without costs: NaN cost columns, the same aggregates
     nc = fe.features_batch(R, vert, phase, with_cost=False)
     assert np.isnan(nc[:, -2:]).all() and np.array_equal(nc[:, :-2], ref[:, :-2])

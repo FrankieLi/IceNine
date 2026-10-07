@@ -113,6 +113,7 @@ class LoggedMC(MCOptimizer):
         max_convergence_cost: float = 0.0,
         trajectory: Optional[List[Dict]] = None,
     ) -> SearchCandidate:
+        assert trajectory is None  # the copied body does not record trajectories
         best_q = matrix_to_quaternion(initial_orientation)
         optimal_q = best_q.copy()
         best_info = self.cost_fn.evaluate(

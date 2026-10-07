@@ -2870,7 +2870,8 @@ in `test_findoptimal_refactor.py` pass. In the drifted 3.12 environment the 4 go
 the version message. Main tree full suite: 663 passed, 34 skipped, 1 failed
 (`test_dev_tooling.py::test_githook_and_installer_exist_and_are_not_activated`, which asserts
 `core.hooksPath` is unset; it is now set to `.githooks` in this checkout, so the failure is the hooks
-having been activated, not this change).
+having been activated, not this change; fixed in d27575a). A later module-name clash between two
+`test_nn_hybrid` summary imports in the full suite was fixed in 402fbd0 (summary loaded by path).
 
 **Not done here.** The CLAUDE.md setup lines (`uv pip install -e ".[dev]"` to `uv sync --extra dev`) are
 blocked by the pre-commit check on CLAUDE.md changes (override not allowed); the main session should make that
@@ -2967,7 +2968,9 @@ at about 3.2 equivalents (Task 2 accounting, not re-timed here), so the proxy is
 not 1.1x. Scoring the 240 / 384 candidates of one proxy run would take about 32 / 51 ms at the batch-200 rate
 (computed from the per-candidate time, not measured end to end), against 0.37 / 0.59 s in Task 2. The levels of a
 real run have fewer candidates than 200 per call; the realized gain end to end depends on the batch sizes of
-`rank_key` (not measured here; T4 will time it).
+`rank_key` (timed in T4: proxy about 0.05 s per run, single worker). The GBT time added at every batch size is the batch-200
+per-candidate cost, which understates the cost at batch 1; levels 2-3 of a run have 1.3-7 candidates per call. The T4 wall timing
+bounds this effect (proxy about 0.05 s per run), so the verdict holds.
 
 Tests: `tests/test_coarse_proxy.py` 11 passed (2 new); full suite 666 passed, 34 skipped, 1 deselected, 0 failed.
 Audit of this section: the numbers not found in the source JSONs are unit conversions (the JSON is in seconds, the
@@ -3031,7 +3034,7 @@ p = 2.6e-07. Both rows are better than the baseline (1/6: 15 / 93, p = 6.4e-15; 
 - **Decision (main session).** The pooled verdict is the one that counts: it uses all 400 runs, and the per-variant pass
   for keep 1/6 is within 0.005-0.018 of the bound on one seed. Neither keep 1/6 nor keep 1/8 is adopted. Against keep 1/4,
   keep 1/6 is wrong in 18 more paired cases and right in 5 more (p = 0.011), and keep 1/8 is wrong in 47 more and right in
-  9 more (p = 2.6e-7). Measured on a single worker, keep 1/6 saves only 2.6% of wall time and keep 1/8 only 3.3%.
+  9 more (p = 2.6e-7). Measured on a single worker, keep 1/6 saves only 2.5% of wall time and keep 1/8 only 3.3%.
   Tightening the keep fraction is therefore not a route to a run-time saving in the no-start case. Time is spent in the
   global discrete search, which these settings barely change (global evaluations, pooled, -0.6% at keep 1/6 and -0.8% at keep 1/8).
   The keep-1/4 proxy rerank stays the recommendation, for accuracy.
@@ -3064,7 +3067,7 @@ counts differ from the 200-voxel means above).
 
 **Reading.** At keep 1/6 the proxy rerank gives a wrong rate that stays inside the keep-1/4 interval (per variant) for a 2-3% saving of time;
 the pooled wrong rate is slightly above the keep-1/4 upper bound, and 1/8 is clearly worse. The time saving is small
-(about 3%), because the quick-MC and discrete stages that cannot be pruned dominate. Not tested: other keep fractions, other seeds
+(about 3%), consistent with global evaluations barely changing (-0.6% / -0.8%); the stage split of the wall time was not measured. Not tested: other keep fractions, other seeds
 (the stored keep-1/4 row has seeds 1-2; these new rows do not), whether the extra wrong answers at 1/8 are candidates lost at the pruning step
 (the harvest step was not run on the new rows).
 
@@ -3161,17 +3164,17 @@ median change of the cost for a 0.01 deg rotation at the truth (0.025 H3, 0.026 
 gap of this size corresponds to about 0.01 deg of rotation at the truth. The cost steps are fine against the gap: the smallest nonzero difference
 between distinct cost values seen among each case's 84 truth-neighbour evaluations has a median of 2.4e-5 (H3) and 2.4e-5 (H0)
 (an upper bound on the quantum, from a small sample). At the result, rotations of 0.001-0.02 deg lowered the cost in 28% to 9%
-(H3) of the draws (H0: 14-19% at 0.001-0.02 deg), so the result is not at a local minimum of the cost on that scale. The cost at the truth changes by
+(H3) of the draws (H0: 14-19% at 0.001-0.02 deg), so the result is not a local minimum on that scale in 175/200 (H3) and 80/100 (H0) cases (sampled: 60 neighbours at 0.001-0.05 deg, `res_local_min_0.05deg`). The cost at the truth changes by
 a median 0.0018 for a 0.001 deg rotation, i.e. already rough at that scale. Median counts at the truth / result (pixel overlap,
 pixels on detector, peaks overlapping, peaks on detector, peaks counted) are in `summary.json` (`counts_*`).
 
 **(d) Stopping rules in the default finisher run.**
 
 <!-- table:t5_stopping -->
-| set | FO stop codes (budget/restarts/cost) | FO steps q50 | FO accepts q50 | FO last accept q50 | FO final step q50 (deg) | VM steps q50 | VM improves | VM supplies final | VM final radius q50 (deg) |
-|---|---|---|---|---|---|---|---|---|---|
-| H3 | 122/78/0 | 200 | 8 | 24 | 0.0008 | 2245 | 107/200 (54%, 47-60) | 107/200 (54%, 47-60) | 0.329 |
-| H0 | 97/3/0 | 200 | 6 | 28 | 0.0021 | 375 | 80/100 (80%, 71-87) | 80/100 (80%, 71-87) | 0.329 |
+| set | FO stop codes (budget/restarts/cost) | FO steps q50 | FO accepts q50 | FO last accept q50 | FO final step q50 (deg) | VM steps q50 | VM lowers cost | VM final radius q50 (deg) |
+|---|---|---|---|---|---|---|---|---|
+| H3 | 122/78/0 | 200 | 8 | 24 | 0.0008 | 2245 | 107/200 (54%, 47-60) | 0.329 |
+| H0 | 97/3/0 | 200 | 6 | 28 | 0.0021 | 375 | 80/100 (80%, 71-87) | 0.329 |
 <!-- /table:t5_stopping -->
 
 FindOptimal MC (200 steps, step halved at every accepted improvement): the stop code counts are step budget / restarts exhausted /
@@ -3182,7 +3185,8 @@ hit-ratio "converged" flag never fired (0/200, 0/100) and the cost-convergence s
 has `max_convergence_cost` 0, so it can only stop on its step budget, which is extended by one subregion (10 steps) for every
 subregion whose cost variance is above 0.02^2 = 0.0004; it ended after a median 2245 (H3) / 375 (H0) steps (budget 200 plus the
 extensions), with the subregion radius back at the box (0.329 deg) in most runs, and it lowered the cost of the FindOptimal
-result in 107/200 (54%, 47-60%) H3 and 80/100 (80%, 71-87%) H0 runs; it supplied the final result in those runs.
+result in 107/200 (54%, 47-60%) H3 and 80/100 (80%, 71-87%) H0 runs. Which candidate the reconstructor returned as final was not logged,
+so "VM supplied the final result" is not claimed.
 
 **(b) Continuations from the result.** Components called directly from the script with changed parameters: `mc_long` (FindOptimal MC,
 same box and step, 25x the steps = 5000, 10 restarts), `mc_smallstep` (step / 10, 10000 steps, 5 restarts), `mc_smallbox` (box and step / 4,
@@ -3214,26 +3218,66 @@ gap > 0 of (result cost - end cost) / gap; 'toward truth' is the decrease of the
 
 The default finisher started at the truth never lowered the cost (0/200, 0/100). Reaching exactly the truth's cost is rare for
 any single continuation (H3 at most 52/200 = 26%, CI 20-32%, for `mc_smallstep`; H0 at most 14/100), but the cost drops a lot: `vm_smallbox` closes
-a median 93% (H3) / 96% (H0) of the gap and `mc_smallstep` improves the cost in 97% (H3) of the runs, and
+a median 93% (H3) / 96% (H0) of the gap (but it sits at the 50,000-step cap in 198/200 and 83/100 runs, about 19x / 81x the default evaluations) and `mc_smallstep` improves the cost in 97% (H3) of the runs, and
 ends a median 0.006 deg (`vm_smallbox`, H3) from the truth against 0.023 deg at the result. The best of the five continuations per case
 closes a median 99% of the gap and reaches the truth's cost in 96/200 (48%, 41-55%) (H3) and 35/100 (35%, 26-45%) (H0) cases (`best_of_five` in `summary.json`). The same-step `mc_long` improves the cost
-in only 53/200 H3 runs with a median movement of 0.000 deg, although it has 25x the budget (consistent with its step having
-been halved on every accept and not restarting, not tested separately), while `mc_smallstep` (1/10 of the step) improves 194/200. In H0 the
+in only 53/200 H3 runs with a median movement of 0.000 deg, although its budget is 5000 steps (25x the default 200). Logged
+(`mc_long_log` in `summary.json`): it stopped on restarts exhausted in 154/200 H3 runs (H0: 44/100), with a median of 0 accepts
+(H0: 4.5) and 21 restarts (H0: 5.5); it ran a median of only 821 of its 5000 steps in H3 (H0: 5000), i.e. most H3 runs used about 4x the
+default budget, and its final step was still the initial 0.132 deg (H3 median; H0 0.006 deg). Why it finds no first accept was not tested.
+`mc_smallstep` (1/10 of the step) improves 194/200 H3 runs. In H0 the
 continuations move the orientation toward the truth by a median of at most 0.045 deg and mostly do not reach the truth's cost at 0.75 deg and above
 (by-radius table: `vm_long` reaches it in 1/11 at 1 deg and in none elsewhere above 0.5 deg; `mc_long` in 4/11 at 1 deg and in none elsewhere above 0.5 deg).
 
 **Reading (observations only).** In 96% of the H3 cases the finisher's result is about 0.02 deg from the truth with a cost 0.03 above
 it; the cost along the straight line to the truth has no barrier as big as that gap, a 0.01 deg rotation at the truth changes the cost by
-about as much as the gap, the finisher's FindOptimal step ends 0.001-0.002 deg and the result is not a local minimum on the 0.001-0.02 deg
-scale, and continuing with a smaller step or a smaller VarianceMinimizing box lowers the cost to within a small remainder of the truth's in many
+about as much as the gap, the finisher's FindOptimal step ends 0.001-0.002 deg and the result is not a local minimum on the 0.001-0.05 deg
+scale in 175/200 (H3) and 80/100 (H0) cases (sampled, 60 neighbours), and continuing with a smaller step or a smaller VarianceMinimizing box lowers the cost to within a small remainder of the truth's in many
 cases. This does not show why the default parameters stop where they do. Not tested: whether the minimum of the realistic-data cost is at
 the truth (the truth's cost is itself noisy: the cost at the truth is above the cost of some nearby orientation in 30% of H3 cases at 0.05 deg,
 see `truth_best_within_0.05deg` in `summary.json`), other box and step ratios, the effect of the 200-step MC budget on the result, and symmetry
-equivalents of the truth (the work is symmetry-agnostic; angles are to the stored truth, not the nearest symmetric one).
+equivalents of the truth (the work is symmetry-agnostic). Angles are to the stored truth; the largest is 1.9 deg (H3) and 32.2 deg (H0). Below 45 deg the unreduced cubic angle equals the
+reduced one (the smallest cubic symmetry rotation is 90 deg) and the cost is symmetry-invariant, so no reported number changes; for lower symmetries the bound is smaller (e.g. 30 deg for 6-fold).
 
 **Effect estimate for a possible fix (diagnostics only, not implemented).** Appending a VarianceMinimizing pass with a quarter-size box after
 the default finisher (`vm_smallbox`) reduces the H3 gap by a median 93% and moves the result a median 0.016 deg toward the truth, reaching the truth's cost in 42/200 (21%, 16-27%) cases
-(14/100 for H0); at the 50000-step cap that is up to about 25 times the default evaluation count, so a cheaper variant (a fixed 5000-step
-budget) has not been estimated here. An MC pass with step / 10 (`mc_smallstep`, 10000 evaluations) closes a median 61% of the H3 gap and
+(14/100 for H0). It reached the 50,000-step cap in 198/200 H3 runs (83/100 H0; median 50,000 steps) against a median default finisher of
+2,629 (H3) / 616 (H0) evaluations, i.e. about 19x (H3) / 81x (H0) the default evaluation count, in essentially every run
+(`vm_smallbox_cost` in `summary.json`); a cheaper variant (a fixed 5000-step budget) has not been estimated here. An MC pass with step / 10 (`mc_smallstep`, 10000 evaluations) closes a median 61% of the H3 gap and
 reaches the truth's cost in 26%. Neither was tested for its effect on the reconstruction's final success rate, only on the cost and the angle to the truth in these
 cases.
+
+### Completion summary (Follow-ups, 2026-10-07)
+
+**Status: complete.** T1-T5 merged into `feature/followups`; the branch review's doc and test fixes are applied (no new experiments).
+
+**Decisions.**
+- The Wilson clamp is accepted (4 ulp values).
+- Keep 1/6 and keep 1/8 are not adopted, on the pooled verdict (41/400 and 66/400 wrong against the bound 0.099; McNemar against keep 1/4: p = 0.011 and 2.6e-7).
+- The keep-1/4 proxy rerank stays, for accuracy.
+- The golden tests fail rather than skip in other environments (they skip only when the data is absent).
+- `nn_hybrid` keeps its local reorder.
+- `isolation_record` stays out of preflight.
+
+**Headline per task.**
+- T1: the drift is at float level (6e-9), not a branch flip.
+- T2: regeneration is byte-identical and the gzip is deterministic.
+- T3: exact equality of the features; 11.6x at batch 200 (0.26 evaluation equivalents).
+- T4: about 2.5-3.3% wall time saved, at an accuracy cost.
+- T5: the result is about 0.023 deg from the truth with gap 0.028; no barrier on the straight path is as large as the gap; the default MC step is too coarse at the end; `vm_smallbox` closes 93% of the gap at about 19x the default evaluations (at the 50,000-step cap in 198/200 runs).
+
+**Recommendations.**
+- Test a cheaper fixed-budget small-box VM or step/10 finisher pass for its effect on reconstruction success.
+- Use `--batched` in production proxy runs.
+
+**Open items.**
+- The CLAUDE.md `uv sync` edit (owner).
+- Seeds 1-2 for the keep rows.
+- Harvest on keep 1/8.
+- Whether the realistic-cost minimum sits at the truth (the truth is not the local best in 59/200).
+- The H0 wrong-basin failures at 2-3 deg.
+- The stage split of wall time.
+- `pilot_summary.txt` was not regenerated.
+- Full-sample renders and the three future ideas (owner direction).
+
+Final full suite on `feature/followups`: 673 passed, 34 skipped, 0 failed (707 collected).

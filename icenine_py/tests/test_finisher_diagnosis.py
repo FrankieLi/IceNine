@@ -44,15 +44,18 @@ def test_logged_mc_matches_mcoptimizer(seed):
     target = Rotation.from_rotvec([0.01, -0.02, 0.015]).as_matrix()
     start = np.eye(3)
     kw = dict(angular_box_side=0.006, angular_step=0.006)
-    outs = []
+    outs, counts = [], []
     for cls in (MCOptimizer, D.LoggedMC):
-        mc = cls(_Toy(target), None, 0, np.random.default_rng(seed))
+        toy = _Toy(target)
+        mc = cls(toy, None, 0, np.random.default_rng(seed))
         r1 = mc.optimize(start, max_mc_steps=300, max_restarts=2, **kw)
         r2 = mc.variance_minimizing_optimize(r1.orientation, 0.006, 300, 2, 0.0, 0.02**2)
         outs.append((r1.orientation, r1.cost, r2.orientation, r2.cost))
+        counts.append(toy.n)
         last = mc
     for a, b in zip(*outs):
         assert np.array_equal(a, b)
+    assert counts[0] == counts[1]
     log = last.mc_logs[0]
     assert log["stop"] in (0, 1, 2) and log["steps_run"] <= 300
     assert last.vm_logs[0]["steps_taken"] >= 300 or last.vm_logs[0]["capped"] == 0

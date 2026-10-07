@@ -74,8 +74,8 @@
 <!-- /table:t5_overview -->
 
 <!-- table:t5_stopping -->
-| set | FO stop codes (budget/restarts/cost) | FO steps q50 | FO accepts q50 | FO last accept q50 | FO final step q50 (deg) | VM steps q50 | VM improves | VM supplies final | VM final radius q50 (deg) |
-|---|---|---|---|---|---|---|---|---|---|
-| H3 | 122/78/0 | 200 | 8 | 24 | 0.0008 | 2245 | 107/200 (54%, 47-60) | 107/200 (54%, 47-60) | 0.329 |
-| H0 | 97/3/0 | 200 | 6 | 28 | 0.0021 | 375 | 80/100 (80%, 71-87) | 80/100 (80%, 71-87) | 0.329 |
+| set | FO stop codes (budget/restarts/cost) | FO steps q50 | FO accepts q50 | FO last accept q50 | FO final step q50 (deg) | VM steps q50 | VM lowers cost | VM final radius q50 (deg) |
+|---|---|---|---|---|---|---|---|---|
+| H3 | 122/78/0 | 200 | 8 | 24 | 0.0008 | 2245 | 107/200 (54%, 47-60) | 0.329 |
+| H0 | 97/3/0 | 200 | 6 | 28 | 0.0021 | 375 | 80/100 (80%, 71-87) | 0.329 |
 <!-- /table:t5_stopping -->

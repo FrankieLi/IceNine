@@ -59,10 +59,18 @@ def _current_env() -> Dict[str, str]:
     }
 
 
+def _require_data() -> Path:
+    data_dir = EXAMPLE / "ScatteringData_Python"
+    if not data_dir.exists() or len(list(data_dir.glob("*.d*"))) < 360:
+        pytest.skip("ThreeVoxels Python-simulated data not available")
+    return data_dir
+
+
 @pytest.fixture
 def golden_env() -> None:
     """Fail (never skip, never loosen the tolerance) if the golden values were recorded with
     different library versions than the ones running."""
+    _require_data()  # skip (as _build does) when the data is absent; only then compare versions
     now = _current_env()
     if now != GOLDEN_ENV:
         fmt = lambda d: ", ".join(f"{k} {v}" for k, v in d.items())  # noqa: E731
@@ -74,9 +82,7 @@ def golden_env() -> None:
 
 
 def _build(min_sin_eta: float = 0.0):
-    data_dir = EXAMPLE / "ScatteringData_Python"
-    if not data_dir.exists() or len(list(data_dir.glob("*.d*"))) < 360:
-        pytest.skip("ThreeVoxels Python-simulated data not available")
+    data_dir = _require_data()
     cwd = os.getcwd()
     os.chdir(EXAMPLE)
     try:

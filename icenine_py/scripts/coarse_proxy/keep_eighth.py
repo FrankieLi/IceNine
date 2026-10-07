@@ -325,7 +325,11 @@ def timing_summary() -> None:
             f"proxy {px.mean():.2f}s, ms per eval {w.sum() / ev.sum() * 1e3:.3f} "
             f"(base {base_wall.sum() / base_ev.sum() * 1e3:.3f}), "
             f"R_final equal to base in {same}/{len(keys)}, "
-            f"equal to the stored 10-worker run in {stored}/{len(keys)}"
+            + (
+                "equal to the stored 10-worker run: n/a (base arm)"
+                if arm == "base"
+                else f"equal to the stored 10-worker run in {stored}/{len(keys)}"
+            )
         )
     tab = doc_tables.markdown_table(
         rows, ["arm", "wall", "speed", "ev", "dev", "proxy", "msev", "same"],

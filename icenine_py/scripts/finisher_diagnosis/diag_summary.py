@@ -189,8 +189,28 @@ def summarise(d: Dict[str, np.ndarray]) -> Dict[str, Any]:
         vm_final_variance_quartiles=q(vm[:, V.index("final_variance")]),
         vm_cost_drop_quartiles=q(vm[:, V.index("cost_start")] - vm[:, V.index("cost_end")]),
         vm_improves=frac(vm[:, V.index("cost_end")] < vm[:, V.index("cost_start")] - TOL),
-        vm_gives_final=frac(vm[:, V.index("cost_end")] < fo[:, L.index("cost_end")] - TOL),
         vm_capped_in_default=frac(vm[:, V.index("capped")] > 0),
+    )
+    # stored logged facts behind the (b) mc_long and fix-effect statements in the docs
+    ml = d["c_mc_long_mc"]
+    s["mc_long_log"] = dict(
+        stop_codes={
+            nm: int((ml[:, L.index("stop")] == i).sum()) for i, nm in enumerate(D.STOP_NAMES[:3])
+        },
+        n_accept_median=float(np.median(ml[:, L.index("n_accept")])),
+        n_restarts_median=float(np.median(ml[:, L.index("n_restarts")])),
+        steps_run_median=float(np.median(ml[:, L.index("steps_run")])),
+        final_step_deg_median=float(np.median(ml[:, L.index("final_step_deg")])),
+        step_budget=D.LONG_FACTOR * 200,
+    )
+    vsb = d["c_vm_smallbox_vm"]
+    vsteps = vsb[:, D.VM_KEYS.index("steps_taken")]
+    ev_med = float(np.median(d["rerun_evals"]))
+    s["vm_smallbox_cost"] = dict(
+        capped=frac(vsb[:, D.VM_KEYS.index("capped")] > 0),
+        steps_median=float(np.median(vsteps)),
+        default_finisher_evals_median=ev_med,
+        ratio_median_steps_over_default_evals=float(np.median(vsteps) / ev_med),
     )
     # by radius
     by_r = []
@@ -270,8 +290,8 @@ def tables(S: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
             )  # fmt: skip
     t["t5_granularity"] = mt(hdr, rows)
     hdr = ["set", "FO stop codes (budget/restarts/cost)", "FO steps q50", "FO accepts q50",
-           "FO last accept q50", "FO final step q50 (deg)", "VM steps q50", "VM improves",
-           "VM supplies final", "VM final radius q50 (deg)"]  # fmt: skip
+           "FO last accept q50", "FO final step q50 (deg)", "VM steps q50", "VM lowers cost",
+           "VM final radius q50 (deg)"]  # fmt: skip
     rows = []
     for k, s in S.items():
         st = s["stop"]
@@ -282,7 +302,7 @@ def tables(S: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
                 f"{st['fo_last_accept_quartiles'][1]:.0f}",
                 f"{st['fo_final_step_deg_quartiles'][1]:.4f}",
                 f"{st['vm_steps_taken_quartiles'][1]:.0f}", fmt(st["vm_improves"]),
-                fmt(st["vm_gives_final"]), f"{st['vm_final_radius_deg_quartiles'][1]:.3f}",
+                f"{st['vm_final_radius_deg_quartiles'][1]:.3f}",
             ]
         )  # fmt: skip
     t["t5_stopping"] = mt(hdr, rows)
