@@ -3281,3 +3281,183 @@ cases.
 - Full-sample renders and the three future ideas (owner direction).
 
 Final full suite on `feature/followups`: 673 passed, 34 skipped, 0 failed (707 collected).
+
+## Finisher and MC study (2026-10-07)
+
+**Status: planned (not started).** Owner questions: (a) why FindOptimal stops short of the correct answer, and whether this comes from the cost function's sensitivity; (b) why MC runs out of restarts, what better local search exists, whether MC is the right tool, and whether the April 2026 MC-vs-optimizer comparison was deployed too soon. Next step after the plan: a full-sample BFS end-to-end test of the 500-grain sample with new orientations, comparing classic BFS against BFS with the NN and hybrid finisher (`docs/todo_500grain_bfs_end_to_end.md`).
+
+Drafted 2026-10-07 by the main session (Opus). Implemented by Sonnet `implementer` agents, one task at a time.
+
+- **Branch:** `feature/finisher-mc-study` off develop (after PR #37). Create sub-tasks with `scripts/dev/start_task.sh`.
+- **Docs:** record this plan in MIGRATION_HISTORY, in a new section "Finisher and MC study (2026-10-07)".
+- **Reconstructor changes:** `icenine/` stays unchanged until Phase C. Any knob added there must be opt-in, default off,
+  and keep C++ parity and bit-identity tests.
+- **Framing:** symmetry-agnostic.
+
+### What we already know (facts that shape the plan)
+1. **The finisher stops short** (T5, 200 H3 + 100 H0 realistic cases).
+   - The result sits a median 0.023° from the truth, with a cost gap of 0.028.
+   - No barrier on the path is as large as the gap (11/200).
+   - A 0.01° rotation of the truth changes the cost by about 0.025, the same size as the gap.
+   - The truth is not the local cost minimum within 0.05° in 59/200 H3 cases.
+   - A quarter-box VarianceMinimizing pass ends 0.006° from the truth, at ~19x the evaluations (capped).
+2. **The MC restart rule** (`MCOptimizer.optimize`, C++ `RandomRestartZeroTemp`):
+   - A restart fires after `min_ergodic = 2·(box/step)³` steps without a global improvement.
+   - It resets the step to the initial value and jumps to a uniform point in the whole box around the best.
+   - Every global improvement halves the step, which multiplies `min_ergodic` by 8.
+   - So a run that improves almost never restarts and ends on `max_mc_steps`. A run that never improves restarts every
+     ~2·(box/step₀)³ steps (≈31 at box/step₀ ≈ 2.5) and exhausts `max_restarts`.
+   - The logs agree: restarts exhausted = 0-accept runs (78/78); `mc_long` used a median 821 of 5000 steps at the
+     initial 0.132° step.
+   - This mechanism is read from the code and is consistent with the logs. Phase B tests it directly.
+3. **What the April 2026 HP sweep did and did not test:**
+   - **Its comparison:** MC (3500 steps, 2 restarts, step fraction 0.5) against Riemannian Adam/SGD/SGLD. The
+     criterion was "success" from 1/2/5° starts, on ManyGrains voxels far from the rotation axis. The 96% at 1° is
+     ManyGrains only; near-axis ThreeVoxels did worse.
+   - **FindOptimal is not that configuration:** it runs MC with `MaxMCSteps 200` (config) in a 0.33° box from
+     coarse-search candidates.
+   - **Untested by the sweep:** final precision at the 0.01–0.03° scale, the stopping behaviour, and the deployed
+     configuration.
+   - **The October comparison:** on the perturbation sweep, MC told r ends at ≈0.55 r (0.027° at r = 0.05°). Adam
+     (zero gradient inside binary blobs) ends at ≈0.13°. Centroid Gauss-Newton on the net's windows ends at 0.0127°
+     (clean).
+   - **The hybrid optimizer** (`RiemannianAdamOptimizer`, `use_hybrid_optimizer`) exists. Its benchmark CSVs
+     (`benchmarks/bench_hybrid_*.csv`) have no results recorded in MIGRATION_HISTORY.
+
+### Phase A: does stopping short come from the cost function's sensitivity?
+Mostly analysis of existing caches; ~1 h compute.
+- **A1, the cost landscape near the truth.** On the T5 cases (clean and realistic variants):
+  - the plateau: the set of orientations within 0.1° whose cost ≤ cost(truth) + ε, for ε ∈ {0, the median step};
+  - its radius distribution, and its shape (anisotropy, from a few hundred sampled directions);
+  - where the sampled minimum sits relative to the truth.
+
+  Clean vs realistic separates "the binary overlap cost is flat at the 0.01–0.02° scale" from "noise and overlap
+  move the minimum".
+- **A2, physical resolution.** Convert the pixel size (1.48 µm) and detector distances, and the ω frame width
+  (Δω/|sin η|), into an orientation resolution per voxel. Compare it with the 0.023° final error, the plateau radius
+  and GN's 0.0127° floor. Is the finisher's error already at the information limit, or above it?
+- **A3, does the cost gap matter?** In T5, does closing the gap (vm_smallbox) reduce the orientation error?
+  - Stored data: 0.023° → 0.006° in H3.
+  - Also: is a lower cost ever farther from the truth (the realistic minimum is offset)?
+  - Report the cost-vs-error correlation within each case.
+- **Deliverable:** a short answer to "is it sensitivity?", with numbers. It will say one of three things: the optimizer
+  stops early on a resolvable landscape; the landscape is flat below X°; or the realistic minimum is offset by Y°.
+
+### Phase B: why MC runs out of restarts, and better local search
+- **B1, test the mechanism.**
+  - Log `min_ergodic`, step size, accepts and restarts per step on the T5 cases.
+  - Measure the improvement probability as a function of step size at the finisher's result and at the truth
+    neighbourhood: the probability that a random step of size s lowers the cost.
+
+  This gives the step-size / acceptance curve that any local search must respect.
+- **B2, audit "did we deploy too soon?".** No new compute: re-analyse `benchmarks/hp_sweep_*.csv` and
+  `bench_hybrid_*.csv`.
+  - The final-error distribution of "successful" runs (precision, not just success).
+  - Success by distance from the rotation axis.
+  - Each method at a budget equal to FindOptimal's (~200–2600 evaluations).
+  - Results of the hybrid Adam benchmark.
+
+  Write a table: what was measured, what was deployed, and the gap between them.
+- **B3, head-to-head local finishers.**
+  - **Cases:**
+    - the 300 T5 cases (H3 and H0 starts);
+    - the perturbation-sweep cases at r ∈ {0.05, 0.1, 0.25, 0.5, 1} (50 voxels × 5 r × 4 directions × 2 variants).
+  - **Equal evaluation budgets:** 250, 1000, 2600 (the default finisher's median) and 10,000.
+  - **Methods**, all on the same `VoxelCostFunction` unless noted:
+    - (i) MC as deployed (200 steps) and as in the sweep (3500 / 2 restarts);
+    - (ii) MC with local restarts: restart near the best at a reduced step, not in the whole box, and do not reset the
+      step to step₀;
+    - (iii) MC with acceptance-rate step control (1/5th rule, a (1+1)-ES on SO(3));
+    - (iv) a pattern search or Nelder–Mead on the rotation vector, with a shrinking simplex;
+    - (v) local CMA-ES with a small σ₀ (0.05–0.2°);
+    - (vi) VarianceMinimizing with a small box at a fixed budget;
+    - (vii) centroid Gauss-Newton (Huber) as finisher. It needs spot windows; use the net's window pipeline.
+    - (viii) the existing hybrid Riemannian Adam (diff cost), with the April settings.
+  - **Metrics:**
+    - final error (median, p90, fraction < 0.01° / 0.02°);
+    - the cost gap to the truth;
+    - wrong (> 1°) rate with Wilson CIs;
+    - evaluations;
+    - single-worker time on a 40-case subset (preflight gate, interleaved).
+  - Paired McNemar / win rates against (i).
+- **Deliverable:** answers to "why does it run out of restarts" and "is MC the right tool". Then pick ≤ 2 candidate
+  finishers by error at equal budget, and by time.
+
+### Phase C: the finisher inside the reconstruction
+- Add the chosen finisher(s) as an opt-in finisher in `refine_from_candidates`: default off, C++ parity, bit-identity
+  test unchanged.
+- Run on the 200-voxel E0 set (seed 0, both variants; seeds 1–2 for the best).
+- Measure: wrong rate, median error of right answers, evaluations, single-worker time. Compare with the baseline and
+  with the proxy rerank, alone and combined.
+- Seeded use: H3 / HG with the new finisher on the Task 1 cases.
+
+### Phase D (next step after the plan): end-to-end test on the full 500-grain sample
+- **Sample:** `Examples/Example2.ManyGrains/SimInput/rand_500grains_1mm_inFZ.mic`. One layer (z = 0), 24,570
+  voxels, 497 distinct grain orientations, side length 0.6 at the top level.
+  - No second 500-grain sample exists, so keep the geometry and voxel-to-grain assignment and draw a new orientation
+    per grain.
+  - Draw uniformly on SO(3) with a fixed seed and reduce to the cubic fundamental zone.
+  - Write `rand_500grains_1mm_neworient_s<seed>.mic` with the same columns, and keep the grain map (voxel → grain id).
+  - Check that no new orientation is within 1° of any old one or of its neighbours' new ones, so grain boundaries
+    stay well defined.
+- **Images:** full-sample forward simulation with the Python forward model (pixel-exact against C++), both detector
+  distances, as the C++ `Example2.Simulation.config` does.
+  - Make clean and realistic versions: realistic adds detector noise. Overlap is now physical, from neighbouring
+    grains, not synthetic.
+  - This removes the per-voxel-image caveat of every earlier study.
+  - Check first whether ManyGrains images already exist. An earlier memory claim that they do was wrong.
+- **Nets:**
+  - The toy nets were trained on ThreeVoxels/ManyGrains per-voxel windows with the old orientations. The new
+    orientations make the test orientation-novel.
+  - Check whether the net's input pipeline (ROI windows from the nominal orientation) works on full-sample images
+    unchanged.
+  - Retrain on full-sample-rendered windows only if the zero-shot result is poor, and report both.
+- **Reconstruction mode:** every pipeline uses BFS reconstruction (`BFSReconstruction`), not a full no-start search per
+  voxel. A full no-start search runs only for seed voxels, i.e. new grains, and for cross-boundary voxels whose
+  inherited start fails the cost check, exactly as BFS does today.
+- **Main comparison, owner request:** classic BFS against new BFS, on the same images, workers and voxel order.
+  - **Classic BFS:** the existing C++-parity optimizer chain. Seed voxels use the coarse search, quick MC and
+    FindOptimal (MC + VarianceMinimizing); neighbours inherit the seed orientation and run the classic local MC
+    refinement in `_fit_from_seed`.
+  - **New BFS:**
+    - seed voxels: the proxy rerank in the coarse search, then the Phase C finisher;
+    - neighbours: the inherited start is refined by the hybrid (net x3 → finisher: H3, or HG when the start may be
+      ≥ 1.5° off) instead of the classic local MC.
+
+  Report timing and accuracy side by side, and per stage:
+  - seeds vs neighbours;
+  - coarse search vs finisher vs net.
+- **Ablations:** new seeds with classic neighbours, and classic seeds with new neighbours. These attribute the change
+  to each part. Also report the C++ IceNine BFS on the same images, as an external reference.
+- **Metrics:**
+  - per-voxel misorientation map and wrong (> 1°) rate;
+  - completeness;
+  - grain-boundary error, on voxels within 1 voxel of a boundary;
+  - errors near the rotation axis vs far from it;
+  - grains found / lost;
+  - wall time on 10 workers, and the stage split.
+- **Compute:**
+  - Forward simulation: hours, to be estimated.
+  - BFS reconstruction: roughly 500 seed voxels × ~25 s plus ~24,000 neighbour voxels × ~1.5 s, divided by 10
+    workers ≈ 1.4 h per pipeline. The real neighbour cost will be measured in the pilot.
+  - Timing claims: wall time on 10 workers for the full run, plus a single-worker, preflight-gated timing on a fixed
+    region for the classic-vs-new speed ratio.
+  - Run a 1-region pilot first (e.g. 2,000 voxels) with both classic and new BFS.
+- **Risks:**
+  - BFS error propagation across grain boundaries: detect it by final cost.
+  - Memory for full-sample image stacks.
+  - The C++ comparison needs matching config.
+
+### Order and budget
+- **Order:** A → B1/B2 (no new compute) → B3 → C → D.
+- **Compute:**
+
+  | Phase | Compute |
+  |---|---|
+  | A | ~1 h |
+  | B3 | ~2–3 h (10 workers), plus ~30 min single-worker timing |
+  | C | ~1.5 h |
+  | D | images TBD, plus ~1.5 h per pipeline |
+
+- The main session reviews each task with Opus before it merges into the feature branch, and asks the owner before
+  Phase D's long runs.
