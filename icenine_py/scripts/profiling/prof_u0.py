@@ -299,6 +299,8 @@ def work_items(a: argparse.Namespace) -> List[Tuple[Any, ...]]:
             path = outdir / f"v{v}_{var}_rep{rep}.json"
             if not path.exists():
                 its.append((v, vpos, var, rep, ci + 7 * rep, str(path), a.warm))
+    if a.only:  # re-timing of selected tasks (file stems, e.g. v16905_clean_rep0); default off
+        its = [it for it in its if Path(it[-2]).stem in a.only]
     return its[: a.limit] if a.limit else its
 
 
@@ -310,6 +312,7 @@ def main() -> None:
     ap.add_argument("--tag", default="w1")
     ap.add_argument("--warm", choices=["full", "light"], default="full")
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--only", nargs="*", default=[], help="run only these task file stems")
     a = ap.parse_args()
     its = work_items(a)
     print(len(its), "tasks", flush=True)

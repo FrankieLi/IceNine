@@ -1,20 +1,20 @@
 Run-time profiling (Task 3). Caveats: per-voxel images (<= 3 distractor sources), not full-sample renders; the rendering of the detector windows is harness work (excluded from 'production' times); Apple M2 Max (8 P + 4 E cores), thermals not controlled.
 
 -- isolation conditions --
-  U0 1 worker: start 2026-10-06 08:46:29 load [1.47, 1.43, 2.17], Now drawing from 'AC Power', battery -InternalBattery-0 (id=23986275)	100%; c; end 2026-10-06 10:07:15 load [1.22, 1.3, 1.37]; OMP/MKL threads 1/1, torch threads 1; wall 4.85e+03 s for 48 tasks; task-start 1-min load: median 1.38, max 2.97; other processes above 5% CPU at task starts: ['10.0% launchd', '109.6% Google Chrome Helper (Renderer)', '11.2% tccd', '11.5% loginwindow', '16.3% searchpartyd', '18.1% accountsd', '19.0% loginwindow', '5.3% searchpartyd', '5.6% Google Chrome Helper (Renderer)', '57.8% cloudd', '7.6% Google Chrome', '9.6% loginwindow', '9.9% tccd', '99.6% mobileassetd']; thermal: Note: No thermal warning level has been recorded | Note: No performance warning level has 
-  U1/U2 1 worker: start 2026-10-06 10:07:16 load [1.22, 1.3, 1.37], Now drawing from 'AC Power', battery -InternalBattery-0 (id=23986275)	100%; c; end 2026-10-06 11:02:46 load [1.29, 1.57, 1.9]; OMP/MKL threads 1/1, torch threads 1; wall 3.33e+03 s for 70 tasks; task-start 1-min load: median 1.61, max 2.81; other processes above 5% CPU at task starts: ['10.4% Google Chrome Helper', '10.6% WindowServer', '11.2% WindowServer', '12.1% Google Chrome Helper', '12.2% WindowServer', '12.3% fseventsd', '14.2% corebrightnessd', '14.6% WindowServer', '14.8% mds', '15.4% Google Chrome Helper', '20.8% loginwindow', '22.3% WindowServer', '23.2% loginwindow', '23.7% Google Chrome Helper (Renderer)', '28.4% Google Chrome Helper (Renderer)', '34.8% Google Chrome Helper (Renderer)', '40.4% WindowServer', '41.0% photolibraryd', '41.9% launchd', '5.0% Google Chrome Helper (Renderer)', '5.0% WindowServer', '5.1% Google Chrome Helper (Renderer)', '5.4% Google Chrome Helper', '5.4% WindowServer', '5.5% WindowServer', '5.6% Google Chrome Helper', '5.7% ControlCenter', '5.8% Google Chrome Helper', '5.9% Google Chrome Helper', '55.7% mediaanalysisd', '58.4% Code Helper (Renderer)', '58.6% git', '6.0% Google Chrome Helper', '6.0% WindowServer', '6.1% Google Chrome Helper', '6.3% Google Chrome Helper', '6.3% WindowServer', '6.5% Code Helper (Renderer)', '6.7% WindowServer', '6.8% Google Chrome Helper', '6.8% WindowServer', '7.0% Google Chrome Helper', '7.2% coreaudiod', '7.6% Google Chrome Helper (Renderer)', '7.8% WindowServer', '7.9% WindowServer', '88.9% Google Chrome Helper (Renderer)', '9.2% Google Chrome', '99.4% mediaanalysisd']; thermal: Note: No thermal warning level has been recorded | Note: No performance warning level has 
+  U0 1 worker: start 2026-10-06 08:46:29 load [1.47, 1.43, 2.17], Now drawing from 'AC Power', battery -InternalBattery-0 (id=23986275)	100%; c; end 2026-10-06 10:07:15 load [1.22, 1.3, 1.37]; OMP/MKL threads 1/1, torch threads 1; wall 4.85e+03 s for 48 tasks; task-start 1-min load: median 1.37, max 1.92; other processes above 5% CPU at task starts: ['10.0% launchd', '11.5% loginwindow', '16.3% searchpartyd', '17.0% WindowServer', '19.0% loginwindow', '5.3% searchpartyd', '5.6% Google Chrome Helper (Renderer)', '7.6% Google Chrome', '9.6% loginwindow']; thermal: Note: No thermal warning level has been recorded | Note: No performance warning level has 
+  U1/U2 1 worker: start 2026-10-06 10:07:16 load [1.22, 1.3, 1.37], Now drawing from 'AC Power', battery -InternalBattery-0 (id=23986275)	100%; c; end 2026-10-06 11:02:46 load [1.29, 1.57, 1.9]; OMP/MKL threads 1/1, torch threads 1; wall 3.33e+03 s for 70 tasks; task-start 1-min load: median 1.41, max 1.94; other processes above 5% CPU at task starts: ['10.6% WindowServer', '10.8% claude', '13.4% PerfPowerServices', '13.5% runningboardd', '16.6% loginwindow', '5.0% Google Chrome Helper (Renderer)', '5.4% Google Chrome Helper', '5.6% Google Chrome Helper', '5.8% Google Chrome Helper', '5.9% Google Chrome Helper', '6.0% WindowServer', '6.3% WindowServer', '7.6% Google Chrome Helper (Renderer)', '7.8% WindowServer', '9.1% replicatord']; thermal: Note: No thermal warning level has been recorded | Note: No performance warning level has 
   U0 10 workers: start 2026-10-06 11:05:54 load [8.22, 5.31, 3.44], Now drawing from 'AC Power', battery -InternalBattery-0 (id=23986275)	100%; c; end 2026-10-06 11:10:43 load [6.79, 7.74, 5.21]; OMP/MKL threads 1/1, torch threads 1; wall 288 s for 20 tasks; task-start 1-min load: median 9.42, max 10.8; other processes above 5% CPU at task starts: ['100.0% Python', '87.0% Python', '91.1% Python', '98.1% Python', '98.2% Python', '98.3% Python', '98.5% Python', '98.6% Python', '98.7% Python', '98.8% Python', '98.9% Python', '99.0% Python', '99.1% Python', '99.2% Python', '99.3% Python', '99.4% Python', '99.5% Python', '99.6% Python', '99.7% Python', '99.8% Python', '99.9% Python']; thermal: Note: No thermal warning level has been recorded | Note: No performance warning level has 
   U1/U2 10 workers: start 2026-10-06 11:02:47 load [1.29, 1.57, 1.9], Now drawing from 'AC Power', battery -InternalBattery-0 (id=23986275)	100%; c; end 2026-10-06 11:05:53 load [8.22, 5.31, 3.44]; OMP/MKL threads 1/1, torch threads 1; wall 185 s for 50 tasks; task-start 1-min load: median 7.87, max 10.1; other processes above 5% CPU at task starts: ['100.0% Python', '102.2% Google Chrome Helper (Renderer)', '92.6% Python', '95.3% Python', '95.8% Python', '95.9% Python', '96.0% Python', '97.0% Python', '97.3% Python', '97.5% Python', '97.6% Python', '97.8% Python', '97.9% Python', '98.0% Python', '98.1% Python', '98.2% Python', '98.3% Python', '98.4% Python', '98.5% Python', '98.6% Python', '98.7% Python', '98.8% Python', '98.9% Python', '99.0% Python', '99.1% Python', '99.2% Python', '99.3% Python', '99.4% Python', '99.5% Python', '99.6% Python', '99.7% Python', '99.8% Python', '99.9% Python']; thermal: Note: No thermal warning level has been recorded | Note: No performance warning level has 
 
 -- U0, clean: 20 voxels, seed 0, single worker; wall seconds per voxel (median [10-90%]) --
   pipeline     n               time s  mean s  glob ev  loc ev   all ev     wrong med err(right)  =stored
-  baseline    20       19.8 [19-20.8]    19.8 4.45e+04 4.61e+03 4.91e+04    9/20           0.0371  28/28  
-  F1          20     22.9 [22.5-23.6]    22.9 4.45e+04 1.04e+04 5.49e+04    0/20           0.0347  28/28  
-  F1b         20       27.5 [27-27.8]    27.5 4.55e+04 1.78e+04 6.33e+04    0/20           0.0229  28/28  
+  baseline    20       19.8 [19-20.9]    19.8 4.45e+04 4.61e+03 4.91e+04    9/20           0.0371  28/28  
+  F1          20       23 [22.5-23.6]      23 4.45e+04 1.04e+04 5.49e+04    0/20           0.0347  28/28  
+  F1b         20         27.5 [27-28]    27.5 4.55e+04 1.78e+04 6.33e+04    0/20           0.0229  28/28  
   e2          20     21.2 [20.2-21.9]    21.1 4.45e+04 5.96e+03  5.1e+04    1/20           0.0288  28/28  
-  proxy       20       20.8 [20-21.4]    20.8 4.45e+04 5.73e+03 5.07e+04    1/20           0.0298  28/28  
-  proxy+F1    20       23.5 [22.9-24]    23.5 4.45e+04 1.07e+04 5.57e+04    0/20           0.0302  28/28  
-  repeats (3 x on 4 voxels): per-case (max-min)/median of the 3 timings: median 0.578%, 90th pct 1.73%
+  proxy       20       20.8 [20-21.8]    20.8 4.45e+04 5.73e+03 5.07e+04    1/20           0.0298  28/28  
+  proxy+F1    20     23.5 [22.9-24.4]    23.6 4.45e+04 1.07e+04 5.57e+04    0/20           0.0302  28/28  
+  repeats (3 x on 4 voxels): per-case (max-min)/median of the 3 timings: median 0.712%, 90th pct 1.78%
   accuracy on these voxels vs the 200-voxel runs of Task 2 (wrong rate):
     baseline   subset 9/20 = 45%; 200-voxel run 33.5% [27.3%, 40.3%]
     F1         subset 0/20 = 0%; 200-voxel run 1.5% [0.511%, 4.32%]
@@ -25,12 +25,12 @@ Run-time profiling (Task 3). Caveats: per-voxel images (<= 3 distractor sources)
 
 -- U0, realistic: 20 voxels, seed 0, single worker; wall seconds per voxel (median [10-90%]) --
   pipeline     n               time s  mean s  glob ev  loc ev   all ev     wrong med err(right)  =stored
-  baseline    20       21.7 [19.7-24]    21.8 4.48e+04 7.98e+03 5.28e+04    7/20           0.0248  20/20  
-  F1          20     24.4 [23.2-27.2]    24.9 4.48e+04 1.35e+04 5.83e+04    2/20           0.0256  20/20  
-  F1b         20     28.9 [27.9-31.2]    29.5 4.58e+04 2.1e+04 6.69e+04    0/20           0.0187  20/20  
-  e2          20     23.1 [21.5-27.4]      24 4.49e+04 1.03e+04  5.6e+04    2/20           0.0201  20/20  
-  proxy       20     22.8 [20.6-25.7]    23.1 4.48e+04 9.09e+03 5.47e+04    3/20           0.0434  20/20  
-  proxy+F1    20     25.8 [23.8-29.3]    26.1 4.48e+04 1.46e+04 6.03e+04    0/20           0.0436  20/20  
+  baseline    20       21.7 [19.9-24]    21.9 4.48e+04 7.98e+03 5.28e+04    7/20           0.0248  20/20  
+  F1          20     24.5 [23.2-27.2]    24.9 4.48e+04 1.35e+04 5.83e+04    2/20           0.0256  20/20  
+  F1b         20     28.9 [27.9-31.2]    29.6 4.58e+04 2.1e+04 6.69e+04    0/20           0.0187  20/20  
+  e2          20     23.1 [21.5-27.4]    24.1 4.49e+04 1.03e+04  5.6e+04    2/20           0.0201  20/20  
+  proxy       20     22.9 [20.6-25.7]    23.1 4.48e+04 9.09e+03 5.47e+04    3/20           0.0434  20/20  
+  proxy+F1    20     25.8 [23.8-29.3]    26.2 4.48e+04 1.46e+04 6.03e+04    0/20           0.0436  20/20  
   no repeats (realistic)
   accuracy on these voxels vs the 200-voxel runs of Task 2 (wrong rate):
     baseline   subset 7/20 = 35%; 200-voxel run 26% [20.4%, 32.5%]
@@ -43,121 +43,121 @@ Run-time profiling (Task 3). Caveats: per-voxel images (<= 3 distractor sources)
 -- U0 stage breakdown: mean seconds per run (exclusive times; their sum is the wall time of the pipeline's runs) --
   clean
   pipeline   discrete search (excl. quick MC (excl. evalua FindOptimal (excl. eva VarianceMinimizing (ex cost evaluations, glob cost evaluations, loca  proxy set/feat/pred    wall
-  baseline            0.215 ( 1.1%)         0.0743 ( 0.4%)         0.0143 ( 0.1%)         0.0382 ( 0.2%)             17 (86.2%)           2.39 (12.1%)                0/0/0    19.8
-  F1b                 0.253 ( 0.9%)          0.272 ( 1.0%)          0.161 ( 0.6%)         0.0646 ( 0.2%)           17.5 (63.6%)           9.19 (33.5%)                0/0/0    27.5
-  e2                  0.219 ( 1.0%)         0.0792 ( 0.4%)         0.0327 ( 0.2%)         0.0549 ( 0.3%)           17.1 (80.9%)           3.34 (15.9%) 7.95e-06/0.277/0.0039    21.1
-  proxy               0.219 ( 1.1%)         0.0771 ( 0.4%)         0.0288 ( 0.1%)         0.0544 ( 0.3%)           17.1 (82.5%)           3.06 (14.7%) 5.65e-06/0.183/0.00373    20.8
-  F1                      0 ( 0.0%)         0.0857 ( 2.7%)         0.0129 ( 0.4%)         0.0743 ( 2.3%)              0 ( 0.0%)           2.99 (94.0%)                0/0/0    3.18
-  proxy+F1                0 ( 0.0%)          0.086 ( 3.1%)         0.0116 ( 0.4%)         0.0502 ( 1.8%)              0 ( 0.0%)           2.57 (93.9%)                0/0/0    2.74
+  baseline            0.216 ( 1.1%)         0.0743 ( 0.4%)         0.0143 ( 0.1%)         0.0383 ( 0.2%)           17.1 (86.2%)           2.39 (12.1%)                0/0/0    19.8
+  F1b                 0.253 ( 0.9%)          0.272 ( 1.0%)          0.161 ( 0.6%)         0.0646 ( 0.2%)           17.5 (63.7%)           9.21 (33.5%)                0/0/0    27.5
+  e2                   0.22 ( 1.0%)         0.0792 ( 0.4%)         0.0327 ( 0.2%)         0.0548 ( 0.3%)           17.1 (81.0%)           3.35 (15.9%) 8.3e-06/0.277/0.00389    21.1
+  proxy               0.219 ( 1.1%)         0.0771 ( 0.4%)         0.0288 ( 0.1%)         0.0545 ( 0.3%)           17.2 (82.5%)           3.07 (14.7%) 5.95e-06/0.183/0.00371    20.8
+  F1                      0 ( 0.0%)         0.0857 ( 2.7%)         0.0129 ( 0.4%)         0.0744 ( 2.3%)              0 ( 0.0%)              3 (94.0%)                0/0/0    3.19
+  proxy+F1                0 ( 0.0%)         0.0861 ( 3.1%)         0.0116 ( 0.4%)         0.0502 ( 1.8%)              0 ( 0.0%)           2.58 (93.9%)                0/0/0    2.75
   realistic
   pipeline   discrete search (excl. quick MC (excl. evalua FindOptimal (excl. eva VarianceMinimizing (ex cost evaluations, glob cost evaluations, loca  proxy set/feat/pred    wall
-  baseline            0.226 ( 1.0%)          0.124 ( 0.6%)         0.0281 ( 0.1%)          0.068 ( 0.3%)           17.2 (78.9%)           4.15 (19.0%)                0/0/0    21.8
-  F1b                 0.265 ( 0.9%)          0.321 ( 1.1%)          0.161 ( 0.5%)          0.102 ( 0.3%)           17.7 (60.0%)           10.9 (37.0%)                0/0/0    29.5
-  e2                  0.232 ( 1.0%)          0.132 ( 0.5%)         0.0688 ( 0.3%)         0.0887 ( 0.4%)           17.2 (71.7%)           5.79 (24.1%) 5.45e-06/0.477/0.00448      24
-  proxy               0.231 ( 1.0%)          0.129 ( 0.6%)         0.0607 ( 0.3%)         0.0617 ( 0.3%)           17.4 (75.4%)           4.88 (21.2%) 9.9e-06/0.307/0.00443    23.1
-  F1                      0 ( 0.0%)         0.0858 ( 2.8%)         0.0123 ( 0.4%)         0.0661 ( 2.2%)              0 ( 0.0%)           2.86 (94.0%)                0/0/0    3.04
-  proxy+F1                0 ( 0.0%)         0.0858 ( 2.8%)         0.0124 ( 0.4%)         0.0669 ( 2.2%)              0 ( 0.0%)           2.87 (94.0%)                0/0/0    3.05
+  baseline            0.227 ( 1.0%)          0.124 ( 0.6%)         0.0281 ( 0.1%)         0.0681 ( 0.3%)           17.3 (79.0%)           4.15 (19.0%)                0/0/0    21.9
+  F1b                 0.266 ( 0.9%)          0.322 ( 1.1%)          0.161 ( 0.5%)          0.102 ( 0.3%)           17.8 (60.1%)           10.9 (36.9%)                0/0/0    29.6
+  e2                  0.233 ( 1.0%)          0.132 ( 0.5%)         0.0688 ( 0.3%)         0.0887 ( 0.4%)           17.3 (71.7%)            5.8 (24.1%) 5.8e-06/0.478/0.00448    24.1
+  proxy               0.232 ( 1.0%)          0.129 ( 0.6%)         0.0608 ( 0.3%)         0.0619 ( 0.3%)           17.4 (75.4%)           4.89 (21.1%) 9.25e-06/0.308/0.00443    23.1
+  F1                      0 ( 0.0%)         0.0862 ( 2.8%)         0.0123 ( 0.4%)         0.0661 ( 2.2%)              0 ( 0.0%)           2.87 (94.0%)                0/0/0    3.05
+  proxy+F1                0 ( 0.0%)         0.0863 ( 2.8%)         0.0125 ( 0.4%)         0.0669 ( 2.2%)              0 ( 0.0%)           2.88 (94.0%)                0/0/0    3.07
   (F1 and proxy+F1 rows: the F1 post hoc step alone; its wall = quick MC of the relatives + FindOptimal of the top relatives)
 
 -- U0 verdicts (per variant; 'helps' overall only if it holds in both) --
   F1 vs baseline: helps = False
-      clean: time 22.9 vs 19.8 s (+15.9%), wrong 1.5% [0.511%, 4.32%] vs 33.5% [27.3%, 40.3%] (seed 0), med err 0.0272 vs 0.0301, matched True, (a) False, (b) False -> False
-      realistic: time 24.4 vs 21.7 s (+12.6%), wrong 4% [2.04%, 7.69%] vs 26% [20.4%, 32.5%] (seed 0), med err 0.0257 vs 0.0278, matched True, (a) False, (b) False -> False
+      clean: time 23 vs 19.8 s (+16.0%), wrong 1.5% [0.511%, 4.32%] vs 33.5% [27.3%, 40.3%] (seed 0), med err 0.0272 vs 0.0301, matched True, (a) False, (b) False -> False
+      realistic: time 24.5 vs 21.7 s (+13.0%), wrong 4% [2.04%, 7.69%] vs 26% [20.4%, 32.5%] (seed 0), med err 0.0257 vs 0.0278, matched True, (a) False, (b) False -> False
   F1 vs F1b: helps = False
-      clean: time 22.9 vs 27.5 s (-16.6%), wrong 1.5% [0.511%, 4.32%] vs 0% [0%, 1.88%] (seed 0), med err 0.0272 vs 0.02, matched False, (a) False, (b) False -> False
-      realistic: time 24.4 vs 28.9 s (-15.3%), wrong 4% [2.04%, 7.69%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0257 vs 0.0176, matched False, (a) False, (b) False -> False
+      clean: time 23 vs 27.5 s (-16.5%), wrong 1.5% [0.511%, 4.32%] vs 0% [0%, 1.88%] (seed 0), med err 0.0272 vs 0.02, matched False, (a) False, (b) False -> False
+      realistic: time 24.5 vs 28.9 s (-15.2%), wrong 4% [2.04%, 7.69%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0257 vs 0.0176, matched False, (a) False, (b) False -> False
   F1b vs baseline: helps = False
-      clean: time 27.5 vs 19.8 s (+39.0%), wrong 0% [0%, 1.88%] vs 33.5% [27.3%, 40.3%] (seed 0), med err 0.02 vs 0.0301, matched True, (a) False, (b) False -> False
-      realistic: time 28.9 vs 21.7 s (+32.9%), wrong 1.5% [0.511%, 4.32%] vs 26% [20.4%, 32.5%] (seed 0), med err 0.0176 vs 0.0278, matched True, (a) False, (b) False -> False
+      clean: time 27.5 vs 19.8 s (+38.9%), wrong 0% [0%, 1.88%] vs 33.5% [27.3%, 40.3%] (seed 0), med err 0.02 vs 0.0301, matched True, (a) False, (b) False -> False
+      realistic: time 28.9 vs 21.7 s (+33.3%), wrong 1.5% [0.511%, 4.32%] vs 26% [20.4%, 32.5%] (seed 0), med err 0.0176 vs 0.0278, matched True, (a) False, (b) False -> False
   F1b vs F1: helps = False
-      clean: time 27.5 vs 22.9 s (+19.9%), wrong 0% [0%, 1.88%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.02 vs 0.0272, matched True, (a) False, (b) False -> False
-      realistic: time 28.9 vs 24.4 s (+18.0%), wrong 1.5% [0.511%, 4.32%] vs 4% [2.04%, 7.69%] (seed 0), med err 0.0176 vs 0.0257, matched True, (a) False, (b) False -> False
+      clean: time 27.5 vs 23 s (+19.7%), wrong 0% [0%, 1.88%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.02 vs 0.0272, matched True, (a) False, (b) False -> False
+      realistic: time 28.9 vs 24.5 s (+17.9%), wrong 1.5% [0.511%, 4.32%] vs 4% [2.04%, 7.69%] (seed 0), med err 0.0176 vs 0.0257, matched True, (a) False, (b) False -> False
   e2 vs baseline: helps = True
       clean: time 21.2 vs 19.8 s (+7.0%), wrong 4% [2.04%, 7.69%] vs 33.5% [27.3%, 40.3%] (seed 0), med err 0.0285 vs 0.0301, matched True, (a) False, (b) True -> True
-      realistic: time 23.1 vs 21.7 s (+6.2%), wrong 4.5% [2.39%, 8.33%] vs 26% [20.4%, 32.5%] (seed 0), med err 0.0228 vs 0.0278, matched True, (a) False, (b) True -> True
+      realistic: time 23.1 vs 21.7 s (+6.6%), wrong 4.5% [2.39%, 8.33%] vs 26% [20.4%, 32.5%] (seed 0), med err 0.0228 vs 0.0278, matched True, (a) False, (b) True -> True
   e2 vs F1: helps = False
-      clean: time 21.2 vs 22.9 s (-7.7%), wrong 4% [2.04%, 7.69%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0285 vs 0.0272, matched True, (a) False, (b) False -> False
-      realistic: time 23.1 vs 24.4 s (-5.7%), wrong 4.5% [2.39%, 8.33%] vs 4% [2.04%, 7.69%] (seed 0), med err 0.0228 vs 0.0257, matched True, (a) False, (b) False -> False
+      clean: time 21.2 vs 23 s (-7.7%), wrong 4% [2.04%, 7.69%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0285 vs 0.0272, matched True, (a) False, (b) False -> False
+      realistic: time 23.1 vs 24.5 s (-5.7%), wrong 4.5% [2.39%, 8.33%] vs 4% [2.04%, 7.69%] (seed 0), med err 0.0228 vs 0.0257, matched True, (a) False, (b) False -> False
   e2 vs F1b: helps = False
-      clean: time 21.2 vs 27.5 s (-23.0%), wrong 4% [2.04%, 7.69%] vs 0% [0%, 1.88%] (seed 0), med err 0.0285 vs 0.02, matched False, (a) False, (b) False -> False
-      realistic: time 23.1 vs 28.9 s (-20.1%), wrong 4.5% [2.39%, 8.33%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0228 vs 0.0176, matched False, (a) False, (b) False -> False
+      clean: time 21.2 vs 27.5 s (-22.9%), wrong 4% [2.04%, 7.69%] vs 0% [0%, 1.88%] (seed 0), med err 0.0285 vs 0.02, matched False, (a) False, (b) False -> False
+      realistic: time 23.1 vs 28.9 s (-20.0%), wrong 4.5% [2.39%, 8.33%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0228 vs 0.0176, matched False, (a) False, (b) False -> False
   proxy vs baseline: helps = True
       clean: time 20.8 vs 19.8 s (+5.2%), wrong 6.5% [3.84%, 10.8%] vs 33.5% [27.3%, 40.3%] (seed 0), med err 0.0281 vs 0.0301, matched True, (a) False, (b) True -> True
-      realistic: time 22.8 vs 21.7 s (+5.2%), wrong 7.5% [4.6%, 12%] vs 26% [20.4%, 32.5%] (seed 0), med err 0.0285 vs 0.0278, matched True, (a) False, (b) True -> True
+      realistic: time 22.9 vs 21.7 s (+5.5%), wrong 7.5% [4.6%, 12%] vs 26% [20.4%, 32.5%] (seed 0), med err 0.0285 vs 0.0278, matched True, (a) False, (b) True -> True
   proxy vs F1: helps = False
-      clean: time 20.8 vs 22.9 s (-9.3%), wrong 6.5% [3.84%, 10.8%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0281 vs 0.0272, matched False, (a) False, (b) False -> False
-      realistic: time 22.8 vs 24.4 s (-6.6%), wrong 7.5% [4.6%, 12%] vs 4% [2.04%, 7.69%] (seed 0), med err 0.0285 vs 0.0257, matched True, (a) False, (b) False -> False
+      clean: time 20.8 vs 23 s (-9.3%), wrong 6.5% [3.84%, 10.8%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0281 vs 0.0272, matched False, (a) False, (b) False -> False
+      realistic: time 22.9 vs 24.5 s (-6.7%), wrong 7.5% [4.6%, 12%] vs 4% [2.04%, 7.69%] (seed 0), med err 0.0285 vs 0.0257, matched True, (a) False, (b) False -> False
   proxy vs F1b: helps = False
       clean: time 20.8 vs 27.5 s (-24.3%), wrong 6.5% [3.84%, 10.8%] vs 0% [0%, 1.88%] (seed 0), med err 0.0281 vs 0.02, matched False, (a) False, (b) False -> False
-      realistic: time 22.8 vs 28.9 s (-20.9%), wrong 7.5% [4.6%, 12%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0285 vs 0.0176, matched False, (a) False, (b) False -> False
+      realistic: time 22.9 vs 28.9 s (-20.9%), wrong 7.5% [4.6%, 12%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0285 vs 0.0176, matched False, (a) False, (b) False -> False
   proxy+F1 vs baseline: helps = False
       clean: time 23.5 vs 19.8 s (+18.8%), wrong 0% [0%, 0.636%] vs 34% [30.3%, 37.9%] (3-seed), med err 0.0274 vs 0.0301, matched True, (a) False, (b) False -> False
       realistic: time 25.8 vs 21.7 s (+19.0%), wrong 1.5% [0.791%, 2.83%] vs 23.8% [20.6%, 27.4%] (3-seed), med err 0.0272 vs 0.0277, matched True, (a) False, (b) False -> False
   proxy+F1 vs F1: helps = False
-      clean: time 23.5 vs 22.9 s (+2.5%), wrong 0% [0%, 0.636%] vs 3.5% [2.3%, 5.29%] (3-seed), med err 0.0274 vs 0.0263, matched True, (a) False, (b) True -> True
-      realistic: time 25.8 vs 24.4 s (+5.6%), wrong 1.5% [0.791%, 2.83%] vs 3.33% [2.17%, 5.09%] (3-seed), med err 0.0272 vs 0.0265, matched True, (a) False, (b) False -> False
+      clean: time 23.5 vs 23 s (+2.4%), wrong 0% [0%, 0.636%] vs 3.5% [2.3%, 5.29%] (3-seed), med err 0.0274 vs 0.0263, matched True, (a) False, (b) True -> True
+      realistic: time 25.8 vs 24.5 s (+5.3%), wrong 1.5% [0.791%, 2.83%] vs 3.33% [2.17%, 5.09%] (3-seed), med err 0.0272 vs 0.0265, matched True, (a) False, (b) False -> False
   proxy+F1 vs F1b: helps = False
-      clean: time 23.5 vs 27.5 s (-14.5%), wrong 0% [0%, 1.88%] vs 0% [0%, 1.88%] (seed 0), med err 0.0282 vs 0.02, matched False, (a) False, (b) False -> False
-      realistic: time 25.8 vs 28.9 s (-10.5%), wrong 2% [0.78%, 5.03%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0296 vs 0.0176, matched False, (a) False, (b) False -> False
+      clean: time 23.5 vs 27.5 s (-14.4%), wrong 0% [0%, 1.88%] vs 0% [0%, 1.88%] (seed 0), med err 0.0282 vs 0.02, matched False, (a) False, (b) False -> False
+      realistic: time 25.8 vs 28.9 s (-10.7%), wrong 2% [0.78%, 5.03%] vs 1.5% [0.511%, 4.32%] (seed 0), med err 0.0296 vs 0.0176, matched False, (a) False, (b) False -> False
 
 -- U1 / U2 per radius: production-equivalent wall seconds per case, median [10-90%] (both variants pooled), 400 cases per pipeline, single worker --
       r                   H0                   H1                   H3                  MCr                   HG
-   0.05     1.3 [0.995-2.99]    1.48 [0.994-2.55]     1.66 [1.12-2.16]        2 [1.97-2.03]                    -
-   0.10    1.46 [0.728-2.49]     1.61 [1.01-2.86]     1.51 [1.09-2.98]        2 [1.96-2.09]                    -
-   0.25     1.16 [0.65-1.88]    1.32 [0.875-3.02]    1.45 [0.904-2.23]     1.97 [1.84-2.01]                    -
-   0.50   0.422 [0.254-1.17]     1.36 [1.01-2.67]     1.45 [0.91-2.17]        2 [1.96-2.04]                    -
-   0.75   0.389 [0.259-1.12]    1.57 [0.865-2.22]    1.65 [0.993-3.02]     1.99 [1.96-2.08]                    -
-   1.00   0.327 [0.252-1.17]    1.41 [0.905-2.82]      1.6 [1.02-2.37]     1.96 [1.86-2.01]                    -
-   1.50   0.303 [0.239-1.11]    1.38 [0.834-2.15]    1.52 [0.997-2.64]     1.97 [1.86-2.01]      1.8 [1.17-2.73]
-   2.00  0.248 [0.236-0.334]    1.11 [0.496-2.24]    1.43 [0.927-2.53]      1.98 [1.9-2.01]     1.65 [1.22-4.07]
-   3.00  0.245 [0.239-0.273]     1.1 [0.301-2.14]    1.56 [0.915-2.43]    1.99 [0.643-2.03]     1.77 [1.36-2.66]
-   5.00   0.197 [0.174-0.25]   0.306 [0.219-1.31]    1.17 [0.226-2.17]   1.99 [0.0327-2.06]     1.84 [0.22-3.71]
+   0.05     1.3 [0.993-2.99]    1.45 [0.991-2.55]     1.66 [1.14-2.16]     1.99 [1.97-2.02]                    -
+   0.10    1.42 [0.725-2.43]    1.61 [0.987-2.86]      1.5 [1.06-2.98]     1.98 [1.96-2.01]                    -
+   0.25     1.14 [0.65-1.87]    1.32 [0.861-2.96]    1.44 [0.904-2.22]        1.96 [1.84-2]                    -
+   0.50    0.41 [0.251-1.17]    1.36 [0.994-2.63]    1.44 [0.881-2.17]     1.97 [1.93-2.03]                    -
+   0.75   0.374 [0.259-1.12]    1.57 [0.855-2.21]       1.65 [0.954-3]     1.98 [1.93-2.04]                    -
+   1.00   0.327 [0.257-1.17]     1.4 [0.902-2.84]     1.63 [0.975-2.4]     1.99 [1.86-2.02]                    -
+   1.50   0.303 [0.241-1.11]    1.38 [0.822-2.16]    1.52 [0.985-2.64]     1.98 [1.86-2.03]     1.81 [1.16-2.75]
+   2.00  0.248 [0.237-0.334]    1.11 [0.496-2.25]    1.43 [0.927-2.53]      1.98 [1.9-2.01]     1.65 [1.24-4.08]
+   3.00  0.242 [0.239-0.268]      1.07 [0.3-2.13]    1.55 [0.919-2.39]    1.97 [0.631-2.01]     1.76 [1.36-2.65]
+   5.00  0.189 [0.175-0.248]   0.307 [0.221-1.28]    1.17 [0.231-2.17]   1.99 [0.0326-2.05]    1.83 [0.229-3.73]
 
 -- U1 (r 0.05, 0.1), clean --
   pipe     n         prod. time s  measured s  net prod/meas s   evals  wrong (subset)  med err     wrong full run [95%] med err full fallb
-  H0      40    1.33 [0.983-1.72]        1.33              0/0 2.31e+03    0/40      0%   0.0288 0% [0%,0.192%]       0.0227     0
-  H1      40     1.41 [1.07-1.93]        1.42    0.0498/0.0549 2.52e+03    0/40      0%  0.00907 0% [0%,0.192%]        0.011     0
-  H3      40     1.46 [1.12-1.99]        1.48      0.148/0.163 2.42e+03    0/40      0%   0.0117 0% [0%,0.192%]       0.0105     0
-  MCr     40        2 [1.96-2.03]           2              0/0 3.33e+03    0/40      0%   0.0384 0% [0%,0.192%]       0.0381     0
+  H0      40    1.32 [0.981-1.72]        1.32              0/0 2.31e+03    0/40      0%   0.0288 0% [0%,0.192%]       0.0227     0
+  H1      40      1.41 [1.07-1.9]        1.42    0.0498/0.0548 2.52e+03    0/40      0%  0.00907 0% [0%,0.192%]        0.011     0
+  H3      40     1.46 [1.12-1.99]        1.48      0.149/0.164 2.42e+03    0/40      0%   0.0117 0% [0%,0.192%]       0.0105     0
+  MCr     40     1.99 [1.96-2.02]        1.99              0/0 3.33e+03    0/40      0%   0.0384 0% [0%,0.192%]       0.0381     0
 
 -- U1 (r 0.05, 0.1), realistic --
   pipe     n         prod. time s  measured s  net prod/meas s   evals  wrong (subset)  med err     wrong full run [95%] med err full fallb
-  H0      40    1.67 [0.812-3.44]        1.67              0/0 3.27e+03    0/40      0%   0.0247 0% [0%,0.192%]       0.0219     0
-  H1      40    1.61 [0.941-3.67]        1.63     0.0498/0.071 3.39e+03    0/40      0%   0.0252 0% [0%,0.192%]       0.0205     0
-  H3      40      1.8 [1.05-3.37]        1.85      0.148/0.206 3.19e+03    0/40      0%   0.0276 0% [0%,0.192%]       0.0201     0
-  MCr     40     2.01 [1.97-2.09]        2.01              0/0 3.5e+03    0/40      0%     0.04 0% [0%,0.192%]       0.0381     0
+  H0      40    1.67 [0.734-3.44]        1.67              0/0 3.27e+03    0/40      0%   0.0247 0% [0%,0.192%]       0.0219     0
+  H1      40     1.61 [0.95-3.66]        1.63     0.0497/0.071 3.39e+03    0/40      0%   0.0252 0% [0%,0.192%]       0.0205     0
+  H3      40     1.77 [1.05-3.37]        1.82      0.148/0.204 3.19e+03    0/40      0%   0.0276 0% [0%,0.192%]       0.0201     0
+  MCr     40     1.98 [1.96-2.02]        1.98              0/0 3.5e+03    0/40      0%     0.04 0% [0%,0.192%]       0.0381     0
 
 -- U2 (r 0.5 .. 3), clean --
   pipe     n         prod. time s  measured s  net prod/meas s   evals  wrong (subset)  med err     wrong full run [95%] med err full fallb
-  H0     120   0.287 [0.24-0.772]       0.287              0/0     722   29/120  24.2%    0.109 28% [26.8%,29.1%]         0.19     0
-  H1     120    1.36 [0.903-1.95]        1.37    0.0498/0.0543 2.37e+03    0/120     0%   0.0181 0% [5.42e-18%,0.064%]       0.0164     0
-  H3     120     1.54 [1.01-1.98]        1.55      0.148/0.162 2.41e+03    0/120     0%   0.0115 0% [5.42e-18%,0.064%]       0.0105     0
-  MCr    120     1.98 [1.89-2.03]        1.98              0/0 3.37e+03   44/120  36.7%    0.586 37.6% [36.4%,38.9%]        0.659     0
-  HG      60      1.7 [1.15-2.09]        1.72      0.334/0.353 2.34e+03    0/60      0%   0.0117 0% [1.08e-17%,0.128%]       0.0105     0
+  H0     120   0.285 [0.24-0.766]       0.285              0/0     722   29/120  24.2%    0.109 28% [26.8%,29.1%]         0.19     0
+  H1     120    1.36 [0.899-1.95]        1.37    0.0499/0.0544 2.37e+03    0/120     0%   0.0181 0% [5.42e-18%,0.064%]       0.0164     0
+  H3     120    1.53 [0.986-1.97]        1.55      0.148/0.163 2.41e+03    0/120     0%   0.0115 0% [5.42e-18%,0.064%]       0.0105     0
+  MCr    120      1.97 [1.9-2.02]        1.97              0/0 3.37e+03   44/120  36.7%    0.586 37.6% [36.4%,38.9%]        0.659     0
+  HG      60     1.69 [1.13-2.09]        1.71      0.335/0.353 2.34e+03    0/60      0%   0.0117 0% [1.08e-17%,0.128%]       0.0105     0
 
 -- U2 (r 0.5 .. 3), realistic --
   pipe     n         prod. time s  measured s  net prod/meas s   evals  wrong (subset)  med err     wrong full run [95%] med err full fallb
-  H0     120      0.27 [0.24-1.2]        0.27              0/0     898   30/120    25%    0.198 26.4% [25.3%,27.5%]        0.183     0
-  H1     120    1.34 [0.344-2.92]        1.36    0.0497/0.0654 2.66e+03    6/120     5%   0.0248 3.42% [2.99%,3.91%]       0.0265     0
-  H3     120     1.6 [0.876-3.01]        1.65      0.148/0.199 3.11e+03    0/120     0%   0.0198 0.7% [0.518%,0.945%]       0.0208     0
-  MCr    120     1.99 [1.87-2.04]        1.99              0/0 3.35e+03   50/120  41.7%    0.717 37.5% [36.3%,38.7%]        0.651     0
-  HG      60     1.96 [1.33-4.07]           2       0.403/0.47 3.43e+03    0/60      0%   0.0236 0% [1.08e-17%,0.128%]       0.0208     0
+  H0     120     0.268 [0.24-1.2]       0.268              0/0     898   30/120    25%    0.198 26.4% [25.3%,27.5%]        0.183     0
+  H1     120     1.34 [0.34-2.93]        1.36    0.0499/0.0649 2.66e+03    6/120     5%   0.0248 3.42% [2.99%,3.91%]       0.0265     0
+  H3     120    1.61 [0.882-3.07]        1.65      0.148/0.197 3.11e+03    0/120     0%   0.0198 0.7% [0.518%,0.945%]       0.0208     0
+  MCr    120     1.98 [1.87-2.03]        1.98              0/0 3.35e+03   50/120  41.7%    0.717 37.5% [36.3%,38.7%]        0.651     0
+  HG      60     1.96 [1.33-4.08]        2.01      0.409/0.477 3.43e+03    0/60      0%   0.0236 0% [1.08e-17%,0.128%]       0.0208     0
 
 -- U2 stress (r 5), clean --
   pipe     n         prod. time s  measured s  net prod/meas s   evals  wrong (subset)  med err     wrong full run [95%] med err full fallb
-  H0      20  0.178 [0.174-0.244]       0.178              0/0     339   20/20    100%     45.9 100% [99.6%,100%]         23.9     0
-  H1      20   0.751 [0.219-1.35]       0.753    0.0507/0.0531 1.35e+03    5/20     25%   0.0391 0% [0%,0.407%]       0.0365     5
-  H3      20    1.33 [0.215-2.14]        1.34      0.149/0.162 1.94e+03    5/20     25%   0.0122 0% [0%,0.407%]       0.0107     5
-  MCr     20   1.97 [0.0313-2.06]        1.97              0/0 2.64e+03   16/20     80%     4.93 84.3% [81.8%,86.4%]          4.5     0
-  HG      20    1.71 [0.219-2.24]        1.72      0.339/0.357 2.01e+03    5/20     25%   0.0121 0% [0%,0.407%]       0.0105     5
+  H0      20  0.177 [0.175-0.244]       0.177              0/0     339   20/20    100%     45.9 100% [99.6%,100%]         23.9     0
+  H1      20    0.741 [0.22-1.34]       0.743    0.0504/0.0528 1.35e+03    5/20     25%   0.0391 0% [0%,0.407%]       0.0365     5
+  H3      20    1.32 [0.216-2.11]        1.33      0.149/0.162 1.94e+03    5/20     25%   0.0122 0% [0%,0.407%]       0.0107     5
+  MCr     20   1.98 [0.0308-2.03]        1.98              0/0 2.64e+03   16/20     80%     4.93 84.3% [81.8%,86.4%]          4.5     0
+  HG      20    1.68 [0.224-2.24]         1.7       0.34/0.357 2.01e+03    5/20     25%   0.0121 0% [0%,0.407%]       0.0105     5
 
 -- U2 stress (r 5), realistic --
   pipe     n         prod. time s  measured s  net prod/meas s   evals  wrong (subset)  med err     wrong full run [95%] med err full fallb
-  H0      20  0.239 [0.175-0.255]       0.239              0/0     381   20/20    100%     5.67 100% [99.6%,100%]         6.02     0
-  H1      20  0.297 [0.227-0.311]       0.305    0.0505/0.0589     403   18/20     90%     4.88 95.2% [93.7%,96.3%]          4.3     0
-  H3      20   0.419 [0.373-2.52]       0.442       0.151/0.18 1.64e+03   11/20     55%     2.56 43.6% [40.5%,46.7%]        0.175     0
-  MCr     20        2 [1.92-2.05]           2              0/0 3.5e+03   20/20    100%     3.94 85.1% [82.8%,87.2%]         4.38     0
-  HG      20     2.11 [1.44-4.55]        2.17       0.42/0.481 3.8e+03    1/20      5%    0.029 2.31% [1.55%,3.45%]       0.0199     0
+  H0      20  0.238 [0.175-0.255]       0.238              0/0     381   20/20    100%     5.67 100% [99.6%,100%]         6.02     0
+  H1      20  0.295 [0.224-0.318]       0.304     0.0507/0.059     403   18/20     90%     4.88 95.2% [93.7%,96.3%]          4.3     0
+  H3      20   0.415 [0.341-2.53]       0.439      0.151/0.179 1.64e+03   11/20     55%     2.56 43.6% [40.5%,46.7%]        0.175     0
+  MCr     20      1.99 [1.9-2.05]        1.99              0/0 3.5e+03   20/20    100%     3.94 85.1% [82.8%,87.2%]         4.38     0
+  HG      20     2.11 [1.45-4.52]        2.18      0.422/0.482 3.8e+03    1/20      5%    0.029 2.31% [1.55%,3.45%]       0.0199     0
 
 -- agreement with the full runs of Task 1 on the same cases (voxels 0-4, directions 0-3): median |err_timing - err_full| (deg) and fraction of cases whose wrong flag is the same --
   H0   n=400: median |diff| 0, exactly equal in 100%, same wrong flag 100%
@@ -167,82 +167,82 @@ Run-time profiling (Task 3). Caveats: per-voxel images (<= 3 distractor sources)
   MCr  n=400: median |diff| 0.000441, exactly equal in 9.5%, same wrong flag 91.8%
 
 -- network stage time per case (s), median over cases at all radii: measured (harness rendering included) vs production-equivalent (rendering excluded) --
-  H1: measured 0.0569, production-equivalent 0.0497
-  H3: measured 0.169, production-equivalent 0.148
-  HG: measured 0.378, production-equivalent 0.351
+  H1: measured 0.0568, production-equivalent 0.0498
+  H3: measured 0.168, production-equivalent 0.148
+  HG: measured 0.378, production-equivalent 0.35
 
 -- seeded stage breakdown: mean exclusive seconds per case (both variants, all radii where the pipeline runs) --
   pipe    prepare    decode   forward    render render_ph render_di render_re        gn gn_extrac  gn_solve       net  finisher find_opti  variance evaluate_ evaluate_  mc_other
-  H0       0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0001    0.0059    0.0348    0.7100    0.0000    0.0000
-  H1       0.0444    0.0003    0.0048    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0001    0.0001    0.0047    0.0721    1.3323    0.0000    0.0000
-  H3       0.1318    0.0009    0.0138    0.0005    0.0093    0.0100    0.0023    0.0000    0.0000    0.0000    0.0002    0.0001    0.0042    0.0781    1.4273    0.0000    0.0000
-  MCr      0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0010    0.0000    0.0000    0.0000    1.8062    0.1014
-  HG       0.2573    0.0009    0.0135    0.0007    0.0225    0.0236    0.0058    0.0008    0.0027    0.0627    0.0002    0.0001    0.0041    0.0853    1.5496    0.0000    0.0000
+  H0       0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0001    0.0058    0.0345    0.7063    0.0000    0.0000
+  H1       0.0445    0.0003    0.0048    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0001    0.0001    0.0047    0.0717    1.3292    0.0000    0.0000
+  H3       0.1319    0.0009    0.0137    0.0005    0.0093    0.0100    0.0023    0.0000    0.0000    0.0000    0.0002    0.0001    0.0042    0.0776    1.4245    0.0000    0.0000
+  MCr      0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000    0.0009    0.0000    0.0000    0.0000    1.7981    0.1006
+  HG       0.2584    0.0009    0.0134    0.0007    0.0225    0.0238    0.0058    0.0007    0.0027    0.0627    0.0002    0.0001    0.0041    0.0850    1.5496    0.0000    0.0000
   (prepare = prepare_nominal: ROI / observer / window spec; decode = decode_windows; forward = the network forward pass; render* = harness rendering; gn* = Gauss-Newton; finisher = FindOptimal or the MC, exclusive of its nested stages; evaluate_* = cost-function calls)
 
 -- U1 / U2 verdicts --
   U1 H1 vs H0: helps = False (literal rule without the tie: False)
-      clean: time 1.41 vs 1.33 s (+5.8%), full-run median err 0.011 vs 0.0227, wrong 0% vs 0%; beats on accuracy (0.002 deg tie) True, literal True, on time False -> False
+      clean: time 1.41 vs 1.32 s (+7.2%), full-run median err 0.011 vs 0.0227, wrong 0% vs 0%; beats on accuracy (0.002 deg tie) True, literal True, on time False -> False
       realistic: time 1.61 vs 1.67 s (-3.4%), full-run median err 0.0205 vs 0.0219, wrong 0% vs 0%; beats on accuracy (0.002 deg tie) False, literal True, on time True -> False
   U1 H3 vs H0: helps = False (literal rule without the tie: False)
-      clean: time 1.46 vs 1.33 s (+9.7%), full-run median err 0.0105 vs 0.0227, wrong 0% vs 0%; beats on accuracy (0.002 deg tie) True, literal True, on time False -> False
-      realistic: time 1.8 vs 1.67 s (+7.8%), full-run median err 0.0201 vs 0.0219, wrong 0% vs 0%; beats on accuracy (0.002 deg tie) False, literal True, on time False -> False
-  (reference, U1 clean: MC told r 2 s, full-run median err 0.0381; H0 1.33 s)
-  (reference, U1 realistic: MC told r 2.01 s, full-run median err 0.0381; H0 1.67 s)
+      clean: time 1.46 vs 1.32 s (+11.1%), full-run median err 0.0105 vs 0.0227, wrong 0% vs 0%; beats on accuracy (0.002 deg tie) True, literal True, on time False -> False
+      realistic: time 1.77 vs 1.67 s (+6.3%), full-run median err 0.0201 vs 0.0219, wrong 0% vs 0%; beats on accuracy (0.002 deg tie) False, literal True, on time False -> False
+  (reference, U1 clean: MC told r 1.99 s, full-run median err 0.0381; H0 1.32 s)
+  (reference, U1 realistic: MC told r 1.98 s, full-run median err 0.0381; H0 1.67 s)
   U2 (r 0.5 .. 3) H1: helps = True (with the cubic F1b fallback: False)
-      clean: H1 mean 1.39 s, wrong 0% [5.42e-18%, 0.064%], med err 0.0164; H0 mean 0.413 s wrong 28%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 5.94 s wrong 9.37%; H0+F1b fallback 8.1 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option H0+fallback; matched True; 4.26x faster than H0+fallback, 5.81x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 14.2x
-      realistic: H1 mean 1.57 s, wrong 3.42% [2.99%, 3.91%], med err 0.0265; H0 mean 0.52 s wrong 26.4%; H0+fallback (ideal trigger, baseline reconstruction 21.8 s) 6.28 s wrong 6.86%; H0+F1b fallback 8.3 s wrong 0.396%; full reconstruction wrong 26%; best non-NN option H0+fallback; matched True; 4x faster than H0+fallback, 5.29x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% False -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched False, (a) False, only <=1% False -> False; speed-up vs full reconstruction 13.9x
+      clean: H1 mean 1.39 s, wrong 0% [5.42e-18%, 0.064%], med err 0.0164; H0 mean 0.413 s wrong 28%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 5.95 s wrong 9.37%; H0+F1b fallback 8.11 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option H0+fallback; matched True; 4.27x faster than H0+fallback, 5.83x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 14.2x
+      realistic: H1 mean 1.57 s, wrong 3.42% [2.99%, 3.91%], med err 0.0265; H0 mean 0.519 s wrong 26.4%; H0+fallback (ideal trigger, baseline reconstruction 21.9 s) 6.3 s wrong 6.86%; H0+F1b fallback 8.32 s wrong 0.396%; full reconstruction wrong 26%; best non-NN option H0+fallback; matched True; 4.01x faster than H0+fallback, 5.3x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% False -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched False, (a) False, only <=1% False -> False; speed-up vs full reconstruction 13.9x
   U2 (r 0.5 .. 3) H3: helps = True (with the cubic F1b fallback: False)
-      clean: H3 mean 1.51 s, wrong 0% [5.42e-18%, 0.064%], med err 0.0105; H0 mean 0.413 s wrong 28%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 5.94 s wrong 9.37%; H0+F1b fallback 8.1 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option H0+fallback; matched True; 3.92x faster than H0+fallback, 5.35x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 13.1x
-      realistic: H3 mean 1.92 s, wrong 0.7% [0.518%, 0.945%], med err 0.0208; H0 mean 0.52 s wrong 26.4%; H0+fallback (ideal trigger, baseline reconstruction 21.8 s) 6.28 s wrong 6.86%; H0+F1b fallback 8.3 s wrong 0.396%; full reconstruction wrong 26%; best non-NN option H0+fallback; matched True; 3.27x faster than H0+fallback, 4.33x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched False, (a) False, only <=1% False -> False; speed-up vs full reconstruction 11.4x
+      clean: H3 mean 1.51 s, wrong 0% [5.42e-18%, 0.064%], med err 0.0105; H0 mean 0.413 s wrong 28%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 5.95 s wrong 9.37%; H0+F1b fallback 8.11 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option H0+fallback; matched True; 3.94x faster than H0+fallback, 5.37x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 13.1x
+      realistic: H3 mean 1.92 s, wrong 0.7% [0.518%, 0.945%], med err 0.0208; H0 mean 0.519 s wrong 26.4%; H0+fallback (ideal trigger, baseline reconstruction 21.9 s) 6.3 s wrong 6.86%; H0+F1b fallback 8.32 s wrong 0.396%; full reconstruction wrong 26%; best non-NN option H0+fallback; matched True; 3.28x faster than H0+fallback, 4.33x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched False, (a) False, only <=1% False -> False; speed-up vs full reconstruction 11.4x
   U2 HG band (r 1.5 .. 3) HG: helps = True (with the cubic F1b fallback: True)
-      clean: HG mean 1.65 s, wrong 0% [1.08e-17%, 0.128%], med err 0.0105; H0 mean 0.319 s wrong 55.6%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 11.3 s wrong 18.6%; H0+F1b fallback 15.6 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option H0+fallback; matched True; 6.83x faster than H0+fallback, 9.42x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 11.9x
-      realistic: HG mean 2.34 s, wrong 0% [1.08e-17%, 0.128%], med err 0.0208; H0 mean 0.357 s wrong 52.4%; H0+fallback (ideal trigger, baseline reconstruction 21.8 s) 11.8 s wrong 13.6%; H0+F1b fallback 15.8 s wrong 0.786%; full reconstruction wrong 26%; best non-NN option H0+fallback; matched True; 5.05x faster than H0+fallback, 6.77x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 9.34x
+      clean: HG mean 1.66 s, wrong 0% [1.08e-17%, 0.128%], med err 0.0105; H0 mean 0.321 s wrong 55.6%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 11.3 s wrong 18.6%; H0+F1b fallback 15.6 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option H0+fallback; matched True; 6.83x faster than H0+fallback, 9.43x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 11.9x
+      realistic: HG mean 2.34 s, wrong 0% [1.08e-17%, 0.128%], med err 0.0208; H0 mean 0.358 s wrong 52.4%; H0+fallback (ideal trigger, baseline reconstruction 21.9 s) 11.8 s wrong 13.6%; H0+F1b fallback 15.9 s wrong 0.786%; full reconstruction wrong 26%; best non-NN option H0+fallback; matched True; 5.06x faster than H0+fallback, 6.77x than H0+F1b fallback; symmetry-agnostic comparators: best H0+fallback, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 9.35x
   U2 stress (r 5) H1: helps = False (with the cubic F1b fallback: False)
-      clean: H1 mean 0.829 s, wrong 0% [0%, 0.407%], med err 0.0365; H0 mean 0.194 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 20 s wrong 33.5%; H0+F1b fallback 27.7 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option full reconstruction; matched False; 24.1x faster than H0+fallback, 33.4x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched False, (a) False, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 23.8x
-      realistic: H1 mean 0.284 s, wrong 95.2% [93.7%, 96.3%], med err 4.3; H0 mean 0.22 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 21.8 s) 22 s wrong 26%; H0+F1b fallback 29.7 s wrong 1.5%; full reconstruction wrong 26%; best non-NN option full reconstruction; matched False; 77.6x faster than H0+fallback, 105x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched False, (a) False, only <=1% False -> False; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched False, (a) False, only <=1% False -> False; speed-up vs full reconstruction 76.8x
+      clean: H1 mean 0.823 s, wrong 0% [0%, 0.407%], med err 0.0365; H0 mean 0.194 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 20 s wrong 33.5%; H0+F1b fallback 27.7 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option full reconstruction; matched False; 24.3x faster than H0+fallback, 33.7x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched False, (a) False, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 24x
+      realistic: H1 mean 0.284 s, wrong 95.2% [93.7%, 96.3%], med err 4.3; H0 mean 0.219 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 21.9 s) 22.1 s wrong 26%; H0+F1b fallback 29.8 s wrong 1.5%; full reconstruction wrong 26%; best non-NN option full reconstruction; matched False; 77.8x faster than H0+fallback, 105x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched False, (a) False, only <=1% False -> False; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched False, (a) False, only <=1% False -> False; speed-up vs full reconstruction 77.1x
   U2 stress (r 5) H3: helps = False (with the cubic F1b fallback: False)
-      clean: H3 mean 1.24 s, wrong 0% [0%, 0.407%], med err 0.0107; H0 mean 0.194 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 20 s wrong 33.5%; H0+F1b fallback 27.7 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option full reconstruction; matched True; 16.1x faster than H0+fallback, 22.4x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 16x
-      realistic: H3 mean 1.1 s, wrong 43.6% [40.5%, 46.7%], med err 0.175; H0 mean 0.22 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 21.8 s) 22 s wrong 26%; H0+F1b fallback 29.7 s wrong 1.5%; full reconstruction wrong 26%; best non-NN option full reconstruction; matched False; 20.1x faster than H0+fallback, 27x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched False, (a) False, only <=1% False -> False; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched False, (a) False, only <=1% False -> False; speed-up vs full reconstruction 19.9x
+      clean: H3 mean 1.23 s, wrong 0% [0%, 0.407%], med err 0.0107; H0 mean 0.194 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 20 s wrong 33.5%; H0+F1b fallback 27.7 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option full reconstruction; matched True; 16.2x faster than H0+fallback, 22.5x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 16.1x
+      realistic: H3 mean 1.09 s, wrong 43.6% [40.5%, 46.7%], med err 0.175; H0 mean 0.219 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 21.9 s) 22.1 s wrong 26%; H0+F1b fallback 29.8 s wrong 1.5%; full reconstruction wrong 26%; best non-NN option full reconstruction; matched False; 20.3x faster than H0+fallback, 27.3x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched False, (a) False, only <=1% False -> False; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched False, (a) False, only <=1% False -> False; speed-up vs full reconstruction 20.1x
   U2 stress (r 5) HG: helps = True (with the cubic F1b fallback: True)
-      clean: HG mean 1.42 s, wrong 0% [0%, 0.407%], med err 0.0105; H0 mean 0.194 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 20 s wrong 33.5%; H0+F1b fallback 27.7 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option full reconstruction; matched True; 14.1x faster than H0+fallback, 19.5x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 13.9x
-      realistic: HG mean 2.58 s, wrong 2.31% [1.55%, 3.45%], med err 0.0199; H0 mean 0.22 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 21.8 s) 22 s wrong 26%; H0+F1b fallback 29.7 s wrong 1.5%; full reconstruction wrong 26%; best non-NN option full reconstruction; matched True; 8.53x faster than H0+fallback, 11.5x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched True, (a) True, only <=1% False -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 8.44x
+      clean: HG mean 1.41 s, wrong 0% [0%, 0.407%], med err 0.0105; H0 mean 0.194 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 19.8 s) 20 s wrong 33.5%; H0+F1b fallback 27.7 s wrong 0%; full reconstruction wrong 33.5%; best non-NN option full reconstruction; matched True; 14.1x faster than H0+fallback, 19.6x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched True, (a) True, only <=1% True -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 14x
+      realistic: HG mean 2.57 s, wrong 2.31% [1.55%, 3.45%], med err 0.0199; H0 mean 0.219 s wrong 100%; H0+fallback (ideal trigger, baseline reconstruction 21.9 s) 22.1 s wrong 26%; H0+F1b fallback 29.8 s wrong 1.5%; full reconstruction wrong 26%; best non-NN option full reconstruction; matched True; 8.6x faster than H0+fallback, 11.6x than H0+F1b fallback; symmetry-agnostic comparators: best full reconstruction, matched True, (a) True, only <=1% False -> True; with the cubic F1b fallback: best H0 + F1b fallback (cubic), matched True, (a) True, only <=1% False -> True; speed-up vs full reconstruction 8.51x
   per radius (mean times; helps needs both variants):
-    r=0.5 H1: helps False (cubic fallback False); mean time clean/realistic 1.47/1.7 s vs H0+fallback 0.447/0.733 s (0.305x/0.43x), vs H0+F1b fallback 0.447/0.733 s (0.305x/0.43x); wrong 0%/0% vs H0 0%/0%, H0+fallback 0%/0%; speed-up vs full reconstruction 13.5x/12.8x
-    r=0.5 H3: helps False (cubic fallback False); mean time clean/realistic 1.5/1.56 s vs H0+fallback 0.447/0.733 s (0.298x/0.469x), vs H0+F1b fallback 0.447/0.733 s (0.298x/0.469x); wrong 0%/0% vs H0 0%/0%, H0+fallback 0%/0%; speed-up vs full reconstruction 13.2x/14x
-    r=0.75 H1: helps False (cubic fallback False); mean time clean/realistic 1.46/1.95 s vs H0+fallback 0.55/0.819 s (0.377x/0.42x), vs H0+F1b fallback 0.55/0.827 s (0.377x/0.424x); wrong 0%/0% vs H0 0%/0.1%, H0+fallback 0%/0.026%; speed-up vs full reconstruction 13.6x/11.2x
-    r=0.75 H3: helps False (cubic fallback False); mean time clean/realistic 1.6/2.44 s vs H0+fallback 0.55/0.819 s (0.343x/0.336x), vs H0+F1b fallback 0.55/0.827 s (0.343x/0.339x); wrong 0%/0% vs H0 0%/0.1%, H0+fallback 0%/0.026%; speed-up vs full reconstruction 12.3x/8.94x
-    r=1 H1: helps False (cubic fallback False); mean time clean/realistic 1.42/2.02 s vs H0+fallback 0.722/0.716 s (0.508x/0.355x), vs H0+F1b fallback 0.799/0.785 s (0.562x/0.389x); wrong 0%/0% vs H0 1%/0.9%, H0+fallback 0.335%/0.234%; speed-up vs full reconstruction 13.9x/10.8x
-    r=1 H3: helps False (cubic fallback False); mean time clean/realistic 1.54/1.97 s vs H0+fallback 0.722/0.716 s (0.468x/0.363x), vs H0+F1b fallback 0.799/0.785 s (0.518x/0.398x); wrong 0%/0% vs H0 1%/0.9%, H0+fallback 0.335%/0.234%; speed-up vs full reconstruction 12.8x/11.1x
-    r=1.5 H1: helps True (cubic fallback True); mean time clean/realistic 1.32/1.55 s vs H0+fallback 3.99/4.03 s (3.02x/2.6x), vs H0+F1b fallback 5.38/5.25 s (4.07x/3.39x); wrong 0%/0% vs H0 18%/15.9%, H0+fallback 6.03%/4.13%; speed-up vs full reconstruction 15x/14.1x
-    r=1.5 H3: helps True (cubic fallback True); mean time clean/realistic 1.46/1.77 s vs H0+fallback 3.99/4.03 s (2.73x/2.27x), vs H0+F1b fallback 5.38/5.25 s (3.68x/2.96x); wrong 0%/0% vs H0 18%/15.9%, H0+fallback 6.03%/4.13%; speed-up vs full reconstruction 13.5x/12.3x
-    r=1.5 HG: helps True (cubic fallback True); mean time clean/realistic 1.63/2.1 s vs H0+fallback 3.99/4.03 s (2.45x/1.92x), vs H0+F1b fallback 5.38/5.25 s (3.3x/2.5x); wrong 0%/0% vs H0 18%/15.9%, H0+fallback 6.03%/4.13%; speed-up vs full reconstruction 12.1x/10.4x
-    r=2 H1: helps True (cubic fallback True); mean time clean/realistic 1.35/1.24 s vs H0+fallback 10.7/10.5 s (7.94x/8.47x), vs H0+F1b fallback 14.7/14.1 s (11x/11.4x); wrong 0%/1.1% vs H0 52.7%/46.8%, H0+fallback 17.7%/12.2%; speed-up vs full reconstruction 14.7x/17.6x
-    r=2 H3: helps True (cubic fallback True); mean time clean/realistic 1.44/1.99 s vs H0+fallback 10.7/10.5 s (7.41x/5.26x), vs H0+F1b fallback 14.7/14.1 s (10.2x/7.06x); wrong 0%/0.1% vs H0 52.7%/46.8%, H0+fallback 17.7%/12.2%; speed-up vs full reconstruction 13.7x/11x
-    r=2 HG: helps True (cubic fallback True); mean time clean/realistic 1.63/2.64 s vs H0+fallback 10.7/10.5 s (6.56x/3.96x), vs H0+F1b fallback 14.7/14.1 s (9.06x/5.32x); wrong 0%/0% vs H0 52.7%/46.8%, H0+fallback 17.7%/12.2%; speed-up vs full reconstruction 12.1x/8.25x
-    r=3 H1: helps True (cubic fallback False); mean time clean/realistic 1.35/0.945 s vs H0+fallback 19.2/20.9 s (14.2x/22.1x), vs H0+F1b fallback 26.7/28.1 s (19.7x/29.8x); wrong 0%/19.4% vs H0 96.1%/94.6%, H0+fallback 32.2%/24.6%; speed-up vs full reconstruction 14.6x/23.1x
-    r=3 H3: helps True (cubic fallback False); mean time clean/realistic 1.53/1.77 s vs H0+fallback 19.2/20.9 s (12.6x/11.8x), vs H0+F1b fallback 26.7/28.1 s (17.4x/15.9x); wrong 0%/4.1% vs H0 96.1%/94.6%, H0+fallback 32.2%/24.6%; speed-up vs full reconstruction 12.9x/12.3x
-    r=3 HG: helps True (cubic fallback True); mean time clean/realistic 1.71/2.26 s vs H0+fallback 19.2/20.9 s (11.3x/9.23x), vs H0+F1b fallback 26.7/28.1 s (15.6x/12.4x); wrong 0%/0% vs H0 96.1%/94.6%, H0+fallback 32.2%/24.6%; speed-up vs full reconstruction 11.6x/9.64x
-    r=5 H1: helps False (cubic fallback False); mean time clean/realistic 0.829/0.284 s vs H0+fallback 20/22 s (24.1x/77.6x), vs H0+F1b fallback 27.7/29.7 s (33.4x/105x); wrong 0%/95.2% vs H0 100%/100%, H0+fallback 33.5%/26%; speed-up vs full reconstruction 23.8x/76.8x
-    r=5 H3: helps False (cubic fallback False); mean time clean/realistic 1.24/1.1 s vs H0+fallback 20/22 s (16.1x/20.1x), vs H0+F1b fallback 27.7/29.7 s (22.4x/27x); wrong 0%/43.6% vs H0 100%/100%, H0+fallback 33.5%/26%; speed-up vs full reconstruction 16x/19.9x
-    r=5 HG: helps True (cubic fallback True); mean time clean/realistic 1.42/2.58 s vs H0+fallback 20/22 s (14.1x/8.53x), vs H0+F1b fallback 27.7/29.7 s (19.5x/11.5x); wrong 0%/2.31% vs H0 100%/100%, H0+fallback 33.5%/26%; speed-up vs full reconstruction 13.9x/8.44x
+    r=0.5 H1: helps False (cubic fallback False); mean time clean/realistic 1.45/1.69 s vs H0+fallback 0.44/0.723 s (0.303x/0.428x), vs H0+F1b fallback 0.44/0.723 s (0.303x/0.428x); wrong 0%/0% vs H0 0%/0%, H0+fallback 0%/0%; speed-up vs full reconstruction 13.6x/13x
+    r=0.5 H3: helps False (cubic fallback False); mean time clean/realistic 1.49/1.55 s vs H0+fallback 0.44/0.723 s (0.296x/0.467x), vs H0+F1b fallback 0.44/0.723 s (0.296x/0.467x); wrong 0%/0% vs H0 0%/0%, H0+fallback 0%/0%; speed-up vs full reconstruction 13.3x/14.1x
+    r=0.75 H1: helps False (cubic fallback False); mean time clean/realistic 1.44/1.95 s vs H0+fallback 0.542/0.813 s (0.377x/0.418x), vs H0+F1b fallback 0.542/0.821 s (0.377x/0.422x); wrong 0%/0% vs H0 0%/0.1%, H0+fallback 0%/0.026%; speed-up vs full reconstruction 13.8x/11.3x
+    r=0.75 H3: helps False (cubic fallback False); mean time clean/realistic 1.59/2.43 s vs H0+fallback 0.542/0.813 s (0.342x/0.335x), vs H0+F1b fallback 0.542/0.821 s (0.342x/0.338x); wrong 0%/0% vs H0 0%/0.1%, H0+fallback 0%/0.026%; speed-up vs full reconstruction 12.5x/9.01x
+    r=1 H1: helps False (cubic fallback False); mean time clean/realistic 1.44/2.05 s vs H0+fallback 0.732/0.722 s (0.509x/0.352x), vs H0+F1b fallback 0.809/0.792 s (0.562x/0.386x); wrong 0%/0% vs H0 1%/0.9%, H0+fallback 0.335%/0.234%; speed-up vs full reconstruction 13.8x/10.7x
+    r=1 H3: helps False (cubic fallback False); mean time clean/realistic 1.55/2 s vs H0+fallback 0.732/0.722 s (0.471x/0.362x), vs H0+F1b fallback 0.809/0.792 s (0.521x/0.396x); wrong 0%/0% vs H0 1%/0.9%, H0+fallback 0.335%/0.234%; speed-up vs full reconstruction 12.7x/11x
+    r=1.5 H1: helps True (cubic fallback True); mean time clean/realistic 1.33/1.57 s vs H0+fallback 4/4.05 s (3x/2.58x), vs H0+F1b fallback 5.4/5.27 s (4.04x/3.36x); wrong 0%/0% vs H0 18%/15.9%, H0+fallback 6.03%/4.13%; speed-up vs full reconstruction 14.8x/14x
+    r=1.5 H3: helps True (cubic fallback True); mean time clean/realistic 1.48/1.8 s vs H0+fallback 4/4.05 s (2.71x/2.25x), vs H0+F1b fallback 5.4/5.27 s (3.65x/2.93x); wrong 0%/0% vs H0 18%/15.9%, H0+fallback 6.03%/4.13%; speed-up vs full reconstruction 13.4x/12.2x
+    r=1.5 HG: helps True (cubic fallback True); mean time clean/realistic 1.64/2.13 s vs H0+fallback 4/4.05 s (2.43x/1.9x), vs H0+F1b fallback 5.4/5.27 s (3.28x/2.47x); wrong 0%/0% vs H0 18%/15.9%, H0+fallback 6.03%/4.13%; speed-up vs full reconstruction 12x/10.3x
+    r=2 H1: helps True (cubic fallback True); mean time clean/realistic 1.35/1.24 s vs H0+fallback 10.7/10.5 s (7.94x/8.49x), vs H0+F1b fallback 14.8/14.1 s (11x/11.4x); wrong 0%/1.1% vs H0 52.7%/46.8%, H0+fallback 17.7%/12.2%; speed-up vs full reconstruction 14.7x/17.7x
+    r=2 H3: helps True (cubic fallback True); mean time clean/realistic 1.45/1.99 s vs H0+fallback 10.7/10.5 s (7.4x/5.27x), vs H0+F1b fallback 14.8/14.1 s (10.2x/7.08x); wrong 0%/0.1% vs H0 52.7%/46.8%, H0+fallback 17.7%/12.2%; speed-up vs full reconstruction 13.7x/11x
+    r=2 HG: helps True (cubic fallback True); mean time clean/realistic 1.63/2.65 s vs H0+fallback 10.7/10.5 s (6.56x/3.96x), vs H0+F1b fallback 14.8/14.1 s (9.06x/5.32x); wrong 0%/0% vs H0 52.7%/46.8%, H0+fallback 17.7%/12.2%; speed-up vs full reconstruction 12.1x/8.26x
+    r=3 H1: helps True (cubic fallback False); mean time clean/realistic 1.34/0.935 s vs H0+fallback 19.3/21 s (14.4x/22.4x), vs H0+F1b fallback 26.7/28.2 s (19.9x/30.2x); wrong 0%/19.4% vs H0 96.1%/94.6%, H0+fallback 32.2%/24.6%; speed-up vs full reconstruction 14.8x/23.4x
+    r=3 H3: helps True (cubic fallback False); mean time clean/realistic 1.52/1.76 s vs H0+fallback 19.3/21 s (12.7x/11.9x), vs H0+F1b fallback 26.7/28.2 s (17.6x/16.1x); wrong 0%/4.1% vs H0 96.1%/94.6%, H0+fallback 32.2%/24.6%; speed-up vs full reconstruction 13x/12.5x
+    r=3 HG: helps True (cubic fallback True); mean time clean/realistic 1.7/2.24 s vs H0+fallback 19.3/21 s (11.3x/9.35x), vs H0+F1b fallback 26.7/28.2 s (15.7x/12.6x); wrong 0%/0% vs H0 96.1%/94.6%, H0+fallback 32.2%/24.6%; speed-up vs full reconstruction 11.7x/9.77x
+    r=5 H1: helps False (cubic fallback False); mean time clean/realistic 0.823/0.284 s vs H0+fallback 20/22.1 s (24.3x/77.8x), vs H0+F1b fallback 27.7/29.8 s (33.7x/105x); wrong 0%/95.2% vs H0 100%/100%, H0+fallback 33.5%/26%; speed-up vs full reconstruction 24x/77.1x
+    r=5 H3: helps False (cubic fallback False); mean time clean/realistic 1.23/1.09 s vs H0+fallback 20/22.1 s (16.2x/20.3x), vs H0+F1b fallback 27.7/29.8 s (22.5x/27.3x); wrong 0%/43.6% vs H0 100%/100%, H0+fallback 33.5%/26%; speed-up vs full reconstruction 16.1x/20.1x
+    r=5 HG: helps True (cubic fallback True); mean time clean/realistic 1.41/2.57 s vs H0+fallback 20/22.1 s (14.1x/8.6x), vs H0+F1b fallback 27.7/29.8 s (19.6x/11.6x); wrong 0%/2.31% vs H0 100%/100%, H0+fallback 33.5%/26%; speed-up vs full reconstruction 14x/8.51x
   per radius, mean production seconds per case [speed-up vs the full reconstruction]:
     clean (full reconstruction mean 19.8 s)
-      r=0.5: H0 0.447 s [44.2x], H1 1.47 s [13.5x], H3 1.5 s [13.2x], MCr 2 s [9.91x]
-      r=0.75: H0 0.55 s [35.9x], H1 1.46 s [13.6x], H3 1.6 s [12.3x], MCr 1.99 s [9.91x]
-      r=1: H0 0.525 s [37.7x], H1 1.42 s [13.9x], H3 1.54 s [12.8x], MCr 1.95 s [10.1x]
-      r=1.5: H0 0.434 s [45.5x], H1 1.32 s [15x], H3 1.46 s [13.5x], HG 1.63 s [12.1x], MCr 1.89 s [10.5x]
-      r=2: H0 0.271 s [72.9x], H1 1.35 s [14.7x], H3 1.44 s [13.7x], HG 1.63 s [12.1x], MCr 1.78 s [11.1x]
-      r=3: H0 0.252 s [78.5x], H1 1.35 s [14.6x], H3 1.53 s [12.9x], HG 1.71 s [11.6x], MCr 1.83 s [10.8x]
-      r=5: H0 0.194 s [102x], H1 0.829 s [23.8x], H3 1.24 s [16x], HG 1.42 s [13.9x], MCr 1.51 s [13.1x]
-    realistic (full reconstruction mean 21.8 s)
-      r=0.5: H0 0.733 s [29.8x], H1 1.7 s [12.8x], H3 1.56 s [14x], MCr 2.01 s [10.9x]
-      r=0.75: H0 0.798 s [27.4x], H1 1.95 s [11.2x], H3 2.44 s [8.94x], MCr 2.02 s [10.8x]
-      r=1: H0 0.519 s [42x], H1 2.02 s [10.8x], H3 1.97 s [11.1x], MCr 1.86 s [11.7x]
-      r=1.5: H0 0.562 s [38.8x], H1 1.55 s [14.1x], H3 1.77 s [12.3x], HG 2.1 s [10.4x], MCr 1.86 s [11.7x]
-      r=2: H0 0.266 s [82.1x], H1 1.24 s [17.6x], H3 1.99 s [11x], HG 2.64 s [8.25x], MCr 1.9 s [11.5x]
-      r=3: H0 0.244 s [89.5x], H1 0.945 s [23.1x], H3 1.77 s [12.3x], HG 2.26 s [9.64x], MCr 1.74 s [12.6x]
-      r=5: H0 0.22 s [99x], H1 0.284 s [76.8x], H3 1.1 s [19.9x], HG 2.58 s [8.44x], MCr 1.99 s [11x]
+      r=0.5: H0 0.44 s [45x], H1 1.45 s [13.6x], H3 1.49 s [13.3x], MCr 1.98 s [10x]
+      r=0.75: H0 0.542 s [36.5x], H1 1.44 s [13.8x], H3 1.59 s [12.5x], MCr 1.96 s [10.1x]
+      r=1: H0 0.534 s [37.1x], H1 1.44 s [13.8x], H3 1.55 s [12.7x], MCr 1.96 s [10.1x]
+      r=1.5: H0 0.441 s [44.9x], H1 1.33 s [14.8x], H3 1.48 s [13.4x], HG 1.64 s [12x], MCr 1.91 s [10.4x]
+      r=2: H0 0.271 s [72.9x], H1 1.35 s [14.7x], H3 1.45 s [13.7x], HG 1.63 s [12.1x], MCr 1.78 s [11.1x]
+      r=3: H0 0.25 s [79.2x], H1 1.34 s [14.8x], H3 1.52 s [13x], HG 1.7 s [11.7x], MCr 1.81 s [10.9x]
+      r=5: H0 0.194 s [102x], H1 0.823 s [24x], H3 1.23 s [16.1x], HG 1.41 s [14x], MCr 1.5 s [13.2x]
+    realistic (full reconstruction mean 21.9 s)
+      r=0.5: H0 0.723 s [30.3x], H1 1.69 s [13x], H3 1.55 s [14.1x], MCr 1.97 s [11.1x]
+      r=0.75: H0 0.792 s [27.7x], H1 1.95 s [11.3x], H3 2.43 s [9.01x], MCr 2 s [10.9x]
+      r=1: H0 0.525 s [41.7x], H1 2.05 s [10.7x], H3 2 s [11x], MCr 1.87 s [11.7x]
+      r=1.5: H0 0.567 s [38.6x], H1 1.57 s [14x], H3 1.8 s [12.2x], HG 2.13 s [10.3x], MCr 1.87 s [11.7x]
+      r=2: H0 0.266 s [82.3x], H1 1.24 s [17.7x], H3 1.99 s [11x], HG 2.65 s [8.26x], MCr 1.91 s [11.5x]
+      r=3: H0 0.241 s [90.7x], H1 0.935 s [23.4x], H3 1.76 s [12.5x], HG 2.24 s [9.77x], MCr 1.72 s [12.7x]
+      r=5: H0 0.219 s [100x], H1 0.284 s [77.1x], H3 1.09 s [20.1x], HG 2.57 s [8.51x], MCr 1.98 s [11x]
 
 -- contention: 10 workers vs 1 worker, same cases (median of per-run time ratios) --
   U0 (matched voxel x variant x pipeline, n=120): median ratio 1.25
@@ -253,11 +253,11 @@ Run-time profiling (Task 3). Caveats: per-voxel images (<= 3 distractor sources)
     proxy     n= 20 median 1.25 [1.22-1.29]
     proxy+F1  n= 20 median 1.25 [1.22-1.28]
   U1/U2 (matched cases, n=880): median ratio 1.21
-    H0        n=200 median 1.2 [1-1.3]
-    H1        n=200 median 1.21 [1.03-1.3]
-    H3        n=200 median 1.21 [1.04-1.29]
-    MCr       n=200 median 1.21 [1.02-1.31]
-    HG        n= 80 median 1.2 [0.995-1.32]
+    H0        n=200 median 1.2 [1.03-1.3]
+    H1        n=200 median 1.21 [1.04-1.31]
+    H3        n=200 median 1.21 [1.05-1.3]
+    MCr       n=200 median 1.22 [1.03-1.31]
+    HG        n= 80 median 1.2 [1-1.32]
   U0: 10-worker wall 288 s for 20 tasks
   U1/U2: 10-worker wall 185 s for 50 tasks
 
