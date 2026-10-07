@@ -2882,12 +2882,21 @@ edit.
 interval with `scripts/common/stats.wilson` (the 3-tuple `(rate, lo, hi)` is rebuilt at the wrapper, so every
 call site is unchanged). `scripts/nn_hybrid/summary.py` uses `stats.win_rate` (tie band `TIE_DEG = 0.002`);
 `scripts/coarse_proxy/summary.py` uses `stats.paired_discordant` and `stats.mcnemar_exact`.
-`prof_summary.py` already delegated to `prof_common` / the nn_hybrid summary, so it needed no change.
+`prof_summary.py` delegates its Wilson to `prof_common` / the nn_hybrid summary; its only change is the gzip fix below.
+
+Clamp fix accepted (main session decision): `nn_hybrid/summary.py` also uses `stats.wilson`, which clamps to
+[0, 1]. The only change in the regenerated summaries is `wrong_hi` 1.0000000000000002 to 1.0 (one ulp, k = n):
+4 values, one in each of `nn_hybrid/summary.json`, `summary_s1_replicate.json`, `summary_clean_s0_fallback.json`
+and `profiling/summary.json` (the last reuses the nn_hybrid code); the `.txt` files are unchanged. These four
+`.json` files were committed with the new value; all other summaries stay byte-identical.
+
+Deterministic gzip: `prof_summary.write_gz` now writes with no mtime and no file name in the header, and
+`compact()` iterates its key set in sorted order (it iterated a `set`, so the key order of `seeded_runs.json.gz` /
+`u0_runs.json.gz` varied with the hash seed). The decompressed JSON is equal to the committed one as data
+(key order differs once); the two `.gz` were re-committed once. Two further regenerations gave identical files
+and a clean `git status`.
 
 Kept local, on purpose:
-- `nn_hybrid/summary.py::wilson`: the shared version clamps to [0, 1]; the old one did not, and the committed
-  summaries hold `1.0000000000000002` for k = n. Using the shared one changed four `.json` files by one ulp
-  (`wrong_hi` 1.0000000000000002 to 1.0), so the local function stays (docstring says why).
 - `nn_hybrid/summary.py::reorder`: it fills voxels absent from the source with NaN/0 (pilot on a subset);
   `stats.reorder` raises on a missing id.
 - `prof_common.isolation_record`: not moved to `preflight.py`. The stored records (`isolation_*.json`, the
@@ -2895,7 +2904,7 @@ Kept local, on purpose:
   `cores`, `note`, which `prof_summary.isolation_lines` reads and `preflight.preflight()` does not produce, so the
   format would not stay readable.
 
-Regenerated and confirmed byte-identical to the committed files (`git status` clean afterwards):
+Regenerated and confirmed byte-identical to the committed files (except the four `wrong_hi` values above):
 - `benchmarks/nn_hybrid/summary.txt|json`, `summary_s1_replicate.txt|json` (`--model realistic_s1 --variant all
   --pipes H3`), `summary_clean_s0_fallback.txt|json` (`--model clean_s0 --variant clean --pipes H3`)
 - `benchmarks/coarse_proxy/summary.txt|json`
@@ -2903,8 +2912,7 @@ Regenerated and confirmed byte-identical to the committed files (`git status` cl
 - `benchmarks/findoptimal_robustness/`: `fixes_summary.txt|json` (`summarize_fixes.py`), `e2_endtoend.txt|json`
   (`e2_summary.py`), `e0_summary.txt|json` and `e0_runs.npz` (`analyze_e0.py`)
 
-Not regenerated: `nn_hybrid/pilot_summary.txt` (a pilot-subset run whose raws are not committed),
+Not regenerated: `nn_hybrid/pilot_summary.txt` (pilot subset; its command line was not recorded, not tried),
 `coarse_proxy/offline_metrics.*`, `e0_dependence.*`, `e2_ablation.*`, `e2_results*.json`, `f1_remaining.txt`,
 `s2_mechanism.txt` (do not use the replaced helpers, or need a model fit / training run; unit tests cover the
-helpers). Running `prof_summary.py` also rewrites `seeded_runs.json.gz` and `u0_runs.json.gz` with a new gzip
-timestamp (content unchanged); these were restored with `git checkout`.
+helpers). 

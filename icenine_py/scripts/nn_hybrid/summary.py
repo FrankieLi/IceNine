@@ -49,19 +49,6 @@ def fj(spec: str, xs: Any) -> str:
     return ", ".join(format(x, spec) for x in xs)
 
 
-def wilson(k: int, n: int, z: float = 1.96) -> Tuple[float, float]:
-    """Wilson interval. Kept local on purpose: scripts/common/stats.wilson clamps to [0, 1], this
-    does not, and the committed summaries hold 1.0000000000000002 for k = n (T2 requires them to
-    regenerate byte-identical; the two differ by one ulp, only at k = 0 or k = n)."""
-    if n == 0:
-        return float("nan"), float("nan")
-    p = k / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    h = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return float(c - h), float(c + h)
-
-
 def reorder(arr: np.ndarray, src: np.ndarray, dst: np.ndarray) -> np.ndarray:
     """arr's first axis is in voxel order `src`; return it in order `dst` (voxels absent from
     `src`, as in a pilot on a subset, are NaN / zero)."""
@@ -175,7 +162,7 @@ def stats(e: np.ndarray, e_unred: Optional[np.ndarray]) -> Dict[str, float]:
         return dict(n=0, median=np.nan, rms=np.nan, rms_unred=np.nan, f01=np.nan, wrong=np.nan,
                     wrong_lo=np.nan, wrong_hi=np.nan)  # fmt: skip
     k = int((e > 1.0).sum())
-    lo, hi = wilson(k, n)
+    lo, hi = shared_stats.wilson(k, n)
     ru = np.nan
     if e_unred is not None:
         eu = e_unred[np.isfinite(e_unred)]
