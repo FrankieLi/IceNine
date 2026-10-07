@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
 """
-Phase A2 (finisher/MC study): physical orientation resolution of a voxel from the experiment
-geometry, as a Cramer-Rao-style bound.
+Phase A2 (finisher/MC study): the centroid-quantisation scale of a voxel's orientation, from the
+experiment geometry. This is a scale, NOT a lower bound (see the end).
 
 Model. A voxel with orientation R has M recorded Bragg reflections. Reflection m is read as a
 point (frame omega_m, detector column, detector row) = (w_m, u_m, v_m); each coordinate is
-quantised, so it is a measurement with uniform error of one bin: variance (bin)^2 / 12, with bins
+quantised to one bin, which we treat as an error with variance (bin)^2 / 12, with bins
   omega: the frame width dw (rad), pixel: 1 px (the detector pixel, 1.48 um), both axes.
-(The row/column bins are 1 px on both detectors; the distances L_d enter through the Jacobian.)
 A small rotation delta (rotation vector, rad, applied on the left of R) moves reflection m by
   d w_m = g_m . delta,  d (u_m, v_m) = G_m delta,
 g_m (3,) and G_m (2,3) from central differences of the batched ray tracer (BatchedObserver) at
-+-h. Treating the 3M quantised coordinates as independent unbiased measurements, the Fisher
-information on delta is
++-h. Treating the 3M coordinates as independent Gaussian-equivalent measurements with those
+variances, the information matrix on delta is
   J = sum_m [ 12/dw^2 g_m g_m^T + 12 G_m^T G_m ]          (rad^-2)
-and any unbiased estimator has covariance >= J^-1. Reported: per-axis sigma_i = sqrt((J^-1)_ii)
-and the 3-D RMS angle  sqrt(tr J^-1)  (deg), which is directly comparable with a misorientation
-error (angle of the rotation R_hat R^T). The pixel part (G) and frame part (g) are also reported
-alone. This is a bound under independent-quantisation noise: a spot is a triangle of ~10-100 lit
-pixels and its edges carry sub-pixel information (so the pixel term is conservative), while
-overlaps, noise and the binary cost (which uses only pixel overlap, not edge positions) are not
-included. Per-peak drivers: |sin eta| (frame term: omega moves 1/|sin eta| faster per rad near
-the axis), sin theta and the detector distance (pixel term: the spot moves L * d(angle)).
+and the covariance J^-1. Reported: per-axis sigma_i = sqrt((J^-1)_ii) and the 3-D RMS angle
+sqrt(tr J^-1) (deg), comparable with a misorientation error (angle of R_hat R^T); the pixel part
+(G) and frame part (g) alone too. Per-peak drivers: |sin eta| (frame term), sin theta and the
+detector distance (pixel term: the spot moves L * d(angle)).
+
+Why it is a scale and not a bound. Uniform quantisation noise violates the regularity conditions of
+the Cramer-Rao bound (the likelihood is not differentiable in the parameter), so an estimator can
+beat sqrt(tr J^-1): the exact pixel sets carry sub-pixel edge information, and the finisher's
+continuation reaches 0.006 deg, below this scale. Also, even an efficient estimator with
+3-D Gaussian errors is below its RMS scale in only about 61% of cases (chi-square, 3 dof),
+so individual cases below or above the scale are expected. The equality with
+ExactBayes.information_matrix
+(asserted) only checks the same algorithm computed two ways; it is not an independent validation.
 
 Usage (from icenine_py/):
   uv run python scripts/cost_sensitivity/resolution.py

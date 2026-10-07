@@ -3345,11 +3345,11 @@ Mostly analysis of existing caches; ~1 h compute.
 
 ### Phase A results (2026-10-07, `feature/finisher-mc-study-phase-a`)
 
-**Answer: it is not the cost function's sensitivity. The optimizer stops early on a resolvable landscape.** Details below; all numbers from `benchmarks/cost_sensitivity/summary.json` and `tables.md`.
+**Headline.** Phase A finds no evidence that cost-function sensitivity limits the finisher at its 0.023° error scale: the landscape still has clear downhill directions there, and a longer local search reaches 0.0060° (at ~19× the default evaluations; step cap hit in 198/200). The optimizer stops early on a landscape resolvable at that scale. Details below; all numbers from `benchmarks/cost_sensitivity/summary.json` and `tables.md`.
 
 **What ran.**
-- **Cases:** the 300 T5 cases (200 H3, 100 H0), each in both variants of the same voxel/radius/direction: clean and realistic.
-- **Evaluations:** per case and variant, 400 random directions × 10 radii (0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.03, 0.05, 0.075, 0.1°), plus the finisher's initial MC step (0.132°). That is 4,400 evaluations per case and variant, about 2.6 M in total.
+- **Cases:** the 300 T5 cases (200 H3 over 26 voxels, 100 H0 over 16 voxels), each in both variants of the same voxel/radius/direction: clean and realistic. Cases within a voxel are not independent; see the voxel-clustered test under A3.
+- **Evaluations:** per case and variant, 400 random directions × 10 radii (0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.03, 0.05, 0.075, 0.1°), plus the finisher's initial MC step (0.132°). That is 4,400 evaluations per case and variant (4,000 within 0.1°), about 2.6 M in total.
 - **Wall time:** about 3 minutes for the landscape run on 10 workers (contended, no timing claim).
 - **Cross-check:** the realistic cost at the truth and at the stored T5 result is bit-identical to T5's stored values.
 - **Code:** `scripts/cost_sensitivity/` (`landscape.py`, `resolution.py`, `summary.py`); tests in `tests/test_cost_sensitivity.py`.
@@ -3365,110 +3365,124 @@ Mostly analysis of existing caches; ~1 h compute.
 | H0 | realistic | 0.000 / 0.48 | 0.002 / 0.25 | 0.004 / 0.08 | 0.013 / 0.01 | 0.026 / 0.00 | 0.055 / 0.00 | 0.085 / 0.00 | 0.146 / 0.00 | 0.224 / 0.00 | 0.293 / 0.00 |
 <!-- /table:a1_by_radius -->
 
-- **Steep and monotone.** The cost rises quickly with the angle from the truth. Within a case, the Spearman correlation of cost with angle over the sampled points has median 0.97 (H3, both variants) and 0.94 on the points ≤ 0.03°; it is negative in 0 of 200 H3 cases.
-- **Flat only below about 0.001°.** The fraction of directions whose cost does not exceed the truth's falls to 0.21 (clean) / 0.24 (realistic) at 0.001°, and to 0.05 / 0.08 at 0.002°. From 0.005° it is 0.00 (clean) and 0.01 (realistic). Plateau radius r50 (the smallest sampled radius where fewer than half the directions are inside the plateau, ε = 0): median 0.001° in all four sets.
-- **The 0.01° scale is not flat.** A 0.01° rotation changes the cost by a median 0.037 (clean) and 0.025 (realistic), the size of the T5 cost gap (median 0.028 in H3). The cost gap therefore corresponds to a few hundredths of a degree of orientation.
-- **The finisher's own step.** The MC step the finisher had reached when it stopped has a median trial angle of 0.00025° in the 122/200 H3 runs that accepted at least one move (the other runs stayed at the initial 0.132° step). At the initial step the cost is never at or below the truth's (the plateau with ε = the median change at that step is the whole 0.1° ball: not informative).
-- **Plateau shape.** With ε = 0 the plateau points sit at the two smallest radii, so the anisotropy (square root of the largest-to-smallest second-moment eigenvalue) is a coarse estimate: median 2.62 (H3 realistic) and 2.72 (H3 clean). It is limited by the 0.0005° grid, so it is not a precise shape measure.
+- **Steep, and almost monotone along rays.** Within a case, the Spearman correlation of cost with angle over the sampled points has median 0.97 (H3, both variants) and 0.94 on the points ≤ 0.03°; it is negative in 0 of 200 H3 cases. Per ray (cost non-decreasing from the truth through all radii):
+
+<!-- table:a1_monotone -->
+| set | variant | rays | rays5 | cases | cases5 |
+|---|---|---|---|---|---|
+| H3 | clean | 95.5% | 100.0% | 112/200 (56%, 49-63) | 194/200 (97%, 94-99) |
+| H3 | realistic | 84.8% | 99.1% | 19/200 (10%, 6-14) | 99/200 (50%, 43-56) |
+| H0 | clean | 95.7% | 100.0% | 61/100 (61%, 51-70) | 99/100 (99%, 95-100) |
+| H0 | realistic | 83.4% | 99.6% | 14/100 (14%, 9-22) | 60/100 (60%, 50-69) |
+<!-- /table:a1_monotone -->
+
+  `rays`: fraction of rays monotone from the truth outward; `rays5`: from 0.005° outward; `cases`/`cases5`: cases monotone on every ray. At small radii the cost is not monotone (realistic H3: 84.8% of rays, and only 19/200 cases are monotone on all rays); from 0.005° outward, 99.1% or more of the rays are monotone. "Monotone" is therefore a statement about most rays at 0.005° and above, not about the whole landscape.
+- **Flat only below about 0.0005–0.001°.** The fraction of directions whose cost does not exceed the truth's falls to 0.21 (clean) / 0.24 (realistic) at 0.001°, and to 0.05 / 0.08 at 0.002°. From 0.005° it is 0.00 (clean) and 0.01 (realistic). Plateau radius r50 (the smallest sampled radius where fewer than half the directions are inside the plateau, ε = 0): median 0.0005° (q75 0.001°) in all four sets.
+- **The 0.01° scale is not flat.** A 0.01° rotation changes the cost by a median 0.037 (clean) and 0.025 (realistic). The realistic H3 cost gap (median 0.028) is about the cost change of a 0.01° rotation of the truth (0.025).
+- **The finisher's own step.** The MC step the finisher had reached when it stopped has a median trial angle of 0.00025° in the 122/200 H3 runs that accepted at least one move (the other runs stayed at the initial 0.132° step). For 65/122 of those runs the step is below the smallest sampled radius (0.0005°), so ε at the final step is clamped to the 0.0005° value. At the initial step the cost is never at or below the truth's (ε = the median change at that step is larger than the whole 0.1° ball: not informative).
+- **Plateau shape.** With ε = 0 the plateau points sit at the two smallest radii, so the anisotropy (square root of the largest-to-smallest second-moment eigenvalue) is a coarse estimate: median 2.62 (H3 realistic) and 2.72 (H3 clean). It is limited by the 0.0005° grid.
 
 <!-- table:a1_plateau -->
 | set | variant | eps | n | r50 | r_any | ext | no_member | aniso |
 |---|---|---|---|---|---|---|---|---|
-| H3 | clean | 0 | 200 | 0.001/0.001/0.001 (0 ≥ 0.1) | 0.002 | 0.000 | 0 | 2.72 (n=200) |
-| H3 | clean | final step | 122 | 0.001/0.001/0.002 (0 ≥ 0.1) | 0.005 | 0.001 | 0 | 2.18 (n=122) |
-| H3 | clean | initial step | 200 | 0.150/0.150/0.150 (200 ≥ 0.1) | 0.100 | 0.100 | 0 | 1.08 (n=200) |
-| H3 | realistic | 0 | 200 | 0.001/0.001/0.001 (0 ≥ 0.1) | 0.002 | 0.000 | 0 | 2.62 (n=199) |
-| H3 | realistic | final step | 122 | 0.001/0.001/0.002 (0 ≥ 0.1) | 0.005 | 0.001 | 0 | 2.22 (n=122) |
-| H3 | realistic | initial step | 200 | 0.150/0.150/0.150 (200 ≥ 0.1) | 0.100 | 0.100 | 0 | 1.09 (n=200) |
-| H0 | clean | 0 | 100 | 0.001/0.001/0.001 (0 ≥ 0.1) | 0.002 | 0.000 | 0 | 2.44 (n=100) |
-| H0 | clean | final step | 97 | 0.001/0.005/0.010 (0 ≥ 0.1) | 0.005 | 0.002 | 0 | 1.93 (n=97) |
-| H0 | clean | initial step | 100 | 0.150/0.150/0.150 (100 ≥ 0.1) | 0.100 | 0.100 | 0 | 1.08 (n=100) |
-| H0 | realistic | 0 | 100 | 0.001/0.001/0.001 (0 ≥ 0.1) | 0.002 | 0.000 | 0 | 2.43 (n=100) |
-| H0 | realistic | final step | 97 | 0.001/0.002/0.010 (0 ≥ 0.1) | 0.010 | 0.001 | 0 | 1.96 (n=97) |
-| H0 | realistic | initial step | 100 | 0.150/0.150/0.150 (100 ≥ 0.1) | 0.100 | 0.100 | 0 | 1.09 (n=100) |
+| H3 | clean | 0 | 200 | 0.0005/0.0005/0.0010 (0 ≥ 0.1) | 0.0020 | 0.0000 | 0 | 2.72 (n=200) |
+| H3 | clean | final step | 122 | 0.0010/0.0010/0.0020 (0 ≥ 0.1) | 0.0050 | 0.0005 | 0 | 2.18 (n=122) |
+| H3 | clean | initial step | 200 | 0.1500/0.1500/0.1500 (200 ≥ 0.1) | 0.1000 | 0.1000 | 0 | 1.08 (n=200) |
+| H3 | realistic | 0 | 200 | 0.0005/0.0005/0.0010 (0 ≥ 0.1) | 0.0020 | 0.0000 | 0 | 2.62 (n=199) |
+| H3 | realistic | final step | 122 | 0.0010/0.0010/0.0020 (0 ≥ 0.1) | 0.0050 | 0.0005 | 0 | 2.22 (n=122) |
+| H3 | realistic | initial step | 200 | 0.1500/0.1500/0.1500 (200 ≥ 0.1) | 0.1000 | 0.1000 | 0 | 1.09 (n=200) |
+| H0 | clean | 0 | 100 | 0.0005/0.0005/0.0010 (0 ≥ 0.1) | 0.0020 | 0.0000 | 0 | 2.44 (n=100) |
+| H0 | clean | final step | 97 | 0.0010/0.0050/0.0100 (0 ≥ 0.1) | 0.0050 | 0.0020 | 0 | 1.93 (n=97) |
+| H0 | clean | initial step | 100 | 0.1500/0.1500/0.1500 (100 ≥ 0.1) | 0.1000 | 0.1000 | 0 | 1.08 (n=100) |
+| H0 | realistic | 0 | 100 | 0.0005/0.0005/0.0010 (0 ≥ 0.1) | 0.0020 | 0.0000 | 0 | 2.43 (n=100) |
+| H0 | realistic | final step | 97 | 0.0010/0.0020/0.0100 (0 ≥ 0.1) | 0.0100 | 0.0010 | 0 | 1.96 (n=97) |
+| H0 | realistic | initial step | 100 | 0.1500/0.1500/0.1500 (100 ≥ 0.1) | 0.1000 | 0.1000 | 0 | 1.09 (n=100) |
 <!-- /table:a1_plateau -->
 
-**Where the sampled minimum is.** Over the 4,000 samples per case (radii ≤ 0.1°):
+**Where the sampled minimum is.** Over the 4,000 samples per case (radii ≤ 0.1°). The costs are quantised, so many samples tie at the minimum (median 96 in realistic H3, 208 in clean H3); all statistics use the whole tied set, not the first or the ten lowest samples:
 
 <!-- table:a1_minimum -->
-| set | variant | eps_final | eps_init | below | drop | ang | cen |
-|---|---|---|---|---|---|---|---|
-| H3 | clean | 0.0015 | 0.524 | 24/200 (12%, 8-17) | 0.0000 | 0.001/0.001/0.001 | 0.0003/0.0004/0.0005 |
-| H3 | realistic | 0.0008 | 0.369 | 108/200 (54%, 47-61) | 0.0001 | 0.001/0.001/0.002 | 0.0003/0.0005/0.0010 |
-| H0 | clean | 0.0047 | 0.522 | 17/100 (17%, 11-26) | 0.0000 | 0.001/0.001/0.001 | 0.0003/0.0004/0.0005 |
-| H0 | realistic | 0.0035 | 0.369 | 55/100 (55%, 45-64) | 0.0002 | 0.001/0.001/0.001 | 0.0003/0.0005/0.0009 |
+| set | variant | eps_final | eps_init | clamped | below | drop | tied | rad | cen |
+|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | 0.0015 | 0.524 | 65/122 (53%, 44-62) | 24/200 (12%, 8-17) | 0.00183 (n=24) | 208 | 0.0005/0.0005/0.0005 | 0.0003/0.0004/0.0004 |
+| H3 | realistic | 0.0008 | 0.369 | 65/122 (53%, 44-62) | 108/200 (54%, 47-61) | 0.00088 (n=108) | 96 | 0.0005/0.0005/0.0020 | 0.0003/0.0004/0.0018 |
+| H0 | clean | 0.0047 | 0.522 | 26/97 (27%, 19-36) | 17/100 (17%, 11-26) | 0.00162 (n=17) | 290 | 0.0005/0.0005/0.0005 | 0.0002/0.0003/0.0004 |
+| H0 | realistic | 0.0035 | 0.369 | 26/97 (27%, 19-36) | 55/100 (55%, 45-64) | 0.00074 (n=55) | 112 | 0.0005/0.0005/0.0010 | 0.0003/0.0004/0.0010 |
 <!-- /table:a1_minimum -->
 
-- **Clean:** the truth is the sampled minimum in 176/200 H3 cases; 24/200 have a lower sample, by a median of 0.0000 in cost.
-- **Realistic:** 108/200 H3 cases (54%) have a sample with lower cost than the truth, by a median 0.0001. The centroid of the 10 lowest samples is a median 0.0005° from the truth (q25–q75: 0.0003–0.0010°). This is at the grid's smallest radius, so it is an upper bound on the offset.
-- **Clean vs realistic.** Realistic data move the minimum a little: the centroid offset is larger than clean's in 126/200 cases and smaller in 74/200 (sign test p = 0.00029), median difference 0.0001°. The effect is real but about two orders of magnitude smaller than the finisher's 0.023° error.
+Columns: `clamped`: runs whose final step is below the grid; `below`: cases with a sample below the truth's cost; `drop`: median cost drop among those cases only; `tied`: median number of samples at the minimum cost; `rad`: q25/q50/q75 of the smallest radius among the tied samples; `cen`: q25/q50/q75 of the distance from the truth to the centroid of the tied samples.
 
-**A2, physical resolution.**
+- **Clean:** the truth is the sampled minimum in 176/200 H3 cases; the 24 cases with a lower sample have a median drop of 0.00183.
+- **Realistic:** 108/200 H3 cases (54%) have a sample with lower cost than the truth, by a median 0.00088 among those cases. Compare T5: "the truth is not the local minimum within 0.05° in 59/200 H3 cases". The two use different samplers (T5: tiny rotations about 12 directions at 7 angles from 0.001 to 0.2°; Phase A: 4,000 random points on 10 radii), so the counts are not expected to agree.
+- **Offset of the minimum.** Not resolved below the sampling grid: the smallest radius among the tied minimum samples has median 0.0005° (the smallest radius) and q75 0.0020° (realistic H3; clean q75 0.0005°). The centroid of the tied set is a median 0.0004° from the truth (realistic q75 0.0018°; clean 0.0004°).
+- **Clean vs realistic.** The tie-safe centroid offset is larger in realistic than in clean in 143/200 H3 cases (smaller in 57), but the realistic tied sets are smaller (median 96 vs 208 samples), which by itself makes a centroid lie farther from the truth. I do not read this as an effect of realistic data on the minimum.
+
+**A2, the centroid-quantisation scale.**
 - **Geometry** (from the observer): pixel 1.48 µm, ω frame width 1.0°, two detector planes at 3.36 and 5.38 mm (the planes' offsets from the origin; the pixel size has the same length unit), median |sin η| 0.90, median 2θ 10.6°, median 119 reflections per voxel (30 voxels: those of the T5 cases).
-- **Formula** (docstring of `resolution.py`). Each reflection is read as (frame, column, row) with uniform quantisation error, i.e. variance bin²/12 with bin = the frame width for ω and 1 px for each detector coordinate. With g_m = ∂ω_m/∂δ (3,) and G_m = ∂(u,v)_m/∂δ (2×3) from central differences of the batched ray tracer at ±0.005°, the Fisher information on the rotation vector δ is J = Σ_m [12/Δω² g_m g_mᵀ + 12 G_mᵀ G_m]. The bound is Cov ≥ J⁻¹; the scalar reported is sqrt(tr J⁻¹), the 3-D RMS angle, comparable with a misorientation. It equals the library's `ExactBayes.information_matrix` (asserted for every voxel).
-- **Assumption:** independent quantisation errors. A spot is a triangle of lit pixels whose edges carry sub-pixel information, and the cost uses exact pixel sets, so this is a conservative (pessimistic) bound for the cost, not a hard limit.
+- **Formula** (docstring of `resolution.py`). Each reflection is read as (frame, column, row), each coordinate quantised to one bin, treated as an error of variance bin²/12 (bin = the frame width for ω and 1 px for each detector coordinate). With g_m = ∂ω_m/∂δ (3,) and G_m = ∂(u,v)_m/∂δ (2×3) from central differences of the batched ray tracer at ±0.005°, the Gaussian-equivalent information on the rotation vector δ is J = Σ_m [12/Δω² g_m g_mᵀ + 12 G_mᵀ G_m]. The reported scale is sqrt(tr J⁻¹), the 3-D RMS angle, comparable with a misorientation.
+- **It is a scale, not a bound.** Quantisation noise violates the regularity conditions of the Cramér–Rao bound, so an estimator can go below it: a continuation reaches 0.0060° (below the median scale of 0.0125°). The exact pixel sets carry sub-pixel edge information that this model ignores. Even an efficient estimator with 3-D Gaussian errors is below its RMS in only about 61% of cases, so cases below or above the scale are expected. The check against the library's `ExactBayes.information_matrix` (asserted for every voxel) shows the same algorithm computed two ways, not an independent validation.
 
-<!-- table:a2_bound -->
+<!-- table:a2_quant_scale -->
 | peaks | n_peaks | both | frame | pixel | aniso |
 |---|---|---|---|---|---|
 | |sin eta| >= 0.3 (net set) | 119 | 0.0091/0.0125/0.0142 | 0.0634 | 0.0136 | 3.35 |
 | all recorded peaks | 124 | 0.0090/0.0122/0.0141 | 0.0501 | 0.0133 | 3.44 |
-<!-- /table:a2_bound -->
+<!-- /table:a2_quant_scale -->
 
-Columns: q25/q50/q75 of the 3-D RMS bound (deg) over voxels; median frame-only and pixel-only bounds; median ratio of the largest to the smallest principal sigma.
+Columns: q25/q50/q75 of the 3-D RMS scale (deg) over voxels; median frame-only and pixel-only values; median ratio of the largest to the smallest principal sigma.
 
-- **Where the bound sits.** The bound is 0.0125° (median, q25–q75 0.0091–0.0142°) with the net's reflections, and 0.0122° with all recorded reflections. The pixel term dominates (0.0136° alone); the frame term alone gives 0.0634°. This is close to Gauss-Newton's 0.0127° clean floor, as expected for a method that uses the spot centroids.
-- **Final error against the bound** (T5 result, same voxel):
+- **Where the scale sits.** It is 0.0125° (median, q25–q75 0.0091–0.0142°) with the net's reflections, and 0.0122° with all recorded reflections. The pixel term dominates (0.0136° alone); the frame term alone gives 0.0634°. Gauss-Newton's clean floor (0.0127°) is the same size, as expected for a method that uses spot centroids.
+- **Final error against the scale** (T5 result, same voxel):
 
-<!-- table:a2_error_vs_bound -->
+<!-- table:a2_error_vs_scale -->
 | set | ratio | below |
 |---|---|---|
 | H3 | 1.09/1.86/3.47 | 45/200 (22%, 17-29) |
 | H0 | 2.43/7.56/39.15 | 15/100 (15%, 9-23) |
-<!-- /table:a2_error_vs_bound -->
+<!-- /table:a2_error_vs_scale -->
 
-  The H3 finisher result is a median 1.86× the bound (q25–q75: 1.09–3.47); 45/200 are below it. H0 is 7.56× (its errors include wrong-basin cases at 2–3°).
-- **Plateau against the bound.** The ε = 0 plateau radius (about 0.001°) is an order of magnitude smaller than the information bound (0.0125°). The cost resolves the orientation more finely than the independent-quantisation bound, because it compares exact pixel sets.
+  The H3 finisher result is a median 1.86× the scale (q25–q75: 1.09–3.47); 45/200 are below it. H0 is 7.56× (its errors include wrong-basin cases at 2–3°).
+- **Plateau against the scale.** The ε = 0 plateau radius (0.0005–0.001°) is more than an order of magnitude smaller than the scale (0.0125°): the cost reacts to rotations much smaller than the centroid-quantisation scale because it compares exact pixel sets.
 
 **A3, does the gap matter?**
 
 <!-- table:a3_correlation -->
-| set | variant | rho | rho_fine | neg | lower | far |
-|---|---|---|---|---|---|---|
-| H3 | clean | 0.97/0.97/0.98 | 0.94 | 0/200 | 182/188 | 5386/329990 |
-| H3 | realistic | 0.96/0.97/0.97 | 0.94 | 0/200 | 183/188 | 4867/315648 |
-| H0 | clean | 0.97/0.97/0.98 | 0.95 | 0/100 | 53/53 | 1216/100986 |
-| H0 | realistic | 0.96/0.97/0.97 | 0.94 | 0/100 | 53/53 | 1280/97575 |
+| set | variant | rho | rho_fine | neg | lower | far | cases_far | case_frac |
+|---|---|---|---|---|---|---|---|---|
+| H3 | clean | 0.97/0.97/0.98 | 0.94 | 0/200 | 182/188 | 5386/329990 | 112/182 | 0.002 |
+| H3 | realistic | 0.96/0.97/0.97 | 0.94 | 0/200 | 183/188 | 4867/315648 | 113/183 | 0.002 |
+| H0 | clean | 0.97/0.97/0.98 | 0.95 | 0/100 | 53/53 | 1216/100986 | 32/53 | 0.002 |
+| H0 | realistic | 0.96/0.97/0.97 | 0.94 | 0/100 | 53/53 | 1280/97575 | 29/53 | 0.001 |
 <!-- /table:a3_correlation -->
 
-Columns: Spearman cost vs angle (q25/q50/q75 over cases; median on points ≤ 0.03°), cases with negative correlation, usable cases (finisher error < 0.1°) that have sampled points with lower cost than the finisher's result, and the points among those that are farther from the truth than the result is.
+Columns: Spearman cost vs angle (q25/q50/q75 over cases; median on points ≤ 0.03°), cases with negative correlation, usable cases (finisher error < 0.1°) that have sampled points with lower cost than the finisher's result, pooled points among those that are farther from the truth than the result is, cases with at least one such farther point, and the median per-case fraction of farther points.
 
-- **Lower cost is almost never farther.** Among the sampled points with a cost below the finisher's result, 4,867 of 315,648 (1.5%) in H3 realistic lie farther from the truth than the result does. The sampled lower-cost points are overwhelmingly closer.
-- **Closing the gap reduces the error** (stored T5 data, verified):
+- **Lower cost is rarely farther, but it happens.** Among the sampled points with a cost below the finisher's result, 4,867 of 315,648 (1.5%) in H3 realistic lie farther from the truth than the result does. 113/183 cases have at least one lower-cost point farther than the result; the per-case median fraction is 0.002. So lower cost is not a guarantee of being closer, but almost all lower-cost points are.
+- **The error is lower after the gap is closed** (stored T5 data, verified):
 
 <!-- table:a3_gap_closure -->
-| set | cont | before | after | closed | reduced | p | rho |
-|---|---|---|---|---|---|---|---|
-| H3 | vm_smallbox | 0.0229 | 0.0060 | 0.93 | 166/200 (83%, 77-88) | 1.1e-28 | 0.24 |
-| H3 | mc_smallstep | 0.0229 | 0.0165 | 0.61 | 160/200 (80%, 74-85) | 2e-21 | 0.02 |
-| H0 | vm_smallbox | 0.0888 | 0.0047 | 0.96 | 84/100 (84%, 76-90) | 2.6e-12 | 0.55 |
-| H0 | mc_smallstep | 0.0888 | 0.0793 | 0.12 | 78/100 (78%, 69-85) | 1.2e-12 | 0.28 |
+| set | cont | before | after | closed | reduced | p | rho | voxels |
+|---|---|---|---|---|---|---|---|---|
+| H3 | vm_smallbox | 0.0229 | 0.0060 | 0.93 | 166/200 (83%, 77-88) | 1.1e-28 | 0.24 | 26/26 (p=3e-08) |
+| H3 | mc_smallstep | 0.0229 | 0.0165 | 0.61 | 160/200 (80%, 74-85) | 2e-21 | 0.02 | 25/26 (p=8e-07) |
+| H0 | vm_smallbox | 0.0888 | 0.0047 | 0.96 | 84/100 (84%, 76-90) | 2.6e-12 | 0.55 | 14/16 (p=0.0042) |
+| H0 | mc_smallstep | 0.0888 | 0.0793 | 0.12 | 78/100 (78%, 69-85) | 1.2e-12 | 0.28 | 14/16 (p=0.0042) |
 <!-- /table:a3_gap_closure -->
 
-  In H3 a quarter-box VarianceMinimizing pass (vm_smallbox) takes the median error from 0.0229° to 0.0060°, closing a median 93% of the gap. The error falls in 166/200 cases (83%, 77–88), rises in 20/200; paired Wilcoxon p = 1.1e-28. It ends below the A2 bound's median (0.0125°). The case-by-case Spearman correlation between the fraction of the gap closed and the error reduction is only 0.24, because almost every run closes most of the gap.
+  In H3 a quarter-box VarianceMinimizing pass (vm_smallbox) takes the median error from 0.0229° to 0.0060°, closing a median 93% of the gap, at ~19× the default evaluations (the step cap was hit in 198/200 runs, so this is a capped, not a converged, run). The error falls in 166/200 cases (83%, 77–88), rises in 20/200; paired Wilcoxon p = 1.1e-28. Clustered by voxel (`voxels`: voxels whose median error drop is positive; sign test): 26/26 voxels (H3), 14/16 (H0). In aggregate the error falls where the gap closes, but case by case the fraction of the gap closed explains little of the error drop (Spearman 0.24 for vm_smallbox, 0.02 for mc_smallstep): this is an aggregate association, not a per-case causal link.
 
-**Is it sensitivity?** No, on the evidence of this phase:
-1. *The landscape is resolvable.* Cost rises monotonically with the angle (Spearman 0.97), by about 0.025 (realistic) at 0.01°, and is flat only below about 0.001°.
-2. *The realistic minimum is offset by about 0.0005° or less* (grid floor), a small fraction of the 0.023° error, and lower-cost points are almost never farther from the truth than the finisher's result (1.5% of them).
-3. *The finisher's error is above the information scale* (1.86× the independent-quantisation bound in H3), and a pass that closes the gap lowers the error to 0.0060° in 83% of cases.
+**Is it sensitivity?** Phase A finds no evidence that cost-function sensitivity limits the finisher at its 0.023° error scale:
+1. *Clear downhill directions at that scale.* Cost rises with angle (Spearman 0.97; 99.1% or more of rays monotone from 0.005° outward), by about 0.025 (realistic) for a 0.01° rotation, and is flat only below about 0.0005–0.001°.
+2. *The realistic minimum is not resolved below the sampling grid* (median smallest tied radius 0.0005°, q75 0.0020°, realistic H3), against the finisher's 0.023° median error. Almost all lower-cost points are closer to the truth than the finisher's result (98.5% pooled), though 113/183 cases have at least one that is farther.
+3. *A longer local search gets lower.* VarianceMinimizing with a quarter box lowers the error to 0.0060° in 83% of cases, at ~19× the default evaluations.
 
-So "the optimizer stops early on a resolvable landscape". Not tested here: why it stops (Phase B1/B3), nor the dependence on the cost function's roughness at 0.001–0.05° that T5 saw (the result is not a local minimum there in 175/200 H3 cases). The MC step collapse (median final trial angle 0.00025° in the runs that accept) is *consistent with* the optimizer running out of improving moves while the step shrinks; the step–acceptance curve is the Phase B1 measurement.
+So the optimizer stops early on a landscape resolvable at that scale. Not tested here: why it stops (Phase B1/B3), and the roughness at 0.001–0.05° that T5 saw (the result is not a local minimum there in 175/200 H3 cases). The MC step collapse (median final trial angle 0.00025° in the runs that accept) is *consistent with* the optimizer running out of improving moves while the step shrinks; the step–acceptance curve is the Phase B1 measurement.
 
 **Caveats.**
-- Per-voxel images with at most 3 distractor sources (as in T5), not full-sample renders; Cu FCC only.
-- The sampled minimum has a 0.0005° floor (the smallest radius), and directions are random, not a descent: the offset is an upper bound.
+- Per-voxel images with at most 3 distractor sources (as in T5), not full-sample renders; Cu FCC only. 200 H3 cases come from 26 voxels and 100 H0 cases from 16, so case-level intervals are optimistic.
+- The sampled minimum is not resolved below the 0.0005° grid, and directions are random, not a descent.
 - The plateau anisotropy depends on the grid; the A2 principal-sigma ratio (3.35) is the better shape estimate.
-- A2 is a bound under an independence assumption; it is neither the cost function's resolution nor an estimator's.
+- A2 is a scale under a Gaussian-equivalent independence assumption; it is neither the cost function's resolution nor a lower bound.
 
 ### Phase B: why MC runs out of restarts, and better local search
 - **B1, test the mechanism.**

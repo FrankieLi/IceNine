@@ -28,7 +28,6 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 HERE = Path(__file__).resolve().parent
-ICENINE_PY = HERE.parents[1]
 sys.path.insert(0, str(HERE.parent / "finisher_diagnosis"))
 sys.path.insert(0, str(HERE.parent / "nn_hybrid"))
 sys.path.insert(0, str(HERE.parent / "common"))
@@ -95,11 +94,6 @@ def task(item: Tuple[Any, ...]) -> Tuple[int, int, float]:
     return vidx, ri, time.time() - t0
 
 
-def build_items(cache: Path, only_first: int) -> Tuple[List[Tuple[Any, ...]], Dict[str, Any]]:
-    items, wargs = D.build_items(cache, only_first=only_first)
-    return items, wargs
-
-
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["pilot", "run"])
@@ -109,7 +103,7 @@ def main() -> None:
 
     cache = CACHE_DIR / args.cmd
     cache.mkdir(parents=True, exist_ok=True)
-    items, wargs = build_items(cache, 2 if args.cmd == "pilot" else 0)
+    items, wargs = D.build_items(cache, only_first=2 if args.cmd == "pilot" else 0)
     todo = [it for it in items if not Path(it[5]).exists()]
     print(
         f"{len(items)} tasks ({len(items) - len(todo)} cached), {args.workers} workers", flush=True

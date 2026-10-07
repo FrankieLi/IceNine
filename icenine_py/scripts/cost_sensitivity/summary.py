@@ -33,7 +33,10 @@ MIN_PTS = 20  # plateau points needed for a shape estimate
 R_MAX_DEG = 0.1  # plateau region: radii on the grid up to this
 GN_FLOOR_DEG = 0.0127  # centroid Gauss-Newton, clean (October perturbation sweep)
 LOWEST_K = 10
-TRIAL_PER_STEP = 0.976  # median MC trial rotation angle / step (QuaternionGrid map, measured)
+# Median MC trial rotation angle / step, measured by drawing 4000 trials with
+# QuaternionGrid.get_near_identity_point at radius tan(step)/sqrt(12) (Phase A session): the median
+# angle was 0.1286 deg at a step of 0.1317 deg and 0.0096 deg at 0.01 deg.
+TRIAL_PER_STEP = 0.976
 
 
 def q3(x: Any, ratio: bool = False) -> List[float]:
@@ -77,11 +80,74 @@ def plateau_stats(
     pts = (radii[:, None, None] * dirs[None])[inside]  # (n, 3), deg
     aniso = math.nan
     if len(pts) >= MIN_PTS:
-        M = (pts.T @ pts + pts.T @ pts) / (2 * len(pts))  # symmetrised (+x and -x) second moment
+        M = pts.T @ pts / len(pts)  # second-moment matrix of the plateau points about the truth
         w = np.linalg.eigvalsh(M)
         aniso = float(math.sqrt(w[-1] / max(w[0], 1e-300)))
     return dict(frac_r=frac_r, r50=r50, r_any=r_any, ext_med=float(np.median(ext)), aniso=aniso,
                 n_pts=int(len(pts)))  # fmt: skip
+
+
+def min_set_stats(
+    flat: np.ndarray, rad: np.ndarray, pts: np.ndarray, cost_true: np.ndarray
+) -> Dict[str, Any]:
+    """Tie-safe statistics of the sampled minimum. flat, rad (case, n) sample costs and radii
+    (deg), pts (case, n, 3) sample offsets (deg), cost_true (case,). Costs are quantised, so many
+    samples tie at the minimum; everything uses the whole set of samples at the minimum cost."""
+    n_case = flat.shape[0]
+    cmin = flat.min(axis=1)
+    lower = cmin < cost_true - TOL
+    at_min = flat <= cmin[:, None] + TOL
+    cen = np.stack([pts[c][at_min[c]].mean(axis=0) for c in range(n_case)])
+    rmin = np.array([rad[c][at_min[c]].min() for c in range(n_case)])
+    in_pl = flat <= cost_true[:, None] + TOL
+    return dict(
+        n_lower=int(lower.sum()),
+        min_drop_among_lower_quartiles=q3((cost_true - cmin)[lower]),
+        n_tied_at_min_quartiles=q3(at_min.sum(axis=1)),
+        min_radius_smallest_tied_quartiles=q3(rmin),
+        plateau_n_samples_quartiles=q3(in_pl.sum(axis=1)),
+        centroid_offset=np.linalg.norm(cen, axis=1),
+    )
+
+
+def monotone_rays(cost_true: np.ndarray, cost: np.ndarray, grid: np.ndarray) -> Dict[str, Any]:
+    """Per-ray monotonicity. cost (case, n_rad, n_dir) over the ascending radii grid; a ray is
+    monotone if its cost never decreases from the truth (radius 0) outward, or (from_0p005) from the
+    0.005 deg sample outward."""
+    n_case = cost.shape[0]
+    full = np.concatenate([np.repeat(cost_true[:, None, None], cost.shape[2], 2), cost], axis=1)
+    mono = (np.diff(full, axis=1) >= -TOL).all(axis=1)  # (case, dir)
+    i5 = int(np.searchsorted(grid, 0.005 - 1e-12))
+    mono5 = (np.diff(cost[:, i5:, :], axis=1) >= -TOL).all(axis=1)
+    return dict(
+        all_radii=float(mono.mean()), from_0p005=float(mono5.mean()),
+        cases_all_rays_all_radii=frac(int(mono.all(axis=1).sum()), n_case),
+        cases_all_rays_from_0p005=frac(int(mono5.all(axis=1).sum()), n_case),
+    )  # fmt: skip
+
+
+def lower_than_result(
+    flat: np.ndarray, rad: np.ndarray, cost_res: np.ndarray, ang_res: np.ndarray
+) -> Dict[str, Any]:
+    """Among sampled points with cost below the finisher result's, how many lie farther from the
+    truth than the result. Only cases whose result is within R_MAX_DEG of the truth are usable."""
+    usable = ang_res < R_MAX_DEG
+    n_any = n_far_cases = tot = far = 0
+    per_case = []
+    for c in np.nonzero(usable)[0]:
+        lo = flat[c] < cost_res[c] - TOL
+        if not lo.any():
+            continue
+        f = int((lo & (rad[c] > ang_res[c])).sum())
+        n_any += 1
+        tot += int(lo.sum())
+        far += f
+        n_far_cases += int(f > 0)
+        per_case.append(f / int(lo.sum()))
+    return dict(
+        n_usable=int(usable.sum()), cases_with_lower=n_any, points=tot, points_farther=far,
+        cases_with_farther=n_far_cases, per_case_fraction_farther_quartiles=q3(np.array(per_case)),
+    )  # fmt: skip
 
 
 def load_a1() -> Dict[str, Dict[str, np.ndarray]]:
@@ -94,12 +160,12 @@ def load_a1() -> Dict[str, Dict[str, np.ndarray]]:
             t5 = np.load(T5_CACHE / Path(f).name)
             assert (t5["dirs"] == d["dirs"]).all()
             parts.append((d, t5))
-        cat = lambda k, src=0: np.concatenate(
-            [p[src][k] for p in parts],
-            axis=(
-                1 if src == 0 and k in ("cost", "dir", "cost_true", "cost_res", "ang_res") else 0
-            ),
-        )  # noqa: E731
+
+        def cat(k: str, src: int = 0) -> np.ndarray:
+            """Concatenate over cases: axis 1 for the landscape arrays (axis 0 is the variant)."""
+            ax = 1 if src == 0 and k in ("cost", "dir", "cost_true", "cost_res", "ang_res") else 0
+            return np.concatenate([p[src][k] for p in parts], axis=ax)
+
         rec = dict(
             cost=cat("cost"), dir=cat("dir"), cost_true=cat("cost_true"), cost_res=cat("cost_res"),
             ang_res=cat("ang_res"), radii=parts[0][0]["radii"],
@@ -109,6 +175,7 @@ def load_a1() -> Dict[str, Dict[str, np.ndarray]]:
         )  # fmt: skip
         keys = ("cost_true", "cost_res", "ang_res_true", "c_vm_smallbox_cost", "c_vm_smallbox_ang")
         keys += ("c_mc_smallstep_cost", "c_mc_smallstep_ang", "ang_start_true", "fo_log")
+        keys += ("c_vm_smallbox_vm",)
         for k in keys:
             rec["t5_" + k] = cat(k, 1)
         out[pipe] = rec
@@ -117,8 +184,8 @@ def load_a1() -> Dict[str, Dict[str, np.ndarray]]:
 
 def summarise_a1(rec: Dict[str, Any]) -> Dict[str, Any]:
     radii_all = rec["radii"]
-    grid = radii_all[:-1]  # the 0.002..0.1 grid; the last column is the finisher's step
-    sel = grid <= R_MAX_DEG + 1e-12
+    grid = radii_all[:-1]  # the 0.0005..0.1 deg grid; the last column is the initial MC step
+    assert grid.max() <= R_MAX_DEG + 1e-12
     n_case = rec["cost"].shape[1]
     res: Dict[str, Any] = dict(
         n=int(n_case), step_deg=rec["step_deg"], radii=[float(r) for r in grid]
@@ -161,9 +228,7 @@ def summarise_a1(rec: Dict[str, Any]) -> Dict[str, Any]:
             ps_list = []
             for c in range(n_case):
                 eps = {"eps0": 0.0, "epsfinal": eps_final[c], "epsinit": eps_init[c]}[ename]
-                ps_list.append(
-                    plateau_stats(cost[c, :-1][sel], dirs[c], grid[sel], float(ct[c]), eps)
-                )
+                ps_list.append(plateau_stats(cost[c, :-1], dirs[c], grid, float(ct[c]), eps))
             keep = acc if ename == "epsfinal" else np.ones(n_case, dtype=bool)
             ps_list = [p for p, k in zip(ps_list, keep) if k]
             r50 = np.array([p["r50"] for p in ps_list])
@@ -181,25 +246,17 @@ def summarise_a1(rec: Dict[str, Any]) -> Dict[str, Any]:
                 aniso_quartiles=q3(an),
                 r50=r50.tolist(), r_any=r_any.tolist(), ext_med=ext.tolist(), aniso=an.tolist(),
             )  # fmt: skip
-        # sampled minimum (radii <= R_MAX)
-        cs = cost[:, :-1][:, sel, :]  # (case, nr, nd)
-        flat = cs.reshape(n_case, -1)
-        rad = np.broadcast_to(grid[sel][None, :, None], cs.shape).reshape(n_case, -1)
-        pts = grid[sel][None, :, None, None] * dirs[:, None, :, :]  # (case, nr, nd, 3) deg
-        pts = pts.reshape(n_case, -1, 3)
-        am = flat.argmin(axis=1)
-        cmin = flat[np.arange(n_case), am]
-        lower = cmin < ct - TOL
-        v["min_below_truth"] = frac(int(lower.sum()), n_case)
-        v["min_drop_quartiles"] = q3(ct - cmin)
-        v["min_angle_quartiles"] = q3(rad[np.arange(n_case), am])
-        low_idx = np.argsort(flat, axis=1)[:, :LOWEST_K]
-        cen = np.stack([pts[c, low_idx[c]].mean(axis=0) for c in range(n_case)])
-        cen_ang = np.linalg.norm(cen, axis=1)
-        v["lowest10_centroid_offset_quartiles"] = q3(cen_ang)
-        v["lowest10_centroid_offset"] = cen_ang.tolist()
-        v["min_angle"] = rad[np.arange(n_case), am].tolist()
-        v["min_drop"] = (ct - cmin).tolist()
+        # sampled minimum (all grid radii <= R_MAX). Costs are quantised, so many samples tie at the
+        # minimum: use tie-safe statistics (the set of ALL samples at the minimum cost).
+        flat = cost[:, :-1, :].reshape(n_case, -1)
+        rad = np.broadcast_to(grid[None, :, None], cost[:, :-1, :].shape).reshape(n_case, -1)
+        pts = (grid[None, :, None, None] * dirs[:, None, :, :]).reshape(n_case, -1, 3)  # deg
+        ms = min_set_stats(flat, rad, pts, ct)
+        v["min_below_truth"] = frac(ms["n_lower"], n_case)
+        v.update({k: x for k, x in ms.items() if k != "centroid_offset"})
+        v["min_set_centroid_offset"] = ms["centroid_offset"].tolist()
+        v["min_set_centroid_offset_quartiles"] = q3(ms["centroid_offset"])
+        v["monotone_rays"] = monotone_rays(ct, cost[:, :-1, :], grid)
         # A3: within-case Spearman of cost vs angle
         rho_all, rho_fine = [], []
         for c in range(n_case):
@@ -210,33 +267,19 @@ def summarise_a1(rec: Dict[str, Any]) -> Dict[str, Any]:
         v["spearman_le0p03_quartiles"] = q3(np.array(rho_fine))
         v["spearman_lt0_count"] = int(np.sum(np.array(rho_all) < 0))
         # points with lower cost than the T5 finisher result: how many are farther than it?
-        ar, cr = rec["ang_res"][vi], rec["cost_res"][vi]
-        far_k = tot_k = 0
-        cases_any = cases_far = 0
-        usable = ar < R_MAX_DEG
-        for c in range(n_case):
-            if not usable[c]:
-                continue
-            lo = flat[c] < cr[c] - TOL
-            if lo.any():
-                cases_any += 1
-                tot_k += int(lo.sum())
-                f = int((lo & (rad[c] > ar[c])).sum())
-                far_k += f
-                cases_far += int(f > 0)
-        v["lower_than_result"] = dict(
-            n_usable=int(usable.sum()), cases_with_lower=cases_any, points=tot_k,
-            points_farther=far_k, cases_with_farther=cases_far,
-        )  # fmt: skip
+        v["lower_than_result"] = lower_than_result(
+            flat, rad, rec["cost_res"][vi], rec["ang_res"][vi]
+        )
         res[vname] = v
-    # paired realistic-clean on the sampled minimum
-    a = np.array(res["clean"]["lowest10_centroid_offset"])
-    b = np.array(res["realistic"]["lowest10_centroid_offset"])
-    nb, nc = int((b > a).sum()), int((b < a).sum())
-    res["paired_centroid_offset"] = dict(
-        real_gt_clean=nb, clean_gt_real=nc, p_sign=mcnemar_exact(nb, nc),
-        median_diff=float(np.median(b - a)),
+    # paired realistic - clean on the tie-safe minimum-set centroid offset
+    a_ = np.array(res["clean"]["min_set_centroid_offset"])
+    b_ = np.array(res["realistic"]["min_set_centroid_offset"])
+    nb, nc = int((b_ > a_ + TOL).sum()), int((b_ < a_ - TOL).sum())
+    res["paired_min_set_centroid_offset"] = dict(
+        real_gt_clean=nb, clean_gt_real=nc, ties=int(n_case - nb - nc),
+        p_sign=mcnemar_exact(nb, nc), median_diff=float(np.median(b_ - a_)),
     )  # fmt: skip
+    res["n_voxels"] = int(len(np.unique(rec["vidx"])))
     return res
 
 
@@ -244,6 +287,7 @@ def summarise_a3_t5(rec: Dict[str, Any]) -> Dict[str, Any]:
     ar = rec["t5_ang_res_true"]
     gap = rec["t5_cost_res"] - rec["t5_cost_true"]
     out: Dict[str, Any] = dict(n=int(len(ar)), ang_res_quartiles=q3(ar), gap_quartiles=q3(gap))
+    out["n_voxels"] = int(len(np.unique(rec["vidx"])))
     for key, nm in (("c_vm_smallbox", "vm_smallbox"), ("c_mc_smallstep", "mc_smallstep")):
         ang2 = rec[f"t5_{key}_ang"]
         cost2 = rec[f"t5_{key}_cost"]
@@ -259,6 +303,16 @@ def summarise_a3_t5(rec: Dict[str, Any]) -> Dict[str, Any]:
             wilcoxon_p=float(w.pvalue) if w is not None else math.nan,
             spearman_closed_vs_error_drop=float(rho),
             ratio_med=float(np.median(ang2 / ar)),
+        )  # fmt: skip
+        if nm == "vm_smallbox":
+            out[nm]["step_cap_hit"] = frac(int(rec["t5_c_vm_smallbox_vm"][:, 10].sum()), len(ar))
+        # voxel-clustered sign test on the error drop: per-voxel median of (before - after)
+        drop = ar - ang2
+        vd = np.array([np.median(drop[rec["vidx"] == u]) for u in np.unique(rec["vidx"])])
+        out[nm]["voxel_clustered"] = dict(
+            n_voxels=int(len(vd)), voxels_improved=int((vd > 0).sum()),
+            voxels_worse=int((vd < 0).sum()),
+            p_sign=mcnemar_exact(int((vd > 0).sum()), int((vd < 0).sum())),
         )  # fmt: skip
     return out
 
@@ -302,8 +356,8 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
                 e = v[en]
                 rows.append(dict(
                     set=pipe, variant=vn, eps=el, n=e["n_used"],
-                    r50=f"{fq(e['r50_quartiles'], 3)} ({e['r50_ge_max']} ≥ 0.1)",
-                    r_any=f"{e['r_any_quartiles'][1]:.3f}", ext=f"{e['ext_med_quartiles'][1]:.3f}",
+                    r50=f"{fq(e['r50_quartiles'], 4)} ({e['r50_ge_max']} ≥ 0.1)",
+                    r_any=f"{e['r_any_quartiles'][1]:.4f}", ext=f"{e['ext_med_quartiles'][1]:.4f}",
                     no_member=e["no_plateau_member"],
                     aniso=f"{e['aniso_quartiles'][1]:.2f} (n={e['n_aniso']})",
                 ))  # fmt: skip
@@ -319,15 +373,39 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
             rows.append(dict(
                 set=pipe, variant=vn, eps_final=f"{v['eps_final_quartiles'][1]:.4f}",
                 eps_init=f"{v['eps_init_quartiles'][1]:.3f}",
+                clamped=fmt_frac(v["final_step_below_grid"]),
                 below=fmt_frac(v["min_below_truth"]),
-                drop=f"{v['min_drop_quartiles'][1]:.4f}",
-                ang=fq(v["min_angle_quartiles"], 3),
-                cen=fq(v["lowest10_centroid_offset_quartiles"], 4),
+                drop=f"{v['min_drop_among_lower_quartiles'][1]:.5f} (n={v['n_lower']})",
+                tied=f"{v['n_tied_at_min_quartiles'][1]:.0f}",
+                rad=fq(v["min_radius_smallest_tied_quartiles"], 4),
+                cen=fq(v["min_set_centroid_offset_quartiles"], 4),
             ))  # fmt: skip
     t["a1_minimum"] = markdown_table(
         rows,
-        ["set", "variant", "eps_final", "eps_init", "below", "drop", "ang", "cen"],
+        [
+            "set",
+            "variant",
+            "eps_final",
+            "eps_init",
+            "clamped",
+            "below",
+            "drop",
+            "tied",
+            "rad",
+            "cen",
+        ],
     )
+    rows = []
+    for pipe in ("H3", "H0"):
+        for vn in VARIANT_NAMES:
+            m = S["a1"][pipe][vn]["monotone_rays"]
+            rows.append(dict(
+                set=pipe, variant=vn, rays=f"{100 * m['all_radii']:.1f}%",
+                rays5=f"{100 * m['from_0p005']:.1f}%",
+                cases=fmt_frac(m["cases_all_rays_all_radii"]),
+                cases5=fmt_frac(m["cases_all_rays_from_0p005"]),
+            ))  # fmt: skip
+    t["a1_monotone"] = markdown_table(rows, ["set", "variant", "rays", "rays5", "cases", "cases5"])
     # change and plateau fraction by radius (H3)
     rows = []
     for pipe in ("H3", "H0"):
@@ -357,14 +435,16 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
             pixel=f"{x['pixel_only_quartiles'][1]:.4f}",
             aniso=f"{x['aniso_quartiles'][1]:.2f}",
         ))  # fmt: skip
-    t["a2_bound"] = markdown_table(rows, ["peaks", "n_peaks", "both", "frame", "pixel", "aniso"])
+    t["a2_quant_scale"] = markdown_table(
+        rows, ["peaks", "n_peaks", "both", "frame", "pixel", "aniso"]
+    )
     rows = []
     for pipe in ("H3", "H0"):
         rows.append(dict(
             set=pipe, ratio=fq(a2[pipe + "_err_over_bound_quartiles"], 2),
             below=fmt_frac(a2[pipe + "_err_below_bound"]),
         ))  # fmt: skip
-    t["a2_error_vs_bound"] = markdown_table(rows, ["set", "ratio", "below"])
+    t["a2_error_vs_scale"] = markdown_table(rows, ["set", "ratio", "below"])
     # A3
     rows = []
     for pipe in ("H3", "H0"):
@@ -378,9 +458,11 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
                 neg=f"{v['spearman_lt0_count']}/{S['a1'][pipe]['n']}",
                 lower=f"{lt['cases_with_lower']}/{lt['n_usable']}",
                 far=f"{lt['points_farther']}/{lt['points']}",
+                cases_far=f"{lt['cases_with_farther']}/{lt['cases_with_lower']}",
+                case_frac=f"{lt['per_case_fraction_farther_quartiles'][1]:.3f}",
             ))  # fmt: skip
     t["a3_correlation"] = markdown_table(
-        rows, ["set", "variant", "rho", "rho_fine", "neg", "lower", "far"]
+        rows, ["set", "variant", "rho", "rho_fine", "neg", "lower", "far", "cases_far", "case_frac"]
     )
     rows = []
     for pipe in ("H3", "H0"):
@@ -392,9 +474,13 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
                 after=f"{x['ang_after_quartiles'][1]:.4f}", closed=f"{x['closed_median']:.2f}",
                 reduced=fmt_frac(x["error_reduced"]), p=f"{x['wilcoxon_p']:.2g}",
                 rho=f"{x['spearman_closed_vs_error_drop']:.2f}",
+                voxels=(
+                    f"{x['voxel_clustered']['voxels_improved']}/{x['voxel_clustered']['n_voxels']}"
+                    f" (p={x['voxel_clustered']['p_sign']:.2g})"
+                ),
             ))  # fmt: skip
     t["a3_gap_closure"] = markdown_table(
-        rows, ["set", "cont", "before", "after", "closed", "reduced", "p", "rho"]
+        rows, ["set", "cont", "before", "after", "closed", "reduced", "p", "rho", "voxels"]
     )
     return t
 
@@ -407,7 +493,6 @@ def main() -> None:
         S["a3_t5"][pipe] = summarise_a3_t5(rec)
     S["a2"] = summarise_a2(a1)
     S["gn_floor_deg"] = GN_FLOOR_DEG
-    # strip the long per-case lists from the json to keep it readable
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / "summary.json").write_text(json.dumps(S, indent=1))
     write_tables(OUT_DIR / "tables.md", tables(S))
