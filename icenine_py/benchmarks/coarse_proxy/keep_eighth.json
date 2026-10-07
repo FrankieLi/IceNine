@@ -1,0 +1,297 @@
+{
+ "variants": {
+  "clean": {
+   "E0 baseline": {
+    "name": "E0 baseline",
+    "n": 200,
+    "wrong": 67,
+    "rate": 0.335,
+    "lo": 0.2732398096874265,
+    "hi": 0.4029793722656195,
+    "fixed": 0,
+    "broken": 0,
+    "base_wrong": 67,
+    "median_err_right": 0.030061948826939213,
+    "evals_global": 44478.495,
+    "evals_local": 4711.26,
+    "scored": 0.0,
+    "evals_total": 49189.755,
+    "evals_with_proxy_eq": 49189.755,
+    "base_evals": 49189.755,
+    "wall": 24.515816579415013,
+    "base_wall": 24.515816579415013,
+    "proxy_sec": 0.0
+   },
+   "proxy keep 1/4": {
+    "name": "proxy keep 1/4",
+    "n": 200,
+    "wrong": 13,
+    "rate": 0.065,
+    "lo": 0.03837598764975976,
+    "hi": 0.10802003749917945,
+    "fixed": 55,
+    "broken": 1,
+    "base_wrong": 67,
+    "median_err_right": 0.028074197326418,
+    "evals_global": 44494.02,
+    "evals_local": 5738.71,
+    "scored": 240.415,
+    "evals_total": 50232.73,
+    "evals_with_proxy_eq": 50941.52234454386,
+    "base_evals": 49189.755,
+    "wall": 25.46478031936,
+    "base_wall": 24.515816579415013,
+    "proxy_sec": 0.4617509228449863,
+    "proxy_eq_batched": 80.56820335652077,
+    "evals_batched_proxy": 50313.29820335653,
+    "n_calls": 4.0,
+    "useful": false
+   },
+   "proxy keep 1/6": {
+    "name": "proxy keep 1/6",
+    "n": 200,
+    "wrong": 18,
+    "rate": 0.09,
+    "lo": 0.05768697871453362,
+    "hi": 0.13776674613848952,
+    "fixed": 54,
+    "broken": 5,
+    "base_wrong": 67,
+    "median_err_right": 0.035893224172113686,
+    "evals_global": 44282.07,
+    "evals_local": 4473.475,
+    "scored": 212.45,
+    "evals_total": 48755.545,
+    "evals_with_proxy_eq": 49381.89083365574,
+    "base_evals": 49189.755,
+    "wall": 24.195250861435003,
+    "base_wall": 24.515816579415013,
+    "proxy_sec": 0.04553765999499946,
+    "proxy_eq_batched": 72.10692723966746,
+    "evals_batched_proxy": 48827.65192723966,
+    "n_calls": 4.0,
+    "useful": true
+   },
+   "proxy keep 1/8": {
+    "name": "proxy keep 1/8",
+    "n": 200,
+    "wrong": 22,
+    "rate": 0.11,
+    "lo": 0.07377190160716048,
+    "hi": 0.16092798300912986,
+    "fixed": 51,
+    "broken": 6,
+    "base_wrong": 67,
+    "median_err_right": 0.02960697851644853,
+    "evals_global": 44196.3,
+    "evals_local": 4324.865,
+    "scored": 201.34,
+    "evals_total": 48521.165,
+    "evals_with_proxy_eq": 49114.75629276652,
+    "base_evals": 49189.755,
+    "wall": 24.24374826538,
+    "base_wall": 24.515816579415013,
+    "proxy_sec": 0.043595020350004746,
+    "proxy_eq_batched": 68.48542902450316,
+    "evals_batched_proxy": 48589.65042902451,
+    "n_calls": 4.0,
+    "useful": false
+   }
+  },
+  "all": {
+   "E0 baseline": {
+    "name": "E0 baseline",
+    "n": 200,
+    "wrong": 52,
+    "rate": 0.26,
+    "lo": 0.20413736892786316,
+    "hi": 0.32490871391293097,
+    "fixed": 0,
+    "broken": 0,
+    "base_wrong": 52,
+    "median_err_right": 0.027760618495977534,
+    "evals_global": 44778.285,
+    "evals_local": 7628.055,
+    "scored": 0.0,
+    "evals_total": 52406.34,
+    "evals_with_proxy_eq": 52406.34,
+    "base_evals": 52406.34,
+    "wall": 26.475968182065,
+    "base_wall": 26.475968182065,
+    "proxy_sec": 0.0
+   },
+   "proxy keep 1/4": {
+    "name": "proxy keep 1/4",
+    "n": 200,
+    "wrong": 15,
+    "rate": 0.075,
+    "lo": 0.045974507057252416,
+    "hi": 0.12004459797332034,
+    "fixed": 40,
+    "broken": 3,
+    "base_wrong": 52,
+    "median_err_right": 0.02850704376390504,
+    "evals_global": 44805.465,
+    "evals_local": 9110.67,
+    "scored": 383.655,
+    "evals_total": 53916.135,
+    "evals_with_proxy_eq": 55047.2280139383,
+    "base_evals": 52406.34,
+    "wall": 28.209650915885003,
+    "base_wall": 26.475968182065,
+    "proxy_sec": 0.7388565563399994,
+    "proxy_eq_batched": 118.04836728589315,
+    "evals_batched_proxy": 54034.1833672859,
+    "n_calls": 4.0,
+    "useful": false
+   },
+   "proxy keep 1/6": {
+    "name": "proxy keep 1/6",
+    "n": 200,
+    "wrong": 23,
+    "rate": 0.115,
+    "lo": 0.07786317221824318,
+    "hi": 0.16664825233886393,
+    "fixed": 39,
+    "broken": 10,
+    "base_wrong": 52,
+    "median_err_right": 0.0378312551880519,
+    "evals_global": 44464.635,
+    "evals_local": 6675.79,
+    "scored": 336.645,
+    "evals_total": 51140.425,
+    "evals_with_proxy_eq": 52132.92296738544,
+    "base_evals": 52406.34,
+    "wall": 25.866914889205,
+    "base_wall": 26.475968182065,
+    "proxy_sec": 0.06921882456999681,
+    "proxy_eq_batched": 103.48772204944002,
+    "evals_batched_proxy": 51243.91272204945,
+    "n_calls": 4.0,
+    "useful": true
+   },
+   "proxy keep 1/8": {
+    "name": "proxy keep 1/8",
+    "n": 200,
+    "wrong": 44,
+    "rate": 0.22,
+    "lo": 0.16816453539463405,
+    "hi": 0.2823892279196257,
+    "fixed": 36,
+    "broken": 28,
+    "base_wrong": 52,
+    "median_err_right": 0.03575515820403109,
+    "evals_global": 44322.795,
+    "evals_local": 6010.12,
+    "scored": 317.21,
+    "evals_total": 50332.915,
+    "evals_with_proxy_eq": 51268.11463235555,
+    "base_evals": 52406.34,
+    "wall": 25.354015881035004,
+    "base_wall": 26.475968182065,
+    "proxy_sec": 0.06554958986000227,
+    "proxy_eq_batched": 97.55526669138266,
+    "evals_batched_proxy": 50430.47026669138,
+    "n_calls": 4.0,
+    "useful": false
+   }
+  }
+ },
+ "call_sizes": {
+  "p_k4b": {
+   "0": [
+    220.8925,
+    95,
+    562
+   ],
+   "1": [
+    63.345,
+    26,
+    165
+   ],
+   "2": [
+    20.68,
+    7,
+    61
+   ],
+   "3": [
+    7.1175,
+    1,
+    24
+   ]
+  },
+  "p_k6": {
+   "0": [
+    220.8925,
+    95,
+    562
+   ],
+   "1": [
+    42.4125,
+    19,
+    111
+   ],
+   "2": [
+    9.4275,
+    3,
+    29
+   ],
+   "3": [
+    1.815,
+    1,
+    9
+   ]
+  },
+  "p_k8": {
+   "0": [
+    220.8925,
+    95,
+    562
+   ],
+   "1": [
+    31.995,
+    15,
+    90
+   ],
+   "2": [
+    5.0925,
+    1,
+    18
+   ],
+   "3": [
+    1.295,
+    1,
+    4
+   ]
+  }
+ },
+ "pooled": {
+  "proxy keep 1/4": {
+   "wrong": 28,
+   "n": 400,
+   "lo": 0.048871304519740505,
+   "hi": 0.0993095663959849,
+   "total": 52173.74078532121,
+   "base_total": 50798.0475,
+   "useful": false
+  },
+  "proxy keep 1/6": {
+   "wrong": 41,
+   "n": 400,
+   "lo": 0.07645843910823481,
+   "hi": 0.13610411016851132,
+   "total": 50035.78232464455,
+   "base_total": 50798.0475,
+   "useful": false
+  },
+  "proxy keep 1/8": {
+   "wrong": 66,
+   "n": 400,
+   "lo": 0.13184448183586026,
+   "hi": 0.2045289873659258,
+   "total": 49510.06034785794,
+   "base_total": 50798.0475,
+   "useful": false
+  }
+ }
+}

@@ -89,13 +89,14 @@ def task_run(item: Tuple[Any, ...]) -> str:
     fold = int(M.fold_of(np.array([vpos]))[0])
     model = _model(cfg["models_dir"], cfg["set"], cfg["target"], fold)
     vertices, phase = vctx.vertices, vctx.voxel.phase
-    st = dict(n=0, sec=0.0)
+    st: Dict[str, Any] = dict(n=0, sec=0.0, calls=[])
 
     def rank_key(level: int, cands: List[Any]) -> np.ndarray:
         t0 = time.perf_counter()
         X = proxy_features(fe, cands, vertices, phase, c8, cfg.get("batched", False))
         key = -MD.predict_score(cfg["target"], model, X)
         st["n"] += len(cands)
+        st["calls"].append((level, len(cands)))  # batch size of this rank_key call
         st["sec"] += time.perf_counter() - t0
         return key
 
@@ -122,7 +123,8 @@ def task_run(item: Tuple[Any, ...]) -> str:
     np.savez_compressed(
         path, R_final=np.asarray(res.orientation, float), cost_final=float(res.cost), runtime=dt,
         evals_global=g, evals_local=loc, n_scored=st["n"], proxy_seconds=st["sec"],
-        n_proxy_cost_evals=2 * st["n"], R_true=vctx.R_true, **keep,
+        n_proxy_cost_evals=2 * st["n"], call_levels=np.array([c[0] for c in st["calls"]], int),
+        call_sizes=np.array([c[1] for c in st["calls"]], int), R_true=vctx.R_true, **keep,
     )  # fmt: skip
     return f"{cfg['tag']} voxel {vidx} {variant} s{seed} {time.time() - t_start:.0f}s"
 

@@ -1,0 +1,5 @@
+=== T4 timing, single-worker, 40 cases (voxel x variant), interleaved ===
+  base: wall 21.81s (base 21.81s), time ratio to base 1.000, evals 50942 (base 50942), proxy 0.00s, ms per eval 0.428 (base 0.428), R_final equal to base in 40/40, equal to the stored 10-worker run in 0/40
+  p_i: wall 22.53s (base 21.81s), time ratio to base 1.033, evals 52077 (base 50942), proxy 0.05s, ms per eval 0.433 (base 0.428), R_final equal to base in 0/40, equal to the stored 10-worker run in 40/40
+  p_k6: wall 21.25s (base 21.81s), time ratio to base 0.975, evals 49844 (base 50942), proxy 0.05s, ms per eval 0.426 (base 0.428), R_final equal to base in 0/40, equal to the stored 10-worker run in 40/40
+  p_k8: wall 21.09s (base 21.81s), time ratio to base 0.967, evals 49522 (base 50942), proxy 0.05s, ms per eval 0.426 (base 0.428), R_final equal to base in 0/40, equal to the stored 10-worker run in 40/40

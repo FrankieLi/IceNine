@@ -2972,3 +2972,98 @@ real run have fewer candidates than 200 per call; the realized gain end to end d
 Tests: `tests/test_coarse_proxy.py` 11 passed (2 new); full suite 666 passed, 34 skipped, 1 deselected, 0 failed.
 Audit of this section: the numbers not found in the source JSONs are unit conversions (the JSON is in seconds, the
 text in ms), the ad hoc equality check counts above (not saved), and figures quoted from Task 2 (3.2, 0.59).
+
+### T4 `keep-eighth`: proxy rerank at keep 1/8 and 1/6, end to end (2026-10-06)
+
+**Setup.** `scripts/coarse_proxy/endtoend.py run --batched` (set `lowq5+c8`, regression target, the proxy rerank is
+symmetry-agnostic; no F1/F1b rows were run), 200 voxels x 2 variants, seed 0, 10 workers, keep_fraction 1/8 (tag
+`p_k8`) and 1/6 (`p_k6`), paired with the stored baseline (E0) and the stored keep-1/4 proxy row (`p_i`).
+`keep_eighth.py` (`summary`, `timing`, `timing-summary`) builds the tables; `endtoend.py` now also stores the
+batch size of every `rank_key` call (`call_levels`, `call_sizes`). Nothing in `icenine/` changed.
+
+**The batched pass changes nothing but the time.** On 6 runs (3 voxels x 2 variants, keep 1/8) the default path and
+`--batched` gave identical `R_final`, `cost_final` and evaluation counts. A full batched re-run of keep 1/4 (`p_k4b`)
+reproduced all 400 stored `p_i` runs exactly (`R_final`, global and local evaluations, scored candidates). The
+keep-1/4 row below is the stored one; its call sizes come from `p_k4b`.
+
+**Candidates per `rank_key` call.** Four calls per run, one per level (mean [min-max] over the 400 runs; `keep_eighth.txt`):
+level 0 220.9 [95-562] candidates in all rows; keep 1/4: level 1 63.3 [26-165], level 2 20.7 [7-61], level 3 7.1 [1-24];
+keep 1/6: 42.4 [19-111], 9.4 [3-29], 1.8 [1-9]; keep 1/8: 32.0 [15-90], 5.1 [1-18], 1.3 [1-4]. Only the first call is a large batch; the later
+levels are small, and the batched cost per candidate is much higher there (T3: 2.04 eq at batch 1, 0.30 at 50, 0.26 at 200).
+The proxy's own cost below is each call's batch size times the T3 cost interpolated (log batch size) at that
+size, summed per run; it is an estimate from the T3 single-worker timing, not measured in these runs.
+
+**End to end** (paired on the same 200 voxels per variant; `peq` = proxy evaluation equivalents per run at the batched
+cost; `tot` = global + local evaluations of the reconstructor + `peq`; the reconstructor's own counts are in `glob` / `loc`).
+
+<!-- table:t4_keep_eighth -->
+| variant | row | wrong | rate | ci | med | glob | loc | scored | peq | tot |
+|---|---|---|---|---|---|---|---|---|---|---|
+| clean | E0 baseline | 67 | 0.335 | [0.273, 0.403] | 0.0301 | 44478 | 4711 | 0 | n/a | 49190 |
+| clean | proxy keep 1/4 | 13 | 0.065 | [0.038, 0.108] | 0.0281 | 44494 | 5739 | 240 | 81 | 50313 |
+| clean | proxy keep 1/6 | 18 | 0.090 | [0.058, 0.138] | 0.0359 | 44282 | 4473 | 212 | 72 | 48828 |
+| clean | proxy keep 1/8 | 22 | 0.110 | [0.074, 0.161] | 0.0296 | 44196 | 4325 | 201 | 68 | 48590 |
+| realistic | E0 baseline | 52 | 0.260 | [0.204, 0.325] | 0.0278 | 44778 | 7628 | 0 | n/a | 52406 |
+| realistic | proxy keep 1/4 | 15 | 0.075 | [0.046, 0.120] | 0.0285 | 44805 | 9111 | 384 | 118 | 54034 |
+| realistic | proxy keep 1/6 | 23 | 0.115 | [0.078, 0.167] | 0.0378 | 44465 | 6676 | 337 | 103 | 51244 |
+| realistic | proxy keep 1/8 | 44 | 0.220 | [0.168, 0.282] | 0.0358 | 44323 | 6010 | 317 | 98 | 50430 |
+<!-- /table:t4_keep_eighth -->
+
+Exact McNemar (discordant counts are only-first-wrong / only-second-wrong):
+
+| comparison | clean | realistic |
+|---|---|---|
+| keep 1/6 vs baseline | 5 / 54, p = 1.9e-11 | 10 / 39, p = 3.9e-05 |
+| keep 1/8 vs baseline | 6 / 51, p = 5.7e-10 | 28 / 36, p = 0.38 |
+| keep 1/6 vs keep 1/4 | 6 / 1, p = 0.125 | 12 / 4, p = 0.077 |
+| keep 1/8 vs keep 1/4 | 10 / 1, p = 0.012 | 37 / 8, p = 1.5e-05 |
+
+Pooled over both variants (400 runs): keep 1/4 wrong 28 (0.070, Wilson 0.049-0.099), keep 1/6 41 (0.102,
+0.076-0.136), keep 1/8 66 (0.165, 0.132-0.205), baseline 119. Keep 1/6 vs keep 1/4: 18 / 5, p = 0.011; keep 1/8 vs keep 1/4: 47 / 9,
+p = 2.6e-07. Both rows are better than the baseline (1/6: 15 / 93, p = 6.4e-15; 1/8: 34 / 87, p = 1.6e-06).
+
+**"Useful"** (wrong <= the keep-1/4 proxy's Wilson upper bound, at fewer total evaluations than the baseline):
+- Per variant: keep 1/6 is useful in both (clean 0.090 <= 0.108, 48828 < 49190; realistic 0.115 <= 0.120,
+  51244 < 52406). Keep 1/8 is not useful in either: clean 0.110 vs the bound 0.108 (22/200, a miss by 0.002; total 48590 < 49190),
+  realistic 0.220 vs 0.120.
+- Pooled over the 400 runs: neither is useful. Keep 1/6 is close (0.102 vs the pooled bound 0.099; total 50036 vs
+  baseline 50798, -1.5%); keep 1/8 is not (0.165; total 49510, -2.5%). The plan does not say per variant or pooled; both are shown.
+- **Decision (main session).** The pooled verdict is the one that counts: it uses all 400 runs, and the per-variant pass
+  for keep 1/6 is within 0.005-0.018 of the bound on one seed. Neither keep 1/6 nor keep 1/8 is adopted. Against keep 1/4,
+  keep 1/6 is wrong in 18 more paired cases and right in 5 more (p = 0.011), and keep 1/8 is wrong in 47 more and right in
+  9 more (p = 2.6e-7). Measured on a single worker, keep 1/6 saves only 2.6% of wall time and keep 1/8 only 3.3%.
+  Tightening the keep fraction is therefore not a route to a run-time saving in the no-start case. Time is spent in the
+  global discrete search, which these settings barely change (global evaluations, pooled, -0.6% at keep 1/6 and -0.8% at keep 1/8).
+  The keep-1/4 proxy rerank stays the recommendation, for accuracy.
+- The keep-1/4 row itself is not useful by this definition: it uses more evaluations than the baseline (+3.1% realistic at the
+  batched proxy cost, +2.3% clean), consistent with the earlier T3 result.
+- The reconstructor's own evaluation count falls with the keep fraction (global + local, clean 49190 baseline -> 50233 / 48756 / 48521;
+  realistic 52406 -> 53916 / 51140 / 50333), but the number of wrong answers rises, and the median error of the right answers is larger for 1/6
+  (0.036 clean, 0.038 realistic) and for realistic 1/8 (0.036) than for keep 1/4 (0.028) and the baseline (0.028-0.030) (deg; not tested further). Realistic keep 1/8 broke 28 baseline-right cases (vs 3 for keep 1/4).
+
+**Single-worker timing** (first 20 voxels x 2 variants = 40 cases, seed 0, batched pass, `require_quiet()` preflight saved as
+`benchmarks/coarse_proxy/keep_eighth_preflight.json`, all thread counts 1; arms rotated per case so none is always first;
+the keep-1/4, 1/6, 1/8 and baseline arms were all run because 1/6 is useful per variant and 1/8 is close in the clean variant).
+Every proxy run reproduced the stored 10-worker run exactly (40/40 for each arm); the baseline arm differs from the proxies in all 40.
+
+<!-- table:t4_keep_eighth_timing -->
+| arm | wall | speed | ev | dev | proxy | msev | same |
+|---|---|---|---|---|---|---|---|
+| base | 21.81 | 1.000 | 50942 | +0.0 | 0.00 | 0.428 | 40 |
+| p_i | 22.53 | 0.968 | 52077 | +2.2 | 0.05 | 0.433 | 0 |
+| p_k6 | 21.25 | 1.026 | 49844 | -2.2 | 0.05 | 0.426 | 0 |
+| p_k8 | 21.09 | 1.034 | 49522 | -2.8 | 0.05 | 0.426 | 0 |
+<!-- /table:t4_keep_eighth_timing -->
+
+`wall` = mean `reconstruct_voxel` seconds per run (including the proxy), `speed` = baseline total time / arm total time, `ev` =
+mean global + local evaluations per run, `dev` = change against the baseline in percent, `msev` = wall per evaluation (ms).
+The saving in time follows the saving in evaluations: 0.426 ms per evaluation for keep 1/6 and 1/8 against 0.428 for the baseline (proxy 0.05 s per
+run in all arms, about 0.2% of the run). Keep 1/6 saves 2.5% of the time and 2.2% of the evaluations, keep 1/8 3.3% and 2.8%; keep 1/4 costs 3.3% more time.
+This is one 40-case subset with no interval on the time difference, and these 40 cases are a subset of the 400 (their evaluation
+counts differ from the 200-voxel means above).
+
+**Reading.** At keep 1/6 the proxy rerank gives a wrong rate that stays inside the keep-1/4 interval (per variant) for a 2-3% saving of time;
+the pooled wrong rate is slightly above the keep-1/4 upper bound, and 1/8 is clearly worse. The time saving is small
+(about 3%), because the quick-MC and discrete stages that cannot be pruned dominate. Not tested: other keep fractions, other seeds
+(the stored keep-1/4 row has seeds 1-2; these new rows do not), whether the extra wrong answers at 1/8 are candidates lost at the pruning step
+(the harvest step was not run on the new rows).

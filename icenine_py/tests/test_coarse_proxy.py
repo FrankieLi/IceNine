@@ -277,3 +277,15 @@ def test_features_batch_equals_per_candidate(env: Tuple[Any, ...], q_max: Any) -
     nc = fe.features_batch(R, vert, phase, with_cost=False)
     assert np.isnan(nc[:, -2:]).all() and np.array_equal(nc[:, :-2], ref[:, :-2])
     assert fe.features_batch(np.zeros((0, 3, 3)), vert, phase).shape == (0, ref.shape[1])
+
+
+def test_batched_eq_decreases_with_batch_size() -> None:
+    """keep_eighth.batched_eq: the proxy cost of a call is monotone in the batch size and the
+    per-candidate cost falls with the batch size (T3 timing curve; skipped without it)."""
+    if not (ROOT / "benchmarks" / "coarse_proxy" / "timing_batch.json").exists():
+        pytest.skip("timing_batch.json not present")
+    ke = _import("keep_eighth")
+    one, fifty, big = (ke.batched_eq(np.array([n])) for n in (1, 50, 400))
+    assert one < fifty < big
+    assert one > fifty / 50 > 0 and fifty / 50 > big / 400 >= 0
+    assert ke.batched_eq(np.array([], dtype=int)) == 0.0
