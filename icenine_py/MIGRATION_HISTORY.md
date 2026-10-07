@@ -3284,7 +3284,7 @@ Final full suite on `feature/followups`: 673 passed, 34 skipped, 0 failed (707 c
 
 ## Finisher and MC study (2026-10-07)
 
-**Status: Phase A done (see "Phase A results"); Phases B-D planned.** Owner questions: (a) why FindOptimal stops short of the correct answer, and whether this comes from the cost function's sensitivity; (b) why MC runs out of restarts, what better local search exists, whether MC is the right tool, and whether the April 2026 MC-vs-optimizer comparison was deployed too soon. Next step after the plan: a full-sample BFS end-to-end test of the 500-grain sample with new orientations, comparing classic BFS against BFS with the NN and hybrid finisher (`docs/todo_500grain_bfs_end_to_end.md`).
+**Status: Phases A, B1 and B2 done (see "Phase A results" and "Phase B1/B2 results"); B3, C and D planned.** Owner questions: (a) why FindOptimal stops short of the correct answer, and whether this comes from the cost function's sensitivity; (b) why MC runs out of restarts, what better local search exists, whether MC is the right tool, and whether the April 2026 MC-vs-optimizer comparison was deployed too soon. Next step after the plan: a full-sample BFS end-to-end test of the 500-grain sample with new orientations, comparing classic BFS against BFS with the NN and hybrid finisher (`docs/todo_500grain_bfs_end_to_end.md`).
 
 Drafted 2026-10-07 by the main session (Opus). Implemented by Sonnet `implementer` agents, one task at a time.
 
@@ -3523,6 +3523,423 @@ So the optimizer stops early on a landscape resolvable at that scale. Not tested
   - Paired McNemar / win rates against (i).
 - **Deliverable:** answers to "why does it run out of restarts" and "is MC the right tool". Then pick ≤ 2 candidate
   finishers by error at equal budget, and by time.
+
+### Phase B1/B2 results (2026-10-07, `feature/finisher-mc-study-phase-b12`)
+
+**Headline.** B1 confirms the restart rule as written and shows what it leaves out: no restart fires after a run's first improvement (0/122); every run that exhausts its restarts never improved, and every never-improving run exhausts them (78/78 both ways); 5/122 improving runs restarted before their first improvement. An improving run can no longer reach the truth once its step has collapsed: 113/122 are locked in at some improvement (77/122 by the third), each improvement halving the step while the distance to the truth falls slowly (median 0.1011 to 0.0663 deg from the first to the tenth improvement). B2 finds that the April 2026 sweep's headline "success" is a final error below 1.0 deg from a 1, 2 or 5 deg start, which neither measures nor supports the 0.01-0.03 deg scale FindOptimal works at. All numbers below come from `benchmarks/mc_mechanism/` and `benchmarks/sweep_audit/` (`summary.json`, `tables.md`). Nothing in `icenine/` changed.
+
+**What ran.**
+- **B1 cases:** the T5 cases (200 H3 over 26 voxels and 100 H0 over 16 voxels), clean and realistic variants of the same voxel/radius/direction, the same starts and the realistic variant's seed for both variants. Cases within a voxel are not independent, so the intervals below are optimistic.
+- **Reproduction of T5:** the unmodified `refine_from_candidates` with `TracedMC` (a copy of `LoggedMC.optimize` that also records, per step, the step, `min_ergodic`, steps since the last improvement, the event, the trial angle and the best orientation's distance to the truth). The realistic result is bit-identical to T5's in 200/200 (H3) and 100/100 (H0) cases (asserted), and the stored MC log equals T5's `fo_log`. The clean run is a paired re-run of the same random stream on clean images; its result equals the realistic result in 50/200 (H3) cases.
+- **Improvement-probability curves:** 10 points per case and variant (the finisher's result, the truth, and the truth rotated by 0.005, 0.01, 0.02, 0.05 deg about 2 random axes each), 15 step sizes from 0.0005 to 0.3 deg, 200 proposals per point and step drawn exactly as `MCOptimizer.optimize` draws them (`mc_helpers.mc_proposals`, checked against `optimize` in `tests/test_sweep_audit.py`): 30,000 evaluations per case and variant. A second pass (`mc_end_curve.py`) re-ran only the MC stage (its log is asserted equal to the stored one) and measured the curve at the MC stage's own output on a 17-step grid that includes the steps runs end on (0.00013 and 0.00026 deg), with 400 proposals, and at each run's own final step.
+- **Wall time:** 1421 s (trace) and 335 s (end curves) on 10 workers while other work ran (contended; no timing claim, no preflight).
+- **B2:** no optimizer was run. Inputs: `benchmarks/hp_sweep_manygrains.log` (the per-run CSV was never committed; the 58,500 per-run lines of the log are parsed, misorientation to 0.001 deg, and linked to the voxel positions in the `.mic` file), `hp_sweep_trajectory_manygrains.csv`, `hp_sweep_threevoxels.csv` and `bench_hybrid_*.csv`. Both logs and the ManyGrains trajectory are gitignored, on disk.
+- **Code:** `scripts/mc_mechanism/` (`mc_trace.py`, `mc_end_curve.py`, `summary.py`, `mc_helpers.py`), `scripts/sweep_audit/` (`audit.py`, `audit_helpers.py`); tests in `tests/test_mc_mechanism.py` and `tests/test_sweep_audit.py`.
+
+#### B1: the restart rule and the step collapse
+
+**The rules hold as written** (H3 and H0, both variants):
+
+<!-- table:b1_rules -->
+| set | variant | n | box_deg | step0_deg | min_erg_0 | formula_0 | restarts at n_since = min_erg | step halved at each improvement | min_erg ratio q25/50/75 | restart after first accept | min_erg after first accept |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 100 | 0.3292 | 0.1317 | 31 | 31 | 19/19 (100%, 83-100) | 590/590 (100%, 99-100) | 8.00/8.00/8.00 | 0/96 (0%, 0-4) | 250/250/250 |
+| H0 | realistic | 100 | 0.3292 | 0.1317 | 31 | 31 | 16/16 (100%, 81-100) | 631/631 (100%, 99-100) | 8.00/8.00/8.00 | 0/97 (0%, 0-4) | 250/250/250 |
+| H3 | clean | 200 | 0.3292 | 0.1317 | 31 | 31 | 235/235 (100%, 98-100) | 1058/1058 (100%, 100-100) | 8.00/8.00/8.00 | 0/126 (0%, 0-3) | 250/250/250 |
+| H3 | realistic | 200 | 0.3292 | 0.1317 | 31 | 31 | 239/239 (100%, 98-100) | 1015/1015 (100%, 100-100) | 8.00/8.00/8.00 | 0/122 (0%, 0-3) | 250/250/250 |
+<!-- /table:b1_rules -->
+
+- The initial `min_ergodic` is 31, equal to 2 (box/step)^3 for box 0.3292 deg and step 0.1317 deg. A restart or exhaustion fires with steps-since-improvement equal to `min_ergodic` in every instance (239/239, H3 realistic). Each global improvement halves the step exactly (1015/1015) and multiplies `min_ergodic` by 8.00; after the first improvement it is 250, above the 200-step budget, so no run restarts after its first improvement (0/122). The first ratio is 250/31 = 8.06 (integer truncation); the table's 8.00 is the median over all improvements.
+- **A refinement of "non-improving steps".** The counter increments only on steps whose trial cost is not below the *current* cost. After a restart lands on a worse point, a trial that beats that point but not the global best is accepted locally and does not count. In the runs that never improve, the interval between restarts is a median 37 steps (q25-q75 31-40), not 31, with a median 6 (q25-q75 0-9) such local accepts in an interval.
+
+**Stopping** (the plan's items 2c and 2d):
+
+<!-- table:b1_stop -->
+| set | variant | n | step budget | restarts exhausted | converged | no accept | exhausted given no accept | no accept given exhausted | step budget given accepted | steps run (no accept) | restarts (no accept) | steps between restarts | local accepts in between |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 100 | 96 | 4 | 0 | 4/100 (4%, 2-10) | 4/4 (100%, 51-100) | 4/4 (100%, 51-100) | 96/96 (100%, 96-100) | 93/93/97 | 3/3/3 | 31/31/31 | 0/0/0 |
+| H0 | realistic | 100 | 97 | 3 | 0 | 3/100 (3%, 1-8) | 3/3 (100%, 44-100) | 3/3 (100%, 44-100) | 97/97 (100%, 96-100) | 93/93/104 | 3/3/3 | 31/31/31 | 0/0/0 |
+| H3 | clean | 200 | 126 | 74 | 0 | 74/200 (37%, 31-44) | 74/74 (100%, 95-100) | 74/74 (100%, 95-100) | 126/126 (100%, 97-100) | 106/109/113 | 3/3/3 | 31/37/40 | 0/6/9 |
+| H3 | realistic | 200 | 122 | 78 | 0 | 78/200 (39%, 33-46) | 78/78 (100%, 95-100) | 78/78 (100%, 95-100) | 122/122 (100%, 97-100) | 107/110/113 | 3/3/3 | 31/37/40 | 0/6/9 |
+<!-- /table:b1_stop -->
+
+- In H3 realistic, 78 of 200 runs never improve; all 78 end by exhausted restarts, and all 78 exhausted runs are never-improving runs (78/78 both ways). The other 122 end on the step budget (122/122); none ends on convergence. A never-improving run takes a median 110 steps (107-113) and counts 3 restarts. H0: 3/100 never improve.
+- **Why those runs never improve.** Their start is already close: the median distance to the truth is 0.0232 deg (realistic), against a median 0.1362 deg for the improving runs, while the step is 0.1317 deg. At that step no proposal out of 400 lowers the cost in 43/78 of them, and the best step on the grid has a median 0.0020 deg with a best improvement probability of 0.51 (second table below). The restart resets the step to 0.1317 deg again, and it jumps to a point drawn uniformly in the box in `get_near_identity_point` coordinates, with no tan/sqrt(12) scaling (the inherited C++ convention; `icenine/` is unchanged). Such a jump has a median angle of 0.554 deg (q25-q75 0.437-0.654, maximum 0.956) at the box of 0.3292 deg, about 23.8x the never-improving runs' median start distance: a second reason a restart cannot help them.
+
+<!-- table:b1_start_err -->
+| set | variant | start error, improving runs | start error, never-improving runs |
+|---|---|---|---|
+| H0 | clean | 0.2500/0.7500/1.5000 | 2.2625/3.0000/3.0000 |
+| H0 | realistic | 0.2500/0.7500/1.5000 | 1.5500/3.0000/3.0000 |
+| H3 | clean | 0.0880/0.1351/0.1829 | 0.0140/0.0220/0.0364 |
+| H3 | realistic | 0.0897/0.1362/0.1838 | 0.0140/0.0232/0.0406 |
+<!-- /table:b1_start_err -->
+
+<!-- table:b1_restart_jump -->
+| box (deg) | restart jump q25/50/75 (deg) | max (deg) | never-improving H3 realistic start distance, median (deg) | jump median / start distance |
+|---|---|---|---|---|
+| 0.3292 | 0.437/0.554/0.654 | 0.956 | 0.0232 | 23.8 |
+<!-- /table:b1_restart_jump -->
+
+**Improving runs end with a collapsed step, far from the truth** (steps, degrees):
+
+<!-- table:b1_end -->
+| set | variant | n | accepts | last accept step | steps after last accept | final step (deg) | MC output to truth (deg) | finisher result to truth (deg) | step / MC distance | step < 0.0005 | step < 0.0125 | step < distance | step < distance/10 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 4/7/8 | 14/25/47 | 152/174/185 | 0.00051/0.00103/0.00823 | 0.1127/0.6621/1.4400 | 0.0258/0.0564/0.2250 | 0.0022/0.0054/0.0095 | 22/96 (23%, 16-32) | 78/96 (81%, 72-88) | 96/96 (100%, 96-100) | 95/96 (99%, 94-100) |
+| H0 | realistic | 97 | 4/7/9 | 15/29/55 | 144/170/184 | 0.00026/0.00103/0.00823 | 0.1094/0.6541/1.4446 | 0.0261/0.0870/0.3224 | 0.0016/0.0031/0.0092 | 26/97 (27%, 19-36) | 87/97 (90%, 82-94) | 97/97 (100%, 96-100) | 94/97 (97%, 91-99) |
+| H3 | clean | 126 | 8/9/10 | 28/41/80 | 119/158/171 | 0.00013/0.00026/0.00051 | 0.0244/0.0714/0.1201 | 0.0125/0.0245/0.0568 | 0.0017/0.0039/0.0200 | 79/126 (63%, 54-71) | 117/126 (93%, 87-96) | 119/126 (94%, 89-97) | 110/126 (87%, 80-92) |
+| H3 | realistic | 122 | 8/9/10 | 26/34/73 | 126/164/173 | 0.00013/0.00026/0.00051 | 0.0281/0.0705/0.1365 | 0.0159/0.0283/0.0526 | 0.0020/0.0043/0.0150 | 65/122 (53%, 44-62) | 116/122 (95%, 90-98) | 117/122 (96%, 91-98) | 112/122 (92%, 86-95) |
+<!-- /table:b1_end -->
+
+- H3 realistic: a median 9 improvements, the last at step 34 (q25-q75 26-73), then a median 164 steps with no improvement. The final step is a median 0.00026 deg, below the plateau radius r50 of Phase A (0.0005 deg) in 65/122 (53%) and below the MC output's distance to the truth in 117/122 (96%). The MC output is a median 0.0705 deg from the truth; the VarianceMinimizing stage then brings the finisher result to 0.0283 deg in these 122 runs (0.0229 deg over all 200; see the stage note below).
+- **Lock-in.** After the k-th improvement the step is s (after halving), and the rest of the run can move the orientation by at most 2 x 1.7115 x s in total: the largest MC trial angle is 1.7115 x the step (the cube corner of `get_near_identity_point`; the median trial is 0.97 x the step), the step only halves, and no restart can fire. When the distance to the truth exceeds that, the truth is out of reach of the rest of the MC stage (triangle inequality). The check below counts runs for which this has happened. By the triangle inequality no MC output can lie nearer the truth than the distance at lock-in minus the remaining bound (the floor); the last column confirms this in the trace, which is a consistency check of the trace, not evidence about the mechanism:
+
+<!-- table:b1_lockin -->
+| set | variant | n | locked in | at accept k | at run step | step then (deg) | distance then (deg) | MC output >= floor |
+|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 96/96 (100%, 96-100) | 1/1/2 | 0/3/11 | 0.03292/0.06584/0.06584 | 0.1270/0.6956/1.4601 | 96/96 (100%, 96-100) |
+| H0 | realistic | 97 | 97/97 (100%, 96-100) | 1/1/2 | 0/2/10 | 0.03292/0.06584/0.06584 | 0.1262/0.6911/1.4605 | 97/97 (100%, 96-100) |
+| H3 | clean | 126 | 112/126 (89%, 82-93) | 2/3/4 | 3/8/18 | 0.00823/0.01646/0.03292 | 0.0373/0.0902/0.1436 | 112/112 (100%, 97-100) |
+| H3 | realistic | 122 | 113/122 (93%, 87-96) | 2/3/4 | 4/8/19 | 0.00823/0.01646/0.03292 | 0.0399/0.0860/0.1560 | 113/113 (100%, 97-100) |
+<!-- /table:b1_lockin -->
+
+  In H3 realistic, 113/122 (93%) of the improving runs are locked in at some improvement (median k = 3, run step 8), at a step of 0.01646 deg and a distance of 0.0860 deg; all 113 MC outputs lie at or beyond the floor. Cumulative by k (1 to 8): 18, 47, 77, 91, 105, 109, 112, 113, so 77/122 are locked in by the third improvement.
+
+<!-- table:b1_lockin_cum -->
+| set | variant | improving runs | by k=1 | by k=2 | by k=3 | by k=4 | by k=5 | by k=6 | by k=7 | by k=8 | by k=9 | by k=10 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 67 | 75 | 83 | 86 | 93 | 94 | 96 | 96 | 96 | 96 |
+| H0 | realistic | 97 | 67 | 76 | 82 | 86 | 90 | 93 | 96 | 97 | 97 | 97 |
+| H3 | clean | 126 | 15 | 47 | 73 | 93 | 103 | 109 | 111 | 112 | 112 | 112 |
+| H3 | realistic | 122 | 18 | 47 | 77 | 91 | 105 | 109 | 112 | 113 | 113 | 113 |
+<!-- /table:b1_lockin_cum -->
+
+  The same bound caps the path of accepted global improvements at 0.4508 deg (it excludes restart jumps and local accepts; path lengths: median 0.227 deg, maximum 0.3221 deg, in all 122 runs):
+
+<!-- table:b1_travel -->
+| set | variant | n | ceiling (deg) | path length q25/50/75 | path max | path < ceiling | restart before first accept | start error | start > ceiling | result error given start > ceiling | result error given start <= ceiling |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 0.4508 | 0.193/0.238/0.261 | 0.3476 | 96/96 (100%, 96-100) | 5/96 (5%, 2-12) | 0.250/0.750/1.500 | 66/100 (66%, 56-75) | 0.041/0.176/0.970 | 0.017/0.027/0.052 |
+| H0 | realistic | 97 | 0.4508 | 0.195/0.237/0.271 | 0.3480 | 97/97 (100%, 96-100) | 4/97 (4%, 2-10) | 0.250/0.750/1.500 | 66/100 (66%, 56-75) | 0.065/0.230/1.716 | 0.011/0.026/0.044 |
+| H3 | clean | 126 | 0.4508 | 0.189/0.224/0.253 | 0.3221 | 126/126 (100%, 97-100) | 9/126 (7%, 4-13) | 0.030/0.088/0.152 | 7/200 (4%, 2-7) | 0.114/0.258/1.127 | 0.012/0.021/0.040 |
+| H3 | realistic | 122 | 0.4508 | 0.183/0.227/0.261 | 0.3221 | 122/122 (100%, 97-100) | 5/122 (4%, 2-9) | 0.030/0.088/0.152 | 7/200 (4%, 2-7) | 0.055/0.089/1.327 | 0.013/0.023/0.041 |
+<!-- /table:b1_travel -->
+
+  H0 starts are a median 0.75 deg from the truth, 66/100 beyond that ceiling; their results are a median 0.230 deg (realistic) from the truth against 0.026 deg for the others. This is an association (the start distance is the common factor), not an isolated effect of the ceiling.
+- **The step collapses in a few steps (consistent with improving being easy).** After k improvements (H3 realistic):
+
+<!-- table:b1_by_accept_h3 -->
+| k | n | run step | step after (deg) | distance to truth (deg) |
+|---|---|---|---|---|
+| 1 | 122 | 2 | 0.06584 | 0.1011 |
+| 2 | 119 | 6 | 0.03292 | 0.0896 |
+| 3 | 119 | 10 | 0.01646 | 0.0795 |
+| 4 | 116 | 14 | 0.00823 | 0.0806 |
+| 5 | 114 | 16 | 0.00412 | 0.0755 |
+| 6 | 111 | 19 | 0.00206 | 0.0716 |
+| 7 | 107 | 22 | 0.00103 | 0.0693 |
+| 8 | 100 | 28 | 0.00051 | 0.0674 |
+| 9 | 65 | 29 | 0.00026 | 0.0697 |
+| 10 | 32 | 42 | 0.00013 | 0.0663 |
+<!-- /table:b1_by_accept_h3 -->
+
+  The step falls by a factor 2 per improvement while the median distance to the truth falls only from 0.1011 to 0.0663 deg (the subsets of runs differ at each k). That the improvements come quickly is consistent with the high improvement probability at steps up to about the distance (next section); that probability was measured at selected points near the truth, not along these trajectories.
+
+**Stage note.** The finisher's result (0.0283 deg for these 122 runs) is the one *after* the VarianceMinimizing stage, which starts from the MC output and halves its radius on improvement but doubles it after a failure, up to the box. At exit its radius is the 0.3292 deg cap (q25 = q50 = q75, H3 realistic, from the T5 logs), where the improvement probability is 0.00. The MC stage alone leaves a median 0.0705 deg.
+
+#### B1: the improvement-probability curve
+
+P(s) is the probability that one proposal of step s lowers the cost at the point; "cost progress" is the mean cost decrease per proposal, E[max(0, c0 - c)]. Medians over cases (P) and means over cases (cost progress), H3:
+
+<!-- table:b1_P_h3 -->
+| set | variant | point | d0 | 0.0005 | 0.001 | 0.002 | 0.003 | 0.005 | 0.0075 | 0.01 | 0.02 | 0.03 | 0.05 | 0.075 | 0.1 | 0.15 | 0.2 | 0.3 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | result | 0.0224 | 0.05 | 0.15 | 0.22 | 0.23 | 0.19 | 0.14 | 0.11 | 0.04 | 0.02 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | clean | truth | 0.0000 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | clean | 0.005 | 0.0050 | 0.27 | 0.36 | 0.40 | 0.38 | 0.32 | 0.21 | 0.13 | 0.03 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | clean | 0.01 | 0.0100 | 0.29 | 0.40 | 0.45 | 0.44 | 0.42 | 0.38 | 0.32 | 0.12 | 0.05 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | clean | 0.02 | 0.0200 | 0.30 | 0.42 | 0.45 | 0.46 | 0.45 | 0.42 | 0.40 | 0.30 | 0.19 | 0.06 | 0.02 | 0.01 | 0.00 | 0.00 | 0.00 |
+| H3 | clean | 0.05 | 0.0500 | 0.34 | 0.44 | 0.48 | 0.48 | 0.48 | 0.47 | 0.46 | 0.43 | 0.39 | 0.31 | 0.19 | 0.10 | 0.04 | 0.02 | 0.01 |
+| H3 | realistic | result | 0.0229 | 0.08 | 0.21 | 0.27 | 0.26 | 0.21 | 0.18 | 0.13 | 0.04 | 0.02 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | realistic | truth | 0.0000 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | realistic | 0.005 | 0.0050 | 0.27 | 0.37 | 0.41 | 0.39 | 0.33 | 0.23 | 0.15 | 0.03 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | realistic | 0.01 | 0.0100 | 0.29 | 0.41 | 0.45 | 0.45 | 0.41 | 0.37 | 0.32 | 0.13 | 0.05 | 0.01 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | realistic | 0.02 | 0.0200 | 0.30 | 0.41 | 0.46 | 0.47 | 0.45 | 0.42 | 0.40 | 0.29 | 0.19 | 0.06 | 0.02 | 0.01 | 0.00 | 0.00 | 0.00 |
+| H3 | realistic | 0.05 | 0.0500 | 0.32 | 0.42 | 0.47 | 0.47 | 0.47 | 0.47 | 0.46 | 0.43 | 0.39 | 0.30 | 0.18 | 0.10 | 0.04 | 0.02 | 0.01 |
+<!-- /table:b1_P_h3 -->
+
+<!-- table:b1_cost_prog_h3 -->
+| set | variant | point | d0 | 0.0005 | 0.001 | 0.002 | 0.003 | 0.005 | 0.0075 | 0.01 | 0.02 | 0.03 | 0.05 | 0.075 | 0.1 | 0.15 | 0.2 | 0.3 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | result | 0.0224 | 0.0004 | 0.0007 | 0.0011 | 0.0014 | 0.0019 | 0.0021 | 0.0022 | 0.0017 | 0.0012 | 0.0007 | 0.0006 | 0.0005 | 0.0005 | 0.0004 | 0.0003 |
+| H3 | clean | truth | 0.0000 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | clean | 0.005 | 0.0050 | 0.0008 | 0.0013 | 0.0021 | 0.0026 | 0.0026 | 0.0019 | 0.0012 | 0.0002 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | clean | 0.01 | 0.0100 | 0.0008 | 0.0014 | 0.0026 | 0.0035 | 0.0046 | 0.0052 | 0.0049 | 0.0019 | 0.0007 | 0.0002 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | clean | 0.02 | 0.0200 | 0.0009 | 0.0017 | 0.0029 | 0.0039 | 0.0058 | 0.0076 | 0.0089 | 0.0092 | 0.0058 | 0.0019 | 0.0006 | 0.0003 | 0.0001 | 0.0000 | 0.0000 |
+| H3 | clean | 0.05 | 0.0500 | 0.0010 | 0.0017 | 0.0030 | 0.0042 | 0.0064 | 0.0090 | 0.0114 | 0.0192 | 0.0233 | 0.0228 | 0.0133 | 0.0070 | 0.0024 | 0.0010 | 0.0003 |
+| H3 | realistic | result | 0.0229 | 0.0003 | 0.0006 | 0.0010 | 0.0012 | 0.0015 | 0.0017 | 0.0017 | 0.0014 | 0.0010 | 0.0004 | 0.0002 | 0.0001 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | realistic | truth | 0.0000 | 0.0001 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | realistic | 0.005 | 0.0050 | 0.0006 | 0.0010 | 0.0016 | 0.0019 | 0.0020 | 0.0015 | 0.0010 | 0.0002 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | realistic | 0.01 | 0.0100 | 0.0006 | 0.0011 | 0.0019 | 0.0025 | 0.0034 | 0.0039 | 0.0037 | 0.0015 | 0.0006 | 0.0002 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | realistic | 0.02 | 0.0200 | 0.0007 | 0.0012 | 0.0020 | 0.0028 | 0.0041 | 0.0054 | 0.0063 | 0.0066 | 0.0042 | 0.0014 | 0.0005 | 0.0002 | 0.0001 | 0.0000 | 0.0000 |
+| H3 | realistic | 0.05 | 0.0500 | 0.0007 | 0.0013 | 0.0022 | 0.0031 | 0.0046 | 0.0064 | 0.0081 | 0.0134 | 0.0163 | 0.0159 | 0.0095 | 0.0051 | 0.0017 | 0.0007 | 0.0002 |
+<!-- /table:b1_cost_prog_h3 -->
+
+- **A flat top, then a drop at the distance.** Near the truth (0.005-0.05 deg away) P is 0.27-0.47 for every step from 0.0005 deg up to about the distance, then falls (0.05 deg away, realistic: 0.32 at 0.0005, 0.47 at 0.002-0.0075, 0.30 at 0.05, 0.10 at 0.1, 0.01 at 0.3 deg). The curves are the same within about 0.02 (maximum 0.021) clean and realistic at these points.
+- **The step that maximises expected cost progress is about the distance to the truth.** It is 0.0050, 0.0075, 0.0200 and 0.0300 deg at distances 0.005, 0.01, 0.02 and 0.05 deg (ratios 1.00, 0.75, 1.00, 0.60), with P = 0.29-0.39 there. The step that maximises P alone is smaller (0.002-0.003 deg), and the distance-progress optimum (0.0030, 0.0075, 0.0100, 0.0300 deg) agrees with the cost-progress optimum within a factor of 2.
+
+<!-- table:b1_sstar -->
+| set | variant | point | d0 (deg) | s max P | s max cost progress | s max distance progress | per-case s max cost progress q25/50/75 | P at s max cost progress | s / d0 |
+|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | result | 0.0582 | 0.0050 | 0.0300 | 0.3000 | 0.0050/0.0200/0.0300 | 0.04 | 0.52 |
+| H0 | clean | truth | 0.0000 | n/a | 0.0005 | n/a | 0.0005/0.0005/0.0005 | 0.00 | n/a |
+| H0 | clean | 0.005 | 0.0050 | 0.0020 | 0.0050 | 0.0030 | 0.0030/0.0030/0.0050 | 0.34 | 1.00 |
+| H0 | clean | 0.01 | 0.0100 | 0.0020 | 0.0075 | 0.0075 | 0.0075/0.0075/0.0100 | 0.37 | 0.75 |
+| H0 | clean | 0.02 | 0.0200 | 0.0030 | 0.0200 | 0.0100 | 0.0100/0.0200/0.0200 | 0.33 | 1.00 |
+| H0 | clean | 0.05 | 0.0500 | 0.0030 | 0.0300 | 0.0300 | 0.0300/0.0300/0.0500 | 0.39 | 0.60 |
+| H0 | realistic | result | 0.0888 | 0.0075 | 0.1000 | 0.2000 | 0.0075/0.0200/0.1000 | 0.01 | 1.13 |
+| H0 | realistic | truth | 0.0000 | n/a | 0.0005 | n/a | 0.0005/0.0010/0.0020 | 0.00 | n/a |
+| H0 | realistic | 0.005 | 0.0050 | 0.0020 | 0.0050 | 0.0030 | 0.0030/0.0030/0.0050 | 0.35 | 1.00 |
+| H0 | realistic | 0.01 | 0.0100 | 0.0020 | 0.0075 | 0.0075 | 0.0075/0.0075/0.0100 | 0.38 | 0.75 |
+| H0 | realistic | 0.02 | 0.0200 | 0.0030 | 0.0200 | 0.0100 | 0.0100/0.0200/0.0200 | 0.32 | 1.00 |
+| H0 | realistic | 0.05 | 0.0500 | 0.0030 | 0.0300 | 0.0300 | 0.0300/0.0300/0.0500 | 0.39 | 0.60 |
+| H3 | clean | result | 0.0224 | 0.0030 | 0.0100 | 0.0200 | 0.0030/0.0075/0.0100 | 0.11 | 0.45 |
+| H3 | clean | truth | 0.0000 | n/a | 0.0005 | n/a | 0.0005/0.0005/0.0005 | 0.00 | n/a |
+| H3 | clean | 0.005 | 0.0050 | 0.0020 | 0.0050 | 0.0030 | 0.0030/0.0030/0.0050 | 0.32 | 1.00 |
+| H3 | clean | 0.01 | 0.0100 | 0.0020 | 0.0075 | 0.0075 | 0.0075/0.0075/0.0100 | 0.38 | 0.75 |
+| H3 | clean | 0.02 | 0.0200 | 0.0030 | 0.0200 | 0.0100 | 0.0100/0.0100/0.0200 | 0.30 | 1.00 |
+| H3 | clean | 0.05 | 0.0500 | 0.0020 | 0.0300 | 0.0300 | 0.0300/0.0300/0.0500 | 0.39 | 0.60 |
+| H3 | realistic | result | 0.0229 | 0.0020 | 0.0100 | 0.0100 | 0.0030/0.0075/0.0100 | 0.13 | 0.44 |
+| H3 | realistic | truth | 0.0000 | n/a | 0.0005 | n/a | 0.0005/0.0010/0.0020 | 0.00 | n/a |
+| H3 | realistic | 0.005 | 0.0050 | 0.0020 | 0.0050 | 0.0030 | 0.0030/0.0050/0.0050 | 0.33 | 1.00 |
+| H3 | realistic | 0.01 | 0.0100 | 0.0020 | 0.0075 | 0.0075 | 0.0050/0.0075/0.0100 | 0.37 | 0.75 |
+| H3 | realistic | 0.02 | 0.0200 | 0.0030 | 0.0200 | 0.0100 | 0.0100/0.0100/0.0200 | 0.29 | 1.00 |
+| H3 | realistic | 0.05 | 0.0500 | 0.0020 | 0.0300 | 0.0300 | 0.0300/0.0300/0.0500 | 0.39 | 0.60 |
+<!-- /table:b1_sstar -->
+
+- **At the finisher's result** (a median 0.0229 deg from the truth, realistic H3) the cost-progress optimum is 0.0100 deg (0.44 of the distance) with P = 0.13; P peaks at 0.27 at 0.002 deg. The MC final step, 0.00026 deg, is 38.9x below that optimum (a cross-point ratio: the optimum belongs to the finisher's result, after VarianceMinimizing; at the MC output itself the median best-P step is 0.0075 deg, about 29x the final step). Per proposal, the cost progress at the best grid step is a median 17.4x (q25-q75 3.7-76.2) that at the run's final step, and the median expected evaluations per improvement at the final step is 67 (5-1000, capped at 1000); 65/122 final steps are below the grid, so these use P at 0.0005 deg and are, if anything, favourable to the final step.
+
+<!-- table:b1_final_vs_best -->
+| set | variant | d0 (deg) | s max cost progress | s max cost progress / MC final step | MC final step (improving runs) | P at MC final step | step below grid | evals per improvement at final step | P best on grid | cost progress best / final | VarianceMinimizing final radius | P at that radius | P at initial step (no-accept runs) | P = 0 at every step |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 0.0582 | 0.0300 | 29.2 | 0.00051/0.00103/0.00823 | 0.001/0.107/0.318 | 22/96 (23%, 16-32) | 3/9/860 | 0.08/0.36/0.49 | 2.0/6.0/19.8 | n/a | n/a | 0.00/0.00/0.01 | 7/100 (7%, 3-14) |
+| H0 | realistic | 0.0888 | 0.1000 | 97.2 | 0.00026/0.00103/0.00823 | 0.000/0.045/0.250 | 26/97 (27%, 19-36) | 4/22/1000 | 0.09/0.26/0.43 | 3.1/11.8/41.5 | 0.0736/0.3292/0.3292 | 0.00/0.00/0.02 | 0.00/0.00/0.00 | 6/100 (6%, 3-12) |
+| H3 | clean | 0.0224 | 0.0100 | 38.9 | 0.00013/0.00026/0.00051 | 0.000/0.005/0.144 | 79/126 (63%, 54-71) | 7/186/1000 | 0.12/0.34/0.48 | 5.2/14.3/43.6 | n/a | n/a | 0.00/0.00/0.00 | 12/200 (6%, 3-10) |
+| H3 | realistic | 0.0229 | 0.0100 | 38.9 | 0.00013/0.00026/0.00051 | 0.000/0.015/0.215 | 65/122 (53%, 44-62) | 5/67/1000 | 0.14/0.36/0.50 | 3.7/17.4/76.2 | 0.3292/0.3292/0.3292 | 0.00/0.00/0.00 | 0.00/0.00/0.00 | 6/200 (3%, 1-6) |
+<!-- /table:b1_final_vs_best -->
+
+- **At the MC stage's own output** (the measurement that matches the stopping point):
+
+<!-- table:b1_end_curve_stats -->
+| set | variant | runs | n | own step (deg) | output to truth (deg) | P at own step | P = 0 at own step | best P on grid | step of best P | P = 0 at own step, best P >= 0.05 | s max cost progress (mean) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | improving | 96 | 0.00051/0.00103/0.00823 | 0.1127/0.6621/1.4400 | 0.000/0.000/0.000 | 83/96 (86%, 78-92) | 0.17/0.32/0.45 | 0.0100/0.0750/0.2000 | 72/96 (75%, 65-83) | 0.2000 |
+| H0 | clean | noaccept | 4 | 0.13169/0.13169/0.13169 | 2.2625/3.0000/3.0000 | 0.000/0.009/0.034 | 2/4 (50%, 15-85) | 0.02/0.12/0.27 | 0.1537/0.3000/0.3000 | 0/4 (0%, 0-49) | 0.0200 |
+| H0 | realistic | improving | 97 | 0.00026/0.00103/0.00823 | 0.1094/0.6541/1.4446 | 0.000/0.000/0.000 | 91/97 (94%, 87-97) | 0.19/0.30/0.42 | 0.0094/0.1000/0.2000 | 80/97 (82%, 74-89) | 0.3000 |
+| H0 | realistic | noaccept | 3 | 0.13169/0.13169/0.13169 | 1.5500/3.0000/3.0000 | 0.011/0.022/0.053 | 1/3 (33%, 6-79) | 0.11/0.21/0.35 | 0.0757/0.1505/0.2253 | 0/3 (0%, 0-56) | 0.0300 |
+| H3 | clean | improving | 126 | 0.00013/0.00026/0.00051 | 0.0244/0.0714/0.1201 | 0.000/0.000/0.000 | 110/126 (87%, 80-92) | 0.15/0.28/0.41 | 0.0030/0.0075/0.0100 | 96/126 (76%, 68-83) | 0.0750 |
+| H3 | clean | noaccept | 74 | 0.13169/0.13169/0.13169 | 0.0140/0.0220/0.0364 | 0.000/0.000/0.003 | 43/74 (58%, 47-69) | 0.41/0.49/0.62 | 0.0010/0.0020/0.0030 | 43/74 (58%, 47-69) | 0.0075 |
+| H3 | realistic | improving | 122 | 0.00013/0.00026/0.00051 | 0.0281/0.0705/0.1365 | 0.000/0.000/0.000 | 108/122 (89%, 82-93) | 0.12/0.28/0.40 | 0.0030/0.0075/0.0200 | 95/122 (78%, 70-84) | 0.0750 |
+| H3 | realistic | noaccept | 78 | 0.13169/0.13169/0.13169 | 0.0140/0.0232/0.0406 | 0.000/0.000/0.005 | 43/78 (55%, 44-66) | 0.39/0.51/0.65 | 0.0010/0.0020/0.0030 | 43/78 (55%, 44-66) | 0.0075 |
+<!-- /table:b1_end_curve_stats -->
+
+  In H3 realistic, the improvement probability at the run's own final step is 0 in 108/122 (89%) of the improving runs (no improving proposal in 400), while the best step on the grid has a median P of 0.28 (0.12-0.40) at a median step of 0.0075 deg (0.0030-0.0200). In 95/122 (78%) the probability is 0 at the own step and at least 0.05 at some larger step. The never-improving runs have P = 0 at their initial step in 43/78 and a best step of 0.0020 deg (0.0010-0.0030).
+
+<!-- table:b1_end_curve -->
+| set | variant | n | 0.00013 | 0.00026 | 0.0005 | 0.001 | 0.002 | 0.003 | 0.005 | 0.0075 | 0.01 | 0.02 | 0.03 | 0.05 | 0.075 | 0.1 | 0.15 | 0.2 | 0.3 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.007 | 0.016 | 0.025 | 0.065 | 0.089 | 0.107 | 0.121 | 0.114 | 0.092 | 0.083 | 0.090 |
+| H0 | realistic | 97 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.013 | 0.013 | 0.025 | 0.045 | 0.065 | 0.105 | 0.122 | 0.117 | 0.117 | 0.120 | 0.102 |
+| H3 | clean | 126 | 0.000 | 0.000 | 0.000 | 0.058 | 0.136 | 0.160 | 0.191 | 0.171 | 0.166 | 0.092 | 0.051 | 0.026 | 0.019 | 0.015 | 0.007 | 0.003 | 0.000 |
+| H3 | realistic | 122 | 0.000 | 0.000 | 0.000 | 0.029 | 0.116 | 0.146 | 0.160 | 0.168 | 0.164 | 0.114 | 0.079 | 0.041 | 0.025 | 0.018 | 0.007 | 0.005 | 0.000 |
+<!-- /table:b1_end_curve -->
+
+- **Clean vs realistic.** Almost the same curves, but not the same truth: a proposal lowers the cost *at the truth* in 98/200 (49%) H3 realistic cases against 24/200 (12%) clean, i.e. the realistic minimum is not at the truth in about half the cases (consistent with Phase A's 108/200 under a different sampler).
+
+<!-- table:b1_truth -->
+| set | variant | cases with an improving proposal at the truth | pooled P at the best step |
+|---|---|---|---|
+| H0 | clean | 17/100 (17%, 11-26) | 0.038 |
+| H0 | realistic | 54/100 (54%, 44-63) | 0.075 |
+| H3 | clean | 24/200 (12%, 8-17) | 0.037 |
+| H3 | realistic | 98/200 (49%, 42-56) | 0.077 |
+<!-- /table:b1_truth -->
+
+**B1 answer: why MC runs out of restarts and stops short.**
+1. *Restarts.* No restart fires after a run's first improvement (0/122); every run that exhausts its restarts never improved, and every never-improving run exhausts them (78/78 both ways); 5/122 improving runs restarted before their first improvement. One improvement raises `min_ergodic` from 31 to 250, beyond the 200-step budget. The never-improving runs are the ones whose start is closer (0.0232 deg) than the step can resolve (0.1317 deg), so the restart cannot help them either: it resets the step to 0.1317 deg and jumps a median 0.554 deg (about 23.8x their start distance).
+2. *Stopping short.* An improvement is cheap at any step up to the distance (P = 0.3-0.5), and each improvement halves the step, so the step decays as 2^-k (the eighth improvement comes at a median run step 28) regardless of whether the new step is still productive. The remaining travel bound falls below the distance to the truth at some improvement in 93% of the runs (77/122 by the third); the run then idles (a median 164 steps) at a step where P = 0 for 89%, while the best grid step (median 0.0075 deg) has a median P of 0.28. This is consistent with the MC stage's 0.0705 deg (the probabilities were measured at selected points near the truth and at the MC output, not along the trajectories); the later stage reduces it to 0.0283 deg (improving runs).
+3. *Consistent with, not proven:* the stop-short mechanism is read from the code and verified in the logs (rules, lock-in, probabilities at the stopping point); that a different step rule would lower the finisher's final error is not tested here (B3).
+4. *What the curve implies for a step rule* (hypothesis for B3): the progress-maximising step is about the current distance to the truth, and the improvement probability there is 0.3-0.4 (0.13 at the finisher's result). A step controlled by the recent acceptance rate (raise after a success, lower after a failure, a target of roughly 0.2-0.4; the (1+1)-ES one-fifth family) tracks that without knowing the distance, whereas halving on every improvement does not. For the never-improving runs the useful restart is near the best at a reduced step, not a reset to 0.1317 deg. Cost: each proposal is one evaluation; the quantities above are per evaluation.
+
+**Caveats (B1).** (a) Per-voxel images with at most 3 distractor sources, Cu FCC only; cases from 26 and 16 voxels. (b) 200-400 proposals per point and step: P values below about 0.01 are not resolved, and "P = 0" means no improving proposal in 200 or 400. (c) The curves are at selected points (the result, the truth, and 2 random directions at each of four distances); the MC output's own curve is measured at the actual output. (d) The lock-in bound assumes the step only halves, which holds for runs without restarts; 5/122 improving H3 realistic runs had a restart before their first improvement, which shifts the position but not the bound afterwards. (e) The VarianceMinimizing radius at exit is a snapshot (the state after the last failure), not the radius used for most of its evaluations.
+
+### B2: did we deploy too soon?
+
+**What the files contain** (checked before use):
+
+| File | Content | Used as |
+|---|---|---|
+| `hp_sweep_manygrains.log` (gitignored) | per-run lines of the 58,500-run ManyGrains sweep: optimizer, hp id, voxel, start offset, final misorientation (0.001 deg), quality, evaluations, time | the per-run data (the CSV was never committed); all 58,500 lines parse and the headline table is reproduced from them |
+| `hp_sweep_trajectory_manygrains.csv` (gitignored) | step records linked to the log by run order | MC accept timing; the link is checked on the gradient runs (non-diverged runs: last record within 0.05 deg of the log's final error in 94%) |
+| `hp_sweep_threevoxels.csv` | 1,755 runs, 3 voxels at 12 um | near-axis comparison |
+| `bench_hybrid_manygrains.csv` | 100 (voxel, offset) pairs of hybrid Adam and MC: 20 voxels, offsets 0.5-5 deg | hybrid benchmark |
+| `bench_hybrid_threevoxels.csv` | 27 pairs from three runs of the benchmark appended to one file (6, 6 and 15 pairs: two short or smoke runs and the full run); only the full 15-pair run is used | hybrid benchmark |
+
+**The recorded headline is "final error < 1.0 deg", whatever the start.** The success percentages recorded in this file (96/41/0 etc.) are reproduced exactly with that criterion, not with the 0.5 deg of the later studies (`docs/orientation_nn_design.md` cites 0.5 deg as the `bench_hp_sweep.py` criterion; the code has no success criterion and the recorded numbers follow 1.0 deg). At a 1 deg start it means "ended below the start". The SGLD row is reproduced by T = 0.001 (the table names T = 0.01, which gives 77/40/0); the MC row gives 91 with the printed 1.000 excluded and 92 with it counted.
+
+<!-- table:mg_headline -->
+| optimizer | config | evaluations | < 1 deg, 1 deg start | < 1 deg, 2 deg start | < 1 deg, 5 deg start | < 0.5 deg, 1 deg start | < 0.5 deg, 2 deg start | recorded % |
+|---|---|---|---|---|---|---|---|---|
+| riemannian_adam_geoopt | lr 0.0001, 100 steps, b1 0.9 | 101 | 96/100 (96%, 90-98) | 41/100 (41%, 32-51) | 0/100 (0%, 0-4) | 53/100 (53%, 43-62) | 0/100 (0%, 0-4) | 96/41/0 |
+| riemannian_adam_manual | lr 0.0001, 200 steps, b1 0.9 | 201 | 94/100 (94%, 88-97) | 49/100 (49%, 39-59) | 0/100 (0%, 0-4) | 58/100 (58%, 48-67) | 27/100 (27%, 19-36) | 94/49/0 |
+| riemannian_sgd_plain | lr 0.0001, 100 steps | 101 | 88/100 (88%, 80-93) | 52/100 (52%, 42-62) | 0/100 (0%, 0-4) | 54/100 (54%, 44-63) | 25/100 (25%, 18-34) | 88/52/0 |
+| riemannian_sgd_momentum | lr 1e-05, 200 steps, mom 0.5 | 201 | 94/100 (94%, 88-97) | 51/100 (51%, 41-61) | 0/100 (0%, 0-4) | 59/100 (59%, 49-68) | 21/100 (21%, 14-30) | 94/51/0 |
+| riemannian_sgld | lr 0.0001, 100 steps, T 0.001 | 101 | 92/100 (92%, 85-96) | 50/100 (50%, 40-60) | 0/100 (0%, 0-4) | 62/100 (62%, 52-71) | 18/100 (18%, 12-27) | 92/50/0 |
+| mc_optimizer | 3500 steps, 2 restarts, step frac 0.5 | 3501 | 91/100 (91%, 84-95) | 40/100 (40%, 31-50) | 6/100 (6%, 3-12) | 39/100 (39%, 30-49) | 18/100 (18%, 12-27) | 92/40/6 |
+<!-- /table:mg_headline -->
+
+**Precision of the "successes"** (1 deg start; the recorded config of each optimizer, and all configs of the optimizer pooled):
+
+<!-- table:mg_precision -->
+| optimizer | runs | n | n < 1 deg | error of the < 1 deg runs q25/50/75/90 | < 0.5 deg | < 0.1 deg | < 0.05 deg | < 0.02 deg |
+|---|---|---|---|---|---|---|---|---|
+| riemannian_adam_geoopt | recorded config | 100 | 96 | 0.262/0.472/0.705/0.857 | 53/100 (53%, 43-62) | 3/100 (3%, 1-8) | 1/100 (1%, 0-5) | 0/100 (0%, 0-4) |
+| riemannian_adam_geoopt | all configs | 4200 | 1872 | 0.261/0.468/0.717/0.867 | 1004/4200 (24%, 23-25) | 129/4200 (3%, 3-4) | 57/4200 (1%, 1-2) | 47/4200 (1%, 1-1) |
+| riemannian_adam_manual | recorded config | 100 | 94 | 0.245/0.415/0.647/0.840 | 58/100 (58%, 48-67) | 12/100 (12%, 7-20) | 5/100 (5%, 2-11) | 5/100 (5%, 2-11) |
+| riemannian_adam_manual | all configs | 4200 | 1801 | 0.270/0.473/0.734/0.890 | 951/4200 (23%, 21-24) | 141/4200 (3%, 3-4) | 79/4200 (2%, 2-2) | 62/4200 (1%, 1-2) |
+| riemannian_sgd_plain | recorded config | 100 | 88 | 0.229/0.420/0.657/0.854 | 54/100 (54%, 44-63) | 10/100 (10%, 6-17) | 5/100 (5%, 2-11) | 4/100 (4%, 2-10) |
+| riemannian_sgd_plain | all configs | 1500 | 402 | 0.347/0.542/0.795/0.920 | 181/1500 (12%, 11-14) | 23/1500 (2%, 1-2) | 14/1500 (1%, 1-2) | 12/1500 (1%, 0-1) |
+| riemannian_sgd_momentum | recorded config | 100 | 94 | 0.212/0.357/0.658/0.877 | 59/100 (59%, 49-68) | 11/100 (11%, 6-19) | 3/100 (3%, 1-8) | 1/100 (1%, 0-5) |
+| riemannian_sgd_momentum | all configs | 1500 | 567 | 0.296/0.511/0.749/0.921 | 272/1500 (18%, 16-20) | 38/1500 (3%, 2-3) | 17/1500 (1%, 1-2) | 6/1500 (0%, 0-1) |
+| riemannian_sgld | recorded config | 100 | 92 | 0.206/0.402/0.654/0.852 | 62/100 (62%, 52-71) | 4/100 (4%, 2-10) | 1/100 (1%, 0-5) | 0/100 (0%, 0-4) |
+| riemannian_sgld | all configs | 4500 | 1115 | 0.250/0.463/0.707/0.870 | 602/4500 (13%, 12-14) | 59/4500 (1%, 1-2) | 6/4500 (0%, 0-0) | 1/4500 (0%, 0-0) |
+| mc_optimizer | recorded config | 100 | 91 | 0.312/0.531/0.699/0.839 | 39/100 (39%, 30-49) | 5/100 (5%, 2-11) | 1/100 (1%, 0-5) | 0/100 (0%, 0-4) |
+| mc_optimizer | all configs | 3600 | 2602 | 0.378/0.592/0.763/0.882 | 966/3600 (27%, 25-28) | 125/3600 (3%, 3-4) | 61/3600 (2%, 1-2) | 23/3600 (1%, 0-1) |
+<!-- /table:mg_precision -->
+
+- The runs that end below 1.0 deg end at a median 0.47 deg (Adam, recorded config) and 0.53 deg (MC): under 0.1 deg in 3/100 and 5/100, under 0.02 deg in 0/100 and 0/100. Pooled over all configs at a 1 deg start, 47/4200 (Adam) and 23/3600 (MC) runs end under 0.02 deg (over all start offsets: 105/12600 and 32/10800). The sweep measured whether a method moves toward the truth at the 0.1-1 deg scale; it did not and could not show that any config reaches the 0.01-0.03 deg scale (the log resolution is 0.001 deg, so this is not a rounding limit).
+
+**By distance from the rotation axis.** The 100 sweep voxels have r_perp 75-563 um (median 370, 95% beyond 120 um).
+
+<!-- table:mg_by_rperp -->
+| runs | r_perp | < 1 deg | < 0.5 deg | median error of the < 1 deg runs |
+|---|---|---|---|---|
+| Adam (geoopt), recorded config | <277 um | 31/33 (94%, 80-98) | 17/33 (52%, 35-67) | 0.468 |
+| Adam (geoopt), recorded config | 277-412 um | 33/33 (100%, 90-100) | 18/33 (55%, 38-70) | 0.421 |
+| Adam (geoopt), recorded config | >=412 um | 32/34 (94%, 81-98) | 18/34 (53%, 37-69) | 0.483 |
+| MC, recorded config | <277 um | 29/33 (88%, 73-95) | 14/33 (42%, 27-59) | 0.517 |
+| MC, recorded config | 277-412 um | 29/33 (88%, 73-95) | 13/33 (39%, 25-56) | 0.531 |
+| MC, recorded config | >=412 um | 33/34 (97%, 85-99) | 12/34 (35%, 21-52) | 0.576 |
+| Adam (geoopt), all configs | <277 um | 624/1386 (45%, 42-48) | 305/1386 (22%, 20-24) | 0.511 |
+| Adam (geoopt), all configs | 277-412 um | 679/1386 (49%, 46-52) | 370/1386 (27%, 24-29) | 0.446 |
+| Adam (geoopt), all configs | >=412 um | 569/1428 (40%, 37-42) | 329/1428 (23%, 21-25) | 0.426 |
+| MC, all configs | <277 um | 865/1188 (73%, 70-75) | 318/1188 (27%, 24-29) | 0.594 |
+| MC, all configs | 277-412 um | 861/1188 (72%, 70-75) | 326/1188 (27%, 25-30) | 0.590 |
+| MC, all configs | >=412 um | 876/1224 (72%, 69-74) | 322/1224 (26%, 24-29) | 0.596 |
+| Adam (geoopt), recorded config (same hp id) | 12 um (ThreeVoxels) | 3/3 | 1/3 | 0.569 |
+| MC, recorded config (same hp id) | 12 um (ThreeVoxels) | 3/3 | 1/3 | 0.791 |
+| Adam (geoopt), all configs (3 voxels x configs) | 12 um (ThreeVoxels) | 79/126 (63%, 54-71) | 38/126 (30%, 23-39) | 0.526 |
+| MC, all configs (3 voxels x configs) | 12 um (ThreeVoxels) | 62/108 (57%, 48-66) | 14/108 (13%, 8-21) | 0.732 |
+<!-- /table:mg_by_rperp -->
+
+- Inside the sweep's range there is no detectable dependence on r_perp: the Spearman correlation of final error with r_perp is 0.02 (p = 0.85, n = 100 voxels) for the recorded Adam config and -0.04 (p = 0.70) for MC. At 12 um (ThreeVoxels), the fraction of all configs under 0.5 deg is 38/126 (Adam) and 14/108 (MC), against 22-27% (Adam) and 26-27% (MC) in the ManyGrains terciles. Adam is not worse near the axis by this pooled measure; MC is lower there. ThreeVoxels has 3 voxels, differing in voxel size and reflection set, so this does not isolate r_perp.
+
+**Each method at a comparable budget.** The sweep's budgets are 101-501 evaluations for the gradient methods and 101-3501 for MC; FindOptimal's MC is 200 steps and the whole finisher a median 2629 evaluations (T5 H3 realistic). Best config per budget class, selected by the fraction under 0.5 deg at a 1 deg start (selection on the same data: optimistic):
+
+<!-- table:mg_budget -->
+| optimizer | budget class | config | evaluations | < 1 deg, 1 deg start | < 1 deg, 2 deg start | < 0.5 deg, 1 deg start | median error of the < 1 deg runs | < 0.02 deg, 1 deg start | all configs in class, < 1 deg | all configs in class, < 0.5 deg |
+|---|---|---|---|---|---|---|---|---|---|---|
+| riemannian_adam_geoopt | <=200 steps | lr 0.0005, 100 steps, b1 0.95 | 101 | 88/100 (88%, 80-93) | 58/100 (58%, 48-67) | 61/100 (61%, 51-70) | 0.330 | 2/100 (2%, 1-7) | 1339/2800 (48%, 46-50) | 730/2800 (26%, 24-28) |
+| riemannian_adam_geoopt | 500-1000 steps | lr 0.0001, 500 steps, b1 0.9 | 501 | 88/100 (88%, 80-93) | 57/100 (57%, 47-66) | 61/100 (61%, 51-70) | 0.352 | 1/100 (1%, 0-5) | 533/1400 (38%, 36-41) | 274/1400 (20%, 18-22) |
+| riemannian_adam_manual | <=200 steps | lr 0.0001, 200 steps, b1 0.9 | 201 | 94/100 (94%, 88-97) | 49/100 (49%, 39-59) | 58/100 (58%, 48-67) | 0.415 | 5/100 (5%, 2-11) | 1287/2800 (46%, 44-48) | 680/2800 (24%, 23-26) |
+| riemannian_adam_manual | 500-1000 steps | lr 0.0001, 500 steps, b1 0.9 | 501 | 86/100 (86%, 78-91) | 53/100 (53%, 43-62) | 53/100 (53%, 43-62) | 0.432 | 9/100 (9%, 5-16) | 514/1400 (37%, 34-39) | 271/1400 (19%, 17-22) |
+| riemannian_sgd_plain | <=200 steps | lr 0.0001, 100 steps | 101 | 88/100 (88%, 80-93) | 52/100 (52%, 42-62) | 54/100 (54%, 44-63) | 0.420 | 4/100 (4%, 2-10) | 292/1000 (29%, 26-32) | 135/1000 (14%, 12-16) |
+| riemannian_sgd_plain | 500-1000 steps | lr 0.0001, 500 steps | 501 | 56/100 (56%, 46-65) | 37/100 (37%, 28-47) | 26/100 (26%, 18-35) | 0.534 | 3/100 (3%, 1-8) | 110/500 (22%, 19-26) | 46/500 (9%, 7-12) |
+| riemannian_sgd_momentum | <=200 steps | lr 1e-05, 200 steps, mom 0.5 | 201 | 94/100 (94%, 88-97) | 51/100 (51%, 41-61) | 59/100 (59%, 49-68) | 0.357 | 1/100 (1%, 0-5) | 567/1500 (38%, 35-40) | 272/1500 (18%, 16-20) |
+| riemannian_sgld | <=200 steps | lr 0.0001, 100 steps, T 0.001 | 101 | 92/100 (92%, 85-96) | 50/100 (50%, 40-60) | 62/100 (62%, 52-71) | 0.402 | 0/100 (0%, 0-4) | 842/3000 (28%, 26-30) | 459/3000 (15%, 14-17) |
+| riemannian_sgld | 500-1000 steps | lr 0.0001, 500 steps, T 0.001 | 501 | 75/100 (75%, 66-82) | 58/100 (58%, 48-67) | 47/100 (47%, 38-57) | 0.441 | 0/100 (0%, 0-4) | 273/1500 (18%, 16-20) | 143/1500 (10%, 8-11) |
+| mc_optimizer | <=200 steps | 100 steps, 2 restarts, step frac 0.5 | 101 | 88/100 (88%, 80-93) | 36/100 (36%, 27-46) | 49/100 (49%, 39-59) | 0.465 | 2/100 (2%, 1-7) | 635/900 (71%, 67-73) | 242/900 (27%, 24-30) |
+| mc_optimizer | 500-1000 steps | 500 steps, 2 restarts, step frac 0.5 | 501 | 88/100 (88%, 80-93) | 32/100 (32%, 24-42) | 49/100 (49%, 39-59) | 0.464 | 1/100 (1%, 0-5) | 1299/1800 (72%, 70-74) | 479/1800 (27%, 25-29) |
+| mc_optimizer | 3500 steps | 3500 steps, 5 restarts, step frac 0.5 | 3501 | 90/100 (90%, 83-94) | 35/100 (35%, 26-45) | 50/100 (50%, 40-60) | 0.461 | 2/100 (2%, 1-7) | 668/900 (74%, 71-77) | 245/900 (27%, 24-30) |
+<!-- /table:mg_budget -->
+
+- MC at 100 steps (best config, 49/100 under 0.5 deg, median error of the < 1 deg runs 0.465 deg) matches MC at 3500 steps (best config, 5 restarts, 50/100, 0.461 deg); pooled over each class 27% vs 27%. The recorded 3500-step, 2-restart config gives 39/100 and 0.531 deg. 200 steps were not run. The longer run bought no accuracy. The same holds for the gradient methods (Adam 100 steps 61/100, 500 steps 61/100). No gradient method in the sweep runs at the finisher's median 2629 evaluations.
+- **The sweep's MC stops early for the same reason.** In the recorded MC config at a 1 deg start the last accepted move comes before 10% of the budget in 92/99 (93%) of the runs that accepted, at a median step of 0.0007 deg, and the median final error is 0.579 deg; runs that never accepted end before the budget in 101/101 (3500 steps, 2 restarts), against 33/799 (4%) of the runs that accepted:
+
+<!-- table:mc_stopping -->
+| max steps | max restarts | n | ended before the budget | never accepted | ended early given never accepted | ended early given accepted | median evaluations |
+|---|---|---|---|---|---|---|---|
+| 100 | 0 | 900 | 174/900 (19%, 17-22) | 158/900 (18%, 15-20) | 157/158 (99%, 97-100) | 17/742 (2%, 1-4) | 101 |
+| 100 | 2 | 900 | 129/900 (14%, 12-17) | 101/900 (11%, 9-13) | 101/101 (100%, 96-100) | 28/799 (4%, 2-5) | 101 |
+| 100 | 5 | 900 | 96/900 (11%, 9-13) | 61/900 (7%, 5-9) | 59/61 (97%, 89-99) | 37/839 (4%, 3-6) | 101 |
+| 500 | 0 | 900 | 180/900 (20%, 18-23) | 157/900 (17%, 15-20) | 157/157 (100%, 98-100) | 23/743 (3%, 2-5) | 501 |
+| 500 | 2 | 900 | 139/900 (15%, 13-18) | 106/900 (12%, 10-14) | 106/106 (100%, 97-100) | 33/794 (4%, 3-6) | 501 |
+| 500 | 5 | 900 | 106/900 (12%, 10-14) | 73/900 (8%, 7-10) | 73/73 (100%, 95-100) | 33/827 (4%, 3-6) | 501 |
+| 1000 | 0 | 900 | 179/900 (20%, 17-23) | 157/900 (17%, 15-20) | 157/157 (100%, 98-100) | 22/743 (3%, 2-4) | 1001 |
+| 1000 | 2 | 900 | 135/900 (15%, 13-17) | 101/900 (11%, 9-13) | 101/101 (100%, 96-100) | 34/799 (4%, 3-6) | 1001 |
+| 1000 | 5 | 900 | 108/900 (12%, 10-14) | 68/900 (8%, 6-9) | 68/68 (100%, 95-100) | 40/832 (5%, 4-6) | 1001 |
+| 3500 | 0 | 900 | 175/900 (19%, 17-22) | 150/900 (17%, 14-19) | 150/150 (100%, 98-100) | 25/750 (3%, 2-5) | 3501 |
+| 3500 | 2 | 900 | 134/900 (15%, 13-17) | 101/900 (11%, 9-13) | 101/101 (100%, 96-100) | 33/799 (4%, 3-6) | 3501 |
+| 3500 | 5 | 900 | 106/900 (12%, 10-14) | 68/900 (8%, 6-9) | 68/68 (100%, 95-100) | 38/832 (5%, 3-6) | 3501 |
+<!-- /table:mc_stopping -->
+
+<!-- table:mc_headline_timing -->
+| start offset (deg) | n | ended before the budget | median accepts | step of last accept q25/50/75 | last accept before 10% of budget | step at last accept (deg) q25/50/75 | median final error (deg) |
+|---|---|---|---|---|---|---|---|
+| 1 | 100 | 2/100 (2%, 1-7) | 10 | 27/40/70 | 92/99 (93%, 86-97) | 0.0004/0.0007/0.0015 | 0.579 |
+| 2 | 100 | 2/100 (2%, 1-7) | 9 | 30/42/72 | 95/98 (97%, 91-99) | 0.0007/0.0029/0.0059 | 1.339 |
+| 5 | 100 | 5/100 (5%, 2-11) | 9 | 62/115/262 | 81/97 (84%, 75-90) | 0.0018/0.0073/0.0146 | 5.368 |
+<!-- /table:mc_headline_timing -->
+
+  This is the B1 mechanism seen in a different protocol. The MC final error (about 0.5 x the start offset at 1 deg) matches the October perturbation sweep's 0.55 r; both protocols use a box proportional to the start offset, so a step proportional to it. That the collapse of the step explains both is consistent with the B1 measurements and not tested here.
+
+**What the hybrid Adam benchmark recorded** (success is < 0.5 deg, the script's constant; 20 ManyGrains voxels, 3 ThreeVoxels voxels):
+
+<!-- table:hybrid -->
+| example | start offset (deg) | n | hybrid < 0.5 deg | MC < 0.5 deg | hybrid < 1 deg | MC < 1 deg | hybrid median error of < 0.5 deg runs | MC median error of < 0.5 deg runs | hybrid median error, all | MC median error, all | hybrid evaluations | MC evaluations | hybrid time (s) | MC time (s) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| manygrains | 0.5 | 20 | 20/20 (100%, 84-100) | 18/20 (90%, 70-97) | 20/20 (100%, 84-100) | 20/20 (100%, 84-100) | 0.224 | 0.249 | 0.224 | 0.259 | 4+303d | 3501 | 0.81 | 1.88 |
+| manygrains | 1 | 20 | 12/20 (60%, 39-78) | 9/20 (45%, 26-66) | 20/20 (100%, 84-100) | 20/20 (100%, 84-100) | 0.346 | 0.295 | 0.408 | 0.592 | 4+303d | 3501 | 0.81 | 1.88 |
+| manygrains | 2 | 20 | 1/20 (5%, 1-24) | 3/20 (15%, 5-36) | 5/20 (25%, 11-47) | 7/20 (35%, 18-57) | 0.355 | 0.078 | 1.101 | 1.429 | 4+303d | 3501 | 0.81 | 1.88 |
+| manygrains | 3 | 20 | 0/20 (0%, 0-16) | 2/20 (10%, 3-30) | 0/20 (0%, 0-16) | 4/20 (20%, 8-42) | n/a | 0.354 | 3.000 | 3.093 | 4+303d | 3501 | 0.81 | 1.88 |
+| manygrains | 5 | 20 | 0/20 (0%, 0-16) | 0/20 (0%, 0-16) | 0/20 (0%, 0-16) | 0/20 (0%, 0-16) | n/a | n/a | 5.431 | 7.178 | 4+303d | 3501 | 0.81 | 1.86 |
+| threevoxels | 0.5 | 3 | 3/3 (100%, 44-100) | 2/3 (67%, 21-94) | 3/3 (100%, 44-100) | 3/3 (100%, 44-100) | 0.274 | 0.229 | 0.274 | 0.259 | 4+303d | 3501 | 3.15 | 4.77 |
+| threevoxels | 1 | 3 | 2/3 (67%, 21-94) | 2/3 (67%, 21-94) | 3/3 (100%, 44-100) | 3/3 (100%, 44-100) | 0.306 | 0.376 | 0.463 | 0.459 | 4+303d | 3501 | 2.97 | 4.93 |
+| threevoxels | 2 | 3 | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | 1/3 (33%, 6-79) | n/a | n/a | 2.000 | 2.000 | 4+303d | 3501 | 2.93 | 4.79 |
+| threevoxels | 3 | 3 | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | 1/3 (33%, 6-79) | 0/3 (0%, 0-56) | n/a | n/a | 2.638 | 3.170 | 4+303d | 3501 | 2.88 | 4.87 |
+| threevoxels | 5 | 3 | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | n/a | n/a | 5.000 | 4.635 | 4+303d | 3501 | 2.93 | 4.78 |
+<!-- /table:hybrid -->
+
+<!-- table:hybrid_precision -->
+| example | optimizer | runs (offsets <= 1 deg) | final error q25/50/75 | minimum | < 0.5 deg | < 0.1 deg | < 0.02 deg |
+|---|---|---|---|---|---|---|---|
+| manygrains | hybrid | 40 | 0.168/0.326/0.436 | 0.079 | 32/40 (80%, 65-90) | 2/40 (5%, 1-17) | 0/40 (0%, 0-9) |
+| manygrains | mc | 40 | 0.237/0.351/0.589 | 0.057 | 27/40 (68%, 52-80) | 2/40 (5%, 1-17) | 0/40 (0%, 0-9) |
+| threevoxels | hybrid | 6 | 0.180/0.350/0.454 | 0.028 | 5/6 (83%, 44-97) | 1/6 (17%, 3-56) | 0/6 (0%, 0-39) |
+| threevoxels | mc | 6 | 0.267/0.376/0.586 | 0.199 | 4/6 (67%, 30-90) | 0/6 (0%, 0-39) | 0/6 (0%, 0-39) |
+<!-- /table:hybrid_precision -->
+
+- The hybrid (100 Adam steps at lr 1e-4 on the scale-2 differentiable cost, 2 restarts: 4 hard and 303 differentiable evaluations) and MC (3500 steps) end under 0.5 deg in 32/40 and 27/40 runs at offsets up to 1 deg (ManyGrains); at 2, 3 and 5 deg offsets the hybrid succeeds in 1/20, 0/20 and 0/20 and MC in 3/20, 2/20 and 0/20. Paired over the 100 (voxel, offset) pairs, 9 runs succeed only for the hybrid and 8 only for MC (McNemar p = 1.0; per voxel 6 ahead for each, sign test p = 1.0). Precision: final errors at offsets up to 1 deg have a median 0.326 deg (hybrid) and 0.351 deg (MC); 2/40 are under 0.1 deg for each and 0/40 under 0.02 deg. The recorded wall time is 0.81 s (hybrid) against 1.88 s (MC) per run (as recorded; not re-timed, no preflight; the differentiable evaluations are not the same cost as hard ones). No result in this file reaches the 0.01-0.03 deg scale either.
+
+**Measured versus deployed:**
+
+<!-- table:gap -->
+| aspect | measured | deployed | gap |
+|---|---|---|---|
+| success criterion | final error < 1 deg from a 1/2/5 deg start; recorded 96/41/0% (Adam), 92/40/6% (MC). At a 1 deg start this means 'ended below the start' | a finisher meant to end within about 0.01-0.03 deg of the truth | the criterion does not measure the deployed target |
+| precision of the 'successes' | median final error 0.47 deg (Adam) and 0.53 deg (MC); under 0.1 deg: 3/100 and 5/100; under 0.02 deg: 0/100 and 0/100 | finisher result median 0.0229 deg from the truth (T5, H3 realistic) | the sweep's successes are about 23x (MC) coarser than the finisher's result; the 0.01-0.03 deg scale was not measured |
+| MC settings | 3500 steps, 2 restarts, step frac 0.5; box = 1.5 x the start offset, step = 0.5 x box (0.75 deg at a 1 deg start) | 200 steps, 2 restarts, box 0.329 deg, step 0.1317 deg | different step scale, box and budget |
+| starting point | the truth rotated by exactly 1, 2 or 5 deg about a random axis | a coarse-search or network start; T5 H3 start error 0.088 deg (q25-q75 0.030-0.152) | the sweep's starts are 11x (1 deg) to 57x (5 deg) the T5 H3 median start error |
+| budget | Adam/SGD 101-501 evaluations (gradient evaluations); MC 101-3501; hybrid 4 hard + 303 differentiable | MC 200 steps, then VarianceMinimizing; whole finisher median 2629 evaluations (T5 H3) | MC at 101 and at 3501 evaluations give the same result (next row) |
+| matched budget (MC) | 100 steps (best config): 49/100 (49%, 39-59) under 0.5 deg at a 1 deg start, median error of the < 1 deg runs 0.465; 3500 steps (best config, 5 restarts): 50/100 (50%, 40-60), 0.461; pooled over each class 242/900 (27%, 24-30) vs 245/900 (27%, 24-30); the recorded 3500-step 2-restart config: 39/100 (39%, 30-49), 0.531 | 200 steps (not run in the sweep) | more MC steps bought no accuracy in the sweep between 100 and 3500 steps; 200 steps were not run |
+| data and voxels | ManyGrains: 100 voxels, r_perp 75-563 um (median 370); ThreeVoxels: 3 voxels at 12 um | per-voxel finisher on the reconstruction's voxels | no detectable r_perp dependence inside the sweep's range (Spearman of error vs r_perp, recorded Adam config: rho 0.02, p 0.85, n 100 voxels) |
+| MC stopping in the sweep | recorded MC config at a 1 deg start: last accepted move before 10% of the budget in 92/99 (93%, 86-97) | same rule, 200 steps | consistent with the step collapse measured in B1; never examined in the sweep |
+<!-- /table:gap -->
+
+**Answer.** The earlier MC-vs-optimizer comparison does not support the deployed FindOptimal configuration at the precision FindOptimal is used for. It was a coarse test (final error under 1.0 deg from 1-5 deg starts, 11-57x the T5 H3 start errors, with a box and step proportional to the start offset and a different budget); its "successes" end about 23x (MC) coarser than the finisher's result (0.53 deg against 0.0229 deg), and only 47/4200 (Adam, all configs) and 23/3600 (MC, all configs) sweep runs at a 1 deg start, and none of the hybrid benchmark's runs at offsets up to 1 deg, end under 0.02 deg. What it does support: from a 1 deg start the gradient methods and MC all reach about 0.35-0.55 deg (medians 0.357-0.531 for the recorded configs), MC at 100 steps is as good as MC at 3500 in that protocol (200 steps were not run), and there is no detectable r_perp dependence (Spearman, n = 100 voxels) inside 75-563 um. So deploying MC at 200 steps was not contradicted by the sweep, but it was also not tested by it: the deployed settings, the stopping behaviour and the 0.01-0.03 deg scale were not measured until T5 and B1.
+
+**Caveats (B2).** (a) The per-run ManyGrains CSV is absent; the log's 0.001 deg rounding makes "1.000" ambiguous (one MC run). (b) HP selection ("best config") is on the same runs; the pooled all-config rows are not selected. (c) The ManyGrains images are not on this machine, so the data conditions (neighbour overlap, noise) were not re-checked. (d) The hybrid and ThreeVoxels files have small n (3 voxels; 6 runs at offsets up to 1 deg). (e) The budget comparison is by configured steps; Adam/SGD evaluations are gradient evaluations.
 
 ### Phase C: the finisher inside the reconstruction
 - Add the chosen finisher(s) as an opt-in finisher in `refine_from_candidates`: default off, C++ parity, bit-identity
