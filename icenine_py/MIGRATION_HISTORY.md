@@ -3028,6 +3028,13 @@ p = 2.6e-07. Both rows are better than the baseline (1/6: 15 / 93, p = 6.4e-15; 
   realistic 0.220 vs 0.120.
 - Pooled over the 400 runs: neither is useful. Keep 1/6 is close (0.102 vs the pooled bound 0.099; total 50036 vs
   baseline 50798, -1.5%); keep 1/8 is not (0.165; total 49510, -2.5%). The plan does not say per variant or pooled; both are shown.
+- **Decision (main session).** The pooled verdict is the one that counts: it uses all 400 runs, and the per-variant pass
+  for keep 1/6 is within 0.005-0.018 of the bound on one seed. Neither keep 1/6 nor keep 1/8 is adopted. Against keep 1/4,
+  keep 1/6 is wrong in 18 more paired cases and right in 5 more (p = 0.011), and keep 1/8 is wrong in 47 more and right in
+  9 more (p = 2.6e-7). Measured on a single worker, keep 1/6 saves only 2.6% of wall time and keep 1/8 only 3.3%.
+  Tightening the keep fraction is therefore not a route to a run-time saving in the no-start case. Time is spent in the
+  global discrete search, which these settings barely change (global evaluations, pooled, -0.6% at keep 1/6 and -0.8% at keep 1/8).
+  The keep-1/4 proxy rerank stays the recommendation, for accuracy.
 - The keep-1/4 row itself is not useful by this definition: it uses more evaluations than the baseline (+3.1% realistic at the
   batched proxy cost, +2.3% clean), consistent with the earlier T3 result.
 - The reconstructor's own evaluation count falls with the keep fraction (global + local, clean 49190 baseline -> 50233 / 48756 / 48521;
