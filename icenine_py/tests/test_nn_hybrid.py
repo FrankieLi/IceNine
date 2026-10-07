@@ -28,6 +28,18 @@ def _import(name: str):
     the sweep scripts put in os.environ when imported."""
     keep = dict(os.environ)
     try:
+        if name == "summary":
+            # Load by path: other study dirs (coarse_proxy, ...) also have a `summary` module, and
+            # a plain import returns whichever one another test put in sys.modules first.
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location(
+                "_nn_hybrid_summary", ROOT / "scripts" / "nn_hybrid" / "summary.py"
+            )
+            assert spec is not None and spec.loader is not None
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
         return __import__(name)
     finally:
         for k in set(os.environ) - set(keep):
