@@ -682,6 +682,10 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
 - [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) — design of the
   current toy orientation network: data pipeline, `GNLayerNet`, training, evaluation, tests and results.
 
+- [`docs/batched_lowq_pass.md`](docs/batched_lowq_pass.md) — how the batched low-Q feature pass
+  (`FeatureExtractor.features_batch`, `--batched`) works, its two bit-identity pitfalls, the equality
+  test and the timing at batch 1/50/200.
+
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
 Orientation NN — Theory Phase" onward) for the step-by-step record.

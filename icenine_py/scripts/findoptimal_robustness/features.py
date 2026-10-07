@@ -276,7 +276,8 @@ class FeatureExtractor:
         The geometry of all candidates and peaks is one vectorised pass (shared by the two cost
         columns, which the per-candidate path recomputes twice); the aggregates are integer counts
         per candidate (exact in float64), so they equal the per-candidate means. The cost columns
-        need the C stage-D extension; without it this falls back to the per-candidate loop."""
+        need the C stage-D extension; without it this falls back to the per-candidate loop.
+        How it works and what must stay bit-identical: docs/batched_lowq_pass.md."""
         Rs = np.asarray(Rs, dtype=np.float64).reshape(-1, 3, 3)
         if len(Rs) == 0:
             return np.zeros((0, len(self.feature_names())))
