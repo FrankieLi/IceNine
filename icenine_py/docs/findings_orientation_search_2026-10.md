@@ -256,6 +256,20 @@ The effect of these continuations on reconstruction success has not been tested.
 - **Why does MC run out of restarts, and is MC the right local optimizer at all?** The April HP sweep compared methods
   by success from 1–5° starts, at 3500 MC steps. It did not measure final precision, nor FindOptimal's deployed
   configuration: 200 steps, a 0.33° box.
+  - *Phase B1 (`benchmarks/mc_mechanism/`):* the restart rule holds as written, and restarts are reachable only by runs
+    that never improve (78/78 both ways in H3 realistic; their start is 0.0232° from the truth against a 0.1317° step).
+    One improvement raises `min_ergodic` from 31 to 250, above the 200-step budget. Each improvement also halves the
+    step, and an improvement is cheap at any step up to the distance to the truth (probability 0.27–0.47). By the
+    third improvement the remaining travel is below the distance to the truth in 93% of the improving runs, and the
+    MC output is a median 0.0705° from the truth with probability 0 of an improving proposal at its own step in 89%
+    (0.28 at the best grid step, a median 0.0075°). The step that maximises expected cost progress is about the
+    distance to the truth. *Consistent with* this being why MC stops short; a step rule that follows the acceptance
+    rate is the hypothesis B3 tests.
+  - *Phase B2 (`benchmarks/sweep_audit/`):* the sweep's recorded 96% is "final error below 1.0°" from a 1° start, not
+    0.5°. Its successes end at a median 0.47° (Adam) and 0.53° (MC); 0/100 end under 0.02°. MC at 100 steps equals MC
+    at 3500 in that protocol, there is no r_perp dependence inside 75–563 µm, and the hybrid benchmark shows no
+    difference from MC (9 runs only hybrid, 8 only MC, McNemar p = 1.0). So the comparison neither tested nor
+    contradicts the deployed configuration at the 0.01–0.03° scale.
 - **A full-sample, end-to-end BFS reconstruction of the 500-grain sample with new orientations,** comparing classic
   BFS (C++-parity optimizers) with BFS using the network and hybrid finisher, on timing and accuracy.
 - **Other open items:**
