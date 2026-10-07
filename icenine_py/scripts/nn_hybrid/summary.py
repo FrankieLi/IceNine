@@ -29,7 +29,10 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 ICENINE_PY = HERE.parents[1]
 sys.path.insert(0, str(HERE.parent))
+sys.path.insert(0, str(HERE.parent / "common"))
 sys.path.insert(0, str(ICENINE_PY / "benchmarks"))
+
+import stats as shared_stats  # noqa: E402
 
 SWEEP_DIR = ICENINE_PY / "benchmarks" / "toy_orientation_sweep"
 OUT_DIR = ICENINE_PY / "benchmarks" / "nn_hybrid"
@@ -47,6 +50,9 @@ def fj(spec: str, xs: Any) -> str:
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> Tuple[float, float]:
+    """Wilson interval. Kept local on purpose: scripts/common/stats.wilson clamps to [0, 1], this
+    does not, and the committed summaries hold 1.0000000000000002 for k = n (T2 requires them to
+    regenerate byte-identical; the two differ by one ulp, only at k = 0 or k = n)."""
     if n == 0:
         return float("nan"), float("nan")
     p = k / n
@@ -180,13 +186,7 @@ def stats(e: np.ndarray, e_unred: Optional[np.ndarray]) -> Dict[str, float]:
 
 def win_rate(a: np.ndarray, b: np.ndarray) -> Tuple[float, float, int]:
     """(wins of a over b incl. half ties, tie fraction, n) over cases where both are finite."""
-    ok = np.isfinite(a) & np.isfinite(b)
-    if ok.sum() == 0:
-        return float("nan"), float("nan"), 0
-    d = a[ok] - b[ok]
-    tie = np.abs(d) < TIE_DEG
-    win = (d < -TIE_DEG).sum() + 0.5 * tie.sum()
-    return float(win / ok.sum()), float(tie.mean()), int(ok.sum())
+    return shared_stats.win_rate(a, b, tie=TIE_DEG)
 
 
 def pick(arr: np.ndarray, ri: int, vi: int, mask: np.ndarray) -> np.ndarray:
