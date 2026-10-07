@@ -8,11 +8,7 @@ fontsize: 11pt
 
 # Status
 
-**Deferred, not started.** The project owner asked to revisit this after the perturbation-sweep
-work (single-voxel sweep, comparison with MC/Adam/GN and the multi-level FindOptimal
-reconstruction) is finished. Results it builds on: `MIGRATION_HISTORY.md`, "Toy Orientation NN
-— Perturbation sweep (2026-10-04)" and its "Comparison with existing optimizers" subsection;
-`benchmarks/toy_orientation_sweep/`.
+**Done (2026-10-06): implemented as Tasks 1 and 3 of `feature/nn-hybrid-proxy-profiling`** (`scripts/nn_hybrid/`, results in `benchmarks/nn_hybrid/`, see `MIGRATION_HISTORY.md`, "Hybrid NN finisher, Q_max-8 cost proxy, run-time profiling"). Originally raised after the perturbation-sweep work (`MIGRATION_HISTORY.md`, "Toy Orientation NN — Perturbation sweep (2026-10-04)"; `benchmarks/toy_orientation_sweep/`). **Task 1 done (2026-10-06)**: net x3 -> seeded FindOptimal reaches a median of about 0.020 deg for r <= 3 (net alone 0.062-0.080, FindOptimal alone 0.037-2.98), with a net-failure tail at r = 3 (4.1% wrong); Huber GN -> net -> FindOptimal removes it (0.00% wrong for r <= 3, 2.3% at r = 5); the covariance-sized box and the net -> MC finisher did not help. Results: `MIGRATION_HISTORY.md`, "Task 1 results". **Task 3 (run-time, single worker, done)**: within 0.1 deg use H0 (FindOptimal alone); H3 is 3.3-3.9x faster than H0 + an ideal fallback pooled over r = 0.5-3, but only because of r >= 1.5 (below that H0 is faster); HG is the only finisher that helps at r = 5. The remaining open item is denser realism (full-sample renders).
 
 # Why
 

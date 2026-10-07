@@ -1,0 +1,150 @@
+Hybrid network -> FindOptimal: per-voxel images (<= 3 distractor sources), not full-sample
+renders. Noise pairing: H1 is the strictly paired hybrid (net pass 1 and the finisher see
+the same image); passes 2-3 and HG re-render. 'realistic' = the sweep variant 'all'.
+net model: clean_s0; voxels 50; radii [0.05, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0]
+
+Consistency checks:
+  H3: N1 vs sweep err_angle: n=9940, max |diff| = 2.72e-08 deg
+  H3: N3 vs sweep err_angle: n=9940, max |diff| = 1.86e-09 deg
+
+=== clean ===
+pass-1 successes per radius: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 940]; fall-backs (no net estimate): [0, 0, 0, 0, 0, 0, 0, 0, 0, 60]
+fall-back cases (60): H0: median 41.9 deg, wrong 100.0%; H3: median 41.9 deg, wrong 100.0%
+
+median error (deg, cubic-reduced) (clean)
+  r(deg)          H0        N1        N3        H3
+  0.05        0.0197    0.0105    0.0103    0.0103
+  0.1         0.0257    0.0107    0.0103    0.0103
+  0.25        0.0426    0.0109    0.0103    0.0103
+  0.5         0.0557    0.0103    0.0103    0.0102
+  0.75        0.0748    0.0104    0.0103    0.0103
+  1           0.0892    0.0107    0.0103    0.0103
+  1.5          0.234    0.0175    0.0103    0.0102
+  2             1.18    0.0282    0.0103    0.0103
+  3             3.07    0.0629    0.0103    0.0102
+  5             23.9     0.164    0.0104    0.0103
+
+RMS error (deg, reduced) (clean)
+  r(deg)          H0        N1        N3        H3
+  0.05        0.0357    0.0163    0.0161    0.0156
+  0.1         0.0452    0.0163    0.0161    0.0157
+  0.25        0.0675    0.0165    0.0161    0.0157
+  0.5          0.129    0.0163    0.0161    0.0156
+  0.75         0.189    0.0169    0.0161    0.0157
+  1            0.282    0.0179    0.0161    0.0155
+  1.5            1.9    0.0285    0.0161    0.0153
+  2             8.22    0.0439    0.0161    0.0157
+  3             19.4    0.0877    0.0161    0.0154
+  5             32.6     0.263    0.0163    0.0157
+
+RMS error (deg, unreduced) (clean)
+  r(deg)          H0        N1        N3        H3
+  0.05        0.0357    0.0163    0.0161    0.0156
+  0.1         0.0452    0.0163    0.0161    0.0157
+  0.25        0.0675    0.0165    0.0161    0.0157
+  0.5          0.129    0.0163    0.0161    0.0156
+  0.75         0.189    0.0169    0.0161    0.0157
+  1            0.282    0.0179    0.0161    0.0155
+  1.5            1.9    0.0285    0.0161    0.0153
+  2             8.22    0.0439    0.0161    0.0157
+  3             19.4    0.0877    0.0161    0.0154
+  5             32.6     0.263    0.0163    0.0157
+
+fraction < 0.1 deg (clean)
+  r(deg)          H0        N1        N3        H3
+  0.05         0.985         1         1         1
+  0.1          0.958         1         1         1
+  0.25         0.861         1         1         1
+  0.5          0.707         1         1         1
+  0.75         0.584         1         1         1
+  1            0.522         1         1         1
+  1.5          0.339     0.998         1         1
+  2            0.164     0.965         1         1
+  3            0.008     0.769         1         1
+  5                0     0.218         1         1
+
+wrong rate % [95% Wilson] (clean)
+  r(deg)                    H0                  N1                  N3                  H3
+  0.05          0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]
+  0.1           0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]
+  0.25          0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]
+  0.5           0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]
+  0.75          0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]
+  1             1.00 [0.5,1.8]      0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]
+  1.5        18.00 [15.7,20.5]      0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]
+  2          52.70 [49.6,55.8]      0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]
+  3          96.10 [94.7,97.1]      0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]
+  5        100.00 [99.6,100.0]      0.00 [0.0,0.4]      0.00 [0.0,0.4]      0.00 [0.0,0.4]
+
+paired win rate of H3 vs ... (ties = half; tie fraction in brackets) (clean)
+  r(deg)                N3              H0              H1              MC          Huber3
+  0.05         0.51 [0.95]     0.70 [0.10]                     0.82 [0.06]     0.59 [0.24]
+  0.1          0.51 [0.95]     0.77 [0.09]                     0.93 [0.02]     0.60 [0.24]
+  0.25         0.51 [0.95]     0.85 [0.05]                     0.98 [0.01]     0.60 [0.24]
+  0.5          0.52 [0.94]     0.89 [0.04]                     0.99 [0.00]     0.60 [0.24]
+  0.75         0.51 [0.94]     0.91 [0.02]                     1.00 [0.00]     0.59 [0.24]
+  1            0.51 [0.95]     0.92 [0.03]                     0.99 [0.00]     0.60 [0.24]
+  1.5          0.52 [0.94]     0.95 [0.02]                     1.00 [0.00]     0.60 [0.25]
+  2            0.51 [0.95]     0.98 [0.01]                     0.99 [0.00]     0.60 [0.24]
+  3            0.52 [0.94]     1.00 [0.00]                     1.00 [0.00]     0.60 [0.23]
+  5            0.51 [0.95]     1.00 [0.00]                     0.99 [0.00]     0.60 [0.25]
+
+mean cost evaluations per case (finisher) (clean)
+  r(deg)          H0        N1        N3        H3
+  0.05      2.33e+03       nan       nan  2.39e+03
+  0.1       2.22e+03       nan       nan  2.37e+03
+  0.25      1.76e+03       nan       nan  2.34e+03
+  0.5        1.1e+03       nan       nan  2.36e+03
+  0.75           930       nan       nan  2.35e+03
+  1              894       nan       nan  2.32e+03
+  1.5            671       nan       nan  2.33e+03
+  2              511       nan       nan  2.35e+03
+  3              404       nan       nan  2.34e+03
+  5              363       nan       nan  2.33e+03
+
+mean seconds per case by stage, 10 workers (contended), all radii (clean); FindOpt / VarMin / eval are inclusive
+  pipe     prepare    render   forward        GN   FindOpt    VarMin eval(all)  finisher   evals
+  H3         0.156     0.017     0.016     0.000     0.077     1.525     1.510     1.603     2349
+  H0 (stored findoptimal_b_raw): mean finisher seconds 0.818, evals 1123
+
+mean seconds per case by stage, 10 workers (contended), r = 1.5, 2, 3, 5 (clean); FindOpt / VarMin / eval are inclusive
+  pipe     prepare    render   forward        GN   FindOpt    VarMin eval(all)  finisher   evals
+  H3         0.156     0.016     0.016     0.000     0.077     1.519     1.505     1.597     2338
+  H0 (stored findoptimal_b_raw): mean finisher seconds 0.362, evals 489
+
+Success criteria, clean data (H3 = net x3 -> FindOptimal):
+  [MET    ] C1 H3 median <= 0.035 deg and fraction < 0.1 deg >= 0.9 for r <= 3: medians 0.0103, 0.0103, 0.0103, 0.0102, 0.0103, 0.0103, 0.0102, 0.0103, 0.0102; frac<0.1 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00
+  [MET    ] C2 H3 wrong <= 1% for r <= 3: 0.00%, 0.00%, 0.00%, 0.00%, 0.00%, 0.00%, 0.00%, 0.00%, 0.00%
+  [NOT MET] C3 H3 beats N3 in >= 70% paired for r <= 3: 0.51, 0.51, 0.51, 0.52, 0.51, 0.51, 0.52, 0.51, 0.52
+  [MET    ] C4 H3 beats H0 in >= 70% for r >= 0.75: r=0.75,1,1.5,2,3,5: 0.91, 0.92, 0.95, 0.98, 1.00, 1.00
+  [MET    ] C5 r <= 0.5: H3 median within 0.005 deg of H0 and win >= 45%: median diff -0.009, -0.015, -0.032, -0.046; win 0.70, 0.77, 0.85, 0.89
+  [NOT MET] C6 HG median <= 0.1 deg at r = 5: HG median nan
+
+Decision points, clean data:
+  D1 not evaluated (H1 or H3 missing)
+  D2 H3 above the 0.035 deg floor; fraction of cases in which the truth has a lower cost than the finisher's result (all cases and the tail); min-cost rule (needs BOTH the H0 and the H3 finisher, about 1.5x the H3 finisher cost):
+      r=0.05: H3 > 0.035 deg in 3% of cases. cost(truth) < cost(result): H3 all cases 99.8% (tail > 0.035 deg 100.0%); H0 all cases 94.4% (tail 100.0%). min-cost(H0,H3): median 0.0093 vs H3 0.0103, wrong 0.00% vs 0.00%
+      r=0.1: H3 > 0.035 deg in 4% of cases. cost(truth) < cost(result): H3 all cases 99.9% (tail > 0.035 deg 100.0%); H0 all cases 95.7% (tail 100.0%). min-cost(H0,H3): median 0.0095 vs H3 0.0103, wrong 0.00% vs 0.00%
+      r=0.25: H3 > 0.035 deg in 4% of cases. cost(truth) < cost(result): H3 all cases 100.0% (tail > 0.035 deg 100.0%); H0 all cases 97.7% (tail 100.0%). min-cost(H0,H3): median 0.0101 vs H3 0.0103, wrong 0.00% vs 0.00%
+      r=0.5: H3 > 0.035 deg in 3% of cases. cost(truth) < cost(result): H3 all cases 99.9% (tail > 0.035 deg 100.0%); H0 all cases 98.2% (tail 100.0%). min-cost(H0,H3): median 0.00994 vs H3 0.0102, wrong 0.00% vs 0.00%
+      r=0.75: H3 > 0.035 deg in 4% of cases. cost(truth) < cost(result): H3 all cases 100.0% (tail > 0.035 deg 100.0%); H0 all cases 98.5% (tail 100.0%). min-cost(H0,H3): median 0.0102 vs H3 0.0103, wrong 0.00% vs 0.00%
+      r=1: H3 > 0.035 deg in 3% of cases. cost(truth) < cost(result): H3 all cases 99.8% (tail > 0.035 deg 100.0%); H0 all cases 99.3% (tail 100.0%). min-cost(H0,H3): median 0.0102 vs H3 0.0103, wrong 0.00% vs 0.00%
+      r=1.5: H3 > 0.035 deg in 4% of cases. cost(truth) < cost(result): H3 all cases 99.6% (tail > 0.035 deg 100.0%); H0 all cases 99.6% (tail 100.0%). min-cost(H0,H3): median 0.0101 vs H3 0.0102, wrong 0.00% vs 0.00%
+      r=2: H3 > 0.035 deg in 4% of cases. cost(truth) < cost(result): H3 all cases 100.0% (tail > 0.035 deg 100.0%); H0 all cases 100.0% (tail 100.0%). min-cost(H0,H3): median 0.0102 vs H3 0.0103, wrong 0.00% vs 0.00%
+      r=3: H3 > 0.035 deg in 4% of cases. cost(truth) < cost(result): H3 all cases 99.6% (tail > 0.035 deg 100.0%); H0 all cases 100.0% (tail 100.0%). min-cost(H0,H3): median 0.0102 vs H3 0.0102, wrong 0.00% vs 0.00%
+  D3 not evaluated
+  D4 not evaluated
+  Post hoc (a): H3 falling back to HG where pass-1 sigma_max > tau (radii with HG):
+  Post hoc (b): min cost of H0 and H3 (needs both finishers; all radii):
+      r=0.05: median 0.0093 (H3 0.0103, H0 0.0197); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 36%
+      r=0.1: median 0.0095 (H3 0.0103, H0 0.0257); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 29%
+      r=0.25: median 0.0101 (H3 0.0103, H0 0.0426); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 17%
+      r=0.5: median 0.00994 (H3 0.0102, H0 0.0557); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 13%
+      r=0.75: median 0.0102 (H3 0.0103, H0 0.0748); wrong 0.00% (H3 0.00%, H0 0.00%); picks H0 11%
+      r=1: median 0.0102 (H3 0.0103, H0 0.0892); wrong 0.00% (H3 0.00%, H0 1.00%); picks H0 8%
+      r=1.5: median 0.0101 (H3 0.0102, H0 0.234); wrong 0.00% (H3 0.00%, H0 18.00%); picks H0 5%
+      r=2: median 0.0102 (H3 0.0103, H0 1.18); wrong 0.00% (H3 0.00%, H0 52.70%); picks H0 3%
+      r=3: median 0.0102 (H3 0.0102, H0 3.07); wrong 0.00% (H3 0.00%, H0 96.10%); picks H0 0%
+      r=5: median 0.0103 (H3 0.0103, H0 23.9); wrong 0.00% (H3 0.00%, H0 100.00%); picks H0 0%
+
+=== realistic === not evaluated (no pipeline data for this variant)

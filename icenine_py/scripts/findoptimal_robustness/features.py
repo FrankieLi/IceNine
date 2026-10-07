@@ -10,7 +10,7 @@ Pure functions of (orientation, images, voxel); deterministic.
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -55,11 +55,27 @@ class FeatureExtractor:
     """Built once per worker; `set_image(keys)` per case; `features(R, vertices, phase)` per
     candidate."""
 
-    def __init__(self, local_fn: Any, geo: Any, phase: int):
+    def __init__(self, local_fn: Any, geo: Any, phase: int, q_max: Optional[float] = None):
+        """q_max (default None = all reflections, the E2 behaviour): restrict the extractor to the
+        reflections with |q| <= q_max (Angstrom^-1). The peak table is then the full table
+        restricted to those reflections (`refl_full` maps its `refl` indices to the full list), the
+        aggregates (families <= q_max, detectors, CSL-aware) are those of the restricted peaks, and
+        the two cost columns are the local (pixel radius 0) and pixel-radius-3 costs of cost
+        functions built with max_q = q_max, so a low-Q feature vector needs no high-|q| work."""
         self.lf = local_fn
         self.geo = geo
+        self.q_max = q_max
         g_hkl, g_mag = local_fn._phase_recip_vecs[phase]
+        if q_max is None:
+            self.refl_full = np.arange(len(g_mag))
+        else:
+            self.refl_full = np.nonzero(g_mag.numpy() <= q_max)[0]
+            if len(self.refl_full) == 0:
+                raise ValueError(f"no reflection with |q| <= {q_max}")
+            sel = torch.from_numpy(self.refl_full)
+            g_hkl, g_mag = g_hkl[sel], g_mag[sel]
         self.g_hkl, self.g_mag = g_hkl, g_mag
+        self._lowq_costs: Optional[Tuple[Any, Any]] = None
         qm = np.round(g_mag.numpy().astype(np.float64), 3)
         self.q_levels = np.unique(qm)
         self.fam = np.searchsorted(self.q_levels, qm)  # |q| family index per reflection
@@ -213,6 +229,27 @@ class FeatureExtractor:
         )  # fmt: skip
 
     # -- features ---------------------------------------------------------------------------
+    def _low_q_cost_fns(self) -> Tuple[Any, Any]:
+        """Cost functions restricted to |q| <= q_max at pixel radius 0 and 3, sharing the images of
+        the local cost function (re-read at every call, so `attach_images` is followed)."""
+        from icenine.cost_functions import VoxelCostFunction
+
+        lf = self.lf
+        if self._lowq_costs is None:
+            self._lowq_costs = tuple(  # type: ignore[assignment]
+                VoxelCostFunction(
+                    simulator=lf.simulator, detector_list=lf.detector_list,
+                    range_map=lf.range_map, exp_data=lf.exp_data, sample=lf.sample,
+                    structure_list=lf.structure_list, mode="hard", eta_limit=lf.eta_limit,
+                    pixel_radius=pr, max_q=float(self.q_max), min_sin_eta=lf.min_sin_eta,
+                )
+                for pr in (0, 3)
+            )  # fmt: skip
+        assert self._lowq_costs is not None
+        for fn in self._lowq_costs:
+            fn.exp_data = lf.exp_data
+        return self._lowq_costs
+
     def feature_names(self) -> List[str]:
         return feature_names(self.n_fam, self.geo.n_det)
 
@@ -244,7 +281,12 @@ class FeatureExtractor:
                 rate0 = np.where(cnt > 0, (ns @ h0) / np.maximum(cnt, 1), 1.0)
                 rate3 = np.where(cnt > 0, (ns @ h3) / np.maximum(cnt, 1), 1.0)
                 f += [float(rate0.min()), float(rate3.min()), float(rate0.mean())]
-        if with_cost:
+        if with_cost and self.q_max is not None:
+            c0, c3 = self._low_q_cost_fns()
+            Rf = np.asarray(R, dtype=np.float32)
+            f += [float(c0.evaluate(Rf, vertices, phase).cost)]
+            f += [float(c3.evaluate(Rf, vertices, phase).cost)]
+        elif with_cost:
             lf = self.lf
             c_loc = lf.evaluate(np.asarray(R, dtype=np.float32), vertices, phase).cost
             old = lf.pixel_radius

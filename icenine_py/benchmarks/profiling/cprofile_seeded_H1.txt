@@ -1,0 +1,39 @@
+cProfile of H1: 5 cases, radius indices [1, 3, 6, 7, 8] (variants alternate clean / realistic, voxel 0, direction 0); wall under the profiler, s: [1.81, 1.47, 1.44, 0.99, 1.44]; top 30 by cumulative time
+         9925811 function calls (9914728 primitive calls) in 7.133 seconds
+
+   Ordered by: cumulative time
+   List reduced from 326 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        5    0.000    0.000    7.142    1.428 prof_seeded.py:71(run_pipeline)
+ 10928/25    0.056    0.000    7.117    0.285 stage_timer.py:111(wrapper)
+        5    0.000    0.000    6.886    1.377 run.py:271(refine_fo)
+        5    0.000    0.000    6.886    1.377 reconstructor.py:717(refine_from_candidates)
+    10908    0.907    0.000    6.420    0.001 cost_functions.py:766(evaluate)
+        5    0.007    0.001    6.353    1.271 orientation_search.py:592(variance_minimizing_optimize)
+      923    0.054    0.000    6.320    0.007 orientation_search.py:528(_zero_temp_with_variance)
+    10908    2.347    0.000    4.452    0.000 cost_functions.py:369(calculate_diffraction_overlap_batched)
+    10938    0.467    0.000    0.745    0.000 diffraction_core.py:59(get_scattering_omegas_torch)
+        5    0.004    0.001    0.529    0.106 orientation_search.py:378(optimize)
+  1677510    0.305    0.000    0.366    0.000 optimizer_sweep.py:181(get_image)
+  1666602    0.177    0.000    0.233    0.000 optimizer_sweep.py:163(get_binary_numpy)
+   109380    0.232    0.000    0.232    0.000 {method 'sum' of 'torch._C.TensorBase' objects}
+        5    0.000    0.000    0.229    0.046 perturbation_sweep.py:194(prepare_nominal)
+    10879    0.015    0.000    0.225    0.000 sampling.py:271(get_near_identity_point)
+        5    0.000    0.000    0.218    0.044 generate_toy_orientation_dataset.py:93(build_problem)
+        5    0.005    0.001    0.214    0.043 orientation_nn.py:157(define_roi_set)
+    10879    0.020    0.000    0.204    0.000 sampling.py:235(barycentric_to_quaternion)
+    10993    0.029    0.000    0.197    0.000 functional.py:225(einsum)
+    76153    0.161    0.000    0.183    0.000 sampling.py:125(slerp)
+   109255    0.171    0.000    0.171    0.000 {method 'reshape' of 'torch._C.TensorBase' objects}
+      558    0.001    0.000    0.167    0.000 orientation_nn.py:127(_project_all_detectors)
+     1056    0.011    0.000    0.165    0.000 orientation_nn.py:83(_project_peak_on_detector)
+    10993    0.160    0.000    0.160    0.000 {built-in method torch.einsum}
+    10908    0.155    0.000    0.155    0.000 {built-in method icenine._rasterize.stage_d_overlap}
+   123321    0.115    0.000    0.115    0.000 {built-in method torch.where}
+     2988    0.003    0.000    0.099    0.000 diffraction_core.py:620(get_illuminated_pixel)
+    22877    0.034    0.000    0.089    0.000 functional.py:1703(norm)
+    21816    0.055    0.000    0.081    0.000 shape_base.py:371(stack)
+    10908    0.008    0.000    0.062    0.000 _arraysetops_impl.py:144(unique)
+
+

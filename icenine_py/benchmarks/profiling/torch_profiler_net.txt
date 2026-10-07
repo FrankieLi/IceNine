@@ -1,0 +1,42 @@
+torch.profiler (CPU), net x3 stage of 6 cases (radius 2 deg, voxel 0, clean and realistic), threads=1
+record_function ranges (net::<stage>): total self+children CPU time in ms and calls
+  net::net                     total   1510.01 ms  calls    6  per call  251.668 ms
+  net::prepare                 total   1170.12 ms  calls   18  per call   65.007 ms
+  net::render                  total    240.97 ms  calls   12  per call   20.081 ms
+  net::render_distractors      total    147.51 ms  calls    6  per call   24.584 ms
+  net::forward                 total     97.21 ms  calls   18  per call    5.400 ms
+  net::render_physics          total     74.74 ms  calls   12  per call    6.228 ms
+  net::render_realism          total     15.25 ms  calls    6  per call    2.541 ms
+  net::decode                  total      7.87 ms  calls   18  per call    0.437 ms
+
+top operators by self CPU time:
+-------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                 Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
+-------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                         net::prepare        36.59%     552.539ms        77.49%        1.170s      65.007ms            18  
+                         aten::select         7.87%     118.898ms         9.53%     143.943ms       0.599us        240346  
+              net::render_distractors         4.88%      73.684ms         9.77%     147.507ms      24.584ms             6  
+                          aten::copy_         4.20%      63.454ms         4.20%      63.454ms       0.327us        193938  
+    aten::_nnpack_spatial_convolution         4.19%      63.277ms         4.19%      63.297ms       1.758ms            36  
+                       aten::_to_copy         3.92%      59.202ms         8.77%     132.377ms       0.862us        153495  
+                            aten::mul         3.25%      49.100ms         6.47%      97.676ms       1.455us         67126  
+                  net::render_physics         2.77%      41.842ms         4.95%      74.737ms       6.228ms            12  
+                            aten::add         2.67%      40.257ms         4.39%      66.226ms       0.982us         67444  
+                     aten::as_strided         2.25%      34.014ms         2.25%      34.014ms       0.110us        309748  
+                  aten::empty_strided         1.98%      29.881ms         1.98%      29.881ms       0.174us        172039  
+                             aten::to         1.91%      28.864ms        10.68%     161.241ms       0.968us        166497  
+                          aten::slice         1.89%      28.541ms         2.34%      35.316ms       0.665us         53084  
+                             aten::gt         1.77%      26.676ms         3.36%      50.715ms       2.204us         23010  
+                            aten::div         1.70%      25.659ms         3.06%      46.137ms       1.135us         40642  
+                            aten::dot         1.58%      23.906ms         2.38%      35.976ms       0.752us         47866  
+                          aten::empty         1.41%      21.342ms         1.41%      21.342ms       0.192us        111242  
+                            aten::abs         1.38%      20.849ms         2.30%      34.734ms       0.740us         46968  
+                            aten::sub         1.17%      17.724ms         1.19%      18.030ms       0.527us         34210  
+                           aten::item         1.15%      17.323ms         1.48%      22.308ms       0.297us         74987  
+                          aten::where         1.01%      15.260ms         1.14%      17.240ms       1.357us         12708  
+                            aten::cat         0.87%      13.199ms         0.92%      13.905ms       1.163us         11958  
+                    aten::bitwise_and         0.67%      10.126ms         0.67%      10.126ms       0.819us         12366  
+                             aten::eq         0.62%       9.428ms         1.25%      18.942ms       2.039us          9289  
+                         net::forward         0.52%       7.854ms         6.44%      97.207ms       5.400ms            18  
+-------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 1.510s

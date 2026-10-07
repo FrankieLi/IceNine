@@ -1,0 +1,39 @@
+cProfile of MCr: 5 cases, radius indices [1, 3, 6, 7, 8] (variants alternate clean / realistic, voxel 0, direction 0); wall under the profiler, s: [2.53, 2.2, 2.23, 2.22, 2.19]; top 30 by cumulative time
+         16718436 function calls (16688174 primitive calls) in 11.351 seconds
+
+   Ordered by: cumulative time
+   List reduced from 2258 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        5    0.000    0.000   11.365    2.273 prof_seeded.py:71(run_pipeline)
+        5    0.008    0.002   11.364    2.273 optimizer_sweep.py:421(run_mc_adam)
+ 17520/15    0.091    0.000   11.019    0.735 stage_timer.py:111(wrapper)
+        5    0.000    0.000   10.960    2.192 bench_hp_sweep.py:538(run_one_mc)
+        5    0.101    0.020   10.960    2.192 orientation_search.py:378(optimize)
+    17515    1.459    0.000   10.285    0.001 cost_functions.py:766(evaluate)
+    17515    3.778    0.000    7.113    0.000 cost_functions.py:369(calculate_diffraction_overlap_batched)
+    17515    0.753    0.000    1.200    0.000 diffraction_core.py:59(get_scattering_omegas_torch)
+  2711747    0.493    0.000    0.591    0.000 optimizer_sweep.py:181(get_image)
+   175150    0.371    0.000    0.371    0.000 {method 'sum' of 'torch._C.TensorBase' objects}
+    17500    0.024    0.000    0.362    0.000 sampling.py:271(get_near_identity_point)
+  2694232    0.291    0.000    0.342    0.000 optimizer_sweep.py:163(get_binary_numpy)
+    170/1    0.000    0.000    0.336    0.336 <frozen importlib._bootstrap>:1002(_find_and_load)
+    167/1    0.000    0.000    0.336    0.336 <frozen importlib._bootstrap>:967(_find_and_load_unlocked)
+    164/1    0.000    0.000    0.335    0.335 <frozen importlib._bootstrap>:659(_load_unlocked)
+    154/1    0.000    0.000    0.335    0.335 <frozen importlib._bootstrap_external>:844(exec_module)
+    225/1    0.000    0.000    0.334    0.334 <frozen importlib._bootstrap>:220(_call_with_frames_removed)
+    167/1    0.001    0.000    0.334    0.334 {built-in method builtins.exec}
+        1    0.000    0.000    0.334    0.334 bench_hp_sweep.py:2(<module>)
+    17500    0.033    0.000    0.326    0.000 sampling.py:235(barycentric_to_quaternion)
+       13    0.000    0.000    0.317    0.024 __init__.py:1(<module>)
+    17515    0.045    0.000    0.315    0.000 functional.py:225(einsum)
+    63/18    0.000    0.000    0.295    0.016 {built-in method builtins.__import__}
+   203/32    0.000    0.000    0.294    0.009 <frozen importlib._bootstrap>:1033(_handle_fromlist)
+   122500    0.259    0.000    0.294    0.000 sampling.py:125(slerp)
+   175150    0.276    0.000    0.276    0.000 {method 'reshape' of 'torch._C.TensorBase' objects}
+    17515    0.256    0.000    0.256    0.000 {built-in method torch.einsum}
+        1    0.000    0.000    0.247    0.247 pyplot.py:4(<module>)
+    17515    0.231    0.000    0.231    0.000 {built-in method icenine._rasterize.stage_d_overlap}
+   192665    0.180    0.000    0.180    0.000 {built-in method torch.where}
+
+

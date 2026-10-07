@@ -1,0 +1,24 @@
+{
+ "n": 2000,
+ "spearman_pooled": 0.860599712837207,
+ "spearman_within_case_mean": 0.7897062850059657,
+ "median_cost_own": 0.9863264556623932,
+ "median_cost_refined": 0.9791807852173127,
+ "median_drop": 0.0030737704918033515,
+ "frac_refined_lower": 0.7575,
+ "by_level": {
+  "0": {
+   "n": 1605,
+   "spearman": 0.810315351259381
+  },
+  "1": {
+   "n": 336,
+   "spearman": 0.8719838355215308
+  },
+  "2": {
+   "n": 58,
+   "spearman": 0.7828815935007828
+  }
+ },
+ "verdict": "regression label kept"
+}
