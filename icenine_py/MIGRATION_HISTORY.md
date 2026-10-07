@@ -2406,3 +2406,401 @@ Report: `docs/findoptimal_robustness_report.md`; scripts: `scripts/findoptimal_r
 - Trained classifier models live only in the gitignored cache (`scripts/findoptimal_robustness/cache/models/`); they must be retrained to be used.
 - All results use per-voxel images with at most 3 distractor sources, not full-sample renders.
 - F2/F3 are seed-0 subset estimates (wrong+right subset with implied overall rates).
+
+## Hybrid NN finisher, Q_max-8 cost proxy, run-time profiling
+
+Status: **complete** (started and finished 2026-10-06; completion summary at the end of this section). Branch `feature/nn-hybrid-proxy-profiling` with sub-task branches `feature/nn-hybrid-proxy-profiling-hybrid`, `-proxy` and `-profiling` (git cannot hold `feature/x/task` while `feature/x` exists, so the `/task` form of the gitflow rules was replaced by `-task`). Full plan: (plan file, deleted at completion). No changes to `icenine/reconstructor.py` are planned; evaluation counts and stage times come from wrappers in the scripts.
+
+**Task 1: hybrid network -> seeded FindOptimal** (`scripts/nn_hybrid/`, `benchmarks/nn_hybrid/`).
+Goal: does a network estimate, passed to `refine_from_candidates` (FindOptimal), beat the network alone and FindOptimal alone? Reuses the 50 voxels x 10 radii x 20 directions x 2 variants cases of the perturbation / FindOptimal sweeps, B's image and B's MC seed so results pair with `findoptimal_b_raw`. Pipelines: H0 FindOptimal alone; N1/N3 net x1 / x3 alone; H1 net x1 -> FO; H3 net x3 -> FO; H3c net x3 -> FO with a covariance-sized box b = clip(3 sigma_max, 0.329, 2.0 deg) (H3c: run, dropped, D3); H3m net x3 -> MC with box 3 sigma_max (H3m: run, dropped, D4); HG Huber GN x3 -> net x3 -> FO (r = 1.5, 2, 3, 5); post hoc rules (H3 falling back to HG when pass-1 sigma_max > tau; min cost of H0 and H3). Primary net `realistic_s0` on both variants; seed replicate `realistic_s1` (realistic, H3 only).
+Success (realistic): H3 median <= 0.035 deg and fraction < 0.1 deg >= 0.9 for r <= 3; wrong <= 1% for r <= 3; H3 beats N3 in >= 70% paired for r <= 3; H3 beats H0 in >= 70% for r >= 0.75; at r <= 0.5 H3 not worse than H0 (median within 0.005 deg, win >= 45%); HG median <= 0.1 deg at r = 5.
+Decision points: H1 within 0.005 deg of H3 at r <= 2 -> recommend x1; H3 stuck at the net's ~0.06 deg floor -> compare cost at truth vs at the result, try FO from the H0 result (min-cost rule); H3c not better than H3 where b > 0.329 -> drop the covariance box; H3m within 0.01 deg of H3 at under half the time -> H3m is the recommended finisher. Risk 8: if clean-data criteria fail, run H3 with `clean_s0` on clean data.
+Budget: ~3.5-4 h on 10 workers.
+
+**Task 2: Q_max-8 cost proxy as the pruning key** (`scripts/coarse_proxy/`, `benchmarks/coarse_proxy/`). Train low-Q (Q4/Q5) feature models on the E2 candidate set, labelled by "basin cost" (Q8 cost the candidate would reach if refined), as the `rank_key` for pruning; grain-disjoint folds; offline AUC / pruning recall, then end to end on 200 voxels x 2 variants vs baseline, F1, F1b, E2 rerank. Decision points D1 (Q5-only recall < 0.95 -> F-lowQ + cost8 only), D2 (recall at keep 1/8 >= 0.98 -> also run keep 1/8; row (ii) keep 1/8: not run, D2), D3 (regression vs classifier). Success: rerank wrong <= E2 rerank (4.0% / 4.5%) at less proxy time; or keep-1/8 wrong <= 5% at evaluations <= baseline; or proxy + F1 wrong <= F1 at fewer evaluations than F1b. Budget ~3 h.
+
+**Task 3: does the NN reduce total run time?** (`scripts/nn_hybrid/stage_timer.py`, profiling scripts). Use cases U0 (no start), U1 (start within 0.1 deg), U2 (start 0.5-3 deg); stage timers and evaluation counters by wrapping; single-worker interleaved timing with `OMP/MKL_NUM_THREADS=1`; cProfile and torch.profiler. "Helps" = >= 20% lower median wall time at matched accuracy (U0), beats H0 on time and accuracy (U1), >= 1.5x faster than H0 + fallback or the only method with wrong <= 1% (U2). Budget ~3.5 h single worker + 0.5 h profiling.
+
+Total budget ~10-11 h wall. Caveats carried in every table: per-voxel images (at most 3 distractor sources), not full-sample renders; noise is only strictly paired for pass 1 + finisher (H1 is the strictly paired hybrid).
+
+### Task 1 results: hybrid network -> seeded FindOptimal (2026-10-06)
+
+Code (reviewed and revised after the first write-up; numbers below are those of the regenerated summaries): `scripts/nn_hybrid/` (`run.py`, `summary.py`, `stage_timer.py`, `run_all.sh`), tests `tests/test_nn_hybrid.py`, results `benchmarks/nn_hybrid/` (`summary.txt` / `summary.json` are the full tables; `summary_s1_replicate.txt`, `summary_clean_s0_fallback.txt`, `pilot_summary.txt`, `wall_times.json`, raw `*_raw.npz`). Nothing in `icenine/` changed. Cases: 50 voxels x 10 radii x 20 directions x 2 variants = 20,000 per pipeline; metrics over the sweep's pass-1 success mask (9,000 cases per variant at r <= 3, and at r = 5 940 clean / 994 realistic: 9,940 clean + 9,994 realistic = 19,934 in all; the 60 clean and 6 realistic r = 5 cases whose pass 1 failed are fall-backs, FindOptimal from the start, counted in none of the tables; they have median 41.9 / 47.8 deg and 100% wrong, H0 and H3 identical). Error = cubic-reduced misorientation; wrong = > 1 deg; "realistic" is the sweep variant `all`. Net: `realistic_s0` on both variants.
+
+**Checks.** The net passes of the copied pass loop reproduce `perturbation_sweep_raw` err_angle to 2.4e-07 deg (19,934 cases); H0 (FindOptimal alone, our images and seeds) reproduces `findoptimal_b_raw` R_final bit-for-bit in 20,000/20,000 cases, with equal evaluation counts. `tests/test_findoptimal_refactor.py` still passes. Gotcha found: `findoptimal_b_raw` (and the new raws) store the voxel axis sorted by voxel index, the perturbation / optimizer / A raws in sweep order; everything is re-indexed.
+
+
+**Realistic data, median error (deg, cubic-reduced)**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.0189 | 0.0677 | 0.0207 | 0.0205 | 0.0214 | 0.0307 | - |
+| 0.1 | 0.0248 | 0.0623 | 0.0205 | 0.0197 | 0.0208 | 0.0313 | - |
+| 0.25 | 0.037 | 0.0652 | 0.0203 | 0.02 | 0.0219 | 0.0301 | - |
+| 0.5 | 0.0552 | 0.0667 | 0.0208 | 0.0212 | 0.0217 | 0.0304 | - |
+| 0.75 | 0.0739 | 0.0658 | 0.0212 | 0.02 | 0.0209 | 0.0301 | - |
+| 1 | 0.0905 | 0.0666 | 0.0207 | 0.0203 | 0.0207 | 0.0313 | - |
+| 1.5 | 0.223 | 0.062 | 0.0236 | 0.0207 | 0.0213 | 0.0294 | 0.0212 |
+| 2 | 0.869 | 0.073 | 0.034 | 0.0218 | 0.022 | 0.0332 | 0.0215 |
+| 3 | 2.98 | 0.0803 | 0.0945 | 0.0214 | 0.0225 | 0.0407 | 0.0199 |
+| 5 | 6.02 | 1.3 | 4.3 | 0.175 | 0.132 | 1.25 | 0.0199 |
+
+**Realistic data, fraction < 0.1 deg**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.990 | 0.640 | 0.973 | 0.978 | 0.957 | 0.816 | - |
+| 0.1 | 0.961 | 0.664 | 0.974 | 0.980 | 0.960 | 0.836 | - |
+| 0.25 | 0.862 | 0.644 | 0.974 | 0.976 | 0.961 | 0.842 | - |
+| 0.5 | 0.720 | 0.654 | 0.979 | 0.978 | 0.963 | 0.839 | - |
+| 0.75 | 0.570 | 0.647 | 0.970 | 0.975 | 0.966 | 0.832 | - |
+| 1 | 0.533 | 0.650 | 0.979 | 0.973 | 0.960 | 0.830 | - |
+| 1.5 | 0.339 | 0.664 | 0.953 | 0.971 | 0.950 | 0.836 | 0.978 |
+| 2 | 0.172 | 0.613 | 0.844 | 0.962 | 0.942 | 0.801 | 0.971 |
+| 3 | 0.012 | 0.568 | 0.508 | 0.916 | 0.908 | 0.740 | 0.973 |
+| 5 | 0.000 | 0.238 | 0.016 | 0.472 | 0.480 | 0.308 | 0.958 |
+
+**Realistic data, wrong rate (> 1 deg, %)**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.1 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.25 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.5 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.75 | 0.10 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 1 | 0.90 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 1.5 | 15.90 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| 2 | 46.80 | 0.70 | 1.10 | 0.10 | 0.30 | 0.70 | 0.00 |
+| 3 | 94.60 | 6.70 | 19.40 | 4.10 | 3.90 | 6.60 | 0.00 |
+| 5 | 100.00 | 52.92 | 95.17 | 43.56 | 40.34 | 52.21 | 2.31 |
+
+**Clean data, median error (deg, cubic-reduced)**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.0197 | 0.0111 | 0.0105 | 0.0105 | 0.0105 | 0.00847 | - |
+| 0.1 | 0.0257 | 0.0111 | 0.0114 | 0.0104 | 0.0104 | 0.00895 | - |
+| 0.25 | 0.0426 | 0.0111 | 0.0123 | 0.0105 | 0.0105 | 0.00871 | - |
+| 0.5 | 0.0557 | 0.0111 | 0.0131 | 0.0105 | 0.0105 | 0.009 | - |
+| 0.75 | 0.0748 | 0.011 | 0.0151 | 0.0105 | 0.0105 | 0.00865 | - |
+| 1 | 0.0892 | 0.0111 | 0.0165 | 0.0105 | 0.0105 | 0.0089 | - |
+| 1.5 | 0.234 | 0.011 | 0.0178 | 0.0105 | 0.0105 | 0.00887 | 0.0104 |
+| 2 | 1.18 | 0.011 | 0.0181 | 0.0105 | 0.0105 | 0.00835 | 0.0105 |
+| 3 | 3.07 | 0.0111 | 0.0206 | 0.0107 | 0.0107 | 0.00833 | 0.0105 |
+| 5 | 23.9 | 0.0111 | 0.0365 | 0.0107 | 0.0107 | 0.00915 | 0.0105 |
+
+**Clean data, fraction < 0.1 deg**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.985 | 1.000 | 1.000 | 1.000 | 1.000 | 0.998 | - |
+| 0.1 | 0.958 | 1.000 | 1.000 | 0.999 | 0.999 | 1.000 | - |
+| 0.25 | 0.861 | 1.000 | 1.000 | 0.999 | 0.999 | 0.998 | - |
+| 0.5 | 0.707 | 1.000 | 1.000 | 1.000 | 1.000 | 0.999 | - |
+| 0.75 | 0.584 | 1.000 | 0.998 | 1.000 | 1.000 | 1.000 | - |
+| 1 | 0.522 | 1.000 | 0.997 | 1.000 | 1.000 | 0.998 | - |
+| 1.5 | 0.339 | 1.000 | 0.997 | 0.999 | 0.999 | 0.997 | 0.999 |
+| 2 | 0.164 | 1.000 | 0.990 | 0.999 | 0.999 | 0.998 | 1.000 |
+| 3 | 0.008 | 1.000 | 0.965 | 1.000 | 1.000 | 1.000 | 1.000 |
+| 5 | 0.000 | 1.000 | 0.871 | 0.999 | 0.999 | 0.999 | 0.999 |
+
+**Clean data, wrong rate (> 1 deg, %)**
+
+| r (deg) | H0 | N3 | H1 | H3 | H3c | H3m | HG |
+|---|---|---|---|---|---|---|---|
+| 0.05 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.1 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.25 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.5 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 0.75 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 1 | 1.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | - |
+| 1.5 | 18.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| 2 | 52.70 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| 3 | 96.10 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| 5 | 100.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+
+
+Paired win rates (realistic, ties half; full tables incl. MC and Huber in `summary.txt`): H3 vs N3 0.79-0.81 for every r <= 3 (0.68 at r = 5); H3 vs H0 0.49, 0.55, 0.68, 0.75, 0.81, 0.83, 0.87, 0.93, 0.98, 0.88 for r = 0.05 ... 5; H3 vs H1 about 0.50 for r <= 1.5, 0.64 (r = 2), 0.79 (r = 3), 0.85 (r = 5); HG vs H3 0.50 / 0.51 / 0.53 / 0.78 at r = 1.5 / 2 / 3 / 5. Mean finisher cost evaluations per case (realistic): H0 3060 at r = 0.05, 2260 at 0.25, 1300 at 0.5, 696 at 1.5, 373 at 5; H1 about 2900 (r <= 1), 2360 (r = 2), 1290 (r = 3); H3 2890-3070 (r <= 3), 1730 (r = 5); H3c about 2420; H3m about 2240; HG 2940-3620.
+
+**Time (10 workers, contended, mean seconds per realistic case; all radii).** Net stage: prepare 0.13 + render 0.06 + forward pass 0.015, about 0.2 s per case (about 0.15 s without the harness rendering). Finisher: H0 0.93 s (1358 evaluations), H1 1.67 s (2438), H3 1.93 s (2829), H3c 1.60 s (2344), H3m 1.58 s (2313), HG 2.18 s (3222) plus 0.25 s Huber GN. About 94% of the finisher time is cost evaluations (about 0.65 ms each: H3 1.82 s of evaluations in a 1.93 s finisher). Time inclusive of its evaluations: FindOptimal 0.11 s and VarianceMinimizing 1.82 s for H3. VarianceMinimizing time depends on how close the start is to the truth (H0: 1.98 s at r = 0.05 falling to 0.15 s at r = 5; H3: about 1.9 s at every r <= 3); `converged` is False in every case of every pipeline, H0 included, and `refine_from_candidates` always runs VarianceMinimizing, so no convergence explanation is offered. On the radii common to all pipelines (r = 1.5, 2, 3, 5; `summary.txt`) the finisher takes H0 0.35 s (511 evaluations), H1 1.16 s (1700), H3 1.84 s (2682), H3c 1.53 s (2227), H3m 1.64 s (2398), HG 2.18 s (3222), so HG costs +0.34 s over H3 there (plus 0.25 s of Huber GN, a figure that includes the harness's own prepare / render of GN passes 2-3). The stored H3m times include harness work (pixel grouping and the start / truth quality evaluations of `run_mc_adam`, and its stage appears under the old name `find_optimal`); `run.py` now times only the MC (`o["seconds"]`, stage `mc_optimize`): on one voxel the same bit-identical H3m result took 0.65 s against 0.79 s stored (about 18% less), which biases D4's time ratio against H3m, but D4 is decided on accuracy. Pipeline wall times (10 workers, `wall_times.json`): H3 66 min, H0 36, H1 61, H3c 11 (copies H3 where the box is not larger), H3m 43, HG 32 (4 radii), s1 replicate 37 (realistic only), clean_s0 fall-back about 30; total about 5 h, longer than the planned 3.5-4 h because the hybrid finishers start near the truth and run about twice as long as H0 on average.
+
+**Success criteria (realistic, `realistic_s0`).**
+- C1 H3 median <= 0.035 deg and fraction < 0.1 deg >= 0.9 for r <= 3: **MET** (medians 0.0197-0.0218 deg, fraction 0.916-0.980; worst r = 3 with 0.916).
+- C2 H3 wrong <= 1% for r <= 3: **NOT MET** only at r = 3 (4.10%, interval 3.0-5.5); r = 2 is 0.10%, all r <= 1.5 are 0.00%. (N3 has 6.7% at r = 3, H1 19.4%.)
+- C3 H3 beats N3 in >= 70% paired for r <= 3: **MET** (0.79-0.81).
+- C4 H3 beats H0 in >= 70% for r >= 0.75: **MET** (0.81, 0.83, 0.87, 0.93, 0.98, 0.88).
+- C5 at r <= 0.5 H3 not worse than H0 (median within 0.005 deg, win >= 45%): **MET** (median H3 - H0 = +0.002, -0.005, -0.017, -0.034 deg at r = 0.05, 0.1, 0.25, 0.5; win 0.49, 0.55, 0.68, 0.75). At r = 0.05 H0 is marginally better (0.0189 against 0.0205 deg).
+- C6 HG median <= 0.1 deg at r = 5: **MET** (0.0199 deg; 2.31% wrong, interval 1.5-3.4; H3 at r = 5: median 0.175 deg, 43.6% wrong).
+Seed replicate (`realistic_s1`, H3 only): C3-C5 met; C1 not met (median 0.0237 deg but fraction < 0.1 deg 0.887 at r = 3 against 0.9); C2 not met at r = 3 (7.4%) and r = 2 (1.1%), 0.2% at r = 1.5; medians 0.0207-0.0237 deg for r <= 3; wins vs N3 0.79-0.81, vs H0 0.79-0.94 for r >= 0.75. So the r = 3 corner is borderline for C1 and fails C2 in both seeds, and r = 2 is 0.1% / 1.1% wrong.
+Clean data (H3): C1, C2, C4, C5, C6 met (median 0.0104-0.0107 deg, wrong 0.00% at every radius, H3 beats H0 0.91-1.00 for r >= 0.75). C3 reads "not met" (0.52) only because H3 and N3 agree within the 0.002 deg tie band in 93% of cases: the net alone already reaches 0.011 deg on clean data and FindOptimal adds nothing. Because of that formal miss the risk-8 fall-back was run: H3 with `clean_s0` on clean data gives the same picture (median 0.0102-0.0103 deg, wrong 0.00% everywhere, wins vs H0 0.91-1.00, vs N3 0.51-0.52 = ties; `summary_clean_s0_fallback.txt`), so the clean-data conclusion does not depend on the network.
+
+**Decision points.**
+- D1 (H1 within 0.005 deg of H3 at r <= 2 -> recommend x1): median H1 - H3 = +0.0003, +0.0008, +0.0002, -0.0004, +0.0012, +0.0004, +0.0029, +0.0122 deg for r = 0.05 ... 2, so within 0.005 up to r = 1.5 but not at r = 2; H1 is also worse in the tail (r = 2: 1.10% wrong against 0.10%; r = 3: 19.4% against 4.1%; fraction < 0.1 deg 0.844 against 0.962 at r = 2). **Decision: keep x3** (x1 is equivalent for r <= 1.5 and saves two net passes, about 0.2 s of preparation and rendering, but the finisher time is unchanged).
+- D2 (H3 stuck at a floor): the net's floor is 0.065 deg; H3 reaches 0.020 deg, but 25-30% of its cases stay above 0.035 deg. The finisher's result has a higher cost than the truth in about 96% of ALL cases (H3: 95.3-96.6% per radius for r <= 3, 95.5% at r = 0.05, 95.8% at r = 3; H0: 93.8% at r = 0.05 rising to 100% at r = 3), not only in the tail (97.5-100%), so the finisher generally stops before the cost minimum; the cause (step size, variance stopping rule, or MC stochasticity) is not diagnosed (the earlier "flat plateau" reading was unsupported). The min-cost rule (b) of H0 and H3 (needs both finishers, about 1.5x the H3 finisher cost: H0 adds on average 0.93 s and 1358 evaluations, 3060 at r = 0.05) lowers the median to 0.0137-0.0214 deg (0.0137 against 0.0205 at r = 0.05, 0.0181 against 0.0200 at r = 0.75, 0.0214 unchanged at r = 3), H0 being chosen in 59% of cases at r = 0.05, 12% at r = 1.5, 2% at r = 3, and leaves the wrong rate unchanged (r = 3: 4.00% against 4.10%). The plan's extra FindOptimal from the H0 result was not run (the min-cost rule is the cheaper version of it, since the H0 run is already available in the study).
+- D3 (H3c vs H3 where b > 0.329 deg): b exceeds the default box in 160-192 of 1000 cases per radius at r <= 3 (540 of 994 at r = 5). Pooled over those 2093 cases H3c is worse: median 0.0494 against 0.0339 deg, H3c wins 43%. Per-radius medians 0.034-0.041 against 0.022-0.030 deg; wrong rates equal or slightly lower only at r = 3 (10.9% against 12.0% in that subset) and r = 5 (61.5% against 67.4%), higher at r = 2 (1.64% against 0.55%). **Decision: drop the covariance box.**
+- D4 (H3m within 0.01 deg of H3 at under half the time): realistic: median H3m - H3 = +0.009 to +0.019 deg and time 0.75-0.80 of H3 (not under half), fraction < 0.1 deg 0.82-0.84 against 0.97-0.98 for r <= 1.5 (0.801 against 0.962 at r = 2, 0.740 against 0.916 at r = 3): **no, H3m is not recommended** (the stored H3m times include harness work, see Time; removing it would give about 0.62x, still not under half). Clean data: H3m is 0.0014-0.0023 deg better at 0.33-0.39x the time, because on clean data FindOptimal and the variance loop add nothing; that is a property of the clean data, not a recommendation for the realistic case.
+- Post hoc (a), falling back to HG where the pass-1 predicted sigma_max exceeds tau: sigma_max does not flag the failures. tau = 0.1 deg selects HG in 22% / 46% / 82% / 99% of cases at r = 1.5 / 2 / 3 / 5 and gives 0.00% / 0.00% / 1.00% / 2.92% wrong; tau >= 0.2 selects HG in 1-5% of cases at r <= 3 and leaves r = 3 at 4.1% and (tau = 0.2) r = 5 at 37.6% wrong. HG alone is 0.00% at r <= 3 and 2.31% at r = 5, so a sigma_max rule is no better than using HG whenever a large start (r >= 2) is possible.
+
+**Findings.** (1) Net x3 -> FindOptimal (H3) has a median of about 0.020 deg at every r <= 3, 3x lower than the net alone (0.062-0.080) and lower than FindOptimal alone for r >= 0.25 (0.037-2.98 deg); H0 is marginally better at r = 0.05 (0.0189 against 0.0205 deg) and H3 slightly better at r = 0.1 (0.0197 against 0.0248, win 0.55). (2) Its remaining tail is a net failure (r = 3: 4.1% wrong, r = 5: 43.6%), which FindOptimal's 0.33 deg box cannot repair. (3) Huber Gauss-Newton x3, then net x3, then FindOptimal (HG) removes the tail: median 0.020-0.021 deg and 0.00% wrong for r = 1.5-3, 2.31% wrong at r = 5, for +0.25 s of GN and, on the common radii 1.5-5, +0.34 s finisher time over H3 (2.18 s against 1.84 s); it ties H3 at r = 1.5-2 (win 0.50 / 0.51), is better at r = 3 (0.53) and r = 5 (0.78). (4) With a start known to be within 0.1 deg, H0 and H3 cost the same number of evaluations (about 3000), H0 is marginally more accurate at r = 0.05 and H3 slightly more accurate at r = 0.1; H3's evaluation count stays near 2900 while H0's falls with r (1300 at 0.5, 696 at 1.5), so for starts this close FindOptimal alone is the cheaper choice for the same accuracy and the hybrid pays only where H0's accuracy degrades (win rates 0.68-0.75 at r = 0.25-0.5, Task 3 quantifies the time on one worker).
+
+**Caveats.** Per-voxel images (at most 3 distractor sources), not full-sample renders. Noise pairing: the finisher always sees case B's image; the net's pass 1 sees the same noise, but passes 2-3 (and the HG net stage) re-render the windows, so only H1 is strictly paired; H3 / HG results are paired in voxel, direction and truth but not in the noise of the net's later passes. Times are 10-worker contended times; single-worker times belong to Task 3. The second net seed (`realistic_s1`) was run for H3 only. H3m uses the optimizer sweep's MC (hard pixel cost, 3500 steps x 2 restarts), not the reconstructor's cost function. The sub-task branch is `feature/nn-hybrid-proxy-profiling-hybrid`, because git cannot hold `feature/nn-hybrid-proxy-profiling` and `feature/nn-hybrid-proxy-profiling/hybrid` together.
+
+### Task 2 results: Q_max-8 cost proxy as the pruning key (2026-10-06)
+
+Code: `scripts/coarse_proxy/` (`lowq_dataset.py`, `labels.py`, `models.py`, `endtoend.py`, `timing.py`, `summary.py`, shared `base.py`), the optional `q_max` of `scripts/findoptimal_robustness/features.py` (default None = the E2 features, bit-identical; tested against the stored E2 table), an optional `--cache-root` of `f1_run.py`, tests `tests/test_coarse_proxy.py`. Results: `benchmarks/coarse_proxy/` (`summary.txt` / `summary.json` hold every number below; `offline_metrics.*`, `label_validation.json`, `qlevels.json`, `timing.json`). Caches (gitignored): `scripts/coarse_proxy/cache/`. Nothing in `icenine/` changed. Branch `feature/nn-hybrid-proxy-profiling-proxy` (the plan's `.../proxy` name is blocked by the existing parent ref).
+
+**Q levels (verified, `qlevels.json`).** `FeatureExtractor.q_levels` = 3.015, 3.481, 4.923, 5.773, 6.029, 6.962, 7.587, 7.784 with 8, 6, 12, 24, 8, 6, 24, 24 reflections (112 in all). |q| <= 3: no reflection (Q3 dropped); <= 4: {111}, {200} (14 reflections); <= 5: adds {220} (26). Exactly the plan's expectation. The cut-off is `max_q` in Angstrom^-1, as in `VoxelCostFunction`.
+
+**Label choice (`labels.py`).** Regression target `y_bcost` = the Q8 local cost a candidate would reach if refined: within 3 deg of the truth -> cost at the truth after `refine_from_candidates([truth])`; within 3 deg of an exact Sigma <= 29 relative -> cost after a short refinement of that relative (quick MC of the last level, then one MC of up to 200 steps, box 0.329 deg; 270 relatives per case, about 20 s per case on one worker); otherwise censored = the candidate's own cost (harvested candidates; synthetic ones without a label). Never the candidate's own cost for a truth-basin or relative-basin candidate. Counts over the 360k E2 candidates: truth basin 17,688; relative basin 199,721; censored 134,367; unlabelled 8,220. Classification labels: y3 (< 3 deg), y1 (< 1 deg), level-matched y_lm (y3 at levels 0-2 and synthetic, y1 at level 3 and FindOptimal results). The label values themselves are nearly bimodal: the truth-basin cost is 0.068 (clean; 10-90% over the 200 cases 0.043-0.095) / 0.263 (realistic; 0.207-0.308), the short-refined relatives have a median cost of 0.963 / 0.969 (median over cases of the per-case median) and the censored candidates are near 1, so the regression is mostly a basin detector. The censored branch was validated on 2,000 random censored harvested candidates (5 per case) refined with the same short procedure: **Spearman 0.861 pooled**, which passes the 0.8 threshold; but ranking happens within a case and level, and there the picture is borderline: mean within case 0.790 (< 0.8), by level 0.810 / 0.872 / 0.783 for L0 / L1 / L2 (L2 below 0.8). The regression label was kept on the pooled criterion; D3 shows the classifiers tie it offline (0.977 vs 0.977 pooled recall), so the fallback to the classifiers would not have changed the offline recall. The refinement lowers the cost only slightly (median 0.986 -> 0.979, lower for 75.8%), i.e. the censored labels are close to their refined values in rank but are almost all near 1.
+
+**Offline protocol.** 4 grain-disjoint folds (`e2_models.fold_of`; tested), HistGradientBoosting (classifiers: the E2 model; regressors: same hyper-parameters), trained on clean + realistic together and on every candidate incl. the synthetic ones (built from the truth, so training-only information), tested on held-out grains. Sets A (contested harvested), C (basin vs harvested near-CSL) and the pruning recall D / final precision E are harvested candidates; set B is synthetic and reported as such. D = per (voxel, variant, seed, level) group, is the best basin candidate (< 3 deg; < 1 deg at level 3) among the max(1, int(n x frac)) best by the score. E2 full 62-feature GBT reproduces the earlier pooled L0-2 recall (0.985). "hand" = mean of overall hit0, hit_any, hit1, hit3 (untrained). "+c8" adds the free post-quick-MC Q8 local cost, "cache" = low-Q columns of the cached full E2 table (needs the full pass, so not deployable), "lowq" = a new pass over the |q| <= Q reflections plus costs at max_q = Q. rho = Spearman of the score with -y_bcost (harvested labelled candidates); for classifiers it is only a sanity number.
+
+**Offline, test on clean data (held-out grains).**
+
+| model | AUC A | AUC B | AUC C | recall 1/4: L0 | L1 | L2 | L3@1deg | L0-2 | recall 1/8: L0 | L1 | L2 | L3@1deg | L0-2 | E | rho |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| cost8 | 0.961 | 0.851 | 0.966 | 0.885 | 0.840 | 0.905 | 0.966 | 0.876 | 0.735 | 0.781 | 0.814 | 0.966 | 0.773 | 0.986 | 0.558 |
+| cost_q5 | 0.913 | 0.840 | 0.931 | 0.727 | 0.766 | 0.871 | 0.981 | 0.781 | 0.574 | 0.687 | 0.820 | 0.981 | 0.682 | 0.982 | 0.390 |
+| hand | 0.990 | 0.900 | 0.990 | 0.941 | 0.929 | 0.959 | 1.000 | 0.942 | 0.875 | 0.906 | 0.902 | 1.000 | 0.893 | 0.995 | 0.587 |
+| cache5/clf3 | 0.990 | 0.917 | 0.989 | 0.959 | 0.937 | 0.959 | 0.996 | 0.952 | 0.906 | 0.920 | 0.946 | 0.996 | 0.922 | 1.000 | 0.143 |
+| cache5/reg | 0.997 | 0.921 | 0.996 | 0.931 | 0.937 | 0.966 | 0.992 | 0.943 | 0.903 | 0.917 | 0.949 | 0.992 | 0.921 | 1.000 | 0.409 |
+| lowq4/reg | 0.988 | 0.919 | 0.990 | 0.926 | 0.915 | 0.959 | 1.000 | 0.932 | 0.860 | 0.906 | 0.956 | 1.000 | 0.903 | 1.000 | 0.357 |
+| lowq5/reg | 0.999 | 0.918 | 0.999 | 0.941 | 0.943 | 0.959 | 0.996 | 0.947 | 0.903 | 0.917 | 0.956 | 0.996 | 0.923 | 1.000 | 0.459 |
+| lowq4+c8/reg | 0.998 | 0.912 | 0.998 | 0.964 | 0.952 | 0.959 | 1.000 | 0.959 | 0.944 | 0.926 | 0.953 | 1.000 | 0.940 | 1.000 | 0.562 |
+| lowq5+c8/reg | 0.999 | 0.910 | 0.999 | 0.977 | 0.957 | 0.963 | 1.000 | 0.966 | 0.957 | 0.929 | 0.956 | 1.000 | 0.947 | 1.000 | 0.610 |
+| lowq5+c8/clf3 | 0.994 | 0.916 | 0.994 | 0.980 | 0.954 | 0.959 | 1.000 | 0.965 | 0.954 | 0.937 | 0.956 | 1.000 | 0.949 | 1.000 | 0.304 |
+| lowq5+c8/clf_lm | 0.995 | 0.916 | 0.995 | 0.982 | 0.954 | 0.963 | 1.000 | 0.967 | 0.949 | 0.943 | 0.956 | 1.000 | 0.949 | 1.000 | 0.304 |
+| e2full/clf3 | 1.000 | 0.938 | 1.000 | 0.995 | 0.963 | 0.969 | 1.000 | 0.977 | 0.990 | 0.957 | 0.966 | 1.000 | 0.972 | 1.000 | 0.277 |
+| e2full/reg | 1.000 | 0.931 | 1.000 | 0.992 | 0.977 | 0.969 | 0.996 | 0.981 | 0.987 | 0.963 | 0.966 | 0.996 | 0.973 | 1.000 | 0.642 |
+
+Groups: n(L0..L3) = [392, 351, 295, 264], n(L0-2) = 1038, E groups 219, set sizes A 34747, C 42742
+
+**Offline, test on realistic data (held-out grains).**
+
+| model | AUC A | AUC B | AUC C | recall 1/4: L0 | L1 | L2 | L3@1deg | L0-2 | recall 1/8: L0 | L1 | L2 | L3@1deg | L0-2 | E | rho |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| cost8 | 0.963 | 0.850 | 0.970 | 0.907 | 0.905 | 0.964 | 0.934 | 0.923 | 0.756 | 0.847 | 0.879 | 0.921 | 0.824 | 0.949 | 0.706 |
+| cost_q5 | 0.923 | 0.846 | 0.940 | 0.759 | 0.815 | 0.918 | 0.950 | 0.826 | 0.590 | 0.738 | 0.885 | 0.943 | 0.729 | 0.949 | 0.551 |
+| hand | 0.984 | 0.894 | 0.988 | 0.947 | 0.962 | 0.982 | 0.934 | 0.963 | 0.889 | 0.935 | 0.952 | 0.921 | 0.923 | 0.949 | 0.702 |
+| cache5/clf3 | 0.987 | 0.916 | 0.991 | 0.952 | 0.981 | 0.988 | 0.946 | 0.973 | 0.912 | 0.967 | 0.970 | 0.937 | 0.948 | 0.959 | 0.115 |
+| cache5/reg | 0.988 | 0.917 | 0.993 | 0.960 | 0.978 | 0.991 | 0.896 | 0.975 | 0.932 | 0.973 | 0.967 | 0.871 | 0.956 | 0.878 | 0.426 |
+| lowq4/reg | 0.992 | 0.912 | 0.994 | 0.937 | 0.962 | 0.991 | 0.972 | 0.962 | 0.889 | 0.959 | 0.985 | 0.959 | 0.942 | 0.980 | 0.408 |
+| lowq5/reg | 0.995 | 0.915 | 0.996 | 0.960 | 0.973 | 0.997 | 0.978 | 0.975 | 0.942 | 0.967 | 0.988 | 0.975 | 0.964 | 0.983 | 0.531 |
+| lowq4+c8/reg | 0.995 | 0.906 | 0.996 | 0.977 | 0.970 | 0.988 | 0.972 | 0.978 | 0.960 | 0.965 | 0.979 | 0.968 | 0.967 | 0.966 | 0.659 |
+| lowq5+c8/reg | 0.995 | 0.909 | 0.996 | 0.990 | 0.978 | 0.994 | 0.972 | 0.987 | 0.972 | 0.967 | 0.985 | 0.965 | 0.974 | 0.976 | 0.674 |
+| lowq5+c8/clf3 | 0.994 | 0.914 | 0.995 | 0.982 | 0.975 | 0.997 | 0.981 | 0.984 | 0.967 | 0.975 | 0.985 | 0.975 | 0.975 | 0.990 | 0.359 |
+| lowq5+c8/clf_lm | 0.993 | 0.913 | 0.994 | 0.987 | 0.978 | 0.991 | 0.981 | 0.985 | 0.967 | 0.975 | 0.982 | 0.975 | 0.974 | 0.973 | 0.360 |
+| e2full/clf3 | 0.994 | 0.936 | 0.996 | 0.997 | 0.986 | 0.994 | 0.972 | 0.993 | 0.992 | 0.984 | 0.985 | 0.972 | 0.987 | 0.976 | 0.312 |
+| e2full/reg | 0.994 | 0.931 | 0.996 | 0.997 | 0.989 | 0.994 | 0.972 | 0.994 | 0.990 | 0.984 | 0.982 | 0.965 | 0.985 | 0.969 | 0.688 |
+
+Groups: n(L0..L3) = [398, 367, 331, 317], n(L0-2) = 1096, E groups 295, set sizes A 36641, C 54081
+
+(pooled over both test variants: lowq5+c8/reg recall L0-2 0.977 at 1/4 and 0.961 at 1/8, E2 full/clf3 0.985 and 0.980, cost8 0.900 and 0.799; `offline_metrics.txt`.)
+
+**Decision points (pooled held-out).**
+- D1: F-cache Q5 GBT pruning recall (keep 1/4, L0-2) is 0.963 (classifier; 0.960 regressor) >= 0.95, so the low-Q signal is **not** mostly lost (E2 full 0.985). The best deployable proxy, F-lowQ Q5 + cost8 (regression), is 0.977, a gap of 0.008 to E2, which is not more than 0.01, so the "adds nothing beyond E2" branch was **not** taken; F-lowQ + cost8 was carried forward as the deployable proxy.
+- D2: recall at keep 1/8 for the best deployable model is 0.963 (lowq5+c8/clf3; 0.961 for the regressor) < 0.98, so D2 does **not** hold and the keep_fraction = 1/8 row (ii) was **not run**. (Untested: what keep 1/8 would do end to end.)
+- D3: regression 0.977 vs best classifier 0.977 for lowq5+c8 (0.969 vs 0.969 for lowq4+c8), within 0.005, so regression is carried (the end-to-end row uses `lowq5+c8` / `reg`).
+
+**End to end** (200 voxels x 2 variants, seed 0, same images and rng as E0, model of the fold without the voxel's grain; per-voxel images; wall time is the 10-worker, contended `reconstruct_voxel` time and differs from the single-worker accounting). "evals" = global + local cost evaluations of the reconstructor; "incl. proxy" adds the scored candidates times the measured single-worker cost of one scored candidate in Q8-local-evaluation equivalents (proxy 2.95, E2 4.22). Row (i) = proxy rerank, (iii) = proxy rerank + F1 (`f1_run.py --source p_i --cache-root ...`).
+
+| row | clean wrong | fixed / broken | med err right | evals global / local | incl. proxy | wall |
+|---|---|---|---|---|---|---|
+| E0 baseline | 67/200 = 0.335 [0.273, 0.403] | - | 0.0301 | 44478 / 4711 | 49190 | 24.5 s |
+| F1 | 3/200 = 0.015 [0.005, 0.043] | 64 / 0 | 0.0272 | 44478 / 10044 | 54523 | 27.2 s |
+| F1b | 0/200 = 0.000 [0.000, 0.019] | 67 / 0 | 0.0200 | 45492 / 17519 | 63011 | 35.4 s |
+| E2 rerank | 8/200 = 0.040 [0.020, 0.077] | 59 / 0 | 0.0285 | 44505 / 5986 | 51528 | 26.6 s |
+| E2 rerank + F1 | 4/200 = 0.020 [0.008, 0.050] | 63 / 0 | 0.0285 | 44505 / 10798 | 56339 | 29.1 s |
+| (i) proxy rerank | 13/200 = 0.065 [0.038, 0.108] | 55 / 1 | 0.0281 | 44494 / 5739 | 50941 | 25.5 s |
+| (iii) proxy + F1 | 0/200 = 0.000 [0.000, 0.019] | 67 / 0 | 0.0282 | 44494 / 10646 | 55848 | 27.9 s |
+
+| row | realistic wrong | fixed / broken | med err right | evals global / local | incl. proxy | wall |
+|---|---|---|---|---|---|---|
+| E0 baseline | 52/200 = 0.260 [0.204, 0.325] | - | 0.0278 | 44778 / 7628 | 52406 | 26.5 s |
+| F1 | 8/200 = 0.040 [0.020, 0.077] | 44 / 0 | 0.0257 | 44778 / 13007 | 57785 | 29.2 s |
+| F1b | 3/200 = 0.015 [0.005, 0.043] | 50 / 1 | 0.0176 | 45789 / 20143 | 65931 | 37.3 s |
+| E2 rerank | 9/200 = 0.045 [0.024, 0.083] | 46 / 3 | 0.0228 | 44824 / 9625 | 56106 | 29.8 s |
+| E2 rerank + F1 | 7/200 = 0.035 [0.017, 0.070] | 47 / 2 | 0.0228 | 44824 / 14743 | 61223 | 32.6 s |
+| (i) proxy rerank | 15/200 = 0.075 [0.046, 0.120] | 40 / 3 | 0.0285 | 44805 / 9111 | 55046 | 28.2 s |
+| (iii) proxy + F1 | 4/200 = 0.020 [0.008, 0.050] | 50 / 2 | 0.0296 | 44805 / 14278 | 60214 | 30.9 s |
+
+Seeds 1-2 for row (i) (paired with E0 seeds 0-2, 600 runs per variant): clean 42/600 = 0.070 [0.052, 0.093] (fixed 167, broken 5), realistic 33/600 = 0.055 [0.039, 0.076] (fixed 117, broken 7); evaluations incl. proxy 50975 / 55156 against baseline 49196 / 52409. Per-run change of row (i) vs the baseline (seed 0): global +16 / +27, local +1027 / +1483, scoring +708 / +1130 equivalents, total +3.6% / +5.0%, wall +0.9 s / +1.7 s (E2 rerank: +4.8% / +7.1%, +2.1 s / +3.3 s). The scored candidates per run are 240 / 384. Where row (i)'s extra local evaluations go (measured, `eval_split.py`: 20 voxels x 2 variants, seed 0, stage timer patches, the patched runs reproduce the unpatched `R_final` bit for bit; mean per run, baseline -> proxy):
+
+| stage (local cost evaluations unless noted) | clean | realistic |
+|---|---|---|
+| discrete search, levels 1-3 (local) | 180 -> 212 (+32) | 324 -> 372 (+48) |
+| discrete search, pixel-radius-3 evaluations (all levels) | 44476 -> 44490 (+14) | 44818 -> 44842 (+24) |
+| quick MC, levels 1-3 | 647 -> 744 (+97) | 1127 -> 1308 (+181) |
+| FindOptimal | 475 -> 956 (+481) | 940 -> 2020 (+1080) |
+| VarianceMinimizing | 1239 -> 1750 (+511) | 2192 -> 1995 (-197) |
+| total local, reconstructor | 4607 -> 5728 (+1121) | 7983 -> 9094 (+1111) |
+| candidates handed to FindOptimal (evaluated) | 2.6 -> 4.8 | 5.0 -> 10.4 |
+| candidates at levels 1 / 2 / 3 | 44.9 / 11.3 / 2.6 -> 47.6 / 15.2 / 4.8 | 77.1 / 20.4 / 5.0 -> 81.5 / 27.1 / 10.4 |
+| proxy's own low-Q cost evaluations (not in the reconstructor count) | 239 local + 239 radius-3 | 401 + 401 |
+
+So in these 40 runs most of the extra local evaluations are in FindOptimal (+481 clean, +1080 realistic; more candidates reach it) and, on clean data, VarianceMinimizing (+511; on realistic data it uses 197 fewer); quick MC (+97 / +181) and the discrete stage of the later levels (+32 / +48) add the rest, and level 0 is unchanged. (Stage split as measured; no cause is claimed beyond it.)
+
+**Cost accounting (one worker, threads = 1, median of 1000 candidates, `timing.json`).** One Q8 local evaluation 0.520 ms (the unit); one Q5 radius-3 global evaluation 0.387 ms (0.75); F-lowQ Q4 pass 1.42 ms (2.73; geometry only 0.682 ms = 1.31); F-lowQ Q5 pass 1.52 ms (2.93; geometry only 0.742 ms = 1.43); full E2 pass 2.19 ms (4.21); GBT prediction 0.0064 ms per candidate (batch 200; 0.012). So the proxy is 1.4x cheaper than the E2 pass as timed per candidate, but that E2 pass recomputes the Q8 local cost, which inside `rank_key` is free (`c.cost`): a deployable E2 costs about 4.21 - 1.00 = 3.2 equivalents, so the real advantage is about 1.1x, not the 5-10x one might expect from 26 of 112 reflections: most of the time is per-pass Python overhead (peak table, hit lookup, two cost evaluations), which the plan flagged as risk 6 (batching the pass over a level's candidates was not done). Per run, each row with its own scored count (proxy 240 / 384, E2 rerank 246 / 393 candidates): proxy 0.37 s / 0.59 s, E2 as timed 0.54 s / 0.86 s, deployable E2 (without the free Q8 cost) 0.41 s / 0.66 s (`summary.txt` [7]).
+
+**Success criteria.**
+- Label validation Spearman >= 0.8: met on the pooled value (0.861); the within-case mean is 0.790 and L2 0.783, so borderline below 0.8 where the ranking actually happens. The classifiers tie the regression offline (D3), so the fallback would not change the offline recall.
+- Informational D1 sub-check, not a plan success criterion: best deployable proxy within 0.01 recall of E2. Borderline: gap 0.008 against `e2full/clf3` pooled, but 0.011 pooled against the best E2 variant (`e2full/clf_lm` 0.988), 0.017 clean and 0.006 realistic. The deployable model was chosen as the best of 6 held-out results, which is mildly optimistic.
+- Rerank wrong <= E2 rerank (4.0% / 4.5%) at less proxy time than E2: **not met** on the wrong rate (proxy 6.5% / 7.5%; the Wilson intervals overlap; paired exact McNemar on the same runs: discordant 6 vs 1, p = 0.125 clean, 12 vs 6, p = 0.238 realistic, i.e. not significant), met on proxy time (0.37 vs 0.54 s clean, 0.59 vs 0.86 s realistic). Across 3 seeds the proxy is 7.0% / 5.5% wrong.
+- (ii) keep 1/8 wrong <= 5% at evaluations <= baseline: not evaluated (D2 did not hold). Row (i) itself fails this test's thresholds (wrong 6.5% / 7.5%; evaluations incl. proxy +3.6% / +5.0%).
+- (iii) [cubic-specific: F1 uses the Sigma relatives of cubic symmetry] proxy + F1 wrong <= F1 seed 0 (1.5% / 4.0%) at fewer evaluations than F1b: **met** (0/200 and 4/200 wrong against 3 and 8; evaluations incl. proxy 55,848 / 60,214 against F1b 63,011 / 65,931, i.e. -11.4% / -8.7%; against F1 alone 54,523 / 57,785 it is +2.4% / +4.2% more). The wrong counts are small (a few runs; intervals overlap with F1's and E2 + F1's 4 / 7), so on seed 0 this is a "not worse" result, not a demonstrated improvement over F1. Paired exact McNemar on seed 0, proxy + F1 against F1: discordant 0 vs 3, p = 0.25 (clean) and 3 vs 7, p = 0.344 (realistic); against E2 + F1: 0 vs 4, p = 0.125 and 3 vs 6, p = 0.508. Over three seeds (row (iii) F1 on the seeds 1-2 runs of row (i), `f1_run.py --source-seeds 1 2`; 600 runs per variant): proxy + F1 wrong 0/600 = 0.000 [0.000, 0.006] (clean) and 9/600 = 0.015 [0.008, 0.028] (realistic) against F1 21/600 = 0.035 [0.023, 0.053] and 20/600 = 0.033 [0.022, 0.051]; paired discordant 0 vs 21 (p = 9.5e-07) and 4 vs 15 (p = 0.019). Evaluations incl. proxy 55,894 / 60,266 against F1 54,485 / 57,813 (+2.6% / +4.2%); F1b exists for seed 0 only (63,011 / 65,931), so the 3-seed comparison is against F1 and the F1b comparison stays seed 0. So over three seeds proxy + F1 has a lower wrong rate than F1 at about +3-4% evaluations; the seed-0 result alone was not significant.
+
+**Domain shift check (risk 3).** Harvesting the proxy run's own candidates (all levels, seed 0) and recomputing the recall (L0-2, keep 1/4) with the same fold models: 0.986 (clean) and 0.990 (realistic), against 0.960 / 0.984 for the baseline candidates of the same voxels offline. The recall did not drop, so by the plan's rule (> 0.01) **no retraining** was done. Caveat: the proxy-run recall is conditional on a basin candidate surviving to that level, which can only raise it; it does not capture runs that lost the basin earlier. The end-to-end wrong rate is higher than the E2 rerank although the offline gap is 0.008; compounding the per-level recalls (L0 / L1 / L2 pooled 0.984 / 0.968 / 0.979 for the proxy against 0.996 / 0.975 / 0.982 for E2 full) gives about 0.933 against 0.954, consistent with the observed 6.5% / 7.5% against 4.0% / 4.5%; this arithmetic assumes the levels are independent and ignores level 3 and FindOptimal, so it is only a consistency check and was not tested as the cause.
+
+**Framing (general vs cubic-specific).** The general, symmetry-agnostic result is the proxy rerank: it lowers the wrong rate from 33.5% / 26% to 6.5% / 7.5% at +5% time (the E2 rerank to 4.0% / 4.5%). Proxy + F1 is a cubic Sigma-relative fix (CSL traps matter mainly for cubic), so it is not the headline.
+
+**Findings.** (1) The raw cost is a poor pruning key (recall 0.900 pooled at keep 1/4, 0.799 at 1/8), the raw low-Q cost worse (0.80 / 0.71 for Q5). (2) The untrained hand key (overall hit rates, 0.953) already beats the cost, and the trained low-Q models beat both: F-lowQ Q5 alone 0.962 (0.944 at 1/8), + the free Q8 cost 0.977 (0.961), E2 full 0.985 (0.980). (3) The free post-quick-MC Q8 cost adds about 0.015 recall to the low-Q features (0.962 -> 0.977), more at Q4 (0.947 -> 0.969). (4) Regression on y_bcost and classification are equal in recall to within 0.005; the regressor is better at Spearman against y_bcost (0.65 vs 0.34) but that number is dominated by the near-constant label of the many non-basin candidates. (5) End to end the proxy rerank fixes 55 / 40 of the baseline's wrong runs (67 / 52) and breaks 1 / 3, with 13 / 15 wrong left; combined with F1 it reaches F1's accuracy or better at about F1's evaluations (3 seeds: 0.0% / 1.5% wrong against F1's 3.5% / 3.3%).
+
+**Caveats.** Per-voxel images, not full-sample renders (at most 3 distractor sources). Label leakage: the synthetic candidates and all y_bcost labels use the truth; they are in training only, the metrics of sets A, D, E and the end-to-end runs are harvested (non-synthetic) and set B (synthetic) is reported separately. Domain shift: the model is trained on candidates of baseline searches and used inside a changed search (checked above, no drop by the recall measure). Wall times at 10 workers are contended and are not a speed claim; the evaluation-equivalent accounting uses single-worker medians. The F1 rows' wall time is the evaluation-scaled approximation of `summarize_fixes`. Untested: keep_fraction 1/8 end to end (D2), batching the feature pass, adding the level as a feature, other structures / geometries, full-sample images.
+
+**Deviations from the plan.** (a) Row (ii) not run (D2 did not hold). (b) Q3 dropped (no reflections). (c) The sub-task branch is `feature/nn-hybrid-proxy-profiling-proxy` (the slash form is blocked by an existing ref). (d) `f1_run.py` got `--cache-root` so that `--source` can point to the proxy cache, and `--source-seeds` for seeds 1-2 of a source (defaults unchanged). (e) The relative short refinement is quick MC + one MC of up to 200 steps with `successive_restarts` = 2 restarts (the FindOptimal MC settings without VarianceMinimizing); the truth-basin label uses the full `refine_from_candidates` as the plan says (the short procedure applied to the truth gave exactly the same cost in all 400 cases; the cost is a ratio of integer pixel counts, so this says the counts agree, not that the orientations do). (f) The label-validation draw is 5 candidates per case (stratified by case) rather than a uniform draw over the 360k candidates, restricted to the censored harvested ones.
+
+### Task 3 results: does the network (or the proxy) reduce the total run time? (2026-10-06)
+
+Code: `scripts/profiling/` (`prof_common.py` isolation record, interleaving, stage instrumentation; `prof_u0.py`; `prof_seeded.py`; `prof_profile.py`; `prof_overhead.py`, `prof_summary.py`; `run_all.sh`), tests `tests/test_profiling.py`, results `benchmarks/profiling/` (`summary.txt` / `summary.json` are the full tables; `u0_runs.json.gz`, `seeded_runs.json.gz` the per-run records; `cprofile_*.txt`, `torch_profiler_net.txt`, `mps_vs_cpu.json`). Branch `feature/nn-hybrid-proxy-profiling-profiling` (merged into the feature branch, 8531239). Nothing in `icenine/` changed; all wrappers are installed from the scripts by patching module attributes where they are looked up (`icenine.reconstructor.run_discrete_search_spaced`, `MCOptimizer.optimize` split quick MC / FindOptimal / other MC by `max_mc_steps`, `variance_minimizing_optimize`, `VoxelCostFunction.evaluate` calls and time by role global / local / mc, `perturbation_sweep.prepare_nominal`, `render_windows`, `render_distractor_windows`, `make_realistic_dataset`, `decode_windows`, GN `extract_measurements` and `solve`). `tests/test_profiling.py` checks that one `reconstruct_voxel` run is bit-identical with and without the wrappers (orientation, cost, evaluation counts; the counted `evaluate` calls equal the reconstructor's own counts) and that every patch is removed again.
+
+**Isolation (recorded in `summary.json`, section isolation; raw records in `scripts/profiling/cache`, not committed).** Single worker (spawn pool of 1), `OMP_NUM_THREADS = MKL_NUM_THREADS = 1`, `torch.set_num_threads(1)`, mains power ("AC Power", battery 100% charged), Apple M2 Max (8 P + 4 E cores), no thermal warning level recorded. A background load average of about 1.4 existed before the jobs started (editor, browser, system daemons, probably another agent session). 1-minute load at the start of each kept task: U0 median 1.38, maximum 2.97; U1/U2 median 1.69, maximum 2.81. Competing processes seen above 50% CPU at the start of kept tasks (list in `summary.json`): U0: a browser renderer 109.6% (v13884 realistic), `mobileassetd` 99.6% and `cloudd` 57.8% (v16905 clean); U1/U2: `Code Helper (Renderer)` 58.4% (v16182 r8), `mediaanalysisd` 55.7% and 99.4% (v16269 r6 rep1, v2910 r3 rep1), a browser renderer 88.9% (v16269 r8), `git` 58.6% (v3108 r9 rep2). These were not re-run. Discard rule: a task whose 1-minute load at its start was >= about 3.3 was discarded and re-run. Five U1/U2 tasks (loads 3.3 to 10.0: browser renderer, `siriactionsd`) were re-run after the first pass; their original timings were uniformly slower than the re-run: pooled over the five tasks (40 cases per pipeline, 24 for HG) the means were H0 0.547 vs 0.499 s, H1 1.761 vs 1.605 s, H3 2.001 vs 1.815 s, MC told r 1.996 vs 1.829 s, HG 2.183 vs 1.984 s, i.e. every pipeline 9.1-10.2% slower, so the discard favours no pipeline. After review two more tasks that had started next to a `python3` process at 99.3% (v7336 r0 rep1, load 1.84) and `mediaanalysisd` at 139.4% (v16269 r2 rep0, load 2.63) were re-run on a quiet machine (no python / uv process, load 1.35 / 1.40 / 1.84): every pipeline of the two tasks was 9-13% faster than in the original runs (ratios old / new 1.09 to 1.13, again uniform over H0, H1, H3, MC told r), the errors were identical, and the re-run values replaced the originals in all tables here (the medians of the tables changed in the third digit at most, e.g. the r = 0.25 row; the verdict outcomes did not change). Pipelines are interleaved per case in a rotated order (every pipeline runs first equally often); repeats: 3 timings on 4 of the 40 U0 cases (all clean variant; per-case (max-min)/median of the three timings: median 0.578%, 90th percentile 1.73%) and on 10 of the 50 U1/U2 (voxel, radius) tasks, directions 0-1 (40 of the 400 cases per pipeline); per-case medians over the repeats are used in the tables (means of the per-case medians in the U2 verdicts). An untimed warm-up of every pipeline precedes the single-worker runs. Wrapper overhead (`scripts/profiling/prof_overhead.py`, `overhead.json`): 1.71 microseconds per wrapped `evaluate` call on a dummy method, i.e. 47,394 calls x 1.71 us = 0.45% of a 18.1 s baseline run (voxel 7336, clean); a paired run, plain 18.14 / 18.10 s vs wrapped 18.34 / 18.36 / 18.35 s, gives x1.0129 (+1.3%).
+
+**Checks.** Every U0 run reproduces its stored earlier run bit for bit: baseline (E0), F1b, E2 rerank, proxy row (i) and the two F1 post hoc steps (28/28 clean and 20/20 realistic runs per pipeline, repeats included; `=stored` column in `summary.txt`), so the accuracy of the U0 timing subset (20 voxels x 2 variants, the first 20 of the 200 voxels) is exactly that of the stored runs on those voxels. U1/U2: H0 reproduces the Task 1 error on all 400 cases (identical), H1 on all 400; H3 and HG are exactly equal on 50.5% and 50.6% of their cases (passes 2-3 are re-rendered on a batch of one with another noise stream, so only pass 1 is identical) with the same wrong flag in 98.5% and 99.4%; MC told r (one-shot optimizer sweep, stored unreduced) does not reproduce its stored result: exactly equal in 9.5% of the cases (median |difference| 0.000441 deg) and the wrong flag differs in 8.2% of the cases (it is timed, but its accuracy comes from the stored sweep, not from the timing run). The accuracy columns of the tables below ("full run") come from the full Task 1 runs (all 50 voxels x 20 directions) and the Task 2 end-to-end summary, not from the small timing subset.
+
+**U0 (no start), single worker, wall seconds per voxel, median [10-90%], 20 voxels per variant, seed 0.** F1 and proxy + F1 are the parent run plus the post hoc step (same run).
+
+| pipeline | clean s | realistic s | evaluations clean (global / local / all incl. proxy and F1) | wrong clean / realistic on the 20 voxels | wrong in the 200-voxel run (Task 2) clean / realistic |
+|---|---|---|---|---|---|
+| baseline | 19.8 [19-20.8] | 21.7 [19.7-24] | 4.45e4 / 4.61e3 / 4.91e4 | 9/20, 7/20 | 33.5%, 26% |
+| F1 (Sigma <= 29) | 22.9 [22.5-23.6] | 24.4 [23.2-27.2] | 4.45e4 / 1.04e4 / 5.49e4 | 0/20, 2/20 | 1.5%, 4% |
+| F1b | 27.5 [27-27.8] | 28.9 [27.9-31.2] | 4.55e4 / 1.78e4 / 6.33e4 | 0/20, 0/20 | 0%, 1.5% |
+| E2 rerank | 21.2 [20.2-21.9] | 23.1 [21.5-27.4] | 4.45e4 / 5.96e3 / 5.1e4 | 1/20, 2/20 | 4%, 4.5% |
+| proxy rerank (lowq5+c8 regression) | 20.8 [20-21.4] | 22.8 [20.6-25.7] | 4.45e4 / 5.73e3 / 5.07e4 | 1/20, 3/20 | 6.5%, 7.5% |
+| proxy + F1 | 23.5 [22.9-24] | 25.8 [23.8-29.3] | 4.45e4 / 1.07e4 / 5.57e4 | 0/20, 0/20 | 0%, 2% (3 seeds 0%, 1.5%) |
+
+(The "all incl. proxy" column counts the cost-function calls of the proxy's low-Q features as well; the reconstructor's own counts are the global and local columns. The 10-worker wall times of Task 2 were 24.5 s baseline and 27.9 s proxy + F1 clean: single-worker times are 16-19% lower, see the contention factor.)
+
+**U0 stage breakdown** (mean exclusive seconds per run, clean; realistic in `summary.txt`). Baseline 19.8 s: cost evaluations 17.0 s global (86.2%) + 2.39 s local (12.1%); everything else together (discrete-search loop, quick-MC bookkeeping, FindOptimal and VarianceMinimizing code outside `evaluate`) 0.34 s (1.7%). Realistic baseline: 17.2 s global (78.9%) + 4.15 s local (19.0%). F1b: 17.5 s global + 9.19 s local (33.5%). Proxy: set_image + features + prediction 5.65e-06 + 0.183 + 0.00373 s per run (clean), 0.307 s realistic; E2 0.277 s / 0.477 s. The F1 post hoc step costs 3.18 s clean / 3.04 s realistic (94% of it in local evaluations).
+
+**U0 verdicts** (plan rule: helps vs a comparator if the median wall time is >= 20% lower at matched accuracy, or the wrong rate is lower with non-overlapping Wilson intervals at <= 10% extra time; matched = wrong rate <= comparator's upper bound and median error of right answers within +0.005 deg; seed-0 n = 200 accuracy, 3-seed n = 600 for proxy + F1 against baseline and F1; judged per variant, "helps" only if it holds in both). **Headline: no U0 pipeline reduces the run time.** Every alternative to the baseline costs time (+5% to +39%); the only "helps" verdicts are accuracy gains at <= 10% extra time. Framing: F1, F1b and proxy + F1 are cubic-specific fixes (they use Sigma relatives); the symmetry-agnostic U0 result is the rerank against the baseline: the E2 and proxy rerank lower the wrong rate from 33.5% / 26% to 4% / 4.5% and 6.5% / 7.5% at +5% to +7% time, and nothing is faster. F1b is not used as the accuracy target of this headline.
+- E2 rerank vs baseline: **helps (accuracy, +6.2% to +7.0% time; not faster)**: wrong 4% [2.04, 7.69] / 4.5% [2.39, 8.33] vs 33.5% [27.3, 40.3] / 26% [20.4, 32.5], time +7.0% / +6.2%. Proxy rerank vs baseline: **helps (accuracy, +5.2% time; not faster)**: wrong 6.5% [3.84, 10.8] / 7.5% [4.6, 12] at +5.2% / +5.2%.
+- Cubic-specific rows: F1 vs baseline: not (+15.9% / +12.6% time, above the 10% allowance). F1b vs baseline: not (+39.0% / +32.9%). F1b vs F1: not (+19.9% / +18.0% time for 1.5% vs 0% and 4% vs 1.5% wrong with overlapping intervals). Proxy + F1 vs F1 (3 seeds): clean 0% [0, 0.636] vs 3.5% [2.3, 5.29] at +2.5% time (helps), realistic 1.5% [0.791, 2.83] vs 3.33% [2.17, 5.09] at +5.6% (intervals overlap: not); overall **not** (it needs both variants). Proxy + F1 vs baseline: not (+18.8% / +19.0% time). Proxy + F1 vs F1b: not: it is 14.5% / 10.5% faster (23.5 vs 27.5 s clean, 25.8 vs 28.9 s realistic) but the median error of right answers is 0.0282 / 0.0296 vs 0.0200 / 0.0176 deg, outside the +0.005 deg tolerance (wrong 0% vs 0% clean, 2% vs 1.5% realistic).
+- No pipeline is >= 20% faster than any comparator at matched accuracy. Per-variant details and all other pairs: `summary.txt`.
+
+
+**U1 / U2 (a start exists), single worker, production-equivalent wall seconds per case** (400 cases per pipeline: first 5 sweep voxels x 10 radii x 4 directions x 2 variants; HG at r = 1.5, 2, 3, 5 only; both variants pooled; median [10-90%]):
+
+| r (deg) | H0 | H1 | H3 | MC told r | HG |
+|---|---|---|---|---|---|
+| 0.05 | 1.3 [0.995-2.99] | 1.48 [0.994-2.55] | 1.66 [1.12-2.16] | 2 [1.97-2.03] | - |
+| 0.1 | 1.46 [0.728-2.49] | 1.61 [1.01-2.86] | 1.51 [1.09-2.98] | 2 [1.96-2.09] | - |
+| 0.25 | 1.16 [0.65-1.88] | 1.32 [0.875-3.02] | 1.45 [0.904-2.23] | 1.97 [1.84-2.01] | - |
+| 0.5 | 0.422 [0.254-1.17] | 1.36 [1.01-2.67] | 1.45 [0.91-2.17] | 2 [1.96-2.04] | - |
+| 0.75 | 0.389 [0.259-1.12] | 1.57 [0.865-2.22] | 1.65 [0.993-3.02] | 1.99 [1.96-2.08] | - |
+| 1 | 0.327 [0.252-1.17] | 1.41 [0.905-2.82] | 1.6 [1.02-2.37] | 1.96 [1.86-2.01] | - |
+| 1.5 | 0.303 [0.239-1.11] | 1.38 [0.834-2.15] | 1.52 [0.997-2.64] | 1.97 [1.86-2.01] | 1.8 [1.17-2.73] |
+| 2 | 0.248 [0.236-0.334] | 1.11 [0.496-2.24] | 1.43 [0.927-2.53] | 1.98 [1.9-2.01] | 1.65 [1.22-4.07] |
+| 3 | 0.245 [0.239-0.273] | 1.1 [0.301-2.14] | 1.56 [0.915-2.43] | 1.99 [0.643-2.03] | 1.77 [1.36-2.66] |
+| 5 | 0.197 [0.174-0.25] | 0.306 [0.219-1.31] | 1.17 [0.226-2.17] | 1.99 [0.0327-2.06] | 1.84 [0.22-3.71] |
+
+Use-case bands (median [10-90%] production time s; mean evaluations; wrong in the full Task 1 run with Wilson 95% interval and median error in deg; subset wrong in `summary.txt`):
+
+| band, variant | pipeline | time s | evals | wrong (full run) | median err (full run) |
+|---|---|---|---|---|---|
+| U1 (r 0.05, 0.1) clean | H0 | 1.33 [0.983-1.72] | 2.31e3 | 0% [0, 0.192] | 0.0227 |
+| | H1 | 1.41 [1.07-1.93] | 2.52e3 | 0% | 0.011 |
+| | H3 | 1.46 [1.12-1.99] | 2.42e3 | 0% | 0.0105 |
+| | MC told r | 2 [1.96-2.03] | 3.33e3 | 0% | 0.0381 |
+| U1 realistic | H0 | 1.67 [0.812-3.44] | 3.27e3 | 0% | 0.0219 |
+| | H1 | 1.61 [0.941-3.67] | 3.39e3 | 0% | 0.0205 |
+| | H3 | 1.8 [1.05-3.37] | 3.19e3 | 0% | 0.0201 |
+| | MC told r | 2.01 [1.97-2.09] | 3.5e3 | 0% | 0.0381 |
+| U2 (r 0.5-3) clean | H0 | 0.287 [0.24-0.772] | 722 | 28% [26.8, 29.1] | 0.19 |
+| | H1 | 1.36 [0.903-1.95] | 2.37e3 | 0% [0, 0.064] | 0.0164 |
+| | H3 | 1.54 [1.01-1.98] | 2.41e3 | 0% | 0.0105 |
+| | HG (r 1.5-3) | 1.7 [1.15-2.09] | 2.34e3 | 0% [0, 0.128] | 0.0105 |
+| | MC told r | 1.98 [1.89-2.03] | 3.37e3 | 37.6% | 0.659 |
+| U2 realistic | H0 | 0.27 [0.24-1.2] | 898 | 26.4% [25.3, 27.5] | 0.183 |
+| | H1 | 1.34 [0.344-2.92] | 2.66e3 | 3.42% [2.99, 3.91] | 0.0265 |
+| | H3 | 1.6 [0.876-3.01] | 3.11e3 | 0.7% [0.518, 0.945] | 0.0208 |
+| | HG (r 1.5-3) | 1.96 [1.33-4.07] | 3.43e3 | 0% [0, 0.128] | 0.0208 |
+| | MC told r | 1.99 [1.87-2.04] | 3.35e3 | 37.5% | 0.651 |
+| U2 stress (r 5) clean | H0 | 0.178 [0.174-0.244] | 339 | 100% | 23.9 |
+| | H1 | 0.751 [0.219-1.35] | 1.35e3 | 0% [0, 0.407] | 0.0365 |
+| | H3 | 1.33 [0.215-2.14] | 1.94e3 | 0% | 0.0107 |
+| | HG | 1.71 [0.219-2.24] | 2.01e3 | 0% | 0.0105 |
+| U2 stress (r 5) realistic | H0 | 0.239 [0.175-0.255] | 381 | 100% | 6.02 |
+| | H1 | 0.297 [0.227-0.311] | 403 | 95.2% | 4.3 |
+| | H3 | 0.419 [0.373-2.52] | 1.64e3 | 43.6% [40.5, 46.7] | 0.175 |
+| | HG | 2.11 [1.44-4.55] | 3.8e3 | 2.31% [1.55, 3.45] | 0.0199 |
+
+(The full-run accuracy is over the pass-1 successes of the sweep; at r = 5 the clean variant has 60 and the realistic variant 6 of 1000 fall-back cases in which the network has no estimate: they are wrong for every pipeline and are not in these wrong rates. In the timing subset they are 5 of 20 clean cases at r = 5, which is why its clean wrong counts for H1 / H3 / HG are 5/20.)
+
+**Network time per case** (median over all cases; measured = including the harness rendering of every pass, production-equivalent = prepare_nominal (ROI set, observer, window spec), `decode_windows` and the forward pass only): H1 0.0569 vs 0.0497 s, H3 0.169 vs 0.148 s, HG (GN included) 0.378 vs 0.351 s. Stage breakdown, mean exclusive seconds per case: H3: prepare 0.132, decode 0.0009, forward 0.0138, harness render 0.0220 (render 0.0005 + physics 0.0093 + distractors 0.0100 + realism 0.0023), finisher cost evaluations 1.43 s (evaluate_local) + 0.0781 VarianceMinimizing + 0.0042 FindOptimal bookkeeping; H1: prepare 0.0444, forward 0.0048, evaluate_local 1.33; H0: evaluate_local 0.710; HG: prepare 0.257, GN solve 0.0627 + extract 0.0027, forward 0.0135, evaluate_local 1.55; MC told r: evaluate 1.81 s. The pass-1 windows of every net pipeline are taken from the sweep batch (stand for the experimental windows) and are not charged.
+
+**U1 verdicts.** H1 vs H0: not (clean: +5.8% time, median error 0.011 vs 0.0227 deg; realistic: -3.4% time, median error 0.0205 vs 0.0219 deg, wrong 0% vs 0%). H3 vs H0: not (+9.7% / +7.8% time). Under the literal rule (any lower median error counts as "beats on accuracy", without the 0.002 deg tie used here) U1 realistic H1 would be "helps" (-3.4% time, 0.0205 vs 0.0219 deg) but that -3.4% is on 40 cases with a 10-90% range of 0.94-3.67 s, i.e. within noise, and the clean variant fails on time (+5.8%); so the overall verdict stays no and H0 remains the recommended finisher for a start within 0.1 deg. MC told r (2 s, median error 0.0381) is slower and less accurate than H0.
+
+**U2 verdicts.** **The networks help only where H0 fails (r >= 1.5 deg); for a start within 1 deg H0 is faster at an equal wrong rate (but with a 2.6-4.5x higher median error), so U2 is a conditional result: the pooled r = 0.5-3 verdict depends on the uniform weighting of the radii 0.5, 0.75, 1, 1.5, 2, 3 in the sweep design.** Per radius (means of per-case times, ideal-trigger H0 + fallback = H0 mean time + H0's wrong rate x the baseline reconstruction's mean time (19.8 s clean, 21.8 s realistic); the fallback answer is a full reconstruction, itself wrong 33.5% / 26%):
+- r = 0.5, 0.75, 1: H0 + fallback takes 0.45-0.82 s (wrong 0% to 0.34%) against 1.42-2.44 s for H1 and H3, so the networks are 1.97-3.4x slower (speed ratio 0.30-0.51x clean, 0.34-0.47x realistic; H3 0.30x / 0.47x at r = 0.5, 0.47x / 0.36x at r = 1) at an equal wrong rate (H0's median error is 2.6-4.5x higher: 0.055-0.090 deg against H3's about 0.020 deg, and its fraction < 0.1 deg is 0.53-0.72 against 0.97-0.98): no help by the plan's rule. H0's median time at these radii is 0.33-0.42 s.
+- r = 1.5: H0 + fallback 3.99 / 4.03 s (wrong 6.03% / 4.13%, H0 itself 18% / 15.9%): H1 1.32 / 1.55 s (3.02x / 2.60x faster), H3 1.46 / 1.77 s (2.73x / 2.27x), HG 1.63 / 2.10 s (2.45x / 1.92x), all with 0% wrong: helps. r = 2: H0 + fallback 10.7 / 10.5 s: H1 7.94x / 8.47x, H3 7.41x / 5.26x, HG 6.56x / 3.96x: helps. r = 3: H0 + fallback 19.2 / 20.9 s; H3 12.6x / 11.8x faster with 0% / 4.1% wrong and H1 14.2x / 22.1x with 0% / 19.4% wrong (better than the fallback's 32.2% / 24.6% but not accurate), HG 11.3x / 9.23x with 0% / 0%: by the plan's rule all three pass (the rule compares with the best non-NN option), but only HG is accurate on realistic data.
+- Pooled r = 0.5-3 (H1, H3), comparators H0 (mean 0.413 / 0.52 s, wrong 28% / 26.4%), the baseline reconstruction and H0 + fallback (5.94 / 6.28 s, wrong 9.37% / 6.86%): H3 mean 1.51 / 1.92 s, wrong 0% / 0.7% [0.518, 0.945], 3.92x / 3.27x faster than H0 + fallback, 13.1x / 11.4x faster than a full reconstruction: **helps** (symmetry-agnostic comparators). H1: mean 1.39 / 1.57 s, wrong 0% / 3.42%, 4.26x / 4.00x, 14.2x / 13.9x: helps. HG (timed at r = 1.5-3, comparators recomputed on those radii: H0 mean 0.319 / 0.357 s, wrong 55.6% / 52.4%, H0 + fallback 11.3 / 11.8 s, wrong 18.6% / 13.6%): HG mean 1.65 / 2.34 s, wrong 0% / 0%, 6.83x / 5.05x faster than H0 + fallback, 11.9x / 9.34x faster than full reconstruction: helps.
+- Cubic-specific comparator: a fallback to F1b instead of the baseline reconstruction (H0 + F1b fallback, ideal trigger; F1b mean 27.5 / 29.5 s, wrong 0% / 1.5% from Task 2) takes 8.10 / 8.30 s (pooled r = 0.5-3) with wrong 0% / 0.396%, so H3 is 5.35x / 4.33x faster. The "only method at wrong <= 1%" route then fails (the fallback is at <= 1%), and the >= 1.5x route still holds, but the accuracy-match test also fails for H1 (3.42% wrong) and for realistic H3 (0.7% wrong vs an upper bound of the 0.396% fallback): with this comparator the pooled r = 0.5-3 verdict becomes **not** for H1 and H3 (clean passes, realistic fails); HG on r = 1.5-3 still helps (0% / 0% wrong; 9.42x / 6.77x faster). The fallback is an ideal oracle in both cases; a real trigger would favour the networks more.
+- Stress r = 5: only **HG helps** (wrong 0% / 2.31%; mean 1.42 / 2.58 s; 14.1x / 8.53x faster than H0 + fallback; 13.9x / 8.44x faster than full reconstruction). H1 and H3 do not (realistic wrong 95.2% and 43.6%); their clean results use the full-run wrong rates over pass-1 successes and exclude the 6% clean fall-back cases (wrong for every pipeline), so with those counted none of the pipelines is at <= 1% wrong in the clean variant.
+- Speed-up vs full reconstruction (mean per-voxel time of the baseline over the mean per-case time): H0 is roughly 25-100x faster but wrong at r >= 1.5; H1 and H3 reach 11-23x and HG 8.3-12x (r = 1.5-3, both variants) and the hybrids use 2.3e3-3.4e3 cost evaluations per case vs 4.9e4-5.3e4 for the full reconstruction (about 15-20x fewer). Means are used for the U2 verdicts and these ratios (S1 of the review: H0 + fallback is an expectation, so the pipelines are compared as means); the tables report medians.
+
+
+**Profilers.** `cprofile_u0_*.txt`, `cprofile_seeded_*.txt` (top 30 by cumulative time, 5 runs per pipeline; function names without directories). Share of the total self time (tottime) under cProfile, baseline: icenine/ Python code 60.5%, C builtins and methods 28.9%, scripts 5.31%, third-party Python 4.9%; the seeded pipelines are within 58-62% / 27-28% / 6.9-8.0% / 3.6-4.5% (H3: 60.8% / 27.7% / 7.54% / 3.73%). cProfile adds a per-call cost, so the Python share is overstated; the stage timer (no per-line tracing) puts 98.3% of a baseline run (clean) in `VoxelCostFunction.evaluate`. The "physics" and the Python overhead inside `evaluate` were not separated. Outside `evaluate` the search machinery (discrete-search loop, MC and FindOptimal bookkeeping) is 1.7% of a baseline run and the `rank_key` proxy 0.9-2.0% (0.18-0.48 s per run). Top cumulative entries of every pipeline are `evaluate` and its callees. `torch.profiler` (CPU, net x3 stage, 6 cases, realistic and clean, radius 2 deg; `torch_profiler_net.txt`), record_function ranges, total over 6 cases: net 1510 ms, prepare 1170 ms (18 calls, 65.0 ms per call), render (harness) 241 ms (distractors 148, physics 75, realism 15), forward 97.2 ms (18 calls, 5.40 ms per call), decode 7.87 ms (0.437 ms per call).
+
+**Forward pass, MPS vs CPU** (realistic_s0, torch 2.8.0, median ms per call [10-90%], 200 repeats): batch 1: CPU 1 thread 4.4 [4.38-4.42], CPU 8 threads 4.65 [4.58-4.78], MPS resident 3.8 [3.66-3.93], MPS with host-device transfer 4.46 [4.43-4.55]; batch 20: CPU 1 thread 77.6 [77.3-77.9], CPU 8 threads 75.1 [74.5-75.5], MPS resident 3.4 [3.24-3.68], MPS with transfer 8.3 [7.85-8.42]. Outputs agree (max |difference| 7.75e-07 / 9.54e-07 deg in the mean, 4.47e-08 / 2.53e-07 in the Cholesky factor). The forward pass is 0.0048-0.0138 s of a 1.4-1.7 s hybrid case, so the batch-20 MPS speed-up over one CPU thread (22.8x resident, 9.3x with host-device transfer; batch 1: 1.16x resident, 0.99x with transfer) would not change the run time of a single case.
+
+**Contention (10 workers vs 1 worker, same cases; median of per-run time ratios).** U0: 1.25 (20 voxels x 6 pipelines; per pipeline 1.24-1.25, 10-90% 1.18-1.29); U1/U2: 1.21 (880 matched pipeline runs; per pipeline 1.20-1.21, 10-90% 0.995-1.32). A 10-worker run therefore delivers about 10 / 1.25 = 8.0x (U0) and 10 / 1.21 = 8.3x (U1/U2) the single-worker throughput of the timed portion. The 10-worker wall: 288 s for the 20 U0 tasks (20 x 6 pipelines), 185 s for the 50 U1/U2 tasks (2 directions).
+
+**Caveats.** Per-voxel images (at most 3 distractor sources), not full-sample renders; detector-window rendering is harness work and excluded from "production" times (the pass-1 windows are not charged at all); the image attach (`attach_images`) is excluded for every pipeline; the F1 post hoc step is the `f1_run.py` procedure exactly (quick MC of all Sigma <= 29 relatives, FindOptimal on the union of the top 3 of Sigma <= 11 and of Sigma <= 29), so it refines up to six candidates although the Sigma <= 29 answer only needs the top 3 (the same code gave the accuracy it is paired with); H3 and HG passes 2-3 re-render on a batch of one with a different noise stream than Task 1's batch of 20; the proxy and E2 models are those of Task 2; the "H0 + fallback" trigger is ideal; the timing subsets are small (20 voxels per variant for U0, 5 voxels for U1/U2) so the wrong rates of the timing subset are only a consistency check; Apple P/E cores, thermals and background daemons are not controlled (load recorded above); one machine; the five re-run U1/U2 tasks ran at a different time than the rest.
+
+**Deviations from the plan.** (a) "Proxy keep 1/8" is dropped from U0 (not run in Task 2, D2 failed). (b) U2's "full reconstruction ignoring the start" is not timed separately: its time and accuracy are the U0 baseline's (the start is ignored, so the cost does not depend on r). (c) H3m is not in the table; "MC told r" is `optimizer_sweep.run_mc_adam` with the true r from the nominal. (d) H1 is kept as the strictly paired hybrid. (e) The repeats are on 4 clean U0 cases only (the first of every ten). (f) F1 and proxy + F1 are not run as independent pipelines but as a post hoc step on the parent run in the same process right after it (their time is the parent's plus the step's); so F1's and baseline's times are not independent samples. (g) Five U1/U2 tasks were re-run after a load spike (see isolation). (h) cProfile is run on 5 runs per pipeline at radii 0.1, 0.5, 1.5, 2, 3 (HG at 1.5, 2, 3, 5, 1.5), voxel 0, direction 0, variants alternating.
+
+
+### Completion summary (2026-10-06)
+
+All three tasks are merged into `feature/nn-hybrid-proxy-profiling`. Nothing in `icenine/` changed; the new code is in `scripts/nn_hybrid/`, `scripts/coarse_proxy/` and `scripts/profiling/` (tests `test_nn_hybrid.py`, `test_coarse_proxy.py`, `test_profiling.py`, including bit-identity checks against the stored runs). Numbers below are from `benchmarks/nn_hybrid/summary*.txt|json`, `benchmarks/coarse_proxy/summary.txt|json` (and `eval_split.json`) and `benchmarks/profiling/summary.txt|json` (and `overhead.json`). All results use per-voxel images (at most 3 distractor sources), not full-sample renders. "Realistic" data = neighbour/twin overlap plus detector noise.
+
+**Decisions**
+
+| Item | Decision | Reason |
+|---|---|---|
+| Net passes (D1, Task 1) | keep net x3 | x1 is equivalent for r <= 1.5 but worse at r = 2 (1.10% vs 0.10% wrong) and r = 3 |
+| H3c, covariance-sized FindOptimal box (D3) | dropped | worse than H3 where the box exceeds 0.329 deg (median 0.0494 vs 0.0339 deg) |
+| H3m, net -> MC finisher (D4) | dropped | median +0.009 to +0.019 deg worse, time 0.75-0.80 of H3, not under half |
+| sigma_max-triggered HG fallback | no gain | no better than using plain HG whenever a large start is possible |
+| Regression vs classifier label (Task 2 D3) | regression carried | recall 0.977 vs 0.977 |
+| keep 1/8 end to end (Task 2 D2) | not run | offline recall 0.963 < 0.98 |
+| Q3 features | dropped | no reflection with \|q\| <= 3 |
+| Proxy retraining | none | no domain-shift drop in recall (0.986 / 0.990) |
+| Sub-branch naming | `-task` instead of `/task` | git cannot hold `feature/x/task` with `feature/x` |
+| `icenine/` | unchanged | all instrumentation is by patching from the scripts |
+
+**Headline results**
+
+| Task | Result |
+|---|---|
+| 1. Hybrid net -> FindOptimal | H3 median about 0.020 deg for r <= 3 (net alone 0.062-0.080 deg). Wrong rate (realistic): H3 4.1% at r = 3 and 43.6% at r = 5; HG 0% for r <= 3 and 2.3% at r = 5. Criterion C2 fails at r = 3 in both seeds. On clean data FindOptimal adds nothing after the net (net alone 0.011 deg). About 96% of finisher results have a higher cost than the truth (cause not diagnosed). |
+| 2. Q_max-8 cost proxy | Offline pruning recall (keep 1/4, L0-2, pooled): cost 0.900, hand-made key 0.953, low-Q5 + cost8 0.977, E2 0.985. End to end, proxy rerank 6.5% / 7.5% wrong against E2 rerank 4.0% / 4.5% (not significant, McNemar p = 0.125 / 0.238; baseline 33.5% / 26%); proxy scoring is about 1.1x cheaper than a deployable E2. Proxy + F1 over 3 seeds: 0% / 1.5% wrong against F1 3.5% / 3.3% (cubic-specific, Sigma relatives). |
+| 3. Run-time profiling | U0: no pipeline is faster; alternatives cost +5% to +39%, so the reranks are accuracy-only wins (+5.2% proxy, +6.2% to +7.0% E2). U1: use H0. U2: the hybrids help only at r >= 1.5 (H3 3.3-3.9x faster than H0 + ideal fallback pooled over r = 0.5-3, about 12-14x faster than a full reconstruction); at r = 5 only HG helps. 98.3% of a baseline run is in `VoxelCostFunction.evaluate`. MPS does not matter per case. Contention factor (10 workers vs 1) 1.21-1.25. |
+
+**Recommendations**
+- No start (U0): use a symmetry-agnostic rerank, the proxy or the E2 rerank (accuracy gain at +5% to +7% time, no speed-up). F1 / proxy + F1 are cubic-specific add-ons.
+- Start within 0.1 deg: H0 (FindOptimal alone).
+- Start that may be 1.5 deg or more off: HG (or H3 when r <= 3 and a few percent wrong at r = 3 is acceptable); for r = 5 only HG.
+- Speed work belongs in `VoxelCostFunction.evaluate` (98.3% of the time), not in the network (0.15-0.38 s of a 1.4-2.1 s hybrid case).
+
+**Open follow-ups**
+- Batch the low-Q feature pass (most of its time is per-pass Python overhead).
+- keep 1/8 end to end (not run, D2).
+- Why the finisher stops above the truth's cost (about 96% of results).
+- Full-sample renders (denser realism).
+- A real fallback trigger for H0 (the study used an ideal oracle).
+- Candidate de-duplication (`docs/todo_coarse_cost_proxy_and_dedup.md`, Idea 2).
+- The three ideas in `docs/todo_future_ideas_nn_active_fourier.md` (no-start NN, active imaging, Fourier / resolution theory).
+- The level as a proxy feature.
+- Adopt the shared stats / doc_tables / preflight helpers from `feature/dev-tooling` once it merges.

@@ -1,0 +1,39 @@
+cProfile of baseline: 5 runs (voxel, variant): [(7336, 'clean'), (12695, 'clean'), (13776, 'clean'), (22517, 'clean'), (10349, 'clean')]; wall under the profiler, s: [21.31, 23.76, 22.65, 21.88, 22.18]; top 30 by cumulative time
+         112116597 function calls (111870694 primitive calls) in 111.592 seconds
+
+   Ordered by: cumulative time
+   List reduced from 316 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        5    0.000    0.000  111.782   22.356 prof_u0.py:136(run_recon)
+ 245883/5    1.274    0.000  111.781   22.356 stage_timer.py:111(wrapper)
+        5    0.002    0.000  111.781   22.356 reconstructor.py:451(reconstruct_voxel)
+   244741   17.807    0.000  108.132    0.000 cost_functions.py:766(evaluate)
+       20    0.425    0.021   98.552    4.928 orientation_search.py:255(run_discrete_search_spaced)
+   244741   36.012    0.000   68.287    0.000 cost_functions.py:369(calculate_diffraction_overlap_batched)
+   244741   10.109    0.000   16.001    0.000 diffraction_core.py:59(get_scattering_omegas_torch)
+     1112    0.085    0.000    9.056    0.008 orientation_search.py:378(optimize)
+        5    0.000    0.000    5.485    1.097 reconstructor.py:717(refine_from_candidates)
+        5    0.004    0.001    4.141    0.828 orientation_search.py:592(variance_minimizing_optimize)
+      591    0.035    0.000    4.118    0.007 orientation_search.py:528(_zero_temp_with_variance)
+  2447410    3.817    0.000    3.817    0.000 {method 'sum' of 'torch._C.TensorBase' objects}
+   244741    0.579    0.000    3.340    0.000 functional.py:225(einsum)
+ 13778383    2.641    0.000    3.220    0.000 optimizer_sweep.py:181(get_image)
+  2447410    2.921    0.000    2.921    0.000 {method 'reshape' of 'torch._C.TensorBase' objects}
+   244741    2.585    0.000    2.585    0.000 {built-in method torch.einsum}
+  2692151    2.325    0.000    2.325    0.000 {built-in method torch.where}
+   222273    1.305    0.000    1.807    0.000 cost_functions.py:563(<listcomp>)
+   489482    0.675    0.000    1.703    0.000 functional.py:1703(norm)
+   489482    1.045    0.000    1.618    0.000 shape_base.py:371(stack)
+ 13533642    1.474    0.000    1.508    0.000 optimizer_sweep.py:163(get_binary_numpy)
+  2447410    1.349    0.000    1.349    0.000 {method 'unsqueeze' of 'torch._C.TensorBase' objects}
+   489482    0.185    0.000    1.281    0.000 _tensor.py:33(wrapped)
+   244741    1.249    0.000    1.249    0.000 {built-in method icenine._rasterize.stage_d_overlap}
+   244741    0.182    0.000    1.227    0.000 _arraysetops_impl.py:144(unique)
+  1468446    1.204    0.000    1.204    0.000 {built-in method torch.abs}
+   489482    0.119    0.000    1.056    0.000 _tensor.py:1095(__rsub__)
+   489507    1.018    0.000    1.018    0.000 {built-in method torch.stack}
+   244741    0.717    0.000    0.962    0.000 _arraysetops_impl.py:342(_unique1d)
+   489482    0.938    0.000    0.938    0.000 {built-in method torch.rsub}
+
+

@@ -1,0 +1,77 @@
+{
+ "H0": {
+  "icenine/ python code": 0.5899628871658104,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.2844624466356142,
+  "scripts (harness and study code)": 0.08039686337975091,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.04213747133509526,
+  "other python (stdlib)": 0.0030403314837290024,
+  "_total_tottime_s": 3.4173207940000014,
+  "wall_under_profiler_s": [
+   1.9467070829999997,
+   0.5845780410000003,
+   0.3101791250000048,
+   0.27958679099999983,
+   0.2831515419999988
+  ]
+ },
+ "H1": {
+  "icenine/ python code": 0.6000994187427684,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.2798552103700413,
+  "scripts (harness and study code)": 0.07894551175780486,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.038515611112231146,
+  "other python (stdlib)": 0.0025842480171543755,
+  "_total_tottime_s": 7.132546442000001,
+  "wall_under_profiler_s": [
+   1.8060226669999997,
+   1.468344334000001,
+   1.443506124999999,
+   0.9868227499999946,
+   1.4368575419999985
+  ]
+ },
+ "H3": {
+  "icenine/ python code": 0.6081708300155355,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.27667031879505966,
+  "scripts (harness and study code)": 0.07542218073932797,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.037288897939808864,
+  "other python (stdlib)": 0.0024477725102676,
+  "_total_tottime_s": 10.358814348000005,
+  "wall_under_profiler_s": [
+   2.0410172499999994,
+   1.5937810839999997,
+   2.0875738330000004,
+   2.8872142909999994,
+   1.7627427909999938
+  ]
+ },
+ "MCr": {
+  "icenine/ python code": 0.580860028890889,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.2828926667763035,
+  "scripts (harness and study code)": 0.08117771807257951,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.04544854586160956,
+  "other python (stdlib)": 0.009621040398622271,
+  "_total_tottime_s": 11.350595826999959,
+  "wall_under_profiler_s": [
+   2.5328236670000006,
+   2.1969519170000034,
+   2.2285745000000006,
+   2.219927833,
+   2.185842875000006
+  ]
+ },
+ "HG": {
+  "icenine/ python code": 0.6197106372675221,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.2727988330362374,
+  "scripts (harness and study code)": 0.06901514647267235,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.03623644415901078,
+  "other python (stdlib)": 0.0022389390645568444,
+  "_total_tottime_s": 12.562062740000005,
+  "wall_under_profiler_s": [
+   2.288495041000001,
+   4.541860250000003,
+   1.8468492079999947,
+   1.6251500420000013,
+   2.276650083000007
+  ]
+ }
+}

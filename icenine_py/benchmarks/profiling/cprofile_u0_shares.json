@@ -1,0 +1,92 @@
+{
+ "baseline": {
+  "icenine/ python code": 0.6050130213858087,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.2892969835423415,
+  "scripts (harness and study code)": 0.053125829617128896,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.04896318226658978,
+  "other python (stdlib)": 0.003600983188130648,
+  "_total_tottime_s": 111.59216164200004,
+  "wall_under_profiler_s": [
+   21.310775375000002,
+   23.756186708,
+   22.651914292000015,
+   21.88328712499998,
+   22.179155707999996
+  ]
+ },
+ "F1": {
+  "icenine/ python code": 0.5956766186033691,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.2749441560410728,
+  "scripts (harness and study code)": 0.08744266884302544,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.039059541796137486,
+  "other python (stdlib)": 0.002877014716395108,
+  "_total_tottime_s": 17.400801155000003,
+  "wall_under_profiler_s": [
+   4.760653583,
+   3.071848625000001,
+   3.012275041999999,
+   3.2838246250000225,
+   3.2938499170000455
+  ]
+ },
+ "F1b": {
+  "icenine/ python code": 0.6027994952397261,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.2848945974068298,
+  "scripts (harness and study code)": 0.06257075897619745,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.046336671670413505,
+  "other python (stdlib)": 0.0033984767068336525,
+  "_total_tottime_s": 155.48896537599992,
+  "wall_under_profiler_s": [
+   30.063323333,
+   32.22694408300001,
+   30.838184583000015,
+   30.774017958,
+   31.832294875000002
+  ]
+ },
+ "e2": {
+  "icenine/ python code": 0.5972090708949069,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.2904091899337796,
+  "scripts (harness and study code)": 0.05865478166255136,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.05013945068114753,
+  "other python (stdlib)": 0.0035875068276142686,
+  "_total_tottime_s": 117.27449457700001,
+  "wall_under_profiler_s": [
+   21.461721374999996,
+   24.742629457999982,
+   23.396538375000034,
+   24.08037458399997,
+   23.79114224999995
+  ]
+ },
+ "proxy": {
+  "icenine/ python code": 0.6003310570247595,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.2887632404949322,
+  "scripts (harness and study code)": 0.05755407864782351,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.04974449971231743,
+  "other python (stdlib)": 0.0036071241201668255,
+  "_total_tottime_s": 118.30270397800008,
+  "wall_under_profiler_s": [
+   21.964457874999994,
+   24.814034083999985,
+   23.821260666,
+   23.76684029200004,
+   24.139327374999993
+  ]
+ },
+ "proxy+F1": {
+  "icenine/ python code": 0.595762869611987,
+  "C builtins and methods (numpy / torch / scipy kernels, len, ...)": 0.27516963517588666,
+  "scripts (harness and study code)": 0.08717092701806449,
+  "third-party python code (numpy / torch / scipy / pymatgen wrappers)": 0.03900697056371893,
+  "other python (stdlib)": 0.0028895976303431672,
+  "_total_tottime_s": 17.022491118999998,
+  "wall_under_profiler_s": [
+   4.672218459000007,
+   3.060071167000018,
+   3.0164574579999908,
+   3.2394338750000315,
+   3.0553810840000324
+  ]
+ }
+}
