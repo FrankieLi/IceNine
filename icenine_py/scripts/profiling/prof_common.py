@@ -38,6 +38,9 @@ for _p in (
 
 import stage_timer as ST  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "common"))
+import stats as shared_stats  # noqa: E402
+
 torch.set_num_threads(1)
 
 Q8_LOCAL = "local"
@@ -104,11 +107,8 @@ def rotated(pipes: Sequence[str], index: int) -> List[str]:
 def wilson(k: int, n: int, z: float = 1.96) -> Tuple[float, float, float]:
     if n == 0:
         return float("nan"), float("nan"), float("nan")
-    p = k / n
-    den = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / den
-    h = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / den
-    return p, max(0.0, c - h), min(1.0, c + h)
+    lo, hi = shared_stats.wilson(k, n, z)
+    return k / n, lo, hi
 
 
 def pct(x: Sequence[float], q: float) -> float:

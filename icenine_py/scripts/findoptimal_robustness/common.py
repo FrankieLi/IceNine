@@ -25,6 +25,8 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ICENINE_PY / "scripts"))
 sys.path.insert(0, str(ICENINE_PY / "benchmarks"))
 
+sys.path.insert(0, str(ICENINE_PY / "scripts" / "common"))
+import stats as shared_stats  # noqa: E402
 import findoptimal_sweep as fs  # noqa: E402
 import optimizer_sweep as osw  # noqa: E402
 import perturbation_sweep as ps  # noqa: E402
@@ -187,8 +189,5 @@ def wilson(k: int, n: int, z: float = 1.96) -> Tuple[float, float, float]:
     """(rate, lo, hi) Wilson 95% interval."""
     if n == 0:
         return float("nan"), float("nan"), float("nan")
-    p = k / n
-    den = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / den
-    h = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / den
-    return p, max(0.0, c - h), min(1.0, c + h)
+    lo, hi = shared_stats.wilson(k, n, z)
+    return k / n, lo, hi

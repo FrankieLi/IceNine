@@ -29,7 +29,10 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 ICENINE_PY = HERE.parents[1]
 sys.path.insert(0, str(HERE.parent))
+sys.path.insert(0, str(HERE.parent / "common"))
 sys.path.insert(0, str(ICENINE_PY / "benchmarks"))
+
+import stats as shared_stats  # noqa: E402
 
 SWEEP_DIR = ICENINE_PY / "benchmarks" / "toy_orientation_sweep"
 OUT_DIR = ICENINE_PY / "benchmarks" / "nn_hybrid"
@@ -44,16 +47,6 @@ TAU_GRID = [0.1, 0.2, 0.3, 0.5, 1.0]
 def fj(spec: str, xs: Any) -> str:
     """Comma-joined format of a sequence."""
     return ", ".join(format(x, spec) for x in xs)
-
-
-def wilson(k: int, n: int, z: float = 1.96) -> Tuple[float, float]:
-    if n == 0:
-        return float("nan"), float("nan")
-    p = k / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    h = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return float(c - h), float(c + h)
 
 
 def reorder(arr: np.ndarray, src: np.ndarray, dst: np.ndarray) -> np.ndarray:
@@ -169,7 +162,7 @@ def stats(e: np.ndarray, e_unred: Optional[np.ndarray]) -> Dict[str, float]:
         return dict(n=0, median=np.nan, rms=np.nan, rms_unred=np.nan, f01=np.nan, wrong=np.nan,
                     wrong_lo=np.nan, wrong_hi=np.nan)  # fmt: skip
     k = int((e > 1.0).sum())
-    lo, hi = wilson(k, n)
+    lo, hi = shared_stats.wilson(k, n)
     ru = np.nan
     if e_unred is not None:
         eu = e_unred[np.isfinite(e_unred)]
@@ -180,13 +173,7 @@ def stats(e: np.ndarray, e_unred: Optional[np.ndarray]) -> Dict[str, float]:
 
 def win_rate(a: np.ndarray, b: np.ndarray) -> Tuple[float, float, int]:
     """(wins of a over b incl. half ties, tie fraction, n) over cases where both are finite."""
-    ok = np.isfinite(a) & np.isfinite(b)
-    if ok.sum() == 0:
-        return float("nan"), float("nan"), 0
-    d = a[ok] - b[ok]
-    tie = np.abs(d) < TIE_DEG
-    win = (d < -TIE_DEG).sum() + 0.5 * tie.sum()
-    return float(win / ok.sum()), float(tie.mean()), int(ok.sum())
+    return shared_stats.win_rate(a, b, tie=TIE_DEG)
 
 
 def pick(arr: np.ndarray, ri: int, vi: int, mask: np.ndarray) -> np.ndarray:
