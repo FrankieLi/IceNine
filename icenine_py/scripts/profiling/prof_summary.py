@@ -740,7 +740,12 @@ def contention(
 
 def isolation_lines(tag_dirs: Dict[str, Path]) -> Tuple[Dict[str, Any], List[str]]:
     out: Dict[str, Any] = {}
-    lines = ["-- isolation conditions --"]
+    lines = [
+        "-- isolation conditions --",
+        "  note: start / end / wall below are the original runs; flagged tasks were re-timed"
+        " later on 2026-10-06 (MIGRATION_HISTORY, Re-timing) and the task-start load"
+        " statistics include those re-runs",
+    ]
     for name, d in tag_dirs.items():
         if not d.exists():
             continue

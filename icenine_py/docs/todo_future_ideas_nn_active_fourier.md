@@ -22,7 +22,7 @@ case spends its time and where the truth is lost (S2 pruning).
 **Why it might help.**
 - In the no-start case, `reconstruct_voxel` spends about 44.5k global evaluations on the coarse
   discrete search, against 4.7–7.6k local ones (about 25 s per voxel on 10 workers). Task 3 measured this split on
-  a single worker: baseline 19.8 s per voxel (clean), of which 17.0 s is the global and 2.39 s the
+  a single worker: baseline 19.8 s per voxel (clean), of which 17.1 s is the global and 2.39 s the
   local evaluations; 98.3% of the time is inside `evaluate`.
 - The current net (`GNLayerNet`) is only a local refiner. It needs a nominal orientation to
   predict the ROI windows it reads, so it cannot start from nothing.
