@@ -3067,3 +3067,173 @@ the pooled wrong rate is slightly above the keep-1/4 upper bound, and 1/8 is cle
 (about 3%), because the quick-MC and discrete stages that cannot be pruned dominate. Not tested: other keep fractions, other seeds
 (the stored keep-1/4 row has seeds 1-2; these new rows do not), whether the extra wrong answers at 1/8 are candidates lost at the pruning step
 (the harvest step was not run on the new rows).
+
+### T5 `finisher-diagnosis`: why the finisher stops above the truth's cost (2026-10-07)
+
+**Setup.** `scripts/finisher_diagnosis/diagnose.py run --workers 10` (wall 2852 s, 54 tasks; contended 10-worker run, no
+timing claims are made), `diag_summary.py` builds the tables and `summary.json` (`benchmarks/finisher_diagnosis/`). Cases are the
+realistic ("all") single-voxel cases of the Task 1 pipelines H3 (net x3 start; 200 cases) and H0 (perturbed nominal start;
+100 cases), radii 0.05-3 deg (9 radii), stratified by radius (H3: 22-23 per radius over 4 random voxels; H0: 11-12 over 2
+voxels), seeded selection. The finisher is re-run with the Task 1 seed through the unmodified `refine_from_candidates`, with
+`LoggedMC` (a `MCOptimizer` subclass in the script whose `optimize` / `variance_minimizing_optimize` are copies that also
+record the stopping rule; the same random stream). All 300 re-runs reproduce the Task 1 `R_final` exactly (max abs difference
+0.0). Nothing in `icenine/` changed. The config's `max_mc_steps` is 200 (not 3500), `successive_restarts` 2; the default
+box is 0.329 deg. "Gap" = cost of the result minus cost at the truth; "above" = gap > 1e-9. Intervals are Wilson 95%.
+
+**Result vs truth.** The result's cost is above the truth's in 191/200 H3 and 100/100 H0 cases (H3 96%, CI 92-98%; H0 CI 96-100%).
+In the 9 H3 cases at or below (5 strictly below) there is no gap.
+
+<!-- table:t5_overview -->
+| set | n | result above truth | gap q25/50/75 | angle res-truth q25/50/75 (deg) |
+|---|---|---|---|---|
+| H3 | 200 | 191/200 (96%, 92-98) | 0.010/0.028/0.050 | 0.013/0.023/0.043 |
+| H0 | 100 | 100/100 (100%, 96-100) | 0.033/0.103/0.497 | 0.032/0.089/0.409 |
+<!-- /table:t5_overview -->
+
+<!-- table:t5_by_radius -->
+| set | radius (deg) | n | result above truth | gap q50 | angle res-truth q50 (deg) | mc_long reaches truth cost | vm_long reaches truth cost |
+|---|---|---|---|---|---|---|---|
+| H3 | 0.05 | 23 | 21/23 | 0.036 | 0.028 | 5/23 | 2/23 |
+| H3 | 0.1 | 23 | 23/23 | 0.023 | 0.025 | 1/23 | 1/23 |
+| H3 | 0.25 | 22 | 22/22 | 0.035 | 0.032 | 1/22 | 0/22 |
+| H3 | 0.5 | 22 | 20/22 | 0.025 | 0.020 | 3/22 | 2/22 |
+| H3 | 0.75 | 22 | 19/22 | 0.026 | 0.017 | 5/22 | 3/22 |
+| H3 | 1 | 22 | 21/22 | 0.026 | 0.018 | 3/22 | 1/22 |
+| H3 | 1.5 | 22 | 22/22 | 0.029 | 0.025 | 3/22 | 1/22 |
+| H3 | 2 | 22 | 21/22 | 0.025 | 0.022 | 2/22 | 1/22 |
+| H3 | 3 | 22 | 22/22 | 0.031 | 0.027 | 1/22 | 0/22 |
+| H0 | 0.05 | 12 | 12/12 | 0.023 | 0.016 | 1/12 | 0/12 |
+| H0 | 0.1 | 11 | 11/11 | 0.034 | 0.014 | 0/11 | 0/11 |
+| H0 | 0.25 | 11 | 11/11 | 0.043 | 0.038 | 1/11 | 0/11 |
+| H0 | 0.5 | 11 | 11/11 | 0.058 | 0.057 | 0/11 | 0/11 |
+| H0 | 0.75 | 11 | 11/11 | 0.126 | 0.172 | 0/11 | 0/11 |
+| H0 | 1 | 11 | 11/11 | 0.192 | 0.212 | 4/11 | 1/11 |
+| H0 | 1.5 | 11 | 11/11 | 0.326 | 0.232 | 0/11 | 0/11 |
+| H0 | 2 | 11 | 11/11 | 0.709 | 1.750 | 0/11 | 0/11 |
+| H0 | 3 | 11 | 11/11 | 0.810 | 3.353 | 0/11 | 0/11 |
+<!-- /table:t5_by_radius -->
+
+H3: the gap (median 0.028) and the angle from result to truth (median 0.023 deg) are about the same at all radii, i.e. the
+finisher ends about 0.02 deg from the truth whatever the net's start error was. H0: gap and angle grow with the radius
+(at 2-3 deg the result is a median 1.75 / 3.35 deg from the truth); that is a different failure (not reaching the basin) and
+the continuations below do not help there.
+
+**(a) Cost along the straight path result -> truth** (41 uniform points plus 7 near the result at t = 0.001-0.1; 'barrier' =
+highest interior cost minus the result's cost).
+
+<!-- table:t5_geodesic -->
+| set | path cost rises above result | barrier q25/50/75 | a point below result | a point <= truth cost | monotone |
+|---|---|---|---|---|---|
+| H3 | 73/200 (36%, 30-43) | 0.000/0.000/0.001 | 191/200 (96%, 92-98) | 117/200 (58%, 52-65) | 25/200 (12%, 9-18) |
+| H0 | 38/100 (38%, 29-48) | 0.000/0.000/0.000 | 100/100 (100%, 96-100) | 36/100 (36%, 27-46) | 15/100 (15%, 9-23) |
+<!-- /table:t5_geodesic -->
+
+The path cost rises above the result's in 36% (H3) and 38% (H0) of the cases, but the rise exceeds the gap itself in only
+11/200 (H3) and 1/100 (H0); the median barrier is 0. In 191/200 (H3) and 100/100 (H0) cases some interior point of the path
+has a lower cost than the result, and in 117/200 (H3) / 36/100 (H0) some interior point has cost at or below the truth's. The
+path is monotone non-increasing in 25/200 (H3) and 15/100 (H0). So no barrier of the size of the gap lies on the straight
+line; it is a rough cost, not a smooth ramp.
+
+**(c) Granularity** (12 random axes per angle, at the truth and at the result; 'same' = cost equal within 1e-9, 'lower' = below the
+cost at the centre).
+
+<!-- table:t5_granularity -->
+| set | angle (deg) | truth: same cost | truth: lower | truth: median |d| | result: same cost | result: lower | result: median |d| |
+|---|---|---|---|---|---|---|---|
+| H3 | 0.001 | 0.18 | 0.07 | 0.0018 | 0.17 | 0.28 | 0.0015 |
+| H3 | 0.003 | 0.01 | 0.01 | 0.0070 | 0.02 | 0.27 | 0.0049 |
+| H3 | 0.01 | 0.00 | 0.00 | 0.0249 | 0.00 | 0.18 | 0.0171 |
+| H3 | 0.02 | 0.00 | 0.00 | 0.0529 | 0.00 | 0.09 | 0.0396 |
+| H3 | 0.05 | 0.00 | 0.00 | 0.1422 | 0.00 | 0.02 | 0.1193 |
+| H3 | 0.1 | 0.00 | 0.00 | 0.2903 | 0.00 | 0.00 | 0.2561 |
+| H3 | 0.2 | 0.00 | 0.00 | 0.4807 | 0.00 | 0.00 | 0.4433 |
+| H0 | 0.001 | 0.19 | 0.06 | 0.0018 | 0.33 | 0.16 | 0.0008 |
+| H0 | 0.003 | 0.01 | 0.02 | 0.0072 | 0.15 | 0.19 | 0.0027 |
+| H0 | 0.01 | 0.00 | 0.00 | 0.0263 | 0.09 | 0.18 | 0.0109 |
+| H0 | 0.02 | 0.00 | 0.00 | 0.0548 | 0.06 | 0.14 | 0.0222 |
+| H0 | 0.05 | 0.00 | 0.00 | 0.1469 | 0.03 | 0.09 | 0.0738 |
+| H0 | 0.1 | 0.00 | 0.00 | 0.2921 | 0.02 | 0.06 | 0.1655 |
+| H0 | 0.2 | 0.00 | 0.00 | 0.4808 | 0.02 | 0.03 | 0.3157 |
+<!-- /table:t5_granularity -->
+
+At the truth no rotation of 0.01 deg or more lowered the cost, and at 0.001 / 0.003 deg 7% / 1% of the draws did (H3). The
+median change of the cost for a 0.01 deg rotation at the truth (0.025 H3, 0.026 H0) is close to the median H3 gap (0.028): a
+gap of this size corresponds to about 0.01 deg of rotation at the truth. The cost steps are fine against the gap: the smallest nonzero difference
+between distinct cost values seen among each case's 84 truth-neighbour evaluations has a median of 2.4e-5 (H3) and 2.4e-5 (H0)
+(an upper bound on the quantum, from a small sample). At the result, rotations of 0.001-0.02 deg lowered the cost in 28% to 9%
+(H3) of the draws (H0: 14-19% at 0.001-0.02 deg), so the result is not at a local minimum of the cost on that scale. The cost at the truth changes by
+a median 0.0018 for a 0.001 deg rotation, i.e. already rough at that scale. Median counts at the truth / result (pixel overlap,
+pixels on detector, peaks overlapping, peaks on detector, peaks counted) are in `summary.json` (`counts_*`).
+
+**(d) Stopping rules in the default finisher run.**
+
+<!-- table:t5_stopping -->
+| set | FO stop codes (budget/restarts/cost) | FO steps q50 | FO accepts q50 | FO last accept q50 | FO final step q50 (deg) | VM steps q50 | VM improves | VM supplies final | VM final radius q50 (deg) |
+|---|---|---|---|---|---|---|---|---|---|
+| H3 | 122/78/0 | 200 | 8 | 24 | 0.0008 | 2245 | 107/200 (54%, 47-60) | 107/200 (54%, 47-60) | 0.329 |
+| H0 | 97/3/0 | 200 | 6 | 28 | 0.0021 | 375 | 80/100 (80%, 71-87) | 80/100 (80%, 71-87) | 0.329 |
+<!-- /table:t5_stopping -->
+
+FindOptimal MC (200 steps, step halved at every accepted improvement): the stop code counts are step budget / restarts exhausted /
+cost converged. In H3 the restarts-exhausted stop fired in 78/200 runs, and these are exactly the 78 runs with no accepted step
+(0 accepts in 78/200 H3 and 3/100 H0 runs); otherwise the run ended on the 200-step budget with a median of 8 (H3) / 6 (H0)
+accepts, the last accept at step 24 (H3) / 28 (H0) (medians), and a final step size of 0.0008 (H3) / 0.0021 (H0) deg (median). The
+hit-ratio "converged" flag never fired (0/200, 0/100) and the cost-convergence stop (`max_convergence_cost`) never fired. VarianceMinimizing
+has `max_convergence_cost` 0, so it can only stop on its step budget, which is extended by one subregion (10 steps) for every
+subregion whose cost variance is above 0.02^2 = 0.0004; it ended after a median 2245 (H3) / 375 (H0) steps (budget 200 plus the
+extensions), with the subregion radius back at the box (0.329 deg) in most runs, and it lowered the cost of the FindOptimal
+result in 107/200 (54%, 47-60%) H3 and 80/100 (80%, 71-87%) H0 runs; it supplied the final result in those runs.
+
+**(b) Continuations from the result.** Components called directly from the script with changed parameters: `mc_long` (FindOptimal MC,
+same box and step, 25x the steps = 5000, 10 restarts), `mc_smallstep` (step / 10, 10000 steps, 5 restarts), `mc_smallbox` (box and step / 4,
+10000 steps, 5 restarts), `vm_long` (VarianceMinimizing, same box, budget 5000 steps), `vm_smallbox` (box / 4, budget 5000), `rerun_default`
+(the whole default finisher again from the result, another seed) and `from_truth` (the default finisher started at the truth). The
+VarianceMinimizing runs were stopped at 50000 steps if the variance rule had not ended them (a safety cap that is not in the reconstructor;
+`vm_capped` in `summary.json`: reached in 139/200 `vm_long` and 198/200 `vm_smallbox` H3 runs, 65/100 and 83/100 H0 runs, so those two rows
+are mostly capped runs, not rule-terminated ones; the default re-runs were never capped). 'Gap closed' is the median over cases with
+gap > 0 of (result cost - end cost) / gap; 'toward truth' is the decrease of the angle to the truth.
+
+<!-- table:t5_continuations -->
+| set | continuation | improves | reaches truth cost | gap closed (median) | toward truth q25/50/75 (deg) | moved q50 (deg) |
+|---|---|---|---|---|---|---|
+| H3 | mc_long | 53/200 (26%, 21-33) | 24/200 (12%, 8-17) | 0.00 | -0.000/0.000/0.001 | 0.000 |
+| H3 | mc_smallstep | 194/200 (97%, 94-99) | 52/200 (26%, 20-32) | 0.61 | 0.002/0.006/0.011 | 0.011 |
+| H3 | mc_smallbox | 137/200 (68%, 62-75) | 29/200 (14%, 10-20) | 0.69 | 0.000/0.006/0.023 | 0.016 |
+| H3 | vm_long | 113/200 (56%, 50-63) | 11/200 (6%, 3-10) | 0.24 | -0.000/0.000/0.028 | 0.015 |
+| H3 | vm_smallbox | 186/200 (93%, 89-96) | 42/200 (21%, 16-27) | 0.93 | 0.005/0.016/0.035 | 0.022 |
+| H3 | rerun_default | 67/200 (34%, 27-40) | 13/200 (6%, 4-11) | 0.00 | -0.000/0.000/0.010 | 0.000 |
+| H3 | from_truth | 0/200 (0%, 0-2) | 200/200 (100%, 98-100) | nan | -0.000/-0.000/-0.000 | 0.000 |
+| H0 | mc_long | 65/100 (65%, 55-74) | 6/100 (6%, 3-12) | 0.05 | -0.000/0.005/0.092 | 0.058 |
+| H0 | mc_smallstep | 88/100 (88%, 80-93) | 12/100 (12%, 7-20) | 0.12 | 0.001/0.007/0.011 | 0.013 |
+| H0 | mc_smallbox | 76/100 (76%, 67-83) | 10/100 (10%, 6-17) | 0.15 | 0.000/0.018/0.034 | 0.030 |
+| H0 | vm_long | 78/100 (78%, 69-85) | 1/100 (1%, 0-5) | 0.76 | 0.000/0.045/0.227 | 0.073 |
+| H0 | vm_smallbox | 90/100 (90%, 83-94) | 14/100 (14%, 9-22) | 0.96 | 0.008/0.043/0.205 | 0.060 |
+| H0 | rerun_default | 60/100 (60%, 50-69) | 3/100 (3%, 1-8) | 0.16 | -0.000/0.016/0.136 | 0.044 |
+| H0 | from_truth | 0/100 (0%, 0-4) | 100/100 (100%, 96-100) | nan | -0.000/-0.000/-0.000 | 0.000 |
+<!-- /table:t5_continuations -->
+
+The default finisher started at the truth never lowered the cost (0/200, 0/100). Reaching exactly the truth's cost is rare for
+any single continuation (H3 at most 52/200 = 26%, CI 20-32%, for `mc_smallstep`; H0 at most 14/100), but the cost drops a lot: `vm_smallbox` closes
+a median 93% (H3) / 96% (H0) of the gap and `mc_smallstep` improves the cost in 97% (H3) of the runs, and
+ends a median 0.006 deg (`vm_smallbox`, H3) from the truth against 0.023 deg at the result. The best of the five continuations per case
+closes a median 99% of the gap and reaches the truth's cost in 96/200 (48%, 41-55%) (H3) and 35/100 (35%, 26-45%) (H0) cases (`best_of_five` in `summary.json`). The same-step `mc_long` improves the cost
+in only 53/200 H3 runs with a median movement of 0.000 deg, although it has 25x the budget (consistent with its step having
+been halved on every accept and not restarting, not tested separately), while `mc_smallstep` (1/10 of the step) improves 194/200. In H0 the
+continuations move the orientation toward the truth by a median of at most 0.045 deg and mostly do not reach the truth's cost at 0.75 deg and above
+(by-radius table: `vm_long` reaches it in 1/11 at 1 deg and in none elsewhere above 0.5 deg; `mc_long` in 4/11 at 1 deg and in none elsewhere above 0.5 deg).
+
+**Reading (observations only).** In 96% of the H3 cases the finisher's result is about 0.02 deg from the truth with a cost 0.03 above
+it; the cost along the straight line to the truth has no barrier as big as that gap, a 0.01 deg rotation at the truth changes the cost by
+about as much as the gap, the finisher's FindOptimal step ends 0.001-0.002 deg and the result is not a local minimum on the 0.001-0.02 deg
+scale, and continuing with a smaller step or a smaller VarianceMinimizing box lowers the cost to within a small remainder of the truth's in many
+cases. This does not show why the default parameters stop where they do. Not tested: whether the minimum of the realistic-data cost is at
+the truth (the truth's cost is itself noisy: the cost at the truth is above the cost of some nearby orientation in 30% of H3 cases at 0.05 deg,
+see `truth_best_within_0.05deg` in `summary.json`), other box and step ratios, the effect of the 200-step MC budget on the result, and symmetry
+equivalents of the truth (the work is symmetry-agnostic; angles are to the stored truth, not the nearest symmetric one).
+
+**Effect estimate for a possible fix (diagnostics only, not implemented).** Appending a VarianceMinimizing pass with a quarter-size box after
+the default finisher (`vm_smallbox`) reduces the H3 gap by a median 93% and moves the result a median 0.016 deg toward the truth, reaching the truth's cost in 42/200 (21%, 16-27%) cases
+(14/100 for H0); at the 50000-step cap that is up to about 25 times the default evaluation count, so a cheaper variant (a fixed 5000-step
+budget) has not been estimated here. An MC pass with step / 10 (`mc_smallstep`, 10000 evaluations) closes a median 61% of the H3 gap and
+reaches the truth's cost in 26%. Neither was tested for its effect on the reconstruction's final success rate, only on the cost and the angle to the truth in these
+cases.
