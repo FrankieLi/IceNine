@@ -663,6 +663,8 @@ Commands for the `GNLayerNet` (`--arch gn`) and Step 4 (distractor/realism layer
 
 `scripts/finisher_diagnosis/` diagnoses why `refine_from_candidates` ends above the truth's cost on realistic sweep cases (own header docstrings): `diagnose.py` (`pilot`, `run`; re-runs the finisher with the Task 1 seed through the unmodified reconstructor with `LoggedMC`, a `MCOptimizer` subclass that records the stopping rule and iteration, then measures the cost along the geodesic result -> truth, the cost granularity at the truth and result, and continuations with longer runs / smaller steps / smaller boxes), `diag_summary.py` (tables and `summary.json`). Caches in `scripts/finisher_diagnosis/cache/` (gitignored), results in `benchmarks/finisher_diagnosis/`; tests in `tests/test_finisher_diagnosis.py`. Nothing in `icenine/` changed.
 
+`scripts/cost_sensitivity/` (finisher/MC study, Phase A; own header docstrings): `landscape.py` (`pilot`, `run`; the cost landscape around the truth on the T5 cases, clean and realistic variants of the same voxel/radius/direction: 400 random directions x 10 radii from 0.0005 to 0.1 degrees plus the finisher's step), `resolution.py` (centroid-quantisation scale of a voxel's orientation from the geometry (a scale, not a bound); `fisher_quantisation`, `crb`), `summary.py` (plateau statistics, sampled minimum, cost-vs-angle correlation, gap-closure statistics -> `benchmarks/cost_sensitivity/summary.json` and `tables.md`). Cache in `scripts/cost_sensitivity/cache/` (gitignored); tests in `tests/test_cost_sensitivity.py`. Nothing in `icenine/` changed.
+
 `scripts/checks/` holds the numerical checks behind the derivations in `docs/`. Results
 of the Stage 0 run are in `benchmarks/toy_orientation_stage0/`.
 
