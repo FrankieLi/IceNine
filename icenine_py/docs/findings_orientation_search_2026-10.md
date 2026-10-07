@@ -252,6 +252,7 @@ The effect of these continuations on reconstruction success has not been tested.
 - **Why does the finisher stop short of the truth's cost?** In particular, how much of this is the cost function's
   sensitivity: a binary overlap that is flat or rough at 0.01–0.02°, and a realistic-data minimum that is not at the
   truth in 59/200 H3 cases?
+  - *Phase A answer (finisher/MC study, `benchmarks/cost_sensitivity/`):* it is not the cost function's sensitivity. In the same cases the cost rises monotonically with the angle from the truth (within-case Spearman median 0.97), by a median 0.025 (realistic) for a 0.01° rotation, and is flat only below about 0.001°. The realistic minimum is offset by about 0.0005° or less (upper bound set by the sampling grid), against the finisher's 0.023° median error. The finisher's error is a median 1.86× an independent-quantisation resolution bound of 0.0125° (H3). A quarter-box VarianceMinimizing pass takes the error from 0.0229° to 0.0060° (83% of cases improve). So the optimizer stops early on a resolvable landscape; why it stops is Phase B. See MIGRATION_HISTORY "Phase A results".
 - **Why does MC run out of restarts, and is MC the right local optimizer at all?** The April HP sweep compared methods
   by success from 1–5° starts, at 3500 MC steps. It did not measure final precision, nor FindOptimal's deployed
   configuration: 200 steps, a 0.33° box.

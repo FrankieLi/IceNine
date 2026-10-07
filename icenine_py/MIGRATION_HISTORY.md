@@ -3284,7 +3284,7 @@ Final full suite on `feature/followups`: 673 passed, 34 skipped, 0 failed (707 c
 
 ## Finisher and MC study (2026-10-07)
 
-**Status: planned (not started).** Owner questions: (a) why FindOptimal stops short of the correct answer, and whether this comes from the cost function's sensitivity; (b) why MC runs out of restarts, what better local search exists, whether MC is the right tool, and whether the April 2026 MC-vs-optimizer comparison was deployed too soon. Next step after the plan: a full-sample BFS end-to-end test of the 500-grain sample with new orientations, comparing classic BFS against BFS with the NN and hybrid finisher (`docs/todo_500grain_bfs_end_to_end.md`).
+**Status: Phase A done (see "Phase A results"); Phases B-D planned.** Owner questions: (a) why FindOptimal stops short of the correct answer, and whether this comes from the cost function's sensitivity; (b) why MC runs out of restarts, what better local search exists, whether MC is the right tool, and whether the April 2026 MC-vs-optimizer comparison was deployed too soon. Next step after the plan: a full-sample BFS end-to-end test of the 500-grain sample with new orientations, comparing classic BFS against BFS with the NN and hybrid finisher (`docs/todo_500grain_bfs_end_to_end.md`).
 
 Drafted 2026-10-07 by the main session (Opus). Implemented by Sonnet `implementer` agents, one task at a time.
 
@@ -3342,6 +3342,133 @@ Mostly analysis of existing caches; ~1 h compute.
   - Report the cost-vs-error correlation within each case.
 - **Deliverable:** a short answer to "is it sensitivity?", with numbers. It will say one of three things: the optimizer
   stops early on a resolvable landscape; the landscape is flat below X°; or the realistic minimum is offset by Y°.
+
+### Phase A results (2026-10-07, `feature/finisher-mc-study-phase-a`)
+
+**Answer: it is not the cost function's sensitivity. The optimizer stops early on a resolvable landscape.** Details below; all numbers from `benchmarks/cost_sensitivity/summary.json` and `tables.md`.
+
+**What ran.**
+- **Cases:** the 300 T5 cases (200 H3, 100 H0), each in both variants of the same voxel/radius/direction: clean and realistic.
+- **Evaluations:** per case and variant, 400 random directions × 10 radii (0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.03, 0.05, 0.075, 0.1°), plus the finisher's initial MC step (0.132°). That is 4,400 evaluations per case and variant, about 2.6 M in total.
+- **Wall time:** about 3 minutes for the landscape run on 10 workers (contended, no timing claim).
+- **Cross-check:** the realistic cost at the truth and at the stored T5 result is bit-identical to T5's stored values.
+- **Code:** `scripts/cost_sensitivity/` (`landscape.py`, `resolution.py`, `summary.py`); tests in `tests/test_cost_sensitivity.py`.
+
+**A1, the landscape.** Median |cost change| for a rotation of the truth by r, and the fraction of directions with cost ≤ cost(truth), as "median |change| / fraction" per radius (degrees):
+
+<!-- table:a1_by_radius -->
+| set | variant | 0.0005 | 0.001 | 0.002 | 0.005 | 0.01 | 0.02 | 0.03 | 0.05 | 0.075 | 0.1 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | 0.001 / 0.45 | 0.003 / 0.21 | 0.007 / 0.05 | 0.018 / 0.00 | 0.037 / 0.00 | 0.078 / 0.00 | 0.122 / 0.00 | 0.212 / 0.00 | 0.322 / 0.00 | 0.422 / 0.00 |
+| H3 | realistic | 0.001 / 0.49 | 0.002 / 0.24 | 0.004 / 0.08 | 0.012 / 0.01 | 0.025 / 0.00 | 0.054 / 0.00 | 0.083 / 0.00 | 0.143 / 0.00 | 0.218 / 0.00 | 0.288 / 0.00 |
+| H0 | clean | 0.001 / 0.51 | 0.003 / 0.24 | 0.007 / 0.05 | 0.019 / 0.00 | 0.037 / 0.00 | 0.078 / 0.00 | 0.121 / 0.00 | 0.211 / 0.00 | 0.325 / 0.00 | 0.423 / 0.00 |
+| H0 | realistic | 0.000 / 0.48 | 0.002 / 0.25 | 0.004 / 0.08 | 0.013 / 0.01 | 0.026 / 0.00 | 0.055 / 0.00 | 0.085 / 0.00 | 0.146 / 0.00 | 0.224 / 0.00 | 0.293 / 0.00 |
+<!-- /table:a1_by_radius -->
+
+- **Steep and monotone.** The cost rises quickly with the angle from the truth. Within a case, the Spearman correlation of cost with angle over the sampled points has median 0.97 (H3, both variants) and 0.94 on the points ≤ 0.03°; it is negative in 0 of 200 H3 cases.
+- **Flat only below about 0.001°.** The fraction of directions whose cost does not exceed the truth's falls to 0.21 (clean) / 0.24 (realistic) at 0.001°, and to 0.05 / 0.08 at 0.002°. From 0.005° it is 0.00 (clean) and 0.01 (realistic). Plateau radius r50 (the smallest sampled radius where fewer than half the directions are inside the plateau, ε = 0): median 0.001° in all four sets.
+- **The 0.01° scale is not flat.** A 0.01° rotation changes the cost by a median 0.037 (clean) and 0.025 (realistic), the size of the T5 cost gap (median 0.028 in H3). The cost gap therefore corresponds to a few hundredths of a degree of orientation.
+- **The finisher's own step.** The MC step the finisher had reached when it stopped has a median trial angle of 0.00025° in the 122/200 H3 runs that accepted at least one move (the other runs stayed at the initial 0.132° step). At the initial step the cost is never at or below the truth's (the plateau with ε = the median change at that step is the whole 0.1° ball: not informative).
+- **Plateau shape.** With ε = 0 the plateau points sit at the two smallest radii, so the anisotropy (square root of the largest-to-smallest second-moment eigenvalue) is a coarse estimate: median 2.62 (H3 realistic) and 2.72 (H3 clean). It is limited by the 0.0005° grid, so it is not a precise shape measure.
+
+<!-- table:a1_plateau -->
+| set | variant | eps | n | r50 | r_any | ext | no_member | aniso |
+|---|---|---|---|---|---|---|---|---|
+| H3 | clean | 0 | 200 | 0.001/0.001/0.001 (0 ≥ 0.1) | 0.002 | 0.000 | 0 | 2.72 (n=200) |
+| H3 | clean | final step | 122 | 0.001/0.001/0.002 (0 ≥ 0.1) | 0.005 | 0.001 | 0 | 2.18 (n=122) |
+| H3 | clean | initial step | 200 | 0.150/0.150/0.150 (200 ≥ 0.1) | 0.100 | 0.100 | 0 | 1.08 (n=200) |
+| H3 | realistic | 0 | 200 | 0.001/0.001/0.001 (0 ≥ 0.1) | 0.002 | 0.000 | 0 | 2.62 (n=199) |
+| H3 | realistic | final step | 122 | 0.001/0.001/0.002 (0 ≥ 0.1) | 0.005 | 0.001 | 0 | 2.22 (n=122) |
+| H3 | realistic | initial step | 200 | 0.150/0.150/0.150 (200 ≥ 0.1) | 0.100 | 0.100 | 0 | 1.09 (n=200) |
+| H0 | clean | 0 | 100 | 0.001/0.001/0.001 (0 ≥ 0.1) | 0.002 | 0.000 | 0 | 2.44 (n=100) |
+| H0 | clean | final step | 97 | 0.001/0.005/0.010 (0 ≥ 0.1) | 0.005 | 0.002 | 0 | 1.93 (n=97) |
+| H0 | clean | initial step | 100 | 0.150/0.150/0.150 (100 ≥ 0.1) | 0.100 | 0.100 | 0 | 1.08 (n=100) |
+| H0 | realistic | 0 | 100 | 0.001/0.001/0.001 (0 ≥ 0.1) | 0.002 | 0.000 | 0 | 2.43 (n=100) |
+| H0 | realistic | final step | 97 | 0.001/0.002/0.010 (0 ≥ 0.1) | 0.010 | 0.001 | 0 | 1.96 (n=97) |
+| H0 | realistic | initial step | 100 | 0.150/0.150/0.150 (100 ≥ 0.1) | 0.100 | 0.100 | 0 | 1.09 (n=100) |
+<!-- /table:a1_plateau -->
+
+**Where the sampled minimum is.** Over the 4,000 samples per case (radii ≤ 0.1°):
+
+<!-- table:a1_minimum -->
+| set | variant | eps_final | eps_init | below | drop | ang | cen |
+|---|---|---|---|---|---|---|---|
+| H3 | clean | 0.0015 | 0.524 | 24/200 (12%, 8-17) | 0.0000 | 0.001/0.001/0.001 | 0.0003/0.0004/0.0005 |
+| H3 | realistic | 0.0008 | 0.369 | 108/200 (54%, 47-61) | 0.0001 | 0.001/0.001/0.002 | 0.0003/0.0005/0.0010 |
+| H0 | clean | 0.0047 | 0.522 | 17/100 (17%, 11-26) | 0.0000 | 0.001/0.001/0.001 | 0.0003/0.0004/0.0005 |
+| H0 | realistic | 0.0035 | 0.369 | 55/100 (55%, 45-64) | 0.0002 | 0.001/0.001/0.001 | 0.0003/0.0005/0.0009 |
+<!-- /table:a1_minimum -->
+
+- **Clean:** the truth is the sampled minimum in 176/200 H3 cases; 24/200 have a lower sample, by a median of 0.0000 in cost.
+- **Realistic:** 108/200 H3 cases (54%) have a sample with lower cost than the truth, by a median 0.0001. The centroid of the 10 lowest samples is a median 0.0005° from the truth (q25–q75: 0.0003–0.0010°). This is at the grid's smallest radius, so it is an upper bound on the offset.
+- **Clean vs realistic.** Realistic data move the minimum a little: the centroid offset is larger than clean's in 126/200 cases and smaller in 74/200 (sign test p = 0.00029), median difference 0.0001°. The effect is real but about two orders of magnitude smaller than the finisher's 0.023° error.
+
+**A2, physical resolution.**
+- **Geometry** (from the observer): pixel 1.48 µm, ω frame width 1.0°, two detector planes at 3.36 and 5.38 mm (the planes' offsets from the origin; the pixel size has the same length unit), median |sin η| 0.90, median 2θ 10.6°, median 119 reflections per voxel (30 voxels: those of the T5 cases).
+- **Formula** (docstring of `resolution.py`). Each reflection is read as (frame, column, row) with uniform quantisation error, i.e. variance bin²/12 with bin = the frame width for ω and 1 px for each detector coordinate. With g_m = ∂ω_m/∂δ (3,) and G_m = ∂(u,v)_m/∂δ (2×3) from central differences of the batched ray tracer at ±0.005°, the Fisher information on the rotation vector δ is J = Σ_m [12/Δω² g_m g_mᵀ + 12 G_mᵀ G_m]. The bound is Cov ≥ J⁻¹; the scalar reported is sqrt(tr J⁻¹), the 3-D RMS angle, comparable with a misorientation. It equals the library's `ExactBayes.information_matrix` (asserted for every voxel).
+- **Assumption:** independent quantisation errors. A spot is a triangle of lit pixels whose edges carry sub-pixel information, and the cost uses exact pixel sets, so this is a conservative (pessimistic) bound for the cost, not a hard limit.
+
+<!-- table:a2_bound -->
+| peaks | n_peaks | both | frame | pixel | aniso |
+|---|---|---|---|---|---|
+| |sin eta| >= 0.3 (net set) | 119 | 0.0091/0.0125/0.0142 | 0.0634 | 0.0136 | 3.35 |
+| all recorded peaks | 124 | 0.0090/0.0122/0.0141 | 0.0501 | 0.0133 | 3.44 |
+<!-- /table:a2_bound -->
+
+Columns: q25/q50/q75 of the 3-D RMS bound (deg) over voxels; median frame-only and pixel-only bounds; median ratio of the largest to the smallest principal sigma.
+
+- **Where the bound sits.** The bound is 0.0125° (median, q25–q75 0.0091–0.0142°) with the net's reflections, and 0.0122° with all recorded reflections. The pixel term dominates (0.0136° alone); the frame term alone gives 0.0634°. This is close to Gauss-Newton's 0.0127° clean floor, as expected for a method that uses the spot centroids.
+- **Final error against the bound** (T5 result, same voxel):
+
+<!-- table:a2_error_vs_bound -->
+| set | ratio | below |
+|---|---|---|
+| H3 | 1.09/1.86/3.47 | 45/200 (22%, 17-29) |
+| H0 | 2.43/7.56/39.15 | 15/100 (15%, 9-23) |
+<!-- /table:a2_error_vs_bound -->
+
+  The H3 finisher result is a median 1.86× the bound (q25–q75: 1.09–3.47); 45/200 are below it. H0 is 7.56× (its errors include wrong-basin cases at 2–3°).
+- **Plateau against the bound.** The ε = 0 plateau radius (about 0.001°) is an order of magnitude smaller than the information bound (0.0125°). The cost resolves the orientation more finely than the independent-quantisation bound, because it compares exact pixel sets.
+
+**A3, does the gap matter?**
+
+<!-- table:a3_correlation -->
+| set | variant | rho | rho_fine | neg | lower | far |
+|---|---|---|---|---|---|---|
+| H3 | clean | 0.97/0.97/0.98 | 0.94 | 0/200 | 182/188 | 5386/329990 |
+| H3 | realistic | 0.96/0.97/0.97 | 0.94 | 0/200 | 183/188 | 4867/315648 |
+| H0 | clean | 0.97/0.97/0.98 | 0.95 | 0/100 | 53/53 | 1216/100986 |
+| H0 | realistic | 0.96/0.97/0.97 | 0.94 | 0/100 | 53/53 | 1280/97575 |
+<!-- /table:a3_correlation -->
+
+Columns: Spearman cost vs angle (q25/q50/q75 over cases; median on points ≤ 0.03°), cases with negative correlation, usable cases (finisher error < 0.1°) that have sampled points with lower cost than the finisher's result, and the points among those that are farther from the truth than the result is.
+
+- **Lower cost is almost never farther.** Among the sampled points with a cost below the finisher's result, 4,867 of 315,648 (1.5%) in H3 realistic lie farther from the truth than the result does. The sampled lower-cost points are overwhelmingly closer.
+- **Closing the gap reduces the error** (stored T5 data, verified):
+
+<!-- table:a3_gap_closure -->
+| set | cont | before | after | closed | reduced | p | rho |
+|---|---|---|---|---|---|---|---|
+| H3 | vm_smallbox | 0.0229 | 0.0060 | 0.93 | 166/200 (83%, 77-88) | 1.1e-28 | 0.24 |
+| H3 | mc_smallstep | 0.0229 | 0.0165 | 0.61 | 160/200 (80%, 74-85) | 2e-21 | 0.02 |
+| H0 | vm_smallbox | 0.0888 | 0.0047 | 0.96 | 84/100 (84%, 76-90) | 2.6e-12 | 0.55 |
+| H0 | mc_smallstep | 0.0888 | 0.0793 | 0.12 | 78/100 (78%, 69-85) | 1.2e-12 | 0.28 |
+<!-- /table:a3_gap_closure -->
+
+  In H3 a quarter-box VarianceMinimizing pass (vm_smallbox) takes the median error from 0.0229° to 0.0060°, closing a median 93% of the gap. The error falls in 166/200 cases (83%, 77–88), rises in 20/200; paired Wilcoxon p = 1.1e-28. It ends below the A2 bound's median (0.0125°). The case-by-case Spearman correlation between the fraction of the gap closed and the error reduction is only 0.24, because almost every run closes most of the gap.
+
+**Is it sensitivity?** No, on the evidence of this phase:
+1. *The landscape is resolvable.* Cost rises monotonically with the angle (Spearman 0.97), by about 0.025 (realistic) at 0.01°, and is flat only below about 0.001°.
+2. *The realistic minimum is offset by about 0.0005° or less* (grid floor), a small fraction of the 0.023° error, and lower-cost points are almost never farther from the truth than the finisher's result (1.5% of them).
+3. *The finisher's error is above the information scale* (1.86× the independent-quantisation bound in H3), and a pass that closes the gap lowers the error to 0.0060° in 83% of cases.
+
+So "the optimizer stops early on a resolvable landscape". Not tested here: why it stops (Phase B1/B3), nor the dependence on the cost function's roughness at 0.001–0.05° that T5 saw (the result is not a local minimum there in 175/200 H3 cases). The MC step collapse (median final trial angle 0.00025° in the runs that accept) is *consistent with* the optimizer running out of improving moves while the step shrinks; the step–acceptance curve is the Phase B1 measurement.
+
+**Caveats.**
+- Per-voxel images with at most 3 distractor sources (as in T5), not full-sample renders; Cu FCC only.
+- The sampled minimum has a 0.0005° floor (the smallest radius), and directions are random, not a descent: the offset is an upper bound.
+- The plateau anisotropy depends on the grid; the A2 principal-sigma ratio (3.35) is the better shape estimate.
+- A2 is a bound under an independence assumption; it is neither the cost function's resolution nor an estimator's.
 
 ### Phase B: why MC runs out of restarts, and better local search
 - **B1, test the mechanism.**
