@@ -18,6 +18,9 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import base as B  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "common"))
+import stats as shared_stats  # noqa: E402
+
 C, M = B.C, B.M
 import summarize_fixes as SF  # noqa: E402
 import models as MD  # noqa: E402
@@ -130,15 +133,13 @@ def row(name: str, runs: Dict[Any, Any], e0: Dict[Any, Any], eq: float = 0.0) ->
 def mcnemar(a: Optional[Dict], b: Optional[Dict]) -> Optional[Dict[str, Any]]:
     """Exact (two-sided binomial) McNemar test of two rows on their common runs: wrong = error
     above 1 deg. Returns the discordant counts (a wrong / b right, a right / b wrong) and p."""
-    from scipy.stats import binomtest
-
     if not a or not b:
         return None
     keys = sorted(set(a["_errs"]) & set(b["_errs"]))
     wa = np.array([a["_errs"][k] > C.WRONG_DEG for k in keys])
     wb = np.array([b["_errs"][k] > C.WRONG_DEG for k in keys])
-    n_a, n_b = int((wa & ~wb).sum()), int((~wa & wb).sum())
-    p = 1.0 if n_a + n_b == 0 else float(binomtest(min(n_a, n_b), n_a + n_b, 0.5).pvalue)
+    n_a, n_b = shared_stats.paired_discordant(wa, wb)
+    p = shared_stats.mcnemar_exact(n_a, n_b)
     return dict(a=a["name"], b=b["name"], n=len(keys), a_only_wrong=n_a, b_only_wrong=n_b, p=p)
 
 

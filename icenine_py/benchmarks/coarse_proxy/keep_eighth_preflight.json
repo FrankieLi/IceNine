@@ -1,0 +1,15 @@
+{
+ "timestamp": "2026-10-06T22:42:36",
+ "host": "newt.local",
+ "loadavg": [
+  1.251953125,
+  2.884765625,
+  6.2109375
+ ],
+ "cpu_count": 12,
+ "power": "ac",
+ "omp_num_threads": "1",
+ "mkl_num_threads": "1",
+ "torch_threads": 1,
+ "busy_processes": []
+}

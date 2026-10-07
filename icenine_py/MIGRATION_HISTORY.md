@@ -2816,3 +2816,468 @@ All three tasks are merged into `feature/nn-hybrid-proxy-profiling`. Nothing in 
 All of A-K implemented on `feature/dev-tooling`; tests in `tests/test_dev_tooling.py` (99 passed after the review fixes; full suite 639 passed, 34 skipped with the main venv). Scripts are listed in the README section "Developer tooling". The git hooks are not activated; the main session runs `scripts/dev/install_hooks.sh` after the merge (and after the other feature's agent has committed, since `core.hooksPath` is shared by all worktrees). Not changed: `scripts/nn_hybrid`, `scripts/coarse_proxy`, `scripts/profiling`, `icenine/`; adopting `stats`, `doc_tables` and `preflight` there is a later step.
 
 **Number audit on the FindOptimal robustness section above.** `audit_numbers.py` extracts 128 numbers and matches 125 against `benchmarks/findoptimal_robustness/*`; the three unmatched are real non-source numbers (the test count 537, the derived 853 right runs, and the derived 347/347). The calibration line shows the limit (reported per precision bucket: 0 dp 70%, 1 dp 91%, 2 dp 86%, 3+ dp 89%): shifting every number by 3 in its last printed digit still matches about 80% overall, because the source files contain thousands of values and low-precision decimals (0.2, 0.94) match almost anything. The audit catches wrong-magnitude and invented numbers, not small transcription errors; counts and high-precision values are the strongest checks.
+
+## Follow-ups (2026-10-06)
+
+Plan (short form). Branch `feature/followups` off develop; one sub-task branch per task
+(`scripts/dev/start_task.sh <name>`), merged back after review. Results go in a subsection per task.
+FindOptimal F1/F1b are cubic-specific.
+
+- **T1 `env`**: reproducible environment for the golden tests. A fresh `uv pip install` picked
+  Python 3.12 / numpy 2.4 / torch 2.10 and 4 golden bit-identity tests in
+  `tests/test_findoptimal_refactor.py` fail at 1e-9. Find where outputs diverge (float drift vs
+  branch flip); make `uv sync` from `uv.lock` the documented setup (`.python-version` 3.9); verify in
+  a temporary clone; record numpy/torch/python versions next to the golden data and fail clearly on
+  mismatch (no loosened tolerance, no silent skip).
+- **T2 `stats-adoption`**: use `scripts/common/stats.py` (and `preflight.py` where the record format
+  stays readable) in the study scripts; regenerated summaries must be byte-identical.
+- **T3 `lowq-batch`**: batch the F-lowQ Q5 feature pass over candidates and peaks; identical
+  features (<= 1e-12); time per candidate at batch sizes 1, 50, 200 on a single worker; report the
+  new proxy cost in evaluation equivalents.
+- **T4 `keep-eighth`**: proxy rerank with keep_fraction 1/8 (and 1/6) end to end, 200 voxels x 2
+  variants, seed 0, paired with baseline and keep-1/4 proxy; then a 20-voxel single-worker timing.
+  "Useful" means wrong <= keep-1/4 proxy Wilson upper bound at fewer total evaluations than baseline.
+- **T5 `finisher-diagnosis`**: why the finisher stops above the truth's cost (path barrier, longer or
+  finer continuation, pixel granularity, stopping rule). Observations only; no reconstructor change.
+
+Not in this round: full-sample renders and the ideas in `docs/todo_future_ideas_nn_active_fourier.md`.
+
+### T1 `env`: locked environment for the golden tests (2026-10-06)
+
+**Where the golden outputs diverge.** One golden case (ThreeVoxels voxel 0, `reconstruct_voxel`, seed 7)
+was run with the recorder attached in the main environment (Python 3.9.6, numpy 2.0.2, torch 2.8.0,
+scipy 1.13.1) and in a fresh `uv pip install -e ".[dev]"` environment (Python 3.12.12, numpy 2.5.3,
+torch 2.14.1, scipy 1.18.1; the resolver picks newer versions than the 3.12/2.4/2.10 first seen).
+Every stage event has the same sequence, the same costs (maximum cost difference 0.0, final cost
+0.8180327868852459 in both) and the same discrete-stage orientation (difference 0). Rotation matrices first
+differ in the quick-MC stage (maximum entry difference 6.1e-9) and carry through to the final
+orientation (3.8e-7 deg in the third rotation-vector component, against the 1e-9 test tolerance). So this
+case shows small floating-point drift (about 6e-9 in matrix entries), not a branch flip in the MC
+search. The source of the drift was not isolated; `scipy.spatial.transform.Rotation` conversions on 1000
+random vectors are bit-identical across the two environments, which rules out that part only. The other
+3 tests in the file pass in both environments; the 4 failing tests are the 4 that compare against
+GOLDEN. This is one case, so other cases could still differ differently.
+
+**Change.** `icenine_py/.python-version` (3.9); `uv sync --extra dev` is the documented setup in
+`icenine_py/README.md`. `GOLDEN_ENV` next to the golden data in `tests/test_findoptimal_refactor.py`
+records python 3.9 (major.minor), numpy 2.0.2, torch 2.8.0, scipy 1.13.1; the 4 golden tests take a
+`golden_env` fixture that fails (not skips) with "golden values recorded with ...; running ... Run
+`uv sync --extra dev`" on a mismatch. Tolerances unchanged.
+
+**Verification.** In a temporary clone outside the repo, `env -u VIRTUAL_ENV uv sync --extra dev`
+produced Python 3.9.6, numpy 2.0.2, torch 2.8.0, scipy 1.13.1 and left `uv.lock` unchanged; the 7 tests
+in `test_findoptimal_refactor.py` pass. In the drifted 3.12 environment the 4 golden tests fail with
+the version message. Main tree full suite: 663 passed, 34 skipped, 1 failed
+(`test_dev_tooling.py::test_githook_and_installer_exist_and_are_not_activated`, which asserts
+`core.hooksPath` is unset; it is now set to `.githooks` in this checkout, so the failure is the hooks
+having been activated, not this change; fixed in d27575a). A later module-name clash between two
+`test_nn_hybrid` summary imports in the full suite was fixed in 402fbd0 (summary loaded by path).
+
+**Not done here.** The CLAUDE.md setup lines (`uv pip install -e ".[dev]"` to `uv sync --extra dev`) are
+blocked by the pre-commit check on CLAUDE.md changes (override not allowed); the main session should make that
+edit.
+
+### T2 `stats-adoption`: shared statistics helpers in the study scripts (2026-10-06)
+
+`scripts/findoptimal_robustness/common.py` and `scripts/profiling/prof_common.py` now compute their Wilson
+interval with `scripts/common/stats.wilson` (the 3-tuple `(rate, lo, hi)` is rebuilt at the wrapper, so every
+call site is unchanged). `scripts/nn_hybrid/summary.py` uses `stats.win_rate` (tie band `TIE_DEG = 0.002`);
+`scripts/coarse_proxy/summary.py` uses `stats.paired_discordant` and `stats.mcnemar_exact`.
+`prof_summary.py` delegates its Wilson to `prof_common` / the nn_hybrid summary; its only change is the gzip fix below.
+
+Clamp fix accepted (main session decision): `nn_hybrid/summary.py` also uses `stats.wilson`, which clamps to
+[0, 1]. The only change in the regenerated summaries is `wrong_hi` 1.0000000000000002 to 1.0 (one ulp, k = n):
+4 values, one in each of `nn_hybrid/summary.json`, `summary_s1_replicate.json`, `summary_clean_s0_fallback.json`
+and `profiling/summary.json` (the last reuses the nn_hybrid code); the `.txt` files are unchanged. These four
+`.json` files were committed with the new value; all other summaries stay byte-identical.
+
+Deterministic gzip: `prof_summary.write_gz` now writes with no mtime and no file name in the header, and
+`compact()` iterates its key set in sorted order (it iterated a `set`, so the key order of `seeded_runs.json.gz` /
+`u0_runs.json.gz` varied with the hash seed). The decompressed JSON is equal to the committed one as data
+(key order differs once); the two `.gz` were re-committed once. Two further regenerations gave identical files
+and a clean `git status`.
+
+Kept local, on purpose:
+- `nn_hybrid/summary.py::reorder`: it fills voxels absent from the source with NaN/0 (pilot on a subset);
+  `stats.reorder` raises on a missing id.
+- `prof_common.isolation_record`: not moved to `preflight.py`. The stored records (`isolation_*.json`, the
+  `isolation` entry in every `v*.json`) have keys `time`, `battery`, `thermal`, `processes_over_5pct_cpu`,
+  `cores`, `note`, which `prof_summary.isolation_lines` reads and `preflight.preflight()` does not produce, so the
+  format would not stay readable.
+
+Regenerated and confirmed byte-identical to the committed files (except the four `wrong_hi` values above):
+- `benchmarks/nn_hybrid/summary.txt|json`, `summary_s1_replicate.txt|json` (`--model realistic_s1 --variant all
+  --pipes H3`), `summary_clean_s0_fallback.txt|json` (`--model clean_s0 --variant clean --pipes H3`)
+- `benchmarks/coarse_proxy/summary.txt|json`
+- `benchmarks/profiling/summary.txt|json`
+- `benchmarks/findoptimal_robustness/`: `fixes_summary.txt|json` (`summarize_fixes.py`), `e2_endtoend.txt|json`
+  (`e2_summary.py`), `e0_summary.txt|json` and `e0_runs.npz` (`analyze_e0.py`)
+
+Not regenerated: `nn_hybrid/pilot_summary.txt` (pilot subset; its command line was not recorded, not tried),
+`coarse_proxy/offline_metrics.*`, `e0_dependence.*`, `e2_ablation.*`, `e2_results*.json`, `f1_remaining.txt`,
+`s2_mechanism.txt` (do not use the replaced helpers, or need a model fit / training run; unit tests cover the
+helpers). 
+
+### T3 `lowq-batch`: batched F-lowQ Q5 feature pass (2026-10-06)
+
+**Change.** `FeatureExtractor.features_batch(Rs, vertices, phase, with_cost=True)` in
+`scripts/findoptimal_robustness/features.py` scores all candidates of one level in one pass: the geometry
+(Bragg angles, reflection, ray-detector intersection, lit-pixel lookups) is vectorised over candidates and peaks,
+the aggregates are integer counts per candidate (`np.bincount`, exact in float64), and the two cost columns reuse
+the same geometry (the per-candidate path recomputes it twice) and call the existing C stage-D routine once per
+candidate and radius, with the rows of each candidate in the cost function's order (the quality is a running
+mean). Cost-function evaluation counters are advanced as the per-candidate path advances them. Chunks of 256
+candidates; without the C stage-D extension it falls back to the per-candidate loop. `features` is unchanged and
+stays the default and the reference; `scripts/coarse_proxy/endtoend.py --batched` opts in to the batched pass
+(`proxy_features(..., batched=True)`). Nothing in `icenine/` changed.
+
+**Equality.** Two details were needed for bit-identity: a batched `torch.matmul` of the rotations with the
+reciprocal vectors differs from the 2-D matmul in the last bit (52346 of 271152 elements in one test), so
+`g_lab` is built with one 2-D matmul per candidate, and it must keep the strided `(R @ g.T).T` layout (a
+contiguous copy changes the last bit of the omegas). Intermediate states on the 5500 ad hoc candidates (the
+Q_max-5 columns were identical throughout; only the unrestricted extractor with 112 reflections differed): batched
+matmul, 5 rows differed (up to 0.037 in a hit rate, 0.003 in a cost); per-candidate matmul but contiguous layout,
+2 rows (cost columns). With both, `features_batch` equals `features` exactly (`np.array_equal`,
+all columns including both costs) on the E2 candidates of 6 random cases (5500 candidates, Q_max 5 and the
+unrestricted extractor; ad hoc check) and on the 5000 candidates of the timing run (25 cases, Q_max 5:
+5000 / 5000 rows identical; `timing_batch.json`). `tests/test_coarse_proxy.py::test_features_batch_equals_per_candidate`
+covers Q_max 5 and None, batch sizes 1, 7 and the whole set, the evaluation counters, `with_cost=False` and the empty
+batch on one voxel's E2 candidates. Not tested: other detector geometries or crystal phases than the study's.
+
+**Timing (single-worker, all thread counts 1, `require_quiet()` preflight saved as
+`benchmarks/coarse_proxy/timing_batch_preflight.json`).** Q_max-5 pass with both low-Q costs; 25 random cases x 200
+candidates, 3 repetitions, methods interleaved in each repetition; per candidate = total / 200; median over cases.
+One Q_max-8 local evaluation (the unit) was 0.529 ms in the same run. "proxy" adds the GBT prediction
+(0.0064 ms per candidate, batch 200, from `timing.json`).
+
+<!-- table:t3_lowq_batch_timing -->
+| path | batch | ms | speedup | equiv | proxy |
+|---|---|---|---|---|---|
+| per-candidate (reference) | 1 | 1.555 | 1.0 | 2.94 | 2.95 |
+| batched | 1 | 1.074 | 1.4 | 2.03 | 2.04 |
+| batched | 50 | 0.151 | 10.3 | 0.28 | 0.30 |
+| batched | 200 | 0.133 | 11.6 | 0.25 | 0.26 |
+<!-- /table:t3_lowq_batch_timing -->
+
+(Batch size 1 is the batched code called once per candidate: its 1.07 ms is the fixed per-call overhead. Geometry
+only, without the two costs: 0.734 ms per candidate per-candidate, 0.124 ms batched at 200.)
+
+**New proxy cost.** At batch 200 the F-lowQ Q5 pass is 0.25 evaluation equivalents (2.94 per candidate in this run, 2.93 in
+Task 2), the proxy with its GBT prediction 0.26 (2.95), a factor 11.6; at batch 50, 0.28 and 0.30. A deployable E2 pass was estimated
+at about 3.2 equivalents (Task 2 accounting, not re-timed here), so the proxy is now about 12x cheaper than that,
+not 1.1x. Scoring the 240 / 384 candidates of one proxy run would take about 32 / 51 ms at the batch-200 rate
+(computed from the per-candidate time, not measured end to end), against 0.37 / 0.59 s in Task 2. The levels of a
+real run have fewer candidates than 200 per call; the realized gain end to end depends on the batch sizes of
+`rank_key` (timed in T4: proxy about 0.05 s per run, single worker). The GBT time added at every batch size is the batch-200
+per-candidate cost, which understates the cost at batch 1; levels 2-3 of a run have 1.3-7 candidates per call. The T4 wall timing
+bounds this effect (proxy about 0.05 s per run), so the verdict holds.
+
+Tests: `tests/test_coarse_proxy.py` 11 passed (2 new); full suite 666 passed, 34 skipped, 1 deselected, 0 failed.
+Audit of this section: the numbers not found in the source JSONs are unit conversions (the JSON is in seconds, the
+text in ms), the ad hoc equality check counts above (not saved), and figures quoted from Task 2 (3.2, 0.59).
+
+### T4 `keep-eighth`: proxy rerank at keep 1/8 and 1/6, end to end (2026-10-06)
+
+**Setup.** `scripts/coarse_proxy/endtoend.py run --batched` (set `lowq5+c8`, regression target, the proxy rerank is
+symmetry-agnostic; no F1/F1b rows were run), 200 voxels x 2 variants, seed 0, 10 workers, keep_fraction 1/8 (tag
+`p_k8`) and 1/6 (`p_k6`), paired with the stored baseline (E0) and the stored keep-1/4 proxy row (`p_i`).
+`keep_eighth.py` (`summary`, `timing`, `timing-summary`) builds the tables; `endtoend.py` now also stores the
+batch size of every `rank_key` call (`call_levels`, `call_sizes`). Nothing in `icenine/` changed.
+
+**The batched pass changes nothing but the time.** On 6 runs (3 voxels x 2 variants, keep 1/8) the default path and
+`--batched` gave identical `R_final`, `cost_final` and evaluation counts. A full batched re-run of keep 1/4 (`p_k4b`)
+reproduced all 400 stored `p_i` runs exactly (`R_final`, global and local evaluations, scored candidates). The
+keep-1/4 row below is the stored one; its call sizes come from `p_k4b`.
+
+**Candidates per `rank_key` call.** Four calls per run, one per level (mean [min-max] over the 400 runs; `keep_eighth.txt`):
+level 0 220.9 [95-562] candidates in all rows; keep 1/4: level 1 63.3 [26-165], level 2 20.7 [7-61], level 3 7.1 [1-24];
+keep 1/6: 42.4 [19-111], 9.4 [3-29], 1.8 [1-9]; keep 1/8: 32.0 [15-90], 5.1 [1-18], 1.3 [1-4]. Only the first call is a large batch; the later
+levels are small, and the batched cost per candidate is much higher there (T3: 2.04 eq at batch 1, 0.30 at 50, 0.26 at 200).
+The proxy's own cost below is each call's batch size times the T3 cost interpolated (log batch size) at that
+size, summed per run; it is an estimate from the T3 single-worker timing, not measured in these runs.
+
+**End to end** (paired on the same 200 voxels per variant; `peq` = proxy evaluation equivalents per run at the batched
+cost; `tot` = global + local evaluations of the reconstructor + `peq`; the reconstructor's own counts are in `glob` / `loc`).
+
+<!-- table:t4_keep_eighth -->
+| variant | row | wrong | rate | ci | med | glob | loc | scored | peq | tot |
+|---|---|---|---|---|---|---|---|---|---|---|
+| clean | E0 baseline | 67 | 0.335 | [0.273, 0.403] | 0.0301 | 44478 | 4711 | 0 | n/a | 49190 |
+| clean | proxy keep 1/4 | 13 | 0.065 | [0.038, 0.108] | 0.0281 | 44494 | 5739 | 240 | 81 | 50313 |
+| clean | proxy keep 1/6 | 18 | 0.090 | [0.058, 0.138] | 0.0359 | 44282 | 4473 | 212 | 72 | 48828 |
+| clean | proxy keep 1/8 | 22 | 0.110 | [0.074, 0.161] | 0.0296 | 44196 | 4325 | 201 | 68 | 48590 |
+| realistic | E0 baseline | 52 | 0.260 | [0.204, 0.325] | 0.0278 | 44778 | 7628 | 0 | n/a | 52406 |
+| realistic | proxy keep 1/4 | 15 | 0.075 | [0.046, 0.120] | 0.0285 | 44805 | 9111 | 384 | 118 | 54034 |
+| realistic | proxy keep 1/6 | 23 | 0.115 | [0.078, 0.167] | 0.0378 | 44465 | 6676 | 337 | 103 | 51244 |
+| realistic | proxy keep 1/8 | 44 | 0.220 | [0.168, 0.282] | 0.0358 | 44323 | 6010 | 317 | 98 | 50430 |
+<!-- /table:t4_keep_eighth -->
+
+Exact McNemar (discordant counts are only-first-wrong / only-second-wrong):
+
+| comparison | clean | realistic |
+|---|---|---|
+| keep 1/6 vs baseline | 5 / 54, p = 1.9e-11 | 10 / 39, p = 3.9e-05 |
+| keep 1/8 vs baseline | 6 / 51, p = 5.7e-10 | 28 / 36, p = 0.38 |
+| keep 1/6 vs keep 1/4 | 6 / 1, p = 0.125 | 12 / 4, p = 0.077 |
+| keep 1/8 vs keep 1/4 | 10 / 1, p = 0.012 | 37 / 8, p = 1.5e-05 |
+
+Pooled over both variants (400 runs): keep 1/4 wrong 28 (0.070, Wilson 0.049-0.099), keep 1/6 41 (0.102,
+0.076-0.136), keep 1/8 66 (0.165, 0.132-0.205), baseline 119. Keep 1/6 vs keep 1/4: 18 / 5, p = 0.011; keep 1/8 vs keep 1/4: 47 / 9,
+p = 2.6e-07. Both rows are better than the baseline (1/6: 15 / 93, p = 6.4e-15; 1/8: 34 / 87, p = 1.6e-06).
+
+**"Useful"** (wrong <= the keep-1/4 proxy's Wilson upper bound, at fewer total evaluations than the baseline):
+- Per variant: keep 1/6 is useful in both (clean 0.090 <= 0.108, 48828 < 49190; realistic 0.115 <= 0.120,
+  51244 < 52406). Keep 1/8 is not useful in either: clean 0.110 vs the bound 0.108 (22/200, a miss by 0.002; total 48590 < 49190),
+  realistic 0.220 vs 0.120.
+- Pooled over the 400 runs: neither is useful. Keep 1/6 is close (0.102 vs the pooled bound 0.099; total 50036 vs
+  baseline 50798, -1.5%); keep 1/8 is not (0.165; total 49510, -2.5%). The plan does not say per variant or pooled; both are shown.
+- **Decision (main session).** The pooled verdict is the one that counts: it uses all 400 runs, and the per-variant pass
+  for keep 1/6 is within 0.005-0.018 of the bound on one seed. Neither keep 1/6 nor keep 1/8 is adopted. Against keep 1/4,
+  keep 1/6 is wrong in 18 more paired cases and right in 5 more (p = 0.011), and keep 1/8 is wrong in 47 more and right in
+  9 more (p = 2.6e-7). Measured on a single worker, keep 1/6 saves only 2.5% of wall time and keep 1/8 only 3.3%.
+  Tightening the keep fraction is therefore not a route to a run-time saving in the no-start case. Time is spent in the
+  global discrete search, which these settings barely change (global evaluations, pooled, -0.6% at keep 1/6 and -0.8% at keep 1/8).
+  The keep-1/4 proxy rerank stays the recommendation, for accuracy.
+- The keep-1/4 row itself is not useful by this definition: it uses more evaluations than the baseline (+3.1% realistic at the
+  batched proxy cost, +2.3% clean), consistent with the earlier T3 result.
+- The reconstructor's own evaluation count falls with the keep fraction (global + local, clean 49190 baseline -> 50233 / 48756 / 48521;
+  realistic 52406 -> 53916 / 51140 / 50333), but the number of wrong answers rises, and the median error of the right answers is larger for 1/6
+  (0.036 clean, 0.038 realistic) and for realistic 1/8 (0.036) than for keep 1/4 (0.028) and the baseline (0.028-0.030) (deg; not tested further). Realistic keep 1/8 broke 28 baseline-right cases (vs 3 for keep 1/4).
+
+**Single-worker timing** (first 20 voxels x 2 variants = 40 cases, seed 0, batched pass, `require_quiet()` preflight saved as
+`benchmarks/coarse_proxy/keep_eighth_preflight.json`, all thread counts 1; arms rotated per case so none is always first;
+the keep-1/4, 1/6, 1/8 and baseline arms were all run because 1/6 is useful per variant and 1/8 is close in the clean variant).
+Every proxy run reproduced the stored 10-worker run exactly (40/40 for each arm); the baseline arm differs from the proxies in all 40.
+
+<!-- table:t4_keep_eighth_timing -->
+| arm | wall | speed | ev | dev | proxy | msev | same |
+|---|---|---|---|---|---|---|---|
+| base | 21.81 | 1.000 | 50942 | +0.0 | 0.00 | 0.428 | 40 |
+| p_i | 22.53 | 0.968 | 52077 | +2.2 | 0.05 | 0.433 | 0 |
+| p_k6 | 21.25 | 1.026 | 49844 | -2.2 | 0.05 | 0.426 | 0 |
+| p_k8 | 21.09 | 1.034 | 49522 | -2.8 | 0.05 | 0.426 | 0 |
+<!-- /table:t4_keep_eighth_timing -->
+
+`wall` = mean `reconstruct_voxel` seconds per run (including the proxy), `speed` = baseline total time / arm total time, `ev` =
+mean global + local evaluations per run, `dev` = change against the baseline in percent, `msev` = wall per evaluation (ms).
+The saving in time follows the saving in evaluations: 0.426 ms per evaluation for keep 1/6 and 1/8 against 0.428 for the baseline (proxy 0.05 s per
+run in all arms, about 0.2% of the run). Keep 1/6 saves 2.5% of the time and 2.2% of the evaluations, keep 1/8 3.3% and 2.8%; keep 1/4 costs 3.3% more time.
+This is one 40-case subset with no interval on the time difference, and these 40 cases are a subset of the 400 (their evaluation
+counts differ from the 200-voxel means above).
+
+**Reading.** At keep 1/6 the proxy rerank gives a wrong rate that stays inside the keep-1/4 interval (per variant) for a 2-3% saving of time;
+the pooled wrong rate is slightly above the keep-1/4 upper bound, and 1/8 is clearly worse. The time saving is small
+(about 3%), consistent with global evaluations barely changing (-0.6% / -0.8%); the stage split of the wall time was not measured. Not tested: other keep fractions, other seeds
+(the stored keep-1/4 row has seeds 1-2; these new rows do not), whether the extra wrong answers at 1/8 are candidates lost at the pruning step
+(the harvest step was not run on the new rows).
+
+### T5 `finisher-diagnosis`: why the finisher stops above the truth's cost (2026-10-07)
+
+**Setup.** `scripts/finisher_diagnosis/diagnose.py run --workers 10` (wall 2852 s, 54 tasks; contended 10-worker run, no
+timing claims are made), `diag_summary.py` builds the tables and `summary.json` (`benchmarks/finisher_diagnosis/`). Cases are the
+realistic ("all") single-voxel cases of the Task 1 pipelines H3 (net x3 start; 200 cases) and H0 (perturbed nominal start;
+100 cases), radii 0.05-3 deg (9 radii), stratified by radius (H3: 22-23 per radius over 4 random voxels; H0: 11-12 over 2
+voxels), seeded selection. The finisher is re-run with the Task 1 seed through the unmodified `refine_from_candidates`, with
+`LoggedMC` (a `MCOptimizer` subclass in the script whose `optimize` / `variance_minimizing_optimize` are copies that also
+record the stopping rule; the same random stream). All 300 re-runs reproduce the Task 1 `R_final` exactly (max abs difference
+0.0). Nothing in `icenine/` changed. The config's `max_mc_steps` is 200 (not 3500), `successive_restarts` 2; the default
+box is 0.329 deg. "Gap" = cost of the result minus cost at the truth; "above" = gap > 1e-9. Intervals are Wilson 95%.
+
+**Result vs truth.** The result's cost is above the truth's in 191/200 H3 and 100/100 H0 cases (H3 96%, CI 92-98%; H0 CI 96-100%).
+In the 9 H3 cases at or below (5 strictly below) there is no gap.
+
+<!-- table:t5_overview -->
+| set | n | result above truth | gap q25/50/75 | angle res-truth q25/50/75 (deg) |
+|---|---|---|---|---|
+| H3 | 200 | 191/200 (96%, 92-98) | 0.010/0.028/0.050 | 0.013/0.023/0.043 |
+| H0 | 100 | 100/100 (100%, 96-100) | 0.033/0.103/0.497 | 0.032/0.089/0.409 |
+<!-- /table:t5_overview -->
+
+<!-- table:t5_by_radius -->
+| set | radius (deg) | n | result above truth | gap q50 | angle res-truth q50 (deg) | mc_long reaches truth cost | vm_long reaches truth cost |
+|---|---|---|---|---|---|---|---|
+| H3 | 0.05 | 23 | 21/23 | 0.036 | 0.028 | 5/23 | 2/23 |
+| H3 | 0.1 | 23 | 23/23 | 0.023 | 0.025 | 1/23 | 1/23 |
+| H3 | 0.25 | 22 | 22/22 | 0.035 | 0.032 | 1/22 | 0/22 |
+| H3 | 0.5 | 22 | 20/22 | 0.025 | 0.020 | 3/22 | 2/22 |
+| H3 | 0.75 | 22 | 19/22 | 0.026 | 0.017 | 5/22 | 3/22 |
+| H3 | 1 | 22 | 21/22 | 0.026 | 0.018 | 3/22 | 1/22 |
+| H3 | 1.5 | 22 | 22/22 | 0.029 | 0.025 | 3/22 | 1/22 |
+| H3 | 2 | 22 | 21/22 | 0.025 | 0.022 | 2/22 | 1/22 |
+| H3 | 3 | 22 | 22/22 | 0.031 | 0.027 | 1/22 | 0/22 |
+| H0 | 0.05 | 12 | 12/12 | 0.023 | 0.016 | 1/12 | 0/12 |
+| H0 | 0.1 | 11 | 11/11 | 0.034 | 0.014 | 0/11 | 0/11 |
+| H0 | 0.25 | 11 | 11/11 | 0.043 | 0.038 | 1/11 | 0/11 |
+| H0 | 0.5 | 11 | 11/11 | 0.058 | 0.057 | 0/11 | 0/11 |
+| H0 | 0.75 | 11 | 11/11 | 0.126 | 0.172 | 0/11 | 0/11 |
+| H0 | 1 | 11 | 11/11 | 0.192 | 0.212 | 4/11 | 1/11 |
+| H0 | 1.5 | 11 | 11/11 | 0.326 | 0.232 | 0/11 | 0/11 |
+| H0 | 2 | 11 | 11/11 | 0.709 | 1.750 | 0/11 | 0/11 |
+| H0 | 3 | 11 | 11/11 | 0.810 | 3.353 | 0/11 | 0/11 |
+<!-- /table:t5_by_radius -->
+
+H3: the gap (median 0.028) and the angle from result to truth (median 0.023 deg) are about the same at all radii, i.e. the
+finisher ends about 0.02 deg from the truth whatever the net's start error was. H0: gap and angle grow with the radius
+(at 2-3 deg the result is a median 1.75 / 3.35 deg from the truth); that is a different failure (not reaching the basin) and
+the continuations below do not help there.
+
+**(a) Cost along the straight path result -> truth** (41 uniform points plus 7 near the result at t = 0.001-0.1; 'barrier' =
+highest interior cost minus the result's cost).
+
+<!-- table:t5_geodesic -->
+| set | path cost rises above result | barrier q25/50/75 | a point below result | a point <= truth cost | monotone |
+|---|---|---|---|---|---|
+| H3 | 73/200 (36%, 30-43) | 0.000/0.000/0.001 | 191/200 (96%, 92-98) | 117/200 (58%, 52-65) | 25/200 (12%, 9-18) |
+| H0 | 38/100 (38%, 29-48) | 0.000/0.000/0.000 | 100/100 (100%, 96-100) | 36/100 (36%, 27-46) | 15/100 (15%, 9-23) |
+<!-- /table:t5_geodesic -->
+
+The path cost rises above the result's in 36% (H3) and 38% (H0) of the cases, but the rise exceeds the gap itself in only
+11/200 (H3) and 1/100 (H0); the median barrier is 0. In 191/200 (H3) and 100/100 (H0) cases some interior point of the path
+has a lower cost than the result, and in 117/200 (H3) / 36/100 (H0) some interior point has cost at or below the truth's. The
+path is monotone non-increasing in 25/200 (H3) and 15/100 (H0). So no barrier of the size of the gap lies on the straight
+line; it is a rough cost, not a smooth ramp.
+
+**(c) Granularity** (12 random axes per angle, at the truth and at the result; 'same' = cost equal within 1e-9, 'lower' = below the
+cost at the centre).
+
+<!-- table:t5_granularity -->
+| set | angle (deg) | truth: same cost | truth: lower | truth: median |d| | result: same cost | result: lower | result: median |d| |
+|---|---|---|---|---|---|---|---|
+| H3 | 0.001 | 0.18 | 0.07 | 0.0018 | 0.17 | 0.28 | 0.0015 |
+| H3 | 0.003 | 0.01 | 0.01 | 0.0070 | 0.02 | 0.27 | 0.0049 |
+| H3 | 0.01 | 0.00 | 0.00 | 0.0249 | 0.00 | 0.18 | 0.0171 |
+| H3 | 0.02 | 0.00 | 0.00 | 0.0529 | 0.00 | 0.09 | 0.0396 |
+| H3 | 0.05 | 0.00 | 0.00 | 0.1422 | 0.00 | 0.02 | 0.1193 |
+| H3 | 0.1 | 0.00 | 0.00 | 0.2903 | 0.00 | 0.00 | 0.2561 |
+| H3 | 0.2 | 0.00 | 0.00 | 0.4807 | 0.00 | 0.00 | 0.4433 |
+| H0 | 0.001 | 0.19 | 0.06 | 0.0018 | 0.33 | 0.16 | 0.0008 |
+| H0 | 0.003 | 0.01 | 0.02 | 0.0072 | 0.15 | 0.19 | 0.0027 |
+| H0 | 0.01 | 0.00 | 0.00 | 0.0263 | 0.09 | 0.18 | 0.0109 |
+| H0 | 0.02 | 0.00 | 0.00 | 0.0548 | 0.06 | 0.14 | 0.0222 |
+| H0 | 0.05 | 0.00 | 0.00 | 0.1469 | 0.03 | 0.09 | 0.0738 |
+| H0 | 0.1 | 0.00 | 0.00 | 0.2921 | 0.02 | 0.06 | 0.1655 |
+| H0 | 0.2 | 0.00 | 0.00 | 0.4808 | 0.02 | 0.03 | 0.3157 |
+<!-- /table:t5_granularity -->
+
+At the truth no rotation of 0.01 deg or more lowered the cost, and at 0.001 / 0.003 deg 7% / 1% of the draws did (H3). The
+median change of the cost for a 0.01 deg rotation at the truth (0.025 H3, 0.026 H0) is close to the median H3 gap (0.028): a
+gap of this size corresponds to about 0.01 deg of rotation at the truth. The cost steps are fine against the gap: the smallest nonzero difference
+between distinct cost values seen among each case's 84 truth-neighbour evaluations has a median of 2.4e-5 (H3) and 2.4e-5 (H0)
+(an upper bound on the quantum, from a small sample). At the result, rotations of 0.001-0.02 deg lowered the cost in 28% to 9%
+(H3) of the draws (H0: 14-19% at 0.001-0.02 deg), so the result is not a local minimum on that scale in 175/200 (H3) and 80/100 (H0) cases (sampled: 60 neighbours at 0.001-0.05 deg, `res_local_min_0.05deg`). The cost at the truth changes by
+a median 0.0018 for a 0.001 deg rotation, i.e. already rough at that scale. Median counts at the truth / result (pixel overlap,
+pixels on detector, peaks overlapping, peaks on detector, peaks counted) are in `summary.json` (`counts_*`).
+
+**(d) Stopping rules in the default finisher run.**
+
+<!-- table:t5_stopping -->
+| set | FO stop codes (budget/restarts/cost) | FO steps q50 | FO accepts q50 | FO last accept q50 | FO final step q50 (deg) | VM steps q50 | VM lowers cost | VM final radius q50 (deg) |
+|---|---|---|---|---|---|---|---|---|
+| H3 | 122/78/0 | 200 | 8 | 24 | 0.0008 | 2245 | 107/200 (54%, 47-60) | 0.329 |
+| H0 | 97/3/0 | 200 | 6 | 28 | 0.0021 | 375 | 80/100 (80%, 71-87) | 0.329 |
+<!-- /table:t5_stopping -->
+
+FindOptimal MC (200 steps, step halved at every accepted improvement): the stop code counts are step budget / restarts exhausted /
+cost converged. In H3 the restarts-exhausted stop fired in 78/200 runs, and these are exactly the 78 runs with no accepted step
+(0 accepts in 78/200 H3 and 3/100 H0 runs); otherwise the run ended on the 200-step budget with a median of 8 (H3) / 6 (H0)
+accepts, the last accept at step 24 (H3) / 28 (H0) (medians), and a final step size of 0.0008 (H3) / 0.0021 (H0) deg (median). The
+hit-ratio "converged" flag never fired (0/200, 0/100) and the cost-convergence stop (`max_convergence_cost`) never fired. VarianceMinimizing
+has `max_convergence_cost` 0, so it can only stop on its step budget, which is extended by one subregion (10 steps) for every
+subregion whose cost variance is above 0.02^2 = 0.0004; it ended after a median 2245 (H3) / 375 (H0) steps (budget 200 plus the
+extensions), with the subregion radius back at the box (0.329 deg) in most runs, and it lowered the cost of the FindOptimal
+result in 107/200 (54%, 47-60%) H3 and 80/100 (80%, 71-87%) H0 runs. Which candidate the reconstructor returned as final was not logged,
+so "VM supplied the final result" is not claimed.
+
+**(b) Continuations from the result.** Components called directly from the script with changed parameters: `mc_long` (FindOptimal MC,
+same box and step, 25x the steps = 5000, 10 restarts), `mc_smallstep` (step / 10, 10000 steps, 5 restarts), `mc_smallbox` (box and step / 4,
+10000 steps, 5 restarts), `vm_long` (VarianceMinimizing, same box, budget 5000 steps), `vm_smallbox` (box / 4, budget 5000), `rerun_default`
+(the whole default finisher again from the result, another seed) and `from_truth` (the default finisher started at the truth). The
+VarianceMinimizing runs were stopped at 50000 steps if the variance rule had not ended them (a safety cap that is not in the reconstructor;
+`vm_capped` in `summary.json`: reached in 139/200 `vm_long` and 198/200 `vm_smallbox` H3 runs, 65/100 and 83/100 H0 runs, so those two rows
+are mostly capped runs, not rule-terminated ones; the default re-runs were never capped). 'Gap closed' is the median over cases with
+gap > 0 of (result cost - end cost) / gap; 'toward truth' is the decrease of the angle to the truth.
+
+<!-- table:t5_continuations -->
+| set | continuation | improves | reaches truth cost | gap closed (median) | toward truth q25/50/75 (deg) | moved q50 (deg) |
+|---|---|---|---|---|---|---|
+| H3 | mc_long | 53/200 (26%, 21-33) | 24/200 (12%, 8-17) | 0.00 | -0.000/0.000/0.001 | 0.000 |
+| H3 | mc_smallstep | 194/200 (97%, 94-99) | 52/200 (26%, 20-32) | 0.61 | 0.002/0.006/0.011 | 0.011 |
+| H3 | mc_smallbox | 137/200 (68%, 62-75) | 29/200 (14%, 10-20) | 0.69 | 0.000/0.006/0.023 | 0.016 |
+| H3 | vm_long | 113/200 (56%, 50-63) | 11/200 (6%, 3-10) | 0.24 | -0.000/0.000/0.028 | 0.015 |
+| H3 | vm_smallbox | 186/200 (93%, 89-96) | 42/200 (21%, 16-27) | 0.93 | 0.005/0.016/0.035 | 0.022 |
+| H3 | rerun_default | 67/200 (34%, 27-40) | 13/200 (6%, 4-11) | 0.00 | -0.000/0.000/0.010 | 0.000 |
+| H3 | from_truth | 0/200 (0%, 0-2) | 200/200 (100%, 98-100) | nan | -0.000/-0.000/-0.000 | 0.000 |
+| H0 | mc_long | 65/100 (65%, 55-74) | 6/100 (6%, 3-12) | 0.05 | -0.000/0.005/0.092 | 0.058 |
+| H0 | mc_smallstep | 88/100 (88%, 80-93) | 12/100 (12%, 7-20) | 0.12 | 0.001/0.007/0.011 | 0.013 |
+| H0 | mc_smallbox | 76/100 (76%, 67-83) | 10/100 (10%, 6-17) | 0.15 | 0.000/0.018/0.034 | 0.030 |
+| H0 | vm_long | 78/100 (78%, 69-85) | 1/100 (1%, 0-5) | 0.76 | 0.000/0.045/0.227 | 0.073 |
+| H0 | vm_smallbox | 90/100 (90%, 83-94) | 14/100 (14%, 9-22) | 0.96 | 0.008/0.043/0.205 | 0.060 |
+| H0 | rerun_default | 60/100 (60%, 50-69) | 3/100 (3%, 1-8) | 0.16 | -0.000/0.016/0.136 | 0.044 |
+| H0 | from_truth | 0/100 (0%, 0-4) | 100/100 (100%, 96-100) | nan | -0.000/-0.000/-0.000 | 0.000 |
+<!-- /table:t5_continuations -->
+
+The default finisher started at the truth never lowered the cost (0/200, 0/100). Reaching exactly the truth's cost is rare for
+any single continuation (H3 at most 52/200 = 26%, CI 20-32%, for `mc_smallstep`; H0 at most 14/100), but the cost drops a lot: `vm_smallbox` closes
+a median 93% (H3) / 96% (H0) of the gap (but it sits at the 50,000-step cap in 198/200 and 83/100 runs, about 19x / 81x the default evaluations) and `mc_smallstep` improves the cost in 97% (H3) of the runs, and
+ends a median 0.006 deg (`vm_smallbox`, H3) from the truth against 0.023 deg at the result. The best of the five continuations per case
+closes a median 99% of the gap and reaches the truth's cost in 96/200 (48%, 41-55%) (H3) and 35/100 (35%, 26-45%) (H0) cases (`best_of_five` in `summary.json`). The same-step `mc_long` improves the cost
+in only 53/200 H3 runs with a median movement of 0.000 deg, although its budget is 5000 steps (25x the default 200). Logged
+(`mc_long_log` in `summary.json`): it stopped on restarts exhausted in 154/200 H3 runs (H0: 44/100), with a median of 0 accepts
+(H0: 4.5) and 21 restarts (H0: 5.5); it ran a median of only 821 of its 5000 steps in H3 (H0: 5000), i.e. most H3 runs used about 4x the
+default budget, and its final step was still the initial 0.132 deg (H3 median; H0 0.006 deg). Why it finds no first accept was not tested.
+`mc_smallstep` (1/10 of the step) improves 194/200 H3 runs. In H0 the
+continuations move the orientation toward the truth by a median of at most 0.045 deg and mostly do not reach the truth's cost at 0.75 deg and above
+(by-radius table: `vm_long` reaches it in 1/11 at 1 deg and in none elsewhere above 0.5 deg; `mc_long` in 4/11 at 1 deg and in none elsewhere above 0.5 deg).
+
+**Reading (observations only).** In 96% of the H3 cases the finisher's result is about 0.02 deg from the truth with a cost 0.03 above
+it; the cost along the straight line to the truth has no barrier as big as that gap, a 0.01 deg rotation at the truth changes the cost by
+about as much as the gap, the finisher's FindOptimal step ends 0.001-0.002 deg and the result is not a local minimum on the 0.001-0.05 deg
+scale in 175/200 (H3) and 80/100 (H0) cases (sampled, 60 neighbours), and continuing with a smaller step or a smaller VarianceMinimizing box lowers the cost to within a small remainder of the truth's in many
+cases. This does not show why the default parameters stop where they do. Not tested: whether the minimum of the realistic-data cost is at
+the truth (the truth's cost is itself noisy: the cost at the truth is above the cost of some nearby orientation in 30% of H3 cases at 0.05 deg,
+see `truth_best_within_0.05deg` in `summary.json`), other box and step ratios, the effect of the 200-step MC budget on the result, and symmetry
+equivalents of the truth (the work is symmetry-agnostic). Angles are to the stored truth; the largest is 1.9 deg (H3) and 32.2 deg (H0). Below 45 deg the unreduced cubic angle equals the
+reduced one (the smallest cubic symmetry rotation is 90 deg) and the cost is symmetry-invariant, so no reported number changes; for lower symmetries the bound is smaller (e.g. 30 deg for 6-fold).
+
+**Effect estimate for a possible fix (diagnostics only, not implemented).** Appending a VarianceMinimizing pass with a quarter-size box after
+the default finisher (`vm_smallbox`) reduces the H3 gap by a median 93% and moves the result a median 0.016 deg toward the truth, reaching the truth's cost in 42/200 (21%, 16-27%) cases
+(14/100 for H0). It reached the 50,000-step cap in 198/200 H3 runs (83/100 H0; median 50,000 steps) against a median default finisher of
+2,629 (H3) / 616 (H0) evaluations, i.e. about 19x (H3) / 81x (H0) the default evaluation count, in essentially every run
+(`vm_smallbox_cost` in `summary.json`); a cheaper variant (a fixed 5000-step budget) has not been estimated here. An MC pass with step / 10 (`mc_smallstep`, 10000 evaluations) closes a median 61% of the H3 gap and
+reaches the truth's cost in 26%. Neither was tested for its effect on the reconstruction's final success rate, only on the cost and the angle to the truth in these
+cases.
+
+### Completion summary (Follow-ups, 2026-10-07)
+
+**Status: complete.** T1-T5 merged into `feature/followups`; the branch review's doc and test fixes are applied (no new experiments).
+
+**Decisions.**
+- The Wilson clamp is accepted (4 ulp values).
+- Keep 1/6 and keep 1/8 are not adopted, on the pooled verdict (41/400 and 66/400 wrong against the bound 0.099; McNemar against keep 1/4: p = 0.011 and 2.6e-7).
+- The keep-1/4 proxy rerank stays, for accuracy.
+- The golden tests fail rather than skip in other environments (they skip only when the data is absent).
+- `nn_hybrid` keeps its local reorder.
+- `isolation_record` stays out of preflight.
+
+**Headline per task.**
+- T1: the drift is at float level (6e-9), not a branch flip.
+- T2: regeneration is byte-identical and the gzip is deterministic.
+- T3: exact equality of the features; 11.6x at batch 200 (0.26 evaluation equivalents).
+- T4: about 2.5-3.3% wall time saved, at an accuracy cost.
+- T5: the result is about 0.023 deg from the truth with gap 0.028; no barrier on the straight path is as large as the gap; the default MC step is too coarse at the end; `vm_smallbox` closes 93% of the gap at about 19x the default evaluations (at the 50,000-step cap in 198/200 runs).
+
+**Recommendations.**
+- Test a cheaper fixed-budget small-box VM or step/10 finisher pass for its effect on reconstruction success.
+- Use `--batched` in production proxy runs.
+
+**Open items.**
+- The CLAUDE.md `uv sync` edit (owner).
+- Seeds 1-2 for the keep rows.
+- Harvest on keep 1/8.
+- Whether the realistic-cost minimum sits at the truth (the truth is not the local best in 59/200).
+- The H0 wrong-basin failures at 2-3 deg.
+- The stage split of wall time.
+- `pilot_summary.txt` was not regenerated.
+- Full-sample renders and the three future ideas (owner direction).
+
+Final full suite on `feature/followups`: 673 passed, 34 skipped, 0 failed (707 collected).

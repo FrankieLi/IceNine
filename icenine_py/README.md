@@ -6,8 +6,13 @@ Python port of IceNine for synchrotron X-ray diffraction — forward simulation 
 
 ```bash
 cd icenine_py
-uv pip install -e ".[dev]"
+uv sync --extra dev
 ```
+
+`uv sync` builds `.venv` from the tracked `uv.lock` with the Python in `.python-version` (3.9), so
+everyone gets the same numpy/torch/scipy versions (2.0.2 / 2.8.0 / 1.13.1). Do not use
+`uv pip install`: it ignores the lock, resolves newer versions, and the golden bit-identity tests in
+`tests/test_findoptimal_refactor.py` then fail (they check the recorded versions and say so).
 
 Dependencies: numpy, torch, pymatgen, scipy (see `pyproject.toml`).
 
@@ -652,9 +657,11 @@ Commands for the `GNLayerNet` (`--arch gn`) and Step 4 (distractor/realism layer
 
 `scripts/nn_hybrid/` runs the hybrid network -> FindOptimal study on the same sweep cases (own header docstrings): `run.py` (pipelines H0 FindOptimal alone, H1/H3 net x1/x3 -> `refine_from_candidates`, H3c covariance-sized box, H3m net -> MC, HG Huber GN -> net -> FindOptimal; `pilot`, `run`; `run_all.sh` runs the full set one pipeline at a time), `summary.py` (metrics per radius x variant x pipeline, success criteria, decision points), `stage_timer.py` (context-manager stage timer plus per-instance `VoxelCostFunction.evaluate` counters, installed by patching module attributes; shared with the run-time profiling). Caches in `scripts/nn_hybrid/cache/` (gitignored), results in `benchmarks/nn_hybrid/`; tests in `tests/test_nn_hybrid.py`. Nothing in `icenine/` changed. Note that `findoptimal_b_raw.npz` and the hybrid raws store the voxel axis sorted by voxel index, the sweep raws in sweep order.
 
-`scripts/coarse_proxy/` tests a low-Q_max cost proxy as the pruning key of `reconstruct_voxel` (the `rank_key` hook) on the FindOptimal-robustness cases (own header docstrings): `lowq_dataset.py` (F-lowQ features for every E2 candidate at Q = 4 and 5, via the new optional `q_max` of `findoptimal_robustness/features.py`; `qlevels` records the |q| families), `labels.py` (the basin-cost regression target `y_bcost`, the y3 / y1 / level-matched classification labels, their validation), `models.py` (grain-disjoint 4-fold GBT models, AUC / pruning-recall / final-precision / Spearman tables, decision points D1-D3, optional retraining with harvested candidates), `endtoend.py` (full `reconstruct_voxel` runs with the proxy key, and `harvest` of the proxy run's own candidates), `timing.py` (single-worker cost accounting), `summary.py` (all tables, criteria and decisions; prints "not evaluated" for anything not run). `findoptimal_robustness/f1_run.py` gained the optional `--cache-root` and `--source-seeds`; `eval_split.py` measures where the proxy run's extra cost evaluations go (stage-timer counters, bit-identity asserted). Caches in `scripts/coarse_proxy/cache/` (gitignored), results in `benchmarks/coarse_proxy/`; tests in `tests/test_coarse_proxy.py`. Nothing in `icenine/` changed.
+`scripts/coarse_proxy/` tests a low-Q_max cost proxy as the pruning key of `reconstruct_voxel` (the `rank_key` hook) on the FindOptimal-robustness cases (own header docstrings): `lowq_dataset.py` (F-lowQ features for every E2 candidate at Q = 4 and 5, via the new optional `q_max` of `findoptimal_robustness/features.py`; `qlevels` records the |q| families), `labels.py` (the basin-cost regression target `y_bcost`, the y3 / y1 / level-matched classification labels, their validation), `models.py` (grain-disjoint 4-fold GBT models, AUC / pruning-recall / final-precision / Spearman tables, decision points D1-D3, optional retraining with harvested candidates), `endtoend.py` (full `reconstruct_voxel` runs with the proxy key, and `harvest` of the proxy run's own candidates), `timing.py` (single-worker cost accounting), `timing_batch.py` (batched against per-candidate low-Q pass, single worker, preflight gated), `summary.py` (all tables, criteria and decisions; prints "not evaluated" for anything not run). `findoptimal_robustness/f1_run.py` gained the optional `--cache-root` and `--source-seeds`; `eval_split.py` measures where the proxy run's extra cost evaluations go (stage-timer counters, bit-identity asserted). Caches in `scripts/coarse_proxy/cache/` (gitignored), results in `benchmarks/coarse_proxy/`; tests in `tests/test_coarse_proxy.py`. `FeatureExtractor.features_batch` (findoptimal_robustness/features.py) scores many candidates in one vectorised pass with features exactly equal to `features` (per-candidate path stays the default; `endtoend.py --batched` opts in; `endtoend.py` also stores the batch size of every `rank_key` call). `keep_eighth.py` runs the T4 summary (keep 1/8 and 1/6 against the baseline and the keep-1/4 row, proxy cost at the batched per-call cost, the "useful" verdict) and the single-worker interleaved timing of a voxel subset (preflight gated). Nothing in `icenine/` changed.
 
 `scripts/profiling/` measures where the run time goes and whether the network or the proxy reduces it (own header docstrings; `prof_common.py` holds the isolation record, the interleaving order and the stage instrumentation `Instrument`, which installs the `stage_timer.py` wrappers by patching module attributes where they are looked up; `prof_u0.py` times the full-reconstruction pipelines (baseline, F1, F1b, E2 rerank, proxy rerank, proxy + F1) single-worker and interleaved on the E0 images, asserting bit-identity with the stored runs; `prof_seeded.py` times H0 / H1 / H3 / MC-told-r / HG per case (U1 / U2), with the network stage on one case at a time and "measured" vs "production-equivalent" (without harness rendering) time; `prof_profile.py` runs cProfile (5 runs per pipeline), torch.profiler (`record_function` around the net sub-stages) and the forward pass on MPS vs CPU; `prof_overhead.py` measures the wrapper overhead; `prof_summary.py` writes the tables, the contention factor and the "helps" verdicts; `run_all.sh` chains the timing runs). Caches in `scripts/profiling/cache/` (gitignored), results in `benchmarks/profiling/`; tests in `tests/test_profiling.py`. Nothing in `icenine/` changed.
+
+`scripts/finisher_diagnosis/` diagnoses why `refine_from_candidates` ends above the truth's cost on realistic sweep cases (own header docstrings): `diagnose.py` (`pilot`, `run`; re-runs the finisher with the Task 1 seed through the unmodified reconstructor with `LoggedMC`, a `MCOptimizer` subclass that records the stopping rule and iteration, then measures the cost along the geodesic result -> truth, the cost granularity at the truth and result, and continuations with longer runs / smaller steps / smaller boxes), `diag_summary.py` (tables and `summary.json`). Caches in `scripts/finisher_diagnosis/cache/` (gitignored), results in `benchmarks/finisher_diagnosis/`; tests in `tests/test_finisher_diagnosis.py`. Nothing in `icenine/` changed.
 
 `scripts/checks/` holds the numerical checks behind the derivations in `docs/`. Results
 of the Stage 0 run are in `benchmarks/toy_orientation_stage0/`.
@@ -674,6 +681,15 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   number of frames and distance from the rotation axis.
 - [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) — design of the
   current toy orientation network: data pipeline, `GNLayerNet`, training, evaluation, tests and results.
+
+- [`docs/batched_lowq_pass.md`](docs/batched_lowq_pass.md) — how the batched low-Q feature pass
+  (`FeatureExtractor.features_batch`, `--batched`) works, its two bit-identity pitfalls, the equality
+  test and the timing at batch 1/50/200.
+
+- [`docs/findings_orientation_search_2026-10.md`](docs/findings_orientation_search_2026-10.md) —
+  consolidated findings, recommendations, decisions and open questions of the orientation-search work
+  of 2026-10-01 to 2026-10-07 (network, FindOptimal robustness, hybrids, cost proxy, profiling,
+  follow-ups).
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy

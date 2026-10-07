@@ -1,0 +1,43 @@
+=== T4: proxy rerank at keep 1/8 and 1/6 (200 voxels x 2 variants, seed 0, paired) ===
+proxy cost per candidate (T3, single-worker): per-candidate pass 2.95 eq; batched 1: 2.04, 50: 0.30, 200: 0.26 (interpolated in log batch size at each rank_key call)
+candidates per rank_key call by level (mean [min-max] over the 400 runs):
+  p_k4b: L0 220.9 [95-562]; L1 63.3 [26-165]; L2 20.7 [7-61]; L3 7.1 [1-24]
+  p_k6: L0 220.9 [95-562]; L1 42.4 [19-111]; L2 9.4 [3-29]; L3 1.8 [1-9]
+  p_k8: L0 220.9 [95-562]; L1 32.0 [15-90]; L2 5.1 [1-18]; L3 1.3 [1-4]
+--- clean ---
+  E0 baseline                        n=200 wrong  67 = 0.335 [0.273,0.403]  fixed   0 broken  0  med.err(right) 0.0301  evals global 44478 local 4711 (total 49190, incl. proxy (1-worker eq) 49190, base 49190) scored 0  wall 24.5s (base 24.5s, proxy 0.00s)
+  proxy keep 1/4                     n=200 wrong  13 = 0.065 [0.038,0.108]  fixed  55 broken  1  med.err(right) 0.0281  evals global 44494 local 5739 (total 50233, incl. proxy (1-worker eq) 50942, base 49190) scored 240  wall 25.5s (base 24.5s, proxy 0.46s)
+  proxy keep 1/6                     n=200 wrong  18 = 0.090 [0.058,0.138]  fixed  54 broken  5  med.err(right) 0.0359  evals global 44282 local 4473 (total 48756, incl. proxy (1-worker eq) 49382, base 49190) scored 212  wall 24.2s (base 24.5s, proxy 0.05s)
+  proxy keep 1/8                     n=200 wrong  22 = 0.110 [0.074,0.161]  fixed  51 broken  6  med.err(right) 0.0296  evals global 44196 local 4325 (total 48521, incl. proxy (1-worker eq) 49115, base 49190) scored 201  wall 24.2s (base 24.5s, proxy 0.04s)
+    proxy keep 1/4: proxy 81 eq per run at the batched cost (4.0 rank_key calls per run) -> total 50313 vs baseline 49190 (+2.3%)
+    proxy keep 1/6: proxy 72 eq per run at the batched cost (4.0 rank_key calls per run) -> total 48828 vs baseline 49190 (-0.7%)
+    proxy keep 1/8: proxy 68 eq per run at the batched cost (4.0 rank_key calls per run) -> total 48590 vs baseline 49190 (-1.2%)
+    proxy keep 1/4: useful (this variant) = False (wrong 0.065 <= keep-1/4 upper bound 0.108: True; total evals below baseline: False)
+    proxy keep 1/6: useful (this variant) = True (wrong 0.090 <= keep-1/4 upper bound 0.108: True; total evals below baseline: True)
+    proxy keep 1/8: useful (this variant) = False (wrong 0.110 <= keep-1/4 upper bound 0.108: False; total evals below baseline: True)
+    proxy keep 1/4 vs E0 baseline: discordant 1 (only the first wrong) vs 55 (only the second wrong), exact McNemar p = 1.58e-15 (n=200)
+    proxy keep 1/6 vs E0 baseline: discordant 5 (only the first wrong) vs 54 (only the second wrong), exact McNemar p = 1.91e-11 (n=200)
+    proxy keep 1/6 vs proxy keep 1/4: discordant 6 (only the first wrong) vs 1 (only the second wrong), exact McNemar p = 0.125 (n=200)
+    proxy keep 1/8 vs E0 baseline: discordant 6 (only the first wrong) vs 51 (only the second wrong), exact McNemar p = 5.68e-10 (n=200)
+    proxy keep 1/8 vs proxy keep 1/4: discordant 10 (only the first wrong) vs 1 (only the second wrong), exact McNemar p = 0.0117 (n=200)
+--- realistic ---
+  E0 baseline                        n=200 wrong  52 = 0.260 [0.204,0.325]  fixed   0 broken  0  med.err(right) 0.0278  evals global 44778 local 7628 (total 52406, incl. proxy (1-worker eq) 52406, base 52406) scored 0  wall 26.5s (base 26.5s, proxy 0.00s)
+  proxy keep 1/4                     n=200 wrong  15 = 0.075 [0.046,0.120]  fixed  40 broken  3  med.err(right) 0.0285  evals global 44805 local 9111 (total 53916, incl. proxy (1-worker eq) 55047, base 52406) scored 384  wall 28.2s (base 26.5s, proxy 0.74s)
+  proxy keep 1/6                     n=200 wrong  23 = 0.115 [0.078,0.167]  fixed  39 broken 10  med.err(right) 0.0378  evals global 44465 local 6676 (total 51140, incl. proxy (1-worker eq) 52133, base 52406) scored 337  wall 25.9s (base 26.5s, proxy 0.07s)
+  proxy keep 1/8                     n=200 wrong  44 = 0.220 [0.168,0.282]  fixed  36 broken 28  med.err(right) 0.0358  evals global 44323 local 6010 (total 50333, incl. proxy (1-worker eq) 51268, base 52406) scored 317  wall 25.4s (base 26.5s, proxy 0.07s)
+    proxy keep 1/4: proxy 118 eq per run at the batched cost (4.0 rank_key calls per run) -> total 54034 vs baseline 52406 (+3.1%)
+    proxy keep 1/6: proxy 103 eq per run at the batched cost (4.0 rank_key calls per run) -> total 51244 vs baseline 52406 (-2.2%)
+    proxy keep 1/8: proxy 98 eq per run at the batched cost (4.0 rank_key calls per run) -> total 50430 vs baseline 52406 (-3.8%)
+    proxy keep 1/4: useful (this variant) = False (wrong 0.075 <= keep-1/4 upper bound 0.120: True; total evals below baseline: False)
+    proxy keep 1/6: useful (this variant) = True (wrong 0.115 <= keep-1/4 upper bound 0.120: True; total evals below baseline: True)
+    proxy keep 1/8: useful (this variant) = False (wrong 0.220 <= keep-1/4 upper bound 0.120: False; total evals below baseline: True)
+    proxy keep 1/4 vs E0 baseline: discordant 3 (only the first wrong) vs 40 (only the second wrong), exact McNemar p = 3.02e-09 (n=200)
+    proxy keep 1/6 vs E0 baseline: discordant 10 (only the first wrong) vs 39 (only the second wrong), exact McNemar p = 3.85e-05 (n=200)
+    proxy keep 1/6 vs proxy keep 1/4: discordant 12 (only the first wrong) vs 4 (only the second wrong), exact McNemar p = 0.0768 (n=200)
+    proxy keep 1/8 vs E0 baseline: discordant 28 (only the first wrong) vs 36 (only the second wrong), exact McNemar p = 0.382 (n=200)
+    proxy keep 1/8 vs proxy keep 1/4: discordant 37 (only the first wrong) vs 8 (only the second wrong), exact McNemar p = 1.54e-05 (n=200)
+--- pooled over both variants (400 runs) ---
+  proxy keep 1/4: wrong 28/400 = 0.070 [0.049,0.099] (baseline 119); total 52174 vs baseline 50798 (+2.7%); vs baseline: discordant 4/95, exact McNemar p = 1.24e-23; USEFUL (wrong <= keep-1/4 upper bound 0.099, fewer evals than baseline): False
+  proxy keep 1/6: wrong 41/400 = 0.102 [0.076,0.136] (baseline 119); total 50036 vs baseline 50798 (-1.5%); vs baseline: discordant 15/93, exact McNemar p = 6.4e-15; vs keep 1/4: discordant 18/5, exact McNemar p = 0.0106; USEFUL (wrong <= keep-1/4 upper bound 0.099, fewer evals than baseline): False
+  proxy keep 1/8: wrong 66/400 = 0.165 [0.132,0.205] (baseline 119); total 49510 vs baseline 50798 (-2.5%); vs baseline: discordant 34/87, exact McNemar p = 1.57e-06; vs keep 1/4: discordant 47/9, exact McNemar p = 2.57e-07; USEFUL (wrong <= keep-1/4 upper bound 0.099, fewer evals than baseline): False
+useful = per-row wrong rate (pooled over the 400 runs) <= the Wilson upper bound of the keep-1/4 proxy row, and total evaluations (reconstructor + proxy at the batched cost) below the baseline's. Per-variant numbers above are given for reference.

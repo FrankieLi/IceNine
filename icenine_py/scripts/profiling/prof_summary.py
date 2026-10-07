@@ -9,6 +9,7 @@ stored per-run records (scripts/profiling/cache) plus the committed accuracy of 
 """
 
 import gzip
+import io
 import json
 import sys
 from collections import defaultdict
@@ -849,12 +850,15 @@ def profiler_lines() -> Tuple[Dict[str, Any], List[str]]:
 
 
 def write_gz(path: Path, obj: Any) -> None:
-    with gzip.open(path, "wt") as f:
-        json.dump(obj, f, default=float)
+    """Deterministic gzip (no mtime, no file name in the header): regenerating is byte-stable."""
+    with open(path, "wb") as raw:
+        with gzip.GzipFile(filename="", fileobj=raw, mode="wb", mtime=0) as gz:
+            with io.TextIOWrapper(gz, encoding="utf-8") as f:
+                json.dump(obj, f, default=float)
 
 
 def compact(recs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    keep = {k for r in recs for k in r} - {"R_final", "ref_R"}
+    keep = sorted({k for r in recs for k in r} - {"R_final", "ref_R"})  # sorted: stable key order
     out = []
     for r in recs:
         d = {k: r[k] for k in keep if k in r and k != "stages"}

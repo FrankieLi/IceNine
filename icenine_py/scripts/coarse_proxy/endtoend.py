@@ -66,8 +66,15 @@ def _model(models_dir: str, name: str, target: str, fold: int) -> Any:
     return _STATE[key]
 
 
-def proxy_features(fe: Any, cands: List[Any], vertices: Any, phase: int, c8: bool) -> np.ndarray:
-    X = np.stack([fe.features(c.orientation, vertices, phase) for c in cands])
+def proxy_features(
+    fe: Any, cands: List[Any], vertices: Any, phase: int, c8: bool, batched: bool = False
+) -> np.ndarray:
+    """Low-Q feature matrix of the candidates. `batched` uses `FeatureExtractor.features_batch`
+    (identical values, tested; the per-candidate loop stays the default and the reference)."""
+    if batched:
+        X = fe.features_batch(np.stack([c.orientation for c in cands]), vertices, phase)
+    else:
+        X = np.stack([fe.features(c.orientation, vertices, phase) for c in cands])
     if c8:
         X = np.hstack([X, np.array([[float(c.cost)] for c in cands])])  # free Q8 local cost
     return X
@@ -82,13 +89,14 @@ def task_run(item: Tuple[Any, ...]) -> str:
     fold = int(M.fold_of(np.array([vpos]))[0])
     model = _model(cfg["models_dir"], cfg["set"], cfg["target"], fold)
     vertices, phase = vctx.vertices, vctx.voxel.phase
-    st = dict(n=0, sec=0.0)
+    st: Dict[str, Any] = dict(n=0, sec=0.0, calls=[])
 
     def rank_key(level: int, cands: List[Any]) -> np.ndarray:
         t0 = time.perf_counter()
-        X = proxy_features(fe, cands, vertices, phase, c8)
+        X = proxy_features(fe, cands, vertices, phase, c8, cfg.get("batched", False))
         key = -MD.predict_score(cfg["target"], model, X)
         st["n"] += len(cands)
+        st["calls"].append((level, len(cands)))  # batch size of this rank_key call
         st["sec"] += time.perf_counter() - t0
         return key
 
@@ -115,7 +123,8 @@ def task_run(item: Tuple[Any, ...]) -> str:
     np.savez_compressed(
         path, R_final=np.asarray(res.orientation, float), cost_final=float(res.cost), runtime=dt,
         evals_global=g, evals_local=loc, n_scored=st["n"], proxy_seconds=st["sec"],
-        n_proxy_cost_evals=2 * st["n"], R_true=vctx.R_true, **keep,
+        n_proxy_cost_evals=2 * st["n"], call_levels=np.array([c[0] for c in st["calls"]], int),
+        call_sizes=np.array([c[1] for c in st["calls"]], int), R_true=vctx.R_true, **keep,
     )  # fmt: skip
     return f"{cfg['tag']} voxel {vidx} {variant} s{seed} {time.time() - t_start:.0f}s"
 
@@ -155,7 +164,7 @@ def task_harvest(item: Tuple[Any, ...]) -> str:
 def cfg_from(a: argparse.Namespace) -> Dict[str, Any]:
     return dict(
         tag=a.tag, set=a.set, target=a.target, keep=a.keep,
-        models_dir=str(B.CACHE / a.models_dir),
+        models_dir=str(B.CACHE / a.models_dir), batched=a.batched,
     )  # fmt: skip
 
 
@@ -190,6 +199,9 @@ def main() -> None:
     ap.add_argument("--seeds", type=int, nargs="+", default=[0])
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument(
+        "--batched", action="store_true", help="batched low-Q feature pass (identical features)"
+    )
     a = ap.parse_args()
     its = work_items(a, a.cmd == "harvest")
     if a.limit:

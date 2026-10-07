@@ -10,10 +10,13 @@ Skipped without the ThreeVoxels Python-simulated data.
 import math
 import os
 from pathlib import Path
-from typing import Tuple
+import platform
+from typing import Dict, Tuple
 
 import numpy as np
 import pytest
+import scipy
+import torch
 from scipy.spatial.transform import Rotation
 
 from icenine.config_file import ConfigFile
@@ -34,11 +37,52 @@ GOLDEN: Tuple[np.ndarray, float] = (
     0.8180327868852459,
 )
 
+# Environment the golden values were recorded in (the one `uv sync --extra dev` builds from
+# uv.lock with .python-version). The orientation differs at ~4e-7 deg in other environments
+# (see MIGRATION_HISTORY "Follow-ups (2026-10-06)"), so the golden tests refuse to run elsewhere.
+# Python is compared on major.minor; numpy, torch and scipy on their release (local build tag
+# such as "+cpu" ignored).
+GOLDEN_ENV: Dict[str, str] = {
+    "python": "3.9",
+    "numpy": "2.0.2",
+    "torch": "2.8.0",
+    "scipy": "1.13.1",
+}
 
-def _build(min_sin_eta: float = 0.0):
+
+def _current_env() -> Dict[str, str]:
+    return {
+        "python": ".".join(platform.python_version_tuple()[:2]),
+        "numpy": np.__version__.split("+")[0],
+        "torch": torch.__version__.split("+")[0],
+        "scipy": scipy.__version__.split("+")[0],
+    }
+
+
+def _require_data() -> Path:
     data_dir = EXAMPLE / "ScatteringData_Python"
     if not data_dir.exists() or len(list(data_dir.glob("*.d*"))) < 360:
         pytest.skip("ThreeVoxels Python-simulated data not available")
+    return data_dir
+
+
+@pytest.fixture
+def golden_env() -> None:
+    """Fail (never skip, never loosen the tolerance) if the golden values were recorded with
+    different library versions than the ones running."""
+    _require_data()  # skip (as _build does) when the data is absent; only then compare versions
+    now = _current_env()
+    if now != GOLDEN_ENV:
+        fmt = lambda d: ", ".join(f"{k} {v}" for k, v in d.items())  # noqa: E731
+        pytest.fail(
+            f"golden values recorded with {fmt(GOLDEN_ENV)}; running {fmt(now)}. "
+            "Run `uv sync --extra dev` in icenine_py (locked environment) and use `uv run`.",
+            pytrace=False,
+        )
+
+
+def _build(min_sin_eta: float = 0.0):
+    data_dir = _require_data()
     cwd = os.getcwd()
     os.chdir(EXAMPLE)
     try:
@@ -77,7 +121,7 @@ def _rotvec_deg(R: np.ndarray, R_true: np.ndarray) -> np.ndarray:
     return np.degrees(Rotation.from_matrix(R @ R_true.T).as_rotvec())
 
 
-def test_reconstruct_voxel_unchanged_by_refactor():
+def test_reconstruct_voxel_unchanged_by_refactor(golden_env):
     rec, voxel, R_true = _build()
     res = rec.reconstruct_voxel(
         _get_voxel_vertices(voxel), voxel.phase, rng=np.random.default_rng(7)
@@ -110,7 +154,7 @@ def test_refine_from_candidates_empty_returns_identity():
     assert res.cost == 1.0 and np.array_equal(res.orientation, np.eye(3))
 
 
-def test_recorder_hook_leaves_reconstruct_voxel_bit_identical():
+def test_recorder_hook_leaves_reconstruct_voxel_bit_identical(golden_env):
     """With a recorder attached (and the knobs at their defaults) reconstruct_voxel returns exactly
     the GOLDEN numbers, and the recorder sees every stage."""
     rec, voxel, R_true = _build()
@@ -151,7 +195,7 @@ def _assert_golden(res, R_true):
     assert res.cost == pytest.approx(GOLDEN[1], abs=1e-12)
 
 
-def test_rank_key_with_post_mc_costs_reproduces_golden():
+def test_rank_key_with_post_mc_costs_reproduces_golden(golden_env):
     def configure(rec, R_true):
         rec.rank_key = lambda level, cands: np.array([c.cost for c in cands])
 
@@ -159,7 +203,7 @@ def test_rank_key_with_post_mc_costs_reproduces_golden():
     _assert_golden(res, R_true)
 
 
-def test_extra_candidates_returning_nothing_reproduces_golden():
+def test_extra_candidates_returning_nothing_reproduces_golden(golden_env):
     def configure(rec, R_true):
         rec.extra_candidates = lambda level, cands: []
 
