@@ -142,19 +142,19 @@ This project uses gitflow. All work must follow this branching model:
 master           ← releases only (tagged, e.g. v3.last)
   └─ develop     ← integration branch, PRs merge here
        └─ feature/name           ← feature branches off develop
-            └─ feature/name/task ← optional sub-task branches
+            └─ feature/name-task  ← optional sub-task branches
 ```
 
 ### Branch Rules
 - **master**: Never commit directly. Only merge from develop for releases.
 - **develop**: Integration branch. Feature branches merge here via PR.
 - **feature/***: All new work. Branch off develop, merge back via PR.
-- **feature/\*/task**: Sub-tasks off a feature branch. Merge back to parent feature.
+- **feature/<parent>-<task>**: Sub-tasks off a feature branch (git cannot hold `feature/x/task` while `feature/x` exists, hence the dash). The parent is recorded with `git config branch.<task>.parent`. Merge back to the parent feature.
 
 ### Workflow Commands
 - `/start-feature <name>` — create feature branch off develop
-- `/start-task <name>` — create sub-task branch off current feature
-- `/finish-task` — run tests, review, merge task → parent feature
+- `/start-task <name>` — create sub-task branch off current feature (`scripts/dev/start_task.sh`)
+- `/finish-task` — review, then `scripts/dev/finish_task.sh`: tests, merge task → parent feature
 - `/finish-feature` — run tests, review, create PR → develop, merge via GitHub
 
 ### Merge Rules
@@ -203,3 +203,7 @@ magic word." If you can't fully ground the answer from what you can see, ask.
 shmem ask "<the question>"        # synthesized answer (preferred for most reads)
 shmem query "<keywords>"          # raw timestamped facts; useful with --since 1h, --source user
 ```
+
+## Tooling
+
+Deterministic checks live in code, not in prompts: a Bash PreToolUse hook (`.claude/hooks/`), an opt-in git pre-commit hook (`.githooks/`, activate with `scripts/dev/install_hooks.sh`), task-branch scripts, a shared stats module, doc-table sync, a number audit, a timing preflight and job-status helpers. See the "Developer tooling" section of [icenine_py/README.md](icenine_py/README.md).

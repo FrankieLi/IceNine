@@ -2806,3 +2806,13 @@ All three tasks are merged into `feature/nn-hybrid-proxy-profiling`. Nothing in 
 - The three ideas in `docs/todo_future_ideas_nn_active_fourier.md` (no-start NN, active imaging, Fourier / resolution theory).
 - The level as a proxy feature.
 - Adopt the shared stats / doc_tables / preflight helpers from `feature/dev-tooling` once it merges.
+
+## Developer tooling (2026-10-06)
+
+**Plan (short form).** Turn rules and checks that were repeated in LLM prompts into code that runs without an LLM, and shrink the LLM prompts to planning, interpretation, logic review and writing. Deliverables: (A) a Bash PreToolUse hook script (bare python/pytest/pip, blanket `git add`/`git commit -a`); (B) a committed but not activated git pre-commit hook with Python-implemented checks; (C) task-branch scripts and skills (`feature/<parent>-<task>` naming, because git cannot hold `feature/x/task` beside `feature/x`); (D) `scripts/common/stats.py`; (E) doc-table generation and sync; (F) a number audit; (G) a timing preflight; (H) job status and checkpoint; (I) a TODO scaffold; (J) an implementer agent and a claims-audit section for the reviewer; (K) README, this section and CLAUDE.md. Built in a separate worktree (`IceNine-tooling`) while a single-worker timing job ran in the main tree; targeted tests only under `nice` while it ran.
+
+### Completion summary (2026-10-06)
+
+All of A-K implemented on `feature/dev-tooling`; tests in `tests/test_dev_tooling.py` (99 passed after the review fixes; full suite 639 passed, 34 skipped with the main venv). Scripts are listed in the README section "Developer tooling". The git hooks are not activated; the main session runs `scripts/dev/install_hooks.sh` after the merge (and after the other feature's agent has committed, since `core.hooksPath` is shared by all worktrees). Not changed: `scripts/nn_hybrid`, `scripts/coarse_proxy`, `scripts/profiling`, `icenine/`; adopting `stats`, `doc_tables` and `preflight` there is a later step.
+
+**Number audit on the FindOptimal robustness section above.** `audit_numbers.py` extracts 128 numbers and matches 125 against `benchmarks/findoptimal_robustness/*`; the three unmatched are real non-source numbers (the test count 537, the derived 853 right runs, and the derived 347/347). The calibration line shows the limit (reported per precision bucket: 0 dp 70%, 1 dp 91%, 2 dp 86%, 3+ dp 89%): shifting every number by 3 in its last printed digit still matches about 80% overall, because the source files contain thousands of values and low-precision decimals (0.2, 0.94) match almost anything. The audit catches wrong-magnitude and invented numbers, not small transcription errors; counts and high-precision values are the strongest checks.

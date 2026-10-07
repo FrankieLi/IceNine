@@ -18,3 +18,7 @@ ExtLib
 # Local-only files (kept on disk, not tracked)
 /MicAnalyzer/
 /Examples/Example2.ThreeVoxels/ScatteringData_Q8/
+
+# Session checkpoints written by scripts/dev/checkpoint.sh
+.claude/checkpoints/
+__pycache__/
