@@ -136,12 +136,14 @@ def test_findoptimal_alone_reproduces_stored_experiment_b(worker):
 
 
 def test_wilson_interval():
-    sm = _import("summary")
-    lo, hi = sm.wilson(0, 1000)
+    sm = _import("summary")  # nn_hybrid's summary uses the shared stats.wilson (T2)
+    w = sm.shared_stats.wilson
+    lo, hi = w(0, 1000)
     assert lo == pytest.approx(0.0, abs=1e-12) and hi == pytest.approx(0.0038, abs=2e-4)
-    lo, hi = sm.wilson(50, 100)
+    lo, hi = w(50, 100)
     assert (lo, hi) == pytest.approx((0.404, 0.596), abs=2e-3)
-    assert all(np.isnan(sm.wilson(0, 0)))
+    assert all(np.isnan(w(0, 0)))
+    assert w(1000, 1000)[1] == 1.0  # clamped (the old local copy gave 1.0000000000000002)
 
 
 def test_win_rate_tie_handling():
