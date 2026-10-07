@@ -247,3 +247,33 @@ def test_feature_sets_select_low_q_columns():
     hand = md.untrained_score("hand", dict(X=X, X4=D["X4"], X5=D["X5"]))
     assert np.allclose(hand, X[:, 1:5].mean(axis=1))
     assert np.array_equal(md.untrained_score("cost8", D), -X[:, -2])
+
+
+@needs_cache
+@pytest.mark.parametrize("q_max", [5.0, None])
+def test_features_batch_equals_per_candidate(env: Tuple[Any, ...], q_max: Any) -> None:
+    """The batched pass returns exactly the per-candidate features (all columns, incl. the two
+    costs) on the E2 candidates of the voxel, for several batch sizes, and counts the same cost
+    evaluations."""
+    C, F, W, vctx, keys, Rs = env
+    phase, vert = vctx.voxel.phase, vctx.vertices
+    fe = F.FeatureExtractor(W.local_fn, W.ctx.geo, phase, q_max=q_max)
+    fe.set_image(keys)
+    e2 = np.load(C.CACHE_DIR / "e2" / f"v{env_voxel(C)}_clean.npz")["R"]
+    R = np.concatenate([np.stack(Rs), e2[:: max(1, len(e2) // 120)]])  # truth, random, E2 sample
+    ref = np.stack([fe.features(r, vert, phase) for r in R])
+    counters = [fn.eval_count for fn in fe._low_q_cost_fns()] if q_max else [W.local_fn.eval_count]
+    for size in (1, 7, len(R)):
+        got = np.concatenate(
+            [fe.features_batch(R[i : i + size], vert, phase) for i in range(0, len(R), size)]
+        )
+        assert got.shape == ref.shape
+        assert np.array_equal(got, ref), (size, np.abs(got - ref).max())
+    # batch of 1 and the whole set add 2 evaluations per candidate to the counters
+    after = [fn.eval_count for fn in fe._low_q_cost_fns()] if q_max else [W.local_fn.eval_count]
+    n = 3 * len(R)  # three passes of the loop above
+    assert [a - b for a, b in zip(after, counters)] == ([n, n] if q_max else [2 * n])
+    # without costs: NaN cost columns, the same aggregates
+    nc = fe.features_batch(R, vert, phase, with_cost=False)
+    assert np.isnan(nc[:, -2:]).all() and np.array_equal(nc[:, :-2], ref[:, :-2])
+    assert fe.features_batch(np.zeros((0, 3, 3)), vert, phase).shape == (0, ref.shape[1])
