@@ -2841,3 +2841,37 @@ FindOptimal F1/F1b are cubic-specific.
   finer continuation, pixel granularity, stopping rule). Observations only; no reconstructor change.
 
 Not in this round: full-sample renders and the ideas in `docs/todo_future_ideas_nn_active_fourier.md`.
+
+### T1 `env`: locked environment for the golden tests (2026-10-06)
+
+**Where the golden outputs diverge.** One golden case (ThreeVoxels voxel 0, `reconstruct_voxel`, seed 7)
+was run with the recorder attached in the main environment (Python 3.9.6, numpy 2.0.2, torch 2.8.0,
+scipy 1.13.1) and in a fresh `uv pip install -e ".[dev]"` environment (Python 3.12.12, numpy 2.5.3,
+torch 2.14.1, scipy 1.18.1; the resolver picks newer versions than the 3.12/2.4/2.10 first seen).
+Every stage event has the same sequence, the same costs (maximum cost difference 0.0, final cost
+0.8180327868852459 in both) and the same discrete-stage orientation (difference 0). Rotation matrices first
+differ in the quick-MC stage (maximum entry difference 6.1e-9) and carry through to the final
+orientation (3.8e-7 deg in the third rotation-vector component, against the 1e-9 test tolerance). So this
+case shows small floating-point drift (about 6e-9 in matrix entries), not a branch flip in the MC
+search. The source of the drift was not isolated; `scipy.spatial.transform.Rotation` conversions on 1000
+random vectors are bit-identical across the two environments, which rules out that part only. The other
+3 tests in the file pass in both environments; the 4 failing tests are the 4 that compare against
+GOLDEN. This is one case, so other cases could still differ differently.
+
+**Change.** `icenine_py/.python-version` (3.9); `uv sync --extra dev` is the documented setup in
+`icenine_py/README.md`. `GOLDEN_ENV` next to the golden data in `tests/test_findoptimal_refactor.py`
+records python 3.9 (major.minor), numpy 2.0.2, torch 2.8.0, scipy 1.13.1; the 4 golden tests take a
+`golden_env` fixture that fails (not skips) with "golden values recorded with ...; running ... Run
+`uv sync --extra dev`" on a mismatch. Tolerances unchanged.
+
+**Verification.** In a temporary clone outside the repo, `env -u VIRTUAL_ENV uv sync --extra dev`
+produced Python 3.9.6, numpy 2.0.2, torch 2.8.0, scipy 1.13.1 and left `uv.lock` unchanged; the 7 tests
+in `test_findoptimal_refactor.py` pass. In the drifted 3.12 environment the 4 golden tests fail with
+the version message. Main tree full suite: 663 passed, 34 skipped, 1 failed
+(`test_dev_tooling.py::test_githook_and_installer_exist_and_are_not_activated`, which asserts
+`core.hooksPath` is unset; it is now set to `.githooks` in this checkout, so the failure is the hooks
+having been activated, not this change).
+
+**Not done here.** The CLAUDE.md setup lines (`uv pip install -e ".[dev]"` to `uv sync --extra dev`) are
+blocked by the pre-commit check on CLAUDE.md changes (override not allowed); the main session should make that
+edit.

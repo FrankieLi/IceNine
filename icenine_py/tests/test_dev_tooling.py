@@ -253,14 +253,25 @@ def test_precommit_cli_silent_when_clean_and_exit_code(repo: Path) -> None:
     assert res.returncode == 1 and res.stdout.startswith("bad.pt:1:")
 
 
-def test_githook_and_installer_exist_and_are_not_activated() -> None:
+def test_githook_and_installer_exist_and_are_not_activated_by_default(tmp_path: Path) -> None:
+    """The repo ships the hooks but never activates them: a fresh clone has no core.hooksPath.
+    (A developer's own checkout may have run install_hooks.sh, so local config is not checked.)"""
     assert os.access(REPO / ".githooks" / "pre-commit", os.X_OK)
     assert os.access(DEV / "install_hooks.sh", os.X_OK)
-    res = subprocess.run(
-        ["git", "config", "--get", "core.hooksPath"], cwd=REPO, capture_output=True, text=True
-    )
-    assert res.stdout.strip() == "", "core.hooksPath must stay unset until the owner activates it"
     assert "scripts/dev/precommit_check.py" in (REPO / ".githooks" / "pre-commit").read_text()
+    clone = tmp_path / "clone"
+    subprocess.run(
+        ["git", "clone", "-q", "--no-checkout", str(REPO), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+    res = subprocess.run(
+        ["git", "config", "--local", "--get", "core.hooksPath"],
+        cwd=clone,
+        capture_output=True,
+        text=True,
+    )
+    assert res.stdout.strip() == "", "a fresh clone must not have the hooks activated"
 
 
 # ---------------------------------------------------------------------------------------------

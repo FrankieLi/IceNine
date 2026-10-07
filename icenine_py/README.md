@@ -6,8 +6,13 @@ Python port of IceNine for synchrotron X-ray diffraction — forward simulation 
 
 ```bash
 cd icenine_py
-uv pip install -e ".[dev]"
+uv sync --extra dev
 ```
+
+`uv sync` builds `.venv` from the tracked `uv.lock` with the Python in `.python-version` (3.9), so
+everyone gets the same numpy/torch/scipy versions (2.0.2 / 2.8.0 / 1.13.1). Do not use
+`uv pip install`: it ignores the lock, resolves newer versions, and the golden bit-identity tests in
+`tests/test_findoptimal_refactor.py` then fail (they check the recorded versions and say so).
 
 Dependencies: numpy, torch, pymatgen, scipy (see `pyproject.toml`).
 
