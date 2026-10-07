@@ -78,3 +78,4 @@ benchmarks/toy_orientation_stage3/far_log_*.txt
 benchmarks/toy_orientation_stage3/multi_log_set_all*.txt
 scripts/finisher_diagnosis/cache/
 scripts/cost_sensitivity/cache/
+scripts/mc_mechanism/cache/
