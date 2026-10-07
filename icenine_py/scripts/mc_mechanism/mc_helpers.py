@@ -90,3 +90,20 @@ def corner_angle_ratio() -> float:
         q = g.get_near_identity_point(sx * r, sy * r, sz * r)
         best = max(best, math.degrees(2.0 * math.acos(min(1.0, abs(float(q[0]))))))
     return best / 0.1
+
+
+def restart_jump_angles(
+    box_rad: float, n: int, rng: np.random.Generator, grid_gen: Any
+) -> np.ndarray:
+    """Rotation angles (deg) of n restart jumps, drawn as MCOptimizer.optimize draws them: x, y, z
+    ~ U(-box/2, box/2) passed straight to get_near_identity_point (the inherited C++ convention:
+    no tan/sqrt(12) scaling, unlike the MC proposal)."""
+    half = box_rad / 2.0
+    ang = np.empty(n)
+    for i in range(n):
+        rx = rng.uniform(-half, half)
+        ry = rng.uniform(-half, half)
+        rz = rng.uniform(-half, half)
+        dq = grid_gen.get_near_identity_point(rx, ry, rz)
+        ang[i] = math.degrees(2.0 * math.acos(min(1.0, abs(float(dq[0])))))
+    return ang

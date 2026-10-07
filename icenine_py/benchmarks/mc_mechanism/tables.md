@@ -199,6 +199,21 @@
 | H3 | realistic | 122 | 113/122 (93%, 87-96) | 2/3/4 | 4/8/19 | 0.00823/0.01646/0.03292 | 0.0399/0.0860/0.1560 | 113/113 (100%, 97-100) |
 <!-- /table:b1_lockin -->
 
+<!-- table:b1_lockin_cum -->
+| set | variant | improving runs | by k=1 | by k=2 | by k=3 | by k=4 | by k=5 | by k=6 | by k=7 | by k=8 | by k=9 | by k=10 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 67 | 75 | 83 | 86 | 93 | 94 | 96 | 96 | 96 | 96 |
+| H0 | realistic | 97 | 67 | 76 | 82 | 86 | 90 | 93 | 96 | 97 | 97 | 97 |
+| H3 | clean | 126 | 15 | 47 | 73 | 93 | 103 | 109 | 111 | 112 | 112 | 112 |
+| H3 | realistic | 122 | 18 | 47 | 77 | 91 | 105 | 109 | 112 | 113 | 113 | 113 |
+<!-- /table:b1_lockin_cum -->
+
+<!-- table:b1_restart_jump -->
+| box (deg) | restart jump q25/50/75 (deg) | max (deg) | never-improving H3 realistic start distance, median (deg) | jump median / start distance |
+|---|---|---|---|---|
+| 0.3292 | 0.437/0.554/0.654 | 0.956 | 0.0232 | 23.8 |
+<!-- /table:b1_restart_jump -->
+
 <!-- table:b1_rules -->
 | set | variant | n | box_deg | step0_deg | min_erg_0 | formula_0 | restarts at n_since = min_erg | step halved at each improvement | min_erg ratio q25/50/75 | restart after first accept | min_erg after first accept |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -236,6 +251,15 @@
 | H3 | realistic | 0.02 | 0.0200 | 0.0030 | 0.0200 | 0.0100 | 0.0100/0.0100/0.0200 | 0.29 | 1.00 |
 | H3 | realistic | 0.05 | 0.0500 | 0.0020 | 0.0300 | 0.0300 | 0.0300/0.0300/0.0500 | 0.39 | 0.60 |
 <!-- /table:b1_sstar -->
+
+<!-- table:b1_start_err -->
+| set | variant | start error, improving runs | start error, never-improving runs |
+|---|---|---|---|
+| H0 | clean | 0.2500/0.7500/1.5000 | 2.2625/3.0000/3.0000 |
+| H0 | realistic | 0.2500/0.7500/1.5000 | 1.5500/3.0000/3.0000 |
+| H3 | clean | 0.0880/0.1351/0.1829 | 0.0140/0.0220/0.0364 |
+| H3 | realistic | 0.0897/0.1362/0.1838 | 0.0140/0.0232/0.0406 |
+<!-- /table:b1_start_err -->
 
 <!-- table:b1_stop -->
 | set | variant | n | step budget | restarts exhausted | converged | no accept | exhausted given no accept | no accept given exhausted | step budget given accepted | steps run (no accept) | restarts (no accept) | steps between restarts | local accepts in between |

@@ -113,3 +113,23 @@ def test_corner_angle_ratio_bounds_sampled_proposals() -> None:
     _, ang = H.mc_proposals(np.eye(3), step, 500, np.random.default_rng(1), QuaternionGrid())
     assert ang.max() <= ratio * math.degrees(step) * (1 + 1e-9)
     assert 0.9 * math.degrees(step) < np.median(ang) < 1.0 * math.degrees(step)
+
+
+def test_restart_jump_matches_mcoptimizer_restart() -> None:
+    """A run with a cost that never improves restarts once; its restart orientation must equal
+    q(delta) * q(start) with delta drawn by restart_jump_angles' convention."""
+    box = math.radians(0.33)
+    rec = _Recorder()
+    mc = MCOptimizer(rec, None, 0, rng=np.random.default_rng(9))
+    n_ergodic = H.min_ergodic(box, math.radians(0.13), 10**6)
+    mc.optimize(np.eye(3), box, math.radians(0.13), n_ergodic + 5, 1, 0.0)
+    # evaluations: start, n_ergodic proposals, then the restart point
+    restart_mat = rec.mats[1 + n_ergodic]
+    ang_opt = math.degrees(np.arccos(np.clip((np.trace(restart_mat) - 1) / 2, -1, 1)))
+    # replay the rng: n_ergodic proposals (3 draws each), then the 3 restart draws
+    rng = np.random.default_rng(9)
+    rng.uniform(size=3 * n_ergodic)
+    ang = H.restart_jump_angles(box, 1, rng, QuaternionGrid())[0]
+    assert abs(ang_opt - ang) < 1e-6
+    big = H.restart_jump_angles(box, 2000, np.random.default_rng(0), QuaternionGrid())
+    assert np.median(big) > 1.5 * math.degrees(box)

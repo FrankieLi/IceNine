@@ -245,10 +245,14 @@ def probability_curve(
     out["trial_ang_med"] = np.zeros((len(points), len(STEPS_DEG)))
     out["cost0"] = np.zeros(len(points))
     out["dist0"] = np.zeros(len(points))
+    out["c0_cast_diff"] = np.zeros(len(points))
     for pi, R in enumerate(points):
-        c0 = float(lf.evaluate(R.astype(np.float32), vctx.vertices, vctx.voxel.phase).cost)
+        # float64 like the optimizer's trial matrices; the float32 value is kept as a check
+        c0 = float(lf.evaluate(R, vctx.vertices, vctx.voxel.phase).cost)
+        c32 = float(lf.evaluate(R.astype(np.float32), vctx.vertices, vctx.voxel.phase).cost)
         d0 = D.angle_deg(R, R_true)
         out["cost0"][pi], out["dist0"][pi] = c0, d0
+        out["c0_cast_diff"][pi] = c32 - c0
         for si, s in enumerate(STEPS_DEG):
             mats, ang = H.mc_proposals(R, math.radians(s), N_PROP, rng, grid_gen)
             c = np.array(

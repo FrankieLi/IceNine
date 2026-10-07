@@ -143,6 +143,8 @@ def end_stats(vi: int, E: Dict[str, np.ndarray]) -> Dict[str, Any]:
     )
     n_prop = int(E["n_prop"])
     out: Dict[str, Any] = dict(steps_deg=s.tolist(), n_prop=n_prop)
+    cd = E["c0_cast_diff"][vi]
+    out["c0_cast_nonzero"] = frac(int((cd != 0).sum()), len(cd))
     for name, m in (("improving", acc > 0), ("noaccept", acc == 0)):
         n = int(m.sum())
         if n == 0:
@@ -315,6 +317,8 @@ def mechanism(
                     )
                 )
                 break
+    out["start_err_improving_q"] = q3(sa[imp]) if sa is not None and len(sa) == N else None
+    out["start_err_noaccept_q"] = q3(sa[acc0]) if sa is not None and len(sa) == N else None
     out["lockin"] = dict(
         n_locked=frac(len(lk), int(imp.sum())),
         k_q=q3([x["k"] for x in lk]),
@@ -325,6 +329,7 @@ def mechanism(
             int(sum(x["final"] >= x["dist"] - reach_f * x["step"] - 1e-9 for x in lk)), len(lk)
         ),
         reach_factor=reach_f,
+        cum_by_k=[int(sum(x["k"] <= kk for x in lk)) for kk in range(1, 11)],
     )
     # --- by accept number: step and distance to the truth after the k-th global improvement
     byk = []
@@ -499,6 +504,22 @@ def main() -> None:
         lp = HERE / "cache" / "logs" / fn
         m = re.search(r"finished; wall (\d+)s", lp.read_text()) if lp.exists() else None
         comp[f"wall_{tag}_s_contended_10_workers"] = int(m.group(1)) if m else None
+    from icenine.orientation_search import QuaternionGrid
+
+    jumps = H.restart_jump_angles(
+        math.radians(float(meta["box_deg"])), 20000, np.random.default_rng(0), QuaternionGrid()
+    )
+    S["restart_jump"] = dict(
+        box_deg=float(meta["box_deg"]),
+        n=20000,
+        q=[float(v) for v in np.quantile(jumps, [0.25, 0.5, 0.75])],
+        max=float(jumps.max()),
+    )
+    S["c0_cast"] = {
+        f"{p}|{vn}": float(np.mean(np.abs(D["pc_c0_cast_diff"][vi]) > 0))
+        for p, D in data.items()
+        for vi, vn in enumerate(VARIANTS)
+    }
     comp["finisher_evals_median_all_cases"] = float(
         np.median(np.concatenate([D["rerun_evals"][1] for D in data.values()]))
     )
@@ -613,6 +634,26 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
             }
         )
     T["b1_lockin"] = markdown_table(rows, list(rows[0]))
+    rows = []
+    for k in keys:
+        m, (pipe, vn) = S["mechanism"][k], sv(k)
+        r = {"set": pipe, "variant": vn, "improving runs": m["n_improving"]}
+        for kk, c in enumerate(m["lockin"]["cum_by_k"], start=1):
+            r[f"by k={kk}"] = c
+        rows.append(r)
+    T["b1_lockin_cum"] = markdown_table(rows, list(rows[0]))
+    rows = []
+    for k in keys:
+        m, (pipe, vn) = S["mechanism"][k], sv(k)
+        rows.append(
+            {
+                "set": pipe,
+                "variant": vn,
+                "start error, improving runs": qt(m["start_err_improving_q"], 4),
+                "start error, never-improving runs": qt(m["start_err_noaccept_q"], 4),
+            }
+        )
+    T["b1_start_err"] = markdown_table(rows, list(rows[0]))
     # --- travel
     rows = []
     for k in keys:
@@ -769,6 +810,33 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
             }
         )
     T["b1_truth"] = markdown_table(rows, list(rows[0]), {"pooled P at the best step": ".3f"})
+    rj = S["restart_jump"]
+    na = ec.get("H3|realistic", {}).get("noaccept")
+    start_med = na["dist_mc_q"][1] if na else math.nan
+    T["b1_restart_jump"] = markdown_table(
+        [
+            {
+                "box (deg)": rj["box_deg"],
+                "restart jump q25/50/75 (deg)": qt(rj["q"], 3),
+                "max (deg)": rj["max"],
+                "never-improving H3 realistic start distance, median (deg)": start_med,
+                "jump median / start distance": rj["q"][1] / start_med,
+            }
+        ],
+        [
+            "box (deg)",
+            "restart jump q25/50/75 (deg)",
+            "max (deg)",
+            "never-improving H3 realistic start distance, median (deg)",
+            "jump median / start distance",
+        ],
+        {
+            "box (deg)": ".4f",
+            "max (deg)": ".3f",
+            "never-improving H3 realistic start distance, median (deg)": ".4f",
+            "jump median / start distance": ".1f",
+        },
+    )
     # --- at the MC output
     rows = []
     for k, e in ec.items():

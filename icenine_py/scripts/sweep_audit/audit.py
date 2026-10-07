@@ -372,6 +372,8 @@ def main() -> None:
         best = prec_stats(sel(mg, o, head[o]["hp"], 1).mis.values)
         allc = prec_stats(mg[(mg.opt == o) & (mg.pert == 1)].mis.values)
         prec[o] = dict(ref=best, all_configs=allc)
+        allst = mg[mg.opt == o].mis.values  # all start offsets (1, 2 and 5 deg)
+        prec[o]["all_configs_all_starts_lt002"] = frac(int((allst < 0.02).sum()), len(allst))
         for lab, p in (("recorded config", best), ("all configs", allc)):
             rows.append(
                 dict(
@@ -746,7 +748,7 @@ def main() -> None:
         fin = b1["curves"]["H3|realistic"]["points"]["result"]["d0_med"]
         st = b1["mechanism"]["H3|realistic"].get("start_err_q", [float("nan")] * 3)
         evq = b1["finisher_evals_q"]["H3|realistic"]
-        a_ref, m_ref = head["riemannian_adam_geoopt"], head["mc_optimizer"]
+        m_ref = head["mc_optimizer"]
         pa, pm = prec["riemannian_adam_geoopt"]["ref"], prec["mc_optimizer"]["ref"]
         hl = summ["mc_headline_timing"]
         bm = bud["mc_optimizer|<=200 steps"]
@@ -818,13 +820,16 @@ def main() -> None:
             dict(
                 aspect="matched budget (MC)",
                 measured=(
-                    f"<= 200 steps: {ff(bm['f1'])} under 0.5 deg, median error of the < 1 deg "
-                    f"runs {bm['med_ok']:.3f}; 3500 steps: {ff(b3['f1'])}, {b3['med_ok']:.3f}"
+                    f"100 steps (best config): {ff(bm['f1'])} under 0.5 deg at a 1 deg start, "
+                    f"median error of the < 1 deg runs {bm['med_ok']:.3f}; 3500 steps (best "
+                    f"config, 5 restarts): {ff(b3['f1'])}, {b3['med_ok']:.3f}; pooled over each "
+                    f"class {ff(bm['allcfg_f1'])} vs {ff(b3['allcfg_f1'])}; the recorded 3500-step "
+                    f"2-restart config: {ff(m_ref['f1'])}, {pm['q'][1]:.3f}"
                 ),
-                deployed="200 steps",
+                deployed="200 steps (not run in the sweep)",
                 gap=(
-                    "more MC steps bought no accuracy in the sweep; the deployed 200 steps are "
-                    "not worse than 3500 at this coarse scale"
+                    "more MC steps bought no accuracy in the sweep between 100 and 3500 steps; "
+                    "200 steps were not run"
                 ),
             ),
             dict(
@@ -835,7 +840,8 @@ def main() -> None:
                 ),
                 deployed="per-voxel finisher on the reconstruction's voxels",
                 gap=(
-                    "no r_perp dependence inside the sweep's range (Spearman of error vs r_perp, "
+                    "no detectable r_perp dependence inside the sweep's range "
+                    "(Spearman of error vs r_perp, "
                     f"recorded Adam config: rho {rp_cell['rho']:.2f}, p {rp_cell['p']:.2f}, "
                     "n 100 voxels)"
                 ),

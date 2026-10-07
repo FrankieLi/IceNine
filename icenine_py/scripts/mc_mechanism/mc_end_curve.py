@@ -72,12 +72,16 @@ def stats_at(
     R: np.ndarray, step_deg: float, R_true: np.ndarray, vctx: Any, rng: Any, grid: Any
 ) -> Dict[str, float]:
     lf = fs._W.local_fn
-    c0 = float(lf.evaluate(R.astype(np.float32), vctx.vertices, vctx.voxel.phase).cost)
+    # float64 like the optimizer's trial matrices; the float32 value is kept as a check
+    c0 = float(lf.evaluate(R, vctx.vertices, vctx.voxel.phase).cost)
+    c32 = float(lf.evaluate(R.astype(np.float32), vctx.vertices, vctx.voxel.phase).cost)
     d0 = D.angle_deg(R, R_true)
     mats, _ = H.mc_proposals(R, math.radians(step_deg), N_PROP, rng, grid)
     c = np.array([lf.evaluate(m, vctx.vertices, vctx.voxel.phase).cost for m in mats], dtype=float)
     d = np.array([D.angle_deg(m, R_true) for m in mats])
-    return H.expected_progress(c0, d0, c, d)
+    out = H.expected_progress(c0, d0, c, d)
+    out["c0"], out["c0_cast_diff"] = c0, c32 - c0
+    return out
 
 
 def task(item: Tuple[Any, ...]) -> Tuple[int, int, float]:
@@ -134,7 +138,10 @@ def task(item: Tuple[Any, ...]) -> Tuple[int, int, float]:
             own = stats_at(
                 R_mc, float(log[5]), R_true, vb.vctx, prng, grid
             )  # log[5] = final step (deg)
+            if log[2] > 0:  # improving runs: the output's cost is the logged cost_end exactly
+                assert own["c0"] == log[9], (own["c0"], log[9])
             r: Dict[str, np.ndarray] = dict(
+                c0_cast_diff=np.array(own["c0_cast_diff"]),
                 R_mc=R_mc,
                 dist_mc=np.array(D.angle_deg(R_mc, R_true)),
                 own_step=np.array(log[5]),

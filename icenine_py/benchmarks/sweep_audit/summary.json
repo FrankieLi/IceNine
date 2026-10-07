@@ -391,6 +391,13 @@
       "hi": 0.014848286254792557
      }
     }
+   },
+   "all_configs_all_starts_lt002": {
+    "k": 105,
+    "n": 12600,
+    "p": 0.008333333333333333,
+    "lo": 0.006889059178265081,
+    "hi": 0.010077323515722441
    }
   },
   "riemannian_adam_manual": {
@@ -473,6 +480,13 @@
       "hi": 0.01887784622192719
      }
     }
+   },
+   "all_configs_all_starts_lt002": {
+    "k": 95,
+    "n": 12600,
+    "p": 0.00753968253968254,
+    "lo": 0.006172130293383696,
+    "hi": 0.00920743461641333
    }
   },
   "riemannian_sgd_plain": {
@@ -555,6 +569,13 @@
       "hi": 0.013931472161107742
      }
     }
+   },
+   "all_configs_all_starts_lt002": {
+    "k": 17,
+    "n": 4500,
+    "p": 0.003777777777777778,
+    "lo": 0.0023600387376364424,
+    "hi": 0.006042032951563285
    }
   },
   "riemannian_sgd_momentum": {
@@ -637,6 +658,13 @@
       "hi": 0.008699627039008095
      }
     }
+   },
+   "all_configs_all_starts_lt002": {
+    "k": 13,
+    "n": 4500,
+    "p": 0.0028888888888888888,
+    "lo": 0.0016890886476179678,
+    "hi": 0.004936721638427616
    }
   },
   "riemannian_sgld": {
@@ -719,6 +747,13 @@
       "hi": 0.0012577983296798677
      }
     }
+   },
+   "all_configs_all_starts_lt002": {
+    "k": 4,
+    "n": 13500,
+    "p": 0.0002962962962962963,
+    "lo": 0.00011522782232581972,
+    "hi": 0.0007616781982542795
    }
   },
   "mc_optimizer": {
@@ -801,6 +836,13 @@
       "hi": 0.009569069388370412
      }
     }
+   },
+   "all_configs_all_starts_lt002": {
+    "k": 32,
+    "n": 10800,
+    "p": 0.002962962962962963,
+    "lo": 0.0020996615920553987,
+    "hi": 0.004179734433151043
    }
   }
  },
@@ -2780,15 +2822,15 @@
   },
   {
    "aspect": "matched budget (MC)",
-   "measured": "<= 200 steps: 49/100 (49%, 39-59) under 0.5 deg, median error of the < 1 deg runs 0.465; 3500 steps: 50/100 (50%, 40-60), 0.461",
-   "deployed": "200 steps",
-   "gap": "more MC steps bought no accuracy in the sweep; the deployed 200 steps are not worse than 3500 at this coarse scale"
+   "measured": "100 steps (best config): 49/100 (49%, 39-59) under 0.5 deg at a 1 deg start, median error of the < 1 deg runs 0.465; 3500 steps (best config, 5 restarts): 50/100 (50%, 40-60), 0.461; pooled over each class 242/900 (27%, 24-30) vs 245/900 (27%, 24-30); the recorded 3500-step 2-restart config: 39/100 (39%, 30-49), 0.531",
+   "deployed": "200 steps (not run in the sweep)",
+   "gap": "more MC steps bought no accuracy in the sweep between 100 and 3500 steps; 200 steps were not run"
   },
   {
    "aspect": "data and voxels",
    "measured": "ManyGrains: 100 voxels, r_perp 75-563 um (median 370); ThreeVoxels: 3 voxels at 12 um",
    "deployed": "per-voxel finisher on the reconstruction's voxels",
-   "gap": "no r_perp dependence inside the sweep's range (Spearman of error vs r_perp, recorded Adam config: rho 0.02, p 0.85, n 100 voxels)"
+   "gap": "no detectable r_perp dependence inside the sweep's range (Spearman of error vs r_perp, recorded Adam config: rho 0.02, p 0.85, n 100 voxels)"
   },
   {
    "aspect": "MC stopping in the sweep",
