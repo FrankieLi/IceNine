@@ -2816,3 +2816,28 @@ All three tasks are merged into `feature/nn-hybrid-proxy-profiling`. Nothing in 
 All of A-K implemented on `feature/dev-tooling`; tests in `tests/test_dev_tooling.py` (99 passed after the review fixes; full suite 639 passed, 34 skipped with the main venv). Scripts are listed in the README section "Developer tooling". The git hooks are not activated; the main session runs `scripts/dev/install_hooks.sh` after the merge (and after the other feature's agent has committed, since `core.hooksPath` is shared by all worktrees). Not changed: `scripts/nn_hybrid`, `scripts/coarse_proxy`, `scripts/profiling`, `icenine/`; adopting `stats`, `doc_tables` and `preflight` there is a later step.
 
 **Number audit on the FindOptimal robustness section above.** `audit_numbers.py` extracts 128 numbers and matches 125 against `benchmarks/findoptimal_robustness/*`; the three unmatched are real non-source numbers (the test count 537, the derived 853 right runs, and the derived 347/347). The calibration line shows the limit (reported per precision bucket: 0 dp 70%, 1 dp 91%, 2 dp 86%, 3+ dp 89%): shifting every number by 3 in its last printed digit still matches about 80% overall, because the source files contain thousands of values and low-precision decimals (0.2, 0.94) match almost anything. The audit catches wrong-magnitude and invented numbers, not small transcription errors; counts and high-precision values are the strongest checks.
+
+## Follow-ups (2026-10-06)
+
+Plan (short form). Branch `feature/followups` off develop; one sub-task branch per task
+(`scripts/dev/start_task.sh <name>`), merged back after review. Results go in a subsection per task.
+FindOptimal F1/F1b are cubic-specific.
+
+- **T1 `env`**: reproducible environment for the golden tests. A fresh `uv pip install` picked
+  Python 3.12 / numpy 2.4 / torch 2.10 and 4 golden bit-identity tests in
+  `tests/test_findoptimal_refactor.py` fail at 1e-9. Find where outputs diverge (float drift vs
+  branch flip); make `uv sync` from `uv.lock` the documented setup (`.python-version` 3.9); verify in
+  a temporary clone; record numpy/torch/python versions next to the golden data and fail clearly on
+  mismatch (no loosened tolerance, no silent skip).
+- **T2 `stats-adoption`**: use `scripts/common/stats.py` (and `preflight.py` where the record format
+  stays readable) in the study scripts; regenerated summaries must be byte-identical.
+- **T3 `lowq-batch`**: batch the F-lowQ Q5 feature pass over candidates and peaks; identical
+  features (<= 1e-12); time per candidate at batch sizes 1, 50, 200 on a single worker; report the
+  new proxy cost in evaluation equivalents.
+- **T4 `keep-eighth`**: proxy rerank with keep_fraction 1/8 (and 1/6) end to end, 200 voxels x 2
+  variants, seed 0, paired with baseline and keep-1/4 proxy; then a 20-voxel single-worker timing.
+  "Useful" means wrong <= keep-1/4 proxy Wilson upper bound at fewer total evaluations than baseline.
+- **T5 `finisher-diagnosis`**: why the finisher stops above the truth's cost (path barrier, longer or
+  finer continuation, pixel granularity, stopping rule). Observations only; no reconstructor change.
+
+Not in this round: full-sample renders and the ideas in `docs/todo_future_ideas_nn_active_fourier.md`.
