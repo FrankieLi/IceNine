@@ -686,6 +686,11 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   (`FeatureExtractor.features_batch`, `--batched`) works, its two bit-identity pitfalls, the equality
   test and the timing at batch 1/50/200.
 
+- [`docs/findings_orientation_search_2026-10.md`](docs/findings_orientation_search_2026-10.md) —
+  consolidated findings, recommendations, decisions and open questions of the orientation-search work
+  of 2026-10-01 to 2026-10-07 (network, FindOptimal robustness, hybrids, cost proxy, profiling,
+  follow-ups).
+
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
 Orientation NN — Theory Phase" onward) for the step-by-step record.
