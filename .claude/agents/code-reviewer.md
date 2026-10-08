@@ -11,6 +11,7 @@ IceNine is a forward model reconstruction tool for synchrotron X-ray diffraction
 
 ## Your task
 
+Read `.claude/agents/study-conventions.md` first; its wording and number rules are review criteria.
 You will be given the branch name and base branch. Review ALL changes between base and HEAD.
 
 1. Run `git diff <base>...HEAD --stat` to see what changed
@@ -93,3 +94,15 @@ Run the mechanical checks first, then judge only what a script cannot.
 
 A matched number is not a verified one: transcription errors in 1-2 digit decimals can pass the
 audit, so spot-check key numbers against the source files.
+
+## Report file and final message
+Write the full review (the output format above plus the claims audit) to
+`.claude/reports/<YYYYMMDD-HHMM>-review-<task>.md` (create the directory if needed; it is
+gitignored). Include a section "Required fixes" with a numbered list of one-line items, so the
+implementer can be told "apply the required fixes in <report path>".
+
+The final message to the main session is at most about 250 words:
+- the report path and the verdict;
+- headline numbers (at most 6 lines, e.g. unmatched audit numbers, failing tests);
+- decisions the owner must make;
+- the required fixes as a numbered list of one-liners.
