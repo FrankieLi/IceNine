@@ -207,6 +207,10 @@ For the ThreeVoxels test case: 252s (BFS) vs 6638s (serial) — 26× faster. The
 | `CMASigma0` | Optional: CMA initial step (degrees of rotation vector); used only with `LocalOptimizer cma` | 0.2 |
 | `CMAMaxEvals` | Optional: cost evaluations per CMA run, start included | 1000 |
 | `CMAPopSize` | Optional: CMA population (0 = the `cma` package default, 7) | 0 |
+| `CMANeighborMaxEvals` | Optional, `cma` only: CMA budget of a BFS neighbour (and refit) fit; seed voxels keep `CMAMaxEvals` | 250 |
+| `CMARetrySigma0` | Optional, `cma` only: a rejected BFS neighbour is retried once with this wider start step (degrees); 0 = no retry | 1.5 |
+| `BFSRefit` | Optional, Python only: 1 = run the C++-style refit pass over the voxels BFS left REFIT; 0 = off | 0 |
+| `BFSRefitConf` | Optional: peak-overlap ratio (0-1) above which the refit keeps its local fit instead of a full search; absent = `PartialResultAcceptanceConfidence` | unset |
 
 ### Single-Voxel Reconstruction
 
@@ -511,6 +515,25 @@ Call sites that switch with `"cma"` (all of them are refinements of one start):
 - `AdaptiveVoxelReconstructor.local_optimization` (BFS neighbours, `_fit_from_seed`): the variance-minimizing MC from the inherited orientation is replaced by one CMA run from it; the acceptance test (hit ratio over 0.9 of the best) is unchanged.
 
 Not switched: the coarse discrete search and the quick MC on its candidates (10 steps, 5 restarts; they rank and prune candidates for the next level, they are not a refinement of the final answer), and `BasicVoxelReconstructor` (the serial C++-parity reconstructor, not used by BFS). `local_optimizer="cma"` with `use_hybrid_optimizer` raises `ValueError`. A CMA run uses its whole budget unless x-tolerance stops it (it did not in the Phase C runs), so the cost of a run is `CMAMaxEvals` evaluations per candidate; CMA from sigma0 0.2 deg stays local (B3 far starts, `cma_02`: wrong in 1/11 at 1.5 deg, 4/11 at 2 deg, 10/11 at 3 deg), so `CMASigma0` may need to be larger for neighbours that cross a grain boundary.
+
+### BFS refit pass, CMA neighbour budget and retry, per-voxel provenance (opt-in)
+
+All of this lives in `BFSReconstruction` / `SearchParameters` and is Python only (the C++ program rejects the config keys). The defaults leave the existing BFS bit-identical (`mc` mode, no refit).
+
+- **Refit pass** (`bfs_refit` / `BFSRefit 1`): a port of C++ `LazyBFSClient::Refit`. After the main BFS every voxel left REFIT (a rejected seed or a rejected neighbour) is visited once, in the order it became REFIT: (1) `local_optimization` from its stored orientation; (2) if the resulting peak-overlap ratio is at least the gate (`bfs_refit_conf` / `BFSRefitConf`, else the config's `PartialResultAcceptanceConfidence`) the local fit is the centre (C++ "skip discrete search"), otherwise a full `reconstruct_voxel` search; (3) the centre must reach `MinAccelerationThreshold` in hit ratio, then it is FITTED and its REFIT neighbours are expanded with the usual 0.9 acceptance. Differences from C++ are listed in the `_refit_pass` docstring (one pass in the same run instead of a second run on a partial .mic; REFIT neighbours only; a still-rejected voxel keeps its better fit by confidence; the hit-ratio gate also applies after a converged full search).
+- **CMA neighbour budget** (`cma_neighbor_max_evals` / `CMANeighborMaxEvals`, default 250, `local_optimizer == "cma"`): used by BFS neighbour and refit local fits; seed voxels keep `cma_max_evals`.
+- **Wider retry** (`cma_retry_sigma0_deg` / `CMARetrySigma0`, default 1.5, 0 = off, `cma` only): a neighbour that fails the 0.9 test is fitted once more from the same inherited start with the wider step and the same budget; the retry is kept only if it passes the test, otherwise the first fit stands and the voxel is REFIT as before.
+- **Provenance and stats**: after `reconstruct_sample`, `bfs.records[idx]` is a `BFSVoxelRecord` (`source` in `seed | neighbor | neighbor_retry | refit | unresolved`, `n_evals`, `wall_s`, `hit_ratio`, `seed_rejected`, `local_rejected`, `retried`, `retry_accepted`, `refit_tried`, `refit_mode`), and `bfs.stats` holds the counters (`n_seeds`, `n_seed_rejected`, `n_neighbor_fits`, `n_neighbor_accepted_first`, `n_retry_attempted/accepted`, `n_refit_candidates/attempted/local/full/resolved`, `n_unresolved`, evaluations and wall seconds split `seed / neighbor / refit`). Evaluations and times are cumulative over all attempts on a voxel; the overlap evaluation after a full search is not counted. Recording costs one small object per voxel.
+
+```python
+setup.search_params.local_optimizer = "cma"
+setup.search_params.cma_neighbor_max_evals = 250
+setup.search_params.cma_retry_sigma0_deg = 1.5
+setup.search_params.bfs_refit = True            # or "BFSRefit 1" in a Python-only config
+bfs = BFSReconstruction(setup)
+bfs.reconstruct_sample(rng=np.random.default_rng(0))
+unresolved = [i for i, r in bfs.records.items() if r.source == "unresolved"]
+```
 
 ## Config File Format
 
