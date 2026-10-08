@@ -8,10 +8,13 @@ fontsize: 11pt
 
 # Status
 
-**Planned, not started.** Requested by the project owner on 2026-10-07 as the next step after the "Finisher and MC
-study". It is Phase D of that plan (MIGRATION_HISTORY, "Finisher and MC study (2026-10-07)"). It waits for:
+**Data step done (2026-10-07), reconstruction not started.** Requested by the project owner on 2026-10-07 as the next
+step after the "Finisher and MC study". It is Phase D of that plan (MIGRATION_HISTORY, "Finisher and MC study
+(2026-10-07)"). Done: the new-orientation sample, the full-sample clean and realistic images and the four
+Python-only reconstruction configs (MIGRATION_HISTORY, "Phase D data"; `scripts/phase_d/`). No full-sample images
+existed before. The full render takes about 1 min on 10 workers (contended). The BFS runs still wait for:
 
-- the study's Phase C, which chooses the new finisher;
+- the library work on the Phase D branch (neighbour budget, retry sigma, BFS refit keys);
 - the owner's go-ahead for the long runs.
 
 # What
