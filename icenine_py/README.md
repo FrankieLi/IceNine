@@ -14,7 +14,9 @@ everyone gets the same numpy/torch/scipy versions (2.0.2 / 2.8.0 / 1.13.1). Do n
 `uv pip install`: it ignores the lock, resolves newer versions, and the golden bit-identity tests in
 `tests/test_findoptimal_refactor.py` then fail (they check the recorded versions and say so).
 
-Dependencies: numpy, torch, pymatgen, scipy (see `pyproject.toml`).
+`uv sync` is exact: it uninstalls every extra you do not list. Use `uv sync --extra dev` for the library and the tests (the geoopt tests skip), and `uv sync --extra dev --extra riemannian --extra benchmarks` for the study scripts and the hybrid optimizer.
+
+Dependencies: numpy, torch, pymatgen, scipy, cma (see `pyproject.toml`).
 
 ## Quick Start: Forward Simulation
 
@@ -448,7 +450,7 @@ Step-size trajectory plot. X-axis: event index — the sequential count of recor
 
 ```bash
 cd icenine_py
-uv sync --extra riemannian
+uv sync --extra dev --extra riemannian
 uv run python benchmarks/bench_hp_sweep.py --example threevoxels
 uv run python benchmarks/bench_hp_sweep.py --example manygrains
 uv run python benchmarks/bench_hp_sweep.py --smoke-test --example threevoxels  # quick test
@@ -483,7 +485,7 @@ reconstructor = AdaptiveVoxelReconstructor(setup)
 
 ```bash
 cd icenine_py
-uv sync --extra riemannian
+uv sync --extra dev --extra riemannian
 uv run python benchmarks/bench_hybrid_optimizer.py --smoke-test --example threevoxels  # 3 voxels, 2 perturbations
 uv run python benchmarks/bench_hybrid_optimizer.py --example threevoxels               # full run
 ```
@@ -494,7 +496,7 @@ Outputs: `benchmarks/bench_hybrid_{example}.csv` (per voxel/perturbation/optimiz
 
 `CMAOptimizer` (in `icenine/orientation_search.py`) refines an orientation with the `cma` package (a core dependency). The search variable is a rotation vector v (degrees) about the start, `R = exp(v) R0`, with initial step `sigma0_deg` (default 0.2); the result is the lowest-cost orientation evaluated (never worse than the start), as a `CMAResult` (a `SearchCandidate` with `n_evals` and `stop_reason`). `max_evals` (default 1000, start included) is exact. cma's flat-fitness, function-value and stagnation stops are off (the hard cost is quantised); only its x-tolerance, `max_evals` and an optional `max_convergence_cost` (default off) end a run. The cma seed is `seed + 1`; without `seed` it is drawn from the generator, so a run is deterministic given the generator. Settings are those of the Phase B3 `cma_02` method (MIGRATION_HISTORY, "Phase B3 results" and "Phase C results").
 
-**Switch.** `SearchParameters.local_optimizer` is `"mc"` (default, bit-identical to the C++-parity path) or `"cma"`. It is set in code, or in the config with the optional keys `LocalOptimizer cma`, `CMASigma0 <deg>`, `CMAMaxEvals <n>`, `CMAPopSize <n>` (absent keys mean `mc`; existing configs are unchanged; the C++ program does not know these keys). The fields are `local_optimizer`, `cma_sigma0_deg`, `cma_max_evals`, `cma_popsize`.
+**Switch.** `SearchParameters.local_optimizer` is `"mc"` (default, bit-identical to the C++-parity path) or `"cma"`. It is set in code, or in the config with the optional keys `LocalOptimizer cma`, `CMASigma0 <deg>`, `CMAMaxEvals <n>`, `CMAPopSize <n>` (absent keys mean `mc`; existing configs are unchanged; the C++ program rejects a config that contains these keys ("syntax not recognized", Src/ConfigFile.cpp), so use a Python-only config or set the fields in code). The fields are `local_optimizer`, `cma_sigma0_deg`, `cma_max_evals`, `cma_popsize`.
 
 ```python
 setup = setup_reconstruction(config)           # a config with "LocalOptimizer cma" ...
@@ -508,7 +510,7 @@ Call sites that switch with `"cma"` (all of them are refinements of one start):
 - `AdaptiveVoxelReconstructor.refine_from_candidates` (the end of `reconstruct_voxel`, so BFS seed voxels too): for each candidate, FindOptimal's MC **and** the final VarianceMinimizing pass are replaced by one CMA run from that candidate; the candidate loop, the "hit ratio 1.0" early exit, the choice of the lowest cost and the final overlap evaluation are unchanged.
 - `AdaptiveVoxelReconstructor.local_optimization` (BFS neighbours, `_fit_from_seed`): the variance-minimizing MC from the inherited orientation is replaced by one CMA run from it; the acceptance test (hit ratio over 0.9 of the best) is unchanged.
 
-Not switched: the coarse discrete search and the quick MC on its candidates (10 steps, 5 restarts; they rank and prune candidates for the next level, they are not a refinement of the final answer), and `BasicVoxelReconstructor` (the serial C++-parity reconstructor, not used by BFS). `local_optimizer="cma"` with `use_hybrid_optimizer` raises `ValueError`. A CMA run uses its whole budget unless x-tolerance stops it (it did not in the Phase C runs), so the cost of a run is `CMAMaxEvals` evaluations per candidate; CMA from a start more than about 1 deg off stays local (B3: starts 2-3 deg away often stay wrong), so `CMASigma0` may need to be larger for neighbours that cross a grain boundary.
+Not switched: the coarse discrete search and the quick MC on its candidates (10 steps, 5 restarts; they rank and prune candidates for the next level, they are not a refinement of the final answer), and `BasicVoxelReconstructor` (the serial C++-parity reconstructor, not used by BFS). `local_optimizer="cma"` with `use_hybrid_optimizer` raises `ValueError`. A CMA run uses its whole budget unless x-tolerance stops it (it did not in the Phase C runs), so the cost of a run is `CMAMaxEvals` evaluations per candidate; CMA from sigma0 0.2 deg stays local (B3 far starts, `cma_02`: wrong in 1/11 at 1.5 deg, 4/11 at 2 deg, 10/11 at 3 deg), so `CMASigma0` may need to be larger for neighbours that cross a grain boundary.
 
 ## Config File Format
 

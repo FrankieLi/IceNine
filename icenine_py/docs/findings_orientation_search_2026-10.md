@@ -296,7 +296,9 @@ The effect of these continuations on reconstruction success has not been tested.
     0.02°). On the 200-voxel E0 set (no start, per-voxel images, seed 0) the right answers end a median 0.0019° (clean)
     and 0.0021° (realistic) from the truth against 0.0301° and 0.0278° under MC; wrong (> 1°) counts are 66/200 against
     67/200 (clean) and 44/200 against 52/200 (realistic, 8 fixed and 0 broken, exact McNemar p = 0.0078), at +0.19% and
-    +3.5% mean cost evaluations and +1.7% and +4.8% single-worker time per voxel (20 voxels per variant). Not shown:
+    +3.5% mean cost evaluations and +1.7% and +4.8% single-worker time per no-start `reconstruct_voxel` (20 voxels per variant). A BFS neighbour
+    (`local_optimization`) costs 1001 evaluations under CMA against a median 662 under MC (about +51%); MC returned the inherited
+    start unchanged in 47/50 seeded cases (5° box, strictly-lower-cost acceptance). Not shown:
     the cost of 1001 evaluations per BFS neighbour at scale (the MC call used a median 662 in a 50-case check),
     behaviour for neighbours across a grain boundary, and seeds 1-2. To switch it on for a BFS run set the key (or
     `search_params.local_optimizer = "cma"`). See MIGRATION_HISTORY "Phase C results".

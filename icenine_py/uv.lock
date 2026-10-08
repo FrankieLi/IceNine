@@ -1119,7 +1119,7 @@ riemannian = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
-    { name = "cma", specifier = ">=3.3.0" },
+    { name = "cma", specifier = ">=4.0" },
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "geoopt", marker = "extra == 'riemannian'", specifier = ">=0.5.1" },
     { name = "matplotlib", marker = "extra == 'benchmarks'", specifier = ">=3.7.0" },

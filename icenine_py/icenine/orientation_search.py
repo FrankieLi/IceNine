@@ -748,7 +748,7 @@ class CMAOptimizer:
 
     Stopping: the cma package's flat-fitness, function-value and stagnation tests are switched
     off (the hard cost is quantised, so a small population is often flat or stalled); the run ends
-    on the package's own x-tolerance (``tolx``, in the package's internal units), on
+    on the package's own x-tolerance (``tolx``, in degrees of v), on
     ``max_evals``, or when the cost falls below ``max_convergence_cost`` (0 disables it, the
     default; MC's default stop is not used because it would end the run well before the precision
     this optimizer reaches). These are the settings of the Phase B3 "cma_02" run.
@@ -816,6 +816,8 @@ class CMAOptimizer:
 
         if seed is None:
             seed = int(self._rng.integers(0, 2**31 - 2))
+        if seed < 0:
+            raise ValueError(f"seed must be >= 0, got {seed}")
         R0 = np.asarray(initial_orientation, dtype=np.float64)
 
         n = 0
@@ -834,7 +836,10 @@ class CMAOptimizer:
             return CMAResult(best_R, best_cost, best_info, n_evals=n, stop_reason="max_evals")
 
         opts: Dict[str, Any] = dict(
-            seed=int(seed) + 1,
+            # cma would reseed the global legacy numpy RNG from an integer seed; NaN skips that and
+            # the private RandomState below (seeded seed + 1, as the package would) is the stream
+            seed=float("nan"),
+            randn=np.random.RandomState(int(seed) + 1).randn,
             verbose=-9,
             tolfun=0.0,
             tolfunhist=0.0,

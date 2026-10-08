@@ -112,6 +112,7 @@ def task(item: Dict[str, Any]) -> str:
                     row[f"lo_{mode}_secs"] = time.perf_counter() - t1
                     row[f"lo_{mode}_err"] = angle_deg(lo.orientation, Rt)
                     row[f"lo_{mode}_evals"] = int(count[0])
+                    row[f"lo_{mode}_moved_deg"] = angle_deg(lo.orientation, R0)
             finally:
                 VoxelCostFunction.evaluate = orig_eval  # type: ignore[method-assign]
                 rec.params.local_optimizer = "mc"
@@ -142,6 +143,13 @@ def summarize(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         for s in sorted({r["lib1000_stop"] for r in rows})
     }
     out["refine_median_evals"] = float(np.median([r["refine_evals"] for r in rows]))
+    mv = np.array([r["lo_mc_moved_deg"] for r in rows])
+    d_err = np.array([r["lo_mc_err"] - r["start_err"] for r in rows])
+    out["local_optimization_mc_outcome"] = dict(
+        unchanged_to_1e5_deg=int((mv < 1e-5).sum()),
+        moved_and_closer=int(((mv >= 1e-5) & (d_err < 0)).sum()),
+        moved_and_farther=int(((mv >= 1e-5) & (d_err >= 0)).sum()),
+    )
     for mode in ("mc", "cma"):
         e = np.array([r[f"lo_{mode}_err"] for r in rows])
         k = int((e < 0.02).sum())

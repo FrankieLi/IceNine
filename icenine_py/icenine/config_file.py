@@ -206,10 +206,10 @@ class ConfigFile:
     # ========================================================================
     # Local refinement switch (Python-only, optional; absent keys mean "mc")
     # ========================================================================
-    local_optimizer: str = "mc"   # "mc" (C++ parity) or "cma" (local CMA-ES)
-    cma_sigma0_deg: float = 0.2   # degrees (kept in degrees, not converted)
-    cma_max_evals: int = 1000     # cost evaluations per CMA run, start included
-    cma_popsize: int = 0          # 0 = the cma package default
+    local_optimizer: str = "mc"  # "mc" (C++ parity) or "cma" (local CMA-ES)
+    cma_sigma0_deg: float = 0.2  # degrees (kept in degrees, not converted)
+    cma_max_evals: int = 1000  # cost evaluations per CMA run, start included
+    cma_popsize: int = 0  # 0 = the cma package default
 
     # ========================================================================
     # Parameter Optimization (18 parameters)
@@ -438,7 +438,9 @@ class ConfigFile:
             'CMAMaxEvals': self._make_parser(
                 'cma_max_evals', converter=int, validator=self._min2_validator
             ),
-            'CMAPopSize': self._parse_int('cma_popsize'),
+            'CMAPopSize': self._make_parser(
+                'cma_popsize', converter=int, validator=self._popsize_validator
+            ),
 
             # Parameter Optimization
             'OptimizationFilename': self._parse_string('optimization_filename'),
@@ -550,7 +552,7 @@ class ConfigFile:
         """Create parser for string parameter."""
         return self._make_parser(attr_name, converter=None)
 
-    def _parse_local_optimizer(self, tokens):
+    def _parse_local_optimizer(self, tokens: List[str]) -> None:
         """LocalOptimizer mc|cma (Python-only; selects the local refinement optimizer)."""
         if len(tokens) < 2:
             raise ValueError(f"Missing value for {tokens[0]}")
@@ -560,12 +562,17 @@ class ConfigFile:
         self.local_optimizer = value
 
     @staticmethod
-    def _positive_validator(value, keyword):
+    def _positive_validator(value: float, keyword: str) -> None:
         if not value > 0:
             raise ValueError(f"{keyword} must be > 0, got {value}")
 
     @staticmethod
-    def _min2_validator(value, keyword):
+    def _popsize_validator(value: int, keyword: str) -> None:
+        if value != 0 and value < 2:
+            raise ValueError(f"{keyword} must be 0 (default) or >= 2, got {value}")
+
+    @staticmethod
+    def _min2_validator(value: int, keyword: str) -> None:
         if value < 2:
             raise ValueError(f"{keyword} must be >= 2, got {value}")
 

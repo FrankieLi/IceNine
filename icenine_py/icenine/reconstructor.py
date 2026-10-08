@@ -468,6 +468,7 @@ class AdaptiveVoxelReconstructor:
 
         C++ Reference: DiscreteAdaptive.tmpl.cpp:108-250
         """
+        self._check_local_optimizer()
         eta_limit = self.setup.exp_setup.get_eta_limit()
 
         # Local cost function (pixel_radius=0) for MC and re-evaluation
@@ -715,6 +716,15 @@ class AdaptiveVoxelReconstructor:
             )
         return mc_optimizer, find_optimizer
 
+    def _check_local_optimizer(self) -> None:
+        """local_optimizer='cma' and use_hybrid_optimizer both replace FindOptimal's MC; reject
+        the combination up front (params only: before any search, whether or not a diff cost
+        function exists)."""
+        if self.params.local_optimizer == "cma" and self.params.use_hybrid_optimizer:
+            raise ValueError(
+                "local_optimizer='cma' and use_hybrid_optimizer are mutually exclusive"
+            )
+
     def _make_cma_optimizer(
         self,
         local_cost_fn: VoxelCostFunction,
@@ -772,6 +782,7 @@ class AdaptiveVoxelReconstructor:
 
         C++ Reference: DiscreteAdaptive.tmpl.cpp:210-246
         """
+        self._check_local_optimizer()
         if not candidates:
             return SearchCandidate(orientation=np.eye(3), cost=1.0)
         standalone = local_cost_fn is None
@@ -785,10 +796,6 @@ class AdaptiveVoxelReconstructor:
         use_cma = self.params.local_optimizer == "cma"
         cma_optimizer: Optional[CMAOptimizer] = None
         if use_cma:
-            if use_hybrid:
-                raise ValueError(
-                    "local_optimizer='cma' and use_hybrid_optimizer are mutually exclusive"
-                )
             # seeds come from the generator the MC optimizer was built with (reconstruct_voxel's)
             cma_optimizer = self._make_cma_optimizer(
                 local_cost_fn, voxel_vertices, phase_index, mc_optimizer.rng
@@ -810,6 +817,7 @@ class AdaptiveVoxelReconstructor:
         best_candidate = SearchCandidate(orientation=np.eye(3), cost=1.0)
         converged = False
         best_ci = -1
+        result: SearchCandidate
         for ci, cand in enumerate(candidates[:n_final]):
             if cma_optimizer is not None:
                 result = cma_optimizer.optimize(cand.orientation)
@@ -966,6 +974,7 @@ class AdaptiveVoxelReconstructor:
 
         C++ Reference: DiscreteAdaptive.tmpl.cpp:280-317 LocalOptimization
         """
+        self._check_local_optimizer()
         eta_limit = self.setup.exp_setup.get_eta_limit()
         local_cost_fn = VoxelCostFunction(
             simulator=self.setup.simulator,

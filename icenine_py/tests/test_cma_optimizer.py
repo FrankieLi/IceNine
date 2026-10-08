@@ -15,7 +15,6 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from icenine import orientation_search as osr
 from icenine.config_file import ConfigFile
 from icenine.mic_file import ReconstructionState
 from icenine.orientation_search import (
@@ -111,6 +110,18 @@ def test_deterministic_given_seed_and_given_generator() -> None:
     assert not np.array_equal(r1[0].orientation, r1[1].orientation)
 
 
+def test_does_not_touch_global_numpy_rng() -> None:
+    f, start, _ = _quad()
+    np.random.seed(123)
+    before = np.random.get_state()
+    CMAOptimizer(f, None, max_evals=60).optimize(start, seed=2)
+    after = np.random.get_state()
+    assert before[0] == after[0] and np.array_equal(before[1], after[1])
+    assert before[2:] == after[2:]
+    with pytest.raises(ValueError):
+        CMAOptimizer(f, None, max_evals=60).optimize(start, seed=-1)
+
+
 def test_converged_cost_stops_early() -> None:
     f, start, _ = _quad()
     res = CMAOptimizer(f, None, max_evals=1000, max_convergence_cost=0.05).optimize(start, seed=0)
@@ -160,7 +171,14 @@ def test_config_cma_keys(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     "line",
-    ["LocalOptimizer adam", "CMASigma0 0", "CMASigma0 -1", "CMAMaxEvals 1", "LocalOptimizer"],
+    [
+        "LocalOptimizer adam",
+        "CMAPopSize 1",
+        "CMASigma0 0",
+        "CMASigma0 -1",
+        "CMAMaxEvals 1",
+        "LocalOptimizer",
+    ],
 )
 def test_config_bad_values(tmp_path: Path, line: str) -> None:
     with pytest.raises(ValueError):
@@ -246,16 +264,21 @@ def test_refine_from_candidates_cma_reaches_default_quality() -> None:
 
 
 def test_cma_and_hybrid_are_exclusive() -> None:
+    """Rejected up front from the parameters alone: before any search, and with no diff cost
+    function (setup.diff_cost_fn is None here)."""
     rec, voxel, R_true = _build()
+    assert rec.setup.diff_cost_fn is None
     rec.params.local_optimizer = "cma"
-    with pytest.raises(ValueError):
+    rec.params.use_hybrid_optimizer = True
+    vv = _get_voxel_vertices(voxel)
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        rec.reconstruct_voxel(vv, voxel.phase, rng=np.random.default_rng(0))
+    with pytest.raises(ValueError, match="mutually exclusive"):
         rec.refine_from_candidates(
-            [SearchCandidate(orientation=_start(R_true), cost=1.0)],
-            _get_voxel_vertices(voxel),
-            voxel.phase,
-            mc_optimizer=osr.MCOptimizer(rec._make_local_cost_fn(), None),
-            find_optimizer=object(),  # type: ignore[arg-type]
+            [SearchCandidate(orientation=_start(R_true), cost=1.0)], vv, voxel.phase
         )
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        rec.local_optimization(vv, voxel.phase, _start(R_true))
 
 
 def test_local_optimization_cma_uses_cma(monkeypatch: pytest.MonkeyPatch) -> None:

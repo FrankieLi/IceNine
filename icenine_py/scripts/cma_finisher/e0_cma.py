@@ -3,10 +3,10 @@
 
 Same images (cache of scripts/findoptimal_robustness) and rng as E0 seed 0
 (`C.run_seed(vpos, 0)`), so the "mc" run must reproduce the stored E0 `s0_R_final` bit for bit
-(checked per run) and the "cma" run differs only through the refinement stage (FindOptimal's MC per
-candidate + VarianceMinimizing replaced by one CMAOptimizer run per candidate, sigma0 0.2 deg,
-1000 evaluations, the SearchParameters defaults). The two methods of a (voxel, variant) run back to
-back in one worker, in alternating order (voxel position parity).
+(checked in `summary`) and the "cma" run differs only through the refinement stage (FindOptimal's
+MC per candidate + VarianceMinimizing replaced by one CMAOptimizer run per candidate,
+sigma0 0.2 deg, 1000 evaluations, the SearchParameters defaults). The two methods of a
+(voxel, variant) run back to back in one worker, in alternating order (voxel position parity).
 
   uv run python scripts/cma_finisher/e0_cma.py pilot
   uv run python scripts/cma_finisher/e0_cma.py run --workers 10
