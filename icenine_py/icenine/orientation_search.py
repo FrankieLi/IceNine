@@ -117,13 +117,15 @@ class SearchParameters:
     #   voxels keep cma_max_evals. cma_retry_sigma0_deg: a rejected CMA neighbour is retried once
     #   from the same inherited start with this wider initial step (0 = no retry). Both act only
     #   when local_optimizer == "cma".
-    # bfs_refit: opt-in port of the C++ LazyBFSClient::Refit pass over the voxels left REFIT.
-    #   bfs_refit_conf: peak-overlap-ratio gate of that pass (None: the config's
-    #   PartialResultAcceptanceConfidence).
+    # bfs_revisit_refit: an expansion that reaches a REFIT voxel fits it again from the expanding
+    #   voxel's orientation (what C++'s several clients do by accident); at most bfs_revisit_max
+    #   local fits per voxel. bfs_restart_pass: after the BFS, FITTED voxels bordering REFIT
+    #   voxels push their orientation onto them (C++ restart semantics). Both off by default.
     cma_neighbor_max_evals: int = 250
     cma_retry_sigma0_deg: float = 1.5
-    bfs_refit: bool = False
-    bfs_refit_conf: Optional[float] = None
+    bfs_revisit_refit: bool = False
+    bfs_revisit_max: int = 3
+    bfs_restart_pass: bool = False
 
     def __post_init__(self) -> None:
         if self.local_optimizer not in LOCAL_OPTIMIZERS:
@@ -142,13 +144,12 @@ class SearchParameters:
             )
         if not self.cma_retry_sigma0_deg >= 0:
             raise ValueError(f"cma_retry_sigma0_deg must be >= 0, got {self.cma_retry_sigma0_deg}")
-        if self.bfs_refit_conf is not None and not 0 <= self.bfs_refit_conf <= 1:
-            raise ValueError(f"bfs_refit_conf must be in [0, 1] or None, got {self.bfs_refit_conf}")
+        if self.bfs_revisit_max < 1:
+            raise ValueError(f"bfs_revisit_max must be >= 1, got {self.bfs_revisit_max}")
 
     @classmethod
     def from_config(cls, config) -> "SearchParameters":
         """Create from ConfigFile."""
-        refit_conf = getattr(config, "bfs_refit_conf", -1.0)  # < 0: unset
         return cls(
             local_grid_radius=config.local_orientation_grid_radius,
             min_local_resolution=config.min_local_resolution,
@@ -168,8 +169,9 @@ class SearchParameters:
             cma_popsize=(getattr(config, "cma_popsize", 0) or None),
             cma_neighbor_max_evals=getattr(config, "cma_neighbor_max_evals", 250),
             cma_retry_sigma0_deg=getattr(config, "cma_retry_sigma0_deg", 1.5),
-            bfs_refit=bool(getattr(config, "bfs_refit", False)),
-            bfs_refit_conf=(None if refit_conf < 0 else float(refit_conf)),
+            bfs_revisit_refit=bool(getattr(config, "bfs_revisit_refit", False)),
+            bfs_revisit_max=getattr(config, "bfs_revisit_max", 3),
+            bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
         )
 
 
