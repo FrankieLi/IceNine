@@ -112,6 +112,20 @@ class SearchParameters:
     cma_sigma0_deg: float = 0.2  # initial CMA step (degrees of rotation vector)
     cma_max_evals: int = 1000  # total cost evaluations per CMA run, start included
     cma_popsize: Optional[int] = None  # None: the cma package default (4 + 3 ln 3 = 7)
+    # BFS-only knobs (used by BFSReconstruction; never read by the no-start search).
+    # cma_neighbor_max_evals: CMA budget of a BFS neighbour (and refit) local_optimization; seed
+    #   voxels keep cma_max_evals. cma_retry_sigma0_deg: a rejected CMA neighbour is retried once
+    #   from the same inherited start with this wider initial step (0 = no retry). Both act only
+    #   when local_optimizer == "cma".
+    # bfs_revisit_refit: an expansion that reaches a REFIT voxel fits it again from the expanding
+    #   voxel's orientation (what C++'s several clients do by accident); at most bfs_revisit_max
+    #   local fits per voxel. bfs_restart_pass: after the BFS, FITTED voxels bordering REFIT
+    #   voxels push their orientation onto them (C++ restart semantics). Both off by default.
+    cma_neighbor_max_evals: int = 250
+    cma_retry_sigma0_deg: float = 1.5
+    bfs_revisit_refit: bool = False
+    bfs_revisit_max: int = 3
+    bfs_restart_pass: bool = False
 
     def __post_init__(self) -> None:
         if self.local_optimizer not in LOCAL_OPTIMIZERS:
@@ -124,6 +138,14 @@ class SearchParameters:
             raise ValueError(f"cma_max_evals must be >= 2, got {self.cma_max_evals}")
         if self.cma_popsize is not None and self.cma_popsize < 2:
             raise ValueError(f"cma_popsize must be >= 2 or None, got {self.cma_popsize}")
+        if self.cma_neighbor_max_evals < 2:
+            raise ValueError(
+                f"cma_neighbor_max_evals must be >= 2, got {self.cma_neighbor_max_evals}"
+            )
+        if not self.cma_retry_sigma0_deg >= 0:
+            raise ValueError(f"cma_retry_sigma0_deg must be >= 0, got {self.cma_retry_sigma0_deg}")
+        if self.bfs_revisit_max < 1:
+            raise ValueError(f"bfs_revisit_max must be >= 1, got {self.bfs_revisit_max}")
 
     @classmethod
     def from_config(cls, config) -> "SearchParameters":
@@ -145,6 +167,11 @@ class SearchParameters:
             cma_sigma0_deg=getattr(config, "cma_sigma0_deg", 0.2),
             cma_max_evals=getattr(config, "cma_max_evals", 1000),
             cma_popsize=(getattr(config, "cma_popsize", 0) or None),
+            cma_neighbor_max_evals=getattr(config, "cma_neighbor_max_evals", 250),
+            cma_retry_sigma0_deg=getattr(config, "cma_retry_sigma0_deg", 1.5),
+            bfs_revisit_refit=bool(getattr(config, "bfs_revisit_refit", False)),
+            bfs_revisit_max=getattr(config, "bfs_revisit_max", 3),
+            bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
         )
 
 

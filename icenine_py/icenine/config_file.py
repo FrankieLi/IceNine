@@ -210,6 +210,11 @@ class ConfigFile:
     cma_sigma0_deg: float = 0.2  # degrees (kept in degrees, not converted)
     cma_max_evals: int = 1000  # cost evaluations per CMA run, start included
     cma_popsize: int = 0  # 0 = the cma package default
+    cma_neighbor_max_evals: int = 250  # CMA budget of BFS neighbour/refit fits
+    cma_retry_sigma0_deg: float = 1.5  # wider-start retry of a rejected CMA neighbour; 0 = off
+    bfs_revisit_refit: bool = False  # expansions re-fit REFIT neighbours (Python-only, opt-in)
+    bfs_revisit_max: int = 3  # local fits per voxel while REFIT
+    bfs_restart_pass: bool = False  # FITTED border voxels push onto REFIT voxels after the BFS
 
     # ========================================================================
     # Parameter Optimization (18 parameters)
@@ -441,6 +446,17 @@ class ConfigFile:
             'CMAPopSize': self._make_parser(
                 'cma_popsize', converter=int, validator=self._popsize_validator
             ),
+            'CMANeighborMaxEvals': self._make_parser(
+                'cma_neighbor_max_evals', converter=int, validator=self._min2_validator
+            ),
+            'CMARetrySigma0': self._make_parser(
+                'cma_retry_sigma0_deg', converter=float, validator=self._nonneg_validator
+            ),
+            'BFSRevisitRefit': self._parse_bool('bfs_revisit_refit'),
+            'BFSRevisitMax': self._make_parser(
+                'bfs_revisit_max', converter=int, validator=self._min1_validator
+            ),
+            'BFSRestartPass': self._parse_bool('bfs_restart_pass'),
 
             # Parameter Optimization
             'OptimizationFilename': self._parse_string('optimization_filename'),
@@ -565,6 +581,16 @@ class ConfigFile:
     def _positive_validator(value: float, keyword: str) -> None:
         if not value > 0:
             raise ValueError(f"{keyword} must be > 0, got {value}")
+
+    @staticmethod
+    def _nonneg_validator(value: float, keyword: str) -> None:
+        if not value >= 0:
+            raise ValueError(f"{keyword} must be >= 0, got {value}")
+
+    @staticmethod
+    def _min1_validator(value: int, keyword: str) -> None:
+        if value < 1:
+            raise ValueError(f"{keyword} must be >= 1, got {value}")
 
     @staticmethod
     def _popsize_validator(value: int, keyword: str) -> None:

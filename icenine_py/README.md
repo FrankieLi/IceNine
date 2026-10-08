@@ -207,6 +207,11 @@ For the ThreeVoxels test case: 252s (BFS) vs 6638s (serial) — 26× faster. The
 | `CMASigma0` | Optional: CMA initial step (degrees of rotation vector); used only with `LocalOptimizer cma` | 0.2 |
 | `CMAMaxEvals` | Optional: cost evaluations per CMA run, start included | 1000 |
 | `CMAPopSize` | Optional: CMA population (0 = the `cma` package default, 7) | 0 |
+| `CMANeighborMaxEvals` | Optional, `cma` only: CMA budget of a BFS neighbour fit; seed voxels keep `CMAMaxEvals`. **In `cma` mode this changes the Phase C BFS (neighbours 1000 -> 250 evaluations)**; set 1000 to keep the Phase C budget | 250 |
+| `CMARetrySigma0` | Optional, `cma` only: a rejected BFS neighbour is retried once with this wider start step (degrees); 0 = no retry. **On by default in `cma` mode**, so the Phase C `cma` BFS is not reproduced unless this is 0 | 1.5 |
+| `BFSRevisitRefit` | Optional, Python only: 1 = an expansion that reaches a voxel left REFIT fits it again from its own orientation (the multi-client behaviour of the C++ run) | 0 |
+| `BFSRevisitMax` | Optional: local fits per voxel while it is REFIT (revisit and restart pass together), >= 1 | 3 |
+| `BFSRestartPass` | Optional, Python only: 1 = after the BFS, FITTED voxels bordering REFIT voxels push their orientation onto them (C++ restart semantics) | 0 |
 
 ### Single-Voxel Reconstruction
 
@@ -511,6 +516,28 @@ Call sites that switch with `"cma"` (all of them are refinements of one start):
 - `AdaptiveVoxelReconstructor.local_optimization` (BFS neighbours, `_fit_from_seed`): the variance-minimizing MC from the inherited orientation is replaced by one CMA run from it; the acceptance test (hit ratio over 0.9 of the best) is unchanged.
 
 Not switched: the coarse discrete search and the quick MC on its candidates (10 steps, 5 restarts; they rank and prune candidates for the next level, they are not a refinement of the final answer), and `BasicVoxelReconstructor` (the serial C++-parity reconstructor, not used by BFS). `local_optimizer="cma"` with `use_hybrid_optimizer` raises `ValueError`. A CMA run uses its whole budget unless x-tolerance stops it (it did not in the Phase C runs), so the cost of a run is `CMAMaxEvals` evaluations per candidate; CMA from sigma0 0.2 deg stays local (B3 far starts, `cma_02`: wrong in 1/11 at 1.5 deg, 4/11 at 2 deg, 10/11 at 3 deg), so `CMASigma0` may need to be larger for neighbours that cross a grain boundary.
+
+### BFS revisit of REFIT voxels, CMA neighbour budget and retry, provenance (opt-in)
+
+Python only (the C++ program rejects these config keys). With `local_optimizer = "mc"` and the options below off, the BFS is bit-identical to before (golden test on a scripted 196-voxel, 4-grain grid recorded from the parent commit). **In `cma` mode the defaults are not the Phase C behaviour**: `cma_neighbor_max_evals` is 250 instead of 1000 and `cma_retry_sigma0_deg` is 1.5 (retry on); set 1000 and 0 to get Phase C's neighbours back.
+
+How C++ treats REFIT voxels, and what this class does:
+- In a normal C++ LazyBFS run the server never re-seeds a REFIT voxel (`Pop` skips everything that is not NOT_VISITED). A REFIT voxel is fitted again only because every client keeps its own grid: when another client's expansion (often the voxel's true grain) reaches it while it is still NOT_VISITED there, it is fitted from that client's orientation, and the server's `Push` keeps the higher-confidence result (even over a FITTED one). `LazyBFSClient::Refit` is the restart path only (`RESTART_FIT`, a partial result; every stored voxel is a centre; gated by `PartialResultAcceptanceConfidence`, a key that turns restart on in a C++ config). The Python BFS has one client, so before these options a REFIT voxel was never revisited; that matched C++ with a single client.
+- **`bfs_revisit_refit` / `BFSRevisitRefit 1`**: an expansion also enqueues REFIT neighbours it has not tried yet (a per-expansion set stands in for the client grid), at most `bfs_revisit_max` (default 3) local fits per voxel over the whole run. The voxel inherits the expanding voxel's orientation and gets the usual local fit (with the cma retry) under the 0.9 relative test; accepted voxels become FITTED and expand; a rejected voxel keeps the better of its old and new fit by confidence (Push rule). Only local fits are made. FITTED voxels are not revisited (C++ would refit them and keep the higher confidence).
+- **`bfs_restart_pass` / `BFSRestartPass 1`**: the restart semantics on this run's own result. FITTED voxels that border a REFIT voxel are expansion centres (index order), with revisit enabled and the same cap. There is no centre re-optimization and no full-search fallback. A full search for REFIT voxels is not offered; it would have to be an explicit, separately measured option.
+- **`cma_neighbor_max_evals` / `CMANeighborMaxEvals`** (default 250, `cma` only): the budget of BFS neighbour and revisit fits; seeds keep `cma_max_evals`.
+- **`cma_retry_sigma0_deg` / `CMARetrySigma0`** (default 1.5, 0 = off, `cma` only): a neighbour that fails the 0.9 test is fitted once more from the same inherited start with the wider step and the same budget; kept only if it passes the test, else the first fit stands.
+- **Provenance and stats**: after `reconstruct_sample`, `bfs.records[idx]` is a `BFSVoxelRecord` (`source` in `seed | neighbor | neighbor_retry | revisit | restart | unresolved`, cumulative `n_evals` and `wall_s`, `hit_ratio`, `seed_rejected`, `local_rejected`, `retried`, `retry_accepted`, `n_revisits`) and `bfs.stats` the counters (seeds, `n_neighbor_fits`, `n_neighbor_accepted_first`, `n_retry_attempted/accepted_{neighbor,revisit,restart}`, `n_{revisit,restart}_{attempted,accepted,rejected}`, `n_revisit_capped`, `n_restart_candidates`, `n_unresolved`, evaluations and wall seconds split `seed / neighbor / revisit / restart`). "Accepted" is the relative hit-ratio test, not correctness against a truth; score errors against the truth by voxel index. Evaluations and times are cumulative over all attempts on a voxel; the overlap evaluation after a full search is not counted. Recording is one small object per voxel; on the scripted grid the whole 196-voxel run, fake fits included, takes about 0.01 s, so the bookkeeping is small next to any real fit (not measured separately).
+
+```python
+setup.search_params.local_optimizer = "cma"
+setup.search_params.cma_neighbor_max_evals = 250
+setup.search_params.cma_retry_sigma0_deg = 1.5
+setup.search_params.bfs_revisit_refit = True    # or "BFSRevisitRefit 1" in a Python-only config
+bfs = BFSReconstruction(setup)
+bfs.reconstruct_sample(rng=np.random.default_rng(0))
+unresolved = [i for i, r in bfs.records.items() if r.source == "unresolved"]
+```
 
 ## Config File Format
 
