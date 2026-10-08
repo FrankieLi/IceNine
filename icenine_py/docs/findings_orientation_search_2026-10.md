@@ -289,6 +289,19 @@ The effect of these continuations on reconstruction success has not been tested.
     the hybrid Adam hardly moves. Single-worker time per cost evaluation is 0.55 ms for every method, so time follows
     evaluations (CMA-ES at 250: 0.143 s; default finisher 1.071 s). Phase C candidates: CMA-ES (sigma0 0.2°) and
     Nelder-Mead. See MIGRATION_HISTORY "Phase B3 results".
+  - *Phase C (`benchmarks/cma_finisher/`):* CMA-ES (sigma0 0.2°, 1000 evaluations) is now an opt-in local refinement in
+    the library (`SearchParameters.local_optimizer = "cma"`, config key `LocalOptimizer cma`), replacing the refinement MC
+    in `refine_from_candidates` (seed voxels) and `local_optimization` (BFS neighbours); the default is bit-identical. It
+    reproduces B3's `cma_02` exactly on 50 T5 H3 realistic cases (median 0.0025° at 1000 evaluations, 48/50 under
+    0.02°). On the 200-voxel E0 set (no start, per-voxel images, seed 0) the right answers end a median 0.0019° (clean)
+    and 0.0021° (realistic) from the truth against 0.0301° and 0.0278° under MC; wrong (> 1°) counts are 66/200 against
+    67/200 (clean) and 44/200 against 52/200 (realistic, 8 fixed and 0 broken, exact McNemar p = 0.0078), at +0.19% and
+    +3.5% mean cost evaluations and +1.7% and +4.8% single-worker time per no-start `reconstruct_voxel` (20 voxels per variant). A BFS neighbour
+    (`local_optimization`) costs 1001 evaluations under CMA against a median 662 under MC (about +51%); MC returned the inherited
+    start unchanged in 47/50 seeded cases (5° box, strictly-lower-cost acceptance). Not shown:
+    the cost of 1001 evaluations per BFS neighbour at scale (the MC call used a median 662 in a 50-case check),
+    behaviour for neighbours across a grain boundary, and seeds 1-2. To switch it on for a BFS run set the key (or
+    `search_params.local_optimizer = "cma"`). See MIGRATION_HISTORY "Phase C results".
 - **A full-sample, end-to-end BFS reconstruction of the 500-grain sample with new orientations,** comparing classic
   BFS (C++-parity optimizers) with BFS using the network and hybrid finisher, on timing and accuracy.
 - **Other open items:**

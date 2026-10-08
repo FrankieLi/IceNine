@@ -1079,6 +1079,7 @@ name = "icenine-py"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cma" },
     { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "numpy", version = "2.4.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -1093,7 +1094,6 @@ dependencies = [
 
 [package.optional-dependencies]
 benchmarks = [
-    { name = "cma" },
     { name = "matplotlib", version = "3.9.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "matplotlib", version = "3.10.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -1119,7 +1119,7 @@ riemannian = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
-    { name = "cma", marker = "extra == 'benchmarks'", specifier = ">=3.3.0" },
+    { name = "cma", specifier = ">=4.0" },
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "geoopt", marker = "extra == 'riemannian'", specifier = ">=0.5.1" },
     { name = "matplotlib", marker = "extra == 'benchmarks'", specifier = ">=3.7.0" },

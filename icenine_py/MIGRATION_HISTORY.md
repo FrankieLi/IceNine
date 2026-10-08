@@ -3284,7 +3284,7 @@ Final full suite on `feature/followups`: 673 passed, 34 skipped, 0 failed (707 c
 
 ## Finisher and MC study (2026-10-07)
 
-**Status: Phases A, B1, B2 and B3 done (see "Phase A results", "Phase B1/B2 results" and "Phase B3 results"); C and D planned.** Owner questions: (a) why FindOptimal stops short of the correct answer, and whether this comes from the cost function's sensitivity; (b) why MC runs out of restarts, what better local search exists, whether MC is the right tool, and whether the April 2026 MC-vs-optimizer comparison was deployed too soon. Next step after the plan: a full-sample BFS end-to-end test of the 500-grain sample with new orientations, comparing classic BFS against BFS with the NN and hybrid finisher (`docs/todo_500grain_bfs_end_to_end.md`).
+**Status: Phases A, B1, B2, B3 and C done (see "Phase A results", "Phase B1/B2 results", "Phase B3 results" and "Phase C results"); D planned.** Owner questions: (a) why FindOptimal stops short of the correct answer, and whether this comes from the cost function's sensitivity; (b) why MC runs out of restarts, what better local search exists, whether MC is the right tool, and whether the April 2026 MC-vs-optimizer comparison was deployed too soon. Next step after the plan: a full-sample BFS end-to-end test of the 500-grain sample with new orientations, comparing classic BFS against BFS with the NN and hybrid finisher (`docs/todo_500grain_bfs_end_to_end.md`).
 
 Drafted 2026-10-07 by the main session (Opus). Implemented by Sonnet `implementer` agents, one task at a time.
 
@@ -4264,6 +4264,87 @@ Not picked: sigma0 0.05 (9.7% wrong in T5), the (1+1)-ES and MC variants (they s
 - One seed per case and method; the cases within a voxel are not independent, hence the voxel-clustered tests. The 40-case timing is one repetition.
 - `cma` is only in the benchmarks extra, so a CMA-ES finisher in `icenine/` (Phase C) needs it as a core dependency or a vendored implementation; Nelder-Mead uses scipy, already a core dependency.
 - Sweep starts are within 1 deg and T5 starts within 3 deg; the findings are for local finishing, not for the coarse search.
+
+### Phase C results (2026-10-07, `feature/finisher-mc-study-phase-c`)
+
+**Headline.** CMA-ES is now an opt-in local refinement in the reconstruction library: `SearchParameters.local_optimizer = "cma"` (config key `LocalOptimizer cma`) replaces the refinement MC at every call site that refines one start (the FindOptimal MC plus the VarianceMinimizing pass in `refine_from_candidates`, and the VarianceMinimizing call in `local_optimization`, which BFS neighbours use). The default `"mc"` is bit-identical to the code before. On the 200-voxel E0 set (no-start `reconstruct_voxel`, seed 0, per-voxel images), `"cma"` ends a median 0.0019 deg (clean) and 0.0021 deg (realistic) from the truth among its right answers, against 0.0301 and 0.0278 deg for `"mc"`. The wrong (> 1 deg) count is 66/200 against 67/200 in the clean variant and 44/200 against 52/200 in the realistic variant (8 voxels wrong only under `"mc"`, 0 only under `"cma"`, exact McNemar p = 0.0078; clean 1 against 0, p = 1.0). The extra cost is +0.19% (clean) and +3.5% (realistic) mean cost evaluations per voxel, and +1.7% and +4.8% single-worker wall time per no-start `reconstruct_voxel` (20 voxels per variant, one run per method and voxel). That scope matters for BFS: a neighbour refinement (`local_optimization`) costs 1001 evaluations under `"cma"` against a median 662 under `"mc"` (about +51%, from the 50-case check below), so these percentages do not carry over to neighbours. Everything below comes from `benchmarks/cma_finisher/` (`summary.json`, `tables.md`, `validate_lib.json`).
+
+**What changed (`icenine/`).**
+- **Dependency:** `cma>=4.0` moved from the `benchmarks` extra to the core dependencies (locked 4.4.4). `uv lock` changed only that dependency edge in `uv.lock` (4 lines in 3 hunks; no package version changed), `uv sync --extra dev --extra riemannian --extra benchmarks` reproduces the environment, and the golden tests pass.
+- **API (`orientation_search.py`):** `CMAOptimizer(cost_fn, voxel_vertices, phase_index, rng, sigma0_deg=0.2, max_evals=1000, popsize=None, tolx=1e-9, max_convergence_cost=0.0)` with `optimize(R0, seed=None) -> CMAResult`; `CMAResult` is a `SearchCandidate` (orientation, cost, overlap_info) with `n_evals` and `stop_reason`. The search variable is a rotation vector in degrees about the start (`R = exp(v) R0`); the start is evaluated first; the result is the lowest-cost orientation evaluated (first on ties) with the overlap info of that evaluation (no extra call); `max_evals` counts the start and is exact (a generation is cut at the budget). The cma package's flat-fitness, function-value and stagnation stops are off and its x-tolerance is kept, as in B3's `cma_02`. The cma seed is `seed + 1` (cma treats 0 as random); without `seed` it is drawn from the generator, so a run is deterministic given the generator. `MCOptimizer` gained a read-only `rng` property.
+- **Switch:** `SearchParameters.local_optimizer` (`"mc"` | `"cma"`, validated), `cma_sigma0_deg`, `cma_max_evals`, `cma_popsize` (None = cma default). Config keys (Python only, optional, absent = `mc`): `LocalOptimizer mc|cma`, `CMASigma0 <deg>` (> 0), `CMAMaxEvals <n>` (>= 2), `CMAPopSize <n>` (0 = default). `from_config` reads them with `getattr` defaults, so existing configs and mock configs are unchanged.
+- **Call sites that switch:** (1) `refine_from_candidates` (also the end of every `reconstruct_voxel`, so BFS seed voxels and the no-start runs): per candidate, one CMA run replaces the FindOptimal MC and the final VarianceMinimizing pass; the candidate loop, the hit-ratio-1.0 early exit, the choice of the lowest cost, and the final overlap evaluation are unchanged; the `"variance"` recorder event is not emitted. (2) `local_optimization` (BFS neighbours, `_fit_from_seed`): one CMA run from the inherited orientation replaces the VarianceMinimizing MC; the final overlap evaluation and the BFS acceptance test (hit ratio over 0.9 of the best) are unchanged.
+- **Call sites that do not switch, and why:** the quick MC on the coarse-search candidates (10 steps, 5 restarts at every level) ranks and prunes candidates for the next level; it is not a refinement of the final answer, and CMA-ES at its 1000-evaluation budget would multiply the coarse stage's cost. `BasicVoxelReconstructor` (the serial C++-parity reconstructor) is not used by BFS. Whether CMA at a smaller budget helps the quick stage is untested.
+- **Guard:** `local_optimizer="cma"` together with `use_hybrid_optimizer` raises `ValueError` (both replace the FindOptimal MC).
+
+**Parity of the default.**
+- The existing golden tests (`test_findoptimal_refactor.py`: `reconstruct_voxel`, recorder, `rank_key`, `extra_candidates`) and the C++-parity tests pass unchanged; full suite 763 passed, 34 skipped, 1 deselected.
+- New goldens for the two refinement entry points were recorded from the code before the change and are reproduced after it (`tests/test_cma_optimizer.py`): `local_optimization` from a 0.3, -0.2, 0.25 deg start of ThreeVoxels voxel 0 and `refine_from_candidates` (470 local evaluations). An explicit `"mc"` equals the default.
+- On the E0 set the changed code's `"mc"` run reproduces the stored E0 seed-0 `R_final` bit for bit in 200/200 clean and 200/200 realistic runs.
+
+**Reproduction of B3's `cma_02` with the library `CMAOptimizer`** (T5 H3 realistic, the first 50 cases by (voxel, radius index), same start, images and seed stream as B3; contended run, no timing; `validate_lib.py`):
+
+<!-- table:validate_lib -->
+| method | n | median error (deg) | fraction < 0.02 deg (Wilson 95%) | median evals (local_optimization rows) |
+|---|---|---|---|---|
+| start (net x3) | 50 | 0.0690 | 12/50 [0.14, 0.37] | n/a |
+| B3 cma_02, 250 evals | 50 | 0.0034 | 45/50 [0.79, 0.96] | n/a |
+| library CMAOptimizer, 250 evals | 50 | 0.0034 | 45/50 [0.79, 0.96] | n/a |
+| B3 cma_02, 1000 evals | 50 | 0.0025 | 48/50 [0.87, 0.99] | n/a |
+| library CMAOptimizer, 1000 evals | 50 | 0.0025 | 48/50 [0.87, 0.99] | n/a |
+| refine_from_candidates, local_optimizer cma (1000 + final) | 50 | 0.0035 | 45/50 [0.79, 0.96] | n/a |
+| local_optimization, mc (VarianceMinimizing) | 50 | 0.0690 | 12/50 [0.14, 0.37] | 662 |
+| local_optimization, cma | 50 | 0.0028 | 48/50 [0.87, 0.99] | 1001 |
+<!-- /table:validate_lib -->
+
+The library result equals B3's stored `cma_02` orientation exactly (50/50 cases at 250 and at 1000 evaluations, maximum absolute difference 0), so the numbers above are B3's, now from the library code. Every 1000-evaluation run ended on `max_evals` (50/50): the x-tolerance stop never ended a run, so a CMA run costs its whole budget. The `refine_from_candidates` row uses another seed stream (the cma seed is drawn from the generator `default_rng(seed)`), one candidate, then the reconstructor's final overlap evaluation (1001 evaluations); its median differs from the 1000-evaluation row (0.0035 against 0.0025 deg), which is consistent with seed-to-seed spread (one seed per case, spread not measured). The `local_optimization` rows run the BFS-neighbour call site from the same start: `"cma"` ends a median 0.0028 deg away (48/50 under 0.02 deg) after 1001 evaluations; `"mc"` (VarianceMinimizing, box 5 deg, median 662 evaluations) ends at the start's error, 0.0690 deg and 12/50 under 0.02 deg, the same as the start. Mechanism: 47/50 `"mc"` runs returned the start unchanged (to 1e-5 deg), 1 moved closer to the truth and 2 moved farther (at lower cost, as only strictly lower costs are accepted) (`local_optimization_mc_outcome` in `validate_lib.json`). The `local_optimization` box is 5 deg (`LocalOrientationGridRadius` / 2^`MinLocalResolution`), so the first sub-region radius is tan(5 deg)/sqrt(48) = 0.72 deg and grows to 5 deg, restarts are uniform in +-2.5 deg, and a step is accepted only at strictly lower cost. This is the B1 mechanism at a box about 25 times larger. Implication: under `"mc"` a BFS neighbour keeps the inherited orientation, whatever its own optimum is; this was measured on seeded T5 H3 starts, not on a BFS run.
+
+**E0, `"mc"` against `"cma"`** (200 voxels x 2 variants, seed 0, no-start `reconstruct_voxel`, the E0 images and rng; both methods of a (voxel, variant) run back to back in one worker, in alternating order; `cma` = sigma0 0.2 deg, 1000 evaluations per candidate). Wrong = symmetry-reduced (the sample's cubic group) misorientation over 1 deg; "med_err" = median error among the method's own right answers, "med_both" = among voxels right under both. The cost column is the mean final cost over all 200 voxels, wrong answers included.
+
+<!-- table:e0_accuracy -->
+| variant | method | n | wrong | med_err | med_both | cost |
+|---|---|---|---|---|---|---|
+| clean | mc | 200 | 67/200 = 0.335 [0.273, 0.403] | 0.0301 | 0.0301 | 0.3542 |
+| clean | cma | 200 | 66/200 = 0.330 [0.269, 0.398] | 0.0019 | 0.0019 | 0.2959 |
+| realistic | mc | 200 | 52/200 = 0.260 [0.204, 0.325] | 0.0278 | 0.0278 | 0.4259 |
+| realistic | cma | 200 | 44/200 = 0.220 [0.168, 0.282] | 0.0021 | 0.0021 | 0.3693 |
+<!-- /table:e0_accuracy -->
+
+Evaluations and time per voxel (mean; "glob" and "loc" = global and local cost evaluations of the reconstructor, "find" = candidates FindOptimal refined, one CMA run each under `"cma"`; wall = `reconstruct_voxel` seconds on the 10-worker run, **contended**, other work on the machine, no speed claim; 400 tasks took 2131 s):
+
+<!-- table:e0_evals_wall -->
+| variant | method | glob | loc | find | wall | wall_med |
+|---|---|---|---|---|---|---|
+| clean | mc | 44478 | 4711 | 2.54 | 24.72 | 24.54 |
+| clean | cma | 44478 | 4805 | 1.90 | 24.90 | 24.85 |
+| realistic | mc | 44778 | 7628 | 4.82 | 26.81 | 26.59 |
+| realistic | cma | 44778 | 9461 | 4.82 | 28.24 | 27.60 |
+<!-- /table:e0_evals_wall -->
+
+Paired per voxel: the final cost is lower under `"cma"` in 187/200 (clean) and 193/200 (realistic) voxels, higher in 1 and 4, equal in 12 and 3. Realistic: 148 voxels are right under both, 8 are wrong only under `"mc"`, 0 only under `"cma"`; clean: 133 right under both, 1 wrong only under `"mc"`, 0 only under `"cma"`. The mean number of FindOptimal candidates is 2.54 (`mc`) against 1.90 (`cma`) in the clean variant and 4.82 against 4.82 in the realistic variant. The 8 realistic voxels that `"cma"` fixes are consistent with its lower final cost letting FindOptimal's choice of the lowest-cost candidate pick the basin of the truth; the candidate choice was not traced, so this is untested.
+
+**Single-worker timing** (the first 20 of the 200 voxels, per variant, one process, `preflight.require_quiet()` passed (load 1.08, on AC power, no busy process; `preflight_e0_timing.json`; after the run `preflight_e0_timing_after.json`), `mc` and `cma` interleaved per (voxel, variant) in alternating order, one run each, single-worker):
+
+<!-- table:timing_single_worker -->
+| variant | n | mc_mean_s | cma_mean_s | ratio_of_means | median_paired_ratio | mc_mean_evals | cma_mean_evals |
+|---|---|---|---|---|---|---|---|
+| clean | 20 | 19.47 | 19.81 | 1.017 | 1.033 | 49083 | 49619 |
+| realistic | 20 | 21.57 | 22.60 | 1.048 | 1.040 | 52801 | 54669 |
+<!-- /table:timing_single_worker -->
+
+`ratio_of_means` = mean `cma` seconds over mean `mc` seconds; `median_paired_ratio` = the median over voxels of the paired ratio. These 40 runs support a statement about the cost per voxel on this set (a few percent more), not about the cost of the CMA stage alone; there is no interval on the ratio (n = 20 per variant).
+
+**Criteria.** Opt-in switch, default bit-identical: met. `CMAOptimizer` reproduces B3's `cma_02`: met (identical orientations on 50/50 cases). BFS neighbour refinement uses CMA: met in unit tests (`local_optimization`, and a 3-voxel BFS end to end), not evaluated at scale (that is Phase D). Wrong-rate comparison on E0: realistic improves (44/200 against 52/200, p = 0.0078); clean does not change detectably (66/200 against 67/200). Seeds 1-2 and the proxy-rerank combination from the plan were not run (not requested for this task).
+
+**Caveats.**
+- Per-voxel images (at most 3 distractor sources), not full-sample renders; one seed (seed 0) per voxel; 200 voxels per variant.
+- A CMA run costs its whole budget (1000 evaluations at the default): `"cma"` is cheap only because FindOptimal refines few candidates (about 2 in the clean and about 5 in the realistic variant). In BFS every neighbour pays 1001 evaluations under `"cma"`; `"mc"` paid a median 662 in the 50-case check above. A smaller `CMAMaxEvals` is the first knob for Phase D (B3: a median 0.0034 deg at 250 evaluations against 0.0025 deg at 1000 on these cases, 45/50 against 48/50 under 0.02 deg).
+- CMA from sigma0 0.2 deg stays local (B3 far starts, `cma_02`: wrong in 1/11 at 1.5 deg, 4/11 at 2 deg, 10/11 at 3 deg). A BFS neighbour across a grain boundary starts at the neighbouring grain's orientation; nothing here tests whether `"cma"` recovers it. The unchanged acceptance test marks such a voxel REFIT under either optimizer, but the Python BFS has no refit pass (REFIT voxels are never reseeded, unlike C++ `LazyBFSClient::Refit`), and `"mc"`'s 5 deg box explores further than CMA at sigma0 0.2 deg. `CMASigma0` may need a larger value, or the BFS a refit pass, for such voxels.
+- The E0 "wrong" rate is dominated by the coarse stage (wrong basins), which this switch does not touch; the gain is in the precision of right answers and in some selections among FindOptimal candidates.
+
+**Turning CMA on for a BFS run (Phase D).** In code: `setup = setup_reconstruction(config); setup.search_params.local_optimizer = "cma"` (optionally `cma_sigma0_deg`, `cma_max_evals`), then `BFSReconstruction(setup)`; or add `LocalOptimizer cma` (and `CMASigma0`, `CMAMaxEvals`) to the `.config`. Both seed voxels (`refine_from_candidates`) and neighbours (`local_optimization`) then use CMA; the quick MC does not change. For the "classic" arm leave the key out.
+
+**Code.** `icenine/orientation_search.py`, `icenine/reconstructor.py`, `icenine/config_file.py`; `scripts/cma_finisher/` (`validate_lib.py`, `e0_cma.py`); tests `tests/test_cma_optimizer.py` (28 tests). `pyproject.toml`, `uv.lock`.
 
 ### Phase C: the finisher inside the reconstruction
 - Add the chosen finisher(s) as an opt-in finisher in `refine_from_candidates`: default off, C++ parity, bit-identity
