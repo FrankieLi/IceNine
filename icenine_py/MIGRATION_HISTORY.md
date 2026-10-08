@@ -4664,6 +4664,85 @@ the opt-in memmap loader is in `icenine/experimental_data.py`).
   `render_full.py --tag full_q16 --max-q 16 --variants realistic`; then `frame_split_check.py`,
   `memmap_check.py --variant ...`, `bfs_timing_probe.py`, `summary.py`.
 
+#### Phase D seed-cost diagnosis (2026-10-08, `feature/finisher-mc-study-phase-d-pilot`)
+
+Why a no-start `reconstruct_voxel` takes 177 to 711 s on the full-sample clean images but about 20 s on the per-voxel E0 images. Diagnosis only; no pilot or full BFS run. Code: `scripts/phase_d/seed_diag*.py`, `seed_count_oracle.py`; data and tables: `benchmarks/phase_d_seed_diag/` (`summary.json`, `tables.md`, `runs/`). Voxels: 6 grain interiors (3 within r < 0.12 of the rotation axis, 3 with r > 0.38) and, for the options, 18 uniformly random voxels (17 of 18 touch another grain within the BFS neighbour radius, as BFS seeds do). All images clean, mc config of the Phase D data branch, seed 1, one process per voxel. Timing: the stage runs and the option runs used up to 4 concurrent processes (contended); the two "quiet" numbers passed `preflight.require_quiet()` (load about 1.2).
+
+- **Cause: the VarianceMinimizing budget extension, not the coarse search.** Per seed, mean over 6 voxels, 1.02 M evaluations: variance stage 0.15 to 1.38 M (33 to 82 % of all; 1.38 M on 15901), the coarse levels plus quick MC about 0.33 M, FindOptimal 0.2 to 6 k. `variance_minimizing_optimize` adds a subregion's steps to its budget whenever the cost variance of that subregion exceeds 0.02^2, so it stops only after about 20 subregion runs (200 steps) with variance below 0.02^2. Traced from the truth on voxel 15901: on the full images 0.03 % of the runs fall below the threshold at box 0.33, 0.22 and 0.20 deg (no end in 30,000 steps); on the isolated render of the same voxel 10.6 %, 1.5 % and 0.8 % (ends after 1,890 to 25,270 steps). The cost at fixed misorientation is flatter on the full images (mean 0.31 at 0.2 deg against 0.70 isolated, from 200 random directions) and its variance within a run is larger, consistent with a cost plateau from the grain's own large spots; this mechanism was not isolated further.
+- **(a) more evaluations: yes.** The `peak_overlap > 0` screen of level 0 passes 76 to 81 % of the 43,974 candidates on the full images and 0.4 to 0.5 % on the isolated renders, so 10.2 to 10.4 k candidates (not 160 to 210) enter the quick MC, and the levels carry 2.6 k, 0.9 k, 0.3 k, 0.08 k forward. Total evaluations are 9.6 to 33.7 times the isolated ones (48 to 50 k). The early exit at hit ratio 1.0 fires only for 2 of 6 voxels (final hit ratio 0.97 to 1.0, q_true 0.92 to 0.95); when it does not, FindOptimal runs all 30 candidates, which costs only 6 k evaluations.
+- **(b) cost per evaluation: no.** 499 to 533 us on the full images, 396 to 434 us isolated; the C extension is used, the memmap read is 17 us of it; the rest is torch small-tensor overhead (cProfile of 1,500 evaluations). C++ takes 49 to 51 us (12.5 us isolated).
+- **(c) config:** the Phase D mc keys equal `ReconstructQ8.config` except file names and voxel side. The C++ example config (`cpp_check/recon.config`) differs: MaxLocalResolution 5, MaxMCSteps 300, SuccessiveRestarts 3, MaxDiscreteCandidates 50. A smaller final box does not shorten the Python variance stage (above).
+- **Accuracy side effect:** on the 6 isolated renders 3 seeds end more than 1 deg off (25 to 60 deg); on the full images all 6 are right (max 0.042 deg). The cheap per-voxel prune is the E0 failure mode, so it must not be imitated.
+
+<!-- table:seed_diag_stage_breakdown -->
+| voxel | wall_s | evals | disc_L0 | quick_L0 | rest_L1_3 | find | variance | var_share | us | find_n | conv | err | q_true |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 897 | 1,687,675 | 79,241 | 112,090 | 118,226 | 201 | 1,377,916 | 0.82 | 503 | 1/344 | True | 0.042 | 0.947 |
+| 17034 | 509 | 952,819 | 79,754 | 114,202 | 120,721 | 5,849 | 632,292 | 0.66 | 505 | 30/341 | False | 0.030 | 0.922 |
+| 18558 | 245 | 463,626 | 77,591 | 112,981 | 118,251 | 603 | 154,199 | 0.33 | 499 | 3/330 | True | 0.006 | 0.937 |
+| 19889 | 333 | 626,184 | 78,663 | 113,388 | 119,796 | 5,466 | 308,870 | 0.49 | 502 | 30/334 | False | 0.024 | 0.920 |
+| 22867 | 753 | 1,339,563 | 79,486 | 112,596 | 119,087 | 5,579 | 1,022,814 | 0.76 | 533 | 30/337 | False | 0.024 | 0.941 |
+| 5242 | 589 | 1,063,389 | 77,316 | 112,343 | 117,868 | 5,561 | 750,300 | 0.71 | 524 | 30/333 | False | 0.028 | 0.908 |
+| mean | 554 | 1,022,209 | 78,675 | 112,933 | 118,992 | 3,876 | 707,732 | 0.63 | 511 |  |  | n/a | n/a |
+<!-- /table:seed_diag_stage_breakdown -->
+
+<!-- table:seed_diag_cpp -->
+| config | images | voxel | n_runs | adap_s_mean | adap_evals_mean | us_per_eval | variance_steps_median | variance_steps_max |
+|---|---|---|---|---|---|---|---|---|
+| Phase D search keys (MaxLocalResolution 3, 200 steps, 2 restarts, 30 candidates) | full | 15901 | 16 | 13.3 | 258,996 | 51.3 | 1.3e+03 | 2130 |
+| Phase D search keys (MaxLocalResolution 3, 200 steps, 2 restarts, 30 candidates) | full | 22867 | 16 | 12.8 | 262,537 | 48.8 | 1.28e+03 | 1930 |
+| C++ example config (MaxLocalResolution 5, 300 steps, 3 restarts, 50 candidates) | full | 15901 | 16 | 13.9 | 282,813 | 49.0 | 2.19e+04 | 28840 |
+| C++ example config (MaxLocalResolution 5, 300 steps, 3 restarts, 50 candidates) | full | 22867 | 16 | 14.1 | 286,758 | 49.1 | 1.95e+04 | 33980 |
+| Phase D search keys, isolated one-voxel images | isolated | 15901 | 16 | 0.6 | 47,833 | 12.5 | 325 | 460 |
+<!-- /table:seed_diag_cpp -->
+
+<!-- table:seed_diag_seed_count -->
+| p_fail | mean | lo | hi |
+|---|---|---|---|
+| 0.0 | 356 | 348 | 367 |
+| 0.05 | 377 | 366 | 394 |
+| 0.1 | 395 | 381 | 417 |
+| 0.2 | 443 | 426 | 464 |
+| 0.3 | 504 | 474 | 532 |
+<!-- /table:seed_diag_seed_count -->
+
+- **C++ reference** (`IceNine r`, one-voxel mic, Euler angles zeroed, 16 queued copies run serially, other jobs 1 core each, contended): 15901: 13.3 s per no-start search, 259 k evaluations, 51 us each, variance stage median 1,305 steps (max 2,130), final quality 0.947 (Python q_true 0.947); 22867: 12.8 s, 263 k, final quality 0.955 (Python q_true 0.941). With the C++ example config: 13.9 and 14.1 s, 283 to 287 k evaluations, variance stage median about 20 k steps. On the isolated render: 0.60 s, 47.8 k evaluations. So C++ does the coarse work in the same 260 k evaluations as Python's 330 k, but its variance stage ends after about 130 subregion runs where Python's needs 30 k to 140 k. **Why the two variance stages differ on the full images is not explained:** the algorithm, the step mapping (mean rotation angle of the near-identity generator equals the radius) and the cost definition (1 - quality) were compared by reading and agree; the cost landscape on dense images in C++ was not measured.
+- **Seed count** (`seed_count_oracle.py`, oracle fits: a seed fails with probability p, an expansion accepts a neighbour iff it is in the same grain, BFS rules and the 2-side-length neighbour radius, 20 random orders): 356 seeds for p = 0, 377 for 0.05, 395 for 0.1, 443 for 0.2, 504 for 0.3 (ranges within +-20). Under the BFS neighbour radius the 497 grains are 497 connected pieces (501 under strict adjacency), not 612. About 140 grains are swallowed before any seed is drawn in them (all their voxels end REFIT) and stay unresolved unless a revisit or a later seed fixes them; this is the real BFS rule, and it caps the seeds well under the 600 to 1,000 assumed. The oracle ignores wrong cross-boundary acceptances.
+
+<!-- table:seed_diag_options_interior -->
+| option | n | wall_s | evals | err_med | err_max | wrong |
+|---|---|---|---|---|---|---|
+| base (mc, as Phase D config) | 6 | 554 | 1,022,209 | 0.026 | 0.042 | 0/6 [0.00, 0.39] |
+| variance cap 2000 steps | 6 | 169 | 316,678 | 0.029 | 0.061 | 0/6 [0.00, 0.39] |
+| CMA-ES finisher (LocalOptimizer cma) | 6 | 178 | 326,268 | 0.025 | 0.046 | 0/6 [0.00, 0.39] |
+| cap 2000 + top 3000 at level 0 + keep 1/8 | 6 | 68 | 129,218 | 0.029 | 0.053 | 0/6 [0.00, 0.39] |
+<!-- /table:seed_diag_options_interior -->
+
+<!-- table:seed_diag_options_random -->
+| option | n | wall_s | wall_max | evals | err_med | err_max | wrong |
+|---|---|---|---|---|---|---|---|
+| variance cap 2000 | 18 | 172 | 182 | 317,146 | 0.028 | 52.342 | 1/18 [0.01, 0.26] |
+| lean (cap 2000, top 3000, keep 1/8) | 18 | 67 | 71 | 128,857 | 0.028 | 59.940 | 2/18 [0.03, 0.33] |
+<!-- /table:seed_diag_options_random -->
+
+<!-- table:seed_diag_run_estimates -->
+| option | per_seed_s | seeds_low | seeds_mid | seeds_high | hours_low | hours_mid | hours_high |
+|---|---|---|---|---|---|---|---|
+| base (as Phase D config) | 486 | 350 | 395 | 504 | 47.2 | 53.3 | 68.0 |
+| variance cap 2000 | 150 | 350 | 395 | 504 | 14.6 | 16.5 | 21.1 |
+| CMA-ES finisher (no cap needed) | 157 | 350 | 395 | 504 | 15.2 | 17.2 | 21.9 |
+| lean: cap 2000 + top 3000 at level 0 + keep 1/8 | 62 | 350 | 395 | 504 | 6.0 | 6.8 | 8.6 |
+<!-- /table:seed_diag_run_estimates -->
+
+
+  - The per-seed times for base and CMA are evaluations x 475 us; only cap and lean were timed quiet. The ranks justify the level-0 cap: after the quick MC the candidate nearest the truth (< 3 deg) sits at rank 0 to 74 of about 10.2 k; by the discrete score alone its best rank is 0 to 1,213 (6 voxels), so top 3000 keeps all six with a factor 2.5 margin, but this is six voxels.
+  - Random voxels: the 1 wrong with cap (voxel 12260, 52 deg, final hit ratio 0.88) is also wrong with lean and would pass the BFS seed test (hit ratio threshold 0.8): a wrong seed floods its grain with a wrong orientation. The extra lean failure (voxel 18535, 60 deg) has hit ratio 0.31 and would be rejected and redrawn (cost: one more seed). Paired: 1 wrong under both, 1 under lean only; with n = 18 this does not separate lean from cap (exact McNemar p = 1). Whether the base (uncapped) search is right on 12260 was not run (about 10 min of CPU, would settle whether the cap or the coarse search loses it).
+  - The variance cap changes the final polish a little (FindOptimal-only error up to 0.36 deg on a few voxels, all under 0.1 deg after the capped variance stage); the uncapped stage gave 0.006 to 0.042 deg on the interior voxels.
+- **Ideas not measured:** the batched coarse pass (the batched low-Q proxy features are 11.6x faster than the per-candidate pass, `benchmarks/coarse_proxy/timing_batch_tables.md`, but that is feature extraction, not the cost function; batching the 44 k level-0 screening evaluations is a library change); precomputing the seeds in parallel from the BFS's own random order and reusing them across arms (the seed fit does not depend on the arm, but which voxels become seeds can); a seed hit-ratio guard above the 0.8 BFS threshold.
+- **Recommendation:** put an optional hard cap on the VarianceMinimizing budget in the library (default off, so the C++-parity path is unchanged); with it alone a serial seed pass is about 15 to 21 h, with the level-0 cap and keep 1/8 about 6 to 9 h, plus the neighbour time (about 2.7 h for `mc`). Run the pilot with lean and cap side by side on 40 to 50 random seeds before choosing, since n = 18 cannot rank them, and check the hit ratio of accepted seeds (a wrong seed with hit ratio 0.88 exists). The 9+ planned runs can then be run as concurrent single processes.
+- **Reproduce:** from `icenine_py/`: `seed_diag.py select`, `seed_diag.py run --voxel V --images {full,isolated} --tag T [--varcap 2000 --topk0 3000 --opt rec.keep_fraction=0.125 --opt local_optimizer=cma --save-cands]`, `seed_diag_variance.py --voxel 15901`, `seed_diag_ranks.py --tag cap2k`, `seed_count_oracle.py`, `seed_diag_summary.py`. The C++ runs used the configs and one-voxel mics in the session scratch directory (not kept); `cpp_reference.json` holds their parsed output. Test: `tests/test_seed_diag.py`.
+
+
 ### Order and budget
 - **Order:** A → B1/B2 (no new compute) → B3 → C → D.
 - **Compute:**

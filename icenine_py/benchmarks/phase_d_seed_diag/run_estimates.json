@@ -1,0 +1,45 @@
+{
+ "rows": [
+  {
+   "option": "base (as Phase D config)",
+   "per_seed_s": 485.549275,
+   "seeds_low": 350,
+   "seeds_mid": 395,
+   "seeds_high": 504,
+   "hours_low": 47.20617951388889,
+   "hours_mid": 53.27554545138889,
+   "hours_high": 67.9768985
+  },
+  {
+   "option": "variance cap 2000",
+   "per_seed_s": 150.42205,
+   "seeds_low": 350,
+   "seeds_mid": 395,
+   "seeds_high": 504,
+   "hours_low": 14.624365972222224,
+   "hours_mid": 16.50464159722222,
+   "hours_high": 21.059087000000005
+  },
+  {
+   "option": "CMA-ES finisher (no cap needed)",
+   "per_seed_s": 156.75,
+   "seeds_low": 350,
+   "seeds_mid": 395,
+   "seeds_high": 504,
+   "hours_low": 15.239583333333334,
+   "hours_mid": 17.198958333333334,
+   "hours_high": 21.945
+  },
+  {
+   "option": "lean: cap 2000 + top 3000 at level 0 + keep 1/8",
+   "per_seed_s": 61.7044,
+   "seeds_low": 350,
+   "seeds_mid": 395,
+   "seeds_high": 504,
+   "hours_low": 5.999038888888889,
+   "hours_mid": 6.770343888888889,
+   "hours_high": 8.638615999999999
+  }
+ ],
+ "note": "per-seed = mean evaluations of the 6 interior voxels x 475 us (quiet single-worker mean per evaluation, measured on q_lean/q_cap2k); measured quiet single-worker wall: lean 66.6 s, cap2k 157.4 s on voxel 15901. CMA evals from 5 of 6 voxels mean ~331k. Seeds 350/395/504 = oracle with seed failure 0/0.1/0.3."
+}
