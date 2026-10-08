@@ -1,0 +1,13 @@
+import sys, numpy as np
+sys.path.insert(0,'scripts/phase_d')
+import seed_diag_variance_parity as P
+from pathlib import Path
+rec, local, verts, phase, truth = P.setup(15901)
+vm,_ = P.parse_cpp(Path(sys.argv[1]))
+a=np.array([(c, local.evaluate(R.astype(np.float32),verts,phase).cost) for R,c in vm])
+d=a[:,1]-a[:,0]
+for lo,hi in [(0,0.1),(0.1,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.01)]:
+    m=(a[:,0]>=lo)&(a[:,0]<hi)
+    if m.sum(): print(lo,hi,m.sum(),'mean diff py-cpp',d[m].mean().round(4),'max abs',np.abs(d[m]).max().round(4))
+print('corr',np.corrcoef(a[:,0],a[:,1])[0,1], 'frac py<cpp',(d<-1e-6).mean(), 'frac py>cpp',(d>1e-6).mean())
+print(local.evaluate(truth.astype(np.float32),verts,phase).cost)

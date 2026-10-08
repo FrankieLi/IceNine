@@ -1,0 +1,460 @@
+Before initialization 
+ In Detector Block 0 (Line numbers are specified within the block)
+ In Detector Block 1 (Line numbers are specified within the block)
+ In Detector Block 0 (Line numbers are specified within the block)
+ In Detector Block 1 (Line numbers are specified within the block)
+ In Detector Block 0 (Line numbers are specified within the block)
+ In Detector Block 1 (Line numbers are specified within the block)
+ In Detector Block 0 (Line numbers are specified within the block)
+Before reading experimental data 
+After reading experimental data 
+Created Triangular mic 
+WARNING -- QMax is set by Cubic method still!!!!! 
+Created Triangular mic 
+Num Elements in Queue 4
+[ 0.859375 0.826006 0.743242 ]
+Normal Reconstruction 0.797675 sec, evals=17119
+Num Cliques 4095 MaxRange 0.0645161 MaxRangeCliqueID: 2863 MinCostCliqueID 960 0.901639 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 7026
+Num Cliques 1749 MaxRange 0.0716907 MaxRangeCliqueID: 409 MinCostCliqueID 0 0.646154 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 2165
+Num Cliques 541 MaxRange 0.229808 MaxRangeCliqueID: 39 MinCostCliqueID 0 0.46875 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 614
+Num Cliques 153 MaxRange 0.0963942 MaxRangeCliqueID: 14 MinCostCliqueID 0 0.234375 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 168
+ |  Before final optimization 
+ nLocalOptCandidates 30
+  After Final Optimization 
+VT run radius_deg 0.0475191 steps 10 cost 0.0625001 gmin 0.0625001 var 0.00231329 ext 1 total 10 max 210 start_euler 33.6361 17.7085 323.906
+VT run radius_deg 0.0950381 steps 10 cost 0.486885 gmin 0.0625001 var 0.00547819 ext 1 total 20 max 220 start_euler 34.4846 17.8578 323.246
+VT run radius_deg 0.190076 steps 10 cost 0.679117 gmin 0.0625001 var 0.00142993 ext 1 total 30 max 230 start_euler 34.776 17.3611 322.991
+VT run radius_deg 0.329218 steps 10 cost 0.781143 gmin 0.0625001 var 0.00223787 ext 1 total 40 max 240 start_euler 37.4584 18.1298 320.385
+VT run radius_deg 0.329218 steps 10 cost 0.978175 gmin 0.0625001 var 5.67174e-05 ext 0 total 50 max 240 start_euler 33.8208 16.3658 324.687
+VT run radius_deg 0.329218 steps 10 cost 0.826923 gmin 0.0625001 var 0.00183522 ext 1 total 60 max 250 start_euler 33.3915 16.4913 324.34
+VT run radius_deg 0.329218 steps 10 cost 0.883024 gmin 0.0625001 var 0.00100995 ext 1 total 70 max 260 start_euler 37.1632 17.5511 321.012
+VT run radius_deg 0.329218 steps 10 cost 0.917684 gmin 0.0625001 var 0.000370352 ext 0 total 80 max 260 start_euler 32.0084 18.9989 324.532
+VT run radius_deg 0.329218 steps 10 cost 0.86406 gmin 0.0625001 var 0.00145678 ext 1 total 90 max 270 start_euler 34.6524 16.5827 323.369
+VT run radius_deg 0.329218 steps 10 cost 0.812978 gmin 0.0625001 var 0.00129314 ext 1 total 100 max 280 start_euler 36.8638 18.1767 321.329
+VT run radius_deg 0.329218 steps 10 cost 0.394621 gmin 0.0625001 var 0.0265026 ext 1 total 110 max 290 start_euler 35.6691 17.9838 321.713
+VT run radius_deg 0.329218 steps 10 cost 0.950307 gmin 0.0625001 var 0.000166778 ext 0 total 120 max 290 start_euler 29.3218 17.9678 328.099
+VT run radius_deg 0.329218 steps 10 cost 0.872162 gmin 0.0625001 var 0.00130868 ext 1 total 130 max 300 start_euler 37.0093 16.9434 321.456
+VT run radius_deg 0.329218 steps 10 cost 0.961538 gmin 0.0625001 var 0.000163688 ext 0 total 140 max 300 start_euler 34.8617 19.1595 322.843
+VT run radius_deg 0.329218 steps 10 cost 0.904942 gmin 0.0625001 var 0.000355441 ext 0 total 150 max 300 start_euler 32.5363 16.3477 325.332
+VT run radius_deg 0.329218 steps 10 cost 0.860771 gmin 0.0625001 var 0.0013497 ext 1 total 160 max 310 start_euler 33.6059 16.4745 323.342
+VT run radius_deg 0.329218 steps 10 cost 0.602417 gmin 0.0625001 var 0.00838402 ext 1 total 170 max 320 start_euler 36.6939 17.1503 321.588
+VT run radius_deg 0.329218 steps 10 cost 0.906536 gmin 0.0625001 var 0.000405913 ext 1 total 180 max 330 start_euler 34.1098 16.8363 322.637
+VT run radius_deg 0.329218 steps 10 cost 0.808858 gmin 0.0625001 var 0.00253823 ext 1 total 190 max 340 start_euler 31.7331 18.5849 325.443
+VT run radius_deg 0.329218 steps 10 cost 0.716169 gmin 0.0625001 var 0.00677167 ext 1 total 200 max 350 start_euler 31.9707 16.9567 324.888
+VT run radius_deg 0.329218 steps 10 cost 0.969231 gmin 0.0625001 var 8.77432e-05 ext 0 total 210 max 350 start_euler 34.7766 19.0728 322.93
+VT run radius_deg 0.329218 steps 10 cost 0.852496 gmin 0.0625001 var 0.00214782 ext 1 total 220 max 360 start_euler 39.344 17.3936 318.963
+VT run radius_deg 0.329218 steps 10 cost 0.64915 gmin 0.0625001 var 0.00727059 ext 1 total 230 max 370 start_euler 33.1673 17.6037 324.908
+VT run radius_deg 0.329218 steps 10 cost 0.924475 gmin 0.0625001 var 0.000375506 ext 0 total 240 max 370 start_euler 37.8817 17.7671 320.017
+VT run radius_deg 0.329218 steps 10 cost 0.926389 gmin 0.0625001 var 0.000270222 ext 0 total 250 max 370 start_euler 31.5399 16.288 325.291
+VT run radius_deg 0.329218 steps 10 cost 0.75834 gmin 0.0625001 var 0.00350044 ext 1 total 260 max 380 start_euler 33.5064 17.7608 322.988
+VT run radius_deg 0.329218 steps 10 cost 0.925005 gmin 0.0625001 var 0.0003147 ext 0 total 270 max 380 start_euler 32.784 16.3505 324.503
+VT run radius_deg 0.329218 steps 10 cost 0.431249 gmin 0.0625001 var 0.0273871 ext 1 total 280 max 390 start_euler 36.3623 17.2281 321.121
+VT run radius_deg 0.329218 steps 10 cost 0.771656 gmin 0.0625001 var 0.00164671 ext 1 total 290 max 400 start_euler 35.7358 17.8305 322.239
+VT run radius_deg 0.329218 steps 10 cost 0.618242 gmin 0.0625001 var 0.0126116 ext 1 total 300 max 410 start_euler 32.8751 16.9641 324.218
+VT run radius_deg 0.329218 steps 10 cost 0.928571 gmin 0.0625001 var 0.000255226 ext 0 total 310 max 410 start_euler 31.7515 16.34 325.271
+VT run radius_deg 0.329218 steps 10 cost 0.928125 gmin 0.0625001 var 0.000181665 ext 0 total 320 max 410 start_euler 35.5263 18.4609 322.407
+VT run radius_deg 0.329218 steps 10 cost 0.788839 gmin 0.0625001 var 0.00410645 ext 1 total 330 max 420 start_euler 36.838 17.0938 321.496
+VT run radius_deg 0.329218 steps 10 cost 0.870711 gmin 0.0625001 var 0.00112811 ext 1 total 340 max 430 start_euler 33.1446 18.6717 325.281
+VT run radius_deg 0.329218 steps 10 cost 0.970385 gmin 0.0625001 var 9.93868e-05 ext 0 total 350 max 430 start_euler 29.8976 18.2558 326.98
+VT run radius_deg 0.329218 steps 10 cost 0.923016 gmin 0.0625001 var 0.00028671 ext 0 total 360 max 430 start_euler 34.6468 16.8664 322.418
+VT run radius_deg 0.329218 steps 10 cost 0.822167 gmin 0.0625001 var 0.00298819 ext 1 total 370 max 440 start_euler 33.1305 17.8196 325.338
+VT run radius_deg 0.329218 steps 10 cost 0.92381 gmin 0.0625001 var 0.000326418 ext 0 total 380 max 440 start_euler 35.5942 16.9142 321.791
+VT run radius_deg 0.329218 steps 10 cost 0.935484 gmin 0.0625001 var 0.00043236 ext 1 total 390 max 450 start_euler 33.6955 16.7222 324.7
+VT run radius_deg 0.329218 steps 10 cost 0.517698 gmin 0.0625001 var 0.0204872 ext 1 total 400 max 460 start_euler 31.0053 17.4786 325.877
+VT run radius_deg 0.329218 steps 10 cost 0.933424 gmin 0.0625001 var 0.000405287 ext 1 total 410 max 470 start_euler 37.7848 17.3983 318.983
+VT run radius_deg 0.329218 steps 10 cost 0.77572 gmin 0.0625001 var 0.00354107 ext 1 total 420 max 480 start_euler 35.6706 17.9149 321.342
+VT run radius_deg 0.329218 steps 10 cost 0.634207 gmin 0.0625001 var 0.0126514 ext 1 total 430 max 490 start_euler 34.5971 18.5968 322.354
+VT run radius_deg 0.329218 steps 10 cost 0.909127 gmin 0.0625001 var 0.000505973 ext 1 total 440 max 500 start_euler 31.458 17.1607 327.096
+VT run radius_deg 0.329218 steps 10 cost 0.953846 gmin 0.0625001 var 0.00031123 ext 0 total 450 max 500 start_euler 38.2903 17.4786 318.782
+VT run radius_deg 0.329218 steps 10 cost 0.914137 gmin 0.0625001 var 0.000547394 ext 1 total 460 max 510 start_euler 33.7717 16.8875 322.745
+VT run radius_deg 0.329218 steps 10 cost 0.903194 gmin 0.0625001 var 0.000499434 ext 1 total 470 max 520 start_euler 30.2741 17.8994 328.106
+VT run radius_deg 0.329218 steps 10 cost 0.574765 gmin 0.0625001 var 0.0115417 ext 1 total 480 max 530 start_euler 34.7968 17.4406 322.366
+VT run radius_deg 0.329218 steps 10 cost 0.737983 gmin 0.0625001 var 0.00601299 ext 1 total 490 max 540 start_euler 35.5487 16.7245 322.372
+VT run radius_deg 0.329218 steps 10 cost 0.799429 gmin 0.0625001 var 0.00362887 ext 1 total 500 max 550 start_euler 32.064 18.5282 324.787
+VT run radius_deg 0.329218 steps 10 cost 0.886672 gmin 0.0625001 var 0.000732779 ext 1 total 510 max 560 start_euler 31.3609 17.9064 327.001
+VT run radius_deg 0.329218 steps 10 cost 0.930326 gmin 0.0625001 var 0.000259958 ext 0 total 520 max 560 start_euler 33.0515 17.3787 325.48
+VT run radius_deg 0.329218 steps 10 cost 0.613831 gmin 0.0625001 var 0.0174429 ext 1 total 530 max 570 start_euler 29.7968 17.5832 327.417
+VT run radius_deg 0.329218 steps 10 cost 0.861568 gmin 0.0625001 var 0.00157815 ext 1 total 540 max 580 start_euler 34.228 18.7209 322.68
+VT run radius_deg 0.329218 steps 10 cost 0.957937 gmin 0.0625001 var 0.000236678 ext 0 total 550 max 580 start_euler 36.684 17.0711 320.095
+VT run radius_deg 0.329218 steps 10 cost 0.725917 gmin 0.0625001 var 0.00611222 ext 1 total 560 max 590 start_euler 36.2604 17.9855 322.031
+VT run radius_deg 0.329218 steps 10 cost 0.947291 gmin 0.0625001 var 0.000273993 ext 0 total 570 max 590 start_euler 34.9407 16.5847 323.539
+VT run radius_deg 0.329218 steps 10 cost 0.844349 gmin 0.0625001 var 0.000727839 ext 1 total 580 max 600 start_euler 36.712 16.9562 321.615
+VT run radius_deg 0.329218 steps 10 cost 0.784434 gmin 0.0625001 var 0.00352516 ext 1 total 590 max 610 start_euler 30.7696 17.9798 327.32
+VT run radius_deg 0.329218 steps 10 cost 0.715123 gmin 0.0625001 var 0.00581965 ext 1 total 600 max 620 start_euler 31.7707 16.7647 325.089
+VT run radius_deg 0.329218 steps 10 cost 0.961881 gmin 0.0625001 var 0.000116102 ext 0 total 610 max 620 start_euler 30.363 18.2979 326.262
+VT run radius_deg 0.329218 steps 10 cost 0.889744 gmin 0.0625001 var 0.000851692 ext 1 total 620 max 630 start_euler 29.4196 17.8711 327.716
+VT run radius_deg 0.329218 steps 10 cost 0.438283 gmin 0.0625001 var 0.0147785 ext 1 total 630 max 640 start_euler 35.0229 17.9312 322.695
+VT run radius_deg 0.329218 steps 10 cost 0.586556 gmin 0.0625001 var 0.0221539 ext 1 total 640 max 650 start_euler 33.9586 19.1198 323.349
+VT run radius_deg 0.329218 steps 10 cost 0.53176 gmin 0.0625001 var 0.0178566 ext 1 total 650 max 660 start_euler 34.0184 18.5132 323.097
+VT run radius_deg 0.329218 steps 10 cost 0.953968 gmin 0.0625001 var 0.000234643 ext 0 total 660 max 660 start_euler 33.3028 16.286 325.057
+0	|R_0| 0.0475191	|Step | 660	|GlbPts| 66	|R_c| 0.329218	|MCS| 660	|Var| 0.000234643	|C_i| 0.0625001	|C_f|0.0625001	[ 33.6361 17.7085 323.906]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 1 	0.9375 ]
+Adaptive Reconstruction 10.5109 sec, evals=219790
+VOXEL_SUMMARY voxel=0 basic_sec=0.797675 basic_evals=17119 adap_sec=10.5109 adap_evals=219790 adap_us_per_eval=47.8222
+[ 0.921875 0.898951 0.841912 ]
+Normal Reconstruction 0.749187 sec, evals=16216
+Num Cliques 4095 MaxRange 0.0645161 MaxRangeCliqueID: 2863 MinCostCliqueID 960 0.901639 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 7026
+Num Cliques 1753 MaxRange 0.0917339 MaxRangeCliqueID: 15 MinCostCliqueID 0 0.484375 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 2224
+Num Cliques 555 MaxRange 0.126984 MaxRangeCliqueID: 62 MinCostCliqueID 0 0.203125 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 620
+Num Cliques 155 MaxRange 0.108383 MaxRangeCliqueID: 48 MinCostCliqueID 0 0.109375 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 177
+ |  Before final optimization 
+ nLocalOptCandidates 30
+  After Final Optimization 
+VT run radius_deg 0.0475191 steps 10 cost 0.0625001 gmin 0.0625001 var 0.00153086 ext 1 total 10 max 210 start_euler 33.6328 17.7052 323.907
+VT run radius_deg 0.0950381 steps 10 cost 0.461861 gmin 0.0625001 var 0.00285077 ext 1 total 20 max 220 start_euler 33.9973 17.9004 323.31
+VT run radius_deg 0.190076 steps 10 cost 0.342899 gmin 0.0625001 var 0.0357401 ext 1 total 30 max 230 start_euler 36.6037 17.5059 321.295
+VT run radius_deg 0.329218 steps 10 cost 0.461599 gmin 0.0625001 var 0.0262348 ext 1 total 40 max 240 start_euler 33.7196 17.0177 323.637
+VT run radius_deg 0.329218 steps 10 cost 0.874899 gmin 0.0625001 var 0.00102987 ext 1 total 50 max 250 start_euler 32.5037 18.7117 324.976
+VT run radius_deg 0.329218 steps 10 cost 0.762016 gmin 0.0625001 var 0.00411486 ext 1 total 60 max 260 start_euler 32.3108 17.5421 326.178
+VT run radius_deg 0.329218 steps 10 cost 0.930528 gmin 0.0625001 var 0.000310721 ext 0 total 70 max 260 start_euler 32.9714 19.1926 323.59
+VT run radius_deg 0.329218 steps 10 cost 0.795083 gmin 0.0625001 var 0.00504289 ext 1 total 80 max 270 start_euler 36.7889 17.3657 320.285
+VT run radius_deg 0.329218 steps 10 cost 0.761938 gmin 0.0625001 var 0.00484984 ext 1 total 90 max 280 start_euler 32.309 18.0414 324.431
+VT run radius_deg 0.329218 steps 10 cost 0.808771 gmin 0.0625001 var 0.00333371 ext 1 total 100 max 290 start_euler 35.862 17.1328 321.291
+VT run radius_deg 0.329218 steps 10 cost 0.970085 gmin 0.0625001 var 8.12915e-05 ext 0 total 110 max 290 start_euler 31.3078 18.4472 327.311
+VT run radius_deg 0.329218 steps 10 cost 0.734723 gmin 0.0625001 var 0.00556108 ext 1 total 120 max 300 start_euler 35.7153 16.9692 321.6
+VT run radius_deg 0.329218 steps 10 cost 0.898226 gmin 0.0625001 var 0.000841087 ext 1 total 130 max 310 start_euler 31.9954 17.0784 325.747
+VT run radius_deg 0.329218 steps 10 cost 0.673848 gmin 0.0625001 var 0.00535076 ext 1 total 140 max 320 start_euler 33.3248 17.9547 323.418
+VT run radius_deg 0.329218 steps 10 cost 0.886161 gmin 0.0625001 var 0.000944918 ext 1 total 150 max 330 start_euler 37.8984 17.6991 319.883
+VT run radius_deg 0.329218 steps 10 cost 0.187088 gmin 0.0625001 var 0.0814074 ext 1 total 160 max 340 start_euler 31.2774 18.4064 326.32
+VT run radius_deg 0.329218 steps 10 cost 0.744116 gmin 0.0625001 var 0.0073036 ext 1 total 170 max 350 start_euler 31.8748 16.733 326.1
+VT run radius_deg 0.329218 steps 10 cost 0.84302 gmin 0.0625001 var 0.00159525 ext 1 total 180 max 360 start_euler 33.8014 16.8042 323.625
+VT run radius_deg 0.329218 steps 10 cost 0.50365 gmin 0.0625001 var 0.0112809 ext 1 total 190 max 370 start_euler 34.2709 17.8781 323.486
+VT run radius_deg 0.329218 steps 10 cost 0.813948 gmin 0.0625001 var 0.00253343 ext 1 total 200 max 380 start_euler 31.4842 18.497 325.945
+VT run radius_deg 0.329218 steps 10 cost 0.840834 gmin 0.0625001 var 0.000980723 ext 1 total 210 max 390 start_euler 36.0278 17.0697 322.272
+VT run radius_deg 0.329218 steps 10 cost 0.875414 gmin 0.0625001 var 0.00127757 ext 1 total 220 max 400 start_euler 33.5365 18.6889 323.847
+VT run radius_deg 0.329218 steps 10 cost 0.925647 gmin 0.0625001 var 0.00015756 ext 0 total 230 max 400 start_euler 36.3216 18.3795 321.989
+VT run radius_deg 0.329218 steps 10 cost 0.77894 gmin 0.0625001 var 0.00282739 ext 1 total 240 max 410 start_euler 33.5772 18.3108 322.98
+VT run radius_deg 0.329218 steps 10 cost 0.863784 gmin 0.0625001 var 0.000819766 ext 1 total 250 max 420 start_euler 36.7667 17.4014 321.008
+VT run radius_deg 0.329218 steps 10 cost 0.766029 gmin 0.0625001 var 0.00459241 ext 1 total 260 max 430 start_euler 31.224 17.8707 326.844
+VT run radius_deg 0.329218 steps 10 cost 0.366117 gmin 0.0625001 var 0.0249125 ext 1 total 270 max 440 start_euler 35.1529 17.7379 323.106
+VT run radius_deg 0.329218 steps 10 cost 0.892932 gmin 0.0625001 var 0.000935922 ext 1 total 280 max 450 start_euler 36.4858 17.6607 320.342
+VT run radius_deg 0.329218 steps 10 cost 0.89456 gmin 0.0625001 var 0.00112219 ext 1 total 290 max 460 start_euler 33.7817 18.9038 323.279
+VT run radius_deg 0.329218 steps 10 cost 0.346179 gmin 0.0625001 var 0.0357312 ext 1 total 300 max 470 start_euler 34.6213 17.3472 323.45
+VT run radius_deg 0.329218 steps 10 cost 0.508886 gmin 0.0625001 var 0.018139 ext 1 total 310 max 480 start_euler 31.8187 18.0668 325.881
+VT run radius_deg 0.329218 steps 10 cost 0.466712 gmin 0.0625001 var 0.0106688 ext 1 total 320 max 490 start_euler 33.1352 18.1865 323.916
+VT run radius_deg 0.329218 steps 10 cost 0.785496 gmin 0.0625001 var 0.00297741 ext 1 total 330 max 500 start_euler 35.1131 17.4262 323.288
+VT run radius_deg 0.329218 steps 10 cost 0.578669 gmin 0.0625001 var 0.017474 ext 1 total 340 max 510 start_euler 31.2676 17.8681 327.088
+VT run radius_deg 0.329218 steps 10 cost 0.502983 gmin 0.0625001 var 0.0141462 ext 1 total 350 max 520 start_euler 32.5673 18.4863 324.554
+VT run radius_deg 0.329218 steps 10 cost 0.829297 gmin 0.0625001 var 0.00178192 ext 1 total 360 max 530 start_euler 38.2415 17.796 319.558
+VT run radius_deg 0.329218 steps 10 cost 0.926008 gmin 0.0625001 var 0.000133454 ext 0 total 370 max 530 start_euler 33.9576 16.5818 322.735
+VT run radius_deg 0.329218 steps 10 cost 0.684113 gmin 0.0625001 var 0.00481596 ext 1 total 380 max 540 start_euler 32.593 17.346 324.32
+VT run radius_deg 0.329218 steps 10 cost 0.652866 gmin 0.0625001 var 0.0135779 ext 1 total 390 max 550 start_euler 36.0857 17.3725 320.834
+VT run radius_deg 0.329218 steps 10 cost 0.846507 gmin 0.0625001 var 0.00186254 ext 1 total 400 max 560 start_euler 37.3727 17.4406 320.693
+VT run radius_deg 0.329218 steps 10 cost 0.943394 gmin 0.0625001 var 0.000299974 ext 0 total 410 max 560 start_euler 29.467 17.3554 327.335
+VT run radius_deg 0.329218 steps 10 cost 0.920769 gmin 0.0625001 var 0.000383084 ext 0 total 420 max 560 start_euler 35.1704 18.8965 322.57
+VT run radius_deg 0.329218 steps 10 cost 0.855078 gmin 0.0625001 var 0.00087767 ext 1 total 430 max 570 start_euler 36.9166 17.9054 321.084
+VT run radius_deg 0.329218 steps 10 cost 0.894306 gmin 0.0625001 var 0.000791912 ext 1 total 440 max 580 start_euler 33.6245 18.6075 323.983
+VT run radius_deg 0.329218 steps 10 cost 0.757862 gmin 0.0625001 var 0.00471765 ext 1 total 450 max 590 start_euler 30.8371 17.6925 326.401
+VT run radius_deg 0.329218 steps 10 cost 0.858022 gmin 0.0625001 var 0.000922494 ext 1 total 460 max 600 start_euler 33.5168 18.0811 324.826
+VT run radius_deg 0.329218 steps 10 cost 0.664249 gmin 0.0625001 var 0.00686304 ext 1 total 470 max 610 start_euler 32.5658 16.929 323.995
+VT run radius_deg 0.329218 steps 10 cost 0.703971 gmin 0.0625001 var 0.00722103 ext 1 total 480 max 620 start_euler 33.5228 17.6117 323.112
+VT run radius_deg 0.329218 steps 10 cost 0.787241 gmin 0.0625001 var 0.00249206 ext 1 total 490 max 630 start_euler 33.7733 17.7048 322.988
+VT run radius_deg 0.329218 steps 10 cost 0.635295 gmin 0.0625001 var 0.0051278 ext 1 total 500 max 640 start_euler 33.9893 17.1847 323.013
+VT run radius_deg 0.329218 steps 10 cost 0.913043 gmin 0.0625001 var 0.000629562 ext 1 total 510 max 650 start_euler 37.7249 17.5102 319.184
+VT run radius_deg 0.329218 steps 10 cost 0.854215 gmin 0.0625001 var 0.00159516 ext 1 total 520 max 660 start_euler 31.5956 18.3665 326.975
+VT run radius_deg 0.329218 steps 10 cost 0.565972 gmin 0.0625001 var 0.0156487 ext 1 total 530 max 670 start_euler 32.3612 18.7801 324.869
+VT run radius_deg 0.329218 steps 10 cost 0.527647 gmin 0.0625001 var 0.0187207 ext 1 total 540 max 680 start_euler 33.7357 17.9757 323.007
+VT run radius_deg 0.329218 steps 10 cost 0.900773 gmin 0.0625001 var 0.000547876 ext 1 total 550 max 690 start_euler 34.5834 18.971 323.859
+VT run radius_deg 0.329218 steps 10 cost 0.955357 gmin 0.0625001 var 9.51479e-05 ext 0 total 560 max 690 start_euler 30.6214 17.2308 326.857
+VT run radius_deg 0.329218 steps 10 cost 0.930317 gmin 0.0625001 var 0.000329506 ext 0 total 570 max 690 start_euler 34.5333 18.962 323.829
+VT run radius_deg 0.329218 steps 10 cost 0.9375 gmin 0.0625001 var 0.000442731 ext 1 total 580 max 700 start_euler 35.7273 19.0182 322.691
+VT run radius_deg 0.329218 steps 10 cost 0.875214 gmin 0.0625001 var 0.00128211 ext 1 total 590 max 710 start_euler 29.775 18.2961 327.799
+VT run radius_deg 0.329218 steps 10 cost 0.9375 gmin 0.0625001 var 0.000319061 ext 0 total 600 max 710 start_euler 31.9083 17.9262 326.563
+VT run radius_deg 0.329218 steps 10 cost 0.736413 gmin 0.0625001 var 0.00674617 ext 1 total 610 max 720 start_euler 33.9826 17.0785 324.395
+VT run radius_deg 0.329218 steps 10 cost 0.901172 gmin 0.0625001 var 0.000505212 ext 1 total 620 max 730 start_euler 36.8199 17.7539 320.401
+VT run radius_deg 0.329218 steps 10 cost 0.848437 gmin 0.0625001 var 0.00117942 ext 1 total 630 max 740 start_euler 31.7986 17.8587 326.341
+VT run radius_deg 0.329218 steps 10 cost 0.884693 gmin 0.0625001 var 0.000738089 ext 1 total 640 max 750 start_euler 30.2192 17.5221 327.547
+VT run radius_deg 0.329218 steps 10 cost 0.680541 gmin 0.0625001 var 0.0043524 ext 1 total 650 max 760 start_euler 35.4839 17.8443 322.123
+VT run radius_deg 0.329218 steps 10 cost 0.881979 gmin 0.0625001 var 0.000761533 ext 1 total 660 max 770 start_euler 36.0431 17.3829 320.849
+VT run radius_deg 0.329218 steps 10 cost 0.832527 gmin 0.0625001 var 0.00233797 ext 1 total 670 max 780 start_euler 34.3676 16.7192 324.033
+VT run radius_deg 0.329218 steps 10 cost 0.82964 gmin 0.0625001 var 0.00106804 ext 1 total 680 max 790 start_euler 34.8361 18.7206 321.894
+VT run radius_deg 0.329218 steps 10 cost 0.541994 gmin 0.0625001 var 0.0148695 ext 1 total 690 max 800 start_euler 34.4426 17.8461 323.13
+VT run radius_deg 0.329218 steps 10 cost 0.802995 gmin 0.0625001 var 0.0028046 ext 1 total 700 max 810 start_euler 32.3843 18.4093 324.951
+VT run radius_deg 0.329218 steps 10 cost 0.914288 gmin 0.0625001 var 0.000261265 ext 0 total 710 max 810 start_euler 32.4435 17.5266 325.857
+VT run radius_deg 0.329218 steps 10 cost 0.822091 gmin 0.0625001 var 0.00264282 ext 1 total 720 max 820 start_euler 35.6394 17.3015 322.856
+VT run radius_deg 0.329218 steps 10 cost 0.711706 gmin 0.0625001 var 0.00746513 ext 1 total 730 max 830 start_euler 33.9815 16.7202 322.813
+VT run radius_deg 0.329218 steps 10 cost 0.673051 gmin 0.0625001 var 0.0112609 ext 1 total 740 max 840 start_euler 33.1725 16.3724 323.88
+VT run radius_deg 0.329218 steps 10 cost 0.972371 gmin 0.0625001 var 7.37901e-05 ext 0 total 750 max 840 start_euler 29.4651 18.1967 328.273
+VT run radius_deg 0.329218 steps 10 cost 0.753204 gmin 0.0625001 var 0.0034682 ext 1 total 760 max 850 start_euler 34.3123 18.597 323.419
+VT run radius_deg 0.329218 steps 10 cost 0.800765 gmin 0.0625001 var 0.0029512 ext 1 total 770 max 860 start_euler 32.1937 18.6335 325.43
+VT run radius_deg 0.329218 steps 10 cost 0.741877 gmin 0.0625001 var 0.0058009 ext 1 total 780 max 870 start_euler 34.8341 17.9276 321.746
+VT run radius_deg 0.329218 steps 10 cost 0.813831 gmin 0.0625001 var 0.00227549 ext 1 total 790 max 880 start_euler 34.3182 16.5179 323.181
+VT run radius_deg 0.329218 steps 10 cost 0.887097 gmin 0.0625001 var 0.000622046 ext 1 total 800 max 890 start_euler 38.3826 17.736 319.996
+VT run radius_deg 0.329218 steps 10 cost 0.94652 gmin 0.0625001 var 0.000156713 ext 0 total 810 max 890 start_euler 34.5367 18.71 323.182
+VT run radius_deg 0.329218 steps 10 cost 0.688059 gmin 0.0625001 var 0.00750105 ext 1 total 820 max 900 start_euler 31.3546 17.3205 326.094
+VT run radius_deg 0.329218 steps 10 cost 0.863869 gmin 0.0625001 var 0.00156048 ext 1 total 830 max 910 start_euler 33.2585 18.6678 324.25
+VT run radius_deg 0.329218 steps 10 cost 0.368028 gmin 0.0625001 var 0.0365409 ext 1 total 840 max 920 start_euler 32.5701 17.6715 325.506
+VT run radius_deg 0.329218 steps 10 cost 0.946154 gmin 0.0625001 var 0.000255336 ext 0 total 850 max 920 start_euler 32.6037 16.3838 325.441
+VT run radius_deg 0.329218 steps 10 cost 0.716918 gmin 0.0625001 var 0.00383756 ext 1 total 860 max 930 start_euler 35.6565 17.5717 321.537
+VT run radius_deg 0.329218 steps 10 cost 0.621034 gmin 0.0625001 var 0.0193913 ext 1 total 870 max 940 start_euler 35.9319 18.5673 321.544
+VT run radius_deg 0.329218 steps 10 cost 0.478374 gmin 0.0625001 var 0.0196581 ext 1 total 880 max 950 start_euler 35.5598 16.9477 322.148
+VT run radius_deg 0.329218 steps 10 cost 0.943464 gmin 0.0625001 var 9.57542e-05 ext 0 total 890 max 950 start_euler 32.9211 18.6067 325.526
+VT run radius_deg 0.329218 steps 10 cost 0.892386 gmin 0.0625001 var 0.000734201 ext 1 total 900 max 960 start_euler 31.9369 18.8922 325.025
+VT run radius_deg 0.329218 steps 10 cost 0.942969 gmin 0.0625001 var 0.000418267 ext 1 total 910 max 970 start_euler 37.2497 17.1777 319.79
+VT run radius_deg 0.329218 steps 10 cost 0.850881 gmin 0.0625001 var 0.000953985 ext 1 total 920 max 980 start_euler 34.8218 18.2959 323.252
+VT run radius_deg 0.329218 steps 10 cost 0.842056 gmin 0.0625001 var 0.00171428 ext 1 total 930 max 990 start_euler 36.1183 17.2249 322.278
+VT run radius_deg 0.329218 steps 10 cost 0.928228 gmin 0.0625001 var 0.000290397 ext 0 total 940 max 990 start_euler 31.6333 17.1692 325.63
+VT run radius_deg 0.329218 steps 10 cost 0.731081 gmin 0.0625001 var 0.00319961 ext 1 total 950 max 1000 start_euler 32.6375 17.2678 324.244
+VT run radius_deg 0.329218 steps 10 cost 0.884692 gmin 0.0625001 var 0.000825859 ext 1 total 960 max 1010 start_euler 36.4009 18.2004 321.875
+VT run radius_deg 0.329218 steps 10 cost 0.934524 gmin 0.0625001 var 0.000371709 ext 0 total 970 max 1010 start_euler 35.4201 16.9958 321.771
+VT run radius_deg 0.329218 steps 10 cost 0.7753 gmin 0.0625001 var 0.00335648 ext 1 total 980 max 1020 start_euler 31.867 17.9871 326.143
+VT run radius_deg 0.329218 steps 10 cost 0.664296 gmin 0.0625001 var 0.0079602 ext 1 total 990 max 1030 start_euler 35.3698 16.9449 322.314
+VT run radius_deg 0.329218 steps 10 cost 0.868461 gmin 0.0625001 var 0.00192895 ext 1 total 1000 max 1040 start_euler 29.9025 17.701 327.565
+VT run radius_deg 0.329218 steps 10 cost 0.582459 gmin 0.0625001 var 0.00618153 ext 1 total 1010 max 1050 start_euler 35.6268 17.5686 321.918
+VT run radius_deg 0.329218 steps 10 cost 0.501871 gmin 0.0625001 var 0.0226291 ext 1 total 1020 max 1060 start_euler 35.005 18.8092 322.147
+VT run radius_deg 0.329218 steps 10 cost 0.942623 gmin 0.0625001 var 0.000426563 ext 1 total 1030 max 1070 start_euler 30.5783 17.1084 327.034
+VT run radius_deg 0.329218 steps 10 cost 0.522009 gmin 0.0625001 var 0.0173769 ext 1 total 1040 max 1080 start_euler 35.8343 17.3562 322.112
+VT run radius_deg 0.329218 steps 10 cost 0.433571 gmin 0.0625001 var 0.0287551 ext 1 total 1050 max 1090 start_euler 32.5035 18.4059 325.668
+VT run radius_deg 0.329218 steps 10 cost 0.888602 gmin 0.0625001 var 0.000978255 ext 1 total 1060 max 1100 start_euler 36.4934 18.6655 321.747
+VT run radius_deg 0.329218 steps 10 cost 0.75032 gmin 0.0625001 var 0.00707586 ext 1 total 1070 max 1110 start_euler 32.4336 18.832 325.061
+VT run radius_deg 0.329218 steps 10 cost 0.78303 gmin 0.0625001 var 0.00398478 ext 1 total 1080 max 1120 start_euler 31.7023 17.7007 325.116
+VT run radius_deg 0.329218 steps 10 cost 0.927437 gmin 0.0625001 var 0.000193133 ext 0 total 1090 max 1120 start_euler 34.0334 19.0268 323.816
+VT run radius_deg 0.329218 steps 10 cost 0.870465 gmin 0.0625001 var 0.00116599 ext 1 total 1100 max 1130 start_euler 33.8945 18.9422 323.05
+VT run radius_deg 0.329218 steps 10 cost 0.949231 gmin 0.0625001 var 0.000105383 ext 0 total 1110 max 1130 start_euler 32.1801 16.6042 326.09
+VT run radius_deg 0.329218 steps 10 cost 0.935484 gmin 0.0625001 var 0.000203046 ext 0 total 1120 max 1130 start_euler 32.7487 17.122 325.771
+VT run radius_deg 0.329218 steps 10 cost 0.908929 gmin 0.0625001 var 0.000693998 ext 1 total 1130 max 1140 start_euler 34.0081 18.9919 322.755
+VT run radius_deg 0.329218 steps 10 cost 0.262465 gmin 0.0625001 var 0.0192665 ext 1 total 1140 max 1150 start_euler 33.0304 17.5417 323.926
+VT run radius_deg 0.329218 steps 10 cost 0.943468 gmin 0.0625001 var 0.000170161 ext 0 total 1150 max 1150 start_euler 30.5335 17.6899 326.533
+0	|R_0| 0.0475191	|Step | 1150	|GlbPts| 115	|R_c| 0.329218	|MCS| 1150	|Var| 0.000170161	|C_i| 0.0625001	|C_f|0.0625001	[ 33.6328 17.7052 323.907]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 1 	0.9375 ]
+Adaptive Reconstruction 10.6295 sec, evals=220427
+VOXEL_SUMMARY voxel=1 basic_sec=0.749187 basic_evals=16216 adap_sec=10.6295 adap_evals=220427 adap_us_per_eval=48.2225
+[ 0.984375 0.981061 0.91661 ]
+Normal Reconstruction 0.689615 sec, evals=15568
+Num Cliques 4095 MaxRange 0.0645161 MaxRangeCliqueID: 2863 MinCostCliqueID 960 0.901639 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 7026
+Num Cliques 1750 MaxRange 0.0491803 MaxRangeCliqueID: 1312 MinCostCliqueID 0 0.6875 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 2224
+Num Cliques 556 MaxRange 0.113636 MaxRangeCliqueID: 162 MinCostCliqueID 0 0.296875 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 623
+Num Cliques 155 MaxRange 0.0800481 MaxRangeCliqueID: 16 MinCostCliqueID 0 0.203125 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 179
+ |  Before final optimization 
+ nLocalOptCandidates 30
+  After Final Optimization 
+VT run radius_deg 0.0475191 steps 10 cost 0.0649671 gmin 0.0649671 var 0.162836 ext 1 total 10 max 210 start_euler 33.6485 17.7083 323.891
+VT run radius_deg 0.0950381 steps 10 cost 0.319504 gmin 0.0649671 var 0.00524516 ext 1 total 20 max 220 start_euler 33.8556 17.6564 323.516
+VT run radius_deg 0.190076 steps 10 cost 0.616507 gmin 0.0649671 var 0.0060993 ext 1 total 30 max 230 start_euler 34.1086 17.2096 323.374
+VT run radius_deg 0.329218 steps 10 cost 0.911881 gmin 0.0649671 var 0.000583668 ext 1 total 40 max 240 start_euler 33.2303 16.5803 324.543
+VT run radius_deg 0.329218 steps 10 cost 0.895767 gmin 0.0649671 var 0.00046895 ext 1 total 50 max 250 start_euler 32.4755 16.5612 324.386
+VT run radius_deg 0.329218 steps 10 cost 0.96875 gmin 0.0649671 var 0.000210721 ext 0 total 60 max 250 start_euler 28.9599 17.9729 328.04
+VT run radius_deg 0.329218 steps 10 cost 0.940403 gmin 0.0649671 var 0.000206955 ext 0 total 70 max 250 start_euler 32.1266 16.5555 325.96
+VT run radius_deg 0.329218 steps 10 cost 0.940257 gmin 0.0649671 var 0.00022246 ext 0 total 80 max 250 start_euler 30.8958 18.4659 327.134
+VT run radius_deg 0.329218 steps 10 cost 0.960478 gmin 0.0649671 var 8.59576e-05 ext 0 total 90 max 250 start_euler 32.1911 18.475 326.329
+VT run radius_deg 0.329218 steps 10 cost 0.957237 gmin 0.0649671 var 0.000226415 ext 0 total 100 max 250 start_euler 31.0537 16.7787 326.051
+VT run radius_deg 0.329218 steps 10 cost 0.36666 gmin 0.0649671 var 0.0355463 ext 1 total 110 max 260 start_euler 36.4536 17.8949 321.797
+VT run radius_deg 0.329218 steps 10 cost 0.910485 gmin 0.0649671 var 0.000459946 ext 1 total 120 max 270 start_euler 29.8361 18.1401 328.232
+VT run radius_deg 0.329218 steps 10 cost 0.796154 gmin 0.0649671 var 0.00480182 ext 1 total 130 max 280 start_euler 30.3795 17.5888 326.849
+VT run radius_deg 0.329218 steps 10 cost 0.498115 gmin 0.0649671 var 0.00984858 ext 1 total 140 max 290 start_euler 34.657 17.8799 323.484
+VT run radius_deg 0.329218 steps 10 cost 0.518327 gmin 0.0649671 var 0.0116432 ext 1 total 150 max 300 start_euler 33.6171 17.325 323.821
+VT run radius_deg 0.329218 steps 10 cost 0.96875 gmin 0.0649671 var 0.00010469 ext 0 total 160 max 300 start_euler 28.5695 18.1977 328.52
+VT run radius_deg 0.329218 steps 10 cost 0.821101 gmin 0.0649671 var 0.00152118 ext 1 total 170 max 310 start_euler 36.5434 17.0796 321.675
+VT run radius_deg 0.329218 steps 10 cost 0.550149 gmin 0.0649671 var 0.00749681 ext 1 total 180 max 320 start_euler 35.182 17.9058 322.427
+VT run radius_deg 0.329218 steps 10 cost 0.902249 gmin 0.0649671 var 0.000527874 ext 1 total 190 max 330 start_euler 31.9325 17.6679 326.639
+VT run radius_deg 0.329218 steps 10 cost 0.816936 gmin 0.0649671 var 0.00194114 ext 1 total 200 max 340 start_euler 36.8089 17.4586 321.205
+VT run radius_deg 0.329218 steps 10 cost 0.854784 gmin 0.0649671 var 0.00133769 ext 1 total 210 max 350 start_euler 34.3628 18.5933 322.296
+VT run radius_deg 0.329218 steps 10 cost 0.920704 gmin 0.0649671 var 0.000647705 ext 1 total 220 max 360 start_euler 37.8824 17.3926 320.031
+VT run radius_deg 0.329218 steps 10 cost 0.887879 gmin 0.0649671 var 0.00119966 ext 1 total 230 max 370 start_euler 30.6964 17.5551 326.467
+VT run radius_deg 0.329218 steps 10 cost 0.921938 gmin 0.0649671 var 0.000516049 ext 1 total 240 max 380 start_euler 29.3127 18.1025 327.809
+VT run radius_deg 0.329218 steps 10 cost 0.444774 gmin 0.0649671 var 0.0204498 ext 1 total 250 max 390 start_euler 37.7807 17.4652 320.228
+VT run radius_deg 0.329218 steps 10 cost 0.847611 gmin 0.0649671 var 0.00100492 ext 1 total 260 max 400 start_euler 32.335 16.7444 324.59
+VT run radius_deg 0.329218 steps 10 cost 0.900781 gmin 0.0649671 var 0.000319455 ext 0 total 270 max 400 start_euler 36.3014 18.2822 321.78
+VT run radius_deg 0.329218 steps 10 cost 0.933676 gmin 0.0649671 var 0.000304974 ext 0 total 280 max 400 start_euler 34.476 18.7035 323.424
+VT run radius_deg 0.329218 steps 10 cost 0.825781 gmin 0.0649671 var 0.00249155 ext 1 total 290 max 410 start_euler 38.0902 17.9105 319.824
+VT run radius_deg 0.329218 steps 10 cost 0.929214 gmin 0.0649671 var 0.000160547 ext 0 total 300 max 410 start_euler 34.5784 18.7038 323.793
+VT run radius_deg 0.329218 steps 10 cost 0.432289 gmin 0.0649671 var 0.0118483 ext 1 total 310 max 420 start_euler 33.4382 18.1316 323.784
+VT run radius_deg 0.329218 steps 10 cost 0.858209 gmin 0.0649671 var 0.00173473 ext 1 total 320 max 430 start_euler 34.7759 18.5699 322.531
+VT run radius_deg 0.329218 steps 10 cost 0.625068 gmin 0.0649671 var 0.00942715 ext 1 total 330 max 440 start_euler 34.8638 17.6353 322.473
+VT run radius_deg 0.329218 steps 10 cost 0.843718 gmin 0.0649671 var 0.00184322 ext 1 total 340 max 450 start_euler 32.6438 17.3094 325.592
+VT run radius_deg 0.329218 steps 10 cost 0.361084 gmin 0.0649671 var 0.0190435 ext 1 total 350 max 460 start_euler 33.7531 17.8281 323.286
+VT run radius_deg 0.329218 steps 10 cost 0.815315 gmin 0.0649671 var 0.00247452 ext 1 total 360 max 470 start_euler 37.5145 17.4748 320.739
+VT run radius_deg 0.329218 steps 10 cost 0.709103 gmin 0.0649671 var 0.00296251 ext 1 total 370 max 480 start_euler 34.6099 17.3446 322.688
+VT run radius_deg 0.329218 steps 10 cost 0.873177 gmin 0.0649671 var 0.00099721 ext 1 total 380 max 490 start_euler 36.013 17.8259 321.028
+VT run radius_deg 0.329218 steps 10 cost 0.588436 gmin 0.0649671 var 0.00825391 ext 1 total 390 max 500 start_euler 34.7637 17.8673 323.258
+VT run radius_deg 0.329218 steps 10 cost 0.909375 gmin 0.0649671 var 0.000487839 ext 1 total 400 max 510 start_euler 31.8812 17.5189 326.796
+VT run radius_deg 0.329218 steps 10 cost 0.930317 gmin 0.0649671 var 0.000164252 ext 0 total 410 max 510 start_euler 35.2986 18.7307 322.85
+VT run radius_deg 0.329218 steps 10 cost 0.91181 gmin 0.0649671 var 0.000653233 ext 1 total 420 max 520 start_euler 30.1147 18.116 327.152
+VT run radius_deg 0.329218 steps 10 cost 0.57742 gmin 0.0649671 var 0.0159397 ext 1 total 430 max 530 start_euler 33.8693 18.108 324.276
+VT run radius_deg 0.329218 steps 10 cost 0.914476 gmin 0.0649671 var 0.000410414 ext 1 total 440 max 540 start_euler 35.2094 17.5425 321.348
+VT run radius_deg 0.329218 steps 10 cost 0.8025 gmin 0.0649671 var 0.00283433 ext 1 total 450 max 550 start_euler 31.6434 17.181 326.015
+VT run radius_deg 0.329218 steps 10 cost 0.847647 gmin 0.0649671 var 0.00158376 ext 1 total 460 max 560 start_euler 34.6375 17.4561 321.798
+VT run radius_deg 0.329218 steps 10 cost 0.836457 gmin 0.0649671 var 0.00336571 ext 1 total 470 max 570 start_euler 34.2236 17.2591 322.205
+VT run radius_deg 0.329218 steps 10 cost 0.761328 gmin 0.0649671 var 0.00638567 ext 1 total 480 max 580 start_euler 36.3094 17.772 320.712
+VT run radius_deg 0.329218 steps 10 cost 0.932051 gmin 0.0649671 var 0.000179729 ext 0 total 490 max 580 start_euler 32.6083 18.2387 326.038
+VT run radius_deg 0.329218 steps 10 cost 0.781488 gmin 0.0649671 var 0.00390904 ext 1 total 500 max 590 start_euler 34.2416 16.5331 323.712
+VT run radius_deg 0.329218 steps 10 cost 0.944355 gmin 0.0649671 var 0.000210427 ext 0 total 510 max 590 start_euler 34.5812 16.9161 323.919
+VT run radius_deg 0.329218 steps 10 cost 0.892756 gmin 0.0649671 var 0.000477405 ext 1 total 520 max 600 start_euler 30.7784 17.8699 327.42
+VT run radius_deg 0.329218 steps 10 cost 0.893838 gmin 0.0649671 var 0.000776042 ext 1 total 530 max 610 start_euler 32.2364 17.0122 325.528
+VT run radius_deg 0.329218 steps 10 cost 0.930889 gmin 0.0649671 var 0.000370873 ext 0 total 540 max 610 start_euler 34.599 18.4822 323.723
+VT run radius_deg 0.329218 steps 10 cost 0.6031 gmin 0.0649671 var 0.0118234 ext 1 total 550 max 620 start_euler 32.0529 18.0151 324.587
+VT run radius_deg 0.329218 steps 10 cost 0.906706 gmin 0.0649671 var 0.000623806 ext 1 total 560 max 630 start_euler 36.5327 16.776 321.43
+VT run radius_deg 0.329218 steps 10 cost 0.86649 gmin 0.0649671 var 0.000651975 ext 1 total 570 max 640 start_euler 31.5378 16.8132 325.184
+VT run radius_deg 0.329218 steps 10 cost 0.488306 gmin 0.0649671 var 0.0281059 ext 1 total 580 max 650 start_euler 35.9245 18.123 320.997
+VT run radius_deg 0.329218 steps 10 cost 0.55486 gmin 0.0649671 var 0.0217396 ext 1 total 590 max 660 start_euler 31.8844 18.1211 326.382
+VT run radius_deg 0.329218 steps 10 cost 0.605721 gmin 0.0649671 var 0.0123855 ext 1 total 600 max 670 start_euler 35.984 17.5477 322.198
+VT run radius_deg 0.329218 steps 10 cost 0.608758 gmin 0.0649671 var 0.0117233 ext 1 total 610 max 680 start_euler 33.7238 17.168 324.28
+VT run radius_deg 0.329218 steps 10 cost 0.943548 gmin 0.0649671 var 0.000171593 ext 0 total 620 max 680 start_euler 32.0154 17.615 326.513
+VT run radius_deg 0.329218 steps 10 cost 0.590865 gmin 0.0649671 var 0.0064629 ext 1 total 630 max 690 start_euler 32.3865 17.6042 324.417
+VT run radius_deg 0.329218 steps 10 cost 0.951795 gmin 0.0649671 var 0.00016253 ext 0 total 640 max 690 start_euler 31.3382 16.7888 325.993
+VT run radius_deg 0.329218 steps 10 cost 0.489399 gmin 0.0649671 var 0.0196551 ext 1 total 650 max 700 start_euler 35.6151 17.6827 322.008
+VT run radius_deg 0.329218 steps 10 cost 0.637277 gmin 0.0649671 var 0.0155543 ext 1 total 660 max 710 start_euler 33.2576 18.4808 324.308
+VT run radius_deg 0.329218 steps 10 cost 0.90625 gmin 0.0649671 var 0.000392621 ext 0 total 670 max 710 start_euler 30.3183 17.6798 328.088
+VT run radius_deg 0.329218 steps 10 cost 0.869326 gmin 0.0649671 var 0.000722607 ext 1 total 680 max 720 start_euler 33.65 17.8044 324.818
+VT run radius_deg 0.329218 steps 10 cost 0.849002 gmin 0.0649671 var 0.00170832 ext 1 total 690 max 730 start_euler 37.3738 16.8617 321.011
+VT run radius_deg 0.329218 steps 10 cost 0.851465 gmin 0.0649671 var 0.00154164 ext 1 total 700 max 740 start_euler 35.7129 16.8175 322.745
+VT run radius_deg 0.329218 steps 10 cost 0.668092 gmin 0.0649671 var 0.0094048 ext 1 total 710 max 750 start_euler 33.4752 18.568 324.184
+VT run radius_deg 0.329218 steps 10 cost 0.925205 gmin 0.0649671 var 0.000405156 ext 1 total 720 max 760 start_euler 32.8065 18.9401 324.399
+VT run radius_deg 0.329218 steps 10 cost 0.925581 gmin 0.0649671 var 0.000219182 ext 0 total 730 max 760 start_euler 33.8296 18.6706 324.296
+VT run radius_deg 0.329218 steps 10 cost 0.513209 gmin 0.0649671 var 0.0174912 ext 1 total 740 max 770 start_euler 30.7647 17.8731 326.612
+VT run radius_deg 0.329218 steps 10 cost 0.645672 gmin 0.0649671 var 0.00932966 ext 1 total 750 max 780 start_euler 33.7247 18.0135 322.773
+VT run radius_deg 0.329218 steps 10 cost 0.761594 gmin 0.0649671 var 0.0031106 ext 1 total 760 max 790 start_euler 30.6658 17.8814 326.161
+VT run radius_deg 0.329218 steps 10 cost 0.946395 gmin 0.0649671 var 0.000225964 ext 0 total 770 max 790 start_euler 33.8113 16.4368 323.915
+VT run radius_deg 0.329218 steps 10 cost 0.954545 gmin 0.0649671 var 0.000216301 ext 0 total 780 max 790 start_euler 30.2419 18.3022 327.802
+VT run radius_deg 0.329218 steps 10 cost 0.922829 gmin 0.0649671 var 0.00041701 ext 1 total 790 max 800 start_euler 32.6445 16.1879 324.511
+VT run radius_deg 0.329218 steps 10 cost 0.832813 gmin 0.0649671 var 0.00221311 ext 1 total 800 max 810 start_euler 36.3972 16.7816 321.897
+VT run radius_deg 0.329218 steps 10 cost 0.604068 gmin 0.0649671 var 0.0174185 ext 1 total 810 max 820 start_euler 31.3831 16.2588 325.343
+VT run radius_deg 0.329218 steps 10 cost 0.842316 gmin 0.0649671 var 0.0022181 ext 1 total 820 max 830 start_euler 30.2834 17.9274 327.068
+VT run radius_deg 0.329218 steps 10 cost 0.343532 gmin 0.0649671 var 0.0369374 ext 1 total 830 max 840 start_euler 30.5737 18.2936 326.917
+VT run radius_deg 0.329218 steps 10 cost 0.790518 gmin 0.0649671 var 0.00282737 ext 1 total 840 max 850 start_euler 31.5086 17.5523 326.698
+VT run radius_deg 0.329218 steps 10 cost 0.953846 gmin 0.0649671 var 0.000144943 ext 0 total 850 max 850 start_euler 32.1464 16.38 325.345
+0	|R_0| 0.0475191	|Step | 850	|GlbPts| 85	|R_c| 0.329218	|MCS| 850	|Var| 0.000144943	|C_i| 0.0649671	|C_f|0.0649671	[ 33.6485 17.7083 323.891]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.997194 	0.935033 ]
+Adaptive Reconstruction 10.8759 sec, evals=225407
+VOXEL_SUMMARY voxel=2 basic_sec=0.689615 basic_evals=15568 adap_sec=10.8759 adap_evals=225407 adap_us_per_eval=48.2499
+[ 0.90625 0.898662 0.831574 ]
+Normal Reconstruction 0.712182 sec, evals=15666
+Num Cliques 4095 MaxRange 0.0645161 MaxRangeCliqueID: 2863 MinCostCliqueID 960 0.901639 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 7026
+Num Cliques 1751 MaxRange 0.136364 MaxRangeCliqueID: 838 MinCostCliqueID 0 0.83871 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 2210
+Num Cliques 552 MaxRange 0.107692 MaxRangeCliqueID: 55 MinCostCliqueID 0 0.5625 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 617
+Num Cliques 154 MaxRange 0.0848417 MaxRangeCliqueID: 22 MinCostCliqueID 0 0.28125 | -0.5 -0.5 0.5 | 4.00078e-36 1.54143e-44 -0.5
+ || Num candiates 180
+ |  Before final optimization 
+ nLocalOptCandidates 30
+  After Final Optimization 
+VT run radius_deg 0.0475191 steps 10 cost 0.0631249 gmin 0.0631249 var 0.0689465 ext 1 total 10 max 210 start_euler 33.6317 17.7046 323.906
+VT run radius_deg 0.0950381 steps 10 cost 0.22546 gmin 0.0631249 var 0.0246258 ext 1 total 20 max 220 start_euler 33.3448 18.0245 324.365
+VT run radius_deg 0.190076 steps 10 cost 0.236985 gmin 0.0631249 var 0.0344092 ext 1 total 30 max 230 start_euler 33.6465 18.1543 324.166
+VT run radius_deg 0.329218 steps 10 cost 0.723998 gmin 0.0631249 var 0.00730115 ext 1 total 40 max 240 start_euler 30.5389 17.577 327.634
+VT run radius_deg 0.329218 steps 10 cost 0.919819 gmin 0.0631249 var 0.000527403 ext 1 total 50 max 250 start_euler 35.6541 18.5713 322.144
+VT run radius_deg 0.329218 steps 10 cost 0.494237 gmin 0.0631249 var 0.0216888 ext 1 total 60 max 260 start_euler 36.8842 18.1603 320.557
+VT run radius_deg 0.329218 steps 10 cost 0.954545 gmin 0.0631249 var 0.000275991 ext 0 total 70 max 260 start_euler 29.3907 17.7027 327.968
+VT run radius_deg 0.329218 steps 10 cost 0.60008 gmin 0.0631249 var 0.0120918 ext 1 total 80 max 270 start_euler 33.41 16.6068 324.314
+VT run radius_deg 0.329218 steps 10 cost 0.965368 gmin 0.0631249 var 4.4737e-05 ext 0 total 90 max 270 start_euler 30.1193 17.6071 327.88
+VT run radius_deg 0.329218 steps 10 cost 0.908515 gmin 0.0631249 var 0.000622062 ext 1 total 100 max 280 start_euler 29.7582 17.2967 327.352
+VT run radius_deg 0.329218 steps 10 cost 0.825257 gmin 0.0631249 var 0.00149657 ext 1 total 110 max 290 start_euler 30.73 17.896 326.208
+VT run radius_deg 0.329218 steps 10 cost 0.404171 gmin 0.0631249 var 0.027819 ext 1 total 120 max 300 start_euler 35.1939 17.3531 322.408
+VT run radius_deg 0.329218 steps 10 cost 0.901247 gmin 0.0631249 var 0.000544943 ext 1 total 130 max 310 start_euler 34.8539 16.6158 322.274
+VT run radius_deg 0.329218 steps 10 cost 0.817304 gmin 0.0631249 var 0.00157526 ext 1 total 140 max 320 start_euler 33.6061 17.8066 324.859
+VT run radius_deg 0.329218 steps 10 cost 0.626767 gmin 0.0631249 var 0.00629981 ext 1 total 150 max 330 start_euler 32.065 17.2974 325.432
+VT run radius_deg 0.329218 steps 10 cost 0.295224 gmin 0.0631249 var 0.0171175 ext 1 total 160 max 340 start_euler 33.6598 17.7943 323.704
+VT run radius_deg 0.329218 steps 10 cost 0.984375 gmin 0.0631249 var 3.05754e-05 ext 0 total 170 max 340 start_euler 36.7345 17.0205 320.251
+VT run radius_deg 0.329218 steps 10 cost 0.835956 gmin 0.0631249 var 0.00200714 ext 1 total 180 max 350 start_euler 33.3081 16.7842 325.022
+VT run radius_deg 0.329218 steps 10 cost 0.855506 gmin 0.0631249 var 0.00133026 ext 1 total 190 max 360 start_euler 37.3265 17.4988 321.05
+VT run radius_deg 0.329218 steps 10 cost 0.856832 gmin 0.0631249 var 0.00117611 ext 1 total 200 max 370 start_euler 32.4416 16.6995 324.57
+VT run radius_deg 0.329218 steps 10 cost 0.96875 gmin 0.0631249 var 0.000137906 ext 0 total 210 max 370 start_euler 37.1773 17.3241 319.431
+VT run radius_deg 0.329218 steps 10 cost 0.841245 gmin 0.0631249 var 0.0021117 ext 1 total 220 max 380 start_euler 31.1568 16.5387 325.688
+VT run radius_deg 0.329218 steps 10 cost 0.938281 gmin 0.0631249 var 0.000236674 ext 0 total 230 max 380 start_euler 30.9273 17.5808 327.745
+VT run radius_deg 0.329218 steps 10 cost 0.569839 gmin 0.0631249 var 0.0095573 ext 1 total 240 max 390 start_euler 32.4392 17.9254 325.417
+VT run radius_deg 0.329218 steps 10 cost 0.482408 gmin 0.0631249 var 0.00965668 ext 1 total 250 max 400 start_euler 34.2953 17.9165 323.602
+VT run radius_deg 0.329218 steps 10 cost 0.847494 gmin 0.0631249 var 0.000563568 ext 1 total 260 max 410 start_euler 33.7923 18.2124 322.77
+VT run radius_deg 0.329218 steps 10 cost 0.684852 gmin 0.0631249 var 0.0068122 ext 1 total 270 max 420 start_euler 35.6931 17.6357 322.182
+VT run radius_deg 0.329218 steps 10 cost 0.742707 gmin 0.0631249 var 0.00540226 ext 1 total 280 max 430 start_euler 32.7485 18.3522 325.425
+VT run radius_deg 0.329218 steps 10 cost 0.803653 gmin 0.0631249 var 0.00315171 ext 1 total 290 max 440 start_euler 35.0005 16.7192 322.235
+VT run radius_deg 0.329218 steps 10 cost 0.112562 gmin 0.0631249 var 0.0634085 ext 1 total 300 max 450 start_euler 33.7131 18.3914 324.085
+VT run radius_deg 0.329218 steps 10 cost 0.688321 gmin 0.0631249 var 0.00253122 ext 1 total 310 max 460 start_euler 32.1652 17.7026 325.268
+VT run radius_deg 0.329218 steps 10 cost 0.721747 gmin 0.0631249 var 0.0047418 ext 1 total 320 max 470 start_euler 30.7767 18.1166 327.04
+VT run radius_deg 0.329218 steps 10 cost 0.580109 gmin 0.0631249 var 0.0154069 ext 1 total 330 max 480 start_euler 32.0173 17.2032 325.547
+VT run radius_deg 0.329218 steps 10 cost 0.633716 gmin 0.0631249 var 0.0114077 ext 1 total 340 max 490 start_euler 35.3163 18.0719 321.484
+VT run radius_deg 0.329218 steps 10 cost 0.928571 gmin 0.0631249 var 0.000326712 ext 0 total 350 max 490 start_euler 32.7679 16.3897 323.92
+VT run radius_deg 0.329218 steps 10 cost 0.650434 gmin 0.0631249 var 0.00828324 ext 1 total 360 max 500 start_euler 35.1522 17.4673 321.824
+VT run radius_deg 0.329218 steps 10 cost 0.948476 gmin 0.0631249 var 0.000226182 ext 0 total 370 max 500 start_euler 34.7714 19.1836 323.279
+VT run radius_deg 0.329218 steps 10 cost 0.851171 gmin 0.0631249 var 0.00070752 ext 1 total 380 max 510 start_euler 32.0196 17.2888 324.637
+VT run radius_deg 0.329218 steps 10 cost 0.730381 gmin 0.0631249 var 0.00258888 ext 1 total 390 max 520 start_euler 35.6384 16.8795 322.46
+VT run radius_deg 0.329218 steps 10 cost 0.898653 gmin 0.0631249 var 0.000341629 ext 0 total 400 max 520 start_euler 37.9884 17.5961 319.984
+VT run radius_deg 0.329218 steps 10 cost 0.522888 gmin 0.0631249 var 0.0133242 ext 1 total 410 max 530 start_euler 36.8019 17.3372 321.089
+VT run radius_deg 0.329218 steps 10 cost 0.860242 gmin 0.0631249 var 0.00111617 ext 1 total 420 max 540 start_euler 33.2889 16.8662 323.335
+VT run radius_deg 0.329218 steps 10 cost 0.857621 gmin 0.0631249 var 0.00205825 ext 1 total 430 max 550 start_euler 34.8453 16.7074 323.714
+VT run radius_deg 0.329218 steps 10 cost 0.76627 gmin 0.0631249 var 0.00419644 ext 1 total 440 max 560 start_euler 32.8805 17.1671 325.57
+VT run radius_deg 0.329218 steps 10 cost 0.89652 gmin 0.0631249 var 0.000813971 ext 1 total 450 max 570 start_euler 38.0815 17.5192 319.972
+VT run radius_deg 0.329218 steps 10 cost 0.737783 gmin 0.0631249 var 0.0046866 ext 1 total 460 max 580 start_euler 32.4691 18.0474 325.896
+VT run radius_deg 0.329218 steps 10 cost 0.906968 gmin 0.0631249 var 0.000490733 ext 1 total 470 max 590 start_euler 32.5292 16.2779 324.366
+VT run radius_deg 0.329218 steps 10 cost 0.867676 gmin 0.0631249 var 0.00156399 ext 1 total 480 max 600 start_euler 36.9332 17.3084 321.248
+VT run radius_deg 0.329218 steps 10 cost 0.914101 gmin 0.0631249 var 0.000634264 ext 1 total 490 max 610 start_euler 29.7973 17.4535 327.354
+VT run radius_deg 0.329218 steps 10 cost 0.809048 gmin 0.0631249 var 0.0021659 ext 1 total 500 max 620 start_euler 35.4453 17.5705 322.982
+VT run radius_deg 0.329218 steps 10 cost 0.221457 gmin 0.0631249 var 0.0319516 ext 1 total 510 max 630 start_euler 35.4987 17.6329 321.801
+VT run radius_deg 0.329218 steps 10 cost 0.903509 gmin 0.0631249 var 0.000276734 ext 0 total 520 max 630 start_euler 32.4087 16.655 324.19
+VT run radius_deg 0.329218 steps 10 cost 0.900007 gmin 0.0631249 var 0.000697757 ext 1 total 530 max 640 start_euler 35.5541 18.6322 322.014
+VT run radius_deg 0.329218 steps 10 cost 0.939394 gmin 0.0631249 var 0.000732008 ext 1 total 540 max 650 start_euler 38.0174 17.5664 318.956
+VT run radius_deg 0.329218 steps 10 cost 0.947062 gmin 0.0631249 var 0.000176396 ext 0 total 550 max 650 start_euler 32.5331 17.202 326.066
+VT run radius_deg 0.329218 steps 10 cost 0.95856 gmin 0.0631249 var 0.000110924 ext 0 total 560 max 650 start_euler 31.1259 17.6455 327.591
+VT run radius_deg 0.329218 steps 10 cost 0.911741 gmin 0.0631249 var 0.000660262 ext 1 total 570 max 660 start_euler 35.5952 18.7156 322.535
+VT run radius_deg 0.329218 steps 10 cost 0.469629 gmin 0.0631249 var 0.0172151 ext 1 total 580 max 670 start_euler 32.2032 17.4487 325.119
+VT run radius_deg 0.329218 steps 10 cost 0.444668 gmin 0.0631249 var 0.0228919 ext 1 total 590 max 680 start_euler 35.434 18.0607 322.3
+VT run radius_deg 0.329218 steps 10 cost 0.95082 gmin 0.0631249 var 0.000138733 ext 0 total 600 max 680 start_euler 31.1033 17.695 327.261
+VT run radius_deg 0.329218 steps 10 cost 0.618855 gmin 0.0631249 var 0.0104636 ext 1 total 610 max 690 start_euler 32.1297 18.5115 325.611
+VT run radius_deg 0.329218 steps 10 cost 0.902007 gmin 0.0631249 var 0.000948893 ext 1 total 620 max 700 start_euler 30.617 17.2027 326.429
+VT run radius_deg 0.329218 steps 10 cost 0.29135 gmin 0.0631249 var 0.0409357 ext 1 total 630 max 710 start_euler 31.3528 17.8839 325.419
+VT run radius_deg 0.329218 steps 10 cost 0.463047 gmin 0.0631249 var 0.0250641 ext 1 total 640 max 720 start_euler 33.0294 16.865 323.636
+VT run radius_deg 0.329218 steps 10 cost 0.873981 gmin 0.0631249 var 0.000493222 ext 1 total 650 max 730 start_euler 34.2704 18.5163 323.456
+VT run radius_deg 0.329218 steps 10 cost 0.689789 gmin 0.0631249 var 0.00825176 ext 1 total 660 max 740 start_euler 32.195 18.1741 326.264
+VT run radius_deg 0.329218 steps 10 cost 0.542957 gmin 0.0631249 var 0.0160951 ext 1 total 670 max 750 start_euler 33.7801 17.9352 322.974
+VT run radius_deg 0.329218 steps 10 cost 0.85869 gmin 0.0631249 var 0.0009468 ext 1 total 680 max 760 start_euler 32.0877 18.7363 324.744
+VT run radius_deg 0.329218 steps 10 cost 0.637914 gmin 0.0631249 var 0.00898405 ext 1 total 690 max 770 start_euler 34.7719 17.5281 323.279
+VT run radius_deg 0.329218 steps 10 cost 0.617575 gmin 0.0631249 var 0.0162656 ext 1 total 700 max 780 start_euler 32.9103 17.3536 325.491
+VT run radius_deg 0.329218 steps 10 cost 0.854238 gmin 0.0631249 var 0.00153851 ext 1 total 710 max 790 start_euler 35.3483 17.1197 322.724
+VT run radius_deg 0.329218 steps 10 cost 0.737439 gmin 0.0631249 var 0.00509056 ext 1 total 720 max 800 start_euler 35.2627 17.3431 321.152
+VT run radius_deg 0.329218 steps 10 cost 0.953175 gmin 0.0631249 var 0.000203568 ext 0 total 730 max 800 start_euler 36.5427 17.4526 320.105
+VT run radius_deg 0.329218 steps 10 cost 0.878646 gmin 0.0631249 var 0.000893583 ext 1 total 740 max 810 start_euler 35.2889 18.567 323.117
+VT run radius_deg 0.329218 steps 10 cost 0.896013 gmin 0.0631249 var 0.000632936 ext 1 total 750 max 820 start_euler 35.3213 18.461 322.883
+VT run radius_deg 0.329218 steps 10 cost 0.782451 gmin 0.0631249 var 0.00492151 ext 1 total 760 max 830 start_euler 32.0445 17.5162 324.508
+VT run radius_deg 0.329218 steps 10 cost 0.628784 gmin 0.0631249 var 0.0112417 ext 1 total 770 max 840 start_euler 33.5479 16.815 324.621
+VT run radius_deg 0.329218 steps 10 cost 0.45396 gmin 0.0631249 var 0.0122993 ext 1 total 780 max 850 start_euler 32.592 17.5822 324.196
+VT run radius_deg 0.329218 steps 10 cost 0.865359 gmin 0.0631249 var 0.000466672 ext 1 total 790 max 860 start_euler 35.9773 17.9275 321.945
+VT run radius_deg 0.329218 steps 10 cost 0.923562 gmin 0.0631249 var 0.000471915 ext 1 total 800 max 870 start_euler 35.6713 18.2639 320.686
+VT run radius_deg 0.329218 steps 10 cost 0.84633 gmin 0.0631249 var 0.00116993 ext 1 total 810 max 880 start_euler 36.8248 17.4115 320.549
+VT run radius_deg 0.329218 steps 10 cost 0.941176 gmin 0.0631249 var 0.000273266 ext 0 total 820 max 880 start_euler 34.5438 18.8284 323.057
+VT run radius_deg 0.329218 steps 10 cost 0.944744 gmin 0.0631249 var 0.000230401 ext 0 total 830 max 880 start_euler 32.0215 16.4242 325.647
+VT run radius_deg 0.329218 steps 10 cost 0.512434 gmin 0.0631249 var 0.0210861 ext 1 total 840 max 890 start_euler 35.2445 18.2619 323.273
+VT run radius_deg 0.329218 steps 10 cost 0.969231 gmin 0.0631249 var 0.000113386 ext 0 total 850 max 890 start_euler 33.2191 19.0927 323.826
+VT run radius_deg 0.329218 steps 10 cost 0.522424 gmin 0.0631249 var 0.0178886 ext 1 total 860 max 900 start_euler 33.8513 18.4419 323.573
+VT run radius_deg 0.329218 steps 10 cost 0.954685 gmin 0.0631249 var 0.000233771 ext 0 total 870 max 900 start_euler 35.6995 16.8368 321.201
+VT run radius_deg 0.329218 steps 10 cost 0.526287 gmin 0.0631249 var 0.00821154 ext 1 total 880 max 910 start_euler 32.6752 17.9336 325.081
+VT run radius_deg 0.329218 steps 10 cost 0.868967 gmin 0.0631249 var 0.00169685 ext 1 total 890 max 920 start_euler 35.7805 17.2558 321.619
+VT run radius_deg 0.329218 steps 10 cost 0.298907 gmin 0.0631249 var 0.0479586 ext 1 total 900 max 930 start_euler 34.6101 18.464 322.997
+VT run radius_deg 0.329218 steps 10 cost 0.713019 gmin 0.0631249 var 0.00631846 ext 1 total 910 max 940 start_euler 31.1386 17.3502 326.411
+VT run radius_deg 0.329218 steps 10 cost 0.94545 gmin 0.0631249 var 0.000355113 ext 0 total 920 max 940 start_euler 32.5527 18.0844 326.081
+VT run radius_deg 0.329218 steps 10 cost 0.865033 gmin 0.0631249 var 0.00189859 ext 1 total 930 max 950 start_euler 35.5523 18.202 321.587
+VT run radius_deg 0.329218 steps 10 cost 0.884937 gmin 0.0631249 var 0.000624642 ext 1 total 940 max 960 start_euler 36.3695 18.0395 321.384
+VT run radius_deg 0.329218 steps 10 cost 0.846217 gmin 0.0631249 var 0.000860364 ext 1 total 950 max 970 start_euler 37.1937 17.5003 320.486
+VT run radius_deg 0.329218 steps 10 cost 0.877692 gmin 0.0631249 var 0.0011164 ext 1 total 960 max 980 start_euler 30.695 18.0506 327.139
+VT run radius_deg 0.329218 steps 10 cost 0.81771 gmin 0.0631249 var 0.00228628 ext 1 total 970 max 990 start_euler 31.2771 18.0568 326.86
+VT run radius_deg 0.329218 steps 10 cost 0.234977 gmin 0.0631249 var 0.0374165 ext 1 total 980 max 1000 start_euler 31.4916 17.825 325.124
+VT run radius_deg 0.329218 steps 10 cost 0.608404 gmin 0.0631249 var 0.0122636 ext 1 total 990 max 1010 start_euler 34.6764 16.6166 323.584
+VT run radius_deg 0.329218 steps 10 cost 0.921026 gmin 0.0631249 var 0.000192028 ext 0 total 1000 max 1010 start_euler 34.4637 18.8235 323.706
+VT run radius_deg 0.329218 steps 10 cost 0.701127 gmin 0.0631249 var 0.00646971 ext 1 total 1010 max 1020 start_euler 32.2714 17.1194 325.973
+VT run radius_deg 0.329218 steps 10 cost 0.70077 gmin 0.0631249 var 0.00838153 ext 1 total 1020 max 1030 start_euler 35.4065 16.9017 322.306
+VT run radius_deg 0.329218 steps 10 cost 0.360665 gmin 0.0631249 var 0.033293 ext 1 total 1030 max 1040 start_euler 34.1904 17.4064 322.968
+VT run radius_deg 0.329218 steps 10 cost 0.960432 gmin 0.0631249 var 0.00010893 ext 0 total 1040 max 1040 start_euler 30.6097 18.2541 326.029
+0	|R_0| 0.0475191	|Step | 1040	|GlbPts| 104	|R_c| 0.329218	|MCS| 1040	|Var| 0.00010893	|C_i| 0.0631249	|C_f|0.0631249	[ 33.6317 17.7046 323.906]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.999067 	0.936875 ]
+Adaptive Reconstruction 10.8293 sec, evals=225036
+VOXEL_SUMMARY voxel=3 basic_sec=0.712182 basic_evals=15666 adap_sec=10.8293 adap_evals=225036 adap_us_per_eval=48.1226

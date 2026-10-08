@@ -728,6 +728,8 @@ Commands for the `GNLayerNet` (`--arch gn`) and Step 4 (distractor/realism layer
 
 `scripts/phase_d/` (Phase D data of the finisher/MC study; own header docstrings): `make_neworient.py` (new orientations for the 500-grain sample -> `Examples/Example2.ManyGrains/SimInput/rand_500grains_1mm_neworient_s0.*`), `render_full.py` (full-sample forward simulation, clean and realistic detector-noise images, 10 workers -> `Examples/Example2.ManyGrains/ScatteringData_PhaseD/`, gitignored), `sanity_checks.py`, `frame_split_check.py`, `memmap_check.py`, `bfs_timing_probe.py`, `make_configs.py` (-> `configs/ReconstructPhaseD_{mc,cma,cma_noretry}_{clean,realistic,realistic_q16}.config`, all reading the grid-only `..._grid.mic`), `summary.py`. The opt-in low-memory loader `ExperimentalData.from_binary_memmap` / `write_binary_stack` (`icenine/experimental_data.py`, uint8 `.npy` stack, hard cost only) is documented there. Record in MIGRATION_HISTORY, "Phase D data"; tests in `tests/test_phase_d.py`.
 
+Seed-cost diagnosis and the variance-stage parity fix (`scripts/phase_d/seed_diag*.py`, `seed_diag_variance_parity*.py`, `tests/test_seed_diag.py`, `tests/test_variance_stage_parity.py`): `MCOptimizer.variance_minimizing_optimize` restarts as C++ does (offsets +-SubregionRadius about the initial orientation); see MIGRATION_HISTORY, "C++ vs Python variance stage".
+
 `scripts/checks/` holds the numerical checks behind the derivations in `docs/`. Results
 of the Stage 0 run are in `benchmarks/toy_orientation_stage0/`.
 

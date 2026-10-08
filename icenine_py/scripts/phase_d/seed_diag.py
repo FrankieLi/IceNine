@@ -273,13 +273,13 @@ def run(a: argparse.Namespace) -> None:
             taken += n_sub
             if new_c >= gmin:
                 sub = min(2.0 * sub, search_box_side)
-                hb = search_box_side / 2.0
+                # restart as C++ and the library now do: offsets +-sub about the INITIAL orientation
                 rq = self._grid_gen.get_near_identity_point(
-                    self._rng.uniform(-hb, hb),
-                    self._rng.uniform(-hb, hb),
-                    self._rng.uniform(-hb, hb),
+                    self._rng.uniform(-sub, sub),
+                    self._rng.uniform(-sub, sub),
+                    self._rng.uniform(-sub, sub),
                 )
-                cq = _quat_multiply(rq, gq)
+                cq = _quat_multiply(rq, matrix_to_quaternion(initial_orientation))
             else:
                 gmin, gq, ginfo = new_c, matrix_to_quaternion(new_o), new_i
                 cq = gq.copy()

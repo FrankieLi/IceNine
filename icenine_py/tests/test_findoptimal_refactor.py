@@ -32,9 +32,13 @@ from icenine.reconstructor import (
 EXAMPLE = Path(__file__).parent.parent.parent / "Examples" / "Example2.ThreeVoxels"
 
 # (final orientation as rotvec of R_final R_true^T in degrees, cost) recorded before the refactor
+# Re-recorded after the VarianceMinimizing restart fix (C++ restart semantics, MIGRATION_HISTORY
+# "C++ vs Python variance stage"); before: [-0.12518150458946703, 0.16879997485875445,
+# 0.02470329742498792], cost 0.8180327868852459. A toy problem (3 candidates, cost 0.8 to 0.9 =
+# not converged), so the value is one draw of the random restarts, not an accuracy statement.
 GOLDEN: Tuple[np.ndarray, float] = (
-    np.array([-0.12518150458946703, 0.16879997485875445, 0.02470329742498792]),
-    0.8180327868852459,
+    np.array([-0.3892150954466177, 0.857439816451382, -0.18924039428856979]),
+    0.896551724137931,
 )
 
 # Environment the golden values were recorded in (the one `uv sync --extra dev` builds from

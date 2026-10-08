@@ -209,6 +209,7 @@ class LoggedMC(MCOptimizer):
         cost_fn_angular_resolution: float = math.radians(0.5),
     ) -> SearchCandidate:
         global_best_q = matrix_to_quaternion(initial_orientation)
+        initial_q = global_best_q.copy()
         current_q = global_best_q.copy()
         global_best_info = self.cost_fn.evaluate(
             initial_orientation, self.voxel_vertices, self.phase_index
@@ -244,12 +245,12 @@ class LoggedMC(MCOptimizer):
             total_steps_taken += n_subregion_steps
             if new_cost >= global_min_cost:
                 subregion_radius = min(2.0 * subregion_radius, search_box_side)
-                half_box = search_box_side / 2.0
-                rx = self._rng.uniform(-half_box, half_box)
-                ry = self._rng.uniform(-half_box, half_box)
-                rz = self._rng.uniform(-half_box, half_box)
+                # restart as C++ and MCOptimizer: +-SubregionRadius about the initial orientation
+                rx = self._rng.uniform(-subregion_radius, subregion_radius)
+                ry = self._rng.uniform(-subregion_radius, subregion_radius)
+                rz = self._rng.uniform(-subregion_radius, subregion_radius)
                 restart_q = self._grid_gen.get_near_identity_point(rx, ry, rz)
-                current_q = _quat_multiply(restart_q, global_best_q)
+                current_q = _quat_multiply(restart_q, initial_q)
                 n_global_restarts += 1
             else:
                 global_min_cost = new_cost

@@ -692,6 +692,7 @@ class MCOptimizer:
         """
         # Initialize
         global_best_q = matrix_to_quaternion(initial_orientation)
+        initial_q = global_best_q.copy()
         current_q = global_best_q.copy()
         global_best_info = self.cost_fn.evaluate(
             initial_orientation, self.voxel_vertices, self.phase_index
@@ -731,13 +732,14 @@ class MCOptimizer:
             if new_cost >= global_min_cost:
                 # No improvement — expand and restart
                 subregion_radius = min(2.0 * subregion_radius, search_box_side)
-                # Random restart from global best
-                half_box = search_box_side / 2.0
-                rx = self._rng.uniform(-half_box, half_box)
-                ry = self._rng.uniform(-half_box, half_box)
-                rz = self._rng.uniform(-half_box, half_box)
+                # Random restart: C++ draws each barycentric offset uniformly in +-SubregionRadius
+                # (the radius just updated above, unscaled by tan/sqrt(12)) and applies it to the
+                # INITIAL orientation, not the current global best (OrientationSearch.cpp 248-255).
+                rx = self._rng.uniform(-subregion_radius, subregion_radius)
+                ry = self._rng.uniform(-subregion_radius, subregion_radius)
+                rz = self._rng.uniform(-subregion_radius, subregion_radius)
                 restart_q = self._grid_gen.get_near_identity_point(rx, ry, rz)
-                current_q = _quat_multiply(restart_q, global_best_q)
+                current_q = _quat_multiply(restart_q, initial_q)
                 n_global_restarts += 1
             else:
                 # Improvement — update global best and shrink
