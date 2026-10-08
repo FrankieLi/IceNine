@@ -438,11 +438,43 @@ class MCOptimizer:
         self.phase_index = phase_index
         self._grid_gen = QuaternionGrid()
         self._rng = rng or np.random.default_rng()
+        self.last_run: Dict[str, float] = {}
+        self._block_start = 0
 
     @property
     def rng(self) -> np.random.Generator:
         """The generator driving this optimizer (shared with a CMAOptimizer seeded from it)."""
         return self._rng
+
+    def _mc_block(
+        self, start_q: np.ndarray, step: float, n_steps: int
+    ) -> Tuple[np.ndarray, float, "OverlapInfo"]:
+        """One zero-temperature block (C++ ZeroTemperatureOptimization): evaluate the start, then
+        n_steps trial rotations delta * (best state of the block), accepting strict improvements.
+
+        Proposal: x, y, z ~ U(-r, r) with r = tan(step)/sqrt(12), drawn in that order, then
+        delta = near-identity quaternion (x, y, z). Returns (best_q, best_cost, best_info).
+        """
+        opt_q = start_q.copy()
+        opt_info = self.cost_fn.evaluate(
+            quaternion_to_matrix(opt_q), self.voxel_vertices, self.phase_index
+        )
+        opt_cost = opt_info.cost
+        radius = math.tan(step) / math.sqrt(12.0) if step > 0 else 0.01
+        for _ in range(n_steps):
+            x = self._rng.uniform(-radius, radius)
+            y = self._rng.uniform(-radius, radius)
+            z = self._rng.uniform(-radius, radius)
+            delta_q = self._grid_gen.get_near_identity_point(x, y, z)
+            trial_q = _quat_multiply(delta_q, opt_q)
+            trial_info = self.cost_fn.evaluate(
+                quaternion_to_matrix(trial_q), self.voxel_vertices, self.phase_index
+            )
+            if trial_info.cost < opt_cost:
+                opt_q = trial_q
+                opt_cost = trial_info.cost
+                opt_info = trial_info
+        return opt_q, opt_cost, opt_info
 
     def optimize(
         self,
@@ -455,144 +487,142 @@ class MCOptimizer:
         trajectory: Optional[List[Dict]] = None,
     ) -> SearchCandidate:
         """
-        Run zero-temperature MC optimization from initial orientation.
+        Run zero-temperature MC optimization from initial orientation (C++ RandomRestartZeroTemp).
+
+        Structure (as C++): blocks of nMinErgodicSteps = int(2 (box/step)^3) trial steps (computed
+        once from the initial step; the last block is cut to the remaining budget), each run from
+        the current state at the current fixed step. A block whose result is not strictly below the
+        global best is a failure: restart at q(delta) * initial with delta drawn from
+        x, y, z ~ U(-r, r), r = tan(box)/sqrt(48) (about the INITIAL orientation, not the best), the
+        step reset, successive failures + 1. Otherwise: global best and current state := block
+        result, step halved, failures reset. After every block: stop if the global cost is below
+        max_convergence_cost, then if successive failures exceed max_restarts. The budget counts
+        trial steps (each block also evaluates its start, one extra evaluation per block).
 
         Args:
             initial_orientation: Starting 3x3 rotation matrix
             angular_box_side: Side length of search box (radians)
             angular_step: Initial angular step size (radians)
-            max_mc_steps: Maximum MC steps
-            max_restarts: Maximum number of random restarts
+            max_mc_steps: Maximum MC steps (trial steps, summed over blocks)
+            max_restarts: Maximum number of successive failed blocks
             max_convergence_cost: Early stop if cost drops below this
-            trajectory: Optional list; when provided, accepted-move records are
-                appended as dicts with keys step, event_type, angular_step_deg,
-                cur_step_rad. Non-breaking: ignored when None (default).
+            trajectory: Optional list; when provided, one record per block is appended as a dict
+                with keys step (cumulative steps at the block end), event_type ("mc_accept" for a
+                block that improved the global best, "mc_restart" for a failed one),
+                angular_step_deg, cur_step_rad (the step after the update). Ignored when None.
 
         Returns:
-            Best SearchCandidate found
+            Best SearchCandidate found. The run's bookkeeping (stop reason, blocks, ...) is left in
+            ``self.last_run``.
 
-        C++ Reference: OrientationSearch.cpp:296-365 RandomRestartZeroTemp
+        C++ Reference: OrientationSearch.cpp:297-363 RandomRestartZeroTemp (+ lines 100-135)
         """
-        # Convert initial orientation to quaternion
-        best_q = matrix_to_quaternion(initial_orientation)
-        optimal_q = best_q.copy()
-        prev_best_q = best_q.copy()  # for trajectory angular-step computation
-
-        # Evaluate initial cost
+        initial_q = matrix_to_quaternion(initial_orientation)
+        best_q = initial_q.copy()
         best_info = self.cost_fn.evaluate(
             initial_orientation, self.voxel_vertices, self.phase_index
         )
         global_min_cost = best_info.cost
-        current_cost = global_min_cost
+        cost_start = global_min_cost
+        current_q = initial_q.copy()
 
         cur_step = angular_step
+        total_steps = 0
+        n_succ_restarts = 0
         n_restarts = 0
-        n_steps_since_improve = 0
-
-        # Ergodic step count: estimate how many steps to cover the search box
-        min_ergodic = (
-            max(1, int(2.0 * (angular_box_side / cur_step) ** 3)) if cur_step > 0 else max_mc_steps
+        n_accept = 0
+        n_blocks = 0
+        last_accept = -1
+        stop = 0  # 0 step budget, 1 restarts exhausted, 2 cost converged
+        n_min_ergodic = (
+            int(2.0 * (angular_box_side / cur_step) ** 3) if cur_step > 0 else max_mc_steps
         )
+        n_opt = n_min_ergodic
 
-        for step in range(max_mc_steps):
-            # Generate random perturbation
-            # C++: radius = tan(step_size) / sqrt(12)
-            radius = math.tan(cur_step) / math.sqrt(12.0) if cur_step > 0 else 0.01
-            x = self._rng.uniform(-radius, radius)
-            y = self._rng.uniform(-radius, radius)
-            z = self._rng.uniform(-radius, radius)
+        while total_steps < max_mc_steps:
+            n_opt = max(min(n_opt, max_mc_steps - total_steps), 0)
+            block_step = cur_step
+            self._block_start = total_steps
+            tmp_q, tmp_cost, tmp_info = self._mc_block(current_q, cur_step, n_opt)
+            total_steps += n_opt
+            n_blocks += 1
 
-            delta_q = self._grid_gen.get_near_identity_point(x, y, z)
-
-            # Compose: trial = delta * optimal
-            trial_q = _quat_multiply(delta_q, optimal_q)
-            trial_mat = quaternion_to_matrix(trial_q)
-
-            # Evaluate cost
-            trial_info = self.cost_fn.evaluate(trial_mat, self.voxel_vertices, self.phase_index)
-
-            if trial_info.cost < current_cost:
-                # Accept improvement
-                current_cost = trial_info.cost
-                optimal_q = trial_q.copy()
-
-                if current_cost < global_min_cost:
-                    global_min_cost = current_cost
-                    best_q = optimal_q.copy()
-                    best_info = trial_info
-                    n_steps_since_improve = 0
-
-                    # Halve step size on improvement
-                    cur_step *= 0.5
-                    min_ergodic = (
-                        max(1, int(2.0 * (angular_box_side / cur_step) ** 3))
-                        if cur_step > 0
-                        else max_mc_steps
-                    )
-
-                    if trajectory is not None:
-                        trajectory.append(
-                            {
-                                "step": step,
-                                "event_type": "mc_accept",
-                                "angular_step_deg": _quat_misorientation_deg(prev_best_q, best_q),
-                                "cur_step_rad": cur_step,  # already halved
-                            }
-                        )
-                        prev_best_q = best_q.copy()
-
-                    # Early convergence check
-                    if global_min_cost < max_convergence_cost:
-                        break
-            else:
-                n_steps_since_improve += 1
-
-            # Restart check
-            if n_steps_since_improve >= min_ergodic:
-                n_restarts += 1
-                if n_restarts > max_restarts:
-                    break
-
-                # Random restart within box
-                half_box = angular_box_side / 2.0
-                rx = self._rng.uniform(-half_box, half_box)
-                ry = self._rng.uniform(-half_box, half_box)
-                rz = self._rng.uniform(-half_box, half_box)
-                restart_q = self._grid_gen.get_near_identity_point(rx, ry, rz)
-                restart_q = _quat_multiply(restart_q, best_q)
-                optimal_q = restart_q.copy()
-
-                if trajectory is not None:
-                    trajectory.append(
-                        {
-                            "step": step,
-                            "event_type": "mc_restart",
-                            "angular_step_deg": _quat_misorientation_deg(best_q, optimal_q),
-                            "cur_step_rad": angular_step,  # reset to original step size
-                        }
-                    )
-
-                # Re-evaluate at restart point
-                restart_mat = quaternion_to_matrix(optimal_q)
-                restart_info = self.cost_fn.evaluate(
-                    restart_mat, self.voxel_vertices, self.phase_index
-                )
-                current_cost = restart_info.cost
-
-                # Reset step size
+            prev_best_q = best_q
+            if tmp_cost >= global_min_cost:
+                # failure: restart about the initial orientation, reset step and block length
+                radius = math.tan(angular_box_side) / math.sqrt(48.0)
+                x = self._rng.uniform(-radius, radius)
+                y = self._rng.uniform(-radius, radius)
+                z = self._rng.uniform(-radius, radius)
+                delta_q = self._grid_gen.get_near_identity_point(x, y, z)
+                current_q = _quat_multiply(delta_q, initial_q)
                 cur_step = angular_step
-                n_steps_since_improve = 0
-                min_ergodic = (
-                    max(1, int(2.0 * (angular_box_side / cur_step) ** 3))
-                    if cur_step > 0
-                    else max_mc_steps
-                )
+                n_succ_restarts += 1
+                n_restarts += 1
+                n_opt = n_min_ergodic
+                event = "mc_restart"
+                moved = current_q
+            else:
+                n_succ_restarts = 0
+                global_min_cost = tmp_cost
+                best_q = tmp_q
+                best_info = tmp_info
+                current_q = tmp_q
+                cur_step *= 0.5
+                n_accept += 1
+                last_accept = total_steps
+                event = "mc_accept"
+                moved = best_q
 
+            if trajectory is not None:
+                trajectory.append(
+                    {
+                        "step": total_steps,
+                        "event_type": event,
+                        "angular_step_deg": _quat_misorientation_deg(prev_best_q, moved),
+                        "cur_step_rad": cur_step,
+                    }
+                )
+            self._on_block_end(
+                event, block_step, n_succ_restarts, global_min_cost, current_q, best_q
+            )
+
+            if global_min_cost < max_convergence_cost:
+                stop = 2
+                break
+            if n_succ_restarts > max_restarts:
+                stop = 1
+                break
+
+        self.last_run = dict(
+            stop=stop,
+            steps_run=total_steps,
+            n_accept=n_accept,
+            last_accept=last_accept,
+            n_restarts=n_restarts,
+            n_blocks=n_blocks,
+            final_step_deg=math.degrees(cur_step),
+            min_ergodic=n_min_ergodic,
+            since_improve=n_succ_restarts,
+            cost_start=cost_start,
+            cost_end=global_min_cost,
+        )
         return SearchCandidate(
             orientation=quaternion_to_matrix(best_q),
             cost=global_min_cost,
             overlap_info=best_info,
         )
+
+    def _on_block_end(
+        self,
+        event: str,
+        block_step: float,
+        n_succ_restarts: int,
+        global_min_cost: float,
+        current_q: np.ndarray,
+        best_q: np.ndarray,
+    ) -> None:
+        """Hook called after every block (no-op; the study scripts subclass it)."""
 
     def _zero_temp_with_variance(
         self,

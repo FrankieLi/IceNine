@@ -68,16 +68,14 @@ def test_restart_is_about_initial_orientation_with_subregion_radius() -> None:
     assert math.isclose(rec.radii[0], r0)
     assert math.isclose(rec.radii[1], 0.5 * r0)  # shrunk after the improvement
     assert math.isclose(rec.radii[2], r0)  # doubled after the failure (no cap reached)
-    # the restart offsets are uniform in +-(doubled radius), not +-box/2
+    # the restart offsets are uniform in +-(doubled radius), not +-box/2; replaying them from a twin
+    # generator pins the update order (radius doubled BEFORE the draw) and the draw order x, y, z
+    twin = np.random.default_rng(1)
+    off = tuple(twin.uniform(-r0, r0) for _ in range(3))
     assert len(rec.offsets) >= 1
-    for off in rec.offsets[:1]:
-        assert max(abs(c) for c in off) <= r0 + 1e-15
-    # the restart is applied to the INITIAL orientation (run 1 improved but kept the initial matrix
-    # here, so also check against a global best that differs: see the next test)
+    assert rec.offsets[0] == off
     expect = quaternion_to_matrix(
-        _quat_multiply(
-            mc._grid_gen.get_near_identity_point(*rec.offsets[0]), matrix_to_quaternion(R0)
-        )
+        _quat_multiply(mc._grid_gen.get_near_identity_point(*off), matrix_to_quaternion(R0))
     )
     np.testing.assert_allclose(rec.starts[2], expect, atol=1e-12)
 
@@ -107,7 +105,12 @@ def test_restart_ignores_improved_global_best() -> None:
     mc._zero_temp_with_variance = fake  # type: ignore[method-assign]
     mc.variance_minimizing_optimize(R0, box, 20, 2, 0.0, 0.02**2)
     assert calls["n"] >= 3
-    off = rec.offsets[0]
+    # twin-generator replay: failure after the improvement: radius 0.5 r0 doubled back to r0, then
+    # the three draws U(-r0, r0) in order
+    r0 = math.tan(box) / math.sqrt(48.0)
+    twin = np.random.default_rng(2)
+    off = tuple(twin.uniform(-r0, r0) for _ in range(3))
+    assert rec.offsets[0] == off
     q0 = matrix_to_quaternion(R0)
     from_initial = quaternion_to_matrix(
         _quat_multiply(mc._grid_gen.get_near_identity_point(*off), q0)
@@ -129,3 +132,43 @@ def test_budget_extension_and_termination() -> None:
     rec2 = _Recorder(mc2, [(1.0, 1.0)] * 15)  # 15 high-variance runs first: budget +150
     mc2.variance_minimizing_optimize(np.eye(3), box, 200, 2, 0.0, 0.02**2)
     assert sum(rec2.steps) == 350
+
+
+def test_radius_doubling_is_capped_at_the_box() -> None:
+    """Consecutive failures double the radius each time (r0, 2 r0, 4 r0, ...), capped at the box
+    side (C++ std::min(2 SubregionRadius, fSearchRegionAngularSideLength))."""
+    box = math.radians(0.33)
+    mc = _mc(4)
+    rec = _Recorder(mc, [])  # every run fails (cost 1.0 >= global 1.0), variance 0
+    mc.variance_minimizing_optimize(np.eye(3), box, 60, 2, 0.0, 0.02**2)
+    r0 = math.tan(box) / math.sqrt(48.0)
+    assert 8 * r0 > box > 4 * r0  # the cap binds at the fourth run
+    assert math.isclose(rec.radii[0], r0)
+    assert math.isclose(rec.radii[1], 2 * r0)
+    assert math.isclose(rec.radii[2], 4 * r0)
+    assert rec.radii[3] == box and rec.radii[4] == box
+    # restart offsets are drawn with the capped radius too
+    twin = np.random.default_rng(4)
+    for k, radius in enumerate([2 * r0, 4 * r0, box, box]):
+        off = tuple(twin.uniform(-radius, radius) for _ in range(3))
+        assert rec.offsets[k] == off
+
+
+def test_convergence_needs_cost_and_variance_below_thresholds() -> None:
+    """Exit only when the global cost is below max_convergence_cost AND |variance| is below the
+    convergence variance (C++ `&&`); either one alone does not stop the stage."""
+    box = math.radians(0.33)
+    thr = 0.02**2
+    cases = {
+        "both": ((0.01, thr / 10), 1),  # cost and variance low: stop after the first run
+        "cost only": ((0.01, thr * 10), 20),  # variance too high: the budget keeps growing
+        "variance only": ((0.5, thr / 10), 20),  # cost above the threshold: runs to the budget
+    }
+    for name, (first, n_runs) in cases.items():
+        mc = _mc(5)
+        rec = _Recorder(mc, [first])
+        mc.variance_minimizing_optimize(np.eye(3), box, 200, 2, 0.05, thr)
+        if name == "both":
+            assert len(rec.steps) == n_runs, name
+        else:
+            assert len(rec.steps) > 1, name

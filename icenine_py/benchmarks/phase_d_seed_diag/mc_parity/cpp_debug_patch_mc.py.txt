@@ -1,0 +1,60 @@
+# Applied to a scratch copy of Src/OrientationSearch.cpp (not committed): run from the scratch root.
+p='Src/OrientationSearch.cpp'
+s=open(p).read()
+def rep(a,b,cnt=1):
+    global s
+    assert s.count(a)>=1, a
+    s=s.replace(a,b,cnt)
+rep('namespace OrientationOptimization','extern long long g_cost_eval_count;\nnamespace OrientationOptimization')
+# counters at the top of RandomRestartZeroTemp
+a="""    Float fCurAngularStepSize = fAngularStepSize;
+    
+    Int nTotalStepTaken = 0;"""
+rep(a,"""    long long nEv0 = g_cost_eval_count - 1;   // the initial evaluation above is part of this call
+    Int nBlocks = 0, nRestartsTot = 0, nAccepts = 0, nStop = 0;
+    Float fInitCost = fGlobalMinCost;
+"""+a)
+# per-block line, after the block returned
+a="""      nTotalStepTaken += nOptimizationSteps;
+      
+      if( fCurrentCost >=  fGlobalMinCost )           // restart with new position
+      {"""
+rep(a,"""      nTotalStepTaken += nOptimizationSteps;
+      nBlocks ++;
+      if( getenv("MBTRACE") )
+        std::cout << "MB total " << nTotalStepTaken << " nopt " << nOptimizationSteps << " step_deg "
+                  << RADIAN_TO_DEGREE( fCurAngularStepSize ) << " block_cost " << fCurrentCost
+                  << " gmin " << fGlobalMinCost << " fail " << ( fCurrentCost >= fGlobalMinCost ) << std::endl;
+      
+      if( fCurrentCost >=  fGlobalMinCost )           // restart with new position
+      {
+        nRestartsTot ++;""")
+rep("""        oCurrentState = oDelta * oInitialOrientation;
+
+        //----------
+        // Reset search parameters""","""        oCurrentState = oDelta * oInitialOrientation;
+        if( getenv("MBTRACE") )
+          std::cout << "MR radius " << fRadius << " xyz " << fX << " " << fY << " " << fZ << std::endl;
+
+        //----------
+        // Reset search parameters""")
+rep("""        nSuccessiveRestarts = 0;
+        fGlobalMinCost      = fCurrentCost;""","""        nSuccessiveRestarts = 0;
+        nAccepts ++;
+        fGlobalMinCost      = fCurrentCost;""")
+rep("""      if( fGlobalMinCost < fMaxConvergenceCost )    // convergence  -- move criterion to user defined
+        break;""","""      if( fGlobalMinCost < fMaxConvergenceCost )    // convergence  -- move criterion to user defined
+      { nStop = 2; break; }""")
+rep("""      if( nSuccessiveRestarts > nMaxFailedRestarts )   // search failed change this to user defined
+        break;
+    }
+""","""      if( nSuccessiveRestarts > nMaxFailedRestarts )   // search failed change this to user defined
+      { nStop = 1; break; }
+    }
+    std::cout << "MC maxsteps " << nMaxMCStep << " maxrestarts " << nMaxFailedRestarts << " nmin " << nMinErgodicSteps
+              << " box_deg " << RADIAN_TO_DEGREE( fAngularBoxSideLength ) << " step0_deg " << RADIAN_TO_DEGREE( fAngularStepSize )
+              << " steps " << nTotalStepTaken << " blocks " << nBlocks << " restarts " << nRestartsTot
+              << " accepts " << nAccepts << " evals " << ( g_cost_eval_count - nEv0 ) << " init " << fInitCost
+              << " final " << fGlobalMinCost << " stop " << nStop << std::endl;
+""")
+open(p,'w').write(s)

@@ -53,6 +53,9 @@ from icenine.orientation_search import (  # noqa: E402
 )
 
 CACHE_DIR = HERE / "cache"
+# The T5 result (stored with the pre-port MC and VarianceMinimizing) is bit-identical only for the
+# original B1 cache; a tagged rerun (C++-faithful MC and VM) records the difference instead.
+TAGGED = os.environ.get("MC_TRACE_TAG", "") != ""
 VARIANTS = ["clean", "all"]  # "all" = realistic
 VI_REAL = 1
 STEPS_DEG = np.array(
@@ -93,9 +96,16 @@ class TracedMC(D.LoggedMC):
         max_convergence_cost: float = 0.0,
         trajectory: Optional[List[Dict]] = None,
     ) -> SearchCandidate:
-        assert trajectory is None
+        """MCOptimizer.optimize (library code) with per-step arrays filled by the _mc_block and
+        _on_block_end hooks. Step t of a block is trial t; the block's last step carries the
+        block outcome (EV_GLOBAL: global best improved and step halved, EV_RESTART: failed block,
+        EV_EXHAUSTED: failed block that ended the run); other steps are EV_LOCAL when the trial
+        lowered the block's own best, else EV_NONE. n_since is the successive-failure count after
+        the step's block (constant inside a block), best_* the global best at the block's start
+        (updated on the block's last step)."""
         n = max_mc_steps
-        tr = dict(
+        self._max_restarts = max_restarts
+        self._tr = dict(
             step_deg=np.full(n, np.nan),
             min_erg=np.full(n, np.nan),
             n_since=np.full(n, np.nan),
@@ -106,105 +116,81 @@ class TracedMC(D.LoggedMC):
             best_ang=np.full(n, np.nan),
             best_cost=np.full(n, np.nan),
         )
-        best_q = matrix_to_quaternion(initial_orientation)
-        optimal_q = best_q.copy()
-        best_info = self.cost_fn.evaluate(
-            initial_orientation, self.voxel_vertices, self.phase_index
+        self._n_min = H.min_ergodic(angular_box_side, angular_step, max_mc_steps)
+        self._best_ang = self._ang(matrix_to_quaternion(initial_orientation))
+        self._best_cost = math.nan
+        self._blk = (0, 0)
+        res = super().optimize(
+            initial_orientation,
+            angular_box_side,
+            angular_step,
+            max_mc_steps,
+            max_restarts,
+            max_convergence_cost,
+            trajectory,
         )
-        global_min_cost = best_info.cost
-        cost_start = global_min_cost
-        current_cost = global_min_cost
-        cur_step = angular_step
-        n_restarts = 0
-        n_since = 0
-        n_accept = 0
-        last_accept = -1
-        stop = 0
-        step_exit = max_mc_steps
-        best_ang = self._ang(best_q)
-        min_erg = H.min_ergodic(angular_box_side, cur_step, max_mc_steps)
-        for step in range(max_mc_steps):
-            tr["step_deg"][step] = math.degrees(cur_step)
-            tr["min_erg"][step] = min_erg
-            radius = math.tan(cur_step) / math.sqrt(12.0) if cur_step > 0 else 0.01
+        self.traces.append(self._tr)
+        return res
+
+    def _mc_block(  # type: ignore[override]
+        self, start_q: np.ndarray, step: float, n_steps: int
+    ) -> Tuple[np.ndarray, float, Any]:
+        """Copy of MCOptimizer._mc_block that records each trial."""
+        tr, lo = self._tr, self._block_start
+        opt_q = start_q.copy()
+        opt_info = self.cost_fn.evaluate(
+            quaternion_to_matrix(opt_q), self.voxel_vertices, self.phase_index
+        )
+        opt_cost = opt_info.cost
+        if math.isnan(self._best_cost):
+            self._best_cost = opt_cost
+        radius = math.tan(step) / math.sqrt(12.0) if step > 0 else 0.01
+        for i in range(n_steps):
+            t = lo + i
+            tr["step_deg"][t] = math.degrees(step)
+            tr["min_erg"][t] = self._n_min
             x = self._rng.uniform(-radius, radius)
             y = self._rng.uniform(-radius, radius)
             z = self._rng.uniform(-radius, radius)
             delta_q = self._grid_gen.get_near_identity_point(x, y, z)
-            tr["trial_ang"][step] = math.degrees(2.0 * math.acos(min(1.0, abs(float(delta_q[0])))))
-            trial_q = _quat_multiply(delta_q, optimal_q)
-            trial_mat = quaternion_to_matrix(trial_q)
-            trial_info = self.cost_fn.evaluate(trial_mat, self.voxel_vertices, self.phase_index)
-            tr["trial_cost"][step] = trial_info.cost
-            tr["cur_cost"][step] = current_cost
-            ev = H.EV_NONE
-            if trial_info.cost < current_cost:
-                current_cost = trial_info.cost
-                optimal_q = trial_q.copy()
-                ev = H.EV_LOCAL
-                if current_cost < global_min_cost:
-                    global_min_cost = current_cost
-                    best_q = optimal_q.copy()
-                    best_info = trial_info
-                    n_since = 0
-                    n_accept += 1
-                    last_accept = step
-                    cur_step *= 0.5
-                    min_erg = H.min_ergodic(angular_box_side, cur_step, max_mc_steps)
-                    best_ang = self._ang(best_q)
-                    ev = H.EV_GLOBAL
-                    if global_min_cost < max_convergence_cost:
-                        stop, step_exit = 2, step + 1
-                        tr["event"][step], tr["n_since"][step] = ev, n_since
-                        tr["best_ang"][step], tr["best_cost"][step] = best_ang, global_min_cost
-                        break
-            else:
-                n_since += 1
-            if n_since >= min_erg:
-                n_restarts += 1
-                if n_restarts > max_restarts:
-                    stop, step_exit = 1, step + 1
-                    tr["event"][step], tr["n_since"][step] = H.EV_EXHAUSTED, n_since
-                    tr["best_ang"][step], tr["best_cost"][step] = best_ang, global_min_cost
-                    break
-                half_box = angular_box_side / 2.0
-                rx = self._rng.uniform(-half_box, half_box)
-                ry = self._rng.uniform(-half_box, half_box)
-                rz = self._rng.uniform(-half_box, half_box)
-                restart_q = self._grid_gen.get_near_identity_point(rx, ry, rz)
-                restart_q = _quat_multiply(restart_q, best_q)
-                optimal_q = restart_q.copy()
-                restart_info = self.cost_fn.evaluate(
-                    quaternion_to_matrix(optimal_q), self.voxel_vertices, self.phase_index
-                )
-                current_cost = restart_info.cost
-                cur_step = angular_step
-                tr["n_since"][step] = n_since
-                n_since = 0
-                min_erg = H.min_ergodic(angular_box_side, cur_step, max_mc_steps)
-                ev = H.EV_RESTART
-            else:
-                tr["n_since"][step] = n_since
-            tr["event"][step] = ev
-            tr["best_ang"][step], tr["best_cost"][step] = best_ang, global_min_cost
-        self.mc_logs.append(
-            dict(
-                stop=stop,
-                steps_run=step_exit,
-                n_accept=n_accept,
-                last_accept=last_accept,
-                n_restarts=n_restarts,
-                final_step_deg=math.degrees(cur_step),
-                min_ergodic=min_erg,
-                since_improve=n_since,
-                cost_start=cost_start,
-                cost_end=global_min_cost,
+            tr["trial_ang"][t] = math.degrees(2.0 * math.acos(min(1.0, abs(float(delta_q[0])))))
+            trial_q = _quat_multiply(delta_q, opt_q)
+            trial_info = self.cost_fn.evaluate(
+                quaternion_to_matrix(trial_q), self.voxel_vertices, self.phase_index
             )
-        )
-        self.traces.append(tr)
-        return SearchCandidate(
-            orientation=quaternion_to_matrix(best_q), cost=global_min_cost, overlap_info=best_info
-        )
+            tr["trial_cost"][t] = trial_info.cost
+            tr["cur_cost"][t] = opt_cost
+            ev = H.EV_NONE
+            if trial_info.cost < opt_cost:
+                opt_q, opt_cost, opt_info = trial_q, trial_info.cost, trial_info
+                ev = H.EV_LOCAL
+            tr["event"][t] = ev
+            tr["best_ang"][t], tr["best_cost"][t] = self._best_ang, self._best_cost
+        self._blk = (lo, lo + n_steps)
+        return opt_q, opt_cost, opt_info
+
+    def _on_block_end(  # type: ignore[override]
+        self,
+        event: str,
+        block_step: float,
+        n_succ_restarts: int,
+        global_min_cost: float,
+        current_q: np.ndarray,
+        best_q: np.ndarray,
+    ) -> None:
+        tr, (lo, hi) = self._tr, self._blk
+        self._best_ang = self._ang(best_q)
+        self._best_cost = global_min_cost
+        if hi > lo:
+            tr["n_since"][lo:hi] = n_succ_restarts
+            last = hi - 1
+            if event == "mc_accept":
+                tr["event"][last] = H.EV_GLOBAL
+            elif n_succ_restarts > self._max_restarts:
+                tr["event"][last] = H.EV_EXHAUSTED
+            else:
+                tr["event"][last] = H.EV_RESTART
+            tr["best_ang"][last], tr["best_cost"][last] = self._best_ang, self._best_cost
 
 
 def run_traced_finisher(
@@ -285,7 +271,7 @@ def task(item: Tuple[Any, ...]) -> Tuple[int, int, float]:
             seed = nnrun.b_seed(a, vpos, ri, j, VI_REAL)  # the T5 seed, for both variants
             R_res, mc, info = run_traced_finisher(raw_start[j], vb.vctx, seed)
             maxabs = float(np.abs(R_res - raw_R[j]).max())
-            if vb.vi == VI_REAL:
+            if vb.vi == VI_REAL and not TAGGED:
                 assert maxabs == 0.0, f"T5 result not reproduced: {maxabs}"
             # probability curve points
             prng = np.random.default_rng(seed + 4177)
@@ -334,10 +320,13 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["pilot", "run"])
     ap.add_argument("--workers", type=int, default=10)
+    ap.add_argument("--tag", default="", help="rerun into cache/<cmd>_<tag> (C++-faithful MC)")
     args = ap.parse_args()
     import multiprocessing as mp
 
-    cache = CACHE_DIR / args.cmd
+    if args.tag:
+        os.environ["MC_TRACE_TAG"] = args.tag  # inherited by the spawned workers
+    cache = CACHE_DIR / (args.cmd + (f"_{args.tag}" if args.tag else ""))
     cache.mkdir(parents=True, exist_ok=True)
     items, wargs = D.build_items(cache, only_first=2 if args.cmd == "pilot" else 0)
     todo = [it for it in items if not Path(it[5]).exists()]

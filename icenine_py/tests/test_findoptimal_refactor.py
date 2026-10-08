@@ -32,13 +32,17 @@ from icenine.reconstructor import (
 EXAMPLE = Path(__file__).parent.parent.parent / "Examples" / "Example2.ThreeVoxels"
 
 # (final orientation as rotvec of R_final R_true^T in degrees, cost) recorded before the refactor
-# Re-recorded after the VarianceMinimizing restart fix (C++ restart semantics, MIGRATION_HISTORY
-# "C++ vs Python variance stage"); before: [-0.12518150458946703, 0.16879997485875445,
-# 0.02470329742498792], cost 0.8180327868852459. A toy problem (3 candidates, cost 0.8 to 0.9 =
-# not converged), so the value is one draw of the random restarts, not an accuracy statement.
+# Re-recorded twice. (1) After the VarianceMinimizing restart fix (C++ restart semantics,
+# MIGRATION_HISTORY "C++ vs Python variance stage"); before: [-0.12518150458946703,
+# 0.16879997485875445, 0.02470329742498792], cost 0.8180327868852459. (2) After the port of
+# MCOptimizer.optimize to C++ RandomRestartZeroTemp (blocks of nMinErgodicSteps at a fixed step,
+# restart about the initial orientation; "C++-faithful MC: reruns"), which changes the random draws
+# of the quick MC and of FindOptimal; before: [-0.3892150954466177, 0.857439816451382,
+# -0.18924039428856979], cost 0.896551724137931. A toy problem (3 candidates, 150 MC steps), so
+# the value is one draw of the random search, not an accuracy statement.
 GOLDEN: Tuple[np.ndarray, float] = (
-    np.array([-0.3892150954466177, 0.857439816451382, -0.18924039428856979]),
-    0.896551724137931,
+    np.array([0.00020785920085071664, -0.02010489078404384, 0.03285844835329893]),
+    0.20245901639344255,
 )
 
 # Environment the golden values were recorded in (the one `uv sync --extra dev` builds from

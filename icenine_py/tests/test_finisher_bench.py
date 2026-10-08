@@ -49,7 +49,7 @@ def methods(seed: int):
         "cma_005": lambda cc: FO.cma_local(cc, START, seed, 0.05),
         "cma_02": lambda cc: FO.cma_local(cc, START, seed, 0.2),
         "vm_small": lambda cc: FO.variance_min_small_box(cc, START, seed, BOX / 4),
-        "mc_deployed": lambda cc: FO.mc_plain(cc, START, seed, BOX, STEP0, 200, 2, 1e-4),
+        "mc_deployed": lambda cc: FO.mc_plain(cc, START, seed, BOX, STEP0, 200, 2, 0.0),
         "mc_april": lambda cc: FO.mc_plain(cc, START, seed, BOX_A, 0.5 * BOX_A, 3500, 2, 0.0),
     }  # fmt: skip
 
@@ -84,6 +84,8 @@ def test_plain_mc_improves(name):
 @pytest.mark.parametrize("name", sorted(methods(0)))
 def test_respects_budget_exactly(name):
     # the plain MC runs end by themselves before 4000; give them less than they would use
+    # (the deployed one is run without the convergence stop: with the block-structured MC it can
+    # reach the cost threshold 1e-4 of this smooth quadratic before 137 evaluations)
     budget = 137
     cc = run(name, 5, budget)
     assert cc.n == budget and cc.exhausted

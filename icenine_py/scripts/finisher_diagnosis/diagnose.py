@@ -90,9 +90,9 @@ VM_KEYS = [
 
 class LoggedMC(MCOptimizer):
     """MCOptimizer whose optimize / variance_minimizing_optimize record why and when they stop.
-    The bodies are line-for-line copies of orientation_search.MCOptimizer (same RNG calls, same
-    arithmetic), so the results are identical; the re-run check against Task 1's R_final and
-    tests/test_finisher_diagnosis.py verify this."""
+    optimize is the library's (it logs MCOptimizer.last_run); variance_minimizing_optimize is a
+    line-for-line copy of orientation_search.MCOptimizer's (same RNG calls, same arithmetic), so
+    the results are identical; tests/test_finisher_diagnosis.py verifies this."""
 
     def __init__(self, *a: Any, **k: Any) -> None:
         super().__init__(*a, **k)
@@ -113,90 +113,19 @@ class LoggedMC(MCOptimizer):
         max_convergence_cost: float = 0.0,
         trajectory: Optional[List[Dict]] = None,
     ) -> SearchCandidate:
-        assert trajectory is None  # the copied body does not record trajectories
-        best_q = matrix_to_quaternion(initial_orientation)
-        optimal_q = best_q.copy()
-        best_info = self.cost_fn.evaluate(
-            initial_orientation, self.voxel_vertices, self.phase_index
+        """MCOptimizer.optimize itself (the C++-faithful block loop); the stop reason and counts
+        it leaves in last_run are appended to mc_logs (stop 0 budget, 1 restarts, 2 converged)."""
+        res = super().optimize(
+            initial_orientation,
+            angular_box_side,
+            angular_step,
+            max_mc_steps,
+            max_restarts,
+            max_convergence_cost,
+            trajectory,
         )
-        global_min_cost = best_info.cost
-        cost_start = global_min_cost
-        current_cost = global_min_cost
-        cur_step = angular_step
-        n_restarts = 0
-        n_since = 0
-        n_accept = 0
-        last_accept = -1
-        stop = 0  # step budget unless a break below says otherwise
-        step_exit = max_mc_steps
-        min_ergodic = (
-            max(1, int(2.0 * (angular_box_side / cur_step) ** 3)) if cur_step > 0 else max_mc_steps
-        )
-        for step in range(max_mc_steps):
-            radius = math.tan(cur_step) / math.sqrt(12.0) if cur_step > 0 else 0.01
-            x = self._rng.uniform(-radius, radius)
-            y = self._rng.uniform(-radius, radius)
-            z = self._rng.uniform(-radius, radius)
-            delta_q = self._grid_gen.get_near_identity_point(x, y, z)
-            trial_q = _quat_multiply(delta_q, optimal_q)
-            trial_mat = quaternion_to_matrix(trial_q)
-            trial_info = self.cost_fn.evaluate(trial_mat, self.voxel_vertices, self.phase_index)
-            if trial_info.cost < current_cost:
-                current_cost = trial_info.cost
-                optimal_q = trial_q.copy()
-                if current_cost < global_min_cost:
-                    global_min_cost = current_cost
-                    best_q = optimal_q.copy()
-                    best_info = trial_info
-                    n_since = 0
-                    n_accept += 1
-                    last_accept = step
-                    cur_step *= 0.5
-                    min_ergodic = (
-                        max(1, int(2.0 * (angular_box_side / cur_step) ** 3))
-                        if cur_step > 0
-                        else max_mc_steps
-                    )
-                    if global_min_cost < max_convergence_cost:
-                        stop, step_exit = 2, step + 1
-                        break
-            else:
-                n_since += 1
-            if n_since >= min_ergodic:
-                n_restarts += 1
-                if n_restarts > max_restarts:
-                    stop, step_exit = 1, step + 1
-                    break
-                half_box = angular_box_side / 2.0
-                rx = self._rng.uniform(-half_box, half_box)
-                ry = self._rng.uniform(-half_box, half_box)
-                rz = self._rng.uniform(-half_box, half_box)
-                restart_q = self._grid_gen.get_near_identity_point(rx, ry, rz)
-                restart_q = _quat_multiply(restart_q, best_q)
-                optimal_q = restart_q.copy()
-                restart_mat = quaternion_to_matrix(optimal_q)
-                restart_info = self.cost_fn.evaluate(
-                    restart_mat, self.voxel_vertices, self.phase_index
-                )
-                current_cost = restart_info.cost
-                cur_step = angular_step
-                n_since = 0
-                min_ergodic = (
-                    max(1, int(2.0 * (angular_box_side / cur_step) ** 3))
-                    if cur_step > 0
-                    else max_mc_steps
-                )
-        self.mc_logs.append(
-            dict(
-                stop=stop, steps_run=step_exit, n_accept=n_accept, last_accept=last_accept,
-                n_restarts=n_restarts, final_step_deg=math.degrees(cur_step),
-                min_ergodic=min_ergodic, since_improve=n_since, cost_start=cost_start,
-                cost_end=global_min_cost,
-            )
-        )  # fmt: skip
-        return SearchCandidate(
-            orientation=quaternion_to_matrix(best_q), cost=global_min_cost, overlap_info=best_info
-        )
+        self.mc_logs.append(dict(self.last_run))
+        return res
 
     def variance_minimizing_optimize(  # type: ignore[override]
         self,
