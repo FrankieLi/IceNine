@@ -1,0 +1,70 @@
+{
+ "clean": {
+  "mc": {
+   "wrong_before": 67,
+   "wrong_after": 40,
+   "only_after_wrong": 14,
+   "only_before_wrong": 41,
+   "mcnemar_p": 0.00035528111863147854,
+   "med_err_right_both_before": 0.031139387400360666,
+   "med_err_right_both_after": 0.009961506243252984,
+   "n_right_both": 119,
+   "mean_evals_before": 49189.755,
+   "mean_evals_after": 48442.255,
+   "mean_local_before": 4711.26,
+   "mean_local_after": 3962.95,
+   "mean_cost_before": 0.3542026420191111,
+   "mean_cost_after": 0.23398091176883576
+  },
+  "cma": {
+   "wrong_before": 66,
+   "wrong_after": 40,
+   "only_after_wrong": 15,
+   "only_before_wrong": 41,
+   "mcnemar_p": 0.0006855641563783821,
+   "med_err_right_both_before": 0.001977600801284889,
+   "med_err_right_both_after": 0.0017328979761716248,
+   "n_right_both": 119,
+   "mean_evals_before": 49283.48,
+   "mean_evals_after": 49371.67,
+   "mean_local_before": 4804.985,
+   "mean_local_after": 4892.365,
+   "mean_cost_before": 0.29587281560769485,
+   "mean_cost_after": 0.20029787648949085
+  }
+ },
+ "all": {
+  "mc": {
+   "wrong_before": 52,
+   "wrong_after": 25,
+   "only_after_wrong": 5,
+   "only_before_wrong": 32,
+   "mcnemar_p": 7.427530363202095e-06,
+   "med_err_right_both_before": 0.027750885552476835,
+   "med_err_right_both_after": 0.008024152631587945,
+   "n_right_both": 143,
+   "mean_evals_before": 52406.34,
+   "mean_evals_after": 51058.025,
+   "mean_local_before": 7628.055,
+   "mean_local_after": 6277.67,
+   "mean_cost_before": 0.4259060420442227,
+   "mean_cost_after": 0.335828303136621
+  },
+  "cma": {
+   "wrong_before": 44,
+   "wrong_after": 24,
+   "only_after_wrong": 6,
+   "only_before_wrong": 26,
+   "mcnemar_p": 0.0005350527353584766,
+   "med_err_right_both_before": 0.0021462636947673234,
+   "med_err_right_both_after": 0.002034344096262212,
+   "n_right_both": 150,
+   "mean_evals_before": 54239.205,
+   "mean_evals_after": 54491.095,
+   "mean_local_before": 9460.92,
+   "mean_local_after": 9710.74,
+   "mean_cost_before": 0.3693457206370981,
+   "mean_cost_after": 0.3195522964645556
+  }
+ }
+}

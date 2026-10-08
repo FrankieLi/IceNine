@@ -117,7 +117,7 @@ def task(item: Dict[str, Any]) -> str:
                 VoxelCostFunction.evaluate = orig_eval  # type: ignore[method-assign]
                 rec.params.local_optimizer = "mc"
             rows.append(row)
-    (CACHE / f"v{vidx}_r{ri}.json").write_text(json.dumps(rows))
+    (Path(item["cache_dir"]) / f"v{vidx}_r{ri}.json").write_text(json.dumps(rows))
     return f"voxel {vidx} r#{ri} {len(rows)} cases {time.time() - t0:.0f}s"
 
 
@@ -168,7 +168,14 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--n-cases", type=int, default=N_CASES)
+    ap.add_argument(
+        "--tag", default="", help="write to cache/validate_lib_<tag> and OUT_DIR/<tag>/ (rerun)"
+    )
     args = ap.parse_args()
+    global CACHE, OUT_DIR
+    if args.tag:
+        CACHE = HERE / "cache" / f"validate_lib_{args.tag}"
+        OUT_DIR = OUT_DIR / args.tag
     CACHE.mkdir(parents=True, exist_ok=True)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     items, wargs = B.build_task_items(B3_CACHE, False, 0)
@@ -182,6 +189,7 @@ def main() -> None:
         it["dirs"] = it["dirs"][:left]
         left -= len(it["dirs"])
         it["b3_path"] = it["path"]
+        it["cache_dir"] = str(CACHE)
         sel.append(it)
     todo = [it for it in sel if not (CACHE / f"v{it['vidx']}_r{it['ri']}.json").exists()]
     print(
