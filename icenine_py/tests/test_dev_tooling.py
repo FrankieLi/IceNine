@@ -737,3 +737,92 @@ def test_agent_files_present() -> None:
     impl = (REPO / ".claude" / "agents" / "implementer.md").read_text()
     assert "model: sonnet" in impl and len(impl.splitlines()) <= 90
     assert "## Claims audit" in (REPO / ".claude" / "agents" / "code-reviewer.md").read_text()
+
+
+# ---------------------------------------------------------------------------------------------
+# G. session tooling: finish_task extensions, checkpoint, agent/skill files
+# ---------------------------------------------------------------------------------------------
+
+
+def test_finish_task_ignores_dirty_claude_md_but_never_stages_it(repo: Path) -> None:
+    (repo / "CLAUDE.md").write_text("a\n")
+    _git(repo, "add", "CLAUDE.md")
+    _git(repo, "commit", "-q", "-m", "claude")
+    _task_branch(repo)
+    (repo / "CLAUDE.md").write_text("dirty\n")
+    res = _script(repo, "finish_task.sh", "--no-tests")
+    assert res.returncode == 0, res.stderr
+    assert (repo / "CLAUDE.md").read_text() == "dirty\n"
+    assert _git(repo, "diff", "--cached", "--name-only") == ""
+    assert "CLAUDE.md" not in _git(repo, "show", "--stat", "--format=", "HEAD")
+
+
+def test_finish_task_removes_task_worktree_pushes_and_starts_next(
+    repo: Path, tmp_path: Path
+) -> None:
+    remote = tmp_path / "remote.git"
+    _git(tmp_path, "init", "-q", "--bare", str(remote))
+    _git(repo, "remote", "add", "origin", str(remote))
+    _task_branch(repo)
+    wt = tmp_path / "wt"
+    _git(repo, "checkout", "-q", "feature/z")
+    _git(repo, "worktree", "add", "-q", str(wt), "feature/z-job")  # task lives in a worktree
+    res = _script(wt, "finish_task.sh", "--no-tests", "--yes", "--push", "--next", "t2")
+    assert res.returncode == 0, res.stderr
+    assert not wt.exists()
+    assert "feature/z-job" not in _git(repo, "branch", "--list")
+    assert _git(repo, "rev-parse", "--abbrev-ref", "HEAD") == "feature/z-t2"
+    assert _git(repo, "config", "branch.feature/z-t2.parent") == "feature/z"
+    assert _git(repo, "log", "-1", "--format=%s", "feature/z").startswith("Merge task job:")
+    assert _git(remote, "rev-parse", "feature/z") == _git(repo, "rev-parse", "feature/z")
+
+
+def test_checkpoint_content_memory_pointer_and_length(repo: Path, tmp_path: Path) -> None:
+    (repo / "scripts" / "dev").mkdir(parents=True)
+    shutil.copy(DEV / "job_status.sh", repo / "scripts" / "dev" / "job_status.sh")
+    shutil.copy(DEV / "checkpoint.sh", repo / "scripts" / "dev" / "checkpoint.sh")
+    _git(repo, "checkout", "-q", "-b", "feature/c")
+    _git(repo, "checkout", "-q", "-b", "feature/c-job")
+    _git(repo, "config", "branch.feature/c-job.parent", "feature/c")
+    (repo / "k.txt").write_text("k\n")
+    plans = tmp_path / "plans"
+    plans.mkdir()
+    (plans / "my-plan.md").write_text("plan\n")
+    (repo / ".claude" / "reports").mkdir(parents=True)
+    (repo / ".claude" / "reports" / "20260101-0000-t.md").write_text("r\n")
+    mem = tmp_path / "mem.md"
+    mem.write_text("# mem\n- Latest checkpoint: /old/path\n")
+    env = {**os.environ, **GIT_ENV, "CHECKPOINT_PLANS_DIR": str(plans)}
+    cmd = [str(repo / "scripts/dev/checkpoint.sh"), "--memory-file", str(mem), "a note"]
+    res = subprocess.run(cmd, cwd=repo, env=env, capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr
+    out = Path(res.stdout.strip())
+    text = out.read_text()
+    assert out.parent.resolve() == (repo / ".claude" / "checkpoints").resolve()
+    for needle in [
+        "- branch: feature/c-job",
+        "- parent: feature/c",
+        "k.txt",
+        "my-plan.md",
+        ".claude/reports/20260101-0000-t.md",
+        "Note: a note",
+        "## Done this session",
+        "## Waiting on the owner",
+        "## Next step",
+    ]:
+        assert needle in text, needle
+    assert len(text.splitlines()) < 80
+    assert mem.read_text().count("Latest checkpoint:") == 1
+    assert str(out) in mem.read_text() and "/old/path" not in mem.read_text()
+
+
+def test_agent_and_skill_files_are_consistent() -> None:
+    agents = REPO / ".claude" / "agents"
+    assert (agents / "study-conventions.md").exists()
+    for name in ["implementer.md", "code-reviewer.md"]:
+        body = (agents / name).read_text()
+        assert "study-conventions.md" in body and ".claude/reports/" in body
+    for skill in ["handoff", "resume", "review-task", "merge-task"]:
+        text = (REPO / ".claude" / "skills" / skill / "SKILL.md").read_text()
+        assert f"name: {skill}" in text and "user-invocable: true" in text
+    assert ".claude/reports/" in (REPO / ".gitignore").read_text().splitlines()

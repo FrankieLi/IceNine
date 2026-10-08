@@ -22,3 +22,5 @@ ExtLib
 # Session checkpoints written by scripts/dev/checkpoint.sh
 .claude/checkpoints/
 __pycache__/
+# Full agent reports (see .claude/agents/study-conventions.md)
+.claude/reports/
