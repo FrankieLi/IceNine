@@ -280,11 +280,12 @@ The effect of these continuations on reconstruction success has not been tested.
     whole default finisher 0.0229° and 0.0357° at 2629 and 1776 evaluations (44% and 30%). Nelder-Mead on the rotation
     vector does nearly as well at 250 evaluations (0.0031° and 0.0034°). The deployed MC ends early exactly when it
     never improved (74/200 T5 H3 realistic, 37.0%), and in those and in the improving runs the simplex and CMA methods
-    end 0.0023°–0.0028° away. Neither MC with local restarts (0.0362°) nor the success-rate step rule (0.0240°) closes
-    the gap: the step-rule hypothesis left by B1 is not sufficient (its results at 250 and 10000 evaluations are the same
-    orientation in 191/200 cases; why is untested). The CMA and Nelder-Mead results reach the truth's cost (median gap
-    0.0000), so the remaining 0.003° is consistent with the flat cost (Phase A). Far starts remain wrong (T5 H0 start
-    wrong in 39.0%; CMA-ES 15.0%). Centroid Huber GN is good on clean windows (0.0132°) and poor on realistic (0.2628°);
+    end 0.0021°–0.0028° away at 1000 evaluations. Neither MC with local restarts (0.0362°) nor the success-rate rule (0.0240°)
+    closes the gap: the success-rate rule as run (one untuned setting) collapses its step and stalls, so it does not
+    support the B1 step-rule hypothesis; MC with local restarts keeps the halving and so tests only the restart part.
+    The CMA and Nelder-Mead results reach the truth's cost (median gap 0.0000), so the remaining 0.002–0.003° is where
+    the cost itself has its minimum, not early stopping. Starts 2–3° away often stay wrong (T5 H0: start 33/100 wrong;
+    CMA-ES 15/100). Centroid Huber GN is good on clean windows (0.0132°) and poor on realistic (0.2628°);
     the hybrid Adam hardly moves. Single-worker time per cost evaluation is 0.55 ms for every method, so time follows
     evaluations (CMA-ES at 250: 0.143 s; default finisher 1.071 s). Phase C candidates: CMA-ES (sigma0 0.2°) and
     Nelder-Mead. See MIGRATION_HISTORY "Phase B3 results".

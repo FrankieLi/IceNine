@@ -19,7 +19,7 @@ import json
 import math
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -143,7 +143,7 @@ def frac(k: int, n: int) -> Dict[str, Any]:
     return dict(k=int(k), n=int(n), p=k / max(n, 1), lo=lo, hi=hi)
 
 
-def fs(f: Dict[str, Any]) -> str:
+def fmt_frac(f: Dict[str, Any]) -> str:
     return f"{100 * f['p']:.1f}% ({100 * f['lo']:.1f}-{100 * f['hi']:.1f})"
 
 
@@ -327,6 +327,48 @@ def build_extras(d: Dict[str, Any]) -> Dict[str, Any]:
                 mask = np.isin(d["kind"], SETS[sname][1])
                 same[f"{m}|{sname}|{var}"] = frac(int(eq[vi][mask].sum()), int(mask.sum()))
     out["same_at_250_and_10000"] = same
+    k100 = d["ckpts"].index(100)
+    same100: Dict[str, Any] = {}
+    for m in ["es_box", "es_002", "mc_local"]:
+        mi = d["methods"].index(m)
+        eq = np.all(d["res_R"][:, :, mi, k100] == d["res_R"][:, :, mi, kmax], axis=(-1, -2))
+        for vi, var in enumerate(VARIANTS):
+            mask = np.isin(d["kind"], SETS["T5-H3"][1])
+            same100[f"{m}|T5-H3|{var}"] = frac(int(eq[vi][mask].sum()), int(mask.sum()))
+    out["same_at_100_and_10000"] = same100
+    # cost of the result against the truth's cost, T5 H3, at 250 evaluations
+    rows = {(r["key"], r["budget"]): r for r in build_rows(d)}
+    cg: Dict[str, Any] = {}
+    for m in ["nm", "cma_005", "cma_02"]:
+        r = rows[(m, "250")]
+        for vi, var in enumerate(VARIANTS):
+            g = r["gap"][vi][np.isin(d["kind"], ("H3",))]
+            cg[f"{m}|T5-H3|{var}"] = dict(
+                n=int(g.size), equal=int((g == 0).sum()), lower=int((g < 0).sum()),
+                higher=int((g > 0).sum()),
+            )  # fmt: skip
+    out["cost_vs_truth_250"] = cg
+    # T5 H0: starts over 1 deg away, by start radius, and what each method leaves wrong
+    r0 = rows[("start", "0")]
+    for vi, var in enumerate(VARIANTS):
+        h0 = d["kind"] == "H0"
+        far = h0 & (r0["err"][vi] > WRONG_CUT)
+        info: Dict[str, Any] = dict(n_h0=int(h0.sum()), n_far=int(far.sum()))
+        rad = np.round(d["r_told_deg"][vi][far], 3)
+        for rr in sorted(set(rad.tolist())):
+            sel = np.zeros(len(far), bool)
+            sel[np.nonzero(far)[0][rad == rr]] = True
+            info[f"far_r{rr}"] = dict(n=int(sel.sum()))
+            for key, bud in [("mc_deployed", "natural"), ("finisher", "natural"), ("nm", "1000"),
+                             ("cma_005", "1000"), ("cma_02", "1000")]:  # fmt: skip
+                e = rows[(key, bud)]["err"][vi]
+                info[f"far_r{rr}"][key] = int((e[sel] > WRONG_CUT).sum())
+        for key, bud in [("mc_deployed", "natural"), ("finisher", "natural"), ("nm", "1000"),
+                         ("cma_005", "1000"), ("cma_02", "1000")]:  # fmt: skip
+            e = rows[(key, bud)]["err"][vi]
+            info[f"wrong_{key}"] = int((e[h0] > WRONG_CUT).sum())
+            info[f"wrong_{key}_among_far"] = int((e[far] > WRONG_CUT).sum())
+        out[f"far_starts|{var}"] = info
     return out
 
 
@@ -411,9 +453,10 @@ def tables(S: Dict[str, Any], timing: Optional[Dict[str, Any]]) -> Dict[str, str
                         "evals": s["evals_median"],
                         "median err": s["err_median"],
                         "p90 err": s["err_p90"],
-                        "<0.01 deg": fs(s["lt001"]),
-                        "<0.02 deg": fs(s["lt002"]),
-                        "wrong >1 deg": f"{s['wrong']['k']}/{s['wrong']['n']} " + fs(s["wrong"]),
+                        "<0.01 deg": fmt_frac(s["lt001"]),
+                        "<0.02 deg": fmt_frac(s["lt002"]),
+                        "wrong >1 deg": f"{s['wrong']['k']}/{s['wrong']['n']} "
+                        + fmt_frac(s["wrong"]),
                         "cost gap median": s["gap_median"],
                         "win vs (i)": v["win_rate"],
                         "sign p": fmt_p(v["sign"]["p"]),
@@ -480,7 +523,7 @@ def tables(S: Dict[str, Any], timing: Optional[Dict[str, Any]]) -> Dict[str, str
                     n=c["n"],
                     method=name(mk),
                     med=v["err_median"],
-                    lt=fs(v["lt002"]),
+                    lt=fmt_frac(v["lt002"]),
                 )
             )
     T["strata"] = markdown_table(
@@ -490,8 +533,8 @@ def tables(S: Dict[str, Any], timing: Optional[Dict[str, Any]]) -> Dict[str, str
     for k, v in S["deployed_mc"].items():
         rows.append(
             dict(
-                set=k.replace("|", " "), n=v["n"], no_improvement=fs(v["no_improvement"]),
-                ended_early=fs(v["ended_early"]), both=v["both"],
+                set=k.replace("|", " "), n=v["n"], no_improvement=fmt_frac(v["no_improvement"]),
+                ended_early=fmt_frac(v["ended_early"]), both=v["both"],
                 early_only=v["early_not_noimp"], noimp_only=v["noimp_not_early"],
             )
         )  # fmt: skip
@@ -510,7 +553,7 @@ def tables(S: Dict[str, Any], timing: Optional[Dict[str, Any]]) -> Dict[str, str
                 method="(vii) centroid Huber GN",
                 unit="3 window renders + solves",
                 count=f"3 (spots used q25/50/75 {sq[0]:.0f}/{sq[1]:.0f}/{sq[2]:.0f}; "
-                f"estimate for {fs(g['ok'])})",
+                f"estimate for {fmt_frac(g['ok'])})",
                 wall=f"{g['wall_s_per_case_q'][1]:.2f}",
             ),
             dict(
@@ -534,6 +577,26 @@ def tables(S: Dict[str, Any], timing: Optional[Dict[str, Any]]) -> Dict[str, str
         rows, ["variant", "method", "unit", "count", "wall"],
         labels=None,
     )  # fmt: skip
+    far = S["extras"]["far_starts|realistic"]
+    rows = []
+    for rr in sorted(k for k in far if k.startswith("far_r")):
+        c = far[rr]
+        rows.append(
+            dict(
+                start=f"{rr[5:]} deg", n=c["n"], deployed=c["mc_deployed"],
+                default=c["finisher"], nm=c["nm"], cma05=c["cma_005"], cma02=c["cma_02"],
+            )  # fmt: skip
+        )
+    rows.append(
+        dict(
+            start="wrong over all 100 H0 cases", n=far["n_h0"], deployed=far["wrong_mc_deployed"],
+            default=far["wrong_finisher"], nm=far["wrong_nm"], cma05=far["wrong_cma_005"],
+            cma02=far["wrong_cma_02"],
+        )  # fmt: skip
+    )
+    T["far_starts"] = markdown_table(
+        rows, ["start", "n", "deployed", "default", "nm", "cma05", "cma02"]
+    )
     if timing:
         T["timing"] = timing_table(timing)
     return T

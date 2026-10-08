@@ -11,6 +11,15 @@
 | SW realistic | 1000 | 4.2% (3.1-5.6) | 4.3% (3.2-5.7) | 42 | 1 | 0 |
 <!-- /table:deployed_mc -->
 
+<!-- table:far_starts -->
+| start | n | deployed | default | nm | cma05 | cma02 |
+|---|---|---|---|---|---|---|
+| 1.5 deg | 11 | 11 | 0 | 11 | 5 | 1 |
+| 2.0 deg | 11 | 11 | 7 | 11 | 10 | 4 |
+| 3.0 deg | 11 | 11 | 11 | 11 | 11 | 10 |
+| wrong over all 100 H0 cases | 100 | 35 | 18 | 34 | 26 | 15 |
+<!-- /table:far_starts -->
+
 <!-- table:head_SW_clean -->
 | method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
 |---|---|---|---|---|---|---|

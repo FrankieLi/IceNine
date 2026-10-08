@@ -1,0 +1,12 @@
+v19089 j1 strict: start 0.2788 err@250 0.0388 err@2000 0.0388 last success at eval 96 step@100 0.00173 step@250 0.00020 succ in 250-2000 0
+v19089 j1 ties: start 0.2788 err@250 0.0388 err@2000 0.0388 last success at eval 109 step@100 0.00071 step@250 0.00020 succ in 250-2000 0
+v19089 j1 floor0.002: start 0.2788 err@250 0.0401 err@2000 0.0400 last success at eval 521 step@100 0.00250 step@250 0.00200 succ in 250-2000 2
+v19089 j3 strict: start 0.1071 err@250 0.0079 err@2000 0.0079 last success at eval 85 step@100 0.00071 step@250 0.00020 succ in 250-2000 0
+v19089 j3 ties: start 0.1071 err@250 0.0065 err@2000 0.0032 last success at eval 1436 step@100 0.00111 step@250 0.00020 succ in 250-2000 5
+v19089 j3 floor0.002: start 0.1071 err@250 0.0042 err@2000 0.0042 last success at eval 237 step@100 0.00200 step@250 0.00200 succ in 250-2000 0
+v8787 j2 strict: start 0.1152 err@250 0.2844 err@2000 0.2844 last success at eval 36 step@100 0.00020 step@250 0.00020 succ in 250-2000 0
+v8787 j2 ties: start 0.1152 err@250 0.2846 err@2000 0.2846 last success at eval 83 step@100 0.00020 step@250 0.00020 succ in 250-2000 0
+v8787 j2 floor0.002: start 0.1152 err@250 0.2855 err@2000 0.2855 last success at eval 112 step@100 0.00200 step@250 0.00200 succ in 250-2000 0
+v8787 j4 strict: start 0.0461 err@250 0.0235 err@2000 0.0235 last success at eval 88 step@100 0.00029 step@250 0.00020 succ in 250-2000 0
+v8787 j4 ties: start 0.0461 err@250 0.0228 err@2000 0.0185 last success at eval 1805 step@100 0.00020 step@250 0.00020 succ in 250-2000 5
+v8787 j4 floor0.002: start 0.0461 err@250 0.0138 err@2000 0.0148 last success at eval 1540 step@100 0.00279 step@250 0.00200 succ in 250-2000 1

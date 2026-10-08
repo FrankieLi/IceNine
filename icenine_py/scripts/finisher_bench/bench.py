@@ -35,7 +35,6 @@ import os
 import sys
 import time
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, Dict, List, Tuple
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")
@@ -53,7 +52,7 @@ sys.path.insert(0, str(ICENINE_PY / "benchmarks"))
 import diagnose as D  # noqa: E402
 import findoptimal_sweep as fs  # noqa: E402
 import optimizer_sweep as osw  # noqa: E402
-import optimizers as O  # noqa: E402
+import optimizers as FO  # noqa: E402
 import perturbation_sweep as ps  # noqa: E402
 import run as nnrun  # noqa: E402
 
@@ -61,7 +60,6 @@ CACHE_DIR = HERE / "cache"
 VARIANTS = ["clean", "all"]  # "all" = realistic
 VI_REAL = 1
 CKPTS = [100, 250, 500, 1000, 2600, 5000, 10000]
-BUDGETS = [250, 1000, 2600, 10000]
 MAX_BUDGET = 10000
 SW_RADII_IDX = [0, 1, 2, 3, 5]  # 0.05, 0.1, 0.25, 0.5, 1 deg
 SW_DIRS = 4
@@ -77,24 +75,24 @@ def make_methods(box: float, step0: float, params: Any, r_told_rad: float) -> Di
     """name -> function(cc, R0, seed). box / step0 in rad (the finisher's default box and step)."""
     stuck = max(1, int(2.0 * (box / step0) ** 3))  # the deployed initial min_ergodic (31)
     return {
-        "mc_deployed": lambda cc, R0, s: O.mc_plain(
+        "mc_deployed": lambda cc, R0, s: FO.mc_plain(
             cc, R0, s, box, step0, params.max_mc_steps, params.successive_restarts,
             params.max_convergence_cost,
         ),
-        "mc_april": lambda cc, R0, s: O.mc_plain(
+        "mc_april": lambda cc, R0, s: FO.mc_plain(
             cc, R0, s, 1.5 * r_told_rad, 0.5 * 1.5 * r_told_rad, 3500, 2, 0.0
         ),
-        "mc_local": lambda cc, R0, s: O.mc_local_restarts(
+        "mc_local": lambda cc, R0, s: FO.mc_local_restarts(
             cc, R0, np.random.default_rng(s), step0, stuck
         ),
-        "es_box": lambda cc, R0, s: O.one_plus_one_es(cc, R0, np.random.default_rng(s), step0),
-        "es_002": lambda cc, R0, s: O.one_plus_one_es(
+        "es_box": lambda cc, R0, s: FO.one_plus_one_es(cc, R0, np.random.default_rng(s), step0),
+        "es_002": lambda cc, R0, s: FO.one_plus_one_es(
             cc, R0, np.random.default_rng(s), math.radians(ES_SMALL_DEG)
         ),
-        "nm": lambda cc, R0, s: O.nelder_mead_rot(cc, R0, math.degrees(step0)),
-        "cma_005": lambda cc, R0, s: O.cma_local(cc, R0, s, 0.05),
-        "cma_02": lambda cc, R0, s: O.cma_local(cc, R0, s, 0.2),
-        "vm_small": lambda cc, R0, s: O.variance_min_small_box(cc, R0, s, box / 4.0),
+        "nm": lambda cc, R0, s: FO.nelder_mead_rot(cc, R0, math.degrees(step0)),
+        "cma_005": lambda cc, R0, s: FO.cma_local(cc, R0, s, 0.05),
+        "cma_02": lambda cc, R0, s: FO.cma_local(cc, R0, s, 0.2),
+        "vm_small": lambda cc, R0, s: FO.variance_min_small_box(cc, R0, s, box / 4.0),
     }  # fmt: skip
 
 
@@ -168,7 +166,7 @@ def run_adam(
         return orig(*a, **k)
 
     diff.evaluate = counted  # type: ignore[assignment]
-    cc = O.CountingCost(lf, vctx.vertices, vctx.voxel.phase, 10**6, ())
+    cc = FO.CountingCost(lf, vctx.vertices, vctx.voxel.phase, 10**6, ())
     opt = RiemannianAdamOptimizer(
         hard_cost_fn=cc, diff_cost_fn=diff, voxel_vertices=vctx.vertices,
         phase_index=vctx.voxel.phase, rng=np.random.default_rng(seed),
@@ -217,10 +215,10 @@ def run_case(
     total = np.zeros(nm, dtype=np.int64)
     secs = np.zeros(nm)
     for mi, name in enumerate(ANYTIME):
-        cc = O.CountingCost(lf, vctx.vertices, vctx.voxel.phase, MAX_BUDGET, CKPTS)
+        cc = FO.CountingCost(lf, vctx.vertices, vctx.voxel.phase, MAX_BUDGET, CKPTS)
         n0 = lf.eval_count
         t0 = time.perf_counter()
-        O.run_budgeted(lambda c, f=methods[name]: f(c, R0, seed + CFG_SEED[name]), cc)
+        FO.run_budgeted(lambda c, f=methods[name]: f(c, R0, seed + CFG_SEED[name]), cc)
         secs[mi] = time.perf_counter() - t0
         assert lf.eval_count - n0 == cc.n <= MAX_BUDGET, (name, lf.eval_count - n0, cc.n)
         total[mi] = cc.n

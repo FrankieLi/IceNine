@@ -14,7 +14,7 @@ ROOT = Path(__file__).parent.parent
 for sub in ("scripts/finisher_bench", "scripts/common"):
     sys.path.insert(0, str(ROOT / sub))
 
-import optimizers as O  # noqa: E402
+import optimizers as FO  # noqa: E402
 
 TARGET = Rotation.from_rotvec(np.radians([0.12, -0.2, 0.15])).as_matrix()
 START = np.eye(3)
@@ -38,25 +38,25 @@ def err_deg(R: np.ndarray) -> float:
 
 def methods(seed: int):
     return {
-        "mc_local": lambda cc: O.mc_local_restarts(
+        "mc_local": lambda cc: FO.mc_local_restarts(
             cc, START, np.random.default_rng(seed), STEP0, 31
         ),
-        "es_box": lambda cc: O.one_plus_one_es(cc, START, np.random.default_rng(seed), STEP0),
-        "es_small": lambda cc: O.one_plus_one_es(
+        "es_box": lambda cc: FO.one_plus_one_es(cc, START, np.random.default_rng(seed), STEP0),
+        "es_small": lambda cc: FO.one_plus_one_es(
             cc, START, np.random.default_rng(seed), math.radians(0.02)
         ),
-        "nm": lambda cc: O.nelder_mead_rot(cc, START, 0.13),
-        "cma_005": lambda cc: O.cma_local(cc, START, seed, 0.05),
-        "cma_02": lambda cc: O.cma_local(cc, START, seed, 0.2),
-        "vm_small": lambda cc: O.variance_min_small_box(cc, START, seed, BOX / 4),
-        "mc_deployed": lambda cc: O.mc_plain(cc, START, seed, BOX, STEP0, 200, 2, 1e-4),
-        "mc_april": lambda cc: O.mc_plain(cc, START, seed, BOX_A, 0.5 * BOX_A, 3500, 2, 0.0),
+        "nm": lambda cc: FO.nelder_mead_rot(cc, START, 0.13),
+        "cma_005": lambda cc: FO.cma_local(cc, START, seed, 0.05),
+        "cma_02": lambda cc: FO.cma_local(cc, START, seed, 0.2),
+        "vm_small": lambda cc: FO.variance_min_small_box(cc, START, seed, BOX / 4),
+        "mc_deployed": lambda cc: FO.mc_plain(cc, START, seed, BOX, STEP0, 200, 2, 1e-4),
+        "mc_april": lambda cc: FO.mc_plain(cc, START, seed, BOX_A, 0.5 * BOX_A, 3500, 2, 0.0),
     }  # fmt: skip
 
 
 def run(name: str, seed: int, budget: int, ckpts=(50, 137)):
-    cc = O.CountingCost(Quadratic(), None, 0, budget, ckpts)
-    return O.run_budgeted(methods(seed)[name], cc)
+    cc = FO.CountingCost(Quadratic(), None, 0, budget, ckpts)
+    return FO.run_budgeted(methods(seed)[name], cc)
 
 
 # Tolerances (deg). ES, NM and CMA must reach the optimum. mc_local keeps the deployed rule that
@@ -88,7 +88,7 @@ def test_respects_budget_exactly(name):
     cc = run(name, 5, budget)
     assert cc.n == budget and cc.exhausted
     # one more evaluation is refused and not counted
-    with pytest.raises(O.BudgetExhausted):
+    with pytest.raises(FO.BudgetExhausted):
         cc.evaluate(np.eye(3))
     assert cc.n == budget
     # the checkpoint at the budget equals the final best, the earlier one is a prefix best
@@ -129,9 +129,9 @@ def test_es_step_adapts_from_too_small_and_too_large_starts():
     """The 1/5th-type rule grows a step that is far too small and shrinks one that is too large,
     so both starts reach the optimum within 600 evaluations."""
     for s0 in (math.radians(2.0), math.radians(0.0005)):
-        cc = O.CountingCost(Quadratic(), None, 0, 600)
-        O.run_budgeted(
-            lambda c, s0=s0: O.one_plus_one_es(c, START, np.random.default_rng(0), s0), cc
+        cc = FO.CountingCost(Quadratic(), None, 0, 600)
+        FO.run_budgeted(
+            lambda c, s0=s0: FO.one_plus_one_es(c, START, np.random.default_rng(0), s0), cc
         )
         assert err_deg(cc.best_R) < 0.05
 
@@ -164,3 +164,27 @@ def test_angles_and_frac_are_consistent():
     assert S.angles(R, np.eye(3)) == pytest.approx(0.5)
     f = S.frac(3, 10)
     assert f["k"] == 3 and 0.0 < f["lo"] < 0.3 < f["hi"] < 1.0
+
+
+class Quantised:
+    """The quadratic rounded down to steps of 0.001 (deg^2): ties are common near the optimum."""
+
+    def evaluate(self, R, vertices, phase):
+        c = Quadratic().evaluate(R, vertices, phase).cost
+        return SimpleNamespace(cost=float(np.floor(c / 0.001) * 0.001))
+
+
+@pytest.mark.parametrize("name", ["es_box", "es_small"])
+def test_es_on_quantised_cost_improves_and_is_deterministic(name):
+    def go():
+        cc = O_cc(Quantised(), 2000)
+        FO.run_budgeted(methods(2)[name], cc)
+        return cc
+
+    a, b = go(), go()
+    assert np.array_equal(a.best_R, b.best_R) and a.n == 2000
+    assert err_deg(a.best_R) < START_DEG / 2  # ties are failures, but the walk still improves
+
+
+def O_cc(fn, budget):
+    return FO.CountingCost(fn, None, 0, budget, (250,))

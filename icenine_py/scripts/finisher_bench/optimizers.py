@@ -228,7 +228,7 @@ def nelder_mead_rot(
             return f(rot_about(c0, v))
 
         simplex = np.vstack([np.zeros(3), size * np.eye(3)])
-        res = minimize(
+        minimize(
             g,
             np.zeros(3),
             method="Nelder-Mead",

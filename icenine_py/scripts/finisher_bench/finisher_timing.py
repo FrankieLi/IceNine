@@ -24,7 +24,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import bench as B  # noqa: E402  (sets OMP/MKL threads to 1 and the import paths)
-from bench import D, O, fs, nnrun, ps  # noqa: E402
+from bench import D, FO, fs, nnrun, ps  # noqa: E402
 
 import preflight  # noqa: E402
 
@@ -109,10 +109,10 @@ def main() -> None:
                         nnrun.refine_fo(start.astype(np.float32), vb.vctx, seed)
                         n = lf.eval_count - n0
                     else:
-                        cc = O.CountingCost(
+                        cc = FO.CountingCost(
                             lf, vb.vctx.vertices, vb.vctx.voxel.phase, b or B.MAX_BUDGET, ()
                         )
-                        O.run_budgeted(
+                        FO.run_budgeted(
                             lambda c, f=methods[m], mm=m: f(c, start, seed + B.CFG_SEED[mm]), cc
                         )
                         n = cc.n
