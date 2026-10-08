@@ -1,0 +1,27 @@
+{
+  "tag": "full",
+  "sample_seed": 0,
+  "noise_seed": 12345,
+  "n_voxels": 24570,
+  "workers": 10,
+  "timing_label": "contended (10 parallel workers; machine quiet at start: False)",
+  "wall_s": 47.48240303993225,
+  "worker_peak_rss_gb_max": 1.488289792,
+  "worker_peak_rss_gb_sum": 14.753841152000001,
+  "worker_t_setup_s_max": 0.6156609058380127,
+  "worker_t_sim_s_max": 35.64021301269531,
+  "worker_t_write_noise_s_max": 9.754197835922241,
+  "n_frames": 360,
+  "lit_clean_per_frame_median": 20484.5,
+  "lit_clean_per_frame_min_max": [
+    13413,
+    26295
+  ],
+  "lit_real_total": 6592953,
+  "lit_clean_total": 7414841,
+  "spots_total": 57389,
+  "missed_total": 5743,
+  "hot_total": 2293,
+  "blob_total": 5148,
+  "output_dir": "Examples/Example2.ManyGrains/ScatteringData_PhaseD/full"
+}

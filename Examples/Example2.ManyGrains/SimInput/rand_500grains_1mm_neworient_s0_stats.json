@@ -1,0 +1,26 @@
+{
+  "n_redrawn": 5,
+  "max_attempts": 1,
+  "min_new_vs_old_deg": 1.2897154160994824,
+  "min_neighbour_new_deg": 3.900424204428477,
+  "n_adjacent_pairs": 1469,
+  "seed": 0,
+  "n_voxels": 24570,
+  "n_grains": 497,
+  "grain_size_min_median_max": [
+    4,
+    44.0,
+    185
+  ],
+  "min_old_vs_old_deg": 7.252893605112248,
+  "n_old_grain_pairs_below_1deg": 0,
+  "n_old_in_fz": 497,
+  "side_length_m": 0.009375,
+  "adjacency_radius_over_side": 1.01,
+  "roundtrip_max_misorientation_deg": 2.9575586669421963e-06,
+  "mic_symmetry_ops": 24,
+  "new_euler_range_deg": [
+    0.046023,
+    359.729273
+  ]
+}

@@ -82,3 +82,6 @@ scripts/mc_mechanism/cache/
 scripts/finisher_bench/cache/
 benchmarks/finisher_bench/cache/
 scripts/cma_finisher/cache/
+
+# Phase D logs/caches
+scripts/phase_d/cache/
