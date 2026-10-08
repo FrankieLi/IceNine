@@ -1,0 +1,382 @@
+Before initialization 
+ In Detector Block 0 (Line numbers are specified within the block)
+ In Detector Block 1 (Line numbers are specified within the block)
+ In Detector Block 0 (Line numbers are specified within the block)
+ In Detector Block 1 (Line numbers are specified within the block)
+ In Detector Block 0 (Line numbers are specified within the block)
+ In Detector Block 1 (Line numbers are specified within the block)
+ In Detector Block 0 (Line numbers are specified within the block)
+Before reading experimental data 
+After reading experimental data 
+Created Triangular mic 
+WARNING -- QMax is set by Cubic method still!!!!! 
+Created Triangular mic 
+Num Elements in Queue 16
+[ 0.984848 0.982558 0.931818 ]
+Normal Reconstruction 0.919189 sec, evals=18993
+Num Cliques 4404 MaxRange 0.0988187 MaxRangeCliqueID: 2515 MinCostCliqueID 2515 0.887097 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8060
+Num Cliques 2011 MaxRange 0.430769 MaxRangeCliqueID: 78 MinCostCliqueID 78 0.507692 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2451
+Num Cliques 612 MaxRange 0.247552 MaxRangeCliqueID: 9 MinCostCliqueID 0 0.363636 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 679
+Num Cliques 169 MaxRange 0.350068 MaxRangeCliqueID: 17 MinCostCliqueID 0 0.121212 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 185
+Num Cliques 46 MaxRange 0.19697 MaxRangeCliqueID: 26 MinCostCliqueID 0 0.030303 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 52
+Num Cliques 13 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 13
+ |  Before final optimization 
+ nLocalOptCandidates 13
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 7900	|GlbPts| 790	|R_c| 0.2	|MCS| 7900	|Var| 9.06849e-05	|C_i| 0.0530303	|C_f|0.0530303	[ 79.0082 41.5754 279.53]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 1 	0.94697 ]
+Adaptive Reconstruction 12.3465 sec, evals=254806
+VOXEL_SUMMARY voxel=0 basic_sec=0.919189 basic_evals=18993 adap_sec=12.3465 adap_evals=254806 adap_us_per_eval=48.4545
+[ 1 1 0.94697 ]
+Normal Reconstruction 0.921715 sec, evals=19186
+Num Cliques 4417 MaxRange 0.0826897 MaxRangeCliqueID: 2527 MinCostCliqueID 2527 0.903226 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8083
+Num Cliques 2018 MaxRange 0.324914 MaxRangeCliqueID: 40 MinCostCliqueID 40 0.615385 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2470
+Num Cliques 617 MaxRange 0.213252 MaxRangeCliqueID: 24 MinCostCliqueID 0 0.430769 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 670
+Num Cliques 167 MaxRange 0.550663 MaxRangeCliqueID: 20 MinCostCliqueID 20 0.328125 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 182
+Num Cliques 45 MaxRange 0.166593 MaxRangeCliqueID: 27 MinCostCliqueID 0 0.227273 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 53
+Num Cliques 13 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.0757576 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 13
+ |  Before final optimization 
+ nLocalOptCandidates 13
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 6540	|GlbPts| 654	|R_c| 0.2	|MCS| 6540	|Var| 0.000346562	|C_i| 0.0530303	|C_f|0.0530303	[ 79.0369 41.5614 279.518]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 1 	0.94697 ]
+Adaptive Reconstruction 12.3647 sec, evals=253934
+VOXEL_SUMMARY voxel=1 basic_sec=0.921715 basic_evals=19186 adap_sec=12.3647 adap_evals=253934 adap_us_per_eval=48.6925
+[ 0.846154 0.809375 0.738095 ]
+Normal Reconstruction 8.20521 sec, evals=166146
+Num Cliques 4403 MaxRange 0.0686052 MaxRangeCliqueID: 2517 MinCostCliqueID 2517 0.903226 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8067
+Num Cliques 2011 MaxRange 0.123995 MaxRangeCliqueID: 1032 MinCostCliqueID 0 0.227273 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2449
+Num Cliques 612 MaxRange 0.356602 MaxRangeCliqueID: 22 MinCostCliqueID 0 0.227273 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 673
+Num Cliques 168 MaxRange 0.166775 MaxRangeCliqueID: 29 MinCostCliqueID 0 0.106061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 181
+Num Cliques 45 MaxRange 0.293456 MaxRangeCliqueID: 23 MinCostCliqueID 0 0.106061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 48
+Num Cliques 12 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.106061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 12
+ |  Before final optimization 
+ nLocalOptCandidates 12
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 6860	|GlbPts| 686	|R_c| 0.2	|MCS| 6860	|Var| 0.000354461	|C_i| 0.0551949	|C_f|0.0551949	[ 79.0351 41.5528 279.506]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.996988 	0.944805 ]
+Adaptive Reconstruction 13.6936 sec, evals=256586
+VOXEL_SUMMARY voxel=2 basic_sec=8.20521 basic_evals=166146 adap_sec=13.6936 adap_evals=256586 adap_us_per_eval=53.3685
+[ 0.892308 0.888199 0.828718 ]
+Normal Reconstruction 8.12136 sec, evals=166244
+Num Cliques 4409 MaxRange 0.0686052 MaxRangeCliqueID: 2526 MinCostCliqueID 2526 0.903226 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8104
+Num Cliques 2026 MaxRange 0.109262 MaxRangeCliqueID: 79 MinCostCliqueID 0 0.545455 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2508
+Num Cliques 626 MaxRange 0.233065 MaxRangeCliqueID: 24 MinCostCliqueID 0 0.230769 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 693
+Num Cliques 173 MaxRange 0.137494 MaxRangeCliqueID: 36 MinCostCliqueID 0 0.19403 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 188
+Num Cliques 47 MaxRange 0.257576 MaxRangeCliqueID: 18 MinCostCliqueID 0 0.0615385 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 53
+Num Cliques 13 MaxRange 0.117647 MaxRangeCliqueID: 12 MinCostCliqueID 0 0.030303 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 14
+ |  Before final optimization 
+ nLocalOptCandidates 14
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 4070	|GlbPts| 407	|R_c| 0.2	|MCS| 4070	|Var| 0.000132881	|C_i| 0.0694805	|C_f|0.0694805	[ 79.0387 41.5525 279.509]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.981481 	0.93052 ]
+Adaptive Reconstruction 12.5276 sec, evals=255680
+VOXEL_SUMMARY voxel=3 basic_sec=8.12136 basic_evals=166244 adap_sec=12.5276 adap_evals=255680 adap_us_per_eval=48.9972
+[ 1 1 0.94697 ]
+Normal Reconstruction 0.952089 sec, evals=18971
+Num Cliques 4409 MaxRange 0.0847342 MaxRangeCliqueID: 2519 MinCostCliqueID 2519 0.887097 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8070
+Num Cliques 2011 MaxRange 0.13938 MaxRangeCliqueID: 411 MinCostCliqueID 0 0.728571 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2478
+Num Cliques 619 MaxRange 0.214383 MaxRangeCliqueID: 6 MinCostCliqueID 6 0.636364 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 677
+Num Cliques 169 MaxRange 0.305292 MaxRangeCliqueID: 13 MinCostCliqueID 0 0.415385 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 175
+Num Cliques 43 MaxRange 0.078019 MaxRangeCliqueID: 16 MinCostCliqueID 0 0.166667 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 45
+Num Cliques 11 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.121212 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 11
+ |  Before final optimization 
+ nLocalOptCandidates 11
+  After Final Optimization 
+0.0395647	|R_0| 0.0288676	|Step | 5990	|GlbPts| 599	|R_c| 0.2	|MCS| 5990	|Var| 0.000338191	|C_i| 0.0530303	|C_f|0.0530303	[ 79.036 41.5567 279.511]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 1 	0.94697 ]
+Adaptive Reconstruction 13.6618 sec, evals=253034
+VOXEL_SUMMARY voxel=4 basic_sec=0.952089 basic_evals=18971 adap_sec=13.6618 adap_evals=253034 adap_us_per_eval=53.9918
+[ 0.742424 0.829341 0.705267 ]
+Normal Reconstruction 1.13267 sec, evals=20444
+Num Cliques 4410 MaxRange 0.0988187 MaxRangeCliqueID: 2520 MinCostCliqueID 2520 0.887097 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8082
+Num Cliques 2018 MaxRange 0.0502527 MaxRangeCliqueID: 1663 MinCostCliqueID 0 0.854839 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2442
+Num Cliques 610 MaxRange 0.177489 MaxRangeCliqueID: 36 MinCostCliqueID 0 0.578125 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 681
+Num Cliques 170 MaxRange 0.325397 MaxRangeCliqueID: 11 MinCostCliqueID 0 0.234375 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 180
+Num Cliques 45 MaxRange 0.0654762 MaxRangeCliqueID: 16 MinCostCliqueID 0 0.0909091 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 46
+Num Cliques 11 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.0151515 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 11
+ |  Before final optimization 
+ nLocalOptCandidates 11
+  After Final Optimization 
+0.0395647	|R_0| 0.0288676	|Step | 7130	|GlbPts| 713	|R_c| 0.2	|MCS| 7130	|Var| 0.000287123	|C_i| 0.0530303	|C_f|0.0530303	[ 79.0482 41.5508 279.515]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 1 	0.94697 ]
+Adaptive Reconstruction 12.7118 sec, evals=254015
+VOXEL_SUMMARY voxel=5 basic_sec=1.13267 basic_evals=20444 adap_sec=12.7118 adap_evals=254015 adap_us_per_eval=50.0433
+[ 1 0.997015 0.944805 ]
+Normal Reconstruction 0.885667 sec, evals=18861
+Num Cliques 4412 MaxRange 0.0847342 MaxRangeCliqueID: 2526 MinCostCliqueID 2526 0.887097 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8054
+Num Cliques 2005 MaxRange 0.0845552 MaxRangeCliqueID: 50 MinCostCliqueID 0 0.814286 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2477
+Num Cliques 619 MaxRange 0.170996 MaxRangeCliqueID: 25 MinCostCliqueID 0 0.353846 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 677
+Num Cliques 169 MaxRange 0.170996 MaxRangeCliqueID: 39 MinCostCliqueID 0 0.166667 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 192
+Num Cliques 48 MaxRange 0.602823 MaxRangeCliqueID: 13 MinCostCliqueID 0 0.166667 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 58
+Num Cliques 14 MaxRange 0.139678 MaxRangeCliqueID: 11 MinCostCliqueID 0 0.106061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 16
+ |  Before final optimization 
+ nLocalOptCandidates 16
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 7470	|GlbPts| 747	|R_c| 0.2	|MCS| 7470	|Var| 0.000299321	|C_i| 0.0551949	|C_f|0.0551949	[ 79.028 41.5691 279.509]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.997041 	0.944805 ]
+Adaptive Reconstruction 12.5132 sec, evals=258367
+VOXEL_SUMMARY voxel=6 basic_sec=0.885667 basic_evals=18861 adap_sec=12.5132 adap_evals=258367 adap_us_per_eval=48.432
+[ 1 0.997006 0.944805 ]
+Normal Reconstruction 7.55844 sec, evals=166712
+Num Cliques 4412 MaxRange 0.0826897 MaxRangeCliqueID: 2526 MinCostCliqueID 2526 0.903226 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8092
+Num Cliques 2020 MaxRange 0.384217 MaxRangeCliqueID: 85 MinCostCliqueID 0 0.484848 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2456
+Num Cliques 614 MaxRange 0.089916 MaxRangeCliqueID: 113 MinCostCliqueID 0 0.353846 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 664
+Num Cliques 166 MaxRange 0.0307692 MaxRangeCliqueID: 23 MinCostCliqueID 0 0.328125 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 181
+Num Cliques 45 MaxRange 0.123077 MaxRangeCliqueID: 12 MinCostCliqueID 0 0.0606061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 51
+Num Cliques 12 MaxRange 0.0153846 MaxRangeCliqueID: 10 MinCostCliqueID 0 0.0606061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 13
+ |  Before final optimization 
+ nLocalOptCandidates 13
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 4250	|GlbPts| 425	|R_c| 0.2	|MCS| 4250	|Var| 0.000201509	|C_i| 0.0551949	|C_f|0.0551949	[ 79.0465 41.5558 279.514]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.997041 	0.944805 ]
+Adaptive Reconstruction 11.9171 sec, evals=253486
+VOXEL_SUMMARY voxel=7 basic_sec=7.55844 basic_evals=166712 adap_sec=11.9171 adap_evals=253486 adap_us_per_eval=47.0128
+[ 0.984848 0.967552 0.907287 ]
+Normal Reconstruction 0.853408 sec, evals=18793
+Num Cliques 4412 MaxRange 0.0686052 MaxRangeCliqueID: 2533 MinCostCliqueID 2533 0.903226 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8074
+Num Cliques 2014 MaxRange 0.109529 MaxRangeCliqueID: 43 MinCostCliqueID 0 0.742857 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2456
+Num Cliques 614 MaxRange 0.265611 MaxRangeCliqueID: 13 MinCostCliqueID 0 0.19697 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 666
+Num Cliques 166 MaxRange 0.218599 MaxRangeCliqueID: 19 MinCostCliqueID 0 0.19697 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 181
+Num Cliques 45 MaxRange 0.20023 MaxRangeCliqueID: 11 MinCostCliqueID 0 0.151515 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 53
+Num Cliques 13 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.0757576 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 13
+ |  Before final optimization 
+ nLocalOptCandidates 13
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 4170	|GlbPts| 416	|R_c| 0.2	|MCS| 4170	|Var| 0.000212337	|C_i| 0.109668	|C_f|0.0930917	[ 79.0474 41.5461 279.504]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	0.984848	 0.96793 	0.906908 ]
+Adaptive Reconstruction 11.8933 sec, evals=253736
+VOXEL_SUMMARY voxel=8 basic_sec=0.853408 basic_evals=18793 adap_sec=11.8933 adap_evals=253736 adap_us_per_eval=46.8726
+[ 0.954545 0.943114 0.887987 ]
+Normal Reconstruction 0.856863 sec, evals=18773
+Num Cliques 4402 MaxRange 0.0686052 MaxRangeCliqueID: 2525 MinCostCliqueID 2525 0.903226 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8068
+Num Cliques 2013 MaxRange 0.124413 MaxRangeCliqueID: 87 MinCostCliqueID 0 0.430769 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2481
+Num Cliques 620 MaxRange 0.433065 MaxRangeCliqueID: 26 MinCostCliqueID 0 0.30303 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 668
+Num Cliques 167 MaxRange 0.238806 MaxRangeCliqueID: 39 MinCostCliqueID 0 0.169231 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 178
+Num Cliques 44 MaxRange 0.180641 MaxRangeCliqueID: 29 MinCostCliqueID 0 0.106061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 49
+Num Cliques 12 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.0151515 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 12
+ |  Before final optimization 
+ nLocalOptCandidates 12
+  After Final Optimization 
+0.0395647	|R_0| 0.0288676	|Step | 5760	|GlbPts| 576	|R_c| 0.2	|MCS| 5760	|Var| 0.000371234	|C_i| 0.072601	|C_f|0.072601	[ 79.0171 41.5512 279.524]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.978979 	0.927399 ]
+Adaptive Reconstruction 11.9978 sec, evals=255626
+VOXEL_SUMMARY voxel=9 basic_sec=0.856863 basic_evals=18773 adap_sec=11.9978 adap_evals=255626 adap_us_per_eval=46.9348
+[ 1 1 0.94697 ]
+Normal Reconstruction 0.865308 sec, evals=18969
+Num Cliques 4409 MaxRange 0.0706497 MaxRangeCliqueID: 2519 MinCostCliqueID 2519 0.887097 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8078
+Num Cliques 2016 MaxRange 0.138961 MaxRangeCliqueID: 92 MinCostCliqueID 0 0.428571 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2485
+Num Cliques 621 MaxRange 0.12381 MaxRangeCliqueID: 164 MinCostCliqueID 0 0.121212 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 675
+Num Cliques 168 MaxRange 0.665212 MaxRangeCliqueID: 18 MinCostCliqueID 0 0.121212 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 179
+Num Cliques 44 MaxRange 0.330553 MaxRangeCliqueID: 22 MinCostCliqueID 0 0.121212 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 49
+Num Cliques 12 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.0151515 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 12
+ |  Before final optimization 
+ nLocalOptCandidates 12
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 5150	|GlbPts| 515	|R_c| 0.2	|MCS| 5150	|Var| 0.00028773	|C_i| 0.0530303	|C_f|0.0530303	[ 79.028 41.547 279.515]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 1 	0.94697 ]
+Adaptive Reconstruction 11.8249 sec, evals=252474
+VOXEL_SUMMARY voxel=10 basic_sec=0.865308 basic_evals=18969 adap_sec=11.8249 adap_evals=252474 adap_us_per_eval=46.8362
+[ 1 1 0.94697 ]
+Normal Reconstruction 7.45094 sec, evals=166475
+Num Cliques 4406 MaxRange 0.0847342 MaxRangeCliqueID: 2522 MinCostCliqueID 2522 0.887097 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8073
+Num Cliques 2015 MaxRange 0.140632 MaxRangeCliqueID: 62 MinCostCliqueID 0 0.796875 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2419
+Num Cliques 604 MaxRange 0.110407 MaxRangeCliqueID: 41 MinCostCliqueID 0 0.469697 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 664
+Num Cliques 166 MaxRange 0.306595 MaxRangeCliqueID: 16 MinCostCliqueID 0 0.19697 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 174
+Num Cliques 43 MaxRange 0.4 MaxRangeCliqueID: 22 MinCostCliqueID 0 0.030303 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 47
+Num Cliques 11 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.030303 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 11
+ |  Before final optimization 
+ nLocalOptCandidates 11
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 5100	|GlbPts| 510	|R_c| 0.2	|MCS| 5100	|Var| 0.000194891	|C_i| 0.0530303	|C_f|0.0530303	[ 79.0192 41.5568 279.513]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 1 	0.94697 ]
+Adaptive Reconstruction 11.7505 sec, evals=250815
+VOXEL_SUMMARY voxel=11 basic_sec=7.45094 basic_evals=166475 adap_sec=11.7505 adap_evals=250815 adap_us_per_eval=46.8494
+[ 1 0.968944 0.921645 ]
+Normal Reconstruction 0.857982 sec, evals=18925
+Num Cliques 4411 MaxRange 0.0706497 MaxRangeCliqueID: 2529 MinCostCliqueID 2529 0.887097 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8058
+Num Cliques 2012 MaxRange 0.326259 MaxRangeCliqueID: 114 MinCostCliqueID 0 0.287879 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2497
+Num Cliques 624 MaxRange 0.143956 MaxRangeCliqueID: 29 MinCostCliqueID 0 0.215385 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 694
+Num Cliques 173 MaxRange 0.183824 MaxRangeCliqueID: 12 MinCostCliqueID 0 0.215385 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 189
+Num Cliques 47 MaxRange 0.392819 MaxRangeCliqueID: 25 MinCostCliqueID 0 0.0923077 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 54
+Num Cliques 13 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.0153846 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 13
+ |  Before final optimization 
+ nLocalOptCandidates 13
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 5990	|GlbPts| 599	|R_c| 0.2	|MCS| 5990	|Var| 0.00021099	|C_i| 0.079293	|C_f|0.079293	[ 79.0246 41.5449 279.522]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.966361 	0.920707 ]
+Adaptive Reconstruction 12.025 sec, evals=256592
+VOXEL_SUMMARY voxel=12 basic_sec=0.857982 basic_evals=18925 adap_sec=12.025 adap_evals=256592 adap_us_per_eval=46.8643
+[ 1 0.973214 0.92482 ]
+Normal Reconstruction 0.880523 sec, evals=19146
+Num Cliques 4415 MaxRange 0.0706497 MaxRangeCliqueID: 2531 MinCostCliqueID 2531 0.887097 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8060
+Num Cliques 2014 MaxRange 0.0498759 MaxRangeCliqueID: 847 MinCostCliqueID 0 0.676923 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2446
+Num Cliques 611 MaxRange 0.0597015 MaxRangeCliqueID: 199 MinCostCliqueID 0 0.30303 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 661
+Num Cliques 165 MaxRange 0.0649801 MaxRangeCliqueID: 23 MinCostCliqueID 0 0.212121 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 173
+Num Cliques 43 MaxRange 0.015625 MaxRangeCliqueID: 31 MinCostCliqueID 0 0.212121 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 44
+Num Cliques 11 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.0606061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 11
+ |  Before final optimization 
+ nLocalOptCandidates 11
+  After Final Optimization 
+0.0395647	|R_0| 0.0288676	|Step | 6350	|GlbPts| 635	|R_c| 0.2	|MCS| 6350	|Var| 0.000278242	|C_i| 0.0701299	|C_f|0.0701299	[ 79.029 41.5533 279.506]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.979532 	0.92987 ]
+Adaptive Reconstruction 12.7756 sec, evals=254924
+VOXEL_SUMMARY voxel=13 basic_sec=0.880523 basic_evals=19146 adap_sec=12.7756 adap_evals=254924 adap_us_per_eval=50.1154
+[ 0.969697 0.963855 0.916667 ]
+Normal Reconstruction 0.904862 sec, evals=19342
+Num Cliques 4412 MaxRange 0.0706497 MaxRangeCliqueID: 2526 MinCostCliqueID 2526 0.887097 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8143
+Num Cliques 2032 MaxRange 0.155844 MaxRangeCliqueID: 10 MinCostCliqueID 0 0.609375 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2495
+Num Cliques 623 MaxRange 0.141217 MaxRangeCliqueID: 23 MinCostCliqueID 0 0.166667 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 680
+Num Cliques 170 MaxRange 0.220666 MaxRangeCliqueID: 25 MinCostCliqueID 0 0.151515 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 183
+Num Cliques 45 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.0909091 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 45
+Num Cliques 11 MaxRange 1.17549e-38 MaxRangeCliqueID: 0 MinCostCliqueID 0 0.0606061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 11
+ |  Before final optimization 
+ nLocalOptCandidates 11
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 7120	|GlbPts| 712	|R_c| 0.2	|MCS| 7120	|Var| 0.00038665	|C_i| 0.0549243	|C_f|0.0549243	[ 79.0417 41.5531 279.505]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.996997 	0.945076 ]
+Adaptive Reconstruction 12.462 sec, evals=258856
+VOXEL_SUMMARY voxel=14 basic_sec=0.904862 basic_evals=19342 adap_sec=12.462 adap_evals=258856 adap_us_per_eval=48.1425
+[ 0.969697 0.959752 0.914141 ]
+Normal Reconstruction 0.883329 sec, evals=18773
+Num Cliques 4410 MaxRange 0.0706497 MaxRangeCliqueID: 2525 MinCostCliqueID 2525 0.887097 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 8091
+Num Cliques 2016 MaxRange 0.530755 MaxRangeCliqueID: 1651 MinCostCliqueID 1651 0.439394 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 2473
+Num Cliques 618 MaxRange 0.0327701 MaxRangeCliqueID: 511 MinCostCliqueID 0 0.227273 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 682
+Num Cliques 170 MaxRange 0.0562072 MaxRangeCliqueID: 22 MinCostCliqueID 0 0.0606061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 183
+Num Cliques 45 MaxRange 0.186682 MaxRangeCliqueID: 13 MinCostCliqueID 0 0.0606061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 48
+Num Cliques 12 MaxRange 0.430769 MaxRangeCliqueID: 10 MinCostCliqueID 0 0.0606061 | 0 2.20038e-36 1.4013e-45 | -3.49521e+06 1.54143e-44 0
+ || Num candiates 13
+ |  Before final optimization 
+ nLocalOptCandidates 13
+  After Final Optimization 
+0	|R_0| 0.0288676	|Step | 4950	|GlbPts| 495	|R_c| 0.2	|MCS| 4950	|Var| 0.00018206	|C_i| 0.0555556	|C_f|0.0555556	[ 79.0316 41.5613 279.51]
+  After Variance Optimization 
+  After Voxel Cost calculation 
+[ 	1	 0.996979 	0.944444 ]
+Adaptive Reconstruction 12.5601 sec, evals=255810
+VOXEL_SUMMARY voxel=15 basic_sec=0.883329 basic_evals=18773 adap_sec=12.5601 adap_evals=255810 adap_us_per_eval=49.0992

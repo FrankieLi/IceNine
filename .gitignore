@@ -22,3 +22,4 @@ ExtLib
 # Session checkpoints written by scripts/dev/checkpoint.sh
 .claude/checkpoints/
 __pycache__/
+/Examples/Example2.ManyGrains/ScatteringData_PhaseD/

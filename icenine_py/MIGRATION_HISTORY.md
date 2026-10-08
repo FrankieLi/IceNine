@@ -4442,6 +4442,228 @@ Opt-in additions to `BFSReconstruction` that Phase D (the 500-grain end-to-end t
   - Memory for full-sample image stacks.
   - The C++ comparison needs matching config.
 
+### Phase D data (2026-10-07, `feature/finisher-mc-study-phase-d-data`)
+
+What was generated: the 500-grain sample with new orientations, and full-sample forward-simulated images (clean
+and realistic) for the Phase D end-to-end test. No reconstruction was run. Code is in `icenine_py/scripts/phase_d/`
+(`grains.py`, `make_neworient.py`, `noise.py`, `render_full.py`, `make_configs.py`, `sanity_checks.py`,
+`frame_split_check.py`, `memmap_check.py`, `bfs_timing_probe.py`, `summary.py`; tests in `tests/test_phase_d.py`;
+the opt-in memmap loader is in `icenine/experimental_data.py`).
+
+- **Existing images:** none. `Examples/Example2.ManyGrains/` holds no `ScatteringData*` directory (only the
+  ThreeVoxels, `ScatteringData_Q8` and Example1 images exist), so the earlier claim that ManyGrains images exist
+  is wrong; no ManyGrains images are kept on disk.
+- **Sample:** `SimInput/rand_500grains_1mm_neworient_s0.mic` (seed 0), with `_grainmap.npy` (voxel to grain id,
+  numbered by first appearance in the file) and `_stats.json`. Position, direction, generation, phase and
+  confidence tokens are copied verbatim from `rand_500grains_1mm_inFZ.mic` (separators normalised to tabs); only
+  the Euler columns change.
+  - Grains are voxels with identical Euler angles (497 groups; no near-duplicates, the closest old pair is
+    well above 1 degree).
+  - One orientation per grain: uniform on SO(3) (normalised 4-D Gaussian), reduced to the fundamental zone with the
+    symmetry operators of the sample symmetry in `Example2.Simulation.config` (24 proper rotations for Cubic),
+    rounded to the .mic precision before any check.
+  - The draw of grain g, attempt a is `default_rng([seed, g, a])`, so redraws are deterministic. Violators of the
+    1 degree rule (new vs any old orientation, new vs adjacent grain's new) are redrawn with a+1.
+  - Adjacency: triangle centroids closer than 1.01 x the side length (edge and vertex neighbours).
+  - The .mic reads back through `MicFile.read` (error in the table).
+  - **Leakage guard:** `rand_500grains_1mm_neworient_s0_grid.mic` has the same geometry with the Euler columns set to
+    zero. All Phase D reconstruction configs read the grid mic; the truth `.mic` is for scoring only (the cost-function
+    checks below take the truth from it). `tests/test_phase_d.py` checks that the grid mic has no orientation
+    information.
+  - **Grain pieces:** under edge adjacency the 497 grains form 612 connected pieces (115 extra pieces of 1 to 3
+    voxels each, `n_extra_grain_pieces` in the stats). Count "grains found / lost" and the number of seeds with this in
+    mind: a piece cut off from its grain by the edge rule needs its own seed or a vertex-neighbour start.
+
+<!-- table:phase_d_sample -->
+| quantity | value |
+|---|---|
+| voxels | 24570 |
+| grains (distinct orientations) | 497 |
+| voxels per grain min / median / max | 4 / 44 / 185 |
+| adjacent grain pairs | 1469 |
+| redrawn grains (of 497) | 5 |
+| min new vs any old (deg) | 1.29 |
+| min new vs adjacent new (deg) | 3.9 |
+| min old vs old (deg) | 7.25 |
+| mic round-trip max error (deg) | 2.96e-06 |
+<!-- /table:phase_d_sample -->
+
+- **Images:** `render_full.py` drives `ForwardSimulation._simulate_peaks_batched` (the pixel-exact batched path)
+  with the geometry, beam, omega range and step, Q-max 8 and eta limit of `Example2.Simulation.config` (2
+  detectors, 180 omega frames each). 10 spawned workers; each runs the per-voxel physics for all voxels and
+  rasterizes only its own omega frames, so peak memory per worker is a tenth of the dense stack. Timing is
+  contended (10 workers, and another agent's job was running: the preflight JSONs in `results/` record the busy
+  process; `require_quiet` failed and the render went ahead).
+  - Output (gitignored): `Examples/Example2.ManyGrains/ScatteringData_PhaseD/full/{clean,realistic}/
+    500Grains.sim<NNNNN>.d<0|1>`, `j, k, intensity` lines without a header, the format of the C++ ASCII files.
+    The pilot (500 voxels nearest the centre) is in `.../pilot/`.
+  - Realistic images: detector noise only (overlap is physical now). The parameters are those of the earlier
+    realistic windows (`RealismConfig` variant "noise"): p_miss 0.1, p_flip 0.05, p_hot 0.05, p_blob 0.1, hot pixel
+    and blob placed in a 32 x 32 box around the spot centroid. They are applied per connected component of a
+    frame instead of per voxel window, so overlapping spots are missed together and a "spot" is a cluster of
+    overlapping voxel spots (sizes over all 57,389 spots of the 360 frames in the table below). Seed 12345; the stream of a frame depends only on
+    (seed, detector, frame). See `noise.py`.
+
+<!-- table:phase_d_sizes -->
+| quantity | value |
+|---|---|
+| spot size px: median / p95 / max (Q-max 8) | 103 / 308.6 / 1072 |
+| lit fraction of all pixels (Q-max 8) | 0.00491 |
+<!-- /table:phase_d_sizes -->
+
+<!-- table:phase_d_render -->
+| run | voxels | workers | wall_s | max_worker_sim_s | max_worker_write_noise_s | max_worker_rss_gb |
+|---|---|---|---|---|---|---|
+| pilot (500 voxels) | 500 | 10 | 13.8 | 0.8 | 10.3 | 1.12 |
+| full | 24570 | 10 | 48.7 | 35.8 | 11.0 | 1.39 |
+| full Q-max 16 | 24570 | 10 | 245.7 | 232.3 | 11.4 | 2.25 |
+<!-- /table:phase_d_render -->
+
+<!-- table:phase_d_frames -->
+| quantity | value |
+|---|---|
+| frames (180 omega x 2 detectors) | 360 |
+| lit pixels per frame, median | 20484.5 |
+| lit pixels per frame, min | 13413 |
+| lit pixels per frame, max | 26295 |
+| lit pixels, clean total | 7414841 |
+| lit pixels, realistic total | 6592953 |
+| spots (connected components), all frames | 57389 |
+| spots missed | 5743 |
+| hot pixels added | 2293 |
+| blobs added | 5148 |
+<!-- /table:phase_d_frames -->
+
+  - Differences from the earlier per-window noise, to keep in mind when comparing results: spots are grain-level
+    per-frame clusters, so a miss is correlated across the voxels of a grain, and a reflection can be half-missed
+    across frames (each frame draws independently); the effective p_hot and p_blob per voxel are lower on large
+    components (one draw per component); there are no twin or near-degenerate distractors.
+  - The render is Q-max 8 (the ManyGrains simulation config, and the Phase A to C images), so there are no |g| > 8
+    spots. That is less cluttered than real data; the `realistic_q16` variant below tests it.
+- **Frame-split invariance:** `frame_split_check.py` renders 50 voxels (central) with 1 and with 3 frame-owner
+  workers, in-process. The pixel arrays (indices and float32 intensities) of all 360 frames are exactly equal
+  (19,559 lit pixels), and the written clean and realistic files are byte-identical
+  (`results/frame_split_check.json`).
+- **Third variant `realistic_q16`:** the same render at Q-max 16 with the same noise model and seed scheme
+  (`--max-q 16 --variants realistic`), images in `.../ScatteringData_PhaseD/full_q16/realistic/`; reconstruction stays
+  at Q-max 8 (configs `*_realistic_q16`). It is contended like the other renders. Q-max 8 lit fraction is in the
+  second column of the table.
+
+<!-- table:phase_d_q16 -->
+| quantity | value |
+|---|---|
+| render wall time, 10 workers (s) | 245.7 |
+| max worker sim time (s) | 232.3 |
+| max worker RSS (GB) | 2.25 |
+| lit pixels, clean total | 58842023 |
+| lit pixels, realistic total | 51498581 |
+| lit fraction of all pixels (Q-max 8: 0.00491) | 0.039 |
+| spots, all frames | 220381 |
+| spot size px: median / p95 / max | 190 / 753 / 5194 |
+| spots larger than 2000 px | 277 |
+<!-- /table:phase_d_q16 -->
+
+- **Checks:**
+  - Total lit pixels of the clean render (7.41 M) is of the same size as the 7.4 M pixels of the earlier
+    old-orientation ManyGrains C++-vs-Python comparison; no pixel-level comparison is possible because the
+    orientations differ.
+  - Serial-path containment: 4 voxels re-rendered alone with the serial forward model; every lit pixel (1,048 to
+    1,124 per voxel) is lit in the full clean images (fraction 1.0 in all four).
+  - Cost function (hard `VoxelCostFunction`, Q-max 8, loaded through the Phase D reconstruction config, 6 random
+    voxels, 3 random axes per angle): the true orientation scores clearly above 1 degree off on both variants.
+    q is the reconstruction quality; the 0.25 and 0.5 columns are the means over 3 axes, q_1.0_max the best of 3.
+    Six voxels is a spot check, not a statistic. The clean `q_true` of 0.90 to 0.95 is the known ceiling of the
+    cost function (the per-peak detector factor of `OverlapInfo.update_quality`; see "What each method sees" in the
+    perturbation-sweep section above, the line about the cost at the true orientation on the exact images), not an
+    image error.
+
+<!-- table:phase_d_cost_check -->
+| images | voxels | q_true | q_0.25 | q_0.5 | q_1.0_max | min_gap_true_minus_1deg |
+|---|---|---|---|---|---|---|
+| clean | 6 | 0.90 - 0.95 | 0.46 - 0.62 | 0.18 - 0.34 | 0.06 - 0.13 | 0.80 |
+| realistic | 6 | 0.69 - 0.81 | 0.42 - 0.51 | 0.16 - 0.29 | 0.05 - 0.13 | 0.60 |
+| realistic_q16 | 6 | 0.69 - 0.77 | 0.38 - 0.51 | 0.16 - 0.28 | 0.05 - 0.12 | 0.57 |
+<!-- /table:phase_d_cost_check -->
+
+  - C++ reads the images: IceNine `r` (mode r, Q-max 8, a one-voxel mic of voxel 6628, clean images) loaded the
+    ASCII files and fitted the voxel to quality 0.94697, the same value as the Python true-orientation quality of
+    that voxel, with each Euler angle within 0.02 degrees of the truth. The C++ BFS on the full sample was not run.
+    Files: `scripts/phase_d/results/cpp_check/` (`recon.config`, a copy of `Example2.Simulation.config` with the
+    image/sample paths and Q-max 8 changed and `RunReconstruction` on; `one_voxel_6628.mic`; `run.log`, the C++
+    output of the re-run, which repeats the voxel 16 times; this C++ build writes no output .mic in this mode).
+    Run from `Examples/Example2.ManyGrains`: `../../IceNine r ../../icenine_py/scripts/phase_d/results/cpp_check/
+    recon.config`. In `run.log` the repeated hard-cost line `[ 1 1 0.94697 ]` is the clean-image fit; the C++
+    adaptive step took 12.5 s per voxel (contended).
+- **Reconstruction configs** (`scripts/phase_d/configs/`, run with cwd `Examples/Example2.ManyGrains`):
+  `ReconstructPhaseD_{mc,cma,cma_noretry}_{clean,realistic,realistic_q16}.config` (9 files), from
+  `ReconstructQ8.config` (Q-max 8, 200 MC steps, max local resolution 3, 2 restarts, `LazyBFS`; `MaxInitSideLength`
+  and `MinSideLength` set to 0.009375, the voxel side, instead of the inherited ThreeVoxels 0.004; `SampleRadius 0.50`
+  and `SampleCenter` are the simulation config's values and are C++-only). `SampleFilename` is the grid-only mic.
+  - `mc`: no `LocalOptimizer` key.
+  - `cma`: `LocalOptimizer cma`, `CMASigma0 0.2`, `CMAMaxEvals 1000`, `CMANeighborMaxEvals 250`,
+    `CMARetrySigma0 1.5`.
+  - `cma_noretry`: the same with `CMARetrySigma0 0`, to separate the effect of the retry from the optimizer.
+  - `BFSRevisitRefit 1` (REFIT voxels revisited inside the BFS, to be enabled in the mc and cma arms) is a comment.
+  - `CMANeighborMaxEvals` and `CMARetrySigma0` are library-branch keys: this tree's `ConfigFile` rejects them
+    (unknown keyword), so the cma configs load only once that branch lands. The mc configs load now
+    (`setup_reconstruction` works for all three image variants).
+- **Memory for the reconstruction:** the default loader holds 360 dense float32 frames (6.0 GB, computed as
+  360 x 2048^2 x 4 B) plus the uint8 binary caches (1.5 GB, 360 x 2048^2 x 1 B), about 7.5 GB per process. These two
+  figures are computed; the measured peak RSS is in the table below. `BFSReconstruction` is single-process, so
+  parallelism means independent concurrent runs (arms, variants), and memory is handled by the opt-in memmap loader.
+- **Memmap loader:** `write_binary_stack(...)` writes a variant once as a `(360, 2048, 2048)` uint8 `.npy`
+  (frame `det * 180 + omega`; in `ScatteringData_PhaseD/stacks/<variant>.npy`, gitignored);
+  `ExperimentalData.from_binary_memmap(path, 180, 2)` opens it with `np.load(mmap_mode="r")` and sets each
+  `ImageData._binary_cache` to the read-only C-contiguous slice; the float32 stack is never built. Use
+  `setup_reconstruction(cfg, exp_data=ExperimentalData.from_binary_memmap(...))`. Only the hard cost path is supported
+  (the images are empty sparse `ImageData`: intensities, `count_bright_pixels` and the soft cost see nothing).
+  The C extension's `stage_d_overlap` reads the slices without complaint (read-only is accepted) and nothing in the
+  hard path writes to the cache (a `_binary_cache` is only reset by the mutators of `ImageData`, which are never
+  called on loaded images). Default loaders are unchanged.
+  `memmap_check.py` evaluates the hard cost at the true and a 0.5 degree-off orientation of 20 voxels per variant
+  (40 evaluations), once with the dense loader and once with the memmap loader, each in a fresh process; every
+  `OverlapInfo` field (pixel and peak counts, detectors, quality) is exactly equal. RSS is the process peak
+  (`ru_maxrss`) after loading and those 40 evaluations; it grows toward the stack size (1.5 GB) as a long run touches
+  pages, but those pages are shared between concurrent processes through the page cache. A small unit test uses a
+  few frames (`tests/test_phase_d.py`).
+
+<!-- table:phase_d_memmap -->
+| images | evaluations | identical | dense_rss_gb | memmap_rss_gb | dense_load_s | memmap_load_s |
+|---|---|---|---|---|---|---|
+| clean | 40 | True | 7.88 | 0.37 | 8.2 | 0.4 |
+| realistic | 40 | True | 7.67 | 0.37 | 7.7 | 0.4 |
+| realistic_q16 | 40 | True | 7.04 | 0.36 | 57.5 | 0.4 |
+<!-- /table:phase_d_memmap -->
+
+- **Per-voxel cost probe (`bfs_timing_probe.py`, clean images, memmap loader, mc config):** single process,
+  contended (other jobs, including the C++ check above, were running), so these are upper bounds, not a speed claim.
+
+<!-- table:phase_d_probe -->
+| quantity | value |
+|---|---|
+| no-start seed voxel (reconstruct_voxel), n | 4 |
+|   wall time per seed (s) | 177, 376, 711, 204 |
+|   final error (deg) | 0.005, 0.013, 0.012, 0.005 |
+| neighbour step (local_optimization from 0.3 deg off), n | 20 |
+|   median / mean wall time (s) | 0.4 / 0.4 |
+|   median final error (deg) | 0.300 |
+<!-- /table:phase_d_probe -->
+
+  - The 4 seeds took 177 to 711 s each (mean 367 s, a thin sample), far above the 20 s assumed by the review and
+    the 12.5 s of the C++ adaptive step on a similar voxel; I did not profile why (the earlier profiling work
+    attributes the gap to the per-peak overlap loop).
+  - The classic neighbour step took about 0.4 s. Started 0.3 degrees off, it returned the start unchanged
+    (final error 0.300) in 16 of 20 voxels and improved in 4 (0.02 to 0.19 degrees). This is consistent with the
+    study's finding that the classic MC stops short; the cause here was not diagnosed. In a real BFS most
+    inherited starts are exact (same grain), so this probe says little about the typical neighbour; it says the
+    classic step does not repair a 0.3 degree error.
+
+- **Reproduce:** from `icenine_py/`: `uv run python scripts/phase_d/make_neworient.py`, then
+  `uv run python scripts/phase_d/render_full.py --workers 10 --tag full`, then
+  `uv run python scripts/phase_d/sanity_checks.py --variant {clean,realistic,realistic_q16}`; the Q-max 16 render is
+  `render_full.py --tag full_q16 --max-q 16 --variants realistic`; then `frame_split_check.py`,
+  `memmap_check.py --variant ...`, `bfs_timing_probe.py`, `summary.py`.
+
 ### Order and budget
 - **Order:** A → B1/B2 (no new compute) → B3 → C → D.
 - **Compute:**

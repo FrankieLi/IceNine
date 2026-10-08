@@ -1,0 +1,14 @@
+{
+  "variant": "clean",
+  "n_voxels": 20,
+  "n_evaluations": 40,
+  "all_overlap_fields_identical": true,
+  "stack_write_s": 5.8940980434417725,
+  "stack_size_gb": 1.509949568,
+  "dense_load_s": 8.2434720993042,
+  "dense_eval_s": 0.030530691146850586,
+  "dense_peak_rss_gb": 7.879589888,
+  "memmap_load_s": 0.3623371124267578,
+  "memmap_eval_s": 0.03328514099121094,
+  "memmap_peak_rss_gb": 0.36978688
+}
