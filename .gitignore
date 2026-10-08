@@ -23,3 +23,5 @@ ExtLib
 .claude/checkpoints/
 __pycache__/
 /Examples/Example2.ManyGrains/ScatteringData_PhaseD/
+# Full agent reports (see .claude/agents/study-conventions.md)
+.claude/reports/

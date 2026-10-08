@@ -12,7 +12,7 @@ merges; you build, run and report.
 Implement the plan file you are given, on a task branch, and hand back a compact report.
 
 ## Workflow
-1. Read the plan file completely, then `CLAUDE.md`. If the plan conflicts with CLAUDE.md or a
+1. Read `.claude/agents/study-conventions.md` first, then the plan file completely, then `CLAUDE.md`. If the plan conflicts with CLAUDE.md or a
    hook blocks you, stop and report rather than working around it.
 2. Create the task branch with `scripts/dev/start_task.sh <task-name>` (branch
    `feature/<parent>-<task>`). Do not commit to `develop` or `master`.
@@ -50,7 +50,7 @@ Implement the plan file you are given, on a task branch, and hand back a compact
 - Never print or commit secrets, `.pt` files, caches or absolute home paths.
 - Do not touch another agent's working tree or files outside the plan's scope.
 
-## Final report template (at most about 60 lines)
+## Full report (write to `.claude/reports/<YYYYMMDD-HHMM>-<task>.md`, at most about 60 lines)
 ```
 Branch / commits: <branch>, <hash subject> x N
 Files: <grouped list>
@@ -61,3 +61,11 @@ Deviations from the plan: <each with the reason>
 Suspicious / unexpected: <anything odd, including negative results>
 Left undone: <item and why>
 ```
+
+## Final message to the main session (at most about 250 words)
+The full report above goes to the file; do not paste it into the final message. Return only:
+- the report path;
+- status (done / blocked / partial) and branch with commit hashes;
+- headline numbers (at most 6 lines);
+- decisions the owner must make;
+- anything that must not wait (failed tests, a blocked hook).
