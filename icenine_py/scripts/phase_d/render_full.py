@@ -57,6 +57,8 @@ def _worker(args: Dict[str, Any]) -> Dict[str, Any]:
     w, W = args["worker"], args["workers"]
     cfg = ConfigFile.from_file(str(EX / "ConfigFiles" / "Example2.Simulation.config"))
     cfg.sample_filename = args["mic"]
+    if args["max_q"]:
+        cfg.max_q = args["max_q"]
     sim = ForwardSimulation(cfg)
     sim.exp_setup.initialize_experiment()
     omega_ranges = sim.exp_setup.get_omega_range_list()
@@ -87,15 +89,24 @@ def _worker(args: Dict[str, Any]) -> Dict[str, Any]:
 
     t2 = time.time()
     out_clean, out_real = Path(args["out"]) / "clean", Path(args["out"]) / "realistic"
-    out_clean.mkdir(parents=True, exist_ok=True)
+    if "clean" in args["variants"]:
+        out_clean.mkdir(parents=True, exist_ok=True)
     out_real.mkdir(parents=True, exist_ok=True)
+    kept: Dict[Any, Any] = {}
     params = NoiseParams()
     frames: List[Dict[str, Any]] = []
     for di in range(len(dets)):
         for i in owned:
             img = images[i][di]._pixels_dense.numpy()
             name = f"{BASENAME}{str(file_ranges[di].low + i).zfill(5)}" f".d{di}"
-            n_clean = write_ascii_image(str(out_clean / name), img)
+            n_clean = (
+                write_ascii_image(str(out_clean / name), img)
+                if "clean" in args["variants"]
+                else int((img > 0).sum())
+            )
+            if args.get("keep"):
+                kk, jj = np.nonzero(img)
+                kept[(di, i)] = (kk, jj, img[kk, jj].copy())
             rng = np.random.default_rng([args["noise_seed"], di, i])
             noisy, cnt = add_detector_noise(img, rng, params)
             n_real = write_ascii_image(str(out_real / name), noisy)
@@ -114,6 +125,7 @@ def _worker(args: Dict[str, Any]) -> Dict[str, Any]:
         "t_write_noise_s": t_write,
         "peak_rss_gb": rss,
         "frames": frames,
+        "kept": kept,
     }
 
 
@@ -125,11 +137,12 @@ def main() -> None:
     ap.add_argument("--tag", default="full")
     ap.add_argument("--batch", type=int, default=2000)
     ap.add_argument("--noise-seed", type=int, default=NOISE_SEED)
+    ap.add_argument("--max-q", type=float, default=0.0, help="override Q-max (0 = config)")
+    ap.add_argument("--variants", default="clean,realistic")
     ap.add_argument("--out-root", default=str(EX / "ScatteringData_PhaseD"))
     args = ap.parse_args()
     assert args.workers <= 10
 
-    sys.path.insert(0, str(ROOT / "icenine_py"))
     import preflight
 
     res_dir = HERE / "results"
@@ -159,6 +172,8 @@ def main() -> None:
             "voxel_idx": voxel_idx,
             "batch": args.batch,
             "noise_seed": args.noise_seed,
+            "max_q": args.max_q,
+            "variants": args.variants.split(","),
         }
         for w in range(args.workers)
     ]
@@ -168,6 +183,9 @@ def main() -> None:
         results = pool.map(_worker, jobs)
     wall = time.time() - t0
     frames = [f for r in results for f in r["frames"]]
+    sizes = np.array([x for f in frames for x in f["spot_sizes"]])
+    for f in frames:
+        del f["spot_sizes"]
     summary = {
         "tag": args.tag,
         "sample_seed": args.seed,
@@ -189,6 +207,14 @@ def main() -> None:
         ],
         "lit_real_total": int(sum(f["lit_real"] for f in frames)),
         "lit_clean_total": int(sum(f["lit_clean"] for f in frames)),
+        "max_q": args.max_q or "config (8)",
+        "lit_clean_fraction_of_pixels": float(
+            sum(f["lit_clean"] for f in frames) / (len(frames) * 2048 * 2048)
+        ),
+        "spot_px_pooled_median": float(np.median(sizes)),
+        "spot_px_pooled_p95": float(np.percentile(sizes, 95)),
+        "spot_px_max": int(sizes.max()),
+        "spot_px_n_gt_2000": int((sizes > 2000).sum()),
         "spots_total": int(sum(f["n_spots"] for f in frames)),
         "missed_total": int(sum(f["n_missed"] for f in frames)),
         "hot_total": int(sum(f["n_hot"] for f in frames)),

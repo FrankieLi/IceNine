@@ -14,11 +14,15 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
+from scipy.spatial import cKDTree
 
 sys.path.insert(0, str(Path(__file__).parent))
 import grains as G  # noqa: E402
 
 from icenine.config_file import ConfigFile  # noqa: E402
+from icenine.geometry import matrix_to_euler  # noqa: E402
 from icenine.experiment_setup import XDMExperimentSetup  # noqa: E402
 from icenine.mic_file import MicFile  # noqa: E402
 from icenine.orientation_search import get_symmetry_quaternions  # noqa: E402
@@ -52,7 +56,10 @@ def main() -> None:
     # symmetry or within 0.1 deg)
     d_old_old = G.misorientation_matrix_deg(old_q, old_q, sym)
     np.fill_diagonal(d_old_old, np.inf)
-    side = float(open(src).readline().split()[0]) / 2 ** int(raw[0, 4])
+    assert (raw[:, 4] == raw[0, 4]).all(), "mixed generations"
+    with open(src) as f:
+        header_side = float(f.readline().split()[0])
+    side = header_side / 2 ** int(raw[0, 4])
     # centroid of each triangle (left vertex + direction flag)
     s3 = np.sqrt(3.0)
     cy = raw[:, 1] + np.where(raw[:, 3] == 1, 1.0, -1.0) * side * s3 / 6.0
@@ -65,11 +72,30 @@ def main() -> None:
     new_euler = np.round(G.quat_to_euler(new_q), G.EULER_DECIMALS)
     G.write_mic_with_euler(str(src), str(dst), grain, new_euler)
     np.save(EX / "SimInput" / f"{stem}_grainmap.npy", grain)
+    # grid-only mic for reconstruction: same geometry, identity orientation (leakage guard)
+    G.write_mic_with_euler(
+        str(src), str(EX / "SimInput" / f"{stem}_grid.mic"), grain, np.zeros((n_grains, 3))
+    )
+    # connected pieces of each grain under edge adjacency (centroid distance s / sqrt(3))
+    e_pairs = cKDTree(cent).query_pairs(0.6 * side, output_type="ndarray")
+    same = grain[e_pairs[:, 0]] == grain[e_pairs[:, 1]]
+    n_pieces, piece_lab = connected_components(
+        coo_matrix(
+            (np.ones(int(same.sum())), (e_pairs[same, 0], e_pairs[same, 1])),
+            shape=(len(grain), len(grain)),
+        ),
+        directed=False,
+    )
+    psize = np.bincount(piece_lab)
+    pgrain = np.zeros(n_pieces, dtype=int)
+    pgrain[piece_lab] = grain
+    largest = {g: psize[pgrain == g].max() for g in range(n_grains)}
+    extra = [psize[i] for i in range(n_pieces) if psize[i] != largest[pgrain[i]]]
+    # pieces tied for largest within a grain are not counted as extra here (rare); n_pieces is exact
+    extra_max = max(extra) if extra else 0
 
     # round trip through the Python reader
     mic = MicFile.read(str(dst))
-    from icenine.geometry import matrix_to_euler
-
     back = np.array([matrix_to_euler(v.orientation) for v in mic.voxels])
     q_back = G.euler_to_quat(back)
     q_exp = new_q[grain]
@@ -80,6 +106,9 @@ def main() -> None:
         {
             "seed": args.seed,
             "n_voxels": int(len(grain)),
+            "n_edge_connected_grain_pieces": int(n_pieces),
+            "n_extra_grain_pieces": int(n_pieces - n_grains),
+            "extra_piece_voxels_max": int(extra_max),
             "n_grains": int(n_grains),
             "grain_size_min_median_max": [
                 int(sizes.min()),

@@ -36,13 +36,17 @@ def cost_check(variant: str, n_vox: int, seed: int) -> dict:
     setup = setup_reconstruction(cfg)
     t_load = time.time() - t0
     rec = AdaptiveVoxelReconstructor(setup)
-    mic = setup.sample.get_mic()
+    mic = setup.sample.get_mic()  # grid-only mic (identity orientations)
+    from icenine.mic_file import MicFile
+
+    truth = MicFile.read(str(EX / "SimInput" / "rand_500grains_1mm_neworient_s0.mic"))
+    assert len(truth.voxels) == len(mic.voxels)
     rng = np.random.default_rng(seed)
     idx = rng.choice(len(mic.voxels), n_vox, replace=False)
     rows = []
     for i in idx:
         v = mic.voxels[int(i)]
-        R = np.asarray(v.orientation, dtype=np.float64)
+        R = np.asarray(truth.voxels[int(i)].orientation, dtype=np.float64)
         verts = _get_voxel_vertices(v)
 
         def q(Rx: np.ndarray) -> float:

@@ -10,7 +10,9 @@ C++ Reference:
 """
 
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Union
+
+import numpy as np
 
 from icenine.config_file import ConfigFile
 from icenine.experiment_setup import XDMExperimentSetup
@@ -250,6 +252,43 @@ class ExperimentalData:
             result.prepare_for_reconstruction()
         return result
 
+    @classmethod
+    def from_binary_memmap(
+        cls,
+        path: Union[str, Path],
+        n_omega: int,
+        n_detectors: int,
+    ) -> "ExperimentalData":
+        """Opt-in low-memory loader: binary (pixel > 0) frames from a uint8 ``.npy`` stack.
+
+        The stack (see ``write_binary_stack``) has shape (n_detectors * n_omega, H, W), frame
+        ``det * n_omega + omega``. It is opened with ``np.load(mmap_mode="r")`` and every
+        ``ImageData._binary_cache`` is set to its read-only C-contiguous slice, so the float32
+        stack is never built (per process: only the pages the cost function touches, shared
+        through the OS page cache between concurrent runs). The images are *sparse-mode, empty*
+        ImageData: only the hard-cost path (``get_binary_numpy``) is supported. Intensities,
+        ``count_bright_pixels`` and the soft cost see no pixels. Default loaders are unchanged.
+        """
+        stack = np.load(str(path), mmap_mode="r")
+        if stack.dtype != np.uint8 or stack.ndim != 3:
+            raise ValueError(
+                f"expected a uint8 (frames, H, W) stack, got {stack.dtype} {stack.shape}"
+            )
+        if stack.shape[0] != n_omega * n_detectors:
+            raise ValueError(f"stack has {stack.shape[0]} frames, expected {n_omega * n_detectors}")
+        rows, cols = stack.shape[1], stack.shape[2]
+        images: List[List[ImageData]] = [
+            [None for _ in range(n_detectors)] for _ in range(n_omega)  # type: ignore[misc]
+        ]
+        for d in range(n_detectors):
+            for o in range(n_omega):
+                im = ImageData(rows, cols, mode="sparse")
+                frame = stack[d * n_omega + o]
+                assert frame.flags["C_CONTIGUOUS"]
+                im._binary_cache = frame
+                images[o][d] = im
+        return cls(images=images, n_omega_intervals=n_omega, n_detectors=n_detectors)
+
     def prepare_for_reconstruction(self) -> None:
         """
         Pre-compute binary caches for all images.
@@ -319,3 +358,50 @@ class ExperimentalData:
             f"omega_intervals={self.n_omega_intervals}, "
             f"detectors={self.n_detectors})"
         )
+
+
+def write_binary_stack(
+    directory: Union[str, Path],
+    basename: str,
+    ext: str,
+    serial_length: int,
+    n_omega: int,
+    n_detectors: int,
+    num_rows: int,
+    num_cols: int,
+    out_path: Union[str, Path],
+    file_start: int = 0,
+    det_offset: int = 0,
+) -> Path:
+    """Convert a directory of ASCII frames (the ``from_image_directory`` layout) into one
+    uint8 ``.npy`` stack (frame ``det * n_omega + omega``) for ``from_binary_memmap``.
+
+    Written through ``open_memmap`` frame by frame, so peak memory is one frame.
+    """
+    directory, out_path = Path(directory), Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    stack = np.lib.format.open_memmap(
+        str(out_path), mode="w+", dtype=np.uint8, shape=(n_omega * n_detectors, num_rows, num_cols)
+    )
+    for d in range(n_detectors):
+        for o in range(n_omega):
+            name = f"{basename}{str(file_start + o).zfill(serial_length)}.{ext}{det_offset + d}"
+            fn = directory / name
+            if not fn.exists():
+                raise FileNotFoundError(f"Image file not found: {fn}")
+            ks, js = [], []
+            with open(fn) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#") or line.startswith(","):
+                        continue
+                    parts = line.split(",")
+                    if len(parts) >= 3 and float(parts[2]) > 0:
+                        js.append(int(parts[0]))
+                        ks.append(int(parts[1]))
+            frame = np.zeros((num_rows, num_cols), dtype=np.uint8)
+            frame[ks, js] = 1
+            stack[d * n_omega + o] = frame
+    stack.flush()
+    del stack
+    return out_path

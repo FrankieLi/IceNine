@@ -47,6 +47,7 @@ def add_detector_noise(
         "n_hot": 0,
         "n_blob": 0,
     }
+    counts["spot_sizes"] = np.bincount(lab.ravel())[1:].tolist() if n else []
     out = img.copy()
     if n == 0:
         return out, counts

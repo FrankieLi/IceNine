@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-10-07T23:15:28",
+  "timestamp": "2026-10-07T23:38:17",
   "host": "newt.local",
   "loadavg": [
-    2.64111328125,
-    1.69287109375,
-    1.5390625
+    1.6875,
+    1.79638671875,
+    1.99169921875
   ],
   "cpu_count": 12,
   "power": "ac",
@@ -13,7 +13,7 @@
   "torch_threads": 8,
   "busy_processes": [
     {
-      "pid": 1812,
+      "pid": 9012,
       "cpu": 100.0,
       "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
     }

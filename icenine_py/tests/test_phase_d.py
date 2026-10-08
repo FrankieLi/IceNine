@@ -135,3 +135,61 @@ def test_python_loader_reads_written_image(tmp_path: Path) -> None:
     im = ImageData(16, 20)
     im.load_ascii(str(f))
     assert float(im._pixels_dense[3, 5]) == 7.0 and int(im.num_nonzero) == 1
+
+
+# ---------------------------------------------------------------------------------------------
+# leakage guard, configs, memmap loader
+# ---------------------------------------------------------------------------------------------
+EXAMPLE_SIM = ROOT.parent / "Examples" / "Example2.ManyGrains" / "SimInput"
+
+
+def test_grid_mic_has_no_orientation_information() -> None:
+    truth = np.loadtxt(EXAMPLE_SIM / "rand_500grains_1mm_neworient_s0.mic", skiprows=1)
+    grid = np.loadtxt(EXAMPLE_SIM / "rand_500grains_1mm_neworient_s0_grid.mic", skiprows=1)
+    assert grid.shape == truth.shape
+    assert np.all(grid[:, 6:9] == 0.0)  # Euler columns are constant
+    assert np.array_equal(grid[:, [0, 1, 2, 3, 4, 5, 9]], truth[:, [0, 1, 2, 3, 4, 5, 9]])
+    assert len(np.unique(truth[:, 6:9], axis=0)) == 497  # the truth does carry orientations
+    text = (EXAMPLE_SIM / "rand_500grains_1mm_neworient_s0_grid.mic").read_text()
+    assert len(set(ln.split()[6:9][0] for ln in text.splitlines()[1:])) == 1
+
+
+def test_phase_d_configs_use_grid_mic_and_explicit_keys() -> None:
+    cfgs = sorted((ROOT / "scripts" / "phase_d" / "configs").glob("*.config"))
+    assert len(cfgs) == 9  # {mc, cma, cma_noretry} x {clean, realistic, realistic_q16}
+    for c in cfgs:
+        t = c.read_text()
+        assert "SampleFilename           SimInput/rand_500grains_1mm_neworient_s0_grid.mic" in t
+        assert "0.004" not in t and "MaxInitSideLength      0.009375" in t
+        assert "MaxQ 		               8" in t or "MaxQ\t\t               8" in t
+        if "_mc_" in c.name:
+            assert not any(ln.startswith("LocalOptimizer") for ln in t.splitlines())
+        elif "_cma_noretry_" in c.name:
+            assert "CMARetrySigma0 0\n" in t and "CMANeighborMaxEvals 250" in t
+        else:
+            assert "CMARetrySigma0 1.5" in t and "CMANeighborMaxEvals 250" in t
+        assert "\n#BFSRevisitRefit 1" in t
+    q16 = [c for c in cfgs if "q16" in c.name]
+    assert len(q16) == 3 and all("full_q16/realistic" in c.read_text() for c in q16)
+
+
+def test_memmap_loader_matches_dense(tmp_path: Path) -> None:
+    from icenine.experimental_data import ExperimentalData, write_binary_stack
+
+    rng = np.random.default_rng(0)
+    n_om, n_det, H, W = 3, 2, 16, 20
+    for d in range(n_det):
+        for o in range(n_om):
+            img = np.zeros((H, W), dtype=np.float32)
+            img[rng.integers(0, H, 12), rng.integers(0, W, 12)] = 2.5
+            N.write_ascii_image(str(tmp_path / f"t{o:05d}.d{d}"), img)
+    stack = write_binary_stack(tmp_path, "t", "d", 5, n_om, n_det, H, W, tmp_path / "s.npy")
+    dense = ExperimentalData.from_image_directory(str(tmp_path), "t", "d", 5, n_om, n_det, H, W)
+    mm = ExperimentalData.from_binary_memmap(stack, n_om, n_det)
+    for o in range(n_om):
+        for d in range(n_det):
+            a, b = dense.get_image(o, d).get_binary_numpy(), mm.get_image(o, d).get_binary_numpy()
+            assert np.array_equal(a, b) and b.dtype == np.uint8
+            assert b.flags["C_CONTIGUOUS"] and not b.flags["WRITEABLE"]
+    with pytest.raises(ValueError):
+        ExperimentalData.from_binary_memmap(stack, n_om + 1, n_det)

@@ -6,6 +6,9 @@
   "n_adjacent_pairs": 1469,
   "seed": 0,
   "n_voxels": 24570,
+  "n_edge_connected_grain_pieces": 612,
+  "n_extra_grain_pieces": 115,
+  "extra_piece_voxels_max": 3,
   "n_grains": 497,
   "grain_size_min_median_max": [
     4,

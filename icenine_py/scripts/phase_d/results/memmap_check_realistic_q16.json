@@ -1,0 +1,14 @@
+{
+  "variant": "realistic_q16",
+  "n_voxels": 20,
+  "n_evaluations": 40,
+  "all_overlap_fields_identical": true,
+  "stack_write_s": 43.49586772918701,
+  "stack_size_gb": 1.509949568,
+  "dense_load_s": 57.50286674499512,
+  "dense_eval_s": 0.0667719841003418,
+  "dense_peak_rss_gb": 7.03987712,
+  "memmap_load_s": 0.38193607330322266,
+  "memmap_eval_s": 0.1502070426940918,
+  "memmap_peak_rss_gb": 0.358907904
+}
