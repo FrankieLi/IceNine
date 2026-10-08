@@ -1,0 +1,45 @@
+MB total 10 nopt 10 step_deg 0.666667 block_cost 0.72641 gmin 0.872789 fail 0
+MC maxsteps 10 maxrestarts 5 nmin 31 box_deg 1.66667 step0_deg 0.666667 steps 10 blocks 1 restarts 0 accepts 1 evals 12 init 0.872789 final 0.72641 stop 0
+MB total 10 nopt 10 step_deg 0.666667 block_cost 0.637745 gmin 0.917377 fail 0
+MC maxsteps 10 maxrestarts 5 nmin 31 box_deg 1.66667 step0_deg 0.666667 steps 10 blocks 1 restarts 0 accepts 1 evals 12 init 0.917377 final 0.637745 stop 0
+MB total 10 nopt 10 step_deg 0.666667 block_cost 0.935024 gmin 0.935024 fail 1
+MR radius 0.00419979 xyz 0.00330589 0.00386747 -0.00238624
+MC maxsteps 10 maxrestarts 5 nmin 31 box_deg 1.66667 step0_deg 0.666667 steps 10 blocks 1 restarts 1 accepts 0 evals 12 init 0.935024 final 0.935024 stop 0
+MB total 10 nopt 10 step_deg 0.666667 block_cost 0.927419 gmin 0.927419 fail 1
+MR radius 0.00419979 xyz 0.00123993 0.00114461 0.00416642
+MC maxsteps 10 maxrestarts 5 nmin 31 box_deg 1.66667 step0_deg 0.666667 steps 10 blocks 1 restarts 1 accepts 0 evals 12 init 0.927419 final 0.927419 stop 0
+MB total 10 nopt 10 step_deg 0.666667 block_cost 0.960919 gmin 0.960919 fail 1
+MR radius 0.00419979 xyz -0.0012756 0.00205103 -0.00331308
+MC maxsteps 10 maxrestarts 5 nmin 31 box_deg 1.66667 step0_deg 0.666667 steps 10 blocks 1 restarts 1 accepts 0 evals 12 init 0.960919 final 0.960919 stop 0
+MB total 31 nopt 31 step_deg 0.131687 block_cost 0.0955713 gmin 0.0955713 fail 1
+MR radius 0.000829364 xyz -0.000105648 -0.000818475 -0.000208511
+MB total 62 nopt 31 step_deg 0.131687 block_cost 0.0875497 gmin 0.0955713 fail 0
+MB total 93 nopt 31 step_deg 0.0658436 block_cost 0.0875497 gmin 0.0875497 fail 1
+MR radius 0.000829364 xyz 0.000654777 0.00024637 -0.000463874
+MB total 124 nopt 31 step_deg 0.131687 block_cost 0.113636 gmin 0.0875497 fail 1
+MR radius 0.000829364 xyz 0.000256832 0.00012002 -0.000166958
+MB total 155 nopt 31 step_deg 0.131687 block_cost 0.0921732 gmin 0.0875497 fail 1
+MR radius 0.000829364 xyz 0.000716384 -0.000653802 1.17683e-05
+MC maxsteps 200 maxrestarts 2 nmin 31 box_deg 0.329218 step0_deg 0.131687 steps 155 blocks 5 restarts 4 accepts 1 evals 161 init 0.0955713 final 0.0875497 stop 1
+MB total 31 nopt 31 step_deg 0.131687 block_cost 0.106198 gmin 0.121332 fail 0
+MB total 62 nopt 31 step_deg 0.0658436 block_cost 0.0970208 gmin 0.106198 fail 0
+MB total 93 nopt 31 step_deg 0.0329218 block_cost 0.0892574 gmin 0.0970208 fail 0
+MB total 124 nopt 31 step_deg 0.0164609 block_cost 0.0751595 gmin 0.0892574 fail 0
+MB total 155 nopt 31 step_deg 0.00823045 block_cost 0.0751595 gmin 0.0751595 fail 1
+MR radius 0.000829364 xyz -3.11246e-05 -0.000365656 0.000636673
+MB total 186 nopt 31 step_deg 0.131687 block_cost 0.098485 gmin 0.0751595 fail 1
+MR radius 0.000829364 xyz -0.000257627 -0.000767839 0.000596141
+MB total 200 nopt 14 step_deg 0.131687 block_cost 0.121212 gmin 0.0751595 fail 1
+MR radius 0.000829364 xyz -0.000459419 0.000518799 0.000112716
+MC maxsteps 200 maxrestarts 2 nmin 31 box_deg 0.329218 step0_deg 0.131687 steps 200 blocks 7 restarts 3 accepts 4 evals 208 init 0.121332 final 0.0751595 stop 1
+MB total 31 nopt 31 step_deg 0.131687 block_cost 0.151515 gmin 0.151515 fail 1
+MR radius 0.000829364 xyz 0.000466217 0.000570052 7.46244e-05
+MB total 62 nopt 31 step_deg 0.131687 block_cost 0.0952383 gmin 0.151515 fail 0
+MB total 93 nopt 31 step_deg 0.0658436 block_cost 0.0833334 gmin 0.0952383 fail 0
+MB total 124 nopt 31 step_deg 0.0329218 block_cost 0.0681819 gmin 0.0833334 fail 0
+MB total 155 nopt 31 step_deg 0.0164609 block_cost 0.0530303 gmin 0.0681819 fail 0
+MB total 186 nopt 31 step_deg 0.00823045 block_cost 0.0530303 gmin 0.0530303 fail 1
+MR radius 0.000829364 xyz 0.000298134 0.000423845 0.000185388
+MB total 200 nopt 14 step_deg 0.131687 block_cost 0.19697 gmin 0.0530303 fail 1
+MR radius 0.000829364 xyz -0.000733357 0.000364646 0.000715534
+MC maxsteps 200 maxrestarts 2 nmin 31 box_deg 0.329218 step0_deg 0.131687 steps 200 blocks 7 restarts 3 accepts 4 evals 208 init 0.151515 final 0.0530303 stop 0

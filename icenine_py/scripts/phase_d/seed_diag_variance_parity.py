@@ -121,6 +121,14 @@ def cmd_costs(a: argparse.Namespace) -> None:
         max_abs_diff=float(np.abs(d).max()),
         mean_abs_diff=float(np.abs(d).mean()),
         n_exact=int((np.abs(d) < 1e-6).sum()),
+        # signed differences, Python minus C++ (negative: Python lower)
+        mean_signed_diff=float(d.mean()),
+        median_signed_diff=float(np.median(d)),
+        min_signed_diff=float(d.min()),
+        max_signed_diff=float(d.max()),
+        n_python_lower=int((d < -1e-6).sum()),
+        n_python_higher=int((d > 1e-6).sum()),
+        corr=float(np.corrcoef(arr[:, 0], arr[:, 1])[0, 1]),
         cpp_cost_range=[float(arr[:, 0].min()), float(arr[:, 0].max())],
         first5=[[round(x, 6), round(y, 6)] for x, y in rows[:5]],
     )

@@ -207,7 +207,20 @@ def run(a: argparse.Namespace) -> None:
         S["phase"] = f"quick_L{S['level']}"
         return out
 
+    blk: List[Any] = []  # blocks of the running MC call: [steps, step_deg, outcome]
+    orig_block = OS.MCOptimizer._mc_block
+    orig_end = OS.MCOptimizer._on_block_end
+
+    def block_w(self, start_q, step, n_steps):  # type: ignore[no-untyped-def]
+        blk.append([int(n_steps), math.degrees(step), ""])
+        return orig_block(self, start_q, step, n_steps)
+
+    def end_w(self, event, *args):  # type: ignore[no-untyped-def]
+        blk[-1][2] = "a" if event == "mc_accept" else "f"  # accepted / failed
+        return orig_end(self, event, *args)
+
     def mc_w(self, **kw):  # type: ignore[no-untyped-def]
+        blk.clear()
         quick = kw["max_mc_steps"] == 10
         if not quick:
             S["phase"] = "find"
@@ -234,6 +247,12 @@ def run(a: argparse.Namespace) -> None:
                 cost=float(r.cost),
                 hit_ratio=hit,
                 ended_by=why,
+                blocks=int(self.last_run.get("n_blocks", 0)),
+                steps=int(self.last_run.get("steps_run", 0)),
+                restarts=int(self.last_run.get("n_restarts", 0)),
+                accepts=int(self.last_run.get("n_accept", 0)),
+                stop=int(self.last_run.get("stop", -1)),
+                blk=None if quick else [list(b) for b in blk],
             )
         )
         return r
@@ -332,6 +351,8 @@ def run(a: argparse.Namespace) -> None:
     CF.VoxelCostFunction.evaluate = eval_w  # type: ignore[method-assign]
     RC.run_discrete_search_spaced = disc_w  # type: ignore[assignment]
     OS.MCOptimizer.optimize = mc_w  # type: ignore[method-assign]
+    OS.MCOptimizer._mc_block = block_w  # type: ignore[method-assign]
+    OS.MCOptimizer._on_block_end = end_w  # type: ignore[method-assign]
     OS.MCOptimizer.variance_minimizing_optimize = var_w  # type: ignore[method-assign]
 
     # quality of the truth under this image set (uninstrumented-phase evaluate)
