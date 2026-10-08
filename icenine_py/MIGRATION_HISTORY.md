@@ -3284,7 +3284,7 @@ Final full suite on `feature/followups`: 673 passed, 34 skipped, 0 failed (707 c
 
 ## Finisher and MC study (2026-10-07)
 
-**Status: Phases A, B1 and B2 done (see "Phase A results" and "Phase B1/B2 results"); B3, C and D planned.** Owner questions: (a) why FindOptimal stops short of the correct answer, and whether this comes from the cost function's sensitivity; (b) why MC runs out of restarts, what better local search exists, whether MC is the right tool, and whether the April 2026 MC-vs-optimizer comparison was deployed too soon. Next step after the plan: a full-sample BFS end-to-end test of the 500-grain sample with new orientations, comparing classic BFS against BFS with the NN and hybrid finisher (`docs/todo_500grain_bfs_end_to_end.md`).
+**Status: Phases A, B1, B2 and B3 done (see "Phase A results", "Phase B1/B2 results" and "Phase B3 results"); C and D planned.** Owner questions: (a) why FindOptimal stops short of the correct answer, and whether this comes from the cost function's sensitivity; (b) why MC runs out of restarts, what better local search exists, whether MC is the right tool, and whether the April 2026 MC-vs-optimizer comparison was deployed too soon. Next step after the plan: a full-sample BFS end-to-end test of the 500-grain sample with new orientations, comparing classic BFS against BFS with the NN and hybrid finisher (`docs/todo_500grain_bfs_end_to_end.md`).
 
 Drafted 2026-10-07 by the main session (Opus). Implemented by Sonnet `implementer` agents, one task at a time.
 
@@ -3940,6 +3940,330 @@ P(s) is the probability that one proposal of step s lowers the cost at the point
 **Answer.** The earlier MC-vs-optimizer comparison does not support the deployed FindOptimal configuration at the precision FindOptimal is used for. It was a coarse test (final error under 1.0 deg from 1-5 deg starts, 11-57x the T5 H3 start errors, with a box and step proportional to the start offset and a different budget); its "successes" end about 23x (MC) coarser than the finisher's result (0.53 deg against 0.0229 deg), and only 47/4200 (Adam, all configs) and 23/3600 (MC, all configs) sweep runs at a 1 deg start, and none of the hybrid benchmark's runs at offsets up to 1 deg, end under 0.02 deg. What it does support: from a 1 deg start the gradient methods and MC all reach about 0.35-0.55 deg (medians 0.357-0.531 for the recorded configs), MC at 100 steps is as good as MC at 3500 in that protocol (200 steps were not run), and there is no detectable r_perp dependence (Spearman, n = 100 voxels) inside 75-563 um. So deploying MC at 200 steps was not contradicted by the sweep, but it was also not tested by it: the deployed settings, the stopping behaviour and the 0.01-0.03 deg scale were not measured until T5 and B1.
 
 **Caveats (B2).** (a) The per-run ManyGrains CSV is absent; the log's 0.001 deg rounding makes "1.000" ambiguous (one MC run). (b) HP selection ("best config") is on the same runs; the pooled all-config rows are not selected. (c) The ManyGrains images are not on this machine, so the data conditions (neighbour overlap, noise) were not re-checked. (d) The hybrid and ThreeVoxels files have small n (3 voxels; 6 runs at offsets up to 1 deg). (e) The budget comparison is by configured steps; Adam/SGD evaluations are gradient evaluations.
+
+### Phase B3 results (2026-10-07, `feature/finisher-mc-study-phase-b3`)
+
+**Headline.** On 300 T5 cases and 1000 perturbation-sweep cases (each in a clean and a realistic variant), CMA-ES and Nelder-Mead on the rotation vector end a median 0.0031 to 0.0038 deg from the truth within 250 cost evaluations, where the default finisher (FindOptimal MC + VarianceMinimizing) ends 0.0229 deg (T5 H3) and 0.0357 deg (sweep) away after a median 2629 and 1776 evaluations. MC as deployed and the two MC variants tried here are not the right tool for this stage: the deployed 200-step MC ends 0.0382 deg (T5 H3) and 0.1609 deg (sweep) from the truth, and neither change tried (local restarts, which keeps the halving at each improvement and so tests only the restart rule; a success-rate step rule, run with one untuned setting) closes the gap. CMA-ES (sigma0 0.2 deg) and Nelder-Mead are the two methods that do. One thing is not shown: whether the cost evaluations are the right unit of comparison for the net-window and Adam methods (they are reported in their own units). Everything below comes from `benchmarks/finisher_bench/` (`summary.json`, `tables.md`). Nothing in `icenine/` changed.
+
+**What ran.**
+- **Cases:** the 300 T5 cases (200 H3 over 26 voxels, 100 H0 over 16 voxels; the realistic start for both variants) and 1000 sweep cases (50 voxels x radii 0.05, 0.1, 0.25, 0.5, 1 deg x the first 4 directions valid in both variants; start = the perturbed nominal), each with clean and realistic images: 2600 case-variants. 9 of the 100 T5 H0 cases are also sweep cases (the two sets are reported separately).
+- **Evaluations:** every run uses one `VoxelCostFunction` through `CountingCost`, which counts exactly and stops the method at the budget (asserted in every run against the cost function's own counter; the largest run used 10000, none exceeded it). The budgeted methods were run once to 10000 evaluations and read at 250, 1000, 2600 and 10000: the best orientation evaluated by then (`tests/test_finisher_bench.py` checks that a run to a smaller budget equals the prefix of a longer one). A method that stops earlier is read at its natural stop and the table shows its evaluations. The default finisher was re-run unmodified on all 300 T5 cases and equals the stored Task 1 result bit for bit.
+- **Methods:** (i) MC as deployed (box 0.3292 deg, step0 0.1317 deg, 200 steps, 2 restarts) and as in the April sweep (3500 steps, 2 restarts, step fraction 0.5, box 1.5 r, with r the case's sweep radius, which this method is told and the finisher is not; for T5 cases r is the case's perturbation radius, which for H3 starts is not the start's error); (ii) MC with local restarts (a fixed 31 stuck steps, restart to a proposal around the best at half the current step, no reset to step0, unlimited restarts); (iii) (1+1)-ES with MC proposals and the step rule s <- s exp((success - 0.25) / (3 x 0.75)), step0 = 0.1317 and 0.02 deg; (iv) Nelder-Mead (scipy) on the rotation vector, simplex edge 0.1317 deg, restarted around the best with half the edge when it collapses; (v) CMA-ES (the `cma` package, already in the benchmarks extra and the lock file; no dependency added) with sigma0 0.05 and 0.2 deg; (vi) VarianceMinimizing in a quarter box (0.0823 deg); (vii) centroid Huber Gauss-Newton, 3 re-centring passes on the net's window pipeline, started at the case's start; (viii) `RiemannianAdamOptimizer` with the April settings (100 steps, lr 1e-4, scale 2, 2 restarts).
+- **Time:** 12456 s on 10 workers (contended; other work on the machine), after a pilot of 32 cases (181 s on 8 workers) whose projection was under the 4 h limit, so the full 50-voxel set was run.
+- **Code:** `scripts/finisher_bench/` (`optimizers.py`, `bench.py`, `finisher_summary.py`, `finisher_timing.py`); tests in `tests/test_finisher_bench.py`.
+
+**How to read the tables.** Error = angle to the truth (symmetry-agnostic: the starts are within 3 deg). A cell is "median error (deg) / fraction under 0.02 deg / fraction over 1 deg". A run is wrong above 1.000001 deg (a start at exactly 1 deg, r = 1, is not counted wrong). Cost gap = cost(result) - cost(truth). The paired columns compare each row with (i) MC deployed case by case: win rate (a tie is a difference under 0.002 deg and counts one half), an exact sign test over the non-tied cases, a voxel-clustered sign test (the per-voxel median difference over 26 to 50 voxels), and McNemar on wrong and on under 0.02 deg. Rows at larger budgets use more evaluations than the deployed MC's median 201; the evaluation count is in every row. Many comparisons are made and no multiplicity correction is applied.
+
+#### Headline tables (realistic variant)
+
+T5 H3 starts (200 cases; the start is a net estimate, median 0.0883 deg from the truth):
+
+<!-- table:head_T5-H3_realistic -->
+| method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
+|---|---|---|---|---|---|---|
+| start (no move) | 0.0883 / 18% / 3.0% | 0 | n/a | n/a | n/a | n/a |
+| (i) MC deployed (200 steps) | 0.0382 / 26% / 3.0% | 201 | n/a | n/a | n/a | n/a |
+| (i) MC April sweep (3500 steps) | n/a | n/a | 0.0635 / 18% / 1.0% | 0.0635 / 19% / 1.0% | 0.0635 / 19% / 1.0% | 0.0635 / 19% / 1.0% |
+| (ii) MC local restarts | n/a | n/a | 0.0362 / 38% / 2.5% | 0.0362 / 38% / 2.5% | 0.0362 / 38% / 2.5% | 0.0362 / 38% / 2.5% |
+| (iii) (1+1)-ES, step0 0.1317 deg | n/a | n/a | 0.0240 / 46% / 2.5% | 0.0240 / 46% / 2.5% | 0.0240 / 46% / 2.5% | 0.0240 / 46% / 2.5% |
+| (iii) (1+1)-ES, step0 0.02 deg | n/a | n/a | 0.0208 / 48% / 3.0% | 0.0208 / 48% / 3.0% | 0.0208 / 48% / 3.0% | 0.0208 / 48% / 3.0% |
+| (iv) Nelder-Mead | n/a | n/a | 0.0031 / 94% / 2.5% | 0.0026 / 94% / 2.5% | 0.0026 / 94% / 2.5% | 0.0026 / 94% / 2.5% |
+| (v) CMA-ES, sigma0 0.05 deg | n/a | n/a | 0.0029 / 94% / 1.5% | 0.0024 / 96% / 1.5% | 0.0023 / 96% / 1.5% | 0.0023 / 96% / 1.5% |
+| (v) CMA-ES, sigma0 0.2 deg | n/a | n/a | 0.0031 / 94% / 2.0% | 0.0022 / 96% / 2.0% | 0.0022 / 96% / 2.0% | 0.0022 / 96% / 2.0% |
+| (vi) VarianceMinimizing, quarter box | n/a | n/a | 0.0245 / 42% / 2.5% | 0.0150 / 66% / 1.0% | 0.0122 / 76% / 1.0% | 0.0096 / 86% / 0.5% |
+| default finisher (MC + VM) | 0.0229 / 44% / 1.5% | 2629 | n/a | n/a | n/a | n/a |
+| (vii) centroid Huber GN | 0.2628 / 11% / 3.0% | 0 | n/a | n/a | n/a | n/a |
+| (viii) hybrid Riemannian Adam | 0.0809 / 18% / 0.0% | 4 | n/a | n/a | n/a | n/a |
+<!-- /table:head_T5-H3_realistic -->
+
+T5 H0 starts (100 cases; the start is the perturbed nominal, 0.05 to 3 deg away):
+
+<!-- table:head_T5-H0_realistic -->
+| method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
+|---|---|---|---|---|---|---|
+| start (no move) | 0.7500 / 0% / 33.0% | 0 | n/a | n/a | n/a | n/a |
+| (i) MC deployed (200 steps) | 0.6635 / 5% / 35.0% | 201 | n/a | n/a | n/a | n/a |
+| (i) MC April sweep (3500 steps) | n/a | n/a | 0.3451 / 3% / 21.0% | 0.3451 / 3% / 21.0% | 0.3451 / 3% / 21.0% | 0.3451 / 3% / 21.0% |
+| (ii) MC local restarts | n/a | n/a | 0.6208 / 8% / 37.0% | 0.6208 / 8% / 37.0% | 0.6208 / 8% / 37.0% | 0.6208 / 8% / 37.0% |
+| (iii) (1+1)-ES, step0 0.1317 deg | n/a | n/a | 0.1371 / 16% / 29.0% | 0.1371 / 16% / 29.0% | 0.1371 / 16% / 29.0% | 0.1371 / 16% / 29.0% |
+| (iii) (1+1)-ES, step0 0.02 deg | n/a | n/a | 0.6013 / 18% / 40.0% | 0.6013 / 18% / 40.0% | 0.6013 / 18% / 40.0% | 0.6013 / 18% / 40.0% |
+| (iv) Nelder-Mead | n/a | n/a | 0.0046 / 60% / 34.0% | 0.0048 / 60% / 34.0% | 0.0048 / 60% / 34.0% | 0.0048 / 60% / 34.0% |
+| (v) CMA-ES, sigma0 0.05 deg | n/a | n/a | 0.0079 / 63% / 26.0% | 0.0030 / 73% / 26.0% | 0.0030 / 73% / 26.0% | 0.0030 / 73% / 26.0% |
+| (v) CMA-ES, sigma0 0.2 deg | n/a | n/a | 0.0052 / 74% / 15.0% | 0.0026 / 83% / 15.0% | 0.0026 / 83% / 15.0% | 0.0026 / 83% / 15.0% |
+| (vi) VarianceMinimizing, quarter box | n/a | n/a | 0.4143 / 9% / 32.0% | 0.0244 / 45% / 24.0% | 0.0170 / 63% / 20.0% | 0.0096 / 72% / 20.0% |
+| default finisher (MC + VM) | 0.0888 / 20% / 18.0% | 616 | n/a | n/a | n/a | n/a |
+| (vii) centroid Huber GN | 0.2056 / 8% / 0.0% | 0 | n/a | n/a | n/a | n/a |
+| (viii) hybrid Riemannian Adam | 0.1532 / 0% / 9.0% | 4 | n/a | n/a | n/a | n/a |
+<!-- /table:head_T5-H0_realistic -->
+
+Sweep cases (1000; radii 0.05 to 1 deg):
+
+<!-- table:head_SW_realistic -->
+| method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
+|---|---|---|---|---|---|---|
+| start (no move) | 0.2500 / 0% / 0.0% | 0 | n/a | n/a | n/a | n/a |
+| (i) MC deployed (200 steps) | 0.1609 / 11% / 5.8% | 201 | n/a | n/a | n/a | n/a |
+| (i) MC April sweep (3500 steps) | n/a | n/a | 0.1154 / 9% / 4.8% | 0.1154 / 9% / 4.7% | 0.1154 / 9% / 4.7% | 0.1154 / 9% / 4.7% |
+| (ii) MC local restarts | n/a | n/a | 0.1638 / 12% / 6.1% | 0.1638 / 12% / 6.1% | 0.1638 / 12% / 6.1% | 0.1638 / 12% / 6.1% |
+| (iii) (1+1)-ES, step0 0.1317 deg | n/a | n/a | 0.0420 / 34% / 3.9% | 0.0420 / 34% / 3.9% | 0.0420 / 34% / 3.9% | 0.0420 / 34% / 3.9% |
+| (iii) (1+1)-ES, step0 0.02 deg | n/a | n/a | 0.0546 / 32% / 5.4% | 0.0546 / 32% / 5.4% | 0.0546 / 32% / 5.4% | 0.0546 / 32% / 5.4% |
+| (iv) Nelder-Mead | n/a | n/a | 0.0034 / 86% / 3.1% | 0.0026 / 87% / 3.1% | 0.0026 / 87% / 3.1% | 0.0026 / 87% / 3.1% |
+| (v) CMA-ES, sigma0 0.05 deg | n/a | n/a | 0.0045 / 84% / 0.9% | 0.0025 / 93% / 0.7% | 0.0025 / 93% / 0.7% | 0.0025 / 93% / 0.7% |
+| (v) CMA-ES, sigma0 0.2 deg | n/a | n/a | 0.0038 / 92% / 0.2% | 0.0025 / 95% / 0.2% | 0.0025 / 95% / 0.2% | 0.0025 / 95% / 0.2% |
+| (vi) VarianceMinimizing, quarter box | n/a | n/a | 0.0731 / 23% / 1.3% | 0.0148 / 64% / 0.3% | 0.0113 / 78% / 0.3% | 0.0083 / 88% / 0.3% |
+| default finisher (MC + VM) | 0.0357 / 30% / 0.0% | 1776 | n/a | n/a | n/a | n/a |
+| (vii) centroid Huber GN | 0.1688 / 16% / 2.8% | 0 | n/a | n/a | n/a | n/a |
+| (viii) hybrid Riemannian Adam | 0.1000 / 0% / 0.0% | 4 | n/a | n/a | n/a | n/a |
+<!-- /table:head_SW_realistic -->
+
+Clean variant, T5 H3 and sweep:
+
+<!-- table:head_T5-H3_clean -->
+| method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
+|---|---|---|---|---|---|---|
+| start (no move) | 0.0883 / 18% / 3.0% | 0 | n/a | n/a | n/a | n/a |
+| (i) MC deployed (200 steps) | 0.0385 / 30% / 2.5% | 201 | n/a | n/a | n/a | n/a |
+| (i) MC April sweep (3500 steps) | n/a | n/a | 0.0657 / 19% / 1.5% | 0.0657 / 20% / 1.5% | 0.0657 / 20% / 1.5% | 0.0657 / 20% / 1.5% |
+| (ii) MC local restarts | n/a | n/a | 0.0419 / 38% / 2.5% | 0.0419 / 38% / 2.5% | 0.0419 / 38% / 2.5% | 0.0419 / 38% / 2.5% |
+| (iii) (1+1)-ES, step0 0.1317 deg | n/a | n/a | 0.0214 / 50% / 2.5% | 0.0214 / 50% / 2.5% | 0.0214 / 50% / 2.5% | 0.0214 / 50% / 2.5% |
+| (iii) (1+1)-ES, step0 0.02 deg | n/a | n/a | 0.0229 / 46% / 3.0% | 0.0229 / 46% / 3.0% | 0.0229 / 46% / 3.0% | 0.0229 / 46% / 3.0% |
+| (iv) Nelder-Mead | n/a | n/a | 0.0023 / 98% / 2.0% | 0.0021 / 98% / 2.0% | 0.0021 / 98% / 2.0% | 0.0021 / 98% / 2.0% |
+| (v) CMA-ES, sigma0 0.05 deg | n/a | n/a | 0.0024 / 94% / 1.5% | 0.0020 / 96% / 1.5% | 0.0020 / 96% / 1.0% | 0.0020 / 96% / 1.0% |
+| (v) CMA-ES, sigma0 0.2 deg | n/a | n/a | 0.0026 / 96% / 1.5% | 0.0019 / 98% / 1.5% | 0.0019 / 98% / 1.5% | 0.0019 / 98% / 1.5% |
+| (vi) VarianceMinimizing, quarter box | n/a | n/a | 0.0243 / 43% / 2.5% | 0.0144 / 65% / 1.0% | 0.0122 / 73% / 0.5% | 0.0092 / 88% / 0.5% |
+| default finisher (MC + VM) | 0.0224 / 46% / 1.0% | 2167 | n/a | n/a | n/a | n/a |
+| (vii) centroid Huber GN | 0.0132 / 67% / 0.0% | 0 | n/a | n/a | n/a | n/a |
+| (viii) hybrid Riemannian Adam | 0.0707 / 18% / 0.0% | 4 | n/a | n/a | n/a | n/a |
+<!-- /table:head_T5-H3_clean -->
+
+<!-- table:head_SW_clean -->
+| method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
+|---|---|---|---|---|---|---|
+| start (no move) | 0.2500 / 0% / 0.0% | 0 | n/a | n/a | n/a | n/a |
+| (i) MC deployed (200 steps) | 0.1623 / 13% / 6.4% | 201 | n/a | n/a | n/a | n/a |
+| (i) MC April sweep (3500 steps) | n/a | n/a | 0.1165 / 10% / 4.5% | 0.1165 / 10% / 4.4% | 0.1164 / 10% / 4.4% | 0.1164 / 10% / 4.4% |
+| (ii) MC local restarts | n/a | n/a | 0.1617 / 13% / 5.9% | 0.1617 / 13% / 5.9% | 0.1617 / 13% / 5.9% | 0.1617 / 13% / 5.9% |
+| (iii) (1+1)-ES, step0 0.1317 deg | n/a | n/a | 0.0470 / 33% / 4.2% | 0.0470 / 33% / 4.2% | 0.0470 / 33% / 4.2% | 0.0470 / 33% / 4.2% |
+| (iii) (1+1)-ES, step0 0.02 deg | n/a | n/a | 0.0554 / 32% / 5.9% | 0.0554 / 32% / 5.9% | 0.0554 / 32% / 5.9% | 0.0554 / 32% / 5.9% |
+| (iv) Nelder-Mead | n/a | n/a | 0.0031 / 85% / 4.5% | 0.0024 / 87% / 4.4% | 0.0024 / 87% / 4.4% | 0.0024 / 87% / 4.4% |
+| (v) CMA-ES, sigma0 0.05 deg | n/a | n/a | 0.0036 / 87% / 1.1% | 0.0020 / 95% / 0.9% | 0.0020 / 95% / 0.9% | 0.0020 / 95% / 0.9% |
+| (v) CMA-ES, sigma0 0.2 deg | n/a | n/a | 0.0032 / 95% / 0.4% | 0.0020 / 99% / 0.4% | 0.0020 / 99% / 0.4% | 0.0020 / 99% / 0.4% |
+| (vi) VarianceMinimizing, quarter box | n/a | n/a | 0.0757 / 23% / 1.5% | 0.0136 / 65% / 0.5% | 0.0102 / 80% / 0.4% | 0.0075 / 90% / 0.1% |
+| default finisher (MC + VM) | 0.0382 / 29% / 0.6% | 1677 | n/a | n/a | n/a | n/a |
+| (vii) centroid Huber GN | 0.0126 / 74% / 0.0% | 0 | n/a | n/a | n/a | n/a |
+| (viii) hybrid Riemannian Adam | 0.0916 / 0% / 0.0% | 4 | n/a | n/a | n/a | n/a |
+<!-- /table:head_SW_clean -->
+
+By sweep radius (realistic; 200 cases per radius; budget 2600 for the budgeted methods):
+
+<!-- table:sw_by_r_realistic -->
+| method | r=0.05 | r=0.1 | r=0.25 | r=0.5 | r=1.0 |
+|---|---|---|---|---|---|
+| start (no move) | 0.0500 / 0% / 0.0% | 0.1000 / 0% / 0.0% | 0.2500 / 0% / 0.0% | 0.5000 / 0% / 0.0% | 1.0000 / 0% / 0.0% |
+| (i) MC deployed (200 steps) | 0.0336 / 34% / 0.0% | 0.0483 / 20% / 0.0% | 0.1599 / 0% / 0.0% | 0.4135 / 0% / 0.0% | 0.9450 / 0% / 29.0% |
+| (i) MC April sweep (3500 steps) @ 2600 | 0.0280 / 30% / 0.0% | 0.0533 / 8% / 0.0% | 0.1482 / 2% / 0.0% | 0.2985 / 2% / 0.0% | 0.6051 / 1% / 23.5% |
+| (ii) MC local restarts @ 2600 | 0.0269 / 38% / 0.0% | 0.0485 / 20% / 0.0% | 0.1581 / 0% / 0.0% | 0.4098 / 0% / 0.0% | 0.9435 / 0% / 30.5% |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 2600 | 0.0158 / 57% / 0.0% | 0.0304 / 39% / 0.0% | 0.0454 / 33% / 0.0% | 0.0801 / 30% / 0.0% | 0.5231 / 13% / 19.5% |
+| (iii) (1+1)-ES, step0 0.02 deg @ 2600 | 0.0145 / 62% / 0.0% | 0.0205 / 49% / 0.0% | 0.0519 / 31% / 0.0% | 0.2596 / 16% / 0.0% | 0.9953 / 1% / 27.0% |
+| (iv) Nelder-Mead @ 2600 | 0.0025 / 98% / 0.0% | 0.0023 / 98% / 0.0% | 0.0021 / 98% / 0.0% | 0.0024 / 93% / 0.0% | 0.0296 / 50% / 15.5% |
+| (v) CMA-ES, sigma0 0.05 deg @ 2600 | 0.0026 / 96% / 0.0% | 0.0026 / 94% / 0.0% | 0.0021 / 94% / 0.0% | 0.0024 / 95% / 0.0% | 0.0034 / 84% / 3.5% |
+| (v) CMA-ES, sigma0 0.2 deg @ 2600 | 0.0024 / 96% / 0.0% | 0.0027 / 94% / 0.0% | 0.0022 / 96% / 0.0% | 0.0023 / 96% / 0.0% | 0.0029 / 94% / 1.0% |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 0.0105 / 79% / 0.0% | 0.0113 / 79% / 0.0% | 0.0106 / 81% / 0.0% | 0.0115 / 80% / 0.0% | 0.0123 / 72% / 1.5% |
+| default finisher (MC + VM) | 0.0191 / 51% / 0.0% | 0.0250 / 43% / 0.0% | 0.0355 / 26% / 0.0% | 0.0512 / 20% / 0.0% | 0.0912 / 12% / 0.0% |
+| (vii) centroid Huber GN | 0.1726 / 15% / 3.5% | 0.1582 / 16% / 2.0% | 0.1680 / 19% / 2.5% | 0.1522 / 16% / 3.0% | 0.1944 / 16% / 3.0% |
+| (viii) hybrid Riemannian Adam | 0.0500 / 0% / 0.0% | 0.1000 / 0% / 0.0% | 0.1346 / 0% / 0.0% | 0.1456 / 0% / 0.0% | 0.1807 / 0% / 0.0% |
+<!-- /table:sw_by_r_realistic -->
+
+Paired comparison with (i) MC deployed, with cost gaps, intervals and tests (realistic variant; the clean variant is in `tables.md`):
+
+<!-- table:long_T5_realistic -->
+| method | evals | median err | p90 err | <0.01 deg | <0.02 deg | wrong >1 deg | cost gap median | win vs (i) | sign p | voxel-sign p | McNemar p (wrong) | McNemar p (<0.02) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| start (no move) | 0 | 0.1255 | 1.5000 | 3.7% (2.1-6.4) | 12.0% (8.8-16.2) | 39/300 13.0% (9.7-17.3) | 0.2990 | 0.25 | 8.6e-26 | 1.2e-07 | 0.5 | 3.0e-06 |
+| (i) MC deployed (200 steps) | 201 | 0.0646 | 1.4406 | 6.0% (3.8-9.3) | 19.3% (15.3-24.2) | 41/300 13.7% (10.2-18.0) | 0.0811 | 0.50 | 1 | 1 | 1 | 1 |
+| (i) MC April sweep (3500 steps) @ 250 | 250 | 0.0932 | 0.6847 | 4.3% (2.5-7.3) | 13.3% (9.9-17.6) | 23/300 7.7% (5.2-11.2) | 0.1574 | 0.43 | 0.0052 | 0.052 | 2.8e-04 | 9.1e-04 |
+| (i) MC April sweep (3500 steps) @ 1000 | 1000 | 0.0932 | 0.6847 | 4.7% (2.8-7.7) | 13.7% (10.2-18.0) | 23/300 7.7% (5.2-11.2) | 0.1574 | 0.43 | 0.0078 | 0.052 | 2.8e-04 | 0.0023 |
+| (i) MC April sweep (3500 steps) @ 2600 | 2600 | 0.0932 | 0.6847 | 4.7% (2.8-7.7) | 13.7% (10.2-18.0) | 23/300 7.7% (5.2-11.2) | 0.1574 | 0.43 | 0.0078 | 0.052 | 2.8e-04 | 0.0023 |
+| (i) MC April sweep (3500 steps) @ 10000 | 3501 | 0.0932 | 0.6847 | 4.7% (2.8-7.7) | 13.7% (10.2-18.0) | 23/300 7.7% (5.2-11.2) | 0.1574 | 0.43 | 0.0078 | 0.052 | 2.8e-04 | 0.0023 |
+| (ii) MC local restarts @ 250 | 250 | 0.0693 | 1.5016 | 16.0% (12.3-20.6) | 28.3% (23.5-33.7) | 42/300 14.0% (10.5-18.4) | 0.0776 | 0.58 | 0.0063 | 0.064 | 1 | 4.6e-04 |
+| (ii) MC local restarts @ 1000 | 1000 | 0.0693 | 1.5016 | 16.0% (12.3-20.6) | 28.3% (23.5-33.7) | 42/300 14.0% (10.5-18.4) | 0.0776 | 0.58 | 0.0063 | 0.064 | 1 | 4.6e-04 |
+| (ii) MC local restarts @ 2600 | 2600 | 0.0693 | 1.5016 | 16.0% (12.3-20.6) | 28.3% (23.5-33.7) | 42/300 14.0% (10.5-18.4) | 0.0776 | 0.58 | 0.0063 | 0.064 | 1 | 4.6e-04 |
+| (ii) MC local restarts @ 10000 | 10000 | 0.0693 | 1.5016 | 16.0% (12.3-20.6) | 28.3% (23.5-33.7) | 42/300 14.0% (10.5-18.4) | 0.0773 | 0.58 | 0.0063 | 0.064 | 1 | 4.6e-04 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 250 | 250 | 0.0359 | 1.4162 | 20.7% (16.5-25.6) | 35.7% (30.5-41.2) | 34/300 11.3% (8.2-15.4) | 0.0207 | 0.69 | 6.3e-12 | 1.8e-04 | 0.016 | 8.4e-09 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 1000 | 1000 | 0.0359 | 1.4162 | 20.7% (16.5-25.6) | 35.7% (30.5-41.2) | 34/300 11.3% (8.2-15.4) | 0.0203 | 0.69 | 6.3e-12 | 1.8e-04 | 0.016 | 8.4e-09 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 2600 | 2600 | 0.0359 | 1.4162 | 20.7% (16.5-25.6) | 35.7% (30.5-41.2) | 34/300 11.3% (8.2-15.4) | 0.0203 | 0.69 | 6.3e-12 | 1.8e-04 | 0.016 | 8.4e-09 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 10000 | 10000 | 0.0359 | 1.4162 | 20.7% (16.5-25.6) | 35.7% (30.5-41.2) | 34/300 11.3% (8.2-15.4) | 0.0203 | 0.69 | 6.3e-12 | 1.8e-04 | 0.016 | 8.4e-09 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 250 | 250 | 0.0324 | 1.5038 | 22.3% (18.0-27.4) | 38.3% (33.0-43.9) | 46/300 15.3% (11.7-19.8) | 0.0206 | 0.66 | 1.9e-08 | 0.0052 | 0.18 | 2.4e-10 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 1000 | 1000 | 0.0324 | 1.5038 | 22.3% (18.0-27.4) | 38.3% (33.0-43.9) | 46/300 15.3% (11.7-19.8) | 0.0206 | 0.66 | 1.9e-08 | 0.0052 | 0.18 | 2.4e-10 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 2600 | 2600 | 0.0324 | 1.5038 | 22.3% (18.0-27.4) | 38.3% (33.0-43.9) | 46/300 15.3% (11.7-19.8) | 0.0206 | 0.66 | 1.9e-08 | 0.0052 | 0.18 | 2.4e-10 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 10000 | 10000 | 0.0324 | 1.5038 | 22.3% (18.0-27.4) | 38.3% (33.0-43.9) | 46/300 15.3% (11.7-19.8) | 0.0206 | 0.66 | 1.9e-08 | 0.0052 | 0.18 | 2.4e-10 |
+| (iv) Nelder-Mead @ 250 | 250 | 0.0035 | 1.4207 | 76.7% (71.6-81.1) | 82.7% (78.0-86.5) | 39/300 13.0% (9.7-17.3) | 0.0000 | 0.89 | 2.0e-48 | 5.8e-08 | 0.62 | 6.1e-56 |
+| (iv) Nelder-Mead @ 1000 | 1000 | 0.0029 | 1.4207 | 77.7% (72.6-82.0) | 82.3% (77.6-86.2) | 39/300 13.0% (9.7-17.3) | 0.0000 | 0.90 | 2.2e-49 | 5.8e-08 | 0.62 | 1.2e-55 |
+| (iv) Nelder-Mead @ 2600 | 2600 | 0.0029 | 1.4207 | 77.7% (72.6-82.0) | 82.3% (77.6-86.2) | 39/300 13.0% (9.7-17.3) | 0.0000 | 0.90 | 2.2e-49 | 5.8e-08 | 0.62 | 1.2e-55 |
+| (iv) Nelder-Mead @ 10000 | 10000 | 0.0029 | 1.4207 | 77.7% (72.6-82.0) | 82.3% (77.6-86.2) | 39/300 13.0% (9.7-17.3) | 0.0000 | 0.90 | 2.2e-49 | 5.8e-08 | 0.62 | 1.2e-55 |
+| (v) CMA-ES, sigma0 0.05 deg @ 250 | 250 | 0.0037 | 0.4219 | 75.3% (70.2-79.9) | 83.7% (79.1-87.4) | 29/300 9.7% (6.8-13.5) | 0.0000 | 0.93 | 8.8e-61 | 5.8e-08 | 4.9e-04 | 1.6e-58 |
+| (v) CMA-ES, sigma0 0.05 deg @ 1000 | 1000 | 0.0026 | 0.1009 | 82.0% (77.3-85.9) | 88.0% (83.8-91.2) | 29/300 9.7% (6.8-13.5) | 0.0000 | 0.94 | 6.5e-63 | 5.8e-08 | 4.9e-04 | 1.9e-62 |
+| (v) CMA-ES, sigma0 0.05 deg @ 2600 | 2600 | 0.0026 | 0.1009 | 82.3% (77.6-86.2) | 88.0% (83.8-91.2) | 29/300 9.7% (6.8-13.5) | 0.0000 | 0.94 | 6.5e-63 | 5.8e-08 | 4.9e-04 | 1.9e-62 |
+| (v) CMA-ES, sigma0 0.05 deg @ 10000 | 5993 | 0.0026 | 0.1009 | 82.3% (77.6-86.2) | 88.0% (83.8-91.2) | 29/300 9.7% (6.8-13.5) | 0.0000 | 0.94 | 6.5e-63 | 5.8e-08 | 4.9e-04 | 1.9e-62 |
+| (v) CMA-ES, sigma0 0.2 deg @ 250 | 250 | 0.0037 | 0.0284 | 78.3% (73.3-82.6) | 87.0% (82.7-90.3) | 19/300 6.3% (4.1-9.7) | 0.0000 | 0.94 | 3.5e-63 | 5.8e-08 | 4.8e-07 | 5.0e-56 |
+| (v) CMA-ES, sigma0 0.2 deg @ 1000 | 1000 | 0.0024 | 0.0156 | 85.3% (80.9-88.9) | 91.7% (88.0-94.3) | 19/300 6.3% (4.1-9.7) | 0.0000 | 0.95 | 5.5e-66 | 5.8e-08 | 4.8e-07 | 1.5e-62 |
+| (v) CMA-ES, sigma0 0.2 deg @ 2600 | 2600 | 0.0023 | 0.0156 | 85.7% (81.2-89.2) | 91.7% (88.0-94.3) | 19/300 6.3% (4.1-9.7) | 0.0000 | 0.95 | 2.7e-67 | 1.9e-09 | 4.8e-07 | 1.5e-62 |
+| (v) CMA-ES, sigma0 0.2 deg @ 10000 | 5884 | 0.0023 | 0.0156 | 85.7% (81.2-89.2) | 91.7% (88.0-94.3) | 19/300 6.3% (4.1-9.7) | 0.0000 | 0.95 | 2.7e-67 | 1.9e-09 | 4.8e-07 | 1.5e-62 |
+| (vi) VarianceMinimizing, quarter box @ 250 | 250 | 0.0362 | 1.3510 | 13.3% (9.9-17.6) | 31.0% (26.0-36.4) | 37/300 12.3% (9.1-16.5) | 0.0377 | 0.73 | 3.1e-17 | 2.7e-05 | 0.12 | 1.6e-05 |
+| (vi) VarianceMinimizing, quarter box @ 1000 | 1000 | 0.0166 | 0.2597 | 25.3% (20.7-30.5) | 58.7% (53.0-64.1) | 26/300 8.7% (6.0-12.4) | 0.0118 | 0.85 | 4.3e-40 | 1.1e-07 | 6.1e-05 | 2.0e-28 |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 2600 | 0.0138 | 0.0400 | 38.3% (33.0-43.9) | 71.7% (66.3-76.5) | 22/300 7.3% (4.9-10.9) | 0.0080 | 0.89 | 1.0e-49 | 5.8e-08 | 3.8e-06 | 1.5e-38 |
+| (vi) VarianceMinimizing, quarter box @ 10000 | 10000 | 0.0096 | 0.0349 | 52.0% (46.4-57.6) | 81.3% (76.5-85.3) | 21/300 7.0% (4.6-10.5) | 0.0050 | 0.91 | 2.2e-54 | 5.8e-08 | 1.9e-06 | 2.9e-48 |
+| default finisher (MC + VM) | 2080 | 0.0324 | 0.3090 | 16.3% (12.6-20.9) | 35.7% (30.5-41.2) | 21/300 7.0% (4.6-10.5) | 0.0346 | 0.72 | 3.1e-17 | 1.6e-04 | 1.9e-06 | 4.8e-09 |
+| (vii) centroid Huber GN | 0 | 0.2230 | 0.6413 | 4.7% (2.8-7.7) | 10.0% (7.1-13.9) | 6/300 2.0% (0.9-4.3) | 0.3595 | 0.34 | 1.5e-08 | 0.099 | 1.8e-07 | 9.0e-05 |
+| (viii) hybrid Riemannian Adam | 4 | 0.1040 | 0.3579 | 3.7% (2.1-6.4) | 12.3% (9.1-16.5) | 9/300 3.0% (1.6-5.6) | 0.2324 | 0.44 | 0.013 | 0.52 | 4.7e-10 | 1.9e-05 |
+<!-- /table:long_T5_realistic -->
+
+<!-- table:long_SW_realistic -->
+| method | evals | median err | p90 err | <0.01 deg | <0.02 deg | wrong >1 deg | cost gap median | win vs (i) | sign p | voxel-sign p | McNemar p (wrong) | McNemar p (<0.02) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| start (no move) | 0 | 0.2500 | 1.0000 | 0.0% (0.0-0.4) | 0.0% (0.0-0.4) | 0/1000 0.0% (0.0-0.4) | 0.5100 | 0.19 | 1.5e-97 | 1.8e-15 | 6.9e-18 | 3.1e-33 |
+| (i) MC deployed (200 steps) | 201 | 0.1609 | 0.9435 | 4.1% (3.0-5.5) | 10.9% (9.1-13.0) | 58/1000 5.8% (4.5-7.4) | 0.2924 | 0.50 | 1 | 1 | 1 | 1 |
+| (i) MC April sweep (3500 steps) @ 250 | 250 | 0.1154 | 0.6223 | 3.3% (2.4-4.6) | 8.9% (7.3-10.8) | 48/1000 4.8% (3.6-6.3) | 0.1835 | 0.61 | 4.6e-13 | 1.5e-09 | 0.24 | 0.12 |
+| (i) MC April sweep (3500 steps) @ 1000 | 1000 | 0.1154 | 0.6223 | 3.4% (2.4-4.7) | 8.9% (7.3-10.8) | 47/1000 4.7% (3.6-6.2) | 0.1835 | 0.61 | 3.5e-13 | 1.5e-09 | 0.18 | 0.12 |
+| (i) MC April sweep (3500 steps) @ 2600 | 2600 | 0.1154 | 0.6220 | 3.4% (2.4-4.7) | 8.9% (7.3-10.8) | 47/1000 4.7% (3.6-6.2) | 0.1835 | 0.61 | 3.5e-13 | 1.5e-09 | 0.18 | 0.12 |
+| (i) MC April sweep (3500 steps) @ 10000 | 3501 | 0.1154 | 0.6220 | 3.4% (2.4-4.7) | 8.9% (7.3-10.8) | 47/1000 4.7% (3.6-6.2) | 0.1835 | 0.61 | 3.5e-13 | 1.5e-09 | 0.18 | 0.12 |
+| (ii) MC local restarts @ 250 | 250 | 0.1638 | 0.9418 | 5.6% (4.3-7.2) | 11.6% (9.8-13.7) | 61/1000 6.1% (4.8-7.8) | 0.2895 | 0.53 | 0.078 | 0.026 | 0.82 | 0.62 |
+| (ii) MC local restarts @ 1000 | 1000 | 0.1638 | 0.9418 | 5.6% (4.3-7.2) | 11.6% (9.8-13.7) | 61/1000 6.1% (4.8-7.8) | 0.2895 | 0.53 | 0.078 | 0.026 | 0.82 | 0.62 |
+| (ii) MC local restarts @ 2600 | 2600 | 0.1638 | 0.9418 | 5.6% (4.3-7.2) | 11.6% (9.8-13.7) | 61/1000 6.1% (4.8-7.8) | 0.2895 | 0.53 | 0.078 | 0.026 | 0.82 | 0.62 |
+| (ii) MC local restarts @ 10000 | 10000 | 0.1638 | 0.9418 | 5.6% (4.3-7.2) | 11.6% (9.8-13.7) | 61/1000 6.1% (4.8-7.8) | 0.2895 | 0.53 | 0.078 | 0.026 | 0.82 | 0.62 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 250 | 250 | 0.0420 | 0.5378 | 22.3% (19.8-25.0) | 34.5% (31.6-37.5) | 39/1000 3.9% (2.9-5.3) | 0.0282 | 0.78 | 3.7e-74 | 9.1e-14 | 0.029 | 4.0e-39 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 1000 | 1000 | 0.0420 | 0.5378 | 22.3% (19.8-25.0) | 34.5% (31.6-37.5) | 39/1000 3.9% (2.9-5.3) | 0.0281 | 0.78 | 3.7e-74 | 9.1e-14 | 0.029 | 4.0e-39 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 2600 | 2600 | 0.0420 | 0.5378 | 22.3% (19.8-25.0) | 34.5% (31.6-37.5) | 39/1000 3.9% (2.9-5.3) | 0.0281 | 0.78 | 3.7e-74 | 9.1e-14 | 0.029 | 4.0e-39 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 10000 | 10000 | 0.0420 | 0.5378 | 22.3% (19.8-25.0) | 34.5% (31.6-37.5) | 39/1000 3.9% (2.9-5.3) | 0.0281 | 0.78 | 3.7e-74 | 9.1e-14 | 0.029 | 4.0e-39 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 250 | 250 | 0.0546 | 0.9951 | 19.3% (17.0-21.9) | 31.8% (29.0-34.8) | 54/1000 5.4% (4.2-7.0) | 0.0408 | 0.66 | 1.1e-24 | 8.2e-10 | 0.73 | 1.2e-34 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 1000 | 1000 | 0.0546 | 0.9951 | 19.3% (17.0-21.9) | 31.8% (29.0-34.8) | 54/1000 5.4% (4.2-7.0) | 0.0408 | 0.66 | 1.1e-24 | 8.2e-10 | 0.73 | 1.2e-34 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 2600 | 2600 | 0.0546 | 0.9951 | 19.3% (17.0-21.9) | 31.8% (29.0-34.8) | 54/1000 5.4% (4.2-7.0) | 0.0408 | 0.66 | 1.1e-24 | 8.2e-10 | 0.73 | 1.2e-34 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 10000 | 10000 | 0.0546 | 0.9951 | 19.3% (17.0-21.9) | 31.8% (29.0-34.8) | 54/1000 5.4% (4.2-7.0) | 0.0408 | 0.66 | 1.1e-24 | 8.2e-10 | 0.73 | 1.2e-34 |
+| (iv) Nelder-Mead @ 250 | 250 | 0.0034 | 0.3378 | 77.7% (75.0-80.2) | 86.0% (83.7-88.0) | 31/1000 3.1% (2.2-4.4) | 0.0000 | 0.93 | 4.8e-193 | 1.8e-15 | 9.0e-04 | 1.9e-220 |
+| (iv) Nelder-Mead @ 1000 | 1000 | 0.0026 | 0.3536 | 82.0% (79.5-84.3) | 87.2% (85.0-89.1) | 31/1000 3.1% (2.2-4.4) | 0.0000 | 0.93 | 2.7e-200 | 1.8e-15 | 9.0e-04 | 7.6e-226 |
+| (iv) Nelder-Mead @ 2600 | 2600 | 0.0026 | 0.3536 | 82.0% (79.5-84.3) | 87.2% (85.0-89.1) | 31/1000 3.1% (2.2-4.4) | 0.0000 | 0.93 | 2.7e-200 | 1.8e-15 | 9.0e-04 | 7.6e-226 |
+| (iv) Nelder-Mead @ 10000 | 10000 | 0.0026 | 0.3536 | 82.0% (79.5-84.3) | 87.2% (85.0-89.1) | 31/1000 3.1% (2.2-4.4) | 0.0000 | 0.93 | 2.7e-200 | 1.8e-15 | 9.0e-04 | 7.6e-226 |
+| (v) CMA-ES, sigma0 0.05 deg @ 250 | 250 | 0.0045 | 0.0304 | 72.3% (69.4-75.0) | 84.5% (82.1-86.6) | 9/1000 0.9% (0.5-1.7) | 0.0001 | 0.96 | 1.9e-234 | 1.8e-15 | 3.2e-10 | 1.0e-212 |
+| (v) CMA-ES, sigma0 0.05 deg @ 1000 | 1000 | 0.0025 | 0.0143 | 85.9% (83.6-87.9) | 92.6% (90.8-94.1) | 7/1000 0.7% (0.3-1.4) | -0.0000 | 0.96 | 5.2e-244 | 1.8e-15 | 1.6e-11 | 1.7e-238 |
+| (v) CMA-ES, sigma0 0.05 deg @ 2600 | 2600 | 0.0025 | 0.0143 | 86.0% (83.7-88.0) | 92.6% (90.8-94.1) | 7/1000 0.7% (0.3-1.4) | -0.0000 | 0.96 | 5.2e-244 | 1.8e-15 | 1.6e-11 | 1.7e-238 |
+| (v) CMA-ES, sigma0 0.05 deg @ 10000 | 5622 | 0.0025 | 0.0143 | 86.0% (83.7-88.0) | 92.6% (90.8-94.1) | 7/1000 0.7% (0.3-1.4) | -0.0000 | 0.96 | 5.2e-244 | 1.8e-15 | 1.6e-11 | 1.7e-238 |
+| (v) CMA-ES, sigma0 0.2 deg @ 250 | 250 | 0.0038 | 0.0154 | 81.5% (79.0-83.8) | 92.2% (90.4-93.7) | 2/1000 0.2% (0.1-0.7) | 0.0000 | 0.97 | 4.8e-258 | 1.8e-15 | 3.2e-15 | 3.0e-231 |
+| (v) CMA-ES, sigma0 0.2 deg @ 1000 | 1000 | 0.0025 | 0.0121 | 87.2% (85.0-89.1) | 95.1% (93.6-96.3) | 2/1000 0.2% (0.1-0.7) | -0.0000 | 0.97 | 3.2e-259 | 1.8e-15 | 3.2e-15 | 2.7e-241 |
+| (v) CMA-ES, sigma0 0.2 deg @ 2600 | 2600 | 0.0025 | 0.0121 | 87.2% (85.0-89.1) | 95.3% (93.8-96.4) | 2/1000 0.2% (0.1-0.7) | -0.0000 | 0.97 | 3.2e-259 | 1.8e-15 | 3.2e-15 | 7.0e-242 |
+| (v) CMA-ES, sigma0 0.2 deg @ 10000 | 5870 | 0.0025 | 0.0121 | 87.3% (85.1-89.2) | 95.4% (93.9-96.5) | 2/1000 0.2% (0.1-0.7) | -0.0000 | 0.97 | 3.2e-259 | 1.8e-15 | 3.2e-15 | 3.5e-242 |
+| (vi) VarianceMinimizing, quarter box @ 250 | 250 | 0.0731 | 0.6231 | 10.7% (8.9-12.8) | 23.3% (20.8-26.0) | 13/1000 1.3% (0.8-2.2) | 0.0842 | 0.81 | 4.1e-95 | 1.8e-15 | 2.1e-08 | 4.3e-16 |
+| (vi) VarianceMinimizing, quarter box @ 1000 | 1000 | 0.0148 | 0.0445 | 30.9% (28.1-33.8) | 63.6% (60.6-66.5) | 3/1000 0.3% (0.1-0.9) | 0.0119 | 0.91 | 1.2e-176 | 1.8e-15 | 3.3e-14 | 4.0e-122 |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 2600 | 0.0113 | 0.0282 | 42.7% (39.7-45.8) | 78.0% (75.3-80.5) | 3/1000 0.3% (0.1-0.9) | 0.0088 | 0.93 | 1.4e-201 | 1.8e-15 | 3.3e-14 | 7.6e-169 |
+| (vi) VarianceMinimizing, quarter box @ 10000 | 10000 | 0.0083 | 0.0211 | 59.3% (56.2-62.3) | 87.9% (85.7-89.8) | 3/1000 0.3% (0.1-0.9) | 0.0054 | 0.94 | 4.7e-217 | 1.8e-15 | 3.3e-14 | 1.3e-206 |
+| default finisher (MC + VM) | 1776 | 0.0357 | 0.1646 | 16.1% (14.0-18.5) | 30.4% (27.6-33.3) | 0/1000 0.0% (0.0-0.4) | 0.0426 | 0.86 | 3.3e-127 | 1.8e-15 | 6.9e-18 | 2.8e-32 |
+| (vii) centroid Huber GN | 0 | 0.1688 | 0.6770 | 4.4% (3.3-5.9) | 16.3% (14.1-18.7) | 28/1000 2.8% (1.9-4.0) | 0.2619 | 0.54 | 0.024 | 0.48 | 0.0011 | 6.3e-04 |
+| (viii) hybrid Riemannian Adam | 4 | 0.1000 | 0.3001 | 0.0% (0.0-0.4) | 0.4% (0.2-1.0) | 0/1000 0.0% (0.0-0.4) | 0.2571 | 0.59 | 6.8e-09 | 2.6e-12 | 6.9e-18 | 1.8e-28 |
+<!-- /table:long_SW_realistic -->
+
+GN and Adam use their own units, so they are not in the equal-budget columns. GN is 3 window renders and solves; Adam is 4 hard evaluations and 300 differentiable forward+backward steps; the wall times are the contended 10-worker run, per case:
+
+<!-- table:units -->
+| variant | method | unit | count | wall |
+|---|---|---|---|---|
+| clean | (vii) centroid Huber GN | 3 window renders + solves | 3 (spots used q25/50/75 114/118/121; estimate for 100.0% (99.7-100.0)) | 0.22 |
+| clean | (viii) hybrid Riemannian Adam | hard evals + Adam steps | 4 hard + 300 differentiable fwd+bwd (medians) | 0.86 |
+| clean | default finisher (MC + VM) | hard evals | 1743 (q25-q75 951-2348) | 1.18 |
+| realistic | (vii) centroid Huber GN | 3 window renders + solves | 3 (spots used q25/50/75 102/106/110; estimate for 100.0% (99.7-100.0)) | 0.34 |
+| realistic | (viii) hybrid Riemannian Adam | hard evals + Adam steps | 4 hard + 300 differentiable fwd+bwd (medians) | 0.86 |
+| realistic | default finisher (MC + VM) | hard evals | 1853 (q25-q75 951-2952) | 1.25 |
+<!-- /table:units -->
+
+#### Answer 1: why does the deployed MC run out of restarts?
+
+It is what B1 read from the code, now seen on a second, independent random stream (new seeds, float64 starts). The deployed MC ended before its 200 steps in exactly the cases where it never lowered the cost below the start's:
+
+<!-- table:deployed_mc -->
+| set | n | no_improvement | ended_early | both | early_only | noimp_only |
+|---|---|---|---|---|---|---|
+| T5 clean | 300 | 25.7% (21.1-30.9) | 25.7% (21.1-30.9) | 77 | 0 | 0 |
+| T5 realistic | 300 | 25.3% (20.7-30.5) | 25.3% (20.7-30.5) | 76 | 0 | 0 |
+| T5-H3 clean | 200 | 36.5% (30.1-43.4) | 36.5% (30.1-43.4) | 73 | 0 | 0 |
+| T5-H3 realistic | 200 | 37.0% (30.6-43.9) | 37.0% (30.6-43.9) | 74 | 0 | 0 |
+| T5-H0 clean | 100 | 4.0% (1.6-9.8) | 4.0% (1.6-9.8) | 4 | 0 | 0 |
+| T5-H0 realistic | 100 | 2.0% (0.6-7.0) | 2.0% (0.6-7.0) | 2 | 0 | 0 |
+| SW clean | 1000 | 3.8% (2.8-5.2) | 3.8% (2.8-5.2) | 38 | 0 | 0 |
+| SW realistic | 1000 | 4.2% (3.1-5.6) | 4.3% (3.2-5.7) | 42 | 1 | 0 |
+<!-- /table:deployed_mc -->
+
+In T5 H3 realistic that is 74/200 (37.0%, 30.6-43.9), all 74 are both (B1 found 78/200 with its own stream), and no run ended early while improving. These cases start close: the median distance is 0.0213 deg, against a 0.1317 deg step. Cases where the deployed MC made no improvement are not hopeless for other methods: at 1000 evaluations Nelder-Mead ends 0.0023 deg away with 97.3% under 0.02 deg, CMA-ES (sigma0 0.2) 0.0026 deg and 97.3%, the (1+1)-ES 0.0137 deg and 64.9% (a start that does not move: 0.0213 deg, 47.3%). In the 126 runs that improved, the deployed MC ends 0.0593 deg away (14.3% under 0.02 deg; the start was 0.1351 deg), Nelder-Mead 0.0028 deg (91.3%), CMA-ES 0.0021 deg (95.2%). These strata are defined by the outcome of the deployed run itself, so they describe the two failure types of B1 (close starts that never improve, improving runs that lock in) and do not test why each occurs.
+
+What did not help, at equal budget:
+- **MC with local restarts (ii)** ends 0.0362 deg from the truth (38% under 0.02 deg, 250 evaluations and every budget after it) in T5 H3, 0.1638 deg in the sweep. It keeps the deployed rule that halves the step at every improvement, so it still locks in; a unit test shows the same on a smooth synthetic quadratic.
+- **The success-rate step rule (iii)**, the hypothesis B1 left for B3, gives 0.0240 deg (46% under 0.02 deg) in T5 H3 and 0.0420 deg in the sweep with step0 0.1317 deg. It improves on the deployed MC (sign test and voxel-clustered test in the paired tables) but it stalls: 191/200 of its T5 H3 results at 250 evaluations are the same orientation as at 10000, and 164/200 at 100 evaluations (realistic). The rule as run collapses its step prematurely. Strict acceptance makes every tie count as a failure, so on the quantised cost the step shrinks 0.894-fold per failure and reaches the 0.0002 deg floor within about 100 to 250 evaluations. In a 4-case probe (`scripts/finisher_bench/es_probe.py`, `es_probe.txt`; T5 H3 realistic, 2000 evaluations) the last success of the strict rule came at evaluation 36 to 96 and the step was at its 0.00020 deg floor at evaluation 250 in all 4 cases (at evaluation 100: 0.00173, 0.00071, 0.00020 and 0.00029 deg). Accepting ties kept 2 of the 4 cases improving after 250 evaluations (0.0065 to 0.0032 deg; 0.0228 to 0.0185 deg), a 0.002 deg floor had 3 successes after 250 evaluations in 2 cases and changed the error by at most 0.0010 deg; in the other cases neither changed the result. Only one untuned setting was run, so this is a finding about the rule as run, not about success-rate step control in general.
+- **The April-sweep MC (i)** with 3500 steps is no better than 250 evaluations of itself, and ends 0.0635 deg (T5 H3) and 0.1154 deg (sweep) away.
+
+What helped: methods that decide from several points at once (a simplex, or a sampled population with a covariance estimate). Why they succeed where single-point greedy walks stall is not tested here.
+
+#### Answer 2: is MC the right tool?
+
+Not for the finishing stage, on these cases. At 250 evaluations CMA-ES (sigma0 0.2) reaches a median 0.0031 deg (T5 H3) and 0.0038 deg (sweep), 94% and 92% under 0.02 deg, against 26% and 11% for the deployed MC at its natural 201 evaluations and 44% and 30% for the whole default finisher at 2629 and 1776. In the paired tests it beats the deployed MC in the sweep with 50 of 50 voxels better in the voxel-clustered test. The cost gap of the CMA-ES and Nelder-Mead results is a median 0.0000: they reach the truth's cost (CMA-ES sigma0 0.2 at 250 evaluations: exactly equal in 120/200 and lower in 12/200 clean T5 H3 cases; equal in 62/200 and lower in 71/200 realistic). The remaining 0.002 to 0.003 deg is therefore consistent with being where the cost itself has its minimum, not with early stopping. Phase A found points at or below the truth's cost in a fraction 0.08 of sampled directions at 0.002 deg and 0.01 at 0.005 deg (H3 realistic): an anisotropic set reaching slightly beyond Phase A's median 'flat below 0.0005 to 0.001 deg'. The error at that level is not a quality measure of the search. Far starts are only partly repaired: of the 33 T5 H0 starts over 1 deg away (all at 1.5 to 3 deg), CMA-ES (sigma0 0.2) leaves 15 wrong (1 of 11 at 1.5 deg, 4 of 11 at 2 deg, 10 of 11 at 3 deg), the default finisher 18, Nelder-Mead 34 and the deployed MC 35 (counts over the 100 H0 cases). At r = 1 deg in the sweep the deployed MC ends wrong in 29.0% of cases, CMA-ES (sigma0 0.2) in 1.0%, Nelder-Mead in 15.5%.
+
+Wrong (over 1 deg) counts, T5 H0 realistic, by start distance (11 starts each; budget 1000 for Nelder-Mead and CMA-ES; the last row counts all 100 H0 cases):
+
+<!-- table:far_starts -->
+| start | n | deployed | default | nm | cma05 | cma02 |
+|---|---|---|---|---|---|---|
+| 1.5 deg | 11 | 11 | 0 | 11 | 5 | 1 |
+| 2.0 deg | 11 | 11 | 7 | 11 | 10 | 4 |
+| 3.0 deg | 11 | 11 | 11 | 11 | 11 | 10 |
+| wrong over all 100 H0 cases | 100 | 35 | 18 | 34 | 26 | 15 |
+<!-- /table:far_starts -->
+
+The other approaches:
+- **VarianceMinimizing in a quarter box (vi)** gets to 0.0122 deg (T5 H3) at 2600 evaluations and 0.0096 deg at 10000; it is the slowest to converge among the methods that do work.
+- **Centroid Huber GN (vii)** is good on clean data (0.0132 deg in T5 H3, 0.0126 deg in the sweep) and poor on realistic data (0.2628 and 0.1688 deg). Its windows are re-rendered at the start with the case's draws and realism seed, so in the realistic variant they are not the images the cost sees; this test therefore says GN is sensitive to the realistic perturbations of the windows, not that it cannot work on real images. The windows are also synthesised with the truth's offset from the start (`bench.py`, `gn_from_starts`: `delta_s`, `render_batch`), so GN is not given the cost's images and its low wrong rate (T5 2.0%, H0 0/100) is not comparable with the cost-based methods.
+- **Hybrid Riemannian Adam (viii)** with the April settings hardly moves the start (sweep median 0.1000 deg; 0.4% under 0.02 deg): the differentiable cost has no gradient inside the binary spots, as the October comparison found.
+
+#### Timing (single-worker; preflight gated)
+
+Preflight passed before the run (1-minute load 1.33, no busy process; the 1-minute load was 1.38 after), 40 realistic cases (16 T5 H3, 8 T5 H0, 16 sweep), one repetition per case and method, interleaved with a rotating order. This is a single-worker timing on a laptop that was not idle (load near 1.3): each timing is one repetition per case; the q column gives the spread over the 40 cases.
+
+<!-- table:timing -->
+| method | budget | evals | wall | per_eval | q |
+|---|---|---|---|---|---|
+| (i) MC deployed (200 steps) | natural | 201 | 0.110 | 0.547 | 0.108-0.112 |
+| (i) MC April sweep (3500 steps) | 250 | 250 | 0.137 | 0.553 | 0.034-0.139 |
+| (i) MC April sweep (3500 steps) | 2600 | 2600 | 1.425 | 0.548 | 0.033-1.445 |
+| (ii) MC local restarts | 250 | 250 | 0.138 | 0.551 | 0.135-0.139 |
+| (ii) MC local restarts | 2600 | 2600 | 1.429 | 0.550 | 1.403-1.441 |
+| (iii) (1+1)-ES, step0 0.1317 deg | 250 | 250 | 0.138 | 0.551 | 0.135-0.139 |
+| (iii) (1+1)-ES, step0 0.1317 deg | 2600 | 2600 | 1.430 | 0.550 | 1.409-1.441 |
+| (iii) (1+1)-ES, step0 0.02 deg | 250 | 250 | 0.138 | 0.552 | 0.135-0.139 |
+| (iii) (1+1)-ES, step0 0.02 deg | 2600 | 2600 | 1.431 | 0.550 | 1.412-1.443 |
+| (iv) Nelder-Mead | 250 | 250 | 0.134 | 0.537 | 0.132-0.135 |
+| (iv) Nelder-Mead | 2600 | 2600 | 1.391 | 0.535 | 1.370-1.400 |
+| (v) CMA-ES, sigma0 0.05 deg | 250 | 250 | 0.144 | 0.575 | 0.142-0.145 |
+| (v) CMA-ES, sigma0 0.05 deg | 2600 | 2600 | 1.462 | 0.563 | 1.446-1.474 |
+| (v) CMA-ES, sigma0 0.2 deg | 250 | 250 | 0.143 | 0.571 | 0.141-0.144 |
+| (v) CMA-ES, sigma0 0.2 deg | 2600 | 2600 | 1.466 | 0.564 | 1.443-1.481 |
+| (vi) VarianceMinimizing, quarter box | 250 | 250 | 0.138 | 0.550 | 0.135-0.139 |
+| (vi) VarianceMinimizing, quarter box | 2600 | 2600 | 1.428 | 0.549 | 1.405-1.443 |
+| (vii) centroid Huber GN | natural | 3 | 0.408 | 136.124 | 0.366-0.426 |
+| (viii) hybrid Riemannian Adam | natural | 4 | 0.699 | 174.698 | 0.690-0.719 |
+| default finisher (MC + VM) | natural | 1946 | 1.071 | 0.549 | 0.573-1.724 |
+<!-- /table:timing -->
+
+Every cost-evaluation method costs about 0.55 ms per evaluation (CMA-ES 0.56 to 0.58), so wall time follows the evaluation count: CMA-ES at 250 evaluations takes a median 0.143 s, the default finisher a median 1.071 s at its median 1946 evaluations in this subset. GN (0.408 s) and Adam (0.699 s) are in the table in their own units.
+
+#### Picks for Phase C (at most two)
+
+1. **CMA-ES, sigma0 0.2 deg, 250 to 1000 evaluations.** Lowest wrong rate among the budgeted cost-evaluation methods (sweep 0.2%, against 0.0% for the default finisher; T5 6.3% against 13.0% for no move: H3 2.0% against 3.0%, H0 15.0% against 33.0%; GN has 2.0% and Adam 3.0% in T5 but in their own units), 87.0% and 92.2% under 0.02 deg at 250 evaluations (T5, sweep), 91.7% and 95.1% at 1000. It stops by itself at a median 5881 evaluations; a Phase C cap at 1000 loses little.
+2. **Nelder-Mead on the rotation vector, 250 to 1000 evaluations.** Deterministic, no dependency, 82.7% (T5) and 86.0% (sweep) under 0.02 deg at 250 evaluations. Its wrong rate equals the start's in T5 (13.0%) and is 15.5% at r = 1 in the sweep, so it needs a start already within about 0.5 deg.
+Not picked: sigma0 0.05 (9.7% wrong in T5), the (1+1)-ES and MC variants (they stall above 0.02 deg), GN (clean-data only), Adam.
+
+**Caveats and deviations.**
+- The result of a run is the lowest-cost orientation it evaluated (ties: the first), for every budgeted method and the deployed MC (equal to what `optimize` returns); the default finisher's result is what `refine_from_candidates` returns, GN's is its estimate, and Adam's is its lowest-cost hard evaluation.
+- The April MC is told the sweep radius; the others are not. The T5 clean variant uses the realistic start of the same case.
+- (ii) is the literal reading of the plan (local restart, no reset, fixed stuck count); it inherits the halving at each improvement. (iii) was run with one setting (target success 0.25, damping 3) and a step floor of 0.0002 deg; neither was tuned. CMA-ES has its flat-fitness, function-value and stagnation stopping tests switched off (the cost is quantised) and keeps its x-tolerance stop. Nelder-Mead restarts are my choice.
+- The MC-based methods use float64 orientations; the default-finisher reference uses the float32 start, as T5 did.
+- One seed per case and method; the cases within a voxel are not independent, hence the voxel-clustered tests. The 40-case timing is one repetition.
+- `cma` is only in the benchmarks extra, so a CMA-ES finisher in `icenine/` (Phase C) needs it as a core dependency or a vendored implementation; Nelder-Mead uses scipy, already a core dependency.
+- Sweep starts are within 1 deg and T5 starts within 3 deg; the findings are for local finishing, not for the coarse search.
 
 ### Phase C: the finisher inside the reconstruction
 - Add the chosen finisher(s) as an opt-in finisher in `refine_from_candidates`: default off, C++ parity, bit-identity

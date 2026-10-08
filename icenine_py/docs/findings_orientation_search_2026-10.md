@@ -273,6 +273,22 @@ The effect of these continuations on reconstruction success has not been tested.
     at 3500 in that protocol, there is no detectable r_perp dependence (Spearman, n = 100 voxels) inside 75–563 µm, and the hybrid benchmark shows no
     difference from MC (9 runs only hybrid, 8 only MC, McNemar p = 1.0). So the comparison neither tested nor
     contradicts the deployed configuration at the 0.01–0.03° scale.
+  - *Phase B3 (`benchmarks/finisher_bench/`):* a head-to-head of local finishers on the same cost function with counted
+    evaluations (300 T5 cases and 1000 sweep cases, clean and realistic). MC is not the right tool for the finishing
+    stage. At 250 evaluations CMA-ES (sigma0 0.2°) ends a median 0.0031° (T5 H3) and 0.0038° (sweep) from the truth, 94% and
+    92% under 0.02°; the deployed MC at its 201 evaluations ends 0.0382° and 0.1609° (26% and 11% under 0.02°), and the
+    whole default finisher 0.0229° and 0.0357° at 2629 and 1776 evaluations (44% and 30%). Nelder-Mead on the rotation
+    vector does nearly as well at 250 evaluations (0.0031° and 0.0034°). The deployed MC ends early exactly when it
+    never improved (74/200 T5 H3 realistic, 37.0%), and in those and in the improving runs the simplex and CMA methods
+    end 0.0021°–0.0028° away at 1000 evaluations. Neither MC with local restarts (0.0362°) nor the success-rate rule (0.0240°)
+    closes the gap: the success-rate rule as run (one untuned setting) collapses its step and stalls, so it does not
+    support the B1 step-rule hypothesis; MC with local restarts keeps the halving and so tests only the restart part.
+    The CMA and Nelder-Mead results reach the truth's cost (median gap 0.0000), so the remaining 0.002–0.003° is where
+    the cost itself has its minimum, not early stopping. Starts 2–3° away often stay wrong (T5 H0: start 33/100 wrong;
+    CMA-ES 15/100). Centroid Huber GN is good on clean windows (0.0132°) and poor on realistic (0.2628°);
+    the hybrid Adam hardly moves. Single-worker time per cost evaluation is 0.55 ms for every method, so time follows
+    evaluations (CMA-ES at 250: 0.143 s; default finisher 1.071 s). Phase C candidates: CMA-ES (sigma0 0.2°) and
+    Nelder-Mead. See MIGRATION_HISTORY "Phase B3 results".
 - **A full-sample, end-to-end BFS reconstruction of the 500-grain sample with new orientations,** comparing classic
   BFS (C++-parity optimizers) with BFS using the network and hybrid finisher, on timing and accuracy.
 - **Other open items:**
