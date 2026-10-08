@@ -29,6 +29,7 @@ from .experimental_data import ExperimentalData
 from .forward_simulation import ForwardSimulation
 from .mic_file import MicFile, ReconstructionState
 from .orientation_search import (
+    CMAOptimizer,
     MCOptimizer,
     RiemannianAdamOptimizer,
     SearchCandidate,
@@ -714,6 +715,25 @@ class AdaptiveVoxelReconstructor:
             )
         return mc_optimizer, find_optimizer
 
+    def _make_cma_optimizer(
+        self,
+        local_cost_fn: VoxelCostFunction,
+        voxel_vertices: torch.Tensor,
+        phase_index: int,
+        rng: Optional[np.random.Generator],
+    ) -> CMAOptimizer:
+        """The CMA-ES refiner for SearchParameters.local_optimizer == "cma" (per-run seeds are
+        drawn from rng, so a run is deterministic given the generator)."""
+        return CMAOptimizer(
+            cost_fn=local_cost_fn,
+            voxel_vertices=voxel_vertices,
+            phase_index=phase_index,
+            rng=rng,
+            sigma0_deg=self.params.cma_sigma0_deg,
+            max_evals=self.params.cma_max_evals,
+            popsize=self.params.cma_popsize,
+        )
+
     def refine_from_candidates(
         self,
         candidates: List[SearchCandidate],
@@ -762,6 +782,17 @@ class AdaptiveVoxelReconstructor:
                 local_cost_fn, voxel_vertices, phase_index, rng
             )
         use_hybrid = find_optimizer is not None
+        use_cma = self.params.local_optimizer == "cma"
+        cma_optimizer: Optional[CMAOptimizer] = None
+        if use_cma:
+            if use_hybrid:
+                raise ValueError(
+                    "local_optimizer='cma' and use_hybrid_optimizer are mutually exclusive"
+                )
+            # seeds come from the generator the MC optimizer was built with (reconstruct_voxel's)
+            cma_optimizer = self._make_cma_optimizer(
+                local_cost_fn, voxel_vertices, phase_index, mc_optimizer.rng
+            )
         if diameter is None:
             diameter = self.params.local_grid_radius / 1.5 ** (self.params.max_local_resolution + 1)
 
@@ -772,7 +803,7 @@ class AdaptiveVoxelReconstructor:
         # FindOptimal: full MC (or hybrid Adam) on top candidates with convergence check
         # C++ ContinuousSearch.h:316-346
         n_final = min(len(candidates), self.params.max_discrete_candidates)
-        optimizer_label = "hybrid Adam" if use_hybrid else "full MC"
+        optimizer_label = "CMA-ES" if use_cma else ("hybrid Adam" if use_hybrid else "full MC")
         print(f"    FindOptimal: {optimizer_label} on {n_final} candidates", flush=True)
         t_final = time.time()
 
@@ -780,7 +811,9 @@ class AdaptiveVoxelReconstructor:
         converged = False
         best_ci = -1
         for ci, cand in enumerate(candidates[:n_final]):
-            if use_hybrid:
+            if cma_optimizer is not None:
+                result = cma_optimizer.optimize(cand.orientation)
+            elif use_hybrid:
                 result = find_optimizer.optimize(
                     initial_orientation=cand.orientation,
                     angular_box_side=final_box_width,
@@ -835,27 +868,29 @@ class AdaptiveVoxelReconstructor:
 
         # VarianceMinimizing: refine best until variance < 0.02²
         # C++ DiscreteAdaptive.tmpl.cpp:232
-        t_var = time.time()
-        var_result = mc_optimizer.variance_minimizing_optimize(
-            initial_orientation=best_candidate.orientation,
-            search_box_side=final_box_width,
-            max_mc_steps=self.params.max_mc_steps,
-            successive_restarts=self.params.successive_restarts,
-            max_convergence_cost=0.0,  # C++ sets this to 0 for final optimization
-            convergence_variance=0.02**2,
-        )
-        if self.recorder is not None:
-            self.recorder(
-                "variance",
-                dict(R=np.asarray(var_result.orientation).copy(), cost=float(var_result.cost)),
+        # (skipped with local_optimizer='cma': the CMA run per candidate replaces MC and this stage)
+        if not use_cma:
+            t_var = time.time()
+            var_result = mc_optimizer.variance_minimizing_optimize(
+                initial_orientation=best_candidate.orientation,
+                search_box_side=final_box_width,
+                max_mc_steps=self.params.max_mc_steps,
+                successive_restarts=self.params.successive_restarts,
+                max_convergence_cost=0.0,  # C++ sets this to 0 for final optimization
+                convergence_variance=0.02**2,
             )
-        if var_result.cost < best_candidate.cost:
-            best_candidate = var_result
-        t_var_elapsed = time.time() - t_var
-        print(
-            f"    VarianceMin: ({t_var_elapsed:.1f}s), " f"cost={best_candidate.cost:.4f}",
-            flush=True,
-        )
+            if self.recorder is not None:
+                self.recorder(
+                    "variance",
+                    dict(R=np.asarray(var_result.orientation).copy(), cost=float(var_result.cost)),
+                )
+            if var_result.cost < best_candidate.cost:
+                best_candidate = var_result
+            t_var_elapsed = time.time() - t_var
+            print(
+                f"    VarianceMin: ({t_var_elapsed:.1f}s), " f"cost={best_candidate.cost:.4f}",
+                flush=True,
+            )
 
         # Final overlap evaluation
         # C++ DiscreteAdaptive.tmpl.cpp:234-242
@@ -944,26 +979,33 @@ class AdaptiveVoxelReconstructor:
             pixel_radius=0,
         )
 
-        mc_optimizer = MCOptimizer(
-            cost_fn=local_cost_fn,
-            voxel_vertices=voxel_vertices,
-            phase_index=phase_index,
-            rng=rng,
-        )
+        result: SearchCandidate
+        if self.params.local_optimizer == "cma":
+            # one local CMA-ES run from the inherited start replaces the variance-minimizing MC
+            result = self._make_cma_optimizer(
+                local_cost_fn, voxel_vertices, phase_index, rng
+            ).optimize(initial_orientation)
+        else:
+            mc_optimizer = MCOptimizer(
+                cost_fn=local_cost_fn,
+                voxel_vertices=voxel_vertices,
+                phase_index=phase_index,
+                rng=rng,
+            )
 
-        # C++ ContinuousSearch.h:70-73: BoxWidth = localGridRadius / 2^localResolution
-        box_width = self.params.local_grid_radius / (2**self.params.min_local_resolution)
+            # C++ ContinuousSearch.h:70-73: BoxWidth = localGridRadius / 2^localResolution
+            box_width = self.params.local_grid_radius / (2**self.params.min_local_resolution)
 
-        # Variance-minimizing MC
-        # C++ DiscreteAdaptive.tmpl.cpp:305
-        result = mc_optimizer.variance_minimizing_optimize(
-            initial_orientation=initial_orientation,
-            search_box_side=box_width,
-            max_mc_steps=self.params.max_mc_steps,
-            successive_restarts=self.params.successive_restarts,
-            max_convergence_cost=self.params.max_convergence_cost,
-            convergence_variance=0.02**2,
-        )
+            # Variance-minimizing MC
+            # C++ DiscreteAdaptive.tmpl.cpp:305
+            result = mc_optimizer.variance_minimizing_optimize(
+                initial_orientation=initial_orientation,
+                search_box_side=box_width,
+                max_mc_steps=self.params.max_mc_steps,
+                successive_restarts=self.params.successive_restarts,
+                max_convergence_cost=self.params.max_convergence_cost,
+                convergence_variance=0.02**2,
+            )
 
         # Final overlap evaluation
         # C++ DiscreteAdaptive.tmpl.cpp:307-314

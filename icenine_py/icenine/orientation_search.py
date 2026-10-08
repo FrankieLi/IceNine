@@ -13,7 +13,7 @@ C++ Reference:
 
 import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -78,6 +78,9 @@ class SearchCandidate:
         return self.cost < other.cost
 
 
+LOCAL_OPTIMIZERS: Tuple[str, ...] = ("mc", "cma")
+
+
 @dataclass
 class SearchParameters:
     """
@@ -101,6 +104,26 @@ class SearchParameters:
     adam_n_steps: int = 100
     adam_lr: float = 1e-4
     adam_scale: int = 2  # index into MultiScaleImageStack scales [1, 4, 8]
+    # Local-refinement switch (opt-in; "mc" keeps the C++-parity MC + VarianceMinimizing path).
+    # "cma" replaces the refinement MC (FindOptimal MC + VarianceMinimizing in
+    # refine_from_candidates, the VarianceMinimizing call in local_optimization) with one local
+    # CMA-ES run (CMAOptimizer) from the same start. Coarse search and quick MC are unchanged.
+    local_optimizer: str = "mc"
+    cma_sigma0_deg: float = 0.2  # initial CMA step (degrees of rotation vector)
+    cma_max_evals: int = 1000  # total cost evaluations per CMA run, start included
+    cma_popsize: Optional[int] = None  # None: the cma package default (4 + 3 ln 3 = 7)
+
+    def __post_init__(self) -> None:
+        if self.local_optimizer not in LOCAL_OPTIMIZERS:
+            raise ValueError(
+                f"local_optimizer must be one of {LOCAL_OPTIMIZERS}, got {self.local_optimizer!r}"
+            )
+        if not self.cma_sigma0_deg > 0:
+            raise ValueError(f"cma_sigma0_deg must be > 0, got {self.cma_sigma0_deg}")
+        if self.cma_max_evals < 2:
+            raise ValueError(f"cma_max_evals must be >= 2, got {self.cma_max_evals}")
+        if self.cma_popsize is not None and self.cma_popsize < 2:
+            raise ValueError(f"cma_popsize must be >= 2 or None, got {self.cma_popsize}")
 
     @classmethod
     def from_config(cls, config) -> "SearchParameters":
@@ -116,7 +139,21 @@ class SearchParameters:
             max_convergence_cost=config.max_convergence_cost,
             max_deepening_hit_ratio=config.max_deepening_hit_ratio,
             max_accepted_cost=config.max_accepted_cost,
+            # optional keys (LocalOptimizer, CMASigma0, CMAMaxEvals, CMAPopSize); the getattr
+            # defaults are the "mc" path, so configs without the keys are unchanged
+            local_optimizer=getattr(config, "local_optimizer", "mc"),
+            cma_sigma0_deg=getattr(config, "cma_sigma0_deg", 0.2),
+            cma_max_evals=getattr(config, "cma_max_evals", 1000),
+            cma_popsize=(getattr(config, "cma_popsize", 0) or None),
         )
+
+
+@dataclass
+class CMAResult(SearchCandidate):
+    """SearchCandidate returned by CMAOptimizer, with the run's bookkeeping."""
+
+    n_evals: int = 0  # cost evaluations used, the start included
+    stop_reason: str = ""  # "max_evals", "converged_cost" or the cma package's stop key(s)
 
 
 # ---------------------------------------------------------------------------
@@ -374,6 +411,11 @@ class MCOptimizer:
         self.phase_index = phase_index
         self._grid_gen = QuaternionGrid()
         self._rng = rng or np.random.default_rng()
+
+    @property
+    def rng(self) -> np.random.Generator:
+        """The generator driving this optimizer (shared with a CMAOptimizer seeded from it)."""
+        return self._rng
 
     def optimize(
         self,
@@ -687,6 +729,148 @@ class MCOptimizer:
             cost=global_min_cost,
             overlap_info=global_best_info,
         )
+
+
+# ---------------------------------------------------------------------------
+# Local CMA-ES refinement
+# ---------------------------------------------------------------------------
+
+
+class CMAOptimizer:
+    """
+    Local CMA-ES refinement of an orientation (opt-in alternative to MC + VarianceMinimizing).
+
+    The search variable is a rotation vector v (degrees) about the start R0: R = exp(v) R0, with
+    v = 0 at the start and an isotropic initial step sigma0_deg. The start is evaluated first;
+    the result is the lowest-cost orientation evaluated (first on ties), so it is never worse than
+    the start. The evaluation budget is exact: no more than ``max_evals`` calls of the cost
+    function (start included), and a generation is cut off, not completed, at the budget.
+
+    Stopping: the cma package's flat-fitness, function-value and stagnation tests are switched
+    off (the hard cost is quantised, so a small population is often flat or stalled); the run ends
+    on the package's own x-tolerance (``tolx``, in the package's internal units), on
+    ``max_evals``, or when the cost falls below ``max_convergence_cost`` (0 disables it, the
+    default; MC's default stop is not used because it would end the run well before the precision
+    this optimizer reaches). These are the settings of the Phase B3 "cma_02" run.
+
+    Random numbers: cma's seed is ``seed + 1`` (the package treats seed 0 as "random"). Pass
+    ``seed`` to ``optimize`` for a fixed seed; otherwise one is drawn from ``rng`` (so a run is
+    deterministic given the generator, as MCOptimizer is).
+
+    Args:
+        cost_fn: VoxelCostFunction (anything with ``evaluate(R, vertices, phase) -> info`` where
+            ``info.cost`` is the scalar to minimise).
+        voxel_vertices: Triangle vertices in sample frame, passed to cost_fn.
+        phase_index: Crystal phase index.
+        rng: Generator the per-run cma seeds are drawn from.
+        sigma0_deg: Initial step (degrees). Default 0.2.
+        max_evals: Evaluation budget per run, start included. Default 1000.
+        popsize: Population size; None for the cma default (7 in 3 dimensions).
+        tolx: cma x-tolerance stop. Default 1e-9.
+        max_convergence_cost: Stop once the best cost is below this; 0 disables. Default 0.
+    """
+
+    def __init__(
+        self,
+        cost_fn: VoxelCostFunction,
+        voxel_vertices: Any,
+        phase_index: int = 0,
+        rng: Optional[np.random.Generator] = None,
+        sigma0_deg: float = 0.2,
+        max_evals: int = 1000,
+        popsize: Optional[int] = None,
+        tolx: float = 1e-9,
+        max_convergence_cost: float = 0.0,
+    ):
+        if not sigma0_deg > 0:
+            raise ValueError(f"sigma0_deg must be > 0, got {sigma0_deg}")
+        if max_evals < 1:
+            raise ValueError(f"max_evals must be >= 1, got {max_evals}")
+        self.cost_fn = cost_fn
+        self.voxel_vertices = voxel_vertices
+        self.phase_index = phase_index
+        self._rng = rng if rng is not None else np.random.default_rng()
+        self.sigma0_deg = float(sigma0_deg)
+        self.max_evals = int(max_evals)
+        self.popsize = None if popsize is None else int(popsize)
+        self.tolx = float(tolx)
+        self.max_convergence_cost = float(max_convergence_cost)
+
+    def optimize(
+        self,
+        initial_orientation: np.ndarray,
+        seed: Optional[int] = None,
+    ) -> CMAResult:
+        """
+        Run CMA-ES from ``initial_orientation`` (3x3 rotation matrix).
+
+        Args:
+            initial_orientation: Starting rotation matrix.
+            seed: Fixed seed (cma seed = seed + 1); None draws one from the generator.
+
+        Returns:
+            CMAResult: orientation and cost of the lowest-cost orientation evaluated, its
+            overlap_info (from that evaluation: no extra call), n_evals and stop_reason.
+        """
+        import cma  # type: ignore[import-untyped]  # core dependency, imported lazily
+
+        if seed is None:
+            seed = int(self._rng.integers(0, 2**31 - 2))
+        R0 = np.asarray(initial_orientation, dtype=np.float64)
+
+        n = 0
+        best_info = self.cost_fn.evaluate(R0, self.voxel_vertices, self.phase_index)
+        n += 1
+        best_cost = float(best_info.cost)
+        best_R = R0.copy()
+        stop_reason = "max_evals"
+
+        def converged() -> bool:
+            return self.max_convergence_cost > 0 and best_cost < self.max_convergence_cost
+
+        if converged():
+            return CMAResult(best_R, best_cost, best_info, n_evals=n, stop_reason="converged_cost")
+        if n >= self.max_evals:
+            return CMAResult(best_R, best_cost, best_info, n_evals=n, stop_reason="max_evals")
+
+        opts: Dict[str, Any] = dict(
+            seed=int(seed) + 1,
+            verbose=-9,
+            tolfun=0.0,
+            tolfunhist=0.0,
+            tolflatfitness=10**9,
+            tolstagnation=10**9,
+            tolx=self.tolx,
+        )
+        if self.popsize is not None:
+            opts["popsize"] = self.popsize
+        es = cma.CMAEvolutionStrategy(np.zeros(3), self.sigma0_deg, opts)
+
+        done = False
+        while not done and not es.stop():
+            X = es.ask()
+            costs: List[float] = []
+            for x in X:
+                if n >= self.max_evals:
+                    done = True
+                    break
+                R = Rotation.from_rotvec(np.radians(np.asarray(x))).as_matrix() @ R0
+                info = self.cost_fn.evaluate(R, self.voxel_vertices, self.phase_index)
+                n += 1
+                c = float(info.cost)
+                costs.append(c)
+                if c < best_cost:
+                    best_cost, best_R, best_info = c, R, info
+                    if converged():
+                        done, stop_reason = True, "converged_cost"
+                        break
+            if not done:
+                es.tell(X, costs)
+                if n >= self.max_evals:
+                    done = True
+        if stop_reason == "max_evals" and n < self.max_evals:
+            stop_reason = "+".join(sorted(es.stop().keys())) or "cma_stop"
+        return CMAResult(best_R, best_cost, best_info, n_evals=n, stop_reason=stop_reason)
 
 
 # ---------------------------------------------------------------------------
