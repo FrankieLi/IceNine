@@ -40,7 +40,7 @@ Ongoing test-driven migration of IceNine's core physics to Python/PyTorch. Every
 
 ```bash
 cd icenine_py
-uv pip install -e ".[dev]"              # install with dev deps (pytest, black, mypy)
+uv sync --extra dev                      # locked env from uv.lock + .python-version (3.9); never `uv pip install`
 uv run pytest tests/                     # run all tests
 uv run pytest tests/test_symmetry.py -v  # run a single test file
 uv run pytest --cov=icenine tests/       # with coverage
