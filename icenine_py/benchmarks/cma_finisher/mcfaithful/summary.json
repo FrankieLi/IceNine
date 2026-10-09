@@ -177,27 +177,5 @@
    "mean_secs_contended": 3.3062019533000013
   },
   "note": "T5 H3 realistic, first cases by (voxel, radius index); contended 10-worker run, no timing"
- },
- "timing_single_worker": {
-  "clean": {
-   "n": 20,
-   "mc_mean_s": 19.470085172900006,
-   "cma_mean_s": 19.805070285500022,
-   "ratio_of_means": 1.0172051179861439,
-   "time_change_pct": 1.720511798614388,
-   "median_paired_ratio": 1.0333337474835806,
-   "mc_mean_evals": 49082.75,
-   "cma_mean_evals": 49618.6
-  },
-  "all": {
-   "n": 20,
-   "mc_mean_s": 21.56708055225001,
-   "cma_mean_s": 22.599730376950028,
-   "ratio_of_means": 1.047880834969677,
-   "time_change_pct": 4.78808349696771,
-   "median_paired_ratio": 1.0395837875642675,
-   "mc_mean_evals": 52801.3,
-   "cma_mean_evals": 54668.75
-  }
  }
 }

@@ -326,10 +326,12 @@ def main() -> None:
         if vl.exists():
             merged["validate_lib"] = json.loads(vl.read_text())
             tables["validate_lib"] = validate_table(merged["validate_lib"])
-        tdir = CACHE / "timing"
-        tit = [it for it in work_items(tdir) if Path(it[3]).exists()]
+        tdir = CACHE / "timing"  # single-worker timing exists for the original run only
+        tit = [it for it in work_items(tdir) if Path(it[3]).exists()] if not a.tag else []
         if tit:
             merged["timing_single_worker"], tables["timing_single_worker"] = timing_summary(tit)
+        if a.tag:  # distinct marker names: sync_doc_tables must not overwrite the Phase C blocks
+            tables = {f"mcf_{k}": v for k, v in tables.items()}
         (OUT / "summary.json").write_text(json.dumps(merged, indent=1))
         doc_tables.write_tables(OUT / "tables.md", tables)
         print(json.dumps(merged, indent=1))
