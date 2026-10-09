@@ -8,8 +8,8 @@ of a block result with the global best (failure when not strictly lower), the re
 update order (success: global and current := block result, step halved, failure counter zeroed),
 and the stop rule
 (MaxConvergenceCost first, then successive failures > SuccessiveRestarts). The step budget counts
-trial steps; a block also evaluates its start. Cases follow the C++ debug trace of
-benchmarks/phase_d_seed_diag/mc_parity/.
+trial steps; a block also evaluates its start. Cases follow the C++ debug trace kept on the
+branch feature/finisher-mc-study (benchmarks/phase_d_seed_diag/mc_parity/; not on develop).
 """
 
 import math
@@ -104,8 +104,8 @@ def test_restart_base_range_and_draw_order() -> None:
     order with r = tan(box)/sqrt(48); the block after a success continues from the block result,
     and a later failure again restarts from the initial orientation (not the improved best)."""
     mc = _mc(7)
-    sc = _Scripted(mc, [0.8, 2.0, 0.6, 2.0])  # success, fail, success, fail
-    _run(mc, 4 * N_MIN, 5)
+    sc = _Scripted(mc, [0.8, 2.0, 0.6, 2.0, 0.5])  # success, fail, success, fail, success
+    _run(mc, 5 * N_MIN, 5)  # the fifth block starts at the second restart point
     q0 = matrix_to_quaternion(np.eye(3))
     r = math.tan(BOX) / math.sqrt(48.0)
     twin = np.random.default_rng(7)  # the fake blocks consume no random numbers
@@ -118,9 +118,10 @@ def test_restart_base_range_and_draw_order() -> None:
     np.testing.assert_array_equal(sc.calls[1][0], sc.results[0])
     # block 2 (after the failure of block 1) starts at delta1 * initial
     np.testing.assert_allclose(sc.calls[2][0], _quat_multiply(sc.orig_grid(*off1), q0), atol=1e-15)
-    # block 3 continues from block 2's result; block 3 fails -> next start (not run: budget)
+    # block 3 continues from block 2's result; block 3 fails -> block 4 starts at delta2 * initial
     np.testing.assert_array_equal(sc.calls[3][0], sc.results[2])
     # the second restart base is the initial orientation, not the improved best (block 2's result)
+    np.testing.assert_allclose(sc.calls[4][0], _quat_multiply(sc.orig_grid(*off2), q0), atol=1e-15)
     assert mc.last_run["n_restarts"] == 2
 
 
@@ -160,6 +161,13 @@ def test_convergence_checked_after_every_block_and_before_the_restart_rule() -> 
     sc = _Scripted(mc, [2.0])
     _run(mc, 1000, 2, conv=1e-4)
     assert len(sc.calls) == 1 and mc.last_run["stop"] == 2
+
+    # convergence is checked before the restart rule: a failed block with max_restarts = 0 would
+    # stop with 1 (count 1 > 0), but the global cost is below the threshold, so it stops with 2
+    mc = MCOptimizer(_Low(), None, 0, np.random.default_rng(0))  # type: ignore[arg-type]
+    sc = _Scripted(mc, [2.0])
+    _run(mc, 1000, 0, conv=1e-4)
+    assert len(sc.calls) == 1 and mc.last_run["since_improve"] == 1 and mc.last_run["stop"] == 2
 
 
 def test_trajectory_has_one_record_per_block() -> None:
