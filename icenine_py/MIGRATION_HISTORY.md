@@ -5028,6 +5028,160 @@ Paired by voxel (exact McNemar, wrong = over 1 deg): the `mc` arm's wrong count 
 - **Tests:** scripted semantics test `tests/test_mc_cpp_parity.py` (8 tests: block length and truncation, strict comparison, restart base / range / draw order, update order, stop rule, convergence check order, trajectory, evaluation count, inner-loop proposals); the VarianceMinimizing test gained a twin-generator replay of the restart offsets and tests for the box cap and the cost-and-variance exit. Re-recorded goldens (each pins a random draw of the MC): `GOLDEN` (`test_findoptimal_refactor.py`, 4 tests: rotation-vector error 0.960 deg and cost 0.8966 become 0.0386 deg and 0.2025) and `GOLDEN_REFINE` (`test_cma_optimizer.py`: 392 evaluations and cost 0.5902 become 304 and 0.4732); the old values are in the comments. `test_findoptimal_alone_reproduces_stored_experiment_b` compares with a result stored before the port, so it patches in frozen copies of the old loops (`tests/legacy_variance_stage.py`). `test_respects_budget_exactly[mc_deployed]` ran its toy problem to the convergence stop before 137 evaluations; the toy's convergence cost was set to 0. No `cpp_outputs`-based check was changed.
 
 
+#### Phase D pilot results (2026-10-08, `feature/finisher-mc-study-phase-d-run`)
+
+A 2,000-voxel region of the new-orientation sample, five single-process BFS runs, `BFSRevisitRefit 1` in every config, BFS rng seed 0, memmap images. Code: `scripts/phase_d/make_region.py`, `pilot_bfs.py`, `score_bfs.py`, `summarize_pilot.py`; tests `tests/test_phase_d_scoring.py` (7). Data and tables: `benchmarks/phase_d_pilot/` (`summary.json`, `tables.md`, `region.json`, `region_grid.mic`, `region_index.npy`, `runs/<arm>_<variant>/{run.json,score.json,voxels.npz}`, `preflight.json`, `ab_threads.json`).
+
+**Region.** The 2,000 voxels whose triangle centroids are nearest to (0.17, 0.0) m (stable sort by distance, ties by file index; one edge-connected piece, radius 0.156 m), 60 of the 497 grains (1 to 104 voxels each, median 33.5 in the region). Boundary = a different-grain voxel (full sample) within 1.01 x side of the centroid: 1,411 boundary and 589 interior voxels. Near the rotation axis (r < 0.12 m): 416 voxels; the rest 1,584. `region_grid.mic` holds those lines of the grid mic (orientations zero); the images still contain the whole sample, and the BFS cannot leave the region. Scoring: symmetry-reduced misorientation to the truth, wrong = over 1 deg; Wilson intervals treat voxels as independent (too narrow, voxels of a grain are correlated), the grain bootstrap resamples the 60 grains; p-values are sign-flip tests on per-grain differences. Timing is **contended**: 5 concurrent single-process runs on a 12-core machine, the load average before launch was 3.0 (left-over jobs), `preflight.json`. Each run used about one core (ps, 100% CPU).
+
+<!-- table:phase_d_pilot_main -->
+| run | n | wrong | wrong % | Wilson 95% (%) | grain-bootstrap 95% (%) | median right err (deg) | unresolved | found | partial | lost | frag | wall (h, contended) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 2000 | 740 | 37.00 | 34.9-39.1 | 24.5-51.5 | 0.0119 | 710 | 32 | 0 | 28 | 29 | 2.27 |
+| cma_clean | 2000 | 742 | 37.10 | 35.0-39.2 | 24.6-51.6 | 0.0061 | 681 | 32 | 0 | 28 | 32 | 2.27 |
+| cma_noretry_clean | 2000 | 734 | 36.70 | 34.6-38.8 | 24.2-51.3 | 0.0055 | 677 | 32 | 0 | 28 | 31 | 2.06 |
+| mc_realistic_q16 | 2000 | 709 | 35.45 | 33.4-37.6 | 22.7-50.2 | 0.0124 | 691 | 32 | 1 | 27 | 25 | 2.41 |
+| cma_realistic_q16 | 2000 | 617 | 30.85 | 28.9-32.9 | 19.2-44.2 | 0.0141 | 580 | 34 | 0 | 26 | 26 | 2.40 |
+<!-- /table:phase_d_pilot_main -->
+
+(`found` = more than half of the grain's region voxels right, `lost` = none right, `frag` = the reconstructed orientations of the grain's voxels form two or more clusters at 1 deg, a grain can be lost and fragmented. All five runs: 2,000 voxels visited, 0 not visited.)
+
+**What the errors are.** The wrong voxels are the unresolved ones. In every run all lost grains are grains that never got a seed, and 97% or more of the unresolved voxels lie in them:
+
+<!-- table:phase_d_pilot_diag -->
+| run | n_grains | grains_with_a_seed | lost_grains | lost_grains_with_a_seed | voxels_in_lost_grains | unresolved_in_lost_grains | unresolved_total | accepted_total | accepted_wrong | accepted_wrong_cross_boundary_like |
+|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 60 | 32 | 28 | 0 | 722 | 696 | 710 | 1290 | 32 | 32 |
+| cma_clean | 60 | 32 | 28 | 0 | 722 | 673 | 681 | 1319 | 61 | 61 |
+| cma_noretry_clean | 60 | 32 | 28 | 0 | 722 | 676 | 677 | 1323 | 57 | 57 |
+| mc_realistic_q16 | 60 | 32 | 27 | 0 | 696 | 677 | 691 | 1309 | 19 | 19 |
+| cma_realistic_q16 | 60 | 34 | 26 | 0 | 608 | 579 | 580 | 1420 | 37 | 37 |
+<!-- /table:phase_d_pilot_diag -->
+
+A grain that is entirely reached by the expansion of neighbouring grains (about 21 voxels at the median in the lost grains) has its voxels rejected by the 0.9 relative test (start from the wrong grain), marked REFIT and, as designed, never given a full search; the revisit refits only from fitted neighbours, which belong to other grains, so it cannot recover them. The stored orientation of such a voxel is the failed local fit from the neighbour's orientation, so it is a median 41 to 44 deg (maximum 61 deg) off the truth. The mechanism matches the library design (C++ `Pop` also skips REFIT voxels); whether a multi-client C++ run would end the same was not tested. Accepted voxels: seeds 0 wrong of 32 (34 in `cma_realistic_q16`), and every accepted wrong voxel (`accepted_wrong`) carries the orientation of a neighbouring grain to within 1 deg (a cross-boundary error), see the last column above.
+
+<!-- table:phase_d_pilot_source -->
+| run | source | n | wrong | rate | median_right |
+|---|---|---|---|---|---|
+| mc_clean | seed | 32 | 0 | 0.00 | 0.0126 |
+| mc_clean | neighbor | 770 | 28 | 3.64 | 0.0065 |
+| mc_clean | revisit | 488 | 4 | 0.82 | 0.0136 |
+| mc_clean | unresolved | 710 | 708 | 99.72 | 0.0657 |
+| cma_clean | seed | 32 | 0 | 0.00 | 0.0100 |
+| cma_clean | neighbor | 783 | 42 | 5.36 | 0.0052 |
+| cma_clean | neighbor_retry | 2 | 2 | 100.00 | n/a |
+| cma_clean | revisit | 502 | 17 | 3.39 | 0.0070 |
+| cma_clean | unresolved | 681 | 681 | 100.00 | n/a |
+| cma_noretry_clean | seed | 32 | 0 | 0.00 | 0.0076 |
+| cma_noretry_clean | neighbor | 783 | 42 | 5.36 | 0.0042 |
+| cma_noretry_clean | revisit | 508 | 15 | 2.95 | 0.0077 |
+| cma_noretry_clean | unresolved | 677 | 677 | 100.00 | n/a |
+| mc_realistic_q16 | seed | 32 | 0 | 0.00 | 0.0164 |
+| mc_realistic_q16 | neighbor | 755 | 14 | 1.85 | 0.0083 |
+| mc_realistic_q16 | revisit | 522 | 5 | 0.96 | 0.0196 |
+| mc_realistic_q16 | unresolved | 691 | 690 | 99.86 | 0.2167 |
+| cma_realistic_q16 | seed | 34 | 0 | 0.00 | 0.0109 |
+| cma_realistic_q16 | neighbor | 780 | 19 | 2.44 | 0.0143 |
+| cma_realistic_q16 | neighbor_retry | 3 | 3 | 100.00 | n/a |
+| cma_realistic_q16 | revisit | 603 | 15 | 2.49 | 0.0140 |
+| cma_realistic_q16 | unresolved | 580 | 580 | 100.00 | n/a |
+<!-- /table:phase_d_pilot_source -->
+
+<!-- table:phase_d_pilot_boundary -->
+| run | subset | n | wrong | rate | median_right |
+|---|---|---|---|---|---|
+| mc_clean | boundary | 1411 | 568 | 40.26 | 0.0122 |
+| mc_clean | interior | 589 | 172 | 29.20 | 0.0109 |
+| cma_clean | boundary | 1411 | 570 | 40.40 | 0.0057 |
+| cma_clean | interior | 589 | 172 | 29.20 | 0.0064 |
+| cma_noretry_clean | boundary | 1411 | 562 | 39.83 | 0.0055 |
+| cma_noretry_clean | interior | 589 | 172 | 29.20 | 0.0055 |
+| mc_realistic_q16 | boundary | 1411 | 541 | 38.34 | 0.0161 |
+| mc_realistic_q16 | interior | 589 | 168 | 28.52 | 0.0100 |
+| cma_realistic_q16 | boundary | 1411 | 483 | 34.23 | 0.0095 |
+| cma_realistic_q16 | interior | 589 | 134 | 22.75 | 0.0249 |
+<!-- /table:phase_d_pilot_boundary -->
+
+<!-- table:phase_d_pilot_axis -->
+| run | subset | n | wrong | rate | median_right |
+|---|---|---|---|---|---|
+| mc_clean | near_axis | 416 | 164 | 39.42 | 0.0119 |
+| mc_clean | far_axis | 1584 | 576 | 36.36 | 0.0122 |
+| cma_clean | near_axis | 416 | 164 | 39.42 | 0.0062 |
+| cma_clean | far_axis | 1584 | 578 | 36.49 | 0.0059 |
+| cma_noretry_clean | near_axis | 416 | 164 | 39.42 | 0.0055 |
+| cma_noretry_clean | far_axis | 1584 | 570 | 35.98 | 0.0053 |
+| mc_realistic_q16 | near_axis | 416 | 162 | 38.94 | 0.0026 |
+| mc_realistic_q16 | far_axis | 1584 | 547 | 34.53 | 0.0167 |
+| cma_realistic_q16 | near_axis | 416 | 163 | 39.18 | 0.0153 |
+| cma_realistic_q16 | far_axis | 1584 | 454 | 28.66 | 0.0140 |
+<!-- /table:phase_d_pilot_axis -->
+
+Grain-clustered paired comparisons on all 2,000 voxels (wrong count of arm a vs arm b) and on accepted-wrong voxels only (wrong and not unresolved; the voxel sets differ between arms, so this is paired by voxel index, not by an identical set of accepted voxels):
+
+<!-- table:phase_d_pilot_pairs -->
+| pair | wrong_a | wrong_b | n_clusters | n_clusters_differing | p |
+|---|---|---|---|---|---|
+| mc_clean vs cma_clean | 740 | 742 | 60 | 6 | 0.8750 |
+| cma_clean vs cma_noretry_clean | 742 | 734 | 60 | 2 | 0.5000 |
+| mc_realistic_q16 vs cma_realistic_q16 | 709 | 617 | 60 | 11 | 0.3682 |
+<!-- /table:phase_d_pilot_pairs -->
+
+<!-- table:phase_d_pilot_pairs_accepted -->
+| pair | wrong_a | wrong_b | n_clusters | n_clusters_differing | p |
+|---|---|---|---|---|---|
+| mc_clean vs cma_clean | 32 | 61 | 60 | 19 | 0.0001 |
+| cma_clean vs cma_noretry_clean | 61 | 57 | 60 | 5 | 0.3125 |
+| mc_realistic_q16 vs cma_realistic_q16 | 19 | 37 | 60 | 15 | 0.0007 |
+<!-- /table:phase_d_pilot_pairs_accepted -->
+
+**Cost and timing (contended).** Evaluations and wall seconds split by phase; "retry acc/att" counts the wider-sigma retries (attempted on rejected neighbour or revisit fits), "revisit acc/att" the revisit fits.
+
+<!-- table:phase_d_pilot_cost -->
+| run | seeds | seed_rej | nb_fits | nb_first | retry acc/att | revisit acc/att | ev_seed | ev_nb | ev_rev | seed (min) | neighbour (min) | revisit (min) | s / seed | s / neighbour fit |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 34 | 2 | 1966 | 770 | 0/0 | 488/1216 | 11,274,936 | 1,290,496 | 795,595 | 114.3 | 14.0 | 7.7 | 201.8 | 0.426 |
+| cma_clean | 34 | 2 | 1966 | 783 | 2/1895 | 502/1214 | 11,572,106 | 790,399 | 483,426 | 121.1 | 9.3 | 5.5 | 213.7 | 0.283 |
+| cma_noretry_clean | 33 | 1 | 1967 | 783 | 0/0 | 508/1215 | 11,177,832 | 493,717 | 304,965 | 113.8 | 6.4 | 3.1 | 206.9 | 0.195 |
+| mc_realistic_q16 | 36 | 4 | 1964 | 755 | 0/0 | 522/1272 | 12,161,199 | 1,291,148 | 834,615 | 120.9 | 15.0 | 8.6 | 201.6 | 0.457 |
+| cma_realistic_q16 | 35 | 1 | 1965 | 780 | 4/1978 | 603/1395 | 12,654,234 | 790,650 | 549,188 | 128.9 | 9.4 | 5.6 | 220.9 | 0.287 |
+<!-- /table:phase_d_pilot_cost -->
+
+<!-- table:phase_d_pilot_unresolved -->
+| run | unresolved | wrong | median_err | max_err | wrong_all | wrong_boundary | cross |
+|---|---|---|---|---|---|---|---|
+| mc_clean | 710 | 708 | 41.475 | 58.629 | 740 | 568 | 497 |
+| cma_clean | 681 | 681 | 41.662 | 58.666 | 742 | 570 | 505 |
+| cma_noretry_clean | 677 | 677 | 41.703 | 58.669 | 734 | 562 | 494 |
+| mc_realistic_q16 | 691 | 690 | 42.042 | 61.073 | 709 | 541 | 485 |
+| cma_realistic_q16 | 580 | 580 | 43.500 | 58.651 | 617 | 483 | 452 |
+<!-- /table:phase_d_pilot_unresolved -->
+
+**Findings (what is measured and what is not).**
+- The overall wrong rate does not separate the arms (clean: 37.0, 37.1 and 36.7% of 2,000; the paired grain-clustered p for `mc` vs `cma` is 0.875, for `cma` vs `cma_noretry` 0.5), because 28 of 60 grains were never seeded and all their voxels are wrong in every arm. On `realistic_q16` `cma` has 617 against 709 wrong (p = 0.368, 11 grains differ); that gap sits in the unresolved voxels (580 against 691) and is consistent with `cma` having seeded two more grains (34 against 32 seeds), not with a better fit; not tested.
+- Among voxels the BFS accepted, `cma` accepts about twice as many wrong (cross-boundary) orientations as `mc`: 61 against 32 of about 1,300 (clean) and 37 against 19 (`realistic_q16`), grain-clustered p 0.0001 and 0.0007. This is **consistent with** the CMA fit pulling a neighbour's start onto the adjacent grain's orientation and passing the 0.9 test; not tested (no per-voxel look at the cost of the wrong accepted fits).
+- Precision among right answers: `cma` 0.0061 and `cma_noretry` 0.0055 deg against `mc` 0.0119 deg (clean, medians over all right voxels of each run, n = 1,258 to 1,266); not reproduced on `realistic_q16` (0.0141 against 0.0124 deg).
+- The retry does nothing useful here: of 1,895 retries (`cma_clean`) 2 were accepted and both were wrong; it costs 790,399 neighbour evaluations against 493,717 without it (`cma_noretry_clean`), and it did not change the wrong count (p = 0.5).
+- Neighbour fits: 0.43 s (`mc`), 0.28 s (`cma`), 0.20 s (`cma_noretry`) per local fit; seeds 202 to 221 s per seed (all contended). Seeds are 84 to 92% of the wall time. The expectation of about 174 s per seed and 0.4 s per neighbour held (smoke run, one seed, 175 s and 0.37 s). A torch thread A/B (8 default threads against 1, run during the pilot, contended): 0.379 s per local fit and 178.8 s per seed voxel with either (`ab_threads.json`); `pilot_bfs.py` and the launcher now set one thread, which did not change the speed.
+- Not evaluated: near-axis vs far-axis differences are small (39.4 vs 36.4% wrong for `mc_clean`, 416 against 1,584 voxels) and not tested; the boundary vs interior split is confounded with the lost-grain mechanism above (a lost grain is mostly boundary voxels).
+
+**Go / no-go for the full runs (3 arms x {clean, realistic, realistic_q16} x seeds).** **No-go as configured.** A BFS that leaves 28 of 60 grains (722 of 2,000 voxels, 36%) without a seed returns about a third wrong voxels whatever the optimizer, so a full run would compare the arms on the 0.9-test and the optimizer precision only, not on reconstruction. Needed before the long runs (owner decision): an explicit, measured option that gives voxels still REFIT at the end (or grains with no seed) a full no-start search, which the library branch deliberately did not offer. Its cost: every unreached piece becomes a seed. Projected full-sample wall time per run (one process per run, contended, linear scaling from this region; the three estimates in hours):
+
+<!-- table:phase_d_pilot_projection -->
+| run | proj_full_h_voxel_linear | proj_full_h_seeds_per_grain | proj_full_h_every_piece_seeded |
+|---|---|---|---|
+| mc_clean | 27.9 | 20.2 | 38.7 |
+| cma_clean | 27.8 | 19.8 | 39.4 |
+| cma_noretry_clean | 25.3 | 17.7 | 37.1 |
+| mc_realistic_q16 | 29.6 | 21.5 | 39.1 |
+| cma_realistic_q16 | 29.5 | 20.9 | 40.6 |
+<!-- /table:phase_d_pilot_projection -->
+
+With all 9 runs (3 arms x 3 variants) concurrent on 12 cores, expect about one core each, so the wall time is the longest run: about 18 to 30 h as piloted, about 37 to 41 h if all 612 pieces get a seed (seed time at the pilot's mean seed time; CMA seeds are no faster). Several seeds multiply the runs. Seed time dominates, so reducing the cost per seed (the 110 s level-0 coarse search) or running the seed voxels in parallel is the lever, not the neighbour budget. Also decide: whether to keep the `cma` retry (no benefit here, +60% neighbour cost), and whether `cma` should be kept given its higher cross-boundary acceptance.
+
+**Deviations / caveats.** (1) The first smoke attempt used `max_voxels 50`, which limits the seed candidates, not the BFS flood; it ran 24 min and was killed. The smoke test that counts is `max_voxels 1` (one seed, 68 voxels visited, about 200 s per arm). (2) One BFS rng seed, one region; no run-to-run variance estimate. (3) Fragmentation counts a grain whose voxels hold several different wrong orientations as fragmented.
+
+
 ### Order and budget
 - **Order:** A → B1/B2 (no new compute) → B3 → C → D.
 - **Compute:**

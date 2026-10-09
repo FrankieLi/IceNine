@@ -1,0 +1,27 @@
+{
+  "selection": "2000 voxels with triangle centroids nearest to (0.17, 0.0) m (stable sort by distance, ties by file index) of rand_500grains_1mm_neworient_s0_grid.mic",
+  "centre_xy_m": [
+    0.17,
+    0.0
+  ],
+  "n_voxels": 2000,
+  "side_length_m": 0.009375,
+  "disc_radius_m": 0.15581102865303176,
+  "n_edge_connected_components": 1,
+  "n_grains": 60,
+  "voxels_per_grain_min_median_max": [
+    1,
+    33.5,
+    104
+  ],
+  "n_boundary_voxels": 1411,
+  "n_interior_voxels": 589,
+  "near_axis_r_m": 0.12,
+  "n_near_axis": 416,
+  "n_far_axis": 1584,
+  "r_min_max_m": [
+    0.019515141644802718,
+    0.32399182709162055
+  ],
+  "boundary_definition": "a different-grain voxel (full sample) within 1.01 x side of the centroid, as the adjacency of make_neworient.py"
+}

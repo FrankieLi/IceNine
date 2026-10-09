@@ -1,0 +1,38 @@
+{
+  "label": "smoke, mc clean, max_voxels 1 (one seed), contended (5 concurrent runs)",
+  "n_scored": 68,
+  "cost": {
+    "evals_seed": 326408,
+    "evals_neighbor": 44314,
+    "evals_revisit": 0,
+    "wall_seed_s": 174.8544418811798,
+    "wall_neighbor_s": 25.10472273826599,
+    "wall_revisit_s": 0.0,
+    "wall_total_s": 199.96507692337036,
+    "wall_per_seed_s": 174.8544418811798,
+    "wall_per_neighbor_fit_s": 0.37469735430247747,
+    "timing_label": "contended (up to 6 concurrent single-process runs on a 12-core machine)"
+  },
+  "provenance": {
+    "seeds": 1,
+    "seed_rejected": 0,
+    "neighbor_fits": 67,
+    "neighbor_accepted_first": 19,
+    "retry_attempted": 0,
+    "retry_accepted": 0,
+    "revisit_attempted": 0,
+    "revisit_accepted": 0,
+    "revisit_rejected": 0,
+    "revisit_capped": 0,
+    "unresolved_final": 48,
+    "source_counts": {
+      "seed": 1,
+      "neighbor": 19,
+      "neighbor_retry": 0,
+      "revisit": 0,
+      "restart": 0,
+      "unresolved": 48,
+      "not_visited": 1932
+    }
+  }
+}
