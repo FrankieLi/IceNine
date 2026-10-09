@@ -29,11 +29,9 @@ IMAGE_DIR = {
     "realistic": "full/realistic",
     "realistic_q16": "full_q16/realistic",
 }
-PLACEHOLDER = (
-    "# Planned library key (NOT used yet; enable in the mc and cma arms once the library branch\n"
-    "# lands): REFIT voxels revisited within the BFS instead of in a post-pass.\n"
-    "#BFSRevisitRefit 1\n"
-    "# NOTE: CMANeighborMaxEvals, CMARetrySigma0 are library-branch keys (rejected here).\n"
+REVISIT = (
+    "# REFIT voxels are revisited inside the BFS (as the C++ multi-client run does).\n"
+    "BFSRevisitRefit 1\n"
 )
 
 
@@ -60,7 +58,7 @@ def make(opt: str, variant: str) -> str:
     )
     text = text.replace("MaxInitSideLength      0.004000", "MaxInitSideLength      0.009375")
     text = text.replace("MinSideLength          0.004000", "MinSideLength          0.009375")
-    text = text.replace("LazyBFS\n", "LazyBFS\n\n" + OPTIMIZER[opt] + PLACEHOLDER, 1)
+    text = text.replace("LazyBFS\n", "LazyBFS\n\n" + OPTIMIZER[opt] + REVISIT, 1)
     assert "ScatteringData_PhaseD" in text and "_grid.mic" in text and "LazyBFS" in text
     assert "0.004" not in text
     return text

@@ -168,7 +168,7 @@ def test_phase_d_configs_use_grid_mic_and_explicit_keys() -> None:
             assert "CMARetrySigma0 0\n" in t and "CMANeighborMaxEvals 250" in t
         else:
             assert "CMARetrySigma0 1.5" in t and "CMANeighborMaxEvals 250" in t
-        assert "\n#BFSRevisitRefit 1" in t
+        assert "\nBFSRevisitRefit 1\n" in t and "#BFSRevisitRefit" not in t
     q16 = [c for c in cfgs if "q16" in c.name]
     assert len(q16) == 3 and all("full_q16/realistic" in c.read_text() for c in q16)
 
