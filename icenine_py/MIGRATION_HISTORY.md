@@ -3281,3 +3281,18 @@ cases.
 - Full-sample renders and the three future ideas (owner direction).
 
 Final full suite on `feature/followups`: 673 passed, 34 skipped, 0 failed (707 collected).
+
+## Bug fix: MCOptimizer C++ parity (2026-10-09)
+
+Branch `feature/mc-cpp-parity-fix` (off develop at 9863007): the two places where `MCOptimizer` did not follow C++, brought over from `feature/finisher-mc-study` (commits 2c579c9 and 19933d5) without any study code. Library change only in `icenine/orientation_search.py`; nothing else in `icenine/` changed.
+
+| # | Function | C++ (`OrientationSearch.cpp`) | Python before |
+|---|---|---|---|
+| 1 | `variance_minimizing_optimize` restart | offsets uniform in +-SubregionRadius (the radius just doubled, capped at the box), applied to the INITIAL orientation (lines 248-255) | offsets uniform in +-box/2 about the current global best |
+| 2 | `optimize` (quick MC and the FindOptimal MC) | `RandomRestartZeroTemp` (lines 297-363, with `ZeroTemperatureOptimization` 100-135): fixed blocks of `nMinErgodicSteps = int(2 (box/step)^3)` computed once; the step halves only after a block ends strictly below the global best; a failed block restarts at `delta * initial`, `delta` from U(-r, r)^3 with `r = tan(box)/sqrt(48)`, step reset; stop after more than `SuccessiveRestarts` failures in a row | one step at a time, halving at every improvement of the global best with the threshold recomputed, restart about the global best with +-box/2 |
+
+Implementation: `MCOptimizer.optimize` is the block loop, `_mc_block` its inner block, `last_run` the bookkeeping of the last call (stop reason, blocks, accepts, restarts); the trajectory records one event per block (`mc_accept`, `mc_restart`). `_on_block_end` is an empty per-block hook (kept so the study scripts' subclasses work unchanged on the feature branch). The CMA optimizer, the `rng` property and the extra `SearchParameters` keys of the feature branch are not on this branch.
+
+**Verification** (done on the feature branch, full record there): debug prints in a scratch build of the C++ `RandomRestartZeroTemp` and `AdaptiveSamplingZeroTemp` traced block lengths, step halving and reset, and restart radii with zero block-rule violations (all 93 Python FindOptimal calls checked as well). On the 6 interior seed voxels of the full-sample seed-cost diagnosis the variance stage now takes a mean of 1,609 evaluations against C++'s 1,295, down from 707,732 before the fix of item 1.
+
+**Effect on existing behaviour.** This changes the default classic reconstruction path (the quick MC and FindOptimal MC draw different random numbers and run a different block structure), so results are not bit-identical to before and no earlier random-draw pin is valid. Tests: new `tests/test_variance_stage_parity.py` and `tests/test_mc_cpp_parity.py` (scripted semantics tests that fail on the old code); `GOLDEN` in `tests/test_findoptimal_refactor.py` (4 tests) re-recorded (old values in the comment); `test_logged_mc_matches_mcoptimizer` (3 cases) passes again after `scripts/finisher_diagnosis/diagnose.py` `LoggedMC` was changed to log the library `optimize` and to use the new variance restart; `test_findoptimal_alone_reproduces_stored_experiment_b` (skipped when the sweep raws are absent) patches in the frozen pre-fix methods of `tests/legacy_variance_stage.py`, since the stored experiment predates both fixes. No `cpp_outputs`-based check changed. For the reruns of earlier MC results with the corrected optimizer, see `feature/finisher-mc-study`, MIGRATION_HISTORY subsections "C++ vs Python variance stage" and "C++-faithful MC: reruns".

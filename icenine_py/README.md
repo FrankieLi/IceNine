@@ -78,7 +78,7 @@ For each voxel in the sample:
 | `constants.py` | Physical constants |
 | `file_io.py` | Detector file, crystal structure file, and omega file I/O |
 | `reconstructor.py` | Reconstruction orchestrators — serial, adaptive, and BFS spatial propagation |
-| `orientation_search.py` | Discrete grid search + zero-temperature MC optimization |
+| `orientation_search.py` | Discrete grid search + zero-temperature MC optimization (`MCOptimizer.optimize` is the C++ `RandomRestartZeroTemp`: fixed-length blocks, restart about the initial orientation, stop on successive failed blocks; the VarianceMinimizing restart follows C++ too) |
 | `cost_functions.py` | Overlap computation between simulated projections and experimental data (batched Stages A-C + sequential Stage D) |
 | `_rasterize.c` | CPython C extension for fast triangle rasterization and pixel overlap (Sutherland-Hodgman + Bresenham) |
 | `experimental_data.py` | Load experimental detector images for reconstruction |
