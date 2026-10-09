@@ -215,6 +215,7 @@ class ConfigFile:
     bfs_revisit_refit: bool = False  # expansions re-fit REFIT neighbours (Python-only, opt-in)
     bfs_revisit_max: int = 3  # local fits per voxel while REFIT
     bfs_restart_pass: bool = False  # FITTED border voxels push onto REFIT voxels after the BFS
+    bfs_reseed: bool = False  # one full no-start search per leftover REFIT cluster (opt-in)
 
     # ========================================================================
     # Parameter Optimization (18 parameters)
@@ -457,6 +458,7 @@ class ConfigFile:
                 'bfs_revisit_max', converter=int, validator=self._min1_validator
             ),
             'BFSRestartPass': self._parse_bool('bfs_restart_pass'),
+            'BFSReseed': self._parse_bool('bfs_reseed'),
 
             # Parameter Optimization
             'OptimizationFilename': self._parse_string('optimization_filename'),
