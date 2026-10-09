@@ -255,6 +255,11 @@ The effect of these continuations on reconstruction success has not been tested.
 
 # 6. Open questions and next steps
 
+> **Follow-up report:** `docs/findings_finisher_mc_study_2026-10.md` (2026-10-09) answers the finisher and MC
+> questions below. It also records that the Python MC loop and VarianceMinimizing restart did not match C++ when the
+> numbers in this report were measured. That report's section 6 lists which of this report's finisher precision and
+> timing numbers are superseded.
+
 - **Why does the finisher stop short of the truth's cost?** In particular, how much of this is the cost function's
   sensitivity: a binary overlap that is flat or rough at 0.01–0.02°, and a realistic-data minimum that is not at the
   truth in 59/200 H3 cases?

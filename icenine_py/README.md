@@ -728,6 +728,8 @@ Commands for the `GNLayerNet` (`--arch gn`) and Step 4 (distractor/realism layer
 
 `scripts/phase_d/` (Phase D data of the finisher/MC study; own header docstrings): `make_neworient.py` (new orientations for the 500-grain sample -> `Examples/Example2.ManyGrains/SimInput/rand_500grains_1mm_neworient_s0.*`), `render_full.py` (full-sample forward simulation, clean and realistic detector-noise images, 10 workers -> `Examples/Example2.ManyGrains/ScatteringData_PhaseD/`, gitignored), `sanity_checks.py`, `frame_split_check.py`, `memmap_check.py`, `bfs_timing_probe.py`, `make_configs.py` (-> `configs/ReconstructPhaseD_{mc,cma,cma_noretry}_{clean,realistic,realistic_q16}.config`, all reading the grid-only `..._grid.mic`), `summary.py`. The opt-in low-memory loader `ExperimentalData.from_binary_memmap` / `write_binary_stack` (`icenine/experimental_data.py`, uint8 `.npy` stack, hard cost only) is documented there. Record in MIGRATION_HISTORY, "Phase D data"; tests in `tests/test_phase_d.py`.
 
+Phase D pilot (`scripts/phase_d/`): `make_region.py` (the 2,000-voxel disc region -> `benchmarks/phase_d_pilot/region*`), `pilot_bfs.py` (one BFS arm on the region, `BFSRevisitRefit 1`, one process, one thread, memmap images, rng seed 0), `score_bfs.py` (symmetry-reduced misorientation scoring: Wilson and grain-bootstrap intervals, grain-clustered sign-flip test, boundary/interior and near/far axis splits, grains found/lost/fragmented, errors by provenance source), `summarize_pilot.py` (-> `benchmarks/phase_d_pilot/summary.json`, `tables.md`); tests in `tests/test_phase_d_scoring.py`. Results and go/no-go: MIGRATION_HISTORY, "Phase D pilot results".
+
 Seed-cost diagnosis and the variance-stage parity fix (`scripts/phase_d/seed_diag*.py`, `seed_diag_variance_parity*.py`, `tests/test_seed_diag.py`, `tests/test_variance_stage_parity.py`): `MCOptimizer.variance_minimizing_optimize` restarts as C++ does (offsets +-SubregionRadius about the initial orientation); see MIGRATION_HISTORY, "C++ vs Python variance stage".
 
 `MCOptimizer.optimize` (the quick MC of the coarse levels and the FindOptimal MC) is a port of C++ `RandomRestartZeroTemp`: blocks of `int(2 (box/step)^3)` trial steps at a fixed step, each from the current state (`_mc_block`, C++ `ZeroTemperatureOptimization`); a block that does not end strictly below the global best restarts at `delta * initial` (`delta` from U(-r, r)^3, `r = tan(box)/sqrt(48)`) with the step reset, a better one becomes the global best and current state and halves the step; stop on a global cost below `max_convergence_cost`, then on more than `max_restarts` failed blocks in a row. The step budget counts trial steps (each block also evaluates its start); `last_run` holds the stop reason, blocks, accepts and restarts of the last call, and the trajectory records one event per block. Scripted semantics test `tests/test_mc_cpp_parity.py`; C++ trace and evaluation comparison `scripts/phase_d/mc_parity.py` (`benchmarks/phase_d_seed_diag/mc_parity/`); reruns of the earlier MC results in `scripts/mc_mechanism/summary_faithful.py`, `scripts/finisher_bench/mc_faithful_summary.py`, `scripts/cma_finisher/e0_cma.py --tag`, `validate_lib.py --tag`; see MIGRATION_HISTORY, "C++-faithful MC: reruns".
@@ -759,6 +761,11 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   consolidated findings, recommendations, decisions and open questions of the orientation-search work
   of 2026-10-01 to 2026-10-07 (network, FindOptimal robustness, hybrids, cost proxy, profiling,
   follow-ups).
+
+- [`docs/findings_finisher_mc_study_2026-10.md`](docs/findings_finisher_mc_study_2026-10.md) —
+  findings of the finisher and MC study and the first full-sample BFS pilot (2026-10-07 to
+  2026-10-09): cost sensitivity, the two C++ port fixes and what they changed, CMA-ES, the
+  full-sample data, the BFS seeding gap, and which earlier claims are superseded.
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
