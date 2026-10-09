@@ -1,6 +1,6 @@
 ---
 title: "Finisher and MC study, and the first full-sample BFS test: findings of 2026-10-07 to 2026-10-09"
-subtitle: "Cost sensitivity, MC behaviour, two port discrepancies against C++, CMA-ES, and a BFS gap found at full-sample scale"
+subtitle: "Cost sensitivity, MC behaviour, two port discrepancies against C++, CMA-ES, and a limit of the BFS seed rule seen in the first multi-grain test"
 date: "2026-10-09"
 geometry: margin=1in
 fontsize: 11pt
@@ -21,7 +21,8 @@ comparing the classic optimizer with the new options for timing and accuracy.
 This report gathers the answers. It also covers two findings the work turned up on the way:
 
 - two places where the Python port did not follow the C++ algorithm;
-- a gap in the Python BFS that shows only at full-sample scale.
+- a limit of IceNine's BFS seed rule (a seed is drawn only from unvisited voxels), first seen in a 2,000-voxel
+  multi-grain region; whether it appears only at larger scale was not tested.
 
 **Where the details are.** The detailed records live in `icenine_py/MIGRATION_HISTORY.md` (MH), section "Finisher
 and MC study (2026-10-07)". The subsections are:
@@ -64,7 +65,9 @@ Result files are under `icenine_py/benchmarks/`. Section 6 lists which earlier n
    - It used MC settings and a Python MC loop that differ from the deployed C++ algorithm.
    - So it neither supports nor contradicts the deployed configuration at the 0.01–0.03° scale.
 5. **End-to-end BFS: no verdict yet.**
-   - The 2,000-voxel pilot found that the Python BFS never seeds about 45% of grains (28 of 60).
+   - The 2,000-voxel pilot found that the BFS seed rule leaves 25–27 of 60 grains without a full search (a 26th to
+     28th lost grain had its one seed rejected). The C++ server uses the same rule. The seed-count oracle had
+     predicted that about 28% of grains would be swallowed; the pilot rate is higher.
    - The voxels of those grains end wrong whatever the optimizer, about a third of all voxels.
    - This must be fixed before the classic-vs-new comparison means anything.
 
@@ -148,9 +151,10 @@ These results are from reruns on the same cases, images, starts and seeds as bef
 | Sweep cases (1,000), deployed MC | 0.1609° | 0.0249° |
 
 **Wrong answers, 200-voxel search from scratch (E0).** The gain comes from the quick MC in the coarse stage: the
-CMA-ES arm, which differs only there, fell by the same amount.
+CMA-ES arm, whose finisher is unchanged so that the coarse-stage quick MC is its only changed component, fell by a
+similar amount (66 to 40 clean, 44 to 24 realistic).
 
-| Images | Old MC (seeds 0–2) | Faithful MC |
+| Images | Old MC (seeds 0–2) | Faithful MC (seed 0) |
 |---|---|---|
 | Clean | 66–71 wrong of 200 | 40 |
 | Realistic | 45–52 wrong of 200 | 25 |
@@ -230,13 +234,13 @@ Other results from B3:
 - **Memory.** A shared read-only image loader (`ExperimentalData.from_binary_memmap`) cuts a process from about
   7.7 GB to 0.37 GB, bit-identical to the dense loader. Many runs can now go at once on a 32 GB machine.
 - **Seed cost.**
-  - A no-start search takes about 174 s single-worker in Python (332k evaluations), against about 18 s in C++.
+  - A no-start search takes about 174 s single-worker in Python (332k evaluations), (contended), against about 18 s in C++ (contended; 10–21 s).
   - Before the variance-stage fix it took about 9 minutes.
   - Searches on a voxel's isolated image are cheap only because they prune hard: on those images, 3 of 6 seeds
     ended wrong.
   - So per-voxel timings from earlier studies do not carry over to full samples.
 
-## (g) The BFS gap (Phase D pilot)
+## (g) The BFS seed rule (Phase D pilot)
 
 **Setup.**
 
@@ -255,13 +259,23 @@ Other results from B3:
 
 **Why so many are wrong.**
 
-- In every run, 26–28 of the 60 grains never got a seed.
+- In every run, 26–28 of the 60 grains were lost (no right voxel): 25–27 never got a full search, and in each run
+  one more got a full search that was rejected (grain 394 in four runs, grain 148 in one). All five runs start
+  from the same seed order in one region, so this is one draw, not five replications (28 of 60 grains, Wilson
+  34.6–59.1%, treating grains as independent). Truncation by the region does not explain it: 15 of 33 grains
+  wholly inside the disc were lost against 13 of 27 truncated ones.
 - The expansions of neighbouring grains reach all their voxels first and reject them (REFIT). A REFIT voxel is
-  never given a full search.
+  not given a full search: a seed is drawn only from unvisited voxels.
 - The revisit only offers neighbouring grains' orientations.
-- So those voxels end a median 41–44° off. They account for 97% or more of the unresolved voxels.
-- In C++, other MPI clients' grids still see such voxels as unvisited and seed them. A single-process Python BFS
-  cannot. This has not been confirmed by a multi-client C++ run.
+- So those voxels end a median 41–44° off. They account for 98% or more of the unresolved voxels.
+- This is IceNine's own rule. The C++ server alone chooses seeds, and its `Pop` skips every voxel that is not
+  unvisited in the server grid (REFIT included). A single-client C++ run is therefore expected to lose the same
+  grains. In a multi-client run another client's expansion can refit such a voxel only from that client's
+  orientation (what the revisit does); the server might also dispatch a seed into the grain before the neighbours'
+  results arrive. Neither effect has been tested with a multi-client C++ run.
+- The seed-count oracle (MH, "Phase D seed-cost diagnosis") had predicted this: 497 pieces under the BFS radius
+  (not 612) and about 140 of 497 grains (28%) swallowed before any seed is drawn. The pilot's 42–45% (43–47% with
+  the rejected seed) is higher; the oracle ignores wrong cross-boundary acceptances, and the pilot is one region.
 
 **What the pilot does measure.**
 
@@ -272,7 +286,7 @@ Other results from B3:
 - **The CMA retry is not worth keeping.** 2 of 1,895 retries were accepted, both wrong, for about 60% more
   neighbour evaluations.
 - **Seeds dominate the cost:** 84–92% of the wall time, at about 3.5 minutes each (contended).
-- **Projected full-sample time** with every grain piece seeded: about 37–41 h per run. Runs can go concurrently at
+- **Projected full-sample time** with each of the 497 grain pieces seeded: about 30–34 h per run. Runs can go concurrently at
   about one core each.
 
 # 4. Recommendations
@@ -280,18 +294,19 @@ Other results from B3:
 | Topic | Recommendation |
 |---|---|
 | Port parity | Keep the C++-faithful MC and VarianceMinimizing as the default classic path. |
-| BFS | Before any end-to-end comparison, add an opt-in reseed. When no unvisited voxels remain, give one voxel of each connected cluster of still-REFIT voxels a full search, then expand with revisit. Measure its cost and accuracy on the pilot region. |
+| BFS | Before any end-to-end comparison, add an opt-in reseed. When no unvisited voxels remain, give one voxel of each connected cluster of still-REFIT voxels a full search, then expand with revisit. This departs from the C++ seed rule, so label it as an option. One reseed may fail (a rejected seed recurred in the same grain). Measure its cost and accuracy on the pilot region. |
 | Finisher | Offer CMA-ES (σ0 0.2°, 250–1,000 evaluations) where precision matters. Report its higher rate of wrong-grain acceptances in BFS, and investigate it. |
 | CMA retry | Drop the wider-sigma retry (`CMARetrySigma0 0`). |
 | Seed cost | The lever is the cost per seed: the level-0 candidate count, and about 10× per evaluation against C++. The neighbour budget is not. |
-| Scale | Re-pilot with the reseed (about 3 h). Then choose between several 2,000-voxel regions (hours) and the full sample (about 2 days with runs concurrent). |
+| Scale | Re-pilot with the reseed (about 3 h). Then choose between several 2,000-voxel regions (hours) and the full sample (about 30–34 h per run with every piece seeded, projected, contended; several seeds multiply the runs). |
 
 # 5. Decisions on record
 
 - Port the C++ algorithm faithfully rather than tune around the port's behaviour. This was the owner's decision on
   2026-10-08, after the variance-stage finding.
 - `cma` is a core dependency. CMA-ES is opt-in and off by default.
-- BFS revisit (`BFSRevisitRefit`) reproduces the multi-client C++ behaviour for REFIT voxels within one grid. The
+- BFS revisit (`BFSRevisitRefit`) approximates the multi-client C++ refits of REFIT voxels within one grid (C++
+  refits through other clients' independent grids, and also refits fitted voxels, keeping the higher confidence). The
   C++ restart-only Refit path is not used for this.
 - Phase D uses truth-free grid configs and the shared image loader.
 
@@ -305,13 +320,17 @@ Other results from B3:
 | "Quarter-box VarianceMinimizing closes 93% of the gap, reaching 0.006°" (T5, A3) | Old variance stage. The faithful stage is worse from far starts. |
 | "CMA-ES fixes 8 E0 voxels MC got wrong" (Phase C) | Old MC. Now no difference in wrong count. |
 | "No-start search about 20 s" (per-voxel images) | About 174 s on full-sample images. Per-voxel pruning is not representative. |
-| "Full-sample BFS about 1.4 h per pipeline on 10 workers" | The Python BFS is single-process. About 37–41 h per run with all grains seeded. |
+| "Full-sample BFS about 1.4 h per pipeline on 10 workers" | The Python BFS is single-process. About 30–34 h per run with all 497 pieces seeded (as piloted, 18–30 h). |
 | "ManyGrains images exist" | False. They were first rendered on 2026-10-07. |
 
-These still stand:
+These still stand (they do not depend on the optimizer):
 
-- the Phase A landscape results (A1, A2);
-- the hybrid/network and proxy-rerank findings of the earlier report, which are wrong rates not driven by the MC.
+- the Phase A landscape results (A1, A2).
+
+Not re-run; their baselines changed: the hybrid/network and proxy-rerank findings of the earlier report, the HP
+sweep, the finisher diagnosis and the FindOptimal-robustness results. They are paired against, or run through,
+the old Python quick MC and old variance stage; with the faithful quick MC the E0 wrong count fell from 67 to 40 of
+200 (clean) and 52 to 25 (realistic), so their wrong rates are not shown to be independent of the MC.
 
 The earlier report's precision and timing numbers for the default finisher carry the caveat above.
 
@@ -327,5 +346,5 @@ The earlier report's precision and timing numbers for the default finisher carry
 5. **Per-evaluation cost.** Can the 10× per-evaluation gap be cut, for example with batched evaluation in the
    coarse stage?
 6. **Seeds 1–2 for E0.** Run them with the faithful MC, to firm up "no difference in wrong count".
-7. **Multi-client C++ reference.** Confirm that C++ with several clients seeds the grains the single-process Python
-   BFS misses.
+7. **Multi-client C++ reference.** Does C++ with several clients seed any of the grains that the single-client BFS
+   loses? By the C++ code only timing (asynchrony) could do it; untested.

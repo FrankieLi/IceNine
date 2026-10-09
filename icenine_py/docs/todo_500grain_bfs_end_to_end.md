@@ -8,7 +8,7 @@ fontsize: 11pt
 
 # Status
 
-**Data step done (2026-10-07); pilot done (2026-10-08, 2,000-voxel region, 5 runs; MIGRATION_HISTORY, "Phase D pilot results"): no-go for the full runs as configured, 28 of 60 grains were never seeded.** Requested by the project owner on 2026-10-07 as the next
+**Data step done (2026-10-07); pilot done (2026-10-08, 2,000-voxel region, 5 runs; MIGRATION_HISTORY, "Phase D pilot results"): no-go for the full runs as configured: 26 to 28 of 60 grains were lost, 25 to 27 of them never got a full search (IceNine's BFS seed rule, also the C++ server's).** Requested by the project owner on 2026-10-07 as the next
 step after the "Finisher and MC study". It is Phase D of that plan (MIGRATION_HISTORY, "Finisher and MC study
 (2026-10-07)"). Done: the new-orientation sample, the full-sample clean and realistic images and the four
 Python-only reconstruction configs (MIGRATION_HISTORY, "Phase D data"; `scripts/phase_d/`). No full-sample images

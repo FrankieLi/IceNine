@@ -39,49 +39,59 @@
 <!-- /table:phase_d_pilot_cost -->
 
 <!-- table:phase_d_pilot_diag -->
-| run | n_grains | grains_with_a_seed | lost_grains | lost_grains_with_a_seed | voxels_in_lost_grains | unresolved_in_lost_grains | unresolved_total | accepted_total | accepted_wrong | accepted_wrong_cross_boundary_like |
-|---|---|---|---|---|---|---|---|---|---|---|
-| mc_clean | 60 | 32 | 28 | 0 | 722 | 696 | 710 | 1290 | 32 | 32 |
-| cma_clean | 60 | 32 | 28 | 0 | 722 | 673 | 681 | 1319 | 61 | 61 |
-| cma_noretry_clean | 60 | 32 | 28 | 0 | 722 | 676 | 677 | 1323 | 57 | 57 |
-| mc_realistic_q16 | 60 | 32 | 27 | 0 | 696 | 677 | 691 | 1309 | 19 | 19 |
-| cma_realistic_q16 | 60 | 34 | 26 | 0 | 608 | 579 | 580 | 1420 | 37 | 37 |
+| run | n_grains | grains_with_an_accepted_seed | lost_grains | lost_grains_no_full_search | lost_grains_with_a_rejected_seed | lost_grains_with_an_accepted_seed | voxels_in_lost_grains | unresolved_in_lost_grains | unresolved_total | accepted_total | accepted_wrong | accepted_wrong_cross_boundary_like |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 60 | 32 | 28 | 27 | 1 | 0 | 722 | 696 | 710 | 1290 | 32 | 32 |
+| cma_clean | 60 | 32 | 28 | 27 | 1 | 0 | 722 | 673 | 681 | 1319 | 61 | 61 |
+| cma_noretry_clean | 60 | 32 | 28 | 27 | 1 | 0 | 722 | 676 | 677 | 1323 | 57 | 57 |
+| mc_realistic_q16 | 60 | 32 | 27 | 26 | 1 | 0 | 696 | 677 | 691 | 1309 | 19 | 19 |
+| cma_realistic_q16 | 60 | 34 | 26 | 25 | 1 | 0 | 608 | 579 | 580 | 1420 | 37 | 37 |
 <!-- /table:phase_d_pilot_diag -->
 
-<!-- table:phase_d_pilot_main -->
-| run | n | wrong | wrong % | Wilson 95% (%) | grain-bootstrap 95% (%) | median right err (deg) | unresolved | found | partial | lost | frag | wall (h, contended) |
+<!-- table:phase_d_pilot_lost_grains -->
+| run | lost_grains_rate | lost_grains_wilson_lo | lost_grains_wilson_hi | lost_median_region_voxels | found_median_region_voxels | lost_boundary_voxel_share | found_boundary_voxel_share | grains_wholly_in_region | wholly_in_region_lost | grains_truncated_by_region | truncated_lost | accepted_wrong_rate |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| mc_clean | 2000 | 740 | 37.00 | 34.9-39.1 | 24.5-51.5 | 0.0119 | 710 | 32 | 0 | 28 | 29 | 2.27 |
-| cma_clean | 2000 | 742 | 37.10 | 35.0-39.2 | 24.6-51.6 | 0.0061 | 681 | 32 | 0 | 28 | 32 | 2.27 |
-| cma_noretry_clean | 2000 | 734 | 36.70 | 34.6-38.8 | 24.2-51.3 | 0.0055 | 677 | 32 | 0 | 28 | 31 | 2.06 |
-| mc_realistic_q16 | 2000 | 709 | 35.45 | 33.4-37.6 | 22.7-50.2 | 0.0124 | 691 | 32 | 1 | 27 | 25 | 2.41 |
-| cma_realistic_q16 | 2000 | 617 | 30.85 | 28.9-32.9 | 19.2-44.2 | 0.0141 | 580 | 34 | 0 | 26 | 26 | 2.40 |
+| mc_clean | 0.467 | 0.346 | 0.591 | 21.5 | 38.5 | 0.762 | 0.674 | 33 | 15 | 27 | 13 | 0.0248 |
+| cma_clean | 0.467 | 0.346 | 0.591 | 21.5 | 38.5 | 0.762 | 0.674 | 33 | 15 | 27 | 13 | 0.0462 |
+| cma_noretry_clean | 0.467 | 0.346 | 0.591 | 21.5 | 38.5 | 0.762 | 0.674 | 33 | 15 | 27 | 13 | 0.0431 |
+| mc_realistic_q16 | 0.450 | 0.331 | 0.575 | 21.0 | 38.0 | 0.759 | 0.677 | 33 | 14 | 27 | 13 | 0.0145 |
+| cma_realistic_q16 | 0.433 | 0.316 | 0.559 | 20.5 | 40.5 | 0.780 | 0.673 | 33 | 13 | 27 | 13 | 0.0261 |
+<!-- /table:phase_d_pilot_lost_grains -->
+
+<!-- table:phase_d_pilot_main -->
+| run | n | wrong | wrong % | Wilson 95% (%) | grain-bootstrap 95% (%) | median right err (deg) | unresolved | found | partial | lost | fragmented (found grains) | wall (h, contended) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 2000 | 740 | 37.00 | 34.9-39.1 | 24.5-51.5 | 0.0119 | 710 | 32 | 0 | 28 | 6 | 2.27 |
+| cma_clean | 2000 | 742 | 37.10 | 35.0-39.2 | 24.6-51.6 | 0.0061 | 681 | 32 | 0 | 28 | 9 | 2.27 |
+| cma_noretry_clean | 2000 | 734 | 36.70 | 34.6-38.8 | 24.2-51.3 | 0.0055 | 677 | 32 | 0 | 28 | 9 | 2.06 |
+| mc_realistic_q16 | 2000 | 709 | 35.45 | 33.4-37.6 | 22.7-50.2 | 0.0124 | 691 | 32 | 1 | 27 | 3 | 2.41 |
+| cma_realistic_q16 | 2000 | 617 | 30.85 | 28.9-32.9 | 19.2-44.2 | 0.0141 | 580 | 34 | 0 | 26 | 6 | 2.40 |
 <!-- /table:phase_d_pilot_main -->
 
 <!-- table:phase_d_pilot_pairs -->
 | pair | wrong_a | wrong_b | n_clusters | n_clusters_differing | p |
 |---|---|---|---|---|---|
-| mc_clean vs cma_clean | 740 | 742 | 60 | 6 | 0.8750 |
-| cma_clean vs cma_noretry_clean | 742 | 734 | 60 | 2 | 0.5000 |
-| mc_realistic_q16 vs cma_realistic_q16 | 709 | 617 | 60 | 11 | 0.3682 |
+| mc_clean vs cma_clean | 740 | 742 | 60 | 6 | 0.875 |
+| cma_clean vs cma_noretry_clean | 742 | 734 | 60 | 2 | 0.5 |
+| mc_realistic_q16 vs cma_realistic_q16 | 709 | 617 | 60 | 11 | 0.368 |
 <!-- /table:phase_d_pilot_pairs -->
 
 <!-- table:phase_d_pilot_pairs_accepted -->
 | pair | wrong_a | wrong_b | n_clusters | n_clusters_differing | p |
 |---|---|---|---|---|---|
-| mc_clean vs cma_clean | 32 | 61 | 60 | 19 | 0.0001 |
-| cma_clean vs cma_noretry_clean | 61 | 57 | 60 | 5 | 0.3125 |
-| mc_realistic_q16 vs cma_realistic_q16 | 19 | 37 | 60 | 15 | 0.0007 |
+| mc_clean vs cma_clean | 32 | 61 | 60 | 19 | 3.81e-06 |
+| cma_clean vs cma_noretry_clean | 61 | 57 | 60 | 5 | 0.312 |
+| mc_realistic_q16 vs cma_realistic_q16 | 19 | 37 | 60 | 15 | 0.000732 |
 <!-- /table:phase_d_pilot_pairs_accepted -->
 
 <!-- table:phase_d_pilot_projection -->
 | run | proj_full_h_voxel_linear | proj_full_h_seeds_per_grain | proj_full_h_every_piece_seeded |
 |---|---|---|---|
-| mc_clean | 27.9 | 20.2 | 38.7 |
-| cma_clean | 27.8 | 19.8 | 39.4 |
-| cma_noretry_clean | 25.3 | 17.7 | 37.1 |
-| mc_realistic_q16 | 29.6 | 21.5 | 39.1 |
-| cma_realistic_q16 | 29.5 | 20.9 | 40.6 |
+| mc_clean | 27.9 | 20.2 | 32.3 |
+| cma_clean | 27.8 | 19.8 | 32.5 |
+| cma_noretry_clean | 25.3 | 17.7 | 30.5 |
+| mc_realistic_q16 | 29.6 | 21.5 | 32.6 |
+| cma_realistic_q16 | 29.5 | 20.9 | 33.6 |
 <!-- /table:phase_d_pilot_projection -->
 
 <!-- table:phase_d_pilot_source -->

@@ -30,7 +30,7 @@ IMAGE_DIR = {
     "realistic_q16": "full_q16/realistic",
 }
 REVISIT = (
-    "# REFIT voxels are revisited inside the BFS (as the C++ multi-client run does).\n"
+    "# REFIT voxels are revisited inside the BFS (approximates the C++ multi-client refits).\n"
     "BFSRevisitRefit 1\n"
 )
 

@@ -19,7 +19,7 @@ from scipy.spatial import cKDTree
 HERE = Path(__file__).resolve().parent
 EX = HERE.parents[2] / "Examples" / "Example2.ManyGrains" / "SimInput"
 OUT = HERE.parents[1] / "benchmarks" / "phase_d_pilot"
-NEAR_AXIS_R = 0.12  # m, "near the rotation axis" (as the seed-cost diagnosis)
+NEAR_AXIS_R = 0.12  # mm (.mic coordinates are in mm); "near the rotation axis"
 
 
 def centroids_from_lines(raw: np.ndarray, header_side: float) -> Tuple[np.ndarray, float]:
@@ -30,8 +30,9 @@ def centroids_from_lines(raw: np.ndarray, header_side: float) -> Tuple[np.ndarra
 
 
 def boundary_flags(centroids: np.ndarray, grain: np.ndarray, side: float) -> np.ndarray:
-    """True for voxels with a different-grain voxel within 1.01 x side (centroid distance), i.e.
-    edge and vertex neighbours, the adjacency of make_neworient.py."""
+    """True for voxels with a different-grain voxel within 1.01 x side (centroid distance), the
+    adjacency of make_neworient.py: the 3 edge neighbours and 6 of the 9 vertex-only neighbours (the
+    other 3 sit at 2 side / sqrt(3)). The BFS neighbour radius is 2 sides, wider than this."""
     pairs = cKDTree(centroids).query_pairs(1.01 * side, output_type="ndarray")
     flag = np.zeros(len(grain), dtype=bool)
     diff = grain[pairs[:, 0]] != grain[pairs[:, 1]]
@@ -83,22 +84,22 @@ def main() -> None:
     (OUT / "region_grid.mic").write_text("\n".join([lines[0]] + [body[i] for i in idx]) + "\n")
     np.save(OUT / "region_index.npy", idx.astype(np.int64))
     info: Dict[str, object] = {
-        "selection": f"{a.n} voxels with triangle centroids nearest to ({a.cx}, {a.cy}) m "
+        "selection": f"{a.n} voxels with triangle centroids nearest to ({a.cx}, {a.cy}) mm "
         "(stable sort by distance, ties by file index) of "
         "rand_500grains_1mm_neworient_s0_grid.mic",
-        "centre_xy_m": [a.cx, a.cy],
+        "centre_xy_mm": [a.cx, a.cy],
         "n_voxels": int(len(idx)),
-        "side_length_m": side,
-        "disc_radius_m": float(np.hypot(*(sub - np.array([a.cx, a.cy])).T).max()),
+        "side_length_mm": side,
+        "disc_radius_mm": float(np.hypot(*(sub - np.array([a.cx, a.cy])).T).max()),
         "n_edge_connected_components": int(n_comp),
         "n_grains": int(len(uniq)),
         "voxels_per_grain_min_median_max": [int(cnt.min()), float(np.median(cnt)), int(cnt.max())],
         "n_boundary_voxels": int(bnd.sum()),
         "n_interior_voxels": int((~bnd).sum()),
-        "near_axis_r_m": NEAR_AXIS_R,
+        "near_axis_r_mm": NEAR_AXIS_R,
         "n_near_axis": int((r < NEAR_AXIS_R).sum()),
         "n_far_axis": int((r >= NEAR_AXIS_R).sum()),
-        "r_min_max_m": [float(r.min()), float(r.max())],
+        "r_min_max_mm": [float(r.min()), float(r.max())],
         "boundary_definition": "a different-grain voxel (full sample) within 1.01 x side of the "
         "centroid, as the adjacency of make_neworient.py",
     }

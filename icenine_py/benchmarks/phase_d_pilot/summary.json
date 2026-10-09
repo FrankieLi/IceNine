@@ -1,13 +1,13 @@
 {
   "region": {
-    "selection": "2000 voxels with triangle centroids nearest to (0.17, 0.0) m (stable sort by distance, ties by file index) of rand_500grains_1mm_neworient_s0_grid.mic",
-    "centre_xy_m": [
+    "selection": "2000 voxels with triangle centroids nearest to (0.17, 0.0) mm (stable sort by distance, ties by file index) of rand_500grains_1mm_neworient_s0_grid.mic",
+    "centre_xy_mm": [
       0.17,
       0.0
     ],
     "n_voxels": 2000,
-    "side_length_m": 0.009375,
-    "disc_radius_m": 0.15581102865303176,
+    "side_length_mm": 0.009375,
+    "disc_radius_mm": 0.15581102865303176,
     "n_edge_connected_components": 1,
     "n_grains": 60,
     "voxels_per_grain_min_median_max": [
@@ -17,10 +17,10 @@
     ],
     "n_boundary_voxels": 1411,
     "n_interior_voxels": 589,
-    "near_axis_r_m": 0.12,
+    "near_axis_r_mm": 0.12,
     "n_near_axis": 416,
     "n_far_axis": 1584,
-    "r_min_max_m": [
+    "r_min_max_mm": [
       0.019515141644802718,
       0.32399182709162055
     ],
@@ -89,6 +89,7 @@
         "partial": 0,
         "lost": 28,
         "fragmented": 29,
+        "fragmented_found": 6,
         "lost_ids": [
           2,
           13,
@@ -945,7 +946,7 @@
         "wall_total_s": 8163.06324505806,
         "wall_per_seed_s": 201.76505641376272,
         "wall_per_neighbor_fit_s": 0.42626691616442536,
-        "timing_label": "contended (up to 6 concurrent single-process runs on a 12-core machine)"
+        "timing_label": "contended: 5 concurrent single-process runs on a 12-core machine, plus 2 A/B processes for about 3 min, load average 3.0 at launch (preflight.json)"
       },
       "options": {
         "local_optimizer": "mc",
@@ -1019,6 +1020,7 @@
         "partial": 0,
         "lost": 28,
         "fragmented": 32,
+        "fragmented_found": 9,
         "lost_ids": [
           2,
           13,
@@ -1859,7 +1861,7 @@
         "wall_total_s": 8155.478670120239,
         "wall_per_seed_s": 213.72241227065817,
         "wall_per_neighbor_fit_s": 0.2832468963954844,
-        "timing_label": "contended (up to 6 concurrent single-process runs on a 12-core machine)"
+        "timing_label": "contended: 5 concurrent single-process runs on a 12-core machine, plus 2 A/B processes for about 3 min, load average 3.0 at launch (preflight.json)"
       },
       "options": {
         "local_optimizer": "cma",
@@ -1933,6 +1935,7 @@
         "partial": 0,
         "lost": 28,
         "fragmented": 31,
+        "fragmented_found": 9,
         "lost_ids": [
           2,
           13,
@@ -2758,7 +2761,7 @@
         "wall_total_s": 7401.333497047424,
         "wall_per_seed_s": 206.9168013153654,
         "wall_per_neighbor_fit_s": 0.19541271483164846,
-        "timing_label": "contended (up to 6 concurrent single-process runs on a 12-core machine)"
+        "timing_label": "contended: 5 concurrent single-process runs on a 12-core machine, plus 2 A/B processes for about 3 min, load average 3.0 at launch (preflight.json)"
       },
       "options": {
         "local_optimizer": "cma",
@@ -2832,6 +2835,7 @@
         "partial": 1,
         "lost": 27,
         "fragmented": 25,
+        "fragmented_found": 3,
         "lost_ids": [
           2,
           13,
@@ -3664,7 +3668,7 @@
         "wall_total_s": 8668.069135904312,
         "wall_per_seed_s": 201.58070819907718,
         "wall_per_neighbor_fit_s": 0.4569777806276217,
-        "timing_label": "contended (up to 6 concurrent single-process runs on a 12-core machine)"
+        "timing_label": "contended: 5 concurrent single-process runs on a 12-core machine, plus 2 A/B processes for about 3 min, load average 3.0 at launch (preflight.json)"
       },
       "options": {
         "local_optimizer": "mc",
@@ -3738,6 +3742,7 @@
         "partial": 0,
         "lost": 26,
         "fragmented": 26,
+        "fragmented_found": 6,
         "lost_ids": [
           2,
           13,
@@ -4469,7 +4474,7 @@
         "wall_total_s": 8632.969064950943,
         "wall_per_seed_s": 220.9185173375266,
         "wall_per_neighbor_fit_s": 0.2869253385461317,
-        "timing_label": "contended (up to 6 concurrent single-process runs on a 12-core machine)"
+        "timing_label": "contended: 5 concurrent single-process runs on a 12-core machine, plus 2 A/B processes for about 3 min, load average 3.0 at launch (preflight.json)"
       },
       "options": {
         "local_optimizer": "cma",
@@ -4488,21 +4493,24 @@
       "wrong_b": 742,
       "n_clusters": 60,
       "n_clusters_differing": 6,
-      "p": 0.875
+      "p": 0.875,
+      "exact": true
     },
     "cma_clean vs cma_noretry_clean": {
       "wrong_a": 742,
       "wrong_b": 734,
       "n_clusters": 60,
       "n_clusters_differing": 2,
-      "p": 0.5
+      "p": 0.5,
+      "exact": true
     },
     "mc_realistic_q16 vs cma_realistic_q16": {
       "wrong_a": 709,
       "wrong_b": 617,
       "n_clusters": 60,
       "n_clusters_differing": 11,
-      "p": 0.3681640625
+      "p": 0.3681640625,
+      "exact": true
     }
   },
   "paired_grain_clustered_accepted_wrong": {
@@ -4511,29 +4519,46 @@
       "wrong_b": 61,
       "n_clusters": 60,
       "n_clusters_differing": 19,
-      "p": 9.99950002499875e-05
+      "p": 3.814697265625e-06,
+      "exact": true
     },
     "cma_clean vs cma_noretry_clean": {
       "wrong_a": 61,
       "wrong_b": 57,
       "n_clusters": 60,
       "n_clusters_differing": 5,
-      "p": 0.3125
+      "p": 0.3125,
+      "exact": true
     },
     "mc_realistic_q16 vs cma_realistic_q16": {
       "wrong_a": 19,
       "wrong_b": 37,
       "n_clusters": 60,
       "n_clusters_differing": 15,
-      "p": 0.000732421875
+      "p": 0.000732421875,
+      "exact": true
     }
   },
   "diagnostics": {
     "mc_clean": {
       "n_grains": 60,
-      "grains_with_a_seed": 32,
+      "grains_with_an_accepted_seed": 32,
       "lost_grains": 28,
-      "lost_grains_with_a_seed": 0,
+      "lost_grains_with_an_accepted_seed": 0,
+      "lost_grains_with_a_rejected_seed": 1,
+      "lost_grains_no_full_search": 27,
+      "lost_grains_rate": 0.4666666666666667,
+      "lost_grains_wilson_lo": 0.34627701540988,
+      "lost_grains_wilson_hi": 0.5910679132886489,
+      "lost_median_region_voxels": 21.5,
+      "found_median_region_voxels": 38.5,
+      "lost_boundary_voxel_share": 0.7617728531855956,
+      "found_boundary_voxel_share": 0.6737089201877934,
+      "grains_wholly_in_region": 33,
+      "wholly_in_region_lost": 15,
+      "grains_truncated_by_region": 27,
+      "truncated_lost": 13,
+      "accepted_wrong_rate": 0.024806201550387597,
       "voxels_in_lost_grains": 722,
       "unresolved_in_lost_grains": 696,
       "unresolved_total": 710,
@@ -4541,14 +4566,28 @@
       "accepted_wrong_cross_boundary_like": 32,
       "accepted_total": 1290,
       "proj_full_h_voxel_linear": 27.85645332376063,
-      "proj_full_h_every_piece_seeded": 38.74569547538757,
+      "proj_full_h_every_piece_seeded": 32.300422839947935,
       "proj_full_h_seeds_per_grain": 20.230015159491256
     },
     "cma_clean": {
       "n_grains": 60,
-      "grains_with_a_seed": 32,
+      "grains_with_an_accepted_seed": 32,
       "lost_grains": 28,
-      "lost_grains_with_a_seed": 0,
+      "lost_grains_with_an_accepted_seed": 0,
+      "lost_grains_with_a_rejected_seed": 1,
+      "lost_grains_no_full_search": 27,
+      "lost_grains_rate": 0.4666666666666667,
+      "lost_grains_wilson_lo": 0.34627701540988,
+      "lost_grains_wilson_hi": 0.5910679132886489,
+      "lost_median_region_voxels": 21.5,
+      "found_median_region_voxels": 38.5,
+      "lost_boundary_voxel_share": 0.7617728531855956,
+      "found_boundary_voxel_share": 0.6737089201877934,
+      "grains_wholly_in_region": 33,
+      "wholly_in_region_lost": 15,
+      "grains_truncated_by_region": 27,
+      "truncated_lost": 13,
+      "accepted_wrong_rate": 0.04624715693707354,
       "voxels_in_lost_grains": 722,
       "unresolved_in_lost_grains": 673,
       "unresolved_total": 681,
@@ -4556,14 +4595,28 @@
       "accepted_wrong_cross_boundary_like": 61,
       "accepted_total": 1319,
       "proj_full_h_voxel_linear": 27.830570961785316,
-      "proj_full_h_every_piece_seeded": 39.36524447283447,
+      "proj_full_h_every_piece_seeded": 32.53800074752178,
       "proj_full_h_seeds_per_grain": 19.752255324552124
     },
     "cma_noretry_clean": {
       "n_grains": 60,
-      "grains_with_a_seed": 32,
+      "grains_with_an_accepted_seed": 32,
       "lost_grains": 28,
-      "lost_grains_with_a_seed": 0,
+      "lost_grains_with_an_accepted_seed": 0,
+      "lost_grains_with_a_rejected_seed": 1,
+      "lost_grains_no_full_search": 27,
+      "lost_grains_rate": 0.4666666666666667,
+      "lost_grains_wilson_lo": 0.34627701540988,
+      "lost_grains_wilson_hi": 0.5910679132886489,
+      "lost_median_region_voxels": 21.5,
+      "found_median_region_voxels": 38.5,
+      "lost_boundary_voxel_share": 0.7617728531855956,
+      "found_boundary_voxel_share": 0.6737089201877934,
+      "grains_wholly_in_region": 33,
+      "wholly_in_region_lost": 15,
+      "grains_truncated_by_region": 27,
+      "truncated_lost": 13,
+      "accepted_wrong_rate": 0.04308390022675737,
       "voxels_in_lost_grains": 722,
       "unresolved_in_lost_grains": 676,
       "unresolved_total": 677,
@@ -4571,14 +4624,28 @@
       "accepted_wrong_cross_boundary_like": 57,
       "accepted_total": 1323,
       "proj_full_h_voxel_linear": 25.257050558674333,
-      "proj_full_h_every_piece_seeded": 37.130466786467125,
+      "proj_full_h_every_piece_seeded": 30.520624522226285,
       "proj_full_h_seeds_per_grain": 17.665918240509207
     },
     "mc_realistic_q16": {
       "n_grains": 60,
-      "grains_with_a_seed": 32,
+      "grains_with_an_accepted_seed": 32,
       "lost_grains": 27,
-      "lost_grains_with_a_seed": 0,
+      "lost_grains_with_an_accepted_seed": 0,
+      "lost_grains_with_a_rejected_seed": 1,
+      "lost_grains_no_full_search": 26,
+      "lost_grains_rate": 0.45,
+      "lost_grains_wilson_lo": 0.33093453853760824,
+      "lost_grains_wilson_hi": 0.575082854510185,
+      "lost_median_region_voxels": 21.0,
+      "found_median_region_voxels": 38.0,
+      "lost_boundary_voxel_share": 0.7586206896551724,
+      "found_boundary_voxel_share": 0.6771472392638037,
+      "grains_wholly_in_region": 33,
+      "wholly_in_region_lost": 14,
+      "grains_truncated_by_region": 27,
+      "truncated_lost": 13,
+      "accepted_wrong_rate": 0.014514896867838044,
       "voxels_in_lost_grains": 696,
       "unresolved_in_lost_grains": 677,
       "unresolved_total": 691,
@@ -4586,14 +4653,28 @@
       "accepted_wrong_cross_boundary_like": 19,
       "accepted_total": 1309,
       "proj_full_h_voxel_linear": 29.579785926273466,
-      "proj_full_h_every_piece_seeded": 39.08304574434525,
+      "proj_full_h_every_piece_seeded": 32.64366201020807,
       "proj_full_h_seeds_per_grain": 21.51192734632569
     },
     "cma_realistic_q16": {
       "n_grains": 60,
-      "grains_with_a_seed": 34,
+      "grains_with_an_accepted_seed": 34,
       "lost_grains": 26,
-      "lost_grains_with_a_seed": 0,
+      "lost_grains_with_an_accepted_seed": 0,
+      "lost_grains_with_a_rejected_seed": 1,
+      "lost_grains_no_full_search": 25,
+      "lost_grains_rate": 0.43333333333333335,
+      "lost_grains_wilson_lo": 0.31572200394400635,
+      "lost_grains_wilson_hi": 0.5589678534530513,
+      "lost_median_region_voxels": 20.5,
+      "found_median_region_voxels": 40.5,
+      "lost_boundary_voxel_share": 0.7796052631578947,
+      "found_boundary_voxel_share": 0.673132183908046,
+      "grains_wholly_in_region": 33,
+      "wholly_in_region_lost": 13,
+      "grains_truncated_by_region": 27,
+      "truncated_lost": 13,
+      "accepted_wrong_rate": 0.026056338028169014,
       "voxels_in_lost_grains": 608,
       "unresolved_in_lost_grains": 579,
       "unresolved_total": 580,
@@ -4601,10 +4682,21 @@
       "accepted_wrong_cross_boundary_like": 37,
       "accepted_total": 1420,
       "proj_full_h_voxel_linear": 29.460006934145095,
-      "proj_full_h_every_piece_seeded": 40.62880558215039,
+      "proj_full_h_every_piece_seeded": 33.57168627831273,
       "proj_full_h_seeds_per_grain": 20.863757676836958
     }
   },
-  "projection_note": "full-sample projection (contended, single run): voxel-linear scales the whole region wall by 24570/2000; seeds-per-grain scales the seed time by 497/60 grains and the neighbour plus revisit time by 24570/2000; every-piece-seeded charges 612 grain pieces one seed each at the run's mean seed time (the cost if every unreached piece got a full search; neighbour and revisit time unchanged). Assumes the region is typical.",
-  "timing_label": "contended: 5 concurrent single-process runs on a 12-core machine"
+  "projection_note": "full-sample projection (contended, single run): voxel-linear scales the whole region wall by 24570/2000; seeds-per-grain scales the seed time by 497/60 grains and the neighbour plus revisit time by 24570/2000; every-piece-seeded charges 497 grain pieces (connected under the BFS neighbour radius of 2 sides) one seed each at the run's mean seed time (the cost if every unreached piece got a full search; neighbour and revisit time unchanged). Assumes the region is typical.",
+  "sample_counts": {
+    "n_voxels": 24570,
+    "n_grains": 497,
+    "n_pieces_bfs_radius": 497
+  },
+  "seed_count_oracle": {
+    "predicted_swallowed_grains": 140,
+    "of_grains": 497,
+    "source": "MIGRATION_HISTORY, Phase D seed-cost diagnosis, Seed count bullet"
+  },
+  "all_arms_share_one_seed_order": "every run uses default_rng(0) and shuffles the voxels before any other draw, so the five runs start from the same seed order",
+  "timing_label": "contended: 5 concurrent single-process runs on a 12-core machine, plus 2 A/B processes for about 3 min, load average 3.0 at launch (preflight.json)"
 }

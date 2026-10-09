@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "common"))
 
 import score_bfs as S  # noqa: E402
 from doc_tables import markdown_table, write_tables  # noqa: E402
+from stats import wilson  # noqa: E402
 
 RUNS = ["mc_clean", "cma_clean", "cma_noretry_clean", "mc_realistic_q16", "cma_realistic_q16"]
 PAIRS = [
@@ -27,6 +28,34 @@ PAIRS = [
     ("cma_clean", "cma_noretry_clean"),
     ("mc_realistic_q16", "cma_realistic_q16"),
 ]
+
+
+def sample_counts() -> Dict[str, int]:
+    """Voxels, grains and connected grain pieces of the full sample, read from the sample files.
+
+    Pieces are counted under the BFS neighbour radius (2 sides between left-vertex positions, as
+    `MicFile.get_neighbors` in the BFS), the count the seed-count oracle used (497, MH "Phase D
+    seed-cost diagnosis")."""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+    from scipy.spatial import cKDTree
+
+    ex = ROOT.parent / "Examples" / "Example2.ManyGrains" / "SimInput"
+    grain = np.load(ex / "rand_500grains_1mm_neworient_s0_grainmap.npy")
+    lines = (ex / "rand_500grains_1mm_neworient_s0_grid.mic").read_text().splitlines()
+    pos = np.array([[float(t) for t in ln.split()[:2]] for ln in lines[1:] if ln.strip()])
+    side = json.loads((ROOT / "benchmarks" / "phase_d_pilot" / "region.json").read_text())[
+        "side_length_mm"
+    ]
+    pr = cKDTree(pos).query_pairs(2.0 * side, output_type="ndarray")
+    pr = pr[grain[pr[:, 0]] == grain[pr[:, 1]]]
+    n = len(grain)
+    comp = coo_matrix((np.ones(len(pr)), (pr[:, 0], pr[:, 1])), shape=(n, n))
+    return {
+        "n_voxels": int(n),
+        "n_grains": int(len(np.unique(grain))),
+        "n_pieces_bfs_radius": int(connected_components(comp, directed=False)[0]),
+    }
 
 
 def pct(x: Any) -> Any:
@@ -60,12 +89,33 @@ def main() -> None:
                 acc_wrong[x], acc_wrong[y], vox[x]["grain"]
             )
     diag: Dict[str, Any] = {}
-    n_full, n_grain_full, n_reg = 24570, 497, 2000
+    cnt = sample_counts()
+    n_full, n_grain_full, n_pieces, n_reg = (
+        cnt["n_voxels"],
+        cnt["n_grains"],
+        cnt["n_pieces_bfs_radius"],
+        2000,
+    )
+    full_grain = np.load(
+        ROOT.parent
+        / "Examples"
+        / "Example2.ManyGrains"
+        / "SimInput"
+        / "rand_500grains_1mm_neworient_s0_grainmap.npy"
+    )
+    full_size = np.bincount(full_grain)
     for r, v in vox.items():
         g, src, wrong = v["grain"], v["source"], v["wrong"]
         gs = np.unique(g)
         seeded = set(g[src == "seed"].tolist())
+        rejected_seed = set(g[v["seed_rejected"]].tolist())
         lost = [x for x in gs if not (~wrong[g == x]).any()]
+        found = [x for x in gs if x not in set(lost)]
+        size = {x: int((g == x).sum()) for x in gs}
+        whole = [x for x in gs if size[x] == full_size[x]]
+        trunc = [x for x in gs if size[x] < full_size[x]]
+        bnd = v["boundary"]
+        lo_, hi_ = wilson(len(lost), len(gs))
         unres = src == "unresolved"
         in_lost = np.isin(g, lost)
         c = sc[r]["cost"]
@@ -73,9 +123,23 @@ def main() -> None:
         seed_h = c["wall_seed_s"] / 3600.0
         diag[r] = {
             "n_grains": int(len(gs)),
-            "grains_with_a_seed": len(seeded),
+            "grains_with_an_accepted_seed": len(seeded),
             "lost_grains": len(lost),
-            "lost_grains_with_a_seed": len(set(lost) & seeded),
+            "lost_grains_with_an_accepted_seed": len(set(lost) & seeded),
+            "lost_grains_with_a_rejected_seed": len(set(lost) & rejected_seed),
+            "lost_grains_no_full_search": len(set(lost) - rejected_seed - seeded),
+            "lost_grains_rate": len(lost) / len(gs),
+            "lost_grains_wilson_lo": lo_,
+            "lost_grains_wilson_hi": hi_,
+            "lost_median_region_voxels": float(np.median([size[x] for x in lost])),
+            "found_median_region_voxels": float(np.median([size[x] for x in found])),
+            "lost_boundary_voxel_share": float(bnd[np.isin(g, lost)].mean()),
+            "found_boundary_voxel_share": float(bnd[~np.isin(g, lost)].mean()),
+            "grains_wholly_in_region": len(whole),
+            "wholly_in_region_lost": len(set(whole) & set(lost)),
+            "grains_truncated_by_region": len(trunc),
+            "truncated_lost": len(set(trunc) & set(lost)),
+            "accepted_wrong_rate": float(acc_wrong[r].sum() / max((~unres).sum(), 1)),
             "voxels_in_lost_grains": int(in_lost.sum()),
             "unresolved_in_lost_grains": int((unres & in_lost).sum()),
             "unresolved_total": int(unres.sum()),
@@ -83,7 +147,7 @@ def main() -> None:
             "accepted_wrong_cross_boundary_like": int((acc_wrong[r] & v["cross"]).sum()),
             "accepted_total": int((~unres).sum()),
             "proj_full_h_voxel_linear": sc[r]["cost"]["wall_total_s"] / 3600.0 * n_full / n_reg,
-            "proj_full_h_every_piece_seeded": 612 * c["wall_per_seed_s"] / 3600.0
+            "proj_full_h_every_piece_seeded": n_pieces * c["wall_per_seed_s"] / 3600.0
             + nb_rev_h * n_full / n_reg,
             "proj_full_h_seeds_per_grain": seed_h * n_grain_full / len(gs)
             + nb_rev_h * n_full / n_reg,
@@ -96,13 +160,22 @@ def main() -> None:
         "diagnostics": diag,
         "projection_note": (
             "full-sample projection (contended, single run): voxel-linear scales the whole "
-            "region wall by 24570/2000; seeds-per-grain scales the seed time by 497/60 grains "
-            "and the neighbour plus revisit time by 24570/2000; every-piece-seeded charges "
-            "612 grain pieces one seed each at the run's mean seed time (the cost if every "
-            "unreached piece got a full search; neighbour and revisit time unchanged). "
+            f"region wall by {n_full}/{n_reg}; seeds-per-grain scales the seed time by "
+            f"{n_grain_full}/60 grains and the neighbour plus revisit time by {n_full}/{n_reg}; "
+            f"every-piece-seeded charges {n_pieces} grain pieces (connected under the BFS "
+            "neighbour radius of 2 sides) one seed each at the run's mean seed time (the cost if "
+            "every unreached piece got a full search; neighbour and revisit time unchanged). "
             "Assumes the region is typical."
         ),
-        "timing_label": "contended: 5 concurrent single-process runs on a 12-core machine",
+        "sample_counts": cnt,
+        "seed_count_oracle": {
+            "predicted_swallowed_grains": 140,
+            "of_grains": 497,
+            "source": "MIGRATION_HISTORY, Phase D seed-cost diagnosis, Seed count bullet",
+        },
+        "all_arms_share_one_seed_order": "every run uses default_rng(0) and shuffles the voxels "
+        "before any other draw, so the five runs start from the same seed order",
+        "timing_label": sc[next(iter(sc))]["cost"]["timing_label"],
     }
     (Path(a.out) / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
 
@@ -121,7 +194,7 @@ def main() -> None:
             "found": s["grains"]["found"],
             "partial": s["grains"]["partial"],
             "lost": s["grains"]["lost"],
-            "frag": s["grains"]["fragmented"],
+            "frag": s["grains"]["fragmented_found"],
             "wall_h": s["cost"]["wall_total_s"] / 3600.0,
         }
 
@@ -151,6 +224,7 @@ def main() -> None:
         .replace("| median_right |", "| median right err (deg) |")
         .replace("| unres |", "| unresolved |")
         .replace("| wall_h |", "| wall (h, contended) |")
+        .replace("| frag |", "| fragmented (found grains) |")
     )
 
     def split_rows(key_a: str, key_b: str) -> List[Dict[str, Any]]:
@@ -286,7 +360,7 @@ def main() -> None:
     t7 = markdown_table(
         [{"pair": k, **{kk: v for kk, v in d.items()}} for k, d in pairs.items()],
         ["pair", "wrong_a", "wrong_b", "n_clusters", "n_clusters_differing", "p"],
-        {"p": ".4f"},
+        {"p": ".3g"},
     )
     d_rows = [{"run": r, **d} for r, d in diag.items()]
     t8 = markdown_table(
@@ -294,9 +368,11 @@ def main() -> None:
         [
             "run",
             "n_grains",
-            "grains_with_a_seed",
+            "grains_with_an_accepted_seed",
             "lost_grains",
-            "lost_grains_with_a_seed",
+            "lost_grains_no_full_search",
+            "lost_grains_with_a_rejected_seed",
+            "lost_grains_with_an_accepted_seed",
             "voxels_in_lost_grains",
             "unresolved_in_lost_grains",
             "unresolved_total",
@@ -304,6 +380,34 @@ def main() -> None:
             "accepted_wrong",
             "accepted_wrong_cross_boundary_like",
         ],
+    )
+    t11 = markdown_table(
+        d_rows,
+        [
+            "run",
+            "lost_grains_rate",
+            "lost_grains_wilson_lo",
+            "lost_grains_wilson_hi",
+            "lost_median_region_voxels",
+            "found_median_region_voxels",
+            "lost_boundary_voxel_share",
+            "found_boundary_voxel_share",
+            "grains_wholly_in_region",
+            "wholly_in_region_lost",
+            "grains_truncated_by_region",
+            "truncated_lost",
+            "accepted_wrong_rate",
+        ],
+        {
+            "lost_grains_rate": ".3f",
+            "lost_grains_wilson_lo": ".3f",
+            "lost_grains_wilson_hi": ".3f",
+            "lost_median_region_voxels": ".1f",
+            "found_median_region_voxels": ".1f",
+            "lost_boundary_voxel_share": ".3f",
+            "found_boundary_voxel_share": ".3f",
+            "accepted_wrong_rate": ".4f",
+        },
     )
     t9 = markdown_table(
         [{"run": r, **d} for r, d in diag.items()],
@@ -322,7 +426,7 @@ def main() -> None:
     t10 = markdown_table(
         [{"pair": k, **d} for k, d in pairs_acc.items()],
         ["pair", "wrong_a", "wrong_b", "n_clusters", "n_clusters_differing", "p"],
-        {"p": ".4f"},
+        {"p": ".3g"},
     )
     write_tables(
         Path(a.out) / "tables.md",
@@ -335,6 +439,7 @@ def main() -> None:
             "phase_d_pilot_unresolved": t6,
             "phase_d_pilot_pairs": t7,
             "phase_d_pilot_diag": t8,
+            "phase_d_pilot_lost_grains": t11,
             "phase_d_pilot_projection": t9,
             "phase_d_pilot_pairs_accepted": t10,
         },

@@ -11,10 +11,13 @@ Usage (from icenine_py/):
 
 import os
 
-# One thread per process (set before numpy / torch are imported). A/B on 2026-10-08 (seed
-# reconstruct_voxel and 30 local fits, with the 5 pilot runs going): 178.8 s and 0.379 s per local
-# fit with torch's default 8 threads and with 1 thread, so the setting does not change the speed;
-# it is kept so that the full runs cannot oversubscribe the machine.
+# One thread per process (set before numpy / torch are imported). NOTE: the five pilot runs
+# (benchmarks/phase_d_pilot) were launched BEFORE this header existed, so they ran with torch's
+# default 8 threads (and the launcher without the env settings); run.json of later runs records
+# `torch_threads`. A contended A/B on 2026-10-08 (the two arms ran at the same time as each other
+# and as the 5 pilot runs; ab_threads.json) found no detectable difference, 178.8 s per seed
+# voxel and 0.379 s per local fit for both; their agreement to 0.001 s is unexplained. The setting
+# is kept so that the full runs cannot oversubscribe the machine.
 for _k in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ[_k] = "1"
 
@@ -43,6 +46,10 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     ap.add_argument("--max-voxels", type=int, default=None)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument(
+        "--timing-label",
+        default="contended: other jobs on the machine (state the actual number of concurrent runs)",
+    )
     a = ap.parse_args()
     out = Path(a.out).resolve() / f"{a.arm}_{a.variant}"
     out.mkdir(parents=True, exist_ok=True)
@@ -88,7 +95,8 @@ def main() -> None:
         "bfs_revisit_max": p.bfs_revisit_max,
         "wall_total_s": wall,
         "setup_s": t_setup,
-        "timing_label": "contended (up to 6 concurrent single-process runs on a 12-core machine)",
+        "timing_label": a.timing_label,
+        "torch_threads": torch.get_num_threads(),
         "stats": bfs.stats,
     }
     (out / "run.json").write_text(json.dumps(info, indent=2, default=float) + "\n")

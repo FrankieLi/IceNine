@@ -101,3 +101,33 @@ def test_select_disc_and_boundary_flags() -> None:
     grain = (cent[:, 0] >= 0.05).astype(int)  # two halves
     flag = MR.boundary_flags(cent, grain, side=0.01)
     assert flag.reshape(10, 10)[4:6].all() and not flag.reshape(10, 10)[:3].any()
+
+
+def test_clustered_paired_p_exact_for_up_to_20_clusters_and_random_beyond() -> None:
+    # 19 differing grains all in the same direction: exact p = 2 / 2^19
+    grain = np.repeat(np.arange(19), 2)
+    a = np.zeros(38, dtype=bool)
+    b = np.zeros(38, dtype=bool)
+    b[::2] = True
+    r = S.clustered_paired_p(a, b, grain)
+    assert r["exact"] and r["p"] == pytest.approx(2 / 2**19)
+    # 24 differing grains: the Monte-Carlo branch, floor (1 + hits) / (1 + n_perm)
+    grain = np.repeat(np.arange(24), 2)
+    a = np.zeros(48, dtype=bool)
+    b = np.zeros(48, dtype=bool)
+    b[::2] = True
+    r = S.clustered_paired_p(a, b, grain, n_perm=2000)
+    assert "exact" not in r and r["p"] == pytest.approx(1 / 2001)
+    # balanced differences give a large p in the random branch too
+    b[::4] = False
+    a[::4] = True
+    assert S.clustered_paired_p(a, b, grain, n_perm=2000)["p"] > 0.5
+
+
+def test_grain_status_reports_fragmented_among_found() -> None:
+    qa, qb = _q(10, 20, 30), _q(60, 70, 80)
+    grain = np.array([0] * 4 + [1] * 4)
+    q = np.stack([qa, qa, qa, qb] + [qb] * 4)  # grain 0 found + fragmented; grain 1 lost
+    err = np.array([0, 0, 0, 9, 9, 9, 9, 9], dtype=float)
+    st = S.grain_status(err, grain, q, SYM)
+    assert st["fragmented"] == 1 and st["fragmented_found"] == 1 and st["lost"] == 1

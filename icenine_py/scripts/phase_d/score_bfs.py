@@ -93,7 +93,8 @@ def clustered_paired_p(
     """Two-sided sign-flip test on per-cluster differences (wrong_a - wrong_b summed per grain).
 
     Voxels of one grain are not independent, so the unit is the grain. Exact enumeration when
-    there are at most 16 non-zero clusters, else n_perm random sign flips (p = (1+hits)/(1+n))."""
+    there are at most 20 non-zero clusters (2^20 patterns, done in chunks), else n_perm random
+    sign flips (p = (1+hits)/(1+n), so its floor is 1/(1+n_perm))."""
     wa, wb = np.asarray(wrong_a, dtype=float), np.asarray(wrong_b, dtype=float)
     ids, inv = np.unique(cluster, return_inverse=True)
     d = np.bincount(inv, weights=wa - wb, minlength=len(ids))
@@ -108,10 +109,14 @@ def clustered_paired_p(
     if len(nz) == 0:
         out["p"] = 1.0
         return out
-    if len(nz) <= 16:
-        signs = ((np.arange(2 ** len(nz))[:, None] >> np.arange(len(nz))[None, :]) & 1) * 2 - 1
-        stat = np.abs(signs @ nz)
-        out["p"] = float((stat >= obs - 1e-9).mean())
+    if len(nz) <= 20:
+        hits, total = 0, 2 ** len(nz)
+        for lo in range(0, total, 1 << 16):
+            ids_ = np.arange(lo, min(lo + (1 << 16), total))
+            signs = ((ids_[:, None] >> np.arange(len(nz))[None, :]) & 1) * 2 - 1
+            hits += int((np.abs(signs @ nz) >= obs - 1e-9).sum())
+        out["p"] = hits / total
+        out["exact"] = True
     else:
         rng = np.random.default_rng(seed)
         signs = rng.integers(0, 2, size=(n_perm, len(nz))) * 2 - 1
@@ -132,6 +137,7 @@ def grain_status(
     found = partial = lost = frag = 0
     lost_ids: List[int] = []
     frag_ids: List[int] = []
+    found_ids: List[int] = []
     for g in np.unique(grain):
         m = grain == g
         n_right = int((err[m] <= thr).sum())
@@ -140,6 +146,7 @@ def grain_status(
             lost_ids.append(int(g))
         elif n_right * 2 > m.sum():
             found += 1
+            found_ids.append(int(g))
         else:
             partial += 1
         q = quats[m]
@@ -155,6 +162,7 @@ def grain_status(
         "partial": partial,
         "lost": lost,
         "fragmented": frag,
+        "fragmented_found": len(set(frag_ids) & set(found_ids)),
         "lost_ids": lost_ids,
         "fragmented_ids": frag_ids,
     }
@@ -201,7 +209,7 @@ def score_run(run_dir: Path) -> Dict[str, Any]:
     ex = ROOT.parent / "Examples" / "Example2.ManyGrains" / "SimInput"
     idx = np.load(bench / "region_index.npy")
     region = json.loads((bench / "region.json").read_text())
-    side = region["side_length_m"]
+    side = region["side_length_mm"]
     truth = MicFile.read(str(ex / "rand_500grains_1mm_neworient_s0.mic"))
     full_grain = np.load(ex / "rand_500grains_1mm_neworient_s0_grainmap.npy")
     recon = MicFile.read(str(run_dir / "recon.mic"))
@@ -226,7 +234,7 @@ def score_run(run_dir: Path) -> Dict[str, Any]:
     cent, _ = centroids_from_lines(raw, float(lines[0].split()[0]))
     bnd = boundary_flags(cent, full_grain, side)[idx]
     r = np.hypot(cent[idx, 0], cent[idx, 1])
-    near = r < region["near_axis_r_m"]
+    near = r < region["near_axis_r_mm"]
 
     n = len(idx)
     visited = np.array([i in records for i in range(n)])
@@ -298,6 +306,9 @@ def score_run(run_dir: Path) -> Dict[str, Any]:
     }
     np.savez(
         run_dir / "voxels.npz",
+        seed_rejected=np.array(
+            [bool(records[i]["seed_rejected"]) if i in records else False for i in range(n)]
+        ),
         region_pos=idx,
         err_deg=err,
         grain=grain,
@@ -316,9 +327,15 @@ def score_run(run_dir: Path) -> Dict[str, Any]:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", required=True)
+    ap.add_argument(
+        "--timing-label",
+        default="contended: 5 concurrent single-process runs on a 12-core machine, plus 2 A/B "
+        "processes for about 3 min, load average 3.0 at launch (preflight.json)",
+    )
     a = ap.parse_args()
     run_dir = Path(a.run)
     s = score_run(run_dir)
+    s["cost"]["timing_label"] = a.timing_label
     (run_dir / "score.json").write_text(json.dumps(s, indent=2) + "\n")
     print(json.dumps({k: s[k] for k in ("run", "n_scored", "overall", "grains")}, indent=2))
 

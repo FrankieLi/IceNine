@@ -1101,7 +1101,7 @@ class BFSReconstruction:
     - cma mode: neighbours use ``cma_neighbor_max_evals``; a rejected neighbour is retried once
       from the same inherited start with ``cma_retry_sigma0_deg`` (0 = off).
     - ``bfs_revisit_refit``: an expansion that reaches a voxel left REFIT fits it again from the
-      expanding voxel's orientation (see ``_expand``). Reproduces the multi-client behaviour of
+      expanding voxel's orientation (see ``_expand``). Approximates the multi-client behaviour of
       the C++ LazyBFS run.
     - ``bfs_restart_pass``: after the BFS, FITTED voxels bordering REFIT voxels push their
       orientation onto them (the C++ restart semantics, see ``_restart_pass``).
@@ -1114,6 +1114,11 @@ class BFSReconstruction:
     single client (this class) a REFIT voxel is never revisited unless ``bfs_revisit_refit``.
     C++ LazyBFSClient::Refit is the RESTART_FIT path (a partial result, every stored voxel is a
     centre); it is not part of a normal run.
+
+    Seed rule (the same as C++, where only the server picks seeds): a seed is drawn only from
+    NOT_VISITED voxels, so a grain whose voxels were all reached and rejected by neighbouring
+    grains' expansions gets no full search, in one client or many (several clients could reach it
+    only through timing, untested).
 
     After reconstruct_sample, ``records`` maps voxel index -> BFSVoxelRecord and ``stats`` holds
     the counters (seeds, retries, revisits, unresolved, evaluations and wall time split by seed /
