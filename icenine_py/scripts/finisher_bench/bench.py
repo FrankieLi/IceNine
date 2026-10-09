@@ -198,8 +198,10 @@ def run_case(
     seed: int,
     r_told_deg: float,
     keys: np.ndarray,
-    gn_R: np.ndarray,
+    gn_R: Any,
     raw_R: Any,
+    names: Any = None,
+    lite: bool = False,
 ) -> Dict[str, np.ndarray]:
     ctx = fs._W.ctx
     rec, lf = fs._W.rec, fs._W.local_fn
@@ -208,13 +210,14 @@ def run_case(
     R_true = np.asarray(vctx.R_true, dtype=np.float64)
     R0 = np.asarray(start, dtype=np.float64)
     methods = make_methods(box, step0, rec.params, math.radians(r_told_deg))
-    nck, nm = len(CKPTS), len(ANYTIME)
+    names = list(names) if names else list(ANYTIME)
+    nck, nm = len(CKPTS), len(names)
     res_R = np.zeros((nm, nck, 3, 3))
     res_cost = np.zeros((nm, nck))
     res_used = np.zeros((nm, nck), dtype=np.int64)
     total = np.zeros(nm, dtype=np.int64)
     secs = np.zeros(nm)
-    for mi, name in enumerate(ANYTIME):
+    for mi, name in enumerate(names):
         cc = FO.CountingCost(lf, vctx.vertices, vctx.voxel.phase, MAX_BUDGET, CKPTS)
         n0 = lf.eval_count
         t0 = time.perf_counter()
@@ -240,6 +243,8 @@ def run_case(
     # the Task 1 / T5 result, bit for bit (realistic variant of the T5 cases; NaN elsewhere)
     ref_ok = raw_R is not None and vb.vi == VI_REAL
     out["fin_vs_raw_maxabs"] = np.array(np.abs(R_f - raw_R).max() if ref_ok else np.nan)
+    if lite:  # MC / VM rerun: the default finisher only (no GN windows, no Adam)
+        return out
     out["gn_cost"] = np.array(lf.evaluate(gn_R, vctx.vertices, vctx.voxel.phase).cost)
     ad = run_adam(ctx, vctx, keys, R0, rec.params, box, seed + 104729)
     out.update(
@@ -266,7 +271,11 @@ def task(item: Dict[str, Any]) -> Tuple[int, int, float]:
             j: (item["raw_start"][j] if item["raw_start"] is not None else vb.R_nom0[j])
             for j in dirs
         }
-        est, info, secs = gn_from_starts(ctx, vidx, vb, starts)
+        lite = bool(item.get("lite"))
+        if lite:
+            est, info, secs = {j: starts[j] for j in dirs}, {j: {} for j in dirs}, 0.0
+        else:
+            est, info, secs = gn_from_starts(ctx, vidx, vb, starts)
         for jj, j in enumerate(dirs):
             gn[(vb.vi, jj)] = (est[j], info[j])
             gn_secs[vb.vi, jj] = secs / len(dirs)  # batch time per case
@@ -275,22 +284,25 @@ def task(item: Dict[str, Any]) -> Tuple[int, int, float]:
             fs.attach_images(keys)
             seed = nnrun.b_seed(a, vpos, ri, j, VI_REAL)  # the same stream for both variants
             raw_R = item["raw_R"][j] if item["raw_R"] is not None else None
-            res[(vb.vi, jj)] = run_case(vb, j, starts[j], seed, r_told, keys, est[j], raw_R)
+            res[(vb.vi, jj)] = run_case(
+                vb, j, starts[j], seed, r_told, keys, est[j], raw_R, item.get("methods"), lite
+            )
     out: Dict[str, Any] = dict(
         dirs=np.array(dirs), vidx=np.array(vidx), ri=np.array(ri), kind=np.array(item["kind"]),
-        methods=np.array(ANYTIME), ckpts=np.array(CKPTS), gn_secs=gn_secs,
+        methods=np.array(item.get("methods") or ANYTIME), ckpts=np.array(CKPTS), gn_secs=gn_secs,
     )  # fmt: skip
     for k in res[(0, 0)]:
         out[k] = np.stack(
             [np.stack([res[(vi, jj)][k] for jj in range(len(dirs))]) for vi in range(len(VARIANTS))]
         )  # (variant, case, ...)
-    out["gn_R"] = np.stack(
-        [np.stack([gn[(vi, jj)][0] for jj in range(len(dirs))]) for vi in range(len(VARIANTS))]
-    )
-    for key in ("ok", "n_used", "status", "solve_s"):
-        out["gn_" + key] = np.array(
-            [[gn[(vi, jj)][1][key] for jj in range(len(dirs))] for vi in range(len(VARIANTS))]
+    if not item.get("lite"):
+        out["gn_R"] = np.stack(
+            [np.stack([gn[(vi, jj)][0] for jj in range(len(dirs))]) for vi in range(len(VARIANTS))]
         )
+        for key in ("ok", "n_used", "status", "solve_s"):
+            out["gn_" + key] = np.array(
+                [[gn[(vi, jj)][1][key] for jj in range(len(dirs))] for vi in range(len(VARIANTS))]
+            )
     np.savez(item["path"], **out)
     return vidx, ri, time.time() - t_start
 
@@ -336,6 +348,9 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--n-voxels", type=int, default=0, help="first N sweep voxels (0 = all 50)")
     ap.add_argument("--cache", default="")
+    ap.add_argument(
+        "--methods", default="", help="comma list of ANYTIME methods (MC rerun); implies --lite"
+    )
     args = ap.parse_args()
     import multiprocessing as mp
 
@@ -344,6 +359,11 @@ def main() -> None:
     (cache / "t5_tmp").mkdir(exist_ok=True)
     items, wargs = build_task_items(cache, args.cmd == "pilot", args.n_voxels)
     # longest tasks first
+    if args.methods:  # rerun of the MC / VM rows only, same cases, seeds and streams
+        names = args.methods.split(",")
+        assert all(n in ANYTIME for n in names), names
+        for it in items:
+            it["methods"], it["lite"] = names, True
     items.sort(key=lambda it: -len(it["dirs"]))
     todo = [it for it in items if not Path(it["path"]).exists()]
     n_cases = sum(len(it["dirs"]) for it in items) * len(VARIANTS)

@@ -194,10 +194,17 @@ GOLDEN_LOCAL = (
     np.array([0.006113616625963422, -0.008326472025432697, 0.4981822883419766]),
     0.4524590163934423,
 )
+# Re-recorded twice. (1) After the VarianceMinimizing restart fix (C++ restart semantics,
+# MIGRATION_HISTORY "C++ vs Python variance stage"); before: [-0.058482767583009056,
+# -0.009258290608073556, 0.08004536647020442], cost 0.5508196721311475, 470 evaluations. Over 30
+# seeds the old and new stage give the same error (median 0.13 vs 0.14 deg) and cost (mean 0.303 vs
+# 0.294). (2) After the port of MCOptimizer.optimize to C++ RandomRestartZeroTemp ("C++-faithful MC:
+# reruns"): the FindOptimal MC draws differ; before: [0.05764184647751444, 0.0032931430107475605,
+# -0.13882759611192275], cost 0.5901639344262296, 392 evaluations. One seed of a toy problem.
 GOLDEN_REFINE = (
-    np.array([-0.058482767583009056, -0.009258290608073556, 0.08004536647020442]),
-    0.5508196721311475,
-    470,  # local cost evaluations
+    np.array([-0.00795524046660142, -0.04733991639366214, 0.19163534607486127]),
+    0.47322404371584703,
+    304,  # local cost evaluations
 )
 
 

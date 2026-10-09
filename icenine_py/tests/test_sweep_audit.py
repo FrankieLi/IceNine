@@ -93,16 +93,17 @@ class _Recorder:
 
 
 def test_mc_proposals_match_mcoptimizer_draws() -> None:
-    """With no improvement and no restart, optimize() evaluates start, then n proposals around
-    the start; mc_proposals must reproduce them for the same RNG stream."""
+    """With no improvement and no restart, optimize() evaluates the start, then (the C++ block
+    evaluates its start again) n proposals around the start; mc_proposals must reproduce them for
+    the same RNG stream."""
     R0 = np.eye(3)
     step = math.radians(0.13)
     rec = _Recorder()
     mc = MCOptimizer(rec, None, 0, rng=np.random.default_rng(5))
     mc.optimize(R0, math.radians(0.33), step, 6, 0, 0.0)
     mats, ang = H.mc_proposals(R0, step, 6, np.random.default_rng(5), QuaternionGrid())
-    assert len(rec.mats) == 7
-    np.testing.assert_allclose(np.array(rec.mats[1:]), mats, atol=0, rtol=0)
+    assert len(rec.mats) == 8
+    np.testing.assert_allclose(np.array(rec.mats[2:]), mats, atol=0, rtol=0)
     assert np.all(ang > 0) and np.all(ang < 0.5)
 
 
@@ -116,20 +117,24 @@ def test_corner_angle_ratio_bounds_sampled_proposals() -> None:
 
 
 def test_restart_jump_matches_mcoptimizer_restart() -> None:
-    """A run with a cost that never improves restarts once; its restart orientation must equal
-    q(delta) * q(start) with delta drawn by restart_jump_angles' convention."""
+    """A run with a cost that never improves restarts after its first block; the restart
+    orientation (the next block's start) must equal q(delta) * q(initial) with delta drawn by
+    restart_jump_angles' convention (U(-r, r), r = tan(box)/sqrt(48), about the initial one)."""
     box = math.radians(0.33)
     rec = _Recorder()
     mc = MCOptimizer(rec, None, 0, rng=np.random.default_rng(9))
     n_ergodic = H.min_ergodic(box, math.radians(0.13), 10**6)
     mc.optimize(np.eye(3), box, math.radians(0.13), n_ergodic + 5, 1, 0.0)
-    # evaluations: start, n_ergodic proposals, then the restart point
-    restart_mat = rec.mats[1 + n_ergodic]
+    # evaluations: initial, block start, n_ergodic proposals, then the next block's start = the
+    # restart point
+    restart_mat = rec.mats[2 + n_ergodic]
     ang_opt = math.degrees(np.arccos(np.clip((np.trace(restart_mat) - 1) / 2, -1, 1)))
     # replay the rng: n_ergodic proposals (3 draws each), then the 3 restart draws
     rng = np.random.default_rng(9)
     rng.uniform(size=3 * n_ergodic)
     ang = H.restart_jump_angles(box, 1, rng, QuaternionGrid())[0]
     assert abs(ang_opt - ang) < 1e-6
+    # the jump is smaller than the box (median 0.49 box, corner 0.85 box), unlike the old +-box/2
     big = H.restart_jump_angles(box, 2000, np.random.default_rng(0), QuaternionGrid())
-    assert np.median(big) > 1.5 * math.degrees(box)
+    assert 0.4 * math.degrees(box) < np.median(big) < 0.6 * math.degrees(box)
+    assert big.max() < 0.9 * math.degrees(box)

@@ -93,12 +93,10 @@ def task(item: Tuple[Any, ...]) -> Tuple[int, int, float]:
     box, step = D.final_box(rec)
     p = rec.params
     stored = np.load(
-        Path(path).parent.parent
-        / ("pilot" if "end_pilot" in str(path) else "run")
-        / Path(path).name
+        Path(path).parent.parent / Path(path).parent.name[len("end_") :] / Path(path).name
     )[
         "log"
-    ]  # (variant, case, 10)
+    ]  # (variant, case, 10): the mc_trace.py cache of the same name without the "end_" prefix
     from icenine.orientation_search import QuaternionGrid
 
     grid = QuaternionGrid()
@@ -171,14 +169,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["pilot", "run"])
     ap.add_argument("--workers", type=int, default=10)
+    ap.add_argument("--tag", default="", help="rerun into cache/end_<cmd>_<tag>")
     args = ap.parse_args()
     import multiprocessing as mp
 
-    cache = CACHE_DIR / ("end_" + args.cmd)
+    sfx = f"_{args.tag}" if args.tag else ""
+    cache = CACHE_DIR / ("end_" + args.cmd + sfx)
     cache.mkdir(parents=True, exist_ok=True)
     items, wargs = D.build_items(cache, only_first=2 if args.cmd == "pilot" else 0)
     if args.cmd == "pilot":  # the stored mc_trace pilot cache has the same file names
-        items = [it for it in items if (CACHE_DIR / "pilot" / Path(it[5]).name).exists()]
+        items = [it for it in items if (CACHE_DIR / ("pilot" + sfx) / Path(it[5]).name).exists()]
     todo = [it for it in items if not Path(it[5]).exists()]
     print(
         f"{len(items)} tasks ({len(items) - len(todo)} cached), {args.workers} workers", flush=True

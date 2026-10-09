@@ -33,6 +33,7 @@ import stats as S  # noqa: E402
 
 CACHE = HERE / "cache"
 OUT = ICENINE_PY / "benchmarks" / "cma_finisher"
+RUN = "e0_run"  # --tag T: cache/e0_run_T and benchmarks/cma_finisher/T/ (rerun, old cache kept)
 METHODS = ("mc", "cma")
 N_TIMING_VOXELS = 20  # the first 20 of the 200 voxels (U0 convention)
 
@@ -183,6 +184,65 @@ def summarize(root: Path, items: List[Tuple[Any, ...]]) -> Tuple[Dict[str, Any],
     return summ, tables
 
 
+def compare(old_root: Path, new_root: Path) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    """Before / after the C++-faithful MC and VarianceMinimizing: the same 200 voxels x variants,
+    paired by voxel. Wrong = symmetry-reduced misorientation over C.WRONG_DEG."""
+    items_old, items_new = work_items(old_root), work_items(new_root)
+
+    def tot(d: Dict[str, List[Any]], m: str) -> np.ndarray:
+        return np.asarray(d[f"{m}_evals_global"]) + np.asarray(d[f"{m}_evals_local"])
+
+    d_old, d_new = load(old_root, items_old), load(new_root, items_new)
+    out: Dict[str, Any] = {}
+    rows: List[Dict[str, Any]] = []
+    for var in C.VARIANTS:
+        o, n = d_old[var], d_new[var]
+        assert o["vidx"] == n["vidx"]
+        Rt = np.stack(n["R_true"])
+        label = "realistic" if var == "all" else var
+        res: Dict[str, Any] = {}
+        for m in METHODS:
+            eo = C.err_deg(np.stack(o[f"{m}_R"]), Rt)
+            en = C.err_deg(np.stack(n[f"{m}_R"]), Rt)
+            wo, wn = eo > C.WRONG_DEG, en > C.WRONG_DEG
+            b, c = S.paired_discordant(wn, wo)  # b: wrong only after, c: wrong only before
+            right_both = ~wo & ~wn
+            res[m] = dict(
+                wrong_before=int(wo.sum()), wrong_after=int(wn.sum()), only_after_wrong=b,
+                only_before_wrong=c, mcnemar_p=S.mcnemar_exact(b, c),
+                med_err_right_both_before=float(np.median(eo[right_both])),
+                med_err_right_both_after=float(np.median(en[right_both])),
+                n_right_both=int(right_both.sum()),
+                mean_evals_before=float(np.mean(tot(o, m))),
+                mean_evals_after=float(np.mean(tot(n, m))),
+                mean_local_before=float(np.mean(o[f"{m}_evals_local"])),
+                mean_local_after=float(np.mean(n[f"{m}_evals_local"])),
+                mean_cost_before=float(np.mean(o[f"{m}_cost"])),
+                mean_cost_after=float(np.mean(n[f"{m}_cost"])),
+            )  # fmt: skip
+            lo_b, hi_b = S.wilson(res[m]["wrong_before"], len(eo))
+            lo_a, hi_a = S.wilson(res[m]["wrong_after"], len(eo))
+            rows.append(
+                dict(variant=label, method=m, n=len(eo),
+                     wrong_before=f"{res[m]['wrong_before']}/{len(eo)} [{lo_b:.3f}, {hi_b:.3f}]",
+                     wrong_after=f"{res[m]['wrong_after']}/{len(eo)} [{lo_a:.3f}, {hi_a:.3f}]",
+                     only_after=b, only_before=c, p=res[m]["mcnemar_p"],
+                     med_both_before=res[m]["med_err_right_both_before"],
+                     med_both_after=res[m]["med_err_right_both_after"],
+                     evals_before=res[m]["mean_evals_before"],
+                     evals_after=res[m]["mean_evals_after"])
+            )  # fmt: skip
+        out[var] = res
+    table = doc_tables.markdown_table(
+        rows,
+        ["variant", "method", "n", "wrong_before", "wrong_after", "only_after", "only_before", "p",
+         "med_both_before", "med_both_after", "evals_before", "evals_after"],
+        formats={"p": ".2g", "med_both_before": ".4f", "med_both_after": ".4f",
+                 "evals_before": ".0f", "evals_after": ".0f"},
+    )  # fmt: skip
+    return out, {"e0_before_after": table}
+
+
 def validate_table(v: Dict[str, Any]) -> str:
     rows = []
     for key, label in (
@@ -249,29 +309,42 @@ def timing_summary(items: List[Tuple[Any, ...]]) -> Tuple[Dict[str, Any], str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("cmd", choices=["pilot", "run", "timing", "summary"])
+    ap.add_argument("cmd", choices=["pilot", "run", "timing", "summary", "compare"])
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--tag", default="")
     a = ap.parse_args()
+    global OUT, RUN
+    if a.tag:
+        OUT, RUN = OUT / a.tag, f"e0_run_{a.tag}"
     OUT.mkdir(parents=True, exist_ok=True)
     if a.cmd == "summary":
-        items = work_items(CACHE / "e0_run")
-        summ, tables = summarize(CACHE / "e0_run", items)
+        items = work_items(CACHE / RUN)
+        summ, tables = summarize(CACHE / RUN, items)
         merged: Dict[str, Any] = dict(e0=summ)
         vl = OUT / "validate_lib.json"
         if vl.exists():
             merged["validate_lib"] = json.loads(vl.read_text())
             tables["validate_lib"] = validate_table(merged["validate_lib"])
-        tdir = CACHE / "timing"
-        tit = [it for it in work_items(tdir) if Path(it[3]).exists()]
+        tdir = CACHE / "timing"  # single-worker timing exists for the original run only
+        tit = [it for it in work_items(tdir) if Path(it[3]).exists()] if not a.tag else []
         if tit:
             merged["timing_single_worker"], tables["timing_single_worker"] = timing_summary(tit)
+        if a.tag:  # distinct marker names: sync_doc_tables must not overwrite the Phase C blocks
+            tables = {f"mcf_{k}": v for k, v in tables.items()}
         (OUT / "summary.json").write_text(json.dumps(merged, indent=1))
         doc_tables.write_tables(OUT / "tables.md", tables)
         print(json.dumps(merged, indent=1))
         return
+    if a.cmd == "compare":
+        res, tbl = compare(CACHE / "e0_run", CACHE / RUN)
+        (OUT / "compare.json").write_text(json.dumps(res, indent=1))
+        doc_tables.write_tables(OUT / "tables_compare.md", tbl)
+        print(json.dumps(res, indent=1))
+        return
     if a.cmd == "pilot":
-        root, its = CACHE / "pilot", work_items(CACHE / "pilot", a.limit or 8)
+        pdir = CACHE / (f"pilot_{a.tag}" if a.tag else "pilot")
+        root, its = pdir, work_items(pdir, a.limit or 8)
         its = [it for it in its if not Path(it[3]).exists()]
         t0 = time.time()
         C.run_pool(task, its, a.workers, "pilot")
@@ -280,7 +353,7 @@ def main() -> None:
         print(json.dumps(summ, indent=1))
         return
     if a.cmd == "run":
-        its = [it for it in work_items(CACHE / "e0_run", a.limit) if not Path(it[3]).exists()]
+        its = [it for it in work_items(CACHE / RUN, a.limit) if not Path(it[3]).exists()]
         print(f"{len(its)} tasks, {a.workers} workers", flush=True)
         t0 = time.time()
         C.run_pool(task, its, a.workers, "e0cma")

@@ -55,17 +55,24 @@ def test_traced_mc_matches_mcoptimizer_and_obeys_rules(seed):
     tr = mc.traces[0]
     ev, step, merg, ns = tr["event"], tr["step_deg"], tr["min_erg"], tr["n_since"]
     ran = ev != -1
-    # a restart or exhaustion fires exactly at n_since == min_ergodic
-    rs = (ev == 3) | (ev == 4)
-    assert np.all(ns[rs] == merg[rs])
-    # a global improvement halves the next step
-    for t in np.nonzero(ev == 2)[0]:
-        if t + 1 < len(ev) and ran[t + 1]:
-            assert step[t + 1] == 0.5 * step[t]
-    # a restart resets the step to the initial one
-    for t in np.nonzero(ev == 3)[0]:
-        if ran[t + 1]:
-            assert step[t + 1] == step[0]
     log = mc.mc_logs[0]
     assert int(ran.sum()) == log["steps_run"]
+    # block-end events sit on the last step of a block; blocks have the fixed length min_erg
+    ends = np.nonzero((ev == 2) | (ev == 3) | (ev == 4))[0]
+    assert len(ends) == log["n_blocks"]
+    lens = np.diff(np.concatenate([[-1], ends]))
+    assert np.all(lens[:-1] == merg[0])
+    assert lens[-1] <= merg[0]
+    # a global improvement (successful block) halves the next block's step; a failed block resets
+    # it to the initial step; the successive-failure count is 0 after a success
+    for t in ends:
+        if t + 1 < len(ev) and ran[t + 1]:
+            if ev[t] == 2:
+                assert step[t + 1] == 0.5 * step[t] and ns[t] == 0
+            else:
+                assert step[t + 1] == step[0]
     assert int((ev == 2).sum()) == log["n_accept"]
+    # exhaustion fires only when the successive failures exceed max_restarts (2)
+    for t in np.nonzero(ev == 4)[0]:
+        assert ns[t] == kw["max_restarts"] + 1
+    assert log["stop"] != 1 or ev[ends[-1]] == 4

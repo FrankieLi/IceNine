@@ -117,9 +117,21 @@ def test_net_stage_reproduces_sweep_err_angle(worker):
 
 
 @needs_data
-def test_findoptimal_alone_reproduces_stored_experiment_b(worker):
+def test_findoptimal_alone_reproduces_stored_experiment_b(worker, monkeypatch):
     """Our case images, seed and refine_from_candidates reproduce findoptimal_b_raw R_final exactly
-    for 2 cases (one per variant)."""
+    for 2 cases (one per variant). The stored experiment was recorded before the VarianceMinimizing
+    restart fix and before the RandomRestartZeroTemp port of MCOptimizer.optimize, so the frozen
+    pre-fix versions (tests/legacy_variance_stage.py) are patched in."""
+    from icenine.orientation_search import MCOptimizer
+    from legacy_variance_stage import (
+        legacy_mc_optimize,
+        legacy_variance_minimizing_optimize,
+    )
+
+    monkeypatch.setattr(MCOptimizer, "optimize", legacy_mc_optimize)
+    monkeypatch.setattr(
+        MCOptimizer, "variance_minimizing_optimize", legacy_variance_minimizing_optimize
+    )
     nh, sweep = worker
     ctx = nh.fs._W.ctx
     b = np.load(SWEEP / "findoptimal_b_raw.npz")

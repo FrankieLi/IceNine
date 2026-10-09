@@ -1,0 +1,213 @@
+{
+ "voxel": 15901,
+ "images": "full",
+ "variant": "clean",
+ "tag": "q_cap2k",
+ "seed": 1,
+ "opts": [],
+ "quiet_preflight": true,
+ "preflight": {
+  "timestamp": "2026-10-08T08:59:41",
+  "host": "newt.local",
+  "loadavg": [
+   1.16064453125,
+   1.17333984375,
+   1.16455078125
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": []
+ },
+ "label": "single-process",
+ "wall_s": 157.359665625,
+ "evals_total": 311960,
+ "eval_time_s": 148.02068532200212,
+ "mean_us_per_eval": 474.4861050198811,
+ "err_deg": 0.04240996131220613,
+ "err_before_variance": 0.04240996131220613,
+ "varcap": 2000,
+ "topk0": 0,
+ "topk": 0,
+ "cost_final": 0.053030303030303205,
+ "hit_ratio_final": 1.0,
+ "q_true": 0.9469696969696968,
+ "hit_true": 1.0,
+ "find_optimal": {
+  "winner_index": 0,
+  "n_evaluated": 1,
+  "n_candidates": 344,
+  "converged": true
+ },
+ "levels": [
+  {
+   "level": 0,
+   "n_fz": 4886,
+   "n_local": 9,
+   "n_returned": 10190,
+   "n_after_cap": 10190,
+   "discrete_evals": 79241,
+   "discrete_s": 37.10631,
+   "n_recip": 26,
+   "diameter_deg": 5.0,
+   "n_kept": 2547
+  },
+  {
+   "level": 1,
+   "n_fz": 2547,
+   "n_local": 9,
+   "n_returned": 3407,
+   "n_after_cap": 3407,
+   "discrete_evals": 45060,
+   "discrete_s": 21.76266262499999,
+   "n_recip": 50,
+   "diameter_deg": 3.3333333333333335,
+   "n_kept": 851
+  },
+  {
+   "level": 2,
+   "n_fz": 851,
+   "n_local": 9,
+   "n_returned": 1076,
+   "n_after_cap": 1076,
+   "discrete_evals": 15228,
+   "discrete_s": 7.471057207999991,
+   "n_recip": 64,
+   "diameter_deg": 2.2222222222222223,
+   "n_kept": 269
+  },
+  {
+   "level": 3,
+   "n_fz": 269,
+   "n_local": 9,
+   "n_returned": 344,
+   "n_after_cap": 344,
+   "discrete_evals": 4841,
+   "discrete_s": 2.5263563329999954,
+   "n_recip": 112,
+   "diameter_deg": 1.4814814814814814,
+   "n_kept": 86
+  }
+ ],
+ "calls": [
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.10649466699999266,
+   "cost": 0.053030303030303205,
+   "hit_ratio": 1.0,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "variance",
+   "quick": false,
+   "evals": 2201,
+   "s": 1.145590249999998,
+   "cost": 0.053030303030303205,
+   "hit_ratio": NaN,
+   "ended_by": "variance"
+  }
+ ],
+ "by_phase": {
+  "discrete_L0|pr3": {
+   "n": 43974,
+   "passed": 35267,
+   "t": 16.454260159999833,
+   "mean_us": 374.18156547050154
+  },
+  "discrete_L0|pr0": {
+   "n": 35267,
+   "passed": 32414,
+   "t": 17.650343204000052,
+   "mean_us": 500.4775910624678
+  },
+  "quick_L0|pr0": {
+   "n": 112090,
+   "passed": 108021,
+   "t": 56.255010814000485,
+   "mean_us": 501.8735909893879
+  },
+  "discrete_L1|pr3": {
+   "n": 22923,
+   "passed": 22137,
+   "t": 9.47648922300094,
+   "mean_us": 413.4052795446032
+  },
+  "discrete_L1|pr0": {
+   "n": 22137,
+   "passed": 20520,
+   "t": 11.023615790999585,
+   "mean_us": 497.9724348827567
+  },
+  "quick_L1|pr0": {
+   "n": 37477,
+   "passed": 37022,
+   "t": 18.77298184100087,
+   "mean_us": 500.920080075803
+  },
+  "discrete_L2|pr3": {
+   "n": 7659,
+   "passed": 7569,
+   "t": 3.314194514000093,
+   "mean_us": 432.7189599164503
+  },
+  "discrete_L2|pr0": {
+   "n": 7569,
+   "passed": 7168,
+   "t": 3.739735960000303,
+   "mean_us": 494.08587131725494
+  },
+  "quick_L2|pr0": {
+   "n": 11836,
+   "passed": 11811,
+   "t": 5.869640777001024,
+   "mean_us": 495.91422583651774
+  },
+  "discrete_L3|pr3": {
+   "n": 2421,
+   "passed": 2420,
+   "t": 1.21298707299988,
+   "mean_us": 501.02729161498553
+  },
+  "discrete_L3|pr0": {
+   "n": 2420,
+   "passed": 2349,
+   "t": 1.1797937470005309,
+   "mean_us": 487.51807727294664
+  },
+  "quick_L3|pr0": {
+   "n": 3784,
+   "passed": 3783,
+   "t": 1.8860509409998087,
+   "mean_us": 498.42783853060484
+  },
+  "find|pr0": {
+   "n": 201,
+   "passed": 201,
+   "t": 0.10106563099989785,
+   "mean_us": 502.81408457660626
+  },
+  "variance|pr0": {
+   "n": 2201,
+   "passed": 2201,
+   "t": 1.0839943959988148,
+   "mean_us": 492.5008614260858
+  },
+  "final|pr0": {
+   "n": 1,
+   "passed": 1,
+   "t": 0.0005212500000197906,
+   "mean_us": 521.2500000197906
+  }
+ },
+ "n_quick_mc": 15017,
+ "n_find": 1,
+ "find_evals": 201,
+ "quick_evals": 165187,
+ "variance_evals": 2201,
+ "c_ext": true,
+ "calls_note": "quick-MC calls omitted (n_quick_mc, quick_evals give the totals; all ended at the 10-step cap)"
+}

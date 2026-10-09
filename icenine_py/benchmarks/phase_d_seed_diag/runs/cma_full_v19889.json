@@ -1,0 +1,195 @@
+{
+ "voxel": 19889,
+ "images": "full",
+ "variant": "clean",
+ "tag": "cma",
+ "seed": 1,
+ "opts": [
+  "local_optimizer=cma"
+ ],
+ "quiet_preflight": false,
+ "preflight": {
+  "timestamp": "2026-10-08T01:05:12",
+  "host": "newt.local",
+  "loadavg": [
+   4.16162109375,
+   4.1044921875,
+   3.58837890625
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 21849,
+    "cpu": 100.0,
+    "command": "../../IceNine"
+   },
+   {
+    "pid": 21926,
+    "cpu": 99.1,
+    "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+   },
+   {
+    "pid": 21947,
+    "cpu": 100.0,
+    "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+   }
+  ],
+  "not_quiet": "machine not quiet for timing: 1-min load 4.16 > 1.5; busy process pid 21849 (100% CPU): ../../IceNine; busy process pid 21926 (99% CPU): /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python; busy process pid 21947 (100% CPU)"
+ },
+ "label": "single-process, contended",
+ "wall_s": 168.12317812499998,
+ "evals_total": 312848,
+ "eval_time_s": 157.73808216099778,
+ "mean_us_per_eval": 504.20038536604926,
+ "err_deg": 0.03356827454227796,
+ "err_before_variance": null,
+ "varcap": 0,
+ "topk0": 0,
+ "topk": 0,
+ "cost_final": 0.07971014492753614,
+ "hit_ratio_final": 1.0,
+ "q_true": 0.9202898550724639,
+ "hit_true": 1.0,
+ "find_optimal": {
+  "winner_index": 0,
+  "n_evaluated": 1,
+  "n_candidates": 334,
+  "converged": true
+ },
+ "levels": [
+  {
+   "level": 0,
+   "n_fz": 4886,
+   "n_local": 9,
+   "n_returned": 10308,
+   "n_after_cap": 10308,
+   "discrete_evals": 78663,
+   "discrete_s": 39.342369792,
+   "n_recip": 26,
+   "diameter_deg": 5.0,
+   "n_kept": 2577
+  },
+  {
+   "level": 1,
+   "n_fz": 2577,
+   "n_local": 9,
+   "n_returned": 3479,
+   "n_after_cap": 3479,
+   "discrete_evals": 45435,
+   "discrete_s": 23.315617041999985,
+   "n_recip": 50,
+   "diameter_deg": 3.3333333333333335,
+   "n_kept": 869
+  },
+  {
+   "level": 2,
+   "n_fz": 869,
+   "n_local": 9,
+   "n_returned": 1091,
+   "n_after_cap": 1091,
+   "discrete_evals": 15521,
+   "discrete_s": 8.085192207999995,
+   "n_recip": 64,
+   "diameter_deg": 2.2222222222222223,
+   "n_kept": 272
+  },
+  {
+   "level": 3,
+   "n_fz": 272,
+   "n_local": 9,
+   "n_returned": 334,
+   "n_after_cap": 334,
+   "discrete_evals": 4896,
+   "discrete_s": 2.7101672080000014,
+   "n_recip": 112,
+   "diameter_deg": 1.4814814814814814,
+   "n_kept": 83
+  }
+ ],
+ "calls": [],
+ "by_phase": {
+  "discrete_L0|pr3": {
+   "n": 43974,
+   "passed": 34689,
+   "t": 17.605976408000764,
+   "mean_us": 400.3724111520618
+  },
+  "discrete_L0|pr0": {
+   "n": 34689,
+   "passed": 31236,
+   "t": 18.58789561300042,
+   "mean_us": 535.8440892790343
+  },
+  "quick_L0|pr0": {
+   "n": 113388,
+   "passed": 108111,
+   "t": 60.362315550999014,
+   "mean_us": 532.3518851289291
+  },
+  "discrete_L1|pr3": {
+   "n": 23193,
+   "passed": 22242,
+   "t": 10.19396581199932,
+   "mean_us": 439.5276942180537
+  },
+  "discrete_L1|pr0": {
+   "n": 22242,
+   "passed": 20224,
+   "t": 11.766612121000648,
+   "mean_us": 529.0267116716414
+  },
+  "quick_L1|pr0": {
+   "n": 38269,
+   "passed": 37662,
+   "t": 20.239550175997692,
+   "mean_us": 528.875857116666
+  },
+  "discrete_L2|pr3": {
+   "n": 7821,
+   "passed": 7700,
+   "t": 3.599438627999149,
+   "mean_us": 460.2274169542448
+  },
+  "discrete_L2|pr0": {
+   "n": 7700,
+   "passed": 7165,
+   "t": 4.038326728000698,
+   "mean_us": 524.4580166234672
+  },
+  "quick_L2|pr0": {
+   "n": 12001,
+   "passed": 11960,
+   "t": 6.320180851001766,
+   "mean_us": 526.6378510958891
+  },
+  "discrete_L3|pr3": {
+   "n": 2448,
+   "passed": 2448,
+   "t": 1.297668116999148,
+   "mean_us": 530.0931850486716
+  },
+  "discrete_L3|pr0": {
+   "n": 2448,
+   "passed": 2359,
+   "t": 1.271596797999706,
+   "mean_us": 519.4431364377884
+  },
+  "quick_L3|pr0": {
+   "n": 4675,
+   "passed": 4675,
+   "t": 2.4545553579994532,
+   "mean_us": 525.03857925122
+  }
+ },
+ "n_quick_mc": 15212,
+ "n_find": 0,
+ "find_evals": 0,
+ "quick_evals": 167332,
+ "variance_evals": 0,
+ "c_ext": true,
+ "calls_note": "quick-MC calls omitted (n_quick_mc, quick_evals give the totals; all ended at the 10-step cap)"
+}

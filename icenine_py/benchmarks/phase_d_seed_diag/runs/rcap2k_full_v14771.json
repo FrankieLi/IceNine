@@ -1,0 +1,481 @@
+{
+ "voxel": 14771,
+ "images": "full",
+ "variant": "clean",
+ "tag": "rcap2k",
+ "seed": 1,
+ "opts": [],
+ "quiet_preflight": false,
+ "preflight": {
+  "timestamp": "2026-10-08T01:24:37",
+  "host": "newt.local",
+  "loadavg": [
+   4.41552734375,
+   3.6083984375,
+   3.5595703125
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 22942,
+    "cpu": 99.3,
+    "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+   }
+  ],
+  "not_quiet": "machine not quiet for timing: 1-min load 4.42 > 1.5; busy process pid 22942 (99% CPU): /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+ },
+ "label": "single-process, contended",
+ "wall_s": 173.45519925,
+ "evals_total": 321226,
+ "eval_time_s": 163.2372912560054,
+ "mean_us_per_eval": 508.16961035534297,
+ "err_deg": 0.018167077217713642,
+ "err_before_variance": 0.04427356930841692,
+ "varcap": 2000,
+ "topk0": 0,
+ "topk": 0,
+ "cost_final": 0.06250000000000011,
+ "hit_ratio_final": 1.0,
+ "q_true": 0.9374999999999999,
+ "hit_true": 1.0,
+ "find_optimal": {
+  "winner_index": 0,
+  "n_evaluated": 30,
+  "n_candidates": 342,
+  "converged": false
+ },
+ "levels": [
+  {
+   "level": 0,
+   "n_fz": 4886,
+   "n_local": 9,
+   "n_returned": 10298,
+   "n_after_cap": 10298,
+   "discrete_evals": 79400,
+   "discrete_s": 39.854589125,
+   "n_recip": 26,
+   "diameter_deg": 5.0,
+   "n_kept": 2574
+  },
+  {
+   "level": 1,
+   "n_fz": 2574,
+   "n_local": 9,
+   "n_returned": 3497,
+   "n_after_cap": 3497,
+   "discrete_evals": 45472,
+   "discrete_s": 23.442397416999995,
+   "n_recip": 50,
+   "diameter_deg": 3.3333333333333335,
+   "n_kept": 874
+  },
+  {
+   "level": 2,
+   "n_fz": 874,
+   "n_local": 9,
+   "n_returned": 1113,
+   "n_after_cap": 1113,
+   "discrete_evals": 15633,
+   "discrete_s": 8.222035500000004,
+   "n_recip": 64,
+   "diameter_deg": 2.2222222222222223,
+   "n_kept": 278
+  },
+  {
+   "level": 3,
+   "n_fz": 278,
+   "n_local": 9,
+   "n_returned": 342,
+   "n_after_cap": 342,
+   "discrete_evals": 5004,
+   "discrete_s": 2.7854668749999973,
+   "n_recip": 112,
+   "diameter_deg": 1.4814814814814814,
+   "n_kept": 85
+  }
+ ],
+ "calls": [
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11069129099999486,
+   "cost": 0.07812499999999989,
+   "hit_ratio": 0.9848053181386515,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.1109644580000122,
+   "cost": 0.07812499999999989,
+   "hit_ratio": 0.9849340866290018,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11341020800000479,
+   "cost": 0.16171875000000002,
+   "hit_ratio": 0.8882575757575758,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11336083300000155,
+   "cost": 0.21010044642857129,
+   "hit_ratio": 0.8422535211267606,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11257249999999885,
+   "cost": 0.43279676053113536,
+   "hit_ratio": 0.6333647502356268,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11216300000000956,
+   "cost": 0.36932329822954835,
+   "hit_ratio": 0.7100093545369505,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11177341699999488,
+   "cost": 0.3822896503530332,
+   "hit_ratio": 0.7021484375,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.1117599580000217,
+   "cost": 0.5654296874999999,
+   "hit_ratio": 0.49107981220657276,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11153941599999939,
+   "cost": 0.3646042491515836,
+   "hit_ratio": 0.710172744721689,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 111,
+   "s": 0.06221412499999701,
+   "cost": 0.6930803571428572,
+   "hit_ratio": 0.3240917782026769,
+   "ended_by": "restarts_exhausted"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 110,
+   "s": 0.06106566700000826,
+   "cost": 0.7106209150326799,
+   "hit_ratio": 0.31839847473784555,
+   "ended_by": "restarts_exhausted"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11096212500001457,
+   "cost": 0.7,
+   "hit_ratio": 0.29315068493150687,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11181754200001137,
+   "cost": 0.6316017909356725,
+   "hit_ratio": 0.4266792809839167,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.1111816250000004,
+   "cost": 0.7173913043478262,
+   "hit_ratio": 0.28761061946902655,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11206216700000482,
+   "cost": 0.7265625,
+   "hit_ratio": 0.2837967401725791,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11138137500000767,
+   "cost": 0.7454106280193237,
+   "hit_ratio": 0.2652885443583118,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 116,
+   "s": 0.06368937500002403,
+   "cost": 0.8035714285714285,
+   "hit_ratio": 0.2054655870445344,
+   "ended_by": "restarts_exhausted"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11160208300000818,
+   "cost": 0.8075026721214802,
+   "hit_ratio": 0.20871985157699444,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11340383299997825,
+   "cost": 0.7950549450549451,
+   "hit_ratio": 0.22140896614821592,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11339237499998944,
+   "cost": 0.817347269486307,
+   "hit_ratio": 0.1906474820143885,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11246683399997437,
+   "cost": 0.8249737394957983,
+   "hit_ratio": 0.19830028328611898,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11207320900001605,
+   "cost": 0.8140699894266918,
+   "hit_ratio": 0.20837297811607994,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11257837499999823,
+   "cost": 0.836361501415681,
+   "hit_ratio": 0.18916595012897677,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11195145800002138,
+   "cost": 0.7999230270620645,
+   "hit_ratio": 0.20833333333333334,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.1126070420000076,
+   "cost": 0.8347901146478327,
+   "hit_ratio": 0.20019157088122605,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.14188812500000836,
+   "cost": 0.8571428571428571,
+   "hit_ratio": 0.16079923882017128,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.179615541000004,
+   "cost": 0.8033597663460363,
+   "hit_ratio": 0.22502424830261883,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11301154199998109,
+   "cost": 0.8170021614414997,
+   "hit_ratio": 0.2274024738344434,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 202,
+   "s": 0.11318729200002053,
+   "cost": 0.8689678954849811,
+   "hit_ratio": 0.1416159860990443,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11307637499999146,
+   "cost": 0.8747856212065558,
+   "hit_ratio": 0.13793103448275862,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "variance",
+   "quick": false,
+   "evals": 2201,
+   "s": 1.2216016250000052,
+   "cost": 0.06250000000000011,
+   "hit_ratio": NaN,
+   "ended_by": "variance"
+  }
+ ],
+ "by_phase": {
+  "discrete_L0|pr3": {
+   "n": 43974,
+   "passed": 35426,
+   "t": 17.67475808600014,
+   "mean_us": 401.9365553736331
+  },
+  "discrete_L0|pr0": {
+   "n": 35426,
+   "passed": 32415,
+   "t": 18.98735926699944,
+   "mean_us": 535.9724289222447
+  },
+  "quick_L0|pr0": {
+   "n": 113278,
+   "passed": 109127,
+   "t": 60.704066921002685,
+   "mean_us": 535.885758231984
+  },
+  "discrete_L1|pr3": {
+   "n": 23166,
+   "passed": 22306,
+   "t": 10.250483201999941,
+   "mean_us": 442.4796340326315
+  },
+  "discrete_L1|pr0": {
+   "n": 22306,
+   "passed": 20738,
+   "t": 11.838291782000269,
+   "mean_us": 530.7223070922743
+  },
+  "quick_L1|pr0": {
+   "n": 38467,
+   "passed": 37987,
+   "t": 20.577048148000046,
+   "mean_us": 534.9272921725127
+  },
+  "discrete_L2|pr3": {
+   "n": 7866,
+   "passed": 7767,
+   "t": 3.6536028020028652,
+   "mean_us": 464.48039689840647
+  },
+  "discrete_L2|pr0": {
+   "n": 7767,
+   "passed": 7322,
+   "t": 4.110619560000117,
+   "mean_us": 529.2416067980066
+  },
+  "quick_L2|pr0": {
+   "n": 12243,
+   "passed": 12204,
+   "t": 6.517236163000462,
+   "mean_us": 532.3234634485389
+  },
+  "discrete_L3|pr3": {
+   "n": 2502,
+   "passed": 2502,
+   "t": 1.3369356309999034,
+   "mean_us": 534.3467749799773
+  },
+  "discrete_L3|pr0": {
+   "n": 2502,
+   "passed": 2414,
+   "t": 1.3038750939996362,
+   "mean_us": 521.1331310949785
+  },
+  "quick_L3|pr0": {
+   "n": 3762,
+   "passed": 3761,
+   "t": 1.9845555700006798,
+   "mean_us": 527.5267331208612
+  },
+  "find|pr0": {
+   "n": 5765,
+   "passed": 5765,
+   "t": 3.1413195559996154,
+   "mean_us": 544.8949793581293
+  },
+  "variance|pr0": {
+   "n": 2201,
+   "passed": 2201,
+   "t": 1.156606389999581,
+   "mean_us": 525.4913175827265
+  },
+  "final|pr0": {
+   "n": 1,
+   "passed": 1,
+   "t": 0.0005330840000112858,
+   "mean_us": 533.0840000112858
+  }
+ },
+ "n_quick_mc": 15250,
+ "n_find": 30,
+ "find_evals": 5765,
+ "quick_evals": 167750,
+ "variance_evals": 2201,
+ "c_ext": true,
+ "calls_note": "quick-MC calls omitted (n_quick_mc, quick_evals give the totals; all ended at the 10-step cap)"
+}

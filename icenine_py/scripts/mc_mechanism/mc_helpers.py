@@ -41,8 +41,8 @@ def mc_proposals(
 
 
 def min_ergodic(box: float, step: float, max_mc_steps: int) -> int:
-    """MCOptimizer's restart threshold 2 (box/step)^3 (at least 1)."""
-    return max(1, int(2.0 * (box / step) ** 3)) if step > 0 else max_mc_steps
+    """MCOptimizer's block length nMinErgodicSteps = int(2 (box/step)^3), as C++."""
+    return int(2.0 * (box / step) ** 3) if step > 0 else max_mc_steps
 
 
 def expected_progress(
@@ -95,15 +95,16 @@ def corner_angle_ratio() -> float:
 def restart_jump_angles(
     box_rad: float, n: int, rng: np.random.Generator, grid_gen: Any
 ) -> np.ndarray:
-    """Rotation angles (deg) of n restart jumps, drawn as MCOptimizer.optimize draws them: x, y, z
-    ~ U(-box/2, box/2) passed straight to get_near_identity_point (the inherited C++ convention:
-    no tan/sqrt(12) scaling, unlike the MC proposal)."""
-    half = box_rad / 2.0
+    """Rotation angles (deg) of n restart jumps, drawn as MCOptimizer.optimize draws them (C++
+    RandomRestartZeroTemp): x, y, z ~ U(-r, r) with r = tan(box)/sqrt(48), passed straight to
+    get_near_identity_point (about the INITIAL orientation, so the angle is also the distance
+    from the initial orientation)."""
+    r = math.tan(box_rad) / math.sqrt(48.0)
     ang = np.empty(n)
     for i in range(n):
-        rx = rng.uniform(-half, half)
-        ry = rng.uniform(-half, half)
-        rz = rng.uniform(-half, half)
+        rx = rng.uniform(-r, r)
+        ry = rng.uniform(-r, r)
+        rz = rng.uniform(-r, r)
         dq = grid_gen.get_near_identity_point(rx, ry, rz)
         ang[i] = math.degrees(2.0 * math.acos(min(1.0, abs(float(dq[0])))))
     return ang

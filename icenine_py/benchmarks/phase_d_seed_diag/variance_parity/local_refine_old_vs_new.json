@@ -1,0 +1,3 @@
+{"setup": "ThreeVoxels voxel 0, refine_from_candidates from a 0.2-0.3 deg start (tests/test_cma_optimizer._start), 30 seeds, old = pre-fix variance stage, new = fixed",
+ "old": {"err_median": 0.13261513633911934, "err_mean": 0.19729489962669425, "err_max": 1.0730950401112695, "cost_mean": 0.30316029143897993, "cost_median": 0.2213114754098362, "evals_mean": 392.1},
+ "new": {"err_median": 0.14298735377068328, "err_mean": 0.18888321236406333, "err_max": 0.9050545045502123, "cost_mean": 0.2939253187613843, "cost_median": 0.21024590163934426, "evals_mean": 375.4}}
