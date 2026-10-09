@@ -22,3 +22,16 @@
 | clean | 20 | 19.47 | 19.81 | 1.017 | 1.033 | 49083 | 49619 |
 | realistic | 20 | 21.57 | 22.60 | 1.048 | 1.040 | 52801 | 54669 |
 <!-- /table:timing_single_worker -->
+
+<!-- table:validate_lib -->
+| method | n | median error (deg) | fraction < 0.02 deg (Wilson 95%) | median evals (local_optimization rows) |
+|---|---|---|---|---|
+| start (net x3) | 50 | 0.0690 | 12/50 [0.14, 0.37] | n/a |
+| B3 cma_02, 250 evals | 50 | 0.0034 | 45/50 [0.79, 0.96] | n/a |
+| library CMAOptimizer, 250 evals | 50 | 0.0034 | 45/50 [0.79, 0.96] | n/a |
+| B3 cma_02, 1000 evals | 50 | 0.0025 | 48/50 [0.87, 0.99] | n/a |
+| library CMAOptimizer, 1000 evals | 50 | 0.0025 | 48/50 [0.87, 0.99] | n/a |
+| refine_from_candidates, local_optimizer cma (1000 + final) | 50 | 0.0035 | 45/50 [0.79, 0.96] | n/a |
+| local_optimization, mc (VarianceMinimizing) | 50 | 0.0690 | 12/50 [0.14, 0.37] | 662 |
+| local_optimization, cma | 50 | 0.0028 | 48/50 [0.87, 0.99] | 1001 |
+<!-- /table:validate_lib -->

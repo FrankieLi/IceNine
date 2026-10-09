@@ -3073,6 +3073,8 @@ the pooled wrong rate is slightly above the keep-1/4 upper bound, and 1/8 is cle
 
 ### T5 `finisher-diagnosis`: why the finisher stops above the truth's cost (2026-10-07)
 
+> **Superseded in part (2026-10-08):** T5: the numbers below were recorded with the pre-port Python MC (per-step loop, halving at every improvement, restart about the best) and the pre-fix VarianceMinimizing restart; the finisher it describes no longer exists. See "C++-faithful MC: reruns" below.
+
 **Setup.** `scripts/finisher_diagnosis/diagnose.py run --workers 10` (wall 2852 s, 54 tasks; contended 10-worker run, no
 timing claims are made), `diag_summary.py` builds the tables and `summary.json` (`benchmarks/finisher_diagnosis/`). Cases are the
 realistic ("all") single-voxel cases of the Task 1 pipelines H3 (net x3 start; 200 cases) and H0 (perturbed nominal start;
@@ -3444,6 +3446,8 @@ Columns: q25/q50/q75 of the 3-D RMS scale (deg) over voxels; median frame-only a
   The H3 finisher result is a median 1.86× the scale (q25–q75: 1.09–3.47); 45/200 are below it. H0 is 7.56× (its errors include wrong-basin cases at 2–3°).
 - **Plateau against the scale.** The ε = 0 plateau radius (0.0005–0.001°) is more than an order of magnitude smaller than the scale (0.0125°): the cost reacts to rotations much smaller than the centroid-quantisation scale because it compares exact pixel sets.
 
+> **Superseded in part (2026-10-08):** A3: the continuations (`vm_smallbox`, `mc_smallstep`) and the finisher result they are compared with come from T5, the pre-port Python MC (per-step loop, halving at every improvement, restart about the best) and the pre-fix VarianceMinimizing restart; not re-run. A1 and A2 (the landscape) do not depend on the optimizer. See "C++-faithful MC: reruns" below.
+
 **A3, does the gap matter?**
 
 <!-- table:a3_correlation -->
@@ -3525,6 +3529,8 @@ So the optimizer stops early on a landscape resolvable at that scale. Not tested
   finishers by error at equal budget, and by time.
 
 ### Phase B1/B2 results (2026-10-07, `feature/finisher-mc-study-phase-b12`)
+
+> **Superseded in part (2026-10-08):** B1: the restart rule, the step collapse and the lock-in described the old Python loop, not C++'s; re-run, restarts do fire after a first improvement (87% of improving H3 realistic runs) and the MC output is 0.0211 deg from the truth (was 0.0410). See "C++-faithful MC: reruns" below.
 
 **Headline.** B1 confirms the restart rule as written and shows what it leaves out: no restart fires after a run's first improvement (0/122); every run that exhausts its restarts never improved, and every never-improving run exhausts them (78/78 both ways); 5/122 improving runs restarted before their first improvement. An improving run can no longer reach the truth once its step has collapsed: 113/122 are locked in at some improvement (77/122 by the third), each improvement halving the step while the distance to the truth falls slowly (median 0.1011 to 0.0663 deg from the first to the tenth improvement). B2 finds that the April 2026 sweep's headline "success" is a final error below 1.0 deg from a 1, 2 or 5 deg start, which neither measures nor supports the 0.01-0.03 deg scale FindOptimal works at. All numbers below come from `benchmarks/mc_mechanism/` and `benchmarks/sweep_audit/` (`summary.json`, `tables.md`). Nothing in `icenine/` changed.
 
@@ -3943,6 +3949,8 @@ P(s) is the probability that one proposal of step s lowers the cost at the point
 
 ### Phase B3 results (2026-10-07, `feature/finisher-mc-study-phase-b3`)
 
+> **Superseded in part (2026-10-08):** B3: the rows (i) MC deployed / April, (vi) quarter-box VarianceMinimizing and the default finisher are re-run; the faithful deployed MC ends 0.0175 deg (T5 H3) and 0.0249 deg (sweep) from the truth, the default finisher 0.0168 and 0.0184 deg in 560 and 584 evaluations; CMA-ES and Nelder-Mead still end about 5.6 to 6.5 times closer. See "C++-faithful MC: reruns" below.
+
 **Headline.** On 300 T5 cases and 1000 perturbation-sweep cases (each in a clean and a realistic variant), CMA-ES and Nelder-Mead on the rotation vector end a median 0.0031 to 0.0038 deg from the truth within 250 cost evaluations, where the default finisher (FindOptimal MC + VarianceMinimizing) ends 0.0229 deg (T5 H3) and 0.0357 deg (sweep) away after a median 2629 and 1776 evaluations. MC as deployed and the two MC variants tried here are not the right tool for this stage: the deployed 200-step MC ends 0.0382 deg (T5 H3) and 0.1609 deg (sweep) from the truth, and neither change tried (local restarts, which keeps the halving at each improvement and so tests only the restart rule; a success-rate step rule, run with one untuned setting) closes the gap. CMA-ES (sigma0 0.2 deg) and Nelder-Mead are the two methods that do. One thing is not shown: whether the cost evaluations are the right unit of comparison for the net-window and Adam methods (they are reported in their own units). Everything below comes from `benchmarks/finisher_bench/` (`summary.json`, `tables.md`). Nothing in `icenine/` changed.
 
 **What ran.**
@@ -4266,6 +4274,8 @@ Not picked: sigma0 0.05 (9.7% wrong in T5), the (1+1)-ES and MC variants (they s
 - Sweep starts are within 1 deg and T5 starts within 3 deg; the findings are for local finishing, not for the coarse search.
 
 ### Phase C results (2026-10-07, `feature/finisher-mc-study-phase-c`)
+
+> **Superseded in part (2026-10-08):** Phase C: E0 re-run, `mc` wrong 67 to 40 (clean) and 52 to 25 (realistic) of 200, `cma` 66 to 40 and 44 to 24; the 8-voxel advantage of `cma` in the wrong count is not reproduced (1 voxel, p = 1.0); the precision advantage among right answers stays (0.0021 against 0.0087 deg realistic). The `local_optimization` 47/50 check is unchanged. See "C++-faithful MC: reruns" below.
 
 **Headline.** CMA-ES is now an opt-in local refinement in the reconstruction library: `SearchParameters.local_optimizer = "cma"` (config key `LocalOptimizer cma`) replaces the refinement MC at every call site that refines one start (the FindOptimal MC plus the VarianceMinimizing pass in `refine_from_candidates`, and the VarianceMinimizing call in `local_optimization`, which BFS neighbours use). The default `"mc"` is bit-identical to the code before. On the 200-voxel E0 set (no-start `reconstruct_voxel`, seed 0, per-voxel images), `"cma"` ends a median 0.0019 deg (clean) and 0.0021 deg (realistic) from the truth among its right answers, against 0.0301 and 0.0278 deg for `"mc"`. The wrong (> 1 deg) count is 66/200 against 67/200 in the clean variant and 44/200 against 52/200 in the realistic variant (8 voxels wrong only under `"mc"`, 0 only under `"cma"`, exact McNemar p = 0.0078; clean 1 against 0, p = 1.0). The extra cost is +0.19% (clean) and +3.5% (realistic) mean cost evaluations per voxel, and +1.7% and +4.8% single-worker wall time per no-start `reconstruct_voxel` (20 voxels per variant, one run per method and voxel). That scope matters for BFS: a neighbour refinement (`local_optimization`) costs 1001 evaluations under `"cma"` against a median 662 under `"mc"` (about +51%, from the 50-case check below), so these percentages do not carry over to neighbours. Everything below comes from `benchmarks/cma_finisher/` (`summary.json`, `tables.md`, `validate_lib.json`).
 
@@ -4752,9 +4762,9 @@ Question left open by the seed-cost diagnosis: why Python's VarianceMinimizing s
 - **Why it matters:** C++ restarts land at about 1 to 2 deg from the optimum, on the cost plateau (cost 0.7 to 0.95), where the 10-step run has variance below 0.02^2 in 15 % of the runs, so the stage ends after about 130 runs. Python's narrower restarts land inside the steep part of the basin (cost 0.2 to 0.5), variance above 0.02^2 in 99.9 to 100 % of the runs, the budget grows with every run and the stage does not end.
 - **First divergence** (voxel 15901, started from the FindOptimal winner, cost 0.0530, box 0.329 deg; C++ from a scratch build with debug prints, not committed):
   - C++: radius 0.047, 0.095, 0.190, 0.329, 0.329 deg ...; run costs 0.053, 0.308, 0.539, 0.898, 0.815, 0.924 ...; variance 1.2e-3, 1.6e-2, 4.1e-3, 6.0e-4, 1.3e-3, 4.7e-4; the first run below 0.02^2 is the 27th; the stage ends after 1,330 to 1,720 steps (4 runs; the earlier 16-run reference median was 1,305).
-  - Python before the fix, same start, 4 seeds, 30,000-step cap reached each time: mean run cost 0.38, fraction of runs above the threshold 1.00, 1.00, 1.00, 1.00 (0.9997 for two); after the fix, 8 seeds: 1,110 to 2,060 steps (median about 1,360), fraction above 0.82 to 0.90, mean run cost 0.67 (C++: 0.69, fraction above 0.85 to 0.88).
-- **Cost function check** (160 start orientations printed by the C++ build, same voxel and images): the cost at the FindOptimal winner agrees exactly (0.0530303); at the 156 other orientations (costs 0.1 to 1.0) Python is lower by a mean of 0.013 (max 0.034, Python below C++ in 94 % of them), correlation 0.999. This offset is larger than the 0.006 found on other data and its cause was not tested (it is consistent with a few more coincidental overlaps counted by Python on dense images); it is not what made the variance stage long, since with the restart fixed the Python step counts and cost statistics match C++.
-- **Fix:** the restart now uses +-SubregionRadius (after the update) about the initial orientation, as C++. The behaviour of every other call is unchanged; only `variance_minimizing_optimize` restarts differ. Goldens: the stage's restart draws different numbers, so 9 tests that pin one random draw changed. `GOLDEN` (`test_findoptimal_refactor.py`, 4 tests) and `GOLDEN_REFINE` (`test_cma_optimizer.py`) were re-recorded (the old values are in the comments); `test_logged_mc_matches_mcoptimizer` (3 cases) passes again after the same change in the `LoggedMC` copy in `scripts/finisher_diagnosis/diagnose.py`; `test_findoptimal_alone_reproduces_stored_experiment_b` compares with a stored experiment recorded before the fix, so it runs the frozen pre-fix stage (`tests/legacy_variance_stage.py`, patched in). A new value cannot equal a C++ value (different random generators, and the C++ run is not on this toy problem); the evidence that the new behaviour is the C++ one is the scripted test and the 15901 trace above. As a check that the fix does not cost local accuracy: `refine_from_candidates` on the ThreeVoxels voxel from a 0.2 to 0.3 deg start, 30 seeds, old / new stage: median error 0.133 / 0.143 deg, mean cost 0.303 / 0.294, mean evaluations 392 / 375 (`variance_parity/local_refine_old_vs_new.json`; the toy goldens have costs 0.55 to 0.90 and are single draws). The new test scripts the subregion runs and checks the radius sequence, the restart offsets and the restart base against the C++ semantics (fails on the old code), plus the budget extension and the stopping rule. `scripts/phase_d/seed_diag.py`'s capped variant was updated to the same restart; its recorded `cap2k` and `lean` runs used the old restart.
+  - Python before the fix, same start, 4 seeds, 30,000-step cap reached each time: mean run cost 0.38, fraction of runs above the threshold 1.00, 1.00, 1.00, 1.00 (0.9997 for two); after the fix, 8 seeds: 1,110 to 2,060 steps (median 1,410), fraction above 0.82 to 0.90, mean run cost 0.67 (C++: 0.69, fraction above 0.85 to 0.88).
+- **Cost function check** (160 start orientations printed by the C++ build, same voxel and images): the cost at the FindOptimal winner agrees exactly (0.0530303) and 8 of the 160 agree to 1e-6; over all 160 (costs 0.05 to 1.0) Python minus C++ has a mean of -0.0131, median -0.0124, range -0.0345 to +0.0002 (Python lower in 151, higher in 1; signed statistics in `variance_parity/costs.json`), correlation 0.999. This offset is larger than the 0.006 found on other data and its cause was not tested (it is consistent with a few more coincidental overlaps counted by Python on dense images); it is not what made the variance stage long, since with the restart fixed the Python step counts and cost statistics match C++.
+- **Fix:** the restart now uses +-SubregionRadius (after the update) about the initial orientation, as C++. Only `variance_minimizing_optimize` restarts differ, but that function is called by every refinement that runs the VarianceMinimizing stage: `refine_from_candidates` (the end of `reconstruct_voxel`, so BFS seeds and the E0 `mc` arm), `local_optimization` (BFS neighbours under `local_optimizer mc`), and the T5 / B3 / E0 reference runs of the finisher. Calls that do not run it are unchanged (CMA-ES finisher; the quick MC). The results recorded earlier with the old restart are marked in their sections and re-run in "C++-faithful MC: reruns". Goldens: the stage's restart draws different numbers, so 9 tests that pin one random draw changed. `GOLDEN` (`test_findoptimal_refactor.py`, 4 tests) and `GOLDEN_REFINE` (`test_cma_optimizer.py`) were re-recorded (the old values are in the comments); `test_logged_mc_matches_mcoptimizer` (3 cases) passes again after the same change in the `LoggedMC` copy in `scripts/finisher_diagnosis/diagnose.py`; `test_findoptimal_alone_reproduces_stored_experiment_b` compares with a stored experiment recorded before the fix, so it runs the frozen pre-fix stage (`tests/legacy_variance_stage.py`, patched in). A new value cannot equal a C++ value (different random generators, and the C++ run is not on this toy problem); the evidence that the new behaviour is the C++ one is the scripted test and the 15901 trace above. As a check that the fix does not cost local accuracy: `refine_from_candidates` on the ThreeVoxels voxel from a 0.2 to 0.3 deg start, 30 seeds, old / new stage: median error 0.133 / 0.143 deg, mean cost 0.303 / 0.294, mean evaluations 392 / 375 (`variance_parity/local_refine_old_vs_new.json`; the toy goldens have costs 0.55 to 0.90 and are single draws). The new test scripts the subregion runs and checks the radius sequence, the restart offsets and the restart base against the C++ semantics (fails on the old code), plus the budget extension and the stopping rule. `scripts/phase_d/seed_diag.py`'s capped variant was updated to the same restart; its recorded `cap2k` and `lean` runs used the old restart.
 - **Re-measurement** (6 interior voxels, no-start `reconstruct_voxel`, full clean images, seed 1, single process; 5 of 6 passed `require_quiet`, 15901 was contended; C++ = 4 no-start searches per voxel on the patched build, median; var columns are variance-stage evaluations for Python and steps for C++, which differ by about 10 %):
 
 <!-- table:variance_parity_seeds -->
@@ -4784,6 +4794,238 @@ Question left open by the seed-cost diagnosis: why Python's VarianceMinimizing s
   This replaces the 47 to 68 h of the uncapped estimate by about 15 to 21 h (16 to 23 h from the measured wall times); it equals the variance-cap-2000 estimate, so the cap is no longer needed for the variance stage. The levels-0 cap (lean) would still bring it to about 6 to 9 h; the isolated-image failures and the level-0 rank analysis of the earlier subsection are unaffected, as the coarse stages did not change.
 - **Tests:** full suite after the fix and the golden updates: 805 passed, 34 skipped, 1 deselected (before: 796 passed, 9 failed with the old goldens; new test file 3 tests).
 - **Caveats:** one voxel traced against C++ in detail (15901); the other five compared by step counts only; C++ and Python use different random generators, so the comparison is of distributions (4 to 8 runs each); the cost offset of 0.013 is unexplained; `RandomRestartZeroTemp` (FindOptimal / quick MC) was not compared line by line beyond noticing that its structure differs from the Python `optimize` loop.
+
+
+#### C++-faithful MC: reruns (2026-10-08, `feature/finisher-mc-study-phase-d-pilot`)
+
+`MCOptimizer.optimize` (the quick MC of every coarse level and the FindOptimal MC) was not the C++ `RandomRestartZeroTemp`; it is now, and the results that depended on it are re-run. Together with the VarianceMinimizing restart fix of the previous subsection this changes the earlier MC conclusions in size, and in two cases in direction. Code: `icenine/orientation_search.py`; test `tests/test_mc_cpp_parity.py`; scripts `scripts/phase_d/mc_parity.py`, `scripts/mc_mechanism/summary_faithful.py`, `scripts/finisher_bench/mc_faithful_summary.py`, `--tag mcfaithful` of `scripts/cma_finisher/e0_cma.py` and `validate_lib.py`; data in `benchmarks/phase_d_seed_diag/mc_parity/`, `benchmarks/mc_mechanism/mc_faithful/`, `benchmarks/finisher_bench/mc_faithful/`, `benchmarks/cma_finisher/mcfaithful/`.
+
+**What differed (found by reading `OrientationSearch.cpp:100-135, 297-363`; each point is pinned by the scripted test).**
+- *Blocks.* C++ runs fixed blocks of `nMinErgodicSteps = int(2 (box/step)^3)` trial steps (31 for the finisher's box 0.3292 deg and step 0.1317 deg), each started from the current state at one fixed step (`ZeroTemperatureOptimization`, which also evaluates its start), computed once from the initial step and cut to the remaining budget in the last block. Python ran one step at a time, halved the step at every improvement of the global best, and recomputed the threshold at each halving (31 became 250 after one improvement).
+- *Comparison.* A block ends a failure unless its best cost is strictly below the global best (`>=` fails). On success the global best and the current state become the block result and the step halves; the successive-failure counter is zeroed.
+- *Restart.* After a failed block C++ restarts at `delta * initial orientation`, `delta` from three draws uniform in +-r, `r = tan(box)/sqrt(48)` (x, y, z in that order), resets the step and the block length, and counts one failure. Python restarted about the global best, with offsets uniform in +-box/2 (2.1 times wider).
+- *Stop.* After every block: stop if the global cost is below `MaxConvergenceCost`, then if more than `SuccessiveRestarts` failures in a row. The step budget counts trial steps; each block adds one evaluation for its start.
+- *Library change.* `MCOptimizer.optimize` is the block loop (`_mc_block` is the inner block); `last_run` records the stop reason, blocks, accepts and restarts; the trajectory records one event per block (`mc_accept`, `mc_restart`; `step` is the cumulative step count at the block end). `LoggedMC` and `TracedMC` (the study scripts' subclasses) now use the library loop (no more copies of `optimize`). The VarianceMinimizing code is unchanged by this port.
+
+**Check against C++** (scratch build of `Src/` with debug prints in `RandomRestartZeroTemp`, patch kept as `mc_parity/cpp_debug_patch_mc.py.txt`; not committed; the 6 interior voxels of the seed-cost diagnosis on the Phase D clean full-sample images; three plain C++ runs per voxel and one with block traces for voxel 15901; Python `seed_diag.py run --tag mcport`). The traces are compared by structure and by counts, not call by call: the random generators differ.
+
+<!-- table:mc_parity_calls -->
+| voxel | n_quick_cpp | n_quick_py | q_blk_cpp | q_blk_py | n_find_cpp | n_find_py | q_ev_cpp | q_ev_py | f_ev_cpp | f_ev_py | f_blk_cpp | f_blk_py | f_stop1_cpp | f_stop1_py | f_acc_cpp | f_acc_py |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 11562 | 15149 | 1.00 | 1.00 | 9 | 1 | 12.00 | 12.00 | 192.33 | 193.00 | 6.33 | 6.00 | 0.67 | 1.00 | 1.00 | 1.00 |
+| 17034 | 11609 | 15483 | 1.00 | 1.00 | 3 | 30 | 12.00 | 12.00 | 161.00 | 165.63 | 5.00 | 5.23 | 1.00 | 0.97 | 1.00 | 0.97 |
+| 18558 | 9973 | 15349 | 1.00 | 1.00 | 24 | 1 | 12.00 | 12.00 | 190.38 | 208.00 | 6.25 | 7.00 | 0.62 | 0.00 | 1.00 | 1.00 |
+| 19889 | 10820 | 15341 | 1.00 | 1.00 | 3 | 1 | 12.00 | 12.00 | 161.00 | 193.00 | 5.00 | 6.00 | 1.00 | 1.00 | 1.00 | 1.00 |
+| 22867 | 11549 | 15277 | 1.00 | 1.00 | 3 | 30 | 12.00 | 12.00 | 161.00 | 165.63 | 5.00 | 5.23 | 1.00 | 0.90 | 1.00 | 1.00 |
+| 5242 | 9461 | 15144 | 1.00 | 1.00 | 3 | 30 | 12.00 | 12.00 | 161.00 | 172.90 | 5.00 | 5.57 | 1.00 | 0.77 | 1.00 | 0.90 |
+<!-- /table:mc_parity_calls -->
+
+- **Block structure.** Every quick-MC call is one truncated block of 10 steps, 12 evaluations, in both (C++ 9,461 to 11,609 calls per no-start search, Python 15,144 to 15,483). Every FindOptimal call in the 15901 trace (3 calls, 19 blocks) obeys the rules (block length 31 but the last, step halved after a success, reset after a failure: 0 violations); so do all 93 Python FindOptimal calls checked (6 voxels, 93 calls, 0 violations). The printed restart radius ranges over exactly tan(box)/sqrt(48): 0.000829 (FindOptimal box) to 0.004200 (quick-MC box 1.667 deg) in 3,513 restart draws, equal to the expected values to the printed digits. A FindOptimal call costs 161 to 208 evaluations in both (C++ 161 to 192 mean per voxel; Python 166 to 208) and ends on exhausted restarts in most calls in both; the C++ and Python call counts per voxel differ (C++ 3 to 24 calls over 3 runs, Python 1 to 30): the early exit at hit ratio 1.0 fires in C++ for 17034, 22867 and 5242 (1 call per run) and not in Python (30 calls). Why was not traced.
+- **Evaluations: the MC matches, the totals do not.** Per no-start search the Python total is 1.31 to 1.57 times the C++ one:
+
+<!-- table:mc_parity_evals -->
+| voxel | cpp_evals | py_evals | ratio |
+|---|---|---|---|
+| 15901 | 251,188 | 328,519 | 1.31 |
+| 17034 | 251,673 | 339,561 | 1.35 |
+| 18558 | 219,790 | 329,367 | 1.50 |
+| 19889 | 236,372 | 330,209 | 1.40 |
+| 22867 | 250,852 | 335,687 | 1.34 |
+| 5242 | 209,927 | 330,577 | 1.57 |
+<!-- /table:mc_parity_evals -->
+
+  The difference is in the coarse stage, not in the MC: C++ passes 6,674 to 8,284 candidates (mean 7,674 over the 6 voxels) at level 0 and 9,461 to 11,609 over all levels to the quick MC, Python 10,190 to 10,382 and 15,144 to 15,483, and the stage evaluations split the same way:
+
+<!-- table:mc_parity_stages -->
+| voxel | quick_py | quick_cpp | find_py | find_cpp | rest_py | rest_cpp | total_py | total_cpp | cand_L0_py | cand_L0_cpp | cand_all_py | cand_all_cpp |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 181,788 | 138,744 | 193 | 577 | 146,538 | 111,867 | 328,519 | 251,188 | 10,190 | 8,151 | 15,149 | 11,562 |
+| 17034 | 185,796 | 139,308 | 4,969 | 161 | 148,796 | 112,204 | 339,561 | 251,673 | 10,382 | 8,284 | 15,483 | 11,609 |
+| 18558 | 184,188 | 119,676 | 208 | 1,523 | 144,971 | 98,591 | 329,367 | 219,790 | 10,271 | 7,026 | 15,349 | 9,973 |
+| 19889 | 184,092 | 129,840 | 193 | 161 | 145,924 | 106,371 | 330,209 | 236,372 | 10,308 | 7,673 | 15,341 | 10,820 |
+| 22867 | 183,324 | 138,588 | 4,969 | 161 | 147,394 | 112,103 | 335,687 | 250,852 | 10,236 | 8,234 | 15,277 | 11,549 |
+| 5242 | 181,728 | 113,532 | 5,187 | 161 | 143,662 | 96,234 | 330,577 | 209,927 | 10,213 | 6,674 | 15,144 | 9,461 |
+<!-- /table:mc_parity_stages -->
+
+  Quick MC evaluations per candidate (12), the number of FindOptimal evaluations and the other stages' per-candidate costs match to within the call-count noise; the excess tracks the candidate count (Python / C++ candidates 1.24 to 1.53 at level 0 and 1.31 to 1.60 over all levels; other stage evaluations 1.31 to 1.49). Why C++ passes fewer candidates (its level-0 count varies with the voxel, Python's does not) was not investigated; the clique step printed by C++ ("Num Cliques") is a candidate for the cause (not tested).
+
+**Seed cost** (6 interior voxels, no-start `reconstruct_voxel`, clean full images, seed 1, single process, `require_quiet` passed in 6/6 (voxel 15901 re-run after the first run was contended); "before" = the VarianceMinimizing fix only, previous subsection; C++ from the plain runs, **contended**: the machine ran other jobs):
+
+<!-- table:mc_parity_seed_cost -->
+| voxel | evals_before | evals_after | evals_cpp | wall_before | wall_after | wall_cpp | err_before | err_after |
+|---|---|---|---|---|---|---|---|---|
+| 15901 | 311,366 | 328,519 | 251,188 | 158 | 176 | 21.2 | 0.042 | 0.017 |
+| 17034 | 322,332 | 339,561 | 251,673 | 173 | 179 | 21.0 | 0.030 | 0.028 |
+| 18558 | 310,737 | 329,367 | 219,790 | 161 | 171 | 16.2 | 0.006 | 0.005 |
+| 19889 | 318,580 | 330,209 | 236,372 | 165 | 176 | 18.4 | 0.061 | 0.021 |
+| 22867 | 319,533 | 335,687 | 250,852 | 170 | 174 | 19.1 | 0.066 | 0.026 |
+| 5242 | 313,970 | 330,577 | 209,927 | 169 | 171 | 10.5 | 0.028 | 0.049 |
+| mean | 316,086 | 332,320 | 236,634 | 166 | 174 | 17.7 | 0.039 | 0.024 |
+<!-- /table:mc_parity_seed_cost -->
+
+Evaluations per seed rose by 5% (316,086 to 332,320 mean), all from the one extra evaluation per quick-MC call (12 instead of 11: 15,144 to 15,483 calls) and the FindOptimal blocks; the C++ figure is 236,634. Single-worker wall time per seed is 174 s (171 to 179) against 166 s before and about 18 s for C++ (contended; 10 to 21 s). The gap to C++ is now 1.40 times in evaluations and about 9.8 times in time (500 us per evaluation against 50 us; the cost function, not the MC). Errors against truth are 0.005 to 0.049 deg (mean 0.024; before 0.039). Serial seed-pass estimate (seeds 350 / 395 / 504 from `run_estimates.json`, mean measured wall):
+
+<!-- table:mc_parity_estimate -->
+| basis | per_seed_s | hours_low | hours_mid | hours_high |
+|---|---|---|---|---|
+| measured wall, mean of 6 (quiet) | 174 | 17.0 | 19.1 | 24.4 |
+<!-- /table:mc_parity_estimate -->
+
+This replaces 16.1 / 18.2 / 23.2 h of the previous subsection (the quick MC's extra evaluation per candidate). The coarse stage, not the MC, is the remaining gap to C++.
+
+**Reruns.** Same cases, images, starts and seeds as the originals; new cache directories (`--tag mcfaithful`, `run_mcfaithful`), the old ones untouched. Every rerun used the C++-faithful MC and the VarianceMinimizing restart fix. All 10-worker runs on a loaded machine (**contended**; no timing claim). Cases within a voxel are not independent, so case-level intervals are optimistic; the voxel-clustered sign test is given where paired.
+
+**B1 (T5 cases, 300 x clean / realistic; `mc_trace.py`, `mc_end_curve.py --tag mcfaithful`, 54 tasks each).** The T5 result is no longer reproduced bit for bit (it was stored with the old MC); the faithful finisher result on H3 realistic equals B3's default-finisher row (0.0168 deg). Stop reasons and restarts:
+
+<!-- table:mcf_b1_stop -->
+| set | variant | mc | n | stop_budget | stop_restarts | stop_converged | any_improve | exhausted_given_noimp | noimp_given_exhausted | runs_restart_after_first |
+|---|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | before | 200 | 126 | 74 | 0 | 126/200 (63%, 56-69) | 74/74 (100%, 95-100) | 74/74 (100%, 95-100) | 0/126 (0%, 0-3) |
+| H3 | clean | after | 200 | 64 | 136 | 0 | 135/200 (68%, 61-74) | 65/65 (100%, 94-100) | 65/136 (48%, 40-56) | 112/135 (83%, 76-88) |
+| H3 | realistic | before | 200 | 122 | 78 | 0 | 122/200 (61%, 54-67) | 78/78 (100%, 95-100) | 78/78 (100%, 95-100) | 0/122 (0%, 0-3) |
+| H3 | realistic | after | 200 | 60 | 140 | 0 | 133/200 (66%, 60-73) | 67/67 (100%, 95-100) | 67/140 (48%, 40-56) | 116/133 (87%, 80-92) |
+| H0 | clean | before | 100 | 96 | 4 | 0 | 96/100 (96%, 90-98) | 4/4 (100%, 51-100) | 4/4 (100%, 51-100) | 0/96 (0%, 0-4) |
+| H0 | clean | after | 100 | 60 | 40 | 0 | 95/100 (95%, 89-98) | 5/5 (100%, 57-100) | 5/40 (12%, 5-26) | 74/95 (78%, 69-85) |
+| H0 | realistic | before | 100 | 97 | 3 | 0 | 97/100 (97%, 92-99) | 3/3 (100%, 44-100) | 3/3 (100%, 44-100) | 0/97 (0%, 0-4) |
+| H0 | realistic | after | 100 | 47 | 53 | 0 | 97/100 (97%, 92-99) | 3/3 (100%, 44-100) | 3/53 (6%, 2-15) | 81/97 (84%, 75-90) |
+<!-- /table:mcf_b1_stop -->
+
+- **The B1 rule claims described the old loop and do not carry over.** Restarts now fire after a first improvement: 116/133 improving runs (87%, 80-92) restart at least once afterwards (before 0/122), and exhausted restarts no longer imply "never improved": 67 of the 140 runs that end on exhausted restarts (48%) never improved (before 78/78). The reverse still holds: all 67 never-improving runs end on exhausted restarts. 60/200 runs end on the step budget (before 122/200). The block length stays 31; the step halves once per successful block, not per improvement, so the collapse to 0.00026 deg is gone: a run has a median 2 successful blocks (q25-q75 0-5) against a median 8 improvements.
+- **MC stage output** is a median 0.0211 deg from the truth (before 0.0410), and the whole finisher ends 0.0168 deg away (before 0.0229) after a median 560 evaluations (before 2629), 56% under 0.02 deg (before 44%):
+
+<!-- table:mcf_b1_end -->
+| set | variant | mc | steps_run | n_accept | n_restarts | final_step_deg | mc_out_to_truth | finisher_err | finisher_lt002 | finisher_wrong | finisher_evals |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | before | 110/200/200 | 0/7/9 | 0/0/3 | 0.00026/0.00103/0.13169 | 0.0159/0.0373/0.0923 | 0.0118/0.0224/0.0410 | 91/200 (46%, 39-52) | 2/200 (1%, 0-4) | 1718/2167/2522 |
+| H3 | clean | after | 93/186/200 | 0/2/5 | 2/3/3 | 0.13169/0.13169/0.13169 | 0.0077/0.0177/0.0323 | 0.0073/0.0151/0.0309 | 118/200 (59%, 52-66) | 0/200 (0%, 0-2) | 495/540/584 |
+| H3 | realistic | before | 111/200/200 | 0/8/9 | 0/0/3 | 0.00026/0.00077/0.13169 | 0.0175/0.0410/0.0979 | 0.0133/0.0229/0.0432 | 87/200 (44%, 37-50) | 3/200 (2%, 1-4) | 1818/2629/4042 |
+| H3 | realistic | after | 93/155/200 | 0/2/5 | 2/3/3 | 0.13169/0.13169/0.13169 | 0.0108/0.0211/0.0356 | 0.0089/0.0168/0.0298 | 112/200 (56%, 49-63) | 1/200 (0%, 0-3) | 492/560/639 |
+| H0 | clean | before | 200/200/200 | 4/6/8 | 0/0/0 | 0.00051/0.00206/0.00823 | 0.1127/0.6784/1.4543 | 0.0269/0.0582/0.2444 | 16/100 (16%, 10-24) | 17/100 (17%, 11-26) | 456/929/1944 |
+| H0 | clean | after | 155/200/200 | 2/5/6 | 1/2/3 | 0.02881/0.13169/0.13169 | 0.0214/0.1203/1.3764 | 0.0170/0.0560/0.3165 | 27/100 (27%, 19-36) | 16/100 (16%, 10-24) | 439/538/597 |
+| H0 | realistic | before | 200/200/200 | 4/6/9 | 0/0/0 | 0.00026/0.00206/0.00823 | 0.1079/0.6550/1.4659 | 0.0325/0.0888/0.4092 | 20/100 (20%, 13-29) | 18/100 (18%, 12-27) | 434/616/1875 |
+| H0 | realistic | after | 155/200/200 | 2/4/6 | 1/3/3 | 0.13169/0.13169/0.13169 | 0.0179/0.1070/1.3582 | 0.0147/0.0724/0.4172 | 28/100 (28%, 20-37) | 15/100 (15%, 9-23) | 452/538/619 |
+<!-- /table:mcf_b1_end -->
+
+  `final_step_deg` is the step after the last update, which is the initial step after a failed last block; it is not the step at which the output was found.
+- **Improvement-probability curve** (P that one proposal of the step lowers the cost; median over cases, at the finisher's result and at the truth; it measures the landscape where the output is, so it changes with the output):
+
+<!-- table:mcf_b1_curve -->
+| set | mc | point | s0.001 | s0.002 | s0.005 | s0.02 | s0.05 | s0.1 | best_step |
+|---|---|---|---|---|---|---|---|---|---|
+| H3 | before | result | 0.21 | 0.27 | 0.21 | 0.04 | 0.01 | 0.00 | 0.0020 |
+| H3 | before | truth | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.0010 |
+| H3 | after | result | 0.28 | 0.29 | 0.18 | 0.01 | 0.00 | 0.00 | 0.0020 |
+| H3 | after | truth | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.0010 |
+| H0 | before | result | 0.03 | 0.11 | 0.12 | 0.06 | 0.02 | 0.01 | 0.0050 |
+| H0 | before | truth | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.0010 |
+| H0 | after | result | 0.04 | 0.04 | 0.01 | 0.01 | 0.01 | 0.00 | 0.0020 |
+| H0 | after | truth | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.0010 |
+<!-- /table:mcf_b1_curve -->
+
+<!-- table:mcf_b1_endcurve -->
+| set | mc | n_improving | mc_out_to_truth | last_block_step | P_at_last_block_step | P_at_own_step | best_step | P_at_0p0005 | P_at_0p005 |
+|---|---|---|---|---|---|---|---|---|---|
+| H3 | before | 122 | 0.0705 | 0.00026 | 0.00 | 0.00 | 0.0075 | 0.00 | 0.16 |
+| H3 | after | 133 | 0.0210 | 0.13169 | 0.00 | 0.00 | 0.0020 | 0.11 | 0.07 |
+| H0 | before | 97 | 0.6541 | 0.00103 | 0.00 | 0.00 | 0.1000 | 0.00 | 0.01 |
+| H0 | after | 97 | 0.1030 | 0.13169 | 0.01 | 0.00 | 0.0030 | 0.00 | 0.01 |
+<!-- /table:mcf_b1_endcurve -->
+
+  At the MC stage's own output (improving runs) the probability of an improving proposal is 0.00 at the step the last block ran (median 0.1317 deg, the reset step) and 0.11 at 0.0005 deg, with a best grid step of a median 0.0020 deg (before: output 0.0705 deg away, best step 0.0075 deg). That an improving step exists at 0.0005 to 0.005 deg while the last block runs at 0.1317 deg is consistent with the MC ending in blocks that are too coarse for the remaining distance; a different schedule after the last success was not tried.
+
+**B3 (`bench.py --methods mc_deployed,mc_april,vm_small`, 304 tasks, 2600 case-variants, 2053 s contended).** Realistic variant, cell = median error (deg) / fraction under 0.02 deg / fraction over 1 deg; the Nelder-Mead and CMA-ES rows are the stored B3 results (not rerun); "@ 250" etc. of `mc_april` reads the run at its natural stop (evaluations in the last two columns):
+
+<!-- table:mcf_T5-H3_realistic -->
+| method | before | after | ev_before | ev_after |
+|---|---|---|---|---|
+| (i) MC deployed (200 steps) | 0.0382 / 26% / 3.0% | 0.0175 / 55% / 2.5% | 201 | 193 |
+| (i) MC April sweep (3500 steps) @ 250 | 0.0635 / 18% / 1.0% | 0.0365 / 32% / 0.0% | 59 | 52 |
+| (i) MC April sweep (3500 steps) @ 1000 | 0.0635 / 19% / 1.0% | 0.0365 / 32% / 0.0% | 59 | 52 |
+| (i) MC April sweep (3500 steps) @ 2600 | 0.0635 / 19% / 1.0% | 0.0365 / 32% / 0.0% | 59 | 52 |
+| (vi) VarianceMinimizing, quarter box @ 250 | 0.0245 / 42% / 2.5% | 0.0279 / 40% / 2.5% | 250 | 250 |
+| (vi) VarianceMinimizing, quarter box @ 1000 | 0.0150 / 66% / 1.0% | 0.0176 / 54% / 2.5% | 1000 | 1000 |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 0.0122 / 76% / 1.0% | 0.0153 / 64% / 2.0% | 2600 | 2600 |
+| (vi) VarianceMinimizing, quarter box @ 10000 | 0.0096 / 86% / 0.5% | 0.0130 / 73% / 2.0% | 10000 | 10000 |
+| default finisher (MC + VM) | 0.0229 / 44% / 1.5% | 0.0168 / 56% / 0.5% | 2629 | 560 |
+| (iv) Nelder-Mead @ 250 (unchanged) | 0.0031 / 94% / 2.5% | 0.0031 / 94% / 2.5% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 250 (unchanged) | 0.0031 / 94% / 2.0% | 0.0031 / 94% / 2.0% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 1000 (unchanged) | 0.0022 / 96% / 2.0% | 0.0022 / 96% / 2.0% | 1000 | 1000 |
+<!-- /table:mcf_T5-H3_realistic -->
+
+<!-- table:mcf_SW_realistic -->
+| method | before | after | ev_before | ev_after |
+|---|---|---|---|---|
+| (i) MC deployed (200 steps) | 0.1609 / 11% / 5.8% | 0.0249 / 45% / 0.5% | 201 | 208 |
+| (i) MC April sweep (3500 steps) @ 250 | 0.1154 / 9% / 4.8% | 0.0239 / 45% / 0.2% | 250 | 137 |
+| (i) MC April sweep (3500 steps) @ 1000 | 0.1154 / 9% / 4.7% | 0.0239 / 45% / 0.2% | 1000 | 137 |
+| (i) MC April sweep (3500 steps) @ 2600 | 0.1154 / 9% / 4.7% | 0.0239 / 45% / 0.2% | 2600 | 137 |
+| (vi) VarianceMinimizing, quarter box @ 250 | 0.0731 / 23% / 1.3% | 0.0866 / 19% / 1.3% | 250 | 250 |
+| (vi) VarianceMinimizing, quarter box @ 1000 | 0.0148 / 64% / 0.3% | 0.0311 / 37% / 0.1% | 1000 | 1000 |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 0.0113 / 78% / 0.3% | 0.0229 / 46% / 0.0% | 2600 | 2600 |
+| (vi) VarianceMinimizing, quarter box @ 10000 | 0.0083 / 88% / 0.3% | 0.0158 / 57% / 0.0% | 10000 | 10000 |
+| default finisher (MC + VM) | 0.0357 / 30% / 0.0% | 0.0184 / 52% / 0.0% | 1776 | 584 |
+| (iv) Nelder-Mead @ 250 (unchanged) | 0.0034 / 86% / 3.1% | 0.0034 / 86% / 3.1% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 250 (unchanged) | 0.0038 / 92% / 0.2% | 0.0038 / 92% / 0.2% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 1000 (unchanged) | 0.0025 / 95% / 0.2% | 0.0025 / 95% / 0.2% | 1000 | 1000 |
+<!-- /table:mcf_SW_realistic -->
+
+<!-- table:mcf_T5-H0_realistic -->
+| method | before | after | ev_before | ev_after |
+|---|---|---|---|---|
+| (i) MC deployed (200 steps) | 0.6635 / 5% / 35.0% | 0.1199 / 31% / 34.0% | 201 | 208 |
+| (i) MC April sweep (3500 steps) @ 250 | 0.3451 / 3% / 21.0% | 0.0538 / 29% / 9.0% | 250 | 137 |
+| (i) MC April sweep (3500 steps) @ 1000 | 0.3451 / 3% / 21.0% | 0.0538 / 29% / 9.0% | 1000 | 137 |
+| (i) MC April sweep (3500 steps) @ 2600 | 0.3451 / 3% / 21.0% | 0.0538 / 29% / 9.0% | 2600 | 137 |
+| (vi) VarianceMinimizing, quarter box @ 250 | 0.4143 / 9% / 32.0% | 0.4739 / 9% / 33.0% | 250 | 250 |
+| (vi) VarianceMinimizing, quarter box @ 1000 | 0.0244 / 45% / 24.0% | 0.2579 / 20% / 32.0% | 1000 | 1000 |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 0.0170 / 63% / 20.0% | 0.1806 / 28% / 29.0% | 2600 | 2600 |
+| (vi) VarianceMinimizing, quarter box @ 10000 | 0.0096 / 72% / 20.0% | 0.1378 / 32% / 29.0% | 10000 | 10000 |
+| default finisher (MC + VM) | 0.0888 / 20% / 18.0% | 0.0724 / 28% / 15.0% | 616 | 538 |
+| (iv) Nelder-Mead @ 250 (unchanged) | 0.0046 / 60% / 34.0% | 0.0046 / 60% / 34.0% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 250 (unchanged) | 0.0052 / 74% / 15.0% | 0.0052 / 74% / 15.0% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 1000 (unchanged) | 0.0026 / 83% / 15.0% | 0.0026 / 83% / 15.0% | 1000 | 1000 |
+<!-- /table:mcf_T5-H0_realistic -->
+
+How the deployed MC ended (no improvement over the start; ended before its 200-step budget, i.e. fewer than 201 evaluations):
+
+<!-- table:mcf_deployed -->
+| set | n | noimp_before | noimp_after | early_before | early_after | both_before | both_after | evals_med_before | evals_med_after |
+|---|---|---|---|---|---|---|---|---|---|
+| T5-H3 clean | 200 | 36.5% (30.1-43.4) | 31.5% (25.5-38.2) | 36.5% (30.1-43.4) | 54.5% (47.6-61.3) | 73 | 63 | 201 | 193 |
+| T5-H0 clean | 100 | 4.0% (1.6-9.8) | 6.0% (2.8-12.5) | 4.0% (1.6-9.8) | 45.0% (35.6-54.8) | 4 | 6 | 201 | 208 |
+| SW clean | 1000 | 3.8% (2.8-5.2) | 2.2% (1.5-3.3) | 3.8% (2.8-5.2) | 28.3% (25.6-31.2) | 38 | 22 | 201 | 208 |
+| T5-H3 realistic | 200 | 37.0% (30.6-43.9) | 33.0% (26.9-39.8) | 37.0% (30.6-43.9) | 56.0% (49.1-62.7) | 74 | 66 | 201 | 193 |
+| T5-H0 realistic | 100 | 2.0% (0.6-7.0) | 4.0% (1.6-9.8) | 2.0% (0.6-7.0) | 39.0% (30.0-48.8) | 2 | 4 | 201 | 208 |
+| SW realistic | 1000 | 4.2% (3.1-5.6) | 2.6% (1.8-3.8) | 4.3% (3.2-5.7) | 29.9% (27.1-32.8) | 42 | 26 | 201 | 208 |
+<!-- /table:mcf_deployed -->
+
+- **Deployed MC** (T5 H3 realistic, 200 cases, 26 voxels): 0.0382 to 0.0175 deg, under 0.02 deg 53 to 110 of 200, wrong 6 to 5, evaluations 201 to 193. Paired after vs before: 111 better and 20 worse (ties, |difference| < 0.002 deg: 69; exact sign test p = 1.8e-16), 18 voxels better and 0 worse of 26 (p = 7.6e-6); McNemar on "under 0.02 deg": 62 fail only before, 5 only after. Sweep (1000 cases, 50 voxels): 0.1609 to 0.0249 deg, under 0.02 deg 109 to 448 of 1000, wrong 58 to 5 (McNemar 57 against 4), 50 voxels better and 0 worse. T5 H0: 0.6635 to 0.1199 deg, wrong 35 to 34 of 100.
+- **Default finisher** (MC + VM): T5 H3 realistic 0.0229 to 0.0168 deg, 87 to 112 of 200 under 0.02 deg, median evaluations 2629 to 560; sweep 0.0357 to 0.0184 deg, 304 to 519 of 1000 under 0.02 deg, evaluations 1776 to 584; T5 H0 0.0888 to 0.0724 deg, wrong 18 to 15 (McNemar p = 0.45).
+- **VarianceMinimizing in a quarter box got worse at a fixed budget**: T5 H3 realistic at 2600 evaluations 0.0122 to 0.0153 deg (54 better, 78 worse, p = 0.045; voxels 4 against 9, p = 0.27); sweep 0.0113 to 0.0229 deg (0 voxels better, 47 worse of 50); T5 H0 at 10000 evaluations 0.0096 to 0.1378 deg, wrong 20 to 29 (only after wrong 10, only before 1, p = 0.012). Consistent with the C++ restart returning to the initial orientation instead of walking from the best; not tested separately.
+- **Reference rows (unchanged):** CMA-ES sigma0 0.2 deg at 250 evaluations 0.0031 / 94% (T5 H3) and 0.0038 / 92% (sweep); Nelder-Mead 0.0031 / 94% and 0.0034 / 86%.
+
+**E0 (200 voxels x 2 variants, no-start `reconstruct_voxel`, seed 0, `e0_cma.py run --tag mcfaithful`, 400 tasks, 5861 s contended).** The quick MC of the coarse stage changed, so both arms were rerun. The `mc` arm no longer equals the stored E0 run (0/200 identical; expected).
+
+<!-- table:e0_before_after -->
+| variant | method | n | wrong_before | wrong_after | only_after | only_before | p | med_both_before | med_both_after | evals_before | evals_after |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| clean | mc | 200 | 67/200 [0.273, 0.403] | 40/200 [0.150, 0.261] | 14 | 41 | 0.00036 | 0.0311 | 0.0100 | 49190 | 48442 |
+| clean | cma | 200 | 66/200 [0.269, 0.398] | 40/200 [0.150, 0.261] | 15 | 41 | 0.00069 | 0.0020 | 0.0017 | 49283 | 49372 |
+| realistic | mc | 200 | 52/200 [0.204, 0.325] | 25/200 [0.086, 0.178] | 5 | 32 | 7.4e-06 | 0.0278 | 0.0080 | 52406 | 51058 |
+| realistic | cma | 200 | 44/200 [0.168, 0.282] | 24/200 [0.082, 0.172] | 6 | 26 | 0.00054 | 0.0021 | 0.0020 | 54239 | 54491 |
+<!-- /table:e0_before_after -->
+
+Paired by voxel (exact McNemar, wrong = over 1 deg): the `mc` arm's wrong count falls from 67 to 40 of 200 (clean; 41 voxels fixed, 14 newly wrong, p = 3.6e-4) and 52 to 25 (realistic; 32 fixed, 5 newly wrong, p = 7.4e-6). The `cma` arm falls 66 to 40 and 44 to 24. Within the new run `mc` and `cma` differ in one voxel (realistic: wrong only under `mc`; clean: none; p = 1.0), so the Phase C result "8 voxels wrong only under `mc`" is not reproduced. Precision among the right answers: `mc` 0.0107 / 0.0087 deg (clean / realistic; before 0.0301 / 0.0278), `cma` 0.0018 / 0.0021 deg (before 0.0019 / 0.0021). Mean cost evaluations per voxel: `mc` 48,442 / 51,058 and `cma` 49,372 / 54,491 (before 49,190 / 52,406 and 49,283 / 54,239); `cma` costs +1.9% / +6.7% over `mc` here. Final cost is lower under `cma` in 167 / 181 voxels, higher in 3 / 1. That the faithful quick MC lowers the wrong count of both arms by about the same amount is consistent with the change acting in the coarse stage (candidate ranking) rather than in the refinement; not isolated (no run with only the quick MC changed).
+
+**local_optimization "47/50 unchanged" (`validate_lib.py --tag mcfaithful`, 50 T5 H3 realistic cases).** Identical to the original: `local_optimization` with `mc` returned the start unchanged (to 1e-5 deg) in 47/50, moved closer in 1 and farther in 2; median error 0.0690 deg (12/50 under 0.02 deg, Wilson 0.14-0.37), median 662 evaluations; `cma`: 0.0028 deg, 48/50, 1001 evaluations. Every row equals the earlier record, including the VarianceMinimizing restart fix: this call site runs one VarianceMinimizing pass with a 5 deg box, and the same 47 starts are kept. It is a seeded-start result, not a BFS run, and the BFS neighbour conclusion (an `mc` neighbour keeps the inherited orientation) stands.
+
+**What still holds and what changed (MC conclusions).**
+- *Holds.* (1) For the finishing stage CMA-ES and Nelder-Mead remain more precise at a similar cost: T5 H3 realistic 0.0031 deg and 94% under 0.02 deg at 250 evaluations against 0.0175 deg and 55% for the faithful deployed MC (193 evaluations) and 0.0168 deg and 56% for the whole finisher (560 evaluations); sweep 0.0038 deg and 92% against 0.0249 / 45% and 0.0184 / 52%. The ratio of median errors is about 5.6 (T5 H3) and 6.5 (sweep) for the deployed MC, against about 12 and 42 before. (2) Far starts stay wrong under every MC variant (T5 H0 wrong 34 and 15 of 100 for deployed MC and finisher; CMA-ES sigma0 0.2 deg 15). (3) `local_optimization` under `mc` keeps the inherited start (47/50). (4) CMA-ES's precision among the right E0 answers (0.0021 against 0.0087 deg realistic, 4.1 times).
+- *Changed.* (1) The B1 restart and step-collapse mechanism (no restart after a first improvement, `min_ergodic` jumping from 31 to 250, a halving at every improvement) described the old Python loop, not the C++ one; the lock-in is much weaker (MC output 0.0211 deg from the truth, before 0.0410). (2) "MC as deployed stops far above the truth, at 0.0382 / 0.1609 deg" is now 0.0175 / 0.0249 deg; the deployed MC ends before its budget in 54-56% of H3 runs (before 36-37%), including runs that improved. (3) The default finisher is cheaper (560 against 2629 median evaluations) and more precise (0.0168 against 0.0229 deg). (4) The E0 wrong count falls by 27 of 200 voxels in both variants (`mc`) and the `cma` advantage in wrong count disappears (1 voxel). (5) VarianceMinimizing in a quarter box is worse than recorded, especially from far starts. (6) The B2 audit of the April sweep compared methods against a MC that was not C++'s; its description of that sweep's data is unchanged.
+- *Untested.* Which of the three differences (block-level halving, restart base and width, fixed step inside a block) produces the improvement; why C++ passes fewer coarse candidates and exits FindOptimal at hit ratio 1.0 more often; single-worker timing of B3 (not repeated); other seeds; a BFS-scale run (the Phase D pilot).
+- *Caveats on earlier sections (no rerun).* T5 (finisher diagnosis) and A3 (does the gap matter) used the old MC and old VarianceMinimizing: their numbers describe that finisher (result 0.0229 deg, gap 0.028, the quarter-box continuation at about 19x evaluations, the `mc_smallstep` continuation). The Phase A landscape results (A1, A2) do not depend on the optimizer.
+
+- **Tests:** scripted semantics test `tests/test_mc_cpp_parity.py` (8 tests: block length and truncation, strict comparison, restart base / range / draw order, update order, stop rule, convergence check order, trajectory, evaluation count, inner-loop proposals); the VarianceMinimizing test gained a twin-generator replay of the restart offsets and tests for the box cap and the cost-and-variance exit. Re-recorded goldens (each pins a random draw of the MC): `GOLDEN` (`test_findoptimal_refactor.py`, 4 tests: rotation-vector error 0.960 deg and cost 0.8966 become 0.0386 deg and 0.2025) and `GOLDEN_REFINE` (`test_cma_optimizer.py`: 392 evaluations and cost 0.5902 become 304 and 0.4732); the old values are in the comments. `test_findoptimal_alone_reproduces_stored_experiment_b` compares with a result stored before the port, so it patches in frozen copies of the old loops (`tests/legacy_variance_stage.py`). `test_respects_budget_exactly[mc_deployed]` ran its toy problem to the convergence stop before 137 evaluations; the toy's convergence cost was set to 0. No `cpp_outputs`-based check was changed.
 
 
 ### Order and budget

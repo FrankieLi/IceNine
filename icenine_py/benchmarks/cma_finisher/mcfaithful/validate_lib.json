@@ -1,0 +1,91 @@
+{
+ "n_cases": 50,
+ "start": {
+  "median_err_deg": 0.06902419841771625,
+  "n_below_0p02": 12,
+  "frac_below_0p02": 0.24,
+  "wilson_lo": 0.14297252401872207,
+  "wilson_hi": 0.3741294937519236,
+  "n_wrong_gt1": 0
+ },
+ "b3_250": {
+  "median_err_deg": 0.0034204402750134004,
+  "n_below_0p02": 45,
+  "frac_below_0p02": 0.9,
+  "wilson_lo": 0.7863950966521162,
+  "wilson_hi": 0.956524876008429,
+  "n_wrong_gt1": 0
+ },
+ "lib250": {
+  "median_err_deg": 0.0034204402750134004,
+  "n_below_0p02": 45,
+  "frac_below_0p02": 0.9,
+  "wilson_lo": 0.7863950966521162,
+  "wilson_hi": 0.956524876008429,
+  "n_wrong_gt1": 0
+ },
+ "b3_1000": {
+  "median_err_deg": 0.002508213108582303,
+  "n_below_0p02": 48,
+  "frac_below_0p02": 0.96,
+  "wilson_lo": 0.8653966212204534,
+  "wilson_hi": 0.9889613473391734,
+  "n_wrong_gt1": 0
+ },
+ "lib1000": {
+  "median_err_deg": 0.002508213108582303,
+  "n_below_0p02": 48,
+  "frac_below_0p02": 0.96,
+  "wilson_lo": 0.8653966212204534,
+  "wilson_hi": 0.9889613473391734,
+  "n_wrong_gt1": 0
+ },
+ "refine": {
+  "median_err_deg": 0.0034861382550058126,
+  "n_below_0p02": 45,
+  "frac_below_0p02": 0.9,
+  "wilson_lo": 0.7863950966521162,
+  "wilson_hi": 0.956524876008429,
+  "n_wrong_gt1": 0
+ },
+ "lib250_vs_b3": {
+  "n_identical": 50,
+  "max_abs_diff": 0.0,
+  "median_evals": 250.0
+ },
+ "lib1000_vs_b3": {
+  "n_identical": 50,
+  "max_abs_diff": 0.0,
+  "median_evals": 1000.0
+ },
+ "lib1000_stop_reasons": {
+  "max_evals": 50
+ },
+ "refine_median_evals": 1001.0,
+ "local_optimization_mc_outcome": {
+  "unchanged_to_1e5_deg": 47,
+  "moved_and_closer": 1,
+  "moved_and_farther": 2
+ },
+ "local_optimization_mc": {
+  "median_err_deg": 0.06902406355600296,
+  "n_below_0p02": 12,
+  "wilson_lo": 0.14297252401872207,
+  "wilson_hi": 0.3741294937519236,
+  "median_evals": 662.0,
+  "mean_evals": 663.32,
+  "n_wrong_gt1": 0,
+  "mean_secs_contended": 2.1689611449599995
+ },
+ "local_optimization_cma": {
+  "median_err_deg": 0.0027641684945436144,
+  "n_below_0p02": 48,
+  "wilson_lo": 0.8653966212204534,
+  "wilson_hi": 0.9889613473391734,
+  "median_evals": 1001.0,
+  "mean_evals": 1001.0,
+  "n_wrong_gt1": 0,
+  "mean_secs_contended": 3.3062019533000013
+ },
+ "note": "T5 H3 realistic, first cases by (voxel, radius index); contended 10-worker run, no timing"
+}

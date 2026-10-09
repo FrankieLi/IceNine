@@ -82,6 +82,8 @@ physics into the network help?
 | 2 | 0.869 | 0.172 |
 | 3 | 2.98 | 0.012 |
 
+*Note (2026-10-08):* "MC ... ends at about 0.55 r" and the FindOptimal rows used the pre-port MC; not re-run (section 6, "C++-faithful MC").
+
 **Details.** MH "Toy Orientation NN — Perturbation sweep (2026-10-04)" and "Comparison with existing optimizers";
 `benchmarks/toy_orientation_sweep/`.
 
@@ -138,6 +140,8 @@ physics into the network help?
   - A covariance-sized FindOptimal box.
   - A network → MC finisher.
   - One network pass (H1) equals three only up to r = 1.5.
+
+*Note (2026-10-08):* the FindOptimal and MC rows were recorded with the pre-port Python MC; the C++-faithful MC and VarianceMinimizing change the finisher (section 6, "C++-faithful MC"). The network rows are unaffected.
 
 **Details.** MH "Task 1 results"; `benchmarks/nn_hybrid/`.
 
@@ -216,6 +220,8 @@ reproduces the earlier results exactly.
   - A quarter-box VarianceMinimizing pass closes a median 93% of the gap. It ends 0.006° from the truth, but hit its
     50,000-step cap in 198/200 runs (about 19x the default evaluations).
 - **The H0 failures at 2–3°** are a different problem: a wrong basin.
+
+*Note (2026-10-08):* T5 used the pre-port MC and VarianceMinimizing (finisher result 0.023 deg after a median 2629 evaluations; the 19x quarter-box continuation). With the C++-faithful loops the default finisher ends 0.0168 deg (T5 H3) after 560 evaluations (section 6).
 
 The effect of these continuations on reconstruction success has not been tested.
 
@@ -302,6 +308,7 @@ The effect of these continuations on reconstruction success has not been tested.
     the cost of 1001 evaluations per BFS neighbour at scale (the MC call used a median 662 in a 50-case check),
     behaviour for neighbours across a grain boundary, and seeds 1-2. To switch it on for a BFS run set the key (or
     `search_params.local_optimizer = "cma"`). See MIGRATION_HISTORY "Phase C results".
+- **C++-faithful MC (2026-10-08; `benchmarks/mc_mechanism/mc_faithful/`, `finisher_bench/mc_faithful/`, `cma_finisher/mcfaithful/`).** `MCOptimizer.optimize` was not the C++ `RandomRestartZeroTemp` (it halved at every improvement and restarted about the best); it is now (fixed blocks of 31 steps, restart about the initial orientation, stop after 3 failed blocks in a row), checked against a C++ debug trace (12 evaluations per quick-MC call in both; the Python no-start search still uses 1.40 times the C++ evaluations, from the coarse stage). The MC results above were re-run. *What still holds:* CMA-ES and Nelder-Mead are more precise than every MC variant at a similar cost (T5 H3 realistic 0.0031 deg and 94% under 0.02 deg at 250 evaluations, against 0.0175 deg and 55% for the deployed MC and 0.0168 deg and 56% for the whole finisher); far starts stay wrong; `local_optimization` under `mc` keeps the inherited start in 47/50 cases; CMA-ES's precision among right E0 answers (0.0021 against 0.0087 deg). *What changed:* the B1 mechanism (no restart after a first improvement, step collapse at every improvement) described the old loop; the deployed MC ends 0.0175 deg (T5 H3) and 0.0249 deg (sweep) from the truth (was 0.0382 and 0.1609); the default finisher costs a median 560 evaluations (was 2629); quarter-box VarianceMinimizing is worse than recorded (0.1378 deg against 0.0096 deg at 10000 evaluations from the H0 starts); in E0 the `mc` wrong count falls 67 to 40 (clean) and 52 to 25 (realistic) of 200 and CMA-ES's advantage in the wrong count is not reproduced (1 voxel, p = 1.0). *Untested:* which difference of the port causes the gain; whether the CMA-ES-in-BFS conclusions change at scale. See MIGRATION_HISTORY "C++-faithful MC: reruns".
 - **A full-sample, end-to-end BFS reconstruction of the 500-grain sample with new orientations,** comparing classic
   BFS (C++-parity optimizers) with BFS using the network and hybrid finisher, on timing and accuracy.
 - **Other open items:**
