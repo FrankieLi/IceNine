@@ -4,7 +4,8 @@ semantics against C++ AdaptiveSamplingZeroTemp (OrientationSearch.cpp:206-287).
 Regression for the Phase D finding: Python restarted from the current global best with offsets
 uniform in +-box/2, C++ restarts from the INITIAL orientation with offsets uniform in
 +-SubregionRadius (the radius after the doubling), so on a dense image Python restarts landed in the
-steep part of the cost basin (cost variance above 0.02^2, budget extended without end) where C++
+steep part of the cost basin (cost variance above 0.02^2, budget extended by up to about 1.4 M
+evaluations on the measured voxels) where C++
 restarts land on the cost plateau.
 """
 
@@ -161,14 +162,13 @@ def test_convergence_needs_cost_and_variance_below_thresholds() -> None:
     thr = 0.02**2
     cases = {
         "both": ((0.01, thr / 10), 1),  # cost and variance low: stop after the first run
-        "cost only": ((0.01, thr * 10), 20),  # variance too high: the budget keeps growing
-        "variance only": ((0.5, thr / 10), 20),  # cost above the threshold: runs to the budget
+        # variance too high: no stop after run 1 (+10 budget); run 2 (default cost 1.0, variance 0)
+        # is a failure and the budget is used up (2 runs, 20 steps, measured)
+        "cost only": ((0.01, thr * 10), 2),
+        "variance only": ((0.5, thr / 10), 20),  # cost above the threshold: 20 runs of 10 steps
     }
     for name, (first, n_runs) in cases.items():
         mc = _mc(5)
         rec = _Recorder(mc, [first])
         mc.variance_minimizing_optimize(np.eye(3), box, 200, 2, 0.05, thr)
-        if name == "both":
-            assert len(rec.steps) == n_runs, name
-        else:
-            assert len(rec.steps) > 1, name
+        assert len(rec.steps) == n_runs, name
