@@ -537,6 +537,8 @@ def test_rejected_reseed_voxel_is_final_but_not_its_cluster(
     assert [e["voxel"] for e in bfs.reseed_log] == [1, 2]
     assert bfs.records[1].reseeded and bfs.records[2].reseeded
     assert _states(mic) == [FITTED] * 4  # voxel 1 was fitted by a local revisit from voxel 2
+    # the reseed reset keeps the discarded revisit counts in a separate, logging-only field
+    assert all(r.n_revisits_before_reset == 0 for r in bfs.records.values())
 
 
 def test_failed_voxels_stay_unresolved_and_are_searched_once(
@@ -597,3 +599,22 @@ def test_reseed_on_the_scripted_grid_terminates_and_helps() -> None:
     assert len(set(voxels)) == len(voxels)
     assert len(set(res["done"].tolist())) == len(res["done"])
     assert s["n_unresolved"] == int((res["states"] == REFIT).sum())
+
+
+def test_reseed_reset_keeps_history_and_stays_reset_after_rejection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Voxels 1 and 2 are revisited from voxel 3's wrong-grain start (8 deg) before the reseed;
+    the reseed of the cluster resets their counters, which stay reset when the reseed is rejected,
+    and the discarded count is kept in n_revisits_before_reset."""
+    RejectingFull.bad, RejectingFull.full_calls = (1, 2), []
+    bfs, mic = _run(
+        (3.0, 3.5, 8.0), monkeypatch, fake=RejectingFull, bfs_reseed=True, bfs_revisit_refit=True
+    )
+    assert RejectingFull.full_calls == [0, 3, 1, 2]  # both reseeds rejected
+    for i in (1, 2):
+        r = bfs.records[i]
+        assert r.reseeded and r.source == "unresolved"
+        assert r.n_revisits == 0  # still reset after the rejected reseed
+        assert r.n_revisits_before_reset == 1  # the revisit from voxel 3 before the reset
+    assert bfs.stats["n_reseed_rejected"] == 2

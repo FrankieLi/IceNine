@@ -185,7 +185,7 @@ def build(spec_path: Path, out_dir: Path) -> Dict[str, Any]:
   <p class="meta">Drawn with icenine_py/scripts/mic_maps_report.py and plot_mic.py.</p>
 </main>
 """
-    (out_dir / "index.html").write_text(page)
+    (out_dir / "index.html").write_text(page, encoding="utf-8")
     return {"index": str(out_dir / "index.html"), "stats": all_stats}
 
 

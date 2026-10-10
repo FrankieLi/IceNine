@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "common"))
 
 import score_bfs as S  # noqa: E402
 from doc_tables import markdown_table, write_tables  # noqa: E402
+from stats import wilson  # noqa: E402
 
 PAIRS = {
     "mc_clean": "mc_clean",
@@ -130,6 +131,12 @@ def main() -> None:
             for i, r in recs.items()
             if r["source"] == "seed" and not r["seed_rejected"]
         }
+        acc_reseeds = [i for i, r in recs.items() if r.get("reseeded") and r["source"] == "seed"]
+        n_acc_reseed_wrong = int(sum(bool(vn["wrong"][i]) for i in acc_reseeds))
+        lost_lo, lost_hi = wilson(
+            len(lost_n), len(sn["grains"]["lost_ids"]) + sn["grains"]["found"]
+        )
+        mc_floor = (not pair.get("exact", False)) and pair["p"] < 1e-4
         lost_failed = len(lost_n & searched)
         lost_nosearch = len(lost_n - searched - accepted_full)
         unres_o = int((vo["source"] == "unresolved").sum())
@@ -148,6 +155,13 @@ def main() -> None:
             "accepted_wrong_pilot": int(acc_wrong(vo).sum()),
             "accepted_wrong_reseed": int(acc_wrong(vn).sum()),
             "n_reseeded_voxels": len(reseeded),
+            "accepted_reseeds": len(acc_reseeds),
+            "accepted_reseeds_wrong": n_acc_reseed_wrong,
+            "lost_wilson_lo": lost_lo,
+            "lost_wilson_hi": lost_hi,
+            "wall_ratio_vs_pilot": wall / so["cost"]["wall_total_s"],
+            "eval_ratio_vs_no_reseed": 1.0 / (1.0 - ev_reseed_all / ev_tot),
+            "p_is_monte_carlo_floor": bool(mc_floor),
             "lost_with_a_failed_full_search": lost_failed,
             "lost_without_any_full_search": lost_nosearch,
             "lost_with_an_accepted_full_search": len(lost_n & accepted_full),
@@ -190,7 +204,7 @@ def main() -> None:
                 "lost_v1": v1[new]["lost_reseed"] if new in v1 else None,
                 "acc_wrong_pilot": int(acc_wrong(vo).sum()),
                 "acc_wrong_reseed": int(acc_wrong(vn).sum()),
-                "p": pair["p"],
+                "p": "<1e-4 (MC floor)" if mc_floor else pair["p"],
                 "n_clusters_differing": pair["n_clusters_differing"],
             }
         )

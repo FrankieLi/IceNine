@@ -1,10 +1,10 @@
 <!-- table:phase_d_reseed2_compare -->
 | run | pilot | wrong_pilot | wrong_reseed | unres_pilot | unres_reseed | lost_pilot | lost_v1 | lost_reseed | wrong_v1 | unres_v1 | acc_wrong_pilot | acc_wrong_reseed | n_clusters_differing | p |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| mc_clean | mc_clean | 740 | 37 | 710 | 1 | 28 | 19 | 0 | 633 | 601 | 32 | 36 | 30 | 5e-05 |
-| cma_noretry_clean | cma_noretry_clean | 734 | 60 | 677 | 1 | 28 | 19 | 0 | 633 | 576 | 57 | 59 | 29 | 5e-05 |
-| mc_realistic_q16 | mc_realistic_q16 | 709 | 23 | 691 | 2 | 27 | 18 | 0 | 608 | 590 | 19 | 21 | 30 | 5e-05 |
-| cma_noretry_realistic_q16 | cma_realistic_q16 | 617 | 38 | 580 | 2 | 26 | 19 | 0 | 568 | 533 | 37 | 36 | 27 | 5e-05 |
+| mc_clean | mc_clean | 740 | 37 | 710 | 1 | 28 | 19 | 0 | 633 | 601 | 32 | 36 | 30 | <1e-4 (MC floor) |
+| cma_noretry_clean | cma_noretry_clean | 734 | 60 | 677 | 1 | 28 | 19 | 0 | 633 | 576 | 57 | 59 | 29 | <1e-4 (MC floor) |
+| mc_realistic_q16 | mc_realistic_q16 | 709 | 23 | 691 | 2 | 27 | 18 | 0 | 608 | 590 | 19 | 21 | 30 | <1e-4 (MC floor) |
+| cma_noretry_realistic_q16 | cma_realistic_q16 | 617 | 38 | 580 | 2 | 26 | 19 | 0 | 568 | 533 | 37 | 36 | 27 | <1e-4 (MC floor) |
 <!-- /table:phase_d_reseed2_compare -->
 
 <!-- table:phase_d_reseed2_counts -->

@@ -128,7 +128,8 @@ class SearchParameters:
     bfs_restart_pass: bool = False
     # bfs_reseed: when no NOT_VISITED voxel is left, every connected cluster of REFIT voxels gets
     #   one full no-start search on one voxel (nearest the cluster centroid); accepted -> expand
-    #   with revisit, rejected -> final (the cluster is never reseeded again). Off by default.
+    #   with revisit; rejected -> that voxel is final (never searched again) and the cluster is
+    #   recomputed without it and reseeded on another voxel. Off by default.
     bfs_reseed: bool = False
 
     def __post_init__(self) -> None:

@@ -15,7 +15,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -1074,7 +1074,9 @@ class BFSVoxelRecord:
     local_rejected: bool = False  # a local fit failed the 0.9 acceptance test
     retried: bool = False  # the wider-sigma CMA retry ran (at least once)
     retry_accepted: bool = False
-    n_revisits: int = 0  # local fits made on this voxel while it was REFIT (revisit / restart)
+    n_revisits: int = 0  # local fits on this voxel while REFIT, since the last reseed reset
+    n_revisits_before_reset: int = 0  # fits discarded by reseed resets (logging only; the cap
+    # reads ``n_revisits``, so a reseed gives the cluster's voxels a fresh budget)
     reseeded: bool = False  # chosen as the one full-search voxel of a leftover REFIT cluster
 
 
@@ -1127,8 +1129,11 @@ class BFSReconstruction:
     first cluster (smallest voxel index) gets one full no-start search on the voxel nearest its
     centroid (ties: lowest index). If the usual seed acceptance test passes, the voxel expands with
     revisit (also when ``bfs_revisit_refit`` is off; the revisit counters of the cluster's voxels
-    are reset, the new orientation being an independent source). The clusters are then recomputed
-    and the loop repeats. The finality rule is per voxel: a voxel whose full search was rejected
+    are reset, the new orientation being an independent source; they stay reset if the reseed is
+    rejected, so ``bfs_revisit_max`` applies per reseed of a cluster, not over the whole run;
+    ``n_revisits_before_reset`` keeps the discarded counts for the record). The clusters are then
+    recomputed and the loop repeats. The finality rule is per voxel: a voxel whose full search was
+    rejected
     (an ordinary seed or a reseed) is failed; it is never searched again, ends unresolved unless a
     later revisit fits it, and does NOT close its cluster: the rest of the cluster is reseeded on
     other voxels. No retry, no lowered floor. Each reseed adds an entry to ``reseed_log``;
@@ -1305,7 +1310,7 @@ class BFSReconstruction:
         return all_processed
 
     def _refit_clusters(
-        self, mic: MicFile, n_limit: int, failed: Optional[set] = None
+        self, mic: MicFile, n_limit: int, failed: Optional[Set[int]] = None
     ) -> List[List[int]]:
         """Connected clusters (radius 2 x side length, as the expansion) of REFIT voxels without
         the ``failed`` ones, each sorted by index and the list ordered by the smallest index."""
@@ -1348,8 +1353,14 @@ class BFSReconstruction:
             cluster = todo[0]  # clusters are ordered by smallest voxel index
             centroid = pos[cluster].mean(axis=0)
             vox = cluster[int(np.argmin(((pos[cluster] - centroid) ** 2).sum(axis=1)))]
-            for i in cluster:  # the new orientation is an independent source for the revisit cap
-                self.records[i].n_revisits = 0
+            # The new orientation is an independent source for the revisit cap: the counters of
+            # the cluster stay reset afterwards, also when the reseed is rejected (a later
+            # reseed or restart pass then starts from a fresh budget). The discarded counts are
+            # kept in ``n_revisits_before_reset``, which no decision reads.
+            for i in cluster:
+                r_i = self.records[i]
+                r_i.n_revisits_before_reset += r_i.n_revisits
+                r_i.n_revisits = 0
             voxel = mic.voxels[vox]
             old = self.records[vox]
             old_state = (
@@ -1367,8 +1378,10 @@ class BFSReconstruction:
             rec.reseeded = True
             rec.n_evals += old.n_evals
             rec.wall_s += old.wall_s
-            rec.n_revisits += old.n_revisits
+            rec.n_revisits_before_reset = old.n_revisits_before_reset
             rec.local_rejected = rec.local_rejected or old.local_rejected
+            rec.retried = rec.retried or old.retried
+            rec.retry_accepted = rec.retry_accepted or old.retry_accepted
             accepted = voxel.reconstruction_id == ReconstructionState.FITTED
             d_full_ev = self.stats["n_evals_seed"] - s0["n_evals_seed"]
             d_full_s = self.stats["wall_seed_s"] - s0["wall_seed_s"]
