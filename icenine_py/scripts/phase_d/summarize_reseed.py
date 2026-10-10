@@ -79,10 +79,15 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--runs", default=str(ROOT / "benchmarks" / "phase_d_pilot_reseed" / "runs"))
     ap.add_argument("--pilot", default=str(ROOT / "benchmarks" / "phase_d_pilot" / "runs"))
+    ap.add_argument(
+        "--v1", default=None, help="summary.json of the first (per-cluster finality) reseed run"
+    )
+    ap.add_argument("--prefix", default="phase_d_reseed", help="table name prefix")
     ap.add_argument("--out", default=str(ROOT / "benchmarks" / "phase_d_pilot_reseed"))
     a = ap.parse_args()
     runs, pilot, out = Path(a.runs), Path(a.pilot), Path(a.out)
 
+    v1 = json.loads(Path(a.v1).read_text())["runs"] if a.v1 else {}
     summary: Dict[str, Any] = {"runs": {}, "pairs": {}}
     cmp_rows: List[Dict[str, Any]] = []
     cnt_rows: List[Dict[str, Any]] = []
@@ -118,6 +123,15 @@ def main() -> None:
         )
         ev_reseed_all = sum(e["evaluations"] for e in reseed_log)
         unres_n = int((vn["source"] == "unresolved").sum())
+        # why the remaining lost grains are lost: a failed full search in the grain, or none at all
+        searched = {int(vn["grain"][i]) for i, r in recs.items() if r["seed_rejected"]}
+        accepted_full = {
+            int(vn["grain"][i])
+            for i, r in recs.items()
+            if r["source"] == "seed" and not r["seed_rejected"]
+        }
+        lost_failed = len(lost_n & searched)
+        lost_nosearch = len(lost_n - searched - accepted_full)
         unres_o = int((vo["source"] == "unresolved").sum())
         summary["runs"][new] = {
             "pilot_counterpart": old,
@@ -134,6 +148,11 @@ def main() -> None:
             "accepted_wrong_pilot": int(acc_wrong(vo).sum()),
             "accepted_wrong_reseed": int(acc_wrong(vn).sum()),
             "n_reseeded_voxels": len(reseeded),
+            "lost_with_a_failed_full_search": lost_failed,
+            "lost_without_any_full_search": lost_nosearch,
+            "lost_with_an_accepted_full_search": len(lost_n & accepted_full),
+            "failed_voxels_total": sum(1 for r in recs.values() if r["seed_rejected"]),
+            "v1": v1.get(new),
             "unresolved_clusters": ucl,
             "evals_total": ev_tot,
             "evals_reseed_with_expansion": ev_reseed_all,
@@ -166,6 +185,9 @@ def main() -> None:
                 "unres_reseed": unres_n,
                 "lost_pilot": so["grains"]["lost"],
                 "lost_reseed": sn["grains"]["lost"],
+                "wrong_v1": v1[new]["wrong_reseed"] if new in v1 else None,
+                "unres_v1": v1[new]["unresolved_reseed"] if new in v1 else None,
+                "lost_v1": v1[new]["lost_reseed"] if new in v1 else None,
                 "acc_wrong_pilot": int(acc_wrong(vo).sum()),
                 "acc_wrong_reseed": int(acc_wrong(vn).sum()),
                 "p": pair["p"],
@@ -181,6 +203,8 @@ def main() -> None:
                 "accepted": n_acc,
                 "rejected": n_rej,
                 "median_cluster": float(np.median(sizes)) if sizes else None,
+                "lost_failed": lost_failed,
+                "lost_nosearch": lost_nosearch,
                 "final_voxels": st["n_reseed_final_voxels"],
                 "reseed_min": st["wall_reseed_total_s"] / 60.0,
                 "full_search_min": st["wall_reseed_s"] / 60.0,
@@ -224,7 +248,10 @@ def main() -> None:
             "unres_pilot",
             "unres_reseed",
             "lost_pilot",
+            "lost_v1",
             "lost_reseed",
+            "wrong_v1",
+            "unres_v1",
             "acc_wrong_pilot",
             "acc_wrong_reseed",
             "n_clusters_differing",
@@ -243,6 +270,8 @@ def main() -> None:
             "rejected",
             "median_cluster",
             "final_voxels",
+            "lost_failed",
+            "lost_nosearch",
             "reseed_min",
             "full_search_min",
             "share_pct",
@@ -272,12 +301,43 @@ def main() -> None:
         ["run", "k", "cluster", "voxel", "accepted", "left_refit", "seconds", "evals"],
         {"seconds": ".0f", "evals": ",d"},
     )
+    three = [
+        {
+            "run": r["run"],
+            "wrong_pilot": r["wrong_pilot"],
+            "wrong_v1": r["wrong_v1"],
+            "wrong_v2": r["wrong_reseed"],
+            "unres_pilot": r["unres_pilot"],
+            "unres_v1": r["unres_v1"],
+            "unres_v2": r["unres_reseed"],
+            "lost_pilot": r["lost_pilot"],
+            "lost_v1": r["lost_v1"],
+            "lost_v2": r["lost_reseed"],
+        }
+        for r in cmp_rows
+    ]
+    t0 = markdown_table(
+        three,
+        [
+            "run",
+            "wrong_pilot",
+            "wrong_v1",
+            "wrong_v2",
+            "unres_pilot",
+            "unres_v1",
+            "unres_v2",
+            "lost_pilot",
+            "lost_v1",
+            "lost_v2",
+        ],
+    )
     write_tables(
         out / "tables.md",
         {
-            "phase_d_reseed_compare": t1,
-            "phase_d_reseed_counts": t2,
-            "phase_d_reseed_log": t3,
+            f"{a.prefix}_three": t0,
+            f"{a.prefix}_compare": t1,
+            f"{a.prefix}_counts": t2,
+            f"{a.prefix}_log": t3,
         },
     )
     print(t1)
