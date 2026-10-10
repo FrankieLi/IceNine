@@ -1,0 +1,1027 @@
+{
+  "runs": {
+    "mc_clean": {
+      "pilot_counterpart": "mc_clean",
+      "wrong_pilot": 740,
+      "wrong_reseed": 633,
+      "unresolved_pilot": 710,
+      "unresolved_reseed": 601,
+      "lost_pilot": 28,
+      "lost_reseed": 19,
+      "lost_pilot_ids": [
+        2,
+        13,
+        22,
+        25,
+        56,
+        76,
+        109,
+        144,
+        146,
+        147,
+        150,
+        152,
+        277,
+        284,
+        287,
+        300,
+        331,
+        332,
+        342,
+        351,
+        394,
+        397,
+        398,
+        399,
+        402,
+        403,
+        455,
+        491
+      ],
+      "lost_reseed_ids": [
+        22,
+        25,
+        56,
+        76,
+        144,
+        146,
+        147,
+        150,
+        152,
+        300,
+        331,
+        332,
+        351,
+        394,
+        397,
+        398,
+        399,
+        402,
+        455
+      ],
+      "lost_in_pilot_not_lost_now": 9,
+      "lost_now_not_lost_in_pilot": 0,
+      "accepted_wrong_pilot": 32,
+      "accepted_wrong_reseed": 32,
+      "n_reseeded_voxels": 11,
+      "unresolved_clusters": {
+        "n_clusters": 1,
+        "clusters": [
+          {
+            "size": 601,
+            "has_rejected_ordinary_seed": true,
+            "has_rejected_reseed": false,
+            "grains": 20,
+            "lost_grains_inside": 19
+          }
+        ]
+      },
+      "evals_total": 17084164,
+      "evals_reseed_with_expansion": 3723137,
+      "reseed_share_of_evals": 0.21792913015819795,
+      "reseeds": [
+        {
+          "cluster_size": 21,
+          "voxel": 1,
+          "accepted": true,
+          "seconds": 181.13428902626038,
+          "full_search_seconds": 173.80580806732178,
+          "evaluations": 345600,
+          "full_search_evaluations": 332360,
+          "cluster_voxels_still_refit": 4
+        },
+        {
+          "cluster_size": 16,
+          "voxel": 67,
+          "accepted": true,
+          "seconds": 814.9158778190613,
+          "full_search_seconds": 810.5484268665314,
+          "evaluations": 339345,
+          "full_search_evaluations": 331561,
+          "cluster_voxels_still_refit": 6
+        },
+        {
+          "cluster_size": 6,
+          "voxel": 227,
+          "accepted": true,
+          "seconds": 1273.3166317939758,
+          "full_search_seconds": 924.4965889453888,
+          "evaluations": 340846,
+          "full_search_evaluations": 337536,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 59,
+          "voxel": 854,
+          "accepted": true,
+          "seconds": 344.0317780971527,
+          "full_search_seconds": 215.04693698883057,
+          "evaluations": 358345,
+          "full_search_evaluations": 329173,
+          "cluster_voxels_still_refit": 17
+        },
+        {
+          "cluster_size": 4,
+          "voxel": 210,
+          "accepted": true,
+          "seconds": 1536.600005865097,
+          "full_search_seconds": 1535.4834158420563,
+          "evaluations": 333165,
+          "full_search_evaluations": 331179,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 8,
+          "voxel": 226,
+          "accepted": true,
+          "seconds": 698.5023529529572,
+          "full_search_seconds": 696.0197417736053,
+          "evaluations": 334393,
+          "full_search_evaluations": 329759,
+          "cluster_voxels_still_refit": 1
+        },
+        {
+          "cluster_size": 4,
+          "voxel": 238,
+          "accepted": true,
+          "seconds": 169.89154195785522,
+          "full_search_seconds": 168.54768586158752,
+          "evaluations": 329932,
+          "full_search_evaluations": 327444,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 17,
+          "voxel": 528,
+          "accepted": true,
+          "seconds": 181.36531901359558,
+          "full_search_seconds": 175.33875012397766,
+          "evaluations": 341184,
+          "full_search_evaluations": 330592,
+          "cluster_voxels_still_refit": 3
+        },
+        {
+          "cluster_size": 3,
+          "voxel": 961,
+          "accepted": true,
+          "seconds": 179.04471802711487,
+          "full_search_seconds": 178.29683423042297,
+          "evaluations": 331783,
+          "full_search_evaluations": 330459,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 1888,
+          "accepted": true,
+          "seconds": 180.30641913414001,
+          "full_search_seconds": 180.30556178092957,
+          "evaluations": 334067,
+          "full_search_evaluations": 334067,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 1938,
+          "accepted": true,
+          "seconds": 180.4913990497589,
+          "full_search_seconds": 180.49057269096375,
+          "evaluations": 334477,
+          "full_search_evaluations": 334477,
+          "cluster_voxels_still_refit": 0
+        }
+      ],
+      "wall_total_s": 12869.294816732407,
+      "wall_reseed_total_s": 5739.600332736969,
+      "wall_reseed_full_search_s": 5238.380323171616,
+      "reseed_share_of_wall": 0.4459918289597696,
+      "reseed_full_search_share_of_wall": 0.4070448612585031,
+      "n_seeds": 34,
+      "n_seed_rejected": 2,
+      "n_evals_seed": 11274936,
+      "n_evals_reseed": 3648607,
+      "timing_label": "contended: 4 concurrent single-process runs on a 12-core machine, load average 1.5 at launch (preflight.json)",
+      "torch_threads": 1,
+      "overall_reseed": {
+        "n": 2000,
+        "wrong": 633,
+        "wrong_rate": 0.3165,
+        "wilson_lo": 0.29648393665248174,
+        "wilson_hi": 0.33721964550690653,
+        "n_right": 1367,
+        "median_right_err_deg": 0.011935632582211282,
+        "median_err_deg": 0.015935492247993312,
+        "cluster_boot_lo": 0.19174691191204388,
+        "cluster_boot_hi": 0.45964117324010645
+      },
+      "overall_pilot": {
+        "n": 2000,
+        "wrong": 740,
+        "wrong_rate": 0.37,
+        "wilson_lo": 0.3491082171303705,
+        "wilson_hi": 0.3913902334457629,
+        "n_right": 1260,
+        "median_right_err_deg": 0.011935632582211282,
+        "median_err_deg": 0.020410865013282674,
+        "cluster_boot_lo": 0.2448995852014871,
+        "cluster_boot_hi": 0.5152364971000917
+      },
+      "grains_reseed": {
+        "n_grains": 60,
+        "found": 41,
+        "partial": 0,
+        "lost": 19,
+        "fragmented": 27,
+        "fragmented_found": 9
+      },
+      "grains_pilot": {
+        "n_grains": 60,
+        "found": 32,
+        "partial": 0,
+        "lost": 28,
+        "fragmented": 29
+      }
+    },
+    "cma_noretry_clean": {
+      "pilot_counterpart": "cma_noretry_clean",
+      "wrong_pilot": 734,
+      "wrong_reseed": 633,
+      "unresolved_pilot": 677,
+      "unresolved_reseed": 576,
+      "lost_pilot": 28,
+      "lost_reseed": 19,
+      "lost_pilot_ids": [
+        2,
+        13,
+        22,
+        25,
+        56,
+        76,
+        109,
+        144,
+        146,
+        147,
+        150,
+        152,
+        277,
+        284,
+        287,
+        300,
+        331,
+        332,
+        342,
+        351,
+        394,
+        397,
+        398,
+        399,
+        402,
+        403,
+        455,
+        491
+      ],
+      "lost_reseed_ids": [
+        22,
+        25,
+        56,
+        76,
+        144,
+        146,
+        147,
+        150,
+        152,
+        300,
+        331,
+        332,
+        351,
+        394,
+        397,
+        398,
+        399,
+        402,
+        455
+      ],
+      "lost_in_pilot_not_lost_now": 9,
+      "lost_now_not_lost_in_pilot": 0,
+      "accepted_wrong_pilot": 57,
+      "accepted_wrong_reseed": 57,
+      "n_reseeded_voxels": 10,
+      "unresolved_clusters": {
+        "n_clusters": 1,
+        "clusters": [
+          {
+            "size": 576,
+            "has_rejected_ordinary_seed": true,
+            "has_rejected_reseed": false,
+            "grains": 19,
+            "lost_grains_inside": 19
+          }
+        ]
+      },
+      "evals_total": 15380098,
+      "evals_reseed_with_expansion": 3403584,
+      "reseed_share_of_evals": 0.22129793971403824,
+      "reseeds": [
+        {
+          "cluster_size": 21,
+          "voxel": 1,
+          "accepted": true,
+          "seconds": 175.8167757987976,
+          "full_search_seconds": 172.96463894844055,
+          "evaluations": 330144,
+          "full_search_evaluations": 325124,
+          "cluster_voxels_still_refit": 4
+        },
+        {
+          "cluster_size": 16,
+          "voxel": 67,
+          "accepted": true,
+          "seconds": 177.39659643173218,
+          "full_search_seconds": 175.82500886917114,
+          "evaluations": 332749,
+          "full_search_evaluations": 329988,
+          "cluster_voxels_still_refit": 6
+        },
+        {
+          "cluster_size": 6,
+          "voxel": 227,
+          "accepted": true,
+          "seconds": 191.41050004959106,
+          "full_search_seconds": 190.69124627113342,
+          "evaluations": 360732,
+          "full_search_evaluations": 359477,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 55,
+          "voxel": 203,
+          "accepted": true,
+          "seconds": 179.93455719947815,
+          "full_search_seconds": 173.80108428001404,
+          "evaluations": 341070,
+          "full_search_evaluations": 330277,
+          "cluster_voxels_still_refit": 15
+        },
+        {
+          "cluster_size": 8,
+          "voxel": 226,
+          "accepted": true,
+          "seconds": 174.25841307640076,
+          "full_search_seconds": 173.27603578567505,
+          "evaluations": 330645,
+          "full_search_evaluations": 328888,
+          "cluster_voxels_still_refit": 1
+        },
+        {
+          "cluster_size": 4,
+          "voxel": 238,
+          "accepted": true,
+          "seconds": 787.3278410434723,
+          "full_search_seconds": 786.9009149074554,
+          "evaluations": 328035,
+          "full_search_evaluations": 327282,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 14,
+          "voxel": 528,
+          "accepted": true,
+          "seconds": 944.6817889213562,
+          "full_search_seconds": 942.7835259437561,
+          "evaluations": 332111,
+          "full_search_evaluations": 328848,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 861,
+          "accepted": true,
+          "seconds": 562.7700526714325,
+          "full_search_seconds": 562.7692596912384,
+          "evaluations": 331954,
+          "full_search_evaluations": 331954,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 1888,
+          "accepted": true,
+          "seconds": 1665.617712020874,
+          "full_search_seconds": 1665.6169097423553,
+          "evaluations": 358407,
+          "full_search_evaluations": 358407,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 1938,
+          "accepted": true,
+          "seconds": 714.4174201488495,
+          "full_search_seconds": 714.4165999889374,
+          "evaluations": 357737,
+          "full_search_evaluations": 357737,
+          "cluster_voxels_still_refit": 0
+        }
+      ],
+      "wall_total_s": 11953.270504951477,
+      "wall_reseed_total_s": 5573.631657361984,
+      "wall_reseed_full_search_s": 5559.045224428177,
+      "reseed_share_of_wall": 0.4662850769630943,
+      "reseed_full_search_share_of_wall": 0.46506478893165004,
+      "n_seeds": 33,
+      "n_seed_rejected": 1,
+      "n_evals_seed": 11177832,
+      "n_evals_reseed": 3377982,
+      "timing_label": "contended: 4 concurrent single-process runs on a 12-core machine, load average 1.5 at launch (preflight.json)",
+      "torch_threads": 1,
+      "overall_reseed": {
+        "n": 2000,
+        "wrong": 633,
+        "wrong_rate": 0.3165,
+        "wilson_lo": 0.29648393665248174,
+        "wilson_hi": 0.33721964550690653,
+        "n_right": 1367,
+        "median_right_err_deg": 0.005490611084194574,
+        "median_err_deg": 0.011034292486083432,
+        "cluster_boot_lo": 0.19141543464307123,
+        "cluster_boot_hi": 0.4587554092983962
+      },
+      "overall_pilot": {
+        "n": 2000,
+        "wrong": 734,
+        "wrong_rate": 0.367,
+        "wilson_lo": 0.34614970431426345,
+        "wilson_hi": 0.38836024896747295,
+        "n_right": 1266,
+        "median_right_err_deg": 0.005490611084194574,
+        "median_err_deg": 0.013640766429427987,
+        "cluster_boot_lo": 0.24162337732717298,
+        "cluster_boot_hi": 0.5125232598176577
+      },
+      "grains_reseed": {
+        "n_grains": 60,
+        "found": 41,
+        "partial": 0,
+        "lost": 19,
+        "fragmented": 30,
+        "fragmented_found": 12
+      },
+      "grains_pilot": {
+        "n_grains": 60,
+        "found": 32,
+        "partial": 0,
+        "lost": 28,
+        "fragmented": 31
+      }
+    },
+    "mc_realistic_q16": {
+      "pilot_counterpart": "mc_realistic_q16",
+      "wrong_pilot": 709,
+      "wrong_reseed": 608,
+      "unresolved_pilot": 691,
+      "unresolved_reseed": 590,
+      "lost_pilot": 27,
+      "lost_reseed": 18,
+      "lost_pilot_ids": [
+        2,
+        13,
+        22,
+        25,
+        56,
+        76,
+        109,
+        144,
+        146,
+        147,
+        150,
+        152,
+        277,
+        284,
+        287,
+        300,
+        331,
+        332,
+        342,
+        351,
+        394,
+        398,
+        399,
+        402,
+        403,
+        455,
+        491
+      ],
+      "lost_reseed_ids": [
+        22,
+        25,
+        56,
+        76,
+        144,
+        146,
+        147,
+        150,
+        152,
+        300,
+        331,
+        332,
+        351,
+        394,
+        398,
+        399,
+        402,
+        455
+      ],
+      "lost_in_pilot_not_lost_now": 9,
+      "lost_now_not_lost_in_pilot": 0,
+      "accepted_wrong_pilot": 19,
+      "accepted_wrong_reseed": 19,
+      "n_reseeded_voxels": 10,
+      "unresolved_clusters": {
+        "n_clusters": 2,
+        "clusters": [
+          {
+            "size": 589,
+            "has_rejected_ordinary_seed": true,
+            "has_rejected_reseed": false,
+            "grains": 21,
+            "lost_grains_inside": 18
+          },
+          {
+            "size": 1,
+            "has_rejected_ordinary_seed": false,
+            "has_rejected_reseed": true,
+            "grains": 1,
+            "lost_grains_inside": 0
+          }
+        ]
+      },
+      "evals_total": 17729900,
+      "evals_reseed_with_expansion": 3442938,
+      "reseed_share_of_evals": 0.1941882356922487,
+      "reseeds": [
+        {
+          "cluster_size": 21,
+          "voxel": 1,
+          "accepted": true,
+          "seconds": 574.0335690975189,
+          "full_search_seconds": 566.0585608482361,
+          "evaluations": 349205,
+          "full_search_evaluations": 335965,
+          "cluster_voxels_still_refit": 4
+        },
+        {
+          "cluster_size": 16,
+          "voxel": 67,
+          "accepted": true,
+          "seconds": 1654.679557800293,
+          "full_search_seconds": 1650.6997487545013,
+          "evaluations": 344685,
+          "full_search_evaluations": 337403,
+          "cluster_voxels_still_refit": 6
+        },
+        {
+          "cluster_size": 6,
+          "voxel": 227,
+          "accepted": true,
+          "seconds": 701.122300863266,
+          "full_search_seconds": 699.3171558380127,
+          "evaluations": 340417,
+          "full_search_evaluations": 337107,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 56,
+          "voxel": 203,
+          "accepted": true,
+          "seconds": 189.51813387870789,
+          "full_search_seconds": 173.92300486564636,
+          "evaluations": 365918,
+          "full_search_evaluations": 336746,
+          "cluster_voxels_still_refit": 15
+        },
+        {
+          "cluster_size": 8,
+          "voxel": 226,
+          "accepted": true,
+          "seconds": 182.0567729473114,
+          "full_search_seconds": 179.4503791332245,
+          "evaluations": 342250,
+          "full_search_evaluations": 337616,
+          "cluster_voxels_still_refit": 1
+        },
+        {
+          "cluster_size": 4,
+          "voxel": 238,
+          "accepted": true,
+          "seconds": 184.40810894966125,
+          "full_search_seconds": 183.29350113868713,
+          "evaluations": 341646,
+          "full_search_evaluations": 339660,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 14,
+          "voxel": 528,
+          "accepted": true,
+          "seconds": 188.4138412475586,
+          "full_search_seconds": 183.55409717559814,
+          "evaluations": 348396,
+          "full_search_evaluations": 339790,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 861,
+          "accepted": false,
+          "seconds": 532.3421108722687,
+          "full_search_seconds": 532.3413610458374,
+          "evaluations": 336641,
+          "full_search_evaluations": 336641,
+          "cluster_voxels_still_refit": 1
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 1888,
+          "accepted": true,
+          "seconds": 384.89437794685364,
+          "full_search_seconds": 384.8936069011688,
+          "evaluations": 336459,
+          "full_search_evaluations": 336459,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 1938,
+          "accepted": true,
+          "seconds": 1319.666139125824,
+          "full_search_seconds": 1319.6653559207916,
+          "evaluations": 337321,
+          "full_search_evaluations": 337321,
+          "cluster_voxels_still_refit": 0
+        }
+      ],
+      "wall_total_s": 14951.451115846634,
+      "wall_reseed_total_s": 5911.134912729263,
+      "wall_reseed_full_search_s": 5873.196771621704,
+      "reseed_share_of_wall": 0.39535526464479515,
+      "reseed_full_search_share_of_wall": 0.39281784263715136,
+      "n_seeds": 36,
+      "n_seed_rejected": 4,
+      "n_evals_seed": 12161199,
+      "n_evals_reseed": 3374708,
+      "timing_label": "contended: 4 concurrent single-process runs on a 12-core machine, load average 1.5 at launch (preflight.json)",
+      "torch_threads": 1,
+      "overall_reseed": {
+        "n": 2000,
+        "wrong": 608,
+        "wrong_rate": 0.304,
+        "wilson_lo": 0.28423195694099457,
+        "wilson_hi": 0.3245195531584064,
+        "n_right": 1392,
+        "median_right_err_deg": 0.012404673198741022,
+        "median_err_deg": 0.02139477636887701,
+        "cluster_boot_lo": 0.17972618522331718,
+        "cluster_boot_hi": 0.4481782207737303
+      },
+      "overall_pilot": {
+        "n": 2000,
+        "wrong": 709,
+        "wrong_rate": 0.3545,
+        "wilson_lo": 0.33383207093757095,
+        "wilson_hi": 0.3757258102841783,
+        "n_right": 1291,
+        "median_right_err_deg": 0.012404673198741022,
+        "median_err_deg": 0.02198415809351173,
+        "cluster_boot_lo": 0.2271351618340173,
+        "cluster_boot_hi": 0.501571603481034
+      },
+      "grains_reseed": {
+        "n_grains": 60,
+        "found": 41,
+        "partial": 1,
+        "lost": 18,
+        "fragmented": 24,
+        "fragmented_found": 6
+      },
+      "grains_pilot": {
+        "n_grains": 60,
+        "found": 32,
+        "partial": 1,
+        "lost": 27,
+        "fragmented": 25
+      }
+    },
+    "cma_noretry_realistic_q16": {
+      "pilot_counterpart": "cma_realistic_q16",
+      "wrong_pilot": 617,
+      "wrong_reseed": 568,
+      "unresolved_pilot": 580,
+      "unresolved_reseed": 533,
+      "lost_pilot": 26,
+      "lost_reseed": 19,
+      "lost_pilot_ids": [
+        2,
+        13,
+        22,
+        25,
+        56,
+        76,
+        109,
+        144,
+        146,
+        148,
+        150,
+        152,
+        277,
+        284,
+        287,
+        331,
+        332,
+        342,
+        351,
+        394,
+        398,
+        399,
+        402,
+        403,
+        455,
+        491
+      ],
+      "lost_reseed_ids": [
+        22,
+        25,
+        56,
+        76,
+        144,
+        146,
+        147,
+        150,
+        152,
+        284,
+        331,
+        332,
+        351,
+        394,
+        397,
+        398,
+        399,
+        402,
+        455
+      ],
+      "lost_in_pilot_not_lost_now": 9,
+      "lost_now_not_lost_in_pilot": 2,
+      "accepted_wrong_pilot": 37,
+      "accepted_wrong_reseed": 35,
+      "n_reseeded_voxels": 10,
+      "unresolved_clusters": {
+        "n_clusters": 2,
+        "clusters": [
+          {
+            "size": 529,
+            "has_rejected_ordinary_seed": true,
+            "has_rejected_reseed": false,
+            "grains": 18,
+            "lost_grains_inside": 18
+          },
+          {
+            "size": 4,
+            "has_rejected_ordinary_seed": false,
+            "has_rejected_reseed": true,
+            "grains": 1,
+            "lost_grains_inside": 1
+          }
+        ]
+      },
+      "evals_total": 20003309,
+      "evals_reseed_with_expansion": 3638977,
+      "reseed_share_of_evals": 0.1819187515425573,
+      "reseeds": [
+        {
+          "cluster_size": 21,
+          "voxel": 1,
+          "accepted": true,
+          "seconds": 197.29309225082397,
+          "full_search_seconds": 194.4179310798645,
+          "evaluations": 365199,
+          "full_search_evaluations": 360179,
+          "cluster_voxels_still_refit": 4
+        },
+        {
+          "cluster_size": 16,
+          "voxel": 67,
+          "accepted": true,
+          "seconds": 547.1912531852722,
+          "full_search_seconds": 545.6569819450378,
+          "evaluations": 363104,
+          "full_search_evaluations": 360343,
+          "cluster_voxels_still_refit": 6
+        },
+        {
+          "cluster_size": 6,
+          "voxel": 227,
+          "accepted": true,
+          "seconds": 398.8730249404907,
+          "full_search_seconds": 398.1740231513977,
+          "evaluations": 363442,
+          "full_search_evaluations": 362187,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 55,
+          "voxel": 203,
+          "accepted": true,
+          "seconds": 1337.644858121872,
+          "full_search_seconds": 1331.880700826645,
+          "evaluations": 371351,
+          "full_search_evaluations": 360558,
+          "cluster_voxels_still_refit": 15
+        },
+        {
+          "cluster_size": 9,
+          "voxel": 226,
+          "accepted": true,
+          "seconds": 2414.42320394516,
+          "full_search_seconds": 2413.3147962093353,
+          "evaluations": 363728,
+          "full_search_evaluations": 361720,
+          "cluster_voxels_still_refit": 1
+        },
+        {
+          "cluster_size": 4,
+          "voxel": 238,
+          "accepted": false,
+          "seconds": 182.42576098442078,
+          "full_search_seconds": 182.42505407333374,
+          "evaluations": 362593,
+          "full_search_evaluations": 362593,
+          "cluster_voxels_still_refit": 4
+        },
+        {
+          "cluster_size": 14,
+          "voxel": 528,
+          "accepted": true,
+          "seconds": 184.32061910629272,
+          "full_search_seconds": 182.5782129764557,
+          "evaluations": 366173,
+          "full_search_evaluations": 362910,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 861,
+          "accepted": true,
+          "seconds": 181.8512978553772,
+          "full_search_seconds": 181.85055017471313,
+          "evaluations": 360639,
+          "full_search_evaluations": 360639,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 1888,
+          "accepted": true,
+          "seconds": 183.91466403007507,
+          "full_search_seconds": 183.91390299797058,
+          "evaluations": 359393,
+          "full_search_evaluations": 359393,
+          "cluster_voxels_still_refit": 0
+        },
+        {
+          "cluster_size": 1,
+          "voxel": 1938,
+          "accepted": true,
+          "seconds": 187.02900099754333,
+          "full_search_seconds": 187.02821803092957,
+          "evaluations": 363355,
+          "full_search_evaluations": 363355,
+          "cluster_voxels_still_refit": 0
+        }
+      ],
+      "wall_total_s": 18306.22785806656,
+      "wall_reseed_total_s": 5814.966775417328,
+      "wall_reseed_full_search_s": 5801.240371465683,
+      "reseed_share_of_wall": 0.31764964472759954,
+      "reseed_full_search_share_of_wall": 0.31689982318828136,
+      "n_seeds": 43,
+      "n_seed_rejected": 10,
+      "n_evals_seed": 15543311,
+      "n_evals_reseed": 3613877,
+      "timing_label": "contended: 4 concurrent single-process runs on a 12-core machine, load average 1.5 at launch (preflight.json)",
+      "torch_threads": 1,
+      "overall_reseed": {
+        "n": 2000,
+        "wrong": 568,
+        "wrong_rate": 0.284,
+        "wilson_lo": 0.2646655319343963,
+        "wilson_hi": 0.3041626628690252,
+        "n_right": 1432,
+        "median_right_err_deg": 0.01416223867193948,
+        "median_err_deg": 0.02191641751572223,
+        "cluster_boot_lo": 0.16563745258269708,
+        "cluster_boot_hi": 0.4182058914753867
+      },
+      "overall_pilot": {
+        "n": 2000,
+        "wrong": 617,
+        "wrong_rate": 0.3085,
+        "wilson_lo": 0.2886406807994399,
+        "wilson_hi": 0.3290935752415565,
+        "n_right": 1383,
+        "median_right_err_deg": 0.014125140743369166,
+        "median_err_deg": 0.023237303351462513,
+        "cluster_boot_lo": 0.19232735298577738,
+        "cluster_boot_hi": 0.4418172549085291
+      },
+      "grains_reseed": {
+        "n_grains": 60,
+        "found": 41,
+        "partial": 0,
+        "lost": 19,
+        "fragmented": 26,
+        "fragmented_found": 8
+      },
+      "grains_pilot": {
+        "n_grains": 60,
+        "found": 34,
+        "partial": 0,
+        "lost": 26,
+        "fragmented": 26
+      }
+    }
+  },
+  "pairs": {
+    "mc_clean": {
+      "vs": "mc_clean",
+      "all_voxels": {
+        "wrong_a": 740,
+        "wrong_b": 633,
+        "n_clusters": 60,
+        "n_clusters_differing": 10,
+        "p": 0.001953125,
+        "exact": true
+      },
+      "accepted_wrong": {
+        "wrong_a": 32,
+        "wrong_b": 32,
+        "n_clusters": 60,
+        "n_clusters_differing": 0,
+        "p": 1.0
+      }
+    },
+    "cma_noretry_clean": {
+      "vs": "cma_noretry_clean",
+      "all_voxels": {
+        "wrong_a": 734,
+        "wrong_b": 633,
+        "n_clusters": 60,
+        "n_clusters_differing": 10,
+        "p": 0.001953125,
+        "exact": true
+      },
+      "accepted_wrong": {
+        "wrong_a": 57,
+        "wrong_b": 57,
+        "n_clusters": 60,
+        "n_clusters_differing": 0,
+        "p": 1.0
+      }
+    },
+    "mc_realistic_q16": {
+      "vs": "mc_realistic_q16",
+      "all_voxels": {
+        "wrong_a": 709,
+        "wrong_b": 608,
+        "n_clusters": 60,
+        "n_clusters_differing": 9,
+        "p": 0.00390625,
+        "exact": true
+      },
+      "accepted_wrong": {
+        "wrong_a": 19,
+        "wrong_b": 19,
+        "n_clusters": 60,
+        "n_clusters_differing": 0,
+        "p": 1.0
+      }
+    },
+    "cma_noretry_realistic_q16": {
+      "vs": "cma_realistic_q16",
+      "all_voxels": {
+        "wrong_a": 617,
+        "wrong_b": 568,
+        "n_clusters": 60,
+        "n_clusters_differing": 12,
+        "p": 0.533203125,
+        "exact": true
+      },
+      "accepted_wrong": {
+        "wrong_a": 37,
+        "wrong_b": 35,
+        "n_clusters": 60,
+        "n_clusters_differing": 3,
+        "p": 0.75,
+        "exact": true
+      }
+    }
+  }
+}

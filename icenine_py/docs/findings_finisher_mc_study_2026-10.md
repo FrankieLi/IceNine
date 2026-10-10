@@ -289,6 +289,84 @@ Other results from B3:
 - **Projected full-sample time** with each of the 497 grain pieces seeded: about 30–34 h per run. Runs can go concurrently at
   about one core each.
 
+**Follow-up: the opt-in reseed on the pilot region (2026-10-09, `BFSReseed 1`).**
+
+Same region, images and seed order as the pilot; arms `mc` and `cma_noretry` on clean images, plus `mc` and `cma_noretry` on realistic Q-max 16 (four single-process runs, contended; the pilot had `cma` with the retry on Q-max 16, so that pair differs in arm too). Rule as implemented: after the seed loop, each connected cluster of REFIT voxels gets one full no-start search on the voxel nearest its centroid; if accepted, the voxel expands with revisit; a rejected search is final. A cluster that already holds a rejected ordinary seed counts as having had its one full search, so it is never reseeded. Comparison with the pilot (wrong = over 1 deg; p = grain-clustered sign-flip test on wrong counts; acc_wrong = wrong among voxels the BFS accepted):
+
+<!-- table:phase_d_reseed_compare -->
+| run | pilot | wrong_pilot | wrong_reseed | unres_pilot | unres_reseed | lost_pilot | lost_reseed | acc_wrong_pilot | acc_wrong_reseed | n_clusters_differing | p |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | mc_clean | 740 | 633 | 710 | 601 | 28 | 19 | 32 | 32 | 10 | 0.00195 |
+| cma_noretry_clean | cma_noretry_clean | 734 | 633 | 677 | 576 | 28 | 19 | 57 | 57 | 10 | 0.00195 |
+| mc_realistic_q16 | mc_realistic_q16 | 709 | 608 | 691 | 590 | 27 | 18 | 19 | 19 | 9 | 0.00391 |
+| cma_noretry_realistic_q16 | cma_realistic_q16 | 617 | 568 | 580 | 533 | 26 | 19 | 37 | 35 | 12 | 0.533 |
+<!-- /table:phase_d_reseed_compare -->
+
+Reseed counts, cost and what is left (`ev_share_pct` = evaluations of the reseeds, expansion included, over all evaluations; `share_pct` = their wall time over the run wall time):
+
+<!-- table:phase_d_reseed_counts -->
+| run | seeds | seed_rej | reseeds | accepted | rejected | median_cluster | final_voxels | reseed_min | full_search_min | share_pct | ev_share_pct | unres_clusters | largest_unres | largest_grains | largest_lost_inside | largest_has_rej_seed | wall_h | wall_pilot_h | ev_reseed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 34 | 2 | 11 | 11 | 0 | 6.0 | 0 | 95.7 | 87.3 | 44.6 | 21.8 | 1 | 601 | 20 | 19 | True | 3.57 | 2.27 | 3,723,137 |
+| cma_noretry_clean | 33 | 1 | 10 | 10 | 0 | 7.0 | 0 | 92.9 | 92.7 | 46.6 | 22.1 | 1 | 576 | 19 | 19 | True | 3.32 | 2.06 | 3,403,584 |
+| mc_realistic_q16 | 36 | 4 | 10 | 9 | 1 | 7.0 | 1 | 98.5 | 97.9 | 39.5 | 19.4 | 2 | 589 | 21 | 18 | True | 4.15 | 2.41 | 3,442,938 |
+| cma_noretry_realistic_q16 | 43 | 10 | 10 | 9 | 1 | 7.5 | 4 | 96.9 | 96.7 | 31.8 | 18.2 | 2 | 529 | 18 | 18 | True | 5.09 | 2.40 | 3,638,977 |
+<!-- /table:phase_d_reseed_counts -->
+
+- **The reseed recovers 9 of the 26 to 28 lost grains in every run** (lost 28 to 19, 28 to 19, 27 to 18, 26 to 19) and removes 49 to 107 wrong voxels (633 against 740 and 734, 608 against 709, 568 against 617; the last pair compares with the pilot `cma` arm). 39 of 41 reseeds were accepted; the two rejected ones are final (one cluster of 1 voxel, one of 4).
+- **The rest is one cluster.** In every run the voxels still unresolved (529 to 601) form a single connected cluster that contains the rejected ordinary seed (grain 394 in the pilot), and it holds all but 0 to 1 of the remaining lost grains (18 to 19 grains). By the rule above that cluster counts as already searched, so it was not reseeded. Whether a reseed of such a cluster, on a voxel other than the rejected seed, would recover those grains was not run: it is the owner decision below.
+- **No change in accuracy of what is accepted:** accepted-wrong voxels are 32 and 32 (`mc` clean), 57 and 57, 19 and 19, 37 and 35; the reseeded voxels add no wrong accepted ones. The pilot arm for the last row is `cma` with the retry.
+- **Cost.** The 10 to 11 reseeds per run each used about 328 000 to 371 000 evaluations (full search plus expansion), 18 to 22% of all evaluations of the run. Undisturbed reseeds took about 175 to 190 s; the logged seconds of some reseeds are many times that and the run wall times (3.3 to 5.1 h against 2.1 to 2.4 h in the pilot) are not usable: the machine slept for part of the runs (CPU time of the processes was 134 min after 197 min elapsed when this was noticed; `caffeinate` was added then). The wall-time share in the table is therefore an upper estimate; the evaluation share is the cost figure to use. Timings are contended, 4 concurrent runs.
+- **Not evaluated:** seed order variation (one order), the multi-region case, why the `cma_noretry` Q-max 16 run had 43 seeds with 10 rejected where the pilot `cma` run had 35 with 1 (a different arm; the cause is untested).
+
+Reseed log (every reseed: cluster size, voxel, accepted, left REFIT in the cluster after the expansion, seconds including sleep inflation, evaluations):
+
+<!-- table:phase_d_reseed_log -->
+| run | k | cluster | voxel | accepted | left_refit | seconds | evals |
+|---|---|---|---|---|---|---|---|
+| mc_clean | 1 | 21 | 1 | yes | 4 | 181 | 345,600 |
+| mc_clean | 2 | 16 | 67 | yes | 6 | 815 | 339,345 |
+| mc_clean | 3 | 6 | 227 | yes | 0 | 1273 | 340,846 |
+| mc_clean | 4 | 59 | 854 | yes | 17 | 344 | 358,345 |
+| mc_clean | 5 | 4 | 210 | yes | 0 | 1537 | 333,165 |
+| mc_clean | 6 | 8 | 226 | yes | 1 | 699 | 334,393 |
+| mc_clean | 7 | 4 | 238 | yes | 0 | 170 | 329,932 |
+| mc_clean | 8 | 17 | 528 | yes | 3 | 181 | 341,184 |
+| mc_clean | 9 | 3 | 961 | yes | 0 | 179 | 331,783 |
+| mc_clean | 10 | 1 | 1888 | yes | 0 | 180 | 334,067 |
+| mc_clean | 11 | 1 | 1938 | yes | 0 | 180 | 334,477 |
+| cma_noretry_clean | 1 | 21 | 1 | yes | 4 | 176 | 330,144 |
+| cma_noretry_clean | 2 | 16 | 67 | yes | 6 | 177 | 332,749 |
+| cma_noretry_clean | 3 | 6 | 227 | yes | 0 | 191 | 360,732 |
+| cma_noretry_clean | 4 | 55 | 203 | yes | 15 | 180 | 341,070 |
+| cma_noretry_clean | 5 | 8 | 226 | yes | 1 | 174 | 330,645 |
+| cma_noretry_clean | 6 | 4 | 238 | yes | 0 | 787 | 328,035 |
+| cma_noretry_clean | 7 | 14 | 528 | yes | 0 | 945 | 332,111 |
+| cma_noretry_clean | 8 | 1 | 861 | yes | 0 | 563 | 331,954 |
+| cma_noretry_clean | 9 | 1 | 1888 | yes | 0 | 1666 | 358,407 |
+| cma_noretry_clean | 10 | 1 | 1938 | yes | 0 | 714 | 357,737 |
+| mc_realistic_q16 | 1 | 21 | 1 | yes | 4 | 574 | 349,205 |
+| mc_realistic_q16 | 2 | 16 | 67 | yes | 6 | 1655 | 344,685 |
+| mc_realistic_q16 | 3 | 6 | 227 | yes | 0 | 701 | 340,417 |
+| mc_realistic_q16 | 4 | 56 | 203 | yes | 15 | 190 | 365,918 |
+| mc_realistic_q16 | 5 | 8 | 226 | yes | 1 | 182 | 342,250 |
+| mc_realistic_q16 | 6 | 4 | 238 | yes | 0 | 184 | 341,646 |
+| mc_realistic_q16 | 7 | 14 | 528 | yes | 0 | 188 | 348,396 |
+| mc_realistic_q16 | 8 | 1 | 861 | no | 1 | 532 | 336,641 |
+| mc_realistic_q16 | 9 | 1 | 1888 | yes | 0 | 385 | 336,459 |
+| mc_realistic_q16 | 10 | 1 | 1938 | yes | 0 | 1320 | 337,321 |
+| cma_noretry_realistic_q16 | 1 | 21 | 1 | yes | 4 | 197 | 365,199 |
+| cma_noretry_realistic_q16 | 2 | 16 | 67 | yes | 6 | 547 | 363,104 |
+| cma_noretry_realistic_q16 | 3 | 6 | 227 | yes | 0 | 399 | 363,442 |
+| cma_noretry_realistic_q16 | 4 | 55 | 203 | yes | 15 | 1338 | 371,351 |
+| cma_noretry_realistic_q16 | 5 | 9 | 226 | yes | 1 | 2414 | 363,728 |
+| cma_noretry_realistic_q16 | 6 | 4 | 238 | no | 4 | 182 | 362,593 |
+| cma_noretry_realistic_q16 | 7 | 14 | 528 | yes | 0 | 184 | 366,173 |
+| cma_noretry_realistic_q16 | 8 | 1 | 861 | yes | 0 | 182 | 360,639 |
+| cma_noretry_realistic_q16 | 9 | 1 | 1888 | yes | 0 | 184 | 359,393 |
+| cma_noretry_realistic_q16 | 10 | 1 | 1938 | yes | 0 | 187 | 363,355 |
+<!-- /table:phase_d_reseed_log -->
+
 # 4. Recommendations
 
 | Topic | Recommendation |
@@ -309,6 +387,15 @@ Other results from B3:
   refits through other clients' independent grids, and also refits fitted voxels, keeping the higher confidence). The
   C++ restart-only Refit path is not used for this.
 - Phase D uses truth-free grid configs and the shared image loader.
+- **BFS reseed (owner, 2026-10-09).** Add an opt-in reseed, off by default so the C++ seed rule stays the default.
+  When no unvisited voxels remain, find the connected clusters of still-REFIT voxels (same neighbourhood as the BFS
+  expansion). Give one voxel per cluster a full no-start search, then expand from it with revisit as for any seed.
+  Repeat until no cluster is left that has not yet been reseeded.
+- **A failed reseed is final (owner, 2026-10-09).** The full search should be exhaustive, so if it is rejected, that
+  cluster has failed. There is no retry, no second voxel and no relaxed quality floor. Report its voxels as
+  unresolved. The same rule already covers ordinary seeds.
+- **CMA retry dropped (owner, 2026-10-09).** Phase D arms are `mc` and `cma_noretry` (`CMARetrySigma0 0`).
+- **Scale deferred (owner, 2026-10-09).** Only the pilot region is re-run. Multi-region and full-sample runs are on hold.
 
 # 6. Superseded earlier claims
 
@@ -336,7 +423,7 @@ The earlier report's precision and timing numbers for the default finisher carry
 
 # 7. Open questions
 
-1. **Reseed.** What does the reseed of still-REFIT clusters cost, and how much does it fix?
+1. **Reseed.** Answered on the pilot region (3(g) follow-up): it costs about 10 to 11 full searches (18 to 22% of the evaluations of the run) and recovers 9 of the 26 to 28 lost grains, 49 to 107 of 617 to 740 wrong voxels. The remaining 18 to 19 lost grains sit in one cluster that contains a rejected ordinary seed and is final under the current rule. Open for the owner: should such a cluster be reseeded on another voxel (the rejected seed's voxel excluded)? Not run.
 2. **Wrong-grain acceptances.** Why does CMA accept more of them? Should the 0.9 relative test be tightened for
    CMA fits?
 3. **Coarse candidates.** Why does C++ pass fewer level-0 candidates? Closing that gap would cut about 30% of

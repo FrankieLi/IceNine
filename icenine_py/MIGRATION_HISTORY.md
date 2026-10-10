@@ -5194,6 +5194,30 @@ With all 9 runs (3 arms x 3 variants) concurrent on 12 cores, expect about one c
 **Deviations / caveats.** (1) The first smoke attempt used `max_voxels 50`, which limits the seed candidates, not the BFS flood; it ran 24 min and was killed. The smoke test that counts is `max_voxels 1` (one seed, 68 voxels visited, about 200 s per arm). (2) One BFS rng seed, one region; no run-to-run variance estimate. (3) Fragmentation counts a grain whose voxels hold several different wrong orientations as fragmented; it is reported among found grains only. (4) The first version of this section projected 37 to 41 h with 612 pieces; corrected to 497.
 
 
+#### Phase D BFS reseed (2026-10-09, `feature/finisher-mc-study-bfs-reseed`)
+
+**Code.** Opt-in `BFSReseed 1` (`bfs_reseed`, default off; with it off the output equals `tests/data/bfs_grid_golden.npz`). After the seed loop `BFSReconstruction._reseed_clusters` takes the connected clusters of REFIT voxels (radius 2 x side, as the expansion), one at a time in order of smallest voxel index, runs the normal seed path (`_fit_from_seed`, full no-start search plus acceptance test) on the voxel nearest the cluster centroid (ties: lowest index) and expands with revisit forced on (the cluster's revisit counters are reset so the cap of `BFSRevisitMax` does not block the new orientation). Then the clusters are recomputed. A rejected reseed is final: no retry, no second voxel, no lowered floor; the cluster is marked and its voxels end unresolved (the better of the old and new failed fit by confidence is kept). A cluster that contains a rejected ordinary seed is treated the same way (it already had its full search); this is the implementer's reading of "a rejected full search is final", flagged for the owner. Termination: every pass either marks a cluster final or turns a REFIT voxel FITTED. `reseed_log` has per reseed cluster size, voxel, accepted, seconds, evaluations; `stats` has `n_reseeds`, `n_reseed_accepted`, `n_reseed_rejected`, `n_reseed_final_voxels`, `n_evals_reseed`, `wall_reseed_s`. Tests (`tests/test_bfs_refit.py`, 8 new): golden parity (existing), a swallowed grain is recovered, off leaves it REFIT, a rejected reseed is tried once, clusters with a rejected ordinary seed are skipped, termination with several clusters, scripted-grid improvement, config key. Full suite: 835 passed, 34 skipped, 1 deselected.
+
+**Re-pilot.** `scripts/phase_d/pilot_bfs.py --reseed`, `launch_pilot.sh` (`ARMS=` list), `summarize_reseed.py`; data in `benchmarks/phase_d_pilot_reseed/` (`summary.json`, `tables.md`, `preflight.json`, `runs/`). Results and the table: findings doc, section 3(g) follow-up. Short form: lost grains 28 to 19 (`mc` clean), 28 to 19 (`cma_noretry` clean), 27 to 18, 26 to 19; wrong voxels 740 to 633, 734 to 633, 709 to 608, 617 to 568; 39 of 41 reseeds accepted; the remaining 529 to 601 unresolved voxels form one cluster holding a rejected ordinary seed. Caveats: one seed order and one region; contended; the machine slept during part of the runs, so wall times are inflated and the evaluation share (18 to 22%) is the cost figure; the Q-max 16 `cma_noretry` run is compared with the pilot's `cma` (with retry).
+
+<!-- table:phase_d_reseed_compare -->
+| run | pilot | wrong_pilot | wrong_reseed | unres_pilot | unres_reseed | lost_pilot | lost_reseed | acc_wrong_pilot | acc_wrong_reseed | n_clusters_differing | p |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | mc_clean | 740 | 633 | 710 | 601 | 28 | 19 | 32 | 32 | 10 | 0.00195 |
+| cma_noretry_clean | cma_noretry_clean | 734 | 633 | 677 | 576 | 28 | 19 | 57 | 57 | 10 | 0.00195 |
+| mc_realistic_q16 | mc_realistic_q16 | 709 | 608 | 691 | 590 | 27 | 18 | 19 | 19 | 9 | 0.00391 |
+| cma_noretry_realistic_q16 | cma_realistic_q16 | 617 | 568 | 580 | 533 | 26 | 19 | 37 | 35 | 12 | 0.533 |
+<!-- /table:phase_d_reseed_compare -->
+
+<!-- table:phase_d_reseed_counts -->
+| run | seeds | seed_rej | reseeds | accepted | rejected | median_cluster | final_voxels | reseed_min | full_search_min | share_pct | ev_share_pct | unres_clusters | largest_unres | largest_grains | largest_lost_inside | largest_has_rej_seed | wall_h | wall_pilot_h | ev_reseed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 34 | 2 | 11 | 11 | 0 | 6.0 | 0 | 95.7 | 87.3 | 44.6 | 21.8 | 1 | 601 | 20 | 19 | True | 3.57 | 2.27 | 3,723,137 |
+| cma_noretry_clean | 33 | 1 | 10 | 10 | 0 | 7.0 | 0 | 92.9 | 92.7 | 46.6 | 22.1 | 1 | 576 | 19 | 19 | True | 3.32 | 2.06 | 3,403,584 |
+| mc_realistic_q16 | 36 | 4 | 10 | 9 | 1 | 7.0 | 1 | 98.5 | 97.9 | 39.5 | 19.4 | 2 | 589 | 21 | 18 | True | 4.15 | 2.41 | 3,442,938 |
+| cma_noretry_realistic_q16 | 43 | 10 | 10 | 9 | 1 | 7.5 | 4 | 96.9 | 96.7 | 31.8 | 18.2 | 2 | 529 | 18 | 18 | True | 5.09 | 2.40 | 3,638,977 |
+<!-- /table:phase_d_reseed_counts -->
+
 ### Order and budget
 - **Order:** A → B1/B2 (no new compute) → B3 → C → D.
 - **Compute:**
