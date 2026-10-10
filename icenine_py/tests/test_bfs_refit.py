@@ -167,6 +167,7 @@ class FakeReconstructor:
 def _run(
     deltas: Tuple[float, ...],
     monkeypatch: pytest.MonkeyPatch,
+    fake: Any = None,
     **params: Any,
 ) -> Tuple[BFSReconstruction, MicFile]:
     """BFS over the first len(deltas)+1 positions, seeds in index order: voxel 0 has truth 0 deg,
@@ -174,7 +175,9 @@ def _run(
     n = len(deltas) + 1
     FakeReconstructor.truth = [_rz(0.0)] + [_rz(d) for d in deltas] + [_rz(0.0)] * (4 - n)
     FakeReconstructor.local_calls = []
-    monkeypatch.setattr(reconstructor_module, "AdaptiveVoxelReconstructor", FakeReconstructor)
+    monkeypatch.setattr(
+        reconstructor_module, "AdaptiveVoxelReconstructor", fake or FakeReconstructor
+    )
     voxels = [
         Voxel(position=np.array([x, y, 0.0]), orientation=np.eye(3), side_length=1.0)
         for x, y in POSITIONS[:n]
@@ -369,7 +372,7 @@ def test_cma_revisit_uses_the_retry_and_counts_it_separately(
 def test_defaults_and_validation() -> None:
     sp = SearchParameters()
     assert sp.bfs_revisit_refit is False and sp.bfs_restart_pass is False
-    assert sp.bfs_revisit_max == 3
+    assert sp.bfs_revisit_max == 3 and sp.bfs_reseed is False
     assert sp.cma_neighbor_max_evals == 250 and sp.cma_retry_sigma0_deg == 1.5
     SearchParameters(cma_retry_sigma0_deg=0.0)
     for bad in (
@@ -395,7 +398,7 @@ def _config_with(tmp_path: Path, extra: str) -> ConfigFile:
 def test_config_absent_keys_are_defaults(tmp_path: Path) -> None:
     sp = SearchParameters.from_config(_config_with(tmp_path, ""))
     assert sp.bfs_revisit_refit is False and sp.bfs_restart_pass is False
-    assert sp.bfs_revisit_max == 3
+    assert sp.bfs_revisit_max == 3 and sp.bfs_reseed is False
     assert sp.cma_neighbor_max_evals == 250 and sp.cma_retry_sigma0_deg == 1.5
 
 
@@ -403,10 +406,10 @@ def test_config_keys(tmp_path: Path) -> None:
     cfg = _config_with(
         tmp_path,
         "BFSRevisitRefit 1\nBFSRevisitMax 2\nBFSRestartPass 1\n"
-        "CMANeighborMaxEvals 120\nCMARetrySigma0 0",
+        "CMANeighborMaxEvals 120\nCMARetrySigma0 0\nBFSReseed 1",
     )
     sp = SearchParameters.from_config(cfg)
-    assert sp.bfs_revisit_refit is True and sp.bfs_restart_pass is True
+    assert sp.bfs_revisit_refit is True and sp.bfs_restart_pass is True and sp.bfs_reseed is True
     assert sp.bfs_revisit_max == 2
     assert sp.cma_neighbor_max_evals == 120 and sp.cma_retry_sigma0_deg == 0.0
 
@@ -416,6 +419,7 @@ def test_config_keys(tmp_path: Path) -> None:
     [
         "BFSRevisitRefit 2",
         "BFSRestartPass 3",
+        "BFSReseed 2",
         "BFSRevisitMax 0",
         "CMANeighborMaxEvals 1",
         "CMARetrySigma0 -1",
@@ -464,3 +468,153 @@ def test_default_bfs_matches_recorded_old_result(golden_env: None) -> None:  # n
     assert bfs.stats["n_unresolved"] == 1
     assert [bfs.records[i].source for i in range(3)] == ["unresolved", "seed", "seed"]
     assert all(bfs.records[i].n_evals > 0 for i in range(3))
+
+
+# ---------------------------------------------------------------------------
+# Reseed (opt-in): one full no-start search per leftover REFIT cluster
+# ---------------------------------------------------------------------------
+
+
+class RejectingFull(FakeReconstructor):
+    """Full searches of the voxels in ``bad`` come back with a hit ratio below the acceptance
+    threshold; every full search is logged."""
+
+    bad: Tuple[int, ...] = ()
+    full_calls: List[int] = []
+
+    def reconstruct_voxel(self, voxel_vertices: Any, phase_index: int, rng: Any) -> SearchCandidate:
+        i = self._idx(voxel_vertices)
+        RejectingFull.full_calls.append(i)
+        out = super().reconstruct_voxel(voxel_vertices, phase_index, rng)
+        self._last_bad = i in self.bad
+        return out
+
+    def evaluate_overlap(self, R: np.ndarray, vertices: Any, phase: int) -> Any:
+        return _info(0.3 if getattr(self, "_last_bad", False) else GOOD)
+
+
+def test_reseed_recovers_a_swallowed_grain(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Voxels 1, 2 are rejected from seed 0 and nothing else reaches them (revisit off). With the
+    reseed they get one full search on voxel 1 (the centroid is equidistant: lowest index wins),
+    which is accepted; the forced revisit then fits voxel 2 from it."""
+    bfs, mic = _run((3.0, 3.5, 3.2), monkeypatch, bfs_reseed=True)
+    assert _states(mic) == [FITTED] * 4
+    s = bfs.stats
+    assert s["n_seeds"] == 2 and s["n_reseeds"] == 1 and s["n_reseed_accepted"] == 1
+    assert s["n_reseed_rejected"] == 0 and s["n_unresolved"] == 0
+    assert s["n_seed_rejected"] == 0 and s["n_evals_seed"] == 2000  # reseed cost kept apart
+    assert s["n_evals_reseed"] == 1000 and s["n_revisit_attempted"] == 1
+    (entry,) = bfs.reseed_log
+    assert entry["cluster_size"] == 2 and entry["voxel"] == 1 and entry["accepted"]
+    assert entry["seconds"] >= 0 and entry["evaluations"] == 1000 + 100
+    assert entry["cluster_voxels_still_refit"] == 0
+    assert bfs.records[1].reseeded and bfs.records[1].source == "seed"
+    assert bfs.records[1].n_evals == 100 + 1000  # the failed local fit and the full search
+    assert bfs.records[2].source == "revisit"
+    assert _angle(mic.voxels[1].orientation, _rz(3.0)) < 0.01
+    assert _angle(mic.voxels[2].orientation, _rz(3.5)) < 0.01
+
+
+def test_reseed_off_leaves_the_cluster_refit(monkeypatch: pytest.MonkeyPatch) -> None:
+    bfs, mic = _run((3.0, 3.5, 3.2), monkeypatch, bfs_reseed=False)
+    assert _states(mic) == [FITTED, REFIT, REFIT, FITTED]
+    assert bfs.stats["n_reseeds"] == 0 and bfs.reseed_log == []
+
+
+def test_rejected_reseed_voxel_is_final_but_not_its_cluster(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The full search of voxel 1 is rejected: voxel 1 is never searched again (no retry), but the
+    rest of its cluster is reseeded on another voxel (2), whose accepted expansion revisits 1."""
+    RejectingFull.bad, RejectingFull.full_calls = (1,), []
+    bfs, mic = _run((3.0, 3.5, 3.2), monkeypatch, fake=RejectingFull, bfs_reseed=True)
+    assert RejectingFull.full_calls == [0, 3, 1, 2]  # two seeds, the rejected reseed, the next
+    assert RejectingFull.full_calls.count(1) == 1
+    s = bfs.stats
+    assert s["n_reseeds"] == 2 and s["n_reseed_rejected"] == 1 and s["n_reseed_accepted"] == 1
+    assert s["n_reseed_final_voxels"] == 1 and s["n_seed_rejected"] == 0 and s["n_seeds"] == 2
+    assert [e["accepted"] for e in bfs.reseed_log] == [False, True]
+    assert [e["voxel"] for e in bfs.reseed_log] == [1, 2]
+    assert bfs.records[1].reseeded and bfs.records[2].reseeded
+    assert _states(mic) == [FITTED] * 4  # voxel 1 was fitted by a local revisit from voxel 2
+    # the reseed reset keeps the discarded revisit counts in a separate, logging-only field
+    assert all(r.n_revisits_before_reset == 0 for r in bfs.records.values())
+
+
+def test_failed_voxels_stay_unresolved_and_are_searched_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    RejectingFull.bad, RejectingFull.full_calls = (1, 2), []
+    bfs, mic = _run((3.0, 3.5, 3.2), monkeypatch, fake=RejectingFull, bfs_reseed=True)
+    assert RejectingFull.full_calls == [0, 3, 1, 2]  # each once; the loop then ends
+    assert _states(mic) == [FITTED, REFIT, REFIT, FITTED]
+    s = bfs.stats
+    assert s["n_reseeds"] == 2 and s["n_reseed_rejected"] == 2 and s["n_unresolved"] == 2
+    assert [bfs.records[i].source for i in (1, 2)] == ["unresolved", "unresolved"]
+
+
+def test_rejected_ordinary_seed_does_not_block_its_cluster(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Voxel 0's seed is rejected (failed); voxel 2 (6 deg off its seed 1) is left REFIT next to
+    it. The cluster {0, 2} used to be closed by the failed seed; now only voxel 0 is excluded and
+    voxel 2 gets its own full search. Voxel 0 is never searched again."""
+    RejectingFull.bad, RejectingFull.full_calls = (0,), []
+    bfs, mic = _run((3.0, 6.0, 3.2), monkeypatch, fake=RejectingFull, bfs_reseed=True)
+    assert RejectingFull.full_calls == [0, 1, 2]
+    assert _states(mic) == [REFIT, FITTED, FITTED, FITTED]
+    s = bfs.stats
+    assert s["n_seed_rejected"] == 1 and s["n_reseeds"] == 1 and s["n_reseed_accepted"] == 1
+    assert bfs.reseed_log[0]["voxel"] == 2 and bfs.reseed_log[0]["cluster_size"] == 1
+    assert bfs.records[0].source == "unresolved"
+
+
+def test_reseed_skips_when_every_refit_voxel_has_failed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every full search is rejected, so every voxel is failed: no cluster is left."""
+    RejectingFull.bad, RejectingFull.full_calls = (0, 1, 2, 3), []
+    bfs, mic = _run((3.0, 3.5, 3.2), monkeypatch, fake=RejectingFull, bfs_reseed=True)
+    assert RejectingFull.full_calls == [0, 1, 2, 3]
+    assert bfs.stats["n_reseeds"] == 0 and bfs.stats["n_seed_rejected"] == 4
+    assert _states(mic) == [REFIT] * 4 and bfs.stats["n_unresolved"] == 4
+
+
+def test_reseed_on_the_scripted_grid_terminates_and_helps() -> None:
+    """On the 14 x 14, 4-grain fake grid the reseed leaves fewer REFIT voxels than the revisit
+    alone, every reseed voxel is distinct (no voxel is searched twice)."""
+    kw = dict(bfs_revisit_refit=True)
+    base = bfs_scripted.run_grid(
+        reconstructor_module, mic_module, SearchCandidate, SearchParameters, kw
+    )
+    res = bfs_scripted.run_grid(
+        reconstructor_module,
+        mic_module,
+        SearchCandidate,
+        SearchParameters,
+        dict(kw, bfs_reseed=True),
+    )
+    s = res["bfs"].stats
+    assert s["n_reseeds"] == s["n_reseed_accepted"] + s["n_reseed_rejected"] > 0
+    assert int((res["states"] == REFIT).sum()) < int((base["states"] == REFIT).sum())
+    voxels = [e["voxel"] for e in res["bfs"].reseed_log]
+    assert len(set(voxels)) == len(voxels)
+    assert len(set(res["done"].tolist())) == len(res["done"])
+    assert s["n_unresolved"] == int((res["states"] == REFIT).sum())
+
+
+def test_reseed_reset_keeps_history_and_stays_reset_after_rejection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Voxels 1 and 2 are revisited from voxel 3's wrong-grain start (8 deg) before the reseed;
+    the reseed of the cluster resets their counters, which stay reset when the reseed is rejected,
+    and the discarded count is kept in n_revisits_before_reset."""
+    RejectingFull.bad, RejectingFull.full_calls = (1, 2), []
+    bfs, mic = _run(
+        (3.0, 3.5, 8.0), monkeypatch, fake=RejectingFull, bfs_reseed=True, bfs_revisit_refit=True
+    )
+    assert RejectingFull.full_calls == [0, 3, 1, 2]  # both reseeds rejected
+    for i in (1, 2):
+        r = bfs.records[i]
+        assert r.reseeded and r.source == "unresolved"
+        assert r.n_revisits == 0  # still reset after the rejected reseed
+        assert r.n_revisits_before_reset == 1  # the revisit from voxel 3 before the reset
+    assert bfs.stats["n_reseed_rejected"] == 2

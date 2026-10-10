@@ -47,6 +47,11 @@ def main() -> None:
     ap.add_argument("--max-voxels", type=int, default=None)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument(
+        "--reseed",
+        action="store_true",
+        help="append BFSReseed 1 to the run config (one full search per leftover REFIT cluster)",
+    )
+    ap.add_argument(
         "--timing-label",
         default="contended: other jobs on the machine (state the actual number of concurrent runs)",
     )
@@ -58,6 +63,8 @@ def main() -> None:
         r"(?m)^SampleFilename\s+\S+", f"SampleFilename {(REGION / 'region_grid.mic')}", text
     )
     assert n == 1 and "BFSRevisitRefit 1" in text
+    if a.reseed:
+        text += "\n# Phase D BFS reseed (opt-in)\nBFSReseed 1\n"
     cfg_path = out / "run.config"
     cfg_path.write_text(text)
 
@@ -93,6 +100,7 @@ def main() -> None:
         "cma_retry_sigma0_deg": p.cma_retry_sigma0_deg,
         "bfs_revisit_refit": bool(p.bfs_revisit_refit),
         "bfs_revisit_max": p.bfs_revisit_max,
+        "bfs_reseed": bool(p.bfs_reseed),
         "wall_total_s": wall,
         "setup_s": t_setup,
         "timing_label": a.timing_label,

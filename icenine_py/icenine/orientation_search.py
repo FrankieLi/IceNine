@@ -126,6 +126,11 @@ class SearchParameters:
     bfs_revisit_refit: bool = False
     bfs_revisit_max: int = 3
     bfs_restart_pass: bool = False
+    # bfs_reseed: when no NOT_VISITED voxel is left, every connected cluster of REFIT voxels gets
+    #   one full no-start search on one voxel (nearest the cluster centroid); accepted -> expand
+    #   with revisit; rejected -> that voxel is final (never searched again) and the cluster is
+    #   recomputed without it and reseeded on another voxel. Off by default.
+    bfs_reseed: bool = False
 
     def __post_init__(self) -> None:
         if self.local_optimizer not in LOCAL_OPTIMIZERS:
@@ -172,6 +177,7 @@ class SearchParameters:
             bfs_revisit_refit=bool(getattr(config, "bfs_revisit_refit", False)),
             bfs_revisit_max=getattr(config, "bfs_revisit_max", 3),
             bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
+            bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
         )
 
 

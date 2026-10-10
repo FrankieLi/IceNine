@@ -1,0 +1,193 @@
+{
+  "run": "cma_noretry_clean",
+  "n_region": 2000,
+  "n_scored": 2000,
+  "overall": {
+    "n": 2000,
+    "wrong": 60,
+    "wrong_rate": 0.03,
+    "wilson_lo": 0.023377747806531353,
+    "wilson_hi": 0.038424342737950805,
+    "n_right": 1940,
+    "median_right_err_deg": 0.005653106709124146,
+    "median_err_deg": 0.006101726163243158,
+    "cluster_boot_lo": 0.020197057744325893,
+    "cluster_boot_hi": 0.041981082137447216
+  },
+  "boundary": {
+    "n": 1411,
+    "wrong": 60,
+    "wrong_rate": 0.042523033309709427,
+    "wilson_lo": 0.03317780917494147,
+    "wilson_hi": 0.054352554648118306,
+    "n_right": 1351,
+    "median_right_err_deg": 0.005490611084194574,
+    "median_err_deg": 0.0058776873344478005
+  },
+  "interior": {
+    "n": 589,
+    "wrong": 0,
+    "wrong_rate": 0.0,
+    "wilson_lo": 0.0,
+    "wilson_hi": 0.006479977113616857,
+    "n_right": 589,
+    "median_right_err_deg": 0.007603651917816975,
+    "median_err_deg": 0.007603651917816975
+  },
+  "near_axis": {
+    "n": 416,
+    "wrong": 9,
+    "wrong_rate": 0.021634615384615384,
+    "wilson_lo": 0.011422832083561683,
+    "wilson_hi": 0.040600597705196736,
+    "n_right": 407,
+    "median_right_err_deg": 0.007156201139511508,
+    "median_err_deg": 0.007348374324034519
+  },
+  "far_axis": {
+    "n": 1584,
+    "wrong": 51,
+    "wrong_rate": 0.032196969696969696,
+    "wilson_lo": 0.02457263709981774,
+    "wilson_hi": 0.042084893475020445,
+    "n_right": 1533,
+    "median_right_err_deg": 0.005331035116759124,
+    "median_err_deg": 0.005657925179845022
+  },
+  "grains": {
+    "n_grains": 60,
+    "found": 60,
+    "partial": 0,
+    "lost": 0,
+    "fragmented": 29,
+    "fragmented_found": 29,
+    "lost_ids": [],
+    "fragmented_ids": [
+      13,
+      22,
+      23,
+      24,
+      25,
+      56,
+      76,
+      109,
+      144,
+      146,
+      147,
+      150,
+      151,
+      152,
+      154,
+      260,
+      278,
+      279,
+      300,
+      332,
+      351,
+      394,
+      395,
+      397,
+      398,
+      399,
+      402,
+      403,
+      404
+    ]
+  },
+  "by_source": {
+    "seed": {
+      "n": 61,
+      "wrong": 0,
+      "wrong_rate": 0.0,
+      "wilson_lo": 0.0,
+      "wilson_hi": 0.05924591620194442,
+      "n_right": 61,
+      "median_right_err_deg": 0.007603651917816975,
+      "median_err_deg": 0.007603651917816975
+    },
+    "neighbor": {
+      "n": 783,
+      "wrong": 42,
+      "wrong_rate": 0.05363984674329502,
+      "wilson_lo": 0.039926104279248004,
+      "wilson_hi": 0.07171212125432827,
+      "n_right": 741,
+      "median_right_err_deg": 0.004172140841029574,
+      "median_err_deg": 0.00490817353398997
+    },
+    "revisit": {
+      "n": 1155,
+      "wrong": 17,
+      "wrong_rate": 0.01471861471861472,
+      "wilson_lo": 0.009209576265515738,
+      "wilson_hi": 0.023445102337668687,
+      "n_right": 1138,
+      "median_right_err_deg": 0.007320212142677706,
+      "median_err_deg": 0.0075360912417127175
+    },
+    "unresolved": {
+      "n": 1,
+      "wrong": 1,
+      "wrong_rate": 1.0,
+      "wilson_lo": 0.20654329147389294,
+      "wilson_hi": 1.0,
+      "n_right": 0,
+      "median_right_err_deg": null,
+      "median_err_deg": 49.07843813233729
+    }
+  },
+  "wrong_cross_boundary_like": 60,
+  "wrong_total": 60,
+  "wrong_boundary": 60,
+  "wrong_near_axis": 9,
+  "unresolved": {
+    "n": 1,
+    "errors_deg": [
+      49.07843813233729
+    ],
+    "wrong": 1
+  },
+  "provenance": {
+    "seeds": 33,
+    "seed_rejected": 1,
+    "neighbor_fits": 1967,
+    "neighbor_accepted_first": 783,
+    "retry_attempted": 0,
+    "retry_accepted": 0,
+    "revisit_attempted": 2068,
+    "revisit_accepted": 1155,
+    "revisit_rejected": 913,
+    "revisit_capped": 2,
+    "unresolved_final": 1,
+    "source_counts": {
+      "seed": 61,
+      "neighbor": 783,
+      "neighbor_retry": 0,
+      "revisit": 1155,
+      "restart": 0,
+      "unresolved": 1,
+      "not_visited": 0
+    }
+  },
+  "cost": {
+    "evals_seed": 11177832,
+    "evals_neighbor": 493717,
+    "evals_revisit": 519068,
+    "wall_seed_s": 5967.643869638443,
+    "wall_neighbor_s": 285.9536204338074,
+    "wall_revisit_s": 297.93939113616943,
+    "wall_total_s": 12047.409118890762,
+    "wall_per_seed_s": 180.83769301934674,
+    "wall_per_neighbor_fit_s": 0.14537550606700933,
+    "timing_label": "contended: 4 concurrent single-process runs on a 12-core machine under caffeinate (preflight.json); 2 runs scored while others still ran"
+  },
+  "options": {
+    "local_optimizer": "cma",
+    "cma_neighbor_max_evals": 250,
+    "cma_retry_sigma0_deg": 0.0,
+    "bfs_revisit_refit": true,
+    "bfs_revisit_max": 3,
+    "bfs_rng_seed": 0,
+    "max_voxels": null
+  }
+}

@@ -15,7 +15,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -1074,7 +1074,10 @@ class BFSVoxelRecord:
     local_rejected: bool = False  # a local fit failed the 0.9 acceptance test
     retried: bool = False  # the wider-sigma CMA retry ran (at least once)
     retry_accepted: bool = False
-    n_revisits: int = 0  # local fits made on this voxel while it was REFIT (revisit / restart)
+    n_revisits: int = 0  # local fits on this voxel while REFIT, since the last reseed reset
+    n_revisits_before_reset: int = 0  # fits discarded by reseed resets (logging only; the cap
+    # reads ``n_revisits``, so a reseed gives the cluster's voxels a fresh budget)
+    reseeded: bool = False  # chosen as the one full-search voxel of a leftover REFIT cluster
 
 
 _Snapshot = Tuple[np.ndarray, float, float, float]  # orientation, cost, confidence, overlap_ratio
@@ -1120,6 +1123,24 @@ class BFSReconstruction:
     grains' expansions gets no full search, in one client or many (several clients could reach it
     only through timing, untested).
 
+    Reseed (``bfs_reseed``, opt-in, off by default so the C++ seed rule stays the default): once
+    no NOT_VISITED voxel is left, the connected clusters of REFIT voxels (the expansion's
+    neighbourhood, radius 2 x side length) are computed with the failed voxels left out, and the
+    first cluster (smallest voxel index) gets one full no-start search on the voxel nearest its
+    centroid (ties: lowest index). If the usual seed acceptance test passes, the voxel expands with
+    revisit (also when ``bfs_revisit_refit`` is off; the revisit counters of the cluster's voxels
+    are reset, the new orientation being an independent source; they stay reset if the reseed is
+    rejected, so ``bfs_revisit_max`` applies per reseed of a cluster, not over the whole run;
+    ``n_revisits_before_reset`` keeps the discarded counts for the record). The clusters are then
+    recomputed and the loop repeats. The finality rule is per voxel: a voxel whose full search was
+    rejected
+    (an ordinary seed or a reseed) is failed; it is never searched again, ends unresolved unless a
+    later revisit fits it, and does NOT close its cluster: the rest of the cluster is reseeded on
+    other voxels. No retry, no lowered floor. Each reseed adds an entry to ``reseed_log``;
+    ``n_reseed_*`` and ``n_evals_reseed`` / ``wall_reseed_s`` (full search only) in ``stats``
+    count them separately from the ordinary seeds. The loop terminates: every pass either marks one
+    more voxel failed or turns a REFIT voxel FITTED.
+
     After reconstruct_sample, ``records`` maps voxel index -> BFSVoxelRecord and ``stats`` holds
     the counters (seeds, retries, revisits, unresolved, evaluations and wall time split by seed /
     neighbour / revisit / restart).
@@ -1136,6 +1157,7 @@ class BFSReconstruction:
         self.records: Dict[int, BFSVoxelRecord] = {}
         self.stats: Dict[str, Any] = {}
         self._refit_candidates: List[int] = []
+        self.reseed_log: List[Dict[str, Any]] = []
 
     @staticmethod
     def _ratios(info: Optional[OverlapInfo]) -> Tuple[float, float]:
@@ -1162,6 +1184,13 @@ class BFSReconstruction:
             n_unresolved=0,
             n_evals_seed=0,
             wall_seed_s=0.0,
+            n_reseeds=0,
+            n_reseed_accepted=0,
+            n_reseed_rejected=0,
+            n_reseed_final_voxels=0,
+            n_evals_reseed=0,
+            wall_reseed_s=0.0,
+            wall_reseed_total_s=0.0,
         )
         for phase in ("neighbor", "revisit", "restart"):
             stats[f"n_retry_attempted_{phase}"] = 0
@@ -1206,6 +1235,7 @@ class BFSReconstruction:
         self.records = {}
         self.stats = self._new_stats()
         self._refit_candidates = []
+        self.reseed_log = []
 
         # Randomized seed order (C++ uses random_shuffle)
         voxel_order = list(range(n_process))
@@ -1244,6 +1274,10 @@ class BFSReconstruction:
             )
         self.stats["n_seeds"] = n_seeds
 
+        if self.setup.search_params.bfs_reseed:
+            self._reseed_clusters(mic, rng, all_processed)
+            self.stats["reseeds"] = self.reseed_log
+
         if self.setup.search_params.bfs_restart_pass:
             self._restart_pass(mic, rng)
 
@@ -1275,14 +1309,139 @@ class BFSReconstruction:
 
         return all_processed
 
+    def _refit_clusters(
+        self, mic: MicFile, n_limit: int, failed: Optional[Set[int]] = None
+    ) -> List[List[int]]:
+        """Connected clusters (radius 2 x side length, as the expansion) of REFIT voxels without
+        the ``failed`` ones, each sorted by index and the list ordered by the smallest index."""
+        refit = {
+            i
+            for i in range(n_limit)
+            if mic.voxels[i].reconstruction_id == ReconstructionState.REFIT
+            and i not in (failed or ())
+        }
+        clusters: List[List[int]] = []
+        seen: set = set()
+        for i in sorted(refit):
+            if i in seen:
+                continue
+            comp, stack = [], [i]
+            seen.add(i)
+            while stack:
+                c = stack.pop()
+                comp.append(c)
+                for n in mic.get_neighbors(c, radius=2.0 * mic.voxels[c].side_length):
+                    if n in refit and n not in seen:
+                        seen.add(n)
+                        stack.append(n)
+            clusters.append(sorted(comp))
+        return clusters
+
+    def _reseed_clusters(
+        self, mic: MicFile, rng: np.random.Generator, processed: List[int]
+    ) -> None:
+        """The ``bfs_reseed`` loop (see the class docstring)."""
+        n_limit = len(mic.voxels)
+        # voxels whose full search was rejected (an ordinary seed or a reseed): final per voxel
+        failed: set = {i for i, r in self.records.items() if r.seed_rejected}
+        pos = mic.positions.numpy().astype(np.float64)
+        seen_processed = set(processed)
+        while True:
+            todo = self._refit_clusters(mic, n_limit, failed)
+            if not todo:
+                break
+            cluster = todo[0]  # clusters are ordered by smallest voxel index
+            centroid = pos[cluster].mean(axis=0)
+            vox = cluster[int(np.argmin(((pos[cluster] - centroid) ** 2).sum(axis=1)))]
+            # The new orientation is an independent source for the revisit cap: the counters of
+            # the cluster stay reset afterwards, also when the reseed is rejected (a later
+            # reseed or restart pass then starts from a fresh budget). The discarded counts are
+            # kept in ``n_revisits_before_reset``, which no decision reads.
+            for i in cluster:
+                r_i = self.records[i]
+                r_i.n_revisits_before_reset += r_i.n_revisits
+                r_i.n_revisits = 0
+            voxel = mic.voxels[vox]
+            old = self.records[vox]
+            old_state = (
+                voxel.orientation.copy(),
+                voxel.cost,
+                voxel.confidence,
+                voxel.overlap_ratio,
+            )
+            s0 = dict(self.stats)
+            t0 = time.time()
+            print(f"\n  Reseed: cluster of {len(cluster)} REFIT voxels, voxel {vox}", flush=True)
+            solution = self._fit_from_seed(mic, vox, rng, force_revisit=True)
+            seconds = time.time() - t0
+            rec = self.records[vox]
+            rec.reseeded = True
+            rec.n_evals += old.n_evals
+            rec.wall_s += old.wall_s
+            rec.n_revisits_before_reset = old.n_revisits_before_reset
+            rec.local_rejected = rec.local_rejected or old.local_rejected
+            rec.retried = rec.retried or old.retried
+            rec.retry_accepted = rec.retry_accepted or old.retry_accepted
+            accepted = voxel.reconstruction_id == ReconstructionState.FITTED
+            d_full_ev = self.stats["n_evals_seed"] - s0["n_evals_seed"]
+            d_full_s = self.stats["wall_seed_s"] - s0["wall_seed_s"]
+            # the full search is a reseed cost, not an ordinary-seed cost
+            self.stats["n_evals_seed"] = s0["n_evals_seed"]
+            self.stats["wall_seed_s"] = s0["wall_seed_s"]
+            self.stats["n_seed_rejected"] = s0["n_seed_rejected"]
+            self.stats["n_evals_reseed"] += d_full_ev
+            self.stats["wall_reseed_s"] += d_full_s
+            self.stats["n_reseeds"] += 1
+            evals = d_full_ev + sum(
+                self.stats[f"n_evals_{ph}"] - s0[f"n_evals_{ph}"] for ph in ("neighbor", "revisit")
+            )
+            if accepted:
+                self.stats["n_reseed_accepted"] += 1
+            else:
+                self.stats["n_reseed_rejected"] += 1
+                failed.add(vox)
+                self.stats["n_reseed_final_voxels"] += 1  # voxels failed by a rejected reseed
+                # Push rule: keep the better of the old and the new failed fit by confidence
+                if old_state[2] > voxel.confidence:
+                    voxel.orientation, voxel.cost, voxel.confidence, voxel.overlap_ratio = old_state
+                    rec.hit_ratio = voxel.overlap_ratio
+            self.stats["wall_reseed_total_s"] += seconds
+            for i in solution:
+                if i not in seen_processed:
+                    seen_processed.add(i)
+                    processed.append(i)
+            n_left = sum(
+                1 for i in cluster if mic.voxels[i].reconstruction_id != ReconstructionState.FITTED
+            )
+            self.reseed_log.append(
+                dict(
+                    cluster_size=len(cluster),
+                    voxel=int(vox),
+                    accepted=bool(accepted),
+                    seconds=seconds,
+                    full_search_seconds=d_full_s,
+                    evaluations=int(evals),
+                    full_search_evaluations=int(d_full_ev),
+                    cluster_voxels_still_refit=int(n_left),
+                )
+            )
+            print(
+                f"  Reseed voxel {vox}: {'accepted' if accepted else 'REJECTED (final)'}, "
+                f"{len(cluster) - n_left} of {len(cluster)} cluster voxels fitted, "
+                f"{seconds:.1f}s",
+                flush=True,
+            )
+
     def _fit_from_seed(
         self,
         mic: MicFile,
         seed_idx: int,
         rng: np.random.Generator,
+        force_revisit: bool = False,
     ) -> List[int]:
         """
         Full reconstruction on seed, then BFS propagation to neighbors.
+        ``force_revisit`` (reseed) makes the expansion revisit REFIT neighbours.
 
         C++ Reference: BreadthFirstReconstructor.tmpl.cpp:112-188 Fit()
         """
@@ -1344,7 +1503,7 @@ class BFSReconstruction:
         # C++ BreadthFirstReconstructor.tmpl.cpp:153-156
         voxel.reconstruction_id = ReconstructionState.FITTED
         solution = [seed_idx]
-        self._expand(mic, seed_idx, hit_ratio, rng, solution)
+        self._expand(mic, seed_idx, hit_ratio, rng, solution, force_revisit=force_revisit)
         return solution
 
     def _local_fit(
@@ -1392,6 +1551,7 @@ class BFSReconstruction:
         rng: np.random.Generator,
         solution: List[int],
         restart: bool = False,
+        force_revisit: bool = False,
     ) -> None:
         """
         BFS expansion from a fitted voxel (the loop of C++ Fit() after the centre is accepted).
@@ -1412,7 +1572,7 @@ class BFSReconstruction:
         revisited (C++ would also refit them and keep the higher confidence).
         """
         params = self.setup.search_params
-        revisit_on = params.bfs_revisit_refit or restart
+        revisit_on = params.bfs_revisit_refit or restart or force_revisit
         bfs_queue: deque[int] = deque()
         snapshots: Dict[int, _Snapshot] = {}
         tried: set = {start_idx}
