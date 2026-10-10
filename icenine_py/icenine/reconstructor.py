@@ -1122,18 +1122,19 @@ class BFSReconstruction:
     only through timing, untested).
 
     Reseed (``bfs_reseed``, opt-in, off by default so the C++ seed rule stays the default): once
-    no NOT_VISITED voxel is left, each connected cluster of REFIT voxels (the expansion's
-    neighbourhood, radius 2 x side length) gets exactly one full no-start search, on the cluster
-    voxel nearest the cluster centroid (ties: lowest index). If the usual seed acceptance test
-    passes, the voxel expands with revisit (also when ``bfs_revisit_refit`` is off; the revisit
-    counters of the cluster's voxels are reset, the new orientation being an independent source);
-    clusters are then recomputed and the loop repeats. A rejected reseed is final: no retry, no
-    second voxel, no lowered floor; the cluster is never reseeded again and its voxels end as
-    unresolved. The same holds for a cluster that contains an ordinary seed whose full search was
-    rejected (that search already was the one full search). Each reseed adds an entry to
-    ``reseed_log``; ``n_reseed_*`` and ``n_evals_reseed`` / ``wall_reseed_s`` (full search only)
-    in ``stats`` count them separately from the ordinary seeds. The loop terminates: every pass
-    either marks a cluster final or turns a REFIT voxel FITTED.
+    no NOT_VISITED voxel is left, the connected clusters of REFIT voxels (the expansion's
+    neighbourhood, radius 2 x side length) are computed with the failed voxels left out, and the
+    first cluster (smallest voxel index) gets one full no-start search on the voxel nearest its
+    centroid (ties: lowest index). If the usual seed acceptance test passes, the voxel expands with
+    revisit (also when ``bfs_revisit_refit`` is off; the revisit counters of the cluster's voxels
+    are reset, the new orientation being an independent source). The clusters are then recomputed
+    and the loop repeats. The finality rule is per voxel: a voxel whose full search was rejected
+    (an ordinary seed or a reseed) is failed; it is never searched again, ends unresolved unless a
+    later revisit fits it, and does NOT close its cluster: the rest of the cluster is reseeded on
+    other voxels. No retry, no lowered floor. Each reseed adds an entry to ``reseed_log``;
+    ``n_reseed_*`` and ``n_evals_reseed`` / ``wall_reseed_s`` (full search only) in ``stats``
+    count them separately from the ordinary seeds. The loop terminates: every pass either marks one
+    more voxel failed or turns a REFIT voxel FITTED.
 
     After reconstruct_sample, ``records`` maps voxel index -> BFSVoxelRecord and ``stats`` holds
     the counters (seeds, retries, revisits, unresolved, evaluations and wall time split by seed /
@@ -1303,13 +1304,16 @@ class BFSReconstruction:
 
         return all_processed
 
-    def _refit_clusters(self, mic: MicFile, n_limit: int) -> List[List[int]]:
-        """Connected clusters (radius 2 x side length, as the expansion) of REFIT voxels, each
-        sorted by index and the list ordered by the smallest index."""
+    def _refit_clusters(
+        self, mic: MicFile, n_limit: int, failed: Optional[set] = None
+    ) -> List[List[int]]:
+        """Connected clusters (radius 2 x side length, as the expansion) of REFIT voxels without
+        the ``failed`` ones, each sorted by index and the list ordered by the smallest index."""
         refit = {
             i
             for i in range(n_limit)
             if mic.voxels[i].reconstruction_id == ReconstructionState.REFIT
+            and i not in (failed or ())
         }
         clusters: List[List[int]] = []
         seen: set = set()
@@ -1333,13 +1337,12 @@ class BFSReconstruction:
     ) -> None:
         """The ``bfs_reseed`` loop (see the class docstring)."""
         n_limit = len(mic.voxels)
-        # voxels of clusters that had a rejected full search (an ordinary seed or a reseed): that
-        # search is final, the cluster is never reseeded
-        final: set = {i for i, r in self.records.items() if r.seed_rejected}
+        # voxels whose full search was rejected (an ordinary seed or a reseed): final per voxel
+        failed: set = {i for i, r in self.records.items() if r.seed_rejected}
         pos = mic.positions.numpy().astype(np.float64)
         seen_processed = set(processed)
         while True:
-            todo = [c for c in self._refit_clusters(mic, n_limit) if not final.intersection(c)]
+            todo = self._refit_clusters(mic, n_limit, failed)
             if not todo:
                 break
             cluster = todo[0]  # clusters are ordered by smallest voxel index
@@ -1383,8 +1386,8 @@ class BFSReconstruction:
                 self.stats["n_reseed_accepted"] += 1
             else:
                 self.stats["n_reseed_rejected"] += 1
-                final.update(cluster)
-                self.stats["n_reseed_final_voxels"] += len(cluster)
+                failed.add(vox)
+                self.stats["n_reseed_final_voxels"] += 1  # voxels failed by a rejected reseed
                 # Push rule: keep the better of the old and the new failed fit by confidence
                 if old_state[2] > voxel.confidence:
                     voxel.orientation, voxel.cost, voxel.confidence, voxel.overlap_ratio = old_state

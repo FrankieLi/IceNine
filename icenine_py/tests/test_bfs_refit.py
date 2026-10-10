@@ -521,28 +521,54 @@ def test_reseed_off_leaves_the_cluster_refit(monkeypatch: pytest.MonkeyPatch) ->
     assert bfs.stats["n_reseeds"] == 0 and bfs.reseed_log == []
 
 
-def test_rejected_reseed_is_tried_exactly_once(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The full search of voxel 1 is rejected: no retry on it, no second voxel (voxel 2), the
-    cluster stays REFIT and is reported as unresolved, and the loop ends."""
-    RejectingFull.bad, RejectingFull.full_calls = (1,), []
-    bfs, mic = _run((3.0, 3.5, 3.2), monkeypatch, fake=RejectingFull, bfs_reseed=True)
-    assert RejectingFull.full_calls == [0, 3, 1]  # two seeds, then the one reseed
-    assert _states(mic) == [FITTED, REFIT, REFIT, FITTED]
-    s = bfs.stats
-    assert s["n_reseeds"] == 1 and s["n_reseed_rejected"] == 1 and s["n_reseed_accepted"] == 0
-    assert s["n_reseed_final_voxels"] == 2 and s["n_unresolved"] == 2
-    assert s["n_seed_rejected"] == 0 and s["n_seeds"] == 2
-    assert [e["accepted"] for e in bfs.reseed_log] == [False]
-    assert bfs.reseed_log[0]["cluster_voxels_still_refit"] == 2
-    assert bfs.records[1].reseeded and bfs.records[1].source == "unresolved"
-    assert not bfs.records[2].reseeded and bfs.records[2].source == "unresolved"
-
-
-def test_reseed_skips_clusters_with_a_rejected_ordinary_seed(
+def test_rejected_reseed_voxel_is_final_but_not_its_cluster(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Every full search is rejected, so every voxel is a rejected seed and the one REFIT cluster
-    already had its full search: nothing is reseeded and each voxel is searched once."""
+    """The full search of voxel 1 is rejected: voxel 1 is never searched again (no retry), but the
+    rest of its cluster is reseeded on another voxel (2), whose accepted expansion revisits 1."""
+    RejectingFull.bad, RejectingFull.full_calls = (1,), []
+    bfs, mic = _run((3.0, 3.5, 3.2), monkeypatch, fake=RejectingFull, bfs_reseed=True)
+    assert RejectingFull.full_calls == [0, 3, 1, 2]  # two seeds, the rejected reseed, the next
+    assert RejectingFull.full_calls.count(1) == 1
+    s = bfs.stats
+    assert s["n_reseeds"] == 2 and s["n_reseed_rejected"] == 1 and s["n_reseed_accepted"] == 1
+    assert s["n_reseed_final_voxels"] == 1 and s["n_seed_rejected"] == 0 and s["n_seeds"] == 2
+    assert [e["accepted"] for e in bfs.reseed_log] == [False, True]
+    assert [e["voxel"] for e in bfs.reseed_log] == [1, 2]
+    assert bfs.records[1].reseeded and bfs.records[2].reseeded
+    assert _states(mic) == [FITTED] * 4  # voxel 1 was fitted by a local revisit from voxel 2
+
+
+def test_failed_voxels_stay_unresolved_and_are_searched_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    RejectingFull.bad, RejectingFull.full_calls = (1, 2), []
+    bfs, mic = _run((3.0, 3.5, 3.2), monkeypatch, fake=RejectingFull, bfs_reseed=True)
+    assert RejectingFull.full_calls == [0, 3, 1, 2]  # each once; the loop then ends
+    assert _states(mic) == [FITTED, REFIT, REFIT, FITTED]
+    s = bfs.stats
+    assert s["n_reseeds"] == 2 and s["n_reseed_rejected"] == 2 and s["n_unresolved"] == 2
+    assert [bfs.records[i].source for i in (1, 2)] == ["unresolved", "unresolved"]
+
+
+def test_rejected_ordinary_seed_does_not_block_its_cluster(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Voxel 0's seed is rejected (failed); voxel 2 (6 deg off its seed 1) is left REFIT next to
+    it. The cluster {0, 2} used to be closed by the failed seed; now only voxel 0 is excluded and
+    voxel 2 gets its own full search. Voxel 0 is never searched again."""
+    RejectingFull.bad, RejectingFull.full_calls = (0,), []
+    bfs, mic = _run((3.0, 6.0, 3.2), monkeypatch, fake=RejectingFull, bfs_reseed=True)
+    assert RejectingFull.full_calls == [0, 1, 2]
+    assert _states(mic) == [REFIT, FITTED, FITTED, FITTED]
+    s = bfs.stats
+    assert s["n_seed_rejected"] == 1 and s["n_reseeds"] == 1 and s["n_reseed_accepted"] == 1
+    assert bfs.reseed_log[0]["voxel"] == 2 and bfs.reseed_log[0]["cluster_size"] == 1
+    assert bfs.records[0].source == "unresolved"
+
+
+def test_reseed_skips_when_every_refit_voxel_has_failed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every full search is rejected, so every voxel is failed: no cluster is left."""
     RejectingFull.bad, RejectingFull.full_calls = (0, 1, 2, 3), []
     bfs, mic = _run((3.0, 3.5, 3.2), monkeypatch, fake=RejectingFull, bfs_reseed=True)
     assert RejectingFull.full_calls == [0, 1, 2, 3]
@@ -550,17 +576,9 @@ def test_reseed_skips_clusters_with_a_rejected_ordinary_seed(
     assert _states(mic) == [REFIT] * 4 and bfs.stats["n_unresolved"] == 4
 
 
-def test_reseed_loop_terminates_with_several_clusters(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Reseed rejection is final per cluster, and the loop ends after one try each."""
-    RejectingFull.bad, RejectingFull.full_calls = (1, 2), []
-    bfs, mic = _run((3.0, 3.5, 3.2), monkeypatch, fake=RejectingFull, bfs_reseed=True)
-    assert RejectingFull.full_calls.count(1) == 1 and RejectingFull.full_calls.count(2) <= 1
-    assert bfs.stats["n_reseeds"] == bfs.stats["n_reseed_rejected"] <= 1
-
-
 def test_reseed_on_the_scripted_grid_terminates_and_helps() -> None:
     """On the 14 x 14, 4-grain fake grid the reseed leaves fewer REFIT voxels than the revisit
-    alone, every reseed voxel is distinct, and rejected clusters are not reseeded twice."""
+    alone, every reseed voxel is distinct (no voxel is searched twice)."""
     kw = dict(bfs_revisit_refit=True)
     base = bfs_scripted.run_grid(
         reconstructor_module, mic_module, SearchCandidate, SearchParameters, kw
