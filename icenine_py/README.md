@@ -794,8 +794,11 @@ Rules and checks that used to be repeated in LLM prompts live in code. Paths are
 | `scripts/dev/new_todo.sh <slug> "<title>" ["<subtitle>"]` | Scaffold `icenine_py/docs/todo_<slug>.md`. |
 | `.claude/agents/implementer.md`, `.claude/agents/code-reviewer.md` | Slim LLM agents: an implementer (Sonnet) for approved plans, and the reviewer with a "Claims audit" section that runs the scripts above first. Both read `.claude/agents/study-conventions.md` first (standing rules, so briefs can say "follow study-conventions"), write the full report to `.claude/reports/<YYYYMMDD-HHMM>-<task>.md` (gitignored) and return at most about 250 words. |
 | `.claude/skills/{handoff,resume,review-task,merge-task}` | `/handoff` runs `checkpoint.sh`, fills Done / Waiting on the owner / Next step and says it is safe to `/clear`; `/resume` reads only the newest checkpoint, its plan and `git status`/`log -5`; `/review-task` launches the opus reviewer, whose required fixes go to its report file; `/merge-task [next]` wraps `finish_task.sh --yes --push [--next]`. |
+| `icenine_py/scripts/plot_mic.py --ref R.mic [--ref-index I.npy] [--z Z] --mic A.mic ... --labels ... --out F.png [--stats S.json]` | Orientation maps (cubic fundamental-zone Rodrigues vector as RGB, fixed scale) and misorientation maps against the reference (blue 0° to red 62.8°, the cubic maximum) for triangular `.mic` grids. Pairs voxels by index when the order matches, otherwise by nearest centroid on the same grid; unmatched reference voxels are grey. Python 3 port of `MicAnalyzer/Python/xdm_toolkit/xdm_plot.py`. |
+| `icenine_py/scripts/mic_maps_report.py SPEC.json --out-dir D` | Build an Artifact-ready page (`index.html`, `maps/*.png`, `stats.json`) of several `plot_mic` figures from a JSON spec (format in its docstring). |
+| `.claude/skills/mic-maps` | `/mic-maps`: choose the reference and runs, write the spec, build, check the wrong counts against scored numbers, and publish the page as an Artifact. For layers of 500 voxels or more. |
 
-Tests: `tests/test_dev_tooling.py`.
+Tests: `tests/test_dev_tooling.py`, `tests/test_plot_mic.py`.
 
 ## Citation
 
