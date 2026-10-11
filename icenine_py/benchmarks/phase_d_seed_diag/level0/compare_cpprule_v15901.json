@@ -1,0 +1,173 @@
+{
+ "voxel": 15901,
+ "py_file": "py_cpprule_v15901_L0.json",
+ "S4_levels": [
+  {
+   "level": 0,
+   "n_fz": [
+    4886,
+    4886
+   ],
+   "n_local": [
+    9,
+    9
+   ],
+   "n_q_max": [
+    5.0,
+    null
+   ],
+   "n_recip": [
+    26,
+    26
+   ],
+   "diameter_deg": [
+    4.999999854484964,
+    5.0
+   ],
+   "n_sym": [
+    24,
+    24
+   ],
+   "n_cliques": [
+    4491,
+    4513
+   ],
+   "n_candidates": [
+    8151,
+    8206
+   ]
+  }
+ ],
+ "n_fz_common": 4886,
+ "S1_screen": {
+  "total_pass_cpp": 12326,
+  "total_pass_py": 12485,
+  "fz_with_pass_cpp": 4491,
+  "fz_with_pass_py": 4513,
+  "fz_identical_pass_set": 3341,
+  "pairs_pass_cpp_only": 855,
+  "pairs_pass_py_only": 1014,
+  "peak_overlap_equal_frac": 0.9398963023604857,
+  "peak_overlap_mean_cpp": 0.3373584390776368,
+  "peak_overlap_mean_py": 0.3438850229681175,
+  "mean_n_pass_per_fz": [
+   2.522717969709374,
+   2.5552599263200984
+  ]
+ },
+ "S1_by_j": [
+  {
+   "j": 0,
+   "pass_cpp": 1373,
+   "pass_py": 1386,
+   "mean_overlap_cpp": 0.33749488334015554,
+   "mean_overlap_py": 0.3438395415472779
+  },
+  {
+   "j": 1,
+   "pass_cpp": 1366,
+   "pass_py": 1368,
+   "mean_overlap_cpp": 0.33810888252148996,
+   "mean_overlap_py": 0.3428162095783872
+  },
+  {
+   "j": 2,
+   "pass_cpp": 1384,
+   "pass_py": 1413,
+   "mean_overlap_cpp": 0.3485468686041752,
+   "mean_overlap_py": 0.35366352844862875
+  },
+  {
+   "j": 3,
+   "pass_cpp": 1367,
+   "pass_py": 1379,
+   "mean_overlap_cpp": 0.3372902169463774,
+   "mean_overlap_py": 0.34158821121571836
+  },
+  {
+   "j": 4,
+   "pass_cpp": 1392,
+   "pass_py": 1408,
+   "mean_overlap_cpp": 0.3432255423659435,
+   "mean_overlap_py": 0.3499795333606222
+  },
+  {
+   "j": 5,
+   "pass_cpp": 1331,
+   "pass_py": 1372,
+   "mean_overlap_cpp": 0.32255423659435123,
+   "mean_overlap_py": 0.333810888252149
+  },
+  {
+   "j": 6,
+   "pass_cpp": 1308,
+   "pass_py": 1318,
+   "mean_overlap_cpp": 0.31968890708145725,
+   "mean_overlap_py": 0.3237822349570201
+  },
+  {
+   "j": 7,
+   "pass_cpp": 1390,
+   "pass_py": 1412,
+   "mean_overlap_cpp": 0.3424068767908309,
+   "mean_overlap_py": 0.35120753172329106
+  },
+  {
+   "j": 8,
+   "pass_cpp": 1415,
+   "pass_py": 1429,
+   "mean_overlap_cpp": 0.34690953745395003,
+   "mean_overlap_py": 0.3542775276299632
+  }
+ ],
+ "S2_recost": {
+  "n_pairs": 11471,
+  "mean_py_minus_cpp": -2.7034955775220198e-05,
+  "median": 0.0,
+  "max_abs": 0.030745983099999985,
+  "frac_abs_lt_1e_6": 0.8490105483392903,
+  "frac_abs_lt_1e_3": 0.9948565948914654
+ },
+ "S3_filter": {
+  "total_kept_cpp": 8151,
+  "total_kept_py": 8206,
+  "fz_same_kept_set": 3714,
+  "fz_with_identical_screen": 3034,
+  "fz_same_kept_among_identical_screen": 2952,
+  "mean_kept_per_fz": [
+   1.8149632598530394,
+   1.8183026811433636
+  ],
+  "frac_kept_of_pass": [
+   0.6612850884309589,
+   0.6572687224669603
+  ]
+ },
+ "pass_hist": {
+  "cpp": [
+   395,
+   954,
+   1205,
+   1116,
+   682,
+   358,
+   144,
+   25,
+   6,
+   1
+  ],
+  "py": [
+   373,
+   949,
+   1206,
+   1084,
+   722,
+   375,
+   135,
+   37,
+   5,
+   0
+  ]
+ },
+ "n_obs_cpp_mean": 25.959066721244373
+}

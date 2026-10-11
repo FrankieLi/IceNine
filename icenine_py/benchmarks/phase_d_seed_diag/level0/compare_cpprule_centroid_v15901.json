@@ -1,0 +1,278 @@
+{
+ "voxel": 15901,
+ "py_file": "py_cpprule_centroid_v15901.json",
+ "S4_levels": [
+  {
+   "level": 0,
+   "n_fz": [
+    4886,
+    4886
+   ],
+   "n_local": [
+    9,
+    9
+   ],
+   "n_q_max": [
+    5.0,
+    null
+   ],
+   "n_recip": [
+    26,
+    26
+   ],
+   "diameter_deg": [
+    4.999999854484964,
+    5.0
+   ],
+   "n_sym": [
+    24,
+    24
+   ],
+   "n_cliques": [
+    4491,
+    4480
+   ],
+   "n_candidates": [
+    8151,
+    8110
+   ]
+  },
+  {
+   "level": 1,
+   "n_fz": [
+    2037,
+    2027
+   ],
+   "n_local": [
+    9,
+    9
+   ],
+   "n_q_max": [
+    6.0,
+    null
+   ],
+   "n_recip": [
+    50,
+    50
+   ],
+   "diameter_deg": [
+    3.333333165276543,
+    3.3333333333333335
+   ],
+   "n_sym": [
+    24,
+    24
+   ],
+   "n_cliques": [
+    2035,
+    2027
+   ],
+   "n_candidates": [
+    2525,
+    2487
+   ]
+  },
+  {
+   "level": 2,
+   "n_fz": [
+    631,
+    621
+   ],
+   "n_local": [
+    9,
+    9
+   ],
+   "n_q_max": [
+    7.0,
+    null
+   ],
+   "n_recip": [
+    64,
+    64
+   ],
+   "diameter_deg": [
+    2.2222221099933765,
+    2.2222222222222223
+   ],
+   "n_sym": [
+    24,
+    24
+   ],
+   "n_cliques": [
+    631,
+    621
+   ],
+   "n_candidates": [
+    691,
+    697
+   ]
+  },
+  {
+   "level": 3,
+   "n_fz": [
+    172,
+    174
+   ],
+   "n_local": [
+    9,
+    9
+   ],
+   "n_q_max": [
+    8.0,
+    null
+   ],
+   "n_recip": [
+    112,
+    112
+   ],
+   "diameter_deg": [
+    1.4814813709478816,
+    1.4814814814814814
+   ],
+   "n_sym": [
+    24,
+    24
+   ],
+   "n_cliques": [
+    172,
+    174
+   ],
+   "n_candidates": [
+    195,
+    204
+   ]
+  }
+ ],
+ "n_fz_common": 4886,
+ "S1_screen": {
+  "total_pass_cpp": 12326,
+  "total_pass_py": 12338,
+  "fz_with_pass_cpp": 4491,
+  "fz_with_pass_py": 4480,
+  "fz_identical_pass_set": 4466,
+  "pairs_pass_cpp_only": 215,
+  "pairs_pass_py_only": 227,
+  "peak_overlap_equal_frac": 0.9860144630918269,
+  "peak_overlap_mean_cpp": 0.3373584390776368,
+  "peak_overlap_mean_py": 0.33849547459862644,
+  "mean_n_pass_per_fz": [
+   2.522717969709374,
+   2.5251739664347115
+  ]
+ },
+ "S1_by_j": [
+  {
+   "j": 0,
+   "pass_cpp": 1373,
+   "pass_py": 1378,
+   "mean_overlap_cpp": 0.33749488334015554,
+   "mean_overlap_py": 0.33851821530904624
+  },
+  {
+   "j": 1,
+   "pass_cpp": 1366,
+   "pass_py": 1366,
+   "mean_overlap_cpp": 0.33810888252148996,
+   "mean_overlap_py": 0.3403602128530495
+  },
+  {
+   "j": 2,
+   "pass_cpp": 1384,
+   "pass_py": 1383,
+   "mean_overlap_cpp": 0.3485468686041752,
+   "mean_overlap_py": 0.3493655341792878
+  },
+  {
+   "j": 3,
+   "pass_cpp": 1367,
+   "pass_py": 1371,
+   "mean_overlap_cpp": 0.3372902169463774,
+   "mean_overlap_py": 0.3383135489152681
+  },
+  {
+   "j": 4,
+   "pass_cpp": 1392,
+   "pass_py": 1388,
+   "mean_overlap_cpp": 0.3432255423659435,
+   "mean_overlap_py": 0.3424068767908309
+  },
+  {
+   "j": 5,
+   "pass_cpp": 1331,
+   "pass_py": 1339,
+   "mean_overlap_cpp": 0.32255423659435123,
+   "mean_overlap_py": 0.3248055669259108
+  },
+  {
+   "j": 6,
+   "pass_cpp": 1308,
+   "pass_py": 1311,
+   "mean_overlap_cpp": 0.31968890708145725,
+   "mean_overlap_py": 0.3209169054441261
+  },
+  {
+   "j": 7,
+   "pass_cpp": 1390,
+   "pass_py": 1386,
+   "mean_overlap_cpp": 0.3424068767908309,
+   "mean_overlap_py": 0.34343020875972163
+  },
+  {
+   "j": 8,
+   "pass_cpp": 1415,
+   "pass_py": 1416,
+   "mean_overlap_cpp": 0.34690953745395003,
+   "mean_overlap_py": 0.3483422022103971
+  }
+ ],
+ "S2_recost": {
+  "n_pairs": 12111,
+  "mean_py_minus_cpp": -2.7352834271047822e-05,
+  "median": 0.0,
+  "max_abs": 0.030745983099999985,
+  "frac_abs_lt_1e_6": 0.8526958962926265,
+  "frac_abs_lt_1e_3": 0.9948806869787796
+ },
+ "S3_filter": {
+  "total_kept_cpp": 8151,
+  "total_kept_py": 8110,
+  "fz_same_kept_set": 4494,
+  "fz_with_identical_screen": 4086,
+  "fz_same_kept_among_identical_screen": 3973,
+  "mean_kept_per_fz": [
+   1.8149632598530394,
+   1.8102678571428572
+  ],
+  "frac_kept_of_pass": [
+   0.6612850884309589,
+   0.6573188523261468
+  ]
+ },
+ "pass_hist": {
+  "cpp": [
+   395,
+   954,
+   1205,
+   1116,
+   682,
+   358,
+   144,
+   25,
+   6,
+   1
+  ],
+  "py": [
+   406,
+   929,
+   1222,
+   1114,
+   680,
+   349,
+   150,
+   31,
+   4,
+   1
+  ]
+ },
+ "n_obs_cpp_mean": 25.959066721244373
+}
