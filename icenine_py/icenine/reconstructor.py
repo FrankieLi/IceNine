@@ -435,6 +435,9 @@ class AdaptiveVoxelReconstructor:
         self.keep_union_discrete: bool = False
         self.n_q_start_offset: float = 0.0  # added to the initial n_q_max (5 + min resolution)
         self.global_pixel_radius: int = 3  # pixel radius of the coarse (global) cost function
+        # Optional tracing hook for the discrete search (see run_discrete_search_spaced);
+        # None = no recording, computation unchanged.
+        self.discrete_recorder: Optional[Callable[[str, Dict[str, Any]], None]] = None
         # Optional hook: extra_candidates(level, candidates) -> extra SearchCandidates (orientation
         # only; the quick MC fills their cost) added before the quick MC of that level (F1b).
         # Default off; see MIGRATION_HISTORY 'FindOptimal robustness'.
@@ -542,6 +545,7 @@ class AdaptiveVoxelReconstructor:
                 angular_radius=diameter,
                 symmetry_quats=symmetry_quats,
                 phase_index=phase_index,
+                **({} if self.discrete_recorder is None else dict(recorder=self.discrete_recorder)),
             )
             t_discrete = time.time() - t_level
 
