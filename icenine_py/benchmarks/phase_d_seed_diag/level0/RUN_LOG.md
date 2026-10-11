@@ -102,14 +102,61 @@ directory at run time; the library C file and `cost_functions.py` are unchanged)
   reports it.
 - The Python full run overlapped a C++ rebuild (169 s against 120 s for the later full run): contended.
 
-## 6. Tests
+## 6. Tests (Step 1)
 
 `uv run pytest tests/test_discrete_recorder.py`: 2 passed. Full suite `uv run pytest tests/ --junitxml=<scratch>/junit.xml`
 (no extra `-q`, 17:41 to 17:46, 304 s, contended by nothing else of mine): 846 passed, 34 skipped, 1 deselected.
 The existing golden tests (`test_findoptimal_refactor`, `test_cma_optimizer`, `test_reconstruction_validation`,
 `test_mc_cpp_parity`, `test_variance_stage_parity`) are in that run and pass unchanged, i.e. the default path is unchanged.
 
-## 7. Could be done better
+## 7. Step 2 (owner decision: opt-in switch first), same day
+
+### 7.1 Changes
+
+| File | Change | Why |
+|---|---|---|
+| `icenine/cost_functions.py` | `count_qualified_peaks_cpp`; `cpp_rule` argument of `count_qualified_peaks`, `calculate_diffraction_overlap(_batched)`; `VoxelCostFunction(cpp_overlap_rule, center_screen)` | literal C++ rule; centroid projection for pixel radius > 0; defaults give the old code path (the extra argument is passed only when set) |
+| `icenine/_rasterize.c` | `count_qualified_peaks_c(..., cpp_rule)`, optional last argument of `stage_d_overlap` (`\|i`), module constant `HAS_CPP_RULE` | same rule on the hot path; an old extension makes the batched function fall back to the Python loop when the rule is on |
+| `icenine/config_file.py`, `orientation_search.py` (`SearchParameters`), `reconstructor.py` (`_cost_flags`) | key `CppOverlapRule` (default 0); `cpp_center_screen` A/B sub-flag (not a key) | one user-facing key |
+| `tests/test_cpp_overlap_rule.py` | 10 tests | hand-built 2- and 3-detector patterns, exhaustive up to 4 detectors against an independent transcription, C path == Python path, default unchanged, config key reaches `SearchParameters` |
+| `scripts/phase_d/e0_cpprule.py`, `cost_offset_check.py`, `six_voxels_summary.py`, `level0_doc_tables.py` | new | E0 arms (`on`, `rule`, `off` level-0 only), cost offset, six-voxel table, merged doc tables |
+
+The extension was rebuilt in place because `setuptools` is not in the uv environment: `cc -O2 -shared -undefined
+dynamic_lookup -fPIC -I<python include> -I<numpy include> icenine/_rasterize.c -o icenine/_rasterize<EXT_SUFFIX>`
+(the old `.so` was kept in the scratchpad). The `.so` is gitignored, so anyone pulling this branch must rebuild it.
+
+### 7.2 Runs
+
+| Run | Command (from `icenine_py/`) | Workers | Start / wall | Output |
+|---|---|---|---|---|
+| E0 pilot | `e0_cpprule.py pilot --arm on --workers 2 --limit 4` | 2 | 43 s | `cache/pilot_on` (gitignored) |
+| timing preflight | `scripts/dev/timing_preflight.py --require --json e0/preflight_e0.json` | 0 | passed | `e0/preflight_e0.json` |
+| E0 `on` (rule + centroid), 400 cases | `e0_cpprule.py run --arm on --workers 10` (via `cache/e0_chain.sh`, nohup, log + `.done`) | 10 | 18:23 / 16.7 min, contended | `scripts/phase_d/cache/on/` |
+| E0 `off`, level 0 only, 400 cases | `... run --arm off --level0-only --workers 10` | 10 | right after `on` / about 14 min, contended | `cache/off/` |
+| E0 `rule` (rule only, A/B), 400 cases | `... run --arm rule --workers 10` (`cache/e0_rule.sh`) | 10 | 18:55 / about 16 min, contended | `cache/rule/` |
+| cost offset | `cost_offset_check.py` | 1 | about 1 min | `cost_offset_check.json` |
+| six voxels | `seed_diag.py run --voxel V --images full --tag cpprule --opt cpp_overlap_rule=1`, V in the six (`cache/six.sh`) | 1 | about 12 min; 15901, 17034 and 5242 repeated because the preflight marked them contended | `../runs/cpprule_full_vV.json`, `six_voxels*.{json,md}` |
+| default flip | defaults set to True temporarily, `uv run pytest tests/`, restored | 1 | 307 s | `default_flip_would_change.md` |
+
+E0 tables: `e0/summary_{on,rule}.json`, `e0/tables_{on,rule}.md`; paired exact McNemar against the stored
+`e0_run_mcfaithful` `mc` arm; the level-0 truth-basin record is the smallest symmetry-reduced angle between a
+level-0 candidate and the truth (miss: more than 3 deg). The `on`/`off`/`rule` runs of E0 are multi-worker
+(10) wall clocks, not timing claims; the six-voxel wall times are single-process (three were contended at the
+preflight, one still labelled so in `six_voxels.json`).
+
+### 7.3 Problems
+
+- First six-voxel launch failed in all six: `seed_diag --opt` sets attributes of `SearchParameters`, which did
+  not carry the new key (the config-file test passed but only covered `ConfigFile`). Fixed (`SearchParameters.cpp_overlap_rule`
+  plus a test) and rerun. The E0 runs were not affected (the script sets the attribute directly).
+- `black` reformatted all of `cost_functions.py` once (the file is not black-clean); reverted and the edits redone
+  by hand to keep the diff small.
+- `cpp_outputs/` is absent in this checkout, so those tests are skipped here; `Examples/` is large and the E0 cache
+  (`scripts/phase_d/cache/`) is gitignored.
+- E0 accuracy got worse with the rule on (section 4 of the migration-history subsection); this is a result, not a
+  failure of the run.
+
+## 8. Could be done better
 
 - A permanent, gated trace switch in the C++ source (env var) would remove the patch-and-rebuild routine, but
   changes `Src/`; as a scratch patch it needs `rep` anchors that survive whitespace, so keep patches as unified
@@ -126,3 +173,13 @@ The existing golden tests (`test_findoptimal_refactor`, `test_cma_optimizer`, `t
   for non-15901 voxels (done here by stripping).
 - Scripted running of the five other voxels in one shell loop worked (about 2.3 min total); the same loop could
   also launch the C++ side if the configs were kept.
+- Add config keys to `SearchParameters` and `ConfigFile` in one place with one test that round-trips the key
+  through both (the missing `SearchParameters` field cost one wasted six-voxel launch).
+- A script-level A/B flag convention (`cpp_center_screen` as a plain attribute) worked for the E0 arms; a generic
+  `--set name=value` for `e0_*` scripts (as `seed_diag --opt`) would avoid one script per arm.
+- Build the C extension through the same command in every environment (`setuptools` is missing from the uv
+  env); a `scripts/dev/build_ext.sh` using `cc` would make the rebuild step reproducible.
+- Run the default-flip test sweep as a CI-like script (`FLIP_DEFAULTS=1` env read once in the library tests) rather
+  than by editing and restoring three files.
+- Keep a per-case table of E0 (`min_dist_l0`, final error, evaluations) in one CSV per arm; the paired summaries
+  were re-derived three times from the npz files.

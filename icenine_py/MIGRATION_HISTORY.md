@@ -5028,6 +5028,121 @@ Paired by voxel (exact McNemar, wrong = over 1 deg): the `mc` arm's wrong count 
 - **Tests:** scripted semantics test `tests/test_mc_cpp_parity.py` (8 tests: block length and truncation, strict comparison, restart base / range / draw order, update order, stop rule, convergence check order, trajectory, evaluation count, inner-loop proposals); the VarianceMinimizing test gained a twin-generator replay of the restart offsets and tests for the box cap and the cost-and-variance exit. Re-recorded goldens (each pins a random draw of the MC): `GOLDEN` (`test_findoptimal_refactor.py`, 4 tests: rotation-vector error 0.960 deg and cost 0.8966 become 0.0386 deg and 0.2025) and `GOLDEN_REFINE` (`test_cma_optimizer.py`: 392 evaluations and cost 0.5902 become 304 and 0.4732); the old values are in the comments. `test_findoptimal_alone_reproduces_stored_experiment_b` compares with a result stored before the port, so it patches in frozen copies of the old loops (`tests/legacy_variance_stage.py`). `test_respects_budget_exactly[mc_deployed]` ran its toy problem to the convergence stop before 137 evaluations; the toy's convergence cost was set to 0. No `cpp_outputs`-based check was changed.
 
 
+#### Level-0 candidates: the overlap rule of CountQualifiedPeaks (2026-10-10, `feature/finisher-mc-study-level0-candidates`)
+
+Question (open question 7.3): why does a Python no-start search pass 1.24 to 1.53 times as many level-0 candidates to the quick MC as C++ (and make 1.31 to 1.57 times the evaluations)? **Answer: a port discrepancy in the peak-overlap rule, plus a smaller one in the point projected by the pixel-radius screen. Both are now available as one opt-in switch (config key `CppOverlapRule`, default off); the default is not flipped.** Code: `icenine/cost_functions.py` (`count_qualified_peaks_cpp`, `cpp_rule` argument, `VoxelCostFunction(cpp_overlap_rule, center_screen)`), `icenine/_rasterize.c` (`count_qualified_peaks_c`, optional trailing argument; the extension must be rebuilt, `setuptools` is not in the env, so it was built with `cc -O2 -shared`), `icenine/orientation_search.py` (`run_discrete_search_spaced(recorder=...)`, `SearchParameters.cpp_overlap_rule`), `icenine/reconstructor.py` (`discrete_recorder`, `_cost_flags`), `icenine/config_file.py`; tests `tests/test_cpp_overlap_rule.py`, `tests/test_discrete_recorder.py`; scripts `scripts/phase_d/level0_trace.py`, `level0_summary.py`, `e0_cpprule.py`, `cost_offset_check.py`, `six_voxels_summary.py`, `level0_doc_tables.py`; data and run log in `benchmarks/phase_d_seed_diag/level0/` (`RUN_LOG.md`).
+
+**Step 1: the trace** (voxel 15901, clean full-sample images, Q-max 8; a scratch C++ build with debug prints, patch kept as `cpp_debug_patch_level0.py.txt` and `cpp_debug_full_scratch.diff.txt`; level 0 has no random draws, so the two are compared FZ point by FZ point). Order S4 settings, S1 screen, S2 re-cost, S3 spacing filter:
+
+- **S4 identical** at all four levels: 4,886 FZ points at level 0, 9 local-grid points, 24 symmetry operators, equal reciprocal-vector counts, diameters 5.000 / 3.333 / 2.222 / 1.481 deg.
+- **S1 differs:** pairs (FZ point, local-grid point) passing the screen are 12,326 in C++ and 35,267 in Python; the pass sets agree on 7 of 4,886 FZ points; the same for every local-grid index.
+- **Cause.** C++ `CountQualifiedPeaks` (`Src/OverlapInfo.tmpl.cpp:107-131`) gives a peak no overlap when detector 0 overlaps and a later detector is lit but not overlapping. Python (`cost_functions.py:191-213`) and the C hot path (`_rasterize.c:334-355`) count it. A per-peak C++ dump (3 FZ points, 76 peaks, local-grid point 0): the 6 peaks with overlap on detector 0 and a lit, non-overlapping detector 1 all get overlap 0; the one peak with overlap on both gets 1 (`cpp_peak_dump_fz0-2.txt`). The C++ screen also projects the voxel centroid (`VoxelToCenter`, `DiscreteAdaptive.h:130-136`), Python the first triangle vertex.
+- **S3 is not a source:** the library `_spacing_filter` applied to C++'s own screened lists reproduces C++'s kept lists on 3,537 of 3,537 cliques with at least 2 candidates (same set and order). S2 differs only through the same rule (median Python minus C++ re-cost -0.030, 0 with the rule).
+
+<!-- table:level0_settings -->
+| level | n_fz_cpp | n_fz_py | n_local_cpp | n_local_py | nqmax_cpp | n_recip_cpp | n_recip_py | diam_deg_cpp | diam_deg_py | n_sym_cpp | n_sym_py |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 4886 | 4886 | 9 | 9 | 5 | 26 | 26 | 5.000 | 5.000 | 24 | 24 |
+| 1 | 2037 | 2547 | 9 | 9 | 6 | 50 | 50 | 3.333 | 3.333 | 24 | 24 |
+| 2 | 631 | 876 | 9 | 9 | 7 | 64 | 64 | 2.222 | 2.222 | 24 | 24 |
+| 3 | 172 | 278 | 9 | 9 | 8 | 112 | 112 | 1.481 | 1.481 | 24 | 24 |
+<!-- /table:level0_settings -->
+
+<!-- table:level0_stages -->
+| python | screened_pairs_cpp | screened_pairs_py | fz_identical_screen | peak_overlap_equal | recost_median_diff | recost_within_1e6 | cliques_cpp | cliques_py | kept_cpp | kept_py |
+|---|---|---|---|---|---|---|---|---|---|---|
+| library default | 12326 | 35267 | 7 | 0.273 | -0.03 | 0.104 | 4491 | 4886 | 8151 | 10190 |
+| C++ overlap rule | 12326 | 12485 | 3341 | 0.940 | 0 | 0.849 | 4491 | 4513 | 8151 | 8206 |
+| C++ rule + centroid | 12326 | 12338 | 4466 | 0.986 | 0 | 0.853 | 4491 | 4480 | 8151 | 8110 |
+<!-- /table:level0_stages -->
+
+<!-- table:level0_peak_patterns -->
+| pattern | n_peaks | cpp_peak_overlap_sum |
+|---|---|---|
+| det0 bright=False, det1 lit=True, det1 bright=False | 29 | 0 |
+| det0 bright=False, det1 lit=True, det1 bright=True | 2 | 0 |
+| det0 bright=True, det1 lit=True, det1 bright=False | 6 | 0 |
+| det0 bright=True, det1 lit=True, det1 bright=True | 1 | 1 |
+| neither detector lit | 26 | 0 |
+| not on a detector (no projection hit) | 12 | 0 |
+<!-- /table:level0_peak_patterns -->
+
+<!-- table:level0_s3_cpp_inputs -->
+| voxel | n_cliques_with_ge2 | same_kept_set | same_kept_order |
+|---|---|---|---|
+| 15901 | 3537 | 3537 | 3537 |
+<!-- /table:level0_s3_cpp_inputs -->
+
+**Step 2: the switch, and what it does.** `CppOverlapRule 1` applies the literal C++ rule in both counters and the centroid projection in the radius-3 screen (the sub-flags `cpp_overlap_rule` / `center_screen` of `VoxelCostFunction`, and `SearchParameters.cpp_center_screen` for the A/B, are not config keys). Default off: the existing goldens pass unchanged (full suite 855 passed, 34 skipped, 1 deselected, including the new tests). Unit tests pin hand-built 2- and 3-detector patterns, including the `bPreviousOverlap` and `bOnPreviousDetector` quirks (C++: lit, unlit, lit is a valid peak; lit, unlit, unlit is not; one unlit non-overlapping detector is tolerated, a lit one is not), all patterns up to 4 detectors against an independent transcription, and the C path against the Python path.
+
+(a) Six interior voxels, seed 1, one process, full-sample clean images (`seed_diag.py run --opt cpp_overlap_rule=1 --tag cpprule`; wall times are single-process, 17034 was contended at the preflight on its last repeat; evaluation counts do not depend on load). Candidates and evaluations next to the stored Python-before (`mcport`) and C++ columns:
+
+<!-- table:level0_six_candidates -->
+| voxel | l0_cpp | l0_before | l0_rule | all_cpp | all_before | all_rule |
+|---|---|---|---|---|---|---|
+| 15901 | 8,151 | 10,190 | 8,110 | 11,562 | 15,149 | 11,498 |
+| 17034 | 8,284 | 10,382 | 8,283 | 11,609 | 15,483 | 11,689 |
+| 18558 | 7,026 | 10,271 | 7,048 | 9,973 | 15,349 | 10,004 |
+| 19889 | 7,673 | 10,308 | 7,683 | 10,820 | 15,341 | 10,877 |
+| 22867 | 8,234 | 10,236 | 8,233 | 11,549 | 15,277 | 11,613 |
+| 5242 | 6,674 | 10,213 | 6,674 | 9,461 | 15,144 | 9,452 |
+<!-- /table:level0_six_candidates -->
+
+<!-- table:level0_six_evals -->
+| voxel | evals_cpp | evals_before | evals_rule | evals_ratio_before | evals_ratio_rule | wall_cpp_s | wall_before_s | wall_rule_s | label_rule | err_before | err_rule |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 251,188 | 328,519 | 237,739 | 1.31 | 0.95 | 21.2 | 176 | 125 | single-process | 0.0170 | 0.0291 |
+| 17034 | 251,673 | 339,561 | 246,127 | 1.35 | 0.98 | 21.0 | 179 | 125 | single-process, contended | 0.0284 | 0.0639 |
+| 18558 | 219,790 | 329,367 | 209,728 | 1.50 | 0.95 | 16.2 | 171 | 106 | single-process | 0.0048 | 0.0034 |
+| 19889 | 236,372 | 330,209 | 226,453 | 1.40 | 0.96 | 18.4 | 176 | 115 | single-process | 0.0210 | 0.0212 |
+| 22867 | 250,852 | 335,687 | 244,186 | 1.34 | 0.97 | 19.1 | 174 | 125 | single-process | 0.0263 | 0.0530 |
+| 5242 | 209,927 | 330,577 | 204,646 | 1.57 | 0.97 | 10.5 | 171 | 102 | single-process | 0.0493 | 0.0281 |
+<!-- /table:level0_six_evals -->
+
+With the switch on, level-0 candidates are 0.995 to 1.003 times C++'s (before 1.24 to 1.53), all-level candidates 0.99 to 1.01 times, evaluations 0.95 to 0.98 times C++'s (before 1.31 to 1.57), and the wall time per no-start search falls from about 175 s to 102 to 125 s. All six answers are within 0.07 deg of the truth. The probe on 15901 (rule alone: 8,206 level-0 candidates, rule plus centroid 8,110, C++ 8,151; pass sets identical on 4,466 of 4,886 FZ points, peak overlap equal on 98.6% of the 43,974 pairs) shows that the rule is the main cause and the centroid a small correction; the remaining 1.4% is consistent with C++ interpolating the omegas of the perturbed orientations (maximum 0.12 deg from the exact value in the 12 cases dumped) while Python evaluates them exactly (not tested as the cause).
+
+<!-- table:level0_voxels -->
+| voxel | cpp | py_default | py_probe | ratio_default | ratio_probe |
+|---|---|---|---|---|---|
+| 15901 | 8,151 | 10,190 | 8,110 | 1.250 | 0.995 |
+| 17034 | 8,284 | 10,382 | 8,283 | 1.253 | 1.000 |
+| 18558 | 7,026 | 10,271 | 7,048 | 1.462 | 1.003 |
+| 19889 | 7,673 | 10,308 | 7,683 | 1.343 | 1.001 |
+| 22867 | 8,234 | 10,236 | 8,233 | 1.243 | 1.000 |
+| 5242 | 6,674 | 10,213 | 6,674 | 1.530 | 1.000 |
+<!-- /table:level0_voxels -->
+
+(c) Cost against C++ (160 start orientations of voxel 15901 with printed C++ costs): the earlier -0.013 mean offset (Python lower in 151 of 160) **vanishes with the rule on** (mean +0.00005, median -4e-10, 143 of 160 within 1e-6, correlation 0.99997 against 0.99896):
+
+<!-- table:level0_cost_offset -->
+| rule | n_within_1e6 | n_within_1e3 | mean_signed | median_signed | n_python_lower | n_python_higher | corr |
+|---|---|---|---|---|---|---|---|
+| off (library default) | 8 | 10 | -0.01311 | -1.24e-02 | 151 | 1 | 0.99896 |
+| on | 143 | 154 | 0.00005 | -3.95e-10 | 2 | 15 | 0.99997 |
+<!-- /table:level0_cost_offset -->
+
+Why the existing C++ ground-truth test did not catch it: the 2026-03 validation compared one voxel at its true orientation on a clean, isolated simulation (peak overlap 52 of 52 peaks on detector, identical in both), where every lit peak overlaps on both detectors, so the two rules agree; the hand-written unit tests of `count_qualified_peaks` have no case "detector 0 overlaps, detector 1 lit but dark"; and the `cpp_outputs/` ground truth covers diffraction geometry, not cost values (that directory is not present in this checkout, 34 tests are skipped). The rule matters at wrong orientations on dense images, where chance overlaps on detector 0 are common.
+
+(b) **E0, 200 voxels, seed 0, `mc` arm, per-voxel images, paired against the stored faithful-MC run** (40 / 25 wrong), switch on; timing preflight passed before the run (`e0/preflight_e0.json`), 10 workers, contended wall 16 min per arm (not a timing claim). **The accuracy is worse with the switch on**: wrong 40 to 61 (clean) and 25 to 42 (realistic) with all centroid + rule; 40 to 63 and 25 to 54 with the rule alone (exact McNemar p = 0.006 and 0.005; 0.003 and 9e-06). Level-0 candidates fall from a median 172 to 123 (clean) and 248 to 175 (realistic). Truth-basin misses at level 0 (no candidate within 3 deg of the truth) rise from 4 to 6 and 2 to 10 (8 of the 10 realistic and 2 of the 6 clean cases are basins present without the switch; none the other way). Of the newly wrong cases, 38 of 38 (clean) and 20 of 25 (realistic) still have the truth basin at level 0, i.e. they are lost later (ranking and pruning with the stricter cost); this is consistent with, not shown to be, the rule penalising near-truth candidates that overlap on detector 0 but not on the farther detector 1 (the 5-deg level-0 grid has points up to about 2.5 deg from the truth). The centroid projection helps slightly (rule alone is worse than rule plus centroid).
+
+<!-- table:cpprule_e0_on -->
+| variant | n | wrong_before | wrong_after | only_after | only_before | p | med_both_before | med_both_after | evals_before | evals_after | basin_miss_before | basin_miss_after |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| clean | 200 | 40/200 [0.150, 0.261] | 61/200 [0.245, 0.372] | 38 | 17 | 0.0065 | 0.0102 | 0.0187 | 48442 | 47174 | 4 | 6 |
+| realistic | 200 | 25/200 [0.086, 0.178] | 42/200 [0.159, 0.272] | 25 | 8 | 0.0046 | 0.0079 | 0.0157 | 51058 | 48731 | 2 | 10 |
+<!-- /table:cpprule_e0_on -->
+
+<!-- table:cpprule_e0_rule -->
+| variant | n | wrong_before | wrong_after | only_after | only_before | p | med_both_before | med_both_after | evals_before | evals_after | basin_miss_before | basin_miss_after |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| clean | 200 | 40/200 [0.150, 0.261] | 63/200 [0.255, 0.382] | 39 | 16 | 0.0027 | 0.0093 | 0.0131 | 48442 | 47067 | 4 | 8 |
+| realistic | 200 | 25/200 [0.086, 0.178] | 54/200 [0.213, 0.335] | 36 | 7 | 9e-06 | 0.0080 | 0.0118 | 51058 | 48487 | 2 | 9 |
+<!-- /table:cpprule_e0_rule -->
+
+- **Reading.** The switch makes the Python level-0 stage and the cost values match the C++ code (S1, S2, S3, six-voxel counts), which is the port goal; whether C++ itself loses these 21 / 17 additional voxels of E0 is not known (the E0 images are per-voxel Python renders and were not run through C++), so the accuracy loss is a result of the C++ rule on these images, not shown to be a Python defect. It is a reason not to flip the default blindly.
+- **A default flip would change** 11 tests (`default_flip_would_change.md`: `GOLDEN` in `test_findoptimal_refactor.py`, `GOLDEN_REFINE` and default-path goldens in `test_cma_optimizer.py`, three `test_coarse_proxy.py` equalities, `test_nn_hybrid.py` stored experiment B) and in principle every stored result computed through `VoxelCostFunction` on the 2-detector data (Phase A to D, E0, seed-cost diagnosis and pilot tables, hit-ratio thresholds, NN/proxy labels).
+- **Left undone:** E0 seeds 1 and 2; C++ on the E0 voxels; the effect of the rule on the reseed pilot and the BFS acceptance thresholds; interpolation as the cause of the remaining 1.4%.
+
 #### Phase D pilot results (2026-10-08, `feature/finisher-mc-study-phase-d-run`)
 
 A 2,000-voxel region of the new-orientation sample, five single-process BFS runs, `BFSRevisitRefit 1` in every config, BFS rng seed 0, memmap images. Code: `scripts/phase_d/make_region.py`, `pilot_bfs.py`, `score_bfs.py`, `summarize_pilot.py`; `launch_pilot.sh`, `ab_threads.py`; tests `tests/test_phase_d_scoring.py` (9). Data and tables: `benchmarks/phase_d_pilot/` (`summary.json`, `tables.md`, `region.json`, `region_grid.mic`, `region_index.npy`, `runs/<arm>_<variant>/{run.json,score.json,voxels.npz}`, `preflight.json`, `ab_threads.json`, `ab_threads_staggered.json`). **Revised 2026-10-09 after review** (rescored from the same five runs, no new BFS runs): units are mm, the grain counts separate accepted from rejected seeds, the piece count is 497, the oracle prediction is credited, the thread A/B is reworded.
