@@ -188,7 +188,36 @@ preflight, one still labelled so in `six_voxels.json`).
   neither can be aligned from the scripts as they are. The levels 1+ comparison is therefore statistical.
 - The classes are defined with a 3 deg basin radius, an arbitrary choice (stated in `e0_debug.py`).
 
-## 9. Could be done better
+## 9. Step 4 (C++ fairness check)
+
+### 9.1 Changes and runs
+
+- `e0/cpp_config_diff.md` (4a): the C++ template against the Python E0 parameters, key by key (normalised `diff` of
+  the Q8 config, the ManyGrains Simulation config and the template). No mismatch in search or physics keys; two
+  differences: `min_sin_eta` 0.3 (Python only) and the random stream.
+- Patch 4 (`cpp_debug_patch4_ceval_seed.py.txt`; it was applied to the scratch copy in two parts, so the script
+  is a record, not re-runnable as one): `CEVAL=<file>` evaluates the local cost at given matrices; `CSEED=<n>` seeds
+  the C++ `mt19937` (default 5489). Rebuilt Release, 15 s.
+- `scripts/phase_d/e0_cost_check.py` (4b): 10 cases x 4 orientations, C++ via `CEVAL`, Python with `min_sin_eta`
+  0.3 / 0 and rule off / on; about 3 min; `e0/cost_check.json`.
+- `scripts/phase_d/e0_cpprule.py --msin 0` (4c): `off` and `on`, 400 cases each, 10 workers, 23:15 start, about 30 min
+  in all (contended, not timing); caches `cache/off_ms0`, `cache/on_ms0`.
+- `scripts/phase_d/e0_cpp.py` with `CSEED=1` and `CSEED=2` (4d): 400 cases each, 8 processes, about 7 min per seed;
+  caches `cache/e0_cpp_s1`, `cache/e0_cpp_s2`.
+- `scripts/phase_d/e0_fairness_summary.py`: counts and paired splits (`e0/fairness_summary.json`,
+  `e0/tables_fairness.md`).
+- The per-voxel C++ harness, the C++ template config and the three debug patches are in the repo
+  (`scripts/phase_d/e0_cpp.py`, `e0/cpp_template.config`, `cpp_debug_patch*.txt`).
+
+### 9.2 Problems and notes
+
+- (a)/(b) found no mismatch, so no C++ config fix and no rerun for that reason; the extra C++ seeds were run
+  because the binary allows it, and they changed the picture: a single C++ run is one sample (3108 clean is wrong
+  with the default seed and right with seed 1).
+- Python with `min_sin_eta` 0 and the rule on is worse on realistic data (56 wrong) than with 0.3 (42): the
+  filter, which drops spots near the rotation axis, helps there. The cause was not examined.
+
+## 10. Could be done better
 
 - A permanent, gated trace switch in the C++ source (env var) would remove the patch-and-rebuild routine, but
   changes `Src/`; as a scratch patch it needs `rep` anchors that survive whitespace, so keep patches as unified
@@ -220,3 +249,7 @@ preflight, one still labelled so in `six_voxels.json`).
   accuracy table from the start instead of as a late check.
 - Store the per-level candidate lists of both implementations in one common npz layout from the start; two
   parsers (CD/CQ text lines, recorder events) and a combined comparison were written for this one question.
+- Randomised searches need several seeds from the first comparison (here three C++ seeds give 56 to 71 wrong where
+  one seed gave 71); make `--seed` a standard argument of the C++ harness and report ranges.
+- Do the config diff mechanically (`diff` of normalised keys) as the first step of any C++ comparison and save the
+  output next to the results; it took minutes and removed a whole class of doubts.

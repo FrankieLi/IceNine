@@ -44,7 +44,7 @@ def task(item: Tuple[Any, ...]) -> str:
     from icenine import reconstructor as RC
     from optimizer_sweep import voxel_context
 
-    vidx, vpos, variant, path, arm, l0only = item
+    vidx, vpos, variant, path, arm, l0only, msin = item
     W = C.get_worker()
     t0 = time.time()
     keys = np.load(C.CACHE_DIR / "images" / f"v{vidx}_{variant}.npz")["keys"]
@@ -52,6 +52,7 @@ def task(item: Tuple[Any, ...]) -> str:
     vctx = voxel_context(W.ctx, vidx)
     rec = W.rec
     Rt = np.asarray(vctx.R_true, dtype=np.float64)
+    rec.min_sin_eta = msin
     rec.setup.search_params.cpp_overlap_rule = arm in ("on", "rule")
     rec.setup.search_params.cpp_center_screen = arm != "rule"
     l0: Dict[str, Any] = {}
@@ -82,6 +83,7 @@ def task(item: Tuple[Any, ...]) -> str:
         RC.run_discrete_search_spaced = orig
         rec.setup.search_params.cpp_overlap_rule = False
         rec.setup.search_params.cpp_center_screen = True
+        rec.min_sin_eta = 0.3
     out: Dict[str, Any] = dict(R_true=Rt, runtime=dt, **l0)
     if res is not None:
         g, loc, _ = rec.last_eval_counts
@@ -93,7 +95,9 @@ def task(item: Tuple[Any, ...]) -> str:
     return f"voxel {vidx} {variant} {arm} {time.time() - t0:.0f}s"
 
 
-def work_items(root: Path, arm: str, l0only: bool, limit: int = 0) -> List[Tuple[Any, ...]]:
+def work_items(
+    root: Path, arm: str, l0only: bool, limit: int = 0, msin: float = 0.3
+) -> List[Tuple[Any, ...]]:
     info = dict(np.load(C.OUT_DIR / "voxels.npz"))
     vox = [int(v) for v in info["voxel_indices"]][: C.N_VOXELS]
     root.mkdir(parents=True, exist_ok=True)
@@ -102,7 +106,7 @@ def work_items(root: Path, arm: str, l0only: bool, limit: int = 0) -> List[Tuple
         for var in C.VARIANTS:
             if not (C.CACHE_DIR / "e0" / f"v{v}_{var}.npz").exists():
                 continue
-            out.append((v, vpos, var, str(root / f"v{v}_{var}.npz"), arm, l0only))
+            out.append((v, vpos, var, str(root / f"v{v}_{var}.npz"), arm, l0only, msin))
     return out[:limit] if limit else out
 
 
@@ -182,18 +186,22 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--arm", default="on", choices=["on", "off", "rule"])
     ap.add_argument("--level0-only", action="store_true")
+    ap.add_argument(
+        "--msin", type=float, default=0.3, help="min_sin_eta of the cost function (E0: 0.3)"
+    )
     a = ap.parse_args()
     if a.cmd == "summary":
         summary(a.arm)
         return
-    root = CACHE / ("pilot_" + a.arm if a.cmd == "pilot" else a.arm)
-    its = work_items(root, a.arm, a.level0_only, a.limit or (4 if a.cmd == "pilot" else 0))
+    suffix = "" if a.msin == 0.3 else "_ms0"
+    root = CACHE / ("pilot_" + a.arm if a.cmd == "pilot" else a.arm + suffix)
+    its = work_items(root, a.arm, a.level0_only, a.limit or (4 if a.cmd == "pilot" else 0), a.msin)
     its = [it for it in its if not Path(it[3]).exists()]
     print(f"{len(its)} tasks, {a.workers} workers", flush=True)
     t0 = time.time()
     C.run_pool(task, its, a.workers, f"e0_{a.arm}")
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / f"run_meta_{a.cmd}_{a.arm}.json").write_text(
+    (OUT / f"run_meta_{a.cmd}_{a.arm}{suffix}.json").write_text(
         json.dumps(dict(workers=a.workers, wall_s=time.time() - t0, tasks=len(its),
                         level0_only=a.level0_only,
                         note="contended multi-worker wall, not a timing claim"))

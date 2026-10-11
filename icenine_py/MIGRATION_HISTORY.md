@@ -5192,6 +5192,42 @@ Why the existing C++ ground-truth test did not catch it: the 2026-03 validation 
 
 - **Reading.** The C++ rule is the faithful behaviour and the E0 accuracy loss belongs to it: C++ loses more of these voxels than Python does. The loss comes from the quick-MC ranking with a cost that is nearly flat (0.95 to 0.98) around the truth at levels 0 to 2. No fix was written (stop point of the owner).
 
+**Step 4: is the C++ E0 run fair?** (owner check before trusting C++ 71 / 52). Config diff, cost check, Python with `min_sin_eta` 0, and two more C++ seeds; no change to the search.
+
+- **(a) Config.** Key by key (`e0/cpp_config_diff.md`) the C++ template equals the Python E0 parameters: grid radius 5 deg, levels 0 to 3, nQMax 5 to 8, `MaxDiscreteCandidates` 30, `MaxAcceptedCost`, `MaxConvergenceCost`, 200 MC steps, restarts 2, radius scale, `EtaLimit` 86, pixel radius 3 / 0, beam and detector geometry, FZ, omega range and structure files. The two differences: Python applies `min_sin_eta` 0.3 (C++ has no such filter), and the random streams. Nothing to fix in the C++ config; keys C++ reads but the single-voxel path does not use are listed (not checked line by line).
+- **(b) Cost at and near the truth** (10 cases, clean and realistic, C++ right and wrong, Python-on right and wrong; the truth and rotations of 0.1, 0.3 and 1.0 deg; patch 4 `CEVAL` evaluates C++'s local cost function). With `min_sin_eta` 0 and the rule on, Python equals C++ to 4 digits in 29 of the 40 points (median difference 0, maximum quality difference 0.016, from single-peak count differences whose cause was not examined); with the rule off the confidence differs by a median 0.083 (maximum 0.23). So the `.d` frame conversion and the setup are right.
+
+<!-- table:e0_cost_check -->
+| py_min_sin_eta | py_rule | n | median_abs_dq | max_abs_dq | median_abs_dconf | max_abs_dconf | same_peak_counts |
+|---|---|---|---|---|---|---|---|
+| 0.3 | off | 40 | 0.0093 | 0.0391 | 0.0892 | 0.2405 | 1 |
+| 0.3 | on | 40 | 0.0029 | 0.0198 | 0.0058 | 0.0212 | 3 |
+| 0.0 | off | 40 | 0.0138 | 0.0446 | 0.0830 | 0.2273 | 7 |
+| 0.0 | on | 40 | 0.0000 | 0.0161 | 0.0000 | 0.0161 | 29 |
+<!-- /table:e0_cost_check -->
+
+- **(c) and (d) E0 with `min_sin_eta` 0, and C++ with three seeds** (the C++ random engine is a default-seeded `mt19937`; patch 4b adds env `CSEED`; one case, 3108 clean, is wrong with the default seed and right with seed 1, so one seed is a sample). Wrong of 200 per variant:
+
+<!-- table:e0_fairness_counts -->
+| variant | n | py_off | py_on | py_off_ms0 | py_on_ms0 | cpp_s0 | cpp_s1 | cpp_s2 | cpp_mean | cpp_wrong_all_seeds | cpp_wrong_any_seed |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| clean | 200 | 40 | 61 | 39 | 56 | 71 | 56 | 66 | 64.3 | 28 | 105 |
+| realistic | 200 | 25 | 42 | 18 | 56 | 52 | 46 | 52 | 50.0 | 25 | 83 |
+<!-- /table:e0_fairness_counts -->
+
+  C++ 71 / 52 (default seed) stands as one sample; over three seeds it is 56 to 71 clean and 46 to 52 realistic (mean 64.3 and 50.0), 28 and 25 voxels wrong in all three seeds, 105 and 83 wrong in at least one. Python with the rule on and `min_sin_eta` 0 (the like-for-like setting) is wrong on 56 / 56; with 0.3, 61 / 42; with the rule off 39 / 18 (0) and 40 / 25 (0.3). On the voxels the switch broke:
+
+<!-- table:e0_fairness_broken -->
+| setting | variant | n | off_wrong | on_wrong | broken | fixed | both_wrong | cpp_s0_wrong_on_broken | cpp_s1_wrong_on_broken | cpp_s2_wrong_on_broken |
+|---|---|---|---|---|---|---|---|---|---|---|
+| min_sin_eta 0.3 | clean | 200 | 40 | 61 | 38 | 17 | 23 | 24 | 13 | 17 |
+| min_sin_eta 0.3 | realistic | 200 | 25 | 42 | 25 | 8 | 17 | 11 | 10 | 16 |
+| min_sin_eta 0 | clean | 200 | 39 | 56 | 34 | 17 | 22 | 18 | 13 | 19 |
+| min_sin_eta 0 | realistic | 200 | 18 | 56 | 44 | 6 | 12 | 22 | 19 | 22 |
+<!-- /table:e0_fairness_broken -->
+
+  C++ is wrong on 13 to 24 of the 38 broken clean voxels and 10 to 16 of the 25 realistic ones depending on the seed (with `min_sin_eta` 0: 13 to 19 of 34 and 19 to 22 of 44). So C++ also loses roughly half of the voxels the switch breaks in Python, and a different seed rescues different ones; the claim that the loss belongs to the C++ rule stands, with the single-seed numbers of Step 3 replaced by these ranges.
+
 - **Reading (Steps 2 and 3).** The switch makes the Python level-0 stage and the cost values match the C++ code (S1, S2, S3, six-voxel counts), which is the port goal. The E0 accuracy loss is a property of the C++ rule on these images, not a Python defect: C++ is wrong on 71 and 52 of the 200 voxels (Step 3). It is still a reason not to flip the default blindly.
 - **A default flip would change** 11 tests (`default_flip_would_change.md`: `GOLDEN` in `test_findoptimal_refactor.py`, `GOLDEN_REFINE` and default-path goldens in `test_cma_optimizer.py`, three `test_coarse_proxy.py` equalities, `test_nn_hybrid.py` stored experiment B) and in principle every stored result computed through `VoxelCostFunction` on the 2-detector data (Phase A to D, E0, seed-cost diagnosis and pilot tables, hit-ratio thresholds, NN/proxy labels).
 - **Left undone:** E0 seeds 1 and 2; a Python run with `min_sin_eta` 0 (to align with C++ on E0); a controlled test of the ranking cut; the effect of the rule on the reseed pilot and the BFS acceptance thresholds; interpolation as the cause of the remaining 1.4%.

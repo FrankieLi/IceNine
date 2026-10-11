@@ -95,6 +95,22 @@
 | realistic | 200 | 25 | 42 | 52 [0.204, 0.325] | 25 | 11 | 38 | 11 | 28 | 18 |
 <!-- /table:e0_cpp_vs_python -->
 
+<!-- table:e0_fairness_broken -->
+| setting | variant | n | off_wrong | on_wrong | broken | fixed | both_wrong | cpp_s0_wrong_on_broken | cpp_s1_wrong_on_broken | cpp_s2_wrong_on_broken |
+|---|---|---|---|---|---|---|---|---|---|---|
+| min_sin_eta 0.3 | clean | 200 | 40 | 61 | 38 | 17 | 23 | 24 | 13 | 17 |
+| min_sin_eta 0.3 | realistic | 200 | 25 | 42 | 25 | 8 | 17 | 11 | 10 | 16 |
+| min_sin_eta 0 | clean | 200 | 39 | 56 | 34 | 17 | 22 | 18 | 13 | 19 |
+| min_sin_eta 0 | realistic | 200 | 18 | 56 | 44 | 6 | 12 | 22 | 19 | 22 |
+<!-- /table:e0_fairness_broken -->
+
+<!-- table:e0_fairness_counts -->
+| variant | n | py_off | py_on | py_off_ms0 | py_on_ms0 | cpp_s0 | cpp_s1 | cpp_s2 | cpp_mean | cpp_wrong_all_seeds | cpp_wrong_any_seed |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| clean | 200 | 40 | 61 | 39 | 56 | 71 | 56 | 66 | 64.3 | 28 | 105 |
+| realistic | 200 | 25 | 42 | 18 | 56 | 52 | 46 | 52 | 50.0 | 25 | 83 |
+<!-- /table:e0_fairness_counts -->
+
 <!-- table:e0_debug_classes -->
 | cls | py_off | py_on | cpp |
 |---|---|---|---|
@@ -135,3 +151,12 @@
 | off (library default) | 8 | 10 | -0.01311 | -1.24e-02 | 151 | 1 | 0.99896 |
 | on | 143 | 154 | 0.00005 | -3.95e-10 | 2 | 15 | 0.99997 |
 <!-- /table:level0_cost_offset -->
+
+<!-- table:e0_cost_check -->
+| py_min_sin_eta | py_rule | n | median_abs_dq | max_abs_dq | median_abs_dconf | max_abs_dconf | same_peak_counts |
+|---|---|---|---|---|---|---|---|
+| 0.3 | off | 40 | 0.0093 | 0.0391 | 0.0892 | 0.2405 | 1 |
+| 0.3 | on | 40 | 0.0029 | 0.0198 | 0.0058 | 0.0212 | 3 |
+| 0.0 | off | 40 | 0.0138 | 0.0446 | 0.0830 | 0.2273 | 7 |
+| 0.0 | on | 40 | 0.0000 | 0.0161 | 0.0000 | 0.0161 | 29 |
+<!-- /table:e0_cost_check -->

@@ -30,7 +30,8 @@ ICE = HERE.parents[1]
 EX = ICE.parent / "Examples" / "Example2.ManyGrains"
 sys.path.insert(0, str(ICE / "scripts" / "findoptimal_robustness"))
 sys.path.insert(0, str(ICE / "scripts" / "common"))
-CACHE = HERE / "cache" / "e0_cpp"
+SEED = os.environ.get("CSEED", "")  # patch 4b: mt19937 seed of the C++ MC (default 5489)
+CACHE = HERE / "cache" / ("e0_cpp" + (f"_s{SEED}" if SEED else ""))
 IMG = ICE / "scripts" / "findoptimal_robustness" / "cache" / "images"
 MIC = EX / "SimInput" / "rand_500grains_1mm_neworient_s0.mic"
 TEMPLATE = ICE / "benchmarks" / "phase_d_seed_diag" / "level0" / "e0" / "cpp_template.config"

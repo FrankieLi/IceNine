@@ -1,0 +1,84 @@
+{
+ "clean": {
+  "variant": "clean",
+  "n": 200,
+  "py_off": 40,
+  "py_on": 61,
+  "py_off_ms0": 39,
+  "py_on_ms0": 56,
+  "cpp_s0": 71,
+  "cpp_s1": 56,
+  "cpp_s2": 66,
+  "cpp_mean": 64.33333333333333,
+  "cpp_wrong_all_seeds": 28,
+  "cpp_wrong_any_seed": 105
+ },
+ "realistic": {
+  "variant": "realistic",
+  "n": 200,
+  "py_off": 25,
+  "py_on": 42,
+  "py_off_ms0": 18,
+  "py_on_ms0": 56,
+  "cpp_s0": 52,
+  "cpp_s1": 46,
+  "cpp_s2": 52,
+  "cpp_mean": 50.0,
+  "cpp_wrong_all_seeds": 25,
+  "cpp_wrong_any_seed": 83
+ },
+ "broken": [
+  {
+   "setting": "min_sin_eta 0.3",
+   "variant": "clean",
+   "n": 200,
+   "off_wrong": 40,
+   "on_wrong": 61,
+   "broken": 38,
+   "fixed": 17,
+   "both_wrong": 23,
+   "cpp_s0_wrong_on_broken": 24,
+   "cpp_s1_wrong_on_broken": 13,
+   "cpp_s2_wrong_on_broken": 17
+  },
+  {
+   "setting": "min_sin_eta 0.3",
+   "variant": "realistic",
+   "n": 200,
+   "off_wrong": 25,
+   "on_wrong": 42,
+   "broken": 25,
+   "fixed": 8,
+   "both_wrong": 17,
+   "cpp_s0_wrong_on_broken": 11,
+   "cpp_s1_wrong_on_broken": 10,
+   "cpp_s2_wrong_on_broken": 16
+  },
+  {
+   "setting": "min_sin_eta 0",
+   "variant": "clean",
+   "n": 200,
+   "off_wrong": 39,
+   "on_wrong": 56,
+   "broken": 34,
+   "fixed": 17,
+   "both_wrong": 22,
+   "cpp_s0_wrong_on_broken": 18,
+   "cpp_s1_wrong_on_broken": 13,
+   "cpp_s2_wrong_on_broken": 19
+  },
+  {
+   "setting": "min_sin_eta 0",
+   "variant": "realistic",
+   "n": 200,
+   "off_wrong": 18,
+   "on_wrong": 56,
+   "broken": 44,
+   "fixed": 6,
+   "both_wrong": 12,
+   "cpp_s0_wrong_on_broken": 22,
+   "cpp_s1_wrong_on_broken": 19,
+   "cpp_s2_wrong_on_broken": 22
+  }
+ ]
+}
