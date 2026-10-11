@@ -131,6 +131,11 @@ class SearchParameters:
     #   with revisit; rejected -> that voxel is final (never searched again) and the cluster is
     #   recomputed without it and reseeded on another voxel. Off by default.
     bfs_reseed: bool = False
+    # cpp_overlap_rule: opt-in (config key CppOverlapRule). The literal C++ CountQualifiedPeaks
+    # overlap rule and the centroid projection of the pixel-radius screen (see VoxelCostFunction).
+    # cpp_center_screen is an A/B sub-flag (not a config key): False keeps vertex 0 in the screen.
+    cpp_overlap_rule: bool = False
+    cpp_center_screen: bool = True
 
     def __post_init__(self) -> None:
         if self.local_optimizer not in LOCAL_OPTIMIZERS:
@@ -178,6 +183,7 @@ class SearchParameters:
             bfs_revisit_max=getattr(config, "bfs_revisit_max", 3),
             bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
+            cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
         )
 
 

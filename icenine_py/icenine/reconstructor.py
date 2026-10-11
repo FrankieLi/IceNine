@@ -517,6 +517,7 @@ class AdaptiveVoxelReconstructor:
                 detector_list=self.setup.detector_list,
                 range_map=self.setup.range_map,
                 exp_data=self.setup.exp_data,
+                **self._cost_flags(),
                 sample=self.setup.sample,
                 structure_list=self.setup.structure_list,
                 mode="hard",
@@ -680,6 +681,14 @@ class AdaptiveVoxelReconstructor:
 
         return best_candidate
 
+    def _cost_flags(self) -> Dict[str, bool]:
+        """Opt-in C++ overlap rules (config key CppOverlapRule): the literal C++ CountQualifiedPeaks
+        and the centroid projection of the pixel-radius screen. Empty (defaults) when off."""
+        if getattr(self.setup.search_params, "cpp_overlap_rule", False):
+            center = getattr(self.setup.search_params, "cpp_center_screen", True)
+            return dict(cpp_overlap_rule=True, center_screen=bool(center))
+        return {}
+
     def _make_local_cost_fn(self) -> VoxelCostFunction:
         """Local cost function (pixel_radius=0) used for MC, re-evaluation and the final overlap."""
         return VoxelCostFunction(
@@ -687,6 +696,7 @@ class AdaptiveVoxelReconstructor:
             detector_list=self.setup.detector_list,
             range_map=self.setup.range_map,
             exp_data=self.setup.exp_data,
+            **self._cost_flags(),
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
             mode="hard",
@@ -944,6 +954,7 @@ class AdaptiveVoxelReconstructor:
             detector_list=self.setup.detector_list,
             range_map=self.setup.range_map,
             exp_data=self.setup.exp_data,
+            **self._cost_flags(),
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
             mode="hard",
@@ -994,6 +1005,7 @@ class AdaptiveVoxelReconstructor:
             detector_list=self.setup.detector_list,
             range_map=self.setup.range_map,
             exp_data=self.setup.exp_data,
+            **self._cost_flags(),
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
             mode="hard",

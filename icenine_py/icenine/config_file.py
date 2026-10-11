@@ -216,6 +216,8 @@ class ConfigFile:
     bfs_revisit_max: int = 3  # local fits per voxel while REFIT
     bfs_restart_pass: bool = False  # FITTED border voxels push onto REFIT voxels after the BFS
     bfs_reseed: bool = False  # one full no-start search per leftover REFIT cluster (opt-in)
+    cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
+    cpp_center_screen: bool = True  # A/B sub-flag (not a config key): centroid screen with the rule
 
     # ========================================================================
     # Parameter Optimization (18 parameters)
@@ -459,6 +461,7 @@ class ConfigFile:
             ),
             'BFSRestartPass': self._parse_bool('bfs_restart_pass'),
             'BFSReseed': self._parse_bool('bfs_reseed'),
+            'CppOverlapRule': self._parse_bool('cpp_overlap_rule'),
 
             # Parameter Optimization
             'OptimizationFilename': self._parse_string('optimization_filename'),

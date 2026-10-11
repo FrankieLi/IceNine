@@ -37,6 +37,10 @@ try:
     _HAS_C_RASTERIZE = True
 except ImportError:
     _HAS_C_RASTERIZE = False
+try:
+    from ._rasterize import HAS_CPP_RULE as _C_HAS_CPP_RULE
+except ImportError:
+    _C_HAS_CPP_RULE = False  # extension missing or built before the cpp_rule argument existed
 
 
 # ---------------------------------------------------------------------------
@@ -142,9 +146,14 @@ def count_qualified_peaks(
     detector_lit: List[bool],
     spot_overlap: List[bool],
     n_detectors: int,
+    cpp_rule: bool = False,
 ) -> Tuple[int, int, int]:
     """
     Check if a peak has valid (contiguous) detector coverage.
+
+    With ``cpp_rule=True`` the literal C++ rule is applied instead (``count_qualified_peaks_cpp``):
+    a later detector that is lit but shows no overlap makes the overlap invalid. The default
+    (False) is the original Python rule.
 
     A peak is "qualified" as on-detector if it lights up a contiguous set
     of detectors starting from detector 0 (allowing trailing gap).
@@ -166,6 +175,9 @@ def count_qualified_peaks(
     # Check if peak is valid: contiguous detector lit pattern
     # Valid: [True, True, False, False], [True, True, True, True]
     # Invalid: [False, True, True], [True, False, True]
+    if cpp_rule:
+        return count_qualified_peaks_cpp(detector_lit, spot_overlap, n_detectors)
+
     valid_sim_peak = False
     valid_overlap = False
     n_det_overlap = 0
@@ -220,6 +232,61 @@ def count_qualified_peaks(
     )
 
 
+def count_qualified_peaks_cpp(
+    detector_lit: List[bool],
+    spot_overlap: List[bool],
+    n_detectors: int,
+) -> Tuple[int, int, int]:
+    """
+    Literal port of C++ ``Utilities::CountQualifiedPeaks`` (OverlapInfo.tmpl.cpp:78-139).
+
+    Peak on detector: detector 0 is lit; the first unlit later detector is tolerated once
+    (``bOnPreviousDetector``), and afterwards a further unlit detector invalidates the peak, while
+    a lit one does not (lit, unlit, lit is valid; lit, unlit, unlit is not). Overlap: detector 0
+    overlaps and every later detector either overlaps or is unlit; one unlit, non-overlapping
+    detector is tolerated (``bPreviousOverlap``), and a lit non-overlapping one invalidates the
+    overlap. The count of overlapping detectors is reported only when both are valid.
+
+    Returns:
+        (peak_on_detector, peak_overlap, n_detectors_overlap)
+    """
+    if n_detectors == 0:
+        return 0, 0, 0
+    valid_sim = bool(detector_lit[0])
+    on_previous = bool(detector_lit[0])
+    i = 1
+    while i < n_detectors and valid_sim:
+        if detector_lit[i]:
+            valid_sim = True
+        elif on_previous:
+            valid_sim = True
+            on_previous = False
+        else:
+            valid_sim = False
+        i += 1
+
+    previous_overlap = bool(spot_overlap[0])
+    valid_overlap = bool(spot_overlap[0])
+    n_overlap = 1 if spot_overlap[0] else 0
+    i = 1
+    while i < n_detectors and valid_overlap:
+        if spot_overlap[i]:
+            n_overlap += 1
+            valid_overlap = True
+        elif previous_overlap and not detector_lit[i]:
+            valid_overlap = True
+            previous_overlap = False
+        else:
+            valid_overlap = False
+        i += 1
+
+    return (
+        1 if valid_sim else 0,
+        1 if valid_overlap else 0,
+        n_overlap if (valid_sim and valid_overlap) else 0,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Diffraction overlap calculation
 # ---------------------------------------------------------------------------
@@ -234,6 +301,7 @@ def calculate_diffraction_overlap(
     exp_data: ExperimentalData,
     beam_direction: torch.Tensor,
     mode: str = 'hard',
+    cpp_rule: bool = False,
 ) -> OverlapInfo:
     """
     Calculate overlap between simulated diffraction peaks and experimental data.
@@ -345,7 +413,7 @@ def calculate_diffraction_overlap(
 
         # Qualified peak counting
         peak_on_det, peak_ovlp, n_det_ovlp = count_qualified_peaks(
-            detector_lit, spot_overlap, n_detectors
+            detector_lit, spot_overlap, n_detectors, cpp_rule
         )
 
         # Update overlap info — accumulate counts, then update quality with per-peak values
@@ -377,6 +445,7 @@ def calculate_diffraction_overlap_batched(
     beam_direction: torch.Tensor,
     mode: str = 'hard',
     pixel_radius: int = 0,
+    cpp_rule: bool = False,
 ) -> OverlapInfo:
     """
     Batched version of calculate_diffraction_overlap.
@@ -530,7 +599,7 @@ def calculate_diffraction_overlap_batched(
     # if gradient-based refinement is ever needed, differentiate through
     # those stages and use a differentiable renderer for image comparison.
 
-    if _HAS_C_RASTERIZE and mode == 'hard':
+    if _HAS_C_RASTERIZE and mode == 'hard' and (_C_HAS_CPP_RULE or not cpp_rule):
         # ---- Fast path: batch C extension ----
         # Build compact image lookup — only unique wedges needed
         v_wedge_np = np.asarray(v_wedge, dtype=np.int32)
@@ -569,6 +638,7 @@ def calculate_diffraction_overlap_batched(
                 image_list, local_wedge, det_hit,
                 centers, None,
                 n_detectors, pixel_radius, M, img_rows, img_cols,
+                *((1,) if cpp_rule else ()),
             )
         else:
             # pixel_vertices: (M, n_det, 3, 2) float32
@@ -582,6 +652,7 @@ def calculate_diffraction_overlap_batched(
                 image_list, local_wedge, det_hit,
                 None, verts,
                 n_detectors, pixel_radius, M, img_rows, img_cols,
+                *((1,) if cpp_rule else ()),
             )
 
         # Unpack results
@@ -659,7 +730,7 @@ def calculate_diffraction_overlap_batched(
                         detector_lit[det_idx] = True
 
             peak_on_det, peak_ovlp, n_det_ovlp = count_qualified_peaks(
-                detector_lit, spot_overlap, n_detectors
+                detector_lit, spot_overlap, n_detectors, cpp_rule
             )
 
             overlap_info.detectors_overlap = n_det_ovlp
@@ -705,6 +776,8 @@ class VoxelCostFunction:
         pixel_radius: int = 0,
         max_q: float = 0.0,
         min_sin_eta: float = 0.0,
+        cpp_overlap_rule: bool = False,
+        center_screen: bool = False,
     ):
         """
         Args:
@@ -732,7 +805,14 @@ class VoxelCostFunction:
                    are skipped. 0 (default) = no filter (the C++ behaviour). Used to
                    give the optimizers the same eligible spots as the orientation
                    network (generate_toy_orientation_dataset.build_problem).
+            cpp_overlap_rule: Apply the literal C++ CountQualifiedPeaks overlap rule (a lit,
+                   non-overlapping later detector invalidates a peak's overlap). Default False
+                   (the original Python rule). C++ Reference: OverlapInfo.tmpl.cpp:78-139.
+            center_screen: For pixel_radius > 0 project the voxel centroid (C++ VoxelToCenter)
+                   instead of the first triangle vertex. Default False.
         """
+        self.cpp_overlap_rule = cpp_overlap_rule
+        self.center_screen = center_screen
         self.simulator = simulator
         self.min_sin_eta = min_sin_eta
         self.detector_list = detector_list
@@ -783,6 +863,8 @@ class VoxelCostFunction:
         C++ Reference: CostFunctions.h VoxelCostFunction::operator()
         """
         self.eval_count += 1
+        if self.center_screen and self.pixel_radius > 0:
+            voxel_vertices = voxel_vertices.mean(dim=0, keepdim=True).repeat(3, 1)
 
         if phase_index not in self._phase_recip_vecs:
             return OverlapInfo()
@@ -873,4 +955,5 @@ class VoxelCostFunction:
             beam_direction=self.simulator.beam_direction,
             mode=self.mode,
             pixel_radius=self.pixel_radius,
+            **({"cpp_rule": True} if self.cpp_overlap_rule else {}),
         )
