@@ -15,7 +15,15 @@ OUT = ICE / "benchmarks" / "phase_d_seed_diag" / "level0"
 
 def main() -> None:
     parts = []
-    for f in ["tables.md", "six_voxels_tables.md", "e0/tables_on.md", "e0/tables_rule.md"]:
+    for f in [
+        "tables.md",
+        "six_voxels_tables.md",
+        "e0/tables_on.md",
+        "e0/tables_rule.md",
+        "e0/tables_cpp.md",
+        "e0/tables_debug.md",
+        "e0/tables_debug_levels.md",
+    ]:
         parts.append((OUT / f).read_text().rstrip("\n") + "\n")
     c = json.loads((OUT / "cost_offset_check.json").read_text())
     rows = [

@@ -134,7 +134,7 @@ which no config change could fix.
   3,537 cliques given C++'s own inputs). With the opt-in `CppOverlapRule 1` the level-0 count is 0.995–1.003×
   C++'s on the six voxels, evaluations 0.95–0.98× C++'s (before 1.31–1.57×), and the cost offset of -0.013
   against C++ vanishes. The switch is off by default: with it on, E0 gets worse (wrong 40 to 61 clean, 25 to 42
-  realistic of 200; exact McNemar p = 0.006 and 0.005), so whether to flip the default is open.
+  realistic of 200; paired by voxel 17 fixed / 38 broken / 23 both wrong, and 8 / 25 / 17), so whether to flip the default is open. C++ is wrong on 71 and 52 of the same 200 voxels (on 35 of the 63 the switch broke), and in Python all 63 lose their truth basin before FindOptimal (pruned by the 1/4 ranking at levels 0 to 2 in 59, never present in 4), as they do in C++.
 - Per evaluation, Python is about 10× slower (about 500 µs against 50 µs).
 
 **Tests.**
@@ -476,9 +476,10 @@ The earlier report's precision and timing numbers for the default finisher carry
 2. **Wrong-grain acceptances.** Why does CMA accept more of them? Should the 0.9 relative test be tightened for
    CMA fits?
 3. **Coarse candidates.** Answered (3(b)): the overlap rule of `CountQualifiedPeaks` and the centroid screen.
-   With `CppOverlapRule 1` Python's seed evaluations fall by about 30% to 0.95–0.98× C++'s. Open: the default
-   stays off because E0 accuracy drops with it (40 to 61 and 25 to 42 wrong of 200); does C++ itself lose those
-   voxels, and do the BFS seed test (hit ratio 0.8) and the reseed pilot change with the rule? A default flip
+   With `CppOverlapRule 1` Python's seed evaluations fall by about 30% to 0.95–0.98× C++'s. The default
+   stays off because E0 accuracy drops with it (40 to 61 and 25 to 42 wrong of 200); C++ itself is wrong on 71 and
+   52 of the same voxels, so the loss belongs to the C++ rule (the quick-MC ranking sees a nearly flat cost around
+   the truth). Open: do the BFS seed test (hit ratio 0.8) and the reseed pilot change with the rule? A default flip
    changes 11 goldens and, in principle, every stored result computed through the cost function
    (`benchmarks/phase_d_seed_diag/level0/default_flip_would_change.md`).
 4. **Which difference matters.** Which of the C++ differences (block halving, restart base, fixed step) produces

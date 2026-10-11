@@ -130,7 +130,7 @@ def summary(arm: str = "on") -> None:
         s: Dict[str, Any] = dict(
             n=n, wrong_before=int(wo.sum()), wrong_after=int(wn.sum()),
             only_after_wrong=only_new, only_before_wrong=only_old,
-            mcnemar_p=S.mcnemar_exact(only_new, only_old),
+            both_wrong=int((wn & wo).sum()),
             median_err_right_both_before=float(np.median(e_old[both])),
             median_err_right_both_after=float(np.median(e_new[both])),
             mean_evals_before=float(ev_old.mean()), mean_evals_after=float(ev_new.mean()),
@@ -154,7 +154,7 @@ def summary(arm: str = "on") -> None:
             dict(variant=label, n=n,
                  wrong_before=f"{int(wo.sum())}/{n} [{lo_o:.3f}, {hi_o:.3f}]",
                  wrong_after=f"{int(wn.sum())}/{n} [{lo_n:.3f}, {hi_n:.3f}]",
-                 only_after=only_new, only_before=only_old, p=s["mcnemar_p"],
+                 broken=only_new, fixed=only_old, both_wrong=s["both_wrong"],
                  med_both_before=s["median_err_right_both_before"],
                  med_both_after=s["median_err_right_both_after"],
                  evals_before=s["mean_evals_before"], evals_after=s["mean_evals_after"],
@@ -165,10 +165,10 @@ def summary(arm: str = "on") -> None:
     (OUT / f"summary_{arm}.json").write_text(json.dumps(summ, indent=1, default=float))
     tbl = doc_tables.markdown_table(
         rows,
-        ["variant", "n", "wrong_before", "wrong_after", "only_after", "only_before", "p",
+        ["variant", "n", "wrong_before", "wrong_after", "broken", "fixed", "both_wrong",
          "med_both_before", "med_both_after", "evals_before", "evals_after",
          "basin_miss_before", "basin_miss_after"],
-        formats={"p": ".2g", "med_both_before": ".4f", "med_both_after": ".4f",
+        formats={"med_both_before": ".4f", "med_both_after": ".4f",
                  "evals_before": ".0f", "evals_after": ".0f"},
     )  # fmt: skip
     doc_tables.write_tables(OUT / f"tables_{arm}.md", {f"cpprule_e0_{arm}": tbl})

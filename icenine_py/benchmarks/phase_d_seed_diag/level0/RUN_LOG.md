@@ -138,7 +138,7 @@ dynamic_lookup -fPIC -I<python include> -I<numpy include> icenine/_rasterize.c -
 | six voxels | `seed_diag.py run --voxel V --images full --tag cpprule --opt cpp_overlap_rule=1`, V in the six (`cache/six.sh`) | 1 | about 12 min; 15901, 17034 and 5242 repeated because the preflight marked them contended | `../runs/cpprule_full_vV.json`, `six_voxels*.{json,md}` |
 | default flip | defaults set to True temporarily, `uv run pytest tests/`, restored | 1 | 307 s | `default_flip_would_change.md` |
 
-E0 tables: `e0/summary_{on,rule}.json`, `e0/tables_{on,rule}.md`; paired exact McNemar against the stored
+E0 tables: `e0/summary_{on,rule}.json`, `e0/tables_{on,rule}.md`; paired (fixed / broken / both wrong) against the stored
 `e0_run_mcfaithful` `mc` arm; the level-0 truth-basin record is the smallest symmetry-reduced angle between a
 level-0 candidate and the truth (miss: more than 3 deg). The `on`/`off`/`rule` runs of E0 are multi-worker
 (10) wall clocks, not timing claims; the six-voxel wall times are single-process (three were contended at the
@@ -156,7 +156,39 @@ preflight, one still labelled so in `six_voxels.json`).
 - E0 accuracy got worse with the rule on (section 4 of the migration-history subsection); this is a result, not a
   failure of the run.
 
-## 8. Could be done better
+## 8. Step 3 (owner: no p-values; C++ on the E0 voxels; why Python with the rule loses them)
+
+### 8.1 Changes
+
+- Removed the McNemar p-values this task wrote: `scripts/phase_d/e0_cpprule.py` (summary now reports
+  `broken` / `fixed` / `both_wrong`), `e0/summary_{on,rule}.json`, `e0/tables_{on,rule}.md`, the MIGRATION_HISTORY
+  subsection, findings 3(b), RUN_LOG section 7. Earlier tasks' p-values untouched.
+- New scripts: `e0_cpp.py` (C++ harness), `e0_cpp_summary.py`, `e0_trace.py` (Python off/on recorder traces),
+  `e0_debug.py` (per-level comparison and classes). New files: `cpp_debug_patch3_e0.py.txt` (patch 3: CTRACE
+  dumps of the discrete, post-quick-MC and FindOptimal candidates), `e0/cpp_template.config`,
+  `e0/newly_wrong_cases.txt`, `e0/{cpp_e0_summary,debug_cases,debug_summary,debug_level0_match}.json`,
+  `e0/tables_{cpp,debug,debug_levels}.md`. No library change.
+
+### 8.2 Runs
+
+| Run | Command | Workers | Wall | Output |
+|---|---|---|---|---|
+| C++ build with patch 3 | `python patch3.py` in the scratch copy, `make -j8` | 8 | about 15 s | scratch `IceNine` (Release) |
+| pilot, 2 cases | `e0_cpp.py run --only-file ...` | 2 | 24 s | first attempt failed: the Python phase D config has Python-only lines (`ConfigFile` error line 100); the C++ template config from the earlier scratch run was used instead |
+| C++ on all 400 E0 cases | `E0_CPP_BIN=<scratch>/IceNine E0_CPP_SCRATCH=<dir> e0_cpp.py run --workers 8` (nohup `cache/e0_cpp.sh`) | 8 | 19:55 to 20:04, 9 min | `scripts/phase_d/cache/e0_cpp/*.json` (gitignored), `e0/cpp_e0_summary.json` |
+| Python traces, 63 cases x off/on | `e0_trace.py list`, `run --workers 4` | 4 | about 10 min, contended with the C++ run | `scripts/phase_d/cache/e0_trace/*.npz` (gitignored) |
+| analysis | `e0_cpp_summary.py`, `e0_debug.py` | 1 | seconds | `e0/*.json`, `e0/tables_*.md` |
+
+### 8.3 Problems
+
+- The C++ frames needed the mapping `.d` line = `col, row, intensity` and frame/detector from the key
+  (`img = key // (H*W)`, `frame = img // n_det`, `det = img % n_det`); checked on the earlier isolated 15901 stack
+  before use (the stack layout is detector x 180 + frame, the key layout frame x n_det + detector).
+- C++ runs are one sample per case (fixed C++ random stream); Python E0 applies `min_sin_eta` 0.3, C++ does not;
+  neither can be aligned from the scripts as they are. The levels 1+ comparison is therefore statistical.
+- The classes are defined with a 3 deg basin radius, an arbitrary choice (stated in `e0_debug.py`).
+
+## 9. Could be done better
 
 - A permanent, gated trace switch in the C++ source (env var) would remove the patch-and-rebuild routine, but
   changes `Src/`; as a scratch patch it needs `rep` anchors that survive whitespace, so keep patches as unified
@@ -183,3 +215,8 @@ preflight, one still labelled so in `six_voxels.json`).
   than by editing and restoring three files.
 - Keep a per-case table of E0 (`min_dist_l0`, final error, evaluations) in one CSV per arm; the paired summaries
   were re-derived three times from the npz files.
+- The per-voxel C++ harness (frames from stored keys, one-voxel mic, template config, trace parser) is generic:
+  keep it as the standard way to run C++ on any stored Python case, and add the C++ right / wrong column to every
+  accuracy table from the start instead of as a late check.
+- Store the per-level candidate lists of both implementations in one common npz layout from the start; two
+  parsers (CD/CQ text lines, recorder events) and a combined comparison were written for this one question.

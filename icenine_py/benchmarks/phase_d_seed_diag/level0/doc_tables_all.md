@@ -75,18 +75,59 @@
 <!-- /table:level0_six_evals -->
 
 <!-- table:cpprule_e0_on -->
-| variant | n | wrong_before | wrong_after | only_after | only_before | p | med_both_before | med_both_after | evals_before | evals_after | basin_miss_before | basin_miss_after |
+| variant | n | wrong_before | wrong_after | broken | fixed | both_wrong | med_both_before | med_both_after | evals_before | evals_after | basin_miss_before | basin_miss_after |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| clean | 200 | 40/200 [0.150, 0.261] | 61/200 [0.245, 0.372] | 38 | 17 | 0.0065 | 0.0102 | 0.0187 | 48442 | 47174 | 4 | 6 |
-| realistic | 200 | 25/200 [0.086, 0.178] | 42/200 [0.159, 0.272] | 25 | 8 | 0.0046 | 0.0079 | 0.0157 | 51058 | 48731 | 2 | 10 |
+| clean | 200 | 40/200 [0.150, 0.261] | 61/200 [0.245, 0.372] | 38 | 17 | 23 | 0.0102 | 0.0187 | 48442 | 47174 | 4 | 6 |
+| realistic | 200 | 25/200 [0.086, 0.178] | 42/200 [0.159, 0.272] | 25 | 8 | 17 | 0.0079 | 0.0157 | 51058 | 48731 | 2 | 10 |
 <!-- /table:cpprule_e0_on -->
 
 <!-- table:cpprule_e0_rule -->
-| variant | n | wrong_before | wrong_after | only_after | only_before | p | med_both_before | med_both_after | evals_before | evals_after | basin_miss_before | basin_miss_after |
+| variant | n | wrong_before | wrong_after | broken | fixed | both_wrong | med_both_before | med_both_after | evals_before | evals_after | basin_miss_before | basin_miss_after |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| clean | 200 | 40/200 [0.150, 0.261] | 63/200 [0.255, 0.382] | 39 | 16 | 0.0027 | 0.0093 | 0.0131 | 48442 | 47067 | 4 | 8 |
-| realistic | 200 | 25/200 [0.086, 0.178] | 54/200 [0.213, 0.335] | 36 | 7 | 9e-06 | 0.0080 | 0.0118 | 51058 | 48487 | 2 | 9 |
+| clean | 200 | 40/200 [0.150, 0.261] | 63/200 [0.255, 0.382] | 39 | 16 | 24 | 0.0093 | 0.0131 | 48442 | 47067 | 4 | 8 |
+| realistic | 200 | 25/200 [0.086, 0.178] | 54/200 [0.213, 0.335] | 36 | 7 | 18 | 0.0080 | 0.0118 | 51058 | 48487 | 2 | 9 |
 <!-- /table:cpprule_e0_rule -->
+
+<!-- table:e0_cpp_vs_python -->
+| variant | n | py_off | py_on | cpp | newly_wrong | cpp_wrong_among_newly | cpp_only_vs_off | off_only_vs_cpp | cpp_only_vs_on | on_only_vs_cpp |
+|---|---|---|---|---|---|---|---|---|---|---|
+| clean | 200 | 40 | 61 | 71 [0.292, 0.423] | 38 | 24 | 47 | 16 | 28 | 18 |
+| realistic | 200 | 25 | 42 | 52 [0.204, 0.325] | 25 | 11 | 38 | 11 | 28 | 18 |
+<!-- /table:e0_cpp_vs_python -->
+
+<!-- table:e0_debug_classes -->
+| cls | py_off | py_on | cpp |
+|---|---|---|---|
+| never | 0 | 4 | 4 |
+| pruned 0 | 0 | 25 | 15 |
+| pruned 1 | 0 | 23 | 11 |
+| pruned 2 | 0 | 11 | 5 |
+| right | 63 | 0 | 28 |
+<!-- /table:e0_debug_classes -->
+
+<!-- table:e0_debug_level0_match -->
+| py | n_py_median | n_cpp_median | cpp_cands_matched_frac_median | median_abs_cost_diff |
+|---|---|---|---|---|
+| on | 125 | 124 | 0.978 | 0.00e+00 |
+| off | 178 | 124 | 0.952 | 0.00e+00 |
+<!-- /table:e0_debug_level0_match -->
+
+<!-- table:e0_debug_levels -->
+| run | level | n | n_cand | closest_deg | rank | n_keep | survives | cost_closest | cost_best | within3 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| py_off | 0 | 63 | 178 | 1.12 | 9 | 44 | 53 | 0.962 | 0.927 | 63 |
+| py_off | 1 | 63 | 46 | 0.38 | 0 | 11 | 63 | 0.833 | 0.827 | 63 |
+| py_off | 2 | 63 | 12 | 0.20 | 0 | 3 | 63 | 0.679 | 0.665 | 63 |
+| py_off | 3 | 63 | 3 | 0.16 | 0 | 3 | 63 | 0.526 | 0.526 | 63 |
+| py_on | 0 | 63 | 125 | 1.56 | 29 | 31 | 28 | 0.981 | 0.937 | 59 |
+| py_on | 1 | 63 | 31 | 2.26 | 15 | 7 | 17 | 0.967 | 0.907 | 35 |
+| py_on | 2 | 63 | 7 | 7.22 | 4 | 1 | 2 | 0.951 | 0.861 | 12 |
+| py_on | 3 | 63 | 1 | 38.19 | 0 | 1 | 63 | 0.875 | 0.843 | 0 |
+| cpp | 0 | 63 | 124 | 1.27 | 18 | 31 | 41 | 0.976 | 0.935 | 59 |
+| cpp | 1 | 63 | 32 | 1.09 | 5 | 8 | 37 | 0.954 | 0.896 | 44 |
+| cpp | 2 | 63 | 8 | 2.21 | 2 | 2 | 28 | 0.940 | 0.814 | 33 |
+| cpp | 3 | 63 | 2 | 18.94 | 0 | 2 | 63 | 0.797 | 0.782 | 28 |
+<!-- /table:e0_debug_levels -->
 
 <!-- table:level0_cost_offset -->
 | rule | n_within_1e6 | n_within_1e3 | mean_signed | median_signed | n_python_lower | n_python_higher | corr |
