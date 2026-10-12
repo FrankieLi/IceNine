@@ -486,8 +486,14 @@ The earlier report's precision and timing numbers for the default finisher carry
    (`benchmarks/phase_d_seed_diag/level0/default_flip_would_change.md`).
 4. **Which difference matters.** Which of the C++ differences (block halving, restart base, fixed step) produces
    the faithful MC's gain? An ablation is untested.
-5. **Per-evaluation cost.** Can the 10× per-evaluation gap be cut, for example with batched evaluation in the
-   coarse stage?
+5. **Per-evaluation cost: batch the coarse stage (separate task, owner 2026-10-12).** Can the 10× per-evaluation
+   gap be cut, for example with batched evaluation in the coarse stage? Profile (ray-overlap task, `cpp` arm, voxel
+   22867, levels 0-2): 233,546 evaluations of one orientation each (96k discrete screen, 137k quick MC), about
+   0.5 ms each of Python and torch overhead; the C overlap stage is only 5% of the time, so levels 0-2 take about
+   117-168 s per voxel for every rule. Task: score many orientations per call in the screen (and, if possible,
+   the quick MC). Batching changes float32 shapes, so results will be near-identical rather than bit-identical;
+   it needs its own equivalence check (per-level candidates and wrong counts against the unbatched path, e.g. the
+   ray-overlap step-2 voxels). Benefits every rule and the normal reconstruction, not only the ray study.
 6. **Seeds 1–2 for E0.** Run them with the faithful MC, to firm up "no difference in wrong count".
 7. **Multi-client C++ reference.** Does C++ with several clients seed any of the grains that the single-client BFS
    loses? By the C++ code only timing (asynchrony) could do it; untested.
