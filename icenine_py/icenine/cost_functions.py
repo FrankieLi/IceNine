@@ -14,6 +14,7 @@ The main entry point is `VoxelCostFunction.evaluate()`, which:
 """
 
 import math
+import warnings
 from dataclasses import dataclass
 from typing import List, Tuple, Union
 
@@ -41,6 +42,7 @@ try:
     from ._rasterize import HAS_CPP_RULE as _C_HAS_CPP_RULE
 except ImportError:
     _C_HAS_CPP_RULE = False  # extension missing or built before the cpp_rule argument existed
+_WARNED_STALE_EXT = False
 
 
 # ---------------------------------------------------------------------------
@@ -598,6 +600,17 @@ def calculate_diffraction_overlap_batched(
     # contiguity validation). Stages A-C preserve the autograd graph;
     # if gradient-based refinement is ever needed, differentiate through
     # those stages and use a differentiable renderer for image comparison.
+
+    global _WARNED_STALE_EXT
+    if cpp_rule and _HAS_C_RASTERIZE and not _C_HAS_CPP_RULE and not _WARNED_STALE_EXT:
+        _WARNED_STALE_EXT = True
+        warnings.warn(
+            "CppOverlapRule is on but the _rasterize extension was built before cpp_rule; "
+            "using the much slower per-peak Python loop. Rebuild: cd icenine_py && uv run "
+            "--no-project --with setuptools --with numpy python setup.py build_ext --inplace",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
     if _HAS_C_RASTERIZE and mode == 'hard' and (_C_HAS_CPP_RULE or not cpp_rule):
         # ---- Fast path: batch C extension ----

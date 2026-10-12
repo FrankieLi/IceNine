@@ -253,3 +253,23 @@ preflight, one still labelled so in `six_voxels.json`).
   one seed gave 71); make `--seed` a standard argument of the C++ harness and report ranges.
 - Do the config diff mechanically (`diff` of normalised keys) as the first step of any C++ comparison and save the
   output next to the results; it took minutes and removed a whole class of doubts.
+
+## Review fixes (2026-10-11)
+
+Applied the 13 required fixes of the review (`.claude/reports/20261011-1712-review-level0-candidates.md`).
+- Docs (findings 3(b), 7.3; MIGRATION_HISTORY Steps 2 to 4 and Readings): C++ right on 28 of the 63, wrong on 35; the
+  ranking mechanism is "consistent with", link untested; like-for-like realistic result added (Python with the rule,
+  `min_sin_eta` 0: 56 wrong against C++ 46 / 52 / 52; paired against rule off 6 fixed / 44 broken / 12 both wrong);
+  single-seed C++ numbers replaced by the three-seed ranges (counts, not rates); Step 4(b) "consistent with", 11 of 40
+  points differ; "Left undone" updated; "expected from instability" replaced by "consistent with selection (not
+  tested)"; basin counts 58 (stored E0 run) and 59 (trace re-run, after the quick MC) both stated, not reconciled;
+  suite count 856 passed.
+- Rebuild: `uv sync --reinstall-package icenine` does not rebuild the extension (it finished in 0.2 s and the `.so` was
+  unchanged). `uv run --no-project --with setuptools --with numpy python setup.py build_ext --inplace` from
+  `icenine_py/` works (universal2 `.so`, `HAS_CPP_RULE` = 1) and is now in the README and MIGRATION_HISTORY.
+  (A plain `uv sync --extra dev --reinstall-package icenine` also dropped the `riemannian` / `benchmarks` extras; they
+  were restored with the full `uv sync` line.)
+- Code: one-time `RuntimeWarning` when the rule is on and the extension lacks `HAS_CPP_RULE`; test skip reason names a
+  stale build; `test_default_rule_unchanged` now pins the original rule's outputs for all 80 2- and 3-detector patterns
+  (taken from the base commit); unused `ConfigFile.cpp_center_screen` removed.
+- Not changed: per-FZ JSON files (owner decision pending); not applied: the review's suggestions.

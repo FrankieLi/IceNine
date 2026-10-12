@@ -76,17 +76,42 @@ def test_exhaustive_matches_reference(n):
             assert count_qualified_peaks_cpp(list(lit), list(ov), n) == cpp_ref(lit, ov)
 
 
+# Outputs of the original rule (count_qualified_peaks before the cpp_rule argument existed,
+# taken from the base commit) for every 2- and 3-detector pattern, "lit/overlap:a,b,c" (1 = true).
+_ORIGINAL_RULE_OUTPUTS = (
+    "00/00:0,0,0 00/01:0,0,0 00/10:0,0,0 00/11:0,0,0 01/00:0,0,0 01/01:0,0,0 01/10:0,0,0 "
+    "01/11:0,0,0 10/00:1,0,0 10/01:1,0,0 10/10:1,1,1 10/11:1,1,2 11/00:1,0,0 11/01:1,0,0 "
+    "11/10:1,1,1 11/11:1,1,2 000/000:0,0,0 000/001:0,0,0 000/010:0,0,0 000/011:0,0,0 "
+    "000/100:0,0,0 000/101:0,0,0 000/110:0,0,0 000/111:0,0,0 001/000:0,0,0 001/001:0,0,0 "
+    "001/010:0,0,0 001/011:0,0,0 001/100:0,0,0 001/101:0,0,0 001/110:0,0,0 001/111:0,0,0 "
+    "010/000:0,0,0 010/001:0,0,0 010/010:0,0,0 010/011:0,0,0 010/100:0,0,0 010/101:0,0,0 "
+    "010/110:0,0,0 010/111:0,0,0 011/000:0,0,0 011/001:0,0,0 011/010:0,0,0 011/011:0,0,0 "
+    "011/100:0,0,0 011/101:0,0,0 011/110:0,0,0 011/111:0,0,0 100/000:1,0,0 100/001:1,0,0 "
+    "100/010:1,0,0 100/011:1,0,0 100/100:1,1,1 100/101:1,1,2 100/110:1,1,2 100/111:1,1,3 "
+    "101/000:0,0,0 101/001:0,0,0 101/010:0,0,0 101/011:0,0,0 101/100:0,0,0 101/101:0,0,0 "
+    "101/110:0,0,0 101/111:0,0,0 110/000:1,0,0 110/001:1,0,0 110/010:1,0,0 110/011:1,0,0 "
+    "110/100:1,1,1 110/101:1,1,2 110/110:1,1,2 110/111:1,1,3 111/000:1,0,0 111/001:1,0,0 "
+    "111/010:1,0,0 111/011:1,0,0 111/100:1,1,1 111/101:1,0,0 111/110:1,1,2 111/111:1,1,3 "
+).split()
+
+
 def test_default_rule_unchanged():
-    """cpp_rule=False reproduces the original rule on every 2- and 3-detector pattern."""
-    for n in (2, 3):
-        for lit in itertools.product([False, True], repeat=n):
-            for ov in itertools.product([False, True], repeat=n):
-                assert count_qualified_peaks(list(lit), list(ov), n) == count_qualified_peaks(
-                    list(lit), list(ov), n, cpp_rule=False
-                )
+    """cpp_rule=False (and the default) reproduces the pinned outputs of the original rule."""
+    assert len(_ORIGINAL_RULE_OUTPUTS) == 16 + 64
+    for item in _ORIGINAL_RULE_OUTPUTS:
+        pattern, expected = item.split(":")
+        lit_s, ov_s = pattern.split("/")
+        lit = [c == "1" for c in lit_s]
+        ov = [c == "1" for c in ov_s]
+        want = tuple(int(x) for x in expected.split(","))
+        assert tuple(count_qualified_peaks(lit, ov, len(lit))) == want, item
+        assert tuple(count_qualified_peaks(lit, ov, len(lit), cpp_rule=False)) == want, item
 
 
-@pytest.mark.skipif(not CF._HAS_C_RASTERIZE or not CF._C_HAS_CPP_RULE, reason="C ext missing")
+@pytest.mark.skipif(
+    not CF._HAS_C_RASTERIZE or not CF._C_HAS_CPP_RULE,
+    reason="C ext missing or built before cpp_rule (rebuild _rasterize)",
+)
 def test_c_path_equals_python_path():
     """stage_d_overlap with the flag equals the Python fallback on random two-detector input."""
     rng = np.random.default_rng(0)
