@@ -98,3 +98,27 @@ which its own Python 46 s, `get_scattering_omegas_torch` 15 s, torch small-tenso
 27% (A) over the cpp arm. Not done: batching many orientations per call (the screen evaluates orientations one by
 one inside `run_discrete_search`; the MC is sequential by construction). A batched screen would change float32
 matmul shapes and is not guaranteed bit-identical, so it was left out.
+
+## 8. 30-voxel coarse rerun and step 3, 2026-10-12
+
+Both runs follow the owner decisions of 2026-10-12 (f1 dropped, windows untuned, ray rule at levels 0-2, arms old, cpp,
+R2, A). All wall times are contended (10 workers) unless marked single-process; results in `coarse30/`, `summary30.json`,
+`tables30.md` (reading in MIGRATION_HISTORY "Ray-consistency overlap rule", last subsection), `e2e_summary.json`,
+`e2e_tables.md`, `preflight_step3.json`.
+
+| Run | Command (from `icenine_py/`) | Workers | Wall |
+|---|---|---|---|
+| step 2 again, 30 voxels x 2 variants x 4 arms (all 240 re-run, to get the new fields) | `RAY_COARSE_DIR=coarse30 ray_overlap_study.py run --step 2 --workers 10 --arms old,cpp,f0_R2,f0_A` (`cache/run_step2_30.sh`) | 10 | about 75 min, contended |
+| step 3a: six full-sample voxels, arms R2 and A (old and cpp reused from `runs/base_full_*`, `cpprule_full_*`) | `seed_diag.py run --voxel V --images full --tag rayR2|rayA --opt ray_rule=R2|A` (`scripts/phase_d/cache/ray_step3.sh`) | 1 each, quiet preflight | 12 runs, about 29 min, 117 to 158 s each (single-process) |
+| step 3b: E0, 200 voxels x 2 variants, R2 and A (old and cpp reused from `cache/off_ms0`, `on_ms0`) | `e0_cpprule.py run --arm rayR2|rayA --msin 0 --workers 10` | 10 | 1124 s and 1149 s, contended |
+
+Projection before step 3: about 17 min per E0 arm for old and cpp (stored), ray arms 12% to 27% more, about 1.2 h in all,
+under the 3 h limit. Code changes: `ray_overlap_study.py` (pre-MC rank, survival at 1 and 2 deg, `RAY_COARSE_DIR`),
+`e0_cpprule.py` (arms rayR2, rayA), `seed_diag.py` (`--opt ray_rule=`), two summary scripts.
+
+Could be done better (additions): (a) old and cpp arms of step 3 are the stored runs, not re-run in this build (the code
+path of those arms is unchanged, but not re-verified); (b) E0 is one seed; (c) the survival criterion at 1 deg at level
+0 mostly measures the grid (5 of 30 voxels have a level-0 candidate within 1 deg); (d) no per-case or per-window
+decomposition of why the arms differ (R2 has the smaller level-0 rank, A the fewer wrong on realistic E0); (e) the six
+full-sample voxels are all right in every arm, so they measure cost only; (f) still untested: rule only at screen vs
+also at re-cost and quick MC; n_det > 2.

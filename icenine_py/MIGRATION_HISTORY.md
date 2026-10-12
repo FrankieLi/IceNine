@@ -5237,7 +5237,7 @@ Why the existing C++ ground-truth test did not catch it: the 2026-03 validation 
 Owner's idea: when a predicted spot is bright on detector 0 but the predicted detector-1 spot is dark, the C++
 rule calls the peak invalid even if the OBSERVED ray (voxel through the bright detector-0 pixel) lands on a bright
 detector-1 pixel, which is what a real spot from a slightly different orientation would do. Steps 1 and 2 of the plan
-(peak level, coarse stage) are done; step 3 (E0 end to end) is not run.
+(peak level, coarse stage) are done; the 30-voxel coarse rerun and step 3 (E0 end to end, six full-sample voxels) are at the end of this section.
 
 **Two costs differ by design.** The rule (`icenine/ray_overlap.py`, `RayRule`) is used only for the coarse levels
 0-2 (pixel-radius screen, re-cost, quick MC, ranking cut). FindOptimal, VarianceMinimizing, the final cost and the
@@ -5473,6 +5473,189 @@ voxels, contended, 10 workers), which is why step 2 uses 12 voxels, not 30.
   larger tolerance keeps more peaks and rejects fewer, so the choice for step 3 is between a
   small tolerance (R1 or R2, closest to the C++ rule in filtering) and the largest (A), each with f0 and f1. See
   `benchmarks/phase_d_seed_diag/ray_overlap/RUN_LOG.md`.
+
+**Rerun at 30 voxels and step 3 (2026-10-12, owner decisions: case f1 dropped, windows as set and untuned, ray rule at
+levels 0-2 only; arms old, cpp, R2, A, where R2 = ray rule with a 2-pixel square tolerance and A = the anisotropic
+window with half-width terms).**
+
+*Coarse stage, 30 voxels (step 2 again).* The 12 voxels of step 2 plus 18 more (the same selection list), clean and
+realistic full-sample images, levels 0-2 without FindOptimal, 240 voxel-arm runs on 10 workers, about 75 min
+(contended). New this time: survival of the truth basin at 3, 2 and 1 deg (some kept candidate, after the quick MC,
+within the threshold of the truth), whether the discrete-stage list (before the quick MC) holds a candidate within the
+threshold ("in_disc"), and the rank of the closest discrete-stage candidate by the discrete score before the quick MC
+moves it ("rank_disc_med", median over voxels; tie rule: number of candidates with a strictly smaller score;
+"disc_kept" = voxels where that rank is inside the kept quarter; "post_kept" = voxels where that same candidate, after
+the quick MC, is inside the kept set). Intervals are Wilson. `cand` and `keep` are medians per voxel.
+
+<!-- table:ray30_coarse_clean -->
+| arm | level | n | cand | keep | surv3 | surv2 | surv1 | in_disc3 | in_disc1 | rank_disc_med | disc_kept | post_kept |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| old | 0 | 30 | 10256 | 2564 | 29/30 [0.83, 0.99] | 26/30 [0.70, 0.95] | 18/30 [0.42, 0.75] | 30 | 5 | 214 | 26 | 30 |
+| old | 1 | 30 | 3524 | 881 | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | 25/30 [0.66, 0.93] | 30 | 23 | 1 | 29 | 30 |
+| old | 2 | 30 | 1116 | 279 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30 | 29 | 0 | 30 | 30 |
+| cpp | 0 | 30 | 7940 | 1985 | 30/30 [0.89, 1.00] | 27/30 [0.74, 0.97] | 20/30 [0.49, 0.81] | 30 | 5 | 108 | 27 | 30 |
+| cpp | 1 | 30 | 2416 | 604 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | 30 | 26 | 0 | 29 | 30 |
+| cpp | 2 | 30 | 658 | 164 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30 | 30 | 0 | 30 | 30 |
+| f0_R2 | 0 | 30 | 8422 | 2105 | 30/30 [0.89, 1.00] | 27/30 [0.74, 0.97] | 19/30 [0.46, 0.78] | 30 | 5 | 22 | 29 | 30 |
+| f0_R2 | 1 | 30 | 2568 | 642 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | 30 | 29 | 0 | 30 | 30 |
+| f0_R2 | 2 | 30 | 710 | 177 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30 | 30 | 0 | 30 | 30 |
+| f0_A | 0 | 30 | 9359 | 2340 | 30/30 [0.89, 1.00] | 28/30 [0.79, 0.98] | 21/30 [0.52, 0.83] | 30 | 5 | 72 | 27 | 30 |
+| f0_A | 1 | 30 | 2792 | 698 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 28/30 [0.79, 0.98] | 30 | 24 | 0 | 30 | 30 |
+| f0_A | 2 | 30 | 764 | 191 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | 30 | 29 | 0 | 30 | 29 |
+<!-- /table:ray30_coarse_clean -->
+
+<!-- table:ray30_coarse_realistic -->
+| arm | level | n | cand | keep | surv3 | surv2 | surv1 | in_disc3 | in_disc1 | rank_disc_med | disc_kept | post_kept |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| old | 0 | 30 | 10236 | 2558 | 30/30 [0.89, 1.00] | 27/30 [0.74, 0.97] | 19/30 [0.46, 0.78] | 29 | 5 | 453 | 25 | 29 |
+| old | 1 | 30 | 3564 | 891 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 26/30 [0.70, 0.95] | 30 | 23 | 0 | 28 | 30 |
+| old | 2 | 30 | 1140 | 285 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30 | 30 | 0 | 30 | 30 |
+| cpp | 0 | 30 | 7614 | 1903 | 30/30 [0.89, 1.00] | 24/30 [0.63, 0.90] | 19/30 [0.46, 0.78] | 29 | 5 | 382 | 24 | 29 |
+| cpp | 1 | 30 | 2354 | 588 | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 28/30 [0.79, 0.98] | 30 | 25 | 0 | 29 | 30 |
+| cpp | 2 | 30 | 654 | 163 | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 30 | 29 | 1 | 29 | 29 |
+| f0_R2 | 0 | 30 | 8113 | 2028 | 30/30 [0.89, 1.00] | 26/30 [0.70, 0.95] | 16/30 [0.36, 0.70] | 30 | 5 | 102 | 28 | 29 |
+| f0_R2 | 1 | 30 | 2492 | 622 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | 30 | 24 | 1 | 29 | 30 |
+| f0_R2 | 2 | 30 | 694 | 173 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30 | 30 | 0 | 30 | 30 |
+| f0_A | 0 | 30 | 9140 | 2285 | 29/30 [0.83, 0.99] | 28/30 [0.79, 0.98] | 15/30 [0.33, 0.67] | 30 | 5 | 186 | 27 | 29 |
+| f0_A | 1 | 30 | 2778 | 694 | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 28/30 [0.79, 0.98] | 30 | 25 | 0 | 29 | 29 |
+| f0_A | 2 | 30 | 777 | 194 | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 29 | 29 | 0 | 30 | 30 |
+<!-- /table:ray30_coarse_realistic -->
+
+Paired against the C++ rule and the old rule, per voxel and level, failure = no kept candidate within 3 deg
+(fixed = fails under the reference, survives under the arm; broken = the reverse):
+
+<!-- table:ray30_paired_clean -->
+| pair | level | fixed | broken | both_fail |
+|---|---|---|---|---|
+| old_vs_cpp | L0 | 0 | 1 | 0 |
+| old_vs_cpp | L1 | 0 | 0 | 0 |
+| old_vs_cpp | L2 | 0 | 0 | 0 |
+| f0_R2_vs_cpp | L0 | 0 | 0 | 0 |
+| f0_R2_vs_cpp | L1 | 0 | 0 | 0 |
+| f0_R2_vs_cpp | L2 | 0 | 0 | 0 |
+| f0_A_vs_cpp | L0 | 0 | 0 | 0 |
+| f0_A_vs_cpp | L1 | 0 | 0 | 0 |
+| f0_A_vs_cpp | L2 | 0 | 0 | 0 |
+| cpp_vs_old | L0 | 1 | 0 | 0 |
+| cpp_vs_old | L1 | 0 | 0 | 0 |
+| cpp_vs_old | L2 | 0 | 0 | 0 |
+| f0_R2_vs_old | L0 | 1 | 0 | 0 |
+| f0_R2_vs_old | L1 | 0 | 0 | 0 |
+| f0_R2_vs_old | L2 | 0 | 0 | 0 |
+| f0_A_vs_old | L0 | 1 | 0 | 0 |
+| f0_A_vs_old | L1 | 0 | 0 | 0 |
+| f0_A_vs_old | L2 | 0 | 0 | 0 |
+<!-- /table:ray30_paired_clean -->
+
+<!-- table:ray30_paired_realistic -->
+| pair | level | fixed | broken | both_fail |
+|---|---|---|---|---|
+| old_vs_cpp | L0 | 0 | 0 | 0 |
+| old_vs_cpp | L1 | 1 | 0 | 0 |
+| old_vs_cpp | L2 | 1 | 0 | 0 |
+| f0_R2_vs_cpp | L0 | 0 | 0 | 0 |
+| f0_R2_vs_cpp | L1 | 1 | 0 | 0 |
+| f0_R2_vs_cpp | L2 | 1 | 0 | 0 |
+| f0_A_vs_cpp | L0 | 0 | 1 | 0 |
+| f0_A_vs_cpp | L1 | 0 | 0 | 1 |
+| f0_A_vs_cpp | L2 | 0 | 0 | 1 |
+| cpp_vs_old | L0 | 0 | 0 | 0 |
+| cpp_vs_old | L1 | 0 | 1 | 0 |
+| cpp_vs_old | L2 | 0 | 1 | 0 |
+| f0_R2_vs_old | L0 | 0 | 0 | 0 |
+| f0_R2_vs_old | L1 | 0 | 0 | 0 |
+| f0_R2_vs_old | L2 | 0 | 0 | 0 |
+| f0_A_vs_old | L0 | 0 | 1 | 0 |
+| f0_A_vs_old | L1 | 0 | 1 | 0 |
+| f0_A_vs_old | L2 | 0 | 1 | 0 |
+<!-- /table:ray30_paired_realistic -->
+
+- **Truth basin (3 deg).** Clean: 30 of 30 voxels survive at every level and arm except the old rule at level 0 (29 of
+  30). Realistic: 30 of 30 for R2 and the old rule at every level; the C++ rule 30 of 30 at level 0 and 29 of 30 at
+  levels 1 and 2; arm A 29 of 30 at all three levels. The one failing voxel under A is also the one failing under the
+  C++ rule at levels 1 and 2 (both-fail count 1 in the paired table); at level 0 A fails on one voxel where the C++ rule
+  does not (broken 1). With 30 voxels the interval for 30 of 30 is 0.89 to 1.00: the arms are not separated on this
+  criterion.
+- **Rank of the closest discrete-stage candidate.** At level 0 the median rank (clean) is 214 old, 108 C++, 22 R2, 72 A
+  of 7940 to 10256 candidates, against a kept quarter of 1985 to 2564; the ordering of arms is the same on realistic
+  images (453, 382, 102, 186). Before the quick MC the closest candidate is inside the kept quarter by the discrete score for 26 / 27 / 29
+  / 27 of 30 voxels (old / C++ / R2 / A, clean) and 25 / 24 / 28 / 27 (realistic); after the quick MC the same candidate is
+  inside the kept set for 29 or 30 of 30 in every cell. At levels 1 and 2 the median rank is 0 or 1. Rank-0 at later levels
+  means the nearest candidate is also the best scored one.
+- **Tighter thresholds.** At 2 deg, level 0, clean: 26 / 27 / 27 / 28 of 30 (old / C++ / R2 / A); at 1 deg, level 0: 18 /
+  20 / 19 / 21 of 30, but only 5 of 30 voxels have any level-0 candidate within 1 deg (the coarse list is that coarse),
+  so a miss at 1 deg at level 0 mostly reflects the grid, not the cut. By level 2 (clean) the 1 deg survival is 30 / 30 /
+  30 / 29 of 30; realistic 30 / 29 / 30 / 29.
+- **Candidates passed.** Level-0 candidates per voxel (median, clean): 10256 old, 7940 C++, 8422 R2, 9359 A; the ray
+  arms again sit between the C++ rule and the old rule (R2 6% and A 18% more than the C++ rule).
+
+*Step 3: end to end.* E0 (200 voxels, per-voxel images, `min_sin_eta` 0, seed 0, clean and realistic); old and C++
+arms are the stored runs (`cache/off_ms0`, `on_ms0`; same inputs, seeds and code for those arms), R2 and A are new
+(`e0_cpprule.py run --arm rayR2|rayA --msin 0`, 10 workers, 1124 s and 1149 s, contended, preflight in
+`preflight_step3.json`). Wrong = more than 1 deg from the truth. Runtimes are per-voxel means on contended workers,
+not a timing claim. The ray rule is on at levels 0-2 only; level 3, FindOptimal, VarianceMinimizing and the final cost are
+the strict C++ rule.
+
+<!-- table:ray_e2e_e0 -->
+| variant | arm | wrong | mean_evals | runtime_s | median_err_right |
+|---|---|---|---|---|---|
+| clean | old | 39/200 [0.146, 0.255] | 48501 | 24.2 | 0.0086 |
+| clean | cpp | 56/200 [0.222, 0.346] | 47230 | 24.1 | 0.0223 |
+| clean | R2 | 40/200 [0.150, 0.261] | 48641 | 26.6 | 0.0097 |
+| clean | A | 41/200 [0.155, 0.266] | 48649 | 27.2 | 0.0114 |
+| realistic | old | 18/200 [0.058, 0.138] | 51163 | 26.1 | 0.0107 |
+| realistic | cpp | 56/200 [0.222, 0.346] | 48769 | 25.2 | 0.0132 |
+| realistic | R2 | 32/200 [0.116, 0.217] | 50915 | 28.3 | 0.0087 |
+| realistic | A | 29/200 [0.103, 0.200] | 50967 | 29.0 | 0.0100 |
+<!-- /table:ray_e2e_e0 -->
+
+Paired split by voxel (fixed = wrong under the reference, right under the arm; broken = the reverse):
+
+<!-- table:ray_e2e_paired -->
+| variant | arm | ref | fixed | broken | both_wrong |
+|---|---|---|---|---|---|
+| clean | cpp | old | 17 | 34 | 22 |
+| clean | R2 | cpp | 32 | 16 | 24 |
+| clean | R2 | old | 19 | 20 | 20 |
+| clean | A | cpp | 31 | 16 | 25 |
+| clean | A | old | 18 | 20 | 21 |
+| realistic | cpp | old | 6 | 44 | 12 |
+| realistic | R2 | cpp | 38 | 14 | 18 |
+| realistic | R2 | old | 7 | 21 | 11 |
+| realistic | A | cpp | 37 | 10 | 19 |
+| realistic | A | old | 9 | 20 | 9 |
+<!-- /table:ray_e2e_paired -->
+
+The six full-sample voxels (clean images, no-start search, seed 1, one process, quiet-machine preflight per run; old and
+C++ rows are the stored runs `base_full_*`, `cpprule_full_*`); err in degrees, evals = cost evaluations, wall in seconds:
+
+<!-- table:ray_e2e_six -->
+| voxel | old_err | old_evals | old_wall | cpp_err | cpp_evals | cpp_wall | R2_err | R2_evals | R2_wall | A_err | A_evals | A_wall |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 0.0424 | 1687675 | 897 | 0.0291 | 237739 | 125 | 0.0144 | 250495 | 136 | 0.0096 | 279319 | 158 |
+| 17034 | 0.0296 | 952819 | 509 | 0.0639 | 246127 | 125 | 0.0251 | 256771 | 136 | 0.0371 | 284960 | 157 |
+| 18558 | 0.0059 | 463626 | 245 | 0.0034 | 209728 | 106 | 0.0048 | 223744 | 119 | 0.0038 | 268489 | 146 |
+| 19889 | 0.0239 | 626184 | 333 | 0.0212 | 226453 | 115 | 0.0333 | 243577 | 135 | 0.0177 | 276634 | 150 |
+| 22867 | 0.0244 | 1339563 | 753 | 0.0530 | 244186 | 125 | 0.0606 | 257829 | 141 | 0.0366 | 285600 | 156 |
+| 5242 | 0.0277 | 1063389 | 589 | 0.0281 | 204646 | 102 | 0.0231 | 218577 | 117 | 0.0586 | 265129 | 143 |
+<!-- /table:ray_e2e_six -->
+
+- **Wrong counts (E0).** Clean: old 39, C++ 56, R2 40, A 41 of 200. Realistic: old 18, C++ 56, R2 32, A 29 of 200.
+  Against the C++ rule the ray arms fix many and break fewer (clean R2 32 fixed / 16 broken / 24 both wrong; A 31 / 16 /
+  25; realistic R2 38 / 14 / 18; A 37 / 10 / 19). Against the old rule they are about even on clean images (R2 19 fixed /
+  20 broken / 20 both wrong; A 18 / 20 / 21) and worse on realistic ones (R2 7 / 21 / 11; A 9 / 20 / 9). So the ray rule
+  recovers nearly all of the C++ rule's loss on clean images and about two thirds of it on realistic images (56 to 32 and 29, old rule 18), but does not beat
+  the old rule's accuracy.
+- **Evaluations.** E0 mean evaluations per voxel: clean 48501 old, 47230 C++, 48641 R2, 48649 A; realistic 51163 / 48769
+  / 50915 / 50967. The ray rule costs 3 to 4% more evaluations than the C++ rule and about as many as the old rule at
+  the E0 scale (per-voxel images, few stray hits).
+- **Six full-sample voxels.** All four arms are right on all six (error under 1 deg). Mean evaluations 1022209 old,
+  228147 C++, 241832 R2, 276689 A; mean wall 554 s old, 116 s C++, 131 s R2, 152 s A (single-process; the old and C++ rows
+  are the earlier stored runs). On full-sample images the ray arms keep the C++ rule's large saving over the old rule (R2 at
+  6% and A at 21% more evaluations than the C++ rule) at no loss of accuracy on these six.
+- **What is not shown.** Whether the A or R2 window (untuned) is best; the E0 accuracy gain is on one seed, with Wilson
+  intervals that overlap (clean R2 0.150 to 0.261 against C++ 0.222 to 0.346); the full-sample accuracy for more than six
+  voxels is not measured, only the coarse-stage survival above (30 voxels).
 
 Files: `icenine/ray_overlap.py`, `scripts/phase_d/ray_overlap_study.py`, `ray_overlap_summary.py`,
 `benchmarks/phase_d_seed_diag/ray_overlap/` (`RUN_LOG.md`, `summary.json`, `tables.md`, `peak/`, `coarse/`).

@@ -53,7 +53,16 @@ def task(item: Tuple[Any, ...]) -> str:
     rec = W.rec
     Rt = np.asarray(vctx.R_true, dtype=np.float64)
     rec.min_sin_eta = msin
-    rec.setup.search_params.cpp_overlap_rule = arm in ("on", "rule")
+    rec.setup.search_params.cpp_overlap_rule = arm in ("on", "rule", "rayR2", "rayA")
+    if arm in ("rayR2", "rayA"):  # ray rule at levels 0-2 only (owner decision 2026-10-12)
+        from icenine.ray_overlap import RayRule
+
+        reg = float(rec.setup.exp_setup.config_file.detector_dist_deviation)
+        rec.setup.search_params.ray_rule = (
+            RayRule(arm="A", registration_mm=reg)
+            if arm == "rayA"
+            else RayRule(arm="R", radius_px=2, registration_mm=reg)
+        )
     rec.setup.search_params.cpp_center_screen = arm != "rule"
     l0: Dict[str, Any] = {}
     orig = RC.run_discrete_search_spaced
@@ -82,6 +91,7 @@ def task(item: Tuple[Any, ...]) -> str:
     finally:
         RC.run_discrete_search_spaced = orig
         rec.setup.search_params.cpp_overlap_rule = False
+        rec.setup.search_params.ray_rule = None
         rec.setup.search_params.cpp_center_screen = True
         rec.min_sin_eta = 0.3
     out: Dict[str, Any] = dict(R_true=Rt, runtime=dt, **l0)
@@ -184,7 +194,7 @@ def main() -> None:
     ap.add_argument("cmd", choices=["pilot", "run", "summary"])
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--arm", default="on", choices=["on", "off", "rule"])
+    ap.add_argument("--arm", default="on", choices=["on", "off", "rule", "rayR2", "rayA"])
     ap.add_argument("--level0-only", action="store_true")
     ap.add_argument(
         "--msin", type=float, default=0.3, help="min_sin_eta of the cost function (E0: 0.3)"

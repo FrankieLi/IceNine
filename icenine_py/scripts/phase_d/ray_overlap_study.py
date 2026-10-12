@@ -221,6 +221,19 @@ def coarse_task(voxel: int, arms: Optional[List[str]] = None) -> Dict[str, Any]:
                         n_within_disc=int((err < BASIN_DEG).sum()),
                         evals_discrete=counter[0],
                     )
+                    # rank of the closest discrete-stage candidate by the discrete score, before the
+                    # quick MC moves it; tie rule: rank = number of candidates with a strictly
+                    # smaller score
+                    sc = np.asarray(d["score"], dtype=np.float64)
+                    if len(R):
+                        kc = int(np.argmin(err))
+                        cur.update(
+                            rank_closest_disc=int((sc < sc[kc]).sum()),
+                            n_keep_disc=max(1, int(len(R) * rec.keep_fraction)),
+                            disc_idx_closest=kc,
+                            n_within_disc_1=int((err < 1.0).sum()),
+                            n_within_disc_2=int((err < 2.0).sum()),
+                        )
                 elif ev == "quick_mc":
                     R = d["R"].astype(np.float64)  # sorted by post-quick-MC cost
                     err = reduced_misorientation_deg(R, np.broadcast_to(R_true, R.shape).copy())
@@ -234,6 +247,14 @@ def coarse_task(voxel: int, arms: Optional[List[str]] = None) -> Dict[str, Any]:
                         n_within_qmc=int(len(within)),
                         basin_survives=bool(len(within) and within.min() < n_keep),
                         best_in_kept_d=float(err[:n_keep].min()),
+                        survives_1=bool((err[:n_keep] < 1.0).any()),
+                        survives_2=bool((err[:n_keep] < 2.0).any()),
+                        # post-MC rank of the candidate that was closest BEFORE the MC
+                        rank_post_of_disc_closest=(
+                            int(np.nonzero(np.asarray(d["perm"]) == cur["disc_idx_closest"])[0][0])
+                            if "disc_idx_closest" in cur
+                            else None
+                        ),
                         evals_end=counter[0],
                     )
                     levels.append(dict(cur))
@@ -280,7 +301,7 @@ def _run_task(args: Tuple[str, int, str, int, Optional[str]]) -> str:
 
 
 def run(step: int, workers: int, voxels: List[int], arms: List[str]) -> None:
-    sub = "peak" if step == 1 else "coarse"
+    sub = "peak" if step == 1 else os.environ.get("RAY_COARSE_DIR", "coarse")
     outdir = OUT / sub
     outdir.mkdir(parents=True, exist_ok=True)
     jobs = []
