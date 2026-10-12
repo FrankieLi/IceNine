@@ -5232,6 +5232,234 @@ Why the existing C++ ground-truth test did not catch it: the 2026-03 validation 
 - **A default flip would change** 11 tests (`default_flip_would_change.md`: `GOLDEN` in `test_findoptimal_refactor.py`, `GOLDEN_REFINE` and default-path goldens in `test_cma_optimizer.py`, three `test_coarse_proxy.py` equalities, `test_nn_hybrid.py` stored experiment B) and in principle every stored result computed through `VoxelCostFunction` on the 2-detector data (Phase A to D, E0, seed-cost diagnosis and pilot tables, hit-ratio thresholds, NN/proxy labels).
 - **Left undone:** other Python seeds for E0 (only seed 0 was run in Python; the C++ seeds 0 to 2 and the Python `min_sin_eta` 0 run are done); a controlled test of the ranking cut; the effect of the rule on the reseed pilot and the BFS acceptance thresholds; interpolation as the cause of the remaining 1.4%.
 
+#### Ray-consistency overlap rule (2026-10-11, `feature/finisher-mc-study-ray-overlap`)
+
+Owner's idea: when a predicted spot is bright on detector 0 but the predicted detector-1 spot is dark, the C++
+rule calls the peak invalid even if the OBSERVED ray (voxel through the bright detector-0 pixel) lands on a bright
+detector-1 pixel, which is what a real spot from a slightly different orientation would do. Steps 1 and 2 of the plan
+(peak level, coarse stage) are done; step 3 (E0 end to end) is not run.
+
+**Two costs differ by design.** The rule (`icenine/ray_overlap.py`, `RayRule`) is used only for the coarse levels
+0-2 (pixel-radius screen, re-cost, quick MC, ranking cut). FindOptimal, VarianceMinimizing, the final cost and the
+confidence use the strict predicted-spot rule (the C++ rule when `CppOverlapRule` is 1). The level loop in
+`AdaptiveVoxelReconstructor.reconstruct_voxel` picks the cost function per level (`_ray_rule_for_level`); the coarse
+levels turn the C++ rule and the centroid screen on as well. Off by default (config `RayOverlapRule off|R<n>|A`,
+`RayOverlapF1 0|1`); default behaviour and the goldens are unchanged.
+
+**Rule, per peak, per later detector, once the predicted detector-0 spot overlaps:** a predicted bright: valid;
+b predicted in bounds and dark, observed ray bright: valid; c both in bounds and dark: invalid; d both out of bounds:
+valid; e predicted in bounds and dark, observed ray out of bounds: valid; f predicted out of bounds, observed in
+bounds and dark: f0 valid (C++ forgives) or f1 invalid. Tolerance on detector 1: arm R an isotropic square of
+1, 2, 4 or 8 pixels; arm A an anisotropic window (voxel size x (L1/L0-1) + detector-0 pixel x L1/L0 + registration
+`DetectorSpacingDeviation`, plus arc motion r d_omega (L1/L0-1) along the arc direction; orientation-gradient blur
+ignored). Implementation choices that the plan left open: the ray starts at the voxel centroid at the peak's omega;
+the detector-0 bright pixels are those of the +-radius window (screen) or the bounding box of the projected triangle
+(local cost), at most 64; every term of arm A is a half-width; d_omega is the omega step of the range map (2 deg);
+predicted out of bounds with the observed ray bright is left as in the C++ rule. Code: C stage argument block in
+`_rasterize.c` (`HAS_RAY_RULE`, rebuild from `icenine_py/`), `ray_flags` in `ray_overlap.py`; 8 tests in
+`tests/test_ray_overlap.py` (cases a-f on the C stage, C equals the Python twin, geometry and windows, config keys,
+levels 0-2 only).
+
+**Step 1: peak level, no search.** 30 voxels (the 6 seed-diag voxels, the 18 random voxels, 6 drawn with seed 11), the
+full-sample clean and realistic images, Q-max 5, `min_sin_eta` 0; per voxel the truth, 10 orientations at each of
+0.5 / 1 / 2 / 5 deg and 200 random ones. "kept" = valid overlapping peaks / detector-0 overlaps, peaks pooled over
+voxels (Wilson interval in `summary.json`; peaks of one voxel are not independent, so the interval is optimistic); the
+old rule's screen projects vertex 0 so its denominator is approximate. "pass" = share of evaluations with at least
+one valid overlapping peak (the screen condition). Truth and 0.5 deg are orientations the screen should keep; at 1
+deg and beyond the right answer is not "keep".
+
+<!-- table:ray_peak_clean_screen -->
+| arm | kept truth | pass truth | kept near1.0 | pass near1.0 | kept near5.0 | pass near5.0 | kept random | pass random |
+|---|---|---|---|---|---|---|---|---|
+| old | 1.000 | 1.000 | 1.000 | 0.997 | 1.006 | 0.837 | 0.999 | 0.781 |
+| cpp | 0.994 | 1.000 | 0.656 | 0.973 | 0.279 | 0.370 | 0.209 | 0.266 |
+| f0_R1 | 0.996 | 1.000 | 0.902 | 0.973 | 0.367 | 0.457 | 0.244 | 0.300 |
+| f1_R1 | 0.996 | 1.000 | 0.902 | 0.973 | 0.361 | 0.450 | 0.243 | 0.299 |
+| f0_R2 | 0.994 | 1.000 | 0.907 | 0.973 | 0.371 | 0.460 | 0.258 | 0.312 |
+| f1_R2 | 0.994 | 1.000 | 0.905 | 0.973 | 0.365 | 0.457 | 0.256 | 0.310 |
+| f0_R4 | 0.994 | 1.000 | 0.910 | 0.973 | 0.389 | 0.467 | 0.287 | 0.343 |
+| f1_R4 | 0.987 | 1.000 | 0.903 | 0.973 | 0.383 | 0.463 | 0.284 | 0.340 |
+| f0_R8 | 0.994 | 1.000 | 0.913 | 0.977 | 0.435 | 0.507 | 0.352 | 0.403 |
+| f1_R8 | 0.973 | 1.000 | 0.894 | 0.973 | 0.431 | 0.503 | 0.342 | 0.394 |
+| f0_A | 0.994 | 1.000 | 0.927 | 0.980 | 0.501 | 0.567 | 0.435 | 0.474 |
+| f1_A | 0.966 | 1.000 | 0.902 | 0.980 | 0.490 | 0.560 | 0.418 | 0.459 |
+<!-- /table:ray_peak_clean_screen -->
+
+<!-- table:ray_peak_realistic_screen -->
+| arm | kept truth | pass truth | kept near1.0 | pass near1.0 | kept near5.0 | pass near5.0 | kept random | pass random |
+|---|---|---|---|---|---|---|---|---|
+| old | 0.998 | 1.000 | 1.005 | 0.993 | 1.004 | 0.823 | 1.000 | 0.770 |
+| cpp | 0.909 | 1.000 | 0.624 | 0.957 | 0.281 | 0.370 | 0.206 | 0.255 |
+| f0_R1 | 0.912 | 1.000 | 0.821 | 0.960 | 0.349 | 0.447 | 0.241 | 0.287 |
+| f1_R1 | 0.912 | 1.000 | 0.820 | 0.960 | 0.345 | 0.443 | 0.239 | 0.285 |
+| f0_R2 | 0.909 | 1.000 | 0.831 | 0.960 | 0.362 | 0.453 | 0.253 | 0.300 |
+| f1_R2 | 0.907 | 1.000 | 0.828 | 0.960 | 0.359 | 0.450 | 0.251 | 0.298 |
+| f0_R4 | 0.909 | 1.000 | 0.835 | 0.960 | 0.374 | 0.453 | 0.279 | 0.326 |
+| f1_R4 | 0.901 | 1.000 | 0.827 | 0.960 | 0.370 | 0.450 | 0.275 | 0.322 |
+| f0_R8 | 0.916 | 1.000 | 0.841 | 0.963 | 0.417 | 0.490 | 0.338 | 0.380 |
+| f1_R8 | 0.895 | 1.000 | 0.820 | 0.960 | 0.414 | 0.487 | 0.327 | 0.369 |
+| f0_A | 0.918 | 1.000 | 0.856 | 0.970 | 0.478 | 0.543 | 0.409 | 0.441 |
+| f1_A | 0.888 | 1.000 | 0.829 | 0.970 | 0.467 | 0.537 | 0.391 | 0.425 |
+<!-- /table:ray_peak_realistic_screen -->
+
+<!-- table:ray_peak_clean_local -->
+| arm | kept truth | pass truth | kept near1.0 | pass near1.0 | kept near5.0 | pass near5.0 | kept random | pass random |
+|---|---|---|---|---|---|---|---|---|
+| old | 1.000 | 1.000 | 1.000 | 0.940 | 1.000 | 0.500 | 1.000 | 0.385 |
+| cpp | 1.000 | 1.000 | 0.590 | 0.813 | 0.208 | 0.127 | 0.143 | 0.067 |
+| f0_R1 | 1.000 | 1.000 | 0.823 | 0.890 | 0.272 | 0.170 | 0.172 | 0.079 |
+| f1_R1 | 0.996 | 1.000 | 0.823 | 0.890 | 0.272 | 0.170 | 0.169 | 0.078 |
+| f0_R2 | 1.000 | 1.000 | 0.877 | 0.903 | 0.302 | 0.190 | 0.201 | 0.092 |
+| f1_R2 | 0.996 | 1.000 | 0.877 | 0.903 | 0.292 | 0.183 | 0.198 | 0.091 |
+| f0_R4 | 1.000 | 1.000 | 0.903 | 0.907 | 0.361 | 0.217 | 0.248 | 0.113 |
+| f1_R4 | 0.990 | 1.000 | 0.900 | 0.907 | 0.351 | 0.217 | 0.242 | 0.110 |
+| f0_R8 | 1.000 | 1.000 | 0.918 | 0.913 | 0.426 | 0.247 | 0.320 | 0.142 |
+| f1_R8 | 0.973 | 1.000 | 0.907 | 0.907 | 0.416 | 0.247 | 0.308 | 0.138 |
+| f0_A | 1.000 | 1.000 | 0.929 | 0.917 | 0.505 | 0.290 | 0.409 | 0.178 |
+| f1_A | 0.969 | 1.000 | 0.912 | 0.910 | 0.490 | 0.287 | 0.391 | 0.172 |
+<!-- /table:ray_peak_clean_local -->
+
+Case shares of the later-detector events (clean images; arms f0 and f1 differ only in what the invalid case f does,
+so their shares coincide except through the changed events):
+
+<!-- table:ray_cases_clean -->
+| arm | a truth | b truth | c truth | d truth | e truth | f_dark truth | f_bright truth | a random | b random | c random | d random | e random | f_dark random | f_bright random | events truth | events random |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| f0_R1 | 0.868 | 0.000 | 0.004 | 0.126 | 0.002 | 0.000 | 0.000 | 0.090 | 0.031 | 0.756 | 0.118 | 0.004 | 0.001 | 0.000 | 524 | 8942 |
+| f1_R1 | 0.868 | 0.000 | 0.004 | 0.126 | 0.002 | 0.000 | 0.000 | 0.090 | 0.031 | 0.756 | 0.118 | 0.004 | 0.001 | 0.000 | 524 | 8942 |
+| f0_R2 | 0.868 | 0.000 | 0.006 | 0.126 | 0.000 | 0.000 | 0.000 | 0.090 | 0.045 | 0.742 | 0.117 | 0.003 | 0.002 | 0.000 | 524 | 8942 |
+| f1_R2 | 0.868 | 0.000 | 0.006 | 0.126 | 0.000 | 0.000 | 0.000 | 0.090 | 0.045 | 0.742 | 0.117 | 0.003 | 0.002 | 0.000 | 524 | 8942 |
+| f0_R4 | 0.868 | 0.000 | 0.006 | 0.118 | 0.000 | 0.008 | 0.000 | 0.090 | 0.076 | 0.713 | 0.116 | 0.002 | 0.003 | 0.000 | 524 | 8942 |
+| f1_R4 | 0.868 | 0.000 | 0.006 | 0.118 | 0.000 | 0.008 | 0.000 | 0.090 | 0.076 | 0.713 | 0.116 | 0.002 | 0.003 | 0.000 | 524 | 8942 |
+| f0_R8 | 0.868 | 0.000 | 0.006 | 0.105 | 0.000 | 0.021 | 0.000 | 0.090 | 0.143 | 0.648 | 0.108 | 0.000 | 0.010 | 0.001 | 524 | 8942 |
+| f1_R8 | 0.868 | 0.000 | 0.006 | 0.105 | 0.000 | 0.021 | 0.000 | 0.090 | 0.143 | 0.648 | 0.108 | 0.000 | 0.010 | 0.001 | 524 | 8942 |
+| f0_A | 0.868 | 0.000 | 0.006 | 0.095 | 0.000 | 0.029 | 0.002 | 0.090 | 0.226 | 0.565 | 0.100 | 0.000 | 0.017 | 0.002 | 524 | 8942 |
+| f1_A | 0.868 | 0.000 | 0.006 | 0.095 | 0.000 | 0.029 | 0.002 | 0.090 | 0.226 | 0.565 | 0.100 | 0.000 | 0.017 | 0.002 | 524 | 8942 |
+<!-- /table:ray_cases_clean -->
+
+- **Filtering power.** The ray rule sits between the old rule and the C++ rule: at random orientations the valid
+  share of detector-0 overlaps is 0.209 (C++ rule) and 0.244 (R1) to 0.435 (A) for the ray arms, so the ray rule
+  filters LESS than the C++ rule it is built on, by an amount that grows with the tolerance (0.352 at R8), and
+  more than the old rule, which keeps essentially all of them (clean images, screen). The extra validated peaks are
+  mostly case b (the C++ rule's case c turned valid): 0.031 (R1) to 0.226 (A) of random-orientation events, against
+  0.756 to 0.565 still invalid.
+- **Missed solutions.** At the truth the kept share is 0.994 for the C++ rule and 0.996 (R1, f0) to 0.994 (A, f0); with
+  f1 it drops to 0.966 for arm A (case f fires at the truth for 0.029 of events), the cost of the stricter variant. At
+  1 deg from the truth the kept share rises from 0.656 (C++ rule) to 0.902 (R1) to 0.927 (A, f0): the rule keeps more of
+  the near-truth peaks than the C++ rule does, and the pass rate at 5 deg also rises (0.370 for the C++ rule, 0.457 for R1, 0.567 for A, f0): the filtering
+  price. The numbers are for clean images; realistic images give the same ordering.
+
+**Step 2: coarse stage, no FindOptimal.** 12 voxels (the first 12 of the 30: the 6 seed-diag and 6 random), clean and
+realistic full-sample images, all 12 arms, levels 0-2 with the same MC seed per voxel and no FindOptimal. Candidates
+and the cut are per voxel, "basin_surv" = a candidate within 3 deg of the truth after the quick MC ranks inside the
+kept quarter (Wilson interval over the 12 voxels); "closest_kept" = the closest candidate itself is inside the kept
+set. Evaluations are cost-function calls of that level. The compute was about 100 times the plan's 1-2 s per voxel per
+arm: one voxel-arm is 131 to 203 s for the old and C++ rules and 313 to 392 s for the ray arms (median over the 12
+voxels, contended, 10 workers), which is why step 2 uses 12 voxels, not 30.
+
+<!-- table:ray_coarse_clean -->
+| arm | level | cand_median | keep_median | evals_median | basin_surv | surv_ci | closest_kept | d_min_disc | d_min_qmc | rank_closest |
+|---|---|---|---|---|---|---|---|---|---|---|
+| old | 0 | 10240 | 2560 | 201366 | 12/12 | 0.76-1.00 | 12/12 | 1.536 | 0.987 | 8 |
+| old | 1 | 3520 | 880 | 87324 | 12/12 | 0.76-1.00 | 12/12 | 0.734 | 0.241 | 0 |
+| old | 2 | 1121 | 280 | 29218 | 12/12 | 0.76-1.00 | 12/12 | 0.241 | 0.167 | 0 |
+| cpp | 0 | 7832 | 1958 | 149696 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.612 | 0 |
+| cpp | 1 | 2386 | 596 | 56202 | 12/12 | 0.76-1.00 | 12/12 | 0.612 | 0.294 | 0 |
+| cpp | 2 | 650 | 162 | 17130 | 12/12 | 0.76-1.00 | 12/12 | 0.294 | 0.128 | 0 |
+| f0_R1 | 0 | 8216 | 2054 | 155758 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.783 | 2 |
+| f0_R1 | 1 | 2545 | 636 | 60344 | 12/12 | 0.76-1.00 | 12/12 | 0.728 | 0.217 | 0 |
+| f0_R1 | 2 | 706 | 176 | 18688 | 12/12 | 0.76-1.00 | 12/12 | 0.217 | 0.118 | 0 |
+| f1_R1 | 0 | 8207 | 2052 | 155606 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.889 | 2 |
+| f1_R1 | 1 | 2516 | 628 | 59922 | 12/12 | 0.76-1.00 | 12/12 | 0.582 | 0.315 | 0 |
+| f1_R1 | 2 | 694 | 173 | 18406 | 12/12 | 0.76-1.00 | 12/12 | 0.304 | 0.110 | 0 |
+| f0_R2 | 0 | 8298 | 2074 | 157361 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.815 | 2 |
+| f0_R2 | 1 | 2564 | 641 | 61187 | 12/12 | 0.76-1.00 | 12/12 | 0.698 | 0.262 | 0 |
+| f0_R2 | 2 | 716 | 179 | 18930 | 12/12 | 0.76-1.00 | 12/12 | 0.262 | 0.139 | 0 |
+| f1_R2 | 0 | 8282 | 2070 | 157082 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.750 | 2 |
+| f1_R2 | 1 | 2526 | 632 | 60622 | 12/12 | 0.76-1.00 | 12/12 | 0.435 | 0.213 | 0 |
+| f1_R2 | 2 | 706 | 176 | 18758 | 12/12 | 0.76-1.00 | 12/12 | 0.199 | 0.099 | 0 |
+| f0_R4 | 0 | 8469 | 2117 | 160804 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.834 | 4 |
+| f0_R4 | 1 | 2582 | 645 | 62757 | 12/12 | 0.76-1.00 | 12/12 | 0.595 | 0.289 | 0 |
+| f0_R4 | 2 | 724 | 181 | 19373 | 12/12 | 0.76-1.00 | 12/12 | 0.286 | 0.110 | 0 |
+| f1_R4 | 0 | 8441 | 2110 | 160332 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.732 | 1 |
+| f1_R4 | 1 | 2573 | 642 | 62324 | 12/12 | 0.76-1.00 | 12/12 | 0.568 | 0.199 | 0 |
+| f1_R4 | 2 | 711 | 177 | 19186 | 12/12 | 0.76-1.00 | 12/12 | 0.188 | 0.067 | 0 |
+| f0_R8 | 0 | 8917 | 2229 | 168988 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 0.364 | 0 |
+| f0_R8 | 1 | 2682 | 670 | 66988 | 12/12 | 0.76-1.00 | 12/12 | 0.364 | 0.186 | 0 |
+| f0_R8 | 2 | 740 | 184 | 20256 | 12/12 | 0.76-1.00 | 12/12 | 0.186 | 0.116 | 0 |
+| f1_R8 | 0 | 8880 | 2220 | 168198 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 0.557 | 0 |
+| f1_R8 | 1 | 2665 | 666 | 66662 | 12/12 | 0.76-1.00 | 12/12 | 0.469 | 0.198 | 0 |
+| f1_R8 | 2 | 734 | 183 | 20023 | 12/12 | 0.76-1.00 | 12/12 | 0.198 | 0.119 | 0 |
+| f0_A | 0 | 9336 | 2334 | 177072 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 0.472 | 0 |
+| f0_A | 1 | 2778 | 694 | 71594 | 12/12 | 0.76-1.00 | 12/12 | 0.472 | 0.215 | 0 |
+| f0_A | 2 | 769 | 192 | 21134 | 12/12 | 0.76-1.00 | 12/12 | 0.215 | 0.092 | 0 |
+| f1_A | 0 | 9282 | 2320 | 176062 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 1.008 | 2 |
+| f1_A | 1 | 2758 | 689 | 70768 | 12/12 | 0.76-1.00 | 12/12 | 0.499 | 0.209 | 0 |
+| f1_A | 2 | 760 | 190 | 20912 | 12/12 | 0.76-1.00 | 12/12 | 0.199 | 0.129 | 0 |
+<!-- /table:ray_coarse_clean -->
+
+<!-- table:ray_coarse_realistic -->
+| arm | level | cand_median | keep_median | evals_median | basin_surv | surv_ci | closest_kept | d_min_disc | d_min_qmc | rank_closest |
+|---|---|---|---|---|---|---|---|---|---|---|
+| old | 0 | 10238 | 2559 | 200980 | 12/12 | 0.76-1.00 | 12/12 | 1.417 | 0.485 | 0 |
+| old | 1 | 3572 | 893 | 87916 | 12/12 | 0.76-1.00 | 12/12 | 0.485 | 0.255 | 0 |
+| old | 2 | 1150 | 287 | 29766 | 12/12 | 0.76-1.00 | 12/12 | 0.255 | 0.116 | 0 |
+| cpp | 0 | 7489 | 1872 | 145136 | 12/12 | 0.76-1.00 | 12/12 | 1.779 | 0.850 | 2 |
+| cpp | 1 | 2332 | 582 | 54140 | 12/12 | 0.76-1.00 | 12/12 | 0.589 | 0.335 | 0 |
+| cpp | 2 | 650 | 162 | 16790 | 12/12 | 0.76-1.00 | 12/12 | 0.335 | 0.128 | 0 |
+| f0_R1 | 0 | 7935 | 1984 | 151848 | 11/12 | 0.65-0.99 | 12/12 | 1.779 | 0.758 | 0 |
+| f0_R1 | 1 | 2430 | 607 | 57713 | 12/12 | 0.76-1.00 | 12/12 | 0.607 | 0.223 | 0 |
+| f0_R1 | 2 | 686 | 171 | 17905 | 12/12 | 0.76-1.00 | 12/12 | 0.207 | 0.111 | 0 |
+| f1_R1 | 0 | 7922 | 1980 | 151627 | 12/12 | 0.76-1.00 | 12/12 | 1.779 | 1.175 | 4 |
+| f1_R1 | 1 | 2430 | 608 | 57644 | 12/12 | 0.76-1.00 | 12/12 | 0.839 | 0.250 | 0 |
+| f1_R1 | 2 | 686 | 171 | 17986 | 12/12 | 0.76-1.00 | 12/12 | 0.250 | 0.108 | 0 |
+| f0_R2 | 0 | 8026 | 2006 | 153485 | 12/12 | 0.76-1.00 | 12/12 | 1.646 | 1.269 | 8 |
+| f0_R2 | 1 | 2480 | 620 | 58868 | 12/12 | 0.76-1.00 | 12/12 | 0.803 | 0.299 | 0 |
+| f0_R2 | 2 | 698 | 174 | 18299 | 12/12 | 0.76-1.00 | 12/12 | 0.299 | 0.145 | 0 |
+| f1_R2 | 0 | 8000 | 2000 | 153086 | 12/12 | 0.76-1.00 | 12/12 | 1.646 | 0.896 | 2 |
+| f1_R2 | 1 | 2494 | 623 | 58828 | 12/12 | 0.76-1.00 | 12/12 | 0.736 | 0.237 | 0 |
+| f1_R2 | 2 | 702 | 175 | 18412 | 12/12 | 0.76-1.00 | 12/12 | 0.237 | 0.163 | 0 |
+| f0_R4 | 0 | 8210 | 2052 | 156970 | 12/12 | 0.76-1.00 | 12/12 | 1.646 | 0.796 | 2 |
+| f0_R4 | 1 | 2554 | 638 | 61082 | 12/12 | 0.76-1.00 | 12/12 | 0.642 | 0.184 | 0 |
+| f0_R4 | 2 | 720 | 180 | 19114 | 12/12 | 0.76-1.00 | 12/12 | 0.184 | 0.090 | 0 |
+| f1_R4 | 0 | 8170 | 2042 | 156340 | 12/12 | 0.76-1.00 | 11/12 | 1.646 | 0.915 | 2 |
+| f1_R4 | 1 | 2534 | 633 | 60596 | 12/12 | 0.76-1.00 | 12/12 | 0.711 | 0.209 | 0 |
+| f1_R4 | 2 | 720 | 180 | 18926 | 12/12 | 0.76-1.00 | 12/12 | 0.209 | 0.126 | 0 |
+| f0_R8 | 0 | 8692 | 2172 | 165324 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 0.605 | 0 |
+| f0_R8 | 1 | 2677 | 669 | 65352 | 12/12 | 0.76-1.00 | 12/12 | 0.522 | 0.215 | 0 |
+| f0_R8 | 2 | 745 | 186 | 20146 | 12/12 | 0.76-1.00 | 12/12 | 0.215 | 0.115 | 0 |
+| f1_R8 | 0 | 8636 | 2158 | 164303 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 0.345 | 0 |
+| f1_R8 | 1 | 2651 | 662 | 65140 | 12/12 | 0.76-1.00 | 12/12 | 0.249 | 0.210 | 0 |
+| f1_R8 | 2 | 742 | 185 | 19954 | 12/12 | 0.76-1.00 | 12/12 | 0.195 | 0.088 | 0 |
+| f0_A | 0 | 9138 | 2284 | 173522 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 1.034 | 3 |
+| f0_A | 1 | 2774 | 694 | 70092 | 12/12 | 0.76-1.00 | 12/12 | 0.602 | 0.205 | 0 |
+| f0_A | 2 | 778 | 194 | 21168 | 12/12 | 0.76-1.00 | 12/12 | 0.205 | 0.114 | 0 |
+| f1_A | 0 | 9071 | 2268 | 172241 | 11/12 | 0.65-0.99 | 12/12 | 1.503 | 0.722 | 2 |
+| f1_A | 1 | 2741 | 685 | 69291 | 12/12 | 0.76-1.00 | 12/12 | 0.692 | 0.290 | 0 |
+| f1_A | 2 | 772 | 193 | 20946 | 12/12 | 0.76-1.00 | 11/12 | 0.273 | 0.143 | 0 |
+<!-- /table:ray_coarse_realistic -->
+
+- **How much more do we filter.** Level-0 candidates per voxel (median): 10240 old rule, 7832 C++ rule, 8216 (R1)
+  to 9336 (A, f0) ray arms, clean images; the evaluations of the coarse stage follow (201366 old, 149696 C++ rule,
+  155606 to 177072 ray arms at level 0). So the combined rule passes MORE candidates than the C++ rule (5% to
+  19% more at level 0) and fewer than the old rule (9% to 20% fewer): it does not buy more filtering than the C++
+  rule, it recovers part of what the C++ rule drops.
+- **Do we miss solutions.** The truth basin (3 deg, after the quick MC) is inside the kept quarter for 12 of 12
+  voxels in every arm and level on clean images; on realistic images 11 of 12 in two cells (f0_R1 and f1_A at level
+  0, and the closest-candidate count is 11 of 12 for f1_R4 at level 0 and f1_A at level 2). The two failures at level
+  0 have a candidate ranked well inside the kept set (ranks 1170 and 1884 of 1953 and 2128 kept) whose quick MC
+  moved it to 3.28 and 3.08 deg, so they are the 3 deg threshold, not the ranking cut. With 12 voxels the interval
+  of 12 of 12 is 0.76 to 1.00: this cannot separate the arms.
+- **Cost.** Single voxel-arm wall time is 2 to 3 times the C++ rule's with the ray rule (Python `ray_flags` per peak
+  and a longer quick MC), contended.
+- **No arm is picked yet.** Steps 1-2 do not separate the tolerances on the basin criterion; in the peak-level tables a
+  larger tolerance keeps more peaks and rejects fewer, so the choice for step 3 is between a
+  small tolerance (R1 or R2, closest to the C++ rule in filtering) and the largest (A), each with f0 and f1. See
+  `benchmarks/phase_d_seed_diag/ray_overlap/RUN_LOG.md`.
+
+Files: `icenine/ray_overlap.py`, `scripts/phase_d/ray_overlap_study.py`, `ray_overlap_summary.py`,
+`benchmarks/phase_d_seed_diag/ray_overlap/` (`RUN_LOG.md`, `summary.json`, `tables.md`, `peak/`, `coarse/`).
+
 #### Phase D pilot results (2026-10-08, `feature/finisher-mc-study-phase-d-run`)
 
 A 2,000-voxel region of the new-orientation sample, five single-process BFS runs, `BFSRevisitRefit 1` in every config, BFS rng seed 0, memmap images. Code: `scripts/phase_d/make_region.py`, `pilot_bfs.py`, `score_bfs.py`, `summarize_pilot.py`; `launch_pilot.sh`, `ab_threads.py`; tests `tests/test_phase_d_scoring.py` (9). Data and tables: `benchmarks/phase_d_pilot/` (`summary.json`, `tables.md`, `region.json`, `region_grid.mic`, `region_index.npy`, `runs/<arm>_<variant>/{run.json,score.json,voxels.npz}`, `preflight.json`, `ab_threads.json`, `ab_threads_staggered.json`). **Revised 2026-10-09 after review** (rescored from the same five runs, no new BFS runs): units are mm, the grain counts separate accepted from rejected seeds, the piece count is 497, the oracle prediction is credited, the thread A/B is reworded.

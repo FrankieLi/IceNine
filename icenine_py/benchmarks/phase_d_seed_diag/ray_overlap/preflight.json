@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-10-11T18:12:23",
+  "host": "newt.lan",
+  "loadavg": [
+    2.05029296875,
+    1.53173828125,
+    1.6083984375
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 8,
+  "busy_processes": [
+    {
+      "pid": 27949,
+      "cpu": 100.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 27950,
+      "cpu": 100.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 27951,
+      "cpu": 99.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 27952,
+      "cpu": 100.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 27953,
+      "cpu": 100.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 27954,
+      "cpu": 99.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 27955,
+      "cpu": 98.9,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 27956,
+      "cpu": 100.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 27957,
+      "cpu": 98.7,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 27958,
+      "cpu": 100.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    }
+  ]
+}
