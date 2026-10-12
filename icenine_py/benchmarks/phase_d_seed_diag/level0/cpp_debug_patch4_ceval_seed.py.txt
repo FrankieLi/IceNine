@@ -1,0 +1,43 @@
+# Patch 4 (Step 4b): env CEVAL=<file of 9-number rows> evaluates the local (radius 0) cost function
+# of the one-voxel reconstruction at each matrix and exits: "CE idx quality confidence hit_ratio
+# peak_overlap peak_on_det pixel_overlap pixel_on_det".
+p = 'Src/DiscreteAdaptive.tmpl.cpp'
+s = open(p).read()
+a = '''    SSearchParameter oTrialSampleSearch;
+    SSearchParameter oCompleteLocalSearch;'''
+assert s.count(a) == 1
+b = '''    if( getenv("CEVAL") )
+    {
+      std::ifstream fin( getenv("CEVAL") );
+      int idx = 0;
+      SMatrix3x3 M;
+      while( fin >> M.m[0][0] >> M.m[0][1] >> M.m[0][2] >> M.m[1][0] >> M.m[1][1] >> M.m[1][2]
+                 >> M.m[2][0] >> M.m[2][1] >> M.m[2][2] )
+      {
+        SamplePointT oT = oInputVoxel;
+        oT.oOrientMatrix = M;
+        SOverlapInfo oI = VoxelCostFunction( oT, oSetup.SampleGeometry(), oSetup.ExperimentalSetup().GetDetectorList(),
+                                             oSetup.ExperimentalSetup().GetRangeToIndexMap(), oSetup.Data() );
+        std::cout << "CE " << idx ++ << " " << std::setprecision(9) << oI.fQuality << " "
+                  << CostFunctions::Utilities::GetConfidence( oI ) << " " << CostFunctions::Utilities::GetHitRatio( oI )
+                  << " " << oI.nPeakOverlap << " " << oI.nPeakOnDetector << " " << oI.nPixelOverlap << " "
+                  << oI.nPixelOnDetector << std::endl;
+      }
+      exit( 0 );
+    }
+'''
+s = s.replace(a, b + a)
+s = s.replace('#include <iomanip>\n', '#include <iomanip>\n#include <fstream>\n', 1)
+open(p, 'w').write(s)
+
+# Patch 4b: env CSEED seeds the mt19937 of CUniformRandomReal's default constructor (default 5489).
+p = 'XDM++/libXDM/Sampling.h'
+s = open(p).read()
+a = '''    CUniformRandomReal(): oRngEngine(),
+      oDistribution( 0, 1 ) {}'''
+assert a in s
+s = s.replace(a, '''    CUniformRandomReal(): oRngEngine( getenv("CSEED") ? (unsigned) atoi( getenv("CSEED") ) : 5489u ),
+      oDistribution( 0, 1 ) {}''')
+if '#include <cstdlib>' not in s:
+    s = s.replace('namespace GeneralLib', '#include <cstdlib>\nnamespace GeneralLib', 1)
+open(p, 'w').write(s)

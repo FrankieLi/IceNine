@@ -14,6 +14,16 @@ Every implementer and reviewer reads this first. Briefs from the main session ma
 - Do not merge to develop, push, or open a PR unless the main session asks.
 - Full suite: `uv run pytest tests/ --junitxml=<scratch>/junit.xml`, with no extra `-q`.
 
+## Context use (owner rule)
+- Never read a long log or long output from start to finish. Check its size (`wc -l`), read the first
+  10-20 lines for setup, then the last ~50 for the result or error, and pull middle parts only with
+  `grep -n` or `sed -n 'X,Yp'`. Applies to job logs, sweeps, test runs and anything over ~100 lines.
+  Pipe long commands through `tail`.
+- Large docs (`MIGRATION_HISTORY.md`, README, findings): find the section with `grep -n "<heading>"`
+  and read that range only.
+- Read only the plan section you are given (plus the RUN_LOG of the task if it exists), not the whole
+  plan file's history.
+
 ## Compute and timing
 - At most 10 workers. Run long jobs with `nohup`, a log in `<dir>/cache/logs/<name>.log` and a
   `<name>.done` marker; poll every 10-15 minutes.
@@ -38,8 +48,10 @@ Every implementer and reviewer reads this first. Briefs from the main session ma
 - Format small angles with enough decimals to show differences.
 - Give medians over a labelled subset (say which subset and n).
 - No tie-dependent statistics (ties in win rates, ranks) without stating the tie rule.
-- p-values: use voxel-clustered checks, not pooled per-trial tests.
-- Small counts get a Wilson interval or a paired test (`icenine_py/scripts/common/stats.py`).
+- No p-values, ever (owner rule 2026-10-10): no McNemar, sign-flip or other significance tests. For paired
+  comparisons report each arm's count and the paired split (fixed / broken / both wrong); count by voxel, not
+  pooled per trial.
+- Small counts get a Wilson interval (`icenine_py/scripts/common/stats.py`).
 - Quote the evaluation cost with every improvement claim.
 - Verify C++ parity claims against the C++ source, not by reading the Python alone.
 

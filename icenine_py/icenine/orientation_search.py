@@ -13,7 +13,7 @@ C++ Reference:
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -131,6 +131,11 @@ class SearchParameters:
     #   with revisit; rejected -> that voxel is final (never searched again) and the cluster is
     #   recomputed without it and reseeded on another voxel. Off by default.
     bfs_reseed: bool = False
+    # cpp_overlap_rule: opt-in (config key CppOverlapRule). The literal C++ CountQualifiedPeaks
+    # overlap rule and the centroid projection of the pixel-radius screen (see VoxelCostFunction).
+    # cpp_center_screen is an A/B sub-flag (not a config key): False keeps vertex 0 in the screen.
+    cpp_overlap_rule: bool = False
+    cpp_center_screen: bool = True
 
     def __post_init__(self) -> None:
         if self.local_optimizer not in LOCAL_OPTIMIZERS:
@@ -178,6 +183,7 @@ class SearchParameters:
             bfs_revisit_max=getattr(config, "bfs_revisit_max", 3),
             bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
+            cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
         )
 
 
@@ -331,6 +337,7 @@ def run_discrete_search_spaced(
     angular_radius: float,
     symmetry_quats: np.ndarray,
     phase_index: int = 0,
+    recorder: Optional[Callable[[str, Dict[str, Any]], None]] = None,
 ) -> List[SearchCandidate]:
     """
     Discrete search with per-clique angular spacing filter.
@@ -352,17 +359,38 @@ def run_discrete_search_spaced(
         angular_radius: Spacing filter radius (radians) = search diameter
         symmetry_quats: (N_sym, 4) crystal symmetry quaternions
         phase_index: Crystal phase index
+        recorder: Optional tracing hook (default None: nothing is recorded and the
+            computation is unchanged). Called as recorder("level", info) once, then
+            recorder("fz", info) per FZ point and recorder("level_end", info) once.
+            "fz" info: fz (index), peak_overlap (per local-grid j), j (screened indices),
+            cost (re-cost of each), kept (j of the filtered survivors, in output order).
 
     Returns:
         List of SearchCandidate (sorted by cost), filtered by spacing
     """
     all_candidates = []
+    n_cliques = 0
+    if recorder is not None:
+        recip = getattr(global_cost_fn, "_phase_recip_vecs", None)
+        n_recip = int(next(iter(recip.values()))[0].shape[0]) if recip else None
+        recorder(
+            "level",
+            dict(
+                n_fz=len(fz_orientations),
+                n_local=len(local_grid),
+                n_recip=n_recip,
+                diameter_rad=float(angular_radius),
+                n_sym=len(symmetry_quats),
+            ),
+        )
 
     for fz_idx in range(len(fz_orientations)):
         search_center = fz_orientations[fz_idx]
 
         # Phase 1: Screen with global cost fn (pixel_radius=3)
         clique_candidates = []
+        screen_overlap: List[int] = []
+        screen_j: List[int] = []
         for lg_idx in range(len(local_grid)):
             candidate_orientation = local_grid[lg_idx] @ search_center
             overlap_info = global_cost_fn.evaluate(
@@ -370,6 +398,8 @@ def run_discrete_search_spaced(
                 voxel_vertices=voxel_vertices,
                 phase_index=phase_index,
             )
+            if recorder is not None:
+                screen_overlap.append(int(overlap_info.peak_overlap))
             if overlap_info.peak_overlap > 0:
                 clique_candidates.append(
                     SearchCandidate(
@@ -377,8 +407,14 @@ def run_discrete_search_spaced(
                         cost=0.0,  # will be set by local cost fn below
                     )
                 )
+                screen_j.append(lg_idx)
 
         if not clique_candidates:
+            if recorder is not None:
+                recorder(
+                    "fz",
+                    dict(fz=fz_idx, peak_overlap=screen_overlap, j=[], cost=[], kept=[]),
+                )
             continue
 
         # Phase 2: Re-evaluate with local cost fn (pixel_radius=0)
@@ -396,8 +432,23 @@ def run_discrete_search_spaced(
         # C++: GetSpacedCandidates lines 364-398
         filtered = _spacing_filter(clique_candidates, angular_radius, symmetry_quats)
         all_candidates.extend(filtered)
+        n_cliques += 1
+        if recorder is not None:
+            j_of = {id(c): j for c, j in zip(clique_candidates, screen_j)}
+            recorder(
+                "fz",
+                dict(
+                    fz=fz_idx,
+                    peak_overlap=screen_overlap,
+                    j=list(screen_j),
+                    cost=[float(c.cost) for c in clique_candidates],
+                    kept=[j_of[id(c)] for c in filtered],
+                ),
+            )
 
     all_candidates.sort()
+    if recorder is not None:
+        recorder("level_end", dict(n_cliques=n_cliques, n_candidates=len(all_candidates)))
     return all_candidates
 
 

@@ -126,8 +126,15 @@ which no config change could fix.
 **Remaining gap to C++.**
 
 - A Python no-start search still makes 1.31–1.57× C++'s evaluations: 332k against 237k per seed.
-- The excess comes from the coarse stage: C++ passes 1.24–1.53× fewer candidates out of level 0. The cause is
-  uninvestigated; C++'s "Num Cliques" step is a candidate.
+- The excess comes from the coarse stage: C++ passes 1.24–1.53× fewer candidates out of level 0. **Cause found
+  (2026-10-10, level-0 trace of voxel 15901, MIGRATION_HISTORY "Level-0 candidates")**: the Python peak-overlap
+  rule differs from C++ `CountQualifiedPeaks` (a peak that overlaps on detector 0 but is lit and dark on detector 1
+  counts as overlap in Python, not in C++), and the radius-3 screen projects vertex 0 in Python and the voxel
+  centroid in C++. The "Num Cliques" spacing filter is not a cause (it reproduces C++'s kept lists on 3,537 of
+  3,537 cliques given C++'s own inputs). With the opt-in `CppOverlapRule 1` the level-0 count is 0.995–1.003×
+  C++'s on the six voxels, evaluations 0.95–0.98× C++'s (before 1.31–1.57×), and the cost offset of -0.013
+  against C++ vanishes. The switch is off by default: with it on, E0 gets worse (wrong 40 to 61 clean, 25 to 42
+  realistic of 200; paired by voxel 17 fixed / 38 broken / 23 both wrong, and 8 / 25 / 17), so whether to flip the default is open. C++ is wrong on 71 and 52 of the same 200 voxels with its default random seed (56 to 71 and 46 to 52 over three seeds; wrong on 10 to 24 of the voxels the switch broke in each seed), and in Python all 63 lose their truth basin before FindOptimal (pruned by the 1/4 ranking at levels 0 to 2 in 59, never present in 4). C++ (default seed) is right on 28 of those 63 and wrong on 35; on those 35 it loses the basin the same way (the 63 were selected as wrong with the switch on). Like for like (`min_sin_eta` 0, as C++), Python with the rule is wrong on 56 of the 200 realistic voxels against 46, 52 and 52 for C++ over three seeds, i.e. worse than every C++ seed there; paired against the rule off (18 wrong) 6 fixed / 44 broken / 12 both wrong.
 - Per evaluation, Python is about 10× slower (about 500 µs against 50 µs).
 
 **Tests.**
@@ -468,8 +475,15 @@ The earlier report's precision and timing numbers for the default finisher carry
 1. **Reseed.** Answered on the pilot region (3(g) follow-up): with finality per voxel it recovers every lost grain (0 of 60 lost against 26 to 28), at 46 to 52% of the run's evaluations (151 reseeds in four runs, 28 rejected); 23 to 60 of 2,000 voxels remain wrong, all cross-boundary errors (21 to 59 of them accepted fits, 1 to 2 unresolved failed voxels). Open: other seed orders, regions and full-sample scale (deferred by the owner).
 2. **Wrong-grain acceptances.** Why does CMA accept more of them? Should the 0.9 relative test be tightened for
    CMA fits?
-3. **Coarse candidates.** Why does C++ pass fewer level-0 candidates? Closing that gap would cut about 30% of
-   Python's seed evaluations.
+3. **Coarse candidates.** Answered (3(b)): the overlap rule of `CountQualifiedPeaks` and the centroid screen.
+   With `CppOverlapRule 1` Python's seed evaluations fall by about 30% to 0.95–0.98× C++'s. The default
+   stays off because E0 accuracy drops with it (40 to 61 and 25 to 42 wrong of 200); C++ itself is wrong on 56 to 71 and
+   46 to 52 of the same voxels (three seeds), so the loss is consistent with being a property of the C++ rule (the quick-MC ranking sees a nearly flat cost around
+   the truth is the suggested mechanism; the link to the ranking was not tested by a controlled change of the ranking). Caveat: like for
+   like (`min_sin_eta` 0) Python with the rule is wrong on 56 of 200 realistic voxels, more than each of the three C++ seeds (46 to 52), so
+   Python is not shown to be no worse than C++ there. Open: do the BFS seed test (hit ratio 0.8) and the reseed pilot change with the rule? A default flip
+   changes 11 goldens and, in principle, every stored result computed through the cost function
+   (`benchmarks/phase_d_seed_diag/level0/default_flip_would_change.md`).
 4. **Which difference matters.** Which of the C++ differences (block halving, restart base, fixed step) produces
    the faithful MC's gain? An ablation is untested.
 5. **Per-evaluation cost.** Can the 10× per-evaluation gap be cut, for example with batched evaluation in the

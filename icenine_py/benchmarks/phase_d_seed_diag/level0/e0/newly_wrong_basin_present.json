@@ -1,0 +1,18 @@
+{
+ "on_clean": {
+  "newly_wrong": 38,
+  "with_truth_basin_at_level0": 38
+ },
+ "on_all": {
+  "newly_wrong": 25,
+  "with_truth_basin_at_level0": 20
+ },
+ "rule_clean": {
+  "newly_wrong": 39,
+  "with_truth_basin_at_level0": 39
+ },
+ "rule_all": {
+  "newly_wrong": 36,
+  "with_truth_basin_at_level0": 33
+ }
+}

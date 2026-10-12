@@ -305,13 +305,49 @@ static void pixel_radius_overlap_uint8(
  */
 static void count_qualified_peaks_c(
     const int *detector_lit, const int *spot_overlap, int n_detectors,
-    int *out_peak_on_det, int *out_peak_overlap, int *out_n_det_overlap
+    int *out_peak_on_det, int *out_peak_overlap, int *out_n_det_overlap,
+    int cpp_rule
 ) {
     *out_peak_on_det = 0;
     *out_peak_overlap = 0;
     *out_n_det_overlap = 0;
 
     if (n_detectors == 0) return;
+
+    if (cpp_rule) {
+        /* Literal port of C++ CountQualifiedPeaks (OverlapInfo.tmpl.cpp:78-139) */
+        int bValidSimPeak = detector_lit[0];
+        int bOnPreviousDetector = detector_lit[0];
+        int nDetectorsOverlap = 0;
+        for (int i = 1; i < n_detectors && bValidSimPeak; i++) {
+            if (detector_lit[i]) {
+                bValidSimPeak = 1;
+            } else if (bOnPreviousDetector) {
+                bValidSimPeak = 1;
+                bOnPreviousDetector = 0;
+            } else {
+                bValidSimPeak = 0;
+            }
+        }
+        int bPreviousOverlap = spot_overlap[0];
+        int bValidOverlap = spot_overlap[0];
+        if (spot_overlap[0]) nDetectorsOverlap++;
+        for (int i = 1; i < n_detectors && bValidOverlap; i++) {
+            if (spot_overlap[i]) {
+                nDetectorsOverlap++;
+                bValidOverlap = 1;
+            } else if (bPreviousOverlap && !detector_lit[i]) {
+                bValidOverlap = 1;
+                bPreviousOverlap = 0;
+            } else {
+                bValidOverlap = 0;
+            }
+        }
+        if (bValidSimPeak) *out_peak_on_det = 1;
+        if (bValidOverlap) *out_peak_overlap = 1;
+        if (bValidSimPeak && bValidOverlap) *out_n_det_overlap = nDetectorsOverlap;
+        return;
+    }
 
     /* Check contiguous lit pattern (must start at detector 0) */
     int valid_sim_peak = 0;
@@ -578,15 +614,16 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
     PyArrayObject *wedge_indices_arr, *det_hit_mask_arr;
     PyObject *pixel_centers_obj, *pixel_vertices_obj;
     int n_detectors, pixel_radius, n_peaks, image_rows, image_cols;
+    int cpp_rule = 0;
 
-    if (!PyArg_ParseTuple(args, "O!O!O!OOiiiii",
+    if (!PyArg_ParseTuple(args, "O!O!O!OOiiiii|i",
             &PyList_Type, &image_list,
             &PyArray_Type, &wedge_indices_arr,
             &PyArray_Type, &det_hit_mask_arr,
             &pixel_centers_obj,
             &pixel_vertices_obj,
             &n_detectors, &pixel_radius, &n_peaks,
-            &image_rows, &image_cols))
+            &image_rows, &image_cols, &cpp_rule))
         return NULL;
 
     if (n_detectors > MAX_DETECTORS) {
@@ -764,7 +801,7 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
         int peak_on_det, peak_ovlp, n_det_ovlp;
         count_qualified_peaks_c(
             detector_lit, spot_overlap, n_detectors,
-            &peak_on_det, &peak_ovlp, &n_det_ovlp
+            &peak_on_det, &peak_ovlp, &n_det_ovlp, cpp_rule
         );
 
         /* Update counts (matches OverlapInfo.update_counts) */
@@ -833,5 +870,7 @@ static struct PyModuleDef rasterize_module = {
 
 PyMODINIT_FUNC PyInit__rasterize(void) {
     import_array();
-    return PyModule_Create(&rasterize_module);
+    PyObject *m = PyModule_Create(&rasterize_module);
+    if (m != NULL) PyModule_AddIntConstant(m, "HAS_CPP_RULE", 1);
+    return m;
 }

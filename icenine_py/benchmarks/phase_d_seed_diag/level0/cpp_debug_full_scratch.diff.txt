@@ -1,0 +1,216 @@
+diff -ru a/Src/DiscreteSearch.h b/Src/DiscreteSearch.h
+--- a/Src/DiscreteSearch.h	2026-03-18 12:41:49
++++ b/Src/DiscreteSearch.h	2026-10-10 17:35:36
+@@ -57,6 +57,18 @@
+ #include "CostFunctions.h"
+ #include "Symmetry.h"
+ 
++#include <iostream>
++#include <iomanip>
++#include <cstdlib>
++#include <cstring>
++namespace L0Trace {
++  inline std::vector<int> & Overlap() { static std::vector<int> v; return v; }
++  inline std::vector<int> & JList() { static std::vector<int> v; return v; }
++  inline bool & InSpaced() { static bool b = false; return b; }
++  inline int & DumpCount() { static int n = 0; return n; }
++  inline long & NObs() { static long n = 0; return n; }
++  inline bool On() { static bool b = getenv("L0TRACE") != NULL; return b; }
++}
+ namespace OrientationSearch
+ {
+   using std::vector;
+@@ -197,16 +209,28 @@
+                      RecpIterT pFirst, RecpIterT pEnd )
+     {
+       ScatteringVectorListT oScatteringCandidates;
++      L0Trace::Overlap().clear(); L0Trace::JList().clear();
+       HEDM::PrecomputeScatteringVector( oScatteringCandidates,
+                                         oSearchCenter, oDetectorList,
+                                         oRangeToIndexMap, pFirst,
+                                         pEnd, Simulator );
+       
++      L0Trace::NObs() = (long) oScatteringCandidates.size();
+       for ( Size_Type j = 0; j < oLocalGridList.size(); j ++ )
+       {
+         SOverlapInfo oOverlapInfo;
+         oOverlapInfo.Initialize();
+   
++        if( L0Trace::InSpaced() && L0Trace::DumpCount() < 3 && j < 3 )
++        {
++          std::cout << "L0M j " << j << " center";
++          for( int a1 = 0; a1 < 3; a1 ++ ) for( int a2 = 0; a2 < 3; a2 ++ ) std::cout << " " << std::setprecision(9) << oSearchCenter.m[a1][a2];
++          std::cout << " local";
++          for( int a1 = 0; a1 < 3; a1 ++ ) for( int a2 = 0; a2 < 3; a2 ++ ) std::cout << " " << std::setprecision(9) << oLocalGridList[j].m[a1][a2];
++          std::cout << std::endl;
++        }
++        L0DumpFlag() = ( L0Trace::InSpaced() && j == 0 && L0Trace::DumpCount() < 3 ) ? 1 : 0;
++        if( L0DumpFlag() ) { L0Trace::DumpCount() ++; std::cout << "L0Y --- fz# " << L0Trace::DumpCount() << " nObs " << oScatteringCandidates.size() << std::endl; }
+         oOverlapInfo = CostFunction ( oVoxel, oCurrentLayer,
+                                       oDetectorList,
+                                       oRangeToIndexMap,
+@@ -214,7 +238,30 @@
+                                       oLocalGridList[j],
+                                       oExpData );
+ 
++        if( L0Trace::InSpaced() && j < 3 )
++        {
++          static int nDump = 0;
++          if( j == 0 ) nDump ++;
++          if( nDump <= 4 )
++          {
++            vector<CRecpVector> oRV( pFirst, pEnd );
++            vector<DiffractionCore::SPeakInfo> vEx, vIn;
++            Simulator.GetObservablePeaks( vEx, oLocalGridList[j] * oSearchCenter, oRV, oDetectorList );
++            HEDM::InterpolateObservablePeaks( vIn, oScatteringCandidates, oLocalGridList[j] );
++            std::cout << "L0X fz# " << nDump << " j " << j << " nrecip " << oRV.size() << " nExact " << vEx.size() << " nInterp " << vIn.size()
++                      << " | exact omegas(deg):";
++            for( size_t q = 0; q < vEx.size(); q ++ ) std::cout << " " << std::setprecision(5) << RADIAN_TO_DEGREE( vEx[q].fOmega );
++            std::cout << " | interp:";
++            for( size_t q = 0; q < vIn.size(); q ++ ) std::cout << " " << std::setprecision(5) << RADIAN_TO_DEGREE( vIn[q].fOmega );
++            std::cout << std::endl;
++          }
++        }
++        if( L0DumpFlag() ) std::cout << "L0Y total peakOv " << oOverlapInfo.nPeakOverlap << std::endl;
++        L0DumpFlag() = 0;
++        L0Trace::Overlap().push_back( oOverlapInfo.nPeakOverlap );
+         if ( AcceptanceFn( oOverlapInfo ) )   // If accepted
++          L0Trace::JList().push_back( (int) j );
++        if ( AcceptanceFn( oOverlapInfo ) )   // If accepted
+           oRes.push_back( SCandidate( oLocalGridList[j] * oSearchCenter, 0 ) );
+         
+       }
+@@ -343,11 +390,32 @@
+       GeneralLib::SVector3 MaxRangeOrientation;
+ 
+       
++      SearchPointIterT pFZFirst = pSearchPoint;
++      static int nCallNo = 0;
++      bool bDetail = L0Trace::On() && nCallNo == 0;   // detail for the first call only (level 0)
++      if( L0Trace::On() )
++        std::cout << "L0H call " << nCallNo << " n_fz " << ( pEnd - pSearchPoint ) << " n_local " << oLocalGrid.size()
++                  << " nQMax " << fQMax << " diameter_rad " << std::setprecision(10) << fAngularRadius
++                  << " diameter_deg " << RADIAN_TO_DEGREE( fAngularRadius )
++                  << " n_sym " << oSym.GetOperatorList().size() << " n_recip " << ( pRecpEnd - oRecipVectors.begin() ) << std::endl;
++      long nCandTot = 0;
+       for(; pSearchPoint != pEnd; ++ pSearchPoint )
+       {
+         vector<SCandidate> oLocalCandidates;
++        L0Trace::InSpaced() = ( nCallNo == 0 );
+         oSearchProcess( oLocalCandidates, oVoxel, *pSearchPoint,
+                         oLocalGrid, oRecipVectors.begin(), pRecpEnd );
++        L0Trace::InSpaced() = false;
++        vector<int> oJ = L0Trace::JList();
++        vector<int> oOv = L0Trace::Overlap();
++        long nObsHere = L0Trace::NObs();
++        vector<SCandidate> oPre;
++        if( bDetail )
++        {
++          std::cout << "L0O " << ( pSearchPoint - pFZFirst ) << " " << nObsHere;
++          for( size_t q = 0; q < oOv.size(); q ++ ) std::cout << " " << oOv[q];
++          std::cout << std::endl;
++        }
+         
+         for( Size_Type i = 0; i < oLocalCandidates.size(); i ++ )
+         {
+@@ -357,9 +425,18 @@
+           oLocalCandidates[i].fCost = 1 - CostFunctions::Utilities::GetConfidence( oInfo ); 
+         }
+ 	
++        oPre = oLocalCandidates;
+         if( oLocalCandidates.size() > 0 )
+         {
+           nClique ++;
++          if( bDetail )
++          {
++            std::cout << "L0P " << ( pSearchPoint - pFZFirst ) << " " << nObsHere << " " << oLocalCandidates.size() << " j";
++            for( size_t q = 0; q < oJ.size(); q ++ ) std::cout << " " << oJ[q];
++            std::cout << " cost";
++            for( size_t q = 0; q < oLocalCandidates.size(); q ++ ) std::cout << " " << std::setprecision(10) << oLocalCandidates[q].fCost;
++            std::cout << " |";
++          }
+           //	  std::cout << "| nClique " << nClique << " size | "  << oLocalCandidates.size() << std::endl;
+           CandidateIter pCur      = oLocalCandidates.begin();
+           CandidateIter pFirstGood = pCur;
+@@ -393,12 +470,27 @@
+           }	  
+           nCurrentID ++;
+           fMaxRange = std::max( fMaxRange, (fMax - fMin ) );
+-          vector<SCandidate> oAccepted;   // new list of acceted candidates for this region
++          nCandTot += ( pCur - pFirstGood );
++          if( bDetail )
++          {
++            std::cout << " kept";
++            for( CandidateIter pK = pFirstGood; pK != pCur; ++ pK )
++            {
++              int jj = -1;
++              for( size_t q = 0; q < oPre.size(); q ++ )
++                if( memcmp( &oPre[q].oOrientation, &pK->oOrientation, sizeof( pK->oOrientation ) ) == 0 && oPre[q].fCost == pK->fCost ) { jj = oJ[q]; break; }
++              std::cout << " " << jj;
++            }
++            std::cout << std::endl;
++          }
++          vector<SCandidate> oAccepted;
+           oRes.push_back( oAccepted );
+           oRes.back().insert( oRes.back().begin(), pFirstGood, pCur );
+         }
+       }
+       
++        if( L0Trace::On() ) std::cout << "L0S call " << nCallNo << " n_cliques " << nClique << " n_candidates " << nCandTot << std::endl;
++        nCallNo ++;
+         std::cout << "Num Cliques " << nClique << " MaxRange " << fMaxRange 
+ 		<< " MaxRangeCliqueID: " << nMaxRangeID 
+ 		<< " MinCostCliqueID " << nMinCostID 
+diff -ru a/Src/OverlapInfo.h b/Src/OverlapInfo.h
+--- a/Src/OverlapInfo.h	2026-03-18 12:41:49
++++ b/Src/OverlapInfo.h	2026-10-10 17:34:24
+@@ -62,6 +62,7 @@
+ #include <limits>
+ #include "SearchDetails.h"
+ #include "PeakFilters.h"
++inline int & L0DumpFlag() { static int f = 0; return f; }
+ namespace CostFunctions
+ {
+   ////////////////////////////////////////////////////////////////////////////////////////////////////////
+@@ -368,6 +369,14 @@
+     {
+       const Point & oDetPoint = *pFirst;
+       bool bContinueSearch = true;
++      if( L0DumpFlag() )
++      {
++        int nbr = 0, nin = 0;
++        for( int dx = -nRadius; dx <= nRadius; dx ++ ) for( int dy = -nRadius; dy <= nRadius; dy ++ )
++          if( oImage.IsInBound( oDetPoint.x + dx, oDetPoint.y + dy ) ) { nin ++; if( oImage.IsBright( oDetPoint.x + dx, oDetPoint.y + dy ) ) nbr ++; }
++        std::cout << "L0W radius " << nRadius << " pt " << oDetPoint.x << " " << oDetPoint.y << " in " << nin << " bright " << nbr
++                  << " before: lit " << bDetectorLit << " ov " << bSpotOverlap << std::endl;
++      }
+       if( nRadius == 0 )            // Not sure if this speeds anything up
+       {
+         ProcessPoint( bDetectorLit, bSpotOverlap, oImage,
+diff -ru a/Src/OverlapInfo.tmpl.cpp b/Src/OverlapInfo.tmpl.cpp
+--- a/Src/OverlapInfo.tmpl.cpp	2026-03-23 22:49:22
++++ b/Src/OverlapInfo.tmpl.cpp	2026-10-10 17:28:51
+@@ -189,6 +189,23 @@
+ 
+         SOverlapInfo oCurOverlapInfo =
+           DetOverlapCounter( oImList, oPixelView, oHitView, oIntensityView, nNumPixels, vDetectorList );  
++        if( L0DumpFlag() )
++        {
++          int nb[2] = {0, 0}, nin[2] = {0, 0};
++          for( int dd = 0; dd < 2; dd ++ )
++            for( int dx = -3; dx <= 3; dx ++ ) for( int dy = -3; dy <= 3; dy ++ )
++            {
++              int xx = (int) oPixelView[dd][0].x + dx, yy = (int) oPixelView[dd][0].y + dy;
++              if( oHitView[dd] > 0 && oImList[dd].IsInBound( xx, yy ) ) { nin[dd] ++; if( oImList[dd].IsBright( xx, yy ) ) nb[dd] ++; }
++            }
++          std::cout << "L0Z win_bright " << nb[0] << " " << nb[1] << " in_bound " << nin[0] << " " << nin[1] << std::endl;
++        }
++        if( L0DumpFlag() )
++          std::cout << "L0Y omega_deg " << RADIAN_TO_DEGREE( vPeakInfo[ nPeakNum ].fOmega ) << " idx " << nOmegaIndex
++                    << " hit " << oHitView[0] << " " << oHitView[1]
++                    << " pix0 " << oPixelView[0][0].x << " " << oPixelView[0][0].y
++                    << " pix1 " << oPixelView[1][0].x << " " << oPixelView[1][0].y
++                    << " peakOv " << oCurOverlapInfo.nPeakOverlap << " peakOn " << oCurOverlapInfo.nPeakOnDetector << std::endl;
+         oOverlapInfo.UpdateCounts ( oCurOverlapInfo );
+         oOverlapInfo.UpdateQuality( oCurOverlapInfo, vDetectorList.size(), nPoints );   // nPoints is currently a hack
+       }

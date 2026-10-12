@@ -1,0 +1,305 @@
+L0M j 0 center 1 -0 0 0 1 -0 0 0 1 local 1 6.87052137e-10 -2.25175238e-08 -6.87052137e-10 1 7.73535799e-18 2.25175238e-08 7.73535799e-18 1
+L0Y --- fz# 1 nObs 24
+L0W radius 3 pt 1261 1802 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1363 1724 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 48.2451477 idx 138 hit 1 1 pix0 1261 1802 pix1 1363 1724 peakOv 0 peakOn 1
+L0W radius 3 pt 1201 1807 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1303 1729 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg -41.7548485 idx 48 hit 1 1 pix0 1201 1807 pix1 1303 1729 peakOv 0 peakOn 1
+L0W radius 3 pt 1203 2044 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1304 2113 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 0
+L0Y omega_deg -41.7548485 idx 48 hit 1 1 pix0 1203 2044 pix1 1304 2113 peakOv 0 peakOn 1
+L0W radius 3 pt 917 1804 in 49 bright 7 before: lit 0 ov 0
+L0W radius 3 pt 812 1727 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 7 0 in_bound 49 49
+L0Y omega_deg 41.7548561 idx 131 hit 1 1 pix0 917 1804 pix1 812 1727 peakOv 0 peakOn 1
+L0W radius 3 pt 918 2048 in 21 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 812 2117 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 21 0
+L0Y omega_deg 41.7548561 idx 131 hit 1 1 pix0 918 2048 pix1 812 2117 peakOv 0 peakOn 1
+L0W radius 3 pt 861 2045 in 42 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 755 2113 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 42 0
+L0Y omega_deg -48.2451477 idx 41 hit 1 1 pix0 861 2045 pix1 755 2113 peakOv 0 peakOn 1
+L0W radius 3 pt 860 1809 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 755 1731 in 49 bright 2 before: lit 0 ov 0
+L0Z win_bright 0 2 in_bound 49 49
+L0Y omega_deg -48.2451477 idx 41 hit 1 1 pix0 860 1809 pix1 755 1731 peakOv 0 peakOn 1
+L0W radius 3 pt 1263 2048 in 21 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1364 2117 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 21 0
+L0Y omega_deg 48.2451439 idx 138 hit 1 1 pix0 1263 2048 pix1 1364 2117 peakOv 0 peakOn 1
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -3.05940557 idx 86 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 3.05937552 idx 93 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -86.9406204 idx 3 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 86.9406204 idx 176 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0W radius 3 pt 1322 2167 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1468 2312 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 6.12751865 idx 96 hit 1 1 pix0 1322 2167 pix1 1468 2312 peakOv 0 peakOn 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -40.6713295 idx 49 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0W radius 3 pt 832 1687 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 683 1536 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg -6.12752533 idx 83 hit 1 1 pix0 832 1687 pix1 683 1536 peakOv 0 peakOn 1
+L0W radius 3 pt 1224 1686 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1369 1533 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg -83.8724747 idx 6 hit 1 1 pix0 1224 1686 pix1 1369 1533 peakOv 0 peakOn 1
+L0W radius 3 pt 820 1677 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 672 1526 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 83.8724823 idx 173 hit 1 1 pix0 820 1677 pix1 672 1526 peakOv 0 peakOn 1
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -49.3286896 idx 40 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 49.3286667 idx 139 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0W radius 3 pt 1319 1683 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1464 1530 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 6.12751675 idx 96 hit 1 1 pix0 1319 1683 pix1 1464 1530 peakOv 0 peakOn 1
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 40.6713295 idx 130 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0W radius 3 pt 833 2167 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 684 2310 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -6.12752771 idx 83 hit 1 1 pix0 833 2167 pix1 684 2310 peakOv 0 peakOn 0
+L0W radius 3 pt 1227 2165 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1373 2309 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -83.8724747 idx 6 hit 1 1 pix0 1227 2165 pix1 1373 2309 peakOv 0 peakOn 0
+L0W radius 3 pt 821 2177 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 672 2320 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 83.8724823 idx 173 hit 1 1 pix0 821 2177 pix1 672 2320 peakOv 0 peakOn 0
+L0X fz# 1 j 0 nrecip 26 nExact 48 nInterp 48 | exact omegas(deg): 48.245 -138.25 -41.755 131.75 -41.755 131.75 -131.75 41.755 -131.75 41.755 138.25 -48.245 138.25 -48.245 48.245 -138.25 -176.94 -3.0594 93.059 -93.059 3.0594 176.94 -86.941 86.941 6.1275 173.87 -40.671 130.67 -173.87 -6.1275 96.128 -96.128 -83.872 83.872 139.33 -49.329 49.329 -139.33 6.1275 173.87 -130.67 40.671 96.128 -96.128 -173.
+L0Y total peakOv 0
+L0M j 1 center 1 -0 0 0 1 -0 0 0 1 local 0.999232888 0.0266734157 -0.028672481 -0.0257924106 0.999196768 0.0306692906 0.0294675063 -0.0299062319 0.999118268
+L0X fz# 1 j 1 nrecip 26 nExact 48 nInterp 48 | exact omegas(deg): 48.047 -138.44 -40.33 133.36 -40.162 133.14 -128.55 44.961 -131.95 41.561 139.67 -46.638 139.84 -46.857 51.449 -135.04 -175.41 -1.5316 94.539 -91.582 4.5899 178.47 -85.461 88.418 9.5877 176.95 -39.164 132.17 -170.41 -3.0465 99.096 -92.808 -80.904 87.192 140.84 -47.829 50.833 -137.82 5.8379 173.94 -129.17 42.176 96.026 -96.602 -174.1
+L0M j 2 center 1 -0 0 0 1 -0 0 0 1 local 0.999232888 -0.0257924348 -0.0294675101 0.0266734399 0.999196768 0.0299062338 0.0286724847 -0.0306692924 0.999118268
+L0X fz# 1 j 2 nrecip 26 nExact 48 nInterp 48 | exact omegas(deg): 45.04 -141.44 -43.296 130.4 -43.217 130.09 -131.55 41.952 -134.96 38.56 136.7 -49.604 136.78 -49.912 48.446 -138.05 -178.42 -4.5395 91.532 -94.59 1.5822 175.46 -88.468 85.41 6.5396 173.89 -42.173 129.16 -173.46 -6.1052 96.136 -95.776 -83.864 84.224 137.83 -50.838 47.826 -140.83 2.8713 170.98 -132.17 39.169 92.969 -99.648 -177.13 -9.
+L0M j 0 center 0.843601108 -0.26635316 0.466254503 0.442152321 0.837265432 -0.321695447 -0.304694146 0.477538139 0.824086666 local 1 6.87052137e-10 -2.25175238e-08 -6.87052137e-10 1 7.73535799e-18 2.25175238e-08 7.73535799e-18 1
+L0Y --- fz# 2 nObs 26
+L0W radius 3 pt 1261 1803 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1363 1725 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 50.6945953 idx 140 hit 1 1 pix0 1261 1803 pix1 1363 1725 peakOv 0 peakOn 1
+L0W radius 3 pt 1070 1736 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1115 1613 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg -76.3951492 idx 13 hit 1 1 pix0 1070 1736 pix1 1115 1613 peakOv 0 peakOn 1
+L0W radius 3 pt 984 1726 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 934 1604 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 89.4087372 idx 179 hit 1 1 pix0 984 1726 pix1 934 1604 peakOv 0 peakOn 1
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -62.895546 idx 27 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0W radius 3 pt 885 1849 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 765 1797 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 1.1064229 idx 91 hit 1 1 pix0 885 1849 pix1 765 1797 peakOv 0 peakOn 1
+L0W radius 3 pt 917 2048 in 21 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 811 2117 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 21 0
+L0Y omega_deg 44.2142296 idx 134 hit 1 1 pix0 917 2048 pix1 811 2117 peakOv 0 peakOn 1
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -68.1954727 idx 21 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0W radius 3 pt 1273 2003 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1389 2047 in 28 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 28
+L0Y omega_deg 6.82469034 idx 96 hit 1 1 pix0 1273 2003 pix1 1389 2047 peakOv 0 peakOn 1
+L0W radius 3 pt 879 1732 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 794 1607 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg -60.8022842 idx 29 hit 1 1 pix0 879 1732 pix1 794 1607 peakOv 0 peakOn 1
+L0W radius 3 pt 1160 2121 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1241 2238 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -49.9897118 idx 40 hit 1 1 pix0 1160 2121 pix1 1241 2238 peakOv 0 peakOn 0
+L0W radius 3 pt 849 2040 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 719 2105 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 0
+L0Y omega_deg -21.1295986 idx 68 hit 1 1 pix0 849 2040 pix1 719 2105 peakOv 0 peakOn 1
+L0W radius 3 pt 1318 2000 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1457 2041 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 65.5521088 idx 155 hit 1 1 pix0 1318 2000 pix1 1457 2041 peakOv 0 peakOn 1
+L0W radius 3 pt 1273 1811 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1400 1736 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg -14.1644983 idx 75 hit 1 1 pix0 1273 1811 pix1 1400 1736 peakOv 0 peakOn 1
+L0W radius 3 pt 851 1852 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 709 1803 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 59.1275787 idx 149 hit 1 1 pix0 851 1852 pix1 709 1803 peakOv 0 peakOn 1
+L0W radius 3 pt 1378 2008 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1579 2055 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 0
+L0Y omega_deg -27.8329144 idx 62 hit 1 1 pix0 1378 2008 pix1 1579 2055 peakOv 0 peakOn 1
+L0W radius 3 pt 1286 1738 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1458 1618 in 49 bright 14 before: lit 0 ov 0
+L0Z win_bright 0 14 in_bound 49 49
+L0Y omega_deg -65.2076263 idx 24 hit 1 1 pix0 1286 1738 pix1 1458 1618 peakOv 0 peakOn 1
+L0W radius 3 pt 716 1845 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 512 1789 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg -36.7630539 idx 53 hit 1 1 pix0 716 1845 pix1 512 1789 peakOv 0 peakOn 1
+L0W radius 3 pt 1299 2203 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1422 2366 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 33.4871025 idx 123 hit 1 1 pix0 1299 2203 pix1 1422 2366 peakOv 0 peakOn 0
+L0W radius 3 pt 881 1653 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 754 1483 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 19.0923481 idx 109 hit 1 1 pix0 881 1653 pix1 754 1483 peakOv 0 peakOn 1
+L0W radius 3 pt 717 2113 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 542 2224 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -75.603714 idx 14 hit 1 1 pix0 717 2113 pix1 542 2224 peakOv 0 peakOn 0
+L0W radius 3 pt 1432 1882 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1637 1852 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 28.6453857 idx 118 hit 1 1 pix0 1432 1882 pix1 1637 1852 peakOv 0 peakOn 1
+L0W radius 3 pt 1221 1607 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1298 1410 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 32.3226547 idx 122 hit 1 1 pix0 1221 1607 pix1 1298 1410 peakOv 0 peakOn 1
+L0W radius 3 pt 747 1969 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 539 1990 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 19.9225273 idx 109 hit 1 1 pix0 747 1969 pix1 539 1990 peakOv 0 peakOn 1
+L0W radius 3 pt 1394 1794 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1586 1712 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 89.4003372 idx 179 hit 1 1 pix0 1394 1794 pix1 1586 1712 peakOv 0 peakOn 1
+L0W radius 3 pt 952 2242 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 869 2430 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 10.0628328 idx 100 hit 1 1 pix0 952 2242 pix1 869 2430 peakOv 0 peakOn 0
+L0W radius 3 pt 745 2057 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 550 2129 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 80.0911484 idx 170 hit 1 1 pix0 745 2057 pix1 550 2129 peakOv 0 peakOn 0
+L0X fz# 2 j 0 nrecip 26 nExact 52 nInterp 52 | exact omegas(deg): 50.695 -135.79 -76.395 89.409 -62.896 111.8 -173.18 1.1064 -129.31 44.214 103.6 -90.591 117.1 -68.195 6.8247 -178.89 130.01 -60.802 -49.99 119.2 165.84 -21.13 65.552 -120.87 -14.164 158.87 -114.45 59.128 -27.833 143.24 -65.208 104.4 152.17 -36.763 33.487 -160.91 -146.51 19.092 114.79 -75.604 28.645 -160.08 32.323 -169.94 -151.35 19.
+L0Y total peakOv 0
+L0M j 1 center 0.843601108 -0.26635316 0.466254503 0.442152321 0.837265432 -0.321695447 -0.304694146 0.477538139 0.824086666 local 0.999232888 0.0266734157 -0.028672481 -0.0257924106 0.999196768 0.0306692906 0.0294675063 -0.0299062319 0.999118268
+L0X fz# 2 j 1 nrecip 26 nExact 52 nInterp 52 | exact omegas(deg): 50.505 -135.98 -71.993 94.896 -61.425 113.27 -170.87 3.3423 -129.49 44.021 108.01 -85.104 118.58 -66.734 9.1276 -176.66 131.16 -60.359 -48.844 119.64 166.71 -20.119 67.763 -118.64 -13.289 159.88 -112.24 61.363 -26.137 144.83 -63.168 106.68 153.86 -35.169 38.196 -156.45 -141.8 23.552 116.83 -73.316 29.883 -158.82 28.416 -172.89 -150.
+L0M j 2 center 0.843601108 -0.26635316 0.466254503 0.442152321 0.837265432 -0.321695447 -0.304694146 0.477538139 0.824086666 local 0.999232888 -0.0257924348 -0.0294675101 0.0266734399 0.999196768 0.0299062338 0.0286724847 -0.0306692924 0.999118268
+L0X fz# 2 j 2 nrecip 26 nExact 52 nInterp 52 | exact omegas(deg): 47.497 -138.98 -74.875 91.995 -64.435 110.26 -173.9 0.31646 -132.5 41.017 105.12 -88.005 115.56 -69.744 6.1039 -179.68 128.05 -63.461 -51.951 116.54 163.73 -23.097 64.763 -121.64 -16.268 156.9 -115.24 58.362 -29.161 141.81 -66.138 103.71 150.84 -38.194 35.175 -159.49 -144.83 20.51 113.86 -76.289 26.878 -161.83 25.457 -175.8 -153.12 
+L0M j 0 center 0.843570232 0.442211151 -0.304694206 -0.266411513 0.837246835 0.477538109 0.466276944 -0.321662903 0.824086666 local 1 6.87052137e-10 -2.25175238e-08 -6.87052137e-10 1 7.73535799e-18 2.25175238e-08 7.73535799e-18 1
+L0Y --- fz# 3 nObs 26
+L0W radius 3 pt 1264 1806 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1367 1731 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 46.2973022 idx 136 hit 1 1 pix0 1264 1806 pix1 1367 1731 peakOv 0 peakOn 1
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -21.4124851 idx 68 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0W radius 3 pt 1151 2119 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1195 2233 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -1.5169208 idx 88 hit 1 1 pix0 1151 2119 pix1 1195 2233 peakOv 0 peakOn 0
+L0W radius 3 pt 872 1842 in 49 bright 14 before: lit 0 ov 0
+L0W radius 3 pt 753 1788 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 14 0 in_bound 49 49
+L0Y omega_deg 83.7626419 idx 173 hit 1 1 pix0 872 1842 pix1 753 1788 peakOv 0 peakOn 1
+L0W radius 3 pt 916 2044 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 808 2111 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 0
+L0Y omega_deg 39.9048309 idx 129 hit 1 1 pix0 916 2044 pix1 808 2111 peakOv 0 peakOn 1
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -26.7120209 idx 63 hit 0 0 pix0 0 0 pix1 0 0 peakOv 0 peakOn 0
+L0W radius 3 pt 987 1735 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 938 1612 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg -16.0359421 idx 73 hit 1 1 pix0 987 1735 pix1 938 1612 peakOv 0 peakOn 1
+L0W radius 3 pt 1264 2010 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1378 2055 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 0
+L0Y omega_deg 89.5231094 idx 179 hit 1 1 pix0 1264 2010 pix1 1378 2055 peakOv 0 peakOn 1
+L0W radius 3 pt 1184 1730 in 49 bright 5 before: lit 0 ov 0
+L0W radius 3 pt 1265 1604 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 5 0 in_bound 49 49
+L0Y omega_deg -27.1337147 idx 62 hit 1 1 pix0 1184 1730 pix1 1265 1604 peakOv 0 peakOn 1
+L0W radius 3 pt 906 2122 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 821 2238 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -37.9462929 idx 52 hit 1 1 pix0 906 2122 pix1 821 2238 peakOv 0 peakOn 0
+L0W radius 3 pt 859 1849 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 718 1797 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 24.6105366 idx 114 hit 1 1 pix0 859 1849 pix1 718 1797 peakOv 0 peakOn 1
+L0W radius 3 pt 786 1816 in 49 bright 3 before: lit 0 ov 0
+L0W radius 3 pt 655 1744 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 3 0 in_bound 49 49
+L0Y omega_deg -75.9319458 idx 14 hit 1 1 pix0 786 1816 pix1 655 1744 peakOv 0 peakOn 1
+L0W radius 3 pt 1320 2003 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1458 2046 in 35 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 35
+L0Y omega_deg 31.0730724 idx 121 hit 1 1 pix0 1320 2003 pix1 1458 2046 peakOv 0 peakOn 1
+L0W radius 3 pt 1214 2036 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1342 2100 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 0
+L0Y omega_deg -69.0143509 idx 20 hit 1 1 pix0 1214 2036 pix1 1342 2100 peakOv 0 peakOn 1
+L0W radius 3 pt 1286 2212 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1406 2378 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 71.6824036 idx 161 hit 1 1 pix0 1286 2212 pix1 1406 2378 peakOv 0 peakOn 0
+L0W radius 3 pt 1346 2114 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1518 2227 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg -14.769474 idx 75 hit 1 1 pix0 1346 2114 pix1 1518 2227 peakOv 0 peakOn 0
+L0W radius 3 pt 882 1644 in 49 bright 39 before: lit 0 ov 0
+L0W radius 3 pt 759 1471 in 49 bright 7 before: lit 0 ov 0
+L0Z win_bright 39 7 in_bound 49 49
+L0Y omega_deg 56.8867722 idx 146 hit 1 1 pix0 882 1644 pix1 759 1471 peakOv 1 peakOn 1
+L0W radius 3 pt 688 2012 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 485 2060 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 0
+L0Y omega_deg -61.5357132 idx 28 hit 1 1 pix0 688 2012 pix1 485 2060 peakOv 0 peakOn 1
+L0W radius 3 pt 1347 1839 in 49 bright 14 before: lit 0 ov 0
+L0W radius 3 pt 1548 1782 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 14 0 in_bound 49 49
+L0Y omega_deg -52.5866432 idx 37 hit 1 1 pix0 1347 1839 pix1 1548 1782 peakOv 0 peakOn 1
+L0W radius 3 pt 774 1739 in 49 bright 21 before: lit 0 ov 0
+L0W radius 3 pt 600 1619 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 21 0 in_bound 49 49
+L0Y omega_deg -25.199379 idx 64 hit 1 1 pix0 774 1739 pix1 600 1619 peakOv 0 peakOn 1
+L0W radius 3 pt 1430 1888 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1636 1862 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 70.4122238 idx 160 hit 1 1 pix0 1430 1888 pix1 1636 1862 peakOv 0 peakOn 1
+L0W radius 3 pt 1401 1803 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1595 1723 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 10.6024075 idx 100 hit 1 1 pix0 1401 1803 pix1 1595 1723 peakOv 0 peakOn 1
+L0W radius 3 pt 737 1963 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 528 1980 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 61.7091713 idx 151 hit 1 1 pix0 737 1963 pix1 528 1980 peakOv 0 peakOn 1
+L0W radius 3 pt 1214 1603 in 49 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 1295 1408 in 49 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 49 49
+L0Y omega_deg 79.233223 idx 169 hit 1 1 pix0 1214 1603 pix1 1295 1408 peakOv 0 peakOn 1
+L0W radius 3 pt 760 2048 in 21 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 564 2117 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 21 0
+L0Y omega_deg 1.33961833 idx 91 hit 1 1 pix0 760 2048 pix1 564 2117 peakOv 0 peakOn 1
+L0W radius 3 pt 946 2247 in 0 bright 0 before: lit 0 ov 0
+L0W radius 3 pt 859 2433 in 0 bright 0 before: lit 0 ov 0
+L0Z win_bright 0 0 in_bound 0 0
+L0Y omega_deg 57.9771957 idx 147 hit 1 1 pix0 946 2247 pix1 859 2433 peakOv 0 peakOn 0
+L0X fz# 3 j 0 nrecip 26 nExact 52 nInterp 52 | exact omegas(deg): 46.297 -140.1 -21.412 153.29 -1.5169 163.96 -90.477 83.763 -133.7 39.905 158.59 -26.712 178.48 -16.036 89.523 -96.237 -27.134 142.05 152.87 -37.946 -148.93 24.611 110.99 -75.932 31.073 -155.39 -69.014 104.07 71.682 -123.11 -14.769 154.8 -108.32 56.887 127.41 -61.536 -52.587 118.46 165.23 -25.199 70.412 -118.29 10.602 -178.66 -109.59
+L0Y total peakOv 1
+L0X fz# 3 j 1 nrecip 26 nExact 52 nInterp 52 | exact omegas(deg): 46.179 -140.2 -19.91 154.79 4.6087 168.73 -88.268 86.037 -133.82 39.796 160.09 -25.209 -175.39 -11.269 91.732 -93.963 -26.611 143.18 153.39 -36.82 -146.61 26.897 111.93 -75.126 33.388 -153.1 -68.066 104.87 76.11 -118.39 -12.415 156.87 -103.89 61.608 129 -59.864 -51.003 120.14 167.58 -23.127 71.675 -117.04 11.386 -177.79 -108.33 62.9
+L0X fz# 3 j 2 nrecip 26 nExact 52 nInterp 52 | exact omegas(deg): 43.174 -143.2 -22.917 151.78 1.4794 165.57 -91.257 83.047 -136.83 36.796 157.08 -28.217 -178.52 -14.429 88.743 -96.953 -29.536 140.26 150.46 -39.742 -149.62 23.883 108.89 -78.163 30.376 -156.12 -71.105 101.84 73.144 -121.38 -15.462 153.82 -106.86 58.622 126 -62.857 -53.995 117.14 164.54 -26.177 68.665 -120.05 8.3931 179.22 -111.33 5
+L0X fz# 4 j 0 nrecip 26 nExact 52 nInterp 52 | exact omegas(deg): 89.523 -96.237 -1.5169 163.96 -21.412 153.29 -133.7 39.905 -90.477 83.763 178.48 -16.036 158.59 -26.712 46.297 -140.1 152.87 -37.946 -27.134 142.05 -148.93 24.611 110.99 -75.932 31.073 -155.39 -69.014 104.07 10.602 -178.66 -14.769 154.8 -169.4 1.3396 79.233 -122.02 -100.77 57.977 165.23 -25.199 70.412 -118.29 71.682 -123.11 -109.59 
+L0X fz# 4 j 1 nrecip 26 nExact 52 nInterp 52 | exact omegas(deg): 90.256 -95.575 -3.8731 162.79 -19.87 154.82 -130.57 43.031 -89.744 84.425 176.13 -17.214 160.13 -25.178 49.429 -136.97 155.51 -36.004 -24.493 144 -148.2 25.367 112.99 -73.802 31.802 -154.63 -67.013 106.2 12.894 -176.47 -14.03 155.8 -167.11 3.5331 85.049 -115.38 -94.951 64.624 165.97 -24.205 72.124 -116.57 70.098 -124.96 -107.88 63.4
+L0X fz# 4 j 2 nrecip 26 nExact 52 nInterp 52 | exact omegas(deg): 87.23 -98.599 -6.7649 159.91 -22.88 151.81 -133.58 40.021 -92.77 81.401 173.24 -20.088 157.12 -28.188 46.424 -139.98 152.4 -39.111 -27.595 140.89 -151.2 22.368 110.01 -76.783 28.801 -157.63 -69.992 103.22 9.8723 -179.49 -17.002 152.83 -170.13 0.50853 82.125 -118.34 -97.875 61.657 163 -27.174 69.12 -119.57 67.058 -127.98 -110.88 60.4
