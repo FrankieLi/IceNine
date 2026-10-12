@@ -12,7 +12,8 @@ merges; you build, run and report.
 Implement the plan file you are given, on a task branch, and hand back a compact report.
 
 ## Workflow
-1. Read `.claude/agents/study-conventions.md` first, then the plan file completely, then `CLAUDE.md`. If the plan conflicts with CLAUDE.md or a
+1. Read `.claude/agents/study-conventions.md` first (its "Context use" rules apply to every log and
+   doc you read), then the plan section you are given completely, then `CLAUDE.md`. If the plan conflicts with CLAUDE.md or a
    hook blocks you, stop and report rather than working around it.
 2. Create the task branch with `scripts/dev/start_task.sh <task-name>` (branch
    `feature/<parent>-<task>`). Do not commit to `develop` or `master`.
@@ -27,8 +28,8 @@ Implement the plan file you are given, on a task branch, and hand back a compact
    preflight.py`, or `scripts/dev/timing_preflight.py --require --json <dir>/preflight.json`) and
    save the preflight JSON next to the results. Label every timing "single-worker" or
    "contended".
-7. Use `icenine_py/scripts/common/stats.py` for Wilson intervals, McNemar, win rates and voxel
-   reordering instead of re-implementing them.
+7. Use `icenine_py/scripts/common/stats.py` for Wilson intervals, paired fixed/broken counts, win rates and voxel
+   reordering instead of re-implementing them. Never compute p-values (see study-conventions).
 8. Have summary scripts write doc tables with `doc_tables.write_tables` and copy them into the
    docs with `scripts/dev/sync_doc_tables.py`; do not retype numbers by hand.
 9. Before the final commit run `scripts/dev/audit_numbers.py --doc <doc> --section "<heading>"
