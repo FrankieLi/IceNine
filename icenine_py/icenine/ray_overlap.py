@@ -25,8 +25,10 @@ bounds, bright = overlap):
   c. predicted and observed both in bounds and dark         -> invalid (the C++ rule)
   d. predicted and observed both out of bounds              -> valid (the C++ rule tolerates unlit)
   e. predicted in bounds and dark, observed out of bounds   -> valid (treated as unlit)
-  f. predicted out of bounds, observed in bounds and dark   -> arm f0: valid (the C++ rule
-     forgives the unlit detector); arm f1: invalid (treated as a lit non-overlap)
+  f. predicted out of bounds, observed in bounds and dark   -> valid (the C++ rule forgives the
+     unlit detector). Owner decision 2026-10-12: the variant f1 (invalid, a lit non-overlap) was
+     dropped; at the truth it wrongly rejected about 3% of real peaks (0.966 kept vs 0.994,
+     step 1) and steps 1-2 showed no benefit. May revisit.
   (predicted out of bounds, observed ray bright: left as the C++ rule, counted as ``f_bright``.)
 
 "Observed ray bright" means a bright detector-d pixel inside the tolerance window around where
@@ -62,14 +64,12 @@ class RayRule:
     Attributes:
         arm: "R" isotropic radius window or "A" anisotropic window.
         radius_px: Window half-width in pixels for arm R.
-        f1: Case f variant: False = f0 (forgive), True = f1 (invalid).
         registration_mm: Registration term of arm A (config DetectorSpacingDeviation).
         levels: The rule is used for search levels 0 .. levels-1 (default 3 = levels 0-2).
     """
 
     arm: str = "R"
     radius_px: int = 2
-    f1: bool = False
     registration_mm: float = 0.0
     levels: int = 3
 
@@ -81,7 +81,7 @@ class RayRule:
 
     def label(self) -> str:
         t = f"R{self.radius_px}" if self.arm == "R" else "A"
-        return f"{t}_f{int(self.f1)}"
+        return t
 
 
 CASE_NAMES = ("a", "b", "c", "d", "e", "f_dark", "f_bright", "det0_bright")
@@ -232,12 +232,61 @@ def ray_flags(
     return obs_in, obs_bright
 
 
+def _geom_array(detector_list: List[Any]) -> np.ndarray:
+    """(n_det, 20) float64 geometry for the C ray check: n d pos org bj bk pw ph hw hh."""
+    rows = []
+    for det in detector_list:
+        g = _det_np(det)
+        rows.append(
+            np.concatenate(
+                [g["n"], [g["d"]], g["pos"], g["org"], g["bj"], g["bk"]]
+                + [[g["pw"], g["ph"], g["hw"], g["hh"]]]
+            )
+        )
+    return np.ascontiguousarray(np.array(rows, dtype=np.float64))
+
+
+def ray_flags_c(
+    rule: RayRule,
+    detector_list: List[Any],
+    image_list: List[np.ndarray],
+    local_wedge: np.ndarray,
+    lab_centres: np.ndarray,
+    det_hit0: np.ndarray,
+    det0_px: np.ndarray,
+    pixel_radius: int,
+    voxel_size: float,
+    omega_step: float,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """C version of :func:`ray_flags` (same flags; ``ray_flags`` stays the reference).
+
+    ``image_list`` is indexed ``[local_wedge * n_det + d]`` as for ``stage_d_overlap``;
+    ``local_wedge`` is the (M,) int32 index into the unique wedges.
+    """
+    from ._rasterize import ray_flags as _c_ray_flags
+
+    return _c_ray_flags(
+        image_list,
+        np.ascontiguousarray(local_wedge, dtype=np.int32),
+        np.ascontiguousarray(det_hit0, dtype=np.uint8),
+        np.ascontiguousarray(det0_px, dtype=np.float64),
+        np.ascontiguousarray(lab_centres, dtype=np.float64),
+        _geom_array(detector_list),
+        len(detector_list),
+        int(pixel_radius),
+        0 if rule.arm == "R" else 1,
+        int(rule.radius_px),
+        float(voxel_size),
+        float(omega_step),
+        float(rule.registration_mm),
+    )
+
+
 def apply_cases_python(
     detector_lit: List[bool],
     spot_overlap: List[bool],
     obs_in_p: np.ndarray,
     obs_bright_p: np.ndarray,
-    f1: bool,
     cases: Optional[np.ndarray],
 ) -> Tuple[int, int]:
     """Python twin of the C stage's ray block for one peak (modifies the lists in place).
@@ -278,22 +327,18 @@ def apply_cases_python(
         else:
             if cases is not None:
                 cases[5] += 1
-            if f1:
-                detector_lit[d] = True
-                d_on += 1
     return d_ov, d_on
 
 
 def ray_rule_from_config(config: Any) -> Optional[RayRule]:
-    """RayRule from the config keys RayOverlapRule (off | R<n> | A) and RayOverlapF1, or None.
+    """RayRule from the config keys RayOverlapRule (off | R<n> | A), or None.
 
     The registration term of arm A is the config's DetectorSpacingDeviation (mm).
     """
     spec = str(getattr(config, "ray_overlap_rule", "off"))
     if spec == "off":
         return None
-    f1 = bool(getattr(config, "ray_overlap_f1", False))
     reg = float(getattr(config, "detector_dist_deviation", 0.0))
     if spec == "A":
-        return RayRule(arm="A", f1=f1, registration_mm=reg)
-    return RayRule(arm="R", radius_px=int(spec[1:]), f1=f1, registration_mm=reg)
+        return RayRule(arm="A", registration_mm=reg)
+    return RayRule(arm="R", radius_px=int(spec[1:]), registration_mm=reg)

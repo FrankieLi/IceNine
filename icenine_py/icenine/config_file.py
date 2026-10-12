@@ -219,7 +219,6 @@ class ConfigFile:
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     # ray-consistency rule (coarse levels 0-2 only): "off", "R<n>" (isotropic n px) or "A"
     ray_overlap_rule: str = "off"
-    ray_overlap_f1: bool = False  # case f variant: False = f0 (forgive), True = f1 (invalid)
 
     # ========================================================================
     # Parameter Optimization (18 parameters)
@@ -465,7 +464,6 @@ class ConfigFile:
             'BFSReseed': self._parse_bool('bfs_reseed'),
             'CppOverlapRule': self._parse_bool('cpp_overlap_rule'),
             'RayOverlapRule': self._parse_ray_overlap_rule,
-            'RayOverlapF1': self._parse_bool('ray_overlap_f1'),
 
             # Parameter Optimization
             'OptimizationFilename': self._parse_string('optimization_filename'),

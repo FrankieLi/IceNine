@@ -13,11 +13,11 @@ full-sample voxels) is NOT run, as instructed. All timings are "contended" (seve
 | `icenine/_rasterize.c` | `stage_d_overlap` takes optional `obs_in`, `obs_bright`, `ray_f1`; cases a-f applied after the per-detector loop; returns 8 case counters as an extra tuple only when the arrays are given; `HAS_RAY_RULE` |
 | `icenine/cost_functions.py` | `OverlapInfo.ray_cases`; `calculate_diffraction_overlap_batched(ray_rule=, voxel_size=)` (implies `cpp_rule`; fallback Python loop too); `VoxelCostFunction(ray_rule=)` |
 | `icenine/reconstructor.py` | level loop: `_ray_rule_for_level(level)`; levels 0-2 get a ray global cost fn, a ray local cost fn (re-cost) and their own `MCOptimizer` (same rng stream) for the quick MC; FindOptimal, VarianceMinimizing and the final cost keep the strict local cost fn; local evaluation count includes the coarse local fns |
-| `icenine/orientation_search.py`, `config_file.py` | `SearchParameters.ray_rule`; config keys `RayOverlapRule off|R<n>|A`, `RayOverlapF1` |
+| `icenine/orientation_search.py`, `config_file.py` | `SearchParameters.ray_rule`; config keys `RayOverlapRule off|R<n>|A` |
 | `tests/test_ray_overlap.py` | 8 tests |
 | `scripts/phase_d/ray_overlap_study.py`, `ray_overlap_summary.py` | steps 1-2 and the summary |
 
-Default off; library behaviour unchanged. `peak/` (17 MB of per-evaluation rows, regenerated in about 1 min by `run --step 1`) and `cache/` are not committed. The extension must be rebuilt (`HAS_RAY_RULE`); it is gitignored.
+Default off; library behaviour unchanged. Update 2026-10-12: case f1 and the `RayOverlapF1` key were dropped by owner decision (f1 kept 0.966 vs f0 0.994 of evaluations at the truth, arm A, clean screen, step 1; no benefit in steps 1-2; may revisit); case f is always forgiven. The result files and tables keep the f1 rows as the historical record. `ray_flags` now has a C version (`_rasterize.ray_flags`), see the speed section below. `peak/` (17 MB of per-evaluation rows, regenerated in about 1 min by `run --step 1`) and `cache/` are not committed. The extension must be rebuilt (`HAS_RAY_RULE`); it is gitignored.
 
 ## 2. Decisions the plan left open (flag if wrong)
 
@@ -63,11 +63,36 @@ closest candidate was inside the kept set); 12 voxels cannot separate the arms (
 2. The truth-basin criterion (3 deg after the quick MC) is noisy; a rank-of-closest-candidate measure on the
    discrete-stage candidates (before the MC moves them) would be cleaner, and a 1-2 deg threshold would test more.
 3. Step 1 pools peaks over voxels; a voxel-level interval (bootstrap over voxels) is not computed.
-4. `ray_flags` is a per-peak Python loop (about 0.5 ms extra per evaluation near the truth); a vectorised or C
-   version would cut the 2 to 3 times wall cost of the ray arms.
+4. (done 2026-10-12) `ray_flags` in C; see the speed section below.
 5. No separate "rule only at the screen" versus "rule at the re-cost and quick MC" split: the plan applies it to all of
    levels 0-2, so which of the three uses carries the effect is untested.
 6. Arm A's terms are untuned guesses; the measured case-f rate at the truth (0.029 of events) suggests the window may
    still be too small for f1 or that f1 is simply too strict.
 7. Case shares use the screen cost function; the local-cost case table is in `summary.json` only.
 8. n_det > 2 chaining untested.
+
+## 7. Speed work, 2026-10-12 (C ray check; profile)
+
+Single-worker, quiet machine (`preflight_speed.json`; load about 1.2 = this job), clean images, voxels 22867, 15901,
+17034, levels 0-2, seconds per voxel (`speed_timings.json`):
+
+| arm | before (Python ray check) | after (C ray check) |
+|---|---|---|
+| old | 162 / 164 / 168 (unchanged code) | same |
+| cpp | 117 / 116 / 118 (unchanged code) | same |
+| f0_R2 | 293 / 294 / 289 | 132 / 131 / 132 |
+| f0_A | 340 / 337 / 335 | 149 / 149 / 148 |
+
+"Before" is the Python reference `ray_flags` (switch `cost_functions.USE_C_RAY_FLAGS = False`) in the same build;
+the per-level results (candidate counts, distances, ranks, evaluation counts) are identical before and after for both
+ray arms on all three voxels. In a separate check 5784 evaluations (3 voxels, screen and local, arms R1, R2, R8, A)
+gave identical flags, costs and case counts with the C and the Python check.
+
+Profile (cProfile, cpp arm, voxel 22867, 133 s inflated by the profiler; 233,546 cost evaluations of one orientation each:
+96,338 in the discrete screen, 137,208 in the quick MC): `calculate_diffraction_overlap_batched` 86 s cumulative of
+which its own Python 46 s, `get_scattering_omegas_torch` 15 s, torch small-tensor ops (sum, reshape, einsum, where) about
+15 s, the C `stage_d_overlap` 7 s (5%). So the baseline coarse stage is bound by Python / torch overhead of about
+0.5 ms per single-orientation evaluation, not by the overlap test. The rule's cost after the C check is 12% (R2) and
+27% (A) over the cpp arm. Not done: batching many orientations per call (the screen evaluates orientations one by
+one inside `run_discrete_search`; the MC is sequential by construction). A batched screen would change float32
+matmul shapes and is not guaranteed bit-identical, so it was left out.

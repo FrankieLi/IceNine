@@ -29,7 +29,7 @@ from .diffraction_core import (
     get_scattering_omegas_torch,
 )
 from .experimental_data import ExperimentalData
-from .ray_overlap import RayRule, apply_cases_python, ray_flags
+from .ray_overlap import RayRule, apply_cases_python, ray_flags, ray_flags_c
 from .sample import Sample
 from .simulation import Simulation
 from .simulation_range import SimulationRange
@@ -48,6 +48,8 @@ try:
 except ImportError:
     _C_HAS_RAY_RULE = False
 _WARNED_STALE_EXT = False
+# Observed-ray flags in C (False = the per-peak Python reference ray_overlap.ray_flags; tests).
+USE_C_RAY_FLAGS = True
 
 
 # ---------------------------------------------------------------------------
@@ -626,18 +628,21 @@ def calculate_diffraction_overlap_batched(
                 "build_ext --inplace"
             )
         pix0 = per_det_pixels[0].numpy().astype(np.float64)  # (M, 3, 2) [col, row]
-        obs_in, obs_bright = ray_flags(
-            ray_rule,
-            detector_list,
-            exp_data,
-            np.asarray(v_wedge),
-            lab_verts.mean(dim=1).double().numpy(),
-            per_det_all_hit[0].numpy(),
-            pix0,
-            pixel_radius,
-            voxel_size,
-            abs(float(range_map.width)),
-        )
+        ray_origins = lab_verts.mean(dim=1).double().numpy()
+        ray_omega_step = abs(float(range_map.width))
+        if not (_HAS_C_RASTERIZE and mode == 'hard' and USE_C_RAY_FLAGS):
+            obs_in, obs_bright = ray_flags(
+                ray_rule,
+                detector_list,
+                exp_data,
+                np.asarray(v_wedge),
+                ray_origins,
+                per_det_all_hit[0].numpy(),
+                pix0,
+                pixel_radius,
+                voxel_size,
+                ray_omega_step,
+            )
 
     global _WARNED_STALE_EXT
     if cpp_rule and _HAS_C_RASTERIZE and not _C_HAS_CPP_RULE and not _WARNED_STALE_EXT:
@@ -666,6 +671,21 @@ def calculate_diffraction_overlap_batched(
             for d in range(n_detectors):
                 image_list.append(exp_data.get_image(int(w), d).get_binary_numpy())
 
+        if ray_rule is not None and obs_in is None:
+            # observed-ray check for all peaks of the evaluation in one C call (no Python loop)
+            obs_in, obs_bright = ray_flags_c(
+                ray_rule,
+                detector_list,
+                image_list,
+                local_wedge,
+                ray_origins,
+                per_det_all_hit[0].numpy(),
+                pix0,
+                pixel_radius,
+                voxel_size,
+                ray_omega_step,
+            )
+
         # Build det_hit_mask: (M, n_det) uint8
         det_hit = np.stack(
             [per_det_all_hit[d].numpy().astype(np.uint8) for d in range(n_detectors)],
@@ -691,7 +711,7 @@ def calculate_diffraction_overlap_batched(
                 n_detectors, pixel_radius, M, img_rows, img_cols,
                 *((1,) if cpp_rule else ()),
                 *(
-                    (obs_in, obs_bright, int(ray_rule.f1))
+                    (obs_in, obs_bright)
                     if ray_rule is not None
                     else ()
                 ),
@@ -710,7 +730,7 @@ def calculate_diffraction_overlap_batched(
                 n_detectors, pixel_radius, M, img_rows, img_cols,
                 *((1,) if cpp_rule else ()),
                 *(
-                    (obs_in, obs_bright, int(ray_rule.f1))
+                    (obs_in, obs_bright)
                     if ray_rule is not None
                     else ()
                 ),
@@ -795,7 +815,7 @@ def calculate_diffraction_overlap_batched(
 
             if ray_rule is not None:
                 d_ov, d_on = apply_cases_python(
-                    detector_lit, spot_overlap, obs_in[p], obs_bright[p], ray_rule.f1, case_counts
+                    detector_lit, spot_overlap, obs_in[p], obs_bright[p], case_counts
                 )
                 peak_pixel_overlap += d_ov
                 peak_pixel_on_det += d_on

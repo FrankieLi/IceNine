@@ -21,7 +21,7 @@ needs_ext = pytest.mark.skipif(
 )
 
 
-def _stage_d(lit_pred, bright_pred, obs_in, obs_bright, f1):
+def _stage_d(lit_pred, bright_pred, obs_in, obs_bright):
     """Run the C stage on one peak with 2 detectors whose predicted-spot state is set by images.
 
     lit_pred / bright_pred: predicted spot in bounds / bright on detector 1 (detector 0 is bright).
@@ -38,21 +38,20 @@ def _stage_d(lit_pred, bright_pred, obs_in, obs_bright, f1):
     oi = np.array([[0, int(obs_in)]], np.uint8)
     ob = np.array([[0, int(obs_bright)]], np.uint8)
     return CF._c_stage_d_overlap(
-        [img0, img1], wedge, hit, centers, None, 2, 1, 1, rows, cols, 1, oi, ob, int(f1)
+        [img0, img1], wedge, hit, centers, None, 2, 1, 1, rows, cols, 1, oi, ob
     )
 
 
 @needs_ext
 def test_cases_a_to_f_c_stage():
-    # (predicted in bounds, predicted bright, observed in bounds, observed bright, f1) -> valid
+    # (predicted in bounds, predicted bright, observed in bounds, observed bright) -> valid
     table = {
-        "a": ((1, 1, 0, 0, 0), 1, 0),
-        "b": ((1, 0, 1, 1, 0), 1, 1),
-        "c": ((1, 0, 1, 0, 0), 0, 2),
-        "d": ((0, 0, 0, 0, 0), 1, 3),
-        "e": ((1, 0, 0, 0, 0), 1, 4),
-        "f0": ((0, 0, 1, 0, 0), 1, 5),
-        "f1": ((0, 0, 1, 0, 1), 0, 5),
+        "a": ((1, 1, 0, 0), 1, 0),
+        "b": ((1, 0, 1, 1), 1, 1),
+        "c": ((1, 0, 1, 0), 0, 2),
+        "d": ((0, 0, 0, 0), 1, 3),
+        "e": ((1, 0, 0, 0), 1, 4),
+        "f": ((0, 0, 1, 0), 1, 5),  # always forgiven (f1 dropped 2026-10-12)
     }
     for name, (args, valid, case) in table.items():
         res = _stage_d(*args)
@@ -73,9 +72,9 @@ def test_c_stage_equals_python_twin():
     centers = np.ascontiguousarray(rng.integers(-3, 35, (n_peaks, n_det, 2)).astype(np.int32))
     oi = (rng.random((n_peaks, n_det)) < 0.6).astype(np.uint8)
     ob = (oi & (rng.random((n_peaks, n_det)) < 0.5)).astype(np.uint8)
-    for f1 in (0, 1):
+    for _ in range(1):
         res = CF._c_stage_d_overlap(
-            images, wedge, hit, centers, None, n_det, rad, n_peaks, rows, cols, 1, oi, ob, f1
+            images, wedge, hit, centers, None, n_det, rad, n_peaks, rows, cols, 1, oi, ob
         )
         po = pon = 0
         cases = np.zeros(8, np.int64)
@@ -86,7 +85,7 @@ def test_c_stage_equals_python_twin():
                 sub = images[d][max(r - rad, 0) : r + rad + 1, max(c - rad, 0) : c + rad + 1]
                 inb = bool(c + rad >= 0 and r + rad >= 0 and c - rad < cols and r - rad < rows)
                 lit[d], ov[d] = inb, bool(inb and sub.any())
-            apply_cases_python(lit, ov, oi[p], ob[p], bool(f1), cases)
+            apply_cases_python(lit, ov, oi[p], ob[p], cases)
             on, o, _ = count_qualified_peaks(lit, ov, n_det, cpp_rule=True)
             pon += on
             po += o
@@ -203,9 +202,9 @@ def test_config_keys(tmp_path):
     assert SearchParameters.from_config(cfg).ray_rule is None
     for spec, arm, rad in (("R4", "R", 4), ("A", "A", 2)):
         f = tmp_path / f"{spec}.config"
-        f.write_text(text + f"\nRayOverlapRule {spec}\nRayOverlapF1 1\n")
+        f.write_text(text + f"\nRayOverlapRule {spec}\n")
         rule = SearchParameters.from_config(ConfigFile.from_file(str(f))).ray_rule
-        assert rule is not None and rule.arm == arm and rule.f1 is True
+        assert rule is not None and rule.arm == arm
         if arm == "R":
             assert rule.radius_px == rad
         assert rule.registration_mm == pytest.approx(0.010)
@@ -232,3 +231,29 @@ def test_rule_only_in_coarse_levels():
     assert all(rec._ray_rule_for_level(k) is None for k in range(5))
     assert rec._cost_flags() == {}
     assert rec._cost_flags(RayRule()) == dict(cpp_overlap_rule=True, center_screen=True)
+
+
+@needs_ext
+@pytest.mark.parametrize("rule", [RayRule(arm="R", radius_px=r) for r in (0, 1, 3)] + [
+    RayRule(arm="A", registration_mm=0.5)
+])
+@pytest.mark.parametrize("pixel_radius", [0, 2])
+def test_c_ray_flags_equal_python_reference(rule, pixel_radius):
+    """The C ray check gives the same flags as the Python reference (ray_overlap.ray_flags)."""
+    from icenine.ray_overlap import ray_flags_c
+
+    rng = np.random.default_rng(5)
+    n, m, n_det = 40, 400, 3
+    dets = [_fake_detector(10.0 * (1 + d)) for d in range(n_det)]
+    imgs = [(rng.random((n, n)) < 0.25).astype(np.uint8) for _ in range(n_det)]
+    px = np.zeros((m, 3, 2))
+    px[:, :, 0] = rng.uniform(-3, 42, (m, 1)) + rng.uniform(0, 1.5, (m, 3))
+    px[:, :, 1] = rng.uniform(-3, 42, (m, 1)) + rng.uniform(0, 1.5, (m, 3))
+    origins = np.concatenate([rng.uniform(-0.5, 0.5, (m, 2)), np.zeros((m, 1))], axis=1)
+    hit = rng.random(m) < 0.9
+    ref = ray_flags(rule, dets, _Exp(imgs), np.zeros(m, np.int64), origins, hit, px, pixel_radius,
+                    0.3, 0.035)
+    got = ray_flags_c(rule, dets, imgs, np.zeros(m, np.int32), origins, hit, px, pixel_radius,
+                      0.3, 0.035)
+    assert ref[0].sum() > 0 and ref[1].sum() > 0
+    assert np.array_equal(ref[0], got[0]) and np.array_equal(ref[1], got[1])

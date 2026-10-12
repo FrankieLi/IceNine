@@ -137,7 +137,7 @@ class SearchParameters:
     # cpp_center_screen is an A/B sub-flag (not a config key): False keeps vertex 0 in the screen.
     cpp_overlap_rule: bool = False
     cpp_center_screen: bool = True
-    # ray_rule: opt-in (config keys RayOverlapRule, RayOverlapF1), default None = off. The
+    # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
     # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
     # 0 .. ray_rule.levels-1 (default 0-2): screen, re-cost, quick MC and ranking cut. FindOptimal,
     # VarianceMinimizing, the final cost and the confidence keep the strict C++ rule. The two

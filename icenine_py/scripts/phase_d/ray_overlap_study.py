@@ -3,7 +3,7 @@
 
 Step 1 (peak level, no search) and step 2 (coarse stage levels 0-2, no FindOptimal) on full-sample
 images (clean and realistic stacks), about 30 voxels, arms: old rule, C++ rule, and the ray rule
-x {f0, f1} x {R1, R2, R4, R8, A}.
+x {R1, R2, R4, R8, A} (arm names f0_*; the f1 variant was dropped 2026-10-12).
 
   uv run python scripts/phase_d/ray_overlap_study.py pilot            # 2 voxels, timed
   uv run python scripts/phase_d/ray_overlap_study.py run --step 1 --workers 8
@@ -35,7 +35,8 @@ MIC = "SimInput/rand_500grains_1mm_neworient_s0.mic"
 BASIN_DEG = 3.0
 VARIANTS = ("clean", "realistic")
 TOLS = ("R1", "R2", "R4", "R8", "A")
-ARM_NAMES = ["old", "cpp"] + [f"f{f}_{t}" for t in TOLS for f in (0, 1)]
+# arm names keep the "f0_" prefix of the earlier results; f1 was dropped 2026-10-12
+ARM_NAMES = ["old", "cpp"] + [f"f0_{t}" for t in TOLS]
 NEAR_DEG = (0.5, 1.0, 2.0, 5.0)
 N_NEAR, N_RANDOM = 10, 200
 N_CASES = 8
@@ -51,10 +52,11 @@ def arm_spec(name: str, registration_mm: float) -> Tuple[bool, Optional[Any]]:
     if name == "cpp":
         return True, None
     f, tol = name.split("_")
-    f1 = f == "f1"
+    if f != "f0":
+        raise ValueError(f"arm {name!r}: only f0 exists (f1 dropped 2026-10-12)")
     if tol == "A":
-        return True, RayRule(arm="A", f1=f1, registration_mm=registration_mm)
-    return True, RayRule(arm="R", radius_px=int(tol[1:]), f1=f1, registration_mm=registration_mm)
+        return True, RayRule(arm="A", registration_mm=registration_mm)
+    return True, RayRule(arm="R", radius_px=int(tol[1:]), registration_mm=registration_mm)
 
 
 def select_voxels() -> List[int]:

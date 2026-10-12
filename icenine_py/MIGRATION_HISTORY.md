@@ -5243,13 +5243,30 @@ detector-1 pixel, which is what a real spot from a slightly different orientatio
 0-2 (pixel-radius screen, re-cost, quick MC, ranking cut). FindOptimal, VarianceMinimizing, the final cost and the
 confidence use the strict predicted-spot rule (the C++ rule when `CppOverlapRule` is 1). The level loop in
 `AdaptiveVoxelReconstructor.reconstruct_voxel` picks the cost function per level (`_ray_rule_for_level`); the coarse
-levels turn the C++ rule and the centroid screen on as well. Off by default (config `RayOverlapRule off|R<n>|A`,
-`RayOverlapF1 0|1`); default behaviour and the goldens are unchanged.
+levels turn the C++ rule and the centroid screen on as well. Off by default (config `RayOverlapRule off|R<n>|A`);
+default behaviour and the goldens are unchanged. (The key `RayOverlapF1` of the first version was removed, see the
+decision below.)
+
+**Decision 2026-10-12 (owner): case f1 dropped.** Case f (predicted spot out of bounds on detector 1, observed ray
+lands in bounds on dark pixels) is always forgiven (f0, as in the C++ rule). The f1 variant (reject) wrongly rejected
+real peaks: at the truth the screen kept 0.966 of the evaluations for arm A with f1 against 0.994 with f0 (clean images,
+step 1; case f fired for 0.029 of the events at the truth), and steps 1-2 showed no benefit. The key `RayOverlapF1`,
+the `ray_f1` argument of the C stage and the f1 code path are removed; arm names in the result files keep the `f0_`
+prefix and the f1 rows in the tables below are the historical result. May revisit.
+
+**Speed (2026-10-12).** The observed-ray check is now one C call per evaluation (`_rasterize.ray_flags`, next to
+`stage_d_overlap`; `ray_overlap.ray_flags` stays as the Python reference, switch `cost_functions.USE_C_RAY_FLAGS`).
+Identical flags, costs and case counts on 5784 evaluations; per-level results of the coarse stage identical on 3 voxels
+(full suite 872 passed, 34 skipped, 1 deselected). Per voxel, levels 0-2, single-worker: arm R2 from 293 / 294 / 289 s to
+132 / 131 / 132 s, arm A from 340 / 337 / 335 s to 149 / 149 / 148 s (voxels 22867, 15901, 17034), against 117 / 116 / 118 s
+for the cpp arm and 162 / 164 / 168 s for the old arm (unchanged code). Profile of the cpp arm: 233,546 single-orientation
+evaluations, about 0.5 ms each, almost all Python / torch overhead (the C overlap stage is 5% of the time); batching
+orientations per call was not attempted (not guaranteed bit-identical). Details in `ray_overlap/RUN_LOG.md` section 7.
 
 **Rule, per peak, per later detector, once the predicted detector-0 spot overlaps:** a predicted bright: valid;
 b predicted in bounds and dark, observed ray bright: valid; c both in bounds and dark: invalid; d both out of bounds:
 valid; e predicted in bounds and dark, observed ray out of bounds: valid; f predicted out of bounds, observed in
-bounds and dark: f0 valid (C++ forgives) or f1 invalid. Tolerance on detector 1: arm R an isotropic square of
+bounds and dark: valid (f0, the C++ rule forgives; the f1 variant was dropped, see the decision). Tolerance on detector 1: arm R an isotropic square of
 1, 2, 4 or 8 pixels; arm A an anisotropic window (voxel size x (L1/L0-1) + detector-0 pixel x L1/L0 + registration
 `DetectorSpacingDeviation`, plus arc motion r d_omega (L1/L0-1) along the arc direction; orientation-gradient blur
 ignored). Implementation choices that the plan left open: the ray starts at the voxel centroid at the peak's omega;

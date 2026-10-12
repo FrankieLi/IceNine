@@ -706,7 +706,7 @@ class AdaptiveVoxelReconstructor:
     def _ray_rule_for_level(self, level: int) -> Optional[RayRule]:
         """The ray-consistency rule for this search level, or None (strict C++ / default rule).
 
-        Opt-in (config keys RayOverlapRule, RayOverlapF1). Only levels 0 .. rule.levels-1 (default
+        Opt-in (config key RayOverlapRule). Only levels 0 .. rule.levels-1 (default
         0-2) use it; FindOptimal, VarianceMinimizing and the final cost never do (two costs by
         design, see ray_overlap.py).
         """
