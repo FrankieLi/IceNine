@@ -48,6 +48,7 @@ from .sampling import (
     quaternion_to_matrix,
 )
 from .simulation import Simulation
+from .ray_overlap import RayRule
 from .simulation_range import SimulationRange
 
 if TYPE_CHECKING:
@@ -500,6 +501,7 @@ class AdaptiveVoxelReconstructor:
 
         candidates = []
         total_global_evals = 0
+        ray_local_fns: List[VoxelCostFunction] = []  # coarse-level local cost fns (ray rule)
         self.last_level_best = []
         self.last_find_optimal = {}
 
@@ -510,6 +512,23 @@ class AdaptiveVoxelReconstructor:
             # C++ DiscreteAdaptive.tmpl.cpp:149
             local_grid = generate_local_grid_multi_level(diameter, 0, 1)
 
+            # Ray-consistency rule (opt-in): coarse levels only. TWO COSTS DIFFER BY DESIGN: levels
+            # 0 .. ray_rule.levels-1 (screen, re-cost, quick MC, ranking cut) use the combined
+            # rule; later levels, FindOptimal, VarianceMinimizing and the final cost/confidence
+            # use the strict C++ rule (local_cost_fn / mc_optimizer above).
+            ray = self._ray_rule_for_level(level)
+            level_local_fn = local_cost_fn
+            level_mc = mc_optimizer
+            if ray is not None:
+                level_local_fn = self._make_local_cost_fn(ray_rule=ray)
+                ray_local_fns.append(level_local_fn)
+                level_mc = MCOptimizer(
+                    cost_fn=level_local_fn,
+                    voxel_vertices=voxel_vertices,
+                    phase_index=phase_index,
+                    rng=mc_optimizer.rng,
+                )
+
             # Global cost function with current nQMax
             # C++ DiscreteAdaptive.tmpl.cpp:65-66 nPixelRadius=3
             global_cost_fn = VoxelCostFunction(
@@ -517,7 +536,7 @@ class AdaptiveVoxelReconstructor:
                 detector_list=self.setup.detector_list,
                 range_map=self.setup.range_map,
                 exp_data=self.setup.exp_data,
-                **self._cost_flags(),
+                **self._cost_flags(ray),
                 sample=self.setup.sample,
                 structure_list=self.setup.structure_list,
                 mode="hard",
@@ -525,6 +544,7 @@ class AdaptiveVoxelReconstructor:
                 pixel_radius=self.global_pixel_radius,
                 max_q=n_q_max,
                 min_sin_eta=self.min_sin_eta,
+                ray_rule=ray,
             )
 
             # Phase 1: Discrete search
@@ -539,7 +559,7 @@ class AdaptiveVoxelReconstructor:
 
             candidates = run_discrete_search_spaced(
                 global_cost_fn=global_cost_fn,
-                local_cost_fn=local_cost_fn,
+                local_cost_fn=level_local_fn,
                 fz_orientations=fz_orientations,
                 local_grid=local_grid,
                 voxel_vertices=voxel_vertices,
@@ -598,7 +618,7 @@ class AdaptiveVoxelReconstructor:
             trial_step = trial_box_width * self.params.mc_radius_scale_factor
 
             for cand in candidates:
-                result = mc_optimizer.optimize(
+                result = level_mc.optimize(
                     initial_orientation=cand.orientation,
                     angular_box_side=trial_box_width,
                     angular_step=trial_step,
@@ -677,26 +697,47 @@ class AdaptiveVoxelReconstructor:
 
         # Store eval counts for benchmarking
         self._last_global_evals = total_global_evals
-        self._last_local_evals = local_cost_fn.eval_count
+        self._last_local_evals = local_cost_fn.eval_count + sum(
+            f.eval_count for f in ray_local_fns
+        )
 
         return best_candidate
 
-    def _cost_flags(self) -> Dict[str, bool]:
+    def _ray_rule_for_level(self, level: int) -> Optional[RayRule]:
+        """The ray-consistency rule for this search level, or None (strict C++ / default rule).
+
+        Opt-in (config keys RayOverlapRule, RayOverlapF1). Only levels 0 .. rule.levels-1 (default
+        0-2) use it; FindOptimal, VarianceMinimizing and the final cost never do (two costs by
+        design, see ray_overlap.py).
+        """
+        rule = getattr(self.setup.search_params, "ray_rule", None)
+        if rule is not None and level < rule.levels:
+            return rule
+        return None
+
+    def _cost_flags(self, ray: Optional[RayRule] = None) -> Dict[str, Any]:
         """Opt-in C++ overlap rules (config key CppOverlapRule): the literal C++ CountQualifiedPeaks
-        and the centroid projection of the pixel-radius screen. Empty (defaults) when off."""
+        and the centroid projection of the pixel-radius screen. Empty (defaults) when off.
+        With ``ray`` (coarse levels only) the C++ rule and the centroid screen are on as well."""
+        if ray is not None:
+            center = getattr(self.setup.search_params, "cpp_center_screen", True)
+            return dict(cpp_overlap_rule=True, center_screen=bool(center))
         if getattr(self.setup.search_params, "cpp_overlap_rule", False):
             center = getattr(self.setup.search_params, "cpp_center_screen", True)
             return dict(cpp_overlap_rule=True, center_screen=bool(center))
         return {}
 
-    def _make_local_cost_fn(self) -> VoxelCostFunction:
-        """Local cost function (pixel_radius=0) used for MC, re-evaluation and the final overlap."""
+    def _make_local_cost_fn(self, ray_rule: Optional[RayRule] = None) -> VoxelCostFunction:
+        """Local cost function (pixel_radius=0) used for MC, re-evaluation and the final overlap.
+        ``ray_rule`` (coarse levels only, see reconstruct_voxel) adds the ray-consistency rule;
+        the default call is the strict cost used for FindOptimal and the final cost."""
         return VoxelCostFunction(
             simulator=self.setup.simulator,
             detector_list=self.setup.detector_list,
             range_map=self.setup.range_map,
             exp_data=self.setup.exp_data,
-            **self._cost_flags(),
+            **self._cost_flags(ray_rule),
+            ray_rule=ray_rule,
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
             mode="hard",

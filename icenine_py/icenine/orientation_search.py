@@ -19,6 +19,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from .cost_functions import OverlapInfo, VoxelCostFunction
+from .ray_overlap import RayRule, ray_rule_from_config
 from .sampling import (
     QuaternionGrid,
     generate_local_grid,
@@ -136,6 +137,12 @@ class SearchParameters:
     # cpp_center_screen is an A/B sub-flag (not a config key): False keeps vertex 0 in the screen.
     cpp_overlap_rule: bool = False
     cpp_center_screen: bool = True
+    # ray_rule: opt-in (config keys RayOverlapRule, RayOverlapF1), default None = off. The
+    # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
+    # 0 .. ray_rule.levels-1 (default 0-2): screen, re-cost, quick MC and ranking cut. FindOptimal,
+    # VarianceMinimizing, the final cost and the confidence keep the strict C++ rule. The two
+    # costs differ by design. Implies cpp_overlap_rule for those levels.
+    ray_rule: Optional[RayRule] = None
 
     def __post_init__(self) -> None:
         if self.local_optimizer not in LOCAL_OPTIMIZERS:
@@ -184,6 +191,7 @@ class SearchParameters:
             bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
+            ray_rule=ray_rule_from_config(config),
         )
 
 

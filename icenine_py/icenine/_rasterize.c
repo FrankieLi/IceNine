@@ -615,16 +615,41 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
     PyObject *pixel_centers_obj, *pixel_vertices_obj;
     int n_detectors, pixel_radius, n_peaks, image_rows, image_cols;
     int cpp_rule = 0;
+    PyObject *obs_in_obj = Py_None, *obs_bright_obj = Py_None;
+    int ray_f1 = 0;
 
-    if (!PyArg_ParseTuple(args, "O!O!O!OOiiiii|i",
+    if (!PyArg_ParseTuple(args, "O!O!O!OOiiiii|iOOi",
             &PyList_Type, &image_list,
             &PyArray_Type, &wedge_indices_arr,
             &PyArray_Type, &det_hit_mask_arr,
             &pixel_centers_obj,
             &pixel_vertices_obj,
             &n_detectors, &pixel_radius, &n_peaks,
-            &image_rows, &image_cols, &cpp_rule))
+            &image_rows, &image_cols, &cpp_rule,
+            &obs_in_obj, &obs_bright_obj, &ray_f1))
         return NULL;
+
+    /* Optional ray-consistency inputs (icenine/ray_overlap.py): (M, N_det) uint8, observed ray
+       in bounds / bright on detector d. Both given -> the combined rule is applied. */
+    const npy_uint8 *obs_in = NULL, *obs_bright = NULL;
+    if (obs_in_obj != Py_None || obs_bright_obj != Py_None) {
+        if (obs_in_obj == Py_None || obs_bright_obj == Py_None ||
+            !PyArray_Check(obs_in_obj) || !PyArray_Check(obs_bright_obj) ||
+            PyArray_TYPE((PyArrayObject *)obs_in_obj) != NPY_UINT8 ||
+            PyArray_TYPE((PyArrayObject *)obs_bright_obj) != NPY_UINT8 ||
+            !PyArray_IS_C_CONTIGUOUS((PyArrayObject *)obs_in_obj) ||
+            !PyArray_IS_C_CONTIGUOUS((PyArrayObject *)obs_bright_obj) ||
+            PyArray_SIZE((PyArrayObject *)obs_in_obj) < (npy_intp)n_peaks * n_detectors ||
+            PyArray_SIZE((PyArrayObject *)obs_bright_obj) < (npy_intp)n_peaks * n_detectors) {
+            PyErr_SetString(PyExc_TypeError,
+                "obs_in/obs_bright must both be C-contiguous (M, N_det) uint8 arrays");
+            return NULL;
+        }
+        obs_in = (const npy_uint8 *)PyArray_DATA((PyArrayObject *)obs_in_obj);
+        obs_bright = (const npy_uint8 *)PyArray_DATA((PyArrayObject *)obs_bright_obj);
+    }
+    /* case counters: a b c d e f_dark f_bright det0_bright */
+    long cases[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
     if (n_detectors > MAX_DETECTORS) {
         PyErr_SetString(PyExc_ValueError, "n_detectors exceeds MAX_DETECTORS");
@@ -797,6 +822,36 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
             }
         }
 
+        /* Ray-consistency rule (see ray_overlap.py): once the predicted spot is bright on
+           detector 0, a later detector d whose predicted spot is not bright is decided by the
+           observed ray. a: predicted bright (nothing). b: predicted lit and dark, observed ray
+           bright -> overlap. c: both in bounds and dark -> unchanged (invalid under the C++
+           rule). d: both out of bounds -> unchanged (unlit tolerated). e: predicted lit and
+           dark, observed out of bounds -> treated as unlit. f: predicted out of bounds,
+           observed in bounds and dark -> unchanged (f0, forgiven) or, with ray_f1, a lit
+           non-overlap (invalid). Predicted out of bounds with the observed ray bright is
+           counted separately (f_bright) and left unchanged. */
+        if (obs_in && spot_overlap[0]) {
+            cases[7]++;
+            for (int d = 1; d < n_detectors; d++) {
+                int oi = obs_in[p * n_detectors + d];
+                int ob = obs_bright[p * n_detectors + d];
+                if (spot_overlap[d]) { cases[0]++; continue; }
+                if (detector_lit[d]) {
+                    if (ob) { spot_overlap[d] = 1; peak_pixel_overlap++; cases[1]++; }
+                    else if (!oi) { detector_lit[d] = 0; peak_pixel_on_det--; cases[4]++; }
+                    else cases[2]++;
+                } else if (!oi) {
+                    cases[3]++;
+                } else if (ob) {
+                    cases[6]++;
+                } else {
+                    cases[5]++;
+                    if (ray_f1) { detector_lit[d] = 1; peak_pixel_on_det++; }
+                }
+            }
+        }
+
         /* Qualified peak counting */
         int peak_on_det, peak_ovlp, n_det_ovlp;
         count_qualified_peaks_c(
@@ -828,6 +883,12 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
 
     free(image_ptrs);
 
+    if (obs_in) {
+        return Py_BuildValue("(iiiidii(llllllll))",
+            total_pixel_overlap, total_pixel_on_det, total_peak_overlap, total_peak_on_det,
+            quality, n_quality_points, last_n_det_ovlp,
+            cases[0], cases[1], cases[2], cases[3], cases[4], cases[5], cases[6], cases[7]);
+    }
     return Py_BuildValue("(iiiidii)",
         total_pixel_overlap,
         total_pixel_on_det,
@@ -872,5 +933,6 @@ PyMODINIT_FUNC PyInit__rasterize(void) {
     import_array();
     PyObject *m = PyModule_Create(&rasterize_module);
     if (m != NULL) PyModule_AddIntConstant(m, "HAS_CPP_RULE", 1);
+    if (m != NULL) PyModule_AddIntConstant(m, "HAS_RAY_RULE", 1);
     return m;
 }

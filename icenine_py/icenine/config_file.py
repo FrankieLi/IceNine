@@ -217,6 +217,9 @@ class ConfigFile:
     bfs_restart_pass: bool = False  # FITTED border voxels push onto REFIT voxels after the BFS
     bfs_reseed: bool = False  # one full no-start search per leftover REFIT cluster (opt-in)
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
+    # ray-consistency rule (coarse levels 0-2 only): "off", "R<n>" (isotropic n px) or "A"
+    ray_overlap_rule: str = "off"
+    ray_overlap_f1: bool = False  # case f variant: False = f0 (forgive), True = f1 (invalid)
 
     # ========================================================================
     # Parameter Optimization (18 parameters)
@@ -461,6 +464,8 @@ class ConfigFile:
             'BFSRestartPass': self._parse_bool('bfs_restart_pass'),
             'BFSReseed': self._parse_bool('bfs_reseed'),
             'CppOverlapRule': self._parse_bool('cpp_overlap_rule'),
+            'RayOverlapRule': self._parse_ray_overlap_rule,
+            'RayOverlapF1': self._parse_bool('ray_overlap_f1'),
 
             # Parameter Optimization
             'OptimizationFilename': self._parse_string('optimization_filename'),
@@ -571,6 +576,18 @@ class ConfigFile:
     def _parse_string(self, attr_name: str):
         """Create parser for string parameter."""
         return self._make_parser(attr_name, converter=None)
+
+    def _parse_ray_overlap_rule(self, tokens: List[str]) -> None:
+        """RayOverlapRule off|R<n>|A (Python-only, opt-in; ray_overlap.RayRule, levels 0-2)."""
+        if len(tokens) < 2:
+            raise ValueError(f"Missing value for {tokens[0]}")
+        value = tokens[1]
+        ok = value.lower() in ('off', '0', 'a') or (
+            value[:1] in ('R', 'r') and value[1:].isdigit()
+        )
+        if not ok:
+            raise ValueError(f"RayOverlapRule must be off, R<n> or A, got {value!r}")
+        self.ray_overlap_rule = 'off' if value.lower() in ('off', '0') else value.upper()
 
     def _parse_local_optimizer(self, tokens: List[str]) -> None:
         """LocalOptimizer mc|cma (Python-only; selects the local refinement optimizer)."""
