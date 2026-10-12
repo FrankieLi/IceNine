@@ -44,6 +44,13 @@ Tolerance window on detector d (half-widths in detector-d pixels)
          range map, registration the DetectorSpacingDeviation. Each term is taken as a half-width
          (a conservative reading). Blurring from orientation gradients is ignored.
 
+  WINDOW DECISION (owner, 2026-10-12): the half-width reading above is the intended one, and
+  both windows stay as set, untuned: arm R as R<n> pixels (R2 carried to step 3), arm A as the
+  formula above. Steps 1-2 did not separate R2 from A. The rule is used at levels 0-2 only;
+  level 3, FindOptimal, VarianceMinimizing and the final cost stay strict (kept for step 3,
+  revisit if step 3 loses the truth at level 3). The C copy of the arm A formula is in
+  ``_rasterize.c`` (``ray_flags``), marked with the same decision note.
+
 Approximations: the detector-0 "bright pixels the spot overlaps" are the bright pixels of the
 +-pixel_radius window around the projected centre (screen, radius > 0) or of the bounding box of
 the projected triangle (local cost, radius 0); at most ``MAX_RAYS`` of them are used.

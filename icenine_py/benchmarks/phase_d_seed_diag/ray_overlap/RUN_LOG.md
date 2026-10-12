@@ -30,6 +30,8 @@ Default off; library behaviour unchanged. Update 2026-10-12: case f1 and the `Ra
 - "Levels 0-2": max_local_resolution is 3, so there are levels 0-3; level 3 uses the strict cost.
 - When `CppOverlapRule` is 0 the strict part of the search is the OLD rule; the experiments here set it on for the
   `cpp` and ray arms and off for the `old` arm.
+- Owner review 2026-10-12: the half-width reading and levels 0-2 confirmed; no objection to the rest. Arm A terms are half-widths (intended reading); windows stay as
+  set, untuned ("WINDOW DECISION" note in ray_overlap.py and _rasterize.c); R2 and A go to step 3; level 3 stays strict.
 
 ## 3. Runs
 

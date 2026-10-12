@@ -1062,6 +1062,9 @@ static PyObject* ray_flags_c(PyObject *self, PyObject *args) {
                         lo_c = to_long(trunc(col)) - radius_px; hi_c = lo_c + 2 * radius_px;
                         lo_r = to_long(trunc(row)) - radius_px; hi_r = lo_r + 2 * radius_px;
                     } else {
+                        /* Arm A window. WINDOW DECISION (owner, 2026-10-12): every term is a
+                         * half-width (intended reading); the window stays as set, untuned.
+                         * Same formula and note as the ray_overlap.py module docstring. */
                         double ratio = t;
                         double iso = (voxel_size * (ratio - 1.0)
                                       + 0.5 * (g0[16] + g0[17]) * ratio) + registration;
