@@ -6105,6 +6105,9 @@ deselected, and the default no-start search of voxel 15901 gives the stored 327,
 5. *E0 clean (200 voxels, paired).* No detectable change in the wrong count; 20 to 25% of the voxels change status
    in each comparison, in both directions.
 
+Figures (`scripts/eval_reduction/make_figures.py`): `benchmarks/eval_reduction/A/figures/parity_with_cpp.png`,
+`stages_python_vs_cpp.png`, `screen_time_split.png`.
+
 #### Step 0: fixed-orientation parity
 
 A scratch C++ build (`benchmarks/eval_reduction/A/step0/cpp_parity_patch.py.txt`; the build is not kept) reads
