@@ -124,9 +124,9 @@
  "six": [
   {
    "voxel": 15901,
-   "old_err": 0.04240996131220613,
-   "old_evals": 1687675,
-   "old_wall": 897.466413042,
+   "old_err": 0.017005001792143985,
+   "old_evals": 328519,
+   "old_wall": 172.405076416,
    "cpp_err": 0.029064769110032015,
    "cpp_evals": 237739,
    "cpp_wall": 125.46437966599999,
@@ -139,9 +139,9 @@
   },
   {
    "voxel": 17034,
-   "old_err": 0.029607278715134376,
-   "old_evals": 952819,
-   "old_wall": 509.118458416,
+   "old_err": 0.02835344308533495,
+   "old_evals": 339561,
+   "old_wall": 176.253276166,
    "cpp_err": 0.06386273852147004,
    "cpp_evals": 246127,
    "cpp_wall": 124.741047,
@@ -154,9 +154,9 @@
   },
   {
    "voxel": 18558,
-   "old_err": 0.005869680450844853,
-   "old_evals": 463626,
-   "old_wall": 245.49644575,
+   "old_err": 0.0048076848873120715,
+   "old_evals": 329367,
+   "old_wall": 174.898097167,
    "cpp_err": 0.003420196941491266,
    "cpp_evals": 209728,
    "cpp_wall": 105.666957375,
@@ -169,9 +169,9 @@
   },
   {
    "voxel": 19889,
-   "old_err": 0.023913605940349907,
-   "old_evals": 626184,
-   "old_wall": 333.17359725,
+   "old_err": 0.021026551119654208,
+   "old_evals": 330209,
+   "old_wall": 174.70153308399998,
    "cpp_err": 0.021171901611595264,
    "cpp_evals": 226453,
    "cpp_wall": 114.73927329200001,
@@ -184,9 +184,9 @@
   },
   {
    "voxel": 22867,
-   "old_err": 0.024361204666945073,
-   "old_evals": 1339563,
-   "old_wall": 752.594914833,
+   "old_err": 0.026300225716775604,
+   "old_evals": 335687,
+   "old_wall": 176.025333375,
    "cpp_err": 0.053000995602597835,
    "cpp_evals": 244186,
    "cpp_wall": 124.533850125,
@@ -199,9 +199,9 @@
   },
   {
    "voxel": 5242,
-   "old_err": 0.027737511225731572,
-   "old_evals": 1063389,
-   "old_wall": 588.9797270839999,
+   "old_err": 0.04931254525097355,
+   "old_evals": 330577,
+   "old_wall": 179.428814958,
    "cpp_err": 0.028130827468266745,
    "cpp_evals": 204646,
    "cpp_wall": 102.23020529200001,
@@ -213,9 +213,271 @@
    "A_wall": 143.32942350000002
   }
  ],
+ "six_labels": [
+  {
+   "voxel": 15901,
+   "arm": "old",
+   "quiet": true,
+   "load1": 1.142578125,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 15901,
+   "arm": "cpp",
+   "quiet": true,
+   "load1": 1.41552734375,
+   "torch_threads": 1,
+   "date": "2026-10-10"
+  },
+  {
+   "voxel": 15901,
+   "arm": "R2",
+   "quiet": false,
+   "load1": 1.5400390625,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 15901,
+   "arm": "A",
+   "quiet": true,
+   "load1": 1.46435546875,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 15901,
+   "arm": "old_stale",
+   "quiet": false,
+   "load1": 1.44677734375,
+   "torch_threads": 1,
+   "date": "2026-10-08"
+  },
+  {
+   "voxel": 17034,
+   "arm": "old",
+   "quiet": false,
+   "load1": 2.7001953125,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 17034,
+   "arm": "cpp",
+   "quiet": false,
+   "load1": 1.99609375,
+   "torch_threads": 1,
+   "date": "2026-10-10"
+  },
+  {
+   "voxel": 17034,
+   "arm": "R2",
+   "quiet": false,
+   "load1": 1.59765625,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 17034,
+   "arm": "A",
+   "quiet": true,
+   "load1": 1.2626953125,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 17034,
+   "arm": "old_stale",
+   "quiet": false,
+   "load1": 1.44677734375,
+   "torch_threads": 1,
+   "date": "2026-10-08"
+  },
+  {
+   "voxel": 18558,
+   "arm": "old",
+   "quiet": true,
+   "load1": 1.34130859375,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 18558,
+   "arm": "cpp",
+   "quiet": true,
+   "load1": 1.35888671875,
+   "torch_threads": 1,
+   "date": "2026-10-10"
+  },
+  {
+   "voxel": 18558,
+   "arm": "R2",
+   "quiet": false,
+   "load1": 1.61669921875,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 18558,
+   "arm": "A",
+   "quiet": false,
+   "load1": 2.58935546875,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 18558,
+   "arm": "old_stale",
+   "quiet": false,
+   "load1": 3.02001953125,
+   "torch_threads": 1,
+   "date": "2026-10-08"
+  },
+  {
+   "voxel": 19889,
+   "arm": "old",
+   "quiet": true,
+   "load1": 1.40380859375,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 19889,
+   "arm": "cpp",
+   "quiet": true,
+   "load1": 1.49267578125,
+   "torch_threads": 1,
+   "date": "2026-10-10"
+  },
+  {
+   "voxel": 19889,
+   "arm": "R2",
+   "quiet": true,
+   "load1": 1.46484375,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 19889,
+   "arm": "A",
+   "quiet": true,
+   "load1": 1.4609375,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 19889,
+   "arm": "old_stale",
+   "quiet": false,
+   "load1": 3.11767578125,
+   "torch_threads": 1,
+   "date": "2026-10-08"
+  },
+  {
+   "voxel": 22867,
+   "arm": "old",
+   "quiet": false,
+   "load1": 2.1015625,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 22867,
+   "arm": "cpp",
+   "quiet": true,
+   "load1": 1.35400390625,
+   "torch_threads": 1,
+   "date": "2026-10-10"
+  },
+  {
+   "voxel": 22867,
+   "arm": "R2",
+   "quiet": false,
+   "load1": 2.13818359375,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 22867,
+   "arm": "A",
+   "quiet": true,
+   "load1": 1.2978515625,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 22867,
+   "arm": "old_stale",
+   "quiet": false,
+   "load1": 1.44677734375,
+   "torch_threads": 1,
+   "date": "2026-10-08"
+  },
+  {
+   "voxel": 5242,
+   "arm": "old",
+   "quiet": true,
+   "load1": 1.2890625,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 5242,
+   "arm": "cpp",
+   "quiet": true,
+   "load1": 1.2919921875,
+   "torch_threads": 1,
+   "date": "2026-10-10"
+  },
+  {
+   "voxel": 5242,
+   "arm": "R2",
+   "quiet": true,
+   "load1": 1.4228515625,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 5242,
+   "arm": "A",
+   "quiet": true,
+   "load1": 1.337890625,
+   "torch_threads": 1,
+   "date": "2026-10-12"
+  },
+  {
+   "voxel": 5242,
+   "arm": "old_stale",
+   "quiet": false,
+   "load1": 3.09912109375,
+   "torch_threads": 1,
+   "date": "2026-10-08"
+  }
+ ],
+ "six_quiet|old": {
+  "n": 6,
+  "n_quiet": 4
+ },
+ "six_quiet|cpp": {
+  "n": 6,
+  "n_quiet": 5
+ },
+ "six_quiet|R2": {
+  "n": 6,
+  "n_quiet": 2
+ },
+ "six_quiet|A": {
+  "n": 6,
+  "n_quiet": 5
+ },
+ "six_quiet|old_stale": {
+  "n": 6,
+  "n_quiet": 0
+ },
  "six|old": {
-  "mean_evals": 1022209.3333333334,
-  "mean_wall_s": 554.4715927291667,
+  "mean_evals": 332320.0,
+  "mean_wall_s": 175.61868852766665,
   "n_wrong": 0
  },
  "six|cpp": {

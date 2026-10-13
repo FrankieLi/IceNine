@@ -33,7 +33,9 @@ CACHE = HERE / "cache"
 DIRS = {"old": "off_ms0", "cpp": "on_ms0", "R2": "rayR2_ms0", "A": "rayA_ms0"}
 RUNS = ICE / "benchmarks" / "phase_d_seed_diag" / "runs"
 SIX = [15901, 17034, 18558, 19889, 22867, 5242]
-SIX_FILES = {"old": "base_full_v{}.json", "cpp": "cpprule_full_v{}.json",
+# old = lenientnow_full_*: lenient rule re-run 2026-10-12 in the current build (the earlier
+# base_full_* runs of 2026-10-08 predate the MC port and the variance-stage fix: old_stale only)
+SIX_FILES = {"old": "lenientnow_full_v{}.json", "cpp": "cpprule_full_v{}.json",
              "R2": "rayR2_full_v{}.json", "A": "rayA_full_v{}.json"}  # fmt: skip
 
 
@@ -85,6 +87,7 @@ def main() -> None:
         ),
     }  # fmt: skip
     six: List[Dict[str, Any]] = []
+    lab: List[Dict[str, Any]] = []
     for v in SIX:
         row: Dict[str, Any] = dict(voxel=v)
         for a, f in SIX_FILES.items():
@@ -95,6 +98,16 @@ def main() -> None:
                     d["err_deg"], d["evals_total"], d["wall_s"],
                 )  # fmt: skip
         six.append(row)
+        for a, f in {**SIX_FILES, "old_stale": "base_full_v{}.json"}.items():
+            p = RUNS / f.format(v)
+            if p.exists():
+                d = json.loads(p.read_text())
+                lab.append(
+                    dict(voxel=v, arm=a, quiet=bool(d["quiet_preflight"]),
+                         load1=d["preflight"]["loadavg"][0],
+                         torch_threads=d["preflight"]["torch_threads"],
+                         date=str(d["preflight"]["timestamp"])[:10])
+                )  # fmt: skip
     if any(len(r) > 1 for r in six):
         cols = ["voxel"] + [f"{a}_{k}" for a in DIRS for k in ("err", "evals", "wall")]
         for r in six:
@@ -104,6 +117,13 @@ def main() -> None:
             six, cols, {c: (".4f" if c.endswith("err") else ".0f") for c in cols if c != "voxel"}
         )
         summ["six"] = six
+        summ["six_labels"] = lab
+        for a in list(DIRS) + ["old_stale"]:
+            rows_a = [x for x in lab if x["arm"] == a]
+            summ[f"six_quiet|{a}"] = dict(n=len(rows_a), n_quiet=sum(x["quiet"] for x in rows_a))
+        tabs["ray_e2e_six_labels"] = doc_tables.markdown_table(
+            lab, ["voxel", "arm", "quiet", "load1", "torch_threads", "date"], {"load1": ".2f"}
+        )
         for a in DIRS:
             ev = [r[f"{a}_evals"] for r in six]
             wl = [r[f"{a}_wall"] for r in six]

@@ -1,20 +1,22 @@
-# RUN_LOG: ray-consistency overlap rule, steps 1-2, 2026-10-11
+# RUN_LOG: ray-consistency overlap rule, steps 1-3, 2026-10-11 to 2026-10-12
 
 Task branch `feature/finisher-mc-study-ray-overlap` (parent `feature/finisher-mc-study`), plan section "Phase D task:
-ray-consistency overlap rule". Steps 1 (peak level) and 2 (coarse stage) are done; step 3 (E0 end to end, 6
-full-sample voxels) is NOT run, as instructed. All timings are "contended" (several workers on the shared laptop; the
-`preflight.json` here was taken while the step-1 job was already running, so it shows the load of that job).
+ray-consistency overlap rule". Steps 1 (peak level), 2 (coarse stage) and 3 (E0 end to end, 6 full-sample voxels)
+are done (step 3 is section 6 below). Unless marked otherwise the timings are "contended" (several workers on the
+shared laptop; the `preflight.json` here was taken while the step-1 job was already running, so it shows the load of
+that job). The six full-sample runs come from three sessions (2026-10-08, 10-10, 10-12) and each file carries its own
+label; see section 6 for which were quiet.
 
 ## 1. What changed
 
 | File | Change |
 |---|---|
 | `icenine/ray_overlap.py` | new: `RayRule`, `ray_flags` (observed ray cast through the bright detector-0 pixels, tolerance window arms R and A), `apply_cases_python` (twin of the C block), `ray_rule_from_config` |
-| `icenine/_rasterize.c` | `stage_d_overlap` takes optional `obs_in`, `obs_bright`, `ray_f1`; cases a-f applied after the per-detector loop; returns 8 case counters as an extra tuple only when the arrays are given; `HAS_RAY_RULE` |
+| `icenine/_rasterize.c` | `stage_d_overlap` takes optional `obs_in`, `obs_bright` (the `ray_f1` argument was removed 2026-10-12); cases a-f applied after the per-detector loop; returns 8 case counters as an extra tuple only when the arrays are given; `HAS_RAY_RULE` |
 | `icenine/cost_functions.py` | `OverlapInfo.ray_cases`; `calculate_diffraction_overlap_batched(ray_rule=, voxel_size=)` (implies `cpp_rule`; fallback Python loop too); `VoxelCostFunction(ray_rule=)` |
 | `icenine/reconstructor.py` | level loop: `_ray_rule_for_level(level)`; levels 0-2 get a ray global cost fn, a ray local cost fn (re-cost) and their own `MCOptimizer` (same rng stream) for the quick MC; FindOptimal, VarianceMinimizing and the final cost keep the strict local cost fn; local evaluation count includes the coarse local fns |
 | `icenine/orientation_search.py`, `config_file.py` | `SearchParameters.ray_rule`; config keys `RayOverlapRule off|R<n>|A` |
-| `tests/test_ray_overlap.py` | 8 tests |
+| `tests/test_ray_overlap.py` | 16 tests |
 | `scripts/phase_d/ray_overlap_study.py`, `ray_overlap_summary.py` | steps 1-2 and the summary |
 
 Default off; library behaviour unchanged. Update 2026-10-12: case f1 and the `RayOverlapF1` key were dropped by owner decision (f1 kept 0.966 vs f0 0.994 of evaluations at the truth, arm A, clean screen, step 1; no benefit in steps 1-2; may revisit); case f is always forgiven. The result files and tables keep the f1 rows as the historical record. `ray_flags` now has a C version (`_rasterize.ray_flags`), see the speed section below. `peak/` (17 MB of per-evaluation rows, regenerated in about 1 min by `run --step 1`) and `cache/` are not committed. The extension must be rebuilt (`HAS_RAY_RULE`); it is gitignored.
@@ -54,9 +56,9 @@ closest candidate was inside the kept set); 12 voxels cannot separate the arms (
 
 ## 5. Verification
 
-- C stage equals the Python twin on random input, both f variants (test).
+- C stage equals the Python twin on random input (test; the f1 variant was dropped).
 - Cases a-f on hand-built C-stage input (test); geometry on synthetic parallel detectors (test).
-- Full suite: `uv run pytest tests/`: 864 passed, 34 skipped, 1 deselected.
+- Full suite: `uv run pytest tests/`: 872 passed, 34 skipped, 1 deselected (before the review fixes; see section 8).
 - Number audit: `audit_numbers.py --doc ../../../../MIGRATION_HISTORY.md --section "Ray-consistency overlap rule" --sources summary.json tables.md`.
 
 ## 6. Could be done better
@@ -75,7 +77,8 @@ closest candidate was inside the kept set); 12 voxels cannot separate the arms (
 
 ## 7. Speed work, 2026-10-12 (C ray check; profile)
 
-Single-worker, quiet machine (`preflight_speed.json`; load about 1.2 = this job), clean images, voxels 22867, 15901,
+Single process, load 1.52 at preflight (`preflight_speed.json`; just above the 1.5 threshold) and 8 torch threads
+(the step-3 runs used 1), clean images, voxels 22867, 15901,
 17034, levels 0-2, seconds per voxel (`speed_timings.json`):
 
 | arm | before (Python ray check) | after (C ray check) |
@@ -109,7 +112,7 @@ R2, A). All wall times are contended (10 workers) unless marked single-process; 
 | Run | Command (from `icenine_py/`) | Workers | Wall |
 |---|---|---|---|
 | step 2 again, 30 voxels x 2 variants x 4 arms (all 240 re-run, to get the new fields) | `RAY_COARSE_DIR=coarse30 ray_overlap_study.py run --step 2 --workers 10 --arms old,cpp,f0_R2,f0_A` (`cache/run_step2_30.sh`) | 10 | about 75 min, contended |
-| step 3a: six full-sample voxels, arms R2 and A (old and cpp reused from `runs/base_full_*`, `cpprule_full_*`) | `seed_diag.py run --voxel V --images full --tag rayR2|rayA --opt ray_rule=R2|A` (`scripts/phase_d/cache/ray_step3.sh`) | 1 each, quiet preflight | 12 runs, about 29 min, 117 to 158 s each (single-process) |
+| step 3a: six full-sample voxels, arms R2 and A (old and cpp reused from `runs/base_full_*`, `cpprule_full_*`) | `seed_diag.py run --voxel V --images full --tag rayR2|rayA --opt ray_rule=R2|A` (`scripts/phase_d/cache/ray_step3.sh`) | 1 each; per-file labels: 5 of the 12 ray runs were contended (rayR2 v15901, 17034, 18558, 22867; rayA v18558) | 12 runs, about 29 min, 117 to 158 s each (single-process) |
 | step 3b: E0, 200 voxels x 2 variants, R2 and A (old and cpp reused from `cache/off_ms0`, `on_ms0`) | `e0_cpprule.py run --arm rayR2|rayA --msin 0 --workers 10` | 10 | 1124 s and 1149 s, contended |
 
 Projection before step 3: about 17 min per E0 arm for old and cpp (stored), ray arms 12% to 27% more, about 1.2 h in all,
@@ -122,3 +125,17 @@ path of those arms is unchanged, but not re-verified); (b) E0 is one seed; (c) t
 decomposition of why the arms differ (R2 has the smaller level-0 rank, A the fewer wrong on realistic E0); (e) the six
 full-sample voxels are all right in every arm, so they measure cost only; (f) still untested: rule only at screen vs
 also at re-cost and quick MC; n_det > 2.
+
+## 8. Review fixes, 2026-10-12
+
+- Lenient rule re-run on the six full-sample voxels in the current build (after the MC port 19933d5 and the
+  VarianceMinimizing fix 83da334): `seed_diag.py run --voxel V --images full --tag lenientnow` (no opts, seed 1), driver
+  `scripts/phase_d/cache/ray_lenient_rerun.sh`, sequential, single process, 1 torch thread, 21:35 to 21:53, results in
+  `runs/lenientnow_full_v*.json`. Preflight quiet for 4 of 6 (17034 load 2.70 and 22867 load 2.10 were not quiet; cause not
+  identified). Mean 332,320 evaluations and 176 s per voxel (stale `base_full_*`: 1,022,209 and 554 s). `e2e_summary.json`
+  and `e2e_tables.md` regenerated (`ray_overlap_e2e_summary.py` now reads `lenientnow_full_*` and writes the per-run label
+  table `ray_e2e_six_labels`).
+- `review_extras.json` (`scripts/phase_d/ray_overlap_review_extras.py`): paired level-0 rank counts (30 voxels) and E0
+  medians over the voxels right under all four arms (113 clean, 125 realistic).
+- Tests: `tests/test_ray_overlap.py` 16 tests (the config test now also checks the `UserWarning` for `RayOverlapRule` without
+  `CppOverlapRule`); full suite result in the commit message of the review-fix commit.

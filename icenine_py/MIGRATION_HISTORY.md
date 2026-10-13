@@ -5626,39 +5626,86 @@ Paired split by voxel (fixed = wrong under the reference, right under the arm; b
 | realistic | A | old | 9 | 20 | 9 |
 <!-- /table:ray_e2e_paired -->
 
-The six full-sample voxels (clean images, no-start search, seed 1, one process, quiet-machine preflight per run; old and
-C++ rows are the stored runs `base_full_*`, `cpprule_full_*`); err in degrees, evals = cost evaluations, wall in seconds:
+The six full-sample voxels (clean images, no-start search, seed 1, one process; mixed quiet and contended, see the
+labels table below; three sessions). The old (lenient) rows are a re-run of 2026-10-12 in the current build
+(`lenientnow_full_*`; the earlier `base_full_*` runs of 2026-10-08 predate the MC port and the variance-stage fix and
+are withdrawn); C++ rows are the stored runs `cpprule_full_*`); err in degrees, evals = cost evaluations, wall in
+seconds:
 
 <!-- table:ray_e2e_six -->
 | voxel | old_err | old_evals | old_wall | cpp_err | cpp_evals | cpp_wall | R2_err | R2_evals | R2_wall | A_err | A_evals | A_wall |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 15901 | 0.0424 | 1687675 | 897 | 0.0291 | 237739 | 125 | 0.0144 | 250495 | 136 | 0.0096 | 279319 | 158 |
-| 17034 | 0.0296 | 952819 | 509 | 0.0639 | 246127 | 125 | 0.0251 | 256771 | 136 | 0.0371 | 284960 | 157 |
-| 18558 | 0.0059 | 463626 | 245 | 0.0034 | 209728 | 106 | 0.0048 | 223744 | 119 | 0.0038 | 268489 | 146 |
-| 19889 | 0.0239 | 626184 | 333 | 0.0212 | 226453 | 115 | 0.0333 | 243577 | 135 | 0.0177 | 276634 | 150 |
-| 22867 | 0.0244 | 1339563 | 753 | 0.0530 | 244186 | 125 | 0.0606 | 257829 | 141 | 0.0366 | 285600 | 156 |
-| 5242 | 0.0277 | 1063389 | 589 | 0.0281 | 204646 | 102 | 0.0231 | 218577 | 117 | 0.0586 | 265129 | 143 |
+| 15901 | 0.0170 | 328519 | 172 | 0.0291 | 237739 | 125 | 0.0144 | 250495 | 136 | 0.0096 | 279319 | 158 |
+| 17034 | 0.0284 | 339561 | 176 | 0.0639 | 246127 | 125 | 0.0251 | 256771 | 136 | 0.0371 | 284960 | 157 |
+| 18558 | 0.0048 | 329367 | 175 | 0.0034 | 209728 | 106 | 0.0048 | 223744 | 119 | 0.0038 | 268489 | 146 |
+| 19889 | 0.0210 | 330209 | 175 | 0.0212 | 226453 | 115 | 0.0333 | 243577 | 135 | 0.0177 | 276634 | 150 |
+| 22867 | 0.0263 | 335687 | 176 | 0.0530 | 244186 | 125 | 0.0606 | 257829 | 141 | 0.0366 | 285600 | 156 |
+| 5242 | 0.0493 | 330577 | 179 | 0.0281 | 204646 | 102 | 0.0231 | 218577 | 117 | 0.0586 | 265129 | 143 |
 <!-- /table:ray_e2e_six -->
+
+Per-run labels (quiet = the preflight passed; load1 = 1-minute load at start; old_stale = withdrawn 2026-10-08 runs):
+
+<!-- table:ray_e2e_six_labels -->
+| voxel | arm | quiet | load1 | torch_threads | date |
+|---|---|---|---|---|---|
+| 15901 | old | True | 1.14 | 1 | 2026-10-12 |
+| 15901 | cpp | True | 1.42 | 1 | 2026-10-10 |
+| 15901 | R2 | False | 1.54 | 1 | 2026-10-12 |
+| 15901 | A | True | 1.46 | 1 | 2026-10-12 |
+| 15901 | old_stale | False | 1.45 | 1 | 2026-10-08 |
+| 17034 | old | False | 2.70 | 1 | 2026-10-12 |
+| 17034 | cpp | False | 2.00 | 1 | 2026-10-10 |
+| 17034 | R2 | False | 1.60 | 1 | 2026-10-12 |
+| 17034 | A | True | 1.26 | 1 | 2026-10-12 |
+| 17034 | old_stale | False | 1.45 | 1 | 2026-10-08 |
+| 18558 | old | True | 1.34 | 1 | 2026-10-12 |
+| 18558 | cpp | True | 1.36 | 1 | 2026-10-10 |
+| 18558 | R2 | False | 1.62 | 1 | 2026-10-12 |
+| 18558 | A | False | 2.59 | 1 | 2026-10-12 |
+| 18558 | old_stale | False | 3.02 | 1 | 2026-10-08 |
+| 19889 | old | True | 1.40 | 1 | 2026-10-12 |
+| 19889 | cpp | True | 1.49 | 1 | 2026-10-10 |
+| 19889 | R2 | True | 1.46 | 1 | 2026-10-12 |
+| 19889 | A | True | 1.46 | 1 | 2026-10-12 |
+| 19889 | old_stale | False | 3.12 | 1 | 2026-10-08 |
+| 22867 | old | False | 2.10 | 1 | 2026-10-12 |
+| 22867 | cpp | True | 1.35 | 1 | 2026-10-10 |
+| 22867 | R2 | False | 2.14 | 1 | 2026-10-12 |
+| 22867 | A | True | 1.30 | 1 | 2026-10-12 |
+| 22867 | old_stale | False | 1.45 | 1 | 2026-10-08 |
+| 5242 | old | True | 1.29 | 1 | 2026-10-12 |
+| 5242 | cpp | True | 1.29 | 1 | 2026-10-10 |
+| 5242 | R2 | True | 1.42 | 1 | 2026-10-12 |
+| 5242 | A | True | 1.34 | 1 | 2026-10-12 |
+| 5242 | old_stale | False | 3.10 | 1 | 2026-10-08 |
+<!-- /table:ray_e2e_six_labels -->
 
 - **Wrong counts (E0).** Clean: old 39, C++ 56, R2 40, A 41 of 200. Realistic: old 18, C++ 56, R2 32, A 29 of 200.
   Against the C++ rule the ray arms fix many and break fewer (clean R2 32 fixed / 16 broken / 24 both wrong; A 31 / 16 /
   25; realistic R2 38 / 14 / 18; A 37 / 10 / 19). Against the old rule they are about even on clean images (R2 19 fixed /
   20 broken / 20 both wrong; A 18 / 20 / 21) and worse on realistic ones (R2 7 / 21 / 11; A 9 / 20 / 9). So the ray rule
-  recovers nearly all of the C++ rule's loss on clean images and about two thirds of it on realistic images (56 to 32 and 29, old rule 18), but does not beat
-  the old rule's accuracy.
+  recovers nearly all of the C++ rule's loss on clean images and ties the old rule there. On realistic images (56 to 32
+  and 29, old rule 18) the old rule is better, but the realistic noise model is ruled unphysical (10% random spot drop;
+  open question 8, parent findings), so that gap is reported and not used for decisions.
 - **Evaluations.** E0 mean evaluations per voxel: clean 48501 old, 47230 C++, 48641 R2, 48649 A; realistic 51163 / 48769
   / 50915 / 50967. The ray rule costs 3 to 4% more evaluations than the C++ rule and about as many as the old rule at
   the E0 scale (per-voxel images, few stray hits).
-- **Six full-sample voxels.** All four arms are right on all six (error under 1 deg). Mean evaluations 1022209 old,
-  228147 C++, 241832 R2, 276689 A; mean wall 554 s old, 116 s C++, 131 s R2, 152 s A (single-process; the old and C++ rows
-  are the earlier stored runs). On full-sample images the ray arms keep the C++ rule's large saving over the old rule (R2 at
-  6% and A at 21% more evaluations than the C++ rule) at no loss of accuracy on these six.
+- **Six full-sample voxels.** All four arms are right on all six (error under 1 deg). Mean evaluations 332320 old
+  (re-run 2026-10-12, current build), 228147 C++, 241832 R2, 276689 A; mean wall 176 s old, 116 s C++, 131 s R2, 152 s A
+  (single process; preflight quiet for 4 of 6 old, 5 of 6 C++, 2 of 6 R2, 5 of 6 A runs, so compare on evaluations).
+  The ray arms cost 6% (R2) and 21% (A) more evaluations than the C++ rule, the lenient rule 46% more (1.46 times). The
+  earlier "4.5 times" came from the stale `base_full_*` runs (1.38 million variance-stage evaluations on voxel 15901
+  alone) and is withdrawn. Accuracy: all right on these six, so cost only.
+- **Owner decisions (2026-10-12).** Ray rule as the default is fine, but the code default is NOT changed in this
+  task (follow-up). `RayOverlapRule` without `CppOverlapRule` gives a `UserWarning` and is not forced. Cases b and e
+  triangle-mode pixel accounting (+1 / -1 pixel) kept as is and documented in `ray_overlap.py` and `_rasterize.c`
+  (open question 9). The 61 MB of new result JSON stays in git.
 - **What is not shown.** Whether the A or R2 window (untuned) is best; the E0 accuracy gain is on one seed, with Wilson
   intervals that overlap (clean R2 0.150 to 0.261 against C++ 0.222 to 0.346); the full-sample accuracy for more than six
   voxels is not measured, only the coarse-stage survival above (30 voxels).
 
 Files: `icenine/ray_overlap.py`, `scripts/phase_d/ray_overlap_study.py`, `ray_overlap_summary.py`,
-`benchmarks/phase_d_seed_diag/ray_overlap/` (`RUN_LOG.md`, `summary.json`, `tables.md`, `peak/`, `coarse/`).
+`benchmarks/phase_d_seed_diag/ray_overlap/` (`RUN_LOG.md`, `summary.json`, `tables.md`, `coarse/`).
 
 #### Phase D pilot results (2026-10-08, `feature/finisher-mc-study-phase-d-run`)
 
