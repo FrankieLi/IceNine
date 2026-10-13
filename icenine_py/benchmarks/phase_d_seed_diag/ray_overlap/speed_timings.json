@@ -1,5 +1,5 @@
 {
- "label": "single-worker, quiet machine (preflight_speed.json), clean images, voxels 22867/15901/17034, levels 0-2, wall seconds per voxel",
+ "label": "single process, not quiet: preflight_speed.json load 1.52 (above the 1.5 threshold), 8 torch threads; clean images, voxels 22867/15901/17034, levels 0-2, wall seconds per voxel",
  "after_C_ray_check": {
   "old": [
    162.3,
