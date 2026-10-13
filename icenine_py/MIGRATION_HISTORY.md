@@ -5699,8 +5699,9 @@ Per-run labels (quiet = the preflight passed; load1 = 1-minute load at start; ol
 - **Owner decisions (2026-10-12).** Ray rule as the default is fine, but the code default is NOT changed in this
   task (follow-up). `RayOverlapRule` without `CppOverlapRule` gives a `UserWarning` and is not forced. Cases b and e
   triangle-mode pixel accounting (+1 / -1 pixel) kept as is and documented in `ray_overlap.py` and `_rasterize.c`
-  (open question 9). The 61 MB of new result JSON stays in git.
-- **What is not shown.** Whether the A or R2 window (untuned) is best; the E0 accuracy gain is on one seed, with Wilson
+  (open question 9). The 61 MB of new result JSON stays in git. No extra E0 seeds: the search uses randomness to
+  explore the search space, not as independent samples (open question 6 closed).
+- **What is not shown.** Whether the A or R2 window (untuned) is best; the E0 accuracy gain is one run per voxel, with Wilson
   intervals that overlap (clean R2 0.150 to 0.261 against C++ 0.222 to 0.346); the full-sample accuracy for more than six
   voxels is not measured, only the coarse-stage survival above (30 voxels).
 
