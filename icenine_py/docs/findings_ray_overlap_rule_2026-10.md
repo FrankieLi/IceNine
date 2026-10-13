@@ -89,6 +89,61 @@ Reading: the ray rule keeps far more peaks near the answer than the C++ rule (ab
 overlaps almost as well as the C++ rule; the geometric window is looser (keeps 0.41 to 0.44 at random
 orientations).
 
+### 3.1 Real peaks rejected and chance overlaps accepted (counts)
+
+The same data as counts, read as two error types:
+
+- **Real peaks rejected:** at the true orientation the detector-0 overlaps are real peaks, so every one a rule
+  rejects is a rejected real peak.
+- **Chance overlaps accepted:** at a random orientation the detector-0 overlaps are chance hits on light from other
+  grains, so every one a rule accepts is an accepted chance overlap.
+
+Counts are pooled over the 30 voxels (1 true orientation and 200 random orientations per voxel). The denominator is
+the number of detector-0 overlaps found by the original lenient rule.
+
+Initial screen (lit pixels within 3 pixels of the predicted spot), clean images:
+
+| Overlap rule | Real peaks rejected | Chance overlaps accepted |
+|---|---|---|
+| Original lenient Python rule | 0 of 524 (0%) | 8,937 of 8,942 (about 100%) |
+| Strict C++ rule | 3 of 524 (0.6%) | 1,870 of 8,942 (21%) |
+| Ray rule, 2-pixel window | 3 of 524 (0.6%) | 2,305 of 8,942 (26%) |
+| Ray rule, geometric window | 3 of 524 (0.6%) | 3,889 of 8,942 (43%) |
+| Ray rule, geometric window, rejecting in case f (dropped) | 18 of 524 (3.4%) | 3,738 of 8,942 (42%) |
+
+Initial screen, realistic images:
+
+| Overlap rule | Real peaks rejected | Chance overlaps accepted |
+|---|---|---|
+| Original lenient Python rule | 1 of 475 (0.2%) | about all of 8,590 |
+| Strict C++ rule | 43 of 475 (9.1%) | 1,772 of 8,590 (21%) |
+| Ray rule, 2-pixel window | 43 of 475 (9.1%) | 2,174 of 8,590 (25%) |
+| Ray rule, geometric window | 39 of 475 (8.2%) | 3,512 of 8,590 (41%) |
+
+Cost function with no search radius (the setting that scores the final fit; only the predicted spot's own pixels
+count as an overlap):
+
+| Overlap rule | Clean: real peaks rejected | Clean: chance overlaps accepted | Realistic: real peaks rejected | Realistic: chance overlaps accepted |
+|---|---|---|---|---|
+| Original lenient Python rule | 0 of 521 (0%) | 2,894 of 2,894 (100%) | 0 of 471 (0%) | 3,070 of 3,070 (100%) |
+| Strict C++ rule | 0 of 521 (0%) | 414 of 2,894 (14%) | 41 of 471 (8.7%) | 479 of 3,070 (16%) |
+| Ray rule, 2-pixel window | 0 of 521 (0%) | 583 of 2,894 (20%) | 40 of 471 (8.5%) | 636 of 3,070 (21%) |
+| Ray rule, geometric window | 0 of 521 (0%) | 1,183 of 2,894 (41%) | 36 of 471 (7.6%) | 1,195 of 3,070 (39%) |
+
+Reading:
+
+- On real peaks the strict C++ rule and both ray windows behave almost the same. On realistic images all three reject
+  about 8 to 9% of real peaks, nearly the same count. The likely cause is the data (a real peak whose detector-1 spot
+  is missing or faint), not the rule; these data cannot confirm it.
+- The windows differ in how many chance overlaps they accept: the 2-pixel window a few more than the C++ rule, the
+  geometric window about twice as many.
+- So the ray rule's gain is not in these two error types. It is in the orientations near the answer (1° from the
+  truth, table above), where the C++ rule keeps only 0.62 to 0.66 of the peaks and the ray rule 0.83 to 0.93.
+
+Limit: these labels come from the orientation, not from each peak. On realistic images some overlaps at the true
+orientation may be a neighbour's light sitting where the voxel's own peak is missing, and these cannot be separated.
+True per-peak labels would need the simulator to record which voxel lit each pixel (not done).
+
 ## 4. Coarse search: is a candidate near the truth kept? (30 voxels, levels 0 to 2)
 
 The coarse search keeps the best-scoring quarter of its candidates at each level. The question is whether a
