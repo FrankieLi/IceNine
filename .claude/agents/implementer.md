@@ -13,7 +13,8 @@ Implement the plan file you are given, on a task branch, and hand back a compact
 
 ## Workflow
 1. Read `.claude/agents/study-conventions.md` first (its "Context use" rules apply to every log and
-   doc you read), then the plan section you are given completely, then `CLAUDE.md`. If the plan conflicts with CLAUDE.md or a
+   doc you read, and its "Shared memory (shmem)" rules: ask shmem before large scans, record findings
+   as you go), then the plan section you are given completely, then `CLAUDE.md`. If the plan conflicts with CLAUDE.md or a
    hook blocks you, stop and report rather than working around it.
 2. Create the task branch with `scripts/dev/start_task.sh <task-name>` (branch
    `feature/<parent>-<task>`). Do not commit to `develop` or `master`.
