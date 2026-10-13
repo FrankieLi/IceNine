@@ -1,0 +1,202 @@
+{
+ "default": {
+  "15901": {
+   "pixel_overlap": 1113,
+   "pixel_on": 1113,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 66,
+   "peak_on": 66
+  },
+  "17034": {
+   "pixel_overlap": 1068,
+   "pixel_on": 1068,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 62,
+   "peak_on": 62
+  },
+  "18558": {
+   "pixel_overlap": 1064,
+   "pixel_on": 1064,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 64,
+   "peak_on": 64
+  },
+  "19889": {
+   "pixel_overlap": 1151,
+   "pixel_on": 1151,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 69,
+   "peak_on": 69
+  },
+  "22867": {
+   "pixel_overlap": 1145,
+   "pixel_on": 1145,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 67,
+   "peak_on": 68
+  },
+  "5242": {
+   "pixel_overlap": 1041,
+   "pixel_on": 1041,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 64,
+   "peak_on": 65
+  }
+ },
+ "frame rule only": {
+  "15901": {
+   "pixel_overlap": 1113,
+   "pixel_on": 1113,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 66,
+   "peak_on": 66
+  },
+  "17034": {
+   "pixel_overlap": 1068,
+   "pixel_on": 1068,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 62,
+   "peak_on": 62
+  },
+  "18558": {
+   "pixel_overlap": 1064,
+   "pixel_on": 1064,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 64,
+   "peak_on": 64
+  },
+  "19889": {
+   "pixel_overlap": 1151,
+   "pixel_on": 1151,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 69,
+   "peak_on": 69
+  },
+  "22867": {
+   "pixel_overlap": 1145,
+   "pixel_on": 1145,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 67,
+   "peak_on": 68
+  },
+  "5242": {
+   "pixel_overlap": 1041,
+   "pixel_on": 1041,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 64,
+   "peak_on": 65
+  }
+ },
+ "pixel -1 rule only": {
+  "15901": {
+   "pixel_overlap": 1113,
+   "pixel_on": 1113,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 66,
+   "peak_on": 66
+  },
+  "17034": {
+   "pixel_overlap": 1068,
+   "pixel_on": 1068,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 62,
+   "peak_on": 62
+  },
+  "18558": {
+   "pixel_overlap": 1064,
+   "pixel_on": 1064,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 64,
+   "peak_on": 64
+  },
+  "19889": {
+   "pixel_overlap": 1151,
+   "pixel_on": 1151,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 69,
+   "peak_on": 69
+  },
+  "22867": {
+   "pixel_overlap": 1145,
+   "pixel_on": 1145,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 67,
+   "peak_on": 68
+  },
+  "5242": {
+   "pixel_overlap": 1041,
+   "pixel_on": 1041,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 64,
+   "peak_on": 65
+  }
+ },
+ "all three (CppEdgeRules)": {
+  "15901": {
+   "pixel_overlap": 1113,
+   "pixel_on": 1113,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 66,
+   "peak_on": 66
+  },
+  "17034": {
+   "pixel_overlap": 1068,
+   "pixel_on": 1068,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 62,
+   "peak_on": 62
+  },
+  "18558": {
+   "pixel_overlap": 1064,
+   "pixel_on": 1064,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 64,
+   "peak_on": 64
+  },
+  "19889": {
+   "pixel_overlap": 1151,
+   "pixel_on": 1151,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 69,
+   "peak_on": 69
+  },
+  "22867": {
+   "pixel_overlap": 1145,
+   "pixel_on": 1145,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 67,
+   "peak_on": 68
+  },
+  "5242": {
+   "pixel_overlap": 1041,
+   "pixel_on": 1041,
+   "hit_ratio": 1.0,
+   "converged": true,
+   "peak_overlap": 64,
+   "peak_on": 65
+  }
+ }
+}

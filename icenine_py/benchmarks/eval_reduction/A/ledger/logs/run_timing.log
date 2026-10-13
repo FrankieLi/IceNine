@@ -1,0 +1,4 @@
+timing_cpp_edge v15901: 122.5s evals=237890 (sum of stages 237890) err=0.0161 single-worker -> timing_cpp_edge_v15901.json
+timing_cpp_edge_interp_batched v15901: 96.2s evals=238868 (sum of stages 238868) err=0.0126 single-worker -> timing_cpp_edge_interp_batched_v15901.json
+timing_cpp_edge v5242: 100.8s evals=199386 (sum of stages 199386) err=0.0118 single-worker -> timing_cpp_edge_v5242.json
+timing_cpp_edge_interp_batched v5242: 75.6s evals=199195 (sum of stages 199195) err=0.0557 single-worker -> timing_cpp_edge_interp_batched_v5242.json
