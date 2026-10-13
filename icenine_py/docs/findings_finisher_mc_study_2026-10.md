@@ -497,3 +497,13 @@ The earlier report's precision and timing numbers for the default finisher carry
 6. **Seeds 1–2 for E0.** Run them with the faithful MC, to firm up "no difference in wrong count".
 7. **Multi-client C++ reference.** Does C++ with several clients seed any of the grains that the single-client BFS
    loses? By the C++ code only timing (asynchrony) could do it; untested.
+8. **Noise model for realistic images (deferred, owner 2026-10-12).** The Phase D "realistic" images
+   (`scripts/phase_d/noise.py`) reuse the toy-NN nuisance parameters: each spot on each detector is erased with
+   probability 0.1 regardless of intensity, edge pixels flip with 0.05, hot pixels 0.05 and blobs 0.1 per spot.
+   These were never calibrated against real detectors. The random spot drop is unphysical (a strong spot does not
+   vanish; only spots near the detection limit should) and 10% is far too high. It penalises every rule that asks
+   detector 1 to confirm a peak (C++ and ray rules reject about 9% of real peaks at the truth on realistic images),
+   so all realistic-image comparisons of overlap rules so far (level-0 study, ray-overlap study, Phase D pilot and
+   reseed on realistic images) are tilted against the strict rules. Work from clean full-sample images until this
+   is redone. Options: no random drop (keep jitter, hot pixels, blobs); intensity-based drop near a detection
+   threshold; or a small fixed rate (about 1%) as a stand-in. Then re-render and re-run the realistic comparisons.
