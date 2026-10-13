@@ -49,12 +49,17 @@ Decisions on record (owner, 2026-10-12):
 
 ## 2. Test data
 
+Two different image sets are used:
+
+| Image set | Used in | Clean images | Realistic images |
+|---|---|---|---|
+| Full-sample images | Sections 3, 4 and 6 (peak level, coarse search, full-sample cost) | The whole 500-grain sample simulated together, so neighbouring grains light pixels physically; no noise. | The same images plus detector noise (`scripts/phase_d/noise.py`): each spot on each detector is dropped entirely with probability 0.1, edge pixels flip with probability 0.05, plus stray hot pixels (0.05) and blobs (0.1). |
+| Per-voxel images (E0 set) | Section 5 (end to end) | Images of the voxel alone. | Simulated at Q-max 16 with overlap from neighbouring and twin grains plus detector noise; reconstructed at Q-max 8. |
+
 | Term | Meaning |
 |---|---|
-| Clean images | Simulated detector images of the voxel alone. |
-| Realistic images | Simulated at Q-max 16 with overlap from neighbouring and twin grains plus detector noise; reconstructed at Q-max 8. |
 | E0 set | 200 test voxels, each with its own images (one random seed, seed 0), run with `min_sin_eta` 0 so that the C++ comparison is like for like. |
-| Full-sample voxels | 6 voxels from the 500-grain full sample, where neighbouring grains light many pixels. |
+| Full-sample voxels | Voxels of the 500-grain full sample: 30 in sections 3 and 4, 6 in section 6. |
 | Wrong voxel | Final orientation more than 1° from the truth (after symmetry). |
 
 ## 3. Peak level: what each rule keeps (30 voxels)
@@ -81,8 +86,13 @@ Realistic images:
 | Ray rule, 2-pixel window | 0.909 | 0.831 | 0.362 | 0.253 |
 | Ray rule, geometric window | 0.918 | 0.856 | 0.478 | 0.409 |
 
-(Values slightly above 1.000 for the lenient rule come from how overlaps are counted; read them as "keeps
-everything".)
+How the share is computed, and why the lenient rule shows values slightly above or below 1.000: the denominator is
+the number of detector-0 overlaps found by the detector-0 test that all ray-rule and C++ variants share, which
+places the predicted spot at the voxel centroid. The lenient rule's screen places the spot at the voxel's first
+vertex instead, so it finds a slightly different set of detector-0 overlaps (a few more or a few fewer). Its share
+is therefore not exactly 1.000 even though it keeps every overlap it finds. The lenient rule never rejects a
+detector-0 overlap; read its values as 1.000. (With no search radius, all rules use the same test and the lenient
+rule is exactly 1.000.)
 
 Reading: the ray rule keeps far more peaks near the answer than the C++ rule (about 0.83 to 0.93 against 0.62 to
 0.66 at 1°), while still rejecting most chance overlaps at random orientations. The 2-pixel window rejects chance
@@ -132,9 +142,15 @@ count as an overlap):
 
 Reading:
 
+- The lenient rule's "1 of 475" and "0 of 524" are not rejections: the lenient rule never rejects. The 1 is the
+  counting difference explained above section 3.1 (first vertex against centroid).
 - On real peaks the strict C++ rule and both ray windows behave almost the same. On realistic images all three reject
-  about 8 to 9% of real peaks, nearly the same count. The likely cause is the data (a real peak whose detector-1 spot
-  is missing or faint), not the rule; these data cannot confirm it.
+  about 8 to 9% of real peaks. That matches the noise model: each spot on each detector is dropped with probability
+  0.1, so about 10% of real peaks lit on detector 0 have no spot on detector 1, and any rule that asks detector 1 to
+  confirm must reject them. (A little under 10%, because spots that merge with a neighbour's spot are dropped or kept
+  together.) This is the cost of asking a second detector to confirm, on data where spots go missing.
+- On clean images the C++ rule and both ray windows reject 2 to 3 real peaks of 524: the peak is lit on detector 0
+  but both the predicted spot and the observed ray land on dark pixels of detector 1. The cause is not yet checked.
 - The windows differ in how many chance overlaps they accept: the 2-pixel window a few more than the C++ rule, the
   geometric window about twice as many.
 - So the ray rule's gain is not in these two error types. It is in the orientations near the answer (1° from the
