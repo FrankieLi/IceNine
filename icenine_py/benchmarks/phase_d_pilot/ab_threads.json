@@ -1,0 +1,4 @@
+{"label": "contended: run concurrently with the 5 pilot BFS runs, one process each",
+ "default": {"torch_threads": 8, "local_fit_median_s": 0.3792, "seed_reconstruct_voxel_s": 178.80},
+ "one_thread": {"torch_threads": 1, "local_fit_median_s": 0.3794, "seed_reconstruct_voxel_s": 178.80},
+ "note": "30 local_optimization fits (mean 643 evaluations) and one no-start reconstruct_voxel on region voxel 18, clean images, mc config. The seed times agree to 0.001 s, which is more agreement than expected from two contended timings; not investigated. ps shows each pilot run at about 100% CPU of one core, load average about 6 on 12 cores."}

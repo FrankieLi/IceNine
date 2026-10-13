@@ -1,0 +1,4 @@
+{"label": "arms run one after the other (default first), machine otherwise nearly idle: load average 1.6 at start (not gated by require_quiet, whose limit is 1.5), preflight_ab_staggered.json; single process each",
+ "default": {"torch_threads": 8, "local_fit_median_s": 0.3720, "seed_reconstruct_voxel_s": 165.29},
+ "one_thread": {"torch_threads": 1, "local_fit_median_s": 0.3555, "seed_reconstruct_voxel_s": 168.12},
+ "note": "Same 30 local_optimization fits (mean 643 evaluations) and one no-start reconstruct_voxel on region voxel 18, clean images, mc config, as ab_threads.json. Differences: local fit -4.4% with one thread, seed +1.7%; one repetition, no spread estimate."}

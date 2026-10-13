@@ -1,0 +1,118 @@
+[
+ {
+  "voxel": 15901,
+  "near_deg": 2.0,
+  "n": 10190,
+  "n_near": 3,
+  "best_near_rank_discrete": 0,
+  "best_near_rank_after_quickmc": 0,
+  "n_near_in_kept_quarter": 3,
+  "min_err_deg": 0.86419943787606
+ },
+ {
+  "voxel": 15901,
+  "near_deg": 3.0,
+  "n": 10190,
+  "n_near": 4,
+  "best_near_rank_discrete": 0,
+  "best_near_rank_after_quickmc": 0,
+  "n_near_in_kept_quarter": 4,
+  "min_err_deg": 0.86419943787606
+ },
+ {
+  "voxel": 17034,
+  "near_deg": 2.0,
+  "n": 10382,
+  "n_near": 2,
+  "best_near_rank_discrete": 230,
+  "best_near_rank_after_quickmc": 68,
+  "n_near_in_kept_quarter": 2,
+  "min_err_deg": 1.720936257647478
+ },
+ {
+  "voxel": 17034,
+  "near_deg": 3.0,
+  "n": 10382,
+  "n_near": 3,
+  "best_near_rank_discrete": 27,
+  "best_near_rank_after_quickmc": 68,
+  "n_near_in_kept_quarter": 3,
+  "min_err_deg": 1.720936257647478
+ },
+ {
+  "voxel": 18558,
+  "near_deg": 2.0,
+  "n": 10271,
+  "n_near": 3,
+  "best_near_rank_discrete": 9,
+  "best_near_rank_after_quickmc": 0,
+  "n_near_in_kept_quarter": 3,
+  "min_err_deg": 1.2676732442923335
+ },
+ {
+  "voxel": 18558,
+  "near_deg": 3.0,
+  "n": 10271,
+  "n_near": 4,
+  "best_near_rank_discrete": 9,
+  "best_near_rank_after_quickmc": 0,
+  "n_near_in_kept_quarter": 3,
+  "min_err_deg": 1.2676732442923335
+ },
+ {
+  "voxel": 19889,
+  "near_deg": 2.0,
+  "n": 10308,
+  "n_near": 1,
+  "best_near_rank_discrete": 7,
+  "best_near_rank_after_quickmc": 0,
+  "n_near_in_kept_quarter": 1,
+  "min_err_deg": 1.435920410562475
+ },
+ {
+  "voxel": 19889,
+  "near_deg": 3.0,
+  "n": 10308,
+  "n_near": 2,
+  "best_near_rank_discrete": 7,
+  "best_near_rank_after_quickmc": 0,
+  "n_near_in_kept_quarter": 2,
+  "min_err_deg": 1.435920410562475
+ },
+ {
+  "voxel": 22867,
+  "near_deg": 2.0,
+  "n": 10236,
+  "n_near": 0
+ },
+ {
+  "voxel": 22867,
+  "near_deg": 3.0,
+  "n": 10236,
+  "n_near": 3,
+  "best_near_rank_discrete": 1213,
+  "best_near_rank_after_quickmc": 74,
+  "n_near_in_kept_quarter": 3,
+  "min_err_deg": 2.0512322352432117
+ },
+ {
+  "voxel": 5242,
+  "near_deg": 2.0,
+  "n": 10213,
+  "n_near": 1,
+  "best_near_rank_discrete": 507,
+  "best_near_rank_after_quickmc": 35,
+  "n_near_in_kept_quarter": 1,
+  "min_err_deg": 1.9733526213423065
+ },
+ {
+  "voxel": 5242,
+  "near_deg": 3.0,
+  "n": 10213,
+  "n_near": 3,
+  "best_near_rank_discrete": 507,
+  "best_near_rank_after_quickmc": 35,
+  "n_near_in_kept_quarter": 3,
+  "min_err_deg": 1.9733526213423065
+ }
+]

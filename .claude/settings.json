@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "shmem hook tool-use --caller-agent claude-code",
+            "command": "$HOME/.claude/hooks/shmem-tool-use.sh --caller-agent claude-code",
             "timeout": 10
           }
         ]

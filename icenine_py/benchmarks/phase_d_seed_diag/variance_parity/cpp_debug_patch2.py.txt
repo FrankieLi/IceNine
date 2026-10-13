@@ -1,0 +1,13 @@
+p='Src/OrientationSearch.cpp'
+s=open(p).read()
+a="""      std::tie( oTmpResOrient, fCurrentCost, fCurrentVariance )
+        =  ZeroTemperatureOptimizationWithVariance("""
+assert a in s
+s=s.replace(a,"""      if( getenv("VMAT") && nTotalStepTaken < 400 ) {
+        std::cout.precision(12);
+        std::cout << "VM";
+        for(int ii=0;ii<3;ii++) for(int jj=0;jj<3;jj++) std::cout << " " << oCurrentState.m[ii][jj];
+        std::cout << " cost " << oObjectiveFunction( oCurrentState ) << std::endl;
+      }
+"""+a,1)
+open(p,'w').write(s)

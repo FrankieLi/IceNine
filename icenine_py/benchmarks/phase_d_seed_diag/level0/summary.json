@@ -1,0 +1,227 @@
+{
+ "S4": [
+  {
+   "level": 0,
+   "n_fz_cpp": 4886,
+   "n_fz_py": 4886,
+   "n_local_cpp": 9,
+   "n_local_py": 9,
+   "nqmax_cpp": 5.0,
+   "n_recip_cpp": 26,
+   "n_recip_py": 26,
+   "diam_deg_cpp": 4.999999854484964,
+   "diam_deg_py": 5.0,
+   "n_sym_cpp": 24,
+   "n_sym_py": 24
+  },
+  {
+   "level": 1,
+   "n_fz_cpp": 2037,
+   "n_fz_py": 2547,
+   "n_local_cpp": 9,
+   "n_local_py": 9,
+   "nqmax_cpp": 6.0,
+   "n_recip_cpp": 50,
+   "n_recip_py": 50,
+   "diam_deg_cpp": 3.333333165276543,
+   "diam_deg_py": 3.3333333333333335,
+   "n_sym_cpp": 24,
+   "n_sym_py": 24
+  },
+  {
+   "level": 2,
+   "n_fz_cpp": 631,
+   "n_fz_py": 876,
+   "n_local_cpp": 9,
+   "n_local_py": 9,
+   "nqmax_cpp": 7.0,
+   "n_recip_cpp": 64,
+   "n_recip_py": 64,
+   "diam_deg_cpp": 2.2222221099933765,
+   "diam_deg_py": 2.2222222222222223,
+   "n_sym_cpp": 24,
+   "n_sym_py": 24
+  },
+  {
+   "level": 3,
+   "n_fz_cpp": 172,
+   "n_fz_py": 278,
+   "n_local_cpp": 9,
+   "n_local_py": 9,
+   "nqmax_cpp": 8.0,
+   "n_recip_cpp": 112,
+   "n_recip_py": 112,
+   "diam_deg_cpp": 1.4814813709478816,
+   "diam_deg_py": 1.4814814814814814,
+   "n_sym_cpp": 24,
+   "n_sym_py": 24
+  }
+ ],
+ "stages_15901": [
+  {
+   "python": "library default",
+   "screened_pairs_cpp": 12326,
+   "screened_pairs_py": 35267,
+   "fz_identical_screen": 7,
+   "peak_overlap_equal": 0.2731386728521399,
+   "recost_median_diff": -0.030303030303030276,
+   "recost_within_1e6": 0.10449975276083731,
+   "cliques_cpp": 4491,
+   "cliques_py": 4886,
+   "kept_cpp": 8151,
+   "kept_py": 10190
+  },
+  {
+   "python": "C++ overlap rule",
+   "screened_pairs_cpp": 12326,
+   "screened_pairs_py": 12485,
+   "fz_identical_screen": 3341,
+   "peak_overlap_equal": 0.9398963023604857,
+   "recost_median_diff": 0.0,
+   "recost_within_1e6": 0.8490105483392903,
+   "cliques_cpp": 4491,
+   "cliques_py": 4513,
+   "kept_cpp": 8151,
+   "kept_py": 8206
+  },
+  {
+   "python": "C++ rule + centroid",
+   "screened_pairs_cpp": 12326,
+   "screened_pairs_py": 12338,
+   "fz_identical_screen": 4466,
+   "peak_overlap_equal": 0.9860144630918269,
+   "recost_median_diff": 0.0,
+   "recost_within_1e6": 0.8526958962926265,
+   "cliques_cpp": 4491,
+   "cliques_py": 4480,
+   "kept_cpp": 8151,
+   "kept_py": 8110
+  }
+ ],
+ "S3_on_cpp_inputs": {
+  "voxel": 15901,
+  "n_cliques_with_ge2": 3537,
+  "same_kept_set": 3537,
+  "same_kept_order": 3537
+ },
+ "levels_15901": [
+  {
+   "level": 0,
+   "n_fz_cpp": 4886,
+   "cand_cpp": 8151,
+   "n_fz_py": 4886,
+   "cand_py": 10190,
+   "n_fz_probe": 4886,
+   "cand_probe": 8110
+  },
+  {
+   "level": 1,
+   "n_fz_cpp": 2037,
+   "cand_cpp": 2525,
+   "n_fz_py": 2547,
+   "cand_py": 3504,
+   "n_fz_probe": 2027,
+   "cand_probe": 2487
+  },
+  {
+   "level": 2,
+   "n_fz_cpp": 631,
+   "cand_cpp": 691,
+   "n_fz_py": 876,
+   "cand_py": 1114,
+   "n_fz_probe": 621,
+   "cand_probe": 697
+  },
+  {
+   "level": 3,
+   "n_fz_cpp": 172,
+   "cand_cpp": 195,
+   "n_fz_py": 278,
+   "cand_py": 341,
+   "n_fz_probe": 174,
+   "cand_probe": 204
+  }
+ ],
+ "voxels_level0": [
+  {
+   "voxel": 15901,
+   "cpp": 8151,
+   "py_default": 10190,
+   "py_probe": 8110,
+   "ratio_default": 1.2501533554165134,
+   "ratio_probe": 0.9949699423383634
+  },
+  {
+   "voxel": 17034,
+   "cpp": 8284,
+   "py_default": 10382,
+   "py_probe": 8283,
+   "ratio_default": 1.2532592950265573,
+   "ratio_probe": 0.9998792853693867
+  },
+  {
+   "voxel": 18558,
+   "cpp": 7026,
+   "py_default": 10271,
+   "py_probe": 7048,
+   "ratio_default": 1.4618559635639055,
+   "ratio_probe": 1.0031312268716197
+  },
+  {
+   "voxel": 19889,
+   "cpp": 7673,
+   "py_default": 10308,
+   "py_probe": 7683,
+   "ratio_default": 1.3434119640297146,
+   "ratio_probe": 1.001303271210739
+  },
+  {
+   "voxel": 22867,
+   "cpp": 8234,
+   "py_default": 10236,
+   "py_probe": 8233,
+   "ratio_default": 1.2431382074325965,
+   "ratio_probe": 0.9998785523439397
+  },
+  {
+   "voxel": 5242,
+   "cpp": 6674,
+   "py_default": 10213,
+   "py_probe": 6674,
+   "ratio_default": 1.530266706622715,
+   "ratio_probe": 1.0
+  }
+ ],
+ "peak_patterns": [
+  {
+   "pattern": "det0 bright=False, det1 lit=True, det1 bright=False",
+   "n_peaks": 29,
+   "cpp_peak_overlap_sum": 0
+  },
+  {
+   "pattern": "det0 bright=False, det1 lit=True, det1 bright=True",
+   "n_peaks": 2,
+   "cpp_peak_overlap_sum": 0
+  },
+  {
+   "pattern": "det0 bright=True, det1 lit=True, det1 bright=False",
+   "n_peaks": 6,
+   "cpp_peak_overlap_sum": 0
+  },
+  {
+   "pattern": "det0 bright=True, det1 lit=True, det1 bright=True",
+   "n_peaks": 1,
+   "cpp_peak_overlap_sum": 1
+  },
+  {
+   "pattern": "neither detector lit",
+   "n_peaks": 26,
+   "cpp_peak_overlap_sum": 0
+  },
+  {
+   "pattern": "not on a detector (no projection hit)",
+   "n_peaks": 12,
+   "cpp_peak_overlap_sum": 0
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+  "tag": "pilot",
+  "sample_seed": 0,
+  "noise_seed": 12345,
+  "n_voxels": 500,
+  "workers": 10,
+  "timing_label": "contended (10 parallel workers; machine quiet at start: False)",
+  "wall_s": 13.844935894012451,
+  "worker_peak_rss_gb_max": 1.124548608,
+  "worker_peak_rss_gb_sum": 10.84686336,
+  "worker_t_setup_s_max": 0.7231259346008301,
+  "worker_t_sim_s_max": 0.8350272178649902,
+  "worker_t_write_noise_s_max": 10.265492916107178,
+  "n_frames": 360,
+  "lit_clean_per_frame_median": 454.5,
+  "lit_clean_per_frame_min_max": [
+    10,
+    1297
+  ],
+  "lit_real_total": 155429,
+  "lit_clean_total": 171672,
+  "spots_total": 2332,
+  "missed_total": 238,
+  "hot_total": 110,
+  "blob_total": 200,
+  "output_dir": "Examples/Example2.ManyGrains/ScatteringData_PhaseD/pilot"
+}

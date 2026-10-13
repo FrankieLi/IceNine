@@ -1,0 +1,33 @@
+{
+ "n_voxels": 24570,
+ "n_grains": 497,
+ "pieces_edge_vertex_1.01side": 501,
+ "pieces_bfs_2side": 497,
+ "oracle_seeds_by_p_fail": {
+  "0.0": {
+   "mean": 356.3,
+   "min": 348,
+   "max": 367
+  },
+  "0.05": {
+   "mean": 376.7,
+   "min": 366,
+   "max": 394
+  },
+  "0.1": {
+   "mean": 395.4,
+   "min": 381,
+   "max": 417
+  },
+  "0.2": {
+   "mean": 443.35,
+   "min": 426,
+   "max": 464
+  },
+  "0.3": {
+   "mean": 504.1,
+   "min": 474,
+   "max": 532
+  }
+ }
+}

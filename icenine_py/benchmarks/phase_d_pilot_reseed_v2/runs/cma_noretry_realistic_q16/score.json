@@ -1,0 +1,185 @@
+{
+  "run": "cma_noretry_realistic_q16",
+  "n_region": 2000,
+  "n_scored": 2000,
+  "overall": {
+    "n": 2000,
+    "wrong": 38,
+    "wrong_rate": 0.019,
+    "wilson_lo": 0.01387370523534451,
+    "wilson_hi": 0.025970561896348936,
+    "n_right": 1962,
+    "median_right_err_deg": 0.013067750248172116,
+    "median_err_deg": 0.013448524128402766,
+    "cluster_boot_lo": 0.011209322955516672,
+    "cluster_boot_hi": 0.028817150419318385
+  },
+  "boundary": {
+    "n": 1411,
+    "wrong": 38,
+    "wrong_rate": 0.026931254429482635,
+    "wilson_lo": 0.019683168983204838,
+    "wilson_hi": 0.036748307162252004,
+    "n_right": 1373,
+    "median_right_err_deg": 0.009461203521031603,
+    "median_err_deg": 0.009703987961070535
+  },
+  "interior": {
+    "n": 589,
+    "wrong": 0,
+    "wrong_rate": 0.0,
+    "wilson_lo": 0.0,
+    "wilson_hi": 0.006479977113616857,
+    "n_right": 589,
+    "median_right_err_deg": 0.02371871826969115,
+    "median_err_deg": 0.02371871826969115
+  },
+  "near_axis": {
+    "n": 416,
+    "wrong": 3,
+    "wrong_rate": 0.007211538461538462,
+    "wilson_lo": 0.002455499128500401,
+    "wilson_hi": 0.020985722513185416,
+    "n_right": 413,
+    "median_right_err_deg": 0.014318135031513708,
+    "median_err_deg": 0.014335360007921068
+  },
+  "far_axis": {
+    "n": 1584,
+    "wrong": 35,
+    "wrong_rate": 0.022095959595959596,
+    "wilson_lo": 0.01593001559795866,
+    "wilson_hi": 0.03057437123760478,
+    "n_right": 1549,
+    "median_right_err_deg": 0.012785757020662864,
+    "median_err_deg": 0.01312186778815743
+  },
+  "grains": {
+    "n_grains": 60,
+    "found": 60,
+    "partial": 0,
+    "lost": 0,
+    "fragmented": 20,
+    "fragmented_found": 20,
+    "lost_ids": [],
+    "fragmented_ids": [
+      13,
+      23,
+      25,
+      56,
+      76,
+      146,
+      150,
+      151,
+      152,
+      278,
+      300,
+      332,
+      351,
+      394,
+      395,
+      398,
+      399,
+      402,
+      403,
+      404
+    ]
+  },
+  "by_source": {
+    "seed": {
+      "n": 61,
+      "wrong": 0,
+      "wrong_rate": 0.0,
+      "wilson_lo": 0.0,
+      "wilson_hi": 0.05924591620194442,
+      "n_right": 61,
+      "median_right_err_deg": 0.01109552984042219,
+      "median_err_deg": 0.01109552984042219
+    },
+    "neighbor": {
+      "n": 756,
+      "wrong": 25,
+      "wrong_rate": 0.03306878306878307,
+      "wilson_lo": 0.02249762788691181,
+      "wilson_hi": 0.04836135114240166,
+      "n_right": 731,
+      "median_right_err_deg": 0.014301058652391119,
+      "median_err_deg": 0.014479084758924
+    },
+    "revisit": {
+      "n": 1181,
+      "wrong": 11,
+      "wrong_rate": 0.009314140558848433,
+      "wilson_lo": 0.005208686312699786,
+      "wilson_hi": 0.01660148645638597,
+      "n_right": 1170,
+      "median_right_err_deg": 0.012245334389846305,
+      "median_err_deg": 0.012321366183138126
+    },
+    "unresolved": {
+      "n": 2,
+      "wrong": 2,
+      "wrong_rate": 1.0,
+      "wilson_lo": 0.34237195288961925,
+      "wilson_hi": 1.0,
+      "n_right": 0,
+      "median_right_err_deg": null,
+      "median_err_deg": 56.317608338839094
+    }
+  },
+  "wrong_cross_boundary_like": 38,
+  "wrong_total": 38,
+  "wrong_boundary": 38,
+  "wrong_near_axis": 3,
+  "unresolved": {
+    "n": 2,
+    "errors_deg": [
+      56.25483112383095,
+      56.38038555384724
+    ],
+    "wrong": 2
+  },
+  "provenance": {
+    "seeds": 43,
+    "seed_rejected": 10,
+    "neighbor_fits": 1957,
+    "neighbor_accepted_first": 756,
+    "retry_attempted": 0,
+    "retry_accepted": 0,
+    "revisit_attempted": 2108,
+    "revisit_accepted": 1181,
+    "revisit_rejected": 927,
+    "revisit_capped": 4,
+    "unresolved_final": 2,
+    "source_counts": {
+      "seed": 61,
+      "neighbor": 756,
+      "neighbor_retry": 0,
+      "revisit": 1181,
+      "restart": 0,
+      "unresolved": 2,
+      "not_visited": 0
+    }
+  },
+  "cost": {
+    "evals_seed": 15543311,
+    "evals_neighbor": 491207,
+    "evals_revisit": 529108,
+    "wall_seed_s": 8378.547926425934,
+    "wall_neighbor_s": 283.14680767059326,
+    "wall_revisit_s": 303.7434320449829,
+    "wall_total_s": 16968.679795980453,
+    "wall_per_seed_s": 194.8499517773473,
+    "wall_per_neighbor_fit_s": 0.14468411224864244,
+    "timing_label": "contended: 4 concurrent single-process runs on a 12-core machine under caffeinate (preflight.json)"
+  },
+  "options": {
+    "local_optimizer": "cma",
+    "cma_neighbor_max_evals": 250,
+    "cma_retry_sigma0_deg": 0.0,
+    "bfs_revisit_refit": true,
+    "bfs_revisit_max": 3,
+    "bfs_rng_seed": 0,
+    "max_voxels": null
+  }
+}

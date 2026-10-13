@@ -1,0 +1,232 @@
+{
+ "voxel": 14771,
+ "images": "full",
+ "variant": "clean",
+ "tag": "rlean",
+ "seed": 1,
+ "opts": [
+  "rec.keep_fraction=0.125"
+ ],
+ "quiet_preflight": false,
+ "preflight": {
+  "timestamp": "2026-10-08T01:10:31",
+  "host": "newt.local",
+  "loadavg": [
+   4.07666015625,
+   4.05810546875,
+   3.71630859375
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 21849,
+    "cpu": 99.3,
+    "command": "../../IceNine"
+   },
+   {
+    "pid": 22123,
+    "cpu": 97.3,
+    "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+   },
+   {
+    "pid": 22279,
+    "cpu": 323.4,
+    "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+   }
+  ],
+  "not_quiet": "machine not quiet for timing: 1-min load 4.08 > 1.5; busy process pid 21849 (99% CPU): ../../IceNine; busy process pid 22123 (97% CPU): /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python; busy process pid 22279 (323% CPU):"
+ },
+ "label": "single-process, contended",
+ "wall_s": 66.949529625,
+ "evals_total": 128295,
+ "eval_time_s": 62.308604303999516,
+ "mean_us_per_eval": 485.6666612416658,
+ "err_deg": 0.026187517937782127,
+ "err_before_variance": 0.026187517937782127,
+ "varcap": 2000,
+ "topk0": 3000,
+ "topk": 0,
+ "cost_final": 0.06250000000000011,
+ "hit_ratio_final": 1.0,
+ "q_true": 0.9374999999999999,
+ "hit_true": 1.0,
+ "find_optimal": {
+  "winner_index": 0,
+  "n_evaluated": 1,
+  "n_candidates": 9,
+  "converged": true
+ },
+ "levels": [
+  {
+   "level": 0,
+   "n_fz": 4886,
+   "n_local": 9,
+   "n_returned": 10298,
+   "n_after_cap": 3000,
+   "discrete_evals": 79400,
+   "discrete_s": 39.7904335,
+   "n_recip": 26,
+   "diameter_deg": 5.0,
+   "n_kept": 375
+  },
+  {
+   "level": 1,
+   "n_fz": 375,
+   "n_local": 9,
+   "n_returned": 445,
+   "n_after_cap": 445,
+   "discrete_evals": 6629,
+   "discrete_s": 3.384515333000003,
+   "n_recip": 50,
+   "diameter_deg": 3.3333333333333335,
+   "n_kept": 55
+  },
+  {
+   "level": 2,
+   "n_fz": 55,
+   "n_local": 9,
+   "n_returned": 67,
+   "n_after_cap": 67,
+   "discrete_evals": 988,
+   "discrete_s": 0.5147791659999967,
+   "n_recip": 64,
+   "diameter_deg": 2.2222222222222223,
+   "n_kept": 8
+  },
+  {
+   "level": 3,
+   "n_fz": 8,
+   "n_local": 9,
+   "n_returned": 9,
+   "n_after_cap": 9,
+   "discrete_evals": 144,
+   "discrete_s": 0.07953420800001254,
+   "n_recip": 112,
+   "diameter_deg": 1.4814814814814814,
+   "n_kept": 1
+  }
+ ],
+ "calls": [
+  {
+   "phase": "find",
+   "quick": false,
+   "evals": 201,
+   "s": 0.11160558400000298,
+   "cost": 0.06250000000000011,
+   "hit_ratio": 1.0,
+   "ended_by": "step_cap"
+  },
+  {
+   "phase": "variance",
+   "quick": false,
+   "evals": 2201,
+   "s": 1.225564165999998,
+   "cost": 0.06250000000000011,
+   "hit_ratio": NaN,
+   "ended_by": "variance"
+  }
+ ],
+ "by_phase": {
+  "discrete_L0|pr3": {
+   "n": 43974,
+   "passed": 35426,
+   "t": 17.635848387000266,
+   "mean_us": 401.0517211761556
+  },
+  "discrete_L0|pr0": {
+   "n": 35426,
+   "passed": 32415,
+   "t": 18.92614591800011,
+   "mean_us": 534.2445073674733
+  },
+  "quick_L0|pr0": {
+   "n": 33000,
+   "passed": 32289,
+   "t": 17.679854255999658,
+   "mean_us": 535.753159272717
+  },
+  "discrete_L1|pr3": {
+   "n": 3375,
+   "passed": 3254,
+   "t": 1.4828268399998734,
+   "mean_us": 439.35610074070325
+  },
+  "discrete_L1|pr0": {
+   "n": 3254,
+   "passed": 3046,
+   "t": 1.7173709410002758,
+   "mean_us": 527.7722621389908
+  },
+  "quick_L1|pr0": {
+   "n": 4895,
+   "passed": 4860,
+   "t": 2.599020124999612,
+   "mean_us": 530.9540602654979
+  },
+  "discrete_L2|pr3": {
+   "n": 495,
+   "passed": 493,
+   "t": 0.22823117400012904,
+   "mean_us": 461.07307878813947
+  },
+  "discrete_L2|pr0": {
+   "n": 493,
+   "passed": 465,
+   "t": 0.25819836700014775,
+   "mean_us": 523.7289391483728
+  },
+  "quick_L2|pr0": {
+   "n": 737,
+   "passed": 736,
+   "t": 0.3871645929997385,
+   "mean_us": 525.3250922655882
+  },
+  "discrete_L3|pr3": {
+   "n": 72,
+   "passed": 72,
+   "t": 0.037951996000018084,
+   "mean_us": 527.1110555558067
+  },
+  "discrete_L3|pr0": {
+   "n": 72,
+   "passed": 71,
+   "t": 0.03744491499998048,
+   "mean_us": 520.0682638886178
+  },
+  "quick_L3|pr0": {
+   "n": 99,
+   "passed": 99,
+   "t": 0.05172108200000025,
+   "mean_us": 522.4351717171743
+  },
+  "find|pr0": {
+   "n": 201,
+   "passed": 201,
+   "t": 0.10582945200007998,
+   "mean_us": 526.5146865675621
+  },
+  "variance|pr0": {
+   "n": 2201,
+   "passed": 2201,
+   "t": 1.1604620489996194,
+   "mean_us": 527.243093593648
+  },
+  "final|pr0": {
+   "n": 1,
+   "passed": 1,
+   "t": 0.0005342090000084454,
+   "mean_us": 534.2090000084454
+  }
+ },
+ "n_quick_mc": 3521,
+ "n_find": 1,
+ "find_evals": 201,
+ "quick_evals": 38731,
+ "variance_evals": 2201,
+ "c_ext": true,
+ "calls_note": "quick-MC calls omitted (n_quick_mc, quick_evals give the totals; all ended at the 10-step cap)"
+}

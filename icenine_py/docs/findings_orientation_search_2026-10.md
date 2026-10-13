@@ -82,6 +82,8 @@ physics into the network help?
 | 2 | 0.869 | 0.172 |
 | 3 | 2.98 | 0.012 |
 
+*Note (2026-10-08):* "MC ... ends at about 0.55 r" and the FindOptimal rows used the pre-port MC; not re-run (section 6, "C++-faithful MC").
+
 **Details.** MH "Toy Orientation NN — Perturbation sweep (2026-10-04)" and "Comparison with existing optimizers";
 `benchmarks/toy_orientation_sweep/`.
 
@@ -138,6 +140,8 @@ physics into the network help?
   - A covariance-sized FindOptimal box.
   - A network → MC finisher.
   - One network pass (H1) equals three only up to r = 1.5.
+
+*Note (2026-10-08):* the FindOptimal and MC rows were recorded with the pre-port Python MC; the C++-faithful MC and VarianceMinimizing change the finisher (section 6, "C++-faithful MC"). The network rows are unaffected.
 
 **Details.** MH "Task 1 results"; `benchmarks/nn_hybrid/`.
 
@@ -217,6 +221,8 @@ reproduces the earlier results exactly.
     50,000-step cap in 198/200 runs (about 19x the default evaluations).
 - **The H0 failures at 2–3°** are a different problem: a wrong basin.
 
+*Note (2026-10-08):* T5 used the pre-port MC and VarianceMinimizing (finisher result 0.023 deg after a median 2629 evaluations; the 19x quarter-box continuation). With the C++-faithful loops the default finisher ends 0.0168 deg (T5 H3) after 560 evaluations (section 6).
+
 The effect of these continuations on reconstruction success has not been tested.
 
 # 3. Recommendations
@@ -249,12 +255,65 @@ The effect of these continuations on reconstruction success has not been tested.
 
 # 6. Open questions and next steps
 
+> **Follow-up report:** `docs/findings_finisher_mc_study_2026-10.md` (2026-10-09) answers the finisher and MC
+> questions below. It also records that the Python MC loop and VarianceMinimizing restart did not match C++ when the
+> numbers in this report were measured. That report's section 6 lists which of this report's finisher precision and
+> timing numbers are superseded.
+
 - **Why does the finisher stop short of the truth's cost?** In particular, how much of this is the cost function's
   sensitivity: a binary overlap that is flat or rough at 0.01–0.02°, and a realistic-data minimum that is not at the
   truth in 59/200 H3 cases?
+  - *Phase A (finisher/MC study, `benchmarks/cost_sensitivity/`):* no evidence that cost-function sensitivity limits the finisher at its 0.023° error scale. The landscape still has clear downhill directions there: the within-case Spearman correlation of cost with angle has median 0.97, 99.1% or more of the rays are monotone from 0.005° outward (84.8% of realistic H3 rays through all radii), a 0.01° rotation changes the cost by a median 0.025 (realistic), and the cost is flat only below about 0.0005–0.001°. The offset of the realistic minimum is not resolved below the 0.0005° sampling grid (q75 0.0020°). A quarter-box VarianceMinimizing pass reaches 0.0060° (at ~19× the default evaluations; step cap hit in 198/200), in 83% of cases. The finisher's error is a median 1.86× the centroid-quantisation scale (0.0125°; a scale, not a lower bound). So the optimizer stops early on a landscape resolvable at that scale; why it stops is Phase B. See MIGRATION_HISTORY "Phase A results"
 - **Why does MC run out of restarts, and is MC the right local optimizer at all?** The April HP sweep compared methods
   by success from 1–5° starts, at 3500 MC steps. It did not measure final precision, nor FindOptimal's deployed
   configuration: 200 steps, a 0.33° box.
+  - *Phase B1 (`benchmarks/mc_mechanism/`):* the restart rule holds as written. No restart fires after a run's first
+    improvement (0/122); every run that exhausts its restarts never improved, and every never-improving run exhausts
+    them (78/78 both ways in H3 realistic; their start is 0.0232° from the truth against a 0.1317° step); 5/122
+    improving runs restarted before their first improvement.
+    One improvement raises `min_ergodic` from 31 to 250, above the 200-step budget. Each improvement also halves the
+    step, and an improvement is cheap at any step up to the distance to the truth (probability 0.27–0.47). The
+    remaining travel falls below the distance to the truth at some improvement in 93% of the improving runs (77/122
+    by the third), and the
+    MC output is a median 0.0705° from the truth with probability 0 of an improving proposal at its own step in 89%
+    (0.28 at the best grid step, a median 0.0075°). The step that maximises expected cost progress is about the
+    distance to the truth. *Consistent with* this being why MC stops short; a step rule that follows the acceptance
+    rate is the hypothesis B3 tests.
+  - *Phase B2 (`benchmarks/sweep_audit/`):* the sweep's recorded 96% is "final error below 1.0°" from a 1° start, not
+    0.5°. Its successes end at a median 0.47° (Adam) and 0.53° (MC); 0/100 end under 0.02°. MC at 100 steps equals MC
+    at 3500 in that protocol, there is no detectable r_perp dependence (Spearman, n = 100 voxels) inside 75–563 µm, and the hybrid benchmark shows no
+    difference from MC (9 runs only hybrid, 8 only MC, McNemar p = 1.0). So the comparison neither tested nor
+    contradicts the deployed configuration at the 0.01–0.03° scale.
+  - *Phase B3 (`benchmarks/finisher_bench/`):* a head-to-head of local finishers on the same cost function with counted
+    evaluations (300 T5 cases and 1000 sweep cases, clean and realistic). MC is not the right tool for the finishing
+    stage. At 250 evaluations CMA-ES (sigma0 0.2°) ends a median 0.0031° (T5 H3) and 0.0038° (sweep) from the truth, 94% and
+    92% under 0.02°; the deployed MC at its 201 evaluations ends 0.0382° and 0.1609° (26% and 11% under 0.02°), and the
+    whole default finisher 0.0229° and 0.0357° at 2629 and 1776 evaluations (44% and 30%). Nelder-Mead on the rotation
+    vector does nearly as well at 250 evaluations (0.0031° and 0.0034°). The deployed MC ends early exactly when it
+    never improved (74/200 T5 H3 realistic, 37.0%), and in those and in the improving runs the simplex and CMA methods
+    end 0.0021°–0.0028° away at 1000 evaluations. Neither MC with local restarts (0.0362°) nor the success-rate rule (0.0240°)
+    closes the gap: the success-rate rule as run (one untuned setting) collapses its step and stalls, so it does not
+    support the B1 step-rule hypothesis; MC with local restarts keeps the halving and so tests only the restart part.
+    The CMA and Nelder-Mead results reach the truth's cost (median gap 0.0000), so the remaining 0.002–0.003° is where
+    the cost itself has its minimum, not early stopping. Starts 2–3° away often stay wrong (T5 H0: start 33/100 wrong;
+    CMA-ES 15/100). Centroid Huber GN is good on clean windows (0.0132°) and poor on realistic (0.2628°);
+    the hybrid Adam hardly moves. Single-worker time per cost evaluation is 0.55 ms for every method, so time follows
+    evaluations (CMA-ES at 250: 0.143 s; default finisher 1.071 s). Phase C candidates: CMA-ES (sigma0 0.2°) and
+    Nelder-Mead. See MIGRATION_HISTORY "Phase B3 results".
+  - *Phase C (`benchmarks/cma_finisher/`):* CMA-ES (sigma0 0.2°, 1000 evaluations) is now an opt-in local refinement in
+    the library (`SearchParameters.local_optimizer = "cma"`, config key `LocalOptimizer cma`), replacing the refinement MC
+    in `refine_from_candidates` (seed voxels) and `local_optimization` (BFS neighbours); the default is bit-identical. It
+    reproduces B3's `cma_02` exactly on 50 T5 H3 realistic cases (median 0.0025° at 1000 evaluations, 48/50 under
+    0.02°). On the 200-voxel E0 set (no start, per-voxel images, seed 0) the right answers end a median 0.0019° (clean)
+    and 0.0021° (realistic) from the truth against 0.0301° and 0.0278° under MC; wrong (> 1°) counts are 66/200 against
+    67/200 (clean) and 44/200 against 52/200 (realistic, 8 fixed and 0 broken, exact McNemar p = 0.0078), at +0.19% and
+    +3.5% mean cost evaluations and +1.7% and +4.8% single-worker time per no-start `reconstruct_voxel` (20 voxels per variant). A BFS neighbour
+    (`local_optimization`) costs 1001 evaluations under CMA against a median 662 under MC (about +51%); MC returned the inherited
+    start unchanged in 47/50 seeded cases (5° box, strictly-lower-cost acceptance). Not shown:
+    the cost of 1001 evaluations per BFS neighbour at scale (the MC call used a median 662 in a 50-case check),
+    behaviour for neighbours across a grain boundary, and seeds 1-2. To switch it on for a BFS run set the key (or
+    `search_params.local_optimizer = "cma"`). See MIGRATION_HISTORY "Phase C results".
+- **C++-faithful MC (2026-10-08; `benchmarks/mc_mechanism/mc_faithful/`, `finisher_bench/mc_faithful/`, `cma_finisher/mcfaithful/`).** `MCOptimizer.optimize` was not the C++ `RandomRestartZeroTemp` (it halved at every improvement and restarted about the best); it is now (fixed blocks of 31 steps, restart about the initial orientation, stop after 3 failed blocks in a row), checked against a C++ debug trace (12 evaluations per quick-MC call in both; the Python no-start search still uses 1.40 times the C++ evaluations, from the coarse stage). The MC results above were re-run. *What still holds:* CMA-ES and Nelder-Mead are more precise than every MC variant at a similar cost (T5 H3 realistic 0.0031 deg and 94% under 0.02 deg at 250 evaluations, against 0.0175 deg and 55% for the deployed MC and 0.0168 deg and 56% for the whole finisher); far starts stay wrong; `local_optimization` under `mc` keeps the inherited start in 47/50 cases; CMA-ES's precision among right E0 answers (0.0021 against 0.0087 deg). *What changed:* the B1 mechanism (no restart after a first improvement, step collapse at every improvement) described the old loop; the deployed MC ends 0.0175 deg (T5 H3) and 0.0249 deg (sweep) from the truth (was 0.0382 and 0.1609); the default finisher costs a median 560 evaluations (was 2629); quarter-box VarianceMinimizing is worse than recorded (0.1378 deg against 0.0096 deg at 10000 evaluations from the H0 starts); in E0 the `mc` wrong count falls 67 to 40 (clean) and 52 to 25 (realistic) of 200 and CMA-ES's advantage in the wrong count is not reproduced (1 voxel, p = 1.0). *Untested:* which difference of the port causes the gain; whether the CMA-ES-in-BFS conclusions change at scale. See MIGRATION_HISTORY "C++-faithful MC: reruns".
 - **A full-sample, end-to-end BFS reconstruction of the 500-grain sample with new orientations,** comparing classic
   BFS (C++-parity optimizers) with BFS using the network and hybrid finisher, on timing and accuracy.
 - **Other open items:**

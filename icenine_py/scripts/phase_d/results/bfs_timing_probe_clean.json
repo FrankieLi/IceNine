@@ -1,0 +1,20 @@
+{
+  "variant": "clean",
+  "label": "single process, contended (other jobs on the machine)",
+  "seed_s": [
+    176.55825209617615,
+    375.71756196022034,
+    710.7794780731201,
+    203.77521514892578
+  ],
+  "seed_err_deg": [
+    0.0048214888970481325,
+    0.012822312842425604,
+    0.012268318499463277,
+    0.0048319309428041775
+  ],
+  "neighbour_median_s": 0.3671419620513916,
+  "neighbour_mean_s": 0.3604749321937561,
+  "neighbour_err_deg_median": 0.2999996883977514,
+  "n_neighbours": 20
+}

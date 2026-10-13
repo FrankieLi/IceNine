@@ -204,6 +204,23 @@ class ConfigFile:
     seconds_between_save: int = 0
 
     # ========================================================================
+    # Local refinement switch (Python-only, optional; absent keys mean "mc")
+    # ========================================================================
+    local_optimizer: str = "mc"  # "mc" (C++ parity) or "cma" (local CMA-ES)
+    cma_sigma0_deg: float = 0.2  # degrees (kept in degrees, not converted)
+    cma_max_evals: int = 1000  # cost evaluations per CMA run, start included
+    cma_popsize: int = 0  # 0 = the cma package default
+    cma_neighbor_max_evals: int = 250  # CMA budget of BFS neighbour/refit fits
+    cma_retry_sigma0_deg: float = 1.5  # wider-start retry of a rejected CMA neighbour; 0 = off
+    bfs_revisit_refit: bool = False  # expansions re-fit REFIT neighbours (Python-only, opt-in)
+    bfs_revisit_max: int = 3  # local fits per voxel while REFIT
+    bfs_restart_pass: bool = False  # FITTED border voxels push onto REFIT voxels after the BFS
+    bfs_reseed: bool = False  # one full no-start search per leftover REFIT cluster (opt-in)
+    cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
+    # ray-consistency rule (coarse levels 0-2 only): "off", "R<n>" (isotropic n px) or "A"
+    ray_overlap_rule: str = "off"
+
+    # ========================================================================
     # Parameter Optimization (18 parameters)
     # ========================================================================
     optimization_filename: str = ""
@@ -422,6 +439,32 @@ class ConfigFile:
             'MinAccelerationThreshold': self._parse_float('min_acceleration_threshold'),
             'SecondsBetweenSave': self._parse_int('seconds_between_save'),
 
+            # Local refinement switch (Python-only, optional)
+            'LocalOptimizer': self._parse_local_optimizer,
+            'CMASigma0': self._make_parser(
+                'cma_sigma0_deg', converter=float, validator=self._positive_validator
+            ),
+            'CMAMaxEvals': self._make_parser(
+                'cma_max_evals', converter=int, validator=self._min2_validator
+            ),
+            'CMAPopSize': self._make_parser(
+                'cma_popsize', converter=int, validator=self._popsize_validator
+            ),
+            'CMANeighborMaxEvals': self._make_parser(
+                'cma_neighbor_max_evals', converter=int, validator=self._min2_validator
+            ),
+            'CMARetrySigma0': self._make_parser(
+                'cma_retry_sigma0_deg', converter=float, validator=self._nonneg_validator
+            ),
+            'BFSRevisitRefit': self._parse_bool('bfs_revisit_refit'),
+            'BFSRevisitMax': self._make_parser(
+                'bfs_revisit_max', converter=int, validator=self._min1_validator
+            ),
+            'BFSRestartPass': self._parse_bool('bfs_restart_pass'),
+            'BFSReseed': self._parse_bool('bfs_reseed'),
+            'CppOverlapRule': self._parse_bool('cpp_overlap_rule'),
+            'RayOverlapRule': self._parse_ray_overlap_rule,
+
             # Parameter Optimization
             'OptimizationFilename': self._parse_string('optimization_filename'),
             'OptimizationConstrainFilename': self._parse_string('optimization_constrain_filename'),
@@ -531,6 +574,52 @@ class ConfigFile:
     def _parse_string(self, attr_name: str):
         """Create parser for string parameter."""
         return self._make_parser(attr_name, converter=None)
+
+    def _parse_ray_overlap_rule(self, tokens: List[str]) -> None:
+        """RayOverlapRule off|R<n>|A (Python-only, opt-in; ray_overlap.RayRule, levels 0-2)."""
+        if len(tokens) < 2:
+            raise ValueError(f"Missing value for {tokens[0]}")
+        value = tokens[1]
+        ok = value.lower() in ('off', '0', 'a') or (
+            value[:1] in ('R', 'r') and value[1:].isdigit()
+        )
+        if not ok:
+            raise ValueError(f"RayOverlapRule must be off, R<n> or A, got {value!r}")
+        self.ray_overlap_rule = 'off' if value.lower() in ('off', '0') else value.upper()
+
+    def _parse_local_optimizer(self, tokens: List[str]) -> None:
+        """LocalOptimizer mc|cma (Python-only; selects the local refinement optimizer)."""
+        if len(tokens) < 2:
+            raise ValueError(f"Missing value for {tokens[0]}")
+        value = tokens[1].lower()
+        if value not in ('mc', 'cma'):
+            raise ValueError(f"LocalOptimizer must be 'mc' or 'cma', got {tokens[1]!r}")
+        self.local_optimizer = value
+
+    @staticmethod
+    def _positive_validator(value: float, keyword: str) -> None:
+        if not value > 0:
+            raise ValueError(f"{keyword} must be > 0, got {value}")
+
+    @staticmethod
+    def _nonneg_validator(value: float, keyword: str) -> None:
+        if not value >= 0:
+            raise ValueError(f"{keyword} must be >= 0, got {value}")
+
+    @staticmethod
+    def _min1_validator(value: int, keyword: str) -> None:
+        if value < 1:
+            raise ValueError(f"{keyword} must be >= 1, got {value}")
+
+    @staticmethod
+    def _popsize_validator(value: int, keyword: str) -> None:
+        if value != 0 and value < 2:
+            raise ValueError(f"{keyword} must be 0 (default) or >= 2, got {value}")
+
+    @staticmethod
+    def _min2_validator(value: int, keyword: str) -> None:
+        if value < 2:
+            raise ValueError(f"{keyword} must be >= 2, got {value}")
 
     def _parse_float(self, attr_name: str):
         """Create parser for float parameter."""

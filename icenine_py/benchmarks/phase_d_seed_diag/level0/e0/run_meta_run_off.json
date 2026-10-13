@@ -1,0 +1,1 @@
+{"workers": 10, "wall_s": 879.0032670497894, "tasks": 400, "level0_only": true, "note": "contended multi-worker wall, not a timing claim"}

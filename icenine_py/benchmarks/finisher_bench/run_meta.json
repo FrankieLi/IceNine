@@ -1,0 +1,9 @@
+{
+ "workers": 10,
+ "wall_s": 12456,
+ "tasks": 304,
+ "pilot_wall_s": 181,
+ "pilot_workers": 8,
+ "pilot_cases": 32,
+ "note": "wall time of bench.py run, contended (other work on the machine); not a timing claim"
+}

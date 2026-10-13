@@ -14,7 +14,9 @@ everyone gets the same numpy/torch/scipy versions (2.0.2 / 2.8.0 / 1.13.1). Do n
 `uv pip install`: it ignores the lock, resolves newer versions, and the golden bit-identity tests in
 `tests/test_findoptimal_refactor.py` then fail (they check the recorded versions and say so).
 
-Dependencies: numpy, torch, pymatgen, scipy (see `pyproject.toml`).
+`uv sync` is exact: it uninstalls every extra you do not list. Use `uv sync --extra dev` for the library and the tests (the geoopt tests skip), and `uv sync --extra dev --extra riemannian --extra benchmarks` for the study scripts and the hybrid optimizer.
+
+Dependencies: numpy, torch, pymatgen, scipy, cma (see `pyproject.toml`).
 
 ## Quick Start: Forward Simulation
 
@@ -78,7 +80,7 @@ For each voxel in the sample:
 | `constants.py` | Physical constants |
 | `file_io.py` | Detector file, crystal structure file, and omega file I/O |
 | `reconstructor.py` | Reconstruction orchestrators — serial, adaptive, and BFS spatial propagation |
-| `orientation_search.py` | Discrete grid search + zero-temperature MC optimization (`MCOptimizer.optimize` is the C++ `RandomRestartZeroTemp`: fixed-length blocks, restart about the initial orientation, stop on successive failed blocks; the VarianceMinimizing restart follows C++ too) |
+| `orientation_search.py` | Discrete grid search + zero-temperature MC optimization (`MCOptimizer.optimize` is the C++ `RandomRestartZeroTemp`: fixed-length blocks, restart about the initial orientation, stop on successive failed blocks; the VarianceMinimizing restart follows C++ too); opt-in `CMAOptimizer` (local CMA-ES on a rotation vector about the start, `SearchParameters.local_optimizer = "cma"`) and the hybrid `RiemannianAdamOptimizer` |
 | `cost_functions.py` | Overlap computation between simulated projections and experimental data (batched Stages A-C + sequential Stage D) |
 | `_rasterize.c` | CPython C extension for fast triangle rasterization and pixel overlap (Sutherland-Hodgman + Bresenham) |
 | `experimental_data.py` | Load experimental detector images for reconstruction |
@@ -201,6 +203,18 @@ For the ThreeVoxels test case: 252s (BFS) vs 6638s (serial) — 26× faster. The
 | `MaxConvergenceCost` | Cost threshold to stop MC early | 0.0001-0.01 |
 | `MaxAcceptedCost` | Cost threshold to accept result | 0.9 |
 | `MaxDiscreteCandidates` | Top candidates from discrete search | 50-100 |
+| `LocalOptimizer` | Optional, Python only: `mc` (default; C++ parity) or `cma` (local CMA-ES for the refinement stages) | `mc` |
+| `CMASigma0` | Optional: CMA initial step (degrees of rotation vector); used only with `LocalOptimizer cma` | 0.2 |
+| `CMAMaxEvals` | Optional: cost evaluations per CMA run, start included | 1000 |
+| `CMAPopSize` | Optional: CMA population (0 = the `cma` package default, 7) | 0 |
+| `CMANeighborMaxEvals` | Optional, `cma` only: CMA budget of a BFS neighbour fit; seed voxels keep `CMAMaxEvals`. **In `cma` mode this changes the Phase C BFS (neighbours 1000 -> 250 evaluations)**; set 1000 to keep the Phase C budget | 250 |
+| `CMARetrySigma0` | Optional, `cma` only: a rejected BFS neighbour is retried once with this wider start step (degrees); 0 = no retry. **On by default in `cma` mode**, so the Phase C `cma` BFS is not reproduced unless this is 0 | 1.5 |
+| `BFSRevisitRefit` | Optional, Python only: 1 = an expansion that reaches a voxel left REFIT fits it again from its own orientation (the multi-client behaviour of the C++ run) | 0 |
+| `BFSRevisitMax` | Optional: local fits per voxel while it is REFIT (revisit and restart pass together), >= 1; with `BFSReseed` on the counters of a cluster are reset before each reseed, so the cap applies per reseed | 3 |
+| `BFSRestartPass` | Optional, Python only: 1 = after the BFS, FITTED voxels bordering REFIT voxels push their orientation onto them (C++ restart semantics) | 0 |
+| `BFSReseed` | Optional, Python only: 1 = when no NOT_VISITED voxel is left, each connected cluster of REFIT voxels gets one full no-start search on one voxel (nearest the cluster centroid, ties lowest index); accepted -> expansion with revisit; a rejected full search (ordinary seed or reseed) makes that voxel failed (never searched again, unresolved) but does not close its cluster, which is reseeded on another voxel. Off keeps the C++ seed rule and the output unchanged | 0 |
+| `CppOverlapRule` | Optional, Python only: 1 = the literal C++ `CountQualifiedPeaks` overlap rule (a lit, non-overlapping later detector invalidates a peak's overlap) in the cost function. (The voxel centroid, as C++ `VoxelToCenter`, is projected by the pixel-radius-3 coarse screen for every rule, with or without this key since 2026-10-12; vertex 0 is only the explicit opt-out `SearchParameters.cpp_center_screen=False` / `VoxelCostFunction(center_screen=False)`, not a config key.) Off keeps the original Python rule. On makes the level-0 candidate counts and cost values match C++ (0.995-1.003x and no -0.013 offset) but lowers E0 accuracy (see MIGRATION_HISTORY "Level-0 candidates"); needs `icenine/_rasterize.c` rebuilt (`HAS_CPP_RULE`; from `icenine_py/`: `uv run --no-project --with setuptools --with numpy python setup.py build_ext --inplace`, since `uv sync --reinstall-package icenine` does not rebuild it), otherwise the slow Python path is used with a one-time warning | 0 |
+| `RayOverlapRule` | Optional, Python only, opt-in: `off` (default), `R<n>` (isotropic tolerance of n pixels on detector 1) or `A` (anisotropic window per peak). The ray-consistency overlap rule (`icenine/ray_overlap.py`): once a peak's predicted spot is bright on detector 0, the observed ray from the voxel through the bright detector-0 pixels is cast to detector 1 and decides peaks whose predicted detector-1 spot is not bright (cases a-f in the module docstring). **Two costs differ by design:** the rule is used only in the coarse search levels 0-2 (pixel-radius screen, re-cost, quick MC, ranking cut); FindOptimal, VarianceMinimizing, the final cost and the confidence use the strict predicted-spot rule (the C++ rule when `CppOverlapRule` is 1). The coarse levels run the C++ rule and the centroid screen as well. Setting `RayOverlapRule` without `CppOverlapRule 1` gives a `UserWarning` (coarse levels use the ray rule, while level 3, FindOptimal and the final cost use the lenient rule; not studied). The rule covers levels 0-2 only; if `max_local_resolution` < 3 every coarse level uses it. Needs `_rasterize.c` rebuilt (`HAS_RAY_RULE`). Arm A's registration term is `DetectorSpacingDeviation`. Case f (predicted spot off detector 1, observed ray on dark pixels) is always forgiven; the earlier `RayOverlapF1` key (reject) was removed 2026-10-12 because it wrongly rejected about 3% of real peaks and showed no benefit (may revisit; MIGRATION_HISTORY 'Ray-consistency overlap rule'). The observed-ray check runs in C (`_rasterize.ray_flags`; rebuild the extension). | off |
 
 ### Single-Voxel Reconstruction
 
@@ -444,7 +458,7 @@ Step-size trajectory plot. X-axis: event index — the sequential count of recor
 
 ```bash
 cd icenine_py
-uv sync --extra riemannian
+uv sync --extra dev --extra riemannian
 uv run python benchmarks/bench_hp_sweep.py --example threevoxels
 uv run python benchmarks/bench_hp_sweep.py --example manygrains
 uv run python benchmarks/bench_hp_sweep.py --smoke-test --example threevoxels  # quick test
@@ -479,12 +493,55 @@ reconstructor = AdaptiveVoxelReconstructor(setup)
 
 ```bash
 cd icenine_py
-uv sync --extra riemannian
+uv sync --extra dev --extra riemannian
 uv run python benchmarks/bench_hybrid_optimizer.py --smoke-test --example threevoxels  # 3 voxels, 2 perturbations
 uv run python benchmarks/bench_hybrid_optimizer.py --example threevoxels               # full run
 ```
 
 Outputs: `benchmarks/bench_hybrid_{example}.csv` (per voxel/perturbation/optimizer), plus success-rate, wall-time (Adam vs. hard-eval breakdown), and MC-vs-hybrid scatter plots.
+
+### Local CMA-ES refinement (opt-in)
+
+`CMAOptimizer` (in `icenine/orientation_search.py`) refines an orientation with the `cma` package (a core dependency). The search variable is a rotation vector v (degrees) about the start, `R = exp(v) R0`, with initial step `sigma0_deg` (default 0.2); the result is the lowest-cost orientation evaluated (never worse than the start), as a `CMAResult` (a `SearchCandidate` with `n_evals` and `stop_reason`). `max_evals` (default 1000, start included) is exact. cma's flat-fitness, function-value and stagnation stops are off (the hard cost is quantised); only its x-tolerance, `max_evals` and an optional `max_convergence_cost` (default off) end a run. The cma seed is `seed + 1`; without `seed` it is drawn from the generator, so a run is deterministic given the generator. Settings are those of the Phase B3 `cma_02` method (MIGRATION_HISTORY, "Phase B3 results" and "Phase C results").
+
+**Switch.** `SearchParameters.local_optimizer` is `"mc"` (default, bit-identical to the C++-parity path) or `"cma"`. It is set in code, or in the config with the optional keys `LocalOptimizer cma`, `CMASigma0 <deg>`, `CMAMaxEvals <n>`, `CMAPopSize <n>` (absent keys mean `mc`; existing configs are unchanged; the C++ program rejects a config that contains these keys ("syntax not recognized", Src/ConfigFile.cpp), so use a Python-only config or set the fields in code). The fields are `local_optimizer`, `cma_sigma0_deg`, `cma_max_evals`, `cma_popsize`.
+
+```python
+setup = setup_reconstruction(config)           # a config with "LocalOptimizer cma" ...
+setup.search_params.local_optimizer = "cma"    # ... or set it in code
+setup.search_params.cma_sigma0_deg = 0.2
+setup.search_params.cma_max_evals = 1000
+BFSReconstruction(setup).reconstruct_sample(...)   # or AdaptiveVoxelReconstructor(setup)
+```
+
+Call sites that switch with `"cma"` (all of them are refinements of one start):
+- `AdaptiveVoxelReconstructor.refine_from_candidates` (the end of `reconstruct_voxel`, so BFS seed voxels too): for each candidate, FindOptimal's MC **and** the final VarianceMinimizing pass are replaced by one CMA run from that candidate; the candidate loop, the "hit ratio 1.0" early exit, the choice of the lowest cost and the final overlap evaluation are unchanged.
+- `AdaptiveVoxelReconstructor.local_optimization` (BFS neighbours, `_fit_from_seed`): the variance-minimizing MC from the inherited orientation is replaced by one CMA run from it; the acceptance test (hit ratio over 0.9 of the best) is unchanged.
+
+Not switched: the coarse discrete search and the quick MC on its candidates (10 steps, 5 restarts; they rank and prune candidates for the next level, they are not a refinement of the final answer), and `BasicVoxelReconstructor` (the serial C++-parity reconstructor, not used by BFS). `local_optimizer="cma"` with `use_hybrid_optimizer` raises `ValueError`. A CMA run uses its whole budget unless x-tolerance stops it (it did not in the Phase C runs), so the cost of a run is `CMAMaxEvals` evaluations per candidate; CMA from sigma0 0.2 deg stays local (B3 far starts, `cma_02`: wrong in 1/11 at 1.5 deg, 4/11 at 2 deg, 10/11 at 3 deg), so `CMASigma0` may need to be larger for neighbours that cross a grain boundary.
+
+### BFS revisit of REFIT voxels, CMA neighbour budget and retry, provenance (opt-in)
+
+Python only (the C++ program rejects these config keys). With `local_optimizer = "mc"` and the options below off, the BFS is bit-identical to before (golden test on a scripted 196-voxel, 4-grain grid recorded from the parent commit). **In `cma` mode the defaults are not the Phase C behaviour**: `cma_neighbor_max_evals` is 250 instead of 1000 and `cma_retry_sigma0_deg` is 1.5 (retry on); set 1000 and 0 to get Phase C's neighbours back.
+
+How C++ treats REFIT voxels, and what this class does:
+- In a normal C++ LazyBFS run the server never re-seeds a REFIT voxel (`Pop` skips everything that is not NOT_VISITED). A REFIT voxel is fitted again only because every client keeps its own grid: when another client's expansion (often the voxel's true grain) reaches it while it is still NOT_VISITED there, it is fitted from that client's orientation, and the server's `Push` keeps the higher-confidence result (even over a FITTED one). `LazyBFSClient::Refit` is the restart path only (`RESTART_FIT`, a partial result; every stored voxel is a centre; gated by `PartialResultAcceptanceConfidence`, a key that turns restart on in a C++ config). The Python BFS has one client, so before these options a REFIT voxel was never revisited; that matched C++ with a single client.
+- **`bfs_revisit_refit` / `BFSRevisitRefit 1`**: an expansion also enqueues REFIT neighbours it has not tried yet (a per-expansion set stands in for the client grid), at most `bfs_revisit_max` (default 3) local fits per voxel over the whole run (with `bfs_reseed` on, the counters of a cluster are reset before each reseed of it and stay reset if that reseed is rejected, so the cap applies per reseed; `BFSVoxelRecord.n_revisits_before_reset` keeps the discarded counts). The voxel inherits the expanding voxel's orientation and gets the usual local fit (with the cma retry) under the 0.9 relative test; accepted voxels become FITTED and expand; a rejected voxel keeps the better of its old and new fit by confidence (Push rule). Only local fits are made. FITTED voxels are not revisited (C++ would refit them and keep the higher confidence).
+- **`bfs_restart_pass` / `BFSRestartPass 1`**: the restart semantics on this run's own result. FITTED voxels that border a REFIT voxel are expansion centres (index order), with revisit enabled and the same cap. There is no centre re-optimization and no full-search fallback. A full search for REFIT voxels is the separate option `bfs_reseed` (next item).
+- **`bfs_reseed` / `BFSReseed 1`**: after the seed loop, the connected clusters of REFIT voxels (radius 2 x side length, as the expansion; failed voxels left out) are reseeded one at a time: one full no-start search on the voxel nearest the cluster centroid (ties: lowest index). Accepted by the seed test -> expand with revisit (forced on; the cluster's revisit counters are reset so the cap does not block the new orientation); then the clusters are recomputed and the loop repeats. Finality is per voxel: a voxel whose full search was rejected (ordinary seed or reseed) is failed, never searched again, and ends `unresolved` unless a later revisit fits it; it does not close its cluster, the rest is reseeded on other voxels. No retry, no lowered floor. `BFSReconstruction.reseed_log` has per reseed: cluster size, voxel, accepted, seconds, evaluations; `stats` has `n_reseeds`, `n_reseed_accepted`, `n_reseed_rejected`, `n_reseed_final_voxels` (voxels failed by a rejected reseed), `n_evals_reseed`, `wall_reseed_s` (the full searches are not counted in `n_evals_seed`). Off by default; with it off the output is the same as before (`tests/data/bfs_grid_golden.npz`).
+- **`cma_neighbor_max_evals` / `CMANeighborMaxEvals`** (default 250, `cma` only): the budget of BFS neighbour and revisit fits; seeds keep `cma_max_evals`.
+- **`cma_retry_sigma0_deg` / `CMARetrySigma0`** (default 1.5, 0 = off, `cma` only): a neighbour that fails the 0.9 test is fitted once more from the same inherited start with the wider step and the same budget; kept only if it passes the test, else the first fit stands.
+- **Provenance and stats**: after `reconstruct_sample`, `bfs.records[idx]` is a `BFSVoxelRecord` (`source` in `seed | neighbor | neighbor_retry | revisit | restart | unresolved`, cumulative `n_evals` and `wall_s`, `hit_ratio`, `seed_rejected`, `local_rejected`, `retried`, `retry_accepted`, `n_revisits`, `n_revisits_before_reset`, `reseeded`; `source == "seed"` includes accepted reseeds) and `bfs.stats` the counters (seeds, `n_neighbor_fits`, `n_neighbor_accepted_first`, `n_retry_attempted/accepted_{neighbor,revisit,restart}`, `n_{revisit,restart}_{attempted,accepted,rejected}`, `n_revisit_capped`, `n_restart_candidates`, `n_unresolved`, evaluations and wall seconds split `seed / neighbor / revisit / restart`). "Accepted" is the relative hit-ratio test, not correctness against a truth; score errors against the truth by voxel index. Evaluations and times are cumulative over all attempts on a voxel; the overlap evaluation after a full search is not counted. Recording is one small object per voxel; on the scripted grid the whole 196-voxel run, fake fits included, takes about 0.01 s, so the bookkeeping is small next to any real fit (not measured separately).
+
+```python
+setup.search_params.local_optimizer = "cma"
+setup.search_params.cma_neighbor_max_evals = 250
+setup.search_params.cma_retry_sigma0_deg = 1.5
+setup.search_params.bfs_revisit_refit = True    # or "BFSRevisitRefit 1" in a Python-only config
+bfs = BFSReconstruction(setup)
+bfs.reconstruct_sample(rng=np.random.default_rng(0))
+unresolved = [i for i, r in bfs.records.items() if r.source == "unresolved"]
+```
 
 ## Config File Format
 
@@ -663,6 +720,28 @@ Commands for the `GNLayerNet` (`--arch gn`) and Step 4 (distractor/realism layer
 
 `scripts/finisher_diagnosis/` diagnoses why `refine_from_candidates` ends above the truth's cost on realistic sweep cases (own header docstrings): `diagnose.py` (`pilot`, `run`; re-runs the finisher with the Task 1 seed through the unmodified reconstructor with `LoggedMC`, a `MCOptimizer` subclass that records the stopping rule and iteration, then measures the cost along the geodesic result -> truth, the cost granularity at the truth and result, and continuations with longer runs / smaller steps / smaller boxes), `diag_summary.py` (tables and `summary.json`). Caches in `scripts/finisher_diagnosis/cache/` (gitignored), results in `benchmarks/finisher_diagnosis/`; tests in `tests/test_finisher_diagnosis.py`. Nothing in `icenine/` changed.
 
+`scripts/cost_sensitivity/` (finisher/MC study, Phase A; own header docstrings): `landscape.py` (`pilot`, `run`; the cost landscape around the truth on the T5 cases, clean and realistic variants of the same voxel/radius/direction: 400 random directions x 10 radii from 0.0005 to 0.1 degrees plus the finisher's step), `resolution.py` (centroid-quantisation scale of a voxel's orientation from the geometry (a scale, not a bound); `fisher_quantisation`, `crb`), `summary.py` (plateau statistics, sampled minimum, cost-vs-angle correlation, gap-closure statistics -> `benchmarks/cost_sensitivity/summary.json` and `tables.md`). Cache in `scripts/cost_sensitivity/cache/` (gitignored); tests in `tests/test_cost_sensitivity.py`. Nothing in `icenine/` changed.
+
+`scripts/mc_mechanism/` (finisher/MC study, Phase B1; own header docstrings): `mc_trace.py` (`pilot`, `run`; the T5 cases, clean and realistic, through the unmodified `refine_from_candidates` with `TracedMC`, a `LoggedMC` that records per step the step, `min_ergodic`, steps since the last improvement, accepts, restarts and the distance to the truth; plus the improvement-probability curve P(a proposal of step s lowers the cost) at the finisher result, the truth and the truth rotated by 0.005-0.05 deg), `mc_end_curve.py` (the same curve at the MC stage's own output), `summary.py` (mechanism checks, lock-in bound, curves -> `benchmarks/mc_mechanism/summary.json` and `tables.md`), `mc_helpers.py` (`mc_proposals`, which draws trial rotations exactly like `MCOptimizer.optimize`, and small pure helpers). Caches in `scripts/mc_mechanism/cache/` (gitignored); tests in `tests/test_mc_mechanism.py` and `tests/test_sweep_audit.py`. Nothing in `icenine/` changed.
+
+`scripts/sweep_audit/` (finisher/MC study, Phase B2; no optimizer is run): `audit.py` re-analyses the April 2026 HP sweep (the per-run lines of `benchmarks/hp_sweep_manygrains.log`, linked to voxel positions in the `.mic` file and to `hp_sweep_trajectory_manygrains.csv`; `hp_sweep_threevoxels.csv`) and `bench_hybrid_*.csv`: reproduction of the recorded headline (final error < 1.0 deg), the precision of the "successes", success by distance from the rotation axis, each method at a matched budget, MC stopping, the hybrid benchmark, and a measured-versus-deployed table -> `benchmarks/sweep_audit/summary.json` and `tables.md`; `audit_helpers.py` (log-line parser, file-block splitter, quantiles). Results are in MIGRATION_HISTORY "Phase B1/B2 results".
+
+`scripts/finisher_bench/` (finisher/MC study, Phase B3; own header docstrings): `optimizers.py` (`CountingCost`, which counts cost evaluations exactly, tracks the best orientation, snapshots it at checkpoints and stops a method at its budget; MC with local restarts, a (1+1)-ES with a success-rate step rule, Nelder-Mead and CMA-ES on the rotation vector, VarianceMinimizing in a small box, plain `MCOptimizer`), `bench.py` (`pilot`, `run`; the 300 T5 cases and 1000 perturbation-sweep cases, clean and realistic, every method on the same `VoxelCostFunction`, plus centroid Huber Gauss-Newton on the net's windows, the hybrid Riemannian Adam and the unmodified default finisher), `finisher_summary.py` (win rates, sign / voxel-clustered / McNemar tests, Wilson intervals -> `benchmarks/finisher_bench/summary.json`, `tables.md`), `finisher_timing.py` (single-worker, preflight-gated timing on 40 cases -> `timing.json`, `preflight.json`). Caches in `scripts/finisher_bench/cache/` (gitignored); tests in `tests/test_finisher_bench.py`. Nothing in `icenine/` changed.
+
+`scripts/cma_finisher/` (finisher/MC study, Phase C; own header docstrings): `validate_lib.py` (the library `CMAOptimizer` against B3's stored `cma_02` results on 50 T5 H3 realistic cases, plus `refine_from_candidates` with `local_optimizer="cma"`), `e0_cma.py` (`pilot`, `run`, `timing`, `summary`; no-start `reconstruct_voxel` on the 200-voxel E0 set with `"mc"` and `"cma"` back to back, the `"mc"` run checked bit for bit against the stored E0 seed-0 run; `timing` is single-worker and preflight-gated -> `benchmarks/cma_finisher/`). Caches in `scripts/cma_finisher/cache/` (gitignored); tests in `tests/test_cma_optimizer.py`. Phase C changed `icenine/` (`orientation_search.py`, `reconstructor.py`, `config_file.py`; opt-in, default unchanged) and moved `cma` from the benchmarks extra to the core dependencies.
+
+`scripts/phase_d/` (Phase D data of the finisher/MC study; own header docstrings): `make_neworient.py` (new orientations for the 500-grain sample -> `Examples/Example2.ManyGrains/SimInput/rand_500grains_1mm_neworient_s0.*`), `render_full.py` (full-sample forward simulation, clean and realistic detector-noise images, 10 workers -> `Examples/Example2.ManyGrains/ScatteringData_PhaseD/`, gitignored), `sanity_checks.py`, `frame_split_check.py`, `memmap_check.py`, `bfs_timing_probe.py`, `make_configs.py` (-> `configs/ReconstructPhaseD_{mc,cma,cma_noretry}_{clean,realistic,realistic_q16}.config`, all reading the grid-only `..._grid.mic`), `summary.py`. The opt-in low-memory loader `ExperimentalData.from_binary_memmap` / `write_binary_stack` (`icenine/experimental_data.py`, uint8 `.npy` stack, hard cost only) is documented there. Record in MIGRATION_HISTORY, "Phase D data"; tests in `tests/test_phase_d.py`.
+
+Phase D pilot (`scripts/phase_d/`): `make_region.py` (the 2,000-voxel disc region -> `benchmarks/phase_d_pilot/region*`), `pilot_bfs.py` (one BFS arm on the region, `BFSRevisitRefit 1`, one process, one thread, memmap images, rng seed 0), `score_bfs.py` (symmetry-reduced misorientation scoring: Wilson and grain-bootstrap intervals, grain-clustered sign-flip test, boundary/interior and near/far axis splits, grains found/lost/fragmented, errors by provenance source), `summarize_pilot.py` (-> `benchmarks/phase_d_pilot/summary.json`, `tables.md`); tests in `tests/test_phase_d_scoring.py`. Results and go/no-go: MIGRATION_HISTORY, "Phase D pilot results".
+
+Ray-consistency overlap rule (`scripts/phase_d/ray_overlap_study.py`, `ray_overlap_summary.py`, `icenine/ray_overlap.py`, tests `tests/test_ray_overlap.py`): opt-in, default off; used only for the coarse levels 0-2 while FindOptimal, VarianceMinimizing and the final cost stay strict (two costs by design). `study.py pilot|run --step 1|2`: step 1 peak-level filtering power and false rejections at the truth, near-truth and random orientations; step 2 the coarse stage levels 0-2 without FindOptimal, per arm. 2026-10-12 additions: `ray_overlap_summary30.py` (30-voxel coarse rerun, env `RAY_COARSE_DIR=coarse30`, survival at 3 / 2 / 1 deg and the pre-MC rank of the closest candidate), `ray_overlap_e2e_summary.py` (step 3: `e0_cpprule.py run --arm rayR2|rayA --msin 0` and `seed_diag.py run --opt ray_rule=R2|A`). Results and the run record: `benchmarks/phase_d_seed_diag/ray_overlap/` (`RUN_LOG.md`, `summary.json`, `tables.md`); MIGRATION_HISTORY, "Ray-consistency overlap rule".
+
+Centroid start point everywhere (2026-10-12, `scripts/phase_d/centroid_step3_summary.py`; env `RAY_VARIANTS=clean`, `RAY_PEAK_DIR`, `RAY_COARSE_DIR`, `RAY_VERTEX0=1` in `ray_overlap_study.py`; `e0_cpprule.py --tag centroid --variant clean`; `seed_diag.py --tag base_centroid`): clean-image re-run of the peak level, the 30-voxel coarse stage, E0 and six full-sample voxels with the centroid screen for every rule; run script and record in `benchmarks/phase_d_seed_diag/centroid/` (`RUN_LOG.md`, `summary.json`, `tables.md`); MIGRATION_HISTORY, "Centroid start point everywhere".
+
+Seed-cost diagnosis and the variance-stage parity fix (`scripts/phase_d/seed_diag*.py`, `seed_diag_variance_parity*.py`, `tests/test_seed_diag.py`, `tests/test_variance_stage_parity.py`): `MCOptimizer.variance_minimizing_optimize` restarts as C++ does (offsets +-SubregionRadius about the initial orientation); see MIGRATION_HISTORY, "C++ vs Python variance stage".
+
+`MCOptimizer.optimize` (the quick MC of the coarse levels and the FindOptimal MC) is a port of C++ `RandomRestartZeroTemp`: blocks of `int(2 (box/step)^3)` trial steps at a fixed step, each from the current state (`_mc_block`, C++ `ZeroTemperatureOptimization`); a block that does not end strictly below the global best restarts at `delta * initial` (`delta` from U(-r, r)^3, `r = tan(box)/sqrt(48)`) with the step reset, a better one becomes the global best and current state and halves the step; stop on a global cost below `max_convergence_cost`, then on more than `max_restarts` failed blocks in a row. The step budget counts trial steps (each block also evaluates its start); `last_run` holds the stop reason, blocks, accepts and restarts of the last call, and the trajectory records one event per block. Scripted semantics test `tests/test_mc_cpp_parity.py`; C++ trace and evaluation comparison `scripts/phase_d/mc_parity.py` (`benchmarks/phase_d_seed_diag/mc_parity/`); reruns of the earlier MC results in `scripts/mc_mechanism/summary_faithful.py`, `scripts/finisher_bench/mc_faithful_summary.py`, `scripts/cma_finisher/e0_cma.py --tag`, `validate_lib.py --tag`; see MIGRATION_HISTORY, "C++-faithful MC: reruns".
+
 `scripts/checks/` holds the numerical checks behind the derivations in `docs/`. Results
 of the Stage 0 run are in `benchmarks/toy_orientation_stage0/`.
 
@@ -691,6 +770,11 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   of 2026-10-01 to 2026-10-07 (network, FindOptimal robustness, hybrids, cost proxy, profiling,
   follow-ups).
 
+- [`docs/findings_finisher_mc_study_2026-10.md`](docs/findings_finisher_mc_study_2026-10.md) —
+  findings of the finisher and MC study and the first full-sample BFS pilot (2026-10-07 to
+  2026-10-09): cost sensitivity, the two C++ port fixes and what they changed, CMA-ES, the
+  full-sample data, the BFS seeding gap, and which earlier claims are superseded.
+
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
 Orientation NN — Theory Phase" onward) for the step-by-step record.
@@ -708,6 +792,7 @@ Rules and checks that used to be repeated in LLM prompts live in code. Paths are
 | `scripts/dev/finish_task.sh [--no-tests] [--yes] [--push] [-m msg] [--next task]` | Run the Python suite and/or C++ build if relevant files changed, merge into the parent with `--no-ff` (inside the parent's worktree if it lives elsewhere), delete the task branch, detach and remove any other worktree holding it, optionally push and start the next task. A dirty `CLAUDE.md` is ignored by the cleanliness check and never staged. |
 | `icenine_py/scripts/common/stats.py` | `wilson`, `mcnemar_exact`, `paired_discordant`, `win_rate`, `reorder` (id-checked re-indexing), `misorientation_deg_cubic`. Usage: put `scripts/common` on `sys.path`, `import stats`. |
 | `icenine_py/scripts/common/doc_tables.py` | `markdown_table(rows, columns, formats)` and `write_tables(path, {name: md})` (marker-delimited blocks). |
+| `icenine_py/scripts/common/gzio.py` | Transparent reads of result files stored gzip-compressed: `load_json`, `read_text`, `open_text`, `exists`, `resolve` take the logical name (`x.json`) and open `x.json` or `x.json.gz`, the plain file winning if both exist; `glob_paths(pattern)` matches both; `write_json_like` writes back keeping the stored compression (reproducible gzip bytes). The large Phase D result JSON (`benchmarks/phase_d_seed_diag/runs/*_full_v*.json` of the tags `base_centroid`, `lenientnow`, `cpprule`, `rayR2`, `rayA`, `varfix`, and `level0/py_v15901.json`) is stored as `.json.gz`; every reader in `scripts/phase_d/` goes through this module. To compress another result file: `gzip -9 -n FILE` and make its readers use `gzio`. |
 | `scripts/dev/sync_doc_tables.py --doc D.md --tables T.md [--check]` | Copy generated blocks into the matching `<!-- table:NAME -->` markers; `--check` exits 1 on a difference. |
 | `scripts/dev/audit_numbers.py --doc D.md --section "Heading" --sources FILES... [--strict]` | List numbers in a doc section that no source value matches (precision-aware; x100, /100 and sibling k/n ratios only for percentages and fractions). `-v` shows the nearest source value and file:key; `--per-file` requires each paragraph or table row to match within one source file. Advisory; prints the chance-match rate per precision bucket. A match is not verification: low-precision decimals match almost anything. |
 | `icenine_py/scripts/common/preflight.py`, `scripts/dev/timing_preflight.py [--require] [--json out]` | Record load, power source, thread settings and busy processes before a timing run; `require_quiet` refuses a busy machine. |
@@ -716,8 +801,11 @@ Rules and checks that used to be repeated in LLM prompts live in code. Paths are
 | `scripts/dev/new_todo.sh <slug> "<title>" ["<subtitle>"]` | Scaffold `icenine_py/docs/todo_<slug>.md`. |
 | `.claude/agents/implementer.md`, `.claude/agents/code-reviewer.md` | Slim LLM agents: an implementer (Sonnet) for approved plans, and the reviewer with a "Claims audit" section that runs the scripts above first. Both read `.claude/agents/study-conventions.md` first (standing rules, so briefs can say "follow study-conventions"), write the full report to `.claude/reports/<YYYYMMDD-HHMM>-<task>.md` (gitignored) and return at most about 250 words. |
 | `.claude/skills/{handoff,resume,review-task,merge-task}` | `/handoff` runs `checkpoint.sh`, fills Done / Waiting on the owner / Next step and says it is safe to `/clear`; `/resume` reads only the newest checkpoint, its plan and `git status`/`log -5`; `/review-task` launches the opus reviewer, whose required fixes go to its report file; `/merge-task [next]` wraps `finish_task.sh --yes --push [--next]`. |
+| `icenine_py/scripts/plot_mic.py --ref R.mic [--ref-index I.npy] [--z Z] --mic A.mic ... --labels ... --out F.png [--stats S.json]` | Orientation maps (cubic fundamental-zone Rodrigues vector as RGB, fixed scale) and misorientation maps against the reference (blue 0° to red 62.8°, the cubic maximum) for triangular `.mic` grids. Pairs voxels by index when the order matches, otherwise by nearest centroid on the same grid; unmatched reference voxels are grey. Python 3 port of `MicAnalyzer/Python/xdm_toolkit/xdm_plot.py`. |
+| `icenine_py/scripts/mic_maps_report.py SPEC.json --out-dir D` | Build an Artifact-ready page (`index.html`, `maps/*.png`, `stats.json`) of several `plot_mic` figures from a JSON spec (format in its docstring). |
+| `.claude/skills/mic-maps` | `/mic-maps`: choose the reference and runs, write the spec, build, check the wrong counts against scored numbers, and publish the page as an Artifact. For layers of 500 voxels or more. |
 
-Tests: `tests/test_dev_tooling.py`.
+Tests: `tests/test_dev_tooling.py`, `tests/test_plot_mic.py`, `tests/test_gzio.py`.
 
 ## Citation
 

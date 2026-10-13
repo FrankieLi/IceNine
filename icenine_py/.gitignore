@@ -77,3 +77,13 @@ benchmarks/toy_orientation_stage3/far_bayes_log.txt
 benchmarks/toy_orientation_stage3/far_log_*.txt
 benchmarks/toy_orientation_stage3/multi_log_set_all*.txt
 scripts/finisher_diagnosis/cache/
+scripts/cost_sensitivity/cache/
+scripts/mc_mechanism/cache/
+scripts/finisher_bench/cache/
+benchmarks/finisher_bench/cache/
+scripts/cma_finisher/cache/
+
+# Phase D logs/caches
+scripts/phase_d/cache/
+benchmarks/phase_d_seed_diag/logs/
+benchmarks/phase_d_seed_diag/runs/*_cands.npz

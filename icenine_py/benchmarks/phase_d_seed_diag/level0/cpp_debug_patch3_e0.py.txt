@@ -1,0 +1,55 @@
+# Patch 3 (Step 3): per-level candidate dumps for the E0 comparison, env CTRACE.
+#  CD  level idx cost m0..m8   candidates after the discrete search + local re-cost (before quick MC)
+#  CQ  level rank cost m0..m8  after the quick MC, sorted by cost (rank = position in the sorted list)
+#  CK  level n_keep            number kept for the next level
+#  CF  idx cost m0..m8 in0..8  FindOptimal: result of each candidate (input matrix follows)
+#  CR  cost m0..m8 / CV        FindOptimal winner / after VarianceMinimizing
+import re
+p = 'Src/DiscreteAdaptive.tmpl.cpp'
+s = open(p).read()
+def rep(a, b):
+    global s
+    assert s.count(a) == 1, a
+    s = s.replace(a, b)
+helper = '''
+namespace CTraceNS {
+  inline bool On() { static bool b = getenv("CTRACE") != NULL; return b; }
+  template< class C > inline void Dump( const char * tag, int level, int idx, const C & c ) {
+    std::cout << tag << " " << level << " " << idx << " " << std::setprecision(9) << c.fCost;
+    for( int a = 0; a < 3; a ++ ) for( int b = 0; b < 3; b ++ ) std::cout << " " << c.oOrientation.m[a][b];
+    std::cout << std::endl;
+  }
+}
+'''
+i = s.index('namespace')  # first namespace in the file
+s = s[:i] + '#include <iomanip>\n#include <cstdlib>\n' + helper + s[i:]
+rep('''      std::sort( oSearchPointCandidates.begin(), oSearchPointCandidates.end() );
+      if( oSearchPointCandidates.size() > 0 )
+      {''', '''      if( CTraceNS::On() )
+        for( Size_Type q = 0; q < oSearchPointCandidates.size(); q ++ ) CTraceNS::Dump( "CD", nLevel, (int) q, oSearchPointCandidates[q] );
+      std::sort( oSearchPointCandidates.begin(), oSearchPointCandidates.end() );
+      if( oSearchPointCandidates.size() > 0 )
+      {''')
+rep('''        std::sort( oSearchPointCandidates.begin(), oSearchPointCandidates.end() );
+        nHighResElements = int( std::floor( oSearchPointCandidates.size() / 4 ) ); // fudge factor''', '''        std::sort( oSearchPointCandidates.begin(), oSearchPointCandidates.end() );
+        nHighResElements = int( std::floor( oSearchPointCandidates.size() / 4 ) ); // fudge factor
+        if( CTraceNS::On() )
+        {
+          for( Size_Type q = 0; q < oSearchPointCandidates.size(); q ++ ) CTraceNS::Dump( "CQ", nLevel, (int) q, oSearchPointCandidates[q] );
+          std::cout << "CK " << nLevel << " " << nHighResElements << std::endl;
+        }''')
+open(p, 'w').write(s)
+p = 'Src/ContinuousSearch.h'
+s = open(p).read()
+rep('''        LocalSearch( oCurrent, oVoxel, *pCur );
+        if( fBestCost > oCurrent.fCost )''', '''        LocalSearch( oCurrent, oVoxel, *pCur );
+        if( getenv("CTRACE") )
+        {
+          std::cout << "CF " << nCur << " " << std::setprecision(9) << oCurrent.fCost;
+          for( int a = 0; a < 3; a ++ ) for( int b = 0; b < 3; b ++ ) std::cout << " " << oCurrent.oOrientMatrix.m[a][b];
+          std::cout << " in";
+          for( int a = 0; a < 3; a ++ ) for( int b = 0; b < 3; b ++ ) std::cout << " " << pCur->oOrientation.m[a][b];
+          std::cout << std::endl;
+        }
+        if( fBestCost > oCurrent.fCost )''')
+open(p, 'w').write(s)

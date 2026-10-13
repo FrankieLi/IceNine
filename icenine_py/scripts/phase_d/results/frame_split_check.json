@@ -1,0 +1,7 @@
+{
+  "n_voxels": 50,
+  "n_frames": 360,
+  "lit_pixels": 19559,
+  "arrays_identical_W1_vs_W3": true,
+  "written_files_identical_clean_and_realistic": true
+}

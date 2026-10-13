@@ -18,6 +18,12 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import csl  # noqa: E402
 
+# Owner decision 2026-10-12: this study's caches were built with the first triangle vertex as the
+# screen's start point, so its pixel-radius-3 features keep it (center_screen=False) to stay
+# comparable. The main reconstruction uses the voxel centroid everywhere (C++ VoxelToCenter).
+_FIRST_VERTEX_NOTE = "see comment above"
+
+
 SIGMAS = (3, 5, 7, 9, 11)
 
 
@@ -251,6 +257,7 @@ class FeatureExtractor:
                     range_map=lf.range_map, exp_data=lf.exp_data, sample=lf.sample,
                     structure_list=lf.structure_list, mode="hard", eta_limit=lf.eta_limit,
                     pixel_radius=pr, max_q=float(self.q_max), min_sin_eta=lf.min_sin_eta,
+                    center_screen=False,  # first-vertex screen, see _FIRST_VERTEX_NOTE
                 )
                 for pr in (0, 3)
             )  # fmt: skip
@@ -591,12 +598,12 @@ class FeatureExtractor:
         elif with_cost:
             lf = self.lf
             c_loc = lf.evaluate(np.asarray(R, dtype=np.float32), vertices, phase).cost
-            old = lf.pixel_radius
-            lf.pixel_radius = 3
+            old, old_cs = lf.pixel_radius, lf.center_screen
+            lf.pixel_radius, lf.center_screen = 3, False  # first-vertex screen (_FIRST_VERTEX_NOTE)
             try:
                 c_g = lf.evaluate(np.asarray(R, dtype=np.float32), vertices, phase).cost
             finally:
-                lf.pixel_radius = old
+                lf.pixel_radius, lf.center_screen = old, old_cs
             f += [float(c_loc), float(c_g)]
         else:
             f += [np.nan, np.nan]

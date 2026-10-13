@@ -1,0 +1,13 @@
+p='Src/OrientationSearch.cpp'
+s=open(p).read()
+a="""      if( fCurrentVariance > fConvergenceVariance )
+        nMaxMCStep += NumSubregionSteps;
+"""
+assert a in s
+s=s.replace(a,a+"""      if( getenv("VTRACE") )
+        std::cout << "VT run radius_deg " << RADIAN_TO_DEGREE(SubregionRadius) << " steps " << NumSubregionSteps
+                  << " cost " << fCurrentCost << " gmin " << fGlobalMinCost << " var " << fCurrentVariance
+                  << " ext " << (fCurrentVariance > fConvergenceVariance) << " total " << nTotalStepTaken+NumSubregionSteps
+                  << " max " << nMaxMCStep << " start_euler " << RadianToDegree( oCurrentState.GetEulerAngles() ) << std::endl;
+""")
+open(p,'w').write(s)

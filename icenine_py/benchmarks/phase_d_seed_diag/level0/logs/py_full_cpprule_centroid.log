@@ -1,0 +1,26 @@
+<path>:293: UserWarning: Step size file reading not yet implemented: ConfigFiles/Optimization.2Det
+  self.optimization_info = self._read_step_size_file(
+<path>:298: UserWarning: Step size file reading not yet implemented: ConfigFiles/Sensitivity.2Det
+  self.detection_sensitivity = self._read_step_size_file(
+<path>:303: UserWarning: Step size file reading not yet implemented: ConfigFiles/Constrain.2L
+  self.optimization_constrains = self._read_step_size_file(
+<path>:502: UserWarning: Gimbal lock detected. Setting third angle to zero since it is not possible to uniquely determine all angles.
+  sample.rotate(
+Loaded crystal structure from DataFiles/copper.dat: CrystalStructure(Cu, a=3.6100Å, SG=225)
+Max Q calculated: 24.7872 Å⁻¹
+    Level 0: discrete search (4886 FZ × 9 local = 43974 evals, nQMax=5, diameter=5.00°)
+    Level 0: 8110 candidates (discrete=24.4s), best cost=0.8657
+    Level 0: quick MC (52.6s), kept 2027/8110, best cost=0.7793, level total=77.0s
+    Level 1: discrete search (2027 FZ × 9 local = 18243 evals, nQMax=6, diameter=3.33°)
+    Level 1: 2487 candidates (discrete=14.2s), best cost=0.7692
+    Level 1: quick MC (16.2s), kept 621/2487, best cost=0.1827, level total=30.5s
+    Level 2: discrete search (621 FZ × 9 local = 5589 evals, nQMax=7, diameter=2.22°)
+    Level 2: 697 candidates (discrete=4.9s), best cost=0.1364
+    Level 2: quick MC (4.5s), kept 174/697, best cost=0.1777, level total=9.3s
+    Level 3: discrete search (174 FZ × 9 local = 1566 evals, nQMax=8, diameter=1.48°)
+    Level 3: 204 candidates (discrete=1.6s), best cost=0.1061
+    Level 3: quick MC (1.3s), kept 51/204, best cost=0.1390, level total=2.9s
+    FindOptimal: full MC on 30 candidates
+    FindOptimal: 1 evaluated (0.1s), best cost=0.0530 CONVERGED
+    VarianceMin: (0.7s), cost=0.0530
+python v15901: 120.5s levels=4 -> py_cpprule_centroid_v15901.json

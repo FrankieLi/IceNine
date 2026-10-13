@@ -1,0 +1,20 @@
+import sys, types, json, numpy as np
+sys.path.insert(0, "tests"); sys.path.insert(0, "scripts/phase_d")
+import test_cma_optimizer as T1
+from icenine.orientation_search import SearchCandidate, MCOptimizer
+from icenine.reconstructor import _get_voxel_vertices
+import seed_diag_variance_parity as P
+legacy = P.legacy_variance_fn("HEAD")
+new = MCOptimizer.variance_minimizing_optimize
+rec, voxel, R_true = T1._build()
+verts = _get_voxel_vertices(voxel)
+out = {}
+for name, fn in (("old", legacy), ("new", new)):
+    MCOptimizer.variance_minimizing_optimize = fn
+    errs, costs, evs = [], [], []
+    for s in range(30):
+        res = rec.refine_from_candidates([SearchCandidate(orientation=T1._start(R_true), cost=1.0)], verts, voxel.phase, rng=np.random.default_rng(s))
+        errs.append(float(np.linalg.norm(T1._rotvec_deg(res.orientation, R_true)))); costs.append(float(res.cost)); evs.append(rec.last_eval_counts[2])
+    out[name] = dict(err_median=float(np.median(errs)), err_mean=float(np.mean(errs)), err_max=float(np.max(errs)), cost_mean=float(np.mean(costs)), cost_median=float(np.median(costs)), evals_mean=float(np.mean(evs)))
+    print(name, out[name], flush=True)
+MCOptimizer.variance_minimizing_optimize = new

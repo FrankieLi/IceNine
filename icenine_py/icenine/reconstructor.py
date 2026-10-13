@@ -15,7 +15,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -29,6 +29,7 @@ from .experimental_data import ExperimentalData
 from .forward_simulation import ForwardSimulation
 from .mic_file import MicFile, ReconstructionState
 from .orientation_search import (
+    CMAOptimizer,
     MCOptimizer,
     RiemannianAdamOptimizer,
     SearchCandidate,
@@ -47,6 +48,7 @@ from .sampling import (
     quaternion_to_matrix,
 )
 from .simulation import Simulation
+from .ray_overlap import RayRule
 from .simulation_range import SimulationRange
 
 if TYPE_CHECKING:
@@ -417,6 +419,8 @@ class AdaptiveVoxelReconstructor:
         # Eval count tracking (set during reconstruct_voxel)
         self._last_global_evals = 0
         self._last_local_evals = 0
+        # evaluations of the most recent local_optimization call (BFS provenance)
+        self.last_local_optimization_evals = 0
         # Diagnostics of the most recent call: per-level best candidate (orientation, cost) after
         # the quick MC, and FindOptimal's winner (candidate index, converged flag)
         self.last_level_best: List[Tuple[int, np.ndarray, float]] = []
@@ -432,6 +436,9 @@ class AdaptiveVoxelReconstructor:
         self.keep_union_discrete: bool = False
         self.n_q_start_offset: float = 0.0  # added to the initial n_q_max (5 + min resolution)
         self.global_pixel_radius: int = 3  # pixel radius of the coarse (global) cost function
+        # Optional tracing hook for the discrete search (see run_discrete_search_spaced);
+        # None = no recording, computation unchanged.
+        self.discrete_recorder: Optional[Callable[[str, Dict[str, Any]], None]] = None
         # Optional hook: extra_candidates(level, candidates) -> extra SearchCandidates (orientation
         # only; the quick MC fills their cost) added before the quick MC of that level (F1b).
         # Default off; see MIGRATION_HISTORY 'FindOptimal robustness'.
@@ -467,6 +474,7 @@ class AdaptiveVoxelReconstructor:
 
         C++ Reference: DiscreteAdaptive.tmpl.cpp:108-250
         """
+        self._check_local_optimizer()
         eta_limit = self.setup.exp_setup.get_eta_limit()
 
         # Local cost function (pixel_radius=0) for MC and re-evaluation
@@ -493,6 +501,7 @@ class AdaptiveVoxelReconstructor:
 
         candidates = []
         total_global_evals = 0
+        ray_local_fns: List[VoxelCostFunction] = []  # coarse-level local cost fns (ray rule)
         self.last_level_best = []
         self.last_find_optimal = {}
 
@@ -503,6 +512,23 @@ class AdaptiveVoxelReconstructor:
             # C++ DiscreteAdaptive.tmpl.cpp:149
             local_grid = generate_local_grid_multi_level(diameter, 0, 1)
 
+            # Ray-consistency rule (opt-in): coarse levels only. TWO COSTS DIFFER BY DESIGN: levels
+            # 0 .. ray_rule.levels-1 (screen, re-cost, quick MC, ranking cut) use the combined
+            # rule; later levels, FindOptimal, VarianceMinimizing and the final cost/confidence
+            # use the strict C++ rule (local_cost_fn / mc_optimizer above).
+            ray = self._ray_rule_for_level(level)
+            level_local_fn = local_cost_fn
+            level_mc = mc_optimizer
+            if ray is not None:
+                level_local_fn = self._make_local_cost_fn(ray_rule=ray)
+                ray_local_fns.append(level_local_fn)
+                level_mc = MCOptimizer(
+                    cost_fn=level_local_fn,
+                    voxel_vertices=voxel_vertices,
+                    phase_index=phase_index,
+                    rng=mc_optimizer.rng,
+                )
+
             # Global cost function with current nQMax
             # C++ DiscreteAdaptive.tmpl.cpp:65-66 nPixelRadius=3
             global_cost_fn = VoxelCostFunction(
@@ -510,6 +536,7 @@ class AdaptiveVoxelReconstructor:
                 detector_list=self.setup.detector_list,
                 range_map=self.setup.range_map,
                 exp_data=self.setup.exp_data,
+                **self._cost_flags(ray),
                 sample=self.setup.sample,
                 structure_list=self.setup.structure_list,
                 mode="hard",
@@ -517,6 +544,7 @@ class AdaptiveVoxelReconstructor:
                 pixel_radius=self.global_pixel_radius,
                 max_q=n_q_max,
                 min_sin_eta=self.min_sin_eta,
+                ray_rule=ray,
             )
 
             # Phase 1: Discrete search
@@ -531,13 +559,14 @@ class AdaptiveVoxelReconstructor:
 
             candidates = run_discrete_search_spaced(
                 global_cost_fn=global_cost_fn,
-                local_cost_fn=local_cost_fn,
+                local_cost_fn=level_local_fn,
                 fz_orientations=fz_orientations,
                 local_grid=local_grid,
                 voxel_vertices=voxel_vertices,
                 angular_radius=diameter,
                 symmetry_quats=symmetry_quats,
                 phase_index=phase_index,
+                **({} if self.discrete_recorder is None else dict(recorder=self.discrete_recorder)),
             )
             t_discrete = time.time() - t_level
 
@@ -589,7 +618,7 @@ class AdaptiveVoxelReconstructor:
             trial_step = trial_box_width * self.params.mc_radius_scale_factor
 
             for cand in candidates:
-                result = mc_optimizer.optimize(
+                result = level_mc.optimize(
                     initial_orientation=cand.orientation,
                     angular_box_side=trial_box_width,
                     angular_step=trial_step,
@@ -668,17 +697,43 @@ class AdaptiveVoxelReconstructor:
 
         # Store eval counts for benchmarking
         self._last_global_evals = total_global_evals
-        self._last_local_evals = local_cost_fn.eval_count
+        self._last_local_evals = local_cost_fn.eval_count + sum(f.eval_count for f in ray_local_fns)
 
         return best_candidate
 
-    def _make_local_cost_fn(self) -> VoxelCostFunction:
-        """Local cost function (pixel_radius=0) used for MC, re-evaluation and the final overlap."""
+    def _ray_rule_for_level(self, level: int) -> Optional[RayRule]:
+        """The ray-consistency rule for this search level, or None (strict C++ / default rule).
+
+        Opt-in (config key RayOverlapRule). Only levels 0 .. rule.levels-1 (default
+        0-2) use it; FindOptimal, VarianceMinimizing and the final cost never do (two costs by
+        design, see ray_overlap.py).
+        """
+        rule = getattr(self.setup.search_params, "ray_rule", None)
+        if rule is not None and level < rule.levels:
+            return rule
+        return None
+
+    def _cost_flags(self, ray: Optional[RayRule] = None) -> Dict[str, Any]:
+        """The literal C++ CountQualifiedPeaks rule is opt-in (config key CppOverlapRule;
+        also on with ``ray`` at the coarse levels). The centroid projection of the pixel-radius
+        screen is the default for every rule; ``cpp_center_screen=False`` is the explicit vertex-0
+        opt-out."""
+        center = bool(getattr(self.setup.search_params, "cpp_center_screen", True))
+        if ray is not None or getattr(self.setup.search_params, "cpp_overlap_rule", False):
+            return dict(cpp_overlap_rule=True, center_screen=center)
+        return dict(center_screen=center)
+
+    def _make_local_cost_fn(self, ray_rule: Optional[RayRule] = None) -> VoxelCostFunction:
+        """Local cost function (pixel_radius=0) used for MC, re-evaluation and the final overlap.
+        ``ray_rule`` (coarse levels only, see reconstruct_voxel) adds the ray-consistency rule;
+        the default call is the strict cost used for FindOptimal and the final cost."""
         return VoxelCostFunction(
             simulator=self.setup.simulator,
             detector_list=self.setup.detector_list,
             range_map=self.setup.range_map,
             exp_data=self.setup.exp_data,
+            **self._cost_flags(ray_rule),
+            ray_rule=ray_rule,
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
             mode="hard",
@@ -713,6 +768,34 @@ class AdaptiveVoxelReconstructor:
                 rng=rng,
             )
         return mc_optimizer, find_optimizer
+
+    def _check_local_optimizer(self) -> None:
+        """local_optimizer='cma' and use_hybrid_optimizer both replace FindOptimal's MC; reject
+        the combination up front (params only: before any search, whether or not a diff cost
+        function exists)."""
+        if self.params.local_optimizer == "cma" and self.params.use_hybrid_optimizer:
+            raise ValueError(
+                "local_optimizer='cma' and use_hybrid_optimizer are mutually exclusive"
+            )
+
+    def _make_cma_optimizer(
+        self,
+        local_cost_fn: VoxelCostFunction,
+        voxel_vertices: torch.Tensor,
+        phase_index: int,
+        rng: Optional[np.random.Generator],
+    ) -> CMAOptimizer:
+        """The CMA-ES refiner for SearchParameters.local_optimizer == "cma" (per-run seeds are
+        drawn from rng, so a run is deterministic given the generator)."""
+        return CMAOptimizer(
+            cost_fn=local_cost_fn,
+            voxel_vertices=voxel_vertices,
+            phase_index=phase_index,
+            rng=rng,
+            sigma0_deg=self.params.cma_sigma0_deg,
+            max_evals=self.params.cma_max_evals,
+            popsize=self.params.cma_popsize,
+        )
 
     def refine_from_candidates(
         self,
@@ -752,6 +835,7 @@ class AdaptiveVoxelReconstructor:
 
         C++ Reference: DiscreteAdaptive.tmpl.cpp:210-246
         """
+        self._check_local_optimizer()
         if not candidates:
             return SearchCandidate(orientation=np.eye(3), cost=1.0)
         standalone = local_cost_fn is None
@@ -762,6 +846,13 @@ class AdaptiveVoxelReconstructor:
                 local_cost_fn, voxel_vertices, phase_index, rng
             )
         use_hybrid = find_optimizer is not None
+        use_cma = self.params.local_optimizer == "cma"
+        cma_optimizer: Optional[CMAOptimizer] = None
+        if use_cma:
+            # seeds come from the generator the MC optimizer was built with (reconstruct_voxel's)
+            cma_optimizer = self._make_cma_optimizer(
+                local_cost_fn, voxel_vertices, phase_index, mc_optimizer.rng
+            )
         if diameter is None:
             diameter = self.params.local_grid_radius / 1.5 ** (self.params.max_local_resolution + 1)
 
@@ -772,15 +863,18 @@ class AdaptiveVoxelReconstructor:
         # FindOptimal: full MC (or hybrid Adam) on top candidates with convergence check
         # C++ ContinuousSearch.h:316-346
         n_final = min(len(candidates), self.params.max_discrete_candidates)
-        optimizer_label = "hybrid Adam" if use_hybrid else "full MC"
+        optimizer_label = "CMA-ES" if use_cma else ("hybrid Adam" if use_hybrid else "full MC")
         print(f"    FindOptimal: {optimizer_label} on {n_final} candidates", flush=True)
         t_final = time.time()
 
         best_candidate = SearchCandidate(orientation=np.eye(3), cost=1.0)
         converged = False
         best_ci = -1
+        result: SearchCandidate
         for ci, cand in enumerate(candidates[:n_final]):
-            if use_hybrid:
+            if cma_optimizer is not None:
+                result = cma_optimizer.optimize(cand.orientation)
+            elif use_hybrid:
                 result = find_optimizer.optimize(
                     initial_orientation=cand.orientation,
                     angular_box_side=final_box_width,
@@ -835,27 +929,29 @@ class AdaptiveVoxelReconstructor:
 
         # VarianceMinimizing: refine best until variance < 0.02²
         # C++ DiscreteAdaptive.tmpl.cpp:232
-        t_var = time.time()
-        var_result = mc_optimizer.variance_minimizing_optimize(
-            initial_orientation=best_candidate.orientation,
-            search_box_side=final_box_width,
-            max_mc_steps=self.params.max_mc_steps,
-            successive_restarts=self.params.successive_restarts,
-            max_convergence_cost=0.0,  # C++ sets this to 0 for final optimization
-            convergence_variance=0.02**2,
-        )
-        if self.recorder is not None:
-            self.recorder(
-                "variance",
-                dict(R=np.asarray(var_result.orientation).copy(), cost=float(var_result.cost)),
+        # (skipped with local_optimizer='cma': the CMA run per candidate replaces MC and this stage)
+        if not use_cma:
+            t_var = time.time()
+            var_result = mc_optimizer.variance_minimizing_optimize(
+                initial_orientation=best_candidate.orientation,
+                search_box_side=final_box_width,
+                max_mc_steps=self.params.max_mc_steps,
+                successive_restarts=self.params.successive_restarts,
+                max_convergence_cost=0.0,  # C++ sets this to 0 for final optimization
+                convergence_variance=0.02**2,
             )
-        if var_result.cost < best_candidate.cost:
-            best_candidate = var_result
-        t_var_elapsed = time.time() - t_var
-        print(
-            f"    VarianceMin: ({t_var_elapsed:.1f}s), " f"cost={best_candidate.cost:.4f}",
-            flush=True,
-        )
+            if self.recorder is not None:
+                self.recorder(
+                    "variance",
+                    dict(R=np.asarray(var_result.orientation).copy(), cost=float(var_result.cost)),
+                )
+            if var_result.cost < best_candidate.cost:
+                best_candidate = var_result
+            t_var_elapsed = time.time() - t_var
+            print(
+                f"    VarianceMin: ({t_var_elapsed:.1f}s), " f"cost={best_candidate.cost:.4f}",
+                flush=True,
+            )
 
         # Final overlap evaluation
         # C++ DiscreteAdaptive.tmpl.cpp:234-242
@@ -895,6 +991,7 @@ class AdaptiveVoxelReconstructor:
             detector_list=self.setup.detector_list,
             range_map=self.setup.range_map,
             exp_data=self.setup.exp_data,
+            **self._cost_flags(),
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
             mode="hard",
@@ -913,6 +1010,8 @@ class AdaptiveVoxelReconstructor:
         phase_index: int,
         initial_orientation: np.ndarray,
         rng: Optional[np.random.Generator] = None,
+        cma_sigma0_deg: Optional[float] = None,
+        cma_max_evals: Optional[int] = None,
     ) -> SearchCandidate:
         """
         MC-only optimization from a given starting orientation (for BFS neighbors).
@@ -925,18 +1024,25 @@ class AdaptiveVoxelReconstructor:
             phase_index: Crystal phase index
             initial_orientation: Starting 3x3 rotation matrix (from neighbor)
             rng: Random number generator
+            cma_sigma0_deg: local_optimizer == "cma" only: initial step override (default
+                params.cma_sigma0_deg)
+            cma_max_evals: local_optimizer == "cma" only: budget override (default
+                params.cma_max_evals; BFS passes params.cma_neighbor_max_evals)
 
         Returns:
-            Optimized SearchCandidate
+            Optimized SearchCandidate. The number of cost evaluations of the call (final
+            overlap evaluation included) is left in ``last_local_optimization_evals``.
 
         C++ Reference: DiscreteAdaptive.tmpl.cpp:280-317 LocalOptimization
         """
+        self._check_local_optimizer()
         eta_limit = self.setup.exp_setup.get_eta_limit()
         local_cost_fn = VoxelCostFunction(
             simulator=self.setup.simulator,
             detector_list=self.setup.detector_list,
             range_map=self.setup.range_map,
             exp_data=self.setup.exp_data,
+            **self._cost_flags(),
             sample=self.setup.sample,
             structure_list=self.setup.structure_list,
             mode="hard",
@@ -944,26 +1050,40 @@ class AdaptiveVoxelReconstructor:
             pixel_radius=0,
         )
 
-        mc_optimizer = MCOptimizer(
-            cost_fn=local_cost_fn,
-            voxel_vertices=voxel_vertices,
-            phase_index=phase_index,
-            rng=rng,
-        )
+        result: SearchCandidate
+        if self.params.local_optimizer == "cma":
+            # one local CMA-ES run from the inherited start replaces the variance-minimizing MC
+            cma_opt = self._make_cma_optimizer(local_cost_fn, voxel_vertices, phase_index, rng)
+            if cma_sigma0_deg is not None:
+                if not cma_sigma0_deg > 0:
+                    raise ValueError(f"cma_sigma0_deg must be > 0, got {cma_sigma0_deg}")
+                cma_opt.sigma0_deg = float(cma_sigma0_deg)
+            if cma_max_evals is not None:
+                if cma_max_evals < 2:
+                    raise ValueError(f"cma_max_evals must be >= 2, got {cma_max_evals}")
+                cma_opt.max_evals = int(cma_max_evals)
+            result = cma_opt.optimize(initial_orientation)
+        else:
+            mc_optimizer = MCOptimizer(
+                cost_fn=local_cost_fn,
+                voxel_vertices=voxel_vertices,
+                phase_index=phase_index,
+                rng=rng,
+            )
 
-        # C++ ContinuousSearch.h:70-73: BoxWidth = localGridRadius / 2^localResolution
-        box_width = self.params.local_grid_radius / (2**self.params.min_local_resolution)
+            # C++ ContinuousSearch.h:70-73: BoxWidth = localGridRadius / 2^localResolution
+            box_width = self.params.local_grid_radius / (2**self.params.min_local_resolution)
 
-        # Variance-minimizing MC
-        # C++ DiscreteAdaptive.tmpl.cpp:305
-        result = mc_optimizer.variance_minimizing_optimize(
-            initial_orientation=initial_orientation,
-            search_box_side=box_width,
-            max_mc_steps=self.params.max_mc_steps,
-            successive_restarts=self.params.successive_restarts,
-            max_convergence_cost=self.params.max_convergence_cost,
-            convergence_variance=0.02**2,
-        )
+            # Variance-minimizing MC
+            # C++ DiscreteAdaptive.tmpl.cpp:305
+            result = mc_optimizer.variance_minimizing_optimize(
+                initial_orientation=initial_orientation,
+                search_box_side=box_width,
+                max_mc_steps=self.params.max_mc_steps,
+                successive_restarts=self.params.successive_restarts,
+                max_convergence_cost=self.params.max_convergence_cost,
+                convergence_variance=0.02**2,
+            )
 
         # Final overlap evaluation
         # C++ DiscreteAdaptive.tmpl.cpp:307-314
@@ -974,6 +1094,7 @@ class AdaptiveVoxelReconstructor:
         )
         result.overlap_info = final_info
         result.cost = final_info.cost
+        self.last_local_optimization_evals = int(local_cost_fn.eval_count)
 
         return result
 
@@ -981,6 +1102,38 @@ class AdaptiveVoxelReconstructor:
 # ---------------------------------------------------------------------------
 # BFSReconstruction — breadth-first spatial propagation
 # ---------------------------------------------------------------------------
+
+
+@dataclass
+class BFSVoxelRecord:
+    """
+    Per-voxel provenance of a BFS reconstruction (one small object per visited voxel).
+
+    ``source`` is the final classification: "seed" (full search, accepted), "neighbor" (inherited
+    start accepted at the first local fit), "neighbor_retry" (accepted only after the wider CMA
+    retry), "revisit" / "restart" (a voxel that had been left REFIT and was accepted when a later
+    expansion / the restart pass reached it), "unresolved" (still REFIT at the end). Acceptance is
+    the relative hit-ratio test, not correctness against a truth.
+    ``n_evals`` and ``wall_s`` are cumulative over every attempt on the voxel (full search or
+    local fit, retry, revisit); the one overlap evaluation after a full search is not counted.
+    """
+
+    voxel_idx: int
+    source: str = ""
+    n_evals: int = 0
+    wall_s: float = 0.0
+    hit_ratio: float = 0.0
+    seed_rejected: bool = False  # the full search ended below MinAccelerationThreshold
+    local_rejected: bool = False  # a local fit failed the 0.9 acceptance test
+    retried: bool = False  # the wider-sigma CMA retry ran (at least once)
+    retry_accepted: bool = False
+    n_revisits: int = 0  # local fits on this voxel while REFIT, since the last reseed reset
+    n_revisits_before_reset: int = 0  # fits discarded by reseed resets (logging only; the cap
+    # reads ``n_revisits``, so a reseed gives the cluster's voxels a fresh budget)
+    reseeded: bool = False  # chosen as the one full-search voxel of a leftover REFIT cluster
+
+
+_Snapshot = Tuple[np.ndarray, float, float, float]  # orientation, cost, confidence, overlap_ratio
 
 
 class BFSReconstruction:
@@ -1000,14 +1153,107 @@ class BFSReconstruction:
        accept if (hit_ratio / best_hit_ratio) > 0.9
     6. Repeat from step 2 until all voxels visited
 
+    Opt-in extras (all off, or inactive in mc mode, by default):
+    - cma mode: neighbours use ``cma_neighbor_max_evals``; a rejected neighbour is retried once
+      from the same inherited start with ``cma_retry_sigma0_deg`` (0 = off).
+    - ``bfs_revisit_refit``: an expansion that reaches a voxel left REFIT fits it again from the
+      expanding voxel's orientation (see ``_expand``). Approximates the multi-client behaviour of
+      the C++ LazyBFS run.
+    - ``bfs_restart_pass``: after the BFS, FITTED voxels bordering REFIT voxels push their
+      orientation onto them (the C++ restart semantics, see ``_restart_pass``).
+
+    How C++ revisits REFIT voxels: in a normal run the server never re-seeds a REFIT voxel (Pop
+    skips everything that is not NOT_VISITED). A REFIT voxel is fitted again only because every
+    client BFS keeps its own grid: when another client's expansion (often the voxel's true grain)
+    reaches it while still NOT_VISITED in that grid, it is fitted from that client's orientation,
+    and the server's Push keeps the higher-confidence result, even over a FITTED one. With a
+    single client (this class) a REFIT voxel is never revisited unless ``bfs_revisit_refit``.
+    C++ LazyBFSClient::Refit is the RESTART_FIT path (a partial result, every stored voxel is a
+    centre); it is not part of a normal run.
+
+    Seed rule (the same as C++, where only the server picks seeds): a seed is drawn only from
+    NOT_VISITED voxels, so a grain whose voxels were all reached and rejected by neighbouring
+    grains' expansions gets no full search, in one client or many (several clients could reach it
+    only through timing, untested).
+
+    Reseed (``bfs_reseed``, opt-in, off by default so the C++ seed rule stays the default): once
+    no NOT_VISITED voxel is left, the connected clusters of REFIT voxels (the expansion's
+    neighbourhood, radius 2 x side length) are computed with the failed voxels left out, and the
+    first cluster (smallest voxel index) gets one full no-start search on the voxel nearest its
+    centroid (ties: lowest index). If the usual seed acceptance test passes, the voxel expands with
+    revisit (also when ``bfs_revisit_refit`` is off; the revisit counters of the cluster's voxels
+    are reset, the new orientation being an independent source; they stay reset if the reseed is
+    rejected, so ``bfs_revisit_max`` applies per reseed of a cluster, not over the whole run;
+    ``n_revisits_before_reset`` keeps the discarded counts for the record). The clusters are then
+    recomputed and the loop repeats. The finality rule is per voxel: a voxel whose full search was
+    rejected
+    (an ordinary seed or a reseed) is failed; it is never searched again, ends unresolved unless a
+    later revisit fits it, and does NOT close its cluster: the rest of the cluster is reseeded on
+    other voxels. No retry, no lowered floor. Each reseed adds an entry to ``reseed_log``;
+    ``n_reseed_*`` and ``n_evals_reseed`` / ``wall_reseed_s`` (full search only) in ``stats``
+    count them separately from the ordinary seeds. The loop terminates: every pass either marks one
+    more voxel failed or turns a REFIT voxel FITTED.
+
+    After reconstruct_sample, ``records`` maps voxel index -> BFSVoxelRecord and ``stats`` holds
+    the counters (seeds, retries, revisits, unresolved, evaluations and wall time split by seed /
+    neighbour / revisit / restart).
+
     C++ Reference:
         BreadthFirstReconstructor.tmpl.cpp:112-188 Fit()
+        ReconstructionStrategies.tmpl.cpp:151-193 Pop(), 124-143 Push()
         ReconstructionStrategies.tmpl.cpp:334-356 InsertSeed()
     """
 
     def __init__(self, setup: ReconstructionSetup):
         self.setup = setup
         self.reconstructor = AdaptiveVoxelReconstructor(setup)
+        self.records: Dict[int, BFSVoxelRecord] = {}
+        self.stats: Dict[str, Any] = {}
+        self._refit_candidates: List[int] = []
+        self.reseed_log: List[Dict[str, Any]] = []
+
+    @staticmethod
+    def _ratios(info: Optional[OverlapInfo]) -> Tuple[float, float]:
+        """(hit_ratio, confidence) of an overlap evaluation.
+
+        C++ CostFunctions.cpp: GetHitRatio = pixel_overlap / pixel_on_detector,
+        GetConfidence = peak_overlap / peak_on_detector."""
+        if info is None:
+            return 0.0, 0.0
+        hit = info.pixel_overlap / info.pixel_on_detector if info.pixel_on_detector > 0 else 0.0
+        conf = info.peak_overlap / info.peak_on_detector if info.peak_on_detector > 0 else 0.0
+        return hit, conf
+
+    @staticmethod
+    def _new_stats() -> Dict[str, Any]:
+        """Zeroed counters (see class docstring). Phases: neighbor, revisit, restart."""
+        stats: Dict[str, Any] = dict(
+            n_seeds=0,
+            n_seed_rejected=0,
+            n_neighbor_fits=0,
+            n_neighbor_accepted_first=0,
+            n_revisit_capped=0,
+            n_restart_candidates=0,
+            n_unresolved=0,
+            n_evals_seed=0,
+            wall_seed_s=0.0,
+            n_reseeds=0,
+            n_reseed_accepted=0,
+            n_reseed_rejected=0,
+            n_reseed_final_voxels=0,
+            n_evals_reseed=0,
+            wall_reseed_s=0.0,
+            wall_reseed_total_s=0.0,
+        )
+        for phase in ("neighbor", "revisit", "restart"):
+            stats[f"n_retry_attempted_{phase}"] = 0
+            stats[f"n_retry_accepted_{phase}"] = 0
+            stats[f"n_evals_{phase}"] = 0
+            stats[f"wall_{phase}_s"] = 0.0
+        for phase in ("revisit", "restart"):
+            for what in ("attempted", "accepted", "rejected"):
+                stats[f"n_{phase}_{what}"] = 0
+        return stats
 
     def reconstruct_sample(
         self,
@@ -1030,6 +1276,7 @@ class BFSReconstruction:
             rng = np.random.default_rng()
 
         mic = self.setup.sample.get_mic()
+        assert mic is not None, "sample has no mic"
         n_total = len(mic.voxels)
         n_process = min(n_total, max_voxels) if max_voxels else n_total
 
@@ -1037,6 +1284,11 @@ class BFSReconstruction:
         # C++ ReconstructionStrategies.tmpl.cpp:57
         for v in mic.voxels:
             v.reconstruction_id = ReconstructionState.NOT_VISITED
+
+        self.records = {}
+        self.stats = self._new_stats()
+        self._refit_candidates = []
+        self.reseed_log = []
 
         # Randomized seed order (C++ uses random_shuffle)
         voxel_order = list(range(n_process))
@@ -1046,8 +1298,6 @@ class BFSReconstruction:
         start_time = time.time()
         all_processed = []
         n_seeds = 0
-        n_fitted = 0
-        n_refit = 0
 
         for seed_idx in voxel_order:
             if mic.voxels[seed_idx].reconstruction_id != ReconstructionState.NOT_VISITED:
@@ -1060,14 +1310,14 @@ class BFSReconstruction:
             processed = self._fit_from_seed(mic, seed_idx, rng)
             all_processed.extend(processed)
 
-            seed_fitted = sum(
-                1
-                for i in processed
-                if mic.voxels[i].reconstruction_id == ReconstructionState.FITTED
+            seed_fitted = len(
+                [
+                    i
+                    for i in processed
+                    if mic.voxels[i].reconstruction_id == ReconstructionState.FITTED
+                ]
             )
             seed_refit = len(processed) - seed_fitted
-            n_fitted += seed_fitted
-            n_refit += seed_refit
 
             t_elapsed = time.time() - t_seed
             print(
@@ -1075,8 +1325,30 @@ class BFSReconstruction:
                 f"({seed_fitted} fitted, {seed_refit} refit) in {t_elapsed:.1f}s",
                 flush=True,
             )
+        self.stats["n_seeds"] = n_seeds
 
+        if self.setup.search_params.bfs_reseed:
+            self._reseed_clusters(mic, rng, all_processed)
+            self.stats["reseeds"] = self.reseed_log
+
+        if self.setup.search_params.bfs_restart_pass:
+            self._restart_pass(mic, rng)
+
+        for i in self._refit_candidates:
+            if mic.voxels[i].reconstruction_id != ReconstructionState.FITTED:
+                self.records[i].source = "unresolved"
+        n_fitted = len(
+            [
+                i
+                for i in all_processed
+                if mic.voxels[i].reconstruction_id == ReconstructionState.FITTED
+            ]
+        )
+        n_refit = len(all_processed) - n_fitted
         total_time = time.time() - start_time
+        self.stats["n_unresolved"] = n_refit
+        self.stats["n_voxels"] = len(all_processed)
+        self.stats["wall_total_s"] = total_time
         print(
             f"\nBFS complete: {n_seeds} seeds, {n_fitted} fitted, "
             f"{n_refit} refit, {total_time:.1f}s total",
@@ -1090,19 +1362,145 @@ class BFSReconstruction:
 
         return all_processed
 
+    def _refit_clusters(
+        self, mic: MicFile, n_limit: int, failed: Optional[Set[int]] = None
+    ) -> List[List[int]]:
+        """Connected clusters (radius 2 x side length, as the expansion) of REFIT voxels without
+        the ``failed`` ones, each sorted by index and the list ordered by the smallest index."""
+        refit = {
+            i
+            for i in range(n_limit)
+            if mic.voxels[i].reconstruction_id == ReconstructionState.REFIT
+            and i not in (failed or ())
+        }
+        clusters: List[List[int]] = []
+        seen: set = set()
+        for i in sorted(refit):
+            if i in seen:
+                continue
+            comp, stack = [], [i]
+            seen.add(i)
+            while stack:
+                c = stack.pop()
+                comp.append(c)
+                for n in mic.get_neighbors(c, radius=2.0 * mic.voxels[c].side_length):
+                    if n in refit and n not in seen:
+                        seen.add(n)
+                        stack.append(n)
+            clusters.append(sorted(comp))
+        return clusters
+
+    def _reseed_clusters(
+        self, mic: MicFile, rng: np.random.Generator, processed: List[int]
+    ) -> None:
+        """The ``bfs_reseed`` loop (see the class docstring)."""
+        n_limit = len(mic.voxels)
+        # voxels whose full search was rejected (an ordinary seed or a reseed): final per voxel
+        failed: set = {i for i, r in self.records.items() if r.seed_rejected}
+        pos = mic.positions.numpy().astype(np.float64)
+        seen_processed = set(processed)
+        while True:
+            todo = self._refit_clusters(mic, n_limit, failed)
+            if not todo:
+                break
+            cluster = todo[0]  # clusters are ordered by smallest voxel index
+            centroid = pos[cluster].mean(axis=0)
+            vox = cluster[int(np.argmin(((pos[cluster] - centroid) ** 2).sum(axis=1)))]
+            # The new orientation is an independent source for the revisit cap: the counters of
+            # the cluster stay reset afterwards, also when the reseed is rejected (a later
+            # reseed or restart pass then starts from a fresh budget). The discarded counts are
+            # kept in ``n_revisits_before_reset``, which no decision reads.
+            for i in cluster:
+                r_i = self.records[i]
+                r_i.n_revisits_before_reset += r_i.n_revisits
+                r_i.n_revisits = 0
+            voxel = mic.voxels[vox]
+            old = self.records[vox]
+            old_state = (
+                voxel.orientation.copy(),
+                voxel.cost,
+                voxel.confidence,
+                voxel.overlap_ratio,
+            )
+            s0 = dict(self.stats)
+            t0 = time.time()
+            print(f"\n  Reseed: cluster of {len(cluster)} REFIT voxels, voxel {vox}", flush=True)
+            solution = self._fit_from_seed(mic, vox, rng, force_revisit=True)
+            seconds = time.time() - t0
+            rec = self.records[vox]
+            rec.reseeded = True
+            rec.n_evals += old.n_evals
+            rec.wall_s += old.wall_s
+            rec.n_revisits_before_reset = old.n_revisits_before_reset
+            rec.local_rejected = rec.local_rejected or old.local_rejected
+            rec.retried = rec.retried or old.retried
+            rec.retry_accepted = rec.retry_accepted or old.retry_accepted
+            accepted = voxel.reconstruction_id == ReconstructionState.FITTED
+            d_full_ev = self.stats["n_evals_seed"] - s0["n_evals_seed"]
+            d_full_s = self.stats["wall_seed_s"] - s0["wall_seed_s"]
+            # the full search is a reseed cost, not an ordinary-seed cost
+            self.stats["n_evals_seed"] = s0["n_evals_seed"]
+            self.stats["wall_seed_s"] = s0["wall_seed_s"]
+            self.stats["n_seed_rejected"] = s0["n_seed_rejected"]
+            self.stats["n_evals_reseed"] += d_full_ev
+            self.stats["wall_reseed_s"] += d_full_s
+            self.stats["n_reseeds"] += 1
+            evals = d_full_ev + sum(
+                self.stats[f"n_evals_{ph}"] - s0[f"n_evals_{ph}"] for ph in ("neighbor", "revisit")
+            )
+            if accepted:
+                self.stats["n_reseed_accepted"] += 1
+            else:
+                self.stats["n_reseed_rejected"] += 1
+                failed.add(vox)
+                self.stats["n_reseed_final_voxels"] += 1  # voxels failed by a rejected reseed
+                # Push rule: keep the better of the old and the new failed fit by confidence
+                if old_state[2] > voxel.confidence:
+                    voxel.orientation, voxel.cost, voxel.confidence, voxel.overlap_ratio = old_state
+                    rec.hit_ratio = voxel.overlap_ratio
+            self.stats["wall_reseed_total_s"] += seconds
+            for i in solution:
+                if i not in seen_processed:
+                    seen_processed.add(i)
+                    processed.append(i)
+            n_left = sum(
+                1 for i in cluster if mic.voxels[i].reconstruction_id != ReconstructionState.FITTED
+            )
+            self.reseed_log.append(
+                dict(
+                    cluster_size=len(cluster),
+                    voxel=int(vox),
+                    accepted=bool(accepted),
+                    seconds=seconds,
+                    full_search_seconds=d_full_s,
+                    evaluations=int(evals),
+                    full_search_evaluations=int(d_full_ev),
+                    cluster_voxels_still_refit=int(n_left),
+                )
+            )
+            print(
+                f"  Reseed voxel {vox}: {'accepted' if accepted else 'REJECTED (final)'}, "
+                f"{len(cluster) - n_left} of {len(cluster)} cluster voxels fitted, "
+                f"{seconds:.1f}s",
+                flush=True,
+            )
+
     def _fit_from_seed(
         self,
         mic: MicFile,
         seed_idx: int,
         rng: np.random.Generator,
+        force_revisit: bool = False,
     ) -> List[int]:
         """
         Full reconstruction on seed, then BFS propagation to neighbors.
+        ``force_revisit`` (reseed) makes the expansion revisit REFIT neighbours.
 
         C++ Reference: BreadthFirstReconstructor.tmpl.cpp:112-188 Fit()
         """
         voxel = mic.voxels[seed_idx]
         vertices = _get_voxel_vertices(voxel)
+        rec = self.records[seed_idx] = BFSVoxelRecord(seed_idx, source="seed")
 
         # Full adaptive reconstruction on seed
         t0 = time.time()
@@ -1112,6 +1510,11 @@ class BFSReconstruction:
             rng=rng,
         )
         t_recon = time.time() - t0
+        n_ev = self.reconstructor.last_eval_counts[2]
+        rec.n_evals += n_ev
+        rec.wall_s += t_recon
+        self.stats["n_evals_seed"] += n_ev
+        self.stats["wall_seed_s"] += t_recon
 
         # Evaluate overlap
         # C++ BreadthFirstReconstructor.tmpl.cpp:136
@@ -1120,24 +1523,14 @@ class BFSReconstruction:
         )
 
         # Compute confidence and hit_ratio
-        # C++ CostFunctions.cpp: GetConfidence = peak_overlap / peak_on_detector
-        # C++ CostFunctions.cpp: GetHitRatio = pixel_overlap / pixel_on_detector
-        confidence = (
-            overlap_info.peak_overlap / overlap_info.peak_on_detector
-            if overlap_info.peak_on_detector > 0
-            else 0.0
-        )
-        hit_ratio = (
-            overlap_info.pixel_overlap / overlap_info.pixel_on_detector
-            if overlap_info.pixel_on_detector > 0
-            else 0.0
-        )
+        hit_ratio, confidence = self._ratios(overlap_info)
 
         # Update seed voxel
         voxel.orientation = result.orientation
         voxel.cost = result.cost
         voxel.confidence = confidence
         voxel.overlap_ratio = hit_ratio
+        rec.hit_ratio = hit_ratio
 
         print(
             f"    Seed voxel {seed_idx}: cost={result.cost:.4f}, "
@@ -1150,6 +1543,9 @@ class BFSReconstruction:
         min_accel = self.setup.config.min_acceleration_threshold
         if hit_ratio < min_accel:
             voxel.reconstruction_id = ReconstructionState.REFIT
+            rec.seed_rejected = True
+            self.stats["n_seed_rejected"] += 1
+            self._refit_candidates.append(seed_idx)
             print(
                 f"    Seed rejected (hit_ratio {hit_ratio:.3f} < " f"threshold {min_accel:.3f})",
                 flush=True,
@@ -1160,11 +1556,81 @@ class BFSReconstruction:
         # C++ BreadthFirstReconstructor.tmpl.cpp:153-156
         voxel.reconstruction_id = ReconstructionState.FITTED
         solution = [seed_idx]
+        self._expand(mic, seed_idx, hit_ratio, rng, solution, force_revisit=force_revisit)
+        return solution
 
+    def _local_fit(
+        self,
+        voxel: Any,
+        vertices: torch.Tensor,
+        rng: np.random.Generator,
+        rec: BFSVoxelRecord,
+        phase: str,
+        sigma0_deg: Optional[float] = None,
+    ) -> Tuple[SearchCandidate, float, float]:
+        """One local_optimization from the voxel's current (inherited) orientation.
+
+        In cma mode the budget is params.cma_neighbor_max_evals (seeds keep cma_max_evals);
+        sigma0_deg overrides the start step (the retry). Adds evaluations and time to ``rec``
+        and to the stats bucket of ``phase``. Returns (result, hit_ratio, confidence)."""
+        params = self.setup.search_params
+        kwargs: Dict[str, Any] = {}
+        if params.local_optimizer == "cma":
+            kwargs["cma_max_evals"] = params.cma_neighbor_max_evals
+            if sigma0_deg is not None:
+                kwargs["cma_sigma0_deg"] = sigma0_deg
+        t0 = time.time()
+        opt_result = self.reconstructor.local_optimization(
+            voxel_vertices=vertices,
+            phase_index=voxel.phase,
+            initial_orientation=voxel.orientation,
+            rng=rng,
+            **kwargs,
+        )
+        dt = time.time() - t0
+        n_ev = self.reconstructor.last_local_optimization_evals
+        rec.n_evals += n_ev
+        rec.wall_s += dt
+        self.stats[f"n_evals_{phase}"] += n_ev
+        self.stats[f"wall_{phase}_s"] += dt
+        hit, conf = self._ratios(opt_result.overlap_info)
+        return opt_result, hit, conf
+
+    def _expand(
+        self,
+        mic: MicFile,
+        start_idx: int,
+        best_conf: float,
+        rng: np.random.Generator,
+        solution: List[int],
+        restart: bool = False,
+        force_revisit: bool = False,
+    ) -> None:
+        """
+        BFS expansion from a fitted voxel (the loop of C++ Fit() after the centre is accepted).
+
+        Each popped neighbour gets a local fit from the inherited orientation and is accepted
+        if hit_ratio / best_conf > 0.9. In cma mode a rejected neighbour is retried once with
+        the wider cma_retry_sigma0_deg (same budget, same inherited start); the retry result is
+        kept only if it passes the same test, otherwise the first fit stands. Rejected voxels are
+        marked REFIT and become unresolved candidates.
+
+        Revisit (``bfs_revisit_refit``, or ``restart``): the expansion also enqueues REFIT
+        neighbours that this expansion has not tried yet (the per-expansion ``tried`` set stands
+        in for a C++ client's own grid) and that have been revisited fewer than
+        ``bfs_revisit_max`` times. Such a voxel inherits the expanding voxel's orientation, gets
+        the same local fit (with the cma retry) under the same relative test, and becomes FITTED
+        and expands if accepted. If rejected again, the better of its old and new fit by
+        confidence is kept (the C++ Push rule). Only local fits are made; FITTED voxels are never
+        revisited (C++ would also refit them and keep the higher confidence).
+        """
+        params = self.setup.search_params
+        revisit_on = params.bfs_revisit_refit or restart or force_revisit
         bfs_queue: deque[int] = deque()
-        self._insert_seed(mic, seed_idx, bfs_queue)
-
-        best_conf = hit_ratio
+        snapshots: Dict[int, _Snapshot] = {}
+        tried: set = {start_idx}
+        self._insert_seed(mic, start_idx, bfs_queue, revisit_on, tried, snapshots)
+        retry_on = params.local_optimizer == "cma" and params.cma_retry_sigma0_deg > 0
         n_bfs = 0
 
         # BFS expansion loop
@@ -1179,35 +1645,19 @@ class BFSReconstruction:
             neighbor = mic.voxels[neighbor_idx]
             n_vertices = _get_voxel_vertices(neighbor)
             n_bfs += 1
+            rec = self.records.setdefault(neighbor_idx, BFSVoxelRecord(neighbor_idx))
+            old = snapshots.get(neighbor_idx)  # set only for a revisited (REFIT) voxel
+            phase = "neighbor" if old is None else ("restart" if restart else "revisit")
+            if old is None:
+                self.stats["n_neighbor_fits"] += 1
+            else:
+                rec.n_revisits += 1
+                self.stats[f"n_{phase}_attempted"] += 1
 
-            # MC-only optimization from inherited orientation
-            t_local = time.time()
-            opt_result = self.reconstructor.local_optimization(
-                voxel_vertices=n_vertices,
-                phase_index=neighbor.phase,
-                initial_orientation=neighbor.orientation,
-                rng=rng,
+            # local optimization from inherited orientation
+            opt_result, n_hit_ratio, n_confidence = self._local_fit(
+                neighbor, n_vertices, rng, rec, phase
             )
-            t_local_elapsed = time.time() - t_local
-
-            # Compute hit_ratio from result
-            n_info = opt_result.overlap_info
-            n_hit_ratio = (
-                n_info.pixel_overlap / n_info.pixel_on_detector
-                if n_info and n_info.pixel_on_detector > 0
-                else 0.0
-            )
-            n_confidence = (
-                n_info.peak_overlap / n_info.peak_on_detector
-                if n_info and n_info.peak_on_detector > 0
-                else 0.0
-            )
-
-            # Update neighbor voxel
-            neighbor.orientation = opt_result.orientation
-            neighbor.cost = opt_result.cost
-            neighbor.confidence = n_confidence
-            neighbor.overlap_ratio = n_hit_ratio
 
             # Track best quality
             # C++ BreadthFirstReconstructor.tmpl.cpp:162
@@ -1215,39 +1665,139 @@ class BFSReconstruction:
 
             # Acceptance check: 90% of best quality
             # C++ BreadthFirstReconstructor.tmpl.cpp:163
-            if best_conf > 0 and (n_hit_ratio / best_conf) > 0.9:
+            accepted = best_conf > 0 and (n_hit_ratio / best_conf) > 0.9
+            first_accepted = accepted
+            if not accepted:
+                rec.local_rejected = True
+                if retry_on:
+                    # wider-start retry from the same inherited orientation (cma mode only)
+                    self.stats[f"n_retry_attempted_{phase}"] += 1
+                    rec.retried = True
+                    r_result, r_hit, r_conf = self._local_fit(
+                        neighbor,
+                        n_vertices,
+                        rng,
+                        rec,
+                        phase,
+                        sigma0_deg=params.cma_retry_sigma0_deg,
+                    )
+                    r_best = max(r_hit, best_conf)
+                    if r_best > 0 and (r_hit / r_best) > 0.9:
+                        accepted, rec.retry_accepted = True, True
+                        self.stats[f"n_retry_accepted_{phase}"] += 1
+                        opt_result, n_hit_ratio, n_confidence, best_conf = (
+                            r_result,
+                            r_hit,
+                            r_conf,
+                            r_best,
+                        )
+
+            # Update neighbor voxel (a revisit rejected again keeps its better fit: Push rule)
+            if accepted or old is None or n_confidence >= old[2]:
+                neighbor.orientation = opt_result.orientation
+                neighbor.cost = opt_result.cost
+                neighbor.confidence = n_confidence
+                neighbor.overlap_ratio = n_hit_ratio
+            else:
+                neighbor.orientation, neighbor.cost, neighbor.confidence = old[0], old[1], old[2]
+                neighbor.overlap_ratio = old[3]
+            rec.hit_ratio = neighbor.overlap_ratio
+            tag = "" if old is None else " " + phase
+
+            if accepted:
                 # Accept: mark fitted, propagate to neighbors
                 neighbor.reconstruction_id = ReconstructionState.FITTED
-                solution.append(neighbor_idx)
-                self._insert_seed(mic, neighbor_idx, bfs_queue)
+                if old is None:
+                    solution.append(neighbor_idx)
+                    rec.source = "neighbor_retry" if rec.retry_accepted else "neighbor"
+                    if first_accepted:
+                        self.stats["n_neighbor_accepted_first"] += 1
+                else:
+                    rec.source = phase
+                    self.stats[f"n_{phase}_accepted"] += 1
+                self._insert_seed(mic, neighbor_idx, bfs_queue, revisit_on, tried, snapshots)
                 print(
-                    f"    BFS #{n_bfs} voxel {neighbor_idx}: FITTED "
+                    f"    BFS #{n_bfs} voxel {neighbor_idx}: FITTED{tag} "
                     f"cost={opt_result.cost:.4f}, hit_ratio={n_hit_ratio:.3f} "
-                    f"({t_local_elapsed:.1f}s)",
+                    f"(cumulative {rec.wall_s:.1f}s)",
                     flush=True,
                 )
             else:
                 # Reject: mark for later re-fitting
                 neighbor.reconstruction_id = ReconstructionState.REFIT
-                solution.append(neighbor_idx)
+                rec.source = "unresolved"
+                if old is None:
+                    solution.append(neighbor_idx)
+                    self._refit_candidates.append(neighbor_idx)
+                else:
+                    self.stats[f"n_{phase}_rejected"] += 1
                 print(
-                    f"    BFS #{n_bfs} voxel {neighbor_idx}: REFIT "
+                    f"    BFS #{n_bfs} voxel {neighbor_idx}: REFIT{tag} "
                     f"cost={opt_result.cost:.4f}, hit_ratio={n_hit_ratio:.3f} "
                     f"(ratio={n_hit_ratio / best_conf:.3f} < 0.9) "
-                    f"({t_local_elapsed:.1f}s)",
+                    f"(cumulative {rec.wall_s:.1f}s)",
                     flush=True,
                 )
 
-        return solution
+    def _restart_pass(self, mic: MicFile, rng: np.random.Generator) -> None:
+        """
+        Opt-in (``bfs_restart_pass``): the C++ restart semantics, applied to this run's own result.
+
+        In C++ a restart from a partial result makes every stored voxel an expansion centre
+        (RESTART_FIT, LazyBFSClient::Refit): a good centre pushes its orientation onto its
+        neighbours, which are fitted and Push-merged. Here the centres are the FITTED voxels
+        that border a voxel still REFIT after the BFS, in index order; each runs the usual
+        expansion with revisit enabled (the centre's hit ratio is its starting best), so a REFIT
+        voxel gets the orientation of each adjacent grain in turn, limited by ``bfs_revisit_max``.
+        Only local fits are made. Unlike C++ there is no local re-optimization of the centre
+        and no full-search fallback (the PartialResultAcceptanceConfidence gate of C++ Refit is
+        not used: it is a restart-only key).
+        """
+        candidates = [
+            i
+            for i in self._refit_candidates
+            if mic.voxels[i].reconstruction_id != ReconstructionState.FITTED
+        ]
+        self.stats["n_restart_candidates"] = len(candidates)
+        centres: set = set()
+        for i in candidates:
+            radius = 2.0 * mic.voxels[i].side_length
+            centres.update(
+                n
+                for n in mic.get_neighbors(i, radius=radius)
+                if mic.voxels[n].reconstruction_id == ReconstructionState.FITTED
+            )
+        print(
+            f"\nRestart pass: {len(candidates)} REFIT voxels, {len(centres)} FITTED border voxels",
+            flush=True,
+        )
+        for c in sorted(centres):
+            voxel = mic.voxels[c]
+            if voxel.reconstruction_id != ReconstructionState.FITTED:
+                continue
+            radius = 2.0 * voxel.side_length
+            if not any(
+                mic.voxels[n].reconstruction_id == ReconstructionState.REFIT
+                for n in mic.get_neighbors(c, radius=radius)
+            ):
+                continue
+            self._expand(mic, c, voxel.overlap_ratio, rng, [], restart=True)
 
     def _insert_seed(
         self,
         mic: MicFile,
         voxel_idx: int,
         queue: deque,
+        revisit_on: bool = False,
+        tried: Optional[set] = None,
+        snapshots: Optional[Dict[int, _Snapshot]] = None,
     ) -> None:
         """
         Propagate orientation to unvisited neighbors and add to BFS queue.
+
+        With ``revisit_on`` the REFIT neighbours not yet in ``tried`` (and below the revisit cap)
+        are enqueued too: their previous fit is saved in ``snapshots`` first, which is also what
+        marks them as revisits in ``_expand``.
 
         C++ Reference: ReconstructionStrategies.tmpl.cpp:334-356 InsertSeed()
         """
@@ -1256,10 +1806,34 @@ class BFSReconstruction:
         # Python uses KDTree-based neighbor lookup with 2x side_length radius
         radius = 2.0 * voxel.side_length
         neighbors = mic.get_neighbors(voxel_idx, radius=radius)
+        cap = self.setup.search_params.bfs_revisit_max
 
         for n_idx in neighbors:
             neighbor = mic.voxels[n_idx]
             if neighbor.reconstruction_id == ReconstructionState.NOT_VISITED:
+                neighbor.reconstruction_id = ReconstructionState.VISITED
+                neighbor.orientation = voxel.orientation.copy()  # PROPAGATION
+                queue.append(n_idx)
+                if tried is not None:
+                    tried.add(n_idx)
+            elif (
+                revisit_on
+                and neighbor.reconstruction_id == ReconstructionState.REFIT
+                and tried is not None
+                and snapshots is not None
+                and n_idx not in tried
+            ):
+                if self.records[n_idx].n_revisits >= cap:
+                    self.stats["n_revisit_capped"] += 1
+                    tried.add(n_idx)
+                    continue
+                tried.add(n_idx)
+                snapshots[n_idx] = (
+                    neighbor.orientation.copy(),
+                    neighbor.cost,
+                    neighbor.confidence,
+                    neighbor.overlap_ratio,
+                )
                 neighbor.reconstruction_id = ReconstructionState.VISITED
                 neighbor.orientation = voxel.orientation.copy()  # PROPAGATION
                 queue.append(n_idx)

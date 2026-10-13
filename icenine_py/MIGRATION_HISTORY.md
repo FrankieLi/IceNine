@@ -3073,6 +3073,8 @@ the pooled wrong rate is slightly above the keep-1/4 upper bound, and 1/8 is cle
 
 ### T5 `finisher-diagnosis`: why the finisher stops above the truth's cost (2026-10-07)
 
+> **Superseded in part (2026-10-08):** T5: the numbers below were recorded with the pre-port Python MC (per-step loop, halving at every improvement, restart about the best) and the pre-fix VarianceMinimizing restart; the finisher it describes no longer exists. See "C++-faithful MC: reruns" below.
+
 **Setup.** `scripts/finisher_diagnosis/diagnose.py run --workers 10` (wall 2852 s, 54 tasks; contended 10-worker run, no
 timing claims are made), `diag_summary.py` builds the tables and `summary.json` (`benchmarks/finisher_diagnosis/`). Cases are the
 realistic ("all") single-voxel cases of the Task 1 pipelines H3 (net x3 start; 200 cases) and H0 (perturbed nominal start;
@@ -3281,6 +3283,2751 @@ cases.
 - Full-sample renders and the three future ideas (owner direction).
 
 Final full suite on `feature/followups`: 673 passed, 34 skipped, 0 failed (707 collected).
+
+## Finisher and MC study (2026-10-07)
+
+**Status (2026-10-09): Phases A, B1, B2, B3, C, the Phase D prerequisites (library, data), the seed-cost diagnosis, the two C++ port fixes (VarianceMinimizing restart; `MCOptimizer.optimize` = `RandomRestartZeroTemp`) with their reruns, and the Phase D pilot are done. The end-to-end comparison is blocked: the pilot found that the single-process Python BFS never seeds about 45% of grains (28 of 60 in the 2,000-voxel region), so a reseed option comes first. Consolidated findings, the superseded earlier claims and open questions: [`docs/findings_finisher_mc_study_2026-10.md`](docs/findings_finisher_mc_study_2026-10.md).** The subsections below are the detailed record. Where a subsection predates "C++-faithful MC: reruns", its MC and VarianceMinimizing numbers describe the old Python loop. Owner questions: (a) why FindOptimal stops short of the correct answer, and whether this comes from the cost function's sensitivity; (b) why MC runs out of restarts, what better local search exists, whether MC is the right tool, and whether the April 2026 MC-vs-optimizer comparison was deployed too soon. Next step after the plan: a full-sample BFS end-to-end test of the 500-grain sample with new orientations, comparing classic BFS against BFS with the NN and hybrid finisher (`docs/todo_500grain_bfs_end_to_end.md`).
+
+Drafted 2026-10-07 by the main session (Opus). Implemented by Sonnet `implementer` agents, one task at a time.
+
+- **Branch:** `feature/finisher-mc-study` off develop (after PR #37). Create sub-tasks with `scripts/dev/start_task.sh`.
+- **Docs:** record this plan in MIGRATION_HISTORY, in a new section "Finisher and MC study (2026-10-07)".
+- **Reconstructor changes:** `icenine/` stays unchanged until Phase C. Any knob added there must be opt-in, default off,
+  and keep C++ parity and bit-identity tests.
+- **Framing:** symmetry-agnostic.
+
+### What we already know (facts that shape the plan)
+1. **The finisher stops short** (T5, 200 H3 + 100 H0 realistic cases).
+   - The result sits a median 0.023° from the truth, with a cost gap of 0.028.
+   - No barrier on the path is as large as the gap (11/200).
+   - A 0.01° rotation of the truth changes the cost by about 0.025, the same size as the gap.
+   - The truth is not the local cost minimum within 0.05° in 59/200 H3 cases.
+   - A quarter-box VarianceMinimizing pass ends 0.006° from the truth, at ~19x the evaluations (capped).
+2. **The MC restart rule** (`MCOptimizer.optimize`, C++ `RandomRestartZeroTemp`):
+   - A restart fires after `min_ergodic = 2·(box/step)³` steps without a global improvement.
+   - It resets the step to the initial value and jumps to a uniform point in the whole box around the best.
+   - Every global improvement halves the step, which multiplies `min_ergodic` by 8.
+   - So a run that improves almost never restarts and ends on `max_mc_steps`. A run that never improves restarts every
+     ~2·(box/step₀)³ steps (≈31 at box/step₀ ≈ 2.5) and exhausts `max_restarts`.
+   - The logs agree: restarts exhausted = 0-accept runs (78/78); `mc_long` used a median 821 of 5000 steps at the
+     initial 0.132° step.
+   - This mechanism is read from the code and is consistent with the logs. Phase B tests it directly.
+3. **What the April 2026 HP sweep did and did not test:**
+   - **Its comparison:** MC (3500 steps, 2 restarts, step fraction 0.5) against Riemannian Adam/SGD/SGLD. The
+     criterion was "success" from 1/2/5° starts, on ManyGrains voxels far from the rotation axis. The 96% at 1° is
+     ManyGrains only; near-axis ThreeVoxels did worse.
+   - **FindOptimal is not that configuration:** it runs MC with `MaxMCSteps 200` (config) in a 0.33° box from
+     coarse-search candidates.
+   - **Untested by the sweep:** final precision at the 0.01–0.03° scale, the stopping behaviour, and the deployed
+     configuration.
+   - **The October comparison:** on the perturbation sweep, MC told r ends at ≈0.55 r (0.027° at r = 0.05°). Adam
+     (zero gradient inside binary blobs) ends at ≈0.13°. Centroid Gauss-Newton on the net's windows ends at 0.0127°
+     (clean).
+   - **The hybrid optimizer** (`RiemannianAdamOptimizer`, `use_hybrid_optimizer`) exists. Its benchmark CSVs
+     (`benchmarks/bench_hybrid_*.csv`) have no results recorded in MIGRATION_HISTORY.
+
+### Phase A: does stopping short come from the cost function's sensitivity?
+Mostly analysis of existing caches; ~1 h compute.
+- **A1, the cost landscape near the truth.** On the T5 cases (clean and realistic variants):
+  - the plateau: the set of orientations within 0.1° whose cost ≤ cost(truth) + ε, for ε ∈ {0, the median step};
+  - its radius distribution, and its shape (anisotropy, from a few hundred sampled directions);
+  - where the sampled minimum sits relative to the truth.
+
+  Clean vs realistic separates "the binary overlap cost is flat at the 0.01–0.02° scale" from "noise and overlap
+  move the minimum".
+- **A2, physical resolution.** Convert the pixel size (1.48 µm) and detector distances, and the ω frame width
+  (Δω/|sin η|), into an orientation resolution per voxel. Compare it with the 0.023° final error, the plateau radius
+  and GN's 0.0127° floor. Is the finisher's error already at the information limit, or above it?
+- **A3, does the cost gap matter?** In T5, does closing the gap (vm_smallbox) reduce the orientation error?
+  - Stored data: 0.023° → 0.006° in H3.
+  - Also: is a lower cost ever farther from the truth (the realistic minimum is offset)?
+  - Report the cost-vs-error correlation within each case.
+- **Deliverable:** a short answer to "is it sensitivity?", with numbers. It will say one of three things: the optimizer
+  stops early on a resolvable landscape; the landscape is flat below X°; or the realistic minimum is offset by Y°.
+
+### Phase A results (2026-10-07, `feature/finisher-mc-study-phase-a`)
+
+**Headline.** Phase A finds no evidence that cost-function sensitivity limits the finisher at its 0.023° error scale: the landscape still has clear downhill directions there, and a longer local search reaches 0.0060° (at ~19× the default evaluations; step cap hit in 198/200). The optimizer stops early on a landscape resolvable at that scale. Details below; all numbers from `benchmarks/cost_sensitivity/summary.json` and `tables.md`.
+
+**What ran.**
+- **Cases:** the 300 T5 cases (200 H3 over 26 voxels, 100 H0 over 16 voxels), each in both variants of the same voxel/radius/direction: clean and realistic. Cases within a voxel are not independent; see the voxel-clustered test under A3.
+- **Evaluations:** per case and variant, 400 random directions × 10 radii (0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.03, 0.05, 0.075, 0.1°), plus the finisher's initial MC step (0.132°). That is 4,400 evaluations per case and variant (4,000 within 0.1°), about 2.6 M in total.
+- **Wall time:** about 3 minutes for the landscape run on 10 workers (contended, no timing claim).
+- **Cross-check:** the realistic cost at the truth and at the stored T5 result is bit-identical to T5's stored values.
+- **Code:** `scripts/cost_sensitivity/` (`landscape.py`, `resolution.py`, `summary.py`); tests in `tests/test_cost_sensitivity.py`.
+
+**A1, the landscape.** Median |cost change| for a rotation of the truth by r, and the fraction of directions with cost ≤ cost(truth), as "median |change| / fraction" per radius (degrees):
+
+<!-- table:a1_by_radius -->
+| set | variant | 0.0005 | 0.001 | 0.002 | 0.005 | 0.01 | 0.02 | 0.03 | 0.05 | 0.075 | 0.1 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | 0.001 / 0.45 | 0.003 / 0.21 | 0.007 / 0.05 | 0.018 / 0.00 | 0.037 / 0.00 | 0.078 / 0.00 | 0.122 / 0.00 | 0.212 / 0.00 | 0.322 / 0.00 | 0.422 / 0.00 |
+| H3 | realistic | 0.001 / 0.49 | 0.002 / 0.24 | 0.004 / 0.08 | 0.012 / 0.01 | 0.025 / 0.00 | 0.054 / 0.00 | 0.083 / 0.00 | 0.143 / 0.00 | 0.218 / 0.00 | 0.288 / 0.00 |
+| H0 | clean | 0.001 / 0.51 | 0.003 / 0.24 | 0.007 / 0.05 | 0.019 / 0.00 | 0.037 / 0.00 | 0.078 / 0.00 | 0.121 / 0.00 | 0.211 / 0.00 | 0.325 / 0.00 | 0.423 / 0.00 |
+| H0 | realistic | 0.000 / 0.48 | 0.002 / 0.25 | 0.004 / 0.08 | 0.013 / 0.01 | 0.026 / 0.00 | 0.055 / 0.00 | 0.085 / 0.00 | 0.146 / 0.00 | 0.224 / 0.00 | 0.293 / 0.00 |
+<!-- /table:a1_by_radius -->
+
+- **Steep, and almost monotone along rays.** Within a case, the Spearman correlation of cost with angle over the sampled points has median 0.97 (H3, both variants) and 0.94 on the points ≤ 0.03°; it is negative in 0 of 200 H3 cases. Per ray (cost non-decreasing from the truth through all radii):
+
+<!-- table:a1_monotone -->
+| set | variant | rays | rays5 | cases | cases5 |
+|---|---|---|---|---|---|
+| H3 | clean | 95.5% | 100.0% | 112/200 (56%, 49-63) | 194/200 (97%, 94-99) |
+| H3 | realistic | 84.8% | 99.1% | 19/200 (10%, 6-14) | 99/200 (50%, 43-56) |
+| H0 | clean | 95.7% | 100.0% | 61/100 (61%, 51-70) | 99/100 (99%, 95-100) |
+| H0 | realistic | 83.4% | 99.6% | 14/100 (14%, 9-22) | 60/100 (60%, 50-69) |
+<!-- /table:a1_monotone -->
+
+  `rays`: fraction of rays monotone from the truth outward; `rays5`: from 0.005° outward; `cases`/`cases5`: cases monotone on every ray. At small radii the cost is not monotone (realistic H3: 84.8% of rays, and only 19/200 cases are monotone on all rays); from 0.005° outward, 99.1% or more of the rays are monotone. "Monotone" is therefore a statement about most rays at 0.005° and above, not about the whole landscape.
+- **Flat only below about 0.0005–0.001°.** The fraction of directions whose cost does not exceed the truth's falls to 0.21 (clean) / 0.24 (realistic) at 0.001°, and to 0.05 / 0.08 at 0.002°. From 0.005° it is 0.00 (clean) and 0.01 (realistic). Plateau radius r50 (the smallest sampled radius where fewer than half the directions are inside the plateau, ε = 0): median 0.0005° (q75 0.001°) in all four sets.
+- **The 0.01° scale is not flat.** A 0.01° rotation changes the cost by a median 0.037 (clean) and 0.025 (realistic). The realistic H3 cost gap (median 0.028) is about the cost change of a 0.01° rotation of the truth (0.025).
+- **The finisher's own step.** The MC step the finisher had reached when it stopped has a median trial angle of 0.00025° in the 122/200 H3 runs that accepted at least one move (the other runs stayed at the initial 0.132° step). For 65/122 of those runs the step is below the smallest sampled radius (0.0005°), so ε at the final step is clamped to the 0.0005° value. At the initial step the cost is never at or below the truth's (ε = the median change at that step is larger than the whole 0.1° ball: not informative).
+- **Plateau shape.** With ε = 0 the plateau points sit at the two smallest radii, so the anisotropy (square root of the largest-to-smallest second-moment eigenvalue) is a coarse estimate: median 2.62 (H3 realistic) and 2.72 (H3 clean). It is limited by the 0.0005° grid.
+
+<!-- table:a1_plateau -->
+| set | variant | eps | n | r50 | r_any | ext | no_member | aniso |
+|---|---|---|---|---|---|---|---|---|
+| H3 | clean | 0 | 200 | 0.0005/0.0005/0.0010 (0 ≥ 0.1) | 0.0020 | 0.0000 | 0 | 2.72 (n=200) |
+| H3 | clean | final step | 122 | 0.0010/0.0010/0.0020 (0 ≥ 0.1) | 0.0050 | 0.0005 | 0 | 2.18 (n=122) |
+| H3 | clean | initial step | 200 | 0.1500/0.1500/0.1500 (200 ≥ 0.1) | 0.1000 | 0.1000 | 0 | 1.08 (n=200) |
+| H3 | realistic | 0 | 200 | 0.0005/0.0005/0.0010 (0 ≥ 0.1) | 0.0020 | 0.0000 | 0 | 2.62 (n=199) |
+| H3 | realistic | final step | 122 | 0.0010/0.0010/0.0020 (0 ≥ 0.1) | 0.0050 | 0.0005 | 0 | 2.22 (n=122) |
+| H3 | realistic | initial step | 200 | 0.1500/0.1500/0.1500 (200 ≥ 0.1) | 0.1000 | 0.1000 | 0 | 1.09 (n=200) |
+| H0 | clean | 0 | 100 | 0.0005/0.0005/0.0010 (0 ≥ 0.1) | 0.0020 | 0.0000 | 0 | 2.44 (n=100) |
+| H0 | clean | final step | 97 | 0.0010/0.0050/0.0100 (0 ≥ 0.1) | 0.0050 | 0.0020 | 0 | 1.93 (n=97) |
+| H0 | clean | initial step | 100 | 0.1500/0.1500/0.1500 (100 ≥ 0.1) | 0.1000 | 0.1000 | 0 | 1.08 (n=100) |
+| H0 | realistic | 0 | 100 | 0.0005/0.0005/0.0010 (0 ≥ 0.1) | 0.0020 | 0.0000 | 0 | 2.43 (n=100) |
+| H0 | realistic | final step | 97 | 0.0010/0.0020/0.0100 (0 ≥ 0.1) | 0.0100 | 0.0010 | 0 | 1.96 (n=97) |
+| H0 | realistic | initial step | 100 | 0.1500/0.1500/0.1500 (100 ≥ 0.1) | 0.1000 | 0.1000 | 0 | 1.09 (n=100) |
+<!-- /table:a1_plateau -->
+
+**Where the sampled minimum is.** Over the 4,000 samples per case (radii ≤ 0.1°). The costs are quantised, so many samples tie at the minimum (median 96 in realistic H3, 208 in clean H3); all statistics use the whole tied set, not the first or the ten lowest samples:
+
+<!-- table:a1_minimum -->
+| set | variant | eps_final | eps_init | clamped | below | drop | tied | rad | cen |
+|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | 0.0015 | 0.524 | 65/122 (53%, 44-62) | 24/200 (12%, 8-17) | 0.00183 (n=24) | 208 | 0.0005/0.0005/0.0005 | 0.0003/0.0004/0.0004 |
+| H3 | realistic | 0.0008 | 0.369 | 65/122 (53%, 44-62) | 108/200 (54%, 47-61) | 0.00088 (n=108) | 96 | 0.0005/0.0005/0.0020 | 0.0003/0.0004/0.0018 |
+| H0 | clean | 0.0047 | 0.522 | 26/97 (27%, 19-36) | 17/100 (17%, 11-26) | 0.00162 (n=17) | 290 | 0.0005/0.0005/0.0005 | 0.0002/0.0003/0.0004 |
+| H0 | realistic | 0.0035 | 0.369 | 26/97 (27%, 19-36) | 55/100 (55%, 45-64) | 0.00074 (n=55) | 112 | 0.0005/0.0005/0.0010 | 0.0003/0.0004/0.0010 |
+<!-- /table:a1_minimum -->
+
+Columns: `clamped`: runs whose final step is below the grid; `below`: cases with a sample below the truth's cost; `drop`: median cost drop among those cases only; `tied`: median number of samples at the minimum cost; `rad`: q25/q50/q75 of the smallest radius among the tied samples; `cen`: q25/q50/q75 of the distance from the truth to the centroid of the tied samples.
+
+- **Clean:** the truth is the sampled minimum in 176/200 H3 cases; the 24 cases with a lower sample have a median drop of 0.00183.
+- **Realistic:** 108/200 H3 cases (54%) have a sample with lower cost than the truth, by a median 0.00088 among those cases. Compare T5: "the truth is not the local minimum within 0.05° in 59/200 H3 cases". The two use different samplers (T5: tiny rotations about 12 directions at 7 angles from 0.001 to 0.2°; Phase A: 4,000 random points on 10 radii), so the counts are not expected to agree.
+- **Offset of the minimum.** Not resolved below the sampling grid: the smallest radius among the tied minimum samples has median 0.0005° (the smallest radius) and q75 0.0020° (realistic H3; clean q75 0.0005°). The centroid of the tied set is a median 0.0004° from the truth (realistic q75 0.0018°; clean 0.0004°).
+- **Clean vs realistic.** The tie-safe centroid offset is larger in realistic than in clean in 143/200 H3 cases (smaller in 57), but the realistic tied sets are smaller (median 96 vs 208 samples), which by itself makes a centroid lie farther from the truth. I do not read this as an effect of realistic data on the minimum.
+
+**A2, the centroid-quantisation scale.**
+- **Geometry** (from the observer): pixel 1.48 µm, ω frame width 1.0°, two detector planes at 3.36 and 5.38 mm (the planes' offsets from the origin; the pixel size has the same length unit), median |sin η| 0.90, median 2θ 10.6°, median 119 reflections per voxel (30 voxels: those of the T5 cases).
+- **Formula** (docstring of `resolution.py`). Each reflection is read as (frame, column, row), each coordinate quantised to one bin, treated as an error of variance bin²/12 (bin = the frame width for ω and 1 px for each detector coordinate). With g_m = ∂ω_m/∂δ (3,) and G_m = ∂(u,v)_m/∂δ (2×3) from central differences of the batched ray tracer at ±0.005°, the Gaussian-equivalent information on the rotation vector δ is J = Σ_m [12/Δω² g_m g_mᵀ + 12 G_mᵀ G_m]. The reported scale is sqrt(tr J⁻¹), the 3-D RMS angle, comparable with a misorientation.
+- **It is a scale, not a bound.** Quantisation noise violates the regularity conditions of the Cramér–Rao bound, so an estimator can go below it: a continuation reaches 0.0060° (below the median scale of 0.0125°). The exact pixel sets carry sub-pixel edge information that this model ignores. Even an efficient estimator with 3-D Gaussian errors is below its RMS in only about 61% of cases, so cases below or above the scale are expected. The check against the library's `ExactBayes.information_matrix` (asserted for every voxel) shows the same algorithm computed two ways, not an independent validation.
+
+<!-- table:a2_quant_scale -->
+| peaks | n_peaks | both | frame | pixel | aniso |
+|---|---|---|---|---|---|
+| |sin eta| >= 0.3 (net set) | 119 | 0.0091/0.0125/0.0142 | 0.0634 | 0.0136 | 3.35 |
+| all recorded peaks | 124 | 0.0090/0.0122/0.0141 | 0.0501 | 0.0133 | 3.44 |
+<!-- /table:a2_quant_scale -->
+
+Columns: q25/q50/q75 of the 3-D RMS scale (deg) over voxels; median frame-only and pixel-only values; median ratio of the largest to the smallest principal sigma.
+
+- **Where the scale sits.** It is 0.0125° (median, q25–q75 0.0091–0.0142°) with the net's reflections, and 0.0122° with all recorded reflections. The pixel term dominates (0.0136° alone); the frame term alone gives 0.0634°. Gauss-Newton's clean floor (0.0127°) is the same size, as expected for a method that uses spot centroids.
+- **Final error against the scale** (T5 result, same voxel):
+
+<!-- table:a2_error_vs_scale -->
+| set | ratio | below |
+|---|---|---|
+| H3 | 1.09/1.86/3.47 | 45/200 (22%, 17-29) |
+| H0 | 2.43/7.56/39.15 | 15/100 (15%, 9-23) |
+<!-- /table:a2_error_vs_scale -->
+
+  The H3 finisher result is a median 1.86× the scale (q25–q75: 1.09–3.47); 45/200 are below it. H0 is 7.56× (its errors include wrong-basin cases at 2–3°).
+- **Plateau against the scale.** The ε = 0 plateau radius (0.0005–0.001°) is more than an order of magnitude smaller than the scale (0.0125°): the cost reacts to rotations much smaller than the centroid-quantisation scale because it compares exact pixel sets.
+
+> **Superseded in part (2026-10-08):** A3: the continuations (`vm_smallbox`, `mc_smallstep`) and the finisher result they are compared with come from T5, the pre-port Python MC (per-step loop, halving at every improvement, restart about the best) and the pre-fix VarianceMinimizing restart; not re-run. A1 and A2 (the landscape) do not depend on the optimizer. See "C++-faithful MC: reruns" below.
+
+**A3, does the gap matter?**
+
+<!-- table:a3_correlation -->
+| set | variant | rho | rho_fine | neg | lower | far | cases_far | case_frac |
+|---|---|---|---|---|---|---|---|---|
+| H3 | clean | 0.97/0.97/0.98 | 0.94 | 0/200 | 182/188 | 5386/329990 | 112/182 | 0.002 |
+| H3 | realistic | 0.96/0.97/0.97 | 0.94 | 0/200 | 183/188 | 4867/315648 | 113/183 | 0.002 |
+| H0 | clean | 0.97/0.97/0.98 | 0.95 | 0/100 | 53/53 | 1216/100986 | 32/53 | 0.002 |
+| H0 | realistic | 0.96/0.97/0.97 | 0.94 | 0/100 | 53/53 | 1280/97575 | 29/53 | 0.001 |
+<!-- /table:a3_correlation -->
+
+Columns: Spearman cost vs angle (q25/q50/q75 over cases; median on points ≤ 0.03°), cases with negative correlation, usable cases (finisher error < 0.1°) that have sampled points with lower cost than the finisher's result, pooled points among those that are farther from the truth than the result is, cases with at least one such farther point, and the median per-case fraction of farther points.
+
+- **Lower cost is rarely farther, but it happens.** Among the sampled points with a cost below the finisher's result, 4,867 of 315,648 (1.5%) in H3 realistic lie farther from the truth than the result does. 113/183 cases have at least one lower-cost point farther than the result; the per-case median fraction is 0.002. So lower cost is not a guarantee of being closer, but almost all lower-cost points are.
+- **The error is lower after the gap is closed** (stored T5 data, verified):
+
+<!-- table:a3_gap_closure -->
+| set | cont | before | after | closed | reduced | p | rho | voxels |
+|---|---|---|---|---|---|---|---|---|
+| H3 | vm_smallbox | 0.0229 | 0.0060 | 0.93 | 166/200 (83%, 77-88) | 1.1e-28 | 0.24 | 26/26 (p=3e-08) |
+| H3 | mc_smallstep | 0.0229 | 0.0165 | 0.61 | 160/200 (80%, 74-85) | 2e-21 | 0.02 | 25/26 (p=8e-07) |
+| H0 | vm_smallbox | 0.0888 | 0.0047 | 0.96 | 84/100 (84%, 76-90) | 2.6e-12 | 0.55 | 14/16 (p=0.0042) |
+| H0 | mc_smallstep | 0.0888 | 0.0793 | 0.12 | 78/100 (78%, 69-85) | 1.2e-12 | 0.28 | 14/16 (p=0.0042) |
+<!-- /table:a3_gap_closure -->
+
+  In H3 a quarter-box VarianceMinimizing pass (vm_smallbox) takes the median error from 0.0229° to 0.0060°, closing a median 93% of the gap, at ~19× the default evaluations (the step cap was hit in 198/200 runs, so this is a capped, not a converged, run). The error falls in 166/200 cases (83%, 77–88), rises in 20/200; paired Wilcoxon p = 1.1e-28. Clustered by voxel (`voxels`: voxels whose median error drop is positive; sign test): 26/26 voxels (H3), 14/16 (H0). In aggregate the error falls where the gap closes, but case by case the fraction of the gap closed explains little of the error drop (Spearman 0.24 for vm_smallbox, 0.02 for mc_smallstep): this is an aggregate association, not a per-case causal link.
+
+**Is it sensitivity?** Phase A finds no evidence that cost-function sensitivity limits the finisher at its 0.023° error scale:
+1. *Clear downhill directions at that scale.* Cost rises with angle (Spearman 0.97; 99.1% or more of rays monotone from 0.005° outward), by about 0.025 (realistic) for a 0.01° rotation, and is flat only below about 0.0005–0.001°.
+2. *The realistic minimum is not resolved below the sampling grid* (median smallest tied radius 0.0005°, q75 0.0020°, realistic H3), against the finisher's 0.023° median error. Almost all lower-cost points are closer to the truth than the finisher's result (98.5% pooled), though 113/183 cases have at least one that is farther.
+3. *A longer local search gets lower.* VarianceMinimizing with a quarter box lowers the error to 0.0060° in 83% of cases, at ~19× the default evaluations.
+
+So the optimizer stops early on a landscape resolvable at that scale. Not tested here: why it stops (Phase B1/B3), and the roughness at 0.001–0.05° that T5 saw (the result is not a local minimum there in 175/200 H3 cases). The MC step collapse (median final trial angle 0.00025° in the runs that accept) is *consistent with* the optimizer running out of improving moves while the step shrinks; the step–acceptance curve is the Phase B1 measurement.
+
+**Caveats.**
+- Per-voxel images with at most 3 distractor sources (as in T5), not full-sample renders; Cu FCC only. 200 H3 cases come from 26 voxels and 100 H0 cases from 16, so case-level intervals are optimistic.
+- The sampled minimum is not resolved below the 0.0005° grid, and directions are random, not a descent.
+- The plateau anisotropy depends on the grid; the A2 principal-sigma ratio (3.35) is the better shape estimate.
+- A2 is a scale under a Gaussian-equivalent independence assumption; it is neither the cost function's resolution nor a lower bound.
+
+### Phase B: why MC runs out of restarts, and better local search
+- **B1, test the mechanism.**
+  - Log `min_ergodic`, step size, accepts and restarts per step on the T5 cases.
+  - Measure the improvement probability as a function of step size at the finisher's result and at the truth
+    neighbourhood: the probability that a random step of size s lowers the cost.
+
+  This gives the step-size / acceptance curve that any local search must respect.
+- **B2, audit "did we deploy too soon?".** No new compute: re-analyse `benchmarks/hp_sweep_*.csv` and
+  `bench_hybrid_*.csv`.
+  - The final-error distribution of "successful" runs (precision, not just success).
+  - Success by distance from the rotation axis.
+  - Each method at a budget equal to FindOptimal's (~200–2600 evaluations).
+  - Results of the hybrid Adam benchmark.
+
+  Write a table: what was measured, what was deployed, and the gap between them.
+- **B3, head-to-head local finishers.**
+  - **Cases:**
+    - the 300 T5 cases (H3 and H0 starts);
+    - the perturbation-sweep cases at r ∈ {0.05, 0.1, 0.25, 0.5, 1} (50 voxels × 5 r × 4 directions × 2 variants).
+  - **Equal evaluation budgets:** 250, 1000, 2600 (the default finisher's median) and 10,000.
+  - **Methods**, all on the same `VoxelCostFunction` unless noted:
+    - (i) MC as deployed (200 steps) and as in the sweep (3500 / 2 restarts);
+    - (ii) MC with local restarts: restart near the best at a reduced step, not in the whole box, and do not reset the
+      step to step₀;
+    - (iii) MC with acceptance-rate step control (1/5th rule, a (1+1)-ES on SO(3));
+    - (iv) a pattern search or Nelder–Mead on the rotation vector, with a shrinking simplex;
+    - (v) local CMA-ES with a small σ₀ (0.05–0.2°);
+    - (vi) VarianceMinimizing with a small box at a fixed budget;
+    - (vii) centroid Gauss-Newton (Huber) as finisher. It needs spot windows; use the net's window pipeline.
+    - (viii) the existing hybrid Riemannian Adam (diff cost), with the April settings.
+  - **Metrics:**
+    - final error (median, p90, fraction < 0.01° / 0.02°);
+    - the cost gap to the truth;
+    - wrong (> 1°) rate with Wilson CIs;
+    - evaluations;
+    - single-worker time on a 40-case subset (preflight gate, interleaved).
+  - Paired McNemar / win rates against (i).
+- **Deliverable:** answers to "why does it run out of restarts" and "is MC the right tool". Then pick ≤ 2 candidate
+  finishers by error at equal budget, and by time.
+
+### Phase B1/B2 results (2026-10-07, `feature/finisher-mc-study-phase-b12`)
+
+> **Superseded in part (2026-10-08):** B1: the restart rule, the step collapse and the lock-in described the old Python loop, not C++'s; re-run, restarts do fire after a first improvement (87% of improving H3 realistic runs) and the MC output is 0.0211 deg from the truth (was 0.0410). See "C++-faithful MC: reruns" below.
+
+**Headline.** B1 confirms the restart rule as written and shows what it leaves out: no restart fires after a run's first improvement (0/122); every run that exhausts its restarts never improved, and every never-improving run exhausts them (78/78 both ways); 5/122 improving runs restarted before their first improvement. An improving run can no longer reach the truth once its step has collapsed: 113/122 are locked in at some improvement (77/122 by the third), each improvement halving the step while the distance to the truth falls slowly (median 0.1011 to 0.0663 deg from the first to the tenth improvement). B2 finds that the April 2026 sweep's headline "success" is a final error below 1.0 deg from a 1, 2 or 5 deg start, which neither measures nor supports the 0.01-0.03 deg scale FindOptimal works at. All numbers below come from `benchmarks/mc_mechanism/` and `benchmarks/sweep_audit/` (`summary.json`, `tables.md`). Nothing in `icenine/` changed.
+
+**What ran.**
+- **B1 cases:** the T5 cases (200 H3 over 26 voxels and 100 H0 over 16 voxels), clean and realistic variants of the same voxel/radius/direction, the same starts and the realistic variant's seed for both variants. Cases within a voxel are not independent, so the intervals below are optimistic.
+- **Reproduction of T5:** the unmodified `refine_from_candidates` with `TracedMC` (a copy of `LoggedMC.optimize` that also records, per step, the step, `min_ergodic`, steps since the last improvement, the event, the trial angle and the best orientation's distance to the truth). The realistic result is bit-identical to T5's in 200/200 (H3) and 100/100 (H0) cases (asserted), and the stored MC log equals T5's `fo_log`. The clean run is a paired re-run of the same random stream on clean images; its result equals the realistic result in 50/200 (H3) cases.
+- **Improvement-probability curves:** 10 points per case and variant (the finisher's result, the truth, and the truth rotated by 0.005, 0.01, 0.02, 0.05 deg about 2 random axes each), 15 step sizes from 0.0005 to 0.3 deg, 200 proposals per point and step drawn exactly as `MCOptimizer.optimize` draws them (`mc_helpers.mc_proposals`, checked against `optimize` in `tests/test_sweep_audit.py`): 30,000 evaluations per case and variant. A second pass (`mc_end_curve.py`) re-ran only the MC stage (its log is asserted equal to the stored one) and measured the curve at the MC stage's own output on a 17-step grid that includes the steps runs end on (0.00013 and 0.00026 deg), with 400 proposals, and at each run's own final step.
+- **Wall time:** 1421 s (trace) and 335 s (end curves) on 10 workers while other work ran (contended; no timing claim, no preflight).
+- **B2:** no optimizer was run. Inputs: `benchmarks/hp_sweep_manygrains.log` (the per-run CSV was never committed; the 58,500 per-run lines of the log are parsed, misorientation to 0.001 deg, and linked to the voxel positions in the `.mic` file), `hp_sweep_trajectory_manygrains.csv`, `hp_sweep_threevoxels.csv` and `bench_hybrid_*.csv`. Both logs and the ManyGrains trajectory are gitignored, on disk.
+- **Code:** `scripts/mc_mechanism/` (`mc_trace.py`, `mc_end_curve.py`, `summary.py`, `mc_helpers.py`), `scripts/sweep_audit/` (`audit.py`, `audit_helpers.py`); tests in `tests/test_mc_mechanism.py` and `tests/test_sweep_audit.py`.
+
+#### B1: the restart rule and the step collapse
+
+**The rules hold as written** (H3 and H0, both variants):
+
+<!-- table:b1_rules -->
+| set | variant | n | box_deg | step0_deg | min_erg_0 | formula_0 | restarts at n_since = min_erg | step halved at each improvement | min_erg ratio q25/50/75 | restart after first accept | min_erg after first accept |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 100 | 0.3292 | 0.1317 | 31 | 31 | 19/19 (100%, 83-100) | 590/590 (100%, 99-100) | 8.00/8.00/8.00 | 0/96 (0%, 0-4) | 250/250/250 |
+| H0 | realistic | 100 | 0.3292 | 0.1317 | 31 | 31 | 16/16 (100%, 81-100) | 631/631 (100%, 99-100) | 8.00/8.00/8.00 | 0/97 (0%, 0-4) | 250/250/250 |
+| H3 | clean | 200 | 0.3292 | 0.1317 | 31 | 31 | 235/235 (100%, 98-100) | 1058/1058 (100%, 100-100) | 8.00/8.00/8.00 | 0/126 (0%, 0-3) | 250/250/250 |
+| H3 | realistic | 200 | 0.3292 | 0.1317 | 31 | 31 | 239/239 (100%, 98-100) | 1015/1015 (100%, 100-100) | 8.00/8.00/8.00 | 0/122 (0%, 0-3) | 250/250/250 |
+<!-- /table:b1_rules -->
+
+- The initial `min_ergodic` is 31, equal to 2 (box/step)^3 for box 0.3292 deg and step 0.1317 deg. A restart or exhaustion fires with steps-since-improvement equal to `min_ergodic` in every instance (239/239, H3 realistic). Each global improvement halves the step exactly (1015/1015) and multiplies `min_ergodic` by 8.00; after the first improvement it is 250, above the 200-step budget, so no run restarts after its first improvement (0/122). The first ratio is 250/31 = 8.06 (integer truncation); the table's 8.00 is the median over all improvements.
+- **A refinement of "non-improving steps".** The counter increments only on steps whose trial cost is not below the *current* cost. After a restart lands on a worse point, a trial that beats that point but not the global best is accepted locally and does not count. In the runs that never improve, the interval between restarts is a median 37 steps (q25-q75 31-40), not 31, with a median 6 (q25-q75 0-9) such local accepts in an interval.
+
+**Stopping** (the plan's items 2c and 2d):
+
+<!-- table:b1_stop -->
+| set | variant | n | step budget | restarts exhausted | converged | no accept | exhausted given no accept | no accept given exhausted | step budget given accepted | steps run (no accept) | restarts (no accept) | steps between restarts | local accepts in between |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 100 | 96 | 4 | 0 | 4/100 (4%, 2-10) | 4/4 (100%, 51-100) | 4/4 (100%, 51-100) | 96/96 (100%, 96-100) | 93/93/97 | 3/3/3 | 31/31/31 | 0/0/0 |
+| H0 | realistic | 100 | 97 | 3 | 0 | 3/100 (3%, 1-8) | 3/3 (100%, 44-100) | 3/3 (100%, 44-100) | 97/97 (100%, 96-100) | 93/93/104 | 3/3/3 | 31/31/31 | 0/0/0 |
+| H3 | clean | 200 | 126 | 74 | 0 | 74/200 (37%, 31-44) | 74/74 (100%, 95-100) | 74/74 (100%, 95-100) | 126/126 (100%, 97-100) | 106/109/113 | 3/3/3 | 31/37/40 | 0/6/9 |
+| H3 | realistic | 200 | 122 | 78 | 0 | 78/200 (39%, 33-46) | 78/78 (100%, 95-100) | 78/78 (100%, 95-100) | 122/122 (100%, 97-100) | 107/110/113 | 3/3/3 | 31/37/40 | 0/6/9 |
+<!-- /table:b1_stop -->
+
+- In H3 realistic, 78 of 200 runs never improve; all 78 end by exhausted restarts, and all 78 exhausted runs are never-improving runs (78/78 both ways). The other 122 end on the step budget (122/122); none ends on convergence. A never-improving run takes a median 110 steps (107-113) and counts 3 restarts. H0: 3/100 never improve.
+- **Why those runs never improve.** Their start is already close: the median distance to the truth is 0.0232 deg (realistic), against a median 0.1362 deg for the improving runs, while the step is 0.1317 deg. At that step no proposal out of 400 lowers the cost in 43/78 of them, and the best step on the grid has a median 0.0020 deg with a best improvement probability of 0.51 (second table below). The restart resets the step to 0.1317 deg again, and it jumps to a point drawn uniformly in the box in `get_near_identity_point` coordinates, with no tan/sqrt(12) scaling (the inherited C++ convention; `icenine/` is unchanged). Such a jump has a median angle of 0.554 deg (q25-q75 0.437-0.654, maximum 0.956) at the box of 0.3292 deg, about 23.8x the never-improving runs' median start distance: a second reason a restart cannot help them.
+
+<!-- table:b1_start_err -->
+| set | variant | start error, improving runs | start error, never-improving runs |
+|---|---|---|---|
+| H0 | clean | 0.2500/0.7500/1.5000 | 2.2625/3.0000/3.0000 |
+| H0 | realistic | 0.2500/0.7500/1.5000 | 1.5500/3.0000/3.0000 |
+| H3 | clean | 0.0880/0.1351/0.1829 | 0.0140/0.0220/0.0364 |
+| H3 | realistic | 0.0897/0.1362/0.1838 | 0.0140/0.0232/0.0406 |
+<!-- /table:b1_start_err -->
+
+<!-- table:b1_restart_jump -->
+| box (deg) | restart jump q25/50/75 (deg) | max (deg) | never-improving H3 realistic start distance, median (deg) | jump median / start distance |
+|---|---|---|---|---|
+| 0.3292 | 0.437/0.554/0.654 | 0.956 | 0.0232 | 23.8 |
+<!-- /table:b1_restart_jump -->
+
+**Improving runs end with a collapsed step, far from the truth** (steps, degrees):
+
+<!-- table:b1_end -->
+| set | variant | n | accepts | last accept step | steps after last accept | final step (deg) | MC output to truth (deg) | finisher result to truth (deg) | step / MC distance | step < 0.0005 | step < 0.0125 | step < distance | step < distance/10 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 4/7/8 | 14/25/47 | 152/174/185 | 0.00051/0.00103/0.00823 | 0.1127/0.6621/1.4400 | 0.0258/0.0564/0.2250 | 0.0022/0.0054/0.0095 | 22/96 (23%, 16-32) | 78/96 (81%, 72-88) | 96/96 (100%, 96-100) | 95/96 (99%, 94-100) |
+| H0 | realistic | 97 | 4/7/9 | 15/29/55 | 144/170/184 | 0.00026/0.00103/0.00823 | 0.1094/0.6541/1.4446 | 0.0261/0.0870/0.3224 | 0.0016/0.0031/0.0092 | 26/97 (27%, 19-36) | 87/97 (90%, 82-94) | 97/97 (100%, 96-100) | 94/97 (97%, 91-99) |
+| H3 | clean | 126 | 8/9/10 | 28/41/80 | 119/158/171 | 0.00013/0.00026/0.00051 | 0.0244/0.0714/0.1201 | 0.0125/0.0245/0.0568 | 0.0017/0.0039/0.0200 | 79/126 (63%, 54-71) | 117/126 (93%, 87-96) | 119/126 (94%, 89-97) | 110/126 (87%, 80-92) |
+| H3 | realistic | 122 | 8/9/10 | 26/34/73 | 126/164/173 | 0.00013/0.00026/0.00051 | 0.0281/0.0705/0.1365 | 0.0159/0.0283/0.0526 | 0.0020/0.0043/0.0150 | 65/122 (53%, 44-62) | 116/122 (95%, 90-98) | 117/122 (96%, 91-98) | 112/122 (92%, 86-95) |
+<!-- /table:b1_end -->
+
+- H3 realistic: a median 9 improvements, the last at step 34 (q25-q75 26-73), then a median 164 steps with no improvement. The final step is a median 0.00026 deg, below the plateau radius r50 of Phase A (0.0005 deg) in 65/122 (53%) and below the MC output's distance to the truth in 117/122 (96%). The MC output is a median 0.0705 deg from the truth; the VarianceMinimizing stage then brings the finisher result to 0.0283 deg in these 122 runs (0.0229 deg over all 200; see the stage note below).
+- **Lock-in.** After the k-th improvement the step is s (after halving), and the rest of the run can move the orientation by at most 2 x 1.7115 x s in total: the largest MC trial angle is 1.7115 x the step (the cube corner of `get_near_identity_point`; the median trial is 0.97 x the step), the step only halves, and no restart can fire. When the distance to the truth exceeds that, the truth is out of reach of the rest of the MC stage (triangle inequality). The check below counts runs for which this has happened. By the triangle inequality no MC output can lie nearer the truth than the distance at lock-in minus the remaining bound (the floor); the last column confirms this in the trace, which is a consistency check of the trace, not evidence about the mechanism:
+
+<!-- table:b1_lockin -->
+| set | variant | n | locked in | at accept k | at run step | step then (deg) | distance then (deg) | MC output >= floor |
+|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 96/96 (100%, 96-100) | 1/1/2 | 0/3/11 | 0.03292/0.06584/0.06584 | 0.1270/0.6956/1.4601 | 96/96 (100%, 96-100) |
+| H0 | realistic | 97 | 97/97 (100%, 96-100) | 1/1/2 | 0/2/10 | 0.03292/0.06584/0.06584 | 0.1262/0.6911/1.4605 | 97/97 (100%, 96-100) |
+| H3 | clean | 126 | 112/126 (89%, 82-93) | 2/3/4 | 3/8/18 | 0.00823/0.01646/0.03292 | 0.0373/0.0902/0.1436 | 112/112 (100%, 97-100) |
+| H3 | realistic | 122 | 113/122 (93%, 87-96) | 2/3/4 | 4/8/19 | 0.00823/0.01646/0.03292 | 0.0399/0.0860/0.1560 | 113/113 (100%, 97-100) |
+<!-- /table:b1_lockin -->
+
+  In H3 realistic, 113/122 (93%) of the improving runs are locked in at some improvement (median k = 3, run step 8), at a step of 0.01646 deg and a distance of 0.0860 deg; all 113 MC outputs lie at or beyond the floor. Cumulative by k (1 to 8): 18, 47, 77, 91, 105, 109, 112, 113, so 77/122 are locked in by the third improvement.
+
+<!-- table:b1_lockin_cum -->
+| set | variant | improving runs | by k=1 | by k=2 | by k=3 | by k=4 | by k=5 | by k=6 | by k=7 | by k=8 | by k=9 | by k=10 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 67 | 75 | 83 | 86 | 93 | 94 | 96 | 96 | 96 | 96 |
+| H0 | realistic | 97 | 67 | 76 | 82 | 86 | 90 | 93 | 96 | 97 | 97 | 97 |
+| H3 | clean | 126 | 15 | 47 | 73 | 93 | 103 | 109 | 111 | 112 | 112 | 112 |
+| H3 | realistic | 122 | 18 | 47 | 77 | 91 | 105 | 109 | 112 | 113 | 113 | 113 |
+<!-- /table:b1_lockin_cum -->
+
+  The same bound caps the path of accepted global improvements at 0.4508 deg (it excludes restart jumps and local accepts; path lengths: median 0.227 deg, maximum 0.3221 deg, in all 122 runs):
+
+<!-- table:b1_travel -->
+| set | variant | n | ceiling (deg) | path length q25/50/75 | path max | path < ceiling | restart before first accept | start error | start > ceiling | result error given start > ceiling | result error given start <= ceiling |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 0.4508 | 0.193/0.238/0.261 | 0.3476 | 96/96 (100%, 96-100) | 5/96 (5%, 2-12) | 0.250/0.750/1.500 | 66/100 (66%, 56-75) | 0.041/0.176/0.970 | 0.017/0.027/0.052 |
+| H0 | realistic | 97 | 0.4508 | 0.195/0.237/0.271 | 0.3480 | 97/97 (100%, 96-100) | 4/97 (4%, 2-10) | 0.250/0.750/1.500 | 66/100 (66%, 56-75) | 0.065/0.230/1.716 | 0.011/0.026/0.044 |
+| H3 | clean | 126 | 0.4508 | 0.189/0.224/0.253 | 0.3221 | 126/126 (100%, 97-100) | 9/126 (7%, 4-13) | 0.030/0.088/0.152 | 7/200 (4%, 2-7) | 0.114/0.258/1.127 | 0.012/0.021/0.040 |
+| H3 | realistic | 122 | 0.4508 | 0.183/0.227/0.261 | 0.3221 | 122/122 (100%, 97-100) | 5/122 (4%, 2-9) | 0.030/0.088/0.152 | 7/200 (4%, 2-7) | 0.055/0.089/1.327 | 0.013/0.023/0.041 |
+<!-- /table:b1_travel -->
+
+  H0 starts are a median 0.75 deg from the truth, 66/100 beyond that ceiling; their results are a median 0.230 deg (realistic) from the truth against 0.026 deg for the others. This is an association (the start distance is the common factor), not an isolated effect of the ceiling.
+- **The step collapses in a few steps (consistent with improving being easy).** After k improvements (H3 realistic):
+
+<!-- table:b1_by_accept_h3 -->
+| k | n | run step | step after (deg) | distance to truth (deg) |
+|---|---|---|---|---|
+| 1 | 122 | 2 | 0.06584 | 0.1011 |
+| 2 | 119 | 6 | 0.03292 | 0.0896 |
+| 3 | 119 | 10 | 0.01646 | 0.0795 |
+| 4 | 116 | 14 | 0.00823 | 0.0806 |
+| 5 | 114 | 16 | 0.00412 | 0.0755 |
+| 6 | 111 | 19 | 0.00206 | 0.0716 |
+| 7 | 107 | 22 | 0.00103 | 0.0693 |
+| 8 | 100 | 28 | 0.00051 | 0.0674 |
+| 9 | 65 | 29 | 0.00026 | 0.0697 |
+| 10 | 32 | 42 | 0.00013 | 0.0663 |
+<!-- /table:b1_by_accept_h3 -->
+
+  The step falls by a factor 2 per improvement while the median distance to the truth falls only from 0.1011 to 0.0663 deg (the subsets of runs differ at each k). That the improvements come quickly is consistent with the high improvement probability at steps up to about the distance (next section); that probability was measured at selected points near the truth, not along these trajectories.
+
+**Stage note.** The finisher's result (0.0283 deg for these 122 runs) is the one *after* the VarianceMinimizing stage, which starts from the MC output and halves its radius on improvement but doubles it after a failure, up to the box. At exit its radius is the 0.3292 deg cap (q25 = q50 = q75, H3 realistic, from the T5 logs), where the improvement probability is 0.00. The MC stage alone leaves a median 0.0705 deg.
+
+#### B1: the improvement-probability curve
+
+P(s) is the probability that one proposal of step s lowers the cost at the point; "cost progress" is the mean cost decrease per proposal, E[max(0, c0 - c)]. Medians over cases (P) and means over cases (cost progress), H3:
+
+<!-- table:b1_P_h3 -->
+| set | variant | point | d0 | 0.0005 | 0.001 | 0.002 | 0.003 | 0.005 | 0.0075 | 0.01 | 0.02 | 0.03 | 0.05 | 0.075 | 0.1 | 0.15 | 0.2 | 0.3 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | result | 0.0224 | 0.05 | 0.15 | 0.22 | 0.23 | 0.19 | 0.14 | 0.11 | 0.04 | 0.02 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | clean | truth | 0.0000 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | clean | 0.005 | 0.0050 | 0.27 | 0.36 | 0.40 | 0.38 | 0.32 | 0.21 | 0.13 | 0.03 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | clean | 0.01 | 0.0100 | 0.29 | 0.40 | 0.45 | 0.44 | 0.42 | 0.38 | 0.32 | 0.12 | 0.05 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | clean | 0.02 | 0.0200 | 0.30 | 0.42 | 0.45 | 0.46 | 0.45 | 0.42 | 0.40 | 0.30 | 0.19 | 0.06 | 0.02 | 0.01 | 0.00 | 0.00 | 0.00 |
+| H3 | clean | 0.05 | 0.0500 | 0.34 | 0.44 | 0.48 | 0.48 | 0.48 | 0.47 | 0.46 | 0.43 | 0.39 | 0.31 | 0.19 | 0.10 | 0.04 | 0.02 | 0.01 |
+| H3 | realistic | result | 0.0229 | 0.08 | 0.21 | 0.27 | 0.26 | 0.21 | 0.18 | 0.13 | 0.04 | 0.02 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | realistic | truth | 0.0000 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | realistic | 0.005 | 0.0050 | 0.27 | 0.37 | 0.41 | 0.39 | 0.33 | 0.23 | 0.15 | 0.03 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | realistic | 0.01 | 0.0100 | 0.29 | 0.41 | 0.45 | 0.45 | 0.41 | 0.37 | 0.32 | 0.13 | 0.05 | 0.01 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 |
+| H3 | realistic | 0.02 | 0.0200 | 0.30 | 0.41 | 0.46 | 0.47 | 0.45 | 0.42 | 0.40 | 0.29 | 0.19 | 0.06 | 0.02 | 0.01 | 0.00 | 0.00 | 0.00 |
+| H3 | realistic | 0.05 | 0.0500 | 0.32 | 0.42 | 0.47 | 0.47 | 0.47 | 0.47 | 0.46 | 0.43 | 0.39 | 0.30 | 0.18 | 0.10 | 0.04 | 0.02 | 0.01 |
+<!-- /table:b1_P_h3 -->
+
+<!-- table:b1_cost_prog_h3 -->
+| set | variant | point | d0 | 0.0005 | 0.001 | 0.002 | 0.003 | 0.005 | 0.0075 | 0.01 | 0.02 | 0.03 | 0.05 | 0.075 | 0.1 | 0.15 | 0.2 | 0.3 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | result | 0.0224 | 0.0004 | 0.0007 | 0.0011 | 0.0014 | 0.0019 | 0.0021 | 0.0022 | 0.0017 | 0.0012 | 0.0007 | 0.0006 | 0.0005 | 0.0005 | 0.0004 | 0.0003 |
+| H3 | clean | truth | 0.0000 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | clean | 0.005 | 0.0050 | 0.0008 | 0.0013 | 0.0021 | 0.0026 | 0.0026 | 0.0019 | 0.0012 | 0.0002 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | clean | 0.01 | 0.0100 | 0.0008 | 0.0014 | 0.0026 | 0.0035 | 0.0046 | 0.0052 | 0.0049 | 0.0019 | 0.0007 | 0.0002 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | clean | 0.02 | 0.0200 | 0.0009 | 0.0017 | 0.0029 | 0.0039 | 0.0058 | 0.0076 | 0.0089 | 0.0092 | 0.0058 | 0.0019 | 0.0006 | 0.0003 | 0.0001 | 0.0000 | 0.0000 |
+| H3 | clean | 0.05 | 0.0500 | 0.0010 | 0.0017 | 0.0030 | 0.0042 | 0.0064 | 0.0090 | 0.0114 | 0.0192 | 0.0233 | 0.0228 | 0.0133 | 0.0070 | 0.0024 | 0.0010 | 0.0003 |
+| H3 | realistic | result | 0.0229 | 0.0003 | 0.0006 | 0.0010 | 0.0012 | 0.0015 | 0.0017 | 0.0017 | 0.0014 | 0.0010 | 0.0004 | 0.0002 | 0.0001 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | realistic | truth | 0.0000 | 0.0001 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | realistic | 0.005 | 0.0050 | 0.0006 | 0.0010 | 0.0016 | 0.0019 | 0.0020 | 0.0015 | 0.0010 | 0.0002 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | realistic | 0.01 | 0.0100 | 0.0006 | 0.0011 | 0.0019 | 0.0025 | 0.0034 | 0.0039 | 0.0037 | 0.0015 | 0.0006 | 0.0002 | 0.0001 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| H3 | realistic | 0.02 | 0.0200 | 0.0007 | 0.0012 | 0.0020 | 0.0028 | 0.0041 | 0.0054 | 0.0063 | 0.0066 | 0.0042 | 0.0014 | 0.0005 | 0.0002 | 0.0001 | 0.0000 | 0.0000 |
+| H3 | realistic | 0.05 | 0.0500 | 0.0007 | 0.0013 | 0.0022 | 0.0031 | 0.0046 | 0.0064 | 0.0081 | 0.0134 | 0.0163 | 0.0159 | 0.0095 | 0.0051 | 0.0017 | 0.0007 | 0.0002 |
+<!-- /table:b1_cost_prog_h3 -->
+
+- **A flat top, then a drop at the distance.** Near the truth (0.005-0.05 deg away) P is 0.27-0.47 for every step from 0.0005 deg up to about the distance, then falls (0.05 deg away, realistic: 0.32 at 0.0005, 0.47 at 0.002-0.0075, 0.30 at 0.05, 0.10 at 0.1, 0.01 at 0.3 deg). The curves are the same within about 0.02 (maximum 0.021) clean and realistic at these points.
+- **The step that maximises expected cost progress is about the distance to the truth.** It is 0.0050, 0.0075, 0.0200 and 0.0300 deg at distances 0.005, 0.01, 0.02 and 0.05 deg (ratios 1.00, 0.75, 1.00, 0.60), with P = 0.29-0.39 there. The step that maximises P alone is smaller (0.002-0.003 deg), and the distance-progress optimum (0.0030, 0.0075, 0.0100, 0.0300 deg) agrees with the cost-progress optimum within a factor of 2.
+
+<!-- table:b1_sstar -->
+| set | variant | point | d0 (deg) | s max P | s max cost progress | s max distance progress | per-case s max cost progress q25/50/75 | P at s max cost progress | s / d0 |
+|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | result | 0.0582 | 0.0050 | 0.0300 | 0.3000 | 0.0050/0.0200/0.0300 | 0.04 | 0.52 |
+| H0 | clean | truth | 0.0000 | n/a | 0.0005 | n/a | 0.0005/0.0005/0.0005 | 0.00 | n/a |
+| H0 | clean | 0.005 | 0.0050 | 0.0020 | 0.0050 | 0.0030 | 0.0030/0.0030/0.0050 | 0.34 | 1.00 |
+| H0 | clean | 0.01 | 0.0100 | 0.0020 | 0.0075 | 0.0075 | 0.0075/0.0075/0.0100 | 0.37 | 0.75 |
+| H0 | clean | 0.02 | 0.0200 | 0.0030 | 0.0200 | 0.0100 | 0.0100/0.0200/0.0200 | 0.33 | 1.00 |
+| H0 | clean | 0.05 | 0.0500 | 0.0030 | 0.0300 | 0.0300 | 0.0300/0.0300/0.0500 | 0.39 | 0.60 |
+| H0 | realistic | result | 0.0888 | 0.0075 | 0.1000 | 0.2000 | 0.0075/0.0200/0.1000 | 0.01 | 1.13 |
+| H0 | realistic | truth | 0.0000 | n/a | 0.0005 | n/a | 0.0005/0.0010/0.0020 | 0.00 | n/a |
+| H0 | realistic | 0.005 | 0.0050 | 0.0020 | 0.0050 | 0.0030 | 0.0030/0.0030/0.0050 | 0.35 | 1.00 |
+| H0 | realistic | 0.01 | 0.0100 | 0.0020 | 0.0075 | 0.0075 | 0.0075/0.0075/0.0100 | 0.38 | 0.75 |
+| H0 | realistic | 0.02 | 0.0200 | 0.0030 | 0.0200 | 0.0100 | 0.0100/0.0200/0.0200 | 0.32 | 1.00 |
+| H0 | realistic | 0.05 | 0.0500 | 0.0030 | 0.0300 | 0.0300 | 0.0300/0.0300/0.0500 | 0.39 | 0.60 |
+| H3 | clean | result | 0.0224 | 0.0030 | 0.0100 | 0.0200 | 0.0030/0.0075/0.0100 | 0.11 | 0.45 |
+| H3 | clean | truth | 0.0000 | n/a | 0.0005 | n/a | 0.0005/0.0005/0.0005 | 0.00 | n/a |
+| H3 | clean | 0.005 | 0.0050 | 0.0020 | 0.0050 | 0.0030 | 0.0030/0.0030/0.0050 | 0.32 | 1.00 |
+| H3 | clean | 0.01 | 0.0100 | 0.0020 | 0.0075 | 0.0075 | 0.0075/0.0075/0.0100 | 0.38 | 0.75 |
+| H3 | clean | 0.02 | 0.0200 | 0.0030 | 0.0200 | 0.0100 | 0.0100/0.0100/0.0200 | 0.30 | 1.00 |
+| H3 | clean | 0.05 | 0.0500 | 0.0020 | 0.0300 | 0.0300 | 0.0300/0.0300/0.0500 | 0.39 | 0.60 |
+| H3 | realistic | result | 0.0229 | 0.0020 | 0.0100 | 0.0100 | 0.0030/0.0075/0.0100 | 0.13 | 0.44 |
+| H3 | realistic | truth | 0.0000 | n/a | 0.0005 | n/a | 0.0005/0.0010/0.0020 | 0.00 | n/a |
+| H3 | realistic | 0.005 | 0.0050 | 0.0020 | 0.0050 | 0.0030 | 0.0030/0.0050/0.0050 | 0.33 | 1.00 |
+| H3 | realistic | 0.01 | 0.0100 | 0.0020 | 0.0075 | 0.0075 | 0.0050/0.0075/0.0100 | 0.37 | 0.75 |
+| H3 | realistic | 0.02 | 0.0200 | 0.0030 | 0.0200 | 0.0100 | 0.0100/0.0100/0.0200 | 0.29 | 1.00 |
+| H3 | realistic | 0.05 | 0.0500 | 0.0020 | 0.0300 | 0.0300 | 0.0300/0.0300/0.0500 | 0.39 | 0.60 |
+<!-- /table:b1_sstar -->
+
+- **At the finisher's result** (a median 0.0229 deg from the truth, realistic H3) the cost-progress optimum is 0.0100 deg (0.44 of the distance) with P = 0.13; P peaks at 0.27 at 0.002 deg. The MC final step, 0.00026 deg, is 38.9x below that optimum (a cross-point ratio: the optimum belongs to the finisher's result, after VarianceMinimizing; at the MC output itself the median best-P step is 0.0075 deg, about 29x the final step). Per proposal, the cost progress at the best grid step is a median 17.4x (q25-q75 3.7-76.2) that at the run's final step, and the median expected evaluations per improvement at the final step is 67 (5-1000, capped at 1000); 65/122 final steps are below the grid, so these use P at 0.0005 deg and are, if anything, favourable to the final step.
+
+<!-- table:b1_final_vs_best -->
+| set | variant | d0 (deg) | s max cost progress | s max cost progress / MC final step | MC final step (improving runs) | P at MC final step | step below grid | evals per improvement at final step | P best on grid | cost progress best / final | VarianceMinimizing final radius | P at that radius | P at initial step (no-accept runs) | P = 0 at every step |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 0.0582 | 0.0300 | 29.2 | 0.00051/0.00103/0.00823 | 0.001/0.107/0.318 | 22/96 (23%, 16-32) | 3/9/860 | 0.08/0.36/0.49 | 2.0/6.0/19.8 | n/a | n/a | 0.00/0.00/0.01 | 7/100 (7%, 3-14) |
+| H0 | realistic | 0.0888 | 0.1000 | 97.2 | 0.00026/0.00103/0.00823 | 0.000/0.045/0.250 | 26/97 (27%, 19-36) | 4/22/1000 | 0.09/0.26/0.43 | 3.1/11.8/41.5 | 0.0736/0.3292/0.3292 | 0.00/0.00/0.02 | 0.00/0.00/0.00 | 6/100 (6%, 3-12) |
+| H3 | clean | 0.0224 | 0.0100 | 38.9 | 0.00013/0.00026/0.00051 | 0.000/0.005/0.144 | 79/126 (63%, 54-71) | 7/186/1000 | 0.12/0.34/0.48 | 5.2/14.3/43.6 | n/a | n/a | 0.00/0.00/0.00 | 12/200 (6%, 3-10) |
+| H3 | realistic | 0.0229 | 0.0100 | 38.9 | 0.00013/0.00026/0.00051 | 0.000/0.015/0.215 | 65/122 (53%, 44-62) | 5/67/1000 | 0.14/0.36/0.50 | 3.7/17.4/76.2 | 0.3292/0.3292/0.3292 | 0.00/0.00/0.00 | 0.00/0.00/0.00 | 6/200 (3%, 1-6) |
+<!-- /table:b1_final_vs_best -->
+
+- **At the MC stage's own output** (the measurement that matches the stopping point):
+
+<!-- table:b1_end_curve_stats -->
+| set | variant | runs | n | own step (deg) | output to truth (deg) | P at own step | P = 0 at own step | best P on grid | step of best P | P = 0 at own step, best P >= 0.05 | s max cost progress (mean) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | improving | 96 | 0.00051/0.00103/0.00823 | 0.1127/0.6621/1.4400 | 0.000/0.000/0.000 | 83/96 (86%, 78-92) | 0.17/0.32/0.45 | 0.0100/0.0750/0.2000 | 72/96 (75%, 65-83) | 0.2000 |
+| H0 | clean | noaccept | 4 | 0.13169/0.13169/0.13169 | 2.2625/3.0000/3.0000 | 0.000/0.009/0.034 | 2/4 (50%, 15-85) | 0.02/0.12/0.27 | 0.1537/0.3000/0.3000 | 0/4 (0%, 0-49) | 0.0200 |
+| H0 | realistic | improving | 97 | 0.00026/0.00103/0.00823 | 0.1094/0.6541/1.4446 | 0.000/0.000/0.000 | 91/97 (94%, 87-97) | 0.19/0.30/0.42 | 0.0094/0.1000/0.2000 | 80/97 (82%, 74-89) | 0.3000 |
+| H0 | realistic | noaccept | 3 | 0.13169/0.13169/0.13169 | 1.5500/3.0000/3.0000 | 0.011/0.022/0.053 | 1/3 (33%, 6-79) | 0.11/0.21/0.35 | 0.0757/0.1505/0.2253 | 0/3 (0%, 0-56) | 0.0300 |
+| H3 | clean | improving | 126 | 0.00013/0.00026/0.00051 | 0.0244/0.0714/0.1201 | 0.000/0.000/0.000 | 110/126 (87%, 80-92) | 0.15/0.28/0.41 | 0.0030/0.0075/0.0100 | 96/126 (76%, 68-83) | 0.0750 |
+| H3 | clean | noaccept | 74 | 0.13169/0.13169/0.13169 | 0.0140/0.0220/0.0364 | 0.000/0.000/0.003 | 43/74 (58%, 47-69) | 0.41/0.49/0.62 | 0.0010/0.0020/0.0030 | 43/74 (58%, 47-69) | 0.0075 |
+| H3 | realistic | improving | 122 | 0.00013/0.00026/0.00051 | 0.0281/0.0705/0.1365 | 0.000/0.000/0.000 | 108/122 (89%, 82-93) | 0.12/0.28/0.40 | 0.0030/0.0075/0.0200 | 95/122 (78%, 70-84) | 0.0750 |
+| H3 | realistic | noaccept | 78 | 0.13169/0.13169/0.13169 | 0.0140/0.0232/0.0406 | 0.000/0.000/0.005 | 43/78 (55%, 44-66) | 0.39/0.51/0.65 | 0.0010/0.0020/0.0030 | 43/78 (55%, 44-66) | 0.0075 |
+<!-- /table:b1_end_curve_stats -->
+
+  In H3 realistic, the improvement probability at the run's own final step is 0 in 108/122 (89%) of the improving runs (no improving proposal in 400), while the best step on the grid has a median P of 0.28 (0.12-0.40) at a median step of 0.0075 deg (0.0030-0.0200). In 95/122 (78%) the probability is 0 at the own step and at least 0.05 at some larger step. The never-improving runs have P = 0 at their initial step in 43/78 and a best step of 0.0020 deg (0.0010-0.0030).
+
+<!-- table:b1_end_curve -->
+| set | variant | n | 0.00013 | 0.00026 | 0.0005 | 0.001 | 0.002 | 0.003 | 0.005 | 0.0075 | 0.01 | 0.02 | 0.03 | 0.05 | 0.075 | 0.1 | 0.15 | 0.2 | 0.3 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H0 | clean | 96 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.007 | 0.016 | 0.025 | 0.065 | 0.089 | 0.107 | 0.121 | 0.114 | 0.092 | 0.083 | 0.090 |
+| H0 | realistic | 97 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.013 | 0.013 | 0.025 | 0.045 | 0.065 | 0.105 | 0.122 | 0.117 | 0.117 | 0.120 | 0.102 |
+| H3 | clean | 126 | 0.000 | 0.000 | 0.000 | 0.058 | 0.136 | 0.160 | 0.191 | 0.171 | 0.166 | 0.092 | 0.051 | 0.026 | 0.019 | 0.015 | 0.007 | 0.003 | 0.000 |
+| H3 | realistic | 122 | 0.000 | 0.000 | 0.000 | 0.029 | 0.116 | 0.146 | 0.160 | 0.168 | 0.164 | 0.114 | 0.079 | 0.041 | 0.025 | 0.018 | 0.007 | 0.005 | 0.000 |
+<!-- /table:b1_end_curve -->
+
+- **Clean vs realistic.** Almost the same curves, but not the same truth: a proposal lowers the cost *at the truth* in 98/200 (49%) H3 realistic cases against 24/200 (12%) clean, i.e. the realistic minimum is not at the truth in about half the cases (consistent with Phase A's 108/200 under a different sampler).
+
+<!-- table:b1_truth -->
+| set | variant | cases with an improving proposal at the truth | pooled P at the best step |
+|---|---|---|---|
+| H0 | clean | 17/100 (17%, 11-26) | 0.038 |
+| H0 | realistic | 54/100 (54%, 44-63) | 0.075 |
+| H3 | clean | 24/200 (12%, 8-17) | 0.037 |
+| H3 | realistic | 98/200 (49%, 42-56) | 0.077 |
+<!-- /table:b1_truth -->
+
+**B1 answer: why MC runs out of restarts and stops short.**
+1. *Restarts.* No restart fires after a run's first improvement (0/122); every run that exhausts its restarts never improved, and every never-improving run exhausts them (78/78 both ways); 5/122 improving runs restarted before their first improvement. One improvement raises `min_ergodic` from 31 to 250, beyond the 200-step budget. The never-improving runs are the ones whose start is closer (0.0232 deg) than the step can resolve (0.1317 deg), so the restart cannot help them either: it resets the step to 0.1317 deg and jumps a median 0.554 deg (about 23.8x their start distance).
+2. *Stopping short.* An improvement is cheap at any step up to the distance (P = 0.3-0.5), and each improvement halves the step, so the step decays as 2^-k (the eighth improvement comes at a median run step 28) regardless of whether the new step is still productive. The remaining travel bound falls below the distance to the truth at some improvement in 93% of the runs (77/122 by the third); the run then idles (a median 164 steps) at a step where P = 0 for 89%, while the best grid step (median 0.0075 deg) has a median P of 0.28. This is consistent with the MC stage's 0.0705 deg (the probabilities were measured at selected points near the truth and at the MC output, not along the trajectories); the later stage reduces it to 0.0283 deg (improving runs).
+3. *Consistent with, not proven:* the stop-short mechanism is read from the code and verified in the logs (rules, lock-in, probabilities at the stopping point); that a different step rule would lower the finisher's final error is not tested here (B3).
+4. *What the curve implies for a step rule* (hypothesis for B3): the progress-maximising step is about the current distance to the truth, and the improvement probability there is 0.3-0.4 (0.13 at the finisher's result). A step controlled by the recent acceptance rate (raise after a success, lower after a failure, a target of roughly 0.2-0.4; the (1+1)-ES one-fifth family) tracks that without knowing the distance, whereas halving on every improvement does not. For the never-improving runs the useful restart is near the best at a reduced step, not a reset to 0.1317 deg. Cost: each proposal is one evaluation; the quantities above are per evaluation.
+
+**Caveats (B1).** (a) Per-voxel images with at most 3 distractor sources, Cu FCC only; cases from 26 and 16 voxels. (b) 200-400 proposals per point and step: P values below about 0.01 are not resolved, and "P = 0" means no improving proposal in 200 or 400. (c) The curves are at selected points (the result, the truth, and 2 random directions at each of four distances); the MC output's own curve is measured at the actual output. (d) The lock-in bound assumes the step only halves, which holds for runs without restarts; 5/122 improving H3 realistic runs had a restart before their first improvement, which shifts the position but not the bound afterwards. (e) The VarianceMinimizing radius at exit is a snapshot (the state after the last failure), not the radius used for most of its evaluations.
+
+### B2: did we deploy too soon?
+
+**What the files contain** (checked before use):
+
+| File | Content | Used as |
+|---|---|---|
+| `hp_sweep_manygrains.log` (gitignored) | per-run lines of the 58,500-run ManyGrains sweep: optimizer, hp id, voxel, start offset, final misorientation (0.001 deg), quality, evaluations, time | the per-run data (the CSV was never committed); all 58,500 lines parse and the headline table is reproduced from them |
+| `hp_sweep_trajectory_manygrains.csv` (gitignored) | step records linked to the log by run order | MC accept timing; the link is checked on the gradient runs (non-diverged runs: last record within 0.05 deg of the log's final error in 94%) |
+| `hp_sweep_threevoxels.csv` | 1,755 runs, 3 voxels at 12 um | near-axis comparison |
+| `bench_hybrid_manygrains.csv` | 100 (voxel, offset) pairs of hybrid Adam and MC: 20 voxels, offsets 0.5-5 deg | hybrid benchmark |
+| `bench_hybrid_threevoxels.csv` | 27 pairs from three runs of the benchmark appended to one file (6, 6 and 15 pairs: two short or smoke runs and the full run); only the full 15-pair run is used | hybrid benchmark |
+
+**The recorded headline is "final error < 1.0 deg", whatever the start.** The success percentages recorded in this file (96/41/0 etc.) are reproduced exactly with that criterion, not with the 0.5 deg of the later studies (`docs/orientation_nn_design.md` cites 0.5 deg as the `bench_hp_sweep.py` criterion; the code has no success criterion and the recorded numbers follow 1.0 deg). At a 1 deg start it means "ended below the start". The SGLD row is reproduced by T = 0.001 (the table names T = 0.01, which gives 77/40/0); the MC row gives 91 with the printed 1.000 excluded and 92 with it counted.
+
+<!-- table:mg_headline -->
+| optimizer | config | evaluations | < 1 deg, 1 deg start | < 1 deg, 2 deg start | < 1 deg, 5 deg start | < 0.5 deg, 1 deg start | < 0.5 deg, 2 deg start | recorded % |
+|---|---|---|---|---|---|---|---|---|
+| riemannian_adam_geoopt | lr 0.0001, 100 steps, b1 0.9 | 101 | 96/100 (96%, 90-98) | 41/100 (41%, 32-51) | 0/100 (0%, 0-4) | 53/100 (53%, 43-62) | 0/100 (0%, 0-4) | 96/41/0 |
+| riemannian_adam_manual | lr 0.0001, 200 steps, b1 0.9 | 201 | 94/100 (94%, 88-97) | 49/100 (49%, 39-59) | 0/100 (0%, 0-4) | 58/100 (58%, 48-67) | 27/100 (27%, 19-36) | 94/49/0 |
+| riemannian_sgd_plain | lr 0.0001, 100 steps | 101 | 88/100 (88%, 80-93) | 52/100 (52%, 42-62) | 0/100 (0%, 0-4) | 54/100 (54%, 44-63) | 25/100 (25%, 18-34) | 88/52/0 |
+| riemannian_sgd_momentum | lr 1e-05, 200 steps, mom 0.5 | 201 | 94/100 (94%, 88-97) | 51/100 (51%, 41-61) | 0/100 (0%, 0-4) | 59/100 (59%, 49-68) | 21/100 (21%, 14-30) | 94/51/0 |
+| riemannian_sgld | lr 0.0001, 100 steps, T 0.001 | 101 | 92/100 (92%, 85-96) | 50/100 (50%, 40-60) | 0/100 (0%, 0-4) | 62/100 (62%, 52-71) | 18/100 (18%, 12-27) | 92/50/0 |
+| mc_optimizer | 3500 steps, 2 restarts, step frac 0.5 | 3501 | 91/100 (91%, 84-95) | 40/100 (40%, 31-50) | 6/100 (6%, 3-12) | 39/100 (39%, 30-49) | 18/100 (18%, 12-27) | 92/40/6 |
+<!-- /table:mg_headline -->
+
+**Precision of the "successes"** (1 deg start; the recorded config of each optimizer, and all configs of the optimizer pooled):
+
+<!-- table:mg_precision -->
+| optimizer | runs | n | n < 1 deg | error of the < 1 deg runs q25/50/75/90 | < 0.5 deg | < 0.1 deg | < 0.05 deg | < 0.02 deg |
+|---|---|---|---|---|---|---|---|---|
+| riemannian_adam_geoopt | recorded config | 100 | 96 | 0.262/0.472/0.705/0.857 | 53/100 (53%, 43-62) | 3/100 (3%, 1-8) | 1/100 (1%, 0-5) | 0/100 (0%, 0-4) |
+| riemannian_adam_geoopt | all configs | 4200 | 1872 | 0.261/0.468/0.717/0.867 | 1004/4200 (24%, 23-25) | 129/4200 (3%, 3-4) | 57/4200 (1%, 1-2) | 47/4200 (1%, 1-1) |
+| riemannian_adam_manual | recorded config | 100 | 94 | 0.245/0.415/0.647/0.840 | 58/100 (58%, 48-67) | 12/100 (12%, 7-20) | 5/100 (5%, 2-11) | 5/100 (5%, 2-11) |
+| riemannian_adam_manual | all configs | 4200 | 1801 | 0.270/0.473/0.734/0.890 | 951/4200 (23%, 21-24) | 141/4200 (3%, 3-4) | 79/4200 (2%, 2-2) | 62/4200 (1%, 1-2) |
+| riemannian_sgd_plain | recorded config | 100 | 88 | 0.229/0.420/0.657/0.854 | 54/100 (54%, 44-63) | 10/100 (10%, 6-17) | 5/100 (5%, 2-11) | 4/100 (4%, 2-10) |
+| riemannian_sgd_plain | all configs | 1500 | 402 | 0.347/0.542/0.795/0.920 | 181/1500 (12%, 11-14) | 23/1500 (2%, 1-2) | 14/1500 (1%, 1-2) | 12/1500 (1%, 0-1) |
+| riemannian_sgd_momentum | recorded config | 100 | 94 | 0.212/0.357/0.658/0.877 | 59/100 (59%, 49-68) | 11/100 (11%, 6-19) | 3/100 (3%, 1-8) | 1/100 (1%, 0-5) |
+| riemannian_sgd_momentum | all configs | 1500 | 567 | 0.296/0.511/0.749/0.921 | 272/1500 (18%, 16-20) | 38/1500 (3%, 2-3) | 17/1500 (1%, 1-2) | 6/1500 (0%, 0-1) |
+| riemannian_sgld | recorded config | 100 | 92 | 0.206/0.402/0.654/0.852 | 62/100 (62%, 52-71) | 4/100 (4%, 2-10) | 1/100 (1%, 0-5) | 0/100 (0%, 0-4) |
+| riemannian_sgld | all configs | 4500 | 1115 | 0.250/0.463/0.707/0.870 | 602/4500 (13%, 12-14) | 59/4500 (1%, 1-2) | 6/4500 (0%, 0-0) | 1/4500 (0%, 0-0) |
+| mc_optimizer | recorded config | 100 | 91 | 0.312/0.531/0.699/0.839 | 39/100 (39%, 30-49) | 5/100 (5%, 2-11) | 1/100 (1%, 0-5) | 0/100 (0%, 0-4) |
+| mc_optimizer | all configs | 3600 | 2602 | 0.378/0.592/0.763/0.882 | 966/3600 (27%, 25-28) | 125/3600 (3%, 3-4) | 61/3600 (2%, 1-2) | 23/3600 (1%, 0-1) |
+<!-- /table:mg_precision -->
+
+- The runs that end below 1.0 deg end at a median 0.47 deg (Adam, recorded config) and 0.53 deg (MC): under 0.1 deg in 3/100 and 5/100, under 0.02 deg in 0/100 and 0/100. Pooled over all configs at a 1 deg start, 47/4200 (Adam) and 23/3600 (MC) runs end under 0.02 deg (over all start offsets: 105/12600 and 32/10800). The sweep measured whether a method moves toward the truth at the 0.1-1 deg scale; it did not and could not show that any config reaches the 0.01-0.03 deg scale (the log resolution is 0.001 deg, so this is not a rounding limit).
+
+**By distance from the rotation axis.** The 100 sweep voxels have r_perp 75-563 um (median 370, 95% beyond 120 um).
+
+<!-- table:mg_by_rperp -->
+| runs | r_perp | < 1 deg | < 0.5 deg | median error of the < 1 deg runs |
+|---|---|---|---|---|
+| Adam (geoopt), recorded config | <277 um | 31/33 (94%, 80-98) | 17/33 (52%, 35-67) | 0.468 |
+| Adam (geoopt), recorded config | 277-412 um | 33/33 (100%, 90-100) | 18/33 (55%, 38-70) | 0.421 |
+| Adam (geoopt), recorded config | >=412 um | 32/34 (94%, 81-98) | 18/34 (53%, 37-69) | 0.483 |
+| MC, recorded config | <277 um | 29/33 (88%, 73-95) | 14/33 (42%, 27-59) | 0.517 |
+| MC, recorded config | 277-412 um | 29/33 (88%, 73-95) | 13/33 (39%, 25-56) | 0.531 |
+| MC, recorded config | >=412 um | 33/34 (97%, 85-99) | 12/34 (35%, 21-52) | 0.576 |
+| Adam (geoopt), all configs | <277 um | 624/1386 (45%, 42-48) | 305/1386 (22%, 20-24) | 0.511 |
+| Adam (geoopt), all configs | 277-412 um | 679/1386 (49%, 46-52) | 370/1386 (27%, 24-29) | 0.446 |
+| Adam (geoopt), all configs | >=412 um | 569/1428 (40%, 37-42) | 329/1428 (23%, 21-25) | 0.426 |
+| MC, all configs | <277 um | 865/1188 (73%, 70-75) | 318/1188 (27%, 24-29) | 0.594 |
+| MC, all configs | 277-412 um | 861/1188 (72%, 70-75) | 326/1188 (27%, 25-30) | 0.590 |
+| MC, all configs | >=412 um | 876/1224 (72%, 69-74) | 322/1224 (26%, 24-29) | 0.596 |
+| Adam (geoopt), recorded config (same hp id) | 12 um (ThreeVoxels) | 3/3 | 1/3 | 0.569 |
+| MC, recorded config (same hp id) | 12 um (ThreeVoxels) | 3/3 | 1/3 | 0.791 |
+| Adam (geoopt), all configs (3 voxels x configs) | 12 um (ThreeVoxels) | 79/126 (63%, 54-71) | 38/126 (30%, 23-39) | 0.526 |
+| MC, all configs (3 voxels x configs) | 12 um (ThreeVoxels) | 62/108 (57%, 48-66) | 14/108 (13%, 8-21) | 0.732 |
+<!-- /table:mg_by_rperp -->
+
+- Inside the sweep's range there is no detectable dependence on r_perp: the Spearman correlation of final error with r_perp is 0.02 (p = 0.85, n = 100 voxels) for the recorded Adam config and -0.04 (p = 0.70) for MC. At 12 um (ThreeVoxels), the fraction of all configs under 0.5 deg is 38/126 (Adam) and 14/108 (MC), against 22-27% (Adam) and 26-27% (MC) in the ManyGrains terciles. Adam is not worse near the axis by this pooled measure; MC is lower there. ThreeVoxels has 3 voxels, differing in voxel size and reflection set, so this does not isolate r_perp.
+
+**Each method at a comparable budget.** The sweep's budgets are 101-501 evaluations for the gradient methods and 101-3501 for MC; FindOptimal's MC is 200 steps and the whole finisher a median 2629 evaluations (T5 H3 realistic). Best config per budget class, selected by the fraction under 0.5 deg at a 1 deg start (selection on the same data: optimistic):
+
+<!-- table:mg_budget -->
+| optimizer | budget class | config | evaluations | < 1 deg, 1 deg start | < 1 deg, 2 deg start | < 0.5 deg, 1 deg start | median error of the < 1 deg runs | < 0.02 deg, 1 deg start | all configs in class, < 1 deg | all configs in class, < 0.5 deg |
+|---|---|---|---|---|---|---|---|---|---|---|
+| riemannian_adam_geoopt | <=200 steps | lr 0.0005, 100 steps, b1 0.95 | 101 | 88/100 (88%, 80-93) | 58/100 (58%, 48-67) | 61/100 (61%, 51-70) | 0.330 | 2/100 (2%, 1-7) | 1339/2800 (48%, 46-50) | 730/2800 (26%, 24-28) |
+| riemannian_adam_geoopt | 500-1000 steps | lr 0.0001, 500 steps, b1 0.9 | 501 | 88/100 (88%, 80-93) | 57/100 (57%, 47-66) | 61/100 (61%, 51-70) | 0.352 | 1/100 (1%, 0-5) | 533/1400 (38%, 36-41) | 274/1400 (20%, 18-22) |
+| riemannian_adam_manual | <=200 steps | lr 0.0001, 200 steps, b1 0.9 | 201 | 94/100 (94%, 88-97) | 49/100 (49%, 39-59) | 58/100 (58%, 48-67) | 0.415 | 5/100 (5%, 2-11) | 1287/2800 (46%, 44-48) | 680/2800 (24%, 23-26) |
+| riemannian_adam_manual | 500-1000 steps | lr 0.0001, 500 steps, b1 0.9 | 501 | 86/100 (86%, 78-91) | 53/100 (53%, 43-62) | 53/100 (53%, 43-62) | 0.432 | 9/100 (9%, 5-16) | 514/1400 (37%, 34-39) | 271/1400 (19%, 17-22) |
+| riemannian_sgd_plain | <=200 steps | lr 0.0001, 100 steps | 101 | 88/100 (88%, 80-93) | 52/100 (52%, 42-62) | 54/100 (54%, 44-63) | 0.420 | 4/100 (4%, 2-10) | 292/1000 (29%, 26-32) | 135/1000 (14%, 12-16) |
+| riemannian_sgd_plain | 500-1000 steps | lr 0.0001, 500 steps | 501 | 56/100 (56%, 46-65) | 37/100 (37%, 28-47) | 26/100 (26%, 18-35) | 0.534 | 3/100 (3%, 1-8) | 110/500 (22%, 19-26) | 46/500 (9%, 7-12) |
+| riemannian_sgd_momentum | <=200 steps | lr 1e-05, 200 steps, mom 0.5 | 201 | 94/100 (94%, 88-97) | 51/100 (51%, 41-61) | 59/100 (59%, 49-68) | 0.357 | 1/100 (1%, 0-5) | 567/1500 (38%, 35-40) | 272/1500 (18%, 16-20) |
+| riemannian_sgld | <=200 steps | lr 0.0001, 100 steps, T 0.001 | 101 | 92/100 (92%, 85-96) | 50/100 (50%, 40-60) | 62/100 (62%, 52-71) | 0.402 | 0/100 (0%, 0-4) | 842/3000 (28%, 26-30) | 459/3000 (15%, 14-17) |
+| riemannian_sgld | 500-1000 steps | lr 0.0001, 500 steps, T 0.001 | 501 | 75/100 (75%, 66-82) | 58/100 (58%, 48-67) | 47/100 (47%, 38-57) | 0.441 | 0/100 (0%, 0-4) | 273/1500 (18%, 16-20) | 143/1500 (10%, 8-11) |
+| mc_optimizer | <=200 steps | 100 steps, 2 restarts, step frac 0.5 | 101 | 88/100 (88%, 80-93) | 36/100 (36%, 27-46) | 49/100 (49%, 39-59) | 0.465 | 2/100 (2%, 1-7) | 635/900 (71%, 67-73) | 242/900 (27%, 24-30) |
+| mc_optimizer | 500-1000 steps | 500 steps, 2 restarts, step frac 0.5 | 501 | 88/100 (88%, 80-93) | 32/100 (32%, 24-42) | 49/100 (49%, 39-59) | 0.464 | 1/100 (1%, 0-5) | 1299/1800 (72%, 70-74) | 479/1800 (27%, 25-29) |
+| mc_optimizer | 3500 steps | 3500 steps, 5 restarts, step frac 0.5 | 3501 | 90/100 (90%, 83-94) | 35/100 (35%, 26-45) | 50/100 (50%, 40-60) | 0.461 | 2/100 (2%, 1-7) | 668/900 (74%, 71-77) | 245/900 (27%, 24-30) |
+<!-- /table:mg_budget -->
+
+- MC at 100 steps (best config, 49/100 under 0.5 deg, median error of the < 1 deg runs 0.465 deg) matches MC at 3500 steps (best config, 5 restarts, 50/100, 0.461 deg); pooled over each class 27% vs 27%. The recorded 3500-step, 2-restart config gives 39/100 and 0.531 deg. 200 steps were not run. The longer run bought no accuracy. The same holds for the gradient methods (Adam 100 steps 61/100, 500 steps 61/100). No gradient method in the sweep runs at the finisher's median 2629 evaluations.
+- **The sweep's MC stops early for the same reason.** In the recorded MC config at a 1 deg start the last accepted move comes before 10% of the budget in 92/99 (93%) of the runs that accepted, at a median step of 0.0007 deg, and the median final error is 0.579 deg; runs that never accepted end before the budget in 101/101 (3500 steps, 2 restarts), against 33/799 (4%) of the runs that accepted:
+
+<!-- table:mc_stopping -->
+| max steps | max restarts | n | ended before the budget | never accepted | ended early given never accepted | ended early given accepted | median evaluations |
+|---|---|---|---|---|---|---|---|
+| 100 | 0 | 900 | 174/900 (19%, 17-22) | 158/900 (18%, 15-20) | 157/158 (99%, 97-100) | 17/742 (2%, 1-4) | 101 |
+| 100 | 2 | 900 | 129/900 (14%, 12-17) | 101/900 (11%, 9-13) | 101/101 (100%, 96-100) | 28/799 (4%, 2-5) | 101 |
+| 100 | 5 | 900 | 96/900 (11%, 9-13) | 61/900 (7%, 5-9) | 59/61 (97%, 89-99) | 37/839 (4%, 3-6) | 101 |
+| 500 | 0 | 900 | 180/900 (20%, 18-23) | 157/900 (17%, 15-20) | 157/157 (100%, 98-100) | 23/743 (3%, 2-5) | 501 |
+| 500 | 2 | 900 | 139/900 (15%, 13-18) | 106/900 (12%, 10-14) | 106/106 (100%, 97-100) | 33/794 (4%, 3-6) | 501 |
+| 500 | 5 | 900 | 106/900 (12%, 10-14) | 73/900 (8%, 7-10) | 73/73 (100%, 95-100) | 33/827 (4%, 3-6) | 501 |
+| 1000 | 0 | 900 | 179/900 (20%, 17-23) | 157/900 (17%, 15-20) | 157/157 (100%, 98-100) | 22/743 (3%, 2-4) | 1001 |
+| 1000 | 2 | 900 | 135/900 (15%, 13-17) | 101/900 (11%, 9-13) | 101/101 (100%, 96-100) | 34/799 (4%, 3-6) | 1001 |
+| 1000 | 5 | 900 | 108/900 (12%, 10-14) | 68/900 (8%, 6-9) | 68/68 (100%, 95-100) | 40/832 (5%, 4-6) | 1001 |
+| 3500 | 0 | 900 | 175/900 (19%, 17-22) | 150/900 (17%, 14-19) | 150/150 (100%, 98-100) | 25/750 (3%, 2-5) | 3501 |
+| 3500 | 2 | 900 | 134/900 (15%, 13-17) | 101/900 (11%, 9-13) | 101/101 (100%, 96-100) | 33/799 (4%, 3-6) | 3501 |
+| 3500 | 5 | 900 | 106/900 (12%, 10-14) | 68/900 (8%, 6-9) | 68/68 (100%, 95-100) | 38/832 (5%, 3-6) | 3501 |
+<!-- /table:mc_stopping -->
+
+<!-- table:mc_headline_timing -->
+| start offset (deg) | n | ended before the budget | median accepts | step of last accept q25/50/75 | last accept before 10% of budget | step at last accept (deg) q25/50/75 | median final error (deg) |
+|---|---|---|---|---|---|---|---|
+| 1 | 100 | 2/100 (2%, 1-7) | 10 | 27/40/70 | 92/99 (93%, 86-97) | 0.0004/0.0007/0.0015 | 0.579 |
+| 2 | 100 | 2/100 (2%, 1-7) | 9 | 30/42/72 | 95/98 (97%, 91-99) | 0.0007/0.0029/0.0059 | 1.339 |
+| 5 | 100 | 5/100 (5%, 2-11) | 9 | 62/115/262 | 81/97 (84%, 75-90) | 0.0018/0.0073/0.0146 | 5.368 |
+<!-- /table:mc_headline_timing -->
+
+  This is the B1 mechanism seen in a different protocol. The MC final error (about 0.5 x the start offset at 1 deg) matches the October perturbation sweep's 0.55 r; both protocols use a box proportional to the start offset, so a step proportional to it. That the collapse of the step explains both is consistent with the B1 measurements and not tested here.
+
+**What the hybrid Adam benchmark recorded** (success is < 0.5 deg, the script's constant; 20 ManyGrains voxels, 3 ThreeVoxels voxels):
+
+<!-- table:hybrid -->
+| example | start offset (deg) | n | hybrid < 0.5 deg | MC < 0.5 deg | hybrid < 1 deg | MC < 1 deg | hybrid median error of < 0.5 deg runs | MC median error of < 0.5 deg runs | hybrid median error, all | MC median error, all | hybrid evaluations | MC evaluations | hybrid time (s) | MC time (s) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| manygrains | 0.5 | 20 | 20/20 (100%, 84-100) | 18/20 (90%, 70-97) | 20/20 (100%, 84-100) | 20/20 (100%, 84-100) | 0.224 | 0.249 | 0.224 | 0.259 | 4+303d | 3501 | 0.81 | 1.88 |
+| manygrains | 1 | 20 | 12/20 (60%, 39-78) | 9/20 (45%, 26-66) | 20/20 (100%, 84-100) | 20/20 (100%, 84-100) | 0.346 | 0.295 | 0.408 | 0.592 | 4+303d | 3501 | 0.81 | 1.88 |
+| manygrains | 2 | 20 | 1/20 (5%, 1-24) | 3/20 (15%, 5-36) | 5/20 (25%, 11-47) | 7/20 (35%, 18-57) | 0.355 | 0.078 | 1.101 | 1.429 | 4+303d | 3501 | 0.81 | 1.88 |
+| manygrains | 3 | 20 | 0/20 (0%, 0-16) | 2/20 (10%, 3-30) | 0/20 (0%, 0-16) | 4/20 (20%, 8-42) | n/a | 0.354 | 3.000 | 3.093 | 4+303d | 3501 | 0.81 | 1.88 |
+| manygrains | 5 | 20 | 0/20 (0%, 0-16) | 0/20 (0%, 0-16) | 0/20 (0%, 0-16) | 0/20 (0%, 0-16) | n/a | n/a | 5.431 | 7.178 | 4+303d | 3501 | 0.81 | 1.86 |
+| threevoxels | 0.5 | 3 | 3/3 (100%, 44-100) | 2/3 (67%, 21-94) | 3/3 (100%, 44-100) | 3/3 (100%, 44-100) | 0.274 | 0.229 | 0.274 | 0.259 | 4+303d | 3501 | 3.15 | 4.77 |
+| threevoxels | 1 | 3 | 2/3 (67%, 21-94) | 2/3 (67%, 21-94) | 3/3 (100%, 44-100) | 3/3 (100%, 44-100) | 0.306 | 0.376 | 0.463 | 0.459 | 4+303d | 3501 | 2.97 | 4.93 |
+| threevoxels | 2 | 3 | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | 1/3 (33%, 6-79) | n/a | n/a | 2.000 | 2.000 | 4+303d | 3501 | 2.93 | 4.79 |
+| threevoxels | 3 | 3 | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | 1/3 (33%, 6-79) | 0/3 (0%, 0-56) | n/a | n/a | 2.638 | 3.170 | 4+303d | 3501 | 2.88 | 4.87 |
+| threevoxels | 5 | 3 | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | 0/3 (0%, 0-56) | n/a | n/a | 5.000 | 4.635 | 4+303d | 3501 | 2.93 | 4.78 |
+<!-- /table:hybrid -->
+
+<!-- table:hybrid_precision -->
+| example | optimizer | runs (offsets <= 1 deg) | final error q25/50/75 | minimum | < 0.5 deg | < 0.1 deg | < 0.02 deg |
+|---|---|---|---|---|---|---|---|
+| manygrains | hybrid | 40 | 0.168/0.326/0.436 | 0.079 | 32/40 (80%, 65-90) | 2/40 (5%, 1-17) | 0/40 (0%, 0-9) |
+| manygrains | mc | 40 | 0.237/0.351/0.589 | 0.057 | 27/40 (68%, 52-80) | 2/40 (5%, 1-17) | 0/40 (0%, 0-9) |
+| threevoxels | hybrid | 6 | 0.180/0.350/0.454 | 0.028 | 5/6 (83%, 44-97) | 1/6 (17%, 3-56) | 0/6 (0%, 0-39) |
+| threevoxels | mc | 6 | 0.267/0.376/0.586 | 0.199 | 4/6 (67%, 30-90) | 0/6 (0%, 0-39) | 0/6 (0%, 0-39) |
+<!-- /table:hybrid_precision -->
+
+- The hybrid (100 Adam steps at lr 1e-4 on the scale-2 differentiable cost, 2 restarts: 4 hard and 303 differentiable evaluations) and MC (3500 steps) end under 0.5 deg in 32/40 and 27/40 runs at offsets up to 1 deg (ManyGrains); at 2, 3 and 5 deg offsets the hybrid succeeds in 1/20, 0/20 and 0/20 and MC in 3/20, 2/20 and 0/20. Paired over the 100 (voxel, offset) pairs, 9 runs succeed only for the hybrid and 8 only for MC (McNemar p = 1.0; per voxel 6 ahead for each, sign test p = 1.0). Precision: final errors at offsets up to 1 deg have a median 0.326 deg (hybrid) and 0.351 deg (MC); 2/40 are under 0.1 deg for each and 0/40 under 0.02 deg. The recorded wall time is 0.81 s (hybrid) against 1.88 s (MC) per run (as recorded; not re-timed, no preflight; the differentiable evaluations are not the same cost as hard ones). No result in this file reaches the 0.01-0.03 deg scale either.
+
+**Measured versus deployed:**
+
+<!-- table:gap -->
+| aspect | measured | deployed | gap |
+|---|---|---|---|
+| success criterion | final error < 1 deg from a 1/2/5 deg start; recorded 96/41/0% (Adam), 92/40/6% (MC). At a 1 deg start this means 'ended below the start' | a finisher meant to end within about 0.01-0.03 deg of the truth | the criterion does not measure the deployed target |
+| precision of the 'successes' | median final error 0.47 deg (Adam) and 0.53 deg (MC); under 0.1 deg: 3/100 and 5/100; under 0.02 deg: 0/100 and 0/100 | finisher result median 0.0229 deg from the truth (T5, H3 realistic) | the sweep's successes are about 23x (MC) coarser than the finisher's result; the 0.01-0.03 deg scale was not measured |
+| MC settings | 3500 steps, 2 restarts, step frac 0.5; box = 1.5 x the start offset, step = 0.5 x box (0.75 deg at a 1 deg start) | 200 steps, 2 restarts, box 0.329 deg, step 0.1317 deg | different step scale, box and budget |
+| starting point | the truth rotated by exactly 1, 2 or 5 deg about a random axis | a coarse-search or network start; T5 H3 start error 0.088 deg (q25-q75 0.030-0.152) | the sweep's starts are 11x (1 deg) to 57x (5 deg) the T5 H3 median start error |
+| budget | Adam/SGD 101-501 evaluations (gradient evaluations); MC 101-3501; hybrid 4 hard + 303 differentiable | MC 200 steps, then VarianceMinimizing; whole finisher median 2629 evaluations (T5 H3) | MC at 101 and at 3501 evaluations give the same result (next row) |
+| matched budget (MC) | 100 steps (best config): 49/100 (49%, 39-59) under 0.5 deg at a 1 deg start, median error of the < 1 deg runs 0.465; 3500 steps (best config, 5 restarts): 50/100 (50%, 40-60), 0.461; pooled over each class 242/900 (27%, 24-30) vs 245/900 (27%, 24-30); the recorded 3500-step 2-restart config: 39/100 (39%, 30-49), 0.531 | 200 steps (not run in the sweep) | more MC steps bought no accuracy in the sweep between 100 and 3500 steps; 200 steps were not run |
+| data and voxels | ManyGrains: 100 voxels, r_perp 75-563 um (median 370); ThreeVoxels: 3 voxels at 12 um | per-voxel finisher on the reconstruction's voxels | no detectable r_perp dependence inside the sweep's range (Spearman of error vs r_perp, recorded Adam config: rho 0.02, p 0.85, n 100 voxels) |
+| MC stopping in the sweep | recorded MC config at a 1 deg start: last accepted move before 10% of the budget in 92/99 (93%, 86-97) | same rule, 200 steps | consistent with the step collapse measured in B1; never examined in the sweep |
+<!-- /table:gap -->
+
+**Answer.** The earlier MC-vs-optimizer comparison does not support the deployed FindOptimal configuration at the precision FindOptimal is used for. It was a coarse test (final error under 1.0 deg from 1-5 deg starts, 11-57x the T5 H3 start errors, with a box and step proportional to the start offset and a different budget); its "successes" end about 23x (MC) coarser than the finisher's result (0.53 deg against 0.0229 deg), and only 47/4200 (Adam, all configs) and 23/3600 (MC, all configs) sweep runs at a 1 deg start, and none of the hybrid benchmark's runs at offsets up to 1 deg, end under 0.02 deg. What it does support: from a 1 deg start the gradient methods and MC all reach about 0.35-0.55 deg (medians 0.357-0.531 for the recorded configs), MC at 100 steps is as good as MC at 3500 in that protocol (200 steps were not run), and there is no detectable r_perp dependence (Spearman, n = 100 voxels) inside 75-563 um. So deploying MC at 200 steps was not contradicted by the sweep, but it was also not tested by it: the deployed settings, the stopping behaviour and the 0.01-0.03 deg scale were not measured until T5 and B1.
+
+**Caveats (B2).** (a) The per-run ManyGrains CSV is absent; the log's 0.001 deg rounding makes "1.000" ambiguous (one MC run). (b) HP selection ("best config") is on the same runs; the pooled all-config rows are not selected. (c) The ManyGrains images are not on this machine, so the data conditions (neighbour overlap, noise) were not re-checked. (d) The hybrid and ThreeVoxels files have small n (3 voxels; 6 runs at offsets up to 1 deg). (e) The budget comparison is by configured steps; Adam/SGD evaluations are gradient evaluations.
+
+### Phase B3 results (2026-10-07, `feature/finisher-mc-study-phase-b3`)
+
+> **Superseded in part (2026-10-08):** B3: the rows (i) MC deployed / April, (vi) quarter-box VarianceMinimizing and the default finisher are re-run; the faithful deployed MC ends 0.0175 deg (T5 H3) and 0.0249 deg (sweep) from the truth, the default finisher 0.0168 and 0.0184 deg in 560 and 584 evaluations; CMA-ES (sigma0 0.2 deg, 250 evaluations) still ends a median 5.5 (T5 H3) and 6.5 (sweep) times closer than the deployed MC and 5.3 and 4.8 times closer than the default finisher. See "C++-faithful MC: reruns" below.
+
+**Headline.** On 300 T5 cases and 1000 perturbation-sweep cases (each in a clean and a realistic variant), CMA-ES and Nelder-Mead on the rotation vector end a median 0.0031 to 0.0038 deg from the truth within 250 cost evaluations, where the default finisher (FindOptimal MC + VarianceMinimizing) ends 0.0229 deg (T5 H3) and 0.0357 deg (sweep) away after a median 2629 and 1776 evaluations. MC as deployed and the two MC variants tried here are not the right tool for this stage: the deployed 200-step MC ends 0.0382 deg (T5 H3) and 0.1609 deg (sweep) from the truth, and neither change tried (local restarts, which keeps the halving at each improvement and so tests only the restart rule; a success-rate step rule, run with one untuned setting) closes the gap. CMA-ES (sigma0 0.2 deg) and Nelder-Mead are the two methods that do. One thing is not shown: whether the cost evaluations are the right unit of comparison for the net-window and Adam methods (they are reported in their own units). Everything below comes from `benchmarks/finisher_bench/` (`summary.json`, `tables.md`). Nothing in `icenine/` changed.
+
+**What ran.**
+- **Cases:** the 300 T5 cases (200 H3 over 26 voxels, 100 H0 over 16 voxels; the realistic start for both variants) and 1000 sweep cases (50 voxels x radii 0.05, 0.1, 0.25, 0.5, 1 deg x the first 4 directions valid in both variants; start = the perturbed nominal), each with clean and realistic images: 2600 case-variants. 9 of the 100 T5 H0 cases are also sweep cases (the two sets are reported separately).
+- **Evaluations:** every run uses one `VoxelCostFunction` through `CountingCost`, which counts exactly and stops the method at the budget (asserted in every run against the cost function's own counter; the largest run used 10000, none exceeded it). The budgeted methods were run once to 10000 evaluations and read at 250, 1000, 2600 and 10000: the best orientation evaluated by then (`tests/test_finisher_bench.py` checks that a run to a smaller budget equals the prefix of a longer one). A method that stops earlier is read at its natural stop and the table shows its evaluations. The default finisher was re-run unmodified on all 300 T5 cases and equals the stored Task 1 result bit for bit.
+- **Methods:** (i) MC as deployed (box 0.3292 deg, step0 0.1317 deg, 200 steps, 2 restarts) and as in the April sweep (3500 steps, 2 restarts, step fraction 0.5, box 1.5 r, with r the case's sweep radius, which this method is told and the finisher is not; for T5 cases r is the case's perturbation radius, which for H3 starts is not the start's error); (ii) MC with local restarts (a fixed 31 stuck steps, restart to a proposal around the best at half the current step, no reset to step0, unlimited restarts); (iii) (1+1)-ES with MC proposals and the step rule s <- s exp((success - 0.25) / (3 x 0.75)), step0 = 0.1317 and 0.02 deg; (iv) Nelder-Mead (scipy) on the rotation vector, simplex edge 0.1317 deg, restarted around the best with half the edge when it collapses; (v) CMA-ES (the `cma` package, already in the benchmarks extra and the lock file; no dependency added) with sigma0 0.05 and 0.2 deg; (vi) VarianceMinimizing in a quarter box (0.0823 deg); (vii) centroid Huber Gauss-Newton, 3 re-centring passes on the net's window pipeline, started at the case's start; (viii) `RiemannianAdamOptimizer` with the April settings (100 steps, lr 1e-4, scale 2, 2 restarts).
+- **Time:** 12456 s on 10 workers (contended; other work on the machine), after a pilot of 32 cases (181 s on 8 workers) whose projection was under the 4 h limit, so the full 50-voxel set was run.
+- **Code:** `scripts/finisher_bench/` (`optimizers.py`, `bench.py`, `finisher_summary.py`, `finisher_timing.py`); tests in `tests/test_finisher_bench.py`.
+
+**How to read the tables.** Error = angle to the truth (symmetry-agnostic: the starts are within 3 deg). A cell is "median error (deg) / fraction under 0.02 deg / fraction over 1 deg". A run is wrong above 1.000001 deg (a start at exactly 1 deg, r = 1, is not counted wrong). Cost gap = cost(result) - cost(truth). The paired columns compare each row with (i) MC deployed case by case: win rate (a tie is a difference under 0.002 deg and counts one half), an exact sign test over the non-tied cases, a voxel-clustered sign test (the per-voxel median difference over 26 to 50 voxels), and McNemar on wrong and on under 0.02 deg. Rows at larger budgets use more evaluations than the deployed MC's median 201; the evaluation count is in every row. Many comparisons are made and no multiplicity correction is applied.
+
+#### Headline tables (realistic variant)
+
+T5 H3 starts (200 cases; the start is a net estimate, median 0.0883 deg from the truth):
+
+<!-- table:head_T5-H3_realistic -->
+| method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
+|---|---|---|---|---|---|---|
+| start (no move) | 0.0883 / 18% / 3.0% | 0 | n/a | n/a | n/a | n/a |
+| (i) MC deployed (200 steps) | 0.0382 / 26% / 3.0% | 201 | n/a | n/a | n/a | n/a |
+| (i) MC April sweep (3500 steps) | n/a | n/a | 0.0635 / 18% / 1.0% | 0.0635 / 19% / 1.0% | 0.0635 / 19% / 1.0% | 0.0635 / 19% / 1.0% |
+| (ii) MC local restarts | n/a | n/a | 0.0362 / 38% / 2.5% | 0.0362 / 38% / 2.5% | 0.0362 / 38% / 2.5% | 0.0362 / 38% / 2.5% |
+| (iii) (1+1)-ES, step0 0.1317 deg | n/a | n/a | 0.0240 / 46% / 2.5% | 0.0240 / 46% / 2.5% | 0.0240 / 46% / 2.5% | 0.0240 / 46% / 2.5% |
+| (iii) (1+1)-ES, step0 0.02 deg | n/a | n/a | 0.0208 / 48% / 3.0% | 0.0208 / 48% / 3.0% | 0.0208 / 48% / 3.0% | 0.0208 / 48% / 3.0% |
+| (iv) Nelder-Mead | n/a | n/a | 0.0031 / 94% / 2.5% | 0.0026 / 94% / 2.5% | 0.0026 / 94% / 2.5% | 0.0026 / 94% / 2.5% |
+| (v) CMA-ES, sigma0 0.05 deg | n/a | n/a | 0.0029 / 94% / 1.5% | 0.0024 / 96% / 1.5% | 0.0023 / 96% / 1.5% | 0.0023 / 96% / 1.5% |
+| (v) CMA-ES, sigma0 0.2 deg | n/a | n/a | 0.0031 / 94% / 2.0% | 0.0022 / 96% / 2.0% | 0.0022 / 96% / 2.0% | 0.0022 / 96% / 2.0% |
+| (vi) VarianceMinimizing, quarter box | n/a | n/a | 0.0245 / 42% / 2.5% | 0.0150 / 66% / 1.0% | 0.0122 / 76% / 1.0% | 0.0096 / 86% / 0.5% |
+| default finisher (MC + VM) | 0.0229 / 44% / 1.5% | 2629 | n/a | n/a | n/a | n/a |
+| (vii) centroid Huber GN | 0.2628 / 11% / 3.0% | 0 | n/a | n/a | n/a | n/a |
+| (viii) hybrid Riemannian Adam | 0.0809 / 18% / 0.0% | 4 | n/a | n/a | n/a | n/a |
+<!-- /table:head_T5-H3_realistic -->
+
+T5 H0 starts (100 cases; the start is the perturbed nominal, 0.05 to 3 deg away):
+
+<!-- table:head_T5-H0_realistic -->
+| method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
+|---|---|---|---|---|---|---|
+| start (no move) | 0.7500 / 0% / 33.0% | 0 | n/a | n/a | n/a | n/a |
+| (i) MC deployed (200 steps) | 0.6635 / 5% / 35.0% | 201 | n/a | n/a | n/a | n/a |
+| (i) MC April sweep (3500 steps) | n/a | n/a | 0.3451 / 3% / 21.0% | 0.3451 / 3% / 21.0% | 0.3451 / 3% / 21.0% | 0.3451 / 3% / 21.0% |
+| (ii) MC local restarts | n/a | n/a | 0.6208 / 8% / 37.0% | 0.6208 / 8% / 37.0% | 0.6208 / 8% / 37.0% | 0.6208 / 8% / 37.0% |
+| (iii) (1+1)-ES, step0 0.1317 deg | n/a | n/a | 0.1371 / 16% / 29.0% | 0.1371 / 16% / 29.0% | 0.1371 / 16% / 29.0% | 0.1371 / 16% / 29.0% |
+| (iii) (1+1)-ES, step0 0.02 deg | n/a | n/a | 0.6013 / 18% / 40.0% | 0.6013 / 18% / 40.0% | 0.6013 / 18% / 40.0% | 0.6013 / 18% / 40.0% |
+| (iv) Nelder-Mead | n/a | n/a | 0.0046 / 60% / 34.0% | 0.0048 / 60% / 34.0% | 0.0048 / 60% / 34.0% | 0.0048 / 60% / 34.0% |
+| (v) CMA-ES, sigma0 0.05 deg | n/a | n/a | 0.0079 / 63% / 26.0% | 0.0030 / 73% / 26.0% | 0.0030 / 73% / 26.0% | 0.0030 / 73% / 26.0% |
+| (v) CMA-ES, sigma0 0.2 deg | n/a | n/a | 0.0052 / 74% / 15.0% | 0.0026 / 83% / 15.0% | 0.0026 / 83% / 15.0% | 0.0026 / 83% / 15.0% |
+| (vi) VarianceMinimizing, quarter box | n/a | n/a | 0.4143 / 9% / 32.0% | 0.0244 / 45% / 24.0% | 0.0170 / 63% / 20.0% | 0.0096 / 72% / 20.0% |
+| default finisher (MC + VM) | 0.0888 / 20% / 18.0% | 616 | n/a | n/a | n/a | n/a |
+| (vii) centroid Huber GN | 0.2056 / 8% / 0.0% | 0 | n/a | n/a | n/a | n/a |
+| (viii) hybrid Riemannian Adam | 0.1532 / 0% / 9.0% | 4 | n/a | n/a | n/a | n/a |
+<!-- /table:head_T5-H0_realistic -->
+
+Sweep cases (1000; radii 0.05 to 1 deg):
+
+<!-- table:head_SW_realistic -->
+| method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
+|---|---|---|---|---|---|---|
+| start (no move) | 0.2500 / 0% / 0.0% | 0 | n/a | n/a | n/a | n/a |
+| (i) MC deployed (200 steps) | 0.1609 / 11% / 5.8% | 201 | n/a | n/a | n/a | n/a |
+| (i) MC April sweep (3500 steps) | n/a | n/a | 0.1154 / 9% / 4.8% | 0.1154 / 9% / 4.7% | 0.1154 / 9% / 4.7% | 0.1154 / 9% / 4.7% |
+| (ii) MC local restarts | n/a | n/a | 0.1638 / 12% / 6.1% | 0.1638 / 12% / 6.1% | 0.1638 / 12% / 6.1% | 0.1638 / 12% / 6.1% |
+| (iii) (1+1)-ES, step0 0.1317 deg | n/a | n/a | 0.0420 / 34% / 3.9% | 0.0420 / 34% / 3.9% | 0.0420 / 34% / 3.9% | 0.0420 / 34% / 3.9% |
+| (iii) (1+1)-ES, step0 0.02 deg | n/a | n/a | 0.0546 / 32% / 5.4% | 0.0546 / 32% / 5.4% | 0.0546 / 32% / 5.4% | 0.0546 / 32% / 5.4% |
+| (iv) Nelder-Mead | n/a | n/a | 0.0034 / 86% / 3.1% | 0.0026 / 87% / 3.1% | 0.0026 / 87% / 3.1% | 0.0026 / 87% / 3.1% |
+| (v) CMA-ES, sigma0 0.05 deg | n/a | n/a | 0.0045 / 84% / 0.9% | 0.0025 / 93% / 0.7% | 0.0025 / 93% / 0.7% | 0.0025 / 93% / 0.7% |
+| (v) CMA-ES, sigma0 0.2 deg | n/a | n/a | 0.0038 / 92% / 0.2% | 0.0025 / 95% / 0.2% | 0.0025 / 95% / 0.2% | 0.0025 / 95% / 0.2% |
+| (vi) VarianceMinimizing, quarter box | n/a | n/a | 0.0731 / 23% / 1.3% | 0.0148 / 64% / 0.3% | 0.0113 / 78% / 0.3% | 0.0083 / 88% / 0.3% |
+| default finisher (MC + VM) | 0.0357 / 30% / 0.0% | 1776 | n/a | n/a | n/a | n/a |
+| (vii) centroid Huber GN | 0.1688 / 16% / 2.8% | 0 | n/a | n/a | n/a | n/a |
+| (viii) hybrid Riemannian Adam | 0.1000 / 0% / 0.0% | 4 | n/a | n/a | n/a | n/a |
+<!-- /table:head_SW_realistic -->
+
+Clean variant, T5 H3 and sweep:
+
+<!-- table:head_T5-H3_clean -->
+| method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
+|---|---|---|---|---|---|---|
+| start (no move) | 0.0883 / 18% / 3.0% | 0 | n/a | n/a | n/a | n/a |
+| (i) MC deployed (200 steps) | 0.0385 / 30% / 2.5% | 201 | n/a | n/a | n/a | n/a |
+| (i) MC April sweep (3500 steps) | n/a | n/a | 0.0657 / 19% / 1.5% | 0.0657 / 20% / 1.5% | 0.0657 / 20% / 1.5% | 0.0657 / 20% / 1.5% |
+| (ii) MC local restarts | n/a | n/a | 0.0419 / 38% / 2.5% | 0.0419 / 38% / 2.5% | 0.0419 / 38% / 2.5% | 0.0419 / 38% / 2.5% |
+| (iii) (1+1)-ES, step0 0.1317 deg | n/a | n/a | 0.0214 / 50% / 2.5% | 0.0214 / 50% / 2.5% | 0.0214 / 50% / 2.5% | 0.0214 / 50% / 2.5% |
+| (iii) (1+1)-ES, step0 0.02 deg | n/a | n/a | 0.0229 / 46% / 3.0% | 0.0229 / 46% / 3.0% | 0.0229 / 46% / 3.0% | 0.0229 / 46% / 3.0% |
+| (iv) Nelder-Mead | n/a | n/a | 0.0023 / 98% / 2.0% | 0.0021 / 98% / 2.0% | 0.0021 / 98% / 2.0% | 0.0021 / 98% / 2.0% |
+| (v) CMA-ES, sigma0 0.05 deg | n/a | n/a | 0.0024 / 94% / 1.5% | 0.0020 / 96% / 1.5% | 0.0020 / 96% / 1.0% | 0.0020 / 96% / 1.0% |
+| (v) CMA-ES, sigma0 0.2 deg | n/a | n/a | 0.0026 / 96% / 1.5% | 0.0019 / 98% / 1.5% | 0.0019 / 98% / 1.5% | 0.0019 / 98% / 1.5% |
+| (vi) VarianceMinimizing, quarter box | n/a | n/a | 0.0243 / 43% / 2.5% | 0.0144 / 65% / 1.0% | 0.0122 / 73% / 0.5% | 0.0092 / 88% / 0.5% |
+| default finisher (MC + VM) | 0.0224 / 46% / 1.0% | 2167 | n/a | n/a | n/a | n/a |
+| (vii) centroid Huber GN | 0.0132 / 67% / 0.0% | 0 | n/a | n/a | n/a | n/a |
+| (viii) hybrid Riemannian Adam | 0.0707 / 18% / 0.0% | 4 | n/a | n/a | n/a | n/a |
+<!-- /table:head_T5-H3_clean -->
+
+<!-- table:head_SW_clean -->
+| method | natural | evals (median) | 250 | 1000 | 2600 | 10000 |
+|---|---|---|---|---|---|---|
+| start (no move) | 0.2500 / 0% / 0.0% | 0 | n/a | n/a | n/a | n/a |
+| (i) MC deployed (200 steps) | 0.1623 / 13% / 6.4% | 201 | n/a | n/a | n/a | n/a |
+| (i) MC April sweep (3500 steps) | n/a | n/a | 0.1165 / 10% / 4.5% | 0.1165 / 10% / 4.4% | 0.1164 / 10% / 4.4% | 0.1164 / 10% / 4.4% |
+| (ii) MC local restarts | n/a | n/a | 0.1617 / 13% / 5.9% | 0.1617 / 13% / 5.9% | 0.1617 / 13% / 5.9% | 0.1617 / 13% / 5.9% |
+| (iii) (1+1)-ES, step0 0.1317 deg | n/a | n/a | 0.0470 / 33% / 4.2% | 0.0470 / 33% / 4.2% | 0.0470 / 33% / 4.2% | 0.0470 / 33% / 4.2% |
+| (iii) (1+1)-ES, step0 0.02 deg | n/a | n/a | 0.0554 / 32% / 5.9% | 0.0554 / 32% / 5.9% | 0.0554 / 32% / 5.9% | 0.0554 / 32% / 5.9% |
+| (iv) Nelder-Mead | n/a | n/a | 0.0031 / 85% / 4.5% | 0.0024 / 87% / 4.4% | 0.0024 / 87% / 4.4% | 0.0024 / 87% / 4.4% |
+| (v) CMA-ES, sigma0 0.05 deg | n/a | n/a | 0.0036 / 87% / 1.1% | 0.0020 / 95% / 0.9% | 0.0020 / 95% / 0.9% | 0.0020 / 95% / 0.9% |
+| (v) CMA-ES, sigma0 0.2 deg | n/a | n/a | 0.0032 / 95% / 0.4% | 0.0020 / 99% / 0.4% | 0.0020 / 99% / 0.4% | 0.0020 / 99% / 0.4% |
+| (vi) VarianceMinimizing, quarter box | n/a | n/a | 0.0757 / 23% / 1.5% | 0.0136 / 65% / 0.5% | 0.0102 / 80% / 0.4% | 0.0075 / 90% / 0.1% |
+| default finisher (MC + VM) | 0.0382 / 29% / 0.6% | 1677 | n/a | n/a | n/a | n/a |
+| (vii) centroid Huber GN | 0.0126 / 74% / 0.0% | 0 | n/a | n/a | n/a | n/a |
+| (viii) hybrid Riemannian Adam | 0.0916 / 0% / 0.0% | 4 | n/a | n/a | n/a | n/a |
+<!-- /table:head_SW_clean -->
+
+By sweep radius (realistic; 200 cases per radius; budget 2600 for the budgeted methods):
+
+<!-- table:sw_by_r_realistic -->
+| method | r=0.05 | r=0.1 | r=0.25 | r=0.5 | r=1.0 |
+|---|---|---|---|---|---|
+| start (no move) | 0.0500 / 0% / 0.0% | 0.1000 / 0% / 0.0% | 0.2500 / 0% / 0.0% | 0.5000 / 0% / 0.0% | 1.0000 / 0% / 0.0% |
+| (i) MC deployed (200 steps) | 0.0336 / 34% / 0.0% | 0.0483 / 20% / 0.0% | 0.1599 / 0% / 0.0% | 0.4135 / 0% / 0.0% | 0.9450 / 0% / 29.0% |
+| (i) MC April sweep (3500 steps) @ 2600 | 0.0280 / 30% / 0.0% | 0.0533 / 8% / 0.0% | 0.1482 / 2% / 0.0% | 0.2985 / 2% / 0.0% | 0.6051 / 1% / 23.5% |
+| (ii) MC local restarts @ 2600 | 0.0269 / 38% / 0.0% | 0.0485 / 20% / 0.0% | 0.1581 / 0% / 0.0% | 0.4098 / 0% / 0.0% | 0.9435 / 0% / 30.5% |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 2600 | 0.0158 / 57% / 0.0% | 0.0304 / 39% / 0.0% | 0.0454 / 33% / 0.0% | 0.0801 / 30% / 0.0% | 0.5231 / 13% / 19.5% |
+| (iii) (1+1)-ES, step0 0.02 deg @ 2600 | 0.0145 / 62% / 0.0% | 0.0205 / 49% / 0.0% | 0.0519 / 31% / 0.0% | 0.2596 / 16% / 0.0% | 0.9953 / 1% / 27.0% |
+| (iv) Nelder-Mead @ 2600 | 0.0025 / 98% / 0.0% | 0.0023 / 98% / 0.0% | 0.0021 / 98% / 0.0% | 0.0024 / 93% / 0.0% | 0.0296 / 50% / 15.5% |
+| (v) CMA-ES, sigma0 0.05 deg @ 2600 | 0.0026 / 96% / 0.0% | 0.0026 / 94% / 0.0% | 0.0021 / 94% / 0.0% | 0.0024 / 95% / 0.0% | 0.0034 / 84% / 3.5% |
+| (v) CMA-ES, sigma0 0.2 deg @ 2600 | 0.0024 / 96% / 0.0% | 0.0027 / 94% / 0.0% | 0.0022 / 96% / 0.0% | 0.0023 / 96% / 0.0% | 0.0029 / 94% / 1.0% |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 0.0105 / 79% / 0.0% | 0.0113 / 79% / 0.0% | 0.0106 / 81% / 0.0% | 0.0115 / 80% / 0.0% | 0.0123 / 72% / 1.5% |
+| default finisher (MC + VM) | 0.0191 / 51% / 0.0% | 0.0250 / 43% / 0.0% | 0.0355 / 26% / 0.0% | 0.0512 / 20% / 0.0% | 0.0912 / 12% / 0.0% |
+| (vii) centroid Huber GN | 0.1726 / 15% / 3.5% | 0.1582 / 16% / 2.0% | 0.1680 / 19% / 2.5% | 0.1522 / 16% / 3.0% | 0.1944 / 16% / 3.0% |
+| (viii) hybrid Riemannian Adam | 0.0500 / 0% / 0.0% | 0.1000 / 0% / 0.0% | 0.1346 / 0% / 0.0% | 0.1456 / 0% / 0.0% | 0.1807 / 0% / 0.0% |
+<!-- /table:sw_by_r_realistic -->
+
+Paired comparison with (i) MC deployed, with cost gaps, intervals and tests (realistic variant; the clean variant is in `tables.md`):
+
+<!-- table:long_T5_realistic -->
+| method | evals | median err | p90 err | <0.01 deg | <0.02 deg | wrong >1 deg | cost gap median | win vs (i) | sign p | voxel-sign p | McNemar p (wrong) | McNemar p (<0.02) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| start (no move) | 0 | 0.1255 | 1.5000 | 3.7% (2.1-6.4) | 12.0% (8.8-16.2) | 39/300 13.0% (9.7-17.3) | 0.2990 | 0.25 | 8.6e-26 | 1.2e-07 | 0.5 | 3.0e-06 |
+| (i) MC deployed (200 steps) | 201 | 0.0646 | 1.4406 | 6.0% (3.8-9.3) | 19.3% (15.3-24.2) | 41/300 13.7% (10.2-18.0) | 0.0811 | 0.50 | 1 | 1 | 1 | 1 |
+| (i) MC April sweep (3500 steps) @ 250 | 250 | 0.0932 | 0.6847 | 4.3% (2.5-7.3) | 13.3% (9.9-17.6) | 23/300 7.7% (5.2-11.2) | 0.1574 | 0.43 | 0.0052 | 0.052 | 2.8e-04 | 9.1e-04 |
+| (i) MC April sweep (3500 steps) @ 1000 | 1000 | 0.0932 | 0.6847 | 4.7% (2.8-7.7) | 13.7% (10.2-18.0) | 23/300 7.7% (5.2-11.2) | 0.1574 | 0.43 | 0.0078 | 0.052 | 2.8e-04 | 0.0023 |
+| (i) MC April sweep (3500 steps) @ 2600 | 2600 | 0.0932 | 0.6847 | 4.7% (2.8-7.7) | 13.7% (10.2-18.0) | 23/300 7.7% (5.2-11.2) | 0.1574 | 0.43 | 0.0078 | 0.052 | 2.8e-04 | 0.0023 |
+| (i) MC April sweep (3500 steps) @ 10000 | 3501 | 0.0932 | 0.6847 | 4.7% (2.8-7.7) | 13.7% (10.2-18.0) | 23/300 7.7% (5.2-11.2) | 0.1574 | 0.43 | 0.0078 | 0.052 | 2.8e-04 | 0.0023 |
+| (ii) MC local restarts @ 250 | 250 | 0.0693 | 1.5016 | 16.0% (12.3-20.6) | 28.3% (23.5-33.7) | 42/300 14.0% (10.5-18.4) | 0.0776 | 0.58 | 0.0063 | 0.064 | 1 | 4.6e-04 |
+| (ii) MC local restarts @ 1000 | 1000 | 0.0693 | 1.5016 | 16.0% (12.3-20.6) | 28.3% (23.5-33.7) | 42/300 14.0% (10.5-18.4) | 0.0776 | 0.58 | 0.0063 | 0.064 | 1 | 4.6e-04 |
+| (ii) MC local restarts @ 2600 | 2600 | 0.0693 | 1.5016 | 16.0% (12.3-20.6) | 28.3% (23.5-33.7) | 42/300 14.0% (10.5-18.4) | 0.0776 | 0.58 | 0.0063 | 0.064 | 1 | 4.6e-04 |
+| (ii) MC local restarts @ 10000 | 10000 | 0.0693 | 1.5016 | 16.0% (12.3-20.6) | 28.3% (23.5-33.7) | 42/300 14.0% (10.5-18.4) | 0.0773 | 0.58 | 0.0063 | 0.064 | 1 | 4.6e-04 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 250 | 250 | 0.0359 | 1.4162 | 20.7% (16.5-25.6) | 35.7% (30.5-41.2) | 34/300 11.3% (8.2-15.4) | 0.0207 | 0.69 | 6.3e-12 | 1.8e-04 | 0.016 | 8.4e-09 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 1000 | 1000 | 0.0359 | 1.4162 | 20.7% (16.5-25.6) | 35.7% (30.5-41.2) | 34/300 11.3% (8.2-15.4) | 0.0203 | 0.69 | 6.3e-12 | 1.8e-04 | 0.016 | 8.4e-09 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 2600 | 2600 | 0.0359 | 1.4162 | 20.7% (16.5-25.6) | 35.7% (30.5-41.2) | 34/300 11.3% (8.2-15.4) | 0.0203 | 0.69 | 6.3e-12 | 1.8e-04 | 0.016 | 8.4e-09 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 10000 | 10000 | 0.0359 | 1.4162 | 20.7% (16.5-25.6) | 35.7% (30.5-41.2) | 34/300 11.3% (8.2-15.4) | 0.0203 | 0.69 | 6.3e-12 | 1.8e-04 | 0.016 | 8.4e-09 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 250 | 250 | 0.0324 | 1.5038 | 22.3% (18.0-27.4) | 38.3% (33.0-43.9) | 46/300 15.3% (11.7-19.8) | 0.0206 | 0.66 | 1.9e-08 | 0.0052 | 0.18 | 2.4e-10 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 1000 | 1000 | 0.0324 | 1.5038 | 22.3% (18.0-27.4) | 38.3% (33.0-43.9) | 46/300 15.3% (11.7-19.8) | 0.0206 | 0.66 | 1.9e-08 | 0.0052 | 0.18 | 2.4e-10 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 2600 | 2600 | 0.0324 | 1.5038 | 22.3% (18.0-27.4) | 38.3% (33.0-43.9) | 46/300 15.3% (11.7-19.8) | 0.0206 | 0.66 | 1.9e-08 | 0.0052 | 0.18 | 2.4e-10 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 10000 | 10000 | 0.0324 | 1.5038 | 22.3% (18.0-27.4) | 38.3% (33.0-43.9) | 46/300 15.3% (11.7-19.8) | 0.0206 | 0.66 | 1.9e-08 | 0.0052 | 0.18 | 2.4e-10 |
+| (iv) Nelder-Mead @ 250 | 250 | 0.0035 | 1.4207 | 76.7% (71.6-81.1) | 82.7% (78.0-86.5) | 39/300 13.0% (9.7-17.3) | 0.0000 | 0.89 | 2.0e-48 | 5.8e-08 | 0.62 | 6.1e-56 |
+| (iv) Nelder-Mead @ 1000 | 1000 | 0.0029 | 1.4207 | 77.7% (72.6-82.0) | 82.3% (77.6-86.2) | 39/300 13.0% (9.7-17.3) | 0.0000 | 0.90 | 2.2e-49 | 5.8e-08 | 0.62 | 1.2e-55 |
+| (iv) Nelder-Mead @ 2600 | 2600 | 0.0029 | 1.4207 | 77.7% (72.6-82.0) | 82.3% (77.6-86.2) | 39/300 13.0% (9.7-17.3) | 0.0000 | 0.90 | 2.2e-49 | 5.8e-08 | 0.62 | 1.2e-55 |
+| (iv) Nelder-Mead @ 10000 | 10000 | 0.0029 | 1.4207 | 77.7% (72.6-82.0) | 82.3% (77.6-86.2) | 39/300 13.0% (9.7-17.3) | 0.0000 | 0.90 | 2.2e-49 | 5.8e-08 | 0.62 | 1.2e-55 |
+| (v) CMA-ES, sigma0 0.05 deg @ 250 | 250 | 0.0037 | 0.4219 | 75.3% (70.2-79.9) | 83.7% (79.1-87.4) | 29/300 9.7% (6.8-13.5) | 0.0000 | 0.93 | 8.8e-61 | 5.8e-08 | 4.9e-04 | 1.6e-58 |
+| (v) CMA-ES, sigma0 0.05 deg @ 1000 | 1000 | 0.0026 | 0.1009 | 82.0% (77.3-85.9) | 88.0% (83.8-91.2) | 29/300 9.7% (6.8-13.5) | 0.0000 | 0.94 | 6.5e-63 | 5.8e-08 | 4.9e-04 | 1.9e-62 |
+| (v) CMA-ES, sigma0 0.05 deg @ 2600 | 2600 | 0.0026 | 0.1009 | 82.3% (77.6-86.2) | 88.0% (83.8-91.2) | 29/300 9.7% (6.8-13.5) | 0.0000 | 0.94 | 6.5e-63 | 5.8e-08 | 4.9e-04 | 1.9e-62 |
+| (v) CMA-ES, sigma0 0.05 deg @ 10000 | 5993 | 0.0026 | 0.1009 | 82.3% (77.6-86.2) | 88.0% (83.8-91.2) | 29/300 9.7% (6.8-13.5) | 0.0000 | 0.94 | 6.5e-63 | 5.8e-08 | 4.9e-04 | 1.9e-62 |
+| (v) CMA-ES, sigma0 0.2 deg @ 250 | 250 | 0.0037 | 0.0284 | 78.3% (73.3-82.6) | 87.0% (82.7-90.3) | 19/300 6.3% (4.1-9.7) | 0.0000 | 0.94 | 3.5e-63 | 5.8e-08 | 4.8e-07 | 5.0e-56 |
+| (v) CMA-ES, sigma0 0.2 deg @ 1000 | 1000 | 0.0024 | 0.0156 | 85.3% (80.9-88.9) | 91.7% (88.0-94.3) | 19/300 6.3% (4.1-9.7) | 0.0000 | 0.95 | 5.5e-66 | 5.8e-08 | 4.8e-07 | 1.5e-62 |
+| (v) CMA-ES, sigma0 0.2 deg @ 2600 | 2600 | 0.0023 | 0.0156 | 85.7% (81.2-89.2) | 91.7% (88.0-94.3) | 19/300 6.3% (4.1-9.7) | 0.0000 | 0.95 | 2.7e-67 | 1.9e-09 | 4.8e-07 | 1.5e-62 |
+| (v) CMA-ES, sigma0 0.2 deg @ 10000 | 5884 | 0.0023 | 0.0156 | 85.7% (81.2-89.2) | 91.7% (88.0-94.3) | 19/300 6.3% (4.1-9.7) | 0.0000 | 0.95 | 2.7e-67 | 1.9e-09 | 4.8e-07 | 1.5e-62 |
+| (vi) VarianceMinimizing, quarter box @ 250 | 250 | 0.0362 | 1.3510 | 13.3% (9.9-17.6) | 31.0% (26.0-36.4) | 37/300 12.3% (9.1-16.5) | 0.0377 | 0.73 | 3.1e-17 | 2.7e-05 | 0.12 | 1.6e-05 |
+| (vi) VarianceMinimizing, quarter box @ 1000 | 1000 | 0.0166 | 0.2597 | 25.3% (20.7-30.5) | 58.7% (53.0-64.1) | 26/300 8.7% (6.0-12.4) | 0.0118 | 0.85 | 4.3e-40 | 1.1e-07 | 6.1e-05 | 2.0e-28 |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 2600 | 0.0138 | 0.0400 | 38.3% (33.0-43.9) | 71.7% (66.3-76.5) | 22/300 7.3% (4.9-10.9) | 0.0080 | 0.89 | 1.0e-49 | 5.8e-08 | 3.8e-06 | 1.5e-38 |
+| (vi) VarianceMinimizing, quarter box @ 10000 | 10000 | 0.0096 | 0.0349 | 52.0% (46.4-57.6) | 81.3% (76.5-85.3) | 21/300 7.0% (4.6-10.5) | 0.0050 | 0.91 | 2.2e-54 | 5.8e-08 | 1.9e-06 | 2.9e-48 |
+| default finisher (MC + VM) | 2080 | 0.0324 | 0.3090 | 16.3% (12.6-20.9) | 35.7% (30.5-41.2) | 21/300 7.0% (4.6-10.5) | 0.0346 | 0.72 | 3.1e-17 | 1.6e-04 | 1.9e-06 | 4.8e-09 |
+| (vii) centroid Huber GN | 0 | 0.2230 | 0.6413 | 4.7% (2.8-7.7) | 10.0% (7.1-13.9) | 6/300 2.0% (0.9-4.3) | 0.3595 | 0.34 | 1.5e-08 | 0.099 | 1.8e-07 | 9.0e-05 |
+| (viii) hybrid Riemannian Adam | 4 | 0.1040 | 0.3579 | 3.7% (2.1-6.4) | 12.3% (9.1-16.5) | 9/300 3.0% (1.6-5.6) | 0.2324 | 0.44 | 0.013 | 0.52 | 4.7e-10 | 1.9e-05 |
+<!-- /table:long_T5_realistic -->
+
+<!-- table:long_SW_realistic -->
+| method | evals | median err | p90 err | <0.01 deg | <0.02 deg | wrong >1 deg | cost gap median | win vs (i) | sign p | voxel-sign p | McNemar p (wrong) | McNemar p (<0.02) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| start (no move) | 0 | 0.2500 | 1.0000 | 0.0% (0.0-0.4) | 0.0% (0.0-0.4) | 0/1000 0.0% (0.0-0.4) | 0.5100 | 0.19 | 1.5e-97 | 1.8e-15 | 6.9e-18 | 3.1e-33 |
+| (i) MC deployed (200 steps) | 201 | 0.1609 | 0.9435 | 4.1% (3.0-5.5) | 10.9% (9.1-13.0) | 58/1000 5.8% (4.5-7.4) | 0.2924 | 0.50 | 1 | 1 | 1 | 1 |
+| (i) MC April sweep (3500 steps) @ 250 | 250 | 0.1154 | 0.6223 | 3.3% (2.4-4.6) | 8.9% (7.3-10.8) | 48/1000 4.8% (3.6-6.3) | 0.1835 | 0.61 | 4.6e-13 | 1.5e-09 | 0.24 | 0.12 |
+| (i) MC April sweep (3500 steps) @ 1000 | 1000 | 0.1154 | 0.6223 | 3.4% (2.4-4.7) | 8.9% (7.3-10.8) | 47/1000 4.7% (3.6-6.2) | 0.1835 | 0.61 | 3.5e-13 | 1.5e-09 | 0.18 | 0.12 |
+| (i) MC April sweep (3500 steps) @ 2600 | 2600 | 0.1154 | 0.6220 | 3.4% (2.4-4.7) | 8.9% (7.3-10.8) | 47/1000 4.7% (3.6-6.2) | 0.1835 | 0.61 | 3.5e-13 | 1.5e-09 | 0.18 | 0.12 |
+| (i) MC April sweep (3500 steps) @ 10000 | 3501 | 0.1154 | 0.6220 | 3.4% (2.4-4.7) | 8.9% (7.3-10.8) | 47/1000 4.7% (3.6-6.2) | 0.1835 | 0.61 | 3.5e-13 | 1.5e-09 | 0.18 | 0.12 |
+| (ii) MC local restarts @ 250 | 250 | 0.1638 | 0.9418 | 5.6% (4.3-7.2) | 11.6% (9.8-13.7) | 61/1000 6.1% (4.8-7.8) | 0.2895 | 0.53 | 0.078 | 0.026 | 0.82 | 0.62 |
+| (ii) MC local restarts @ 1000 | 1000 | 0.1638 | 0.9418 | 5.6% (4.3-7.2) | 11.6% (9.8-13.7) | 61/1000 6.1% (4.8-7.8) | 0.2895 | 0.53 | 0.078 | 0.026 | 0.82 | 0.62 |
+| (ii) MC local restarts @ 2600 | 2600 | 0.1638 | 0.9418 | 5.6% (4.3-7.2) | 11.6% (9.8-13.7) | 61/1000 6.1% (4.8-7.8) | 0.2895 | 0.53 | 0.078 | 0.026 | 0.82 | 0.62 |
+| (ii) MC local restarts @ 10000 | 10000 | 0.1638 | 0.9418 | 5.6% (4.3-7.2) | 11.6% (9.8-13.7) | 61/1000 6.1% (4.8-7.8) | 0.2895 | 0.53 | 0.078 | 0.026 | 0.82 | 0.62 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 250 | 250 | 0.0420 | 0.5378 | 22.3% (19.8-25.0) | 34.5% (31.6-37.5) | 39/1000 3.9% (2.9-5.3) | 0.0282 | 0.78 | 3.7e-74 | 9.1e-14 | 0.029 | 4.0e-39 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 1000 | 1000 | 0.0420 | 0.5378 | 22.3% (19.8-25.0) | 34.5% (31.6-37.5) | 39/1000 3.9% (2.9-5.3) | 0.0281 | 0.78 | 3.7e-74 | 9.1e-14 | 0.029 | 4.0e-39 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 2600 | 2600 | 0.0420 | 0.5378 | 22.3% (19.8-25.0) | 34.5% (31.6-37.5) | 39/1000 3.9% (2.9-5.3) | 0.0281 | 0.78 | 3.7e-74 | 9.1e-14 | 0.029 | 4.0e-39 |
+| (iii) (1+1)-ES, step0 0.1317 deg @ 10000 | 10000 | 0.0420 | 0.5378 | 22.3% (19.8-25.0) | 34.5% (31.6-37.5) | 39/1000 3.9% (2.9-5.3) | 0.0281 | 0.78 | 3.7e-74 | 9.1e-14 | 0.029 | 4.0e-39 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 250 | 250 | 0.0546 | 0.9951 | 19.3% (17.0-21.9) | 31.8% (29.0-34.8) | 54/1000 5.4% (4.2-7.0) | 0.0408 | 0.66 | 1.1e-24 | 8.2e-10 | 0.73 | 1.2e-34 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 1000 | 1000 | 0.0546 | 0.9951 | 19.3% (17.0-21.9) | 31.8% (29.0-34.8) | 54/1000 5.4% (4.2-7.0) | 0.0408 | 0.66 | 1.1e-24 | 8.2e-10 | 0.73 | 1.2e-34 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 2600 | 2600 | 0.0546 | 0.9951 | 19.3% (17.0-21.9) | 31.8% (29.0-34.8) | 54/1000 5.4% (4.2-7.0) | 0.0408 | 0.66 | 1.1e-24 | 8.2e-10 | 0.73 | 1.2e-34 |
+| (iii) (1+1)-ES, step0 0.02 deg @ 10000 | 10000 | 0.0546 | 0.9951 | 19.3% (17.0-21.9) | 31.8% (29.0-34.8) | 54/1000 5.4% (4.2-7.0) | 0.0408 | 0.66 | 1.1e-24 | 8.2e-10 | 0.73 | 1.2e-34 |
+| (iv) Nelder-Mead @ 250 | 250 | 0.0034 | 0.3378 | 77.7% (75.0-80.2) | 86.0% (83.7-88.0) | 31/1000 3.1% (2.2-4.4) | 0.0000 | 0.93 | 4.8e-193 | 1.8e-15 | 9.0e-04 | 1.9e-220 |
+| (iv) Nelder-Mead @ 1000 | 1000 | 0.0026 | 0.3536 | 82.0% (79.5-84.3) | 87.2% (85.0-89.1) | 31/1000 3.1% (2.2-4.4) | 0.0000 | 0.93 | 2.7e-200 | 1.8e-15 | 9.0e-04 | 7.6e-226 |
+| (iv) Nelder-Mead @ 2600 | 2600 | 0.0026 | 0.3536 | 82.0% (79.5-84.3) | 87.2% (85.0-89.1) | 31/1000 3.1% (2.2-4.4) | 0.0000 | 0.93 | 2.7e-200 | 1.8e-15 | 9.0e-04 | 7.6e-226 |
+| (iv) Nelder-Mead @ 10000 | 10000 | 0.0026 | 0.3536 | 82.0% (79.5-84.3) | 87.2% (85.0-89.1) | 31/1000 3.1% (2.2-4.4) | 0.0000 | 0.93 | 2.7e-200 | 1.8e-15 | 9.0e-04 | 7.6e-226 |
+| (v) CMA-ES, sigma0 0.05 deg @ 250 | 250 | 0.0045 | 0.0304 | 72.3% (69.4-75.0) | 84.5% (82.1-86.6) | 9/1000 0.9% (0.5-1.7) | 0.0001 | 0.96 | 1.9e-234 | 1.8e-15 | 3.2e-10 | 1.0e-212 |
+| (v) CMA-ES, sigma0 0.05 deg @ 1000 | 1000 | 0.0025 | 0.0143 | 85.9% (83.6-87.9) | 92.6% (90.8-94.1) | 7/1000 0.7% (0.3-1.4) | -0.0000 | 0.96 | 5.2e-244 | 1.8e-15 | 1.6e-11 | 1.7e-238 |
+| (v) CMA-ES, sigma0 0.05 deg @ 2600 | 2600 | 0.0025 | 0.0143 | 86.0% (83.7-88.0) | 92.6% (90.8-94.1) | 7/1000 0.7% (0.3-1.4) | -0.0000 | 0.96 | 5.2e-244 | 1.8e-15 | 1.6e-11 | 1.7e-238 |
+| (v) CMA-ES, sigma0 0.05 deg @ 10000 | 5622 | 0.0025 | 0.0143 | 86.0% (83.7-88.0) | 92.6% (90.8-94.1) | 7/1000 0.7% (0.3-1.4) | -0.0000 | 0.96 | 5.2e-244 | 1.8e-15 | 1.6e-11 | 1.7e-238 |
+| (v) CMA-ES, sigma0 0.2 deg @ 250 | 250 | 0.0038 | 0.0154 | 81.5% (79.0-83.8) | 92.2% (90.4-93.7) | 2/1000 0.2% (0.1-0.7) | 0.0000 | 0.97 | 4.8e-258 | 1.8e-15 | 3.2e-15 | 3.0e-231 |
+| (v) CMA-ES, sigma0 0.2 deg @ 1000 | 1000 | 0.0025 | 0.0121 | 87.2% (85.0-89.1) | 95.1% (93.6-96.3) | 2/1000 0.2% (0.1-0.7) | -0.0000 | 0.97 | 3.2e-259 | 1.8e-15 | 3.2e-15 | 2.7e-241 |
+| (v) CMA-ES, sigma0 0.2 deg @ 2600 | 2600 | 0.0025 | 0.0121 | 87.2% (85.0-89.1) | 95.3% (93.8-96.4) | 2/1000 0.2% (0.1-0.7) | -0.0000 | 0.97 | 3.2e-259 | 1.8e-15 | 3.2e-15 | 7.0e-242 |
+| (v) CMA-ES, sigma0 0.2 deg @ 10000 | 5870 | 0.0025 | 0.0121 | 87.3% (85.1-89.2) | 95.4% (93.9-96.5) | 2/1000 0.2% (0.1-0.7) | -0.0000 | 0.97 | 3.2e-259 | 1.8e-15 | 3.2e-15 | 3.5e-242 |
+| (vi) VarianceMinimizing, quarter box @ 250 | 250 | 0.0731 | 0.6231 | 10.7% (8.9-12.8) | 23.3% (20.8-26.0) | 13/1000 1.3% (0.8-2.2) | 0.0842 | 0.81 | 4.1e-95 | 1.8e-15 | 2.1e-08 | 4.3e-16 |
+| (vi) VarianceMinimizing, quarter box @ 1000 | 1000 | 0.0148 | 0.0445 | 30.9% (28.1-33.8) | 63.6% (60.6-66.5) | 3/1000 0.3% (0.1-0.9) | 0.0119 | 0.91 | 1.2e-176 | 1.8e-15 | 3.3e-14 | 4.0e-122 |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 2600 | 0.0113 | 0.0282 | 42.7% (39.7-45.8) | 78.0% (75.3-80.5) | 3/1000 0.3% (0.1-0.9) | 0.0088 | 0.93 | 1.4e-201 | 1.8e-15 | 3.3e-14 | 7.6e-169 |
+| (vi) VarianceMinimizing, quarter box @ 10000 | 10000 | 0.0083 | 0.0211 | 59.3% (56.2-62.3) | 87.9% (85.7-89.8) | 3/1000 0.3% (0.1-0.9) | 0.0054 | 0.94 | 4.7e-217 | 1.8e-15 | 3.3e-14 | 1.3e-206 |
+| default finisher (MC + VM) | 1776 | 0.0357 | 0.1646 | 16.1% (14.0-18.5) | 30.4% (27.6-33.3) | 0/1000 0.0% (0.0-0.4) | 0.0426 | 0.86 | 3.3e-127 | 1.8e-15 | 6.9e-18 | 2.8e-32 |
+| (vii) centroid Huber GN | 0 | 0.1688 | 0.6770 | 4.4% (3.3-5.9) | 16.3% (14.1-18.7) | 28/1000 2.8% (1.9-4.0) | 0.2619 | 0.54 | 0.024 | 0.48 | 0.0011 | 6.3e-04 |
+| (viii) hybrid Riemannian Adam | 4 | 0.1000 | 0.3001 | 0.0% (0.0-0.4) | 0.4% (0.2-1.0) | 0/1000 0.0% (0.0-0.4) | 0.2571 | 0.59 | 6.8e-09 | 2.6e-12 | 6.9e-18 | 1.8e-28 |
+<!-- /table:long_SW_realistic -->
+
+GN and Adam use their own units, so they are not in the equal-budget columns. GN is 3 window renders and solves; Adam is 4 hard evaluations and 300 differentiable forward+backward steps; the wall times are the contended 10-worker run, per case:
+
+<!-- table:units -->
+| variant | method | unit | count | wall |
+|---|---|---|---|---|
+| clean | (vii) centroid Huber GN | 3 window renders + solves | 3 (spots used q25/50/75 114/118/121; estimate for 100.0% (99.7-100.0)) | 0.22 |
+| clean | (viii) hybrid Riemannian Adam | hard evals + Adam steps | 4 hard + 300 differentiable fwd+bwd (medians) | 0.86 |
+| clean | default finisher (MC + VM) | hard evals | 1743 (q25-q75 951-2348) | 1.18 |
+| realistic | (vii) centroid Huber GN | 3 window renders + solves | 3 (spots used q25/50/75 102/106/110; estimate for 100.0% (99.7-100.0)) | 0.34 |
+| realistic | (viii) hybrid Riemannian Adam | hard evals + Adam steps | 4 hard + 300 differentiable fwd+bwd (medians) | 0.86 |
+| realistic | default finisher (MC + VM) | hard evals | 1853 (q25-q75 951-2952) | 1.25 |
+<!-- /table:units -->
+
+#### Answer 1: why does the deployed MC run out of restarts?
+
+It is what B1 read from the code, now seen on a second, independent random stream (new seeds, float64 starts). The deployed MC ended before its 200 steps in exactly the cases where it never lowered the cost below the start's:
+
+<!-- table:deployed_mc -->
+| set | n | no_improvement | ended_early | both | early_only | noimp_only |
+|---|---|---|---|---|---|---|
+| T5 clean | 300 | 25.7% (21.1-30.9) | 25.7% (21.1-30.9) | 77 | 0 | 0 |
+| T5 realistic | 300 | 25.3% (20.7-30.5) | 25.3% (20.7-30.5) | 76 | 0 | 0 |
+| T5-H3 clean | 200 | 36.5% (30.1-43.4) | 36.5% (30.1-43.4) | 73 | 0 | 0 |
+| T5-H3 realistic | 200 | 37.0% (30.6-43.9) | 37.0% (30.6-43.9) | 74 | 0 | 0 |
+| T5-H0 clean | 100 | 4.0% (1.6-9.8) | 4.0% (1.6-9.8) | 4 | 0 | 0 |
+| T5-H0 realistic | 100 | 2.0% (0.6-7.0) | 2.0% (0.6-7.0) | 2 | 0 | 0 |
+| SW clean | 1000 | 3.8% (2.8-5.2) | 3.8% (2.8-5.2) | 38 | 0 | 0 |
+| SW realistic | 1000 | 4.2% (3.1-5.6) | 4.3% (3.2-5.7) | 42 | 1 | 0 |
+<!-- /table:deployed_mc -->
+
+In T5 H3 realistic that is 74/200 (37.0%, 30.6-43.9), all 74 are both (B1 found 78/200 with its own stream), and no run ended early while improving. These cases start close: the median distance is 0.0213 deg, against a 0.1317 deg step. Cases where the deployed MC made no improvement are not hopeless for other methods: at 1000 evaluations Nelder-Mead ends 0.0023 deg away with 97.3% under 0.02 deg, CMA-ES (sigma0 0.2) 0.0026 deg and 97.3%, the (1+1)-ES 0.0137 deg and 64.9% (a start that does not move: 0.0213 deg, 47.3%). In the 126 runs that improved, the deployed MC ends 0.0593 deg away (14.3% under 0.02 deg; the start was 0.1351 deg), Nelder-Mead 0.0028 deg (91.3%), CMA-ES 0.0021 deg (95.2%). These strata are defined by the outcome of the deployed run itself, so they describe the two failure types of B1 (close starts that never improve, improving runs that lock in) and do not test why each occurs.
+
+What did not help, at equal budget:
+- **MC with local restarts (ii)** ends 0.0362 deg from the truth (38% under 0.02 deg, 250 evaluations and every budget after it) in T5 H3, 0.1638 deg in the sweep. It keeps the deployed rule that halves the step at every improvement, so it still locks in; a unit test shows the same on a smooth synthetic quadratic.
+- **The success-rate step rule (iii)**, the hypothesis B1 left for B3, gives 0.0240 deg (46% under 0.02 deg) in T5 H3 and 0.0420 deg in the sweep with step0 0.1317 deg. It improves on the deployed MC (sign test and voxel-clustered test in the paired tables) but it stalls: 191/200 of its T5 H3 results at 250 evaluations are the same orientation as at 10000, and 164/200 at 100 evaluations (realistic). The rule as run collapses its step prematurely. Strict acceptance makes every tie count as a failure, so on the quantised cost the step shrinks 0.894-fold per failure and reaches the 0.0002 deg floor within about 100 to 250 evaluations. In a 4-case probe (`scripts/finisher_bench/es_probe.py`, `es_probe.txt`; T5 H3 realistic, 2000 evaluations) the last success of the strict rule came at evaluation 36 to 96 and the step was at its 0.00020 deg floor at evaluation 250 in all 4 cases (at evaluation 100: 0.00173, 0.00071, 0.00020 and 0.00029 deg). Accepting ties kept 2 of the 4 cases improving after 250 evaluations (0.0065 to 0.0032 deg; 0.0228 to 0.0185 deg), a 0.002 deg floor had 3 successes after 250 evaluations in 2 cases and changed the error by at most 0.0010 deg; in the other cases neither changed the result. Only one untuned setting was run, so this is a finding about the rule as run, not about success-rate step control in general.
+- **The April-sweep MC (i)** with 3500 steps is no better than 250 evaluations of itself, and ends 0.0635 deg (T5 H3) and 0.1154 deg (sweep) away.
+
+What helped: methods that decide from several points at once (a simplex, or a sampled population with a covariance estimate). Why they succeed where single-point greedy walks stall is not tested here.
+
+#### Answer 2: is MC the right tool?
+
+Not for the finishing stage, on these cases. At 250 evaluations CMA-ES (sigma0 0.2) reaches a median 0.0031 deg (T5 H3) and 0.0038 deg (sweep), 94% and 92% under 0.02 deg, against 26% and 11% for the deployed MC at its natural 201 evaluations and 44% and 30% for the whole default finisher at 2629 and 1776. In the paired tests it beats the deployed MC in the sweep with 50 of 50 voxels better in the voxel-clustered test. The cost gap of the CMA-ES and Nelder-Mead results is a median 0.0000: they reach the truth's cost (CMA-ES sigma0 0.2 at 250 evaluations: exactly equal in 120/200 and lower in 12/200 clean T5 H3 cases; equal in 62/200 and lower in 71/200 realistic). The remaining 0.002 to 0.003 deg is therefore consistent with being where the cost itself has its minimum, not with early stopping. Phase A found points at or below the truth's cost in a fraction 0.08 of sampled directions at 0.002 deg and 0.01 at 0.005 deg (H3 realistic): an anisotropic set reaching slightly beyond Phase A's median 'flat below 0.0005 to 0.001 deg'. The error at that level is not a quality measure of the search. Far starts are only partly repaired: of the 33 T5 H0 starts over 1 deg away (all at 1.5 to 3 deg), CMA-ES (sigma0 0.2) leaves 15 wrong (1 of 11 at 1.5 deg, 4 of 11 at 2 deg, 10 of 11 at 3 deg), the default finisher 18, Nelder-Mead 34 and the deployed MC 35 (counts over the 100 H0 cases). At r = 1 deg in the sweep the deployed MC ends wrong in 29.0% of cases, CMA-ES (sigma0 0.2) in 1.0%, Nelder-Mead in 15.5%.
+
+Wrong (over 1 deg) counts, T5 H0 realistic, by start distance (11 starts each; budget 1000 for Nelder-Mead and CMA-ES; the last row counts all 100 H0 cases):
+
+<!-- table:far_starts -->
+| start | n | deployed | default | nm | cma05 | cma02 |
+|---|---|---|---|---|---|---|
+| 1.5 deg | 11 | 11 | 0 | 11 | 5 | 1 |
+| 2.0 deg | 11 | 11 | 7 | 11 | 10 | 4 |
+| 3.0 deg | 11 | 11 | 11 | 11 | 11 | 10 |
+| wrong over all 100 H0 cases | 100 | 35 | 18 | 34 | 26 | 15 |
+<!-- /table:far_starts -->
+
+The other approaches:
+- **VarianceMinimizing in a quarter box (vi)** gets to 0.0122 deg (T5 H3) at 2600 evaluations and 0.0096 deg at 10000; it is the slowest to converge among the methods that do work.
+- **Centroid Huber GN (vii)** is good on clean data (0.0132 deg in T5 H3, 0.0126 deg in the sweep) and poor on realistic data (0.2628 and 0.1688 deg). Its windows are re-rendered at the start with the case's draws and realism seed, so in the realistic variant they are not the images the cost sees; this test therefore says GN is sensitive to the realistic perturbations of the windows, not that it cannot work on real images. The windows are also synthesised with the truth's offset from the start (`bench.py`, `gn_from_starts`: `delta_s`, `render_batch`), so GN is not given the cost's images and its low wrong rate (T5 2.0%, H0 0/100) is not comparable with the cost-based methods.
+- **Hybrid Riemannian Adam (viii)** with the April settings hardly moves the start (sweep median 0.1000 deg; 0.4% under 0.02 deg): the differentiable cost has no gradient inside the binary spots, as the October comparison found.
+
+#### Timing (single-worker; preflight gated)
+
+Preflight passed before the run (1-minute load 1.33, no busy process; the 1-minute load was 1.38 after), 40 realistic cases (16 T5 H3, 8 T5 H0, 16 sweep), one repetition per case and method, interleaved with a rotating order. This is a single-worker timing on a laptop that was not idle (load near 1.3): each timing is one repetition per case; the q column gives the spread over the 40 cases.
+
+<!-- table:timing -->
+| method | budget | evals | wall | per_eval | q |
+|---|---|---|---|---|---|
+| (i) MC deployed (200 steps) | natural | 201 | 0.110 | 0.547 | 0.108-0.112 |
+| (i) MC April sweep (3500 steps) | 250 | 250 | 0.137 | 0.553 | 0.034-0.139 |
+| (i) MC April sweep (3500 steps) | 2600 | 2600 | 1.425 | 0.548 | 0.033-1.445 |
+| (ii) MC local restarts | 250 | 250 | 0.138 | 0.551 | 0.135-0.139 |
+| (ii) MC local restarts | 2600 | 2600 | 1.429 | 0.550 | 1.403-1.441 |
+| (iii) (1+1)-ES, step0 0.1317 deg | 250 | 250 | 0.138 | 0.551 | 0.135-0.139 |
+| (iii) (1+1)-ES, step0 0.1317 deg | 2600 | 2600 | 1.430 | 0.550 | 1.409-1.441 |
+| (iii) (1+1)-ES, step0 0.02 deg | 250 | 250 | 0.138 | 0.552 | 0.135-0.139 |
+| (iii) (1+1)-ES, step0 0.02 deg | 2600 | 2600 | 1.431 | 0.550 | 1.412-1.443 |
+| (iv) Nelder-Mead | 250 | 250 | 0.134 | 0.537 | 0.132-0.135 |
+| (iv) Nelder-Mead | 2600 | 2600 | 1.391 | 0.535 | 1.370-1.400 |
+| (v) CMA-ES, sigma0 0.05 deg | 250 | 250 | 0.144 | 0.575 | 0.142-0.145 |
+| (v) CMA-ES, sigma0 0.05 deg | 2600 | 2600 | 1.462 | 0.563 | 1.446-1.474 |
+| (v) CMA-ES, sigma0 0.2 deg | 250 | 250 | 0.143 | 0.571 | 0.141-0.144 |
+| (v) CMA-ES, sigma0 0.2 deg | 2600 | 2600 | 1.466 | 0.564 | 1.443-1.481 |
+| (vi) VarianceMinimizing, quarter box | 250 | 250 | 0.138 | 0.550 | 0.135-0.139 |
+| (vi) VarianceMinimizing, quarter box | 2600 | 2600 | 1.428 | 0.549 | 1.405-1.443 |
+| (vii) centroid Huber GN | natural | 3 | 0.408 | 136.124 | 0.366-0.426 |
+| (viii) hybrid Riemannian Adam | natural | 4 | 0.699 | 174.698 | 0.690-0.719 |
+| default finisher (MC + VM) | natural | 1946 | 1.071 | 0.549 | 0.573-1.724 |
+<!-- /table:timing -->
+
+Every cost-evaluation method costs about 0.55 ms per evaluation (CMA-ES 0.56 to 0.58), so wall time follows the evaluation count: CMA-ES at 250 evaluations takes a median 0.143 s, the default finisher a median 1.071 s at its median 1946 evaluations in this subset. GN (0.408 s) and Adam (0.699 s) are in the table in their own units.
+
+#### Picks for Phase C (at most two)
+
+1. **CMA-ES, sigma0 0.2 deg, 250 to 1000 evaluations.** Lowest wrong rate among the budgeted cost-evaluation methods (sweep 0.2%, against 0.0% for the default finisher; T5 6.3% against 13.0% for no move: H3 2.0% against 3.0%, H0 15.0% against 33.0%; GN has 2.0% and Adam 3.0% in T5 but in their own units), 87.0% and 92.2% under 0.02 deg at 250 evaluations (T5, sweep), 91.7% and 95.1% at 1000. It stops by itself at a median 5881 evaluations; a Phase C cap at 1000 loses little.
+2. **Nelder-Mead on the rotation vector, 250 to 1000 evaluations.** Deterministic, no dependency, 82.7% (T5) and 86.0% (sweep) under 0.02 deg at 250 evaluations. Its wrong rate equals the start's in T5 (13.0%) and is 15.5% at r = 1 in the sweep, so it needs a start already within about 0.5 deg.
+Not picked: sigma0 0.05 (9.7% wrong in T5), the (1+1)-ES and MC variants (they stall above 0.02 deg), GN (clean-data only), Adam.
+
+**Caveats and deviations.**
+- The result of a run is the lowest-cost orientation it evaluated (ties: the first), for every budgeted method and the deployed MC (equal to what `optimize` returns); the default finisher's result is what `refine_from_candidates` returns, GN's is its estimate, and Adam's is its lowest-cost hard evaluation.
+- The April MC is told the sweep radius; the others are not. The T5 clean variant uses the realistic start of the same case.
+- (ii) is the literal reading of the plan (local restart, no reset, fixed stuck count); it inherits the halving at each improvement. (iii) was run with one setting (target success 0.25, damping 3) and a step floor of 0.0002 deg; neither was tuned. CMA-ES has its flat-fitness, function-value and stagnation stopping tests switched off (the cost is quantised) and keeps its x-tolerance stop. Nelder-Mead restarts are my choice.
+- The MC-based methods use float64 orientations; the default-finisher reference uses the float32 start, as T5 did.
+- One seed per case and method; the cases within a voxel are not independent, hence the voxel-clustered tests. The 40-case timing is one repetition.
+- `cma` is only in the benchmarks extra, so a CMA-ES finisher in `icenine/` (Phase C) needs it as a core dependency or a vendored implementation; Nelder-Mead uses scipy, already a core dependency.
+- Sweep starts are within 1 deg and T5 starts within 3 deg; the findings are for local finishing, not for the coarse search.
+
+### Phase C results (2026-10-07, `feature/finisher-mc-study-phase-c`)
+
+> **Superseded in part (2026-10-08):** Phase C: E0 re-run, `mc` wrong 67 to 40 (clean) and 52 to 25 (realistic) of 200, `cma` 66 to 40 and 44 to 24; the 8-voxel advantage of `cma` in the wrong count is not reproduced (1 voxel, p = 1.0); the precision advantage among right answers stays (0.0021 against 0.0087 deg realistic). The `local_optimization` 47/50 check is unchanged. See "C++-faithful MC: reruns" below.
+
+**Headline.** CMA-ES is now an opt-in local refinement in the reconstruction library: `SearchParameters.local_optimizer = "cma"` (config key `LocalOptimizer cma`) replaces the refinement MC at every call site that refines one start (the FindOptimal MC plus the VarianceMinimizing pass in `refine_from_candidates`, and the VarianceMinimizing call in `local_optimization`, which BFS neighbours use). The default `"mc"` is bit-identical to the code before. On the 200-voxel E0 set (no-start `reconstruct_voxel`, seed 0, per-voxel images), `"cma"` ends a median 0.0019 deg (clean) and 0.0021 deg (realistic) from the truth among its right answers, against 0.0301 and 0.0278 deg for `"mc"`. The wrong (> 1 deg) count is 66/200 against 67/200 in the clean variant and 44/200 against 52/200 in the realistic variant (8 voxels wrong only under `"mc"`, 0 only under `"cma"`, exact McNemar p = 0.0078; clean 1 against 0, p = 1.0). The extra cost is +0.19% (clean) and +3.5% (realistic) mean cost evaluations per voxel, and +1.7% and +4.8% single-worker wall time per no-start `reconstruct_voxel` (20 voxels per variant, one run per method and voxel). That scope matters for BFS: a neighbour refinement (`local_optimization`) costs 1001 evaluations under `"cma"` against a median 662 under `"mc"` (about +51%, from the 50-case check below), so these percentages do not carry over to neighbours. Everything below comes from `benchmarks/cma_finisher/` (`summary.json`, `tables.md`, `validate_lib.json`).
+
+**What changed (`icenine/`).**
+- **Dependency:** `cma>=4.0` moved from the `benchmarks` extra to the core dependencies (locked 4.4.4). `uv lock` changed only that dependency edge in `uv.lock` (4 lines in 3 hunks; no package version changed), `uv sync --extra dev --extra riemannian --extra benchmarks` reproduces the environment, and the golden tests pass.
+- **API (`orientation_search.py`):** `CMAOptimizer(cost_fn, voxel_vertices, phase_index, rng, sigma0_deg=0.2, max_evals=1000, popsize=None, tolx=1e-9, max_convergence_cost=0.0)` with `optimize(R0, seed=None) -> CMAResult`; `CMAResult` is a `SearchCandidate` (orientation, cost, overlap_info) with `n_evals` and `stop_reason`. The search variable is a rotation vector in degrees about the start (`R = exp(v) R0`); the start is evaluated first; the result is the lowest-cost orientation evaluated (first on ties) with the overlap info of that evaluation (no extra call); `max_evals` counts the start and is exact (a generation is cut at the budget). The cma package's flat-fitness, function-value and stagnation stops are off and its x-tolerance is kept, as in B3's `cma_02`. The cma seed is `seed + 1` (cma treats 0 as random); without `seed` it is drawn from the generator, so a run is deterministic given the generator. `MCOptimizer` gained a read-only `rng` property.
+- **Switch:** `SearchParameters.local_optimizer` (`"mc"` | `"cma"`, validated), `cma_sigma0_deg`, `cma_max_evals`, `cma_popsize` (None = cma default). Config keys (Python only, optional, absent = `mc`): `LocalOptimizer mc|cma`, `CMASigma0 <deg>` (> 0), `CMAMaxEvals <n>` (>= 2), `CMAPopSize <n>` (0 = default). `from_config` reads them with `getattr` defaults, so existing configs and mock configs are unchanged.
+- **Call sites that switch:** (1) `refine_from_candidates` (also the end of every `reconstruct_voxel`, so BFS seed voxels and the no-start runs): per candidate, one CMA run replaces the FindOptimal MC and the final VarianceMinimizing pass; the candidate loop, the hit-ratio-1.0 early exit, the choice of the lowest cost, and the final overlap evaluation are unchanged; the `"variance"` recorder event is not emitted. (2) `local_optimization` (BFS neighbours, `_fit_from_seed`): one CMA run from the inherited orientation replaces the VarianceMinimizing MC; the final overlap evaluation and the BFS acceptance test (hit ratio over 0.9 of the best) are unchanged.
+- **Call sites that do not switch, and why:** the quick MC on the coarse-search candidates (10 steps, 5 restarts at every level) ranks and prunes candidates for the next level; it is not a refinement of the final answer, and CMA-ES at its 1000-evaluation budget would multiply the coarse stage's cost. `BasicVoxelReconstructor` (the serial C++-parity reconstructor) is not used by BFS. Whether CMA at a smaller budget helps the quick stage is untested.
+- **Guard:** `local_optimizer="cma"` together with `use_hybrid_optimizer` raises `ValueError` (both replace the FindOptimal MC).
+
+**Parity of the default.**
+- The existing golden tests (`test_findoptimal_refactor.py`: `reconstruct_voxel`, recorder, `rank_key`, `extra_candidates`) and the C++-parity tests pass unchanged; full suite 763 passed, 34 skipped, 1 deselected.
+- New goldens for the two refinement entry points were recorded from the code before the change and are reproduced after it (`tests/test_cma_optimizer.py`): `local_optimization` from a 0.3, -0.2, 0.25 deg start of ThreeVoxels voxel 0 and `refine_from_candidates` (470 local evaluations). An explicit `"mc"` equals the default.
+- On the E0 set the changed code's `"mc"` run reproduces the stored E0 seed-0 `R_final` bit for bit in 200/200 clean and 200/200 realistic runs.
+
+**Reproduction of B3's `cma_02` with the library `CMAOptimizer`** (T5 H3 realistic, the first 50 cases by (voxel, radius index), same start, images and seed stream as B3; contended run, no timing; `validate_lib.py`):
+
+<!-- table:validate_lib -->
+| method | n | median error (deg) | fraction < 0.02 deg (Wilson 95%) | median evals (local_optimization rows) |
+|---|---|---|---|---|
+| start (net x3) | 50 | 0.0690 | 12/50 [0.14, 0.37] | n/a |
+| B3 cma_02, 250 evals | 50 | 0.0034 | 45/50 [0.79, 0.96] | n/a |
+| library CMAOptimizer, 250 evals | 50 | 0.0034 | 45/50 [0.79, 0.96] | n/a |
+| B3 cma_02, 1000 evals | 50 | 0.0025 | 48/50 [0.87, 0.99] | n/a |
+| library CMAOptimizer, 1000 evals | 50 | 0.0025 | 48/50 [0.87, 0.99] | n/a |
+| refine_from_candidates, local_optimizer cma (1000 + final) | 50 | 0.0035 | 45/50 [0.79, 0.96] | n/a |
+| local_optimization, mc (VarianceMinimizing) | 50 | 0.0690 | 12/50 [0.14, 0.37] | 662 |
+| local_optimization, cma | 50 | 0.0028 | 48/50 [0.87, 0.99] | 1001 |
+<!-- /table:validate_lib -->
+
+The library result equals B3's stored `cma_02` orientation exactly (50/50 cases at 250 and at 1000 evaluations, maximum absolute difference 0), so the numbers above are B3's, now from the library code. Every 1000-evaluation run ended on `max_evals` (50/50): the x-tolerance stop never ended a run, so a CMA run costs its whole budget. The `refine_from_candidates` row uses another seed stream (the cma seed is drawn from the generator `default_rng(seed)`), one candidate, then the reconstructor's final overlap evaluation (1001 evaluations); its median differs from the 1000-evaluation row (0.0035 against 0.0025 deg), which is consistent with seed-to-seed spread (one seed per case, spread not measured). The `local_optimization` rows run the BFS-neighbour call site from the same start: `"cma"` ends a median 0.0028 deg away (48/50 under 0.02 deg) after 1001 evaluations; `"mc"` (VarianceMinimizing, box 5 deg, median 662 evaluations) ends at the start's error, 0.0690 deg and 12/50 under 0.02 deg, the same as the start. Mechanism: 47/50 `"mc"` runs returned the start unchanged (to 1e-5 deg), 1 moved closer to the truth and 2 moved farther (at lower cost, as only strictly lower costs are accepted) (`local_optimization_mc_outcome` in `validate_lib.json`). The `local_optimization` box is 5 deg (`LocalOrientationGridRadius` / 2^`MinLocalResolution`), so the first sub-region radius is tan(5 deg)/sqrt(48) = 0.72 deg and grows to 5 deg, restarts are uniform in +-2.5 deg, and a step is accepted only at strictly lower cost. This is the B1 mechanism at a box about 25 times larger. Implication: under `"mc"` a BFS neighbour keeps the inherited orientation, whatever its own optimum is; this was measured on seeded T5 H3 starts, not on a BFS run.
+
+**E0, `"mc"` against `"cma"`** (200 voxels x 2 variants, seed 0, no-start `reconstruct_voxel`, the E0 images and rng; both methods of a (voxel, variant) run back to back in one worker, in alternating order; `cma` = sigma0 0.2 deg, 1000 evaluations per candidate). Wrong = symmetry-reduced (the sample's cubic group) misorientation over 1 deg; "med_err" = median error among the method's own right answers, "med_both" = among voxels right under both. The cost column is the mean final cost over all 200 voxels, wrong answers included.
+
+<!-- table:e0_accuracy -->
+| variant | method | n | wrong | med_err | med_both | cost |
+|---|---|---|---|---|---|---|
+| clean | mc | 200 | 67/200 = 0.335 [0.273, 0.403] | 0.0301 | 0.0301 | 0.3542 |
+| clean | cma | 200 | 66/200 = 0.330 [0.269, 0.398] | 0.0019 | 0.0019 | 0.2959 |
+| realistic | mc | 200 | 52/200 = 0.260 [0.204, 0.325] | 0.0278 | 0.0278 | 0.4259 |
+| realistic | cma | 200 | 44/200 = 0.220 [0.168, 0.282] | 0.0021 | 0.0021 | 0.3693 |
+<!-- /table:e0_accuracy -->
+
+Evaluations and time per voxel (mean; "glob" and "loc" = global and local cost evaluations of the reconstructor, "find" = candidates FindOptimal refined, one CMA run each under `"cma"`; wall = `reconstruct_voxel` seconds on the 10-worker run, **contended**, other work on the machine, no speed claim; 400 tasks took 2131 s):
+
+<!-- table:e0_evals_wall -->
+| variant | method | glob | loc | find | wall | wall_med |
+|---|---|---|---|---|---|---|
+| clean | mc | 44478 | 4711 | 2.54 | 24.72 | 24.54 |
+| clean | cma | 44478 | 4805 | 1.90 | 24.90 | 24.85 |
+| realistic | mc | 44778 | 7628 | 4.82 | 26.81 | 26.59 |
+| realistic | cma | 44778 | 9461 | 4.82 | 28.24 | 27.60 |
+<!-- /table:e0_evals_wall -->
+
+Paired per voxel: the final cost is lower under `"cma"` in 187/200 (clean) and 193/200 (realistic) voxels, higher in 1 and 4, equal in 12 and 3. Realistic: 148 voxels are right under both, 8 are wrong only under `"mc"`, 0 only under `"cma"`; clean: 133 right under both, 1 wrong only under `"mc"`, 0 only under `"cma"`. The mean number of FindOptimal candidates is 2.54 (`mc`) against 1.90 (`cma`) in the clean variant and 4.82 against 4.82 in the realistic variant. The 8 realistic voxels that `"cma"` fixes are consistent with its lower final cost letting FindOptimal's choice of the lowest-cost candidate pick the basin of the truth; the candidate choice was not traced, so this is untested.
+
+**Single-worker timing** (the first 20 of the 200 voxels, per variant, one process, `preflight.require_quiet()` passed (load 1.08, on AC power, no busy process; `preflight_e0_timing.json`; after the run `preflight_e0_timing_after.json`), `mc` and `cma` interleaved per (voxel, variant) in alternating order, one run each, single-worker):
+
+<!-- table:timing_single_worker -->
+| variant | n | mc_mean_s | cma_mean_s | ratio_of_means | median_paired_ratio | mc_mean_evals | cma_mean_evals |
+|---|---|---|---|---|---|---|---|
+| clean | 20 | 19.47 | 19.81 | 1.017 | 1.033 | 49083 | 49619 |
+| realistic | 20 | 21.57 | 22.60 | 1.048 | 1.040 | 52801 | 54669 |
+<!-- /table:timing_single_worker -->
+
+`ratio_of_means` = mean `cma` seconds over mean `mc` seconds; `median_paired_ratio` = the median over voxels of the paired ratio. These 40 runs support a statement about the cost per voxel on this set (a few percent more), not about the cost of the CMA stage alone; there is no interval on the ratio (n = 20 per variant).
+
+**Criteria.** Opt-in switch, default bit-identical: met. `CMAOptimizer` reproduces B3's `cma_02`: met (identical orientations on 50/50 cases). BFS neighbour refinement uses CMA: met in unit tests (`local_optimization`, and a 3-voxel BFS end to end), not evaluated at scale (that is Phase D). Wrong-rate comparison on E0: realistic improves (44/200 against 52/200, p = 0.0078); clean does not change detectably (66/200 against 67/200). Seeds 1-2 and the proxy-rerank combination from the plan were not run (not requested for this task).
+
+**Caveats.**
+- Per-voxel images (at most 3 distractor sources), not full-sample renders; one seed (seed 0) per voxel; 200 voxels per variant.
+- A CMA run costs its whole budget (1000 evaluations at the default): `"cma"` is cheap only because FindOptimal refines few candidates (about 2 in the clean and about 5 in the realistic variant). In BFS every neighbour pays 1001 evaluations under `"cma"`; `"mc"` paid a median 662 in the 50-case check above. A smaller `CMAMaxEvals` is the first knob for Phase D (B3: a median 0.0034 deg at 250 evaluations against 0.0025 deg at 1000 on these cases, 45/50 against 48/50 under 0.02 deg).
+- CMA from sigma0 0.2 deg stays local (B3 far starts, `cma_02`: wrong in 1/11 at 1.5 deg, 4/11 at 2 deg, 10/11 at 3 deg). A BFS neighbour across a grain boundary starts at the neighbouring grain's orientation; nothing here tests whether `"cma"` recovers it. The unchanged acceptance test marks such a voxel REFIT under either optimizer, but the Python BFS has no refit pass (REFIT voxels are never reseeded, unlike C++ `LazyBFSClient::Refit`), and `"mc"`'s 5 deg box explores further than CMA at sigma0 0.2 deg. `CMASigma0` may need a larger value, or the BFS a refit pass, for such voxels.
+- The E0 "wrong" rate is dominated by the coarse stage (wrong basins), which this switch does not touch; the gain is in the precision of right answers and in some selections among FindOptimal candidates.
+
+**Turning CMA on for a BFS run (Phase D).** In code: `setup = setup_reconstruction(config); setup.search_params.local_optimizer = "cma"` (optionally `cma_sigma0_deg`, `cma_max_evals`), then `BFSReconstruction(setup)`; or add `LocalOptimizer cma` (and `CMASigma0`, `CMAMaxEvals`) to the `.config`. Both seed voxels (`refine_from_candidates`) and neighbours (`local_optimization`) then use CMA; the quick MC does not change. For the "classic" arm leave the key out.
+
+**Code.** `icenine/orientation_search.py`, `icenine/reconstructor.py`, `icenine/config_file.py`; `scripts/cma_finisher/` (`validate_lib.py`, `e0_cma.py`); tests `tests/test_cma_optimizer.py` (28 tests). `pyproject.toml`, `uv.lock`.
+
+### Phase D library prerequisites (2026-10-07, `feature/finisher-mc-study-phase-d-lib`)
+
+Opt-in additions to `BFSReconstruction` that Phase D (the 500-grain end-to-end test, `docs/todo_500grain_bfs_end_to_end.md`) needs, plus per-voxel provenance. The config keys are Python only (the C++ program rejects unknown keys). With `local_optimizer = "mc"` and the new options off, the BFS is bit-identical to the parent commit. **In `cma` mode the new defaults change the Phase C BFS neighbours**: the neighbour budget is 250 instead of 1000 (`cma_neighbor_max_evals`) and a wider-sigma retry is on (`cma_retry_sigma0_deg` 1.5); set 1000 and 0 for the Phase C behaviour. Phase D's data branch sets these keys explicitly.
+
+**How C++ revisits REFIT voxels** (reviewed after a first version of this section ported the wrong path):
+- In a normal LazyBFS run the server never re-seeds a REFIT voxel: `Pop` (`ReconstructionStrategies.tmpl.cpp:151-193`) skips everything that is not NOT_VISITED, and `Fit` marks a rejected voxel REFIT and pushes it.
+- Each client BFS keeps its own grid. When another client's expansion, usually the voxel's true grain, reaches a voxel that is still NOT_VISITED in that grid, it fits the voxel from its own inherited orientation, and the server's `Push` keeps the higher-confidence result, even over a FITTED one. That is the only way a REFIT voxel is revisited in a normal run.
+- `LazyBFSClient::Refit` (`BreadthFirstReconstructor.tmpl.cpp:86-103`) is the restart path: `RESTART_FIT` runs only when a partial result is given (`bUsePartialResult`, which `PartialResultAcceptanceConfidence` turns on); every stored voxel is a centre; it re-optimizes the centre locally, keeps it if its confidence reaches the key's value, else does a full search, then expands.
+- The Python BFS has one client, so before these options a REFIT voxel was never revisited. That matched C++ with a single client; multi-client C++ revisits boundary voxels from the other grain's side.
+
+**1. Revisit (`bfs_revisit_refit`, config `BFSRevisitRefit 0|1`, default off).** An expansion also enqueues REFIT neighbours it has not tried yet. A per-expansion `tried` set stands in for a client grid, so a voxel is tried at most once per expansion; `bfs_revisit_max` (config `BFSRevisitMax`, default 3, >= 1) caps the local fits per voxel over the whole run (`n_revisit_capped` counts blocked visits). The voxel inherits the expanding voxel's orientation and gets the normal local fit (the cma retry included) under the 0.9 relative test against the expansion's best; accepted voxels become FITTED and expand; a rejected voxel keeps the better of its old and new fit by confidence (the snapshot restore, the `Push` rule). Only local fits, symmetry-agnostic. Differences from C++: one process, one shared grid instead of several client grids, so a revisit happens when a later expansion reaches the voxel, not by race between clients; FITTED voxels are not revisited (C++ would refit them and keep the higher confidence); an accepted revisit always replaces the stored fit.
+
+**2. Restart pass (`bfs_restart_pass`, config `BFSRestartPass 0|1`, default off).** The old post-pass (REFIT voxels as centres, started from their own orientation, gated by `PartialResultAcceptanceConfidence`, with a full-search fallback) was removed: it was the restart path used as if it were the normal one, and with the gate at 0 it was local-only and could not change basin. In its place the restart semantics proper: FITTED voxels that border a voxel still REFIT after the BFS are expansion centres in index order; each runs the revisit expansion from its orientation. No centre re-optimization, no full search, no use of `PartialResultAcceptanceConfidence`. A full search for REFIT voxels is not offered; if wanted it must be added as an explicit, measured option.
+
+**3. CMA neighbour budget.** `cma_neighbor_max_evals` (config `CMANeighborMaxEvals`, default 250, validated >= 2 at parse time like `CMAMaxEvals`). BFS neighbour and revisit `local_optimization` calls pass it; seed voxels keep `cma_max_evals` (1000). `local_optimization` takes optional `cma_sigma0_deg` / `cma_max_evals` overrides and, called directly, still uses `cma_max_evals`.
+
+**4. Wider retry.** `cma_retry_sigma0_deg` (config `CMARetrySigma0`, default 1.5, 0 = off, validated >= 0). In `cma` mode a neighbour (or revisit) that fails the 0.9 test gets one more CMA fit from the same inherited start (not from the failed fit) with the wider step and the neighbour budget. It is kept only if it passes the same test, otherwise the first fit stands and the voxel proceeds as before. `mc` is unchanged.
+
+**Provenance.** `BFSReconstruction.records[idx]` is a `BFSVoxelRecord` (final `source`: `seed`, `neighbor`, `neighbor_retry`, `revisit`, `restart`, `unresolved`; cumulative `n_evals` and `wall_s`; `hit_ratio`; flags `seed_rejected`, `local_rejected`, `retried`, `retry_accepted`; `n_revisits`) and `BFSReconstruction.stats` the counters, with retry, revisit and restart counters split by phase and evaluations / wall seconds split seed / neighbour / revisit / restart. One small object per voxel, always on. On the scripted grid the whole 196-voxel run, fake fits included, takes about 0.01 s (about 0.01 s for every option setting); the bookkeeping was not timed separately, so "cheap" is only the bound that it is small next to any real fit. **`n_revisit_accepted` and the `source` labels count acceptance by the relative hit-ratio test, not correctness**: a revisit can accept a wrong orientation, and a rejection can sit on a right one. Phase D scores errors against the truth by voxel index.
+
+**Parity of the default.**
+- `tests/test_bfs_refit.py::test_default_options_reproduce_parent_commit`: a scripted 14 x 14 voxel, 4 grain grid (`tests/bfs_scripted.py`, 196 voxels, 41 left REFIT, 6 full searches, 190 local fits) whose fake reconstructor draws from the BFS generator in every fit. The golden (`tests/data/bfs_grid_golden.npz`) was recorded from the PARENT commit (0ac4d7a): done order, states, orientations, hit ratios, the fit log and the final generator state. The new code with every option off reproduces it, for `mc` and for `cma` with the retry off (exact for order, states and log; floats to 1e-12, orientations to 1e-6 because voxels store float32).
+- ThreeVoxels (real cost function, seed 1): the previous commit's package and the new one gave identical order, states, every orientation element, hit ratios and angles; the three voxels are far apart, so no neighbour is fitted there. The neighbour path is covered by the scripted grid and groups.
+- The existing CMA end-to-end BFS test runs on ThreeVoxels, which has no BFS neighbours, so it does not exercise the 250 budget or the retry; those are tested by the scripted groups.
+
+**Scripted-grid mechanism check** (the fake's truth, not real data; acceptance and error against the fake's truth): default 41 REFIT, 30 voxels wrong (> 1 deg); `BFSRevisitRefit` 8 REFIT, 0 wrong (35 revisit fits, 28 accepted); `BFSRestartPass` 1 REFIT, 0 wrong; both 0 REFIT, 0 wrong. This shows the mechanism works as designed on a fake whose local fit converges within 2 deg; it says nothing about real data.
+
+**Tests** (`tests/test_bfs_refit.py`, 25): the parent-commit golden (mc, cma retry 0); the revisit mechanism on the grid; scripted groups for the default (REFIT voxels stay), a revisit from the true grain accepted, a revisit rejected with keep-best restoring the old fit, a rejected revisit with a better new fit replacing the old one, the revisit cap (with the restart pass), option off changes nothing, the restart pass, the cma budget and retry (counted by phase), retry off, a failed retry keeping the first fit, a cma revisit using the retry; parameter validation; config keys, defaults and bad values; ThreeVoxels default parity. Full suite: 779 passed, 43 skipped, 1 deselected (the skips are 9 more than Phase C's 34 because ignored data files are absent from the worktree). Targeted: tests/test_bfs_refit.py 25 passed.
+
+**Not done / caveats.** Not measured: the effect of revisit, the retry or the 250 budget on a real BFS with grain boundaries (Phase D); the 250 default comes from B3's `cma_02` at 250 evaluations (median 0.0034 deg, 45/50 under 0.02 deg for the T5 starts), not from a BFS run. A real-data patch golden on ManyGrains voxels was not added. FITTED voxels are not revisited. The revisit order is the single-process order, not the race of several clients.
+
+### Phase C: the finisher inside the reconstruction
+- Add the chosen finisher(s) as an opt-in finisher in `refine_from_candidates`: default off, C++ parity, bit-identity
+  test unchanged.
+- Run on the 200-voxel E0 set (seed 0, both variants; seeds 1–2 for the best).
+- Measure: wrong rate, median error of right answers, evaluations, single-worker time. Compare with the baseline and
+  with the proxy rerank, alone and combined.
+- Seeded use: H3 / HG with the new finisher on the Task 1 cases.
+
+### Phase D (next step after the plan): end-to-end test on the full 500-grain sample
+- **Sample:** `Examples/Example2.ManyGrains/SimInput/rand_500grains_1mm_inFZ.mic`. One layer (z = 0), 24,570
+  voxels, 497 distinct grain orientations, side length 0.6 at the top level.
+  - No second 500-grain sample exists, so keep the geometry and voxel-to-grain assignment and draw a new orientation
+    per grain.
+  - Draw uniformly on SO(3) with a fixed seed and reduce to the cubic fundamental zone.
+  - Write `rand_500grains_1mm_neworient_s<seed>.mic` with the same columns, and keep the grain map (voxel → grain id).
+  - Check that no new orientation is within 1° of any old one or of its neighbours' new ones, so grain boundaries
+    stay well defined.
+- **Images:** full-sample forward simulation with the Python forward model (pixel-exact against C++), both detector
+  distances, as the C++ `Example2.Simulation.config` does.
+  - Make clean and realistic versions: realistic adds detector noise. Overlap is now physical, from neighbouring
+    grains, not synthetic.
+  - This removes the per-voxel-image caveat of every earlier study.
+  - Check first whether ManyGrains images already exist. An earlier memory claim that they do was wrong.
+- **Nets:**
+  - The toy nets were trained on ThreeVoxels/ManyGrains per-voxel windows with the old orientations. The new
+    orientations make the test orientation-novel.
+  - Check whether the net's input pipeline (ROI windows from the nominal orientation) works on full-sample images
+    unchanged.
+  - Retrain on full-sample-rendered windows only if the zero-shot result is poor, and report both.
+- **Reconstruction mode:** every pipeline uses BFS reconstruction (`BFSReconstruction`), not a full no-start search per
+  voxel. A full no-start search runs only for seed voxels, i.e. new grains, and for cross-boundary voxels whose
+  inherited start fails the cost check, exactly as BFS does today.
+- **Main comparison, owner request:** classic BFS against new BFS, on the same images, workers and voxel order.
+  - **Classic BFS:** the existing C++-parity optimizer chain. Seed voxels use the coarse search, quick MC and
+    FindOptimal (MC + VarianceMinimizing); neighbours inherit the seed orientation and run the classic local MC
+    refinement in `_fit_from_seed`.
+  - **New BFS:**
+    - seed voxels: the proxy rerank in the coarse search, then the Phase C finisher;
+    - neighbours: the inherited start is refined by the hybrid (net x3 → finisher: H3, or HG when the start may be
+      ≥ 1.5° off) instead of the classic local MC.
+
+  Report timing and accuracy side by side, and per stage:
+  - seeds vs neighbours;
+  - coarse search vs finisher vs net.
+- **Ablations:** new seeds with classic neighbours, and classic seeds with new neighbours. These attribute the change
+  to each part. Also report the C++ IceNine BFS on the same images, as an external reference.
+- **Metrics:**
+  - per-voxel misorientation map and wrong (> 1°) rate;
+  - completeness;
+  - grain-boundary error, on voxels within 1 voxel of a boundary;
+  - errors near the rotation axis vs far from it;
+  - grains found / lost;
+  - wall time on 10 workers, and the stage split.
+- **Compute:**
+  - Forward simulation: hours, to be estimated.
+  - BFS reconstruction: roughly 500 seed voxels × ~25 s plus ~24,000 neighbour voxels × ~1.5 s, divided by 10
+    workers ≈ 1.4 h per pipeline. The real neighbour cost will be measured in the pilot.
+  - Timing claims: wall time on 10 workers for the full run, plus a single-worker, preflight-gated timing on a fixed
+    region for the classic-vs-new speed ratio.
+  - Run a 1-region pilot first (e.g. 2,000 voxels) with both classic and new BFS.
+- **Risks:**
+  - BFS error propagation across grain boundaries: detect it by final cost.
+  - Memory for full-sample image stacks.
+  - The C++ comparison needs matching config.
+
+### Phase D data (2026-10-07, `feature/finisher-mc-study-phase-d-data`)
+
+What was generated: the 500-grain sample with new orientations, and full-sample forward-simulated images (clean
+and realistic) for the Phase D end-to-end test. No reconstruction was run. Code is in `icenine_py/scripts/phase_d/`
+(`grains.py`, `make_neworient.py`, `noise.py`, `render_full.py`, `make_configs.py`, `sanity_checks.py`,
+`frame_split_check.py`, `memmap_check.py`, `bfs_timing_probe.py`, `summary.py`; tests in `tests/test_phase_d.py`;
+the opt-in memmap loader is in `icenine/experimental_data.py`).
+
+- **Existing images:** none. `Examples/Example2.ManyGrains/` holds no `ScatteringData*` directory (only the
+  ThreeVoxels, `ScatteringData_Q8` and Example1 images exist), so the earlier claim that ManyGrains images exist
+  is wrong; no ManyGrains images are kept on disk.
+- **Sample:** `SimInput/rand_500grains_1mm_neworient_s0.mic` (seed 0), with `_grainmap.npy` (voxel to grain id,
+  numbered by first appearance in the file) and `_stats.json`. Position, direction, generation, phase and
+  confidence tokens are copied verbatim from `rand_500grains_1mm_inFZ.mic` (separators normalised to tabs); only
+  the Euler columns change.
+  - Grains are voxels with identical Euler angles (497 groups; no near-duplicates, the closest old pair is
+    well above 1 degree).
+  - One orientation per grain: uniform on SO(3) (normalised 4-D Gaussian), reduced to the fundamental zone with the
+    symmetry operators of the sample symmetry in `Example2.Simulation.config` (24 proper rotations for Cubic),
+    rounded to the .mic precision before any check.
+  - The draw of grain g, attempt a is `default_rng([seed, g, a])`, so redraws are deterministic. Violators of the
+    1 degree rule (new vs any old orientation, new vs adjacent grain's new) are redrawn with a+1.
+  - Adjacency: triangle centroids closer than 1.01 x the side length (edge and vertex neighbours).
+  - The .mic reads back through `MicFile.read` (error in the table).
+  - **Leakage guard:** `rand_500grains_1mm_neworient_s0_grid.mic` has the same geometry with the Euler columns set to
+    zero. All Phase D reconstruction configs read the grid mic; the truth `.mic` is for scoring only (the cost-function
+    checks below take the truth from it). `tests/test_phase_d.py` checks that the grid mic has no orientation
+    information.
+  - **Grain pieces:** under edge adjacency the 497 grains form 612 connected pieces (115 extra pieces of 1 to 3
+    voxels each, `n_extra_grain_pieces` in the stats). Count "grains found / lost" and the number of seeds with this in
+    mind: a piece cut off from its grain by the edge rule needs its own seed or a vertex-neighbour start.
+
+<!-- table:phase_d_sample -->
+| quantity | value |
+|---|---|
+| voxels | 24570 |
+| grains (distinct orientations) | 497 |
+| voxels per grain min / median / max | 4 / 44 / 185 |
+| adjacent grain pairs | 1469 |
+| redrawn grains (of 497) | 5 |
+| min new vs any old (deg) | 1.29 |
+| min new vs adjacent new (deg) | 3.9 |
+| min old vs old (deg) | 7.25 |
+| mic round-trip max error (deg) | 2.96e-06 |
+<!-- /table:phase_d_sample -->
+
+- **Images:** `render_full.py` drives `ForwardSimulation._simulate_peaks_batched` (the pixel-exact batched path)
+  with the geometry, beam, omega range and step, Q-max 8 and eta limit of `Example2.Simulation.config` (2
+  detectors, 180 omega frames each). 10 spawned workers; each runs the per-voxel physics for all voxels and
+  rasterizes only its own omega frames, so peak memory per worker is a tenth of the dense stack. Timing is
+  contended (10 workers, and another agent's job was running: the preflight JSONs in `results/` record the busy
+  process; `require_quiet` failed and the render went ahead).
+  - Output (gitignored): `Examples/Example2.ManyGrains/ScatteringData_PhaseD/full/{clean,realistic}/
+    500Grains.sim<NNNNN>.d<0|1>`, `j, k, intensity` lines without a header, the format of the C++ ASCII files.
+    The pilot (500 voxels nearest the centre) is in `.../pilot/`.
+  - Realistic images: detector noise only (overlap is physical now). The parameters are those of the earlier
+    realistic windows (`RealismConfig` variant "noise"): p_miss 0.1, p_flip 0.05, p_hot 0.05, p_blob 0.1, hot pixel
+    and blob placed in a 32 x 32 box around the spot centroid. They are applied per connected component of a
+    frame instead of per voxel window, so overlapping spots are missed together and a "spot" is a cluster of
+    overlapping voxel spots (sizes over all 57,389 spots of the 360 frames in the table below). Seed 12345; the stream of a frame depends only on
+    (seed, detector, frame). See `noise.py`.
+
+<!-- table:phase_d_sizes -->
+| quantity | value |
+|---|---|
+| spot size px: median / p95 / max (Q-max 8) | 103 / 308.6 / 1072 |
+| lit fraction of all pixels (Q-max 8) | 0.00491 |
+<!-- /table:phase_d_sizes -->
+
+<!-- table:phase_d_render -->
+| run | voxels | workers | wall_s | max_worker_sim_s | max_worker_write_noise_s | max_worker_rss_gb |
+|---|---|---|---|---|---|---|
+| pilot (500 voxels) | 500 | 10 | 13.8 | 0.8 | 10.3 | 1.12 |
+| full | 24570 | 10 | 48.7 | 35.8 | 11.0 | 1.39 |
+| full Q-max 16 | 24570 | 10 | 245.7 | 232.3 | 11.4 | 2.25 |
+<!-- /table:phase_d_render -->
+
+<!-- table:phase_d_frames -->
+| quantity | value |
+|---|---|
+| frames (180 omega x 2 detectors) | 360 |
+| lit pixels per frame, median | 20484.5 |
+| lit pixels per frame, min | 13413 |
+| lit pixels per frame, max | 26295 |
+| lit pixels, clean total | 7414841 |
+| lit pixels, realistic total | 6592953 |
+| spots (connected components), all frames | 57389 |
+| spots missed | 5743 |
+| hot pixels added | 2293 |
+| blobs added | 5148 |
+<!-- /table:phase_d_frames -->
+
+  - Differences from the earlier per-window noise, to keep in mind when comparing results: spots are grain-level
+    per-frame clusters, so a miss is correlated across the voxels of a grain, and a reflection can be half-missed
+    across frames (each frame draws independently); the effective p_hot and p_blob per voxel are lower on large
+    components (one draw per component); there are no twin or near-degenerate distractors.
+  - The render is Q-max 8 (the ManyGrains simulation config, and the Phase A to C images), so there are no |g| > 8
+    spots. That is less cluttered than real data; the `realistic_q16` variant below tests it.
+- **Frame-split invariance:** `frame_split_check.py` renders 50 voxels (central) with 1 and with 3 frame-owner
+  workers, in-process. The pixel arrays (indices and float32 intensities) of all 360 frames are exactly equal
+  (19,559 lit pixels), and the written clean and realistic files are byte-identical
+  (`results/frame_split_check.json`).
+- **Third variant `realistic_q16`:** the same render at Q-max 16 with the same noise model and seed scheme
+  (`--max-q 16 --variants realistic`), images in `.../ScatteringData_PhaseD/full_q16/realistic/`; reconstruction stays
+  at Q-max 8 (configs `*_realistic_q16`). It is contended like the other renders. Q-max 8 lit fraction is in the
+  second column of the table.
+
+<!-- table:phase_d_q16 -->
+| quantity | value |
+|---|---|
+| render wall time, 10 workers (s) | 245.7 |
+| max worker sim time (s) | 232.3 |
+| max worker RSS (GB) | 2.25 |
+| lit pixels, clean total | 58842023 |
+| lit pixels, realistic total | 51498581 |
+| lit fraction of all pixels (Q-max 8: 0.00491) | 0.039 |
+| spots, all frames | 220381 |
+| spot size px: median / p95 / max | 190 / 753 / 5194 |
+| spots larger than 2000 px | 277 |
+<!-- /table:phase_d_q16 -->
+
+- **Checks:**
+  - Total lit pixels of the clean render (7.41 M) is of the same size as the 7.4 M pixels of the earlier
+    old-orientation ManyGrains C++-vs-Python comparison; no pixel-level comparison is possible because the
+    orientations differ.
+  - Serial-path containment: 4 voxels re-rendered alone with the serial forward model; every lit pixel (1,048 to
+    1,124 per voxel) is lit in the full clean images (fraction 1.0 in all four).
+  - Cost function (hard `VoxelCostFunction`, Q-max 8, loaded through the Phase D reconstruction config, 6 random
+    voxels, 3 random axes per angle): the true orientation scores clearly above 1 degree off on both variants.
+    q is the reconstruction quality; the 0.25 and 0.5 columns are the means over 3 axes, q_1.0_max the best of 3.
+    Six voxels is a spot check, not a statistic. The clean `q_true` of 0.90 to 0.95 is the known ceiling of the
+    cost function (the per-peak detector factor of `OverlapInfo.update_quality`; see "What each method sees" in the
+    perturbation-sweep section above, the line about the cost at the true orientation on the exact images), not an
+    image error.
+
+<!-- table:phase_d_cost_check -->
+| images | voxels | q_true | q_0.25 | q_0.5 | q_1.0_max | min_gap_true_minus_1deg |
+|---|---|---|---|---|---|---|
+| clean | 6 | 0.90 - 0.95 | 0.46 - 0.62 | 0.18 - 0.34 | 0.06 - 0.13 | 0.80 |
+| realistic | 6 | 0.69 - 0.81 | 0.42 - 0.51 | 0.16 - 0.29 | 0.05 - 0.13 | 0.60 |
+| realistic_q16 | 6 | 0.69 - 0.77 | 0.38 - 0.51 | 0.16 - 0.28 | 0.05 - 0.12 | 0.57 |
+<!-- /table:phase_d_cost_check -->
+
+  - C++ reads the images: IceNine `r` (mode r, Q-max 8, a one-voxel mic of voxel 6628, clean images) loaded the
+    ASCII files and fitted the voxel to quality 0.94697, the same value as the Python true-orientation quality of
+    that voxel, with each Euler angle within 0.02 degrees of the truth. The C++ BFS on the full sample was not run.
+    Files: `scripts/phase_d/results/cpp_check/` (`recon.config`, a copy of `Example2.Simulation.config` with the
+    image/sample paths and Q-max 8 changed and `RunReconstruction` on; `one_voxel_6628.mic`; `run.log`, the C++
+    output of the re-run, which repeats the voxel 16 times; this C++ build writes no output .mic in this mode).
+    Run from `Examples/Example2.ManyGrains`: `../../IceNine r ../../icenine_py/scripts/phase_d/results/cpp_check/
+    recon.config`. In `run.log` the repeated hard-cost line `[ 1 1 0.94697 ]` is the clean-image fit; the C++
+    adaptive step took 12.5 s per voxel (contended).
+- **Reconstruction configs** (`scripts/phase_d/configs/`, run with cwd `Examples/Example2.ManyGrains`):
+  `ReconstructPhaseD_{mc,cma,cma_noretry}_{clean,realistic,realistic_q16}.config` (9 files), from
+  `ReconstructQ8.config` (Q-max 8, 200 MC steps, max local resolution 3, 2 restarts, `LazyBFS`; `MaxInitSideLength`
+  and `MinSideLength` set to 0.009375, the voxel side, instead of the inherited ThreeVoxels 0.004; `SampleRadius 0.50`
+  and `SampleCenter` are the simulation config's values and are C++-only). `SampleFilename` is the grid-only mic.
+  - `mc`: no `LocalOptimizer` key.
+  - `cma`: `LocalOptimizer cma`, `CMASigma0 0.2`, `CMAMaxEvals 1000`, `CMANeighborMaxEvals 250`,
+    `CMARetrySigma0 1.5`.
+  - `cma_noretry`: the same with `CMARetrySigma0 0`, to separate the effect of the retry from the optimizer.
+  - `BFSRevisitRefit 1` (REFIT voxels revisited inside the BFS, to be enabled in the mc and cma arms) is a comment.
+  - `CMANeighborMaxEvals` and `CMARetrySigma0` are library-branch keys: this tree's `ConfigFile` rejects them
+    (unknown keyword), so the cma configs load only once that branch lands. The mc configs load now
+    (`setup_reconstruction` works for all three image variants).
+- **Memory for the reconstruction:** the default loader holds 360 dense float32 frames (6.0 GB, computed as
+  360 x 2048^2 x 4 B) plus the uint8 binary caches (1.5 GB, 360 x 2048^2 x 1 B), about 7.5 GB per process. These two
+  figures are computed; the measured peak RSS is in the table below. `BFSReconstruction` is single-process, so
+  parallelism means independent concurrent runs (arms, variants), and memory is handled by the opt-in memmap loader.
+- **Memmap loader:** `write_binary_stack(...)` writes a variant once as a `(360, 2048, 2048)` uint8 `.npy`
+  (frame `det * 180 + omega`; in `ScatteringData_PhaseD/stacks/<variant>.npy`, gitignored);
+  `ExperimentalData.from_binary_memmap(path, 180, 2)` opens it with `np.load(mmap_mode="r")` and sets each
+  `ImageData._binary_cache` to the read-only C-contiguous slice; the float32 stack is never built. Use
+  `setup_reconstruction(cfg, exp_data=ExperimentalData.from_binary_memmap(...))`. Only the hard cost path is supported
+  (the images are empty sparse `ImageData`: intensities, `count_bright_pixels` and the soft cost see nothing).
+  The C extension's `stage_d_overlap` reads the slices without complaint (read-only is accepted) and nothing in the
+  hard path writes to the cache (a `_binary_cache` is only reset by the mutators of `ImageData`, which are never
+  called on loaded images). Default loaders are unchanged.
+  `memmap_check.py` evaluates the hard cost at the true and a 0.5 degree-off orientation of 20 voxels per variant
+  (40 evaluations), once with the dense loader and once with the memmap loader, each in a fresh process; every
+  `OverlapInfo` field (pixel and peak counts, detectors, quality) is exactly equal. RSS is the process peak
+  (`ru_maxrss`) after loading and those 40 evaluations; it grows toward the stack size (1.5 GB) as a long run touches
+  pages, but those pages are shared between concurrent processes through the page cache. A small unit test uses a
+  few frames (`tests/test_phase_d.py`).
+
+<!-- table:phase_d_memmap -->
+| images | evaluations | identical | dense_rss_gb | memmap_rss_gb | dense_load_s | memmap_load_s |
+|---|---|---|---|---|---|---|
+| clean | 40 | True | 7.88 | 0.37 | 8.2 | 0.4 |
+| realistic | 40 | True | 7.67 | 0.37 | 7.7 | 0.4 |
+| realistic_q16 | 40 | True | 7.04 | 0.36 | 57.5 | 0.4 |
+<!-- /table:phase_d_memmap -->
+
+- **Per-voxel cost probe (`bfs_timing_probe.py`, clean images, memmap loader, mc config):** single process,
+  contended (other jobs, including the C++ check above, were running), so these are upper bounds, not a speed claim.
+
+<!-- table:phase_d_probe -->
+| quantity | value |
+|---|---|
+| no-start seed voxel (reconstruct_voxel), n | 4 |
+|   wall time per seed (s) | 177, 376, 711, 204 |
+|   final error (deg) | 0.005, 0.013, 0.012, 0.005 |
+| neighbour step (local_optimization from 0.3 deg off), n | 20 |
+|   median / mean wall time (s) | 0.4 / 0.4 |
+|   median final error (deg) | 0.300 |
+<!-- /table:phase_d_probe -->
+
+  - The 4 seeds took 177 to 711 s each (mean 367 s, a thin sample), far above the 20 s assumed by the review and
+    the 12.5 s of the C++ adaptive step on a similar voxel; I did not profile why (the earlier profiling work
+    attributes the gap to the per-peak overlap loop).
+  - The classic neighbour step took about 0.4 s. Started 0.3 degrees off, it returned the start unchanged
+    (final error 0.300) in 16 of 20 voxels and improved in 4 (0.02 to 0.19 degrees). This is consistent with the
+    study's finding that the classic MC stops short; the cause here was not diagnosed. In a real BFS most
+    inherited starts are exact (same grain), so this probe says little about the typical neighbour; it says the
+    classic step does not repair a 0.3 degree error.
+
+- **Reproduce:** from `icenine_py/`: `uv run python scripts/phase_d/make_neworient.py`, then
+  `uv run python scripts/phase_d/render_full.py --workers 10 --tag full`, then
+  `uv run python scripts/phase_d/sanity_checks.py --variant {clean,realistic,realistic_q16}`; the Q-max 16 render is
+  `render_full.py --tag full_q16 --max-q 16 --variants realistic`; then `frame_split_check.py`,
+  `memmap_check.py --variant ...`, `bfs_timing_probe.py`, `summary.py`.
+
+#### Phase D seed-cost diagnosis (2026-10-08, `feature/finisher-mc-study-phase-d-pilot`)
+
+Why a no-start `reconstruct_voxel` takes 177 to 711 s on the full-sample clean images but about 20 s on the per-voxel E0 images. Diagnosis only; no pilot or full BFS run. Code: `scripts/phase_d/seed_diag*.py`, `seed_count_oracle.py`; data and tables: `benchmarks/phase_d_seed_diag/` (`summary.json`, `tables.md`, `runs/`). Voxels: 6 grain interiors (3 within r < 0.12 of the rotation axis, 3 with r > 0.38) and, for the options, 18 uniformly random voxels (17 of 18 touch another grain within the BFS neighbour radius, as BFS seeds do). All images clean, mc config of the Phase D data branch, seed 1, one process per voxel. Timing: the stage runs and the option runs used up to 4 concurrent processes (contended); the two "quiet" numbers passed `preflight.require_quiet()` (load about 1.2).
+
+- **Cause: the VarianceMinimizing budget extension, not the coarse search.** Per seed, mean over 6 voxels, 1.02 M evaluations: variance stage 0.15 to 1.38 M (33 to 82 % of all; 1.38 M on 15901), the coarse levels plus quick MC about 0.33 M, FindOptimal 0.2 to 6 k. `variance_minimizing_optimize` adds a subregion's steps to its budget whenever the cost variance of that subregion exceeds 0.02^2, so it stops only after about 20 subregion runs (200 steps) with variance below 0.02^2. Traced from the truth on voxel 15901: on the full images 0.03 % of the runs fall below the threshold at box 0.33, 0.22 and 0.20 deg (no end in 30,000 steps); on the isolated render of the same voxel 10.6 %, 1.5 % and 0.8 % (ends after 1,890 to 25,270 steps). The cost at fixed misorientation is flatter on the full images (mean 0.31 at 0.2 deg against 0.70 isolated, from 200 random directions) and its variance within a run is larger, consistent with a cost plateau from the grain's own large spots; this mechanism was not isolated further.
+- **(a) more evaluations: yes.** The `peak_overlap > 0` screen of level 0 passes 76 to 81 % of the 43,974 candidates on the full images and 0.4 to 0.5 % on the isolated renders, so 10.2 to 10.4 k candidates (not 160 to 210) enter the quick MC, and the levels carry 2.6 k, 0.9 k, 0.3 k, 0.08 k forward. Total evaluations are 9.6 to 33.7 times the isolated ones (48 to 50 k). The early exit at hit ratio 1.0 fires only for 2 of 6 voxels (final hit ratio 0.97 to 1.0, q_true 0.92 to 0.95); when it does not, FindOptimal runs all 30 candidates, which costs only 6 k evaluations.
+- **(b) cost per evaluation: no.** 499 to 533 us on the full images, 396 to 434 us isolated; the C extension is used, the memmap read is 17 us of it; the rest is torch small-tensor overhead (cProfile of 1,500 evaluations). C++ takes 49 to 51 us (12.5 us isolated).
+- **(c) config:** the Phase D mc keys equal `ReconstructQ8.config` except file names and voxel side. The C++ example config (`cpp_check/recon.config`) differs: MaxLocalResolution 5, MaxMCSteps 300, SuccessiveRestarts 3, MaxDiscreteCandidates 50. A smaller final box does not shorten the Python variance stage (above).
+- **Accuracy side effect:** on the 6 isolated renders 3 seeds end more than 1 deg off (25 to 60 deg); on the full images all 6 are right (max 0.042 deg). The cheap per-voxel prune is the E0 failure mode, so it must not be imitated.
+
+<!-- table:seed_diag_stage_breakdown -->
+| voxel | wall_s | evals | disc_L0 | quick_L0 | rest_L1_3 | find | variance | var_share | us | find_n | conv | err | q_true |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 897 | 1,687,675 | 79,241 | 112,090 | 118,226 | 201 | 1,377,916 | 0.82 | 503 | 1/344 | True | 0.042 | 0.947 |
+| 17034 | 509 | 952,819 | 79,754 | 114,202 | 120,721 | 5,849 | 632,292 | 0.66 | 505 | 30/341 | False | 0.030 | 0.922 |
+| 18558 | 245 | 463,626 | 77,591 | 112,981 | 118,251 | 603 | 154,199 | 0.33 | 499 | 3/330 | True | 0.006 | 0.937 |
+| 19889 | 333 | 626,184 | 78,663 | 113,388 | 119,796 | 5,466 | 308,870 | 0.49 | 502 | 30/334 | False | 0.024 | 0.920 |
+| 22867 | 753 | 1,339,563 | 79,486 | 112,596 | 119,087 | 5,579 | 1,022,814 | 0.76 | 533 | 30/337 | False | 0.024 | 0.941 |
+| 5242 | 589 | 1,063,389 | 77,316 | 112,343 | 117,868 | 5,561 | 750,300 | 0.71 | 524 | 30/333 | False | 0.028 | 0.908 |
+| mean | 554 | 1,022,209 | 78,675 | 112,933 | 118,992 | 3,876 | 707,732 | 0.63 | 511 |  |  | n/a | n/a |
+<!-- /table:seed_diag_stage_breakdown -->
+
+<!-- table:seed_diag_cpp -->
+| config | images | voxel | n_runs | adap_s_mean | adap_evals_mean | us_per_eval | variance_steps_median | variance_steps_max |
+|---|---|---|---|---|---|---|---|---|
+| Phase D search keys (MaxLocalResolution 3, 200 steps, 2 restarts, 30 candidates) | full | 15901 | 16 | 13.3 | 258,996 | 51.3 | 1.3e+03 | 2130 |
+| Phase D search keys (MaxLocalResolution 3, 200 steps, 2 restarts, 30 candidates) | full | 22867 | 16 | 12.8 | 262,537 | 48.8 | 1.28e+03 | 1930 |
+| C++ example config (MaxLocalResolution 5, 300 steps, 3 restarts, 50 candidates) | full | 15901 | 16 | 13.9 | 282,813 | 49.0 | 2.19e+04 | 28840 |
+| C++ example config (MaxLocalResolution 5, 300 steps, 3 restarts, 50 candidates) | full | 22867 | 16 | 14.1 | 286,758 | 49.1 | 1.95e+04 | 33980 |
+| Phase D search keys, isolated one-voxel images | isolated | 15901 | 16 | 0.6 | 47,833 | 12.5 | 325 | 460 |
+<!-- /table:seed_diag_cpp -->
+
+<!-- table:seed_diag_seed_count -->
+| p_fail | mean | lo | hi |
+|---|---|---|---|
+| 0.0 | 356 | 348 | 367 |
+| 0.05 | 377 | 366 | 394 |
+| 0.1 | 395 | 381 | 417 |
+| 0.2 | 443 | 426 | 464 |
+| 0.3 | 504 | 474 | 532 |
+<!-- /table:seed_diag_seed_count -->
+
+- **C++ reference** (`IceNine r`, one-voxel mic, Euler angles zeroed, 16 queued copies run serially, other jobs 1 core each, contended): 15901: 13.3 s per no-start search, 259 k evaluations, 51 us each, variance stage median 1,305 steps (max 2,130), final quality 0.947 (Python q_true 0.947); 22867: 12.8 s, 263 k, final quality 0.955 (Python q_true 0.941). With the C++ example config: 13.9 and 14.1 s, 283 to 287 k evaluations, variance stage median about 20 k steps. On the isolated render: 0.60 s, 47.8 k evaluations. So C++ does the coarse work in the same 260 k evaluations as Python's 330 k, but its variance stage ends after about 130 subregion runs where Python's needs 30 k to 140 k. **Why the two variance stages differ on the full images is not explained:** the algorithm, the step mapping (mean rotation angle of the near-identity generator equals the radius) and the cost definition (1 - quality) were compared by reading and agree; the cost landscape on dense images in C++ was not measured.
+- **Seed count** (`seed_count_oracle.py`, oracle fits: a seed fails with probability p, an expansion accepts a neighbour iff it is in the same grain, BFS rules and the 2-side-length neighbour radius, 20 random orders): 356 seeds for p = 0, 377 for 0.05, 395 for 0.1, 443 for 0.2, 504 for 0.3 (ranges within +-20). Under the BFS neighbour radius the 497 grains are 497 connected pieces (501 under strict adjacency), not 612. About 140 grains are swallowed before any seed is drawn in them (all their voxels end REFIT) and stay unresolved unless a revisit or a later seed fixes them; this is the real BFS rule, and it caps the seeds well under the 600 to 1,000 assumed. The oracle ignores wrong cross-boundary acceptances.
+
+<!-- table:seed_diag_options_interior -->
+| option | n | wall_s | evals | err_med | err_max | wrong |
+|---|---|---|---|---|---|---|
+| base (mc, as Phase D config) | 6 | 554 | 1,022,209 | 0.026 | 0.042 | 0/6 [0.00, 0.39] |
+| variance cap 2000 steps | 6 | 169 | 316,678 | 0.029 | 0.061 | 0/6 [0.00, 0.39] |
+| CMA-ES finisher (LocalOptimizer cma) | 6 | 178 | 326,268 | 0.025 | 0.046 | 0/6 [0.00, 0.39] |
+| cap 2000 + top 3000 at level 0 + keep 1/8 | 6 | 68 | 129,218 | 0.029 | 0.053 | 0/6 [0.00, 0.39] |
+<!-- /table:seed_diag_options_interior -->
+
+<!-- table:seed_diag_options_random -->
+| option | n | wall_s | wall_max | evals | err_med | err_max | wrong |
+|---|---|---|---|---|---|---|---|
+| variance cap 2000 | 18 | 172 | 182 | 317,146 | 0.028 | 52.342 | 1/18 [0.01, 0.26] |
+| lean (cap 2000, top 3000, keep 1/8) | 18 | 67 | 71 | 128,857 | 0.028 | 59.940 | 2/18 [0.03, 0.33] |
+<!-- /table:seed_diag_options_random -->
+
+<!-- table:seed_diag_run_estimates -->
+| option | per_seed_s | seeds_low | seeds_mid | seeds_high | hours_low | hours_mid | hours_high |
+|---|---|---|---|---|---|---|---|
+| base (as Phase D config) | 486 | 350 | 395 | 504 | 47.2 | 53.3 | 68.0 |
+| variance cap 2000 | 150 | 350 | 395 | 504 | 14.6 | 16.5 | 21.1 |
+| CMA-ES finisher (no cap needed) | 157 | 350 | 395 | 504 | 15.2 | 17.2 | 21.9 |
+| lean: cap 2000 + top 3000 at level 0 + keep 1/8 | 62 | 350 | 395 | 504 | 6.0 | 6.8 | 8.6 |
+<!-- /table:seed_diag_run_estimates -->
+
+
+  - The per-seed times for base and CMA are evaluations x 475 us; only cap and lean were timed quiet. The ranks justify the level-0 cap: after the quick MC the candidate nearest the truth (< 3 deg) sits at rank 0 to 74 of about 10.2 k; by the discrete score alone its best rank is 0 to 1,213 (6 voxels), so top 3000 keeps all six with a factor 2.5 margin, but this is six voxels.
+  - Random voxels: the 1 wrong with cap (voxel 12260, 52 deg, final hit ratio 0.88) is also wrong with lean and would pass the BFS seed test (hit ratio threshold 0.8): a wrong seed floods its grain with a wrong orientation. The extra lean failure (voxel 18535, 60 deg) has hit ratio 0.31 and would be rejected and redrawn (cost: one more seed). Paired: 1 wrong under both, 1 under lean only; with n = 18 this does not separate lean from cap (exact McNemar p = 1). Whether the base (uncapped) search is right on 12260 was not run (about 10 min of CPU, would settle whether the cap or the coarse search loses it).
+  - The variance cap changes the final polish a little (FindOptimal-only error up to 0.36 deg on a few voxels, all under 0.1 deg after the capped variance stage); the uncapped stage gave 0.006 to 0.042 deg on the interior voxels.
+- **Ideas not measured:** the batched coarse pass (the batched low-Q proxy features are 11.6x faster than the per-candidate pass, `benchmarks/coarse_proxy/timing_batch_tables.md`, but that is feature extraction, not the cost function; batching the 44 k level-0 screening evaluations is a library change); precomputing the seeds in parallel from the BFS's own random order and reusing them across arms (the seed fit does not depend on the arm, but which voxels become seeds can); a seed hit-ratio guard above the 0.8 BFS threshold.
+- **Recommendation:** put an optional hard cap on the VarianceMinimizing budget in the library (default off, so the C++-parity path is unchanged); with it alone a serial seed pass is about 15 to 21 h, with the level-0 cap and keep 1/8 about 6 to 9 h, plus the neighbour time (about 2.7 h for `mc`). Run the pilot with lean and cap side by side on 40 to 50 random seeds before choosing, since n = 18 cannot rank them, and check the hit ratio of accepted seeds (a wrong seed with hit ratio 0.88 exists). The 9+ planned runs can then be run as concurrent single processes.
+- **Reproduce:** from `icenine_py/`: `seed_diag.py select`, `seed_diag.py run --voxel V --images {full,isolated} --tag T [--varcap 2000 --topk0 3000 --opt rec.keep_fraction=0.125 --opt local_optimizer=cma --save-cands]`, `seed_diag_variance.py --voxel 15901`, `seed_diag_ranks.py --tag cap2k`, `seed_count_oracle.py`, `seed_diag_summary.py`. The C++ runs used the configs and one-voxel mics in the session scratch directory (not kept); `cpp_reference.json` holds their parsed output. Test: `tests/test_seed_diag.py`.
+
+
+#### C++ vs Python variance stage (2026-10-08, `feature/finisher-mc-study-phase-d-pilot`)
+
+Question left open by the seed-cost diagnosis: why Python's VarianceMinimizing stage ran 25 to 100 times more steps than C++'s on the same voxel and images. **Answer: a port discrepancy in the restart; fixed.** Code: `icenine/orientation_search.py` (`variance_minimizing_optimize`), test `tests/test_variance_stage_parity.py`, scripts `scripts/phase_d/seed_diag_variance_parity.py`, `seed_diag_variance_parity_summary.py`; data in `benchmarks/phase_d_seed_diag/variance_parity.json`, `variance_parity/` (C++ trace logs, the debug-print patches as `.txt`), `variance_parity_tables.md`.
+
+- **What was compared by reading (`OrientationSearch.cpp` AdaptiveSamplingZeroTemp / ZeroTemperatureOptimizationWithVariance vs the Python port) and found identical:** the variance is the sample variance (Welford, n-1) of the cost (1 - quality) of every trial in the subregion run including the start; threshold 0.02^2 on the variance (not squared again); step count max(int(ceil(r / 0.5 deg)^2.7), 10); MC radius tan(r)/sqrt(12) per axis, applied to the best state of the run; radius halves on improvement and doubles up to the box on failure; a run whose variance exceeds the threshold adds its steps to the budget; the loop stops when total >= budget. The convergence exit never fires in either (`Optimize` sets MaxConvergenceCost 0 before calling it, Python passes 0.0), so only the budget ends the stage. The input is the FindOptimal winner in both; the box is max(diameter/3, 0.2 deg)/2^MinLocalResolution = 0.329 deg for the Phase D keys.
+- **The difference:** on a failed run (cost >= global best) the restart start point. C++: three offsets uniform in +-SubregionRadius (the radius just doubled, so up to the box width, used as barycentric offsets directly), applied to the **initial** orientation of the call (`oDelta * oInitialOrientation`). Python: offsets uniform in +-box/2, applied to the **current global best**. Once the radius has saturated at the box (after 2 failures, which is every run from the truth) C++ restarts are twice as wide, and, unlike Python, are not recentred on improvements.
+- **Why it matters:** C++ restarts land at about 1 to 2 deg from the optimum, on the cost plateau (cost 0.7 to 0.95), where the 10-step run has variance below 0.02^2 in 15 % of the runs, so the stage ends after about 130 runs. Python's narrower restarts land inside the steep part of the basin (cost 0.2 to 0.5), variance above 0.02^2 in 99.9 to 100 % of the runs, the budget grows with every run and the stage does not end.
+- **First divergence** (voxel 15901, started from the FindOptimal winner, cost 0.0530, box 0.329 deg; C++ from a scratch build with debug prints, not committed):
+  - C++: radius 0.047, 0.095, 0.190, 0.329, 0.329 deg ...; run costs 0.053, 0.308, 0.539, 0.898, 0.815, 0.924 ...; variance 1.2e-3, 1.6e-2, 4.1e-3, 6.0e-4, 1.3e-3, 4.7e-4; the first run below 0.02^2 is the 27th; the stage ends after 1,330 to 1,720 steps (4 runs; the earlier 16-run reference median was 1,305).
+  - Python before the fix, same start, 4 seeds, 30,000-step cap reached each time: mean run cost 0.38, fraction of runs above the threshold 1.00, 1.00, 1.00, 1.00 (0.9997 for two); after the fix, 8 seeds: 1,110 to 2,060 steps (median 1,410), fraction above 0.82 to 0.90, mean run cost 0.67 (C++: 0.69, fraction above 0.85 to 0.88).
+- **Cost function check** (160 start orientations printed by the C++ build, same voxel and images): the cost at the FindOptimal winner agrees exactly (0.0530303) and 8 of the 160 agree to 1e-6; over all 160 (costs 0.05 to 1.0) Python minus C++ has a mean of -0.0131, median -0.0124, range -0.0345 to +0.0002 (Python lower in 151, higher in 1; signed statistics in `variance_parity/costs.json`), correlation 0.999. This offset is larger than the 0.006 found on other data and its cause was not tested (it is consistent with a few more coincidental overlaps counted by Python on dense images); it is not what made the variance stage long, since with the restart fixed the Python step counts and cost statistics match C++.
+- **Fix:** the restart now uses +-SubregionRadius (after the update) about the initial orientation, as C++. Only `variance_minimizing_optimize` restarts differ, but that function is called by every refinement that runs the VarianceMinimizing stage: `refine_from_candidates` (the end of `reconstruct_voxel`, so BFS seeds and the E0 `mc` arm), `local_optimization` (BFS neighbours under `local_optimizer mc`), and the T5 / B3 / E0 reference runs of the finisher. Calls that do not run it are unchanged (CMA-ES finisher; the quick MC). The results recorded earlier with the old restart are marked in their sections and re-run in "C++-faithful MC: reruns". Goldens: the stage's restart draws different numbers, so 9 tests that pin one random draw changed. `GOLDEN` (`test_findoptimal_refactor.py`, 4 tests) and `GOLDEN_REFINE` (`test_cma_optimizer.py`) were re-recorded (the old values are in the comments); `test_logged_mc_matches_mcoptimizer` (3 cases) passes again after the same change in the `LoggedMC` copy in `scripts/finisher_diagnosis/diagnose.py`; `test_findoptimal_alone_reproduces_stored_experiment_b` compares with a stored experiment recorded before the fix, so it runs the frozen pre-fix stage (`tests/legacy_variance_stage.py`, patched in). A new value cannot equal a C++ value (different random generators, and the C++ run is not on this toy problem); the evidence that the new behaviour is the C++ one is the scripted test and the 15901 trace above. As a check that the fix does not cost local accuracy: `refine_from_candidates` on the ThreeVoxels voxel from a 0.2 to 0.3 deg start, 30 seeds, old / new stage: median error 0.133 / 0.143 deg, mean cost 0.303 / 0.294, mean evaluations 392 / 375 (`variance_parity/local_refine_old_vs_new.json`; the toy goldens have costs 0.55 to 0.90 and are single draws). The new test scripts the subregion runs and checks the radius sequence, the restart offsets and the restart base against the C++ semantics (fails on the old code), plus the budget extension and the stopping rule. `scripts/phase_d/seed_diag.py`'s capped variant was updated to the same restart; its recorded `cap2k` and `lean` runs used the old restart.
+- **Re-measurement** (6 interior voxels, no-start `reconstruct_voxel`, full clean images, seed 1, single process; 5 of 6 passed `require_quiet`, 15901 was contended; C++ = 4 no-start searches per voxel on the patched build, median; var columns are variance-stage evaluations for Python and steps for C++, which differ by about 10 %):
+
+<!-- table:variance_parity_seeds -->
+| voxel | var_before | var_after | var_cpp | evals_before | evals_after | evals_cpp | err_before | err_after | wall_after |
+|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 1,377,916 | 1,607 | 1,460 | 1,687,675 | 311,366 | 250,526 | 0.042 | 0.042 | 158 |
+| 17034 | 632,292 | 1,805 | 1,705 | 952,819 | 322,332 | 253,079 | 0.030 | 0.030 | 173 |
+| 18558 | 154,199 | 1,310 | 945 | 463,626 | 310,737 | 222,731 | 0.006 | 0.006 | 161 |
+| 19889 | 308,870 | 1,266 | 905 | 626,184 | 318,580 | 236,049 | 0.024 | 0.061 | 165 |
+| 22867 | 1,022,814 | 2,784 | 1,530 | 1,339,563 | 319,533 | 251,919 | 0.024 | 0.066 | 170 |
+| 5242 | 750,300 | 881 | 1,225 | 1,063,389 | 313,970 | 209,084 | 0.028 | 0.028 | 169 |
+| mean | 707,732 | 1,609 | 1,295 | 1,022,209 | 316,086 | 237,231 | 0.026 | 0.039 | 166 |
+<!-- /table:variance_parity_seeds -->
+
+  - The coarse stages are unchanged and now dominate: Python 316 k evaluations per seed against 237 k for C++ (not investigated; the C++ `RandomRestartZeroTemp` blocks of `nMinErgodicSteps` and the Python `optimize` loop are structured differently, and the Python level-0 screen passes 76 to 81 % of the candidates to the quick MC; not tested as the cause).
+  - Accuracy: errors against truth are unchanged for 4 voxels (0.006 to 0.042 deg) and up from 0.024 to 0.061 and 0.066 deg for 19889 and 22867, because the polish is now about 1.6 k steps instead of 150 k to 1.4 M evaluations; all six remain far under 1 deg, and C++ final quality on 15901 and 22867 is 0.947 and 0.955 against Python q_true 0.947 and 0.941.
+  - Wall time per seed (single process): 158 to 173 s, mean 166 s, against a mean of 554 s before (contended, up to 4 concurrent). C++ takes 10 to 13 s.
+- **Serial seed-pass estimate** (seeds 350 / 395 / 504 from `run_estimates.json`, 476 us per evaluation from the quiet timing; the second row uses the measured mean wall time):
+
+<!-- table:variance_parity_estimate -->
+| basis | per_seed_s | hours_low | hours_mid | hours_high |
+|---|---|---|---|---|
+| evals x quiet us/eval | 150 | 14.6 | 16.5 | 21.1 |
+| measured wall (mean of 6) | 166 | 16.1 | 18.2 | 23.2 |
+<!-- /table:variance_parity_estimate -->
+
+  This replaces the 47 to 68 h of the uncapped estimate by about 15 to 21 h (16 to 23 h from the measured wall times); it equals the variance-cap-2000 estimate, so the cap is no longer needed for the variance stage. The levels-0 cap (lean) would still bring it to about 6 to 9 h; the isolated-image failures and the level-0 rank analysis of the earlier subsection are unaffected, as the coarse stages did not change.
+- **Tests:** full suite after the fix and the golden updates: 805 passed, 34 skipped, 1 deselected (before: 796 passed, 9 failed with the old goldens; new test file 3 tests).
+- **Caveats:** one voxel traced against C++ in detail (15901); the other five compared by step counts only; C++ and Python use different random generators, so the comparison is of distributions (4 to 8 runs each); the cost offset of 0.013 is unexplained; `RandomRestartZeroTemp` (FindOptimal / quick MC) was not compared line by line beyond noticing that its structure differs from the Python `optimize` loop.
+
+
+#### C++-faithful MC: reruns (2026-10-08, `feature/finisher-mc-study-phase-d-pilot`)
+
+`MCOptimizer.optimize` (the quick MC of every coarse level and the FindOptimal MC) was not the C++ `RandomRestartZeroTemp`; it is now, and the results that depended on it are re-run. Together with the VarianceMinimizing restart fix of the previous subsection this changes the earlier MC conclusions in size, and in two cases in direction (the B1 claim that no restart follows a first improvement; the E0 advantage of `cma` in the wrong count). Code: `icenine/orientation_search.py`; test `tests/test_mc_cpp_parity.py`; scripts `scripts/phase_d/mc_parity.py`, `scripts/mc_mechanism/summary_faithful.py`, `scripts/finisher_bench/mc_faithful_summary.py`, `--tag mcfaithful` of `scripts/cma_finisher/e0_cma.py` and `validate_lib.py`; data in `benchmarks/phase_d_seed_diag/mc_parity/`, `benchmarks/mc_mechanism/mc_faithful/`, `benchmarks/finisher_bench/mc_faithful/`, `benchmarks/cma_finisher/mcfaithful/`.
+
+**What differed (found by reading `OrientationSearch.cpp:100-135, 297-363`; each point is pinned by the scripted test).**
+- *Blocks.* C++ runs fixed blocks of `nMinErgodicSteps = int(2 (box/step)^3)` trial steps (31 for the finisher's box 0.3292 deg and step 0.1317 deg), each started from the current state at one fixed step (`ZeroTemperatureOptimization`, which also evaluates its start), computed once from the initial step and cut to the remaining budget in the last block. Python ran one step at a time, halved the step at every improvement of the global best, and recomputed the threshold at each halving (31 became 250 after one improvement).
+- *Comparison.* A block ends a failure unless its best cost is strictly below the global best (`>=` fails). On success the global best and the current state become the block result and the step halves; the successive-failure counter is zeroed.
+- *Restart.* After a failed block C++ restarts at `delta * initial orientation`, `delta` from three draws uniform in +-r, `r = tan(box)/sqrt(48)` (x, y, z in that order), resets the step and the block length, and counts one failure. Python restarted about the global best, with offsets uniform in +-box/2 (about 3.5 times wider: sqrt(48)/2 in the offset parameter; median jump angle 0.557 deg against 0.158 deg at box 0.3292 deg).
+- *Stop.* After every block: stop if the global cost is below `MaxConvergenceCost`, then if more than `SuccessiveRestarts` failures in a row. The step budget counts trial steps; each block adds one evaluation for its start.
+- *Library change.* `MCOptimizer.optimize` is the block loop (`_mc_block` is the inner block); `last_run` records the stop reason, blocks, accepts and restarts; the trajectory records one event per block (`mc_accept`, `mc_restart`; `step` is the cumulative step count at the block end). `LoggedMC` and `TracedMC` (the study scripts' subclasses) now use the library loop (no more copies of `optimize`). The VarianceMinimizing code is unchanged by this port.
+
+**Check against C++** (scratch build of `Src/` with debug prints in `RandomRestartZeroTemp`, patch kept as `mc_parity/cpp_debug_patch_mc.py.txt`; not committed; the 6 interior voxels of the seed-cost diagnosis on the Phase D clean full-sample images; three plain C++ runs per voxel and one with block traces for voxel 15901; Python `seed_diag.py run --tag mcport`). The traces are compared by structure and by counts, not call by call: the random generators differ.
+
+<!-- table:mc_parity_calls -->
+| voxel | n_quick_cpp | n_quick_py | q_blk_cpp | q_blk_py | n_find_cpp | n_find_py | q_ev_cpp | q_ev_py | f_ev_cpp | f_ev_py | f_blk_cpp | f_blk_py | f_stop1_cpp | f_stop1_py | f_acc_cpp | f_acc_py |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 11562 | 15149 | 1.00 | 1.00 | 9 | 1 | 12.00 | 12.00 | 192.33 | 193.00 | 6.33 | 6.00 | 0.67 | 1.00 | 1.00 | 1.00 |
+| 17034 | 11609 | 15483 | 1.00 | 1.00 | 3 | 30 | 12.00 | 12.00 | 161.00 | 165.63 | 5.00 | 5.23 | 1.00 | 0.97 | 1.00 | 0.97 |
+| 18558 | 9973 | 15349 | 1.00 | 1.00 | 24 | 1 | 12.00 | 12.00 | 190.38 | 208.00 | 6.25 | 7.00 | 0.62 | 0.00 | 1.00 | 1.00 |
+| 19889 | 10820 | 15341 | 1.00 | 1.00 | 3 | 1 | 12.00 | 12.00 | 161.00 | 193.00 | 5.00 | 6.00 | 1.00 | 1.00 | 1.00 | 1.00 |
+| 22867 | 11549 | 15277 | 1.00 | 1.00 | 3 | 30 | 12.00 | 12.00 | 161.00 | 165.63 | 5.00 | 5.23 | 1.00 | 0.90 | 1.00 | 1.00 |
+| 5242 | 9461 | 15144 | 1.00 | 1.00 | 3 | 30 | 12.00 | 12.00 | 161.00 | 172.90 | 5.00 | 5.57 | 1.00 | 0.77 | 1.00 | 0.90 |
+<!-- /table:mc_parity_calls -->
+
+- **Block structure.** Every quick-MC call is one truncated block of 10 steps, 12 evaluations, in both (C++ 9,461 to 11,609 calls per no-start search, Python 15,144 to 15,483). Every FindOptimal call in the 15901 trace (3 calls, 19 blocks) obeys the rules (block length 31 but the last, step halved after a success, reset after a failure: 0 violations); so do all 93 Python FindOptimal calls checked (6 voxels, 93 calls, 0 violations). The printed restart radius ranges over exactly tan(box)/sqrt(48): 0.000829 (FindOptimal box) to 0.004200 (quick-MC box 1.667 deg) in 3,513 restart draws, equal to the expected values to the printed digits. A FindOptimal call costs 161 to 208 evaluations in both (C++ 161 to 192 mean per voxel; Python 166 to 208) and ends on exhausted restarts in most calls in both; the C++ and Python call counts per voxel differ (C++ 3 to 24 calls over 3 runs, Python 1 to 30): the early exit at hit ratio 1.0 fires in C++ for 17034, 22867 and 5242 (1 call per run) and not in Python (30 calls). Why was not traced.
+- **Evaluations: the MC matches, the totals do not.** Per no-start search the Python total is 1.31 to 1.57 times the C++ one:
+
+<!-- table:mc_parity_evals -->
+| voxel | cpp_evals | py_evals | ratio |
+|---|---|---|---|
+| 15901 | 251,188 | 328,519 | 1.31 |
+| 17034 | 251,673 | 339,561 | 1.35 |
+| 18558 | 219,790 | 329,367 | 1.50 |
+| 19889 | 236,372 | 330,209 | 1.40 |
+| 22867 | 250,852 | 335,687 | 1.34 |
+| 5242 | 209,927 | 330,577 | 1.57 |
+<!-- /table:mc_parity_evals -->
+
+  The difference is in the coarse stage, not in the MC: C++ passes 6,674 to 8,284 candidates (mean 7,674 over the 6 voxels) at level 0 and 9,461 to 11,609 over all levels to the quick MC, Python 10,190 to 10,382 and 15,144 to 15,483, and the stage evaluations split the same way:
+
+<!-- table:mc_parity_stages -->
+| voxel | quick_py | quick_cpp | find_py | find_cpp | rest_py | rest_cpp | total_py | total_cpp | cand_L0_py | cand_L0_cpp | cand_all_py | cand_all_cpp |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 181,788 | 138,744 | 193 | 577 | 146,538 | 111,867 | 328,519 | 251,188 | 10,190 | 8,151 | 15,149 | 11,562 |
+| 17034 | 185,796 | 139,308 | 4,969 | 161 | 148,796 | 112,204 | 339,561 | 251,673 | 10,382 | 8,284 | 15,483 | 11,609 |
+| 18558 | 184,188 | 119,676 | 208 | 1,523 | 144,971 | 98,591 | 329,367 | 219,790 | 10,271 | 7,026 | 15,349 | 9,973 |
+| 19889 | 184,092 | 129,840 | 193 | 161 | 145,924 | 106,371 | 330,209 | 236,372 | 10,308 | 7,673 | 15,341 | 10,820 |
+| 22867 | 183,324 | 138,588 | 4,969 | 161 | 147,394 | 112,103 | 335,687 | 250,852 | 10,236 | 8,234 | 15,277 | 11,549 |
+| 5242 | 181,728 | 113,532 | 5,187 | 161 | 143,662 | 96,234 | 330,577 | 209,927 | 10,213 | 6,674 | 15,144 | 9,461 |
+<!-- /table:mc_parity_stages -->
+
+  Quick MC evaluations per candidate (12), the number of FindOptimal evaluations and the other stages' per-candidate costs match to within the call-count noise; the excess tracks the candidate count (Python / C++ candidates 1.24 to 1.53 at level 0 and 1.31 to 1.60 over all levels; other stage evaluations 1.31 to 1.49). Why C++ passes fewer candidates (its level-0 count varies with the voxel, Python's does not) was not investigated; the clique step printed by C++ ("Num Cliques") is a candidate for the cause (not tested).
+
+**Seed cost** (6 interior voxels, no-start `reconstruct_voxel`, clean full images, seed 1, single process, `require_quiet` passed in 6/6 (voxel 15901 re-run after the first run was contended); "before" = the VarianceMinimizing fix only, previous subsection; C++ from the plain runs, **contended**: the machine ran other jobs):
+
+<!-- table:mc_parity_seed_cost -->
+| voxel | evals_before | evals_after | evals_cpp | wall_before | wall_after | wall_cpp | err_before | err_after |
+|---|---|---|---|---|---|---|---|---|
+| 15901 | 311,366 | 328,519 | 251,188 | 158 | 176 | 21.2 | 0.042 | 0.017 |
+| 17034 | 322,332 | 339,561 | 251,673 | 173 | 179 | 21.0 | 0.030 | 0.028 |
+| 18558 | 310,737 | 329,367 | 219,790 | 161 | 171 | 16.2 | 0.006 | 0.005 |
+| 19889 | 318,580 | 330,209 | 236,372 | 165 | 176 | 18.4 | 0.061 | 0.021 |
+| 22867 | 319,533 | 335,687 | 250,852 | 170 | 174 | 19.1 | 0.066 | 0.026 |
+| 5242 | 313,970 | 330,577 | 209,927 | 169 | 171 | 10.5 | 0.028 | 0.049 |
+| mean | 316,086 | 332,320 | 236,634 | 166 | 174 | 17.7 | 0.039 | 0.024 |
+<!-- /table:mc_parity_seed_cost -->
+
+Evaluations per seed rose by 5% (316,086 to 332,320 mean), consistent with the one extra evaluation per quick-MC call (12 instead of 11: 15,144 to 15,483 calls) and the FindOptimal blocks; the C++ figure is 236,634. Single-worker wall time per seed is 174 s (171 to 179) against 166 s before and about 18 s for C++ (contended; 10 to 21 s). The gap to C++ is now 1.40 times in evaluations and about 9.8 times in time (500 us per evaluation against 50 us; the cost function, not the MC). Errors against truth are 0.005 to 0.049 deg (mean 0.024; before 0.039). Serial seed-pass estimate (seeds 350 / 395 / 504 from `run_estimates.json`, mean measured wall):
+
+<!-- table:mc_parity_estimate -->
+| basis | per_seed_s | hours_low | hours_mid | hours_high |
+|---|---|---|---|---|
+| measured wall, mean of 6 (quiet) | 174 | 17.0 | 19.1 | 24.4 |
+<!-- /table:mc_parity_estimate -->
+
+This replaces 16.1 / 18.2 / 23.2 h of the previous subsection (the quick MC's extra evaluation per candidate). The coarse stage, not the MC, is the remaining evaluation gap to C++ (1.40 times); the time gap (about 9.8 times) is the cost per evaluation.
+
+**Reruns.** Same cases, images, starts and seeds as the originals; new cache directories (`--tag mcfaithful`, `run_mcfaithful`), the old ones untouched. Every rerun used the C++-faithful MC and the VarianceMinimizing restart fix. All 10-worker runs on a loaded machine (**contended**; no timing claim). Cases within a voxel are not independent, so case-level intervals are optimistic; the voxel-clustered sign test is given where paired.
+
+**B1 (T5 cases, 300 x clean / realistic; `mc_trace.py`, `mc_end_curve.py --tag mcfaithful`, 54 tasks each).** The T5 result is no longer reproduced bit for bit (it was stored with the old MC); the faithful finisher result on H3 realistic equals B3's default-finisher row (0.0168 deg). Stop reasons and restarts:
+
+<!-- table:mcf_b1_stop -->
+| set | variant | mc | n | stop_budget | stop_restarts | stop_converged | any_improve | exhausted_given_noimp | noimp_given_exhausted | runs_restart_after_first |
+|---|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | before | 200 | 126 | 74 | 0 | 126/200 (63%, 56-69) | 74/74 (100%, 95-100) | 74/74 (100%, 95-100) | 0/126 (0%, 0-3) |
+| H3 | clean | after | 200 | 64 | 136 | 0 | 135/200 (68%, 61-74) | 65/65 (100%, 94-100) | 65/136 (48%, 40-56) | 112/135 (83%, 76-88) |
+| H3 | realistic | before | 200 | 122 | 78 | 0 | 122/200 (61%, 54-67) | 78/78 (100%, 95-100) | 78/78 (100%, 95-100) | 0/122 (0%, 0-3) |
+| H3 | realistic | after | 200 | 60 | 140 | 0 | 133/200 (66%, 60-73) | 67/67 (100%, 95-100) | 67/140 (48%, 40-56) | 116/133 (87%, 80-92) |
+| H0 | clean | before | 100 | 96 | 4 | 0 | 96/100 (96%, 90-98) | 4/4 (100%, 51-100) | 4/4 (100%, 51-100) | 0/96 (0%, 0-4) |
+| H0 | clean | after | 100 | 60 | 40 | 0 | 95/100 (95%, 89-98) | 5/5 (100%, 57-100) | 5/40 (12%, 5-26) | 74/95 (78%, 69-85) |
+| H0 | realistic | before | 100 | 97 | 3 | 0 | 97/100 (97%, 92-99) | 3/3 (100%, 44-100) | 3/3 (100%, 44-100) | 0/97 (0%, 0-4) |
+| H0 | realistic | after | 100 | 47 | 53 | 0 | 97/100 (97%, 92-99) | 3/3 (100%, 44-100) | 3/53 (6%, 2-15) | 81/97 (84%, 75-90) |
+<!-- /table:mcf_b1_stop -->
+
+- **The B1 rule claims described the old loop and do not carry over.** Restarts now fire after a first improvement: 116/133 improving runs (87%, 80-92) restart at least once afterwards (before 0/122), and exhausted restarts no longer imply "never improved": 67 of the 140 runs that end on exhausted restarts (48%) never improved (before 78/78). The reverse still holds: all 67 never-improving runs end on exhausted restarts. 60/200 runs end on the step budget (before 122/200). The block length stays 31; the step halves once per successful block, not per improvement, so the collapse to 0.00026 deg is gone: a run has a median 2 successful blocks (q25-q75 0-5) against a median 8 improvements.
+- **MC stage output** is a median 0.0211 deg from the truth (before 0.0410), and the whole finisher ends 0.0168 deg away (before 0.0229) after a median 560 evaluations (before 2629), 56% under 0.02 deg (before 44%):
+
+<!-- table:mcf_b1_end -->
+| set | variant | mc | steps_run | n_accept | n_restarts | final_step_deg | mc_out_to_truth | finisher_err | finisher_lt002 | finisher_wrong | finisher_evals |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H3 | clean | before | 110/200/200 | 0/7/9 | 0/0/3 | 0.00026/0.00103/0.13169 | 0.0159/0.0373/0.0923 | 0.0118/0.0224/0.0410 | 91/200 (46%, 39-52) | 2/200 (1%, 0-4) | 1718/2167/2522 |
+| H3 | clean | after | 93/186/200 | 0/2/5 | 2/3/3 | 0.13169/0.13169/0.13169 | 0.0077/0.0177/0.0323 | 0.0073/0.0151/0.0309 | 118/200 (59%, 52-66) | 0/200 (0%, 0-2) | 495/540/584 |
+| H3 | realistic | before | 111/200/200 | 0/8/9 | 0/0/3 | 0.00026/0.00077/0.13169 | 0.0175/0.0410/0.0979 | 0.0133/0.0229/0.0432 | 87/200 (44%, 37-50) | 3/200 (2%, 1-4) | 1818/2629/4042 |
+| H3 | realistic | after | 93/155/200 | 0/2/5 | 2/3/3 | 0.13169/0.13169/0.13169 | 0.0108/0.0211/0.0356 | 0.0089/0.0168/0.0298 | 112/200 (56%, 49-63) | 1/200 (0%, 0-3) | 492/560/639 |
+| H0 | clean | before | 200/200/200 | 4/6/8 | 0/0/0 | 0.00051/0.00206/0.00823 | 0.1127/0.6784/1.4543 | 0.0269/0.0582/0.2444 | 16/100 (16%, 10-24) | 17/100 (17%, 11-26) | 456/929/1944 |
+| H0 | clean | after | 155/200/200 | 2/5/6 | 1/2/3 | 0.02881/0.13169/0.13169 | 0.0214/0.1203/1.3764 | 0.0170/0.0560/0.3165 | 27/100 (27%, 19-36) | 16/100 (16%, 10-24) | 439/538/597 |
+| H0 | realistic | before | 200/200/200 | 4/6/9 | 0/0/0 | 0.00026/0.00206/0.00823 | 0.1079/0.6550/1.4659 | 0.0325/0.0888/0.4092 | 20/100 (20%, 13-29) | 18/100 (18%, 12-27) | 434/616/1875 |
+| H0 | realistic | after | 155/200/200 | 2/4/6 | 1/3/3 | 0.13169/0.13169/0.13169 | 0.0179/0.1070/1.3582 | 0.0147/0.0724/0.4172 | 28/100 (28%, 20-37) | 15/100 (15%, 9-23) | 452/538/619 |
+<!-- /table:mcf_b1_end -->
+
+  `final_step_deg` is the step after the last update, which is the initial step after a failed last block; it is not the step at which the output was found.
+- **Improvement-probability curve** (P that one proposal of the step lowers the cost; median over cases, at the finisher's result and at the truth; it measures the landscape where the output is, so it changes with the output):
+
+<!-- table:mcf_b1_curve -->
+| set | mc | point | s0.001 | s0.002 | s0.005 | s0.02 | s0.05 | s0.1 | best_step |
+|---|---|---|---|---|---|---|---|---|---|
+| H3 | before | result | 0.21 | 0.27 | 0.21 | 0.04 | 0.01 | 0.00 | 0.0020 |
+| H3 | before | truth | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.0010 |
+| H3 | after | result | 0.28 | 0.29 | 0.18 | 0.01 | 0.00 | 0.00 | 0.0020 |
+| H3 | after | truth | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.0010 |
+| H0 | before | result | 0.03 | 0.11 | 0.12 | 0.06 | 0.02 | 0.01 | 0.0050 |
+| H0 | before | truth | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.0010 |
+| H0 | after | result | 0.04 | 0.04 | 0.01 | 0.01 | 0.01 | 0.00 | 0.0020 |
+| H0 | after | truth | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.0010 |
+<!-- /table:mcf_b1_curve -->
+
+<!-- table:mcf_b1_endcurve -->
+| set | mc | n_improving | mc_out_to_truth | last_block_step | P_at_last_block_step | P_at_own_step | best_step | P_at_0p0005 | P_at_0p005 |
+|---|---|---|---|---|---|---|---|---|---|
+| H3 | before | 122 | 0.0705 | 0.00026 | 0.00 | 0.00 | 0.0075 | 0.00 | 0.16 |
+| H3 | after | 133 | 0.0210 | 0.13169 | 0.00 | 0.00 | 0.0020 | 0.11 | 0.07 |
+| H0 | before | 97 | 0.6541 | 0.00103 | 0.00 | 0.00 | 0.1000 | 0.00 | 0.01 |
+| H0 | after | 97 | 0.1030 | 0.13169 | 0.01 | 0.00 | 0.0030 | 0.00 | 0.01 |
+<!-- /table:mcf_b1_endcurve -->
+
+  At the MC stage's own output (improving runs) the probability of an improving proposal is 0.00 at the step the last block ran (median 0.1317 deg, the reset step) and 0.11 at 0.0005 deg, with a best grid step of a median 0.0020 deg (before: output 0.0705 deg away, best step 0.0075 deg). That an improving step exists at 0.0005 to 0.005 deg while the last block runs at 0.1317 deg is consistent with the MC ending in blocks that are too coarse for the remaining distance; a different schedule after the last success was not tried.
+
+**B3 (`bench.py --methods mc_deployed,mc_april,vm_small`, 304 tasks, 2600 case-variants, 2053 s contended).** Realistic variant, cell = median error (deg) / fraction under 0.02 deg / fraction over 1 deg; the Nelder-Mead and CMA-ES rows are the stored B3 results (not rerun); "@ 250" etc. of `mc_april` reads the run at its natural stop (evaluations in the last two columns):
+
+<!-- table:mcf_T5-H3_realistic -->
+| method | before | after | ev_before | ev_after |
+|---|---|---|---|---|
+| (i) MC deployed (200 steps) | 0.0382 / 26% / 3.0% | 0.0175 / 55% / 2.5% | 201 | 193 |
+| (i) MC April sweep (3500 steps) @ 250 | 0.0635 / 18% / 1.0% | 0.0365 / 32% / 0.0% | 59 | 52 |
+| (i) MC April sweep (3500 steps) @ 1000 | 0.0635 / 19% / 1.0% | 0.0365 / 32% / 0.0% | 59 | 52 |
+| (i) MC April sweep (3500 steps) @ 2600 | 0.0635 / 19% / 1.0% | 0.0365 / 32% / 0.0% | 59 | 52 |
+| (vi) VarianceMinimizing, quarter box @ 250 | 0.0245 / 42% / 2.5% | 0.0279 / 40% / 2.5% | 250 | 250 |
+| (vi) VarianceMinimizing, quarter box @ 1000 | 0.0150 / 66% / 1.0% | 0.0176 / 54% / 2.5% | 1000 | 1000 |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 0.0122 / 76% / 1.0% | 0.0153 / 64% / 2.0% | 2600 | 2600 |
+| (vi) VarianceMinimizing, quarter box @ 10000 | 0.0096 / 86% / 0.5% | 0.0130 / 73% / 2.0% | 10000 | 10000 |
+| default finisher (MC + VM) | 0.0229 / 44% / 1.5% | 0.0168 / 56% / 0.5% | 2629 | 560 |
+| (iv) Nelder-Mead @ 250 (unchanged) | 0.0031 / 94% / 2.5% | 0.0031 / 94% / 2.5% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 250 (unchanged) | 0.0031 / 94% / 2.0% | 0.0031 / 94% / 2.0% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 1000 (unchanged) | 0.0022 / 96% / 2.0% | 0.0022 / 96% / 2.0% | 1000 | 1000 |
+<!-- /table:mcf_T5-H3_realistic -->
+
+<!-- table:mcf_SW_realistic -->
+| method | before | after | ev_before | ev_after |
+|---|---|---|---|---|
+| (i) MC deployed (200 steps) | 0.1609 / 11% / 5.8% | 0.0249 / 45% / 0.5% | 201 | 208 |
+| (i) MC April sweep (3500 steps) @ 250 | 0.1154 / 9% / 4.8% | 0.0239 / 45% / 0.2% | 250 | 137 |
+| (i) MC April sweep (3500 steps) @ 1000 | 0.1154 / 9% / 4.7% | 0.0239 / 45% / 0.2% | 1000 | 137 |
+| (i) MC April sweep (3500 steps) @ 2600 | 0.1154 / 9% / 4.7% | 0.0239 / 45% / 0.2% | 2600 | 137 |
+| (vi) VarianceMinimizing, quarter box @ 250 | 0.0731 / 23% / 1.3% | 0.0866 / 19% / 1.3% | 250 | 250 |
+| (vi) VarianceMinimizing, quarter box @ 1000 | 0.0148 / 64% / 0.3% | 0.0311 / 37% / 0.1% | 1000 | 1000 |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 0.0113 / 78% / 0.3% | 0.0229 / 46% / 0.0% | 2600 | 2600 |
+| (vi) VarianceMinimizing, quarter box @ 10000 | 0.0083 / 88% / 0.3% | 0.0158 / 57% / 0.0% | 10000 | 10000 |
+| default finisher (MC + VM) | 0.0357 / 30% / 0.0% | 0.0184 / 52% / 0.0% | 1776 | 584 |
+| (iv) Nelder-Mead @ 250 (unchanged) | 0.0034 / 86% / 3.1% | 0.0034 / 86% / 3.1% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 250 (unchanged) | 0.0038 / 92% / 0.2% | 0.0038 / 92% / 0.2% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 1000 (unchanged) | 0.0025 / 95% / 0.2% | 0.0025 / 95% / 0.2% | 1000 | 1000 |
+<!-- /table:mcf_SW_realistic -->
+
+<!-- table:mcf_T5-H0_realistic -->
+| method | before | after | ev_before | ev_after |
+|---|---|---|---|---|
+| (i) MC deployed (200 steps) | 0.6635 / 5% / 35.0% | 0.1199 / 31% / 34.0% | 201 | 208 |
+| (i) MC April sweep (3500 steps) @ 250 | 0.3451 / 3% / 21.0% | 0.0538 / 29% / 9.0% | 250 | 137 |
+| (i) MC April sweep (3500 steps) @ 1000 | 0.3451 / 3% / 21.0% | 0.0538 / 29% / 9.0% | 1000 | 137 |
+| (i) MC April sweep (3500 steps) @ 2600 | 0.3451 / 3% / 21.0% | 0.0538 / 29% / 9.0% | 2600 | 137 |
+| (vi) VarianceMinimizing, quarter box @ 250 | 0.4143 / 9% / 32.0% | 0.4739 / 9% / 33.0% | 250 | 250 |
+| (vi) VarianceMinimizing, quarter box @ 1000 | 0.0244 / 45% / 24.0% | 0.2579 / 20% / 32.0% | 1000 | 1000 |
+| (vi) VarianceMinimizing, quarter box @ 2600 | 0.0170 / 63% / 20.0% | 0.1806 / 28% / 29.0% | 2600 | 2600 |
+| (vi) VarianceMinimizing, quarter box @ 10000 | 0.0096 / 72% / 20.0% | 0.1378 / 32% / 29.0% | 10000 | 10000 |
+| default finisher (MC + VM) | 0.0888 / 20% / 18.0% | 0.0724 / 28% / 15.0% | 616 | 538 |
+| (iv) Nelder-Mead @ 250 (unchanged) | 0.0046 / 60% / 34.0% | 0.0046 / 60% / 34.0% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 250 (unchanged) | 0.0052 / 74% / 15.0% | 0.0052 / 74% / 15.0% | 250 | 250 |
+| (v) CMA-ES, sigma0 0.2 deg @ 1000 (unchanged) | 0.0026 / 83% / 15.0% | 0.0026 / 83% / 15.0% | 1000 | 1000 |
+<!-- /table:mcf_T5-H0_realistic -->
+
+How the deployed MC ended (no improvement over the start; ended before its 200-step budget, i.e. fewer than 201 evaluations):
+
+<!-- table:mcf_deployed -->
+| set | n | noimp_before | noimp_after | early_before | early_after | both_before | both_after | evals_med_before | evals_med_after |
+|---|---|---|---|---|---|---|---|---|---|
+| T5-H3 clean | 200 | 36.5% (30.1-43.4) | 31.5% (25.5-38.2) | 36.5% (30.1-43.4) | 54.5% (47.6-61.3) | 73 | 63 | 201 | 193 |
+| T5-H0 clean | 100 | 4.0% (1.6-9.8) | 6.0% (2.8-12.5) | 4.0% (1.6-9.8) | 45.0% (35.6-54.8) | 4 | 6 | 201 | 208 |
+| SW clean | 1000 | 3.8% (2.8-5.2) | 2.2% (1.5-3.3) | 3.8% (2.8-5.2) | 28.3% (25.6-31.2) | 38 | 22 | 201 | 208 |
+| T5-H3 realistic | 200 | 37.0% (30.6-43.9) | 33.0% (26.9-39.8) | 37.0% (30.6-43.9) | 56.0% (49.1-62.7) | 74 | 66 | 201 | 193 |
+| T5-H0 realistic | 100 | 2.0% (0.6-7.0) | 4.0% (1.6-9.8) | 2.0% (0.6-7.0) | 39.0% (30.0-48.8) | 2 | 4 | 201 | 208 |
+| SW realistic | 1000 | 4.2% (3.1-5.6) | 2.6% (1.8-3.8) | 4.3% (3.2-5.7) | 29.9% (27.1-32.8) | 42 | 26 | 201 | 208 |
+<!-- /table:mcf_deployed -->
+
+- **Deployed MC** (T5 H3 realistic, 200 cases, 26 voxels): 0.0382 to 0.0175 deg, under 0.02 deg 53 to 110 of 200, wrong 6 to 5, evaluations 201 to 193. Paired after vs before: 111 better and 20 worse (ties, |difference| < 0.002 deg: 69; exact sign test p = 1.8e-16), 18 voxels better and 0 worse of 26 (p = 7.6e-6); McNemar on "under 0.02 deg": 62 fail only before, 5 only after. Sweep (1000 cases, 50 voxels): 0.1609 to 0.0249 deg, under 0.02 deg 109 to 448 of 1000, wrong 58 to 5 (McNemar 57 against 4), 50 voxels better and 0 worse. T5 H0: 0.6635 to 0.1199 deg, wrong 35 to 34 of 100.
+- **Default finisher** (MC + VM): T5 H3 realistic 0.0229 to 0.0168 deg, 87 to 112 of 200 under 0.02 deg, median evaluations 2629 to 560; sweep 0.0357 to 0.0184 deg, 304 to 519 of 1000 under 0.02 deg, evaluations 1776 to 584; T5 H0 0.0888 to 0.0724 deg, wrong 18 to 15 (McNemar p = 0.45).
+- **VarianceMinimizing in a quarter box got worse at a fixed budget**: T5 H3 realistic at 2600 evaluations 0.0122 to 0.0153 deg (54 better, 78 worse, p = 0.045; voxels 4 against 9, p = 0.27); sweep 0.0113 to 0.0229 deg (0 voxels better, 47 worse of 50); T5 H0 at 10000 evaluations 0.0096 to 0.1378 deg, wrong 20 to 29 (only after wrong 9, only before 0, McNemar p = 0.0039; voxel-clustered sign test 1 voxel better and 13 worse of 16, p = 0.0018). Consistent with the C++ restart returning to the initial orientation instead of walking from the best; not tested separately.
+- **Reference rows (unchanged):** CMA-ES sigma0 0.2 deg at 250 evaluations 0.0031 / 94% (T5 H3) and 0.0038 / 92% (sweep); Nelder-Mead 0.0031 / 94% and 0.0034 / 86%.
+
+**E0 (200 voxels x 2 variants, no-start `reconstruct_voxel`, seed 0, `e0_cma.py run --tag mcfaithful`, 400 tasks, 5861 s contended).** The quick MC of the coarse stage changed, so both arms were rerun. The `mc` arm no longer equals the stored E0 run (0/200 identical; expected).
+
+<!-- table:e0_before_after -->
+| variant | method | n | wrong_before | wrong_after | only_after | only_before | p | med_both_before | med_both_after | evals_before | evals_after |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| clean | mc | 200 | 67/200 [0.273, 0.403] | 40/200 [0.150, 0.261] | 14 | 41 | 0.00036 | 0.0311 | 0.0100 | 49190 | 48442 |
+| clean | cma | 200 | 66/200 [0.269, 0.398] | 40/200 [0.150, 0.261] | 15 | 41 | 0.00069 | 0.0020 | 0.0017 | 49283 | 49372 |
+| realistic | mc | 200 | 52/200 [0.204, 0.325] | 25/200 [0.086, 0.178] | 5 | 32 | 7.4e-06 | 0.0278 | 0.0080 | 52406 | 51058 |
+| realistic | cma | 200 | 44/200 [0.168, 0.282] | 24/200 [0.082, 0.172] | 6 | 26 | 0.00054 | 0.0021 | 0.0020 | 54239 | 54491 |
+<!-- /table:e0_before_after -->
+
+Paired by voxel (exact McNemar, wrong = over 1 deg): the `mc` arm's wrong count falls from 67 to 40 of 200 (clean; the old-MC E0 cache has seeds 0-2 with 67 / 71 / 66 wrong, so the baseline is one seed of three;  41 voxels fixed, 14 newly wrong, p = 3.6e-4) and 52 to 25 (realistic; old seeds 0-2: 52 / 46 / 45, seed 0 is the highest, so against the seed mean 47.7 the drop is about 23;  32 fixed, 5 newly wrong, p = 7.4e-6). The `cma` arm falls 66 to 40 and 44 to 24. Within the new run `mc` and `cma` differ in one voxel (realistic: wrong only under `mc`; clean: none; p = 1.0), so the Phase C result "8 voxels wrong only under `mc`" is not reproduced. Precision among the right answers: `mc` 0.0107 / 0.0087 deg (clean / realistic; before 0.0301 / 0.0278), `cma` 0.0018 / 0.0021 deg (before 0.0019 / 0.0021). Mean cost evaluations per voxel: `mc` 48,442 / 51,058 and `cma` 49,372 / 54,491 (before 49,190 / 52,406 and 49,283 / 54,239); `cma` costs +1.9% / +6.7% over `mc` here. Final cost (exact equality is a tie) is lower under `cma` in 167 / 181 voxels, higher in 3 / 1, equal in 30 / 18. That the faithful quick MC lowers the wrong count of both arms by about the same amount is consistent with the change acting in the coarse stage (candidate ranking) rather than in the refinement; the `cma` arm replaces FindOptimal's MC and the VarianceMinimizing pass by CMA-ES (`CMAOptimizer` is unchanged on this branch), so it is the run in which only the quick MC changed, and its drop (66 to 40, 44 to 24) is attributed to the quick MC (the random stream also differs). Untested: which part of the quick MC matters (no halving inside the 10-step block, the extra start evaluation) and the candidate-ranking mechanism.
+
+**local_optimization "47/50 unchanged" (`validate_lib.py --tag mcfaithful`, 50 T5 H3 realistic cases).** Identical to the original: `local_optimization` with `mc` returned the start unchanged (to 1e-5 deg) in 47/50, moved closer in 1 and farther in 2; median error 0.0690 deg (12/50 under 0.02 deg, Wilson 0.14-0.37), median 662 evaluations; `cma`: 0.0028 deg, 48/50, 1001 evaluations. Every row equals the earlier record, including the VarianceMinimizing restart fix: this call site runs one VarianceMinimizing pass with a 5 deg box, and the same 47 starts are kept. It is a seeded-start result, not a BFS run, and the BFS neighbour conclusion (an `mc` neighbour keeps the inherited orientation) stands.
+
+**What still holds and what changed (MC conclusions).**
+- *Holds.* (1) For the finishing stage CMA-ES and Nelder-Mead remain more precise at a similar cost: T5 H3 realistic 0.0031 deg and 94% under 0.02 deg at 250 evaluations against 0.0175 deg and 55% for the faithful deployed MC (193 evaluations) and 0.0168 deg and 56% for the whole finisher (560 evaluations); sweep 0.0038 deg and 92% against 0.0249 / 45% and 0.0184 / 52%. The ratio of median errors to CMA-ES (unrounded) is 5.5 (T5 H3) and 6.5 (sweep) for the deployed MC and 5.3 and 4.8 for the whole finisher, against 12 and 42 for the deployed MC before. (2) Far starts stay wrong under every MC variant (T5 H0 wrong 34 and 15 of 100 for deployed MC and finisher; CMA-ES sigma0 0.2 deg 15). (3) `local_optimization` under `mc` keeps the inherited start (47/50). (4) CMA-ES's precision among the right E0 answers (0.0021 against 0.0087 deg realistic, 4.2 times).
+- *Changed.* (1) The B1 restart and step-collapse mechanism (no restart after a first improvement, `min_ergodic` jumping from 31 to 250, a halving at every improvement) described the old Python loop, not the C++ one; the lock-in is much weaker (MC output 0.0211 deg from the truth, before 0.0410). (2) "MC as deployed stops far above the truth, at 0.0382 / 0.1609 deg" is now 0.0175 / 0.0249 deg; the deployed MC ends before its budget in 54-56% of H3 runs (before 36-37%), including runs that improved. (3) The default finisher is cheaper (560 against 2629 median evaluations) and more precise (0.0168 against 0.0229 deg). (4) The E0 wrong count falls by 27 of 200 voxels in both variants (`mc`) and the `cma` advantage in wrong count disappears (1 voxel). (5) VarianceMinimizing in a quarter box is worse than recorded, especially from far starts. (6) The B2 audit of the April sweep compared methods against a MC that was not C++'s; its description of that sweep's data is unchanged.
+- *Untested.* Which of the three differences (block-level halving, restart base and width, fixed step inside a block) produces the improvement; why C++ passes fewer coarse candidates and exits FindOptimal at hit ratio 1.0 more often; single-worker timing of B3 (not repeated); other seeds; a BFS-scale run (the Phase D pilot).
+- *Caveats on earlier sections (no rerun).* T5 (finisher diagnosis) and A3 (does the gap matter) used the old MC and old VarianceMinimizing: their numbers describe that finisher (result 0.0229 deg, gap 0.028, the quarter-box continuation at about 19x evaluations, the `mc_smallstep` continuation). The Phase A landscape results (A1, A2) do not depend on the optimizer.
+
+- **Tests:** scripted semantics test `tests/test_mc_cpp_parity.py` (8 tests: block length and truncation, strict comparison, restart base / range / draw order, update order, stop rule, convergence check order, trajectory, evaluation count, inner-loop proposals); the VarianceMinimizing test gained a twin-generator replay of the restart offsets and tests for the box cap and the cost-and-variance exit. Re-recorded goldens (each pins a random draw of the MC): `GOLDEN` (`test_findoptimal_refactor.py`, 4 tests: rotation-vector error 0.960 deg and cost 0.8966 become 0.0386 deg and 0.2025) and `GOLDEN_REFINE` (`test_cma_optimizer.py`: 392 evaluations and cost 0.5902 become 304 and 0.4732); the old values are in the comments. `test_findoptimal_alone_reproduces_stored_experiment_b` compares with a result stored before the port, so it patches in frozen copies of the old loops (`tests/legacy_variance_stage.py`). `test_respects_budget_exactly[mc_deployed]` ran its toy problem to the convergence stop before 137 evaluations; the toy's convergence cost was set to 0. No `cpp_outputs`-based check was changed.
+
+
+#### Level-0 candidates: the overlap rule of CountQualifiedPeaks (2026-10-10, `feature/finisher-mc-study-level0-candidates`)
+
+Question (open question 7.3): why does a Python no-start search pass 1.24 to 1.53 times as many level-0 candidates to the quick MC as C++ (and make 1.31 to 1.57 times the evaluations)? **Answer: a port discrepancy in the peak-overlap rule, plus a smaller one in the point projected by the pixel-radius screen. Both are now available as one opt-in switch (config key `CppOverlapRule`, default off); the default is not flipped.** Code: `icenine/cost_functions.py` (`count_qualified_peaks_cpp`, `cpp_rule` argument, `VoxelCostFunction(cpp_overlap_rule, center_screen)`), `icenine/_rasterize.c` (`count_qualified_peaks_c`, optional trailing argument; the extension must be rebuilt after pulling, from `icenine_py/`: `uv run --no-project --with setuptools --with numpy python setup.py build_ext --inplace`; `uv sync --reinstall-package icenine` does not rebuild it, and a stale build with the rule on warns once and falls back to the slow Python loop), `icenine/orientation_search.py` (`run_discrete_search_spaced(recorder=...)`, `SearchParameters.cpp_overlap_rule`), `icenine/reconstructor.py` (`discrete_recorder`, `_cost_flags`), `icenine/config_file.py`; tests `tests/test_cpp_overlap_rule.py`, `tests/test_discrete_recorder.py`; scripts `scripts/phase_d/level0_trace.py`, `level0_summary.py`, `e0_cpprule.py`, `cost_offset_check.py`, `six_voxels_summary.py`, `level0_doc_tables.py`; data and run log in `benchmarks/phase_d_seed_diag/level0/` (`RUN_LOG.md`).
+
+**Step 1: the trace** (voxel 15901, clean full-sample images, Q-max 8; a scratch C++ build with debug prints, patch kept as `cpp_debug_patch_level0.py.txt` and `cpp_debug_full_scratch.diff.txt`; level 0 has no random draws, so the two are compared FZ point by FZ point). Order S4 settings, S1 screen, S2 re-cost, S3 spacing filter:
+
+- **S4 identical** at all four levels: 4,886 FZ points at level 0, 9 local-grid points, 24 symmetry operators, equal reciprocal-vector counts, diameters 5.000 / 3.333 / 2.222 / 1.481 deg.
+- **S1 differs:** pairs (FZ point, local-grid point) passing the screen are 12,326 in C++ and 35,267 in Python; the pass sets agree on 7 of 4,886 FZ points; the same for every local-grid index.
+- **Cause.** C++ `CountQualifiedPeaks` (`Src/OverlapInfo.tmpl.cpp:107-131`) gives a peak no overlap when detector 0 overlaps and a later detector is lit but not overlapping. Python (`cost_functions.py:191-213`) and the C hot path (`_rasterize.c:334-355`) count it. A per-peak C++ dump (3 FZ points, 76 peaks, local-grid point 0): the 6 peaks with overlap on detector 0 and a lit, non-overlapping detector 1 all get overlap 0; the one peak with overlap on both gets 1 (`cpp_peak_dump_fz0-2.txt`). The C++ screen also projects the voxel centroid (`VoxelToCenter`, `DiscreteAdaptive.h:130-136`), Python the first triangle vertex.
+- **S3 is not a source:** the library `_spacing_filter` applied to C++'s own screened lists reproduces C++'s kept lists on 3,537 of 3,537 cliques with at least 2 candidates (same set and order). S2 differs only through the same rule (median Python minus C++ re-cost -0.030, 0 with the rule).
+
+<!-- table:level0_settings -->
+| level | n_fz_cpp | n_fz_py | n_local_cpp | n_local_py | nqmax_cpp | n_recip_cpp | n_recip_py | diam_deg_cpp | diam_deg_py | n_sym_cpp | n_sym_py |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 4886 | 4886 | 9 | 9 | 5 | 26 | 26 | 5.000 | 5.000 | 24 | 24 |
+| 1 | 2037 | 2547 | 9 | 9 | 6 | 50 | 50 | 3.333 | 3.333 | 24 | 24 |
+| 2 | 631 | 876 | 9 | 9 | 7 | 64 | 64 | 2.222 | 2.222 | 24 | 24 |
+| 3 | 172 | 278 | 9 | 9 | 8 | 112 | 112 | 1.481 | 1.481 | 24 | 24 |
+<!-- /table:level0_settings -->
+
+<!-- table:level0_stages -->
+| python | screened_pairs_cpp | screened_pairs_py | fz_identical_screen | peak_overlap_equal | recost_median_diff | recost_within_1e6 | cliques_cpp | cliques_py | kept_cpp | kept_py |
+|---|---|---|---|---|---|---|---|---|---|---|
+| library default | 12326 | 35267 | 7 | 0.273 | -0.03 | 0.104 | 4491 | 4886 | 8151 | 10190 |
+| C++ overlap rule | 12326 | 12485 | 3341 | 0.940 | 0 | 0.849 | 4491 | 4513 | 8151 | 8206 |
+| C++ rule + centroid | 12326 | 12338 | 4466 | 0.986 | 0 | 0.853 | 4491 | 4480 | 8151 | 8110 |
+<!-- /table:level0_stages -->
+
+<!-- table:level0_peak_patterns -->
+| pattern | n_peaks | cpp_peak_overlap_sum |
+|---|---|---|
+| det0 bright=False, det1 lit=True, det1 bright=False | 29 | 0 |
+| det0 bright=False, det1 lit=True, det1 bright=True | 2 | 0 |
+| det0 bright=True, det1 lit=True, det1 bright=False | 6 | 0 |
+| det0 bright=True, det1 lit=True, det1 bright=True | 1 | 1 |
+| neither detector lit | 26 | 0 |
+| not on a detector (no projection hit) | 12 | 0 |
+<!-- /table:level0_peak_patterns -->
+
+<!-- table:level0_s3_cpp_inputs -->
+| voxel | n_cliques_with_ge2 | same_kept_set | same_kept_order |
+|---|---|---|---|
+| 15901 | 3537 | 3537 | 3537 |
+<!-- /table:level0_s3_cpp_inputs -->
+
+**Step 2: the switch, and what it does.** `CppOverlapRule 1` applies the literal C++ rule in both counters and the centroid projection in the radius-3 screen (the sub-flags `cpp_overlap_rule` / `center_screen` of `VoxelCostFunction`, and `SearchParameters.cpp_center_screen` for the A/B, are not config keys). Default off: the existing goldens pass unchanged (full suite 856 passed, 34 skipped, 1 deselected, including the new tests). Unit tests pin hand-built 2- and 3-detector patterns, including the `bPreviousOverlap` and `bOnPreviousDetector` quirks (C++: lit, unlit, lit is a valid peak; lit, unlit, unlit is not; one unlit non-overlapping detector is tolerated, a lit one is not), all patterns up to 4 detectors against an independent transcription, and the C path against the Python path.
+
+(a) Six interior voxels, seed 1, one process, full-sample clean images (`seed_diag.py run --opt cpp_overlap_rule=1 --tag cpprule`; wall times are single-process, 17034 was contended at the preflight on its last repeat; evaluation counts do not depend on load). Candidates and evaluations next to the stored Python-before (`mcport`) and C++ columns:
+
+<!-- table:level0_six_candidates -->
+| voxel | l0_cpp | l0_before | l0_rule | all_cpp | all_before | all_rule |
+|---|---|---|---|---|---|---|
+| 15901 | 8,151 | 10,190 | 8,110 | 11,562 | 15,149 | 11,498 |
+| 17034 | 8,284 | 10,382 | 8,283 | 11,609 | 15,483 | 11,689 |
+| 18558 | 7,026 | 10,271 | 7,048 | 9,973 | 15,349 | 10,004 |
+| 19889 | 7,673 | 10,308 | 7,683 | 10,820 | 15,341 | 10,877 |
+| 22867 | 8,234 | 10,236 | 8,233 | 11,549 | 15,277 | 11,613 |
+| 5242 | 6,674 | 10,213 | 6,674 | 9,461 | 15,144 | 9,452 |
+<!-- /table:level0_six_candidates -->
+
+<!-- table:level0_six_evals -->
+| voxel | evals_cpp | evals_before | evals_rule | evals_ratio_before | evals_ratio_rule | wall_cpp_s | wall_before_s | wall_rule_s | label_rule | err_before | err_rule |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 251,188 | 328,519 | 237,739 | 1.31 | 0.95 | 21.2 | 176 | 125 | single-process | 0.0170 | 0.0291 |
+| 17034 | 251,673 | 339,561 | 246,127 | 1.35 | 0.98 | 21.0 | 179 | 125 | single-process, contended | 0.0284 | 0.0639 |
+| 18558 | 219,790 | 329,367 | 209,728 | 1.50 | 0.95 | 16.2 | 171 | 106 | single-process | 0.0048 | 0.0034 |
+| 19889 | 236,372 | 330,209 | 226,453 | 1.40 | 0.96 | 18.4 | 176 | 115 | single-process | 0.0210 | 0.0212 |
+| 22867 | 250,852 | 335,687 | 244,186 | 1.34 | 0.97 | 19.1 | 174 | 125 | single-process | 0.0263 | 0.0530 |
+| 5242 | 209,927 | 330,577 | 204,646 | 1.57 | 0.97 | 10.5 | 171 | 102 | single-process | 0.0493 | 0.0281 |
+<!-- /table:level0_six_evals -->
+
+With the switch on, level-0 candidates are 0.995 to 1.003 times C++'s (before 1.24 to 1.53), all-level candidates 0.99 to 1.01 times, evaluations 0.95 to 0.98 times C++'s (before 1.31 to 1.57), and the wall time per no-start search falls from about 175 s to 102 to 125 s. All six answers are within 0.07 deg of the truth. The probe on 15901 (rule alone: 8,206 level-0 candidates, rule plus centroid 8,110, C++ 8,151; pass sets identical on 4,466 of 4,886 FZ points, peak overlap equal on 98.6% of the 43,974 pairs) shows that the rule is the main cause and the centroid a small correction; the remaining 1.4% is consistent with C++ interpolating the omegas of the perturbed orientations (maximum 0.12 deg from the exact value in the 12 cases dumped) while Python evaluates them exactly (not tested as the cause).
+
+<!-- table:level0_voxels -->
+| voxel | cpp | py_default | py_probe | ratio_default | ratio_probe |
+|---|---|---|---|---|---|
+| 15901 | 8,151 | 10,190 | 8,110 | 1.250 | 0.995 |
+| 17034 | 8,284 | 10,382 | 8,283 | 1.253 | 1.000 |
+| 18558 | 7,026 | 10,271 | 7,048 | 1.462 | 1.003 |
+| 19889 | 7,673 | 10,308 | 7,683 | 1.343 | 1.001 |
+| 22867 | 8,234 | 10,236 | 8,233 | 1.243 | 1.000 |
+| 5242 | 6,674 | 10,213 | 6,674 | 1.530 | 1.000 |
+<!-- /table:level0_voxels -->
+
+(c) Cost against C++ (160 start orientations of voxel 15901 with printed C++ costs): the earlier -0.013 mean offset (Python lower in 151 of 160) **vanishes with the rule on** (mean +0.00005, median -4e-10, 143 of 160 within 1e-6, correlation 0.99997 against 0.99896):
+
+<!-- table:level0_cost_offset -->
+| rule | n_within_1e6 | n_within_1e3 | mean_signed | median_signed | n_python_lower | n_python_higher | corr |
+|---|---|---|---|---|---|---|---|
+| off (library default) | 8 | 10 | -0.01311 | -1.24e-02 | 151 | 1 | 0.99896 |
+| on | 143 | 154 | 0.00005 | -3.95e-10 | 2 | 15 | 0.99997 |
+<!-- /table:level0_cost_offset -->
+
+Why the existing C++ ground-truth test did not catch it: the 2026-03 validation compared one voxel at its true orientation on a clean, isolated simulation (peak overlap 52 of 52 peaks on detector, identical in both), where every lit peak overlaps on both detectors, so the two rules agree; the hand-written unit tests of `count_qualified_peaks` have no case "detector 0 overlaps, detector 1 lit but dark"; and the `cpp_outputs/` ground truth covers diffraction geometry, not cost values (that directory is not present in this checkout, 34 tests are skipped). The rule matters at wrong orientations on dense images, where chance overlaps on detector 0 are common.
+
+(b) **E0, 200 voxels, seed 0, `mc` arm, per-voxel images, paired against the stored faithful-MC run** (40 / 25 wrong), switch on; timing preflight passed before the run (`e0/preflight_e0.json`), 10 workers, contended wall 16 min per arm (not a timing claim). **The accuracy is worse with the switch on**: wrong 40 to 61 (clean) and 25 to 42 (realistic) with rule + centroid, paired by voxel 17 fixed / 38 broken / 23 both wrong (clean) and 8 / 25 / 17 (realistic); 40 to 63 and 25 to 54 with the rule alone. Level-0 candidates fall from a median 172 to 123 (clean) and 248 to 175 (realistic). Truth-basin misses at level 0 (no candidate within 3 deg of the truth) rise from 4 to 6 and 2 to 10 (8 of the 10 realistic and 2 of the 6 clean cases are basins present without the switch; none the other way). Of the newly wrong cases, 38 of 38 (clean) and 20 of 25 (realistic), 58 of 63, still have the truth basin at level 0 in the stored E0 run's candidates (a candidate within 3 deg of the truth; Step 3 counts 59 of 63 from the trace re-run and classes the basin after the quick MC, so the two counts differ by one voxel and by definition; they were not reconciled voxel by voxel), i.e. they are lost later (ranking and pruning with the stricter cost); this is consistent with, not shown to be, the rule penalising near-truth candidates that overlap on detector 0 but not on the farther detector 1 (the 5-deg level-0 grid has points up to about 2.5 deg from the truth). The centroid projection helps slightly (rule alone is worse than rule plus centroid).
+
+<!-- table:cpprule_e0_on -->
+| variant | n | wrong_before | wrong_after | broken | fixed | both_wrong | med_both_before | med_both_after | evals_before | evals_after | basin_miss_before | basin_miss_after |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| clean | 200 | 40/200 [0.150, 0.261] | 61/200 [0.245, 0.372] | 38 | 17 | 23 | 0.0102 | 0.0187 | 48442 | 47174 | 4 | 6 |
+| realistic | 200 | 25/200 [0.086, 0.178] | 42/200 [0.159, 0.272] | 25 | 8 | 17 | 0.0079 | 0.0157 | 51058 | 48731 | 2 | 10 |
+<!-- /table:cpprule_e0_on -->
+
+<!-- table:cpprule_e0_rule -->
+| variant | n | wrong_before | wrong_after | broken | fixed | both_wrong | med_both_before | med_both_after | evals_before | evals_after | basin_miss_before | basin_miss_after |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| clean | 200 | 40/200 [0.150, 0.261] | 63/200 [0.255, 0.382] | 39 | 16 | 24 | 0.0093 | 0.0131 | 48442 | 47067 | 4 | 8 |
+| realistic | 200 | 25/200 [0.086, 0.178] | 54/200 [0.213, 0.335] | 36 | 7 | 18 | 0.0080 | 0.0118 | 51058 | 48487 | 2 | 9 |
+<!-- /table:cpprule_e0_rule -->
+
+**Step 3: C++ on the E0 voxels, and why Python with the rule loses them** (owner request: C++ should get the voxels right that the switch made wrong). Harness: `scripts/phase_d/e0_cpp.py` writes each case's stored pixel keys as C++ `.d` frames (`col, row, intensity`), cuts a one-voxel mic from the ManyGrains mic and runs the Release scratch build (patches 1 to 3, `cpp_debug_patch3_e0.py.txt`, env `CTRACE`) with the Phase D config (Q-max 8, `e0/cpp_template.config`); `e0_trace.py` records the Python side (switch off and on) with the existing `rec.recorder`; `e0_debug.py` compares them. One C++ run per case (the C++ random stream is fixed; 400 cases, 8 processes, 9 min). Differences to the Python E0 setup that remain: Python applies `min_sin_eta` 0.3 in its cost function (the images hold every spot; C++ has no such filter), and the random streams differ.
+
+- **C++ is not right on these voxels.** Wrong of 200 with the default C++ seed (one sample; Step 4 gives 56 to 71 clean and 46 to 52 realistic over three seeds): C++ 71 (clean) and 52 (realistic), against Python switch off 40 / 25 and on 61 / 42. Of the 63 voxels the switch made wrong (38 clean, 25 realistic), C++ is also wrong on 24 and 11 and right on 14 and 14. Paired by voxel, C++ against switch on (clean / realistic): C++ only wrong 28 / 28, switch on only wrong 18 / 18; against switch off: C++ only wrong 47 / 38, off only wrong 16 / 11.
+
+<!-- table:e0_cpp_vs_python -->
+| variant | n | py_off | py_on | cpp | newly_wrong | cpp_wrong_among_newly | cpp_only_vs_off | off_only_vs_cpp | cpp_only_vs_on | on_only_vs_cpp |
+|---|---|---|---|---|---|---|---|---|---|---|
+| clean | 200 | 40 | 61 | 71 [0.292, 0.423] | 38 | 24 | 47 | 16 | 28 | 18 |
+| realistic | 200 | 25 | 42 | 52 [0.204, 0.325] | 25 | 11 | 38 | 11 | 28 | 18 |
+<!-- /table:e0_cpp_vs_python -->
+
+- **The owner's hypothesis holds: FindOptimal gets no start near the truth.** Classes of the 63 voxels (basin = a candidate within 3 deg of the truth; "pruned L" = a candidate within 3 deg exists at level L after the quick MC but none among the kept 1/4, for level 3 none among the 30 handed to FindOptimal): switch on never 4, pruned at level 0 25, level 1 23, level 2 11, none reached FindOptimal with a basin candidate; C++ (wrong on 35 of the 63) never 4, pruned 0 15, 1 11, 2 5, none reached FindOptimal. Switch off keeps the basin in all 63 (closest candidate handed to FindOptimal: median 0.16 deg).
+
+<!-- table:e0_debug_classes -->
+| cls | py_off | py_on | cpp |
+|---|---|---|---|
+| never | 0 | 4 | 4 |
+| pruned 0 | 0 | 25 | 15 |
+| pruned 1 | 0 | 23 | 11 |
+| pruned 2 | 0 | 11 | 5 |
+| right | 63 | 0 | 28 |
+<!-- /table:e0_debug_classes -->
+
+- **Per level (medians over the 63):** the cost of the closest candidate is 0.96 to 0.98 against a best cost of 0.93 to 0.94 at level 0, with the rule on and in C++ (with the rule off, 0.962 against 0.927 but the closest candidate ranks 9 of 178 and is kept in 53 of 63; with it on, rank 29 of 125, kept in 28; C++ rank 18 of 124, kept in 41). With the rule a candidate 1 to 2 deg from the truth gets no credit for the peaks that overlap on detector 0 only, so its cost is nearly that of a wrong orientation and the 1/4 ranking cut removes it (levels 0 to 2). This is the mechanism consistent with every number above; the rule's effect on individual peaks was shown in Step 1, the link to the ranking was not tested by a controlled change of the ranking.
+
+<!-- table:e0_debug_levels -->
+| run | level | n | n_cand | closest_deg | rank | n_keep | survives | cost_closest | cost_best | within3 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| py_off | 0 | 63 | 178 | 1.12 | 9 | 44 | 53 | 0.962 | 0.927 | 63 |
+| py_off | 1 | 63 | 46 | 0.38 | 0 | 11 | 63 | 0.833 | 0.827 | 63 |
+| py_off | 2 | 63 | 12 | 0.20 | 0 | 3 | 63 | 0.679 | 0.665 | 63 |
+| py_off | 3 | 63 | 3 | 0.16 | 0 | 3 | 63 | 0.526 | 0.526 | 63 |
+| py_on | 0 | 63 | 125 | 1.56 | 29 | 31 | 28 | 0.981 | 0.937 | 59 |
+| py_on | 1 | 63 | 31 | 2.26 | 15 | 7 | 17 | 0.967 | 0.907 | 35 |
+| py_on | 2 | 63 | 7 | 7.22 | 4 | 1 | 2 | 0.951 | 0.861 | 12 |
+| py_on | 3 | 63 | 1 | 38.19 | 0 | 1 | 63 | 0.875 | 0.843 | 0 |
+| cpp | 0 | 63 | 124 | 1.27 | 18 | 31 | 41 | 0.976 | 0.935 | 59 |
+| cpp | 1 | 63 | 32 | 1.09 | 5 | 8 | 37 | 0.954 | 0.896 | 44 |
+| cpp | 2 | 63 | 8 | 2.21 | 2 | 2 | 28 | 0.940 | 0.814 | 33 |
+| cpp | 3 | 63 | 2 | 18.94 | 0 | 2 | 63 | 0.797 | 0.782 | 28 |
+<!-- /table:e0_debug_levels -->
+
+- **Where Python (switch on) first differs from C++:** nowhere before the quick MC. The level-0 candidate sets are the same (median 97.8% of C++'s candidates found in Python within 1e-5, median re-cost difference 0; switch off 95.2%, with about 178 candidates against C++'s 124); the 4 "never" voxels are the same class in both. Later levels depend on the random streams, so they are compared statistically: over all 400 cases the counts of wrong are C++ 56 to 71 and 46 to 52 over three seeds (mean 64.3 and 50.0; 123 for the default seed alone), switch on 103 (at `min_sin_eta` 0.3; 112 at 0, Step 4), switch off 65. With `min_sin_eta` 0.3 the switch-on count is below the default-seed C++ count, but Step 4 shows it is not below C++ like for like on the realistic voxels. The 63 voxels were selected as wrong with the switch on, so C++ being right on 28 of them is consistent with that selection (not tested), not evidence of a Python defect.
+
+<!-- table:e0_debug_level0_match -->
+| py | n_py_median | n_cpp_median | cpp_cands_matched_frac_median | median_abs_cost_diff |
+|---|---|---|---|---|
+| on | 125 | 124 | 0.978 | 0.00e+00 |
+| off | 178 | 124 | 0.952 | 0.00e+00 |
+<!-- /table:e0_debug_level0_match -->
+
+- **Reading.** The C++ rule is the faithful behaviour and the E0 accuracy loss is consistent with being a property of it: C++ also loses these voxels (35 of the 63 with its default seed). The loss appears at the quick-MC ranking with a cost that is nearly flat (0.95 to 0.98) around the truth at levels 0 to 2; the link between the flat cost and the ranking was not tested by a controlled change of the ranking. See Step 4 for the like-for-like caveat. No fix was written (stop point of the owner).
+
+**Step 4: is the C++ E0 run fair?** (owner check before trusting C++ 71 / 52). Config diff, cost check, Python with `min_sin_eta` 0, and two more C++ seeds; no change to the search.
+
+- **(a) Config.** Key by key (`e0/cpp_config_diff.md`) the C++ template equals the Python E0 parameters: grid radius 5 deg, levels 0 to 3, nQMax 5 to 8, `MaxDiscreteCandidates` 30, `MaxAcceptedCost`, `MaxConvergenceCost`, 200 MC steps, restarts 2, radius scale, `EtaLimit` 86, pixel radius 3 / 0, beam and detector geometry, FZ, omega range and structure files. The two differences: Python applies `min_sin_eta` 0.3 (C++ has no such filter), and the random streams. Nothing to fix in the C++ config; keys C++ reads but the single-voxel path does not use are listed (not checked line by line).
+- **(b) Cost at and near the truth** (10 cases, clean and realistic, C++ right and wrong, Python-on right and wrong; the truth and rotations of 0.1, 0.3 and 1.0 deg; patch 4 `CEVAL` evaluates C++'s local cost function). With `min_sin_eta` 0 and the rule on, Python equals C++ to 4 digits in 29 of the 40 points (median difference 0, maximum quality difference 0.016, from single-peak count differences whose cause was not examined); with the rule off the confidence differs by a median 0.083 (maximum 0.23). This is consistent with a correct `.d` frame conversion and setup; 11 of the 40 points do not agree to 4 digits (single-peak count differences, cause not examined).
+
+<!-- table:e0_cost_check -->
+| py_min_sin_eta | py_rule | n | median_abs_dq | max_abs_dq | median_abs_dconf | max_abs_dconf | same_peak_counts |
+|---|---|---|---|---|---|---|---|
+| 0.3 | off | 40 | 0.0093 | 0.0391 | 0.0892 | 0.2405 | 1 |
+| 0.3 | on | 40 | 0.0029 | 0.0198 | 0.0058 | 0.0212 | 3 |
+| 0.0 | off | 40 | 0.0138 | 0.0446 | 0.0830 | 0.2273 | 7 |
+| 0.0 | on | 40 | 0.0000 | 0.0161 | 0.0000 | 0.0161 | 29 |
+<!-- /table:e0_cost_check -->
+
+- **(c) and (d) E0 with `min_sin_eta` 0, and C++ with three seeds** (the C++ random engine is a default-seeded `mt19937`; patch 4b adds env `CSEED`; one case, 3108 clean, is wrong with the default seed and right with seed 1, so one seed is a sample). Wrong of 200 per variant:
+
+<!-- table:e0_fairness_counts -->
+| variant | n | py_off | py_on | py_off_ms0 | py_on_ms0 | cpp_s0 | cpp_s1 | cpp_s2 | cpp_mean | cpp_wrong_all_seeds | cpp_wrong_any_seed |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| clean | 200 | 40 | 61 | 39 | 56 | 71 | 56 | 66 | 64.3 | 28 | 105 |
+| realistic | 200 | 25 | 42 | 18 | 56 | 52 | 46 | 52 | 50.0 | 25 | 83 |
+<!-- /table:e0_fairness_counts -->
+
+  C++ 71 / 52 (default seed) stands as one sample; over three seeds it is 56 to 71 clean and 46 to 52 realistic (mean 64.3 and 50.0), 28 and 25 voxels wrong in all three seeds, 105 and 83 wrong in at least one. Python with the rule on and `min_sin_eta` 0 (the like-for-like setting) is wrong on 56 / 56; with 0.3, 61 / 42; with the rule off 39 / 18 (0) and 40 / 25 (0.3). On the voxels the switch broke:
+
+<!-- table:e0_fairness_broken -->
+| setting | variant | n | off_wrong | on_wrong | broken | fixed | both_wrong | cpp_s0_wrong_on_broken | cpp_s1_wrong_on_broken | cpp_s2_wrong_on_broken |
+|---|---|---|---|---|---|---|---|---|---|---|
+| min_sin_eta 0.3 | clean | 200 | 40 | 61 | 38 | 17 | 23 | 24 | 13 | 17 |
+| min_sin_eta 0.3 | realistic | 200 | 25 | 42 | 25 | 8 | 17 | 11 | 10 | 16 |
+| min_sin_eta 0 | clean | 200 | 39 | 56 | 34 | 17 | 22 | 18 | 13 | 19 |
+| min_sin_eta 0 | realistic | 200 | 18 | 56 | 44 | 6 | 12 | 22 | 19 | 22 |
+<!-- /table:e0_fairness_broken -->
+
+  C++ is wrong on 13 to 24 of the 38 broken clean voxels and 10 to 16 of the 25 realistic ones depending on the seed (with `min_sin_eta` 0: 13 to 19 of 34 and 19 to 22 of 44). So C++ also loses roughly half of the voxels the switch breaks in Python, and a different seed rescues different ones; the single-seed numbers of Step 3 are replaced by these ranges. The claim that the loss belongs to the C++ rule is consistent with these counts but needs a caveat: like for like (`min_sin_eta` 0) Python with the rule is wrong on 56 of the 200 realistic voxels, more than C++ on each of its three seeds (46, 52, 52), and paired against the rule off (18 wrong) 6 fixed / 44 broken / 12 both wrong. So on the realistic voxels Python with the rule is not shown to be no worse than C++; no C++ run with the Python rule exists to separate the rule from other differences.
+
+- **Reading (Steps 2 and 3).** The switch makes the Python level-0 stage and the cost values match the C++ code (S1, S2, S3, six-voxel counts), which is the port goal. The E0 accuracy loss is a property of the C++ rule on these images, not a Python defect: C++ is wrong on 56 to 71 (clean) and 46 to 52 (realistic) of the 200 voxels over three seeds (Steps 3 and 4), while Python with the rule and `min_sin_eta` 0 is wrong on 56 of the 200 realistic voxels, above every C++ seed. It is still a reason not to flip the default blindly.
+- **A default flip would change** 11 tests (`default_flip_would_change.md`: `GOLDEN` in `test_findoptimal_refactor.py`, `GOLDEN_REFINE` and default-path goldens in `test_cma_optimizer.py`, three `test_coarse_proxy.py` equalities, `test_nn_hybrid.py` stored experiment B) and in principle every stored result computed through `VoxelCostFunction` on the 2-detector data (Phase A to D, E0, seed-cost diagnosis and pilot tables, hit-ratio thresholds, NN/proxy labels).
+- **Left undone:** other Python seeds for E0 (only seed 0 was run in Python; the C++ seeds 0 to 2 and the Python `min_sin_eta` 0 run are done); a controlled test of the ranking cut; the effect of the rule on the reseed pilot and the BFS acceptance thresholds; interpolation as the cause of the remaining 1.4%.
+
+#### Ray-consistency overlap rule (2026-10-11, `feature/finisher-mc-study-ray-overlap`)
+
+Owner's idea: when a predicted spot is bright on detector 0 but the predicted detector-1 spot is dark, the C++
+rule calls the peak invalid even if the OBSERVED ray (voxel through the bright detector-0 pixel) lands on a bright
+detector-1 pixel, which is what a real spot from a slightly different orientation would do. Steps 1 and 2 of the plan
+(peak level, coarse stage) are done; the 30-voxel coarse rerun and step 3 (E0 end to end, six full-sample voxels) are at the end of this section.
+
+**Two costs differ by design.** The rule (`icenine/ray_overlap.py`, `RayRule`) is used only for the coarse levels
+0-2 (pixel-radius screen, re-cost, quick MC, ranking cut). FindOptimal, VarianceMinimizing, the final cost and the
+confidence use the strict predicted-spot rule (the C++ rule when `CppOverlapRule` is 1). The level loop in
+`AdaptiveVoxelReconstructor.reconstruct_voxel` picks the cost function per level (`_ray_rule_for_level`); the coarse
+levels turn the C++ rule and the centroid screen on as well. Off by default (config `RayOverlapRule off|R<n>|A`);
+default behaviour and the goldens are unchanged. (The key `RayOverlapF1` of the first version was removed, see the
+decision below.)
+
+**Decision 2026-10-12 (owner): case f1 dropped.** Case f (predicted spot out of bounds on detector 1, observed ray
+lands in bounds on dark pixels) is always forgiven (f0, as in the C++ rule). The f1 variant (reject) wrongly rejected
+real peaks: at the truth the screen kept 0.966 of the evaluations for arm A with f1 against 0.994 with f0 (clean images,
+step 1; case f fired for 0.029 of the events at the truth), and steps 1-2 showed no benefit. The key `RayOverlapF1`,
+the `ray_f1` argument of the C stage and the f1 code path are removed; arm names in the result files keep the `f0_`
+prefix and the f1 rows in the tables below are the historical result. May revisit.
+
+**Speed (2026-10-12).** The observed-ray check is now one C call per evaluation (`_rasterize.ray_flags`, next to
+`stage_d_overlap`; `ray_overlap.ray_flags` stays as the Python reference, switch `cost_functions.USE_C_RAY_FLAGS`).
+Identical flags, costs and case counts on 5784 evaluations; per-level results of the coarse stage identical on 3 voxels
+(full suite 872 passed, 34 skipped, 1 deselected). Per voxel, levels 0-2, single-worker: arm R2 from 293 / 294 / 289 s to
+132 / 131 / 132 s, arm A from 340 / 337 / 335 s to 149 / 149 / 148 s (voxels 22867, 15901, 17034), against 117 / 116 / 118 s
+for the cpp arm and 162 / 164 / 168 s for the old arm (unchanged code). Profile of the cpp arm: 233,546 single-orientation
+evaluations, about 0.5 ms each, almost all Python / torch overhead (the C overlap stage is 5% of the time); batching
+orientations per call was not attempted (not guaranteed bit-identical). Details in `ray_overlap/RUN_LOG.md` section 7.
+
+**Rule, per peak, per later detector, once the predicted detector-0 spot overlaps:** a predicted bright: valid;
+b predicted in bounds and dark, observed ray bright: valid; c both in bounds and dark: invalid; d both out of bounds:
+valid; e predicted in bounds and dark, observed ray out of bounds: valid; f predicted out of bounds, observed in
+bounds and dark: valid (f0, the C++ rule forgives; the f1 variant was dropped, see the decision). Tolerance on detector 1: arm R an isotropic square of
+1, 2, 4 or 8 pixels; arm A an anisotropic window (voxel size x (L1/L0-1) + detector-0 pixel x L1/L0 + registration
+`DetectorSpacingDeviation`, plus arc motion r d_omega (L1/L0-1) along the arc direction; orientation-gradient blur
+ignored). Implementation choices that the plan left open: the ray starts at the voxel centroid at the peak's omega;
+the detector-0 bright pixels are those of the +-radius window (screen) or the bounding box of the projected triangle
+(local cost), at most 64; every term of arm A is a half-width; d_omega is the omega step of the range map (2 deg);
+predicted out of bounds with the observed ray bright is left as in the C++ rule. Code: C stage argument block in
+`_rasterize.c` (`HAS_RAY_RULE`, rebuild from `icenine_py/`), `ray_flags` in `ray_overlap.py`; 8 tests in
+`tests/test_ray_overlap.py` (cases a-f on the C stage, C equals the Python twin, geometry and windows, config keys,
+levels 0-2 only).
+
+**Step 1: peak level, no search.** 30 voxels (the 6 seed-diag voxels, the 18 random voxels, 6 drawn with seed 11), the
+full-sample clean and realistic images, Q-max 5, `min_sin_eta` 0; per voxel the truth, 10 orientations at each of
+0.5 / 1 / 2 / 5 deg and 200 random ones. "kept" = valid overlapping peaks / detector-0 overlaps, peaks pooled over
+voxels (Wilson interval in `summary.json`; peaks of one voxel are not independent, so the interval is optimistic); the
+old rule's screen projects vertex 0 so its denominator is approximate. "pass" = share of evaluations with at least
+one valid overlapping peak (the screen condition). Truth and 0.5 deg are orientations the screen should keep; at 1
+deg and beyond the right answer is not "keep".
+
+<!-- table:ray_peak_clean_screen -->
+| arm | kept truth | pass truth | kept near1.0 | pass near1.0 | kept near5.0 | pass near5.0 | kept random | pass random |
+|---|---|---|---|---|---|---|---|---|
+| old | 1.000 | 1.000 | 1.000 | 0.997 | 1.006 | 0.837 | 0.999 | 0.781 |
+| cpp | 0.994 | 1.000 | 0.656 | 0.973 | 0.279 | 0.370 | 0.209 | 0.266 |
+| f0_R1 | 0.996 | 1.000 | 0.902 | 0.973 | 0.367 | 0.457 | 0.244 | 0.300 |
+| f1_R1 | 0.996 | 1.000 | 0.902 | 0.973 | 0.361 | 0.450 | 0.243 | 0.299 |
+| f0_R2 | 0.994 | 1.000 | 0.907 | 0.973 | 0.371 | 0.460 | 0.258 | 0.312 |
+| f1_R2 | 0.994 | 1.000 | 0.905 | 0.973 | 0.365 | 0.457 | 0.256 | 0.310 |
+| f0_R4 | 0.994 | 1.000 | 0.910 | 0.973 | 0.389 | 0.467 | 0.287 | 0.343 |
+| f1_R4 | 0.987 | 1.000 | 0.903 | 0.973 | 0.383 | 0.463 | 0.284 | 0.340 |
+| f0_R8 | 0.994 | 1.000 | 0.913 | 0.977 | 0.435 | 0.507 | 0.352 | 0.403 |
+| f1_R8 | 0.973 | 1.000 | 0.894 | 0.973 | 0.431 | 0.503 | 0.342 | 0.394 |
+| f0_A | 0.994 | 1.000 | 0.927 | 0.980 | 0.501 | 0.567 | 0.435 | 0.474 |
+| f1_A | 0.966 | 1.000 | 0.902 | 0.980 | 0.490 | 0.560 | 0.418 | 0.459 |
+<!-- /table:ray_peak_clean_screen -->
+
+<!-- table:ray_peak_realistic_screen -->
+| arm | kept truth | pass truth | kept near1.0 | pass near1.0 | kept near5.0 | pass near5.0 | kept random | pass random |
+|---|---|---|---|---|---|---|---|---|
+| old | 0.998 | 1.000 | 1.005 | 0.993 | 1.004 | 0.823 | 1.000 | 0.770 |
+| cpp | 0.909 | 1.000 | 0.624 | 0.957 | 0.281 | 0.370 | 0.206 | 0.255 |
+| f0_R1 | 0.912 | 1.000 | 0.821 | 0.960 | 0.349 | 0.447 | 0.241 | 0.287 |
+| f1_R1 | 0.912 | 1.000 | 0.820 | 0.960 | 0.345 | 0.443 | 0.239 | 0.285 |
+| f0_R2 | 0.909 | 1.000 | 0.831 | 0.960 | 0.362 | 0.453 | 0.253 | 0.300 |
+| f1_R2 | 0.907 | 1.000 | 0.828 | 0.960 | 0.359 | 0.450 | 0.251 | 0.298 |
+| f0_R4 | 0.909 | 1.000 | 0.835 | 0.960 | 0.374 | 0.453 | 0.279 | 0.326 |
+| f1_R4 | 0.901 | 1.000 | 0.827 | 0.960 | 0.370 | 0.450 | 0.275 | 0.322 |
+| f0_R8 | 0.916 | 1.000 | 0.841 | 0.963 | 0.417 | 0.490 | 0.338 | 0.380 |
+| f1_R8 | 0.895 | 1.000 | 0.820 | 0.960 | 0.414 | 0.487 | 0.327 | 0.369 |
+| f0_A | 0.918 | 1.000 | 0.856 | 0.970 | 0.478 | 0.543 | 0.409 | 0.441 |
+| f1_A | 0.888 | 1.000 | 0.829 | 0.970 | 0.467 | 0.537 | 0.391 | 0.425 |
+<!-- /table:ray_peak_realistic_screen -->
+
+<!-- table:ray_peak_clean_local -->
+| arm | kept truth | pass truth | kept near1.0 | pass near1.0 | kept near5.0 | pass near5.0 | kept random | pass random |
+|---|---|---|---|---|---|---|---|---|
+| old | 1.000 | 1.000 | 1.000 | 0.940 | 1.000 | 0.500 | 1.000 | 0.385 |
+| cpp | 1.000 | 1.000 | 0.590 | 0.813 | 0.208 | 0.127 | 0.143 | 0.067 |
+| f0_R1 | 1.000 | 1.000 | 0.823 | 0.890 | 0.272 | 0.170 | 0.172 | 0.079 |
+| f1_R1 | 0.996 | 1.000 | 0.823 | 0.890 | 0.272 | 0.170 | 0.169 | 0.078 |
+| f0_R2 | 1.000 | 1.000 | 0.877 | 0.903 | 0.302 | 0.190 | 0.201 | 0.092 |
+| f1_R2 | 0.996 | 1.000 | 0.877 | 0.903 | 0.292 | 0.183 | 0.198 | 0.091 |
+| f0_R4 | 1.000 | 1.000 | 0.903 | 0.907 | 0.361 | 0.217 | 0.248 | 0.113 |
+| f1_R4 | 0.990 | 1.000 | 0.900 | 0.907 | 0.351 | 0.217 | 0.242 | 0.110 |
+| f0_R8 | 1.000 | 1.000 | 0.918 | 0.913 | 0.426 | 0.247 | 0.320 | 0.142 |
+| f1_R8 | 0.973 | 1.000 | 0.907 | 0.907 | 0.416 | 0.247 | 0.308 | 0.138 |
+| f0_A | 1.000 | 1.000 | 0.929 | 0.917 | 0.505 | 0.290 | 0.409 | 0.178 |
+| f1_A | 0.969 | 1.000 | 0.912 | 0.910 | 0.490 | 0.287 | 0.391 | 0.172 |
+<!-- /table:ray_peak_clean_local -->
+
+Case shares of the later-detector events (clean images; arms f0 and f1 differ only in what the invalid case f does,
+so their shares coincide except through the changed events):
+
+<!-- table:ray_cases_clean -->
+| arm | a truth | b truth | c truth | d truth | e truth | f_dark truth | f_bright truth | a random | b random | c random | d random | e random | f_dark random | f_bright random | events truth | events random |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| f0_R1 | 0.868 | 0.000 | 0.004 | 0.126 | 0.002 | 0.000 | 0.000 | 0.090 | 0.031 | 0.756 | 0.118 | 0.004 | 0.001 | 0.000 | 524 | 8942 |
+| f1_R1 | 0.868 | 0.000 | 0.004 | 0.126 | 0.002 | 0.000 | 0.000 | 0.090 | 0.031 | 0.756 | 0.118 | 0.004 | 0.001 | 0.000 | 524 | 8942 |
+| f0_R2 | 0.868 | 0.000 | 0.006 | 0.126 | 0.000 | 0.000 | 0.000 | 0.090 | 0.045 | 0.742 | 0.117 | 0.003 | 0.002 | 0.000 | 524 | 8942 |
+| f1_R2 | 0.868 | 0.000 | 0.006 | 0.126 | 0.000 | 0.000 | 0.000 | 0.090 | 0.045 | 0.742 | 0.117 | 0.003 | 0.002 | 0.000 | 524 | 8942 |
+| f0_R4 | 0.868 | 0.000 | 0.006 | 0.118 | 0.000 | 0.008 | 0.000 | 0.090 | 0.076 | 0.713 | 0.116 | 0.002 | 0.003 | 0.000 | 524 | 8942 |
+| f1_R4 | 0.868 | 0.000 | 0.006 | 0.118 | 0.000 | 0.008 | 0.000 | 0.090 | 0.076 | 0.713 | 0.116 | 0.002 | 0.003 | 0.000 | 524 | 8942 |
+| f0_R8 | 0.868 | 0.000 | 0.006 | 0.105 | 0.000 | 0.021 | 0.000 | 0.090 | 0.143 | 0.648 | 0.108 | 0.000 | 0.010 | 0.001 | 524 | 8942 |
+| f1_R8 | 0.868 | 0.000 | 0.006 | 0.105 | 0.000 | 0.021 | 0.000 | 0.090 | 0.143 | 0.648 | 0.108 | 0.000 | 0.010 | 0.001 | 524 | 8942 |
+| f0_A | 0.868 | 0.000 | 0.006 | 0.095 | 0.000 | 0.029 | 0.002 | 0.090 | 0.226 | 0.565 | 0.100 | 0.000 | 0.017 | 0.002 | 524 | 8942 |
+| f1_A | 0.868 | 0.000 | 0.006 | 0.095 | 0.000 | 0.029 | 0.002 | 0.090 | 0.226 | 0.565 | 0.100 | 0.000 | 0.017 | 0.002 | 524 | 8942 |
+<!-- /table:ray_cases_clean -->
+
+- **Filtering power.** The ray rule sits between the old rule and the C++ rule: at random orientations the valid
+  share of detector-0 overlaps is 0.209 (C++ rule) and 0.244 (R1) to 0.435 (A) for the ray arms, so the ray rule
+  filters LESS than the C++ rule it is built on, by an amount that grows with the tolerance (0.352 at R8), and
+  more than the old rule, which keeps essentially all of them (clean images, screen). The extra validated peaks are
+  mostly case b (the C++ rule's case c turned valid): 0.031 (R1) to 0.226 (A) of random-orientation events, against
+  0.756 to 0.565 still invalid.
+- **Missed solutions.** At the truth the kept share is 0.994 for the C++ rule and 0.996 (R1, f0) to 0.994 (A, f0); with
+  f1 it drops to 0.966 for arm A (case f fires at the truth for 0.029 of events), the cost of the stricter variant. At
+  1 deg from the truth the kept share rises from 0.656 (C++ rule) to 0.902 (R1) to 0.927 (A, f0): the rule keeps more of
+  the near-truth peaks than the C++ rule does, and the pass rate at 5 deg also rises (0.370 for the C++ rule, 0.457 for R1, 0.567 for A, f0): the filtering
+  price. The numbers are for clean images; realistic images give the same ordering.
+
+**Step 2: coarse stage, no FindOptimal.** 12 voxels (the first 12 of the 30: the 6 seed-diag and 6 random), clean and
+realistic full-sample images, all 12 arms, levels 0-2 with the same MC seed per voxel and no FindOptimal. Candidates
+and the cut are per voxel, "basin_surv" = a candidate within 3 deg of the truth after the quick MC ranks inside the
+kept quarter (Wilson interval over the 12 voxels); "closest_kept" = the closest candidate itself is inside the kept
+set. Evaluations are cost-function calls of that level. The compute was about 100 times the plan's 1-2 s per voxel per
+arm: one voxel-arm is 131 to 203 s for the old and C++ rules and 313 to 392 s for the ray arms (median over the 12
+voxels, contended, 10 workers), which is why step 2 uses 12 voxels, not 30.
+
+<!-- table:ray_coarse_clean -->
+| arm | level | cand_median | keep_median | evals_median | basin_surv | surv_ci | closest_kept | d_min_disc | d_min_qmc | rank_closest |
+|---|---|---|---|---|---|---|---|---|---|---|
+| old | 0 | 10240 | 2560 | 201366 | 12/12 | 0.76-1.00 | 12/12 | 1.536 | 0.987 | 8 |
+| old | 1 | 3520 | 880 | 87324 | 12/12 | 0.76-1.00 | 12/12 | 0.734 | 0.241 | 0 |
+| old | 2 | 1121 | 280 | 29218 | 12/12 | 0.76-1.00 | 12/12 | 0.241 | 0.167 | 0 |
+| cpp | 0 | 7832 | 1958 | 149696 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.612 | 0 |
+| cpp | 1 | 2386 | 596 | 56202 | 12/12 | 0.76-1.00 | 12/12 | 0.612 | 0.294 | 0 |
+| cpp | 2 | 650 | 162 | 17130 | 12/12 | 0.76-1.00 | 12/12 | 0.294 | 0.128 | 0 |
+| f0_R1 | 0 | 8216 | 2054 | 155758 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.783 | 2 |
+| f0_R1 | 1 | 2545 | 636 | 60344 | 12/12 | 0.76-1.00 | 12/12 | 0.728 | 0.217 | 0 |
+| f0_R1 | 2 | 706 | 176 | 18688 | 12/12 | 0.76-1.00 | 12/12 | 0.217 | 0.118 | 0 |
+| f1_R1 | 0 | 8207 | 2052 | 155606 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.889 | 2 |
+| f1_R1 | 1 | 2516 | 628 | 59922 | 12/12 | 0.76-1.00 | 12/12 | 0.582 | 0.315 | 0 |
+| f1_R1 | 2 | 694 | 173 | 18406 | 12/12 | 0.76-1.00 | 12/12 | 0.304 | 0.110 | 0 |
+| f0_R2 | 0 | 8298 | 2074 | 157361 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.815 | 2 |
+| f0_R2 | 1 | 2564 | 641 | 61187 | 12/12 | 0.76-1.00 | 12/12 | 0.698 | 0.262 | 0 |
+| f0_R2 | 2 | 716 | 179 | 18930 | 12/12 | 0.76-1.00 | 12/12 | 0.262 | 0.139 | 0 |
+| f1_R2 | 0 | 8282 | 2070 | 157082 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.750 | 2 |
+| f1_R2 | 1 | 2526 | 632 | 60622 | 12/12 | 0.76-1.00 | 12/12 | 0.435 | 0.213 | 0 |
+| f1_R2 | 2 | 706 | 176 | 18758 | 12/12 | 0.76-1.00 | 12/12 | 0.199 | 0.099 | 0 |
+| f0_R4 | 0 | 8469 | 2117 | 160804 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.834 | 4 |
+| f0_R4 | 1 | 2582 | 645 | 62757 | 12/12 | 0.76-1.00 | 12/12 | 0.595 | 0.289 | 0 |
+| f0_R4 | 2 | 724 | 181 | 19373 | 12/12 | 0.76-1.00 | 12/12 | 0.286 | 0.110 | 0 |
+| f1_R4 | 0 | 8441 | 2110 | 160332 | 12/12 | 0.76-1.00 | 12/12 | 1.618 | 0.732 | 1 |
+| f1_R4 | 1 | 2573 | 642 | 62324 | 12/12 | 0.76-1.00 | 12/12 | 0.568 | 0.199 | 0 |
+| f1_R4 | 2 | 711 | 177 | 19186 | 12/12 | 0.76-1.00 | 12/12 | 0.188 | 0.067 | 0 |
+| f0_R8 | 0 | 8917 | 2229 | 168988 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 0.364 | 0 |
+| f0_R8 | 1 | 2682 | 670 | 66988 | 12/12 | 0.76-1.00 | 12/12 | 0.364 | 0.186 | 0 |
+| f0_R8 | 2 | 740 | 184 | 20256 | 12/12 | 0.76-1.00 | 12/12 | 0.186 | 0.116 | 0 |
+| f1_R8 | 0 | 8880 | 2220 | 168198 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 0.557 | 0 |
+| f1_R8 | 1 | 2665 | 666 | 66662 | 12/12 | 0.76-1.00 | 12/12 | 0.469 | 0.198 | 0 |
+| f1_R8 | 2 | 734 | 183 | 20023 | 12/12 | 0.76-1.00 | 12/12 | 0.198 | 0.119 | 0 |
+| f0_A | 0 | 9336 | 2334 | 177072 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 0.472 | 0 |
+| f0_A | 1 | 2778 | 694 | 71594 | 12/12 | 0.76-1.00 | 12/12 | 0.472 | 0.215 | 0 |
+| f0_A | 2 | 769 | 192 | 21134 | 12/12 | 0.76-1.00 | 12/12 | 0.215 | 0.092 | 0 |
+| f1_A | 0 | 9282 | 2320 | 176062 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 1.008 | 2 |
+| f1_A | 1 | 2758 | 689 | 70768 | 12/12 | 0.76-1.00 | 12/12 | 0.499 | 0.209 | 0 |
+| f1_A | 2 | 760 | 190 | 20912 | 12/12 | 0.76-1.00 | 12/12 | 0.199 | 0.129 | 0 |
+<!-- /table:ray_coarse_clean -->
+
+<!-- table:ray_coarse_realistic -->
+| arm | level | cand_median | keep_median | evals_median | basin_surv | surv_ci | closest_kept | d_min_disc | d_min_qmc | rank_closest |
+|---|---|---|---|---|---|---|---|---|---|---|
+| old | 0 | 10238 | 2559 | 200980 | 12/12 | 0.76-1.00 | 12/12 | 1.417 | 0.485 | 0 |
+| old | 1 | 3572 | 893 | 87916 | 12/12 | 0.76-1.00 | 12/12 | 0.485 | 0.255 | 0 |
+| old | 2 | 1150 | 287 | 29766 | 12/12 | 0.76-1.00 | 12/12 | 0.255 | 0.116 | 0 |
+| cpp | 0 | 7489 | 1872 | 145136 | 12/12 | 0.76-1.00 | 12/12 | 1.779 | 0.850 | 2 |
+| cpp | 1 | 2332 | 582 | 54140 | 12/12 | 0.76-1.00 | 12/12 | 0.589 | 0.335 | 0 |
+| cpp | 2 | 650 | 162 | 16790 | 12/12 | 0.76-1.00 | 12/12 | 0.335 | 0.128 | 0 |
+| f0_R1 | 0 | 7935 | 1984 | 151848 | 11/12 | 0.65-0.99 | 12/12 | 1.779 | 0.758 | 0 |
+| f0_R1 | 1 | 2430 | 607 | 57713 | 12/12 | 0.76-1.00 | 12/12 | 0.607 | 0.223 | 0 |
+| f0_R1 | 2 | 686 | 171 | 17905 | 12/12 | 0.76-1.00 | 12/12 | 0.207 | 0.111 | 0 |
+| f1_R1 | 0 | 7922 | 1980 | 151627 | 12/12 | 0.76-1.00 | 12/12 | 1.779 | 1.175 | 4 |
+| f1_R1 | 1 | 2430 | 608 | 57644 | 12/12 | 0.76-1.00 | 12/12 | 0.839 | 0.250 | 0 |
+| f1_R1 | 2 | 686 | 171 | 17986 | 12/12 | 0.76-1.00 | 12/12 | 0.250 | 0.108 | 0 |
+| f0_R2 | 0 | 8026 | 2006 | 153485 | 12/12 | 0.76-1.00 | 12/12 | 1.646 | 1.269 | 8 |
+| f0_R2 | 1 | 2480 | 620 | 58868 | 12/12 | 0.76-1.00 | 12/12 | 0.803 | 0.299 | 0 |
+| f0_R2 | 2 | 698 | 174 | 18299 | 12/12 | 0.76-1.00 | 12/12 | 0.299 | 0.145 | 0 |
+| f1_R2 | 0 | 8000 | 2000 | 153086 | 12/12 | 0.76-1.00 | 12/12 | 1.646 | 0.896 | 2 |
+| f1_R2 | 1 | 2494 | 623 | 58828 | 12/12 | 0.76-1.00 | 12/12 | 0.736 | 0.237 | 0 |
+| f1_R2 | 2 | 702 | 175 | 18412 | 12/12 | 0.76-1.00 | 12/12 | 0.237 | 0.163 | 0 |
+| f0_R4 | 0 | 8210 | 2052 | 156970 | 12/12 | 0.76-1.00 | 12/12 | 1.646 | 0.796 | 2 |
+| f0_R4 | 1 | 2554 | 638 | 61082 | 12/12 | 0.76-1.00 | 12/12 | 0.642 | 0.184 | 0 |
+| f0_R4 | 2 | 720 | 180 | 19114 | 12/12 | 0.76-1.00 | 12/12 | 0.184 | 0.090 | 0 |
+| f1_R4 | 0 | 8170 | 2042 | 156340 | 12/12 | 0.76-1.00 | 11/12 | 1.646 | 0.915 | 2 |
+| f1_R4 | 1 | 2534 | 633 | 60596 | 12/12 | 0.76-1.00 | 12/12 | 0.711 | 0.209 | 0 |
+| f1_R4 | 2 | 720 | 180 | 18926 | 12/12 | 0.76-1.00 | 12/12 | 0.209 | 0.126 | 0 |
+| f0_R8 | 0 | 8692 | 2172 | 165324 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 0.605 | 0 |
+| f0_R8 | 1 | 2677 | 669 | 65352 | 12/12 | 0.76-1.00 | 12/12 | 0.522 | 0.215 | 0 |
+| f0_R8 | 2 | 745 | 186 | 20146 | 12/12 | 0.76-1.00 | 12/12 | 0.215 | 0.115 | 0 |
+| f1_R8 | 0 | 8636 | 2158 | 164303 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 0.345 | 0 |
+| f1_R8 | 1 | 2651 | 662 | 65140 | 12/12 | 0.76-1.00 | 12/12 | 0.249 | 0.210 | 0 |
+| f1_R8 | 2 | 742 | 185 | 19954 | 12/12 | 0.76-1.00 | 12/12 | 0.195 | 0.088 | 0 |
+| f0_A | 0 | 9138 | 2284 | 173522 | 12/12 | 0.76-1.00 | 12/12 | 1.503 | 1.034 | 3 |
+| f0_A | 1 | 2774 | 694 | 70092 | 12/12 | 0.76-1.00 | 12/12 | 0.602 | 0.205 | 0 |
+| f0_A | 2 | 778 | 194 | 21168 | 12/12 | 0.76-1.00 | 12/12 | 0.205 | 0.114 | 0 |
+| f1_A | 0 | 9071 | 2268 | 172241 | 11/12 | 0.65-0.99 | 12/12 | 1.503 | 0.722 | 2 |
+| f1_A | 1 | 2741 | 685 | 69291 | 12/12 | 0.76-1.00 | 12/12 | 0.692 | 0.290 | 0 |
+| f1_A | 2 | 772 | 193 | 20946 | 12/12 | 0.76-1.00 | 11/12 | 0.273 | 0.143 | 0 |
+<!-- /table:ray_coarse_realistic -->
+
+- **How much more do we filter.** Level-0 candidates per voxel (median): 10240 old rule, 7832 C++ rule, 8216 (R1)
+  to 9336 (A, f0) ray arms, clean images; the evaluations of the coarse stage follow (201366 old, 149696 C++ rule,
+  155606 to 177072 ray arms at level 0). So the combined rule passes MORE candidates than the C++ rule (5% to
+  19% more at level 0) and fewer than the old rule (9% to 20% fewer): it does not buy more filtering than the C++
+  rule, it recovers part of what the C++ rule drops.
+- **Do we miss solutions.** The truth basin (3 deg, after the quick MC) is inside the kept quarter for 12 of 12
+  voxels in every arm and level on clean images; on realistic images 11 of 12 in two cells (f0_R1 and f1_A at level
+  0, and the closest-candidate count is 11 of 12 for f1_R4 at level 0 and f1_A at level 2). The two failures at level
+  0 have a candidate ranked well inside the kept set (ranks 1170 and 1884 of 1953 and 2128 kept) whose quick MC
+  moved it to 3.28 and 3.08 deg, so they are the 3 deg threshold, not the ranking cut. With 12 voxels the interval
+  of 12 of 12 is 0.76 to 1.00: this cannot separate the arms.
+- **Cost.** Single voxel-arm wall time is 2 to 3 times the C++ rule's with the ray rule (Python `ray_flags` per peak
+  and a longer quick MC), contended.
+- **No arm is picked yet.** Steps 1-2 do not separate the tolerances on the basin criterion; in the peak-level tables a
+  larger tolerance keeps more peaks and rejects fewer, so the choice for step 3 is between a
+  small tolerance (R1 or R2, closest to the C++ rule in filtering) and the largest (A), each with f0 and f1. See
+  `benchmarks/phase_d_seed_diag/ray_overlap/RUN_LOG.md`.
+
+**Rerun at 30 voxels and step 3 (2026-10-12, owner decisions: case f1 dropped, windows as set and untuned, ray rule at
+levels 0-2 only; arms old, cpp, R2, A, where R2 = ray rule with a 2-pixel square tolerance and A = the anisotropic
+window with half-width terms).**
+
+*Coarse stage, 30 voxels (step 2 again).* The 12 voxels of step 2 plus 18 more (the same selection list), clean and
+realistic full-sample images, levels 0-2 without FindOptimal, 240 voxel-arm runs on 10 workers, about 75 min
+(contended). New this time: survival of the truth basin at 3, 2 and 1 deg (some kept candidate, after the quick MC,
+within the threshold of the truth), whether the discrete-stage list (before the quick MC) holds a candidate within the
+threshold ("in_disc"), and the rank of the closest discrete-stage candidate by the discrete score before the quick MC
+moves it ("rank_disc_med", median over voxels; tie rule: number of candidates with a strictly smaller score;
+"disc_kept" = voxels where that rank is inside the kept quarter; "post_kept" = voxels where that same candidate, after
+the quick MC, is inside the kept set). Intervals are Wilson. `cand` and `keep` are medians per voxel.
+
+<!-- table:ray30_coarse_clean -->
+| arm | level | n | cand | keep | surv3 | surv2 | surv1 | in_disc3 | in_disc1 | rank_disc_med | disc_kept | post_kept |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| old | 0 | 30 | 10256 | 2564 | 29/30 [0.83, 0.99] | 26/30 [0.70, 0.95] | 18/30 [0.42, 0.75] | 30 | 5 | 214 | 26 | 30 |
+| old | 1 | 30 | 3524 | 881 | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | 25/30 [0.66, 0.93] | 30 | 23 | 1 | 29 | 30 |
+| old | 2 | 30 | 1116 | 279 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30 | 29 | 0 | 30 | 30 |
+| cpp | 0 | 30 | 7940 | 1985 | 30/30 [0.89, 1.00] | 27/30 [0.74, 0.97] | 20/30 [0.49, 0.81] | 30 | 5 | 108 | 27 | 30 |
+| cpp | 1 | 30 | 2416 | 604 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | 30 | 26 | 0 | 29 | 30 |
+| cpp | 2 | 30 | 658 | 164 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30 | 30 | 0 | 30 | 30 |
+| f0_R2 | 0 | 30 | 8422 | 2105 | 30/30 [0.89, 1.00] | 27/30 [0.74, 0.97] | 19/30 [0.46, 0.78] | 30 | 5 | 22 | 29 | 30 |
+| f0_R2 | 1 | 30 | 2568 | 642 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | 30 | 29 | 0 | 30 | 30 |
+| f0_R2 | 2 | 30 | 710 | 177 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30 | 30 | 0 | 30 | 30 |
+| f0_A | 0 | 30 | 9359 | 2340 | 30/30 [0.89, 1.00] | 28/30 [0.79, 0.98] | 21/30 [0.52, 0.83] | 30 | 5 | 72 | 27 | 30 |
+| f0_A | 1 | 30 | 2792 | 698 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 28/30 [0.79, 0.98] | 30 | 24 | 0 | 30 | 30 |
+| f0_A | 2 | 30 | 764 | 191 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | 30 | 29 | 0 | 30 | 29 |
+<!-- /table:ray30_coarse_clean -->
+
+<!-- table:ray30_coarse_realistic -->
+| arm | level | n | cand | keep | surv3 | surv2 | surv1 | in_disc3 | in_disc1 | rank_disc_med | disc_kept | post_kept |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| old | 0 | 30 | 10236 | 2558 | 30/30 [0.89, 1.00] | 27/30 [0.74, 0.97] | 19/30 [0.46, 0.78] | 29 | 5 | 453 | 25 | 29 |
+| old | 1 | 30 | 3564 | 891 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 26/30 [0.70, 0.95] | 30 | 23 | 0 | 28 | 30 |
+| old | 2 | 30 | 1140 | 285 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30 | 30 | 0 | 30 | 30 |
+| cpp | 0 | 30 | 7614 | 1903 | 30/30 [0.89, 1.00] | 24/30 [0.63, 0.90] | 19/30 [0.46, 0.78] | 29 | 5 | 382 | 24 | 29 |
+| cpp | 1 | 30 | 2354 | 588 | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 28/30 [0.79, 0.98] | 30 | 25 | 0 | 29 | 30 |
+| cpp | 2 | 30 | 654 | 163 | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 30 | 29 | 1 | 29 | 29 |
+| f0_R2 | 0 | 30 | 8113 | 2028 | 30/30 [0.89, 1.00] | 26/30 [0.70, 0.95] | 16/30 [0.36, 0.70] | 30 | 5 | 102 | 28 | 29 |
+| f0_R2 | 1 | 30 | 2492 | 622 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 29/30 [0.83, 0.99] | 30 | 24 | 1 | 29 | 30 |
+| f0_R2 | 2 | 30 | 694 | 173 | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30/30 [0.89, 1.00] | 30 | 30 | 0 | 30 | 30 |
+| f0_A | 0 | 30 | 9140 | 2285 | 29/30 [0.83, 0.99] | 28/30 [0.79, 0.98] | 15/30 [0.33, 0.67] | 30 | 5 | 186 | 27 | 29 |
+| f0_A | 1 | 30 | 2778 | 694 | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 28/30 [0.79, 0.98] | 30 | 25 | 0 | 29 | 29 |
+| f0_A | 2 | 30 | 777 | 194 | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 29/30 [0.83, 0.99] | 29 | 29 | 0 | 30 | 30 |
+<!-- /table:ray30_coarse_realistic -->
+
+Paired against the C++ rule and the old rule, per voxel and level, failure = no kept candidate within 3 deg
+(fixed = fails under the reference, survives under the arm; broken = the reverse):
+
+<!-- table:ray30_paired_clean -->
+| pair | level | fixed | broken | both_fail |
+|---|---|---|---|---|
+| old_vs_cpp | L0 | 0 | 1 | 0 |
+| old_vs_cpp | L1 | 0 | 0 | 0 |
+| old_vs_cpp | L2 | 0 | 0 | 0 |
+| f0_R2_vs_cpp | L0 | 0 | 0 | 0 |
+| f0_R2_vs_cpp | L1 | 0 | 0 | 0 |
+| f0_R2_vs_cpp | L2 | 0 | 0 | 0 |
+| f0_A_vs_cpp | L0 | 0 | 0 | 0 |
+| f0_A_vs_cpp | L1 | 0 | 0 | 0 |
+| f0_A_vs_cpp | L2 | 0 | 0 | 0 |
+| cpp_vs_old | L0 | 1 | 0 | 0 |
+| cpp_vs_old | L1 | 0 | 0 | 0 |
+| cpp_vs_old | L2 | 0 | 0 | 0 |
+| f0_R2_vs_old | L0 | 1 | 0 | 0 |
+| f0_R2_vs_old | L1 | 0 | 0 | 0 |
+| f0_R2_vs_old | L2 | 0 | 0 | 0 |
+| f0_A_vs_old | L0 | 1 | 0 | 0 |
+| f0_A_vs_old | L1 | 0 | 0 | 0 |
+| f0_A_vs_old | L2 | 0 | 0 | 0 |
+<!-- /table:ray30_paired_clean -->
+
+<!-- table:ray30_paired_realistic -->
+| pair | level | fixed | broken | both_fail |
+|---|---|---|---|---|
+| old_vs_cpp | L0 | 0 | 0 | 0 |
+| old_vs_cpp | L1 | 1 | 0 | 0 |
+| old_vs_cpp | L2 | 1 | 0 | 0 |
+| f0_R2_vs_cpp | L0 | 0 | 0 | 0 |
+| f0_R2_vs_cpp | L1 | 1 | 0 | 0 |
+| f0_R2_vs_cpp | L2 | 1 | 0 | 0 |
+| f0_A_vs_cpp | L0 | 0 | 1 | 0 |
+| f0_A_vs_cpp | L1 | 0 | 0 | 1 |
+| f0_A_vs_cpp | L2 | 0 | 0 | 1 |
+| cpp_vs_old | L0 | 0 | 0 | 0 |
+| cpp_vs_old | L1 | 0 | 1 | 0 |
+| cpp_vs_old | L2 | 0 | 1 | 0 |
+| f0_R2_vs_old | L0 | 0 | 0 | 0 |
+| f0_R2_vs_old | L1 | 0 | 0 | 0 |
+| f0_R2_vs_old | L2 | 0 | 0 | 0 |
+| f0_A_vs_old | L0 | 0 | 1 | 0 |
+| f0_A_vs_old | L1 | 0 | 1 | 0 |
+| f0_A_vs_old | L2 | 0 | 1 | 0 |
+<!-- /table:ray30_paired_realistic -->
+
+- **Truth basin (3 deg).** Clean: 30 of 30 voxels survive at every level and arm except the old rule at level 0 (29 of
+  30). Realistic: 30 of 30 for R2 and the old rule at every level; the C++ rule 30 of 30 at level 0 and 29 of 30 at
+  levels 1 and 2; arm A 29 of 30 at all three levels. The one failing voxel under A is also the one failing under the
+  C++ rule at levels 1 and 2 (both-fail count 1 in the paired table); at level 0 A fails on one voxel where the C++ rule
+  does not (broken 1). With 30 voxels the interval for 30 of 30 is 0.89 to 1.00: the arms are not separated on this
+  criterion.
+- **Rank of the closest discrete-stage candidate.** At level 0 the median rank (clean) is 214 old, 108 C++, 22 R2, 72 A
+  of 7940 to 10256 candidates, against a kept quarter of 1985 to 2564; the ordering of arms is the same on realistic
+  images (453, 382, 102, 186). Before the quick MC the closest candidate is inside the kept quarter by the discrete score for 26 / 27 / 29
+  / 27 of 30 voxels (old / C++ / R2 / A, clean) and 25 / 24 / 28 / 27 (realistic); after the quick MC the same candidate is
+  inside the kept set for 29 or 30 of 30 in every cell. At levels 1 and 2 the median rank is 0 or 1. Rank-0 at later levels
+  means the nearest candidate is also the best scored one.
+- **Tighter thresholds.** At 2 deg, level 0, clean: 26 / 27 / 27 / 28 of 30 (old / C++ / R2 / A); at 1 deg, level 0: 18 /
+  20 / 19 / 21 of 30, but only 5 of 30 voxels have any level-0 candidate within 1 deg (the coarse list is that coarse),
+  so a miss at 1 deg at level 0 mostly reflects the grid, not the cut. By level 2 (clean) the 1 deg survival is 30 / 30 /
+  30 / 29 of 30; realistic 30 / 29 / 30 / 29.
+- **Candidates passed.** Level-0 candidates per voxel (median, clean): 10256 old, 7940 C++, 8422 R2, 9359 A; the ray
+  arms again sit between the C++ rule and the old rule (R2 6% and A 18% more than the C++ rule).
+
+*Step 3: end to end.* E0 (200 voxels, per-voxel images, `min_sin_eta` 0, seed 0, clean and realistic); old and C++
+arms are the stored runs (`cache/off_ms0`, `on_ms0`; same inputs, seeds and code for those arms), R2 and A are new
+(`e0_cpprule.py run --arm rayR2|rayA --msin 0`, 10 workers, 1124 s and 1149 s, contended, preflight in
+`preflight_step3.json`). Wrong = more than 1 deg from the truth. Runtimes are per-voxel means on contended workers,
+not a timing claim. The ray rule is on at levels 0-2 only; level 3, FindOptimal, VarianceMinimizing and the final cost are
+the strict C++ rule.
+
+<!-- table:ray_e2e_e0 -->
+| variant | arm | wrong | mean_evals | runtime_s | median_err_right |
+|---|---|---|---|---|---|
+| clean | old | 39/200 [0.146, 0.255] | 48501 | 24.2 | 0.0086 |
+| clean | cpp | 56/200 [0.222, 0.346] | 47230 | 24.1 | 0.0223 |
+| clean | R2 | 40/200 [0.150, 0.261] | 48641 | 26.6 | 0.0097 |
+| clean | A | 41/200 [0.155, 0.266] | 48649 | 27.2 | 0.0114 |
+| realistic | old | 18/200 [0.058, 0.138] | 51163 | 26.1 | 0.0107 |
+| realistic | cpp | 56/200 [0.222, 0.346] | 48769 | 25.2 | 0.0132 |
+| realistic | R2 | 32/200 [0.116, 0.217] | 50915 | 28.3 | 0.0087 |
+| realistic | A | 29/200 [0.103, 0.200] | 50967 | 29.0 | 0.0100 |
+<!-- /table:ray_e2e_e0 -->
+
+Paired split by voxel (fixed = wrong under the reference, right under the arm; broken = the reverse):
+
+<!-- table:ray_e2e_paired -->
+| variant | arm | ref | fixed | broken | both_wrong |
+|---|---|---|---|---|---|
+| clean | cpp | old | 17 | 34 | 22 |
+| clean | R2 | cpp | 32 | 16 | 24 |
+| clean | R2 | old | 19 | 20 | 20 |
+| clean | A | cpp | 31 | 16 | 25 |
+| clean | A | old | 18 | 20 | 21 |
+| realistic | cpp | old | 6 | 44 | 12 |
+| realistic | R2 | cpp | 38 | 14 | 18 |
+| realistic | R2 | old | 7 | 21 | 11 |
+| realistic | A | cpp | 37 | 10 | 19 |
+| realistic | A | old | 9 | 20 | 9 |
+<!-- /table:ray_e2e_paired -->
+
+The six full-sample voxels (clean images, no-start search, seed 1, one process; mixed quiet and contended, see the
+labels table below; three sessions). The old (lenient) rows are a re-run of 2026-10-12 in the current build
+(`lenientnow_full_*`; the earlier `base_full_*` runs of 2026-10-08 predate the MC port and the variance-stage fix and
+are withdrawn); C++ rows are the stored runs `cpprule_full_*`); err in degrees, evals = cost evaluations, wall in
+seconds:
+
+<!-- table:ray_e2e_six -->
+| voxel | old_err | old_evals | old_wall | cpp_err | cpp_evals | cpp_wall | R2_err | R2_evals | R2_wall | A_err | A_evals | A_wall |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 0.0170 | 328519 | 172 | 0.0291 | 237739 | 125 | 0.0144 | 250495 | 136 | 0.0096 | 279319 | 158 |
+| 17034 | 0.0284 | 339561 | 176 | 0.0639 | 246127 | 125 | 0.0251 | 256771 | 136 | 0.0371 | 284960 | 157 |
+| 18558 | 0.0048 | 329367 | 175 | 0.0034 | 209728 | 106 | 0.0048 | 223744 | 119 | 0.0038 | 268489 | 146 |
+| 19889 | 0.0210 | 330209 | 175 | 0.0212 | 226453 | 115 | 0.0333 | 243577 | 135 | 0.0177 | 276634 | 150 |
+| 22867 | 0.0263 | 335687 | 176 | 0.0530 | 244186 | 125 | 0.0606 | 257829 | 141 | 0.0366 | 285600 | 156 |
+| 5242 | 0.0493 | 330577 | 179 | 0.0281 | 204646 | 102 | 0.0231 | 218577 | 117 | 0.0586 | 265129 | 143 |
+<!-- /table:ray_e2e_six -->
+
+Per-run labels (quiet = the preflight passed; load1 = 1-minute load at start; old_stale = withdrawn 2026-10-08 runs):
+
+<!-- table:ray_e2e_six_labels -->
+| voxel | arm | quiet | load1 | torch_threads | date |
+|---|---|---|---|---|---|
+| 15901 | old | True | 1.14 | 1 | 2026-10-12 |
+| 15901 | cpp | True | 1.42 | 1 | 2026-10-10 |
+| 15901 | R2 | False | 1.54 | 1 | 2026-10-12 |
+| 15901 | A | True | 1.46 | 1 | 2026-10-12 |
+| 15901 | old_stale | False | 1.45 | 1 | 2026-10-08 |
+| 17034 | old | False | 2.70 | 1 | 2026-10-12 |
+| 17034 | cpp | False | 2.00 | 1 | 2026-10-10 |
+| 17034 | R2 | False | 1.60 | 1 | 2026-10-12 |
+| 17034 | A | True | 1.26 | 1 | 2026-10-12 |
+| 17034 | old_stale | False | 1.45 | 1 | 2026-10-08 |
+| 18558 | old | True | 1.34 | 1 | 2026-10-12 |
+| 18558 | cpp | True | 1.36 | 1 | 2026-10-10 |
+| 18558 | R2 | False | 1.62 | 1 | 2026-10-12 |
+| 18558 | A | False | 2.59 | 1 | 2026-10-12 |
+| 18558 | old_stale | False | 3.02 | 1 | 2026-10-08 |
+| 19889 | old | True | 1.40 | 1 | 2026-10-12 |
+| 19889 | cpp | True | 1.49 | 1 | 2026-10-10 |
+| 19889 | R2 | True | 1.46 | 1 | 2026-10-12 |
+| 19889 | A | True | 1.46 | 1 | 2026-10-12 |
+| 19889 | old_stale | False | 3.12 | 1 | 2026-10-08 |
+| 22867 | old | False | 2.10 | 1 | 2026-10-12 |
+| 22867 | cpp | True | 1.35 | 1 | 2026-10-10 |
+| 22867 | R2 | False | 2.14 | 1 | 2026-10-12 |
+| 22867 | A | True | 1.30 | 1 | 2026-10-12 |
+| 22867 | old_stale | False | 1.45 | 1 | 2026-10-08 |
+| 5242 | old | True | 1.29 | 1 | 2026-10-12 |
+| 5242 | cpp | True | 1.29 | 1 | 2026-10-10 |
+| 5242 | R2 | True | 1.42 | 1 | 2026-10-12 |
+| 5242 | A | True | 1.34 | 1 | 2026-10-12 |
+| 5242 | old_stale | False | 3.10 | 1 | 2026-10-08 |
+<!-- /table:ray_e2e_six_labels -->
+
+- **Wrong counts (E0).** Clean: old 39, C++ 56, R2 40, A 41 of 200. Realistic: old 18, C++ 56, R2 32, A 29 of 200.
+  Against the C++ rule the ray arms fix many and break fewer (clean R2 32 fixed / 16 broken / 24 both wrong; A 31 / 16 /
+  25; realistic R2 38 / 14 / 18; A 37 / 10 / 19). Against the old rule they are about even on clean images (R2 19 fixed /
+  20 broken / 20 both wrong; A 18 / 20 / 21) and worse on realistic ones (R2 7 / 21 / 11; A 9 / 20 / 9). So the ray rule
+  recovers nearly all of the C++ rule's loss on clean images and ties the old rule there. On realistic images (56 to 32
+  and 29, old rule 18) the old rule is better, but the realistic noise model is ruled unphysical (10% random spot drop;
+  open question 8, parent findings), so that gap is reported and not used for decisions.
+- **Evaluations.** E0 mean evaluations per voxel: clean 48501 old, 47230 C++, 48641 R2, 48649 A; realistic 51163 / 48769
+  / 50915 / 50967. The ray rule costs 3 to 4% more evaluations than the C++ rule and about as many as the old rule at
+  the E0 scale (per-voxel images, few stray hits).
+- **Six full-sample voxels.** All four arms are right on all six (error under 1 deg). Mean evaluations 332320 old
+  (re-run 2026-10-12, current build), 228147 C++, 241832 R2, 276689 A; mean wall 176 s old, 116 s C++, 131 s R2, 152 s A
+  (single process; preflight quiet for 4 of 6 old, 5 of 6 C++, 2 of 6 R2, 5 of 6 A runs, so compare on evaluations).
+  The ray arms cost 6% (R2) and 21% (A) more evaluations than the C++ rule, the lenient rule 46% more (1.46 times). The
+  earlier "4.5 times" came from the stale `base_full_*` runs (1.38 million variance-stage evaluations on voxel 15901
+  alone) and is withdrawn. Accuracy: all right on these six, so cost only.
+- **Owner decisions (2026-10-12).** Ray rule as the default is fine, but the code default is NOT changed in this
+  task (follow-up). `RayOverlapRule` without `CppOverlapRule` gives a `UserWarning` and is not forced. Cases b and e
+  triangle-mode pixel accounting (+1 / -1 pixel) kept as is and documented in `ray_overlap.py` and `_rasterize.c`
+  (open question 9). The 61 MB of new result JSON stays in git. No extra E0 seeds: the search uses randomness to
+  explore the search space, not as independent samples (open question 6 closed).
+- **What is not shown.** Whether the A or R2 window (untuned) is best; the E0 accuracy gain is one run per voxel, with Wilson
+  intervals that overlap (clean R2 0.150 to 0.261 against C++ 0.222 to 0.346); the full-sample accuracy for more than six
+  voxels is not measured, only the coarse-stage survival above (30 voxels).
+
+Files: `icenine/ray_overlap.py`, `scripts/phase_d/ray_overlap_study.py`, `ray_overlap_summary.py`,
+`benchmarks/phase_d_seed_diag/ray_overlap/` (`RUN_LOG.md`, `summary.json`, `tables.md`, `coarse/`).
+
+#### Centroid start point everywhere (2026-10-12, `feature/finisher-mc-study-centroid`)
+
+Owner: the projection start point must equal C++, which projects the voxel centroid (VoxelToCenter) in the
+pixel-radius screen. `VoxelCostFunction(center_screen=...)` now defaults to True for every rule (old/lenient, C++,
+ray), decoupled from `CppOverlapRule`; `Reconstructor._cost_flags` always passes it. Vertex 0 stays only as the
+explicit opt-out `cpp_center_screen=False` (not a config key). The pixel-radius-0 local cost uses the exact
+triangle and never used the start point. Step 1 suite: no numeric golden changed; two tests changed: the
+`_cost_flags()` default in `test_ray_overlap.py` (now `{'center_screen': True}`) and the FindOptimal-robustness
+batched features.
+**Owner decision 2026-10-12:** the FindOptimal-robustness feature extractor
+(`scripts/findoptimal_robustness/features.py`) keeps the first vertex (`center_screen=False`) because its caches were
+built with vertex 0; the main reconstruction uses the centroid everywhere. Suite: 872 passed, 34 skipped.
+
+**Step 3 results (2026-10-13, clean images only, one seed; branch `feature/finisher-mc-study-centroid`).** The change
+touches the lenient (old) rule only; the C++ rule and both ray windows already used the centroid. Reading in
+`docs/findings_ray_overlap_rule_2026-10.md` section 10; run record `benchmarks/phase_d_seed_diag/centroid/RUN_LOG.md`;
+numbers `summary.json`, `tables.md` there (`scripts/phase_d/centroid_step3_summary.py`).
+- Peak level (30 voxels): the lenient rule now keeps exactly all detector-0 overlaps (524 of 524 at the truth, 2,067
+  of 2,067 at 1°, 8,942 of 8,942 at random orientations; before 8,937 of 8,942 and 2,066 of 2,067). The old "1
+  rejected / share 1.003" was the first-corner screen finding a different overlap set than the centroid denominator.
+- Coarse search (30 voxels x 4 arms): C++ and both ray rules identical to the stored runs; lenient rule level-0
+  survival within 3° 29 -> 30 of 30 (1 fixed, 0 broken), levels 1 and 2 unchanged.
+- E0 (200 voxels, min_sin_eta 0): C++ (56), 2-pixel (40), geometric (41) wrong, identical to the stored runs; lenient
+  rule 39 -> 41 wrong, paired 14 fixed, 16 broken, 25 both wrong (30 of 200 voxels change outcome, net +2; one run per
+  voxel, so neither start point is shown to be more accurate). Mean evaluations 48,501 -> 48,700.
+- Six full-sample voxels, lenient rule: all right; mean evaluations 332,320 -> 332,046.
+
+Arm names in the tables: `old` = original lenient Python rule, `cpp` = strict C++ rule, `f0_R2` = ray rule with the
+2-pixel window, `f0_A` = ray rule with the geometric window. In the paired tables a row "X vs old (after)" counts
+fixed = wrong under old and right under X, broken = the reverse.
+
+<!-- table:centroid_e0_clean -->
+| arm | when | wrong | mean_evals | median_err_right |
+|---|---|---|---|---|
+| old | before | 39/200 [0.146, 0.255] | 48501 | 0.0086 |
+| old | after | 41/200 [0.155, 0.266] | 48700 | 0.0130 |
+| cpp | before | 56/200 [0.222, 0.346] | 47230 | 0.0223 |
+| cpp | after | 56/200 [0.222, 0.346] | 47230 | 0.0223 |
+| f0_R2 | before | 40/200 [0.150, 0.261] | 48641 | 0.0097 |
+| f0_R2 | after | 40/200 [0.150, 0.261] | 48641 | 0.0097 |
+| f0_A | before | 41/200 [0.155, 0.266] | 48649 | 0.0114 |
+| f0_A | after | 41/200 [0.155, 0.266] | 48649 | 0.0114 |
+<!-- /table:centroid_e0_clean -->
+
+<!-- table:centroid_e0_paired -->
+| arm | fixed | broken | both_wrong |
+|---|---|---|---|
+| old | 14 | 16 | 25 |
+| cpp | 0 | 0 | 56 |
+| f0_R2 | 0 | 0 | 40 |
+| f0_A | 0 | 0 | 41 |
+| cpp vs old (after) | 15 | 30 | 26 |
+| f0_R2 vs old (after) | 10 | 9 | 31 |
+| f0_A vs old (after) | 11 | 11 | 30 |
+<!-- /table:centroid_e0_paired -->
+
+Files: `scripts/phase_d/centroid_step3_summary.py`, `ray_overlap_study.py` (env `RAY_VARIANTS`, `RAY_PEAK_DIR`,
+`RAY_VERTEX0`), `e0_cpprule.py` (`--tag`, `--variant`), `benchmarks/phase_d_seed_diag/centroid/`, results
+`ray_overlap/peak_centroid/`, `ray_overlap/coarse30_centroid/`. Not done: regenerating goldens (none changed); no
+default flipped.
+
+#### Phase D pilot results (2026-10-08, `feature/finisher-mc-study-phase-d-run`)
+
+A 2,000-voxel region of the new-orientation sample, five single-process BFS runs, `BFSRevisitRefit 1` in every config, BFS rng seed 0, memmap images. Code: `scripts/phase_d/make_region.py`, `pilot_bfs.py`, `score_bfs.py`, `summarize_pilot.py`; `launch_pilot.sh`, `ab_threads.py`; tests `tests/test_phase_d_scoring.py` (9). Data and tables: `benchmarks/phase_d_pilot/` (`summary.json`, `tables.md`, `region.json`, `region_grid.mic`, `region_index.npy`, `runs/<arm>_<variant>/{run.json,score.json,voxels.npz}`, `preflight.json`, `ab_threads.json`, `ab_threads_staggered.json`). **Revised 2026-10-09 after review** (rescored from the same five runs, no new BFS runs): units are mm, the grain counts separate accepted from rejected seeds, the piece count is 497, the oracle prediction is credited, the thread A/B is reworded.
+
+**Region.** The 2,000 voxels whose triangle centroids are nearest to (0.17, 0.0) mm (the .mic coordinates are in mm; stable sort by distance, ties by file index; one edge-connected piece, radius 0.156 mm), 60 of the 497 grains (1 to 104 voxels each, median 33.5 in the region). Boundary = a different-grain voxel (full sample) within 1.01 x side of the centroid: 1,411 boundary and 589 interior voxels. Near the rotation axis (r < 0.12 mm): 416 voxels; the rest 1,584. `region_grid.mic` holds those lines of the grid mic (orientations zero); the images still contain the whole sample, and the BFS cannot leave the region. Scoring: symmetry-reduced misorientation to the truth, wrong = over 1 deg; Wilson intervals treat voxels as independent (too narrow, voxels of a grain are correlated), the grain bootstrap resamples the 60 grains; p-values are sign-flip tests on per-grain differences. **All five runs share one seed order** (each uses `default_rng(0)` and the voxel shuffle is its first draw), in one region; the counts of lost grains below are one draw of the order seen five times, not five replications. Timing is **contended**: 5 concurrent single-process runs on a 12-core machine, 2 A/B processes for about 3 min of it, load average 3.0 at launch (left-over jobs, `preflight.json`); each run used about one core (ps, 100% CPU). The runs used torch's default 8 threads (the one-thread header of `pilot_bfs.py` was added after launch); `run.json` of these runs has the label but not the thread count.
+
+<!-- table:phase_d_pilot_main -->
+| run | n | wrong | wrong % | Wilson 95% (%) | grain-bootstrap 95% (%) | median right err (deg) | unresolved | found | partial | lost | fragmented (found grains) | wall (h, contended) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 2000 | 740 | 37.00 | 34.9-39.1 | 24.5-51.5 | 0.0119 | 710 | 32 | 0 | 28 | 6 | 2.27 |
+| cma_clean | 2000 | 742 | 37.10 | 35.0-39.2 | 24.6-51.6 | 0.0061 | 681 | 32 | 0 | 28 | 9 | 2.27 |
+| cma_noretry_clean | 2000 | 734 | 36.70 | 34.6-38.8 | 24.2-51.3 | 0.0055 | 677 | 32 | 0 | 28 | 9 | 2.06 |
+| mc_realistic_q16 | 2000 | 709 | 35.45 | 33.4-37.6 | 22.7-50.2 | 0.0124 | 691 | 32 | 1 | 27 | 3 | 2.41 |
+| cma_realistic_q16 | 2000 | 617 | 30.85 | 28.9-32.9 | 19.2-44.2 | 0.0141 | 580 | 34 | 0 | 26 | 6 | 2.40 |
+<!-- /table:phase_d_pilot_main -->
+
+(`found` = more than half of the grain's region voxels right, `lost` = none right, fragmented = the reconstructed orientations of a grain's voxels form two or more clusters at 1 deg, counted among found grains only (lost grains are mostly fragmented by construction: the first version of this table counted 29 fragmented grains, more than the 28 lost). All five runs: 2,000 voxels visited, 0 not visited.)
+
+**What the errors are.** The wrong voxels are the unresolved ones. In every run no lost grain has an accepted seed. Of the 26 to 28 lost grains, 25 to 27 never got a full search and one (grain 394 in four runs, grain 148 in `cma_realistic_q16`) got a full no-start search that was rejected below `MinAccelerationThreshold`; 98% or more of the unresolved voxels lie in lost grains. Columns: `grains_with_an_accepted_seed` counts `source == seed`; a rejected seed ends as `unresolved`.
+
+<!-- table:phase_d_pilot_diag -->
+| run | n_grains | grains_with_an_accepted_seed | lost_grains | lost_grains_no_full_search | lost_grains_with_a_rejected_seed | lost_grains_with_an_accepted_seed | voxels_in_lost_grains | unresolved_in_lost_grains | unresolved_total | accepted_total | accepted_wrong | accepted_wrong_cross_boundary_like |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 60 | 32 | 28 | 27 | 1 | 0 | 722 | 696 | 710 | 1290 | 32 | 32 |
+| cma_clean | 60 | 32 | 28 | 27 | 1 | 0 | 722 | 673 | 681 | 1319 | 61 | 61 |
+| cma_noretry_clean | 60 | 32 | 28 | 27 | 1 | 0 | 722 | 676 | 677 | 1323 | 57 | 57 |
+| mc_realistic_q16 | 60 | 32 | 27 | 26 | 1 | 0 | 696 | 677 | 691 | 1309 | 19 | 19 |
+| cma_realistic_q16 | 60 | 34 | 26 | 25 | 1 | 0 | 608 | 579 | 580 | 1420 | 37 | 37 |
+<!-- /table:phase_d_pilot_diag -->
+
+A grain that is entirely reached by the expansion of neighbouring grains (lost grains are small: 20.5 to 21.5 region voxels at the median against 38 to 40.5 for found grains, and 76 to 78% of their voxels are boundary voxels against 67 to 68%) has its voxels rejected by the 0.9 relative test (start from the wrong grain), marked REFIT and, by the seed rule, not given a full search (a seed is drawn only from NOT_VISITED voxels); the revisit refits only from fitted neighbours, which belong to other grains, so it cannot recover them. The stored orientation of such a voxel is the failed local fit from the neighbour's orientation, so it is a median 41 to 44 deg (maximum 61 deg) off the truth. This is IceNine's own seed rule, not a Python-only gap: the C++ server alone chooses seeds (`RestrictedStratifiedGrid::Pop` skips every voxel that is not NOT_VISITED in the server grid, and `Push` writes REFIT into it), so a single-client C++ run is expected to lose the same grains. In a multi-client C++ run another client's expansion can refit such a voxel, but only from that client's orientation (the revisit does the same); the server could dispatch a seed into the grain before the neighbours' REFIT results are pushed, so asynchrony might seed some of them. Not tested. It was first seen here in a multi-grain region; that it appears only at full-sample scale is not tested.
+
+**Credit to the seed-count oracle** ("Phase D seed-cost diagnosis", Seed count): under the BFS neighbour radius the oracle gave 497 pieces (not 612) and predicted about 140 of 497 grains (28%) swallowed before any seed is drawn. The pilot's rate is higher: 25 to 27 of 60 grains with no full search (42 to 45%), 26 to 28 (43 to 47%) counting the rejected seed. The oracle ignores wrong cross-boundary acceptances and the region's own geometry; the pilot's 60 grains are one region, so the two rates are not tested against each other. Edge effect of the region: 15 of 33 grains wholly inside the disc were lost against 13 of 27 grains the disc truncates (`mc_clean`), so truncation does not explain the loss.
+
+<!-- table:phase_d_pilot_lost_grains -->
+| run | lost_grains_rate | lost_grains_wilson_lo | lost_grains_wilson_hi | lost_median_region_voxels | found_median_region_voxels | lost_boundary_voxel_share | found_boundary_voxel_share | grains_wholly_in_region | wholly_in_region_lost | grains_truncated_by_region | truncated_lost | accepted_wrong_rate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 0.467 | 0.346 | 0.591 | 21.5 | 38.5 | 0.762 | 0.674 | 33 | 15 | 27 | 13 | 0.0248 |
+| cma_clean | 0.467 | 0.346 | 0.591 | 21.5 | 38.5 | 0.762 | 0.674 | 33 | 15 | 27 | 13 | 0.0462 |
+| cma_noretry_clean | 0.467 | 0.346 | 0.591 | 21.5 | 38.5 | 0.762 | 0.674 | 33 | 15 | 27 | 13 | 0.0431 |
+| mc_realistic_q16 | 0.450 | 0.331 | 0.575 | 21.0 | 38.0 | 0.759 | 0.677 | 33 | 14 | 27 | 13 | 0.0145 |
+| cma_realistic_q16 | 0.433 | 0.316 | 0.559 | 20.5 | 40.5 | 0.780 | 0.673 | 33 | 13 | 27 | 13 | 0.0261 |
+<!-- /table:phase_d_pilot_lost_grains --> Accepted voxels: seeds 0 wrong of 32 (34 in `cma_realistic_q16`), and every accepted wrong voxel (`accepted_wrong`) carries the orientation of a neighbouring grain to within 1 deg (a cross-boundary error), see the last column above.
+
+<!-- table:phase_d_pilot_source -->
+| run | source | n | wrong | rate | median_right |
+|---|---|---|---|---|---|
+| mc_clean | seed | 32 | 0 | 0.00 | 0.0126 |
+| mc_clean | neighbor | 770 | 28 | 3.64 | 0.0065 |
+| mc_clean | revisit | 488 | 4 | 0.82 | 0.0136 |
+| mc_clean | unresolved | 710 | 708 | 99.72 | 0.0657 |
+| cma_clean | seed | 32 | 0 | 0.00 | 0.0100 |
+| cma_clean | neighbor | 783 | 42 | 5.36 | 0.0052 |
+| cma_clean | neighbor_retry | 2 | 2 | 100.00 | n/a |
+| cma_clean | revisit | 502 | 17 | 3.39 | 0.0070 |
+| cma_clean | unresolved | 681 | 681 | 100.00 | n/a |
+| cma_noretry_clean | seed | 32 | 0 | 0.00 | 0.0076 |
+| cma_noretry_clean | neighbor | 783 | 42 | 5.36 | 0.0042 |
+| cma_noretry_clean | revisit | 508 | 15 | 2.95 | 0.0077 |
+| cma_noretry_clean | unresolved | 677 | 677 | 100.00 | n/a |
+| mc_realistic_q16 | seed | 32 | 0 | 0.00 | 0.0164 |
+| mc_realistic_q16 | neighbor | 755 | 14 | 1.85 | 0.0083 |
+| mc_realistic_q16 | revisit | 522 | 5 | 0.96 | 0.0196 |
+| mc_realistic_q16 | unresolved | 691 | 690 | 99.86 | 0.2167 |
+| cma_realistic_q16 | seed | 34 | 0 | 0.00 | 0.0109 |
+| cma_realistic_q16 | neighbor | 780 | 19 | 2.44 | 0.0143 |
+| cma_realistic_q16 | neighbor_retry | 3 | 3 | 100.00 | n/a |
+| cma_realistic_q16 | revisit | 603 | 15 | 2.49 | 0.0140 |
+| cma_realistic_q16 | unresolved | 580 | 580 | 100.00 | n/a |
+<!-- /table:phase_d_pilot_source -->
+
+<!-- table:phase_d_pilot_boundary -->
+| run | subset | n | wrong | rate | median_right |
+|---|---|---|---|---|---|
+| mc_clean | boundary | 1411 | 568 | 40.26 | 0.0122 |
+| mc_clean | interior | 589 | 172 | 29.20 | 0.0109 |
+| cma_clean | boundary | 1411 | 570 | 40.40 | 0.0057 |
+| cma_clean | interior | 589 | 172 | 29.20 | 0.0064 |
+| cma_noretry_clean | boundary | 1411 | 562 | 39.83 | 0.0055 |
+| cma_noretry_clean | interior | 589 | 172 | 29.20 | 0.0055 |
+| mc_realistic_q16 | boundary | 1411 | 541 | 38.34 | 0.0161 |
+| mc_realistic_q16 | interior | 589 | 168 | 28.52 | 0.0100 |
+| cma_realistic_q16 | boundary | 1411 | 483 | 34.23 | 0.0095 |
+| cma_realistic_q16 | interior | 589 | 134 | 22.75 | 0.0249 |
+<!-- /table:phase_d_pilot_boundary -->
+
+<!-- table:phase_d_pilot_axis -->
+| run | subset | n | wrong | rate | median_right |
+|---|---|---|---|---|---|
+| mc_clean | near_axis | 416 | 164 | 39.42 | 0.0119 |
+| mc_clean | far_axis | 1584 | 576 | 36.36 | 0.0122 |
+| cma_clean | near_axis | 416 | 164 | 39.42 | 0.0062 |
+| cma_clean | far_axis | 1584 | 578 | 36.49 | 0.0059 |
+| cma_noretry_clean | near_axis | 416 | 164 | 39.42 | 0.0055 |
+| cma_noretry_clean | far_axis | 1584 | 570 | 35.98 | 0.0053 |
+| mc_realistic_q16 | near_axis | 416 | 162 | 38.94 | 0.0026 |
+| mc_realistic_q16 | far_axis | 1584 | 547 | 34.53 | 0.0167 |
+| cma_realistic_q16 | near_axis | 416 | 163 | 39.18 | 0.0153 |
+| cma_realistic_q16 | far_axis | 1584 | 454 | 28.66 | 0.0140 |
+<!-- /table:phase_d_pilot_axis -->
+
+Grain-clustered paired comparisons on all 2,000 voxels (wrong count of arm a vs arm b) and on accepted-wrong voxels only (wrong and not unresolved; the voxel sets differ between arms, so this is paired by voxel index, not by an identical set of accepted voxels):
+
+<!-- table:phase_d_pilot_pairs -->
+| pair | wrong_a | wrong_b | n_clusters | n_clusters_differing | p |
+|---|---|---|---|---|---|
+| mc_clean vs cma_clean | 740 | 742 | 60 | 6 | 0.875 |
+| cma_clean vs cma_noretry_clean | 742 | 734 | 60 | 2 | 0.5 |
+| mc_realistic_q16 vs cma_realistic_q16 | 709 | 617 | 60 | 11 | 0.368 |
+<!-- /table:phase_d_pilot_pairs -->
+
+<!-- table:phase_d_pilot_pairs_accepted -->
+| pair | wrong_a | wrong_b | n_clusters | n_clusters_differing | p |
+|---|---|---|---|---|---|
+| mc_clean vs cma_clean | 32 | 61 | 60 | 19 | 3.81e-06 |
+| cma_clean vs cma_noretry_clean | 61 | 57 | 60 | 5 | 0.312 |
+| mc_realistic_q16 vs cma_realistic_q16 | 19 | 37 | 60 | 15 | 0.000732 |
+<!-- /table:phase_d_pilot_pairs_accepted -->
+
+**Cost and timing (contended).** Evaluations and wall seconds split by phase; "retry acc/att" counts the wider-sigma retries (attempted on rejected neighbour or revisit fits), "revisit acc/att" the revisit fits.
+
+<!-- table:phase_d_pilot_cost -->
+| run | seeds | seed_rej | nb_fits | nb_first | retry acc/att | revisit acc/att | ev_seed | ev_nb | ev_rev | seed (min) | neighbour (min) | revisit (min) | s / seed | s / neighbour fit |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 34 | 2 | 1966 | 770 | 0/0 | 488/1216 | 11,274,936 | 1,290,496 | 795,595 | 114.3 | 14.0 | 7.7 | 201.8 | 0.426 |
+| cma_clean | 34 | 2 | 1966 | 783 | 2/1895 | 502/1214 | 11,572,106 | 790,399 | 483,426 | 121.1 | 9.3 | 5.5 | 213.7 | 0.283 |
+| cma_noretry_clean | 33 | 1 | 1967 | 783 | 0/0 | 508/1215 | 11,177,832 | 493,717 | 304,965 | 113.8 | 6.4 | 3.1 | 206.9 | 0.195 |
+| mc_realistic_q16 | 36 | 4 | 1964 | 755 | 0/0 | 522/1272 | 12,161,199 | 1,291,148 | 834,615 | 120.9 | 15.0 | 8.6 | 201.6 | 0.457 |
+| cma_realistic_q16 | 35 | 1 | 1965 | 780 | 4/1978 | 603/1395 | 12,654,234 | 790,650 | 549,188 | 128.9 | 9.4 | 5.6 | 220.9 | 0.287 |
+<!-- /table:phase_d_pilot_cost -->
+
+<!-- table:phase_d_pilot_unresolved -->
+| run | unresolved | wrong | median_err | max_err | wrong_all | wrong_boundary | cross |
+|---|---|---|---|---|---|---|---|
+| mc_clean | 710 | 708 | 41.475 | 58.629 | 740 | 568 | 497 |
+| cma_clean | 681 | 681 | 41.662 | 58.666 | 742 | 570 | 505 |
+| cma_noretry_clean | 677 | 677 | 41.703 | 58.669 | 734 | 562 | 494 |
+| mc_realistic_q16 | 691 | 690 | 42.042 | 61.073 | 709 | 541 | 485 |
+| cma_realistic_q16 | 580 | 580 | 43.500 | 58.651 | 617 | 483 | 452 |
+<!-- /table:phase_d_pilot_unresolved -->
+
+**Findings (what is measured and what is not).**
+- The overall wrong rate does not separate the arms (clean: 37.0, 37.1 and 36.7% of 2,000; the paired grain-clustered p for `mc` vs `cma` is 0.875, for `cma` vs `cma_noretry` 0.5), because 28 of 60 grains (46.7%, Wilson 34.6 to 59.1%, treating grains as independent) have no right voxel in every arm, all from the same seed order. On `realistic_q16` `cma` has 617 against 709 wrong (p = 0.368, 11 grains differ); that gap sits in the unresolved voxels (580 against 691) and is consistent with `cma` having seeded two more grains (34 against 32 seeds), not with a better fit; not tested.
+- Among voxels the BFS accepted, `cma` accepts about twice as many wrong (cross-boundary) orientations as `mc`: 61 against 32 of about 1,300 (clean) and 37 against 19 (`realistic_q16`), exact grain-clustered p 3.81e-06 and 0.000732 (sign-flip enumeration over the 19 and 15 differing grains); per accepted voxel 2.5% (32 of 1,290) against 4.6% (61 of 1,319) on clean, 1.5% against 2.6% on `realistic_q16`. This is **consistent with** the CMA fit pulling a neighbour's start onto the adjacent grain's orientation and passing the 0.9 test; not tested (no per-voxel look at the cost of the wrong accepted fits).
+- Precision among right answers: `cma` 0.0061 and `cma_noretry` 0.0055 deg against `mc` 0.0119 deg (clean, medians over all right voxels of each run, n = 1,258 to 1,266); not reproduced on `realistic_q16` (0.0141 against 0.0124 deg).
+- The retry does nothing useful here: of 1,895 retries (`cma_clean`) 2 were accepted and both were wrong; it costs 790,399 neighbour evaluations against 493,717 without it (`cma_noretry_clean`), and it did not change the wrong count (p = 0.5).
+- Neighbour fits: 0.43 s (`mc`), 0.28 s (`cma`), 0.20 s (`cma_noretry`) per local fit; seeds 202 to 221 s per seed (all contended). Seeds are 84 to 92% of the wall time. The expectation of about 174 s per seed and 0.4 s per neighbour held (smoke run, one seed, 175 s and 0.37 s). Thread A/B, torch's default 8 threads against 1: run during the pilot (contended, both arms at the same time as each other and as the 5 runs) 0.379 s per local fit and 178.8 s per seed voxel with either, agreeing to 0.001 s on the seed, which is unexplained (`ab_threads.json`); repeated afterwards one arm after the other (load 1.6, not gated, one repetition) 0.372 and 0.356 s per fit and 165.3 and 168.1 s per seed voxel for 8 and 1 threads (`ab_threads_staggered.json`). No detectable difference at that precision; the pilot itself ran with 8 threads, and `pilot_bfs.py` and `launch_pilot.sh` now set one thread and record it in `run.json`.
+- Not evaluated: near-axis vs far-axis differences are small (39.4 vs 36.4% wrong for `mc_clean`, 416 against 1,584 voxels) and not tested; the boundary vs interior split is confounded with the lost-grain mechanism above (76 to 78% of the voxels of lost grains are boundary voxels against 67 to 68% for the others, so boundary and interior differ only modestly in composition, but the unresolved voxels are almost all in lost grains).
+
+**Go / no-go for the full runs (3 arms x {clean, realistic, realistic_q16} x seeds).** **No-go as configured.** A BFS that leaves 28 of 60 grains (722 of 2,000 voxels, 36%) without an accepted seed (25 to 27 never searched) returns about a third wrong voxels whatever the optimizer, so a full run would compare the arms on the 0.9-test and the optimizer precision only, not on reconstruction. Needed before the long runs (owner decision): an explicit, measured option that gives voxels still REFIT at the end (or grains with no seed) a full no-start search, which the library branch deliberately did not offer and the C++ server does not do either. Its cost: every unreached piece becomes a seed, and one reseed does not guarantee recovery (the rejected-seed grain 394 failed a full search in four runs, twice in one). Projected full-sample wall time per run (one process per run, contended, linear scaling from this region; the three estimates in hours):
+
+<!-- table:phase_d_pilot_projection -->
+| run | proj_full_h_voxel_linear | proj_full_h_seeds_per_grain | proj_full_h_every_piece_seeded |
+|---|---|---|---|
+| mc_clean | 27.9 | 20.2 | 32.3 |
+| cma_clean | 27.8 | 19.8 | 32.5 |
+| cma_noretry_clean | 25.3 | 17.7 | 30.5 |
+| mc_realistic_q16 | 29.6 | 21.5 | 32.6 |
+| cma_realistic_q16 | 29.5 | 20.9 | 33.6 |
+<!-- /table:phase_d_pilot_projection -->
+
+With all 9 runs (3 arms x 3 variants) concurrent on 12 cores, expect about one core each, so the wall time is the longest run: about 18 to 30 h as piloted, about 30 to 34 h if all 497 pieces (connected grain pieces under the BFS neighbour radius, the seed-count oracle's count; 612 is the edge-adjacency count) get a seed (seed time at the pilot's mean seed time; CMA seeds are no faster). Several seeds multiply the runs. Seed time dominates, so reducing the cost per seed (the 110 s level-0 coarse search) or running the seed voxels in parallel is the lever, not the neighbour budget. Also decide: whether to keep the `cma` retry (no benefit here, +60% neighbour cost), and whether `cma` should be kept given its higher cross-boundary acceptance.
+
+**Deviations / caveats.** (1) The first smoke attempt used `max_voxels 50`, which limits the seed candidates, not the BFS flood; it ran 24 min and was killed. The smoke test that counts is `max_voxels 1` (one seed, 68 voxels visited, about 200 s per arm). (2) One BFS rng seed, one region; no run-to-run variance estimate. (3) Fragmentation counts a grain whose voxels hold several different wrong orientations as fragmented; it is reported among found grains only. (4) The first version of this section projected 37 to 41 h with 612 pieces; corrected to 497.
+
+
+#### Phase D BFS reseed (2026-10-09 v1, 2026-10-10 v2, `feature/finisher-mc-study-bfs-reseed`)
+
+**Code.** Opt-in `BFSReseed 1` (`bfs_reseed`, default off; with it off the output equals `tests/data/bfs_grid_golden.npz`). After the seed loop `BFSReconstruction._reseed_clusters` takes the connected clusters of REFIT voxels (radius 2 x side, as the expansion), one at a time in order of smallest voxel index, runs the normal seed path (`_fit_from_seed`, full no-start search plus acceptance test) on the voxel nearest the cluster centroid (ties: lowest index) and expands with revisit forced on (the cluster's revisit counters are reset so the cap of `BFSRevisitMax` does not block the new orientation). Then the clusters are recomputed. In this first version (v1) a rejected reseed closed its whole cluster, and so did a rejected ordinary seed inside it. **Superseded 2026-10-10** by the owner's per-voxel rule, see v2 below. Termination: every pass either marks a cluster final or turns a REFIT voxel FITTED. `reseed_log` has per reseed cluster size, voxel, accepted, seconds, evaluations; `stats` has `n_reseeds`, `n_reseed_accepted`, `n_reseed_rejected`, `n_reseed_final_voxels`, `n_evals_reseed`, `wall_reseed_s`. Tests (`tests/test_bfs_refit.py`, 8 new): golden parity (existing), a swallowed grain is recovered, off leaves it REFIT, a rejected reseed is tried once, clusters with a rejected ordinary seed are skipped, termination with several clusters, scripted-grid improvement, config key. Full suite: 835 passed, 34 skipped, 1 deselected.
+
+**Re-pilot.** `scripts/phase_d/pilot_bfs.py --reseed`, `launch_pilot.sh` (`ARMS=` list), `summarize_reseed.py`; data in `benchmarks/phase_d_pilot_reseed/` (`summary.json`, `tables.md`, `preflight.json`, `runs/`). Results and the table: findings doc, section 3(g) follow-up. Short form: lost grains 28 to 19 (`mc` clean), 28 to 19 (`cma_noretry` clean), 27 to 18, 26 to 19; wrong voxels 740 to 633, 734 to 633, 709 to 608, 617 to 568; 39 of 41 reseeds accepted; the remaining 529 to 601 unresolved voxels form one cluster holding a rejected ordinary seed. Caveats: one seed order and one region; contended; the machine slept during part of the runs, so wall times are inflated and the evaluation share (18 to 22%) is the cost figure; the Q-max 16 `cma_noretry` run is compared with the pilot's `cma` (with retry).
+
+<!-- table:phase_d_reseed_compare -->
+| run | pilot | wrong_pilot | wrong_reseed | unres_pilot | unres_reseed | lost_pilot | lost_reseed | acc_wrong_pilot | acc_wrong_reseed | n_clusters_differing | p |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | mc_clean | 740 | 633 | 710 | 601 | 28 | 19 | 32 | 32 | 10 | 0.00195 |
+| cma_noretry_clean | cma_noretry_clean | 734 | 633 | 677 | 576 | 28 | 19 | 57 | 57 | 10 | 0.00195 |
+| mc_realistic_q16 | mc_realistic_q16 | 709 | 608 | 691 | 590 | 27 | 18 | 19 | 19 | 9 | 0.00391 |
+| cma_noretry_realistic_q16 | cma_realistic_q16 | 617 | 568 | 580 | 533 | 26 | 19 | 37 | 35 | 12 | 0.533 |
+<!-- /table:phase_d_reseed_compare -->
+
+<!-- table:phase_d_reseed_counts -->
+| run | seeds | seed_rej | reseeds | accepted | rejected | median_cluster | final_voxels | reseed_min | full_search_min | share_pct | ev_share_pct | unres_clusters | largest_unres | largest_grains | largest_lost_inside | largest_has_rej_seed | wall_h | wall_pilot_h | ev_reseed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 34 | 2 | 11 | 11 | 0 | 6.0 | 0 | 95.7 | 87.3 | 44.6 | 21.8 | 1 | 601 | 20 | 19 | True | 3.57 | 2.27 | 3,723,137 |
+| cma_noretry_clean | 33 | 1 | 10 | 10 | 0 | 7.0 | 0 | 92.9 | 92.7 | 46.6 | 22.1 | 1 | 576 | 19 | 19 | True | 3.32 | 2.06 | 3,403,584 |
+| mc_realistic_q16 | 36 | 4 | 10 | 9 | 1 | 7.0 | 1 | 98.5 | 97.9 | 39.5 | 19.4 | 2 | 589 | 21 | 18 | True | 4.15 | 2.41 | 3,442,938 |
+| cma_noretry_realistic_q16 | 43 | 10 | 10 | 9 | 1 | 7.5 | 4 | 96.9 | 96.7 | 31.8 | 18.2 | 2 | 529 | 18 | 18 | True | 5.09 | 2.40 | 3,638,977 |
+<!-- /table:phase_d_reseed_counts -->
+
+**v2: finality per voxel (owner clarification 2026-10-10).** A voxel whose full no-start search is rejected (ordinary seed or reseed) is failed: never searched again, unresolved unless a later revisit fits it, and it does not close its cluster. The clusters are recomputed with the failed voxels left out before each reseed; one voxel per remaining cluster (nearest the centroid, ties lowest index), repeated until no cluster is left. Kept and documented: the revisit counters of a reseeded cluster are reset (they stay reset if the reseed is rejected, so the cap applies per reseed; the discarded counts are kept in the logging-only `n_revisits_before_reset`), and the reseed expansion forces revisit. Termination: each pass fails one more voxel or fits one REFIT voxel. Tests (`tests/test_bfs_refit.py`): a rejected reseed voxel is searched once but its cluster is reseeded on another voxel, failed voxels stay unresolved and are searched once, a rejected ordinary seed inside a cluster no longer blocks the rest of the cluster, no cluster left when every REFIT voxel has failed, scripted-grid termination; golden parity with reseed off. Full suite: 836 passed at the v2 commit; 844 passed, 34 skipped, 1 deselected after the review fixes (the map tools' 7 tests and the revisit-history test included). Data: `benchmarks/phase_d_pilot_reseed_v2/` (`summary.json`, `tables.md`, `preflight.json`, `runs/`; `summarize_reseed.py --runs ... --v1 ... --prefix phase_d_reseed2`). Contended (4 concurrent runs, `caffeinate`, the machine did not sleep this time).
+
+Result (wrong / unresolved / lost grains; pilot, v1, v2):
+
+<!-- table:phase_d_reseed2_three -->
+| run | wrong_pilot | wrong_v1 | wrong_v2 | unres_pilot | unres_v1 | unres_v2 | lost_pilot | lost_v1 | lost_v2 |
+|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 740 | 633 | 37 | 710 | 601 | 1 | 28 | 19 | 0 |
+| cma_noretry_clean | 734 | 633 | 60 | 677 | 576 | 1 | 28 | 19 | 0 |
+| mc_realistic_q16 | 709 | 608 | 23 | 691 | 590 | 2 | 27 | 18 | 0 |
+| cma_noretry_realistic_q16 | 617 | 568 | 38 | 580 | 533 | 2 | 26 | 19 | 0 |
+<!-- /table:phase_d_reseed2_three -->
+
+<!-- table:phase_d_reseed2_counts -->
+| run | seeds | seed_rej | reseeds | accepted | rejected | median_cluster | final_voxels | lost_failed | lost_nosearch | reseed_min | full_search_min | share_pct | ev_share_pct | unres_clusters | largest_unres | largest_grains | largest_lost_inside | largest_has_rej_seed | wall_h | wall_pilot_h | ev_reseed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 34 | 2 | 35 | 32 | 3 | 22.0 | 3 | 0 | 0 | 109.2 | 103.6 | 47.7 | 47.7 | 1 | 1 | 1 | 0 | True | 3.82 | 2.27 | 12,201,531 |
+| cma_noretry_clean | 33 | 1 | 30 | 29 | 1 | 22.5 | 1 | 0 | 0 | 93.7 | 91.6 | 46.6 | 46.4 | 1 | 1 | 1 | 0 | True | 3.35 | 2.06 | 10,364,921 |
+| mc_realistic_q16 | 36 | 4 | 44 | 34 | 10 | 15.5 | 10 | 0 | 0 | 141.1 | 135.6 | 51.2 | 51.9 | 2 | 1 | 1 | 0 | False | 4.59 | 2.41 | 15,396,455 |
+| cma_noretry_realistic_q16 | 43 | 10 | 42 | 28 | 14 | 15.0 | 14 | 0 | 0 | 135.3 | 133.4 | 47.8 | 48.4 | 2 | 1 | 1 | 0 | True | 4.71 | 2.40 | 15,357,913 |
+<!-- /table:phase_d_reseed2_counts -->
+
+0 of 60 grains lost in all four runs; 23 to 60 of 2,000 voxels wrong (all cross-boundary; 21 to 59 of them accepted fits and 1 to 2 unresolved failed voxels); 151 reseeds in the four runs, 123 accepted, 28 rejected; the reseeds are 46 to 52% of the evaluations and 47 to 51% of the wall time (3.3 to 4.7 h per run against 2.1 to 2.4 h in the pilot). One seed order, one region, contended; the Q-max 16 `cma_noretry` run is compared with the pilot's `cma` with retry. Details: findings doc, 3(g) follow-up.
+
+### Order and budget
+- **Order:** A → B1/B2 (no new compute) → B3 → C → D.
+- **Compute:**
+
+  | Phase | Compute |
+  |---|---|
+  | A | ~1 h |
+  | B3 | ~2–3 h (10 workers), plus ~30 min single-worker timing |
+  | C | ~1.5 h |
+  | D | images TBD, plus ~1.5 h per pipeline |
+
+- The main session reviews each task with Opus before it merges into the feature branch, and asks the owner before
+  Phase D's long runs.
+
+### Completion summary (Finisher and MC study, 2026-10-13)
+
+Branch `feature/finisher-mc-study`, merged to develop by PR. Full write-ups:
+`docs/findings_finisher_mc_study_2026-10.md` (Phases A-D, BFS reseed) and
+`docs/findings_ray_overlap_rule_2026-10.md` (level-0 overlap rule, ray rule, centroid start point).
+
+- **Cost sensitivity (Phase A).** The cost is not why the finisher stops short: it slopes toward the truth down to
+  about 0.0005-0.001 deg.
+- **Port parity (Phases B1-B3, MCOptimizer bug fix).** The Python MC loop and VarianceMinimizing restart differed from
+  C++; both are now ported faithfully (owner decision 2026-10-08) and are the default classic path.
+- **CMA-ES (Phase C).** Opt-in local finisher, about 5x more precise than MC at similar cost, no fewer wrong answers,
+  more wrong-grain acceptances in BFS. `cma` is a core dependency; the wider-sigma retry is dropped.
+- **Phase D.** New 500-grain sample, full-sample renders, memmap loader. The pilot showed the BFS seed rule (same as
+  the C++ server) loses 25-28 of 60 grains; opt-in `BFSReseed` (finality per voxel) brings lost grains to 0 of 60 in
+  all four runs (pilot 26-28) and wrong voxels from 617-740 to 23-60 of 2,000 (`mc` clean 740 to 37), at 46-52% of a
+  run's evaluations (one region, one seed order, contended). Opt-in BFS revisit, restart pass and per-voxel
+  provenance.
+- **Level-0 overlap rule.** Python passed 1.24-1.53x C++'s level-0 candidates because of a port difference in
+  `CountQualifiedPeaks`; opt-in `CppOverlapRule` reproduces C++ (0.95-0.98x its evaluations) but is less accurate on
+  E0 clean (56 wrong of 200).
+- **Ray-consistency rule.** Opt-in ray rule (coarse levels 0-2 only; final cost stays strict) recovers the accuracy:
+  40-41 wrong of 200 on clean images, tied with the lenient rule (41), at 6-21% more evaluations than the C++ rule
+  against 46% for the lenient rule. Cases b/e count one pixel instead of n (known, TODO).
+- **Centroid start point.** The screen now projects the voxel centroid for every rule (default; opt-out
+  `cpp_center_screen=False`). Lenient rule on E0 clean 39 -> 41 wrong (14 fixed, 16 broken, one run per voxel), other
+  rules unchanged.
+- **Deferred / open.** Realistic-image noise model is unphysical and must be redone; full-sample BFS deferred; the
+  3 of 524 real peaks rejected at the truth under the C++ and ray rules are unexplained. Next: the evaluation
+  reduction plan (Tasks A-G) on `feature/eval-reduction`.
+- **Gotcha.** After pulling, rebuild the C extension (`_rasterize.c`) as described in the level-0 subsection; a stale
+  build warns and falls back to the slow Python loop.
 
 ## Bug fix: MCOptimizer C++ parity (2026-10-09)
 

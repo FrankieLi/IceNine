@@ -1,0 +1,739 @@
+{
+ "voxels": {
+  "15901": {
+   "cpp_runs": 3,
+   "cpp_adap_evals": [
+    251188,
+    251188,
+    251188
+   ],
+   "cpp_adap_sec": [
+    22.6619,
+    20.7773,
+    20.246
+   ],
+   "py_evals_total": 328519,
+   "py_quick": {
+    "n": 15149,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.2504455739652782,
+    "accepts": 0.7495544260347218,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.7495544260347218
+   },
+   "py_find": {
+    "n": 1,
+    "steps": 186.0,
+    "blocks": 6.0,
+    "restarts": 3.0,
+    "accepts": 3.0,
+    "evals": 193.0,
+    "frac_stop_restarts": 1.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.0,
+    "frac_any_accept": 1.0
+   },
+   "cpp_quick": {
+    "n": 34686,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.30297526379519113,
+    "accepts": 0.6970247362048089,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.6970247362048089
+   },
+   "cpp_find": {
+    "n": 9,
+    "steps": 185.0,
+    "blocks": 6.333333333333333,
+    "restarts": 3.3333333333333335,
+    "accepts": 3.0,
+    "evals": 192.33333333333334,
+    "frac_stop_restarts": 0.6666666666666666,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.3333333333333333,
+    "frac_any_accept": 1.0
+   },
+   "py_stage_evals": {
+    "quick_evals": 181788,
+    "find_evals": 193,
+    "variance_evals": 1508
+   },
+   "cpp_quick_evals_per_run": 138744.0,
+   "cpp_find_evals_per_run": 577.0,
+   "cpp_n_quick_per_run": 11562.0,
+   "py_n_quick": 15149,
+   "rule_violations": {
+    "py": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    },
+    "cpp": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    }
+   }
+  },
+  "17034": {
+   "cpp_runs": 3,
+   "cpp_adap_evals": [
+    251673,
+    251673,
+    251673
+   ],
+   "cpp_adap_sec": [
+    20.7416,
+    20.7735,
+    21.5809
+   ],
+   "py_evals_total": 339561,
+   "py_quick": {
+    "n": 15483,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.2433636892075179,
+    "accepts": 0.7566363107924821,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.7566363107924821
+   },
+   "py_find": {
+    "n": 30,
+    "steps": 159.4,
+    "blocks": 5.233333333333333,
+    "restarts": 3.033333333333333,
+    "accepts": 2.2,
+    "evals": 165.63333333333333,
+    "frac_stop_restarts": 0.9666666666666667,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.03333333333333333,
+    "frac_any_accept": 0.9666666666666667
+   },
+   "cpp_quick": {
+    "n": 34827,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.3014902231027651,
+    "accepts": 0.6985097768972349,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.6985097768972349
+   },
+   "cpp_find": {
+    "n": 3,
+    "steps": 155.0,
+    "blocks": 5.0,
+    "restarts": 3.0,
+    "accepts": 2.0,
+    "evals": 161.0,
+    "frac_stop_restarts": 1.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.0,
+    "frac_any_accept": 1.0
+   },
+   "py_stage_evals": {
+    "quick_evals": 185796,
+    "find_evals": 4969,
+    "variance_evals": 1805
+   },
+   "cpp_quick_evals_per_run": 139308.0,
+   "cpp_find_evals_per_run": 161.0,
+   "cpp_n_quick_per_run": 11609.0,
+   "py_n_quick": 15483,
+   "rule_violations": {
+    "py": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    },
+    "cpp": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    }
+   }
+  },
+  "18558": {
+   "cpp_runs": 3,
+   "cpp_adap_evals": [
+    219790,
+    219790,
+    219790
+   ],
+   "cpp_adap_sec": [
+    16.3722,
+    15.9967,
+    16.2466
+   ],
+   "py_evals_total": 329367,
+   "py_quick": {
+    "n": 15349,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.24144895432927227,
+    "accepts": 0.7585510456707277,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.7585510456707277
+   },
+   "py_find": {
+    "n": 1,
+    "steps": 200.0,
+    "blocks": 7.0,
+    "restarts": 1.0,
+    "accepts": 6.0,
+    "evals": 208.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 1.0
+   },
+   "cpp_quick": {
+    "n": 29919,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.3282863732076607,
+    "accepts": 0.6717136267923394,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.6717136267923394
+   },
+   "cpp_find": {
+    "n": 24,
+    "steps": 183.125,
+    "blocks": 6.25,
+    "restarts": 2.5,
+    "accepts": 3.75,
+    "evals": 190.375,
+    "frac_stop_restarts": 0.625,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.375,
+    "frac_any_accept": 1.0
+   },
+   "py_stage_evals": {
+    "quick_evals": 184188,
+    "find_evals": 208,
+    "variance_evals": 1508
+   },
+   "cpp_quick_evals_per_run": 119676.0,
+   "cpp_find_evals_per_run": 1523.0,
+   "cpp_n_quick_per_run": 9973.0,
+   "py_n_quick": 15349,
+   "rule_violations": {
+    "py": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    },
+    "cpp": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    }
+   }
+  },
+  "19889": {
+   "cpp_runs": 3,
+   "cpp_adap_evals": [
+    236372,
+    236372,
+    236372
+   ],
+   "cpp_adap_sec": [
+    18.1541,
+    18.6359,
+    18.4639
+   ],
+   "py_evals_total": 330209,
+   "py_quick": {
+    "n": 15341,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.24698520305064858,
+    "accepts": 0.7530147969493514,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.7530147969493514
+   },
+   "py_find": {
+    "n": 1,
+    "steps": 186.0,
+    "blocks": 6.0,
+    "restarts": 4.0,
+    "accepts": 2.0,
+    "evals": 193.0,
+    "frac_stop_restarts": 1.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.0,
+    "frac_any_accept": 1.0
+   },
+   "cpp_quick": {
+    "n": 32460,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.29584103512014787,
+    "accepts": 0.7041589648798521,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.7041589648798521
+   },
+   "cpp_find": {
+    "n": 3,
+    "steps": 155.0,
+    "blocks": 5.0,
+    "restarts": 3.0,
+    "accepts": 2.0,
+    "evals": 161.0,
+    "frac_stop_restarts": 1.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.0,
+    "frac_any_accept": 1.0
+   },
+   "py_stage_evals": {
+    "quick_evals": 184092,
+    "find_evals": 193,
+    "variance_evals": 1002
+   },
+   "cpp_quick_evals_per_run": 129840.0,
+   "cpp_find_evals_per_run": 161.0,
+   "cpp_n_quick_per_run": 10820.0,
+   "py_n_quick": 15341,
+   "rule_violations": {
+    "py": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    },
+    "cpp": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    }
+   }
+  },
+  "22867": {
+   "cpp_runs": 3,
+   "cpp_adap_evals": [
+    250852,
+    250852,
+    250852
+   ],
+   "cpp_adap_sec": [
+    19.875,
+    20.7903,
+    16.5614
+   ],
+   "py_evals_total": 335687,
+   "py_quick": {
+    "n": 15277,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.24631799437062252,
+    "accepts": 0.7536820056293775,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.7536820056293775
+   },
+   "py_find": {
+    "n": 30,
+    "steps": 159.4,
+    "blocks": 5.233333333333333,
+    "restarts": 3.1333333333333333,
+    "accepts": 2.1,
+    "evals": 165.63333333333333,
+    "frac_stop_restarts": 0.9,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.1,
+    "frac_any_accept": 1.0
+   },
+   "cpp_quick": {
+    "n": 34647,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.29413802060784483,
+    "accepts": 0.7058619793921551,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.7058619793921551
+   },
+   "cpp_find": {
+    "n": 3,
+    "steps": 155.0,
+    "blocks": 5.0,
+    "restarts": 3.0,
+    "accepts": 2.0,
+    "evals": 161.0,
+    "frac_stop_restarts": 1.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.0,
+    "frac_any_accept": 1.0
+   },
+   "py_stage_evals": {
+    "quick_evals": 183324,
+    "find_evals": 4969,
+    "variance_evals": 1585
+   },
+   "cpp_quick_evals_per_run": 138588.0,
+   "cpp_find_evals_per_run": 161.0,
+   "cpp_n_quick_per_run": 11549.0,
+   "py_n_quick": 15277,
+   "rule_violations": {
+    "py": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    },
+    "cpp": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    }
+   }
+  },
+  "5242": {
+   "cpp_runs": 3,
+   "cpp_adap_evals": [
+    209927,
+    209927,
+    209927
+   ],
+   "cpp_adap_sec": [
+    10.4735,
+    10.4463,
+    10.4343
+   ],
+   "py_evals_total": 330577,
+   "py_quick": {
+    "n": 15144,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.2571975699947174,
+    "accepts": 0.7428024300052826,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.7428024300052826
+   },
+   "py_find": {
+    "n": 30,
+    "steps": 166.33333333333334,
+    "blocks": 5.566666666666666,
+    "restarts": 3.1,
+    "accepts": 2.466666666666667,
+    "evals": 172.9,
+    "frac_stop_restarts": 0.7666666666666667,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.23333333333333334,
+    "frac_any_accept": 0.9
+   },
+   "cpp_quick": {
+    "n": 28383,
+    "steps": 10.0,
+    "blocks": 1.0,
+    "restarts": 0.3396046929500053,
+    "accepts": 0.6603953070499947,
+    "evals": 12.0,
+    "frac_stop_restarts": 0.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 1.0,
+    "frac_any_accept": 0.6603953070499947
+   },
+   "cpp_find": {
+    "n": 3,
+    "steps": 155.0,
+    "blocks": 5.0,
+    "restarts": 4.0,
+    "accepts": 1.0,
+    "evals": 161.0,
+    "frac_stop_restarts": 1.0,
+    "frac_stop_conv": 0.0,
+    "frac_budget": 0.0,
+    "frac_any_accept": 1.0
+   },
+   "py_stage_evals": {
+    "quick_evals": 181728,
+    "find_evals": 5187,
+    "variance_evals": 1442
+   },
+   "cpp_quick_evals_per_run": 113532.0,
+   "cpp_find_evals_per_run": 161.0,
+   "cpp_n_quick_per_run": 9461.0,
+   "py_n_quick": 15144,
+   "rule_violations": {
+    "py": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    },
+    "cpp": {
+     "len": 0,
+     "halve": 0,
+     "reset": 0
+    }
+   }
+  }
+ },
+ "stage_split": [
+  {
+   "voxel": 15901,
+   "quick_py": 181788,
+   "quick_cpp": 138744.0,
+   "find_py": 193,
+   "find_cpp": 577.0,
+   "rest_py": 146538,
+   "rest_cpp": 111867.0,
+   "total_py": 328519,
+   "total_cpp": 251188.0,
+   "cand_L0_py": 10190,
+   "cand_L0_cpp": 8151.0,
+   "cand_all_py": 15149,
+   "cand_all_cpp": 11562.0
+  },
+  {
+   "voxel": 17034,
+   "quick_py": 185796,
+   "quick_cpp": 139308.0,
+   "find_py": 4969,
+   "find_cpp": 161.0,
+   "rest_py": 148796,
+   "rest_cpp": 112204.0,
+   "total_py": 339561,
+   "total_cpp": 251673.0,
+   "cand_L0_py": 10382,
+   "cand_L0_cpp": 8284.0,
+   "cand_all_py": 15483,
+   "cand_all_cpp": 11609.0
+  },
+  {
+   "voxel": 18558,
+   "quick_py": 184188,
+   "quick_cpp": 119676.0,
+   "find_py": 208,
+   "find_cpp": 1523.0,
+   "rest_py": 144971,
+   "rest_cpp": 98591.0,
+   "total_py": 329367,
+   "total_cpp": 219790.0,
+   "cand_L0_py": 10271,
+   "cand_L0_cpp": 7026.0,
+   "cand_all_py": 15349,
+   "cand_all_cpp": 9973.0
+  },
+  {
+   "voxel": 19889,
+   "quick_py": 184092,
+   "quick_cpp": 129840.0,
+   "find_py": 193,
+   "find_cpp": 161.0,
+   "rest_py": 145924,
+   "rest_cpp": 106371.0,
+   "total_py": 330209,
+   "total_cpp": 236372.0,
+   "cand_L0_py": 10308,
+   "cand_L0_cpp": 7673.0,
+   "cand_all_py": 15341,
+   "cand_all_cpp": 10820.0
+  },
+  {
+   "voxel": 22867,
+   "quick_py": 183324,
+   "quick_cpp": 138588.0,
+   "find_py": 4969,
+   "find_cpp": 161.0,
+   "rest_py": 147394,
+   "rest_cpp": 112103.0,
+   "total_py": 335687,
+   "total_cpp": 250852.0,
+   "cand_L0_py": 10236,
+   "cand_L0_cpp": 8234.0,
+   "cand_all_py": 15277,
+   "cand_all_cpp": 11549.0
+  },
+  {
+   "voxel": 5242,
+   "quick_py": 181728,
+   "quick_cpp": 113532.0,
+   "find_py": 5187,
+   "find_cpp": 161.0,
+   "rest_py": 143662,
+   "rest_cpp": 96234.0,
+   "total_py": 330577,
+   "total_cpp": 209927.0,
+   "cand_L0_py": 10213,
+   "cand_L0_cpp": 6674.0,
+   "cand_all_py": 15144,
+   "cand_all_cpp": 9461.0
+  }
+ ],
+ "seed_cost": [
+  {
+   "voxel": 15901,
+   "evals_before": 311366,
+   "evals_after": 328519,
+   "evals_cpp": 251188.0,
+   "wall_before": 158.137833333,
+   "wall_after": 175.95553075,
+   "wall_cpp": 21.228399999999997,
+   "err_before": 0.04240996131220613,
+   "err_after": 0.017005001792143985,
+   "quiet_after": true
+  },
+  {
+   "voxel": 17034,
+   "evals_before": 322332,
+   "evals_after": 339561,
+   "evals_cpp": 251673.0,
+   "wall_before": 172.612382834,
+   "wall_after": 179.3049365,
+   "wall_cpp": 21.032,
+   "err_before": 0.029607278715134376,
+   "err_after": 0.02835344308533495,
+   "quiet_after": true
+  },
+  {
+   "voxel": 18558,
+   "evals_before": 310737,
+   "evals_after": 329367,
+   "evals_cpp": 219790.0,
+   "wall_before": 161.40693116600002,
+   "wall_after": 170.693307791,
+   "wall_cpp": 16.205166666666667,
+   "err_before": 0.005869680450844853,
+   "err_after": 0.0048076848873120715,
+   "quiet_after": true
+  },
+  {
+   "voxel": 19889,
+   "evals_before": 318580,
+   "evals_after": 330209,
+   "evals_cpp": 236372.0,
+   "wall_before": 164.512484083,
+   "wall_after": 176.080325167,
+   "wall_cpp": 18.41796666666667,
+   "err_before": 0.06142195867507068,
+   "err_after": 0.021026551119654208,
+   "quiet_after": true
+  },
+  {
+   "voxel": 22867,
+   "evals_before": 319533,
+   "evals_after": 335687,
+   "evals_cpp": 250852.0,
+   "wall_before": 170.343715416,
+   "wall_after": 173.710299459,
+   "wall_cpp": 19.075566666666667,
+   "err_before": 0.06622010502230888,
+   "err_after": 0.026300225716775604,
+   "quiet_after": true
+  },
+  {
+   "voxel": 5242,
+   "evals_before": 313970,
+   "evals_after": 330577,
+   "evals_cpp": 209927.0,
+   "wall_before": 168.944979292,
+   "wall_after": 170.740466084,
+   "wall_cpp": 10.451366666666667,
+   "err_before": 0.027737511225731572,
+   "err_after": 0.04931254525097355,
+   "quiet_after": true
+  },
+  {
+   "voxel": "mean",
+   "evals_before": 316086.3333333333,
+   "evals_after": 332320.0,
+   "evals_cpp": 236633.66666666666,
+   "wall_before": 165.993054354,
+   "wall_after": 174.4141442918333,
+   "wall_cpp": 17.73507777777778,
+   "err_before": 0.03887774923354941,
+   "err_after": 0.02446757530869906
+  }
+ ],
+ "serial_seed_pass_hours": {
+  "per_seed_s": 174.4141442918333,
+  "seeds": [
+   350,
+   395,
+   504
+  ],
+  "hours": [
+   16.95693069503935,
+   19.137107498687268,
+   24.417980200856665
+  ],
+  "label": "single-process, quiet (preflight passed in 6/6)"
+ },
+ "evals": [
+  {
+   "voxel": 15901,
+   "cpp_evals": 251188.0,
+   "py_evals": 328519,
+   "ratio": 1.3078610443174037
+  },
+  {
+   "voxel": 17034,
+   "cpp_evals": 251673.0,
+   "py_evals": 339561,
+   "ratio": 1.3492150528662192
+  },
+  {
+   "voxel": 18558,
+   "cpp_evals": 219790.0,
+   "py_evals": 329367,
+   "ratio": 1.498553164384185
+  },
+  {
+   "voxel": 19889,
+   "cpp_evals": 236372.0,
+   "py_evals": 330209,
+   "ratio": 1.3969886450171762
+  },
+  {
+   "voxel": 22867,
+   "cpp_evals": 250852.0,
+   "py_evals": 335687,
+   "ratio": 1.3381874571460464
+  },
+  {
+   "voxel": 5242,
+   "cpp_evals": 209927.0,
+   "py_evals": 330577,
+   "ratio": 1.5747235943923363
+  }
+ ],
+ "trace_15901": {
+  "n_calls": 11565,
+  "n_restart_draws": 3513,
+  "radius_min": 0.000829364,
+  "radius_max": 0.00419979,
+  "radius_expected_find": 0.0008293638483560816,
+  "radius_expected_quick": 0.004199794271531327
+ }
+}
