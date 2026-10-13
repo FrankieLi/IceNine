@@ -862,7 +862,7 @@ class VoxelCostFunction:
         max_q: float = 0.0,
         min_sin_eta: float = 0.0,
         cpp_overlap_rule: bool = False,
-        center_screen: bool = False,
+        center_screen: bool = True,
         ray_rule: "Optional[RayRule]" = None,
     ):
         """
@@ -895,7 +895,9 @@ class VoxelCostFunction:
                    non-overlapping later detector invalidates a peak's overlap). Default False
                    (the original Python rule). C++ Reference: OverlapInfo.tmpl.cpp:78-139.
             center_screen: For pixel_radius > 0 project the voxel centroid (C++ VoxelToCenter)
-                   instead of the first triangle vertex. Default False.
+                   instead of the first triangle vertex (vertex 0). Default True for every
+                   rule (identical start point to C++); False is an explicit opt-out kept for
+                   history.
             ray_rule: Opt-in ray-consistency rule (ray_overlap.RayRule), default None = off. It
                    implies the C++ rule. The reconstructor gives it only to the coarse levels
                    0-2 (screen, re-cost, quick MC); FindOptimal, VarianceMinimizing and the final

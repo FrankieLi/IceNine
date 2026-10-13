@@ -240,7 +240,7 @@ def test_rule_only_in_coarse_levels():
     ]
     rec.setup = SimpleNamespace(search_params=SearchParameters())
     assert all(rec._ray_rule_for_level(k) is None for k in range(5))
-    assert rec._cost_flags() == {}
+    assert rec._cost_flags() == {"center_screen": True}
     assert rec._cost_flags(RayRule()) == dict(cpp_overlap_rule=True, center_screen=True)
 
 

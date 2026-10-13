@@ -5708,6 +5708,19 @@ Per-run labels (quiet = the preflight passed; load1 = 1-minute load at start; ol
 Files: `icenine/ray_overlap.py`, `scripts/phase_d/ray_overlap_study.py`, `ray_overlap_summary.py`,
 `benchmarks/phase_d_seed_diag/ray_overlap/` (`RUN_LOG.md`, `summary.json`, `tables.md`, `coarse/`).
 
+#### Centroid start point everywhere (2026-10-12, `feature/finisher-mc-study-centroid`)
+
+Owner: the projection start point must equal C++, which projects the voxel centroid (VoxelToCenter) in the
+pixel-radius screen. `VoxelCostFunction(center_screen=...)` now defaults to True for every rule (old/lenient, C++,
+ray), decoupled from `CppOverlapRule`; `Reconstructor._cost_flags` always passes it. Vertex 0 stays only as the
+explicit opt-out `cpp_center_screen=False` (not a config key). The pixel-radius-0 local cost uses the exact
+triangle and never used the start point. Step 1 suite: no numeric golden changed; two tests changed: the
+`_cost_flags()` default in `test_ray_overlap.py` (now `{'center_screen': True}`) and the FindOptimal-robustness
+batched features.
+**Owner decision 2026-10-12:** the FindOptimal-robustness feature extractor
+(`scripts/findoptimal_robustness/features.py`) keeps the first vertex (`center_screen=False`) because its caches were
+built with vertex 0; the main reconstruction uses the centroid everywhere. Suite: 872 passed, 34 skipped.
+
 #### Phase D pilot results (2026-10-08, `feature/finisher-mc-study-phase-d-run`)
 
 A 2,000-voxel region of the new-orientation sample, five single-process BFS runs, `BFSRevisitRefit 1` in every config, BFS rng seed 0, memmap images. Code: `scripts/phase_d/make_region.py`, `pilot_bfs.py`, `score_bfs.py`, `summarize_pilot.py`; `launch_pilot.sh`, `ab_threads.py`; tests `tests/test_phase_d_scoring.py` (9). Data and tables: `benchmarks/phase_d_pilot/` (`summary.json`, `tables.md`, `region.json`, `region_grid.mic`, `region_index.npy`, `runs/<arm>_<variant>/{run.json,score.json,voxels.npz}`, `preflight.json`, `ab_threads.json`, `ab_threads_staggered.json`). **Revised 2026-10-09 after review** (rescored from the same five runs, no new BFS runs): units are mm, the grain counts separate accepted from rejected seeds, the piece count is 497, the oracle prediction is credited, the thread A/B is reworded.
