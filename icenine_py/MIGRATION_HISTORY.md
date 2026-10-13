@@ -5997,6 +5997,36 @@ Result (wrong / unresolved / lost grains; pilot, v1, v2):
 - The main session reviews each task with Opus before it merges into the feature branch, and asks the owner before
   Phase D's long runs.
 
+### Completion summary (Finisher and MC study, 2026-10-13)
+
+Branch `feature/finisher-mc-study`, merged to develop by PR. Full write-ups:
+`docs/findings_finisher_mc_study_2026-10.md` (Phases A-D, BFS reseed) and
+`docs/findings_ray_overlap_rule_2026-10.md` (level-0 overlap rule, ray rule, centroid start point).
+
+- **Cost sensitivity (Phase A).** The cost is not why the finisher stops short: it slopes toward the truth down to
+  about 0.0005-0.001 deg.
+- **Port parity (Phases B1-B3, MCOptimizer bug fix).** The Python MC loop and VarianceMinimizing restart differed from
+  C++; both are now ported faithfully (owner decision 2026-10-08) and are the default classic path.
+- **CMA-ES (Phase C).** Opt-in local finisher, about 5x more precise than MC at similar cost, no fewer wrong answers,
+  more wrong-grain acceptances in BFS. `cma` is a core dependency; the wider-sigma retry is dropped.
+- **Phase D.** New 500-grain sample, full-sample renders, memmap loader. The pilot showed the BFS seed rule (same as
+  the C++ server) loses 25-28 of 60 grains; opt-in `BFSReseed` cuts lost grains 28 to 19 and wrong voxels 740 to 633
+  (`mc`, clean). Opt-in BFS revisit, restart pass and per-voxel provenance.
+- **Level-0 overlap rule.** Python passed 1.24-1.53x C++'s level-0 candidates because of a port difference in
+  `CountQualifiedPeaks`; opt-in `CppOverlapRule` reproduces C++ (0.95-0.98x its evaluations) but is less accurate on
+  E0 clean (56 wrong of 200).
+- **Ray-consistency rule.** Opt-in ray rule (coarse levels 0-2 only; final cost stays strict) recovers the accuracy:
+  40-41 wrong of 200 on clean images, tied with the lenient rule (41), at 6-21% more evaluations than the C++ rule
+  against 46% for the lenient rule. Cases b/e count one pixel instead of n (known, TODO).
+- **Centroid start point.** The screen now projects the voxel centroid for every rule (default; opt-out
+  `cpp_center_screen=False`). Lenient rule on E0 clean 39 -> 41 wrong (14 fixed, 16 broken, one run per voxel), other
+  rules unchanged.
+- **Deferred / open.** Realistic-image noise model is unphysical and must be redone; full-sample BFS deferred; the
+  3 of 524 real peaks rejected at the truth under the C++ and ray rules are unexplained. Next: the evaluation
+  reduction plan (Tasks A-G) on `feature/eval-reduction`.
+- **Gotcha.** After pulling, rebuild the C extension (`_rasterize.c`) as described in the level-0 subsection; a stale
+  build warns and falls back to the slow Python loop.
+
 ## Bug fix: MCOptimizer C++ parity (2026-10-09)
 
 Branch `feature/mc-cpp-parity-fix` (off develop at 9863007): the two places where `MCOptimizer` did not follow C++, brought over from `feature/finisher-mc-study` (commits 2c579c9 and 19933d5) without any study code. Library change only in `icenine/orientation_search.py`; nothing else in `icenine/` changed.
