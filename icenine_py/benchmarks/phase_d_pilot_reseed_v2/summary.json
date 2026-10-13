@@ -2979,6 +2979,15 @@
         "n_clusters_differing": 3,
         "p": 0.25,
         "exact": true
+      },
+      "paired_voxels": {
+        "fixed": 703,
+        "broken": 0,
+        "both_wrong": 37
+      },
+      "paired_accepted_wrong": {
+        "fixed": 0,
+        "broken": 4
       }
     },
     "cma_noretry_clean": {
@@ -2997,6 +3006,15 @@
         "n_clusters_differing": 2,
         "p": 0.5,
         "exact": true
+      },
+      "paired_voxels": {
+        "fixed": 674,
+        "broken": 0,
+        "both_wrong": 60
+      },
+      "paired_accepted_wrong": {
+        "fixed": 0,
+        "broken": 2
       }
     },
     "mc_realistic_q16": {
@@ -3015,6 +3033,15 @@
         "n_clusters_differing": 2,
         "p": 0.5,
         "exact": true
+      },
+      "paired_voxels": {
+        "fixed": 686,
+        "broken": 0,
+        "both_wrong": 23
+      },
+      "paired_accepted_wrong": {
+        "fixed": 0,
+        "broken": 2
       }
     },
     "cma_noretry_realistic_q16": {
@@ -3033,6 +3060,15 @@
         "n_clusters_differing": 3,
         "p": 1.0,
         "exact": true
+      },
+      "paired_voxels": {
+        "fixed": 579,
+        "broken": 0,
+        "both_wrong": 38
+      },
+      "paired_accepted_wrong": {
+        "fixed": 3,
+        "broken": 2
       }
     }
   }

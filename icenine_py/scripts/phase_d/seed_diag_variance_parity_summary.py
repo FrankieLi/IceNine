@@ -21,6 +21,7 @@ ICE = HERE.parents[1]
 OUT = ICE / "benchmarks" / "phase_d_seed_diag"
 sys.path.insert(0, str(ICE / "scripts" / "common"))
 import doc_tables as DT  # noqa: E402
+import gzio as GZ  # noqa: E402
 
 VOXELS = [15901, 17034, 18558, 19889, 22867, 5242]
 
@@ -44,8 +45,8 @@ def main() -> None:
     a = ap.parse_args()
     rows, out = [], {"voxels": {}}
     for v in VOXELS:
-        b = json.load(open(OUT / "runs" / f"base_full_v{v}.json"))
-        f = json.load(open(OUT / "runs" / f"varfix_full_v{v}.json"))
+        b = GZ.load_json(OUT / "runs" / f"base_full_v{v}.json")
+        f = GZ.load_json(OUT / "runs" / f"varfix_full_v{v}.json")
         log = Path(a.cpp_dir) / ("cpp_trace2.log" if v == 15901 else f"cpp_{v}.log")
         steps, ev, us = cpp_steps(log)
         d = dict(

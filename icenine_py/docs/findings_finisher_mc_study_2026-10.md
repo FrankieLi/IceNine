@@ -1,10 +1,15 @@
 ---
-title: "Finisher and MC study, and the first full-sample BFS test: findings of 2026-10-07 to 2026-10-09"
+title: "Finisher and MC study, and the first full-sample BFS test: findings of 2026-10-07 to 2026-10-13"
 subtitle: "Cost sensitivity, MC behaviour, two port discrepancies against C++, CMA-ES, and a limit of the BFS seed rule seen in the first multi-grain test"
-date: "2026-10-09"
+date: "2026-10-13"
 geometry: margin=1in
 fontsize: 11pt
 ---
+
+**Status (2026-10-13).** The BFS seed-rule limit of short answer 5 is addressed by the opt-in reseed
+(`BFSReseed 1`, finality per voxel): on the pilot region 0 of 60 grains are lost in all four runs and 23 to 60 of
+2,000 voxels are wrong, at 46 to 52% of a run's evaluations (3(g) follow-up; open question 1). The classic-vs-new
+end-to-end comparison has not been run; other seed orders, regions and full-sample scale are deferred (owner).
 
 # 1. Purpose and setup
 
@@ -40,8 +45,9 @@ Result files are under `icenine_py/benchmarks/`. Section 6 lists which earlier n
 **Conventions.**
 
 - "Wrong" means an error over 1° (symmetry-reduced misorientation).
-- Cases within a voxel or grain are not independent. Where a p-value is quoted, it comes from a voxel- or
-  grain-clustered test.
+- Cases within a voxel or grain are not independent. Paired comparisons give each arm's count and the paired split
+  by voxel (fixed / broken / both wrong) or the number of grains whose count differs. No p-values are quoted (owner
+  rule 2026-10-10).
 - Timings are contended unless marked single-worker.
 
 # 2. Short answers
@@ -64,12 +70,14 @@ Result files are under `icenine_py/benchmarks/`. Section 6 lists which earlier n
      truth.
    - It used MC settings and a Python MC loop that differ from the deployed C++ algorithm.
    - So it neither supports nor contradicts the deployed configuration at the 0.01–0.03° scale.
-5. **End-to-end BFS: no verdict yet.**
+5. **End-to-end BFS: no verdict yet; the seed-rule limit the pilot found is fixed by an opt-in reseed.**
    - The 2,000-voxel pilot found that the BFS seed rule leaves 25–27 of 60 grains without a full search (a 26th to
      28th lost grain had its one seed rejected). The C++ server uses the same rule. The seed-count oracle had
      predicted that about 28% of grains would be swallowed; the pilot rate is higher.
    - The voxels of those grains end wrong whatever the optimizer, about a third of all voxels.
-   - This must be fixed before the classic-vs-new comparison means anything.
+   - The opt-in reseed (`BFSReseed 1`, finality per voxel) recovers them on the pilot region: 0 of 60 grains lost
+     and 23–60 of 2,000 voxels wrong in four runs (pilot 617–740), at 46–52% of a run's evaluations (3(g)
+     follow-up). The classic-vs-new comparison has not been run; one region and one seed order so far.
 
 # 3. Findings
 
@@ -175,7 +183,7 @@ similar amount (66 to 40 clean, 44 to 24 realistic).
 
 - T5 H0 at 10,000 evaluations: 0.0096° became 0.1378°.
 - Wrong voxels: 20 became 29 of 100.
-- 1 voxel improved and 13 got worse, of 16 (p = 0.0018).
+- 1 voxel improved and 13 got worse, of 16 (paired by voxel).
 
 **Unchanged.** BFS neighbour refinement under `mc` keeps the inherited start: 47/50 cases return the start
 unchanged. Its 5° box is far too coarse for starts about 0.07° off.
@@ -217,7 +225,8 @@ Other results from B3:
   - The default (`mc`) path is bit-identical to before.
 - **Library check.** The library version reproduces B3's CMA-ES orientations exactly (50/50).
 - **E0 with the faithful MC.**
-  - `cma` and `mc` differ in the wrong count by 1 voxel (p = 1.0).
+  - `cma` and `mc` differ in the wrong count by 1 voxel (paired by voxel: on realistic images 1 voxel is wrong
+    only under `mc` and none only under `cma`; on clean images none differ).
   - `cma` stays about 4× more precise among right answers: 0.0021° against 0.0087° (realistic).
   - It costs +2–7% evaluations.
   - The Phase C claim "CMA fixes 8 voxels" was an artefact of the old MC.
@@ -241,7 +250,7 @@ Other results from B3:
 - **Memory.** A shared read-only image loader (`ExperimentalData.from_binary_memmap`) cuts a process from about
   7.7 GB to 0.37 GB, bit-identical to the dense loader. Many runs can now go at once on a 32 GB machine.
 - **Seed cost.**
-  - A no-start search takes about 174 s single-worker in Python (332k evaluations), (contended), against about 18 s in C++ (contended; 10–21 s).
+  - A no-start search takes about 174 s single-worker in Python (332k evaluations), against about 18 s in C++ (contended; 10–21 s).
   - Before the variance-stage fix it took about 9 minutes.
   - Searches on a voxel's isolated image are cheap only because they prune hard: on those images, 3 of 6 seeds
     ended wrong.
@@ -289,7 +298,7 @@ Other results from B3:
 - **Seeds are all right** (0 wrong).
 - **Every accepted wrong voxel carries a neighbouring grain's orientation.**
 - **CMA accepts about twice as many of these as MC:** 61 against 32 on clean images, 37 against 19 on Q-max 16
-  (grain-clustered p 0.0001 and 0.0007). The cause is untested.
+  (the count differs in 19 and 15 of the 60 grains). The cause is untested.
 - **The CMA retry is not worth keeping.** 2 of 1,895 retries were accepted, both wrong, for about 60% more
   neighbour evaluations.
 - **Seeds dominate the cost:** 84–92% of the wall time, at about 3.5 minutes each (contended).
@@ -309,16 +318,16 @@ Rule (owner clarification): a voxel whose full no-start search was rejected, an 
 | cma_noretry_realistic_q16 | 617 | 568 | 38 | 580 | 533 | 2 | 26 | 19 | 0 |
 <!-- /table:phase_d_reseed2_three -->
 
-Details against the pilot (the unsuffixed `reseed` columns are v2; p = grain-clustered sign-flip test on the wrong counts, pilot against v2, Monte Carlo with 20+ differing grains, so `<1e-4 (MC floor)` stands for p below 1e-4, the resolution of 20,000 sign flips; acc_wrong = wrong among the voxels the BFS accepted):
+Details against the pilot (the unsuffixed `reseed` columns are v2; paired by voxel, pilot against v2: `fixed` = wrong in the pilot only, `broken` = wrong in v2 only, `both_wrong` = wrong in both; `acc_wrong` = wrong among the voxels the BFS accepted, with its paired split `acc_fixed` / `acc_broken` (an `acc_broken` voxel may have been unresolved, and so wrong but not accepted, in the pilot); `n_clusters_differing` = grains whose wrong count differs):
 
-<!-- table:phase_d_reseed2_compare -->
-| run | pilot | wrong_pilot | wrong_reseed | unres_pilot | unres_reseed | lost_pilot | lost_v1 | lost_reseed | wrong_v1 | unres_v1 | acc_wrong_pilot | acc_wrong_reseed | n_clusters_differing | p |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| mc_clean | mc_clean | 740 | 37 | 710 | 1 | 28 | 19 | 0 | 633 | 601 | 32 | 36 | 30 | <1e-4 (MC floor) |
-| cma_noretry_clean | cma_noretry_clean | 734 | 60 | 677 | 1 | 28 | 19 | 0 | 633 | 576 | 57 | 59 | 29 | <1e-4 (MC floor) |
-| mc_realistic_q16 | mc_realistic_q16 | 709 | 23 | 691 | 2 | 27 | 18 | 0 | 608 | 590 | 19 | 21 | 30 | <1e-4 (MC floor) |
-| cma_noretry_realistic_q16 | cma_realistic_q16 | 617 | 38 | 580 | 2 | 26 | 19 | 0 | 568 | 533 | 37 | 36 | 27 | <1e-4 (MC floor) |
-<!-- /table:phase_d_reseed2_compare -->
+<!-- table:phase_d_reseed2_compare_paired -->
+| run | pilot | wrong_pilot | wrong_reseed | fixed | broken | both_wrong | unres_pilot | unres_reseed | lost_pilot | lost_reseed | lost_v1 | wrong_v1 | unres_v1 | acc_wrong_pilot | acc_wrong_reseed | acc_fixed | acc_broken | n_clusters_differing |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | mc_clean | 740 | 37 | 703 | 0 | 37 | 710 | 1 | 28 | 0 | 19 | 633 | 601 | 32 | 36 | 0 | 4 | 30 |
+| cma_noretry_clean | cma_noretry_clean | 734 | 60 | 674 | 0 | 60 | 677 | 1 | 28 | 0 | 19 | 633 | 576 | 57 | 59 | 0 | 2 | 29 |
+| mc_realistic_q16 | mc_realistic_q16 | 709 | 23 | 686 | 0 | 23 | 691 | 2 | 27 | 0 | 18 | 608 | 590 | 19 | 21 | 0 | 2 | 30 |
+| cma_noretry_realistic_q16 | cma_realistic_q16 | 617 | 38 | 579 | 0 | 38 | 580 | 2 | 26 | 0 | 19 | 568 | 533 | 37 | 36 | 3 | 2 | 27 |
+<!-- /table:phase_d_reseed2_compare_paired -->
 
 Reseed counts and cost (`reseeds` = full searches in the reseed loop; `rejected` = failed reseed voxels; `ev_share_pct` and `share_pct` = evaluations and wall time of the reseeds, expansions included, over the whole run; `unres_clusters`, `largest_unres` = what is still unresolved at the end):
 
@@ -332,21 +341,21 @@ Reseed counts and cost (`reseeds` = full searches in the reseed loop; `rejected`
 <!-- /table:phase_d_reseed2_counts -->
 
 - **No grain is lost any more:** 0 of 60 in all four runs (Wilson 95%: 0 to 6.0% per run; pilot 26 to 28, first re-pilot 18 to 19; one region, one seed order). Wrong voxels fall from 617-740 to 23-60 of 2,000 (rates 37, 60, 23 and 38 of 2,000; grain-cluster bootstrap 95%: 1.1-2.8% for `mc` clean, 2.0-4.2% for `cma_noretry` clean, 0.6-2.0% and 1.1-2.9% on Q-max 16; Wilson, voxels treated as independent and so too narrow: 1.3-2.5%, 2.3-3.8%, 0.8-1.7%, 1.4-2.6%). Unresolved voxels fall from 580-710 to 1-2, each a single failed voxel.
-- **What is still wrong:** all 23 to 60 wrong voxels per run carry a neighbouring grain's orientation within 1 degree (cross-boundary errors, as in the pilot); 21 to 59 of them are accepted fits and 1 to 2 per run are the unresolved failed voxels. Accepted-wrong voxels against the pilot (36 against 32, 59 against 57, 21 against 19, 36 against 37 for the last pair, which is the pilot's `cma` with retry and so unpaired by arm): grain-clustered exact sign-flip p 0.25, 0.5, 0.5 and 1.0, no detectable difference. `cma_noretry` still has more of them than `mc` on clean images (59 against 36 accepted wrong), as in the pilot. One of the 32 accepted reseeds in `mc` clean (voxel 665) took a neighbouring grain's orientation; the other runs had none (0 of 29, 34 and 28).
+- **What is still wrong:** all 23 to 60 wrong voxels per run carry a neighbouring grain's orientation within 1 degree (cross-boundary errors, as in the pilot); 21 to 59 of them are accepted fits and 1 to 2 per run are the unresolved failed voxels. Accepted-wrong voxels against the pilot (36 against 32, 59 against 57, 21 against 19, 36 against 37 for the last pair, which is the pilot's `cma` with retry and so unpaired by arm): paired split by voxel (fixed / broken) 0 / 4, 0 / 2, 0 / 2 and 3 / 2, so at most 4 voxels of 2,000 change. `cma_noretry` still has more of them than `mc` on clean images (59 against 36 accepted wrong), as in the pilot. One of the 32 accepted reseeds in `mc` clean (voxel 665) took a neighbouring grain's orientation; the other runs had none (0 of 29, 34 and 28).
 - **Reseeds:** 151 in the four runs, 123 accepted and 28 rejected (35 with 3 rejected, 30 with 1, 44 with 10, 42 with 14). The rejected ones are failed voxels; their grains were recovered from other voxels of the same cluster. Together with the ordinary seeds, 5, 2, 14 and 24 voxels ended failed in total.
 - **Cost.** The reseeds take 46 to 52% of the evaluations of a run and 47 to 51% of its wall time; a reseed is about 185 to 191 s at the median (a full search and its expansion, contended), and the whole run 3.3 to 4.7 h against 2.1 to 2.4 h in the pilot (both contended, but with 4 runs concurrent against 5 in the pilot; wall time and evaluations agree this time because the machine did not sleep). The wall time is 1.6 to 2.0 times the pilot's and the evaluation count 1.9 to 2.1 times what it would be without the reseeds; the evaluation share is the cost figure. So fixing the loss of grains about doubles the work in this region: the reseeds cost as much as the ordinary seeds.
 - **Not evaluated:** other seed orders, other regions, whether the same holds at full-sample scale, and the cause of the 10 to 14 rejected reseeds on Q-max 16.
 
-**First re-pilot (superseded rule: finality per cluster).** Arms `mc` and `cma_noretry`, clean and realistic Q-max 16 (four single-process runs, contended). Rule as implemented in that run: after the seed loop, each connected cluster of REFIT voxels gets one full no-start search on the voxel nearest its centroid; if accepted, the voxel expands with revisit; a rejected search is final. A cluster that already holds a rejected ordinary seed counts as having had its one full search, so it is never reseeded. Comparison with the pilot (wrong = over 1 deg; p = grain-clustered sign-flip test on wrong counts; acc_wrong = wrong among voxels the BFS accepted):
+**First re-pilot (superseded rule: finality per cluster).** Arms `mc` and `cma_noretry`, clean and realistic Q-max 16 (four single-process runs, contended). Rule as implemented in that run: after the seed loop, each connected cluster of REFIT voxels gets one full no-start search on the voxel nearest its centroid; if accepted, the voxel expands with revisit; a rejected search is final. A cluster that already holds a rejected ordinary seed counts as having had its one full search, so it is never reseeded. Comparison with the pilot (wrong = over 1 deg; columns as in the v2 table above: `fixed` / `broken` / `both_wrong` = paired split by voxel, `acc_wrong` = wrong among voxels the BFS accepted, with its split `acc_fixed` / `acc_broken`):
 
-<!-- table:phase_d_reseed_compare -->
-| run | pilot | wrong_pilot | wrong_reseed | unres_pilot | unres_reseed | lost_pilot | lost_reseed | acc_wrong_pilot | acc_wrong_reseed | n_clusters_differing | p |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| mc_clean | mc_clean | 740 | 633 | 710 | 601 | 28 | 19 | 32 | 32 | 10 | 0.00195 |
-| cma_noretry_clean | cma_noretry_clean | 734 | 633 | 677 | 576 | 28 | 19 | 57 | 57 | 10 | 0.00195 |
-| mc_realistic_q16 | mc_realistic_q16 | 709 | 608 | 691 | 590 | 27 | 18 | 19 | 19 | 9 | 0.00391 |
-| cma_noretry_realistic_q16 | cma_realistic_q16 | 617 | 568 | 580 | 533 | 26 | 19 | 37 | 35 | 12 | 0.533 |
-<!-- /table:phase_d_reseed_compare -->
+<!-- table:phase_d_reseed_compare_paired -->
+| run | pilot | wrong_pilot | wrong_reseed | fixed | broken | both_wrong | unres_pilot | unres_reseed | lost_pilot | lost_reseed | acc_wrong_pilot | acc_wrong_reseed | acc_fixed | acc_broken | n_clusters_differing |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | mc_clean | 740 | 633 | 107 | 0 | 633 | 710 | 601 | 28 | 19 | 32 | 32 | 0 | 0 | 10 |
+| cma_noretry_clean | cma_noretry_clean | 734 | 633 | 101 | 0 | 633 | 677 | 576 | 28 | 19 | 57 | 57 | 0 | 0 | 10 |
+| mc_realistic_q16 | mc_realistic_q16 | 709 | 608 | 101 | 0 | 608 | 691 | 590 | 27 | 18 | 19 | 19 | 0 | 0 | 9 |
+| cma_noretry_realistic_q16 | cma_realistic_q16 | 617 | 568 | 119 | 70 | 498 | 580 | 533 | 26 | 19 | 37 | 35 | 4 | 2 | 12 |
+<!-- /table:phase_d_reseed_compare_paired -->
 
 Reseed counts, cost and what is left (`ev_share_pct` = evaluations of the reseeds, expansion included, over all evaluations; `share_pct` = their wall time over the run wall time):
 
@@ -418,11 +427,11 @@ Reseed log (every reseed: cluster size, voxel, accepted, left REFIT in the clust
 | Topic | Recommendation |
 |---|---|
 | Port parity | Keep the C++-faithful MC and VarianceMinimizing as the default classic path. |
-| BFS | Before any end-to-end comparison, add an opt-in reseed. When no unvisited voxels remain, give one voxel of each connected cluster of still-REFIT voxels a full search, then expand with revisit. This departs from the C++ seed rule, so label it as an option. One reseed may fail (a rejected seed recurred in the same grain). Measure its cost and accuracy on the pilot region. |
+| BFS | Done: opt-in reseed `BFSReseed 1` (finality per voxel), off by default because it departs from the C++ seed rule. On the pilot region 0 of 60 grains lost and 23–60 of 2,000 voxels wrong, at 46–52% of a run's evaluations (3(g) follow-up). Turn it on for the end-to-end comparison. |
 | Finisher | Offer CMA-ES (σ0 0.2°, 250–1,000 evaluations) where precision matters. Report its higher rate of wrong-grain acceptances in BFS, and investigate it. |
 | CMA retry | Drop the wider-sigma retry (`CMARetrySigma0 0`). |
 | Seed cost | The lever is the cost per seed: the level-0 candidate count, and about 10× per evaluation against C++. The neighbour budget is not. |
-| Scale | Re-pilot with the reseed (about 3 h). Then choose between several 2,000-voxel regions (hours) and the full sample (about 30–34 h per run with every piece seeded, projected, contended; several seeds multiply the runs). |
+| Scale | Re-pilot with the reseed: done (3(g) follow-up). Next, deferred by the owner: choose between several 2,000-voxel regions (hours) and the full sample (about 30–34 h per run with every piece seeded, projected before the reseed, contended; the reseed about doubled the evaluations in the pilot region; several seed orders multiply the runs). |
 
 # 5. Decisions on record
 

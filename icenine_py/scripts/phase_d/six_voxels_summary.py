@@ -11,6 +11,7 @@ HERE = Path(__file__).resolve().parent
 ICE = HERE.parents[1]
 sys.path.insert(0, str(ICE / "scripts" / "common"))
 import doc_tables as DT  # noqa: E402
+import gzio as GZ  # noqa: E402
 
 SD = ICE / "benchmarks" / "phase_d_seed_diag"
 OUT = SD / "level0"
@@ -30,8 +31,8 @@ def main() -> None:
     par = json.loads((SD / "mc_parity" / "summary.json").read_text())["voxels"]
     rows, summ = [], {}
     for v in VOX:
-        a = json.loads((SD / "runs" / f"cpprule_full_v{v}.json").read_text())
-        b = json.loads((SD / "runs" / f"mcport_full_v{v}.json").read_text())
+        a = GZ.load_json(SD / "runs" / f"cpprule_full_v{v}.json")
+        b = GZ.load_json(SD / "runs" / f"mcport_full_v{v}.json")
         n_all = sum(x["n_returned"] for x in a["levels"])
         r = dict(
             voxel=v,

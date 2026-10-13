@@ -28,6 +28,7 @@ OUT = ICE / "benchmarks" / "phase_d_seed_diag"
 PAR = OUT / "mc_parity"
 sys.path.insert(0, str(ICE / "scripts" / "common"))
 import doc_tables as DT  # noqa: E402
+import gzio as GZ  # noqa: E402
 
 sys.path.insert(0, str(HERE))
 import seed_diag_summary as SDS  # noqa: E402
@@ -123,7 +124,7 @@ QUICK_KEYS = ["evals", "blocks", "steps", "restarts", "accepts", "stop"]
 
 def load_py(tag: str, v: int) -> Dict[str, Any]:
     """runs/<tag>_full_v<V>.json; the quick-MC calls may be stored column-wise (compact)."""
-    d = json.load(open(OUT / "runs" / f"{tag}_full_v{v}.json"))
+    d = GZ.load_json(OUT / "runs" / f"{tag}_full_v{v}.json")
     if "quick_cols" in d:
         cols = d.pop("quick_cols")
         q = [
@@ -139,13 +140,13 @@ def compact(tag: str) -> None:
     seconds, costs and hit ratios of ~15k calls are not needed here)."""
     for v in VOXELS:
         f = OUT / "runs" / f"{tag}_full_v{v}.json"
-        d = json.load(open(f))
+        d = GZ.load_json(f)
         if "quick_cols" in d:
             continue
         quick = [c for c in d["calls"] if c["quick"]]
         d["quick_cols"] = {k: [int(c[k]) for c in quick] for k in QUICK_KEYS}
         d["calls"] = [c for c in d["calls"] if not c["quick"]]
-        f.write_text(json.dumps(d, default=float, separators=(",", ":")) + "\n")
+        GZ.write_json_like(f, json.dumps(d, default=float, separators=(",", ":")) + "\n")
 
 
 def py_agg(calls: List[Dict[str, Any]], quick: bool) -> Dict[str, float]:
@@ -272,7 +273,7 @@ def main() -> None:
     seeds = [350, 395, 504]  # run_estimates.json (oracle fits, p_fail 0 / 0.1 / 0.3)
     sc_rows = []
     for v in VOXELS:
-        old = json.load(open(OUT / "runs" / f"varfix_full_v{v}.json"))
+        old = GZ.load_json(OUT / "runs" / f"varfix_full_v{v}.json")
         new = load_py(a.tag, v)
         cps = [parse_cpp(p) for p in sorted(cdir.glob(f"cppq_{v}_*.log"))]
         sc_rows.append(dict(

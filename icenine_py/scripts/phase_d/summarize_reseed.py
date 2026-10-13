@@ -4,8 +4,20 @@ Usage (from icenine_py/):
   uv run python scripts/phase_d/summarize_reseed.py [--runs benchmarks/phase_d_pilot_reseed/runs]
 Reads <runs>/<arm>_<variant>/{run.json,records.json,score.json,voxels.npz} (score_bfs.py) and the
 pilot's benchmarks/phase_d_pilot/runs; writes benchmarks/phase_d_pilot_reseed/{summary.json,
-tables.md}. Timings are contended (4 concurrent single-process runs). P-values are
-grain-clustered sign-flip tests on per-grain differences of the wrong counts.
+tables.md} and tables_paired.md. Timings are contended (4 concurrent single-process runs).
+
+tables_paired.md holds `<prefix>_compare_paired`: each arm's counts and the paired split by voxel
+(fixed / broken / both wrong; acc_fixed / acc_broken for the accepted-wrong voxels) plus the
+number of grains whose wrong count differs. It has no p-value (owner rule 2026-10-10: no
+p-values); current docs use it. tables.md keeps `<prefix>_compare` with
+its grain-clustered sign-flip p column only because older MIGRATION_HISTORY sections quote that
+block; do not quote the p column in new text. With --paired-only only tables_paired.md is written:
+benchmarks/phase_d_pilot_reseed/{tables.md,summary.json} come from an earlier revision of this
+script (fewer columns) and are quoted in MIGRATION_HISTORY, so they are left as they are.
+  v1: summarize_reseed.py --paired-only
+  v2: summarize_reseed.py --runs benchmarks/phase_d_pilot_reseed_v2/runs
+      --v1 benchmarks/phase_d_pilot_reseed/summary.json --prefix phase_d_reseed2
+      --out benchmarks/phase_d_pilot_reseed_v2
 
 Pilot counterpart of each re-pilot run: mc_clean -> mc_clean, cma_noretry_clean ->
 cma_noretry_clean, mc_realistic_q16 -> mc_realistic_q16, and cma_noretry_realistic_q16 ->
@@ -30,7 +42,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "common"))
 
 import score_bfs as S  # noqa: E402
 from doc_tables import markdown_table, write_tables  # noqa: E402
-from stats import wilson  # noqa: E402
+from stats import paired_discordant, wilson  # noqa: E402
 
 PAIRS = {
     "mc_clean": "mc_clean",
@@ -85,6 +97,11 @@ def main() -> None:
     )
     ap.add_argument("--prefix", default="phase_d_reseed", help="table name prefix")
     ap.add_argument("--out", default=str(ROOT / "benchmarks" / "phase_d_pilot_reseed"))
+    ap.add_argument(
+        "--paired-only",
+        action="store_true",
+        help="write only tables_paired.md (leave summary.json and tables.md as they are)",
+    )
     a = ap.parse_args()
     runs, pilot, out = Path(a.runs), Path(a.pilot), Path(a.out)
 
@@ -107,6 +124,10 @@ def main() -> None:
         acc_wrong = lambda v: v["wrong"] & (v["source"] != "unresolved")  # noqa: E731
         pair = S.clustered_paired_p(vo["wrong"], vn["wrong"], vo["grain"])
         pair_acc = S.clustered_paired_p(acc_wrong(vo), acc_wrong(vn), vo["grain"])
+        # paired split by voxel: fixed = wrong in the pilot only, broken = in the re-pilot only
+        n_fixed, n_broken = paired_discordant(vo["wrong"], vn["wrong"])
+        n_both = int((vo["wrong"].astype(bool) & vn["wrong"].astype(bool)).sum())
+        acc_fixed, acc_broken = paired_discordant(acc_wrong(vo), acc_wrong(vn))
         # lost grains that the reseed recovered, and grains lost only in the re-pilot
         lost_o, lost_n = set(so["grains"]["lost_ids"]), set(sn["grains"]["lost_ids"])
         reseeded = [i for i, r in recs.items() if r.get("reseeded")]
@@ -188,7 +209,13 @@ def main() -> None:
             "grains_reseed": {k: v for k, v in sn["grains"].items() if not k.endswith("_ids")},
             "grains_pilot": {k: v for k, v in so["grains"].items() if not k.endswith("_ids")},
         }
-        summary["pairs"][new] = {"vs": old, "all_voxels": pair, "accepted_wrong": pair_acc}
+        summary["pairs"][new] = {
+            "vs": old,
+            "all_voxels": pair,
+            "accepted_wrong": pair_acc,
+            "paired_voxels": {"fixed": n_fixed, "broken": n_broken, "both_wrong": n_both},
+            "paired_accepted_wrong": {"fixed": acc_fixed, "broken": acc_broken},
+        }
         cmp_rows.append(
             {
                 "run": new,
@@ -206,6 +233,11 @@ def main() -> None:
                 "acc_wrong_reseed": int(acc_wrong(vn).sum()),
                 "p": "<1e-4 (MC floor)" if mc_floor else pair["p"],
                 "n_clusters_differing": pair["n_clusters_differing"],
+                "fixed": n_fixed,
+                "broken": n_broken,
+                "both_wrong": n_both,
+                "acc_fixed": acc_fixed,
+                "acc_broken": acc_broken,
             }
         )
         cnt_rows.append(
@@ -251,6 +283,35 @@ def main() -> None:
                     "evals": e["evaluations"],
                 }
             )
+    v1_cols = ["lost_v1", "wrong_v1", "unres_v1"] if v1 else []
+    tp = markdown_table(
+        cmp_rows,
+        [
+            "run",
+            "pilot",
+            "wrong_pilot",
+            "wrong_reseed",
+            "fixed",
+            "broken",
+            "both_wrong",
+            "unres_pilot",
+            "unres_reseed",
+            "lost_pilot",
+            "lost_reseed",
+        ]
+        + v1_cols
+        + [
+            "acc_wrong_pilot",
+            "acc_wrong_reseed",
+            "acc_fixed",
+            "acc_broken",
+            "n_clusters_differing",
+        ],
+    )
+    write_tables(out / "tables_paired.md", {f"{a.prefix}_compare_paired": tp})
+    print(tp)
+    if a.paired_only:
+        return
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     t1 = markdown_table(
         cmp_rows,

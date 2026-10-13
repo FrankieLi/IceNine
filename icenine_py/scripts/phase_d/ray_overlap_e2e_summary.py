@@ -27,6 +27,7 @@ sys.path.insert(0, str(ICE / "scripts" / "findoptimal_robustness"))
 sys.path.insert(0, str(ICE / "scripts" / "common"))
 import common as C  # noqa: E402
 import doc_tables  # noqa: E402
+import gzio as GZ  # noqa: E402
 import stats as S  # noqa: E402
 
 CACHE = HERE / "cache"
@@ -92,16 +93,16 @@ def main() -> None:
         row: Dict[str, Any] = dict(voxel=v)
         for a, f in SIX_FILES.items():
             p = RUNS / f.format(v)
-            if p.exists():
-                d = json.loads(p.read_text())
+            if GZ.exists(p):
+                d = GZ.load_json(p)
                 row[f"{a}_err"], row[f"{a}_evals"], row[f"{a}_wall"] = (
                     d["err_deg"], d["evals_total"], d["wall_s"],
                 )  # fmt: skip
         six.append(row)
         for a, f in {**SIX_FILES, "old_stale": "base_full_v{}.json"}.items():
             p = RUNS / f.format(v)
-            if p.exists():
-                d = json.loads(p.read_text())
+            if GZ.exists(p):
+                d = GZ.load_json(p)
                 lab.append(
                     dict(voxel=v, arm=a, quiet=bool(d["quiet_preflight"]),
                          load1=d["preflight"]["loadavg"][0],

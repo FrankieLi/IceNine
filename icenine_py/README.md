@@ -792,6 +792,7 @@ Rules and checks that used to be repeated in LLM prompts live in code. Paths are
 | `scripts/dev/finish_task.sh [--no-tests] [--yes] [--push] [-m msg] [--next task]` | Run the Python suite and/or C++ build if relevant files changed, merge into the parent with `--no-ff` (inside the parent's worktree if it lives elsewhere), delete the task branch, detach and remove any other worktree holding it, optionally push and start the next task. A dirty `CLAUDE.md` is ignored by the cleanliness check and never staged. |
 | `icenine_py/scripts/common/stats.py` | `wilson`, `mcnemar_exact`, `paired_discordant`, `win_rate`, `reorder` (id-checked re-indexing), `misorientation_deg_cubic`. Usage: put `scripts/common` on `sys.path`, `import stats`. |
 | `icenine_py/scripts/common/doc_tables.py` | `markdown_table(rows, columns, formats)` and `write_tables(path, {name: md})` (marker-delimited blocks). |
+| `icenine_py/scripts/common/gzio.py` | Transparent reads of result files stored gzip-compressed: `load_json`, `read_text`, `open_text`, `exists`, `resolve` take the logical name (`x.json`) and open `x.json` or `x.json.gz`, the plain file winning if both exist; `glob_paths(pattern)` matches both; `write_json_like` writes back keeping the stored compression (reproducible gzip bytes). The large Phase D result JSON (`benchmarks/phase_d_seed_diag/runs/*_full_v*.json` of the tags `base_centroid`, `lenientnow`, `cpprule`, `rayR2`, `rayA`, `varfix`, and `level0/py_v15901.json`) is stored as `.json.gz`; every reader in `scripts/phase_d/` goes through this module. To compress another result file: `gzip -9 -n FILE` and make its readers use `gzio`. |
 | `scripts/dev/sync_doc_tables.py --doc D.md --tables T.md [--check]` | Copy generated blocks into the matching `<!-- table:NAME -->` markers; `--check` exits 1 on a difference. |
 | `scripts/dev/audit_numbers.py --doc D.md --section "Heading" --sources FILES... [--strict]` | List numbers in a doc section that no source value matches (precision-aware; x100, /100 and sibling k/n ratios only for percentages and fractions). `-v` shows the nearest source value and file:key; `--per-file` requires each paragraph or table row to match within one source file. Advisory; prints the chance-match rate per precision bucket. A match is not verification: low-precision decimals match almost anything. |
 | `icenine_py/scripts/common/preflight.py`, `scripts/dev/timing_preflight.py [--require] [--json out]` | Record load, power source, thread settings and busy processes before a timing run; `require_quiet` refuses a busy machine. |
@@ -804,7 +805,7 @@ Rules and checks that used to be repeated in LLM prompts live in code. Paths are
 | `icenine_py/scripts/mic_maps_report.py SPEC.json --out-dir D` | Build an Artifact-ready page (`index.html`, `maps/*.png`, `stats.json`) of several `plot_mic` figures from a JSON spec (format in its docstring). |
 | `.claude/skills/mic-maps` | `/mic-maps`: choose the reference and runs, write the spec, build, check the wrong counts against scored numbers, and publish the page as an Artifact. For layers of 500 voxels or more. |
 
-Tests: `tests/test_dev_tooling.py`, `tests/test_plot_mic.py`.
+Tests: `tests/test_dev_tooling.py`, `tests/test_plot_mic.py`, `tests/test_gzio.py`.
 
 ## Citation
 
