@@ -26,7 +26,7 @@ completeness and should not drive decisions.
 | Ray rule, 2-pixel window | 40 | 32 | 131 s |
 | Ray rule, geometric window | 41 | 29 | 152 s |
 
-This is a single random seed. The two ray-rule windows cannot be told apart on these numbers. The times are means over
+Each arm is one run per voxel (seed 0); the randomness only drives the search's exploration, so the comparison rests on the paired per-voxel counts. The two ray-rule windows cannot be told apart on these numbers. The times are means over
 six full-sample voxels; the preflight was quiet for 4 of 6 runs (lenient), 5 of 6 (C++), 2 of 6 (2-pixel window) and
 5 of 6 (geometric window), so compare the rules on evaluations (section 6) rather than on these seconds.
 
@@ -347,7 +347,7 @@ open question 5 in `findings_finisher_mc_study_2026-10.md`.
 | Limit | Effect |
 |---|---|
 | Noise model of the realistic images | The realistic images use a noise model the owner has ruled unphysical (every spot on each detector is dropped at random with probability 0.1; open question 8 of the parent findings, deferred). The realistic-image numbers in this write-up (sections 3 to 5) are therefore reported but should not drive decisions; the clean-image numbers come first. |
-| One random seed for E0 | The differences between the two ray-rule windows (32 against 29 wrong on realistic images) are within noise. |
+| One run per voxel for E0 (seed 0) | The differences between the two ray-rule windows (32 against 29 wrong on realistic images) are a handful of voxels either way. More seeds are not needed (owner, 2026-10-12): the search uses randomness to explore, not as independent samples. |
 | Lenient and C++ rows of the end-to-end test are stored earlier runs | Their code path is unchanged in this build, but they were not re-run alongside the ray rule. |
 | Full-sample voxels all right | The six full-sample voxels measure cost only, not accuracy. |
 | Not separated | Whether the gain comes from the ray rule in the initial screen, the re-scoring, or the quick refinement (all three use it at levels 0 to 2). |
@@ -366,4 +366,4 @@ of the parent findings), so it is not used for the decisions below.
 | Make the ray rule the default? | Decided (owner, 2026-10-12): the ray rule as the default is fine. It ties the lenient rule on clean images and costs 6% more evaluations than the C++ rule on full-sample voxels, against 46% for the lenient rule (re-run in the current build). The code default is NOT changed in this task (still off); changing it is a follow-up. |
 | `RayOverlapRule` without `CppOverlapRule`? | Decided (owner, 2026-10-12): warn only (a `UserWarning` in `SearchParameters.from_config`); the setting is not forced. |
 | Cases b and e pixel counting in triangle mode (+1 / -1 pixel) | Decided (owner, 2026-10-12): keep as is, documented in `ray_overlap.py` and `_rasterize.c`; open question 9 in `findings_finisher_mc_study_2026-10.md`, fix later. |
-| More seeds? | Run two more E0 seeds on clean images with the lenient rule, the C++ rule and the 2-pixel ray rule (about 1 hour) before a final decision. Realistic images wait for the noise-model redo (open question 8). |
+| More seeds? | Decided (owner, 2026-10-12): no. The algorithm does not rely on independence of the random streams; it uses randomness to explore the search space, so repeat seeds are not a measure of the rule. |

@@ -494,7 +494,8 @@ The earlier report's precision and timing numbers for the default finisher carry
    the quick MC). Batching changes float32 shapes, so results will be near-identical rather than bit-identical;
    it needs its own equivalence check (per-level candidates and wrong counts against the unbatched path, e.g. the
    ray-overlap step-2 voxels). Benefits every rule and the normal reconstruction, not only the ray study.
-6. **Seeds 1–2 for E0.** Run them with the faithful MC, to firm up "no difference in wrong count".
+6. **Seeds 1–2 for E0.** Closed (owner, 2026-10-12): not needed. The search uses randomness to explore the search
+   space, not as independent samples, so repeat seeds do not measure a rule or finisher.
 7. **Multi-client C++ reference.** Does C++ with several clients seed any of the grains that the single-client BFS
    loses? By the C++ code only timing (asynchrony) could do it; untested.
 8. **Noise model for realistic images (deferred, owner 2026-10-12).** The Phase D "realistic" images
