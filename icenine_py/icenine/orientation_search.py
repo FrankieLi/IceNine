@@ -12,6 +12,7 @@ C++ Reference:
 """
 
 import math
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -19,6 +20,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from .cost_functions import OverlapInfo, VoxelCostFunction
+from .ray_overlap import RayRule, ray_rule_from_config
 from .sampling import (
     QuaternionGrid,
     generate_local_grid,
@@ -136,6 +138,12 @@ class SearchParameters:
     # cpp_center_screen is an A/B sub-flag (not a config key): False keeps vertex 0 in the screen.
     cpp_overlap_rule: bool = False
     cpp_center_screen: bool = True
+    # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
+    # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
+    # 0 .. ray_rule.levels-1 (default 0-2): screen, re-cost, quick MC and ranking cut. FindOptimal,
+    # VarianceMinimizing, the final cost and the confidence keep the strict C++ rule. The two
+    # costs differ by design. Implies cpp_overlap_rule for those levels.
+    ray_rule: Optional[RayRule] = None
 
     def __post_init__(self) -> None:
         if self.local_optimizer not in LOCAL_OPTIMIZERS:
@@ -160,7 +168,7 @@ class SearchParameters:
     @classmethod
     def from_config(cls, config) -> "SearchParameters":
         """Create from ConfigFile."""
-        return cls(
+        sp = cls(
             local_grid_radius=config.local_orientation_grid_radius,
             min_local_resolution=config.min_local_resolution,
             max_local_resolution=config.max_local_resolution,
@@ -184,7 +192,18 @@ class SearchParameters:
             bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
+            ray_rule=ray_rule_from_config(config),
         )
+        # unstudied combination: warn only (owner 2026-10-12), do not force CppOverlapRule
+        if sp.ray_rule is not None and not sp.cpp_overlap_rule:
+            warnings.warn(
+                "RayOverlapRule is set without CppOverlapRule: the coarse levels use the ray rule "
+                "but level 3, FindOptimal and the final cost use the lenient rule. This "
+                "combination was not studied; set CppOverlapRule 1 as well.",
+                UserWarning,
+                stacklevel=2,
+            )
+        return sp
 
 
 @dataclass

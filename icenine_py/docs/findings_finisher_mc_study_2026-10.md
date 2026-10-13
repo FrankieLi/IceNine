@@ -486,8 +486,37 @@ The earlier report's precision and timing numbers for the default finisher carry
    (`benchmarks/phase_d_seed_diag/level0/default_flip_would_change.md`).
 4. **Which difference matters.** Which of the C++ differences (block halving, restart base, fixed step) produces
    the faithful MC's gain? An ablation is untested.
-5. **Per-evaluation cost.** Can the 10× per-evaluation gap be cut, for example with batched evaluation in the
-   coarse stage?
-6. **Seeds 1–2 for E0.** Run them with the faithful MC, to firm up "no difference in wrong count".
+5. **Per-evaluation cost: batch the coarse stage (separate task, owner 2026-10-12).** Can the 10× per-evaluation
+   gap be cut, for example with batched evaluation in the coarse stage? Profile (ray-overlap task, `cpp` arm, voxel
+   22867, levels 0-2): 233,546 evaluations of one orientation each (96k discrete screen, 137k quick MC), about
+   0.5 ms each of Python and torch overhead; the C overlap stage is only 5% of the time, so levels 0-2 take about
+   117-168 s per voxel for every rule. Task: score many orientations per call in the screen (and, if possible,
+   the quick MC). Batching changes float32 shapes, so results will be near-identical rather than bit-identical;
+   it needs its own equivalence check (per-level candidates and wrong counts against the unbatched path, e.g. the
+   ray-overlap step-2 voxels). Benefits every rule and the normal reconstruction, not only the ray study.
+6. **Seeds 1–2 for E0.** Closed (owner, 2026-10-12): not needed. The search uses randomness to explore the search
+   space, not as independent samples, so repeat seeds do not measure a rule or finisher.
 7. **Multi-client C++ reference.** Does C++ with several clients seed any of the grains that the single-client BFS
    loses? By the C++ code only timing (asynchrony) could do it; untested.
+8. **Noise model for realistic images (deferred, owner 2026-10-12).** The Phase D "realistic" images
+   (`scripts/phase_d/noise.py`) reuse the toy-NN nuisance parameters: each spot on each detector is erased with
+   probability 0.1 regardless of intensity, edge pixels flip with 0.05, hot pixels 0.05 and blobs 0.1 per spot.
+   These were never calibrated against real detectors. The random spot drop is unphysical (a strong spot does not
+   vanish; only spots near the detection limit should) and 10% is far too high. It penalises every rule that asks
+   detector 1 to confirm a peak (C++ and ray rules reject about 9% of real peaks at the truth on realistic images),
+   so all realistic-image comparisons of overlap rules so far (level-0 study, ray-overlap study, Phase D pilot and
+   reseed on realistic images) are tilted against the strict rules. Work from clean full-sample images until this
+   is redone. Options: no random drop (keep jitter, hot pixels, blobs); intensity-based drop near a detection
+   threshold; or a small fixed rate (about 1%) as a stand-in. Then re-render and re-run the realistic comparisons.
+9. **Ray rule pixel counting for cases b and e (deferred, owner 2026-10-12).** At radius 0 (the local re-cost of
+   levels 0-2) the predicted detector-1 triangle covers n dark pixels. Case b (observed ray bright) adds only 1
+   overlap pixel, so the peak gets 1/n pixel credit; case e (observed ray off detector, treated as unlit) removes only
+   1 on-detector pixel, leaving n-1 dark pixels in the denominator. Per-peak verdicts are right; only the fractional
+   pixel score is off. Kept as is and documented (owner chose this over a fix that needs n passed into the C stage and
+   a re-run of ray-overlap steps 1-3). To fix later: b adds n overlap pixels, e removes all n on-detector pixels; then
+   re-run the ray arms.
+10. **Angle between observed ray and predicted ray (idea, owner 2026-10-12; not investigated).** When the observed ray
+   (voxel centre through the bright detector-0 pixels) and the predicted beam are near each other, estimate the angle
+   between them. Can it be computed during the orientation search, and can it steer the orientation optimisation
+   (e.g. as a per-peak correction direction or gradient-like signal, instead of a pass/fail overlap)? Check first
+   whether anything like this was tried before.

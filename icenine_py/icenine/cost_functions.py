@@ -16,7 +16,7 @@ The main entry point is `VoxelCostFunction.evaluate()`, which:
 import math
 import warnings
 from dataclasses import dataclass
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -29,6 +29,7 @@ from .diffraction_core import (
     get_scattering_omegas_torch,
 )
 from .experimental_data import ExperimentalData
+from .ray_overlap import RayRule, apply_cases_python, ray_flags, ray_flags_c
 from .sample import Sample
 from .simulation import Simulation
 from .simulation_range import SimulationRange
@@ -42,7 +43,13 @@ try:
     from ._rasterize import HAS_CPP_RULE as _C_HAS_CPP_RULE
 except ImportError:
     _C_HAS_CPP_RULE = False  # extension missing or built before the cpp_rule argument existed
+try:
+    from ._rasterize import HAS_RAY_RULE as _C_HAS_RAY_RULE
+except ImportError:
+    _C_HAS_RAY_RULE = False
 _WARNED_STALE_EXT = False
+# Observed-ray flags in C (False = the per-peak Python reference ray_overlap.ray_flags; tests).
+USE_C_RAY_FLAGS = True
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +71,9 @@ class OverlapInfo:
     detectors_overlap: int = 0
     quality: float = 0.0
     n_quality_points: int = 0
+    # Only with a ray rule (ray_overlap.RayRule): counts of the cases a, b, c, d, e, f_dark,
+    # f_bright and of detector-0 overlaps, over this evaluation's peaks. None otherwise.
+    ray_cases: Optional[Tuple[int, ...]] = None
 
     def update_counts(
         self,
@@ -448,6 +458,8 @@ def calculate_diffraction_overlap_batched(
     mode: str = 'hard',
     pixel_radius: int = 0,
     cpp_rule: bool = False,
+    ray_rule: "Optional[RayRule]" = None,
+    voxel_size: float = 0.0,
 ) -> OverlapInfo:
     """
     Batched version of calculate_diffraction_overlap.
@@ -463,12 +475,18 @@ def calculate_diffraction_overlap_batched(
     for brightness, providing tolerance for small orientation errors during
     discrete search.
 
+    ``ray_rule`` (opt-in, default None): apply the ray-consistency rule of ``ray_overlap`` on top
+    of the C++ CountQualifiedPeaks rule (it implies ``cpp_rule``). It is meant for the coarse
+    search levels only; the final cost stays the strict C++ rule. See ray_overlap.py.
+
     C++ Reference: OverlapInfo.h PixelBasedPeakOverlapCounter (pixel_radius > 0)
                    OverlapInfo.h ShapePixelOverlapCounter (pixel_radius == 0)
     """
     n_detectors = len(detector_list)
     overlap_info = OverlapInfo()
     n_peaks = len(peak_omegas)
+    if ray_rule is not None:
+        cpp_rule = True
 
     if n_peaks == 0:
         return overlap_info
@@ -601,6 +619,31 @@ def calculate_diffraction_overlap_batched(
     # if gradient-based refinement is ever needed, differentiate through
     # those stages and use a differentiable renderer for image comparison.
 
+    obs_in = obs_bright = None
+    if ray_rule is not None:
+        if _HAS_C_RASTERIZE and not _C_HAS_RAY_RULE:
+            raise RuntimeError(
+                "ray_rule needs the _rasterize extension built with HAS_RAY_RULE. Rebuild: cd "
+                "icenine_py && uv run --no-project --with setuptools --with numpy python setup.py "
+                "build_ext --inplace"
+            )
+        pix0 = per_det_pixels[0].numpy().astype(np.float64)  # (M, 3, 2) [col, row]
+        ray_origins = lab_verts.mean(dim=1).double().numpy()
+        ray_omega_step = abs(float(range_map.width))
+        if not (_HAS_C_RASTERIZE and mode == 'hard' and USE_C_RAY_FLAGS):
+            obs_in, obs_bright = ray_flags(
+                ray_rule,
+                detector_list,
+                exp_data,
+                np.asarray(v_wedge),
+                ray_origins,
+                per_det_all_hit[0].numpy(),
+                pix0,
+                pixel_radius,
+                voxel_size,
+                ray_omega_step,
+            )
+
     global _WARNED_STALE_EXT
     if cpp_rule and _HAS_C_RASTERIZE and not _C_HAS_CPP_RULE and not _WARNED_STALE_EXT:
         _WARNED_STALE_EXT = True
@@ -628,6 +671,21 @@ def calculate_diffraction_overlap_batched(
             for d in range(n_detectors):
                 image_list.append(exp_data.get_image(int(w), d).get_binary_numpy())
 
+        if ray_rule is not None and obs_in is None:
+            # observed-ray check for all peaks of the evaluation in one C call (no Python loop)
+            obs_in, obs_bright = ray_flags_c(
+                ray_rule,
+                detector_list,
+                image_list,
+                local_wedge,
+                ray_origins,
+                per_det_all_hit[0].numpy(),
+                pix0,
+                pixel_radius,
+                voxel_size,
+                ray_omega_step,
+            )
+
         # Build det_hit_mask: (M, n_det) uint8
         det_hit = np.stack(
             [per_det_all_hit[d].numpy().astype(np.uint8) for d in range(n_detectors)],
@@ -652,6 +710,7 @@ def calculate_diffraction_overlap_batched(
                 centers, None,
                 n_detectors, pixel_radius, M, img_rows, img_cols,
                 *((1,) if cpp_rule else ()),
+                *((obs_in, obs_bright) if ray_rule is not None else ()),
             )
         else:
             # pixel_vertices: (M, n_det, 3, 2) float32
@@ -666,6 +725,7 @@ def calculate_diffraction_overlap_batched(
                 None, verts,
                 n_detectors, pixel_radius, M, img_rows, img_cols,
                 *((1,) if cpp_rule else ()),
+                *((obs_in, obs_bright) if ray_rule is not None else ()),
             )
 
         # Unpack results
@@ -676,9 +736,12 @@ def calculate_diffraction_overlap_batched(
         overlap_info.quality = result[4]
         overlap_info.n_quality_points = result[5]
         overlap_info.detectors_overlap = result[6]
+        if ray_rule is not None:
+            overlap_info.ray_cases = tuple(int(x) for x in result[7])
 
     else:
         # ---- Fallback: sequential Python loop ----
+        case_counts = np.zeros(8, dtype=np.int64) if ray_rule is not None else None
         for p in range(M):
             wedge_idx = int(v_wedge[p])
 
@@ -742,6 +805,13 @@ def calculate_diffraction_overlap_batched(
                     elif n_lit_int > 0:
                         detector_lit[det_idx] = True
 
+            if ray_rule is not None:
+                d_ov, d_on = apply_cases_python(
+                    detector_lit, spot_overlap, obs_in[p], obs_bright[p], case_counts
+                )
+                peak_pixel_overlap += d_ov
+                peak_pixel_on_det += d_on
+
             peak_on_det, peak_ovlp, n_det_ovlp = count_qualified_peaks(
                 detector_lit, spot_overlap, n_detectors, cpp_rule
             )
@@ -755,6 +825,8 @@ def calculate_diffraction_overlap_batched(
                 peak_pixel_overlap, peak_pixel_on_det,
                 n_det_ovlp, n_detectors,
             )
+        if case_counts is not None:
+            overlap_info.ray_cases = tuple(int(x) for x in case_counts)
 
     return overlap_info
 
@@ -791,6 +863,7 @@ class VoxelCostFunction:
         min_sin_eta: float = 0.0,
         cpp_overlap_rule: bool = False,
         center_screen: bool = False,
+        ray_rule: "Optional[RayRule]" = None,
     ):
         """
         Args:
@@ -823,8 +896,13 @@ class VoxelCostFunction:
                    (the original Python rule). C++ Reference: OverlapInfo.tmpl.cpp:78-139.
             center_screen: For pixel_radius > 0 project the voxel centroid (C++ VoxelToCenter)
                    instead of the first triangle vertex. Default False.
+            ray_rule: Opt-in ray-consistency rule (ray_overlap.RayRule), default None = off. It
+                   implies the C++ rule. The reconstructor gives it only to the coarse levels
+                   0-2 (screen, re-cost, quick MC); FindOptimal, VarianceMinimizing and the final
+                   cost use a cost function without it (two costs by design, see ray_overlap.py).
         """
-        self.cpp_overlap_rule = cpp_overlap_rule
+        self.ray_rule = ray_rule
+        self.cpp_overlap_rule = cpp_overlap_rule or ray_rule is not None
         self.center_screen = center_screen
         self.simulator = simulator
         self.min_sin_eta = min_sin_eta
@@ -876,6 +954,10 @@ class VoxelCostFunction:
         C++ Reference: CostFunctions.h VoxelCostFunction::operator()
         """
         self.eval_count += 1
+        voxel_size = 0.0
+        if self.ray_rule is not None:
+            edges = voxel_vertices - voxel_vertices.roll(1, dims=0)
+            voxel_size = float(torch.linalg.norm(edges, dim=1).max())
         if self.center_screen and self.pixel_radius > 0:
             voxel_vertices = voxel_vertices.mean(dim=0, keepdim=True).repeat(3, 1)
 
@@ -969,4 +1051,9 @@ class VoxelCostFunction:
             mode=self.mode,
             pixel_radius=self.pixel_radius,
             **({"cpp_rule": True} if self.cpp_overlap_rule else {}),
+            **(
+                {"ray_rule": self.ray_rule, "voxel_size": voxel_size}
+                if self.ray_rule is not None
+                else {}
+            ),
         )

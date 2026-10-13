@@ -145,6 +145,17 @@ def run(a: argparse.Namespace) -> None:
     rec = RC.AdaptiveVoxelReconstructor(setup)
     for kv in a.opt:
         k, v = kv.split("=")
+        if k == "ray_rule":  # ray_rule=R2 | A (RayOverlapRule config spelling); implies cpp rule
+            from icenine.ray_overlap import RayRule
+
+            reg = float(setup.exp_setup.config_file.detector_dist_deviation)
+            setup.search_params.cpp_overlap_rule = True
+            setup.search_params.ray_rule = (
+                RayRule(arm="A", registration_mm=reg)
+                if v == "A"
+                else RayRule(arm="R", radius_px=int(v[1:]), registration_mm=reg)
+            )
+            continue
         tgt, name = (rec, k[4:]) if k.startswith("rec.") else (setup.search_params, k)
         cur = getattr(tgt, name)
         if isinstance(cur, str):

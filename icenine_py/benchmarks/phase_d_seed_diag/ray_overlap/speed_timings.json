@@ -1,0 +1,48 @@
+{
+ "label": "single-worker, quiet machine (preflight_speed.json), clean images, voxels 22867/15901/17034, levels 0-2, wall seconds per voxel",
+ "after_C_ray_check": {
+  "old": [
+   162.3,
+   163.9,
+   167.7
+  ],
+  "cpp": [
+   117.1,
+   116.0,
+   117.7
+  ],
+  "f0_R2": [
+   132.0,
+   130.9,
+   131.6
+  ],
+  "f0_A": [
+   148.9,
+   148.7,
+   148.1
+  ]
+ },
+ "before_python_ray_check": {
+  "f0_R2": [
+   293.1,
+   294.5,
+   289.3
+  ],
+  "f0_A": [
+   340.1,
+   337.5,
+   334.6
+  ]
+ },
+ "levels_identical_before_after": true,
+ "profile_cpp_arm_voxel_22867_cProfile_s": {
+  "total": 132.7,
+  "evaluate_calls": 233546,
+  "calculate_diffraction_overlap_batched_cum": 86.1,
+  "torch_scattering_omegas": 15.4,
+  "stage_d_C": 7.0,
+  "evaluate_self": 17.8,
+  "discrete_screen_evals": 96338,
+  "mc_evals": 137208
+ }
+}

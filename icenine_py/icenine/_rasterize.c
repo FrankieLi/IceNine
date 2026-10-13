@@ -615,16 +615,40 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
     PyObject *pixel_centers_obj, *pixel_vertices_obj;
     int n_detectors, pixel_radius, n_peaks, image_rows, image_cols;
     int cpp_rule = 0;
+    PyObject *obs_in_obj = Py_None, *obs_bright_obj = Py_None;
 
-    if (!PyArg_ParseTuple(args, "O!O!O!OOiiiii|i",
+    if (!PyArg_ParseTuple(args, "O!O!O!OOiiiii|iOO",
             &PyList_Type, &image_list,
             &PyArray_Type, &wedge_indices_arr,
             &PyArray_Type, &det_hit_mask_arr,
             &pixel_centers_obj,
             &pixel_vertices_obj,
             &n_detectors, &pixel_radius, &n_peaks,
-            &image_rows, &image_cols, &cpp_rule))
+            &image_rows, &image_cols, &cpp_rule,
+            &obs_in_obj, &obs_bright_obj))
         return NULL;
+
+    /* Optional ray-consistency inputs (icenine/ray_overlap.py): (M, N_det) uint8, observed ray
+       in bounds / bright on detector d. Both given -> the combined rule is applied. */
+    const npy_uint8 *obs_in = NULL, *obs_bright = NULL;
+    if (obs_in_obj != Py_None || obs_bright_obj != Py_None) {
+        if (obs_in_obj == Py_None || obs_bright_obj == Py_None ||
+            !PyArray_Check(obs_in_obj) || !PyArray_Check(obs_bright_obj) ||
+            PyArray_TYPE((PyArrayObject *)obs_in_obj) != NPY_UINT8 ||
+            PyArray_TYPE((PyArrayObject *)obs_bright_obj) != NPY_UINT8 ||
+            !PyArray_IS_C_CONTIGUOUS((PyArrayObject *)obs_in_obj) ||
+            !PyArray_IS_C_CONTIGUOUS((PyArrayObject *)obs_bright_obj) ||
+            PyArray_SIZE((PyArrayObject *)obs_in_obj) < (npy_intp)n_peaks * n_detectors ||
+            PyArray_SIZE((PyArrayObject *)obs_bright_obj) < (npy_intp)n_peaks * n_detectors) {
+            PyErr_SetString(PyExc_TypeError,
+                "obs_in/obs_bright must both be C-contiguous (M, N_det) uint8 arrays");
+            return NULL;
+        }
+        obs_in = (const npy_uint8 *)PyArray_DATA((PyArrayObject *)obs_in_obj);
+        obs_bright = (const npy_uint8 *)PyArray_DATA((PyArrayObject *)obs_bright_obj);
+    }
+    /* case counters: a b c d e f_dark f_bright det0_bright */
+    long cases[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
     if (n_detectors > MAX_DETECTORS) {
         PyErr_SetString(PyExc_ValueError, "n_detectors exceeds MAX_DETECTORS");
@@ -797,6 +821,41 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
             }
         }
 
+        /* Ray-consistency rule (see ray_overlap.py): once the predicted spot is bright on
+           detector 0, a later detector d whose predicted spot is not bright is decided by the
+           observed ray. a: predicted bright (nothing). b: predicted lit and dark, observed ray
+           bright -> overlap. c: both in bounds and dark -> unchanged (invalid under the C++
+           rule). d: both out of bounds -> unchanged (unlit tolerated). e: predicted lit and
+           dark, observed out of bounds -> treated as unlit. f: predicted out of bounds,
+           observed in bounds and dark -> unchanged (always forgiven, as in the C++ rule; the
+           invalidating variant f1 was dropped 2026-10-12). Predicted out of bounds with the observed ray bright is
+           counted separately (f_bright) and left unchanged.
+           Pixel accounting in triangle mode (pixel_radius 0): the detector-d triangle already
+           added n_lit pixels to peak_pixel_on_det. Case b adds ONE overlap pixel (a partial
+           credit against n_lit pixels) and case e removes ONE on-detector pixel (an "unlit"
+           detector keeps n_lit-1 pixels in the denominator). Owner decision 2026-10-12: kept as
+           is, to be revisited; see open question 9 in
+           docs/findings_finisher_mc_study_2026-10.md. */
+        if (obs_in && spot_overlap[0]) {
+            cases[7]++;
+            for (int d = 1; d < n_detectors; d++) {
+                int oi = obs_in[p * n_detectors + d];
+                int ob = obs_bright[p * n_detectors + d];
+                if (spot_overlap[d]) { cases[0]++; continue; }
+                if (detector_lit[d]) {
+                    if (ob) { spot_overlap[d] = 1; peak_pixel_overlap++; cases[1]++; }
+                    else if (!oi) { detector_lit[d] = 0; peak_pixel_on_det--; cases[4]++; }
+                    else cases[2]++;
+                } else if (!oi) {
+                    cases[3]++;
+                } else if (ob) {
+                    cases[6]++;
+                } else {
+                    cases[5]++;
+                }
+            }
+        }
+
         /* Qualified peak counting */
         int peak_on_det, peak_ovlp, n_det_ovlp;
         count_qualified_peaks_c(
@@ -828,6 +887,12 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
 
     free(image_ptrs);
 
+    if (obs_in) {
+        return Py_BuildValue("(iiiidii(llllllll))",
+            total_pixel_overlap, total_pixel_on_det, total_peak_overlap, total_peak_on_det,
+            quality, n_quality_points, last_n_det_ovlp,
+            cases[0], cases[1], cases[2], cases[3], cases[4], cases[5], cases[6], cases[7]);
+    }
     return Py_BuildValue("(iiiidii)",
         total_pixel_overlap,
         total_pixel_on_det,
@@ -837,6 +902,199 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
         n_quality_points,
         last_n_det_ovlp  /* detectors_overlap from last peak, matching Python fallback */
     );
+}
+
+/* ---- Observed-ray flags (C port of ray_overlap.ray_flags, which stays the reference) ---- */
+
+#define RAY_MAX_RAYS 64
+#define RAY_GEOM_LEN 20 /* n[3] d pos[3] org[3] bj[3] bk[3] pw ph hw hh */
+
+#pragma clang fp contract(off)
+#pragma STDC FP_CONTRACT OFF
+
+static inline double dot3(const double *a, const double *b) {
+    return (a[0] * b[0] + a[1] * b[1]) + a[2] * b[2];
+}
+
+static inline long to_long(double x) {
+    if (!(x > -1e15)) return -1000000000000000L; /* also NaN */
+    if (x > 1e15) return 1000000000000000L;
+    return (long)x;
+}
+
+/**
+ * ray_flags(image_list, local_wedge, det_hit0, det0_px, origins, geom, n_det,
+ *           pixel_radius, arm, radius_px, voxel_size, omega_step, registration)
+ *   -> (obs_in, obs_bright), both (M, n_det) uint8.
+ * image_list is indexed [local_wedge * n_det + d] like stage_d_overlap; det0_px is (M, 3, 2)
+ * float64 [col, row]; origins (M, 3) float64; geom (n_det, 20) float64. arm 0 = R, 1 = A.
+ * The arithmetic follows the numpy reference operation by operation (no FMA contraction).
+ */
+static PyObject* ray_flags_c(PyObject *self, PyObject *args) {
+    PyObject *image_list;
+    PyArrayObject *wedge_arr, *hit_arr, *px_arr, *org_arr, *geom_arr;
+    int n_det, pixel_radius, arm, radius_px;
+    double voxel_size, omega_step, registration;
+    if (!PyArg_ParseTuple(args, "O!O!O!O!O!O!iiiiddd",
+            &PyList_Type, &image_list,
+            &PyArray_Type, &wedge_arr, &PyArray_Type, &hit_arr, &PyArray_Type, &px_arr,
+            &PyArray_Type, &org_arr, &PyArray_Type, &geom_arr,
+            &n_det, &pixel_radius, &arm, &radius_px, &voxel_size, &omega_step, &registration))
+        return NULL;
+    if (n_det > MAX_DETECTORS || n_det < 1) {
+        PyErr_SetString(PyExc_ValueError, "bad n_det");
+        return NULL;
+    }
+    npy_intp m = PyArray_DIM(wedge_arr, 0);
+    if (PyArray_TYPE(wedge_arr) != NPY_INT32 || !PyArray_IS_C_CONTIGUOUS(wedge_arr) ||
+        PyArray_TYPE(hit_arr) != NPY_UINT8 || !PyArray_IS_C_CONTIGUOUS(hit_arr) ||
+        PyArray_SIZE(hit_arr) < m ||
+        PyArray_TYPE(px_arr) != NPY_FLOAT64 || !PyArray_IS_C_CONTIGUOUS(px_arr) ||
+        PyArray_SIZE(px_arr) < m * 6 ||
+        PyArray_TYPE(org_arr) != NPY_FLOAT64 || !PyArray_IS_C_CONTIGUOUS(org_arr) ||
+        PyArray_SIZE(org_arr) < m * 3 ||
+        PyArray_TYPE(geom_arr) != NPY_FLOAT64 || !PyArray_IS_C_CONTIGUOUS(geom_arr) ||
+        PyArray_SIZE(geom_arr) < (npy_intp)n_det * RAY_GEOM_LEN) {
+        PyErr_SetString(PyExc_TypeError, "ray_flags: bad array dtype/shape/contiguity");
+        return NULL;
+    }
+    const int *wedge = (const int *)PyArray_DATA(wedge_arr);
+    const unsigned char *hit0 = (const unsigned char *)PyArray_DATA(hit_arr);
+    const double *px = (const double *)PyArray_DATA(px_arr);
+    const double *orgs = (const double *)PyArray_DATA(org_arr);
+    const double *geom = (const double *)PyArray_DATA(geom_arr);
+
+    npy_intp dims[2] = {m, n_det};
+    PyArrayObject *oin = (PyArrayObject *)PyArray_ZEROS(2, dims, NPY_UINT8, 0);
+    PyArrayObject *obr = (PyArrayObject *)PyArray_ZEROS(2, dims, NPY_UINT8, 0);
+    if (!oin || !obr) { Py_XDECREF(oin); Py_XDECREF(obr); return NULL; }
+    unsigned char *out_in = (unsigned char *)PyArray_DATA(oin);
+    unsigned char *out_br = (unsigned char *)PyArray_DATA(obr);
+
+    Py_ssize_t n_images = PyList_Size(image_list);
+    const unsigned char *ip[MAX_DETECTORS];
+    long irows[MAX_DETECTORS], icols[MAX_DETECTORS];
+
+    if (n_det >= 2) {
+        for (npy_intp p = 0; p < m; p++) {
+            if (!hit0[p]) continue;
+            long base = (long)wedge[p] * n_det;
+            if (base < 0 || base + n_det > n_images) {
+                Py_DECREF(oin); Py_DECREF(obr);
+                PyErr_SetString(PyExc_IndexError, "ray_flags: wedge index outside image_list");
+                return NULL;
+            }
+            for (int d = 0; d < n_det; d++) {
+                PyObject *item = PyList_GET_ITEM(image_list, base + d);
+                if (!PyArray_Check(item) || PyArray_TYPE((PyArrayObject *)item) != NPY_UINT8 ||
+                    PyArray_NDIM((PyArrayObject *)item) != 2 ||
+                    !PyArray_IS_C_CONTIGUOUS((PyArrayObject *)item)) {
+                    Py_DECREF(oin); Py_DECREF(obr);
+                    PyErr_SetString(PyExc_TypeError, "images must be C-contiguous 2D uint8");
+                    return NULL;
+                }
+                ip[d] = (const unsigned char *)PyArray_DATA((PyArrayObject *)item);
+                irows[d] = (long)PyArray_DIM((PyArrayObject *)item, 0);
+                icols[d] = (long)PyArray_DIM((PyArrayObject *)item, 1);
+            }
+            const double *v = px + p * 6; /* (3, 2): [col, row] per vertex */
+            long c_lo, c_hi, r_lo, r_hi;
+            if (pixel_radius > 0) {
+                long cx = to_long(trunc(v[0])), cy = to_long(trunc(v[1]));
+                c_lo = cx - pixel_radius; c_hi = cx + pixel_radius;
+                r_lo = cy - pixel_radius; r_hi = cy + pixel_radius;
+            } else {
+                double cmin = v[0], cmax = v[0], rmin = v[1], rmax = v[1];
+                for (int k = 1; k < 3; k++) {
+                    if (v[2 * k] < cmin) cmin = v[2 * k];
+                    if (v[2 * k] > cmax) cmax = v[2 * k];
+                    if (v[2 * k + 1] < rmin) rmin = v[2 * k + 1];
+                    if (v[2 * k + 1] > rmax) rmax = v[2 * k + 1];
+                }
+                c_lo = to_long(floor(cmin)); c_hi = to_long(floor(cmax));
+                r_lo = to_long(floor(rmin)); r_hi = to_long(floor(rmax));
+            }
+            if (c_lo < 0) c_lo = 0;
+            if (c_hi > icols[0] - 1) c_hi = icols[0] - 1;
+            if (r_lo < 0) r_lo = 0;
+            if (r_hi > irows[0] - 1) r_hi = irows[0] - 1;
+            if (c_lo > c_hi || r_lo > r_hi) continue;
+
+            /* bright detector-0 pixels of the window, row-major, at most RAY_MAX_RAYS */
+            int ray_c[RAY_MAX_RAYS], ray_r[RAY_MAX_RAYS];
+            int nr = 0;
+            for (long r = r_lo; r <= r_hi && nr < RAY_MAX_RAYS; r++)
+                for (long c = c_lo; c <= c_hi && nr < RAY_MAX_RAYS; c++)
+                    if (ip[0][r * icols[0] + c]) { ray_c[nr] = (int)c; ray_r[nr] = (int)r; nr++; }
+            if (nr == 0) continue;
+
+            const double *g0 = geom;
+            const double *origin = orgs + p * 3;
+            double q_base[3];
+            for (int i = 0; i < 3; i++) q_base[i] = g0[4 + i] + g0[7 + i];
+            double rad = hypot(origin[0], origin[1]);
+            double arc[3] = {-origin[1], origin[0], 0.0};
+            double nrm = sqrt(dot3(arc, arc));
+            if (nrm > 0) { arc[0] /= nrm; arc[1] /= nrm; arc[2] /= nrm; }
+
+            double q0[RAY_MAX_RAYS][3];
+            for (int i = 0; i < nr; i++) {
+                double j = ((double)ray_c[i] + 0.5) * g0[16] - g0[18];
+                double k = ((double)ray_r[i] + 0.5) * g0[17] - g0[19];
+                for (int a = 0; a < 3; a++)
+                    q0[i][a] = (q_base[a] + j * g0[10 + a]) + k * g0[13 + a];
+            }
+            for (int d = 1; d < n_det; d++) {
+                const double *g = geom + d * RAY_GEOM_LEN;
+                double on = dot3(origin, g); /* origin . n */
+                double num = -(on + g[3]);
+                int any_in = 0, any_bright = 0;
+                for (int i = 0; i < nr && !any_bright; i++) {
+                    double dirs[3];
+                    for (int a = 0; a < 3; a++) dirs[a] = q0[i][a] - origin[a];
+                    double denom = dot3(dirs, g);
+                    if (!(fabs(denom) > 1e-12)) continue;
+                    double t = num / denom;
+                    if (!(t > 0)) continue;
+                    double rel[3];
+                    for (int a = 0; a < 3; a++) {
+                        double hit = origin[a] + t * dirs[a];
+                        rel[a] = (hit - g[4 + a]) - g[7 + a];
+                    }
+                    double col = (dot3(rel, g + 10) + g[18]) / g[16];
+                    double row = (dot3(rel, g + 13) + g[19]) / g[17];
+                    long lo_c, hi_c, lo_r, hi_r;
+                    if (arm == 0) {
+                        lo_c = to_long(trunc(col)) - radius_px; hi_c = lo_c + 2 * radius_px;
+                        lo_r = to_long(trunc(row)) - radius_px; hi_r = lo_r + 2 * radius_px;
+                    } else {
+                        /* Arm A window. WINDOW DECISION (owner, 2026-10-12): every term is a
+                         * half-width (intended reading); the window stays as set, untuned.
+                         * Same formula and note as the ray_overlap.py module docstring. */
+                        double ratio = t;
+                        double iso = (voxel_size * (ratio - 1.0)
+                                      + 0.5 * (g0[16] + g0[17]) * ratio) + registration;
+                        double arc_mm = rad * omega_step * (ratio - 1.0);
+                        double hc = (iso + arc_mm * fabs(dot3(arc, g + 10))) / g[16];
+                        double hr = (iso + arc_mm * fabs(dot3(arc, g + 13))) / g[17];
+                        lo_c = to_long(floor(col - hc)); hi_c = to_long(floor(col + hc));
+                        lo_r = to_long(floor(row - hr)); hi_r = to_long(floor(row + hr));
+                    }
+                    /* _box_flags */
+                    if (hi_c < 0 || hi_r < 0 || lo_c >= icols[d] || lo_r >= irows[d]) continue;
+                    any_in = 1;
+                    long a0 = lo_c < 0 ? 0 : lo_c, a1 = hi_c > icols[d] - 1 ? icols[d] - 1 : hi_c;
+                    long b0 = lo_r < 0 ? 0 : lo_r, b1 = hi_r > irows[d] - 1 ? irows[d] - 1 : hi_r;
+                    for (long r = b0; r <= b1 && !any_bright; r++)
+                        for (long c = a0; c <= a1; c++)
+                            if (ip[d][r * icols[d] + c]) { any_bright = 1; break; }
+                }
+                out_in[p * n_det + d] = (unsigned char)any_in;
+                out_br[p * n_det + d] = (unsigned char)any_bright;
+            }
+        }
+    }
+    return Py_BuildValue("(NN)", (PyObject *)oin, (PyObject *)obr);
 }
 
 /* ---- Module definition ---- */
@@ -849,6 +1107,9 @@ static PyMethodDef rasterize_methods[] = {
     {"pixel_radius_overlap", pixel_radius_overlap, METH_VARARGS,
      "pixel_radius_overlap(image, cx, cy, radius) -> (in_bounds, bright)\n\n"
      "Check if any pixel in +-radius square around (cx, cy) is bright."},
+    {"ray_flags", ray_flags_c, METH_VARARGS,
+     "ray_flags(image_list, local_wedge, det_hit0, det0_px, origins, geom, n_det, pixel_radius,\n"
+     "          arm, radius_px, voxel_size, omega_step, registration) -> (obs_in, obs_bright)"},
     {"stage_d_overlap", stage_d_overlap, METH_VARARGS,
      "stage_d_overlap(image_list, wedge_indices, det_hit_mask, pixel_centers,\n"
      "                pixel_vertices, n_detectors, pixel_radius, n_peaks,\n"
@@ -872,5 +1133,6 @@ PyMODINIT_FUNC PyInit__rasterize(void) {
     import_array();
     PyObject *m = PyModule_Create(&rasterize_module);
     if (m != NULL) PyModule_AddIntConstant(m, "HAS_CPP_RULE", 1);
+    if (m != NULL) PyModule_AddIntConstant(m, "HAS_RAY_RULE", 1);
     return m;
 }
