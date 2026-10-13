@@ -8,7 +8,15 @@ fontsize: 11pt
 
 # Status
 
-**Data step done (2026-10-07); pilot done (2026-10-08, 2,000-voxel region, 5 runs; MIGRATION_HISTORY, "Phase D pilot results"): no-go for the full runs as configured: 26 to 28 of 60 grains were lost, 25 to 27 of them never got a full search (IceNine's BFS seed rule, also the C++ server's).** Requested by the project owner on 2026-10-07 as the next
+**Status (2026-10-13): the seed-rule blocker is fixed by an opt-in reseed; the end-to-end runs are deferred by the
+owner.** With `BFSReseed 1` (finality per voxel) the re-pilot of the 2,000-voxel region loses 0 of 60 grains in all
+four runs and gets 23 to 60 of 2,000 voxels wrong (pilot 617 to 740), at 46 to 52% of a run's evaluations
+(`docs/findings_finisher_mc_study_2026-10.md`, 3(g) follow-up and open question 1;
+`benchmarks/phase_d_pilot_reseed_v2/`). One region and one seed order; other regions, seed orders and full-sample
+scale are on hold (owner, 2026-10-09). The library work listed below is done (MIGRATION_HISTORY, "Phase D library
+prerequisites"). The history of this status follows.
+
+**Data step done (2026-10-07); pilot done (2026-10-08, 2,000-voxel region, 5 runs; MIGRATION_HISTORY, "Phase D pilot results"): no-go for the full runs as configured (then): 26 to 28 of 60 grains were lost, 25 to 27 of them never got a full search (IceNine's BFS seed rule, also the C++ server's).** Requested by the project owner on 2026-10-07 as the next
 step after the "Finisher and MC study". It is Phase D of that plan (MIGRATION_HISTORY, "Finisher and MC study
 (2026-10-07)"). Done: the new-orientation sample, the full-sample clean and realistic images and the four
 Python-only reconstruction configs (MIGRATION_HISTORY, "Phase D data"; `scripts/phase_d/`). No full-sample images

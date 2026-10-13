@@ -6010,8 +6010,10 @@ Branch `feature/finisher-mc-study`, merged to develop by PR. Full write-ups:
 - **CMA-ES (Phase C).** Opt-in local finisher, about 5x more precise than MC at similar cost, no fewer wrong answers,
   more wrong-grain acceptances in BFS. `cma` is a core dependency; the wider-sigma retry is dropped.
 - **Phase D.** New 500-grain sample, full-sample renders, memmap loader. The pilot showed the BFS seed rule (same as
-  the C++ server) loses 25-28 of 60 grains; opt-in `BFSReseed` cuts lost grains 28 to 19 and wrong voxels 740 to 633
-  (`mc`, clean). Opt-in BFS revisit, restart pass and per-voxel provenance.
+  the C++ server) loses 25-28 of 60 grains; opt-in `BFSReseed` (finality per voxel) brings lost grains to 0 of 60 in
+  all four runs (pilot 26-28) and wrong voxels from 617-740 to 23-60 of 2,000 (`mc` clean 740 to 37), at 46-52% of a
+  run's evaluations (one region, one seed order, contended). Opt-in BFS revisit, restart pass and per-voxel
+  provenance.
 - **Level-0 overlap rule.** Python passed 1.24-1.53x C++'s level-0 candidates because of a port difference in
   `CountQualifiedPeaks`; opt-in `CppOverlapRule` reproduces C++ (0.95-0.98x its evaluations) but is less accurate on
   E0 clean (56 wrong of 200).
