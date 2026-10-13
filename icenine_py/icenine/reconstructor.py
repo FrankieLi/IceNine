@@ -12,6 +12,7 @@ C++ Reference:
 
 import math
 import time
+import warnings
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -567,6 +568,7 @@ class AdaptiveVoxelReconstructor:
                 symmetry_quats=symmetry_quats,
                 phase_index=phase_index,
                 **({} if self.discrete_recorder is None else dict(recorder=self.discrete_recorder)),
+                **self._screen_kwargs(global_cost_fn),
             )
             t_discrete = time.time() - t_level
 
@@ -712,6 +714,30 @@ class AdaptiveVoxelReconstructor:
         if rule is not None and level < rule.levels:
             return rule
         return None
+
+    def _screen_kwargs(self, global_cost_fn: VoxelCostFunction) -> Dict[str, Any]:
+        """Arguments of run_discrete_search_spaced for the opt-in batched / interpolated screen
+        (config keys BatchedScreen and CppOmegaInterp); empty when both are off, so the default
+        call is unchanged. Falls back to the per-orientation screen, with a warning, when the cost
+        function is not supported (ray rule at this level, no C extension)."""
+        sp = self.setup.search_params
+        interp = bool(getattr(sp, "cpp_omega_interp", False))
+        batched = bool(getattr(sp, "batched_screen", False))
+        if not (interp or batched):
+            return {}
+        from .batched_screen import make_screen_evaluator
+
+        evaluator = make_screen_evaluator(global_cost_fn)
+        if evaluator is None:
+            warnings.warn(
+                "BatchedScreen / CppOmegaInterp are not supported for this level (ray rule or no "
+                "C extension): using the per-orientation screen",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return {}
+        chunk = int(getattr(sp, "screen_chunk", 32)) if batched else 1
+        return dict(screen=evaluator, screen_interp=interp, screen_chunk=chunk)
 
     def _cost_flags(self, ray: Optional[RayRule] = None) -> Dict[str, Any]:
         """The literal C++ CountQualifiedPeaks rule is opt-in (config key CppOverlapRule;
