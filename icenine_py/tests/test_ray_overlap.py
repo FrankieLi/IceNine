@@ -2,6 +2,7 @@
 C stage equals the Python twin, observed-ray geometry on synthetic detectors, the window arms,
 config keys, and the default (off) leaving the cost unchanged."""
 
+import warnings
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -72,25 +73,24 @@ def test_c_stage_equals_python_twin():
     centers = np.ascontiguousarray(rng.integers(-3, 35, (n_peaks, n_det, 2)).astype(np.int32))
     oi = (rng.random((n_peaks, n_det)) < 0.6).astype(np.uint8)
     ob = (oi & (rng.random((n_peaks, n_det)) < 0.5)).astype(np.uint8)
-    for _ in range(1):
-        res = CF._c_stage_d_overlap(
-            images, wedge, hit, centers, None, n_det, rad, n_peaks, rows, cols, 1, oi, ob
-        )
-        po = pon = 0
-        cases = np.zeros(8, np.int64)
-        for p in range(n_peaks):
-            lit, ov = [False] * n_det, [False] * n_det
-            for d in range(n_det):
-                c, r = centers[p, d]
-                sub = images[d][max(r - rad, 0) : r + rad + 1, max(c - rad, 0) : c + rad + 1]
-                inb = bool(c + rad >= 0 and r + rad >= 0 and c - rad < cols and r - rad < rows)
-                lit[d], ov[d] = inb, bool(inb and sub.any())
-            apply_cases_python(lit, ov, oi[p], ob[p], cases)
-            on, o, _ = count_qualified_peaks(lit, ov, n_det, cpp_rule=True)
-            pon += on
-            po += o
-        assert (res[2], res[3]) == (po, pon)
-        assert tuple(res[7]) == tuple(int(x) for x in cases)
+    res = CF._c_stage_d_overlap(
+        images, wedge, hit, centers, None, n_det, rad, n_peaks, rows, cols, 1, oi, ob
+    )
+    po = pon = 0
+    cases = np.zeros(8, np.int64)
+    for p in range(n_peaks):
+        lit, ov = [False] * n_det, [False] * n_det
+        for d in range(n_det):
+            c, r = centers[p, d]
+            sub = images[d][max(r - rad, 0) : r + rad + 1, max(c - rad, 0) : c + rad + 1]
+            inb = bool(c + rad >= 0 and r + rad >= 0 and c - rad < cols and r - rad < rows)
+            lit[d], ov[d] = inb, bool(inb and sub.any())
+        apply_cases_python(lit, ov, oi[p], ob[p], cases)
+        on, o, _ = count_qualified_peaks(lit, ov, n_det, cpp_rule=True)
+        pon += on
+        po += o
+    assert (res[2], res[3]) == (po, pon)
+    assert tuple(res[7]) == tuple(int(x) for x in cases)
 
 
 def _fake_detector(x: float, n: int = 40):
@@ -208,6 +208,17 @@ def test_config_keys(tmp_path):
         if arm == "R":
             assert rule.radius_px == rad
         assert rule.registration_mm == pytest.approx(0.010)
+    # ray rule alone warns (unstudied combination); with CppOverlapRule 1 it does not
+    f = tmp_path / "R2.config"
+    f.write_text(text + "\nRayOverlapRule R2\n")
+    with pytest.warns(UserWarning, match="without CppOverlapRule"):
+        SearchParameters.from_config(ConfigFile.from_file(str(f)))
+    g = tmp_path / "R2cpp.config"
+    g.write_text(text + "\nRayOverlapRule R2\nCppOverlapRule 1\n")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        sp = SearchParameters.from_config(ConfigFile.from_file(str(g)))
+    assert sp.cpp_overlap_rule and sp.ray_rule is not None
     bad = tmp_path / "bad.config"
     bad.write_text(text + "\nRayOverlapRule banana\n")
     with pytest.raises(ValueError):
@@ -234,9 +245,10 @@ def test_rule_only_in_coarse_levels():
 
 
 @needs_ext
-@pytest.mark.parametrize("rule", [RayRule(arm="R", radius_px=r) for r in (0, 1, 3)] + [
-    RayRule(arm="A", registration_mm=0.5)
-])
+@pytest.mark.parametrize(
+    "rule",
+    [RayRule(arm="R", radius_px=r) for r in (0, 1, 3)] + [RayRule(arm="A", registration_mm=0.5)],
+)
 @pytest.mark.parametrize("pixel_radius", [0, 2])
 def test_c_ray_flags_equal_python_reference(rule, pixel_radius):
     """The C ray check gives the same flags as the Python reference (ray_overlap.ray_flags)."""
@@ -251,9 +263,11 @@ def test_c_ray_flags_equal_python_reference(rule, pixel_radius):
     px[:, :, 1] = rng.uniform(-3, 42, (m, 1)) + rng.uniform(0, 1.5, (m, 3))
     origins = np.concatenate([rng.uniform(-0.5, 0.5, (m, 2)), np.zeros((m, 1))], axis=1)
     hit = rng.random(m) < 0.9
-    ref = ray_flags(rule, dets, _Exp(imgs), np.zeros(m, np.int64), origins, hit, px, pixel_radius,
-                    0.3, 0.035)
-    got = ray_flags_c(rule, dets, imgs, np.zeros(m, np.int32), origins, hit, px, pixel_radius,
-                      0.3, 0.035)
+    ref = ray_flags(
+        rule, dets, _Exp(imgs), np.zeros(m, np.int64), origins, hit, px, pixel_radius, 0.3, 0.035
+    )
+    got = ray_flags_c(
+        rule, dets, imgs, np.zeros(m, np.int32), origins, hit, px, pixel_radius, 0.3, 0.035
+    )
     assert ref[0].sum() > 0 and ref[1].sum() > 0
     assert np.array_equal(ref[0], got[0]) and np.array_equal(ref[1], got[1])

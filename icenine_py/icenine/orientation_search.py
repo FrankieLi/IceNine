@@ -12,6 +12,7 @@ C++ Reference:
 """
 
 import math
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -167,7 +168,7 @@ class SearchParameters:
     @classmethod
     def from_config(cls, config) -> "SearchParameters":
         """Create from ConfigFile."""
-        return cls(
+        sp = cls(
             local_grid_radius=config.local_orientation_grid_radius,
             min_local_resolution=config.min_local_resolution,
             max_local_resolution=config.max_local_resolution,
@@ -193,6 +194,16 @@ class SearchParameters:
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             ray_rule=ray_rule_from_config(config),
         )
+        # unstudied combination: warn only (owner 2026-10-12), do not force CppOverlapRule
+        if sp.ray_rule is not None and not sp.cpp_overlap_rule:
+            warnings.warn(
+                "RayOverlapRule is set without CppOverlapRule: the coarse levels use the ray rule "
+                "but level 3, FindOptimal and the final cost use the lenient rule. This "
+                "combination was not studied; set CppOverlapRule 1 as well.",
+                UserWarning,
+                stacklevel=2,
+            )
+        return sp
 
 
 @dataclass

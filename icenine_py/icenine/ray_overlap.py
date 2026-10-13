@@ -51,6 +51,13 @@ Tolerance window on detector d (half-widths in detector-d pixels)
   revisit if step 3 loses the truth at level 3). The C copy of the arm A formula is in
   ``_rasterize.c`` (``ray_flags``), marked with the same decision note.
 
+Pixel accounting of cases b and e in triangle mode (``pixel_radius`` 0, used by the level 0-2
+re-cost and the quick MC): the detector-d triangle has already contributed ``n_lit`` pixels to the
+peak's on-detector count. Case b adds one overlap pixel (a partial credit against ``n_lit``), and
+case e removes one on-detector pixel (an "unlit" detector keeps ``n_lit - 1`` pixels in the
+denominator). The C stage and ``apply_cases_python`` agree. Owner decision 2026-10-12: kept as is,
+to be revisited; see open question 9 in ``docs/findings_finisher_mc_study_2026-10.md``.
+
 Approximations: the detector-0 "bright pixels the spot overlaps" are the bright pixels of the
 +-pixel_radius window around the projected centre (screen, radius > 0) or of the bounding box of
 the projected triangle (local cost, radius 0); at most ``MAX_RAYS`` of them are used.

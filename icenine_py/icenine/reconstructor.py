@@ -697,9 +697,7 @@ class AdaptiveVoxelReconstructor:
 
         # Store eval counts for benchmarking
         self._last_global_evals = total_global_evals
-        self._last_local_evals = local_cost_fn.eval_count + sum(
-            f.eval_count for f in ray_local_fns
-        )
+        self._last_local_evals = local_cost_fn.eval_count + sum(f.eval_count for f in ray_local_fns)
 
         return best_candidate
 

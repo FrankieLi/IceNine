@@ -829,7 +829,13 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
            dark, observed out of bounds -> treated as unlit. f: predicted out of bounds,
            observed in bounds and dark -> unchanged (always forgiven, as in the C++ rule; the
            invalidating variant f1 was dropped 2026-10-12). Predicted out of bounds with the observed ray bright is
-           counted separately (f_bright) and left unchanged. */
+           counted separately (f_bright) and left unchanged.
+           Pixel accounting in triangle mode (pixel_radius 0): the detector-d triangle already
+           added n_lit pixels to peak_pixel_on_det. Case b adds ONE overlap pixel (a partial
+           credit against n_lit pixels) and case e removes ONE on-detector pixel (an "unlit"
+           detector keeps n_lit-1 pixels in the denominator). Owner decision 2026-10-12: kept as
+           is, to be revisited; see open question 9 in
+           docs/findings_finisher_mc_study_2026-10.md. */
         if (obs_in && spot_overlap[0]) {
             cases[7]++;
             for (int d = 1; d < n_detectors; d++) {

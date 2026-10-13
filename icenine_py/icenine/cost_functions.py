@@ -710,11 +710,7 @@ def calculate_diffraction_overlap_batched(
                 centers, None,
                 n_detectors, pixel_radius, M, img_rows, img_cols,
                 *((1,) if cpp_rule else ()),
-                *(
-                    (obs_in, obs_bright)
-                    if ray_rule is not None
-                    else ()
-                ),
+                *((obs_in, obs_bright) if ray_rule is not None else ()),
             )
         else:
             # pixel_vertices: (M, n_det, 3, 2) float32
@@ -729,11 +725,7 @@ def calculate_diffraction_overlap_batched(
                 None, verts,
                 n_detectors, pixel_radius, M, img_rows, img_cols,
                 *((1,) if cpp_rule else ()),
-                *(
-                    (obs_in, obs_bright)
-                    if ray_rule is not None
-                    else ()
-                ),
+                *((obs_in, obs_bright) if ray_rule is not None else ()),
             )
 
         # Unpack results
