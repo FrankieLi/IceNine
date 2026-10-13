@@ -507,3 +507,15 @@ The earlier report's precision and timing numbers for the default finisher carry
    reseed on realistic images) are tilted against the strict rules. Work from clean full-sample images until this
    is redone. Options: no random drop (keep jitter, hot pixels, blobs); intensity-based drop near a detection
    threshold; or a small fixed rate (about 1%) as a stand-in. Then re-render and re-run the realistic comparisons.
+9. **Ray rule pixel counting for cases b and e (deferred, owner 2026-10-12).** At radius 0 (the local re-cost of
+   levels 0-2) the predicted detector-1 triangle covers n dark pixels. Case b (observed ray bright) adds only 1
+   overlap pixel, so the peak gets 1/n pixel credit; case e (observed ray off detector, treated as unlit) removes only
+   1 on-detector pixel, leaving n-1 dark pixels in the denominator. Per-peak verdicts are right; only the fractional
+   pixel score is off. Kept as is and documented (owner chose this over a fix that needs n passed into the C stage and
+   a re-run of ray-overlap steps 1-3). To fix later: b adds n overlap pixels, e removes all n on-detector pixels; then
+   re-run the ray arms.
+10. **Angle between observed ray and predicted ray (idea, owner 2026-10-12; not investigated).** When the observed ray
+   (voxel centre through the bright detector-0 pixels) and the predicted beam are near each other, estimate the angle
+   between them. Can it be computed during the orientation search, and can it steer the orientation optimisation
+   (e.g. as a per-peak correction direction or gradient-like signal, instead of a pass/fail overlap)? Check first
+   whether anything like this was tried before.
