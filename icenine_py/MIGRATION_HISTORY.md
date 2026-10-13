@@ -6074,3 +6074,340 @@ interior full-sample voxels (clean images, Q-max 8, seed 1) takes 332,320 evalua
 rule (1.46x C++'s about 237k) and 0.95-0.98x C++'s evaluations with the C++ overlap rule.
 
 Per-task completion summaries are added below as subsections when each task lands.
+
+### Task A: evaluation ledger and the residual C++ vs Python gap (2026-10-13, `feature/eval-reduction-A`)
+
+Run record: `benchmarks/eval_reduction/A/RUN_LOG.md`. Scripts: `scripts/eval_reduction/`. Clean full-sample images, Q-max 8
+configuration, seed 1 (six interior voxels 15901, 17034, 18558, 19889, 22867, 5242) and seed 0 (E0); no realistic
+images, no extra seeds. Switches added, all opt-in and off: `CppEdgeRules`, `CppOmegaInterp`, `BatchedScreen`
+(README, config table). With them off the default path is unchanged: the full suite is 889 passed, 37 skipped, 1
+deselected, and the default no-start search of voxel 15901 gives the stored 327,619 evaluations and 0.0378 degrees.
+
+**Short answers.**
+
+1. *Fixed orientation, C++ against Python (Step 0).* By default the two cost functions are not identical. Three C++
+   conventions explain almost every difference: (a) an omega below the first frame has no frame in C++, while the
+   Python batched lookup truncates toward zero and compares it with frame 0 (1,333 of 463,012 peaks, about 0.3%);
+   (b) a negative detector coordinate is pixel -1 in C++ (Python gives pixel 0 for a position in [0, 0.5) pixels);
+   (c) C++ lights a detector for a triangle that produced no pixel when a vertex is in bounds (311 peaks; every
+   one of the 306 with no produced pixel has a vertex at row or column 2047). `CppEdgeRules` switches the three on.
+2. *The gap with the C++ rule on (Steps 1 and 2).* Python makes 0.964 times C++'s evaluations (means over six voxels,
+   228,146 against 236,634). C++ recomputes the complete cost of every returned candidate once more after the
+   discrete search (10,829 evaluations per voxel, 4.6% of its total); the value is identical, so Python does not.
+   With `CppEdgeRules` on the deficit is 10,750 per voxel, and that loop is 10,829.
+3. *The untested omega-interpolation hypothesis is confirmed (Step 3).* C++ interpolated and C++ exact screens differ
+   in pass status on 401 of the 442 level-0 pairs where the stored C++ and Python screens differ; Python with
+   `CppOmegaInterp` and `CppEdgeRules` has the C++ per-FZ-point level-0 pass sets on 4,885 of 4,886 FZ points
+   (4,466 with exact omegas) and the C++ pass decision on all 2,000 fixed test pairs.
+4. *Speed.* In the level-0 screen the exact omega solve is 62 of 388 microseconds per orientation (single worker);
+   the rest is Python and torch overhead; the interpolation alone is 4.8 times faster, and batching 32 FZ points per
+   call makes either variant 17 times faster. A whole no-start search is 21 to 25% faster.
+5. *E0 clean (200 voxels, paired).* No detectable change in the wrong count; 20 to 25% of the voxels change status
+   in each comparison, in both directions.
+
+#### Step 0: fixed-orientation parity
+
+A scratch C++ build (`benchmarks/eval_reduction/A/step0/cpp_parity_patch.py.txt`; the build is not kept) reads
+orientations as float32 binary and writes, per orientation and per peak, the reflection and omega branch, omega, frame
+index, projected pixel of each vertex on each detector, lit and overlap flags and counts, all as hex floats. Three
+arms per orientation: the production interpolated screen (`INT`), the exact screen (`EXS`: Q-max 5, pixel radius 3,
+centre point) and the complete cost (`EXF`: all reflections, triangle). The Python side wraps the library functions
+for the duration of one call (no library change for the measurement) and compares peak by peak, matching peaks by
+branch, direction and |G| (the sides order equal-|G| reflections differently). Orientations (2,230 in all, three
+voxels 15901, 22867, 5242): truth and 0.1, 1 and 3 degrees off (3 random axes each), 200 random, 900 random level-0
+(FZ point, local-grid point) pairs, an offset sweep of 600 pairs, and on 15901 the 442 level-0 pairs where the stored
+C++ and Python screens differ in pass status plus 58 where only the overlap count differs (the stored trace has only 442
+pass differences, so the 500 asked for are filled with count-only pairs). The C++ driver reproduces the stored C++
+trace: pass status and overlap count equal on 442 of 442 pairs.
+
+<!-- table:evalA_parity_exact -->
+| arm | n | cost | counts | frames | qual |
+|---|---|---|---|---|---|
+| screen, Python default | 2230 | 1965 (88.1%) | 1965 (88.1%) | 1846 (82.8%) | n/a |
+| screen, Python with CppEdgeRules | 2230 | 2229 (100.0%) | 2229 (100.0%) | 2187 (98.1%) | n/a |
+| complete cost, Python default | 2230 | 1371 (61.5%) | 1124 (50.4%) | 887 (39.8%) | 2020 (90.6%) |
+| complete cost, Python with CppEdgeRules | 2230 | 2230 (100.0%) | 1985 (89.0%) | 1690 (75.8%) | 2228 (99.9%) |
+<!-- /table:evalA_parity_exact -->
+
+Columns: orientations with the same peak counts (screen: peak overlap and peak on detector; complete cost: the
+confidence), with the same pixel counts as well (complete cost), with every peak on the same frame and pixels, and
+with quality within 1e-6. "Edge rules" is `CppEdgeRules`.
+
+<!-- table:evalA_parity_causes -->
+| arm | peaks | frame_below_range | frame_boundary | pixel | counts | omega_only |
+|---|---|---|---|---|---|---|
+| screen, Python default | 108196 | 283 | 1 | 0 | 0 | 32487 |
+| screen, Python with CppEdgeRules | 108196 | 0 | 1 | 0 | 0 | 32586 |
+| complete cost, Python default | 463012 | 856 | 1 | 269 | 311 | 137918 |
+| complete cost, Python with CppEdgeRules | 463012 | 0 | 1 | 259 | 0 | 138368 |
+<!-- /table:evalA_parity_causes -->
+
+Peaks whose counts differ, by the first stage that differs. Omega bits are not identical for 30% of the peaks (99th
+percentile of the difference 1e-6 rad, largest 0.014 degrees), and that alone almost never changes a count ("omega
+only" counts peaks where omega differs and nothing downstream does).
+
+<!-- table:evalA_parity_by_group -->
+| group | n | EXS | EXS_edge | EXF | EXF_edge |
+|---|---|---|---|---|---|
+| truth | 3 | 2 | 3 | 3 | 3 |
+| off_0.1 | 9 | 6 | 9 | 5 | 9 |
+| off_1.0 | 9 | 6 | 9 | 3 | 9 |
+| off_3.0 | 9 | 9 | 9 | 4 | 9 |
+| random | 200 | 178 | 200 | 128 | 200 |
+| pair_random | 900 | 815 | 900 | 553 | 900 |
+| sweep | 600 | 547 | 600 | 382 | 600 |
+| pair_differ_pass | 442 | 356 | 441 | 261 | 442 |
+| pair_differ_count | 58 | 46 | 58 | 32 | 58 |
+<!-- /table:evalA_parity_by_group -->
+
+Orientations with the same confidence, by group. A level-0 pair's orientation is the product of the local-grid matrix
+and the FZ matrix; C++ forms it in float32 and Python in float64 (bit-identical for 292 of 2,000 pairs, largest
+difference 6e-8). The Python numbers above use the C++ product.
+
+* **(a) Frame below the range.** `((omega - low) / width).astype(int)` truncates toward zero, so an omega in
+  [low - width, low) gets bin 0. C++ (`SimulationData.h:317-322`) returns -1 and has no frame. On the 2,230 screens it
+  changes the pass decision for 42 orientations (C++ passes 700, the Python default 740, Python with the key 699).
+* **(b) Detector coordinate below zero.** C++ `ToColPixel`/`ToRowPixel` (`Detector.cpp:528-548`) test the millimetre
+  coordinate `d < 0` before adding the half pixel; Python floors `(d + half) / width`.
+* **(c) A triangle without pixels.** At the last image row or column the fill produces no pixel, but C++
+  `ShapePixelOverlapCounter` (`OverlapInfo.h`) still calls the detector lit when a vertex is in bounds.
+* **What stays.** Pixel boundaries from float32 arithmetic: 599 coordinates land on different sides of a boundary
+  (distance to the integer at most 0.017 pixel, median 0.0003); against a double-precision recomputation C++ is right
+  on 300 and Python on 299. The confidence is unaffected (2,230 of 2,230 identical); the pixel counts differ on 245
+  orientations. The re-cost used by the search, 1 - confidence, of the same orientation: Python default against C++
+  identical for 1,724 of 2,230 orientations, within 1e-3 for 2,204 (largest 0.016); with `CppEdgeRules` all 2,230 agree
+  within 3e-8.
+* **The 12-line probe** `benchmarks/phase_d_seed_diag/level0/cpp_exact_vs_interp_omegas.txt` (C++ exact against
+  interpolated omegas, 4 FZ points, local-grid points 0 to 2), summarised: identity at j = 0, the largest of 48 to 52
+  omega differences is 0.013 to 0.12 degrees at j = 1 and 2 (a pair of 360 degrees is a wrap at plus and minus 180), the
+  median 0.001 degrees (print precision). The step-3 sweep below measures the same thing on 600 orientations.
+
+#### Step 1: the evaluation ledger
+
+`scripts/eval_reduction/eval_ledger.py run --voxel V --tag T [--opt NAME=VALUE]` runs a no-start search and writes,
+per level and per stage, the evaluations (screen, first re-cost, quick MC, FindOptimal per candidate,
+VarianceMinimizing, final), the candidates in, returned, kept and dropped, and the wall time per stage; `summary` writes
+`ledger.json` and `tables.md`. It uses the existing hooks (`discrete_recorder`, `recorder`) and wraps
+`VoxelCostFunction.evaluate` and the MC optimizer for the counts (no library change). Six voxels x arms: `base`
+(lenient rule, the default), `cpp` (C++ rule), `r2` (ray rule, 2 pixels), `cpp_edge` (C++ rule with `CppEdgeRules`),
+and the switch arms of Step 3. One process at a time. Every quick-MC call used exactly 12 evaluations (11,498 calls on
+15901 in the `cpp` arm: min, median and max 12, one block).
+
+<!-- table:evalA_ledger_mean -->
+| arm | n | screen | recost | quick | find | variance | final | total | wall_s | us_per_eval |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | 6 | 77,510 | 67,084 | 183,148 | 2,885 | 1,418 | 1 | 332,046 | 173 | 491 |
+| cpp | 6 | 67,978 | 26,148 | 130,266 | 2,354 | 1,398 | 1 | 228,146 | 116 | 486 |
+| cpp_edge | 6 | 67,968 | 26,077 | 130,184 | 198 | 1,455 | 1 | 225,883 | 119 | 506 |
+| cpp_edge_batched | 6 | 67,968 | 26,077 | 130,184 | 198 | 1,455 | 1 | 225,883 | 93 | 388 |
+| cpp_edge_interp | 6 | 67,911 | 26,016 | 129,894 | 182 | 1,644 | 1 | 225,648 | 97 | 410 |
+| cpp_edge_interp_batched | 6 | 67,911 | 26,016 | 129,894 | 182 | 1,644 | 1 | 225,648 | 92 | 386 |
+| lenient_interp_batched | 6 | 77,540 | 67,050 | 183,304 | 238 | 1,462 | 1 | 329,595 | 150 | 426 |
+| r2 | 6 | 69,416 | 30,522 | 138,052 | 2,444 | 1,398 | 1 | 241,832 | 132 | 525 |
+<!-- /table:evalA_ledger_mean -->
+
+Mean evaluations per voxel by stage. The wall-time columns come from back-to-back runs, most of which carry the
+label "contended" in `ledger.json`: the one-minute load average read 1.5 to 1.6 at their start (their own previous
+run in it; no other process above 20% CPU), over the 1.5 limit of the preflight. The timing claims are the quiet
+repeats in Step 3.
+
+<!-- table:evalA_levels_base_v15901 -->
+| level | fz_in | local | screen | passed | recost | cands | quick | kept | dropped | screen_s | recost_s | discrete_s | quick_s |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 4886 | 9 | 43974 | 35232 | 35232 | 10187 | 122244 | 2546 | 7641 | 17.0 | 17.8 | 37.8 | 65.1 |
+| 1 | 2546 | 9 | 22914 | 22180 | 22180 | 3461 | 41532 | 865 | 2596 | 9.7 | 11.1 | 22.0 | 21.8 |
+| 2 | 865 | 9 | 7785 | 7705 | 7705 | 1098 | 13176 | 274 | 824 | 3.5 | 3.8 | 7.7 | 6.9 |
+| 3 | 274 | 9 | 2466 | 2465 | 2465 | 343 | 4116 | 85 | 258 | 1.3 | 1.2 | 2.6 | 2.1 |
+<!-- /table:evalA_levels_base_v15901 -->
+
+<!-- table:evalA_levels_cpp_v15901 -->
+| level | fz_in | local | screen | passed | recost | cands | quick | kept | dropped | screen_s | recost_s | discrete_s | quick_s |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 4886 | 9 | 43974 | 12338 | 12338 | 8110 | 97320 | 2027 | 6083 | 17.4 | 6.4 | 24.6 | 53.1 |
+| 1 | 2027 | 9 | 18243 | 10909 | 10909 | 2487 | 29844 | 621 | 1866 | 7.9 | 5.6 | 14.1 | 16.4 |
+| 2 | 621 | 9 | 5589 | 4181 | 4181 | 697 | 8364 | 174 | 523 | 2.5 | 2.1 | 4.9 | 4.5 |
+| 3 | 174 | 9 | 1566 | 1492 | 1492 | 204 | 2448 | 51 | 153 | 0.8 | 0.8 | 1.7 | 1.3 |
+<!-- /table:evalA_levels_cpp_v15901 -->
+
+Voxel 15901 by level for the lenient and the C++ rule (candidates per level 10,187, 3,461, 1,098 and 343, and 8,110,
+2,487, 697 and 204; a quarter is kept at each level). The lenient rule passes 80% of the level-0 screen pairs
+(35,232 of 43,974), the C++ rule 28%.
+
+#### Step 2: the residual gap with the C++ rule on
+
+C++ counters from a scratch build (`benchmarks/eval_reduction/A/step2/cpp_ledger_patch.py.txt`; counts in
+`cpp_ledger.json`, lines in `cpp_ledger_lines.txt`; its totals equal the stored C++ totals for all six voxels).
+
+<!-- table:evalA_stages_cpp -->
+| stage | python | cpp | diff | share_of_gap |
+|---|---|---|---|---|
+| screen | 67,978 | 67,928 | 51 | -1 |
+| recost | 26,148 | 26,046 | 102 | -1 |
+| rerecost | 0 | 10,829 | -10,829 | 128 |
+| quick | 130,266 | 129,948 | 318 | -4 |
+| find | 2,354 | 459 | 1,895 | -22 |
+| variance | 1,398 | 1,423 | -25 | 0 |
+| final | 1 | 1 | 0 | -0 |
+| total | 228,146 | 236,634 | -8,487 | 100 |
+<!-- /table:evalA_stages_cpp -->
+
+<!-- table:evalA_stages_cpp_edge -->
+| stage | python | cpp | diff | share_of_gap |
+|---|---|---|---|---|
+| screen | 67,968 | 67,928 | 40 | -0 |
+| recost | 26,077 | 26,046 | 31 | -0 |
+| rerecost | 0 | 10,829 | -10,829 | 101 |
+| quick | 130,184 | 129,948 | 236 | -2 |
+| find | 198 | 459 | -261 | 2 |
+| variance | 1,455 | 1,423 | 32 | -0 |
+| final | 1 | 1 | 0 | -0 |
+| total | 225,883 | 236,634 | -10,750 | 100 |
+<!-- /table:evalA_stages_cpp_edge -->
+
+Mean evaluations per voxel, Python against C++, for the C++ rule without and with `CppEdgeRules` ("share of gap" =
+the stage's difference over the total difference).
+
+* **Exactly explained by the unit counts:** the screen (9.00 evaluations per FZ point in both implementations), the
+  first re-cost (1.00 per passed pair) and the quick MC (12.00 per candidate); their totals differ only through the
+  unit counts, which differ by well under 1%.
+* **A residual of its own:** the second re-cost (C++ only, the whole deficit) and FindOptimal. Without
+  `CppEdgeRules` Python's FindOptimal misses its hit-ratio-1 convergence test on 3 of 6 voxels (17034, 22867, 5242)
+  and evaluates all 30 candidates (4,205 to 4,984 evaluations); C++ converges on candidate 1 on all six. With the key
+  all six converge on the first or second candidate. The hit ratio of the complete cost at the true orientation is 1.0
+  with and without it (`step2/hit_ratio_at_truth.json`), so the change is in how candidates near the truth are
+  scored; which of the three conventions matters there was not separated.
+* **Random stages:** FindOptimal (when it converges) and VarianceMinimizing have their own distribution; per voxel their
+  counts differ from C++'s by factors of 0.3 to 2.7 in both directions.
+
+<!-- table:evalA_units_cpp_edge -->
+| voxel | fz_py | fz_cpp | passed_py | passed_cpp | cands_py | cands_cpp | l0_py | l0_cpp | screen_per_fz_py | screen_per_fz_cpp | quick_per_cand_py | quick_per_cand_cpp | recost_per_pass_py | recost_per_pass_cpp | ratio_total |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 7,702 | 7,726 | 28,871 | 28,873 | 11,462 | 11,562 | 8,107 | 8,151 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.947 |
+| 17034 | 7,751 | 7,744 | 29,632 | 29,509 | 11,646 | 11,609 | 8,264 | 8,284 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.956 |
+| 18558 | 7,351 | 7,336 | 21,948 | 21,860 | 10,039 | 9,973 | 7,028 | 7,026 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.957 |
+| 19889 | 7,556 | 7,544 | 26,527 | 26,408 | 10,857 | 10,820 | 7,688 | 7,673 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.958 |
+| 22867 | 7,740 | 7,724 | 29,504 | 29,472 | 11,619 | 11,549 | 8,231 | 8,234 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.960 |
+| 5242 | 7,212 | 7,211 | 19,981 | 20,154 | 9,469 | 9,461 | 6,668 | 6,674 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.950 |
+<!-- /table:evalA_units_cpp_edge -->
+
+#### Step 3: omega interpolation and the batched screen
+
+`icenine/batched_screen.py`, `ScreenEvaluator` (`overlaps_exact`, `overlaps_interp`, `interp_peaks`), reached through
+`run_discrete_search_spaced(screen=, screen_interp=, screen_chunk=)` and `AdaptiveVoxelReconstructor._screen_kwargs`.
+`CppOmegaInterp` follows C++ `LocalAngularInterpProcess` (`DiscreteSearch.h:145-230`, `DiffractionCore.h:187-348`, read
+line by line): the observable reflections and both omegas are solved once at the FZ centre; for a local rotation `L`,
+`G' = L dir` and `omega' = omega + (Rz(omega)[0] . G' - (Rz(omega) dir)_x) / (Rz(omega)[1] . G')`; the peak is dropped
+when the shift exceeds 1 radian and the observable set stays that of the centre. `BatchedScreen` scores 32 FZ points
+x the whole local grid per call; with `CppOmegaInterp` alone the chunk is one FZ point. A ray rule at a level makes the
+reconstructor fall back to the per-orientation screen with a warning.
+
+<!-- table:evalA_passsets_l0 -->
+| arm | edge_rules | pass_pairs | cpp_pass_pairs | fz_identical | pairs_pass_differs | overlap_equal | overlap_equal_pct |
+|---|---|---|---|---|---|---|---|
+| exact, one orientation per call (today) | off | 12,338 | 12,326 | 4,466 | 442 | 43,359 | 98.601 |
+| exact, 32 FZ points per call (BatchedScreen) | off | 12,338 | 12,326 | 4,466 | 442 | 43,359 | 98.601 |
+| interpolated, one FZ point per call (CppOmegaInterp) | off | 12,364 | 12,326 | 4,849 | 40 | 43,913 | 99.861 |
+| interpolated, 32 FZ points per call (both) | off | 12,364 | 12,326 | 4,849 | 40 | 43,912 | 99.859 |
+| exact, one orientation per call (today) | on | 12,298 | 12,326 | 4,500 | 402 | 43,416 | 98.731 |
+| exact, 32 FZ points per call (BatchedScreen) | on | 12,298 | 12,326 | 4,500 | 402 | 43,416 | 98.731 |
+| interpolated, one FZ point per call (CppOmegaInterp) | on | 12,325 | 12,326 | 4,885 | 1 | 43,970 | 99.991 |
+| interpolated, 32 FZ points per call (both) | on | 12,325 | 12,326 | 4,885 | 1 | 43,969 | 99.989 |
+<!-- /table:evalA_passsets_l0 -->
+
+Level-0 pass sets of voxel 15901 against the stored C++ trace, the four ways of computing the screen, without and with
+`CppEdgeRules`. The batched exact screen has the same peak overlap as the unbatched on all 43,974 pairs; the
+interpolated screen differs from its 32-point batch on one pair.
+
+<!-- table:evalA_interp_vs_cpp -->
+| group | n | py_interp_pass_matches_cpp | py_interp_counts_match_cpp | py_exact_pass_matches_cpp_interp |
+|---|---|---|---|---|
+| pair_random | 900 | 900 [0.9957, 1.0000] | 900 | 890 |
+| sweep | 600 | 600 [0.9936, 1.0000] | 600 | 599 |
+| pair_differ_pass | 442 | 442 [0.9914, 1.0000] | 442 | 40 |
+| pair_differ_count | 58 | 58 [0.9379, 1.0000] | 56 | 58 |
+| ALL | 2000 | 2000 [0.9981, 1.0000] | 1998 | 1587 |
+<!-- /table:evalA_interp_vs_cpp -->
+
+The Python interpolation against the C++ interpolated screen on the same (centre, local rotation) pairs.
+
+<!-- table:evalA_interp_by_theta -->
+| theta_deg | n | same_pass_pct | same_counts_pct | same_counts_lo | same_counts_hi | omega_err_median_of_max_deg | omega_err_p90_of_max_deg | omega_err_worst_deg | pct_with_exact_peak_missing | pct_with_extra_peak |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0.05 | 75 | 100.0 | 100.0 | 95.1 | 100.0 | 0.0000 | 0.0005 | 0.602 | 0.0 | 0.0 |
+| 0.10 | 75 | 100.0 | 100.0 | 95.1 | 100.0 | 0.0001 | 0.0011 | 0.631 | 0.0 | 0.0 |
+| 0.20 | 75 | 100.0 | 100.0 | 95.1 | 100.0 | 0.0004 | 0.0033 | 0.074 | 0.0 | 0.0 |
+| 0.50 | 75 | 100.0 | 98.7 | 92.8 | 99.8 | 0.0021 | 0.0818 | 174.464 | 1.3 | 1.3 |
+| 1.00 | 75 | 100.0 | 100.0 | 95.1 | 100.0 | 0.0113 | 0.1912 | 7.303 | 0.0 | 0.0 |
+| 2.00 | 75 | 100.0 | 98.7 | 92.8 | 99.8 | 0.0428 | 1.3502 | 170.192 | 1.3 | 1.3 |
+| 3.00 | 75 | 98.7 | 96.0 | 88.9 | 98.6 | 0.1182 | 0.4056 | 173.865 | 2.7 | 1.3 |
+| 5.00 | 75 | 100.0 | 97.3 | 90.8 | 99.3 | 0.3495 | 1.6521 | 8.550 | 4.0 | 4.0 |
+<!-- /table:evalA_interp_by_theta -->
+
+Accuracy cost of the interpolation, measured on C++ (interpolated against exact, same orientation): a random FZ
+centre and a local rotation of theta degrees about a random axis, 25 per voxel per angle, three voxels (the level-0
+local grid has offsets of 0 and 2.84 degrees). The omega columns are over each orientation's worst peak; the large
+worst cases are peaks near tangency, where the first-order shift is poor. "Exact peak missing" is a reflection
+observable at the rotated orientation but not at the centre, "extra peak" one that stops being observable.
+
+<!-- table:evalA_speed_screen -->
+| arm | us_total | us_solve | us_overlap_c | us_rest | speedup |
+|---|---|---|---|---|---|
+| exact, one orientation per call (today) | 388.4 | 61.7 | 8.6 | 333.2 | 1.0 |
+| exact, 32 FZ points per call (BatchedScreen) | 22.2 | 0.6 | 7.7 | 14.1 | 17.5 |
+| interpolated, one FZ point per call (CppOmegaInterp) | 80.5 | 6.8 | 7.4 | 67.2 | 4.8 |
+| interpolated, 32 FZ points per call (both) | 22.7 | 0.3 | 7.7 | 15.0 | 17.1 |
+<!-- /table:evalA_speed_screen -->
+
+Level-0 screen, voxel 15901, first 600 FZ points x 9 local orientations, single worker (preflight passed, load 1.22;
+timer overhead about a microsecond per call). "solve" is `get_scattering_omegas_torch`, "overlap_c" the C extension,
+"rest" the torch geometry, frame lookup and Python glue.
+
+<!-- table:evalA_speed_voxel -->
+| switches | n | l0_screen_us | l0_screen_s | levels012_s | wall_s | evals | contended |
+|---|---|---|---|---|---|---|---|
+| off | 6 | 415.2 | 18.3 | 115.6 | 119.3 | 225,883 | 5 |
+| BatchedScreen | 6 | 24.0 | 1.1 | 89.6 | 92.6 | 225,883 | 4 |
+| CppOmegaInterp | 6 | 88.3 | 3.9 | 94.2 | 97.5 | 225,648 | 3 |
+| both | 6 | 24.7 | 1.1 | 88.9 | 92.0 | 225,648 | 1 |
+<!-- /table:evalA_speed_voxel -->
+
+<!-- table:evalA_speed_voxel_quiet -->
+| arm | voxel | label | wall_s | evals | l0_screen_us | us_per_eval | load |
+|---|---|---|---|---|---|---|---|
+| cpp_edge | 15901 | single-worker | 122.5 | 237,890 | 406.9 | 493 | 1.39 |
+| cpp_edge | 5242 | single-worker | 100.8 | 199,386 | 398.7 | 486 | 1.29 |
+| cpp_edge_interp_batched | 15901 | single-worker | 96.2 | 238,868 | 24.2 | 381 | 1.35 |
+| cpp_edge_interp_batched | 5242 | single-worker | 75.6 | 199,195 | 24.1 | 360 | 1.19 |
+<!-- /table:evalA_speed_voxel_quiet -->
+
+Whole no-start searches (C++ rule and edge rules): mean over six voxels (the last column counts the runs labelled
+"contended", see above) and a quiet single-worker repeat on two voxels (each run started with the load below 1.4 and
+the preflight passed). Evaluations agree to within 0.5% because the interpolation changes the candidate counts a
+little.
+
+<!-- table:evalA_e0_interp_paired -->
+| new | base | n | wrong_base | wrong_new | fixed | broken | both_wrong | evals_base | evals_new | l0_base | l0_new | basin_miss_base | basin_miss_new | runtime_base | runtime_new |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| edge | on | 200 | 56/200 [0.222, 0.346] | 62/200 [0.250, 0.377] | 21 | 27 | 35 | 47,230 | 47,216 | 125 | 125 | 6 | 6 | 24.2 | 24.8 |
+| interp | on | 200 | 56/200 [0.222, 0.346] | 65/200 [0.264, 0.393] | 20 | 29 | 36 | 47,230 | 47,179 | 125 | 122 | 6 | 7 | 24.2 | 3.4 |
+| interp | edge | 200 | 62/200 [0.250, 0.377] | 65/200 [0.264, 0.393] | 20 | 23 | 42 | 47,216 | 47,179 | 125 | 122 | 6 | 7 | 24.8 | 3.4 |
+| lenint | off | 200 | 41/200 [0.155, 0.266] | 40/200 [0.150, 0.261] | 21 | 20 | 20 | 48,700 | 48,633 | 182 | 180 | 4 | 4 | 26.0 | 4.4 |
+<!-- /table:evalA_e0_interp_paired -->
+
+E0 clean, 200 voxels, per-voxel images, seed 0, `mc` arm, `min_sin_eta` 0, against the Task 0 baselines (`on` = C++
+rule, `off` = lenient), paired by voxel (fixed = wrong before and right after). Ten workers, contended: the runtime
+columns are not timing claims; the ratio is large because on single-voxel images the level-0 screen is most of the
+evaluations (43,974 of a mean 47,179 in the `interp` arm).
+
+**Decision point (non-blocking, taken by default).** After Step 2 the attribution table was recorded and Step 3 was
+implemented because the interpolation was the only stage with an untested hypothesis.
+
+**Defaults and goldens (not changed).** Switching `CppEdgeRules` on by default changes 9 pinned tests (recorded BFS
+result, coarse-proxy features, the four `reconstruct_voxel` goldens of `test_findoptimal_refactor.py`, a ray-overlap
+count) and all three switches 10 (adding `test_profiling.py`); `benchmarks/eval_reduction/A/default_flip_would_change.md`
+has the lists. `BatchedScreen` alone gives the same screen results as the default on every pair tested and could be made
+the default without moving a number; that is the owner's decision.
+
+**Not done.** The interpolation with the ray rule (falls back with a warning); a batched quick MC (the quick MC is
+about 58% of the evaluations with the C++ rule and is untouched); reproducing the second candidate re-cost of C++ (it would only add evaluations);
+an E0 run on the realistic images (excluded by the plan).
