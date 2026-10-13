@@ -6047,3 +6047,30 @@ Implementation: `MCOptimizer.optimize` is the block loop, `_mc_block` its inner 
 **Stale results on develop.** The MC results recorded on develop with the old optimizer (HP sweep, finisher diagnosis, FindOptimal robustness) predate this fix and are not re-run here.
 
 **Effect on existing behaviour.** This changes the default classic reconstruction path (the quick MC and FindOptimal MC draw different random numbers and run a different block structure), so results are not bit-identical to before and no earlier random-draw pin is valid. Tests: new `tests/test_variance_stage_parity.py` and `tests/test_mc_cpp_parity.py` (scripted semantics tests that fail on the old code); `GOLDEN` in `tests/test_findoptimal_refactor.py` (4 tests) re-recorded (old values in the comment); `test_logged_mc_matches_mcoptimizer` (3 cases) passes again after `scripts/finisher_diagnosis/diagnose.py` `LoggedMC` was changed to log the library `optimize` and to use the new variance restart; `test_findoptimal_alone_reproduces_stored_experiment_b` (skipped when the sweep raws are absent) patches in the frozen pre-fix methods of `tests/legacy_variance_stage.py`, since the stored experiment predates both fixes. No `cpp_outputs`-based check changed. For the reruns of earlier MC results with the corrected optimizer, see `feature/finisher-mc-study`, MIGRATION_HISTORY subsections "C++ vs Python variance stage" and "C++-faithful MC: reruns".
+
+## Evaluation reduction and cost smoothing (2026-10-12)
+
+Owner goal: reduce the total number of cost-function evaluations in the orientation search (the Monte Carlo
+search is the bottleneck), and, where the geometry and physics of near-field HEDM allow it, smooth the cost
+function. The work is a feature branch `feature/eval-reduction` with one task branch per task
+(`feature/eval-reduction-<task>`), run one after another and reviewed once at the end. Plan:
+`~/.claude/plans/eval-reduction.md` (not committed). Rules for every task: clean full-sample images and the E0
+200-voxel set only (no realistic images until the noise model is redone), no extra seeds, every new switch
+opt-in and off by default, no default flips and no golden regeneration inside a task (listed for the owner),
+evaluations and wrong counts always quoted side by side, no p-values.
+
+| Owner ask | Task | Content |
+|---|---|---|
+| 2. C++ and Python evaluation counts still differ for identical methods | A | fixed-orientation parity of C++ and Python, per-stage evaluation ledger, residual-gap attribution, C++ omega interpolation (`CppOmegaInterp`) and batched screen (`BatchedScreen`) as opt-in switches |
+| 1. The cost function and peak overlap have odd edges | B | anatomy of the cost function's edges |
+| 3. Candidate list growth across levels; overlap | C | candidate overlap and de-duplication |
+| 5. Which peaks belong to a voxel; which spots on the two detectors are one peak | D | spot pairing across detectors, peak-to-voxel attribution |
+| (goal) smooth the cost with geometry and physics | E | cost modes and ranking keys |
+| 4. Search outward from a start orientation to 2-5 deg | F | uniform or gradient outward search |
+| (goal) the total | G | integration, no-start search ledger, 2,000-voxel BFS pilot, decisions |
+
+Baseline numbers the tasks measure against (verified per task against the source): a no-start search on six
+interior full-sample voxels (clean images, Q-max 8, seed 1) takes 332,320 evaluations with the lenient overlap
+rule (1.46x C++'s about 237k) and 0.95-0.98x C++'s evaluations with the C++ overlap rule.
+
+Per-task completion summaries are added below as subsections when each task lands.
