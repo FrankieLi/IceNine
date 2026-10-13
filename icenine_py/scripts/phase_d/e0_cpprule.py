@@ -11,6 +11,11 @@ arm with --level0-only gives the same level-0 record for the library default (st
   uv run python scripts/phase_d/e0_cpprule.py run --arm on --workers 10
   uv run python scripts/phase_d/e0_cpprule.py run --arm off --level0-only --workers 10
   uv run python scripts/phase_d/e0_cpprule.py summary
+
+Evaluation-reduction task A arms (scripts/eval_reduction/e0_interp_summary.py reads them):
+  edge    C++ overlap rule + CppEdgeRules
+  interp  C++ overlap rule + CppEdgeRules + CppOmegaInterp + BatchedScreen
+  lenint  lenient (default) rule + CppEdgeRules + CppOmegaInterp + BatchedScreen
 """
 
 import argparse
@@ -53,7 +58,12 @@ def task(item: Tuple[Any, ...]) -> str:
     rec = W.rec
     Rt = np.asarray(vctx.R_true, dtype=np.float64)
     rec.min_sin_eta = msin
-    rec.setup.search_params.cpp_overlap_rule = arm in ("on", "rule", "rayR2", "rayA")
+    sp = rec.setup.search_params
+    sp.cpp_overlap_rule = arm in ("on", "rule", "rayR2", "rayA", "edge", "interp")
+    # evaluation-reduction task A arms (opt-in switches; all off for the other arms)
+    sp.cpp_edge_rules = arm in ("edge", "interp", "lenint")
+    sp.cpp_omega_interp = arm in ("interp", "lenint")
+    sp.batched_screen = arm in ("interp", "lenint")
     if arm in ("rayR2", "rayA"):  # ray rule at levels 0-2 only (owner decision 2026-10-12)
         from icenine.ray_overlap import RayRule
 
@@ -91,6 +101,9 @@ def task(item: Tuple[Any, ...]) -> str:
     finally:
         RC.run_discrete_search_spaced = orig
         rec.setup.search_params.cpp_overlap_rule = False
+        rec.setup.search_params.cpp_edge_rules = False
+        rec.setup.search_params.cpp_omega_interp = False
+        rec.setup.search_params.batched_screen = False
         rec.setup.search_params.ray_rule = None
         rec.setup.search_params.cpp_center_screen = True
         rec.min_sin_eta = 0.3
@@ -196,7 +209,11 @@ def main() -> None:
     ap.add_argument("cmd", choices=["pilot", "run", "summary"])
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--arm", default="on", choices=["on", "off", "rule", "rayR2", "rayA"])
+    ap.add_argument(
+        "--arm",
+        default="on",
+        choices=["on", "off", "rule", "rayR2", "rayA", "edge", "interp", "lenint"],
+    )
     ap.add_argument("--level0-only", action="store_true")
     ap.add_argument(
         "--msin", type=float, default=0.3, help="min_sin_eta of the cost function (E0: 0.3)"
