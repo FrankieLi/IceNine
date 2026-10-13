@@ -1,0 +1,2932 @@
+{
+ "n_orientations": 2230,
+ "voxel_check": {
+  "15901": {
+   "vertices_bit_equal": true,
+   "vertices_max_abs_diff": 0.0,
+   "centre_py_mean": [
+    0.06093749776482582,
+    0.07848367094993591,
+    0.0
+   ],
+   "centre_cpp": [
+    0.06093749776482582,
+    0.07848367094993591,
+    0.0
+   ],
+   "centre_max_abs_diff": 0.0,
+   "nrecip_cpp": [
+    112,
+    26
+   ]
+  },
+  "22867": {
+   "vertices_bit_equal": true,
+   "vertices_max_abs_diff": 0.0,
+   "centre_py_mean": [
+    0.03750050067901611,
+    -0.0920153260231018,
+    0.0
+   ],
+   "centre_cpp": [
+    0.03750050067901611,
+    -0.0920153260231018,
+    0.0
+   ],
+   "centre_max_abs_diff": 0.0,
+   "nrecip_cpp": [
+    112,
+    26
+   ]
+  },
+  "5242": {
+   "vertices_bit_equal": true,
+   "vertices_max_abs_diff": 0.0,
+   "centre_py_mean": [
+    -0.562500536441803,
+    -0.02165067195892334,
+    0.0
+   ],
+   "centre_cpp": [
+    -0.562500536441803,
+    -0.02165067195892334,
+    0.0
+   ],
+   "centre_max_abs_diff": 0.0,
+   "nrecip_cpp": [
+    112,
+    26
+   ]
+  }
+ },
+ "by_label_n": {
+  "truth": 3,
+  "off_0.1": 9,
+  "off_1.0": 9,
+  "off_3.0": 9,
+  "random": 200,
+  "pair_random": 900,
+  "sweep": 600,
+  "pair_differ_pass": 442,
+  "pair_differ_count": 58
+ },
+ "exact": {
+  "EXS": {
+   "n": 2230,
+   "conf_equal": {
+    "k": 1965,
+    "n": 2230,
+    "pct": 88.11659192825113,
+    "lo": 86.70751365762487,
+    "hi": 89.39456985626437
+   },
+   "counts_equal": {
+    "k": 1965,
+    "n": 2230,
+    "pct": 88.11659192825113,
+    "lo": 86.70751365762487,
+    "hi": 89.39456985626437
+   },
+   "quality_close": {
+    "k": 1490,
+    "n": 2230,
+    "pct": 66.81614349775785,
+    "lo": 64.83431696523955,
+    "hi": 68.74013164382924
+   },
+   "quality_bits_equal": {
+    "k": 1490,
+    "n": 2230,
+    "pct": 66.81614349775785,
+    "lo": 64.83431696523955,
+    "hi": 68.74013164382924
+   },
+   "same_frame_and_pixels": {
+    "k": 1846,
+    "n": 2230,
+    "pct": 82.78026905829596,
+    "lo": 81.15718883751254,
+    "hi": 84.29060298443221
+   },
+   "no_peak_changes_counts": {
+    "k": 1965,
+    "n": 2230,
+    "pct": 88.11659192825113,
+    "lo": 86.70751365762487,
+    "hi": 89.39456985626437
+   },
+   "peaks_compared": 108196,
+   "peaks_omega_bits_equal": null,
+   "peaks_unmatched_python": 0,
+   "peaks_cpp_only_with_pixels": 0,
+   "peaks_cpp_only_no_pixel": 7640,
+   "peak_stages": {
+    "": 75290,
+    "omega_benign": 32487,
+    "frame_below_range": 375,
+    "pixel": 38,
+    "frame_boundary": 6
+   },
+   "peaks_changing_counts_by_cause": {
+    "frame_below_range": 283,
+    "frame_boundary": 1
+   },
+   "orientations_with_cause": {
+    "frame_below_range": 264,
+    "frame_boundary": 1
+   }
+  },
+  "EXS_edge": {
+   "n": 2230,
+   "conf_equal": {
+    "k": 2229,
+    "n": 2230,
+    "pct": 99.95515695067265,
+    "lo": 99.74641146899378,
+    "hi": 99.99208386567987
+   },
+   "counts_equal": {
+    "k": 2229,
+    "n": 2230,
+    "pct": 99.95515695067265,
+    "lo": 99.74641146899378,
+    "hi": 99.99208386567987
+   },
+   "quality_close": {
+    "k": 1531,
+    "n": 2230,
+    "pct": 68.65470852017937,
+    "lo": 66.69859862825787,
+    "hi": 70.54665636206911
+   },
+   "quality_bits_equal": {
+    "k": 1531,
+    "n": 2230,
+    "pct": 68.65470852017937,
+    "lo": 66.69859862825787,
+    "hi": 70.54665636206911
+   },
+   "same_frame_and_pixels": {
+    "k": 2187,
+    "n": 2230,
+    "pct": 98.07174887892377,
+    "lo": 97.41284341771504,
+    "hi": 98.56531367274295
+   },
+   "no_peak_changes_counts": {
+    "k": 2229,
+    "n": 2230,
+    "pct": 99.95515695067265,
+    "lo": 99.74641146899378,
+    "hi": 99.99208386567987
+   },
+   "peaks_compared": 108196,
+   "peaks_omega_bits_equal": null,
+   "peaks_unmatched_python": 0,
+   "peaks_cpp_only_with_pixels": 0,
+   "peaks_cpp_only_no_pixel": 7640,
+   "peak_stages": {
+    "": 75566,
+    "omega_benign": 32586,
+    "pixel": 38,
+    "frame_boundary": 6
+   },
+   "peaks_changing_counts_by_cause": {
+    "frame_boundary": 1
+   },
+   "orientations_with_cause": {
+    "frame_boundary": 1
+   }
+  },
+  "EXF": {
+   "n": 2230,
+   "conf_equal": {
+    "k": 1371,
+    "n": 2230,
+    "pct": 61.47982062780269,
+    "lo": 59.44189282518223,
+    "hi": 63.47826409194207
+   },
+   "counts_equal": {
+    "k": 1124,
+    "n": 2230,
+    "pct": 50.403587443946186,
+    "lo": 48.3294806345341,
+    "hi": 52.476306132083536
+   },
+   "quality_close": {
+    "k": 2020,
+    "n": 2230,
+    "pct": 90.5829596412556,
+    "lo": 89.29997422885805,
+    "hi": 91.72636174769463
+   },
+   "quality_bits_equal": {
+    "k": 1804,
+    "n": 2230,
+    "pct": 80.89686098654708,
+    "lo": 79.21263409292304,
+    "hi": 82.474819484806
+   },
+   "same_frame_and_pixels": {
+    "k": 887,
+    "n": 2230,
+    "pct": 39.775784753363226,
+    "lo": 37.76362424637809,
+    "hi": 41.82311099930808
+   },
+   "no_peak_changes_counts": {
+    "k": 1124,
+    "n": 2230,
+    "pct": 50.403587443946186,
+    "lo": 48.3294806345341,
+    "hi": 52.476306132083536
+   },
+   "peaks_compared": 463012,
+   "peaks_omega_bits_equal": 324298,
+   "peaks_unmatched_python": 0,
+   "peaks_cpp_only_with_pixels": 0,
+   "peaks_cpp_only_no_pixel": 34356,
+   "peak_stages": {
+    "omega_benign": 137918,
+    "": 322791,
+    "frame_below_range": 1333,
+    "pixel": 635,
+    "counts": 311,
+    "frame_boundary": 24
+   },
+   "peaks_changing_counts_by_cause": {
+    "frame_below_range": 856,
+    "pixel": 269,
+    "counts": 311,
+    "frame_boundary": 1
+   },
+   "orientations_with_cause": {
+    "counts": 300,
+    "frame_below_range": 727,
+    "frame_boundary": 1,
+    "pixel": 254
+   }
+  },
+  "EXF_edge": {
+   "n": 2230,
+   "conf_equal": {
+    "k": 2230,
+    "n": 2230,
+    "pct": 100.0,
+    "lo": 99.8280271976312,
+    "hi": 100.0
+   },
+   "counts_equal": {
+    "k": 1985,
+    "n": 2230,
+    "pct": 89.01345291479821,
+    "lo": 87.64778028747075,
+    "hi": 90.24494048556883
+   },
+   "quality_close": {
+    "k": 2228,
+    "n": 2230,
+    "pct": 99.91031390134529,
+    "lo": 99.67356156638613,
+    "hi": 99.97540190533005
+   },
+   "quality_bits_equal": {
+    "k": 1884,
+    "n": 2230,
+    "pct": 84.48430493273543,
+    "lo": 82.92240599523146,
+    "hi": 85.92759661909894
+   },
+   "same_frame_and_pixels": {
+    "k": 1690,
+    "n": 2230,
+    "pct": 75.7847533632287,
+    "lo": 73.96335710251917,
+    "hi": 77.51746409805297
+   },
+   "no_peak_changes_counts": {
+    "k": 1985,
+    "n": 2230,
+    "pct": 89.01345291479821,
+    "lo": 87.64778028747075,
+    "hi": 90.24494048556883
+   },
+   "peaks_compared": 463012,
+   "peaks_omega_bits_equal": 324298,
+   "peaks_unmatched_python": 0,
+   "peaks_cpp_only_with_pixels": 0,
+   "peaks_cpp_only_no_pixel": 34356,
+   "peak_stages": {
+    "omega_benign": 138368,
+    "": 324022,
+    "pixel": 598,
+    "frame_boundary": 24
+   },
+   "peaks_changing_counts_by_cause": {
+    "pixel": 259,
+    "frame_boundary": 1
+   },
+   "orientations_with_cause": {
+    "frame_boundary": 1,
+    "pixel": 244
+   }
+  }
+ },
+ "exact_by_group": {
+  "truth": {
+   "EXS": {
+    "n": 3,
+    "conf_equal": {
+     "k": 2,
+     "n": 3,
+     "pct": 66.66666666666667,
+     "lo": 20.76549551264879,
+     "hi": 93.85096847238394
+    },
+    "counts_equal": {
+     "k": 2,
+     "n": 3,
+     "pct": 66.66666666666667,
+     "lo": 20.76549551264879,
+     "hi": 93.85096847238394
+    },
+    "quality_close": {
+     "k": 0,
+     "n": 3,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 56.15060804490177
+    },
+    "quality_bits_equal": {
+     "k": 0,
+     "n": 3,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 56.15060804490177
+    },
+    "same_frame_and_pixels": {
+     "k": 2,
+     "n": 3,
+     "pct": 66.66666666666667,
+     "lo": 20.76549551264879,
+     "hi": 93.85096847238394
+    },
+    "no_peak_changes_counts": {
+     "k": 2,
+     "n": 3,
+     "pct": 66.66666666666667,
+     "lo": 20.76549551264879,
+     "hi": 93.85096847238394
+    },
+    "peaks_compared": 148,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 8,
+    "peak_stages": {
+     "": 106,
+     "omega_benign": 41,
+     "frame_below_range": 1
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 1
+    },
+    "orientations_with_cause": {
+     "frame_below_range": 1
+    }
+   },
+   "EXS_edge": {
+    "n": 3,
+    "conf_equal": {
+     "k": 3,
+     "n": 3,
+     "pct": 100.0,
+     "lo": 43.84939195509823,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 3,
+     "n": 3,
+     "pct": 100.0,
+     "lo": 43.84939195509823,
+     "hi": 100.0
+    },
+    "quality_close": {
+     "k": 0,
+     "n": 3,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 56.15060804490177
+    },
+    "quality_bits_equal": {
+     "k": 0,
+     "n": 3,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 56.15060804490177
+    },
+    "same_frame_and_pixels": {
+     "k": 3,
+     "n": 3,
+     "pct": 100.0,
+     "lo": 43.84939195509823,
+     "hi": 100.0
+    },
+    "no_peak_changes_counts": {
+     "k": 3,
+     "n": 3,
+     "pct": 100.0,
+     "lo": 43.84939195509823,
+     "hi": 100.0
+    },
+    "peaks_compared": 148,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 8,
+    "peak_stages": {
+     "": 107,
+     "omega_benign": 41
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   },
+   "EXF": {
+    "n": 3,
+    "conf_equal": {
+     "k": 3,
+     "n": 3,
+     "pct": 100.0,
+     "lo": 43.84939195509823,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 1,
+     "n": 3,
+     "pct": 33.333333333333336,
+     "lo": 6.14903152761605,
+     "hi": 79.23450448735122
+    },
+    "quality_close": {
+     "k": 1,
+     "n": 3,
+     "pct": 33.333333333333336,
+     "lo": 6.14903152761605,
+     "hi": 79.23450448735122
+    },
+    "quality_bits_equal": {
+     "k": 1,
+     "n": 3,
+     "pct": 33.333333333333336,
+     "lo": 6.14903152761605,
+     "hi": 79.23450448735122
+    },
+    "same_frame_and_pixels": {
+     "k": 1,
+     "n": 3,
+     "pct": 33.333333333333336,
+     "lo": 6.14903152761605,
+     "hi": 79.23450448735122
+    },
+    "no_peak_changes_counts": {
+     "k": 1,
+     "n": 3,
+     "pct": 33.333333333333336,
+     "lo": 6.14903152761605,
+     "hi": 79.23450448735122
+    },
+    "peaks_compared": 628,
+    "peaks_omega_bits_equal": 432,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 44,
+    "peak_stages": {
+     "omega_benign": 195,
+     "": 428,
+     "frame_below_range": 2,
+     "counts": 2,
+     "pixel": 1
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 2,
+     "counts": 2
+    },
+    "orientations_with_cause": {
+     "counts": 2,
+     "frame_below_range": 2
+    }
+   },
+   "EXF_edge": {
+    "n": 3,
+    "conf_equal": {
+     "k": 3,
+     "n": 3,
+     "pct": 100.0,
+     "lo": 43.84939195509823,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 3,
+     "n": 3,
+     "pct": 100.0,
+     "lo": 43.84939195509823,
+     "hi": 100.0
+    },
+    "quality_close": {
+     "k": 3,
+     "n": 3,
+     "pct": 100.0,
+     "lo": 43.84939195509823,
+     "hi": 100.0
+    },
+    "quality_bits_equal": {
+     "k": 2,
+     "n": 3,
+     "pct": 66.66666666666667,
+     "lo": 20.76549551264879,
+     "hi": 93.85096847238394
+    },
+    "same_frame_and_pixels": {
+     "k": 2,
+     "n": 3,
+     "pct": 66.66666666666667,
+     "lo": 20.76549551264879,
+     "hi": 93.85096847238394
+    },
+    "no_peak_changes_counts": {
+     "k": 3,
+     "n": 3,
+     "pct": 100.0,
+     "lo": 43.84939195509823,
+     "hi": 100.0
+    },
+    "peaks_compared": 628,
+    "peaks_omega_bits_equal": 432,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 44,
+    "peak_stages": {
+     "omega_benign": 196,
+     "": 431,
+     "pixel": 1
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   }
+  },
+  "off_0.1": {
+   "EXS": {
+    "n": 9,
+    "conf_equal": {
+     "k": 6,
+     "n": 9,
+     "pct": 66.66666666666667,
+     "lo": 35.419734749908976,
+     "hi": 87.9418401317257
+    },
+    "counts_equal": {
+     "k": 6,
+     "n": 9,
+     "pct": 66.66666666666667,
+     "lo": 35.419734749908976,
+     "hi": 87.9418401317257
+    },
+    "quality_close": {
+     "k": 0,
+     "n": 9,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 29.91527535509594
+    },
+    "quality_bits_equal": {
+     "k": 0,
+     "n": 9,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 29.91527535509594
+    },
+    "same_frame_and_pixels": {
+     "k": 6,
+     "n": 9,
+     "pct": 66.66666666666667,
+     "lo": 35.419734749908976,
+     "hi": 87.9418401317257
+    },
+    "no_peak_changes_counts": {
+     "k": 6,
+     "n": 9,
+     "pct": 66.66666666666667,
+     "lo": 35.419734749908976,
+     "hi": 87.9418401317257
+    },
+    "peaks_compared": 444,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 24,
+    "peak_stages": {
+     "omega_benign": 132,
+     "": 308,
+     "frame_below_range": 3,
+     "pixel": 1
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 3
+    },
+    "orientations_with_cause": {
+     "frame_below_range": 3
+    }
+   },
+   "EXS_edge": {
+    "n": 9,
+    "conf_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "quality_close": {
+     "k": 0,
+     "n": 9,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 29.91527535509594
+    },
+    "quality_bits_equal": {
+     "k": 0,
+     "n": 9,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 29.91527535509594
+    },
+    "same_frame_and_pixels": {
+     "k": 8,
+     "n": 9,
+     "pct": 88.88888888888889,
+     "lo": 56.49937852319399,
+     "hi": 98.01096286728695
+    },
+    "no_peak_changes_counts": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "peaks_compared": 444,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 24,
+    "peak_stages": {
+     "omega_benign": 133,
+     "": 310,
+     "pixel": 1
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   },
+   "EXF": {
+    "n": 9,
+    "conf_equal": {
+     "k": 5,
+     "n": 9,
+     "pct": 55.55555555555556,
+     "lo": 26.66473457440297,
+     "hi": 81.1224570528086
+    },
+    "counts_equal": {
+     "k": 1,
+     "n": 9,
+     "pct": 11.11111111111111,
+     "lo": 1.9890371327130536,
+     "hi": 43.50062147680601
+    },
+    "quality_close": {
+     "k": 1,
+     "n": 9,
+     "pct": 11.11111111111111,
+     "lo": 1.9890371327130536,
+     "hi": 43.50062147680601
+    },
+    "quality_bits_equal": {
+     "k": 1,
+     "n": 9,
+     "pct": 11.11111111111111,
+     "lo": 1.9890371327130536,
+     "hi": 43.50062147680601
+    },
+    "same_frame_and_pixels": {
+     "k": 1,
+     "n": 9,
+     "pct": 11.11111111111111,
+     "lo": 1.9890371327130536,
+     "hi": 43.50062147680601
+    },
+    "no_peak_changes_counts": {
+     "k": 1,
+     "n": 9,
+     "pct": 11.11111111111111,
+     "lo": 1.9890371327130536,
+     "hi": 43.50062147680601
+    },
+    "peaks_compared": 1884,
+    "peaks_omega_bits_equal": 1324,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 132,
+    "peak_stages": {
+     "omega_benign": 556,
+     "": 1314,
+     "frame_below_range": 8,
+     "counts": 6
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 8,
+     "counts": 6
+    },
+    "orientations_with_cause": {
+     "counts": 6,
+     "frame_below_range": 8
+    }
+   },
+   "EXF_edge": {
+    "n": 9,
+    "conf_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "quality_close": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "quality_bits_equal": {
+     "k": 4,
+     "n": 9,
+     "pct": 44.44444444444444,
+     "lo": 18.8775429471914,
+     "hi": 73.33526542559703
+    },
+    "same_frame_and_pixels": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "no_peak_changes_counts": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "peaks_compared": 1884,
+    "peaks_omega_bits_equal": 1324,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 132,
+    "peak_stages": {
+     "omega_benign": 560,
+     "": 1324
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   }
+  },
+  "off_1.0": {
+   "EXS": {
+    "n": 9,
+    "conf_equal": {
+     "k": 6,
+     "n": 9,
+     "pct": 66.66666666666667,
+     "lo": 35.419734749908976,
+     "hi": 87.9418401317257
+    },
+    "counts_equal": {
+     "k": 6,
+     "n": 9,
+     "pct": 66.66666666666667,
+     "lo": 35.419734749908976,
+     "hi": 87.9418401317257
+    },
+    "quality_close": {
+     "k": 0,
+     "n": 9,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 29.91527535509594
+    },
+    "quality_bits_equal": {
+     "k": 0,
+     "n": 9,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 29.91527535509594
+    },
+    "same_frame_and_pixels": {
+     "k": 6,
+     "n": 9,
+     "pct": 66.66666666666667,
+     "lo": 35.419734749908976,
+     "hi": 87.9418401317257
+    },
+    "no_peak_changes_counts": {
+     "k": 6,
+     "n": 9,
+     "pct": 66.66666666666667,
+     "lo": 35.419734749908976,
+     "hi": 87.9418401317257
+    },
+    "peaks_compared": 444,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 24,
+    "peak_stages": {
+     "omega_benign": 152,
+     "": 287,
+     "frame_below_range": 5
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 5
+    },
+    "orientations_with_cause": {
+     "frame_below_range": 3
+    }
+   },
+   "EXS_edge": {
+    "n": 9,
+    "conf_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "quality_close": {
+     "k": 0,
+     "n": 9,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 29.91527535509594
+    },
+    "quality_bits_equal": {
+     "k": 0,
+     "n": 9,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 29.91527535509594
+    },
+    "same_frame_and_pixels": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "no_peak_changes_counts": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "peaks_compared": 444,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 24,
+    "peak_stages": {
+     "omega_benign": 153,
+     "": 291
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   },
+   "EXF": {
+    "n": 9,
+    "conf_equal": {
+     "k": 3,
+     "n": 9,
+     "pct": 33.333333333333336,
+     "lo": 12.058159868274293,
+     "hi": 64.58026525009102
+    },
+    "counts_equal": {
+     "k": 3,
+     "n": 9,
+     "pct": 33.333333333333336,
+     "lo": 12.058159868274293,
+     "hi": 64.58026525009102
+    },
+    "quality_close": {
+     "k": 3,
+     "n": 9,
+     "pct": 33.333333333333336,
+     "lo": 12.058159868274293,
+     "hi": 64.58026525009102
+    },
+    "quality_bits_equal": {
+     "k": 1,
+     "n": 9,
+     "pct": 11.11111111111111,
+     "lo": 1.9890371327130536,
+     "hi": 43.50062147680601
+    },
+    "same_frame_and_pixels": {
+     "k": 2,
+     "n": 9,
+     "pct": 22.22222222222222,
+     "lo": 6.322376231222723,
+     "hi": 54.74166563271946
+    },
+    "no_peak_changes_counts": {
+     "k": 3,
+     "n": 9,
+     "pct": 33.333333333333336,
+     "lo": 12.058159868274293,
+     "hi": 64.58026525009102
+    },
+    "peaks_compared": 1880,
+    "peaks_omega_bits_equal": 1311,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 136,
+    "peak_stages": {
+     "omega_benign": 563,
+     "": 1305,
+     "frame_below_range": 9,
+     "counts": 1,
+     "pixel": 2
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 8,
+     "counts": 1,
+     "pixel": 1
+    },
+    "orientations_with_cause": {
+     "counts": 1,
+     "frame_below_range": 6,
+     "pixel": 1
+    }
+   },
+   "EXF_edge": {
+    "n": 9,
+    "conf_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 8,
+     "n": 9,
+     "pct": 88.88888888888889,
+     "lo": 56.49937852319399,
+     "hi": 98.01096286728695
+    },
+    "quality_close": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "quality_bits_equal": {
+     "k": 3,
+     "n": 9,
+     "pct": 33.333333333333336,
+     "lo": 12.058159868274293,
+     "hi": 64.58026525009102
+    },
+    "same_frame_and_pixels": {
+     "k": 7,
+     "n": 9,
+     "pct": 77.77777777777777,
+     "lo": 45.25833436728054,
+     "hi": 93.67762376877728
+    },
+    "no_peak_changes_counts": {
+     "k": 8,
+     "n": 9,
+     "pct": 88.88888888888889,
+     "lo": 56.49937852319399,
+     "hi": 98.01096286728695
+    },
+    "peaks_compared": 1880,
+    "peaks_omega_bits_equal": 1311,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 136,
+    "peak_stages": {
+     "omega_benign": 567,
+     "": 1311,
+     "pixel": 2
+    },
+    "peaks_changing_counts_by_cause": {
+     "pixel": 1
+    },
+    "orientations_with_cause": {
+     "pixel": 1
+    }
+   }
+  },
+  "off_3.0": {
+   "EXS": {
+    "n": 9,
+    "conf_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "quality_close": {
+     "k": 4,
+     "n": 9,
+     "pct": 44.44444444444444,
+     "lo": 18.8775429471914,
+     "hi": 73.33526542559703
+    },
+    "quality_bits_equal": {
+     "k": 4,
+     "n": 9,
+     "pct": 44.44444444444444,
+     "lo": 18.8775429471914,
+     "hi": 73.33526542559703
+    },
+    "same_frame_and_pixels": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "no_peak_changes_counts": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "peaks_compared": 452,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 16,
+    "peak_stages": {
+     "": 293,
+     "omega_benign": 159
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   },
+   "EXS_edge": {
+    "n": 9,
+    "conf_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "quality_close": {
+     "k": 4,
+     "n": 9,
+     "pct": 44.44444444444444,
+     "lo": 18.8775429471914,
+     "hi": 73.33526542559703
+    },
+    "quality_bits_equal": {
+     "k": 4,
+     "n": 9,
+     "pct": 44.44444444444444,
+     "lo": 18.8775429471914,
+     "hi": 73.33526542559703
+    },
+    "same_frame_and_pixels": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "no_peak_changes_counts": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "peaks_compared": 452,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 16,
+    "peak_stages": {
+     "": 293,
+     "omega_benign": 159
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   },
+   "EXF": {
+    "n": 9,
+    "conf_equal": {
+     "k": 4,
+     "n": 9,
+     "pct": 44.44444444444444,
+     "lo": 18.8775429471914,
+     "hi": 73.33526542559703
+    },
+    "counts_equal": {
+     "k": 3,
+     "n": 9,
+     "pct": 33.333333333333336,
+     "lo": 12.058159868274293,
+     "hi": 64.58026525009102
+    },
+    "quality_close": {
+     "k": 7,
+     "n": 9,
+     "pct": 77.77777777777777,
+     "lo": 45.25833436728054,
+     "hi": 93.67762376877728
+    },
+    "quality_bits_equal": {
+     "k": 6,
+     "n": 9,
+     "pct": 66.66666666666667,
+     "lo": 35.419734749908976,
+     "hi": 87.9418401317257
+    },
+    "same_frame_and_pixels": {
+     "k": 4,
+     "n": 9,
+     "pct": 44.44444444444444,
+     "lo": 18.8775429471914,
+     "hi": 73.33526542559703
+    },
+    "no_peak_changes_counts": {
+     "k": 3,
+     "n": 9,
+     "pct": 33.333333333333336,
+     "lo": 12.058159868274293,
+     "hi": 64.58026525009102
+    },
+    "peaks_compared": 1900,
+    "peaks_omega_bits_equal": 1312,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 112,
+    "peak_stages": {
+     "": 1305,
+     "omega_benign": 585,
+     "frame_below_range": 6,
+     "pixel": 2,
+     "counts": 2
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 4,
+     "pixel": 1,
+     "counts": 2
+    },
+    "orientations_with_cause": {
+     "counts": 2,
+     "frame_below_range": 3,
+     "pixel": 1
+    }
+   },
+   "EXF_edge": {
+    "n": 9,
+    "conf_equal": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 8,
+     "n": 9,
+     "pct": 88.88888888888889,
+     "lo": 56.49937852319399,
+     "hi": 98.01096286728695
+    },
+    "quality_close": {
+     "k": 9,
+     "n": 9,
+     "pct": 100.0,
+     "lo": 70.08472464490407,
+     "hi": 100.0
+    },
+    "quality_bits_equal": {
+     "k": 7,
+     "n": 9,
+     "pct": 77.77777777777777,
+     "lo": 45.25833436728054,
+     "hi": 93.67762376877728
+    },
+    "same_frame_and_pixels": {
+     "k": 8,
+     "n": 9,
+     "pct": 88.88888888888889,
+     "lo": 56.49937852319399,
+     "hi": 98.01096286728695
+    },
+    "no_peak_changes_counts": {
+     "k": 8,
+     "n": 9,
+     "pct": 88.88888888888889,
+     "lo": 56.49937852319399,
+     "hi": 98.01096286728695
+    },
+    "peaks_compared": 1900,
+    "peaks_omega_bits_equal": 1312,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 112,
+    "peak_stages": {
+     "": 1312,
+     "omega_benign": 587,
+     "pixel": 1
+    },
+    "peaks_changing_counts_by_cause": {
+     "pixel": 1
+    },
+    "orientations_with_cause": {
+     "pixel": 1
+    }
+   }
+  },
+  "random": {
+   "EXS": {
+    "n": 200,
+    "conf_equal": {
+     "k": 178,
+     "n": 200,
+     "pct": 89.0,
+     "lo": 83.90720169908703,
+     "hi": 92.62280983928396
+    },
+    "counts_equal": {
+     "k": 178,
+     "n": 200,
+     "pct": 89.0,
+     "lo": 83.90720169908703,
+     "hi": 92.62280983928396
+    },
+    "quality_close": {
+     "k": 144,
+     "n": 200,
+     "pct": 72.0,
+     "lo": 65.40756858222899,
+     "hi": 77.76320715736487
+    },
+    "quality_bits_equal": {
+     "k": 144,
+     "n": 200,
+     "pct": 72.0,
+     "lo": 65.40756858222899,
+     "hi": 77.76320715736487
+    },
+    "same_frame_and_pixels": {
+     "k": 166,
+     "n": 200,
+     "pct": 83.0,
+     "lo": 77.18399896049648,
+     "hi": 87.57216464889434
+    },
+    "no_peak_changes_counts": {
+     "k": 178,
+     "n": 200,
+     "pct": 89.0,
+     "lo": 83.90720169908703,
+     "hi": 92.62280983928396
+    },
+    "peaks_compared": 9644,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 748,
+    "peak_stages": {
+     "omega_benign": 2950,
+     "": 6657,
+     "frame_below_range": 29,
+     "pixel": 5,
+     "frame_boundary": 3
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 24
+    },
+    "orientations_with_cause": {
+     "frame_below_range": 22
+    }
+   },
+   "EXS_edge": {
+    "n": 200,
+    "conf_equal": {
+     "k": 200,
+     "n": 200,
+     "pct": 100.0,
+     "lo": 98.11539940816792,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 200,
+     "n": 200,
+     "pct": 100.0,
+     "lo": 98.11539940816792,
+     "hi": 100.0
+    },
+    "quality_close": {
+     "k": 144,
+     "n": 200,
+     "pct": 72.0,
+     "lo": 65.40756858222899,
+     "hi": 77.76320715736487
+    },
+    "quality_bits_equal": {
+     "k": 144,
+     "n": 200,
+     "pct": 72.0,
+     "lo": 65.40756858222899,
+     "hi": 77.76320715736487
+    },
+    "same_frame_and_pixels": {
+     "k": 192,
+     "n": 200,
+     "pct": 96.0,
+     "lo": 92.30670617058013,
+     "hi": 97.95946128493436
+    },
+    "no_peak_changes_counts": {
+     "k": 200,
+     "n": 200,
+     "pct": 100.0,
+     "lo": 98.11539940816792,
+     "hi": 100.0
+    },
+    "peaks_compared": 9644,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 748,
+    "peak_stages": {
+     "omega_benign": 2960,
+     "": 6676,
+     "pixel": 5,
+     "frame_boundary": 3
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   },
+   "EXF": {
+    "n": 200,
+    "conf_equal": {
+     "k": 128,
+     "n": 200,
+     "pct": 64.0,
+     "lo": 57.14139956562681,
+     "hi": 70.3309122686602
+    },
+    "counts_equal": {
+     "k": 99,
+     "n": 200,
+     "pct": 49.5,
+     "lo": 42.64572195415849,
+     "hi": 56.373124051759824
+    },
+    "quality_close": {
+     "k": 191,
+     "n": 200,
+     "pct": 95.5,
+     "lo": 91.67024063390322,
+     "hi": 97.61477282752958
+    },
+    "quality_bits_equal": {
+     "k": 171,
+     "n": 200,
+     "pct": 85.5,
+     "lo": 79.95121871510563,
+     "hi": 89.71071486469359
+    },
+    "same_frame_and_pixels": {
+     "k": 72,
+     "n": 200,
+     "pct": 36.0,
+     "lo": 29.669087731339804,
+     "hi": 42.85860043437319
+    },
+    "no_peak_changes_counts": {
+     "k": 99,
+     "n": 200,
+     "pct": 49.5,
+     "lo": 42.64572195415849,
+     "hi": 56.373124051759824
+    },
+    "peaks_compared": 41572,
+    "peaks_omega_bits_equal": 28895,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 3004,
+    "peak_stages": {
+     "": 28761,
+     "omega_benign": 12598,
+     "frame_below_range": 115,
+     "pixel": 61,
+     "counts": 32,
+     "frame_boundary": 5
+    },
+    "peaks_changing_counts_by_cause": {
+     "pixel": 30,
+     "frame_below_range": 73,
+     "counts": 32
+    },
+    "orientations_with_cause": {
+     "counts": 32,
+     "frame_below_range": 62,
+     "pixel": 29
+    }
+   },
+   "EXF_edge": {
+    "n": 200,
+    "conf_equal": {
+     "k": 200,
+     "n": 200,
+     "pct": 100.0,
+     "lo": 98.11539940816792,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 172,
+     "n": 200,
+     "pct": 86.0,
+     "lo": 80.51000619915237,
+     "hi": 90.13308137472852
+    },
+    "quality_close": {
+     "k": 200,
+     "n": 200,
+     "pct": 100.0,
+     "lo": 98.11539940816792,
+     "hi": 100.0
+    },
+    "quality_bits_equal": {
+     "k": 173,
+     "n": 200,
+     "pct": 86.5,
+     "lo": 81.07074954488287,
+     "hi": 90.55349202307971
+    },
+    "same_frame_and_pixels": {
+     "k": 144,
+     "n": 200,
+     "pct": 72.0,
+     "lo": 65.40756858222899,
+     "hi": 77.76320715736487
+    },
+    "no_peak_changes_counts": {
+     "k": 172,
+     "n": 200,
+     "pct": 86.0,
+     "lo": 80.51000619915237,
+     "hi": 90.13308137472852
+    },
+    "peaks_compared": 41572,
+    "peaks_omega_bits_equal": 28895,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 3004,
+    "peak_stages": {
+     "": 28869,
+     "omega_benign": 12640,
+     "pixel": 58,
+     "frame_boundary": 5
+    },
+    "peaks_changing_counts_by_cause": {
+     "pixel": 29
+    },
+    "orientations_with_cause": {
+     "pixel": 28
+    }
+   }
+  },
+  "pair_random": {
+   "EXS": {
+    "n": 900,
+    "conf_equal": {
+     "k": 815,
+     "n": 900,
+     "pct": 90.55555555555556,
+     "lo": 88.4688231618998,
+     "hi": 92.29754120991048
+    },
+    "counts_equal": {
+     "k": 815,
+     "n": 900,
+     "pct": 90.55555555555556,
+     "lo": 88.4688231618998,
+     "hi": 92.29754120991048
+    },
+    "quality_close": {
+     "k": 670,
+     "n": 900,
+     "pct": 74.44444444444444,
+     "lo": 71.49504938558495,
+     "hi": 77.18604694810891
+    },
+    "quality_bits_equal": {
+     "k": 670,
+     "n": 900,
+     "pct": 74.44444444444444,
+     "lo": 71.49504938558495,
+     "hi": 77.18604694810891
+    },
+    "same_frame_and_pixels": {
+     "k": 770,
+     "n": 900,
+     "pct": 85.55555555555556,
+     "lo": 83.10761593124359,
+     "hi": 87.7012514632202
+    },
+    "no_peak_changes_counts": {
+     "k": 815,
+     "n": 900,
+     "pct": 90.55555555555556,
+     "lo": 88.4688231618998,
+     "hi": 92.29754120991048
+    },
+    "peaks_compared": 43668,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 3084,
+    "peak_stages": {
+     "": 30480,
+     "omega_benign": 13049,
+     "frame_below_range": 122,
+     "pixel": 15,
+     "frame_boundary": 2
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 87
+    },
+    "orientations_with_cause": {
+     "frame_below_range": 85
+    }
+   },
+   "EXS_edge": {
+    "n": 900,
+    "conf_equal": {
+     "k": 900,
+     "n": 900,
+     "pct": 100.0,
+     "lo": 99.57496977346473,
+     "hi": 99.99999999999999
+    },
+    "counts_equal": {
+     "k": 900,
+     "n": 900,
+     "pct": 100.0,
+     "lo": 99.57496977346473,
+     "hi": 99.99999999999999
+    },
+    "quality_close": {
+     "k": 670,
+     "n": 900,
+     "pct": 74.44444444444444,
+     "lo": 71.49504938558495,
+     "hi": 77.18604694810891
+    },
+    "quality_bits_equal": {
+     "k": 670,
+     "n": 900,
+     "pct": 74.44444444444444,
+     "lo": 71.49504938558495,
+     "hi": 77.18604694810891
+    },
+    "same_frame_and_pixels": {
+     "k": 883,
+     "n": 900,
+     "pct": 98.11111111111111,
+     "lo": 96.99586364774515,
+     "hi": 98.81738504538869
+    },
+    "no_peak_changes_counts": {
+     "k": 900,
+     "n": 900,
+     "pct": 100.0,
+     "lo": 99.57496977346473,
+     "hi": 99.99999999999999
+    },
+    "peaks_compared": 43668,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 3084,
+    "peak_stages": {
+     "": 30574,
+     "omega_benign": 13077,
+     "pixel": 15,
+     "frame_boundary": 2
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   },
+   "EXF": {
+    "n": 900,
+    "conf_equal": {
+     "k": 553,
+     "n": 900,
+     "pct": 61.44444444444444,
+     "lo": 58.22224934104116,
+     "hi": 64.56935485155186
+    },
+    "counts_equal": {
+     "k": 463,
+     "n": 900,
+     "pct": 51.44444444444444,
+     "lo": 48.17994273270504,
+     "hi": 54.69666750519505
+    },
+    "quality_close": {
+     "k": 828,
+     "n": 900,
+     "pct": 92.0,
+     "lo": 90.04382331815032,
+     "hi": 93.59915129156006
+    },
+    "quality_bits_equal": {
+     "k": 731,
+     "n": 900,
+     "pct": 81.22222222222223,
+     "lo": 78.5399976216852,
+     "hi": 83.63903905907831
+    },
+    "same_frame_and_pixels": {
+     "k": 396,
+     "n": 900,
+     "pct": 44.0,
+     "lo": 40.78923928957996,
+     "hi": 47.26176433760426
+    },
+    "no_peak_changes_counts": {
+     "k": 463,
+     "n": 900,
+     "pct": 51.44444444444444,
+     "lo": 48.17994273270504,
+     "hi": 54.69666750519505
+    },
+    "peaks_compared": 186876,
+    "peaks_omega_bits_equal": 131365,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 13936,
+    "peak_stages": {
+     "": 130779,
+     "omega_benign": 55216,
+     "frame_below_range": 491,
+     "counts": 119,
+     "pixel": 261,
+     "frame_boundary": 10
+    },
+    "peaks_changing_counts_by_cause": {
+     "counts": 119,
+     "frame_below_range": 324,
+     "pixel": 98
+    },
+    "orientations_with_cause": {
+     "counts": 116,
+     "frame_below_range": 287,
+     "pixel": 90
+    }
+   },
+   "EXF_edge": {
+    "n": 900,
+    "conf_equal": {
+     "k": 900,
+     "n": 900,
+     "pct": 100.0,
+     "lo": 99.57496977346473,
+     "hi": 99.99999999999999
+    },
+    "counts_equal": {
+     "k": 816,
+     "n": 900,
+     "pct": 90.66666666666667,
+     "lo": 88.58946397428515,
+     "hi": 92.39817810813283
+    },
+    "quality_close": {
+     "k": 899,
+     "n": 900,
+     "pct": 99.88888888888889,
+     "lo": 99.37330809103452,
+     "hi": 99.9803839718225
+    },
+    "quality_bits_equal": {
+     "k": 759,
+     "n": 900,
+     "pct": 84.33333333333333,
+     "lo": 81.81319304942568,
+     "hi": 86.56161952835343
+    },
+    "same_frame_and_pixels": {
+     "k": 689,
+     "n": 900,
+     "pct": 76.55555555555556,
+     "lo": 73.67841572850028,
+     "hi": 79.20695710673986
+    },
+    "no_peak_changes_counts": {
+     "k": 816,
+     "n": 900,
+     "pct": 90.66666666666667,
+     "lo": 88.58946397428515,
+     "hi": 92.39817810813283
+    },
+    "peaks_compared": 186876,
+    "peaks_omega_bits_equal": 131365,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 13936,
+    "peak_stages": {
+     "": 131247,
+     "omega_benign": 55377,
+     "pixel": 242,
+     "frame_boundary": 10
+    },
+    "peaks_changing_counts_by_cause": {
+     "pixel": 92
+    },
+    "orientations_with_cause": {
+     "pixel": 84
+    }
+   }
+  },
+  "sweep": {
+   "EXS": {
+    "n": 600,
+    "conf_equal": {
+     "k": 547,
+     "n": 600,
+     "pct": 91.16666666666667,
+     "lo": 88.6261947952134,
+     "hi": 93.18333936076394
+    },
+    "counts_equal": {
+     "k": 547,
+     "n": 600,
+     "pct": 91.16666666666667,
+     "lo": 88.6261947952134,
+     "hi": 93.18333936076394
+    },
+    "quality_close": {
+     "k": 457,
+     "n": 600,
+     "pct": 76.16666666666667,
+     "lo": 72.59776086593568,
+     "hi": 79.40263128988796
+    },
+    "quality_bits_equal": {
+     "k": 457,
+     "n": 600,
+     "pct": 76.16666666666667,
+     "lo": 72.59776086593568,
+     "hi": 79.40263128988796
+    },
+    "same_frame_and_pixels": {
+     "k": 510,
+     "n": 600,
+     "pct": 85.0,
+     "lo": 81.92057790178991,
+     "hi": 87.63408676523535
+    },
+    "no_peak_changes_counts": {
+     "k": 547,
+     "n": 600,
+     "pct": 91.16666666666667,
+     "lo": 88.6261947952134,
+     "hi": 93.18333936076394
+    },
+    "peaks_compared": 29008,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 2144,
+    "peak_stages": {
+     "": 20138,
+     "omega_benign": 8774,
+     "frame_below_range": 88,
+     "pixel": 8
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 57
+    },
+    "orientations_with_cause": {
+     "frame_below_range": 53
+    }
+   },
+   "EXS_edge": {
+    "n": 600,
+    "conf_equal": {
+     "k": 600,
+     "n": 600,
+     "pct": 100.0,
+     "lo": 99.36380666717895,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 600,
+     "n": 600,
+     "pct": 100.0,
+     "lo": 99.36380666717895,
+     "hi": 100.0
+    },
+    "quality_close": {
+     "k": 458,
+     "n": 600,
+     "pct": 76.33333333333333,
+     "lo": 72.77150535163904,
+     "hi": 79.56009949307521
+    },
+    "quality_bits_equal": {
+     "k": 458,
+     "n": 600,
+     "pct": 76.33333333333333,
+     "lo": 72.77150535163904,
+     "hi": 79.56009949307521
+    },
+    "same_frame_and_pixels": {
+     "k": 592,
+     "n": 600,
+     "pct": 98.66666666666667,
+     "lo": 97.391232430544,
+     "hi": 99.3228727255102
+    },
+    "no_peak_changes_counts": {
+     "k": 600,
+     "n": 600,
+     "pct": 100.0,
+     "lo": 99.36380666717895,
+     "hi": 100.0
+    },
+    "peaks_compared": 29008,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 2144,
+    "peak_stages": {
+     "": 20201,
+     "omega_benign": 8799,
+     "pixel": 8
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   },
+   "EXF": {
+    "n": 600,
+    "conf_equal": {
+     "k": 382,
+     "n": 600,
+     "pct": 63.666666666666664,
+     "lo": 59.74251745713952,
+     "hi": 67.4169230318894
+    },
+    "counts_equal": {
+     "k": 313,
+     "n": 600,
+     "pct": 52.166666666666664,
+     "lo": 48.16851834008497,
+     "hi": 56.13724661549278
+    },
+    "quality_close": {
+     "k": 548,
+     "n": 600,
+     "pct": 91.33333333333333,
+     "lo": 88.81095500506207,
+     "hi": 93.32979183980586
+    },
+    "quality_bits_equal": {
+     "k": 504,
+     "n": 600,
+     "pct": 84.0,
+     "lo": 80.8515915122784,
+     "hi": 86.71579702140326
+    },
+    "same_frame_and_pixels": {
+     "k": 230,
+     "n": 600,
+     "pct": 38.333333333333336,
+     "lo": 34.5288431520886,
+     "hi": 42.28626862556966
+    },
+    "no_peak_changes_counts": {
+     "k": 313,
+     "n": 600,
+     "pct": 52.166666666666664,
+     "lo": 48.16851834008497,
+     "hi": 56.13724661549278
+    },
+    "peaks_compared": 124388,
+    "peaks_omega_bits_equal": 86605,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 9368,
+    "peak_stages": {
+     "omega_benign": 37565,
+     "": 86195,
+     "frame_below_range": 355,
+     "counts": 85,
+     "pixel": 182,
+     "frame_boundary": 6
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 206,
+     "counts": 85,
+     "pixel": 85
+    },
+    "orientations_with_cause": {
+     "counts": 77,
+     "frame_below_range": 172,
+     "pixel": 83
+    }
+   },
+   "EXF_edge": {
+    "n": 600,
+    "conf_equal": {
+     "k": 600,
+     "n": 600,
+     "pct": 100.0,
+     "lo": 99.36380666717895,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 520,
+     "n": 600,
+     "pct": 86.66666666666667,
+     "lo": 83.71200225460241,
+     "hi": 89.15478930132882
+    },
+    "quality_close": {
+     "k": 599,
+     "n": 600,
+     "pct": 99.83333333333333,
+     "lo": 99.06202004134312,
+     "hi": 99.97057393694524
+    },
+    "quality_bits_equal": {
+     "k": 523,
+     "n": 600,
+     "pct": 87.16666666666667,
+     "lo": 84.25204089809866,
+     "hi": 89.60838872450437
+    },
+    "same_frame_and_pixels": {
+     "k": 445,
+     "n": 600,
+     "pct": 74.16666666666667,
+     "lo": 70.51822030210435,
+     "hi": 77.50761958703214
+    },
+    "no_peak_changes_counts": {
+     "k": 520,
+     "n": 600,
+     "pct": 86.66666666666667,
+     "lo": 83.71200225460241,
+     "hi": 89.15478930132882
+    },
+    "peaks_compared": 124388,
+    "peaks_omega_bits_equal": 86605,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 9368,
+    "peak_stages": {
+     "omega_benign": 37682,
+     "": 86532,
+     "pixel": 168,
+     "frame_boundary": 6
+    },
+    "peaks_changing_counts_by_cause": {
+     "pixel": 82
+    },
+    "orientations_with_cause": {
+     "pixel": 80
+    }
+   }
+  },
+  "pair_differ_pass": {
+   "EXS": {
+    "n": 442,
+    "conf_equal": {
+     "k": 356,
+     "n": 442,
+     "pct": 80.54298642533936,
+     "lo": 76.59573554206015,
+     "hi": 83.96388922153302
+    },
+    "counts_equal": {
+     "k": 356,
+     "n": 442,
+     "pct": 80.54298642533936,
+     "lo": 76.59573554206015,
+     "hi": 83.96388922153302
+    },
+    "quality_close": {
+     "k": 215,
+     "n": 442,
+     "pct": 48.64253393665158,
+     "lo": 44.014667880557404,
+     "hi": 53.29379324106068
+    },
+    "quality_bits_equal": {
+     "k": 215,
+     "n": 442,
+     "pct": 48.64253393665158,
+     "lo": 44.014667880557404,
+     "hi": 53.29379324106068
+    },
+    "same_frame_and_pixels": {
+     "k": 336,
+     "n": 442,
+     "pct": 76.01809954751131,
+     "lo": 71.8241955567358,
+     "hi": 79.7636329455843
+    },
+    "no_peak_changes_counts": {
+     "k": 356,
+     "n": 442,
+     "pct": 80.54298642533936,
+     "lo": 76.59573554206015,
+     "hi": 83.96388922153302
+    },
+    "peaks_compared": 21520,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 1444,
+    "peak_stages": {
+     "omega_benign": 6367,
+     "": 15034,
+     "frame_below_range": 110,
+     "pixel": 8,
+     "frame_boundary": 1
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 93,
+     "frame_boundary": 1
+    },
+    "orientations_with_cause": {
+     "frame_below_range": 85,
+     "frame_boundary": 1
+    }
+   },
+   "EXS_edge": {
+    "n": 442,
+    "conf_equal": {
+     "k": 441,
+     "n": 442,
+     "pct": 99.77375565610859,
+     "lo": 98.72970669858073,
+     "hi": 99.96005217542297
+    },
+    "counts_equal": {
+     "k": 441,
+     "n": 442,
+     "pct": 99.77375565610859,
+     "lo": 98.72970669858073,
+     "hi": 99.96005217542297
+    },
+    "quality_close": {
+     "k": 255,
+     "n": 442,
+     "pct": 57.69230769230769,
+     "lo": 53.03954416876427,
+     "hi": 62.212509475399926
+    },
+    "quality_bits_equal": {
+     "k": 255,
+     "n": 442,
+     "pct": 57.69230769230769,
+     "lo": 53.03954416876427,
+     "hi": 62.212509475399926
+    },
+    "same_frame_and_pixels": {
+     "k": 434,
+     "n": 442,
+     "pct": 98.19004524886878,
+     "lo": 96.46954162409106,
+     "hi": 99.08008855846704
+    },
+    "no_peak_changes_counts": {
+     "k": 441,
+     "n": 442,
+     "pct": 99.77375565610859,
+     "lo": 98.72970669858073,
+     "hi": 99.96005217542297
+    },
+    "peaks_compared": 21520,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 1444,
+    "peak_stages": {
+     "omega_benign": 6397,
+     "": 15114,
+     "pixel": 8,
+     "frame_boundary": 1
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_boundary": 1
+    },
+    "orientations_with_cause": {
+     "frame_boundary": 1
+    }
+   },
+   "EXF": {
+    "n": 442,
+    "conf_equal": {
+     "k": 261,
+     "n": 442,
+     "pct": 59.04977375565611,
+     "lo": 54.40652686826378,
+     "hi": 63.53706565428235
+    },
+    "counts_equal": {
+     "k": 216,
+     "n": 442,
+     "pct": 48.86877828054298,
+     "lo": 44.23844447650055,
+     "hi": 53.518606458181196
+    },
+    "quality_close": {
+     "k": 396,
+     "n": 442,
+     "pct": 89.59276018099547,
+     "lo": 86.39669425404313,
+     "hi": 92.10652303209616
+    },
+    "quality_bits_equal": {
+     "k": 353,
+     "n": 442,
+     "pct": 79.86425339366515,
+     "lo": 75.8756197807422,
+     "hi": 83.33823554366002
+    },
+    "same_frame_and_pixels": {
+     "k": 164,
+     "n": 442,
+     "pct": 37.10407239819005,
+     "lo": 32.729584321410854,
+     "hi": 41.70079633396092
+    },
+    "no_peak_changes_counts": {
+     "k": 216,
+     "n": 442,
+     "pct": 48.86877828054298,
+     "lo": 44.23844447650055,
+     "hi": 53.518606458181196
+    },
+    "peaks_compared": 91788,
+    "peaks_omega_bits_equal": 64472,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 6776,
+    "peak_stages": {
+     "": 64170,
+     "omega_benign": 27151,
+     "frame_below_range": 301,
+     "counts": 52,
+     "pixel": 111,
+     "frame_boundary": 3
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 204,
+     "counts": 52,
+     "pixel": 51,
+     "frame_boundary": 1
+    },
+    "orientations_with_cause": {
+     "counts": 52,
+     "frame_below_range": 164,
+     "frame_boundary": 1,
+     "pixel": 47
+    }
+   },
+   "EXF_edge": {
+    "n": 442,
+    "conf_equal": {
+     "k": 442,
+     "n": 442,
+     "pct": 100.0,
+     "lo": 99.13834868706736,
+     "hi": 100.0
+    },
+    "counts_equal": {
+     "k": 394,
+     "n": 442,
+     "pct": 89.14027149321267,
+     "lo": 85.8952943962884,
+     "hi": 91.7107432637236
+    },
+    "quality_close": {
+     "k": 442,
+     "n": 442,
+     "pct": 100.0,
+     "lo": 99.13834868706736,
+     "hi": 100.0
+    },
+    "quality_bits_equal": {
+     "k": 374,
+     "n": 442,
+     "pct": 84.61538461538461,
+     "lo": 80.95472214816259,
+     "hi": 87.67951925057633
+    },
+    "same_frame_and_pixels": {
+     "k": 341,
+     "n": 442,
+     "pct": 77.14932126696833,
+     "lo": 73.01091710506505,
+     "hi": 80.81986046257335
+    },
+    "no_peak_changes_counts": {
+     "k": 394,
+     "n": 442,
+     "pct": 89.14027149321267,
+     "lo": 85.8952943962884,
+     "hi": 91.7107432637236
+    },
+    "peaks_compared": 91788,
+    "peaks_omega_bits_equal": 64472,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 6776,
+    "peak_stages": {
+     "": 64422,
+     "omega_benign": 27252,
+     "pixel": 111,
+     "frame_boundary": 3
+    },
+    "peaks_changing_counts_by_cause": {
+     "pixel": 51,
+     "frame_boundary": 1
+    },
+    "orientations_with_cause": {
+     "frame_boundary": 1,
+     "pixel": 47
+    }
+   }
+  },
+  "pair_differ_count": {
+   "EXS": {
+    "n": 58,
+    "conf_equal": {
+     "k": 46,
+     "n": 58,
+     "pct": 79.3103448275862,
+     "lo": 67.23053695067634,
+     "hi": 87.74863564511679
+    },
+    "counts_equal": {
+     "k": 46,
+     "n": 58,
+     "pct": 79.3103448275862,
+     "lo": 67.23053695067634,
+     "hi": 87.74863564511679
+    },
+    "quality_close": {
+     "k": 0,
+     "n": 58,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 6.211999689529376
+    },
+    "quality_bits_equal": {
+     "k": 0,
+     "n": 58,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 6.211999689529376
+    },
+    "same_frame_and_pixels": {
+     "k": 41,
+     "n": 58,
+     "pct": 70.6896551724138,
+     "lo": 57.986855543322214,
+     "hi": 80.82197217135527
+    },
+    "no_peak_changes_counts": {
+     "k": 46,
+     "n": 58,
+     "pct": 79.3103448275862,
+     "lo": 67.23053695067634,
+     "hi": 87.74863564511679
+    },
+    "peaks_compared": 2868,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 148,
+    "peak_stages": {
+     "omega_benign": 863,
+     "": 1987,
+     "frame_below_range": 17,
+     "pixel": 1
+    },
+    "peaks_changing_counts_by_cause": {
+     "frame_below_range": 13
+    },
+    "orientations_with_cause": {
+     "frame_below_range": 12
+    }
+   },
+   "EXS_edge": {
+    "n": 58,
+    "conf_equal": {
+     "k": 58,
+     "n": 58,
+     "pct": 100.0,
+     "lo": 93.78800031047062,
+     "hi": 99.99999999999999
+    },
+    "counts_equal": {
+     "k": 58,
+     "n": 58,
+     "pct": 100.0,
+     "lo": 93.78800031047062,
+     "hi": 99.99999999999999
+    },
+    "quality_close": {
+     "k": 0,
+     "n": 58,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 6.211999689529376
+    },
+    "quality_bits_equal": {
+     "k": 0,
+     "n": 58,
+     "pct": 0.0,
+     "lo": 0.0,
+     "hi": 6.211999689529376
+    },
+    "same_frame_and_pixels": {
+     "k": 57,
+     "n": 58,
+     "pct": 98.27586206896552,
+     "lo": 90.85892732270166,
+     "hi": 99.6950040115458
+    },
+    "no_peak_changes_counts": {
+     "k": 58,
+     "n": 58,
+     "pct": 100.0,
+     "lo": 93.78800031047062,
+     "hi": 99.99999999999999
+    },
+    "peaks_compared": 2868,
+    "peaks_omega_bits_equal": null,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 148,
+    "peak_stages": {
+     "omega_benign": 867,
+     "": 2000,
+     "pixel": 1
+    },
+    "peaks_changing_counts_by_cause": {},
+    "orientations_with_cause": {}
+   },
+   "EXF": {
+    "n": 58,
+    "conf_equal": {
+     "k": 32,
+     "n": 58,
+     "pct": 55.172413793103445,
+     "lo": 42.45185822161052,
+     "hi": 67.25034870705885
+    },
+    "counts_equal": {
+     "k": 25,
+     "n": 58,
+     "pct": 43.10344827586207,
+     "lo": 31.181600800834918,
+     "hi": 55.88212329427257
+    },
+    "quality_close": {
+     "k": 45,
+     "n": 58,
+     "pct": 77.58620689655173,
+     "lo": 65.33863695244156,
+     "hi": 86.40646666712843
+    },
+    "quality_bits_equal": {
+     "k": 36,
+     "n": 58,
+     "pct": 62.06896551724138,
+     "lo": 49.20257173616557,
+     "hi": 73.4359110973963
+    },
+    "same_frame_and_pixels": {
+     "k": 17,
+     "n": 58,
+     "pct": 29.310344827586206,
+     "lo": 19.17802782864472,
+     "hi": 42.01314445667778
+    },
+    "no_peak_changes_counts": {
+     "k": 25,
+     "n": 58,
+     "pct": 43.10344827586207,
+     "lo": 31.181600800834918,
+     "hi": 55.88212329427257
+    },
+    "peaks_compared": 12096,
+    "peaks_omega_bits_equal": 8582,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 848,
+    "peak_stages": {
+     "omega_benign": 3489,
+     "": 8534,
+     "pixel": 15,
+     "counts": 12,
+     "frame_below_range": 46
+    },
+    "peaks_changing_counts_by_cause": {
+     "counts": 12,
+     "pixel": 3,
+     "frame_below_range": 27
+    },
+    "orientations_with_cause": {
+     "counts": 12,
+     "frame_below_range": 23,
+     "pixel": 3
+    }
+   },
+   "EXF_edge": {
+    "n": 58,
+    "conf_equal": {
+     "k": 58,
+     "n": 58,
+     "pct": 100.0,
+     "lo": 93.78800031047062,
+     "hi": 99.99999999999999
+    },
+    "counts_equal": {
+     "k": 55,
+     "n": 58,
+     "pct": 94.82758620689656,
+     "lo": 85.86037466498081,
+     "hi": 98.22541871682043
+    },
+    "quality_close": {
+     "k": 58,
+     "n": 58,
+     "pct": 100.0,
+     "lo": 93.78800031047062,
+     "hi": 99.99999999999999
+    },
+    "quality_bits_equal": {
+     "k": 39,
+     "n": 58,
+     "pct": 67.24137931034483,
+     "lo": 54.42381364257336,
+     "hi": 77.9168761196579
+    },
+    "same_frame_and_pixels": {
+     "k": 45,
+     "n": 58,
+     "pct": 77.58620689655173,
+     "lo": 65.33863695244156,
+     "hi": 86.40646666712843
+    },
+    "no_peak_changes_counts": {
+     "k": 55,
+     "n": 58,
+     "pct": 94.82758620689656,
+     "lo": 85.86037466498081,
+     "hi": 98.22541871682043
+    },
+    "peaks_compared": 12096,
+    "peaks_omega_bits_equal": 8582,
+    "peaks_unmatched_python": 0,
+    "peaks_cpp_only_with_pixels": 0,
+    "peaks_cpp_only_no_pixel": 848,
+    "peak_stages": {
+     "omega_benign": 3507,
+     "": 8574,
+     "pixel": 15
+    },
+    "peaks_changing_counts_by_cause": {
+     "pixel": 3
+    },
+    "orientations_with_cause": {
+     "pixel": 3
+    }
+   }
+  }
+ },
+ "omega": {
+  "n": 463012,
+  "bits_equal_pct": 70.0409492626541,
+  "abs_median_rad": 0.0,
+  "abs_p99_rad": 9.5367431640625e-07,
+  "abs_max_rad": 0.0002512931823730469,
+  "abs_max_deg": 0.01439803877038688
+ },
+ "product": {
+  "pairs": 2000,
+  "bit_equal": 292,
+  "max_abs": 5.960464477539063e-08
+ },
+ "recost_default_abs_diff": {
+  "eq": 1724,
+  "lt1e6": 2002,
+  "lt1e3": 2204,
+  "n": 2230,
+  "max": 0.015625
+ },
+ "recost_edge_abs_diff": {
+  "eq": 1763,
+  "lt1e6": 2230,
+  "lt1e3": 2230,
+  "n": 2230,
+  "max": 2.80492445936531e-08
+ },
+ "quality_edge_abs_diff": {
+  "eq": 1697,
+  "lt1e6": 2228,
+  "lt1e3": 2230,
+  "n": 2230,
+  "max": 0.0006287728194559607
+ },
+ "pixel_boundary": {
+  "EXS_edge": {
+   "coordinates": 38,
+   "peaks": 38,
+   "dist_to_integer_max": 0.0015612710191135193,
+   "dist_to_integer_median": 0.00029340172346792315,
+   "cpp_matches_double": 20,
+   "python_matches_double": 18,
+   "neither": 0,
+   "omega_identical_bits": 21,
+   "omega_differs": 17
+  },
+  "EXF_edge": {
+   "coordinates": 599,
+   "peaks": 598,
+   "dist_to_integer_max": 0.016715949461286073,
+   "dist_to_integer_median": 0.0002838087677901058,
+   "cpp_matches_double": 300,
+   "python_matches_double": 299,
+   "neither": 0,
+   "omega_identical_bits": 261,
+   "omega_differs": 337
+  }
+ },
+ "pixel_less_triangle": {
+  "peaks": 311,
+  "with_lit_no_overlap_detector": 311,
+  "cpp_pixon_zero": 306,
+  "orientations": 300
+ },
+ "frame_below_range": {
+  "peaks": 1333,
+  "peaks_matched_total": 463012,
+  "orientations_screen": 346,
+  "orientations_screen_cost_changed": 264,
+  "orientations_full_cost_changed": 727
+ },
+ "screen_pass": {
+  "cpp_pass": 700,
+  "py_default_pass": 740,
+  "py_edge_pass": 699,
+  "default_differs_from_cpp": 42,
+  "edge_differs_from_cpp": 1
+ },
+ "interp_control_identity_local": {
+  "n": 230,
+  "same_counts": 230,
+  "omega_err_max_deg": 6.830189170012751e-06
+ },
+ "interp_by_j": [
+  {
+   "j": 0,
+   "local_rotation_deg": 0.0,
+   "n": 102,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 100.0,
+   "omega_err_median_of_median_deg": 0.0,
+   "omega_err_median_of_max_deg": 4.2688682312579694e-07,
+   "omega_err_worst_deg": 3.4150945850063755e-06,
+   "pct_with_exact_peak_missing": 0.0,
+   "pct_with_extra_peak": 0.0
+  },
+  {
+   "j": 1,
+   "local_rotation_deg": 2.837487333804214,
+   "n": 92,
+   "same_pass_pct": 96.73913043478261,
+   "same_counts_pct": 93.47826086956522,
+   "omega_err_median_of_median_deg": 0.0014230805857427349,
+   "omega_err_median_of_max_deg": 0.08958134605930224,
+   "omega_err_worst_deg": 6.594656926674031,
+   "pct_with_exact_peak_missing": 2.1739130434782608,
+   "pct_with_extra_peak": 1.0869565217391304
+  },
+  {
+   "j": 2,
+   "local_rotation_deg": 2.837487333804214,
+   "n": 98,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 97.95918367346938,
+   "omega_err_median_of_median_deg": 0.0014595260482670998,
+   "omega_err_median_of_max_deg": 0.08128778885961425,
+   "omega_err_worst_deg": 174.51617589794733,
+   "pct_with_exact_peak_missing": 3.061224489795918,
+   "pct_with_extra_peak": 2.0408163265306123
+  },
+  {
+   "j": 3,
+   "local_rotation_deg": 2.837487333804214,
+   "n": 109,
+   "same_pass_pct": 99.08256880733946,
+   "same_counts_pct": 98.1651376146789,
+   "omega_err_median_of_median_deg": 0.0014138491581926396,
+   "omega_err_median_of_max_deg": 0.12782699031678862,
+   "omega_err_worst_deg": 169.90707545356352,
+   "pct_with_exact_peak_missing": 3.669724770642202,
+   "pct_with_extra_peak": 2.7522935779816518
+  },
+  {
+   "j": 4,
+   "local_rotation_deg": 2.837487333804214,
+   "n": 94,
+   "same_pass_pct": 96.80851063829788,
+   "same_counts_pct": 93.61702127659575,
+   "omega_err_median_of_median_deg": 0.001381192316223516,
+   "omega_err_median_of_max_deg": 0.11744510277836925,
+   "omega_err_worst_deg": 170.10697141227877,
+   "pct_with_exact_peak_missing": 2.127659574468085,
+   "pct_with_extra_peak": 2.127659574468085
+  },
+  {
+   "j": 5,
+   "local_rotation_deg": 2.837487333804214,
+   "n": 134,
+   "same_pass_pct": 99.25373134328358,
+   "same_counts_pct": 96.26865671641791,
+   "omega_err_median_of_median_deg": 0.0014812972762465154,
+   "omega_err_median_of_max_deg": 0.09453920962308524,
+   "omega_err_worst_deg": 174.51624419983904,
+   "pct_with_exact_peak_missing": 2.2388059701492535,
+   "pct_with_extra_peak": 2.2388059701492535
+  },
+  {
+   "j": 6,
+   "local_rotation_deg": 2.837487333804214,
+   "n": 104,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 95.1923076923077,
+   "omega_err_median_of_median_deg": 0.0014462925567502,
+   "omega_err_median_of_max_deg": 0.10890565876856081,
+   "omega_err_worst_deg": 133.9467441904717,
+   "pct_with_exact_peak_missing": 4.807692307692308,
+   "pct_with_extra_peak": 3.8461538461538463
+  },
+  {
+   "j": 7,
+   "local_rotation_deg": 2.837487333804214,
+   "n": 73,
+   "same_pass_pct": 97.26027397260275,
+   "same_counts_pct": 97.26027397260275,
+   "omega_err_median_of_median_deg": 0.0014531227459202128,
+   "omega_err_median_of_max_deg": 0.10662608313306905,
+   "omega_err_worst_deg": 18.585320392009045,
+   "pct_with_exact_peak_missing": 1.36986301369863,
+   "pct_with_extra_peak": 0.0
+  },
+  {
+   "j": 8,
+   "local_rotation_deg": 2.837487333804214,
+   "n": 94,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 94.68085106382979,
+   "omega_err_median_of_median_deg": 0.0014238809985360956,
+   "omega_err_median_of_max_deg": 0.10402036596470919,
+   "omega_err_worst_deg": 170.17940875615025,
+   "pct_with_exact_peak_missing": 6.382978723404255,
+   "pct_with_extra_peak": 3.1914893617021276
+  }
+ ],
+ "interp_by_theta": [
+  {
+   "theta_deg": 0.05,
+   "n": 75,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 100.0,
+   "same_counts_lo": 95.12744540953,
+   "same_counts_hi": 100.0,
+   "omega_err_median_of_max_deg": 4.4396229605082885e-05,
+   "omega_err_p90_of_max_deg": 0.0005035556965591906,
+   "omega_err_worst_deg": 0.6024056093221996,
+   "pct_with_exact_peak_missing": 0.0,
+   "pct_with_extra_peak": 0.0
+  },
+  {
+   "theta_deg": 0.1,
+   "n": 75,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 100.0,
+   "same_counts_lo": 95.12744540953,
+   "same_counts_hi": 100.0,
+   "omega_err_median_of_max_deg": 9.220755379517213e-05,
+   "omega_err_p90_of_max_deg": 0.0011490085731253954,
+   "omega_err_worst_deg": 0.6312460830925785,
+   "pct_with_exact_peak_missing": 0.0,
+   "pct_with_extra_peak": 0.0
+  },
+  {
+   "theta_deg": 0.2,
+   "n": 75,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 100.0,
+   "same_counts_lo": 95.12744540953,
+   "same_counts_hi": 100.0,
+   "omega_err_median_of_max_deg": 0.0004439622960508288,
+   "omega_err_p90_of_max_deg": 0.0032812228772741278,
+   "omega_err_worst_deg": 0.07416219400799845,
+   "pct_with_exact_peak_missing": 0.0,
+   "pct_with_extra_peak": 0.0
+  },
+  {
+   "theta_deg": 0.5,
+   "n": 75,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 98.66666666666667,
+   "same_counts_lo": 92.8264625752562,
+   "same_counts_hi": 99.7642509566863,
+   "omega_err_median_of_max_deg": 0.0020900378860239017,
+   "omega_err_p90_of_max_deg": 0.08177298842277912,
+   "omega_err_worst_deg": 174.46418814045086,
+   "pct_with_exact_peak_missing": 1.3333333333333335,
+   "pct_with_extra_peak": 1.3333333333333335
+  },
+  {
+   "theta_deg": 1.0,
+   "n": 75,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 100.0,
+   "same_counts_lo": 95.12744540953,
+   "same_counts_hi": 100.0,
+   "omega_err_median_of_max_deg": 0.011341529116806174,
+   "omega_err_p90_of_max_deg": 0.19124529676035706,
+   "omega_err_worst_deg": 7.3025377322541525,
+   "pct_with_exact_peak_missing": 0.0,
+   "pct_with_extra_peak": 0.0
+  },
+  {
+   "theta_deg": 2.0,
+   "n": 75,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 98.66666666666667,
+   "same_counts_lo": 92.8264625752562,
+   "same_counts_hi": 99.7642509566863,
+   "omega_err_median_of_max_deg": 0.042751861562402314,
+   "omega_err_p90_of_max_deg": 1.3502474611698567,
+   "omega_err_worst_deg": 170.19207192687148,
+   "pct_with_exact_peak_missing": 1.3333333333333335,
+   "pct_with_extra_peak": 1.3333333333333335
+  },
+  {
+   "theta_deg": 3.0,
+   "n": 75,
+   "same_pass_pct": 98.66666666666667,
+   "same_counts_pct": 96.0,
+   "same_counts_lo": 88.88683137691623,
+   "same_counts_hi": 98.63041839985135,
+   "omega_err_median_of_max_deg": 0.11817422547226811,
+   "omega_err_p90_of_max_deg": 0.4056435687692234,
+   "omega_err_worst_deg": 173.86465462567466,
+   "pct_with_exact_peak_missing": 2.666666666666667,
+   "pct_with_extra_peak": 1.3333333333333335
+  },
+  {
+   "theta_deg": 5.0,
+   "n": 75,
+   "same_pass_pct": 100.0,
+   "same_counts_pct": 97.33333333333333,
+   "same_counts_lo": 90.78833515671512,
+   "same_counts_hi": 99.26564649763995,
+   "omega_err_median_of_max_deg": 0.34953834586998755,
+   "omega_err_p90_of_max_deg": 1.6520793262535143,
+   "omega_err_worst_deg": 8.550304010588762,
+   "pct_with_exact_peak_missing": 4.0,
+   "pct_with_extra_peak": 4.0
+  }
+ ],
+ "interp_all_pairs": {
+  "n": 2000,
+  "same_pass": {
+   "k": 1588,
+   "n": 2000,
+   "pct": 79.4,
+   "lo": 77.57194516416737,
+   "hi": 81.11532832092246
+  },
+  "same_counts": {
+   "k": 1507,
+   "n": 2000,
+   "pct": 75.35,
+   "lo": 73.41376419904564,
+   "hi": 77.18903793860832
+  },
+  "omega_err_max_deg_median": 0.07082735414573973,
+  "omega_err_max_deg_worst": 177.19894807279977
+ },
+ "pass_patterns": {
+  "pair_random": {
+   "----": 664,
+   "PPPP": 226,
+   "P---": 6,
+   "-PPP": 4
+  },
+  "pair_differ_pass": {
+   "-PPP": 187,
+   "--P-": 40,
+   "P---": 214,
+   "PP--": 1
+  },
+  "pair_differ_count": {
+   "PPPP": 58
+  }
+ },
+ "stored_trace_check": {
+  "n": 442,
+  "driver_cpp_pass_matches_stored": 442,
+  "driver_cpp_overlap_equals_stored": 442,
+  "stored_python_pass_matches_py_default": 442
+ },
+ "differ_pass_attribution": {
+  "interpolation (C++ interpolated differs from C++ exact; exact paths agree)": 401,
+  "frame lookup below the range (Python default differs from edge rules; edge rules = C++)": 40,
+  "exact-path float32 boundary (C++ exact differs from Python edge exact)": 1
+ },
+ "pairs_pass_disagreements": {
+  "C++ interpolated pass != C++ exact pass": 412,
+  "C++ exact pass != Python default exact pass": 42,
+  "C++ exact pass != Python edge-rule exact pass": 1,
+  "C++ interpolated pass != Python default exact pass": 454,
+  "C++ interpolated pass != Python edge-rule exact pass": 413,
+  "n": 2000
+ }
+}

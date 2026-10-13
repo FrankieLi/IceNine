@@ -47,6 +47,10 @@ try:
     from ._rasterize import HAS_RAY_RULE as _C_HAS_RAY_RULE
 except ImportError:
     _C_HAS_RAY_RULE = False
+try:
+    from ._rasterize import HAS_VERTEX_LIT as _C_HAS_VERTEX_LIT
+except ImportError:
+    _C_HAS_VERTEX_LIT = False  # extension missing or built before cpp_edge_rules existed
 _WARNED_STALE_EXT = False
 # Observed-ray flags in C (False = the per-peak Python reference ray_overlap.ray_flags; tests).
 USE_C_RAY_FLAGS = True
@@ -446,6 +450,25 @@ def calculate_diffraction_overlap(
     return overlap_info
 
 
+def _omega_bins(omegas: np.ndarray, low: float, width: float, cpp_edge_rules: bool) -> np.ndarray:
+    """Uniform omega bin of each angle. Default: truncation toward zero (historical), so an omega in
+    [low - width, low) falls in bin 0. ``cpp_edge_rules``: floor, so it is bin -1 (no frame), as C++
+    ``CSimulationRange::AngleToIndex``."""
+    f = (omegas - low) / width
+    return (np.floor(f) if cpp_edge_rules else f).astype(int)
+
+
+def _pixel_coordinate(
+    d: torch.Tensor, half: float, size: float, cpp_edge_rules: bool
+) -> torch.Tensor:
+    """Continuous pixel coordinate of a detector coordinate ``d`` (mm). ``cpp_edge_rules``: a
+    negative ``d`` is pixel -1, as C++ ``ToColPixel`` / ``ToRowPixel``."""
+    pix = (d + half) / size
+    if cpp_edge_rules:
+        pix = torch.where(d < 0, torch.full_like(pix, -1.0), pix)
+    return pix
+
+
 def calculate_diffraction_overlap_batched(
     sample: Sample,
     voxel_vertices: torch.Tensor,
@@ -460,6 +483,7 @@ def calculate_diffraction_overlap_batched(
     cpp_rule: bool = False,
     ray_rule: "Optional[RayRule]" = None,
     voxel_size: float = 0.0,
+    cpp_edge_rules: bool = False,
 ) -> OverlapInfo:
     """
     Batched version of calculate_diffraction_overlap.
@@ -474,6 +498,21 @@ def calculate_diffraction_overlap_batched(
     This checks a ±pixel_radius square around the projected center point
     for brightness, providing tolerance for small orientation errors during
     discrete search.
+
+    ``cpp_edge_rules`` (opt-in, default False): three C++ conventions at the edges.
+    (1) Frame lookup as C++ ``CSimulationRange`` (``AngleToIndex``: an omega below the range's low
+    edge has no frame). The default keeps the historical truncation toward zero, which maps an
+    omega in [low - width, low) to the first bin (about 0.3% of the peaks of a 180-frame,
+    1 degree scan are compared with frame 0 instead of being dropped). C++ Reference:
+    SimulationData.h:317-322 and 446-453.
+    (2) Detector coordinate below zero is pixel -1 (C++ ``ToRowPixel``/``ToColPixel`` test the
+    millimetre coordinate ``d < 0`` before adding the half pixel), where the default floors
+    ``(d + half) / width`` and so gives pixel 0 for a coordinate in [0, 0.5). C++ Reference:
+    Detector.cpp:528-548.
+    (3) A triangle that produced no pixel (the fill stops one row early at the last image row or
+    column) still lights the detector when a vertex is in bounds, as C++
+    ``ShapePixelOverlapCounter`` (OverlapInfo.h) does; the default needs a produced pixel. Needs the
+    extension built with ``HAS_VERTEX_LIT``, else the slow per-peak path is used.
 
     ``ray_rule`` (opt-in, default None): apply the ray-consistency rule of ``ray_overlap`` on top
     of the C++ CountQualifiedPeaks rule (it implies ``cpp_rule``). It is meant for the coarse
@@ -505,7 +544,7 @@ def calculate_diffraction_overlap_batched(
     # Map omega to wedge index using range_map internals
     low = range_map.low
     width = range_map.width
-    bin_indices = ((omegas.numpy() - low) / width).astype(int)
+    bin_indices = _omega_bins(omegas.numpy(), low, width, cpp_edge_rules)
 
     # Look up wedge indices, filtering invalid bins
     wedge_indices = np.full(n_peaks, -1, dtype=np.int64)
@@ -596,8 +635,10 @@ def calculate_diffraction_overlap_batched(
         k = (pixel_loc * detector._lab_frame_basis_k).sum(dim=1)  # (M*3,)
 
         # to_col_pixel / to_row_pixel inlined:
-        col = (j + detector.pixel_half_width) / detector.pixel_width
-        row = (k + detector.pixel_half_height) / detector.pixel_height
+        col = _pixel_coordinate(j, detector.pixel_half_width, detector.pixel_width, cpp_edge_rules)
+        row = _pixel_coordinate(
+            k, detector.pixel_half_height, detector.pixel_height, cpp_edge_rules
+        )
 
         # Reshape to (M, 3): per peak, per vertex
         # Match serial: detector_lit uses ray-plane hit only (no bounds check)
@@ -655,7 +696,25 @@ def calculate_diffraction_overlap_batched(
             stacklevel=2,
         )
 
-    if _HAS_C_RASTERIZE and mode == 'hard' and (_C_HAS_CPP_RULE or not cpp_rule):
+    if cpp_edge_rules and _HAS_C_RASTERIZE and not _C_HAS_VERTEX_LIT and not _WARNED_STALE_EXT:
+        _WARNED_STALE_EXT = True
+        warnings.warn(
+            "CppEdgeRules is on but the _rasterize extension was built before cpp_edge_rules; "
+            "using the much slower per-peak Python loop. Rebuild: cd icenine_py && uv run "
+            "--no-project --with setuptools --with numpy python setup.py build_ext --inplace",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    # bit field for the C extension: 1 = C++ CountQualifiedPeaks rule, 2 = vertex-lit rule
+    rule_bits = (1 if cpp_rule else 0) | (2 if cpp_edge_rules else 0)
+
+    if (
+        _HAS_C_RASTERIZE
+        and mode == 'hard'
+        and (_C_HAS_CPP_RULE or not cpp_rule)
+        and (_C_HAS_VERTEX_LIT or not cpp_edge_rules)
+    ):
         # ---- Fast path: batch C extension ----
         # Build compact image lookup — only unique wedges needed
         v_wedge_np = np.asarray(v_wedge, dtype=np.int32)
@@ -709,7 +768,7 @@ def calculate_diffraction_overlap_batched(
                 image_list, local_wedge, det_hit,
                 centers, None,
                 n_detectors, pixel_radius, M, img_rows, img_cols,
-                *((1,) if cpp_rule else ()),
+                *((rule_bits,) if rule_bits else ()),
                 *((obs_in, obs_bright) if ray_rule is not None else ()),
             )
         else:
@@ -724,7 +783,7 @@ def calculate_diffraction_overlap_batched(
                 image_list, local_wedge, det_hit,
                 None, verts,
                 n_detectors, pixel_radius, M, img_rows, img_cols,
-                *((1,) if cpp_rule else ()),
+                *((rule_bits,) if rule_bits else ()),
                 *((obs_in, obs_bright) if ray_rule is not None else ()),
             )
 
@@ -804,6 +863,14 @@ def calculate_diffraction_overlap_batched(
                         spot_overlap[det_idx] = True
                     elif n_lit_int > 0:
                         detector_lit[det_idx] = True
+                    elif cpp_edge_rules:
+                        # C++ lights the detector for a pixel-less triangle with a vertex in bounds
+                        for vtx in (v0, v1, v2):
+                            vx = -1.0 if float(vtx[0]) < 0 else math.floor(float(vtx[0]))
+                            vy = -1.0 if float(vtx[1]) < 0 else math.floor(float(vtx[1]))
+                            if 0 <= vx < exp_image.num_cols and 0 <= vy < exp_image.num_rows:
+                                detector_lit[det_idx] = True
+                                break
 
             if ray_rule is not None:
                 d_ov, d_on = apply_cases_python(
@@ -864,6 +931,7 @@ class VoxelCostFunction:
         cpp_overlap_rule: bool = False,
         center_screen: bool = True,
         ray_rule: "Optional[RayRule]" = None,
+        cpp_edge_rules: bool = False,
     ):
         """
         Args:
@@ -902,7 +970,12 @@ class VoxelCostFunction:
                    implies the C++ rule. The reconstructor gives it only to the coarse levels
                    0-2 (screen, re-cost, quick MC); FindOptimal, VarianceMinimizing and the final
                    cost use a cost function without it (two costs by design, see ray_overlap.py).
+            cpp_edge_rules: Opt-in, default False: the C++ conventions at the edges (an omega
+                   below the range has no frame; a detector coordinate below 0 is pixel -1; a
+                   pixel-less triangle with an in-bounds vertex lights the detector; see
+                   calculate_diffraction_overlap_batched).
         """
+        self.cpp_edge_rules = cpp_edge_rules
         self.ray_rule = ray_rule
         self.cpp_overlap_rule = cpp_overlap_rule or ray_rule is not None
         self.center_screen = center_screen
@@ -1053,6 +1126,7 @@ class VoxelCostFunction:
             mode=self.mode,
             pixel_radius=self.pixel_radius,
             **({"cpp_rule": True} if self.cpp_overlap_rule else {}),
+            **({"cpp_edge_rules": True} if self.cpp_edge_rules else {}),
             **(
                 {"ray_rule": self.ray_rule, "voxel_size": voxel_size}
                 if self.ray_rule is not None

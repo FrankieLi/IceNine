@@ -139,6 +139,9 @@ class SearchParameters:
     # explicit opt-out that keeps vertex 0 in the screen.
     cpp_overlap_rule: bool = False
     cpp_center_screen: bool = True
+    # cpp_edge_rules: opt-in (config key CppEdgeRules). The C++ conventions at the low edges of
+    # the frame range and the detector, and the pixel-less triangle rule (see VoxelCostFunction).
+    cpp_edge_rules: bool = False
     # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
     # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
     # 0 .. ray_rule.levels-1 (default 0-2): screen, re-cost, quick MC and ranking cut. FindOptimal,
@@ -193,6 +196,7 @@ class SearchParameters:
             bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
+            cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
             ray_rule=ray_rule_from_config(config),
         )
         # unstudied combination: warn only (owner 2026-10-12), do not force CppOverlapRule

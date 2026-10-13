@@ -1,0 +1,199 @@
+# Task A, Step 0: fixed-orientation parity. Applied to a SCRATCH copy of the repo (CMakeLists.txt, Src/,
+# XDM++/, CostFunctionBenchmark/), run from the scratch root; Src/ in the repository is never touched.
+#   uv run python cpp_parity_patch.py.txt   (copy to patch.py first or run via `python -` stdin)
+# With env PARITY_IN (binary records) and PARITY_OUT (text) set, the first call of
+# DiscreteRefinement::RunDiscreteSearch (level 0 of the adaptive reconstruction) evaluates every record
+# with three arms and exits: INT (the production LocalAngularInterpProcess path: scatter vectors and omegas
+# from the FZ centre, then InterpolatedVoxelCostFunction with the local-grid matrix; pixel radius 3, centre
+# point), EXS (exact omegas of the product orientation; pixel radius 3, centre point; same Q-max) and
+# EXF (the complete cost: all reflections, triangle rasterisation). Per peak line `P ...` is printed from
+# inside XDMSampleVertexOverlapCounter::CalculateDiffractionOverlap.
+import re
+
+def patch(path, pairs):
+    s = open(path).read()
+    for a, b in pairs:
+        assert s.count(a) == 1, (path, a, s.count(a))
+        s = s.replace(a, b)
+    open(path, 'w').write(s)
+
+open('Src/ParityDump.h', 'w').write('''#ifndef PARITY_DUMP_H
+#define PARITY_DUMP_H
+#include <cstdio>
+#include <vector>
+// scratch-only debug state for the Task A step-0 parity probe
+inline FILE *& PDOut() { static FILE * f = NULL; return f; }
+inline bool PDOn() { return PDOut() != NULL; }
+inline std::vector<int> & PDRefl() { static std::vector<int> v; return v; }     // reflection id per peak of the last peak list
+inline std::vector<int> & PDObsRefl() { static std::vector<int> v; return v; }  // reflection id per observed entry (interp path)
+inline bool * PDLit() { static bool b[8]; return b; }
+inline bool * PDOv() { static bool b[8]; return b; }
+#endif
+''')
+
+# reflection ids: exact path
+patch('Src/Simulation.cpp', [
+    ('#include "Simulation.h"\n', '#include "Simulation.h"\n#include "ParityDump.h"\n'),
+    ('  vPeakInfo.reserve( oRecipVectors.size() * 2 );\n',
+     '  vPeakInfo.reserve( oRecipVectors.size() * 2 );\n  if( PDOn() ) PDRefl().clear();\n'),
+    ('      vPeakInfo.push_back( SPeakInfo( bPeakObservable, oScatteringVec, fOmegas[1], oRecipVectors[nRecipIndex].fMag ) );\n',
+     '      vPeakInfo.push_back( SPeakInfo( bPeakObservable, oScatteringVec, fOmegas[1], oRecipVectors[nRecipIndex].fMag ) );\n'
+     '      if( PDOn() ) { PDRefl().push_back( 2 * (int) nRecipIndex ); PDRefl().push_back( 2 * (int) nRecipIndex + 1 ); }\n'),
+])
+# reflection ids: interpolated path
+patch('Src/DiffractionCore.h', [
+    ('    ResultScatteringVectors.reserve( pEnd - pRecipLatticeVector );\n',
+     '    ResultScatteringVectors.reserve( pEnd - pRecipLatticeVector );\n    if( PDOn() ) PDObsRefl().clear();\n'),
+    ('        ResultScatteringVectors.push_back( oRes );\n',
+     '        ResultScatteringVectors.push_back( oRes );\n        if( PDOn() ) PDObsRefl().push_back( (int) n );\n'),
+    ('    oResultPeakInfo.reserve( CandidateLatticeVectors.size() * 2 );\n',
+     '    oResultPeakInfo.reserve( CandidateLatticeVectors.size() * 2 );\n    if( PDOn() ) PDRefl().clear();\n'),
+    ('          oResultPeakInfo.push_back( DiffractionCore::SPeakInfo( bPeakObservable, oSampleRecpVecDir,\n',
+     '          if( PDOn() ) PDRefl().push_back( 2 * PDObsRefl()[ n ] + i );\n          oResultPeakInfo.push_back( DiffractionCore::SPeakInfo( bPeakObservable, oSampleRecpVecDir,\n'),
+])
+s = open('Src/DiffractionCore.h').read()
+i = s.index('#include')
+s = s[:i] + '#include "ParityDump.h"\n' + s[i:]
+open('Src/DiffractionCore.h', 'w').write(s)
+
+# per-detector flags and the per-peak line
+patch('Src/OverlapInfo.h', [
+    ('      Utilities::CountQualifiedPeaks( oOverlapInfo, bDetectorLit, bSpotOverlap, oDetectorList.size() );\n',
+     '      if( PDOn() ) for( Size_Type d = 0; d < oDetectorList.size() && d < 8; d ++ ) { PDLit()[d] = bDetectorLit[d]; PDOv()[d] = bSpotOverlap[d]; }\n'
+     '      Utilities::CountQualifiedPeaks( oOverlapInfo, bDetectorLit, bSpotOverlap, oDetectorList.size() );\n'),
+])
+s = open('Src/OverlapInfo.h').read()
+i = s.index('#include')
+s = s[:i] + '#include "ParityDump.h"\n' + s[i:]
+# make the cost function members reachable from the scratch driver
+s = s.replace('  private:\n    PeakAcceptFn      FPeakIntensityAccept;', '  public:\n    PeakAcceptFn      FPeakIntensityAccept;', 1)
+open('Src/OverlapInfo.h', 'w').write(s)
+
+patch('Src/OverlapInfo.tmpl.cpp', [
+    ('        oOverlapInfo.UpdateCounts ( oCurOverlapInfo );\n        oOverlapInfo.UpdateQuality( oCurOverlapInfo, vDetectorList.size(), nPoints );   // nPoints is currently a hack\n      }\n    }\n    return oOverlapInfo;\n  }\n  \n  //------------------------------------------------------------------------\n  //\n  //  CalculateDiffractionOverlapSmoothed',
+     '''        oOverlapInfo.UpdateCounts ( oCurOverlapInfo );
+        if( PDOn() )
+        {
+          FILE * f = PDOut();
+          fprintf( f, "P %d r %d w %a f %d n %a %a %a m %a", (int) nPeakNum,
+                   ( nPeakNum < PDRefl().size() ? PDRefl()[ nPeakNum ] : -1 ),
+                   (double) vPeakInfo[ nPeakNum ].fOmega, (int) nOmegaIndex,
+                   (double) vPeakInfo[ nPeakNum ].oScatteringDir.m_fX, (double) vPeakInfo[ nPeakNum ].oScatteringDir.m_fY,
+                   (double) vPeakInfo[ nPeakNum ].oScatteringDir.m_fZ, (double) vPeakInfo[ nPeakNum ].fRecipVecMag );
+          for( Int d = 0; d < nNumDetectors; d ++ )
+          {
+            fprintf( f, " | D%d h%d", d, (int) oHitView[ d ] );
+            for( Int q = 0; q < (Int) oHitView[ d ] && q < nNumPixels; q ++ )
+              fprintf( f, " %a %a", (double) oPixelView[ d ][ q ].x, (double) oPixelView[ d ][ q ].y );
+            fprintf( f, " lit%d ov%d", (int) PDLit()[ d ], (int) PDOv()[ d ] );
+          }
+          fprintf( f, " | pixov %d pixon %d pkov %d pkon %d ndet %d\\n", (int) oCurOverlapInfo.nPixelOverlap,
+                   (int) oCurOverlapInfo.nPixelOnDetector, (int) oCurOverlapInfo.nPeakOverlap,
+                   (int) oCurOverlapInfo.nPeakOnDetector, (int) oCurOverlapInfo.nDetectorsOverlap );
+        }
+        oOverlapInfo.UpdateQuality( oCurOverlapInfo, vDetectorList.size(), nPoints );   // nPoints is currently a hack
+      }
+      else if( PDOn() )
+        fprintf( PDOut(), "P %d r %d w %a f -1 NOMATCH n %a %a %a m %a\\n", (int) nPeakNum,
+                 ( nPeakNum < PDRefl().size() ? PDRefl()[ nPeakNum ] : -1 ), (double) vPeakInfo[ nPeakNum ].fOmega,
+                 (double) vPeakInfo[ nPeakNum ].oScatteringDir.m_fX, (double) vPeakInfo[ nPeakNum ].oScatteringDir.m_fY,
+                 (double) vPeakInfo[ nPeakNum ].oScatteringDir.m_fZ, (double) vPeakInfo[ nPeakNum ].fRecipVecMag );
+    }
+    return oOverlapInfo;
+  }
+  
+  //------------------------------------------------------------------------
+  //
+  //  CalculateDiffractionOverlapSmoothed'''),
+])
+
+# make the interpolated cost function's members public (driver calls OverlapFn directly for the exact screen)
+patch('Src/CostFunctions.h', [
+    ('  private:\n    SampleVertexOverlapFn OverlapFn;\n    VertexExtractorT VoxelToVerticesFn;\n\n    InterpolatedVoxelCostFunction();\n  public:',
+     '  public:\n    SampleVertexOverlapFn OverlapFn;\n    VertexExtractorT VoxelToVerticesFn;\n\n    InterpolatedVoxelCostFunction();\n  public:'),
+])
+
+DRIVER = r'''
+    if( getenv( "PARITY_IN" ) != NULL )
+    {
+      // ---- Task A step 0 scratch driver: evaluate fixed orientations, write per-peak records, exit ----
+      std::cout << "PARITY nQMax " << nQMax << " n_fz_in_call " << ( pEnd - pFirst ) << " n_local " << oLocalGrid.size() << std::endl;
+      FILE * fin = fopen( getenv( "PARITY_IN" ), "rb" );
+      FILE * fout = fopen( getenv( "PARITY_OUT" ), "w" );
+      int nRec = 0;
+      if( fread( &nRec, 4, 1, fin ) != 1 ) exit( 1 );
+      CSample & oSampleRef = oSetup.SampleGeometry();
+      const DetectorListT & oDetListRef = oSetup.ExperimentalSetup().GetDetectorList();
+      const XDMSimulation::CSimulationRange & oRangeRef = oSetup.ExperimentalSetup().GetRangeToIndexMap();
+      vector<CRecpVector> oAllRecips = oSampleRef.GetStructureList()[ oVoxel.nPhase ].GetReflectionVectorList();
+      std::sort( oAllRecips.begin(), oAllRecips.end(),
+                 [](const CRecpVector& a, const CRecpVector& b) { return a.fMag < b.fMag; } );
+      vector<CRecpVector> oScreenRecips;
+      for( size_t r = 0; r < oAllRecips.size(); r ++ )
+        if( ! ( oAllRecips[ r ].fMag > (Float) nQMax ) ) oScreenRecips.push_back( oAllRecips[ r ] );
+      fprintf( fout, "H nrecip_all %d nrecip_screen %d nQMax %d nrec %d\n", (int) oAllRecips.size(), (int) oScreenRecips.size(), (int) nQMax, nRec );
+      {
+        SVector3 c = oVoxel.GetCenter();
+        fprintf( fout, "V center %a %a %a\n", (double) c.m_fX, (double) c.m_fY, (double) c.m_fZ );
+        for( int q = 0; q < 3; q ++ )
+          fprintf( fout, "V vertex%d %a %a %a\n", q, (double) oVoxel.pVertex[ q ].m_fX, (double) oVoxel.pVertex[ q ].m_fY, (double) oVoxel.pVertex[ q ].m_fZ );
+      }
+      for( int rec = 0; rec < nRec; rec ++ )
+      {
+        int kind, id; float fc[ 9 ], fl[ 9 ];
+        if( fread( &kind, 4, 1, fin ) != 1 || fread( &id, 4, 1, fin ) != 1 || fread( fc, 4, 9, fin ) != 9 || fread( fl, 4, 9, fin ) != 9 ) exit( 2 );
+        SMatrix3x3 oCenter, oLocal;
+        for( int i = 0; i < 3; i ++ ) for( int j = 0; j < 3; j ++ ) { oCenter.m[ i ][ j ] = fc[ 3 * i + j ]; oLocal.m[ i ][ j ] = fl[ 3 * i + j ]; }
+        SMatrix3x3 oProd = oLocal * oCenter;
+        fprintf( fout, "O %d kind %d prod", id, kind );
+        for( int i = 0; i < 3; i ++ ) for( int j = 0; j < 3; j ++ ) fprintf( fout, " %a", (double) oProd.m[ i ][ j ] );
+        fprintf( fout, "\n" );
+        // ---- arm INT: production interpolated screen ----
+        {
+          fprintf( fout, "A INT\n" ); PDOut() = fout;
+          CostFunctions::SOverlapInfo oInfo; oInfo.Initialize();
+          SearchDetails::ScatteringVectorListT oScat;
+          HEDM::PrecomputeScatteringVector( oScat, oCenter, oDetListRef, oRangeRef, oScreenRecips.begin(), oScreenRecips.end(), oSimulator );
+          fprintf( fout, "S nobs %d obsrefl", (int) oScat.size() );
+          for( size_t q = 0; q < PDObsRefl().size(); q ++ ) fprintf( fout, " %d", PDObsRefl()[ q ] );
+          fprintf( fout, "\n" );
+          oInfo = VoxelCostFunction( oVoxel, oSampleRef, oDetListRef, oRangeRef, oScat, oLocal, oSetup.Data() );
+          PDOut() = NULL;
+          fprintf( fout, "R pixov %d pixon %d pkov %d pkon %d quality %a conf %a\n", (int) oInfo.nPixelOverlap, (int) oInfo.nPixelOnDetector,
+                   (int) oInfo.nPeakOverlap, (int) oInfo.nPeakOnDetector, (double) oInfo.fQuality,
+                   (double) CostFunctions::Utilities::GetConfidence( oInfo ) );
+        }
+        // ---- arm EXS: exact omegas, same screen (radius 3, centre) ----
+        {
+          fprintf( fout, "A EXS\n" ); PDOut() = fout;
+          vector<SPeakInfo> oPeaks;
+          oSimulator.GetObservablePeaks( oPeaks, oProd, oScreenRecips, oDetListRef );
+          vector<SVector3> oVert = VoxelCostFunction.VoxelToVerticesFn( oVoxel );
+          CostFunctions::SOverlapInfo oInfo = VoxelCostFunction.OverlapFn.CalculateDiffractionOverlap( oVert, oPeaks, oSampleRef, oDetListRef, oRangeRef, oSetup.Data() );
+          PDOut() = NULL;
+          fprintf( fout, "R pixov %d pixon %d pkov %d pkon %d quality %a conf %a\n", (int) oInfo.nPixelOverlap, (int) oInfo.nPixelOnDetector,
+                   (int) oInfo.nPeakOverlap, (int) oInfo.nPeakOnDetector, (double) oInfo.fQuality,
+                   (double) CostFunctions::Utilities::GetConfidence( oInfo ) );
+        }
+        // ---- arm EXF: complete cost (all reflections, triangle) ----
+        {
+          fprintf( fout, "A EXF\n" ); PDOut() = fout;
+          SamplePointT oTmp = oVoxel; oTmp.oOrientMatrix = oProd;
+          CostFunctions::SOverlapInfo oInfo = WrappedCostFn( oTmp );
+          PDOut() = NULL;
+          fprintf( fout, "R pixov %d pixon %d pkov %d pkon %d quality %a conf %a\n", (int) oInfo.nPixelOverlap, (int) oInfo.nPixelOnDetector,
+                   (int) oInfo.nPeakOverlap, (int) oInfo.nPeakOnDetector, (double) oInfo.fQuality,
+                   (double) CostFunctions::Utilities::GetConfidence( oInfo ) );
+        }
+        fprintf( fout, "E\n" );
+      }
+      fclose( fout );
+      std::cout << "PARITY done " << nRec << std::endl;
+      exit( 0 );
+    }
+'''
+patch('Src/DiscreteAdaptive.tmpl.cpp', [
+    ('    LatticeSymmetry::CSymmetry * pSym = oSetup.SampleGeometry().GetSampleSymmetry( 1 );\n',
+     DRIVER + '    LatticeSymmetry::CSymmetry * pSym = oSetup.SampleGeometry().GetSampleSymmetry( 1 );\n'),
+    ('namespace Reconstruction\n{', '#include "ParityDump.h"\n#include <cstdlib>\nnamespace Reconstruction\n{'),
+])

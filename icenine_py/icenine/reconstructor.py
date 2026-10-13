@@ -717,11 +717,15 @@ class AdaptiveVoxelReconstructor:
         """The literal C++ CountQualifiedPeaks rule is opt-in (config key CppOverlapRule;
         also on with ``ray`` at the coarse levels). The centroid projection of the pixel-radius
         screen is the default for every rule; ``cpp_center_screen=False`` is the explicit vertex-0
-        opt-out."""
+        opt-out. ``CppEdgeRules`` (opt-in, independent of the overlap rule) adds the C++
+        conventions at the low edges (see ``VoxelCostFunction``)."""
         center = bool(getattr(self.setup.search_params, "cpp_center_screen", True))
+        flags: Dict[str, Any] = dict(center_screen=center)
         if ray is not None or getattr(self.setup.search_params, "cpp_overlap_rule", False):
-            return dict(cpp_overlap_rule=True, center_screen=center)
-        return dict(center_screen=center)
+            flags = dict(cpp_overlap_rule=True, center_screen=center)
+        if getattr(self.setup.search_params, "cpp_edge_rules", False):
+            flags["cpp_edge_rules"] = True  # opt-in: the C++ low-edge conventions (CppEdgeRules)
+        return flags
 
     def _make_local_cost_fn(self, ray_rule: Optional[RayRule] = None) -> VoxelCostFunction:
         """Local cost function (pixel_radius=0) used for MC, re-evaluation and the final overlap.
