@@ -33,9 +33,11 @@ sys.path.insert(0, str(ICE / "scripts" / "common"))
 sys.path.insert(0, str(ICE / "scripts" / "findoptimal_robustness"))
 MIC = "SimInput/rand_500grains_1mm_neworient_s0.mic"
 BASIN_DEG = 3.0
-VARIANTS = ("clean", "realistic")
+VARIANTS = tuple(os.environ.get("RAY_VARIANTS", "clean,realistic").split(","))
 TOLS = ("R1", "R2", "R4", "R8", "A")
 # arm names keep the "f0_" prefix of the earlier results; f1 was dropped 2026-10-12
+# centroid task 2026-10-12: every arm projects the centroid; RAY_VERTEX0=1 = the old vertex-0 arm
+CENTER_SCREEN = os.environ.get("RAY_VERTEX0", "") == ""
 ARM_NAMES = ["old", "cpp"] + [f"f0_{t}" for t in TOLS]
 NEAR_DEG = (0.5, 1.0, 2.0, 5.0)
 N_NEAR, N_RANDOM = 10, 200
@@ -149,7 +151,7 @@ def peak_task(voxel: int) -> Dict[str, Any]:
                 max_q=max_q,
                 min_sin_eta=0.0,
                 cpp_overlap_rule=cpp,
-                center_screen=cpp,
+                center_screen=CENTER_SCREEN,
                 ray_rule=ray,
             )
             rows = []
@@ -199,6 +201,7 @@ def coarse_task(voxel: int, arms: Optional[List[str]] = None) -> Dict[str, Any]:
         for arm in arms or ARM_NAMES:
             cpp, ray = arm_spec(arm, reg)
             sp.cpp_overlap_rule, sp.ray_rule = cpp, ray
+            sp.cpp_center_screen = CENTER_SCREEN
             levels: List[Dict[str, Any]] = []
             counter[0] = 0
             cur: Dict[str, Any] = {}
@@ -280,6 +283,7 @@ def coarse_task(voxel: int, arms: Optional[List[str]] = None) -> Dict[str, Any]:
     finally:
         CF.VoxelCostFunction.evaluate = orig_eval  # type: ignore[method-assign]
         sp.cpp_overlap_rule, sp.ray_rule = False, None
+        sp.cpp_center_screen = True
     return out
 
 
@@ -301,7 +305,11 @@ def _run_task(args: Tuple[str, int, str, int, Optional[str]]) -> str:
 
 
 def run(step: int, workers: int, voxels: List[int], arms: List[str]) -> None:
-    sub = "peak" if step == 1 else os.environ.get("RAY_COARSE_DIR", "coarse")
+    sub = (
+        os.environ.get("RAY_PEAK_DIR", "peak")
+        if step == 1
+        else os.environ.get("RAY_COARSE_DIR", "coarse")
+    )
     outdir = OUT / sub
     outdir.mkdir(parents=True, exist_ok=True)
     jobs = []

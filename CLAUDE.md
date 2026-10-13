@@ -204,6 +204,10 @@ shmem ask "<the question>"        # synthesized answer (preferred for most reads
 shmem query "<keywords>"          # raw timestamped facts; useful with --since 1h, --source user
 ```
 
+**Subagents** (owner rule 2026-10-12) share the same store (`~/.shmem/db`). They `shmem ask` before
+large file scans (falling back to reading when it returns nothing), and record their findings with
+`shmem add --source llm`. See "Shared memory (shmem)" in `.claude/agents/study-conventions.md`.
+
 ## Tooling
 
 Deterministic checks live in code, not in prompts: a Bash PreToolUse hook (`.claude/hooks/`), an opt-in git pre-commit hook (`.githooks/`, activate with `scripts/dev/install_hooks.sh`), task-branch scripts, a shared stats module, doc-table sync, a number audit, a timing preflight and job-status helpers. See the "Developer tooling" section of [icenine_py/README.md](icenine_py/README.md).

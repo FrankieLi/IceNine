@@ -135,7 +135,8 @@ class SearchParameters:
     bfs_reseed: bool = False
     # cpp_overlap_rule: opt-in (config key CppOverlapRule). The literal C++ CountQualifiedPeaks
     # overlap rule and the centroid projection of the pixel-radius screen (see VoxelCostFunction).
-    # cpp_center_screen is an A/B sub-flag (not a config key): False keeps vertex 0 in the screen.
+    # cpp_center_screen (not a config key, default True, applies to every rule): False is the
+    # explicit opt-out that keeps vertex 0 in the screen.
     cpp_overlap_rule: bool = False
     cpp_center_screen: bool = True
     # ray_rule: opt-in (config key RayOverlapRule), default None = off. The

@@ -5708,6 +5708,67 @@ Per-run labels (quiet = the preflight passed; load1 = 1-minute load at start; ol
 Files: `icenine/ray_overlap.py`, `scripts/phase_d/ray_overlap_study.py`, `ray_overlap_summary.py`,
 `benchmarks/phase_d_seed_diag/ray_overlap/` (`RUN_LOG.md`, `summary.json`, `tables.md`, `coarse/`).
 
+#### Centroid start point everywhere (2026-10-12, `feature/finisher-mc-study-centroid`)
+
+Owner: the projection start point must equal C++, which projects the voxel centroid (VoxelToCenter) in the
+pixel-radius screen. `VoxelCostFunction(center_screen=...)` now defaults to True for every rule (old/lenient, C++,
+ray), decoupled from `CppOverlapRule`; `Reconstructor._cost_flags` always passes it. Vertex 0 stays only as the
+explicit opt-out `cpp_center_screen=False` (not a config key). The pixel-radius-0 local cost uses the exact
+triangle and never used the start point. Step 1 suite: no numeric golden changed; two tests changed: the
+`_cost_flags()` default in `test_ray_overlap.py` (now `{'center_screen': True}`) and the FindOptimal-robustness
+batched features.
+**Owner decision 2026-10-12:** the FindOptimal-robustness feature extractor
+(`scripts/findoptimal_robustness/features.py`) keeps the first vertex (`center_screen=False`) because its caches were
+built with vertex 0; the main reconstruction uses the centroid everywhere. Suite: 872 passed, 34 skipped.
+
+**Step 3 results (2026-10-13, clean images only, one seed; branch `feature/finisher-mc-study-centroid`).** The change
+touches the lenient (old) rule only; the C++ rule and both ray windows already used the centroid. Reading in
+`docs/findings_ray_overlap_rule_2026-10.md` section 10; run record `benchmarks/phase_d_seed_diag/centroid/RUN_LOG.md`;
+numbers `summary.json`, `tables.md` there (`scripts/phase_d/centroid_step3_summary.py`).
+- Peak level (30 voxels): the lenient rule now keeps exactly all detector-0 overlaps (524 of 524 at the truth, 2,067
+  of 2,067 at 1°, 8,942 of 8,942 at random orientations; before 8,937 of 8,942 and 2,066 of 2,067). The old "1
+  rejected / share 1.003" was the first-corner screen finding a different overlap set than the centroid denominator.
+- Coarse search (30 voxels x 4 arms): C++ and both ray rules identical to the stored runs; lenient rule level-0
+  survival within 3° 29 -> 30 of 30 (1 fixed, 0 broken), levels 1 and 2 unchanged.
+- E0 (200 voxels, min_sin_eta 0): C++ (56), 2-pixel (40), geometric (41) wrong, identical to the stored runs; lenient
+  rule 39 -> 41 wrong, paired 14 fixed, 16 broken, 25 both wrong (30 of 200 voxels change outcome, net +2; one run per
+  voxel, so neither start point is shown to be more accurate). Mean evaluations 48,501 -> 48,700.
+- Six full-sample voxels, lenient rule: all right; mean evaluations 332,320 -> 332,046.
+
+Arm names in the tables: `old` = original lenient Python rule, `cpp` = strict C++ rule, `f0_R2` = ray rule with the
+2-pixel window, `f0_A` = ray rule with the geometric window. In the paired tables a row "X vs old (after)" counts
+fixed = wrong under old and right under X, broken = the reverse.
+
+<!-- table:centroid_e0_clean -->
+| arm | when | wrong | mean_evals | median_err_right |
+|---|---|---|---|---|
+| old | before | 39/200 [0.146, 0.255] | 48501 | 0.0086 |
+| old | after | 41/200 [0.155, 0.266] | 48700 | 0.0130 |
+| cpp | before | 56/200 [0.222, 0.346] | 47230 | 0.0223 |
+| cpp | after | 56/200 [0.222, 0.346] | 47230 | 0.0223 |
+| f0_R2 | before | 40/200 [0.150, 0.261] | 48641 | 0.0097 |
+| f0_R2 | after | 40/200 [0.150, 0.261] | 48641 | 0.0097 |
+| f0_A | before | 41/200 [0.155, 0.266] | 48649 | 0.0114 |
+| f0_A | after | 41/200 [0.155, 0.266] | 48649 | 0.0114 |
+<!-- /table:centroid_e0_clean -->
+
+<!-- table:centroid_e0_paired -->
+| arm | fixed | broken | both_wrong |
+|---|---|---|---|
+| old | 14 | 16 | 25 |
+| cpp | 0 | 0 | 56 |
+| f0_R2 | 0 | 0 | 40 |
+| f0_A | 0 | 0 | 41 |
+| cpp vs old (after) | 15 | 30 | 26 |
+| f0_R2 vs old (after) | 10 | 9 | 31 |
+| f0_A vs old (after) | 11 | 11 | 30 |
+<!-- /table:centroid_e0_paired -->
+
+Files: `scripts/phase_d/centroid_step3_summary.py`, `ray_overlap_study.py` (env `RAY_VARIANTS`, `RAY_PEAK_DIR`,
+`RAY_VERTEX0`), `e0_cpprule.py` (`--tag`, `--variant`), `benchmarks/phase_d_seed_diag/centroid/`, results
+`ray_overlap/peak_centroid/`, `ray_overlap/coarse30_centroid/`. Not done: regenerating goldens (none changed); no
+default flipped.
+
 #### Phase D pilot results (2026-10-08, `feature/finisher-mc-study-phase-d-run`)
 
 A 2,000-voxel region of the new-orientation sample, five single-process BFS runs, `BFSRevisitRefit 1` in every config, BFS rng seed 0, memmap images. Code: `scripts/phase_d/make_region.py`, `pilot_bfs.py`, `score_bfs.py`, `summarize_pilot.py`; `launch_pilot.sh`, `ab_threads.py`; tests `tests/test_phase_d_scoring.py` (9). Data and tables: `benchmarks/phase_d_pilot/` (`summary.json`, `tables.md`, `region.json`, `region_grid.mic`, `region_index.npy`, `runs/<arm>_<variant>/{run.json,score.json,voxels.npz}`, `preflight.json`, `ab_threads.json`, `ab_threads_staggered.json`). **Revised 2026-10-09 after review** (rescored from the same five runs, no new BFS runs): units are mm, the grain counts separate accepted from rejected seeds, the piece count is 497, the oracle prediction is credited, the thread A/B is reworded.

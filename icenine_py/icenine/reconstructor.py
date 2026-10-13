@@ -714,16 +714,14 @@ class AdaptiveVoxelReconstructor:
         return None
 
     def _cost_flags(self, ray: Optional[RayRule] = None) -> Dict[str, Any]:
-        """Opt-in C++ overlap rules (config key CppOverlapRule): the literal C++ CountQualifiedPeaks
-        and the centroid projection of the pixel-radius screen. Empty (defaults) when off.
-        With ``ray`` (coarse levels only) the C++ rule and the centroid screen are on as well."""
-        if ray is not None:
-            center = getattr(self.setup.search_params, "cpp_center_screen", True)
-            return dict(cpp_overlap_rule=True, center_screen=bool(center))
-        if getattr(self.setup.search_params, "cpp_overlap_rule", False):
-            center = getattr(self.setup.search_params, "cpp_center_screen", True)
-            return dict(cpp_overlap_rule=True, center_screen=bool(center))
-        return {}
+        """The literal C++ CountQualifiedPeaks rule is opt-in (config key CppOverlapRule;
+        also on with ``ray`` at the coarse levels). The centroid projection of the pixel-radius
+        screen is the default for every rule; ``cpp_center_screen=False`` is the explicit vertex-0
+        opt-out."""
+        center = bool(getattr(self.setup.search_params, "cpp_center_screen", True))
+        if ray is not None or getattr(self.setup.search_params, "cpp_overlap_rule", False):
+            return dict(cpp_overlap_rule=True, center_screen=center)
+        return dict(center_screen=center)
 
     def _make_local_cost_fn(self, ray_rule: Optional[RayRule] = None) -> VoxelCostFunction:
         """Local cost function (pixel_radius=0) used for MC, re-evaluation and the final overlap.

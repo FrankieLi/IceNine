@@ -5,12 +5,21 @@ Task branch `feature/finisher-mc-study-ray-overlap` (parent `feature/finisher-mc
 coarse test and end-to-end test). Raw tables: `benchmarks/phase_d_seed_diag/ray_overlap/` (`tables.md`,
 `tables30.md`, `e2e_tables.md`); run details in its `RUN_LOG.md`.
 
+**Update 2026-10-13 (centroid task, branch `feature/finisher-mc-study-centroid`).** The lenient rule's screen used to
+project the first triangle vertex instead of the voxel centroid that C++ and the other rules use. Every rule now
+starts from the centroid. The clean-image numbers of the lenient rule in this write-up (sections 3 to 6, the summary
+table and the decisions) were re-run with that start point and replaced; the previous values are named in section
+10, which also holds the before / after tables. The realistic-image numbers of the lenient rule were not re-run
+(owner, clean images only) and still come from the vertex-0 screen. The C++ rule and both ray windows are
+unchanged (re-run: same results).
+
 ## Summary
 
 On clean images (the images to rely on; see the caveat below), the ray rule recovers nearly all the accuracy that the
-strict C++ overlap rule loses: 40 and 41 wrong of 200 for the two windows, against 56 for the C++ rule and 39 for the
-original lenient Python rule. Paired by voxel, the 2-pixel window against the lenient rule is 19 fixed, 20 broken and
-20 both wrong, so the two are tied on these 200 voxels. The ray rule costs 3 to 4% more cost evaluations than the C++
+strict C++ overlap rule loses: 40 and 41 wrong of 200 for the two windows, against 56 for the C++ rule and 41 for the
+original lenient Python rule (39 before the lenient rule's start point was changed to the centroid, section 10).
+Paired by voxel, the 2-pixel window against the lenient rule is 10 fixed, 9 broken and 31 both wrong, so the two are
+tied on these 200 voxels. The ray rule costs 3 to 4% more cost evaluations than the C++
 rule per E0 voxel, and on full-sample voxels 6% (2-pixel window) and 21% (geometric window) more than the C++ rule,
 against 46% more for the lenient rule (re-run in the current build, section 6).
 
@@ -21,13 +30,13 @@ completeness and should not drive decisions.
 
 | Overlap rule | Wrong of 200 (clean images) | Wrong of 200 (realistic images, see caveat) | Time per full-sample voxel (one process, mixed quiet and contended, three sessions) |
 |---|---|---|---|
-| Original lenient Python rule | 39 | 18 | 176 s |
+| Original lenient Python rule | 41 | 18 (vertex-0 start point, not re-run) | 180 s (six processes at once; 176 s before) |
 | Strict C++ rule | 56 | 56 | 116 s |
 | Ray rule, 2-pixel window | 40 | 32 | 131 s |
 | Ray rule, geometric window | 41 | 29 | 152 s |
 
 Each arm is one run per voxel (seed 0); the randomness only drives the search's exploration, so the comparison rests on the paired per-voxel counts. The two ray-rule windows cannot be told apart on these numbers. The times are means over
-six full-sample voxels; the preflight was quiet for 4 of 6 runs (lenient), 5 of 6 (C++), 2 of 6 (2-pixel window) and
+six full-sample voxels; the preflight was quiet for 0 of 6 runs (lenient, re-run 2026-10-13 as six processes at once), 5 of 6 (C++), 2 of 6 (2-pixel window) and
 5 of 6 (geometric window), so compare the rules on evaluations (section 6) rather than on these seconds.
 
 ## 1. What the rule does
@@ -84,7 +93,7 @@ Clean images:
 
 | Overlap rule | At the true orientation | 1° from the truth | 5° from the truth | Random orientation |
 |---|---|---|---|---|
-| Original lenient Python rule | 1.000 | 1.000 | 1.006 | 0.999 |
+| Original lenient Python rule | 1.000 | 1.000 | 1.000 | 1.000 |
 | Strict C++ rule | 0.994 | 0.656 | 0.279 | 0.209 |
 | Ray rule, 2-pixel window | 0.994 | 0.907 | 0.371 | 0.258 |
 | Ray rule, geometric window | 0.994 | 0.927 | 0.501 | 0.435 |
@@ -98,13 +107,14 @@ Realistic images:
 | Ray rule, 2-pixel window | 0.909 | 0.831 | 0.362 | 0.253 |
 | Ray rule, geometric window | 0.918 | 0.856 | 0.478 | 0.409 |
 
-How the share is computed, and why the lenient rule shows values slightly above or below 1.000: the denominator is
-the number of detector-0 overlaps found by the detector-0 test that all ray-rule and C++ variants share, which
-places the predicted spot at the voxel centroid. The lenient rule's screen places the spot at the voxel's first
-vertex instead, so it finds a slightly different set of detector-0 overlaps (a few more or a few fewer). Its share
-is therefore not exactly 1.000 even though it keeps every overlap it finds. The lenient rule never rejects a
-detector-0 overlap; read its values as 1.000. (With no search radius, all rules use the same test and the lenient
-rule is exactly 1.000.)
+How the share is computed: the denominator is the number of detector-0 overlaps found by the detector-0 test that
+all ray-rule and C++ variants share, which places the predicted spot at the voxel centroid. Since the centroid task
+(2026-10-13) the lenient rule's screen places the spot at the centroid too, so on the clean images it finds exactly
+the same detector-0 overlaps and its share is exactly 1.000 (before: 0.9995 at 1° from the truth, 1.006 at 5° and
+0.9994 at random orientations, because its screen then used the first vertex). The lenient rule never rejects a
+detector-0 overlap. The realistic-image table above is the earlier vertex-0 run, so its lenient row is still slightly
+off 1.000 (0.998, 1.005, 1.004, 1.000) for that reason. (With no search radius, all rules use the same test and the
+lenient rule is exactly 1.000.)
 
 Reading: the ray rule keeps far more peaks near the answer than the C++ rule (about 0.83 to 0.93 against 0.62 to
 0.66 at 1°), while still rejecting most chance overlaps at random orientations. The 2-pixel window rejects chance
@@ -122,13 +132,13 @@ The same data as counts, read as two error types:
 
 Counts are pooled over the 30 voxels (1 true orientation and 200 random orientations per voxel). The denominator is
 the number of detector-0 overlaps found by the centroid test of section 3 that the C++ and ray variants share. The
-lenient rule's own count differs slightly (8,937 of 8,942 above), for the reason given under the section 3 tables.
+lenient rule's count now equals it on clean images (it was 8,937 of 8,942 with the vertex-0 screen; the realistic images below are still that earlier run).
 
 Initial screen (lit pixels within 3 pixels of the predicted spot), clean images:
 
 | Overlap rule | Real peaks rejected | Chance overlaps accepted |
 |---|---|---|
-| Original lenient Python rule | 0 of 524 (0%) | 8,937 of 8,942 (about 100%) |
+| Original lenient Python rule | 0 of 524 (0%) | 8,942 of 8,942 (100%) |
 | Strict C++ rule | 3 of 524 (0.6%) | 1,870 of 8,942 (21%) |
 | Ray rule, 2-pixel window | 3 of 524 (0.6%) | 2,305 of 8,942 (26%) |
 | Ray rule, geometric window | 3 of 524 (0.6%) | 3,889 of 8,942 (43%) |
@@ -155,8 +165,9 @@ count as an overlap):
 
 Reading:
 
-- The lenient rule's "1 of 475" and "0 of 524" are not rejections: the lenient rule never rejects. The 1 is the
-  counting difference explained above section 3.1 (first vertex against centroid).
+- The lenient rule's "1 of 475" and "0 of 524" are not rejections: the lenient rule never rejects. The 1 on
+  realistic images is the counting difference explained above section 3.1 (first vertex against centroid; the clean
+  row no longer has it).
 - On real peaks the strict C++ rule and both ray windows behave almost the same. On realistic images all three reject
   about 8 to 9% of real peaks. This is consistent with the noise model: each spot on each detector is dropped with
   probability 0.1, so about 10% of real peaks lit on detector 0 would have no spot on detector 1, and any rule that
@@ -187,7 +198,7 @@ the quick Monte Carlo refinement moves it (rank 0 = best score). Lower is better
 
 | Overlap rule | Level-0 candidates (clean) | Kept (clean) | Rank of closest candidate (clean) | Level-0 candidates (realistic) | Kept (realistic) | Rank of closest candidate (realistic) |
 |---|---|---|---|---|---|---|
-| Original lenient Python rule | 10,256 | 2,564 | 214 | 10,236 | 2,558 | 453 |
+| Original lenient Python rule | 10,252 | 2,563 | 215.5 | 10,236 | 2,558 | 453 |
 | Strict C++ rule | 7,940 | 1,985 | 108 | 7,614 | 1,903 | 382 |
 | Ray rule, 2-pixel window | 8,422 | 2,105 | 22 | 8,113 | 2,028 | 102 |
 | Ray rule, geometric window | 9,359 | 2,340 | 72 | 9,140 | 2,285 | 186 |
@@ -212,7 +223,7 @@ below.
 
 | Overlap rule | Level 0 clean | Level 1 clean | Level 2 clean | Level 0 realistic | Level 1 realistic | Level 2 realistic |
 |---|---|---|---|---|---|---|
-| Original lenient Python rule | 29 | 30 | 30 | 30 | 30 | 30 |
+| Original lenient Python rule | 30 | 30 | 30 | 30 | 30 | 30 |
 | Strict C++ rule | 30 | 30 | 30 | 30 | 29 | 29 |
 | Ray rule, 2-pixel window | 30 | 30 | 30 | 30 | 30 | 30 |
 | Ray rule, geometric window | 30 | 30 | 30 | 29 | 29 | 29 |
@@ -224,7 +235,7 @@ The geometric window also loses one realistic voxel at level 0 (29 of 30), which
 
 | Overlap rule | Within 2°, level 0 clean | Within 2°, level 0 realistic | Within 1°, level 2 clean | Within 1°, level 2 realistic |
 |---|---|---|---|---|
-| Original lenient Python rule | 26 | 27 | 30 | 30 |
+| Original lenient Python rule | 27 | 27 | 30 | 30 |
 | Strict C++ rule | 27 | 24 | 30 | 29 |
 | Ray rule, 2-pixel window | 27 | 26 | 30 | 30 |
 | Ray rule, geometric window | 28 | 28 | 29 | 29 |
@@ -243,12 +254,12 @@ Intervals are 95% Wilson intervals on the wrong fraction. "Evaluations" is the m
 voxel. "Time" is the mean wall time per voxel with 10 workers sharing the machine, with stored runs from different
 sessions: it is contended and not a timing claim (the run metadata says so). Compare cost on the evaluations column
 (the ray windows add 3 to 4% over the C++ rule on clean images) and on the single-worker coarse-stage timings in
-section 7. "Median error of right voxels" is a median over each rule's own right voxels (161, 144, 160 and 159 clean;
+section 7. "Median error of right voxels" is a median over each rule's own right voxels (159, 144, 160 and 159 clean;
 182, 144, 168 and 171 realistic, in table order), so the subsets differ.
 
 | Images | Overlap rule | Wrong of 200 | Interval (wrong fraction) | Evaluations per voxel | Time per voxel | Median error of right voxels |
 |---|---|---|---|---|---|---|
-| Clean | Original lenient Python rule | 39 | 0.15 to 0.26 | 48,501 | 24.2 s | 0.0086° |
+| Clean | Original lenient Python rule | 41 | 0.15 to 0.27 | 48,700 | 26.0 s | 0.0130° |
 | Clean | Strict C++ rule | 56 | 0.22 to 0.35 | 47,230 | 24.1 s | 0.0223° |
 | Clean | Ray rule, 2-pixel window | 40 | 0.15 to 0.26 | 48,641 | 26.6 s | 0.0097° |
 | Clean | Ray rule, geometric window | 41 | 0.16 to 0.27 | 48,649 | 27.2 s | 0.0114° |
@@ -268,53 +279,59 @@ under the rule; "broken" = right under the reference, wrong under the rule; "bot
 | Clean | Ray rule, geometric window | Strict C++ rule | 31 | 16 | 25 |
 | Realistic | Ray rule, 2-pixel window | Strict C++ rule | 38 | 14 | 18 |
 | Realistic | Ray rule, geometric window | Strict C++ rule | 37 | 10 | 19 |
-| Clean | Ray rule, 2-pixel window | Original lenient Python rule | 19 | 20 | 20 |
-| Clean | Ray rule, geometric window | Original lenient Python rule | 18 | 20 | 21 |
+| Clean | Ray rule, 2-pixel window | Original lenient Python rule | 10 | 9 | 31 |
+| Clean | Ray rule, geometric window | Original lenient Python rule | 11 | 11 | 30 |
 | Realistic | Ray rule, 2-pixel window | Original lenient Python rule | 7 | 21 | 11 |
 | Realistic | Ray rule, geometric window | Original lenient Python rule | 9 | 20 | 9 |
-| Clean | Strict C++ rule | Original lenient Python rule | 17 | 34 | 22 |
+| Clean | Strict C++ rule | Original lenient Python rule | 15 | 30 | 26 |
 | Realistic | Strict C++ rule | Original lenient Python rule | 6 | 44 | 12 |
 
 Reading:
 
 - Against the strict C++ rule, the ray rule fixes two to nearly four voxels for every one it breaks, on both kinds
   of image.
-- Against the original lenient rule, the ray rule ties on clean images (about 19 fixed, 20 broken) and is worse on
-  realistic images (7 to 9 fixed, about 20 broken).
-- Over the voxels right under all four rules (113 clean, 125 realistic), the median error is 0.0082° (lenient),
-  0.0222° (C++), 0.0092° (2-pixel window) and 0.0098° (geometric window) on clean images, and 0.0096°, 0.0133°,
+- Against the original lenient rule, the ray rule ties on clean images (10 fixed, 9 broken for the 2-pixel window; 11
+  and 11 for the geometric window) and is worse on realistic images (7 to 9 fixed, about 20 broken; the lenient
+  realistic run is the earlier vertex-0 one).
+- Over the voxels right under all four rules (121 clean, 125 realistic), the median error is 0.0121° (lenient),
+  0.0232° (C++), 0.0097° (2-pixel window) and 0.0098° (geometric window) on clean images, and 0.0096°, 0.0133°,
   0.0087° and 0.0083° on realistic images. So on the same voxels the ray rule's right answers are more precise than
-  the C++ rule's on clean images and about equal to or better on realistic images.
+  the C++ rule's on clean images, and on clean images also a little more precise than the lenient rule's (0.0097° and
+  0.0098° against 0.0121°; with the earlier vertex-0 start point the lenient rule was the most precise, 0.0082° on 113
+  voxels, which changes the ordering - a difference of about 0.004°, one run per voxel, so not firm). On realistic
+  images they are about equal to or better.
 
 ## 6. Cost on full-sample voxels (6 voxels)
 
 All four rules got all six voxels right (error under 1°), so this measures cost only. One process per run, clean
-images, seed 1. The lenient-rule column was re-run on 2026-10-12 in the current build (after the C++-faithful Monte
-Carlo port and the variance-stage fix; tag `lenientnow`, `scripts/phase_d/cache/ray_lenient_rerun.sh`). The earlier
+images, seed 1. The lenient-rule column was re-run on 2026-10-13 with the centroid screen (tag `base_centroid`, six processes at
+once; `benchmarks/phase_d_seed_diag/centroid/cache/run_all.sh`); the 2026-10-12 run with the vertex-0 screen (tag
+`lenientnow`, after the C++-faithful Monte Carlo port and the variance-stage fix; `scripts/phase_d/cache/ray_lenient_rerun.sh`) is in section 10. The earlier
 lenient runs (`base_full_*`, 2026-10-08) predate both changes, ran about 1.38 million variance-stage evaluations on
 voxel 15901 alone, and are no longer used. The C++ and ray columns are the runs of 2026-10-10 and 2026-10-12.
 
 | Voxel | Lenient rule: error / evaluations / time | C++ rule: error / evaluations / time | Ray, 2-pixel window: error / evaluations / time | Ray, geometric window: error / evaluations / time |
 |---|---|---|---|---|
-| 15901 | 0.017° / 328,519 / 172 s | 0.029° / 237,739 / 125 s | 0.014° / 250,495 / 136 s | 0.010° / 279,319 / 158 s |
-| 17034 | 0.028° / 339,561 / 176 s | 0.064° / 246,127 / 125 s | 0.025° / 256,771 / 136 s | 0.037° / 284,960 / 157 s |
-| 18558 | 0.005° / 329,367 / 175 s | 0.003° / 209,728 / 106 s | 0.005° / 223,744 / 119 s | 0.004° / 268,489 / 146 s |
-| 19889 | 0.021° / 330,209 / 175 s | 0.021° / 226,453 / 115 s | 0.033° / 243,577 / 135 s | 0.018° / 276,634 / 150 s |
-| 22867 | 0.026° / 335,687 / 176 s | 0.053° / 244,186 / 125 s | 0.061° / 257,829 / 141 s | 0.037° / 285,600 / 156 s |
-| 5242 | 0.049° / 330,577 / 179 s | 0.028° / 204,646 / 102 s | 0.023° / 218,577 / 117 s | 0.059° / 265,129 / 143 s |
-| **Mean** | 332,000 evaluations, 176 s | 228,000 evaluations, 116 s | 242,000 evaluations, 131 s | 277,000 evaluations, 152 s |
+| 15901 | 0.038° / 327,619 / 179 s | 0.029° / 237,739 / 125 s | 0.014° / 250,495 / 136 s | 0.010° / 279,319 / 158 s |
+| 17034 | 0.022° / 340,422 / 185 s | 0.064° / 246,127 / 125 s | 0.025° / 256,771 / 136 s | 0.037° / 284,960 / 157 s |
+| 18558 | 0.005° / 329,915 / 179 s | 0.003° / 209,728 / 106 s | 0.005° / 223,744 / 119 s | 0.004° / 268,489 / 146 s |
+| 19889 | 0.015° / 329,724 / 179 s | 0.021° / 226,453 / 115 s | 0.033° / 243,577 / 135 s | 0.018° / 276,634 / 150 s |
+| 22867 | 0.012° / 333,046 / 182 s | 0.053° / 244,186 / 125 s | 0.061° / 257,829 / 141 s | 0.037° / 285,600 / 156 s |
+| 5242 | 0.060° / 331,552 / 179 s | 0.028° / 204,646 / 102 s | 0.023° / 218,577 / 117 s | 0.059° / 265,129 / 143 s |
+| **Mean** | 332,000 evaluations, 180 s | 228,000 evaluations, 116 s | 242,000 evaluations, 131 s | 277,000 evaluations, 152 s |
 
-Timing labels ("single process"): the preflight was quiet for 4 of 6 lenient runs (voxels 17034 and 22867 not quiet,
-load 2.70 and 2.10; the source of the extra load was not identified), 5 of 6 C++ runs (17034 not quiet), 2 of 6 for the
-2-pixel window (15901, 17034, 18558 and 22867 not quiet; load 1.54 to 2.14) and 5 of 6 for the geometric window
-(18558 not quiet). The runs come from three sessions (2026-10-08 is no longer used; 10-10 and 10-12). The lenient
-runs' wall times are nearly the same on quiet and non-quiet starts (172 to 179 s), but the other columns are not
-like for like, so rely on the evaluations.
+Timing labels ("single process"): the six lenient runs of 2026-10-13 were started together (six processes at once,
+load 9.7 at the start), so none was quiet and their wall times are contended; the preflight was quiet for 5 of 6
+C++ runs (17034 not quiet), 2 of 6 for the 2-pixel window (15901, 17034, 18558 and 22867 not quiet; load 1.54 to
+2.14) and 5 of 6 for the geometric window (18558 not quiet). The C++ and ray runs come from two sessions (10-10 and
+10-12). With the vertex-0 screen the lenient wall times were 172 to 179 s whether the start was quiet or not. The
+other columns are not like for like, so rely on the evaluations.
 
 Relative to the strict C++ rule, the 2-pixel window costs 6% more evaluations and the geometric window 21% more; the
-re-run lenient rule costs 46% more (1.46 times; wall 1.51 times, mixed labels). Against the ray rule, the lenient rule
+re-run lenient rule costs 46% more (1.46 times; wall 1.55 times, but its wall times are from six processes at once, so
+rely on the evaluations). Against the ray rule, the lenient rule
 costs 1.37 times (2-pixel window) and 1.20 times (geometric window) as many evaluations. The lenient rule's extra
-evaluations are in the coarse search (about 182,000 quick-search evaluations per voxel against 138,000 for the C++ rule
+evaluations are in the coarse search (about 181,000 quick-search evaluations per voxel against 138,000 for the C++ rule
 on voxel 15901). This is consistent with the lenient rule passing more candidates to the next level (30-voxel test,
 section 4.1: about 10,300 against 7,900 level-0 candidates); that mechanism was not tested on these six voxels.
 The earlier statement that the lenient rule costs about four to four-and-a-half times as much was a measurement of the
@@ -348,15 +365,15 @@ open question 5 in `findings_finisher_mc_study_2026-10.md`.
 |---|---|
 | Noise model of the realistic images | The realistic images use a noise model the owner has ruled unphysical (every spot on each detector is dropped at random with probability 0.1; open question 8 of the parent findings, deferred). The realistic-image numbers in this write-up (sections 3 to 5) are therefore reported but should not drive decisions; the clean-image numbers come first. |
 | One run per voxel for E0 (seed 0) | The differences between the two ray-rule windows (32 against 29 wrong on realistic images) are a handful of voxels either way. More seeds are not needed (owner, 2026-10-12): the search uses randomness to explore, not as independent samples. |
-| Lenient and C++ rows of the end-to-end test are stored earlier runs | Their code path is unchanged in this build, but they were not re-run alongside the ray rule. |
+| Realistic-image rows of the lenient and C++ rules are stored earlier runs | On clean images all four rules were re-run in this build (section 10). The realistic columns were not: the lenient rule's realistic numbers still use the vertex-0 start point. |
 | Full-sample voxels all right | The six full-sample voxels measure cost only, not accuracy. |
 | Not separated | Whether the gain comes from the ray rule in the initial screen, the re-scoring, or the quick refinement (all three use it at levels 0 to 2). |
 | Not tested | More than two detectors. |
 
 ## 9. Decisions for the owner
 
-Clean-image results first: on the clean E0 images the 2-pixel ray window (40 wrong of 200) ties the lenient rule (39
-wrong; paired 19 fixed, 20 broken, 20 both wrong) and is better than the C++ rule (56 wrong). The realistic-image gap in
+Clean-image results first: on the clean E0 images the 2-pixel ray window (40 wrong of 200) ties the lenient rule (41
+wrong; paired 10 fixed, 9 broken, 31 both wrong) and is better than the C++ rule (56 wrong). The realistic-image gap in
 the lenient rule's favour (18 against 29 to 32) rests on a noise model the owner has ruled unphysical (open question 8
 of the parent findings), so it is not used for the decisions below.
 
@@ -367,3 +384,173 @@ of the parent findings), so it is not used for the decisions below.
 | `RayOverlapRule` without `CppOverlapRule`? | Decided (owner, 2026-10-12): warn only (a `UserWarning` in `SearchParameters.from_config`); the setting is not forced. |
 | Cases b and e pixel counting in triangle mode (+1 / -1 pixel) | Decided (owner, 2026-10-12): keep as is, documented in `ray_overlap.py` and `_rasterize.c`; open question 9 in `findings_finisher_mc_study_2026-10.md`, fix later. |
 | More seeds? | Decided (owner, 2026-10-12): no. The algorithm does not rely on independence of the random streams; it uses randomness to explore the search space, so repeat seeds are not a measure of the rule. |
+
+## 10. Centroid start point for every rule (2026-10-13)
+
+What changed: the pixel-radius screen asks "is a lit pixel within 3 pixels of where this reflection lands?". C++
+places the reflection by projecting the voxel centroid. The Python lenient rule used to project the first corner of
+the voxel's triangle instead; the C++ rule and the ray windows already used the centroid. Now every rule uses the
+centroid (commit d96c413). The change touches the lenient rule only; the other three rules are a check that nothing
+else moved. All numbers below are clean images, one seed, the same voxels and seeds as before. "Before" = lenient rule
+with the first-corner screen (stored runs); "after" = centroid screen. Run record:
+`benchmarks/phase_d_seed_diag/centroid/RUN_LOG.md`.
+
+Arm names in the tables: `old` = original lenient Python rule, `cpp` = strict C++ rule, `f0_R2` = ray rule with the
+2-pixel window, `f0_A` = ray rule with the geometric window. In the paired tables a row "X vs old (after)" counts
+fixed = wrong under old and right under X, broken = the reverse.
+
+### 10.1 Peak level (30 voxels)
+
+Columns: `kept_*` = peaks kept / detector-0 overlaps; `share_*` = their ratio; `pass_*` = evaluations with at least one
+kept peak / evaluations. Lenient rule: after the change it keeps exactly all detector-0 overlaps in every row (524 of
+524 at the truth, 2,067 of 2,067 at 1°, 8,942 of 8,942 at random orientations); before it showed 8,937 of 8,942 at
+random orientations and 2,066 of 2,067 at 1°. The C++ and ray rows are identical before and after. The old statement
+that the lenient rule "rejected 1" came from the first-corner screen finding a slightly different set of overlaps than
+the centroid test used as the denominator, not from a rejection.
+
+<!-- table:centroid_peak_clean -->
+| cost | cls | arm | kept_before | kept_after | share_before | share_after | pass_before | pass_after |
+|---|---|---|---|---|---|---|---|---|
+| screen | truth | old | 524/524 | 524/524 | 1.0000 | 1.0000 | 30/30 | 30/30 |
+| screen | truth | cpp | 521/524 | 521/524 | 0.9943 | 0.9943 | 30/30 | 30/30 |
+| screen | truth | f0_R2 | 521/524 | 521/524 | 0.9943 | 0.9943 | 30/30 | 30/30 |
+| screen | truth | f0_A | 521/524 | 521/524 | 0.9943 | 0.9943 | 30/30 | 30/30 |
+| screen | near1.0 | old | 2066/2067 | 2067/2067 | 0.9995 | 1.0000 | 299/300 | 299/300 |
+| screen | near1.0 | cpp | 1356/2067 | 1356/2067 | 0.6560 | 0.6560 | 292/300 | 292/300 |
+| screen | near1.0 | f0_R2 | 1875/2067 | 1875/2067 | 0.9071 | 0.9071 | 292/300 | 292/300 |
+| screen | near1.0 | f0_A | 1916/2067 | 1916/2067 | 0.9269 | 0.9269 | 294/300 | 294/300 |
+| screen | random | old | 8937/8942 | 8942/8942 | 0.9994 | 1.0000 | 4686/6000 | 4696/6000 |
+| screen | random | cpp | 1870/8942 | 1870/8942 | 0.2091 | 0.2091 | 1598/6000 | 1598/6000 |
+| screen | random | f0_R2 | 2305/8942 | 2305/8942 | 0.2578 | 0.2578 | 1874/6000 | 1874/6000 |
+| screen | random | f0_A | 3889/8942 | 3889/8942 | 0.4349 | 0.4349 | 2843/6000 | 2843/6000 |
+| local | truth | old | 521/521 | 521/521 | 1.0000 | 1.0000 | 30/30 | 30/30 |
+| local | truth | cpp | 521/521 | 521/521 | 1.0000 | 1.0000 | 30/30 | 30/30 |
+| local | truth | f0_R2 | 521/521 | 521/521 | 1.0000 | 1.0000 | 30/30 | 30/30 |
+| local | truth | f0_A | 521/521 | 521/521 | 1.0000 | 1.0000 | 30/30 | 30/30 |
+| local | near1.0 | old | 742/742 | 742/742 | 1.0000 | 1.0000 | 282/300 | 282/300 |
+| local | near1.0 | cpp | 438/742 | 438/742 | 0.5903 | 0.5903 | 244/300 | 244/300 |
+| local | near1.0 | f0_R2 | 651/742 | 651/742 | 0.8774 | 0.8774 | 271/300 | 271/300 |
+| local | near1.0 | f0_A | 689/742 | 689/742 | 0.9286 | 0.9286 | 275/300 | 275/300 |
+| local | random | old | 2894/2894 | 2894/2894 | 1.0000 | 1.0000 | 2307/6000 | 2307/6000 |
+| local | random | cpp | 414/2894 | 414/2894 | 0.1431 | 0.1431 | 399/6000 | 399/6000 |
+| local | random | f0_R2 | 583/2894 | 583/2894 | 0.2015 | 0.2015 | 555/6000 | 555/6000 |
+| local | random | f0_A | 1183/2894 | 1183/2894 | 0.4088 | 0.4088 | 1070/6000 | 1070/6000 |
+<!-- /table:centroid_peak_clean -->
+
+### 10.2 Coarse search (30 voxels, levels 0 to 2)
+
+Columns: `surv3` / `surv2` / `surv1` = voxels (of 30, with Wilson interval for `surv3`) that keep a candidate within 3°
+/ 2° / 1° of the truth after the quick refinement; `in_disc3` = voxels whose level list has a candidate within 3° before
+the refinement; `keep_median` = candidates kept at the ranking cut; `rank_disc_median` = rank of the closest
+candidate before the refinement (smaller is better); `cand_median` and `evals_median` = candidates and cumulative
+evaluations per voxel (medians). The C++ and both ray rows are identical before and after (identical medians, including the
+evaluation counts). The lenient rule: level 0 survival at 3° goes from 29 to 30 of 30 (one voxel fixed, none broken;
+levels 1 and 2 unchanged at 30), survival at 1° at level 1 from 25 to 29, level-0 candidates from 10,256 to 10,252
+and median evaluations at level 2 from 318,258 to 318,468 (+0.07%). These are small shifts; with 30 voxels the
+intervals still span about 0.89 to 1.00.
+
+<!-- table:centroid_coarse_clean -->
+| arm | level | when | surv3 | surv2 | surv1 | keep_median | rank_disc_median | in_disc3 | cand_median | evals_median |
+|---|---|---|---|---|---|---|---|---|---|---|
+| old | 0 | before | 29/30 [0.83, 0.99] | 26 | 18 | 2.56e+03 | 214 | 30 | 10256 | 202008 |
+| old | 0 | after | 30/30 [0.89, 1.00] | 27 | 20 | 2.56e+03 | 216 | 30 | 10252 | 202028 |
+| old | 1 | before | 30/30 [0.89, 1.00] | 29 | 25 | 881 | 1 | 30 | 3524 | 289357 |
+| old | 1 | after | 30/30 [0.89, 1.00] | 30 | 29 | 881 | 0 | 30 | 3526 | 289421 |
+| old | 2 | before | 30/30 [0.89, 1.00] | 30 | 30 | 279 | 0 | 30 | 1116 | 318258 |
+| old | 2 | after | 30/30 [0.89, 1.00] | 30 | 30 | 278 | 0 | 30 | 1114 | 318468 |
+| cpp | 0 | before | 30/30 [0.89, 1.00] | 27 | 20 | 1.98e+03 | 108 | 30 | 7940 | 151172 |
+| cpp | 0 | after | 30/30 [0.89, 1.00] | 27 | 20 | 1.98e+03 | 108 | 30 | 7940 | 151172 |
+| cpp | 1 | before | 30/30 [0.89, 1.00] | 30 | 29 | 604 | 0 | 30 | 2416 | 207912 |
+| cpp | 1 | after | 30/30 [0.89, 1.00] | 30 | 29 | 604 | 0 | 30 | 2416 | 207912 |
+| cpp | 2 | before | 30/30 [0.89, 1.00] | 30 | 30 | 164 | 0 | 30 | 658 | 225284 |
+| cpp | 2 | after | 30/30 [0.89, 1.00] | 30 | 30 | 164 | 0 | 30 | 658 | 225284 |
+| f0_R2 | 0 | before | 30/30 [0.89, 1.00] | 27 | 19 | 2.1e+03 | 21.5 | 30 | 8422 | 159068 |
+| f0_R2 | 0 | after | 30/30 [0.89, 1.00] | 27 | 19 | 2.1e+03 | 21.5 | 30 | 8422 | 159068 |
+| f0_R2 | 1 | before | 30/30 [0.89, 1.00] | 30 | 29 | 642 | 0.5 | 30 | 2568 | 220919 |
+| f0_R2 | 1 | after | 30/30 [0.89, 1.00] | 30 | 29 | 642 | 0.5 | 30 | 2568 | 220919 |
+| f0_R2 | 2 | before | 30/30 [0.89, 1.00] | 30 | 30 | 177 | 0 | 30 | 710 | 239760 |
+| f0_R2 | 2 | after | 30/30 [0.89, 1.00] | 30 | 30 | 177 | 0 | 30 | 710 | 239760 |
+| f0_A | 0 | before | 30/30 [0.89, 1.00] | 28 | 21 | 2.34e+03 | 71.5 | 30 | 9359 | 177942 |
+| f0_A | 0 | after | 30/30 [0.89, 1.00] | 28 | 21 | 2.34e+03 | 71.5 | 30 | 9359 | 177942 |
+| f0_A | 1 | before | 30/30 [0.89, 1.00] | 30 | 28 | 698 | 0 | 30 | 2792 | 249730 |
+| f0_A | 1 | after | 30/30 [0.89, 1.00] | 30 | 28 | 698 | 0 | 30 | 2792 | 249730 |
+| f0_A | 2 | before | 30/30 [0.89, 1.00] | 30 | 29 | 191 | 0 | 30 | 764 | 270908 |
+| f0_A | 2 | after | 30/30 [0.89, 1.00] | 30 | 29 | 191 | 0 | 30 | 764 | 270908 |
+<!-- /table:centroid_coarse_clean -->
+
+Paired by voxel, after against before (fixed = fails before and survives after; broken = the reverse; both fail =
+fails both times):
+
+<!-- table:centroid_coarse_paired -->
+| arm | level | fixed | broken | both_fail |
+|---|---|---|---|---|
+| old | 0 | 1 | 0 | 0 |
+| old | 1 | 0 | 0 | 0 |
+| old | 2 | 0 | 0 | 0 |
+| cpp | 0 | 0 | 0 | 0 |
+| cpp | 1 | 0 | 0 | 0 |
+| cpp | 2 | 0 | 0 | 0 |
+| f0_R2 | 0 | 0 | 0 | 0 |
+| f0_R2 | 1 | 0 | 0 | 0 |
+| f0_R2 | 2 | 0 | 0 | 0 |
+| f0_A | 0 | 0 | 0 | 0 |
+| f0_A | 1 | 0 | 0 | 0 |
+| f0_A | 2 | 0 | 0 | 0 |
+<!-- /table:centroid_coarse_paired -->
+
+### 10.3 End to end (E0, 200 voxels, min_sin_eta 0, clean)
+
+Wrong = error above the usual threshold. The C++, 2-pixel and geometric rows are identical before and after: the same
+wrong voxels, the same mean evaluations (so the stored runs reproduce in this build). The lenient rule gives 41 wrong
+(interval 0.15 to 0.27) against 39 before. Voxel by voxel the start-point change alone fixed 14, broke 16 and left 25
+wrong, so 30 of 200 voxels (15%) change outcome in either direction and the net is +2 wrong. With one run per voxel,
+this does not show that either start point is more accurate; it shows that a small change in the candidate list
+(a few of 10,256 level-0 candidates) moves single runs about as much as the rule differences of section 5 (not
+tested: that the flips come from the stochastic search path rather than from a systematic effect). Evaluation cost
+per voxel: 48,700 against 48,501, 0.4% more.
+
+<!-- table:centroid_e0_clean -->
+| arm | when | wrong | mean_evals | median_err_right |
+|---|---|---|---|---|
+| old | before | 39/200 [0.146, 0.255] | 48501 | 0.0086 |
+| old | after | 41/200 [0.155, 0.266] | 48700 | 0.0130 |
+| cpp | before | 56/200 [0.222, 0.346] | 47230 | 0.0223 |
+| cpp | after | 56/200 [0.222, 0.346] | 47230 | 0.0223 |
+| f0_R2 | before | 40/200 [0.150, 0.261] | 48641 | 0.0097 |
+| f0_R2 | after | 40/200 [0.150, 0.261] | 48641 | 0.0097 |
+| f0_A | before | 41/200 [0.155, 0.266] | 48649 | 0.0114 |
+| f0_A | after | 41/200 [0.155, 0.266] | 48649 | 0.0114 |
+<!-- /table:centroid_e0_clean -->
+
+Paired, after against before (rows for the other arms are the check that nothing else moved), then the other rules
+against the new lenient result (the fixed / broken split of section 5.2 with the new lenient column):
+
+<!-- table:centroid_e0_paired -->
+| arm | fixed | broken | both_wrong |
+|---|---|---|---|
+| old | 14 | 16 | 25 |
+| cpp | 0 | 0 | 56 |
+| f0_R2 | 0 | 0 | 40 |
+| f0_A | 0 | 0 | 41 |
+| cpp vs old (after) | 15 | 30 | 26 |
+| f0_R2 vs old (after) | 10 | 9 | 31 |
+| f0_A vs old (after) | 11 | 11 | 30 |
+<!-- /table:centroid_e0_paired -->
+
+### 10.4 Six full-sample voxels, lenient rule
+
+All six are right (error below 1°) before and after. Errors move in both directions (up on 15901, 18558 and 5242, down on
+the other three), as one run per voxel would. Mean evaluations 332,320 before and 332,046 after (-0.1%). The "after"
+wall times are from six processes at once (contended); "before" is the earlier run (`lenientnow`, mixed labels), so do
+not read the 3% difference in seconds as an effect.
+
+<!-- table:centroid_six_old -->
+| voxel | err_before | err_after | evals_before | evals_after | wall_before | wall_after |
+|---|---|---|---|---|---|---|
+| 15901 | 0.0170 | 0.0378 | 328519 | 327619 | 172 | 179 |
+| 17034 | 0.0284 | 0.0217 | 339561 | 340422 | 176 | 185 |
+| 18558 | 0.0048 | 0.0050 | 329367 | 329915 | 175 | 179 |
+| 19889 | 0.0210 | 0.0145 | 330209 | 329724 | 175 | 179 |
+| 22867 | 0.0263 | 0.0119 | 335687 | 333046 | 176 | 182 |
+| 5242 | 0.0493 | 0.0604 | 330577 | 331552 | 179 | 179 |
+<!-- /table:centroid_six_old -->
