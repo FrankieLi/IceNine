@@ -19,11 +19,12 @@ ICE = HERE.parents[1]
 OUT = ICE / "benchmarks" / "phase_d_seed_diag"
 sys.path.insert(0, str(ICE / "scripts" / "common"))
 import doc_tables as DT  # noqa: E402
+import gzio as GZ  # noqa: E402
 import stats as ST  # noqa: E402
 
 
 def load(pat: str) -> List[Dict[str, Any]]:
-    return [json.load(open(f)) for f in sorted(glob.glob(str(OUT / "runs" / pat)))]
+    return [GZ.load_json(f) for f in GZ.glob_paths(OUT / "runs" / pat)]
 
 
 def stage_evals(d: Dict[str, Any]) -> Dict[str, float]:

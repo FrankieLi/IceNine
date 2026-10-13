@@ -16,6 +16,7 @@ import sys  # noqa: E402
 
 sys.path.insert(0, str(ICE / "scripts" / "common"))
 import doc_tables as DT  # noqa: E402
+import gzio as GZ  # noqa: E402
 
 OUT = ICE / "benchmarks" / "phase_d_seed_diag" / "level0"
 PAR = ICE / "benchmarks" / "phase_d_seed_diag" / "mc_parity"
@@ -23,7 +24,7 @@ VOXELS = [15901, 17034, 18558, 19889, 22867, 5242]
 
 
 def load(name: str) -> Any:
-    return json.loads((OUT / name).read_text())
+    return GZ.load_json(OUT / name)
 
 
 def main() -> None:
@@ -141,7 +142,7 @@ def main() -> None:
         f = OUT / f"py_cpprule_centroid_v{v}_L0.json"
         if v == 15901:
             f = OUT / "py_cpprule_centroid_v15901.json"
-        probe = json.loads(f.read_text())["levels"][0]["n_candidates"] if f.exists() else None
+        probe = GZ.load_json(f)["levels"][0]["n_candidates"] if GZ.exists(f) else None
         vrows.append(
             dict(
                 voxel=v,

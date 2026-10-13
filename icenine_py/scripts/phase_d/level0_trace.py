@@ -32,6 +32,7 @@ ICE = HERE.parents[1]
 EX = HERE.parents[2] / "Examples" / "Example2.ManyGrains"
 OUT = ICE / "benchmarks" / "phase_d_seed_diag" / "level0"
 sys.path.insert(0, str(ICE / "scripts" / "common"))
+import gzio as GZ  # noqa: E402
 
 
 CPP_COUNT_RULE = """static void count_qualified_peaks_c(
@@ -243,11 +244,11 @@ def parse_cpp(a: argparse.Namespace) -> None:
 # Comparison, in order S4 (settings), S1 (screen), S2 (re-cost), S3 (spacing filter)
 # --------------------------------------------------------------------------------------------
 def compare(a: argparse.Namespace) -> None:
-    c = json.loads((OUT / f"cpp_v{a.voxel}.json").read_text())
+    c = GZ.load_json(OUT / f"cpp_v{a.voxel}.json")
     pyfn = OUT / f"py{a.py_tag}_v{a.voxel}.json"
-    if not pyfn.exists():
+    if not GZ.exists(pyfn):
         pyfn = OUT / f"py{a.py_tag}_v{a.voxel}_L0.json"
-    p = json.loads(pyfn.read_text())
+    p = GZ.load_json(pyfn)
     res: Dict[str, Any] = dict(voxel=a.voxel, py_file=pyfn.name)
 
     # S4 settings per level

@@ -35,6 +35,7 @@ sys.path.insert(0, str(ICE / "scripts" / "common"))
 sys.path.insert(0, str(HERE))
 import common as C  # noqa: E402
 import doc_tables  # noqa: E402
+import gzio as GZ  # noqa: E402
 import ray_overlap_summary as RS  # noqa: E402
 import stats as S  # noqa: E402
 
@@ -235,8 +236,8 @@ def six_part() -> Any:
             ("after", f"base_centroid_full_v{v}.json"),
         ):
             p = RUNS / f
-            if p.exists():
-                d = json.loads(p.read_text())
+            if GZ.exists(p):
+                d = GZ.load_json(p)
                 row[f"err_{tag}"], row[f"evals_{tag}"], row[f"wall_{tag}"] = (
                     d["err_deg"], d["evals_total"], d["wall_s"],
                 )  # fmt: skip
@@ -264,7 +265,7 @@ def six_part() -> Any:
         summ["mean_evals_after"] = float(np.mean([r["evals_after"] for r in ok]))
     for arm, f in (("cpp", "cpprule_full_v{}.json"), ("f0_R2", "rayR2_full_v{}.json"),
                    ("f0_A", "rayA_full_v{}.json")):  # fmt: skip
-        ds = [json.loads((RUNS / f.format(v)).read_text()) for v in SIX]
+        ds = [GZ.load_json(RUNS / f.format(v)) for v in SIX]
         summ[f"mean_evals_{arm}"] = float(np.mean([d["evals_total"] for d in ds]))
         summ[f"mean_wall_{arm}"] = float(np.mean([d["wall_s"] for d in ds]))
     if ok:
