@@ -5,10 +5,14 @@ benchmarks/s3_steps1_5/summary.json and tables.md (doc tables, ``doc_tables.writ
 
 Inputs found under ``--out``: timing_search_three.json, timing_search_e0.json,
 timing_crossover.json. The A/B reads the run caches of scripts/findoptimal_robustness/cache:
-``e0`` (key off), ``e0_s3on`` (BatchedQuickMC, CPU) and ``e0_s3mps`` (BatchedQuickMC, SearchDevice
-mps); the key-off arm is also compared run by run with the published E0 clean runs
-(benchmarks/findoptimal_robustness/e0_runs.npz). No p-values: counts, Wilson intervals and the
-paired split (fixed = wrong with the key off and right with it on; broken = the reverse).
+``e0_s3off`` (key off, today's defaults), ``e0_s3on`` (BatchedQuickMC, CPU) and ``e0_s3mps``
+(BatchedQuickMC, SearchDevice mps); the key-off arm is also compared run by run with the published
+E0 clean runs (benchmarks/findoptimal_robustness/e0_runs.npz). No p-values: counts, Wilson
+intervals and the paired split (fixed = wrong with the key off and right with it on; broken = the
+reverse). Baseline check (S3 review): seed 0 of the key-off arm again with the two screen defaults
+switched back (``e0_s3off_c0``: centroid screen off; ``e0_s3off_c0b0``: centroid screen and
+BatchedScreen off, the settings of the 2026-10-08 C++-faithful rerun), against the published
+pre-port and post-port numbers. cache/e0 is not read (it is the published Diagnosis cache).
 """
 
 import argparse
@@ -31,6 +35,11 @@ from csl import reduced_misorientation_deg  # noqa: E402
 
 CACHE = ICENINE_PY / "scripts" / "findoptimal_robustness" / "cache"
 PUBLISHED = ICENINE_PY / "benchmarks" / "findoptimal_robustness" / "e0_runs.npz"
+MCFAITHFUL = ICENINE_PY / "benchmarks" / "cma_finisher" / "mcfaithful" / "summary.json"
+# The 10-worker arms' case images (cache/images): the key-off arm built them in its own pool (the
+# image files are stamped within its run, see "file_times" in the summary); the key-on arms reused
+# them.
+IMAGES = {"off": "built in this arm's pool", "on_cpu": "reused", "on_mps": "reused"}
 WRONG_DEG = 1.0
 N_LEVELS = 4
 
@@ -152,7 +161,7 @@ def search_tables(name: str, s: Dict[str, Any]) -> Dict[str, str]:
                 wall=p["wall_s_median"],
                 quick=p["quick_mc_s_median"],
                 us=p["quick_mc_us_per_eval_median"],
-                cand="/".join(f"{x:.0f}" for x in p["cand_per_level_median"]),
+                cand="/".join(f"{x:g}" for x in p["cand_per_level_median"]),
                 evals=p["evals_total_median"],
                 sp_wall=p.get("speedup_wall_sum"),
                 sp_q=p.get("speedup_quick_mc_per_eval"),
@@ -364,6 +373,149 @@ def published_check(off: Dict[Tuple[int, int], Dict[str, Any]]) -> Optional[Dict
     )
 
 
+def published_seed0() -> Dict[str, Any]:
+    """Seed 0 of the published E0 clean runs: the pre-port Diagnosis / Phase C runs (e0_runs.npz)
+    and the 2026-10-08 C++-faithful rerun (cma_finisher/mcfaithful, the ``mc`` arm)."""
+    out: Dict[str, Any] = {}
+    if PUBLISHED.exists():
+        d = np.load(PUBLISHED, allow_pickle=True)
+        m = (d["variant"] == 0) & (d["seed"] == 0)
+        out["pre_port"] = dict(
+            wrong=int((d["final_err"][m] > WRONG_DEG).sum()),
+            n=int(m.sum()),
+            local=float(d["evals_local"][m].mean()),
+            glob=float(d["evals_global"][m].mean()),
+        )
+    if MCFAITHFUL.exists():
+        mc = json.loads(MCFAITHFUL.read_text())["e0"]["clean"]
+        out["post_port"] = dict(
+            wrong=int(mc["mc"]["n_wrong"]),
+            n=int(mc["n"]),
+            local=float(mc["mc"]["mean_evals_local"]),
+            glob=float(mc["mc"]["mean_evals_global"]),
+        )
+    return out
+
+
+def baseline_check(
+    off: Dict[Tuple[int, int], Dict[str, Any]],
+    c0: Dict[Tuple[int, int], Dict[str, Any]],
+    c0b0: Dict[Tuple[int, int], Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Seed 0 of the key-off arm with the two screen defaults switched back, against the published
+    numbers. ``off`` = today's defaults, ``c0`` = centroid screen off, ``c0b0`` = centroid screen
+    and BatchedScreen off."""
+
+    def seed0(r: Dict[Tuple[int, int], Dict[str, Any]]) -> Dict[Tuple[int, int], Dict[str, Any]]:
+        return {k: v for k, v in r.items() if k[1] == 0}
+
+    arms = {"defaults": seed0(off), "centroid_off": seed0(c0), "both_off": seed0(c0b0)}
+    out: Dict[str, Any] = dict(published=published_seed0(), arms={}, paired={})
+    for name, r in arms.items():
+        if not r:
+            continue
+        w = wilson_row(sum(x["wrong"] for x in r.values()), len(r))
+        w["local"] = float(np.mean([x["evals_local"] for x in r.values()]))
+        w["glob"] = float(np.mean([x["evals_global"] for x in r.values()]))
+        out["arms"][name] = w
+    for label, a, b in (
+        ("centroid screen off -> on (BatchedScreen on)", "centroid_off", "defaults"),
+        ("BatchedScreen off -> on (centroid screen off)", "both_off", "centroid_off"),
+        ("both off -> both on (today's defaults)", "both_off", "defaults"),
+    ):
+        if arms[a] and arms[b]:
+            q = paired(arms[a], arms[b])
+            for k in ("per_seed", "flips"):
+                q.pop(k, None)
+            out["paired"][label] = q
+    pub = out["published"].get("post_port")
+    if pub and "both_off" in out["arms"]:
+        w = out["arms"]["both_off"]
+        out["both_off_vs_published_rerun"] = dict(
+            wrong_here=w["wrong"],
+            wrong_published=pub["wrong"],
+            local_diff=w["local"] - pub["local"],
+            global_diff=w["glob"] - pub["glob"],
+        )
+    return out
+
+
+def baseline_tables(b: Dict[str, Any]) -> Dict[str, str]:
+    rows = []
+    pub = b["published"]
+    for key, label in (
+        ("pre_port", "published, before the MC port (Diagnosis and Phase C, 2026-10-05)"),
+        ("post_port", "published, C++-faithful MC rerun (2026-10-08)"),
+    ):
+        if key in pub:
+            x = pub[key]
+            rows.append(
+                dict(arm=label, **wilson_row(x["wrong"], x["n"]), local=x["local"], glob=x["glob"])
+            )
+    names = {
+        "both_off": "this branch, key off, centroid screen and BatchedScreen off",
+        "centroid_off": "this branch, key off, centroid screen off",
+        "defaults": "this branch, key off, today's defaults (centroid screen and BatchedScreen on)",
+    }
+    for key, label in names.items():
+        if key in b["arms"]:
+            rows.append(dict(arm=label, **b["arms"][key]))
+    tabs = {
+        "s3_ab_baseline": table(
+            rows,
+            {
+                "arm": "arm (E0 clean, seed 0, 200 voxels)",
+                "wrong": "wrong (> 1 deg)",
+                "n": "runs",
+                "rate": "rate",
+                "lo": "Wilson 95% low",
+                "hi": "Wilson 95% high",
+                "local": "local evaluations per run, mean",
+                "glob": "global evaluations per run, mean",
+            },
+            {"rate": ".3f", "lo": ".3f", "hi": ".3f", "local": ".2f", "glob": ".2f"},
+        )
+    }
+    prow = [dict(pair=k, **v) for k, v in b["paired"].items()]
+    tabs["s3_ab_baseline_paired"] = table(
+        prow,
+        {
+            "pair": "change (a -> b)",
+            "n_paired": "paired runs",
+            "wrong_a": "wrong a",
+            "wrong_b": "wrong b",
+            "fixed": "fixed (wrong a, right b)",
+            "broken": "broken (right a, wrong b)",
+            "both_wrong": "both wrong",
+            "both_right": "both right",
+            "runs_with_same_answer_1e-3deg": "same answer (1e-3 deg)",
+            "runs_with_same_eval_counts": "same evaluation counts",
+        },
+    )
+    return tabs
+
+
+def file_times(names: Dict[str, str]) -> Dict[str, Any]:
+    """First and last modification time (local, to the minute) of each arm's result files and of the
+    case images: evidence of which arm built the images."""
+    import datetime as dt
+
+    def span(files: List[Path]) -> Optional[List[str]]:
+        if not files:
+            return None
+        t = [f.stat().st_mtime for f in files]
+        f = "%Y-%m-%d %H:%M"
+        return [
+            dt.datetime.fromtimestamp(min(t)).strftime(f),
+            dt.datetime.fromtimestamp(max(t)).strftime(f),
+        ]
+
+    out = {"images": span(sorted((CACHE / "images").glob("v*_clean.npz")))}
+    for n, d in names.items():
+        out[n] = span(sorted((CACHE / d).glob("v*_clean.npz")))
+    return out
+
+
 ARM_NAMES = {
     "off": "key off",
     "on_cpu": "key on (CPU)",
@@ -398,11 +550,12 @@ def ab_tables(s: Dict[str, Any]) -> Dict[str, str]:  # s = the "ab" summary
         rows.append(
             dict(
                 arm=ARM_NAMES[name],
-                cand="/".join(f"{x:.0f}" for x in a["cand_per_level_median"]),
+                cand="/".join(f"{x:g}" for x in a["cand_per_level_median"]),
                 local=a["evals_local_mean"],
                 glob=a["evals_global_mean"],
                 quick=a["quick_mc_evals_mean"],
                 rt=None if name == "on_mps" else a["runtime_s_median"],  # worker counts differ
+                img=IMAGES.get(name),
             )
         )
     tabs["s3_ab_evals"] = table(
@@ -414,6 +567,7 @@ def ab_tables(s: Dict[str, Any]) -> Dict[str, str]:  # s = the "ab" summary
             "glob": "global evaluations per run, mean",
             "quick": "quick-MC evaluations per run, mean",
             "rt": "run time s, median (10 workers, contended)",
+            "img": "case images (cache/images)",
         },
         {"local": ".0f", "glob": ".0f", "quick": ".0f", "rt": ".1f"},
     )
@@ -524,7 +678,7 @@ def main() -> None:
         tables.update(crossover_tables(d))
     seeds = list(range(a.seeds))
     arms_dirs = {
-        "off": "e0",
+        "off": "e0_s3off",
         "on_cpu": "e0_s3on",
         "on_mps": "e0_s3mps",
         "off_2w": "e0_s3off2w",
@@ -573,6 +727,15 @@ def main() -> None:
         chk = published_check(loaded.get("off", {}))
         if chk:
             ab["published_check"] = chk
+        ab["file_times"] = file_times(arms_dirs)
+        base = {
+            n: load_arm(d, [0])
+            for n, d in (("c0", "e0_s3off_c0"), ("c0b0", "e0_s3off_c0b0"))
+            if (CACHE / d).exists()
+        }
+        if base and loaded.get("off"):
+            ab["baseline"] = baseline_check(loaded["off"], base.get("c0", {}), base.get("c0b0", {}))
+            tables.update(baseline_tables(ab["baseline"]))
         summary["ab"] = ab
         tables.update(ab_tables(ab))
     (out / "summary.json").write_text(json.dumps(summary, indent=1, default=float))

@@ -1,9 +1,27 @@
+<!-- table:s3_ab_baseline -->
+| arm (E0 clean, seed 0, 200 voxels) | wrong (> 1 deg) | runs | rate | Wilson 95% low | Wilson 95% high | local evaluations per run, mean | global evaluations per run, mean |
+|---|---|---|---|---|---|---|---|
+| published, before the MC port (Diagnosis and Phase C, 2026-10-05) | 67 | 200 | 0.335 | 0.273 | 0.403 | 4711.26 | 44478.50 |
+| published, C++-faithful MC rerun (2026-10-08) | 40 | 200 | 0.200 | 0.150 | 0.261 | 3962.95 | 44479.31 |
+| this branch, key off, centroid screen and BatchedScreen off | 40 | 200 | 0.200 | 0.150 | 0.261 | 3962.95 | 44479.31 |
+| this branch, key off, centroid screen off | 40 | 200 | 0.200 | 0.150 | 0.261 | 3962.93 | 44479.35 |
+| this branch, key off, today's defaults (centroid screen and BatchedScreen on) | 35 | 200 | 0.175 | 0.129 | 0.234 | 4122.93 | 44499.87 |
+<!-- /table:s3_ab_baseline -->
+
+<!-- table:s3_ab_baseline_paired -->
+| change (a -> b) | paired runs | wrong a | wrong b | fixed (wrong a, right b) | broken (right a, wrong b) | both wrong | both right | same answer (1e-3 deg) | same evaluation counts |
+|---|---|---|---|---|---|---|---|---|---|
+| centroid screen off -> on (BatchedScreen on) | 200 | 40 | 35 | 19 | 14 | 21 | 146 | 12 | 1 |
+| BatchedScreen off -> on (centroid screen off) | 200 | 40 | 40 | 0 | 0 | 40 | 160 | 200 | 199 |
+| both off -> both on (today's defaults) | 200 | 40 | 35 | 19 | 14 | 21 | 146 | 13 | 1 |
+<!-- /table:s3_ab_baseline_paired -->
+
 <!-- table:s3_ab_evals -->
-| arm | candidates per level, median | local evaluations per run, mean | global evaluations per run, mean | quick-MC evaluations per run, mean | run time s, median (10 workers, contended) |
-|---|---|---|---|---|---|
-| key off | 178/47/12/3 | 4125 | 44500 | 2896 | 3.8 |
-| key on (CPU) | 178/47/12/3 | 4120 | 44501 | 2896 | 2.3 |
-| key on (MPS; seed 0, voxels 0-49) | 176/47/12/3 | 4121 | 44499 | 2891 | n/a |
+| arm | candidates per level, median | local evaluations per run, mean | global evaluations per run, mean | quick-MC evaluations per run, mean | run time s, median (10 workers, contended) | case images (cache/images) |
+|---|---|---|---|---|---|---|
+| key off | 178.5/47/12/3 | 4125 | 44500 | 2896 | 3.8 | built in this arm's pool |
+| key on (CPU) | 178.5/47/12/3 | 4120 | 44501 | 2896 | 2.3 | reused |
+| key on (MPS; seed 0, voxels 0-49) | 176.5/47/12/3 | 4121 | 44499 | 2891 | n/a | reused |
 <!-- /table:s3_ab_evals -->
 
 <!-- table:s3_ab_paired -->
@@ -68,9 +86,9 @@
 <!-- table:s3_timing_e0 -->
 | arm (off = sequential quick MC) | searches | wall s, median | quick MC s, median | quick MC us per evaluation, median | candidates per level, median | evaluations per search, median | wall speedup (sum of searches) | quick-MC us per evaluation speedup |
 |---|---|---|---|---|---|---|---|---|
-| off | 20 | 1.97 | 0.98 | 359 | 168/44/12/2 | 48362 | n/a | n/a |
-| cpu | 20 | 1.19 | 0.21 | 76 | 168/44/10/2 | 48312 | 1.69 | 4.71 |
-| mps | 20 | 1.16 | 0.18 | 67 | 168/44/10/2 | 48312 | 1.73 | 5.33 |
+| off | 20 | 1.97 | 0.98 | 359 | 167.5/43.5/11.5/2.5 | 48362 | n/a | n/a |
+| cpu | 20 | 1.19 | 0.21 | 76 | 167.5/43.5/10.5/2 | 48312 | 1.69 | 4.71 |
+| mps | 20 | 1.16 | 0.18 | 67 | 167.5/43.5/10.5/2 | 48312 | 1.73 | 5.33 |
 <!-- /table:s3_timing_e0 -->
 
 <!-- table:s3_timing_three -->

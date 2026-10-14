@@ -66,6 +66,8 @@ def apply_opts(setup: Any, opts: List[str]) -> None:
         cur = getattr(setup.search_params, k)
         if isinstance(cur, bool):
             setattr(setup.search_params, k, bool(int(v)))
+        elif isinstance(cur, str):  # e.g. search_device=mps
+            setattr(setup.search_params, k, v)
         else:
             setattr(setup.search_params, k, type(cur)(float(v)))
 
@@ -162,10 +164,13 @@ def run_one(voxel: int, tag: str, opts: List[str], seed: int, out_dir: Path) -> 
     orig_many = BCost.BatchedCostEvaluator.evaluate_many
 
     def many_w(self: Any, orientations: Any, *args: Any, **kw: Any) -> Any:
+        n_before, t_before = cnt["n0"], cnt["t0"]
         t0 = time.perf_counter()
         r = orig_many(self, orientations, *args, **kw)
-        cnt["t0"] += time.perf_counter() - t0
-        cnt["n0"] += len(orientations)
+        # an unknown phase falls back to evaluate() inside, which eval_w has counted already: the
+        # call's own count replaces whatever was added during it
+        cnt["t0"] = t_before + (time.perf_counter() - t0)
+        cnt["n0"] = n_before + len(orientations)
         return r
 
     def snap() -> Dict[str, float]:

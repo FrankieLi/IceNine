@@ -1030,6 +1030,121 @@
      0
     ]
    ]
+  },
+  "file_times": {
+   "images": [
+    "2026-10-14 00:50",
+    "2026-10-14 00:56"
+   ],
+   "off": [
+    "2026-10-14 00:50",
+    "2026-10-14 00:56"
+   ],
+   "on_cpu": [
+    "2026-10-14 00:56",
+    "2026-10-14 00:59"
+   ],
+   "on_mps": [
+    "2026-10-14 00:59",
+    "2026-10-14 01:00"
+   ],
+   "off_2w": [
+    "2026-10-14 01:00",
+    "2026-10-14 01:01"
+   ],
+   "on_cpu_2w": [
+    "2026-10-14 01:01",
+    "2026-10-14 01:02"
+   ]
+  },
+  "baseline": {
+   "published": {
+    "pre_port": {
+     "wrong": 67,
+     "n": 200,
+     "local": 4711.26,
+     "glob": 44478.495
+    },
+    "post_port": {
+     "wrong": 40,
+     "n": 200,
+     "local": 3962.95,
+     "glob": 44479.305
+    }
+   },
+   "arms": {
+    "defaults": {
+     "wrong": 35,
+     "n": 200,
+     "rate": 0.175,
+     "lo": 0.12860441174608936,
+     "hi": 0.23364549210081922,
+     "local": 4122.93,
+     "glob": 44499.87
+    },
+    "centroid_off": {
+     "wrong": 40,
+     "n": 200,
+     "rate": 0.2,
+     "lo": 0.15045120743928825,
+     "hi": 0.26085639611170436,
+     "local": 3962.935,
+     "glob": 44479.35
+    },
+    "both_off": {
+     "wrong": 40,
+     "n": 200,
+     "rate": 0.2,
+     "lo": 0.15045120743928825,
+     "hi": 0.26085639611170436,
+     "local": 3962.95,
+     "glob": 44479.305
+    }
+   },
+   "paired": {
+    "centroid screen off -> on (BatchedScreen on)": {
+     "n_paired": 200,
+     "wrong_a": 40,
+     "wrong_b": 35,
+     "fixed": 19,
+     "broken": 14,
+     "both_wrong": 21,
+     "both_right": 146,
+     "runs_with_same_answer_1e-3deg": 12,
+     "runs_with_same_eval_counts": 1,
+     "runs_with_same_cost": 7
+    },
+    "BatchedScreen off -> on (centroid screen off)": {
+     "n_paired": 200,
+     "wrong_a": 40,
+     "wrong_b": 40,
+     "fixed": 0,
+     "broken": 0,
+     "both_wrong": 40,
+     "both_right": 160,
+     "runs_with_same_answer_1e-3deg": 200,
+     "runs_with_same_eval_counts": 199,
+     "runs_with_same_cost": 200
+    },
+    "both off -> both on (today's defaults)": {
+     "n_paired": 200,
+     "wrong_a": 40,
+     "wrong_b": 35,
+     "fixed": 19,
+     "broken": 14,
+     "both_wrong": 21,
+     "both_right": 146,
+     "runs_with_same_answer_1e-3deg": 13,
+     "runs_with_same_eval_counts": 1,
+     "runs_with_same_cost": 7
+    }
+   },
+   "both_off_vs_published_rerun": {
+    "wrong_here": 40,
+    "wrong_published": 40,
+    "local_diff": 0.0,
+    "global_diff": 0.0
+   }
   }
  }
 }
