@@ -316,3 +316,52 @@ def test_memmap_loader_matches_dense(tmp_path: Path) -> None:
             assert b.flags["C_CONTIGUOUS"] and not b.flags["WRITEABLE"]
     with pytest.raises(ValueError):
         ExperimentalData.from_binary_memmap(stack, n_om + 1, n_det)
+
+
+# ---------------------------------------------------------------------------------------------
+# frame_split_check: the job dict names its noise variant (render_full's default is now nodrop)
+# ---------------------------------------------------------------------------------------------
+def _stub_slow_io(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the real _worker (config, sample, 1-voxel simulation, output directories) but skip
+    the dense noise and the ASCII image writing, which take ~30 s for the 360 frames."""
+
+    def fake_noise(img: np.ndarray, rng: np.random.Generator, params: object) -> tuple:
+        return img, {k: 0 for k in ("n_spots", "n_missed", "n_dropped_px", "n_grown_px")}
+
+    def fake_write(path: str, img: np.ndarray) -> int:
+        Path(path).write_text("")
+        return int((img > 0).sum())
+
+    monkeypatch.setattr(N, "add_detector_noise", fake_noise)
+    monkeypatch.setattr(N, "write_ascii_image", fake_write)
+
+
+def test_frame_split_check_job_names_its_noise_variant(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: since the default flip the job dict of frame_split_check (no `noise` key) was
+    rendered into realistic_nodrop/ while the script read realistic/ and crashed. The job now
+    carries noise "toy", so the real _worker writes clean/ and realistic/."""
+    import torch
+
+    import frame_split_check as F
+    import render_full as RF
+
+    _stub_slow_io(monkeypatch)
+    monkeypatch.chdir(tmp_path)  # _worker changes directory; restored at teardown
+    threads = torch.get_num_threads()  # _worker sets 1 thread
+    try:
+        job = F.make_job(0, 1, [0], str(tmp_path / "fixed"))
+        assert job["noise"] == "toy" and F.REAL_DIR == RF.realistic_dirname(job["noise"])
+        RF._worker(job)
+        names = sorted(p.name for p in (tmp_path / "fixed").iterdir())
+        assert names == ["clean", F.REAL_DIR] == ["clean", "realistic"]
+        assert len(list((tmp_path / "fixed" / "realistic").iterdir())) == 360
+        # the same job without a noise key falls back to the default and misses realistic/
+        old = {k: v for k, v in job.items() if k != "noise"}
+        old["out"] = str(tmp_path / "nokey")
+        RF._worker(old)
+        names = sorted(p.name for p in (tmp_path / "nokey").iterdir())
+        assert names == ["clean", "realistic_nodrop"]
+    finally:
+        torch.set_num_threads(threads)
