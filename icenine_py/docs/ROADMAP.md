@@ -59,7 +59,10 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
 
 ## From Ilium Agent
 
-(none yet)
+- 2026-10-13 heads-up: the next Track S task, S1 (not started; waits for the owner), changes
+  `VoxelCostFunction.evaluate` and `calculate_diffraction_overlap_batched` in
+  `icenine/cost_functions.py` (stage-A lookup table, image table built once per cost function); the
+  default path stays bit-identical. Ilium Agent merges `feature/eval-reduction` (A-exact) first, as asked.
 
 # State on 2026-10-13
 

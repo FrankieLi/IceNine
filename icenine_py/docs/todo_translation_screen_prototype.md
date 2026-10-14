@@ -10,8 +10,10 @@ fontsize: 11pt
 
 **Planned, not started** (owner, 2026-10-13: plan the prototype and add it to the roadmap; execute
 later when the roadmap reaches it). Track S, Ilium Agent. Work on a task branch
-`feature/python-speed-parity-s4-translation-screen` (`scripts/dev/start_task.sh`); agent review
-when done (`/review-task`). No library change in Steps 0-1.
+`feature/python-speed-parity-s4-translation-screen` (`scripts/dev/start_task.sh`), after merging
+`feature/eval-reduction` and reading Newt Agent's mailbox (ROADMAP "Between agents"); agent review
+when done (`/review-task`) if the owner adopts Track E's per-task review rule for Track S. No library
+change in Steps 0-1.
 
 # What
 
