@@ -115,6 +115,14 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   Record every owner decision there before acting on it, save each to your shmem (`shmem add --source
   user`), and push. I backfilled it from this file's owner decisions; please add any Track E decision
   that is missing, and save the existing entries to your shmem once.
+- 2026-10-14 heads-up: Q8 is merged into `feature/python-speed-parity` (c83484e). The noise defaults
+  are now no drop (D-20261014-I6): `NoiseParams` (`scripts/phase_d/noise.py`), `RealismConfig`
+  (`icenine/orientation_eval.py`), `render_full.py` (renders into `<tag>/realistic_nodrop/` and
+  refuses to write into a non-empty `clean/` or `realistic/`) and the E0 harness default variants.
+  Named variants keep their meaning (`toy`, `all` keep the 10% drop), so your images and caches stay
+  valid. Studies stay on clean images (D-20261014-I5); no Phase D runs on the noisy images for now
+  (D-20261014-I7). New entries D-20261014-I5 to I8 and the backfill D-20261012-I3 (the ray rule may
+  become the default) are in `docs/DECISIONS.md`. Results: MIGRATION_HISTORY "Q8".
 
 # State on 2026-10-13
 
@@ -234,7 +242,7 @@ owner review in between.
 |---|---|---|
 | X1 | full-sample BFS end to end on the 500-grain sample (classic vs NN and hybrid finisher) | data and library ready; long runs deferred 2026-10-09, again 2026-10-13 ("later") (`todo_500grain_bfs_end_to_end.md`) |
 | X2 | reseed on other regions, seed orders and full-sample scale | deferred 2026-10-09 |
-| Q8 | noise model of the realistic images (unphysical 10% spot drop) | owner 2026-10-13: remove the random spot drop (keep jitter, hot pixels, blobs), then re-render and re-run the realistic comparisons; Ilium Agent (owner 2026-10-13); **planned** (`docs/todo_q8_noise_nodrop.md`), Step 0 done: Phase D Q-max 8 images regenerated on Ilium Agent's machine, identical to Newt Agent's; plan approved 2026-10-13 (re-runs on the 200-voxel set only), after S3; covers the E0 per-voxel noise (`RealismConfig`) too; blocks every realistic-image comparison |
+| Q8 | noise model of the realistic images (unphysical 10% spot drop) | owner 2026-10-13: remove the random spot drop (keep jitter, hot pixels, blobs), then re-render and re-run the realistic comparisons; Ilium Agent (owner 2026-10-13); **Steps 1-8 done 2026-10-14** on `feature/python-speed-parity-q8-nodrop` (not merged; `docs/todo_q8_noise_nodrop.md`, MIGRATION_HISTORY "Q8"): no-drop variants for Phase D (`render_full.py --noise nodrop`, `full/realistic_nodrop` rendered at Q-max 8 only) and E0 (`RealismConfig` `all_nodrop`, label `realistic_nodrop`); E0 200-voxel re-runs of the Q3 and ray-overlap rows on clean, old realistic and no-drop images (the lenient rule's lead on the old realistic images is gone on the no-drop ones; `min_sin_eta` 0 mean evaluations per voxel on the no-drop images: lenient 51,901, ray 2-pixel window 51,652, C++ rule 49,281). Owner decisions of 2026-10-14 (D-20261014-I5 to I8): **no drop is now the default noise** (Step 6: `NoiseParams()`, `RealismConfig()`, `render_full.py`, E0 harness default images `clean` and `realistic_nodrop`; the named variants `toy`, `all`, `noise` keep the 10% drop; the six `*_realistic*.config` Phase D arms still read the drop images); studies stay on clean images, so the rule "clean images only" is not lifted; no Phase D runs on noisy images for now. Step 7 (are the noisy images easier): the no-drop images give more level-0 candidates in 200 of 200 voxels for the lenient and ray rules, 199 of 200 for the C++ rule (lenient median 182 against 289) and a wider cost function (level-0 halfway width 0.235 to 0.310 degrees), but the closest candidate is at the same distance in 174 of 200 voxels (lenient) and the link to the fixed voxels is weak; cause untested (neighbour layer against noise not separated). Step 8: the four lenient wrong counts that differed from the stored ones are the vertex-0 against centroid screen start (arm `offv0` reproduces all four). Open: the Phase D pilot and reseed on no-drop images (skipped for now, X1); whether any other study script (own `VARIANTS = ["clean", "all"]`) should move to no-drop |
 | X3 | multiple detectors with many grains and voxels far from the axis | deferred (`todo_multidetector_many_grains.md`) |
 | X4 | intensity inputs and distribution losses for the orientation network | deferred (`todo_intensity_and_distribution_losses.md`) |
 | X5 | not yet ported: MPI server/client, step-size file reading, unique-reflection filtering, quadtree peak search | open |

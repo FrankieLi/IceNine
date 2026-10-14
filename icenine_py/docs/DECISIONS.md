@@ -151,3 +151,31 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the merged commits e5a2cbb..e609c74. The owner also asked
   for a plain-English status page of Track E, kept in the branch:
   `docs/status_eval_reduction_2026-10-14.md`. Where: ROADMAP Track E row C; that status page.
+### D-20261012-I3 · ray rule (finisher study) · The ray rule may become the default
+- 2026-10-12, owner. Recorded by Ilium Agent (backfill, 2026-10-14). Supersedes: none.
+- "The ray rule as the default is fine": it ties the lenient rule on clean images and costs 6% more
+  evaluations than the C++ rule on full-sample voxels, against 46% for the lenient rule. The code
+  default was not changed (still off); the flip is a follow-up. Where:
+  `docs/findings_ray_overlap_rule_2026-10.md` (decisions table).
+
+### D-20261014-I5 · Q8 · Studies stay on clean images
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- The "clean images only" rule is not lifted after Q8: the noisy images are not needed for the
+  studies. Where: ROADMAP "How to use this file"; Q8 row.
+
+### D-20261014-I6 · Q8 · The realistic noise default becomes no drop
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: the "no default flips" rule of the Q8 plan.
+- The realistic noise models default to no random spot drop (`p_miss 0`; jitter, hot pixels and blobs
+  kept), in Phase D (`NoiseParams`) and E0 (`RealismConfig`). Done on the Q8 task branch. Where:
+  ROADMAP Q8; `docs/todo_q8_noise_nodrop.md`.
+
+### D-20261014-I7 · Q8, X1 · No Phase D runs on the noisy images for now
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- The Phase D pilot and reseed are not re-run on `full/realistic_nodrop`; noisy-image runs are
+  skipped for now. Where: ROADMAP Q8, X1.
+
+### D-20261014-I8 · Q8 · Check why noisy images are easier to reconstruct
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- Owner's experience: noisy images give more candidates and a wider cost function, so the search is
+  easier. Check it where the data does not already show it (every rule has fewer wrong voxels on the
+  no-drop E0 images than on clean). Where: ROADMAP Q8.

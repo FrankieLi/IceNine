@@ -8,7 +8,7 @@ fontsize: 11pt
 
 # Status
 
-**Approved 2026-10-13; Step 0 done** (owner: remove the random spot drop, keep jitter, hot pixels and
+**Approved 2026-10-13; Step 0 done; Steps 1, 2, 4 and 5 done 2026-10-14, Step 3 not needed; Steps 6-8 done 2026-10-14** (branch `feature/python-speed-parity-q8-nodrop`, not merged; results and the owner's decisions (D-20261014-I5 to I8, all answered) are in MIGRATION_HISTORY "Q8"; the Phase D pilot row of Step 4 was not run, by decision D-20261014-I7) (owner: remove the random spot drop, keep jitter, hot pixels and
 blobs; Ilium Agent does the render; generate the Phase D data on Ilium Agent's machine; Step 4 on the
 200-voxel set only). Runs after S3 (same checkout, and its renders and re-runs would disturb S3's
 timings). Branch: task branch
@@ -88,8 +88,54 @@ the findings that quote realistic results (pointing to the no-drop figures); ROA
 "How to use this file" rule "clean images only until Q8" (a shared section: the owner decides when to
 lift it).
 
+# Steps 6-8 (owner 2026-10-14, after Steps 1-5)
+
+Owner decisions on the Steps 1-5 results (`docs/DECISIONS.md`): studies stay on clean images
+(D-20261014-I5; the "clean images only" rule is not lifted); the realistic noise default becomes no
+drop (D-20261014-I6); no Phase D runs on the noisy images for now (D-20261014-I7); check why the noisy
+images are easier (D-20261014-I8). The ray rule may become the default (D-20261012-I3, backfilled);
+that flip is not part of Q8.
+
+**Step 6: no drop becomes the default.** Whatever a caller gets without naming a variant is no-drop;
+every named variant keeps its meaning, so existing images, caches and run records stay valid and
+reproducible by name.
+
+- Phase D: the `NoiseParams` default is the `nodrop` values; `toy` stays a named variant (10% drop).
+  `render_full.py` without `--noise` renders no-drop into `<tag>/realistic_nodrop/`; it must never
+  write into the existing `realistic/` (drop) directories. The `*_realistic.config` arms are left as
+  they are (no Phase D runs, D-20261014-I7); list them in the report.
+- E0: the harness's default realistic variant becomes `all_nodrop`; `RealismConfig.named("all")` keeps
+  the drop. If `RealismConfig()` itself defaults to `p_miss` 0.1, it becomes 0.
+- Tests that rely on today's defaults name `toy` / `all` explicitly; add tests that the defaults are
+  no-drop. If a golden file depends on a noise default, stop and report (no golden regeneration).
+
+**Step 7: are the noisy images easier? (owner's experience: more candidates and a wider cost
+function).** The existing data covers only the fine scale: Phase A (MIGRATION_HISTORY, 2026-10-07)
+shows the realistic (with drop) cost rising about 30% more slowly than clean within 0.1° of the
+truth. Nothing covers the candidates or the degree scale where the wrong voxels come from. Analysis
+only, no full searches: the 200-voxel E0 set, seed 0, images `clean` and `all_nodrop`, the Step 4
+arms at `min_sin_eta` 0 with the lenient rule and the ray 2-pixel window (the C++ rule too if cheap).
+
+- (a) Candidates: per voxel, the number of level-0 candidates passing the screen, the misorientation
+  of the closest one to the truth, the number within 1° and within 3°, and the closest one's rank in
+  the screen's order.
+- (b) Cost width: rotate the truth by r in {0.03, 0.1, 0.3, 0.5, 1, 2, 3}° about the same 50 random
+  axes for both image sets; the level-0 cost and the final cost. Report the median cost per r and a
+  width: the smallest r at which the median reaches halfway from cost(truth) to the cost at 3°.
+- (c) Link to the outcome: group the voxels by the Step 4 pairing of no drop against clean (fixed,
+  broken, both right, both wrong) for the lenient arm and the ray 2-pixel arm, and give (a) and (b)
+  per group.
+- Budget: estimate first; if the compute would exceed about 1 h, stop and report before running.
+  Output in `benchmarks/q8_nodrop/step7/` (`tables.md`, `summary.json`), with `RUN_LOG.md` entries.
+
+**Step 8: docs.** MIGRATION_HISTORY "Q8" (the default flip, Step 7, the decisions above, and the owner
+decisions it listed as open, now answered); README (noise defaults, new scripts); ROADMAP Q8 row.
+Explain in the report every lenient wrong count that differs from the stored one (Step 4: 35 against
+40 at `min_sin_eta` 0.3 clean, 41 against 39 at 0 clean, 27 against 25 and 25 against 18 realistic).
+
 # Rules
 
 No default flips (the defaults stay `toy` and `all`; switching any default to no-drop is listed for
 the owner); no golden regeneration; existing images and run records untouched; clean-image results
-are not affected.
+are not affected. **Superseded in part 2026-10-14 (D-20261014-I6):** Step 6 flips the noise defaults
+to no drop; the other rules stand.

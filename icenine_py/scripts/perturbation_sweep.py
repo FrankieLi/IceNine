@@ -257,7 +257,8 @@ def render_batch(
 ) -> Dict[str, torch.Tensor]:
     """Windows (+ context, nominal offsets, valid mask) for a batch of cases, each with its own
     prepared nominal (None = case not run: zero windows). delta_true (B, 3) is the truth's offset
-    from each case's nominal. For variant "all" the distractor layer of each case uses its fixed
+    from each case's nominal. For variant "all" (or "all_nodrop": the same without the random
+    spot drop, Q8) the distractor layer of each case uses its fixed
     draws dis_draws[j] = (source offsets (S, 3) deg, source active (S,)), and the whole batch goes
     through make_realistic_dataset with a fixed seed and the padding mask. If `layers` is a dict
     it is filled with the pre-realism target windows ("clean") and the distractor layer ("dis"),
@@ -282,7 +283,7 @@ def render_batch(
             ctx = torch.zeros(B, M, p.context.shape[-1])
         w, _ = render_windows(p.obs, p.spec, delta_true[j : j + 1])
         win[j, : p.n] = w[0]
-        if variant == "all" and sources:
+        if variant in ("all", "all_nodrop") and sources:
             off, act = dis_draws[j]  # type: ignore[index]
             d = render_distractor_windows(
                 p.obs,
