@@ -6476,6 +6476,32 @@ keyword arguments when they are not positional.
 about 58% of the evaluations with the C++ rule and is untouched); reproducing the second candidate re-cost of C++ (it would only add evaluations);
 an E0 run on the realistic images (excluded by the plan).
 
+### Task A-exact: `CppEdgeRules` lights a detector exactly as C++ (2026-10-13, `feature/eval-reduction-A-exact`)
+
+Owner decision 2026-10-13: `CppEdgeRules` stays off by default; make it exact for the cost and the peak overlap (pixel
+counts need not match). Under the switch only, a detector is lit iff the pixel overlap is > 0 or one of the three
+vertices is in bounds (C++ `OverlapInfo.h:501-514`); the `n_lit > 0` clause (lit on any produced pixel) is no longer
+applied. Changed: `icenine/_rasterize.c` (`stage_d_overlap`; module constant `HAS_VERTEX_LIT` = 2 marks the exact
+build, so an extension built with the earlier superset rule is treated as stale and the slow path is used with the
+existing warning) and the slow path of `calculate_diffraction_overlap_batched` in `icenine/cost_functions.py`; docstring
+and README row updated. One new test (`test_triangle_with_pixels_and_no_vertex_in_bounds_is_unlit_with_the_switch`).
+The default path (switch off) takes the same branches as before.
+
+*Fixed-orientation parity rerun* (the Task A Step 0 inputs, 2,230 orientations of voxels 15901, 22867, 5242, C++ driver
+rebuilt from `step0/cpp_parity_patch.py.txt` and rerun, Python with the rebuilt extension): the rows of
+`results.json.gz` are identical to the committed Step 0 rows for all four Python arms (default and `CppEdgeRules`, screen
+and complete cost), so the summary tables of Task A stand: with `CppEdgeRules`, peak overlap and peak-on-detector equal
+C++ on 2,230 of 2,230 orientations of the complete cost and on 2,229 of 2,230 of the screen. The old (superset) and
+exact rules give the same counts on all of them, i.e. no peak of the test set has a triangle with pixels and no vertex
+in bounds, so the test cannot distinguish the two rules (the C unit test and a slow-path check do). Residual: one screen
+orientation (voxel 15901, pair 885, `pair_differ_pass`) differs by one overlapping peak (C++ 1, Python 0 of 17): a peak
+whose omega is 3 float32 ulps from a frame boundary gets a different frame (cause named by the per-peak record;
+not tested further). Pixel counts match on 1,985 of 2,230 (89.0%) of the complete cost, as before (not a goal).
+Slow path against the C path (`scripts/eval_reduction/slow_path_check.py`) with `CppEdgeRules` on and off, voxel 5242, 48 evaluations (12 per arm, dense images):
+identical peak and pixel counts and quality; with a stub that returns zero overlap and five lit pixels for every
+triangle, the slow path with the switch lights the same detectors as the C path on an all-dark image (peak-on-detector
+sums 770 and 215, complete cost and screen).
+
 ## Python speed parity: per-evaluation cost (2026-10-13)
 
 Branch `feature/python-speed-parity` (off `feature/eval-reduction` at 0c187a4). Question from the owner: why is the
