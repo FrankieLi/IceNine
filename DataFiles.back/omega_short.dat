@@ -1,0 +1,6 @@
+Omega start, Omega stop, wobble(x), wobble(y); Omega in degrees, wobble in mm
+00000 00001,              files for L1   Layer 1 or two layer measurement
+00000 00001,              files for L2
+00000 00001,              files for L2
+180, 179, 0, 0
+181, 182, 0, 0

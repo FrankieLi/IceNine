@@ -1,0 +1,27 @@
+##
+#
+#  Constrain file
+#
+#
+
+
+{
+
+JUnitVector			1  0  0   # temporarily not used
+KUnitVector			0 -1  0   # internally, this is set manually
+
+
+BeamCenterJ     2.0
+BeamCenterK     2.0
+
+LabFrameLocation     0.050 0 0    #
+LabFrameOrientation  .2 .2 0
+
+
+NumJPixels					0
+NumKPixels					0
+
+PixelJLength         0
+PixelKLength         0
+
+}

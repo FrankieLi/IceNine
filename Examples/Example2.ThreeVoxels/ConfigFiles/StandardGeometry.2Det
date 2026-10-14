@@ -1,0 +1,25 @@
+{
+JUnitVector 1 0 0
+KUnitVector 0 -1 0
+BeamCenterJ 1022.77
+BeamCenterK 1925.81
+LabFrameLocation  3.36157 0 0
+LabFrameOrientation  88.8226 88.6381 359.787
+NumJPixels  2048
+NumKPixels  2048
+PixelJLength 0.00148
+PixelKLength  0.00148
+}
+
+{
+JUnitVector 1 0 0
+KUnitVector 0 -1 0
+BeamCenterJ 1020.3
+BeamCenterK 1921.31
+LabFrameLocation  5.38718 0 0
+LabFrameOrientation  88.3889 88.8915 359.864
+NumJPixels  2048
+NumKPixels  2048
+PixelJLength 0.00148
+PixelKLength  0.00148
+}

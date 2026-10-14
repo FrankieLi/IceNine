@@ -40,6 +40,7 @@
 //--------------------------------------------------------------------------------------------------------
 
 #include "ForwardSimulation.h"
+#include <iomanip>
 
 
 //--------------------------------------------------------------------------------------------------------
@@ -215,19 +216,47 @@ void CXDMForwardSimulation::SimulatePeaks( ImageMap & oSimData, const DetectorLi
   for( vector<SVoxel>::const_iterator pCurVoxel = pMic->VoxelListBegin();
        pCurVoxel != pMic->VoxelListEnd(); pCurVoxel ++ )
   {
+    // DEBUG: Print all reciprocal vectors for first voxel only (before incrementing)
+    Int nCryStructIndex = pCurVoxel->nPhase;
+    const vector<CRecpVector> & oRecipVectors = oCryStructList[ nCryStructIndex ].GetReflectionVectorList();
+
+    if (nVoxelCount == 0) {
+      std::cout << "=== C++ Debug: First Voxel (phase " << nCryStructIndex << ") ===" << std::endl;
+      // Print orientation matrix
+      std::cout << "Orientation matrix:" << std::endl;
+      for(int i = 0; i < 3; i++) {
+        std::cout << "  [";
+        for(int j = 0; j < 3; j++) {
+          std::cout << std::setw(12) << std::setprecision(6) << pCurVoxel->oOrientMatrix.m[i][j];
+          if (j < 2) std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
+      }
+      std::cout << std::endl;
+    }
+
     nVoxelCount ++;
-    
+
     if( nVoxelCount %10000 == 0 )
       std::cout << nVoxelCount << std::endl;
     //------------------------------------------
-    Int nCryStructIndex = pCurVoxel->nPhase;
-    const vector<CRecpVector> & oRecipVectors = oCryStructList[ nCryStructIndex ].GetReflectionVectorList(); 
-    //-------------------------------------------
-    
-    for(Size_Type nRecipIndex = 0; nRecipIndex < oRecipVectors.size();  nRecipIndex++)   
+
+    for(Size_Type nRecipIndex = 0; nRecipIndex < oRecipVectors.size();  nRecipIndex++)
     {
-      SVector3 oScatteringVec  = oRecipVectors[nRecipIndex].v; 	
+      SVector3 oScatteringVec  = oRecipVectors[nRecipIndex].v;
       oScatteringVec.Transform( pCurVoxel->oOrientMatrix );    // g_hkl' = O * g_hkl
+
+      // DEBUG: Print first 5 transformed Q-vectors for first voxel
+      if (nVoxelCount == 1 && nRecipIndex < 5) {
+        const CRecpVector & recip = oRecipVectors[nRecipIndex];
+        std::cout << "  Recip [" << nRecipIndex << "] h=" << recip.h << " k=" << recip.k << " l=" << recip.l << std::endl;
+        std::cout << "    Original Q: (" << recip.v.m_fX << ", " << recip.v.m_fY << ", " << recip.v.m_fZ << ")" << std::endl;
+        std::cout << "    Transformed Q: (" << oScatteringVec.m_fX << ", " << oScatteringVec.m_fY << ", " << oScatteringVec.m_fZ << ")" << std::endl;
+      }
+      if (nVoxelCount == 1 && nRecipIndex == 5) {
+        std::cout << "=== END C++ Debug ===" << std::endl;
+        exit(0);
+      }
 
       // ----------- CHECK THIS
       //
