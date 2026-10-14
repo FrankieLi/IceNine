@@ -187,9 +187,12 @@ $\mathbf{c}_p$) does not depend on the voxel. Per voxel, projecting a peak costs
 matrix-vector product, $\mathbf{u}_p = A_p\mathbf{x} + \mathbf{c}_p$, followed by the pixel test.
 
 - The level-0 orientation set (4,886 FZ points $\times$ 9 local-grid points = 43,974 orientations;
-  the local grid is cached per level in `reconstructor.py`) is identical for every voxel. A table of
-  $(f_p, A_p, \mathbf{c}_p)$ per orientation and peak can be built once per sample (about 50 peaks
-  per orientation at Q-max 5, so a few million peaks, tens of MB in float32).
+  the local grid is generated deterministically, `reconstructor.py:513`) is identical for every
+  voxel. A table of $(f_p, A_p, \mathbf{c}_p)$ per orientation and peak can be built once per sample
+  (up to about 50 peaks per orientation at Q-max 5, so one to two million peaks; with two detectors,
+  of order 100-250 MB, to be measured). Plan: `docs/todo_translation_screen_prototype.md`; after
+  `BatchedScreen` the level-0 screen is only about 1% of a no-start search, so the payoff depends on
+  ROADMAP S2 and S3.
 - A BFS neighbour's first evaluation (the inherited orientation at a new position) is a translation
   of the parent's spots.
 - The quick MC, FindOptimal and the higher levels propose new orientations per voxel and gain
