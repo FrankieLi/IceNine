@@ -75,6 +75,10 @@ class SearchCandidate:
     orientation: np.ndarray  # 3x3 rotation matrix
     cost: float = 1.0
     overlap_info: Optional[OverlapInfo] = None
+    # clique: index of the FZ point whose local grid produced the candidate (C++ "clique",
+    # DiscreteSearch.h GetSpacedCandidates); -1 = not from a discrete search. Read only by
+    # candidate_dedup (config key CandidateDedup); no other code uses it.
+    clique: int = -1
 
     def __lt__(self, other: "SearchCandidate") -> bool:
         return self.cost < other.cost
@@ -165,6 +169,11 @@ class SearchParameters:
     # equal to evaluate), "mps" or "cuda" (a GPU result is not bit-equal to the CPU's).
     batched_quick_mc: bool = False
     search_device: str = "cpu"
+    # candidate_dedup: opt-in (config key CandidateDedup), default "off". Clique filter and
+    # de-duplication of the coarse levels' candidates (icenine/candidate_dedup.py, DedupSpec):
+    # before the quick MC (best k per clique; drop candidates within t x diameter of a better one)
+    # and after it, before the ranking cut (the kept quarter counted over distinct candidates).
+    candidate_dedup: str = "off"
     # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
     # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
     # 0 .. ray_rule.levels-1 (default 0-2): screen, re-cost, quick MC and ranking cut. FindOptimal,
@@ -195,6 +204,9 @@ class SearchParameters:
             raise ValueError(
                 f"search_device must be 'cpu', 'mps' or 'cuda', got {self.search_device!r}"
             )
+        from .candidate_dedup import DedupSpec
+
+        DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
 
     @classmethod
     def from_config(cls, config) -> "SearchParameters":
@@ -229,6 +241,7 @@ class SearchParameters:
             screen_explicit="BatchedScreen" in getattr(config, "_initialized", ()),
             batched_quick_mc=bool(getattr(config, "batched_quick_mc", False)),
             search_device=str(getattr(config, "search_device", "cpu")),
+            candidate_dedup=str(getattr(config, "candidate_dedup", "off")),
             ray_rule=ray_rule_from_config(config),
         )
         # unstudied combination: warn only (owner 2026-10-12), do not force CppOverlapRule
@@ -490,6 +503,7 @@ def run_discrete_search_spaced(
                     SearchCandidate(
                         orientation=candidate_orientation,
                         cost=0.0,  # will be set by local cost fn below
+                        clique=fz_idx,
                     )
                 )
                 screen_j.append(lg_idx)

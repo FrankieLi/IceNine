@@ -1,0 +1,199 @@
+{
+ "voxel": 19889,
+ "tag": "c1_t05",
+ "opts": [
+  "candidate_dedup=pre=0.5"
+ ],
+ "seed": 1,
+ "preflight": {
+  "timestamp": "2026-10-14T12:35:18",
+  "host": "newt.lan",
+  "loadavg": [
+   2.12890625,
+   2.28955078125,
+   2.2080078125
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 96198,
+    "cpu": 100.0,
+    "command": "/System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged"
+   }
+  ],
+  "not_quiet": "machine not quiet for timing: 1-min load 2.13 > 1.5; busy process pid 96198 (100% CPU): /System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged"
+ },
+ "label": "single-worker, contended",
+ "quiet_preflight": false,
+ "wall_s": 129.286819292,
+ "evals_total": 298615,
+ "evals_by_radius": {
+  "r3": 77643,
+  "r0": 220972
+ },
+ "eval_time_s": 120.51522746800224,
+ "mean_us_per_eval": 403.58062209869644,
+ "library_eval_counts": [
+  77643,
+  220972,
+  298615
+ ],
+ "totals": {
+  "screen": 77643,
+  "recost": 67097,
+  "quick": 152568,
+  "find": 161,
+  "variance": 1145,
+  "final": 1,
+  "sum": 298615
+ },
+ "levels": [
+  {
+   "level": 0,
+   "fz_in": 4886,
+   "n_local": 9,
+   "n_recip": 26,
+   "diameter_deg": 5.0,
+   "candidates": 10286,
+   "cliques": 4886,
+   "passed_screen": 34608,
+   "screen_evals": 43974,
+   "recost_evals": 34608,
+   "screen_eval_s": 1.0220569120000094,
+   "recost_eval_s": 18.439803536000024,
+   "discrete_s": 22.388458125,
+   "kept": 2571,
+   "dropped": 7715,
+   "quick_evals": 94272,
+   "quick_s": 52.872665375,
+   "quick_calls": 7856,
+   "stage_evals": 172854
+  },
+  {
+   "level": 1,
+   "fz_in": 2571,
+   "n_local": 9,
+   "n_recip": 50,
+   "diameter_deg": 3.3333333333333335,
+   "candidates": 3567,
+   "cliques": 2571,
+   "passed_screen": 22095,
+   "screen_evals": 23139,
+   "recost_evals": 22095,
+   "screen_eval_s": 0.9154985369999338,
+   "recost_eval_s": 11.7783897879997,
+   "discrete_s": 13.9759715,
+   "kept": 891,
+   "dropped": 2676,
+   "quick_evals": 41208,
+   "quick_s": 23.097787999999994,
+   "quick_calls": 3434,
+   "stage_evals": 86442
+  },
+  {
+   "level": 2,
+   "fz_in": 891,
+   "n_local": 9,
+   "n_recip": 64,
+   "diameter_deg": 2.2222222222222223,
+   "candidates": 1118,
+   "cliques": 891,
+   "passed_screen": 7884,
+   "screen_evals": 8019,
+   "recost_evals": 7884,
+   "screen_eval_s": 0.3856692929999781,
+   "recost_eval_s": 4.21675885300013,
+   "discrete_s": 5.035537167000001,
+   "kept": 279,
+   "dropped": 839,
+   "quick_evals": 13128,
+   "quick_s": 7.349190582999995,
+   "quick_calls": 1094,
+   "stage_evals": 29031
+  },
+  {
+   "level": 3,
+   "fz_in": 279,
+   "n_local": 9,
+   "n_recip": 112,
+   "diameter_deg": 1.4814814814814814,
+   "candidates": 340,
+   "cliques": 279,
+   "passed_screen": 2510,
+   "screen_evals": 2511,
+   "recost_evals": 2510,
+   "screen_eval_s": 0.19515474899996832,
+   "recost_eval_s": 1.3206621340006137,
+   "discrete_s": 1.65082237499999,
+   "kept": 85,
+   "dropped": 255,
+   "quick_evals": 3960,
+   "quick_s": 2.190488749999986,
+   "quick_calls": 330,
+   "stage_evals": 8981
+  }
+ ],
+ "find": [
+  {
+   "index": 0,
+   "evals": 161,
+   "wall_s": 0.08891266699998823,
+   "cost": 0.07971014492753614
+  }
+ ],
+ "find_optimal": {
+  "winner_index": 0,
+  "n_evaluated": 1,
+  "n_candidates": 330,
+  "converged": true
+ },
+ "variance": {
+  "evals": 1145,
+  "wall_s": 0.6320149580000134
+ },
+ "final": {
+  "evals": 1,
+  "wall_s": 0.0005366670000057638
+ },
+ "calls": {
+  "find": [
+   {
+    "kind": "find",
+    "evals": 161,
+    "cost": 0.07971014492753614,
+    "blocks": 5,
+    "steps": 155,
+    "restarts": 3,
+    "accepts": 2,
+    "stop": 1
+   }
+  ],
+  "variance": [
+   {
+    "kind": "variance",
+    "evals": 1145,
+    "cost": 0.07971014492753614
+   }
+  ],
+  "quick": {
+   "n": 12714,
+   "evals_total": 152568,
+   "evals_per_call": {
+    "min": 12,
+    "median": 12.0,
+    "max": 12
+   },
+   "blocks_mean": 1.0,
+   "stop_codes": {
+    "0": 12714
+   }
+  }
+ },
+ "err_deg": 0.026011079172656364,
+ "cost_final": 0.07971014492753614,
+ "c_ext": true
+}

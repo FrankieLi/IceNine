@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TYPE_CHECKIN
 import numpy as np
 import torch
 
+from .candidate_dedup import DedupSpec, distinct_order, keep_before_quick_mc
 from .config_file import ConfigFile
 from .cost_functions import OverlapInfo, VoxelCostFunction
 from .crystal_structure import CrystalStructure
@@ -498,6 +499,9 @@ class AdaptiveVoxelReconstructor:
             get_symmetry_quaternions(symmetry) if symmetry is not None else np.zeros((0, 4))
         )
 
+        # CandidateDedup (opt-in, default off): clique filter / de-duplication of the candidates
+        dedup = DedupSpec.parse(getattr(self.params, "candidate_dedup", "off"))
+
         # Initialize search state
         # C++ DiscreteAdaptive.tmpl.cpp:139-141
         fz_orientations = self.setup.fz_orientations  # full FZ set initially
@@ -614,7 +618,15 @@ class AdaptiveVoxelReconstructor:
             # Phase 3: Quick MC on all candidates (10 steps, 5 restarts)
             # C++ DiscreteAdaptive.tmpl.cpp:173-194
             t_mc = time.time()
-            ids = {id(c): i for i, c in enumerate(candidates)}
+            ids = {id(c): i for i, c in enumerate(candidates)}  # index in the "discrete" record
+            n_discrete = len(candidates)
+            if dedup.clique or dedup.pre > 0:
+                # CandidateDedup C0 / C1 (before the quick MC, so both quick-MC paths see it): the
+                # candidates dropped here are not run, ranked or kept; ``ids`` keeps the indices
+                # of the "discrete" record
+                candidates = self._dedup_before_quick_mc(
+                    dedup, candidates, diameter, symmetry_quats
+                )
             disc_scores = np.array([c.cost for c in candidates])
             trial_radius = max(diameter / 3.0, math.radians(0.2))
             # C++ ContinuousSearch.h:70-73 CalculateSearchParameter
@@ -644,6 +656,7 @@ class AdaptiveVoxelReconstructor:
 
             # Phase 4: Shrink diameter, keep top 1/4
             # C++ DiscreteAdaptive.tmpl.cpp:196-205
+            level_diameter = diameter
             diameter /= 1.5
             pre_sort = list(candidates)  # discrete-stage order (the quick MC mutated in place)
             if self.rank_key is not None:
@@ -653,10 +666,32 @@ class AdaptiveVoxelReconstructor:
                 candidates = [candidates[i] for i in order]
             else:
                 candidates.sort()
+            n_distinct = -1
+            if dedup.post > 0:
+                # CandidateDedup C2: the distinct candidates (within post x diameter of no better
+                # one) first, in rank order, then the passed-over ones; the best stays first
+                order, n_distinct = distinct_order(
+                    dedup,
+                    np.stack([c.orientation for c in candidates]),
+                    level_diameter,
+                    symmetry_quats,
+                )
+                candidates = [candidates[i] for i in order]
             self.last_level_best.append(
                 (level, candidates[0].orientation.copy(), float(candidates[0].cost))
             )
-            n_keep = max(1, int(len(candidates) * self.keep_fraction))
+            if dedup.active:
+                # the quarter is counted from the discrete stage's list (freed slots go to the next
+                # candidate) or, quarter=filtered, from the list the last filter left
+                n_base = n_discrete if dedup.quarter == "orig" else len(candidates)
+                if dedup.post > 0 and dedup.quarter == "filtered":
+                    n_base = n_distinct
+                n_keep = max(1, int(n_base * self.keep_fraction))
+                if dedup.post > 0:
+                    n_keep = min(n_keep, n_distinct)  # never a passed-over candidate
+                n_keep = min(n_keep, len(candidates))
+            else:
+                n_keep = max(1, int(len(candidates) * self.keep_fraction))
             kept_list = list(candidates[:n_keep])
             if self.keep_union_discrete:
                 # top n_keep by the discrete-stage score as well; the candidate objects carry the
@@ -676,6 +711,15 @@ class AdaptiveVoxelReconstructor:
                         R=np.stack([c.orientation for c in candidates]).copy(),
                         cost=np.array([c.cost for c in candidates]),
                         n_keep=n_keep,
+                        **(
+                            dict(  # additive keys, only with CandidateDedup on
+                                dd_n_discrete=n_discrete,
+                                dd_n_mc=len(candidates),
+                                dd_n_distinct=n_distinct,
+                            )
+                            if dedup.active
+                            else {}
+                        ),
                     ),
                 )
 
@@ -711,6 +755,25 @@ class AdaptiveVoxelReconstructor:
         self._last_local_evals = local_cost_fn.eval_count + sum(f.eval_count for f in ray_local_fns)
 
         return best_candidate
+
+    def _dedup_before_quick_mc(
+        self,
+        spec: DedupSpec,
+        candidates: List[SearchCandidate],
+        diameter: float,
+        symmetry_quats: np.ndarray,
+    ) -> List[SearchCandidate]:
+        """CandidateDedup C0 (clique filter) and C1 (dedup): the candidates the quick MC runs on,
+        in their original order. See candidate_dedup.keep_before_quick_mc."""
+        keep = keep_before_quick_mc(
+            spec,
+            np.stack([c.orientation for c in candidates]),
+            np.array([c.cost for c in candidates]),
+            np.array([c.clique for c in candidates]),
+            diameter,
+            symmetry_quats,
+        )
+        return [c for c, k in zip(candidates, keep) if k]
 
     def _batched_quick_mc(
         self,
