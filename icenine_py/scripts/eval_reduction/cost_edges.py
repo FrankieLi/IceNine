@@ -6,25 +6,22 @@ the classification of the change of every peak between two orientations, and the
 change of the cost to those events. ``cost_edges_run.py`` drives it over cases and rays,
 ``cost_edges_summary.py`` turns the results into tables and figures.
 
-Per-peak trace. ``trace_eval`` calls ``VoxelCostFunction.evaluate`` once with three module functions
-of
-``icenine.cost_functions`` wrapped for the duration of the call (the Bragg solution, the batched
-overlap, the C overlap stage), and then calls the C overlap stage once per peak so that every peak
-has
-its own overlap counts and quality. The library is not changed. A peak is a reflection with one of
-its
-two omega branches: key = 2 * reflection + branch, stable across orientations.
+Per-peak trace. ``trace_eval`` calls ``VoxelCostFunction.evaluate`` once with three module
+functions of ``icenine.cost_functions`` wrapped for the duration of the call (the Bragg solution,
+the batched overlap, the C overlap stage), and then calls the C overlap stage once per peak so that
+every peak has its own overlap counts and quality. The library is not changed. A peak is a
+reflection with one of its two omega branches: key = 2 * reflection + branch, stable across
+orientations.
 
 Cost. cost = 1 - quality, quality = mean over the peaks with at least one pixel on a detector of
 (pixel_overlap / pixel_on_detector) * (detectors_overlap / n_detectors). The per-peak values are
 recombined here and checked against the library's own aggregate in every trace.
 
 Events between two orientations (A, B), per peak, first match wins:
-  presence:   the peak is evaluated in one and not in the other. Reason from the side where it is
-  not
-              evaluated: bragg_limit (the reflection is not observable: no Bragg solution), eta_cut
-              (the eta window removes it), no_frame (its omega has no frame: outside the scanned
-              range)
+  presence:   the peak is evaluated in one and not in the other. Reason from the side where it
+              is not evaluated: bragg_limit (the reflection is not observable: no Bragg
+              solution), eta_cut (the eta window removes it), no_frame (its omega has no frame:
+              outside the scanned range)
   frame:      the frame index (the image the spot is compared with) changed
   detector:   the pattern of vertices inside the detector area, or the plane-hit flag, changed
   pixel:      a vertex (or the screen centre) moved to another pixel
@@ -34,18 +31,14 @@ Events between two orientations (A, B), per peak, first match wins:
 
 import contextlib
 import io
-import math
-import os
-import sys
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Tuple
 
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ICE = HERE.parents[1]
-sys.path.insert(0, str(ICE / "scripts" / "common"))
 
 ABSENT = {0: "bragg_limit", 1: "eta_cut", 2: "no_frame"}
 PRESENT = 3
@@ -199,8 +192,7 @@ def trace_eval(cf: Any, R: np.ndarray, verts: Any, phase: int) -> Dict[str, Any]
         keys[p] = row_key[j]
         j += 1
     rng = kw["range_map"]
-    bins_f = (omegas - rng.low) / rng.width
-    bins = (np.floor(bins_f) if edge else bins_f).astype(int)
+    bins = CF._omega_bins(omegas, rng.low, rng.width, edge)  # the library's own frame lookup
     wedge = np.full(M0, -1, np.int64)
     for p, b in enumerate(bins):
         if 0 <= b < len(rng.index_list) and rng.index_list[b] is not None:
@@ -214,7 +206,7 @@ def trace_eval(cf: Any, R: np.ndarray, verts: Any, phase: int) -> Dict[str, Any]
         return out
     image_list, local_wedge, det_hit, centers, vverts = st[0], st[1], st[2], st[3], st[4]
     tail = st[5:]
-    ray = len(tail) == 8
+    ray = getattr(cf, "ray_rule", None) is not None
     q_sum, n_q = 0.0, 0
     for m, p in enumerate(valid):
         args = [
@@ -254,8 +246,9 @@ def trace_eval(cf: Any, R: np.ndarray, verts: Any, phase: int) -> Dict[str, Any]
     return out
 
 
-def check_trace(tr: Dict[str, Any], tol: float = 1e-6) -> float:
-    """Largest difference between the quality recombined from the peaks and the library's own."""
+def check_trace(tr: Dict[str, Any], tol: float = 1e-12) -> float:
+    """Difference between the quality recombined from the peaks and the library's own; asserts
+    it is below ``tol`` and that the peak and pixel counts recombine exactly."""
     n_q = int(tr.get("n_q", 0))
     q = tr.get("q_sum", 0.0) / n_q if n_q else 0.0
     agg = tr["agg"]
@@ -264,7 +257,7 @@ def check_trace(tr: Dict[str, Any], tol: float = 1e-6) -> float:
     assert int(tr["cnt"][:, 3].sum()) == agg["pkon"]
     assert int(tr["cnt"][:, 0].sum()) == agg["pixov"]
     d = abs(q - agg["quality"])
-    assert d < max(tol, 1e-5), (q, agg["quality"])
+    assert d < tol, (q, agg["quality"], d)
     return d
 
 
@@ -318,10 +311,9 @@ def attribute(
     """Change of the cost from a to b and its split by cause.
 
     quality = S / N (S = sum of the per-peak quality, N = number of peaks with a pixel on a
-    detector).
-    dQ = (S_b - S_a) / N_b + S_a (1 / N_b - 1 / N_a): the first term is a sum over peaks (assigned
-    to
-    the event type of each peak), the second is the change of the denominator at fixed numerator.
+    detector). dQ = (S_b - S_a) / N_b + S_a (1 / N_b - 1 / N_a): the first term is a sum over
+    peaks (assigned to the event type of each peak), the second is the change of the denominator
+    at fixed numerator.
     Returns (dcost, signed contribution to the cost per cause, flags): cost = 1 - quality, so every
     contribution is minus the quality term. flags: n_den_only (1 if the denominator changed and the
     numerator sum did not), n_flip (peaks whose qualified flag flipped)."""
