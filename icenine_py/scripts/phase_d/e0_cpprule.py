@@ -12,6 +12,12 @@ arm with --level0-only gives the same level-0 record for the library default (st
   uv run python scripts/phase_d/e0_cpprule.py run --arm off --level0-only --workers 10
   uv run python scripts/phase_d/e0_cpprule.py summary
 
+Q8 (no-drop realistic images, scripts/phase_d/q8_e0_summary.py): `--variant realistic_nodrop`
+runs an arm on the E0 images without the random spot drop (build them first with
+scripts/findoptimal_robustness/e0_run.py images); `--variant` also takes clean and all. A task
+needs only its cached image (cache/images), not the published cache/e0, and `--meta-dir` moves the
+run_meta file (default: the Q3 directory) so a Q8 run does not touch the tracked Q3 records.
+
 Evaluation-reduction task A arms (scripts/eval_reduction/e0_interp_summary.py reads them):
   edge    C++ overlap rule + CppEdgeRules
   interp  C++ overlap rule + CppEdgeRules + CppOmegaInterp + BatchedScreen
@@ -126,10 +132,9 @@ def work_items(
     root.mkdir(parents=True, exist_ok=True)
     out = []
     for vpos, v in enumerate(vox):
-        for var in C.VARIANTS:
-            if only_var and var != only_var:
-                continue
-            if not (C.CACHE_DIR / "e0" / f"v{v}_{var}.npz").exists():
+        for var in [only_var] if only_var else C.VARIANTS:
+            # a case that could not be built has no cached image (e0_run.py images / run)
+            if not (C.CACHE_DIR / "images" / f"v{v}_{var}.npz").exists():
                 continue
             out.append((v, vpos, var, str(root / f"v{v}_{var}.npz"), arm, l0only, msin))
     return out[:limit] if limit else out
@@ -219,7 +224,13 @@ def main() -> None:
         "--msin", type=float, default=0.3, help="min_sin_eta of the cost function (E0: 0.3)"
     )
     ap.add_argument("--tag", default="", help="result dir suffix (centroid task: 'centroid')")
-    ap.add_argument("--variant", default="", help="only this image variant (e.g. clean)")
+    ap.add_argument(
+        "--variant",
+        default="",
+        choices=[""] + C.ALL_VARIANTS,
+        help="only this image variant (clean, all, realistic_nodrop; default: clean and all)",
+    )
+    ap.add_argument("--meta-dir", default=str(OUT), help="where run_meta_*.json is written")
     a = ap.parse_args()
     if a.cmd == "summary":
         summary(a.arm)
@@ -234,10 +245,12 @@ def main() -> None:
     print(f"{len(its)} tasks, {a.workers} workers", flush=True)
     t0 = time.time()
     C.run_pool(task, its, a.workers, f"e0_{a.arm}")
-    OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / f"run_meta_{a.cmd}_{a.arm}{suffix}{tag}.json").write_text(
+    meta = Path(a.meta_dir)
+    meta.mkdir(parents=True, exist_ok=True)
+    vtag = f"_{a.variant}" if a.variant else ""
+    (meta / f"run_meta_{a.cmd}_{a.arm}{suffix}{tag}{vtag}.json").write_text(
         json.dumps(dict(workers=a.workers, wall_s=time.time() - t0, tasks=len(its),
-                        level0_only=a.level0_only,
+                        level0_only=a.level0_only, arm=a.arm, msin=a.msin, variant=a.variant,
                         note="contended multi-worker wall, not a timing claim"))
     )  # fmt: skip
 

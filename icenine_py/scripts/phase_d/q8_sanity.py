@@ -160,7 +160,7 @@ def summary() -> None:
                 lo, hi = S.wilson(max(rej, 0), ref)
                 summ[f"{var}|{fn}|{arm}"] = dict(kept=kept, det0=ref, rejected=rej, lo=lo, hi=hi)
                 row[arm] = f"{rej} of {ref} ({100.0 * rej / ref:.1f}%)" if ref else "n/a"
-                row[arm + "_ci"] = f"{100 * lo:.1f} to {100 * hi:.1f}%"
+                row[arm + "_ci"] = f"{100 * lo:.2f} to {100 * hi:.2f}%"
             rej_rows.append(row)
         crow: Dict[str, Any] = {"variant": var}
         for arm in ARMS:
