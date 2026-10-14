@@ -145,6 +145,7 @@ def run(a: argparse.Namespace) -> None:
     rec = RC.AdaptiveVoxelReconstructor(setup)
     # counts evaluations by wrapping evaluate(), which the batched screen bypasses: pin it off
     setup.search_params.batched_screen = False
+    setup.search_params.batched_quick_mc = False
     for kv in a.opt:
         k, v = kv.split("=")
         if k == "ray_rule":  # ray_rule=R2 | A (RayOverlapRule config spelling); implies cpp rule

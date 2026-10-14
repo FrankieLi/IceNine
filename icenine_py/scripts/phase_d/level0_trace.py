@@ -133,6 +133,7 @@ def run_py(a: argparse.Namespace) -> None:
     rec = RC.AdaptiveVoxelReconstructor(setup)
     # the centroid probe wraps evaluate(), which the batched screen bypasses: pin it off
     setup.search_params.batched_screen = False
+    setup.search_params.batched_quick_mc = False
     v = setup.sample.get_mic().voxels[a.voxel]
     verts = RC._get_voxel_vertices(v)
 

@@ -19,11 +19,11 @@ buffer is drawn as ``rng.uniform(-r, r, size=33 N)``, r the trial radius: it con
 doubles as ``rng.random(33 N)`` and maps each exactly as the scalar ``rng.uniform(-r, r)`` of the
 sequential path does (bit for bit; recomputing ``low + (high - low) * u`` with numpy ufuncs is
 not the same: numpy's C ``random_uniform`` rounds that expression once (a fused multiply-add) on
-this platform, and the two roundings differ by one ulp in about half of the draws). Results therefore differ from the
-sequential path's (later levels and FindOptimal also see a different stream): the key is compared
-with wrong counts (an A/B), not equality. Given the slices, the result of each candidate equals what
-``MCOptimizer.optimize`` returns when its generator replays that candidate's slice
-(tests/test_batched_quick_mc.py).
+this platform, and the two roundings differ by one ulp in about half of the draws). Results
+therefore differ from the sequential path's (later levels and FindOptimal also see a different
+stream): the key is compared with wrong counts (an A/B), not equality. Given the slices, the result
+of each candidate equals what ``MCOptimizer.optimize`` returns when its generator replays that
+candidate's slice (tests/test_batched_quick_mc.py).
 
 Only the single-block case is covered (``n_min_ergodic >= max_mc_steps``, the case of every shipped
 config, ``MCRadiusScaleFactor`` 0.4: one block of 10 trial steps). Evaluations per candidate: 12,

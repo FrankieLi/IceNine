@@ -4,6 +4,8 @@ generator advances by exactly 33 N; the mapped uniforms are ``Generator.uniform(
 
 import copy
 import math
+import warnings
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
@@ -272,3 +274,100 @@ def test_lockstep_equals_replayed_sequential_with_the_real_cost(
     assert 0 < n_ok < n, f"{n_ok} of {n} blocks improved"
     print(f"\n{n_ok} of {n} blocks improved, used draws {sorted(set(used))}")
     assert [u == 33 for u in used] == [r["n_restarts"] == 1 for r in got_runs]
+
+
+# ---------------------------------------------------------------------------------------------
+# wiring: config keys and the reconstructor (S3 Step 3)
+# ---------------------------------------------------------------------------------------------
+
+
+def test_config_keys_default_off_and_parse(tmp_path: Any) -> None:
+    from icenine.config_file import ConfigFile
+    from icenine.orientation_search import SearchParameters
+
+    base = Path(__file__).resolve().parents[1] / "scripts" / "phase_d" / "configs"
+    text = (base / "ReconstructPhaseD_mc_clean.config").read_text()
+    sp0 = SearchParameters.from_config(
+        ConfigFile.from_file(str(base / "ReconstructPhaseD_mc_clean.config"))
+    )
+    assert sp0.batched_quick_mc is False and sp0.search_device == "cpu"
+    f = tmp_path / "on.config"
+    f.write_text(text + "\nBatchedQuickMC 1\nSearchDevice MPS\n")
+    sp = SearchParameters.from_config(ConfigFile.from_file(str(f)))
+    assert sp.batched_quick_mc is True and sp.search_device == "mps"
+    f.write_text(text + "\nSearchDevice tpu\n")
+    with pytest.raises(ValueError, match="SearchDevice"):
+        ConfigFile.from_file(str(f))
+    with pytest.raises(ValueError, match="search_device"):
+        SearchParameters(search_device="tpu")
+
+
+def _recon(**kw: Any) -> Tuple[Any, Any, np.ndarray]:
+    from test_findoptimal_refactor import _build
+
+    rec, voxel, R_true = _build()
+    for k, v in kw.items():
+        setattr(rec.setup.search_params, k, v)
+    return rec, voxel, R_true
+
+
+@needs_c
+def test_key_off_builds_no_evaluator_and_key_on_runs_the_lockstep_quick_mc() -> None:
+    from icenine.reconstructor import _get_voxel_vertices
+
+    rec, voxel, R_true = _recon()
+    events: List[Any] = []
+    rec.recorder = lambda name, data: events.append((name, data))
+    rec.reconstruct_voxel(_get_voxel_vertices(voxel), voxel.phase, rng=np.random.default_rng(7))
+    assert rec._quick_mc_evaluators == {}  # the default path never touches the batched cost
+    rec_on, voxel, R_true = _recon(batched_quick_mc=True)
+    events_on: List[Any] = []
+    rec_on.recorder = lambda name, data: events_on.append((name, data))
+    res = rec_on.reconstruct_voxel(
+        _get_voxel_vertices(voxel), voxel.phase, rng=np.random.default_rng(7)
+    )
+    (ev,) = rec_on._quick_mc_evaluators.values()
+    n_cand = len(events_on[0][1]["R"])  # candidates of the one level
+    assert n_cand == len(events[0][1]["R"])  # the discrete stage does not depend on the key
+    assert ev.counts["orient_compact"] == 12 * n_cand and ev.counts["orient_fixed"] == 0
+    assert ev.counts["calls_compact"] == 11  # starts together, then ten trial steps
+    ang = np.degrees(Rotation.from_matrix(res.orientation @ R_true.T).magnitude())
+    assert ang < 1.0 and np.isfinite(res.cost)  # a sane result (toy problem: one random draw)
+    quick = dict(events_on[1][1])
+    assert np.all(np.diff(quick["cost"]) >= 0)
+
+
+@needs_c
+def test_unsupported_levels_fall_back_to_the_sequential_quick_mc() -> None:
+    from icenine.reconstructor import _get_voxel_vertices
+
+    rec, voxel, _ = _recon(batched_quick_mc=True)
+    verts, phase = _get_voxel_vertices(voxel), voxel.phase
+    cands = [SearchCandidate(orientation=np.asarray(voxel.orientation, dtype=np.float64))]
+    args = (cands, verts, phase, BOX, STEP)
+    rec._quick_mc_evaluators = {}
+
+    class Logged(MCOptimizer):
+        pass
+
+    cf = rec._make_local_cost_fn()
+    with pytest.warns(RuntimeWarning, match="subclass of MCOptimizer"):
+        assert not rec._batched_quick_mc(Logged(cf, verts, phase), *args)
+    with pytest.warns(RuntimeWarning, match="subclass of MCOptimizer or more than one"):
+        assert not rec._batched_quick_mc(
+            MCOptimizer(cf, verts, phase), cands, verts, phase, BOX, BOX
+        )
+    rec.setup.search_params.cpp_edge_rules = True  # CppEdgeRules: not covered by the batched cost
+    edge_cf = rec._make_local_cost_fn()
+    rec.setup.search_params.cpp_edge_rules = False
+    with pytest.warns(RuntimeWarning, match="CppEdgeRules"):
+        assert not rec._batched_quick_mc(MCOptimizer(edge_cf, verts, phase), *args)
+    assert rec._quick_mc_evaluators == {id(edge_cf): None}  # remembered: one warning per cost fn
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert not rec._batched_quick_mc(MCOptimizer(edge_cf, verts, phase), *args)
+    rec._quick_mc_evaluators = {}
+    assert rec._batched_quick_mc(MCOptimizer(cf, verts, phase, rng=np.random.default_rng(0)), *args)
+    assert cands[0].cost < 1.0
+    rec.setup.search_params.batched_quick_mc = False
+    assert not rec._batched_quick_mc(MCOptimizer(cf, verts, phase), *args)
