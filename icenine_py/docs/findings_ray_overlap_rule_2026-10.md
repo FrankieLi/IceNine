@@ -34,7 +34,8 @@ realistic / no drop: lenient 41 / 25 / 22, C++ rule 56 / 56 / 38, 2-pixel window
 (the earlier 18 for the lenient rule was the vertex-0 start; it is 25 in this build; the lenient rule with the vertex-0 screen
 reproduces the 18, `MIGRATION_HISTORY.md` "Q8" Step 8). On the no-drop images the ray rule is
 ahead of the lenient rule (2-pixel window against lenient: 15 fixed, 7 broken, 7 both wrong), so the lenient lead above
-comes with the drop; it is one sample of 200 voxels and one seed.
+comes with the drop; it is one sample of 200 voxels and one seed. Mean evaluations per voxel on the no-drop images: lenient 51,901,
+2-pixel window 51,652, geometric window 51,677, C++ rule 49,281 (clean: 48,700, 48,641, 48,649, 47,230).
 
 | Overlap rule | Wrong of 200 (clean images) | Wrong of 200 (realistic images, see caveat) | Time per full-sample voxel (one process, mixed quiet and contended, three sessions) |
 |---|---|---|---|
@@ -387,7 +388,8 @@ wrong; paired 10 fixed, 9 broken, 31 both wrong) and is better than the C++ rule
 the lenient rule's favour (18 against 29 to 32) rests on a noise model the owner has ruled unphysical (open question 8
 of the parent findings), so it is not used for the decisions below. On the no-drop images (Q8, 2026-10-14) the gap reverses:
 14 wrong for each ray window against 22 for the lenient rule (2-pixel window: 15 fixed, 7 broken, 7 both wrong), against
-38 for the C++ rule; whether that changes a decision below is the owner's.
+38 for the C++ rule, at 51,652 and 51,677 evaluations per voxel for the ray windows against 51,901 (lenient) and 49,281 (C++ rule);
+whether that changes a decision below is the owner's.
 
 | Question | Suggestion or decision |
 |---|---|

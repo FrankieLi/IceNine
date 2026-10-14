@@ -6937,7 +6937,7 @@ the 10% random spot drop (Phase D `toy`, E0 `all`), "no drop" = `nodrop` / `real
 connected component of a frame in Phase D). Without that drop (jitter, hot pixels and blobs kept, the other random draws
 unchanged), the two image sets differ only by the dropped spots.
 
-- **At the true orientation the no-drop images behave like the clean ones for every overlap rule.** The C++ rule and both ray
+- **At the true orientation the no-drop images reject the same real peaks as the clean ones, for every overlap rule.** The C++ rule and both ray
   windows reject the same 3 of 524 real peaks as on clean images (initial screen) and 0 of 521 without a search radius, on
   30 full-sample voxels, against 43 of 475 (9.1%) and 41 of 471 (8.7%) on the old realistic images. On the E0 images (200
   voxels) the C++ rule rejects 974 of 11,174 real peaks (8.7%) on the old realistic images and 0 of 12,439 on the no-drop ones
@@ -6951,7 +6951,8 @@ unchanged), the two image sets differ only by the dropped spots.
   7 both wrong (on the old realistic images 10 fixed, 17 broken, 15 both wrong; on clean 10, 9, 31), and the C++ rule against
   the lenient rule is 10 fixed, 26 broken, 12 both wrong. The Q3 rows (`min_sin_eta` 0.3, C++ rule off and on): lenient
   35 / 27 / 16, C++ rule 61 / 42 / 39; on the no-drop images the C++ rule against the lenient rule is 5 fixed, 28 broken, 11 both
-  wrong (old realistic: 10, 25, 17), so the realistic half of Q3 (the C++ rule loses accuracy) is not an effect of the drop.
+  wrong (old realistic: 10, 25, 17), so the C++ rule's loss of accuracy in the realistic half of Q3 persists without the drop (the
+  counts do not show whether the drop adds to it).
 - **Every arm has fewer wrong voxels on the no-drop images than on the clean ones** (lenient 22 against 41, C++ rule 38
   against 56, 2-pixel window 14 against 40, geometric window 14 against 41 at `min_sin_eta` 0). The no-drop images carry many
   more lit pixels than the clean ones (508,606 against 212,610 over the 200 voxels: neighbour and twin spots, jitter, hot
@@ -7204,7 +7205,8 @@ tasks (contended, not a timing claim). Output `benchmarks/q8_nodrop/step7/` (`su
   the quick MC (which reorders the list), so here it is by the screen order only. Cross-check: the candidate count, the count
   within 3° and the closest distance equal those recorded by the Step 4 runs in all 1,200 (voxel, images, arm) tasks, although
   this script used the library's default batched exact screen for the lenient and C++ arms (Step 4 forced the per-orientation
-  screen, 14 times slower).
+  screen, which took 17.5 times as long for the screen alone in the single-worker, preflight-passed measurement of table
+  `evalA_speed_screen` above: one voxel, not measured again here).
 - **(b) Cost width.** The truth rotated by r in {0.03, 0.1, 0.3, 0.5, 1, 2, 3}° about 50 random axes (drawn from the voxel
   alone, so the same on both image sets); the level-0 cost (1 minus the peak ratio of the arm's level-0 local cost function) and
   the final cost (1 minus the pixel quality of the arm's final cost function: the C++ rule for the ray arm, which never uses
@@ -7217,10 +7219,10 @@ tasks (contended, not a timing claim). Output `benchmarks/q8_nodrop/step7/` (`su
   right on no drop; broken = the reverse), for each arm; (a) and (b) per group. Group sizes (lenient arm): fixed 31, broken 12,
   both right 147, both wrong 10; (ray arm) 35, 9, 151, 5; (C++ rule) 32, 14, 130, 24.
 
-**Answer to (a): more candidates in every voxel, but the closest candidate to the truth hardly changes.** The no-drop images give
+**Answer to (a): more candidates in 200 of 200 voxels for the lenient and ray rules (199 of 200 for the C++ rule), but the closest candidate to the truth hardly changes.** The no-drop images give
 more level-0 candidates than clean in 200 of 200 voxels (lenient rule, median 182 against 289, median per-voxel ratio 1.64;
-C++ rule 125 against 194; ray rule 181 against 284). The closest candidate is as near as before: median 1.295° on both image
-sets, nearer in 15 voxels, farther in 11, the same in 174. Voxels with a candidate within 1°: 54 of 200 on clean, 55 on no drop; within
+ray rule 181 against 284; the C++ rule 125 against 194, in 199 voxels and equal in 1). The closest candidate is as near as before: median 1.295° on both image
+sets, nearer in 15 voxels, farther in 11, at the same distance in 174. Voxels with a candidate within 1°: 54 of 200 on clean, 55 on no drop; within
 3°: 196 and 199. The closest candidate is in the top quarter of the screen order in 160 voxels on clean and 174 on no drop
 (paired: 155 both, 19 only no drop, 5 only clean, 21 neither). The median number of candidates within 3° of the truth goes from 3 to 4, so
 the extra candidates are mostly additional far points, not closer ones.
@@ -7253,8 +7255,9 @@ image set and measure: not the same number). The level-0 halfway width is 0.235�
 interval 1.31 to 1.36; the ray rule 1.32, the C++ rule 1.22); the final-cost width 0.115° and 0.133° (ratio 1.16; part of this is the higher cost at the truth on no
 drop, 0.112 against 0.066, which raises the halfway level). The per-voxel width is larger on no drop in all 200 voxels, for every arm and both
 costs. Degree scale: the share of the rotated truths that still pass the level-0 screen is 0.692 on clean and 0.752 on no drop at 2°, and 0.366 and 0.436 at 3° (lenient rule;
-C++ rule 0.545 and 0.617 at 2°, 0.256 and 0.301 at 3°). The median cost itself has saturated at 1 by 2° on both, so the difference there is in
-the tail (the mean level-0 cost at 1° is 0.952 and 0.928, in `tables.md`).
+C++ rule 0.545 and 0.617 at 2°, 0.256 and 0.301 at 3°). The median level-0 cost at 2° is 0.986 (clean) and 0.985 (no drop) for the lenient and ray rules and 1.000 on both for the C++ rule;
+at 3° it is 1.000 for every arm and image set. The difference at those radii is therefore in the tail (the mean level-0 cost at 1° is
+0.952 and 0.928, in `tables.md`).
 
 <!-- table:step7_width -->
 | arm | cost | images | truth | 0.03 deg | 0.1 deg | 0.3 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | width, grid (deg) | width, interpolated (deg) | median per-voxel width, grid (deg) |
@@ -7316,37 +7319,40 @@ Fraction of the 50 axes x 200 voxels rotated truths that pass the level-0 screen
 Per-voxel width = interpolated halfway width of the voxel's own median-over-axes curve; "no drop wider" counts voxels
 (ties are exact equality). Pooled = from the median curve over all voxels and axes.
 
-**Answer to (c): the owner's two effects are there for every voxel, so they do not by themselves separate the voxels that flip;
+**Answer to (c): the owner's two effects are there in (nearly) every voxel, so they do not by themselves separate the voxels that flip;
 the link to the outcome is weak.** Lenient rule, by group of the Step 4 pairing (the other two arms in `tables.md` and below):
 
 - *Fixed* voxels (wrong on clean, right on no drop; 31) have a farther closest candidate than the always-right ones (median 1.78° on
-  clean, 1.62° on no drop, against 1.20° for the 147 both-right voxels), so they are voxels near the edge of what the search can
-  recover. Their cost widens more than that of the broken and both-wrong voxels (level-0 width ratio 1.36, interval 1.31 to 1.43; the
+  clean, 1.62° on no drop, against 1.20° for the 147 both-right voxels), consistent with voxels near the edge of what the search can
+  recover (not tested). Their cost widens more than that of the broken and both-wrong voxels (level-0 width ratio 1.36, interval 1.31 to 1.43; the
   screen pass at 3° rises from 0.358 to 0.459), against 1.24 (1.17 to 1.35) for the broken voxels and 1.22 (1.18 to 1.32) for the
   both-wrong ones (groups of 12 and 10, so the intervals overlap); the both-right voxels widen by 1.34 (1.31 to 1.37), so the
   width ratio alone does not predict a fix. The ray arm has the same ordering (fixed 1.35, broken 1.29, both right 1.32, both
   wrong 1.22); the C++ rule has 1.20 to 1.23 in every group.
-- The extra candidates do not explain the fixes: for 20 of the 31 fixed voxels the closest candidate is in the top quarter of the
-  screen order on both image sets (3 only on no drop, 2 only on clean, 6 on neither), so on clean the search failed
-  although that candidate was kept. The broken voxels also have more candidates (180 to 282) and 9 of 12 closest candidates in the top quarter on no drop
-  (6 on clean).
+- The screen-order data give no sign that the extra candidates explain the fixes: in 22 of the 31 fixed voxels (Wilson 95% interval
+  53 to 84%) the closest candidate is already ranked in the top quarter of the screen order on clean, against 23 of 31 (57 to 86%) on
+  no drop (on both image sets 20 of 31, 47 to 79%; only no drop 3, only clean 2, neither 6). This is the rank in the discrete-stage
+  order. The real level-0 cut is applied after the quick MC, which reorders the list, and `keep_union_discrete` is off by default, so
+  whether the closest candidate survived that cut was not recorded; the numbers do not show that it was kept on clean. The broken
+  voxels also have more candidates (180 to 282) and 9 of 12 closest candidates (47 to 91%) ranked in the top quarter on no drop (6
+  of 12 on clean, 25 to 75%).
 - The both-wrong voxels have the farthest closest candidate (median 2.34° on clean, 2.21° on no drop; none within 1°).
 
 <!-- table:step7_groups_paired -->
-| arm | group | voxels | in top quarter: both / only no drop / only clean / neither | within 3 deg: both / only no drop / only clean / neither | level-0 width, clean (deg) | level-0 width, no drop (deg) | width ratio | ratio 95% interval (voxel bootstrap) | screen pass at 3 deg, clean | screen pass at 3 deg, no drop |
-|---|---|---|---|---|---|---|---|---|---|---|
-| lenient rule | fixed | 31 | 20 / 3 / 2 / 6 | 29 / 2 / 0 / 0 | 0.235 | 0.321 | 1.36 | 1.31 to 1.43 | 0.358 | 0.459 |
-| lenient rule | broken | 12 | 6 / 3 / 0 / 3 | 12 / 0 / 0 / 0 | 0.236 | 0.293 | 1.24 | 1.17 to 1.35 | 0.363 | 0.402 |
-| lenient rule | both right | 147 | 125 / 13 / 2 / 7 | 147 / 0 / 0 / 0 | 0.234 | 0.314 | 1.34 | 1.31 to 1.37 | 0.370 | 0.437 |
-| lenient rule | both wrong | 10 | 4 / 0 / 1 / 5 | 8 / 1 / 0 / 1 | 0.226 | 0.276 | 1.22 | 1.18 to 1.32 | 0.340 | 0.394 |
-| C++ rule | fixed | 32 | 19 / 6 / 0 / 7 | 31 / 1 / 0 / 0 | 0.171 | 0.210 | 1.23 | 1.19 to 1.29 | 0.264 | 0.338 |
-| C++ rule | broken | 14 | 6 / 2 / 2 / 4 | 14 / 0 / 0 / 0 | 0.174 | 0.212 | 1.22 | 1.14 to 1.34 | 0.240 | 0.270 |
-| C++ rule | both right | 130 | 103 / 11 / 4 / 12 | 129 / 1 / 0 / 0 | 0.171 | 0.209 | 1.22 | 1.20 to 1.25 | 0.258 | 0.299 |
-| C++ rule | both wrong | 24 | 12 / 2 / 1 / 9 | 20 / 0 / 0 / 4 | 0.168 | 0.202 | 1.20 | 1.16 to 1.24 | 0.245 | 0.285 |
-| ray rule, 2-pixel window | fixed | 35 | 18 / 5 / 4 / 8 | 32 / 3 / 0 / 0 | 0.234 | 0.317 | 1.35 | 1.30 to 1.41 | 0.336 | 0.411 |
-| ray rule, 2-pixel window | broken | 9 | 5 / 2 / 0 / 2 | 9 / 0 / 0 / 0 | 0.232 | 0.300 | 1.29 | 1.18 to 1.40 | 0.356 | 0.396 |
-| ray rule, 2-pixel window | both right | 151 | 129 / 12 / 2 / 8 | 151 / 0 / 0 / 0 | 0.234 | 0.310 | 1.32 | 1.30 to 1.35 | 0.373 | 0.426 |
-| ray rule, 2-pixel window | both wrong | 5 | 2 / 1 / 0 / 2 | 4 / 0 / 0 / 1 | 0.235 | 0.287 | 1.22 | 1.14 to 1.36 | 0.320 | 0.360 |
+| arm | group | voxels | in top quarter: both / only no drop / only clean / neither | in top quarter on both image sets (Wilson 95%) | in top quarter on clean (Wilson 95%) | in top quarter on no drop (Wilson 95%) | within 3 deg: both / only no drop / only clean / neither | level-0 width, clean (deg) | level-0 width, no drop (deg) | width ratio | ratio 95% interval (voxel bootstrap) | screen pass at 3 deg, clean | screen pass at 3 deg, no drop |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| lenient rule | fixed | 31 | 20 / 3 / 2 / 6 | 20 of 31 (47 to 79%) | 22 of 31 (53 to 84%) | 23 of 31 (57 to 86%) | 29 / 2 / 0 / 0 | 0.235 | 0.321 | 1.36 | 1.31 to 1.43 | 0.358 | 0.459 |
+| lenient rule | broken | 12 | 6 / 3 / 0 / 3 | 6 of 12 (25 to 75%) | 6 of 12 (25 to 75%) | 9 of 12 (47 to 91%) | 12 / 0 / 0 / 0 | 0.236 | 0.293 | 1.24 | 1.17 to 1.35 | 0.363 | 0.402 |
+| lenient rule | both right | 147 | 125 / 13 / 2 / 7 | 125 of 147 (78 to 90%) | 127 of 147 (80 to 91%) | 138 of 147 (89 to 97%) | 147 / 0 / 0 / 0 | 0.234 | 0.314 | 1.34 | 1.31 to 1.37 | 0.370 | 0.437 |
+| lenient rule | both wrong | 10 | 4 / 0 / 1 / 5 | 4 of 10 (17 to 69%) | 5 of 10 (24 to 76%) | 4 of 10 (17 to 69%) | 8 / 1 / 0 / 1 | 0.226 | 0.276 | 1.22 | 1.18 to 1.32 | 0.340 | 0.394 |
+| C++ rule | fixed | 32 | 19 / 6 / 0 / 7 | 19 of 32 (42 to 74%) | 19 of 32 (42 to 74%) | 25 of 32 (61 to 89%) | 31 / 1 / 0 / 0 | 0.171 | 0.210 | 1.23 | 1.19 to 1.29 | 0.264 | 0.338 |
+| C++ rule | broken | 14 | 6 / 2 / 2 / 4 | 6 of 14 (21 to 67%) | 8 of 14 (33 to 79%) | 8 of 14 (33 to 79%) | 14 / 0 / 0 / 0 | 0.174 | 0.212 | 1.22 | 1.14 to 1.34 | 0.240 | 0.270 |
+| C++ rule | both right | 130 | 103 / 11 / 4 / 12 | 103 of 130 (71 to 85%) | 107 of 130 (75 to 88%) | 114 of 130 (81 to 92%) | 129 / 1 / 0 / 0 | 0.171 | 0.209 | 1.22 | 1.20 to 1.25 | 0.258 | 0.299 |
+| C++ rule | both wrong | 24 | 12 / 2 / 1 / 9 | 12 of 24 (31 to 69%) | 13 of 24 (35 to 72%) | 14 of 24 (39 to 76%) | 20 / 0 / 0 / 4 | 0.168 | 0.202 | 1.20 | 1.16 to 1.24 | 0.245 | 0.285 |
+| ray rule, 2-pixel window | fixed | 35 | 18 / 5 / 4 / 8 | 18 of 35 (36 to 67%) | 22 of 35 (46 to 77%) | 23 of 35 (49 to 79%) | 32 / 3 / 0 / 0 | 0.234 | 0.317 | 1.35 | 1.30 to 1.41 | 0.336 | 0.411 |
+| ray rule, 2-pixel window | broken | 9 | 5 / 2 / 0 / 2 | 5 of 9 (27 to 81%) | 5 of 9 (27 to 81%) | 7 of 9 (45 to 94%) | 9 / 0 / 0 / 0 | 0.232 | 0.300 | 1.29 | 1.18 to 1.40 | 0.356 | 0.396 |
+| ray rule, 2-pixel window | both right | 151 | 129 / 12 / 2 / 8 | 129 of 151 (79 to 90%) | 131 of 151 (80 to 91%) | 141 of 151 (88 to 96%) | 151 / 0 / 0 / 0 | 0.234 | 0.310 | 1.32 | 1.30 to 1.35 | 0.373 | 0.426 |
+| ray rule, 2-pixel window | both wrong | 5 | 2 / 1 / 0 / 2 | 2 of 5 (12 to 77%) | 2 of 5 (12 to 77%) | 3 of 5 (23 to 88%) | 4 / 0 / 0 / 1 | 0.235 | 0.287 | 1.22 | 1.14 to 1.36 | 0.320 | 0.360 |
 <!-- /table:step7_groups_paired -->
 
 Each group counts voxels; "within 3°" and "in top quarter" are paired clean against no drop; the ratio is the level-0 width on
@@ -7355,14 +7361,14 @@ no drop over clean, with a 95% interval from 1,000 resamples of the group's voxe
 <!-- table:step7_groups_off -->
 | group | images | voxels | median candidates | median closest (deg) | closest within 1 deg | closest within 3 deg | closest in top quarter | median rank of closest | median rank / candidates | level-0 width (deg) | screen pass at 1 deg | screen pass at 3 deg |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| fixed | clean | 31 | 176 | 1.784 | 1 | 29 | 22 | 23 | 0.127 | 0.235 | 0.980 | 0.358 |
-| fixed | no drop | 31 | 246 | 1.621 | 1 | 31 | 23 | 16 | 0.056 | 0.321 | 0.984 | 0.459 |
-| broken | clean | 12 | 180 | 1.610 | 0 | 12 | 6 | 47 | 0.260 | 0.236 | 0.982 | 0.363 |
-| broken | no drop | 12 | 282 | 1.612 | 0 | 12 | 9 | 48 | 0.180 | 0.293 | 0.983 | 0.402 |
-| both right | clean | 147 | 184 | 1.197 | 53 | 147 | 127 | 6 | 0.033 | 0.234 | 0.977 | 0.370 |
-| both right | no drop | 147 | 306 | 1.196 | 54 | 147 | 138 | 4 | 0.012 | 0.314 | 0.985 | 0.437 |
-| both wrong | clean | 10 | 162 | 2.344 | 0 | 8 | 5 | 44 | 0.298 | 0.226 | 0.980 | 0.340 |
-| both wrong | no drop | 10 | 275 | 2.206 | 0 | 9 | 4 | 70 | 0.352 | 0.276 | 0.986 | 0.394 |
+| fixed | clean | 31 | 176 | 1.784 | 1 of 31 (1 to 16%) | 29 of 31 (79 to 98%) | 22 of 31 (53 to 84%) | 23 | 0.127 | 0.235 | 0.980 | 0.358 |
+| fixed | no drop | 31 | 246 | 1.621 | 1 of 31 (1 to 16%) | 31 of 31 (89 to 100%) | 23 of 31 (57 to 86%) | 16 | 0.056 | 0.321 | 0.984 | 0.459 |
+| broken | clean | 12 | 180 | 1.610 | 0 of 12 (0 to 24%) | 12 of 12 (76 to 100%) | 6 of 12 (25 to 75%) | 47 | 0.260 | 0.236 | 0.982 | 0.363 |
+| broken | no drop | 12 | 282 | 1.612 | 0 of 12 (0 to 24%) | 12 of 12 (76 to 100%) | 9 of 12 (47 to 91%) | 48 | 0.180 | 0.293 | 0.983 | 0.402 |
+| both right | clean | 147 | 184 | 1.197 | 53 of 147 (29 to 44%) | 147 of 147 (97 to 100%) | 127 of 147 (80 to 91%) | 6 | 0.033 | 0.234 | 0.977 | 0.370 |
+| both right | no drop | 147 | 306 | 1.196 | 54 of 147 (29 to 45%) | 147 of 147 (97 to 100%) | 138 of 147 (89 to 97%) | 4 | 0.012 | 0.314 | 0.985 | 0.437 |
+| both wrong | clean | 10 | 162 | 2.344 | 0 of 10 (0 to 28%) | 8 of 10 (49 to 94%) | 5 of 10 (24 to 76%) | 44 | 0.298 | 0.226 | 0.980 | 0.340 |
+| both wrong | no drop | 10 | 275 | 2.206 | 0 of 10 (0 to 28%) | 9 of 10 (60 to 98%) | 4 of 10 (17 to 69%) | 70 | 0.352 | 0.276 | 0.986 | 0.394 |
 <!-- /table:step7_groups_off -->
 
 Lenient arm: per group and image set.
@@ -7370,14 +7376,14 @@ Lenient arm: per group and image set.
 <!-- table:step7_groups_rayR2 -->
 | group | images | voxels | median candidates | median closest (deg) | closest within 1 deg | closest within 3 deg | closest in top quarter | median rank of closest | median rank / candidates | level-0 width (deg) | screen pass at 1 deg | screen pass at 3 deg |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| fixed | clean | 35 | 168 | 1.833 | 1 | 32 | 22 | 39 | 0.209 | 0.234 | 0.978 | 0.336 |
-| fixed | no drop | 35 | 262 | 1.713 | 1 | 35 | 23 | 39 | 0.164 | 0.317 | 0.986 | 0.411 |
-| broken | clean | 9 | 183 | 1.665 | 0 | 9 | 5 | 43 | 0.199 | 0.232 | 0.960 | 0.356 |
-| broken | no drop | 9 | 280 | 1.681 | 0 | 9 | 7 | 36 | 0.156 | 0.300 | 0.969 | 0.396 |
-| both right | clean | 151 | 184 | 1.197 | 53 | 151 | 131 | 7 | 0.039 | 0.234 | 0.979 | 0.373 |
-| both right | no drop | 151 | 294 | 1.196 | 54 | 151 | 141 | 4 | 0.014 | 0.310 | 0.986 | 0.426 |
-| both wrong | clean | 5 | 159 | 1.916 | 0 | 4 | 2 | 76 | 0.478 | 0.235 | 0.980 | 0.320 |
-| both wrong | no drop | 5 | 261 | 1.916 | 0 | 4 | 3 | 73 | 0.222 | 0.287 | 0.980 | 0.360 |
+| fixed | clean | 35 | 168 | 1.833 | 1 of 35 (1 to 15%) | 32 of 35 (78 to 97%) | 22 of 35 (46 to 77%) | 39 | 0.209 | 0.234 | 0.978 | 0.336 |
+| fixed | no drop | 35 | 262 | 1.713 | 1 of 35 (1 to 15%) | 35 of 35 (90 to 100%) | 23 of 35 (49 to 79%) | 39 | 0.164 | 0.317 | 0.986 | 0.411 |
+| broken | clean | 9 | 183 | 1.665 | 0 of 9 (0 to 30%) | 9 of 9 (70 to 100%) | 5 of 9 (27 to 81%) | 43 | 0.199 | 0.232 | 0.960 | 0.356 |
+| broken | no drop | 9 | 280 | 1.681 | 0 of 9 (0 to 30%) | 9 of 9 (70 to 100%) | 7 of 9 (45 to 94%) | 36 | 0.156 | 0.300 | 0.969 | 0.396 |
+| both right | clean | 151 | 184 | 1.197 | 53 of 151 (28 to 43%) | 151 of 151 (98 to 100%) | 131 of 151 (80 to 91%) | 7 | 0.039 | 0.234 | 0.979 | 0.373 |
+| both right | no drop | 151 | 294 | 1.196 | 54 of 151 (29 to 44%) | 151 of 151 (98 to 100%) | 141 of 151 (88 to 96%) | 4 | 0.014 | 0.310 | 0.986 | 0.426 |
+| both wrong | clean | 5 | 159 | 1.916 | 0 of 5 (0 to 43%) | 4 of 5 (38 to 96%) | 2 of 5 (12 to 77%) | 76 | 0.478 | 0.235 | 0.980 | 0.320 |
+| both wrong | no drop | 5 | 261 | 1.916 | 0 of 5 (0 to 43%) | 4 of 5 (38 to 96%) | 3 of 5 (23 to 88%) | 73 | 0.222 | 0.287 | 0.980 | 0.360 |
 <!-- /table:step7_groups_rayR2 -->
 
 Ray 2-pixel arm: per group and image set.
@@ -7385,23 +7391,25 @@ Ray 2-pixel arm: per group and image set.
 <!-- table:step7_groups_on -->
 | group | images | voxels | median candidates | median closest (deg) | closest within 1 deg | closest within 3 deg | closest in top quarter | median rank of closest | median rank / candidates | level-0 width (deg) | screen pass at 1 deg | screen pass at 3 deg |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| fixed | clean | 32 | 126 | 1.513 | 1 | 31 | 19 | 23 | 0.210 | 0.171 | 0.978 | 0.264 |
-| fixed | no drop | 32 | 208 | 1.481 | 1 | 32 | 25 | 18 | 0.086 | 0.210 | 0.988 | 0.338 |
-| broken | clean | 14 | 124 | 1.493 | 1 | 14 | 8 | 28 | 0.219 | 0.174 | 0.969 | 0.240 |
-| broken | no drop | 14 | 222 | 1.664 | 1 | 14 | 8 | 46 | 0.202 | 0.212 | 0.973 | 0.270 |
-| both right | clean | 130 | 128 | 1.175 | 50 | 129 | 107 | 8 | 0.063 | 0.171 | 0.966 | 0.258 |
-| both right | no drop | 130 | 192 | 1.168 | 52 | 130 | 114 | 7 | 0.043 | 0.209 | 0.978 | 0.299 |
-| both wrong | clean | 24 | 116 | 2.067 | 0 | 20 | 13 | 26 | 0.209 | 0.168 | 0.968 | 0.245 |
-| both wrong | no drop | 24 | 172 | 2.067 | 0 | 20 | 14 | 40 | 0.225 | 0.202 | 0.980 | 0.285 |
+| fixed | clean | 32 | 126 | 1.513 | 1 of 32 (1 to 16%) | 31 of 32 (84 to 99%) | 19 of 32 (42 to 74%) | 23 | 0.210 | 0.171 | 0.978 | 0.264 |
+| fixed | no drop | 32 | 208 | 1.481 | 1 of 32 (1 to 16%) | 32 of 32 (89 to 100%) | 25 of 32 (61 to 89%) | 18 | 0.086 | 0.210 | 0.988 | 0.338 |
+| broken | clean | 14 | 124 | 1.493 | 1 of 14 (1 to 31%) | 14 of 14 (78 to 100%) | 8 of 14 (33 to 79%) | 28 | 0.219 | 0.174 | 0.969 | 0.240 |
+| broken | no drop | 14 | 222 | 1.664 | 1 of 14 (1 to 31%) | 14 of 14 (78 to 100%) | 8 of 14 (33 to 79%) | 46 | 0.202 | 0.212 | 0.973 | 0.270 |
+| both right | clean | 130 | 128 | 1.175 | 50 of 130 (31 to 47%) | 129 of 130 (96 to 100%) | 107 of 130 (75 to 88%) | 8 | 0.063 | 0.171 | 0.966 | 0.258 |
+| both right | no drop | 130 | 192 | 1.168 | 52 of 130 (32 to 49%) | 130 of 130 (97 to 100%) | 114 of 130 (81 to 92%) | 7 | 0.043 | 0.209 | 0.978 | 0.299 |
+| both wrong | clean | 24 | 116 | 2.067 | 0 of 24 (0 to 14%) | 20 of 24 (64 to 93%) | 13 of 24 (35 to 72%) | 26 | 0.209 | 0.168 | 0.968 | 0.245 |
+| both wrong | no drop | 24 | 172 | 2.067 | 0 of 24 (0 to 14%) | 20 of 24 (64 to 93%) | 14 of 24 (39 to 76%) | 40 | 0.225 | 0.202 | 0.980 | 0.285 |
 <!-- /table:step7_groups_on -->
 
 C++ rule arm: per group and image set.
 
 What this does and does not show. It shows that the owner's two observations hold on these 200 voxels (more candidates; a wider
-cost function at 0.03° to 3°), and that they hold in every voxel, so they are a property of the image set. It does not show that
+cost function at 0.03° to 3°), and that they hold in every voxel (more candidates: 200 of 200 for the lenient and ray rules, 199 of 200
+for the C++ rule; wider cost: 200 of 200 for every arm), so they are a property of the image set. It does not show that
 they cause the lower wrong counts: no run changed one of them while holding the other fixed. The closest-candidate view argues
-against the simplest story (a nearer or better-ranked candidate): the closest candidate is the same in 174 of 200 voxels and
-survives the first cut in most of the fixed voxels on clean as well. What remains consistent with the data, untested, is that the
+against the simplest story (a nearer or better-ranked candidate): the closest candidate is at the same distance in 174 of 200 voxels and
+is ranked in the top quarter of the screen order in most of the fixed voxels on clean as well (22 of 31; whether it survived the
+post-quick-MC level-0 cut was not recorded). What remains consistent with the data, untested, is that the
 wider cost and the larger candidate set help the later levels (quick MC and FindOptimal start from more, and more spread-out,
 candidates). The no-drop images combine two changes against clean, the neighbour and twin layer and the noise (jitter, hot
 pixels, blobs); the analysis did not separate them (a noise-only and a layer-only image set would; not built).
@@ -7442,14 +7450,22 @@ a vertex-0 run set beside C++ and ray runs that used the centroid, so "lenient 1
 half (rule off against rule on, where `on` also projects the centroid) were not like for like. With the centroid start for every arm (Step 4) the lenient rule has 25 against 32 and 29 for the ray
 windows on the old realistic images, and 22 against 14 on the no-drop images.
 
+The Q3 clean half has the same problem: the stored rule-off count there (40) is a vertex-0 run, against 61 with the rule on and the
+centroid start. Like for like, with the centroid screen on both sides (Step 4, `e0_summary.json`; paired per voxel, rule on against rule
+off): clean 35 against 61 (15 fixed / 41 broken / 20 both wrong); old realistic 27 against 42 (10 / 25 / 17); at `min_sin_eta` 0 old
+realistic 25 against 56 (7 / 38 / 18). The C++ rule is the worse arm in all three; the stored Q3 numbers (40 to 61 clean, 25 to 42
+realistic; 17 / 38 / 23 and 8 / 25 / 17; 6 / 44 / 12 against 18 wrong) mix a vertex-0 run with a centroid run, and the findings
+documents carry this caveat beside them.
+
 ### Limits and open items
 
 - One sample of 200 voxels (copper, ReconstructQ8 physics), one seed, E0 per-voxel images (the images are the sweep's
   approximation of the data, as in the earlier E0 studies); not tested: other seeds, other regions, the Phase D BFS pilot and
   reseed (waits with X1; the Q-max 8 no-drop images are rendered, the Q-max 16 ones are not).
 - Untested causes. (1) Why every rule does better on the no-drop images than on clean ones. Step 7 shows that the no-drop images
-  give more level-0 candidates and a wider cost function in every voxel, but no run held one of the two fixed, so neither is a
-  tested cause; the closest candidate hardly changes and, for most fixed voxels, was already kept on clean. (2) Which part of the
+  give more level-0 candidates and a wider cost function in (nearly) every voxel, but no run held one of the two fixed, so neither is a
+  tested cause; the closest candidate hardly changes and, for most fixed voxels, was already ranked in the top quarter of the screen order on
+  clean (22 of 31; survival of the real level-0 cut was not recorded). (2) Which part of the
   no-drop images does it: they combine the neighbour and twin layer with the noise (jitter, hot pixels, blobs). A noise-only
   and a layer-only image set would separate them (not built). (3) Why the cost at the truth rises by 0.0476 (paired median) over
   clean (jitter against hot pixels and blobs against neighbour spots were not separated either).
