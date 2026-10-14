@@ -113,6 +113,10 @@ def main() -> None:
             voxels=vs,
             rows=rows,
             ratio_total=float(tot_py.mean() / tot_cpp.mean()),
+            # net difference of every stage but the C++-only second re-cost
+            diff_net_other_than_rerecost=float(
+                sum(r["diff"] for r in rows if r["stage"] not in ("total", "rerecost"))
+            ),
             ratio_by_voxel={
                 v: float(rr[v]["evals_total"] / cpp[str(v)]["total_counter"]) for v in vs
             },
@@ -213,6 +217,22 @@ def main() -> None:
                 )
             )
         S[f"random_stages_{arm}"] = frows
+        # per-voxel Python / C++ ratio of the random stages: FindOptimal only where both
+        # converged (otherwise Python evaluates all 30 candidates), VarianceMinimizing always
+        find_ratios = [
+            f["find_py"] / f["find_cpp"] for f in frows if f["conv_py"] and f["conv_cpp"]
+        ]
+        var_ratios = [f["var_py"] / f["var_cpp"] for f in frows]
+        both = find_ratios + var_ratios
+        S[f"random_ratio_range_{arm}"] = dict(
+            find_converged_min=min(find_ratios) if find_ratios else None,
+            find_converged_max=max(find_ratios) if find_ratios else None,
+            n_find_converged=len(find_ratios),
+            variance_min=min(var_ratios),
+            variance_max=max(var_ratios),
+            min=min(both),
+            max=max(both),
+        )
         T[f"random_{arm}"] = DT.markdown_table(
             frows,
             [
@@ -248,6 +268,20 @@ def main() -> None:
             )
         T[f"cmp_levels_{arm}_v{v0}"] = DT.markdown_table(
             lrows, list(lrows[0].keys()), formats={k: ",d" for k in lrows[0]}
+        )
+    # level-0 candidates of the C++ rule without and with CppEdgeRules (Python, same seed)
+    if runs.get("cpp") and runs.get("cpp_edge"):
+        l0 = {
+            str(v): dict(
+                cpp=runs["cpp"][v]["levels"][0]["candidates"],
+                cpp_edge=runs["cpp_edge"][v]["levels"][0]["candidates"],
+            )
+            for v in SIX
+            if v in runs["cpp"] and v in runs["cpp_edge"]
+        }
+        absdiff = [abs(x["cpp_edge"] - x["cpp"]) for x in l0.values()]
+        S["l0_candidates_cpp_vs_cpp_edge"] = dict(
+            by_voxel=l0, absdiff_min=min(absdiff), absdiff_max=max(absdiff)
         )
     (out / "attribution.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
     DT.write_tables(out / "tables.md", T)

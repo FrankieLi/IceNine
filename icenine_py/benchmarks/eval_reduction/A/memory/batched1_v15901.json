@@ -1,0 +1,30 @@
+{
+ "voxel": 15901,
+ "batched_screen": true,
+ "screen_chunk": 32,
+ "opts": [],
+ "seed": 1,
+ "preflight": {
+  "timestamp": "2026-10-13T17:46:13",
+  "host": "newt.local",
+  "loadavg": [
+   3.03857421875,
+   3.056640625,
+   2.54052734375
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": [],
+  "not_quiet": "machine not quiet for timing: 1-min load 3.04 > 1.5"
+ },
+ "label": "single-worker, contended",
+ "quiet_preflight": false,
+ "wall_s": 145.376264417,
+ "evals_total": 327619,
+ "err_deg": 0.03777718360172443,
+ "max_rss_after_setup_mib": 286.90625,
+ "max_rss_after_search_mib": 880.515625
+}

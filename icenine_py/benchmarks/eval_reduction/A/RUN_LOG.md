@@ -78,3 +78,12 @@ with `cmake -DCMAKE_BUILD_TYPE=Release . && make -j8` (about 11 s).
   BatchedScreen (the exact screen), and with the interpolation at one and at 32 FZ points per call.
 * The E0 comparison used the Task 0 baselines (`on`, `off`) from the cache of the centroid run; the default code path
   is unchanged (checked on voxel 15901 and by the golden tests), so they were not re-run.
+
+## 5. Task A fixes (2026-10-13, `feature/eval-reduction-A-fixes`)
+
+| What | Command | Wall | Label |
+|---|---|---|---|
+| attribution re-run (adds `random_ratio_range_*`, `l0_candidates_cpp_vs_cpp_edge`; existing keys unchanged) | `ledger_attribution.py --ledger benchmarks/eval_reduction/A/ledger --cpp benchmarks/eval_reduction/A/step2 --arms cpp cpp_edge cpp_edge_interp cpp_edge_interp_batched --out benchmarks/eval_reduction/A/step2` | seconds | |
+| Step 0 summary re-run (99.96% formatting; `summary.json` unchanged) | `parity_summary.py --dir <parity inputs> --out benchmarks/eval_reduction/A/step0` | seconds | |
+| peak RSS, voxel 15901, `BatchedScreen` off then on | `screen_memory.py run --voxel 15901 --batched 0` / `--batched 1`, then `summary` | 173 s, 145 s | one process, contended (load 4.7, 3.0; the second overlapped the suite) |
+| full suite with only `BatchedScreen` flipped | `uv run pytest tests/ --junitxml=...` | 282 s | 887 passed, 2 failed (default assertion, `test_profiling.py` instrument count), 37 skipped, 1 deselected; flip reverted |

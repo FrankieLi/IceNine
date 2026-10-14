@@ -218,6 +218,13 @@
 | 3 | 180 | 9 | 1620 | 1546 | 1546 | 195 | 2340 | 48 | 147 | 0.8 | 0.8 | 1.7 | 1.3 |
 <!-- /table:evalA_levels_r2_v15901 -->
 
+<!-- table:evalA_memory_batched_screen -->
+| voxel | batched_screen | screen_chunk | rss_setup_mib | rss_peak_mib | evals | err_deg | wall_s | label |
+|---|---|---|---|---|---|---|---|---|
+| 15901 | off | 1 | 285.7 | 872.3 | 327,619 | 0.0378 | 173.0 | single-worker, contended |
+| 15901 | on | 32 | 286.9 | 880.5 | 327,619 | 0.0378 | 145.4 | single-worker, contended |
+<!-- /table:evalA_memory_batched_screen -->
+
 <!-- table:evalA_parity_by_group -->
 | group | n | EXS | EXS_edge | EXF | EXF_edge |
 |---|---|---|---|---|---|
@@ -245,7 +252,7 @@
 | arm | n | cost | counts | frames | qual |
 |---|---|---|---|---|---|
 | screen, Python default | 2230 | 1965 (88.1%) | 1965 (88.1%) | 1846 (82.8%) | n/a |
-| screen, Python with CppEdgeRules | 2230 | 2229 (100.0%) | 2229 (100.0%) | 2187 (98.1%) | n/a |
+| screen, Python with CppEdgeRules | 2230 | 2229 (99.96%) | 2229 (99.96%) | 2187 (98.1%) | n/a |
 | complete cost, Python default | 2230 | 1371 (61.5%) | 1124 (50.4%) | 887 (39.8%) | 2020 (90.6%) |
 | complete cost, Python with CppEdgeRules | 2230 | 2230 (100.0%) | 1985 (89.0%) | 1690 (75.8%) | 2228 (99.9%) |
 <!-- /table:evalA_parity_exact -->

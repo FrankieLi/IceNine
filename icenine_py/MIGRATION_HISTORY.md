@@ -6094,14 +6094,20 @@ deselected, and the default no-start search of voxel 15901 gives the stored 327,
 2. *The gap with the C++ rule on (Steps 1 and 2).* Python makes 0.964 times C++'s evaluations (means over six voxels,
    228,146 against 236,634). C++ recomputes the complete cost of every returned candidate once more after the
    discrete search (10,829 evaluations per voxel, 4.6% of its total); the value is identical, so Python does not.
-   With `CppEdgeRules` on the deficit is 10,750 per voxel, and that loop is 10,829.
+   The gap is a net sum, not that loop alone: with the C++ rule the second re-cost (-10,829 per voxel) is partly
+   offset by the other stages (+2,342 net, mostly FindOptimal, +1,895, which in Python misses its convergence test
+   on 3 of 6 voxels); with `CppEdgeRules` on, the deficit is 10,750 per voxel, the second re-cost is 101% of it, and
+   the other stages net +79 through offsetting terms (quick MC +236, FindOptimal -261).
 3. *The untested omega-interpolation hypothesis is confirmed (Step 3).* C++ interpolated and C++ exact screens differ
    in pass status on 401 of the 442 level-0 pairs where the stored C++ and Python screens differ; Python with
    `CppOmegaInterp` and `CppEdgeRules` has the C++ per-FZ-point level-0 pass sets on 4,885 of 4,886 FZ points
    (4,466 with exact omegas) and the C++ pass decision on all 2,000 fixed test pairs.
 4. *Speed.* In the level-0 screen the exact omega solve is 62 of 388 microseconds per orientation (single worker);
-   the rest is Python and torch overhead; the interpolation alone is 4.8 times faster, and batching 32 FZ points per
-   call makes either variant 17 times faster. A whole no-start search is 21 to 25% faster.
+   the rest is mostly Python and torch overhead. The interpolation can remove at most that solve (16%). The
+   interpolated arm with one FZ point per call is 4.8 times faster mostly because it scores the 9 local-grid
+   orientations of an FZ point in one call: its solve drops by 55 microseconds (61.7 to 6.8) and the rest by 266
+   (333.2 to 67.2). Batching 32 FZ points per call makes either variant 17 times faster. A whole no-start search is 21
+   to 25% faster.
 5. *E0 clean (200 voxels, paired).* No detectable change in the wrong count; 20 to 25% of the voxels change status
    in each comparison, in both directions.
 
@@ -6127,7 +6133,7 @@ trace: pass status and overlap count equal on 442 of 442 pairs.
 | arm | n | cost | counts | frames | qual |
 |---|---|---|---|---|---|
 | screen, Python default | 2230 | 1965 (88.1%) | 1965 (88.1%) | 1846 (82.8%) | n/a |
-| screen, Python with CppEdgeRules | 2230 | 2229 (100.0%) | 2229 (100.0%) | 2187 (98.1%) | n/a |
+| screen, Python with CppEdgeRules | 2230 | 2229 (99.96%) | 2229 (99.96%) | 2187 (98.1%) | n/a |
 | complete cost, Python default | 2230 | 1371 (61.5%) | 1124 (50.4%) | 887 (39.8%) | 2020 (90.6%) |
 | complete cost, Python with CppEdgeRules | 2230 | 2230 (100.0%) | 1985 (89.0%) | 1690 (75.8%) | 2228 (99.9%) |
 <!-- /table:evalA_parity_exact -->
@@ -6209,7 +6215,10 @@ and the switch arms of Step 3. One process at a time. Every quick-MC call used e
 | r2 | 6 | 69,416 | 30,522 | 138,052 | 2,444 | 1,398 | 1 | 241,832 | 132 | 525 |
 <!-- /table:evalA_ledger_mean -->
 
-Mean evaluations per voxel by stage. The wall-time columns come from back-to-back runs, most of which carry the
+Mean evaluations per voxel by stage. The arm `lenient_interp_batched` is the lenient rule with all three switches
+(`CppEdgeRules`, `CppOmegaInterp`, `BatchedScreen`; run options `cpp_edge_rules=1, cpp_omega_interp=1,
+batched_screen=1`), so it includes the edge rules although its tag does not say so. The wall-time columns come
+from back-to-back runs, most of which carry the
 label "contended" in `ledger.json`: the one-minute load average read 1.5 to 1.6 at their start (their own previous
 run in it; no other process above 20% CPU), over the 1.5 limit of the preflight. The timing claims are the quiet
 repeats in Step 3.
@@ -6277,10 +6286,14 @@ the stage's difference over the total difference).
   `CppEdgeRules` Python's FindOptimal misses its hit-ratio-1 convergence test on 3 of 6 voxels (17034, 22867, 5242)
   and evaluates all 30 candidates (4,205 to 4,984 evaluations); C++ converges on candidate 1 on all six. With the key
   all six converge on the first or second candidate. The hit ratio of the complete cost at the true orientation is 1.0
-  with and without it (`step2/hit_ratio_at_truth.json`), so the change is in how candidates near the truth are
-  scored; which of the three conventions matters there was not separated.
-* **Random stages:** FindOptimal (when it converges) and VarianceMinimizing have their own distribution; per voxel their
-  counts differ from C++'s by factors of 0.3 to 2.7 in both directions.
+  with and without it (`step2/hit_ratio_at_truth.json`). This is consistent with a change in how candidates near the
+  truth are scored, but that was not separated from the change in the candidate lists: with the key the level-0
+  candidate counts also change on all six voxels (by 2 to 20; `l0_candidates_cpp_vs_cpp_edge` in
+  `step2/attribution.json`), so the MC random stream differs too. Which of the three conventions matters was not
+  separated either.
+* **Random stages:** FindOptimal (when it converges) and VarianceMinimizing have their own distribution; per voxel the
+  Python count over the C++ count ranges from 0.14 to 2.0 with the C++ rule and from 0.26 to 1.74 with `CppEdgeRules`
+  (FindOptimal only on voxels where both converged; `step2/attribution.json`, `random_ratio_range_*`).
 
 <!-- table:evalA_units_cpp_edge -->
 | voxel | fz_py | fz_cpp | passed_py | passed_cpp | cands_py | cands_cpp | l0_py | l0_cpp | screen_per_fz_py | screen_per_fz_cpp | quick_per_cand_py | quick_per_cand_cpp | recost_per_pass_py | recost_per_pass_cpp | ratio_total |
@@ -6349,7 +6362,9 @@ The Python interpolation against the C++ interpolated screen on the same (centre
 Accuracy cost of the interpolation, measured on C++ (interpolated against exact, same orientation): a random FZ
 centre and a local rotation of theta degrees about a random axis, 25 per voxel per angle, three voxels (the level-0
 local grid has offsets of 0 and 2.84 degrees). The omega columns are over each orientation's worst peak; the large
-worst cases are peaks near tangency, where the first-order shift is poor. "Exact peak missing" is a reflection
+worst cases (170 to 174 degrees at offsets of 0.5, 2 and 3 degrees) are consistent with peaks near tangency, where the
+first-order shift is poor, but that was not checked; worst errors near 180 degrees also look like an omega-branch or
+wrap mismatch between the interpolated and the exact peak. "Exact peak missing" is a reflection
 observable at the rotated orientation but not at the centre, "extra peak" one that stops being observable.
 
 <!-- table:evalA_speed_screen -->
@@ -6397,8 +6412,11 @@ little.
 | lenint | off | 200 | 41/200 [0.155, 0.266] | 40/200 [0.150, 0.261] | 21 | 20 | 20 | 48,700 | 48,633 | 182 | 180 | 4 | 4 | 26.0 | 4.4 |
 <!-- /table:evalA_e0_interp_paired -->
 
-E0 clean, 200 voxels, per-voxel images, seed 0, `mc` arm, `min_sin_eta` 0, against the Task 0 baselines (`on` = C++
-rule, `off` = lenient), paired by voxel (fixed = wrong before and right after). Ten workers, contended: the runtime
+E0 clean, 200 voxels, per-voxel images, seed 0, `mc` arm, `min_sin_eta` 0, against the Task 0 baselines. Arms:
+`edge` = C++ rule + `CppEdgeRules`, `interp` = C++ rule + `CppEdgeRules` + `CppOmegaInterp` + `BatchedScreen`,
+`lenint` = lenient rule with the same three switches (it includes `CppEdgeRules` although its tag does not say so);
+baselines `on` = C++ rule, `off` = lenient. Paired by voxel (fixed = wrong before and right after). Ten workers,
+contended: the runtime
 columns are not timing claims; the ratio is large because on single-voxel images the level-0 screen is most of the
 evaluations (43,974 of a mean 47,179 in the `interp` arm).
 
@@ -6408,8 +6426,35 @@ implemented because the interpolation was the only stage with an untested hypoth
 **Defaults and goldens (not changed).** Switching `CppEdgeRules` on by default changes 9 pinned tests (recorded BFS
 result, coarse-proxy features, the four `reconstruct_voxel` goldens of `test_findoptimal_refactor.py`, a ray-overlap
 count) and all three switches 10 (adding `test_profiling.py`); `benchmarks/eval_reduction/A/default_flip_would_change.md`
-has the lists. `BatchedScreen` alone gives the same screen results as the default on every pair tested and could be made
-the default without moving a number; that is the owner's decision.
+has the lists. `BatchedScreen` alone gives the same screen results as the default on every pair tested; with only
+`BatchedScreen` flipped the suite moves two tests (see "BatchedScreen as the default: attempted" below).
+
+**BatchedScreen as the default: attempted, not made (Task A fixes, 2026-10-13, `feature/eval-reduction-A-fixes`).**
+The owner approved making `BatchedScreen` the default (config key and `SearchParameters` default 1, `screen_chunk` 32,
+the reconstructor's per-orientation fallback for ray-rule levels unchanged) on condition that no pinned test or golden
+moves. Peak memory first (`scripts/eval_reduction/screen_memory.py`, results `benchmarks/eval_reduction/A/memory/`):
+one no-start search of voxel 15901, default configuration (lenient rule, Q-max 8, clean images, seed 1), one process,
+torch threads 1, each switch set explicitly, one run each:
+
+<!-- table:evalA_memory_batched_screen -->
+| voxel | batched_screen | screen_chunk | rss_setup_mib | rss_peak_mib | evals | err_deg | wall_s | label |
+|---|---|---|---|---|---|---|---|---|
+| 15901 | off | 1 | 285.7 | 872.3 | 327,619 | 0.0378 | 173.0 | single-worker, contended |
+| 15901 | on | 32 | 286.9 | 880.5 | 327,619 | 0.0378 | 145.4 | single-worker, contended |
+<!-- /table:evalA_memory_batched_screen -->
+
+Peak RSS is the process high-water mark (`getrusage`), so it includes the Python and torch runtime, the setup and the
+touched pages of the memory-mapped image stack; with the batched screen it is 8.2 MiB (0.9%) higher, one run per arm, so
+run-to-run allocator variation is not separated from it. Both runs give the stored 327,619 evaluations and 0.0378
+degrees. The machine was loaded (1-minute load 4.7 and 3.0, the second run overlapping the test suite), so the wall
+times are not timing claims. Then the full suite with only `BatchedScreen` flipped (review fix 9): 887 passed, 2 failed,
+37 skipped, 1 deselected. The failures: `test_batched_screen.py::test_config_keys_and_default_off` (asserts the old
+default; expected) and `test_profiling.py::test_instrumented_reconstruct_voxel_is_bit_identical_and_uninstalled`: the
+profiling instrument (`scripts/profiling/prof_common.py`) counts global evaluations by wrapping
+`VoxelCostFunction.evaluate`, which the batched screen does not call, so it counts 0 instead of 27; the orientation, the
+cost and the reconstructor's own evaluation counts in that test are identical with and without the flip. No golden
+moved. Because a pinned test moved, the flip was reverted (patch kept outside the repository; the default stays off) and
+left to the owner: the instrument would need to count `ScreenEvaluator` calls as `eval_ledger.py` does.
 
 **Not done.** The interpolation with the ray rule (falls back with a warning); a batched quick MC (the quick MC is
 about 58% of the evaluations with the C++ rule and is untouched); reproducing the second candidate re-cost of C++ (it would only add evaluations);

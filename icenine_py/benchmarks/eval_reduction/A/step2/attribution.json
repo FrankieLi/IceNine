@@ -67,6 +67,7 @@
    }
   ],
   "ratio_total": 0.9641337313231,
+  "diff_net_other_than_rerecost": 2341.833333333334,
   "ratio_by_voxel": {
    "15901": 0.9464584295428126,
    "17034": 0.9779634684690054,
@@ -248,6 +249,15 @@
    "var_cpp": 1718
   }
  ],
+ "random_ratio_range_cpp": {
+  "find_converged_min": 0.13612565445026178,
+  "find_converged_max": 0.9938271604938271,
+  "n_find_converged": 3,
+  "variance_min": 0.6742344244984161,
+  "variance_max": 1.995879120879121,
+  "min": 0.13612565445026178,
+  "max": 1.995879120879121
+ },
  "stages_cpp_edge": {
   "voxels": [
    15901,
@@ -316,6 +326,7 @@
    }
   ],
   "ratio_total": 0.9545690173700276,
+  "diff_net_other_than_rerecost": 78.50000000000125,
   "ratio_by_voxel": {
    "15901": 0.9470595729095339,
    "17034": 0.9561057403853412,
@@ -497,6 +508,15 @@
    "var_cpp": 1718
   }
  ],
+ "random_ratio_range_cpp_edge": {
+  "find_converged_min": 0.262434554973822,
+  "find_converged_max": 0.9938271604938271,
+  "n_find_converged": 6,
+  "variance_min": 0.4487776484284051,
+  "variance_max": 1.739010989010989,
+  "min": 0.262434554973822,
+  "max": 1.739010989010989
+ },
  "stages_cpp_edge_interp": {
   "voxels": [
    15901,
@@ -565,6 +585,7 @@
    }
   ],
   "ratio_total": 0.9535745125024476,
+  "diff_net_other_than_rerecost": -156.83333333333195,
   "ratio_by_voxel": {
    "15901": 0.9509530710065768,
    "17034": 0.9584023713310525,
@@ -746,6 +767,15 @@
    "var_cpp": 1718
   }
  ],
+ "random_ratio_range_cpp_edge_interp": {
+  "find_converged_min": 0.13612565445026178,
+  "find_converged_max": 1.2839506172839505,
+  "n_find_converged": 6,
+  "variance_min": 0.5640279394644936,
+  "variance_max": 1.723901098901099,
+  "min": 0.13612565445026178,
+  "max": 1.723901098901099
+ },
  "stages_cpp_edge_interp_batched": {
   "voxels": [
    15901,
@@ -814,6 +844,7 @@
    }
   ],
   "ratio_total": 0.9535745125024476,
+  "diff_net_other_than_rerecost": -156.83333333333195,
   "ratio_by_voxel": {
    "15901": 0.9509530710065768,
    "17034": 0.9584023713310525,
@@ -994,5 +1025,44 @@
    "var_py": 969,
    "var_cpp": 1718
   }
- ]
+ ],
+ "random_ratio_range_cpp_edge_interp_batched": {
+  "find_converged_min": 0.13612565445026178,
+  "find_converged_max": 1.2839506172839505,
+  "n_find_converged": 6,
+  "variance_min": 0.5640279394644936,
+  "variance_max": 1.723901098901099,
+  "min": 0.13612565445026178,
+  "max": 1.723901098901099
+ },
+ "l0_candidates_cpp_vs_cpp_edge": {
+  "by_voxel": {
+   "15901": {
+    "cpp": 8110,
+    "cpp_edge": 8107
+   },
+   "17034": {
+    "cpp": 8283,
+    "cpp_edge": 8264
+   },
+   "18558": {
+    "cpp": 7048,
+    "cpp_edge": 7028
+   },
+   "19889": {
+    "cpp": 7683,
+    "cpp_edge": 7688
+   },
+   "22867": {
+    "cpp": 8233,
+    "cpp_edge": 8231
+   },
+   "5242": {
+    "cpp": 6674,
+    "cpp_edge": 6668
+   }
+  },
+  "absdiff_min": 2,
+  "absdiff_max": 20
+ }
 }

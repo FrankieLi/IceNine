@@ -41,6 +41,16 @@ def share(k: int, n: int) -> Dict[str, Any]:
     return dict(k=k, n=n, pct=100.0 * k / n if n else float("nan"), lo=100 * lo, hi=100 * hi)
 
 
+def fmt_share(s: Dict[str, Any]) -> str:
+    """'k (pct%)' with one decimal, or two when one decimal would round a partial share to
+    100.0% or 0.0% (2,229 of 2,230 prints 99.96%, not 100.0%)."""
+    pct = s["pct"]
+    one = f"{pct:.1f}"
+    if s["k"] != s["n"] and s["k"] != 0 and one in ("100.0", "0.0"):
+        return f"{s['k']} ({pct:.2f}%)"
+    return f"{s['k']} ({one}%)"
+
+
 def rot_angle_deg(m: np.ndarray) -> float:
     return float(np.degrees(np.arccos(np.clip((np.trace(m) - 1.0) / 2.0, -1.0, 1.0))))
 
@@ -371,16 +381,10 @@ def main() -> None:
             dict(
                 arm=lab,
                 n=b["n"],
-                cost=f"{b['conf_equal']['k']} ({b['conf_equal']['pct']:.1f}%)",
-                counts=f"{b['counts_equal']['k']} ({b['counts_equal']['pct']:.1f}%)",
-                frames=(
-                    f"{b['same_frame_and_pixels']['k']} ({b['same_frame_and_pixels']['pct']:.1f}%)"
-                ),
-                qual=(
-                    f"{b['quality_close']['k']} ({b['quality_close']['pct']:.1f}%)"
-                    if arm.startswith("EXF")
-                    else "n/a"
-                ),
+                cost=fmt_share(b["conf_equal"]),
+                counts=fmt_share(b["counts_equal"]),
+                frames=fmt_share(b["same_frame_and_pixels"]),
+                qual=fmt_share(b["quality_close"]) if arm.startswith("EXF") else "n/a",
             )
         )
     T["parity_exact"] = DT.markdown_table(

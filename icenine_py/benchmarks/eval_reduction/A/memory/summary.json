@@ -1,0 +1,34 @@
+{
+ "rows": [
+  {
+   "voxel": 15901,
+   "batched_screen": "off",
+   "screen_chunk": 1,
+   "rss_setup_mib": 285.71875,
+   "rss_peak_mib": 872.28125,
+   "evals": 327619,
+   "err_deg": 0.03777718360172443,
+   "wall_s": 173.02933379200002,
+   "label": "single-worker, contended"
+  },
+  {
+   "voxel": 15901,
+   "batched_screen": "on",
+   "screen_chunk": 32,
+   "rss_setup_mib": 286.90625,
+   "rss_peak_mib": 880.515625,
+   "evals": 327619,
+   "err_deg": 0.03777718360172443,
+   "wall_s": 145.376264417,
+   "label": "single-worker, contended"
+  }
+ ],
+ "diffs": {
+  "15901": {
+   "rss_peak_diff_mib": 8.234375,
+   "rss_peak_ratio": 1.0094400458567692,
+   "evals_equal": true,
+   "err_equal": true
+  }
+ }
+}

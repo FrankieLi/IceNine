@@ -511,8 +511,12 @@ def calculate_diffraction_overlap_batched(
     Detector.cpp:528-548.
     (3) A triangle that produced no pixel (the fill stops one row early at the last image row or
     column) still lights the detector when a vertex is in bounds, as C++
-    ``ShapePixelOverlapCounter`` (OverlapInfo.h) does; the default needs a produced pixel. Needs the
-    extension built with ``HAS_VERTEX_LIT``, else the slow per-peak path is used.
+    ``ShapePixelOverlapCounter`` (OverlapInfo.h) does; the default needs a produced pixel. Not
+    exact: Python still lights on a produced pixel as well (``n_lit > 0``), which C++ does not
+    (C++ lights only on an overlap or an in-bounds vertex, OverlapInfo.h:501-514), so Python lights
+    on a superset of C++'s cases; a triangle covering image pixels with all three vertices out of
+    bounds is lit in Python and unlit in C++ (no such peak on the Task A fixed-orientation test).
+    Needs the extension built with ``HAS_VERTEX_LIT``, else the slow per-peak path is used.
 
     ``ray_rule`` (opt-in, default None): apply the ray-consistency rule of ``ray_overlap`` on top
     of the C++ CountQualifiedPeaks rule (it implies ``cpp_rule``). It is meant for the coarse
@@ -865,6 +869,7 @@ def calculate_diffraction_overlap_batched(
                         detector_lit[det_idx] = True
                     elif cpp_edge_rules:
                         # C++ lights the detector for a pixel-less triangle with a vertex in bounds
+                        # (superset of C++: the n_lit > 0 branch above has no C++ counterpart)
                         for vtx in (v0, v1, v2):
                             vx = -1.0 if float(vtx[0]) < 0 else math.floor(float(vtx[0]))
                             vy = -1.0 if float(vtx[1]) < 0 else math.floor(float(vtx[1]))
