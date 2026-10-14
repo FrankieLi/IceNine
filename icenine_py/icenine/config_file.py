@@ -219,7 +219,7 @@ class ConfigFile:
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
-    batched_screen: bool = False  # level screen: many orientations per call (opt-in)
+    batched_screen: bool = True  # level screen: many orientations per call (default on 2026-10-13)
     # ray-consistency rule (coarse levels 0-2 only): "off", "R<n>" (isotropic n px) or "A"
     ray_overlap_rule: str = "off"
 

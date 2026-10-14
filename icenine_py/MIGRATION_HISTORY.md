@@ -6456,6 +6456,15 @@ cost and the reconstructor's own evaluation counts in that test are identical wi
 moved. Because a pinned test moved, the flip was reverted (patch kept outside the repository; the default stays off) and
 left to the owner: the instrument would need to count `ScreenEvaluator` calls as `eval_ledger.py` does.
 
+**BatchedScreen as the default: made (2026-10-13, `feature/eval-reduction-A-flip`).** `BatchedScreen` now defaults to 1
+in the config file and in `SearchParameters` (`screen_chunk` stays 32; `CppEdgeRules` and `CppOmegaInterp` stay off;
+`BatchedScreen 0` restores the per-orientation screen). The profiling instrument (`scripts/profiling/prof_common.py`,
+through the new `StageTimer.patch_counted`) now counts `ScreenEvaluator.overlaps_exact` / `overlaps_interp` calls as
+their number of orientations, as `eval_ledger.py` does, so `test_profiling.py` passes with the reconstructor's own
+counts. The fallback warning of `_screen_kwargs` (ray rule at a level, no C extension) fires only when `BatchedScreen`
+or `CppOmegaInterp` is written in the config file (`SearchParameters.screen_explicit`) or `CppOmegaInterp` is on; under
+the implicit default the fallback is silent. `test_config_keys_and_default_off` became `test_config_keys_and_defaults`.
+
 **Not done.** The interpolation with the ray rule (falls back with a warning); a batched quick MC (the quick MC is
 about 58% of the evaluations with the C++ rule and is untouched); reproducing the second candidate re-cost of C++ (it would only add evaluations);
 an E0 run on the realistic images (excluded by the plan).

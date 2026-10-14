@@ -117,6 +117,29 @@ class StageTimer:
 
         self._install(owner, attr, make)
 
+    def patch_counted(
+        self,
+        owner: Any,
+        attr: str,
+        name: StageName,
+        count: Callable[[tuple, dict], int],
+    ) -> None:
+        """Like patch(), but one call stands for ``count(args, kwargs)`` evaluations: the stage's
+        call count rises by that number instead of 1 (a batched call scoring many orientations)."""
+
+        def make(orig: Callable[..., Any]) -> Callable[..., Any]:
+            @functools.wraps(orig)
+            def wrapper(*a: Any, **k: Any) -> Any:
+                nm = name(a, k) if callable(name) else name
+                with self.stage(nm):
+                    out = orig(*a, **k)
+                self.calls[nm] += int(count(a, k)) - 1
+                return out
+
+            return wrapper
+
+        self._install(owner, attr, make)
+
     def count_evaluations(self, cls: Any, name: str = "evaluate") -> None:
         timer = self
 

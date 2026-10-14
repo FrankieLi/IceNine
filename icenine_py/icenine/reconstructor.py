@@ -716,25 +716,28 @@ class AdaptiveVoxelReconstructor:
         return None
 
     def _screen_kwargs(self, global_cost_fn: VoxelCostFunction) -> Dict[str, Any]:
-        """Arguments of run_discrete_search_spaced for the opt-in batched / interpolated screen
-        (config keys BatchedScreen and CppOmegaInterp); empty when both are off, so the default
-        call is unchanged. Falls back to the per-orientation screen, with a warning, when the cost
-        function is not supported (ray rule at this level, no C extension)."""
+        """Arguments of run_discrete_search_spaced for the batched / interpolated screen (config
+        keys BatchedScreen, default on since 2026-10-13, and CppOmegaInterp, opt-in); empty when
+        both are off, which gives the per-orientation screen. Falls back to the per-orientation
+        screen when the cost function is not supported (ray rule at this level, no C extension):
+        with a warning if a key was set explicitly (config file, or CppOmegaInterp on), silently
+        under the implicit default."""
         sp = self.setup.search_params
         interp = bool(getattr(sp, "cpp_omega_interp", False))
-        batched = bool(getattr(sp, "batched_screen", False))
+        batched = bool(getattr(sp, "batched_screen", True))
         if not (interp or batched):
             return {}
         from .batched_screen import make_screen_evaluator
 
         evaluator = make_screen_evaluator(global_cost_fn)
         if evaluator is None:
-            warnings.warn(
-                "BatchedScreen / CppOmegaInterp are not supported for this level (ray rule or no "
-                "C extension): using the per-orientation screen",
-                RuntimeWarning,
-                stacklevel=2,
-            )
+            if interp or getattr(sp, "screen_explicit", False):
+                warnings.warn(
+                    "BatchedScreen / CppOmegaInterp are not supported for this level (ray rule or "
+                    "no C extension): using the per-orientation screen",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
             return {}
         chunk = int(getattr(sp, "screen_chunk", 32)) if batched else 1
         return dict(screen=evaluator, screen_interp=interp, screen_chunk=chunk)

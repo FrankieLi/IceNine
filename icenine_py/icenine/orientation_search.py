@@ -144,12 +144,17 @@ class SearchParameters:
     cpp_edge_rules: bool = False
     # cpp_omega_interp: opt-in (config key CppOmegaInterp). The level screen takes the omegas of the
     # local-grid orientations from the FZ centre as C++ LocalAngularInterpProcess does (see
-    # icenine/batched_screen.py). batched_screen: opt-in (config key BatchedScreen). The screen
-    # scores screen_chunk FZ points (x local grid) per call instead of one orientation per call.
+    # icenine/batched_screen.py). batched_screen: default on since 2026-10-13 (owner; config key
+    # BatchedScreen, 0 restores the per-orientation screen). The screen scores screen_chunk FZ
+    # points (x local grid) per call instead of one orientation per call; exact (same arithmetic).
     # With CppOmegaInterp alone the chunk is one FZ point (the centre is solved once per point).
     cpp_omega_interp: bool = False
-    batched_screen: bool = False
+    batched_screen: bool = True
     screen_chunk: int = 32
+    # screen_explicit: BatchedScreen or CppOmegaInterp was written in the config file. Only then
+    # does a fallback to the per-orientation screen (ray rule at a level, no C extension) warn;
+    # under the implicit default it falls back silently.
+    screen_explicit: bool = False
     # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
     # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
     # 0 .. ray_rule.levels-1 (default 0-2): screen, re-cost, quick MC and ranking cut. FindOptimal,
@@ -206,7 +211,10 @@ class SearchParameters:
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
             cpp_omega_interp=bool(getattr(config, "cpp_omega_interp", False)),
-            batched_screen=bool(getattr(config, "batched_screen", False)),
+            batched_screen=bool(getattr(config, "batched_screen", True)),
+            screen_explicit=bool(
+                {"BatchedScreen", "CppOmegaInterp"} & set(getattr(config, "_initialized", ()))
+            ),
             ray_rule=ray_rule_from_config(config),
         )
         # unstudied combination: warn only (owner 2026-10-12), do not force CppOverlapRule

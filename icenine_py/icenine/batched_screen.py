@@ -4,9 +4,9 @@ The coarse screen of the discrete search scores every (FZ point, local-grid poin
 pixel-radius cost (``VoxelCostFunction`` with ``pixel_radius`` > 0) and keeps the pair when
 ``peak_overlap`` > 0. ``VoxelCostFunction.evaluate`` does this one orientation at a time; about
 0.5 ms of each call is Python and torch overhead (the C overlap stage is 5% of it).
-``ScreenEvaluator`` scores many orientations in one call (opt-in config key ``BatchedScreen``), and
-optionally computes the omegas of the local-grid orientations the way C++ does (opt-in config key
-``CppOmegaInterp``):
+``ScreenEvaluator`` scores many orientations in one call (config key ``BatchedScreen``, default on
+since 2026-10-13), and optionally computes the omegas of the local-grid orientations the way C++
+does (opt-in config key ``CppOmegaInterp``):
 
 * exact (``overlaps_exact``): the same arithmetic as ``evaluate``, with the per-orientation torch
   operations stacked into one batch. Pass sets can differ from the unbatched screen only where a

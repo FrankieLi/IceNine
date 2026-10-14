@@ -58,6 +58,7 @@ def test_instrumented_reconstruct_voxel_is_bit_identical_and_uninstalled(pc):
     same evaluation counts; the evaluate calls counted by the wrappers equal the reconstructor's
     own counts; every patched attribute is restored."""
     import icenine.reconstructor as RC
+    from icenine.batched_screen import ScreenEvaluator
     from icenine.cost_functions import VoxelCostFunction
     from icenine.orientation_search import MCOptimizer
     from icenine.reconstructor import _get_voxel_vertices
@@ -72,6 +73,8 @@ def test_instrumented_reconstruct_voxel_is_bit_identical_and_uninstalled(pc):
         MCOptimizer.__dict__["variance_minimizing_optimize"],
         VoxelCostFunction.__dict__["evaluate"],
         RC.AdaptiveVoxelReconstructor.__dict__["reconstruct_voxel"],
+        ScreenEvaluator.__dict__["overlaps_exact"],
+        ScreenEvaluator.__dict__["overlaps_interp"],
     )
     T = pc.ST.StageTimer()
     inst = pc.Instrument(T, rec.params.max_mc_steps, net=False)
@@ -83,6 +86,7 @@ def test_instrumented_reconstruct_voxel_is_bit_identical_and_uninstalled(pc):
     assert res0.cost == res1.cost
     assert tuple(rec.last_eval_counts) == counts0
     assert (ev["global"], ev["local"]) == (counts0[0], counts0[1])
+    assert ev["global"] > 0  # the batched screen evaluations are counted
     assert T.calls["reconstruct"] == 1 and T.calls["discrete_L0"] == 1
     assert T.calls["find_optimal"] >= 1 and T.calls["variance"] >= 1
     assert T.inclusive["reconstruct"] >= T.inclusive["discrete_L0"] > 0
@@ -92,6 +96,8 @@ def test_instrumented_reconstruct_voxel_is_bit_identical_and_uninstalled(pc):
         MCOptimizer.__dict__["variance_minimizing_optimize"],
         VoxelCostFunction.__dict__["evaluate"],
         RC.AdaptiveVoxelReconstructor.__dict__["reconstruct_voxel"],
+        ScreenEvaluator.__dict__["overlaps_exact"],
+        ScreenEvaluator.__dict__["overlaps_interp"],
     )
     assert all(a is b for a, b in zip(orig, after))
 
