@@ -6476,6 +6476,101 @@ keyword arguments when they are not positional.
 about 58% of the evaluations with the C++ rule and is untouched); reproducing the second candidate re-cost of C++ (it would only add evaluations);
 an E0 run on the realistic images (excluded by the plan).
 
+### Task A-exact: `CppEdgeRules` lights a detector exactly as C++ (2026-10-13, `feature/eval-reduction-A-exact`)
+
+Owner decision 2026-10-13: `CppEdgeRules` stays off by default; make it exact for the cost and the peak overlap (pixel
+counts need not match). Under the switch only, a detector is lit iff the pixel overlap is > 0 or one of the three
+vertices is in bounds (C++ `OverlapInfo.h:501-514`); the `n_lit > 0` clause (lit on any produced pixel) is no longer
+applied. Changed: `icenine/_rasterize.c` (`stage_d_overlap`; module constant `HAS_VERTEX_LIT` = 2 marks the exact
+build, so an extension built with the earlier superset rule is treated as stale and the slow path is used with the
+existing warning) and the slow path of `calculate_diffraction_overlap_batched` in `icenine/cost_functions.py`; docstring
+and README row updated. Two new tests: `test_triangle_with_pixels_and_no_vertex_in_bounds_is_unlit_with_the_switch`
+(C path) and `test_slow_path_lit_rule_with_a_stubbed_triangle_counter` (Python slow path, review fix). The default path
+(switch off) takes the same branches as before.
+
+*Fixed-orientation parity rerun* (the Task A Step 0 inputs, 2,230 orientations of voxels 15901, 22867, 5242, C++ driver
+rebuilt from `step0/cpp_parity_patch.py.txt` and rerun, Python with the rebuilt extension): the rerun `results.json.gz`
+is byte-identical to the committed Step 0 file (all four Python arms: default and `CppEdgeRules`, screen and complete
+cost; record `benchmarks/eval_reduction/A/a_exact/parity_rerun.json`), so the summary tables of Task A stand: with
+`CppEdgeRules`, peak overlap and peak-on-detector equal C++ on 2,230 of 2,230 orientations of the complete cost and on
+2,229 of 2,230 of the screen. The old (superset) and exact rules give the same counts on all of them, i.e. no peak of
+the test set has a triangle with pixels and no vertex in bounds, so the test cannot distinguish the two rules (the C
+unit test and a slow-path check do). Residual: one screen orientation (voxel 15901, pair 885, `pair_differ_pass`)
+differs by one overlapping peak (C++ 1, Python 0 of 17): a peak whose omega is 3 float32 ulps from a frame boundary gets
+a different frame (cause named by the per-peak record; not tested further). Pixel counts match on 1,985 of 2,230 (89.0%)
+of the complete cost, as before (not a goal).
+Slow path against the C path (`scripts/eval_reduction/slow_path_check.py`, voxel 5242, 12 orientations per arm, dense
+images; output in `benchmarks/eval_reduction/A/a_exact/slow_path_check.json`, run record in `RUN_LOG.md` section 6):
+with `CppEdgeRules` on and off, all 48 evaluations have identical pixel and peak counts and quality. With `--stub`
+(all-dark images; the slow path's triangle counter returns zero overlap and five lit pixels for every triangle), only
+the complete cost tests the lit rule, since the screen's pixel-radius branch never calls the triangle counter. With the
+switch, the peak counts of the slow path equal the C path's in 12 of 12 evaluations: the slow path lights a detector
+only through an in-bounds vertex, as the C path does on a dark image. Without the switch the stub separates the two
+rules: peak-on-detector sums 1263 (slow path, lit on the stub's pixels) against 766 (C path), equal in 0 of 12.
+
+### Task B: anatomy of the cost function's edges (2026-10-14, `feature/eval-reduction-B`)
+
+Run record: `benchmarks/eval_reduction/B/RUN_LOG.md`. Findings (plain English, generated tables):
+`docs/findings_cost_edges_2026-10.md`. Scripts: `scripts/eval_reduction/cost_edges*.py`, `peak_rejects.py`,
+`truth_cost_anatomy.py`, `interp_levels*.py`; tests `tests/test_cost_edges.py`. No library change, no default
+flipped, no golden regenerated. Clean images, Q-max 8, no extra seeds. The method is a per-peak trace of one cost
+evaluation (taken by wrapping three module functions for one call and calling the C overlap stage once per peak, so
+the per-peak values recombine to the library's own quality to float precision on every evaluation), walked along
+rays of 20 random directions from the truth: six full-sample voxels, 0 to 5 degrees at 0.0005 degree (120 rays), and
+30 E0 voxels (600 rays; 0 to 0.5 degree dense plus four 0.05-degree windows). Eight cost settings (complete cost and
+level-0 screen, each with the lenient, C++, C++ + `CppEdgeRules` and ray R2 rules). Deviation from the plan: the plan
+asked for log-spaced radii; a log grid puts several events into one step at large radius, so the walks use equal
+0.0005-degree steps instead (E0 keeps a 121-point log profile for the cost only, without minimum widths). The
+per-peak trace is tested on the ThreeVoxels images (`tests/test_cost_edges.py`: recombination below 1e-12, module
+functions restored after an exception, parts sum to a real change of the cost).
+
+**Short answers.**
+
+1. *Catalogue* (complete cost, C++ rule, full-sample voxels; cost-changing of all events per degree, in the three
+   regimes under 0.05, 0.05 to 0.5 and 0.5 to 5 degrees): frame crossings 51 of 81, 39 of 86, 2.7 of 86; pixel
+   crossings 150 of 5,091, 372 of 4,982, 26 of 4,975; detector, eta cut, no frame, Bragg limit: a few events per
+   degree and (almost) none change the cost; no sub-pixel and no rule-only event was seen. A frame crossing moves the
+   cost by about one peak's share, a pixel crossing by several times less.
+2. *Share of the change of the cost* (gross, by type): frame crossings 73.7% under 0.05 degree on the full-sample
+   voxels, pixel crossings 59.5% and 55.6% beyond it (E0: pixel 86.5%, 82.4%, 64.2%, the last over four 0.05-degree
+   windows per ray); the denominator of the ratio 1.2 to 1.3% of the change of the complete cost on the full-sample
+   voxels (up to 2.4% for the full-sample screen and 3.7% for the E0 screen). The level-0 screen sees almost only frame crossings under 0.05 degree (its 7 x 7 box hides
+   pixel crossings).
+3. *The 3 of 524 real peaks rejected at the truth* (the 30 voxels of the Phase D ray-overlap study, full-sample
+   images) are a detector-edge effect of the pixel-radius screen: all three have a detector-1 centre 1 to 3 rows past
+   the last image row, the whole triangle is off the image, the 7 x 7 box reaches back in, detector 1 counts as lit
+   with no bright pixel. Of the 524, exactly these 3 have the centre outside with the box reaching in (3 of 3
+   rejected, 95% Wilson 43.8-100%; 0 of 66 with the box not reaching in, 0.0-5.5%). The rule is C++'s own:
+   `Src/OverlapInfo.h:345-382` lights the detector for any in-bounds box pixel and `Src/OverlapInfo.tmpl.cpp:113-130`
+   rejects lit without overlap on detector 1. With the exact C++ lit rule (`CppEdgeRules`) the complete cost rejects
+   8 of 1,972 real peaks at the truth (0 without); all 8 have a detector-1 triangle on the last image row (that C++
+   rejects them too is inferred from `Src/OverlapInfo.h:501-516` and Task A-exact, not from a C++ run).
+4. *The cost at the truth is not zero* (median 0.0703 on the six voxels, 0.0606 on E0): 85.5% and 87.6% of it is peaks
+   whose spot is off detector 1, which score 1/2 for ever; most of the rest is peaks with no qualified overlap (4 and
+   15 peaks; with `CppEdgeRules` 0 and 1), consistent with the omega-below-the-first-frame convention of Task A
+   (not shown: `CppEdgeRules` bundles three conventions and the omegas were not checked).
+5. *Non-monotone basins*: no local minimum of depth 0.05 or more with the complete cost; at depth 0.01 the full-sample
+   images have one on 72 of 120 rays (95% Wilson 51.1-68.3%, C++ rule, median 2.96 degrees from the truth); the
+   level-0 screen has minima of depth 0.05 or more on 68 of 120 full-sample rays (47.7-65.2%, median 2.68 degrees,
+   created by pixel events 69 and frame events 28). E0 was walked densely only to 0.5 degree, so these far dips are
+   not compared with E0. Over 0 to 0.5 degree the two image sets are alike: depth-0.01 minima on 6 of 120
+   full-sample rays (2.3-10.5%) and 12 of 600 E0 rays (1.1-3.5%); screen depth-0.05 minima on 0 of 120 (0.0-3.1%)
+   and 6 of 600 (0.5-2.2%). The truth is the lowest point on all 120 full-sample rays; on 38 of 600 E0 rays
+   (4.6-8.6%, 5 voxels) a point within 0.001 degree is lower, by pixel events.
+6. *Added item: pass-set parity of `CppOmegaInterp` with C++ at levels 1 to 3.* With both switches the FZ points with
+   an identical pass set over the six voxels are 29,303 of 29,316 (level 0), 11,504 of 11,508 (level 1), 3,497 of 3,498
+   (level 2) and 963 of 963 (level 3); exact omegas by default: 26,749, 10,687, 3,348 and 930. The same code at level
+   0 reproduces Task A's 4,885 of 4,886 for voxel 15901. Residual differences were not traced to a cause.
+
+Figures: `benchmarks/eval_reduction/B/figures/` (`cost_vs_angle_ray.png`, `events_per_degree.png`,
+`variation_share.png`, `minima_example.png`, `slice_maps.png`, `diagram_frame_crossing.png`,
+`diagram_pixel_crossing.png`, `diagram_detector_edge.png`).
+
+Left over: the E0 0.5-to-5 degree regime is windowed, not continuous (so E0 minima beyond 0.5 degree are not
+measured); no counterfactual run of a screen that ignores its box at the detector edge; the omegas of the
+no-overlap peaks at the truth; the sources of the residual pass differences; a per-event edge list (only per-step
+aggregates are stored); realistic images (excluded until Q8).
+
 ## Python speed parity: per-evaluation cost (2026-10-13)
 
 Branch `feature/python-speed-parity` (off `feature/eval-reduction` at 0c187a4). Question from the owner: why is the

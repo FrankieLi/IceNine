@@ -87,3 +87,21 @@ with `cmake -DCMAKE_BUILD_TYPE=Release . && make -j8` (about 11 s).
 | Step 0 summary re-run (99.96% formatting; `summary.json` unchanged) | `parity_summary.py --dir <parity inputs> --out benchmarks/eval_reduction/A/step0` | seconds | |
 | peak RSS, voxel 15901, `BatchedScreen` off then on | `screen_memory.py run --voxel 15901 --batched 0` / `--batched 1`, then `summary` | 173 s, 145 s | one process, contended (load 4.7, 3.0; the second overlapped the suite) |
 | full suite with only `BatchedScreen` flipped | `uv run pytest tests/ --junitxml=...` | 282 s | 887 passed, 2 failed (default assertion, `test_profiling.py` instrument count), 37 skipped, 1 deselected; flip reverted |
+
+## 6. Task A-exact (2026-10-13, `feature/eval-reduction-A-exact`)
+
+`CppEdgeRules` lights a detector exactly as C++ (overlap > 0 or an in-bounds vertex); extension rebuilt
+(`HAS_VERTEX_LIT` = 2). Outputs in `a_exact/`. Commands from `icenine_py/`; `DIR` is the scratch directory of the Step 0
+inputs (`parity_inputs.py --out DIR`) and C++ outputs; logs in the scratch directory, not kept.
+
+| What | Command | Wall | Result |
+|---|---|---|---|
+| C++ parity driver rebuilt in a scratch copy | `python patch.py && cmake -DCMAKE_BUILD_TYPE=Release . && make -j8` (patch `step0/cpp_parity_patch.py.txt`) | not recorded | first A-exact commit; C++ `Src/` unchanged by this task |
+| C++ driver rerun, 1,077 / 577 / 576 records | `PARITY_IN=... PARITY_OUT=... IceNine r recon_V.config` from `Examples/Example2.ManyGrains` | not recorded | first A-exact commit; outputs reused by the rows below |
+| Python comparison at the A-exact code | `parity_compare.py --dir DIR --out <scratch>/rerun` (absolute `--out`) | 41 s | `results.json.gz` byte-identical to the committed `step0/results.json.gz` (`cmp`; same SHA-256, `a_exact/parity_rerun.json`), so `step0/summary.json` and the Task A tables stand |
+| slow path against the C path, dense images | `slow_path_check.py --out <abs>/benchmarks/eval_reduction/A/a_exact/slow_path_check.json` | 4 s | key `plain`: 48 evaluations, 0 differ in any field |
+| same, `--stub` (dark images, slow-path triangle counter returns 0 overlap, 5 lit pixels) | `slow_path_check.py --stub --out <same file>` | 1 s | key `stub`: complete cost with the switch, peak counts equal 12 of 12; without the switch 0 of 12 (peak-on-detector sums 1263 slow against 766 C); the screen never calls the triangle counter, so it does not test the lit rule |
+
+Review fixes (`.claude/reports/20261013-2304-review-A-exact.md`): these outputs were not saved in the first A-exact
+commit; the screen stub sum was wrongly cited as evidence for the lit rule in MIGRATION_HISTORY (rewritten); a unit
+test of the slow-path rule (`test_slow_path_lit_rule_with_a_stubbed_triangle_counter`) was added.
