@@ -47,6 +47,14 @@ def main() -> None:
         runs.setdefault(r["tag"], {})[r["voxel"]] = r
     e0 = json.loads((BASE / "step3" / "summary_e0.json").read_text())
     base6 = runs["base"]
+    f30: Dict[str, Dict[int, Dict[str, Any]]] = {}
+    for fn in sorted((BASE / "full30" / "runs").glob("*_v*.json")):
+        r = json.loads(fn.read_text())
+        f30.setdefault(r["tag"], {})[r["voxel"]] = r
+    vox30 = json.loads(
+        (ICE / "benchmarks" / "phase_d_seed_diag" / "ray_overlap" / "voxels.json").read_text()
+    )
+    rows30 = []
     summ: Dict[str, Any] = {}
     rows_six, rows_all, rows_stage = [], [], []
     for a in arm_order():
@@ -74,6 +82,33 @@ def main() -> None:
         d: Dict[str, Any] = dict(six=s6)
         if arm in e0:
             d["e0"] = e0[arm]
+        if arm in f30 and "base" in f30:
+            R30 = {**R, **f30[arm]}
+            B30 = {**base6, **f30["base"]}
+            if all(v in R30 and v in B30 for v in vox30):
+                e30 = np.array([R30[v]["evals_total"] for v in vox30], dtype=float)
+                b30 = np.array([B30[v]["evals_total"] for v in vox30], dtype=float)
+                er30 = np.array([R30[v]["err_deg"] for v in vox30])
+                eb30 = np.array([B30[v]["err_deg"] for v in vox30])
+                w30, wb30 = er30 > WRONG_DEG, eb30 > WRONG_DEG
+                br30, fx30 = S.paired_discordant(w30, wb30)
+                lo30, hi30 = S.wilson(int(w30.sum()), len(vox30))
+                d["full30"] = dict(
+                    n=len(vox30), evals_total=int(e30.sum()), evals_base=int(b30.sum()),
+                    evals_ratio=float(e30.sum() / b30.sum()), wrong=int(w30.sum()),
+                    wrong_base=int(wb30.sum()), wilson=[lo30, hi30], broken=br30, fixed=fx30,
+                    both_wrong=int((w30 & wb30).sum()),
+                    median_err=float(np.median(er30)),
+                )  # fmt: skip
+                rows30.append(
+                    dict(
+                        arm=arm, spec=a["spec"], evals=int(e30.sum()),
+                        vs_base=f"{100 * e30.sum() / b30.sum():.1f}%",
+                        wrong=f"{int(w30.sum())}/30 [{lo30:.3f}, {hi30:.3f}]",
+                        broken=br30, fixed=fx30, both_wrong=d["full30"]["both_wrong"],
+                        median_err=float(np.median(er30)),
+                    )
+                )  # fmt: skip
         summ[arm] = d
         rows_six.append(
             dict(
@@ -109,6 +144,23 @@ def main() -> None:
         rule="fewest six-voxel evaluations among arms with no broken E0 voxel and no more wrong "
         "voxels than the baseline on the six; the baseline if none",
     )  # fmt: skip
+    b6 = summ["base"]["six"]["stages"]
+    eb = e0["base"]
+    lv = range(max(int(k[1]) for k in eb if k.startswith("L") and "_mean_quick" in k) + 1)
+    sr_all = sum(eb[f"L{l}_mean_screen_recost"] for l in lv)
+    arms_ = [a for a in summ if not a.startswith("_")]
+    summ["_derived"] = dict(
+        six_base_share={k: b6[k] / b6["sum"] for k in b6},
+        e0_base_screen_recost_share=sr_all / eb["mean_evals"],
+        e0_base_level0_screen_recost_share=eb["L0_mean_screen_recost"] / eb["mean_evals"],
+        e0_base_quick_share=sum(eb[f"L{l}_mean_quick"] for l in lv) / eb["mean_evals"],
+        saving_six={a: 1 - summ[a]["six"]["evals_ratio"] for a in arms_},
+        saving_full30={
+            a: 1 - summ[a]["full30"]["evals_ratio"] for a in arms_ if "full30" in summ[a]
+        },
+        saving_e0={a: 1 - summ[a]["e0"]["evals_ratio"] for a in arms_ if "e0" in summ[a]},
+        e0_wrong_change={a: summ[a]["e0"]["wrong"] - eb["wrong"] for a in arms_ if "e0" in summ[a]},
+    )
     (BASE / "step3").mkdir(exist_ok=True)
     (BASE / "step3" / "summary.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
     tabs = {
@@ -127,6 +179,10 @@ def main() -> None:
             rows_all, list(rows_all[0].keys()), formats={"six_evals": ",d", "e0_mean_evals": ",.0f"}
         ),
     }
+    if rows30:
+        tabs["c_full30"] = DT.markdown_table(
+            rows30, list(rows30[0].keys()), formats={"evals": ",d", "median_err": ".4f"}
+        )
     DT.write_tables(BASE / "step3" / "tables.md", tabs)
     print(tabs["c_all"])
     print("choice:", summ["_choice"])

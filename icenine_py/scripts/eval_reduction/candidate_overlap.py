@@ -422,6 +422,20 @@ def summarize(which: str, per_run: List[Dict[str, Any]]) -> None:
              "next_in_prev_025Dn", "next_self_dup_025Dn"],
             formats={"cand_per_clique": ".2f", "cliques": ",d", "candidates": ",d", "kept": ",d"},
         )  # fmt: skip
+    for key, v in list(summ.items()):  # shares of the pooled counts (fractions of 1)
+        n, q = v["n_disc"], v["quick_evals"]
+        rule, scope = key.split("_levels_")
+        sel = [r for r in per_run if r["rule"] == rule and (scope == "all" or r["level"] <= 2)]
+        tot = lambda k: sum(r.get(k, 0) for r in sel)  # noqa: E731
+        v["shares"] = dict(
+            in_dup_025=tot("in_dup_0.25") / n, in_dup_05=tot("in_dup_0.5") / n,
+            in_dup_1=tot("in_dup_1.0") / n, in_has_better_05=tot("in_has_better_0.5") / n,
+            out_dup_01deg=tot("out_dup_0.1deg") / n, out_dup_05D=tot("out_dup_0.5D") / n,
+            evals_dup_inputs_05=tot("in_dup_evals_0.5") / q,
+            evals_dup_outputs_05D=tot("out_dup_evals_0.5D") / q,
+            evals_later_in_clique=tot("later_in_clique_evals") / q,
+            candidates_per_clique=n / tot("n_cliques"),
+        )  # fmt: skip
     (OUT / f"summary_{which}.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
     DT.write_tables(OUT / f"tables_{which}.md", tabs)
     print(json.dumps(summ, indent=1, default=float)[:3000])
@@ -429,7 +443,7 @@ def summarize(which: str, per_run: List[Dict[str, Any]]) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("cmd", choices=["run-full", "run-e0", "analyze"])
+    ap.add_argument("cmd", choices=["run-full", "run-e0", "analyze", "resummarize"])
     ap.add_argument("--voxel", type=int, default=0)
     ap.add_argument("--rule", choices=["lenient", "cpp"], default="lenient")
     ap.add_argument("--seed", type=int, default=1)
@@ -441,6 +455,8 @@ def main() -> None:
         print(run_full(a.voxel, a.rule, a.seed, RAW), flush=True)
     elif a.cmd == "run-e0":
         run_e0(a.rule, a.workers, a.limit)
+    elif a.cmd == "resummarize":
+        summarize(a.which, json.loads((OUT / f"metrics_{a.which}.json").read_text()))
     else:
         analyze(a.which)
 
