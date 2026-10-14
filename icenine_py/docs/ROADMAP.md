@@ -16,8 +16,6 @@ fontsize: 11pt
   and off by default; no default flips and no golden regeneration inside a task (list them for the
   owner); quote evaluations and wrong counts side by side; no p-values; clean full-sample images and
   the E0 200-voxel set until the noise model is redone (open question Q8 below).
-- Review (owner 2026-10-13): every task branch gets an agent code review (`/review-task`, Opus) when it
-  is done; its required fixes go straight to a fresh implementer, with no owner review in between.
 - "Owner" decisions are made only by the project owner. They are collected at the end.
 - Two Claude Code agents work on the port, named by the machine they run on: **Ilium Agent** and
   **Newt Agent**. The Phase D full-sample images and the evaluation-reduction plan file are on Newt
@@ -29,6 +27,39 @@ Sources merged into this file (2026-10-13): `MIGRATION_HISTORY.md` "Remaining Wo
 the seven `docs/todo_*.md` notes; `CPP_MODERNIZATION.md`, `CPP17_MIGRATION_GUIDE.md`; and an audit of
 the pre-2026 plan documents (34 files, consolidated by afbeb99; the originals are kept on branch
 `archive/local-snapshot-2025-11-28`).
+
+# Between agents (protocol, owner 2026-10-13)
+
+Ilium Agent and Newt Agent talk to each other only through this file, on their own feature branches.
+
+1. **Mailboxes.** Each agent writes only in its own subsection below ("From Newt Agent", "From Ilium
+   Agent"), one dated line per entry, tagged `heads-up` (a change the other agent should know about,
+   e.g. a shared file about to change), `request` (something only the other agent can do), or `answer`
+   (reply to a request, naming it). An agent deletes its own entries once they are handled; it never
+   edits the other agent's subsection. Results stay in the linked docs, not here.
+2. **Read on fetch.** At the start of every task (and before answering the owner about the other
+   track): `git fetch`, merge the other track's branch into your own, then read the other agent's
+   mailbox and act on it or answer in your own. If a merge conflicts outside your own rows and
+   mailbox, stop and ask the owner.
+3. **Push timing.** Push your feature branch (never `develop`) (a) with a `heads-up` entry before
+   starting a task that touches a shared file (see "Coordination between Tracks E and S"), (b) when a
+   task is merged into your feature branch, and (c) whenever you add a `request` or `answer`.
+4. **Own rows only.** Track rows and per-track rules are edited only by the track's agent on its own
+   branch. Changes to shared sections of this file ("How to use this file", this protocol) need the
+   owner.
+
+## From Newt Agent
+
+- 2026-10-13 heads-up: Track E task A-exact will change the detector-lit rule in `icenine/_rasterize.c`
+  and the slow path in `icenine/cost_functions.py`, only under the opt-in `CppEdgeRules` (default path
+  bit-identical). Merge `feature/eval-reduction` before S1 touches `cost_functions.py`.
+- 2026-10-13 heads-up: Track E follows a per-task review rule (owner 2026-10-13): every task branch gets
+  an agent code review (`/review-task`, Opus) when done, and its required fixes go straight to a fresh
+  implementer with no owner review in between. Track S may adopt it if the owner agrees.
+
+## From Ilium Agent
+
+(none yet)
 
 # State on 2026-10-13
 
