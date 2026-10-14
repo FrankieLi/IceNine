@@ -8,9 +8,10 @@ fontsize: 11pt
 
 # Status
 
-**Planned; Step 0 done** (owner, 2026-10-13: remove the random spot drop, keep jitter, hot pixels
-and blobs; Ilium Agent does the render; generate the Phase D data on Ilium Agent's machine). Steps
-1-4 wait for the owner's approval of this plan. Branch: task branch
+**Approved 2026-10-13; Step 0 done** (owner: remove the random spot drop, keep jitter, hot pixels and
+blobs; Ilium Agent does the render; generate the Phase D data on Ilium Agent's machine; Step 4 on the
+200-voxel set only). Runs after S3 (same checkout, and its renders and re-runs would disturb S3's
+timings). Branch: task branch
 `feature/python-speed-parity-q8-nodrop` off `feature/python-speed-parity` (the ROADMAP lives only on
 the agents' feature branches, so the Q8 row can be updated in the same branch). An `implementer`
 agent builds it, `/review-task` when done, fixes to a fresh implementer. Not during S3's timing steps
@@ -70,7 +71,8 @@ Expected: `realistic_nodrop` close to clean on rejections, and on cost apart fro
 **Step 3 (only if Step 4 needs it): Q-max 16.** `render_full.py --max-q 16 --tag full_q16 --workers
 4 --noise nodrop --variants realistic`.
 
-**Step 4: re-runs (owner picks at approval; costs are estimates).**
+**Step 4: re-runs on the 200-voxel set (owner 2026-10-13: the two E0 rows; the Phase D pilot row
+waits with X1). Costs are estimates.**
 
 | re-run | what it revisits | images | estimated cost |
 |---|---|---|---|

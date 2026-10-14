@@ -200,7 +200,7 @@ owner review in between.
 |---|---|---|
 | X1 | full-sample BFS end to end on the 500-grain sample (classic vs NN and hybrid finisher) | data and library ready; long runs deferred 2026-10-09, again 2026-10-13 ("later") (`todo_500grain_bfs_end_to_end.md`) |
 | X2 | reseed on other regions, seed orders and full-sample scale | deferred 2026-10-09 |
-| Q8 | noise model of the realistic images (unphysical 10% spot drop) | owner 2026-10-13: remove the random spot drop (keep jitter, hot pixels, blobs), then re-render and re-run the realistic comparisons; Ilium Agent (owner 2026-10-13); **planned** (`docs/todo_q8_noise_nodrop.md`), Step 0 done: Phase D Q-max 8 images regenerated on Ilium Agent's machine, identical to Newt Agent's; Steps 1-4 wait for approval; covers the E0 per-voxel noise (`RealismConfig`) too; blocks every realistic-image comparison |
+| Q8 | noise model of the realistic images (unphysical 10% spot drop) | owner 2026-10-13: remove the random spot drop (keep jitter, hot pixels, blobs), then re-render and re-run the realistic comparisons; Ilium Agent (owner 2026-10-13); **planned** (`docs/todo_q8_noise_nodrop.md`), Step 0 done: Phase D Q-max 8 images regenerated on Ilium Agent's machine, identical to Newt Agent's; plan approved 2026-10-13 (re-runs on the 200-voxel set only), after S3; covers the E0 per-voxel noise (`RealismConfig`) too; blocks every realistic-image comparison |
 | X3 | multiple detectors with many grains and voxels far from the axis | deferred (`todo_multidetector_many_grains.md`) |
 | X4 | intensity inputs and distribution losses for the orientation network | deferred (`todo_intensity_and_distribution_losses.md`) |
 | X5 | not yet ported: MPI server/client, step-size file reading, unique-reflection filtering, quadtree peak search | open |
@@ -224,10 +224,10 @@ owner review in between.
 
 # Decisions waiting on the owner
 
-1. Q8: approve `docs/todo_q8_noise_nodrop.md` and pick the Step 4 re-runs.
+None open.
 
 Decided 2026-10-13: Ilium Agent does the Q8 re-render; S3 plan approved with draw option A (exact),
-S3 before S1.
+S3 before S1; Q8 plan approved, re-runs on the 200-voxel set only, after S3.
 Decided 2026-10-13: a GPU path is wanted for the search cost (S3 batched torch before S2 fused C;
 S2 stays open); `CppOverlapRule` stays off; F1 and F1b stay off; Q8 drops the random spot drop; the
 500-grain runs (X1) come later.
