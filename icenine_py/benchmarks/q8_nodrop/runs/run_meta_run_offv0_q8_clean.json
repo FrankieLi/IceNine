@@ -1,0 +1,1 @@
+{"workers": 10, "wall_s": 521.4580438137054, "tasks": 200, "level0_only": false, "arm": "offv0", "msin": 0.3, "variant": "clean", "note": "contended multi-worker wall, not a timing claim"}

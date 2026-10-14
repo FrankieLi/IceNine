@@ -126,3 +126,34 @@ def test_feature_extractor_shape_and_determinism():
     f0 = fe.features(R_true, v, phase)
     names = fe.feature_names()
     assert f0[names.index("hit3")] == 0.0 and f0[names.index("log_n_pairs")] > 0
+
+
+def test_e0_realistic_nodrop_variant_label_maps_to_the_realism_layer():
+    import pytest
+
+    import common as C
+
+    assert C.VARIANTS == ["clean", "all"]  # the stored (published cache) variants are unchanged
+    assert C.ALL_VARIANTS == ["clean", "all", "realistic_nodrop"]
+    assert [C.render_variant(v) for v in C.ALL_VARIANTS] == ["clean", "all", "all_nodrop"]
+    from icenine.orientation_eval import RealismConfig
+
+    assert RealismConfig.named(C.render_variant("realistic_nodrop")).p_miss == 0.0
+    with pytest.raises(ValueError):
+        C.render_variant("noise")
+
+
+def test_e0_default_realistic_variant_is_nodrop():
+    """D-20261014-I6: without a named variant the harness renders and runs clean + realistic_nodrop;
+    the old realistic images (10% drop) are still the named variant "all" (the stored cache)."""
+    import common as C
+    from icenine.orientation_eval import RealismConfig
+
+    assert C.DEFAULT_VARIANTS == ["clean", "realistic_nodrop"]
+    assert set(C.DEFAULT_VARIANTS) <= set(C.ALL_VARIANTS)
+    realistic = [v for v in C.DEFAULT_VARIANTS if v != "clean"]
+    assert [RealismConfig.named(C.render_variant(v)).p_miss for v in realistic] == [0.0]
+    assert RealismConfig.named(C.render_variant("all")).p_miss == 0.1  # "all" keeps the drop
+    import e0_run
+
+    assert e0_run.C.DEFAULT_VARIANTS is C.DEFAULT_VARIANTS

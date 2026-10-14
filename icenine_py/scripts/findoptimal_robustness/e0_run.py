@@ -9,6 +9,15 @@ voxels it reproduces findoptimal_sweep experiment A exactly.
   uv run python scripts/findoptimal_robustness/e0_run.py select
   uv run python scripts/findoptimal_robustness/e0_run.py pilot
   uv run python scripts/findoptimal_robustness/e0_run.py run --workers 10 [--variants clean all]
+  (without --variants: clean and realistic_nodrop; "all" is the old realistic images, 10% drop)
+  uv run python scripts/findoptimal_robustness/e0_run.py images --variants all realistic_nodrop \
+      --n-voxels 200 --workers 10
+
+``images`` only builds and caches the case images (cache/images/v<voxel>_<variant>.npz) of the
+first --n-voxels voxels, for the arms of scripts/phase_d/e0_cpprule.py, which read them directly.
+The variant ``realistic_nodrop`` (Q8: the realistic images without the random spot drop; common.py)
+is the default realistic variant since D-20261014-I6 (default --variants clean realistic_nodrop);
+the old realistic images (10% drop) are the variant ``all``, still available by name.
 
 S3 A/B (the lockstep quick MC, config key BatchedQuickMC, draw option B): ``--batched-quick-mc``
 turns the key on (``--search-device`` picks the device of its batched cost). The S3 arms keep
@@ -98,6 +107,14 @@ def task(item):
     return f"voxel {vidx} {variant} done in {time.time() - t_start:.0f}s"
 
 
+def images_task(item):
+    vidx, vpos, variant = item
+    t0 = time.time()
+    case = get_case(vidx, vpos, variant)
+    what = "unbuildable" if case is None else f"{len(case[0])} lit pixels"
+    return f"voxel {vidx} {variant}: {what} ({time.time() - t0:.1f}s)"
+
+
 def items(info, variants, n_seeds, n_vox, tag="", opts=None):
     cache = C.CACHE_DIR / f"e0{tag}"
     cache.mkdir(parents=True, exist_ok=True)
@@ -119,9 +136,9 @@ def load_info():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("cmd", choices=["select", "pilot", "run"])
+    ap.add_argument("cmd", choices=["select", "pilot", "run", "images"])
     ap.add_argument("--workers", type=int, default=10)
-    ap.add_argument("--variants", nargs="*", default=C.VARIANTS)
+    ap.add_argument("--variants", nargs="*", default=C.DEFAULT_VARIANTS, choices=C.ALL_VARIANTS)
     ap.add_argument("--n-seeds", type=int, default=C.N_SEEDS)
     ap.add_argument("--n-voxels", type=int, default=C.N_VOXELS + N_SPARE)
     ap.add_argument("--batched-quick-mc", action="store_true", help="S3: BatchedQuickMC on")
@@ -149,6 +166,17 @@ def main():
         print("saved voxels.npz;", len(info["voxel_indices"]), "voxels")
         return
     info = load_info()
+    if a.cmd == "images":
+        vox = [int(v) for v in info["voxel_indices"]][: a.n_voxels]
+        todo_img = [
+            (v, vpos, var)
+            for vpos, v in enumerate(vox)
+            for var in a.variants
+            if not (C.CACHE_DIR / "images" / f"v{v}_{var}.npz").exists()
+        ]
+        print(f"{len(vox) * len(a.variants)} images, {len(todo_img)} to build", flush=True)
+        C.run_pool(images_task, todo_img, a.workers, "images")
+        return
     if a.cmd == "pilot":
         its = items(info, a.variants, a.n_seeds, 4, a.tag, opts)
         for it in its:

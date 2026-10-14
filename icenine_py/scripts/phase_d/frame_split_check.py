@@ -18,23 +18,33 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import render_full as RF  # noqa: E402
 
+# The noise variant is explicit: render_full's default is now "nodrop" (directory
+# realistic_nodrop), while this check was written, and its stored result produced, with the
+# "toy" noise (10% spot drop, directory realistic).
+NOISE = "toy"
+REAL_DIR = RF.realistic_dirname(NOISE)
+
+
+def make_job(worker: int, workers: int, voxel_idx: list, out: str) -> Dict[str, Any]:
+    return {
+        "worker": worker,
+        "workers": workers,
+        "mic": "SimInput/rand_500grains_1mm_neworient_s0.mic",
+        "out": out,
+        "voxel_idx": voxel_idx,
+        "batch": 2000,
+        "noise_seed": RF.NOISE_SEED,
+        "noise": NOISE,
+        "max_q": 0.0,
+        "variants": ["clean", "realistic"],
+        "keep": True,
+    }
+
 
 def render(workers: int, voxel_idx: list, out: str) -> Dict[Tuple[int, int], Tuple[Any, ...]]:
     kept: Dict[Tuple[int, int], Tuple[Any, ...]] = {}
     for w in range(workers):
-        job = {
-            "worker": w,
-            "workers": workers,
-            "mic": "SimInput/rand_500grains_1mm_neworient_s0.mic",
-            "out": out,
-            "voxel_idx": voxel_idx,
-            "batch": 2000,
-            "noise_seed": RF.NOISE_SEED,
-            "max_q": 0.0,
-            "variants": ["clean", "realistic"],
-            "keep": True,
-        }
-        kept.update(RF._worker(job)["kept"])
+        kept.update(RF._worker(make_job(w, workers, voxel_idx, out))["kept"])
     return kept
 
 
@@ -46,10 +56,10 @@ def main() -> None:
     idx = np.argsort(np.linalg.norm(raw[:, :2], axis=1))[: a.n_voxels].tolist()
     with tempfile.TemporaryDirectory() as t1, tempfile.TemporaryDirectory() as t3:
         k1, k3 = render(1, idx, t1), render(3, idx, t3)
-        names = sorted(p.name for p in Path(t1, "realistic").iterdir())
+        names = sorted(p.name for p in Path(t1, REAL_DIR).iterdir())
         same_files = all(
             (Path(t1, v, n).read_bytes() == Path(t3, v, n).read_bytes())
-            for v in ("clean", "realistic")
+            for v in ("clean", REAL_DIR)
             for n in names
         )
     same_frames = k1.keys() == k3.keys() and all(

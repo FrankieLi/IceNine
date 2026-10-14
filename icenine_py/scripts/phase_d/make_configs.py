@@ -1,4 +1,5 @@
-"""Write the four Phase D reconstruction configs (mc/cma x clean/realistic) into configs/.
+"""Write the Phase D reconstruction configs (mc/cma/cma_noretry x clean/realistic/realistic_q16/
+realistic_nodrop) into configs/.
 
 Derived from Examples/Example2.ThreeVoxels/ConfigFiles/ReconstructQ8.config (the BFS settings:
 MaxQ 8, MaxMCSteps 200, MaxLocalResolution 3, SuccessiveRestarts 2, ...). Paths are relative to
@@ -27,6 +28,7 @@ OPTIMIZER = {
 IMAGE_DIR = {
     "clean": "full/clean",
     "realistic": "full/realistic",
+    "realistic_nodrop": "full/realistic_nodrop",  # Q8: render_full.py --noise nodrop
     "realistic_q16": "full_q16/realistic",
 }
 REVISIT = (

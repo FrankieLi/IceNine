@@ -28,6 +28,15 @@ spot on each detector is dropped at random with probability 0.1; open question 8
 images the lenient rule is more accurate (18 wrong of 200 against 29 to 32 for the ray rule), but this is reported for
 completeness and should not drive decisions.
 
+Update 2026-10-14 (Q8, `MIGRATION_HISTORY.md` "Q8: realistic images without the random spot drop"): the same E0 runs
+were repeated on images without the random spot drop. With `min_sin_eta` 0 the wrong counts of 200 are, clean / old
+realistic / no drop: lenient 41 / 25 / 22, C++ rule 56 / 56 / 38, 2-pixel window 40 / 32 / 14, geometric window 41 / 29 / 14
+(the earlier 18 for the lenient rule was the vertex-0 start; it is 25 in this build; the lenient rule with the vertex-0 screen
+reproduces the 18, `MIGRATION_HISTORY.md` "Q8" Step 8). On the no-drop images the ray rule is
+ahead of the lenient rule (2-pixel window against lenient: 15 fixed, 7 broken, 7 both wrong), so the lenient lead above
+comes with the drop; it is one sample of 200 voxels and one seed. Mean evaluations per voxel on the no-drop images: lenient 51,901,
+2-pixel window 51,652, geometric window 51,677, C++ rule 49,281 (clean: 48,700, 48,641, 48,649, 47,230).
+
 | Overlap rule | Wrong of 200 (clean images) | Wrong of 200 (realistic images, see caveat) | Time per full-sample voxel (one process, mixed quiet and contended, three sessions) |
 |---|---|---|---|
 | Original lenient Python rule | 41 | 18 (vertex-0 start point, not re-run) | 180 s (six processes at once; 176 s before) |
@@ -174,7 +183,9 @@ Reading:
   asks detector 1 to confirm would reject them. Not tested: why the rate is a little under 10% (merging of spots
   with a neighbour's spot is one possible reason, not checked). The noise model itself is ruled unphysical (open
   question 8 of the parent findings), so this rejection rate is an artefact of the test data, not a property of real
-  images.
+  images. Q8 (2026-10-14): on images without the random drop the same three rules reject 3 of 524 (initial screen) and 0 of 521
+  real peaks, the same as on clean images, and 0 of 12,439 on the E0 images (against 974 of 11,174 for the C++ rule with the
+  drop at `min_sin_eta` 0.3), which fits the drop being the cause of the 8 to 9%.
 - On clean images the C++ rule and both ray windows reject 3 real peaks of 524: the peak is lit on detector 0
   but both the predicted spot and the observed ray land on dark pixels of detector 1. The cause is not yet checked.
 - The windows differ in how many chance overlaps they accept: the 2-pixel window a few more than the C++ rule, the
@@ -363,7 +374,7 @@ open question 5 in `findings_finisher_mc_study_2026-10.md`.
 
 | Limit | Effect |
 |---|---|
-| Noise model of the realistic images | The realistic images use a noise model the owner has ruled unphysical (every spot on each detector is dropped at random with probability 0.1; open question 8 of the parent findings, deferred). The realistic-image numbers in this write-up (sections 3 to 5) are therefore reported but should not drive decisions; the clean-image numbers come first. |
+| Noise model of the realistic images | The realistic images use a noise model the owner has ruled unphysical (every spot on each detector is dropped at random with probability 0.1; open question 8 of the parent findings, deferred). The realistic-image numbers in this write-up (sections 3 to 5) are therefore reported but should not drive decisions; the clean-image numbers come first. Q8 (2026-10-14) re-ran the E0 rows on images without the drop (`MIGRATION_HISTORY.md` "Q8"); sections 3 to 5 still show the old realistic numbers. |
 | One run per voxel for E0 (seed 0) | The differences between the two ray-rule windows (32 against 29 wrong on realistic images) are a handful of voxels either way. More seeds are not needed (owner, 2026-10-12): the search uses randomness to explore, not as independent samples. |
 | Realistic-image rows of the lenient and C++ rules are stored earlier runs | On clean images all four rules were re-run in this build (section 10). The realistic columns were not: the lenient rule's realistic numbers still use the vertex-0 start point. |
 | Full-sample voxels all right | The six full-sample voxels measure cost only, not accuracy. |
@@ -375,7 +386,10 @@ open question 5 in `findings_finisher_mc_study_2026-10.md`.
 Clean-image results first: on the clean E0 images the 2-pixel ray window (40 wrong of 200) ties the lenient rule (41
 wrong; paired 10 fixed, 9 broken, 31 both wrong) and is better than the C++ rule (56 wrong). The realistic-image gap in
 the lenient rule's favour (18 against 29 to 32) rests on a noise model the owner has ruled unphysical (open question 8
-of the parent findings), so it is not used for the decisions below.
+of the parent findings), so it is not used for the decisions below. On the no-drop images (Q8, 2026-10-14) the gap reverses:
+14 wrong for each ray window against 22 for the lenient rule (2-pixel window: 15 fixed, 7 broken, 7 both wrong), against
+38 for the C++ rule, at 51,652 and 51,677 evaluations per voxel for the ray windows against 51,901 (lenient) and 49,281 (C++ rule);
+whether that changes a decision below is the owner's.
 
 | Question | Suggestion or decision |
 |---|---|
