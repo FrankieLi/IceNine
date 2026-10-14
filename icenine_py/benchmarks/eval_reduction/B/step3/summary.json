@@ -1,0 +1,611 @@
+{
+ "n_voxels": 30,
+ "lenient_overlaps_at_truth": {
+  "screen|old": 524,
+  "screen|cpp": 521,
+  "screen|cppE": 521,
+  "screen|r2": 521,
+  "full|old": 1972,
+  "full|cpp": 1972,
+  "full|cppE": 1964,
+  "full|r2": 1972
+ },
+ "screen_centre_outside_the_image_by_detector": [
+  {
+   "n_lenient_with_centre_outside": 1,
+   "n_of_those_rejected_by_cpp": 0,
+   "n_lenient_centre_outside_box_reaches_in": 1,
+   "n_of_those_rejected": 0
+  },
+  {
+   "n_lenient_with_centre_outside": 69,
+   "n_of_those_rejected_by_cpp": 3,
+   "n_lenient_centre_outside_box_reaches_in": 3,
+   "n_of_those_rejected": 3
+  }
+ ],
+ "rejected_vs_lenient": {
+  "screen|cpp": 3,
+  "screen|cppE": 3,
+  "screen|r2": 3,
+  "full|cpp": 0,
+  "full|cppE": 8,
+  "full|r2": 0
+ },
+ "complete_cost_peaks_lost_with_cpp_edge_rules": [
+  {
+   "voxel": 11924,
+   "key": 160,
+   "same_frame": true,
+   "same_vertex_pixels": true,
+   "detector1_vertex_pixels": [
+    [
+     1321,
+     2048
+    ],
+    [
+     1319,
+     2047
+    ],
+    [
+     1325,
+     2047
+    ]
+   ],
+   "counts_cpp": [
+    7,
+    7,
+    1,
+    1,
+    1
+   ],
+   "counts_cppE": [
+    7,
+    7,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "voxel": 3285,
+   "key": 22,
+   "same_frame": true,
+   "same_vertex_pixels": true,
+   "detector1_vertex_pixels": [
+    [
+     1951,
+     2047
+    ],
+    [
+     1946,
+     2047
+    ],
+    [
+     1952,
+     2047
+    ]
+   ],
+   "counts_cpp": [
+    7,
+    7,
+    1,
+    1,
+    1
+   ],
+   "counts_cppE": [
+    7,
+    7,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "voxel": 13333,
+   "key": 182,
+   "same_frame": true,
+   "same_vertex_pixels": true,
+   "detector1_vertex_pixels": [
+    [
+     1620,
+     2047
+    ],
+    [
+     1618,
+     2047
+    ],
+    [
+     1624,
+     2047
+    ]
+   ],
+   "counts_cpp": [
+    7,
+    7,
+    1,
+    1,
+    1
+   ],
+   "counts_cppE": [
+    7,
+    7,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "voxel": 1729,
+   "key": 69,
+   "same_frame": true,
+   "same_vertex_pixels": true,
+   "detector1_vertex_pixels": [
+    [
+     385,
+     2047
+    ],
+    [
+     390,
+     2047
+    ],
+    [
+     390,
+     2047
+    ]
+   ],
+   "counts_cpp": [
+    7,
+    7,
+    1,
+    1,
+    1
+   ],
+   "counts_cppE": [
+    7,
+    7,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "voxel": 1729,
+   "key": 162,
+   "same_frame": true,
+   "same_vertex_pixels": true,
+   "detector1_vertex_pixels": [
+    [
+     1751,
+     2047
+    ],
+    [
+     1755,
+     2047
+    ],
+    [
+     1758,
+     2047
+    ]
+   ],
+   "counts_cpp": [
+    8,
+    8,
+    1,
+    1,
+    1
+   ],
+   "counts_cppE": [
+    8,
+    8,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "voxel": 9861,
+   "key": 46,
+   "same_frame": true,
+   "same_vertex_pixels": true,
+   "detector1_vertex_pixels": [
+    [
+     1540,
+     2047
+    ],
+    [
+     1534,
+     2047
+    ],
+    [
+     1537,
+     2047
+    ]
+   ],
+   "counts_cpp": [
+    7,
+    7,
+    1,
+    1,
+    1
+   ],
+   "counts_cppE": [
+    7,
+    7,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "voxel": 9864,
+   "key": 46,
+   "same_frame": true,
+   "same_vertex_pixels": true,
+   "detector1_vertex_pixels": [
+    [
+     1543,
+     2047
+    ],
+    [
+     1537,
+     2047
+    ],
+    [
+     1540,
+     2047
+    ]
+   ],
+   "counts_cpp": [
+    8,
+    8,
+    1,
+    1,
+    1
+   ],
+   "counts_cppE": [
+    8,
+    8,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "voxel": 11927,
+   "key": 160,
+   "same_frame": true,
+   "same_vertex_pixels": true,
+   "detector1_vertex_pixels": [
+    [
+     1314,
+     2048
+    ],
+    [
+     1313,
+     2047
+    ],
+    [
+     1319,
+     2047
+    ]
+   ],
+   "counts_cpp": [
+    7,
+    7,
+    1,
+    1,
+    1
+   ],
+   "counts_cppE": [
+    7,
+    7,
+    0,
+    1,
+    0
+   ]
+  }
+ ],
+ "peaks": [
+  {
+   "voxel": 3188,
+   "key": 8,
+   "refl": 4,
+   "branch": 0,
+   "omega_deg": -57.70555671233724,
+   "frame": 32,
+   "screen_detectors": [
+    {
+     "center": [
+      1309,
+      2010
+     ],
+     "dist": 0,
+     "at": [
+      1309,
+      2010
+     ],
+     "n_in_5": 10
+    },
+    {
+     "center": [
+      1512,
+      2050
+     ],
+     "dist": null,
+     "at": null,
+     "n_in_5": 0
+    }
+   ],
+   "screen_peak_overlap": {
+    "screen|old": 1,
+    "screen|cpp": 0,
+    "screen|cppE": 0,
+    "screen|r2": 0
+   },
+   "full": {
+    "full|old": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 7,
+     "pixon": 7
+    },
+    "full|cpp": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 7,
+     "pixon": 7
+    },
+    "full|cppE": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 7,
+     "pixon": 7
+    },
+    "full|r2": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 7,
+     "pixon": 7
+    }
+   },
+   "full_vertex_pixels": [
+    [
+     [
+      1311,
+      2010
+     ],
+     [
+      1305,
+      2010
+     ],
+     [
+      1310,
+      2010
+     ]
+    ],
+    [
+     [
+      1514,
+      2050
+     ],
+     [
+      1508,
+      2050
+     ],
+     [
+      1513,
+      2050
+     ]
+    ]
+   ],
+   "cnt_screen": [
+    1,
+    2,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "voxel": 13333,
+   "key": 28,
+   "refl": 14,
+   "branch": 0,
+   "omega_deg": 18.227655828574036,
+   "frame": 108,
+   "screen_detectors": [
+    {
+     "center": [
+      1324,
+      2005
+     ],
+     "dist": 0,
+     "at": [
+      1324,
+      2005
+     ],
+     "n_in_5": 5
+    },
+    {
+     "center": [
+      1526,
+      2048
+     ],
+     "dist": null,
+     "at": null,
+     "n_in_5": 0
+    }
+   ],
+   "screen_peak_overlap": {
+    "screen|old": 1,
+    "screen|cpp": 0,
+    "screen|cppE": 0,
+    "screen|r2": 0
+   },
+   "full": {
+    "full|old": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 7,
+     "pixon": 7
+    },
+    "full|cpp": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 7,
+     "pixon": 7
+    },
+    "full|cppE": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 7,
+     "pixon": 7
+    },
+    "full|r2": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 7,
+     "pixon": 7
+    }
+   },
+   "full_vertex_pixels": [
+    [
+     [
+      1325,
+      2005
+     ],
+     [
+      1320,
+      2005
+     ],
+     [
+      1326,
+      2005
+     ]
+    ],
+    [
+     [
+      1527,
+      2048
+     ],
+     [
+      1522,
+      2048
+     ],
+     [
+      1528,
+      2048
+     ]
+    ]
+   ],
+   "cnt_screen": [
+    1,
+    2,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "voxel": 12263,
+   "key": 19,
+   "refl": 9,
+   "branch": 1,
+   "omega_deg": 20.255048927077873,
+   "frame": 110,
+   "screen_detectors": [
+    {
+     "center": [
+      828,
+      2003
+     ],
+     "dist": 0,
+     "at": [
+      828,
+      2003
+     ],
+     "n_in_5": 10
+    },
+    {
+     "center": [
+      624,
+      2048
+     ],
+     "dist": null,
+     "at": null,
+     "n_in_5": 0
+    }
+   ],
+   "screen_peak_overlap": {
+    "screen|old": 1,
+    "screen|cpp": 0,
+    "screen|cppE": 0,
+    "screen|r2": 0
+   },
+   "full": {
+    "full|old": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 10,
+     "pixon": 10
+    },
+    "full|cpp": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 10,
+     "pixon": 10
+    },
+    "full|cppE": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 10,
+     "pixon": 10
+    },
+    "full|r2": {
+     "pkov": 1,
+     "pkon": 1,
+     "pixov": 10,
+     "pixon": 10
+    }
+   },
+   "full_vertex_pixels": [
+    [
+     [
+      825,
+      2003
+     ],
+     [
+      828,
+      2002
+     ],
+     [
+      831,
+      2003
+     ]
+    ],
+    [
+     [
+      621,
+      2048
+     ],
+     [
+      624,
+      2048
+     ],
+     [
+      627,
+      2048
+     ]
+    ]
+   ],
+   "cnt_screen": [
+    1,
+    2,
+    0,
+    1,
+    0
+   ]
+  }
+ ]
+}
