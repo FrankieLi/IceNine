@@ -146,14 +146,15 @@ class SearchParameters:
     # local-grid orientations from the FZ centre as C++ LocalAngularInterpProcess does (see
     # icenine/batched_screen.py). batched_screen: default on since 2026-10-13 (owner; config key
     # BatchedScreen, 0 restores the per-orientation screen). The screen scores screen_chunk FZ
-    # points (x local grid) per call instead of one orientation per call; exact (same arithmetic).
-    # With CppOmegaInterp alone the chunk is one FZ point (the centre is solved once per point).
+    # points (x local grid) per call instead of one orientation per call (same arithmetic).
+    # CppOmegaInterp solves the centre once per FZ point; with BatchedScreen 0 its chunk is one FZ
+    # point per call, under the default (BatchedScreen 1) screen_chunk FZ points per call.
     cpp_omega_interp: bool = False
     batched_screen: bool = True
     screen_chunk: int = 32
-    # screen_explicit: BatchedScreen or CppOmegaInterp was written in the config file. Only then
-    # does a fallback to the per-orientation screen (ray rule at a level, no C extension) warn;
-    # under the implicit default it falls back silently.
+    # screen_explicit: BatchedScreen was written in the config file. A fallback to the
+    # per-orientation screen (ray rule at a level, no C extension) warns only then or when
+    # cpp_omega_interp is on; under the implicit default it falls back silently.
     screen_explicit: bool = False
     # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
     # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
@@ -212,9 +213,7 @@ class SearchParameters:
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
             cpp_omega_interp=bool(getattr(config, "cpp_omega_interp", False)),
             batched_screen=bool(getattr(config, "batched_screen", True)),
-            screen_explicit=bool(
-                {"BatchedScreen", "CppOmegaInterp"} & set(getattr(config, "_initialized", ()))
-            ),
+            screen_explicit="BatchedScreen" in getattr(config, "_initialized", ()),
             ray_rule=ray_rule_from_config(config),
         )
         # unstudied combination: warn only (owner 2026-10-12), do not force CppOverlapRule

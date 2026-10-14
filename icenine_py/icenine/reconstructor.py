@@ -720,8 +720,8 @@ class AdaptiveVoxelReconstructor:
         keys BatchedScreen, default on since 2026-10-13, and CppOmegaInterp, opt-in); empty when
         both are off, which gives the per-orientation screen. Falls back to the per-orientation
         screen when the cost function is not supported (ray rule at this level, no C extension):
-        with a warning if a key was set explicitly (config file, or CppOmegaInterp on), silently
-        under the implicit default."""
+        with a warning if BatchedScreen was written in the config file or CppOmegaInterp is on,
+        silently under the implicit default."""
         sp = self.setup.search_params
         interp = bool(getattr(sp, "cpp_omega_interp", False))
         batched = bool(getattr(sp, "batched_screen", True))

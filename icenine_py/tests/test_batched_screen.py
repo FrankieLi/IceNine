@@ -198,3 +198,34 @@ def test_screen_kwargs_empty_when_off_and_falls_back_with_ray_rule(
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         assert rec._screen_kwargs(ray_cf) == {}
+
+
+@needs_c
+def test_cpp_omega_interp_key_alone_is_not_explicit_screen(
+    three_voxels: Dict[str, Any], tmp_path: Path
+) -> None:  # noqa: F811
+    """Only a written ``BatchedScreen`` makes the screen explicit: a config with only
+    ``CppOmegaInterp 0`` falls back silently; ``CppOmegaInterp 1`` always warns on fallback."""
+    from icenine.config_file import ConfigFile
+    from icenine.orientation_search import SearchParameters
+    from icenine.ray_overlap import RayRule
+    from icenine.reconstructor import AdaptiveVoxelReconstructor
+
+    c = three_voxels
+    ray_cf = VoxelCostFunction(pixel_radius=3, max_q=5.0, ray_rule=RayRule(), **c["kwargs"])
+    text = (CONFIGS / "ReconstructPhaseD_mc_clean.config").read_text()
+    rec = AdaptiveVoxelReconstructor.__new__(AdaptiveVoxelReconstructor)
+    for value in (0, 1):
+        f = tmp_path / f"interp{value}.config"
+        f.write_text(text + f"\nCppOmegaInterp {value}\n")
+        sp = SearchParameters.from_config(ConfigFile.from_file(str(f)))
+        assert sp.screen_explicit is False and sp.batched_screen is True
+        assert sp.cpp_omega_interp is bool(value)
+        rec.setup = type("S", (), {"search_params": sp})()  # type: ignore[assignment]
+        if value:
+            with pytest.warns(RuntimeWarning, match="not supported"):
+                assert rec._screen_kwargs(ray_cf) == {}
+        else:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error")
+                assert rec._screen_kwargs(ray_cf) == {}
