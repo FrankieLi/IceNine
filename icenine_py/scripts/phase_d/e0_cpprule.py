@@ -241,7 +241,8 @@ def main() -> None:
         "--variant",
         default="",
         choices=[""] + C.ALL_VARIANTS,
-        help="only this image variant (clean, all, realistic_nodrop; default: clean and realistic_nodrop)",
+        help="only this image variant (clean, all, realistic_nodrop; "
+        "default: clean and realistic_nodrop)",
     )
     ap.add_argument("--meta-dir", default=str(OUT), help="where run_meta_*.json is written")
     a = ap.parse_args()

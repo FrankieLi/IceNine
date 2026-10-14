@@ -12,7 +12,8 @@ level-0 screen: the stored lenient runs used the vertex-0 screen (the library de
 Test: arm `offv0` of e0_cpprule.py is the lenient rule with the vertex-0 screen
 (scripts/phase_d/run_q8_offv0.sh). This script compares, per (min_sin_eta, images), the stored
 count, the `offv0` count and the current `off` count (wrong = error over 1 degree), and pairs
-`offv0` against `off` per voxel (fixed = wrong under `off`, right under `offv0`).
+`off` against `offv0` per voxel (fixed = wrong under `offv0`, right under `off`; broken = the
+reverse).
 
   uv run python scripts/phase_d/q8_lenient_check.py
 
@@ -91,7 +92,8 @@ def main() -> None:
                 msin=msin, images=var, stored=st, stored_evals=st_ev, stored_source=src,
                 vertex0=k_v0, vertex0_interval=[lo, hi], centroid=k_cur,
                 evals_vertex0=ev_v0, evals_centroid=ev_c, paired_centroid_vs_vertex0=sp,
-                reproduces_stored=bool(k_v0 == st), evals_equal_stored=bool(abs(ev_v0 - st_ev) < 1e-6),
+                reproduces_stored=bool(k_v0 == st),
+                evals_equal_stored=bool(abs(ev_v0 - st_ev) < 1e-6),
             )  # fmt: skip
             rows.append(
                 dict(

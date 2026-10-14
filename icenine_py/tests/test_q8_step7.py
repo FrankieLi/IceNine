@@ -63,10 +63,12 @@ def test_pairing_groups_partition_the_tracked_step4_voxels() -> None:
             sum(int((grp[arm][a] & grp[arm][b]).sum()) for a in Q.GROUPS for b in Q.GROUPS if a < b)
             == 0
         )
-    # the Step 4 splits of no drop against clean (lenient 31 / 12 / 10, ray 35 / 9 / 5, C++ 32 / 14 / 24)
-    count = lambda arm: tuple(
-        int(grp[arm][g].sum()) for g in ("fixed", "broken", "both wrong")
-    )  # noqa: E731
+
+    # the Step 4 splits of no drop against clean (lenient 31 / 12 / 10, ray 35 / 9 / 5, C++ 32 / 14
+    # / 24)
+    def count(arm: str) -> tuple:
+        return tuple(int(grp[arm][g].sum()) for g in ("fixed", "broken", "both wrong"))
+
     assert count("off") == (31, 12, 10)
     assert count("rayR2") == (35, 9, 5)
     assert count("on") == (32, 14, 24)
@@ -87,3 +89,20 @@ def test_pass_curve_counts_positive_overlaps() -> None:
     pc = Q.pass_curve(a)
     assert pc[0] == 1.0 and pc[1] == pytest.approx(0.25) and pc[2] == 0.0
     assert Q.pass_curve(a, np.array([True, False, False, False]))[1] == 1.0
+
+
+def test_group_top_quarter_counts_carry_wilson_intervals() -> None:
+    """The group-level top-quarter counts are given with a Wilson interval (small groups)."""
+    import json
+
+    assert Q.split4(dict(both=20, only_nodrop=3, only_clean=2, neither=6)) == "20 / 3 / 2 / 6"
+    assert Q.count_ci(20, 31) == "20 of 31 (47 to 79%)"
+    summ = json.loads((ROOT / "benchmarks" / "q8_nodrop" / "step7" / "summary.json").read_text())
+    for arm, groups in summ["groups_paired"].items():
+        for g, rec in groups.items():
+            k, n = rec["keep"], rec["n_vox"]
+            assert k["both"] + k["only_nodrop"] + k["only_clean"] + k["neither"] == n
+            assert rec["keep_both_ci"] == Q.count_ci(k["both"], n)
+            assert rec["keep_clean_ci"] == Q.count_ci(k["both"] + k["only_clean"], n)
+            assert rec["keep_nodrop_ci"] == Q.count_ci(k["both"] + k["only_nodrop"], n)
+    assert summ["groups_paired"]["off"]["fixed"]["keep_clean_ci"] == "22 of 31 (53 to 84%)"

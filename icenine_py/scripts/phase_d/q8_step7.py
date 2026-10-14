@@ -13,6 +13,10 @@ C++ rule (`on`) and ray rule with the 2-pixel window (`rayR2`).
       how many lie within 1 and 3 degrees, and the closest one's rank in the list (sorted by the
       level-0 cost 1 - confidence; stable sort, ties keep the order of the fundamental-zone
       points). Cross-checked against the n_l0, min_dist_l0, n_within the Step 4 runs recorded.
+      `in_keep` (table: "closest in top quarter") means the closest candidate's rank lies in the
+      first keep_fraction of THIS list, the order after the discrete stage. The real level-0 cut
+      is applied after the quick MC, which reorders the list (and keep_union_discrete is off by
+      default), so `in_keep` does not say the candidate survived that cut; that was not recorded.
   (b) `width`: the cost at the truth rotated by r in RADII degrees about the same N_AXES random
       axes (seeded by the voxel only, so identical on both image sets). Two readouts per arm: the
       level-0 cost (1 - confidence of the arm's level-0 local cost function: lenient, C++ rule, or
@@ -95,8 +99,10 @@ class StopL0(Exception):
 def _configure(rec: Any, arm: str) -> Any:
     """Set the arm on the reconstructor (as e0_cpprule.task: centroid screen, C++ rule for on and
     rayR2) and return its ray rule or None. The screen is left at the library default, the
-    batched exact screen (the Step 4 runs forced the per-orientation screen, which is about 14
-    times slower); the ray arm falls back to the per-orientation screen by itself. The records of
+    batched exact screen (the Step 4 runs forced the per-orientation screen, 17.5 times slower
+    for the screen alone in the single-worker measurement of MIGRATION_HISTORY, table
+    evalA_speed_screen; not measured again here); the ray arm falls back to the per-orientation
+    screen by itself. The records of
     the Step 4 runs (n_l0, n_within, min_dist_l0) are compared in `summary` (step4_check)."""
     from icenine.ray_overlap import RayRule
 
@@ -417,6 +423,9 @@ HEADER = {
     "keep": "in top quarter: both / only no drop / only clean / neither",
     "keep_str": "in top quarter: both / only no drop / only clean / neither",
     "hit3_str": "within 3 deg: both / only no drop / only clean / neither",
+    "keep_both_ci": "in top quarter on both image sets (Wilson 95%)",
+    "keep_clean_ci": "in top quarter on clean (Wilson 95%)",
+    "keep_nodrop_ci": "in top quarter on no drop (Wilson 95%)",
     "c_n_l0": "median candidates", "c_dmin": "median closest (deg)",
     "c_hit1": "closest within 1 deg", "c_hit3": "closest within 3 deg",
     "c_in_keep": "closest in top quarter", "c_rank": "median rank of closest",
@@ -442,6 +451,11 @@ def table(rows: Any, columns: List[str], formats: Optional[Dict[str, str]] = Non
     rows2 = [None if r is None else {h(k): v for k, v in r.items()} for r in rows]
     fm = {h(k): v for k, v in (formats or {}).items()}
     return doc_tables.markdown_table(rows2, [h(c) for c in columns], fm)
+
+
+def split4(d: Dict[str, int]) -> str:
+    """both / only no drop / only clean / neither, as one table cell."""
+    return f"{d['both']} / {d['only_nodrop']} / {d['only_clean']} / {d['neither']}"
 
 
 def med(x: np.ndarray) -> float:
@@ -570,8 +584,8 @@ def summary() -> None:
                 )  # fmt: skip
         tables["step7_candidates"] = table(
             rows,
-            ["arm", "images", "n_l0", "n_screen", "dmin", "hit1", "hit3", "n1", "n3", "rank", "top1",
-             "in_keep"],
+            ["arm", "images", "n_l0", "n_screen", "dmin", "hit1", "hit3", "n1", "n3", "rank",
+             "top1", "in_keep"],
             {"n_l0": ".0f", "n_screen": ".0f", "dmin": ".3f", "n1": ".0f", "n3": ".0f",
              "rank": ".0f"},
         )  # fmt: skip
@@ -604,12 +618,17 @@ def summary() -> None:
             prow.append(
                 dict(
                     arm=ALABEL[arm],
-                    more_fewer_equal=f"{rec['more_candidates_nodrop']} / {rec['fewer_candidates_nodrop']} / {rec['equal_candidates']}",
+                    more_fewer_equal=(
+                        f"{rec['more_candidates_nodrop']} / {rec['fewer_candidates_nodrop']} / "
+                        f"{rec['equal_candidates']}"
+                    ),
                     ratio=rec["median_ratio_n_l0"],
-                    closer_farther_equal=f"{rec['closer_nodrop']} / {rec['farther_nodrop']} / {rec['equal_dmin']}",
-                    h1=f"{rec['1 deg']['both']} / {rec['1 deg']['only_nodrop']} / {rec['1 deg']['only_clean']} / {rec['1 deg']['neither']}",
-                    h3=f"{rec['3 deg']['both']} / {rec['3 deg']['only_nodrop']} / {rec['3 deg']['only_clean']} / {rec['3 deg']['neither']}",
-                    keep=f"{rec['keep']['both']} / {rec['keep']['only_nodrop']} / {rec['keep']['only_clean']} / {rec['keep']['neither']}",
+                    closer_farther_equal=(
+                        f"{rec['closer_nodrop']} / {rec['farther_nodrop']} / {rec['equal_dmin']}"
+                    ),
+                    h1=split4(rec["1 deg"]),
+                    h3=split4(rec["3 deg"]),
+                    keep=split4(rec["keep"]),
                 )
             )  # fmt: skip
         tables["step7_candidates_paired"] = table(
@@ -630,7 +649,8 @@ def summary() -> None:
                         dict(
                             arm=ALABEL[arm], cost=klabel, images=VLABEL[var],
                             **{f"r{i}": s["curve"][i] for i in range(len(s["curve"]))},
-                            width=s["width"], interp=s["width_interp"], per_voxel=s["width_voxel_median"],
+                            width=s["width"], interp=s["width_interp"],
+                            per_voxel=s["width_voxel_median"],
                         )
                     )  # fmt: skip
         cols = ["arm", "cost", "images"] + [f"r{i}" for i in range(len(RADII) + 1)]
@@ -721,7 +741,8 @@ def summary() -> None:
                         narrower=rec2["narrower"], tied=rec2["tied"],
                         median_clean=rec2["median_clean"], median_nodrop=rec2["median_nodrop"],
                         pooled_clean=bd["clean"], pooled_nodrop=bd["nodrop"],
-                        wratio=bd["ratio"], ratio_ci=f"{bd['ratio_lo']:.2f} to {bd['ratio_hi']:.2f}",
+                        wratio=bd["ratio"],
+                        ratio_ci=f"{bd['ratio_lo']:.2f} to {bd['ratio_hi']:.2f}",
                     )
                 )  # fmt: skip
         tables["step7_width_paired"] = table(
@@ -748,15 +769,20 @@ def summary() -> None:
                         cs = curve_stats(wd[var][f"{kind}|{arm}"], m)
                         rec3[f"w_{kind}"] = cs.get("width", float("nan"))
                         rec3[f"wi_{kind}"] = cs.get("width_interp", float("nan"))
+                        curve = cs.get("curve")
                         rec3[f"ratio3_{kind}"] = (
-                            cs["curve"][-1] / cs["curve"][0] if cs.get("curve") and cs["curve"][0] > 0 else float("nan")
-                        )  # fmt: skip
+                            curve[-1] / curve[0] if curve and curve[0] > 0 else float("nan")
+                        )
                     pc = pass_curve(wd[var][f"scr|{arm}"], m)
                     rec3["p1"] = pc[1 + RADII.index(1.0)]
                     rec3["p3"] = pc[1 + RADII.index(3.0)]
                     rec3["mean_l0_1deg"] = cs_mean_at(wd[var][f"l0|{arm}"], m, 1.0)
                 summ["by_group"].setdefault(arm, {}).setdefault(g, {})[var] = rec3
-                grows.append(rec3)
+                row3 = dict(rec3)
+                for k_ in ("c_hit1", "c_hit3", "c_in_keep"):
+                    if k_ in rec3:
+                        row3[k_] = count_ci(rec3[k_], rec3["n_vox"])  # Wilson 95% on the group
+                grows.append(row3)
         tables[f"step7_groups_{arm}"] = table(
             grows,
             ["group", "images", "n_vox", "c_n_l0", "c_dmin", "c_hit1", "c_hit3", "c_in_keep",
@@ -782,10 +808,15 @@ def summary() -> None:
                         both=int((hc & hn).sum()), only_nodrop=int((~hc & hn).sum()),
                         only_clean=int((hc & ~hn).sum()), neither=int((~hc & ~hn).sum()),
                     )  # fmt: skip
-                    rec4[f"{name}_str"] = (
-                        f"{rec4[name]['both']} / {rec4[name]['only_nodrop']} / "
-                        f"{rec4[name]['only_clean']} / {rec4[name]['neither']}"
+                    rec4[f"{name}_str"] = split4(rec4[name])
+                    nv = int(m.sum())
+                    rec4[f"{name}_clean_ci"] = count_ci(
+                        rec4[name]["both"] + rec4[name]["only_clean"], nv
                     )
+                    rec4[f"{name}_nodrop_ci"] = count_ci(
+                        rec4[name]["both"] + rec4[name]["only_nodrop"], nv
+                    )
+                    rec4[f"{name}_both_ci"] = count_ci(rec4[name]["both"], nv)
                 ac, an = wd["clean"][f"l0|{arm}"], wd["realistic_nodrop"][f"l0|{arm}"]
                 bd = boot_width_diff(ac[m], an[m], n_boot=1000, seed=1)
                 rec4["width_ratio"] = bd["ratio"]
@@ -799,8 +830,9 @@ def summary() -> None:
                 krows.append(rec4)
         tables["step7_groups_paired"] = table(
             krows,
-            ["arm", "group", "n_vox", "keep_str", "hit3_str", "width_clean", "width_nodrop",
-             "width_ratio", "width_ratio_ci", "pass3_clean", "pass3_nodrop"],
+            ["arm", "group", "n_vox", "keep_str", "keep_both_ci", "keep_clean_ci",
+             "keep_nodrop_ci", "hit3_str", "width_clean", "width_nodrop", "width_ratio",
+             "width_ratio_ci", "pass3_clean", "pass3_nodrop"],
             {"width_clean": ".3f", "width_nodrop": ".3f", "width_ratio": ".2f",
              "pass3_clean": ".3f", "pass3_nodrop": ".3f"},
         )  # fmt: skip

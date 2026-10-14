@@ -1472,6 +1472,9 @@
      "neither": 6
     },
     "keep_str": "20 / 3 / 2 / 6",
+    "keep_clean_ci": "22 of 31 (53 to 84%)",
+    "keep_nodrop_ci": "23 of 31 (57 to 86%)",
+    "keep_both_ci": "20 of 31 (47 to 79%)",
     "hit3": {
      "both": 29,
      "only_nodrop": 2,
@@ -1479,6 +1482,9 @@
      "neither": 0
     },
     "hit3_str": "29 / 2 / 0 / 0",
+    "hit3_clean_ci": "29 of 31 (79 to 98%)",
+    "hit3_nodrop_ci": "31 of 31 (89 to 100%)",
+    "hit3_both_ci": "29 of 31 (79 to 98%)",
     "width_ratio": 1.363996633354699,
     "width_ratio_ci": "1.31 to 1.43",
     "width_clean": 0.23544408790877322,
@@ -1497,6 +1503,9 @@
      "neither": 3
     },
     "keep_str": "6 / 3 / 0 / 3",
+    "keep_clean_ci": "6 of 12 (25 to 75%)",
+    "keep_nodrop_ci": "9 of 12 (47 to 91%)",
+    "keep_both_ci": "6 of 12 (25 to 75%)",
     "hit3": {
      "both": 12,
      "only_nodrop": 0,
@@ -1504,6 +1513,9 @@
      "neither": 0
     },
     "hit3_str": "12 / 0 / 0 / 0",
+    "hit3_clean_ci": "12 of 12 (76 to 100%)",
+    "hit3_nodrop_ci": "12 of 12 (76 to 100%)",
+    "hit3_both_ci": "12 of 12 (76 to 100%)",
     "width_ratio": 1.241068388514253,
     "width_ratio_ci": "1.17 to 1.35",
     "width_clean": 0.2362657889522746,
@@ -1522,6 +1534,9 @@
      "neither": 7
     },
     "keep_str": "125 / 13 / 2 / 7",
+    "keep_clean_ci": "127 of 147 (80 to 91%)",
+    "keep_nodrop_ci": "138 of 147 (89 to 97%)",
+    "keep_both_ci": "125 of 147 (78 to 90%)",
     "hit3": {
      "both": 147,
      "only_nodrop": 0,
@@ -1529,6 +1544,9 @@
      "neither": 0
     },
     "hit3_str": "147 / 0 / 0 / 0",
+    "hit3_clean_ci": "147 of 147 (97 to 100%)",
+    "hit3_nodrop_ci": "147 of 147 (97 to 100%)",
+    "hit3_both_ci": "147 of 147 (97 to 100%)",
     "width_ratio": 1.339970817043107,
     "width_ratio_ci": "1.31 to 1.37",
     "width_clean": 0.2343796817103215,
@@ -1547,6 +1565,9 @@
      "neither": 5
     },
     "keep_str": "4 / 0 / 1 / 5",
+    "keep_clean_ci": "5 of 10 (24 to 76%)",
+    "keep_nodrop_ci": "4 of 10 (17 to 69%)",
+    "keep_both_ci": "4 of 10 (17 to 69%)",
     "hit3": {
      "both": 8,
      "only_nodrop": 1,
@@ -1554,6 +1575,9 @@
      "neither": 1
     },
     "hit3_str": "8 / 1 / 0 / 1",
+    "hit3_clean_ci": "8 of 10 (49 to 94%)",
+    "hit3_nodrop_ci": "9 of 10 (60 to 98%)",
+    "hit3_both_ci": "8 of 10 (49 to 94%)",
     "width_ratio": 1.2204265927926718,
     "width_ratio_ci": "1.18 to 1.32",
     "width_clean": 0.2258020220890696,
@@ -1574,6 +1598,9 @@
      "neither": 7
     },
     "keep_str": "19 / 6 / 0 / 7",
+    "keep_clean_ci": "19 of 32 (42 to 74%)",
+    "keep_nodrop_ci": "25 of 32 (61 to 89%)",
+    "keep_both_ci": "19 of 32 (42 to 74%)",
     "hit3": {
      "both": 31,
      "only_nodrop": 1,
@@ -1581,6 +1608,9 @@
      "neither": 0
     },
     "hit3_str": "31 / 1 / 0 / 0",
+    "hit3_clean_ci": "31 of 32 (84 to 99%)",
+    "hit3_nodrop_ci": "32 of 32 (89 to 100%)",
+    "hit3_both_ci": "31 of 32 (84 to 99%)",
     "width_ratio": 1.2300783674388889,
     "width_ratio_ci": "1.19 to 1.29",
     "width_clean": 0.17086667975469,
@@ -1599,6 +1629,9 @@
      "neither": 4
     },
     "keep_str": "6 / 2 / 2 / 4",
+    "keep_clean_ci": "8 of 14 (33 to 79%)",
+    "keep_nodrop_ci": "8 of 14 (33 to 79%)",
+    "keep_both_ci": "6 of 14 (21 to 67%)",
     "hit3": {
      "both": 14,
      "only_nodrop": 0,
@@ -1606,6 +1639,9 @@
      "neither": 0
     },
     "hit3_str": "14 / 0 / 0 / 0",
+    "hit3_clean_ci": "14 of 14 (78 to 100%)",
+    "hit3_nodrop_ci": "14 of 14 (78 to 100%)",
+    "hit3_both_ci": "14 of 14 (78 to 100%)",
     "width_ratio": 1.2192520205900639,
     "width_ratio_ci": "1.14 to 1.34",
     "width_clean": 0.17414279345790512,
@@ -1624,6 +1660,9 @@
      "neither": 12
     },
     "keep_str": "103 / 11 / 4 / 12",
+    "keep_clean_ci": "107 of 130 (75 to 88%)",
+    "keep_nodrop_ci": "114 of 130 (81 to 92%)",
+    "keep_both_ci": "103 of 130 (71 to 85%)",
     "hit3": {
      "both": 129,
      "only_nodrop": 1,
@@ -1631,6 +1670,9 @@
      "neither": 0
     },
     "hit3_str": "129 / 1 / 0 / 0",
+    "hit3_clean_ci": "129 of 130 (96 to 100%)",
+    "hit3_nodrop_ci": "130 of 130 (97 to 100%)",
+    "hit3_both_ci": "129 of 130 (96 to 100%)",
     "width_ratio": 1.2203458565321244,
     "width_ratio_ci": "1.20 to 1.25",
     "width_clean": 0.17105035019651815,
@@ -1649,6 +1691,9 @@
      "neither": 9
     },
     "keep_str": "12 / 2 / 1 / 9",
+    "keep_clean_ci": "13 of 24 (35 to 72%)",
+    "keep_nodrop_ci": "14 of 24 (39 to 76%)",
+    "keep_both_ci": "12 of 24 (31 to 69%)",
     "hit3": {
      "both": 20,
      "only_nodrop": 0,
@@ -1656,6 +1701,9 @@
      "neither": 4
     },
     "hit3_str": "20 / 0 / 0 / 4",
+    "hit3_clean_ci": "20 of 24 (64 to 93%)",
+    "hit3_nodrop_ci": "20 of 24 (64 to 93%)",
+    "hit3_both_ci": "20 of 24 (64 to 93%)",
     "width_ratio": 1.201829032108758,
     "width_ratio_ci": "1.16 to 1.24",
     "width_clean": 0.16819501228177633,
@@ -1676,6 +1724,9 @@
      "neither": 8
     },
     "keep_str": "18 / 5 / 4 / 8",
+    "keep_clean_ci": "22 of 35 (46 to 77%)",
+    "keep_nodrop_ci": "23 of 35 (49 to 79%)",
+    "keep_both_ci": "18 of 35 (36 to 67%)",
     "hit3": {
      "both": 32,
      "only_nodrop": 3,
@@ -1683,6 +1734,9 @@
      "neither": 0
     },
     "hit3_str": "32 / 3 / 0 / 0",
+    "hit3_clean_ci": "32 of 35 (78 to 97%)",
+    "hit3_nodrop_ci": "35 of 35 (90 to 100%)",
+    "hit3_both_ci": "32 of 35 (78 to 97%)",
     "width_ratio": 1.3528296714507109,
     "width_ratio_ci": "1.30 to 1.41",
     "width_clean": 0.23416632175966945,
@@ -1701,6 +1755,9 @@
      "neither": 2
     },
     "keep_str": "5 / 2 / 0 / 2",
+    "keep_clean_ci": "5 of 9 (27 to 81%)",
+    "keep_nodrop_ci": "7 of 9 (45 to 94%)",
+    "keep_both_ci": "5 of 9 (27 to 81%)",
     "hit3": {
      "both": 9,
      "only_nodrop": 0,
@@ -1708,6 +1765,9 @@
      "neither": 0
     },
     "hit3_str": "9 / 0 / 0 / 0",
+    "hit3_clean_ci": "9 of 9 (70 to 100%)",
+    "hit3_nodrop_ci": "9 of 9 (70 to 100%)",
+    "hit3_both_ci": "9 of 9 (70 to 100%)",
     "width_ratio": 1.292195703718627,
     "width_ratio_ci": "1.18 to 1.40",
     "width_clean": 0.23216297588412693,
@@ -1726,6 +1786,9 @@
      "neither": 8
     },
     "keep_str": "129 / 12 / 2 / 8",
+    "keep_clean_ci": "131 of 151 (80 to 91%)",
+    "keep_nodrop_ci": "141 of 151 (88 to 96%)",
+    "keep_both_ci": "129 of 151 (79 to 90%)",
     "hit3": {
      "both": 151,
      "only_nodrop": 0,
@@ -1733,6 +1796,9 @@
      "neither": 0
     },
     "hit3_str": "151 / 0 / 0 / 0",
+    "hit3_clean_ci": "151 of 151 (98 to 100%)",
+    "hit3_nodrop_ci": "151 of 151 (98 to 100%)",
+    "hit3_both_ci": "151 of 151 (98 to 100%)",
     "width_ratio": 1.3217729422550286,
     "width_ratio_ci": "1.30 to 1.35",
     "width_clean": 0.23420759364341787,
@@ -1751,6 +1817,9 @@
      "neither": 2
     },
     "keep_str": "2 / 1 / 0 / 2",
+    "keep_clean_ci": "2 of 5 (12 to 77%)",
+    "keep_nodrop_ci": "3 of 5 (23 to 88%)",
+    "keep_both_ci": "2 of 5 (12 to 77%)",
     "hit3": {
      "both": 4,
      "only_nodrop": 0,
@@ -1758,6 +1827,9 @@
      "neither": 1
     },
     "hit3_str": "4 / 0 / 0 / 1",
+    "hit3_clean_ci": "4 of 5 (38 to 96%)",
+    "hit3_nodrop_ci": "4 of 5 (38 to 96%)",
+    "hit3_both_ci": "4 of 5 (38 to 96%)",
     "width_ratio": 1.2194019725384617,
     "width_ratio_ci": "1.14 to 1.36",
     "width_clean": 0.2350143110811817,

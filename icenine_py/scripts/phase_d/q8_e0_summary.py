@@ -3,8 +3,8 @@
 
 Reads the per-voxel results of scripts/phase_d/run_q8_step4.sh (scripts/phase_d/cache/
 <arm>[_ms0]_q8/v<voxel>_<variant>.npz, written by e0_cpprule.py) and the run_meta files, and writes
-benchmarks/q8_nodrop/e0_summary.json, e0_per_voxel.npz (error, evaluations, cost and runtime of every
-voxel, arm and variant) and e0_tables.md (doc_tables blocks).
+benchmarks/q8_nodrop/e0_summary.json, e0_per_voxel.npz (error, evaluations, cost and runtime of
+every voxel, arm and variant) and e0_tables.md (doc_tables blocks).
 
   uv run python scripts/phase_d/q8_e0_summary.py
 
