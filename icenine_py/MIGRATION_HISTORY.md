@@ -6462,8 +6462,15 @@ in the config file and in `SearchParameters` (`screen_chunk` stays 32; `CppEdgeR
 through the new `StageTimer.patch_counted`) now counts `ScreenEvaluator.overlaps_exact` / `overlaps_interp` calls as
 their number of orientations, as `eval_ledger.py` does, so `test_profiling.py` passes with the reconstructor's own
 counts. The fallback warning of `_screen_kwargs` (ray rule at a level, no C extension) fires only when `BatchedScreen`
-or `CppOmegaInterp` is written in the config file (`SearchParameters.screen_explicit`) or `CppOmegaInterp` is on; under
-the implicit default the fallback is silent. `test_config_keys_and_default_off` became `test_config_keys_and_defaults`.
+is written in the config file (`SearchParameters.screen_explicit`) or `CppOmegaInterp` is on; a config with only
+`CppOmegaInterp 0` falls back silently, as does the implicit default. `test_config_keys_and_default_off` became
+`test_config_keys_and_defaults`. Review fixes: the scripts that count evaluations by wrapping
+`VoxelCostFunction.evaluate` around a no-start search (`scripts/phase_d/seed_diag.py`, `ray_overlap_study.py`,
+`level0_trace.py`, `scripts/coarse_proxy/eval_split.py`) pin `batched_screen=False`, since the batched screen does not
+call `evaluate`, and the unbatched arms of `benchmarks/eval_reduction/A/ledger/run_all.sh`, `run_switches.sh`
+(`cpp_edge_interp`) and `run_timing.sh` (`timing_cpp_edge`) pass `--opt batched_screen=0`, so re-runs reproduce the
+recorded arms. `StageTimer.patch_counted` also takes (position, keyword) pairs and reads the counted arguments from
+keyword arguments when they are not positional.
 
 **Not done.** The interpolation with the ray rule (falls back with a warning); a batched quick MC (the quick MC is
 about 58% of the evaluations with the C++ rule and is untouched); reproducing the second candidate re-cost of C++ (it would only add evaluations);
