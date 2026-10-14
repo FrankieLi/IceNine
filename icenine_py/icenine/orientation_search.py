@@ -156,6 +156,15 @@ class SearchParameters:
     # per-orientation screen (ray rule at a level, no C extension) warns only then or when
     # cpp_omega_interp is on; under the implicit default it falls back silently.
     screen_explicit: bool = False
+    # batched_quick_mc: opt-in (config key BatchedQuickMC, default off). The quick MC of a level
+    # runs its candidates in lockstep through one batched local cost per step
+    # (icenine/batched_quick_mc.py) with draw option B (a fixed slice of 33 uniforms per
+    # candidate), so the random stream and the results differ from the sequential quick MC's;
+    # compare wrong counts, not equality.
+    # search_device: device of the batched quick-MC cost (config key SearchDevice): "cpu" (default;
+    # equal to evaluate), "mps" or "cuda" (a GPU result is not bit-equal to the CPU's).
+    batched_quick_mc: bool = False
+    search_device: str = "cpu"
     # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
     # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
     # 0 .. ray_rule.levels-1 (default 0-2): screen, re-cost, quick MC and ranking cut. FindOptimal,
@@ -182,6 +191,10 @@ class SearchParameters:
             raise ValueError(f"cma_retry_sigma0_deg must be >= 0, got {self.cma_retry_sigma0_deg}")
         if self.bfs_revisit_max < 1:
             raise ValueError(f"bfs_revisit_max must be >= 1, got {self.bfs_revisit_max}")
+        if self.search_device not in ("cpu", "mps", "cuda"):
+            raise ValueError(
+                f"search_device must be 'cpu', 'mps' or 'cuda', got {self.search_device!r}"
+            )
 
     @classmethod
     def from_config(cls, config) -> "SearchParameters":
@@ -214,6 +227,8 @@ class SearchParameters:
             cpp_omega_interp=bool(getattr(config, "cpp_omega_interp", False)),
             batched_screen=bool(getattr(config, "batched_screen", True)),
             screen_explicit="BatchedScreen" in getattr(config, "_initialized", ()),
+            batched_quick_mc=bool(getattr(config, "batched_quick_mc", False)),
+            search_device=str(getattr(config, "search_device", "cpu")),
             ray_rule=ray_rule_from_config(config),
         )
         # unstudied combination: warn only (owner 2026-10-12), do not force CppOverlapRule

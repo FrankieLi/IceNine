@@ -1,0 +1,17 @@
+{
+ "mapping": {
+  "n": 20000,
+  "radius": 0.001007670406186234,
+  "separate_roundings_differ_from_scalar": 10714,
+  "fused_multiply_add_differs_from_scalar": 0,
+  "uniform_size_differs_from_scalar": 0,
+  "generator_states_equal": true
+ },
+ "build": {
+  "n": 4000,
+  "quaternion_product_vectorised_differs": 0,
+  "quaternion_to_matrix_batch_differs": 0,
+  "near_identity_vectorised_differs": 414,
+  "near_identity_max_abs_difference": 4.440892098500626e-16
+ }
+}

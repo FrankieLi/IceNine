@@ -87,3 +87,4 @@ scripts/cma_finisher/cache/
 scripts/phase_d/cache/
 benchmarks/phase_d_seed_diag/logs/
 benchmarks/phase_d_seed_diag/runs/*_cands.npz
+scripts/speed_parity/cache/

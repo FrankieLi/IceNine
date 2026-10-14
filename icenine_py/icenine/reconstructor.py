@@ -426,6 +426,9 @@ class AdaptiveVoxelReconstructor:
         # the quick MC, and FindOptimal's winner (candidate index, converged flag)
         self.last_level_best: List[Tuple[int, np.ndarray, float]] = []
         self.last_find_optimal: Dict[str, Any] = {}
+        # BatchedCostEvaluator of each cost function used by the lockstep quick MC of the voxel in
+        # progress (None: not supported, sequential); reset by every reconstruct_voxel call
+        self._quick_mc_evaluators: Dict[int, Any] = {}
         # Optional non-invasive recorder: called as recorder(event, data) with copies of the
         # search state ("discrete", "quick_mc", "find_candidate", "find_final", "variance",
         # "final"). It never touches the random stream, so results are bit-identical with or
@@ -477,6 +480,7 @@ class AdaptiveVoxelReconstructor:
         """
         self._check_local_optimizer()
         eta_limit = self.setup.exp_setup.get_eta_limit()
+        self._quick_mc_evaluators = {}  # batched local costs of this voxel's cost functions
 
         # Local cost function (pixel_radius=0) for MC and re-evaluation
         # C++ Reference: DiscreteAdaptive.tmpl.cpp:120-121 LocalSearchCostFunctions
@@ -619,18 +623,23 @@ class AdaptiveVoxelReconstructor:
             trial_box_width = trial_radius / (2**self.params.min_local_resolution)
             trial_step = trial_box_width * self.params.mc_radius_scale_factor
 
-            for cand in candidates:
-                result = level_mc.optimize(
-                    initial_orientation=cand.orientation,
-                    angular_box_side=trial_box_width,
-                    angular_step=trial_step,
-                    max_mc_steps=10,
-                    max_restarts=5,
-                    max_convergence_cost=self.params.max_convergence_cost,
-                )
-                cand.orientation = result.orientation
-                cand.cost = result.cost
-                cand.overlap_info = result.overlap_info
+            # Opt-in lockstep quick MC (BatchedQuickMC, draw option B): the whole level through one
+            # batched local cost per step; else the sequential per-candidate quick MC below.
+            if not self._batched_quick_mc(
+                level_mc, candidates, voxel_vertices, phase_index, trial_box_width, trial_step
+            ):
+                for cand in candidates:
+                    result = level_mc.optimize(
+                        initial_orientation=cand.orientation,
+                        angular_box_side=trial_box_width,
+                        angular_step=trial_step,
+                        max_mc_steps=10,
+                        max_restarts=5,
+                        max_convergence_cost=self.params.max_convergence_cost,
+                    )
+                    cand.orientation = result.orientation
+                    cand.cost = result.cost
+                    cand.overlap_info = result.overlap_info
             t_quick = time.time() - t_mc
 
             # Phase 4: Shrink diameter, keep top 1/4
@@ -702,6 +711,61 @@ class AdaptiveVoxelReconstructor:
         self._last_local_evals = local_cost_fn.eval_count + sum(f.eval_count for f in ray_local_fns)
 
         return best_candidate
+
+    def _batched_quick_mc(
+        self,
+        level_mc: MCOptimizer,
+        candidates: List[SearchCandidate],
+        voxel_vertices: torch.Tensor,
+        phase_index: int,
+        trial_box_width: float,
+        trial_step: float,
+    ) -> bool:
+        """Run this level's quick MC in lockstep (config key BatchedQuickMC, opt-in, default off).
+
+        Every candidate's 10 trial steps are scored together, one ``BatchedCostEvaluator`` call
+        per step, with draw option B (a fixed slice of 33 uniforms per candidate, see
+        batched_quick_mc.py): the random stream, and so the results, differ from the sequential
+        quick MC's. Returns False (the caller runs the sequential quick MC, a RuntimeWarning says
+        why) when the level is not supported: a study subclass of MCOptimizer, more than one MC
+        block, or a cost function the batched cost does not cover (ray rule, CppEdgeRules, no C
+        extension). ``SearchDevice`` selects the device of the batched cost.
+        """
+        if not getattr(self.params, "batched_quick_mc", False):
+            return False
+        from .batched_cost import make_batched_cost_evaluator
+        from .batched_quick_mc import lockstep_applicable, run_batched_quick_mc
+
+        if not lockstep_applicable(level_mc, trial_box_width, trial_step, 10):
+            warnings.warn(
+                "BatchedQuickMC is not supported for this level (a subclass of MCOptimizer or "
+                "more than one MC block): using the sequential quick MC",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return False
+        cost_fn = level_mc.cost_fn
+        cache = self._quick_mc_evaluators
+        key = id(cost_fn)
+        if key not in cache:
+            cache[key] = make_batched_cost_evaluator(
+                cost_fn, str(getattr(self.params, "search_device", "cpu"))
+            )
+        evaluator = cache[key]
+        if evaluator is None:
+            return False
+        runs = run_batched_quick_mc(
+            candidates,
+            lambda R: evaluator.evaluate_many(R, voxel_vertices, phase_index),
+            level_mc.rng,
+            trial_box_width,
+            trial_step,
+            max_mc_steps=10,
+            max_restarts=5,
+            max_convergence_cost=self.params.max_convergence_cost,
+        )
+        level_mc.last_run = runs[-1]  # as the sequential loop leaves the last candidate's run
+        return True
 
     def _ray_rule_for_level(self, level: int) -> Optional[RayRule]:
         """The ray-consistency rule for this search level, or None (strict C++ / default rule).

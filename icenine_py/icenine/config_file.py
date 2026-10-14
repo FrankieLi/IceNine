@@ -220,6 +220,8 @@ class ConfigFile:
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
     batched_screen: bool = True  # level screen: many orientations per call (default on 2026-10-13)
+    batched_quick_mc: bool = False  # quick MC of a level in lockstep (opt-in, draw option B)
+    search_device: str = "cpu"  # device of the batched quick-MC cost: cpu (default), mps or cuda
     # ray-consistency rule (coarse levels 0-2 only): "off", "R<n>" (isotropic n px) or "A"
     ray_overlap_rule: str = "off"
 
@@ -469,6 +471,8 @@ class ConfigFile:
             'CppEdgeRules': self._parse_bool('cpp_edge_rules'),
             'CppOmegaInterp': self._parse_bool('cpp_omega_interp'),
             'BatchedScreen': self._parse_bool('batched_screen'),
+            'BatchedQuickMC': self._parse_bool('batched_quick_mc'),
+            'SearchDevice': self._parse_search_device,
             'RayOverlapRule': self._parse_ray_overlap_rule,
 
             # Parameter Optimization
@@ -601,6 +605,16 @@ class ConfigFile:
         if value not in ('mc', 'cma'):
             raise ValueError(f"LocalOptimizer must be 'mc' or 'cma', got {tokens[1]!r}")
         self.local_optimizer = value
+
+    def _parse_search_device(self, tokens: List[str]) -> None:
+        """SearchDevice cpu|mps|cuda (Python-only; the device of the batched quick-MC cost, used
+        only with BatchedQuickMC; mps and cuda results are not bit-equal to the CPU's)."""
+        if len(tokens) < 2:
+            raise ValueError(f"Missing value for {tokens[0]}")
+        value = tokens[1].lower()
+        if value not in ('cpu', 'mps', 'cuda'):
+            raise ValueError(f"SearchDevice must be 'cpu', 'mps' or 'cuda', got {tokens[1]!r}")
+        self.search_device = value
 
     @staticmethod
     def _positive_validator(value: float, keyword: str) -> None:

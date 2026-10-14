@@ -66,6 +66,8 @@ def apply_opts(setup: Any, opts: List[str]) -> None:
         cur = getattr(setup.search_params, k)
         if isinstance(cur, bool):
             setattr(setup.search_params, k, bool(int(v)))
+        elif isinstance(cur, str):  # e.g. search_device=mps
+            setattr(setup.search_params, k, v)
         else:
             setattr(setup.search_params, k, type(cur)(float(v)))
 
@@ -152,6 +154,23 @@ def run_one(voxel: int, tag: str, opts: List[str], seed: int, out_dir: Path) -> 
         r = orig_interp(self, centres, local_grid, *args, **kw)
         cnt["t3"] += time.perf_counter() - t0
         cnt["n3"] += len(centres) * len(local_grid)
+        return r
+
+    # the lockstep quick MC (BatchedQuickMC, opt-in) scores a whole level per call through
+    # BatchedCostEvaluator.evaluate_many: count its orientations as pixel-radius-0 evaluations (the
+    # per-call records of mc_w below see only the sequential quick MC)
+    from icenine import batched_cost as BCost
+
+    orig_many = BCost.BatchedCostEvaluator.evaluate_many
+
+    def many_w(self: Any, orientations: Any, *args: Any, **kw: Any) -> Any:
+        n_before, t_before = cnt["n0"], cnt["t0"]
+        t0 = time.perf_counter()
+        r = orig_many(self, orientations, *args, **kw)
+        # an unknown phase falls back to evaluate() inside, which eval_w has counted already: the
+        # call's own count replaces whatever was added during it
+        cnt["t0"] = t_before + (time.perf_counter() - t0)
+        cnt["n0"] = n_before + len(orientations)
         return r
 
     def snap() -> Dict[str, float]:
@@ -265,6 +284,7 @@ def run_one(voxel: int, tag: str, opts: List[str], seed: int, out_dir: Path) -> 
     CF.VoxelCostFunction.evaluate = eval_w  # type: ignore[method-assign]
     BS.ScreenEvaluator.overlaps_exact = exact_w  # type: ignore[method-assign]
     BS.ScreenEvaluator.overlaps_interp = interp_w  # type: ignore[method-assign]
+    BCost.BatchedCostEvaluator.evaluate_many = many_w  # type: ignore[method-assign]
     OS.MCOptimizer.optimize = mc_w  # type: ignore[method-assign]
     OS.MCOptimizer.variance_minimizing_optimize = var_w  # type: ignore[method-assign]
     pf = preflight.preflight()
@@ -282,6 +302,7 @@ def run_one(voxel: int, tag: str, opts: List[str], seed: int, out_dir: Path) -> 
     CF.VoxelCostFunction.evaluate = orig_eval  # type: ignore[method-assign]
     BS.ScreenEvaluator.overlaps_exact = orig_exact  # type: ignore[method-assign]
     BS.ScreenEvaluator.overlaps_interp = orig_interp  # type: ignore[method-assign]
+    BCost.BatchedCostEvaluator.evaluate_many = orig_many  # type: ignore[method-assign]
     OS.MCOptimizer.optimize = orig_mc  # type: ignore[method-assign]
     OS.MCOptimizer.variance_minimizing_optimize = orig_var  # type: ignore[method-assign]
 
