@@ -10,6 +10,12 @@ Stage timer and cost-evaluation counters, installed from scripts by patching mod
   to pick the stage per call (e.g. quick MC vs FindOptimal by max_mc_steps). Patching the same
   (owner, attr) twice raises. staticmethod / classmethod descriptors are preserved, and uninstall
   restores the exact original object (deleting the attribute again when it was inherited).
+* StageTimer.patch_counted(owner, attr, name, count): like patch(), but one call adds the number of
+  evaluations it stands for to the stage's call count (a batched call scoring many orientations).
+  `count` is a callable (args, kwargs) -> int, or a sequence of (position, keyword) pairs: the
+  count is the product of len() of those arguments, each read from the positional arguments when
+  given there (position counts `self` for a method) and otherwise from the keyword arguments, e.g.
+  [(1, "orientations")] for ScreenEvaluator.overlaps_exact(self, orientations, ...).
 * StageTimer.count_evaluations(cls): patch cls.evaluate (VoxelCostFunction) so every call is counted
   per INSTANCE (weakly referenced) and its time accumulated under "evaluate". Label an instance with
   timer.label(obj, "global" | "local") to read counts by role afterwards (evaluations_by_role()).
@@ -29,10 +35,20 @@ import inspect
 import time
 import weakref
 from collections import defaultdict
-from typing import Any, Callable, Dict, Iterator, List, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Sequence, Tuple, Union
 
 StageName = Union[str, Callable[[tuple, dict], str]]
+CallCount = Union[Callable[[tuple, dict], int], Sequence[Tuple[int, str]]]
 _MISSING = object()
+
+
+def _count_from_args(spec: List[Tuple[int, str]], a: tuple, k: dict) -> int:
+    """Product of len() of the arguments named by (position, keyword) pairs, each read from the
+    positional arguments when present there and otherwise from the keyword arguments."""
+    n = 1
+    for pos, key in spec:
+        n *= len(a[pos] if len(a) > pos else k[key])
+    return n
 
 
 class StageTimer:
@@ -122,10 +138,14 @@ class StageTimer:
         owner: Any,
         attr: str,
         name: StageName,
-        count: Callable[[tuple, dict], int],
+        count: CallCount,
     ) -> None:
-        """Like patch(), but one call stands for ``count(args, kwargs)`` evaluations: the stage's
-        call count rises by that number instead of 1 (a batched call scoring many orientations)."""
+        """Like patch(), but one call stands for several evaluations: the stage's call count rises
+        by that number instead of 1 (a batched call scoring many orientations). ``count`` is a
+        callable (args, kwargs) -> int, or (position, keyword) pairs whose arguments' len() are
+        multiplied, each taken positionally if passed there, else by keyword (see the module
+        docstring)."""
+        n_calls = count if callable(count) else functools.partial(_count_from_args, list(count))
 
         def make(orig: Callable[..., Any]) -> Callable[..., Any]:
             @functools.wraps(orig)
@@ -133,7 +153,7 @@ class StageTimer:
                 nm = name(a, k) if callable(name) else name
                 with self.stage(nm):
                     out = orig(*a, **k)
-                self.calls[nm] += int(count(a, k)) - 1
+                self.calls[nm] += int(n_calls(a, k)) - 1
                 return out
 
             return wrapper

@@ -191,14 +191,12 @@ class Instrument:
         T.patch(MCOptimizer, "optimize", mc_name)
         T.patch(MCOptimizer, "variance_minimizing_optimize", "variance")
         T.patch(VoxelCostFunction, "evaluate", self._eval_name)
-        T.patch_counted(
-            ScreenEvaluator, "overlaps_exact", self._screen_name, lambda a, k: len(a[1])
-        )
+        T.patch_counted(ScreenEvaluator, "overlaps_exact", self._screen_name, [(1, "orientations")])
         T.patch_counted(
             ScreenEvaluator,
             "overlaps_interp",
             self._screen_name,
-            lambda a, k: len(a[1]) * len(a[2]),
+            [(1, "centres"), (2, "local_grid")],
         )
         if self.net:
             import icenine.orientation_baselines as OB
