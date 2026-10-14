@@ -99,6 +99,8 @@ def init_worker(variant: str) -> None:
     Ctx.variant = variant
     Ctx.setup = RC.setup_reconstruction(cfg, exp_data=exp)
     Ctx.rec = RC.AdaptiveVoxelReconstructor(Ctx.setup)
+    # counts evaluations by wrapping evaluate(), which the batched screen bypasses: pin it off
+    Ctx.setup.search_params.batched_screen = False
     Ctx.rec.min_sin_eta = 0.0
     Ctx.truth = MicFile.read(MIC)
 

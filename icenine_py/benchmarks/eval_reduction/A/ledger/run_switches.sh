@@ -6,7 +6,7 @@ D=benchmarks/eval_reduction/A/ledger
 while [ ! -f $D/logs/run_all.done ]; do sleep 20; done
 for arm in "cpp_edge_interp_batched:--opt cpp_overlap_rule=1 --opt cpp_edge_rules=1 --opt cpp_omega_interp=1 --opt batched_screen=1" \
            "cpp_edge_batched:--opt cpp_overlap_rule=1 --opt cpp_edge_rules=1 --opt batched_screen=1" \
-           "cpp_edge_interp:--opt cpp_overlap_rule=1 --opt cpp_edge_rules=1 --opt cpp_omega_interp=1" \
+           "cpp_edge_interp:--opt cpp_overlap_rule=1 --opt cpp_edge_rules=1 --opt cpp_omega_interp=1 --opt batched_screen=0" \
            "lenient_interp_batched:--opt cpp_edge_rules=1 --opt cpp_omega_interp=1 --opt batched_screen=1"; do
   tag=${arm%%:*}; opts=${arm#*:}
   for v in 15901 17034 18558 19889 22867 5242; do

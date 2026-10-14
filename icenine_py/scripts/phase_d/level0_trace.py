@@ -131,6 +131,8 @@ def run_py(a: argparse.Namespace) -> None:
     exp = ExperimentalData.from_binary_memmap(stack, 180, 2)
     setup = RC.setup_reconstruction(cfg, exp_data=exp)
     rec = RC.AdaptiveVoxelReconstructor(setup)
+    # the centroid probe wraps evaluate(), which the batched screen bypasses: pin it off
+    setup.search_params.batched_screen = False
     v = setup.sample.get_mic().voxels[a.voxel]
     verts = RC._get_voxel_vertices(v)
 
