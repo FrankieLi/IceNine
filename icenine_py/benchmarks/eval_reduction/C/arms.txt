@@ -1,0 +1,15 @@
+# arm  spec   (CandidateDedup values; no spaces)  ; read by run_e0_arms.sh and run_ledger_arms.sh
+base off
+c0a_k1 clique=cpp:1
+c0a_k2 clique=cpp:2
+c0b_k1 clique=merged:1@0.5
+c0b_k2 clique=merged:2@0.5
+c0bL1_k1 clique=merged:1
+c0bL1_k2 clique=merged:2
+c1_t025 pre=0.25
+c1_t05 pre=0.5
+c2_t025 post=0.25
+c2_t05 post=0.5
+c3 clique=merged:2@0.5,pre=0.25,post=0.25
+c1_t05_qf pre=0.5,quarter=filtered
+c3_qf clique=merged:2@0.5,pre=0.25,post=0.25,quarter=filtered
