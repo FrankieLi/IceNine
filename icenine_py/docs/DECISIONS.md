@@ -143,3 +143,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
 - Task B (anatomy of the cost function's edges) accepted after the review fixes, as merged in 6561d26.
   Where: ROADMAP Track E row B; `docs/findings_cost_edges_2026-10.md`.
+
+### D-20261014-N3 · C · Merge Task C before its code review; status page
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none (a one-off exception to D-20261014-N1
+  for Task C only).
+- Task C merged into `feature/eval-reduction` (e609c74) before its `/review-task`; the review runs on
+  the merged commits e5a2cbb..e609c74. The owner also asked
+  for a plain-English status page of Track E, kept in the branch:
+  `docs/status_eval_reduction_2026-10-14.md`. Where: ROADMAP Track E row C; that status page.
