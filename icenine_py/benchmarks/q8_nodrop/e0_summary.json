@@ -538,5 +538,17 @@
    "both_wrong": 11,
    "both_right": 183
   }
- }
+ },
+ "images": {
+  "n_voxels": 200,
+  "lit": {
+   "clean": 212610,
+   "all": 472715,
+   "realistic_nodrop": 508606
+  },
+  "old_realistic_pixels_not_in_nodrop": 0,
+  "nodrop_pixels_not_in_old_realistic": 35891,
+  "clean_pixels_not_in_nodrop": 10144
+ },
+ "total_wall_min": 157.12807647387186
 }

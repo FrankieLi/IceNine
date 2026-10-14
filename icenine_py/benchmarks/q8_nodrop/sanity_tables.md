@@ -1,5 +1,5 @@
 <!-- table:q8_sanity_cost -->
-| variant | six_voxel_cost_median | old | cpp | f0_R2 | f0_A |
+| variant | 6 voxels, lenient (sanity_checks) | lenient | C++ rule | ray 2px | ray geometric |
 |---|---|---|---|---|---|
 | clean | 0.0674 | 0.0643 | 0.0643 | 0.0643 | 0.0643 |
 | realistic | 0.2586 | 0.2646 | 0.2831 | 0.2831 | 0.2825 |
@@ -7,7 +7,7 @@
 <!-- /table:q8_sanity_cost -->
 
 <!-- table:q8_sanity_rejected -->
-| variant | setting | det0_overlaps | cpp | cpp_ci | f0_R2 | f0_R2_ci | f0_A | f0_A_ci |
+| variant | setting | det0_overlaps | C++ rule | C++ rule 95% interval | ray 2px | ray 2px 95% interval | ray geometric | ray geometric 95% interval |
 |---|---|---|---|---|---|---|---|---|
 | clean | screen | 524 | 3 of 524 (0.6%) | 0.19 to 1.67% | 3 of 524 (0.6%) | 0.19 to 1.67% | 3 of 524 (0.6%) | 0.19 to 1.67% |
 | clean | local | 521 | 0 of 521 (0.0%) | 0.00 to 0.73% | 0 of 521 (0.0%) | 0.00 to 0.73% | 0 of 521 (0.0%) | 0.00 to 0.73% |

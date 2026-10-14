@@ -3,7 +3,8 @@
 
 Reads the per-voxel results of scripts/phase_d/run_q8_step4.sh (scripts/phase_d/cache/
 <arm>[_ms0]_q8/v<voxel>_<variant>.npz, written by e0_cpprule.py) and the run_meta files, and writes
-benchmarks/q8_nodrop/e0_summary.json and e0_tables.md (doc_tables blocks).
+benchmarks/q8_nodrop/e0_summary.json, e0_per_voxel.npz (error, evaluations, cost and runtime of every
+voxel, arm and variant) and e0_tables.md (doc_tables blocks).
 
   uv run python scripts/phase_d/q8_e0_summary.py
 
@@ -85,6 +86,25 @@ def load(arm_id: str, var: str, vox: List[int]) -> Optional[Dict[str, np.ndarray
     )
 
 
+def image_check(vox: List[int]) -> Dict[str, Any]:
+    """Lit pixels of the cached E0 case images of the three variants (keys, sorted unique)."""
+    out: Dict[str, Any] = dict(n_voxels=len(vox), lit=dict.fromkeys(VARIANTS, 0))
+    all_not_in_nodrop = nodrop_not_in_all = clean_not_in_nodrop = 0
+    for v in vox:
+        k = {var: np.load(C.CACHE_DIR / "images" / f"v{v}_{var}.npz")["keys"] for var in VARIANTS}
+        for var in VARIANTS:
+            out["lit"][var] += len(k[var])
+        all_not_in_nodrop += len(np.setdiff1d(k["all"], k["realistic_nodrop"]))
+        nodrop_not_in_all += len(np.setdiff1d(k["realistic_nodrop"], k["all"]))
+        clean_not_in_nodrop += len(np.setdiff1d(k["clean"], k["realistic_nodrop"]))
+    out.update(
+        old_realistic_pixels_not_in_nodrop=all_not_in_nodrop,
+        nodrop_pixels_not_in_old_realistic=nodrop_not_in_all,
+        clean_pixels_not_in_nodrop=clean_not_in_nodrop,
+    )
+    return out
+
+
 def split(a: np.ndarray, ref: np.ndarray) -> Dict[str, int]:
     """Paired split of arm wrong flags `a` against reference wrong flags `ref`, per voxel."""
     broken, fixed = S.paired_discordant(a, ref)
@@ -114,6 +134,7 @@ def main() -> None:
     earlier_q3 = json.loads(EARLIER_Q3.read_text()) if EARLIER_Q3.exists() else {}
     earlier_ray = json.loads(EARLIER_RAY.read_text()) if EARLIER_RAY.exists() else {}
     summ: Dict[str, Any] = dict(n_voxels=len(vox), wrong_deg=C.WRONG_DEG, arms={}, rules={})
+    summ["images"] = image_check(vox)
     wrong_rows: List[Dict[str, Any]] = []
     var_rows: List[Dict[str, Any]] = []
     rule_rows: List[Dict[str, Any]] = []
@@ -182,7 +203,23 @@ def main() -> None:
                     wrong_rule=int(a["wrong"].sum()), wrong_ref=int(r["wrong"].sum()), **s_,
                 )
             )  # fmt: skip
+    summ["total_wall_min"] = float(
+        sum(
+            (rec["wall_s"] or 0.0)
+            for by_var in summ["arms"].values()
+            for rec in by_var.values()
+            if isinstance(rec, dict) and "wall_s" in rec
+        )
+        / 60
+    )
     OUT.mkdir(parents=True, exist_ok=True)
+    # the per-voxel numbers behind every paired split (the result caches are gitignored)
+    per_voxel: Dict[str, np.ndarray] = {"voxel": np.array(vox)}
+    for arm_id, by_var in data.items():
+        for var, d in by_var.items():
+            for key in ("err", "evals_global", "evals_local", "cost", "runtime"):
+                per_voxel[f"{arm_id}|{var}|{key}"] = d[key]
+    np.savez_compressed(OUT / "e0_per_voxel.npz", **per_voxel)
     (OUT / "e0_summary.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
     tables = {
         "q8_e0_wrong": doc_tables.markdown_table(

@@ -47,6 +47,21 @@ IMG = {
 }
 ARMS = ("old", "cpp", "f0_R2", "f0_A")
 SETTINGS = (("screen", 3, 5.0), ("local", 0, 5.0), ("full", 0, 8.0))
+LABEL = {"old": "lenient", "cpp": "C++ rule", "f0_R2": "ray 2px", "f0_A": "ray geometric"}
+SIX = "6 voxels, lenient (sanity_checks)"
+
+
+def pretty(key: str) -> str:
+    """Table header of a row key: arm names spelled out, `<arm>_ci` -> `<label> interval`."""
+    if key.endswith("_ci") and key[:-3] in LABEL:
+        return LABEL[key[:-3]] + " 95% interval"
+    return LABEL.get(key, key)
+
+
+def pretty_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [{pretty(k): v for k, v in r.items()} for r in rows]
+
+
 COLS = ("peak_overlap", "peak_on_detector", "pixel_overlap", "pixel_on_detector", "quality")
 DET0_BRIGHT = 5 + 7  # column of the case count det0_bright in a row (see ray_overlap_study.py)
 STACKS = EX / "ScatteringData_PhaseD" / "stacks"
@@ -203,17 +218,18 @@ def summary() -> None:
     (OUT / "sanity_summary.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
 
     for r in cost_rows:
-        r["six_voxel_cost_median"] = six.get(r["variant"], {}).get("cost_median")
+        r[SIX] = six.get(r["variant"], {}).get("cost_median")
+    arm_cols = [LABEL[a] for a in ARMS]
     t_cost = doc_tables.markdown_table(
-        cost_rows,
-        ["variant", "six_voxel_cost_median", "old", "cpp", "f0_R2", "f0_A"],
-        formats={k: ".4f" for k in ("six_voxel_cost_median", "old", "cpp", "f0_R2", "f0_A")},
+        pretty_rows(cost_rows),
+        ["variant", SIX] + arm_cols,
+        formats={k: ".4f" for k in [SIX] + arm_cols},
     )
     cols = ["variant", "setting", "det0_overlaps"] + [
-        c for a in ARMS if a != "old" for c in (a, a + "_ci")
+        pretty(c) for a in ARMS if a != "old" for c in (a, a + "_ci")
     ]
     t_rej = doc_tables.markdown_table(
-        [r for r in rej_rows if r["setting"] in ("screen", "local")], cols
+        pretty_rows([r for r in rej_rows if r["setting"] in ("screen", "local")]), cols
     )
     doc_tables.write_tables(
         OUT / "sanity_tables.md", {"q8_sanity_cost": t_cost, "q8_sanity_rejected": t_rej}

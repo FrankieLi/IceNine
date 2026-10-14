@@ -8,7 +8,7 @@ fontsize: 11pt
 
 # Status
 
-**Approved 2026-10-13; Step 0 done** (owner: remove the random spot drop, keep jitter, hot pixels and
+**Approved 2026-10-13; Step 0 done; Steps 1, 2, 4 and 5 done 2026-10-14, Step 3 not needed** (branch `feature/python-speed-parity-q8-nodrop`, not merged; results and the owner's open decisions are in MIGRATION_HISTORY "Q8"; the Phase D pilot row of Step 4 was not run) (owner: remove the random spot drop, keep jitter, hot pixels and
 blobs; Ilium Agent does the render; generate the Phase D data on Ilium Agent's machine; Step 4 on the
 200-voxel set only). Runs after S3 (same checkout, and its renders and re-runs would disturb S3's
 timings). Branch: task branch

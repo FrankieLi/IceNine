@@ -142,7 +142,7 @@ which no config change could fix.
   3,537 cliques given C++'s own inputs). With the opt-in `CppOverlapRule 1` the level-0 count is 0.995–1.003×
   C++'s on the six voxels, evaluations 0.95–0.98× C++'s (before 1.31–1.57×), and the cost offset of -0.013
   against C++ vanishes. The switch is off by default: with it on, E0 gets worse (wrong 40 to 61 clean, 25 to 42
-  realistic of 200; paired by voxel 17 fixed / 38 broken / 23 both wrong, and 8 / 25 / 17), so whether to flip the default is open. C++ is wrong on 71 and 52 of the same 200 voxels with its default random seed (56 to 71 and 46 to 52 over three seeds; wrong on 10 to 24 of the voxels the switch broke in each seed), and in Python all 63 lose their truth basin before FindOptimal (pruned by the 1/4 ranking at levels 0 to 2 in 59, never present in 4). C++ (default seed) is right on 28 of those 63 and wrong on 35; on those 35 it loses the basin the same way (the 63 were selected as wrong with the switch on). Like for like (`min_sin_eta` 0, as C++), Python with the rule is wrong on 56 of the 200 realistic voxels against 46, 52 and 52 for C++ over three seeds, i.e. worse than every C++ seed there; paired against the rule off (18 wrong) 6 fixed / 44 broken / 12 both wrong.
+  realistic of 200; paired by voxel 17 fixed / 38 broken / 23 both wrong, and 8 / 25 / 17), so whether to flip the default is open. C++ is wrong on 71 and 52 of the same 200 voxels with its default random seed (56 to 71 and 46 to 52 over three seeds; wrong on 10 to 24 of the voxels the switch broke in each seed), and in Python all 63 lose their truth basin before FindOptimal (pruned by the 1/4 ranking at levels 0 to 2 in 59, never present in 4). C++ (default seed) is right on 28 of those 63 and wrong on 35; on those 35 it loses the basin the same way (the 63 were selected as wrong with the switch on). Like for like (`min_sin_eta` 0, as C++), Python with the rule is wrong on 56 of the 200 realistic voxels against 46, 52 and 52 for C++ over three seeds, i.e. worse than every C++ seed there; paired against the rule off (18 wrong) 6 fixed / 44 broken / 12 both wrong. On images without the random spot drop (Q8, 2026-10-14) the rule on is wrong on 39 of the 200 voxels against 16 with the rule off at `min_sin_eta` 0.3 (5 fixed / 28 broken / 11 both wrong), and on 38 against 22 at `min_sin_eta` 0 (10 / 26 / 12), so the realistic half of this loss is not an effect of the drop.
 - Per evaluation, Python is about 10× slower (about 500 µs against 50 µs).
 
 **Tests.**
@@ -261,7 +261,9 @@ Other results from B3:
 **Setup.**
 
 - 2,000 voxels covering 60 grains.
-- Five single-process BFS runs (MC, CMA and CMA without retry on clean images; MC and CMA on realistic Q-max 16).
+- Five single-process BFS runs (MC, CMA and CMA without retry on clean images; MC and CMA on realistic Q-max 16). The realistic images
+  carry the 10% random spot drop; the same arms on the no-drop images (`full/realistic_nodrop`, rendered at Q-max 8 only) were not run
+  (Q8, 2026-10-14: that row waits with X1).
 - The revisit option was on in every run.
 - Each run took about 2.1–2.4 h (contended).
 
@@ -489,7 +491,7 @@ The earlier report's precision and timing numbers for the default finisher carry
    stays off because E0 accuracy drops with it (40 to 61 and 25 to 42 wrong of 200); C++ itself is wrong on 56 to 71 and
    46 to 52 of the same voxels (three seeds), so the loss is consistent with being a property of the C++ rule (the quick-MC ranking sees a nearly flat cost around
    the truth is the suggested mechanism; the link to the ranking was not tested by a controlled change of the ranking). Caveat: like for
-   like (`min_sin_eta` 0) Python with the rule is wrong on 56 of 200 realistic voxels, more than each of the three C++ seeds (46 to 52), so
+   like (`min_sin_eta` 0) Python with the rule is wrong on 56 of 200 realistic voxels (38 on images without the random drop, Q8), more than each of the three C++ seeds (46 to 52), so
    Python is not shown to be no worse than C++ there. Open: do the BFS seed test (hit ratio 0.8) and the reseed pilot change with the rule? A default flip
    changes 11 goldens and, in principle, every stored result computed through the cost function
    (`benchmarks/phase_d_seed_diag/level0/default_flip_would_change.md`).
@@ -528,6 +530,14 @@ The earlier report's precision and timing numbers for the default finisher carry
    reseed on realistic images) are tilted against the strict rules. Work from clean full-sample images until this
    is redone. Options: no random drop (keep jitter, hot pixels, blobs); intensity-based drop near a detection
    threshold; or a small fixed rate (about 1%) as a stand-in. Then re-render and re-run the realistic comparisons.
+   **Status 2026-10-14 (Q8, `MIGRATION_HISTORY.md` "Q8: realistic images without the random spot drop").** The owner chose
+   "no random drop" (jitter, hot pixels and blobs kept). It is built as opt-in variants (`nodrop`, `all_nodrop`, label
+   `realistic_nodrop`); the defaults are unchanged. At the truth the C++ and ray rules reject real peaks on the no-drop images as on
+   clean ones (E0 images: 0 of 12,439, against 974 of 11,174 with the drop at `min_sin_eta` 0.3). Re-run on the E0 200-voxel set (seed
+   0, `min_sin_eta` 0, wrong counts clean / old realistic / no drop): lenient 41 / 25 / 22, C++ rule 56 / 56 / 38, ray rule 2-pixel
+   window 40 / 32 / 14, geometric window 41 / 29 / 14, so the lenient rule's lead on the old realistic images is gone; the C++ rule
+   stays the worst. Not re-run: the Phase D pilot and reseed on realistic images (waits with X1). Whether to lift the "clean images
+   only" rule and to move the realistic default to no-drop is the owner's.
 9. **Ray rule pixel counting for cases b and e (deferred, owner 2026-10-12).** At radius 0 (the local re-cost of
    levels 0-2) the predicted detector-1 triangle covers n dark pixels. Case b (observed ray bright) adds only 1
    overlap pixel, so the peak gets 1/n pixel credit; case e (observed ray off detector, treated as unlit) removes only

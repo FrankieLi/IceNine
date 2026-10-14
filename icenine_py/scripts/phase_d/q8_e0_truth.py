@@ -37,6 +37,20 @@ OUT = ICE / "benchmarks" / "q8_nodrop"
 VARIANTS = ("clean", "all", "realistic_nodrop")
 VLABEL = {"clean": "clean", "all": "realistic (10% drop)", "realistic_nodrop": "realistic, no drop"}
 ARMS = ("old", "cpp", "rayR2", "rayA")
+LABEL = {"old": "lenient", "cpp": "C++ rule", "rayR2": "ray 2px", "rayA": "ray geometric"}
+
+
+def pretty(key: str) -> str:
+    """Table header of a row key: arm names spelled out, `<arm>_ci` -> `<label> interval`."""
+    if key.endswith("_ci") and key[:-3] in LABEL:
+        return LABEL[key[:-3]] + " 95% interval"
+    return LABEL.get(key, key)
+
+
+def pretty_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [{pretty(k): v for k, v in r.items()} for r in rows]
+
+
 MSINS = (0.3, 0.0)
 N_CASES = 8
 DET0_BRIGHT = 5 + 7  # column of the case count det0_bright in a result row
@@ -150,13 +164,14 @@ def summary() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "e0_truth_summary.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
     cols = ["msin", "images", "det0_overlaps"] + [
-        c for a in ARMS if a != "old" for c in (a, a + "_ci")
+        pretty(c) for a in ARMS if a != "old" for c in (a, a + "_ci")
     ]
-    t_rej = doc_tables.markdown_table(rej_rows, cols)
+    t_rej = doc_tables.markdown_table(pretty_rows(rej_rows), cols)
+    arm_cols = [LABEL[a] for a in ARMS]
     t_cost = doc_tables.markdown_table(
-        cost_rows,
-        ["msin", "images"] + list(ARMS),
-        formats={"msin": ".1f", **{a: ".4f" for a in ARMS}},
+        pretty_rows(cost_rows),
+        ["msin", "images"] + arm_cols,
+        formats={"msin": ".1f", **{a: ".4f" for a in arm_cols}},
     )
     doc_tables.write_tables(
         OUT / "e0_truth_tables.md", {"q8_e0_truth_cost": t_cost, "q8_e0_truth_rejected": t_rej}
