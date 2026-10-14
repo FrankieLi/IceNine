@@ -6475,3 +6475,57 @@ keyword arguments when they are not positional.
 **Not done.** The interpolation with the ray rule (falls back with a warning); a batched quick MC (the quick MC is
 about 58% of the evaluations with the C++ rule and is untouched); reproducing the second candidate re-cost of C++ (it would only add evaluations);
 an E0 run on the realistic images (excluded by the plan).
+
+## Python speed parity: per-evaluation cost (2026-10-13)
+
+Branch `feature/python-speed-parity` (off `feature/eval-reduction` at 0c187a4). Question from the owner: why is the
+Python reconstruction about 10 times slower than C++, and what would make it as fast? Open items are tracked as
+Track S of `docs/ROADMAP.md`, which from this date is the single list of open work for the port.
+
+**Answer.** The evaluation count is at parity (0.95 to 0.98 times C++'s with the C++ overlap rule, Task A); the gap
+is the cost of one `VoxelCostFunction.evaluate` call, and almost all of that cost is Python and torch dispatch, not
+physics. Scripts: `scripts/speed_parity/` (Example2.ThreeVoxels voxel 0, single thread, `torch` 2.8.0, orientations
+within 3 degrees of the truth).
+
+| arm | reflections | omega solutions | us per evaluate | aten ops per call |
+|---|---|---|---|---|
+| screen (pixel radius 3, Q-max 5, C++ rule) | 26 | 52 | 237 | 768 |
+| re-cost / quick MC (pixel radius 3, Q-max 8) | 112 | 220 | 318 | 768 |
+| final (triangle, Q-max 8, C++ rule) | 112 | 220 | 317 | 735 |
+
+Four times the reflections cost only 35% more time: about 210 us of each call is fixed overhead. Stage split of the
+final arm (`stage_split.py`, one orientation, 110 valid peaks on 87 frames):
+
+| part | us |
+|---|---|
+| Bragg solve (`get_scattering_omegas_torch`) | 41 |
+| eta filter, peak expansion, stages B and C (torch) and numpy conversions | 200 to 230 |
+| stage A Python loop over peaks (a lookup table takes 2) | 18 to 20 |
+| image list Python loop (174 `get_image` calls per call) | 29 |
+| stage D C call (the pixel overlap itself) | 8.3 to 8.5 |
+| total | 323 to 325 |
+
+Two runs; the torch row is the total minus the separately timed parts, so its internal split (eta filter vs
+stages B and C) moves by about 30 us between runs and is not given.
+
+The screen arm's stage D is 1.0 us of 241 us. The physics and pixel work of one evaluation is therefore about 10 us,
+below C++'s 42 to 55 us (236,634 evaluations in 10 to 13 s per no-start search, Task A). Outside `evaluate`, the
+search machinery costs 4.2 us per evaluation (`search_split.py`, develop before `BatchedScreen`: 18.0 s, 53,491
+evaluations, 98.8% inside `evaluate`). With `BatchedScreen` on (0c187a4) the same search takes 7.7 s and makes
+8,311 `evaluate` calls (the screen no longer calls it), still 88.7% of the time; those calls average 820 us, more
+than the arms above, probably because this example's config has `MaxQ 16` (not checked).
+
+**Differentiability.** The search cost is already not differentiable (the orientation enters as a numpy array and
+stage D returns integer counts); gradient work uses `differentiable_cost.py`, which shares only
+`get_scattering_omegas_torch` with it. A C path for the search cost would leave that module unchanged, at the price
+of a second implementation of the geometry kept equal by a parity test.
+
+**Spot translation** (`docs/spot_translation_derivation.md`, check `translation_check.py`). For a fixed orientation
+each peak's spot moves rigidly when the voxel moves: `u_p(x) = A_p x + c_p` with `A_p = Pi Q_p Rz(omega_p) B`, exact
+for any displacement. Checked on 20 orientations and in-layer moves up to 150 um: equal shift for the three vertices
+to 9.8e-4 px, linear and additive to 1.2e-3 px (float32), frames unchanged; the two detectors' shifts differ by up to
+0.37 px of 54 px (not exactly parallel). It makes the level-0 screen (the same 43,974 orientations for every voxel)
+a candidate for a per-sample table (ROADMAP S4).
+
+**Not done.** No library change. The ThreeVoxels figures are not yet repeated on the full-sample Phase D images (on
+the remote machine; ROADMAP S6). The C++ figure is taken from Task A's runs, not re-measured.
