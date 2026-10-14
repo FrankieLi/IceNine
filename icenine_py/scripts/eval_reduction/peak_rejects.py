@@ -1,12 +1,12 @@
 """Task B step 3: the real peaks the C++ and ray rules reject at the truth on clean images.
 
-The ray-overlap study counted, over its 30 voxels, 524 detector-0 overlaps at the true orientation
-(screen: pixel radius 3, Q-max 5, centroid) and found that the C++ rule and both ray windows reject
-3
-of them (cause not checked). This script finds those peaks with the per-peak trace of cost_edges.py
-(lenient arm accepts, C++ arm rejects) and traces each: predicted pixels on both detectors, the lit
-pixels around them (distance to the nearest lit pixel per detector), the complete cost's verdict and
-the same peak under CppEdgeRules.
+The Phase D ray-overlap study counted, over its 30 voxels (``ray_overlap_study.select_voxels``, on
+the full-sample clean images, not the E0 per-voxel images), 524 detector-0 overlaps at the true
+orientation (screen: pixel radius 3, Q-max 5, centroid) and found that the C++ rule and both ray
+windows reject 3 of them (cause not checked). This script finds those peaks with the per-peak trace
+of cost_edges.py (lenient arm accepts, C++ arm rejects) and traces each: predicted pixels on both
+detectors, the lit pixels around them (distance to the nearest lit pixel per detector), the complete
+cost's verdict and the same peak under CppEdgeRules.
 
   uv run python scripts/eval_reduction/peak_rejects.py --out benchmarks/eval_reduction/B/step3
 """
@@ -25,6 +25,9 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parents[1] / "scripts" / "phase_d"))
 import cost_edges as CE  # noqa: E402
 import parity_common as PC  # noqa: E402
+
+sys.path.insert(0, str(HERE.parents[0] / "common"))
+import stats  # noqa: E402
 
 MAXD = 40  # search window (pixels) for the nearest lit pixel
 
@@ -67,6 +70,9 @@ def main() -> None:
         reg_mm=float(s.exp_setup.config_file.detector_dist_deviation),
     )
     voxels = RS.select_voxels()
+    nr, nc = int(s.detector_list[0].num_rows), int(s.detector_list[0].num_cols)
+    assert all((d.num_rows, d.num_cols) == (nr, nc) for d in s.detector_list)
+    dims_cr = np.array([nc, nr])  # signatures are (col, row)
     ph0 = int(ctx.mic.voxels[voxels[0]].phase)
     cfs = {
         (st, r): CE.make_cf(base, st, r)
@@ -119,8 +125,9 @@ def main() -> None:
         lenient = tr[("screen", "old")]["cnt"][:, 2] > 0
         t_c = tr[("screen", "cpp")]
         sg = t_c["sig"][:, :, 0, :]  # (P, n_det, 2) centre (col, row)
-        outside = ((sg < 0) | (sg >= 2048)).any(axis=2)  # (P, n_det)
-        reach = outside & ((sg >= -3) & (sg < 2048 + 3)).all(axis=2)  # box still touches the image
+        rad = int(cfs[("screen", "cpp")].pixel_radius)
+        outside = ((sg < 0) | (sg >= dims_cr)).any(axis=2)  # (P, n_det)
+        reach = outside & ((sg >= -rad) & (sg < dims_cr + rad)).all(axis=2)  # box touches the image
         for d in range(2):
             edge_stats[d]["n_lenient_centre_outside_box_reaches_in"] += int(
                 (lenient & reach[:, d]).sum()
@@ -170,8 +177,25 @@ def main() -> None:
                     cnt_screen=tr[("screen", "cpp")]["cnt"][key].tolist(),
                 )
             )
+
+    def wilson(k: int, n: int) -> Any:
+        return [float(x) for x in stats.wilson(k, n)] if n else None
+
+    for st in edge_stats:  # 95% Wilson intervals of the two rejection fractions
+        k, n = st["n_of_those_rejected"], st["n_lenient_centre_outside_box_reaches_in"]
+        st["box_reaches_in_rejected_wilson95"] = wilson(k, n)
+        k2 = st["n_of_those_rejected_by_cpp"] - k
+        n2 = st["n_lenient_with_centre_outside"] - n
+        st["n_lenient_centre_outside_box_not_reaching"] = n2
+        st["n_of_those_not_reaching_rejected"] = k2
+        st["box_not_reaching_rejected_wilson95"] = wilson(k2, n2)
     summary = dict(
         n_voxels=len(voxels),
+        voxel_set=(
+            "Phase D ray-overlap study voxels (ray_overlap_study.select_voxels), "
+            "full-sample clean images"
+        ),
+        image_dims_rows_cols=[int(nr), int(nc)],
         lenient_overlaps_at_truth={f"{k[0]}|{k[1]}": v for k, v in tot.items()},
         screen_centre_outside_the_image_by_detector=edge_stats,
         rejected_vs_lenient={f"{k[0]}|{k[1]}": v for k, v in rej.items() if k[1] != "old"},

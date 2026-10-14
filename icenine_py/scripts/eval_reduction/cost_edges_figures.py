@@ -6,6 +6,7 @@ uv run python scripts/eval_reduction/cost_edges_figures.py --out benchmarks/eval
 import argparse
 import json
 import sys
+from typing import Dict
 from pathlib import Path
 
 import matplotlib
@@ -28,6 +29,12 @@ COL = {
 }  # fmt: skip
 REG = ["fin", "mc", "grid"]
 REGL = {"fin": "< 0.05 deg", "mc": "0.05-0.5 deg", "grid": "0.5-5 deg"}
+# E0 samples 0.5-5 deg only in four 0.05-deg windows per ray (cost_edges_run.segments)
+REGL_E0 = dict(REGL, grid="0.5-5 deg, 4 windows of 0.05 deg")
+
+
+def regl(kind: str) -> Dict[str, str]:
+    return REGL_E0 if kind == "e0" else REGL
 
 
 def fig_ray(out: Path) -> None:
@@ -108,7 +115,7 @@ def fig_rates(S: dict, out: Path) -> None:
                     cc,
                     0.25,
                     color=[f"C{k}"] * len(x),
-                    label=f"{REGL[r]} (cost-changing)" if True else None,
+                    label=f"{regl(kind)[r]} (cost-changing)",
                 )
             ax.set_yscale("log")
             ax.set_xticks(x)
@@ -120,7 +127,7 @@ def fig_rates(S: dict, out: Path) -> None:
             )
             if j == 0:
                 ax.set_ylabel("events per degree of rotation")
-            if i == 0 and j == 0:
+            if j == 0:
                 ax.legend(fontsize=7)
     fig.suptitle(
         "Events per degree by type: grey = all events, colour = those that changed the cost",
@@ -140,7 +147,9 @@ def fig_share(S: dict, out: Path) -> None:
                 for r in REG:
                     x = S[kind][f"{setting}|{rule}"][r]
                     tot = sum(x["gross"].values())
-                    labels.append(f"{setting[:4]} {rule}\n{REGL[r]}")
+                    name = "complete" if setting == "full" else "screen"
+                    reg_label = regl(kind)[r].replace(", ", ",\n")
+                    labels.append(f"{name} {rule}\n{reg_label}")
                     data.append([x["gross"][c] / tot if tot else 0 for c in CAUSES])
         data = np.array(data)
         bot = np.zeros(len(data))

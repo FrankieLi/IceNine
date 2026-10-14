@@ -10,15 +10,14 @@ rule):
   r2 = ray rule with the 2-pixel window.
 Rays: 20 random directions per case (seed 1000 + voxel); full-sample voxels walk 0 to 5 degrees at
 0.0005 degree (10,001 points); E0 voxels walk 0 to 0.5 degree at 0.0005 plus four 0.05-degree
-windows
-at 0.5, 1.5, 3.0 and 4.95 degrees (0.0005 step), and a log-spaced profile (cost only). Segments are
-differenced within themselves, never across a gap.
+windows at 0.5, 1.5, 3.0 and 4.95 degrees (0.0005 step), and a log-spaced profile (cost only).
+Segments are differenced within themselves, never across a gap. (The plan asked for log-spaced
+radii; a log grid takes several events per step at large radius, so the walks are dense instead.)
 
   uv run python scripts/eval_reduction/cost_edges_run.py pilot
   nohup uv run python scripts/eval_reduction/cost_edges_run.py run --kind full --workers 8 &
   nohup uv run python scripts/eval_reduction/cost_edges_run.py run --kind e0 --workers 8 &
-  uv run python scripts/eval_reduction/cost_edges_run.py slices        # 2-D slices through the
-  truth
+  uv run python scripts/eval_reduction/cost_edges_slices.py   # 2-D slices through the truth
 
 Outputs (one npz per task): benchmarks/eval_reduction/B/cache/<kind>/v<voxel>_d<dir>.npz
 """

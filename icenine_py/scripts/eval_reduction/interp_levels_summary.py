@@ -1,7 +1,11 @@
 """Task B (extra): tables of the per-level pass-set parity (interp_levels.py output, six voxels).
 
-uv run python scripts/eval_reduction/interp_levels_summary.py --dir
-benchmarks/eval_reduction/B/levels
+Columns: fz = FZ points whose pass set (the passing local-grid points) is identical in C++ and
+Python; pairs with equal peak overlap = (FZ point, local-grid point) pairs whose peak_overlap count
+is equal, a stricter test than equal pass/fail.
+
+  uv run python scripts/eval_reduction/interp_levels_summary.py --dir \
+      benchmarks/eval_reduction/B/levels
 """
 
 import argparse
@@ -64,7 +68,7 @@ def main() -> None:
                     pairs_differ=s["pairs_pass_differs"],
                     cpp_only=s["pairs_cpp_only"],
                     py_only=s["pairs_py_only"],
-                    equal=f"{s['overlap_equal_pairs']} / {n_pairs}",
+                    **{"pairs with equal peak overlap": f"{s['overlap_equal_pairs']} / {n_pairs}"},
                 )
             )
     for x in data:
@@ -76,7 +80,16 @@ def main() -> None:
             rows_v.append(row)
     t1 = DT.markdown_table(
         rows,
-        ["level", "q_max", "arm", "fz", "pairs_differ", "cpp_only", "py_only", "equal"],
+        [
+            "level",
+            "q_max",
+            "arm",
+            "fz",
+            "pairs_differ",
+            "cpp_only",
+            "py_only",
+            "pairs with equal peak overlap",
+        ],
         labels=None,
     )
     t2 = DT.markdown_table(rows_v, ["voxel", "arm", "L0", "L1", "L2", "L3"])

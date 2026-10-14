@@ -2,20 +2,16 @@
 
 Task A measured the omega interpolation (CppOmegaInterp) against C++ at level 0 only (4,885 of 4,886
 FZ points with identical pass sets for voxel 15901). Here a scratch C++ build prints, for every
-level of
-the discrete search, each FZ point's search centre, the local grid and the peak_overlap of each of
-its
-nine local-grid points (benchmarks/eval_reduction/B/levels/cpp_levels_patch.py.txt, env L0TRACE=1).
-The
-Python screen is evaluated on the same centres and local grid, with the level's Q-max (5, 6, 7, 8),
-pixel
-radius 3, the C++ overlap rule and the centroid screen, in four ways: exact or interpolated omegas,
-with
-and without CppEdgeRules. A pair passes when peak_overlap > 0; an FZ point's pass set is the set of
-passing local-grid indices.
+level of the discrete search, each FZ point's search centre, the local grid and the peak_overlap of
+each of its nine local-grid points (benchmarks/eval_reduction/B/levels/cpp_levels_patch.py.txt, env
+L0TRACE=1). The Python screen is evaluated on the same centres and local grid, with the level's
+Q-max (5, 6, 7, 8), pixel radius 3, the C++ overlap rule and the centroid screen, in four ways:
+exact or interpolated omegas, with and without CppEdgeRules. A pair passes when peak_overlap > 0;
+an FZ point's pass set is the set of passing local-grid indices. "overlap_equal_pairs" counts the
+pairs whose peak_overlap count is equal in C++ and Python (stricter than equal pass/fail).
 
-  uv run python scripts/eval_reduction/interp_levels.py --log DIR/log_15901.txt --voxel 15901 --out
-  DIR
+  uv run python scripts/eval_reduction/interp_levels.py --log DIR/log_15901.txt --voxel 15901 \
+      --out DIR
 """
 
 import argparse

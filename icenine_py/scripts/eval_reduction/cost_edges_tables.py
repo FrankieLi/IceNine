@@ -19,7 +19,15 @@ import cost_edges as CE  # noqa: E402
 import doc_tables as DT  # noqa: E402
 
 REG = ["fin", "mc", "grid"]
-REGL = {"fin": "under 0.05 deg", "mc": "0.05 to 0.5 deg", "grid": "0.5 to 5 deg"}
+REGL_FULL = {"fin": "under 0.05 deg", "mc": "0.05 to 0.5 deg", "grid": "0.5 to 5 deg"}
+# E0 samples 0.5 to 5 deg only in four 0.05-deg windows per ray (cost_edges_run.segments)
+REGL_E0 = dict(REGL_FULL, grid="0.5 to 5 deg (4 windows of 0.05 deg)")
+WALKL = {
+    ("full", "dense"): "dense, 0 to 5 deg",
+    ("full", "dense_to_0.5"): "dense, 0 to 0.5 deg only",
+    ("e0", "dense"): "dense, 0 to 0.5 deg",
+    ("e0", "profile"): "log-spaced, 121 points",
+}
 KINDL = {"full": "full-sample voxels (6)", "e0": "E0 voxels (30)"}
 RULEL = {"old": "lenient", "cpp": "C++", "cppE": "C++ + CppEdgeRules", "r2": "ray rule R2"}
 SETL = {"full": "complete cost", "screen": "level-0 screen"}
@@ -38,6 +46,17 @@ def f(x: float) -> str:
     return f"{x:.2f}"
 
 
+def wci(k: int, n: int, w: List[float]) -> str:
+    """'k of n (lo-hi%)', 95% Wilson interval from summary.json."""
+    return f"{k} of {n} ({100 * w[0]:.1f}-{100 * w[1]:.1f}%)"
+
+
+def jump_bin(x: float) -> str:
+    """The quarter-decade bin of a jump quantile (stored as the bin centre), as its range."""
+    lo, hi = x / 10**0.125, x * 10**0.125
+    return f"{lo:.2g}-{hi:.2g}"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
@@ -48,6 +67,7 @@ def main() -> None:
     for kind in ("full", "e0"):
         if kind not in S:
             continue
+        REGL = REGL_E0 if kind == "e0" else REGL_FULL
         # events per degree by type, C++ rule, complete cost and screen
         rows = []
         for t in CE.EVENT_TYPES:
@@ -113,7 +133,11 @@ def main() -> None:
             row = {"type": c}
             for r in REG:
                 q = S[kind]["full|cpp"][r]["jump_quantiles"][c]
-                row[REGL[r]] = f"{q['p50']:.4f} / {q['p90']:.4f} (n={q['n']})" if q["n"] else "none"
+                row[REGL[r]] = (
+                    f"{jump_bin(q['p50'])} / {jump_bin(q['p90'])} (n={q['n']})"
+                    if q["n"]
+                    else "none"
+                )
             rows.append(row)
         T[f"evalB_jumps_{kind}"] = DT.markdown_table(rows, ["type"] + [REGL[r] for r in REG])
         # denominator
@@ -176,7 +200,8 @@ def main() -> None:
             rows = []
             for setting in ("full", "screen"):
                 for rule in ("old", "cpp", "r2"):
-                    for seg in ("dense", "profile") if kind == "e0" else ("dense",):
+                    segs = ("dense", "profile") if kind == "e0" else ("dense", "dense_to_0.5")
+                    for seg in segs:
                         m = S[mk][f"{setting}|{rule}|{seg}"]
                         for p, v in m["by_prominence"].items():
                             if not v["n_rays"]:
@@ -187,15 +212,19 @@ def main() -> None:
                                 {
                                     "cost": SETL[setting],
                                     "rule": RULEL[rule],
-                                    "walk": seg,
+                                    "walk": WALKL[(kind, seg)],
                                     "prominence": p,
-                                    "rays with a minimum": f"{v['with_min']} of {v['n_rays']}",
+                                    "rays with a minimum (95% Wilson)": wci(
+                                        v["with_min"], v["n_rays"], v["with_min_wilson95"]
+                                    ),
                                     "minima": v["n_min"],
                                     "median depth": (
                                         f"{np.median(v['depth']):.4f}" if v["depth"] else "n/a"
                                     ),
                                     "median width (deg)": (
-                                        f"{np.median(v['width']):.3f}" if v["width"] else "n/a"
+                                        f"{np.median(v['width']):.3f}"
+                                        if v["width"]
+                                        else ("n/a (log grid)" if seg == "profile" else "n/a")
                                     ),
                                     "median position (deg)": (
                                         f"{np.median(v['rpos']):.2f}" if v["rpos"] else "n/a"
@@ -210,7 +239,7 @@ def main() -> None:
                     "rule",
                     "walk",
                     "prominence",
-                    "rays with a minimum",
+                    "rays with a minimum (95% Wilson)",
                     "minima",
                     "median depth",
                     "median width (deg)",
@@ -222,17 +251,27 @@ def main() -> None:
             for setting in ("full", "screen"):
                 for rule in ("old", "cpp", "r2"):
                     m = S[mk][f"{setting}|{rule}|dense"]
-                    below = "rays whose lowest cost is below the truth's"
+                    below = "rays whose lowest cost is below the truth's (95% Wilson)"
                     rows.append(
                         {
                             "cost": SETL[setting],
                             "rule": RULEL[rule],
-                            "rays": m["n_rays"],
-                            below: m["rays_min_below_truth"],
+                            "walk": WALKL[(kind, "dense")],
+                            below: wci(
+                                m["rays_min_below_truth"],
+                                m["n_rays"],
+                                m["rays_min_below_truth_wilson95"],
+                            ),
                         }
                     )
             T[f"evalB_truth_lowest_{kind}"] = DT.markdown_table(
-                rows, ["cost", "rule", "rays", "rays whose lowest cost is below the truth's"]
+                rows,
+                [
+                    "cost",
+                    "rule",
+                    "walk",
+                    "rays whose lowest cost is below the truth's (95% Wilson)",
+                ],
             )
     DT.write_tables(out / "tables.md", T)
     print(f"wrote {len(T)} tables to", out / "tables.md")

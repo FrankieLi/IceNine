@@ -2,14 +2,12 @@
 truth.
 
 A plane in orientation space is spanned by two orthonormal rotation axes (random, seed 2000 +
-voxel);
-the orientation at (x, y) degrees is rotvec(x u + y v) applied to the truth. Grid: 61 x 61 points
-over
-+-0.05 degree and over +-0.5 degree, for the six interior full-sample voxels, complete cost (pixel
-radius 0, all reflections) with the lenient, C++ and ray (2-pixel window) rules. Saves the cost, the
-number of peaks evaluated, the number of peaks whose frame differs from the truth's, and the number
-of
-peaks with a different pixel signature from the truth's.
+voxel); the orientation at (x, y) degrees is rotvec(x u + y v) applied to the truth. Grid: 61 x 61
+points over +-0.05 degree and over +-0.5 degree, for the six interior full-sample voxels, complete
+cost (pixel radius 0, all reflections) with the lenient, C++ and ray (2-pixel window) rules. Saves
+the cost, the number of peaks evaluated, the number of peaks whose frame differs from the truth's,
+the number of peaks with a different pixel signature from the truth's, and the largest
+recombination difference of the trace (check_trace on every evaluation).
 
   uv run python scripts/eval_reduction/cost_edges_slices.py
 """
@@ -42,6 +40,7 @@ def main() -> None:
         w -= (w @ u) * u
         w /= np.linalg.norm(w)
         res = {"u": u, "v": w}
+        maxdiff = 0.0
         for scale, half in HALF.items():
             xs = np.linspace(-half, half, N)
             X, Y = np.meshgrid(xs, xs)
@@ -56,6 +55,7 @@ def main() -> None:
                 npres = np.zeros(len(Rs), np.int16)
                 for i, R in enumerate(Rs):
                     tr = CE.trace_eval(cf, R.astype(np.float32), verts, phase)
+                    maxdiff = max(maxdiff, CE.check_trace(tr))
                     cost[i] = 1.0 - tr["agg"]["quality"]
                     both = (tr["status"] == CE.PRESENT) & (t0["status"] == CE.PRESENT)
                     nfr[i] = int((both & (tr["frame"] != t0["frame"])).sum())
@@ -66,8 +66,9 @@ def main() -> None:
                 res[f"{scale}|{rule}|pixel_changed"] = npx.reshape(N, N)
                 res[f"{scale}|{rule}|present"] = npres.reshape(N, N)
             res[f"{scale}|axis_deg"] = xs
+        res["maxdiff"] = np.float64(maxdiff)
         np.savez_compressed(out / f"v{v}.npz", **res)
-        print("slices", v, flush=True)
+        print("slices", v, f"maxdiff {maxdiff:.1e}", flush=True)
 
 
 if __name__ == "__main__":

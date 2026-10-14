@@ -2,18 +2,21 @@
 
   uv run python scripts/eval_reduction/cost_edges_summary.py --out benchmarks/eval_reduction/B
 
-Reads benchmarks/eval_reduction/B/cache/{full,e0}/*.npz; writes summary.json and tables.md
-(doc_tables
-blocks) to --out. Definitions (also in docs/findings_cost_edges_2026-10.md):
+Reads benchmarks/eval_reduction/B/cache/{full,e0}/*.npz; writes summary.json (compact, NaN as
+null) to --out (cost_edges_tables.py turns it into tables.md). Definitions (also in
+docs/findings_cost_edges_2026-10.md):
   event            one peak whose evaluation changed between two consecutive points of a ray, by
-  type
+                   type
   silent event     an event that did not change that peak's contribution to the cost
   gross change     sum over steps and peaks of |change of the peak's term of the cost|, by type; the
                    denominator term (the ratio's N changes) is its own type
   net variation    sum over steps of |change of the cost|
   minimum          a local minimum of the cost along a ray, found with scipy.signal.find_peaks on
-  -cost
-                   with the given prominence, truth (r = 0) and the ray's end excluded
+                   -cost with the given prominence, truth (r = 0) and the ray's end excluded
+Minima walks: "dense" (full-sample: 0 to 5 deg; E0: 0 to 0.5 deg, both at 0.0005 deg),
+"dense_to_0.5" (full-sample dense walk cut at 0.5 deg, the like-for-like comparison with E0) and
+"profile" (E0, 121 log-spaced points: no width, the grid is not uniform). Ray fractions carry a
+95% Wilson interval (scripts/common/stats.py).
 """
 
 import argparse
@@ -32,7 +35,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ICE / "scripts" / "common"))
 import cost_edges as CE  # noqa: E402
 import cost_edges_run as RUN  # noqa: E402
-import doc_tables as DT  # noqa: E402
+import stats  # noqa: E402
 
 CAUSES = RUN.CAUSES
 REG = [r[0] for r in RUN.REGIMES]
@@ -129,12 +132,22 @@ def hist_quantiles(h: np.ndarray, qs: Tuple[float, ...]) -> List[float]:
 # --------------------------------------------------------------------------------------------
 # minima along rays (step 4)
 # --------------------------------------------------------------------------------------------
+MINIMA_WALKS = {
+    "full": [("dense", "dense", None), ("dense_to_0.5", "dense", 0.5)],
+    "e0": [("dense", "dense", None), ("profile", "profile", None)],
+}
+
+
+def wilson(k: int, n: int) -> List[float]:
+    lo, hi = stats.wilson(k, n)
+    return [float(lo), float(hi)]
+
+
 def minima_rays(kind: str) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
     files = sorted((RUN.CACHE / kind).glob("v*_d*.npz"))
-    segs = ["dense"] if kind == "full" else ["dense", "profile"]
     for setting, rule in RUN.COMBOS:
-        for seg in segs:
+        for name, seg, rmax in MINIMA_WALKS[kind]:
             rec: Dict[Any, Any] = {
                 p: dict(
                     n_rays=0,
@@ -155,6 +168,11 @@ def minima_rays(kind: str) -> Dict[str, Any]:
                 c = z[f"{setting}|{rule}|cost|{seg}"].astype(np.float64)
                 r = z[f"radii|{seg}"].astype(np.float64)
                 parts = z.get(f"{setting}|{rule}|parts|{seg}")
+                if rmax is not None:
+                    keep = r <= rmax + 1e-9
+                    c, r = c[keep], r[keep]
+                    if parts is not None:
+                        parts = parts[: int(keep.sum()) - 1]
                 n_rays += 1
                 below_truth += int(c.min() < c[0] - 1e-9)
                 for p in PROMS:
@@ -171,7 +189,8 @@ def minima_rays(kind: str) -> Dict[str, Any]:
                     for k, wd in zip(pk, w):
                         j = list(find_peaks(-c, prominence=p)[0]).index(k)
                         rr["depth"].append(float(pr["prominences"][j]))
-                        rr["width"].append(float(wd * dr))
+                        if seg != "profile":  # a width in steps has no meaning on a log grid
+                            rr["width"].append(float(wd * dr))
                         rr["rpos"].append(float(r[k]))
                         if parts is not None:
                             lo = k
@@ -188,7 +207,7 @@ def minima_rays(kind: str) -> Dict[str, Any]:
                                 CAUSES[int(down.argmax())] if down.any() else "none"
                             )
                             rr["cause_out"].append(CAUSES[int(up.argmax())] if up.any() else "none")
-            if (setting, rule, seg) == ("full", "cpp", "dense"):
+            if (setting, rule, name) == ("full", "cpp", "dense"):
                 nb: Dict[str, Any] = dict(rays=0, voxels=set(), cause=Counter(), argmin_deg=[])
                 for f in files:
                     z = np.load(f)
@@ -204,11 +223,60 @@ def minima_rays(kind: str) -> Dict[str, Any]:
                     rays=nb["rays"], voxels=sorted(nb["voxels"]), cause=dict(nb["cause"]),
                     max_argmin_deg=max(nb["argmin_deg"]) if nb["argmin_deg"] else None,
                 )  # fmt: skip
-            out[f"{setting}|{rule}|{seg}"] = dict(
+            for v in rec.values():
+                v["with_min_wilson95"] = wilson(v["with_min"], v["n_rays"])
+            out[f"{setting}|{rule}|{name}"] = dict(
                 n_rays=n_rays, rays_min_below_truth=below_truth,
+                rays_min_below_truth_wilson95=wilson(below_truth, n_rays),
                 by_prominence={str(p): v for p, v in rec.items()},
             )  # fmt: skip
     return out
+
+
+def trace_check(kind: str) -> Dict[str, Any]:
+    """Largest difference, over every evaluation of every walk, between the quality recombined from
+    the per-peak trace and the library's own (check_trace, stored per task file as maxdiff)."""
+    files = sorted((RUN.CACHE / kind).glob("v*_d*.npz"))
+    md = [float(np.load(f)["maxdiff"]) for f in files]
+    return dict(n_files=len(files), max_recombination_difference=max(md) if md else None)
+
+
+def frame_share_per_voxel(kind: str) -> Dict[str, Any]:
+    """Frame share of the gross change of the cost per voxel (pooled over its rays), complete cost,
+    C++ rule, by regime: the per-voxel spread behind the pooled share."""
+    files = sorted((RUN.CACHE / kind).glob("v*_d*.npz"))
+    fi = CAUSES.index("frame")
+    acc: Dict[int, np.ndarray] = {}
+    for f in files:
+        v = int(f.name.split("_")[0][1:])
+        z = np.load(f)
+        r = z["radii|dense"].astype(np.float64)
+        reg = regime_of(0.5 * (r[:-1] + r[1:]))
+        parts = np.abs(z["full|cpp|parts|dense"].astype(np.float64))
+        g = acc.setdefault(v, np.zeros((3, 2)))
+        for i in range(3):
+            m = reg == i
+            g[i] += [parts[m, fi].sum(), parts[m].sum()]
+    out: Dict[str, Any] = {}
+    for i, reg_name in enumerate(REG):
+        sh = {str(v): float(g[i, 0] / g[i, 1]) if g[i, 1] else None for v, g in acc.items()}
+        vals = [x for x in sh.values() if x is not None]
+        out[reg_name] = dict(
+            per_voxel=sh, min=min(vals) if vals else None, max=max(vals) if vals else None
+        )
+    return out
+
+
+def nan_to_none(x: Any) -> Any:
+    if isinstance(x, dict):
+        return {k: nan_to_none(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [nan_to_none(v) for v in x]
+    if isinstance(x, (float, np.floating)):
+        return None if not np.isfinite(x) else float(x)
+    if isinstance(x, np.integer):
+        return int(x)
+    return x
 
 
 def main() -> None:
@@ -265,7 +333,11 @@ def main() -> None:
                 )
             summary[kind][key] = s
         summary[kind + "_minima"] = minima_rays(kind)
-    (out / "summary.json").write_text(json.dumps(summary, indent=1, default=float) + "\n")
+        summary[kind + "_trace_check"] = trace_check(kind)
+        if kind == "full":
+            summary["full_frame_share_per_voxel"] = frame_share_per_voxel(kind)
+    text = json.dumps(nan_to_none(summary), default=float, separators=(",", ":"), allow_nan=False)
+    (out / "summary.json").write_text(text + "\n")
     print("wrote", out / "summary.json")
 
 
