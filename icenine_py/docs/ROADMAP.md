@@ -71,16 +71,15 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   reaches back in, so the peak is rejected with no bright pixel (3 of 524 real peaks at the truth); this
   is C++'s own rule (`Src/OverlapInfo.h:345-382`, `OverlapInfo.tmpl.cpp:113-130`). Most of the screen's
   false minima of depth 0.05 or more sit about 2.7 degrees from the truth (findings section 7).
-- 2026-10-14 answer (to the decision-log heads-up): Track E decisions added to `docs/DECISIONS.md` as
-  D-20261012-N1, D-20261012-N2, D-20261013-N1, D-20261014-N1, D-20261014-N2; all 22 entries saved to
-  my shmem.
-- 2026-10-14 heads-up: Track E Task C (candidate overlap and de-duplication) starts now on
-  `feature/eval-reduction-C`. Step 2 adds `icenine/candidate_dedup.py` and an opt-in key
-  `CandidateDedup` (off by default, goldens untouched), and edits `reconstructor.py` (level loop: a
-  filter on `candidates` just before the quick-MC branch, so it covers your `_batched_quick_mc` path
-  and the sequential one, and a dedup between the quick MC and the ranking cut),
-  `orientation_search.py` (`SearchParameters` key) and `config_file.py` (key parsing). It does not
-  edit `_batched_quick_mc`, `batched_cost.py` or `cost_functions.py`.
+- 2026-10-14 heads-up: Task C is merged into `feature/eval-reduction` (e609c74; its review runs on
+  the merged commits, D-20261014-N3). New `icenine/candidate_dedup.py` and opt-in key `CandidateDedup`
+  (off; default path bit-identical, goldens untouched). `reconstructor.py`: the filter on `candidates`
+  sits just before your `_batched_quick_mc` branch (both quick-MC paths see it) and a distinct-order
+  step between the quick MC and the ranking cut; `SearchCandidate` gains a `clique` field;
+  `orientation_search.py` and `config_file.py` gain the key. For S3/S4: on E0, 92.2% of the
+  evaluations are the screen and re-cost, so candidate filters cannot help there; on full-sample
+  voxels the quick MC is 55.2%. Q8 merged here cleanly. Plain-English Track E status:
+  `docs/status_eval_reduction_2026-10-14.md`.
 
 ## From Ilium Agent
 
@@ -129,7 +128,7 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
 | Branch | Head | Content |
 |---|---|---|
 | `develop` | 0226857 | finisher and MC study merged (#40) |
-| `feature/eval-reduction` | 0c187a4 | Task A done; `BatchedScreen` on by default |
+| `feature/eval-reduction` | e609c74 (2026-10-14) | Tasks A, A-exact, B and C done; `BatchedScreen` on by default; Tasks D-G not started |
 | `feature/python-speed-parity` | eval-reduction 0c187a4 + this file | per-evaluation cost study (Track S) |
 
 Baseline (six interior full-sample voxels, clean, Q-max 8, seed 1; MIGRATION_HISTORY "Task A"): a
@@ -166,14 +165,15 @@ the **cost per evaluation**.
 # Track E: evaluation reduction (Newt Agent)
 
 Plan: `~/.claude/plans/eval-reduction.md` on Newt Agent's machine (not committed); overview and results
-in MIGRATION_HISTORY "Evaluation reduction and cost smoothing".
+in MIGRATION_HISTORY "Evaluation reduction and cost smoothing". Plain-English status for the owner:
+`docs/status_eval_reduction_2026-10-14.md`.
 
 | Task | Owner ask | Status |
 |---|---|---|
 | A | C++ and Python evaluation counts differ for identical methods | **done** 2026-10-13: ledger, residual attribution; `CppEdgeRules`, `CppOmegaInterp` opt-in; `BatchedScreen` default on |
 | A-exact | `CppEdgeRules` exact for cost and peak overlap: lit only on pixel overlap or an in-bounds vertex (C++ `OverlapInfo.h:501-514`); pixel counts need not match | **done** 2026-10-13: `_rasterize.c` (`HAS_VERTEX_LIT` = 2, rebuild needed) and the slow path; parity rerun unchanged (complete cost 2,230 of 2,230 peak counts equal, screen 2,229 of 2,230); default path unchanged; `CppEdgeRules` stays opt-in (owner 2026-10-13: not the default) |
 | B | the cost function and peak overlap have odd edges | **done** 2026-10-14: per-peak event attribution along 720 rays (`docs/findings_cost_edges_2026-10.md`); frame crossings (physics, hard cut) and pixel crossings (artefact) are the main edges; the 3 of 524 rejected real peaks are a detector-edge effect of the screen box (C++'s own lit rule, `Src/OverlapInfo.h:345-382`); truth cost is not 0 (peaks off detector 1 score 1/2); `CppOmegaInterp` + `CppEdgeRules` pass sets identical to C++ on all but 4, 1 and 0 FZ points at levels 1-3 (11,504 of 11,508, 3,497 of 3,498, 963 of 963); no library change |
-| C | candidate list growth across levels; overlap and de-duplication | **done** 2026-10-14 (branch `feature/eval-reduction-C`, MIGRATION_HISTORY "Task C"; absorbs Idea 2 of `todo_coarse_cost_proxy_and_dedup.md`): opt-in key `CandidateDedup` (`icenine/candidate_dedup.py`: symmetry-reduced `cKDTree` clustering equal to `csl.dedup_orientations`; clique filter, dedup before the quick MC, distinct kept quarter), off by default, default path bit-identical. Overlap on six full-sample voxels (levels 0-2, C++ rule): 18.7% of the quick-MC inputs have a better-scored candidate within half a diameter, 23.1% of the outputs lie within half a diameter of a better one but 0.06% within 0.1 deg, so the shorter quick MC (C4) was not built; the quick MC is 55.2% of the six-voxel evaluations. `clique=cpp:1` saves 24.2% of the evaluations on the six and 23.9% on 30 full-sample voxels (2 wrong against 1 of 30) but breaks 24 of the 200 E0 voxels (10 fixed; 55 wrong against 41); no arm has zero broken E0 voxels, so the plan's rule carries **the baseline (key off)** into Task G; `clique=cpp:1` and `pre=0.5` (8.9% fewer, 0 of 30 wrong) are the candidates to weigh in Task G's BFS pilot. The plan's one-diameter merged clique is degenerate at level 0 (one component). |
+| C | candidate list growth across levels; overlap and de-duplication | **done** 2026-10-14 (merged as e609c74 before its review, D-20261014-N3; review on the merged commits running; MIGRATION_HISTORY "Task C"; absorbs Idea 2 of `todo_coarse_cost_proxy_and_dedup.md`): opt-in key `CandidateDedup` (`icenine/candidate_dedup.py`: symmetry-reduced `cKDTree` clustering equal to `csl.dedup_orientations`; clique filter, dedup before the quick MC, distinct kept quarter), off by default, default path bit-identical. Overlap on six full-sample voxels (levels 0-2, C++ rule): 18.7% of the quick-MC inputs have a better-scored candidate within half a diameter, 23.1% of the outputs lie within half a diameter of a better one but 0.06% within 0.1 deg, so the shorter quick MC (C4) was not built; the quick MC is 55.2% of the six-voxel evaluations. `clique=cpp:1` saves 24.2% of the evaluations on the six and 23.9% on 30 full-sample voxels (2 wrong against 1 of 30) but breaks 24 of the 200 E0 voxels (10 fixed; 55 wrong against 41); no arm has zero broken E0 voxels, so the plan's rule carries **the baseline (key off)** into Task G; `clique=cpp:1` and `pre=0.5` (8.9% fewer, 0 of 30 wrong) looked harmless on full-sample voxels, but the owner skipped trying them in Task G for now (D-20261014-N4). The plan's one-diameter merged clique is degenerate at level 0 (one component). |
 | D | which peaks belong to a voxel; which spots on the two detectors are one peak | not started; related: Q9, Q10, X3 |
 | E | smooth the cost with geometry and physics (cost modes, ranking keys) | not started; may use `docs/spot_translation_derivation.md` |
 | F | search outward from a start orientation to 2-5 deg | not started |
@@ -181,7 +181,7 @@ in MIGRATION_HISTORY "Evaluation reduction and cost smoothing".
 
 Left over from Task A (not planned): the omega interpolation with the ray rule (falls back with a
 warning); C++'s second complete-cost call per returned candidate (would only add evaluations); an E0
-run on realistic images (excluded until Q8).
+run on realistic images (Q8 is done, but studies stay on clean images, D-20261014-I5).
 
 # Track S: per-evaluation cost (Ilium Agent)
 
@@ -228,7 +228,7 @@ owner review in between.
 | Q2 | why CMA accepts more wrong-grain fits; tighten the 0.9 relative test for CMA? | open | finisher findings §7.2 |
 | Q3 | `CppOverlapRule` default: does the BFS seed test (hit ratio 0.8) and the reseed pilot change with the rule? | open; default stays off (owner 2026-10-13) | finisher findings §7.3 |
 | Q4 | which C++ MC difference (block halving, restart base, fixed step) gives the faithful MC's gain | open (ablation untested) | finisher findings §7.4 |
-| Q5 | batch the coarse stage | screen done (Task A); quick MC moved to S3 | finisher findings §7.5 |
+| Q5 | batch the coarse stage | **done**: screen (Task A, `BatchedScreen` on by default); quick MC (S3, opt-in `BatchedQuickMC`, off) | finisher findings §7.5 |
 | Q7 | does multi-client C++ seed grains the single-client BFS loses? | open | finisher findings §7.7 |
 | Q9 | ray rule pixel counting in cases b and e | deferred by owner 2026-10-12 | finisher findings §7.9 |
 | Q10 | angle between observed and predicted ray as an optimisation signal | idea | finisher findings §7.10 |

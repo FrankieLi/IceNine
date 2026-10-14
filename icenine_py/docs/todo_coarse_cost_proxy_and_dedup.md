@@ -1,6 +1,6 @@
 ---
 title: "TODO: a high-Q_max cost proxy and cheap candidate de-duplication for the coarse search"
-subtitle: "Two ideas raised after the FindOptimal robustness study (2026-10-06); Idea 1 evaluated 2026-10-06, Idea 2 not started"
+subtitle: "Two ideas raised after the FindOptimal robustness study (2026-10-06); Idea 1 evaluated 2026-10-06, Idea 2 done as Track E Task C 2026-10-14"
 date: "2026-10-06"
 geometry: margin=1in
 fontsize: 11pt
@@ -13,8 +13,8 @@ fontsize: 11pt
 feature table plus the free post-quick-MC Q_max-8 cost ranks the coarse candidates clearly better
 than the cost alone, and is cheaper per candidate than the E2 full-pass classifier, but as the
 pruning key it was less accurate than the E2 rerank end to end (wrong rate 6.5% / 7.5% against 4.0% /
-4.5%; not significant, McNemar p = 0.125 / 0.238); the numbers and what is untested are in the Task 2 results. Task 3 timing: the proxy rerank costs +5.2% run time against the baseline, so it is not faster (an accuracy gain only). Framing: the proxy rerank is the general, symmetry-agnostic result; proxy + F1 is a cubic Sigma-relative fix. **Idea 2 (de-duplication): not
-started.** Both ideas target the stage where the FindOptimal robustness study found the truth is
+4.5%; not significant, McNemar p = 0.125 / 0.238); the numbers and what is untested are in the Task 2 results. Task 3 timing: the proxy rerank costs +5.2% run time against the baseline, so it is not faster (an accuracy gain only). Framing: the proxy rerank is the general, symmetry-agnostic result; proxy + F1 is a cubic Sigma-relative fix. **Idea 2 (de-duplication): done
+as Track E Task C (2026-10-14), opt-in key `CandidateDedup`, off: no filter saves evaluations without losing E0 voxels, so the baseline goes forward (MIGRATION_HISTORY "Task C", `docs/status_eval_reduction_2026-10-14.md`).** Both ideas target the stage where the FindOptimal robustness study found the truth is
 lost: the coarse levels of `AdaptiveVoxelReconstructor.reconstruct_voxel`, where 83-88% of wrong
 runs had a truth-basin candidate that was then pruned (S2). Raised by the project owner after
 that study (`docs/findoptimal_robustness_report.md`, `MIGRATION_HISTORY.md` "FindOptimal

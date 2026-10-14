@@ -69,13 +69,14 @@ merged commits (e5a2cbb..e609c74).
 
 ## Waiting on the owner
 
-- Whether Task G's BFS pilot should also try the two Task C filters that look harmless on full-sample
-  voxels (`clique=cpp:1`, `pre=0.5`), even though they lose voxels on E0.
-- Whether to delete the untracked `benchmarks/eval_reduction/A/memory/cache/` folder (it holds logs).
-- No defaults to flip and no golden tests to regenerate from Track E right now.
+Nothing open. Answered on 2026-10-14: Task G does not try the two Task C filters that look harmless on
+full-sample voxels (D-20261014-N4), and the untracked Task A log folder was deleted (D-20261014-N5).
+No defaults to flip and no golden tests to regenerate from Track E right now.
 
 ## The other track
 
 Ilium Agent's Track S (cheaper evaluations) has merged S3, a batched quick MC behind the opt-in key
-`BatchedQuickMC` (off). Its mailbox and rows are in `docs/ROADMAP.md`; owner decisions for both
+`BatchedQuickMC` (off), and Q8: the realistic-noise default no longer drops 10% of spots at random
+(D-20261014-I6), but studies stay on clean images (D-20261014-I5). Both are merged into
+`feature/eval-reduction`. Its mailbox and rows are in `docs/ROADMAP.md`; owner decisions for both
 tracks are in `docs/DECISIONS.md`.

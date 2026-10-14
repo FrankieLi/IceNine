@@ -179,3 +179,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - Owner's experience: noisy images give more candidates and a wider cost function, so the search is
   easier. Check it where the data does not already show it (every rule has fewer wrong voxels on the
   no-drop E0 images than on clean). Where: ROADMAP Q8.
+
+### D-20261014-N4 · C, G · Task C's filters are not tried in Task G for now
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Task G starts from the baseline (`CandidateDedup` off). The two filters that looked harmless on
+  full-sample voxels but lose E0 voxels (`clique=cpp:1`, `pre=0.5`) are not tried in Task G's BFS
+  pilot for now. Where: ROADMAP Track E row C; `docs/status_eval_reduction_2026-10-14.md`.
+
+### D-20261014-N5 · A · Delete the untracked Task A memory-run log folder
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- The untracked `benchmarks/eval_reduction/A/memory/cache/` (one run log and a done marker) was
+  deleted. Where: this entry.
