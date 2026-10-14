@@ -110,3 +110,36 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
 - Every owner decision is logged in this file, shared by both agents, and saved to shmem. Where:
   ROADMAP protocol rule 6; this file.
+
+### D-20261012-N1 · ray rule (finisher study) · Ray-rule windows: half-widths, left as set; levels 0-2 only
+- 2026-10-12, owner. Recorded by Newt Agent (backfill, 2026-10-14). Supersedes: none.
+- Each term of the arm A window is a half-width (the intended reading); both windows (R<n> pixels, arm A
+  formula, d_omega 2 deg) stay as set, untuned; R2 and A go to step 3. The ray rule is used at levels 0-2
+  only; level 3, FindOptimal, VarianceMinimizing and the final cost stay strict C++ (revisit only if step 3
+  loses the truth at level 3). Case f1 dropped; case f always forgiven. Do not re-tune the windows without
+  asking. Where: `docs/findings_ray_overlap_rule_2026-10.md`; code comments "WINDOW DECISION"
+  (`icenine/ray_overlap.py`, `icenine/_rasterize.c`).
+
+### D-20261012-N2 · all tasks · No extra seeds to firm up comparisons
+- 2026-10-12, owner. Recorded by Newt Agent (backfill, 2026-10-14). Supersedes: none.
+- Do not propose re-running with more random seeds to firm up a comparison: the search uses randomness to
+  explore, not as independent samples. Where: this file (no ROADMAP row).
+
+### D-20261013-N1 · A · `BatchedScreen` on by default
+- 2026-10-13, owner. Recorded by Newt Agent (backfill, 2026-10-14). Supersedes: none.
+- `BatchedScreen` defaults to 1 (config key and `SearchParameters`; `screen_chunk` 32; `BatchedScreen 0`
+  restores the per-orientation screen), on condition that no pinned test or golden moves. The first flip
+  moved a profiling test and was reverted; the flip was made once the profiling instrument counted
+  `ScreenEvaluator` calls. `CppEdgeRules` and `CppOmegaInterp` stay off (D-20261013-I4). Where: ROADMAP
+  Track E row A; MIGRATION_HISTORY "BatchedScreen as the default: made".
+
+### D-20261014-N1 · Track E · Review on the task branch before the merge
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- `/review-task` runs on the task branch before `finish_task`; the required fixes go to a fresh implementer
+  on the same branch (no separate fixes branch), then the task is merged. Refines the order of
+  D-20261013-I2. Where: ROADMAP Track E.
+
+### D-20261014-N2 · B · Task B report accepted
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Task B (anatomy of the cost function's edges) accepted after the review fixes, as merged in 6561d26.
+  Where: ROADMAP Track E row B; `docs/findings_cost_edges_2026-10.md`.
