@@ -6529,3 +6529,245 @@ a candidate for a per-sample table (ROADMAP S4).
 
 **Not done.** No library change. The ThreeVoxels figures are not yet repeated on the full-sample Phase D images (on
 Newt Agent's machine; ROADMAP S6). The C++ figure is taken from Task A's runs, not re-measured.
+
+## S3: batched quick MC with a GPU option (2026-10-14)
+
+Branch `feature/python-speed-parity-s3` (off `feature/python-speed-parity`; not merged). Plan: `docs/todo_batched_quick_mc.md`
+(ROADMAP S3). Step 0 (go/no-go) and Steps 1-5 (built here). Everything is opt-in: config keys `BatchedQuickMC`
+(default 0) and `SearchDevice` (default `cpu`); with the key off the sequential code is unchanged, no golden changed and no
+default flipped.
+
+**Answer.** With `BatchedQuickMC 1` the quick MC of a level runs all its candidates in lockstep through one batched local
+cost per step. On the E0 clean set (200 voxels x 3 seeds) the wrong count is not detectably different (key off 111/600,
+key on 107/600), the counted evaluations are the same, the quick MC costs 4.5-4.7 times less per evaluation on the CPU
+(5.3-5.4 on MPS) and a whole no-start search takes 1.7-1.9 times less wall time (contended machine). The results are
+not equal to the key-off results, by design (draw option B below).
+
+### What was built
+
+- `icenine/batched_cost.py`, `BatchedCostEvaluator(cost_fn, device)`: `evaluate_many(R, voxel_vertices, phase_index)`
+  returns one `OverlapInfo` per orientation and adds B to `cost_fn.eval_count`. CPU compact variant (rows of the
+  observable reflections only; equal to `evaluate` in every `OverlapInfo` field) and fixed-shape variant (all 2K omega
+  rows, validity as a mask, one packed transfer to the host; used on `mps` or `cuda` for batches of at least
+  `GPU_MIN_BATCH` = 64 orientations, smaller batches use the CPU variant). Stage D stays the existing C call, once per
+  orientation. Covers the default rule and `CppOverlapRule`; `make_batched_cost_evaluator` returns None (and warns)
+  for `CppEdgeRules`, the ray rule, soft mode, `pixel_radius` > 0 and a build without the `_rasterize` extension. The
+  g vectors must be computed with one 3x3 gemm per orientation against the `g_hkl.T` view and kept component-major, or
+  the CPU result is not bit-equal to `evaluate` (Step 0).
+- `icenine/batched_quick_mc.py`, `run_batched_quick_mc`: draws the level's buffer, evaluates both start evaluations of
+  every candidate (the matrix, then the quaternion round trip, as `optimize`), then 10 trial steps, each one
+  `evaluate_many` over the N candidates, strict `<` acceptance per candidate; fills `orientation`, `cost`,
+  `overlap_info` and a per-candidate `last_run` as `optimize` does. Evaluations per candidate: 12, as sequential.
+  Applies to a plain `MCOptimizer` with a single block (`n_min_ergodic >= 10`, all shipped configs: 31); otherwise
+  `reconstruct_voxel` runs the sequential path, with a `RuntimeWarning` naming the reason (study subclasses such as
+  `LoggedMC`, the ray rule, `CppEdgeRules`).
+- `reconstructor.py`: `AdaptiveVoxelReconstructor._batched_quick_mc` is called in the level loop; `config_file.py` and
+  `SearchParameters`: `batched_quick_mc`, `search_device` (`cpu`, `mps`, `cuda`; an unavailable device raises).
+  `scripts/coarse_proxy/eval_split.py`, `scripts/phase_d/{level0_trace,ray_overlap_study,seed_diag}.py` pin the key off
+  (they count evaluations by patching `evaluate`); `scripts/eval_reduction/eval_ledger.py` also counts `evaluate_many`.
+- Scripts: `scripts/speed_parity/s3_timing.py` (+ `run_s3_timing.sh`), `s3_summary.py`, `s3_draw_check.py`;
+  `scripts/findoptimal_robustness/e0_run.py` got `--batched-quick-mc`, `--search-device`, `--tag` (results in
+  `cache/e0<tag>`; the images of a built case are reused by the other arm).
+
+### Draw option B (owner 2026-10-14) and why option A was dropped
+
+Sequentially, candidate i's 30 trial uniforms start at stream position 30 i + 3 F_i, F_i the failed blocks among
+candidates 0 .. i-1 (a failed block draws 3 more uniforms for a restart it never uses). Step 0 found 30-70% of quick-MC
+blocks fail, so reproducing these draws exactly by speculation (option A) cost 21-67 times the counted evaluations (5.5-13
+times with reuse), and the modelled quick MC was slower, not faster (0.26 times on E0). Option B: one buffer
+`rng.uniform(-r, r, size=33 N)` per level (the same stream consumption as `rng.random(33 N)`); candidate i owns positions
+33 i .. 33 i + 32 (30 trial draws, then the unused restart's 3). The generator advances by exactly 33 N per level
+whatever the outcomes, so the key-on stream, and with it every later level and FindOptimal, differs from the sequential
+one; the key is compared by wrong counts (an A/B), not equality. Given the slices, each candidate's result equals
+`MCOptimizer.optimize` replayed on its slice exactly (tests).
+
+The buffer is drawn with `Generator.uniform(-r, r, size=...)` rather than `rng.random` plus `low + (high - low) * u`
+because the latter is not the scalar draw: numpy's C `random_uniform` rounds `lower + range * u` once (a fused
+multiply-add, checked with exact arithmetic), and the two-rounding numpy expression differs from the scalar
+`rng.uniform(-r, r)` in 10,714 of 20,000 draws (`benchmarks/s3_steps1_5/draw_check.json`). The trial-rotation build stays
+a per-candidate scalar loop: the quaternion product and the batch quaternion-to-matrix conversion were bit-equal to the
+scalar ones in 4,000 of 4,000 draws, but a numpy-vectorised `get_near_identity_point` differs in 414 of 4,000 (last bit),
+and the near-identity point is most of the build.
+
+### Tests (`tests/test_batched_cost.py`, `tests/test_batched_quick_mc.py`)
+
+- Batched cost: for 361 orientations (the truth, perturbations of 0.1-8 degrees, random rotations) at B = 1, 7 and 64,
+  default rule, `CppOverlapRule` and `min_sin_eta` 0.4, all reflections and Q-max 5, the CPU compact variant and the
+  fixed-shape variant run on the CPU equal `evaluate` in every `OverlapInfo` field (0 differing). MPS (run here, Apple
+  GPU): with all reflections 134 of 361 orientations differ in `pixel_on_detector`, 15 in `pixel_overlap`, 6 in
+  `peak_overlap`, 18 in the quality (largest cost difference 0.0012); with Q-max 5, 8 differ in `pixel_on_detector`, 1 in
+  `pixel_overlap` and none in the cost (printed by the test with `-s`, not saved). Reported, not asserted equal (only
+  |cost difference| < 0.1).
+- Lockstep quick MC: result (orientation, cost, `OverlapInfo`, `last_run`) equal to the replayed sequential `optimize`
+  for 0, 1, 5 and 40 candidates with stub costs (every block fails; mixed outcomes with 0 < improved < 40) and for 26
+  candidates with the real cost through `evaluate` and through `BatchedCostEvaluator` (CPU), default rule and
+  `CppOverlapRule` (17 and 15 of 26 blocks improved); generator state after the level equals the state after
+  `uniform(-r, r, 33 N)`; the offsets equal 33 N scalar `rng.uniform(-r, r)` draws bit for bit; `eval_count` 12 per
+  candidate. Wiring: config keys, one level through `reconstruct_voxel` (11 batched calls: the starts together, then ten
+  steps), fallbacks with their warnings, key off builds no evaluator.
+- Full suite (`uv run pytest tests/`, key off throughout): 953 passed, 41 skipped, 1 deselected, against 887 passed, 41
+  skipped, 1 deselected before this work (+66 tests: 43 in `test_batched_cost.py`, 23 in `test_batched_quick_mc.py`). No golden
+  value changed.
+
+### Step 4: timing (single worker, **contended**)
+
+`s3_timing.py search`, one torch thread, nothing else of ours running, `--allow-busy`: the machine's 1-minute load was
+5-6 (system indexing daemons, not ours), so every figure here is contended. Arms interleave within a repeat (so drifting
+load hits all arms alike), two repeats, an untimed warm-up first. The key-on arms draw a different stream, so their
+searches differ (candidates per level, evaluations); the quick MC is compared per evaluation as well as per search.
+Preflight JSON: `benchmarks/s3_steps1_5/preflight_*.json`. Repeats agree: median relative difference of the search wall
+time between the two repeats 0.4-3.0% (largest single difference 4.1%); the quick-MC time of the MPS arm is noisier
+(median 2.4-11.6%, largest 17.2%).
+
+Arms: `off` = sequential quick MC (`BatchedQuickMC 0`), `cpu` = `BatchedQuickMC 1` with `SearchDevice cpu`, `mps` = `BatchedQuickMC 1` with
+`SearchDevice mps`. The speedup columns are ratios of the `off` arm to the arm. ThreeVoxels voxel 0, Q-max 8, 3 seeds x 2 repeats:
+
+<!-- table:s3_timing_three -->
+| arm (off = sequential quick MC) | searches | wall s, median | quick MC s, median | quick MC us per evaluation, median | candidates per level, median | evaluations per search, median | wall speedup (sum of searches) | quick-MC us per evaluation speedup |
+|---|---|---|---|---|---|---|---|---|
+| off | 6 | 3.78 | 2.24 | 348 | 397/105/27/6 | 53853 | n/a | n/a |
+| cpu | 6 | 2.01 | 0.49 | 77 | 397/103/26/6 | 53924 | 1.89 | 4.50 |
+| mps | 6 | 1.94 | 0.41 | 65 | 397/103/26/6 | 53924 | 1.95 | 5.36 |
+<!-- /table:s3_timing_three -->
+
+First 10 E0 clean voxels, seed 0, 2 repeats:
+
+<!-- table:s3_timing_e0 -->
+| arm (off = sequential quick MC) | searches | wall s, median | quick MC s, median | quick MC us per evaluation, median | candidates per level, median | evaluations per search, median | wall speedup (sum of searches) | quick-MC us per evaluation speedup |
+|---|---|---|---|---|---|---|---|---|
+| off | 20 | 1.97 | 0.98 | 359 | 168/44/12/2 | 48362 | n/a | n/a |
+| cpu | 20 | 1.19 | 0.21 | 76 | 168/44/10/2 | 48312 | 1.69 | 4.71 |
+| mps | 20 | 1.16 | 0.18 | 67 | 168/44/10/2 | 48312 | 1.73 | 5.33 |
+<!-- /table:s3_timing_e0 -->
+
+The quick MC was 0.60 (ThreeVoxels) and 0.50 (E0) of the search's wall time with the key off (Step 0: 0.60 and 0.50);
+with the CPU key on it is 0.25 and 0.18, so the screen and FindOptimal now dominate and the next gain is elsewhere (S2, S4).
+Step 0 had modelled the quick MC at 5.2 times on E0 and 4.6 / 6.6 times on ThreeVoxels (CPU / MPS), the whole search at
+1.67 (E0) and 1.88 / 2.03 (ThreeVoxels); measured 4.7 / 5.3 and 4.5 / 5.4 for the quick MC, 1.69 / 1.73 and 1.89 / 1.95
+for the search.
+
+Crossover of the batched cost alone (E0 voxel 0, K = 112 reflections, microseconds per orientation, median of 9
+repetitions; MPS = fixed-shape variant, CPU compact = the default CPU variant):
+
+<!-- table:s3_crossover -->
+| batch B | CPU compact us per orientation | CPU fixed-shape us per orientation | MPS fixed-shape us per orientation |
+|---|---|---|---|
+| 1 | 258 | 290 | 3415 |
+| 2 | 159 | 198 | 1560 |
+| 4 | 110 | 145 | 831 |
+| 8 | 83 | 119 | 420 |
+| 16 | 70 | 110 | 220 |
+| 32 | 62 | 103 | 173 |
+| 48 | 60 | 100 | 111 |
+| 64 | 59 | 98 | 108 |
+| 96 | 57 | 97 | 41 |
+| 128 | 56 | 96 | 40 |
+| 192 | 56 | 97 | 35 |
+| 256 | 56 | 96 | 32 |
+| 512 | 55 | 96 | 30 |
+<!-- /table:s3_crossover -->
+
+A second, finer run (`timing_crossover_fine.json`, 15 repetitions, B = 56 to 128) has MPS ahead of the CPU compact
+variant from B = 56 (55 against 59) and clearly from B = 64 (50 against 59); the 9-repetition run has MPS behind at
+B = 64 (108 against 59) and ahead from B = 96. The GPU call latency is noisy on this machine, so `GPU_MIN_BATCH` stays 64
+(the plan's value); the crossover lies between about 56 and 96.
+
+### Step 4: A/B on wrong counts (E0 clean, 200 voxels x 3 seeds)
+
+`e0_run.py run --variants clean --n-voxels 200 --workers 10` for the key-off arm (257 s for the 195 voxels left after a
+5-voxel pilot) and with `--batched-quick-mc --tag _s3on` for the key-on CPU arm (146 s); the same images, voxels and seeds. Wrong = reduced misorientation to the
+truth > 1 degree. Seeds of one voxel are not independent, so the pooled intervals are optimistic. Both arms were run
+for all three seeds (the 4 h limit did not bind). Run times are 10 workers on a contended machine.
+
+<!-- table:s3_ab_wrong -->
+| arm | scope | wrong (> 1 deg) | runs | rate | Wilson 95% low | Wilson 95% high |
+|---|---|---|---|---|---|---|
+| key off | seed 0 | 35 | 200 | 0.175 | 0.129 | 0.234 |
+| key off | seed 1 | 37 | 200 | 0.185 | 0.137 | 0.245 |
+| key off | seed 2 | 39 | 200 | 0.195 | 0.146 | 0.255 |
+| key off | pooled | 111 | 600 | 0.185 | 0.156 | 0.218 |
+| key on (CPU) | seed 0 | 35 | 200 | 0.175 | 0.129 | 0.234 |
+| key on (CPU) | seed 1 | 40 | 200 | 0.200 | 0.150 | 0.261 |
+| key on (CPU) | seed 2 | 32 | 200 | 0.160 | 0.116 | 0.217 |
+| key on (CPU) | pooled | 107 | 600 | 0.178 | 0.150 | 0.211 |
+| key on (MPS; seed 0, voxels 0-49) | seed 0 | 8 | 50 | 0.160 | 0.083 | 0.285 |
+| key on (MPS; seed 0, voxels 0-49) | pooled | 8 | 50 | 0.160 | 0.083 | 0.285 |
+<!-- /table:s3_ab_wrong -->
+
+Paired by run (same voxel, same seed; fixed = wrong with the key off and right with it on; broken = the reverse), and, as
+a calibration, the same split between two seeds of the key-off arm itself (a different random stream, same code):
+
+<!-- table:s3_ab_paired -->
+| pair (a vs b) | scope | paired runs | wrong a | wrong b | fixed (wrong a, right b) | broken (right a, wrong b) | both wrong | both right |
+|---|---|---|---|---|---|---|---|---|
+| off vs on_cpu | all seeds | 600 | 111 | 107 | 60 | 56 | 51 | 433 |
+| off vs on_cpu | seed 0 | 200 | 35 | 35 | 18 | 18 | 17 | 147 |
+| off vs on_cpu | seed 1 | 200 | 37 | 40 | 15 | 18 | 22 | 145 |
+| off vs on_cpu | seed 2 | 200 | 39 | 32 | 27 | 20 | 12 | 141 |
+| on_cpu vs on_mps | all seeds | 50 | 8 | 8 | 0 | 0 | 8 | 42 |
+| on_cpu vs on_mps | seed 0 | 50 | 8 | 8 | 0 | 0 | 8 | 42 |
+| off_2w vs on_mps | all seeds | 50 | 12 | 8 | 8 | 4 | 4 | 34 |
+| off_2w vs on_mps | seed 0 | 50 | 12 | 8 | 8 | 4 | 4 | 34 |
+| on_cpu_2w vs on_mps | all seeds | 50 | 8 | 8 | 0 | 0 | 8 | 42 |
+| on_cpu_2w vs on_mps | seed 0 | 50 | 8 | 8 | 0 | 0 | 8 | 42 |
+| key off, seed 0 vs seed 1 | same voxels | 200 | 35 | 37 | 20 | 22 | 15 | 143 |
+| key off, seed 0 vs seed 2 | same voxels | 200 | 35 | 39 | 14 | 18 | 21 | 147 |
+| key off, seed 1 vs seed 2 | same voxels | 200 | 37 | 39 | 21 | 23 | 16 | 140 |
+<!-- /table:s3_ab_paired -->
+
+Evaluations per run (local = the quick MC, re-cost, FindOptimal and VarianceMinimizing; global = the screen):
+
+<!-- table:s3_ab_evals -->
+| arm | candidates per level, median | local evaluations per run, mean | global evaluations per run, mean | quick-MC evaluations per run, mean | run time s, median (10 workers, contended) |
+|---|---|---|---|---|---|
+| key off | 178/47/12/3 | 4125 | 44500 | 2896 | 3.8 |
+| key on (CPU) | 178/47/12/3 | 4120 | 44501 | 2896 | 2.3 |
+| key on (MPS; seed 0, voxels 0-49) | 176/47/12/3 | 4121 | 44499 | 2891 | n/a |
+<!-- /table:s3_ab_evals -->
+
+Per voxel, the number of seeds (of 3) in which it is wrong, 0 / 1 / 2 / 3 seeds: key off 128 / 46 / 13 / 13 voxels, key on
+126 / 46 / 23 / 5.
+
+- The key-on wrong count is not detectably different from the key-off count (111 and 107 of 600; the intervals overlap
+  almost entirely). The runs flip in both directions (60 fixed, 56 broken per 600; 18/18, 15/18 and 27/20 per seed), by about the
+  same amount as between two seeds of the key-off arm (20/22, 14/18 and 21/23 per 200), consistent with the key-on arm
+  being another draw of the same random search. A difference smaller than the interval is not excluded.
+- The counted evaluations are the same (local 4,125 and 4,120, global 44,500 and 44,501 per run): the lockstep path does
+  no speculative evaluation. Median run time 3.8 s with the key off and 2.3 s with it on (10 workers, contended).
+- **The key-off arm does not reproduce the Diagnosis' 204/600.** It gives 111/600 = 0.185 [0.156, 0.218] (seed 0: 35/200).
+  The 204/600 was recorded on 2026-10-05, before the MC port of 2026-10-08 (`RandomRestartZeroTemp`; its E0 re-run had
+  seed 0 at 40/200 clean, see "C++-faithful MC: reruns") and before the centroid screen (2026-10-12) and `BatchedScreen`
+  (2026-10-13) became defaults. Run by run against the stored 2026-10-05 runs, 435 of 600 have the same wrong flag, 15 the
+  same final error (to 1e-3 deg) and none the same evaluation counts. Which of those changes accounts for the difference
+  was not tested. The comparison above is against the current default code.
+- MPS arm (seed 0, first 50 voxels, 2 workers, `SearchDevice mps`): 8/50 wrong [0.083, 0.285] against 8/50 for the CPU key-on
+  arm on the same runs; 0 fixed, 0 broken; all 50 runs end at the same answer (to 1e-3 degrees) and the same cost as the CPU
+  run, and 48 also have the same evaluation counts; the other two differ in the number of local evaluations (consistent with a
+  trial accepted differently where the MPS cost differs in the last bits; not traced). The two-worker run time (seed 0, first 50 voxels, the three arms run one after
+  the other) is:
+
+<!-- table:s3_ab_timing_2w -->
+| arm | runs | wrong (> 1 deg) | run time s, median | run time s, mean | run time s, sum |
+|---|---|---|---|---|---|
+| key off (2 workers) | 50 | 12 | 2.16 | 2.14 | 106.8 |
+| key on (CPU, 2 workers) | 50 | 8 | 1.28 | 1.28 | 64.2 |
+| key on (MPS; seed 0, voxels 0-49) | 50 | 8 | 1.45 | 1.48 | 74.0 |
+<!-- /table:s3_ab_timing_2w -->
+
+  The MPS arm is slower than the CPU arm here (1.45 against 1.28 s median), unlike the single-worker timing above (1.16
+  against 1.19 s on E0): two processes share one GPU, and each worker's first MPS use includes a one-time kernel warm-up
+  (not separated; the median is less affected than the sum). The GPU variant is therefore not a clear win on this machine
+  at the batch size of the E0 level 0 (a median of 178 candidates; levels 1-3 have a median of 47, 12 and 3 and use the CPU
+  variant); its case is a larger batch such as the level-0 screen (43,974 orientations, out of scope).
+
+### Limits and open items
+
+- All timings are contended single-worker or contended 10-worker; a quiet-machine repeat is open. CUDA was not available;
+  the `cuda` device is untested. MPS results are not bit-equal to the CPU's; the A/B above covers 50 runs.
+- Clean images only; the realistic-image (Q8) comparison waits for the Q8 task. The E0 voxels are one sample (copper,
+  ReconstructQ8 physics); ThreeVoxels voxel 0 was timed, not A/B-tested.
+- `CppEdgeRules` and the ray rule fall back to the sequential quick MC (with a warning). After A-exact merges into
+  `feature/python-speed-parity`, `CppEdgeRules` can be added to the batched cost and the Step 1 equality test extended
+  (a small reviewed follow-up).
+- No default flipped and no golden regenerated. Whether to flip `BatchedQuickMC` to default on is the owner's decision; this
+  work provides the evidence above (same wrong count within the interval, same evaluations, 1.7-1.9 times shorter search).

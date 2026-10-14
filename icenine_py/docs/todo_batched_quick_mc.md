@@ -9,7 +9,7 @@ fontsize: 11pt
 # Status
 
 **Approved 2026-10-13; revised 2026-10-14 to draw option B (owner, after Step 0); Steps 1-5 approved
-to run.** Step 0 (done, 4686f4d, report `.claude/reports/20261014-0010-s3_step0.md`) found option A
+to run. Steps 1-5 built and measured 2026-10-14 (MIGRATION_HISTORY "S3: batched quick MC"); awaiting review.** Step 0 (done, 4686f4d, report `.claude/reports/20261014-0010-s3_step0.md`) found option A
 (exact draws by speculation) a no-go: 30-70% of quick-MC blocks fail, so the speculative rounds cost
 21-67 times the counted evaluations (5.5-13 times even with reuse between offsets) and the quick MC
 gets slower, not faster. The owner chose option B: each candidate's draws are fixed in advance and do

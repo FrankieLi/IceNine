@@ -82,6 +82,7 @@ def summarize_search(path: Path) -> Dict[str, Any]:
             quick_mc_s_median=med([r["quick_mc_s"] for r in rs]),
             quick_mc_s_sum=float(sum(r["quick_mc_s"] for r in rs)),
             quick_mc_us_per_eval_median=med(q_us),
+            quick_mc_share_of_wall_median=med([r["quick_mc_s"] / r["wall_s"] for r in rs]),
             quick_mc_evals_sum=int(sum(r["quick_mc_evals"] for r in rs)),
             evals_total_median=med([r["evals"]["total"] for r in rs]),
             cand_per_level_median=[
@@ -313,6 +314,14 @@ def paired(
         )
     same = [abs(a[k]["err"] - b[k]["err"]) < 1e-3 for k in common]
     out["runs_with_same_answer_1e-3deg"] = int(sum(same))
+    out["runs_with_same_eval_counts"] = int(
+        sum(
+            a[k]["evals_local"] == b[k]["evals_local"]
+            and a[k]["evals_global"] == b[k]["evals_global"]
+            for k in common
+        )
+    )
+    out["runs_with_same_cost"] = int(sum(a[k]["cost"] == b[k]["cost"] for k in common))
     return out
 
 
