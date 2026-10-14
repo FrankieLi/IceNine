@@ -749,8 +749,11 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
     int n_quality_points = 0;
     int last_n_det_ovlp = 0;  /* detectors_overlap from last peak */
 
-    /* cpp_rule is a bit field: 1 = C++ CountQualifiedPeaks rule, 2 = also light a detector for a
-       triangle without pixels when a vertex is in bounds (CppEdgeRules); 1 is what older callers pass */
+    /* cpp_rule is a bit field: 1 = C++ CountQualifiedPeaks rule, 2 = CppEdgeRules detector-lit
+       rule, exactly C++ ShapePixelOverlapCounter (OverlapInfo.h:501-514): lit iff the pixel overlap
+       is > 0 or a vertex is in bounds, so a triangle with pixels but no vertex in bounds stays unlit
+       (without bit 2: lit on any produced pixel). Bit 2 acts only in the triangle (pixel_radius <= 0)
+       branch; 1 is what older callers pass */
     const int cpp_vertex_lit = (cpp_rule & 2) != 0;
 
     /* Main loop over peaks */
