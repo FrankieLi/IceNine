@@ -16,6 +16,8 @@ fontsize: 11pt
   and off by default; no default flips and no golden regeneration inside a task (list them for the
   owner); quote evaluations and wrong counts side by side; no p-values; clean full-sample images and
   the E0 200-voxel set until the noise model is redone (open question Q8 below).
+- Review (owner 2026-10-13): every task branch gets an agent code review (`/review-task`, Opus) when it
+  is done; its required fixes go straight to a fresh implementer, with no owner review in between.
 - "Owner" decisions are made only by the project owner. They are collected at the end.
 - Two Claude Code agents work on the port, named by the machine they run on: **Ilium Agent** and
   **Newt Agent**. The Phase D full-sample images and the evaluation-reduction plan file are on Newt
@@ -75,7 +77,8 @@ in MIGRATION_HISTORY "Evaluation reduction and cost smoothing".
 | Task | Owner ask | Status |
 |---|---|---|
 | A | C++ and Python evaluation counts differ for identical methods | **done** 2026-10-13: ledger, residual attribution; `CppEdgeRules`, `CppOmegaInterp` opt-in; `BatchedScreen` default on |
-| B | the cost function and peak overlap have odd edges | next |
+| A-exact | `CppEdgeRules` exact for cost and peak overlap: lit only on pixel overlap or an in-bounds vertex (C++ `OverlapInfo.h:501-514`); pixel counts need not match | next; `CppEdgeRules` stays opt-in (owner 2026-10-13: not the default) |
+| B | the cost function and peak overlap have odd edges | after A-exact |
 | C | candidate list growth across levels; overlap and de-duplication | not started; absorbs Idea 2 of `todo_coarse_cost_proxy_and_dedup.md` |
 | D | which peaks belong to a voxel; which spots on the two detectors are one peak | not started; related: Q9, Q10, X3 |
 | E | smooth the cost with geometry and physics (cost modes, ranking keys) | not started; may use `docs/spot_translation_derivation.md` |
