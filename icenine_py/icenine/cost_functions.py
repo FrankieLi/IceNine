@@ -48,9 +48,12 @@ try:
 except ImportError:
     _C_HAS_RAY_RULE = False
 try:
-    from ._rasterize import HAS_VERTEX_LIT as _C_HAS_VERTEX_LIT
+    from ._rasterize import HAS_VERTEX_LIT as _C_VERTEX_LIT_LEVEL
+
+    # 2 = the exact C++ vertex-lit rule (1 was the superset rule of the first Task A build)
+    _C_HAS_VERTEX_LIT = _C_VERTEX_LIT_LEVEL >= 2
 except ImportError:
-    _C_HAS_VERTEX_LIT = False  # extension missing or built before cpp_edge_rules existed
+    _C_HAS_VERTEX_LIT = False  # extension missing or built before the exact cpp_edge_rules
 _WARNED_STALE_EXT = False
 # Observed-ray flags in C (False = the per-peak Python reference ray_overlap.ray_flags; tests).
 USE_C_RAY_FLAGS = True
@@ -509,14 +512,15 @@ def calculate_diffraction_overlap_batched(
     millimetre coordinate ``d < 0`` before adding the half pixel), where the default floors
     ``(d + half) / width`` and so gives pixel 0 for a coordinate in [0, 0.5). C++ Reference:
     Detector.cpp:528-548.
-    (3) A triangle that produced no pixel (the fill stops one row early at the last image row or
-    column) still lights the detector when a vertex is in bounds, as C++
-    ``ShapePixelOverlapCounter`` (OverlapInfo.h) does; the default needs a produced pixel. Not
-    exact: Python still lights on a produced pixel as well (``n_lit > 0``), which C++ does not
-    (C++ lights only on an overlap or an in-bounds vertex, OverlapInfo.h:501-514), so Python lights
-    on a superset of C++'s cases; a triangle covering image pixels with all three vertices out of
-    bounds is lit in Python and unlit in C++ (no such peak on the Task A fixed-orientation test).
-    Needs the extension built with ``HAS_VERTEX_LIT``, else the slow per-peak path is used.
+    (3) Detector-lit rule as C++ ``ShapePixelOverlapCounter`` (OverlapInfo.h:501-514), exactly: a
+    detector is lit iff the pixel overlap is > 0 or one of the three vertices is in bounds. There is
+    no "pixels produced" clause, so a triangle that covers pixels with all three vertices out of
+    bounds stays unlit, and a triangle that produced no pixel (the fill stops one row early at the
+    last image row or column) with a vertex in bounds is lit. The default lights on any produced
+    pixel (unchanged). Pixel counts (``peak_pixel_on_det``) are the rasterizer's and need not match
+    C++.
+    Needs the extension built with ``HAS_VERTEX_LIT`` >= 2 (exact rule), else the slow per-peak
+    path is used.
 
     ``ray_rule`` (opt-in, default None): apply the ray-consistency rule of ``ray_overlap`` on top
     of the C++ CountQualifiedPeaks rule (it implies ``cpp_rule``). It is meant for the coarse
@@ -703,9 +707,10 @@ def calculate_diffraction_overlap_batched(
     if cpp_edge_rules and _HAS_C_RASTERIZE and not _C_HAS_VERTEX_LIT and not _WARNED_STALE_EXT:
         _WARNED_STALE_EXT = True
         warnings.warn(
-            "CppEdgeRules is on but the _rasterize extension was built before cpp_edge_rules; "
-            "using the much slower per-peak Python loop. Rebuild: cd icenine_py && uv run "
-            "--no-project --with setuptools --with numpy python setup.py build_ext --inplace",
+            "CppEdgeRules is on but the _rasterize extension was built before the exact "
+            "cpp_edge_rules; using the much slower per-peak Python loop. Rebuild: cd icenine_py "
+            "&& uv run --no-project --with setuptools --with numpy python setup.py "
+            "build_ext --inplace",
             RuntimeWarning,
             stacklevel=2,
         )
@@ -865,17 +870,19 @@ def calculate_diffraction_overlap_batched(
                     if n_overlap_int > 0:
                         detector_lit[det_idx] = True
                         spot_overlap[det_idx] = True
-                    elif n_lit_int > 0:
-                        detector_lit[det_idx] = True
                     elif cpp_edge_rules:
-                        # C++ lights the detector for a pixel-less triangle with a vertex in bounds
-                        # (superset of C++: the n_lit > 0 branch above has no C++ counterpart)
+                        # CppEdgeRules, exact C++ ShapePixelOverlapCounter (OverlapInfo.h:501-514):
+                        # lit iff overlap > 0 (above) or a vertex is in bounds; no "pixels produced"
+                        # clause, so a triangle covering pixels with all vertices out of bounds is
+                        # unlit
                         for vtx in (v0, v1, v2):
                             vx = -1.0 if float(vtx[0]) < 0 else math.floor(float(vtx[0]))
                             vy = -1.0 if float(vtx[1]) < 0 else math.floor(float(vtx[1]))
                             if 0 <= vx < exp_image.num_cols and 0 <= vy < exp_image.num_rows:
                                 detector_lit[det_idx] = True
                                 break
+                    elif n_lit_int > 0:
+                        detector_lit[det_idx] = True
 
             if ray_rule is not None:
                 d_ov, d_on = apply_cases_python(

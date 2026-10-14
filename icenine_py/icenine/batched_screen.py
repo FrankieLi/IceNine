@@ -54,6 +54,8 @@ class ScreenEvaluator:
             [-1 if i is None else int(i) for i in rng.index_list], dtype=np.int64
         )
         self._n_bins = n_bins
+        # bit 2 (CppEdgeRules lit rule) is ignored by the C pixel-radius branch the screen uses, so
+        # it is passed without checking _C_HAS_VERTEX_LIT
         self._rule_bits = (1 if cost_fn.cpp_overlap_rule else 0) | (
             2 if cost_fn.cpp_edge_rules else 0
         )
