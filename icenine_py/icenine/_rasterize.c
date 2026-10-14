@@ -749,6 +749,10 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
     int n_quality_points = 0;
     int last_n_det_ovlp = 0;  /* detectors_overlap from last peak */
 
+    /* cpp_rule is a bit field: 1 = C++ CountQualifiedPeaks rule, 2 = also light a detector for a
+       triangle without pixels when a vertex is in bounds (CppEdgeRules); 1 is what older callers pass */
+    const int cpp_vertex_lit = (cpp_rule & 2) != 0;
+
     /* Main loop over peaks */
     for (int p = 0; p < n_peaks; p++) {
         int wedge_idx = wedge_indices[p];
@@ -817,6 +821,18 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
                     spot_overlap[d] = 1;
                 } else if (n_lit > 0) {
                     detector_lit[d] = 1;
+                } else if (cpp_vertex_lit) {
+                    /* C++ ShapePixelOverlapCounter: a triangle that produced no pixel still
+                       lights the detector when one of its vertices is in bounds (IsInBound). */
+                    double vx[3] = {v0x, v1x, v2x}, vy[3] = {v0y, v1y, v2y};
+                    for (int q = 0; q < 3; q++) {
+                        double px = (vx[q] < 0) ? -1.0 : floor(vx[q]);
+                        double py = (vy[q] < 0) ? -1.0 : floor(vy[q]);
+                        if (px >= 0 && px < image_cols && py >= 0 && py < image_rows) {
+                            detector_lit[d] = 1;
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -860,7 +876,7 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
         int peak_on_det, peak_ovlp, n_det_ovlp;
         count_qualified_peaks_c(
             detector_lit, spot_overlap, n_detectors,
-            &peak_on_det, &peak_ovlp, &n_det_ovlp, cpp_rule
+            &peak_on_det, &peak_ovlp, &n_det_ovlp, cpp_rule & 1
         );
 
         /* Update counts (matches OverlapInfo.update_counts) */
@@ -1134,5 +1150,6 @@ PyMODINIT_FUNC PyInit__rasterize(void) {
     PyObject *m = PyModule_Create(&rasterize_module);
     if (m != NULL) PyModule_AddIntConstant(m, "HAS_CPP_RULE", 1);
     if (m != NULL) PyModule_AddIntConstant(m, "HAS_RAY_RULE", 1);
+    if (m != NULL) PyModule_AddIntConstant(m, "HAS_VERTEX_LIT", 1);
     return m;
 }

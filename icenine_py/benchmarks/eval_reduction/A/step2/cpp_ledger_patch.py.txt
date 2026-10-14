@@ -1,0 +1,57 @@
+# Task A, Step 2: per-stage evaluation counts of the C++ no-start search. Applied to a SCRATCH copy of the
+# repository (CMakeLists.txt, Src/, XDM++/, CostFunctionBenchmark/), run from the scratch root; Src/ in the
+# repository is never touched. Prints, per level and at the end, the global cost-evaluation counter
+# (g_cost_eval_count: one per XDMSampleVertexOverlapCounter::CalculateDiffractionOverlap call) as differences
+# between stage boundaries of DiscreteRefinement::ReconstructVoxel:
+#   LG L <level> n_fz <n> n_local <n> disc <screen + first re-cost> rerecost <second re-cost loop>
+#      quick <quick MC> cand <n returned> kept <n handed to the next level>
+#   LG FIND <FindOptimal evaluations> n_in <candidates handed in> VAR <VarianceMinimizing evaluations> FINAL <n>
+# Gated by env LEDGER=1. The second re-cost loop is the loop after RunDiscreteSearch that recomputes
+# 1 - confidence of every returned candidate (DiscreteAdaptive.tmpl.cpp, "oSearchPointCandidates[i].fCost").
+def patch(path, pairs):
+    s = open(path).read()
+    for a, b in pairs:
+        assert s.count(a) == 1, (path, a, s.count(a))
+        s = s.replace(a, b)
+    open(path, 'w').write(s)
+
+patch('Src/DiscreteAdaptive.tmpl.cpp', [
+    ('namespace Reconstruction\n{', '#include <cstdlib>\nextern long long g_cost_eval_count;\nnamespace Reconstruction\n{'),
+    ('''      vector<SMatrix3x3> oLocalGrid;
+      OrientationSearch::Utilities::GenerateLocalGrid( oLocalGrid, fDiameter, 0, 1 );   // diameter is really diagonal
+      ''', '''      vector<SMatrix3x3> oLocalGrid;
+      OrientationSearch::Utilities::GenerateLocalGrid( oLocalGrid, fDiameter, 0, 1 );   // diameter is really diagonal
+      long long LG0 = g_cost_eval_count, LG1 = 0, LG2 = 0, LG3 = 0; long LGnfz = (long) ( pEnd - pFirst );
+      '''),
+    ('''      nQMax ++;
+      for( Size_Type i = 0; i < oSearchPointCandidates.size(); ++ i)''', '''      nQMax ++;
+      LG1 = g_cost_eval_count;
+      for( Size_Type i = 0; i < oSearchPointCandidates.size(); ++ i)'''),
+    ('''      int nMaxPartialElements = oSearchPointCandidates.size();''', '''      LG2 = g_cost_eval_count;
+      int nMaxPartialElements = oSearchPointCandidates.size();'''),
+    ('''        fDiameter /= 1.5;  // fudge factor at this point''', '''        LG3 = g_cost_eval_count;
+        fDiameter /= 1.5;  // fudge factor at this point'''),
+    ('''        for( int i = 0; i < nElements; i ++ )
+          oInterestingPoints.push_back( oSearchPointCandidates[i].oOrientation );''', '''        for( int i = 0; i < nElements; i ++ )
+          oInterestingPoints.push_back( oSearchPointCandidates[i].oOrientation );
+        if( getenv( "LEDGER" ) != NULL )
+          std::cout << "LG L " << nLevel << " n_fz " << LGnfz << " n_local " << oLocalGrid.size()
+                    << " disc " << ( LG1 - LG0 ) << " rerecost " << ( LG2 - LG1 ) << " quick " << ( LG3 - LG2 )
+                    << " cand " << oSearchPointCandidates.size() << " kept " << nElements << std::endl;'''),
+    ('''    bool bConverged = false;
+    SamplePointT Result;
+    std::tie( Result, bConverged )''', '''    bool bConverged = false;
+    SamplePointT Result;
+    long long LGf0 = g_cost_eval_count;
+    std::tie( Result, bConverged )'''),
+    ('''    std::cout << "  After Final Optimization " << std::endl;
+    ''', '''    std::cout << "  After Final Optimization " << std::endl;
+    long long LGf1 = g_cost_eval_count;
+    '''),
+    ('''    std::cout << "  After Variance Optimization " << std::endl;''', '''    std::cout << "  After Variance Optimization " << std::endl;
+    long long LGf2 = g_cost_eval_count;'''),
+    ('''    std::cout << "  After Voxel Cost calculation " << std::endl;''', '''    std::cout << "  After Voxel Cost calculation " << std::endl;
+    if( getenv( "LEDGER" ) != NULL )
+      std::cout << "LG FIND " << ( LGf1 - LGf0 ) << " n_in " << nLocalOptCandidates << " VAR " << ( LGf2 - LGf1 )
+                << " FINAL " << ( g_cost_eval_count - LGf2 ) << " converged " << (int) bConverged << " TOTAL " << g_cost_eval_count << std::endl;'''),
+])

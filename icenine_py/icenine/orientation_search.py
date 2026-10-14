@@ -139,6 +139,17 @@ class SearchParameters:
     # explicit opt-out that keeps vertex 0 in the screen.
     cpp_overlap_rule: bool = False
     cpp_center_screen: bool = True
+    # cpp_edge_rules: opt-in (config key CppEdgeRules). The C++ conventions at the low edges of
+    # the frame range and the detector, and the pixel-less triangle rule (see VoxelCostFunction).
+    cpp_edge_rules: bool = False
+    # cpp_omega_interp: opt-in (config key CppOmegaInterp). The level screen takes the omegas of the
+    # local-grid orientations from the FZ centre as C++ LocalAngularInterpProcess does (see
+    # icenine/batched_screen.py). batched_screen: opt-in (config key BatchedScreen). The screen
+    # scores screen_chunk FZ points (x local grid) per call instead of one orientation per call.
+    # With CppOmegaInterp alone the chunk is one FZ point (the centre is solved once per point).
+    cpp_omega_interp: bool = False
+    batched_screen: bool = False
+    screen_chunk: int = 32
     # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
     # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
     # 0 .. ray_rule.levels-1 (default 0-2): screen, re-cost, quick MC and ranking cut. FindOptimal,
@@ -193,6 +204,9 @@ class SearchParameters:
             bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
+            cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
+            cpp_omega_interp=bool(getattr(config, "cpp_omega_interp", False)),
+            batched_screen=bool(getattr(config, "batched_screen", False)),
             ray_rule=ray_rule_from_config(config),
         )
         # unstudied combination: warn only (owner 2026-10-12), do not force CppOverlapRule
@@ -358,6 +372,9 @@ def run_discrete_search_spaced(
     symmetry_quats: np.ndarray,
     phase_index: int = 0,
     recorder: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+    screen: Any = None,
+    screen_interp: bool = False,
+    screen_chunk: int = 1,
 ) -> List[SearchCandidate]:
     """
     Discrete search with per-clique angular spacing filter.
@@ -384,6 +401,11 @@ def run_discrete_search_spaced(
             recorder("fz", info) per FZ point and recorder("level_end", info) once.
             "fz" info: fz (index), peak_overlap (per local-grid j), j (screened indices),
             cost (re-cost of each), kept (j of the filtered survivors, in output order).
+        screen: Optional ``batched_screen.ScreenEvaluator`` (default None: the screen scores one
+            orientation per ``global_cost_fn.evaluate`` call, unchanged). With it the screen of
+            ``screen_chunk`` FZ points x the whole local grid is scored in one call, with the
+            omegas interpolated from the FZ centre when ``screen_interp`` (C++ behaviour) and
+            exact otherwise; everything after the screen is unchanged.
 
     Returns:
         List of SearchCandidate (sorted by cost), filtered by spacing
@@ -404,8 +426,25 @@ def run_discrete_search_spaced(
             ),
         )
 
+    screen_po = None  # peak_overlap of the current chunk of FZ points, (chunk, n_local)
+    chunk_start = 0
     for fz_idx in range(len(fz_orientations)):
         search_center = fz_orientations[fz_idx]
+
+        if screen is not None and (screen_po is None or fz_idx >= chunk_start + len(screen_po)):
+            chunk_start = fz_idx
+            chunk = np.asarray(fz_orientations[fz_idx : fz_idx + max(int(screen_chunk), 1)])
+            if screen_interp:
+                screen_po, _ = screen.overlaps_interp(
+                    chunk, local_grid, voxel_vertices, phase_index
+                )
+            else:
+                prod = np.matmul(local_grid[None, :, :, :], chunk[:, None, :, :])
+                po_flat, _ = screen.overlaps_exact(
+                    prod.reshape(-1, 3, 3), voxel_vertices, phase_index
+                )
+                screen_po = po_flat.reshape(len(chunk), len(local_grid))
+            global_cost_fn.eval_count += int(screen_po.size)
 
         # Phase 1: Screen with global cost fn (pixel_radius=3)
         clique_candidates = []
@@ -413,14 +452,18 @@ def run_discrete_search_spaced(
         screen_j: List[int] = []
         for lg_idx in range(len(local_grid)):
             candidate_orientation = local_grid[lg_idx] @ search_center
-            overlap_info = global_cost_fn.evaluate(
-                orientation=candidate_orientation,
-                voxel_vertices=voxel_vertices,
-                phase_index=phase_index,
-            )
+            if screen is not None:
+                peak_overlap = int(screen_po[fz_idx - chunk_start, lg_idx])
+            else:
+                overlap_info = global_cost_fn.evaluate(
+                    orientation=candidate_orientation,
+                    voxel_vertices=voxel_vertices,
+                    phase_index=phase_index,
+                )
+                peak_overlap = overlap_info.peak_overlap
             if recorder is not None:
-                screen_overlap.append(int(overlap_info.peak_overlap))
-            if overlap_info.peak_overlap > 0:
+                screen_overlap.append(int(peak_overlap))
+            if peak_overlap > 0:
                 clique_candidates.append(
                     SearchCandidate(
                         orientation=candidate_orientation,

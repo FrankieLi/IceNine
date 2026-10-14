@@ -493,6 +493,11 @@ The earlier report's precision and timing numbers for the default finisher carry
    Python is not shown to be no worse than C++ there. Open: do the BFS seed test (hit ratio 0.8) and the reseed pilot change with the rule? A default flip
    changes 11 goldens and, in principle, every stored result computed through the cost function
    (`benchmarks/phase_d_seed_diag/level0/default_flip_would_change.md`).
+   *Update 2026-10-13 (evaluation-reduction Task A, MIGRATION_HISTORY "Task A").* The remaining 2 to 5% (Python
+   0.946 to 0.978 times C++'s evaluations) is the second complete-cost call C++ makes on every returned candidate
+   (10,829 evaluations per voxel); the 1.4% of level-0 pairs that still differed was the C++ omega interpolation
+   (confirmed: per-FZ-point pass sets 4,885 of 4,886 with `CppOmegaInterp` and `CppEdgeRules`, 4,466 with exact
+   omegas), plus three C++ edge conventions that the opt-in `CppEdgeRules` reproduces.
 4. **Which difference matters.** Which of the C++ differences (block halving, restart base, fixed step) produces
    the faithful MC's gain? An ablation is untested.
 5. **Per-evaluation cost: batch the coarse stage (separate task, owner 2026-10-12).** Can the 10× per-evaluation
@@ -503,6 +508,9 @@ The earlier report's precision and timing numbers for the default finisher carry
    the quick MC). Batching changes float32 shapes, so results will be near-identical rather than bit-identical;
    it needs its own equivalence check (per-level candidates and wrong counts against the unbatched path, e.g. the
    ray-overlap step-2 voxels). Benefits every rule and the normal reconstruction, not only the ray study.
+   *Update 2026-10-13 (Task A).* The level screen is batched (opt-in `BatchedScreen`): identical overlap on all
+   43,974 level-0 pairs of voxel 15901, 17 times faster per orientation (388 to 22 microseconds, single worker), a
+   whole no-start search 21 to 25% faster. The quick MC (about 58% of the evaluations) is not batched.
 6. **Seeds 1–2 for E0.** Closed (owner, 2026-10-12): not needed. The search uses randomness to explore the search
    space, not as independent samples, so repeat seeds do not measure a rule or finisher.
 7. **Multi-client C++ reference.** Does C++ with several clients seed any of the grains that the single-client BFS

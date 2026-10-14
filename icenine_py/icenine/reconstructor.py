@@ -12,6 +12,7 @@ C++ Reference:
 
 import math
 import time
+import warnings
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -567,6 +568,7 @@ class AdaptiveVoxelReconstructor:
                 symmetry_quats=symmetry_quats,
                 phase_index=phase_index,
                 **({} if self.discrete_recorder is None else dict(recorder=self.discrete_recorder)),
+                **self._screen_kwargs(global_cost_fn),
             )
             t_discrete = time.time() - t_level
 
@@ -713,15 +715,43 @@ class AdaptiveVoxelReconstructor:
             return rule
         return None
 
+    def _screen_kwargs(self, global_cost_fn: VoxelCostFunction) -> Dict[str, Any]:
+        """Arguments of run_discrete_search_spaced for the opt-in batched / interpolated screen
+        (config keys BatchedScreen and CppOmegaInterp); empty when both are off, so the default
+        call is unchanged. Falls back to the per-orientation screen, with a warning, when the cost
+        function is not supported (ray rule at this level, no C extension)."""
+        sp = self.setup.search_params
+        interp = bool(getattr(sp, "cpp_omega_interp", False))
+        batched = bool(getattr(sp, "batched_screen", False))
+        if not (interp or batched):
+            return {}
+        from .batched_screen import make_screen_evaluator
+
+        evaluator = make_screen_evaluator(global_cost_fn)
+        if evaluator is None:
+            warnings.warn(
+                "BatchedScreen / CppOmegaInterp are not supported for this level (ray rule or no "
+                "C extension): using the per-orientation screen",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return {}
+        chunk = int(getattr(sp, "screen_chunk", 32)) if batched else 1
+        return dict(screen=evaluator, screen_interp=interp, screen_chunk=chunk)
+
     def _cost_flags(self, ray: Optional[RayRule] = None) -> Dict[str, Any]:
         """The literal C++ CountQualifiedPeaks rule is opt-in (config key CppOverlapRule;
         also on with ``ray`` at the coarse levels). The centroid projection of the pixel-radius
         screen is the default for every rule; ``cpp_center_screen=False`` is the explicit vertex-0
-        opt-out."""
+        opt-out. ``CppEdgeRules`` (opt-in, independent of the overlap rule) adds the C++
+        conventions at the low edges (see ``VoxelCostFunction``)."""
         center = bool(getattr(self.setup.search_params, "cpp_center_screen", True))
+        flags: Dict[str, Any] = dict(center_screen=center)
         if ray is not None or getattr(self.setup.search_params, "cpp_overlap_rule", False):
-            return dict(cpp_overlap_rule=True, center_screen=center)
-        return dict(center_screen=center)
+            flags = dict(cpp_overlap_rule=True, center_screen=center)
+        if getattr(self.setup.search_params, "cpp_edge_rules", False):
+            flags["cpp_edge_rules"] = True  # opt-in: the C++ low-edge conventions (CppEdgeRules)
+        return flags
 
     def _make_local_cost_fn(self, ray_rule: Optional[RayRule] = None) -> VoxelCostFunction:
         """Local cost function (pixel_radius=0) used for MC, re-evaluation and the final overlap.

@@ -1,0 +1,998 @@
+{
+ "stages_cpp": {
+  "voxels": [
+   15901,
+   17034,
+   18558,
+   19889,
+   22867,
+   5242
+  ],
+  "rows": [
+   {
+    "stage": "screen",
+    "python": 67978.5,
+    "cpp": 67927.5,
+    "diff": 51.0,
+    "share_of_gap": -0.6009072521257592
+   },
+   {
+    "stage": "recost",
+    "python": 26148.5,
+    "cpp": 26046.0,
+    "diff": 102.5,
+    "share_of_gap": -1.2077057518213787
+   },
+   {
+    "stage": "rerecost",
+    "python": 0.0,
+    "cpp": 10829.0,
+    "diff": -10829.0,
+    "share_of_gap": 127.5926398680362
+   },
+   {
+    "stage": "quick",
+    "python": 130266.0,
+    "cpp": 129948.0,
+    "diff": 318.0,
+    "share_of_gap": -3.7468334544312043
+   },
+   {
+    "stage": "find",
+    "python": 2354.5,
+    "cpp": 459.3333333333333,
+    "diff": 1895.1666666666667,
+    "share_of_gap": -22.32979203896081
+   },
+   {
+    "stage": "variance",
+    "python": 1398.0,
+    "cpp": 1422.8333333333333,
+    "diff": -24.833333333333258,
+    "share_of_gap": 0.29259862930306485
+   },
+   {
+    "stage": "final",
+    "python": 1.0,
+    "cpp": 1.0,
+    "diff": 0.0,
+    "share_of_gap": -0.0
+   },
+   {
+    "stage": "total",
+    "python": 228146.5,
+    "cpp": 236633.66666666666,
+    "diff": -8487.166666666657,
+    "share_of_gap": 100.0
+   }
+  ],
+  "ratio_total": 0.9641337313231,
+  "ratio_by_voxel": {
+   "15901": 0.9464584295428126,
+   "17034": 0.9779634684690054,
+   "18558": 0.9542199372127941,
+   "19889": 0.9580364848628433,
+   "22867": 0.9734265622757642,
+   "5242": 0.9748436361211278
+  }
+ },
+ "units_cpp": [
+  {
+   "voxel": 15901,
+   "fz_py": 7708,
+   "fz_cpp": 7726,
+   "passed_py": 28920,
+   "passed_cpp": 28873,
+   "cands_py": 11498,
+   "cands_cpp": 11562,
+   "l0_py": 8110,
+   "l0_cpp": 8151,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9464584295428126
+  },
+  {
+   "voxel": 17034,
+   "fz_py": 7761,
+   "fz_cpp": 7744,
+   "passed_py": 29641,
+   "passed_cpp": 29509,
+   "cands_py": 11689,
+   "cands_cpp": 11609,
+   "l0_py": 8283,
+   "l0_cpp": 8284,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9779634684690054
+  },
+  {
+   "voxel": 18558,
+   "fz_py": 7344,
+   "fz_cpp": 7336,
+   "passed_py": 21922,
+   "passed_cpp": 21860,
+   "cands_py": 10004,
+   "cands_cpp": 9973,
+   "l0_py": 7048,
+   "l0_cpp": 7026,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9542199372127941
+  },
+  {
+   "voxel": 19889,
+   "fz_py": 7560,
+   "fz_cpp": 7544,
+   "passed_py": 26626,
+   "passed_cpp": 26408,
+   "cands_py": 10877,
+   "cands_cpp": 10820,
+   "l0_py": 7683,
+   "l0_cpp": 7673,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9580364848628433
+  },
+  {
+   "voxel": 22867,
+   "fz_py": 7739,
+   "fz_cpp": 7724,
+   "passed_py": 29663,
+   "passed_cpp": 29472,
+   "cands_py": 11613,
+   "cands_cpp": 11549,
+   "l0_py": 8233,
+   "l0_cpp": 8234,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9734265622757642
+  },
+  {
+   "voxel": 5242,
+   "fz_py": 7207,
+   "fz_cpp": 7211,
+   "passed_py": 20119,
+   "passed_cpp": 20154,
+   "cands_py": 9452,
+   "cands_cpp": 9461,
+   "l0_py": 6674,
+   "l0_cpp": 6674,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9748436361211278
+  }
+ ],
+ "random_stages_cpp": [
+  {
+   "voxel": 15901,
+   "find_py": 193,
+   "find_cpp": 580,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1277,
+   "var_cpp": 1894
+  },
+  {
+   "voxel": 17034,
+   "find_py": 4376,
+   "find_cpp": 162,
+   "cand_evaluated_py": 30,
+   "conv_py": 0,
+   "conv_cpp": 1,
+   "var_py": 1992,
+   "var_cpp": 1388
+  },
+  {
+   "voxel": 18558,
+   "find_py": 208,
+   "find_cpp": 1528,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1453,
+   "var_cpp": 728
+  },
+  {
+   "voxel": 19889,
+   "find_py": 161,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1101,
+   "var_cpp": 1245
+  },
+  {
+   "voxel": 22867,
+   "find_py": 4205,
+   "find_cpp": 162,
+   "cand_evaluated_py": 30,
+   "conv_py": 0,
+   "conv_cpp": 1,
+   "var_py": 1310,
+   "var_cpp": 1564
+  },
+  {
+   "voxel": 5242,
+   "find_py": 4984,
+   "find_cpp": 162,
+   "cand_evaluated_py": 30,
+   "conv_py": 0,
+   "conv_cpp": 1,
+   "var_py": 1255,
+   "var_cpp": 1718
+  }
+ ],
+ "stages_cpp_edge": {
+  "voxels": [
+   15901,
+   17034,
+   18558,
+   19889,
+   22867,
+   5242
+  ],
+  "rows": [
+   {
+    "stage": "screen",
+    "python": 67968.0,
+    "cpp": 67927.5,
+    "diff": 40.5,
+    "share_of_gap": -0.37672666387609877
+   },
+   {
+    "stage": "recost",
+    "python": 26077.166666666668,
+    "cpp": 26046.0,
+    "diff": 31.16666666666788,
+    "share_of_gap": -0.2899089964807951
+   },
+   {
+    "stage": "rerecost",
+    "python": 0.0,
+    "cpp": 10829.0,
+    "diff": -10829.0,
+    "share_of_gap": 100.73019859541417
+   },
+   {
+    "stage": "quick",
+    "python": 130184.0,
+    "cpp": 129948.0,
+    "diff": 236.0,
+    "share_of_gap": -2.1952467327101064
+   },
+   {
+    "stage": "find",
+    "python": 198.16666666666666,
+    "cpp": 459.3333333333333,
+    "diff": -261.16666666666663,
+    "share_of_gap": 2.4293443715796164
+   },
+   {
+    "stage": "variance",
+    "python": 1454.8333333333333,
+    "cpp": 1422.8333333333333,
+    "diff": 32.0,
+    "share_of_gap": -0.2976605739267941
+   },
+   {
+    "stage": "final",
+    "python": 1.0,
+    "cpp": 1.0,
+    "diff": 0.0,
+    "share_of_gap": -0.0
+   },
+   {
+    "stage": "total",
+    "python": 225883.16666666666,
+    "cpp": 236633.66666666666,
+    "diff": -10750.5,
+    "share_of_gap": 100.0
+   }
+  ],
+  "ratio_total": 0.9545690173700276,
+  "ratio_by_voxel": {
+   "15901": 0.9470595729095339,
+   "17034": 0.9561057403853412,
+   "18558": 0.956563082942809,
+   "19889": 0.9577064965393532,
+   "22867": 0.9598448487554414,
+   "5242": 0.9497873070162485
+  }
+ },
+ "units_cpp_edge": [
+  {
+   "voxel": 15901,
+   "fz_py": 7702,
+   "fz_cpp": 7726,
+   "passed_py": 28871,
+   "passed_cpp": 28873,
+   "cands_py": 11462,
+   "cands_cpp": 11562,
+   "l0_py": 8107,
+   "l0_cpp": 8151,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9470595729095339
+  },
+  {
+   "voxel": 17034,
+   "fz_py": 7751,
+   "fz_cpp": 7744,
+   "passed_py": 29632,
+   "passed_cpp": 29509,
+   "cands_py": 11646,
+   "cands_cpp": 11609,
+   "l0_py": 8264,
+   "l0_cpp": 8284,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9561057403853412
+  },
+  {
+   "voxel": 18558,
+   "fz_py": 7351,
+   "fz_cpp": 7336,
+   "passed_py": 21948,
+   "passed_cpp": 21860,
+   "cands_py": 10039,
+   "cands_cpp": 9973,
+   "l0_py": 7028,
+   "l0_cpp": 7026,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.956563082942809
+  },
+  {
+   "voxel": 19889,
+   "fz_py": 7556,
+   "fz_cpp": 7544,
+   "passed_py": 26527,
+   "passed_cpp": 26408,
+   "cands_py": 10857,
+   "cands_cpp": 10820,
+   "l0_py": 7688,
+   "l0_cpp": 7673,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9577064965393532
+  },
+  {
+   "voxel": 22867,
+   "fz_py": 7740,
+   "fz_cpp": 7724,
+   "passed_py": 29504,
+   "passed_cpp": 29472,
+   "cands_py": 11619,
+   "cands_cpp": 11549,
+   "l0_py": 8231,
+   "l0_cpp": 8234,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9598448487554414
+  },
+  {
+   "voxel": 5242,
+   "fz_py": 7212,
+   "fz_cpp": 7211,
+   "passed_py": 19981,
+   "passed_cpp": 20154,
+   "cands_py": 9469,
+   "cands_cpp": 9461,
+   "l0_py": 6668,
+   "l0_cpp": 6674,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9497873070162485
+  }
+ ],
+ "random_stages_cpp_edge": [
+  {
+   "voxel": 15901,
+   "find_py": 208,
+   "find_cpp": 580,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1948,
+   "var_cpp": 1894
+  },
+  {
+   "voxel": 17034,
+   "find_py": 161,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1321,
+   "var_cpp": 1388
+  },
+  {
+   "voxel": 18558,
+   "find_py": 401,
+   "find_cpp": 1528,
+   "cand_evaluated_py": 2,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1266,
+   "var_cpp": 728
+  },
+  {
+   "voxel": 19889,
+   "find_py": 161,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1398,
+   "var_cpp": 1245
+  },
+  {
+   "voxel": 22867,
+   "find_py": 161,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 2025,
+   "var_cpp": 1564
+  },
+  {
+   "voxel": 5242,
+   "find_py": 97,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 771,
+   "var_cpp": 1718
+  }
+ ],
+ "stages_cpp_edge_interp": {
+  "voxels": [
+   15901,
+   17034,
+   18558,
+   19889,
+   22867,
+   5242
+  ],
+  "rows": [
+   {
+    "stage": "screen",
+    "python": 67911.0,
+    "cpp": 67927.5,
+    "diff": -16.5,
+    "share_of_gap": 0.15019343093377863
+   },
+   {
+    "stage": "recost",
+    "python": 26016.166666666668,
+    "cpp": 26046.0,
+    "diff": -29.83333333333212,
+    "share_of_gap": 0.27156185997116444
+   },
+   {
+    "stage": "rerecost",
+    "python": 0.0,
+    "cpp": 10829.0,
+    "diff": -10829.0,
+    "share_of_gap": 98.5724038534478
+   },
+   {
+    "stage": "quick",
+    "python": 129894.0,
+    "cpp": 129948.0,
+    "diff": -54.0,
+    "share_of_gap": 0.49154213760145726
+   },
+   {
+    "stage": "find",
+    "python": 182.0,
+    "cpp": 459.3333333333333,
+    "diff": -277.3333333333333,
+    "share_of_gap": 2.5244633239778547
+   },
+   {
+    "stage": "variance",
+    "python": 1643.6666666666667,
+    "cpp": 1422.8333333333333,
+    "diff": 220.83333333333348,
+    "share_of_gap": -2.010164605931887
+   },
+   {
+    "stage": "final",
+    "python": 1.0,
+    "cpp": 1.0,
+    "diff": 0.0,
+    "share_of_gap": -0.0
+   },
+   {
+    "stage": "total",
+    "python": 225647.83333333334,
+    "cpp": 236633.66666666666,
+    "diff": -10985.833333333314,
+    "share_of_gap": 100.0
+   }
+  ],
+  "ratio_total": 0.9535745125024476,
+  "ratio_by_voxel": {
+   "15901": 0.9509530710065768,
+   "17034": 0.9584023713310525,
+   "18558": 0.9553209882160244,
+   "19889": 0.9521813074306601,
+   "22867": 0.9550691244239631,
+   "5242": 0.9488774669289801
+  }
+ },
+ "units_cpp_edge_interp": [
+  {
+   "voxel": 15901,
+   "fz_py": 7712,
+   "fz_cpp": 7726,
+   "passed_py": 28959,
+   "passed_cpp": 28873,
+   "cands_py": 11507,
+   "cands_cpp": 11562,
+   "l0_py": 8149,
+   "l0_cpp": 8151,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9509530710065768
+  },
+  {
+   "voxel": 17034,
+   "fz_py": 7746,
+   "fz_cpp": 7744,
+   "passed_py": 29476,
+   "passed_cpp": 29509,
+   "cands_py": 11630,
+   "cands_cpp": 11609,
+   "l0_py": 8282,
+   "l0_cpp": 8284,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9584023713310525
+  },
+  {
+   "voxel": 18558,
+   "fz_py": 7353,
+   "fz_cpp": 7336,
+   "passed_py": 21849,
+   "passed_cpp": 21860,
+   "cands_py": 10040,
+   "cands_cpp": 9973,
+   "l0_py": 7026,
+   "l0_cpp": 7026,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9553209882160244
+  },
+  {
+   "voxel": 19889,
+   "fz_py": 7542,
+   "fz_cpp": 7544,
+   "passed_py": 26347,
+   "passed_cpp": 26408,
+   "cands_py": 10804,
+   "cands_cpp": 10820,
+   "l0_py": 7675,
+   "l0_cpp": 7673,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9521813074306601
+  },
+  {
+   "voxel": 22867,
+   "fz_py": 7717,
+   "fz_cpp": 7724,
+   "passed_py": 29438,
+   "passed_cpp": 29472,
+   "cands_py": 11530,
+   "cands_cpp": 11549,
+   "l0_py": 8231,
+   "l0_cpp": 8234,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9550691244239631
+  },
+  {
+   "voxel": 5242,
+   "fz_py": 7204,
+   "fz_cpp": 7211,
+   "passed_py": 20028,
+   "passed_cpp": 20154,
+   "cands_py": 9436,
+   "cands_cpp": 9461,
+   "l0_py": 6674,
+   "l0_cpp": 6674,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9488774669289801
+  }
+ ],
+ "random_stages_cpp_edge_interp": [
+  {
+   "voxel": 15901,
+   "find_py": 193,
+   "find_cpp": 580,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 2223,
+   "var_cpp": 1894
+  },
+  {
+   "voxel": 17034,
+   "find_py": 208,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 2245,
+   "var_cpp": 1388
+  },
+  {
+   "voxel": 18558,
+   "find_py": 208,
+   "find_cpp": 1528,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1255,
+   "var_cpp": 728
+  },
+  {
+   "voxel": 19889,
+   "find_py": 193,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1002,
+   "var_cpp": 1245
+  },
+  {
+   "voxel": 22867,
+   "find_py": 161,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 2168,
+   "var_cpp": 1564
+  },
+  {
+   "voxel": 5242,
+   "find_py": 129,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 969,
+   "var_cpp": 1718
+  }
+ ],
+ "stages_cpp_edge_interp_batched": {
+  "voxels": [
+   15901,
+   17034,
+   18558,
+   19889,
+   22867,
+   5242
+  ],
+  "rows": [
+   {
+    "stage": "screen",
+    "python": 67911.0,
+    "cpp": 67927.5,
+    "diff": -16.5,
+    "share_of_gap": 0.15019343093377863
+   },
+   {
+    "stage": "recost",
+    "python": 26016.166666666668,
+    "cpp": 26046.0,
+    "diff": -29.83333333333212,
+    "share_of_gap": 0.27156185997116444
+   },
+   {
+    "stage": "rerecost",
+    "python": 0.0,
+    "cpp": 10829.0,
+    "diff": -10829.0,
+    "share_of_gap": 98.5724038534478
+   },
+   {
+    "stage": "quick",
+    "python": 129894.0,
+    "cpp": 129948.0,
+    "diff": -54.0,
+    "share_of_gap": 0.49154213760145726
+   },
+   {
+    "stage": "find",
+    "python": 182.0,
+    "cpp": 459.3333333333333,
+    "diff": -277.3333333333333,
+    "share_of_gap": 2.5244633239778547
+   },
+   {
+    "stage": "variance",
+    "python": 1643.6666666666667,
+    "cpp": 1422.8333333333333,
+    "diff": 220.83333333333348,
+    "share_of_gap": -2.010164605931887
+   },
+   {
+    "stage": "final",
+    "python": 1.0,
+    "cpp": 1.0,
+    "diff": 0.0,
+    "share_of_gap": -0.0
+   },
+   {
+    "stage": "total",
+    "python": 225647.83333333334,
+    "cpp": 236633.66666666666,
+    "diff": -10985.833333333314,
+    "share_of_gap": 100.0
+   }
+  ],
+  "ratio_total": 0.9535745125024476,
+  "ratio_by_voxel": {
+   "15901": 0.9509530710065768,
+   "17034": 0.9584023713310525,
+   "18558": 0.9553209882160244,
+   "19889": 0.9521813074306601,
+   "22867": 0.9550691244239631,
+   "5242": 0.9488774669289801
+  }
+ },
+ "units_cpp_edge_interp_batched": [
+  {
+   "voxel": 15901,
+   "fz_py": 7712,
+   "fz_cpp": 7726,
+   "passed_py": 28959,
+   "passed_cpp": 28873,
+   "cands_py": 11507,
+   "cands_cpp": 11562,
+   "l0_py": 8149,
+   "l0_cpp": 8151,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9509530710065768
+  },
+  {
+   "voxel": 17034,
+   "fz_py": 7746,
+   "fz_cpp": 7744,
+   "passed_py": 29476,
+   "passed_cpp": 29509,
+   "cands_py": 11630,
+   "cands_cpp": 11609,
+   "l0_py": 8282,
+   "l0_cpp": 8284,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9584023713310525
+  },
+  {
+   "voxel": 18558,
+   "fz_py": 7353,
+   "fz_cpp": 7336,
+   "passed_py": 21849,
+   "passed_cpp": 21860,
+   "cands_py": 10040,
+   "cands_cpp": 9973,
+   "l0_py": 7026,
+   "l0_cpp": 7026,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9553209882160244
+  },
+  {
+   "voxel": 19889,
+   "fz_py": 7542,
+   "fz_cpp": 7544,
+   "passed_py": 26347,
+   "passed_cpp": 26408,
+   "cands_py": 10804,
+   "cands_cpp": 10820,
+   "l0_py": 7675,
+   "l0_cpp": 7673,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9521813074306601
+  },
+  {
+   "voxel": 22867,
+   "fz_py": 7717,
+   "fz_cpp": 7724,
+   "passed_py": 29438,
+   "passed_cpp": 29472,
+   "cands_py": 11530,
+   "cands_cpp": 11549,
+   "l0_py": 8231,
+   "l0_cpp": 8234,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9550691244239631
+  },
+  {
+   "voxel": 5242,
+   "fz_py": 7204,
+   "fz_cpp": 7211,
+   "passed_py": 20028,
+   "passed_cpp": 20154,
+   "cands_py": 9436,
+   "cands_cpp": 9461,
+   "l0_py": 6674,
+   "l0_cpp": 6674,
+   "screen_per_fz_py": 9.0,
+   "screen_per_fz_cpp": 9.0,
+   "quick_per_cand_py": 12.0,
+   "quick_per_cand_cpp": 12.0,
+   "recost_per_pass_py": 1.0,
+   "recost_per_pass_cpp": 1.0,
+   "ratio_total": 0.9488774669289801
+  }
+ ],
+ "random_stages_cpp_edge_interp_batched": [
+  {
+   "voxel": 15901,
+   "find_py": 193,
+   "find_cpp": 580,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 2223,
+   "var_cpp": 1894
+  },
+  {
+   "voxel": 17034,
+   "find_py": 208,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 2245,
+   "var_cpp": 1388
+  },
+  {
+   "voxel": 18558,
+   "find_py": 208,
+   "find_cpp": 1528,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1255,
+   "var_cpp": 728
+  },
+  {
+   "voxel": 19889,
+   "find_py": 193,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 1002,
+   "var_cpp": 1245
+  },
+  {
+   "voxel": 22867,
+   "find_py": 161,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 2168,
+   "var_cpp": 1564
+  },
+  {
+   "voxel": 5242,
+   "find_py": 129,
+   "find_cpp": 162,
+   "cand_evaluated_py": 1,
+   "conv_py": 1,
+   "conv_cpp": 1,
+   "var_py": 969,
+   "var_cpp": 1718
+  }
+ ]
+}

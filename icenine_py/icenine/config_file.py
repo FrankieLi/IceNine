@@ -217,6 +217,9 @@ class ConfigFile:
     bfs_restart_pass: bool = False  # FITTED border voxels push onto REFIT voxels after the BFS
     bfs_reseed: bool = False  # one full no-start search per leftover REFIT cluster (opt-in)
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
+    cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
+    cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
+    batched_screen: bool = False  # level screen: many orientations per call (opt-in)
     # ray-consistency rule (coarse levels 0-2 only): "off", "R<n>" (isotropic n px) or "A"
     ray_overlap_rule: str = "off"
 
@@ -463,6 +466,9 @@ class ConfigFile:
             'BFSRestartPass': self._parse_bool('bfs_restart_pass'),
             'BFSReseed': self._parse_bool('bfs_reseed'),
             'CppOverlapRule': self._parse_bool('cpp_overlap_rule'),
+            'CppEdgeRules': self._parse_bool('cpp_edge_rules'),
+            'CppOmegaInterp': self._parse_bool('cpp_omega_interp'),
+            'BatchedScreen': self._parse_bool('batched_screen'),
             'RayOverlapRule': self._parse_ray_overlap_rule,
 
             # Parameter Optimization

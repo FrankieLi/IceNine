@@ -1,0 +1,30 @@
+15901 LG L 0 n_fz 4886 n_local 9 disc 56300 rerecost 8151 quick 97812 cand 8151 kept 2037
+15901 LG L 1 n_fz 2037 n_local 9 disc 29185 rerecost 2525 quick 30300 cand 2525 kept 631
+15901 LG L 2 n_fz 631 n_local 9 disc 9886 rerecost 691 quick 8292 cand 691 kept 172
+15901 LG L 3 n_fz 172 n_local 9 disc 3036 rerecost 195 quick 2340 cand 195 kept 48
+15901 LG FIND 580 n_in 30 VAR 1894 FINAL 1 converged 1 TOTAL 251188
+17034 LG L 0 n_fz 4886 n_local 9 disc 56799 rerecost 8284 quick 99408 cand 8284 kept 2071
+17034 LG L 1 n_fz 2071 n_local 9 disc 29762 rerecost 2490 quick 29880 cand 2490 kept 622
+17034 LG L 2 n_fz 622 n_local 9 disc 9752 rerecost 661 quick 7932 cand 661 kept 165
+17034 LG L 3 n_fz 165 n_local 9 disc 2892 rerecost 174 quick 2088 cand 174 kept 43
+17034 LG FIND 162 n_in 30 VAR 1388 FINAL 1 converged 1 TOTAL 251673
+18558 LG L 0 n_fz 4886 n_local 9 disc 53723 rerecost 7026 quick 84312 cand 7026 kept 1756
+18558 LG L 1 n_fz 1756 n_local 9 disc 23510 rerecost 2165 quick 25980 cand 2165 kept 541
+18558 LG L 2 n_fz 541 n_local 9 disc 8024 rerecost 614 quick 7368 cand 614 kept 153
+18558 LG L 3 n_fz 153 n_local 9 disc 2627 rerecost 168 quick 2016 cand 168 kept 42
+18558 LG FIND 1528 n_in 30 VAR 728 FINAL 1 converged 1 TOTAL 219790
+19889 LG L 0 n_fz 4886 n_local 9 disc 55499 rerecost 7673 quick 92076 cand 7673 kept 1918
+19889 LG L 1 n_fz 1918 n_local 9 disc 26965 rerecost 2318 quick 27816 cand 2318 kept 579
+19889 LG L 2 n_fz 579 n_local 9 disc 9013 rerecost 647 quick 7764 cand 647 kept 161
+19889 LG L 3 n_fz 161 n_local 9 disc 2827 rerecost 182 quick 2184 cand 182 kept 45
+19889 LG FIND 162 n_in 30 VAR 1245 FINAL 1 converged 1 TOTAL 236372
+22867 LG L 0 n_fz 4886 n_local 9 disc 56609 rerecost 8234 quick 98808 cand 8234 kept 2058
+22867 LG L 1 n_fz 2058 n_local 9 disc 29752 rerecost 2454 quick 29448 cand 2454 kept 613
+22867 LG L 2 n_fz 613 n_local 9 disc 9683 rerecost 670 quick 8040 cand 670 kept 167
+22867 LG L 3 n_fz 167 n_local 9 disc 2944 rerecost 191 quick 2292 cand 191 kept 47
+22867 LG FIND 162 n_in 30 VAR 1564 FINAL 1 converged 1 TOTAL 250852
+5242 LG L 0 n_fz 4886 n_local 9 disc 52876 rerecost 6674 quick 80088 cand 6674 kept 1668
+5242 LG L 1 n_fz 1668 n_local 9 disc 22125 rerecost 2051 quick 24612 cand 2051 kept 512
+5242 LG L 2 n_fz 512 n_local 9 disc 7564 rerecost 582 quick 6984 cand 582 kept 145
+5242 LG L 3 n_fz 145 n_local 9 disc 2488 rerecost 154 quick 1848 cand 154 kept 38
+5242 LG FIND 162 n_in 30 VAR 1718 FINAL 1 converged 1 TOTAL 209927

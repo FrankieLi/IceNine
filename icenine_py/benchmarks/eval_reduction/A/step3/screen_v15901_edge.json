@@ -1,0 +1,65 @@
+{
+ "voxel": 15901,
+ "edge": true,
+ "n_fz": 4886,
+ "n_local": 9,
+ "wall_s": {
+  "unbatched": 17.969605209,
+  "batched": 1.030476042,
+  "interp1": 3.7218380420000017,
+  "interp32": 1.044172833000001
+ },
+ "cpp_pass_pairs": 12326,
+ "unbatched": {
+  "pass_pairs": 12298,
+  "fz_identical_pass_set": 4500,
+  "pairs_pass_differs": 402,
+  "pairs_pass_cpp_only": 215,
+  "pairs_pass_py_only": 187,
+  "overlap_equal_pairs": 43416,
+  "overlap_equal_pct": 98.73106835857553
+ },
+ "batched": {
+  "pass_pairs": 12298,
+  "fz_identical_pass_set": 4500,
+  "pairs_pass_differs": 402,
+  "pairs_pass_cpp_only": 215,
+  "pairs_pass_py_only": 187,
+  "overlap_equal_pairs": 43416,
+  "overlap_equal_pct": 98.73106835857553
+ },
+ "interp1": {
+  "pass_pairs": 12325,
+  "fz_identical_pass_set": 4885,
+  "pairs_pass_differs": 1,
+  "pairs_pass_cpp_only": 1,
+  "pairs_pass_py_only": 0,
+  "overlap_equal_pairs": 43970,
+  "overlap_equal_pct": 99.99090371583208
+ },
+ "interp32": {
+  "pass_pairs": 12325,
+  "fz_identical_pass_set": 4885,
+  "pairs_pass_differs": 1,
+  "pairs_pass_cpp_only": 1,
+  "pairs_pass_py_only": 0,
+  "overlap_equal_pairs": 43969,
+  "overlap_equal_pct": 99.98862964479011
+ },
+ "between_arms_overlap_differs": {
+  "unbatched|batched": 0,
+  "unbatched|interp1": 556,
+  "unbatched|interp32": 555,
+  "batched|interp1": 556,
+  "batched|interp32": 555,
+  "interp1|interp32": 1
+ },
+ "between_arms_pass_differs": {
+  "unbatched|batched": 0,
+  "unbatched|interp1": 403,
+  "unbatched|interp32": 403,
+  "batched|interp1": 403,
+  "batched|interp32": 403,
+  "interp1|interp32": 0
+ }
+}
