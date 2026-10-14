@@ -1,5 +1,10 @@
 {
  "n_voxels": 30,
+ "voxel_set": "Phase D ray-overlap study voxels (ray_overlap_study.select_voxels), full-sample clean images",
+ "image_dims_rows_cols": [
+  2048,
+  2048
+ ],
  "lenient_overlaps_at_truth": {
   "screen|old": 524,
   "screen|cpp": 521,
@@ -15,13 +20,30 @@
    "n_lenient_with_centre_outside": 1,
    "n_of_those_rejected_by_cpp": 0,
    "n_lenient_centre_outside_box_reaches_in": 1,
-   "n_of_those_rejected": 0
+   "n_of_those_rejected": 0,
+   "box_reaches_in_rejected_wilson95": [
+    0.0,
+    0.7934567085261071
+   ],
+   "n_lenient_centre_outside_box_not_reaching": 0,
+   "n_of_those_not_reaching_rejected": 0,
+   "box_not_reaching_rejected_wilson95": null
   },
   {
    "n_lenient_with_centre_outside": 69,
    "n_of_those_rejected_by_cpp": 3,
    "n_lenient_centre_outside_box_reaches_in": 3,
-   "n_of_those_rejected": 3
+   "n_of_those_rejected": 3,
+   "box_reaches_in_rejected_wilson95": [
+    0.43849391955098227,
+    1.0
+   ],
+   "n_lenient_centre_outside_box_not_reaching": 66,
+   "n_of_those_not_reaching_rejected": 0,
+   "box_not_reaching_rejected_wilson95": [
+    0.0,
+    0.05500446725160935
+   ]
   }
  ],
  "rejected_vs_lenient": {

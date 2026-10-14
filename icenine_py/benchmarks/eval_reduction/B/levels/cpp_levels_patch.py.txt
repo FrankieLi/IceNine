@@ -1,20 +1,17 @@
 # Task B (extra): per-level pass sets of the C++ discrete search. Derived from the level-0 patch
-# (benchmarks/phase_d_seed_diag/level0/cpp_debug_patch_level0.py.txt) with three changes: the detail is
-# printed for EVERY GetSpacedCandidates call (level 0 to 3), the L0O line carries the call number, and
-# two new lines give the search centre and the local grid (hex floats):
-#   L0O call idx n_obs ov_j0 .. ov_j8   peak_overlap of each local-grid point of FZ point idx
-#   L0C call idx m00 .. m22             search centre of FZ point idx
-#   L0G call j m00 .. m22               local-grid matrix j (printed once per call, before the first FZ point)
-# Applied to a scratch copy of CMakeLists.txt, Src/, XDM++/, CostFunctionBenchmark/ with python patch.py;
-# Src/ in the repository is never touched. Run with env L0TRACE=1.
-# Applied to a scratch copy of the repo (CMakeLists.txt, Src/, XDM++/, CostFunctionBenchmark/), run
-# from the scratch root; not committed to Src/. Prints, with env L0TRACE set:
-#   L0H  per GetSpacedCandidates call (= one level): n_fz n_local nQMax diameter (rad, deg) n_sym n_recip
-#   L0O  first call (level 0) only, per FZ point: fz index, n observed peaks at the centre, then
-#        peak_overlap of every local-grid index j (the screen)
-#   L0P  first call only, per FZ point with >= 1 screened candidate: fz index, n observed, n_pass,
-#        "j" passing local-grid indices, "cost" re-cost 1-confidence of each, "kept" j in output order
-#   L0S  per call: n_cliques, n_candidates after the spacing filter
+# (benchmarks/phase_d_seed_diag/level0/cpp_debug_patch_level0.py.txt). Applied to a scratch copy of
+# the repository (CMakeLists.txt, Src/, XDM++/, CostFunctionBenchmark/) with `python patch.py` run
+# from the scratch root; Src/ in the repository is never touched. With env L0TRACE=1 every
+# GetSpacedCandidates call (one call = one level, 0 to 3) prints ("call" = the call number):
+#   L0H call c n_fz .. n_local .. nQMax .. diameter_rad .. diameter_deg .. n_sym .. n_recip ..
+#   L0G c j m00 .. m22         local-grid matrix j (hex floats; once per call, before FZ point 0)
+#   L0C c idx m00 .. m22       search centre of FZ point idx (hex floats)
+#   L0O c idx n_obs ov_j0 .. ov_j8   n observed peaks at the centre, then the peak_overlap of every
+#                              local-grid point j (the screen)
+#   L0P c idx n_obs n_pass j .. cost .. | kept ..   per FZ point with >= 1 screened candidate: the
+#                              passing local-grid indices, the re-cost 1-confidence of each, and the
+#                              j kept in output order
+#   L0S call c n_cliques .. n_candidates ..   after the spacing filter
 import re
 p = 'Src/DiscreteSearch.h'
 s = open(p).read()
@@ -98,7 +95,7 @@ rep_re(r"if\( oLocalCandidates.size\(\) > 0 \)\s*\{\s*nClique \+\+;",
           nClique ++;
           if( bDetail )
           {
-            std::cout << "L0P " << ( pSearchPoint - pFZFirst ) << " " << nObsHere << " " << oLocalCandidates.size() << " j";
+            std::cout << "L0P " << nCallNo << " " << ( pSearchPoint - pFZFirst ) << " " << nObsHere << " " << oLocalCandidates.size() << " j";
             for( size_t q = 0; q < oJ.size(); q ++ ) std::cout << " " << oJ[q];
             std::cout << " cost";
             for( size_t q = 0; q < oLocalCandidates.size(); q ++ ) std::cout << " " << std::setprecision(10) << oLocalCandidates[q].fCost;

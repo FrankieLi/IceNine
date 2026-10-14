@@ -1,5 +1,5 @@
 <!-- table:evalB_levels_parity -->
-| level | q_max | arm | fz | pairs_differ | cpp_only | py_only | equal |
+| level | q_max | arm | fz | pairs_differ | cpp_only | py_only | pairs with equal peak overlap |
 |---|---|---|---|---|---|---|---|
 | 0 | 5 | Python interpolated omegas + CppEdgeRules (both switches) | 29303 / 29316 | 13 | 8 | 5 | 263818 / 263844 |
 | 0 | 5 | Python interpolated omegas, edge rules off | 29050 / 29316 | 276 | 8 | 268 | 263466 / 263844 |
