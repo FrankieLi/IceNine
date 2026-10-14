@@ -1,0 +1,274 @@
+"""Lockstep quick MC (S3 Step 2, draw option B): every candidate's result equals
+``MCOptimizer.optimize`` replayed on that candidate's slice of the level's uniform buffer; the
+generator advances by exactly 33 N; the mapped uniforms are ``Generator.uniform(-r, r)``'s."""
+
+import copy
+import math
+from typing import Any, Callable, Dict, List, Tuple
+
+import numpy as np
+import pytest
+import torch
+from scipy.spatial.transform import Rotation
+
+from icenine import batched_cost as BC
+from icenine import batched_quick_mc as BQ
+from icenine import cost_functions as CF
+from icenine.cost_functions import OverlapInfo, VoxelCostFunction
+from icenine.orientation_search import MCOptimizer, SearchCandidate
+
+from test_batched_cost import orientations
+from test_center_screen import three_voxels  # noqa: F401  (fixture)
+
+needs_c = pytest.mark.skipif(not CF._HAS_C_RASTERIZE, reason="C extension missing")
+BOX = math.radians(0.5)
+STEP = BOX * 0.4  # MCRadiusScaleFactor 0.4: n_min_ergodic = 31, one block of 10 trial steps
+
+
+class ReplayRng:
+    """Serves the ``uniform`` calls ``MCOptimizer.optimize`` makes from one candidate's slice of
+    the level buffer (``rng.uniform(-r, r, size=33 N)``): the 30 trial draws, which must be asked
+    for with the trial radius, then the 3 restart draws of a failed block (unused by the run)."""
+
+    def __init__(self, vals: np.ndarray, radius: float) -> None:
+        self.vals, self.radius, self.pos = vals, radius, 0
+
+    def uniform(self, low: float, high: float) -> float:
+        if self.pos < 30:
+            assert (low, high) == (-self.radius, self.radius), self.pos
+        v = float(self.vals[self.pos])
+        self.pos += 1
+        return v
+
+
+def level_buffer(state: np.random.Generator, n: int, step: float = STEP) -> np.ndarray:
+    """The values the lockstep path draws for a level, from a copy of the generator state."""
+    return copy.deepcopy(state).uniform(-BQ.trial_radius(step), BQ.trial_radius(step), 33 * n)
+
+
+def sequential_reference(
+    cands: List[SearchCandidate],
+    cost_fn: Any,
+    verts: torch.Tensor,
+    phase: int,
+    buf: np.ndarray,
+    box: float = BOX,
+    step: float = STEP,
+    max_conv: float = 0.0,
+) -> Tuple[List[SearchCandidate], List[Dict[str, float]], List[int]]:
+    """Today's ``optimize`` on each candidate, its generator replaying the candidate's slice.
+    Returns (results, last_run dicts, draws consumed per candidate)."""
+    per = BQ.uniforms_per_candidate(10)
+    out, runs, used = [], [], []
+    for i, c in enumerate(cands):
+        replay = ReplayRng(buf[i * per : (i + 1) * per], BQ.trial_radius(step))
+        mc = MCOptimizer(cost_fn, verts, phase, rng=replay)  # type: ignore[arg-type]
+        res = mc.optimize(c.orientation, box, step, 10, 5, max_convergence_cost=max_conv)
+        out.append(res)
+        runs.append(mc.last_run)
+        used.append(replay.pos)
+    return out, runs, used
+
+
+def make_candidates(c: Dict[str, Any], n: int, seed: int = 1) -> List[SearchCandidate]:
+    truth = np.asarray(c["voxel"].orientation, dtype=np.float64)
+    R = orientations(truth, n_each=n)[:: max(1, (5 * n + n + 1) // n)][:n]
+    return [SearchCandidate(orientation=r.copy(), cost=1.0) for r in R]
+
+
+def assert_same(
+    got: List[SearchCandidate],
+    ref: List[SearchCandidate],
+    got_runs: List[Dict[str, float]],
+    ref_runs: List[Dict[str, float]],
+) -> None:
+    assert len(got) == len(ref)
+    for i, (a, b) in enumerate(zip(got, ref)):
+        assert np.array_equal(a.orientation, b.orientation), i
+        assert a.cost == b.cost, i
+        assert a.overlap_info == b.overlap_info, i
+        assert got_runs[i] == ref_runs[i], i
+
+
+def run_lockstep(
+    cands: List[SearchCandidate],
+    evaluate_many: Callable[[np.ndarray], List[OverlapInfo]],
+    rng: np.random.Generator,
+    max_conv: float = 0.0,
+) -> List[Dict[str, float]]:
+    return BQ.run_batched_quick_mc(
+        cands, evaluate_many, rng, BOX, STEP, 10, 5, max_convergence_cost=max_conv
+    )
+
+
+# ---------------------------------------------------------------------------------------------
+# the draw rule
+# ---------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("step", [math.radians(0.05), STEP, math.radians(2.0), 0.0])
+def test_level_buffer_equals_scalar_generator_uniform(step: float) -> None:
+    """The offsets of candidate i, step t are the scalar ``rng.uniform(-r, r)`` draws at stream
+    positions 33 i + 3 t + (0, 1, 2), bit for bit; the buffer consumes as ``rng.random(33 N)``."""
+    r = BQ.trial_radius(step)
+    n = 25
+    a, b, c = (np.random.default_rng(123) for _ in range(3))
+    offsets = BQ.draw_trial_offsets(a, n, 10, r)
+    scalar = np.array([b.uniform(-r, r) for _ in range(33 * n)]).reshape(n, 11, 3)
+    assert offsets.shape == (n, 10, 3)
+    assert np.array_equal(offsets, scalar[:, :10, :])  # bit for bit
+    c.random(33 * n)
+    assert a.bit_generator.state == b.bit_generator.state == c.bit_generator.state
+
+
+def test_trial_radius_and_block_rules() -> None:
+    assert BQ.trial_radius(STEP) == math.tan(STEP) / math.sqrt(12.0)
+    assert BQ.trial_radius(0.0) == 0.01
+    assert BQ.n_min_ergodic(BOX, STEP, 10) == 31
+    assert BQ.is_single_block(BOX, STEP, 10)
+    assert not BQ.is_single_block(BOX, BOX * 1.0, 10)  # scale factor 1.0: n_min_ergodic 2
+    assert BQ.uniforms_per_candidate(10) == 33
+
+
+def test_applicable_only_to_a_plain_mc_optimizer() -> None:
+    class Logged(MCOptimizer):
+        pass
+
+    plain = MCOptimizer(None, None, rng=np.random.default_rng(0))  # type: ignore[arg-type]
+    sub = Logged(None, None, rng=np.random.default_rng(0))  # type: ignore[arg-type]
+    assert BQ.lockstep_applicable(plain, BOX, STEP, 10)
+    assert not BQ.lockstep_applicable(sub, BOX, STEP, 10)
+    assert not BQ.lockstep_applicable(plain, BOX, BOX, 10)
+
+
+# ---------------------------------------------------------------------------------------------
+# logic, with stub costs that force each outcome
+# ---------------------------------------------------------------------------------------------
+
+
+class StubCost:
+    """quality = f(R): a smooth function of the angle to ``target`` (or a constant)."""
+
+    def __init__(self, target: np.ndarray, kind: str) -> None:
+        self.target, self.kind, self.eval_count = target, kind, 0
+
+    def evaluate(self, R: np.ndarray, verts: Any = None, phase: int = 0) -> OverlapInfo:
+        self.eval_count += 1
+        if self.kind == "const":
+            q = 0.5
+        else:  # decreasing with the misorientation from the target (degrees)
+            ang = np.degrees(Rotation.from_matrix(R @ self.target.T).magnitude())
+            q = float(np.exp(-ang / 0.3))
+        return OverlapInfo(quality=q, n_quality_points=1, peak_overlap=1, peak_on_detector=2)
+
+    def many(self, R: np.ndarray) -> List[OverlapInfo]:
+        return [self.evaluate(r) for r in R]
+
+
+@pytest.mark.parametrize("n", [0, 1, 5, 40])
+@pytest.mark.parametrize("kind", ["const", "smooth"])
+def test_lockstep_equals_replayed_sequential_with_stub_cost(n: int, kind: str) -> None:
+    rng0 = np.random.default_rng(7)
+    target = Rotation.random(random_state=3).as_matrix()
+    cands = [
+        SearchCandidate(
+            orientation=(
+                target.copy()  # exactly at the optimum: no trial can improve (a failure)
+                if i % 4 == 0
+                else Rotation.from_rotvec(rng0.normal(size=3) * np.radians(0.4)).as_matrix()
+                @ target
+            )
+        )
+        for i in range(n)
+    ]
+    state = np.random.default_rng(11)
+    buf = level_buffer(state, n)
+    ref_cost, got_cost = StubCost(target, kind), StubCost(target, kind)
+    ref, ref_runs, used = sequential_reference(
+        copy.deepcopy(cands), ref_cost, None, 0, buf  # type: ignore[arg-type]
+    )
+    got_runs = run_lockstep(cands, got_cost.many, state)
+    assert_same(cands, ref, got_runs, ref_runs)
+    assert got_cost.eval_count == ref_cost.eval_count == 12 * n
+    if kind == "const":  # every block fails: n_restarts 1, 33 draws used, the start is kept
+        assert all(r["n_restarts"] == 1 and r["last_accept"] == -1 for r in got_runs)
+        assert used == [33] * n
+    elif n == 40:  # a mix of outcomes
+        n_ok = sum(r["n_accept"] for r in got_runs)
+        assert 0 < n_ok < n, n_ok
+        assert sorted(set(used)) == [30, 33]
+        assert [u == 33 for u in used] == [r["n_restarts"] == 1 for r in got_runs]
+
+
+def test_convergence_stop_code_and_multi_block_refusal() -> None:
+    target = np.eye(3)
+    cands = [SearchCandidate(orientation=target.copy())]
+    cost = StubCost(target, "smooth")  # quality 1 at the start: cost 0
+    buf = level_buffer(np.random.default_rng(5), 1)
+    ref, ref_runs, _ = sequential_reference(
+        copy.deepcopy(cands), StubCost(target, "smooth"), None, 0, buf, max_conv=0.1  # type: ignore
+    )
+    runs = run_lockstep(cands, cost.many, np.random.default_rng(5), max_conv=0.1)
+    assert_same(cands, ref, runs, ref_runs)
+    assert runs[0]["stop"] == 2 and runs[0]["n_restarts"] == 1
+    with pytest.raises(ValueError, match="single block"):
+        BQ.run_batched_quick_mc(
+            cands, cost.many, np.random.default_rng(0), BOX, BOX, 10, 5  # n_min_ergodic 2
+        )
+
+
+def test_generator_advances_by_33_n_whatever_the_outcome() -> None:
+    for kind in ("const", "smooth"):
+        for n in (1, 6, 25):
+            target = np.eye(3)
+            cands = [
+                SearchCandidate(
+                    orientation=Rotation.from_rotvec([0.001 * (i + 1), 0.0, 0.0]).as_matrix()
+                )
+                for i in range(n)
+            ]
+            rng = np.random.default_rng(99)
+            ref_rng = copy.deepcopy(rng)
+            run_lockstep(cands, StubCost(target, kind).many, rng)
+            ref_rng.random(33 * n)
+            assert rng.bit_generator.state == ref_rng.bit_generator.state, (kind, n)
+
+
+# ---------------------------------------------------------------------------------------------
+# the real cost
+# ---------------------------------------------------------------------------------------------
+
+
+def _local(c: Dict[str, Any], **kw: Any) -> VoxelCostFunction:
+    return VoxelCostFunction(pixel_radius=0, mode="hard", **kw, **c["kwargs"])
+
+
+@needs_c
+@pytest.mark.parametrize("flags", [{}, {"cpp_overlap_rule": True}], ids=["default", "cpp_rule"])
+@pytest.mark.parametrize("use_batched_cost", [False, True], ids=["evaluate", "batched_cost"])
+def test_lockstep_equals_replayed_sequential_with_the_real_cost(
+    three_voxels: Dict[str, Any], flags: Dict[str, Any], use_batched_cost: bool  # noqa: F811
+) -> None:
+    c = three_voxels
+    phase, verts = c["voxel"].phase, c["vertices"]
+    truth = np.asarray(c["voxel"].orientation, dtype=np.float64)
+    # the truth and perturbations of 0.1, 0.4, 1 and 3 degrees: blocks that improve and that fail
+    cands = [SearchCandidate(orientation=r.copy()) for r in orientations(truth, n_each=5)[:26]]
+    n = len(cands)
+    state = np.random.default_rng(2)
+    buf = level_buffer(state, n)
+    ref_cf, got_cf = _local(c, **flags), _local(c, **flags)
+    ref, ref_runs, used = sequential_reference(copy.deepcopy(cands), ref_cf, verts, phase, buf)
+    if use_batched_cost:
+        ev = BC.BatchedCostEvaluator(got_cf, "cpu")
+        many = lambda R: ev.evaluate_many(R, verts, phase)  # noqa: E731
+    else:
+        many = lambda R: [got_cf.evaluate(r, verts, phase) for r in R]  # noqa: E731
+    got_runs = run_lockstep(cands, many, state)
+    assert_same(cands, ref, got_runs, ref_runs)
+    assert got_cf.eval_count == ref_cf.eval_count == 12 * n
+    # the test sees both outcomes: blocks that improved and blocks that failed
+    n_ok = sum(r["n_accept"] for r in got_runs)
+    assert 0 < n_ok < n, f"{n_ok} of {n} blocks improved"
+    print(f"\n{n_ok} of {n} blocks improved, used draws {sorted(set(used))}")
+    assert [u == 33 for u in used] == [r["n_restarts"] == 1 for r in got_runs]
