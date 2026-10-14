@@ -1,6 +1,6 @@
 """Task A-exact: Python slow path of the cost against the C path (voxel 5242, CppEdgeRules on/off).
 
-  uv run python scripts/eval_reduction/slow_path_check.py [--stub]
+  uv run python scripts/eval_reduction/slow_path_check.py [--stub] [--out JSON]
 
 Without ``--stub``: 12 orientations per arm (screen, complete cost) x switch on/off, dense images,
 slow path (``_HAS_C_RASTERIZE`` False) against the C path: pixel and peak counts and quality must
@@ -9,14 +9,19 @@ be identical. With ``--stub``: the images are dark and the slow path's triangle 
 only through an in-bounds vertex, as the C path does on a dark image; the sums of
 peak-on-detector are printed per arm (equal for the switch on; the default differs by
 construction, and the pixel counts of the stub differ from the C path, so the "differing" count
-is not used).
+is not used; compare the peak counts per evaluation instead).
+
+``--out``: write the run (every evaluation, C and slow results, and the per-arm counts and sums)
+under the key ``plain`` or ``stub`` of a JSON file; the other key, if present, is kept.
 """
 
 import argparse
+import json
 import sys
 import time
 from collections import defaultdict
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -29,13 +34,14 @@ import parity_common as PC  # noqa: E402
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--stub", action="store_true")
+    ap.add_argument("--out", type=Path, default=None, help="JSON file (absolute path)")
     a = ap.parse_args()
     ctx = PC.PyContext()
     from icenine import cost_functions as CF
     from icenine.image_data import ImageData
 
     orig = ctx.setup.exp_data.get_image
-    cache = {}
+    cache: Dict[Tuple[int, int], ImageData] = {}
 
     def dense_get(w: int, d: int) -> ImageData:
         if (w, d) not in cache:
@@ -62,7 +68,8 @@ def main() -> None:
     verts, r0 = ctx.verts(v), ctx.truth(v)
     rng = np.random.default_rng(1)
     diffs = tot = 0
-    sums = defaultdict(int)
+    sums: Dict[Tuple[str, bool, str], int] = defaultdict(int)
+    records: List[Dict[str, Any]] = []
     t = time.time()
     for arm in ("screen", "full"):
         for edge in (True, False):
@@ -84,8 +91,46 @@ def main() -> None:
                     sums[(arm, edge, "C" if c_on else "slow")] += o.peak_on_detector
                 tot += 1
                 diffs += res[0] != res[1]
+                records.append(
+                    {
+                        "arm": arm,
+                        "cpp_edge_rules": edge,
+                        "i": i,
+                        "orientation": "random" if i >= 4 else f"truth + {0.01 * i:.2f} rad noise",
+                        "C": list(res[0]),
+                        "slow": list(res[1]),
+                        "all_equal": res[0] == res[1],
+                        "peak_counts_equal": res[0][2:4] == res[1][2:4],
+                    }
+                )
     print(f"compared {tot} evaluations, C vs slow differing: {diffs}, {time.time() - t:.1f} s")
     print({"/".join(map(str, k)): n for k, n in sums.items()})
+    per_arm = {}
+    for arm in ("screen", "full"):
+        for edge in (True, False):
+            rs = [r for r in records if r["arm"] == arm and r["cpp_edge_rules"] == edge]
+            per_arm[f"{arm}/cpp_edge_rules={edge}"] = {
+                "n": len(rs),
+                "all_equal": sum(r["all_equal"] for r in rs),
+                "peak_counts_equal": sum(r["peak_counts_equal"] for r in rs),
+                "peak_on_detector_sum_C": sums[(arm, edge, "C")],
+                "peak_on_detector_sum_slow": sums[(arm, edge, "slow")],
+            }
+    for k, d in per_arm.items():
+        print(k, d)
+    if a.out is not None:
+        doc: Dict[str, Any] = json.loads(a.out.read_text()) if a.out.exists() else {}
+        doc["stub" if a.stub else "plain"] = {
+            "voxel": v,
+            "n_evaluations": tot,
+            "n_differing_all_fields": diffs,
+            "fields": ["pixel_overlap", "pixel_on_detector", "peak_overlap", "peak_on_detector"]
+            + ["quality"],
+            "per_arm": per_arm,
+            "evaluations": records,
+        }
+        a.out.parent.mkdir(parents=True, exist_ok=True)
+        a.out.write_text(json.dumps(doc, indent=1) + "\n")
 
 
 if __name__ == "__main__":

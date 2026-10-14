@@ -1,0 +1,11 @@
+{
+ "what": "Task A-exact review fix: parity_compare.py rerun at the A-exact code (extension HAS_VERTEX_LIT 2) on the Step 0 inputs and the C++ driver outputs of the rebuilt scratch driver (step0/cpp_parity_patch.py.txt)",
+ "date": "2026-10-13",
+ "commit_of_python_code": "9801b02",
+ "rows": 2230,
+ "records_per_voxel": {"15901": 1077, "22867": 577, "5242": 576},
+ "committed": "benchmarks/eval_reduction/A/step0/results.json.gz",
+ "committed_sha256": "74ebaf23fbd44ab4b8949b705c5b77622e2c3870a6cd296e111ba24a44d53232",
+ "rerun_sha256": "74ebaf23fbd44ab4b8949b705c5b77622e2c3870a6cd296e111ba24a44d53232",
+ "byte_identical": true
+}
