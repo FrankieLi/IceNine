@@ -93,7 +93,7 @@ def test_noise_is_deterministic_and_only_touches_expected_pixels() -> None:
     allmiss = N.NoiseParams(p_miss=1.0, p_flip=0.0, p_hot=1.0, p_blob=1.0)
     out, c = N.add_detector_noise(img, np.random.default_rng(0), allmiss)
     assert out.sum() == 0 and c["n_missed"] == 3 and c["n_hot"] == 0
-    full = N.NoiseParams()
+    full = N.NoiseParams.named("toy")  # drop included
     a, _ = N.add_detector_noise(img, np.random.default_rng(7), full)
     b, _ = N.add_detector_noise(img, np.random.default_rng(7), full)
     assert np.array_equal(a, b)
@@ -114,13 +114,27 @@ def _spot_grid_frame() -> np.ndarray:
 
 
 def test_noise_named_variants() -> None:
-    assert N.NoiseParams.named("toy") == N.NoiseParams()
-    nd = N.NoiseParams.named("nodrop")
-    assert nd.p_miss == 0.0 and N.NoiseParams().p_miss == 0.1
+    toy, nd = N.NoiseParams.named("toy"), N.NoiseParams.named("nodrop")
+    assert toy.p_miss == 0.1 == N.TOY_P_MISS  # toy keeps its meaning: 10% random spot drop
+    assert nd.p_miss == 0.0
     assert (nd.p_flip, nd.p_hot, nd.p_blob, nd.window) == (0.05, 0.05, 0.1, 32)
+    assert (toy.p_flip, toy.p_hot, toy.p_blob, toy.window) == (0.05, 0.05, 0.1, 32)
     assert N.NOISE_VARIANTS == ("toy", "nodrop")
     with pytest.raises(ValueError):
         N.NoiseParams.named("realistic")
+
+
+def test_noise_default_is_nodrop() -> None:
+    """D-20261014-I6: a caller that names no variant gets no random spot drop."""
+    assert N.DEFAULT_NOISE == "nodrop"
+    assert N.NoiseParams() == N.NoiseParams.named(N.DEFAULT_NOISE) == N.NoiseParams.named("nodrop")
+    assert N.NoiseParams().p_miss == 0.0 and N.NoiseParams() != N.NoiseParams.named("toy")
+    img = _spot_grid_frame()
+    # add_detector_noise without params: no spot is missed (toy would miss a few of 40 spots)
+    _, c = N.add_detector_noise(img, np.random.default_rng(5))
+    assert c["n_spots"] == 40 and c["n_missed"] == 0
+    _, c_toy = N.add_detector_noise(img, np.random.default_rng(5), N.NoiseParams.named("toy"))
+    assert c_toy["n_missed"] >= 1
 
 
 def test_nodrop_frame_equals_toy_except_on_missed_spots() -> None:
@@ -157,15 +171,47 @@ def test_nodrop_frame_equals_toy_except_on_missed_spots() -> None:
     assert c_nod["n_hot"] >= c_toy["n_hot"] and c_nod["n_blob"] >= c_toy["n_blob"]
 
 
-def test_render_full_noise_option(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_render_full_noise_option_and_default(tmp_path: Path) -> None:
     import render_full as RF
 
-    assert RF.realistic_dirname("toy") == "realistic"
+    assert RF.realistic_dirname("toy") == "realistic"  # the existing images, by name
     assert RF.realistic_dirname("nodrop") == "realistic_nodrop"
-    # nodrop never rewrites the clean images: asking for them is an argument error
-    monkeypatch.setattr(sys, "argv", ["render_full.py", "--noise", "nodrop"])
-    with pytest.raises(SystemExit):
-        RF.main()
+    ns = RF.build_parser().parse_args([])
+    assert ns.noise == "nodrop" and RF.realistic_dirname(ns.noise) == "realistic_nodrop"
+    assert ns.variants == "clean,realistic" and not ns.overwrite
+    assert RF.build_parser().parse_args(["--noise", "toy"]).noise == "toy"
+    # nothing exists yet: no conflict, whichever variant
+    for noise in ("toy", "nodrop"):
+        assert RF.existing_targets(tmp_path, noise, ["clean", "realistic"]) == []
+    (tmp_path / "clean").mkdir()
+    (tmp_path / "clean" / "f.d0").write_text("1, 2, 3\n")
+    (tmp_path / "realistic").mkdir()  # an empty directory is not a conflict
+    assert RF.existing_targets(tmp_path, "toy", ["clean", "realistic"]) == ["clean"]
+    assert RF.existing_targets(tmp_path, "nodrop", ["realistic"]) == []  # clean/ skipped
+    (tmp_path / "realistic" / "f.d0").write_text("1, 2, 3\n")
+    assert RF.existing_targets(tmp_path, "toy", ["realistic"]) == ["realistic"]
+    # the no-drop default never conflicts with the existing drop images
+    assert RF.existing_targets(tmp_path, "nodrop", ["realistic"]) == []
+
+
+def test_render_full_refuses_to_overwrite_existing_images(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A bare call on an existing tag (clean/ present) and --noise toy on an existing realistic/
+    are argument errors raised before any rendering; --overwrite lifts the guard."""
+    import render_full as RF
+
+    tag = tmp_path / "full"
+    for d in ("clean", "realistic"):
+        (tag / d).mkdir(parents=True)
+        (tag / d / "f.d0").write_text("1, 2, 3\n")
+    base = ["render_full.py", "--out-root", str(tmp_path), "--tag", "full"]
+    for extra in ([], ["--noise", "toy", "--variants", "realistic"]):
+        monkeypatch.setattr(sys, "argv", base + extra)
+        with pytest.raises(SystemExit):
+            RF.main()
+    assert sorted(p.name for p in (tag / "realistic").iterdir()) == ["f.d0"]
+    assert (tag / "realistic" / "f.d0").read_text() == "1, 2, 3\n"
 
 
 def test_noise_flip_rates() -> None:

@@ -14,7 +14,10 @@ arm with --level0-only gives the same level-0 record for the library default (st
 
 Q8 (no-drop realistic images, scripts/phase_d/q8_e0_summary.py): `--variant realistic_nodrop`
 runs an arm on the E0 images without the random spot drop (build them first with
-scripts/findoptimal_robustness/e0_run.py images); `--variant` also takes clean and all. A task
+scripts/findoptimal_robustness/e0_run.py images); `--variant` also takes clean and all (the old
+realistic images, 10% drop). Without `--variant` a run covers clean and realistic_nodrop (the
+harness default since D-20261014-I6, C.DEFAULT_VARIANTS); `summary` reads the stored Q3 variants
+clean and all against the stored base. A task
 needs only its cached image (cache/images), not the published cache/e0, and `--meta-dir` moves the
 run_meta file (default: the Q3 directory) so a Q8 run does not touch the tracked Q3 records.
 
@@ -29,7 +32,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -125,14 +128,20 @@ def task(item: Tuple[Any, ...]) -> str:
 
 
 def work_items(
-    root: Path, arm: str, l0only: bool, limit: int = 0, msin: float = 0.3, only_var: str = ""
+    root: Path,
+    arm: str,
+    l0only: bool,
+    limit: int = 0,
+    msin: float = 0.3,
+    only_var: str = "",
+    variants: Optional[List[str]] = None,
 ) -> List[Tuple[Any, ...]]:
     info = dict(np.load(C.OUT_DIR / "voxels.npz"))
     vox = [int(v) for v in info["voxel_indices"]][: C.N_VOXELS]
     root.mkdir(parents=True, exist_ok=True)
     out = []
     for vpos, v in enumerate(vox):
-        for var in [only_var] if only_var else C.VARIANTS:
+        for var in [only_var] if only_var else (variants or C.DEFAULT_VARIANTS):
             # a case that could not be built has no cached image (e0_run.py images / run)
             if not (C.CACHE_DIR / "images" / f"v{v}_{var}.npz").exists():
                 continue
@@ -141,7 +150,7 @@ def work_items(
 
 
 def summary(arm: str = "on") -> None:
-    items = work_items(CACHE / arm, arm, False)
+    items = work_items(CACHE / arm, arm, False, variants=C.VARIANTS)  # the stored Q3 variants
     rows, summ = [], {}
     for var in C.VARIANTS:
         sel = [it for it in items if it[2] == var and Path(it[3]).exists()]
@@ -228,7 +237,7 @@ def main() -> None:
         "--variant",
         default="",
         choices=[""] + C.ALL_VARIANTS,
-        help="only this image variant (clean, all, realistic_nodrop; default: clean and all)",
+        help="only this image variant (clean, all, realistic_nodrop; default: clean and realistic_nodrop)",
     )
     ap.add_argument("--meta-dir", default=str(OUT), help="where run_meta_*.json is written")
     a = ap.parse_args()

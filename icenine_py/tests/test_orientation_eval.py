@@ -502,13 +502,29 @@ class TestRealismNoDrop:
     def test_named_variants(self):
         from icenine.orientation_eval import RealismConfig
 
-        assert RealismConfig.named("all") == RealismConfig(True)  # defaults unchanged
-        assert RealismConfig.named("noise") == RealismConfig(False)
-        assert RealismConfig(True).p_miss == 0.1
+        # the named variants keep their meaning: all and noise still drop 10% of the spots
+        assert RealismConfig.named("all") == RealismConfig(True, 0.1)
+        assert RealismConfig.named("noise") == RealismConfig(False, 0.1)
+        assert RealismConfig.named("all").p_miss == 0.1
+        assert RealismConfig.named("neighbours") == RealismConfig(True, 0.0, 0.0, 0.0, 0.0)
         assert RealismConfig.named("all_nodrop") == RealismConfig(True, 0.0)
         assert RealismConfig.named("noise_nodrop") == RealismConfig(False, 0.0)
+        assert RealismConfig.named("all_nodrop") != RealismConfig.named("all")
+        assert RealismConfig.named("none") is None and RealismConfig.named("clean") is None
         with pytest.raises(ValueError):
             RealismConfig.named("realistic_nodrop")  # the E0 harness label is mapped in common.py
+
+    def test_default_config_is_nodrop(self):
+        """D-20261014-I6: RealismConfig() (no variant named) has no random spot drop; the other
+        fields keep their values."""
+        from icenine.orientation_eval import RealismConfig
+
+        d = RealismConfig()
+        assert d.p_miss == 0.0
+        assert (d.neighbours, d.p_flip, d.p_hot, d.p_blob) == (True, 0.05, 0.05, 0.1)
+        assert d == RealismConfig.named("all_nodrop")
+        assert RealismConfig(False).p_miss == 0.0
+        assert RealismConfig(False) == RealismConfig.named("noise_nodrop")
 
     def test_all_nodrop_equals_all_wherever_all_did_not_miss(self):
         """One generator per call (as the E0 harness: one make_realistic_dataset call, one seed,

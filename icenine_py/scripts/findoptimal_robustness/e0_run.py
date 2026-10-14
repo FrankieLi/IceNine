@@ -9,13 +9,15 @@ voxels it reproduces findoptimal_sweep experiment A exactly.
   uv run python scripts/findoptimal_robustness/e0_run.py select
   uv run python scripts/findoptimal_robustness/e0_run.py pilot
   uv run python scripts/findoptimal_robustness/e0_run.py run --workers 10 [--variants clean all]
+  (without --variants: clean and realistic_nodrop; "all" is the old realistic images, 10% drop)
   uv run python scripts/findoptimal_robustness/e0_run.py images --variants all realistic_nodrop \
       --n-voxels 200 --workers 10
 
 ``images`` only builds and caches the case images (cache/images/v<voxel>_<variant>.npz) of the
 first --n-voxels voxels, for the arms of scripts/phase_d/e0_cpprule.py, which read them directly.
 The variant ``realistic_nodrop`` (Q8: the realistic images without the random spot drop; common.py)
-is opt-in; the default variants stay clean and all.
+is the default realistic variant since D-20261014-I6 (default --variants clean realistic_nodrop);
+the old realistic images (10% drop) are the variant ``all``, still available by name.
 
 S3 A/B (the lockstep quick MC, config key BatchedQuickMC, draw option B): ``--batched-quick-mc``
 turns the key on (``--search-device`` picks the device of its batched cost). The S3 arms keep
@@ -136,7 +138,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("cmd", choices=["select", "pilot", "run", "images"])
     ap.add_argument("--workers", type=int, default=10)
-    ap.add_argument("--variants", nargs="*", default=C.VARIANTS, choices=C.ALL_VARIANTS)
+    ap.add_argument("--variants", nargs="*", default=C.DEFAULT_VARIANTS, choices=C.ALL_VARIANTS)
     ap.add_argument("--n-seeds", type=int, default=C.N_SEEDS)
     ap.add_argument("--n-voxels", type=int, default=C.N_VOXELS + N_SPARE)
     ap.add_argument("--batched-quick-mc", action="store_true", help="S3: BatchedQuickMC on")

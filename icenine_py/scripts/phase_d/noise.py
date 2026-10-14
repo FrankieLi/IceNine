@@ -1,8 +1,8 @@
 """Detector-noise model for the Phase D "realistic" full-sample images, and the ASCII image I/O.
 
 The noise parameters are the ones of the earlier realistic windows (icenine.orientation_eval.
-RealismConfig, variant "noise": p_miss 0.1, p_flip 0.05, p_hot 0.05, p_blob 0.1; overlap is NOT
-added here because neighbouring grains now overlap physically). Those were applied per spot
+RealismConfig, variant "noise_nodrop": p_miss 0, p_flip 0.05, p_hot 0.05, p_blob 0.1; overlap is
+NOT added here because neighbouring grains now overlap physically). Those were applied per spot
 window; here they are applied per connected component ("spot") of a whole detector frame:
 
   * miss : the whole spot is not recorded (all its pixels, grown pixels, hot pixel and blob)
@@ -14,10 +14,11 @@ window; here they are applied per connected component ("spot") of a whole detect
 Overlapping spots form one component, so they are missed together; that is the difference to the
 per-window version. The random stream of a frame depends only on (seed, detector, frame).
 
-Named variants (NoiseParams.named): "toy" is the values above (the default, and what the
-existing realistic/ images were rendered with); "nodrop" is the same with p_miss 0 (Q8, owner
-2026-10-13: the random spot drop is unphysical, since a strong spot does not vanish). The miss
-draw is always taken (below), so every other draw of a frame is the same in both variants.
+Named variants (NoiseParams.named): "nodrop" is the values above and the default (no random
+spot drop; Q8, owner 2026-10-13 and D-20261014-I6: the drop is unphysical, since a strong spot
+does not vanish); "toy" is the same with p_miss 0.1 (each spot erased with probability 0.1,
+regardless of intensity), the variant the existing realistic/ images were rendered with. The
+miss draw is always taken (below), so every other draw of a frame is the same in both variants.
 """
 
 from dataclasses import dataclass
@@ -29,7 +30,7 @@ from scipy import ndimage
 
 @dataclass(frozen=True)
 class NoiseParams:
-    p_miss: float = 0.1
+    p_miss: float = 0.0  # the default is no drop; the "toy" variant has TOY_P_MISS
     p_flip: float = 0.05
     p_hot: float = 0.05
     p_blob: float = 0.1
@@ -37,15 +38,17 @@ class NoiseParams:
 
     @classmethod
     def named(cls, name: str) -> "NoiseParams":
-        """Variant toy (the defaults) or nodrop (the defaults with p_miss 0, no random spot drop)."""
+        """Variant nodrop (the defaults, p_miss 0) or toy (the defaults with p_miss 0.1)."""
         if name == "toy":
-            return cls()
+            return cls(p_miss=TOY_P_MISS)
         if name == "nodrop":
             return cls(p_miss=0.0)
         raise ValueError(f"unknown noise variant {name!r} (expected one of {NOISE_VARIANTS})")
 
 
+TOY_P_MISS = 0.1  # random spot drop of the "toy" variant (the existing realistic/ images)
 NOISE_VARIANTS = ("toy", "nodrop")
+DEFAULT_NOISE = "nodrop"  # what a caller gets without naming a variant (D-20261014-I6)
 
 
 def add_detector_noise(

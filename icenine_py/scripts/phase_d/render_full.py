@@ -9,15 +9,18 @@ Work is split by omega frame over worker processes: every worker runs the (cheap
 physics for all voxels and rasterizes only the frames it owns (the others are null sinks), so no
 worker holds more than ~1/W of the 360 dense images and nothing needs merging.
 
-Noise variants (Q8, scripts/phase_d/noise.py NoiseParams.named): the default `--noise toy` writes
-<tag>/realistic/ and the run record render_<tag>.json (the existing images). `--noise nodrop`
-(no random spot drop) writes <tag>/realistic_nodrop/ next to it, keeps the clean and realistic
-images untouched (so `clean` must not be in --variants) and writes render_<tag>_nodrop.json and
-preflight_render_<tag>_nodrop.json instead of the tracked ones.
+Noise variants (Q8, scripts/phase_d/noise.py NoiseParams.named): the default `--noise nodrop` (no
+random spot drop; D-20261014-I6) writes <tag>/realistic_nodrop/ and the run record
+render_<tag>_nodrop.json (+ preflight_render_<tag>_nodrop.json). `--noise toy` (10% random spot
+drop) keeps its meaning and writes <tag>/realistic/ and render_<tag>.json, the existing images and
+their tracked records. The script refuses to write into a directory that already holds files
+(clean/ or the variant's directory) unless --overwrite is given, so a bare call on an existing
+tag can never touch the existing clean/ or realistic/ images; --variants realistic skips clean/.
 
 Usage (from icenine_py/):
   uv run python scripts/phase_d/render_full.py --workers 10 [--n-voxels 500] [--tag pilot]
-  uv run python scripts/phase_d/render_full.py --workers 6 --noise nodrop --variants realistic
+  uv run python scripts/phase_d/render_full.py --workers 6 --variants realistic   # existing tag
+  uv run python scripts/phase_d/render_full.py --noise toy --tag newtag   # only for a new tag
 """
 
 import argparse
@@ -37,7 +40,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "common"))
 
-from noise import NOISE_VARIANTS, NoiseParams  # noqa: E402
+from noise import DEFAULT_NOISE, NOISE_VARIANTS, NoiseParams  # noqa: E402
 
 ROOT = HERE.parents[2]
 EX = ROOT / "Examples" / "Example2.ManyGrains"
@@ -49,6 +52,13 @@ def realistic_dirname(noise: str) -> str:
     """Output directory of a noise variant: realistic (toy, the existing images) or
     realistic_<variant>."""
     return "realistic" if noise == "toy" else f"realistic_{noise}"
+
+
+def existing_targets(out: Path, noise: str, variants: List[str]) -> List[str]:
+    """Directories this render would write into that already hold files (the images it must not
+    overwrite): clean/ when "clean" is in variants, and the noise variant's directory."""
+    names = (["clean"] if "clean" in variants else []) + [realistic_dirname(noise)]
+    return [n for n in names if (out / n).is_dir() and any((out / n).iterdir())]
 
 
 class _NullImage:
@@ -105,12 +115,12 @@ def _worker(args: Dict[str, Any]) -> Dict[str, Any]:
 
     t2 = time.time()
     out_clean = Path(args["out"]) / "clean"
-    out_real = Path(args["out"]) / realistic_dirname(args["noise"])
+    out_real = Path(args["out"]) / realistic_dirname(args.get("noise", DEFAULT_NOISE))
     if "clean" in args["variants"]:
         out_clean.mkdir(parents=True, exist_ok=True)
     out_real.mkdir(parents=True, exist_ok=True)
     kept: Dict[Any, Any] = {}
-    params = NoiseParams.named(args["noise"])
+    params = NoiseParams.named(args.get("noise", DEFAULT_NOISE))
     frames: List[Dict[str, Any]] = []
     for di in range(len(dets)):
         for i in owned:
@@ -146,7 +156,7 @@ def _worker(args: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0, help="new-orientation sample seed")
@@ -158,16 +168,31 @@ def main() -> None:
     ap.add_argument("--variants", default="clean,realistic")
     ap.add_argument(
         "--noise",
-        default="toy",
+        default=DEFAULT_NOISE,
         choices=NOISE_VARIANTS,
-        help="noise variant of the realistic images (toy: existing; nodrop: p_miss 0)",
+        help="noise variant of the realistic images (nodrop: p_miss 0, the default; "
+        "toy: p_miss 0.1, the existing realistic/ images)",
     )
     ap.add_argument("--out-root", default=str(EX / "ScatteringData_PhaseD"))
+    ap.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="write into clean/ or the variant's directory even if it already holds files",
+    )
+    return ap
+
+
+def main() -> None:
+    ap = build_parser()
     args = ap.parse_args()
     assert args.workers <= 10
     suffix = "" if args.noise == "toy" else f"_{args.noise}"
-    if args.noise != "toy" and "clean" in args.variants.split(","):
-        ap.error(f"--noise {args.noise} keeps the existing clean images: use --variants realistic")
+    busy = existing_targets(Path(args.out_root) / args.tag, args.noise, args.variants.split(","))
+    if busy and not args.overwrite:
+        ap.error(
+            f"{', '.join(busy)} of tag {args.tag} already hold images: not overwritten "
+            "(--variants realistic skips clean/; --overwrite to override)"
+        )
 
     import preflight
 

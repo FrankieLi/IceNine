@@ -31,13 +31,18 @@ import findoptimal_sweep as fs  # noqa: E402
 import optimizer_sweep as osw  # noqa: E402
 import perturbation_sweep as ps  # noqa: E402
 
-VARIANTS = ["clean", "all"]  # "all" = realistic
-# Q8 (opt-in, never a default): realistic images without the random spot drop. The label is
-# "realistic_nodrop" (file names v<voxel>_realistic_nodrop.npz); the realism layer's name is
-# "all_nodrop" (RealismConfig.named). Request it explicitly (e0_run.py --variants clean all
-# realistic_nodrop, e0_cpprule.py --variant realistic_nodrop).
+# The STORED variants: the published cache/e0 and every downstream reader (analyze_e0, the E2/F1
+# scripts, summaries) read the files v<voxel>_<variant>.npz of these two by name. "all" = the old
+# realistic images (10% random spot drop) and keeps that meaning.
+VARIANTS = ["clean", "all"]
+# Q8: realistic images without the random spot drop. The label is "realistic_nodrop" (file names
+# v<voxel>_realistic_nodrop.npz); the realism layer's name is "all_nodrop" (RealismConfig.named).
+# Since D-20261014-I6 it is the harness's default realistic variant: what e0_run.py and
+# e0_cpprule.py render and run without a named variant (DEFAULT_VARIANTS). The old "all" stays
+# available by name (--variants clean all, --variant all).
 NODROP_VARIANT = "realistic_nodrop"
 ALL_VARIANTS = VARIANTS + [NODROP_VARIANT]
+DEFAULT_VARIANTS = ["clean", NODROP_VARIANT]
 REALISM_NAME = {"all": "all", NODROP_VARIANT: "all_nodrop"}
 OUT_DIR = ICENINE_PY / "benchmarks" / "findoptimal_robustness"
 CACHE_DIR = ICENINE_PY / "scripts" / "findoptimal_robustness" / "cache"  # gitignored

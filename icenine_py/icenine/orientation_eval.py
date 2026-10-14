@@ -582,6 +582,9 @@ def combine_windows(windows: torch.Tensor, distractors: Optional[torch.Tensor]) 
     return torch.where(windows > 0, windows, distractors)
 
 
+DROP_P_MISS = 0.1  # random spot drop of the named variants "noise" and "all"
+
+
 @dataclass
 class RealismConfig:
     """Random realistic nuisances applied to frame-coded windows (per entry, independently).
@@ -592,15 +595,17 @@ class RealismConfig:
     window gets a spurious 2-4 px blob (one random frame) with this probability. neighbours:
     overlay the dataset's distractor layer (neighbour voxels / twin spots) before the rest.
 
-    Named variants (RealismConfig.named): none/clean, neighbours, noise, all (the defaults of
-    this class, p_miss 0.1); noise_nodrop and all_nodrop are noise and all with p_miss 0 (no
-    random spot drop; Q8, owner 2026-10-13). The miss is the last draw of make_realistic_windows
-    and is taken only when p_miss > 0, so with the same generator seed a no-drop window equals
-    its p_miss-0.1 window wherever that one did not miss.
+    The class default is no random spot drop (p_miss 0; Q8, owner 2026-10-13, D-20261014-I6).
+    Named variants (RealismConfig.named): none/clean, neighbours, noise, all, noise_nodrop,
+    all_nodrop. noise and all keep the drop (p_miss DROP_P_MISS = 0.1, the meaning they always
+    had); noise_nodrop and all_nodrop are the same with p_miss 0 (the class defaults). The miss
+    is the last draw of make_realistic_windows and is taken only when p_miss > 0, so with the
+    same generator seed a no-drop window equals its p_miss-0.1 window wherever that one did not
+    miss.
     """
 
     neighbours: bool = True
-    p_miss: float = 0.1
+    p_miss: float = 0.0
     p_flip: float = 0.05
     p_hot: float = 0.05
     p_blob: float = 0.1
@@ -612,9 +617,9 @@ class RealismConfig:
         if name == "neighbours":
             return cls(True, 0.0, 0.0, 0.0, 0.0)
         if name == "noise":
-            return cls(False)
+            return cls(False, p_miss=DROP_P_MISS)
         if name == "all":
-            return cls(True)
+            return cls(True, p_miss=DROP_P_MISS)
         if name == "noise_nodrop":
             return cls(False, p_miss=0.0)
         if name == "all_nodrop":

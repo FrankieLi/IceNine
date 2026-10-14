@@ -6,7 +6,9 @@ Arms old, cpp, R2, A.
   uv run python scripts/phase_d/ray_overlap_e2e_summary.py
 
 old = scripts/phase_d/cache/off_ms0 and cpp = on_ms0 (stored earlier runs, same inputs and seeds);
-R2, A = cache/rayR2_ms0, rayA_ms0 (e0_cpprule.py run --arm rayR2|rayA --msin 0). Writes
+R2, A = cache/rayR2_ms0, rayA_ms0 (e0_cpprule.py run --arm rayR2|rayA --msin 0 --variant clean, then
+--variant all: the stored runs cover clean and the old realistic images; a run without --variant
+covers clean and realistic_nodrop since D-20261014-I6, and this summary does not read those). Writes
 benchmarks/phase_d_seed_diag/ray_overlap/e2e_summary.json and e2e_tables.md.
 Paired splits are counted
 per voxel: fixed = wrong under the reference but right under the arm, broken = the reverse.
