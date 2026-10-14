@@ -16,7 +16,8 @@ fontsize: 11pt
   and off by default; no default flips and no golden regeneration inside a task (list them for the
   owner); quote evaluations and wrong counts side by side; no p-values; clean full-sample images and
   the E0 200-voxel set until the noise model is redone (open question Q8 below).
-- "Owner" decisions are made only by the project owner. They are collected at the end.
+- "Owner" decisions are made only by the project owner. Open ones are listed at the end ("Decisions
+  waiting on the owner"); decisions made are logged in `docs/DECISIONS.md` (protocol rule 6).
 - Two Claude Code agents work on the port, named by the machine they run on: **Ilium Agent** and
   **Newt Agent**. The Phase D full-sample images and the evaluation-reduction plan file are on Newt
   Agent's machine. "Either agent" items go to whichever is free.
@@ -39,11 +40,13 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
    edits the other agent's subsection. Results stay in the linked docs, not here.
 2. **Read on fetch.** At the start of every task (and before answering the owner about the other
    track): `git fetch`, merge the other track's branch into your own, then read the other agent's
-   mailbox and act on it or answer in your own. If a merge conflicts outside your own rows and
-   mailbox, stop and ask the owner.
+   mailbox and act on it or answer in your own, and read the new entries in `docs/DECISIONS.md`
+   (save them to your shmem, rule 6). If a merge conflicts outside your own rows and mailbox, stop
+   and ask the owner.
 3. **Push timing.** Push your feature branch (never `develop`) (a) with a `heads-up` entry before
    starting a task that touches a shared file (see "Coordination between Tracks E and S"), (b) when a
-   task is merged into your feature branch, and (c) whenever you add a `request` or `answer`.
+   task is merged into your feature branch, (c) whenever you add a `request` or `answer`, and (d)
+   whenever you record a decision in `docs/DECISIONS.md`.
 4. **Own rows only.** Track rows and per-track rules are edited only by the track's agent on its own
    branch. Changes to shared sections of this file ("How to use this file", this protocol) need the
    owner.
@@ -51,6 +54,14 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
    task merged into the feature branch, the branch pushed, mailbox entries posted), run `/handoff` and
    ask the owner to `/clear` and `/resume` before the next item. Checkpoints are gitignored and stay on
    each machine, so anything the other agent needs goes in the mailbox, not in a checkpoint.
+6. **Decision log** (owner 2026-10-14). Every owner decision is recorded in `docs/DECISIONS.md`, one
+   log shared by both agents: one entry per decision, appended at the end, in the session where the
+   owner decides and before acting on it. Entries are never edited; a changed decision gets a new
+   entry naming the one it supersedes. Each entry is also saved to shmem as one atomic fact
+   (`shmem add --source user "Owner decision <ID> (<date>, IceNine <track/row>): <decision>"`); on
+   read on fetch, save the other agent's new entries to your own shmem too. The file uses git's
+   union merge (`.gitattributes`), so appends on both branches do not conflict. Format and ID rules
+   are at the top of the file. Track rows may still quote a decision; the log is the record.
 
 ## From Newt Agent
 
@@ -88,6 +99,11 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   key changes the random stream, so results differ from key off; E0 clean A/B 107/600 vs 111/600
   wrong. `CppEdgeRules` falls back to `evaluate` until A-exact merges here. S3's E0 key-off arm sits
   in `cache/e0_s3off`, not `cache/e0`.
+- 2026-10-14 heads-up: the owner added protocol rule 6, a decision log shared by both agents:
+  `docs/DECISIONS.md` (append only, IDs `D-YYYYMMDD-N<n>` for yours, union merge via `.gitattributes`).
+  Record every owner decision there before acting on it, save each to your shmem (`shmem add --source
+  user`), and push. I backfilled it from this file's owner decisions; please add any Track E decision
+  that is missing, and save the existing entries to your shmem once.
 
 # State on 2026-10-13
 
@@ -164,7 +180,7 @@ owner review in between.
 | S0 | measurement scripts (`scripts/speed_parity/`) | - | **done** |
 | S1 | remove the per-call Python loops in `evaluate`: stage-A lookup table, image table built once per cost function, constant tensors of the Bragg solve hoisted | about 1.2x per call; bit-identical | after A-exact merges, and after S3 (owner 2026-10-13: S3 first, it does not wait for Newt Agent) |
 | S2 | fused C evaluation behind an opt-in key: Bragg solve, eta filter, frame lookup, ray hits and stage D in one call | about 15-25 µs per call (estimate; prototype first) | not started; after S3 (owner 2026-10-13: a GPU path is wanted, so batched torch goes first; S2 stays open); parity via Task A's fixed-orientation harness |
-| S3 | batched quick MC: all candidates of a level step in lockstep (about 58% of evaluations with the C++ rule) | per-call overhead shared across the batch | **built, review fixes applied, not merged** (2026-10-14; Steps 1-5 on task branch `feature/python-speed-parity-s3`, not merged; `docs/todo_batched_quick_mc.md`, MIGRATION_HISTORY "S3: batched quick MC"). Draw option B (owner 2026-10-14; option A, exact draws, was a no-go in Step 0). Opt-in keys `BatchedQuickMC` and `SearchDevice` (`cpu`, `mps`, `cuda`); key off: sequential code unchanged, no golden changed. E0 clean A/B (200 voxels x 3 seeds, current default code): wrong 111/600 off, 107/600 on, same counted evaluations; quick MC 4.5-4.7x cheaper per evaluation on CPU (5.3-5.4x MPS), whole search 1.7-1.9x (contended). MPS gave the same wrong flags as CPU on 50 runs but is slower than CPU at two workers (cause not tested). The E0 key-off arm (seed 0: 35/200) does not reproduce the Diagnosis' 204/600 (seed 0: 67/200, before the 2026-10-08 MC port); with the centroid screen and `BatchedScreen` switched back the harness reproduces the 2026-10-08 C++-faithful rerun (40/200, 3,962.95 local and 44,479.3 global evaluations) exactly, and the centroid default (2026-10-12) moves 40 to 35 (19 fixed, 14 broken, 21 both wrong, about the size of seed-to-seed flips). Under the ray rule the levels that use it run the sequential quick MC and the later levels run in lockstep (mixed mode). Open: `CppEdgeRules` in the batched cost after A-exact merges; quiet-machine repeat; `cuda` untested; whether to flip the default (owner)
+| S3 | batched quick MC: all candidates of a level step in lockstep (about 58% of evaluations with the C++ rule) | per-call overhead shared across the batch | **done** (2026-10-14, merged as 31881fa; `docs/todo_batched_quick_mc.md`, MIGRATION_HISTORY "S3: batched quick MC"). Draw option B (owner 2026-10-14; option A, exact draws, was a no-go in Step 0). Opt-in keys `BatchedQuickMC` and `SearchDevice` (`cpu`, `mps`, `cuda`); key off: sequential code unchanged, no golden changed. E0 clean A/B (200 voxels x 3 seeds, current default code): wrong 111/600 off, 107/600 on, same counted evaluations; quick MC 4.5-4.7x cheaper per evaluation on CPU (5.3-5.4x MPS), whole search 1.7-1.9x (contended). MPS gave the same wrong flags as CPU on 50 runs but is slower than CPU at two workers (cause not tested). The E0 key-off arm (seed 0: 35/200) does not reproduce the Diagnosis' 204/600 (seed 0: 67/200, before the 2026-10-08 MC port); with the centroid screen and `BatchedScreen` switched back the harness reproduces the 2026-10-08 C++-faithful rerun (40/200, 3,962.95 local and 44,479.3 global evaluations) exactly, and the centroid default (2026-10-12) moves 40 to 35 (19 fixed, 14 broken, 21 both wrong, about the size of seed-to-seed flips). Under the ray rule the levels that use it run the sequential quick MC and the later levels run in lockstep (mixed mode). Open: `CppEdgeRules` in the batched cost (A-exact merged here 2026-10-14; follow-up); quiet-machine repeat; `cuda` untested. The default stays off until a later large-scale test (D-20261014-I2)
 | S4 | level-0 screen from a per-sample table: the level-0 orientations are the same for every voxel and a spot moves rigidly with the voxel (`docs/spot_translation_derivation.md`) | ceiling about 1% of a no-start search today (level 0 is about 1.1 s of 76-96 s with `BatchedScreen`); more after S2/S3 | **planned** (`docs/todo_translation_screen_prototype.md`): Step 0 go/no-go measurement, then a script-only prototype with pass-set equality checks; best done after S2/S3 |
 | S5 | a BFS neighbour's first evaluation (inherited orientation) as a translation of the parent's spots | small | idea |
 | S6 | repeat the S0 measurements on the full-sample Phase D images (on Newt Agent's machine) | confirms or corrects the ThreeVoxels figures | needs the Phase D data |
@@ -231,16 +247,8 @@ owner review in between.
 
 # Decisions waiting on the owner
 
-None open.
-
-Decided 2026-10-13: Ilium Agent does the Q8 re-render; S3 plan approved with draw option A (exact),
-S3 before S1; Q8 plan approved, re-runs on the 200-voxel set only, after S3.
-Decided 2026-10-13: a GPU path is wanted for the search cost (S3 batched torch before S2 fused C;
-S2 stays open); `CppOverlapRule` stays off; F1 and F1b stay off; Q8 drops the random spot drop; the
-500-grain runs (X1) come later.
-Decided 2026-10-14: S3 Step 0 found draw option A a no-go (speculation costs 21-67x the counted
-evaluations); S3 goes ahead with draw option B (a fixed slice of uniforms per candidate, results
-compared by wrong counts), Steps 1-5 approved.
+None open. Decisions made are logged in `docs/DECISIONS.md` (rule 6); the "Decided" lines that were
+here moved there on 2026-10-14.
 
 # Closed notes (kept for history)
 
