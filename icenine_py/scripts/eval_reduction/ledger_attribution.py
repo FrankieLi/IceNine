@@ -113,6 +113,10 @@ def main() -> None:
             voxels=vs,
             rows=rows,
             ratio_total=float(tot_py.mean() / tot_cpp.mean()),
+            # net difference of every stage but the C++-only second re-cost
+            diff_net_other_than_rerecost=float(
+                sum(r["diff"] for r in rows if r["stage"] not in ("total", "rerecost"))
+            ),
             ratio_by_voxel={
                 v: float(rr[v]["evals_total"] / cpp[str(v)]["total_counter"]) for v in vs
             },

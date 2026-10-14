@@ -6426,8 +6426,35 @@ implemented because the interpolation was the only stage with an untested hypoth
 **Defaults and goldens (not changed).** Switching `CppEdgeRules` on by default changes 9 pinned tests (recorded BFS
 result, coarse-proxy features, the four `reconstruct_voxel` goldens of `test_findoptimal_refactor.py`, a ray-overlap
 count) and all three switches 10 (adding `test_profiling.py`); `benchmarks/eval_reduction/A/default_flip_would_change.md`
-has the lists. `BatchedScreen` alone gives the same screen results as the default on every pair tested and could be made
-the default without moving a number; that is the owner's decision.
+has the lists. `BatchedScreen` alone gives the same screen results as the default on every pair tested; with only
+`BatchedScreen` flipped the suite moves two tests (see "BatchedScreen as the default: attempted" below).
+
+**BatchedScreen as the default: attempted, not made (Task A fixes, 2026-10-13, `feature/eval-reduction-A-fixes`).**
+The owner approved making `BatchedScreen` the default (config key and `SearchParameters` default 1, `screen_chunk` 32,
+the reconstructor's per-orientation fallback for ray-rule levels unchanged) on condition that no pinned test or golden
+moves. Peak memory first (`scripts/eval_reduction/screen_memory.py`, results `benchmarks/eval_reduction/A/memory/`):
+one no-start search of voxel 15901, default configuration (lenient rule, Q-max 8, clean images, seed 1), one process,
+torch threads 1, each switch set explicitly, one run each:
+
+<!-- table:evalA_memory_batched_screen -->
+| voxel | batched_screen | screen_chunk | rss_setup_mib | rss_peak_mib | evals | err_deg | wall_s | label |
+|---|---|---|---|---|---|---|---|---|
+| 15901 | off | 1 | 285.7 | 872.3 | 327,619 | 0.0378 | 173.0 | single-worker, contended |
+| 15901 | on | 32 | 286.9 | 880.5 | 327,619 | 0.0378 | 145.4 | single-worker, contended |
+<!-- /table:evalA_memory_batched_screen -->
+
+Peak RSS is the process high-water mark (`getrusage`), so it includes the Python and torch runtime, the setup and the
+touched pages of the memory-mapped image stack; with the batched screen it is 8.2 MiB (0.9%) higher, one run per arm, so
+run-to-run allocator variation is not separated from it. Both runs give the stored 327,619 evaluations and 0.0378
+degrees. The machine was loaded (1-minute load 4.7 and 3.0, the second run overlapping the test suite), so the wall
+times are not timing claims. Then the full suite with only `BatchedScreen` flipped (review fix 9): 887 passed, 2 failed,
+37 skipped, 1 deselected. The failures: `test_batched_screen.py::test_config_keys_and_default_off` (asserts the old
+default; expected) and `test_profiling.py::test_instrumented_reconstruct_voxel_is_bit_identical_and_uninstalled`: the
+profiling instrument (`scripts/profiling/prof_common.py`) counts global evaluations by wrapping
+`VoxelCostFunction.evaluate`, which the batched screen does not call, so it counts 0 instead of 27; the orientation, the
+cost and the reconstructor's own evaluation counts in that test are identical with and without the flip. No golden
+moved. Because a pinned test moved, the flip was reverted (patch kept outside the repository; the default stays off) and
+left to the owner: the instrument would need to count `ScreenEvaluator` calls as `eval_ledger.py` does.
 
 **Not done.** The interpolation with the ray rule (falls back with a warning); a batched quick MC (the quick MC is
 about 58% of the evaluations with the C++ rule and is untouched); reproducing the second candidate re-cost of C++ (it would only add evaluations);
