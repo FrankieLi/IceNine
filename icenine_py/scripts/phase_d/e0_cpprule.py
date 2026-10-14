@@ -21,6 +21,10 @@ clean and all against the stored base. A task
 needs only its cached image (cache/images), not the published cache/e0, and `--meta-dir` moves the
 run_meta file (default: the Q3 directory) so a Q8 run does not touch the tracked Q3 records.
 
+Q8 step 8 (why the stored lenient counts differ): arm `offv0` is the lenient rule (arm `off`) with
+the vertex-0 level screen (cpp_center_screen False) that was the library default before 2026-10-12,
+i.e. what the stored lenient runs used; `off` is the current default (centroid screen).
+
 Evaluation-reduction task A arms (scripts/eval_reduction/e0_interp_summary.py reads them):
   edge    C++ overlap rule + CppEdgeRules
   interp  C++ overlap rule + CppEdgeRules + CppOmegaInterp + BatchedScreen
@@ -82,7 +86,7 @@ def task(item: Tuple[Any, ...]) -> str:
             if arm == "rayA"
             else RayRule(arm="R", radius_px=2, registration_mm=reg)
         )
-    rec.setup.search_params.cpp_center_screen = arm != "rule"
+    rec.setup.search_params.cpp_center_screen = arm not in ("rule", "offv0")
     l0: Dict[str, Any] = {}
     orig = RC.run_discrete_search_spaced
 
@@ -226,7 +230,7 @@ def main() -> None:
     ap.add_argument(
         "--arm",
         default="on",
-        choices=["on", "off", "rule", "rayR2", "rayA", "edge", "interp", "lenint"],
+        choices=["on", "off", "offv0", "rule", "rayR2", "rayA", "edge", "interp", "lenint"],
     )
     ap.add_argument("--level0-only", action="store_true")
     ap.add_argument(
