@@ -60,6 +60,8 @@ def one_run(W: Any, vctx: Any, vpos: int, rank_key: Any) -> Tuple[np.ndarray, Di
         return "evaluate"
 
     rec = C.Recorder()
+    # counts evaluations by wrapping evaluate(), which the batched screen bypasses: pin it off
+    W.rec.setup.search_params.batched_screen = False
     with timer.installed():
         timer.patch(RC, "run_discrete_search_spaced", discrete_name)
         timer.patch(MCOptimizer, "optimize", mc_name)

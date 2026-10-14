@@ -6456,6 +6456,22 @@ cost and the reconstructor's own evaluation counts in that test are identical wi
 moved. Because a pinned test moved, the flip was reverted (patch kept outside the repository; the default stays off) and
 left to the owner: the instrument would need to count `ScreenEvaluator` calls as `eval_ledger.py` does.
 
+**BatchedScreen as the default: made (2026-10-13, `feature/eval-reduction-A-flip`).** `BatchedScreen` now defaults to 1
+in the config file and in `SearchParameters` (`screen_chunk` stays 32; `CppEdgeRules` and `CppOmegaInterp` stay off;
+`BatchedScreen 0` restores the per-orientation screen). The profiling instrument (`scripts/profiling/prof_common.py`,
+through the new `StageTimer.patch_counted`) now counts `ScreenEvaluator.overlaps_exact` / `overlaps_interp` calls as
+their number of orientations, as `eval_ledger.py` does, so `test_profiling.py` passes with the reconstructor's own
+counts. The fallback warning of `_screen_kwargs` (ray rule at a level, no C extension) fires only when `BatchedScreen`
+is written in the config file (`SearchParameters.screen_explicit`) or `CppOmegaInterp` is on; a config with only
+`CppOmegaInterp 0` falls back silently, as does the implicit default. `test_config_keys_and_default_off` became
+`test_config_keys_and_defaults`. Review fixes: the scripts that count evaluations by wrapping
+`VoxelCostFunction.evaluate` around a no-start search (`scripts/phase_d/seed_diag.py`, `ray_overlap_study.py`,
+`level0_trace.py`, `scripts/coarse_proxy/eval_split.py`) pin `batched_screen=False`, since the batched screen does not
+call `evaluate`, and the unbatched arms of `benchmarks/eval_reduction/A/ledger/run_all.sh`, `run_switches.sh`
+(`cpp_edge_interp`) and `run_timing.sh` (`timing_cpp_edge`) pass `--opt batched_screen=0`, so re-runs reproduce the
+recorded arms. `StageTimer.patch_counted` also takes (position, keyword) pairs and reads the counted arguments from
+keyword arguments when they are not positional.
+
 **Not done.** The interpolation with the ray rule (falls back with a warning); a batched quick MC (the quick MC is
 about 58% of the evaluations with the C++ rule and is untouched); reproducing the second candidate re-cost of C++ (it would only add evaluations);
 an E0 run on the realistic images (excluded by the plan).

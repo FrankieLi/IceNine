@@ -4,7 +4,8 @@
 set -u
 D=benchmarks/eval_reduction/A/ledger
 mkdir -p $D/runs $D/logs
-for arm in "base:" "cpp:--opt cpp_overlap_rule=1" "r2:--opt ray_rule=R2" "cpp_edge:--opt cpp_overlap_rule=1 --opt cpp_edge_rules=1"; do
+# batched_screen=0: the recorded arms ran the per-orientation screen (BatchedScreen is default on since 2026-10-13)
+for arm in "base:--opt batched_screen=0" "cpp:--opt cpp_overlap_rule=1 --opt batched_screen=0" "r2:--opt ray_rule=R2 --opt batched_screen=0" "cpp_edge:--opt cpp_overlap_rule=1 --opt cpp_edge_rules=1 --opt batched_screen=0"; do
   tag=${arm%%:*}; opts=${arm#*:}
   for v in 15901 17034 18558 19889 22867 5242; do
     [ -f $D/runs/${tag}_v$v.json ] && continue

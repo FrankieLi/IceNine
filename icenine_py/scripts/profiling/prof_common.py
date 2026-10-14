@@ -132,7 +132,10 @@ class Instrument:
         icenine.reconstructor.run_discrete_search_spaced (per level; patched where the reconstructor
         looks the name up), MCOptimizer.optimize (quick MC per level / FindOptimal / other MC by
         max_mc_steps), MCOptimizer.variance_minimizing_optimize ("variance"), and
-        VoxelCostFunction.evaluate (calls and time by role: local / global / mc).
+        VoxelCostFunction.evaluate (calls and time by role: local / global / mc), and the batched
+        level screen (ScreenEvaluator.overlaps_exact / overlaps_interp, default since 2026-10-13),
+        which does not go through evaluate(): one call counts as its number of orientations under
+        the role of its cost function (global), as scripts/eval_reduction/eval_ledger.py counts it.
     network (net=True): perturbation_sweep.prepare_nominal ("prepare"), the harness renderers
         render_windows / render_distractor_windows / make_realistic_dataset, decode_windows
         ("decode"), Gauss-Newton extract_measurements and CentroidGaussNewton.solve.
@@ -157,8 +160,12 @@ class Instrument:
             role = "local" if getattr(obj, "pixel_radius", 1) == 0 else "global"
         return "evaluate_" + role
 
+    def _screen_name(self, a: tuple, k: dict) -> str:
+        return self._eval_name((a[0].cf,), k)  # a[0] is the ScreenEvaluator
+
     def install(self) -> None:
         import icenine.reconstructor as RC
+        from icenine.batched_screen import ScreenEvaluator
         from icenine.cost_functions import VoxelCostFunction
         from icenine.orientation_search import MCOptimizer
 
@@ -184,6 +191,13 @@ class Instrument:
         T.patch(MCOptimizer, "optimize", mc_name)
         T.patch(MCOptimizer, "variance_minimizing_optimize", "variance")
         T.patch(VoxelCostFunction, "evaluate", self._eval_name)
+        T.patch_counted(ScreenEvaluator, "overlaps_exact", self._screen_name, [(1, "orientations")])
+        T.patch_counted(
+            ScreenEvaluator,
+            "overlaps_interp",
+            self._screen_name,
+            [(1, "centres"), (2, "local_grid")],
+        )
         if self.net:
             import icenine.orientation_baselines as OB
             import icenine.orientation_eval as OE
