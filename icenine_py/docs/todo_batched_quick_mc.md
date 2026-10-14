@@ -8,16 +8,25 @@ fontsize: 11pt
 
 # Status
 
-**Planned, not started** (owner, 2026-10-13: a GPU path is wanted for the search cost, so S3 goes
-before S2; write the S3 plan now). Track S, Ilium Agent. Order in Track S: S1, then S3. Before
-starting: merge `feature/eval-reduction` (A-exact changes `cost_functions.py` and `_rasterize.c`
-under `CppEdgeRules`), read Newt Agent's mailbox, and push a `heads-up` (S3 touches the shared files
-`reconstructor.py` and `orientation_search.py`). Task branch `feature/python-speed-parity-s3`
-(`scripts/dev/start_task.sh s3`). An `implementer` agent builds it; `/review-task` (Opus) when done,
-required fixes to a fresh implementer (Track S rule). `/handoff`, `/clear`, `/resume` afterwards
-(protocol rule 5).
+**Approved 2026-10-13, draw option A (exact); the next Track S task** (owner: a GPU path is wanted,
+so S3 goes before S2; S3 goes before S1 because it does not wait for Newt Agent). Track S, Ilium
+Agent. Task branch `feature/python-speed-parity-s3` (`scripts/dev/start_task.sh s3`). An
+`implementer` agent builds it; `/review-task` (Opus) when done, required fixes to a fresh
+implementer (Track S rule). `/handoff`, `/clear`, `/resume` afterwards (protocol rule 5).
 
-**Owner decision needed at approval:** the random-draw assignment (A or B below).
+**Why S3 can start before A-exact lands.** A-exact changes `cost_functions.py` and `_rasterize.c`
+only under the opt-in `CppEdgeRules` (default path bit-identical). S3 adds new modules and does not
+edit `cost_functions.py`; its batched cost calls the existing C `stage_d_overlap`, so A-exact's C
+change reaches it when merged. Until then the batched path covers the default cost and
+`CppOverlapRule`, and falls back to `evaluate` for `CppEdgeRules` (and the ray rule).
+
+**Before starting:** `git fetch`, merge `feature/eval-reduction` if it moved, read Newt Agent's
+mailbox, and push the `heads-up` posted with this plan (Step 3 edits the shared files
+`reconstructor.py` and `orientation_search.py`). Run Step 0 and Step 4 timings on a quiet machine
+(not during a Phase D render or a Q8 run).
+
+**After A-exact merges into `feature/python-speed-parity`:** add `CppEdgeRules` to the batched cost,
+extend the Step 1 equality test to it, and drop that fallback (a small follow-up commit, reviewed).
 
 # What
 
@@ -54,29 +63,41 @@ elsewhere).
   (about 24 µs per orientation, MIGRATION_HISTORY "Task A") but returns only the screen pass, not
   the local cost. No batched local cost exists.
 
-# Random draws (owner decision)
+# Random draws: option A, exact (owner 2026-10-13)
 
-- **A. Exact (today's draws).** Run the lockstep assuming no earlier candidate fails; when candidate
-  j's block fails, every later candidate used draws 3 positions too early, so re-run those
-  candidates in another lockstep round with the corrected offset. Trial rotations equal today's for
-  every candidate. Cost: one extra round per failed block, each re-running all candidates after it;
-  if many blocks fail (likely at the finer levels), it falls back towards the sequential cost.
-- **B. Block assignment (recommended).** Draw the 30 trial uniforms of all N candidates first, in
-  candidate order (`rng.uniform(-r, r, size=(N, 10, 3))`), then 3 per failed candidate in candidate
-  order. The generator consumes the same number of draws as today, so its state after the level, and
-  every later level and FindOptimal draw, is unchanged. The candidates before the first failure keep
-  today's trial rotations; the others get different but equally distributed ones, so per-voxel
-  results can differ, and the check is by wrong counts. Tested exactly by injecting today's
-  per-candidate draws (Step 2).
+Today candidate i's 30 trial uniforms start at stream position 30 i + 3 F_i, where F_i is the number
+of failed blocks among candidates 0 .. i-1, so a candidate's draws depend on the outcomes of all
+candidates before it. Option B (pre-draw 30 per candidate in a block) was not chosen. Option A keeps
+today's draws for every candidate by speculation:
 
-Under either option the batched path is opt-in, so goldens and default results do not change.
+- **Buffer.** Save the generator state, draw a buffer of 33 N standard uniforms, map them to the trial
+  radius `tan(step)/sqrt(12)` (and the unused restart radius) as `Generator.uniform` does, then
+  restore the state and consume exactly 30 N + 3 F draws at the end, so the generator leaves the level
+  in today's state (later levels and FindOptimal unchanged).
+- **Rounds.** Each unresolved candidate runs its 10 trials in lockstep at an assumed offset: the
+  failures known so far, plus 0 .. k-1 extra (speculation depth k, so k chains per candidate per
+  round). After the round, walk the candidates in order: a candidate is resolved when its true
+  offset, now known from the resolved candidates before it, is one of the offsets it ran; its chain
+  at that offset is the result. Unresolved candidates go to the next round. Rounds end when all are
+  resolved; with k = 1 that is one round per failed block, plus one.
+- **Start evaluations** (2 per candidate) do not depend on the draws: computed once, in round 1.
+- **Counting.** `eval_count` counts only the evaluations of each candidate's resolved chain (12 per
+  candidate, as today), so evaluation ledgers do not change; speculative evaluations are counted
+  separately (`computed_evals`) and reported in Step 4.
+- **k** is chosen from Step 0's failure rates (fixed per run, a config value with default 1 if Step 0
+  shows few failures; otherwise the smallest k that keeps the round count small). Larger k means
+  larger batches, which suits the GPU.
+
+The batched path is opt-in, so goldens and default results do not change; with the key on, the
+quick MC's trial rotations equal today's for every candidate.
 
 # Steps
 
 **Step 0: go/no-go measurement (script only, `scripts/speed_parity/`, no library change).**
 On Example2.ThreeVoxels voxel 0 and 10 voxels of the E0 clean set:
 
-- quick-MC candidates per level (the batch sizes) and the fraction of failed blocks per level;
+- quick-MC candidates per level (the batch sizes), the fraction of failed blocks per level, and the
+  round count option A would need for k = 1, 2, 4 (computed from the sequential outcomes);
 - a throwaway batched forward of stages A-C for B = 16, 64, 256, 1,024 orientations on CPU and on
   MPS: µs per orientation, and the number of host syncs per call (masking with data-dependent shapes
   forces one per op on a GPU).
@@ -93,8 +114,8 @@ List[OverlapInfo]`, adds B to `cost_fn.eval_count`. Stages A-C batched over orie
 shape (all 2K omega rows per orientation, validity as a mask, so the GPU path has no data-dependent
 shapes until the hand-off to C). Stage D stays in C on CPU: one `stage_d_overlap` call per
 orientation at first (about 8 µs each, quality accumulated exactly as today); a single batched C
-entry only if Step 4 shows stage D matters. Covers the default cost, `CppOverlapRule` and
-`CppEdgeRules`; the ray rule falls back to `evaluate`. Reuses S1's lookup and image tables if S1 has
+entry only if Step 4 shows stage D matters. Covers the default cost and `CppOverlapRule`;
+`CppEdgeRules` after A-exact merges (see Status), the ray rule falls back to `evaluate`. Reuses S1's lookup and image tables if S1 has
 landed. `device` argument: `cpu` (default), `mps`, `cuda`.
 
 Tests (`tests/test_batched_cost.py`): on a fixed seeded set of orientations near and far from the
@@ -104,8 +125,9 @@ rather than loosening the test. On MPS (skipped when unavailable): count the ori
 counts differ.
 
 **Step 2: lockstep quick MC (new function in a new module `icenine/batched_quick_mc.py`).**
-Inputs: the level's candidates, `trial_box_width`, `trial_step`, the cost evaluator, the generator.
-Per step: build the N trial rotations from the pre-drawn uniforms (`get_near_identity_point`,
+Inputs: the level's candidates, `trial_box_width`, `trial_step`, the cost evaluator, the generator,
+k. Implements the rounds of option A above. Per step: build the trial rotations of every running
+chain from the buffered uniforms (`get_near_identity_point`,
 `_quat_multiply`, `quaternion_to_matrix` as today; vectorise only where a test shows bit-identity,
 else loop per candidate, which is cheap), one `evaluate_many`, strict `<` acceptance per candidate.
 Fills `orientation`, `cost`, `overlap_info` and a per-candidate `last_run` as `optimize` does.
@@ -116,11 +138,13 @@ warning only when the key was set explicitly (the `BatchedScreen` fallback rule)
 
 Tests (`tests/test_batched_quick_mc.py`):
 
-- With an injected draw sequence (a generator stub that serves each candidate today's draws), the
-  lockstep result equals sequential `optimize` for every candidate (orientation, cost, counts,
-  `last_run`), first with `evaluate` as the cost (logic only), then with `BatchedCostEvaluator` on CPU.
-- Pre-drawn `rng.uniform(-r, r, size=(N, 10, 3))` equals N x 30 scalar draws.
-- Option B: generator state after the level equals the sequential run's.
+- With the same seeded generator, the lockstep result equals sequential `optimize` for every
+  candidate (orientation, cost, `OverlapInfo`, `last_run`) for k = 1, 2 and N, first with `evaluate`
+  as the cost (logic only), then with `BatchedCostEvaluator` on CPU. Include levels with no failed
+  block, one, and many (a cost stub that forces failures covers the many-failure case).
+- The generator state after the level equals the sequential run's.
+- The buffered, mapped uniforms equal today's scalar `rng.uniform(-r, r)` draws bit for bit.
+- `eval_count` equals the sequential run's; `computed_evals` is at least that.
 
 **Step 3: wiring.** Config keys `BatchedQuickMC` (default 0) and `SearchDevice` (default `cpu`) in
 `config_file.py` and `SearchParameters`; the level loop in `reconstructor.py` calls the lockstep
@@ -132,9 +156,10 @@ as eb1a98d did), or count `evaluate_many` there; evaluation counts must stay the
 
 - ThreeVoxels voxel 0 no-start search: wall time, quick-MC time per level, µs per evaluation
   (`scripts/speed_parity/`);
-- E0 clean set, 200 voxels, seed 0, key off vs on (CPU): wrong counts and evaluations side by side,
-  per-level candidate counts, and the number of voxels whose answer changed. Three seeds only if seed
-  0 differs by more than a few voxels.
+- E0 clean set (per-voxel images, `scripts/findoptimal_robustness/e0_run.py`), 200 voxels, seed 0, key
+  off vs on (CPU): wrong counts, counted and computed evaluations side by side,
+  per-level candidate counts, and the number of voxels whose answer changed (expected 0 with option
+  A unless Step 1 found batched costs that differ from `evaluate`; trace any change).
 
 **Step 5: docs.** MIGRATION_HISTORY section (results, the draw option, fallbacks), README (new
 modules, keys), ROADMAP S3 row.
