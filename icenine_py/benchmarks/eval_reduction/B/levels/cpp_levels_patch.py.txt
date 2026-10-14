@@ -1,0 +1,124 @@
+# Task B (extra): per-level pass sets of the C++ discrete search. Derived from the level-0 patch
+# (benchmarks/phase_d_seed_diag/level0/cpp_debug_patch_level0.py.txt). Applied to a scratch copy of
+# the repository (CMakeLists.txt, Src/, XDM++/, CostFunctionBenchmark/) with `python patch.py` run
+# from the scratch root; Src/ in the repository is never touched. With env L0TRACE=1 every
+# GetSpacedCandidates call (one call = one level, 0 to 3) prints ("call" = the call number):
+#   L0H call c n_fz .. n_local .. nQMax .. diameter_rad .. diameter_deg .. n_sym .. n_recip ..
+#   L0G c j m00 .. m22         local-grid matrix j (hex floats; once per call, before FZ point 0)
+#   L0C c idx m00 .. m22       search centre of FZ point idx (hex floats)
+#   L0O c idx n_obs ov_j0 .. ov_j8   n observed peaks at the centre, then the peak_overlap of every
+#                              local-grid point j (the screen)
+#   L0P c idx n_obs n_pass j .. cost .. | kept ..   per FZ point with >= 1 screened candidate: the
+#                              passing local-grid indices, the re-cost 1-confidence of each, and the
+#                              j kept in output order
+#   L0S call c n_cliques .. n_candidates ..   after the spacing filter
+import re
+p = 'Src/DiscreteSearch.h'
+s = open(p).read()
+def rep(a, b):
+    global s
+    assert s.count(a) == 1, a
+    s = s.replace(a, b)
+def rep_re(pat, b, lo, hi):
+    """replace the first match of regex pat inside s[lo_marker:hi_marker]"""
+    global s
+    i, j = s.index(lo), s.index(hi)
+    m = re.search(pat, s[i:j])
+    assert m, pat
+    s = s[:i + m.start()] + b + s[i + m.end():]
+
+rep('namespace OrientationSearch\n', '''#include <iostream>
+#include <iomanip>
+#include <cstdlib>
+#include <cstring>
+namespace L0Trace {
+  inline std::vector<int> & Overlap() { static std::vector<int> v; return v; }
+  inline std::vector<int> & JList() { static std::vector<int> v; return v; }
+  inline long & NObs() { static long n = 0; return n; }
+  inline bool On() { static bool b = getenv("L0TRACE") != NULL; return b; }
+}
+namespace OrientationSearch
+''')
+rep('''      ScatteringVectorListT oScatteringCandidates;
+''', '''      ScatteringVectorListT oScatteringCandidates;
+      L0Trace::Overlap().clear(); L0Trace::JList().clear();
+''')
+rep('''      for ( Size_Type j = 0; j < oLocalGridList.size(); j ++ )''', '''      L0Trace::NObs() = (long) oScatteringCandidates.size();
+      for ( Size_Type j = 0; j < oLocalGridList.size(); j ++ )''')
+rep('''        if ( AcceptanceFn( oOverlapInfo ) )   // If accepted
+          oRes.push_back(''', '''        L0Trace::Overlap().push_back( oOverlapInfo.nPeakOverlap );
+        if ( AcceptanceFn( oOverlapInfo ) )   // If accepted
+          L0Trace::JList().push_back( (int) j );
+        if ( AcceptanceFn( oOverlapInfo ) )   // If accepted
+          oRes.push_back(''')
+
+LO, HI = 'GetSpacedCandidates( const SamplePointT', 'GetSpacedCandidates2'
+rep_re(r"for\(; pSearchPoint != pEnd; \+\+ pSearchPoint \)\s*\{\s*vector<SCandidate> oLocalCandidates;\s*oSearchProcess\( oLocalCandidates, oVoxel, \*pSearchPoint,\s*oLocalGrid, oRecipVectors.begin\(\), pRecpEnd \);",
+'''SearchPointIterT pFZFirst = pSearchPoint;
+      static int nCallNo = 0;
+      bool bDetail = L0Trace::On();   // detail for every call (level 0 to 3)
+      if( L0Trace::On() )
+        std::cout << "L0H call " << nCallNo << " n_fz " << ( pEnd - pSearchPoint ) << " n_local " << oLocalGrid.size()
+                  << " nQMax " << fQMax << " diameter_rad " << std::setprecision(10) << fAngularRadius
+                  << " diameter_deg " << RADIAN_TO_DEGREE( fAngularRadius )
+                  << " n_sym " << oSym.GetOperatorList().size() << " n_recip " << ( pRecpEnd - oRecipVectors.begin() ) << std::endl;
+      long nCandTot = 0;
+      for(; pSearchPoint != pEnd; ++ pSearchPoint )
+      {
+        vector<SCandidate> oLocalCandidates;
+        oSearchProcess( oLocalCandidates, oVoxel, *pSearchPoint,
+                        oLocalGrid, oRecipVectors.begin(), pRecpEnd );
+        vector<int> oJ = L0Trace::JList();
+        vector<int> oOv = L0Trace::Overlap();
+        long nObsHere = L0Trace::NObs();
+        vector<SCandidate> oPre;
+        if( bDetail )
+        {
+          if( pSearchPoint == pFZFirst )
+            for( size_t jg = 0; jg < oLocalGrid.size(); jg ++ )
+            {
+              std::cout << "L0G " << nCallNo << " " << jg << std::hexfloat;
+              for( int a1 = 0; a1 < 3; a1 ++ ) for( int a2 = 0; a2 < 3; a2 ++ ) std::cout << " " << oLocalGrid[jg].m[a1][a2];
+              std::cout << std::defaultfloat << std::endl;
+            }
+          std::cout << "L0C " << nCallNo << " " << ( pSearchPoint - pFZFirst ) << std::hexfloat;
+          for( int a1 = 0; a1 < 3; a1 ++ ) for( int a2 = 0; a2 < 3; a2 ++ ) std::cout << " " << pSearchPoint->m[a1][a2];
+          std::cout << std::defaultfloat << std::endl;
+          std::cout << "L0O " << nCallNo << " " << ( pSearchPoint - pFZFirst ) << " " << nObsHere;
+          for( size_t q = 0; q < oOv.size(); q ++ ) std::cout << " " << oOv[q];
+          std::cout << std::endl;
+        }''', LO, HI)
+rep_re(r"if\( oLocalCandidates.size\(\) > 0 \)\s*\{\s*nClique \+\+;",
+'''oPre = oLocalCandidates;
+        if( oLocalCandidates.size() > 0 )
+        {
+          nClique ++;
+          if( bDetail )
+          {
+            std::cout << "L0P " << nCallNo << " " << ( pSearchPoint - pFZFirst ) << " " << nObsHere << " " << oLocalCandidates.size() << " j";
+            for( size_t q = 0; q < oJ.size(); q ++ ) std::cout << " " << oJ[q];
+            std::cout << " cost";
+            for( size_t q = 0; q < oLocalCandidates.size(); q ++ ) std::cout << " " << std::setprecision(10) << oLocalCandidates[q].fCost;
+            std::cout << " |";
+          }''', LO, HI)
+rep_re(r"vector<SCandidate> oAccepted;[^\n]*\n",
+'''nCandTot += ( pCur - pFirstGood );
+          if( bDetail )
+          {
+            std::cout << " kept";
+            for( CandidateIter pK = pFirstGood; pK != pCur; ++ pK )
+            {
+              int jj = -1;
+              for( size_t q = 0; q < oPre.size(); q ++ )
+                if( memcmp( &oPre[q].oOrientation, &pK->oOrientation, sizeof( pK->oOrientation ) ) == 0 && oPre[q].fCost == pK->fCost ) { jj = oJ[q]; break; }
+              std::cout << " " << jj;
+            }
+            std::cout << std::endl;
+          }
+          vector<SCandidate> oAccepted;
+''', LO, HI)
+rep_re(r'std::cout << "Num Cliques " << nClique',
+'''if( L0Trace::On() ) std::cout << "L0S call " << nCallNo << " n_cliques " << nClique << " n_candidates " << nCandTot << std::endl;
+        nCallNo ++;
+        std::cout << "Num Cliques " << nClique''', LO, HI)
+open(p, 'w').write(s)

@@ -1,0 +1,24 @@
+{
+ "cpp": {
+  "cases": 6,
+  "cases_cost_above_zero": 6,
+  "median_cost": 0.07031250000000011,
+  "max_cost": 0.09230769230769242,
+  "n_one_detector": 48,
+  "n_one_detector_det1_off_image": 48,
+  "n_no_overlap": 4,
+  "share_one_detector": 0.8554982827446255,
+  "share_no_overlap": 0.1445017172553739
+ },
+ "cppE": {
+  "cases": 6,
+  "cases_cost_above_zero": 6,
+  "median_cost": 0.05776515151515166,
+  "max_cost": 0.07971014492753614,
+  "n_one_detector": 48,
+  "n_one_detector_det1_off_image": 48,
+  "n_no_overlap": 0,
+  "share_one_detector": 1.0000000000000002,
+  "share_no_overlap": 0.0
+ }
+}
