@@ -71,6 +71,9 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   Track S; it is written under "Track S".
 - 2026-10-13 heads-up: the owner added protocol rule 5 (clear context between roadmap items, with
   `/handoff`, `/clear`, `/resume`); it binds both agents and arrives when you merge this branch.
+- 2026-10-13 heads-up: owner decisions recorded in "Decisions waiting on the owner" and rows S2, S3,
+  Q3, Q-F1, Q8, X1: GPU path wanted (S3 before S2); `CppOverlapRule`, F1, F1b stay off; Q8 removes the
+  random spot drop (agent not assigned yet); X1 later.
 
 # State on 2026-10-13
 
@@ -146,8 +149,8 @@ owner review in between.
 |---|---|---|---|
 | S0 | measurement scripts (`scripts/speed_parity/`) | - | **done** |
 | S1 | remove the per-call Python loops in `evaluate`: stage-A lookup table, image table built once per cost function, constant tensors of the Bragg solve hoisted | about 1.2x per call; bit-identical | next |
-| S2 | fused C evaluation behind an opt-in key: Bragg solve, eta filter, frame lookup, ray hits and stage D in one call | about 15-25 µs per call (estimate; prototype first) | not started; parity via Task A's fixed-orientation harness |
-| S3 | batched quick MC: all candidates of a level step in lockstep (about 58% of evaluations with the C++ rule) | per-call overhead shared across the batch | not started; each candidate's quick MC is one block of 10 trial steps that always draws 30 uniforms in candidate order (`reconstructor.py:622`, `orientation_search.py:576`), so pre-drawing them in that order keeps the trial rotations identical; only float32 differences of the batched cost remain: check per-level candidates and wrong counts (as Q5 asks) |
+| S2 | fused C evaluation behind an opt-in key: Bragg solve, eta filter, frame lookup, ray hits and stage D in one call | about 15-25 µs per call (estimate; prototype first) | not started; after S3 (owner 2026-10-13: a GPU path is wanted, so batched torch goes first; S2 stays open); parity via Task A's fixed-orientation harness |
+| S3 | batched quick MC: all candidates of a level step in lockstep (about 58% of evaluations with the C++ rule) | per-call overhead shared across the batch | not started; next after S1, with a GPU option (owner 2026-10-13; Ilium Agent's machine has MPS, which has no float64); each candidate's quick MC is one block of 10 trial steps that always draws 30 uniforms in candidate order (`reconstructor.py:622`, `orientation_search.py:576`), so pre-drawing them in that order keeps the trial rotations identical; only float32 differences of the batched cost remain: check per-level candidates and wrong counts (as Q5 asks) |
 | S4 | level-0 screen from a per-sample table: the level-0 orientations are the same for every voxel and a spot moves rigidly with the voxel (`docs/spot_translation_derivation.md`) | ceiling about 1% of a no-start search today (level 0 is about 1.1 s of 76-96 s with `BatchedScreen`); more after S2/S3 | **planned** (`docs/todo_translation_screen_prototype.md`): Step 0 go/no-go measurement, then a script-only prototype with pass-set equality checks; best done after S2/S3 |
 | S5 | a BFS neighbour's first evaluation (inherited orientation) as a translation of the parent's spots | small | idea |
 | S6 | repeat the S0 measurements on the full-sample Phase D images (on Newt Agent's machine) | confirms or corrects the ThreeVoxels figures | needs the Phase D data |
@@ -172,9 +175,9 @@ owner review in between.
 
 | Item | Question | Status | Detail |
 |---|---|---|---|
-| Q-F1 | CSL-relative fixes F1 / F1b by default? | off by owner decision 2026-10-06; opt-in | `todo_findoptimal_wrong_candidates.md`, `findoptimal_robustness_report.md` |
+| Q-F1 | CSL-relative fixes F1 / F1b by default? | off by owner decision 2026-10-06, kept off 2026-10-13; opt-in | `todo_findoptimal_wrong_candidates.md`, `findoptimal_robustness_report.md` |
 | Q2 | why CMA accepts more wrong-grain fits; tighten the 0.9 relative test for CMA? | open | finisher findings §7.2 |
-| Q3 | `CppOverlapRule` default: does the BFS seed test (hit ratio 0.8) and the reseed pilot change with the rule? | open; default stays off | finisher findings §7.3 |
+| Q3 | `CppOverlapRule` default: does the BFS seed test (hit ratio 0.8) and the reseed pilot change with the rule? | open; default stays off (owner 2026-10-13) | finisher findings §7.3 |
 | Q4 | which C++ MC difference (block halving, restart base, fixed step) gives the faithful MC's gain | open (ablation untested) | finisher findings §7.4 |
 | Q5 | batch the coarse stage | screen done (Task A); quick MC moved to S3 | finisher findings §7.5 |
 | Q7 | does multi-client C++ seed grains the single-client BFS loses? | open | finisher findings §7.7 |
@@ -188,9 +191,9 @@ owner review in between.
 
 | Item | What | Status |
 |---|---|---|
-| X1 | full-sample BFS end to end on the 500-grain sample (classic vs NN and hybrid finisher) | data and library ready; long runs deferred 2026-10-09 (`todo_500grain_bfs_end_to_end.md`) |
+| X1 | full-sample BFS end to end on the 500-grain sample (classic vs NN and hybrid finisher) | data and library ready; long runs deferred 2026-10-09, again 2026-10-13 ("later") (`todo_500grain_bfs_end_to_end.md`) |
 | X2 | reseed on other regions, seed orders and full-sample scale | deferred 2026-10-09 |
-| Q8 | noise model of the realistic images (unphysical 10% spot drop) | deferred 2026-10-12; blocks every realistic-image comparison |
+| Q8 | noise model of the realistic images (unphysical 10% spot drop) | owner 2026-10-13: remove the random spot drop (keep jitter, hot pixels, blobs), then re-render and re-run the realistic comparisons; not started, agent and timing not assigned; blocks every realistic-image comparison |
 | X3 | multiple detectors with many grains and voxels far from the axis | deferred (`todo_multidetector_many_grains.md`) |
 | X4 | intensity inputs and distribution losses for the orientation network | deferred (`todo_intensity_and_distribution_losses.md`) |
 | X5 | not yet ported: MPI server/client, step-size file reading, unique-reflection filtering, quadtree peak search | open |
@@ -214,12 +217,12 @@ owner review in between.
 
 # Decisions waiting on the owner
 
-1. Track S: fused C evaluation (S2) and/or batched torch (S3) for the non-screen stages; is a GPU
-   path wanted for the search cost?
-2. Q3: `CppOverlapRule` default.
-3. Q-F1: F1 / F1b default.
-4. Q8: when to redo the noise model (unblocks realistic comparisons, X1-X4).
-5. X1: go-ahead for the long 500-grain runs.
+1. Q8: which agent removes the random spot drop and re-renders, and when (the Phase D full-sample
+   images are on Newt Agent's machine).
+
+Decided 2026-10-13: a GPU path is wanted for the search cost (S3 batched torch before S2 fused C;
+S2 stays open); `CppOverlapRule` stays off; F1 and F1b stay off; Q8 drops the random spot drop; the
+500-grain runs (X1) come later.
 
 # Closed notes (kept for history)
 
