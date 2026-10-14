@@ -31,7 +31,8 @@ completeness and should not drive decisions.
 Update 2026-10-14 (Q8, `MIGRATION_HISTORY.md` "Q8: realistic images without the random spot drop"): the same E0 runs
 were repeated on images without the random spot drop. With `min_sin_eta` 0 the wrong counts of 200 are, clean / old
 realistic / no drop: lenient 41 / 25 / 22, C++ rule 56 / 56 / 38, 2-pixel window 40 / 32 / 14, geometric window 41 / 29 / 14
-(the earlier 18 for the lenient rule was the vertex-0 start; it is 25 in this build). On the no-drop images the ray rule is
+(the earlier 18 for the lenient rule was the vertex-0 start; it is 25 in this build; the lenient rule with the vertex-0 screen
+reproduces the 18, `MIGRATION_HISTORY.md` "Q8" Step 8). On the no-drop images the ray rule is
 ahead of the lenient rule (2-pixel window against lenient: 15 fixed, 7 broken, 7 both wrong), so the lenient lead above
 comes with the drop; it is one sample of 200 voxels and one seed.
 

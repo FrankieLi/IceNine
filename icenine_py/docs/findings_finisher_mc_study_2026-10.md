@@ -531,13 +531,18 @@ The earlier report's precision and timing numbers for the default finisher carry
    is redone. Options: no random drop (keep jitter, hot pixels, blobs); intensity-based drop near a detection
    threshold; or a small fixed rate (about 1%) as a stand-in. Then re-render and re-run the realistic comparisons.
    **Status 2026-10-14 (Q8, `MIGRATION_HISTORY.md` "Q8: realistic images without the random spot drop").** The owner chose
-   "no random drop" (jitter, hot pixels and blobs kept). It is built as opt-in variants (`nodrop`, `all_nodrop`, label
-   `realistic_nodrop`); the defaults are unchanged. At the truth the C++ and ray rules reject real peaks on the no-drop images as on
+   "no random drop" (jitter, hot pixels and blobs kept). It is built as variants (`nodrop`, `all_nodrop`, label
+   `realistic_nodrop`) and, by the owner's decision of 2026-10-14 (D-20261014-I6), is now the default noise; the named
+   variants `toy`, `noise` and `all` keep the 10% drop. At the truth the C++ and ray rules reject real peaks on the no-drop images as on
    clean ones (E0 images: 0 of 12,439, against 974 of 11,174 with the drop at `min_sin_eta` 0.3). Re-run on the E0 200-voxel set (seed
    0, `min_sin_eta` 0, wrong counts clean / old realistic / no drop): lenient 41 / 25 / 22, C++ rule 56 / 56 / 38, ray rule 2-pixel
    window 40 / 32 / 14, geometric window 41 / 29 / 14, so the lenient rule's lead on the old realistic images is gone; the C++ rule
-   stays the worst. Not re-run: the Phase D pilot and reseed on realistic images (waits with X1). Whether to lift the "clean images
-   only" rule and to move the realistic default to no-drop is the owner's.
+   stays the worst. Not re-run: the Phase D pilot and reseed on realistic images (skipped for now, D-20261014-I7). The owner decided
+   (2026-10-14): the "clean images only" rule is not lifted, the studies stay on clean images (D-20261014-I5). The lenient counts
+   that differ from the stored ones (35 against 40, 27 against 25, 41 against 39, 25 against 18) are the screen start point: the
+   stored runs projected the first vertex, the re-runs the centroid (tested, `MIGRATION_HISTORY.md` "Q8" Step 8). The no-drop images
+   give more level-0 candidates and a wider cost function than the clean ones in every one of the 200 voxels (Step 7), which is
+   consistent with the lower wrong counts but was not tested as their cause.
 9. **Ray rule pixel counting for cases b and e (deferred, owner 2026-10-12).** At radius 0 (the local re-cost of
    levels 0-2) the predicted detector-1 triangle covers n dark pixels. Case b (observed ray bright) adds only 1
    overlap pixel, so the peak gets 1/n pixel credit; case e (observed ray off detector, treated as unlit) removes only
