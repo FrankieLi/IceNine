@@ -341,21 +341,25 @@ def load_width(vox: List[int]) -> Dict[str, Dict[str, np.ndarray]]:
 
 
 def width_of(curve: np.ndarray, radii: np.ndarray) -> Tuple[float, float]:
-    """(grid width, interpolated width) of a median cost curve over [0] + RADII: the smallest r
-    at which the curve reaches halfway from the truth value (index 0) to the value at the last
-    radius, and the same by linear interpolation in log r between the bracketing grid points
-    (nan if the curve never reaches it, or the 3 degree value is not above the truth)."""
-    c0, c3 = curve[0], curve[-1]
-    if not c3 > c0:
+    """(grid width, interpolated width) of a median cost curve. curve[0] is the cost at the truth
+    and curve[i] the cost at radii[i - 1] (len(curve) == len(radii) + 1). The grid width is the
+    smallest radius at which the curve reaches halfway from the truth value to the value at the
+    last radius; the interpolated width is the same by linear interpolation in log r between the
+    two bracketing radii (a crossing before the first radius is anchored at a third of it). Both
+    are nan if the value at the last radius is not above the truth value or is never reached."""
+    assert len(curve) == len(radii) + 1
+    c0, c_last = curve[0], curve[-1]
+    if not c_last > c0:
         return float("nan"), float("nan")
-    half = c0 + 0.5 * (c3 - c0)
+    half = c0 + 0.5 * (c_last - c0)
     for i in range(1, len(curve)):
         if curve[i] >= half:
-            lo_r = radii[i - 1] if i > 1 else radii[0] / 3.0  # r = 0 has no log; start below
+            r_hi = radii[i - 1]
+            r_lo = radii[i - 2] if i > 1 else radii[0] / 3.0
             lo_c = curve[i - 1]
             t = (half - lo_c) / (curve[i] - lo_c) if curve[i] > lo_c else 1.0
-            interp = float(np.exp(np.log(lo_r) + t * (np.log(radii[i]) - np.log(lo_r))))
-            return float(radii[i]), interp
+            interp = float(np.exp(np.log(r_lo) + t * (np.log(r_hi) - np.log(r_lo))))
+            return float(r_hi), interp
     return float("nan"), float("nan")
 
 
