@@ -819,17 +819,13 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
                 if (n_overlap > 0) {
                     detector_lit[d] = 1;
                     spot_overlap[d] = 1;
-                } else if (n_lit > 0) {
-                    detector_lit[d] = 1;
                 } else if (cpp_vertex_lit) {
-                    /* C++ ShapePixelOverlapCounter: a triangle that produced no pixel still
-                       lights the detector when one of its vertices is in bounds (IsInBound).
-                       Not exact: C++ (OverlapInfo.h:501-514) lights only on an overlap or an
-                       in-bounds vertex and has no "pixel produced" clause, while this code also
-                       lights on n_lit > 0 (branch above). So Python lights on a superset of C++'s
-                       cases: a triangle that covers image pixels with all three vertices out of
-                       bounds (near a corner) is lit here and unlit in C++. Kept as is (documented,
-                       Task A fixes); the Task A fixed-orientation test had no such peak. */
+                    /* CppEdgeRules, exact C++ ShapePixelOverlapCounter (OverlapInfo.h:501-514): a
+                       detector is lit iff the pixel overlap is > 0 (branch above) or one of the
+                       three vertices is in bounds (IsInBound). There is no "pixels produced"
+                       clause, so a triangle that covers image pixels with all three vertices out of
+                       bounds (near a corner) stays unlit. Without CppEdgeRules the default rule
+                       (branch below: lit on any produced pixel) is unchanged. */
                     double vx[3] = {v0x, v1x, v2x}, vy[3] = {v0y, v1y, v2y};
                     for (int q = 0; q < 3; q++) {
                         double px = (vx[q] < 0) ? -1.0 : floor(vx[q]);
@@ -839,6 +835,8 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
                             break;
                         }
                     }
+                } else if (n_lit > 0) {
+                    detector_lit[d] = 1;
                 }
             }
         }
@@ -1156,6 +1154,7 @@ PyMODINIT_FUNC PyInit__rasterize(void) {
     PyObject *m = PyModule_Create(&rasterize_module);
     if (m != NULL) PyModule_AddIntConstant(m, "HAS_CPP_RULE", 1);
     if (m != NULL) PyModule_AddIntConstant(m, "HAS_RAY_RULE", 1);
-    if (m != NULL) PyModule_AddIntConstant(m, "HAS_VERTEX_LIT", 1);
+    /* 1 = vertex-lit rule that also lit on produced pixels (superset of C++); 2 = exact C++ rule */
+    if (m != NULL) PyModule_AddIntConstant(m, "HAS_VERTEX_LIT", 2);
     return m;
 }
