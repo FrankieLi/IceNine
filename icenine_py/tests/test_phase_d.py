@@ -103,6 +103,71 @@ def test_noise_is_deterministic_and_only_touches_expected_pixels() -> None:
     assert (img > 0).sum() == 48  # input untouched
 
 
+def _spot_grid_frame() -> np.ndarray:
+    """40 separated 6 x 6 spots (120 px apart, so the 32 px hot/blob windows never overlap)."""
+    img = np.zeros((520, 1240), dtype=np.float32)
+    for i in range(4):
+        for j in range(10):
+            y, x = 60 + 120 * i, 60 + 120 * j
+            img[y : y + 6, x : x + 6] = 3.0 + (i * 10 + j) % 7
+    return img
+
+
+def test_noise_named_variants() -> None:
+    assert N.NoiseParams.named("toy") == N.NoiseParams()
+    nd = N.NoiseParams.named("nodrop")
+    assert nd.p_miss == 0.0 and N.NoiseParams().p_miss == 0.1
+    assert (nd.p_flip, nd.p_hot, nd.p_blob, nd.window) == (0.05, 0.05, 0.1, 32)
+    assert N.NOISE_VARIANTS == ("toy", "nodrop")
+    with pytest.raises(ValueError):
+        N.NoiseParams.named("realistic")
+
+
+def test_nodrop_frame_equals_toy_except_on_missed_spots() -> None:
+    """Q8: with the same random stream, nodrop = toy outside the spots toy missed (the miss draw
+    is always taken, so no other draw moves); inside them toy is empty and nodrop has the spot
+    with its edge jitter, hot pixel and blob."""
+    from scipy import ndimage
+
+    img = _spot_grid_frame()
+    toy, c_toy = N.add_detector_noise(img, np.random.default_rng(5), N.NoiseParams.named("toy"))
+    nod, c_nod = N.add_detector_noise(img, np.random.default_rng(5), N.NoiseParams.named("nodrop"))
+    assert c_toy["n_spots"] == c_nod["n_spots"] == 40
+    assert c_toy["n_missed"] >= 1 and c_nod["n_missed"] == 0
+    lab, n = ndimage.label(img > 0)
+    cm = np.array(ndimage.center_of_mass(img > 0, lab, np.arange(1, n + 1)))
+    in_missed = np.zeros(img.shape, dtype=bool)
+    n_missed = 0
+    for s in range(n):
+        y, x = int(round(cm[s, 0])), int(round(cm[s, 1]))
+        box = (slice(max(y - 24, 0), y + 25), slice(max(x - 24, 0), x + 25))
+        spot = lab == s + 1
+        # no clean spot is missing in nodrop (flip drops each pixel with 5%: >= 24 of 36 stay)
+        assert int((nod[spot] > 0).sum()) >= 24
+        if not (toy[spot] > 0).any():  # toy missed this spot: its whole box is empty in toy
+            n_missed += 1
+            in_missed[box] = True
+            assert toy[box].sum() == 0 and (nod[box] > 0).sum() >= 24
+        else:
+            assert np.array_equal(toy[box], nod[box])
+    assert n_missed == c_toy["n_missed"]
+    assert not (toy != nod)[~in_missed].any()  # every difference lies in a missed spot's box
+    for k in ("n_spots", "n_dropped_px", "n_grown_px"):
+        assert c_toy[k] == c_nod[k]  # the jitter draws are the same stream
+    assert c_nod["n_hot"] >= c_toy["n_hot"] and c_nod["n_blob"] >= c_toy["n_blob"]
+
+
+def test_render_full_noise_option(monkeypatch: pytest.MonkeyPatch) -> None:
+    import render_full as RF
+
+    assert RF.realistic_dirname("toy") == "realistic"
+    assert RF.realistic_dirname("nodrop") == "realistic_nodrop"
+    # nodrop never rewrites the clean images: asking for them is an argument error
+    monkeypatch.setattr(sys, "argv", ["render_full.py", "--noise", "nodrop"])
+    with pytest.raises(SystemExit):
+        RF.main()
+
+
 def test_noise_flip_rates() -> None:
     img = np.zeros((400, 400), dtype=np.float32)
     img[100:300, 100:300] = 1.0
@@ -156,7 +221,8 @@ def test_grid_mic_has_no_orientation_information() -> None:
 
 def test_phase_d_configs_use_grid_mic_and_explicit_keys() -> None:
     cfgs = sorted((ROOT / "scripts" / "phase_d" / "configs").glob("*.config"))
-    assert len(cfgs) == 9  # {mc, cma, cma_noretry} x {clean, realistic, realistic_q16}
+    # {mc, cma, cma_noretry} x {clean, realistic, realistic_q16, realistic_nodrop}
+    assert len(cfgs) == 12
     for c in cfgs:
         t = c.read_text()
         assert "SampleFilename           SimInput/rand_500grains_1mm_neworient_s0_grid.mic" in t
@@ -171,6 +237,17 @@ def test_phase_d_configs_use_grid_mic_and_explicit_keys() -> None:
         assert "\nBFSRevisitRefit 1\n" in t and "#BFSRevisitRefit" not in t
     q16 = [c for c in cfgs if "q16" in c.name]
     assert len(q16) == 3 and all("full_q16/realistic" in c.read_text() for c in q16)
+    nodrop = [c for c in cfgs if "nodrop" in c.name]  # Q8: the same arms on the no-drop images
+    assert len(nodrop) == 3 and all(
+        "full/realistic_nodrop/500Grains.sim" in c.read_text() for c in nodrop
+    )
+    for c in nodrop:
+        twin = c.with_name(c.name.replace("realistic_nodrop", "realistic"))
+        a, b = c.read_text().splitlines(), twin.read_text().splitlines()
+        assert len(a) == len(b)
+        assert [x for x, y in zip(a, b) if x != y] and all(
+            "realistic_nodrop" in x for x, y in zip(a, b) if x != y
+        )  # only the header, image path and output name differ from the toy arm
 
 
 def test_memmap_loader_matches_dense(tmp_path: Path) -> None:

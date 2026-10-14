@@ -13,6 +13,11 @@ window; here they are applied per connected component ("spot") of a whole detect
   * blob : a spurious 2-4 px (per axis) block, same placement rule
 Overlapping spots form one component, so they are missed together; that is the difference to the
 per-window version. The random stream of a frame depends only on (seed, detector, frame).
+
+Named variants (NoiseParams.named): "toy" is the values above (the default, and what the
+existing realistic/ images were rendered with); "nodrop" is the same with p_miss 0 (Q8, owner
+2026-10-13: the random spot drop is unphysical, since a strong spot does not vanish). The miss
+draw is always taken (below), so every other draw of a frame is the same in both variants.
 """
 
 from dataclasses import dataclass
@@ -29,6 +34,18 @@ class NoiseParams:
     p_hot: float = 0.05
     p_blob: float = 0.1
     window: int = 32  # placement box of hot pixels / blobs around the spot centroid
+
+    @classmethod
+    def named(cls, name: str) -> "NoiseParams":
+        """Variant toy (the defaults) or nodrop (the defaults with p_miss 0, no random spot drop)."""
+        if name == "toy":
+            return cls()
+        if name == "nodrop":
+            return cls(p_miss=0.0)
+        raise ValueError(f"unknown noise variant {name!r} (expected one of {NOISE_VARIANTS})")
+
+
+NOISE_VARIANTS = ("toy", "nodrop")
 
 
 def add_detector_noise(

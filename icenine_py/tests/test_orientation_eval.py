@@ -482,6 +482,81 @@ class TestExactBayes:
 
 
 # ============================================================================
+# Realism layer without the random spot drop (Q8)
+# ============================================================================
+
+
+class TestRealismNoDrop:
+    @staticmethod
+    def _windows():
+        """40 cases x 6 entries of 32 x 32 frame-coded windows (entry 5 is padding), a 6 x 6
+        target spot and a distractor block in every valid entry."""
+        w = torch.zeros(40, 6, 32, 32, dtype=torch.uint8)
+        w[:, :5, 8:14, 8:14] = 5
+        dis = torch.zeros_like(w)
+        dis[:, :, 20:22, 20:22] = 3
+        valid = torch.zeros(40, 6, dtype=torch.bool)
+        valid[:, :5] = True
+        return w, dis, valid
+
+    def test_named_variants(self):
+        from icenine.orientation_eval import RealismConfig
+
+        assert RealismConfig.named("all") == RealismConfig(True)  # defaults unchanged
+        assert RealismConfig.named("noise") == RealismConfig(False)
+        assert RealismConfig(True).p_miss == 0.1
+        assert RealismConfig.named("all_nodrop") == RealismConfig(True, 0.0)
+        assert RealismConfig.named("noise_nodrop") == RealismConfig(False, 0.0)
+        with pytest.raises(ValueError):
+            RealismConfig.named("realistic_nodrop")  # the E0 harness label is mapped in common.py
+
+    def test_all_nodrop_equals_all_wherever_all_did_not_miss(self):
+        """One generator per call (as the E0 harness: one make_realistic_dataset call, one seed,
+        per voxel): every window of all_nodrop equals the one of `all`, except those `all` missed
+        (empty there), which all_nodrop keeps with the same jitter, hot pixel and blob."""
+        from icenine.orientation_eval import make_realistic_dataset, make_realistic_windows
+        from icenine.orientation_eval import RealismConfig
+
+        w, dis, valid = self._windows()
+        for a, b in (
+            (
+                make_realistic_dataset(w, dis, "all", 4, seed=7, valid=valid),
+                make_realistic_dataset(w, dis, "all_nodrop", 4, seed=7, valid=valid),
+            ),
+            (
+                make_realistic_windows(
+                    w, dis, RealismConfig.named("all"), 4, torch.Generator().manual_seed(7), valid
+                ),
+                make_realistic_windows(
+                    w,
+                    dis,
+                    RealismConfig.named("all_nodrop"),
+                    4,
+                    torch.Generator().manual_seed(7),
+                    valid,
+                ),
+            ),
+        ):
+            lit_a = (a > 0).flatten(2).any(-1)  # bool (uint8 any() is uint8)
+            missed = valid & ~lit_a
+            assert int(missed.sum()) >= 5  # about 10% of 200 valid windows
+            assert torch.equal(a[~missed], b[~missed])
+            # no spot is lost without the drop: every valid window has lit pixels
+            assert bool((b > 0).flatten(2).any(-1)[valid].all())
+            assert int(b[~valid].sum()) == 0  # padding stays empty
+            assert (b[missed] > 0).flatten(1).sum(-1).min() >= 30  # target mostly intact
+
+    def test_noise_nodrop_never_empties_a_window(self):
+        from icenine.orientation_eval import make_realistic_dataset
+
+        w, _, valid = self._windows()
+        for name in ("noise", "noise_nodrop"):
+            out = make_realistic_dataset(w, None, name, 4, seed=3, valid=valid)
+            empty = valid & ~(out > 0).flatten(2).any(-1)
+            assert (int(empty.sum()) > 0) == (name == "noise")
+
+
+# ============================================================================
 # Stage 1: frame-coded windows from the observer
 # ============================================================================
 
