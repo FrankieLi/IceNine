@@ -150,7 +150,7 @@ owner review in between.
 | S0 | measurement scripts (`scripts/speed_parity/`) | - | **done** |
 | S1 | remove the per-call Python loops in `evaluate`: stage-A lookup table, image table built once per cost function, constant tensors of the Bragg solve hoisted | about 1.2x per call; bit-identical | next |
 | S2 | fused C evaluation behind an opt-in key: Bragg solve, eta filter, frame lookup, ray hits and stage D in one call | about 15-25 µs per call (estimate; prototype first) | not started; after S3 (owner 2026-10-13: a GPU path is wanted, so batched torch goes first; S2 stays open); parity via Task A's fixed-orientation harness |
-| S3 | batched quick MC: all candidates of a level step in lockstep (about 58% of evaluations with the C++ rule) | per-call overhead shared across the batch | not started; next after S1, with a GPU option (owner 2026-10-13; Ilium Agent's machine has MPS, which has no float64); each candidate's quick MC is one block of 10 trial steps that always draws 30 uniforms in candidate order (`reconstructor.py:622`, `orientation_search.py:576`), so pre-drawing them in that order keeps the trial rotations identical; only float32 differences of the batched cost remain: check per-level candidates and wrong counts (as Q5 asks) |
+| S3 | batched quick MC: all candidates of a level step in lockstep (about 58% of evaluations with the C++ rule) | per-call overhead shared across the batch | **planned** (`docs/todo_batched_quick_mc.md`), next after S1, with a GPU option (owner 2026-10-13; Ilium Agent's machine has MPS, which has no float64): Step 0 go/no-go measurement, then a batched local cost and a lockstep quick MC behind `BatchedQuickMC`. Correction: a candidate draws 30 uniforms, or 33 when its block fails, so pre-drawing keeps today's trial rotations only up to the first failed candidate; the plan's draw option (exact re-runs or block assignment) waits for the owner. Check per-level candidates and wrong counts (as Q5 asks) |
 | S4 | level-0 screen from a per-sample table: the level-0 orientations are the same for every voxel and a spot moves rigidly with the voxel (`docs/spot_translation_derivation.md`) | ceiling about 1% of a no-start search today (level 0 is about 1.1 s of 76-96 s with `BatchedScreen`); more after S2/S3 | **planned** (`docs/todo_translation_screen_prototype.md`): Step 0 go/no-go measurement, then a script-only prototype with pass-set equality checks; best done after S2/S3 |
 | S5 | a BFS neighbour's first evaluation (inherited orientation) as a translation of the parent's spots | small | idea |
 | S6 | repeat the S0 measurements on the full-sample Phase D images (on Newt Agent's machine) | confirms or corrects the ThreeVoxels figures | needs the Phase D data |
@@ -193,7 +193,7 @@ owner review in between.
 |---|---|---|
 | X1 | full-sample BFS end to end on the 500-grain sample (classic vs NN and hybrid finisher) | data and library ready; long runs deferred 2026-10-09, again 2026-10-13 ("later") (`todo_500grain_bfs_end_to_end.md`) |
 | X2 | reseed on other regions, seed orders and full-sample scale | deferred 2026-10-09 |
-| Q8 | noise model of the realistic images (unphysical 10% spot drop) | owner 2026-10-13: remove the random spot drop (keep jitter, hot pixels, blobs), then re-render and re-run the realistic comparisons; not started, agent and timing not assigned; blocks every realistic-image comparison |
+| Q8 | noise model of the realistic images (unphysical 10% spot drop) | owner 2026-10-13: remove the random spot drop (keep jitter, hot pixels, blobs), then re-render and re-run the realistic comparisons; Ilium Agent (owner 2026-10-13), not started, plan first (the Phase D data is on Newt Agent's machine: regenerate it here with `scripts/phase_d/` or copy it, to be settled in the plan); blocks every realistic-image comparison |
 | X3 | multiple detectors with many grains and voxels far from the axis | deferred (`todo_multidetector_many_grains.md`) |
 | X4 | intensity inputs and distribution losses for the orientation network | deferred (`todo_intensity_and_distribution_losses.md`) |
 | X5 | not yet ported: MPI server/client, step-size file reading, unique-reflection filtering, quadtree peak search | open |
@@ -217,9 +217,10 @@ owner review in between.
 
 # Decisions waiting on the owner
 
-1. Q8: which agent removes the random spot drop and re-renders, and when (the Phase D full-sample
-   images are on Newt Agent's machine).
+1. S3: the random-draw option of `docs/todo_batched_quick_mc.md` (A exact re-runs, B block
+   assignment), at plan approval.
 
+Decided 2026-10-13: Ilium Agent does the Q8 re-render.
 Decided 2026-10-13: a GPU path is wanted for the search cost (S3 batched torch before S2 fused C;
 S2 stays open); `CppOverlapRule` stays off; F1 and F1b stay off; Q8 drops the random spot drop; the
 500-grain runs (X1) come later.
