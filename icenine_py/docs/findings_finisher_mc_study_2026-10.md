@@ -494,8 +494,11 @@ The earlier report's precision and timing numbers for the default finisher carry
    changes 11 goldens and, in principle, every stored result computed through the cost function
    (`benchmarks/phase_d_seed_diag/level0/default_flip_would_change.md`).
    *Update 2026-10-13 (evaluation-reduction Task A, MIGRATION_HISTORY "Task A").* The remaining 2 to 5% (Python
-   0.946 to 0.978 times C++'s evaluations) is the second complete-cost call C++ makes on every returned candidate
-   (10,829 evaluations per voxel); the 1.4% of level-0 pairs that still differed was the C++ omega interpolation
+   0.946 to 0.978 times C++'s evaluations) is a net sum: the second complete-cost call C++ makes on every returned
+   candidate (10,829 evaluations per voxel, not made by Python) is partly offset by the other stages (+2,342 net per
+   voxel, mostly FindOptimal, +1,895, which in Python misses its convergence test on 3 of 6 voxels); with
+   `CppEdgeRules` the second re-cost is 101% of the deficit and the other stages net +79 through offsetting terms
+   (quick MC +236, FindOptimal -261). The 1.4% of level-0 pairs that still differed was the C++ omega interpolation
    (confirmed: per-FZ-point pass sets 4,885 of 4,886 with `CppOmegaInterp` and `CppEdgeRules`, 4,466 with exact
    omegas), plus three C++ edge conventions that the opt-in `CppEdgeRules` reproduces.
 4. **Which difference matters.** Which of the C++ differences (block halving, restart base, fixed step) produces
