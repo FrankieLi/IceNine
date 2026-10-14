@@ -8,22 +8,24 @@ candidate is scored by one ``BatchedCostEvaluator.evaluate_many`` call, so the p
 paid once per step and not once per candidate.
 
 **Random draws (option B, a fixed slice per candidate).** Run sequentially, candidate i's 30 trial
-uniforms start at stream position 30 i + 3 F_i, F_i the number of failed blocks among candidates
-0 .. i-1 (a failed block draws 3 more uniforms for a restart it never uses), so each candidate's
-draws depend on the outcomes before it. Reproducing that exactly needs speculative evaluation that
-costs 21-67 times the counted evaluations (S3 Step 0), so the lockstep path draws one buffer
-``rng.random(33 N)`` per level instead: candidate i owns positions 33 i .. 33 i + 32 (the first 30
-are its 10 trials, 3 each in today's x, y, z order; the last 3 are the restart draw of the failure
-branch, never used). The generator advances by exactly 33 N per level whatever the outcomes. The
-buffer is drawn as ``rng.uniform(-r, r, size=33 N)``, r the trial radius: it consumes the same 33 N
-doubles as ``rng.random(33 N)`` and maps each exactly as the scalar ``rng.uniform(-r, r)`` of the
-sequential path does (bit for bit; recomputing ``low + (high - low) * u`` with numpy ufuncs is
-not the same: numpy's C ``random_uniform`` rounds that expression once (a fused multiply-add) on
-this platform, and the two roundings differ by one ulp in about half of the draws). Results
-therefore differ from the sequential path's (later levels and FindOptimal also see a different
-stream): the key is compared with wrong counts (an A/B), not equality. Given the slices, the result
-of each candidate equals what ``MCOptimizer.optimize`` returns when its generator replays that
-candidate's slice (tests/test_batched_quick_mc.py).
+uniforms start at stream position 30 i + 3 F_i, F_i the number of failed blocks among candidates 0
+.. i-1 (a failed block draws 3 more uniforms for a restart it never uses), so each candidate's draws
+depend on the outcomes before it. Reproducing that exactly needs speculative evaluation that costs
+21-67 times the counted evaluations (S3 Step 0), so the lockstep path draws one buffer per level
+instead, ``rng.uniform(-r, r, size=33 N)``, r the trial radius: candidate i owns positions 33 i ..
+33 i + 32 (the first 30 are its 10 trials, 3 each in today's x, y, z order; the last 3 are the
+restart draw of the failure branch, never used). The buffer consumes the same 33 N doubles as
+``rng.random(33 N)``, so the generator advances by exactly 33 N per level whatever the outcomes, and
+every element equals the scalar ``rng.uniform(-r, r)`` of the sequential path bit for bit: both
+calls run numpy's C ``random_uniform`` once per element, so this does not depend on the platform's
+fused multiply-add. Recomputing ``low + (high - low) * u`` from ``rng.random`` with numpy ufuncs
+would not be the same: the C code rounds that expression once (an FMA, where this platform has one)
+and the two roundings differ by one ulp in about half of the draws (10,714 of 20,000 here,
+benchmarks/s3_steps1_5/draw_check.json); only that rejected expression depends on the platform.
+Results therefore differ from the sequential path's (later levels and FindOptimal also see a
+different stream): the key is compared with wrong counts (an A/B), not equality. Given the slices,
+the result of each candidate equals what ``MCOptimizer.optimize`` returns when its generator replays
+that candidate's slice (tests/test_batched_quick_mc.py).
 
 Only the single-block case is covered (``n_min_ergodic >= max_mc_steps``, the case of every shipped
 config, ``MCRadiusScaleFactor`` 0.4: one block of 10 trial steps). Evaluations per candidate: 12,

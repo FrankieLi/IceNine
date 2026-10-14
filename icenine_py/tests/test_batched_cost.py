@@ -2,7 +2,10 @@
 variant run on the CPU equal ``VoxelCostFunction.evaluate`` in every OverlapInfo field; an MPS run
 is only compared (counts reported, no equality)."""
 
+import json
+import os
 import warnings
+from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
@@ -138,7 +141,11 @@ def test_sample_matrix_change_is_seen(three_voxels: Dict[str, Any]) -> None:  # 
 
 
 @needs_c
-def test_unsupported_cost_functions(three_voxels: Dict[str, Any]) -> None:  # noqa: F811
+def test_unsupported_cost_functions(
+    three_voxels: Dict[str, Any], monkeypatch: pytest.MonkeyPatch  # noqa: F811
+) -> None:
+    from icenine.ray_overlap import RayRule
+
     c = three_voxels
     assert BC.unsupported_reason(_local(c)) is None
     assert BC.unsupported_reason(_local(c, cpp_overlap_rule=True)) is None
@@ -146,9 +153,11 @@ def test_unsupported_cost_functions(three_voxels: Dict[str, Any]) -> None:  # no
         "screen": VoxelCostFunction(pixel_radius=3, **c["kwargs"]),
         "edge": _local(c, cpp_edge_rules=True),
         "soft": VoxelCostFunction(pixel_radius=0, mode="soft", **c["kwargs"]),
+        "ray": _local(c, ray_rule=RayRule()),
     }
+    reasons = {"screen": "pixel_radius", "edge": "CppEdgeRules", "soft": "soft", "ray": "ray rule"}
     for name, cf in bad.items():
-        assert BC.unsupported_reason(cf) is not None, name
+        assert reasons[name] in str(BC.unsupported_reason(cf)), name
         with pytest.warns(RuntimeWarning, match="sequential quick MC"):
             assert BC.make_batched_cost_evaluator(cf) is None
         with warnings.catch_warnings():
@@ -157,6 +166,19 @@ def test_unsupported_cost_functions(three_voxels: Dict[str, Any]) -> None:  # no
         with pytest.raises(NotImplementedError):
             BC.BatchedCostEvaluator(cf)
     assert isinstance(BC.make_batched_cost_evaluator(_local(c)), BC.BatchedCostEvaluator)
+    # a build without the _rasterize extension, or one older than CppOverlapRule: a supported cost
+    # function becomes unsupported (the reconstructor then runs the sequential quick MC)
+    ok, ok_rule = _local(c), _local(c, cpp_overlap_rule=True)
+    monkeypatch.setattr(CF, "_C_HAS_CPP_RULE", False)
+    assert BC.unsupported_reason(ok) is None
+    assert "predates CppOverlapRule" in str(BC.unsupported_reason(ok_rule))
+    monkeypatch.setattr(CF, "_HAS_C_RASTERIZE", False)
+    for cf in (ok, ok_rule):
+        assert "_rasterize C extension is missing" in str(BC.unsupported_reason(cf))
+        with pytest.warns(RuntimeWarning, match="sequential quick MC"):
+            assert BC.make_batched_cost_evaluator(cf) is None
+        with pytest.raises(NotImplementedError):
+            BC.BatchedCostEvaluator(cf)
 
 
 def test_device_validation(three_voxels: Dict[str, Any]) -> None:  # noqa: F811
@@ -193,6 +215,19 @@ def test_mps_is_compared_not_equal(
             f"\nMPS vs evaluate ({len(R)} orientations, max_q {max_q}): fields differing {n_diff}; "
             f"cost differs in {(dcost > 0).sum()}, max |dcost| {dcost.max():.4f}"
         )
+    save = os.environ.get("ICENINE_S3_MPS_JSON")  # optional: keep the printed counts (a JSON)
+    if save:
+        path = Path(save)
+        rec = json.loads(path.read_text()) if path.exists() else {}
+        rec[f"max_q_{max_q:g}"] = dict(
+            n_orientations=len(R),
+            max_q=max_q,
+            fields_differing=n_diff,
+            cost_differs=int((dcost > 0).sum()),
+            max_abs_dcost=float(dcost.max()),
+        )
+        rec["torch"] = torch.__version__
+        path.write_text(json.dumps(rec, indent=1, sort_keys=True) + "\n")
     assert dcost.max() < 0.1
     small = ev.evaluate_many(R[: BC.GPU_MIN_BATCH - 1], c["vertices"], phase)
     assert ev.counts["calls_compact"] == 1  # below GPU_MIN_BATCH: the CPU compact variant

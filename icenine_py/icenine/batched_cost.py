@@ -73,6 +73,7 @@ class _DeviceConstants:
         self.dets: List[Dict[str, Any]] = []
         for d in cf.detector_list:
             pl = d._detector_plane
+            assert pl is not None  # set by the detector's constructor
             self.dets.append(
                 dict(
                     n=pl.normal.to(**kw),

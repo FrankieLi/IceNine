@@ -371,3 +371,35 @@ def test_unsupported_levels_fall_back_to_the_sequential_quick_mc() -> None:
     assert cands[0].cost < 1.0
     rec.setup.search_params.batched_quick_mc = False
     assert not rec._batched_quick_mc(MCOptimizer(cf, verts, phase), *args)
+
+
+@pytest.mark.skipif(
+    not CF._HAS_C_RASTERIZE or not getattr(CF, "_C_HAS_RAY_RULE", False),
+    reason="C extension without the ray rule",
+)
+def test_ray_rule_levels_run_sequentially_and_later_levels_batched() -> None:
+    """Mixed mode under the ray rule: levels 0 .. rule.levels-1 score with a per-level ray cost
+    function the batched cost does not cover (sequential quick MC, one RuntimeWarning each); the
+    later levels use the strict local cost function, which the lockstep quick MC covers."""
+    from icenine.ray_overlap import RayRule
+    from icenine.reconstructor import _get_voxel_vertices
+
+    rec, voxel, R_true = _recon(
+        batched_quick_mc=True, max_local_resolution=2, ray_rule=RayRule(levels=2)
+    )
+    events: List[Any] = []
+    rec.recorder = lambda name, data: events.append((name, data))
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        res = rec.reconstruct_voxel(
+            _get_voxel_vertices(voxel), voxel.phase, rng=np.random.default_rng(7)
+        )
+    msgs = [str(w.message) for w in caught if issubclass(w.category, RuntimeWarning)]
+    ray_msgs = [m for m in msgs if "BatchedQuickMC is not supported" in m]
+    assert len(ray_msgs) == 2 and all("the ray rule" in m for m in ray_msgs)  # levels 0 and 1
+    ev = [e for e in rec._quick_mc_evaluators.values() if e is not None]
+    assert len(rec._quick_mc_evaluators) == 3 and len(ev) == 1  # 2 ray cost fns (None) + level 2
+    n_cand = [len(d["R"]) for n, d in events if n == "quick_mc"]
+    assert len(n_cand) == 3
+    assert ev[0].counts["orient_compact"] == 12 * n_cand[2]  # only level 2 went through it
+    assert np.isfinite(res.cost) and rec.last_find_optimal["n_candidates"] >= 1
