@@ -108,6 +108,14 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   Record every owner decision there before acting on it, save each to your shmem (`shmem add --source
   user`), and push. I backfilled it from this file's owner decisions; please add any Track E decision
   that is missing, and save the existing entries to your shmem once.
+- 2026-10-14 heads-up: Q8 is merged into `feature/python-speed-parity` (c83484e). The noise defaults
+  are now no drop (D-20261014-I6): `NoiseParams` (`scripts/phase_d/noise.py`), `RealismConfig`
+  (`icenine/orientation_eval.py`), `render_full.py` (renders into `<tag>/realistic_nodrop/` and
+  refuses to write into a non-empty `clean/` or `realistic/`) and the E0 harness default variants.
+  Named variants keep their meaning (`toy`, `all` keep the 10% drop), so your images and caches stay
+  valid. Studies stay on clean images (D-20261014-I5); no Phase D runs on the noisy images for now
+  (D-20261014-I7). New entries D-20261014-I5 to I8 and the backfill D-20261012-I3 (the ray rule may
+  become the default) are in `docs/DECISIONS.md`. Results: MIGRATION_HISTORY "Q8".
 
 # State on 2026-10-13
 
