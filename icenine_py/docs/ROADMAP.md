@@ -17,6 +17,9 @@ fontsize: 11pt
   owner); quote evaluations and wrong counts side by side; no p-values; clean full-sample images and
   the E0 200-voxel set until the noise model is redone (open question Q8 below).
 - "Owner" decisions are made only by the project owner. They are collected at the end.
+- Two Claude Code agents work on the port, named by the machine they run on: **Ilium Agent** and
+  **Newt Agent**. The Phase D full-sample images and the evaluation-reduction plan file are on Newt
+  Agent's machine. "Either agent" items go to whichever is free.
 
 Sources merged into this file (2026-10-13): `MIGRATION_HISTORY.md` "Remaining Work" and
 "Evaluation reduction and cost smoothing"; the open questions of
@@ -42,13 +45,13 @@ the **cost per evaluation**.
 
 | Track | Goal | Branch | Who |
 |---|---|---|---|
-| E | fewer evaluations (eval-reduction Tasks B-G) | `feature/eval-reduction` | remote agent |
-| S | cheaper evaluations (speed parity with C++) | `feature/python-speed-parity` | local agent |
-| H | housekeeping and doc fixes | `feature/housekeeping` (to start) | either, small |
+| E | fewer evaluations (eval-reduction Tasks B-G) | `feature/eval-reduction` | Newt Agent |
+| S | cheaper evaluations (speed parity with C++) | `feature/python-speed-parity` | Ilium Agent |
+| H | housekeeping and doc fixes | `feature/housekeeping` (to start) | either agent, small |
 | Q | search accuracy open questions | per item | owner schedules |
 | X | scale and realism | deferred | owner |
 | R | research ideas | not started | owner |
-| C | C++ code base | low priority | either |
+| C | C++ code base | low priority | either agent |
 
 ## Coordination between Tracks E and S
 
@@ -64,9 +67,9 @@ the **cost per evaluation**.
 - **Merge order to develop:** `feature/eval-reduction` first; `feature/python-speed-parity` already
   contains it at 0c187a4 and merges after.
 
-# Track E: evaluation reduction (remote agent)
+# Track E: evaluation reduction (Newt Agent)
 
-Plan: `~/.claude/plans/eval-reduction.md` on the remote machine (not committed); overview and results
+Plan: `~/.claude/plans/eval-reduction.md` on Newt Agent's machine (not committed); overview and results
 in MIGRATION_HISTORY "Evaluation reduction and cost smoothing".
 
 | Task | Owner ask | Status |
@@ -83,7 +86,7 @@ Left over from Task A (not planned): the omega interpolation with the ray rule (
 warning); C++'s second complete-cost call per returned candidate (would only add evaluations); an E0
 run on realistic images (excluded until Q8).
 
-# Track S: per-evaluation cost (local agent)
+# Track S: per-evaluation cost (Ilium Agent)
 
 Findings: MIGRATION_HISTORY "Python speed parity: per-evaluation cost (2026-10-13)". In one sentence:
 over 95% of an `evaluate` call is Python and torch dispatch (about 750 tiny tensor operations); the
@@ -97,7 +100,7 @@ physics plus the C pixel overlap is about 10 µs, below C++'s 42-55 µs.
 | S3 | batched quick MC: all candidates of a level step in lockstep (about 58% of evaluations with the C++ rule) | per-call overhead shared across the batch | not started; RNG order changes, so near-identical: check per-level candidates and wrong counts (as Q5 asks) |
 | S4 | level-0 screen from a per-sample table: the level-0 orientations are the same for every voxel and a spot moves rigidly with the voxel (`docs/spot_translation_derivation.md`) | screen becomes a gather; unmeasured | idea |
 | S5 | a BFS neighbour's first evaluation (inherited orientation) as a translation of the parent's spots | small | idea |
-| S6 | repeat the S0 measurements on the full-sample Phase D images (on the remote machine) | confirms or corrects the ThreeVoxels figures | needs the remote data |
+| S6 | repeat the S0 measurements on the full-sample Phase D images (on Newt Agent's machine) | confirms or corrects the ThreeVoxels figures | needs the Phase D data |
 
 # Track H: housekeeping (verified on 0c187a4)
 

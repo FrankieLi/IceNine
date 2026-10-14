@@ -6528,4 +6528,4 @@ to 9.8e-4 px, linear and additive to 1.2e-3 px (float32), frames unchanged; the 
 a candidate for a per-sample table (ROADMAP S4).
 
 **Not done.** No library change. The ThreeVoxels figures are not yet repeated on the full-sample Phase D images (on
-the remote machine; ROADMAP S6). The C++ figure is taken from Task A's runs, not re-measured.
+Newt Agent's machine; ROADMAP S6). The C++ figure is taken from Task A's runs, not re-measured.
