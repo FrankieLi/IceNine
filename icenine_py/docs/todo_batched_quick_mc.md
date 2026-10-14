@@ -108,6 +108,11 @@ Option A (exact, by speculation) was dropped after Step 0. Option B:
 - **Mapping.** A standard uniform u maps to the trial range exactly as `Generator.uniform(-r, r)` does
   (`low + (high - low) * u`), r = `tan(step)/sqrt(12)`; a test checks bit identity with scalar
   `rng.uniform` on the same stream.
+- **As built (changed in Step 2).** The buffer is `rng.uniform(-r, r, size=33 * N)`, not
+  `rng.random(33 * N)` mapped by `low + (high - low) * u`: the two numpy roundings of that expression
+  differ from the scalar `rng.uniform(-r, r)` in 10,714 of 20,000 draws (numpy's C code rounds once;
+  `benchmarks/s3_steps1_5/draw_check.json`). The stream consumption is the same 33 N doubles, and the
+  slices equal the scalar draws bit for bit. The two bullets above describe the plan, not the code.
 - **No speculation.** Each step is one batched call over the N candidates; computed evaluations equal
   counted ones, 12 per candidate as today, so evaluation ledgers keep their meaning.
 - **Sequential reference** (tests only): today's `MCOptimizer.optimize` run per candidate with its

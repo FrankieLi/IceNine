@@ -6551,7 +6551,8 @@ not equal to the key-off results, by design (draw option B below).
   rows, validity as a mask, one packed transfer to the host; used on `mps` or `cuda` for batches of at least
   `GPU_MIN_BATCH` = 64 orientations, smaller batches use the CPU variant). Stage D stays the existing C call, once per
   orientation. Covers the default rule and `CppOverlapRule`; `make_batched_cost_evaluator` returns None (and warns)
-  for `CppEdgeRules`, the ray rule, soft mode, `pixel_radius` > 0 and a build without the `_rasterize` extension. The
+  for `CppEdgeRules`, the ray rule, soft mode, `pixel_radius` > 0 and a build without the `_rasterize` extension (or one
+  older than `CppOverlapRule`); the tests cover each of these. The
   g vectors must be computed with one 3x3 gemm per orientation against the `g_hkl.T` view and kept component-major, or
   the CPU result is not bit-equal to `evaluate` (Step 0).
 - `icenine/batched_quick_mc.py`, `run_batched_quick_mc`: draws the level's buffer, evaluates both start evaluations of
@@ -6560,14 +6561,21 @@ not equal to the key-off results, by design (draw option B below).
   `overlap_info` and a per-candidate `last_run` as `optimize` does. Evaluations per candidate: 12, as sequential.
   Applies to a plain `MCOptimizer` with a single block (`n_min_ergodic >= 10`, all shipped configs: 31); otherwise
   `reconstruct_voxel` runs the sequential path, with a `RuntimeWarning` naming the reason (study subclasses such as
-  `LoggedMC`, the ray rule, `CppEdgeRules`).
+  `LoggedMC`, the ray rule, `CppEdgeRules`). **Mixed mode under the ray rule:** levels 0 .. `levels`-1 of the rule
+  (0-2 by default) score with a ray cost function made per level, which the batched cost does not cover, so they run
+  the sequential quick MC (one warning per level); the later levels use the strict local cost function and run in
+  lockstep. A test (`test_ray_rule_levels_run_sequentially_and_later_levels_batched`) checks this on a three-level
+  search with a rule of two levels.
 - `reconstructor.py`: `AdaptiveVoxelReconstructor._batched_quick_mc` is called in the level loop; `config_file.py` and
   `SearchParameters`: `batched_quick_mc`, `search_device` (`cpu`, `mps`, `cuda`; an unavailable device raises).
   `scripts/coarse_proxy/eval_split.py`, `scripts/phase_d/{level0_trace,ray_overlap_study,seed_diag}.py` pin the key off
   (they count evaluations by patching `evaluate`); `scripts/eval_reduction/eval_ledger.py` also counts `evaluate_many`.
 - Scripts: `scripts/speed_parity/s3_timing.py` (+ `run_s3_timing.sh`), `s3_summary.py`, `s3_draw_check.py`;
   `scripts/findoptimal_robustness/e0_run.py` got `--batched-quick-mc`, `--search-device`, `--tag` (results in
-  `cache/e0<tag>`; the images of a built case are reused by the other arm).
+  `cache/e0<tag>`; the images of a built case are reused by the other arm), `--no-center-screen` and
+  `--no-batched-screen` (the baseline check below). The S3 arms keep their own tags (`_s3off`, `_s3on`, ...); a
+  non-default run without a tag is refused, because `cache/e0` is the published Diagnosis cache that
+  `scripts/cma_finisher/e0_cma.py` and `analyze_e0.py` read.
 
 ### Draw option B (owner 2026-10-14) and why option A was dropped
 
@@ -6591,13 +6599,14 @@ and the near-identity point is most of the build.
 
 ### Tests (`tests/test_batched_cost.py`, `tests/test_batched_quick_mc.py`)
 
-- Batched cost: for 361 orientations (the truth, perturbations of 0.1-8 degrees, random rotations) at B = 1, 7 and 64,
-  default rule, `CppOverlapRule` and `min_sin_eta` 0.4, all reflections and Q-max 5, the CPU compact variant and the
-  fixed-shape variant run on the CPU equal `evaluate` in every `OverlapInfo` field (0 differing). MPS (run here, Apple
-  GPU): with all reflections 134 of 361 orientations differ in `pixel_on_detector`, 15 in `pixel_overlap`, 6 in
-  `peak_overlap`, 18 in the quality (largest cost difference 0.0012); with Q-max 5, 8 differ in `pixel_on_detector`, 1 in
-  `pixel_overlap` and none in the cost (printed by the test with `-s`, not saved). Reported, not asserted equal (only
-  |cost difference| < 0.1).
+- Batched cost: for 145 orientations (the truth, 24 perturbations each of 0.1, 0.4, 1, 3 and 8 degrees about random axes,
+  and 24 random rotations) at B = 1, 7 and 64, default rule, `CppOverlapRule` and `min_sin_eta` 0.4, all reflections and
+  Q-max 5, the CPU compact variant and the fixed-shape variant run on the CPU equal `evaluate` in every `OverlapInfo`
+  field (0 differing). MPS (run here, Apple GPU) uses 361 orientations (60 of each kind) in one call: with all
+  reflections 134 of 361 differ in `pixel_on_detector`, 15 in `pixel_overlap`, 6 in `peak_overlap`, 18 in the quality
+  (largest cost difference 0.0012); with Q-max 5, 8 differ in `pixel_on_detector`, 1 in `pixel_overlap` and none in the
+  cost. The counts are saved in `benchmarks/s3_steps1_5/mps_vs_evaluate.json` (the test writes them when the environment
+  variable `ICENINE_S3_MPS_JSON` names a file). Reported, not asserted equal (only |cost difference| < 0.1).
 - Lockstep quick MC: result (orientation, cost, `OverlapInfo`, `last_run`) equal to the replayed sequential `optimize`
   for 0, 1, 5 and 40 candidates with stub costs (every block fails; mixed outcomes with 0 < improved < 40) and for 26
   candidates with the real cost through `evaluate` and through `BatchedCostEvaluator` (CPU), default rule and
@@ -6605,9 +6614,10 @@ and the near-identity point is most of the build.
   `uniform(-r, r, 33 N)`; the offsets equal 33 N scalar `rng.uniform(-r, r)` draws bit for bit; `eval_count` 12 per
   candidate. Wiring: config keys, one level through `reconstruct_voxel` (11 batched calls: the starts together, then ten
   steps), fallbacks with their warnings, key off builds no evaluator.
-- Full suite (`uv run pytest tests/`, key off throughout): 953 passed, 41 skipped, 1 deselected, against 887 passed, 41
-  skipped, 1 deselected before this work (+66 tests: 43 in `test_batched_cost.py`, 23 in `test_batched_quick_mc.py`). No golden
-  value changed.
+- Full suite (`uv run pytest tests/`, key off throughout): 954 passed, 41 skipped, 1 deselected, against 887 passed, 41
+  skipped, 1 deselected before this work (+67 tests: 43 in `test_batched_cost.py`, 24 in `test_batched_quick_mc.py`;
+  `benchmarks/s3_steps1_5/run_notes.json`). No golden value changed. The review added the ray-rule and missing-extension
+  cases to `test_unsupported_cost_functions` and the mixed-mode wiring test.
 
 ### Step 4: timing (single worker, **contended**)
 
@@ -6635,13 +6645,14 @@ First 10 E0 clean voxels, seed 0, 2 repeats:
 <!-- table:s3_timing_e0 -->
 | arm (off = sequential quick MC) | searches | wall s, median | quick MC s, median | quick MC us per evaluation, median | candidates per level, median | evaluations per search, median | wall speedup (sum of searches) | quick-MC us per evaluation speedup |
 |---|---|---|---|---|---|---|---|---|
-| off | 20 | 1.97 | 0.98 | 359 | 168/44/12/2 | 48362 | n/a | n/a |
-| cpu | 20 | 1.19 | 0.21 | 76 | 168/44/10/2 | 48312 | 1.69 | 4.71 |
-| mps | 20 | 1.16 | 0.18 | 67 | 168/44/10/2 | 48312 | 1.73 | 5.33 |
+| off | 20 | 1.97 | 0.98 | 359 | 167.5/43.5/11.5/2.5 | 48362 | n/a | n/a |
+| cpu | 20 | 1.19 | 0.21 | 76 | 167.5/43.5/10.5/2 | 48312 | 1.69 | 4.71 |
+| mps | 20 | 1.16 | 0.18 | 67 | 167.5/43.5/10.5/2 | 48312 | 1.73 | 5.33 |
 <!-- /table:s3_timing_e0 -->
 
 The quick MC was 0.60 (ThreeVoxels) and 0.50 (E0) of the search's wall time with the key off (Step 0: 0.60 and 0.50);
-with the CPU key on it is 0.25 and 0.18, so the screen and FindOptimal now dominate and the next gain is elsewhere (S2, S4).
+with the CPU key on it is 0.25 and 0.18; the rest of the search (the screen, re-cost, FindOptimal and VarianceMinimizing,
+not split here) is now 0.75 and 0.82 of the wall time, so the next gain lies there (S2, S4).
 Step 0 had modelled the quick MC at 5.2 times on E0 and 4.6 / 6.6 times on ThreeVoxels (CPU / MPS), the whole search at
 1.67 (E0) and 1.88 / 2.03 (ThreeVoxels); measured 4.7 / 5.3 and 4.5 / 5.4 for the quick MC, 1.69 / 1.73 and 1.89 / 1.95
 for the search.
@@ -6675,9 +6686,14 @@ B = 64 (108 against 59) and ahead from B = 96. The GPU call latency is noisy on 
 ### Step 4: A/B on wrong counts (E0 clean, 200 voxels x 3 seeds)
 
 `e0_run.py run --variants clean --n-voxels 200 --workers 10` for the key-off arm (257 s for the 195 voxels left after a
-5-voxel pilot) and with `--batched-quick-mc --tag _s3on` for the key-on CPU arm (146 s); the same images, voxels and seeds. Wrong = reduced misorientation to the
+5-voxel pilot; it was run without a tag, into `cache/e0`, and after review moved to `cache/e0_s3off`) and with
+`--batched-quick-mc --tag _s3on` for the key-on CPU arm (146 s); the same images, voxels and seeds. Wrong = reduced misorientation to the
 truth > 1 degree. Seeds of one voxel are not independent, so the pooled intervals are optimistic. Both arms were run
-for all three seeds (the 4 h limit did not bind). Run times are 10 workers on a contended machine.
+for all three seeds (the 4 h limit did not bind). Run times are 10 workers on a contended machine; the key-off arm also
+built the case images in the same pool (the image files are stamped 00:50-00:56, the arm's results 00:50-00:56; the key-on
+arms' results 00:56 onwards, `file_times` in summary.json), so its timed runs overlapped with other workers' image
+rendering and its run time is not comparable with the key-on arm's. The two-worker table below, where every arm reuses the images, is
+the fair run-time comparison.
 
 <!-- table:s3_ab_wrong -->
 | arm | scope | wrong (> 1 deg) | runs | rate | Wilson 95% low | Wilson 95% high |
@@ -6718,28 +6734,62 @@ a calibration, the same split between two seeds of the key-off arm itself (a dif
 Evaluations per run (local = the quick MC, re-cost, FindOptimal and VarianceMinimizing; global = the screen):
 
 <!-- table:s3_ab_evals -->
-| arm | candidates per level, median | local evaluations per run, mean | global evaluations per run, mean | quick-MC evaluations per run, mean | run time s, median (10 workers, contended) |
-|---|---|---|---|---|---|
-| key off | 178/47/12/3 | 4125 | 44500 | 2896 | 3.8 |
-| key on (CPU) | 178/47/12/3 | 4120 | 44501 | 2896 | 2.3 |
-| key on (MPS; seed 0, voxels 0-49) | 176/47/12/3 | 4121 | 44499 | 2891 | n/a |
+| arm | candidates per level, median | local evaluations per run, mean | global evaluations per run, mean | quick-MC evaluations per run, mean | run time s, median (10 workers, contended) | case images (cache/images) |
+|---|---|---|---|---|---|---|
+| key off | 178.5/47/12/3 | 4125 | 44500 | 2896 | 3.8 | built in this arm's pool |
+| key on (CPU) | 178.5/47/12/3 | 4120 | 44501 | 2896 | 2.3 | reused |
+| key on (MPS; seed 0, voxels 0-49) | 176.5/47/12/3 | 4121 | 44499 | 2891 | n/a | reused |
 <!-- /table:s3_ab_evals -->
 
 Per voxel, the number of seeds (of 3) in which it is wrong, 0 / 1 / 2 / 3 seeds: key off 128 / 46 / 13 / 13 voxels, key on
-126 / 46 / 23 / 5.
+126 / 46 / 23 / 5. The wrong-in-all-three-seeds voxels fall from 13 to 5 and the wrong-in-two-seeds voxels rise from 13 to
+23; this is one draw of the key-on arm, not followed up (no repeat of the key-on arm with other seeds was run).
 
 - The key-on wrong count is not detectably different from the key-off count (111 and 107 of 600; the intervals overlap
   almost entirely). The runs flip in both directions (60 fixed, 56 broken per 600; 18/18, 15/18 and 27/20 per seed), by about the
   same amount as between two seeds of the key-off arm (20/22, 14/18 and 21/23 per 200), consistent with the key-on arm
   being another draw of the same random search. A difference smaller than the interval is not excluded.
 - The counted evaluations are the same (local 4,125 and 4,120, global 44,500 and 44,501 per run): the lockstep path does
-  no speculative evaluation. Median run time 3.8 s with the key off and 2.3 s with it on (10 workers, contended).
-- **The key-off arm does not reproduce the Diagnosis' 204/600.** It gives 111/600 = 0.185 [0.156, 0.218] (seed 0: 35/200).
-  The 204/600 was recorded on 2026-10-05, before the MC port of 2026-10-08 (`RandomRestartZeroTemp`; its E0 re-run had
-  seed 0 at 40/200 clean, see "C++-faithful MC: reruns") and before the centroid screen (2026-10-12) and `BatchedScreen`
-  (2026-10-13) became defaults. Run by run against the stored 2026-10-05 runs, 435 of 600 have the same wrong flag, 15 the
-  same final error (to 1e-3 deg) and none the same evaluation counts. Which of those changes accounts for the difference
-  was not tested. The comparison above is against the current default code.
+  no speculative evaluation. Median run time 3.8 s with the key off and 2.3 s with it on (10 workers, contended; not a
+  like-for-like comparison, see above: the key-off arm rendered the images; at two workers with the images reused the
+  medians are 2.16 and 1.28 s, below).
+- **The key-off arm does not reproduce the Diagnosis' 204/600, and the reason is now partly tested.** It gives
+  111/600 = 0.185 [0.156, 0.218] (seed 0: 35/200). Run by run against the stored 2026-10-05 runs, 435 of 600 have the
+  same wrong flag, 15 the same final error (to 1e-3 deg) and none the same evaluation counts. The 204/600 (seed 0:
+  67/200, 4,711 local evaluations; the Phase C "E0 baseline" is the same seed-0 run) is the pre-port Diagnosis of
+  2026-10-05, before the MC port of 2026-10-08. The nearest published baseline is the C++-faithful MC rerun of
+  2026-10-08 (`benchmarks/cma_finisher/mcfaithful`, see "C++-faithful MC: reruns"): seed 0 at 40/200, 3,962.95 local and
+  44,479.3 global evaluations. Baseline check (`e0_run.py --no-center-screen --no-batched-screen --tag _s3off_c0b0`
+  and `--no-center-screen --tag _s3off_c0`, seed 0, the same 200 voxels and images, key off; table `s3_ab_baseline`):
+  with the two screen defaults switched back, the harness gives 40/200 with the same 3,962.95 local and 44,479.3 global
+  evaluations as the published rerun, so the images, config, Q-max, overlap rules, random streams and wrong criterion
+  are the same as in the published runs. The centroid screen (default since 2026-10-12) accounts for 40 -> 35: paired by
+  voxel, centroid off against on, 19 voxels are right only with it, 14 wrong only with it and 21 wrong either way, about
+  the size of the flips between two seeds of the same code (20/22, 14/18 and 21/23 per 200), so the drop is not shown to
+  be a change in accuracy (the centroid study's own E0, "Step 3 results" above, `min_sin_eta` 0, lenient rule, went 39 -> 41, 14 fixed and 16 broken). It costs about 160 more
+  local and 20 more global evaluations per run. `BatchedScreen` (default since 2026-10-13) changes none of the 200 flags
+  and none of the costs, and 199 of 200 evaluation counts are the same. What remains of the gap to 67/200 is consistent with the MC
+  port (its own rerun moved seed 0 from 67 to 40/200); that step was not re-run here. The A/B above compares the key
+  against today's default code, not against any published E0 run.
+
+<!-- table:s3_ab_baseline -->
+| arm (E0 clean, seed 0, 200 voxels) | wrong (> 1 deg) | runs | rate | Wilson 95% low | Wilson 95% high | local evaluations per run, mean | global evaluations per run, mean |
+|---|---|---|---|---|---|---|---|
+| published, before the MC port (Diagnosis and Phase C, 2026-10-05) | 67 | 200 | 0.335 | 0.273 | 0.403 | 4711.26 | 44478.50 |
+| published, C++-faithful MC rerun (2026-10-08) | 40 | 200 | 0.200 | 0.150 | 0.261 | 3962.95 | 44479.31 |
+| this branch, key off, centroid screen and BatchedScreen off | 40 | 200 | 0.200 | 0.150 | 0.261 | 3962.95 | 44479.31 |
+| this branch, key off, centroid screen off | 40 | 200 | 0.200 | 0.150 | 0.261 | 3962.93 | 44479.35 |
+| this branch, key off, today's defaults (centroid screen and BatchedScreen on) | 35 | 200 | 0.175 | 0.129 | 0.234 | 4122.93 | 44499.87 |
+<!-- /table:s3_ab_baseline -->
+
+<!-- table:s3_ab_baseline_paired -->
+| change (a -> b) | paired runs | wrong a | wrong b | fixed (wrong a, right b) | broken (right a, wrong b) | both wrong | both right | same answer (1e-3 deg) | same evaluation counts |
+|---|---|---|---|---|---|---|---|---|---|
+| centroid screen off -> on (BatchedScreen on) | 200 | 40 | 35 | 19 | 14 | 21 | 146 | 12 | 1 |
+| BatchedScreen off -> on (centroid screen off) | 200 | 40 | 40 | 0 | 0 | 40 | 160 | 200 | 199 |
+| both off -> both on (today's defaults) | 200 | 40 | 35 | 19 | 14 | 21 | 146 | 13 | 1 |
+<!-- /table:s3_ab_baseline_paired -->
+
 - MPS arm (seed 0, first 50 voxels, 2 workers, `SearchDevice mps`): 8/50 wrong [0.083, 0.285] against 8/50 for the CPU key-on
   arm on the same runs; 0 fixed, 0 broken; all 50 runs end at the same answer (to 1e-3 degrees) and the same cost as the CPU
   run, and 48 also have the same evaluation counts; the other two differ in the number of local evaluations (consistent with a
@@ -6755,9 +6805,9 @@ Per voxel, the number of seeds (of 3) in which it is wrong, 0 / 1 / 2 / 3 seeds:
 <!-- /table:s3_ab_timing_2w -->
 
   The MPS arm is slower than the CPU arm here (1.45 against 1.28 s median), unlike the single-worker timing above (1.16
-  against 1.19 s on E0): two processes share one GPU, and each worker's first MPS use includes a one-time kernel warm-up
-  (not separated; the median is less affected than the sum). The GPU variant is therefore not a clear win on this machine
-  at the batch size of the E0 level 0 (a median of 178 candidates; levels 1-3 have a median of 47, 12 and 3 and use the CPU
+  against 1.19 s on E0): consistent with two processes sharing one GPU, or with a one-time kernel warm-up in each worker's first
+  MPS use (neither was tested or separated; the median is less affected by a warm-up than the sum). The GPU variant is therefore not a clear win on this machine
+  at the batch size of the E0 level 0 (a median of 178.5 candidates; levels 1-3 have a median of 47, 12 and 3 and use the CPU
   variant); its case is a larger batch such as the level-0 screen (43,974 orientations, out of scope).
 
 ### Limits and open items
@@ -6769,5 +6819,10 @@ Per voxel, the number of seeds (of 3) in which it is wrong, 0 / 1 / 2 / 3 seeds:
 - `CppEdgeRules` and the ray rule fall back to the sequential quick MC (with a warning). After A-exact merges into
   `feature/python-speed-parity`, `CppEdgeRules` can be added to the batched cost and the Step 1 equality test extended
   (a small reviewed follow-up).
+- Scripts that count evaluations by wrapping `VoxelCostFunction.evaluate` or `MCOptimizer.optimize`
+  (`scripts/speed_parity/prof_common.py`, `scripts/nn_hybrid/stage_timer.py`, `scripts/speed_parity/search_split.py`)
+  would miss the quick MC with `BatchedQuickMC 1`, and `lockstep_applicable` (a plain `MCOptimizer`, tested by type)
+  cannot see a class-level patch of `optimize`. Harmless while the key is opt-in; those scripts need `evaluate_many`
+  counted (as `eval_ledger.py` does) before any default flip.
 - No default flipped and no golden regenerated. Whether to flip `BatchedQuickMC` to default on is the owner's decision; this
   work provides the evidence above (same wrong count within the interval, same evaluations, 1.7-1.9 times shorter search).

@@ -1,0 +1,10 @@
+{
+ "full_suite_key_off": {
+  "before_s3": {"passed": 887, "skipped": 41, "deselected": 1, "source": "pytest summary line, branch feature/python-speed-parity before S3"},
+  "steps_1_5": {"passed": 953, "skipped": 41, "deselected": 1, "new_tests": 66, "source": "pytest summary line, HEAD 3f5b787"},
+  "after_review_fixes": {"passed": 954, "skipped": 41, "deselected": 1, "new_tests_since_before_s3": 67, "wall_s": 234, "source": "pytest summary line, review-fix commits"}
+ },
+ "new_tests_by_file": {"tests/test_batched_cost.py": 43, "tests/test_batched_quick_mc.py": 24},
+ "ab_key_off_arm": {"pilot_voxels": 5, "voxels_left_after_pilot": 195, "source": "e0_run.py log line '200 tasks, 195 to run'"},
+ "task_a_level0_screen_orientations": {"value": 43974, "source": "MIGRATION_HISTORY Task A table (level 0: 4886 orientations x 9 local points), not re-measured in S3"}
+}
