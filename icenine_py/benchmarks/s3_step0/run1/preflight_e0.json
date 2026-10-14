@@ -1,0 +1,17 @@
+{
+ "timestamp": "2026-10-13T23:55:35",
+ "host": "ilium.lan",
+ "loadavg": [
+  2.423828125,
+  2.6845703125,
+  2.71044921875
+ ],
+ "cpu_count": 10,
+ "power": "ac",
+ "omp_num_threads": null,
+ "mkl_num_threads": null,
+ "torch_threads": 1,
+ "busy_processes": [],
+ "quiet": false,
+ "not_quiet_reason": "machine not quiet for timing: 1-min load 2.42 > 1.5"
+}
