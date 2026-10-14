@@ -245,7 +245,7 @@
 | arm | n | cost | counts | frames | qual |
 |---|---|---|---|---|---|
 | screen, Python default | 2230 | 1965 (88.1%) | 1965 (88.1%) | 1846 (82.8%) | n/a |
-| screen, Python with CppEdgeRules | 2230 | 2229 (100.0%) | 2229 (100.0%) | 2187 (98.1%) | n/a |
+| screen, Python with CppEdgeRules | 2230 | 2229 (99.96%) | 2229 (99.96%) | 2187 (98.1%) | n/a |
 | complete cost, Python default | 2230 | 1371 (61.5%) | 1124 (50.4%) | 887 (39.8%) | 2020 (90.6%) |
 | complete cost, Python with CppEdgeRules | 2230 | 2230 (100.0%) | 1985 (89.0%) | 1690 (75.8%) | 2228 (99.9%) |
 <!-- /table:evalA_parity_exact -->
