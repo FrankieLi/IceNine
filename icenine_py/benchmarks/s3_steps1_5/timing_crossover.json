@@ -1,0 +1,110 @@
+{
+ "preflight": {
+  "timestamp": "2026-10-14T00:48:50",
+  "host": "ilium.lan",
+  "loadavg": [
+   4.00341796875,
+   4.890625,
+   4.7880859375
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 730,
+    "cpu": 100.0,
+    "command": "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd"
+   }
+  ],
+  "quiet": false,
+  "not_quiet_reason": "machine not quiet for timing: 1-min load 4.00 > 1.5; busy process pid 730 (100% CPU): /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd",
+  "label": "contended"
+ },
+ "label": "contended",
+ "rows": [
+  {
+   "B": 1,
+   "cpu_compact_us_per_orient": 258.12500000022,
+   "mps_fixed_us_per_orient": 3415.083000000152,
+   "cpu_fixed_us_per_orient": 290.0829999994414
+  },
+  {
+   "B": 2,
+   "cpu_compact_us_per_orient": 159.02099999998143,
+   "mps_fixed_us_per_orient": 1559.8540000003602,
+   "cpu_fixed_us_per_orient": 198.2085000000744
+  },
+  {
+   "B": 4,
+   "cpu_compact_us_per_orient": 109.93749999999025,
+   "mps_fixed_us_per_orient": 830.9062500000408,
+   "cpu_fixed_us_per_orient": 144.82300000007166
+  },
+  {
+   "B": 8,
+   "cpu_compact_us_per_orient": 82.8281250000451,
+   "mps_fixed_us_per_orient": 420.23437500005036,
+   "cpu_fixed_us_per_orient": 119.01050000007186
+  },
+  {
+   "B": 16,
+   "cpu_compact_us_per_orient": 69.72656249998322,
+   "mps_fixed_us_per_orient": 219.98437500003743,
+   "cpu_fixed_us_per_orient": 110.10418749995976
+  },
+  {
+   "B": 32,
+   "cpu_compact_us_per_orient": 61.86199999999587,
+   "mps_fixed_us_per_orient": 172.67187500000225,
+   "cpu_fixed_us_per_orient": 102.54950000002094
+  },
+  {
+   "B": 48,
+   "cpu_compact_us_per_orient": 60.32987499998699,
+   "mps_fixed_us_per_orient": 111.16493750000048,
+   "cpu_fixed_us_per_orient": 99.69704166667981
+  },
+  {
+   "B": 64,
+   "cpu_compact_us_per_orient": 59.021484374990884,
+   "mps_fixed_us_per_orient": 107.57746875000862,
+   "cpu_fixed_us_per_orient": 97.97787499998822
+  },
+  {
+   "B": 96,
+   "cpu_compact_us_per_orient": 57.3198749999985,
+   "mps_fixed_us_per_orient": 40.681427083337034,
+   "cpu_fixed_us_per_orient": 96.93533333333487
+  },
+  {
+   "B": 128,
+   "cpu_compact_us_per_orient": 56.37142187499972,
+   "mps_fixed_us_per_orient": 40.262695312501265,
+   "cpu_fixed_us_per_orient": 95.64192968750108
+  },
+  {
+   "B": 192,
+   "cpu_compact_us_per_orient": 55.92795312500213,
+   "mps_fixed_us_per_orient": 34.99609374999861,
+   "cpu_fixed_us_per_orient": 96.90234375000125
+  },
+  {
+   "B": 256,
+   "cpu_compact_us_per_orient": 55.69677734374931,
+   "mps_fixed_us_per_orient": 32.116210937498806,
+   "cpu_fixed_us_per_orient": 96.01806640624835
+  },
+  {
+   "B": 512,
+   "cpu_compact_us_per_orient": 55.38728710937496,
+   "mps_fixed_us_per_orient": 30.02661132812598,
+   "cpu_fixed_us_per_orient": 96.0052910156245
+  }
+ ],
+ "gpu_min_batch": 64,
+ "mps_faster_from_B": 96,
+ "voxel": 0
+}

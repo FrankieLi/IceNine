@@ -1,0 +1,74 @@
+{
+ "preflight": {
+  "timestamp": "2026-10-14T00:49:31",
+  "host": "ilium.lan",
+  "loadavg": [
+   4.15576171875,
+   4.8603515625,
+   4.78271484375
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": [],
+  "quiet": false,
+  "not_quiet_reason": "machine not quiet for timing: 1-min load 4.16 > 1.5",
+  "label": "contended"
+ },
+ "label": "contended",
+ "rows": [
+  {
+   "B": 56,
+   "cpu_compact_us_per_orient": 58.909232142848445,
+   "mps_fixed_us_per_orient": 55.29091071427532,
+   "cpu_fixed_us_per_orient": 99.50817857142168
+  },
+  {
+   "B": 64,
+   "cpu_compact_us_per_orient": 58.559890625003995,
+   "mps_fixed_us_per_orient": 49.77084375000496,
+   "cpu_fixed_us_per_orient": 100.81510937499927
+  },
+  {
+   "B": 72,
+   "cpu_compact_us_per_orient": 58.31770833333552,
+   "mps_fixed_us_per_orient": 48.25058333334119,
+   "cpu_fixed_us_per_orient": 97.29049999999499
+  },
+  {
+   "B": 80,
+   "cpu_compact_us_per_orient": 56.95468749999932,
+   "mps_fixed_us_per_orient": 43.4739624999958,
+   "cpu_fixed_us_per_orient": 100.80365000000313
+  },
+  {
+   "B": 88,
+   "cpu_compact_us_per_orient": 57.82102272727291,
+   "mps_fixed_us_per_orient": 41.76372727272458,
+   "cpu_fixed_us_per_orient": 96.87169318182345
+  },
+  {
+   "B": 96,
+   "cpu_compact_us_per_orient": 56.772135416660596,
+   "mps_fixed_us_per_orient": 41.178385416664376,
+   "cpu_fixed_us_per_orient": 97.60981250000096
+  },
+  {
+   "B": 112,
+   "cpu_compact_us_per_orient": 56.168526785709595,
+   "mps_fixed_us_per_orient": 38.475812500001915,
+   "cpu_fixed_us_per_orient": 95.84970535714277
+  },
+  {
+   "B": 128,
+   "cpu_compact_us_per_orient": 56.18619531249508,
+   "mps_fixed_us_per_orient": 36.66503906250146,
+   "cpu_fixed_us_per_orient": 95.94596093750324
+  }
+ ],
+ "gpu_min_batch": 64,
+ "mps_faster_from_B": 56,
+ "voxel": 0
+}

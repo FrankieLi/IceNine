@@ -63,7 +63,11 @@ def run_chunks(
 
 
 @needs_c
-@pytest.mark.parametrize("flags", [{}, {"cpp_overlap_rule": True}], ids=["default", "cpp_rule"])
+@pytest.mark.parametrize(
+    "flags",
+    [{}, {"cpp_overlap_rule": True}, {"min_sin_eta": 0.4}],
+    ids=["default", "cpp_rule", "min_sin_eta"],
+)
 @pytest.mark.parametrize("max_q", [0.0, 5.0], ids=["all_refl", "qmax5"])
 @pytest.mark.parametrize("variant", ["compact", "fixed"])
 @pytest.mark.parametrize("B", [1, 7, 64])
