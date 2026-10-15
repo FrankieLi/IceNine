@@ -78,6 +78,7 @@ def main() -> None:
 
     orig = dict(
         solve_cf=CF.get_scattering_omegas_torch,
+        solve_fixed=CF.scattering_omegas_fixed_beam,  # what evaluate() solves with since S1
         solve_bs=BS.get_scattering_omegas_torch,
         stage_d=CF._c_stage_d_overlap,
     )
@@ -117,6 +118,7 @@ def main() -> None:
     for name, fn in arms.items():
         fn()  # warm-up run (image binarisation caches, torch)
         CF.get_scattering_omegas_torch = timed(orig["solve_cf"], "solve")
+        CF.scattering_omegas_fixed_beam = timed(orig["solve_fixed"], "solve")
         BS.get_scattering_omegas_torch = timed(orig["solve_bs"], "solve")
         CF._c_stage_d_overlap = timed(orig["stage_d"], "stage_d")
         acc["solve"] = acc["stage_d"] = 0.0
@@ -124,6 +126,7 @@ def main() -> None:
         fn()
         total = time.perf_counter() - t0
         CF.get_scattering_omegas_torch = orig["solve_cf"]
+        CF.scattering_omegas_fixed_beam = orig["solve_fixed"]
         BS.get_scattering_omegas_torch = orig["solve_bs"]
         CF._c_stage_d_overlap = orig["stage_d"]
         # untimed repeat for the headline number (no wrappers)

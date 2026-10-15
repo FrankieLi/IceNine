@@ -16,7 +16,7 @@ The main entry point is `VoxelCostFunction.evaluate()`, which:
 import math
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -24,9 +24,11 @@ import torch
 from .crystal_structure import CrystalStructure
 from .detector import Detector
 from .diffraction_core import (
+    BraggConstants,
     build_reflected_ray,
     get_illuminated_pixel,
     get_scattering_omegas_torch,
+    scattering_omegas_fixed_beam,
 )
 from .experimental_data import ExperimentalData
 from .ray_overlap import RayRule, apply_cases_python, ray_flags, ray_flags_c
@@ -461,6 +463,87 @@ def _omega_bins(omegas: np.ndarray, low: float, width: float, cpp_edge_rules: bo
     return (np.floor(f) if cpp_edge_rules else f).astype(int)
 
 
+def frame_index_array(range_map: SimulationRange) -> np.ndarray:
+    """Frame (wedge) index of each omega bin of ``range_map`` as an ``int64`` array of length
+    ``n_bins + 1``: ``-1`` where ``index_list`` has ``None`` (a gap), and a final ``-1`` entry that
+    ``frame_of_omegas`` uses for every bin outside the range."""
+    return np.array(
+        [-1 if i is None else int(i) for i in range_map.index_list] + [-1], dtype=np.int64
+    )
+
+
+def frame_of_omegas(
+    omegas: np.ndarray, low: float, width: float, index: np.ndarray, cpp_edge_rules: bool
+) -> np.ndarray:
+    """Frame index of each omega (``-1``: no frame), one vectorised lookup.
+
+    ``index`` is ``frame_index_array(range_map)``; the bin is ``_omega_bins`` (truncation, or floor
+    with ``cpp_edge_rules``). A bin below 0, at or above the number of bins, or on a gap has no
+    frame. The result equals the loop it replaces (``0 <= n < n_bins and index_list[n] is not
+    None``) for every input. The bin is clipped to ``[-1, n_bins]``: both ends read the trailing
+    ``-1`` entry of ``index`` (index ``-1`` is its last element)."""
+    bins = _omega_bins(omegas, low, width, cpp_edge_rules)
+    return index[bins.clip(-1, len(index) - 1)]
+
+
+_PLACEHOLDER_FRAME = np.zeros((1, 1), dtype=np.uint8)
+_PLACEHOLDER_FRAME.flags.writeable = False
+
+
+class FrameTable:
+    """The binary frames of one ``ExperimentalData`` for the C stage: ``images[frame * n_det +
+    det]``, each filled on first use.
+
+    The C extension (``stage_d_overlap``, ``ray_flags``) only indexes this list, so passing the
+    whole table with the global frame indices gives the results of a per-call list of just the
+    frames in use, without building that list on every call. A frame that has not been used holds
+    a 1x1 placeholder that the C code never reads (it reads a frame only for a peak that maps to
+    it, and ``ensure`` fills those first).
+
+    **Contract.** The table belongs to the ``exp_data`` it was built for (``source``) and keeps
+    each frame's ``get_binary_numpy()`` array from the first fill: the images must not change
+    afterwards. Swapping the whole ``exp_data`` object of a cost function is handled
+    (``VoxelCostFunction.frame_table`` rebuilds the table). The frame size is read from detector 0
+    of the first frame filled and every later detector-0 frame must have the same size.
+    ``source`` is not touched until the first fill, so a cost function may be built with
+    ``exp_data=None`` and have its data attached later.
+    """
+
+    __slots__ = ("source", "n_frames", "n_det", "images", "rows", "cols", "_filled")
+
+    def __init__(self, exp_data: ExperimentalData, n_frames: int, n_det: int) -> None:
+        self.source = exp_data
+        self.n_frames = n_frames
+        self.n_det = n_det
+        self.images: List[np.ndarray] = [_PLACEHOLDER_FRAME] * (n_frames * n_det)
+        self.rows = 0
+        self.cols = 0
+        self._filled = np.zeros(n_frames, dtype=bool)
+
+    def ensure(self, frames: np.ndarray) -> None:
+        """Fill the frames in ``frames`` (integer frame indices, all in ``[0, n_frames)``)."""
+        filled = self._filled[frames]
+        if filled.all():
+            return
+        exp = self.source
+        n_det = self.n_det
+        for w in np.unique(frames[~filled]):
+            w = int(w)
+            for d in range(n_det):
+                im = exp.get_image(w, d)
+                self.images[w * n_det + d] = im.get_binary_numpy()
+                if d == 0:
+                    size = (im.num_rows, im.num_cols)
+                    if self.rows == 0:
+                        self.rows, self.cols = size
+                    elif size != (self.rows, self.cols):
+                        raise ValueError(
+                            f"frame {w} of detector 0 has size {size}, the table's frames have "
+                            f"{(self.rows, self.cols)}"
+                        )
+            self._filled[w] = True
+
+
 def _pixel_coordinate(
     d: torch.Tensor, half: float, size: float, cpp_edge_rules: bool
 ) -> torch.Tensor:
@@ -487,6 +570,8 @@ def calculate_diffraction_overlap_batched(
     ray_rule: "Optional[RayRule]" = None,
     voxel_size: float = 0.0,
     cpp_edge_rules: bool = False,
+    frame_index: Optional[np.ndarray] = None,
+    frame_table: "Optional[FrameTable]" = None,
 ) -> OverlapInfo:
     """
     Batched version of calculate_diffraction_overlap.
@@ -526,6 +611,13 @@ def calculate_diffraction_overlap_batched(
     of the C++ CountQualifiedPeaks rule (it implies ``cpp_rule``). It is meant for the coarse
     search levels only; the final cost stays the strict C++ rule. See ray_overlap.py.
 
+    ``frame_index`` / ``frame_table`` (optional, S1): ``frame_index_array(range_map)`` and a
+    ``FrameTable`` of ``exp_data`` that the caller keeps across calls (``VoxelCostFunction`` does).
+    With neither, the index array is built from ``range_map`` and the fast path fills a table
+    private to this call, so the results are the same; with them the per-call work of mapping
+    omegas to frames and of collecting the binary frames for the C stage is skipped. A
+    ``frame_table`` built for another ``exp_data`` or detector count is ignored.
+
     C++ Reference: OverlapInfo.h PixelBasedPeakOverlapCounter (pixel_radius > 0)
                    OverlapInfo.h ShapePixelOverlapCounter (pixel_radius == 0)
     """
@@ -549,19 +641,12 @@ def calculate_diffraction_overlap_batched(
     else:
         normals = torch.stack(peak_normals)  # (N, 3)
 
-    # Map omega to wedge index using range_map internals
-    low = range_map.low
-    width = range_map.width
-    bin_indices = _omega_bins(omegas.numpy(), low, width, cpp_edge_rules)
-
-    # Look up wedge indices, filtering invalid bins
-    wedge_indices = np.full(n_peaks, -1, dtype=np.int64)
-    index_list = range_map.index_list
-    n_bins = len(index_list)
-    for i in range(n_peaks):
-        n = bin_indices[i]
-        if 0 <= n < n_bins and index_list[n] is not None:
-            wedge_indices[i] = index_list[n]
+    # Map omega to wedge index (one vectorised lookup; -1: no frame)
+    if frame_index is None:
+        frame_index = frame_index_array(range_map)
+    wedge_indices = frame_of_omegas(
+        omegas.numpy(), range_map.low, range_map.width, frame_index, cpp_edge_rules
+    )
 
     valid_mask = wedge_indices >= 0
     if not np.any(valid_mask):
@@ -725,19 +810,15 @@ def calculate_diffraction_overlap_batched(
         and (_C_HAS_VERTEX_LIT or not cpp_edge_rules)
     ):
         # ---- Fast path: batch C extension ----
-        # Build compact image lookup — only unique wedges needed
+        # Binary frames [frame * n_det + det], filled on first use and kept across calls by the
+        # caller's FrameTable; the C code indexes it with the global frame indices
         v_wedge_np = np.asarray(v_wedge, dtype=np.int32)
-        unique_wedges = np.unique(v_wedge_np)
-        wedge_to_local = np.full(int(v_wedge_np.max()) + 1, -1, dtype=np.int32)
-        for i, w in enumerate(unique_wedges):
-            wedge_to_local[w] = i
-        local_wedge = wedge_to_local[v_wedge_np]  # (M,) re-indexed
-
-        # Build image list: [local_wedge * n_det + det] -> binary numpy
-        image_list = []
-        for w in unique_wedges:
-            for d in range(n_detectors):
-                image_list.append(exp_data.get_image(int(w), d).get_binary_numpy())
+        table = frame_table
+        if table is None or table.source is not exp_data or table.n_det != n_detectors:
+            table = FrameTable(exp_data, int(frame_index.max()) + 1, n_detectors)
+        table.ensure(v_wedge_np)
+        image_list = table.images
+        local_wedge = v_wedge_np  # (M,) frame indices into the table
 
         if ray_rule is not None and obs_in is None:
             # observed-ray check for all peaks of the evaluation in one C call (no Python loop)
@@ -760,10 +841,9 @@ def calculate_diffraction_overlap_batched(
             axis=1,
         )  # (M, n_det)
 
-        # Get image dimensions from first image
-        first_image = exp_data.get_image(int(unique_wedges[0]), 0)
-        img_rows = first_image.num_rows
-        img_cols = first_image.num_cols
+        # Image dimensions: detector 0's frame size (the table checks every frame against it)
+        img_rows = table.rows
+        img_cols = table.cols
 
         if pixel_radius > 0:
             # pixel_centers: (M, n_det, 2) int32 — first vertex as center
@@ -1002,6 +1082,12 @@ class VoxelCostFunction:
         self.eta_limit = eta_limit
         self.pixel_radius = pixel_radius
         self.eval_count = 0
+        # S1: the frame lookup array and the binary-frame table are built on first use
+        # (``frame_table``); the Bragg constants per phase on its first ``evaluate``
+        self._frame_index: Optional[np.ndarray] = None
+        self._frame_range: Optional[SimulationRange] = None
+        self._frame_table: Optional[FrameTable] = None
+        self._bragg_consts: Dict[int, BraggConstants] = {}
 
         # Pre-compute reciprocal vectors per phase
         self._phase_recip_vecs = {}
@@ -1020,6 +1106,28 @@ class VoxelCostFunction:
                     [rv.q_mag for rv in recp_vecs], dtype=torch.float32
                 )
                 self._phase_recip_vecs[phase_idx] = (g_hkl_batch, g_mag_batch)
+
+    def frame_table(self) -> FrameTable:
+        """The binary-frame table of ``self.exp_data`` (see ``FrameTable``), built on first use and
+        rebuilt, together with the frame lookup array, when ``exp_data`` (or ``range_map``, or the
+        detector count) has been replaced since: swapping the data of a live cost function keeps
+        working. Changing the images of the same ``exp_data`` object after the first ``evaluate`` is
+        not supported (``FrameTable`` contract)."""
+        t = self._frame_table
+        if (
+            t is not None
+            and t.source is self.exp_data
+            and self._frame_range is self.range_map
+            and t.n_det == len(self.detector_list)
+        ):
+            return t
+        if self._frame_index is None or self._frame_range is not self.range_map:
+            self._frame_index = frame_index_array(self.range_map)
+            self._frame_range = self.range_map
+        t = self._frame_table = FrameTable(
+            self.exp_data, int(self._frame_index.max()) + 1, len(self.detector_list)
+        )
+        return t
 
     def evaluate(
         self,
@@ -1063,13 +1171,15 @@ class VoxelCostFunction:
         orientation_t = torch.from_numpy(orientation).float()
         g_lab_batch = (orientation_t @ g_hkl_batch.T).T
 
-        # Compute Bragg angles for all reflections
-        bragg_result = get_scattering_omegas_torch(
-            g_lab_batch,
-            g_mag_batch,
-            self.simulator.beam_energy,
-            self.simulator.beam_deflection_chi,
-        )
+        # Compute Bragg angles for all reflections: get_scattering_omegas_torch with the
+        # call-independent constants hoisted (BraggConstants; the omegas of unobservable rows are
+        # not zeroed, they are dropped below). Rebuilt when |g|, the beam energy or chi changed.
+        energy = self.simulator.beam_energy
+        chi = self.simulator.beam_deflection_chi
+        consts = self._bragg_consts.get(phase_index)
+        if consts is None or not consts.is_for(g_mag_batch, energy, chi):
+            consts = self._bragg_consts[phase_index] = BraggConstants(g_mag_batch, energy, chi)
+        bragg_result = scattering_omegas_fixed_beam(g_lab_batch, consts)
 
         # Collect observable peaks using vectorized eta filtering
         obs_mask = bragg_result.observable
@@ -1126,6 +1236,7 @@ class VoxelCostFunction:
             return OverlapInfo()
 
         # Calculate diffraction overlap (batched for performance)
+        table = self.frame_table()
         return calculate_diffraction_overlap_batched(
             sample=self.sample,
             voxel_vertices=voxel_vertices,
@@ -1137,6 +1248,8 @@ class VoxelCostFunction:
             beam_direction=self.simulator.beam_direction,
             mode=self.mode,
             pixel_radius=self.pixel_radius,
+            frame_index=self._frame_index,
+            frame_table=table,
             **({"cpp_rule": True} if self.cpp_overlap_rule else {}),
             **({"cpp_edge_rules": True} if self.cpp_edge_rules else {}),
             **(

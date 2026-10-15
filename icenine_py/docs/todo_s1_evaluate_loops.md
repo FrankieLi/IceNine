@@ -8,7 +8,11 @@ fontsize: 11pt
 
 # Status
 
-**Approved 2026-10-14, Step 4 included (D-20261014-I15); not started.** The owner picked S1 as the next
+**Built 2026-10-14 (Steps 0 to 6, Step 4 included), reviewed (REQUEST CHANGES) and the review fixes applied the
+same day; not merged.** Quiet-machine repeat not done (preflight not quiet), owner decision D-20261014-I16: the
+timings stay labelled single-worker, contended. Results: MIGRATION_HISTORY
+"S1: per-call loops out of evaluate" and `benchmarks/s1_loops/`. Approved 2026-10-14, Step 4 included
+(D-20261014-I15). The owner picked S1 as the next
 Track S item on 2026-10-14 (D-20261014-I14). A-exact and S3 are both merged into `feature/python-speed-parity`, so nothing
 blocks it. Branch: task branch `feature/python-speed-parity-s1-loops` off
 `feature/python-speed-parity`. An `implementer` agent builds it, `/review-task` reviews it, and a
