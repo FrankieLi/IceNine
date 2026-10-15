@@ -532,6 +532,18 @@ def dilate(binary: np.ndarray, r: int) -> np.ndarray:
     return np.ascontiguousarray(m[r : r + rows + 2 * r, r : r + cols + 2 * r])
 
 
+def dilate_sparse(binary: np.ndarray, r: int) -> np.ndarray:
+    """``dilate`` built by stamping the box around each lit pixel (fast for sparse images)."""
+    rows, cols = binary.shape
+    out = np.zeros((rows + 2 * r, cols + 2 * r), np.uint8)
+    ys, xs = np.nonzero(binary)
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            # lit pixel (x, y) makes centre (x - dx, y - dy) bright: index (y - dy + r, x - dx + r)
+            out[ys - dy + r, xs - dx + r] = 1
+    return out
+
+
 def trunc_index(u: np.ndarray) -> np.ndarray:
     """Pixel index of a continuous coordinate as the screen takes it: float -> int32 cast, i.e.
     truncation toward zero (``.astype(np.int32)``); clipped far outside to stay in range."""
@@ -591,8 +603,14 @@ class Bitmaps:
 
 
 def build_bitmaps(
-    exp_data: Any, n_frames: int, n_det: int, r: int, frames: Optional[np.ndarray] = None
+    exp_data: Any,
+    n_frames: int,
+    n_det: int,
+    r: int,
+    frames: Optional[np.ndarray] = None,
+    sparse: bool = False,
 ) -> Bitmaps:
+    """Packed dilated bitmaps of the frames (``sparse``: built with ``dilate_sparse``)."""
     first = exp_data.get_image(0, 0).get_binary_numpy()
     rows, cols = first.shape
     C8 = (cols + 2 * r + 7) // 8
@@ -600,7 +618,8 @@ def build_bitmaps(
     use = range(n_frames) if frames is None else [int(f) for f in frames]
     for f in use:
         for d in range(n_det):
-            dil = dilate(exp_data.get_image(f, d).get_binary_numpy(), r)
+            img = exp_data.get_image(f, d).get_binary_numpy()
+            dil = dilate_sparse(img, r) if sparse else dilate(img, r)
             packed[f, d] = np.packbits(dil, axis=1)
     return Bitmaps(packed, r, rows, cols)
 
@@ -640,9 +659,17 @@ def kernel_numpy(
 
 
 def preflight_json(path: Path) -> Dict[str, Any]:
+    """Preflight saved as JSON, with "quiet" from preflight.require_quiet (not raised: the machine
+    has been contended, owner decision D-20261014-I16; the label says so)."""
     import preflight
 
     info = preflight.preflight()
+    try:
+        preflight.require_quiet(info=info)
+        info["quiet"] = True
+    except preflight.MachineBusyError as e:
+        info["quiet"] = False
+        info["not_quiet_reason"] = str(e)
     path.parent.mkdir(parents=True, exist_ok=True)
     import json
 
