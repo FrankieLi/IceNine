@@ -154,7 +154,7 @@ the **cost per evaluation**.
 | H | housekeeping and doc fixes | `feature/housekeeping` (to start) | either agent, small |
 | Q | search accuracy open questions | per item | owner schedules |
 | X | scale and realism | deferred | owner |
-| R | research ideas | not started | owner |
+| R | research ideas | not started; parked: learned spot-association model (D-20261014-N8): a ConvNet or ViT on the pair of detector images, trained on simulated images with each peak labelled by its grain, that learns the shape change between detectors and which spots belong together; needs its own plan; notes in `docs/findings_spot_pairing_2026-10.md` | owner |
 | C | C++ code base | low priority | either agent |
 
 ## Coordination between Tracks E and S

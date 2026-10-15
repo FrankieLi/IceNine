@@ -253,3 +253,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   tolerance and upper bound; on clean images the 1 degree omega frame term dominates. The second
   review's 10 required fixes are applied, then checked again before merge. Where: ROADMAP Track E
   row D; `docs/findings_spot_pairing_2026-10.md`.
+
+### D-20261014-N11 · D · Planning the grain-seeding follow-up (Task D2) is deferred
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- No plan is written now for the N7 follow-up (seed orientations by indexing each grain's matched
+  spots, then FindOptimal from the seeds). It is deferred; the test design stays in the findings doc,
+  "How to test it". Where: ROADMAP Track E row D; `docs/findings_spot_pairing_2026-10.md`.
+
+### D-20261014-N12 · R · The learned spot-association model (N8) is listed in ROADMAP Track R
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- The parked ConvNet/ViT association model of D-20261014-N8 is added to the owner's Track R row, as a
+  parked research idea that needs its own plan. Where: ROADMAP Track R.
