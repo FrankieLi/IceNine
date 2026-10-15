@@ -135,9 +135,18 @@ def main() -> None:
             f"{timing[n]:.1f}s",
             flush=True,
         )
-    (pc.CACHE / f"pairing_run_timing_{args.tag}.json").write_text(
+    # merge with earlier invocations (one entry per preset and centroid), not overwrite
+    tpath = pc.CACHE / f"pairing_run_timing_{args.tag}.json"
+    old = json.loads(tpath.read_text()) if tpath.exists() else {}
+    merged = old.get("seconds_per_preset_single_process_by_centroid", {})
+    merged.setdefault(args.centroid, {}).update(timing)
+    tpath.write_text(
         json.dumps(
-            {"seconds_per_preset_single_process": timing, "centroid": args.centroid}, indent=2
+            {
+                "seconds_per_preset_single_process_by_centroid": merged,
+                "label": "single process, not preflight-gated; no timing claim",
+            },
+            indent=2,
         )
     )
 

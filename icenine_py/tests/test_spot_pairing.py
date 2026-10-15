@@ -2,12 +2,18 @@
 ForwardSimulation.peak_hook used by the provenance writer."""
 
 import os
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
+import torch
 
 from icenine import spot_pairing as sp
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "eval_reduction"))
+import pairing_common as pc  # noqa: E402
 
 PW = 0.00148
 
@@ -68,6 +74,55 @@ def test_line_origin_recovers_the_origin_and_sigma_grows_for_flat_rays():
         res.append(lo)
     assert res[1]["sigma_mm"] > 5 * res[0]["sigma_mm"]
     assert res[1]["cond"] < res[0]["cond"]
+
+
+def test_distance_x_is_the_beam_axis_hit_not_the_pixel_corner():
+    # a tilted detector whose pixel-(0, 0) corner sits 0.1 mm closer than the beam-axis hit
+    n = np.array([0.999, -0.02, 0.03])
+    n = n / np.linalg.norm(n)
+    pos = np.array([3.36, 0.0, 0.0])
+    g = sp.DetectorGeometry(
+        pos=pos,
+        org=np.array([-0.1, -1.5, 2.85]),
+        bj=np.array([0.0, 1.0, 0.0]),
+        bk=np.array([0.0, 0.0, -1.0]),
+        pw=PW,
+        ph=PW,
+        hw=1024 * PW,
+        hh=1024 * PW,
+        n=n,
+        d=-float(n @ pos),
+    )
+    assert np.isclose(g.distance_x(), 3.36)
+    assert not np.isclose(g.distance_x(), (g.pos + g.org)[0])
+
+
+def test_detector1_tolerance_is_its_own_pixel_not_scaled_by_l1_over_l0():
+    gs, origins, tth, pix = frame_pattern(n=1)
+    hull = sp.SampleHull(np.array([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]))
+    c0 = {"c_col": pix[:, 0] - 0.5, "c_row": pix[:, 1] - 0.5, "npix": np.array([40.0])}
+    c1 = {"c_col": pix[:, 2] - 0.5, "c_row": pix[:, 3] - 0.5, "npix": np.array([40.0])}
+    p = sp.PairingParams(voxel_size_mm=0.009, omega_step=np.radians(1.0), centroid_tol_px=1.0)
+    r = sp.pair_frame(gs, hull, 0.0, c0, c1, p)
+    lo = sp.line_origin(gs[0], gs[1], pix[0, 0], pix[0, 1], pix[0, 2], pix[0, 3], 1.0, 1.0)
+    assert len(r["i0"]) == 1
+    assert np.isclose(r["sigma_mm"][0], lo["sigma_mm"])
+
+
+def test_frame_check_accepts_identity_and_rejects_other_setups():
+    good_cfg = SimpleNamespace(beam_direction=np.array([1.0, 0, 0]), beam_deflection_chi_laue=0.0)
+    good = SimpleNamespace(sample_to_lab_matrix=torch.eye(4))
+    pc.check_frame_assumption(good_cfg, good)
+    moved = torch.eye(4)
+    moved[0, 3] = 0.01
+    with pytest.raises(ValueError):
+        pc.check_frame_assumption(good_cfg, SimpleNamespace(sample_to_lab_matrix=moved))
+    tilted = SimpleNamespace(beam_direction=np.array([1.0, 0.01, 0]), beam_deflection_chi_laue=0.0)
+    with pytest.raises(ValueError):
+        pc.check_frame_assumption(tilted, good)
+    bent = SimpleNamespace(beam_direction=np.array([1.0, 0, 0]), beam_deflection_chi_laue=0.001)
+    with pytest.raises(ValueError):
+        pc.check_frame_assumption(bent, good)
 
 
 def test_sample_hull_distance():
@@ -214,5 +269,31 @@ def test_peak_hook_is_off_by_default_and_matches_the_rasterized_peaks():
         assert len(calls) * len(dets) == n_on
         assert {c[0] for c in calls} <= {0, 1, 2}
         assert all(0 <= c[2] < n_om for c in calls)
+
+        # several chunks (one voxel each): the hook's global voxel index must name the voxel of
+        # the chunk, checked against a single-voxel run of each voxel
+        mic = sample.get_mic()
+        three = list(mic.voxels)
+
+        def calls_of(batch_size, voxel_offset=0):
+            got = []
+            sim.peak_hook = lambda v, r, oi, om: got.append((v + voxel_offset, r, oi, om))
+            sinks = [[Sink() for _ in dets] for _ in range(n_om)]
+            sim._simulate_peaks_batched(sinks, dets, sample, rmap, batch_size=batch_size)
+            return sorted(got)
+
+        def same(a, b):
+            # identical (voxel, reflection, image); omega equal up to float32 batching noise
+            assert [c[:3] for c in a] == [c[:3] for c in b]
+            assert np.allclose([c[3] for c in a], [c[3] for c in b], rtol=0.0, atol=1e-6)
+
+        chunked = calls_of(1)
+        same(chunked, calls_of(None))
+        for k, vx in enumerate(three):
+            mic.voxels = [vx]
+            single = calls_of(None, voxel_offset=k)
+            assert single
+            same(single, [c for c in chunked if c[0] == k])
+        mic.voxels = three
     finally:
         os.chdir(cwd)

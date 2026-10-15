@@ -94,6 +94,9 @@ def step1(prov: Dict, ct: Dict, cls: np.ndarray, a: np.ndarray, b: np.ndarray, n
         )
     out["links"] = link_rows
     out["n_links"] = int(len(a))
+    out["components_per_detector"] = {f"det{d}": int((det == d).sum()) for d in (0, 1)}
+    out["several_grain_components_both_detectors"] = int((cls == 2).sum())
+    out["single_source_components_both_detectors"] = int((cls == 0).sum())
     out["n_peaks_both_detectors"] = int(npk.sum())
     out["unpaired_components"] = {f"det{d}": int(((det == d) & ~linked).sum()) for d in (0, 1)}
     out["unpaired_single_source"] = int(((cls == 0) & ~linked).sum())
@@ -227,6 +230,8 @@ def origin_error(
             str(t): float((err_smp <= t).mean()) for t in (5, 10, 20, 50, 100)
         },
         "sigma_um_pct10_50_90": pct(sig, [10, 50, 90]),
+        # predicted sigma (tight tolerances of the preset) over the measured sample-frame error
+        "sigma_over_sample_error_medians_overall": float(np.median(sig) / np.median(err_smp)),
     }
     bins = [(0.0, 0.02), (0.02, 0.05), (0.05, 0.1), (0.1, 1.01)]
     rows = []
@@ -248,6 +253,14 @@ def origin_error(
             }
         )
     out["by_cond"] = rows
+    out["sigma_over_sample_error_medians_by_bin"] = [
+        (
+            r["predicted sigma median (um)"] / r["sample-frame error median (um)"]
+            if r["pairs"]
+            else None
+        )
+        for r in rows
+    ]
     tbl = DT.markdown_table(
         rows,
         list(rows[0].keys()),
@@ -263,6 +276,49 @@ def origin_error(
         c0=c0,
     )
     return out, tbl, arrays
+
+
+def derived_geometry(geo: Dict[str, Any], name: str) -> Dict[str, Any]:
+    """Geometry numbers quoted in the prose, and the per-spot error budget of a scattering
+    vector from one matched pair (the "Proposal, not tested" block of the findings doc).
+
+    One pixel moves a ray direction by pixel / gap on one detector (pixel / gap x sqrt(2) for
+    both, in quadrature). An azimuthal ray error delta maps to about delta / sin(2 theta) on the
+    scattering vector. The frames are omega_step wide, so the frame-centre omega is off by up to
+    omega_step / 2; that moves the sample-frame scattering vector by that angle x sin(g, z)."""
+    gs = pc.detector_geoms(geo)
+    L0, L1 = gs[0].distance_x(), gs[1].distance_x()
+    pw = float(geo["det0_pw"])
+    side = float(geo["voxel_side"])
+    gap = L1 - L0
+    one = np.degrees(pw / gap)
+    rings = np.degrees(np.asarray(geo["rings_two_theta"]))
+    om_step = float(np.degrees(np.mean(geo["omega_hi"] - geo["omega_lo"])))
+    r = np.load(pc.CACHE / f"pairs_full_{name}.npz")
+    dn = r["dirn"][r["chosen"].astype(bool)]
+    g = dn - sp.BEAM_DIR  # scattering vector direction (k_out - k_in), lab frame
+    sin_gz = np.linalg.norm(g[:, :2], axis=1) / np.linalg.norm(g, axis=1)
+    return {
+        "pixel_um": pw * 1000.0,
+        "voxel_side_um": side * 1000.0,
+        "L0_mm": L0,
+        "L1_mm": L1,
+        "gap_mm": gap,
+        "L1_over_L0": L1 / L0,
+        "voxel_term_um": side * (L1 / L0 - 1.0) * 1000.0,
+        "ray_dir_err_1px_one_detector_deg": one,
+        "ray_dir_err_1px_both_quadrature_deg": one * np.sqrt(2.0),
+        "ring_two_theta_deg_min_max": [float(rings.min()), float(rings.max())],
+        "n_rings": int(len(rings)),
+        "g_err_1px_deg_at_min_max_two_theta": [
+            float(one / np.sin(np.radians(rings.min()))),
+            float(one / np.sin(np.radians(rings.max()))),
+        ],
+        "omega_frame_width_deg": om_step,
+        "omega_half_width_deg": om_step / 2.0,
+        "median_sin_g_z_chosen_pairs": float(np.median(sin_gz)),
+        "g_err_omega_half_width_median_deg": float(om_step / 2.0 * np.median(sin_gz)),
+    }
 
 
 def true_link_rejections(geo, ct, cls, a, b):
@@ -358,6 +414,7 @@ def main() -> None:
     summary["origin_error"] = oe
     t2["step2_origin_error"] = tbl_oe
     np.savez_compressed(pc.CACHE / "origin_error_arrays.npz", **arrays)
+    summary["derived_geometry"] = derived_geometry(geo, MAIN)
     fails, by_class = true_link_rejections(geo, ct, cls, a, b)
     summary["true_link_first_failing_gate"] = fails
     summary["true_link_first_failing_gate_by_class"] = by_class

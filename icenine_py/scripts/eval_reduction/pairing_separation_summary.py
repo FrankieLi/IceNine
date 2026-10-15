@@ -1,10 +1,11 @@
 """Task D step 3 (b): summarize pairing_attribution.py separate (truth vs wrong orientations).
 
 Scores per orientation (see pairing_attribution.py): `pixel` (1 - cost, strict C++ rule, radius 0)
-and the completeness of the attributed peak list (A: pairs with origin within the 90th percentile
-of the origin error, B: ray through both spot boxes, A30: 30 um, oracle: the voxel's own true
-pairs), ray-direction tolerance 0.1 degrees. Everything is normalised by the voxel's own score at
-the true orientation, so the columns are comparable. Counts are over the 30 voxels; no tests.
+and the completeness of the attributed peak list (A: pairs with origin within 15.7 um, about the
+90th percentile of the origin error, B: ray through both spot boxes, A30: 30 um, oracle: the
+voxel's own true pairs), ray-direction tolerance 0.05 degrees (``TOL``). Everything is normalised
+by the voxel's own score at the true orientation, so the columns are comparable. Counts are over
+the 30 voxels; no tests.
 
   uv run python scripts/eval_reduction/pairing_separation_summary.py
 """

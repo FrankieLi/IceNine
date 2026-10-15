@@ -137,13 +137,15 @@ def geometry() -> None:
         color="tab:orange",
     )
     b.text(
-        X0 + 0.45,
-        -0.35,
-        "tolerance terms (ray rule, arm A)\n"
-        f"  voxel size x (L1/L0 - 1) = {vox * (ratio - 1) * 1000:.1f} um\n"
-        f"  pixel x L1/L0 = {pw * ratio * 1000:.2f} um\n"
-        f"  arc motion r x d_omega\n  registration = {reg * 1000:.0f} um\n"
-        f"L1/L0 = {ratio:.3f}",
+        0.95,
+        -0.3,
+        "tolerance terms of the pairing\n"
+        f"  centroid: 1 pixel on each detector = {pw * 1000:.2f} um\n"
+        "  detector 1, plan presets only:\n"
+        f"    voxel size x (L1/L0 - 1) = {vox * (ratio - 1) * 1000:.2f} um\n"
+        f"    registration = {reg * 1000:.0f} um\n"
+        "  hull margin: voxel size\n    + arc motion r x d_omega / 2\n"
+        f"L1/L0 = {ratio:.3f} (detector distances)",
         fontsize=8,
         va="top",
     )

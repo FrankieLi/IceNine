@@ -2,7 +2,9 @@
 
 `load_geometry()` builds the Example2.Simulation geometry once (detectors, omega frames, voxel
 centroids and grains, hull points, Cu ring angles) through the same classes as render_full.py and
-caches it as a small npz. `load_provenance()` reads the provenance.npz written by
+caches it as a small npz. It checks the frame assumption of ``icenine.spot_pairing`` (lab =
+Rz(omega) sample: identity sample-to-lab transform, beam along +x, no beam deflection) and refuses
+any other set-up. `load_provenance()` reads the provenance.npz written by
 scripts/phase_d/render_provenance.py. `truth_links()` returns the true (detector-0, detector-1)
 component pairs of each frame: two components are a true pair when they share a
 (voxel, reflection) source in that frame.
@@ -29,7 +31,9 @@ def load_geometry(seed: int = 0, refresh: bool = False) -> Dict[str, Any]:
     path = CACHE / f"geometry_s{seed}.npz"
     if path.exists() and not refresh:
         z = np.load(path, allow_pickle=True)
-        return {k: z[k] for k in z.files}
+        if "frame_checked" in z.files and bool(z["frame_checked"]):
+            return {k: z[k] for k in z.files}
+        # an older cache written before the frame check: rebuild it (and check)
     cwd = os.getcwd()
     os.chdir(EX)
     try:
@@ -48,6 +52,7 @@ def load_geometry(seed: int = 0, refresh: bool = False) -> Dict[str, Any]:
         sim.simulator = Simulation(sim.exp_setup)
         sample = Sample()
         sim.exp_setup.initialize_sample(sample, dets[0])
+        check_frame_assumption(cfg, sample)
         vox = sample.get_mic().voxels
         side = float(vox[0].side_length)
         cen = np.zeros((len(vox), 2))
@@ -88,6 +93,7 @@ def load_geometry(seed: int = 0, refresh: bool = False) -> Dict[str, Any]:
             "beam_energy_kev": float(energy),
             "num_rows": float(dets[0].num_rows),
             "num_cols": float(dets[0].num_cols),
+            "frame_checked": True,
         }
         for di, g in enumerate(gs):
             for f in ("pos", "org", "bj", "bk", "n"):
@@ -99,6 +105,20 @@ def load_geometry(seed: int = 0, refresh: bool = False) -> Dict[str, Any]:
     CACHE.mkdir(parents=True, exist_ok=True)
     np.savez(path, **out)
     return out
+
+
+def check_frame_assumption(cfg: Any, sample: Any) -> None:
+    """Raise unless lab = Rz(omega) sample holds: the sample-to-lab transform is the identity
+    (zero SampleLocation and SampleOrientation), the beam runs along +x and is not deflected.
+    ``icenine.spot_pairing`` and ``pairing_attribution.predicted_peaks`` assume this."""
+    m = np.asarray(sample.sample_to_lab_matrix.double().numpy())
+    if not np.allclose(m, np.eye(4), rtol=0.0, atol=1e-12):
+        raise ValueError(f"sample-to-lab transform is not the identity:\n{m}")
+    beam = np.asarray(cfg.beam_direction, dtype=np.float64)
+    if not np.allclose(beam / np.linalg.norm(beam), [1.0, 0.0, 0.0], rtol=0.0, atol=1e-12):
+        raise ValueError(f"beam direction {beam} is not +x")
+    if float(cfg.beam_deflection_chi_laue) != 0.0:
+        raise ValueError(f"beam deflection {cfg.beam_deflection_chi_laue} is not 0")
 
 
 def detector_geoms(geo: Dict[str, Any]) -> List[Any]:

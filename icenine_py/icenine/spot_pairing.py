@@ -27,6 +27,15 @@ Pieces
 * ``attribute_peaks``: peaks (origins in the sample frame) within a radius of voxel centroids,
   with a ``scipy.spatial.cKDTree``.
 
+Frame and beam assumptions
+--------------------------
+The lab frame is the sample frame rotated about the lab z axis by omega: lab = Rz(omega) sample.
+This holds only when the sample-to-lab transform of the configuration is the identity (zero
+SampleLocation and SampleOrientation) and the beam runs along +x with no deflection
+(``BEAM_DIR``; BeamDeflectionChiLaue 0). Example2.ManyGrains satisfies this, and the Task D loader
+(``scripts/eval_reduction/pairing_common.load_geometry``) asserts it. Any other set-up needs the
+general sample-to-lab transform here first.
+
 Optional score terms beyond the line/hull test: the scattering angle 2 theta of the line against
 the ring angles of the crystal structure, and the pixel-count ratio of the two spots (a planar
 region seen along one direction has the same area on both detectors up to the detector tilts).
@@ -59,8 +68,11 @@ class DetectorGeometry:
     d: float
 
     def distance_x(self) -> float:
-        """Lab x of the detector origin point (the distance along the beam)."""
-        return float((self.pos + self.org)[0])
+        """Detector distance along the beam: the lab x where the beam axis (lab x) meets the
+        detector plane n . x + d = 0, i.e. -d / n_x. For Example2 (StandardGeometry.2Det) this is
+        the LabFrameLocation x, 3.362 and 5.387 mm. It is not the lab x of the pixel-(0, 0)
+        corner (3.263 and 5.290 mm there)."""
+        return float(-self.d / self.n[0])
 
 
 def geometry_from_detectors(detector_list: Sequence[Any]) -> List[DetectorGeometry]:
@@ -205,10 +217,13 @@ class PairingParams:
     """Tolerance and scoring parameters of :func:`pair_frame`.
 
     Tolerance terms, all in the units named, following the ray rule's arm A window:
-      centroid_tol_px        half-width of a centroid coordinate on detector 0 (pixel quantisation;
-                             the centroid of a planar region seen along one direction is exact up
-                             to the pixel grid, so this is one pixel by default).
-      det1_extra_mm          extra half-width on detector 1: registration (config
+      centroid_tol_px        half-width of a centroid coordinate on each detector, in that
+                             detector's own pixels (pixel quantisation; the centroid of a planar
+                             region seen along one direction is exact up to the pixel grid, so
+                             this is one pixel by default). Both centroids are measured, so the
+                             detector-0 error is not scaled by L1/L0 onto detector 1: the line fit
+                             (``line_origin``) propagates each detector's error on its own.
+      registration_mm        extra half-width on detector 1 only: registration (config
                              DetectorSpacingDeviation) plus voxel_size x (L1/L0 - 1) when
                              ``voxel_term`` is set (arm A isotropic part, read as half-widths).
       voxel_size_mm          voxel edge length.
@@ -272,8 +287,10 @@ def pair_frame(
     c1 = comp1["c_col"][None, :] + 0.5
     r1 = comp1["c_row"][None, :] + 0.5
     ratio = g1.distance_x() / g0.distance_x()
+    # detector 1 is measured, not predicted from detector 0: its own pixel quantisation plus the
+    # detector-1 terms (the x L1/L0 factor of the ray rule's arm A would count detector 0 twice)
     tol1_px = (
-        params.centroid_tol_px * ratio
+        params.centroid_tol_px
         + (
             params.registration_mm
             + (params.voxel_size_mm * (ratio - 1.0) if params.voxel_term else 0.0)
