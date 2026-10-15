@@ -215,3 +215,25 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
 - The untracked `benchmarks/eval_reduction/A/memory/cache/` (one run log and a done marker) was
   deleted. Where: this entry.
+
+### D-20261014-N6 · D · Task D Step 4 (geometric-feature classifier) is skipped
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- The small classifier on pair-geometry features (plan Task D Step 4) is not built. The plan's trigger
+  (single-source recall below 0.95) is undefined because almost no spot has one source; one-grain
+  recall is 0.990. Where: ROADMAP Track E row D; `docs/findings_spot_pairing_2026-10.md`.
+
+### D-20261014-N7 · D · Task D read as promising: spot-to-grain association is enough
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Associating spots to grains (not to voxels) is sufficient: (1) the grain's spots give a starting
+  orientation, and the area around the grain can be sampled with it; (2) from that start, run the usual
+  FindOptimal search, or other searches outward from the orientation; (3) the orientations defined by
+  the combinations of peaks and grains give a starting candidate list that may be much smaller. These
+  are follow-ups to plan; none is started. Where: ROADMAP Track E row D.
+
+### D-20261014-N8 · R · Learned spot-association model is parked as a research idea
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- A different classifier from Task D Step 4, needing much more planning: simulate images as usual with
+  each peak labelled by its originating grain; build or fine-tune a ConvNet or ViT that looks at the
+  pair of detector images and predicts the association given the second image. The model should learn
+  (1) the origin-independent affine transformation of peak shapes between the detectors and (2) the
+  association of peak shapes. Not started; needs its own plan. Where: ROADMAP Track R.
