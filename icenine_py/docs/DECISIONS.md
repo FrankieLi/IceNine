@@ -248,6 +248,7 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - `tests/data/s1_evaluate_ref.npz` is compared exactly on the platform and torch version that made
   it (arm64, torch 2.8.0); on any other the test skips with a message naming the difference.
   Where: `tests/test_s1_evaluate.py`.
+
 ### D-20261014-N6 · D · Task D Step 4 (geometric-feature classifier) is skipped
 - 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
 - The small classifier on pair-geometry features (plan Task D Step 4) is not built. The plan's trigger
