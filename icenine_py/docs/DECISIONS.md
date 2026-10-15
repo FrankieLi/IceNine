@@ -245,3 +245,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   is kept with a corrected error budget, and the main session's notes (how to test the indexing
   proposal; notes for planning the learned model of N8) are added. Where: ROADMAP Track E row D;
   `docs/findings_spot_pairing_2026-10.md`.
+
+### D-20261014-N10 · D · The indexing error budget leads with the measured ray-direction error
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- In the findings doc's "Proposal, not tested" block, the error budget leads with the measured
+  ray-direction error on clean images (median 0.0044 degrees, p90 0.0155), with one pixel kept as the
+  tolerance and upper bound; on clean images the 1 degree omega frame term dominates. The second
+  review's 10 required fixes are applied, then checked again before merge. Where: ROADMAP Track E
+  row D; `docs/findings_spot_pairing_2026-10.md`.
