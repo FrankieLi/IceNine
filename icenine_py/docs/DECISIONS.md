@@ -264,3 +264,13 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
 - The parked ConvNet/ViT association model of D-20261014-N8 is added to the owner's Track R row, as a
   parked research idea that needs its own plan. Where: ROADMAP Track R.
+
+### D-20261014-N13 · E (all tasks) · Broken-voxel rule: only breaks traced to the arm count
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: the plan's rule "no broken voxels beyond the
+  baseline's count" (eval-reduction plan, Task C decision point; open question from the Task C review).
+- An arm that changes the candidate list or the random draws flips E0 voxels by the change of draw alone
+  (14-23 each way between seeds, `s3_ab_paired`), so no such arm could meet the old rule. From now on each
+  E0 voxel an arm breaks is traced, and the arm fails only if a break is caused by the arm itself, not by
+  the change of random draw. Reports give traced-to-arm, traced-to-draw and untraced breaks separately.
+  Newt's default, open to the owner: an untraced break counts against the arm until traced. Task C's
+  outcome is unchanged (N4). Where: plan "Ground rules for every task"; ROADMAP Track E row C.
