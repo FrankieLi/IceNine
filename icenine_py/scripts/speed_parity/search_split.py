@@ -40,7 +40,7 @@ t0 = time.perf_counter()
 res = rec.reconstruct_voxel(P.verts, P.vox.phase, rng=np.random.default_rng(1))
 wall = time.perf_counter() - t0
 n = acc["n"]
-print(f"config {cfgname}: wall {wall:.1f} s, evaluations {n}, cost {res.cost:.4f}")
+print(f"config {cfgname}: wall {wall:.3f} s, evaluations {n}, cost {res.cost:.4f}")
 import hashlib  # noqa: E402
 
 orient = np.ascontiguousarray(res.orientation, dtype=np.float64)
@@ -50,7 +50,7 @@ print(
 )
 inside, outside = acc["t"], wall - acc["t"]
 share = 100 * inside / wall
-print(f"  inside evaluate: {inside:.1f} s ({share:.1f}%), {1e6 * inside / n:.0f} us/eval")
+print(f"  inside evaluate: {inside:.3f} s ({share:.1f}%), {1e6 * inside / n:.0f} us/eval")
 print(
-    f"  outside evaluate (search machinery): {outside:.1f} s, {1e6 * outside / n:.1f} us per eval"
+    f"  outside evaluate (search machinery): {outside:.3f} s, {1e6 * outside / n:.1f} us per eval"
 )

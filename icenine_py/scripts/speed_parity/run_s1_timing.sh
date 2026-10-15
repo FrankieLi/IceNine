@@ -3,7 +3,9 @@
 # machine's conditions: prof_eval (us per evaluate call, three arms), stage_split (the S1 parts) and
 # search_split (whole no-start search: wall, evaluation count, result), ROUNDS rounds, the arm order
 # alternating per round. Single worker (torch threads 1 in every script). The preflight state is
-# saved with the results; label the timings "contended" unless preflight_exit.txt holds 0.
+# saved with the results and it GATES the run: if the machine is not quiet nothing is timed (the
+# script stops after writing preflight_exit.txt and the .done marker) unless S1_ALLOW_CONTENDED=1,
+# in which case label the timings "contended" (preflight_exit.txt holds 1).
 #
 # Usage (from icenine_py/), BASE_WT = a worktree of the base commit (needs the built _rasterize
 # extension copied in and Examples/ linked or copied; the scripts are copied in from this tree):
@@ -17,13 +19,24 @@ HERE=$(pwd)
 OUT=scripts/speed_parity/cache/s1/timing
 LOGD=scripts/speed_parity/cache/logs
 mkdir -p "$OUT" "$LOGD"
-rm -f "$LOGD/s1_timing.done" "$OUT"/*.txt
+rm -f "$LOGD/s1_timing.done"
+# the gate comes before anything in $OUT is touched: a refused run leaves the earlier results alone
+uv run python ../scripts/dev/timing_preflight.py --require --json "$OUT/preflight_new.json" \
+  > /dev/null 2>&1
+PRE=$?
+if [ "$PRE" -ne 0 ] && [ "${S1_ALLOW_CONTENDED:-0}" != 1 ]; then
+  echo "preflight not quiet (exit $PRE): nothing timed; S1_ALLOW_CONTENDED=1 times anyway" \
+    > "$LOGD/s1_timing.log"
+  rm -f "$OUT/preflight_new.json"
+  touch "$LOGD/s1_timing.done"
+  exit 1
+fi
+rm -f "$OUT"/*.txt "$OUT/preflight_end.json"
+mv "$OUT/preflight_new.json" "$OUT/preflight_start.json"
+echo $PRE > "$OUT/preflight_exit.txt"
 cp scripts/speed_parity/prof_eval.py scripts/speed_parity/stage_split.py \
   scripts/speed_parity/search_split.py "$BASE_WT/icenine_py/scripts/speed_parity/"
 {
-  uv run python ../scripts/dev/timing_preflight.py --require --json "$OUT/preflight_start.json" \
-    > /dev/null 2>&1
-  echo $? > "$OUT/preflight_exit.txt"
   for r in $(seq 1 "$ROUNDS"); do
     for tool in prof_eval stage_split search_split; do
       if [ $((r % 2)) -eq 1 ]; then arms="base s1"; else arms="s1 base"; fi

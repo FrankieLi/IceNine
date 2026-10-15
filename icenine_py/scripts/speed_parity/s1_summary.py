@@ -5,10 +5,12 @@ summary.json and tables.md (doc tables, ``doc_tables.write_tables``).
   uv run python scripts/speed_parity/s1_summary.py --out benchmarks/s1_loops
 
 Inputs (all under scripts/speed_parity/cache/s1 unless noted): timing/{base,s1}_{prof_eval,
-stage_split,search_split}_r<round>.txt and timing/preflight_*.json, base.npz and new.npz, batched.txt
-(the output of ``s1_parity.py batched``), and the two E0 caches of
+stage_split,search_split}_r<round>.txt and timing/preflight_*.json, base.npz and new.npz,
+batched.txt (the output of ``s1_parity.py batched``), and the two E0 caches of
 scripts/findoptimal_robustness/cache. No p-values: counts and ratios of medians only; the timings
-are labelled by the preflight state (contended unless preflight_exit.txt holds 0).
+are labelled by the preflight state (contended unless preflight_exit.txt holds 0). The E0 runtimes
+(10 workers, two runs at different times) are kept in summary.json with a note and are not a
+timing comparison.
 """
 
 import argparse
@@ -76,7 +78,8 @@ def prof_eval(arm: str) -> Dict[str, List[float]]:
         for line in f.read_text().splitlines():
             for k, a in keys.items():
                 if line.startswith(k):
-                    out[a].append(float(re.search(r"([\d.]+) us/eval", line).group(1)))  # type: ignore
+                    m = re.search(r"([\d.]+) us/eval", line)
+                    out[a].append(float(m.group(1)))  # type: ignore[union-attr]
     return out
 
 
@@ -119,10 +122,12 @@ def stage_split(arm: str) -> Dict[str, List[float]]:
 
 def search_split(arm: str) -> Dict[str, Any]:
     wall, evals, cost, sha, share, per = [], [], [], [], [], []
+    decimals = []
     for f in files(arm, "search_split"):
         t = f.read_text()
         m = re.search(r"wall ([\d.]+) s, evaluations (\d+)", t)
         wall.append(float(m.group(1)))  # type: ignore[union-attr]
+        decimals.append(len(m.group(1).partition(".")[2]))  # type: ignore[union-attr]
         evals.append(int(m.group(2)))  # type: ignore[union-attr]
         r = re.search(r"result: cost (\S+), orientation sha1 (\w+)", t)
         cost.append(r.group(1))  # type: ignore[union-attr]
@@ -132,6 +137,7 @@ def search_split(arm: str) -> Dict[str, Any]:
         per.append(float(s.group(2)))  # type: ignore[union-attr]
     return dict(
         wall_s=wall,
+        wall_decimals=min(decimals),
         evaluations=evals,
         cost=cost,
         sha1=sha,
@@ -144,23 +150,32 @@ def parity() -> Dict[str, Any]:
     a = np.load(CACHE / "base.npz", allow_pickle=False)
     b = np.load(CACHE / "new.npz", allow_pickle=False)
     meta = json.loads(str(a["meta"]))
+    meta_new = json.loads(str(b["meta"]))
+    keys = set(a.files) - {"meta"}
+    if keys != set(b.files) - {"meta"}:
+        raise ValueError("the two dumps do not have the same arrays; run s1_parity.py compare")
+    # the same orientations (R) and the same orientation subset of each mode (index)
+    same_sets = all(
+        np.array_equal(a[k], b[k]) for k in keys if k.endswith("/R") or k.endswith("/index")
+    )
     n_rows = n_fields = n_diff = 0
     per_mode: Dict[str, Dict[str, int]] = {}
-    for k in sorted(set(a.files) - {"meta"}):
+    for k in sorted(keys):
         parts = k.split("/")
         if len(parts) != 3 or parts[2] == "index":
             continue
         ds, mode, f = parts
         x, y = a[k], b[k]
-        d = x != y
+        # a shape or dtype mismatch counts every value as different
+        n_bad = int(x.size) if x.shape != y.shape or x.dtype != y.dtype else int((x != y).sum())
         n = len(x)
         m = per_mode.setdefault(mode, dict(orientations=0, fields_compared=0, differing_values=0))
         if f == "quality":
             m["orientations"] += n
         m["fields_compared"] += 1
-        m["differing_values"] += int(d.sum())
+        m["differing_values"] += n_bad
         n_fields += 1
-        n_diff += int(d.sum())
+        n_diff += n_bad
         n_rows += n if f == "quality" else 0
     return dict(
         datasets=meta["datasets"],
@@ -171,6 +186,11 @@ def parity() -> Dict[str, Any]:
         per_mode=per_mode,
         coverage=meta["coverage"],
         base_head=meta["head"],
+        base_dirty=meta.get("dirty"),
+        new_head=meta_new["head"],
+        new_dirty=meta_new.get("dirty"),
+        new_torch=meta_new["torch"],
+        same_orientation_sets_and_indices=same_sets,
     )
 
 
@@ -206,7 +226,17 @@ def e0() -> Dict[str, Any]:
             if n in first200:
                 tt["n200"] += 1
                 tt["wrong200"] += wrong
-    return dict(voxels=len(names), records_identical=same, differing_keys=diff_keys, runs=tot)
+    return dict(
+        voxels=len(names),
+        records_identical=same,
+        differing_keys=diff_keys,
+        runs=tot,
+        runtime_note=(
+            "runtime_s is the sum of the per-voxel wall-clock s0_runtime of a 10-worker run; the "
+            "two runs were made at different times, not interleaved: contended, not a timing "
+            "comparison (the timings are in the interleaved single-worker rounds)"
+        ),
+    )
 
 
 def batched_check() -> Dict[str, Any]:
@@ -236,6 +266,13 @@ def derived(s: Dict[str, Any]) -> Dict[str, Any]:
     bragg = m("s1", "bragg_original") - m("s1", "bragg_hoisted")
     total = m("base", "evaluate_total") - m("s1", "evaluate_total")
     se = s["search"]
+    tab, cmp_ = ss["s1"]["c_call_table"], ss["s1"]["c_call_compact"]
+    dec = min(se[arm]["wall_decimals"] for arm in ("base", "s1"))
+    half = 0.5 * 10 ** (-dec)  # the walls are printed to ``dec`` decimals
+    w_base, w_s1 = med(se["base"]["wall_s"]), med(se["s1"]["wall_s"])
+    pe = s["prof_eval_us"]
+    recost_saved = med(pe["base"]["recost"]) - med(pe["s1"]["recost"])
+    search_saved = med(se["base"]["us_per_eval"]) - med(se["s1"]["us_per_eval"])
     a = np.load(CACHE / "base.npz", allow_pickle=False)
     meta = json.loads(str(a["meta"]))
     edge_changed = {
@@ -255,7 +292,18 @@ def derived(s: Dict[str, Any]) -> Dict[str, Any]:
         parts_removed_saved_us=stage_a + frames + bragg,
         evaluate_total_saved_us=total,
         unattributed_us=total - (stage_a + frames + bragg),
-        search_wall_ratio=med(se["base"]["wall_s"]) / med(se["s1"]["wall_s"]),
+        search_wall_ratio=w_base / w_s1,
+        search_wall_decimals=dec,
+        search_wall_ratio_rounding_low=(w_base - half) / (w_s1 + half),
+        search_wall_ratio_rounding_high=(w_base + half) / (w_s1 - half),
+        search_saved_us_per_evaluate=search_saved,
+        recost_arm_saved_us_per_call=recost_saved,
+        search_saving_over_recost_saving=search_saved / recost_saved,
+        c_call_table_rounds=len(tab),
+        c_call_table_rounds_higher=sum(t > c for t, c in zip(tab, cmp_)),
+        c_call_table_rounds_equal=sum(t == c for t, c in zip(tab, cmp_)),
+        c_call_table_rounds_lower=sum(t < c for t, c in zip(tab, cmp_)),
+        c_call_table_minus_compact_us=med(tab) - med(cmp_),
         edge_rules_change_quality_orientations_of_1000=edge_changed,
         fixture_edge_changes_peak_on_detector_of_64=fixture_edge,
         fixture_size_bytes=(ICE / "tests" / "data" / "s1_evaluate_ref.npz").stat().st_size,
@@ -378,7 +426,11 @@ def tables(s: Dict[str, Any]) -> Dict[str, str]:
     t["s1_search"] = DT.markdown_table(
         rows,
         list(rows[0]),
-        {"wall (s)": ".1f", "us per evaluate": ".0f", "evaluate share (%)": ".1f"},
+        {
+            "wall (s)": f".{min(se[a]['wall_decimals'] for a in ('base', 's1'))}f",
+            "us per evaluate": ".0f",
+            "evaluate share (%)": ".1f",
+        },
     )
     p = s["parity"]
     rows = [
@@ -420,16 +472,17 @@ def tables(s: Dict[str, Any]) -> Dict[str, str]:
                 "wrong, the 200 voxels of e0_s3off": r["wrong200"],
                 "evaluations, global": r["evals_global"],
                 "evaluations, local": r["evals_local"],
-                "sum of per-voxel runtimes (s)": r["runtime_s"],
             }
         )
-    t["s1_e0"] = DT.markdown_table(rows, list(rows[0]), {"sum of per-voxel runtimes (s)": ".0f"})
+    t["s1_e0"] = DT.markdown_table(rows, list(rows[0]))
     bc = s.get("batched_check")
     if bc:
         t["s1_batched"] = DT.markdown_table(
             [
                 {
-                    "check": "BatchedCostEvaluator (CPU compact and fixed) against the base evaluate",
+                    "check": (
+                        "BatchedCostEvaluator (CPU compact and fixed) against the base evaluate"
+                    ),
                     "modes": ", ".join(bc["modes"]),
                     "(voxel, mode, variant) rows": bc["rows"],
                     "identical": bc["identical"],
