@@ -27,9 +27,11 @@ Not touched: `cost_functions.py`, `orientation_search.py`, `batched_screen.py`, 
 | full render with provenance | `render_provenance.py --workers 10 --tag full --check` | 35 s | contended (10 workers; load 2.2 at start, preflight warned) |
 | pairing, 10 presets + 2 binary-centroid runs | `pairing_run.py --presets all`; `--presets ring_tight,shape_tight --centroid binary` | about 2 s each | single process, not preflight-gated; no timing claim |
 | full suite | `uv run pytest tests/ --junitxml=...` | 331 s | 1027 passed, 37 skipped, 1 deselected (the 10 new tests are `tests/test_spot_pairing.py`) |
+| full suite after the first review's fixes (a8c9b5c) | `uv run pytest tests/ --junitxml=...` | 338 s | 1030 passed, 37 skipped, 1 deselected (13 tests in `tests/test_spot_pairing.py`, 3 added by the fixes) |
+| full suite after the second review's fixes (d967595) | `uv run pytest tests/ --junitxml=...` | 338 s | 1030 passed, 37 skipped, 1 deselected (unchanged) |
 | attribution | `pairing_attribution.py attach` (330 voxels), `separate` (30 voxels, 91 orientations each) | 1 to 2 min, 10 s | single process |
 
-The check compares every recorded image with the existing `clean/` file: 360 of 360 frames equal; 57,389 components equal `spots_total`
+The check compares every recorded image with the existing `clean/` file: all 360 of 360 images have the same lit pixels, with intensities equal to the stored precision; 57,389 components equal `spots_total`
 of `render_full.json`. 2,957,243 triangle records.
 
 ## 3. What went wrong, and decisions taken (non-blocking, plan default)
@@ -63,6 +65,13 @@ Rerun (commands from `icenine_py/scripts/eval_reduction/`, single process, logs 
 origin-error median 2.667 -> 2.659 um, p90 15.66 -> 15.57 um (23,252 -> 23,205 pairs). Step 1 is unchanged. The step-3 truth, sharpness and
 separation tables are unchanged at their printed precision (completeness at 0.05 degrees is identical per record; purity and the 0.1 and 0.2 degree
 columns move). `A r=15.7 um` keeps its radius (the old p90). Fix 16 rebuilt `cache/geometry_s0.npz` with the frame check (arrays identical).
+
+## 3c. Second review fixes (D-20261014-N10, 2026-10-14)
+
+All 10 required fixes of `.claude/reports/20261014-2243-review-D-2.md` applied; they are doc fixes. One run: `pairing_summary.py`
+(single process, about 5 s, log `cache/logs/fix2_summary.log`). It now also writes `step1/summary.json` `partner_size_ratio` and, in
+`step2/summary.json` `derived_geometry`, the measured radial ray-direction error of the correct one-grain `ring_tight` pairs and the
+both-detector 1-pixel range. Every other key and all tables are unchanged; `doc_tables_all.md` regenerates byte-identical.
 
 ## 4. Could be done better
 
