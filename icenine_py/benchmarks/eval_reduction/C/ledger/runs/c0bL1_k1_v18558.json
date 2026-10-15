@@ -1,0 +1,199 @@
+{
+ "voxel": 18558,
+ "tag": "c0bL1_k1",
+ "opts": [
+  "candidate_dedup=clique=merged:1"
+ ],
+ "seed": 1,
+ "preflight": {
+  "timestamp": "2026-10-14T14:10:07",
+  "host": "newt.lan",
+  "loadavg": [
+   2.2119140625,
+   2.201171875,
+   2.41015625
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 1098,
+    "cpu": 23.7,
+    "command": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/155.0.8059.79/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+   }
+  ],
+  "not_quiet": "machine not quiet for timing: 1-min load 2.21 > 1.5; busy process pid 1098 (24% CPU): /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/155.0.8059.79/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+ },
+ "label": "single-worker, contended",
+ "quiet_preflight": false,
+ "wall_s": 23.1348515,
+ "evals_total": 78272,
+ "evals_by_radius": {
+  "r3": 44001,
+  "r0": 34271
+ },
+ "eval_time_s": 20.0649596240001,
+ "mean_us_per_eval": 256.34913665167744,
+ "library_eval_counts": [
+  44001,
+  34271,
+  78272
+ ],
+ "totals": {
+  "screen": 44001,
+  "recost": 33793,
+  "quick": 48,
+  "find": 208,
+  "variance": 221,
+  "final": 1,
+  "sum": 78272
+ },
+ "levels": [
+  {
+   "level": 0,
+   "fz_in": 4886,
+   "n_local": 9,
+   "n_recip": 26,
+   "diameter_deg": 5.0,
+   "candidates": 10253,
+   "cliques": 4886,
+   "passed_screen": 33766,
+   "screen_evals": 43974,
+   "recost_evals": 33766,
+   "screen_eval_s": 1.0829178270000064,
+   "recost_eval_s": 18.708307880000056,
+   "discrete_s": 22.709074792000003,
+   "kept": 1,
+   "dropped": 10252,
+   "quick_evals": 12,
+   "quick_s": 0.1398860839999969,
+   "quick_calls": 1,
+   "stage_evals": 77752
+  },
+  {
+   "level": 1,
+   "fz_in": 1,
+   "n_local": 9,
+   "n_recip": 50,
+   "diameter_deg": 3.3333333333333335,
+   "candidates": 1,
+   "cliques": 1,
+   "passed_screen": 9,
+   "screen_evals": 9,
+   "recost_evals": 9,
+   "screen_eval_s": 0.0010338749999974084,
+   "recost_eval_s": 0.0048724570000011624,
+   "discrete_s": 0.00638262500000053,
+   "kept": 1,
+   "dropped": 0,
+   "quick_evals": 12,
+   "quick_s": 0.007180500000000478,
+   "quick_calls": 1,
+   "stage_evals": 30
+  },
+  {
+   "level": 2,
+   "fz_in": 1,
+   "n_local": 9,
+   "n_recip": 64,
+   "diameter_deg": 2.2222222222222223,
+   "candidates": 1,
+   "cliques": 1,
+   "passed_screen": 9,
+   "screen_evals": 9,
+   "recost_evals": 9,
+   "screen_eval_s": 0.001008290999997996,
+   "recost_eval_s": 0.0047347499999936815,
+   "discrete_s": 0.006213667000000811,
+   "kept": 1,
+   "dropped": 0,
+   "quick_evals": 12,
+   "quick_s": 0.008079165999998139,
+   "quick_calls": 1,
+   "stage_evals": 30
+  },
+  {
+   "level": 3,
+   "fz_in": 1,
+   "n_local": 9,
+   "n_recip": 112,
+   "diameter_deg": 1.4814814814814814,
+   "candidates": 1,
+   "cliques": 1,
+   "passed_screen": 9,
+   "screen_evals": 9,
+   "recost_evals": 9,
+   "screen_eval_s": 0.0013701669999974797,
+   "recost_eval_s": 0.005520957000001658,
+   "discrete_s": 0.007393333999999641,
+   "kept": 1,
+   "dropped": 0,
+   "quick_evals": 12,
+   "quick_s": 0.007436249999997813,
+   "quick_calls": 1,
+   "stage_evals": 30
+  }
+ ],
+ "find": [
+  {
+   "index": 0,
+   "evals": 208,
+   "wall_s": 0.1155526660000028,
+   "cost": 0.9541540500350569
+  }
+ ],
+ "find_optimal": {
+  "winner_index": 0,
+  "n_evaluated": 1,
+  "n_candidates": 1,
+  "converged": false
+ },
+ "variance": {
+  "evals": 221,
+  "wall_s": 0.12316854199999838
+ },
+ "final": {
+  "evals": 1,
+  "wall_s": 0.0005319999999997549
+ },
+ "calls": {
+  "find": [
+   {
+    "kind": "find",
+    "evals": 208,
+    "cost": 0.9541540500350569,
+    "blocks": 7,
+    "steps": 200,
+    "restarts": 3,
+    "accepts": 4,
+    "stop": 1
+   }
+  ],
+  "variance": [
+   {
+    "kind": "variance",
+    "evals": 221,
+    "cost": 0.9541540500350569
+   }
+  ],
+  "quick": {
+   "n": 4,
+   "evals_total": 48,
+   "evals_per_call": {
+    "min": 12,
+    "median": 12.0,
+    "max": 12
+   },
+   "blocks_mean": 1.0,
+   "stop_codes": {
+    "0": 4
+   }
+  }
+ },
+ "err_deg": 44.49688203359465,
+ "cost_final": 0.9541540500350569,
+ "c_ext": true
+}

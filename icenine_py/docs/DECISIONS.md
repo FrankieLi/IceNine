@@ -144,6 +144,13 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - Task B (anatomy of the cost function's edges) accepted after the review fixes, as merged in 6561d26.
   Where: ROADMAP Track E row B; `docs/findings_cost_edges_2026-10.md`.
 
+### D-20261014-N3 · C · Merge Task C before its code review; status page
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none (a one-off exception to D-20261014-N1
+  for Task C only).
+- Task C merged into `feature/eval-reduction` (e609c74) before its `/review-task`; the review runs on
+  the merged commits e5a2cbb..e609c74. The owner also asked
+  for a plain-English status page of Track E, kept in the branch:
+  `docs/status_eval_reduction_2026-10-14.md`. Where: ROADMAP Track E row C; that status page.
 ### D-20261012-I3 · ray rule (finisher study) · The ray rule may become the default
 - 2026-10-12, owner. Recorded by Ilium Agent (backfill, 2026-10-14). Supersedes: none.
 - "The ray rule as the default is fine": it ties the lenient rule on clean images and costs 6% more
@@ -198,3 +205,13 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
 - Whether the detector noise or the neighbour/twin spots make the no-drop E0 images easier (Q8 Step 7)
   is logged as open question Q14; the `noise_nodrop` split is not run now. Where: ROADMAP Q14.
+### D-20261014-N4 · C, G · Task C's filters are not tried in Task G for now
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Task G starts from the baseline (`CandidateDedup` off). The two filters that looked harmless on
+  full-sample voxels but lose E0 voxels (`clique=cpp:1`, `pre=0.5`) are not tried in Task G's BFS
+  pilot for now. Where: ROADMAP Track E row C; `docs/status_eval_reduction_2026-10-14.md`.
+
+### D-20261014-N5 · A · Delete the untracked Task A memory-run log folder
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- The untracked `benchmarks/eval_reduction/A/memory/cache/` (one run log and a done marker) was
+  deleted. Where: this entry.

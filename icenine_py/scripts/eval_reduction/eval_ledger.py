@@ -51,7 +51,7 @@ sys.path.insert(0, str(ICE / "scripts" / "findoptimal_robustness"))
 
 def apply_opts(setup: Any, opts: List[str]) -> None:
     for kv in opts:
-        k, v = kv.split("=")
+        k, v = kv.split("=", 1)
         if k == "ray_rule":
             from icenine.ray_overlap import RayRule
 

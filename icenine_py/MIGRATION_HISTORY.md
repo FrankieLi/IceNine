@@ -6625,6 +6625,383 @@ a candidate for a per-sample table (ROADMAP S4).
 **Not done.** No library change. The ThreeVoxels figures are not yet repeated on the full-sample Phase D images (on
 Newt Agent's machine; ROADMAP S6). The C++ figure is taken from Task A's runs, not re-measured.
 
+### Task C: candidate overlap and de-duplication (2026-10-14, `feature/eval-reduction-C`)
+
+Run record: `benchmarks/eval_reduction/C/RUN_LOG.md`. Library: `icenine/candidate_dedup.py`, config key `CandidateDedup`
+(opt-in, off by default; README config table), `SearchCandidate.clique`. Scripts: `scripts/eval_reduction/candidate_*.py`;
+tests `tests/test_candidate_dedup.py` and `tests/test_candidate_dedup_levels.py`. Tables below are generated
+(`benchmarks/eval_reduction/C/step1/tables_*.md`, `step3/tables*.md`, merged in `doc_tables_all.md`); figures are in
+`benchmarks/eval_reduction/C/figures/`. All images are clean simulated images, Q-max 8 configuration, no extra seeds, no golden
+test changed, no default flipped. `BatchedQuickMC` and `SearchDevice` were off in every arm.
+
+**Short answer.**
+
+1. *Neighbouring candidates are common at the coarse scale and rare at the fine scale.* On the six full-sample voxels (levels 0 to 2,
+   C++ rule, 64,041 candidates) 18.7% of the candidates are suppressed in a greedy scan in score order by a better-scored kept candidate
+   within half the level's diameter, and 63.6% within a full diameter (the spacing filter's own radius, which only acts inside one FZ point).
+   With the lenient rule the shares are 18.6% and 67.3% of 89,458 candidates. The literal share, candidates with any better-scored candidate
+   within half a diameter, is a little larger: 20.5% (C++ rule) and 21.2% (lenient).
+2. *The quick MC does not make candidates converge.* After it 23.1% (C++ rule) and 25.6% (lenient) of the candidates are suppressed in the
+   same greedy scan within half a diameter, but only 0.06% and 0.03% within 0.1 degree. Far fewer than half are duplicates, so the plan's trigger
+   for arm C4 (a shorter quick MC on duplicates) is not met and C4 was not built or run.
+3. *Cliques overlap heavily at level 0 when linked at one diameter.* A clique is the set of candidates of one FZ point. At level 0 on
+   full-sample images 99.5% (C++ rule) and 100% (lenient) of the cliques have a candidate within one diameter of another clique's candidate,
+   and the largest connected component holds 3,915 to 4,480 cliques of the run (with the lenient rule all 4,886 in 5 of the 6 runs; voxel
+   22867 has two components, the largest 4,885). The merged clique as the plan words it is
+   degenerate there; linked at half a diameter the largest component is 18 to 61 cliques.
+4. *What the arms save and what they cost* (tables below; every arm runs with the lenient (default) overlap rule). On the six full-sample voxels, keeping the best candidate of each FZ point (`clique=cpp:1`) saves 24.2% of the evaluations with 0 of 6 wrong; on the 30-voxel full-sample set it saves 23.9% with 2 of 30 wrong against 1 of 30 in the baseline (2 broken, 1 fixed). On the 200 E0 voxels the same arm has 55 wrong against 41: paired by voxel 24 broken and 10 fixed, net +14. These E0 counts are not all caused by the arm. An arm that drops candidates before the quick MC changes how many quick-MC runs draw from the shared random stream (this one drops some at level 0 in all 200 runs), so every later draw differs, and the paired split mixes the arm's effect with the effect of a new draw. For scale, two seeds of the same key-off code on the same 200 voxels flip 14 to 23 voxels each way, net +2 to +4 (table `s3_ab_paired`, "S3" below). The net +14 is larger than that, and part of it can be traced without random numbers (the level-0 discrete stage uses none): the truth basin (3 degrees) is among the level-0 quick-MC inputs in 188 of 200 runs against 196 in the baseline, and the 8 runs that lose it end 5 broken and 3 both wrong. So 5 of the 24 broken voxels are traced to the filter; the other 19 cannot be told apart from the change of draw. On E0 no arm saves more than 2.8% of the evaluations: the screens and re-costs of all levels are 92.2% of the E0 evaluations (the level-0 screen and re-cost alone 90.7%), and no filter touches them.
+5. *Choice for Task G (the plan's rule): the baseline (key off).* No arm has zero broken E0 voxels (the fewest are 6 for `post=0.25` and 8 for `clique=cpp:2`). The plan's zero-broken rule cannot be met by any arm that changes the candidate list, because the later draws change with it, and two seeds of the same code already break 18 to 23 voxels; so "no arm qualifies" says nothing about the arms themselves. Whether to keep or replace that rule for later tasks is an open owner question. Two arms show no clear loss on full-sample images: `clique=cpp:1` (23.9% fewer evaluations on 30 voxels; E0 net +14, 5 broken voxels traced to the filter) and `pre=0.5` (8.9% fewer, 0 of 30 wrong; E0 30 broken and 21 fixed, net +9, none traced: its level-0 inputs lose the basin in 2 runs, 1 broken and 1 fixed). The owner decided not to try them in Task G for now (D-20261014-N4).
+
+**Step 1 (measurement only).** The existing recorder hooks were wrapped (no library change) on the six full-sample voxels (Phase D clean
+images, seed 1) and the first 30 E0 voxels (per-voxel clean images, seed 0), each with the lenient and the C++ overlap rule. Per level:
+duplicate quick-MC inputs and outputs, the share of quick-MC evaluations that went to them, the kept quarter and the truth basin in it,
+next-level grid points that coincide with points already screened, and the clique statistics. A "duplicate" is an element that is not the first
+of its group in a greedy scan in rank order within a symmetry-reduced tolerance t x D (D = the level's diameter, the local-grid radius). "Truth
+basin" = a candidate within 3 degrees (and 1 degree) of the true orientation. The clique labels recovered from the recorder events reproduce the
+recorded candidate list in every run.
+
+Column key of the Step 1 tables: `inputs_dup_025 / _05 / _1` = share of the candidates handed to the quick MC that are suppressed by a better-scored
+kept one within 0.25, 0.5 and 1 D (greedy scan); `outputs_dup_01deg / _05D` = the same for the post-quick-MC list within 0.1 degree and 0.5 D;
+`evals_dup_inputs_05` and `evals_dup_outputs_05D` = the share of the quick-MC evaluations spent on those duplicates; `evals_later_in_clique` = the share
+spent on the second and later candidates of a clique. `kept_distinct_05D` / `_01deg` = distinct orientations (0.5 D / 0.1 degree) in the kept
+quarter; `truth3_*` = number of runs with a candidate within 3 degrees of the truth in the discrete list, after the quick MC and in the kept
+quarter (`truth1_*` the same within 1 degree). `overlap_cliques_1D / _05D` = cliques with a candidate within 1 D / 0.5 D of a candidate of another
+clique; `max_comp_cliques_*` = the largest connected component of cliques (largest over the runs); `next_in_prev_*` = next-level screened points within
+0.1 degree / 0.25 x the next diameter of a point screened at the previous level, `next_self_dup_025Dn` = next-level points within 0.25 x the next
+diameter of an earlier point of their own level.
+
+Six full-sample voxels, C++ rule:
+
+<!-- table:evalC_c_step1_full_cpp_dups -->
+| level | runs | diameter_deg | candidates | inputs_dup_025 | inputs_dup_05 | inputs_dup_1 | outputs_dup_01deg | outputs_dup_05D | evals_dup_inputs_05 | evals_dup_outputs_05D | evals_later_in_clique | quick_evals |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 5.00 | 46,031 | 6.0% | 22.9% | 75.3% | 0.0% | 28.3% | 22.9% | 28.3% | 43.7% | 552,372 |
+| 1 | 6 | 3.33 | 14,103 | 2.8% | 7.8% | 37.0% | 0.1% | 9.9% | 7.8% | 9.9% | 18.5% | 169,236 |
+| 2 | 6 | 2.22 | 3,907 | 4.3% | 8.2% | 22.0% | 0.3% | 9.8% | 8.2% | 9.8% | 9.8% | 46,884 |
+| 3 | 6 | 1.48 | 1,092 | 8.8% | 14.4% | 26.7% | 1.4% | 18.0% | 14.4% | 18.0% | 10.7% | 13,104 |
+<!-- /table:evalC_c_step1_full_cpp_dups -->
+
+<!-- table:evalC_c_step1_full_cpp_kept -->
+| level | runs | kept | kept_distinct_05D | kept_distinct_01deg | truth3_in_candidates | truth3_after_mc | truth3_in_kept | truth1_after_mc | truth1_in_kept |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 11,505 | 9947 | 11500 | 6 | 6 | 6 | 3 | 3 |
+| 1 | 6 | 3,523 | 3186 | 3517 | 6 | 6 | 6 | 6 | 6 |
+| 2 | 6 | 975 | 829 | 970 | 6 | 6 | 6 | 6 | 6 |
+| 3 | 6 | 272 | 160 | 261 | 6 | 6 | 6 | 6 | 6 |
+<!-- /table:evalC_c_step1_full_cpp_kept -->
+
+<!-- table:evalC_c_step1_full_cpp_cliques -->
+| level | runs | cliques | candidates | cand_per_clique | cliques_with_kept | kept | kept_in_cliques_2plus | overlap_cliques_1D | max_comp_cliques_1D | overlap_cliques_05D | max_comp_cliques_05D | next_in_prev_01deg | next_in_prev_025Dn | next_self_dup_025Dn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 25,928 | 46,031 | 1.78 | 10060 | 11,505 | 2819 | 99.5% | 4480 | 58.6% | 61 | 1.5% | 23.8% | 5.9% |
+| 1 | 6 | 11,490 | 14,103 | 1.23 | 3342 | 3,523 | 355 | 53.0% | 31 | 16.9% | 7 | 4.5% | 24.5% | 4.7% |
+| 2 | 6 | 3,523 | 3,907 | 1.11 | 915 | 975 | 117 | 28.0% | 15 | 15.0% | 11 | 5.3% | 24.9% | 9.4% |
+| 3 | 6 | 975 | 1,092 | 1.12 | 247 | 272 | 50 | 30.9% | 17 | 23.8% | 12 | n/a | n/a | n/a |
+<!-- /table:evalC_c_step1_full_cpp_cliques -->
+
+Six full-sample voxels, lenient rule:
+
+<!-- table:evalC_c_step1_full_lenient_dups -->
+| level | runs | diameter_deg | candidates | inputs_dup_025 | inputs_dup_05 | inputs_dup_1 | outputs_dup_01deg | outputs_dup_05D | evals_dup_inputs_05 | evals_dup_outputs_05D | evals_later_in_clique | quick_evals |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 5.00 | 61,547 | 5.9% | 23.6% | 79.2% | 0.0% | 32.0% | 23.6% | 32.0% | 52.4% | 738,564 |
+| 1 | 6 | 3.33 | 21,158 | 2.6% | 7.7% | 44.2% | 0.0% | 11.8% | 7.7% | 11.8% | 27.3% | 253,896 |
+| 2 | 6 | 2.22 | 6,753 | 3.2% | 7.1% | 30.6% | 0.1% | 11.3% | 7.1% | 11.3% | 21.7% | 81,036 |
+| 3 | 6 | 1.48 | 2,116 | 6.2% | 13.6% | 34.2% | 1.0% | 19.3% | 13.6% | 19.3% | 20.3% | 25,392 |
+<!-- /table:evalC_c_step1_full_lenient_dups -->
+
+<!-- table:evalC_c_step1_full_lenient_kept -->
+| level | runs | kept | kept_distinct_05D | kept_distinct_01deg | truth3_in_candidates | truth3_after_mc | truth3_in_kept | truth1_after_mc | truth1_in_kept |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 15,384 | 13248 | 15382 | 6 | 6 | 6 | 4 | 4 |
+| 1 | 6 | 5,287 | 4847 | 5285 | 6 | 6 | 6 | 6 | 6 |
+| 2 | 6 | 1,686 | 1448 | 1682 | 6 | 6 | 6 | 6 | 6 |
+| 3 | 6 | 526 | 365 | 511 | 6 | 6 | 6 | 6 | 6 |
+<!-- /table:evalC_c_step1_full_lenient_kept -->
+
+<!-- table:evalC_c_step1_full_lenient_cliques -->
+| level | runs | cliques | candidates | cand_per_clique | cliques_with_kept | kept | kept_in_cliques_2plus | overlap_cliques_1D | max_comp_cliques_1D | overlap_cliques_05D | max_comp_cliques_05D | next_in_prev_01deg | next_in_prev_025Dn | next_self_dup_025Dn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 29,316 | 61,547 | 2.10 | 13040 | 15,384 | 4594 | 100.0% | 4886 | 65.7% | 43 | 1.6% | 24.4% | 6.1% |
+| 1 | 6 | 15,384 | 21,158 | 1.38 | 4960 | 5,287 | 643 | 60.2% | 21 | 18.0% | 6 | 4.3% | 24.5% | 3.9% |
+| 2 | 6 | 5,287 | 6,753 | 1.28 | 1563 | 1,686 | 240 | 28.1% | 9 | 14.4% | 6 | 4.8% | 25.2% | 7.2% |
+| 3 | 6 | 1,686 | 2,116 | 1.26 | 468 | 526 | 116 | 34.5% | 12 | 25.1% | 8 | n/a | n/a | n/a |
+<!-- /table:evalC_c_step1_full_lenient_cliques -->
+
+Thirty E0 voxels (per-voxel images; a level has about 120 candidates per voxel, so overlap is lower), C++ rule and lenient rule (the clique tables of
+the E0 set are in `benchmarks/eval_reduction/C/step1/tables_e0.md`):
+
+<!-- table:evalC_c_step1_e0_cpp_dups -->
+| level | runs | diameter_deg | candidates | inputs_dup_025 | inputs_dup_05 | inputs_dup_1 | outputs_dup_01deg | outputs_dup_05D | evals_dup_inputs_05 | evals_dup_outputs_05D | evals_later_in_clique | quick_evals |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 30 | 5.00 | 3,686 | 5.5% | 12.9% | 36.4% | 0.0% | 15.2% | 12.9% | 15.2% | 7.7% | 44,232 |
+| 1 | 30 | 3.33 | 967 | 2.6% | 5.2% | 16.5% | 0.0% | 6.1% | 5.2% | 6.1% | 6.2% | 11,604 |
+| 2 | 30 | 2.22 | 241 | 3.3% | 6.6% | 11.6% | 0.0% | 8.3% | 6.6% | 8.3% | 4.1% | 2,892 |
+| 3 | 30 | 1.48 | 50 | 6.0% | 6.0% | 8.0% | 0.0% | 6.0% | 6.0% | 6.0% | 2.0% | 600 |
+<!-- /table:evalC_c_step1_e0_cpp_dups -->
+
+<!-- table:evalC_c_step1_e0_cpp_kept -->
+| level | runs | kept | kept_distinct_05D | kept_distinct_01deg | truth3_in_candidates | truth3_after_mc | truth3_in_kept | truth1_after_mc | truth1_in_kept |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 30 | 910 | 840 | 910 | 30 | 30 | 24 | 11 | 11 |
+| 1 | 30 | 231 | 215 | 231 | 25 | 25 | 20 | 18 | 18 |
+| 2 | 30 | 49 | 46 | 49 | 20 | 20 | 17 | 18 | 17 |
+| 3 | 30 | 30 | 30 | 30 | 17 | 17 | 17 | 17 | 17 |
+<!-- /table:evalC_c_step1_e0_cpp_kept -->
+
+<!-- table:evalC_c_step1_e0_lenient_dups -->
+| level | runs | diameter_deg | candidates | inputs_dup_025 | inputs_dup_05 | inputs_dup_1 | outputs_dup_01deg | outputs_dup_05D | evals_dup_inputs_05 | evals_dup_outputs_05D | evals_later_in_clique | quick_evals |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 30 | 5.00 | 5,379 | 5.8% | 15.7% | 42.7% | 0.0% | 18.5% | 15.7% | 18.5% | 9.9% | 64,548 |
+| 1 | 30 | 3.33 | 1,444 | 3.2% | 7.8% | 21.1% | 0.1% | 9.0% | 7.8% | 9.0% | 7.8% | 17,328 |
+| 2 | 30 | 2.22 | 367 | 6.8% | 13.1% | 18.5% | 0.5% | 13.1% | 13.1% | 13.1% | 5.2% | 4,404 |
+| 3 | 30 | 1.48 | 80 | 13.8% | 20.0% | 21.2% | 2.5% | 21.2% | 20.0% | 21.2% | 1.2% | 960 |
+<!-- /table:evalC_c_step1_e0_lenient_dups -->
+
+<!-- table:evalC_c_step1_e0_lenient_kept -->
+| level | runs | kept | kept_distinct_05D | kept_distinct_01deg | truth3_in_candidates | truth3_after_mc | truth3_in_kept | truth1_after_mc | truth1_in_kept |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 30 | 1,336 | 1200 | 1336 | 30 | 30 | 26 | 16 | 16 |
+| 1 | 30 | 348 | 309 | 348 | 26 | 26 | 24 | 22 | 22 |
+| 2 | 30 | 79 | 63 | 79 | 24 | 24 | 23 | 22 | 22 |
+| 3 | 30 | 30 | 30 | 30 | 23 | 23 | 20 | 22 | 20 |
+<!-- /table:evalC_c_step1_e0_lenient_kept -->
+
+What Step 1 says, levels 0 to 2 pooled (counts in `step1/summary_full.json` and `step1/summary_e0.json`):
+
+* *Duplicate inputs.* Suppressed in the greedy scan by a better-scored kept candidate within 0.5 D: 18.7% (C++ rule) and 18.6% (lenient) of the
+  full-sample candidates, 11.1% and 13.9% of the E0 candidates. Within 0.25 D: 5.1% and 4.9% (full), 4.8% and 5.3% (E0). Within 1 D: 63.6% and
+  67.3% (full), 31.2% and 37.1% (E0). The literal share, any better-scored candidate within 0.5 D, is 20.5% and 21.2% (full), 11.5% and 14.5% (E0).
+  The share of quick-MC evaluations equals the share of candidates (every candidate costs 12 evaluations).
+* *Duplicate outputs* (the same greedy scan in rank order). Within 0.5 D: 23.1% and 25.6% (full), 13.0% and 16.3% (E0); within 0.1 degree: 0.06% and 0.03% (full), 0.02% and 0.07% (E0).
+* *Second and later candidates of a clique* take 36.1% (C++ rule) and 44.1% (lenient) of the quick-MC evaluations on the full-sample voxels (level 0:
+  43.7% and 52.4%) and 7.2% and 9.2% on E0. This is the largest duplicate class, and a "best one per clique" filter removes it. On the full-sample
+  voxels a clique averages 1.56 (C++ rule) and 1.79 (lenient) candidates.
+* *Kept quarter.* At level 0 the C++-rule full-sample runs keep 11,505 candidates, 9,947 of them distinct at 0.5 D; 2,819 of the kept candidates sit in a
+  clique with two or more kept candidates. The truth basin (3 degrees) is in the kept quarter of all six full-sample voxels at every level. On the 30 E0
+  voxels it is lost mostly at levels 0 and 1 (the C++ rule keeps it at level 0 in 24 of 30 runs).
+* *Next level.* 23.8% to 24.9% of the next level's screened points (C++ rule, six voxels) lie within 0.25 x the next diameter of a point screened
+  at the previous level, 1.5% to 5.3% within 0.1 degree, and 4.7% to 9.4% within 0.25 x the next diameter of an earlier point of their own level. No arm
+  removes these (the screen is not changed).
+
+*Is the truth-nearest candidate the best-scored of its clique?* If often not, a best-one-per-clique filter drops it. Counts over the stored
+step-1 runs (`step1/clique_truth.json`; `near3` = discrete candidates within 3 degrees of the truth, `near3_not_first` = those that are not the best-scored
+of their clique, `nearest_not_first` = runs whose truth-nearest candidate is not the best-scored of its clique, out of `runs_with_near3`):
+
+<!-- table:evalC_c_clique_truth -->
+| set | rule | level | runs | near3 | near3_not_first | near1 | near1_not_first | runs_with_near3 | nearest_not_first | nearest_in_multi | nearest_not_first_multi |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| full | cpp | 0 | 6 | 22 | 7 | 1 | 0 | 6 | 1 | 5 | 1 |
+| full | cpp | 1 | 6 | 45 | 15 | 13 | 0 | 6 | 0 | 3 | 0 |
+| full | cpp | 2 | 6 | 60 | 17 | 28 | 1 | 6 | 0 | 1 | 0 |
+| full | cpp | 3 | 6 | 78 | 20 | 47 | 6 | 6 | 0 | 0 | 0 |
+| full | lenient | 0 | 6 | 19 | 6 | 1 | 0 | 6 | 1 | 6 | 1 |
+| full | lenient | 1 | 6 | 37 | 8 | 9 | 0 | 6 | 0 | 2 | 0 |
+| full | lenient | 2 | 6 | 55 | 18 | 25 | 3 | 6 | 0 | 1 | 0 |
+| full | lenient | 3 | 6 | 64 | 16 | 43 | 5 | 6 | 0 | 0 | 0 |
+| e0 | cpp | 0 | 30 | 87 | 30 | 5 | 0 | 30 | 9 | 12 | 9 |
+| e0 | cpp | 1 | 30 | 50 | 13 | 19 | 1 | 25 | 2 | 9 | 2 |
+| e0 | cpp | 2 | 30 | 30 | 1 | 27 | 1 | 20 | 0 | 1 | 0 |
+| e0 | cpp | 3 | 30 | 20 | 0 | 20 | 0 | 17 | 0 | 0 | 0 |
+| e0 | lenient | 0 | 30 | 100 | 32 | 6 | 0 | 30 | 7 | 15 | 7 |
+| e0 | lenient | 1 | 30 | 78 | 23 | 32 | 1 | 26 | 0 | 8 | 0 |
+| e0 | lenient | 2 | 30 | 57 | 7 | 46 | 2 | 24 | 0 | 1 | 0 |
+| e0 | lenient | 3 | 30 | 39 | 1 | 38 | 1 | 23 | 0 | 0 | 0 |
+<!-- /table:evalC_c_clique_truth -->
+
+At level 0 on E0 the truth-nearest candidate is not the best-scored of its clique in 9 of 30 runs with the C++ rule (7 of 30 lenient); on the six
+full-sample voxels in 1 of 6 (both rules). This is consistent with the E0 loss of the clique filter. Traced run by run on the 200 E0 voxels (table
+`evalC_c_e0_level0` below): `clique=cpp:1` removes the truth basin from the level-0 quick-MC inputs in 8 runs, which end 5 broken and 3 both wrong.
+
+**Diagram.** `figures/candidates_level0_v15901_cpp.png` (and `candidates_level1_v15901_cpp.png`): the candidates of one level of voxel 15901 in orientation
+space (rotation-vector projection of the symmetry-reduced orientation), cliques coloured, kept quarter ringed, truth marked; right panel: a zoom of the
+misorientation to the truth with circles of D and 0.5 D around the nearest candidate.
+
+**Step 2 (library, opt-in).** `candidate_dedup.py` clusters orientation matrices with a `scipy.spatial.cKDTree` after reducing each to the member of its
+symmetry class with the largest quaternion w, plus boundary copies (both signs, only for members within twice the chord radius of the zone); it returns the
+same groups as `csl.dedup_orientations` (tests: random sets, sets on the cubic fundamental-zone boundary, a 4-fold group, no symmetry; a mutation check
+confirmed that the tests fail without the boundary copies); its speed was not timed (the unit test only guards against a pairwise loop). The key `CandidateDedup` takes `clique=cpp:K`,
+`clique=merged:K[@L]`, `pre=T`, `post=T` and `quarter=orig|filtered`. Hooks in `reconstruct_voxel`: the filters C0 and C1 sit before the quick-MC branch (the
+sequential and the lockstep quick MC both see the filtered list); C2 sits after the quick MC and before the ranking cut and moves the candidates that are
+within `post` x D of a better one behind the distinct ones (also in the FindOptimal hand-off of the last level); the "discrete" recorder record is unchanged
+and the "quick_mc" record gains `dd_n_discrete`, `dd_n_mc`, `dd_n_distinct` with the key on. With the key off the loop is the old code (bit-identical results
+and recorder keys, tested). The kept quarter is counted from the discrete stage's list by default (`quarter=orig`: freed slots go to the next candidate), or
+from the shorter list with `quarter=filtered`.
+
+**Step 3 (arms).** Each arm is one value of the key: the C++ clique (`clique=cpp`, k = 1, 2), the merged clique linked at half a diameter (`merged@0.5`, k = 1, 2) and,
+because the plan's one-diameter link is degenerate at level 0, also linked at one diameter (`merged`, k = 1, 2); dedup before the quick MC at 0.25 and 0.5 D (C1);
+the kept quarter counted over distinct candidates at 0.25 and 0.5 D (C2); C3 = `merged:2@0.5` + `pre=0.25` + `post=0.25`; and two variants that count the quarter from
+the shorter list (`quarter=filtered`: C1 at 0.5 D and C3). "Broken" = right in the baseline and wrong in the arm, "fixed" = the reverse, wrong = error above 1 degree,
+counted by voxel. Every arm, the baseline included, uses the lenient (default) overlap rule; the C++ rule appears only in the Step 1 measurement. Six
+voxels = the six full-sample voxels, one process each (the Task A ledger tool); E0 = the 200 E0 voxels, per-voxel clean images, seed 0,
+`min_sin_eta` 0, 10 workers. The six-voxel wrong counts carry Wilson intervals; six voxels cannot show an accuracy loss of a few percent, so they
+measure the savings, not the accuracy. Wall times are in `step3/tables.md`, labelled by how many of the six runs passed the quiet-machine check; evaluation counts do not
+depend on the load.
+
+<!-- table:evalC_c_all -->
+| arm | spec | six_evals | six_vs_base | six_wrong | e0_mean_evals | e0_vs_base | e0_wrong | e0_broken | e0_fixed | e0_both_wrong |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | off | 1,992,278 | 100.0% | 0/6 [0.000, 0.390] | 48,700 | 100.0% | 41/200 | 0 | 0 | 41 |
+| c0a_k1 | clique=cpp:1 | 1,510,635 | 75.8% | 0/6 [0.000, 0.390] | 48,400 | 99.4% | 55/200 | 24 | 10 | 31 |
+| c0a_k2 | clique=cpp:2 | 1,906,552 | 95.7% | 0/6 [0.000, 0.390] | 48,677 | 100.0% | 42/200 | 8 | 7 | 34 |
+| c0b_k1 | clique=merged:1@0.5 | 1,313,590 | 65.9% | 1/6 [0.030, 0.564] | 47,998 | 98.6% | 73/200 | 44 | 12 | 29 |
+| c0b_k2 | clique=merged:2@0.5 | 1,570,440 | 78.8% | 0/6 [0.000, 0.390] | 48,422 | 99.4% | 50/200 | 18 | 9 | 32 |
+| c0bL1_k1 | clique=merged:1 | 476,991 | 23.9% | 5/6 [0.436, 0.970] | 47,360 | 97.2% | 99/200 | 67 | 9 | 32 |
+| c0bL1_k2 | clique=merged:2 | 476,783 | 23.9% | 5/6 [0.436, 0.970] | 47,879 | 98.3% | 81/200 | 50 | 10 | 31 |
+| c1_t025 | pre=0.25 | 1,952,142 | 98.0% | 0/6 [0.000, 0.390] | 48,515 | 99.6% | 39/200 | 11 | 13 | 28 |
+| c1_t05 | pre=0.5 | 1,811,077 | 90.9% | 0/6 [0.000, 0.390] | 48,317 | 99.2% | 50/200 | 30 | 21 | 20 |
+| c2_t025 | post=0.25 | 1,997,954 | 100.3% | 0/6 [0.000, 0.390] | 48,684 | 100.0% | 44/200 | 6 | 3 | 38 |
+| c2_t05 | post=0.5 | 1,994,867 | 100.1% | 0/6 [0.000, 0.390] | 48,640 | 99.9% | 50/200 | 13 | 4 | 37 |
+| c3 | clique=merged:2@0.5,pre=0.25,post=0.25 | 1,569,151 | 78.8% | 0/6 [0.000, 0.390] | 48,350 | 99.3% | 50/200 | 25 | 16 | 25 |
+| c1_t05_qf | pre=0.5,quarter=filtered | 1,622,208 | 81.4% | 0/6 [0.000, 0.390] | 47,958 | 98.5% | 66/200 | 41 | 16 | 25 |
+| c3_qf | clique=merged:2@0.5,pre=0.25,post=0.25,quarter=filtered | 1,148,297 | 57.6% | 0/6 [0.000, 0.390] | 48,002 | 98.6% | 57/200 | 29 | 13 | 28 |
+<!-- /table:evalC_c_all -->
+
+Evaluations per stage on the six voxels (sum over the six; `screen` = level screens, `recost` = the complete cost of every passing candidate, `quick` = quick MC, `sum` = all):
+
+<!-- table:evalC_c_stage -->
+| arm | screen | recost | quick | find | variance | final | sum |
+|---|---|---|---|---|---|---|---|
+| base | 465,057 | 402,506 | 1,098,888 | 17,312 | 8,509 | 6 | 1,992,278 |
+| c0a_k1 | 464,643 | 402,236 | 619,524 | 15,970 | 8,256 | 6 | 1,510,635 |
+| c0a_k2 | 465,129 | 402,419 | 1,013,772 | 16,607 | 8,619 | 6 | 1,906,552 |
+| c0b_k1 | 459,162 | 396,585 | 432,672 | 16,381 | 8,784 | 6 | 1,313,590 |
+| c0b_k2 | 466,146 | 403,551 | 675,900 | 16,097 | 8,740 | 6 | 1,570,440 |
+| c0bL1_k1 | 264,015 | 208,285 | 312 | 1,122 | 3,251 | 6 | 476,991 |
+| c0bL1_k2 | 264,069 | 208,336 | 456 | 1,028 | 2,888 | 6 | 476,783 |
+| c1_t025 | 465,741 | 403,150 | 1,052,700 | 21,420 | 9,125 | 6 | 1,952,142 |
+| c1_t05 | 465,831 | 403,224 | 917,148 | 16,337 | 8,531 | 6 | 1,811,077 |
+| c2_t025 | 465,210 | 402,655 | 1,099,656 | 21,071 | 9,356 | 6 | 1,997,954 |
+| c2_t05 | 464,922 | 402,231 | 1,097,580 | 20,673 | 9,455 | 6 | 1,994,867 |
+| c3 | 465,543 | 402,919 | 670,416 | 20,306 | 9,961 | 6 | 1,569,151 |
+| c1_t05_qf | 415,557 | 354,624 | 826,632 | 16,682 | 8,707 | 6 | 1,622,208 |
+| c3_qf | 350,532 | 291,953 | 473,832 | 22,079 | 9,895 | 6 | 1,148,297 |
+<!-- /table:evalC_c_stage -->
+
+E0 arms with Wilson intervals on the wrong count and the paired split; `med_err_right_both` = median error in degrees over the `n_right_both` voxels
+that are right in both the arm and the baseline (n differs by arm):
+
+<!-- table:evalC_c_e0_arms -->
+| arm | spec | n | wrong | broken | fixed | both_wrong | mean_evals | vs_base | n_right_both | med_err_right_both |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | off | 200 | 41 [0.155, 0.266] | 0 | 0 | 41 | 48,700 | 100.0% | 159 | 0.0130 |
+| c0a_k1 | clique=cpp:1 | 200 | 55 [0.218, 0.341] | 24 | 10 | 31 | 48,400 | 99.4% | 135 | 0.0139 |
+| c0a_k2 | clique=cpp:2 | 200 | 42 [0.159, 0.272] | 8 | 7 | 34 | 48,677 | 100.0% | 151 | 0.0129 |
+| c0bL1_k1 | clique=merged:1 | 200 | 99 [0.426, 0.564] | 67 | 9 | 32 | 47,360 | 97.2% | 92 | 0.0138 |
+| c0bL1_k2 | clique=merged:2 | 200 | 81 [0.339, 0.474] | 50 | 10 | 31 | 47,879 | 98.3% | 109 | 0.0156 |
+| c0b_k1 | clique=merged:1@0.5 | 200 | 73 [0.301, 0.434] | 44 | 12 | 29 | 47,998 | 98.6% | 115 | 0.0165 |
+| c0b_k2 | clique=merged:2@0.5 | 200 | 50 [0.195, 0.314] | 18 | 9 | 32 | 48,422 | 99.4% | 141 | 0.0128 |
+| c1_t025 | pre=0.25 | 200 | 39 [0.146, 0.255] | 11 | 13 | 28 | 48,515 | 99.6% | 148 | 0.0169 |
+| c1_t05 | pre=0.5 | 200 | 50 [0.195, 0.314] | 30 | 21 | 20 | 48,317 | 99.2% | 129 | 0.0159 |
+| c1_t05_qf | pre=0.5,quarter=filtered | 200 | 66 [0.269, 0.398] | 41 | 16 | 25 | 47,958 | 98.5% | 118 | 0.0213 |
+| c2_t025 | post=0.25 | 200 | 44 [0.168, 0.282] | 6 | 3 | 38 | 48,684 | 100.0% | 153 | 0.0156 |
+| c2_t05 | post=0.5 | 200 | 50 [0.195, 0.314] | 13 | 4 | 37 | 48,640 | 99.9% | 146 | 0.0152 |
+| c3 | clique=merged:2@0.5,pre=0.25,post=0.25 | 200 | 50 [0.195, 0.314] | 25 | 16 | 25 | 48,350 | 99.3% | 134 | 0.0184 |
+| c3_qf | clique=merged:2@0.5,pre=0.25,post=0.25,quarter=filtered | 200 | 57 [0.227, 0.351] | 29 | 13 | 28 | 48,002 | 98.6% | 130 | 0.0183 |
+<!-- /table:evalC_c_e0_arms -->
+
+Truth basin (3 degrees) in the kept quarter, runs of 200 (`kept_L<level>`), and number of runs with it in the quick-MC inputs (`mcin_L<level>`):
+
+<!-- table:evalC_c_e0_truth -->
+| arm | kept_L0 | kept_L1 | kept_L2 | kept_L3 | mcin_L0 | mcin_L1 | mcin_L2 | mcin_L3 |
+|---|---|---|---|---|---|---|---|---|
+| base | 182/200 | 171/200 | 160/200 | 155/200 | 196 | 182 | 171 | 160 |
+| c0a_k1 | 168/200 | 151/200 | 146/200 | 144/200 | 188 | 169 | 152 | 146 |
+| c0a_k2 | 182/200 | 167/200 | 160/200 | 157/200 | 196 | 183 | 167 | 160 |
+| c0bL1_k1 | 117/200 | 106/200 | 104/200 | 99/200 | 118 | 118 | 107 | 104 |
+| c0bL1_k2 | 136/200 | 128/200 | 121/200 | 118/200 | 142 | 138 | 129 | 121 |
+| c0b_k1 | 159/200 | 139/200 | 129/200 | 125/200 | 175 | 162 | 140 | 129 |
+| c0b_k2 | 175/200 | 157/200 | 151/200 | 147/200 | 193 | 177 | 158 | 151 |
+| c1_t025 | 181/200 | 168/200 | 162/200 | 160/200 | 196 | 184 | 168 | 162 |
+| c1_t05 | 185/200 | 164/200 | 151/200 | 147/200 | 194 | 186 | 165 | 151 |
+| c1_t05_qf | 180/200 | 156/200 | 137/200 | 134/200 | 194 | 180 | 156 | 137 |
+| c2_t025 | 182/200 | 167/200 | 157/200 | 155/200 | 196 | 182 | 167 | 157 |
+| c2_t05 | 182/200 | 163/200 | 150/200 | 149/200 | 196 | 182 | 164 | 150 |
+| c3 | 177/200 | 161/200 | 152/200 | 148/200 | 193 | 177 | 161 | 152 |
+| c3_qf | 168/200 | 152/200 | 145/200 | 143/200 | 193 | 169 | 152 | 145 |
+<!-- /table:evalC_c_e0_truth -->
+
+Level 0, run by run (added after review): `l0_filter_drop_runs` = runs in which the arm dropped candidates before the level-0 quick MC (from then on
+the random draws differ from the baseline's); `mcin_L0` = runs with the truth basin (3 degrees) in the level-0 quick-MC inputs; `lost_L0` = runs
+that have it in the baseline and not in the arm, split by final outcome against the baseline; `gained_L0` = the reverse. The level-0 discrete
+stage uses no random numbers, so a lost basin is the filter's doing; the outcome after it still passes through later draws.
+
+<!-- table:evalC_c_e0_level0 -->
+| arm | spec | l0_filter_drop_runs | mcin_L0 | lost_L0 | lost_broken | lost_fixed | lost_both_wrong | lost_both_right | gained_L0 | broken | fixed |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| base | off | 0 | 196 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| c0a_k1 | clique=cpp:1 | 200 | 188 | 8 | 5 | 0 | 3 | 0 | 0 | 24 | 10 |
+| c0a_k2 | clique=cpp:2 | 131 | 196 | 0 | 0 | 0 | 0 | 0 | 0 | 8 | 7 |
+| c0bL1_k1 | clique=merged:1 | 200 | 118 | 78 | 56 | 0 | 22 | 0 | 0 | 67 | 9 |
+| c0bL1_k2 | clique=merged:2 | 200 | 142 | 54 | 37 | 1 | 15 | 1 | 0 | 50 | 10 |
+| c0b_k1 | clique=merged:1@0.5 | 200 | 175 | 21 | 14 | 0 | 7 | 0 | 0 | 44 | 12 |
+| c0b_k2 | clique=merged:2@0.5 | 200 | 193 | 3 | 2 | 0 | 0 | 1 | 0 | 18 | 9 |
+| c1_t025 | pre=0.25 | 200 | 196 | 0 | 0 | 0 | 0 | 0 | 0 | 11 | 13 |
+| c1_t05 | pre=0.5 | 200 | 194 | 2 | 1 | 1 | 0 | 0 | 0 | 30 | 21 |
+| c1_t05_qf | pre=0.5,quarter=filtered | 200 | 194 | 2 | 1 | 1 | 0 | 0 | 0 | 41 | 16 |
+| c2_t025 | post=0.25 | 0 | 196 | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 3 |
+| c2_t05 | post=0.5 | 0 | 196 | 0 | 0 | 0 | 0 | 0 | 0 | 13 | 4 |
+| c3 | clique=merged:2@0.5,pre=0.25,post=0.25 | 200 | 193 | 3 | 3 | 0 | 0 | 0 | 0 | 25 | 16 |
+| c3_qf | clique=merged:2@0.5,pre=0.25,post=0.25,quarter=filtered | 200 | 193 | 3 | 3 | 0 | 0 | 0 | 0 | 29 | 13 |
+<!-- /table:evalC_c_e0_level0 -->
+
+**Extension: the 30-voxel full-sample set (not in the plan).** Six voxels are too few to see a loss, and the E0 set cannot show the savings, so the baseline and the five arms with a saving on the six (`clique=cpp:1`, `clique=cpp:2`, `clique=merged:2@0.5`, `pre=0.5`, C3) were also run on the other 24 voxels of the 30-voxel ray-study set (`benchmarks/phase_d_seed_diag/ray_overlap/voxels.json`; the six ledger runs are reused, the other 144 runs were made 8 at a time, so they are contended; evaluation counts and results do not depend on the load). Clean images, seed 1, lenient (default) overlap rule, wrong = error above 1 degree, paired by voxel against the baseline; `median_err_all30` = median error in degrees over all 30 voxels, wrong ones included:
+
+<!-- table:evalC_c_full30 -->
+| arm | spec | evals | vs_base | wrong | broken | fixed | both_wrong | median_err_all30 |
+|---|---|---|---|---|---|---|---|---|
+| base | off | 9,926,300 | 100.0% | 1/30 [0.006, 0.167] | 0 | 0 | 1 | 0.0078 |
+| c0a_k1 | clique=cpp:1 | 7,550,309 | 76.1% | 2/30 [0.018, 0.213] | 2 | 1 | 0 | 0.0163 |
+| c0a_k2 | clique=cpp:2 | 9,499,632 | 95.7% | 1/30 [0.006, 0.167] | 0 | 0 | 1 | 0.0124 |
+| c0b_k2 | clique=merged:2@0.5 | 7,821,945 | 78.8% | 2/30 [0.018, 0.213] | 2 | 1 | 0 | 0.0121 |
+| c1_t05 | pre=0.5 | 9,038,525 | 91.1% | 0/30 [0.000, 0.114] | 0 | 1 | 0 | 0.0128 |
+| c3 | clique=merged:2@0.5,pre=0.25,post=0.25 | 7,836,757 | 78.9% | 1/30 [0.006, 0.167] | 1 | 1 | 0 | 0.0160 |
+<!-- /table:evalC_c_full30 -->
+
+
+**Diagram.** `figures/arms_evals_and_wrong.png`: evaluations and wrong counts of every arm side by side.
+
+**Reading the results.**
+
+* *The savings come from the quick MC.* On the six full-sample voxels the quick MC is 55.2% of the baseline's evaluations (1,098,888 of 1,992,278), the screens 23.3% and the re-costs 20.2%. A filter before the quick MC removes quick-MC evaluations only: with `quarter=orig` the next levels still screen the same number of kept candidates (465,057 screen evaluations in the baseline, 464,643 with `clique=cpp:1`). Counting the quarter from the shorter list (`quarter=filtered`) also shrinks the later screens and re-costs: C3 with it (`c3_qf`) makes 350,532 screen, 291,953 re-cost and 473,832 quick-MC evaluations, 57.6% of the baseline's in all, 0 of 6 wrong, but on E0 29 broken and 13 fixed (57 wrong against 41).
+* *C2 alone saves nothing* (100.3% and 100.1% of the baseline's evaluations on the six): it changes which candidates fill the kept slots, not how many.
+* *E0 measures accuracy, not savings.* A per-voxel image leaves about 182 candidates per voxel at level 0 (mean over the 200 baseline runs), so the quick MC is 6.0% of the E0 evaluations.
+* *Accuracy on E0.* Every arm that changes the candidate list has both broken and fixed voxels (the wrong count changes by +14 for `clique=cpp:1`, +1 for `clique=cpp:2`, -2 for `pre=0.25`, +9 for `pre=0.5`, +9 for C3, +25 and +16 with `quarter=filtered`). The filters C0 and C1 change the quick-MC inputs of a level; `post` (C2) leaves them alone and changes the kept list instead (+3 and +9 for `post=0.25` and `post=0.5`), and so the next level's inputs. Either way the number or order of quick-MC runs changes, and with it the random numbers every later run receives, so the paired split mixes the arm's effect with the effect of a new draw. The scale of the draw alone: two seeds of the same key-off code on these 200 voxels give 20/22, 14/18 and 21/23 fixed/broken (net +2, +4, +2; `s3_ab_paired`, same voxels and images, `e0_run.py` settings with 35 to 39 wrong per seed). Against that scale `clique=cpp:1` (net +14) and three of the four merged-clique arms (net +32 to +58) stand out, `clique=merged:2@0.5`, `pre=0.5`, `post=0.5` and C3 (net +9 each) are above it by less, and `clique=cpp:2`, `pre=0.25` and `post=0.25` (8/7, 11/13, 6/3 broken/fixed) are within it. Only the part that passes through the level-0 inputs can be traced without random numbers (table `evalC_c_e0_level0`): 5 of the 24 broken voxels of `clique=cpp:1` lose the truth basin from the level-0 quick-MC inputs (8 runs lose it: 5 broken, 3 both wrong); `pre=0.5` loses it in 2 runs (1 broken, 1 fixed), so its net +9 arises later and is not separated from the draw. This is consistent with Step 1, where in 9 of 30 E0 runs the candidate nearest to the truth is not the best-scored of its clique at level 0.
+* *The plan's one-diameter merged clique* (`clique=merged:1` and `:2`) cuts the evaluations to 23.9% of the baseline's and leaves 5 of the 6 full-sample voxels wrong (99 and 81 of the 200 E0 voxels wrong): at level 0 it keeps k candidates for the whole run, as Step 1 predicted. Linked at half a diameter (`@0.5`) it keeps 78.8% (k = 2) of the evaluations with 0 of 6 wrong; on E0 18 broken and 9 fixed (net +9; 2 broken traced to the level-0 inputs).
+* *Full-sample set.* On 30 voxels the largest saving without a clear loss is `clique=cpp:1` (23.9% fewer evaluations; 2 wrong against 1; Wilson intervals of 2/30 and 1/30 overlap almost entirely), then `pre=0.5` (8.9% fewer, 0 wrong). These counts are too small to separate a loss of one or two voxels from the draw, and they are on clean images only.
+* *Decision point taken (non-blocking).* The plan's rule names the arm with the fewest evaluations among those with no broken E0 voxel (and no more wrong of the six than the baseline); no arm qualifies, so the baseline is carried to Task G. The rule cannot be met by any arm that changes the candidate list: the draw changes with it, and two seeds of the same code already break 18 to 23 of the 200 voxels. "No arm qualifies" therefore says nothing about the arms. Keeping or replacing that rule for later tasks (for example, net change against the seed-to-seed scale plus a check that uses no random numbers, such as the truth basin in the level-0 quick-MC inputs) is an open owner question. The full-sample evidence (2 broken of 30 for `clique=cpp:1`, 0 for `pre=0.5`) against the E0 evidence (net +14 with 5 broken traced, and net +9 not traced) was weighed by the owner: neither filter is tried in Task G for now (D-20261014-N4).
+
+
+**Not tested.** Realistic images (the noise model is not yet redone, findings open question 8) and extra seeds (not allowed): every comparison is one draw of the
+random numbers per voxel. An arm that changes how many quick-MC runs a level makes also changes which random numbers the later runs receive, so part of the "broken"
+and "fixed" voxels is the same effect as any change of the draw. No extra seeds were run for Task C; the scale used above is the existing seed-to-seed split of the same
+key-off code on the same 200 voxels (`s3_ab_paired`: 20/22, 14/18, 21/23 fixed/broken per 200). The shorter quick MC on duplicates (C4) was not
+built (trigger not met). Not tried: the BFS setting (a start from a neighbour's orientation), more than 30 full-sample voxels, and a timing of any arm with `BatchedQuickMC` on.
+
+**The E0 baseline against the stored E0 runs (corrected after review).** Today's baseline has 41 of 200 wrong, the stored lenient-rule run `off_ms0` 39; they differ in
+30 voxels (16 wrong only now, 14 wrong only before). The cause is measured, not open: it is the centroid screen start point (a deliberate change, "Centroid start point
+everywhere", 2026-10-12). The stored run made after that change and before `BatchedScreen` existed (`off_ms0_centroid`, per-orientation screen) gives the same error as
+today's baseline on all 200 voxels, and `off_ms0` against it is the centroid study's own split (`centroid_e0_paired`, row "old": 14 fixed, 16 broken, 25 both wrong).
+`BatchedScreen` changed no E0 result (also shown in "S3" below: no flag and no cost changed). An earlier version of this section blamed `BatchedScreen` and called the
+cause untested; that was wrong.
+
+<!-- table:evalC_c_e0_reference -->
+| run | what | n | wrong_run | wrong_base | same_error_1e9 | max_abs_err_diff | wrong_only_in_run | wrong_only_in_base | both_wrong |
+|---|---|---|---|---|---|---|---|---|---|
+| off_ms0 | before the centroid screen start point (2026-10-12) and BatchedScreen | 200 | 39 | 41 | 0 | 6.00e+01 | 14 | 16 | 25 |
+| off_ms0_centroid | centroid start point, per-orientation screen (before BatchedScreen) | 200 | 41 | 41 | 200 | 0.00e+00 | 0 | 0 | 41 |
+| off_ms0_c_ref | e0_cpprule.py off arm on the Task C code, uninstrumented | 200 | 41 | 41 | 200 | 0.00e+00 | 0 | 0 | 41 |
+<!-- /table:evalC_c_e0_reference -->
+
+**Verified, not assumed:** the instrumented E0 baseline (the probe wrappers only count) gives the same error and evaluation count on all 200 voxels as the uninstrumented
+`e0_cpprule.py` off arm run on today's code (`off_ms0_c_ref`, 200 of 200 identical), and the same error as the pre-Task-C run `off_ms0_centroid` (200 of 200), which is
+stronger evidence that key off leaves the results unchanged than the unit test (that test compares "off" with the default inside the new code, so it pins only the
+absence of the `dd_` recorder keys).
+
+**Files.** See the "Task C" paragraph of the README for scripts and runners. Results: `step1/` (overlap statistics, `metrics_*.json`, `summary_*.json`, `tables_*.md`,
+`clique_truth.json`), `step3/` (`summary.json`, `summary_e0.json`, `tables*.md`, preflight files), `ledger/runs/` (six-voxel ledger runs), `full30/runs/` (the other 24 voxels
+of the 30-voxel set), `figures/`.
+
 ## S3: batched quick MC with a GPU option (2026-10-14)
 
 Branch `feature/python-speed-parity-s3` (off `feature/python-speed-parity`; not merged). Plan: `docs/todo_batched_quick_mc.md`

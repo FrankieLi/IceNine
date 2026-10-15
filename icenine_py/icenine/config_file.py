@@ -222,6 +222,7 @@ class ConfigFile:
     batched_screen: bool = True  # level screen: many orientations per call (default on 2026-10-13)
     batched_quick_mc: bool = False  # quick MC of a level in lockstep (opt-in, draw option B)
     search_device: str = "cpu"  # device of the batched quick-MC cost: cpu (default), mps or cuda
+    candidate_dedup: str = "off"  # clique filter / de-duplication of the candidates (opt-in)
     # ray-consistency rule (coarse levels 0-2 only): "off", "R<n>" (isotropic n px) or "A"
     ray_overlap_rule: str = "off"
 
@@ -473,6 +474,7 @@ class ConfigFile:
             'BatchedScreen': self._parse_bool('batched_screen'),
             'BatchedQuickMC': self._parse_bool('batched_quick_mc'),
             'SearchDevice': self._parse_search_device,
+            'CandidateDedup': self._parse_candidate_dedup,
             'RayOverlapRule': self._parse_ray_overlap_rule,
 
             # Parameter Optimization
@@ -615,6 +617,16 @@ class ConfigFile:
         if value not in ('cpu', 'mps', 'cuda'):
             raise ValueError(f"SearchDevice must be 'cpu', 'mps' or 'cuda', got {tokens[1]!r}")
         self.search_device = value
+
+    def _parse_candidate_dedup(self, tokens: List[str]) -> None:
+        """CandidateDedup off|<spec> (Python-only, opt-in; candidate_dedup.DedupSpec, no spaces),
+        e.g. ``CandidateDedup clique=cpp:1`` or ``CandidateDedup pre=0.5,post=0.5``."""
+        if len(tokens) < 2:
+            raise ValueError(f"Missing value for {tokens[0]}")
+        from .candidate_dedup import DedupSpec
+
+        DedupSpec.parse(tokens[1])  # raises ValueError on a malformed spec
+        self.candidate_dedup = tokens[1]
 
     @staticmethod
     def _positive_validator(value: float, keyword: str) -> None:
