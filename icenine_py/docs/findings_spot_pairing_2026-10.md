@@ -96,23 +96,38 @@ tried it.
 - The ring test tells us which family of planes made the peak, its {hkl} family.
 - Two scattering vectors from one grain that are not parallel fix the grain's orientation, up to a small set of
   choices. This is the standard way to index a grain.
-- **One pair of spots is not precise enough.** Each scattering vector carries two errors.
-  - *From the pixel.* The detectors sit 3.362 mm and 5.387 mm from the sample (`StandardGeometry.2Det` of
-    Example2), so they are 2.03 mm apart. A pixel is 1.48 µm. One pixel of centroid error on one detector turns the
-    ray by 1.48 µm / 2.03 mm = 0.042°. For both detectors together it is 0.059°.
-  - A sideways turn of the ray turns the scattering vector by about that angle divided by sin 2θ. Here 2θ is the
-    angle between the ray and the beam. The eight copper rings lie at 2θ = 5.3° to 13.7°. So one pixel becomes
-    0.45° to 0.18° on the scattering vector (0.042° / sin 5.3° and 0.042° / sin 13.7°).
+- **One pair of spots is not precise enough.** Each scattering vector carries two errors. One comes from the ray
+  direction and one from the frame.
+  - *The ray direction, as measured.* On these clean images the ray direction is very accurate. We measured its
+    error as the ray's angle to the beam, 2θ, minus the nearest copper ring angle. Over the 23,205 correct
+    one-grain pairs of `ring_tight`, the median error is 0.0044° and the 90th percentile is 0.0155°. The ray is the
+    line through both centroids, so this error already includes both detectors. It is only the radial part of the
+    error, toward or away from the beam. We did not measure the sideways part, a turn about the beam.
+  - *The ray direction, as a tolerance.* The detectors sit 3.362 mm and 5.387 mm from the sample
+    (`StandardGeometry.2Det` of Example2), so they are 2.03 mm apart. A pixel is 1.48 µm. One pixel of centroid
+    error on one detector turns the ray by 1.48 µm / 2.03 mm = 0.042°. One pixel on each detector, added in
+    quadrature, turns it by 0.059°. We keep one pixel as the matching tolerance and as the upper estimate. It is
+    about ten times the measured median. It is not a strict limit: 99% of the measured errors are below 0.042°
+    (99th percentile 0.037°), but the largest is 0.080°.
+  - *From the ray to the scattering vector.* A sideways turn of the ray turns the scattering vector by about that
+    angle divided by sin 2θ. Here 2θ is the angle between the ray and the beam. The eight copper rings lie at
+    2θ = 5.3° to 13.7°. One pixel on one detector only becomes 0.45° to 0.18° on the scattering vector
+    (0.042° / sin 5.3° and 0.042° / sin 13.7°). One pixel on each detector becomes 0.64° to 0.25°. The measured
+    median becomes 0.048° to 0.019°, if the sideways error is about as large as the radial one. That is untested.
   - *From the frame.* Each frame covers 1° of omega, so the exact omega is known only to ±0.5°. That turns the
     scattering vector by up to 0.5° times the sine of its angle to the rotation axis. Over the matched pairs the
     median of that sine is 0.86. So this error reaches about 0.43°.
-  - Each error alone is about as large as FindOptimal's reach: the pixel cost's score halves 0.26° from the true
+  - **On clean images the frame term dominates.** It reaches about 0.43°. The ray direction adds only about 0.02°
+    to 0.05° at the measured median. Real data will have a larger direction error than these clean images.
+  - The frame term can be larger than the pixel cost's half-score radius: that score halves 0.26° from the true
     orientation. The comparison is rough, because 0.26° is a turn of the whole orientation and the errors above
     are errors of one direction.
-- So one pair of spots does not fix the orientation within FindOptimal's reach. A fit over many spots of the grain
-  is needed. A grain has a median of 50 one-grain spots on detector 0 with a partner (at least 33). How close such
-  a fit gets is untested.
-- There are two risks. Small grains have few spots. And the spot groups of neighbouring grains may merge into one.
+- So one pair of spots does not fix the orientation within the pixel cost's half-score radius (0.26°). A fit over
+  many spots of the grain is needed. A grain has a median of 50 one-grain spots on detector 0 that have a true
+  partner, matched or not. Every grain has at least 33, even the smallest grains of 4 voxels. How close such a
+  fit gets is untested.
+- There are two risks. Small grains give small spots, with few pixels in each centroid. And the spot groups of
+  neighbouring grains may merge into one.
 
 **How to test it.**
 
@@ -121,8 +136,8 @@ tried it.
    orientation is fitted to all of the cluster's spots.
 3. Count the grains whose fitted orientation, the **seed**, lies within 0.1° and within 0.5° of the true
    orientation. Report the counts by grain size.
-4. Run FindOptimal from those seeds. Count its cost evaluations and compare them with the level-0 grid of 4,886
-   points.
+4. Run FindOptimal from those seeds and count its cost evaluations. Compare them, per voxel, with the counted
+   evaluations of the usual search that has no starting orientation (the evaluation ledger of Tasks A and C).
 
 There are two reasons the idea may hold up. Both are untested.
 
@@ -140,14 +155,17 @@ These are notes from the main session for a later plan. Nothing here is built or
 - **Train for association, not for grain classes.** Grain IDs are arbitrary, so fixed grain classes make no sense.
   Instead, the model could give each spot an embedding, a short vector, and learn it with a pairwise or contrastive
   loss. Spots of one grain then end up close together.
-- **Give the model the spot position.** The detector-1 spot is roughly the detector-0 spot scaled by L1/L0 along
-  the ray. It is also sheared, because the ray hits the detector at a slant. The shear depends on the ray direction,
-  and so on where the spot sits. So the model needs the position, or crops around candidate pairs.
+- **Give the model the spot position.** The detector-1 spot has about the same size and shape as its detector-0
+  partner. Over 23,022 true one-grain pairs away from the detector edges, the ratio of their pixel counts has a
+  median of 1.00. Its 10th to 90th percentiles are 0.89 to 1.13. This fits the geometry: all the voxels of a
+  grain diffract along the same direction, so a spot is a parallel projection of the grain. The detector-1 spot is
+  shifted outward from the beam by about the detector gap times tan 2θ. The shift depends on where the spot sits.
+  So the model needs the position, or crops around candidate pairs.
 - **A hybrid aims at what geometry cannot do.** The geometric tests propose candidate pairs, and the model scores
   crops of each pair. That targets the remaining errors: the 0.887 precision of `ring_tight`, and the spots that
   mix several grains.
-- **The main planning item is the gap between simulation and real data.** Simulated spots are clean and binary,
-  with no blur. The current noise model is flagged as unphysical.
+- **The main planning item is the gap between simulation and real data.** Simulated spots are clean and have sharp
+  edges. They have no blur and no detector noise. The current noise model is flagged as unphysical.
 
 ## The details
 
@@ -156,8 +174,8 @@ These are notes from the main session for a later plan. Nothing here is built or
 We re-ran the simulator on the same clean images and recorded, for every lit pixel, which voxel and which
 reflection drew it. The re-run gives the same lit pixels in all 360 images (180 frames on 2 detectors). Their
 intensities are equal to the precision the stored image files keep. It also gives the same 57,389 spots. So the
-record matches the images the other studies use. The re-run took 35 s on 10 workers, with other jobs running
-(contended).
+record matches the images the other studies use. The re-run took 35 s on 10 workers. The load was 2.2 at the
+start and the preflight warned, so this timing is labelled contended.
 
 Two spots form a **true pair** when they share a voxel and reflection. There are 27,888 true pairs, together
 carrying 1,375,053 peaks. 3,890 spots on detector 0 have no partner on detector 1; we did not find out why.

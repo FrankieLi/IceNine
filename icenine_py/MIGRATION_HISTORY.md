@@ -7043,25 +7043,36 @@ by the peak-grain combinations may give a much smaller starting candidate list. 
 the level is the grain, not the voxel: origins find the grain, a radius filter loses real peaks, and a hit-or-miss peak-list score is no sharper than
 the pixel cost. *Untested proposal (main session):* a matched pair gives the scattered ray direction; with the beam and the frame's omega it gives the
 scattering vector in the sample frame, and the ring gate gives its {hkl} family. Two non-parallel vectors of one grain fix the orientation up to a
-small set (standard indexing). Error budget per spot (detectors at 3.362 and 5.387 mm in `StandardGeometry.2Det`, gap 2.03 mm, pixel 1.48 um):
-one pixel turns the ray by 1.48 um / 2.03 mm = 0.042 degrees (0.059 for both detectors in quadrature); a sideways ray error maps to about
-1 / sin 2theta times as much on the scattering vector, so 0.45 to 0.18 degrees over the eight rings (2theta 5.3 to 13.7 degrees); the 1 degree
-frames leave omega uncertain by +-0.5 degrees, which moves the sample-frame scattering vector by up to about 0.43 degrees (median sin(g, z) 0.86 over
-the chosen pairs). Each term alone is about FindOptimal's reach (0.26 degree half-score radius; a rough comparison, a direction error against an
-orientation radius), so one pair does not fix the orientation; a fit over many spots of the grain is needed (median 50 one-grain detector-0 spots
-with a partner per grain, at least 33), and how close it gets is untested. Risks: small grains with few spots; merged spot groups of neighbouring
-grains. *How to test it:* cluster the matched rays' origins into grains; index each cluster (pairs of scattering vectors with their ring families,
+small set (standard indexing). Error budget per spot (D-20261014-N10). The measured ray-direction error on clean images is small. It is the
+radial part only: 2theta of the line minus the nearest Cu ring, over the 23,205 correct one-grain `ring_tight` pairs. Its median is 0.0044 degrees
+and its 90th percentile 0.0155 degrees. The line uses both centroids, so this includes both detectors. The sideways part (a turn about the beam) was
+not measured. One pixel is kept as the tolerance and the upper estimate. The detectors sit at 3.362 and 5.387 mm in `StandardGeometry.2Det`, gap
+2.03 mm, pixel 1.48 um. So one pixel on one detector turns the ray by 1.48 um / 2.03 mm = 0.042 degrees, and one pixel on each detector by 0.059
+degrees in quadrature. It is not a strict limit: 99% of the measured errors are below 0.042 degrees (p99 0.037), the largest is 0.080. A sideways
+ray error maps to about 1 / sin 2theta times as much on the scattering vector (eight rings, 2theta 5.3 to 13.7 degrees). One pixel on one detector
+only gives 0.45 to 0.18 degrees; one pixel on each detector gives 0.64 to 0.25 degrees. The measured median gives 0.048 to 0.019 degrees, if the
+sideways error is about as large as the radial one (untested). The 1 degree frames leave omega uncertain by +-0.5 degrees. That moves the
+sample-frame scattering vector by up to about 0.43 degrees (median sin(g, z) 0.86 over the chosen pairs). On clean images this frame term
+dominates. Real data will have a larger direction error than these clean images. The frame term can exceed the pixel cost's half-score radius
+(0.26 degrees; a rough comparison, a direction error against an orientation radius). So one pair does not fix the orientation, and a fit over many
+spots of the grain is needed. Each grain has a median of 50 one-grain detector-0 spots with a true partner, matched or not (at least 33, even for
+4-voxel grains). How close the fit gets is untested. Risks: small grains give small spots, with few pixels per centroid; spot groups of
+neighbouring grains may merge. *How to test it:* cluster the matched rays' origins into grains; index each cluster (pairs of scattering vectors with their ring families,
 then a fit over the cluster's spots); count grains whose seed lands within 0.1 and 0.5 degrees of the true orientation, by grain size; then run
-FindOptimal from those seeds and count cost evaluations against the level-0 grid (4,886 points). Two reasons it may hold up, both untested: indexing
+FindOptimal from those seeds and count its cost evaluations; compare them, per voxel, with the counted evaluations of the no-start search (the
+Task A and C evaluation ledger). Two reasons it may hold up, both untested: indexing
 can split merged clusters of neighbouring grains, since another grain's vectors do not fit the same orientation; and the poorly matched several-grain
 spots matter little, because each grain has many one-grain spots.
 
 **Notes for planning the learned model (D-20261014-N8; main session, nothing built).** Labels come free from the provenance writer (about 35 s per
 labelled render, contended). Grain IDs are arbitrary, so train for association (an embedding per spot with a pairwise or contrastive loss), not fixed
-grain classes. The detector-1 spot is roughly the detector-0 spot scaled by L1/L0 along the ray, with a shear from the oblique hit that depends on
-the ray direction and so on the spot position; give the model the position or crops around candidate pairs. A hybrid, where the geometric gates
+grain classes. The detector-1 spot has about the same size and shape as its detector-0 partner. Over 23,022 true one-grain pairs off the detector
+edges, the pixel-count ratio has median 1.00 (p10 to p90 0.89 to 1.13; `step1/summary.json` `partner_size_ratio`). This fits the geometry: a
+grain's spot is a parallel projection, because all its voxels diffract along the same direction. The detector-1 spot is shifted outward from the
+beam by about the detector gap times tan 2theta. The shift depends on the spot position, so give the model the position or crops around candidate
+pairs. A hybrid, where the geometric gates
 propose pairs and the model scores crops, targets what geometry cannot do (the 0.887 precision, the several-grain spots). The main planning item is
-the sim-to-real gap: simulated spots are clean and binary with no blur, and the current noise model is flagged unphysical.
+the sim-to-real gap: simulated spots are clean, with sharp edges, no blur and no detector noise, and the current noise model is flagged unphysical.
 
 **Step 1 (truth).** `render_provenance.py` re-renders the clean images through a recording image (35 s, 10 workers, contended): all 360 images
 (180 frames x 2 detectors) have the same lit pixels as the stock `clean/` files, with intensities equal to the stored precision, the 57,389 components equal `spots_total` of `render_full.json`, 2,957,243 triangle records. 27,888 true pairs carry
@@ -7198,7 +7209,7 @@ pixel tolerance before the scan; the table is evidence, not a tuned result. The 
 azimuthal turn of g (a 0.05 degree ray tolerance acting like 0.2 to 0.5 degrees in orientation); untested. Whether a smooth direction residual helps
 a search was not tested.
 
-**Not tested / left.** Splitting unions of several grains (their centroid is not a ray); noise; a per-pair attribution radius from the predicted origin
+**Not tested / left.** Splitting unions of several grains (their misses are consistent with a centroid lying on no single ray; untested); noise; a per-pair attribution radius from the predicted origin
 tolerance; searches with the attributed cost (Tasks E, F); the cause of the 3,890 unpartnered detector-0 spots; a real layer thickness (the simulated
 layer is exact, z = 0); the N7 follow-ups and the indexing proposal and its test above; a learned spot-association model (ConvNet or ViT on the detector-image
 pair), parked as a research idea by D-20261014-N8 and needing its own plan.
@@ -7208,6 +7219,12 @@ detector-1 centroid tolerance scaled by L1/L0 on top of the detector-0 error tha
 attribution and separation result rerun: `ring_tight` precision 0.854 -> 0.887, one-grain recall 0.990 -> 0.987, several-grain recall 0.349 -> 0.275;
 the truth-score, sharpness and separation tables did not change at their printed precision. `load_geometry` now refuses set-ups where lab = Rz(omega)
 sample does not hold; a multi-chunk `peak_hook` test was added.
+
+**Second review fixes (D-20261014-N10).** Two notes were corrected against the branch's own data. Partner spots have the same size; they are not
+scaled by L1/L0. The 1-pixel term of the error budget is a tolerance, about ten times the measured direction error, so the frame term dominates on
+clean images. Wording fixes followed: one detector or both, the half-score radius instead of "FindOptimal's reach", spots per grain, the baseline of
+the test plan, "consistent with" for the several-grain misses, the preflight load, and "not binary". `pairing_summary.py` now also writes the size
+ratio and the measured ray error to the step 1 and step 2 summaries. Nothing else was rerun, and every table is unchanged.
 
 **Files.** See the "Task D" paragraph of the README. Results: `step1/`, `step2/`, `step3/` (`summary*.json`, `tables*.md`), `figures/`, `cache/`
 (gitignored: provenance-derived arrays, pairs per preset).
