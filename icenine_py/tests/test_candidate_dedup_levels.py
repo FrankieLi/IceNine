@@ -146,3 +146,31 @@ def test_the_batched_quick_mc_sees_the_filtered_list() -> None:
     assert evaluator.counts["orient_compact"] == 12 * quick["dd_n_mc"]
     assert quick["dd_n_mc"] < quick["dd_n_discrete"]
     assert np.isfinite(res.cost)
+
+
+def _quick(spec: str) -> Tuple[Dict[str, Any], float]:
+    _, ev, rec = _run(candidate_dedup=spec)
+    (quick,) = [d for n, d in ev if n == "quick_mc"]  # the toy problem has one level
+    return quick, float(rec.keep_fraction)
+
+
+def test_quarter_filtered_counts_the_quarter_from_the_list_the_filter_left() -> None:
+    # pre: quarter=orig counts from the discrete list (capped by what ran), quarter=filtered
+    # from the shorter quick-MC list
+    q_orig, kf = _quick("pre=0.5")
+    q_filt, _ = _quick("pre=0.5,quarter=filtered")
+    n, m = q_orig["dd_n_discrete"], q_orig["dd_n_mc"]
+    assert (q_filt["dd_n_discrete"], q_filt["dd_n_mc"]) == (n, m) and m < n
+    assert q_orig["n_keep"] == min(max(1, int(n * kf)), m)
+    assert q_filt["n_keep"] == max(1, int(m * kf))
+    assert q_filt["n_keep"] < q_orig["n_keep"]  # the toy case tells the two rules apart
+
+
+def test_quarter_filtered_with_post_counts_the_quarter_from_the_distinct_candidates() -> None:
+    q_orig, kf = _quick("post=0.25")
+    q_filt, _ = _quick("post=0.25,quarter=filtered")
+    n, nd = q_orig["dd_n_discrete"], q_orig["dd_n_distinct"]
+    assert q_orig["dd_n_mc"] == n and q_filt["dd_n_distinct"] == nd and 1 <= nd < n
+    assert q_orig["n_keep"] == min(max(1, int(n * kf)), nd)
+    assert q_filt["n_keep"] == min(max(1, int(nd * kf)), nd)
+    assert q_filt["n_keep"] < q_orig["n_keep"]

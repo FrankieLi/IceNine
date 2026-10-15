@@ -106,7 +106,7 @@ def main() -> None:
                         vs_base=f"{100 * e30.sum() / b30.sum():.1f}%",
                         wrong=f"{int(w30.sum())}/30 [{lo30:.3f}, {hi30:.3f}]",
                         broken=br30, fixed=fx30, both_wrong=d["full30"]["both_wrong"],
-                        median_err=float(np.median(er30)),
+                        median_err_all30=float(np.median(er30)),
                     )
                 )  # fmt: skip
         summ[arm] = d
@@ -114,7 +114,7 @@ def main() -> None:
             dict(
                 arm=arm, spec=a["spec"], evals=int(ev.sum()),
                 vs_base=f"{100 * ev.sum() / evb.sum():.1f}%",
-                wrong=f"{int(wrong.sum())}/6", broken=broken, fixed=fixed,
+                wrong=f"{int(wrong.sum())}/6 [{lo:.3f}, {hi:.3f}]", broken=broken, fixed=fixed,
                 median_err=float(np.median(err)), max_err=float(err.max()),
                 wall_min=wall / 60, quiet=f"{s6['n_single_worker_quiet']}/6",
             )
@@ -126,7 +126,7 @@ def main() -> None:
                 dict(
                     arm=arm, spec=a["spec"],
                     six_evals=int(ev.sum()), six_vs_base=f"{100 * ev.sum() / evb.sum():.1f}%",
-                    six_wrong=f"{int(wrong.sum())}/6",
+                    six_wrong=f"{int(wrong.sum())}/6 [{lo:.3f}, {hi:.3f}]",
                     e0_mean_evals=x["mean_evals"], e0_vs_base=f"{100 * x['evals_ratio']:.1f}%",
                     e0_wrong=f"{x['wrong']}/{x['n']}", e0_broken=x["broken"], e0_fixed=x["fixed"],
                     e0_both_wrong=x["both_wrong"],
@@ -181,7 +181,7 @@ def main() -> None:
     }
     if rows30:
         tabs["c_full30"] = DT.markdown_table(
-            rows30, list(rows30[0].keys()), formats={"evals": ",d", "median_err": ".4f"}
+            rows30, list(rows30[0].keys()), formats={"evals": ",d", "median_err_all30": ".4f"}
         )
     DT.write_tables(BASE / "step3" / "tables.md", tabs)
     print(tabs["c_all"])
