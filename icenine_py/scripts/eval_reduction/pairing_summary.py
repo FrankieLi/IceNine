@@ -133,6 +133,36 @@ def step1(prov: Dict, ct: Dict, cls: np.ndarray, a: np.ndarray, b: np.ndarray, n
     return out, {"step1_components": tbl1, "step1_links": tbl2}
 
 
+def grain_spot_counts(
+    prov: Dict, ct: Dict, cls: np.ndarray, geo: Dict[str, Any], a: np.ndarray
+) -> Dict[str, Any]:
+    """Per grain: one-grain detector-0 spots that have a true partner (what an indexing fit over a
+    grain's spots could use), and the grain size in voxels."""
+    comp = prov["tri_comp"].astype(np.int64)
+    first = np.unique(comp, return_index=True)[1]
+    grain_of = np.full(len(cls), -1, dtype=np.int64)
+    grain_of[comp[first]] = geo["voxel_grain"][prov["tri_voxel"][first].astype(np.int64)]
+    linked = np.zeros(len(cls), dtype=bool)
+    linked[a] = True
+    sel = (ct["det"] == 0) & (cls == 1) & linked
+    n_grains = int(geo["voxel_grain"].max()) + 1
+    per_grain = np.bincount(grain_of[sel], minlength=n_grains)
+    size = np.bincount(geo["voxel_grain"], minlength=n_grains)
+    return {
+        "n_grains": n_grains,
+        "one_grain_det0_spots_with_partner_per_grain_median_p10_min": [
+            float(np.median(per_grain)),
+            float(np.percentile(per_grain, 10)),
+            int(per_grain.min()),
+        ],
+        "grain_size_voxels_median_p10_min": [
+            float(np.median(size)),
+            float(np.percentile(size, 10)),
+            int(size.min()),
+        ],
+    }
+
+
 def evaluate(
     name: str,
     suffix: str,
@@ -378,6 +408,7 @@ def main() -> None:
     a, b, npk = pc.truth_links(prov)
 
     s1, t1 = step1(prov, ct, cls, a, b, npk)
+    s1["per_grain"] = grain_spot_counts(prov, ct, cls, geo, a)
     (OUT1 / "summary.json").write_text(json.dumps(s1, indent=2) + "\n")
     DT.write_tables(OUT1 / "tables.md", t1)
 

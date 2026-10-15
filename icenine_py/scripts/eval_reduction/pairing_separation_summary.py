@@ -22,6 +22,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parents[0] / "common"))
 import doc_tables as DT  # noqa: E402
 import pairing_common as pc  # noqa: E402
+import stats as ST  # noqa: E402
 
 OUT = pc.BENCH / "step3"
 TOL = 0.05  # default direction tolerance (degrees), frame window 0
@@ -94,7 +95,7 @@ def main() -> None:
             "random axis, 0.25 to 0.5 degree",
             lambda r: r["group"] == "random axis" and 0.25 <= r["angle"] <= 0.5,
         ),
-        ("rotations about <100>, <110>, <111>", lambda r: r["group"].startswith("about")),
+        ("rotations about low-index crystal axes", lambda r: r["group"].startswith("about")),
     ):
         row = {"wrong orientations": gname}
         for k, name in COSTS:
@@ -111,11 +112,16 @@ def main() -> None:
             row[name + ": median of best wrong / truth"] = float(np.nanmedian(ratio))
             row[name + ": voxels with best wrong >= 0.5 truth"] = int((ratio >= 0.5).sum())
             row[name + ": voxels with best wrong >= truth"] = int((ratio >= 1.0).sum())
+            n_valid = int(np.isfinite(ratio).sum())  # voxels with a truth score above 0
+            n_half, n_truth = int((ratio >= 0.5).sum()), int((ratio >= 1.0).sum())
             sep.setdefault(gname, {})[k] = {
                 "median_ratio": float(np.nanmedian(ratio)),
-                "n_ge_half": int((ratio >= 0.5).sum()),
-                "n_ge_truth": int((ratio >= 1.0).sum()),
+                "n_ge_half": n_half,
+                "n_ge_truth": n_truth,
                 "max_ratio": float(np.nanmax(ratio)),
+                "n_valid": n_valid,
+                "n_ge_half_wilson95": list(ST.wilson(n_half, n_valid)),
+                "n_ge_truth_wilson95": list(ST.wilson(n_truth, n_valid)),
             }
         sep_rows.append(row)
     summary["separation"] = sep

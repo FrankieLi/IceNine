@@ -103,5 +103,18 @@
   "partners_per_linked_det1": {
     "max": 3,
     "share_more_than_one": 0.024744466504890067
+  },
+  "per_grain": {
+    "n_grains": 497,
+    "one_grain_det0_spots_with_partner_per_grain_median_p10_min": [
+      50.0,
+      43.0,
+      33
+    ],
+    "grain_size_voxels_median_p10_min": [
+      44.0,
+      21.0,
+      4
+    ]
   }
 }
