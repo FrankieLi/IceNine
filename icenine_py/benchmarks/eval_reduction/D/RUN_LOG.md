@@ -29,6 +29,7 @@ Not touched: `cost_functions.py`, `orientation_search.py`, `batched_screen.py`, 
 | full suite | `uv run pytest tests/ --junitxml=...` | 331 s | 1027 passed, 37 skipped, 1 deselected (the 10 new tests are `tests/test_spot_pairing.py`) |
 | full suite after the first review's fixes (a8c9b5c) | `uv run pytest tests/ --junitxml=...` | 338 s | 1030 passed, 37 skipped, 1 deselected (13 tests in `tests/test_spot_pairing.py`, 3 added by the fixes) |
 | full suite after the second review's fixes (d967595) | `uv run pytest tests/ --junitxml=...` | 338 s | 1030 passed, 37 skipped, 1 deselected (unchanged) |
+| full suite after the third review's fixes (bec9b44) | `uv run pytest tests/ --junitxml=...` | 339 s | 1030 passed, 37 skipped, 1 deselected (unchanged) |
 | attribution | `pairing_attribution.py attach` (330 voxels), `separate` (30 voxels, 91 orientations each) | 1 to 2 min, 10 s | single process |
 
 The check compares every recorded image with the existing `clean/` file: all 360 of 360 images have the same lit pixels, with intensities equal to the stored precision; 57,389 components equal `spots_total`
