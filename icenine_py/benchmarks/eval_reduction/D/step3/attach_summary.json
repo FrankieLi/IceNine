@@ -127,41 +127,41 @@
       "A r=10 um": {
         "all": {
           "true_peaks": 1714,
-          "found": 218,
-          "attached": 287,
-          "attached_true": 218,
-          "attached_false": 69
+          "found": 217,
+          "attached": 278,
+          "attached_true": 217,
+          "attached_false": 61
         },
         "interior": {
           "true_peaks": 628,
           "found": 201,
-          "attached": 219,
+          "attached": 218,
           "attached_true": 201,
-          "attached_false": 18
+          "attached_false": 17
         },
         "boundary": {
           "true_peaks": 1086,
-          "found": 17,
-          "attached": 68,
-          "attached_true": 17,
-          "attached_false": 51
+          "found": 16,
+          "attached": 60,
+          "attached_true": 16,
+          "attached_false": 44
         },
         "recall": {
-          "k": 218,
+          "k": 217,
           "n": 1714,
-          "rate": 0.12718786464410736,
-          "lo": 0.11224347602110787,
-          "hi": 0.14379968884345248
+          "rate": 0.1266044340723454,
+          "lo": 0.11169216395687617,
+          "hi": 0.1431867492095066
         },
         "precision": {
-          "k": 218,
-          "n": 287,
-          "rate": 0.759581881533101,
-          "lo": 0.7069203869058723,
-          "hi": 0.8053859681685048
+          "k": 217,
+          "n": 278,
+          "rate": 0.7805755395683454,
+          "lo": 0.7282826884402488,
+          "hi": 0.8252197043931725
         },
-        "false_per_voxel": 2.3,
-        "true_attached_per_voxel": 7.266666666666667,
+        "false_per_voxel": 2.033333333333333,
+        "true_attached_per_voxel": 7.233333333333333,
         "recall_interior": {
           "k": 201,
           "n": 628,
@@ -170,344 +170,344 @@
           "hi": 0.3575492634018482
         },
         "recall_boundary": {
-          "k": 17,
+          "k": 16,
           "n": 1086,
-          "rate": 0.01565377532228361,
-          "lo": 0.009796050214102474,
-          "hi": 0.024926059861343358
+          "rate": 0.014732965009208104,
+          "lo": 0.009088679755753722,
+          "hi": 0.02379830125139448
         },
-        "false_per_voxel_interior": 1.6363636363636365,
-        "false_per_voxel_boundary": 2.6842105263157894
+        "false_per_voxel_interior": 1.5454545454545454,
+        "false_per_voxel_boundary": 2.3157894736842106
       },
       "A r=15 um": {
         "all": {
           "true_peaks": 1714,
-          "found": 396,
-          "attached": 591,
-          "attached_true": 396,
-          "attached_false": 195
+          "found": 394,
+          "attached": 568,
+          "attached_true": 394,
+          "attached_false": 174
         },
         "interior": {
           "true_peaks": 628,
-          "found": 310,
-          "attached": 351,
-          "attached_true": 310,
-          "attached_false": 41
+          "found": 309,
+          "attached": 346,
+          "attached_true": 309,
+          "attached_false": 37
         },
         "boundary": {
           "true_peaks": 1086,
-          "found": 86,
-          "attached": 240,
-          "attached_true": 86,
-          "attached_false": 154
+          "found": 85,
+          "attached": 222,
+          "attached_true": 85,
+          "attached_false": 137
         },
         "recall": {
-          "k": 396,
+          "k": 394,
           "n": 1714,
-          "rate": 0.2310385064177363,
-          "lo": 0.21169853811144643,
-          "hi": 0.25158142902871367
+          "rate": 0.22987164527421236,
+          "lo": 0.2105695100471458,
+          "hi": 0.2503819536966593
         },
         "precision": {
-          "k": 396,
-          "n": 591,
-          "rate": 0.6700507614213198,
-          "lo": 0.6311504197928353,
-          "hi": 0.7067546628375658
+          "k": 394,
+          "n": 568,
+          "rate": 0.6936619718309859,
+          "lo": 0.6545559027255758,
+          "hi": 0.7301660202684839
         },
-        "false_per_voxel": 6.5,
-        "true_attached_per_voxel": 13.2,
+        "false_per_voxel": 5.8,
+        "true_attached_per_voxel": 13.133333333333333,
         "recall_interior": {
-          "k": 310,
+          "k": 309,
           "n": 628,
-          "rate": 0.49363057324840764,
-          "lo": 0.45468525070919796,
-          "hi": 0.5326533480788526
+          "rate": 0.49203821656050956,
+          "lo": 0.4531043443282279,
+          "hi": 0.5310689041568354
         },
         "recall_boundary": {
-          "k": 86,
+          "k": 85,
           "n": 1086,
-          "rate": 0.07918968692449356,
-          "lo": 0.06457231045166573,
-          "hi": 0.09677370533631668
+          "rate": 0.07826887661141804,
+          "lo": 0.06373959513101178,
+          "hi": 0.095771291588673
         },
-        "false_per_voxel_interior": 3.727272727272727,
-        "false_per_voxel_boundary": 8.105263157894736
+        "false_per_voxel_interior": 3.3636363636363638,
+        "false_per_voxel_boundary": 7.2105263157894735
       },
       "A r=20 um": {
         "all": {
           "true_peaks": 1714,
-          "found": 637,
-          "attached": 1075,
-          "attached_true": 637,
-          "attached_false": 438
+          "found": 635,
+          "attached": 1036,
+          "attached_true": 635,
+          "attached_false": 401
         },
         "interior": {
           "true_peaks": 628,
-          "found": 343,
-          "attached": 413,
-          "attached_true": 343,
-          "attached_false": 70
+          "found": 342,
+          "attached": 400,
+          "attached_true": 342,
+          "attached_false": 58
         },
         "boundary": {
           "true_peaks": 1086,
-          "found": 294,
-          "attached": 662,
-          "attached_true": 294,
-          "attached_false": 368
+          "found": 293,
+          "attached": 636,
+          "attached_true": 293,
+          "attached_false": 343
         },
         "recall": {
-          "k": 637,
+          "k": 635,
           "n": 1714,
-          "rate": 0.3716452742123687,
-          "lo": 0.34907813970333634,
-          "hi": 0.39478648669760774
+          "rate": 0.3704784130688448,
+          "lo": 0.34792858171558927,
+          "hi": 0.3936075412889999
         },
         "precision": {
-          "k": 637,
-          "n": 1075,
-          "rate": 0.5925581395348837,
-          "lo": 0.5629059198160908,
-          "hi": 0.6215511867693428
+          "k": 635,
+          "n": 1036,
+          "rate": 0.612934362934363,
+          "lo": 0.5829087403110185,
+          "hi": 0.6421255341400134
         },
-        "false_per_voxel": 14.6,
-        "true_attached_per_voxel": 21.233333333333334,
+        "false_per_voxel": 13.366666666666667,
+        "true_attached_per_voxel": 21.166666666666668,
         "recall_interior": {
-          "k": 343,
+          "k": 342,
           "n": 628,
-          "rate": 0.5461783439490446,
-          "lo": 0.5070760028925204,
-          "hi": 0.5847191558941122
+          "rate": 0.5445859872611465,
+          "lo": 0.505482080529767,
+          "hi": 0.5831477279538783
         },
         "recall_boundary": {
-          "k": 294,
+          "k": 293,
           "n": 1086,
-          "rate": 0.27071823204419887,
-          "lo": 0.24513368806639452,
-          "hi": 0.2979191739274953
+          "rate": 0.26979742173112337,
+          "lo": 0.2442442926601469,
+          "hi": 0.29697344026544525
         },
-        "false_per_voxel_interior": 6.363636363636363,
-        "false_per_voxel_boundary": 19.36842105263158
+        "false_per_voxel_interior": 5.2727272727272725,
+        "false_per_voxel_boundary": 18.05263157894737
       },
       "A r=30 um": {
         "all": {
           "true_peaks": 1714,
-          "found": 1136,
-          "attached": 2483,
-          "attached_true": 1136,
-          "attached_false": 1347
+          "found": 1133,
+          "attached": 2395,
+          "attached_true": 1133,
+          "attached_false": 1262
         },
         "interior": {
           "true_peaks": 628,
-          "found": 421,
-          "attached": 588,
-          "attached_true": 421,
-          "attached_false": 167
+          "found": 419,
+          "attached": 554,
+          "attached_true": 419,
+          "attached_false": 135
         },
         "boundary": {
           "true_peaks": 1086,
-          "found": 715,
-          "attached": 1895,
-          "attached_true": 715,
-          "attached_false": 1180
+          "found": 714,
+          "attached": 1841,
+          "attached_true": 714,
+          "attached_false": 1127
         },
         "recall": {
-          "k": 1136,
+          "k": 1133,
           "n": 1714,
-          "rate": 0.662777129521587,
-          "lo": 0.6400534958420354,
-          "hi": 0.6847727279494946
+          "rate": 0.661026837806301,
+          "lo": 0.6382788577436899,
+          "hi": 0.6830546109533074
         },
         "precision": {
-          "k": 1136,
-          "n": 2483,
-          "rate": 0.45751107531212243,
-          "lo": 0.43799589914820075,
-          "hi": 0.4771575227665686
+          "k": 1133,
+          "n": 2395,
+          "rate": 0.4730688935281837,
+          "lo": 0.45313202537797154,
+          "hi": 0.49309201876066605
         },
-        "false_per_voxel": 44.9,
-        "true_attached_per_voxel": 37.86666666666667,
+        "false_per_voxel": 42.06666666666667,
+        "true_attached_per_voxel": 37.766666666666666,
         "recall_interior": {
-          "k": 421,
+          "k": 419,
           "n": 628,
-          "rate": 0.6703821656050956,
-          "lo": 0.6326778445585175,
-          "hi": 0.706014637861127
+          "rate": 0.6671974522292994,
+          "lo": 0.629424011968792,
+          "hi": 0.7029377698448777
         },
         "recall_boundary": {
-          "k": 715,
+          "k": 714,
           "n": 1086,
-          "rate": 0.6583793738489871,
-          "lo": 0.6296586858121289,
-          "hi": 0.6859835139350638
+          "rate": 0.6574585635359116,
+          "lo": 0.6287229907677359,
+          "hi": 0.685084079911159
         },
-        "false_per_voxel_interior": 15.181818181818182,
-        "false_per_voxel_boundary": 62.10526315789474
+        "false_per_voxel_interior": 12.272727272727273,
+        "false_per_voxel_boundary": 59.31578947368421
       },
       "A r=50 um": {
         "all": {
           "true_peaks": 1714,
-          "found": 1407,
-          "attached": 6542,
-          "attached_true": 1407,
-          "attached_false": 5135
+          "found": 1393,
+          "attached": 6263,
+          "attached_true": 1393,
+          "attached_false": 4870
         },
         "interior": {
           "true_peaks": 628,
-          "found": 513,
-          "attached": 1770,
-          "attached_true": 513,
-          "attached_false": 1257
+          "found": 505,
+          "attached": 1662,
+          "attached_true": 505,
+          "attached_false": 1157
         },
         "boundary": {
           "true_peaks": 1086,
-          "found": 894,
-          "attached": 4772,
-          "attached_true": 894,
-          "attached_false": 3878
+          "found": 888,
+          "attached": 4601,
+          "attached_true": 888,
+          "attached_false": 3713
         },
         "recall": {
-          "k": 1407,
+          "k": 1393,
           "n": 1714,
-          "rate": 0.8208868144690782,
-          "lo": 0.8020220121095836,
-          "hi": 0.8383164218880563
+          "rate": 0.8127187864644108,
+          "lo": 0.7935568258889748,
+          "hi": 0.8304820843341797
         },
         "precision": {
-          "k": 1407,
-          "n": 6542,
-          "rate": 0.21507184347294406,
-          "lo": 0.20528405946020373,
-          "hi": 0.225194062711283
+          "k": 1393,
+          "n": 6263,
+          "rate": 0.22241737186651764,
+          "lo": 0.21228963198534065,
+          "hi": 0.23288543036185502
         },
-        "false_per_voxel": 171.16666666666666,
-        "true_attached_per_voxel": 46.9,
+        "false_per_voxel": 162.33333333333334,
+        "true_attached_per_voxel": 46.43333333333333,
         "recall_interior": {
-          "k": 513,
+          "k": 505,
           "n": 628,
-          "rate": 0.8168789808917197,
-          "lo": 0.7847330583357128,
-          "hi": 0.845171651958766
+          "rate": 0.804140127388535,
+          "lo": 0.771290747350151,
+          "hi": 0.8332911605204291
         },
         "recall_boundary": {
-          "k": 894,
+          "k": 888,
           "n": 1086,
-          "rate": 0.8232044198895028,
-          "lo": 0.7993867404370802,
-          "hi": 0.8447435625353885
+          "rate": 0.8176795580110497,
+          "lo": 0.7936087874072225,
+          "hi": 0.8395107411554604
         },
-        "false_per_voxel_interior": 114.27272727272727,
-        "false_per_voxel_boundary": 204.10526315789474
+        "false_per_voxel_interior": 105.18181818181819,
+        "false_per_voxel_boundary": 195.42105263157896
       },
       "A r=100 um": {
         "all": {
           "true_peaks": 1714,
-          "found": 1479,
-          "attached": 24526,
-          "attached_true": 1479,
-          "attached_false": 23047
+          "found": 1447,
+          "attached": 23508,
+          "attached_true": 1447,
+          "attached_false": 22061
         },
         "interior": {
           "true_peaks": 628,
-          "found": 539,
-          "attached": 7817,
-          "attached_true": 539,
-          "attached_false": 7278
+          "found": 527,
+          "attached": 7447,
+          "attached_true": 527,
+          "attached_false": 6920
         },
         "boundary": {
           "true_peaks": 1086,
-          "found": 940,
-          "attached": 16709,
-          "attached_true": 940,
-          "attached_false": 15769
+          "found": 920,
+          "attached": 16061,
+          "attached_true": 920,
+          "attached_false": 15141
         },
         "recall": {
-          "k": 1479,
+          "k": 1447,
           "n": 1714,
-          "rate": 0.8628938156359394,
-          "lo": 0.8457963849220174,
-          "hi": 0.8783681713444045
+          "rate": 0.8442240373395566,
+          "lo": 0.8262877934976708,
+          "hi": 0.8606207084270704
         },
         "precision": {
-          "k": 1479,
-          "n": 24526,
-          "rate": 0.06030335154529887,
-          "lo": 0.05739239741647276,
-          "hi": 0.06335202679538193
+          "k": 1447,
+          "n": 23508,
+          "rate": 0.061553513697464694,
+          "lo": 0.05855215565272197,
+          "hi": 0.06469814729249693
         },
-        "false_per_voxel": 768.2333333333333,
-        "true_attached_per_voxel": 49.3,
+        "false_per_voxel": 735.3666666666667,
+        "true_attached_per_voxel": 48.233333333333334,
         "recall_interior": {
-          "k": 539,
+          "k": 527,
           "n": 628,
-          "rate": 0.85828025477707,
-          "lo": 0.8288202640425356,
-          "hi": 0.8833835541296137
+          "rate": 0.839171974522293,
+          "lo": 0.808390050829491,
+          "hi": 0.8658295637068103
         },
         "recall_boundary": {
-          "k": 940,
+          "k": 920,
           "n": 1086,
-          "rate": 0.8655616942909761,
-          "lo": 0.8439793766372475,
-          "hi": 0.8845668634769123
+          "rate": 0.8471454880294659,
+          "lo": 0.8245223261554746,
+          "hi": 0.8673213325927325
         },
-        "false_per_voxel_interior": 661.6363636363636,
-        "false_per_voxel_boundary": 829.9473684210526
+        "false_per_voxel_interior": 629.0909090909091,
+        "false_per_voxel_boundary": 796.8947368421053
       },
       "B footprint": {
         "all": {
           "true_peaks": 1714,
-          "found": 1458,
-          "attached": 11603,
-          "attached_true": 1458,
-          "attached_false": 10145
+          "found": 1440,
+          "attached": 11240,
+          "attached_true": 1440,
+          "attached_false": 9800
         },
         "interior": {
           "true_peaks": 628,
-          "found": 535,
-          "attached": 3567,
-          "attached_true": 535,
-          "attached_false": 3032
+          "found": 525,
+          "attached": 3433,
+          "attached_true": 525,
+          "attached_false": 2908
         },
         "boundary": {
           "true_peaks": 1086,
-          "found": 923,
-          "attached": 8036,
-          "attached_true": 923,
-          "attached_false": 7113
+          "found": 915,
+          "attached": 7807,
+          "attached_true": 915,
+          "attached_false": 6892
         },
         "recall": {
-          "k": 1458,
+          "k": 1440,
           "n": 1714,
-          "rate": 0.8506417736289381,
-          "lo": 0.8329834868860956,
-          "hi": 0.866731783718598
+          "rate": 0.8401400233372228,
+          "lo": 0.822032219779054,
+          "hi": 0.8567265202584441
         },
         "precision": {
-          "k": 1458,
-          "n": 11603,
-          "rate": 0.12565715763164698,
-          "lo": 0.11974955858673811,
-          "hi": 0.13181255457245242
+          "k": 1440,
+          "n": 11240,
+          "rate": 0.12811387900355872,
+          "lo": 0.122061933914548,
+          "hi": 0.13441994324032047
         },
-        "false_per_voxel": 338.1666666666667,
-        "true_attached_per_voxel": 48.6,
+        "false_per_voxel": 326.6666666666667,
+        "true_attached_per_voxel": 48.0,
         "recall_interior": {
-          "k": 535,
+          "k": 525,
           "n": 628,
-          "rate": 0.8519108280254777,
-          "lo": 0.8219930893677457,
-          "hi": 0.8775493275924543
+          "rate": 0.8359872611464968,
+          "lo": 0.804999369601796,
+          "hi": 0.8628895443285308
         },
         "recall_boundary": {
-          "k": 923,
+          "k": 915,
           "n": 1086,
-          "rate": 0.8499079189686924,
-          "lo": 0.827433637416031,
-          "hi": 0.869915408537069
+          "rate": 0.8425414364640884,
+          "lo": 0.8196754716523909,
+          "hi": 0.862992541754328
         },
-        "false_per_voxel_interior": 275.6363636363636,
-        "false_per_voxel_boundary": 374.36842105263156
+        "false_per_voxel_interior": 264.3636363636364,
+        "false_per_voxel_boundary": 362.7368421052632
       }
     },
     "spread300": {
@@ -517,23 +517,23 @@
         "all": {
           "true_peaks": 16717,
           "found": 71,
-          "attached": 95,
+          "attached": 90,
           "attached_true": 71,
-          "attached_false": 24
+          "attached_false": 19
         },
         "interior": {
           "true_peaks": 2853,
           "found": 40,
-          "attached": 44,
+          "attached": 43,
           "attached_true": 40,
-          "attached_false": 4
+          "attached_false": 3
         },
         "boundary": {
           "true_peaks": 13864,
           "found": 31,
-          "attached": 51,
+          "attached": 47,
           "attached_true": 31,
-          "attached_false": 20
+          "attached_false": 16
         },
         "recall": {
           "k": 71,
@@ -544,12 +544,12 @@
         },
         "precision": {
           "k": 71,
-          "n": 95,
-          "rate": 0.7473684210526316,
-          "lo": 0.6515525060749564,
-          "hi": 0.8239557819333315
+          "n": 90,
+          "rate": 0.7888888888888889,
+          "lo": 0.6936500878323096,
+          "hi": 0.8604751615240526
         },
-        "false_per_voxel": 0.08,
+        "false_per_voxel": 0.06333333333333334,
         "true_attached_per_voxel": 0.23666666666666666,
         "recall_interior": {
           "k": 40,
@@ -565,456 +565,456 @@
           "lo": 0.0015757499368528633,
           "hi": 0.0031720400869385823
         },
-        "false_per_voxel_interior": 0.07692307692307693,
-        "false_per_voxel_boundary": 0.08064516129032258
+        "false_per_voxel_interior": 0.057692307692307696,
+        "false_per_voxel_boundary": 0.06451612903225806
       },
       "A r=5 um": {
         "all": {
           "true_peaks": 16717,
-          "found": 477,
-          "attached": 623,
-          "attached_true": 477,
-          "attached_false": 146
+          "found": 474,
+          "attached": 592,
+          "attached_true": 474,
+          "attached_false": 118
         },
         "interior": {
           "true_peaks": 2853,
-          "found": 231,
-          "attached": 247,
-          "attached_true": 231,
-          "attached_false": 16
+          "found": 230,
+          "attached": 243,
+          "attached_true": 230,
+          "attached_false": 13
         },
         "boundary": {
           "true_peaks": 13864,
-          "found": 246,
-          "attached": 376,
-          "attached_true": 246,
-          "attached_false": 130
+          "found": 244,
+          "attached": 349,
+          "attached_true": 244,
+          "attached_false": 105
         },
         "recall": {
-          "k": 477,
+          "k": 474,
           "n": 16717,
-          "rate": 0.02853382783992343,
-          "lo": 0.02611622122333014,
-          "hi": 0.031168072409353993
+          "rate": 0.028354369803194352,
+          "lo": 0.025944511549538345,
+          "hi": 0.03098094847036879
         },
         "precision": {
-          "k": 477,
-          "n": 623,
-          "rate": 0.7656500802568218,
-          "lo": 0.7308213228497162,
-          "hi": 0.7972227635670115
+          "k": 474,
+          "n": 592,
+          "rate": 0.8006756756756757,
+          "lo": 0.7666011923154468,
+          "hi": 0.8308730357344243
         },
-        "false_per_voxel": 0.4866666666666667,
-        "true_attached_per_voxel": 1.59,
+        "false_per_voxel": 0.3933333333333333,
+        "true_attached_per_voxel": 1.58,
         "recall_interior": {
-          "k": 231,
+          "k": 230,
           "n": 2853,
-          "rate": 0.08096740273396424,
-          "lo": 0.07151194328776257,
-          "hi": 0.09154980994349811
+          "rate": 0.08061689449702068,
+          "lo": 0.07118162040144974,
+          "hi": 0.09118005901402781
         },
         "recall_boundary": {
-          "k": 246,
+          "k": 244,
           "n": 13864,
-          "rate": 0.017743796884016158,
-          "lo": 0.01567604209709424,
-          "hi": 0.020078736065356078
+          "rate": 0.017599538372763995,
+          "lo": 0.015540594458830943,
+          "hi": 0.019925746604655105
         },
-        "false_per_voxel_interior": 0.3076923076923077,
-        "false_per_voxel_boundary": 0.5241935483870968
+        "false_per_voxel_interior": 0.25,
+        "false_per_voxel_boundary": 0.42338709677419356
       },
       "A r=10 um": {
         "all": {
           "true_peaks": 16717,
-          "found": 1973,
-          "attached": 2587,
-          "attached_true": 1973,
-          "attached_false": 614
+          "found": 1966,
+          "attached": 2479,
+          "attached_true": 1966,
+          "attached_false": 513
         },
         "interior": {
           "true_peaks": 2853,
-          "found": 650,
-          "attached": 728,
-          "attached_true": 650,
-          "attached_false": 78
+          "found": 648,
+          "attached": 708,
+          "attached_true": 648,
+          "attached_false": 60
         },
         "boundary": {
           "true_peaks": 13864,
-          "found": 1323,
-          "attached": 1859,
-          "attached_true": 1323,
-          "attached_false": 536
+          "found": 1318,
+          "attached": 1771,
+          "attached_true": 1318,
+          "attached_false": 453
         },
         "recall": {
-          "k": 1973,
+          "k": 1966,
           "n": 16717,
-          "rate": 0.11802356882215709,
-          "lo": 0.11322019109496854,
-          "hi": 0.12300246410918102
+          "rate": 0.11760483340312257,
+          "lo": 0.11280907317680669,
+          "hi": 0.12257630359752986
         },
         "precision": {
-          "k": 1973,
-          "n": 2587,
-          "rate": 0.7626594511016621,
-          "lo": 0.7458826060606805,
-          "hi": 0.7786573735351388
+          "k": 1966,
+          "n": 2479,
+          "rate": 0.7930617184348527,
+          "lo": 0.7766667006709481,
+          "hi": 0.8085498512025181
         },
-        "false_per_voxel": 2.046666666666667,
-        "true_attached_per_voxel": 6.576666666666667,
+        "false_per_voxel": 1.71,
+        "true_attached_per_voxel": 6.553333333333334,
         "recall_interior": {
-          "k": 650,
+          "k": 648,
           "n": 2853,
-          "rate": 0.2278303540133193,
-          "lo": 0.21281132109410947,
-          "hi": 0.24358136095028524
+          "rate": 0.22712933753943218,
+          "lo": 0.21212793149906642,
+          "hi": 0.24286460291376202
         },
         "recall_boundary": {
-          "k": 1323,
+          "k": 1318,
           "n": 13864,
-          "rate": 0.09542700519330641,
-          "lo": 0.09064779124566504,
-          "hi": 0.10043036470904386
+          "rate": 0.095066358915176,
+          "lo": 0.09029551665388053,
+          "hi": 0.1000615465534177
         },
-        "false_per_voxel_interior": 1.5,
-        "false_per_voxel_boundary": 2.161290322580645
+        "false_per_voxel_interior": 1.1538461538461537,
+        "false_per_voxel_boundary": 1.8266129032258065
       },
       "A r=15 um": {
         "all": {
           "true_peaks": 16717,
-          "found": 4208,
-          "attached": 5757,
-          "attached_true": 4208,
-          "attached_false": 1549
+          "found": 4197,
+          "attached": 5517,
+          "attached_true": 4197,
+          "attached_false": 1320
         },
         "interior": {
           "true_peaks": 2853,
-          "found": 1159,
-          "attached": 1365,
-          "attached_true": 1159,
-          "attached_false": 206
+          "found": 1156,
+          "attached": 1324,
+          "attached_true": 1156,
+          "attached_false": 168
         },
         "boundary": {
           "true_peaks": 13864,
-          "found": 3049,
-          "attached": 4392,
-          "attached_true": 3049,
-          "attached_false": 1343
+          "found": 3041,
+          "attached": 4193,
+          "attached_true": 3041,
+          "attached_false": 1152
         },
         "recall": {
-          "k": 4208,
+          "k": 4197,
           "n": 16717,
-          "rate": 0.2517198061853203,
-          "lo": 0.24519823820924408,
-          "hi": 0.25835545851377256
+          "rate": 0.2510617933839804,
+          "lo": 0.24454609084935536,
+          "hi": 0.25769188262681236
         },
         "precision": {
-          "k": 4208,
-          "n": 5757,
-          "rate": 0.7309362515198888,
-          "lo": 0.719329240443656,
-          "hi": 0.7422352642981511
+          "k": 4197,
+          "n": 5517,
+          "rate": 0.7607395323545405,
+          "lo": 0.7493026384611269,
+          "hi": 0.7718135623731807
         },
-        "false_per_voxel": 5.163333333333333,
-        "true_attached_per_voxel": 14.026666666666667,
+        "false_per_voxel": 4.4,
+        "true_attached_per_voxel": 13.99,
         "recall_interior": {
-          "k": 1159,
+          "k": 1156,
           "n": 2853,
-          "rate": 0.4062390466175955,
-          "lo": 0.388354854716119,
-          "hi": 0.424375399561892
+          "rate": 0.4051875219067648,
+          "lo": 0.3873121380096882,
+          "hi": 0.4233178948209734
         },
         "recall_boundary": {
-          "k": 3049,
+          "k": 3041,
           "n": 13864,
-          "rate": 0.21992210040392382,
-          "lo": 0.21310550706397238,
-          "hi": 0.22689386529690028
+          "rate": 0.21934506635891518,
+          "lo": 0.21253513465172066,
+          "hi": 0.22631048931329492
         },
-        "false_per_voxel_interior": 3.9615384615384617,
-        "false_per_voxel_boundary": 5.415322580645161
+        "false_per_voxel_interior": 3.230769230769231,
+        "false_per_voxel_boundary": 4.645161290322581
       },
       "A r=20 um": {
         "all": {
           "true_peaks": 16717,
-          "found": 7072,
-          "attached": 10526,
-          "attached_true": 7072,
-          "attached_false": 3454
+          "found": 7040,
+          "attached": 10106,
+          "attached_true": 7040,
+          "attached_false": 3066
         },
         "interior": {
           "true_peaks": 2853,
-          "found": 1732,
-          "attached": 2102,
-          "attached_true": 1732,
-          "attached_false": 370
+          "found": 1723,
+          "attached": 2036,
+          "attached_true": 1723,
+          "attached_false": 313
         },
         "boundary": {
           "true_peaks": 13864,
-          "found": 5340,
-          "attached": 8424,
-          "attached_true": 5340,
-          "attached_false": 3084
+          "found": 5317,
+          "attached": 8070,
+          "attached_true": 5317,
+          "attached_false": 2753
         },
         "recall": {
-          "k": 7072,
+          "k": 7040,
           "n": 16717,
-          "rate": 0.42304241191601366,
-          "lo": 0.41557163974469175,
-          "hi": 0.43054854597610365
+          "rate": 0.42112819285757014,
+          "lo": 0.41366243668553204,
+          "hi": 0.4286301904989753
         },
         "precision": {
-          "k": 7072,
-          "n": 10526,
-          "rate": 0.6718601558046742,
-          "lo": 0.6628288553235138,
-          "hi": 0.6807660568734561
+          "k": 7040,
+          "n": 10106,
+          "rate": 0.6966158717593509,
+          "lo": 0.6875794254164302,
+          "hi": 0.7055028954776974
         },
-        "false_per_voxel": 11.513333333333334,
-        "true_attached_per_voxel": 23.573333333333334,
+        "false_per_voxel": 10.22,
+        "true_attached_per_voxel": 23.466666666666665,
         "recall_interior": {
-          "k": 1732,
+          "k": 1723,
           "n": 2853,
-          "rate": 0.6070802663862601,
-          "lo": 0.5890260106392434,
-          "hi": 0.6248465400825046
+          "rate": 0.6039256922537679,
+          "lo": 0.5858507415480944,
+          "hi": 0.6217211448316055
         },
         "recall_boundary": {
-          "k": 5340,
+          "k": 5317,
           "n": 13864,
-          "rate": 0.3851702250432776,
-          "lo": 0.3771025239068306,
-          "hi": 0.3933015453176117
+          "rate": 0.38351125216387766,
+          "lo": 0.37545057385159303,
+          "hi": 0.39163646873476016
         },
-        "false_per_voxel_interior": 7.115384615384615,
-        "false_per_voxel_boundary": 12.435483870967742
+        "false_per_voxel_interior": 6.019230769230769,
+        "false_per_voxel_boundary": 11.100806451612904
       },
       "A r=30 um": {
         "all": {
           "true_peaks": 16717,
-          "found": 11732,
-          "attached": 24285,
-          "attached_true": 11732,
-          "attached_false": 12553
+          "found": 11653,
+          "attached": 23332,
+          "attached_true": 11653,
+          "attached_false": 11679
         },
         "interior": {
           "true_peaks": 2853,
-          "found": 2234,
-          "attached": 3297,
-          "attached_true": 2234,
-          "attached_false": 1063
+          "found": 2213,
+          "attached": 3134,
+          "attached_true": 2213,
+          "attached_false": 921
         },
         "boundary": {
           "true_peaks": 13864,
-          "found": 9498,
-          "attached": 20988,
-          "attached_true": 9498,
-          "attached_false": 11490
+          "found": 9440,
+          "attached": 20198,
+          "attached_true": 9440,
+          "attached_false": 10758
         },
         "recall": {
-          "k": 11732,
+          "k": 11653,
           "n": 16717,
-          "rate": 0.7018005623018484,
-          "lo": 0.6948199889613593,
-          "hi": 0.7086884086063803
+          "rate": 0.697074834001316,
+          "lo": 0.6900641963349972,
+          "hi": 0.7039949160962813
         },
         "precision": {
-          "k": 11732,
-          "n": 24285,
-          "rate": 0.48309656166357834,
-          "lo": 0.47681468216566936,
-          "hi": 0.48938378816401473
+          "k": 11653,
+          "n": 23332,
+          "rate": 0.4994428253043031,
+          "lo": 0.4930276598391037,
+          "hi": 0.5058581742162663
         },
-        "false_per_voxel": 41.843333333333334,
-        "true_attached_per_voxel": 39.10666666666667,
+        "false_per_voxel": 38.93,
+        "true_attached_per_voxel": 38.843333333333334,
         "recall_interior": {
-          "k": 2234,
+          "k": 2213,
           "n": 2853,
-          "rate": 0.7830354013319313,
-          "lo": 0.7675353608586905,
-          "hi": 0.7977742453861919
+          "rate": 0.7756747283561164,
+          "lo": 0.7600030424442507,
+          "hi": 0.7906050136691859
         },
         "recall_boundary": {
-          "k": 9498,
+          "k": 9440,
           "n": 13864,
-          "rate": 0.6850836699365263,
-          "lo": 0.6773014895688834,
-          "hi": 0.6927633084022731
+          "rate": 0.6809001731102136,
+          "lo": 0.6730917765481957,
+          "hi": 0.6886083455529971
         },
-        "false_per_voxel_interior": 20.442307692307693,
-        "false_per_voxel_boundary": 46.33064516129032
+        "false_per_voxel_interior": 17.71153846153846,
+        "false_per_voxel_boundary": 43.37903225806452
       },
       "A r=50 um": {
         "all": {
           "true_peaks": 16717,
-          "found": 13875,
-          "attached": 67784,
-          "attached_true": 13875,
-          "attached_false": 53909
+          "found": 13731,
+          "attached": 65199,
+          "attached_true": 13731,
+          "attached_false": 51468
         },
         "interior": {
           "true_peaks": 2853,
-          "found": 2395,
-          "attached": 9549,
-          "attached_true": 2395,
-          "attached_false": 7154
+          "found": 2356,
+          "attached": 9140,
+          "attached_true": 2356,
+          "attached_false": 6784
         },
         "boundary": {
           "true_peaks": 13864,
-          "found": 11480,
-          "attached": 58235,
-          "attached_true": 11480,
-          "attached_false": 46755
+          "found": 11375,
+          "attached": 56059,
+          "attached_true": 11375,
+          "attached_false": 44684
         },
         "recall": {
-          "k": 13875,
+          "k": 13731,
           "n": 16717,
-          "rate": 0.8299934198719866,
-          "lo": 0.8242233651227837,
-          "hi": 0.835611843171995
+          "rate": 0.8213794341089908,
+          "lo": 0.8154992934975942,
+          "hi": 0.8271119013838883
         },
         "precision": {
-          "k": 13875,
-          "n": 67784,
-          "rate": 0.2046943231441048,
-          "lo": 0.20167362543535275,
-          "hi": 0.2077484913473123
+          "k": 13731,
+          "n": 65199,
+          "rate": 0.21060138959186492,
+          "lo": 0.20748870180343082,
+          "hi": 0.21374817876835095
         },
-        "false_per_voxel": 179.69666666666666,
-        "true_attached_per_voxel": 46.25,
+        "false_per_voxel": 171.56,
+        "true_attached_per_voxel": 45.77,
         "recall_interior": {
-          "k": 2395,
+          "k": 2356,
           "n": 2853,
-          "rate": 0.8394672274798458,
-          "lo": 0.8255414067807191,
-          "hi": 0.8524800838052483
+          "rate": 0.8257974062390466,
+          "lo": 0.8114440114468063,
+          "hi": 0.8392746003236188
         },
         "recall_boundary": {
-          "k": 11480,
+          "k": 11375,
           "n": 13864,
-          "rate": 0.8280438545874207,
-          "lo": 0.8216719262894553,
-          "hi": 0.8342340367552915
+          "rate": 0.8204702827466821,
+          "lo": 0.8139930919076168,
+          "hi": 0.8267699234415058
         },
-        "false_per_voxel_interior": 137.57692307692307,
-        "false_per_voxel_boundary": 188.52822580645162
+        "false_per_voxel_interior": 130.46153846153845,
+        "false_per_voxel_boundary": 180.17741935483872
       },
       "A r=100 um": {
         "all": {
           "true_peaks": 16717,
-          "found": 14572,
-          "attached": 258705,
-          "attached_true": 14572,
-          "attached_false": 244133
+          "found": 14348,
+          "attached": 248329,
+          "attached_true": 14348,
+          "attached_false": 233981
         },
         "interior": {
           "true_peaks": 2853,
-          "found": 2472,
-          "attached": 39127,
-          "attached_true": 2472,
-          "attached_false": 36655
+          "found": 2425,
+          "attached": 37395,
+          "attached_true": 2425,
+          "attached_false": 34970
         },
         "boundary": {
           "true_peaks": 13864,
-          "found": 12100,
-          "attached": 219578,
-          "attached_true": 12100,
-          "attached_false": 207478
+          "found": 11923,
+          "attached": 210934,
+          "attached_true": 11923,
+          "attached_false": 199011
         },
         "recall": {
-          "k": 14572,
+          "k": 14348,
           "n": 16717,
-          "rate": 0.8716875037387091,
-          "lo": 0.8665321608300482,
-          "hi": 0.876672056833254
+          "rate": 0.8582879703296046,
+          "lo": 0.852918773082059,
+          "hi": 0.8634925348272272
         },
         "precision": {
-          "k": 14572,
-          "n": 258705,
-          "rate": 0.056326704161110144,
-          "lo": 0.05544484766567456,
-          "hi": 0.05722173697725247
+          "k": 14348,
+          "n": 248329,
+          "rate": 0.057778189418070384,
+          "lo": 0.05686731165650466,
+          "hi": 0.05870274913403718
         },
-        "false_per_voxel": 813.7766666666666,
-        "true_attached_per_voxel": 48.57333333333333,
+        "false_per_voxel": 779.9366666666666,
+        "true_attached_per_voxel": 47.82666666666667,
         "recall_interior": {
-          "k": 2472,
+          "k": 2425,
           "n": 2853,
-          "rate": 0.8664563617245006,
-          "lo": 0.8534800815269888,
-          "hi": 0.8784470928742801
+          "rate": 0.8499824745881528,
+          "lo": 0.83640889641828,
+          "hi": 0.8626148086411815
         },
         "recall_boundary": {
-          "k": 12100,
+          "k": 11923,
           "n": 13864,
-          "rate": 0.8727639930755915,
-          "lo": 0.8671134489260299,
-          "hi": 0.8782080147976401
+          "rate": 0.8599971148297749,
+          "lo": 0.8541213080639444,
+          "hi": 0.8656734724013876
         },
-        "false_per_voxel_interior": 704.9038461538462,
-        "false_per_voxel_boundary": 836.6048387096774
+        "false_per_voxel_interior": 672.5,
+        "false_per_voxel_boundary": 802.4637096774194
       },
       "B footprint": {
         "all": {
           "true_peaks": 16717,
-          "found": 14545,
-          "attached": 130333,
-          "attached_true": 14545,
-          "attached_false": 115788
+          "found": 14364,
+          "attached": 126658,
+          "attached_true": 14364,
+          "attached_false": 112294
         },
         "interior": {
           "true_peaks": 2853,
-          "found": 2465,
-          "attached": 20554,
-          "attached_true": 2465,
-          "attached_false": 18089
+          "found": 2421,
+          "attached": 19921,
+          "attached_true": 2421,
+          "attached_false": 17500
         },
         "boundary": {
           "true_peaks": 13864,
-          "found": 12080,
-          "attached": 109779,
-          "attached_true": 12080,
-          "attached_false": 97699
+          "found": 11943,
+          "attached": 106737,
+          "attached_true": 11943,
+          "attached_false": 94794
         },
         "recall": {
-          "k": 14545,
+          "k": 14364,
           "n": 16717,
-          "rate": 0.8700723814081474,
-          "lo": 0.864890343093562,
-          "hi": 0.8750843720547471
+          "rate": 0.8592450798588264,
+          "lo": 0.8538906024306903,
+          "hi": 0.86443448474674
         },
         "precision": {
-          "k": 14545,
-          "n": 130333,
-          "rate": 0.11159875089194601,
-          "lo": 0.10990070919564446,
-          "hi": 0.11331968837458486
+          "k": 14364,
+          "n": 126658,
+          "rate": 0.11340775947828009,
+          "lo": 0.111673154677168,
+          "hi": 0.11516581463717045
         },
-        "false_per_voxel": 385.96,
-        "true_attached_per_voxel": 48.483333333333334,
+        "false_per_voxel": 374.31333333333333,
+        "true_attached_per_voxel": 47.88,
         "recall_interior": {
-          "k": 2465,
+          "k": 2421,
           "n": 2853,
-          "rate": 0.8640028040658956,
-          "lo": 0.8509337946907829,
-          "hi": 0.876092863000004
+          "rate": 0.8485804416403786,
+          "lo": 0.8349586558273785,
+          "hi": 0.8612647539689504
         },
         "recall_boundary": {
-          "k": 12080,
+          "k": 11943,
           "n": 13864,
-          "rate": 0.8713214079630698,
-          "lo": 0.8656445338718411,
-          "hi": 0.876792558862186
+          "rate": 0.8614396999422966,
+          "lo": 0.8555884970319628,
+          "hi": 0.867090654423012
         },
-        "false_per_voxel_interior": 347.86538461538464,
-        "false_per_voxel_boundary": 393.9475806451613
+        "false_per_voxel_interior": 336.53846153846155,
+        "false_per_voxel_boundary": 382.23387096774195
       }
     }
   },
   "pairs_available_peaks_ceiling": {
-    "k": 1219740,
+    "k": 1199652,
     "n": 1375053,
-    "rate": 0.8870494446395885,
-    "lo": 0.8865192913417436,
-    "hi": 0.8875774352789868
+    "rate": 0.8724405532004949,
+    "lo": 0.8718819152882613,
+    "hi": 0.8729971100822054
   }
 }

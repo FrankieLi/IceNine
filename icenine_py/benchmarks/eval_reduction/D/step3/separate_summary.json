@@ -183,57 +183,57 @@
       "frame window": 0,
       "direction tolerance (deg)": 0.02,
       "B completeness at truth (median)": 0.7358490566037735,
-      "oracle purity at truth (median)": 0.8649967469095641,
+      "oracle purity at truth (median)": 0.8854895104895104,
       "B half-score radius (deg)": 0.1837654049217372
     },
     {
       "frame window": 0,
       "direction tolerance (deg)": 0.05,
       "B completeness at truth (median)": 0.7924528301886793,
-      "oracle purity at truth (median)": 0.9252271139063593,
+      "oracle purity at truth (median)": 0.9540169133192389,
       "B half-score radius (deg)": 0.3771764447248224
     },
     {
       "frame window": 0,
       "direction tolerance (deg)": 0.1,
-      "B completeness at truth (median)": 0.8167796610169491,
-      "oracle purity at truth (median)": 0.9555335968379447,
-      "B half-score radius (deg)": 0.5940558045337403
+      "B completeness at truth (median)": 0.8124400383754398,
+      "oracle purity at truth (median)": 0.9791576204950065,
+      "B half-score radius (deg)": 0.5929705422011189
     },
     {
       "frame window": 0,
       "direction tolerance (deg)": 0.2,
-      "B completeness at truth (median)": 0.825083426028921,
-      "oracle purity at truth (median)": 0.9795577805590321,
-      "B half-score radius (deg)": 0.7192310925809636
+      "B completeness at truth (median)": 0.8141870684243566,
+      "oracle purity at truth (median)": 0.9910714285714286,
+      "B half-score radius (deg)": 0.7165942157681997
     },
     {
       "frame window": 1,
       "direction tolerance (deg)": 0.02,
       "B completeness at truth (median)": 0.7358490566037735,
-      "oracle purity at truth (median)": 0.8649967469095641,
+      "oracle purity at truth (median)": 0.8854895104895104,
       "B half-score radius (deg)": 0.21728329768628163
     },
     {
       "frame window": 1,
       "direction tolerance (deg)": 0.05,
       "B completeness at truth (median)": 0.7924528301886793,
-      "oracle purity at truth (median)": 0.9252271139063593,
+      "oracle purity at truth (median)": 0.9540169133192389,
       "B half-score radius (deg)": 0.5553466323431153
     },
     {
       "frame window": 1,
       "direction tolerance (deg)": 0.1,
-      "B completeness at truth (median)": 0.8167796610169491,
-      "oracle purity at truth (median)": 0.9555335968379447,
+      "B completeness at truth (median)": 0.8124400383754398,
+      "oracle purity at truth (median)": 0.9791576204950065,
       "B half-score radius (deg)": 1.0030710950527686
     },
     {
       "frame window": 1,
       "direction tolerance (deg)": 0.2,
-      "B completeness at truth (median)": 0.825083426028921,
-      "oracle purity at truth (median)": 0.9795577805590321,
-      "B half-score radius (deg)": 1.5259917696182004
+      "B completeness at truth (median)": 0.8214285714285714,
+      "oracle purity at truth (median)": 0.9910714285714286,
+      "B half-score radius (deg)": 1.528047163328301
     }
   ]
 }

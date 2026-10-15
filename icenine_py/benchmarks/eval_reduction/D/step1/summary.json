@@ -79,6 +79,12 @@
     }
   ],
   "n_links": 27888,
+  "components_per_detector": {
+    "det0": 30191,
+    "det1": 27198
+  },
+  "several_grain_components_both_detectors": 2593,
+  "single_source_components_both_detectors": 30,
   "n_peaks_both_detectors": 1375053,
   "unpaired_components": {
     "det0": 3890,
