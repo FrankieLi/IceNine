@@ -99,26 +99,39 @@ tried it.
 - **One pair of spots is not precise enough.** Each scattering vector carries two errors. One comes from the ray
   direction and one from the frame.
   - *The ray direction, as measured.* On these clean images the ray direction is very accurate. We measured its
-    error as the ray's angle to the beam, 2θ, minus the nearest copper ring angle. Over the 23,205 correct
-    one-grain pairs of `ring_tight`, the median error is 0.0044° and the 90th percentile is 0.0155°. The ray is the
-    line through both centroids, so this error already includes both detectors. It is only the radial part of the
-    error, toward or away from the beam. We did not measure the sideways part, a turn about the beam.
+    error as the ray's angle to the beam, 2θ, minus the nearest copper ring angle. We took all 23,483 true links
+    whose two spots are both one-grain spots, with no gate: the ray is the line through the two true partner
+    centroids. The median error is 0.0045° and the 90th percentile is 0.0163°. The tail is long: the 99th
+    percentile is 0.091° and the largest error is 0.74°. 422 links (1.8%) have an error above 0.042°, one pixel
+    on one detector (next item). We have not traced these large errors. The ray uses both centroids, so this
+    error already includes both detectors. It is only the radial part of the error, toward or away from the
+    beam. We did not measure the sideways part, a turn about the beam.
+  - *The matched pairs show a cut tail.* Over the 23,205 correct one-grain pairs that `ring_tight` chose, the
+    median is 0.0044°, the 90th percentile 0.0155° and the largest 0.080°. These pairs passed the ring gate,
+    which cuts on this same error. The gate allows one pixel on each centroid, added linearly, over the distance
+    between the two spots: 0.080° to 0.084° (`spot_pairing.py:319`). It cuts 256 of the 23,483 links. So this
+    subset has about the same median, but not the true tail.
   - *The ray direction, as a tolerance.* The detectors sit 3.362 mm and 5.387 mm from the sample
     (`StandardGeometry.2Det` of Example2), so they are 2.03 mm apart. A pixel is 1.48 µm. One pixel of centroid
     error on one detector turns the ray by 1.48 µm / 2.03 mm = 0.042°. One pixel on each detector, added in
-    quadrature, turns it by 0.059°. We keep one pixel as the matching tolerance and as the upper estimate. It is
-    about ten times the measured median. It is not a strict limit: 99% of the measured errors are below 0.042°
-    (99th percentile 0.037°), but the largest is 0.080°.
+    quadrature, turns it by 0.059°. We keep one pixel as the matching tolerance and as an upper estimate of the
+    ray-direction error. It is about ten times the measured median. It is not a strict limit (see the tail above).
   - *From the ray to the scattering vector.* A sideways turn of the ray turns the scattering vector by about that
     angle divided by sin 2θ. Here 2θ is the angle between the ray and the beam. The eight copper rings lie at
     2θ = 5.3° to 13.7°. One pixel on one detector only becomes 0.45° to 0.18° on the scattering vector
-    (0.042° / sin 5.3° and 0.042° / sin 13.7°). One pixel on each detector becomes 0.64° to 0.25°. The measured
-    median becomes 0.048° to 0.019°, if the sideways error is about as large as the radial one. That is untested.
+    (0.042° / sin 5.3° and 0.042° / sin 13.7°). One pixel on each detector becomes 0.64° to 0.25°. Over all the
+    one-grain links, the measured median becomes 0.049° to 0.019°, the 90th percentile 0.18° to 0.069° and the
+    99th percentile 0.99° to 0.38°. These figures assume the sideways error is about as large as the radial
+    one. That is untested. (The radial part alone moves the scattering vector by only half its size, so the
+    figures come from the assumed sideways part.)
   - *From the frame.* Each frame covers 1° of omega, so the exact omega is known only to ±0.5°. That turns the
     scattering vector by up to 0.5° times the sine of its angle to the rotation axis. Over the matched pairs the
     median of that sine is 0.86. So this error reaches about 0.43°.
-  - **On clean images the frame term dominates.** It reaches about 0.43°. The ray direction adds only about 0.02°
-    to 0.05° at the measured median. Real data will have a larger direction error than these clean images.
+  - **On clean images the frame term dominates for at least 90% of pairs.** It reaches about 0.43°. The ray
+    direction adds about 0.02° to 0.05° at the median and 0.07° to 0.18° at the 90th percentile, if the sideways
+    error is about as large as the radial one (untested). At the 99th percentile the ray term (0.38° to
+    0.99°) is about as large as the frame term or larger. Real data will have a larger direction error than these
+    clean images.
   - The frame term can be larger than the pixel cost's half-score radius: that score halves 0.26° from the true
     orientation. The comparison is rough, because 0.26° is a turn of the whole orientation and the errors above
     are errors of one direction.
@@ -378,6 +391,7 @@ orientation. We did not test this. We also did not test whether a smooth directi
 - A distance limit set per ray from its predicted origin error.
 - Using the peak lists in a search (Tasks E and F).
 - Why 3,890 detector-0 spots have no partner.
+- Why 422 true one-grain links have a ray-direction error above 0.042°, up to 0.74°.
 - A sample layer with real thickness (the simulated layer is a plane at z = 0).
 - Whether a classifier would cut the 11% wrong matches or recover the several-grain spots.
 - A learned model that ties spots across the two detectors. It would be a ConvNet or a vision transformer (ViT),

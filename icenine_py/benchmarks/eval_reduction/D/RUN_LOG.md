@@ -68,10 +68,23 @@ columns move). `A r=15.7 um` keeps its radius (the old p90). Fix 16 rebuilt `cac
 
 ## 3c. Second review fixes (D-20261014-N10, 2026-10-14)
 
-All 10 required fixes of `.claude/reports/20261014-2243-review-D-2.md` applied; they are doc fixes. One run: `pairing_summary.py`
+All 10 required fixes of `.claude/reports/20261014-2243-review-D-2.md` applied; they are doc fixes plus two new summary keys. One run: `pairing_summary.py`
 (single process, about 5 s, log `cache/logs/fix2_summary.log`). It now also writes `step1/summary.json` `partner_size_ratio` and, in
 `step2/summary.json` `derived_geometry`, the measured radial ray-direction error of the correct one-grain `ring_tight` pairs and the
 both-detector 1-pixel range. Every other key and all tables are unchanged; `doc_tables_all.md` regenerates byte-identical.
+
+## 3d. Third review fixes (D-20261014-N9, N10, 2026-10-14)
+
+Both required fixes of `.claude/reports/20261014-2317-review-D-3.md` applied. One run: `pairing_summary.py` (single process, about 5 s,
+log `cache/logs/pairing_summary_review3.log`), then `collect_tables.py`. `step2/summary.json` `derived_geometry` gains the `all_links_*` keys:
+the radial ray-direction error over all 23,483 true links whose two spots are both one-grain, with no gate (the line through the two true
+partner centroids). Median 0.0045 degrees, p90 0.0163, p99 0.091, largest 0.74; 422 links (1.8%) above 0.042 degrees. The large errors are not
+traced. The earlier figures (23,205 correct one-grain `ring_tight` pairs: median 0.0044, p90 0.0155, largest 0.080) are cut by the ring gate,
+0.080 to 0.084 degrees at these links (`spot_pairing.py:319`), which cuts 256 of the 23,483 links. (The 272 one-grain `gate_ring` rejections of
+`true_link_first_failing_gate_by_class` count by link class, the larger class of the two spots: 256 plus 16 of the 19 links that join a
+single-source spot to a one-grain spot.) New scattering-vector figures, if the sideways error equals the radial one (untested): p90 0.18 to
+0.069 degrees, p99 0.99 to 0.38 degrees; the gated p90 gives 0.17 to 0.065 degrees. Every other key and all tables are unchanged;
+`doc_tables_all.md` regenerates byte-identical.
 
 ## 4. Could be done better
 

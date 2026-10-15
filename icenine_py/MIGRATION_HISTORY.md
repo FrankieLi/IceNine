@@ -7043,26 +7043,30 @@ by the peak-grain combinations may give a much smaller starting candidate list. 
 the level is the grain, not the voxel: origins find the grain, a radius filter loses real peaks, and a hit-or-miss peak-list score is no sharper than
 the pixel cost. *Untested proposal (main session):* a matched pair gives the scattered ray direction; with the beam and the frame's omega it gives the
 scattering vector in the sample frame, and the ring gate gives its {hkl} family. Two non-parallel vectors of one grain fix the orientation up to a
-small set (standard indexing). Error budget per spot (D-20261014-N10). The measured ray-direction error on clean images is small. It is the
-radial part only: 2theta of the line minus the nearest Cu ring, over the 23,205 correct one-grain `ring_tight` pairs. Its median is 0.0044 degrees
-and its 90th percentile 0.0155 degrees. The line uses both centroids, so this includes both detectors. The sideways part (a turn about the beam) was
-not measured. One pixel is kept as the tolerance and the upper estimate. The detectors sit at 3.362 and 5.387 mm in `StandardGeometry.2Det`, gap
-2.03 mm, pixel 1.48 um. So one pixel on one detector turns the ray by 1.48 um / 2.03 mm = 0.042 degrees, and one pixel on each detector by 0.059
-degrees in quadrature. It is not a strict limit: 99% of the measured errors are below 0.042 degrees (p99 0.037), the largest is 0.080. A sideways
-ray error maps to about 1 / sin 2theta times as much on the scattering vector (eight rings, 2theta 5.3 to 13.7 degrees). One pixel on one detector
-only gives 0.45 to 0.18 degrees; one pixel on each detector gives 0.64 to 0.25 degrees. The measured median gives 0.048 to 0.019 degrees, if the
-sideways error is about as large as the radial one (untested). The 1 degree frames leave omega uncertain by +-0.5 degrees. That moves the
-sample-frame scattering vector by up to about 0.43 degrees (median sin(g, z) 0.86 over the chosen pairs). On clean images this frame term
-dominates. Real data will have a larger direction error than these clean images. The frame term can exceed the pixel cost's half-score radius
-(0.26 degrees; a rough comparison, a direction error against an orientation radius). So one pair does not fix the orientation, and a fit over many
-spots of the grain is needed. Each grain has a median of 50 one-grain detector-0 spots with a true partner, matched or not (at least 33, even for
-4-voxel grains). How close the fit gets is untested. Risks: small grains give small spots, with few pixels per centroid; spot groups of
-neighbouring grains may merge. *How to test it:* cluster the matched rays' origins into grains; index each cluster (pairs of scattering vectors with their ring families,
-then a fit over the cluster's spots); count grains whose seed lands within 0.1 and 0.5 degrees of the true orientation, by grain size; then run
-FindOptimal from those seeds and count its cost evaluations; compare them, per voxel, with the counted evaluations of the no-start search (the
-Task A and C evaluation ledger). Two reasons it may hold up, both untested: indexing
-can split merged clusters of neighbouring grains, since another grain's vectors do not fit the same orientation; and the poorly matched several-grain
-spots matter little, because each grain has many one-grain spots.
+small set (standard indexing). Error budget per spot (D-20261014-N10). The measured ray-direction error on clean images is small. It is the radial
+part only: 2theta of the line through the two centroids minus the nearest Cu ring. Over all 23,483 true links whose two spots are both one-grain
+spots, with no gate, the median is 0.0045 degrees and the 90th percentile 0.0163 degrees. The tail is long: p99 0.091 degrees, largest 0.74 degrees,
+and 422 links (1.8%) above 0.042 degrees. These large errors are not traced. The 23,205 correct one-grain pairs chosen by `ring_tight` give a median
+of 0.0044, p90 0.0155 and a largest error of 0.080 degrees, but their tail is cut by the ring gate itself: the gate allows one pixel on each centroid,
+added linearly, over the spot separation, 0.080 to 0.084 degrees (`spot_pairing.py:319`), and it cuts 256 of the 23,483 links. The line uses both
+centroids, so the error includes both detectors. The sideways part (a turn about the beam) was not measured. One pixel is kept as the tolerance and as
+an upper estimate of the ray-direction error. The detectors sit at 3.362 and 5.387 mm in `StandardGeometry.2Det`, gap 2.03 mm, pixel 1.48 um. So one
+pixel on one detector turns the ray by 1.48 um / 2.03 mm = 0.042 degrees, and one pixel on each detector by 0.059 degrees in quadrature. It is not a
+strict limit (see the tail above). A sideways ray error maps to about 1 / sin 2theta times as much on the scattering vector (eight rings, 2theta 5.3
+to 13.7 degrees). One pixel on one detector only gives 0.45 to 0.18 degrees; one pixel on each detector gives 0.64 to 0.25 degrees. Over all one-grain
+links the measured median gives 0.049 to 0.019 degrees, the p90 0.18 to 0.069 degrees and the p99 0.99 to 0.38 degrees, if the sideways error is about
+as large as the radial one (untested). The 1 degree frames leave omega uncertain by +-0.5 degrees. That moves the sample-frame scattering vector by up
+to about 0.43 degrees (median sin(g, z) 0.86 over the chosen pairs). On clean images this frame term dominates for at least 90% of pairs (same
+untested sideways assumption); at the p99 the ray term is about as large or larger. Real data will have a larger direction error than these clean
+images. The frame term can exceed the pixel cost's half-score radius (0.26 degrees; a rough comparison, a direction error against an orientation
+radius). So one pair does not fix the orientation, and a fit over many spots of the grain is needed. Each grain has a median of 50 one-grain
+detector-0 spots with a true partner, matched or not (at least 33, even for 4-voxel grains). How close the fit gets is untested. Risks: small grains
+give small spots, with few pixels per centroid; spot groups of neighbouring grains may merge. *How to test it:* cluster the matched rays' origins into
+grains; index each cluster (pairs of scattering vectors with their ring families, then a fit over the cluster's spots); count grains whose seed lands
+within 0.1 and 0.5 degrees of the true orientation, by grain size; then run FindOptimal from those seeds and count its cost evaluations; compare them,
+per voxel, with the counted evaluations of the no-start search (the Task A and C evaluation ledger). Two reasons it may hold up, both untested:
+indexing can split merged clusters of neighbouring grains, since another grain's vectors do not fit the same orientation; and the poorly matched
+several-grain spots matter little, because each grain has many one-grain spots.
 
 **Notes for planning the learned model (D-20261014-N8; main session, nothing built).** Labels come free from the provenance writer (about 35 s per
 labelled render, contended). Grain IDs are arbitrary, so train for association (an embedding per spot with a pairwise or contrastive loss), not fixed
@@ -7225,6 +7229,12 @@ scaled by L1/L0. The 1-pixel term of the error budget is a tolerance, about ten 
 clean images. Wording fixes followed: one detector or both, the half-score radius instead of "FindOptimal's reach", spots per grain, the baseline of
 the test plan, "consistent with" for the several-grain misses, the preflight load, and "not binary". `pairing_summary.py` now also writes the size
 ratio and the measured ray error to the step 1 and step 2 summaries. Nothing else was rerun, and every table is unchanged.
+
+**Third review fixes (D-20261014-N9, N10).** The measured ray-direction error had been taken over pairs that passed the ring gate, which cuts
+on that same error, so its tail was truncated and the sentence "99% below 0.042 degrees" was wrong. `pairing_summary.py` now also measures it
+over all true one-grain links with no gate (`derived_geometry` `all_links_*` keys, with the ring-gate tolerance and the p90 and p99
+scattering-vector figures). The error budget above leads with these figures. The frame term dominates for at least 90% of pairs, not in the
+1% tail. Only `pairing_summary.py` was rerun; every table is unchanged.
 
 **Files.** See the "Task D" paragraph of the README. Results: `step1/`, `step2/`, `step3/` (`summary*.json`, `tables*.md`), `figures/`, `cache/`
 (gitignored: provenance-derived arrays, pairs per preset).
