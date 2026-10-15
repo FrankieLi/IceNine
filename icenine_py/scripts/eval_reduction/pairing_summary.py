@@ -391,13 +391,66 @@ def measured_ray_error(
     rings = np.degrees(np.asarray(geo["rings_two_theta"]))
     d = np.abs(tt[:, None] - rings).min(axis=1)
     med = float(np.median(d))
+    p90 = float(np.percentile(d, 90))
     return {
+        "measured_radial_ray_err_subset": (
+            f"correct chosen one-grain pairs of {name}; selected by the ring gate, which cuts the"
+            " tail of this same error"
+        ),
         "measured_radial_ray_err_n_pairs": int(ok.sum()),
         "measured_radial_ray_err_deg_pct50_90_99_max": pct(d, [50, 90, 99]) + [float(d.max())],
         "g_err_measured_median_deg_at_min_max_two_theta": [
             float(med / np.sin(np.radians(rings.min()))),
             float(med / np.sin(np.radians(rings.max()))),
         ],
+        "g_err_measured_p90_deg_at_min_max_two_theta": [
+            float(p90 / np.sin(np.radians(rings.min()))),
+            float(p90 / np.sin(np.radians(rings.max()))),
+        ],
+    }
+
+
+def measured_ray_error_all_links(
+    geo: Dict[str, Any], ct: Dict, cls: np.ndarray, a: np.ndarray, b: np.ndarray
+) -> Dict[str, Any]:
+    """The same radial ray-direction error as :func:`measured_ray_error`, but over ALL true links
+    whose two components are both one-grain, with no gate and no assignment: the line through the
+    two true partner centroids (pixel-centre shift +0.5, as in ``pair_frame``). Also gives the
+    ring-gate tolerance of the tight presets at these links, (1 px x pw0 + 1 px x pw1) /
+    separation (``spot_pairing.pair_frame``), and how many links that gate would cut."""
+    gs = pc.detector_geoms(geo)
+    g0, g1 = gs[0], gs[1]
+    m = (cls[a] == 1) & (cls[b] == 1)
+    i0, i1 = a[m], b[m]
+    c0, r0 = ct["i_col"][i0] + 0.5, ct["i_row"][i0] + 0.5
+    c1, r1 = ct["i_col"][i1] + 0.5, ct["i_row"][i1] + 0.5
+    lo = sp.line_origin(g0, g1, c0, r0, c1, r1, 1.0, 1.0)
+    dn = lo["dirn"]
+    tt = np.degrees(np.arccos(np.clip(dn @ sp.BEAM_DIR, -1.0, 1.0)))
+    rings = np.degrees(np.asarray(geo["rings_two_theta"]))
+    d = np.abs(tt[:, None] - rings).min(axis=1)
+    sep = np.linalg.norm(sp.pixel_to_lab(g1, c1, r1) - sp.pixel_to_lab(g0, c0, r0), axis=-1)
+    tol = np.degrees((g0.pw + g1.pw) / sep)
+    one = float(np.degrees(float(geo["det0_pw"]) / (g1.distance_x() - g0.distance_x())))
+    lo_s, hi_s = np.sin(np.radians(rings.min())), np.sin(np.radians(rings.max()))
+    q = pct(d, [50, 90, 99])
+    return {
+        "all_links_radial_ray_err_subset": (
+            "all true links with both components one-grain; no gate, no assignment"
+        ),
+        "all_links_radial_ray_err_n_links": int(m.sum()),
+        "all_links_radial_ray_err_deg_pct50_90_99_max": q + [float(d.max())],
+        "all_links_radial_ray_err_share_above_1px_one_detector": float((d > one).mean()),
+        "all_links_radial_ray_err_n_above_1px_one_detector": int((d > one).sum()),
+        "all_links_g_err_median_deg_at_min_max_two_theta": [q[0] / lo_s, q[0] / hi_s],
+        "all_links_g_err_p90_deg_at_min_max_two_theta": [q[1] / lo_s, q[1] / hi_s],
+        "all_links_g_err_p99_deg_at_min_max_two_theta": [q[2] / lo_s, q[2] / hi_s],
+        "ring_gate_tol_deg_tight_pct50_min_max": [
+            float(np.median(tol)),
+            float(tol.min()),
+            float(tol.max()),
+        ],
+        "all_links_n_cut_by_ring_gate_tight": int((d > tol).sum()),
     }
 
 
@@ -498,6 +551,7 @@ def main() -> None:
     np.savez_compressed(pc.CACHE / "origin_error_arrays.npz", **arrays)
     summary["derived_geometry"] = derived_geometry(geo, MAIN)
     summary["derived_geometry"].update(measured_ray_error(geo, MAIN, ct, cls, a, b))
+    summary["derived_geometry"].update(measured_ray_error_all_links(geo, ct, cls, a, b))
     fails, by_class = true_link_rejections(geo, ct, cls, a, b)
     summary["true_link_first_failing_gate"] = fails
     summary["true_link_first_failing_gate_by_class"] = by_class
