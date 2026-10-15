@@ -285,3 +285,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   tolerance and upper bound; on clean images the 1 degree omega frame term dominates. The second
   review's 10 required fixes are applied, then checked again before merge. Where: ROADMAP Track E
   row D; `docs/findings_spot_pairing_2026-10.md`.
+
+### D-20261014-I19 · S4 · S4 is next, widened to a correctness check and a loop-ordering study
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none (replaces the S4 plan's Step 0
+  go/no-go gate, which assumed a per-voxel screen at the seeds only).
+- S4 is the next Track S item. Two questions lead it: (1) correctness: a translated voxel's diffraction
+  and lit pixels must be the original voxel's pixels moved by the per-peak transform of the voxel
+  translation; (2) speed: which loop ordering gives the best throughput for the level-0 grid search
+  when it runs one orientation at a time over every voxel position (or over detector positions),
+  instead of today's per-voxel screen followed by per-voxel optimisation. Investigate and plan; the
+  implementer is Opus 5.5 at high effort, for the investigative nature. Where: ROADMAP Track S row S4;
+  `docs/todo_translation_screen_prototype.md`.
