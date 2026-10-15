@@ -1,0 +1,1020 @@
+{
+  "preset": "ring_tight",
+  "radii_um": [
+    2,
+    5,
+    10,
+    15,
+    20,
+    30,
+    50,
+    100
+  ],
+  "sets": {
+    "voxels30": {
+      "n_voxels": 30,
+      "n_boundary": 19,
+      "A r=2 um": {
+        "all": {
+          "true_peaks": 1714,
+          "found": 7,
+          "attached": 9,
+          "attached_true": 7,
+          "attached_false": 2
+        },
+        "interior": {
+          "true_peaks": 628,
+          "found": 5,
+          "attached": 6,
+          "attached_true": 5,
+          "attached_false": 1
+        },
+        "boundary": {
+          "true_peaks": 1086,
+          "found": 2,
+          "attached": 3,
+          "attached_true": 2,
+          "attached_false": 1
+        },
+        "recall": {
+          "k": 7,
+          "n": 1714,
+          "rate": 0.004084014002333722,
+          "lo": 0.0019796699333923494,
+          "hi": 0.008406386615709735
+        },
+        "precision": {
+          "k": 7,
+          "n": 9,
+          "rate": 0.7777777777777778,
+          "lo": 0.4525833436728054,
+          "hi": 0.9367762376877727
+        },
+        "false_per_voxel": 0.06666666666666667,
+        "true_attached_per_voxel": 0.23333333333333334,
+        "recall_interior": {
+          "k": 5,
+          "n": 628,
+          "rate": 0.007961783439490446,
+          "lo": 0.003405404309124116,
+          "hi": 0.0185013520677906
+        },
+        "recall_boundary": {
+          "k": 2,
+          "n": 1086,
+          "rate": 0.001841620626151013,
+          "lo": 0.0005051735890057286,
+          "hi": 0.006690000461975626
+        },
+        "false_per_voxel_interior": 0.09090909090909091,
+        "false_per_voxel_boundary": 0.05263157894736842
+      },
+      "A r=5 um": {
+        "all": {
+          "true_peaks": 1714,
+          "found": 34,
+          "attached": 50,
+          "attached_true": 34,
+          "attached_false": 16
+        },
+        "interior": {
+          "true_peaks": 628,
+          "found": 31,
+          "attached": 34,
+          "attached_true": 31,
+          "attached_false": 3
+        },
+        "boundary": {
+          "true_peaks": 1086,
+          "found": 3,
+          "attached": 16,
+          "attached_true": 3,
+          "attached_false": 13
+        },
+        "recall": {
+          "k": 34,
+          "n": 1714,
+          "rate": 0.019836639439906652,
+          "lo": 0.014229586114699044,
+          "hi": 0.027591266285196273
+        },
+        "precision": {
+          "k": 34,
+          "n": 50,
+          "rate": 0.68,
+          "lo": 0.5418944286372394,
+          "hi": 0.792419559060006
+        },
+        "false_per_voxel": 0.5333333333333333,
+        "true_attached_per_voxel": 1.1333333333333333,
+        "recall_interior": {
+          "k": 31,
+          "n": 628,
+          "rate": 0.04936305732484077,
+          "lo": 0.0349909677415771,
+          "hi": 0.06921489651300822
+        },
+        "recall_boundary": {
+          "k": 3,
+          "n": 1086,
+          "rate": 0.0027624309392265192,
+          "lo": 0.0009398938580316815,
+          "hi": 0.008090409261247305
+        },
+        "false_per_voxel_interior": 0.2727272727272727,
+        "false_per_voxel_boundary": 0.6842105263157895
+      },
+      "A r=10 um": {
+        "all": {
+          "true_peaks": 1714,
+          "found": 218,
+          "attached": 287,
+          "attached_true": 218,
+          "attached_false": 69
+        },
+        "interior": {
+          "true_peaks": 628,
+          "found": 201,
+          "attached": 219,
+          "attached_true": 201,
+          "attached_false": 18
+        },
+        "boundary": {
+          "true_peaks": 1086,
+          "found": 17,
+          "attached": 68,
+          "attached_true": 17,
+          "attached_false": 51
+        },
+        "recall": {
+          "k": 218,
+          "n": 1714,
+          "rate": 0.12718786464410736,
+          "lo": 0.11224347602110787,
+          "hi": 0.14379968884345248
+        },
+        "precision": {
+          "k": 218,
+          "n": 287,
+          "rate": 0.759581881533101,
+          "lo": 0.7069203869058723,
+          "hi": 0.8053859681685048
+        },
+        "false_per_voxel": 2.3,
+        "true_attached_per_voxel": 7.266666666666667,
+        "recall_interior": {
+          "k": 201,
+          "n": 628,
+          "rate": 0.3200636942675159,
+          "lo": 0.2847661523605832,
+          "hi": 0.3575492634018482
+        },
+        "recall_boundary": {
+          "k": 17,
+          "n": 1086,
+          "rate": 0.01565377532228361,
+          "lo": 0.009796050214102474,
+          "hi": 0.024926059861343358
+        },
+        "false_per_voxel_interior": 1.6363636363636365,
+        "false_per_voxel_boundary": 2.6842105263157894
+      },
+      "A r=15 um": {
+        "all": {
+          "true_peaks": 1714,
+          "found": 396,
+          "attached": 591,
+          "attached_true": 396,
+          "attached_false": 195
+        },
+        "interior": {
+          "true_peaks": 628,
+          "found": 310,
+          "attached": 351,
+          "attached_true": 310,
+          "attached_false": 41
+        },
+        "boundary": {
+          "true_peaks": 1086,
+          "found": 86,
+          "attached": 240,
+          "attached_true": 86,
+          "attached_false": 154
+        },
+        "recall": {
+          "k": 396,
+          "n": 1714,
+          "rate": 0.2310385064177363,
+          "lo": 0.21169853811144643,
+          "hi": 0.25158142902871367
+        },
+        "precision": {
+          "k": 396,
+          "n": 591,
+          "rate": 0.6700507614213198,
+          "lo": 0.6311504197928353,
+          "hi": 0.7067546628375658
+        },
+        "false_per_voxel": 6.5,
+        "true_attached_per_voxel": 13.2,
+        "recall_interior": {
+          "k": 310,
+          "n": 628,
+          "rate": 0.49363057324840764,
+          "lo": 0.45468525070919796,
+          "hi": 0.5326533480788526
+        },
+        "recall_boundary": {
+          "k": 86,
+          "n": 1086,
+          "rate": 0.07918968692449356,
+          "lo": 0.06457231045166573,
+          "hi": 0.09677370533631668
+        },
+        "false_per_voxel_interior": 3.727272727272727,
+        "false_per_voxel_boundary": 8.105263157894736
+      },
+      "A r=20 um": {
+        "all": {
+          "true_peaks": 1714,
+          "found": 637,
+          "attached": 1075,
+          "attached_true": 637,
+          "attached_false": 438
+        },
+        "interior": {
+          "true_peaks": 628,
+          "found": 343,
+          "attached": 413,
+          "attached_true": 343,
+          "attached_false": 70
+        },
+        "boundary": {
+          "true_peaks": 1086,
+          "found": 294,
+          "attached": 662,
+          "attached_true": 294,
+          "attached_false": 368
+        },
+        "recall": {
+          "k": 637,
+          "n": 1714,
+          "rate": 0.3716452742123687,
+          "lo": 0.34907813970333634,
+          "hi": 0.39478648669760774
+        },
+        "precision": {
+          "k": 637,
+          "n": 1075,
+          "rate": 0.5925581395348837,
+          "lo": 0.5629059198160908,
+          "hi": 0.6215511867693428
+        },
+        "false_per_voxel": 14.6,
+        "true_attached_per_voxel": 21.233333333333334,
+        "recall_interior": {
+          "k": 343,
+          "n": 628,
+          "rate": 0.5461783439490446,
+          "lo": 0.5070760028925204,
+          "hi": 0.5847191558941122
+        },
+        "recall_boundary": {
+          "k": 294,
+          "n": 1086,
+          "rate": 0.27071823204419887,
+          "lo": 0.24513368806639452,
+          "hi": 0.2979191739274953
+        },
+        "false_per_voxel_interior": 6.363636363636363,
+        "false_per_voxel_boundary": 19.36842105263158
+      },
+      "A r=30 um": {
+        "all": {
+          "true_peaks": 1714,
+          "found": 1136,
+          "attached": 2483,
+          "attached_true": 1136,
+          "attached_false": 1347
+        },
+        "interior": {
+          "true_peaks": 628,
+          "found": 421,
+          "attached": 588,
+          "attached_true": 421,
+          "attached_false": 167
+        },
+        "boundary": {
+          "true_peaks": 1086,
+          "found": 715,
+          "attached": 1895,
+          "attached_true": 715,
+          "attached_false": 1180
+        },
+        "recall": {
+          "k": 1136,
+          "n": 1714,
+          "rate": 0.662777129521587,
+          "lo": 0.6400534958420354,
+          "hi": 0.6847727279494946
+        },
+        "precision": {
+          "k": 1136,
+          "n": 2483,
+          "rate": 0.45751107531212243,
+          "lo": 0.43799589914820075,
+          "hi": 0.4771575227665686
+        },
+        "false_per_voxel": 44.9,
+        "true_attached_per_voxel": 37.86666666666667,
+        "recall_interior": {
+          "k": 421,
+          "n": 628,
+          "rate": 0.6703821656050956,
+          "lo": 0.6326778445585175,
+          "hi": 0.706014637861127
+        },
+        "recall_boundary": {
+          "k": 715,
+          "n": 1086,
+          "rate": 0.6583793738489871,
+          "lo": 0.6296586858121289,
+          "hi": 0.6859835139350638
+        },
+        "false_per_voxel_interior": 15.181818181818182,
+        "false_per_voxel_boundary": 62.10526315789474
+      },
+      "A r=50 um": {
+        "all": {
+          "true_peaks": 1714,
+          "found": 1407,
+          "attached": 6542,
+          "attached_true": 1407,
+          "attached_false": 5135
+        },
+        "interior": {
+          "true_peaks": 628,
+          "found": 513,
+          "attached": 1770,
+          "attached_true": 513,
+          "attached_false": 1257
+        },
+        "boundary": {
+          "true_peaks": 1086,
+          "found": 894,
+          "attached": 4772,
+          "attached_true": 894,
+          "attached_false": 3878
+        },
+        "recall": {
+          "k": 1407,
+          "n": 1714,
+          "rate": 0.8208868144690782,
+          "lo": 0.8020220121095836,
+          "hi": 0.8383164218880563
+        },
+        "precision": {
+          "k": 1407,
+          "n": 6542,
+          "rate": 0.21507184347294406,
+          "lo": 0.20528405946020373,
+          "hi": 0.225194062711283
+        },
+        "false_per_voxel": 171.16666666666666,
+        "true_attached_per_voxel": 46.9,
+        "recall_interior": {
+          "k": 513,
+          "n": 628,
+          "rate": 0.8168789808917197,
+          "lo": 0.7847330583357128,
+          "hi": 0.845171651958766
+        },
+        "recall_boundary": {
+          "k": 894,
+          "n": 1086,
+          "rate": 0.8232044198895028,
+          "lo": 0.7993867404370802,
+          "hi": 0.8447435625353885
+        },
+        "false_per_voxel_interior": 114.27272727272727,
+        "false_per_voxel_boundary": 204.10526315789474
+      },
+      "A r=100 um": {
+        "all": {
+          "true_peaks": 1714,
+          "found": 1479,
+          "attached": 24526,
+          "attached_true": 1479,
+          "attached_false": 23047
+        },
+        "interior": {
+          "true_peaks": 628,
+          "found": 539,
+          "attached": 7817,
+          "attached_true": 539,
+          "attached_false": 7278
+        },
+        "boundary": {
+          "true_peaks": 1086,
+          "found": 940,
+          "attached": 16709,
+          "attached_true": 940,
+          "attached_false": 15769
+        },
+        "recall": {
+          "k": 1479,
+          "n": 1714,
+          "rate": 0.8628938156359394,
+          "lo": 0.8457963849220174,
+          "hi": 0.8783681713444045
+        },
+        "precision": {
+          "k": 1479,
+          "n": 24526,
+          "rate": 0.06030335154529887,
+          "lo": 0.05739239741647276,
+          "hi": 0.06335202679538193
+        },
+        "false_per_voxel": 768.2333333333333,
+        "true_attached_per_voxel": 49.3,
+        "recall_interior": {
+          "k": 539,
+          "n": 628,
+          "rate": 0.85828025477707,
+          "lo": 0.8288202640425356,
+          "hi": 0.8833835541296137
+        },
+        "recall_boundary": {
+          "k": 940,
+          "n": 1086,
+          "rate": 0.8655616942909761,
+          "lo": 0.8439793766372475,
+          "hi": 0.8845668634769123
+        },
+        "false_per_voxel_interior": 661.6363636363636,
+        "false_per_voxel_boundary": 829.9473684210526
+      },
+      "B footprint": {
+        "all": {
+          "true_peaks": 1714,
+          "found": 1458,
+          "attached": 11603,
+          "attached_true": 1458,
+          "attached_false": 10145
+        },
+        "interior": {
+          "true_peaks": 628,
+          "found": 535,
+          "attached": 3567,
+          "attached_true": 535,
+          "attached_false": 3032
+        },
+        "boundary": {
+          "true_peaks": 1086,
+          "found": 923,
+          "attached": 8036,
+          "attached_true": 923,
+          "attached_false": 7113
+        },
+        "recall": {
+          "k": 1458,
+          "n": 1714,
+          "rate": 0.8506417736289381,
+          "lo": 0.8329834868860956,
+          "hi": 0.866731783718598
+        },
+        "precision": {
+          "k": 1458,
+          "n": 11603,
+          "rate": 0.12565715763164698,
+          "lo": 0.11974955858673811,
+          "hi": 0.13181255457245242
+        },
+        "false_per_voxel": 338.1666666666667,
+        "true_attached_per_voxel": 48.6,
+        "recall_interior": {
+          "k": 535,
+          "n": 628,
+          "rate": 0.8519108280254777,
+          "lo": 0.8219930893677457,
+          "hi": 0.8775493275924543
+        },
+        "recall_boundary": {
+          "k": 923,
+          "n": 1086,
+          "rate": 0.8499079189686924,
+          "lo": 0.827433637416031,
+          "hi": 0.869915408537069
+        },
+        "false_per_voxel_interior": 275.6363636363636,
+        "false_per_voxel_boundary": 374.36842105263156
+      }
+    },
+    "spread300": {
+      "n_voxels": 300,
+      "n_boundary": 248,
+      "A r=2 um": {
+        "all": {
+          "true_peaks": 16717,
+          "found": 71,
+          "attached": 95,
+          "attached_true": 71,
+          "attached_false": 24
+        },
+        "interior": {
+          "true_peaks": 2853,
+          "found": 40,
+          "attached": 44,
+          "attached_true": 40,
+          "attached_false": 4
+        },
+        "boundary": {
+          "true_peaks": 13864,
+          "found": 31,
+          "attached": 51,
+          "attached_true": 31,
+          "attached_false": 20
+        },
+        "recall": {
+          "k": 71,
+          "n": 16717,
+          "rate": 0.004247173535921517,
+          "lo": 0.003368795505232036,
+          "hi": 0.0053533491982977206
+        },
+        "precision": {
+          "k": 71,
+          "n": 95,
+          "rate": 0.7473684210526316,
+          "lo": 0.6515525060749564,
+          "hi": 0.8239557819333315
+        },
+        "false_per_voxel": 0.08,
+        "true_attached_per_voxel": 0.23666666666666666,
+        "recall_interior": {
+          "k": 40,
+          "n": 2853,
+          "rate": 0.014020329477742727,
+          "lo": 0.010313105499742438,
+          "hi": 0.019034548916939256
+        },
+        "recall_boundary": {
+          "k": 31,
+          "n": 13864,
+          "rate": 0.00223600692440854,
+          "lo": 0.0015757499368528633,
+          "hi": 0.0031720400869385823
+        },
+        "false_per_voxel_interior": 0.07692307692307693,
+        "false_per_voxel_boundary": 0.08064516129032258
+      },
+      "A r=5 um": {
+        "all": {
+          "true_peaks": 16717,
+          "found": 477,
+          "attached": 623,
+          "attached_true": 477,
+          "attached_false": 146
+        },
+        "interior": {
+          "true_peaks": 2853,
+          "found": 231,
+          "attached": 247,
+          "attached_true": 231,
+          "attached_false": 16
+        },
+        "boundary": {
+          "true_peaks": 13864,
+          "found": 246,
+          "attached": 376,
+          "attached_true": 246,
+          "attached_false": 130
+        },
+        "recall": {
+          "k": 477,
+          "n": 16717,
+          "rate": 0.02853382783992343,
+          "lo": 0.02611622122333014,
+          "hi": 0.031168072409353993
+        },
+        "precision": {
+          "k": 477,
+          "n": 623,
+          "rate": 0.7656500802568218,
+          "lo": 0.7308213228497162,
+          "hi": 0.7972227635670115
+        },
+        "false_per_voxel": 0.4866666666666667,
+        "true_attached_per_voxel": 1.59,
+        "recall_interior": {
+          "k": 231,
+          "n": 2853,
+          "rate": 0.08096740273396424,
+          "lo": 0.07151194328776257,
+          "hi": 0.09154980994349811
+        },
+        "recall_boundary": {
+          "k": 246,
+          "n": 13864,
+          "rate": 0.017743796884016158,
+          "lo": 0.01567604209709424,
+          "hi": 0.020078736065356078
+        },
+        "false_per_voxel_interior": 0.3076923076923077,
+        "false_per_voxel_boundary": 0.5241935483870968
+      },
+      "A r=10 um": {
+        "all": {
+          "true_peaks": 16717,
+          "found": 1973,
+          "attached": 2587,
+          "attached_true": 1973,
+          "attached_false": 614
+        },
+        "interior": {
+          "true_peaks": 2853,
+          "found": 650,
+          "attached": 728,
+          "attached_true": 650,
+          "attached_false": 78
+        },
+        "boundary": {
+          "true_peaks": 13864,
+          "found": 1323,
+          "attached": 1859,
+          "attached_true": 1323,
+          "attached_false": 536
+        },
+        "recall": {
+          "k": 1973,
+          "n": 16717,
+          "rate": 0.11802356882215709,
+          "lo": 0.11322019109496854,
+          "hi": 0.12300246410918102
+        },
+        "precision": {
+          "k": 1973,
+          "n": 2587,
+          "rate": 0.7626594511016621,
+          "lo": 0.7458826060606805,
+          "hi": 0.7786573735351388
+        },
+        "false_per_voxel": 2.046666666666667,
+        "true_attached_per_voxel": 6.576666666666667,
+        "recall_interior": {
+          "k": 650,
+          "n": 2853,
+          "rate": 0.2278303540133193,
+          "lo": 0.21281132109410947,
+          "hi": 0.24358136095028524
+        },
+        "recall_boundary": {
+          "k": 1323,
+          "n": 13864,
+          "rate": 0.09542700519330641,
+          "lo": 0.09064779124566504,
+          "hi": 0.10043036470904386
+        },
+        "false_per_voxel_interior": 1.5,
+        "false_per_voxel_boundary": 2.161290322580645
+      },
+      "A r=15 um": {
+        "all": {
+          "true_peaks": 16717,
+          "found": 4208,
+          "attached": 5757,
+          "attached_true": 4208,
+          "attached_false": 1549
+        },
+        "interior": {
+          "true_peaks": 2853,
+          "found": 1159,
+          "attached": 1365,
+          "attached_true": 1159,
+          "attached_false": 206
+        },
+        "boundary": {
+          "true_peaks": 13864,
+          "found": 3049,
+          "attached": 4392,
+          "attached_true": 3049,
+          "attached_false": 1343
+        },
+        "recall": {
+          "k": 4208,
+          "n": 16717,
+          "rate": 0.2517198061853203,
+          "lo": 0.24519823820924408,
+          "hi": 0.25835545851377256
+        },
+        "precision": {
+          "k": 4208,
+          "n": 5757,
+          "rate": 0.7309362515198888,
+          "lo": 0.719329240443656,
+          "hi": 0.7422352642981511
+        },
+        "false_per_voxel": 5.163333333333333,
+        "true_attached_per_voxel": 14.026666666666667,
+        "recall_interior": {
+          "k": 1159,
+          "n": 2853,
+          "rate": 0.4062390466175955,
+          "lo": 0.388354854716119,
+          "hi": 0.424375399561892
+        },
+        "recall_boundary": {
+          "k": 3049,
+          "n": 13864,
+          "rate": 0.21992210040392382,
+          "lo": 0.21310550706397238,
+          "hi": 0.22689386529690028
+        },
+        "false_per_voxel_interior": 3.9615384615384617,
+        "false_per_voxel_boundary": 5.415322580645161
+      },
+      "A r=20 um": {
+        "all": {
+          "true_peaks": 16717,
+          "found": 7072,
+          "attached": 10526,
+          "attached_true": 7072,
+          "attached_false": 3454
+        },
+        "interior": {
+          "true_peaks": 2853,
+          "found": 1732,
+          "attached": 2102,
+          "attached_true": 1732,
+          "attached_false": 370
+        },
+        "boundary": {
+          "true_peaks": 13864,
+          "found": 5340,
+          "attached": 8424,
+          "attached_true": 5340,
+          "attached_false": 3084
+        },
+        "recall": {
+          "k": 7072,
+          "n": 16717,
+          "rate": 0.42304241191601366,
+          "lo": 0.41557163974469175,
+          "hi": 0.43054854597610365
+        },
+        "precision": {
+          "k": 7072,
+          "n": 10526,
+          "rate": 0.6718601558046742,
+          "lo": 0.6628288553235138,
+          "hi": 0.6807660568734561
+        },
+        "false_per_voxel": 11.513333333333334,
+        "true_attached_per_voxel": 23.573333333333334,
+        "recall_interior": {
+          "k": 1732,
+          "n": 2853,
+          "rate": 0.6070802663862601,
+          "lo": 0.5890260106392434,
+          "hi": 0.6248465400825046
+        },
+        "recall_boundary": {
+          "k": 5340,
+          "n": 13864,
+          "rate": 0.3851702250432776,
+          "lo": 0.3771025239068306,
+          "hi": 0.3933015453176117
+        },
+        "false_per_voxel_interior": 7.115384615384615,
+        "false_per_voxel_boundary": 12.435483870967742
+      },
+      "A r=30 um": {
+        "all": {
+          "true_peaks": 16717,
+          "found": 11732,
+          "attached": 24285,
+          "attached_true": 11732,
+          "attached_false": 12553
+        },
+        "interior": {
+          "true_peaks": 2853,
+          "found": 2234,
+          "attached": 3297,
+          "attached_true": 2234,
+          "attached_false": 1063
+        },
+        "boundary": {
+          "true_peaks": 13864,
+          "found": 9498,
+          "attached": 20988,
+          "attached_true": 9498,
+          "attached_false": 11490
+        },
+        "recall": {
+          "k": 11732,
+          "n": 16717,
+          "rate": 0.7018005623018484,
+          "lo": 0.6948199889613593,
+          "hi": 0.7086884086063803
+        },
+        "precision": {
+          "k": 11732,
+          "n": 24285,
+          "rate": 0.48309656166357834,
+          "lo": 0.47681468216566936,
+          "hi": 0.48938378816401473
+        },
+        "false_per_voxel": 41.843333333333334,
+        "true_attached_per_voxel": 39.10666666666667,
+        "recall_interior": {
+          "k": 2234,
+          "n": 2853,
+          "rate": 0.7830354013319313,
+          "lo": 0.7675353608586905,
+          "hi": 0.7977742453861919
+        },
+        "recall_boundary": {
+          "k": 9498,
+          "n": 13864,
+          "rate": 0.6850836699365263,
+          "lo": 0.6773014895688834,
+          "hi": 0.6927633084022731
+        },
+        "false_per_voxel_interior": 20.442307692307693,
+        "false_per_voxel_boundary": 46.33064516129032
+      },
+      "A r=50 um": {
+        "all": {
+          "true_peaks": 16717,
+          "found": 13875,
+          "attached": 67784,
+          "attached_true": 13875,
+          "attached_false": 53909
+        },
+        "interior": {
+          "true_peaks": 2853,
+          "found": 2395,
+          "attached": 9549,
+          "attached_true": 2395,
+          "attached_false": 7154
+        },
+        "boundary": {
+          "true_peaks": 13864,
+          "found": 11480,
+          "attached": 58235,
+          "attached_true": 11480,
+          "attached_false": 46755
+        },
+        "recall": {
+          "k": 13875,
+          "n": 16717,
+          "rate": 0.8299934198719866,
+          "lo": 0.8242233651227837,
+          "hi": 0.835611843171995
+        },
+        "precision": {
+          "k": 13875,
+          "n": 67784,
+          "rate": 0.2046943231441048,
+          "lo": 0.20167362543535275,
+          "hi": 0.2077484913473123
+        },
+        "false_per_voxel": 179.69666666666666,
+        "true_attached_per_voxel": 46.25,
+        "recall_interior": {
+          "k": 2395,
+          "n": 2853,
+          "rate": 0.8394672274798458,
+          "lo": 0.8255414067807191,
+          "hi": 0.8524800838052483
+        },
+        "recall_boundary": {
+          "k": 11480,
+          "n": 13864,
+          "rate": 0.8280438545874207,
+          "lo": 0.8216719262894553,
+          "hi": 0.8342340367552915
+        },
+        "false_per_voxel_interior": 137.57692307692307,
+        "false_per_voxel_boundary": 188.52822580645162
+      },
+      "A r=100 um": {
+        "all": {
+          "true_peaks": 16717,
+          "found": 14572,
+          "attached": 258705,
+          "attached_true": 14572,
+          "attached_false": 244133
+        },
+        "interior": {
+          "true_peaks": 2853,
+          "found": 2472,
+          "attached": 39127,
+          "attached_true": 2472,
+          "attached_false": 36655
+        },
+        "boundary": {
+          "true_peaks": 13864,
+          "found": 12100,
+          "attached": 219578,
+          "attached_true": 12100,
+          "attached_false": 207478
+        },
+        "recall": {
+          "k": 14572,
+          "n": 16717,
+          "rate": 0.8716875037387091,
+          "lo": 0.8665321608300482,
+          "hi": 0.876672056833254
+        },
+        "precision": {
+          "k": 14572,
+          "n": 258705,
+          "rate": 0.056326704161110144,
+          "lo": 0.05544484766567456,
+          "hi": 0.05722173697725247
+        },
+        "false_per_voxel": 813.7766666666666,
+        "true_attached_per_voxel": 48.57333333333333,
+        "recall_interior": {
+          "k": 2472,
+          "n": 2853,
+          "rate": 0.8664563617245006,
+          "lo": 0.8534800815269888,
+          "hi": 0.8784470928742801
+        },
+        "recall_boundary": {
+          "k": 12100,
+          "n": 13864,
+          "rate": 0.8727639930755915,
+          "lo": 0.8671134489260299,
+          "hi": 0.8782080147976401
+        },
+        "false_per_voxel_interior": 704.9038461538462,
+        "false_per_voxel_boundary": 836.6048387096774
+      },
+      "B footprint": {
+        "all": {
+          "true_peaks": 16717,
+          "found": 14545,
+          "attached": 130333,
+          "attached_true": 14545,
+          "attached_false": 115788
+        },
+        "interior": {
+          "true_peaks": 2853,
+          "found": 2465,
+          "attached": 20554,
+          "attached_true": 2465,
+          "attached_false": 18089
+        },
+        "boundary": {
+          "true_peaks": 13864,
+          "found": 12080,
+          "attached": 109779,
+          "attached_true": 12080,
+          "attached_false": 97699
+        },
+        "recall": {
+          "k": 14545,
+          "n": 16717,
+          "rate": 0.8700723814081474,
+          "lo": 0.864890343093562,
+          "hi": 0.8750843720547471
+        },
+        "precision": {
+          "k": 14545,
+          "n": 130333,
+          "rate": 0.11159875089194601,
+          "lo": 0.10990070919564446,
+          "hi": 0.11331968837458486
+        },
+        "false_per_voxel": 385.96,
+        "true_attached_per_voxel": 48.483333333333334,
+        "recall_interior": {
+          "k": 2465,
+          "n": 2853,
+          "rate": 0.8640028040658956,
+          "lo": 0.8509337946907829,
+          "hi": 0.876092863000004
+        },
+        "recall_boundary": {
+          "k": 12080,
+          "n": 13864,
+          "rate": 0.8713214079630698,
+          "lo": 0.8656445338718411,
+          "hi": 0.876792558862186
+        },
+        "false_per_voxel_interior": 347.86538461538464,
+        "false_per_voxel_boundary": 393.9475806451613
+      }
+    }
+  },
+  "pairs_available_peaks_ceiling": {
+    "k": 1219740,
+    "n": 1375053,
+    "rate": 0.8870494446395885,
+    "lo": 0.8865192913417436,
+    "hi": 0.8875774352789868
+  }
+}

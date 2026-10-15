@@ -1,0 +1,101 @@
+{
+  "n_components": 57389,
+  "n_triangles": 2957243,
+  "det0_class0": {
+    "detector": 0,
+    "class": "single-source",
+    "components": 10,
+    "with a true partner": 0,
+    "median pixels": 10.0,
+    "p90 pixels": 11.0,
+    "median sources": 1.0,
+    "max sources": 1
+  },
+  "det0_class1": {
+    "detector": 0,
+    "class": "one grain, several voxels",
+    "components": 28411,
+    "with a true partner": 24671,
+    "median pixels": 97.0,
+    "p90 pixels": 223.0,
+    "median sources": 44.0,
+    "max sources": 185
+  },
+  "det0_class2": {
+    "detector": 0,
+    "class": "several grains",
+    "components": 1770,
+    "with a true partner": 1630,
+    "median pixels": 230.0,
+    "p90 pixels": 462.10000000000014,
+    "median sources": 106.0,
+    "max sources": 296
+  },
+  "det1_class0": {
+    "detector": 1,
+    "class": "single-source",
+    "components": 20,
+    "with a true partner": 20,
+    "median pixels": 3.0,
+    "p90 pixels": 10.0,
+    "median sources": 1.0,
+    "max sources": 1
+  },
+  "det1_class1": {
+    "detector": 1,
+    "class": "one grain, several voxels",
+    "components": 26355,
+    "with a true partner": 26355,
+    "median pixels": 103.0,
+    "p90 pixels": 235.0,
+    "median sources": 44.0,
+    "max sources": 185
+  },
+  "det1_class2": {
+    "detector": 1,
+    "class": "several grains",
+    "components": 823,
+    "with a true partner": 823,
+    "median pixels": 249.0,
+    "p90 pixels": 471.80000000000007,
+    "median sources": 103.0,
+    "max sources": 296
+  },
+  "links": [
+    {
+      "class of pair": "single-source",
+      "true links": 0,
+      "peaks (voxel, reflection)": 0
+    },
+    {
+      "class of pair": "one grain, several voxels",
+      "true links": 23502,
+      "peaks (voxel, reflection)": 1134225
+    },
+    {
+      "class of pair": "several grains",
+      "true links": 4386,
+      "peaks (voxel, reflection)": 240828
+    }
+  ],
+  "n_links": 27888,
+  "n_peaks_both_detectors": 1375053,
+  "unpaired_components": {
+    "det0": 3890,
+    "det1": 0
+  },
+  "unpaired_single_source": 10,
+  "n_single_source_total": 30,
+  "edge_touching_components": {
+    "det0": 146,
+    "det1": 521
+  },
+  "partners_per_linked_det0": {
+    "max": 4,
+    "share_more_than_one": 0.05619558191703738
+  },
+  "partners_per_linked_det1": {
+    "max": 3,
+    "share_more_than_one": 0.024744466504890067
+  }
+}

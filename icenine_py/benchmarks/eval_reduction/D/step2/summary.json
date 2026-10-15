@@ -1,0 +1,1139 @@
+{
+  "main_preset": "ring_tight",
+  "presets": {
+    "hull_tight": {
+      "predicted": 56175,
+      "candidates_before_assignment": 77809,
+      "precision": {
+        "k": 26023,
+        "n": 56175,
+        "rate": 0.46324877614597243,
+        "lo": 0.45912781370121375,
+        "hi": 0.4673747648069199
+      },
+      "link_recall": {
+        "k": 26023,
+        "n": 27888,
+        "rate": 0.9331253585771658,
+        "lo": 0.9301334053813076,
+        "hi": 0.9359980013021435
+      },
+      "peak_recall": {
+        "k": 1301749,
+        "n": 1375053,
+        "rate": 0.9466900548560674,
+        "lo": 0.9463133101656103,
+        "hi": 0.9470643036431365
+      },
+      "truth_in_candidates": {
+        "k": 27852,
+        "n": 27888,
+        "rate": 0.9987091222030982,
+        "lo": 0.9982134869357973,
+        "hi": 0.9990673810295507
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 22141,
+        "n": 49943,
+        "rate": 0.4433253909456781,
+        "lo": 0.4389729835237688,
+        "hi": 0.44768651648353486
+      },
+      "link_recall_class1": {
+        "k": 22141,
+        "n": 23502,
+        "rate": 0.9420900348906476,
+        "lo": 0.9390309009601131,
+        "hi": 0.9450046657562047
+      },
+      "precision_class2": {
+        "k": 3882,
+        "n": 6232,
+        "rate": 0.6229139922978177,
+        "lo": 0.61080866531396,
+        "hi": 0.6348678765661288
+      },
+      "link_recall_class2": {
+        "k": 3882,
+        "n": 4386,
+        "rate": 0.8850889192886456,
+        "lo": 0.8753116855447918,
+        "hi": 0.894192161701086
+      },
+      "false_pairs": {
+        "total": 30152,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 1285,
+        "both have a true partner, but another": 28867
+      },
+      "candidates_per_linked_det0": {
+        "median": 3.0,
+        "p90": 5.0,
+        "share_with_more_than_one": 0.8010722025778487,
+        "share_with_zero": 0.0
+      }
+    },
+    "hull_plan": {
+      "predicted": 69314,
+      "candidates_before_assignment": 215027,
+      "precision": {
+        "k": 26034,
+        "n": 69314,
+        "rate": 0.3755951178694059,
+        "lo": 0.37199682815508067,
+        "hi": 0.37920719663959795
+      },
+      "link_recall": {
+        "k": 26034,
+        "n": 27888,
+        "rate": 0.9335197934595525,
+        "lo": 0.9305358239617464,
+        "hi": 0.936384343833843
+      },
+      "peak_recall": {
+        "k": 1302242,
+        "n": 1375053,
+        "rate": 0.947048586490848,
+        "lo": 0.9466730347404528,
+        "hi": 0.9474216403345415
+      },
+      "truth_in_candidates": {
+        "k": 27888,
+        "n": 27888,
+        "rate": 1.0,
+        "lo": 0.9998622679687094,
+        "hi": 0.9999999999999999
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 22141,
+        "n": 62519,
+        "rate": 0.3541483389049729,
+        "lo": 0.35040846007494336,
+        "hi": 0.3579061409044209
+      },
+      "link_recall_class1": {
+        "k": 22141,
+        "n": 23502,
+        "rate": 0.9420900348906476,
+        "lo": 0.9390309009601131,
+        "hi": 0.9450046657562047
+      },
+      "precision_class2": {
+        "k": 3893,
+        "n": 6795,
+        "rate": 0.5729212656364975,
+        "lo": 0.5611218115431099,
+        "hi": 0.5846383132405003
+      },
+      "link_recall_class2": {
+        "k": 3893,
+        "n": 4386,
+        "rate": 0.8875968992248062,
+        "lo": 0.8779076436701977,
+        "hi": 0.8966077739248245
+      },
+      "false_pairs": {
+        "total": 43280,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 1614,
+        "both have a true partner, but another": 41666
+      },
+      "candidates_per_linked_det0": {
+        "median": 7.0,
+        "p90": 12.0,
+        "share_with_more_than_one": 0.9897722520056271,
+        "share_with_zero": 0.0
+      }
+    },
+    "ring_tight": {
+      "predicted": 29029,
+      "candidates_before_assignment": 29517,
+      "precision": {
+        "k": 24788,
+        "n": 29029,
+        "rate": 0.8539047159736814,
+        "lo": 0.8497947367400324,
+        "hi": 0.8579210384874257
+      },
+      "link_recall": {
+        "k": 24788,
+        "n": 27888,
+        "rate": 0.8888410786001147,
+        "lo": 0.8850981930910511,
+        "hi": 0.8924768523659687
+      },
+      "peak_recall": {
+        "k": 1219740,
+        "n": 1375053,
+        "rate": 0.8870494446395885,
+        "lo": 0.8865192913417436,
+        "hi": 0.8875774352789868
+      },
+      "truth_in_candidates": {
+        "k": 24816,
+        "n": 27888,
+        "rate": 0.8898450946643718,
+        "lo": 0.8861166913689645,
+        "hi": 0.8934661096462254
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 23256,
+        "n": 27058,
+        "rate": 0.8594870278660655,
+        "lo": 0.8552951582760847,
+        "hi": 0.8635768345301994
+      },
+      "link_recall_class1": {
+        "k": 23256,
+        "n": 23502,
+        "rate": 0.9895328057186622,
+        "lo": 0.9881492797584814,
+        "hi": 0.9907563213070849
+      },
+      "precision_class2": {
+        "k": 1532,
+        "n": 1971,
+        "rate": 0.7772704211060375,
+        "lo": 0.7583719100588777,
+        "hi": 0.795090200522548
+      },
+      "link_recall_class2": {
+        "k": 1532,
+        "n": 4386,
+        "rate": 0.3492932056543548,
+        "lo": 0.3353212183298168,
+        "hi": 0.36352896341706004
+      },
+      "false_pairs": {
+        "total": 4241,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 92,
+        "both have a true partner, but another": 4149
+      },
+      "candidates_per_linked_det0": {
+        "median": 1.0,
+        "p90": 2.0,
+        "share_with_more_than_one": 0.154176647275769,
+        "share_with_zero": 0.05554921866088742
+      }
+    },
+    "ring_plan": {
+      "predicted": 56027,
+      "candidates_before_assignment": 80190,
+      "precision": {
+        "k": 27283,
+        "n": 56027,
+        "rate": 0.4869616434933157,
+        "lo": 0.48282382926860506,
+        "hi": 0.49110124559587803
+      },
+      "link_recall": {
+        "k": 27283,
+        "n": 27888,
+        "rate": 0.9783060814687321,
+        "lo": 0.9765292191525464,
+        "hi": 0.9799511876485593
+      },
+      "peak_recall": {
+        "k": 1347561,
+        "n": 1375053,
+        "rate": 0.9800065888369394,
+        "lo": 0.9797712774556915,
+        "hi": 0.9802392181569721
+      },
+      "truth_in_candidates": {
+        "k": 27487,
+        "n": 27888,
+        "rate": 0.9856210556511761,
+        "lo": 0.9841554427126533,
+        "hi": 0.9869528974408344
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 23459,
+        "n": 49937,
+        "rate": 0.4697719126098885,
+        "lo": 0.46539697029650495,
+        "hi": 0.47415150539438145
+      },
+      "link_recall_class1": {
+        "k": 23459,
+        "n": 23502,
+        "rate": 0.9981703684792783,
+        "lo": 0.9975365917751311,
+        "hi": 0.9986413115082806
+      },
+      "precision_class2": {
+        "k": 3824,
+        "n": 6090,
+        "rate": 0.6279146141215107,
+        "lo": 0.6156975256319666,
+        "hi": 0.6399704260916228
+      },
+      "link_recall_class2": {
+        "k": 3824,
+        "n": 4386,
+        "rate": 0.8718650250797993,
+        "lo": 0.8616466655581818,
+        "hi": 0.8814325380285717
+      },
+      "false_pairs": {
+        "total": 28744,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 1664,
+        "both have a true partner, but another": 27080
+      },
+      "candidates_per_linked_det0": {
+        "median": 3.0,
+        "p90": 5.0,
+        "share_with_more_than_one": 0.8227443823428767,
+        "share_with_zero": 0.0011406410402646286
+      }
+    },
+    "shape_tight": {
+      "predicted": 25798,
+      "candidates_before_assignment": 25902,
+      "precision": {
+        "k": 23452,
+        "n": 25798,
+        "rate": 0.9090627180401581,
+        "lo": 0.9054929692697263,
+        "hi": 0.9125106572621101
+      },
+      "link_recall": {
+        "k": 23452,
+        "n": 27888,
+        "rate": 0.8409351692484223,
+        "lo": 0.8365956967092596,
+        "hi": 0.8451807264007869
+      },
+      "peak_recall": {
+        "k": 1159991,
+        "n": 1375053,
+        "rate": 0.8435973013403847,
+        "lo": 0.8429892053849,
+        "hi": 0.8442034774284823
+      },
+      "truth_in_candidates": {
+        "k": 23456,
+        "n": 27888,
+        "rate": 0.8410786001147447,
+        "lo": 0.8367406772742166,
+        "hi": 0.8453225680584256
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 22705,
+        "n": 24929,
+        "rate": 0.9107866340406755,
+        "lo": 0.9071844844849936,
+        "hi": 0.9142621973083885
+      },
+      "link_recall_class1": {
+        "k": 22705,
+        "n": 23502,
+        "rate": 0.9660879925112756,
+        "lo": 0.963696619281597,
+        "hi": 0.9683270186212467
+      },
+      "precision_class2": {
+        "k": 747,
+        "n": 869,
+        "rate": 0.859608745684695,
+        "lo": 0.8349250299005718,
+        "hi": 0.8811270006167636
+      },
+      "link_recall_class2": {
+        "k": 747,
+        "n": 4386,
+        "rate": 0.17031463748290013,
+        "lo": 0.15947916202979442,
+        "hi": 0.1817271357099691
+      },
+      "false_pairs": {
+        "total": 2346,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 50,
+        "both have a true partner, but another": 2296
+      },
+      "candidates_per_linked_det0": {
+        "median": 1.0,
+        "p90": 1.0,
+        "share_with_more_than_one": 0.07950268050644463,
+        "share_with_zero": 0.10258165088779894
+      }
+    },
+    "shape_plan": {
+      "predicted": 44653,
+      "candidates_before_assignment": 51954,
+      "precision": {
+        "k": 24338,
+        "n": 44653,
+        "rate": 0.5450473652386177,
+        "lo": 0.5404248678640671,
+        "hi": 0.5496621122236602
+      },
+      "link_recall": {
+        "k": 24338,
+        "n": 27888,
+        "rate": 0.8727051061388411,
+        "lo": 0.8687418152732437,
+        "hi": 0.8765657301417568
+      },
+      "peak_recall": {
+        "k": 1215285,
+        "n": 1375053,
+        "rate": 0.8838095695220475,
+        "lo": 0.8832728718658007,
+        "hi": 0.8843441226228146
+      },
+      "truth_in_candidates": {
+        "k": 24366,
+        "n": 27888,
+        "rate": 0.8737091222030982,
+        "lo": 0.869758906180539,
+        "hi": 0.8775563947926316
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 22897,
+        "n": 42157,
+        "rate": 0.5431363711839078,
+        "lo": 0.5383774538523862,
+        "hi": 0.5478874275393553
+      },
+      "link_recall_class1": {
+        "k": 22897,
+        "n": 23502,
+        "rate": 0.9742575099991491,
+        "lo": 0.9721539596615418,
+        "hi": 0.9762060429005448
+      },
+      "precision_class2": {
+        "k": 1441,
+        "n": 2496,
+        "rate": 0.577323717948718,
+        "lo": 0.5578397071067445,
+        "hi": 0.596570076297132
+      },
+      "link_recall_class2": {
+        "k": 1441,
+        "n": 4386,
+        "rate": 0.3285453716370269,
+        "lo": 0.31480027182024795,
+        "hi": 0.34259055522007176
+      },
+      "false_pairs": {
+        "total": 20315,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 1279,
+        "both have a true partner, but another": 19036
+      },
+      "candidates_per_linked_det0": {
+        "median": 2.0,
+        "p90": 3.0,
+        "share_with_more_than_one": 0.5570510626972358,
+        "share_with_zero": 0.039428158625147335
+      }
+    },
+    "ring_tight_c0.5": {
+      "predicted": 25910,
+      "candidates_before_assignment": 26088,
+      "precision": {
+        "k": 24007,
+        "n": 25910,
+        "rate": 0.9265534542647627,
+        "lo": 0.923313366587346,
+        "hi": 0.9296670730245099
+      },
+      "link_recall": {
+        "k": 24007,
+        "n": 27888,
+        "rate": 0.8608362019506598,
+        "lo": 0.8567241902943139,
+        "hi": 0.86484881620089
+      },
+      "peak_recall": {
+        "k": 1177681,
+        "n": 1375053,
+        "rate": 0.85646226000016,
+        "lo": 0.8558752156498356,
+        "hi": 0.8570473125994867
+      },
+      "truth_in_candidates": {
+        "k": 24031,
+        "n": 27888,
+        "rate": 0.8616967871485943,
+        "lo": 0.8575952102502086,
+        "hi": 0.8656987295805697
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 23139,
+        "n": 24838,
+        "rate": 0.9315967469200419,
+        "lo": 0.9283901120553393,
+        "hi": 0.934669895540877
+      },
+      "link_recall_class1": {
+        "k": 23139,
+        "n": 23502,
+        "rate": 0.9845545059994895,
+        "lo": 0.9828968448919982,
+        "hi": 0.9860537839593423
+      },
+      "precision_class2": {
+        "k": 868,
+        "n": 1072,
+        "rate": 0.8097014925373134,
+        "lo": 0.7851131222566837,
+        "hi": 0.8320781073815827
+      },
+      "link_recall_class2": {
+        "k": 868,
+        "n": 4386,
+        "rate": 0.19790241678066575,
+        "lo": 0.186377702800915,
+        "hi": 0.20995586877943542
+      },
+      "false_pairs": {
+        "total": 1903,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 25,
+        "both have a true partner, but another": 1878
+      },
+      "candidates_per_linked_det0": {
+        "median": 1.0,
+        "p90": 1.0,
+        "share_with_more_than_one": 0.06973118892817763,
+        "share_with_zero": 0.0836470096194061
+      }
+    },
+    "ring_tight_c2": {
+      "predicted": 35907,
+      "candidates_before_assignment": 37938,
+      "precision": {
+        "k": 25954,
+        "n": 35907,
+        "rate": 0.7228117080235051,
+        "lo": 0.7181582128454105,
+        "hi": 0.7274175321685965
+      },
+      "link_recall": {
+        "k": 25954,
+        "n": 27888,
+        "rate": 0.9306511761331039,
+        "lo": 0.9276098013904484,
+        "hi": 0.9335739219532264
+      },
+      "peak_recall": {
+        "k": 1282219,
+        "n": 1375053,
+        "rate": 0.9324869659569486,
+        "lo": 0.9320663728275485,
+        "hi": 0.932905142543442
+      },
+      "truth_in_candidates": {
+        "k": 26014,
+        "n": 27888,
+        "rate": 0.9328026391279404,
+        "lo": 0.9298041755902486,
+        "hi": 0.9356818810923622
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 23344,
+        "n": 32320,
+        "rate": 0.7222772277227723,
+        "lo": 0.7173681263275453,
+        "hi": 0.7271334950391426
+      },
+      "link_recall_class1": {
+        "k": 23344,
+        "n": 23502,
+        "rate": 0.9932771679006042,
+        "lo": 0.9921487738045035,
+        "hi": 0.9942443277298826
+      },
+      "precision_class2": {
+        "k": 2610,
+        "n": 3587,
+        "rate": 0.7276275439085587,
+        "lo": 0.7128208868939101,
+        "hi": 0.7419471541135239
+      },
+      "link_recall_class2": {
+        "k": 2610,
+        "n": 4386,
+        "rate": 0.5950752393980848,
+        "lo": 0.5804705245107388,
+        "hi": 0.6095135514522755
+      },
+      "false_pairs": {
+        "total": 9953,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 280,
+        "both have a true partner, but another": 9673
+      },
+      "candidates_per_linked_det0": {
+        "median": 1.0,
+        "p90": 2.0,
+        "share_with_more_than_one": 0.350823162617391,
+        "share_with_zero": 0.024067525949583665
+      }
+    },
+    "shape_tight_c0.5": {
+      "predicted": 24090,
+      "candidates_before_assignment": 24126,
+      "precision": {
+        "k": 23058,
+        "n": 24090,
+        "rate": 0.9571606475716065,
+        "lo": 0.9545297989844912,
+        "hi": 0.9596457138154271
+      },
+      "link_recall": {
+        "k": 23058,
+        "n": 27888,
+        "rate": 0.8268072289156626,
+        "lo": 0.8223209509903531,
+        "hi": 0.8312034831940143
+      },
+      "peak_recall": {
+        "k": 1135791,
+        "n": 1375053,
+        "rate": 0.8259979797142365,
+        "lo": 0.8253633994078984,
+        "hi": 0.8266307384902918
+      },
+      "truth_in_candidates": {
+        "k": 23062,
+        "n": 27888,
+        "rate": 0.8269506597819851,
+        "lo": 0.8224658161170385,
+        "hi": 0.8313454402899246
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 22588,
+        "n": 23571,
+        "rate": 0.9582962114462688,
+        "lo": 0.9556685047107984,
+        "hi": 0.9607745563530774
+      },
+      "link_recall_class1": {
+        "k": 22588,
+        "n": 23502,
+        "rate": 0.9611096927921028,
+        "lo": 0.9585616004608438,
+        "hi": 0.9635070652277736
+      },
+      "precision_class2": {
+        "k": 470,
+        "n": 519,
+        "rate": 0.905587668593449,
+        "lo": 0.8773670419874567,
+        "hi": 0.9278481512947917
+      },
+      "link_recall_class2": {
+        "k": 470,
+        "n": 4386,
+        "rate": 0.10715914272685818,
+        "lo": 0.0983462095511497,
+        "hi": 0.11665963485107203
+      },
+      "false_pairs": {
+        "total": 1032,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 14,
+        "both have a true partner, but another": 1018
+      },
+      "candidates_per_linked_det0": {
+        "median": 1.0,
+        "p90": 1.0,
+        "share_with_more_than_one": 0.03585415003231816,
+        "share_with_zero": 0.12048971521995361
+      }
+    },
+    "shape_tight_c2": {
+      "predicted": 29689,
+      "candidates_before_assignment": 30131,
+      "precision": {
+        "k": 23948,
+        "n": 29689,
+        "rate": 0.8066287177068948,
+        "lo": 0.8020966308291176,
+        "hi": 0.8110814625737045
+      },
+      "link_recall": {
+        "k": 23948,
+        "n": 27888,
+        "rate": 0.8587205966724039,
+        "lo": 0.8545831547584712,
+        "hi": 0.8627592239534456
+      },
+      "peak_recall": {
+        "k": 1192862,
+        "n": 1375053,
+        "rate": 0.8675025617194392,
+        "lo": 0.8669348580046625,
+        "hi": 0.8680682119949712
+      },
+      "truth_in_candidates": {
+        "k": 23960,
+        "n": 27888,
+        "rate": 0.8591508892713712,
+        "lo": 0.855018594255605,
+        "hi": 0.863184251124099
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 22788,
+        "n": 28249,
+        "rate": 0.8066834224220326,
+        "lo": 0.8020367295236754,
+        "hi": 0.8112467145034201
+      },
+      "link_recall_class1": {
+        "k": 22788,
+        "n": 23502,
+        "rate": 0.9696196068419709,
+        "lo": 0.9673473679729296,
+        "hi": 0.9717383442357326
+      },
+      "precision_class2": {
+        "k": 1160,
+        "n": 1440,
+        "rate": 0.8055555555555556,
+        "lo": 0.7843117443335208,
+        "hi": 0.8251733958646839
+      },
+      "link_recall_class2": {
+        "k": 1160,
+        "n": 4386,
+        "rate": 0.2644778841769266,
+        "lo": 0.25163495785446427,
+        "hi": 0.2777330266304429
+      },
+      "false_pairs": {
+        "total": 5741,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 171,
+        "both have a true partner, but another": 5570
+      },
+      "candidates_per_linked_det0": {
+        "median": 1.0,
+        "p90": 2.0,
+        "share_with_more_than_one": 0.18672293829131972,
+        "share_with_zero": 0.07832401809817117
+      }
+    },
+    "ring_tight_binary": {
+      "predicted": 28200,
+      "candidates_before_assignment": 28680,
+      "precision": {
+        "k": 23942,
+        "n": 28200,
+        "rate": 0.8490070921985816,
+        "lo": 0.844780635313543,
+        "hi": 0.8531384736918062
+      },
+      "link_recall": {
+        "k": 23942,
+        "n": 27888,
+        "rate": 0.8585054503729203,
+        "lo": 0.8543654398320722,
+        "hi": 0.8625467055459511
+      },
+      "peak_recall": {
+        "k": 1171751,
+        "n": 1375053,
+        "rate": 0.8521496989570584,
+        "lo": 0.8515554273585586,
+        "hi": 0.8527420029012147
+      },
+      "truth_in_candidates": {
+        "k": 23999,
+        "n": 27888,
+        "rate": 0.8605493402180149,
+        "lo": 0.856433861970617,
+        "hi": 0.8645655000793954
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 22488,
+        "n": 26320,
+        "rate": 0.8544072948328267,
+        "lo": 0.8500945329905755,
+        "hi": 0.8586166150053917
+      },
+      "link_recall_class1": {
+        "k": 22488,
+        "n": 23502,
+        "rate": 0.9568547357671687,
+        "lo": 0.9541814852686383,
+        "hi": 0.9593786571599567
+      },
+      "precision_class2": {
+        "k": 1454,
+        "n": 1880,
+        "rate": 0.7734042553191489,
+        "lo": 0.7539340935275928,
+        "hi": 0.7917593448166925
+      },
+      "link_recall_class2": {
+        "k": 1454,
+        "n": 4386,
+        "rate": 0.3315093479252166,
+        "lo": 0.3177299893154216,
+        "hi": 0.3455836026829776
+      },
+      "false_pairs": {
+        "total": 4258,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 88,
+        "both have a true partner, but another": 4170
+      },
+      "candidates_per_linked_det0": {
+        "median": 1.0,
+        "p90": 2.0,
+        "share_with_more_than_one": 0.15174327972320445,
+        "share_with_zero": 0.08410326603551196
+      }
+    },
+    "shape_tight_binary": {
+      "predicted": 25027,
+      "candidates_before_assignment": 25124,
+      "precision": {
+        "k": 22684,
+        "n": 25027,
+        "rate": 0.9063811084029249,
+        "lo": 0.9027094609297994,
+        "hi": 0.9099280174680504
+      },
+      "link_recall": {
+        "k": 22684,
+        "n": 27888,
+        "rate": 0.8133964429145152,
+        "lo": 0.8087808391662109,
+        "hi": 0.8179257172054558
+      },
+      "peak_recall": {
+        "k": 1116165,
+        "n": 1375053,
+        "rate": 0.8117250753243693,
+        "lo": 0.811070777768567,
+        "hi": 0.8123776311004677
+      },
+      "truth_in_candidates": {
+        "k": 22693,
+        "n": 27888,
+        "rate": 0.8137191623637406,
+        "lo": 0.8091065628671894,
+        "hi": 0.8182453435053176
+      },
+      "precision_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "link_recall_class0": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "precision_class1": {
+        "k": 21968,
+        "n": 24200,
+        "rate": 0.9077685950413223,
+        "lo": 0.9040579360180584,
+        "hi": 0.9113498131385881
+      },
+      "link_recall_class1": {
+        "k": 21968,
+        "n": 23502,
+        "rate": 0.9347289592375116,
+        "lo": 0.9314994084919296,
+        "hi": 0.9378164129845495
+      },
+      "precision_class2": {
+        "k": 716,
+        "n": 827,
+        "rate": 0.8657799274486094,
+        "lo": 0.8408472484300074,
+        "hi": 0.8873300599763123
+      },
+      "link_recall_class2": {
+        "k": 716,
+        "n": 4386,
+        "rate": 0.1632466940264478,
+        "lo": 0.1526040870865892,
+        "hi": 0.1744786942146769
+      },
+      "false_pairs": {
+        "total": 2343,
+        "both spots have no true partner": 0,
+        "one spot has no true partner": 52,
+        "both have a true partner, but another": 2291
+      },
+      "candidates_per_linked_det0": {
+        "median": 1.0,
+        "p90": 1.0,
+        "share_with_more_than_one": 0.07801984715410061,
+        "share_with_zero": 0.1304132922702559
+      }
+    }
+  },
+  "origin_error": {
+    "n_pairs": 23252,
+    "lab_um_pct10_50_90_99": [
+      0.4583070641720519,
+      1.6570352989452801,
+      15.539472210906466,
+      88.46730843938069
+    ],
+    "sample_um_pct10_50_90_99": [
+      0.7976349928933456,
+      2.6665083313833824,
+      15.663127008416929,
+      88.46950783216474
+    ],
+    "arc_term_um_pct50_90_max": [
+      1.4248908281806314,
+      3.2516676016641974,
+      5.00087914089385
+    ],
+    "share_sample_err_below_um": {
+      "5": 0.7582143471529331,
+      "10": 0.8640116979184587,
+      "20": 0.9167383450885945,
+      "50": 0.9708842250129022,
+      "100": 0.9921727163254774
+    },
+    "sigma_um_pct10_50_90": [
+      30.103310535487626,
+      67.22509581081889,
+      270.4783150394664
+    ],
+    "by_cond": [
+      {
+        "ray z-slope (abs u_z)": "0 to 0.02",
+        "pairs": 2131,
+        "lab-frame error median (um)": 30.767996640103004,
+        "lab-frame error p90 (um)": 92.76941782265432,
+        "sample-frame error median (um)": 30.716508820854422,
+        "sample-frame error p90 (um)": 92.79105317060193,
+        "predicted sigma median (um)": 364.79718923984103
+      },
+      {
+        "ray z-slope (abs u_z)": "0.02 to 0.05",
+        "pairs": 5569,
+        "lab-frame error median (um)": 4.18095093823028,
+        "lab-frame error p90 (um)": 19.693627242434566,
+        "sample-frame error median (um)": 4.659884276155817,
+        "sample-frame error p90 (um)": 19.807574940580672,
+        "predicted sigma median (um)": 180.73394413924575
+      },
+      {
+        "ray z-slope (abs u_z)": "0.05 to 0.1",
+        "pairs": 5838,
+        "lab-frame error median (um)": 1.5642489444402687,
+        "lab-frame error p90 (um)": 4.326306482996817,
+        "sample-frame error median (um)": 2.3741784817553517,
+        "sample-frame error p90 (um)": 5.172546425578844,
+        "predicted sigma median (um)": 74.72934481655167
+      },
+      {
+        "ray z-slope (abs u_z)": "0.1 to 1",
+        "pairs": 9714,
+        "lab-frame error median (um)": 0.9925079025533223,
+        "lab-frame error p90 (um)": 2.56322397171905,
+        "sample-frame error median (um)": 1.9441030877873215,
+        "sample-frame error p90 (um)": 4.010967213140457,
+        "predicted sigma median (um)": 36.98960850950958
+      }
+    ]
+  },
+  "true_link_first_failing_gate": {
+    "gate_ray": 0,
+    "gate_hull": 36,
+    "gate_sigma": 0,
+    "gate_ring": 3036,
+    "gate_size": 0,
+    "passes all gates": 24816
+  },
+  "true_link_first_failing_gate_by_class": {
+    "one grain, several voxels": {
+      "passes all gates": 23279,
+      "gate_ring": 223
+    },
+    "several grains": {
+      "passes all gates": 1537,
+      "gate_ring": 2813,
+      "gate_hull": 36
+    }
+  },
+  "decision_step4": {
+    "rule": "run Step 4 only if recall on single-source components is below 0.95",
+    "single_source_links": 0,
+    "single_source_recall": null,
+    "one_grain_recall": {
+      "k": 23256,
+      "n": 23502,
+      "rate": 0.9895328057186622,
+      "lo": 0.9881492797584814,
+      "hi": 0.9907563213070849
+    },
+    "run_step4": false
+  }
+}

@@ -1,0 +1,389 @@
+"""Task D steps 1 and 2: summaries of the provenance (truth) and of the geometric pairing.
+
+Reads the provenance written by scripts/phase_d/render_provenance.py and the pairs written by
+pairing_run.py; writes benchmarks/eval_reduction/D/step1/{summary.json,tables.md} (what the
+spots are) and .../step2/{summary.json,tables.md} (pairing precision / recall, origin error,
+ambiguity). Figures are made by pairing_figures.py.
+
+Truth: two components (one per detector) of a frame are a true pair when they share a
+(voxel, reflection) source. Classes of a component: single-source (one voxel and reflection),
+one grain with several voxels, several grains. A pair belongs to the larger class of its two
+components. Rates carry Wilson intervals (scripts/common/stats.py); no significance tests.
+
+  uv run python scripts/eval_reduction/pairing_summary.py
+"""
+
+import json
+import sys
+from pathlib import Path
+from typing import Any, Dict, List
+
+import numpy as np
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parents[0] / "common"))
+import doc_tables as DT  # noqa: E402
+import pairing_common as pc  # noqa: E402
+import pairing_run as PR  # noqa: E402
+import stats as ST  # noqa: E402
+
+from icenine import spot_pairing as sp  # noqa: E402
+
+MAIN = "ring_tight"
+OUT1 = pc.BENCH / "step1"
+OUT2 = pc.BENCH / "step2"
+CLS = pc.CLASS_NAMES
+
+
+def pct(x: np.ndarray, q: List[float]) -> List[float]:
+    return [float(v) for v in np.percentile(x, q)] if len(x) else [float("nan")] * len(q)
+
+
+def rate(k: int, n: int) -> Dict[str, Any]:
+    lo, hi = ST.wilson(int(k), int(n)) if n else (float("nan"), float("nan"))
+    return {
+        "k": int(k),
+        "n": int(n),
+        "rate": float(k / n) if n else float("nan"),
+        "lo": lo,
+        "hi": hi,
+    }
+
+
+def fmt_rate(r: Dict[str, Any]) -> str:
+    if r["n"] == 0:
+        return "n/a (0)"
+    return f"{r['rate']:.3f} [{r['lo']:.3f}, {r['hi']:.3f}] ({r['k']}/{r['n']})"
+
+
+def step1(prov: Dict, ct: Dict, cls: np.ndarray, a: np.ndarray, b: np.ndarray, npk: np.ndarray):
+    N = len(cls)
+    det = ct["det"]
+    linked = np.zeros(N, dtype=bool)
+    linked[a] = True
+    linked[b] = True
+    rows = []
+    out: Dict[str, Any] = {"n_components": int(N), "n_triangles": int(len(prov["tri_comp"]))}
+    for d in (0, 1):
+        for k in range(3):
+            m = (det == d) & (cls == k)
+            rows.append(
+                {
+                    "detector": d,
+                    "class": CLS[k],
+                    "components": int(m.sum()),
+                    "with a true partner": int((m & linked).sum()),
+                    "median pixels": float(np.median(ct["npix"][m])) if m.any() else None,
+                    "p90 pixels": float(np.percentile(ct["npix"][m], 90)) if m.any() else None,
+                    "median sources": float(np.median(ct["n_src"][m])) if m.any() else None,
+                    "max sources": int(ct["n_src"][m].max()) if m.any() else None,
+                }
+            )
+            out[f"det{d}_class{k}"] = rows[-1]
+    lc = np.maximum(cls[a], cls[b])
+    link_rows = []
+    for k in range(3):
+        m = lc == k
+        link_rows.append(
+            {
+                "class of pair": CLS[k],
+                "true links": int(m.sum()),
+                "peaks (voxel, reflection)": int(npk[m].sum()),
+            }
+        )
+    out["links"] = link_rows
+    out["n_links"] = int(len(a))
+    out["n_peaks_both_detectors"] = int(npk.sum())
+    out["unpaired_components"] = {f"det{d}": int(((det == d) & ~linked).sum()) for d in (0, 1)}
+    out["unpaired_single_source"] = int(((cls == 0) & ~linked).sum())
+    out["n_single_source_total"] = int((cls == 0).sum())
+    out["edge_touching_components"] = {f"det{d}": int(ct["edge"][det == d].sum()) for d in (0, 1)}
+    # partners per component
+    pa = np.bincount(a, minlength=N)
+    pb = np.bincount(b, minlength=N)
+    out["partners_per_linked_det0"] = {
+        "max": int(pa.max()),
+        "share_more_than_one": float((pa[det == 0] > 1).sum() / max((pa[det == 0] > 0).sum(), 1)),
+    }
+    out["partners_per_linked_det1"] = {
+        "max": int(pb.max()),
+        "share_more_than_one": float((pb[det == 1] > 1).sum() / max((pb[det == 1] > 0).sum(), 1)),
+    }
+    tbl1 = DT.markdown_table(
+        rows,
+        [
+            "detector",
+            "class",
+            "components",
+            "with a true partner",
+            "median pixels",
+            "p90 pixels",
+            "median sources",
+            "max sources",
+        ],
+        {"median pixels": ".0f", "p90 pixels": ".0f", "median sources": ".0f"},
+    )
+    tbl2 = DT.markdown_table(
+        link_rows, ["class of pair", "true links", "peaks (voxel, reflection)"]
+    )
+    return out, {"step1_components": tbl1, "step1_links": tbl2}
+
+
+def evaluate(
+    name: str,
+    suffix: str,
+    ct: Dict,
+    cls: np.ndarray,
+    a: np.ndarray,
+    b: np.ndarray,
+    npk: np.ndarray,
+) -> Dict[str, Any]:
+    N = len(cls)
+    r = np.load(pc.CACHE / f"pairs_full_{name}{suffix}.npz")
+    ch = r["chosen"].astype(bool)
+    c0, c1 = r["c0"][ch], r["c1"][ch]
+    tk = pc.pair_keys(a, b, N)
+    pk = pc.pair_keys(c0, c1, N)
+    correct = np.isin(pk, tk)
+    found = np.isin(tk, pk)
+    pcl = np.maximum(cls[c0], cls[c1])
+    lcl = np.maximum(cls[a], cls[b])
+    linked = np.zeros(N, dtype=bool)
+    linked[a] = True
+    linked[b] = True
+    res: Dict[str, Any] = {
+        "predicted": int(ch.sum()),
+        "candidates_before_assignment": int(len(r["c0"])),
+        "precision": rate(correct.sum(), len(correct)),
+        "link_recall": rate(found.sum(), len(found)),
+        "peak_recall": rate(int(npk[found].sum()), int(npk.sum())),
+        "truth_in_candidates": rate(
+            int(np.isin(tk, pc.pair_keys(r["c0"], r["c1"], N)).sum()), len(tk)
+        ),
+    }
+    for k in range(3):
+        res[f"precision_class{k}"] = rate(correct[pcl == k].sum(), (pcl == k).sum())
+        res[f"link_recall_class{k}"] = rate(found[lcl == k].sum(), (lcl == k).sum())
+    # what the false pairs are
+    wrong = ~correct
+    both_orphan = wrong & ~linked[c0] & ~linked[c1]
+    one_orphan = wrong & (linked[c0] ^ linked[c1])
+    wrong_partner = wrong & linked[c0] & linked[c1]
+    res["false_pairs"] = {
+        "total": int(wrong.sum()),
+        "both spots have no true partner": int(both_orphan.sum()),
+        "one spot has no true partner": int(one_orphan.sum()),
+        "both have a true partner, but another": int(wrong_partner.sum()),
+    }
+    # ambiguity: candidates per detector-0 component that has a true link
+    ncand = r["n_cand_c0"]
+    have = np.zeros(N, dtype=bool)
+    have[a] = True
+    d0 = have & (ct["det"] == 0)
+    res["candidates_per_linked_det0"] = {
+        "median": float(np.median(ncand[d0])),
+        "p90": float(np.percentile(ncand[d0], 90)),
+        "share_with_more_than_one": float((ncand[d0] > 1).mean()),
+        "share_with_zero": float((ncand[d0] == 0).mean()),
+    }
+    return res
+
+
+def origin_error(
+    name: str, suffix: str, ct: Dict, cls: np.ndarray, a: np.ndarray, b: np.ndarray, geo
+):
+    """Origin error of the correct, chosen pairs of single-grain components (truth = mean of the
+    source voxel centroids of the detector-0 component)."""
+    N = len(cls)
+    r = np.load(pc.CACHE / f"pairs_full_{name}{suffix}.npz")
+    ch = r["chosen"].astype(bool)
+    c0, c1 = r["c0"][ch], r["c1"][ch]
+    ok = np.isin(pc.pair_keys(c0, c1, N), pc.pair_keys(a, b, N)) & (cls[c0] == 1) & (cls[c1] == 1)
+    c0, c1 = c0[ok], c1[ok]
+    q_true = ct["truth_xy"][c0]
+    om_true = ct["omega_mean"][c0]
+    lab_true = sp.sample_to_lab_xy(q_true, om_true)
+    o_lab = r["origin_lab"][ch][ok][:, :2]
+    o_smp = r["origin_sample"][ch][ok]
+    err_lab = np.linalg.norm(o_lab - lab_true, axis=1) * 1000.0
+    err_smp = np.linalg.norm(o_smp - q_true, axis=1) * 1000.0
+    cond = r["cond"][ch][ok]
+    sig = r["sigma_mm"][ch][ok] * 1000.0
+    omc = 0.5 * (geo["omega_lo"] + geo["omega_hi"])[ct["frame"][c0]]
+    # arc part: the position error from using the frame-centre omega instead of the exact one
+    q_at_centre = sp.lab_to_sample_xy(lab_true, omc)
+    err_arc = np.linalg.norm(q_at_centre - q_true, axis=1) * 1000.0
+    out: Dict[str, Any] = {
+        "n_pairs": int(len(c0)),
+        "lab_um_pct10_50_90_99": pct(err_lab, [10, 50, 90, 99]),
+        "sample_um_pct10_50_90_99": pct(err_smp, [10, 50, 90, 99]),
+        "arc_term_um_pct50_90_max": [
+            float(np.median(err_arc)),
+            float(np.percentile(err_arc, 90)),
+            float(err_arc.max()),
+        ],
+        "share_sample_err_below_um": {
+            str(t): float((err_smp <= t).mean()) for t in (5, 10, 20, 50, 100)
+        },
+        "sigma_um_pct10_50_90": pct(sig, [10, 50, 90]),
+    }
+    bins = [(0.0, 0.02), (0.02, 0.05), (0.05, 0.1), (0.1, 1.01)]
+    rows = []
+    for lo, hi in bins:
+        m = (cond >= lo) & (cond < hi)
+        rows.append(
+            {
+                "ray z-slope (abs u_z)": f"{lo:g} to {min(hi, 1):g}",
+                "pairs": int(m.sum()),
+                "lab-frame error median (um)": float(np.median(err_lab[m])) if m.any() else None,
+                "lab-frame error p90 (um)": (
+                    float(np.percentile(err_lab[m], 90)) if m.any() else None
+                ),
+                "sample-frame error median (um)": float(np.median(err_smp[m])) if m.any() else None,
+                "sample-frame error p90 (um)": (
+                    float(np.percentile(err_smp[m], 90)) if m.any() else None
+                ),
+                "predicted sigma median (um)": float(np.median(sig[m])) if m.any() else None,
+            }
+        )
+    out["by_cond"] = rows
+    tbl = DT.markdown_table(
+        rows,
+        list(rows[0].keys()),
+        {k: ".1f" for k in rows[0] if "um" in k},
+    )
+    arrays = dict(
+        err_lab=err_lab,
+        err_smp=err_smp,
+        cond=cond,
+        sigma=sig,
+        truth_xy=q_true,
+        om_true=om_true,
+        c0=c0,
+    )
+    return out, tbl, arrays
+
+
+def true_link_rejections(geo, ct, cls, a, b):
+    """First failing gate (ray, hull, sigma, ring, size) of the true links under MAIN."""
+    gs = pc.detector_geoms(geo)
+    spec = PR.PRESETS[MAIN]
+    params = PR.make_params(geo, spec)
+    hull = sp.SampleHull(geo["voxel_tri"].reshape(-1, 2))
+    om_c = 0.5 * (geo["omega_lo"] + geo["omega_hi"])
+    frame, det = ct["frame"], ct["det"]
+    names = ["gate_ray", "gate_hull", "gate_sigma", "gate_ring", "gate_size"]
+    fails = {n: 0 for n in names}
+    fails["passes all gates"] = 0
+    by_class: Dict[str, Dict[str, int]] = {}
+    lcl = np.maximum(cls[a], cls[b])
+    ck, rk = "i_col", "i_row"
+    for f in range(len(om_c)):
+        s0 = np.nonzero((frame == f) & (det == 0))[0]
+        s1 = np.nonzero((frame == f) & (det == 1))[0]
+        loc = {}
+        comps = []
+        for sel in (s0, s1):
+            comps.append(
+                {
+                    "c_col": ct[ck][sel],
+                    "c_row": ct[rk][sel],
+                    "npix": ct["npix"][sel].astype(float),
+                    "edge": ct["edge"][sel],
+                    "w": (ct["cmax"][sel] - ct["cmin"][sel]).astype(float),
+                    "h": (ct["rmax"][sel] - ct["rmin"][sel]).astype(float),
+                }
+            )
+        r = sp.pair_frame(gs, hull, float(om_c[f]), comps[0], comps[1], params, return_gates=True)
+        pos0 = {int(g): i for i, g in enumerate(s0)}
+        pos1 = {int(g): i for i, g in enumerate(s1)}
+        m = frame[a] == f
+        for ia, ib, k in zip(a[m], b[m], lcl[m]):
+            i0, i1 = pos0[int(ia)], pos1[int(ib)]
+            why = "passes all gates"
+            for n in names:
+                if not r[n][i0, i1]:
+                    why = n
+                    break
+            fails[why] += 1
+            by_class.setdefault(CLS[k], {}).setdefault(why, 0)
+            by_class[CLS[k]][why] += 1
+    return fails, by_class
+
+
+def main() -> None:
+    OUT1.mkdir(parents=True, exist_ok=True)
+    OUT2.mkdir(parents=True, exist_ok=True)
+    geo = pc.load_geometry()
+    prov = pc.load_provenance()
+    ct = pc.component_table(prov, geo)
+    cls = pc.component_class(ct)
+    a, b, npk = pc.truth_links(prov)
+
+    s1, t1 = step1(prov, ct, cls, a, b, npk)
+    (OUT1 / "summary.json").write_text(json.dumps(s1, indent=2) + "\n")
+    DT.write_tables(OUT1 / "tables.md", t1)
+
+    summary: Dict[str, Any] = {"main_preset": MAIN, "presets": {}}
+    rows = []
+    names = list(PR.PRESETS)
+    todo = [(n, "") for n in names] + [("ring_tight", "_binary"), ("shape_tight", "_binary")]
+    for n, sfx in todo:
+        if not (pc.CACHE / f"pairs_full_{n}{sfx}.npz").exists():
+            continue
+        e = evaluate(n, sfx, ct, cls, a, b, npk)
+        key = n + sfx
+        summary["presets"][key] = e
+        rows.append(
+            {
+                "preset": key,
+                "predicted pairs": e["predicted"],
+                "precision": fmt_rate(e["precision"]),
+                "link recall": fmt_rate(e["link_recall"]),
+                "peak recall": f"{e['peak_recall']['rate']:.3f}",
+                "recall, one grain": fmt_rate(e["link_recall_class1"]),
+                "recall, several grains": fmt_rate(e["link_recall_class2"]),
+            }
+        )
+    tbl_cols = list(rows[0].keys())
+    t2: Dict[str, str] = {"step2_presets": DT.markdown_table(rows, tbl_cols)}
+    # main preset: false pairs, ambiguity, origin error, rejections
+    em = summary["presets"][MAIN]
+    fp = em["false_pairs"]
+    t2["step2_false_pairs"] = DT.markdown_table(
+        [{"cause": k, "pairs": v} for k, v in fp.items()], ["cause", "pairs"]
+    )
+    oe, tbl_oe, arrays = origin_error(MAIN, "", ct, cls, a, b, geo)
+    summary["origin_error"] = oe
+    t2["step2_origin_error"] = tbl_oe
+    np.savez_compressed(pc.CACHE / "origin_error_arrays.npz", **arrays)
+    fails, by_class = true_link_rejections(geo, ct, cls, a, b)
+    summary["true_link_first_failing_gate"] = fails
+    summary["true_link_first_failing_gate_by_class"] = by_class
+    t2["step2_rejections"] = DT.markdown_table(
+        [{"first failing gate": k, "true links": v} for k, v in fails.items()],
+        ["first failing gate", "true links"],
+    )
+    # centroid variant
+    # decision rule (plan): single-source recall below 0.95 runs Step 4
+    r_single = em["link_recall_class0"]
+    r_one = em["link_recall_class1"]
+    summary["decision_step4"] = {
+        "rule": "run Step 4 only if recall on single-source components is below 0.95",
+        "single_source_links": r_single["n"],
+        "single_source_recall": r_single["rate"] if r_single["n"] else None,
+        "one_grain_recall": r_one,
+        "run_step4": bool(
+            (r_single["n"] > 0 and r_single["rate"] < 0.95)
+            or (r_single["n"] == 0 and r_one["rate"] < 0.95)
+        ),
+    }
+    (OUT2 / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    DT.write_tables(OUT2 / "tables.md", t2)
+    print(json.dumps(summary["decision_step4"], indent=2))
+    print(t2["step2_presets"])
+
+
+if __name__ == "__main__":
+    main()
