@@ -46,8 +46,9 @@ SETS = [("e0", "old"), ("e0", "cpp"), ("full", "old"), ("full", "cpp")]
 SET_LABEL = {
     ("e0", "old"): "E0 200, lenient rule",
     ("e0", "cpp"): "E0 200, C++ rule",
-    ("full", "old"): "30 full-sample voxels, lenient rule",
-    ("full", "cpp"): "30 full-sample voxels, C++ rule",
+    ("full", "old"): "six full-sample voxels, lenient rule",
+    ("full", "cpp"): "six full-sample voxels, C++ rule",
+    ("full30", "old"): "30 full-sample voxels, lenient rule (supplementary arms)",
 }
 
 
@@ -77,11 +78,15 @@ def kept(dist: np.ndarray, order: np.ndarray, n_keep: int, B: float) -> Tuple[bo
 # --------------------------------------------------------------------------------------------
 # measurement 2
 # --------------------------------------------------------------------------------------------
-def rank_summary(kind: str, rule: str, bdef: str) -> Optional[Dict[str, Any]]:
-    runs = load_runs(CACHE / f"{kind}_{rule}_base")
+def rank_summary(
+    kind: str, rule: str, bdef: str, tags: Tuple[str, ...] = ("base",), arm_list: Any = None
+) -> Optional[Dict[str, Any]]:
+    runs: Dict[int, Dict[str, Any]] = {}
+    for t in tags:
+        runs.update(load_runs(CACHE / f"{kind}_{rule}_{t}"))
     if not runs:
         return None
-    arms = ["strict"] + list(RANK_ARMS)
+    arms = ["strict"] + list(arm_list if arm_list is not None else RANK_ARMS)
     res: Dict[str, Any] = {"n_voxels": len(runs), "levels": {}}
     for lv in range(RANK_LEVELS):
         L: Dict[str, Any] = {a: dict(kept=0, fixed=0, broken=0, ranks=[], rel=[]) for a in arms}
@@ -133,15 +138,18 @@ def rank_summary(kind: str, rule: str, bdef: str) -> Optional[Dict[str, Any]]:
     return res
 
 
+SUPP_ARMS = ["E4a", "E12a", "E123a", "E34a", "E1234a", "E34t25"]
+
+
 def rank_tables(S: Dict[str, Any]) -> Dict[str, str]:
     T: Dict[str, str] = {}
     for bdef in ("next", "1deg"):
-        for kind, rule in SETS:
+        for kind, rule in SETS + [("full30", "old")]:
             R = S.get(f"{kind}_{rule}_{bdef}")
             if R is None:
                 continue
             rows = []
-            for a in ["strict"] + list(RANK_ARMS):
+            for a in ["strict"] + (SUPP_ARMS if kind == "full30" else list(RANK_ARMS)):
                 row: Dict[str, Any] = {"ranking key": a if a != "strict" else "strict (baseline)"}
                 for lv in range(RANK_LEVELS):
                     x = R["levels"][str(lv)]
@@ -305,6 +313,12 @@ def main() -> None:
         for kind, rule in SETS:
             for bdef in ("next", "1deg"):
                 S[f"{kind}_{rule}_{bdef}"] = rank_summary(kind, rule, bdef)
+        # supplementary: the 30-voxel lenient set (six with all arms + 24 with SUPP_ARMS)
+        if (CACHE / "full_old_base30").exists():
+            for bdef in ("next", "1deg"):
+                S[f"full30_old_{bdef}"] = rank_summary(
+                    "full", "old", bdef, ("base", "base30"), SUPP_ARMS
+                )
         d = OUT / "rank"
         d.mkdir(parents=True, exist_ok=True)
         (d / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
@@ -322,7 +336,8 @@ def main() -> None:
                 E[f"{kind}|{rule}|{tag}|E0 200"] = e2e(kind, rule, tag, a.levels)
             else:
                 E[f"{kind}|{rule}|{tag}|six full-sample"] = e2e(kind, rule, tag, a.levels, SIX)
-                E[f"{kind}|{rule}|{tag}|30 full-sample"] = e2e(kind, rule, tag, a.levels)
+                if len(load_runs(CACHE / f"{kind}_{rule}_{tag}")) > len(SIX):
+                    E[f"{kind}|{rule}|{tag}|30 full-sample"] = e2e(kind, rule, tag, a.levels)
     E = {k: v for k, v in E.items() if v is not None}
     d = OUT / "e2e"
     d.mkdir(parents=True, exist_ok=True)

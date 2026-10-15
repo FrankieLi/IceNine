@@ -36,7 +36,7 @@ sys.path.insert(0, str(ICE / "scripts" / "common"))
 import cost_edges as CE  # noqa: E402
 import doc_tables as DT  # noqa: E402
 import stats as ST  # noqa: E402
-from smooth_landscape import ARMS, CACHE  # noqa: E402
+from smooth_landscape import ARMS, ARMS_L0, CACHE, CACHE_L0  # noqa: E402
 
 BCACHE = ICE / "benchmarks" / "eval_reduction" / "B" / "cache"
 OUT = ICE / "benchmarks" / "eval_reduction" / "E" / "landscape"
@@ -49,6 +49,7 @@ REGIMES = [
 PROMS = (0.01, 0.05)
 EPS = (0.01, 0.05)
 COSTS = ["strict_cpp", "strict_old"] + list(ARMS)
+COSTS_L0 = ["strict_cpp", "strict_old"] + list(ARMS_L0)
 LABEL = {
     "strict_cpp": "strict cost, C++ rule",
     "strict_old": "strict cost, lenient rule",
@@ -63,6 +64,14 @@ LABEL = {
     "E123": "E1 + E2 + E3",
     "E23": "E2 + E3",
     "E34": "E3 + E4 (0.25 deg)",
+    "E1a": "E1, level-0 width (16.5 px)",
+    "E2a": "E2, level-0 reach (1.67 frames)",
+    "E4a": "E4, level-0 tau (0.42 deg)",
+    "E12a": "E1 + E2, level-0 widths",
+    "E123a": "E1 + E2 + E3, level-0 widths",
+    "E23a": "E2 + E3, level-0 reach",
+    "E34a": "E3 + E4, level-0 tau",
+    "E1234a": "E1 + E2 + E3 + E4, level-0 widths",
 }
 TYPES = ["frame", "pixel", "presence", "detector", "none"]
 
@@ -94,7 +103,7 @@ def basin_radius(r: np.ndarray, c: np.ndarray, eps: float) -> Tuple[float, bool]
     return float(r[max(k - 1, 0)]), False
 
 
-def ray_costs(kind: str, f: Path) -> Dict[str, Dict[str, np.ndarray]]:
+def ray_costs(kind: str, f: Path, costs: List[str] = COSTS) -> Dict[str, Dict[str, np.ndarray]]:
     """cost -> segment -> array, with radii under 'radii'."""
     z = np.load(f)
     b = np.load(BCACHE / kind / f.name)
@@ -106,7 +115,7 @@ def ray_costs(kind: str, f: Path) -> Dict[str, Dict[str, np.ndarray]]:
         assert np.allclose(rb, out["radii"][s], atol=1e-6), (f, s)
         if f"full|cpp|evn|{s}" in b.files:
             out["evn"][s] = b[f"full|cpp|evn|{s}"]
-    for cname in COSTS:
+    for cname in costs:
         out[cname] = {}
         for s in segs:
             if cname == "strict_cpp":
@@ -118,8 +127,8 @@ def ray_costs(kind: str, f: Path) -> Dict[str, Dict[str, np.ndarray]]:
     return out
 
 
-def summarise(kind: str) -> Dict[str, Any]:
-    files = sorted((CACHE / kind).glob("v*_d*.npz"))
+def summarise(kind: str, costs: List[str] = COSTS, cache: Path = CACHE) -> Dict[str, Any]:
+    files = sorted((cache / kind).glob("v*_d*.npz"))
     acc: Dict[str, Any] = {
         c: dict(
             steps=np.zeros(3),
@@ -135,16 +144,17 @@ def summarise(kind: str) -> Dict[str, Any]:
             basin={str(e): [] for e in EPS},
             basin_full={str(e): 0 for e in EPS},
             cost_truth=[],
+            half_rise=[],
         )
-        for c in COSTS
+        for c in costs
     }
     n_rays = 0
     attached = []
     for f in files:
-        R = ray_costs(kind, f)
+        R = ray_costs(kind, f, costs)
         n_rays += 1
         attached.append(int(np.load(f)["n_attached"]))
-        for cname in COSTS:
+        for cname in costs:
             a = acc[cname]
             for s, r in R["radii"].items():
                 if s == "profile":
@@ -185,6 +195,9 @@ def summarise(kind: str) -> Dict[str, Any]:
                 rp = R["radii"]["profile"]
                 rb = np.concatenate([[0.0], rp])
                 cb = np.concatenate([[c[0]], R[cname]["profile"]])
+            half = cb[0] + 0.5 * (1.0 - cb[0])
+            up = np.nonzero(cb >= half)[0]
+            a["half_rise"].append(float(rb[up[0]]) if len(up) else float("inf"))
             for e in EPS:
                 br, full = basin_radius(rb, cb, e)
                 a["basin"][str(e)].append(br)
@@ -224,6 +237,7 @@ def summarise(kind: str) -> Dict[str, Any]:
             basin_q25_deg={e: float(np.quantile(v, 0.25)) for e, v in a["basin"].items()},
             basin_to_5deg=a["basin_full"],
             median_cost_at_truth=float(np.median(a["cost_truth"])),
+            half_rise_median_deg=float(np.median(a["half_rise"])),
         )
     return res
 
@@ -237,14 +251,16 @@ def wil(v: Dict[str, Any], n: int) -> str:
     return f"{v['rays']} of {n} ({100 * lo:.1f}-{100 * hi:.1f}%)"
 
 
-def tables(S: Dict[str, Any]) -> Dict[str, str]:
+def tables(S: Dict[str, Any], costs: List[str] = COSTS, tag: str = "") -> Dict[str, str]:
     T: Dict[str, str] = {}
     for kind in ("full", "e0"):
+        if kind not in S:
+            continue
         R = S[kind]
         n = R["n_rays"]
         g = "0.5 to 5 deg" if kind == "full" else "0.5 to 5 deg (4 windows of 0.05 deg)"
         rows = []
-        for c in COSTS:
+        for c in costs:
             x = R[c]
             rows.append(
                 {
@@ -258,14 +274,14 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
                     f"variation in steps, {g}": pct(x["share_variation_in_steps"][2]),
                 }
             )
-        T[f"evalE_land_steps_{kind}"] = DT.markdown_table(
+        T[f"evalE_land{tag}_steps_{kind}"] = DT.markdown_table(
             rows,
             list(rows[0].keys()),
             {k: ".1f" for k in rows[0] if k.startswith("steps")}
             | {"cost at the truth (median)": ".4f"},
         )
         rows = []
-        for c in COSTS:
+        for c in costs:
             x = R[c]
             tot = sum(x["step_types"].values())
             row: Dict[str, Any] = {"cost": LABEL[c], "isolated steps": tot}
@@ -274,10 +290,10 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
                     x["step_types_share"][t]
                 )
             rows.append(row)
-        T[f"evalE_land_types_{kind}"] = DT.markdown_table(rows, list(rows[0].keys()), {})
+        T[f"evalE_land{tag}_types_{kind}"] = DT.markdown_table(rows, list(rows[0].keys()), {})
         rows = []
         walk = "dense, 0 to 5 deg" if kind == "full" else "dense, 0 to 0.5 deg"
-        for c in COSTS:
+        for c in costs:
             x = R[c]
             row = {"cost": LABEL[c]}
             for p in ("0.01", "0.05"):
@@ -295,13 +311,14 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
             lb = x["lowest_below_truth_median"]
             row["... and its depth below the truth (median)"] = "" if lb is None else f"{lb:.4f}"
             rows.append(row)
-        T[f"evalE_land_minima_{kind}"] = DT.markdown_table(rows, list(rows[0].keys()), {})
+        T[f"evalE_land{tag}_minima_{kind}"] = DT.markdown_table(rows, list(rows[0].keys()), {})
         rows = []
-        for c in COSTS:
+        for c in costs:
             x = R[c]
             rows.append(
                 {
                     "cost": LABEL[c],
+                    "half-way rise from the truth (median deg)": x["half_rise_median_deg"],
                     "basin radius, eps 0.01 (median deg)": x["basin_median_deg"]["0.01"],
                     "basin radius, eps 0.01 (lower quartile deg)": x["basin_q25_deg"]["0.01"],
                     "rays monotone to 5 deg, eps 0.01": f"{x['basin_to_5deg']['0.01']} of {n}",
@@ -309,7 +326,7 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
                     "rays monotone to 5 deg, eps 0.05": f"{x['basin_to_5deg']['0.05']} of {n}",
                 }
             )
-        T[f"evalE_land_basin_{kind}"] = DT.markdown_table(
+        T[f"evalE_land{tag}_basin_{kind}"] = DT.markdown_table(
             rows,
             list(rows[0].keys()),
             {k: ".3f" for k in rows[0] if "median" in k or "quartile" in k},
@@ -373,6 +390,27 @@ def figures() -> None:
     fig.tight_layout()
     fig.savefig(FIG / "ray_each_arm.png", dpi=130)
     plt.close(fig)
+    f0 = CACHE_L0 / "full" / "v15901_d0.npz"
+    if f0.exists():
+        R0 = ray_costs("full", f0, COSTS_L0)
+        fig, axs = plt.subplots(1, 3, figsize=(16, 5.2))
+        for ax, hi in zip(axs, (0.1, 0.5, 5.0)):
+            m = r <= hi + 1e-9
+            for i, c in enumerate(["strict_cpp"] + list(ARMS_L0)):
+                st = (
+                    dict(color="k", lw=1.6)
+                    if c == "strict_cpp"
+                    else dict(color=cmap(2 * i), lw=0.9)
+                )
+                ax.plot(r[m], R0[c]["dense"][m], label=LABEL[c], **st)
+            ax.set_xlabel("rotation away from the true orientation (deg)")
+            ax.set_title(f"voxel 15901, ray 0, level-0 widths: 0 to {hi} deg", fontsize=9)
+            ax.set_ylim(-0.02, 1.02)
+        axs[0].set_ylabel("cost (lower = better)")
+        axs[2].legend(fontsize=7, loc="lower right")
+        fig.tight_layout()
+        fig.savefig(FIG / "ray_level0_widths.png", dpi=140)
+        plt.close(fig)
 
 
 def main() -> None:
@@ -381,6 +419,18 @@ def main() -> None:
     (OUT / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
     T = tables(S)
     DT.write_tables(OUT / "tables.md", T)
+    if any((CACHE_L0 / k).exists() for k in ("full", "e0")):
+        out0 = OUT.parent / "landscape_L0"
+        out0.mkdir(parents=True, exist_ok=True)
+        S0 = {
+            k: summarise(k, COSTS_L0, CACHE_L0)
+            for k in ("full", "e0")
+            if any((CACHE_L0 / k).glob("v*_d*.npz"))
+        }
+        (out0 / "summary.json").write_text(json.dumps(S0, indent=1, default=float) + "\n")
+        T0 = tables(S0, COSTS_L0, "L0")
+        DT.write_tables(out0 / "tables.md", T0)
+        T.update(T0)
     figures()
     for k, t in T.items():
         print(k)

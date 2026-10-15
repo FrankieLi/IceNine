@@ -80,11 +80,12 @@ _W: Dict[str, Any] = {}
 
 
 # --------------------------------------------------------------------------------------------
-def _init(kind: str) -> None:
+def _init(kind: str, arms: str = "") -> None:
     import torch
 
     torch.set_num_threads(1)
     _W["kind"] = kind
+    _W["arms"] = [a for a in arms.split(",") if a]  # re-ranking arms (default: all RANK_ARMS)
     if kind == "e0":
         import common as C
 
@@ -107,6 +108,8 @@ def task(item: Tuple[Any, ...]) -> str:
     from icenine.smooth_cost import SmoothCost, SmoothSpec
 
     kind, vidx, vpos, rule, spec, path = item
+    if Path(path).exists():  # another process (--reverse) got there first
+        return f"{kind} v{vidx} exists"
     t0 = time.time()
     if kind == "e0":
         from optimizer_sweep import voxel_context
@@ -162,7 +165,8 @@ def task(item: Tuple[Any, ...]) -> str:
             eta_limit=setup.exp_setup.get_eta_limit(),
             min_sin_eta=0.0,
         )
-        specs = [SmoothSpec.parse(s) for s in RANK_ARMS.values()]
+        arm_names = _W.get("arms") or list(RANK_ARMS)
+        specs = [SmoothSpec.parse(RANK_ARMS[n]) for n in arm_names]
     for L in probe.levels:
         lv = int(L["level"])
         Ra = np.asarray(L["R_after_ranked"], dtype=np.float64)
@@ -184,7 +188,7 @@ def task(item: Tuple[Any, ...]) -> str:
         out[pre + "dist_disc"] = dd.astype(np.float32)
         if sc is not None and lv < RANK_LEVELS:
             keys = sc.evaluate_specs(Ra, verts, phase, specs, diameter_rad=float(L["diameter"]))
-            for name, k in zip(RANK_ARMS, keys):
+            for name, k in zip(arm_names, keys):
                 out[pre + "key_" + name] = k.astype(np.float32)
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(path, **out)
@@ -212,23 +216,38 @@ def run_dir(kind: str, rule: str, tag: str) -> Path:
     return CACHE / f"{kind}_{rule}_{tag}"
 
 
-def run(kind: str, rule: str, spec: str, tag: str, workers: int, limit: int, which: str) -> None:
+def run(
+    kind: str,
+    rule: str,
+    spec: str,
+    tag: str,
+    workers: int,
+    limit: int,
+    which: str,
+    reverse: bool = False,
+    arms: str = "",
+    skip: int = 0,
+) -> None:
     root = run_dir(kind, rule, tag)
     root.mkdir(parents=True, exist_ok=True)
     (root / "spec.txt").write_text(spec + "\n")
     items = [
         (kind, v, p, rule, spec, str(root / f"v{v}.npz"))
-        for v, p in voxel_list(kind, which)[: limit or None]
+        for v, p in voxel_list(kind, which)[skip:][: limit or None]
         if not (root / f"v{v}.npz").exists()
     ]
+    if reverse:  # a second process working from the other end of the list
+        items = items[::-1]
     print(f"{root.name} ({spec}): {len(items)} tasks, {workers} workers", flush=True)
     t0 = time.time()
     if workers <= 1:
-        _init(kind)
+        _init(kind, arms)
         for i, it in enumerate(items):
             print(f"[{i + 1}/{len(items)} {time.time() - t0:.0f}s] {task(it)}", flush=True)
     else:
-        with mp.get_context("spawn").Pool(workers, initializer=_init, initargs=(kind,)) as pool:
+        with mp.get_context("spawn").Pool(
+            workers, initializer=_init, initargs=(kind, arms)
+        ) as pool:
             for i, msg in enumerate(pool.imap_unordered(task, items)):
                 print(f"[{i + 1}/{len(items)} {time.time() - t0:.0f}s] {msg}", flush=True)
     (root / "run_meta.json").write_text(
@@ -244,7 +263,10 @@ def run(kind: str, rule: str, spec: str, tag: str, workers: int, limit: int, whi
         )
         + "\n"
     )
-    (OUT / "cache" / "logs" / f"rank_{root.name}.done").write_text(f"{time.time() - t0:.0f}s\n")
+    sfx = "_rev" if reverse else ""
+    (OUT / "cache" / "logs" / f"rank_{root.name}{sfx}.done").write_text(
+        f"{time.time() - t0:.0f}s\n"
+    )
 
 
 def main() -> None:
@@ -257,8 +279,11 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--voxels", default="30", choices=["30", "six"])
+    ap.add_argument("--reverse", action="store_true")
+    ap.add_argument("--arms", default="", help="re-ranking arms, comma-separated (default: all)")
+    ap.add_argument("--skip", type=int, default=0, help="skip the first N voxels of the set")
     a = ap.parse_args()
-    run(a.kind, a.rule, a.spec, a.tag, a.workers, a.limit, a.voxels)
+    run(a.kind, a.rule, a.spec, a.tag, a.workers, a.limit, a.voxels, a.reverse, a.arms, a.skip)
 
 
 if __name__ == "__main__":
