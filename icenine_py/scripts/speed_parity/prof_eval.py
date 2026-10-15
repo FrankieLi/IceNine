@@ -154,6 +154,11 @@ if __name__ == "__main__":
             VoxelCostFunction.evaluate,
             cf.calculate_diffraction_overlap_batched,
             diffraction_core.get_scattering_omegas_torch,
+            *(
+                (diffraction_core.scattering_omegas_fixed_beam,)
+                if hasattr(diffraction_core, "scattering_omegas_fixed_beam")
+                else ()
+            ),
         )
         lp.runcall(lambda: [fn.evaluate(o, verts, vox.phase) for o in orients])
         lp.print_stats(output_unit=1e-6, stripzeros=True)

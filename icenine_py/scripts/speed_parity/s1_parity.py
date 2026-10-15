@@ -8,6 +8,9 @@ single result. Step 0 dumps the base commit; Step 5 dumps the new code and compa
   uv run python scripts/speed_parity/s1_parity.py dump --out scripts/speed_parity/cache/s1/base.npz
   uv run python scripts/speed_parity/s1_parity.py dump --out scripts/speed_parity/cache/s1/new.npz
   uv run python scripts/speed_parity/s1_parity.py compare base.npz new.npz
+  uv run python scripts/speed_parity/s1_parity.py batched --dump scripts/speed_parity/cache/s1/base.npz
+  uv run python scripts/speed_parity/s1_parity.py compare-e0 \
+      scripts/findoptimal_robustness/cache/e0_s1base scripts/findoptimal_robustness/cache/e0_s1
   uv run python scripts/speed_parity/s1_parity.py dump --fixture \
       --out tests/data/s1_evaluate_ref.npz     # the small fixture of tests/test_s1_evaluate.py
 
@@ -45,7 +48,6 @@ HERE = Path(__file__).resolve().parent
 ICE = HERE.parents[1]
 ROOT = ICE.parent
 sys.path.insert(0, str(ICE))
-torch.set_num_threads(1)
 
 THREE = ROOT / "Examples" / "Example2.ThreeVoxels"
 MANY = ROOT / "Examples" / "Example2.ManyGrains"
@@ -394,7 +396,97 @@ def cmd_compare(a: argparse.Namespace) -> int:
     return 0 if bad == 0 else 1
 
 
+BATCHED_MODES = ("local", "cpp_rule", "edge", "edge_cpp_rule", "min_sin_eta")
+
+
+def cmd_batched(a: argparse.Namespace) -> int:
+    """S1 Step 4: ``BatchedCostEvaluator`` (compact and fixed variant, on the CPU) against the
+    ``evaluate`` results of a dump, every field exactly, for the modes the batched cost supports
+    (it needs pixel_radius 0, hard mode and no ray rule). ``--dump`` is normally the Step 0 dump
+    of the base commit, so the reference is the original ``evaluate``."""
+    from icenine.batched_cost import BatchedCostEvaluator, unsupported_reason
+
+    ref = np.load(a.dump, allow_pickle=False)
+    bad = 0
+    print(
+        f"{'dataset':10s} {'mode':14s} {'variant':8s} {'n':>5s}  differing orientations per field"
+    )
+    for name in a.datasets:
+        ds = load_dataset(name, a.three_mode)
+        R = ref[f"{name}/R"]
+        for mode in a.modes:
+            cost_fn = ds.cost_fn(MODES[mode][0])
+            assert unsupported_reason(cost_fn) is None, (mode, unsupported_reason(cost_fn))
+            for variant in ("compact", "fixed"):
+                cost_fn = ds.cost_fn(MODES[mode][0])
+                ev = BatchedCostEvaluator(cost_fn, "cpu")
+                got: List[Any] = []
+                with contextlib.redirect_stdout(io.StringIO()):
+                    for s0 in range(0, len(R), a.batch):
+                        got += ev.evaluate_many(R[s0 : s0 + a.batch], ds.verts, ds.phase, variant)
+                diff: Dict[str, int] = {}
+                for f in FIELDS:
+                    x = np.array([getattr(o, f) for o in got])
+                    d = int((x != ref[f"{name}/{mode}/{f}"]).sum())
+                    if d:
+                        diff[f] = d
+                bad += len(diff)
+                msg = "identical" if not diff else f"DIFFER {diff}"
+                print(f"{name:10s} {mode:14s} {variant:8s} {len(R):5d}  {msg}")
+    print("RESULT:", "batched cost equals evaluate (every field)" if bad == 0 else "DIFFERENCES")
+    return 0 if bad == 0 else 1
+
+
+def cmd_compare_e0(a: argparse.Namespace) -> int:
+    """Per-voxel records of two E0 runs (cache/e0<tag> directories): every stored array must be
+    equal except the wall-clock ``*_runtime``; wrong counts (final error > 1 degree, cubic
+    reduced) and evaluation totals are reported side by side."""
+    sys.path.insert(0, str(ICE / "scripts" / "findoptimal_robustness"))
+    from csl import reduced_misorientation_deg
+
+    da, db = Path(a.dir_a), Path(a.dir_b)
+    names = sorted(p.name for p in da.glob("v*.npz"))
+    only = set(names) ^ {p.name for p in db.glob("v*.npz")}
+    if only:
+        print(f"FILES ONLY IN ONE DIRECTORY: {sorted(only)[:5]} ({len(only)})")
+    names = [n for n in names if (db / n).exists()]
+    n_same = 0
+    diff_keys: Dict[str, int] = {}
+    tot = {"A": dict(wrong=0, eg=0, el=0, n=0), "B": dict(wrong=0, eg=0, el=0, n=0)}
+    for n in names:
+        x, y = np.load(da / n, allow_pickle=False), np.load(db / n, allow_pickle=False)
+        if "unbuildable" in x.files or "unbuildable" in y.files:
+            continue
+        bad = [
+            k
+            for k in x.files
+            if "runtime" not in k and (k not in y.files or not np.array_equal(x[k], y[k]))
+        ]
+        bad += [k for k in y.files if k not in x.files]
+        for k in bad:
+            diff_keys[k] = diff_keys.get(k, 0) + 1
+        n_same += not bad
+        for tag, d in (("A", x), ("B", y)):
+            err = float(reduced_misorientation_deg(d["s0_R_final"], d["R_true"]))
+            tot[tag]["wrong"] += err > 1.0
+            tot[tag]["eg"] += int(d["s0_evals_global"])
+            tot[tag]["el"] += int(d["s0_evals_local"])
+            tot[tag]["n"] += 1
+    print(f"voxels compared {len(names)}, records identical (all arrays but runtime): {n_same}")
+    if diff_keys:
+        print(f"DIFFERING KEYS (records): {dict(sorted(diff_keys.items())[:12])}")
+    for tag, d in tot.items():
+        print(
+            f"  run {tag}: n={d['n']}  wrong (>1 deg) {d['wrong']}  evaluations global"
+            f" {d['eg']}  local {d['el']}"
+        )
+    ok = (not only) and n_same == tot["A"]["n"] == tot["B"]["n"] and not diff_keys
+    print("RESULT:", "per-voxel records identical" if ok else "DIFFERENCES")
+    return 0 if ok else 1
+
+
 def main() -> int:
+    torch.set_num_threads(1)  # as the fixture and the dumps; tests set it around their own runs
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     d = sub.add_parser("dump")
@@ -414,7 +506,22 @@ def main() -> int:
     c = sub.add_parser("compare")
     c.add_argument("a")
     c.add_argument("b")
+    b = sub.add_parser(
+        "batched", help="BatchedCostEvaluator against the evaluate results of a dump"
+    )
+    b.add_argument("--dump", required=True)
+    b.add_argument("--datasets", nargs="+", default=["three0"] + [f"full{v}" for v in FULL_VOXELS])
+    b.add_argument("--modes", nargs="+", default=list(BATCHED_MODES), choices=list(MODES))
+    b.add_argument("--batch", type=int, default=64)
+    b.add_argument("--three-mode", default="sparse", choices=["sparse", "dense"])
+    e = sub.add_parser("compare-e0", help="two E0 cache directories (cache/e0<tag>)")
+    e.add_argument("dir_a")
+    e.add_argument("dir_b")
     a = ap.parse_args()
+    if a.cmd == "compare-e0":
+        return cmd_compare_e0(a)
+    if a.cmd == "batched":
+        return cmd_batched(a)
     if a.cmd == "dump" and a.fixture:
         a.datasets = ["three0"]
         a.n_near = a.n_fz = 32
