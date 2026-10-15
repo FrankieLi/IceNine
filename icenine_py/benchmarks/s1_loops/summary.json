@@ -266,6 +266,7 @@
     7.5,
     7.6
    ],
+   "wall_decimals": 1,
    "evaluations": [
     8311,
     8311,
@@ -310,6 +311,7 @@
     5.5,
     5.5
    ],
+   "wall_decimals": 1,
    "evaluations": [
     8311,
     8311,
@@ -346,6 +348,25 @@
     564.0
    ]
   }
+ },
+ "quiet_repeat_preflights": {
+  "quiet_check_passed": false,
+  "note": "quiet-machine repeat not done (preflight not quiet), owner decision D-20261014-I16",
+  "max_load": 1.5,
+  "checks": [
+   {
+    "timestamp": "2026-10-14T23:01:18",
+    "load_1min": 2.59033203125,
+    "busy_processes": [],
+    "quiet": false
+   },
+   {
+    "timestamp": "2026-10-14T23:09:57",
+    "load_1min": 2.7587890625,
+    "busy_processes": [],
+    "quiet": false
+   }
+  ]
  },
  "parity": {
   "datasets": [
@@ -525,7 +546,12 @@
     }
    }
   },
-  "base_head": "42672d1"
+  "base_head": "42672d1",
+  "base_dirty": null,
+  "new_head": "b3f4a9f",
+  "new_dirty": false,
+  "new_torch": "2.8.0",
+  "same_orientation_sets_and_indices": true
  },
  "e0": {
   "voxels": 208,
@@ -550,7 +576,8 @@
     "wrong200": 35,
     "runtime_s": 681.443877501
    }
-  }
+  },
+  "runtime_note": "runtime_s is the sum of the per-voxel wall-clock s0_runtime of a 10-worker run; the two runs were made at different times, not interleaved: contended, not a timing comparison (the timings are in the interleaved single-worker rounds)"
  },
  "batched_check": {
   "rows": 40,
@@ -575,6 +602,17 @@
   "evaluate_total_saved_us": 73.70000000000005,
   "unattributed_us": 15.100000000000044,
   "search_wall_ratio": 1.3636363636363635,
+  "search_wall_decimals": 1,
+  "search_wall_ratio_rounding_low": 1.3423423423423424,
+  "search_wall_ratio_rounding_high": 1.385321100917431,
+  "search_saved_us_per_evaluate": 236.0,
+  "recost_arm_saved_us_per_call": 77.49999999999997,
+  "search_saving_over_recost_saving": 3.0451612903225818,
+  "c_call_table_rounds": 5,
+  "c_call_table_rounds_higher": 4,
+  "c_call_table_rounds_equal": 1,
+  "c_call_table_rounds_lower": 0,
+  "c_call_table_minus_compact_us": 0.1999999999999993,
   "edge_rules_change_quality_orientations_of_1000": {
    "three0": 37,
    "full15901": 217,
@@ -582,7 +620,7 @@
    "full18558": 291
   },
   "fixture_edge_changes_peak_on_detector_of_64": 21,
-  "fixture_size_bytes": 44984,
+  "fixture_size_bytes": 45049,
   "frames_in_use": 87,
   "dump_design": {
    "near_truth": 500,

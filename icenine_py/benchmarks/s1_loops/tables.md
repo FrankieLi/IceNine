@@ -18,10 +18,10 @@
 <!-- /table:s1_coverage -->
 
 <!-- table:s1_e0 -->
-| run | voxels | wrong (> 1 deg) | wrong, the 200 voxels of e0_s3off | evaluations, global | evaluations, local | sum of per-voxel runtimes (s) |
-|---|---|---|---|---|---|---|
-| base commit | 208 | 37 | 35 | 9256059 | 858079 | 777 |
-| S1 | 208 | 37 | 35 | 9256059 | 858079 | 681 |
+| run | voxels | wrong (> 1 deg) | wrong, the 200 voxels of e0_s3off | evaluations, global | evaluations, local |
+|---|---|---|---|---|---|
+| base commit | 208 | 37 | 35 | 9256059 | 858079 |
+| S1 | 208 | 37 | 35 | 9256059 | 858079 |
 <!-- /table:s1_e0 -->
 
 <!-- table:s1_parity -->

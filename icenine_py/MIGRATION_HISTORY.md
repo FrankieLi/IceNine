@@ -7860,15 +7860,18 @@ documents carry this caveat beside them.
 
 Branch `feature/python-speed-parity-s1-loops` (off `feature/python-speed-parity`; not merged). Plan:
 `docs/todo_s1_evaluate_loops.md` (ROADMAP S1), Steps 0-6, with Step 4 (owner, D-20261014-I15). No config key, no default flip, no
-golden changed; `reconstructor.py`, `orientation_search.py`, `batched_screen.py`, `_rasterize.c` and `config_file.py` are
-untouched (no rebuild of the extension).
+golden changed; `orientation_search.py`, `batched_screen.py`, `_rasterize.c` and `config_file.py` are untouched (no rebuild of
+the extension), and `reconstructor.py` has a docstring-only edit (review fix: `CppEdgeRules` is no longer listed as unsupported
+by `_batched_quick_mc`; no code line changed).
 
 **Answer.** `VoxelCostFunction.evaluate` is bit-identical to the base commit in every `OverlapInfo` field of 15 cost modes on 4
 voxels (44,800 orientation evaluations, 0 differing values), an E0 run (208 voxels, default keys) gives identical per-voxel
 records, and a call is 1.31 times cheaper on the Q-max 8 re-cost and final arms (1.14 times on the screen arm). A whole no-start
 search on ThreeVoxels voxel 0 takes 7.5 s on the base commit and 5.5 s with S1, with the same 8,311 `evaluate` calls and the same
 result. Timings are single-worker on a **contended** machine (the preflight never reached "quiet"), 5 rounds with the base commit
-(a git worktree) and S1 interleaved.
+(a git worktree) and S1 interleaved. A quiet-machine repeat was asked for after the review (owner decision D-20261014-I16) and was
+**not done**: the preflight was not quiet (1-minute load 2.59 and 2.76 against the limit of 1.5, no busy process listed) when the
+review fixes began and again after them, so nothing was timed and the labels stay "contended".
 
 ### What was built
 
@@ -7894,14 +7897,25 @@ result. Timings are single-worker on a **contended** machine (the preflight neve
   call and rebuilds them when the `|g|` tensor, `simulator.beam_energy` or `beam_deflection_chi` is no longer the one they were
   built from (lazily, not in `__init__`: a cost function that is never evaluated costs nothing extra).
 - `icenine/batched_cost.py`: `BatchedCostEvaluator` uses the cost function's table (`cf.frame_table()`) instead of its own
-  `_table`, `_filled` and `_ensure_frames`, and the shared lookup. Reading the S3 code, an evaluator built before an `exp_data`
-  swap kept the frames of the old data; it now follows the swap through the cost function's table (not tested separately). Step 4
-  below.
+  `_table`, `_filled` and `_ensure_frames`, and the shared lookup. The S3 evaluator read `cf.exp_data` at the time a frame was
+  filled and kept the frames it had filled already, so after an `exp_data` swap on a live cost function it mixed frames of the old
+  data (already filled) with frames of the new data (filled later); it now follows the swap through the cost function's table.
+  Tested (review fix) by `tests/test_batched_cost.py::test_exp_data_swap_of_a_live_cost_function_is_followed`: after the swap to
+  dark stand-in images `evaluate_many` equals a fresh cost function's `evaluate`, and after swapping back it equals the first
+  results. The test fails on the base commit's evaluator (run against a worktree of `42672d1`: the swapped result still counts
+  overlapping pixels for the truth, on images that are dark) and passes with S1. Step 4 below.
 - Scripts (`scripts/speed_parity/`): `s1_parity.py` (`dump`, `compare`, `compare-e0`, `batched`), `run_s1_timing.sh` (interleaved
   base-against-S1 timings), `s1_summary.py` (this section's tables, `benchmarks/s1_loops/`); `stage_split.py` also reports the S1
   parts, `search_split.py` prints the full-precision cost and an orientation hash, `prof_eval.py` `--lp` includes the new function.
-  Tests: `tests/test_s1_evaluate.py` (38 tests) and the fixture `tests/data/s1_evaluate_ref.npz` (44,984 bytes; new, made on the base commit
-  with `s1_parity.py dump --fixture`, not a regenerated golden).
+  Tests: `tests/test_s1_evaluate.py` (46 tests) and the fixture `tests/data/s1_evaluate_ref.npz` (45,049 bytes; new, made on the base
+  commit with `s1_parity.py dump --fixture`, not a regenerated golden).
+- Track E files edited outside the plan's file list (owner accepted, D-20261014-I17): `scripts/eval_reduction/cost_edges.py`,
+  `scripts/eval_reduction/parity_common.py`, `scripts/eval_reduction/screen_timing.py` and `tests/test_cost_edges.py` (commit
+  `66e639c`, 3 to 10 lines each). These read `evaluate`'s Bragg result by replacing `get_scattering_omegas_torch` on
+  `cost_functions`, which `evaluate` no longer calls; each now also wraps `scattering_omegas_fixed_beam` and restores it in
+  `finally` (the restore check of the test lists it too). The consumers read only the observable rows (`observable`, `omega1`,
+  `omega2`), never `.g_vectors`. Without the edit `test_trace_recombines_the_library_cost` fails. A grep of `scripts/`, `tests/`
+  and `benchmarks/` finds no other place that replaces the Bragg function on `cost_functions`.
 
 ### Parity (Step 0 against Step 5)
 
@@ -7911,8 +7925,15 @@ drawn without replacement from the fundamental-zone file of the config; seed fix
 Phase D clean full-sample voxels (15901, 17034, 18558; Q-max 8), single-threaded. The base dump was made on the base commit before
 any library edit (`da999c5` holds the harness on top of `42672d1`, whose library files are unchanged); `compare` tests every
 field with `==`, `quality` included. A negative control (one `quality` value moved by one unit in the last place, one `ray_cases`
-count by one) is reported by `compare`. The three slow modes (soft, the Python fallback with the C extension patched off) use 50
-orientations per voxel.
+count by one) is reported by `compare`. `compare` also checks that the two dumps hold the same arrays, the same orientations and
+the same orientation subset of each mode (`index`), and counts a shape or dtype mismatch as a difference. Its negative controls
+are unit tests (`tests/test_s1_evaluate.py`): they change a copy of the fixture (one `quality` value by one unit in the last
+place, one `ray_cases` count, the index, the orientation set, a shorter array, a float32 array) and expect a difference;
+replacing `!=` by a tolerance fails the 1-ulp test and skipping the index check fails the index test. The four slow modes (soft
+and the three Python fallback modes, run with the C extension patched off) use 50 orientations per voxel. The new dump was made
+at commit `b3f4a9f`, the committed head after the review fixes (no tracked file modified; head and a dirty flag are in the
+dump's meta); the first new dump (head recorded as `da999c5`) had been made before the library was committed and was replaced.
+Result: every dataset and mode row identical, 0 differing values.
 
 <!-- table:s1_parity -->
 | mode | orientations (4 voxels) | field arrays | differing values |
@@ -7953,13 +7974,19 @@ have no gap bins, those are covered by the synthetic ranges of the unit test):
 The soft-mode counts are small (the soft overlaps are cast to `int` in the existing fallback loop, so the soft quality is 0 on
 these images), and on the full-sample voxels the triangle-mode fallback modes (`fallback_local`, `fallback_cpp_edge`, `soft`) see
 empty images (the memory-mapped loader keeps binary frames only), so they check the omega-to-frame and Bragg parts through the lit
-counts; the ThreeVoxels rows run them on real pixels. The fixture is exact on the machine and torch build that made it (arm64 macOS,
-torch 2.8.0, 1 thread); another CPU could in principle differ in the last bit of a float32 geometry value.
+counts; the ThreeVoxels rows run them on real pixels. The fixture is compared exactly only on the system, machine and torch version that made it
+(Darwin, arm64, torch 2.8.0, 1 thread, recorded in its meta); on any other the test is skipped with a message naming the
+difference, because another CPU could differ in the last bit of a float32 geometry value (owner decision D-20261014-I18). For
+the review fix the fixture was regenerated on the base commit `42672d1` so that its meta records the platform; its arrays are
+identical to the first fixture in every mode (`compare`).
 
 ### Timing (single-worker, contended; 5 interleaved rounds, medians)
 
 `scripts/speed_parity/run_s1_timing.sh`; preflight saved in `benchmarks/s1_loops/preflight.json` (1-minute load 2.97 at the start,
-exit code 1: not quiet). Per `evaluate` call, ThreeVoxels voxel 0, 400 near-truth orientations:
+exit code 1: not quiet). The first run did not gate on the preflight (the script wrote the exit code and timed anyway; it now
+stops unless `S1_ALLOW_CONTENDED=1`, and leaves earlier results alone). Quiet-machine repeat not done (preflight not quiet),
+owner decision D-20261014-I16: the preflight showed a 1-minute load of 2.59 and 2.76 (`quiet_repeat_preflights` in `summary.json`).
+Per `evaluate` call, ThreeVoxels voxel 0, 400 near-truth orientations:
 
 <!-- table:s1_per_call -->
 | arm | base commit (us) | S1 (us) | saved (us) | base / S1 | base min | S1 min | rounds | aten ops per call, base / S1 |
@@ -7985,7 +8012,8 @@ Stage split of one call (the `stage_split.py` method, medians over the same roun
 The three parts S1 removes add up to 58.6 us on the Q-max 8 final-cost arm that `stage_split.py` times (the plan's estimate was
 55-60 us), the whole call fell by 73.7 us. About 15 us of the difference is not attributed to a part: the removed `np.unique` and the re-index loop over the 87
 frames in use were not timed separately. The pointer prefetch of the C call (it type-checks every entry of the list, now 360 instead
-of 174) is within the noise of the measurement for this 180-frame, two-detector scan (8.7 us against 8.5 us).
+of 174) costs about 0.2 us more per call (the table call is higher in 4 of 5 rounds and equal in 1; medians 8.7 us against
+8.5 us) for this 180-frame, two-detector scan.
 
 Whole no-start search (`search_split.py`, ThreeVoxels voxel 0, default keys):
 
@@ -7996,9 +8024,13 @@ Whole no-start search (`search_split.py`, ThreeVoxels voxel 0, default keys):
 | S1 | 5.5 | 8311 | 564 | 84.9 | 0.4376801801801802 | 7a8743d0e2d1 | True |
 <!-- /table:s1_search -->
 
-The whole search gains more (1.36 times) than the plan's 1.15 times; the Q-max 8 arms gain 1.31 times per call, and the search
-runs levels up to nQMax 10, where the removed loops, which grow with the number of peaks, are larger. That reading is consistent
-with the numbers but was not tested separately (no per-level split of the search was made).
+The whole search gains more (1.36 times) than the plan's 1.15 times and than the Q-max 8 arms (1.31 times per call). The walls of
+these rounds were printed to 0.1 s, so the ratio of the medians carries about +-0.02 from rounding alone (1.34 to 1.39);
+`search_split.py` now prints 3 decimals, which needs a new timing run (not done, see above). Per `evaluate` call the search saves
+236 us (800 to 564), 3.0 times the 77.5 us saved per call on the Q-max 8 re-cost arm. One candidate explanation is that the
+removed loops grow with the number of peaks and the search runs levels up to nQMax 10; this was **not measured** (no per-level
+split of the search and no Q-max 10 per-call timing were made), and the search also differs from the per-call arms in its mix of
+cost functions and orientations, so the cause of the larger gain is untested.
 
 ### E0 (200 voxels, seed 0, clean, default keys)
 
@@ -8008,11 +8040,15 @@ variance and final results; only the wall-clock `*_runtime` differs) in all 208 
 set plus 8 spare):
 
 <!-- table:s1_e0 -->
-| run | voxels | wrong (> 1 deg) | wrong, the 200 voxels of e0_s3off | evaluations, global | evaluations, local | sum of per-voxel runtimes (s) |
-|---|---|---|---|---|---|---|
-| base commit | 208 | 37 | 35 | 9256059 | 858079 | 777 |
-| S1 | 208 | 37 | 35 | 9256059 | 858079 | 681 |
+| run | voxels | wrong (> 1 deg) | wrong, the 200 voxels of e0_s3off | evaluations, global | evaluations, local |
+|---|---|---|---|---|---|
+| base commit | 208 | 37 | 35 | 9256059 | 858079 |
+| S1 | 208 | 37 | 35 | 9256059 | 858079 |
 <!-- /table:s1_e0 -->
+
+The two E0 runs used 10 workers and were made at different times (not interleaved), so their wall-clock runtimes are not a timing
+comparison and are not tabulated; `summary.json` keeps the sums with a note. The timings are the interleaved single-worker rounds
+above.
 
 ### Step 4: `CppEdgeRules` in the batched local cost (S3's follow-up)
 

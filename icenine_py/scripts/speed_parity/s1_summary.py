@@ -324,6 +324,37 @@ def derived(s: Dict[str, Any]) -> Dict[str, Any]:
     )
 
 
+def quiet_repeat() -> Dict[str, Any]:
+    """The preflight checks made for the quiet-machine repeat that the owner asked for after the
+    review (D-20261014-I16): run the timing again only if one of them passes."""
+    files_ = sorted(CACHE.glob("review_preflight_*.json"))
+    checks = []
+    for f in files_:
+        info = json.loads(f.read_text())
+        checks.append(
+            dict(
+                timestamp=info["timestamp"],
+                load_1min=info["loadavg"][0],
+                busy_processes=info["busy_processes"],
+                quiet=info["loadavg"][0] <= 1.5 and not info["busy_processes"],
+            )
+        )
+    passed = bool(files_) and any(c["quiet"] for c in checks)
+    return dict(
+        quiet_check_passed=passed,
+        note=(
+            "quiet-machine repeat run (see label)"
+            if passed
+            else (
+                "quiet-machine repeat not done (preflight not quiet), "
+                "owner decision D-20261014-I16"
+            )
+        ),
+        max_load=1.5,
+        checks=checks,
+    )
+
+
 def build() -> Dict[str, Any]:
     pre = json.loads((TIMING / "preflight_start.json").read_text())
     exit_code = int((TIMING / "preflight_exit.txt").read_text().strip())
@@ -336,6 +367,7 @@ def build() -> Dict[str, Any]:
     s["prof_eval_aten_ops"] = {arm: prof_eval_ops(arm) for arm in ("base", "s1")}
     s["stage_split_us"] = {arm: stage_split(arm) for arm in ("base", "s1")}
     s["search"] = {arm: search_split(arm) for arm in ("base", "s1")}
+    s["quiet_repeat_preflights"] = quiet_repeat()
     s["parity"] = parity()
     s["e0"] = e0()
     s["batched_check"] = batched_check()
