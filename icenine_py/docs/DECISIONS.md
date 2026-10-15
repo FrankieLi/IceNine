@@ -193,3 +193,8 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
 - The five study scripts with their own `VARIANTS = ["clean", "all"]` and the six
   `*_realistic*.config` Phase D arms are not moved to no drop. Where: MIGRATION_HISTORY "Q8".
+
+### D-20261014-I13 · Q14 · Noise against neighbour spots: open question, not run now
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- Whether the detector noise or the neighbour/twin spots make the no-drop E0 images easier (Q8 Step 7)
+  is logged as open question Q14; the `noise_nodrop` split is not run now. Where: ROADMAP Q14.

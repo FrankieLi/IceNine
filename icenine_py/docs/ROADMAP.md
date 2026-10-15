@@ -228,6 +228,7 @@ owner review in between.
 | Q11 | H0 wrong-basin failures; a real fallback trigger for the hybrids | open | orientation-search findings §6 |
 | Q12 | CMA-ES in BFS at scale (1,001 evaluations per neighbour; cross-boundary neighbours) | untested | orientation-search findings §6 |
 | Q13 | coarse cost proxy (Idea 1) | evaluated: accuracy-only gain, +5% time | `todo_coarse_cost_proxy_and_dedup.md` |
+| Q14 | noisy images are easier (Q8 Step 7: more candidates, wider cost): from the detector noise or the neighbour/twin spots? Add `noise_nodrop` (noise only) to the Step 7 analysis | open (owner 2026-10-14, D-20261014-I13); analysis only, about 10 min | MIGRATION_HISTORY "Q8"; `scripts/phase_d/q8_step7.py` |
 
 # Track X: scale and realism (deferred by the owner)
 
