@@ -296,3 +296,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   instead of today's per-voxel screen followed by per-voxel optimisation. Investigate and plan; the
   implementer is Opus 5.5 at high effort, for the investigative nature. Where: ROADMAP Track S row S4;
   `docs/todo_translation_screen_prototype.md`.
+
+### D-20261014-I20 · S4 · Fewer voxels per test, and run the work in parallel
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none (amends the S4 plan of I19).
+- To cut S4's total run time: test fewer voxels per layer. That means 20 Phase D reference voxels instead of 50,
+  10 timed `BatchedScreen` voxels instead of 20, and orderings timed on a 2,000-voxel patch with a linear-scaling check and
+  a projection to the full layer, which is run only for the best ordering. Exploit parallelism: the
+  reference, the correctness checks and the equality runs run concurrently in the background (up to 6
+  processes); timings run alone. Where: `docs/todo_translation_screen_prototype.md`.

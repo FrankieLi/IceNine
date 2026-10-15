@@ -8,7 +8,7 @@ fontsize: 11pt
 
 # Status
 
-**Picked by the owner 2026-10-14 (D-20261014-I19); plan revised, awaiting approval.** Track S,
+**Picked by the owner 2026-10-14 (D-20261014-I19); sized down and parallelised (D-20261014-I20); awaiting approval.** Track S,
 Ilium Agent. Task branch `feature/python-speed-parity-s4-translation-screen`
 (`scripts/dev/start_task.sh`), off `feature/python-speed-parity` after reading Newt Agent's mailbox
 (ROADMAP "Between agents"). Implementer: Opus 5.5 at high effort (owner, D-20261014-I19). Agent
@@ -90,7 +90,7 @@ global cost function and orientation set exactly as `reconstruct_voxel` does for
 config: same flags, `n_q_max`, pixel radius and centroid screen, read from the setup, not copied by
 hand. Then measure:
 
-- `BatchedScreen` per voxel, run as the reconstructor runs it (chunk 32), on 20 seeded random Phase D
+- `BatchedScreen` per voxel, run as the reconstructor runs it (chunk 32), on 10 seeded random Phase D
   voxels: wall time split into torch geometry and the per-orientation stage-D loop, peaks per
   orientation after the eta filter and frame lookup, and **screen passers per voxel**. The passers set
   the re-cost load in Step 4.
@@ -98,12 +98,13 @@ hand. Then measure:
 - The re-cost time per voxel (`evaluate` of each passer with the local cost function), and the time of
   the rest of a no-start search, on 3 voxels. Reuse the S1/S3 numbers where they apply and say which.
 - **Reference:** `peak_overlap` of all 43,974 orientations from `BatchedScreen`, for the 3 ThreeVoxels
-  voxels and 50 seeded random Phase D voxels (both triangle types), saved under
-  `benchmarks/s4_translation/`. Every later step is compared with it.
+  voxels and 20 seeded random Phase D voxels (both triangle types), saved under
+  `benchmarks/s4_translation/`. Every later step is compared with it. It is an equality reference,
+  not a timing, so it runs in up to 6 worker processes in the background.
 
 **Step 1: correctness of translation (owner question 1).** Script
-`scripts/speed_parity/s4/translation_correctness.py`. Orientations: 200 random over the FZ, plus 20
-within 1 degree of the truth for 5 voxels. Position pairs: same triangle type, displacements from one
+`scripts/speed_parity/s4/translation_correctness.py`. Orientations: 100 random over the FZ, plus 20
+within 1 degree of the truth for 3 voxels. Position pairs: same triangle type, displacements from one
 voxel step up to the sample diameter (1 mm).
 
 - **1a, continuous.** Per peak and detector, compare the projected vertices and centroid computed
@@ -124,7 +125,7 @@ voxel step up to the sample diameter (1 mm).
   differ on the boundary. Report the symmetric-difference counts per spot, as a distribution relative
   to the spot size, and confirm that every differing pixel touches the spot boundary.
   List spots that leave or enter the detector separately; they are expected, not failures.
-- **1c, the cost-level effect of (iii).** On the Phase D images, for the 50 reference voxels and their
+- **1c, the cost-level effect of (iii).** On the Phase D images, for the 20 reference voxels and their
   re-cost passers, compare the final cost (triangle mode, `pixel_overlap`, `peak_overlap`, quality) of
   exact per-voxel rasterisation with the pure pixel-set translation. This decides whether "rasterise
   each spot shape once per (orientation, peak, triangle type), translate per voxel" is usable for the
@@ -157,7 +158,11 @@ report. The premise of S4 is then wrong.
 
 **Step 3: the loop-ordering study (owner question 2).** Script `scripts/speed_parity/s4/orderings.py`.
 Build O1, O2, O3 and O5 on Step 2's kernel semantics. Check each against Step 2's output on the
-reference voxels (and on a 2,000-voxel tile for O2, O3 and O5) before timing it.
+reference voxels before timing it.
+
+- **Sample size.** Time every ordering on one contiguous patch of 2,000 voxels, not the whole layer.
+  Check that time grows linearly with the voxel count (500, 1,000 and 2,000 voxels), then project to
+  24,570. Only the best ordering gets one measured full-layer run.
 
 - **Implementation.** Vectorised numpy and torch first: numpy fixes the loop order to its vector axis,
   which is fine for O2. Loop order matters for O1, O3 and O5, so where the vectorised form hides it,
@@ -175,10 +180,21 @@ reference voxels (and on a 2,000-voxel tile for O2, O3 and O5) before timing it.
   $\mathbf{u} = \mathbf{u}_{\text{ref}} + A_p(\mathbf{x} - \mathbf{x}_{\text{ref}})$ with
   $\mathbf{u}_{\text{ref}}$ computed in float64 on the CPU, and count the flips.
 - **Metrics per ordering.** Peak tests per second; (orientation, voxel) pairs per second; projected
-  full-sample level-0 wall time for 24,570 voxels times 43,974 orientations, plus one measured full
-  run for the best ordering; peak memory; table build time (O1, O3); the cost model's prediction next
+  full-sample level-0 wall time for 24,570 voxels times 43,974 orientations; peak memory; table build time (O1, O3); the cost model's prediction next
   to each measurement. Also the passer output: count and memory of the sparse (voxel, orientation)
   list for the full sample.
+
+**Running the steps in parallel (D-20261014-I20).** Correctness work and timing work are kept apart:
+
+- Run concurrently, in the background: the Step 0 reference (up to 6 worker processes), all of Step 1,
+  and the Step 2 equality runs. Write Step 2 and Step 3 code while they run.
+- Run alone, one at a time, with nothing else running on the machine: every timing (the Step 0
+  timings, Step 3 and the Step 4 re-cost timing). A timing taken next to another job is contended and
+  the comparison between orderings loses its meaning.
+- One implementer, not two. A second implementer would need the same Step 0 reference, and its jobs
+  would contend with the timings; background jobs in one session give the same overlap.
+- Memory: at most 6 heavy processes at once on this 16 GB machine; share the dilated bitmaps
+  read-only (threads, or a memory map across processes).
 
 **Step 4: what follows the screen (the "optimisation follows" half).** One measurement and an
 analysis; no reconstruction run in this task.
