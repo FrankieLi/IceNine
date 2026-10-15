@@ -10,14 +10,20 @@ and its results are bit-identical.
 * ``evaluate`` against ``tests/data/s1_evaluate_ref.npz`` (made on the base commit by
   ``scripts/speed_parity/s1_parity.py dump --fixture``): every OverlapInfo field of every cost mode,
   exactly. Single-thread torch, as the fixture; a fixture made on another CPU or torch build could
-  differ in the last bit of a float32 geometry value.
+  differ in the last bit of a float32 geometry value, so the exact comparison runs only on the
+  platform (system and machine) and the torch version recorded in the fixture's meta, and is
+  skipped, with a message naming the difference, anywhere else;
+* ``s1_parity.compare_dumps`` (the parity harness behind the published bit-identity claim) reports
+  a 1-ulp change, a changed count, a changed orientation index, a shape or dtype mismatch.
 """
 
+import json
 import os
+import platform
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, Iterator, List, Optional
 
 import numpy as np
 import pytest
@@ -339,12 +345,143 @@ def test_fixture_covers_the_modes_and_is_small() -> None:
     assert ndiff >= 10
 
 
+def platform_difference(
+    meta: Dict[str, Any], system: str, machine: str, torch_version: str
+) -> Optional[str]:
+    """What differs between the platform and torch build that made the fixture (its meta) and
+    this one, as a message; None when they are the same (the exact comparison is then valid)."""
+    made = (meta.get("platform_system"), meta.get("platform_machine"), meta.get("torch"))
+    here = (system, machine, torch_version)
+    if None in made:
+        return "the fixture's meta does not record its platform and torch version"
+    names = ("system", "machine", "torch version")
+    diffs = [f"{n}: fixture {m!r}, here {h!r}" for n, m, h in zip(names, made, here) if m != h]
+    return "; ".join(diffs) if diffs else None
+
+
+def test_platform_difference_names_what_differs() -> None:
+    meta = dict(platform_system="Darwin", platform_machine="arm64", torch="2.8.0")
+    assert platform_difference(meta, "Darwin", "arm64", "2.8.0") is None
+    msg = platform_difference(meta, "Linux", "x86_64", "2.8.0")
+    assert msg is not None and "system: fixture 'Darwin', here 'Linux'" in msg
+    assert "machine: fixture 'arm64', here 'x86_64'" in msg and "torch version" not in msg
+    msg = platform_difference(meta, "Darwin", "arm64", "2.9.1")
+    assert msg is not None and "torch version: fixture '2.8.0', here '2.9.1'" in msg
+    assert "system" not in msg
+    assert platform_difference({"torch": "2.8.0"}, "Darwin", "arm64", "2.8.0") is not None
+
+
+def test_fixture_records_its_platform_and_torch_version() -> None:
+    meta = json.loads(str(np.load(FIXTURE, allow_pickle=False)["meta"]))
+    assert meta["platform_system"] and meta["platform_machine"] and meta["torch"]
+    assert meta["threads"] == 1
+
+
 @needs_c
 @pytest.mark.parametrize("mode", sorted(S1.MODES))
 def test_evaluate_equals_the_base_commit_fixture_exactly(fixture_dataset: Any, mode: str) -> None:
     ref = np.load(FIXTURE, allow_pickle=False)
+    diff = platform_difference(
+        json.loads(str(ref["meta"])), platform.system(), platform.machine(), torch.__version__
+    )
+    if diff is not None:
+        pytest.skip(f"exact comparison only on the fixture's platform and torch build ({diff})")
     R = ref["three0/R"][ref[f"three0/{mode}/index"]]
     got = S1.run_mode(fixture_dataset, mode, R)
     for f, v in got.items():
         want = ref[f"three0/{mode}/{f}"]
         assert v.dtype == want.dtype and np.array_equal(v, want), (mode, f)
+
+
+# ----------------------------------------------------------------------------------------------
+# the parity harness's compare (negative controls: a later edit of it must not pass silently)
+# ----------------------------------------------------------------------------------------------
+def _two_dumps(tmp_path: Path, change: Any = None) -> Any:
+    """Two npz files: a copy of the fixture and a copy after ``change(arrays)``."""
+    ref = np.load(FIXTURE, allow_pickle=False)
+    arrays = {k: ref[k] for k in ref.files}
+    a = tmp_path / "a.npz"
+    np.savez_compressed(a, **arrays)
+    other = {k: v.copy() for k, v in arrays.items()}
+    if change is not None:
+        change(other)
+    b = tmp_path / "b.npz"
+    np.savez_compressed(b, **other)
+    return a, b
+
+
+def _compare(a: Path, b: Path) -> Any:
+    lines: List[str] = []
+    n = S1.compare_dumps(
+        np.load(a, allow_pickle=False), np.load(b, allow_pickle=False), lines.append
+    )
+    return n, "\n".join(lines)
+
+
+def test_compare_accepts_identical_dumps(tmp_path: Path) -> None:
+    a, b = _two_dumps(tmp_path)
+    n, text = _compare(a, b)
+    assert n == 0 and "bit-identical" in text and "DIFFER" not in text
+
+
+def test_compare_reports_a_one_ulp_change_of_quality(tmp_path: Path) -> None:
+    def one_ulp(arr: Dict[str, np.ndarray]) -> None:
+        q = arr["three0/edge_cpp_rule/quality"]
+        i = int(np.argmax(q))  # a nonzero value: 1 ulp of 0.0 is a denormal that isclose() sees
+        assert q[i] > 0.1
+        q[i] = np.nextafter(q[i], np.inf)
+
+    a, b = _two_dumps(tmp_path, one_ulp)
+    n, text = _compare(a, b)
+    assert n == 1 and "DIFFER {'quality': 1} (1 orientations)" in text
+    assert text.count("DIFFER {") == 1  # only that mode
+    args = SimpleNamespace(a=str(a), b=str(b))
+    assert S1.cmd_compare(args) == 1  # the exit code of the command line
+
+
+def test_compare_reports_a_changed_count(tmp_path: Path) -> None:
+    def plus_one(arr: Dict[str, np.ndarray]) -> None:
+        arr["three0/ray_c_screen/ray_cases"][3, 2] += 1
+
+    n, text = _compare(*_two_dumps(tmp_path, plus_one))
+    assert n == 1 and "DIFFER {'ray_cases': 1}" in text
+
+
+def test_compare_reports_a_changed_orientation_index_or_set(tmp_path: Path) -> None:
+    def swap_index(arr: Dict[str, np.ndarray]) -> None:
+        idx = arr["three0/soft/index"]
+        idx[[0, 1]] = idx[[1, 0]]
+
+    n, text = _compare(*_two_dumps(tmp_path, swap_index))
+    assert n == 1 and "ORIENTATION INDEX DIFFERS for three0/soft" in text
+
+    def other_set(arr: Dict[str, np.ndarray]) -> None:
+        arr["three0/R"][0, 0, 0] += 1e-9
+
+    n, text = _compare(*_two_dumps(tmp_path, other_set))
+    assert n == 1 and "ORIENTATION SET DIFFERS for three0" in text
+
+
+def test_compare_counts_a_shape_or_dtype_mismatch_as_a_difference(tmp_path: Path) -> None:
+    def shorter(arr: Dict[str, np.ndarray]) -> None:  # one orientation fewer in one field
+        arr["three0/local/pixel_overlap"] = arr["three0/local/pixel_overlap"][:-1]
+
+    n, text = _compare(*_two_dumps(tmp_path, shorter))
+    assert n == 1 and "DIFFER {'pixel_overlap': 64}" in text
+
+    def narrower(arr: Dict[str, np.ndarray]) -> None:  # the same values in float32
+        arr["three0/local/quality"] = arr["three0/local/quality"].astype(np.float32)
+
+    n, text = _compare(*_two_dumps(tmp_path, narrower))
+    assert n == 1 and "DIFFER {'quality': 64}" in text
+
+
+def test_compare_reports_a_missing_key_either_way_round(tmp_path: Path) -> None:
+    ref = np.load(FIXTURE, allow_pickle=False)
+    full = tmp_path / "full.npz"
+    np.savez_compressed(full, **{k: ref[k] for k in ref.files})
+    part = tmp_path / "part.npz"
+    np.savez_compressed(part, **{k: ref[k] for k in ref.files if k != "three0/local/quality"})
+    for a, b in ((full, part), (part, full)):
+        n, text = _compare(a, b)
+        assert n == 1 and "KEY MISMATCH" in text and "three0/local/quality" in text

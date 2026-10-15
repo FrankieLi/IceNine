@@ -8,7 +8,8 @@ single result. Step 0 dumps the base commit; Step 5 dumps the new code and compa
   uv run python scripts/speed_parity/s1_parity.py dump --out scripts/speed_parity/cache/s1/base.npz
   uv run python scripts/speed_parity/s1_parity.py dump --out scripts/speed_parity/cache/s1/new.npz
   uv run python scripts/speed_parity/s1_parity.py compare base.npz new.npz
-  uv run python scripts/speed_parity/s1_parity.py batched --dump scripts/speed_parity/cache/s1/base.npz
+  uv run python scripts/speed_parity/s1_parity.py batched \
+      --dump scripts/speed_parity/cache/s1/base.npz
   uv run python scripts/speed_parity/s1_parity.py compare-e0 \
       scripts/findoptimal_robustness/cache/e0_s1base scripts/findoptimal_robustness/cache/e0_s1
   uv run python scripts/speed_parity/s1_parity.py dump --fixture \
@@ -34,6 +35,7 @@ import contextlib
 import io
 import json
 import os
+import platform
 import subprocess
 import sys
 import time
@@ -307,6 +309,18 @@ def git_head() -> str:
         return "unknown"
 
 
+def git_dirty() -> Optional[bool]:
+    """True when a tracked file differs from HEAD (untracked files do not count); None if git
+    cannot say. A dump of a dirty tree is not a dump of the commit named in ``head``."""
+    try:
+        out = subprocess.check_output(
+            ["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT, text=True
+        )
+        return bool(out.strip())
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def cmd_dump(a: argparse.Namespace) -> int:
     from icenine import cost_functions as CF
 
@@ -314,7 +328,10 @@ def cmd_dump(a: argparse.Namespace) -> int:
     out: Dict[str, Any] = {}
     meta: Dict[str, Any] = dict(
         head=git_head(),
+        dirty=git_dirty(),
         torch=torch.__version__,
+        platform_system=platform.system(),
+        platform_machine=platform.machine(),
         threads=int(torch.get_num_threads()),
         c_ext=bool(CF._HAS_C_RASTERIZE),
         seed=SEED,
@@ -361,39 +378,58 @@ def cmd_dump(a: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_compare(a: argparse.Namespace) -> int:
-    A, B = np.load(a.a, allow_pickle=False), np.load(a.b, allow_pickle=False)
+def _row_differs(x: np.ndarray, y: np.ndarray, n: int) -> np.ndarray:
+    """Per-row ``x != y`` (exact). A shape or dtype mismatch is a difference in every row."""
+    if x.shape != y.shape or x.dtype != y.dtype:
+        return np.ones(n, dtype=bool)
+    d = x != y
+    return d.any(axis=tuple(range(1, d.ndim))) if d.ndim > 1 else d
+
+
+def compare_dumps(A: Any, B: Any, say: Any = print) -> int:
+    """Compare two dumps (open npz files); returns the number of differences found (0 = every
+    field of every mode identical). Compared exactly: the key sets, the orientation sets ``R``,
+    the orientation indices ``index``, and every field array (shape, dtype and values with
+    ``!=``, ``quality`` included)."""
     ka, kb = set(A.files) - {"meta"}, set(B.files) - {"meta"}
     bad = 0
     if ka != kb:
-        print(f"KEY MISMATCH: only in A {sorted(ka - kb)[:5]}, only in B {sorted(kb - ka)[:5]}")
+        say(f"KEY MISMATCH: only in A {sorted(ka - kb)[:5]}, only in B {sorted(kb - ka)[:5]}")
         bad += 1
     groups: Dict[Tuple[str, str], List[str]] = {}
     for k in sorted(ka & kb):
         parts = k.split("/")
-        if len(parts) == 3 and parts[2] not in ("index",):
+        if len(parts) == 3 and parts[2] != "index":
             groups.setdefault((parts[0], parts[1]), []).append(parts[2])
         elif len(parts) == 2 and parts[1] == "R" and not np.array_equal(A[k], B[k]):
-            print(f"ORIENTATION SET DIFFERS for {parts[0]}")
+            say(f"ORIENTATION SET DIFFERS for {parts[0]}")
             bad += 1
-    print(f"{'dataset':10s} {'mode':18s} {'n':>5s}  differing orientations per field")
+        elif len(parts) == 3 and not np.array_equal(A[k], B[k]):
+            say(f"ORIENTATION INDEX DIFFERS for {parts[0]}/{parts[1]}")
+            bad += 1
+    say(f"{'dataset':10s} {'mode':18s} {'n':>5s}  differing orientations per field")
     for (ds, mode), fields in sorted(groups.items()):
-        n = len(A[f"{ds}/{mode}/quality"])
+        n = len(A[f"{ds}/{mode}/{fields[0]}"])
         diff: Dict[str, int] = {}
         any_row = np.zeros(n, dtype=bool)
         for f in fields:
             x, y = A[f"{ds}/{mode}/{f}"], B[f"{ds}/{mode}/{f}"]
-            d = x != y
-            if d.ndim > 1:
-                d = d.any(axis=1)
+            d = _row_differs(x, y, n)
+            if len(d) != n:  # a field array whose length differs from that of the first one
+                d = np.ones(n, dtype=bool)
             if d.any():
                 diff[f] = int(d.sum())
             any_row |= d
         bad += len(diff)
         msg = "identical" if not diff else f"DIFFER {diff} ({int(any_row.sum())} orientations)"
-        print(f"{ds:10s} {mode:18s} {n:5d}  {msg}")
-    print("RESULT:", "bit-identical (every field of every mode)" if bad == 0 else "DIFFERENCES")
-    return 0 if bad == 0 else 1
+        say(f"{ds:10s} {mode:18s} {n:5d}  {msg}")
+    say("RESULT: " + ("bit-identical (every field of every mode)" if bad == 0 else "DIFFERENCES"))
+    return bad
+
+
+def cmd_compare(a: argparse.Namespace) -> int:
+    A, B = np.load(a.a, allow_pickle=False), np.load(a.b, allow_pickle=False)
+    return 0 if compare_dumps(A, B) == 0 else 1
 
 
 BATCHED_MODES = ("local", "cpp_rule", "edge", "edge_cpp_rule", "min_sin_eta")
