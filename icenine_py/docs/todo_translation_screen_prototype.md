@@ -8,7 +8,7 @@ fontsize: 11pt
 
 # Status
 
-**Picked by the owner 2026-10-14 (D-20261014-I19); sized down and parallelised (D-20261014-I20); approved 2026-10-14 (D-20261014-I21), in progress.** Track S,
+**Picked by the owner 2026-10-14 (D-20261014-I19); sized down and parallelised (D-20261014-I20); approved 2026-10-14 (D-20261014-I21); Steps 0-5 done 2026-10-15, agent review pending.** Results: MIGRATION_HISTORY "S4: translation correctness and loop ordering", `benchmarks/s4_translation/` (`summary.json`, `tables.md`). Deviations: 1d skipped (the `IceNine` binary no longer starts and its build dependencies are not installed); O4 built, because its cost model predicted at least 2x at its central assumption (measured 3.3x slower than O2). Track S,
 Ilium Agent. Task branch `feature/python-speed-parity-s4-translation-screen`
 (`scripts/dev/start_task.sh`), off `feature/python-speed-parity` after reading Newt Agent's mailbox
 (ROADMAP "Between agents"). Implementer: Opus 5.5 at high effort (owner, D-20261014-I19). Agent
