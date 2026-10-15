@@ -12,7 +12,7 @@ Based on C++ implementation in Src/DiffractionCore.h and Src/Simulation.cpp
 
 import numpy as np
 import torch
-from typing import Tuple, Optional, Union
+from typing import NamedTuple, Tuple, Optional, Union
 from dataclasses import dataclass
 
 from .constants import KEV_OVER_HBAR_C_IN_ANG
@@ -192,6 +192,122 @@ def get_scattering_omegas_torch(
         g_vectors=g_vectors,
         g_magnitudes=g_magnitudes
     )
+
+
+class BraggConstants:
+    """The parts of ``get_scattering_omegas_torch`` that depend on neither the orientation nor the
+    call: for a fixed set of reflections (|g|), beam energy and beam deflection chi.
+
+    ``get_scattering_omegas_torch`` rebuilds them on every call (the energy and chi tensors, their
+    expansion, the wavenumber, ``sin_theta = |g| / 2k``, ``|g| + eps``, ``sin`` and ``cos`` of chi,
+    about 10 of its ~30 tensor operations). They are built here with the same float32 expressions
+    in the same order, on tensors of the same shape, so ``scattering_omegas_fixed_beam`` returns
+    the same bits on observable rows. ``g_magnitudes`` is the (K,) tensor the constants belong to
+    (kept by reference: ``is_for`` tells a caller when to rebuild).
+    """
+
+    __slots__ = (
+        "energy",
+        "chi",
+        "g_magnitudes",
+        "epsilon",
+        "sin_theta",
+        "g_mag_eps",
+        "sin_chi_laue",
+        "cos_chi_laue",
+    )
+
+    def __init__(
+        self,
+        g_magnitudes: torch.Tensor,
+        beam_energy: Union[float, torch.Tensor],
+        beam_deflection_chi: Union[float, torch.Tensor] = 0.0,
+        epsilon: float = 1e-10,
+    ) -> None:
+        device = g_magnitudes.device
+        dtype = g_magnitudes.dtype  # the dtype of the g vectors the solve will be given
+        batch_size = g_magnitudes.shape[0]
+        self.energy = beam_energy
+        self.chi = beam_deflection_chi
+        self.g_magnitudes = g_magnitudes
+        self.epsilon = epsilon
+        # the statements of get_scattering_omegas_torch that do not involve g, in its order
+        if not isinstance(beam_energy, torch.Tensor):
+            beam_energy = torch.tensor(beam_energy, dtype=dtype, device=device)
+        if not isinstance(beam_deflection_chi, torch.Tensor):
+            beam_deflection_chi = torch.tensor(beam_deflection_chi, dtype=dtype, device=device)
+        if beam_energy.dim() == 0:
+            beam_energy = beam_energy.expand(batch_size)
+        if beam_deflection_chi.dim() == 0:
+            beam_deflection_chi = beam_deflection_chi.expand(batch_size)
+        wavenumber = KEV_OVER_HBAR_C_IN_ANG * beam_energy
+        self.sin_theta = g_magnitudes / (2.0 * wavenumber)
+        self.g_mag_eps = g_magnitudes + epsilon
+        self.sin_chi_laue = torch.sin(beam_deflection_chi)
+        self.cos_chi_laue = torch.cos(beam_deflection_chi)
+
+    def is_for(
+        self,
+        g_magnitudes: torch.Tensor,
+        beam_energy: Union[float, torch.Tensor],
+        beam_deflection_chi: Union[float, torch.Tensor],
+    ) -> bool:
+        """True when these constants were built from this |g| tensor, energy and chi (the energy
+        and chi compared as the values they were built from)."""
+        return (
+            self.g_magnitudes is g_magnitudes
+            and self.energy == beam_energy
+            and self.chi == beam_deflection_chi
+        )
+
+
+class FixedBeamResult(NamedTuple):
+    """Observable flags and the two omega solutions of ``scattering_omegas_fixed_beam``.
+
+    ``omega1`` and ``omega2`` are valid on observable rows only (see the function)."""
+
+    observable: torch.Tensor
+    omega1: torch.Tensor
+    omega2: torch.Tensor
+
+
+def scattering_omegas_fixed_beam(
+    g_vectors: torch.Tensor, constants: BraggConstants
+) -> FixedBeamResult:
+    """``get_scattering_omegas_torch`` for a fixed set of reflections, beam energy and chi, with
+    the call-independent parts taken from ``constants`` (``BraggConstants``) instead of rebuilt.
+
+    ``g_vectors`` is (K, 3) float32 for the K reflections whose |g| built ``constants``. On the
+    observable rows ``omega1`` and ``omega2`` equal ``get_scattering_omegas_torch``'s bit for bit
+    (the same float32 operations in the same order; checked by tests/test_s1_evaluate.py).
+    **The omegas of unobservable rows are unspecified**: the original sets them to 0, this
+    function skips that (two ``where`` calls), because ``VoxelCostFunction.evaluate`` drops those
+    rows. Do not use it where the unobservable rows are read (``get_scattering_omegas_torch``
+    stays for those, and for the differentiable callers).
+    """
+    eps = constants.epsilon
+    # cos(chi) = G_z / |G|, clamped
+    cos_chi = g_vectors[:, 2] / constants.g_mag_eps
+    cos_chi = torch.clamp(cos_chi, -1.0, 1.0)
+    sin_chi = torch.sqrt(1.0 - cos_chi * cos_chi + eps)
+
+    # |sin(theta) + cos(chi) sin(chi_Laue)| <= |sin(chi) cos(chi_Laue)|
+    numerator = constants.sin_theta + cos_chi * constants.sin_chi_laue
+    denominator = sin_chi * constants.cos_chi_laue + eps
+    observable = torch.abs(numerator) <= torch.abs(denominator)
+
+    delta_omega_0 = torch.atan2(g_vectors[:, 0], g_vectors[:, 1])
+    arcsin_arg = torch.clamp(numerator / denominator, -1.0, 1.0)
+    delta_omega_b1 = torch.asin(arcsin_arg)
+    delta_omega_b2 = torch.pi - delta_omega_b1
+
+    omega1 = delta_omega_b1 + delta_omega_0
+    omega2 = delta_omega_b2 + delta_omega_0
+    omega1 = torch.where(omega1 > torch.pi, omega1 - 2.0 * torch.pi, omega1)
+    omega1 = torch.where(omega1 < -torch.pi, omega1 + 2.0 * torch.pi, omega1)
+    omega2 = torch.where(omega2 > torch.pi, omega2 - 2.0 * torch.pi, omega2)
+    omega2 = torch.where(omega2 < -torch.pi, omega2 + 2.0 * torch.pi, omega2)
+    return FixedBeamResult(observable, omega1, omega2)
 
 
 def get_scattering_omegas(
