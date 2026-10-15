@@ -34,6 +34,15 @@ BASE_DIR = ICE / "benchmarks" / "eval_reduction" / "C"
 CACHE = BASE_DIR / "cache" / "e0"
 OUT = BASE_DIR / "step3"
 BASIN = (1.0, 3.0)
+# The stored E0 runs of the lenient rule before and after the centroid screen start point
+# (scripts/phase_d/cache, gitignored; the centroid study's table centroid_e0_paired) and the
+# uninstrumented off arm on today's code: the baseline arm is compared with them run by run.
+PHASE_D_CACHE = ICE / "scripts" / "phase_d" / "cache"
+REFERENCE_RUNS = {
+    "off_ms0": "before the centroid screen start point (2026-10-12) and BatchedScreen",
+    "off_ms0_centroid": "centroid start point, per-orientation screen (before BatchedScreen)",
+    "off_ms0_c_ref": "e0_cpprule.py off arm on the Task C code, uninstrumented",
+}
 
 
 def level_record(L: Dict[str, Any], Rt: np.ndarray) -> Dict[str, Any]:
@@ -127,6 +136,33 @@ def load_arm(arm: str) -> Dict[int, Dict[str, Any]]:
     return out
 
 
+def reference_rows(
+    B: Dict[int, Dict[str, Any]], wrong_deg: float, err_deg: Any
+) -> List[Dict[str, Any]]:
+    """The baseline arm against the stored E0 runs (REFERENCE_RUNS) run by run: identical errors
+    and the paired split of the wrong flags. Empty when the stored runs are not on this machine."""
+    out: List[Dict[str, Any]] = []
+    vox = sorted(B)
+    for run, what in REFERENCE_RUNS.items():
+        files = [PHASE_D_CACHE / run / f"v{v}_clean.npz" for v in vox]
+        if not all(f.exists() for f in files):
+            continue
+        z = [np.load(f) for f in files]
+        er = err_deg(np.stack([x["R"] for x in z]), np.stack([x["R_true"] for x in z]))
+        eb = np.array([B[v]["err_deg"] for v in vox])
+        wr, wb = er > wrong_deg, eb > wrong_deg
+        out.append(
+            dict(
+                run=run, what=what, n=len(vox), wrong_run=int(wr.sum()), wrong_base=int(wb.sum()),
+                same_error_1e9=int(np.sum(np.abs(er - eb) < 1e-9)),
+                max_abs_err_diff=float(np.max(np.abs(er - eb))),
+                wrong_only_in_run=int((wr & ~wb).sum()), wrong_only_in_base=int((wb & ~wr).sum()),
+                both_wrong=int((wr & wb).sum()),
+            )
+        )  # fmt: skip
+    return out
+
+
 def summary(arms: List[str], base: str = "base") -> None:
     import common as C
     import doc_tables as DT
@@ -134,7 +170,9 @@ def summary(arms: List[str], base: str = "base") -> None:
 
     B = load_arm(base)
     summ: Dict[str, Any] = {}
-    rows, rows_t = [], []
+    rows: List[Dict[str, Any]] = []
+    rows_t: List[Dict[str, Any]] = []
+    rows_l0: List[Dict[str, Any]] = []
     for arm in arms:
         A = load_arm(arm)
         vox = sorted(set(A) & set(B))
@@ -157,7 +195,24 @@ def summary(arms: List[str], base: str = "base") -> None:
             mean_evals_base=float(evb.mean()), evals_ratio=float(eva.sum() / evb.sum()),
             evals_total=int(eva.sum()),
             median_err_right_both=float(np.median(ea[both])) if both.any() else float("nan"),
+            n_right_both=int(both.sum()),
+            err_equal_base=int(np.sum(ea == eb)),
         )  # fmt: skip
+        # level 0: runs in which a filter dropped candidates before the quick MC (the later random
+        # draws then differ), and the runs that lose the truth basin (3 deg) from the quick-MC
+        # inputs against the baseline, with their final outcome (a signal that uses no random
+        # numbers: the level-0 discrete stage is deterministic)
+        s["L0_filter_drop_runs"] = int(
+            sum(A[v]["levels"][0]["n_mc"] < A[v]["levels"][0]["n_disc"] for v in vox)
+        )
+        b0 = np.array([B[v]["levels"][0]["d_mcin"] < 3.0 for v in vox])
+        a0 = np.array([A[v]["levels"][0]["d_mcin"] < 3.0 for v in vox])
+        for tag, m in (("lost", b0 & ~a0), ("gained", ~b0 & a0)):
+            s[f"L0_mcin3_{tag}"] = dict(
+                runs=int(m.sum()),
+                broken=int((m & ~wb & wa).sum()), fixed=int((m & wb & ~wa).sum()),
+                both_wrong=int((m & wb & wa).sum()), both_right=int((m & ~wb & ~wa).sum()),
+            )  # fmt: skip
         # per-level evaluations and truth-basin presence (3 deg)
         nl = max(len(A[v]["levels"]) for v in vox)
         for l in range(nl):
@@ -178,7 +233,17 @@ def summary(arms: List[str], base: str = "base") -> None:
                 arm=arm, spec=spec, n=n, wrong=f"{int(wa.sum())} [{lo:.3f}, {hi:.3f}]",
                 broken=broken, fixed=fixed, both_wrong=s["both_wrong"],
                 mean_evals=s["mean_evals"], vs_base=f"{100 * s['evals_ratio']:.1f}%",
-                med_err=s["median_err_right_both"],
+                n_right_both=s["n_right_both"], med_err_right_both=s["median_err_right_both"],
+            )
+        )  # fmt: skip
+        lost, gained = s["L0_mcin3_lost"], s["L0_mcin3_gained"]
+        rows_l0.append(
+            dict(
+                arm=arm, spec=spec, l0_filter_drop_runs=s["L0_filter_drop_runs"],
+                mcin_L0=s["L0_truth3_mcin"], lost_L0=lost["runs"], lost_broken=lost["broken"],
+                lost_fixed=lost["fixed"], lost_both_wrong=lost["both_wrong"],
+                lost_both_right=lost["both_right"], gained_L0=gained["runs"],
+                broken=broken, fixed=fixed,
             )
         )  # fmt: skip
         rows_t.append(
@@ -191,17 +256,25 @@ def summary(arms: List[str], base: str = "base") -> None:
                 **{f"mcin_L{l}": f"{s[f'L{l}_truth3_mcin']}" for l in range(nl)},
             )
         )  # fmt: skip
+    rows_ref = reference_rows(B, C.WRONG_DEG, C.err_deg)
+    if rows_ref:
+        summ["_reference"] = {r["run"]: r for r in rows_ref}
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "summary_e0.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
     tabs = {
         "c_e0_arms": DT.markdown_table(
             rows,
             ["arm", "spec", "n", "wrong", "broken", "fixed", "both_wrong", "mean_evals",
-             "vs_base", "med_err"],
-            formats={"mean_evals": ",.0f", "med_err": ".4f"},
+             "vs_base", "n_right_both", "med_err_right_both"],
+            formats={"mean_evals": ",.0f", "med_err_right_both": ".4f"},
         ),  # fmt: skip
         "c_e0_truth": DT.markdown_table(rows_t, list(rows_t[0].keys())),
+        "c_e0_level0": DT.markdown_table(rows_l0, list(rows_l0[0].keys())),
     }
+    if rows_ref:
+        tabs["c_e0_reference"] = DT.markdown_table(
+            rows_ref, list(rows_ref[0].keys()), formats={"max_abs_err_diff": ".2e"}
+        )
     DT.write_tables(OUT / "tables_e0.md", tabs)
     print(tabs["c_e0_arms"])
 
