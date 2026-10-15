@@ -22,6 +22,7 @@ import numpy as np
 import torch
 
 from .candidate_dedup import DedupSpec, distinct_order, keep_before_quick_mc
+from .smooth_cost import SmoothSpec, make_ranker
 from .config_file import ConfigFile
 from .cost_functions import OverlapInfo, VoxelCostFunction
 from .crystal_structure import CrystalStructure
@@ -453,6 +454,8 @@ class AdaptiveVoxelReconstructor:
         # Optional hook: rank_key(level, candidates) -> array, lower = better, replaces the
         # post-quick-MC local cost as the sort key used for pruning (and the hand-off order)
         self.rank_key: Optional[Callable[[int, List[SearchCandidate]], np.ndarray]] = None
+        # SmoothCostRank ranker of the most recent reconstruct_voxel call (None: key off)
+        self.last_smooth_ranker: Any = None
 
     @property
     def last_eval_counts(self) -> tuple:
@@ -501,6 +504,8 @@ class AdaptiveVoxelReconstructor:
 
         # CandidateDedup (opt-in, default off): clique filter / de-duplication of the candidates
         dedup = DedupSpec.parse(getattr(self.params, "candidate_dedup", "off"))
+        # SmoothCostRank (opt-in, default off): rank the coarse levels by a smooth cost
+        smooth_ranker = self._smooth_ranker(voxel_vertices, phase_index, eta_limit)
 
         # Initialize search state
         # C++ DiscreteAdaptive.tmpl.cpp:139-141
@@ -664,6 +669,11 @@ class AdaptiveVoxelReconstructor:
                 assert len(key) == len(candidates), "rank_key must return one key per candidate"
                 order = np.argsort(key, kind="stable")
                 candidates = [candidates[i] for i in order]
+            elif smooth_ranker is not None and smooth_ranker.applies(level):
+                # SmoothCostRank: the smooth cost ranks (the strict cost stays on cand.cost)
+                key = smooth_ranker(level, candidates, level_diameter)
+                order = np.argsort(key, kind="stable")
+                candidates = [candidates[i] for i in order]
             else:
                 candidates.sort()
             n_distinct = -1
@@ -755,6 +765,18 @@ class AdaptiveVoxelReconstructor:
         self._last_local_evals = local_cost_fn.eval_count + sum(f.eval_count for f in ray_local_fns)
 
         return best_candidate
+
+    def _smooth_ranker(self, voxel_vertices: Any, phase_index: int, eta_limit: float) -> Any:
+        """SmoothCostRank (opt-in): the ranking key of the coarse levels, or None when off. Kept
+        on ``last_smooth_ranker`` (evaluation count) for the caller."""
+        spec = SmoothSpec.parse(getattr(self.params, "smooth_rank", "off"))
+        self.last_smooth_ranker = None
+        if not spec.active:
+            return None
+        self.last_smooth_ranker = make_ranker(
+            self.setup, spec, voxel_vertices, phase_index, eta_limit, self.min_sin_eta
+        )
+        return self.last_smooth_ranker
 
     def _dedup_before_quick_mc(
         self,
