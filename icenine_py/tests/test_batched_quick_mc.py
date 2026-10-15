@@ -376,7 +376,8 @@ def test_unsupported_levels_fall_back_to_the_sequential_quick_mc() -> None:
         edge_cands = [SearchCandidate(orientation=c.orientation.copy()) for c in cands]
         assert rec._batched_quick_mc(
             MCOptimizer(edge_cf, verts, phase, rng=np.random.default_rng(0)),
-            edge_cands, *args[1:],
+            edge_cands,
+            *args[1:],
         )
     (ev_edge,) = rec._quick_mc_evaluators.values()
     assert ev_edge is not None and ev_edge.cf is edge_cf

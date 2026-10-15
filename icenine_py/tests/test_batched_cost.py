@@ -6,6 +6,7 @@ import json
 import os
 import warnings
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Dict, List
 
 import numpy as np
@@ -144,6 +145,47 @@ def test_sample_matrix_change_is_seen(three_voxels: Dict[str, Any]) -> None:  # 
         assert got == want
     finally:
         m.copy_(old)
+
+
+class _DarkExp:
+    """A stand-in ``exp_data`` whose every frame is dark (one shared zero array)."""
+
+    n_omega_intervals, n_detectors = 180, 2
+    zero = np.zeros((2048, 2048), dtype=np.uint8)
+
+    def get_image(self, w: int, d: int) -> Any:
+        return SimpleNamespace(num_rows=2048, num_cols=2048, get_binary_numpy=lambda: self.zero)
+
+
+@needs_c
+def test_exp_data_swap_of_a_live_cost_function_is_followed(
+    three_voxels: Dict[str, Any],  # noqa: F811
+) -> None:
+    """S1: the evaluator takes its frames from ``cf.frame_table()``, which follows a swap of
+    ``cf.exp_data`` (optimizer_sweep, findoptimal_sweep). Frames filled from the old data before
+    the swap are not kept: after the swap ``evaluate_many`` equals a fresh cost function's
+    ``evaluate`` on the new data, and after swapping back it equals the first results. (The
+    S3 evaluator before S1 read ``cf.exp_data`` at fill time and kept the frames it had already
+    filled, so it mixed old and new frames.)"""
+    c = three_voxels
+    phase, verts = c["voxel"].phase, c["vertices"]
+    cf = _local(c)
+    ev = BC.BatchedCostEvaluator(cf, "cpu")
+    R = orientations(np.asarray(c["voxel"].orientation, dtype=np.float64))[:40]
+    first = ev.evaluate_many(R, verts, phase)  # fills frames from the real images
+    assert first[0].quality > 0.5 and sum(i.pixel_overlap > 0 for i in first) > 20
+    original = c["kwargs"]["exp_data"]
+    dark = _DarkExp()
+    cf.exp_data = dark  # type: ignore[assignment]
+    try:
+        swapped = ev.evaluate_many(R, verts, phase)
+        fresh = VoxelCostFunction(pixel_radius=0, mode="hard", **{**c["kwargs"], "exp_data": dark})
+        assert swapped == [fresh.evaluate(r, verts, phase) for r in R]
+        assert all(i.pixel_overlap == 0 and i.quality == 0.0 for i in swapped)
+        assert all(i.peak_on_detector > 0 for i in swapped[:5])  # peaks exist, images dark
+    finally:
+        cf.exp_data = original
+    assert ev.evaluate_many(R, verts, phase) == first
 
 
 @needs_c
