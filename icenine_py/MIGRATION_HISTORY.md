@@ -7030,8 +7030,17 @@ the pairing geometry, `origin_error_map.png` the origin-error map, `attribution.
 5. *The discriminating test.* A cost restricted to the attributed peaks is not sharper than the pixel-overlap cost: half-score radius 0.38 degrees
    (0.05 degree direction tolerance) against 0.26 degrees; both separate the truth from wrong orientations at 1 degree and more when the attributed
    list is good (best wrong over truth 0.139 against 0.110); a short list (r = 15.7 um) gives a truth score of 0.078.
-6. *Step 4 (classifier) not run:* single-source recall is not defined; the nearest class (one grain) has recall 0.990, above 0.95 (decision recorded in
-   the RUN_LOG; precision and the several-grain spots remain open).
+6. *Step 4 (classifier) not run:* skipped by owner decision D-20261014-N6. Single-source recall is not defined; the nearest class (one grain) has
+   recall 0.990, above 0.95. Precision and the several-grain spots remain open.
+
+**Owner reading (D-20261014-N7).** Spot-to-grain association is the useful result; voxel-level association is not needed. A grain's spots give a
+starting orientation, and the area around the grain can be sampled with it. FindOptimal or outward searches can run from it. The orientations defined
+by the peak-grain combinations may give a much smaller starting candidate list. These are follow-ups to plan; none is started. Items 4 and 5 are why
+the level is the grain, not the voxel: origins find the grain, a radius filter loses real peaks, and a hit-or-miss peak-list score is no sharper than
+the pixel cost. *Untested proposal (main session):* a matched pair gives the scattered ray direction; with the beam and the frame's omega it gives the
+scattering vector in the sample frame, and the ring gate gives its {hkl} family. Two non-parallel vectors of one grain fix the orientation up to a
+small set (standard indexing). One pixel over the 2 mm detector gap is about 0.05 degrees of direction, inside the 0.26 degree half-score radius of
+the pixel cost. Risks: small grains with few spots; merged spot groups of neighbouring grains.
 
 **Step 1 (truth).** `render_provenance.py` re-renders the clean images through a recording image (35 s, 10 workers, contended): all 360 frame images
 equal the stock `clean/` files, the 57,389 components equal `spots_total` of `render_full.json`, 2,957,243 triangle records. 27,888 true pairs carry
@@ -7161,7 +7170,8 @@ pixel tolerance before the scan; the table is evidence, not a tuned result. Whet
 
 **Not tested / left.** Splitting unions of several grains (their centroid is not a ray); noise; a per-pair attribution radius from the predicted origin
 tolerance; searches with the attributed cost (Tasks E, F); the cause of the 3,890 unpartnered detector-0 spots; a real layer thickness (the simulated
-layer is exact, z = 0).
+layer is exact, z = 0); the N7 follow-ups and the indexing proposal above; a learned spot-association model (ConvNet or ViT on the detector-image
+pair), parked as a research idea by D-20261014-N8 and needing its own plan.
 
 **Files.** See the "Task D" paragraph of the README. Results: `step1/`, `step2/`, `step3/` (`summary*.json`, `tables*.md`), `figures/`, `cache/`
 (gitignored: provenance-derived arrays, pairs per preset).

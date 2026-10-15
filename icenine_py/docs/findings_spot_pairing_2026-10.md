@@ -51,20 +51,46 @@ drew which spot, so every answer can be checked against the truth.
    - With the short list the plan suggested (rays within 15.7 µm of the voxel), the true orientation scores only
      8%, because most of the voxel's peaks are missing from the list.
 
-6. **We did not build the classifier (Step 4).** The plan said to build it only if fewer than 95% of single-voxel
-   spots were matched. That number does not exist here (there are almost no single-voxel spots). For one-grain spots
-   we match 99%, so we skipped it. Two problems remain open: 15% of our matches are wrong, and spots that mix several
-   grains are mostly unmatched.
+6. **We did not build the classifier (Step 4).** The owner decided to skip it (decision D-20261014-N6). The plan
+   said to build it only if fewer than 95% of single-voxel spots were matched. That number does not exist here,
+   because there are almost no single-voxel spots. For one-grain spots we match 99%. Two problems remain open: 15% of
+   our matches are wrong, and spots that mix several grains are mostly unmatched.
 
 ## What this means for the next tasks
 
-- **Tasks E and F can use the matched rays.** For one-grain spots we have the ray's direction and, for most rays, a
-  good origin. Their value is that a ray gives a smooth error to minimise. As a plain hit-or-miss score they are no
-  better than the pixel cost.
-- **We cannot assign peaks to single voxels from the images alone on this sample.** Almost every spot is shared by a
-  whole grain. The origin finds the grain, not the voxel.
-- **As a filter before the search, this would lose too many real peaks.** Any distance that keeps the wrong peaks
-  few also drops a third or more of the real ones.
+**The useful result is that we can tie spots to grains.** The owner read the results this way (decision
+D-20261014-N7). We do not need to tie spots to single voxels. A grain's spots are enough to start from:
+
+- **A starting orientation.** The spots of one grain give a starting orientation for that grain. The area around the
+  grain can then be sampled with it.
+- **A starting point for the search.** From that orientation we can run the usual FindOptimal search, or other
+  searches that work outward from it.
+- **A smaller candidate list.** The combinations of peaks and grains define orientations. These may give a list of
+  starting orientations that is much smaller than the usual one.
+
+These are follow-ups still to plan. None of them is started.
+
+**Why grain level, not voxel level.** The results above rule out the voxel-level use:
+
+- **Single voxels cannot be found from the images alone on this sample.** Almost every spot is shared by a whole
+  grain. The origin finds the grain, not the voxel.
+- **A distance filter before the search would lose too many real peaks.** Any distance that keeps the wrong peaks few
+  also drops a third or more of the real ones.
+- **A hit-or-miss score on the peak list is no sharper than the pixel cost.** The matched rays still have one use for
+  Tasks E and F. A ray gives a smooth error to minimise, and we have not tested that.
+
+**Proposal, not tested: an orientation from a grain's spots.** This is a note from the main session. We have not
+tried it.
+
+- A matched spot pair gives the direction of the scattered ray.
+- The beam direction and the frame's omega angle are known. With them, the ray direction gives the **scattering
+  vector** in the sample frame. The scattering vector is the direction normal to the planes that diffracted.
+- The ring test tells us which family of planes made the peak, its {hkl} family.
+- Two scattering vectors from one grain that are not parallel fix the grain's orientation, up to a small set of
+  choices. This is the standard way to index a grain.
+- The direction error is small. One pixel of error over the 2 mm between the detectors moves the direction by about
+  0.05°. That is well inside 0.26°, where the pixel cost's score halves.
+- There are two risks. Small grains have few spots. And the spot groups of neighbouring grains may merge into one.
 
 ## The details
 
@@ -259,6 +285,10 @@ in `step3/tables_separate.md`. We did not test whether a smooth direction error 
 - Why 3,890 detector-0 spots have no partner.
 - A sample layer with real thickness (the simulated layer is a plane at z = 0).
 - Whether a classifier would cut the 15% wrong matches or recover the several-grain spots.
+- A learned model that ties spots across the two detectors. It would be a ConvNet or a vision transformer (ViT),
+  trained on simulated images where each peak is labelled with its grain. The owner parked this as a research idea
+  (decision D-20261014-N8). It needs its own plan.
+- The follow-ups of decision D-20261014-N7, and the orientation-from-spots proposal above.
 
 ## Files
 
