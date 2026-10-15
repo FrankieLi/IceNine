@@ -237,3 +237,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   pair of detector images and predicts the association given the second image. The model should learn
   (1) the origin-independent affine transformation of peak shapes between the detectors and (2) the
   association of peak shapes. Not started; needs its own plan. Where: ROADMAP Track R.
+
+### D-20261014-N9 · D · Task D review fixes all applied; the indexing proposal is kept, corrected
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- All 16 required fixes of the Task D review are applied by a fresh Opus implementer, then the branch
+  is reviewed again and fixed before it is merged. The "Proposal, not tested" block of the findings doc
+  is kept with a corrected error budget, and the main session's notes (how to test the indexing
+  proposal; notes for planning the learned model of N8) are added. Where: ROADMAP Track E row D;
+  `docs/findings_spot_pairing_2026-10.md`.
