@@ -172,3 +172,24 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - Owner's experience: noisy images give more candidates and a wider cost function, so the search is
   easier. Check it where the data does not already show it (every rule has fewer wrong voxels on the
   no-drop E0 images than on clean). Where: ROADMAP Q8.
+
+### D-20261014-I9 · protocol, Q8 · The clean-images rule loses its "until Q8"
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- The shared ROADMAP lines that limited studies to clean images "until Q8" are reworded to state the
+  rule without an end (D-20261014-I5). Where: ROADMAP "How to use this file"; Track E left-overs.
+
+### D-20261014-I10 · Q3 · The Q3 headline is restated like for like
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- With `CppOverlapRule` on, E0 wrong goes 35 to 61 clean and 27 to 42 realistic of 200 (centroid
+  screen on both sides), not the first-quoted 40 to 61 and 25 to 42 (rule-off runs with the vertex-0
+  screen). Where: `docs/findings_finisher_mc_study_2026-10.md` §3(b) and §7.3.
+
+### D-20261014-I11 · Q8 · E0 default readers stay on the old variant
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- A default E0 run writes `realistic_nodrop` results while the stored-result readers (`C.VARIANTS`)
+  read `clean` and `all` by name; accepted as is. Where: `scripts/findoptimal_robustness/common.py`.
+
+### D-20261014-I12 · Q8 · Other study scripts and configs keep the drop variant
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- The five study scripts with their own `VARIANTS = ["clean", "all"]` and the six
+  `*_realistic*.config` Phase D arms are not moved to no drop. Where: MIGRATION_HISTORY "Q8".

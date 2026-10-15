@@ -15,7 +15,7 @@ fontsize: 11pt
 - Rules for every task (from the evaluation-reduction plan, owner 2026-10-12): new switches are opt-in
   and off by default; no default flips and no golden regeneration inside a task (list them for the
   owner); quote evaluations and wrong counts side by side; no p-values; clean full-sample images and
-  the E0 200-voxel set until the noise model is redone (open question Q8 below).
+  the E0 200-voxel set only (owner 2026-10-14, D-20261014-I5 and I9; Q8 redid the noise model).
 - "Owner" decisions are made only by the project owner. Open ones are listed at the end ("Decisions
   waiting on the owner"); decisions made are logged in `docs/DECISIONS.md` (protocol rule 6).
 - Two Claude Code agents work on the port, named by the machine they run on: **Ilium Agent** and
@@ -174,7 +174,7 @@ in MIGRATION_HISTORY "Evaluation reduction and cost smoothing".
 
 Left over from Task A (not planned): the omega interpolation with the ray rule (falls back with a
 warning); C++'s second complete-cost call per returned candidate (would only add evaluations); an E0
-run on realistic images (excluded until Q8).
+run on realistic images (excluded: studies stay on clean images, D-20261014-I5).
 
 # Track S: per-evaluation cost (Ilium Agent)
 
