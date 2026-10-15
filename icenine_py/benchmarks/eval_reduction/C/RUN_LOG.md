@@ -73,7 +73,10 @@ Preflight files: `step3/preflight_e0.json`, `ledger/preflight_start.json`, `full
   and C1; `quarter=orig` refills them and is the default of the key), and the 30-voxel extension of section 5.
 * After Step 3: the arm named for Task G by the plan's rule (fewest evaluations with no broken E0 voxel and no more wrong voxels than the baseline on the six) is **the baseline**: no arm has zero broken E0 voxels
   (`step3/summary.json`, `_choice`). Evidence the owner may weigh against that rule is in the MIGRATION_HISTORY subsection (`clique=cpp:1` saves 23.9% of the evaluations on 30 full-sample voxels with 2 wrong against 1; `pre=0.5`
-  saves 8.9% with 0 wrong; on E0 they break 24 and 30 voxels).
+  saves 8.9% with 0 wrong; on E0 paired 24 broken / 10 fixed and 30 broken / 21 fixed, which mixes the arm's effect with the change of random draw; 5 of
+  the 24 are traced to the level-0 filter). Corrected after review: no arm that changes the candidate list can meet the zero-broken rule (two seeds of the same
+  code already break 18 to 23 voxels, `s3_ab_paired`); keeping or replacing the rule is an open owner question. The owner kept the baseline for Task G
+  (D-20261014-N4).
 
 ## 7. What went wrong, and what was redone
 
