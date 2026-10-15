@@ -8,7 +8,7 @@ fontsize: 11pt
 
 # Status
 
-**Picked by the owner 2026-10-14 (D-20261014-I19); sized down and parallelised (D-20261014-I20); awaiting approval.** Track S,
+**Picked by the owner 2026-10-14 (D-20261014-I19); sized down and parallelised (D-20261014-I20); approved 2026-10-14 (D-20261014-I21), in progress.** Track S,
 Ilium Agent. Task branch `feature/python-speed-parity-s4-translation-screen`
 (`scripts/dev/start_task.sh`), off `feature/python-speed-parity` after reading Newt Agent's mailbox
 (ROADMAP "Between agents"). Implementer: Opus 5.5 at high effort (owner, D-20261014-I19). Agent

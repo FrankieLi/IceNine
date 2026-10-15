@@ -304,3 +304,9 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   a projection to the full layer, which is run only for the best ordering. Exploit parallelism: the
   reference, the correctness checks and the equality runs run concurrently in the background (up to 6
   processes); timings run alone. Where: `docs/todo_translation_screen_prototype.md`.
+
+### D-20261014-I21 · S4 · S4 plan approved; implement now
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- The S4 plan (`docs/todo_translation_screen_prototype.md`, Steps 0-5, with I19 and I20) is approved
+  as written; an Opus 5.5 implementer at high effort builds it on
+  `feature/python-speed-parity-s4-translation-screen`. Where: ROADMAP Track S row S4.
