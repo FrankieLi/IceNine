@@ -30,7 +30,7 @@ def load(name: str) -> Optional[Dict[str, Any]]:
 
 def wilson_str(k: int, n: int) -> str:
     lo, hi = stats.wilson(k, n)
-    return f"{lo:.2g}-{hi:.2g}"
+    return f"{lo:.3f}-{hi:.3f}"
 
 
 def main() -> None:
@@ -52,6 +52,8 @@ def main() -> None:
     for p in sorted((OUT / "cache").glob("step1_cost_part*.json")):
         cost_rows += json.loads(p.read_text())["rows"]
     ref_idx = json.loads((C.CACHE / "ref" / "ref_index_phase_d.json").read_text())
+    if cost_rows:  # the 1c rows of both parts, kept with the results (the parts live in cache/)
+        (OUT / "step1_cost.json").write_text(json.dumps(dict(rows=cost_rows), indent=1) + "\n")
 
     # ---------------- Step 0
     if s0:
@@ -292,6 +294,9 @@ def main() -> None:
             ),
             disp_um_min=float(min(r["disp_um"] for r in cost_rows)),
             disp_um_max=float(max(r["disp_um"] for r in cost_rows)),
+            kept_exact_median=float(np.median([r["kept_total_exact"] for r in cost_rows])),
+            kept_exact_min=int(min(r["kept_total_exact"] for r in cost_rows)),
+            kept_exact_max=int(max(r["kept_total_exact"] for r in cost_rows)),
         )
         S["step1c"] = agg
         T["s4_q1_cost"] = doc_tables.markdown_table(
@@ -482,7 +487,7 @@ def main() -> None:
                     peaks_s=v["t_peaks_s"],
                     kernel_s=v["t_kernel_s"],
                     frames_changed=v.get("frames_changed_vs_chunk32"),
-                    counts_differ=None if v["equal_table_kernel"] else "yes",
+                    counts_differ=0 if v["equal_table_kernel"] else "some (patch)",
                 )
             )
         for k, v in tim["mps"].items():
@@ -509,15 +514,159 @@ def main() -> None:
         )
     if full:
         S["step3_full"] = full
+        T["s4_full_layer"] = doc_tables.markdown_table(
+            [
+                dict(
+                    item="ordering",
+                    value=f"{full['kind'].upper()} counts, {full['layout']}, {full['threads']} threads, voxel tiles of {full['voxel_tile']}",
+                ),
+                dict(
+                    item="voxels x orientations", value=f"{full['n_voxels']} x {full['n_orient']}"
+                ),
+                dict(
+                    item="wall time (s), kernel + pass reduction",
+                    value=f"{full['wall_s']:.2f} ({full['kernel_s']:.2f} + {full['reduce_s']:.2f})",
+                ),
+                dict(
+                    item="BatchedScreen for the same work, single worker (h)",
+                    value=(
+                        f"{full['n_voxels'] * S['step0']['screen_s'] / 3600:.2f}" if s0 else "n/a"
+                    ),
+                ),
+                dict(
+                    item="passers (voxel, orientation) pairs",
+                    value=f"{full['passers_total']} ({100 * full['passers_total'] / (full['n_voxels'] * full['n_orient']):.1f}%)",
+                ),
+                dict(
+                    item="passers per voxel, median (min-max)",
+                    value=f"{full['passers_per_voxel_median']:.0f} ({full['passers_per_voxel_min']}-{full['passers_per_voxel_max']})",
+                ),
+                dict(
+                    item="passer list as int32 pairs / as a bitset / counts as uint8 (GB)",
+                    value=f"{full['sparse_list_bytes_int32_pairs'] / 1e9:.2f} / {full['pass_bitset_bytes'] / 1e9:.3f} / {full['counts_matrix_bytes_uint8'] / 1e9:.2f}",
+                ),
+                dict(item="peak RSS of the run (GB)", value=f"{full['peak_rss_gb']:.2f}"),
+                dict(item="label", value=full["label"]),
+            ],
+            ["item", "value"],
+        )
     if model:
         S["step3_model"] = model
+    o4 = load("step3_o4.json")
+    if model and o4:
+        S["step3_o4"] = {k: v for k, v in o4.items() if k != "arms"}
+        S["step3_o4"]["arms"] = {
+            k: dict(median_s=v["median_s"], equal=v["equal"]) for k, v in o4["arms"].items()
+        }
+        T["s4_o4"] = doc_tables.markdown_table(
+            [
+                dict(
+                    quantity="bright rate per O2 test (patch, sampled peaks)",
+                    model=model["bright_rate_per_test"],
+                    measured=None,
+                ),
+                dict(
+                    quantity="voxels per distinct pixel hit",
+                    model=model["voxels_per_distinct_pixel"],
+                    measured=None,
+                ),
+                dict(
+                    quantity="bright pixels visited per peak",
+                    model=model["bright_distinct_pixels_per_peak_mean"],
+                    measured=o4["bright_pixels_per_peak"],
+                ),
+                dict(
+                    quantity="candidate voxels tested per bright pixel",
+                    model=model["voxels_per_distinct_pixel"],
+                    measured=o4["candidates_per_bright_pixel"],
+                ),
+                dict(
+                    quantity="cost per bright pixel (ns)",
+                    model="5 / 10 / 20 (assumed)",
+                    measured=o4["ns_per_bright_pixel_1thread"],
+                ),
+                dict(
+                    quantity="O2 time / O4 time, 1 thread",
+                    model=f"{model['o2_over_o4_tbp5']:.2f} / {model['o2_over_o4_tbp10']:.2f} / {model['o2_over_o4_tbp20']:.2f}",
+                    measured=1.0 / o4["o4_over_o2_1thread"],
+                ),
+                dict(
+                    quantity="O4 / O2 wall, 1 thread (s)",
+                    model=None,
+                    measured=f"{o4['arms']['O4 counts packed th=1']['median_s']:.2f} / {o4['arms']['O2 counts packed th=1']['median_s']:.2f}",
+                ),
+                dict(
+                    quantity="O4 / O2 wall, 10 threads (s)",
+                    model=None,
+                    measured=f"{o4['arms']['O4 counts packed th=10']['median_s']:.2f} / {o4['arms']['O2 counts packed th=10']['median_s']:.2f}",
+                ),
+            ],
+            ["quantity", "model", "measured"],
+            {"model": ".3g", "measured": ".3g"},
+        )
     # ---------------- Step 4
     if rce:
         S["step4_equal"] = {k: v for k, v in rce.items() if k != "rows"}
     if rct:
         S["step4_timing"] = rct
+    if rce and rct:
+        T["s4_recost"] = doc_tables.markdown_table(
+            [
+                dict(
+                    item="today: evaluate per (orientation, voxel) (us)",
+                    value=f"{rct['evaluate_us']:.0f}",
+                    n=rct["n_evaluate"],
+                ),
+                dict(
+                    item="orientation-major: per pair, float64 vertices + stage-D C call (us)",
+                    value=f"{rct['pair_us']:.1f}",
+                    n=rct["pairs"],
+                ),
+                dict(
+                    item="  the same with one vertex product per orientation (us)",
+                    value=f"{rct['pair_us_batched_vertices']:.1f}",
+                    n=rct["pairs"],
+                ),
+                dict(
+                    item="  set-up per orientation: peaks, A and c (us)",
+                    value=f"{rct['setup_us_per_orientation']:.0f}",
+                    n=rct["n_orient"],
+                ),
+                dict(
+                    item="speed-up per pair",
+                    value=f"{rct['speedup_pair_vs_evaluate']:.1f}x",
+                    n=rct["pairs"],
+                ),
+                dict(
+                    item="equality: pairs compared with the Step 0 per-voxel evaluate",
+                    value=rce["pairs"],
+                    n=20,
+                ),
+                dict(
+                    item="  pairs with any OverlapInfo field different",
+                    value=f"{rce['any_field_diff']} ({100 * rce['any_field_diff'] / rce['pairs']:.1f}%)",
+                    n=rce["pairs"],
+                ),
+                dict(
+                    item="  pairs with the re-cost (1 - confidence) different",
+                    value=rce["recost_diff"],
+                    n=rce["pairs"],
+                ),
+                dict(
+                    item="  largest quality difference",
+                    value=f"{rce['quality_abs_diff_max']:.4f}",
+                    n=rce["pairs"],
+                ),
+                dict(
+                    item="  sampled differing pairs explained by an integer-vertex flip",
+                    value=f"{rce['explain_integer_vertex_differs']} of {rce['explain_sampled']} (largest distance {rce['explain_flip_dist_max']:.1e} px)",
+                    n=rce["explain_sampled"],
+                ),
+            ],
+            ["item", "value", "n"],
+        )
     # ---------------- projections
-    if s0 and full and rct:
+    if s0 and full and rct and tim:
         st0 = S["step0"]
         V = full["n_voxels"]
         T_ns = st0["search_wall_s"]
@@ -526,7 +675,9 @@ def main() -> None:
         T_nb = st0["neighbour_median_s"]
         t_pair = rct["pair_us"] * 1e-6
         T_G = full["wall_s"]
-        T_G1 = full["wall_s"] * full["threads"]  # single-worker upper equivalent (not measured)
+        # single-worker global screen: the measured 1-thread O2 time of the 2,000-voxel patch,
+        # scaled linearly to the layer (the 10-thread full-layer wall is T_G)
+        T_G1 = tim["arms"]["O2 counts u8 b=32FZ"]["projected_full_layer_s"]
         pairs = full["passers_total"]
         pv = full["passers_per_voxel_median"]
         prj = []
@@ -598,6 +749,48 @@ def main() -> None:
                 "share_refine": ".3f",
                 "share_neighbours": ".3f",
             },
+        )
+    if "projection" in S and tim:
+        P = S["projection"]["inputs"]
+        arms = tim["arms"]
+        o2 = arms["O2 counts u8 b=32FZ"]["median_s"]
+        rows = {r["scenario"][:3] + str(r["seeds"]): r for r in S["projection"]["rows"]}
+        S["derived"] = dict(
+            batchedscreen_layer_h=P["V"] * P["level0_screen_s"] / 3600,
+            screen_speedup_single_thread=P["V"]
+            * P["level0_screen_s"]
+            / P["global_screen_single_worker_equiv_s"],
+            screen_speedup_10_threads_wall=P["V"]
+            * P["level0_screen_s"]
+            / P["global_screen_wall_s"],
+            o1_counts_over_o2=arms["O1 counts u8"]["median_s"] / o2,
+            o1_pass_packed_over_o2=arms["O1 pass packed"]["median_s"] / o2,
+            o3_tile2000_over_o2=arms["O3 counts u8 tile=2000"]["median_s"] / o2,
+            o5_tile256_over_o2=arms["O5 counts u8 tile=256"]["median_s"] / o2,
+            o2_pass_over_counts=arms["O2 pass u8 b=32FZ"]["median_s"] / o2,
+            mps_pairs_patch=int(tim["n_orient"] * 2000),
+            bitmap_u8_det0_mb=tim["bitmap_bytes"]["u8_det0"] / 1e6,
+            bitmap_packed_det_mb=tim["bitmap_bytes"]["packed_both"] / 2e6,
+            level0_screen_recost_s=P["level0_screen_s"] + P["level0_recost_s"],
+            mps_over_o2_1thread=min(float(np.median(v["times"])) for v in tim["mps"].values()) / o2,
+            stream_b32_over_table=float(np.median(tim["stream"]["b=32FZ"]["times"])) / o2,
+            level0_share_of_nostart=(P["level0_screen_s"] + P["level0_recost_s"]) / P["nostart_s"],
+            quick_mc_level0_share_of_nostart=S["step0"]["search_quick_mc_level0_s"]
+            / P["nostart_s"],
+            seed_saving_s=P["level0_screen_s"]
+            + P["level0_recost_s"]
+            - P["passers_per_voxel_median"] * P["recost_pair_us"] * 1e-6,
+            c_saving_h={s: rows[f"(a){s}"]["total_h"] - rows[f"(c){s}"]["total_h"] for s in SEEDS},
+            c_saving_fraction={
+                s: 1 - rows[f"(c){s}"]["total_h"] / rows[f"(a){s}"]["total_h"] for s in SEEDS
+            },
+            b_over_a={s: rows[f"(b){s}"]["total_h"] / rows[f"(a){s}"]["total_h"] for s in SEEDS},
+            recost_layer_h_orientation_major=P["passers_total"] * P["recost_pair_us"] * 1e-6 / 3600,
+            recost_layer_h_evaluate=P["passers_total"]
+            * S["step0"]["recost_us_per_eval"]
+            * 1e-6
+            / 3600,
+            pass_rate=P["passers_total"] / (P["V"] * full["n_orient"]),
         )
     (OUT / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
     doc_tables.write_tables(OUT / "tables.md", T)

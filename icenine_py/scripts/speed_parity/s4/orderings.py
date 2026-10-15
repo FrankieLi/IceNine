@@ -257,10 +257,11 @@ def cmd_check(a: argparse.Namespace) -> None:
                     out = K.run(kind, ct_, X[:, 0], X[:, 1], threads=4, block=288, tile=7)
                     w = want[rule] if not kind.endswith("p") else (want[rule] > 0).astype(np.uint8)
                     rows[f"{kind}_{layout}_rule{rule}"] = bool(np.array_equal(out, w))
-        up = np.array([bool(v.points_up) for v in ctx.ds.voxels])
-        lat = K.Lattice(X, up[vids], float(ctx.ds.voxels[0].side_length))
-        o4, _ = K.run_o4(ctx.ctab("packed", rule=0), lat, X[:, 0], X[:, 1], threads=4)
-        rows["o4_packed_rule0"] = bool(np.array_equal(o4, want[0]))
+        if name == "phase_d":  # O4 needs the voxel lattice (the 3 ThreeVoxels voxels are not one)
+            up = np.array([bool(v.points_up) for v in ctx.ds.voxels])
+            lat = K.Lattice(X, up[vids], float(ctx.ds.voxels[0].side_length))
+            o4, _ = K.run_o4(ctx.ctab("packed", rule=0), lat, X[:, 0], X[:, 1], threads=4)
+            rows["o4_packed_rule0"] = bool(np.array_equal(o4, want[0]))
         flips = {}
         for b in (1, 32, 128):
             out, info = stream_o2(ctx, vids, b)

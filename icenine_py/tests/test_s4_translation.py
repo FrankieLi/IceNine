@@ -30,22 +30,29 @@ def s4() -> Iterator[Dict[str, Any]]:
 
     if not CF._HAS_C_RASTERIZE:
         pytest.skip("needs the _rasterize C extension")
+    # other script directories also have a top-level ``common`` module: import the S4 modules with
+    # those names hidden, then restore sys.modules (the S4 modules keep their own references)
+    names = ("common", "translation_correctness")
+    saved = {n: sys.modules.pop(n) for n in names if n in sys.modules}
     sys.path.insert(0, str(S4))
     old = os.getcwd()
     try:
         import common as C
+        import translation_correctness as TC
 
         ds = C.load_set("three", threads=1)
         cap = C.capture_level0(ds, ds.voxels[0])
-        yield dict(C=C, ds=ds, cap=cap)
+        yield dict(C=C, TC=TC, ds=ds, cap=cap)
     finally:
         os.chdir(old)
         sys.path.remove(str(S4))
+        for n in names:
+            sys.modules.pop(n, None)
+        sys.modules.update(saved)
 
 
 def test_affine_law_float64(s4: Dict[str, Any]) -> None:
-    C, ds, cap = s4["C"], s4["ds"], s4["cap"]
-    import translation_correctness as TC
+    C, TC, ds, cap = s4["C"], s4["TC"], s4["ds"], s4["cap"]
 
     lcf = cap["local_cost_fn"]
     geoms = C.det_geoms(lcf)
