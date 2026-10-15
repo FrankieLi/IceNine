@@ -1,60 +1,83 @@
-# Findings: spot pairing across detectors and peak-to-voxel attribution (Task D, 2026-10-14)
+# Findings: matching spots across the two detectors (Task D, 2026-10-14)
 
-Branch `feature/eval-reduction-D`. Run record: `benchmarks/eval_reduction/D/RUN_LOG.md`. Library:
-`icenine/spot_pairing.py` (pure geometry, numpy, `cKDTree` for the attribution; tests `tests/test_spot_pairing.py`),
-plus the opt-in `ForwardSimulation.peak_hook` (default `None`, no effect when off). Provenance writer:
-`scripts/phase_d/render_provenance.py` (a sibling of `render_full.py`, which is unchanged). Scripts:
-`scripts/eval_reduction/pairing_*.py`. Tables below are generated (`benchmarks/eval_reduction/D/doc_tables_all.md`,
-synced with `scripts/dev/sync_doc_tables.py`); figures are in `benchmarks/eval_reduction/D/figures/`. Everything is
-the clean full-sample render (24,570 voxels, Q-max 8 configuration, sample seed 0); no realistic images, no extra
-seeds, no golden test changed, no default flipped. The same results, with the same tables, are in the "Task D"
-subsection of `MIGRATION_HISTORY.md`.
+## What we asked
 
-## The question
+Each diffracted ray hits both detectors, the near one (detector 0) and the far one (detector 1). So one peak makes
+two spots, one on each detector, in the same omega frame. A straight line through those two spots is the ray. If we
+follow that line back to the sample layer, we find where in the sample the peak came from. We call that point the
+ray's **origin**.
 
-The two detector distances see the same diffracted ray twice. A ray is a line, so two spots in one omega frame that
-lie on one line through the illuminated layer are one peak, and the line's crossing of the layer is where the peak
-came from. If that works once per image set, with no search over orientations, it gives (i) per voxel an observed
-peak list (direction, frame, origin) that a cost or a Gauss-Newton step can match continuously (Tasks E, F), and
-(ii) a way to drop spots that cannot belong to a voxel before any orientation is tried.
+If we can do this from the images alone, with no orientation search, we get two things:
 
-![Pairing geometry: two detectors, the ray, its origin on the layer, the tolerance terms](../benchmarks/eval_reduction/D/figures/pairing_geometry.png)
+1. For each voxel, a list of the peaks that came from it, each with an exact direction. A cost function or a
+   Gauss-Newton step could then match peaks smoothly, instead of counting overlapping pixels (Tasks E and F).
+2. A way to throw out spots that cannot belong to a voxel, before trying any orientation.
 
-## Short answer
+We tested this on the clean simulated images of the full sample (24,570 voxels). The simulator tells us which voxel
+drew which spot, so every answer can be checked against the truth.
 
-1. **Almost no spot has one source.** Of 30,191 detector-0 and 27,198 detector-1 spots (4-connected components of lit
-   pixels), only 10 and 20 are drawn by a single (voxel, reflection) pair. The others are unions of all the voxels of
-   one grain that diffract into the same spot (median 44 sources, about 100 pixels) or of several grains (1,770 on
-   detector 0). No true pair has two single-source spots (0 of 27,888), so the plan's "single-source recall" cannot
-   be measured on this sample; the classes used below are single-source, one grain, several grains.
-2. **Geometry pairs the one-grain spots, but only with the ring angle.** Rule: the line through the two spot
-   centroids meets the layer z = 0 inside the sample outline (widened by the origin's own tolerance), and its
-   scattering angle matches one of the eight Cu ring angles; 1 pixel centroid tolerance; greedy assignment.
-   Recall 0.990 on one-grain pairs (23,256 of 23,502), 0.349 on pairs involving a union of several grains
-   (1,532 of 4,386); precision 0.854 over all predicted pairs (24,788 of 29,029). With the outline test alone,
-   precision is 0.463 and 80% of the detector-0 spots that have a partner have more than one candidate (median 3).
-   The ring gate uses the crystal structure, not the orientation, so it is still a search-free test.
-3. **The origin is good except for rays nearly in the layer.** Correct one-grain pairs: median error 2.7 µm,
-   90th percentile 15.7 µm, 99th percentile 88 µm (voxel side 9.4 µm). The median is 31 µm when the ray's slope out of
-   the layer is below 0.02 and 1.9 µm above 0.1. The map over the sample plane shows no spatial pattern.
-4. **Attribution by origin alone is weak.** A union spot's origin is the centre of the grain's footprint, not the
-   voxel's, so a radius around the voxel centroid trades recall for false pairs. On the 30-voxel set, r = 30 µm finds
-   66.3% of a voxel's true peaks with about 45 false pairs attached per voxel; r = 50 µm finds 82.1% with about 171.
-   The ceiling is 0.887 (the share of true peaks whose spot pair is found at all).
-5. **The attributed-peak cost is not sharper than the pixel cost.** It is smoother: with a 0.05 degree direction
-   tolerance its score falls to half at 0.38 degrees from the truth, against 0.26 degrees for the pixel-overlap cost.
-   At 1 degree and more both reject wrong orientations when the attributed list is good (best wrong over truth 0.139
-   against 0.110). The short list from the plan's radius (r = 15.7 µm) scores only 0.078 at the truth (median).
-6. **Step 4 (classifier) did not run.** The plan's rule runs it when single-source recall is below 0.95; that recall
-   is undefined here, and the nearest class (one grain) has 0.990. Precision (0.854) and the several-grain spots are
-   left open.
+![How a spot pair gives a ray and its origin on the sample layer](../benchmarks/eval_reduction/D/figures/pairing_geometry.png)
 
-## Step 1: ground truth from the simulator
+## What we found, in short
 
-`render_provenance.py` re-renders the clean images through a recording image (35 s on 10 workers, contended). All 360
-frame images equal the stock `clean/` files and the 57,389 components equal the render's spot count, so the
-provenance is of the same images the studies use. 27,888 true pairs (spot pairs sharing a source) carry 1,375,053
-peaks. 3,890 detector-0 spots have no partner on detector 1; the cause was not traced.
+1. **A spot almost never comes from one voxel.** All the voxels of a grain diffract into the same spot, so a typical
+   spot is drawn by about 44 voxels at once. Out of 57,389 spots, only 30 come from a single voxel. About 2,600 spots
+   mix several grains.
+
+2. **We can match spots across the two detectors, as long as we also check the diffraction angle.**
+   - The line through two spots must cross the sample layer inside the sample. That test alone is not enough:
+     most spots have about three possible partners, and fewer than half of the matches are right.
+   - We added a second test: the angle between the line and the beam must be one of the copper diffraction angles.
+     This test needs only the crystal structure, not the orientation.
+   - With both tests, we find 99% of the spot pairs that come from one grain. 85% of all the matches we make are
+     right.
+   - Spots that mix several grains are matched only 35% of the time. Their centre is an average over several grains,
+     so it does not lie on any one ray.
+
+3. **The origin is accurate, except for rays that leave the sample almost flat.** The typical error is 2.7 µm, less
+   than a third of a voxel (9.4 µm). For the flattest rays it grows to about 31 µm, because a small error in the line
+   moves its crossing point a long way along the layer.
+
+4. **But the origin points to the grain, not to the voxel.** A spot is drawn by the whole grain, so its origin is the
+   middle of the grain. To find a voxel's peaks, we take every ray whose origin is within some distance of the voxel.
+   - Within 30 µm, we find two thirds of the voxel's real peaks, but also pick up about 45 wrong ones.
+   - Within 50 µm, we find 82% of them, with about 171 wrong ones.
+   There is no distance that gives most of the real peaks and few wrong ones.
+
+5. **A cost built on these peak lists does not tell right from wrong orientations any better than the pixel cost.**
+   - It is gentler, not sharper. Its score halves 0.38° away from the true orientation; the pixel cost's score
+     halves at 0.26°.
+   - Both reject orientations 1° or more away, as long as the peak list is good.
+   - With the short list the plan suggested (rays within 15.7 µm of the voxel), the true orientation scores only
+     8%, because most of the voxel's peaks are missing from the list.
+
+6. **We did not build the classifier (Step 4).** The plan said to build it only if fewer than 95% of single-voxel
+   spots were matched. That number does not exist here (there are almost no single-voxel spots). For one-grain spots
+   we match 99%, so we skipped it. Two problems remain open: 15% of our matches are wrong, and spots that mix several
+   grains are mostly unmatched.
+
+## What this means for the next tasks
+
+- **Tasks E and F can use the matched rays.** For one-grain spots we have the ray's direction and, for most rays, a
+  good origin. Their value is that a ray gives a smooth error to minimise. As a plain hit-or-miss score they are no
+  better than the pixel cost.
+- **We cannot assign peaks to single voxels from the images alone on this sample.** Almost every spot is shared by a
+  whole grain. The origin finds the grain, not the voxel.
+- **As a filter before the search, this would lose too many real peaks.** Any distance that keeps the wrong peaks
+  few also drops a third or more of the real ones.
+
+## The details
+
+### Step 1: which voxels drew each spot
+
+We re-ran the simulator on the same clean images and recorded, for every lit pixel, which voxel and which
+reflection drew it. The re-run gives exactly the same 360 images and the same 57,389 spots as before, so the record
+matches the images the other studies use. (It took 35 s on 10 workers.)
+
+Two spots form a **true pair** when they share a voxel and reflection. There are 27,888 true pairs, together
+carrying 1,375,053 peaks. 3,890 spots on detector 0 have no partner on detector 1; we did not find out why.
+
+The table counts spots by how many sources they have. "Sources" means (voxel, reflection) pairs.
 
 <!-- table:evalD_step1_components -->
 | detector | class | components | with a true partner | median pixels | p90 pixels | median sources | max sources |
@@ -67,15 +90,22 @@ peaks. 3,890 detector-0 spots have no partner on detector 1; the cause was not t
 | 1 | several grains | 823 | 823 | 249 | 472 | 103 | 296 |
 <!-- /table:evalD_step1_components -->
 
-## Step 2: geometric pairing
+### Step 2: matching spots across the detectors
 
-For each frame, every detector-0 spot is tested against every detector-1 spot (a broadcast; at most a few hundred
-spots per detector per frame). Presets: `hull_*` (outline gate only), `ring_*` (outline and ring angle), `shape_*`
-(adds a rigid pixel-count and bounding-box gate). `tight` is a 1 pixel centroid tolerance on both detectors; `plan`
-adds the registration (10 µm) and voxel size x (L1/L0 - 1) (5.8 µm) on detector 1, the ray rule's arm A terms read as
-half-widths. The simulated data has no registration error, so `plan` only loosens the gate. `_c0.5` and `_c2` are
-centroid tolerances of 0.5 and 2 pixels; `_binary` is the unweighted centroid. The main pairing is `ring_tight`.
-Rates carry Wilson 95% intervals; peak recall is the share of the 1,375,053 true peaks whose spot pair is found.
+For each frame we try every spot on detector 0 against every spot on detector 1. A frame has at most a few hundred
+spots per detector, so this is cheap. We tried several sets of tests, named in the table as follows:
+
+- `hull`: the line must cross the sample layer inside the sample.
+- `ring`: also, the angle to the beam must match a copper diffraction angle.
+- `shape`: also, the two spots must have similar size and shape.
+- `tight`: each spot's centre may be off by 1 pixel.
+- `plan`: adds the looser tolerances the plan listed (10 µm detector registration and 5.8 µm from the voxel size).
+  The simulated images have no registration error, so this only makes the test looser.
+- `c0.5`, `c2`: centre tolerance of 0.5 or 2 pixels instead of 1.
+- `binary`: spot centre computed without weighting by intensity.
+
+Our main choice is `ring_tight`. In the table, **precision** is the share of our matches that are right, and
+**recall** is the share of true pairs we found. The brackets are 95% intervals.
 
 <!-- table:evalD_step2_presets -->
 | preset | predicted pairs | precision | link recall | peak recall | recall, one grain | recall, several grains |
@@ -94,14 +124,16 @@ Rates carry Wilson 95% intervals; peak recall is the share of the 1,375,053 true
 | shape_tight_binary | 25027 | 0.906 [0.903, 0.910] (22684/25027) | 0.813 [0.809, 0.818] (22684/27888) | 0.812 | 0.935 [0.931, 0.938] (21968/23502) | 0.163 [0.153, 0.174] (716/4386) |
 <!-- /table:evalD_step2_presets -->
 
-Of the 4,241 false pairs of `ring_tight`, 4,149 join two spots that both have another true partner, and 92 involve a
-spot with no partner. Of the true pairs it misses, 3,036 fail the ring gate (223 one-grain, 2,813 several-grain) and
-36 the outline gate; none fails the ray or origin-tolerance gate. That several-grain pairs mostly fail the ring gate
-fits the picture of a centroid that mixes different grains and so is not on any one ray; the unions were not split
-to test it.
+Where `ring_tight` goes wrong:
 
-**Origin error by ray slope** (correct one-grain pairs; the truth is the mean of the source voxel centroids). The
-`plan` tolerance predicts a sigma 20 to 30 times the median error: it works as a gate, not as an error estimate.
+- Of its 4,241 wrong matches, 4,149 join two spots that each have a different true partner.
+- Of the true pairs it misses, 3,036 fail the angle test. Most of these (2,813) involve a spot that mixes several
+  grains. Only 36 misses fail the inside-the-sample test.
+
+**How far off the origin is.** The next table is for correct matches of one-grain spots. It groups them by how
+steeply the ray leaves the sample layer (the z part of the ray's direction). The true origin is the average position
+of the spot's voxels. The last column is the error the plan's tolerances predict. It is 20 to 30 times the real
+error, so those tolerances work as a loose limit, not as an error estimate.
 
 <!-- table:evalD_step2_origin_error -->
 | ray z-slope (abs u_z) | pairs | lab-frame error median (um) | lab-frame error p90 (um) | sample-frame error median (um) | sample-frame error p90 (um) | predicted sigma median (um) |
@@ -112,16 +144,25 @@ to test it.
 | 0.1 to 1 | 9714 | 1.0 | 2.6 | 1.9 | 4.0 | 37.0 |
 <!-- /table:evalD_step2_origin_error -->
 
-![Origin error over the sample plane](../benchmarks/eval_reduction/D/figures/origin_error_map.png)
+The map below shows the origin error across the sample. It has no spatial pattern.
 
-## Step 3: peak-to-voxel attribution and the discriminating test
+![Origin error over the sample](../benchmarks/eval_reduction/D/figures/origin_error_map.png)
 
-Rule A (the plan's): a pair's origin within r of the voxel centroid. Rule B (added): the ray from the voxel centroid
-along the pair's direction hits the bounding box of both spots (tolerance 1 pixel plus the arc motion). A voxel's true
-peaks are those it drew on both detectors; an attached pair is true when the voxel is a source of both spots with a
-shared reflection. The 30 voxels are the ray-study set, which contains the six interior full-sample voxels (the plan's
-"six and 30 others" is 30 here, not 36). `step3/attach_summary.json` also has 300 evenly spread voxels with the same
-picture (r = 30 µm 70.2%, r = 50 µm 83.0%).
+### Step 3: assigning peaks to a voxel, and does it help?
+
+We tried two ways to decide which matched rays belong to a voxel:
+
+- **By distance** (the plan's way): keep the rays whose origin is within r of the voxel's centre.
+- **By footprint** (added): start a ray at the voxel's centre, in the matched pair's direction, and keep the pair if
+  that ray hits both spots.
+
+We checked these on 30 voxels from the earlier ray study, which include the six full-sample voxels used before. (The
+plan asked for the six plus 30 others; we used the 30.) A run on 300 voxels spread over the sample gives the same
+picture.
+
+In the table, "true peaks found" is the share of the voxel's real peaks that we keep, and "false attached" is how
+many wrong peaks we keep per voxel. "Interior" and "boundary" mean voxels inside a grain or next to a grain boundary.
+Even a perfect rule could find at most 89% of the real peaks, because 11% of them sit in spot pairs we never matched.
 
 <!-- table:evalD_step3_attach_voxels30 -->
 | attachment | true peaks found | attached pairs per voxel | false attached per voxel | share of attached that are false | recall, interior | recall, boundary |
@@ -137,14 +178,20 @@ picture (r = 30 µm 70.2%, r = 50 µm 83.0%).
 | B footprint | 0.851 [0.833, 0.867] (1458/1714) | 386.8 | 338.2 | 0.874 | 0.852 | 0.850 |
 <!-- /table:evalD_step3_attach_voxels30 -->
 
-![True peaks found against false pairs attached, by rule](../benchmarks/eval_reduction/D/figures/attribution.png)
+![Real peaks found against wrong peaks kept, for each rule](../benchmarks/eval_reduction/D/figures/attribution.png)
 
-**The discriminating test.** At the true orientation and at wrong ones (8 random axes at each of 0.05 to 20 degrees,
-and rotations of 10 to 60 degrees about <100>, <110>, <111>), two scores per voxel. `pixel` is 1 - cost with the
-strict C++ rule, radius 0. The attributed score is the share of the orientation's predicted observable peaks that
-match an attributed observed peak (same frame, ray direction within 0.05 degrees, which is one pixel of centroid
-error on both detectors over the 2 mm detector separation). The oracle list is the voxel's own true pairs. Scores
-are normalised by the voxel's score at the truth.
+**Does a peak-list score tell right from wrong orientations?** For each voxel we scored the true orientation and
+many wrong ones. The wrong ones were turned away from the truth by 0.05° to 20° about random axes, plus larger turns
+about the <100>, <110> and <111> axes. We compared two scores:
+
+- the **pixel score**: 1 minus the usual pixel-overlap cost (strict C++ rule);
+- the **peak-list score**: the share of the peaks this orientation predicts that match a ray in the voxel's list.
+  A match means the same frame and a direction within 0.05°, about one pixel of error on each detector.
+
+"Oracle" means the voxel's list is exactly its true peaks: the best any assignment rule could do.
+
+The first table gives each score at the true orientation. The "half-score radius" is how far you can turn away
+from the truth before the score falls to half its value at the truth.
 
 <!-- table:evalD_step3_truth_scores -->
 | score | median at the truth | minimum at the truth | half-score radius (deg) |
@@ -155,6 +202,9 @@ are normalised by the voxel's score at the truth.
 | attributed, B footprint | 0.792 | 0.696 | 0.377 |
 | attributed, oracle (true pairs) | 0.789 | 0.696 | 0.378 |
 <!-- /table:evalD_step3_truth_scores -->
+
+The next table shows how each score falls as the orientation turns away from the truth. Each score is divided by its
+value at the truth.
 
 <!-- table:evalD_step3_sharpness -->
 | misorientation (deg) | pixel overlap (C++ rule) | attributed, A r=15.7 um | attributed, A r=30 um | attributed, B footprint | attributed, oracle (true pairs) |
@@ -170,7 +220,11 @@ are normalised by the voxel's score at the truth.
 | 20 | 0.003 | 0.000 | 0.000 | 0.000 | 0.000 |
 <!-- /table:evalD_step3_sharpness -->
 
-![Score against misorientation, pixel cost and attributed costs](../benchmarks/eval_reduction/D/figures/sharpness.png)
+![Score against distance from the true orientation](../benchmarks/eval_reduction/D/figures/sharpness.png)
+
+The last table asks whether any wrong orientation scores close to the truth. "Best wrong / truth" is the highest
+wrong score divided by the true score. The last two columns count voxels where a wrong orientation scores at least
+half of, or at least as much as, the truth.
 
 <!-- table:evalD_step3_separation -->
 | wrong orientations | score | median best wrong / truth | max over voxels | voxels >= 0.5 truth | voxels >= truth |
@@ -192,24 +246,29 @@ are normalised by the voxel's score at the truth.
 | rotations about <100>, <110>, <111> | attributed, oracle (true pairs) | 0.307 | 0.435 | 0 | 0 |
 <!-- /table:evalD_step3_separation -->
 
-The attributed cost's sharpness is set by its direction tolerance: 0.02 degrees gives a half-score radius of 0.18
-degrees (completeness at the truth 0.736), 0.2 degrees gives 0.72 degrees (0.825); a one-frame window widens it again
-(`step3/tables_separate.md`, `step3_tolerance`). The 0.05 degree default was set from the pixel tolerance before the
-scan, so the table is evidence, not a tuned result. Whether a smooth direction residual helps a search was not tested.
+**The 0.05° match tolerance sets how sharp the peak-list score is.** With 0.02° the score halves at 0.18°; with 0.2°
+it halves at 0.72°. We chose 0.05° from the pixel size before running this test, so it was not tuned. The full scan is
+in `step3/tables_separate.md`. We did not test whether a smooth direction error helps a search.
 
-## What this means for the next tasks
+## Not tested, or left open
 
-* For Tasks E and F, an observed peak list is available for one-grain spots (recall 0.990, origin error a few µm on
-  steep rays). Its value is continuity (a direction residual), not discrimination: as a hit-or-miss score it is no
-  sharper than the pixel cost.
-* Attributing peaks to a single voxel from the images alone does not work well on this sample, because nearly every
-  spot is a union of a grain's voxels. The origin locates the grain, not the voxel.
-* As a pre-search filter, the attributed list from a radius rule would drop many true peaks at any radius that keeps
-  the false ones few (66% found at about 45 false per voxel).
+- Splitting spots that mix several grains.
+- Noisy images.
+- A distance limit set per ray from its predicted origin error.
+- Using the peak lists in a search (Tasks E and F).
+- Why 3,890 detector-0 spots have no partner.
+- A sample layer with real thickness (the simulated layer is a plane at z = 0).
+- Whether a classifier would cut the 15% wrong matches or recover the several-grain spots.
 
-## Not tested / left open
+## Files
 
-Splitting unions of several grains (their centroid is not on any one ray); noise; a per-pair attribution radius from
-the predicted origin tolerance; searches with the attributed cost (Tasks E, F); the cause of the 3,890 unpartnered
-detector-0 spots; a real layer thickness (the simulated layer is exact, z = 0); whether a classifier (Step 4) would
-raise the 0.854 precision or recover the several-grain pairs.
+- Library: `icenine/spot_pairing.py`, tests in `tests/test_spot_pairing.py`.
+- Simulator change: the opt-in `ForwardSimulation.peak_hook`. It is off by default and then changes nothing.
+- Recording script: `scripts/phase_d/render_provenance.py`. It sits beside `render_full.py`, which is unchanged.
+- Study scripts: `scripts/eval_reduction/pairing_*.py`.
+- Run record: `benchmarks/eval_reduction/D/RUN_LOG.md`.
+- Results and figures: `benchmarks/eval_reduction/D/`. The tables are generated (`doc_tables_all.md`) and copied in
+  with `scripts/dev/sync_doc_tables.py`.
+
+All runs use clean images, the Q-max 8 configuration and sample seed 0. No golden test or default was changed. The
+same results are in the "Task D" section of `MIGRATION_HISTORY.md`.
