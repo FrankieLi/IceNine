@@ -248,3 +248,40 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - `tests/data/s1_evaluate_ref.npz` is compared exactly on the platform and torch version that made
   it (arm64, torch 2.8.0); on any other the test skips with a message naming the difference.
   Where: `tests/test_s1_evaluate.py`.
+### D-20261014-N6 · D · Task D Step 4 (geometric-feature classifier) is skipped
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- The small classifier on pair-geometry features (plan Task D Step 4) is not built. The plan's trigger
+  (single-source recall below 0.95) is undefined because almost no spot has one source; one-grain
+  recall is 0.990. Where: ROADMAP Track E row D; `docs/findings_spot_pairing_2026-10.md`.
+
+### D-20261014-N7 · D · Task D read as promising: spot-to-grain association is enough
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Associating spots to grains (not to voxels) is sufficient: (1) the grain's spots give a starting
+  orientation, and the area around the grain can be sampled with it; (2) from that start, run the usual
+  FindOptimal search, or other searches outward from the orientation; (3) the orientations defined by
+  the combinations of peaks and grains give a starting candidate list that may be much smaller. These
+  are follow-ups to plan; none is started. Where: ROADMAP Track E row D.
+
+### D-20261014-N8 · R · Learned spot-association model is parked as a research idea
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- A different classifier from Task D Step 4, needing much more planning: simulate images as usual with
+  each peak labelled by its originating grain; build or fine-tune a ConvNet or ViT that looks at the
+  pair of detector images and predicts the association given the second image. The model should learn
+  (1) the origin-independent affine transformation of peak shapes between the detectors and (2) the
+  association of peak shapes. Not started; needs its own plan. Where: ROADMAP Track R.
+
+### D-20261014-N9 · D · Task D review fixes all applied; the indexing proposal is kept, corrected
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- All 16 required fixes of the Task D review are applied by a fresh Opus implementer, then the branch
+  is reviewed again and fixed before it is merged. The "Proposal, not tested" block of the findings doc
+  is kept with a corrected error budget, and the main session's notes (how to test the indexing
+  proposal; notes for planning the learned model of N8) are added. Where: ROADMAP Track E row D;
+  `docs/findings_spot_pairing_2026-10.md`.
+
+### D-20261014-N10 · D · The indexing error budget leads with the measured ray-direction error
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- In the findings doc's "Proposal, not tested" block, the error budget leads with the measured
+  ray-direction error on clean images (median 0.0044 degrees, p90 0.0155), with one pixel kept as the
+  tolerance and upper bound; on clean images the 1 degree omega frame term dominates. The second
+  review's 10 required fixes are applied, then checked again before merge. Where: ROADMAP Track E
+  row D; `docs/findings_spot_pairing_2026-10.md`.
