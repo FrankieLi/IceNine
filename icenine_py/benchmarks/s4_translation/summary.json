@@ -691,7 +691,59 @@
   "disp_um_max": 544.7186889648438,
   "kept_exact_median": 10258.0,
   "kept_exact_min": 10173,
-  "kept_exact_max": 10354
+  "kept_exact_max": 10354,
+  "tie_rule": "kept candidates ordered by (re-cost, orientation index)",
+  "ties_at_min_exact": [
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   2,
+   1
+  ],
+  "ties_at_min_translated": [
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1
+  ],
+  "voxels_tied_min_exact": 1,
+  "voxels_tied_min_translated": 0,
+  "min_set_same": 13,
+  "best_cost_same": 8,
+  "best_exact_in_translated_min_set": 13,
+  "ties_at_rank30_exact_median": 2.0,
+  "voxels_rank30_tie_crosses_cut": 7
  },
  "step2": {
   "rows": [
@@ -1264,6 +1316,28 @@
    2.88671875
   ]
  },
+ "step3_full_vs_step2": {
+  "1423": {
+   "offset": 1,
+   "net_f64_pass_flips": 1
+  },
+  "2091": {
+   "offset": -1,
+   "net_f64_pass_flips": -1
+  },
+  "5852": {
+   "offset": -1,
+   "net_f64_pass_flips": -1
+  },
+  "7288": {
+   "offset": 1,
+   "net_f64_pass_flips": 1
+  },
+  "7320": {
+   "offset": 1,
+   "net_f64_pass_flips": 1
+  }
+ },
  "step3_model": {
   "n_peaks_sampled": 3000,
   "patch": 2000,
@@ -1363,131 +1437,210 @@
    "level0_screen_s": 0.5774531014999895,
    "level0_recost_s": 8.557944209000002,
    "rest_of_search_s": 64.4515286065,
+   "rest_of_search_meaning": "no-start wall time minus the level-0 screen and the level-0 re-cost: the level-0 quick MC and everything after level 0",
    "neighbour_s": 0.07319331300001863,
    "recost_pair_us": 28.914359284007755,
+   "recost_setup_us_per_orientation": 457.81878000012097,
+   "n_orient": 43974,
    "global_screen_wall_s": 6.583315541999999,
    "global_screen_threads": 10,
    "global_screen_single_worker_equiv_s": 29.709761960970038,
+   "global_screen_single_worker_is_projection": true,
    "passers_total": 848266117,
    "passers_per_voxel_median": 34466.0
   },
   "rows": [
    {
+    "key": "a",
     "scenario": "(a) today's BFS",
     "seeds": 350,
     "screen": 202.10858552499633,
+    "setup": 0.0,
     "recost": 2995.280473150001,
-    "refine": 22558.035012275002,
+    "rest": 22558.035012275002,
     "neighbours": 1772.7420408604512,
     "total_h": 7.646712808836237,
     "share_screen": 0.007341883389692471,
+    "share_setup": 0.0,
     "share_recost": 0.10880784651560682,
-    "share_refine": 0.8194528803935432,
+    "share_rest": 0.8194528803935432,
     "share_neighbours": 0.06439738970115735
    },
    {
-    "scenario": "(b) global screen and re-cost, per-voxel refinement",
+    "key": "b",
+    "scenario": "(b) global screen and re-cost, per-voxel search after them",
     "seeds": 350,
     "screen": 29.709761960970038,
+    "setup": 20.132123031725317,
     "recost": 24527.07127538816,
-    "refine": 1583574.057861705,
+    "rest": 1583574.057861705,
     "neighbours": 0.0,
-    "total_h": 446.7030108052928,
-    "share_screen": 1.8474716883925753e-05,
-    "share_recost": 0.015251912768602641,
-    "share_refine": 0.9847296125145135,
+    "total_h": 446.70860306169055,
+    "share_screen": 1.8474485602609515e-05,
+    "share_setup": 1.2518801651395967e-05,
+    "share_recost": 0.015251721832931884,
+    "share_rest": 0.984717284879814,
     "share_neighbours": 0.0
    },
    {
-    "scenario": "(c) hybrid: BFS, seeds take the global level-0 list",
+    "key": "c",
+    "scenario": "(c) hybrid, stored layer-wide local-cost table",
     "seeds": 350,
     "screen": 29.709761960970038,
+    "setup": 20.132123031725317,
     "recost": 348.79680747891393,
-    "refine": 22558.035012275002,
+    "rest": 22558.035012275002,
     "neighbours": 1772.7420408604512,
-    "total_h": 6.863689895159816,
-    "share_screen": 0.0012023724529927721,
-    "share_recost": 0.01411602265798754,
-    "share_refine": 0.9129376374013987,
-    "share_neighbours": 0.071743967487621
+    "total_h": 6.869282151557518,
+    "share_screen": 0.001201393606165066,
+    "share_setup": 0.0008140961856448869,
+    "share_recost": 0.014104530857785196,
+    "share_rest": 0.9121944183530585,
+    "share_neighbours": 0.0716855609973463
    },
    {
+    "key": "c'",
+    "scenario": "(c') hybrid, each seed re-costed alone orientation-major",
+    "seeds": 350,
+    "screen": 29.709761960970038,
+    "setup": 5522.713725019459,
+    "recost": 348.79680747891393,
+    "rest": 22558.035012275002,
+    "neighbours": 1772.7420408604512,
+    "total_h": 8.397777040998555,
+    "share_screen": 0.0009827257398636181,
+    "share_setup": 0.1826777655978736,
+    "share_recost": 0.011537339179697419,
+    "share_rest": 0.7461642296707094,
+    "share_neighbours": 0.0586379398118559
+   },
+   {
+    "key": "a",
     "scenario": "(a) today's BFS",
     "seeds": 395,
     "screen": 228.09397509249587,
+    "setup": 0.0,
     "recost": 3380.3879625550007,
-    "refine": 25458.353799567503,
+    "rest": 25458.353799567503,
     "neighbours": 1769.4483417754504,
     "total_h": 8.565634466386236,
     "share_screen": 0.0073969345498377395,
+    "share_setup": 0.0,
     "share_recost": 0.10962371321705866,
-    "share_refine": 0.825597329897247,
+    "share_rest": 0.825597329897247,
     "share_neighbours": 0.057382022335856646
    },
    {
-    "scenario": "(b) global screen and re-cost, per-voxel refinement",
+    "key": "b",
+    "scenario": "(b) global screen and re-cost, per-voxel search after them",
     "seeds": 395,
     "screen": 29.709761960970038,
+    "setup": 20.132123031725317,
     "recost": 24527.07127538816,
-    "refine": 1583574.057861705,
+    "rest": 1583574.057861705,
     "neighbours": 0.0,
-    "total_h": 446.7030108052928,
-    "share_screen": 1.8474716883925753e-05,
-    "share_recost": 0.015251912768602641,
-    "share_refine": 0.9847296125145135,
+    "total_h": 446.70860306169055,
+    "share_screen": 1.8474485602609515e-05,
+    "share_setup": 1.2518801651395967e-05,
+    "share_recost": 0.015251721832931884,
+    "share_rest": 0.984717284879814,
     "share_neighbours": 0.0
    },
    {
-    "scenario": "(c) hybrid: BFS, seeds take the global level-0 list",
+    "key": "c",
+    "scenario": "(c) hybrid, stored layer-wide local-cost table",
     "seeds": 395,
     "screen": 29.709761960970038,
+    "setup": 20.132123031725317,
     "recost": 393.64211129763146,
-    "refine": 25458.353799567503,
+    "rest": 25458.353799567503,
     "neighbours": 1769.4483417754504,
-    "total_h": 7.680876115167099,
-    "share_screen": 0.0010744492597047272,
-    "share_recost": 0.014236010225459797,
-    "share_refine": 0.9206976962380625,
-    "share_neighbours": 0.06399184427677304
+    "total_h": 7.6864683715648,
+    "share_screen": 0.001073667548851819,
+    "share_setup": 0.0007275456200911959,
+    "share_recost": 0.01422565287857269,
+    "share_rest": 0.9200278466617364,
+    "share_neighbours": 0.06394528729074792
    },
    {
+    "key": "c'",
+    "scenario": "(c') hybrid, each seed re-costed alone orientation-major",
+    "seeds": 395,
+    "screen": 29.709761960970038,
+    "setup": 6232.776918236246,
+    "recost": 393.64211129763146,
+    "rest": 25458.353799567503,
+    "neighbours": 1769.4483417754504,
+    "total_h": 9.412203036899388,
+    "share_screen": 0.00087680977805847,
+    "share_setup": 0.18394491862795942,
+    "share_recost": 0.011617368482950797,
+    "share_rest": 0.7513400334226024,
+    "share_neighbours": 0.05222086968842898
+   },
+   {
+    "key": "a",
     "scenario": "(a) today's BFS",
     "seeds": 504,
     "screen": 291.0363631559947,
+    "setup": 0.0,
     "recost": 4313.203881336001,
-    "refine": 32483.570417676005,
+    "rest": 32483.570417676005,
     "neighbours": 1761.4702706584485,
     "total_h": 10.791466925785125,
     "share_screen": 0.007491422136209422,
+    "share_setup": 0.0,
     "share_recost": 0.11102403385004422,
-    "share_refine": 0.8361434146964709,
+    "share_rest": 0.8361434146964709,
     "share_neighbours": 0.04534112931727548
    },
    {
-    "scenario": "(b) global screen and re-cost, per-voxel refinement",
+    "key": "b",
+    "scenario": "(b) global screen and re-cost, per-voxel search after them",
     "seeds": 504,
     "screen": 29.709761960970038,
+    "setup": 20.132123031725317,
     "recost": 24527.07127538816,
-    "refine": 1583574.057861705,
+    "rest": 1583574.057861705,
     "neighbours": 0.0,
-    "total_h": 446.7030108052928,
-    "share_screen": 1.8474716883925753e-05,
-    "share_recost": 0.015251912768602641,
-    "share_refine": 0.9847296125145135,
+    "total_h": 446.70860306169055,
+    "share_screen": 1.8474485602609515e-05,
+    "share_setup": 1.2518801651395967e-05,
+    "share_recost": 0.015251721832931884,
+    "share_rest": 0.984717284879814,
     "share_neighbours": 0.0
    },
    {
-    "scenario": "(c) hybrid: BFS, seeds take the global level-0 list",
+    "key": "c",
+    "scenario": "(c) hybrid, stored layer-wide local-cost table",
     "seeds": 504,
     "screen": 29.709761960970038,
+    "setup": 20.132123031725317,
     "recost": 502.2674027696361,
-    "refine": 32483.570417676005,
+    "rest": 32483.570417676005,
     "neighbours": 1761.4702706584485,
-    "total_h": 9.660282736962516,
-    "share_screen": 0.00085429297263197,
-    "share_recost": 0.01444250927125912,
-    "share_refine": 0.9340527860934194,
-    "share_neighbours": 0.05065041166268953
+    "total_h": 9.665874993360218,
+    "share_screen": 0.0008537987157390353,
+    "share_setup": 0.0005785566647140551,
+    "share_recost": 0.014434153461265038,
+    "share_rest": 0.9335123836288303,
+    "share_neighbours": 0.05062110752945157
+   },
+   {
+    "key": "c'",
+    "scenario": "(c') hybrid, each seed re-costed alone orientation-major",
+    "seeds": 504,
+    "screen": 29.709761960970038,
+    "setup": 7952.707764028021,
+    "recost": 502.2674027696361,
+    "rest": 32483.570417676005,
+    "neighbours": 1761.4702706584485,
+    "total_h": 11.869368226970302,
+    "share_screen": 0.0006952949388723737,
+    "share_setup": 0.1861165183997043,
+    "share_recost": 0.011754519728736921,
+    "share_rest": 0.7602101335441683,
+    "share_neighbours": 0.041223533388517974
    }
   ]
  },
@@ -1510,22 +1663,226 @@
   "quick_mc_level0_share_of_nostart": 0.4633975339377812,
   "seed_saving_s": 8.13883500341738,
   "c_saving_h": {
-   "350": 0.7830229136764206,
-   "395": 0.884758351219137,
-   "504": 1.1311841888226084
+   "350": 0.7774306572787193,
+   "395": 0.8791660948214357,
+   "504": 1.125591932424907
   },
   "c_saving_fraction": {
-   "350": 0.10239993749622589,
-   "395": 0.10329163060730151,
-   "504": 0.10482209662522868
+   "350": 0.10166860933764266,
+   "395": 0.10263875936703937,
+   "504": 0.10430388566872395
   },
   "b_over_a": {
-   "350": 58.41765239163953,
-   "395": 52.15060396964999,
-   "504": 41.39409534193548
+   "350": 58.418383719798115,
+   "395": 52.15125684089026,
+   "504": 41.39461355289199
   },
-  "recost_layer_h_orientation_major": 6.8130753542744875,
+  "recost_layer_h_orientation_major": 6.818667610672191,
   "recost_layer_h_evaluate": 59.210896037451654,
-  "pass_rate": 0.7851108720235932
+  "pass_rate": 0.7851108720235932,
+  "recost_table_build_s": 20.132123031725317,
+  "seed_recost_alone_s": 16.77574437856678,
+  "seed_saving_alone_s": -7.64034706806679,
+  "c2_saving_h": {
+   "350": -0.7510642321623182,
+   "395": -0.8465685705131527,
+   "504": -1.077901301185177
+  },
+  "screen_only_saving_h": {
+   "350": 0.047888562101118415,
+   "395": 0.055106725869868284,
+   "504": 0.07259072255417352
+  },
+  "rest_share_of_nostart": 0.8758557013129754,
+  "full_layer_kernel_projected_s": 5.346492921314694,
+  "full_layer_kernel_over_projection": 1.1225279908393142,
+  "search_wall_min_s": 73.39114550000001,
+  "search_wall_max_s": 73.594188084,
+  "recost_timing_pairs_per_orientation": 1607.28,
+  "linearity_ms_per_voxel": {
+   "O2 counts u8 b=32FZ": {
+    "500": 1.3226333319998957,
+    "1000": 1.264697291999994,
+    "2000": 1.2091885210000013
+   },
+   "O5 counts u8 tile=256": {
+    "500": 1.4424602500000674,
+    "1000": 1.5056198329999688,
+    "2000": 1.566887042000005
+   }
+  }
+ },
+ "step4_memory": {
+  "n_orient_sampled": 200,
+  "n_orient_layer": 43974,
+  "peaks_per_orientation_mean": 104.23,
+  "peaks_per_orientation_min": 88,
+  "peaks_per_orientation_max": 110,
+  "bytes_per_orientation_mean": 14175.28,
+  "bytes_per_peak": 136.0,
+  "table_bytes_layer_estimate": 623343762.72,
+  "dtypes": {
+   "A": "float64",
+   "c": "float64"
+  },
+  "table_gb_layer_estimate": 0.62334376272
+ },
+ "rule_rates": {
+  "n_orient": 43974,
+  "reference": {
+   "pairs": 879480,
+   "voxels": 20,
+   "pass_rule0": 691538,
+   "pass_rule1": 231694,
+   "rate_rule0": 0.7863032701141583,
+   "rate_rule1": 0.2634443080001819,
+   "rule0_only": 459844,
+   "rule1_only": 0,
+   "both": 231694,
+   "per_voxel_rate_rule0_min": 0.7659526083594852,
+   "per_voxel_rate_rule0_max": 0.8107745485968981,
+   "per_voxel_rate_rule1_min": 0.22508755173511621,
+   "per_voxel_rate_rule1_max": 0.3062491472233593,
+   "per_voxel_passers_rule1_median": 11500.5,
+   "equal_numpy": true,
+   "voxel_ids": [
+    1423,
+    2091,
+    5852,
+    7288,
+    7320,
+    7669,
+    8205,
+    9601,
+    10685,
+    11775,
+    14122,
+    14952,
+    16602,
+    16775,
+    18366,
+    18384,
+    19289,
+    22181,
+    22215,
+    24460
+   ]
+  },
+  "patch_2000": {
+   "pairs": 87948000,
+   "voxels": 2000,
+   "pass_rule0": 70779143,
+   "pass_rule1": 25582783,
+   "rate_rule0": 0.8047839973620776,
+   "rate_rule1": 0.2908853299677082,
+   "rule0_only": 45196360,
+   "rule1_only": 0,
+   "both": 25582783,
+   "per_voxel_rate_rule0_min": 0.7906490198753809,
+   "per_voxel_rate_rule0_max": 0.8166643925956247,
+   "per_voxel_rate_rule1_min": 0.2723427479874471,
+   "per_voxel_rate_rule1_max": 0.314322099422386,
+   "per_voxel_passers_rule1_median": 12776.0
+  },
+  "layer": {
+   "pairs": 1080441180,
+   "pass_rule0": 848266117,
+   "pass_rule1": 286462978,
+   "rule0_only": 561803139,
+   "rule1_only": 0,
+   "both": 286462978,
+   "voxels": 24570,
+   "rate_rule0": 0.7851108720235932,
+   "rate_rule1": 0.26513519042286043,
+   "per_voxel_passers_rule0_median": 34466.0,
+   "per_voxel_passers_rule1_median": 11757.0,
+   "per_voxel_passers_rule1_min": 8613,
+   "per_voxel_passers_rule1_max": 13822,
+   "per_voxel_rate_rule1_min": 0.19586573884568154,
+   "per_voxel_rate_rule1_max": 0.314322099422386
+  }
+ },
+ "step3_o3_threads": {
+  "label": "contended",
+  "preflight_load": [
+   2.31201171875,
+   3.029296875,
+   2.7626953125
+  ],
+  "reps": 5,
+  "n_voxels": 2000,
+  "arms": {
+   "O2 counts u8 b=32FZ": {
+    "times": [
+     2.3772079590000006,
+     2.379632292000002,
+     2.3979135409999977,
+     2.383007333000002,
+     2.3857658330000007
+    ],
+    "equal": true,
+    "median_s": 2.383007333000002
+   },
+   "O3 counts u8 tile=2000": {
+    "times": [
+     2.3619786250000008,
+     2.1949257499999995,
+     2.195671375,
+     2.2002048340000044,
+     2.2019852080000035
+    ],
+    "equal": true,
+    "median_s": 2.2002048340000044
+   },
+   "O3 counts u8 tile=256": {
+    "times": [
+     2.3492734580000008,
+     2.356296750000002,
+     2.380769291,
+     2.3594342080000033,
+     2.3616932920000053
+    ],
+    "equal": true,
+    "median_s": 2.3594342080000033
+   },
+   "O2 counts u8 b=32FZ th=10": {
+    "times": [
+     0.3941257079999989,
+     0.3953283749999983,
+     0.39668800000000104,
+     0.403154083000004,
+     0.41538879199999457
+    ],
+    "equal": true,
+    "median_s": 0.39668800000000104
+   },
+   "O3 counts u8 tile=2000 th=10": {
+    "times": [
+     2.212589209000001,
+     2.199683167,
+     2.194353458000002,
+     2.2026499999999984,
+     2.2095798329999994
+    ],
+    "equal": true,
+    "median_s": 2.2026499999999984
+   },
+   "O3 counts u8 tile=256 th=10": {
+    "times": [
+     0.49094933399999974,
+     0.4950221249999984,
+     0.5134065829999983,
+     0.4950744580000048,
+     0.4930957920000054
+    ],
+    "equal": true,
+    "median_s": 0.4950221249999984
+   }
+  },
+  "preflight_end": [
+   2.6748046875,
+   3.01806640625,
+   2.7734375
+  ]
  }
 }

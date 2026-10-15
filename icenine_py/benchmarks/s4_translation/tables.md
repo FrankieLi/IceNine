@@ -13,7 +13,8 @@
 | ordering | O2 counts, u8, 10 threads, voxel tiles of 4096 |
 | voxels x orientations | 24570 x 43974 |
 | wall time (s), kernel + pass reduction | 6.58 (6.00 + 0.58) |
-| BatchedScreen for the same work, single worker (h) | 3.94 |
+| kernel time projected linearly from the 2,000-voxel patch (10 threads) (s) | 5.35 |
+| BatchedScreen for the same work, single worker, projected from 10 voxels (h) | 3.94 |
 | passers (voxel, orientation) pairs | 848266117 (78.5%) |
 | passers per voxel, median (min-max) | 34466 (32991-35912) |
 | passer list as int32 pairs / as a bitset / counts as uint8 (GB) | 6.79 / 0.135 / 1.08 |
@@ -30,6 +31,18 @@
 | O5 counts u8 tile=256 | 0.721 | 1.51 | 3.13 | 1.44e+03 | 1.51e+03 | 1.57e+03 |
 | O2 counts u8 b=32FZ th=10 | 0.113 | 0.215 | 0.435 | 227 | 215 | 218 |
 <!-- /table:s4_linearity -->
+
+<!-- table:s4_o3_threads -->
+| arm | median_s | equal |
+|---|---|---|
+| O2 counts u8 b=32FZ | 2.38 | True |
+| O3 counts u8 tile=2000 | 2.2 | True |
+| O3 counts u8 tile=256 | 2.36 | True |
+| O2 counts u8 b=32FZ th=10 | 0.397 | True |
+| O3 counts u8 tile=2000 th=10 | 2.2 | True |
+| O3 counts u8 tile=256 th=10 | 0.495 | True |
+| label | n/a | contended |
+<!-- /table:s4_o3_threads -->
 
 <!-- table:s4_o4 -->
 | quantity | model | measured |
@@ -70,32 +83,35 @@
 <!-- /table:s4_orderings -->
 
 <!-- table:s4_projection -->
-| scenario | seeds | total_h | share_screen | share_recost | share_refine | share_neighbours |
-|---|---|---|---|---|---|---|
-| (a) today's BFS | 350 | 7.65 | 0.007 | 0.109 | 0.819 | 0.064 |
-| (b) global screen and re-cost, per-voxel refinement | 350 | 447 | 0.000 | 0.015 | 0.985 | 0.000 |
-| (c) hybrid: BFS, seeds take the global level-0 list | 350 | 6.86 | 0.001 | 0.014 | 0.913 | 0.072 |
-| (a) today's BFS | 395 | 8.57 | 0.007 | 0.110 | 0.826 | 0.057 |
-| (b) global screen and re-cost, per-voxel refinement | 395 | 447 | 0.000 | 0.015 | 0.985 | 0.000 |
-| (c) hybrid: BFS, seeds take the global level-0 list | 395 | 7.68 | 0.001 | 0.014 | 0.921 | 0.064 |
-| (a) today's BFS | 504 | 10.8 | 0.007 | 0.111 | 0.836 | 0.045 |
-| (b) global screen and re-cost, per-voxel refinement | 504 | 447 | 0.000 | 0.015 | 0.985 | 0.000 |
-| (c) hybrid: BFS, seeds take the global level-0 list | 504 | 9.66 | 0.001 | 0.014 | 0.934 | 0.051 |
+| scenario | seeds | total_h | share_screen | share_setup | share_recost | share_rest | share_neighbours |
+|---|---|---|---|---|---|---|---|
+| (a) today's BFS | 350 | 7.65 | 0.007 | 0.000 | 0.109 | 0.819 | 0.064 |
+| (b) global screen and re-cost, per-voxel search after them | 350 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 350 | 6.87 | 0.001 | 0.001 | 0.014 | 0.912 | 0.072 |
+| (c') hybrid, each seed re-costed alone orientation-major | 350 | 8.4 | 0.001 | 0.183 | 0.012 | 0.746 | 0.059 |
+| (a) today's BFS | 395 | 8.57 | 0.007 | 0.000 | 0.110 | 0.826 | 0.057 |
+| (b) global screen and re-cost, per-voxel search after them | 395 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 395 | 7.69 | 0.001 | 0.001 | 0.014 | 0.920 | 0.064 |
+| (c') hybrid, each seed re-costed alone orientation-major | 395 | 9.41 | 0.001 | 0.184 | 0.012 | 0.751 | 0.052 |
+| (a) today's BFS | 504 | 10.8 | 0.007 | 0.000 | 0.111 | 0.836 | 0.045 |
+| (b) global screen and re-cost, per-voxel search after them | 504 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 504 | 9.67 | 0.001 | 0.001 | 0.014 | 0.934 | 0.051 |
+| (c') hybrid, each seed re-costed alone orientation-major | 504 | 11.9 | 0.001 | 0.186 | 0.012 | 0.760 | 0.041 |
 <!-- /table:s4_projection -->
 
 <!-- table:s4_q1 -->
-| check | n | result | exceptions |
-|---|---|---|---|
-| 1a float64: u(x + dx) - (u(x) + A dx), largest | 1760 | 1.8e-12 px | none |
-| 1a float32 (evaluate's stage-D input) against the float64 law, largest | 1760 | 8.5e-04 px | float32 alone at x: 8.0e-04 px |
-| 1a peak sets (omegas, normals, frames, plane hits) identical | 1760 | 1760 of 1760 moves | none |
-| 1b simulator peak sets identical (count and frames) | 1440 | 1440 of 1440 moves | none |
-| 1b(i) integer shift: S(x') = S(x) + m (float32 simulator) | 480 | 470 equal, 0 failures | 10 at the detector edge (3 off it), 0 float flips |
-| 1b(i) the same in float64 vertices | 480 | 470 equal, 0 failures | 10 at the detector edge, 0 float flips |
-| 1b(ii) phase re-rasterised: S(x') = R(T + phi) + m (float32 simulator) | 201240 | 116531 equal, 0 failures | 84644 at the detector edge (84439 off it), 65 float flips (largest distance 2.3e-04 px) |
-| 1b(ii) the same in float64 vertices | 201240 | 116596 equal, 0 failures | 84644 at the detector edge, 0 float flips |
-| 1b(iii) pure pixel-set translation S(x) + round(A dx) = S(x') | 114695 | 30746 equal (26.8%, Wilson 0.266-0.271) | 86545 edge spots excluded |
-| 1e dilated bitmap and box bounds = pixel_radius_overlap_uint8 | 33882912 | equal | none (4 frames x 2 detectors, border band included) |
+| check | n | result | off_detector | clipped_not_checked | exceptions |
+|---|---|---|---|---|---|
+| 1a float64: u(x + dx) - (u(x) + A dx), largest | 1760 | 1.8e-12 px | n/a | n/a | none |
+| 1a float32 (evaluate's stage-D input) against the float64 law, largest | 1760 | 8.5e-04 px | n/a | n/a | float32 alone at x: 8.0e-04 px |
+| 1a peak sets (omegas, normals, frames, plane hits) identical | 1760 | 1760 of 1760 moves | n/a | n/a | none |
+| 1b simulator peak sets identical (count and frames) | 1440 | 1440 of 1440 moves | n/a | n/a | none |
+| 1b(i) integer shift: S(x') = S(x) + m (float32 simulator) | 480 | 470 equal, 0 failures | 3 | 7 | 0 float flips |
+| 1b(i) the same in float64 vertices | 480 | 470 equal, 0 failures | 3 | 7 | 0 float flips |
+| 1b(ii) phase re-rasterised: S(x') = R(T + phi) + m (float32 simulator) | 201240 | 116531 equal, 0 failures | 84439 | 205 | 65 float flips (largest distance 2.3e-04 px) |
+| 1b(ii) the same in float64 vertices | 201240 | 116596 equal, 0 failures | 84439 | 205 | 0 float flips |
+| 1b(iii) pure pixel-set translation S(x) + round(A dx) = S(x') | 114695 | 30746 equal (26.8%, Wilson 0.266-0.271) | n/a | n/a | 86545 edge spots excluded |
+| 1e dilated bitmap and box bounds = pixel_radius_overlap_uint8 | 33882912 | equal | n/a | n/a | none (4 frames x 2 detectors, border band included) |
 <!-- /table:s4_q1 -->
 
 <!-- table:s4_q1_cost -->
@@ -107,8 +123,10 @@
 | largest re-cost change | 0.082 |
 | largest quality change (final cost = 1 - quality) | 0.042 |
 | cliques whose spacing-filtered set is unchanged | 69881 of 97720 (71.5%) |
-| voxels whose best filtered candidate is unchanged | 13 of 20 (Wilson 0.433-0.819) |
-| top-30 filtered candidates in common, median over voxels | 19.5 of 30 |
+| voxels with ties at the lowest filtered re-cost, exact / translated | 1 / 0 of 20 |
+| tied candidates at the lowest re-cost, exact, median (max) | 1 (2) |
+| voxels whose lowest filtered re-cost is unchanged | 8 of 20 |
+| voxels whose set of tied lowest candidates is unchanged | 13 of 20 (Wilson 0.433-0.819) |
 <!-- /table:s4_q1_cost -->
 
 <!-- table:s4_q1_pure -->
@@ -137,6 +155,14 @@
 |   largest quality difference | 0.0092 | 691539 |
 |   sampled differing pairs explained by an integer-vertex flip | 400 of 400 (largest distance 4.1e-04 px) | 400 |
 <!-- /table:s4_recost -->
+
+<!-- table:s4_rules -->
+| set | voxels | pairs | pass_default | pass_cpp_rule | default_only | cpp_only | cpp_rate_per_voxel |
+|---|---|---|---|---|---|---|---|
+| 20 reference voxels | 20 | 879480 | 691538 (78.6%) | 231694 (26.3%) | 459844 | 0 | 22.5-30.6% |
+| 2,000-voxel patch | 2000 | 87948000 | 70779143 (80.5%) | 25582783 (29.1%) | 45196360 | 0 | 27.2-31.4% |
+| whole layer | 24570 | 1080441180 | 848266117 (78.5%) | 286462978 (26.5%) | 561803139 | 0 | 19.6-31.4% |
+<!-- /table:s4_rules -->
 
 <!-- table:s4_step0 -->
 | part | value | unit | n |
