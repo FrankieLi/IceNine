@@ -215,3 +215,9 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
 - The untracked `benchmarks/eval_reduction/A/memory/cache/` (one run log and a done marker) was
   deleted. Where: this entry.
+
+### D-20261014-I14 · S1 · S1 is the next Track S item
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- After Q8 and the Task C merge, the next Track S item is S1 (remove the per-call Python loops in
+  `evaluate`; bit-identical). It starts with a plan, `docs/todo_s1_evaluate_loops.md`, which the
+  owner approves before an implementer builds it. Where: ROADMAP Track S row S1.

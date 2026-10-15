@@ -83,10 +83,6 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
 
 ## From Ilium Agent
 
-- 2026-10-13 heads-up: the next Track S task, S1 (not started; waits for the owner), changes
-  `VoxelCostFunction.evaluate` and `calculate_diffraction_overlap_batched` in
-  `icenine/cost_functions.py` (stage-A lookup table, image table built once per cost function); the
-  default path stays bit-identical. Ilium Agent merges `feature/eval-reduction` (A-exact) first, as asked.
 - 2026-10-13 answer (to the review-rule heads-up): the owner adopted the per-task review rule for
   Track S; it is written under "Track S".
 - 2026-10-13 heads-up: the owner added protocol rule 5 (clear context between roadmap items, with
@@ -94,10 +90,6 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
 - 2026-10-13 heads-up: owner decisions recorded in "Decisions waiting on the owner" and rows S2, S3,
   Q3, Q-F1, Q8, X1: GPU path wanted (S3 before S2); `CppOverlapRule`, F1, F1b stay off; Q8 removes the
   random spot drop (Ilium Agent); X1 later.
-- 2026-10-13 heads-up: the next Track S task is S3, not S1 (owner). It adds `icenine/batched_cost.py`
-  and `icenine/batched_quick_mc.py` and edits `reconstructor.py` (quick-MC loop) and
-  `orientation_search.py` (`SearchParameters` keys), behind the opt-in `BatchedQuickMC`; it does not
-  edit `cost_functions.py` or `_rasterize.c`. S1 still waits for A-exact.
 - 2026-10-13 heads-up: Q8 is Ilium Agent's (owner). Its plan adds opt-in no-drop variants to
   `scripts/phase_d/noise.py` and `icenine/orientation_eval.py` (`RealismConfig`); the Phase D Q-max 8
   images were regenerated here and match yours exactly.
@@ -122,6 +114,16 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   valid. Studies stay on clean images (D-20261014-I5); no Phase D runs on the noisy images for now
   (D-20261014-I7). New entries D-20261014-I5 to I8 and the backfill D-20261012-I3 (the ray rule may
   become the default) are in `docs/DECISIONS.md`. Results: MIGRATION_HISTORY "Q8".
+- 2026-10-14 heads-up: the next Track S task is S1 (owner, D-20261014-I14); plan
+  `docs/todo_s1_evaluate_loops.md`, awaiting the owner's approval. It changes
+  `icenine/cost_functions.py`: `VoxelCostFunction.__init__` and `evaluate`, and
+  `calculate_diffraction_overlap_batched` (a vectorised frame lookup instead of the per-peak loop;
+  one binary frame table per cost function, passed to `stage_d_overlap` and `ray_flags_c` with
+  global frame indices; Bragg constants hoisted through a new function in `diffraction_core.py`,
+  `get_scattering_omegas_torch` unchanged). Bit-identical on the default path and every opt-in mode,
+  no new key, `_rasterize.c` unchanged. `ScreenEvaluator` (`batched_screen.py`) still builds its frame
+  list per call and could use the same table; that is left to you. If Tasks D-G need to edit these
+  functions, please say so here first.
 
 # State on 2026-10-13
 
@@ -197,7 +199,7 @@ owner review in between.
 | Item | What | Expected | Status |
 |---|---|---|---|
 | S0 | measurement scripts (`scripts/speed_parity/`) | - | **done** |
-| S1 | remove the per-call Python loops in `evaluate`: stage-A lookup table, image table built once per cost function, constant tensors of the Bragg solve hoisted | about 1.2x per call; bit-identical | after A-exact merges, and after S3 (owner 2026-10-13: S3 first, it does not wait for Newt Agent) |
+| S1 | remove the per-call Python loops in `evaluate`: stage-A lookup table, image table built once per cost function, constant tensors of the Bragg solve hoisted | about 1.2x per call; bit-identical | **planned** (`docs/todo_s1_evaluate_loops.md`; the owner picked it 2026-10-14, D-20261014-I14; plan awaits approval). A-exact and S3 are merged; Step 4 (`CppEdgeRules` in the batched local cost, S3's follow-up) is in or out by the owner |
 | S2 | fused C evaluation behind an opt-in key: Bragg solve, eta filter, frame lookup, ray hits and stage D in one call | about 15-25 µs per call (estimate; prototype first) | not started; after S3 (owner 2026-10-13: a GPU path is wanted, so batched torch goes first; S2 stays open); parity via Task A's fixed-orientation harness |
 | S3 | batched quick MC: all candidates of a level step in lockstep (about 58% of evaluations with the C++ rule) | per-call overhead shared across the batch | **done** (2026-10-14, merged as 31881fa; `docs/todo_batched_quick_mc.md`, MIGRATION_HISTORY "S3: batched quick MC"). Draw option B (owner 2026-10-14; option A, exact draws, was a no-go in Step 0). Opt-in keys `BatchedQuickMC` and `SearchDevice` (`cpu`, `mps`, `cuda`); key off: sequential code unchanged, no golden changed. E0 clean A/B (200 voxels x 3 seeds, current default code): wrong 111/600 off, 107/600 on, same counted evaluations; quick MC 4.5-4.7x cheaper per evaluation on CPU (5.3-5.4x MPS), whole search 1.7-1.9x (contended). MPS gave the same wrong flags as CPU on 50 runs but is slower than CPU at two workers (cause not tested). The E0 key-off arm (seed 0: 35/200) does not reproduce the Diagnosis' 204/600 (seed 0: 67/200, before the 2026-10-08 MC port); with the centroid screen and `BatchedScreen` switched back the harness reproduces the 2026-10-08 C++-faithful rerun (40/200, 3,962.95 local and 44,479.3 global evaluations) exactly, and the centroid default (2026-10-12) moves 40 to 35 (19 fixed, 14 broken, 21 both wrong, about the size of seed-to-seed flips). Under the ray rule the levels that use it run the sequential quick MC and the later levels run in lockstep (mixed mode). Open: `CppEdgeRules` in the batched cost (A-exact merged here 2026-10-14; follow-up); quiet-machine repeat; `cuda` untested. The default stays off until a later large-scale test (D-20261014-I2)
 | S4 | level-0 screen from a per-sample table: the level-0 orientations are the same for every voxel and a spot moves rigidly with the voxel (`docs/spot_translation_derivation.md`) | ceiling about 1% of a no-start search today (level 0 is about 1.1 s of 76-96 s with `BatchedScreen`); more after S2/S3 | **planned** (`docs/todo_translation_screen_prototype.md`): Step 0 go/no-go measurement, then a script-only prototype with pass-set equality checks; best done after S2/S3 |
