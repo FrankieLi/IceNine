@@ -7247,9 +7247,8 @@ Run record: `benchmarks/eval_reduction/E/RUN_LOG.md`. Library: `icenine/smooth_c
 no realistic images, no extra seeds, no golden test changed, no default flipped; `BatchedQuickMC`, `SearchDevice` and `CandidateDedup` off in
 every run. Tables are generated (`benchmarks/eval_reduction/E/doc_tables_all.md`); figures in `benchmarks/eval_reduction/E/figures/`.
 
-The plan asked for this findings text as a separate doc (`docs/findings_cost_smoothing_2026-10.md`). The implementer's environment refused to
-create that file (a guard against agents writing findings files), so the whole findings text is here; the doc can be made by copying this
-subsection.
+Plain-English findings: `docs/findings_cost_smoothing_2026-10.md` (written in the main session from this subsection, which keeps the
+full record and every table; the implementer could not create the doc).
 
 #### Short answer
 
