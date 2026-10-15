@@ -228,3 +228,23 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   `CppEdgeRules` becomes supported in the batched local cost (S3's open follow-up), so runs with both
   opt-in keys `BatchedQuickMC` and `CppEdgeRules` use the lockstep quick MC instead of the
   sequential fallback; no default changes. Where: ROADMAP Track S rows S1 and S3.
+
+### D-20261014-I16 · S1 · Repeat the S1 timings on a quiet machine
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- The contended S1 timings are not accepted as final: the review-fix implementer re-runs the S1
+  timing script (`run_s1_timing.sh`) only if the timing preflight passes; otherwise the repeat is
+  listed as left undone and the docs keep the "contended" label. Where: ROADMAP row S1;
+  MIGRATION_HISTORY "S1: per-call loops out of evaluate".
+
+### D-20261014-I17 · S1, Track E scripts · Keep S1's edits to three Track E scripts
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- S1's edits to `scripts/eval_reduction/cost_edges.py`, `parity_common.py`, `screen_timing.py` and
+  one check in `tests/test_cost_edges.py` (they also wrap the new `scattering_omegas_fixed_beam`,
+  because `evaluate` no longer calls `get_scattering_omegas_torch`) are kept; Newt Agent is told in
+  the merge heads-up. Where: Ilium mailbox; MIGRATION_HISTORY "S1".
+
+### D-20261014-I18 · S1 · The evaluate fixture is strict only on its own platform
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- `tests/data/s1_evaluate_ref.npz` is compared exactly on the platform and torch version that made
+  it (arm64, torch 2.8.0); on any other the test skips with a message naming the difference.
+  Where: `tests/test_s1_evaluate.py`.
