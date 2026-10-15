@@ -163,6 +163,24 @@ def grain_spot_counts(
     }
 
 
+def partner_size_ratio(ct: Dict, cls: np.ndarray, a: np.ndarray, b: np.ndarray) -> Dict[str, Any]:
+    """Size of a detector-1 spot against its true detector-0 partner (one-grain pairs, neither
+    spot touching a detector border). A grain's peak is a parallel projection, so the two spots
+    should have about the same size; a scaling by L1/L0 would give an area ratio of about 2.6."""
+    m = (cls[a] == 1) & (cls[b] == 1) & ~ct["edge"][a] & ~ct["edge"][b]
+    i0, i1 = a[m], b[m]
+    out: Dict[str, Any] = {"n_pairs": int(m.sum())}
+    for key, x0, x1 in (
+        ("npix", ct["npix"][i0], ct["npix"][i1]),
+        ("width", ct["cmax"][i0] - ct["cmin"][i0] + 1, ct["cmax"][i1] - ct["cmin"][i1] + 1),
+        ("height", ct["rmax"][i0] - ct["rmin"][i0] + 1, ct["rmax"][i1] - ct["rmin"][i1] + 1),
+    ):
+        out[f"{key}_ratio_det1_over_det0_pct10_50_90"] = pct(
+            x1.astype(float) / x0.astype(float), [10, 50, 90]
+        )
+    return out
+
+
 def evaluate(
     name: str,
     suffix: str,
@@ -344,10 +362,42 @@ def derived_geometry(geo: Dict[str, Any], name: str) -> Dict[str, Any]:
             float(one / np.sin(np.radians(rings.min()))),
             float(one / np.sin(np.radians(rings.max()))),
         ],
+        "g_err_1px_both_quadrature_deg_at_min_max_two_theta": [
+            float(one * np.sqrt(2.0) / np.sin(np.radians(rings.min()))),
+            float(one * np.sqrt(2.0) / np.sin(np.radians(rings.max()))),
+        ],
         "omega_frame_width_deg": om_step,
         "omega_half_width_deg": om_step / 2.0,
         "median_sin_g_z_chosen_pairs": float(np.median(sin_gz)),
         "g_err_omega_half_width_median_deg": float(om_step / 2.0 * np.median(sin_gz)),
+    }
+
+
+def measured_ray_error(
+    geo: Dict[str, Any], name: str, ct: Dict, cls: np.ndarray, a: np.ndarray, b: np.ndarray
+) -> Dict[str, Any]:
+    """Measured radial error of the ray direction: 2 theta of the line through the two centroids
+    minus the nearest ring angle, over the correct one-grain pairs of `name` (the origin-error
+    subset). The line uses both centroids, so this includes both detectors' errors. The azimuthal
+    error (a turn about the beam) is not measured; the scattering-vector figure assumes it is
+    about as large as the radial one."""
+    N = len(cls)
+    r = np.load(pc.CACHE / f"pairs_full_{name}.npz")
+    ch = r["chosen"].astype(bool)
+    c0, c1 = r["c0"][ch], r["c1"][ch]
+    ok = np.isin(pc.pair_keys(c0, c1, N), pc.pair_keys(a, b, N)) & (cls[c0] == 1) & (cls[c1] == 1)
+    dn = r["dirn"][ch][ok]
+    tt = np.degrees(np.arccos(np.clip(dn @ sp.BEAM_DIR, -1.0, 1.0)))
+    rings = np.degrees(np.asarray(geo["rings_two_theta"]))
+    d = np.abs(tt[:, None] - rings).min(axis=1)
+    med = float(np.median(d))
+    return {
+        "measured_radial_ray_err_n_pairs": int(ok.sum()),
+        "measured_radial_ray_err_deg_pct50_90_99_max": pct(d, [50, 90, 99]) + [float(d.max())],
+        "g_err_measured_median_deg_at_min_max_two_theta": [
+            float(med / np.sin(np.radians(rings.min()))),
+            float(med / np.sin(np.radians(rings.max()))),
+        ],
     }
 
 
@@ -409,6 +459,7 @@ def main() -> None:
 
     s1, t1 = step1(prov, ct, cls, a, b, npk)
     s1["per_grain"] = grain_spot_counts(prov, ct, cls, geo, a)
+    s1["partner_size_ratio"] = partner_size_ratio(ct, cls, a, b)
     (OUT1 / "summary.json").write_text(json.dumps(s1, indent=2) + "\n")
     DT.write_tables(OUT1 / "tables.md", t1)
 
@@ -446,6 +497,7 @@ def main() -> None:
     t2["step2_origin_error"] = tbl_oe
     np.savez_compressed(pc.CACHE / "origin_error_arrays.npz", **arrays)
     summary["derived_geometry"] = derived_geometry(geo, MAIN)
+    summary["derived_geometry"].update(measured_ray_error(geo, MAIN, ct, cls, a, b))
     fails, by_class = true_link_rejections(geo, ct, cls, a, b)
     summary["true_link_first_failing_gate"] = fails
     summary["true_link_first_failing_gate_by_class"] = by_class

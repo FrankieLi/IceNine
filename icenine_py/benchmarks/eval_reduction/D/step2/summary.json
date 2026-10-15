@@ -1130,10 +1130,25 @@
       0.4533446480674289,
       0.17665446459466164
     ],
+    "g_err_1px_both_quadrature_deg_at_min_max_two_theta": [
+      0.6411261497262157,
+      0.24982713968352824
+    ],
     "omega_frame_width_deg": 1.0,
     "omega_half_width_deg": 0.5,
     "median_sin_g_z_chosen_pairs": 0.8608780665491697,
-    "g_err_omega_half_width_median_deg": 0.4304390332745848
+    "g_err_omega_half_width_median_deg": 0.4304390332745848,
+    "measured_radial_ray_err_n_pairs": 23205,
+    "measured_radial_ray_err_deg_pct50_90_99_max": [
+      0.004422313066031691,
+      0.01549968677633125,
+      0.03670758409310321,
+      0.08011145553156318
+    ],
+    "g_err_measured_median_deg_at_min_max_two_theta": [
+      0.047890515372160165,
+      0.018661460741393916
+    ]
   },
   "true_link_first_failing_gate": {
     "gate_ray": 0,
