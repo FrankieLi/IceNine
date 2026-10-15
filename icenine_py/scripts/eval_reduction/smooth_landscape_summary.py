@@ -237,7 +237,11 @@ def summarise(kind: str, costs: List[str] = COSTS, cache: Path = CACHE) -> Dict[
             basin_q25_deg={e: float(np.quantile(v, 0.25)) for e, v in a["basin"].items()},
             basin_to_5deg=a["basin_full"],
             median_cost_at_truth=float(np.median(a["cost_truth"])),
-            half_rise_median_deg=float(np.median(a["half_rise"])),
+            half_rise_median_deg=(
+                float(np.median(a["half_rise"]))
+                if np.isfinite(np.median(a["half_rise"]))
+                else None  # the median ray does not rise half-way within the walk
+            ),
         )
     return res
 
@@ -318,7 +322,11 @@ def tables(S: Dict[str, Any], costs: List[str] = COSTS, tag: str = "") -> Dict[s
             rows.append(
                 {
                     "cost": LABEL[c],
-                    "half-way rise from the truth (median deg)": x["half_rise_median_deg"],
+                    "half-way rise from the truth (median deg)": (
+                        "beyond 5"
+                        if x["half_rise_median_deg"] is None
+                        else f"{x['half_rise_median_deg']:.3f}"
+                    ),
                     "basin radius, eps 0.01 (median deg)": x["basin_median_deg"]["0.01"],
                     "basin radius, eps 0.01 (lower quartile deg)": x["basin_q25_deg"]["0.01"],
                     "rays monotone to 5 deg, eps 0.01": f"{x['basin_to_5deg']['0.01']} of {n}",

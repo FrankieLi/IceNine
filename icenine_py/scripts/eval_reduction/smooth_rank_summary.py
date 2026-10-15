@@ -291,6 +291,9 @@ def e2e_tables(E: Dict[str, Any]) -> Dict[str, str]:
                 "fixed: traced to arm / draw": " / ".join(
                     str(x[k]) for k in ("fixed_traced_arm", "fixed_traced_draw")
                 ),
+                "median error of voxels right in both (deg), baseline / arm": (
+                    f"{x['median_err_both_right_base']:.4f} / {x['median_err_both_right_arm']:.4f}"
+                ),
                 "strict evaluations per voxel, baseline": x["mean_evals_base"],
                 "strict evaluations per voxel, arm": x["mean_evals_arm"],
                 "smooth evaluations per voxel": x["mean_smooth_evals_arm"],
@@ -302,9 +305,83 @@ def e2e_tables(E: Dict[str, Any]) -> Dict[str, str]:
     return {"evalE_e2e": DT.markdown_table(rows, list(rows[0].keys()), fm)}
 
 
+def timing_tables() -> Dict[str, str]:
+    """Measurement 4: ms per evaluation (single-worker, preflight-gated, ``smooth_timing.py``) and
+    the extra time per voxel of the carried arms (smooth evaluations per voxel from the end-to-end
+    runs x ms per evaluation at the level-0 widths, an upper estimate; plus the one-off build)."""
+    d = OUT / "timing"
+    T: Dict[str, str] = {}
+    tim = {}
+    for which in ("full", "e0"):
+        f = d / f"timing_{which}.json"
+        if f.exists():
+            tim[which] = json.loads(f.read_text())
+    if not tim:
+        return T
+    rows = []
+    for name in tim[next(iter(tim))]["arms"]:
+        row: Dict[str, Any] = {"cost": name}
+        for which, t in tim.items():
+            lab = "full-sample" if which == "full" else "E0"
+            a = t["arms"][name]
+            row[f"{lab}: ms per evaluation, batch of 256"] = a["ms_per_eval_batch256"]
+            row[f"{lab}: ms per evaluation, one per call"] = a["ms_per_eval_single"]
+            row[f"{lab}: x strict"] = a["ratio_batch256_to_strict"]
+        rows.append(row)
+    strict = {"cost": "strict cost (one call per orientation)"}
+    for which, t in tim.items():
+        lab = "full-sample" if which == "full" else "E0"
+        strict[f"{lab}: ms per evaluation, batch of 256"] = t["strict_ms_per_eval"]
+        strict[f"{lab}: ms per evaluation, one per call"] = t["strict_ms_per_eval"]
+        strict[f"{lab}: x strict"] = 1.0
+    rows.insert(0, strict)
+    fm = {k: ".3f" for k in rows[0] if k != "cost"}
+    T["evalE_timing_ms"] = DT.markdown_table(rows, list(rows[0].keys()), fm)
+    e2e_path = OUT / "e2e" / "summary.json"
+    if e2e_path.exists():
+        E = json.loads(e2e_path.read_text())
+        rows = []
+        arm_of = {"E3+E4,tau=0.25": "E3+E4", "E1+E2+E3+E4": "E1+E2+E3+E4"}
+        for key, x in E.items():
+            kind, rule, tag, sub = key.split("|")
+            if rule != "old" or kind not in tim:
+                continue
+            t = tim[kind]
+            ms = t["arms"][arm_of[x["spec"]]]["ms_per_eval_batch256"]
+            smooth_s = x["mean_smooth_evals_arm"] * ms / 1000.0
+            build_s = t["build_trees_s"] + t["build_rays_s"]
+            strict_s = x["mean_evals_arm"] * t["strict_ms_per_eval"] / 1000.0
+            base_s = x["mean_evals_base"] * t["strict_ms_per_eval"] / 1000.0
+            rows.append(
+                {
+                    "voxel set": sub,
+                    "arm": x["spec"],
+                    "strict cost time per voxel, baseline (s)": base_s,
+                    "strict cost time per voxel, arm (s)": strict_s,
+                    "smooth evaluations per voxel": x["mean_smooth_evals_arm"],
+                    "smooth cost time per voxel (s)": smooth_s,
+                    "one-off build per image set (s)": build_s,
+                    "extra time with a build per voxel": (
+                        f"{(strict_s + smooth_s + build_s) / base_s - 1:+.1%}"
+                    ),
+                    "extra time with one build per image set": (
+                        f"{(strict_s + smooth_s) / base_s - 1:+.1%}"
+                    ),
+                }
+            )
+        if rows:
+            T["evalE_timing_per_voxel"] = DT.markdown_table(
+                rows,
+                list(rows[0].keys()),
+                {k: ".1f" for k in rows[0] if "(s)" in k} | {"smooth evaluations per voxel": ".0f"},
+            )
+    DT.write_tables(d / "tables.md", T)
+    return T
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["rank", "e2e"])
+    ap.add_argument("cmd", choices=["rank", "e2e", "timing"])
     ap.add_argument("--arms", default="")
     ap.add_argument("--levels", type=int, default=RANK_LEVELS)
     a = ap.parse_args()
@@ -328,6 +405,11 @@ def main() -> None:
             print(k)
             print(t)
             print()
+        return
+    if a.cmd == "timing":
+        for k, t in timing_tables().items():
+            print(k)
+            print(t)
         return
     E: Dict[str, Any] = {}
     for tag in [t for t in a.arms.split(",") if t]:

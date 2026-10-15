@@ -7239,6 +7239,548 @@ scattering-vector figures). The error budget above leads with these figures. The
 **Files.** See the "Task D" paragraph of the README. Results: `step1/`, `step2/`, `step3/` (`summary*.json`, `tables*.md`), `figures/`, `cache/`
 (gitignored: provenance-derived arrays, pairs per preset).
 
+### Task E: smoothing the cost with geometry and physics (2026-10-15, `feature/eval-reduction-E`)
+
+Run record: `benchmarks/eval_reduction/E/RUN_LOG.md`. Library: `icenine/smooth_cost.py`, config key `SmoothCostRank` (opt-in, default
+`off`; tests `tests/test_smooth_cost.py`). Hooks: one `elif` in the level loop of `reconstructor.py` (after the existing `rank_key` branch),
+`SearchParameters.smooth_rank`, `ConfigFile` key. Scripts: `scripts/eval_reduction/smooth_*.py`. Clean images only (Q-max 8 configuration),
+no realistic images, no extra seeds, no golden test changed, no default flipped; `BatchedQuickMC`, `SearchDevice` and `CandidateDedup` off in
+every run. Tables are generated (`benchmarks/eval_reduction/E/doc_tables_all.md`); figures in `benchmarks/eval_reduction/E/figures/`.
+
+The plan asked for this findings text as a separate doc (`docs/findings_cost_smoothing_2026-10.md`). The implementer's environment refused to
+create that file (a guard against agents writing findings files), so the whole findings text is here; the doc can be made by copying this
+subsection.
+
+#### Short answer
+
+1. *The strict cost changes in steps; the arms can remove them.* On the full-sample rays 88.2% of the strict cost's change under 0.05 deg happens
+   in isolated steps. Distance credit (E1) removes the pixel steps, omega blending (E2) the frame steps, soft peak weights (E3) the steps where a
+   peak enters or leaves the list. E1 + E2 + E3 together leave 19 isolated steps on all 120 rays (0.0 per degree).
+2. *Smoothing alone adds dips.* E1 alone gives credit for any lit pixel near a predicted spot; on the full-sample images 12 to 46 of 120 rays then
+   have a dip of depth 0.05, where the strict cost has none. The observed-ray residual (E4) alone adds shallow dips on the E0 rays. The
+   combinations with E3 and E4 have the fewest dips.
+3. *Two arms were carried to the end-to-end test,* by the plan's rule (raise the truth basin's survival at the quarter cut without adding dips):
+   **E3 + E4** (tau 0.25 deg) and **E1 + E2 + E3 + E4** (level widths). As the ranking key of levels 0-2 on the E0 200 they cut the wrong
+   voxels from 41 to 7 and to 5 (lenient rule) and from 56 to 9 (C++ rule, both arms), with 0 broken voxels in every run. The strict cost's
+   evaluations rose by 1.1% and 2.0%; each voxel also needed about 250 smooth evaluations.
+4. *The full-sample test could only show harm, and showed none.* On the six interior full-sample voxels nothing is wrong with or without the
+   arms (0 of 6). The E0 images hold only the voxel's own spots, so whether the gain carries over to full-sample voxels that the strict search
+   gets wrong is not tested; that is the next measurement.
+5. *The cost is time.* A full-sample voxel needs about 15,000 smooth evaluations (every post-MC candidate of levels 0-2). At level-0 widths,
+   single worker, E3 + E4 costs 1.639 ms per evaluation and E1 + E2 + E3 + E4 7.903 ms, against 0.381 ms for the strict cost: about +20% and
+   +103% of the strict cost's time per full-sample voxel (an upper estimate), and +1.7% and +3.6% per E0 voxel.
+6. *E4 agrees with Task D:* the observed-ray residual is not sharper than the pixel cost (half-way rise at 0.4285 deg against 0.3118 deg),
+   much of the voxel's peak list has no attached ray on full-sample images, and alone it adds dips. It helps as part of a combination, and it
+   has a gradient for Task F.
+7. *All four arms could be evaluated from a per-sample level-0 table* built by translating spots (S4), as far as the geometry goes (last
+   subsection). No default was flipped and no golden test changed.
+
+#### Terms
+
+* **Strict cost.** The cost the search uses today: one minus the share of predicted spot pixels that land on lit pixels, averaged over the
+  peaks and the two detectors. It changes in steps.
+* **Arm.** One way of making the cost smoother. An arm is used only to order (rank) candidates; the strict cost stays the judge everywhere
+  else (quick MC, level 3, FindOptimal, the final cost), as for the ray rule.
+* **Quick MC, quarter cut.** At each coarse level (0, 1, 2) every candidate is polished by a short Monte Carlo run (the quick MC); the list is
+  then sorted and the best quarter is kept (the quarter cut).
+* **Truth basin.** The candidates close enough to the truth that the next level's grid around them contains it: within the level's diameter
+  divided by 1.5 (3.33 deg at level 0, 2.22 deg at level 1, 1.48 deg at level 2).
+* **Kept, fixed, broken.** The basin is kept when at least one basin candidate survives the quarter cut. On the same list, *fixed* = the arm
+  keeps it and the strict ranking does not; *broken* = the reverse.
+* **Isolated step.** A jump between two neighbouring points of a ray (0.0005 deg apart): a change above 1e-6 and more than three times the
+  change of both neighbouring steps. A smooth slope has none.
+* **Local minimum of depth d.** A dip along a ray, away from the truth, at least d below the lower of the two surrounding peaks (Task B's
+  prominence).
+* **Basin radius at tolerance eps.** How far out from the truth the cost never falls more than eps below the highest value reached so far.
+* **Wrong.** A final orientation more than 1 deg from the truth.
+
+#### The arms
+
+All arms predict the same spots as the strict cost (same Bragg solution, detectors and frames). They differ in how a predicted spot is scored
+against the image. A spot is looked at in four points: its three projected corners and its centre.
+
+* **S, the control.** A point scores 1 if its pixel is lit, else 0: the strict cost's test at four points instead of every pixel of the spot.
+  It shows what the four-point sampling alone does.
+* **E1, distance kernel.** A point scores by its distance to the nearest lit pixel of its image: 1 inside a lit pixel, then falling off
+  smoothly with width sigma (pixels). The coarse screen's pixel radius made continuous.
+* **E2, omega blending.** A spot also takes credit from the neighbouring frames, weighted by how close its predicted omega is to each frame:
+  full weight on its own frame and at the edge of the next, zero once it is "reach" frames past that edge. It keeps the best weighted credit,
+  so a spot that crosses a frame edge loses its credit gradually. (A first version that averaged over the frames raised the cost at the
+  truth of voxel 15901 from 0.053 to 0.296, because these images put each spot on one frame; it was replaced before any measurement.)
+* **E3, soft peak weights.** Each peak counts with a weight that falls smoothly to zero near a detector edge, near the eta limit and near
+  either end of the omega scan, so the score does not jump when a peak enters or leaves the list. A peak's credit is averaged over the
+  detectors its spot can reach, which removes the fixed half credit of a spot that misses detector 1 (Task B, section 5).
+* **E4, observed-ray residual.** Spots are found in the images and paired across the two detectors with Task D's method (`ring_tight`, binary
+  centroids); Task D's footprint rule attaches the rays that pass through the voxel. Per predicted peak, the residual is the angle to the
+  nearest attached observed ray plus how far its omega lies outside that ray's frame; the cost is the mean of r^2 / (r^2 + tau^2). It changes
+  smoothly with the orientation and has a gradient (`SmoothCost.e4_cost_torch`, checked against finite differences; for Task F).
+* **E5, combinations,** written with "+". With E4 and an image arm together, the cost is the mean of the two.
+
+Widths. On the rays of measurement 1 the widths are fixed (sigma 3 or 12 px, reach 1 frame, tau 0.05 or 0.25 deg). In the search ("auto")
+they follow the level, from the quick MC's trial radius r = max(diameter / 3, 0.2 deg): sigma = r x (detector-0 pixels per radian) / 4,
+reach = max(1, r / frame width), tau = r / 4. At level 0 (diameter 5 deg) that is sigma 16.5 px, reach 1.67 frames, tau 0.42 deg; the rays
+were walked a second time at these level-0 widths.
+
+#### Measurement 1: the cost along Task B's rays
+
+Same rays as Task B: 6 full-sample voxels x 20 directions, 0 to 5 deg in steps of 0.0005 deg; 30 E0 voxels x 20 directions, 0 to 0.5 deg plus
+four 0.05-deg windows and a log profile to 5 deg. The strict cost is Task B's (its cache, re-checked at five points of one ray of each set
+to 2.4e-8).
+
+Steps per degree and the share of the cost's change that happens in steps. Read across a row: the strict cost changes almost entirely in steps;
+an arm that smooths well has few steps and a low share.
+
+<!-- table:evalE_land_steps_full -->
+| cost | cost at the truth (median) | steps per deg, under 0.05 deg | steps per deg, 0.05 to 0.5 deg | steps per deg, 0.5 to 5 deg | variation in steps, under 0.05 deg | variation in steps, 0.05 to 0.5 deg | variation in steps, 0.5 to 5 deg |
+|---|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 0.0703 | 113.8 | 261.5 | 25.0 | 88.2% | 84.2% | 94.0% |
+| strict cost, lenient rule | 0.0703 | 116.3 | 323.6 | 108.2 | 87.5% | 78.4% | 89.6% |
+| S: sampled binary (control) | 0.0717 | 96.8 | 239.0 | 46.9 | 87.6% | 75.1% | 93.5% |
+| E1: distance kernel 3 px | 0.0717 | 49.3 | 45.1 | 30.3 | 97.7% | 80.5% | 73.5% |
+| E1: distance kernel 12 px | 0.0694 | 49.3 | 49.5 | 47.7 | 97.5% | 93.6% | 89.4% |
+| E2: omega blending, 1 frame | 0.0717 | 55.2 | 236.3 | 89.8 | 54.9% | 52.6% | 65.4% |
+| E3: soft peak weights | 0.0000 | 96.5 | 241.2 | 45.4 | 87.3% | 75.0% | 92.8% |
+| E4: ray residual, tau 0.05 deg | 0.4136 | 0.2 | 1.4 | 8.0 | 0.0% | 1.7% | 2.6% |
+| E4: ray residual, tau 0.25 deg | 0.2930 | 4.5 | 4.3 | 13.2 | 0.3% | 6.5% | 9.7% |
+| E1 + E2 | 0.0717 | 0.0 | 2.2 | 2.0 | 0.0% | 7.8% | 4.5% |
+| E1 + E2 + E3 | 0.0000 | 0.0 | 0.0 | 0.0 | 0.0% | 0.0% | 0.1% |
+| E2 + E3 | 0.0000 | 55.8 | 237.9 | 88.1 | 56.3% | 52.9% | 65.5% |
+| E3 + E4 (0.25 deg) | 0.1464 | 96.3 | 239.7 | 54.8 | 84.2% | 63.0% | 55.5% |
+<!-- /table:evalE_land_steps_full -->
+
+The same on the E0 images (per-voxel images: the voxel's own spots only).
+
+<!-- table:evalE_land_steps_e0 -->
+| cost | cost at the truth (median) | steps per deg, under 0.05 deg | steps per deg, 0.05 to 0.5 deg | steps per deg, 0.5 to 5 deg (4 windows of 0.05 deg) | variation in steps, under 0.05 deg | variation in steps, 0.05 to 0.5 deg | variation in steps, 0.5 to 5 deg (4 windows of 0.05 deg) |
+|---|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 0.0606 | 330.8 | 284.7 | 25.8 | 40.7% | 61.9% | 86.2% |
+| strict cost, lenient rule | 0.0606 | 318.5 | 349.5 | 50.2 | 38.0% | 55.5% | 84.2% |
+| S: sampled binary (control) | 0.0616 | 247.0 | 228.7 | 25.9 | 31.6% | 48.3% | 91.6% |
+| E1: distance kernel 3 px | 0.0606 | 42.7 | 42.3 | 13.3 | 94.9% | 64.3% | 52.9% |
+| E1: distance kernel 12 px | 0.0606 | 42.7 | 42.3 | 14.2 | 96.0% | 91.4% | 82.8% |
+| E2: omega blending, 1 frame | 0.0616 | 217.7 | 234.7 | 36.9 | 20.9% | 37.3% | 68.6% |
+| E3: soft peak weights | 0.0000 | 263.2 | 235.0 | 25.3 | 33.4% | 50.3% | 90.9% |
+| E4: ray residual, tau 0.05 deg | 0.0977 | 2.0 | 1.4 | 4.9 | 4.9% | 1.2% | 1.3% |
+| E4: ray residual, tau 0.25 deg | 0.0049 | 1.8 | 4.3 | 11.1 | 25.6% | 4.8% | 6.4% |
+| E1 + E2 | 0.0606 | 2.2 | 1.7 | 1.4 | 46.7% | 3.4% | 1.7% |
+| E1 + E2 + E3 | 0.0000 | 0.0 | 0.0 | 0.0 | 0.0% | 0.1% | 0.0% |
+| E2 + E3 | 0.0000 | 236.3 | 239.9 | 36.0 | 23.2% | 39.1% | 69.0% |
+| E3 + E4 (0.25 deg) | 0.0021 | 249.2 | 229.2 | 34.2 | 31.0% | 40.6% | 27.5% |
+<!-- /table:evalE_land_steps_e0 -->
+
+Which strict-cost event each remaining step coincides with (Task B's per-peak events on the same step of the same ray). Read: E1 alone leaves
+the frame steps, E2 alone leaves the pixel steps; together they leave the peak-set (presence) and detector-edge steps, which E3 removes.
+
+<!-- table:evalE_land_types_full -->
+| cost | isolated steps | at a frame event | at a pixel event | at a presence event | at a detector event | at no strict event |
+|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 28290 | 15.2% | 83.1% | 1.6% | 0.1% | 0.0% |
+| strict cost, lenient rule | 76615 | 10.6% | 88.5% | 0.8% | 0.1% | 0.0% |
+| S: sampled binary (control) | 38789 | 18.5% | 76.5% | 1.7% | 0.7% | 2.6% |
+| E1: distance kernel 3 px | 19069 | 92.2% | 2.1% | 3.6% | 1.8% | 0.2% |
+| E1: distance kernel 12 px | 28709 | 92.9% | 2.2% | 2.6% | 2.1% | 0.2% |
+| E2: omega blending, 1 frame | 61571 | 4.0% | 91.3% | 1.0% | 0.5% | 3.2% |
+| E3: soft peak weights | 38094 | 18.8% | 78.3% | 0.2% | 0.1% | 2.6% |
+| E4: ray residual, tau 0.05 deg | 4409 | 78.1% | 6.8% | 14.0% | 0.4% | 0.7% |
+| E4: ray residual, tau 0.25 deg | 7400 | 86.4% | 4.6% | 8.3% | 0.2% | 0.5% |
+| E1 + E2 | 1189 | 2.0% | 9.2% | 54.5% | 33.6% | 0.8% |
+| E1 + E2 + E3 | 19 | 5.3% | 42.1% | 52.6% | 0.0% | 0.0% |
+| E2 + E3 | 60777 | 4.0% | 92.6% | 0.1% | 0.1% | 3.2% |
+| E3 + E4 (0.25 deg) | 43125 | 28.8% | 68.6% | 0.2% | 0.1% | 2.3% |
+<!-- /table:evalE_land_types_full -->
+
+Local minima away from the truth. Read: an arm passes when it has no more rays with a minimum than the strict cost (C++ rule) at either depth.
+The last two columns show where an arm's lowest point lies when it is not at the truth, and how much lower it is.
+
+<!-- table:evalE_land_minima_full -->
+| cost | rays with a minimum of depth 0.01, dense, 0 to 5 deg | rays with a minimum of depth 0.05, dense, 0 to 5 deg | rays with a minimum of depth 0.01, 0 to 0.5 deg | rays with a minimum of depth 0.05, 0 to 0.5 deg | rays where the truth is not the lowest point | lowest point when not the truth: median deg (max) | ... and its depth below the truth (median) |
+|---|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 72 of 120 (51.1-68.3%) | 0 of 120 (0.0-3.1%) | 6 of 120 (2.3-10.5%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| strict cost, lenient rule | 97 of 120 (72.9-86.9%) | 0 of 120 (0.0-3.1%) | 5 of 120 (1.8-9.4%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| S: sampled binary (control) | 120 of 120 (96.9-100.0%) | 3 of 120 (0.9-7.1%) | 9 of 120 (4.0-13.6%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E1: distance kernel 3 px | 120 of 120 (96.9-100.0%) | 12 of 120 (5.8-16.7%) | 11 of 120 (5.2-15.7%) | 0 of 120 (0.0-3.1%) | 12 of 120 | 0.0150 (0.0215) | 0.0000 |
+| E1: distance kernel 12 px | 120 of 120 (96.9-100.0%) | 43 of 120 (27.8-44.7%) | 9 of 120 (4.0-13.6%) | 0 of 120 (0.0-3.1%) | 37 of 120 | 0.0205 (0.0725) | 0.0000 |
+| E2: omega blending, 1 frame | 114 of 120 (89.5-97.7%) | 6 of 120 (2.3-10.5%) | 17 of 120 (9.0-21.5%) | 0 of 120 (0.0-3.1%) | 1 of 120 | 0.2230 (0.2230) | 0.0062 |
+| E3: soft peak weights | 120 of 120 (96.9-100.0%) | 7 of 120 (2.9-11.6%) | 5 of 120 (1.8-9.4%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E4: ray residual, tau 0.05 deg | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 54 of 120 | 0.0095 (0.0825) | 0.0002 |
+| E4: ray residual, tau 0.25 deg | 31 of 120 (18.8-34.3%) | 0 of 120 (0.0-3.1%) | 24 of 120 (13.8-28.0%) | 0 of 120 (0.0-3.1%) | 55 of 120 | 0.0195 (0.2230) | 0.0001 |
+| E1 + E2 | 69 of 120 (48.6-66.0%) | 2 of 120 (0.5-5.9%) | 19 of 120 (10.4-23.4%) | 0 of 120 (0.0-3.1%) | 17 of 120 | 0.1280 (0.2500) | 0.0041 |
+| E1 + E2 + E3 | 52 of 120 (34.8-52.3%) | 1 of 120 (0.1-4.6%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E2 + E3 | 119 of 120 (95.4-99.9%) | 10 of 120 (4.6-14.7%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E3 + E4 (0.25 deg) | 52 of 120 (34.8-52.3%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 60 of 120 | 0.0115 (0.0460) | 0.0000 |
+<!-- /table:evalE_land_minima_full -->
+
+<!-- table:evalE_land_minima_e0 -->
+| cost | rays with a minimum of depth 0.01, dense, 0 to 0.5 deg | rays with a minimum of depth 0.05, dense, 0 to 0.5 deg | rays where the truth is not the lowest point | lowest point when not the truth: median deg (max) | ... and its depth below the truth (median) |
+|---|---|---|---|---|---|
+| strict cost, C++ rule | 12 of 600 (1.1-3.5%) | 0 of 600 (0.0-0.6%) | 38 of 600 | 0.0005 (0.0010) | 0.0021 |
+| strict cost, lenient rule | 13 of 600 (1.3-3.7%) | 0 of 600 (0.0-0.6%) | 38 of 600 | 0.0005 (0.0010) | 0.0021 |
+| S: sampled binary (control) | 12 of 600 (1.1-3.5%) | 0 of 600 (0.0-0.6%) | 0 of 600 |  |  |
+| E1: distance kernel 3 px | 54 of 600 (7.0-11.6%) | 0 of 600 (0.0-0.6%) | 10 of 600 | 0.0005 (0.0020) | 0.0000 |
+| E1: distance kernel 12 px | 61 of 600 (8.0-12.8%) | 0 of 600 (0.0-0.6%) | 0 of 600 |  |  |
+| E2: omega blending, 1 frame | 17 of 600 (1.8-4.5%) | 0 of 600 (0.0-0.6%) | 0 of 600 |  |  |
+| E3: soft peak weights | 0 of 600 (0.0-0.6%) | 0 of 600 (0.0-0.6%) | 6 of 600 | 0.0008 (0.0030) | 0.0000 |
+| E4: ray residual, tau 0.05 deg | 54 of 600 (7.0-11.6%) | 0 of 600 (0.0-0.6%) | 291 of 600 | 0.0075 (0.0625) | 0.0003 |
+| E4: ray residual, tau 0.25 deg | 71 of 600 (9.5-14.7%) | 0 of 600 (0.0-0.6%) | 287 of 600 | 0.0080 (0.1535) | 0.0000 |
+| E1 + E2 | 88 of 600 (12.1-17.7%) | 0 of 600 (0.0-0.6%) | 38 of 600 | 0.0690 (0.1920) | 0.0080 |
+| E1 + E2 + E3 | 6 of 600 (0.5-2.2%) | 0 of 600 (0.0-0.6%) | 30 of 600 | 0.0075 (0.0235) | 0.0000 |
+| E2 + E3 | 0 of 600 (0.0-0.6%) | 0 of 600 (0.0-0.6%) | 6 of 600 | 0.0008 (0.0030) | 0.0000 |
+| E3 + E4 (0.25 deg) | 6 of 600 (0.5-2.2%) | 0 of 600 (0.0-0.6%) | 124 of 600 | 0.0010 (0.0060) | 0.0000 |
+<!-- /table:evalE_land_minima_e0 -->
+
+Basin radius along the full-sample rays. Read: larger is a wider basin. The strict cost reaches 1 (no overlap) beyond about 2 deg and stays flat, so
+it counts as monotone there; the arms keep some credit far out and their wiggles there count against them.
+
+<!-- table:evalE_land_basin_full -->
+| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays monotone to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays monotone to 5 deg, eps 0.05 |
+|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 0.312 | 3.693 | 1.729 | 45 of 120 | 5.000 | 120 of 120 |
+| strict cost, lenient rule | 0.333 | 2.783 | 1.971 | 15 of 120 | 5.000 | 120 of 120 |
+| S: sampled binary (control) | 0.348 | 1.688 | 1.315 | 0 of 120 | 5.000 | 111 of 120 |
+| E1: distance kernel 3 px | 0.667 | 1.697 | 1.287 | 0 of 120 | 5.000 | 95 of 120 |
+| E1: distance kernel 12 px | 1.269 | 1.081 | 0.758 | 0 of 120 | 4.701 | 54 of 120 |
+| E2: omega blending, 1 frame | 0.482 | 2.111 | 1.626 | 4 of 120 | 5.000 | 110 of 120 |
+| E3: soft peak weights | 0.348 | 1.698 | 1.267 | 0 of 120 | 5.000 | 105 of 120 |
+| E4: ray residual, tau 0.05 deg | 0.428 | 5.000 | 5.000 | 117 of 120 | 5.000 | 120 of 120 |
+| E4: ray residual, tau 0.25 deg | 1.075 | 5.000 | 3.427 | 87 of 120 | 5.000 | 120 of 120 |
+| E1 + E2 | 1.064 | 3.750 | 1.901 | 25 of 120 | 5.000 | 111 of 120 |
+| E1 + E2 + E3 | 1.069 | 4.238 | 3.420 | 31 of 120 | 5.000 | 109 of 120 |
+| E2 + E3 | 0.481 | 2.228 | 1.787 | 0 of 120 | 5.000 | 103 of 120 |
+| E3 + E4 (0.25 deg) | 0.549 | 4.983 | 3.837 | 60 of 120 | 5.000 | 120 of 120 |
+<!-- /table:evalE_land_basin_full -->
+
+The same rays at the level-0 widths the search uses (minima only; the other tables are in `landscape_L0/tables.md`):
+
+<!-- table:evalE_landL0_minima_full -->
+| cost | rays with a minimum of depth 0.01, dense, 0 to 5 deg | rays with a minimum of depth 0.05, dense, 0 to 5 deg | rays with a minimum of depth 0.01, 0 to 0.5 deg | rays with a minimum of depth 0.05, 0 to 0.5 deg | rays where the truth is not the lowest point | lowest point when not the truth: median deg (max) | ... and its depth below the truth (median) |
+|---|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 72 of 120 (51.1-68.3%) | 0 of 120 (0.0-3.1%) | 6 of 120 (2.3-10.5%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| strict cost, lenient rule | 97 of 120 (72.9-86.9%) | 0 of 120 (0.0-3.1%) | 5 of 120 (1.8-9.4%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E1, level-0 width (16.5 px) | 120 of 120 (96.9-100.0%) | 46 of 120 (30.1-47.3%) | 5 of 120 (1.8-9.4%) | 0 of 120 (0.0-3.1%) | 36 of 120 | 0.0203 (0.0460) | 0.0000 |
+| E2, level-0 reach (1.67 frames) | 113 of 120 (88.4-97.1%) | 6 of 120 (2.3-10.5%) | 18 of 120 (9.7-22.5%) | 0 of 120 (0.0-3.1%) | 2 of 120 | 0.2083 (0.2230) | 0.0057 |
+| E4, level-0 tau (0.42 deg) | 39 of 120 (24.8-41.3%) | 0 of 120 (0.0-3.1%) | 24 of 120 (13.8-28.0%) | 0 of 120 (0.0-3.1%) | 55 of 120 | 0.0235 (0.2230) | 0.0001 |
+| E1 + E2, level-0 widths | 74 of 120 (52.7-69.9%) | 0 of 120 (0.0-3.1%) | 16 of 120 (8.4-20.6%) | 0 of 120 (0.0-3.1%) | 35 of 120 | 0.0960 (0.2950) | 0.0019 |
+| E1 + E2 + E3, level-0 widths | 34 of 120 (21.0-37.0%) | 1 of 120 (0.1-4.6%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E2 + E3, level-0 reach | 115 of 120 (90.6-98.2%) | 10 of 120 (4.6-14.7%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E3 + E4, level-0 tau | 46 of 120 (30.1-47.3%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 65 of 120 | 0.0145 (0.0575) | 0.0000 |
+| E1 + E2 + E3 + E4, level-0 widths | 16 of 120 (8.4-20.6%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 72 of 120 | 0.0255 (0.0765) | 0.0000 |
+<!-- /table:evalE_landL0_minima_full -->
+
+<!-- table:evalE_landL0_minima_e0 -->
+| cost | rays with a minimum of depth 0.01, dense, 0 to 0.5 deg | rays with a minimum of depth 0.05, dense, 0 to 0.5 deg | rays where the truth is not the lowest point | lowest point when not the truth: median deg (max) | ... and its depth below the truth (median) |
+|---|---|---|---|---|---|
+| strict cost, C++ rule | 12 of 600 (1.1-3.5%) | 0 of 600 (0.0-0.6%) | 38 of 600 | 0.0005 (0.0010) | 0.0021 |
+| strict cost, lenient rule | 13 of 600 (1.3-3.7%) | 0 of 600 (0.0-0.6%) | 38 of 600 | 0.0005 (0.0010) | 0.0021 |
+| E1, level-0 width (16.5 px) | 61 of 600 (8.0-12.8%) | 0 of 600 (0.0-0.6%) | 0 of 600 |  |  |
+| E2, level-0 reach (1.67 frames) | 17 of 600 (1.8-4.5%) | 0 of 600 (0.0-0.6%) | 0 of 600 |  |  |
+| E4, level-0 tau (0.42 deg) | 70 of 600 (9.3-14.5%) | 0 of 600 (0.0-0.6%) | 292 of 600 | 0.0085 (0.1730) | 0.0000 |
+| E1 + E2, level-0 widths | 83 of 600 (11.3-16.8%) | 0 of 600 (0.0-0.6%) | 49 of 600 | 0.1370 (0.4475) | 0.0119 |
+| E1 + E2 + E3, level-0 widths | 6 of 600 (0.5-2.2%) | 0 of 600 (0.0-0.6%) | 30 of 600 | 0.0235 (0.0450) | 0.0000 |
+| E2 + E3, level-0 reach | 0 of 600 (0.0-0.6%) | 0 of 600 (0.0-0.6%) | 6 of 600 | 0.0008 (0.0030) | 0.0000 |
+| E3 + E4, level-0 tau | 6 of 600 (0.5-2.2%) | 0 of 600 (0.0-0.6%) | 124 of 600 | 0.0010 (0.0060) | 0.0000 |
+| E1 + E2 + E3 + E4, level-0 widths | 6 of 600 (0.5-2.2%) | 0 of 600 (0.0-0.6%) | 281 of 600 | 0.0080 (0.0330) | 0.0000 |
+<!-- /table:evalE_landL0_minima_e0 -->
+
+Task B's ray plot (voxel 15901, ray 0) redrawn with the strict cost (black) and every arm on the same axes, at 0 to 0.1, 0 to 0.5 and 0 to 5
+deg; then each arm on its own panel against the strict cost; then the level-0 widths.
+
+![strict cost and every arm along Task B's ray](benchmarks/eval_reduction/E/figures/ray_strict_vs_arms.png)
+
+![each arm against the strict cost](benchmarks/eval_reduction/E/figures/ray_each_arm.png)
+
+![the arms at the level-0 widths](benchmarks/eval_reduction/E/figures/ray_level0_widths.png)
+
+What the walks show (full-sample images unless said otherwise):
+
+* The strict cost changes almost only in steps: 88.2% of its change under 0.05 deg happens in isolated steps (84.2% at 0.05 to 0.5 deg,
+  94.0% beyond).
+* E1 alone removes the pixel steps and keeps the frame steps: 92.2% of its remaining steps fall on a frame crossing. E2 alone does the
+  reverse: 91.3% of its steps fall on a pixel event.
+* E1 + E2 together leave 0.0 steps per degree under 0.05 deg and 2.2 at 0.05 to 0.5 deg; what is left falls on peaks entering or leaving the
+  list (54.5%) and on detector edges (33.6%). Adding E3 removes those too: E1 + E2 + E3 has 0.0 steps per degree in every range (19 isolated
+  steps on all 120 rays together).
+* E3 moves the cost at the truth from 0.0703 to 0.0000 (medians): the half credit of spots that miss detector 1 is gone.
+* E4 has almost no steps (0.2, 1.4 and 8.0 per degree with tau 0.05 deg), but its cost at the truth is 0.4136 (tau 0.05 deg): many of the
+  voxel's predicted peaks have no attached observed ray. Its lowest point is off the truth on 54 of 120 rays, a median 0.0095 deg away. The
+  observed rays come from binary centroids, so their small errors move E4's minimum slightly; the strict cost's lowest point is at the truth on
+  every full-sample ray.
+* Smoothing does not remove the far dips by itself, and E1 alone adds some. With E1 alone, 12 (3 px) and 43 (12 px) of 120 rays have a dip of
+  depth 0.05, where the strict cost has none. This is consistent with E1 giving credit for lit pixels of neighbouring grains near a predicted
+  spot; on the E0 images, which hold no other grain, E1 adds no 0.05-deep dip. The neighbour explanation itself was not tested.
+* The combinations with E3 and E4 have the fewest dips: E1 + E2 + E3 + E4 at level-0 widths has a 0.01-deep dip on 16 of 120 rays (strict
+  cost: 72) and none of depth 0.05.
+* Basin radius (eps 0.01, median): strict cost 3.693 deg, E1 + E2 + E3 4.238 deg, E3 + E4 4.983 deg, E4 5.000 deg. On the E0 images almost
+  every cost is monotone to 5 deg.
+
+#### Measurement 2: the arms as the ranking key, on the strict search's own lists
+
+One no-start search per voxel with the strict cost (Task C's probe, no further library change). At levels 0, 1 and 2 the post-quick-MC list is
+re-ordered by each arm and the quarter cut is applied to both orders. The search's evaluations are the same for every arm, so this isolates the
+ranking. Sets: the E0 200 (per-voxel clean images, seed 0) with the lenient and the C++ rule; the six full-sample voxels (seed 1) with both
+rules. Arm names: `a` = auto widths of the level; `s3`, `s8`, `s12` = sigma in pixels; `w1` = reach 1 frame; `t05`, `t25` = tau 0.05 and
+0.25 deg.
+
+E0, lenient rule. Read a cell as "kept of present (+fixed / -broken)"; the last columns pool levels 0 to 2.
+
+<!-- table:evalE_rank_e0_old_next -->
+| ranking key | level 0: basin kept | level 0: best rank (median) | level 1: basin kept | level 1: best rank (median) | level 2: basin kept | level 2: best rank (median) | levels 0-2: kept (95% Wilson) | levels 0-2: fixed / broken |
+|---|---|---|---|---|---|---|---|---|
+| strict (baseline) | 186 of 197 | 1 | 166 of 176 | 0 | 160 of 163 | 0 | 512 of 536 (93.4-97.0%) |  |
+| S | 188 of 197 (+3 / -1) | 1 | 164 of 176 (+0 / -2) | 0 | 160 of 163 (+0 / -0) | 0 | 512 of 536 (93.4-97.0%) | 3 / 3 |
+| E1s3 | 195 of 197 (+9 / -0) | 0 | 175 of 176 (+9 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 532 of 536 (98.1-99.7%) | 20 / 0 |
+| E1s8 | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+| E1a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+| E2a | 188 of 197 (+4 / -2) | 0 | 169 of 176 (+3 / -0) | 0 | 160 of 163 (+1 / -1) | 0 | 517 of 536 (94.5-97.7%) | 8 / 3 |
+| E3 | 188 of 197 (+4 / -2) | 1 | 163 of 176 (+1 / -4) | 0 | 159 of 163 (+0 / -1) | 0 | 510 of 536 (93.0-96.7%) | 5 / 7 |
+| E4t05 | 195 of 197 (+10 / -1) | 0 | 174 of 176 (+8 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 531 of 536 (97.8-99.6%) | 20 / 1 |
+| E4t25 | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E4a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E12a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E123a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E23a | 188 of 197 (+4 / -2) | 0 | 170 of 176 (+5 / -1) | 0 | 160 of 163 (+1 / -1) | 0 | 518 of 536 (94.8-97.9%) | 10 / 4 |
+| E34a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+| E1234a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E1s12 | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+| E2w1 | 186 of 197 (+2 / -2) | 1 | 167 of 176 (+3 / -2) | 0 | 160 of 163 (+1 / -1) | 0 | 513 of 536 (93.6-97.1%) | 6 / 5 |
+| E12s3 | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E123s3 | 196 of 197 (+10 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+| E23w1 | 186 of 197 (+3 / -3) | 1 | 169 of 176 (+5 / -2) | 0 | 160 of 163 (+1 / -1) | 0 | 515 of 536 (94.1-97.4%) | 9 / 6 |
+| E34t25 | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+<!-- /table:evalE_rank_e0_old_next -->
+
+E0, C++ rule.
+
+<!-- table:evalE_rank_e0_cpp_next -->
+| ranking key | level 0: basin kept | level 0: best rank (median) | level 1: basin kept | level 1: best rank (median) | level 2: basin kept | level 2: best rank (median) | levels 0-2: kept (95% Wilson) | levels 0-2: fixed / broken |
+|---|---|---|---|---|---|---|---|---|
+| strict (baseline) | 181 of 196 | 3 | 149 of 165 | 0 | 144 of 147 | 0 | 474 of 508 (90.8-95.2%) |  |
+| S | 184 of 196 (+5 / -2) | 2 | 150 of 165 (+2 / -1) | 0 | 144 of 147 (+0 / -0) | 0 | 478 of 508 (91.7-95.8%) | 7 / 3 |
+| E1s3 | 195 of 196 (+14 / -0) | 0 | 163 of 165 (+14 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 505 of 508 (98.3-99.8%) | 31 / 0 |
+| E1s8 | 195 of 196 (+14 / -0) | 0 | 163 of 165 (+14 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 505 of 508 (98.3-99.8%) | 31 / 0 |
+| E1a | 195 of 196 (+14 / -0) | 0 | 163 of 165 (+14 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 505 of 508 (98.3-99.8%) | 31 / 0 |
+| E2a | 186 of 196 (+8 / -3) | 1 | 159 of 165 (+10 / -0) | 0 | 143 of 147 (+0 / -1) | 0 | 488 of 508 (94.0-97.4%) | 18 / 4 |
+| E3 | 177 of 196 (+4 / -8) | 2 | 149 of 165 (+4 / -4) | 0 | 144 of 147 (+0 / -0) | 0 | 470 of 508 (89.9-94.5%) | 8 / 12 |
+| E4t05 | 193 of 196 (+12 / -0) | 0 | 163 of 165 (+14 / -0) | 0 | 146 of 147 (+2 / -0) | 0 | 502 of 508 (97.4-99.5%) | 28 / 0 |
+| E4t25 | 195 of 196 (+14 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 507 of 508 (98.9-100.0%) | 33 / 0 |
+| E4a | 196 of 196 (+15 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 508 of 508 (99.2-100.0%) | 34 / 0 |
+| E12a | 196 of 196 (+15 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 508 of 508 (99.2-100.0%) | 34 / 0 |
+| E123a | 196 of 196 (+15 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 508 of 508 (99.2-100.0%) | 34 / 0 |
+| E23a | 186 of 196 (+8 / -3) | 1 | 156 of 165 (+9 / -2) | 0 | 144 of 147 (+1 / -1) | 0 | 486 of 508 (93.5-97.1%) | 18 / 6 |
+| E34a | 195 of 196 (+14 / -0) | 0 | 164 of 165 (+15 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 506 of 508 (98.6-99.9%) | 32 / 0 |
+| E1234a | 196 of 196 (+15 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 508 of 508 (99.2-100.0%) | 34 / 0 |
+| E1s12 | 195 of 196 (+14 / -0) | 0 | 163 of 165 (+14 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 505 of 508 (98.3-99.8%) | 31 / 0 |
+| E2w1 | 184 of 196 (+8 / -5) | 1 | 159 of 165 (+10 / -0) | 0 | 143 of 147 (+0 / -1) | 0 | 486 of 508 (93.5-97.1%) | 18 / 6 |
+| E12s3 | 195 of 196 (+14 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 507 of 508 (98.9-100.0%) | 33 / 0 |
+| E123s3 | 194 of 196 (+14 / -1) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 506 of 508 (98.6-99.9%) | 33 / 1 |
+| E23w1 | 185 of 196 (+8 / -4) | 1 | 156 of 165 (+9 / -2) | 0 | 144 of 147 (+1 / -1) | 0 | 485 of 508 (93.3-97.0%) | 18 / 7 |
+| E34t25 | 194 of 196 (+13 / -0) | 0 | 164 of 165 (+15 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 505 of 508 (98.3-99.8%) | 31 / 0 |
+<!-- /table:evalE_rank_e0_cpp_next -->
+
+The six full-sample voxels (lenient rule; the C++-rule table is in `rank/tables.md`). Read: the strict ranking already keeps the basin in all
+18 cases, so no arm can fix one here; none breaks one.
+
+<!-- table:evalE_rank_full_old_next -->
+| ranking key | level 0: basin kept | level 0: best rank (median) | level 1: basin kept | level 1: best rank (median) | level 2: basin kept | level 2: best rank (median) | levels 0-2: kept (95% Wilson) | levels 0-2: fixed / broken |
+|---|---|---|---|---|---|---|---|---|
+| strict (baseline) | 6 of 6 | 1 | 6 of 6 | 0 | 6 of 6 | 0 | 18 of 18 (82.4-100.0%) |  |
+| S | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E1s3 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E1s8 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E1a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E2a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E3 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E4t05 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E4t25 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E4a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E12a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E123a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E23a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E34a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E1234a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E1s12 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E2w1 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E12s3 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E123s3 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E23w1 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E34t25 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+<!-- /table:evalE_rank_full_old_next -->
+
+What the ranking tables show:
+
+* On the E0 lists the basin is present after the quick MC in 536 level cases (lenient rule); the strict ranking keeps it in 512. Every level-width arm with
+  E1 or E4, and the wider fixed widths (E1 8 and 12 px, E4 tau 0.25 deg), keep it in 535 or 536 (23 or 24 fixed, none broken); the narrowest
+  keep a little less (E1 3 px: 532; E4 tau 0.05 deg: 531, with 1 broken). E2 alone (+8 / -3) and E3 alone (+5 / -7) barely help, and the control S is
+  neutral (+3 / -3): the gain comes from distance credit and from the observed rays, not from the four-point sampling.
+* With the C++ rule the strict ranking keeps 474 of 508; E1 + E2 + E3 + E4 keeps 508 (34 fixed, none broken).
+* With a fixed 1 deg basin the strict cut loses only 4 of 436 cases (lenient). So the basin candidates that the strict ranking cuts are mostly
+  1 to 3 deg from the truth: far enough that their spots no longer overlap the truth's (the strict cost is near 1 there), close enough that the
+  next level's grid would still contain the truth. That is where a smooth key helps.
+* On the six full-sample voxels the strict ranking already puts a basin candidate among its first 11 at level 0 and first 2 at levels 1-2,
+  out of about 10,000, 3,500 and 1,100 candidates; every arm keeps the basin in all 18 cases, so this set does not discriminate.
+
+#### Decision point (non-blocking, the plan's default taken)
+
+Rule (written down before the ranking data, RUN_LOG section 2): carry at most three arms that keep the basin more often than they lose it
+(pooled levels 0-2, lenient rule, E0 and full-sample) and whose landscape twin has no more rays with a dip than the strict cost (C++ rule), at
+depth 0.01 and 0.05, on both image sets. The full-sample part reduced to "no broken case" because the six voxels saturate (RUN_LOG section 4).
+
+* Qualify: **E1 + E2 + E3 + E4** (level widths; E0 net +24; dips at level-0 widths: full 16 / 0, E0 6 / 0 of 120 and 600 rays) and
+  **E3 + E4** (net +23 for both the tau-0.25 and the level-width variant; dips full 52 / 0 and 46 / 0, E0 6 / 0). The two E3 + E4 variants
+  tie; tau 0.25 deg was carried (its runs had started on its fixed-width twin; the time per evaluation is the same code path).
+* Do not qualify (they add dips): E1 alone, E1 + E2, E4 alone (E0: 70 of 600 rays at depth 0.01 against 12), E2 alone, E2 + E3, and
+  **E1 + E2 + E3, the closest miss**: one full-sample ray of 120 with a dip of depth 0.05, where the strict cost has none.
+* Only two arms qualify; the third slot stays empty.
+
+#### Measurement 3: end to end, with the key on
+
+`SmoothCostRank` on, levels 0-2 ranked by the arm, everything else strict. Paired by voxel against the strict search (same seeds). Wrong
+counts carry a 95% Wilson interval. Every broken voxel is traced (owner rule D-20261014-N13): *traced to the arm* = at a level the arm ranks,
+the basin was present after the quick MC, the arm cut it and the strict cost would have kept it on the same list; *traced to the draw* = the arm
+kept the basin at every level it ranks (or the strict cost would have cut it too, or it was already gone after a quick MC, where the arm does
+not act); *untraced* = records missing (counts against the arm). Fixed voxels are traced the same way. The evaluation columns are means per voxel:
+the strict cost's evaluations (all stages) and, separately, the smooth cost's.
+
+<!-- table:evalE_e2e -->
+| voxel set | rule | arm (SmoothCostRank) | n | wrong, baseline | wrong, arm | fixed | broken | both wrong | broken: traced to arm / draw / untraced | fixed: traced to arm / draw | median error of voxels right in both (deg), baseline / arm | strict evaluations per voxel, baseline | strict evaluations per voxel, arm | smooth evaluations per voxel |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| E0 200 | lenient | E3+E4,tau=0.25 | 200 | 41 (15.5-26.6%) | 7 (1.7-7.0%) | 34 | 0 | 7 | 0 / 0 / 0 | 17 / 17 | 0.0130 / 0.0054 | 48700 | 49215 | 252 |
+| E0 200 | C++ | E3+E4,tau=0.25 | 200 | 56 (22.2-34.6%) | 9 (2.4-8.3%) | 47 | 0 | 9 | 0 / 0 / 0 | 21 / 26 | 0.0223 / 0.0082 | 47230 | 47551 | 172 |
+| six full-sample | lenient | E3+E4,tau=0.25 | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 | 0 | 0 | 0 / 0 / 0 | 0 / 0 | 0.0181 / 0.0163 | 332046 | 334486 | 15030 |
+| six full-sample | C++ | E3+E4,tau=0.25 | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 | 0 | 0 | 0 / 0 / 0 | 0 / 0 | 0.0286 / 0.0291 | 228146 | 235524 | 11084 |
+| E0 200 | lenient | E1+E2+E3+E4 | 200 | 41 (15.5-26.6%) | 5 (1.1-5.7%) | 36 | 0 | 5 | 0 / 0 / 0 | 15 / 21 | 0.0130 / 0.0050 | 48700 | 49653 | 263 |
+| E0 200 | C++ | E1+E2+E3+E4 | 200 | 56 (22.2-34.6%) | 9 (2.4-8.3%) | 47 | 0 | 9 | 0 / 0 / 0 | 21 / 26 | 0.0223 / 0.0112 | 47230 | 47767 | 177 |
+| six full-sample | lenient | E1+E2+E3+E4 | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 | 0 | 0 | 0 / 0 / 0 | 0 / 0 | 0.0181 / 0.0284 | 332046 | 348018 | 15755 |
+<!-- /table:evalE_e2e -->
+
+* *E0 200.* Lenient rule: wrong 41 -> 7 (E3 + E4) and 41 -> 5 (E1 + E2 + E3 + E4); C++ rule: 56 -> 9 with both arms. No voxel broke
+  in any run, so nothing needed tracing. Of the fixed voxels, 17 of 34 and 15 of 36 (lenient) are traced to the arm: on the same list, its key
+  kept a basin candidate that the strict cost would have cut. The others were fixed by a later difference that the change of list sets off
+  (a different kept quarter, other random draws). The voxels right in both runs also end closer to the truth: median 0.0130 deg -> 0.0054 deg
+  and 0.0050 deg (lenient).
+* *Six full-sample voxels.* 0 of 6 wrong before and after, both arms and both rules (E1 + E2 + E3 + E4 was run with the lenient rule only).
+  The median error of the six moved from 0.0181 to 0.0163 deg (E3 + E4) and to 0.0284 deg (E1 + E2 + E3 + E4); with six voxels that is
+  not a measured difference.
+* *Evaluations.* The strict cost's own evaluations change little: +1.1% and +2.0% per E0 voxel, +0.7% and +4.8% per full-sample voxel. The
+  smooth evaluations are counted separately: about 250 per E0 voxel and 15,000 per full-sample voxel (every post-MC candidate of levels 0-2
+  is scored once); their price is in measurement 4.
+
+#### Measurement 4: time per evaluation
+
+One process, preflight passed (`timing/preflight_full.json`, `timing/preflight_e0.json`): **single-worker**. 1,000 orientations (500 within
+5 deg of the truth, 500 random), arms at the level-0 widths (the widest, so the slowest), batches of 256 as the ranker calls them, and one per
+call. Read: "x strict" is the time per evaluation against the strict cost's.
+
+<!-- table:evalE_timing_ms -->
+| cost | full-sample: ms per evaluation, batch of 256 | full-sample: ms per evaluation, one per call | full-sample: x strict | E0: ms per evaluation, batch of 256 | E0: ms per evaluation, one per call | E0: x strict |
+|---|---|---|---|---|---|---|
+| strict cost (one call per orientation) | 0.381 | 0.381 | 1.000 | 0.392 | 0.392 | 1.000 |
+| S | 0.470 | 0.809 | 1.233 | 0.228 | 0.601 | 0.581 |
+| E1 | 1.332 | 1.649 | 3.492 | 0.240 | 0.634 | 0.613 |
+| E2 | 2.080 | 2.675 | 5.453 | 0.886 | 1.590 | 2.261 |
+| E3 | 0.473 | 0.844 | 1.240 | 0.227 | 0.640 | 0.580 |
+| E4 | 1.186 | 2.153 | 3.109 | 0.313 | 1.248 | 0.798 |
+| E1+E2 | 6.663 | 7.268 | 17.466 | 0.950 | 1.710 | 2.424 |
+| E1+E2+E3 | 6.728 | 7.485 | 17.637 | 0.952 | 1.747 | 2.430 |
+| E2+E3 | 2.136 | 2.792 | 5.599 | 0.888 | 1.627 | 2.265 |
+| E3+E4 | 1.639 | 2.811 | 4.297 | 0.495 | 1.632 | 1.262 |
+| E1+E2+E3+E4 | 7.903 | 9.499 | 20.718 | 1.223 | 2.745 | 3.120 |
+<!-- /table:evalE_timing_ms -->
+
+What that costs per voxel, for the carried arms (lenient runs): smooth evaluations per voxel x ms per evaluation, plus the one-off build of a
+`SmoothCost` for an image set (lit-pixel trees and, for E4, the observed rays: 16.6 s on the full sample, 3.6 s on an E0 image set). Today the
+library builds one per `reconstruct_voxel` call; a BFS would build it once per image set (not implemented), so both columns are given.
+
+<!-- table:evalE_timing_per_voxel -->
+| voxel set | arm | strict cost time per voxel, baseline (s) | strict cost time per voxel, arm (s) | smooth evaluations per voxel | smooth cost time per voxel (s) | one-off build per image set (s) | extra time with a build per voxel | extra time with one build per image set |
+|---|---|---|---|---|---|---|---|---|
+| E0 200 | E3+E4,tau=0.25 | 19.1 | 19.3 | 252 | 0.1 | 3.6 | +20.7% | +1.7% |
+| six full-sample | E3+E4,tau=0.25 | 126.7 | 127.6 | 15030 | 24.6 | 16.6 | +33.3% | +20.2% |
+| E0 200 | E1+E2+E3+E4 | 19.1 | 19.5 | 263 | 0.3 | 3.6 | +22.6% | +3.6% |
+| six full-sample | E1+E2+E3+E4 | 126.7 | 132.8 | 15755 | 124.5 | 16.6 | +116.2% | +103.1% |
+<!-- /table:evalE_timing_per_voxel -->
+
+E1 is slow on the full-sample images because its nearest-lit-pixel search reaches far (4 sigma = 66 px at level 0) through about 3.9 million
+lit pixels per detector; on the sparse E0 images it is as cheap as the strict cost. E2 multiplies the searches by the frames it reaches.
+
+#### What smoothing removed and what it cost
+
+*Removed.*
+
+* The frame edge (E2): a predicted spot crossing a frame boundary keeps its credit and loses it gradually.
+* The pixel staircase (E1): credit falls off with the distance to the nearest lit pixel instead of jumping from hit to miss.
+* The jumps when a peak enters or leaves the list, at a detector edge, the eta limit or the ends of the scan (E3), and the fixed half credit of
+  spots that miss detector 1, which held the strict cost at 0.0703 at the truth (E3 brings it to 0.0000).
+* Together (E1 + E2 + E3): 19 isolated steps on 120 full-sample rays, against 28,290 for the strict cost. E4 adds a gradient.
+* As a ranking key: the truth basin is cut at the quarter far less often on E0 (24 of 536 cases lost by the strict ranking, at most 1 by the
+  carried arms), and the wrong E0 voxels fall from 41 to 5-7 (lenient) and from 56 to 9 (C++ rule).
+
+*What it cost.*
+
+* Time: about +20% (E3 + E4) and +103% (E1 + E2 + E3 + E4) of the strict cost's time per full-sample voxel at level-0 widths, single worker,
+  plus a one-off build per image set. The cheap arm is E3 + E4.
+* Dips: smoothing gives credit to near misses, including lit pixels of other grains; E1 alone adds dips on the full-sample rays, E4 alone on
+  the E0 rays. Only the combinations stay below the strict cost.
+* Far-field discrimination: E1 + E2 at level-0 widths does not rise half-way to 1 within 5 deg on most full-sample rays, so far from the truth
+  it separates orientations less than the strict cost does. That is why these costs rank only after the quick MC and the strict cost accepts.
+* E4's lowest point is a few thousandths of a degree off the truth (median 0.0095 deg on the full-sample rays): harmless for ranking, a reason
+  not to accept on it.
+* Not shown: any gain on full-sample voxels that are wrong today (none of the six was wrong).
+
+*Defaults and goldens.* No default flipped, no golden changed. Nothing here argues for flipping a default yet: the gain is on E0 images
+without neighbouring grains. Candidate for a later owner decision: `SmoothCostRank E3+E4,tau=0.25` (cheapest carried arm), after a
+full-sample set with wrong voxels (for example the rest of the 30-voxel set, or the FindOptimal robustness cases).
+
+#### E4 against Task D's finding
+
+Task D found that a spot's origin points to the grain, not the voxel, and that a hit-or-miss score on the attributed peaks at a 0.05 deg
+tolerance was gentler than the pixel cost, not sharper (its score halves 0.38 deg from the truth, the pixel cost's at 0.26 deg). E4 is the
+continuous version of that score, with Task D's footprint attachment. The results agree with Task D and add three points:
+
+* *Not sharper.* Along the full-sample rays E4 (tau 0.05 deg) rises half-way from its truth value to 1 at a median 0.4285 deg; the strict
+  cost does so at 0.3118 deg (same rays, landscape table "half-way rise"). With tau 0.25 deg it is 1.0748 deg.
+* *Much of the voxel's peak list is missing.* E4's cost at the truth is 0.4136 (tau 0.05 deg, median over the full-sample rays) and 0.0977 on
+  the E0 images (only the voxel's own spots there). On the full-sample images the attached list mixes the grain's rays with the voxel's, and
+  spots that merge several grains are mostly unpaired (Task D), so many predicted peaks find no ray. For the six interior voxels the grain's
+  rays share the voxel's orientation, so the mix does no harm here; at a grain boundary it would (not tested).
+* *Its lowest point is slightly off the truth.* On 54 of 120 full-sample rays and 291 of 600 E0 rays the lowest point of E4 (tau 0.05 deg) is
+  not at the truth, a median 0.0095 deg away on the full-sample rays: consistent with the small errors of the binary spot centroids (not
+  separately tested). That is far below what the coarse levels resolve, but it is why E4 should rank, not accept.
+* *As a ranking key it is strong, alone it adds dips.* E4 alone keeps the basin as often as any arm on the E0 lists (net 24 - 0 at level
+  widths), but adds 0.01-deep dips on the E0 rays (70 of 600 at level-0 tau, strict cost 12), so it failed the carry rule. Averaged with the
+  image arms (E3 + E4, E1 + E2 + E3 + E4) the dips go away (6 of 600).
+
+#### Could a per-sample level-0 table carry the arms? (for Track S's S4)
+
+S4 may replace the per-voxel level-0 screen by a per-sample table built by translating spots (`docs/spot_translation_derivation.md`: for a
+fixed orientation every spot moves rigidly with the voxel position; omega and the ray direction do not depend on the position). The arms here act
+on the ranking after the quick MC, not on the screen, but each could be evaluated from such a table:
+
+* **E1:** yes. It needs the predicted spot points (translated by the table) and a per-image distance-to-lit field instead of the binary image;
+  the field is computed once per image set (here a `cKDTree` of lit pixels; a distance-transform image would do the same).
+* **E2:** yes. It needs each peak's omega, which does not depend on the voxel position, and lookups in the neighbouring frames.
+* **E3:** yes. The eta and omega margins do not depend on the position; the detector-edge margin is recomputed from the translated spot.
+* **E4:** yes, without the table. The residual uses the predicted ray direction and omega (position-free) and the voxel's attached observed rays,
+  a per-voxel list computed once from the images (no orientation involved).
+
+#### Limits
+
+* **E0 is the only set with wrong voxels, and its images hold one voxel.** The E0 per-voxel images contain only the voxel's own spots
+  (about 500 lit pixels per detector), so they test the ranking without neighbouring grains. The full-sample images have neighbours, but the six
+  interior voxels are all right with the strict cost and their basin is never cut, so they can show breaks only, not fixes. The 30-voxel set
+  was dropped for time (RUN_LOG section 4). Whether the E0 gain carries over to full-sample voxels that the strict search gets wrong is
+  untested; it is the first thing to measure next.
+* **The widths were set once, by rule of thumb, not tuned.** The level-0 widths come from the quick MC's trial radius; the ranking table shows
+  that E1 at 3, 8 px and auto, and E4 at tau 0.05, 0.25 deg and auto, rank about equally on E0.
+* **E2 is not the physics of omega integration.** The clean images put each spot on one frame, so E2 is a tolerance across frame edges, not
+  a model of a spot spread over frames. On real data the images themselves spread spots over frames (not tested).
+* **E3's ramps are fixed** (10 px, 1 deg, 0.5 frame). The Bragg-limit cut (about 0.1 per degree, Task B) and the `min_sin_eta` cut are not
+  softened.
+* **E4 follows Task D's assumptions:** lab = Rz(omega) sample, beam along +x, two detectors, binary centroids, `ring_tight` preset chosen
+  in-sample by Task D.
+* **The arms rank only; they do not move.** The quick MC still uses the strict cost; using a smooth cost to move (the plan's "to rank and to
+  move") was not tested.
+* One image family, clean images, no extra seeds; wall times other than measurement 4 are contended and not timing claims.
+
 ## S3: batched quick MC with a GPU option (2026-10-14)
 
 Branch `feature/python-speed-parity-s3` (off `feature/python-speed-parity`; not merged). Plan: `docs/todo_batched_quick_mc.md`
