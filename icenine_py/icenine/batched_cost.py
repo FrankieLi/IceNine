@@ -24,9 +24,15 @@ The GPU variant is used only for batches of at least ``GPU_MIN_BATCH`` orientati
 crossover against the CPU compact variant, S3 Step 0: 56-62 us at B = 64 against 2.3 ms at B = 1);
 smaller batches use the compact variant on the CPU.
 
-Supported: the default rule and ``CppOverlapRule``. Not supported (``make_batched_cost_evaluator``
-returns None, the caller falls back to ``evaluate``): ``CppEdgeRules``, the ray rule, soft mode,
-``pixel_radius`` > 0, and a build without the ``_rasterize`` extension.
+Supported: the default rule, ``CppOverlapRule`` and ``CppEdgeRules`` (S1 Step 4: the frame lookup
+floors, a detector coordinate below 0 is pixel -1, the vertex-lit rule is in the C call's rule bits;
+needs a build with ``HAS_VERTEX_LIT`` >= 2). Not supported (``make_batched_cost_evaluator`` returns
+None, the caller falls back to ``evaluate``): the ray rule, soft mode, ``pixel_radius`` > 0, and a
+build without the ``_rasterize`` extension.
+
+The binary frames for the C call are the cost function's own ``FrameTable``
+(``VoxelCostFunction.frame_table``), shared with ``evaluate``; the omega-to-frame lookup is
+``cost_functions.frame_of_omegas``.
 """
 
 import time
@@ -121,21 +127,9 @@ class BatchedCostEvaluator:
         self._consts: Dict[str, _DeviceConstants] = {}
         rng = cost_fn.range_map
         self._low, self._width = rng.low, rng.width
-        self._index = np.array(
-            [-1 if i is None else int(i) for i in rng.index_list], dtype=np.int64
-        )
-        self._n_bins = len(self._index)
+        self._index = CF.frame_index_array(rng)
         self._n_det = len(cost_fn.detector_list)
-        exp = cost_fn.exp_data
-        n_w = max(int(self._index.max()) + 1, int(getattr(exp, "n_omega_intervals", 0)))
-        self._n_w = n_w
-        # Binary frame table for stage D, filled on first use ([wedge * n_det + det]); the
-        # placeholders are never read (the C call indexes a frame only for a peak that has it).
-        self._placeholder = np.zeros((1, 1), dtype=np.uint8)
-        self._table: List[np.ndarray] = [self._placeholder] * (n_w * self._n_det)
-        self._filled = np.zeros(n_w, dtype=bool)
-        first = exp.get_image(int(self._index.max()), 0)
-        self._rows, self._cols = first.num_rows, first.num_cols
+        # the binary frames for stage D are the cost function's FrameTable (cf.frame_table())
         self._rule_bits = (1 if cost_fn.cpp_overlap_rule else 0) | (
             2 if cost_fn.cpp_edge_rules else 0
         )
@@ -226,29 +220,18 @@ class BatchedCostEvaluator:
 
     def _wedge(self, omega: np.ndarray) -> np.ndarray:
         """Frame index of each omega exactly as calculate_diffraction_overlap_batched (-1: none)."""
-        bins = CF._omega_bins(omega, self._low, self._width, self.cf.cpp_edge_rules)
-        okb = (bins >= 0) & (bins < self._n_bins)
-        return np.where(okb, self._index[np.clip(bins, 0, self._n_bins - 1)], -1)
-
-    def _ensure_frames(self, wedge_k: np.ndarray) -> None:
-        """Fill the frame table for the wedges in ``wedge_k``."""
-        missing = ~self._filled[wedge_k]
-        if not missing.any():
-            return
-        exp = self.cf.exp_data
-        for w in np.unique(wedge_k[missing]):
-            w = int(w)
-            for d in range(self._n_det):
-                self._table[w * self._n_det + d] = exp.get_image(w, d).get_binary_numpy()
-            self._filled[w] = True
+        return CF.frame_of_omegas(
+            omega, self._low, self._width, self._index, self.cf.cpp_edge_rules
+        )
 
     def _stage_d(
         self, counts: np.ndarray, wedge_k: np.ndarray, hit: np.ndarray, pix: np.ndarray
     ) -> List[OverlapInfo]:
         """One stage D call per orientation (the existing C function), in peak order."""
         B = len(counts)
+        table = self.cf.frame_table()
         if len(wedge_k):
-            self._ensure_frames(wedge_k)
+            table.ensure(wedge_k)
         offs = np.concatenate([[0], np.cumsum(counts)])
         rb = (self._rule_bits,) if self._rule_bits else ()
         out: List[OverlapInfo] = []
@@ -258,7 +241,7 @@ class BatchedCostEvaluator:
                 out.append(OverlapInfo())
                 continue
             r = CF._c_stage_d_overlap(
-                self._table,
+                table.images,
                 wedge_k[s:e],
                 hit[s:e],
                 None,
@@ -266,8 +249,8 @@ class BatchedCostEvaluator:
                 self._n_det,
                 0,
                 e - s,
-                self._rows,
-                self._cols,
+                table.rows,
+                table.cols,
                 *rb,
             )
             out.append(
@@ -338,10 +321,13 @@ class BatchedCostEvaluator:
         verts: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Stages B and C: lab vertices and detector pixel coordinates; any leading shape.
-        Returns (all three vertices hit the detector plane (..., n_det), pixel [col, row] of the
-        three vertices (..., n_det, 3, 2))."""
+        The pixel coordinate is ``CF._pixel_coordinate``, the function ``evaluate`` uses (with
+        ``CppEdgeRules`` a detector coordinate below 0 is pixel -1). Returns (all three vertices
+        hit the detector plane (..., n_det), pixel [col, row] of the three vertices
+        (..., n_det, 3, 2))."""
         lead = full_rot.shape[:-2]
         dev = full_rot.device
+        edge = self.cf.cpp_edge_rules  # a detector coordinate below 0 is pixel -1 (C++ ToColPixel)
         f4 = torch.zeros(*lead, 4, 4, dtype=_F32, device=dev)
         f4[..., :3, :3] = full_rot
         f4[..., :3, 3] = cst.base_t
@@ -361,8 +347,8 @@ class BatchedCostEvaluator:
             loc = rel - d["org"]
             j = (loc * d["bj"]).sum(dim=-1)
             k = (loc * d["bk"]).sum(dim=-1)
-            col = (j + d["hw"]) / d["pw"]
-            row = (k + d["hh"]) / d["ph"]
+            col = CF._pixel_coordinate(j, d["hw"], d["pw"], edge)
+            row = CF._pixel_coordinate(k, d["hh"], d["ph"], edge)
             hit_all.append(hits.all(dim=-1))
             pix.append(torch.stack([col, row], dim=-1))
         return torch.stack(hit_all, dim=-1), torch.stack(pix, dim=-3)
@@ -448,10 +434,10 @@ def unsupported_reason(cost_fn: VoxelCostFunction) -> Optional[str]:
         return "soft mode"
     if cost_fn.ray_rule is not None:
         return "the ray rule"
-    if cost_fn.cpp_edge_rules:
-        return "CppEdgeRules"
     if not CF._HAS_C_RASTERIZE:
         return "the _rasterize C extension is missing"
+    if cost_fn.cpp_edge_rules and not CF._C_HAS_VERTEX_LIT:
+        return "the _rasterize extension predates the exact CppEdgeRules (HAS_VERTEX_LIT)"
     if cost_fn.cpp_overlap_rule and not CF._C_HAS_CPP_RULE:
         return "the _rasterize extension predates CppOverlapRule"
     if cost_fn.eta_limit is None:

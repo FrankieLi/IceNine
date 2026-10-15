@@ -791,8 +791,9 @@ class AdaptiveVoxelReconstructor:
         batched_quick_mc.py): the random stream, and so the results, differ from the sequential
         quick MC's. Returns False (the caller runs the sequential quick MC, a RuntimeWarning says
         why) when the level is not supported: a study subclass of MCOptimizer, more than one MC
-        block, or a cost function the batched cost does not cover (ray rule, CppEdgeRules, no C
-        extension). ``SearchDevice`` selects the device of the batched cost.
+        block, or a cost function the batched cost does not cover (ray rule, no C extension, or
+        ``CppEdgeRules`` with an extension older than ``HAS_VERTEX_LIT`` 2). ``SearchDevice``
+        selects the device of the batched cost.
         """
         if not getattr(self.params, "batched_quick_mc", False):
             return False

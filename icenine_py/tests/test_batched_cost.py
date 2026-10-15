@@ -6,6 +6,7 @@ import json
 import os
 import warnings
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Dict, List
 
 import numpy as np
@@ -68,8 +69,14 @@ def run_chunks(
 @needs_c
 @pytest.mark.parametrize(
     "flags",
-    [{}, {"cpp_overlap_rule": True}, {"min_sin_eta": 0.4}],
-    ids=["default", "cpp_rule", "min_sin_eta"],
+    [
+        {},
+        {"cpp_overlap_rule": True},
+        {"min_sin_eta": 0.4},
+        {"cpp_edge_rules": True},
+        {"cpp_edge_rules": True, "cpp_overlap_rule": True},
+    ],
+    ids=["default", "cpp_rule", "min_sin_eta", "cpp_edge_rules", "cpp_edge_rules+cpp_rule"],
 )
 @pytest.mark.parametrize("max_q", [0.0, 5.0], ids=["all_refl", "qmax5"])
 @pytest.mark.parametrize("variant", ["compact", "fixed"])
@@ -140,6 +147,47 @@ def test_sample_matrix_change_is_seen(three_voxels: Dict[str, Any]) -> None:  # 
         m.copy_(old)
 
 
+class _DarkExp:
+    """A stand-in ``exp_data`` whose every frame is dark (one shared zero array)."""
+
+    n_omega_intervals, n_detectors = 180, 2
+    zero = np.zeros((2048, 2048), dtype=np.uint8)
+
+    def get_image(self, w: int, d: int) -> Any:
+        return SimpleNamespace(num_rows=2048, num_cols=2048, get_binary_numpy=lambda: self.zero)
+
+
+@needs_c
+def test_exp_data_swap_of_a_live_cost_function_is_followed(
+    three_voxels: Dict[str, Any],  # noqa: F811
+) -> None:
+    """S1: the evaluator takes its frames from ``cf.frame_table()``, which follows a swap of
+    ``cf.exp_data`` (optimizer_sweep, findoptimal_sweep). Frames filled from the old data before
+    the swap are not kept: after the swap ``evaluate_many`` equals a fresh cost function's
+    ``evaluate`` on the new data, and after swapping back it equals the first results. (The
+    S3 evaluator before S1 read ``cf.exp_data`` at fill time and kept the frames it had already
+    filled, so it mixed old and new frames.)"""
+    c = three_voxels
+    phase, verts = c["voxel"].phase, c["vertices"]
+    cf = _local(c)
+    ev = BC.BatchedCostEvaluator(cf, "cpu")
+    R = orientations(np.asarray(c["voxel"].orientation, dtype=np.float64))[:40]
+    first = ev.evaluate_many(R, verts, phase)  # fills frames from the real images
+    assert first[0].quality > 0.5 and sum(i.pixel_overlap > 0 for i in first) > 20
+    original = c["kwargs"]["exp_data"]
+    dark = _DarkExp()
+    cf.exp_data = dark  # type: ignore[assignment]
+    try:
+        swapped = ev.evaluate_many(R, verts, phase)
+        fresh = VoxelCostFunction(pixel_radius=0, mode="hard", **{**c["kwargs"], "exp_data": dark})
+        assert swapped == [fresh.evaluate(r, verts, phase) for r in R]
+        assert all(i.pixel_overlap == 0 and i.quality == 0.0 for i in swapped)
+        assert all(i.peak_on_detector > 0 for i in swapped[:5])  # peaks exist, images dark
+    finally:
+        cf.exp_data = original
+    assert ev.evaluate_many(R, verts, phase) == first
+
+
 @needs_c
 def test_unsupported_cost_functions(
     three_voxels: Dict[str, Any], monkeypatch: pytest.MonkeyPatch  # noqa: F811
@@ -149,13 +197,14 @@ def test_unsupported_cost_functions(
     c = three_voxels
     assert BC.unsupported_reason(_local(c)) is None
     assert BC.unsupported_reason(_local(c, cpp_overlap_rule=True)) is None
+    assert BC.unsupported_reason(_local(c, cpp_edge_rules=True)) is None  # S1 Step 4
+    assert BC.unsupported_reason(_local(c, cpp_edge_rules=True, cpp_overlap_rule=True)) is None
     bad = {
         "screen": VoxelCostFunction(pixel_radius=3, **c["kwargs"]),
-        "edge": _local(c, cpp_edge_rules=True),
         "soft": VoxelCostFunction(pixel_radius=0, mode="soft", **c["kwargs"]),
         "ray": _local(c, ray_rule=RayRule()),
     }
-    reasons = {"screen": "pixel_radius", "edge": "CppEdgeRules", "soft": "soft", "ray": "ray rule"}
+    reasons = {"screen": "pixel_radius", "soft": "soft", "ray": "ray rule"}
     for name, cf in bad.items():
         assert reasons[name] in str(BC.unsupported_reason(cf)), name
         with pytest.warns(RuntimeWarning, match="sequential quick MC"):
@@ -169,6 +218,13 @@ def test_unsupported_cost_functions(
     # a build without the _rasterize extension, or one older than CppOverlapRule: a supported cost
     # function becomes unsupported (the reconstructor then runs the sequential quick MC)
     ok, ok_rule = _local(c), _local(c, cpp_overlap_rule=True)
+    ok_edge = _local(c, cpp_edge_rules=True)
+    monkeypatch.setattr(CF, "_C_HAS_VERTEX_LIT", False)  # an extension before the exact edge rules
+    assert BC.unsupported_reason(ok) is None and BC.unsupported_reason(ok_rule) is None
+    assert "predates the exact CppEdgeRules" in str(BC.unsupported_reason(ok_edge))
+    with pytest.warns(RuntimeWarning, match="sequential quick MC"):
+        assert BC.make_batched_cost_evaluator(ok_edge) is None
+    monkeypatch.setattr(CF, "_C_HAS_VERTEX_LIT", True)
     monkeypatch.setattr(CF, "_C_HAS_CPP_RULE", False)
     assert BC.unsupported_reason(ok) is None
     assert "predates CppOverlapRule" in str(BC.unsupported_reason(ok_rule))

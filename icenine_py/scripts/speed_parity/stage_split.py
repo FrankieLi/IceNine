@@ -1,8 +1,9 @@
 """Split one VoxelCostFunction.evaluate() into stages, without profiler overhead.
 
 Times the real library calls on captured inputs (Example2.ThreeVoxels voxel 0, one orientation near
-the truth, single thread) plus the two Python loops inside calculate_diffraction_overlap_batched and
-their vectorised replacements.
+the truth, single thread) plus the two Python loops that S1 removed from
+calculate_diffraction_overlap_batched (kept here as reference loops) and what replaced them. Runs on
+the base commit and on S1 (the S1 lines are skipped when the library has no FrameTable).
 
 Usage (from icenine_py/): uv run python scripts/speed_parity/stage_split.py
 """
@@ -110,6 +111,7 @@ def main():
     stage_d = capture_stage_d_args(fn, o)
     fs = P.make(3, 5.0, True)  # coarse screen: pixel radius 3, Q-max 5, C++ rule
     stage_d_screen = capture_stage_d_args(fs, o)
+    s1 = hasattr(cf, "FrameTable")
 
     print(f"peaks: N={len(om)} valid M={int((w >= 0).sum())} unique wedges={len(uw)}")
     print(f"evaluate() total                   {total:7.1f} us")
@@ -127,6 +129,42 @@ def main():
         f"screen arm: evaluate {t_us(lambda: fs.evaluate(o, P.verts, P.vox.phase)):.1f} us,"
         f" stage D C call {t_us(lambda: cf._c_stage_d_overlap(*stage_d_screen)):.1f} us"
     )
+    if s1:
+        from icenine.diffraction_core import BraggConstants, scattering_omegas_fixed_beam
+
+        gl = (torch.from_numpy(o).float() @ g.T).T
+        consts = BraggConstants(m, P.sim.beam_energy, P.sim.beam_deflection_chi)
+        fixed = t_us(lambda: scattering_omegas_fixed_beam(gl, consts))
+        # the same reflections through the original function, on the same g (no matmul)
+        ref = t_us(
+            lambda: get_scattering_omegas_torch(gl, m, P.sim.beam_energy, P.sim.beam_deflection_chi)
+        )
+        table = fn.frame_table()
+        table.ensure(np.asarray(w[w >= 0], dtype=np.int32))  # filled, as in a running search
+        vw = np.asarray(w[w >= 0], dtype=np.int32)
+        index = fn._frame_index
+        lookup = t_us(lambda: cf.frame_of_omegas(om, rm.low, rm.width, index, fn.cpp_edge_rules))
+        check = t_us(lambda: (fn.frame_table(), table.ensure(vw)))
+        print("S1 replacements (same inputs, same machine state):")
+        print(f"    Bragg solve, original function  {ref:7.1f} us (on g only, no matmul)")
+        print(f"    Bragg solve, hoisted constants  {fixed:7.1f} us")
+        print(f"    stage A, frame_of_omegas        {lookup:7.1f} us")
+        print(f"    frame table: identity + filled  {check:7.1f} us")
+        # pointer prefetch of the C call: the whole table (n_frames * n_det entries) against a
+        # compact list of the frames in use, for the same peaks (stage_d[1] are global indices)
+        images, wedge_g = stage_d[0], stage_d[1]
+        n_det = len(P.dets)
+        uw2 = np.unique(wedge_g)
+        compact = [images[int(u) * n_det + d] for u in uw2 for d in range(n_det)]
+        compact_args = (compact, np.searchsorted(uw2, wedge_g).astype(np.int32)) + tuple(
+            stage_d[2:]
+        )
+        t_table = t_us(lambda: cf._c_stage_d_overlap(*stage_d))
+        t_compact = t_us(lambda: cf._c_stage_d_overlap(*compact_args))
+        print(
+            f"    stage D C call, table of {len(images)} entries {t_table:.1f} us, compact list of"
+            f" {len(compact)} entries {t_compact:.1f} us"
+        )
 
 
 if __name__ == "__main__":

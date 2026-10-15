@@ -216,6 +216,38 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - The untracked `benchmarks/eval_reduction/A/memory/cache/` (one run log and a done marker) was
   deleted. Where: this entry.
 
+### D-20261014-I14 · S1 · S1 is the next Track S item
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- After Q8 and the Task C merge, the next Track S item is S1 (remove the per-call Python loops in
+  `evaluate`; bit-identical). It starts with a plan, `docs/todo_s1_evaluate_loops.md`, which the
+  owner approves before an implementer builds it. Where: ROADMAP Track S row S1.
+
+### D-20261014-I15 · S1, S3 · S1 plan approved, with Step 4
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- The S1 plan (`docs/todo_s1_evaluate_loops.md`, Steps 0-6) is approved as written, including Step 4:
+  `CppEdgeRules` becomes supported in the batched local cost (S3's open follow-up), so runs with both
+  opt-in keys `BatchedQuickMC` and `CppEdgeRules` use the lockstep quick MC instead of the
+  sequential fallback; no default changes. Where: ROADMAP Track S rows S1 and S3.
+
+### D-20261014-I16 · S1 · Repeat the S1 timings on a quiet machine
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- The contended S1 timings are not accepted as final: the review-fix implementer re-runs the S1
+  timing script (`run_s1_timing.sh`) only if the timing preflight passes; otherwise the repeat is
+  listed as left undone and the docs keep the "contended" label. Where: ROADMAP row S1;
+  MIGRATION_HISTORY "S1: per-call loops out of evaluate".
+
+### D-20261014-I17 · S1, Track E scripts · Keep S1's edits to three Track E scripts
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- S1's edits to `scripts/eval_reduction/cost_edges.py`, `parity_common.py`, `screen_timing.py` and
+  one check in `tests/test_cost_edges.py` (they also wrap the new `scattering_omegas_fixed_beam`,
+  because `evaluate` no longer calls `get_scattering_omegas_torch`) are kept; Newt Agent is told in
+  the merge heads-up. Where: Ilium mailbox; MIGRATION_HISTORY "S1".
+
+### D-20261014-I18 · S1 · The evaluate fixture is strict only on its own platform
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- `tests/data/s1_evaluate_ref.npz` is compared exactly on the platform and torch version that made
+  it (arm64, torch 2.8.0); on any other the test skips with a message naming the difference.
+  Where: `tests/test_s1_evaluate.py`.
 ### D-20261014-N6 · D · Task D Step 4 (geometric-feature classifier) is skipped
 - 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
 - The small classifier on pair-geometry features (plan Task D Step 4) is not built. The plan's trigger
@@ -274,3 +306,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the change of random draw. Reports give traced-to-arm, traced-to-draw and untraced breaks separately.
   Newt's default, open to the owner: an untraced break counts against the arm until traced. Task C's
   outcome is unchanged (N4). Where: plan "Ground rules for every task"; ROADMAP Track E row C.
+### D-20261014-I19 · S4 · S4 is next, widened to a correctness check and a loop-ordering study
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none (replaces the S4 plan's Step 0
+  go/no-go gate, which assumed a per-voxel screen at the seeds only).
+- S4 is the next Track S item. Two questions lead it: (1) correctness: a translated voxel's diffraction
+  and lit pixels must be the original voxel's pixels moved by the per-peak transform of the voxel
+  translation; (2) speed: which loop ordering gives the best throughput for the level-0 grid search
+  when it runs one orientation at a time over every voxel position (or over detector positions),
+  instead of today's per-voxel screen followed by per-voxel optimisation. Investigate and plan; the
+  implementer is Opus 5.5 at high effort, for the investigative nature. Where: ROADMAP Track S row S4;
+  `docs/todo_translation_screen_prototype.md`.
+
+### D-20261014-I20 · S4 · Fewer voxels per test, and run the work in parallel
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none (amends the S4 plan of I19).
+- To cut S4's total run time: test fewer voxels per layer. That means 20 Phase D reference voxels instead of 50,
+  10 timed `BatchedScreen` voxels instead of 20, and orderings timed on a 2,000-voxel patch with a linear-scaling check and
+  a projection to the full layer, which is run only for the best ordering. Exploit parallelism: the
+  reference, the correctness checks and the equality runs run concurrently in the background (up to 6
+  processes); timings run alone. Where: `docs/todo_translation_screen_prototype.md`.
