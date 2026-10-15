@@ -70,7 +70,8 @@ def _group_ops(symmetry_quats: Optional[np.ndarray]) -> np.ndarray:
     sign = np.sign(q[np.arange(len(q)), lead])
     q = q * sign[:, None]
     _, first = np.unique(np.round(q, 9) + 0.0, axis=0, return_index=True)
-    return q[np.sort(first)]
+    out: np.ndarray = q[np.sort(first)]
+    return out
 
 
 def chord_radius(tol_rad: float) -> float:
@@ -154,7 +155,8 @@ def component_labels(n: int, neighbours: List[np.ndarray]) -> np.ndarray:
     rows = np.concatenate([np.full(len(nb), i, dtype=np.int64) for i, nb in enumerate(neighbours)])
     cols = np.concatenate([np.asarray(nb, dtype=np.int64) for nb in neighbours])
     g = coo_matrix((np.ones(len(rows)), (rows, cols)), shape=(n, n))
-    return connected_components(g, directed=False)[1]
+    labels: np.ndarray = connected_components(g, directed=False)[1]
+    return labels
 
 
 def merged_clique_labels(
@@ -170,15 +172,19 @@ def merged_clique_labels(
     nb = neighbours if neighbours is not None else neighbour_lists(R, link_rad, symmetry_quats)
     _, dense = np.unique(clique, return_inverse=True)
     n_cl = int(dense.max()) + 1 if len(dense) else 0
-    rows, cols = [], []
-    for i, js in enumerate(nb):
-        for j in js:
-            if dense[i] != dense[j]:
-                rows.append(dense[i])
-                cols.append(dense[j])
-    g = coo_matrix((np.ones(len(rows)), (rows, cols)), shape=(n_cl, n_cl))
-    comp = connected_components(g, directed=False)[1]
-    return comp[dense]
+    lens = np.array([len(js) for js in nb], dtype=np.int64)
+    src = np.repeat(np.arange(len(nb), dtype=np.int64), lens)
+    dst = (
+        np.concatenate([np.asarray(js, dtype=np.int64) for js in nb])
+        if len(nb)
+        else np.empty(0, dtype=np.int64)
+    )
+    rows, cols = dense[src], dense[dst]
+    cross = rows != cols  # links between different cliques only
+    g = coo_matrix((np.ones(int(cross.sum())), (rows[cross], cols[cross])), shape=(n_cl, n_cl))
+    comp: np.ndarray = connected_components(g, directed=False)[1]
+    out: np.ndarray = comp[dense]
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -194,13 +200,15 @@ class DedupSpec:
                                 of each clique: ``cpp`` = the candidates of one FZ point (C++
                                 grouping), ``merged`` = connected components of cliques linked
                                 when two candidates lie within L x diameter (default L = 1)
-    pre=T                       before the quick MC drop candidates within T x diameter of a
-                                better-scored one (symmetry-reduced), so the MC runs on distinct
-                                inputs
+    pre=T                       before the quick MC, greedy non-maximum suppression in score
+                                order: drop each candidate within T x diameter (symmetry-reduced)
+                                of a better-scored candidate that was itself kept, so the MC runs
+                                on distinct inputs
     post=T                      after the quick MC, before the ranking cut: the kept quarter is
                                 counted over candidates that are distinct within T x diameter
-                                (a candidate within T x diameter of a better one is passed over
-                                and ordered after the distinct ones)
+                                (the same greedy scan in rank order: a candidate within T x
+                                diameter of a better-ranked kept one is passed over and ordered
+                                after the distinct ones)
     quarter=orig|filtered       the size of the kept quarter is counted from the discrete stage's
                                 list (default; the slots freed by a filter go to the next
                                 candidate) or from the list after the last filter that ran
@@ -238,10 +246,12 @@ class DedupSpec:
                     raise ValueError("CandidateDedup clique K must be >= 1")
                 if link:
                     kw["clique_link"] = float(link)
+                    if not (np.isfinite(kw["clique_link"]) and kw["clique_link"] >= 0):
+                        raise ValueError("CandidateDedup clique link L must be finite and >= 0")
             elif name in ("pre", "post"):
                 kw[name] = float(val)
-                if kw[name] < 0:
-                    raise ValueError(f"CandidateDedup {name} must be >= 0")
+                if not (np.isfinite(kw[name]) and kw[name] >= 0):
+                    raise ValueError(f"CandidateDedup {name} must be finite and >= 0")
             elif name == "quarter":
                 if val not in ("orig", "filtered"):
                     raise ValueError(
