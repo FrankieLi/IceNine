@@ -63,16 +63,16 @@ MIGRATION_HISTORY "Task C" and `benchmarks/eval_reduction/C/`.
 ## A process note
 
 Decision D-20261014-N1 says the code review runs on the task branch before the merge. Task C was
-merged before its review, at the owner's instruction today (D-20261014-N3). The review now runs on the
-merged commits (e5a2cbb..e609c74).
+merged before its review, at the owner's instruction today (D-20261014-N3). The review ran on the
+merged commits (e5a2cbb..e609c74) and found the library code correct; its 12 fixes (wording, tables,
+two tests) were applied on a fixes branch and merged.
 
 ## What is next
 
-1. Code review of Task C, with fixes from a fresh implementer.
-2. Task D: which spots on the two detectors belong to one peak, and which peaks belong to a voxel.
-3. Task E: smoother cost modes and ranking keys built from the geometry.
-4. Task F: searching outward from a start orientation to 2 to 5 degrees.
-5. Task G: putting it together, with a 2,000-voxel BFS pilot.
+1. Task D: which spots on the two detectors belong to one peak, and which peaks belong to a voxel.
+2. Task E: smoother cost modes and ranking keys built from the geometry.
+3. Task F: searching outward from a start orientation to 2 to 5 degrees.
+4. Task G: putting it together, with a 2,000-voxel BFS pilot.
 
 ## Waiting on the owner
 
