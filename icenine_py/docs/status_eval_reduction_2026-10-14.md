@@ -34,10 +34,15 @@ until the noise model is redone.
   within half a grid step of a better one cuts them to about 91% (0 of 30 wrong).
 - **Why that is not enough.** On the 200 E0 voxels the same filters save under 1% of evaluations, because
   92% of an E0 search is the screen and the re-cost, which these filters do not touch. They also change
-  which voxels come out wrong: the best-per-group filter breaks 24 voxels and fixes 10 (55 wrong against
-  41).
-- **Choice for Task G.** The plan's rule takes a filter forward only if it breaks no more voxels than the
-  baseline. None does, so Task G starts from the baseline (key off).
+  which voxels come out wrong: with the best-per-group filter 24 voxels go from right to wrong and 10
+  from wrong to right (55 wrong against 41). Not all of that is the filter. Any filter changes the
+  random numbers every later step draws, and two runs of the same code with different seeds already
+  swap 14 to 23 voxels each way. The net loss of 14 is larger than that, and 5 of the 24 can be traced
+  to the filter itself (it throws away the candidate near the truth at the first level); the other 19
+  cannot be told apart from the new random draw.
+- **Choice for Task G.** The plan's rule takes a filter forward only if it turns no E0 voxel from right
+  to wrong. None does, so Task G starts from the baseline (key off). But no filter could pass that
+  rule, because of the random-draw effect above, so "none passed" says little about the filters.
 
 Full report: `.claude/reports/20261014-1507-eval-reduction-C.md` (on Newt Agent's machine). Results:
 MIGRATION_HISTORY "Task C" and `benchmarks/eval_reduction/C/`.
@@ -49,9 +54,11 @@ MIGRATION_HISTORY "Task C" and `benchmarks/eval_reduction/C/`.
   the screen and re-cost dominate, so only cheaper or fewer screen evaluations will help (Track S, S4).
 - The truth is mostly lost at the "keep the best quarter" cut, not later. Any filter that thins the
   candidates before that cut risks removing the right one, which is what Task C's E0 numbers show.
-- E0 counts move by themselves between code versions: today's baseline differs from the stored earlier
-  run in 30 of the 200 voxels (41 wrong now, 39 before), cause not tested. Small broken/fixed counts
-  on E0 should be read against that.
+- E0 counts move whenever the random draws change: two seeds of the same code swap 14 to 23 of the 200
+  voxels each way. Today's baseline differs from an older stored run in 30 voxels (41 wrong now, 39
+  before); that change is known and was intended: the screen's start point moved to the centroid
+  (2026-10-12), and the stored run made just after that change matches today's baseline on all 200
+  voxels. Small broken/fixed counts on E0 should be read against the seed-to-seed scale.
 
 ## A process note
 
@@ -69,8 +76,11 @@ merged commits (e5a2cbb..e609c74).
 
 ## Waiting on the owner
 
-Nothing open. Answered on 2026-10-14: Task G does not try the two Task C filters that look harmless on
-full-sample voxels (D-20261014-N4), and the untracked Task A log folder was deleted (D-20261014-N5).
+One open question from Task C's review: keep the plan's "no voxel turned from right to wrong" rule for
+later tasks, or replace it (for example by the net change measured against the seed-to-seed scale, plus
+a check that uses no random numbers). Answered on 2026-10-14: Task G does not try the two Task C filters
+that look harmless on full-sample voxels (D-20261014-N4), and the untracked Task A log folder was
+deleted (D-20261014-N5).
 No defaults to flip and no golden tests to regenerate from Track E right now.
 
 ## The other track
