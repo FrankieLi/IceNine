@@ -15,6 +15,7 @@ exactly through the library's stage-D C call (triangle mode), with its vertices
 Usage (from icenine_py/):
   uv run python scripts/speed_parity/s4/recost.py equal
   uv run python scripts/speed_parity/s4/recost.py time [--n-orient 200]
+  uv run python scripts/speed_parity/s4/recost.py memory [--n-orient 200]   (bytes, not timed)
 """
 
 import argparse
@@ -243,6 +244,46 @@ def cmd_time(a: argparse.Namespace) -> None:
     print(json.dumps(res, indent=1))
 
 
+def cmd_memory(a: argparse.Namespace) -> None:
+    """Bytes a stored layer-wide local-cost table would hold per orientation (not timed): for the
+    same seeded sample of orientations as ``time``, the arrays the per-pair call needs (A, c, the
+    wedge and detector-hit flags, a 2-byte frame index per peak), scaled to every orientation."""
+    ds = C.load_set("phase_d")
+    cap = C.capture_level0(ds, ds.voxels[C.reference_voxels(ds)[0]])
+    lcf = cap["local_cost_fn"]
+    R_all = C.all_orientations(cap)
+    rng = np.random.default_rng(11)
+    sample = np.sort(rng.choice(len(R_all), a.n_orient, replace=False))
+    rc = OrientRecost(lcf, C.det_geoms(lcf), C.sample_translation(lcf))
+    v_any = C.voxel_vertices(ds.voxels[0])
+    phase = int(ds.voxels[0].phase)
+    Ms: List[int] = []
+    nbytes: List[int] = []
+    for k in sample:
+        st = rc.setup(R_all[k], v_any, phase)
+        M = int(st["M"])
+        Ms.append(M)
+        if M == 0:
+            nbytes.append(0)
+            continue
+        wedge, det_hit = np.asarray(st["args"][1]), np.asarray(st["args"][2])
+        nbytes.append(int(st["A"].nbytes + st["c"].nbytes + wedge.nbytes + det_hit.nbytes + 2 * M))
+    n_all = len(R_all)
+    res = dict(
+        n_orient_sampled=int(a.n_orient),
+        n_orient_layer=int(n_all),
+        peaks_per_orientation_mean=float(np.mean(Ms)),
+        peaks_per_orientation_min=int(min(Ms)),
+        peaks_per_orientation_max=int(max(Ms)),
+        bytes_per_orientation_mean=float(np.mean(nbytes)),
+        bytes_per_peak=float(sum(nbytes) / max(sum(Ms), 1)),
+        table_bytes_layer_estimate=float(np.mean(nbytes) * n_all),
+        dtypes=dict(A=str(st["A"].dtype), c=str(st["c"].dtype)),
+    )
+    (C.OUT / "step4_recost_memory.json").write_text(json.dumps(res, indent=1) + "\n")
+    print(json.dumps(res, indent=1))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -251,8 +292,10 @@ def main() -> None:
     p = sub.add_parser("time")
     p.add_argument("--n-orient", type=int, default=200)
     p.add_argument("--n-eval-per-orient", type=int, default=20)
+    p = sub.add_parser("memory")
+    p.add_argument("--n-orient", type=int, default=200)
     a = ap.parse_args()
-    dict(equal=cmd_equal, time=cmd_time)[a.cmd](a)
+    dict(equal=cmd_equal, time=cmd_time, memory=cmd_memory)[a.cmd](a)
 
 
 if __name__ == "__main__":

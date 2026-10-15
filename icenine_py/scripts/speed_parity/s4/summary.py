@@ -51,7 +51,6 @@ def main() -> None:
     cost_rows: List[Dict[str, Any]] = []
     for p in sorted((OUT / "cache").glob("step1_cost_part*.json")):
         cost_rows += json.loads(p.read_text())["rows"]
-    ref_idx = json.loads((C.CACHE / "ref" / "ref_index_phase_d.json").read_text())
     if cost_rows:  # the 1c rows of both parts, kept with the results (the parts live in cache/)
         (OUT / "step1_cost.json").write_text(json.dumps(dict(rows=cost_rows), indent=1) + "\n")
 
@@ -207,30 +206,30 @@ def main() -> None:
                 result=f"{law['peakset_identical_sim']} of {law['peakset_compared_sim']} moves",
                 exceptions="none",
             ),
-            dict(
-                check="1b(i) integer shift: S(x') = S(x) + m (float32 simulator)",
-                n=sum(tl["i32"][k] for k in ("equal", "edge", "float", "fail")),
-                result=f"{tl['i32']['equal']} equal, {tl['i32']['fail']} failures",
-                exceptions=f"{tl['i32']['edge']} at the detector edge ({tl['i32']['edge_off']} off it), {tl['i32']['float']} float flips",
-            ),
-            dict(
-                check="1b(i) the same in float64 vertices",
-                n=sum(tl["i64"][k] for k in ("equal", "edge", "float", "fail")),
-                result=f"{tl['i64']['equal']} equal, {tl['i64']['fail']} failures",
-                exceptions=f"{tl['i64']['edge']} at the detector edge, {tl['i64']['float']} float flips",
-            ),
-            dict(
-                check="1b(ii) phase re-rasterised: S(x') = R(T + phi) + m (float32 simulator)",
-                n=sum(tl["ii32"][k] for k in ("equal", "edge", "float", "fail")),
-                result=f"{tl['ii32']['equal']} equal, {tl['ii32']['fail']} failures",
-                exceptions=f"{tl['ii32']['edge']} at the detector edge ({tl['ii32']['edge_off']} off it), {tl['ii32']['float']} float flips (largest distance {law['float_flip_dist_max']['ii32']:.1e} px)",
-            ),
-            dict(
-                check="1b(ii) the same in float64 vertices",
-                n=sum(tl["ii64"][k] for k in ("equal", "edge", "float", "fail")),
-                result=f"{tl['ii64']['equal']} equal, {tl['ii64']['fail']} failures",
-                exceptions=f"{tl['ii64']['edge']} at the detector edge, {tl['ii64']['float']} float flips",
-            ),
+            *[
+                dict(
+                    check=check,
+                    n=sum(tl[key][k] for k in ("equal", "edge", "float", "fail")),
+                    result=f"{tl[key]['equal']} equal, {tl[key]['fail']} failures",
+                    off_detector=tl[key]["edge_off"],
+                    clipped_not_checked=tl[key]["edge"] - tl[key]["edge_off"],
+                    exceptions=f"{tl[key]['float']} float flips"
+                    + (
+                        f" (largest distance {law['float_flip_dist_max'][key]:.1e} px)"
+                        if tl[key]["float"]
+                        else ""
+                    ),
+                )
+                for key, check in (
+                    ("i32", "1b(i) integer shift: S(x') = S(x) + m (float32 simulator)"),
+                    ("i64", "1b(i) the same in float64 vertices"),
+                    (
+                        "ii32",
+                        "1b(ii) phase re-rasterised: S(x') = R(T + phi) + m (float32 simulator)",
+                    ),
+                    ("ii64", "1b(ii) the same in float64 vertices"),
+                )
+            ],
             dict(
                 check="1b(iii) pure pixel-set translation S(x) + round(A dx) = S(x')",
                 n=iii["n_spots"],
@@ -244,7 +243,12 @@ def main() -> None:
                 exceptions="none (4 frames x 2 detectors, border band included)",
             ),
         ]
-        T["s4_q1"] = doc_tables.markdown_table(rows, ["check", "n", "result", "exceptions"])
+        # "off_detector": no pixel of the spot on the detector at x'; "clipped_not_checked": a
+        # spot clipped by the detector edge whose sets differ (compare_sets classifies it as edge
+        # without checking it)
+        T["s4_q1"] = doc_tables.markdown_table(
+            rows, ["check", "n", "result", "off_detector", "clipped_not_checked", "exceptions"]
+        )
         T["s4_q1_pure"] = doc_tables.markdown_table(
             [
                 dict(stat="spots compared (both on the detector, unclipped)", value=iii["n_spots"]),
@@ -298,6 +302,32 @@ def main() -> None:
             kept_exact_min=int(min(r["kept_total_exact"] for r in cost_rows)),
             kept_exact_max=int(max(r["kept_total_exact"] for r in cost_rows)),
         )
+        if all("ties_at_min_exact" in r for r in cost_rows):  # tie counts (review follow-up)
+            agg.update(
+                tie_rule="kept candidates ordered by (re-cost, orientation index)",
+                ties_at_min_exact=[int(r["ties_at_min_exact"]) for r in cost_rows],
+                ties_at_min_translated=[int(r["ties_at_min_translated"]) for r in cost_rows],
+                voxels_tied_min_exact=int(sum(r["ties_at_min_exact"] > 1 for r in cost_rows)),
+                voxels_tied_min_translated=int(
+                    sum(r["ties_at_min_translated"] > 1 for r in cost_rows)
+                ),
+                min_set_same=int(sum(r["min_set_same"] for r in cost_rows)),
+                best_cost_same=int(
+                    sum(r["best_cost_exact"] == r["best_cost_translated"] for r in cost_rows)
+                ),
+                best_exact_in_translated_min_set=int(
+                    sum(r["best_exact_in_translated_min_set"] for r in cost_rows)
+                ),
+                ties_at_rank30_exact_median=float(
+                    np.median([r["ties_at_rank30_exact"] for r in cost_rows])
+                ),
+                voxels_rank30_tie_crosses_cut=int(
+                    sum(
+                        r["strictly_above_rank30_exact"] + r["ties_at_rank30_exact"] > 30
+                        for r in cost_rows
+                    )
+                ),
+            )
         S["step1c"] = agg
         T["s4_q1_cost"] = doc_tables.markdown_table(
             [
@@ -322,13 +352,41 @@ def main() -> None:
                     measure="cliques whose spacing-filtered set is unchanged",
                     value=f"{agg['cliques_same']} of {agg['cliques']} ({100 * agg['cliques_same'] / agg['cliques']:.1f}%)",
                 ),
-                dict(
-                    measure="voxels whose best filtered candidate is unchanged",
-                    value=f"{agg['best_same']} of {n} (Wilson {wilson_str(agg['best_same'], n)})",
-                ),
-                dict(
-                    measure="top-30 filtered candidates in common, median over voxels",
-                    value=f"{agg['top30_overlap_median']:.1f} of 30",
+                *(
+                    [
+                        dict(
+                            measure="voxels with ties at the lowest filtered re-cost, exact / "
+                            "translated",
+                            value=f"{agg['voxels_tied_min_exact']} / "
+                            f"{agg['voxels_tied_min_translated']} of {n}",
+                        ),
+                        dict(
+                            measure="tied candidates at the lowest re-cost, exact, median (max)",
+                            value=f"{np.median(agg['ties_at_min_exact']):.0f} "
+                            f"({max(agg['ties_at_min_exact'])})",
+                        ),
+                        dict(
+                            measure="voxels whose lowest filtered re-cost is unchanged",
+                            value=f"{agg['best_cost_same']} of {n}",
+                        ),
+                        dict(
+                            measure="voxels whose set of tied lowest candidates is unchanged",
+                            value=f"{agg['min_set_same']} of {n} "
+                            f"(Wilson {wilson_str(agg['min_set_same'], n)})",
+                        ),
+                    ]
+                    if "min_set_same" in agg
+                    else [
+                        dict(
+                            measure="voxels whose best filtered candidate is unchanged",
+                            value=f"{agg['best_same']} of {n} "
+                            f"(Wilson {wilson_str(agg['best_same'], n)})",
+                        ),
+                        dict(
+                            measure="top-30 filtered candidates in common, median over voxels",
+                            value=f"{agg['top30_overlap_median']:.1f} of 30",
+                        ),
+                    ]
                 ),
             ],
             ["measure", "value"],
@@ -514,6 +572,18 @@ def main() -> None:
         )
     if full:
         S["step3_full"] = full
+        if eq_d:  # each full-layer offset against the Step 2 float64-table pass flips of that voxel
+            S["step3_full_vs_step2"] = {
+                vid: dict(
+                    offset=c["passers"] - c["ref_passers"],
+                    net_f64_pass_flips=sum(
+                        1 if x["po_ref"] == 0 else -1
+                        for x in eq_d["listed"]
+                        if x["table"] == "f64" and x["pass_flip"] and int(x["vid"]) == int(vid)
+                    ),
+                )
+                for vid, c in full["reference_check"].items()
+            }
         T["s4_full_layer"] = doc_tables.markdown_table(
             [
                 dict(
@@ -528,7 +598,15 @@ def main() -> None:
                     value=f"{full['wall_s']:.2f} ({full['kernel_s']:.2f} + {full['reduce_s']:.2f})",
                 ),
                 dict(
-                    item="BatchedScreen for the same work, single worker (h)",
+                    item="kernel time projected linearly from the 2,000-voxel patch (10 threads) (s)",
+                    value=(
+                        f"{tim['arms']['O2 counts u8 b=32FZ th=10']['median_s'] * full['n_voxels'] / 2000:.2f}"  # noqa: E501
+                        if tim
+                        else "n/a"
+                    ),
+                ),
+                dict(
+                    item="BatchedScreen for the same work, single worker, projected from 10 voxels (h)",
                     value=(
                         f"{full['n_voxels'] * S['step0']['screen_s'] / 3600:.2f}" if s0 else "n/a"
                     ),
@@ -680,39 +758,59 @@ def main() -> None:
         T_G1 = tim["arms"]["O2 counts u8 b=32FZ"]["projected_full_layer_s"]
         pairs = full["passers_total"]
         pv = full["passers_per_voxel_median"]
+        # the orientation-major re-cost pays a set-up per orientation (the local cost function's
+        # peaks, A and c; measured in Step 4) besides the per-pair time: once per orientation for a
+        # stored layer-wide table, or once per (seed, passing orientation) when each seed is
+        # re-costed alone, as the BFS reaches seeds one at a time
+        t_setup = rct["setup_us_per_orientation"] * 1e-6
+        n_o = full["n_orient"]
         prj = []
         for s in SEEDS:
             a_ = dict(
+                key="a",
                 scenario="(a) today's BFS",
                 seeds=s,
                 screen=s * st0["screen_s"],
+                setup=0.0,
                 recost=s * st0["recost_s_per_voxel"],
-                refine=s * rest,
+                rest=s * rest,
                 neighbours=(V - s) * T_nb,
             )
             b_ = dict(
-                scenario="(b) global screen and re-cost, per-voxel refinement",
+                key="b",
+                scenario="(b) global screen and re-cost, per-voxel search after them",
                 seeds=s,
                 screen=T_G1,
+                setup=n_o * t_setup,
                 recost=pairs * t_pair,
-                refine=V * rest,
+                rest=V * rest,
                 neighbours=0.0,
             )
             c_ = dict(
-                scenario="(c) hybrid: BFS, seeds take the global level-0 list",
+                key="c",
+                scenario="(c) hybrid, stored layer-wide local-cost table",
                 seeds=s,
                 screen=T_G1,
+                setup=n_o * t_setup,
                 recost=s * pv * t_pair,
-                refine=s * rest,
+                rest=s * rest,
                 neighbours=(V - s) * T_nb,
             )
-            for r in (a_, b_, c_):
-                r["total_h"] = (r["screen"] + r["recost"] + r["refine"] + r["neighbours"]) / 3600
-                tot = r["total_h"] * 3600
-                r["share_screen"] = r["screen"] / tot
-                r["share_recost"] = r["recost"] / tot
-                r["share_refine"] = r["refine"] / tot
-                r["share_neighbours"] = r["neighbours"] / tot
+            c2 = dict(
+                key="c'",
+                scenario="(c') hybrid, each seed re-costed alone orientation-major",
+                seeds=s,
+                screen=T_G1,
+                setup=s * pv * t_setup,
+                recost=s * pv * t_pair,
+                rest=s * rest,
+                neighbours=(V - s) * T_nb,
+            )
+            for r in (a_, b_, c_, c2):
+                tot = r["screen"] + r["setup"] + r["recost"] + r["rest"] + r["neighbours"]
+                r["total_h"] = tot / 3600
+                for part in ("screen", "setup", "recost", "rest", "neighbours"):
+                    r[f"share_{part}"] = r[part] / tot
                 prj.append(r)
         S["projection"] = dict(
             inputs=dict(
@@ -721,11 +819,18 @@ def main() -> None:
                 level0_screen_s=st0["screen_s"],
                 level0_recost_s=st0["recost_s_per_voxel"],
                 rest_of_search_s=rest,
+                rest_of_search_meaning=(
+                    "no-start wall time minus the level-0 screen and the level-0 re-cost: the "
+                    "level-0 quick MC and everything after level 0"
+                ),
                 neighbour_s=T_nb,
                 recost_pair_us=rct["pair_us"],
+                recost_setup_us_per_orientation=rct["setup_us_per_orientation"],
+                n_orient=n_o,
                 global_screen_wall_s=T_G,
                 global_screen_threads=full["threads"],
                 global_screen_single_worker_equiv_s=T_G1,
+                global_screen_single_worker_is_projection=True,
                 passers_total=pairs,
                 passers_per_voxel_median=pv,
             ),
@@ -738,15 +843,17 @@ def main() -> None:
                 "seeds",
                 "total_h",
                 "share_screen",
+                "share_setup",
                 "share_recost",
-                "share_refine",
+                "share_rest",
                 "share_neighbours",
             ],
             {
                 "total_h": ".3g",
                 "share_screen": ".3f",
+                "share_setup": ".3f",
                 "share_recost": ".3f",
-                "share_refine": ".3f",
+                "share_rest": ".3f",
                 "share_neighbours": ".3f",
             },
         )
@@ -754,7 +861,7 @@ def main() -> None:
         P = S["projection"]["inputs"]
         arms = tim["arms"]
         o2 = arms["O2 counts u8 b=32FZ"]["median_s"]
-        rows = {r["scenario"][:3] + str(r["seeds"]): r for r in S["projection"]["rows"]}
+        rows = {f"({r['key']}){r['seeds']}": r for r in S["projection"]["rows"]}
         S["derived"] = dict(
             batchedscreen_layer_h=P["V"] * P["level0_screen_s"] / 3600,
             screen_speedup_single_thread=P["V"]
@@ -791,6 +898,91 @@ def main() -> None:
             * 1e-6
             / 3600,
             pass_rate=P["passers_total"] / (P["V"] * full["n_orient"]),
+        )
+        D = S["derived"]
+        t_set = P["recost_setup_us_per_orientation"] * 1e-6
+        pv, t_pair = P["passers_per_voxel_median"], P["recost_pair_us"] * 1e-6
+        o2_10 = arms["O2 counts u8 b=32FZ th=10"]["median_s"]
+        D.update(
+            recost_layer_h_orientation_major=(P["passers_total"] * t_pair + P["n_orient"] * t_set)
+            / 3600,
+            recost_table_build_s=P["n_orient"] * t_set,
+            seed_recost_alone_s=pv * (t_set + t_pair),
+            seed_saving_alone_s=P["level0_screen_s"] + P["level0_recost_s"] - pv * (t_set + t_pair),
+            c2_saving_h={
+                s: rows[f"(a){s}"]["total_h"] - rows[f"(c'){s}"]["total_h"] for s in SEEDS
+            },
+            screen_only_saving_h={
+                s: (s * P["level0_screen_s"] - P["global_screen_single_worker_equiv_s"]) / 3600
+                for s in SEEDS
+            },
+            rest_share_of_nostart=P["rest_of_search_s"] / P["nostart_s"],
+            # linearity check: the one measured full-layer kernel against the 10-thread patch time
+            # scaled to the layer (single-thread layer times are projections only)
+            full_layer_kernel_projected_s=o2_10 * P["V"] / 2000,
+            full_layer_kernel_over_projection=full["kernel_s"] / (o2_10 * P["V"] / 2000),
+        )
+        D.update(
+            search_wall_min_s=float(min(r["wall_s"] for r in s0["search"])),
+            search_wall_max_s=float(max(r["wall_s"] for r in s0["search"])),
+            recost_timing_pairs_per_orientation=rct["pairs"] / rct["n_orient"],
+            linearity_ms_per_voxel={
+                base: {
+                    n: 1e3 * arms[base if n == 2000 else f"{base} n={n}"]["median_s"] / n
+                    for n in (500, 1000, 2000)
+                }
+                for base in ("O2 counts u8 b=32FZ", "O5 counts u8 tile=256")
+            },
+        )
+    mem = load("step4_recost_memory.json")
+    if mem:
+        S["step4_memory"] = mem
+        S["step4_memory"]["table_gb_layer_estimate"] = mem["table_bytes_layer_estimate"] / 1e9
+    rr = load("step3_rule_rates.json")
+    if rr:
+        S["rule_rates"] = {
+            k: ({kk: vv for kk, vv in v.items() if kk != "per_voxel"} if isinstance(v, dict) else v)
+            for k, v in rr.items()
+        }
+        T["s4_rules"] = doc_tables.markdown_table(
+            [
+                dict(
+                    set=name,
+                    voxels=rr[k]["voxels"],
+                    pairs=rr[k]["pairs"],
+                    pass_default=f"{rr[k]['pass_rule0']} ({100 * rr[k]['rate_rule0']:.1f}%)",
+                    pass_cpp_rule=f"{rr[k]['pass_rule1']} ({100 * rr[k]['rate_rule1']:.1f}%)",
+                    default_only=rr[k]["rule0_only"],
+                    cpp_only=rr[k]["rule1_only"],
+                    cpp_rate_per_voxel=f"{100 * rr[k]['per_voxel_rate_rule1_min']:.1f}-"
+                    f"{100 * rr[k]['per_voxel_rate_rule1_max']:.1f}%",
+                )
+                for k, name in (
+                    ("reference", "20 reference voxels"),
+                    ("patch_2000", "2,000-voxel patch"),
+                    ("layer", "whole layer"),
+                )
+                if k in rr
+            ],
+            [
+                "set",
+                "voxels",
+                "pairs",
+                "pass_default",
+                "pass_cpp_rule",
+                "default_only",
+                "cpp_only",
+                "cpp_rate_per_voxel",
+            ],
+        )
+    o3 = load("step3_o3_threads.json")
+    if o3:
+        S["step3_o3_threads"] = o3
+        T["s4_o3_threads"] = doc_tables.markdown_table(
+            [dict(arm=k, median_s=v["median_s"], equal=v["equal"]) for k, v in o3["arms"].items()]
+            + [dict(arm="label", median_s=None, equal=o3["label"])],
+            ["arm", "median_s", "equal"],
+            {"median_s": ".3g"},
         )
     (OUT / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
     doc_tables.write_tables(OUT / "tables.md", T)

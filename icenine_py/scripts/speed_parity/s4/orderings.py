@@ -18,6 +18,9 @@ Subcommands (from icenine_py/):
           1..10, block and tile sweeps, uint8 and bit-packed bitmaps, counts and pass-only
   full    the best ordering on the whole layer (24,570 voxels), tiled over voxels
   model   the cost model of every ordering (O4 included) from measured inputs
+  rules   pass rates under the default and the C++ qualified-peak rule (reference voxels, patch,
+          layer; counts only, not timed)
+  time_o3 O3 tile 2,000 and 256 against O2 at 1 and 10 threads (interleaved; review follow-up)
 Every timing is preceded by the preflight and labelled quiet or contended.
 """
 
@@ -653,10 +656,145 @@ def cmd_time_o4(a: argparse.Namespace) -> None:
     print(json.dumps(out, indent=1))
 
 
+# ---------------------------------------------------------------------------------------------
+# rules: pass rates under the default and the C++ qualified-peak rule (no timing)
+# ---------------------------------------------------------------------------------------------
+
+
+def pass_split(p0: np.ndarray, p1: np.ndarray) -> Dict[str, Any]:
+    """Paired pass counts of two rules on the same (orientation, voxel) pairs; p0, p1 bool."""
+    n = int(p0.size)
+    per0, per1 = p0.sum(axis=0), p1.sum(axis=0)
+    return dict(
+        pairs=n,
+        voxels=int(p0.shape[1]),
+        pass_rule0=int(p0.sum()),
+        pass_rule1=int(p1.sum()),
+        rate_rule0=float(p0.sum() / n),
+        rate_rule1=float(p1.sum() / n),
+        rule0_only=int((p0 & ~p1).sum()),
+        rule1_only=int((p1 & ~p0).sum()),
+        both=int((p0 & p1).sum()),
+        per_voxel_rate_rule0_min=float(per0.min() / p0.shape[0]),
+        per_voxel_rate_rule0_max=float(per0.max() / p0.shape[0]),
+        per_voxel_rate_rule1_min=float(per1.min() / p1.shape[0]),
+        per_voxel_rate_rule1_max=float(per1.max() / p1.shape[0]),
+        per_voxel_passers_rule1_median=float(np.median(per1)),
+    )
+
+
+def cmd_rules(a: argparse.Namespace) -> None:
+    """Screen pass rates under rule 0 (the config's default qualified-peak rule) and rule 1
+    (``CppOverlapRule``: bright on detector 0 and, on detector 1, bright or not lit) on the 20
+    reference voxels (also checked against the numpy kernel), the 2,000-voxel patch and the whole
+    layer. Counts only: nothing here is timed."""
+    ctx = Ctx("phase_d")
+    assert ctx.rule == 0, "the config is expected to use the default rule"
+    cts = {r: ctx.ctab("u8", rule=r) for r in (0, 1)}
+    res: Dict[str, Any] = dict(n_orient=int(ctx.tab.n_orient))
+
+    def passes(vids: np.ndarray, rule: int) -> np.ndarray:
+        X = ctx.X[vids]
+        return K.run("o2p", cts[rule], X[:, 0], X[:, 1], threads=a.threads).astype(bool)
+
+    ref = np.array(C.reference_voxels(ctx.ds))
+    p = {r: passes(ref, r) for r in (0, 1)}
+    want = {r: C.kernel_numpy(ctx.tab, ctx.X[ref], ctx.bm, bool(r))["po"] > 0 for r in (0, 1)}
+    res["reference"] = pass_split(p[0], p[1])
+    res["reference"]["equal_numpy"] = bool(all(np.array_equal(p[r], want[r]) for r in (0, 1)))
+    res["reference"]["voxel_ids"] = [int(v) for v in ref]
+    res["reference"]["per_voxel"] = [
+        dict(vid=int(v), rule0=int(p[0][:, j].sum()), rule1=int(p[1][:, j].sum()))
+        for j, v in enumerate(ref)
+    ]
+    print("reference", json.dumps({k: v for k, v in res["reference"].items() if k != "per_voxel"}))
+    del want
+    v2 = ctx.patch(2000)
+    res["patch_2000"] = pass_split(passes(v2, 0), passes(v2, 1))
+    print("patch", json.dumps(res["patch_2000"]), flush=True)
+    V = len(ctx.X)
+    per = {r: np.zeros(V, np.int64) for r in (0, 1)}
+    tot = dict(pairs=0, pass_rule0=0, pass_rule1=0, rule0_only=0, rule1_only=0, both=0)
+    for s in range(0, V, a.voxel_tile):
+        vids = np.arange(s, min(s + a.voxel_tile, V))
+        q0, q1 = passes(vids, 0), passes(vids, 1)
+        per[0][vids], per[1][vids] = q0.sum(axis=0), q1.sum(axis=0)
+        tot["pairs"] += int(q0.size)
+        tot["pass_rule0"] += int(q0.sum())
+        tot["pass_rule1"] += int(q1.sum())
+        tot["rule0_only"] += int((q0 & ~q1).sum())
+        tot["rule1_only"] += int((q1 & ~q0).sum())
+        tot["both"] += int((q0 & q1).sum())
+        del q0, q1
+    n_o = ctx.tab.n_orient
+    res["layer"] = dict(
+        tot,
+        voxels=V,
+        rate_rule0=tot["pass_rule0"] / tot["pairs"],
+        rate_rule1=tot["pass_rule1"] / tot["pairs"],
+        per_voxel_passers_rule0_median=float(np.median(per[0])),
+        per_voxel_passers_rule1_median=float(np.median(per[1])),
+        per_voxel_passers_rule1_min=int(per[1].min()),
+        per_voxel_passers_rule1_max=int(per[1].max()),
+        per_voxel_rate_rule1_min=float(per[1].min() / n_o),
+        per_voxel_rate_rule1_max=float(per[1].max() / n_o),
+    )
+    print("layer", json.dumps(res["layer"]), flush=True)
+    (C.OUT / "step3_rule_rates.json").write_text(json.dumps(res, indent=1) + "\n")
+
+
+# ---------------------------------------------------------------------------------------------
+# time_o3: O3 with tile 2,000 on threads, interleaved with O2 (review follow-up)
+# ---------------------------------------------------------------------------------------------
+
+
+def cmd_time_o3(a: argparse.Namespace) -> None:
+    """O3 tile 2,000 (the fastest one-thread arm of ``time``) and tile 256 against O2 at 1 and
+    10 threads on the 2,000-voxel patch, interleaved repeats in one process."""
+    pf = C.preflight_json(C.OUT / "preflight_step3_o3.json")
+    label = C.label_of(pf)
+    torch.set_num_threads(1)
+    ctx = Ctx("phase_d")
+    v2 = ctx.patch(2000)
+    ctx.bitmaps("u8")
+    ref = run_kind(ctx, "o2", v2, 4, "u8")
+    arms: Dict[str, Tuple[str, int, int]] = {}
+    for th in (1, 10):
+        sfx = "" if th == 1 else f" th={th}"
+        arms[f"O2 counts u8 b=32FZ{sfx}"] = ("o2", th, 256)
+        arms[f"O3 counts u8 tile=2000{sfx}"] = ("o3", th, 2000)
+        arms[f"O3 counts u8 tile=256{sfx}"] = ("o3", th, 256)
+    res: Dict[str, Dict[str, Any]] = {k: dict(times=[], equal=True) for k in arms}
+    for rep in range(a.reps):
+        for k, (kind, th, tile) in arms.items():
+            dt, out = timed(lambda: run_kind(ctx, kind, v2, th, "u8", tile=tile))
+            res[k]["times"].append(dt)
+            res[k]["equal"] &= bool(np.array_equal(out, ref))
+            del out
+        print(f"rep {rep} done", flush=True)
+    for v in res.values():
+        v["median_s"] = float(np.median(v["times"]))
+    out = dict(
+        label=label,
+        preflight_load=pf.get("loadavg"),
+        reps=a.reps,
+        n_voxels=int(len(v2)),
+        arms=res,
+        preflight_end=C.preflight_json(C.OUT / "preflight_step3_o3_end.json").get("loadavg"),
+    )
+    (C.OUT / "step3_o3_threads.json").write_text(json.dumps(out, indent=1) + "\n")
+    print(json.dumps({k: (v["median_s"], v["equal"]) for k, v in res.items()}, indent=1))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("check")
+    p = sub.add_parser("rules")
+    p.add_argument("--threads", type=int, default=8)
+    p.add_argument("--voxel-tile", type=int, default=4096)
+    p = sub.add_parser("time_o3")
+    p.add_argument("--reps", type=int, default=5)
     p = sub.add_parser("time_o4")
     p.add_argument("--reps", type=int, default=3)
     p = sub.add_parser("time")
@@ -671,9 +809,15 @@ def main() -> None:
     p = sub.add_parser("model")
     p.add_argument("--n-peaks", type=int, default=3000)
     a = ap.parse_args()
-    dict(check=cmd_check, time=cmd_time, full=cmd_full, model=cmd_model, time_o4=cmd_time_o4)[
-        a.cmd
-    ](a)
+    dict(
+        check=cmd_check,
+        rules=cmd_rules,
+        time=cmd_time,
+        time_o3=cmd_time_o3,
+        full=cmd_full,
+        model=cmd_model,
+        time_o4=cmd_time_o4,
+    )[a.cmd](a)
 
 
 if __name__ == "__main__":

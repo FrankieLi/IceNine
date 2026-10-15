@@ -138,3 +138,30 @@ def test_table_screen_equals_batched_screen(s4: Dict[str, Any]) -> None:
     out = C.kernel_numpy(tab, C.centroid64(verts)[None], bm, bool(gcf.cpp_overlap_rule))
     assert np.array_equal(out["po"][:, 0], po_ref)
     assert (po_ref > 0).any()
+
+
+def test_qualified_rules_match_library_truth_table(s4: Dict[str, Any]) -> None:
+    """The kernels' default and C++ qualified-peak rules (``common.qualified``) against the
+    library's ``count_qualified_peaks`` and ``count_qualified_peaks_cpp`` on every (lit, bright)
+    pattern of 2 and 3 detectors (bright implies lit); with 2 detectors the default overlap is
+    'bright on detector 0' and the C++ one 'bright on 0 and (bright on 1 or not lit on 1)'."""
+    import itertools
+
+    from icenine import cost_functions as CF
+
+    C = s4["C"]
+    for nd in (2, 3):
+        for lit in itertools.product((False, True), repeat=nd):
+            for bright in itertools.product((False, True), repeat=nd):
+                if any(b and not li for b, li in zip(bright, lit)):
+                    continue
+                L, B = np.array([lit]), np.array([bright])
+                on0, ov0 = C.qualified(L, B, False)
+                on1, ov1 = C.qualified(L, B, True)
+                ref0 = CF.count_qualified_peaks(list(lit), list(bright), nd)
+                ref1 = CF.count_qualified_peaks_cpp(list(lit), list(bright), nd)
+                assert (int(on0[0]), int(ov0[0])) == (ref0[0], ref0[1]), (lit, bright)
+                assert (int(on1[0]), int(ov1[0])) == (ref1[0], ref1[1]), (lit, bright)
+                if nd == 2:
+                    assert bool(ov0[0]) == bright[0]
+                    assert bool(ov1[0]) == (bright[0] and (bright[1] or not lit[1]))

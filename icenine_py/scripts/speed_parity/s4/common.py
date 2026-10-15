@@ -20,13 +20,12 @@ Plan: ``docs/todo_translation_screen_prototype.md``. Scripts only, no library ch
 
 import contextlib
 import io
-import math
 import os
 import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 import torch

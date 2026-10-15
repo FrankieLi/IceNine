@@ -28,7 +28,6 @@ Usage:
 import argparse
 import copy
 import json
-import math
 import sys
 import time
 from pathlib import Path
@@ -42,7 +41,6 @@ sys.path.insert(0, str(HERE))
 import common as C  # noqa: E402
 
 from icenine import cost_functions as CF  # noqa: E402
-from icenine import forward_simulation as FS  # noqa: E402
 from icenine.image_data import ImageData  # noqa: E402
 
 N_NEAR_VOXELS = 3
@@ -855,11 +853,27 @@ def cmd_cost(a: argparse.Namespace) -> None:
                 n_cliques += 1
                 kept_ex += [(float(rc_ex[np.nonzero(passers == k)[0][0]]), k) for k in ke]
                 kept_tr += [(float(rc_tr[np.nonzero(passers == k)[0][0]]), k) for k in kt]
+            # tie rule: kept candidates ordered by (re-cost, orientation index); re-costs are
+            # discrete (1 - po/pon), so the ties at the minimum and at rank 30 are counted
             kept_ex.sort()
             kept_tr.sort()
             top = 30
             top_ex = [k for _, k in kept_ex[:top]]
             top_tr = [k for _, k in kept_tr[:top]]
+
+            def tie_stats(kept: List[Tuple[float, int]]) -> Dict[str, Any]:
+                c = np.array([x for x, _ in kept])
+                at_min = c == c.min()
+                cut = c[min(top, len(c)) - 1]
+                return dict(
+                    best_cost=float(c.min()),
+                    ties_at_min=int(at_min.sum()),
+                    min_set={int(k) for (_, k), m in zip(kept, at_min) if m},
+                    ties_at_rank30=int((c == cut).sum()),
+                    above_rank30_strict=int((c < cut).sum()),
+                )
+
+            te, tt = tie_stats(kept_ex), tie_stats(kept_tr)
             row = dict(
                 vid=int(vid),
                 points_up=up,
@@ -893,6 +907,15 @@ def cmd_cost(a: argparse.Namespace) -> None:
                 kept_total_translated=len(kept_tr),
                 best_same=bool(top_ex[:1] == top_tr[:1]),
                 top30_overlap=len(set(top_ex) & set(top_tr)),
+                best_cost_exact=te["best_cost"],
+                best_cost_translated=tt["best_cost"],
+                ties_at_min_exact=te["ties_at_min"],
+                ties_at_min_translated=tt["ties_at_min"],
+                min_set_same=bool(te["min_set"] == tt["min_set"]),
+                best_exact_in_translated_min_set=bool(top_ex[0] in tt["min_set"]),
+                ties_at_rank30_exact=te["ties_at_rank30"],
+                ties_at_rank30_translated=tt["ties_at_rank30"],
+                strictly_above_rank30_exact=te["above_rank30_strict"],
             )
             out_rows.append(row)
             print(json.dumps(row), flush=True)
