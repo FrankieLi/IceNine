@@ -1,0 +1,17 @@
+{
+  "tag": "full",
+  "sample_seed": 0,
+  "n_voxels": 24570,
+  "workers": 10,
+  "timing_label": "contended (10 workers; machine quiet at start: False)",
+  "wall_s": 35.35291290283203,
+  "worker_t_sim_s_max": 31.363152265548706,
+  "worker_t_label_s_max": 1.8158068656921387,
+  "worker_peak_rss_gb_max": 1.300135936,
+  "n_triangles": 2957243,
+  "n_components": 57389,
+  "n_frames_checked_against_clean": 360,
+  "n_frames_check_mismatch": 0,
+  "connectivity": 4,
+  "output_dir": "Examples/Example2.ManyGrains/ScatteringData_PhaseD/full/provenance"
+}
