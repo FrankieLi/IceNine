@@ -1,0 +1,24 @@
+{
+ "label": "contended",
+ "preflight_load": [
+  2.39306640625,
+  2.6904296875,
+  2.82421875
+ ],
+ "threads": 1,
+ "n_orient": 200,
+ "patch": 2000,
+ "pairs": 321456,
+ "setup_us_per_orientation": 457.81878000012097,
+ "pair_us": 28.914359284007755,
+ "evaluate_us": 266.0248160000065,
+ "n_evaluate": 4000,
+ "pair_us_batched_vertices": 29.821930942337357,
+ "batched_vs_per_voxel_differences": 0,
+ "speedup_pair_vs_evaluate": 9.200439594286363,
+ "preflight_end": [
+  2.150390625,
+  2.61279296875,
+  2.79296875
+ ]
+}
