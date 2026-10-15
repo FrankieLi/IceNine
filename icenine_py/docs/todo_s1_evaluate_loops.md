@@ -8,8 +8,8 @@ fontsize: 11pt
 
 # Status
 
-**Plan, waiting for the owner's approval.** The owner picked S1 as the next Track S item on 2026-10-14
-(D-20261014-I14). A-exact and S3 are both merged into `feature/python-speed-parity`, so nothing
+**Approved 2026-10-14, Step 4 included (D-20261014-I15); not started.** The owner picked S1 as the next
+Track S item on 2026-10-14 (D-20261014-I14). A-exact and S3 are both merged into `feature/python-speed-parity`, so nothing
 blocks it. Branch: task branch `feature/python-speed-parity-s1-loops` off
 `feature/python-speed-parity`. An `implementer` agent builds it, `/review-task` reviews it, and a
 fresh implementer applies the fixes (Track S rule). `icenine/cost_functions.py` is a shared file, so

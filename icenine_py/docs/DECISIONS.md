@@ -221,3 +221,10 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - After Q8 and the Task C merge, the next Track S item is S1 (remove the per-call Python loops in
   `evaluate`; bit-identical). It starts with a plan, `docs/todo_s1_evaluate_loops.md`, which the
   owner approves before an implementer builds it. Where: ROADMAP Track S row S1.
+
+### D-20261014-I15 · S1, S3 · S1 plan approved, with Step 4
+- 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none.
+- The S1 plan (`docs/todo_s1_evaluate_loops.md`, Steps 0-6) is approved as written, including Step 4:
+  `CppEdgeRules` becomes supported in the batched local cost (S3's open follow-up), so runs with both
+  opt-in keys `BatchedQuickMC` and `CppEdgeRules` use the lockstep quick MC instead of the
+  sequential fallback; no default changes. Where: ROADMAP Track S rows S1 and S3.
