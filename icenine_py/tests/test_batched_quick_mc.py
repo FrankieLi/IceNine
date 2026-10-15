@@ -18,6 +18,7 @@ from icenine import batched_quick_mc as BQ
 from icenine import cost_functions as CF
 from icenine.cost_functions import OverlapInfo, VoxelCostFunction
 from icenine.orientation_search import MCOptimizer, SearchCandidate
+from icenine.ray_overlap import RayRule
 
 from test_batched_cost import orientations
 from test_center_screen import three_voxels  # noqa: F401  (fixture)
@@ -357,15 +358,28 @@ def test_unsupported_levels_fall_back_to_the_sequential_quick_mc() -> None:
         assert not rec._batched_quick_mc(
             MCOptimizer(cf, verts, phase), cands, verts, phase, BOX, BOX
         )
-    rec.setup.search_params.cpp_edge_rules = True  # CppEdgeRules: not covered by the batched cost
-    edge_cf = rec._make_local_cost_fn()
-    rec.setup.search_params.cpp_edge_rules = False
-    with pytest.warns(RuntimeWarning, match="CppEdgeRules"):
-        assert not rec._batched_quick_mc(MCOptimizer(edge_cf, verts, phase), *args)
-    assert rec._quick_mc_evaluators == {id(edge_cf): None}  # remembered: one warning per cost fn
+    # the ray rule is not covered by the batched cost (CppEdgeRules is, since S1 Step 4)
+    ray_cf = rec._make_local_cost_fn(ray_rule=RayRule())
+    with pytest.warns(RuntimeWarning, match="ray rule"):
+        assert not rec._batched_quick_mc(MCOptimizer(ray_cf, verts, phase), *args)
+    assert rec._quick_mc_evaluators == {id(ray_cf): None}  # remembered: one warning per cost fn
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        assert not rec._batched_quick_mc(MCOptimizer(edge_cf, verts, phase), *args)
+        assert not rec._batched_quick_mc(MCOptimizer(ray_cf, verts, phase), *args)
+    rec._quick_mc_evaluators = {}
+    rec.setup.search_params.cpp_edge_rules = True  # CppEdgeRules now runs the lockstep quick MC
+    edge_cf = rec._make_local_cost_fn()
+    rec.setup.search_params.cpp_edge_rules = False
+    assert edge_cf.cpp_edge_rules
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        edge_cands = [SearchCandidate(orientation=c.orientation.copy()) for c in cands]
+        assert rec._batched_quick_mc(
+            MCOptimizer(edge_cf, verts, phase, rng=np.random.default_rng(0)),
+            edge_cands, *args[1:],
+        )
+    (ev_edge,) = rec._quick_mc_evaluators.values()
+    assert ev_edge is not None and ev_edge.cf is edge_cf
     rec._quick_mc_evaluators = {}
     assert rec._batched_quick_mc(MCOptimizer(cf, verts, phase, rng=np.random.default_rng(0)), *args)
     assert cands[0].cost < 1.0

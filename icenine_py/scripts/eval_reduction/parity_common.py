@@ -108,9 +108,17 @@ def probe_eval(
         CF.calculate_diffraction_overlap_batched,
         CF._c_stage_d_overlap,
     )
+    # evaluate() solves with scattering_omegas_fixed_beam since S1 (same omegas on observable rows,
+    # the only rows read below); the reference function is wrapped too
+    o_fixed = CF.scattering_omegas_fixed_beam
 
     def bragg_w(*a: Any, **k: Any) -> Any:
         r = o_bragg(*a, **k)
+        cap["bragg"] = r
+        return r
+
+    def fixed_w(*a: Any, **k: Any) -> Any:
+        r = o_fixed(*a, **k)
         cap["bragg"] = r
         return r
 
@@ -123,6 +131,7 @@ def probe_eval(
         return o_stage(*a)
 
     CF.get_scattering_omegas_torch, CF.calculate_diffraction_overlap_batched = bragg_w, batched_w
+    CF.scattering_omegas_fixed_beam = fixed_w
     CF._c_stage_d_overlap = stage_w
     try:
         info = cost_fn.evaluate(np.asarray(R, dtype=np.float32), verts, phase)
@@ -131,6 +140,7 @@ def probe_eval(
             o_bragg,
             o_batched,
         )
+        CF.scattering_omegas_fixed_beam = o_fixed
         CF._c_stage_d_overlap = o_stage
     out: Dict[str, Any] = dict(
         pixov=int(info.pixel_overlap),

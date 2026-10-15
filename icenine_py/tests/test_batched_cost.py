@@ -68,8 +68,14 @@ def run_chunks(
 @needs_c
 @pytest.mark.parametrize(
     "flags",
-    [{}, {"cpp_overlap_rule": True}, {"min_sin_eta": 0.4}],
-    ids=["default", "cpp_rule", "min_sin_eta"],
+    [
+        {},
+        {"cpp_overlap_rule": True},
+        {"min_sin_eta": 0.4},
+        {"cpp_edge_rules": True},
+        {"cpp_edge_rules": True, "cpp_overlap_rule": True},
+    ],
+    ids=["default", "cpp_rule", "min_sin_eta", "cpp_edge_rules", "cpp_edge_rules+cpp_rule"],
 )
 @pytest.mark.parametrize("max_q", [0.0, 5.0], ids=["all_refl", "qmax5"])
 @pytest.mark.parametrize("variant", ["compact", "fixed"])
@@ -149,13 +155,14 @@ def test_unsupported_cost_functions(
     c = three_voxels
     assert BC.unsupported_reason(_local(c)) is None
     assert BC.unsupported_reason(_local(c, cpp_overlap_rule=True)) is None
+    assert BC.unsupported_reason(_local(c, cpp_edge_rules=True)) is None  # S1 Step 4
+    assert BC.unsupported_reason(_local(c, cpp_edge_rules=True, cpp_overlap_rule=True)) is None
     bad = {
         "screen": VoxelCostFunction(pixel_radius=3, **c["kwargs"]),
-        "edge": _local(c, cpp_edge_rules=True),
         "soft": VoxelCostFunction(pixel_radius=0, mode="soft", **c["kwargs"]),
         "ray": _local(c, ray_rule=RayRule()),
     }
-    reasons = {"screen": "pixel_radius", "edge": "CppEdgeRules", "soft": "soft", "ray": "ray rule"}
+    reasons = {"screen": "pixel_radius", "soft": "soft", "ray": "ray rule"}
     for name, cf in bad.items():
         assert reasons[name] in str(BC.unsupported_reason(cf)), name
         with pytest.warns(RuntimeWarning, match="sequential quick MC"):
@@ -169,6 +176,13 @@ def test_unsupported_cost_functions(
     # a build without the _rasterize extension, or one older than CppOverlapRule: a supported cost
     # function becomes unsupported (the reconstructor then runs the sequential quick MC)
     ok, ok_rule = _local(c), _local(c, cpp_overlap_rule=True)
+    ok_edge = _local(c, cpp_edge_rules=True)
+    monkeypatch.setattr(CF, "_C_HAS_VERTEX_LIT", False)  # an extension before the exact edge rules
+    assert BC.unsupported_reason(ok) is None and BC.unsupported_reason(ok_rule) is None
+    assert "predates the exact CppEdgeRules" in str(BC.unsupported_reason(ok_edge))
+    with pytest.warns(RuntimeWarning, match="sequential quick MC"):
+        assert BC.make_batched_cost_evaluator(ok_edge) is None
+    monkeypatch.setattr(CF, "_C_HAS_VERTEX_LIT", True)
     monkeypatch.setattr(CF, "_C_HAS_CPP_RULE", False)
     assert BC.unsupported_reason(ok) is None
     assert "predates CppOverlapRule" in str(BC.unsupported_reason(ok_rule))

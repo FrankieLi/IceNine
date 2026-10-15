@@ -163,6 +163,7 @@ def _module_functions() -> Any:
 
     return (
         CF.get_scattering_omegas_torch,
+        CF.scattering_omegas_fixed_beam,
         CF.calculate_diffraction_overlap_batched,
         CF._c_stage_d_overlap,
     )
