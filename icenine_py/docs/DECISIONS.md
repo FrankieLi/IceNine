@@ -310,3 +310,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - The S4 plan (`docs/todo_translation_screen_prototype.md`, Steps 0-5, with I19 and I20) is approved
   as written; an Opus 5.5 implementer at high effort builds it on
   `feature/python-speed-parity-s4-translation-screen`. Where: ROADMAP Track S row S4.
+
+### D-20261016-I22 · S4 · Hybrid library path parked; S4 stays unmerged for now
+- 2026-10-16, owner. Recorded by Ilium Agent. Supersedes: none.
+- The S4 hybrid library path (BFS as today, level-0 candidates from one global screen and a stored
+  layer-wide re-cost table for seeds and failed voxels) is parked. Nothing else is started for now:
+  S4 (review fixes applied, 37b49a7) stays on `feature/python-speed-parity-s4-translation-screen`,
+  unmerged, and the projections are not redone under CppOverlapRule. Where: ROADMAP Track S row S4;
+  `.claude/reports/20261015-0056-s4_steps0-5.md`.
