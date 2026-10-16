@@ -312,6 +312,40 @@ approval entry, with `--fixes`; golden text comparison of the brief.
   shmem writes in tests.
 - No change to `icenine_py/icenine/`, `Src/`, `pyproject.toml` or `uv.lock`.
 
+# Instruction changes and sharing with Newt Agent
+
+The owner wants the tools and the instructions to use them shared with Newt Agent (2026-10-16). Each
+machine has its own memory, shmem store and checkpoints, so nothing in them reaches the other agent.
+Every instruction therefore goes into a tracked file, and Newt gets it by merging
+`feature/python-speed-parity` (protocol rule 2). Per-machine memory holds only a pointer.
+
+| Instruction | Where it goes | Who edits |
+|---|---|---|
+| Record owner decisions with `log_decision.sh` (or `/decide`), never by hand | `study-conventions.md`; ROADMAP rule 6, one sentence | owner (`.claude/`, shared protocol section) |
+| Do rule 2 with `read_on_fetch.sh`, then merge | ROADMAP rule 2, one sentence | owner (shared protocol section) |
+| Edit a track's status cell with `roadmap_row.py`, not `sed` | `study-conventions.md` | owner |
+| Main session: `verify_handback.sh` before `/review-task`; briefs via `/implement-plan`, `/apply-fixes` | `study-conventions.md`, the skills | owner |
+| Process limit and other machine limits | per machine (see below), not shared | each agent |
+| Usage and options of each tool | README "Developer tooling" table, script usage lines | implementer |
+| ID rule, if O1 changes it | a DECISIONS entry, then the DECISIONS.md header | owner |
+
+- **Agent-neutral tools.** The agent letter (`I` or `N`), the other agent's branch and the mailbox
+  names come from `git config --local icenine.agent` (set once per clone: `I` here, `N` on Newt's
+  machine) or from `--agent` / `--other`. A script refuses to run when neither is set; it never
+  defaults to Ilium. Tests run both settings.
+- **Machine limits stay per machine.** "At most 6 heavy processes" is a fact about this 16 GB
+  machine; Newt's machine may differ. Proposed: `git config --local icenine.maxHeavyProcs <n>`, read
+  by `make_brief.sh`, with study-conventions saying "the per-machine limit `icenine.maxHeavyProcs`".
+  This replaces the choice in O4.
+- **Skills.** The skills reach Newt only once the owner commits them (`ALLOW_CLAUDE_CONFIG=1`).
+- **Rollout.** A heads-up in the "From Ilium Agent" mailbox when this plan is posted (2026-10-16),
+  and again when each tool group merges, naming the tools and the instruction lines added. Each
+  agent then adds one pointer line to its own memory ("decisions, rows, hand-backs and read on fetch
+  go through `scripts/dev/`; see study-conventions"). Newt writes its own.
+- **Owner text needed (O9).** The study-conventions lines and the one-sentence additions to rules 2
+  and 6 above are owner edits. The implementer of group (c) drafts them in its report; the owner
+  commits them.
+
 # Risks
 
 - **Writing on a branch the caller has not checked out.** `log_decision.sh` commits on the feature
@@ -322,8 +356,9 @@ approval entry, with `--fixes`; golden text comparison of the brief.
   which is harmless. An unreachable shmem must be reported, not read as "not saved".
 - **Heuristics** (timing labels, report hashes) can flag correct reports; they are FLAG, never FAIL.
 - **Skills drift from scripts.** Keep each skill to calling one script and showing its output.
-- **The other agent.** Newt Agent receives `scripts/dev/` on merge. The scripts take `--agent` and
-  `--other` so Newt can use them unchanged; a heads-up goes in the Ilium mailbox when they merge.
+- **The other agent.** A tool that silently assumes Ilium would write Newt's decisions under `I`.
+  The scripts refuse to run without `icenine.agent` or `--agent` (see "Instruction changes and
+  sharing with Newt Agent").
 
 # Owner decisions needed
 
@@ -347,6 +382,9 @@ approval entry, with `--fixes`; golden text comparison of the brief.
   was).
 - **O8 `read_on_fetch.sh --save`:** may it save Newt's decisions to shmem by default (rule 6 asks
   for it), or only print the lines.
+- **O9 Shared instructions:** approve where each instruction goes (table in "Instruction changes
+  and sharing with Newt Agent"), the per-machine process limit in place of O4, and the owner edits
+  to study-conventions and protocol rules 2 and 6.
 
 # Relation to other work
 
