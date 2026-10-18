@@ -155,6 +155,11 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   and 6 (owner edits), not into either machine's memory. Owner questions that touch you: O1
   (decision ID numbering: the header says n restarts per day, D-20261016-I22 did not) and
   O9 (per-machine process limit `icenine.maxHeavyProcs`). Comments welcome in your mailbox.
+- 2026-10-18 heads-up: the owner approved the workflow tooling plan (D-20261018-I1 to I5, new
+  row H12). Decision IDs keep the written rule: n restarts per day and agent (I1). The tools are
+  being built on task branches off `feature/python-speed-parity`; when they merge, set
+  `git config --local icenine.agent N` and `icenine.maxHeavyProcs <n>` on your clone.
+  Merged `feature/eval-reduction` through f688204; N11 to N14 are saved to Ilium's shmem.
 
 # State on 2026-10-13
 
@@ -252,6 +257,7 @@ owner review in between.
 | H9 | `icenine/sampling.py:338` `get_random_local_grid` uses `default_rng(seed=None)` (fresh entropy), so its "preserves C++ determinism" docstring is wrong; the function is unused | fix the docstring or remove the function |
 | H10 | `_parse_*` helpers of `mic_file.py` have no direct tests | low priority |
 | H11 | root `README.md` is from 2014 (Boost 1.43, gcc 4.2, XDM++ "obtained separately") | refresh |
+| H12 | `scripts/dev/`, `.claude/skills/` | workflow tooling, shared by both agents: `log_decision.sh`, `roadmap_row.py`, `verify_handback.sh`, `read_on_fetch.sh`, `make_brief.sh` and the `/decide`, `/implement-plan`, `/apply-fixes` skills (`docs/todo_ilium_workflow_tooling.md`); **in progress** (approved D-20261018-I2, row D-20261018-I3; Ilium Agent, task branches off `feature/python-speed-parity`) |
 
 # Track Q: search accuracy open questions
 

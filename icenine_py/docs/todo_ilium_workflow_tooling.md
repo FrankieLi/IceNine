@@ -8,10 +8,12 @@ fontsize: 11pt
 
 # Status
 
-**Plan, waiting for owner approval.** Written 2026-10-16 by Ilium Agent after the S4 session
-(2026-10-14 to 16), at the owner's request ("which parts could become skills or deterministic
-scripts"). Nothing is implemented. The owner decisions this plan needs are listed under "Owner
-decisions needed" at the end.
+**Approved 2026-10-18, in progress** (D-20261018-I2; owner answers to O1-O9 in D-20261018-I1 to
+I5). Written 2026-10-16 by Ilium Agent after the S4 session, at the owner's request ("which parts
+could become skills or deterministic scripts"). Owner answers: O1 keep the written ID rule (n from 1
+per day and agent); O2 approved with the three-task grouping; O3 H12 row placed by Ilium Agent; O4
+at most 6 heavy processes on this machine, exceptions allowed, kept per machine
+(`icenine.maxHeavyProcs`); O5-O9 as proposed below.
 
 # What
 

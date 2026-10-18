@@ -344,3 +344,41 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   "implementers are fresh Sonnet agents" and the standing feedback rule).
 - Task E (smoothing the cost) is implemented by a fresh background Opus implementer. Review fixes stay with
   fresh Opus implementers as before. Where: eval-reduction plan "Coordination"; ROADMAP Track E row E.
+
+### D-20261018-I1 · H12 (O1) · Decision IDs keep the written rule: n restarts per day and agent
+- 2026-10-18, owner. Recorded by Ilium Agent. Supersedes: none.
+- IDs stay `D-YYYYMMDD-<agent><n>` with n counting from 1 per day and agent, as the header says
+  ("keep current rule works"). D-20261016-I22, which used a running counter, stays as written (append
+  only). `log_decision.sh` follows this rule. Where: DECISIONS.md header;
+  `docs/todo_ilium_workflow_tooling.md` O1.
+
+### D-20261018-I2 · H12 (O2, O5-O8) · Workflow tooling plan approved; implement now in three tasks
+- 2026-10-18, owner. Recorded by Ilium Agent. Supersedes: none.
+- The plan `docs/todo_ilium_workflow_tooling.md` is approved with its grouping: (a) `log_decision.sh`
+  and `roadmap_row.py`, (b) `verify_handback.sh` and `read_on_fetch.sh`, (c) `make_brief.sh` and the
+  `/decide`, `/implement-plan`, `/apply-fixes` skills; implement now, each task reviewed by
+  `/review-task`. The other open choices as the plan proposes ("rest of the decisions are fine"): O5
+  two timing-label fields (`workers`, `machine`); O6 task branches off `feature/python-speed-parity`;
+  O7 `roadmap_row.py` edits Track S rows only; O8 `read_on_fetch.sh` prints the shmem lines and runs
+  them only with `--save`. Where: ROADMAP Track H row H12; the plan.
+
+### D-20261018-I3 · H12 (O3) · ROADMAP row H12 placed as proposed
+- 2026-10-18, owner. Recorded by Ilium Agent. Supersedes: none.
+- The owner agreed to the proposed Track H row H12 for the workflow tooling. Ilium Agent places it
+  on `feature/python-speed-parity` with the tooling (an owner exception to protocol rule 4, since
+  `feature/housekeeping` is not started) and keeps it up to date. Where: ROADMAP Track H row H12.
+
+### D-20261018-I4 · all tasks (O4) · At most 6 heavy processes on Ilium's 16 GB machine; exceptions allowed
+- 2026-10-18, owner. Recorded by Ilium Agent. Supersedes: none.
+- The limit of at most 6 heavy processes at once on this 16 GB machine stands as the standing rule
+  ("this process limit works fine"); a plan or an owner decision may grant an exception. It is kept
+  per machine (`git config --local icenine.maxHeavyProcs 6` here), so Newt Agent's machine sets its
+  own. Where: `docs/todo_ilium_workflow_tooling.md` O4 and O9; study-conventions (owner edit).
+
+### D-20261018-I5 · H12 (O9) · Tool instructions live in tracked files shared with Newt Agent
+- 2026-10-18, owner. Recorded by Ilium Agent. Supersedes: none.
+- The instructions to use the tools go into tracked files (study-conventions, the skills, one sentence
+  each in protocol rules 2 and 6, the README table), not into either machine's memory; the tools are
+  agent-neutral (`icenine.agent`); the implementer drafts the study-conventions and protocol text and
+  the owner commits it. Where: `docs/todo_ilium_workflow_tooling.md` "Instruction changes and sharing
+  with Newt Agent".
