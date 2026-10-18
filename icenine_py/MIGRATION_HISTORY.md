@@ -7002,6 +7002,243 @@ absence of the `dd_` recorder keys).
 `clique_truth.json`), `step3/` (`summary.json`, `summary_e0.json`, `tables*.md`, preflight files), `ledger/runs/` (six-voxel ledger runs), `full30/runs/` (the other 24 voxels
 of the 30-voxel set), `figures/`.
 
+### Task D: spot pairing across detectors and peak-to-voxel attribution (2026-10-14, `feature/eval-reduction-D`)
+
+Run record: `benchmarks/eval_reduction/D/RUN_LOG.md`. Library: `icenine/spot_pairing.py` (pure geometry, numpy, `cKDTree` for the
+attribution; tests `tests/test_spot_pairing.py`), plus the opt-in `ForwardSimulation.peak_hook` (default `None`, no effect when off).
+Provenance writer: `scripts/phase_d/render_provenance.py` (a sibling of `render_full.py`, which is unchanged). Scripts:
+`scripts/eval_reduction/pairing_*.py`. Everything is the clean full-sample render (24,570 voxels, Q-max 8 configuration, sample seed 0), no
+realistic images, no extra seeds, no golden test changed, no default flipped. The tables below are generated
+(`benchmarks/eval_reduction/D/doc_tables_all.md`); figures are in `benchmarks/eval_reduction/D/figures/` (`pairing_geometry.png` is the diagram of
+the pairing geometry, `origin_error_map.png` the origin-error map, `attribution.png`, `sharpness.png`).
+
+**Short answer.**
+
+1. *Almost no spot has one source.* Of 30,191 detector-0 and 27,198 detector-1 spots (4-connected components of lit pixels) only 10 and 20 are drawn by
+   a single (voxel, reflection) pair; the others are unions of all voxels of one grain (median 44 sources, about 100 pixels) or of several grains (1,770
+   on detector 0, 2,593 on both). No true pair (a pair of spots sharing a source) has two single-source spots (0 of 27,888), so the plan's "single-source recall" is
+   not measurable on this sample.
+2. *The line through two centroids pairs the one-grain spots (0.987) but needs the ring angle.* Rule: the line meets the layer z = 0 on a physical
+   ray, inside the sample hull (widened by the origin's own tolerance, one voxel and the arc motion r d_omega / 2), and its scattering angle matches
+   one of the eight Cu rings; 1 pixel centroid tolerance on each detector; greedy assignment. Precision 0.887 (24,412 of 27,513 predicted pairs);
+   recall 0.987 on one-grain pairs (23,208 of 23,502) and 0.275 on pairs involving a union of several grains (1,204 of 4,386). With the hull test
+   alone, precision is 0.476 and 76% of the detector-0 spots that have a partner have more than one candidate (median 2). The preset and the
+   size-gate offset were chosen on this sample after seeing its results, so all numbers are in-sample.
+3. *Origin on the layer.* Correct one-grain pairs (23,205 pairs, sample frame, frame-centre omega): median 2.7 um (1.7 um in the lab frame), 90th
+   percentile 15.6 um, 99th percentile 88.6 um; it grows when the ray is nearly in the layer (31 um median for |u_z| below 0.02, 1.9 um above 0.1).
+   Voxel side 9.4 um.
+4. *Attribution.* A union spot's origin is the grain footprint's centre, so a radius around the voxel centroid trades recall for false pairs: on the
+   30-voxel set r = 30 um finds 66.1% of a voxel's true peaks with about 42 false pairs attached per voxel, r = 50 um finds 81.3% with about 162.
+5. *The discriminating test.* At the 0.05 degree direction tolerance, a cost restricted to the attributed peaks is not sharper than the
+   pixel-overlap cost: half-score radius 0.38 degrees against 0.26 degrees. The radius follows the tolerance (0.18 to 0.72 degrees over 0.02 to 0.2
+   degrees), so at 0.02 degrees it is sharper. Both keep wrong orientations at 1 degree and more below half the truth score when the attributed list
+   is good: 0 of 30 voxels (Wilson 95% interval 0 to 0.114) for pixel, B and oracle (median best wrong over truth 0.139 against 0.110). A short
+   list (r = 15.7 um) gives a truth score of 0.078.
+6. *Step 4 (classifier) not run:* skipped by owner decision D-20261014-N6. Single-source recall is not defined; the nearest class (one grain) has
+   recall 0.987, above 0.95. Precision and the several-grain spots remain open.
+
+**Owner reading (D-20261014-N7).** Spot-to-grain association is the useful result; voxel-level association is not needed. A grain's spots give a
+starting orientation, and the area around the grain can be sampled with it. FindOptimal or outward searches can run from it. The orientations defined
+by the peak-grain combinations may give a much smaller starting candidate list. These are follow-ups to plan; none is started. Items 4 and 5 are why
+the level is the grain, not the voxel: origins find the grain, a radius filter loses real peaks, and a hit-or-miss peak-list score is no sharper than
+the pixel cost. *Untested proposal (main session):* a matched pair gives the scattered ray direction; with the beam and the frame's omega it gives the
+scattering vector in the sample frame, and the ring gate gives its {hkl} family. Two non-parallel vectors of one grain fix the orientation up to a
+small set (standard indexing). Error budget per spot (D-20261014-N10). The measured ray-direction error on clean images is small. It is the radial
+part only: 2theta of the line through the two centroids minus the nearest Cu ring. Over all 23,483 true links whose two spots are both one-grain
+spots, with no gate, the median is 0.0045 degrees and the 90th percentile 0.0163 degrees. The tail is long: p99 0.091 degrees, largest 0.74 degrees,
+and 422 links (1.8%) above 0.042 degrees. These large errors are not traced. The 23,205 correct one-grain pairs chosen by `ring_tight` give a median
+of 0.0044, p90 0.0155 and a largest error of 0.080 degrees, but their tail is cut by the ring gate itself: the gate allows one pixel on each centroid,
+added linearly, over the spot separation, 0.080 to 0.084 degrees (`spot_pairing.py:319`), and it cuts 256 of the 23,483 links. The line uses both
+centroids, so the error includes both detectors. The sideways part (a turn about the beam) was not measured. One pixel is kept as the tolerance and as
+an upper estimate of the ray-direction error. The detectors sit at 3.362 and 5.387 mm in `StandardGeometry.2Det`, gap 2.03 mm, pixel 1.48 um. So one
+pixel on one detector turns the ray by 1.48 um / 2.03 mm = 0.042 degrees, and one pixel on each detector by 0.059 degrees in quadrature. It is not a
+strict limit (see the tail above). A sideways ray error maps to about 1 / sin 2theta times as much on the scattering vector (eight rings, 2theta 5.3
+to 13.7 degrees). One pixel on one detector only gives 0.45 to 0.18 degrees; one pixel on each detector gives 0.64 to 0.25 degrees. Over all one-grain
+links the measured median gives 0.049 to 0.019 degrees, the p90 0.18 to 0.069 degrees and the p99 0.99 to 0.38 degrees, if the sideways error is about
+as large as the radial one (untested). The 1 degree frames leave omega uncertain by +-0.5 degrees. That moves the sample-frame scattering vector by up
+to about 0.43 degrees (median sin(g, z) 0.86 over the chosen pairs). On clean images this frame term dominates for at least 90% of pairs (same
+untested sideways assumption); at the p99 the ray term is about as large or larger. Real data will have a larger direction error than these clean
+images. The frame term can exceed the pixel cost's half-score radius (0.26 degrees; a rough comparison, a direction error against an orientation
+radius). So one pair does not fix the orientation, and a fit over many spots of the grain is needed. Each grain has a median of 50 one-grain
+detector-0 spots with a true partner, matched or not (at least 33, even for 4-voxel grains). How close the fit gets is untested. Risks: small grains
+give small spots, with few pixels per centroid; spot groups of neighbouring grains may merge. *How to test it:* cluster the matched rays' origins into
+grains; index each cluster (pairs of scattering vectors with their ring families, then a fit over the cluster's spots); count grains whose seed lands
+within 0.1 and 0.5 degrees of the true orientation, by grain size; then run FindOptimal from those seeds and count its cost evaluations; compare them,
+per voxel, with the counted evaluations of the no-start search (the Task A and C evaluation ledger). Two reasons it may hold up, both untested:
+indexing can split merged clusters of neighbouring grains, since another grain's vectors do not fit the same orientation; and the poorly matched
+several-grain spots matter little, because each grain has many one-grain spots.
+
+**Notes for planning the learned model (D-20261014-N8; main session, nothing built).** Labels come free from the provenance writer (about 35 s per
+labelled render, contended). Grain IDs are arbitrary, so train for association (an embedding per spot with a pairwise or contrastive loss), not fixed
+grain classes. The detector-1 spot has about the same size and shape as its detector-0 partner. Over 23,022 true one-grain pairs off the detector
+edges, the pixel-count ratio has median 1.00 (p10 to p90 0.89 to 1.13; `step1/summary.json` `partner_size_ratio`). This fits the geometry: a
+grain's spot is a parallel projection, because all its voxels diffract along the same direction. The detector-1 spot is shifted outward from the
+beam by about the detector gap times tan 2theta. The shift depends on the spot position, so give the model the position or crops around candidate
+pairs. A hybrid, where the geometric gates
+propose pairs and the model scores crops, targets what geometry cannot do (the 0.887 precision, the several-grain spots). The main planning item is
+the sim-to-real gap: simulated spots are clean, with sharp edges, no blur and no detector noise, and the current noise model is flagged unphysical.
+
+**Step 1 (truth).** `render_provenance.py` re-renders the clean images through a recording image (35 s, 10 workers, contended): all 360 images
+(180 frames x 2 detectors) have the same lit pixels as the stock `clean/` files, with intensities equal to the stored precision, the 57,389 components equal `spots_total` of `render_full.json`, 2,957,243 triangle records. 27,888 true pairs carry
+1,375,053 peaks; 3,890 detector-0 spots have no partner (not traced further).
+
+<!-- table:evalD_step1_components -->
+| detector | class | components | with a true partner | median pixels | p90 pixels | median sources | max sources |
+|---|---|---|---|---|---|---|---|
+| 0 | single-source | 10 | 0 | 10 | 11 | 1 | 1 |
+| 0 | one grain, several voxels | 28411 | 24671 | 97 | 223 | 44 | 185 |
+| 0 | several grains | 1770 | 1630 | 230 | 462 | 106 | 296 |
+| 1 | single-source | 20 | 20 | 3 | 10 | 1 | 1 |
+| 1 | one grain, several voxels | 26355 | 26355 | 103 | 235 | 44 | 185 |
+| 1 | several grains | 823 | 823 | 249 | 472 | 103 | 296 |
+<!-- /table:evalD_step1_components -->
+
+**Step 2 (pairing).** Presets: `hull_*` (hull gate only), `ring_*` (hull + ring), `shape_*` (adds a rigid pixel-count and bounding-box gate); `tight` = 1
+pixel centroid tolerance on each detector (its own pixel), `plan` = adds the registration (10 um) and voxel size x (L1/L0 - 1) (5.65 um,
+L1/L0 = 1.603 from the detector distances) on detector 1 (arm A terms read
+as half-widths; the simulated data has no registration error, so `plan` only loosens the gate); `_c0.5`, `_c2` = centroid tolerance 0.5 and 2 pixels;
+`_binary` = unweighted centroid. The main pairing is `ring_tight`. Precision and recall carry Wilson intervals; peak recall is the share of the
+1,375,053 true peaks whose spot pair is found.
+
+<!-- table:evalD_step2_presets -->
+| preset | predicted pairs | precision | link recall | peak recall | recall, one grain | recall, several grains |
+|---|---|---|---|---|---|---|
+| hull_tight | 54646 | 0.476 [0.472, 0.480] (26019/54646) | 0.933 [0.930, 0.936] (26019/27888) | 0.947 | 0.942 [0.939, 0.945] (22141/23502) | 0.884 [0.874, 0.893] (3878/4386) |
+| hull_plan | 68984 | 0.377 [0.374, 0.381] (26034/68984) | 0.934 [0.931, 0.936] (26034/27888) | 0.947 | 0.942 [0.939, 0.945] (22141/23502) | 0.888 [0.878, 0.897] (3893/4386) |
+| ring_tight | 27513 | 0.887 [0.883, 0.891] (24412/27513) | 0.875 [0.871, 0.879] (24412/27888) | 0.872 | 0.987 [0.986, 0.989] (23208/23502) | 0.275 [0.262, 0.288] (1204/4386) |
+| ring_plan | 54706 | 0.497 [0.493, 0.501] (27196/54706) | 0.975 [0.973, 0.977] (27196/27888) | 0.977 | 0.998 [0.997, 0.998] (23453/23502) | 0.853 [0.843, 0.864] (3743/4386) |
+| shape_tight | 24968 | 0.932 [0.929, 0.935] (23272/24968) | 0.834 [0.830, 0.839] (23272/27888) | 0.836 | 0.964 [0.962, 0.966] (22656/23502) | 0.140 [0.130, 0.151] (616/4386) |
+| shape_plan | 43452 | 0.560 [0.555, 0.564] (24324/43452) | 0.872 [0.868, 0.876] (24324/27888) | 0.883 | 0.974 [0.972, 0.976] (22892/23502) | 0.326 [0.313, 0.341] (1432/4386) |
+| ring_tight_c0.5 | 25121 | 0.945 [0.942, 0.947] (23728/25121) | 0.851 [0.847, 0.855] (23728/27888) | 0.845 | 0.980 [0.978, 0.982] (23033/23502) | 0.158 [0.148, 0.170] (695/4386) |
+| ring_tight_c2 | 32754 | 0.778 [0.773, 0.782] (25481/32754) | 0.914 [0.910, 0.917] (25481/27888) | 0.914 | 0.992 [0.991, 0.993] (23313/23502) | 0.494 [0.480, 0.509] (2168/4386) |
+| shape_tight_c0.5 | 23610 | 0.968 [0.966, 0.970] (22857/23610) | 0.820 [0.815, 0.824] (22857/27888) | 0.818 | 0.957 [0.954, 0.959] (22481/23502) | 0.086 [0.078, 0.094] (376/4386) |
+| shape_tight_c2 | 27890 | 0.852 [0.848, 0.856] (23756/27890) | 0.852 [0.848, 0.856] (23756/27888) | 0.858 | 0.968 [0.966, 0.971] (22759/23502) | 0.227 [0.215, 0.240] (997/4386) |
+| ring_tight_binary | 26111 | 0.880 [0.876, 0.884] (22969/26111) | 0.824 [0.819, 0.828] (22969/27888) | 0.815 | 0.929 [0.926, 0.932] (21835/23502) | 0.259 [0.246, 0.272] (1134/4386) |
+| shape_tight_binary | 23634 | 0.927 [0.924, 0.931] (21919/23634) | 0.786 [0.781, 0.791] (21919/27888) | 0.782 | 0.908 [0.904, 0.912] (21344/23502) | 0.131 [0.121, 0.141] (575/4386) |
+<!-- /table:evalD_step2_presets -->
+
+Of the 3,101 false pairs of `ring_tight`, 3,038 join two spots that both have another true partner, 63 involve one spot without a partner. Of the true
+pairs it misses, 3,405 fail the ring gate (272 one-grain, 3,133 several-grain) and 48 the hull gate; none fails the ray or origin-uncertainty gate.
+That several-grain pairs mostly fail the ring gate is consistent with mixing the centroids of different grains; the unions were not split to test it.
+Origin error by ray slope (correct one-grain pairs; truth is the mean of the source voxel centroids; the predicted sigma comes from the tight
+tolerances of `ring_tight`, 1 pixel on each detector, and is 10 to 32 times the median sample-frame error per row, 21 times overall: a gate, not an
+error estimate). The origin-error map shows no visible spatial pattern (judged by eye):
+
+<!-- table:evalD_step2_origin_error -->
+| ray z-slope (abs u_z) | pairs | lab-frame error median (um) | lab-frame error p90 (um) | sample-frame error median (um) | sample-frame error p90 (um) | predicted sigma median (um) |
+|---|---|---|---|---|---|---|
+| 0 to 0.02 | 2127 | 30.8 | 92.8 | 30.8 | 92.8 | 302.0 |
+| 0.02 to 0.05 | 5555 | 4.2 | 19.6 | 4.6 | 19.8 | 149.8 |
+| 0.05 to 0.1 | 5821 | 1.6 | 4.3 | 2.4 | 5.1 | 61.7 |
+| 0.1 to 1 | 9702 | 1.0 | 2.6 | 1.9 | 4.0 | 30.6 |
+<!-- /table:evalD_step2_origin_error -->
+
+**Step 3 (attribution).** Rule A: the pair's origin within r of the voxel centroid; rule B: the ray from the voxel centroid along the pair's direction
+hits the bounding box of both spots (tolerance 1 pixel plus arc motion). A voxel's true peaks are those it drew on both detectors; an attached pair is
+true when the voxel is a source of both spots with a shared reflection. 30 voxels = the 30-voxel ray-study set, which contains the six interior voxels
+(the plan's "six and 30 others" is 30, not 36); `step3/attach_summary.json` also has 300 evenly spread voxels (same picture: r = 30 um 69.7%,
+r = 50 um 82.1%). The ceiling is the pair recall: 0.872 of the true peaks have a chosen spot pair.
+
+<!-- table:evalD_step3_attach_voxels30 -->
+| attachment | true peaks found | attached pairs per voxel | false attached per voxel | share of attached that are false | recall, interior | recall, boundary |
+|---|---|---|---|---|---|---|
+| A r=2 um | 0.004 [0.002, 0.008] (7/1714) | 0.3 | 0.1 | 0.222 | 0.008 | 0.002 |
+| A r=5 um | 0.020 [0.014, 0.028] (34/1714) | 1.7 | 0.5 | 0.320 | 0.049 | 0.003 |
+| A r=10 um | 0.127 [0.112, 0.143] (217/1714) | 9.3 | 2.0 | 0.219 | 0.320 | 0.015 |
+| A r=15 um | 0.230 [0.211, 0.250] (394/1714) | 18.9 | 5.8 | 0.306 | 0.492 | 0.078 |
+| A r=20 um | 0.370 [0.348, 0.394] (635/1714) | 34.5 | 13.4 | 0.387 | 0.545 | 0.270 |
+| A r=30 um | 0.661 [0.638, 0.683] (1133/1714) | 79.8 | 42.1 | 0.527 | 0.667 | 0.657 |
+| A r=50 um | 0.813 [0.794, 0.830] (1393/1714) | 208.8 | 162.3 | 0.778 | 0.804 | 0.818 |
+| A r=100 um | 0.844 [0.826, 0.861] (1447/1714) | 783.6 | 735.4 | 0.938 | 0.839 | 0.847 |
+| B footprint | 0.840 [0.822, 0.857] (1440/1714) | 374.7 | 326.7 | 0.872 | 0.836 | 0.843 |
+<!-- /table:evalD_step3_attach_voxels30 -->
+
+Discriminating test (30 voxels): the true orientation and wrong ones (8 random axes at each of 0.05 to 20 degrees; rotations of 10 to 60 degrees about
+low-index crystal axes, near-degenerate candidates). `pixel` is 1 - cost of the strict C++ rule, radius 0; the attributed score is the share of the orientation's predicted observable
+peaks matching an attributed observed peak (same frame, ray direction within 0.05 degrees = one pixel of centroid error on both detectors over the
+2 mm separation; the oracle list is the voxel's own true pairs). Normalised by the voxel's score at the truth. Caveats: the two scores use
+different peak sets (the attributed score needs the voxel centre on both detectors; the C++ rule `CountQualifiedPeaks` also counts peaks lit on
+detector 0 and off detector 1); both half-score radii are log-linear interpolations between the 0.25 and 0.5 degree points; the `A r=15.7 um` column
+is not interpretable as a sharpness (truth score median 0.078, minimum 0; the 7 voxels with a truth score of 0 drop out, leaving 23 of 30; 15.7 um is
+about the 90th-percentile origin error, 15.6 um after the review fixes). Voxel counts out of 30 carry Wilson intervals in
+`step3/separate_summary.json` (0 of 30: 0 to 0.114; 28 of 30: 0.787 to 0.982):
+
+<!-- table:evalD_step3_truth_scores -->
+| score | median at the truth | minimum at the truth | half-score radius (deg) |
+|---|---|---|---|
+| pixel overlap (C++ rule) | 0.936 | 0.894 | 0.258 |
+| attributed, A r=15.7 um | 0.078 | 0.000 | 0.384 |
+| attributed, A r=30 um | 0.719 | 0.018 | 0.376 |
+| attributed, B footprint | 0.792 | 0.696 | 0.377 |
+| attributed, oracle (true pairs) | 0.789 | 0.696 | 0.378 |
+<!-- /table:evalD_step3_truth_scores -->
+
+<!-- table:evalD_step3_sharpness -->
+| misorientation (deg) | pixel overlap (C++ rule) | attributed, A r=15.7 um | attributed, A r=30 um | attributed, B footprint | attributed, oracle (true pairs) |
+|---|---|---|---|---|---|
+| 0.05 | 0.927 | 0.976 | 0.967 | 0.958 | 0.958 |
+| 0.1 | 0.819 | 0.944 | 0.922 | 0.921 | 0.920 |
+| 0.25 | 0.512 | 0.764 | 0.732 | 0.731 | 0.733 |
+| 0.5 | 0.235 | 0.338 | 0.338 | 0.342 | 0.342 |
+| 1 | 0.061 | 0.072 | 0.085 | 0.087 | 0.088 |
+| 2 | 0.017 | 0.012 | 0.017 | 0.020 | 0.018 |
+| 5 | 0.004 | 0.000 | 0.003 | 0.003 | 0.003 |
+| 10 | 0.001 | 0.000 | 0.000 | 0.000 | 0.000 |
+| 20 | 0.003 | 0.000 | 0.000 | 0.000 | 0.000 |
+<!-- /table:evalD_step3_sharpness -->
+
+<!-- table:evalD_step3_separation -->
+| wrong orientations | score | median best wrong / truth | max over voxels | voxels >= 0.5 truth | voxels >= truth |
+|---|---|---|---|---|---|
+| random axis, 1 degree and more | pixel overlap (C++ rule) | 0.110 | 0.173 | 0 | 0 |
+| random axis, 1 degree and more | attributed, A r=15.7 um | 0.178 | 1.035 | 5 | 1 |
+| random axis, 1 degree and more | attributed, A r=30 um | 0.138 | 0.983 | 2 | 0 |
+| random axis, 1 degree and more | attributed, B footprint | 0.139 | 0.260 | 0 | 0 |
+| random axis, 1 degree and more | attributed, oracle (true pairs) | 0.139 | 0.260 | 0 | 0 |
+| random axis, 0.25 to 0.5 degree | pixel overlap (C++ rule) | 0.640 | 0.818 | 28 | 0 |
+| random axis, 0.25 to 0.5 degree | attributed, A r=15.7 um | 0.962 | 1.035 | 23 | 11 |
+| random axis, 0.25 to 0.5 degree | attributed, A r=30 um | 0.849 | 1.526 | 30 | 3 |
+| random axis, 0.25 to 0.5 degree | attributed, B footprint | 0.830 | 0.921 | 30 | 0 |
+| random axis, 0.25 to 0.5 degree | attributed, oracle (true pairs) | 0.830 | 0.921 | 30 | 0 |
+| rotations about low-index crystal axes | pixel overlap (C++ rule) | 0.310 | 0.350 | 0 | 0 |
+| rotations about low-index crystal axes | attributed, A r=15.7 um | 0.316 | 1.000 | 4 | 1 |
+| rotations about low-index crystal axes | attributed, A r=30 um | 0.309 | 0.667 | 2 | 0 |
+| rotations about low-index crystal axes | attributed, B footprint | 0.310 | 0.435 | 0 | 0 |
+| rotations about low-index crystal axes | attributed, oracle (true pairs) | 0.307 | 0.435 | 0 | 0 |
+<!-- /table:evalD_step3_separation -->
+
+The sharpness of the attributed cost is set by its direction tolerance (0.02 degrees: half-score radius 0.18 degrees, completeness at the truth 0.736;
+0.2 degrees: 0.72 degrees, 0.814; a one-frame window widens it again; `step3/tables_separate.md`, `step3_tolerance`). The default was set from the
+pixel tolerance before the scan; the table is evidence, not a tuned result. The gentler score is consistent with the ray direction moving only about sin 2theta times an
+azimuthal turn of g (a 0.05 degree ray tolerance acting like 0.2 to 0.5 degrees in orientation); untested. Whether a smooth direction residual helps
+a search was not tested.
+
+**Not tested / left.** Splitting unions of several grains (their misses are consistent with a centroid lying on no single ray; untested); noise; a per-pair attribution radius from the predicted origin
+tolerance; searches with the attributed cost (Tasks E, F); the cause of the 3,890 unpartnered detector-0 spots; a real layer thickness (the simulated
+layer is exact, z = 0); the N7 follow-ups and the indexing proposal and its test above; a learned spot-association model (ConvNet or ViT on the detector-image
+pair), parked as a research idea by D-20261014-N8 and needing its own plan.
+
+**Review fixes (D-20261014-N9).** The review found the detector distance taken at the pixel-(0, 0) corner (L1/L0 1.621 instead of 1.603) and the
+detector-1 centroid tolerance scaled by L1/L0 on top of the detector-0 error that the line fit already carries. Both were fixed and every pairing,
+attribution and separation result rerun: `ring_tight` precision 0.854 -> 0.887, one-grain recall 0.990 -> 0.987, several-grain recall 0.349 -> 0.275;
+the truth-score, sharpness and separation tables did not change at their printed precision. `load_geometry` now refuses set-ups where lab = Rz(omega)
+sample does not hold; a multi-chunk `peak_hook` test was added.
+
+**Second review fixes (D-20261014-N10).** Two notes were corrected against the branch's own data. Partner spots have the same size; they are not
+scaled by L1/L0. The 1-pixel term of the error budget is a tolerance, about ten times the measured direction error, so the frame term dominates on
+clean images. Wording fixes followed: one detector or both, the half-score radius instead of "FindOptimal's reach", spots per grain, the baseline of
+the test plan, "consistent with" for the several-grain misses, the preflight load, and "not binary". `pairing_summary.py` now also writes the size
+ratio and the measured ray error to the step 1 and step 2 summaries. Nothing else was rerun, and every table is unchanged.
+
+**Third review fixes (D-20261014-N9, N10).** The measured ray-direction error had been taken over pairs that passed the ring gate, which cuts
+on that same error, so its tail was truncated and the sentence "99% below 0.042 degrees" was wrong. `pairing_summary.py` now also measures it
+over all true one-grain links with no gate (`derived_geometry` `all_links_*` keys, with the ring-gate tolerance and the p90 and p99
+scattering-vector figures). The error budget above leads with these figures. The frame term dominates for at least 90% of pairs, not in the
+1% tail. Only `pairing_summary.py` was rerun; every table is unchanged.
+
+**Files.** See the "Task D" paragraph of the README. Results: `step1/`, `step2/`, `step3/` (`summary*.json`, `tables*.md`), `figures/`, `cache/`
+(gitignored: provenance-derived arrays, pairs per preset).
+
 ## S3: batched quick MC with a GPU option (2026-10-14)
 
 Branch `feature/python-speed-parity-s3` (off `feature/python-speed-parity`; not merged). Plan: `docs/todo_batched_quick_mc.md`

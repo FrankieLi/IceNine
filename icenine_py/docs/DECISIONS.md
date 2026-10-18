@@ -248,6 +248,7 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - `tests/data/s1_evaluate_ref.npz` is compared exactly on the platform and torch version that made
   it (arm64, torch 2.8.0); on any other the test skips with a message naming the difference.
   Where: `tests/test_s1_evaluate.py`.
+
 ### D-20261014-N6 · D · Task D Step 4 (geometric-feature classifier) is skipped
 - 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
 - The small classifier on pair-geometry features (plan Task D Step 4) is not built. The plan's trigger
@@ -286,6 +287,26 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   review's 10 required fixes are applied, then checked again before merge. Where: ROADMAP Track E
   row D; `docs/findings_spot_pairing_2026-10.md`.
 
+### D-20261014-N11 · D · Planning the grain-seeding follow-up (Task D2) is deferred
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- No plan is written now for the N7 follow-up (seed orientations by indexing each grain's matched
+  spots, then FindOptimal from the seeds). It is deferred; the test design stays in the findings doc,
+  "How to test it". Where: ROADMAP Track E row D; `docs/findings_spot_pairing_2026-10.md`.
+
+### D-20261014-N12 · R · The learned spot-association model (N8) is listed in ROADMAP Track R
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none.
+- The parked ConvNet/ViT association model of D-20261014-N8 is added to the owner's Track R row, as a
+  parked research idea that needs its own plan. Where: ROADMAP Track R.
+
+### D-20261014-N13 · E (all tasks) · Broken-voxel rule: only breaks traced to the arm count
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: the plan's rule "no broken voxels beyond the
+  baseline's count" (eval-reduction plan, Task C decision point; open question from the Task C review).
+- An arm that changes the candidate list or the random draws flips E0 voxels by the change of draw alone
+  (14-23 each way between seeds, `s3_ab_paired`), so no such arm could meet the old rule. From now on each
+  E0 voxel an arm breaks is traced, and the arm fails only if a break is caused by the arm itself, not by
+  the change of random draw. Reports give traced-to-arm, traced-to-draw and untraced breaks separately.
+  Newt's default, open to the owner: an untraced break counts against the arm until traced. Task C's
+  outcome is unchanged (N4). Where: plan "Ground rules for every task"; ROADMAP Track E row C.
 ### D-20261014-I19 · S4 · S4 is next, widened to a correctness check and a loop-ordering study
 - 2026-10-14, owner. Recorded by Ilium Agent. Supersedes: none (replaces the S4 plan's Step 0
   go/no-go gate, which assumed a per-voxel screen at the seeds only).
@@ -318,3 +339,8 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   S4 (review fixes applied, 37b49a7) stays on `feature/python-speed-parity-s4-translation-screen`,
   unmerged, and the projections are not redone under CppOverlapRule. Where: ROADMAP Track S row S4;
   `.claude/reports/20261015-0056-s4_steps0-5.md`.
+### D-20261014-N14 · E · Task E implementer is Opus, not Sonnet
+- 2026-10-14, owner. Recorded by Newt Agent. Supersedes: none (an exception, for Task E only, to the plan's
+  "implementers are fresh Sonnet agents" and the standing feedback rule).
+- Task E (smoothing the cost) is implemented by a fresh background Opus implementer. Review fixes stay with
+  fresh Opus implementers as before. Where: eval-reduction plan "Coordination"; ROADMAP Track E row E.
