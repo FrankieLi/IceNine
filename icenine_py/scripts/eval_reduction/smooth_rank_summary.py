@@ -261,8 +261,42 @@ def e2e(kind: str, rule: str, tag: str, levels: int, subset: Optional[List[int]]
         mean_smooth_evals_arm=float(np.mean([int(arm[v]["smooth_evals"]) for v in vox])),
         median_err_both_right_base=float(np.median(eb[both_right])) if both_right.any() else None,
         median_err_both_right_arm=float(np.median(ea[both_right])) if both_right.any() else None,
+        n_both_right=int(both_right.sum()),
+        strict_evals_change=float(
+            np.mean([int(arm[v]["evals"]) for v in vox])
+            / np.mean([int(base[v]["evals"]) for v in vox])
+            - 1.0
+        ),
+        # where the wrong voxels end (deg from the truth, sorted), and how many end within 1 deg
+        # of 60 deg (a near-degenerate solution)
+        err_wrong_base=sorted(float(e) for e in eb[wb]),
+        err_wrong_arm=sorted(float(e) for e in ea[wa]),
+        n_wrong_base_near60=int((wb & (np.abs(eb - 60.0) < 1.0)).sum()),
+        n_wrong_arm_near60=int((wa & (np.abs(ea - 60.0) < 1.0)).sum()),
+        n_fixed_not_near60=int((wb & ~wa & (np.abs(eb - 60.0) >= 1.0)).sum()),
     )
+    if kind == "e0" and rule == "old":
+        out.update(base_vs_task_c(base, vox))
     return out
+
+
+def base_vs_task_c(base: Dict[int, Dict[str, Any]], vox: List[int]) -> Dict[str, Any]:
+    """The E0 lenient baseline (``SmoothCostRank`` off on the Task E branch) against Task C's
+    baseline cache (``C/cache/e0/base``, run before Task E): voxels with equal error and equal
+    evaluation count."""
+    root = OUT.parent / "C" / "cache" / "e0" / "base"
+    n_cmp = n_same = 0
+    for v in vox:
+        f = root / f"v{v}.json"
+        if not f.exists():
+            continue
+        c = json.loads(f.read_text())
+        n_cmp += 1
+        n_same += int(
+            float(c["err_deg"]) == float(base[v]["err_deg"])
+            and int(c["evals"]) == int(base[v]["evals"])
+        )
+    return dict(task_c_base_compared=n_cmp, task_c_base_identical=n_same)
 
 
 def e2e_tables(E: Dict[str, Any]) -> Dict[str, str]:
@@ -306,9 +340,17 @@ def e2e_tables(E: Dict[str, Any]) -> Dict[str, str]:
 
 
 def timing_tables() -> Dict[str, str]:
-    """Measurement 4: ms per evaluation (single-worker, preflight-gated, ``smooth_timing.py``) and
-    the extra time per voxel of the carried arms (smooth evaluations per voxel from the end-to-end
-    runs x ms per evaluation at the level-0 widths, an upper estimate; plus the one-off build)."""
+    """Measurement 4.
+
+    * ``evalE_timing_ms``: ms per evaluation (``smooth_timing.py``, single-worker, preflight-gated).
+    * ``evalE_timing_voxel_wall``: measured wall time of whole voxels, key off against on
+      (``smooth_voxel_timing.py``; labelled single-worker or contended from its preflight).
+    * ``evalE_timing_per_voxel``: a MODEL of the full-sample voxel (evaluations per voxel from the
+      end-to-end runs x ms per evaluation at the level-0 widths, plus the build), as shipped (a
+      ``SmoothCost`` build in every ``reconstruct_voxel``) and as a projection for a build cache per
+      image set that is not built (Task G). Full-sample rows only: on E0 most counted evaluations
+      are screen and re-cost evaluations, far cheaper than one local call, so the model does not
+      hold there (Task E review); every E0 voxel has its own images, so a cache would not help."""
     d = OUT / "timing"
     T: Dict[str, str] = {}
     tim = {}
@@ -337,6 +379,37 @@ def timing_tables() -> Dict[str, str]:
     rows.insert(0, strict)
     fm = {k: ".3f" for k in rows[0] if k != "cost"}
     T["evalE_timing_ms"] = DT.markdown_table(rows, list(rows[0].keys()), fm)
+    wall_rows = []
+    for which in ("e0", "full"):
+        f = d / f"voxel_wall_{which}.json"
+        if not f.exists():
+            continue
+        W = json.loads(f.read_text())
+        by: Dict[int, Dict[str, List[float]]] = {}
+        same: Dict[int, bool] = {}
+        for r in W["runs"]:
+            by.setdefault(r["voxel"], {}).setdefault(r["spec"], []).append(r["wall_s"])
+            same[r["voxel"]] = same.get(r["voxel"], True) and bool(r["same_as_cache"])
+        for v, x in by.items():
+            off = float(np.median(x["off"]))
+            row = {
+                "voxel set": "E0" if which == "e0" else "full-sample",
+                "voxel": v,
+                "timing": f"{W['label']}, median of {len(x['off'])}",
+                "key off (s)": off,
+            }
+            for spec in ("E3+E4,tau=0.25", "E1+E2+E3+E4"):
+                on = float(np.median(x[spec]))
+                row[f"{spec} (s)"] = on
+                row[f"{spec}: extra time"] = f"{on / off - 1:+.0%}"
+            row["same error as the end-to-end run"] = "yes" if same[v] else "no"
+            wall_rows.append(row)
+    if wall_rows:
+        T["evalE_timing_voxel_wall"] = DT.markdown_table(
+            wall_rows,
+            list(wall_rows[0].keys()),
+            {k: ".1f" for k in wall_rows[0] if k.endswith("(s)")},
+        )
     e2e_path = OUT / "e2e" / "summary.json"
     if e2e_path.exists():
         E = json.loads(e2e_path.read_text())
@@ -344,7 +417,7 @@ def timing_tables() -> Dict[str, str]:
         arm_of = {"E3+E4,tau=0.25": "E3+E4", "E1+E2+E3+E4": "E1+E2+E3+E4"}
         for key, x in E.items():
             kind, rule, tag, sub = key.split("|")
-            if rule != "old" or kind not in tim:
+            if rule != "old" or kind != "full" or kind not in tim:
                 continue
             t = tim[kind]
             ms = t["arms"][arm_of[x["spec"]]]["ms_per_eval_batch256"]
@@ -356,15 +429,15 @@ def timing_tables() -> Dict[str, str]:
                 {
                     "voxel set": sub,
                     "arm": x["spec"],
-                    "strict cost time per voxel, baseline (s)": base_s,
-                    "strict cost time per voxel, arm (s)": strict_s,
+                    "modelled strict cost time per voxel, baseline (s)": base_s,
+                    "modelled strict cost time per voxel, arm (s)": strict_s,
                     "smooth evaluations per voxel": x["mean_smooth_evals_arm"],
-                    "smooth cost time per voxel (s)": smooth_s,
-                    "one-off build per image set (s)": build_s,
-                    "extra time with a build per voxel": (
+                    "modelled smooth cost time per voxel (s)": smooth_s,
+                    "SmoothCost build (s)": build_s,
+                    "extra time as shipped (a build per voxel)": (
                         f"{(strict_s + smooth_s + build_s) / base_s - 1:+.1%}"
                     ),
-                    "extra time with one build per image set": (
+                    "projection: one build per image set (cache not built)": (
                         f"{(strict_s + smooth_s) / base_s - 1:+.1%}"
                     ),
                 }

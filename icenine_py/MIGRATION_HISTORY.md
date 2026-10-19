@@ -7250,6 +7250,14 @@ every run. Tables are generated (`benchmarks/eval_reduction/E/doc_tables_all.md`
 Plain-English findings: `docs/findings_cost_smoothing_2026-10.md` (written in the main session from this subsection, which keeps the
 full record and every table; the implementer could not create the doc).
 
+Review fixes (2026-10-18, `feature/eval-reduction-E-fixes`, review `.claude/reports/20261018-2151-review-E.md`): the per-voxel time is now
+measured on whole voxels (key off against on) and the count x ms model is kept for the full sample only, labelled as a model, with the
+as-shipped figure (a `SmoothCost` build per voxel) first and the one-build-per-image-set figure as a projection (D-20261018-N17); the E0 rows
+of the model and "+1.7% and +3.6% per E0 voxel" are withdrawn. E4's high cost at the truth was re-measured: it does not come from peaks
+without a ray (the earlier wording was wrong). Measurement 3 gives the review's pairing check, the subsets of the medians and the C++-rule
+counts. The key-off test now compares with a fixture recorded on the base commit; `last_level_best` and the "best cost=" print take the
+strict-best candidate under `SmoothCostRank`; unused code was removed from `smooth_cost.py`. RUN_LOG section 9.
+
 #### Short answer
 
 1. *The strict cost changes in steps; the arms can remove them.* On the full-sample rays 88.2% of the strict cost's change under 0.05 deg happens
@@ -7261,16 +7269,19 @@ full record and every table; the implementer could not create the doc).
 3. *Two arms were carried to the end-to-end test,* by the plan's rule (raise the truth basin's survival at the quarter cut without adding dips):
    **E3 + E4** (tau 0.25 deg) and **E1 + E2 + E3 + E4** (level widths). As the ranking key of levels 0-2 on the E0 200 they cut the wrong
    voxels from 41 to 7 and to 5 (lenient rule) and from 56 to 9 (C++ rule, both arms), with 0 broken voxels in every run. The strict cost's
-   evaluations rose by 1.1% and 2.0%; each voxel also needed about 250 smooth evaluations.
+   evaluations rose by 1.1% and 2.0%; each voxel also needed 252 and 263 smooth evaluations (lenient; 172 and 177 with the C++ rule).
 4. *The full-sample test could only show harm, and showed none.* On the six interior full-sample voxels nothing is wrong with or without the
    arms (0 of 6). The E0 images hold only the voxel's own spots, so whether the gain carries over to full-sample voxels that the strict search
    gets wrong is not tested; that is the next measurement.
-5. *The cost is time.* A full-sample voxel needs about 15,000 smooth evaluations (every post-MC candidate of levels 0-2). At level-0 widths,
-   single worker, E3 + E4 costs 1.639 ms per evaluation and E1 + E2 + E3 + E4 7.903 ms, against 0.381 ms for the strict cost: about +20% and
-   +103% of the strict cost's time per full-sample voxel (an upper estimate), and +1.7% and +3.6% per E0 voxel.
+5. *The cost is time.* A full-sample voxel needs 15,030 and 15,755 smooth evaluations (lenient; every post-MC candidate of levels 0-2). At
+   level-0 widths, single worker, E3 + E4 costs 1.639 ms per evaluation and E1 + E2 + E3 + E4 7.903 ms, against 0.381 ms for the strict cost.
+   As shipped (a `SmoothCost` build of 16.6 s in every `reconstruct_voxel`) the model gives +33.3% and +116.2% per full-sample voxel; a
+   contended wall-time check of voxel 15901 gave +36% and +125%. With one build per image set (a cache not built yet; Task G, D-20261018-N17)
+   the projection is +20.2% and +103.1%. On E0, where every voxel has its own images and so its own build, the measured whole-voxel time
+   (single-worker, four voxels) rose by +130% to +201%. The quiet-machine repeat of the full-sample voxel was not done (D-20261018-N16).
 6. *E4 agrees with Task D:* the observed-ray residual is not sharper than the pixel cost (half-way rise at 0.4285 deg against 0.3118 deg),
-   much of the voxel's peak list has no attached ray on full-sample images, and alone it adds dips. It helps as part of a combination, and it
-   has a gradient for Task F.
+   and alone it adds dips. Its high cost at the truth does not come from missing rays (almost every predicted peak has an attached ray within
+   one frame) but from the residual to the nearest ray. It helps as part of a combination, and it has a gradient for Task F.
 7. *All four arms could be evaluated from a per-sample level-0 table* built by translating spots (S4), as far as the geometry goes (last
    subsection). No default was flipped and no golden test changed.
 
@@ -7428,10 +7439,10 @@ The last two columns show where an arm's lowest point lies when it is not at the
 <!-- /table:evalE_land_minima_e0 -->
 
 Basin radius along the full-sample rays. Read: larger is a wider basin. The strict cost reaches 1 (no overlap) beyond about 2 deg and stays flat, so
-it counts as monotone there; the arms keep some credit far out and their wiggles there count against them.
+it has no drop there; the arms keep some credit far out and their wiggles there count against them.
 
 <!-- table:evalE_land_basin_full -->
-| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays monotone to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays monotone to 5 deg, eps 0.05 |
+| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays with no drop over eps out to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays with no drop over eps out to 5 deg, eps 0.05 |
 |---|---|---|---|---|---|---|
 | strict cost, C++ rule | 0.312 | 3.693 | 1.729 | 45 of 120 | 5.000 | 120 of 120 |
 | strict cost, lenient rule | 0.333 | 2.783 | 1.971 | 15 of 120 | 5.000 | 120 of 120 |
@@ -7509,7 +7520,7 @@ What the walks show (full-sample images unless said otherwise):
 * The combinations with E3 and E4 have the fewest dips: E1 + E2 + E3 + E4 at level-0 widths has a 0.01-deep dip on 16 of 120 rays (strict
   cost: 72) and none of depth 0.05.
 * Basin radius (eps 0.01, median): strict cost 3.693 deg, E1 + E2 + E3 4.238 deg, E3 + E4 4.983 deg, E4 5.000 deg. On the E0 images almost
-  every cost is monotone to 5 deg.
+  every cost has no drop over 0.01 out to 5 deg.
 
 #### Measurement 2: the arms as the ranking key, on the strict search's own lists
 
@@ -7654,16 +7665,26 @@ the strict cost's evaluations (all stages) and, separately, the smooth cost's.
 * *E0 200.* Lenient rule: wrong 41 -> 7 (E3 + E4) and 41 -> 5 (E1 + E2 + E3 + E4); C++ rule: 56 -> 9 with both arms. No voxel broke
   in any run, so nothing needed tracing. Of the fixed voxels, 17 of 34 and 15 of 36 (lenient) are traced to the arm: on the same list, its key
   kept a basin candidate that the strict cost would have cut. The others were fixed by a later difference that the change of list sets off
-  (a different kept quarter, other random draws). The voxels right in both runs also end closer to the truth: median 0.0130 deg -> 0.0054 deg
-  and 0.0050 deg (lenient).
-* *Six full-sample voxels.* 0 of 6 wrong before and after, both arms and both rules (E1 + E2 + E3 + E4 was run with the lenient rule only).
-  The median error of the six moved from 0.0181 to 0.0163 deg (E3 + E4) and to 0.0284 deg (E1 + E2 + E3 + E4); with six voxels that is
-  not a measured difference.
-* *Evaluations.* The strict cost's own evaluations change little: +1.1% and +2.0% per E0 voxel, +0.7% and +4.8% per full-sample voxel. The
-  smooth evaluations are counted separately: about 250 per E0 voxel and 15,000 per full-sample voxel (every post-MC candidate of levels 0-2
-  is scored once); their price is in measurement 4.
+  (a different kept quarter, other random draws). The voxels right in both runs also end closer to the truth: E0, lenient, the 159 voxels
+  right in both runs, median 0.0130 deg -> 0.0054 deg (E3 + E4) and 0.0050 deg (E1 + E2 + E3 + E4).
+* *The zero-broken pairing (checked by the Task E review).* Arm and baseline cover the same 200 voxel IDs, joined by ID, with the same seeds
+  (`C.run_seed(vpos, 0)` on the same filtered voxel list), the same images and the same rule. The baseline (`e0_<rule>_base`, key off on this
+  branch) equals Task C's baseline cache on all 200 voxels with the lenient rule (`task_c_base_identical` 200 of 200 in `e2e/summary.json`:
+  equal `err_deg` and `evals`). Every voxel still wrong with an arm (7 / 5 lenient, 9 / 9 C++) ends 59.9-60.0 deg from the truth, a
+  near-degenerate solution, and was wrong in the baseline too. The baseline's wrong voxels are 30 of 41 within 1 deg of 60 deg (lenient; 37 of
+  56 with the C++ rule); of the others the arms fix 10 of 11 (lenient) and 16 of 19 (C++ rule). The seed-to-seed calibration (14-23 flips each
+  way, key off, `s3_ab_paired` in `benchmarks/s3_steps1_5/tables.md`) pairs runs with 35-39 of 200 wrong each, so it does not set the number of
+  breaks to expect from an arm that leaves 5-9 wrong. That the arms remove the quarter-cut losses and leave the near-degenerate solutions is
+  consistent with these counts; it was not tested.
+* *Six full-sample voxels.* 0 of 6 wrong before and after, both arms and both rules (E1 + E2 + E3 + E4 was run with the lenient rule only; its
+  C++-rule run on the six was not done). The median error of the six moved from 0.0181 to 0.0163 deg (E3 + E4, lenient), to 0.0284 deg
+  (E1 + E2 + E3 + E4, lenient) and from 0.0286 to 0.0291 deg (E3 + E4, C++ rule); with six voxels that is not a measured difference.
+* *Evaluations.* The strict cost's own evaluations change little (lenient): +1.1% and +2.0% per E0 voxel, +0.7% and +4.8% per full-sample
+  voxel; with the C++ rule +0.7% and +1.1% (E0) and +3.2% (full sample, E3 + E4). The smooth evaluations are counted separately (every post-MC
+  candidate of levels 0-2 is scored once): 252 and 263 per E0 voxel and 15,030 and 15,755 per full-sample voxel with the lenient rule; 172 and
+  177 per E0 voxel and 11,084 per full-sample voxel (E3 + E4) with the C++ rule. Their price is in measurement 4.
 
-#### Measurement 4: time per evaluation
+#### Measurement 4: time per evaluation and per voxel
 
 One process, preflight passed (`timing/preflight_full.json`, `timing/preflight_e0.json`): **single-worker**. 1,000 orientations (500 within
 5 deg of the truth, 500 random), arms at the level-0 widths (the widest, so the slowest), batches of 256 as the ranker calls them, and one per
@@ -7685,21 +7706,40 @@ call. Read: "x strict" is the time per evaluation against the strict cost's.
 | E1+E2+E3+E4 | 7.903 | 9.499 | 20.718 | 1.223 | 2.745 | 3.120 |
 <!-- /table:evalE_timing_ms -->
 
-What that costs per voxel, for the carried arms (lenient runs): smooth evaluations per voxel x ms per evaluation, plus the one-off build of a
-`SmoothCost` for an image set (lit-pixel trees and, for E4, the observed rays: 16.6 s on the full sample, 3.6 s on an E0 image set). Today the
-library builds one per `reconstruct_voxel` call; a BFS would build it once per image set (not implemented), so both columns are given.
+Whole voxels, key off against on (review fix 1, `scripts/eval_reduction/smooth_voxel_timing.py`): one process, one torch thread, lenient
+rule, the probe's seeds; the wall time of `reconstruct_voxel`, which includes the `SmoothCost` build the library does on every call. E0:
+the review's four voxels, two interleaved repeats each (median of 2), preflight passed (`timing/preflight_voxel_e0.json`):
+**single-worker**. Full sample: voxel 15901, one run; the preflight failed (a browser process, then Spotlight indexing;
+`timing/preflight_voxel_full.json`), so that time is **contended**, and by D-20261018-N16 its quiet repeat was not waited for and is not
+done. A first E0 run, contended, gave similar extra times; its files are kept in `timing/contended/`. Every run ended with the error of its end-to-end run.
+
+<!-- table:evalE_timing_voxel_wall -->
+| voxel set | voxel | timing | key off (s) | E3+E4,tau=0.25 (s) | E3+E4,tau=0.25: extra time | E1+E2+E3+E4 (s) | E1+E2+E3+E4: extra time | same error as the end-to-end run |
+|---|---|---|---|---|---|---|---|---|
+| E0 | 7336 | single-worker, median of 2 | 2.1 | 6.0 | +179% | 6.4 | +201% | yes |
+| E0 | 3108 | single-worker, median of 2 | 2.4 | 6.5 | +173% | 7.1 | +195% | yes |
+| E0 | 2910 | single-worker, median of 2 | 3.0 | 7.0 | +130% | 7.7 | +153% | yes |
+| E0 | 16182 | single-worker, median of 2 | 2.5 | 6.5 | +164% | 6.9 | +179% | yes |
+| full-sample | 15901 | contended, median of 1 | 117.4 | 159.6 | +36% | 263.9 | +125% | yes |
+<!-- /table:evalE_timing_voxel_wall -->
+
+A model of the full-sample voxel, for the carried arms (lenient runs): the strict cost's evaluations x its ms per evaluation, plus the smooth
+evaluations x ms per evaluation at batch 256, plus the build of a `SmoothCost` (lit-pixel trees and, for E4, the observed rays: 16.6 s on the
+full sample, 3.6 s on an E0 image set). As shipped the library builds one per `reconstruct_voxel` call; a cache per image set is not built
+(Task G, D-20261018-N17), so that column is a projection. It is not an upper estimate: lists shorter than 256 cost more per evaluation (2.811
+against 1.639 ms for E3 + E4 on the full sample). The E0 rows of an earlier version are dropped: on E0 most counted evaluations are screen and
+re-cost evaluations, far cheaper than one local `evaluate` call, so the model overstated the E0 voxel several times over (Task E review); the
+measured table above replaces them.
 
 <!-- table:evalE_timing_per_voxel -->
-| voxel set | arm | strict cost time per voxel, baseline (s) | strict cost time per voxel, arm (s) | smooth evaluations per voxel | smooth cost time per voxel (s) | one-off build per image set (s) | extra time with a build per voxel | extra time with one build per image set |
+| voxel set | arm | modelled strict cost time per voxel, baseline (s) | modelled strict cost time per voxel, arm (s) | smooth evaluations per voxel | modelled smooth cost time per voxel (s) | SmoothCost build (s) | extra time as shipped (a build per voxel) | projection: one build per image set (cache not built) |
 |---|---|---|---|---|---|---|---|---|
-| E0 200 | E3+E4,tau=0.25 | 19.1 | 19.3 | 252 | 0.1 | 3.6 | +20.7% | +1.7% |
 | six full-sample | E3+E4,tau=0.25 | 126.7 | 127.6 | 15030 | 24.6 | 16.6 | +33.3% | +20.2% |
-| E0 200 | E1+E2+E3+E4 | 19.1 | 19.5 | 263 | 0.3 | 3.6 | +22.6% | +3.6% |
 | six full-sample | E1+E2+E3+E4 | 126.7 | 132.8 | 15755 | 124.5 | 16.6 | +116.2% | +103.1% |
 <!-- /table:evalE_timing_per_voxel -->
 
-E1 is slow on the full-sample images because its nearest-lit-pixel search reaches far (4 sigma = 66 px at level 0) through about 3.9 million
-lit pixels per detector; on the sparse E0 images it is as cheap as the strict cost. E2 multiplies the searches by the frames it reaches.
+E1 is slow on the full-sample images, consistent with its nearest-lit-pixel search reaching far (4 sigma = 66 px at level 0) through about 3.9
+million lit pixels per detector (not profiled); on the sparse E0 images it is as cheap as the strict cost. E2 multiplies the searches by the frames it reaches.
 
 #### What smoothing removed and what it cost
 
@@ -7715,10 +7755,11 @@ lit pixels per detector; on the sparse E0 images it is as cheap as the strict co
 
 *What it cost.*
 
-* Time: about +20% (E3 + E4) and +103% (E1 + E2 + E3 + E4) of the strict cost's time per full-sample voxel at level-0 widths, single worker,
-  plus a one-off build per image set. The cheap arm is E3 + E4.
-* Dips: smoothing gives credit to near misses, including lit pixels of other grains; E1 alone adds dips on the full-sample rays, E4 alone on
-  the E0 rays. Only the combinations stay below the strict cost.
+* Time: as shipped (a build per voxel) +33.3% (E3 + E4) and +116.2% (E1 + E2 + E3 + E4) per full-sample voxel, modelled; +36% and +125%
+  measured on voxel 15901 (contended). Projected with a build cache per image set (not built): +20.2% and +103.1%. E0 voxels: +130% to +201%
+  measured (single-worker). The cheap arm is E3 + E4.
+* Dips: E1 alone adds dips on the full-sample rays (consistent with credit for lit pixels of other grains, not tested), E4 alone on the E0
+  rays. Only the combinations stay below the strict cost.
 * Far-field discrimination: E1 + E2 at level-0 widths does not rise half-way to 1 within 5 deg on most full-sample rays, so far from the truth
   it separates orientations less than the strict cost does. That is why these costs rank only after the quick MC and the strict cost accepts.
 * E4's lowest point is a few thousandths of a degree off the truth (median 0.0095 deg on the full-sample rays): harmless for ranking, a reason
@@ -7737,10 +7778,23 @@ continuous version of that score, with Task D's footprint attachment. The result
 
 * *Not sharper.* Along the full-sample rays E4 (tau 0.05 deg) rises half-way from its truth value to 1 at a median 0.4285 deg; the strict
   cost does so at 0.3118 deg (same rays, landscape table "half-way rise"). With tau 0.25 deg it is 1.0748 deg.
-* *Much of the voxel's peak list is missing.* E4's cost at the truth is 0.4136 (tau 0.05 deg, median over the full-sample rays) and 0.0977 on
-  the E0 images (only the voxel's own spots there). On the full-sample images the attached list mixes the grain's rays with the voxel's, and
-  spots that merge several grains are mostly unpaired (Task D), so many predicted peaks find no ray. For the six interior voxels the grain's
-  rays share the voxel's orientation, so the mix does no harm here; at a grain boundary it would (not tested).
+* *High at the truth, but not from missing rays.* E4's cost at the truth is 0.4136 (tau 0.05 deg, median over the full-sample rays) and 0.0977
+  on the E0 images (only the voxel's own spots there). An earlier version of this section put that down to predicted peaks with no attached
+  ray; measured (review fix, `scripts/eval_reduction/smooth_e4_truth.py`, table below), the median share of predicted peaks with no attached
+  ray within one frame is 0% on both image sets, and nearly all of the cost comes from peaks that have one. The median residual to the nearest
+  ray is 0.0256 deg on the full-sample images against 0.0141 deg on E0, and the full sample attaches 217.5 rays against 58; both fit
+  neighbouring grains' spots merging with or shifting the voxel's own (not tested). Whether the mix of the grain's and the voxel's rays
+  matters was not tested, inside a grain or at a grain boundary.
+
+  E4 at the truth split by peak (medians over voxels, so the parts need not add up to the cost):
+
+<!-- table:evalE_e4_truth -->
+| voxel set | n | E4 cost at the truth, tau 0.05 deg (median) | part from peaks with no observed ray nearby (median) | part from peaks with a ray (median) | predicted peaks (median) | share of peaks with no ray nearby, median (range) | residual to the nearest ray, peaks with a ray (median over voxels of the voxel median, deg) | observed rays attached (median) |
+|---|---|---|---|---|---|---|---|---|
+| six full-sample voxels | 6 | 0.4136 | 0.0000 | 0.4051 | 58.0 | 0.0% (0.0%-1.7%) | 0.0256 | 217.5 |
+| 30 E0 voxels | 30 | 0.0977 | 0.0000 | 0.0904 | 58.0 | 0.0% (0.0%-3.2%) | 0.0141 | 58.0 |
+<!-- /table:evalE_e4_truth -->
+
 * *Its lowest point is slightly off the truth.* On 54 of 120 full-sample rays and 291 of 600 E0 rays the lowest point of E4 (tau 0.05 deg) is
   not at the truth, a median 0.0095 deg away on the full-sample rays: consistent with the small errors of the binary spot centroids (not
   separately tested). That is far below what the coarse levels resolve, but it is why E4 should rank, not accept.
@@ -7767,7 +7821,8 @@ on the ranking after the quick MC, not on the screen, but each could be evaluate
   (about 500 lit pixels per detector), so they test the ranking without neighbouring grains. The full-sample images have neighbours, but the six
   interior voxels are all right with the strict cost and their basin is never cut, so they can show breaks only, not fixes. The 30-voxel set
   was dropped for time (RUN_LOG section 4). Whether the E0 gain carries over to full-sample voxels that the strict search gets wrong is
-  untested; it is the first thing to measure next.
+  untested; the other 24 voxels of the 30-voxel set run in Task G (D-20261018-N15).
+* **The full-sample whole-voxel time is contended.** Its quiet-machine repeat was not done (D-20261018-N16).
 * **The widths were set once, by rule of thumb, not tuned.** The level-0 widths come from the quick MC's trial radius; the ranking table shows
   that E1 at 3, 8 px and auto, and E4 at tau 0.05, 0.25 deg and auto, rank about equally on E0.
 * **E2 is not the physics of omega integration.** The clean images put each spot on one frame, so E2 is a tolerance across frame edges, not
