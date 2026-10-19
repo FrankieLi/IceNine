@@ -8,8 +8,10 @@ fontsize: 11pt
 
 # Status
 
-**Approved 2026-10-18, in progress** (D-20261018-I2; owner answers to O1-O9 in D-20261018-I1 to
-I5). Written 2026-10-16 by Ilium Agent after the S4 session, at the owner's request ("which parts
+**Scripts done and merged 2026-10-18** (MIGRATION_HISTORY "Workflow tooling for both
+agents"); the three skills and the study-conventions / rule 2 / rule 6 text wait for the
+owner's commit. Approved D-20261018-I2; owner answers to O1-O9 in D-20261018-I1 to
+I5. Written 2026-10-16 by Ilium Agent after the S4 session, at the owner's request ("which parts
 could become skills or deterministic scripts"). Owner answers: O1 keep the written ID rule (n from 1
 per day and agent); O2 approved with the three-task grouping; O3 H12 row placed by Ilium Agent; O4
 at most 6 heavy processes on this machine, exceptions allowed, kept per machine

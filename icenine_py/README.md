@@ -834,7 +834,7 @@ Rules and checks that used to be repeated in LLM prompts live in code. Paths are
 | `icenine_py/scripts/mic_maps_report.py SPEC.json --out-dir D` | Build an Artifact-ready page (`index.html`, `maps/*.png`, `stats.json`) of several `plot_mic` figures from a JSON spec (format in its docstring). |
 | `.claude/skills/mic-maps` | `/mic-maps`: choose the reference and runs, write the spec, build, check the wrong counts against scored numbers, and publish the page as an Artifact. For layers of 500 voxels or more. |
 
-Tests: `tests/test_dev_tooling.py`, `tests/test_plot_mic.py`, `tests/test_gzio.py`.
+Tests: `tests/test_dev_tooling.py`, `tests/test_dev_tooling_decisions.py`, `tests/test_dev_tooling_handback.py`, `tests/test_dev_tooling_brief.py`, `tests/test_plot_mic.py`, `tests/test_gzio.py`.
 
 ## Citation
 

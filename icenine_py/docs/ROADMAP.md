@@ -147,19 +147,15 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   `CppEdgeRules` (Step 4, D-20261014-I15). `ScreenEvaluator` (`batched_screen.py`) still builds its
   frame list per call and could use `cost_fn.frame_table()`; left to you. Results: MIGRATION_HISTORY
   "S1: per-call loops out of evaluate".
-- 2026-10-16 heads-up: plan for shared workflow tooling, `docs/todo_ilium_workflow_tooling.md`
-  (waiting for owner approval, nothing built yet): scripts for the decision log, ROADMAP status
-  cells, hand-back checks, read on fetch and implementer briefs, plus `/decide`, `/implement-plan`,
-  `/apply-fixes`. They are agent-neutral (`git config --local icenine.agent N` on your clone) and
-  meant for both of us; the instructions to use them go into study-conventions and protocol rules 2
-  and 6 (owner edits), not into either machine's memory. Owner questions that touch you: O1
-  (decision ID numbering: the header says n restarts per day, D-20261016-I22 did not) and
-  O9 (per-machine process limit `icenine.maxHeavyProcs`). Comments welcome in your mailbox.
-- 2026-10-18 heads-up: the owner approved the workflow tooling plan (D-20261018-I1 to I5, new
-  row H12). Decision IDs keep the written rule: n restarts per day and agent (I1). The tools are
-  being built on task branches off `feature/python-speed-parity`; when they merge, set
-  `git config --local icenine.agent N` and `icenine.maxHeavyProcs <n>` on your clone.
-  Merged `feature/eval-reduction` through f688204; N11 to N14 are saved to Ilium's shmem.
+- 2026-10-18 heads-up: the workflow tooling (row H12, `docs/todo_ilium_workflow_tooling.md`, owner
+  decisions D-20261018-I1 to I5) is merged into `feature/python-speed-parity`: `scripts/dev/`
+  `log_decision.sh`, `roadmap_row.py`, `verify_handback.sh`, `read_on_fetch.sh`, `make_brief.sh`
+  (usage in the README "Developer tooling" table). They serve both agents: after merging, run
+  `git config --local icenine.agent N` and `git config --local icenine.maxHeavyProcs <n>` on your
+  clone. Decision IDs keep the written rule (n restarts per day and agent, I1). The skills `/decide`,
+  `/implement-plan`, `/apply-fixes` and the study-conventions and rule 2 / rule 6 text wait for the
+  owner's commit. Merged `feature/eval-reduction` through 62dd990; N11 to N15 are saved to Ilium's
+  shmem.
 
 # State on 2026-10-13
 
@@ -257,7 +253,7 @@ owner review in between.
 | H9 | `icenine/sampling.py:338` `get_random_local_grid` uses `default_rng(seed=None)` (fresh entropy), so its "preserves C++ determinism" docstring is wrong; the function is unused | fix the docstring or remove the function |
 | H10 | `_parse_*` helpers of `mic_file.py` have no direct tests | low priority |
 | H11 | root `README.md` is from 2014 (Boost 1.43, gcc 4.2, XDM++ "obtained separately") | refresh |
-| H12 | `scripts/dev/`, `.claude/skills/` | workflow tooling, shared by both agents: `log_decision.sh`, `roadmap_row.py`, `verify_handback.sh`, `read_on_fetch.sh`, `make_brief.sh` and the `/decide`, `/implement-plan`, `/apply-fixes` skills (`docs/todo_ilium_workflow_tooling.md`); **in progress** (approved D-20261018-I2, row D-20261018-I3; Ilium Agent, task branches off `feature/python-speed-parity`) |
+| H12 | `scripts/dev/`, `.claude/skills/` | workflow tooling, shared by both agents: `log_decision.sh`, `roadmap_row.py`, `verify_handback.sh`, `read_on_fetch.sh`, `make_brief.sh` and the `/decide`, `/implement-plan`, `/apply-fixes` skills (`docs/todo_ilium_workflow_tooling.md`); **scripts merged; skills and owner text waiting for the owner** (approved D-20261018-I2, row D-20261018-I3; Ilium Agent, task branches off `feature/python-speed-parity`) |
 
 # Track Q: search accuracy open questions
 
