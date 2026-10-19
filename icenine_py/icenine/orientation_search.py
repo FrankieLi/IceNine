@@ -177,7 +177,9 @@ class SearchParameters:
     # smooth_rank: opt-in (config key SmoothCostRank), default "off". The candidates of the coarse
     # levels (0 .. levels-1 of the spec, default 0-2) are ranked for the quarter cut by a smooth
     # cost (icenine/smooth_cost.py, SmoothSpec) instead of the post-quick-MC strict cost; the
-    # strict cost stays on every candidate and is used everywhere else.
+    # strict cost stays on every candidate and is used everywhere else. At a smooth-ranked level
+    # the reconstructor's last_level_best entry and its "best cost=" print take the best candidate
+    # by the strict cost, not the first of the smooth-ranked list.
     smooth_rank: str = "off"
     # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
     # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels

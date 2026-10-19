@@ -22,7 +22,6 @@ import numpy as np
 import torch
 
 from .candidate_dedup import DedupSpec, distinct_order, keep_before_quick_mc
-from .smooth_cost import SmoothSpec, make_ranker
 from .config_file import ConfigFile
 from .cost_functions import OverlapInfo, VoxelCostFunction
 from .crystal_structure import CrystalStructure
@@ -53,6 +52,7 @@ from .sampling import (
 from .simulation import Simulation
 from .ray_overlap import RayRule
 from .simulation_range import SimulationRange
+from .smooth_cost import SmoothSpec, make_ranker
 
 if TYPE_CHECKING:
     from .differentiable_cost import DifferentiableCostFunction
@@ -664,6 +664,7 @@ class AdaptiveVoxelReconstructor:
             level_diameter = diameter
             diameter /= 1.5
             pre_sort = list(candidates)  # discrete-stage order (the quick MC mutated in place)
+            smooth_ranked = False
             if self.rank_key is not None:
                 key = np.asarray(self.rank_key(level, candidates))
                 assert len(key) == len(candidates), "rank_key must return one key per candidate"
@@ -674,6 +675,7 @@ class AdaptiveVoxelReconstructor:
                 key = smooth_ranker(level, candidates, level_diameter)
                 order = np.argsort(key, kind="stable")
                 candidates = [candidates[i] for i in order]
+                smooth_ranked = True
             else:
                 candidates.sort()
             n_distinct = -1
@@ -687,8 +689,14 @@ class AdaptiveVoxelReconstructor:
                     symmetry_quats,
                 )
                 candidates = [candidates[i] for i in order]
+            # the level's best candidate: the first of the ranked list, except under SmoothCostRank,
+            # where the first is the best by the smooth key; then the best by the strict cost (the
+            # first of equal costs in ranked order) is recorded and printed
+            level_best = candidates[0]
+            if smooth_ranked:
+                level_best = candidates[int(np.argmin([c.cost for c in candidates]))]
             self.last_level_best.append(
-                (level, candidates[0].orientation.copy(), float(candidates[0].cost))
+                (level, level_best.orientation.copy(), float(level_best.cost))
             )
             if dedup.active:
                 # the quarter is counted from the discrete stage's list (freed slots go to the next
@@ -740,7 +748,7 @@ class AdaptiveVoxelReconstructor:
             print(
                 f"    Level {level}: quick MC ({t_quick:.1f}s), "
                 f"kept {len(kept_list)}/{len(candidates)}, "
-                f"best cost={candidates[0].cost:.4f}, "
+                f"best cost={level_best.cost:.4f}, "
                 f"level total={t_total:.1f}s",
                 flush=True,
             )

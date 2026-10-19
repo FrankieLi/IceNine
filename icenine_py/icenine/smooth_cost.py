@@ -51,8 +51,8 @@ deflection. E1 to E3 use the general sample-to-lab transform of the strict cost.
 """
 
 import math
-from dataclasses import dataclass, field, replace
-from typing import Any, Callable, Dict, FrozenSet, List, Optional, Sequence, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Dict, FrozenSet, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -142,7 +142,8 @@ class SmoothSpec:
 def smoothstep(x: torch.Tensor) -> torch.Tensor:
     """0 below 0, 1 above 1, 3x^2 - 2x^3 in between (continuous with a continuous slope)."""
     t = torch.clamp(x, 0.0, 1.0)
-    return t * t * (3.0 - 2.0 * t)
+    out: torch.Tensor = t * t * (3.0 - 2.0 * t)
+    return out
 
 
 def sample_hull_points(sample: Any) -> np.ndarray:
@@ -268,7 +269,7 @@ class SmoothCost:
         self._hull_points = hull_points
         self._attached: Dict[Tuple[float, float], np.ndarray] = {}
         # detector constants (float64 torch)
-        self._det = [
+        self._det: List[Dict[str, Any]] = [
             dict(
                 n=torch.as_tensor(g.n, dtype=d),
                 d=float(g.d),
@@ -289,10 +290,9 @@ class SmoothCost:
         g = self.geoms[0]
         return float(g.distance_x() / g.pw)
 
-    def predict(
-        self, R: Any, voxel_vertices: Any, phase: int = 0, need_grad: bool = False
-    ) -> Prediction:
-        """Peak geometry of orientations ``R`` (B, 3, 3) (numpy or torch) for one voxel."""
+    def predict(self, R: Any, voxel_vertices: Any, phase: int = 0) -> Prediction:
+        """Peak geometry of orientations ``R`` (B, 3, 3) (numpy or torch) for one voxel
+        (differentiable in a torch ``R``)."""
         d = self.dtype
         Rt = R if isinstance(R, torch.Tensor) else torch.as_tensor(np.asarray(R), dtype=d)
         Rt = Rt.to(d)
@@ -330,7 +330,10 @@ class SmoothCost:
         ray_s = (ray.reshape(-1, 3)[sel]) / rn.reshape(-1)[sel, None]
         eta_s = eta.reshape(-1)[sel]
         fpos = (omega - self.low) / self.width
-        fbin = torch.trunc(fpos).to(torch.long)  # the strict cost's truncation toward zero
+        # truncation toward zero, as the strict cost's lenient path (``frame_of_omegas``); with
+        # CppEdgeRules on the strict cost floors instead, which differs only for an omega just
+        # below the scanned range (fpos in (-1, 0): truncation gives bin 0, floor gives -1)
+        fbin = torch.trunc(fpos).to(torch.long)
         fbin_c = fbin.clamp(-1, self.n_bins)
         frame = self.index_t[fbin_c]
         # sample points: three vertices + centroid, sample frame -> lab (Rz(omega) @ base @ v + t)
@@ -424,7 +427,7 @@ class SmoothCost:
         spec: SmoothSpec,
         sigma_px: float,
         omega_half: float,
-        dcache: Optional[Dict[Any, np.ndarray]] = None,
+        dcache: Optional[Dict[Any, Any]] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """(per-peak weight, per-peak credit) of the image arms (numpy, length n).
 
@@ -472,7 +475,7 @@ class SmoothCost:
                     if ck not in dcache:
                         fr_all = np.broadcast_to(fr[:, None], c.shape)
                         dcache[ck] = self._distance(
-                            det, c.ravel(), r.ravel(), fr_all.ravel(), dcache["ub"]
+                            det, c.ravel(), r.ravel(), fr_all.ravel(), float(dcache["ub"])
                         ).reshape(c.shape)
                     dist = np.where(use[:, None], dcache[ck], np.inf)
                 else:
@@ -552,7 +555,7 @@ class SmoothCost:
             if len(bins) == 0:
                 continue
             om_c = self.low + self.width * (0.5 * (bins.min() + bins.max() + 1))
-            comps = []
+            comps: List[Optional[Dict[str, Any]]] = []
             for det in (0, 1):
                 img = tab.images[w * self.n_det + det]
                 if not img.any():
@@ -712,7 +715,6 @@ class SmoothCost:
         )
         lo = torch.as_tensor(self.low + self.width * lo_bin[rays.frame[att]], dtype=self.dtype)
         hi = torch.as_tensor(self.low + self.width * hi_bin[rays.frame[att]], dtype=self.dtype)
-        rho = torch.ones(n, dtype=self.dtype)
         chunk = max(1, 2_000_000 // max(len(att), 1))
         out = []
         for s0 in range(0, n, chunk):
@@ -837,7 +839,7 @@ class SmoothCost:
         through the predicted rays and omegas; the assignment to observed rays is held fixed at
         the evaluated point (a piecewise-smooth function with a gradient almost everywhere)."""
         sp_ = spec or SmoothSpec(arms=frozenset({"E4"}))
-        pr = self.predict(R[None], voxel_vertices, phase, need_grad=True)
+        pr = self.predict(R[None], voxel_vertices, phase)
         W, rho = self._e4_terms(pr, voxel_vertices, math.radians(tau_deg), sp_)
         sw = W.sum()
         return torch.where(sw > 0, (W * rho).sum() / torch.clamp(sw, min=1e-300), torch.ones(()))
@@ -890,11 +892,3 @@ def make_ranker(
         min_sin_eta=min_sin_eta,
     )
     return SmoothRanker(cost=sc, spec=spec, voxel_vertices=voxel_vertices, phase=phase)
-
-
-def with_widths(spec: SmoothSpec, **kw: float) -> SmoothSpec:
-    """Copy of ``spec`` with some widths replaced (``sigma_px``, ``omega_half``, ``tau_deg``)."""
-    return replace(spec, **kw)
-
-
-RankFn = Callable[[int, Sequence[Any], float], np.ndarray]
