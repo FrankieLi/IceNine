@@ -407,3 +407,109 @@ def test_real_plan_and_decisions_of_this_repository(tmp_path: Path) -> None:
     )
     assert out.returncode == 0, out.stderr
     assert "\nApproval: D-20261018-I2 " in out.stdout
+
+
+def _entry(entry_id: str, title: str, text: str, supersedes: str = "none") -> str:
+    return (
+        f"\n### {entry_id} · H2 · {title}\n"
+        f"- 2026-10-09, owner. Recorded by Ilium Agent. Supersedes: {supersedes}.\n"
+        f"- {text}\n"
+    )
+
+
+def _without_approval() -> str:
+    """The fixture log without its approval of todo_demo.md (the last entry)."""
+    return DECISIONS[: DECISIONS.index("### D-20261004-I1")]
+
+
+def test_a_refusal_is_not_an_approval(repo: Path) -> None:
+    for text in (
+        "The plan `docs/todo_demo.md` is not approved; rewrite first.",
+        "The plan `docs/todo_demo.md` is unapproved.",
+        "The plan `docs/todo_demo.md` has not yet been approved.",
+        "The plan `docs/todo_demo.md` was never approved.",
+        "The plan `docs/todo_demo.md` is disapproved.",
+    ):
+        log = _without_approval() + _entry("D-20261005-I1", "Demo plan", text)
+        _write(repo, "icenine_py/docs/DECISIONS.md", log)
+        out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+        assert out.returncode == 1, text
+        assert out.stdout == "" and "no entry" in out.stderr, text
+    # a negation next to a real approval in the same entry does not hide the approval
+    text = "The plan `docs/todo_demo.md` is not approved as drafted but approved with the edits."
+    _write(
+        repo,
+        "icenine_py/docs/DECISIONS.md",
+        _without_approval() + _entry("D-20261005-I1", "Demo plan", text),
+    )
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 0, out.stderr
+    assert "\nApproval: D-20261005-I1 · H2 · Demo plan\n" in out.stdout
+
+
+def test_a_withdrawn_or_superseded_approval_is_refused(repo: Path) -> None:
+    withdrawn = _entry(
+        "D-20261005-I1",
+        "Demo plan withdrawn",
+        "The plan `docs/todo_demo.md` is withdrawn.",
+        supersedes="D-20261004-I1",
+    )
+    superseded_elsewhere = _entry(
+        "D-20261005-I2", "Approval replaced", "Pause; no file named.", supersedes="D-20261004-I1"
+    )
+    for later, shown in ((withdrawn, "D-20261005-I1"), (superseded_elsewhere, "D-20261005-I2")):
+        _write(repo, "icenine_py/docs/DECISIONS.md", DECISIONS + later)
+        out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+        assert out.returncode == 1, shown
+        assert out.stdout == ""
+        assert "D-20261004-I1" in out.stderr and shown in out.stderr, out.stderr
+    # withdrawn without a Supersedes line
+    log = DECISIONS + _entry("D-20261005-I3", "Demo plan", "`docs/todo_demo.md` needs a rewrite.")
+    _write(repo, "icenine_py/docs/DECISIONS.md", log)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 1 and "D-20261005-I3" in out.stderr
+    # a later entry that only mentions the plan does not cancel the approval
+    log = DECISIONS + _entry("D-20261005-I4", "Cost", "Run `docs/todo_demo.md` on 6 processes.")
+    _write(repo, "icenine_py/docs/DECISIONS.md", log)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 0, out.stderr
+    assert APPROVAL in out.stdout
+    # a new approval after a withdrawal counts again, with or without superseding the old one
+    log = (
+        DECISIONS
+        + withdrawn
+        + _entry(
+            "D-20261006-I1",
+            "Demo plan approved again",
+            "The plan `docs/todo_demo.md` is approved.",
+            supersedes="D-20261005-I1",
+        )
+    )
+    _write(repo, "icenine_py/docs/DECISIONS.md", log)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 0, out.stderr
+    assert "\nApproval: D-20261006-I1 · H2 · Demo plan approved again\n" in out.stdout
+
+
+def test_plan_name_is_matched_on_a_path_boundary(repo: Path) -> None:
+    for text in (
+        "The plan `docs/old_todo_demo.md` is approved.",
+        "The plan `docs/todo_demo.md2` is approved.",
+        "The plan `docs/todo_demo.mdx` is approved.",
+    ):
+        log = _without_approval() + _entry("D-20261005-I1", "Other plan", text)
+        _write(repo, "icenine_py/docs/DECISIONS.md", log)
+        out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+        assert out.returncode == 1, text
+        assert "no entry" in out.stderr, text
+    for text in (
+        "todo_demo.md approved.",
+        "Plan (todo_demo.md) approved.",
+        'The plan "todo_demo.md" is approved.',
+        "Approved: icenine_py/docs/todo_demo.md.",
+        "The plan todo_demo.md. Approved.",
+    ):
+        log = _without_approval() + _entry("D-20261005-I1", "Demo", text)
+        _write(repo, "icenine_py/docs/DECISIONS.md", log)
+        out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+        assert out.returncode == 0, (text, out.stderr)

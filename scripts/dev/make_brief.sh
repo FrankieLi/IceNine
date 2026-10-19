@@ -91,15 +91,65 @@ fi
 # --- approval
 [ -n "$DECISIONS" ] || DECISIONS="icenine_py/docs/DECISIONS.md"
 [ -f "$DECISIONS" ] || die "decision log not found: $DECISIONS"
-APPROVAL=$(awk -v name="$PLAN_NAME" '
-    function flush() {
-        if (head != "" && index(body, name) > 0 && tolower(body) ~ /approved/) found = head
+# The plan's file name counts only on a path boundary (start of a line, "/", a backtick, a space,
+# a quote or "(" before it), so `old_todo_demo.md` does not name `todo_demo.md`. An entry approves
+# when its lowercased text still contains "approved" after "not approved", "not yet approved",
+# "never approved", "unapproved" and "disapproved" are removed. The last approving entry is the
+# approval; it is refused when a later entry names the plan and withdraws it (a negated
+# approval, or "withdrawn", "revoked", "rescinded", "cancelled", "rewrite", "on hold") or says
+# "Supersedes: <the approval's ID>" (the log is append-only). A later entry that only mentions
+# the plan (a cost decision, a note) does not cancel the approval.
+RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
+    function names_plan(s,    i, before, after, n) {
+        n = length(name)
+        while ((i = index(s, name)) > 0) {
+            before = (i == 1) ? "\n" : substr(s, i - 1, 1)
+            after = substr(s, i + n, 1)
+            if (index("\n/` \"" sq "(", before) > 0 && after !~ /[A-Za-z0-9_-]/) return 1
+            s = substr(s, i + 1)
+        }
+        return 0
+    }
+    function withdraws(s) {
+        s = tolower(s)
+        return s ~ /(not|never)( +yet)?( +been)? +approved|(un|dis)approved|withdr[ae]w|withdrawn/ \
+            || s ~ /revok|rescind|retract|cancel|rewrite|on hold/
+    }
+    function approves(s) {
+        s = tolower(s)
+        gsub(/(not|never)( +yet)?( +been)? +approved/, "", s)
+        gsub(/(un|dis)approved/, "", s)
+        return s ~ /approved/
+    }
+    function flush(    id) {
+        if (head == "") return
+        id = head; sub(/ .*/, "", id)
+        if (names_plan(body) && approves(body)) {
+            approved_head = head; approved_id = id; refused = ""
+        } else if (approved_head != "" && names_plan(body) && withdraws(body)) {
+            refused = head
+        } else if (approved_head != "" && index(body, approved_id) > 0 \
+                   && tolower(body) ~ /supersede/) {
+            refused = head
+        }
     }
     /^### / { flush(); head = substr($0, 5); body = $0 "\n"; next }
     head != "" { body = body $0 "\n" }
-    END { flush(); print found }
+    END {
+        flush()
+        if (refused != "") print "REFUSED\t" refused "\t" approved_head
+        else print "OK\t" approved_head
+    }
 ' "$DECISIONS")
-[ -n "$APPROVAL" ] || die "no entry in $DECISIONS names $PLAN_NAME as approved; the plan needs an owner approval first"
+APPROVAL=${RESULT#*$'\t'}
+if [ "${RESULT%%$'\t'*}" = "REFUSED" ]; then
+    LATER=${APPROVAL%%$'\t'*}
+    EARLIER=${APPROVAL#*$'\t'}
+    die "the approval '$EARLIER' is followed by '$LATER', which names $PLAN_NAME and withdraws it" \
+        "or supersedes the approval; the plan needs a new owner approval"
+fi
+[ -n "$APPROVAL" ] || die "no entry in $DECISIONS names $PLAN_NAME as approved;" \
+    "the plan needs an owner approval first"
 
 # --- process limit
 MAXPROCS=$(git config --local --get icenine.maxHeavyProcs || true)
