@@ -100,11 +100,10 @@ if [ -n "$SECTION" ]; then
     fi
 fi
 if [ -n "$FIXES" ]; then
+    # Review reports live in .claude/reports/ of the session that wrote them (gitignored, one per
+    # worktree), so any existing file is accepted and printed as an absolute, resolved path.
     [ -f "$FIXES" ] || die "review report not found: $FIXES"
-    case "$FIXES" in
-        "$ROOT"/*) FIXES="${FIXES#"$ROOT"/}" ;;
-        /*) die "review report is outside the repository: $FIXES" ;;
-    esac
+    FIXES="$(cd "$(dirname "$FIXES")" && pwd -P)/$(basename "$FIXES")"
 fi
 
 # --- approval

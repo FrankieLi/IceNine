@@ -316,7 +316,7 @@ def test_fixes_on_existing_task_branch(repo: Path) -> None:
     assert out.stdout == _lines(
         "Follow study-conventions.",
         "Plan: icenine_py/docs/todo_demo.md.",
-        f"Apply the required fixes in {review}, follow study-conventions, re-run the affected "
+        f"Apply the required fixes in {repo.resolve() / review}, follow study-conventions, re-run the affected "
         "tests, and add the new commit hashes to your report. Name the fix numbers in your "
         "commit subjects.",
         APPROVAL,
@@ -570,3 +570,29 @@ def test_markers_as_bullets_and_not_inside_code_fences(repo: Path) -> None:
         TRAILER,
         REPORT.format(name=f"{NOW}-t"),
     )
+
+
+def test_fixes_report_outside_the_repository_is_printed_as_an_absolute_path(
+    repo: Path, tmp_path: Path
+) -> None:
+    other = tmp_path / "other worktree" / ".claude" / "reports"
+    other.mkdir(parents=True)
+    (other / "review.md").write_text("# Review\n")
+    out = _brief(
+        repo, "--plan", "docs/todo_demo.md", "--task", "t", "--fixes", str(other / "review.md")
+    )
+    assert out.returncode == 0, out.stderr
+    expected = (other / "review.md").resolve()
+    assert f"Apply the required fixes in {expected}, follow" in out.stdout
+    # a relative path (from the current directory) is resolved the same way
+    out = _brief(
+        repo,
+        "--plan",
+        "docs/todo_demo.md",
+        "--task",
+        "t",
+        "--fixes",
+        os.path.relpath(other / "review.md", repo),
+    )
+    assert out.returncode == 0, out.stderr
+    assert f"Apply the required fixes in {expected}, follow" in out.stdout
