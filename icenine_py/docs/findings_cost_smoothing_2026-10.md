@@ -92,6 +92,24 @@ We walked each cost along Task B's rays: 6 full-sample voxels x 20 directions, a
 Steps along the full-sample rays. Read across a row: a good arm has few steps per degree and a low share of its change
 in steps. The strict cost changes almost entirely in steps.
 
+How the columns are measured (`scripts/eval_reduction/smooth_landscape_summary.py`, `isolated_steps`):
+
+* Each ray is sampled every 0.0005 deg, so 2,000 points per degree.
+* A change between two neighbouring points is a **step** when it is above 1e-6 and more than three times the change on
+  both neighbouring intervals. A sudden jump counts. A steady slope never counts, however steep it is.
+* **Steps per deg** is the number of steps in a distance band from the truth, divided by the degrees walked in that
+  band, summed over all 120 rays. Example: 113.8 per deg under 0.05 deg means about 6 jumps in the first 0.05 deg of a
+  ray (113.8 x 0.05), roughly one every 18 sample intervals.
+* **Variation in steps** is the share of the cost's total change (the sum of the size of every change) that happens in
+  steps. The step count treats a jump of 1e-5 the same as one of 0.05; this column weights each jump by its size. So
+  read the two together. E1 at 3 px has fewer steps than the strict cost (49 against 114 per deg), but 97.7% of its
+  change under 0.05 deg still comes in jumps.
+* **A flat cost has no steps.** Beyond about 2 deg the strict cost sits at 1 (no overlap with the truth's spots) and
+  does not move. That is part of why the C++ rule has only 25 steps per deg from 0.5 to 5 deg: it is flat there, not
+  smooth. The lenient rule has 108.
+* Two jumps on back-to-back intervals are compared with each other, so neither counts. At this spacing that should be
+  rare, but it was not checked.
+
 <!-- table:evalE_land_steps_full -->
 | cost | cost at the truth (median) | steps per deg, under 0.05 deg | steps per deg, 0.05 to 0.5 deg | steps per deg, 0.5 to 5 deg | variation in steps, under 0.05 deg | variation in steps, 0.05 to 0.5 deg | variation in steps, 0.5 to 5 deg |
 |---|---|---|---|---|---|---|---|
