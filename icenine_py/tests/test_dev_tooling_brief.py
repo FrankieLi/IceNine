@@ -513,3 +513,60 @@ def test_plan_name_is_matched_on_a_path_boundary(repo: Path) -> None:
         _write(repo, "icenine_py/docs/DECISIONS.md", log)
         out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
         assert out.returncode == 0, (text, out.stderr)
+
+
+def test_wrapped_library_changes_and_exception_are_quoted_whole(repo: Path) -> None:
+    plan = (
+        PLAN
+        + "\n**Library changes:** `icenine/x.py` may change, but only behind a new flag that is\n"
+        + "off by default; nothing else under `icenine/`.\n"
+        + "\n**Process limit exception:** 8 workers for the sweep in step 2,\n"
+        + "and 10 for the final check.\n\nAfter.\n"
+    )
+    _write(repo, "icenine_py/docs/todo_demo.md", plan)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 0, out.stderr
+    assert (
+        "Scope: **Library changes:** `icenine/x.py` may change, but only behind a new flag that is\n"
+        "off by default; nothing else under `icenine/`.\n"
+    ) in out.stdout
+    assert (
+        "Compute (plan exception to the machine limit of 6 heavy processes): "
+        "**Process limit exception:** 8 workers for the sweep in step 2,\n"
+        "and 10 for the final check.\n"
+        "Commits:"
+    ) in out.stdout
+    assert "After." not in out.stdout
+
+
+def test_markers_as_bullets_and_not_inside_code_fences(repo: Path) -> None:
+    plan = (
+        PLAN
+        + "\n```\n**Stop rule:** inside a fence, an example only.\n**Library changes:** same.\n"
+        + "```\n"
+        + "\n- **Stop rule:** a bullet rule\n  that wraps.\n- **Stop rule:** a second bullet.\n"
+        + "\n* **Library changes:** `icenine/y.py` only.\n\n"
+        + "Text.\n```text\n**Process limit exception:** fenced, ignored.\n```\n"
+        + "- **Process limit exception:** 9 for step 2.\n"
+        + "# Next heading\n"
+    )
+    _write(repo, "icenine_py/docs/todo_demo.md", plan)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 0, out.stderr
+    assert out.stdout == _lines(
+        "Follow study-conventions.",
+        "Implement the plan icenine_py/docs/todo_demo.md.",
+        APPROVAL,
+        "Branch: run `scripts/dev/start_task.sh t` from `feature/par` (branch `feature/par-t`).",
+        "Scope: **Library changes:** `icenine/y.py` only.",
+        NO_DEP,
+        "Stop rule of the plan:",
+        "> **Stop rule:** a bullet rule",
+        ">   that wraps.",
+        "> **Stop rule:** a second bullet.",
+        "Compute (plan exception to the machine limit of 6 heavy processes): "
+        "**Process limit exception:** 9 for step 2.",
+        COMMITS,
+        TRAILER,
+        REPORT.format(name=f"{NOW}-t"),
+    )

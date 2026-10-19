@@ -26,6 +26,25 @@ usage() {
 }
 die() { echo "error: $*" >&2; exit 1; }
 
+# paragraphs <marker>: every paragraph of the plan that starts with the marker (at column 0, or
+# after a "- " / "* " bullet marker, which is dropped), up to the next blank line, heading or
+# (for a bullet) next bullet. Fenced code blocks are skipped. The whole plan is read, not a section.
+paragraphs() {
+    awk -v marker="$1" '
+        /^[[:space:]]*(```|~~~)/ { fence = !fence; inrule = 0; next }
+        fence { next }
+        inrule && ($0 ~ /^[[:space:]]*$/ || $0 ~ /^#/ || (bullet && $0 ~ /^[-*] /)) { inrule = 0 }
+        !inrule && (index($0, marker) == 1 || ($0 ~ /^[-*] / && index(substr($0, 3), marker) == 1)) {
+            inrule = 1
+            bullet = ($0 ~ /^[-*] /)
+            if (bullet) $0 = substr($0, 3)
+            print
+            next
+        }
+        inrule { print }
+    ' "$PLAN_REL"
+}
+
 PLAN=""
 TASK=""
 SECTION=""
@@ -157,7 +176,7 @@ MAXPROCS=$(git config --local --get icenine.maxHeavyProcs || true)
 case "$MAXPROCS" in
     *[!0-9]* | 0 | 0[0-9]*) die "icenine.maxHeavyProcs must be a positive integer, got '$MAXPROCS'" ;;
 esac
-EXCEPTION=$(grep -m1 '^\*\*Process limit exception:\*\*' "$PLAN_REL" || true)
+EXCEPTION=$(paragraphs '**Process limit exception:**')
 if [ -n "$EXCEPTION" ]; then
     COMPUTE="Compute (plan exception to the machine limit of $MAXPROCS heavy processes): $EXCEPTION"
 else
@@ -165,7 +184,7 @@ else
 fi
 
 # --- scope
-LIBRARY=$(grep -m1 '^\*\*Library changes:\*\*' "$PLAN_REL" || true)
+LIBRARY=$(paragraphs '**Library changes:**')
 if [ -n "$LIBRARY" ]; then
     SCOPE="Scope: $LIBRARY"
 else
@@ -173,11 +192,7 @@ else
 fi
 
 # --- stop rule (every paragraph starting with the marker, up to the next blank line)
-STOP=$(awk '
-    /^\*\*Stop rule:\*\*/ { inrule = 1 }
-    inrule && /^[[:space:]]*$/ { inrule = 0 }
-    inrule { print "> " $0 }
-' "$PLAN_REL")
+STOP=$(paragraphs '**Stop rule:**' | sed 's/^/> /')
 
 # --- branch
 CUR=$(git symbolic-ref --short -q HEAD || true)
