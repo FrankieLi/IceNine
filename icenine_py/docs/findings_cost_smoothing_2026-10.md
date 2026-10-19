@@ -169,7 +169,9 @@ How the columns are measured (`scripts/eval_reduction/smooth_landscape_summary.p
 Why E4 is high at the truth. E4 scores each predicted peak by its distance to the nearest observed ray within one
 frame. A peak with no such ray scores 1, the worst. The table splits E4's cost at the truth into the part from those
 peaks and the part from peaks that have a ray (`scripts/eval_reduction/smooth_e4_truth.py`). Read: almost no peak lacks
-a ray, so nearly all of the cost comes from peaks whose nearest ray is a few hundredths of a degree away. The columns
+a ray. On the full sample, peaks with no ray give at most 5% of any voxel's cost, so nearly all of it comes from peaks
+whose nearest ray is a few hundredths of a degree away. On E0 it varies more: 9 of the 30 voxels have at least one
+peak with no ray, and on one voxel those peaks give 30% of the cost. The columns
 are medians over voxels, so the two parts need not add up to the cost exactly.
 
 <!-- table:evalE_e4_truth -->
@@ -342,9 +344,9 @@ such as other random draws.
   far fewer voxels that could break, so that figure does not set the number of breaks to expect.
 * **Voxels right in both runs end closer to the truth on E0.** E0, lenient rule, the 159 voxels right in both runs:
   median error 0.0130 deg became 0.0054 deg with E3 + E4 and 0.0050 deg with E1 + E2 + E3 + E4. On the six
-  full-sample voxels it went the other way for E1 + E2 + E3 + E4 (lenient rule): 0.0181 deg became 0.0284 deg
-  (n = 6). E3 + E4 under the C++ rule went from 0.0286 to 0.0291 deg. With six voxels neither is a measured
-  difference.
+  full-sample voxels the medians moved both ways: E3 + E4, lenient rule, 0.0181 to 0.0163 deg (2 voxels farther, 4
+  closer); E3 + E4, C++ rule, 0.0286 to 0.0291 deg (3 farther, 3 closer); E1 + E2 + E3 + E4, lenient rule, 0.0181 to
+  0.0284 deg (3 farther, 3 closer). With six voxels none of these is a measured difference.
 * **Six full-sample voxels:** 0 of 6 wrong before and after. E1 + E2 + E3 + E4 was run on them with the lenient rule
   only; the C++-rule run of that arm on the six voxels was not done.
 * **Evaluations:** the strict cost's own evaluations rose by 0.7% to 4.8%. The smooth cost is called separately. With

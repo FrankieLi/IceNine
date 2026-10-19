@@ -7783,8 +7783,8 @@ continuous version of that score, with Task D's footprint attachment. The result
   ray; measured (review fix, `scripts/eval_reduction/smooth_e4_truth.py`, table below), the median share of predicted peaks with no attached
   ray within one frame is 0% on both image sets, and nearly all of the cost comes from peaks that have one. The median residual to the nearest
   ray is 0.0256 deg on the full-sample images against 0.0141 deg on E0, and the full sample attaches 217.5 rays against 58; both fit
-  neighbouring grains' spots merging with or shifting the voxel's own (not tested). For the six interior voxels the grain's rays share the
-  voxel's orientation, so the mix does no harm here; at a grain boundary it may (not tested).
+  neighbouring grains' spots merging with or shifting the voxel's own (not tested). Whether the mix of the grain's and the voxel's rays
+  matters was not tested, inside a grain or at a grain boundary.
 
   E4 at the truth split by peak (medians over voxels, so the parts need not add up to the cost):
 
