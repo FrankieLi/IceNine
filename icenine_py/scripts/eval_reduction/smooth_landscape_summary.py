@@ -13,7 +13,7 @@ arms of ``smooth_landscape.ARMS``):
 * local minima (not the truth) by prominence 0.01 and 0.05 (``scipy.signal.find_peaks``), rays with
   one, with a 95% Wilson interval; rays where the lowest cost is not at the truth.
 * basin radius at tolerance eps: the largest radius r such that the cost never falls more than eps
-  below its running maximum on [0, r] (the cost is eps-monotone outward); full-sample: the dense
+  below its running maximum on [0, r] (no drop over eps going outward); full-sample: the dense
   walk to 5 deg; E0: the log profile to 5 deg (121 points).
 
   uv run python scripts/eval_reduction/smooth_landscape_summary.py
@@ -329,9 +329,13 @@ def tables(S: Dict[str, Any], costs: List[str] = COSTS, tag: str = "") -> Dict[s
                     ),
                     "basin radius, eps 0.01 (median deg)": x["basin_median_deg"]["0.01"],
                     "basin radius, eps 0.01 (lower quartile deg)": x["basin_q25_deg"]["0.01"],
-                    "rays monotone to 5 deg, eps 0.01": f"{x['basin_to_5deg']['0.01']} of {n}",
+                    "rays with no drop over eps out to 5 deg, eps 0.01": (
+                        f"{x['basin_to_5deg']['0.01']} of {n}"
+                    ),
                     "basin radius, eps 0.05 (median deg)": x["basin_median_deg"]["0.05"],
-                    "rays monotone to 5 deg, eps 0.05": f"{x['basin_to_5deg']['0.05']} of {n}",
+                    "rays with no drop over eps out to 5 deg, eps 0.05": (
+                        f"{x['basin_to_5deg']['0.05']} of {n}"
+                    ),
                 }
             )
         T[f"evalE_land{tag}_basin_{kind}"] = DT.markdown_table(

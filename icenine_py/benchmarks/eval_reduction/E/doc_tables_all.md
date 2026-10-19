@@ -10,8 +10,15 @@
 | six full-sample | lenient | E1+E2+E3+E4 | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 | 0 | 0 | 0 / 0 / 0 | 0 / 0 | 0.0181 / 0.0284 | 332046 | 348018 | 15755 |
 <!-- /table:evalE_e2e -->
 
+<!-- table:evalE_e4_truth -->
+| voxel set | n | E4 cost at the truth, tau 0.05 deg (median) | part from peaks with no observed ray nearby (median) | part from peaks with a ray (median) | predicted peaks (median) | share of peaks with no ray nearby, median (range) | residual to the nearest ray, peaks with a ray (median over voxels of the voxel median, deg) | observed rays attached (median) |
+|---|---|---|---|---|---|---|---|---|
+| six full-sample voxels | 6 | 0.4136 | 0.0000 | 0.4051 | 58.0 | 0.0% (0.0%-1.7%) | 0.0256 | 217.5 |
+| 30 E0 voxels | 30 | 0.0977 | 0.0000 | 0.0904 | 58.0 | 0.0% (0.0%-3.2%) | 0.0141 | 58.0 |
+<!-- /table:evalE_e4_truth -->
+
 <!-- table:evalE_landL0_basin_e0 -->
-| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays monotone to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays monotone to 5 deg, eps 0.05 |
+| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays with no drop over eps out to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays with no drop over eps out to 5 deg, eps 0.05 |
 |---|---|---|---|---|---|---|
 | strict cost, C++ rule | 0.113 | 5.000 | 5.000 | 598 of 600 | 5.000 | 600 of 600 |
 | strict cost, lenient rule | 0.113 | 5.000 | 5.000 | 599 of 600 | 5.000 | 600 of 600 |
@@ -26,7 +33,7 @@
 <!-- /table:evalE_landL0_basin_e0 -->
 
 <!-- table:evalE_landL0_basin_full -->
-| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays monotone to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays monotone to 5 deg, eps 0.05 |
+| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays with no drop over eps out to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays with no drop over eps out to 5 deg, eps 0.05 |
 |---|---|---|---|---|---|---|
 | strict cost, C++ rule | 0.312 | 3.693 | 1.729 | 45 of 120 | 5.000 | 120 of 120 |
 | strict cost, lenient rule | 0.333 | 2.783 | 1.971 | 15 of 120 | 5.000 | 120 of 120 |
@@ -131,7 +138,7 @@
 <!-- /table:evalE_landL0_types_full -->
 
 <!-- table:evalE_land_basin_e0 -->
-| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays monotone to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays monotone to 5 deg, eps 0.05 |
+| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays with no drop over eps out to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays with no drop over eps out to 5 deg, eps 0.05 |
 |---|---|---|---|---|---|---|
 | strict cost, C++ rule | 0.113 | 5.000 | 5.000 | 598 of 600 | 5.000 | 600 of 600 |
 | strict cost, lenient rule | 0.113 | 5.000 | 5.000 | 599 of 600 | 5.000 | 600 of 600 |
@@ -149,7 +156,7 @@
 <!-- /table:evalE_land_basin_e0 -->
 
 <!-- table:evalE_land_basin_full -->
-| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays monotone to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays monotone to 5 deg, eps 0.05 |
+| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays with no drop over eps out to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays with no drop over eps out to 5 deg, eps 0.05 |
 |---|---|---|---|---|---|---|
 | strict cost, C++ rule | 0.312 | 3.693 | 1.729 | 45 of 120 | 5.000 | 120 of 120 |
 | strict cost, lenient rule | 0.333 | 2.783 | 1.971 | 15 of 120 | 5.000 | 120 of 120 |
@@ -499,10 +506,18 @@
 <!-- /table:evalE_timing_ms -->
 
 <!-- table:evalE_timing_per_voxel -->
-| voxel set | arm | strict cost time per voxel, baseline (s) | strict cost time per voxel, arm (s) | smooth evaluations per voxel | smooth cost time per voxel (s) | one-off build per image set (s) | extra time with a build per voxel | extra time with one build per image set |
+| voxel set | arm | modelled strict cost time per voxel, baseline (s) | modelled strict cost time per voxel, arm (s) | smooth evaluations per voxel | modelled smooth cost time per voxel (s) | SmoothCost build (s) | extra time as shipped (a build per voxel) | projection: one build per image set (cache not built) |
 |---|---|---|---|---|---|---|---|---|
-| E0 200 | E3+E4,tau=0.25 | 19.1 | 19.3 | 252 | 0.1 | 3.6 | +20.7% | +1.7% |
 | six full-sample | E3+E4,tau=0.25 | 126.7 | 127.6 | 15030 | 24.6 | 16.6 | +33.3% | +20.2% |
-| E0 200 | E1+E2+E3+E4 | 19.1 | 19.5 | 263 | 0.3 | 3.6 | +22.6% | +3.6% |
 | six full-sample | E1+E2+E3+E4 | 126.7 | 132.8 | 15755 | 124.5 | 16.6 | +116.2% | +103.1% |
 <!-- /table:evalE_timing_per_voxel -->
+
+<!-- table:evalE_timing_voxel_wall -->
+| voxel set | voxel | timing | key off (s) | E3+E4,tau=0.25 (s) | E3+E4,tau=0.25: extra time | E1+E2+E3+E4 (s) | E1+E2+E3+E4: extra time | same error as the end-to-end run |
+|---|---|---|---|---|---|---|---|---|
+| E0 | 7336 | single-worker, median of 2 | 2.1 | 6.0 | +179% | 6.4 | +201% | yes |
+| E0 | 3108 | single-worker, median of 2 | 2.4 | 6.5 | +173% | 7.1 | +195% | yes |
+| E0 | 2910 | single-worker, median of 2 | 3.0 | 7.0 | +130% | 7.7 | +153% | yes |
+| E0 | 16182 | single-worker, median of 2 | 2.5 | 6.5 | +164% | 6.9 | +179% | yes |
+| full-sample | 15901 | contended, median of 1 | 117.4 | 159.6 | +36% | 263.9 | +125% | yes |
+<!-- /table:evalE_timing_voxel_wall -->

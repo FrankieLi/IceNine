@@ -15,10 +15,18 @@
 <!-- /table:evalE_timing_ms -->
 
 <!-- table:evalE_timing_per_voxel -->
-| voxel set | arm | strict cost time per voxel, baseline (s) | strict cost time per voxel, arm (s) | smooth evaluations per voxel | smooth cost time per voxel (s) | one-off build per image set (s) | extra time with a build per voxel | extra time with one build per image set |
+| voxel set | arm | modelled strict cost time per voxel, baseline (s) | modelled strict cost time per voxel, arm (s) | smooth evaluations per voxel | modelled smooth cost time per voxel (s) | SmoothCost build (s) | extra time as shipped (a build per voxel) | projection: one build per image set (cache not built) |
 |---|---|---|---|---|---|---|---|---|
-| E0 200 | E3+E4,tau=0.25 | 19.1 | 19.3 | 252 | 0.1 | 3.6 | +20.7% | +1.7% |
 | six full-sample | E3+E4,tau=0.25 | 126.7 | 127.6 | 15030 | 24.6 | 16.6 | +33.3% | +20.2% |
-| E0 200 | E1+E2+E3+E4 | 19.1 | 19.5 | 263 | 0.3 | 3.6 | +22.6% | +3.6% |
 | six full-sample | E1+E2+E3+E4 | 126.7 | 132.8 | 15755 | 124.5 | 16.6 | +116.2% | +103.1% |
 <!-- /table:evalE_timing_per_voxel -->
+
+<!-- table:evalE_timing_voxel_wall -->
+| voxel set | voxel | timing | key off (s) | E3+E4,tau=0.25 (s) | E3+E4,tau=0.25: extra time | E1+E2+E3+E4 (s) | E1+E2+E3+E4: extra time | same error as the end-to-end run |
+|---|---|---|---|---|---|---|---|---|
+| E0 | 7336 | single-worker, median of 2 | 2.1 | 6.0 | +179% | 6.4 | +201% | yes |
+| E0 | 3108 | single-worker, median of 2 | 2.4 | 6.5 | +173% | 7.1 | +195% | yes |
+| E0 | 2910 | single-worker, median of 2 | 3.0 | 7.0 | +130% | 7.7 | +153% | yes |
+| E0 | 16182 | single-worker, median of 2 | 2.5 | 6.5 | +164% | 6.9 | +179% | yes |
+| full-sample | 15901 | contended, median of 1 | 117.4 | 159.6 | +36% | 263.9 | +125% | yes |
+<!-- /table:evalE_timing_voxel_wall -->

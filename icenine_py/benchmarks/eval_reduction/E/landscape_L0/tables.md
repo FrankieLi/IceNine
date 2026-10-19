@@ -1,5 +1,5 @@
 <!-- table:evalE_landL0_basin_e0 -->
-| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays monotone to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays monotone to 5 deg, eps 0.05 |
+| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays with no drop over eps out to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays with no drop over eps out to 5 deg, eps 0.05 |
 |---|---|---|---|---|---|---|
 | strict cost, C++ rule | 0.113 | 5.000 | 5.000 | 598 of 600 | 5.000 | 600 of 600 |
 | strict cost, lenient rule | 0.113 | 5.000 | 5.000 | 599 of 600 | 5.000 | 600 of 600 |
@@ -14,7 +14,7 @@
 <!-- /table:evalE_landL0_basin_e0 -->
 
 <!-- table:evalE_landL0_basin_full -->
-| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays monotone to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays monotone to 5 deg, eps 0.05 |
+| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays with no drop over eps out to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays with no drop over eps out to 5 deg, eps 0.05 |
 |---|---|---|---|---|---|---|
 | strict cost, C++ rule | 0.312 | 3.693 | 1.729 | 45 of 120 | 5.000 | 120 of 120 |
 | strict cost, lenient rule | 0.333 | 2.783 | 1.971 | 15 of 120 | 5.000 | 120 of 120 |
