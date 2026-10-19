@@ -8,7 +8,7 @@ import os
 import stat
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pytest
 
@@ -431,17 +431,24 @@ class Task:
         )
         return {"VERIFY_HANDBACK_PYTEST_CMD": str(stub), **extra}
 
-    def report(self, **kw) -> Path:  # type: ignore[no-untyped-def]
+    def report(self, **kw: Any) -> Path:
         return _report(self.root / "report.md", self.hashes, **kw)
 
-    def run(self, *args: str, env: Optional[Dict[str, str]] = None, agent: Optional[str] = "I"):  # type: ignore[no-untyped-def]
+    def run(
+        self,
+        *args: str,
+        env: Optional[Dict[str, str]] = None,
+        agent: Optional[str] = "I",
+        cwd: Optional[Path] = None,
+        report: Optional[str] = None,
+    ) -> subprocess.CompletedProcess:
         if agent is not None:
             _git(self.repo, "config", "--local", "icenine.agent", agent)
         return _run(
             "verify_handback.sh",
-            self.repo,
+            cwd or self.repo,
             self.parent,
-            str(self.root / "report.md"),
+            report if report is not None else str(self.root / "report.md"),
             *args,
             env=env if env is not None else self.env(),
         )
@@ -486,6 +493,33 @@ def test_verify_tests_flag_skip_and_no_tests(task: Task) -> None:
     assert "tests skipped" in res.stdout and not task.args_file.exists()
 
 
+def test_verify_bare_test_names_resolve_under_icenine_py_tests(task: Task) -> None:
+    task.commit({"icenine_py/tests/test_here.py": "x\n", "icenine_py/tests/test_two.py": "x\n"})
+    task.report(tests="`test_here.py::test_a`, test_two.py; also tests/test_two.py. Full suite: 5")
+    res = task.run()
+    assert res.returncode == 0, res.stdout
+    assert "named tests passed (2 path(s))" in res.stdout
+    assert "summary: 0 FAIL, 0 FLAG" in res.stdout
+    called = task.args_file.read_text().splitlines()[0]
+    assert called == "tests/test_here.py::test_a tests/test_two.py"
+
+
+def test_verify_missing_bare_test_name_is_flagged_and_not_run(task: Task) -> None:
+    task.commit({"icenine_py/tests/test_here.py": "x\n"})
+    task.report(tests="test_here.py and test_gone.py::test_b")
+    res = task.run()
+    assert res.returncode == 0, res.stdout
+    assert "FLAG  test file(s) named on the Tests field not found" in res.stdout
+    assert "test_gone.py::test_b" in res.stdout
+    assert task.args_file.read_text().splitlines()[0] == "tests/test_here.py"
+    # nothing left to run: flagged, no pytest call
+    task.args_file.unlink()
+    task.report(tests="test_gone.py")
+    res = task.run()
+    assert "FLAG  test file(s)" in res.stdout and "tests not run" in res.stdout
+    assert not task.args_file.exists()
+
+
 def test_verify_no_worktree_flags_and_skips_tests(task: Task) -> None:
     task.commit({"scripts/dev/x.sh": "echo\n"})
     task.report()
@@ -499,6 +533,8 @@ def test_verify_no_worktree_flags_and_skips_tests(task: Task) -> None:
         str(task.root / "report.md"),
         "--branch",
         task.branch,
+        "--agent",
+        "I",
         env=task.env(),
     )
     assert res.returncode == 0
@@ -515,6 +551,8 @@ def test_verify_no_worktree_flags_and_skips_tests(task: Task) -> None:
         str(task.root / "report.md"),
         "--branch",
         task.branch,
+        "--agent",
+        "I",
         env=task.env(),
     )
     assert res.returncode == 0 and "named tests passed" in res.stdout
@@ -584,6 +622,76 @@ def test_verify_missing_report_field_is_fail(task: Task) -> None:
     (task.root / "report.md").write_text(md + "\n")
     res = task.run("--no-tests")
     assert "all eight report fields present" in res.stdout
+
+
+FIELD_FORMS = [
+    # (form with {} for the field name, accepted)
+    ("{}:", True),
+    ("{}", True),
+    ("**{}:**", True),
+    ("**{}**:", True),
+    ("## {}", True),
+    ("- {}:", True),
+    ("- **{}:** x", True),
+    ("{} (what the tests cover):", True),
+    ("{} (x)", True),
+    ("**{}** (x):", True),
+    ("### {} (what the tests cover)", True),
+    ("4. {}:", True),
+    ("4) {}:", True),
+    ("{} (plan Steps 1 and 2, owner refinements):", True),
+    ("## {} — x", True),
+    ("{}foo:", False),
+    ("{} — x", False),
+    ("{} of the run", False),
+]
+
+
+@pytest.mark.parametrize("form,accepted", FIELD_FORMS)
+@pytest.mark.parametrize("name", ["Results", "RESULTS", "results"])
+def test_verify_report_field_forms(task: Task, name: str, form: str, accepted: bool) -> None:
+    task.commit({"a.txt": "1\n"})
+    task.report(drop="Results")
+    with open(task.root / "report.md", "a") as fh:
+        fh.write(form.format(name) + "\n")
+    res = task.run("--no-tests")
+    assert ("report fields missing: results" in res.stdout) is (not accepted), res.stdout
+
+
+def test_verify_report_field_lookalikes_and_slashes(task: Task) -> None:
+    task.commit({"a.txt": "1\n"})
+    task.report(drop="Results")
+    with open(task.root / "report.md", "a") as fh:
+        fh.write("Result:\n")  # singular: not the field
+    assert "report fields missing: results" in task.run("--no-tests").stdout
+    lines = [
+        "Branch/commits: b " + task.hashes[0][:9],
+        "Files (list):",
+        "### Tests (targeted)",
+        "**Results** (x):",
+        "3. Criteria (plan Steps 3 and 4):",
+        "Deviations from the plan (none):",
+        "Suspicious/unexpected: none",
+        "Left undone (none):",
+    ]
+    (task.root / "report.md").write_text("\n".join(lines) + "\n")
+    res = task.run("--no-tests")
+    assert "all eight report fields present" in res.stdout, res.stdout
+    assert "commit hashes agree" in res.stdout
+
+
+def test_verify_relative_paths_from_a_subdirectory(task: Task) -> None:
+    task.commit({"a.txt": "1\n"})
+    task.report()
+    review = task.root / "review.md"
+    review.write_text("## Required fixes\n1. one\n")
+    sub = task.repo / "icenine_py"
+    sub.mkdir(exist_ok=True)
+    rel = os.path.relpath(task.root / "report.md", sub)
+    res = task.run("--no-tests", "--fixes", os.path.relpath(review, sub), cwd=sub, report=rel)
+    assert res.returncode in (0, 1) and "not found" not in res.stderr, res.stderr
+    assert "report fields missing" not in res.stdout and "summary:" in res.stdout
+    assert "no numbered items" not in res.stdout and "required fixes not named" in res.stdout
 
 
 def test_verify_hash_cross_check_both_ways(task: Task) -> None:
@@ -659,11 +767,10 @@ def test_verify_worktree_changes(task: Task) -> None:
         ),
         ("N", "| S1 | ilium row | open |", "| S1 | ilium row | **done** |", True),
         ("N", "| H12 | tooling | in progress |", "| H12 | tooling | merged |", True),
-        (None, "| S1 | ilium row | open |", "| S1 | ilium row | **done** |", True),
     ],
 )
 def test_verify_roadmap_territory(
-    task: Task, agent: Optional[str], old: str, new: str, flagged: bool
+    task: Task, agent: str, old: str, new: str, flagged: bool
 ) -> None:
     assert old in ROADMAP_TEXT
     task.commit({ROADMAP: ROADMAP_TEXT.replace(old, new)})
@@ -671,9 +778,19 @@ def test_verify_roadmap_territory(
     res = task.run("--no-tests", agent=agent)
     assert res.returncode == 0, res.stdout
     assert ("FLAG  ROADMAP.md changed outside" in res.stdout) is flagged
-    assert ("icenine.agent unset" in res.stdout) is (agent is None)
     if not flagged:
         assert "ok    ROADMAP.md changes are inside" in res.stdout
+
+
+def test_verify_refuses_without_agent_letter(task: Task) -> None:
+    task.commit({ROADMAP: ROADMAP_TEXT.replace("| S1 | ilium row | open |", "| S1 | x | open |")})
+    task.report()
+    res = task.run("--no-tests", agent=None)
+    assert res.returncode == 2 and "no agent letter" in res.stderr
+    assert "summary" not in res.stdout and not task.args_file.exists()
+    # --agent works instead of the config key
+    res = task.run("--no-tests", "--agent", "I", agent=None)
+    assert res.returncode == 0 and "summary: 0 FAIL, 0 FLAG" in res.stdout
 
 
 def test_verify_roadmap_hunk_spanning_two_territories_is_flagged(task: Task) -> None:

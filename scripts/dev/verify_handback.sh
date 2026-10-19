@@ -12,12 +12,14 @@
 #   (a Results line with a time unit and none of single-worker / contended / quiet, on the line or
 #   in the Results heading line: FLAG, a heuristic); with --fixes, every number of the review's
 #   "Required fixes" list must appear as a fix number in the report (FLAG per missing number);
-#   the tests/...py[::name] paths named on the report's "Tests" field, run in the branch's worktree
+#   the tests/...py[::name] paths (or bare test_*.py[::name] names, taken as icenine_py/tests/<name>;
+#   FLAG if absent) named on the report's "Tests" field, run in the branch's worktree
 #   (FAIL on a failure, FLAG if none named or no worktree holds the branch; --no-tests skips).
 # The caller's own ROADMAP territory comes from `git config --local icenine.agent` or --agent:
-# I = Track S, row H12, "From Ilium Agent"; N = Track E, "From Newt Agent". With neither set, every
-# ROADMAP change is flagged. The pytest command can be overridden with VERIFY_HANDBACK_PYTEST_CMD
-# (default `uv run pytest -q`; the test paths are appended; it runs in <worktree>/icenine_py).
+# I = Track S, row H12, "From Ilium Agent"; N = Track E, "From Newt Agent". With neither set the
+# script refuses to run (exit 2; it never defaults to one agent). The pytest command can be
+# overridden with VERIFY_HANDBACK_PYTEST_CMD (default `uv run pytest -q`; the test paths are
+# appended; it runs in <worktree>/icenine_py). <report> and --fixes may be relative paths.
 set -euo pipefail
 PARENT=""
 REPORT=""
@@ -41,9 +43,13 @@ while [ $# -gt 0 ]; do
     shift
 done
 if [ -z "$PARENT" ] || [ -z "$REPORT" ]; then
-    echo "usage: verify_handback.sh <parent> <report> [--branch B] [--fixes REVIEW] [--no-tests]" >&2
+    echo "usage: verify_handback.sh <parent> <report> [--branch B] [--fixes REVIEW] [--no-tests]" \
+        "[--agent I|N]" >&2
     exit 2
 fi
+# make the file arguments absolute before the cd, so a relative path means what the caller meant
+case "$REPORT" in /*) ;; *) REPORT="$PWD/$REPORT" ;; esac
+if [ -n "$FIXES" ]; then case "$FIXES" in /*) ;; *) FIXES="$PWD/$FIXES" ;; esac; fi
 ROOT=$(git rev-parse --show-toplevel)
 cd "$ROOT"
 [ -n "$BRANCH" ] || BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -55,7 +61,9 @@ if [ -n "$FIXES" ] && [ ! -f "$FIXES" ]; then echo "error: review report '$FIXES
 case "$AGENT" in
     I) TRACK_HDR="# Track S:"; OWN_ROW="| H12 |"; OWN_MB="## From Ilium Agent" ;;
     N) TRACK_HDR="# Track E:"; OWN_ROW=""; OWN_MB="## From Newt Agent" ;;
-    "") TRACK_HDR=""; OWN_ROW=""; OWN_MB="" ;;
+    "")
+        echo "error: no agent letter; run 'git config --local icenine.agent I|N' or pass --agent" >&2
+        exit 2 ;;
     *) echo "error: agent must be I or N, got '$AGENT'" >&2; exit 2 ;;
 esac
 
@@ -72,17 +80,24 @@ short_list() {  # first 4 lines of stdin joined by ", ", with a count of the res
     awk 'NR<=4 { s = (s == "" ? $0 : s ", " $0) } END { if (NR > 4) s = s " (+" NR-4 " more)"; print s }'
 }
 
+# Field lines: `Field:`, `**Field:**`, `**Field** (note):`, `Field (note)`, `## Field (note)`,
+# `4. Field:`, `Branch/commits:`; case-insensitive; `Fieldfoo:` and `Result:` are not.
 FIELDS="branch / commits|files|tests|results|criteria|deviations from the plan|suspicious / unexpected|left undone"
 field_block() {  # $1 field name (lowercase): its lines in the report, field line included
     awk -v want="$1" -v fields="$FIELDS" '
         BEGIN { n = split(fields, F, "|") }
         {
-            l = tolower($0); sub(/^[#>*_ \t-]+/, "", l); start = ""
+            l = tolower($0); head = (l ~ /^[ \t]*#/); start = ""
+            sub(/^[#>*_ \t-]+/, "", l); sub(/^[0-9]+[.)][ \t]*/, "", l); sub(/^[#>*_ \t-]+/, "", l)
+            gsub(/[ \t]*\/[ \t]*/, " / ", l)
             for (i = 1; i <= n; i++) {
                 f = F[i]
                 if (index(l, f) == 1) {
                     r = substr(l, length(f) + 1)
-                    if (r ~ /^[*_]*[ \t]*(:|$)/) { start = f; break }
+                    # the field name, then optionally a parenthetical, then a colon or the line end;
+                    # a heading line may continue with any text after the name
+                    if (r ~ /^[*_]*[ \t]*([(][^)]*[)])?[*_]*[ \t]*(:|$)/) { start = f; break }
+                    if (head && r ~ /^[^a-z0-9]/) { start = f; break }
                 }
             }
             if (start != "") cur = start
@@ -91,7 +106,6 @@ field_block() {  # $1 field name (lowercase): its lines in the report, field lin
 }
 
 echo "verify_handback: $BRANCH against $PARENT, report $(basename "$REPORT")"
-[ -n "$AGENT" ] || echo "note  icenine.agent unset: every ROADMAP change is flagged"
 
 # --- commits ---------------------------------------------------------------------------------
 BR_COMMITS=$(git rev-list "$PARENT..$BRANCH")
@@ -271,9 +285,34 @@ fi
 if [ $NO_TESTS -eq 1 ]; then
     echo "note  tests skipped (--no-tests)"
 elif [ -n "$WT" ]; then
-    TPATHS=$(field_block tests | grep -oE 'tests/[A-Za-z0-9_/.-]+\.py(::[^[:space:]`,;)]+)?' | sed -E 's/[.:]+$//' | sort -u || true)
-    if [ -z "$TPATHS" ]; then
-        flag "report names no tests/...py path on its Tests field: tests not run"
+    # `tests/...py[::name]` as written, or a bare `test_*.py[::name]`, which is taken to be
+    # icenine_py/tests/<name>; a bare name that is not there is flagged and not run
+    TWORDS=$(field_block tests | awk '{
+        gsub(/[`,;()]/, " ")
+        for (i = 1; i <= NF; i++) {
+            w = $i; sub(/[.:]+$/, "", w)
+            if (match(w, /tests\/[A-Za-z0-9_\/.-]+\.py(::.*)?$/)) print "P " substr(w, RSTART)
+            else if (w ~ /^[A-Za-z0-9_-]*test_[A-Za-z0-9_.-]*\.py(::.*)?$/) print "B tests/" w
+        }}' | sort -u || true)
+    TPATHS=""
+    NOTFOUND=""
+    while read -r kind tp; do
+        [ -n "${tp:-}" ] || continue
+        if [ "$kind" = B ] && [ ! -f "$WT/icenine_py/${tp%%::*}" ]; then
+            NOTFOUND="$NOTFOUND${tp#tests/}"$'\n'
+        else
+            TPATHS="$TPATHS$tp"$'\n'
+        fi
+    done <<EOF2
+$TWORDS
+EOF2
+    TPATHS=$(printf '%s' "$TPATHS" | sort -u)
+    [ -z "$NOTFOUND" ] ||
+        flag "test file(s) named on the Tests field not found in icenine_py/tests: $(printf '%s' "$NOTFOUND" | short_list)"
+    if [ -z "$TPATHS" ] && [ -n "$NOTFOUND" ]; then
+        echo "note  no existing test path left: tests not run"
+    elif [ -z "$TPATHS" ]; then
+        flag "report names no tests/...py or test_*.py path on its Tests field: tests not run"
     else
         ARGS=()
         while IFS= read -r line; do ARGS+=("$line"); done <<EOF
