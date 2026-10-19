@@ -115,7 +115,8 @@ What went wrong here:
 | E0 images, voxel 7336 | `smooth_timing.py --set e0` | single-worker; `timing/preflight_e0.json` |
 | tables | `smooth_rank_summary.py timing` (ms per evaluation; extra time per voxel = smooth evaluations per voxel from the end-to-end runs x ms per evaluation, plus the one-off build) | |
 
-The arms were timed at the level-0 widths (the widest), so the per-voxel figures are upper estimates. E3+E4 was timed with level-width tau
+The arms were timed at the level-0 widths (the widest). The per-voxel figures are a model, not an upper estimate: lists shorter than 256
+cost more per evaluation than a batch of 256 (Task E review; section 9 replaces the E0 rows with measured whole-voxel times). E3+E4 was timed with level-width tau
 (0.42 deg at level 0) and stands for the carried tau-0.25 variant (same code path).
 
 ## 8. Could be done better
@@ -124,7 +125,50 @@ The arms were timed at the level-0 widths (the widest), so the per-voxel figures
   level-0 list (or only the arms that matter) would have kept the 30 voxels within the budget, and those are the voxels where a fix could show.
 * `SmoothCost` is rebuilt per `reconstruct_voxel` call (16.6 s on the full sample, mostly the observed rays). A cache keyed on the image set
   is needed before any BFS use.
-* The E1 search over 3.9 million lit pixels per detector dominates its time on full-sample images; a distance-transform image per frame
+* The E1 search over 3.9 million lit pixels per detector is consistent with its time on full-sample images (not profiled); a distance-transform image per frame
   (bilinear lookup) would make it as cheap as the binary test, at more memory.
 * The decision rule should have been written for the set actually run; the 30-to-6 change made its full-sample part uninformative.
 * Kill commands should match on the full command line of one run; one broad `pkill -f` pattern stopped a run it was not meant for (section 6).
+
+## 9. Review fixes (2026-10-18, branch `feature/eval-reduction-E-fixes`)
+
+Review: `.claude/reports/20261018-2151-review-E.md` (request changes, 13 required fixes). Owner decisions: D-20261018-N15 (the other 24
+full-sample voxels run in Task G), N16 (re-time whole voxels only if the preflight passes; do not wait), N17 (no `SmoothCost` cache now;
+lead with the as-shipped cost, give the one-build figure as a projection).
+
+| What | Command | Wall | Label |
+|---|---|---|---|
+| key-off fixture on the base commit 7d6ffbe (the library of that commit first on the path) | `git archive 7d6ffbe icenine_py/icenine` into the scratch dir, `_rasterize` .so copied (unchanged by E), `PYTHONPATH=<scratch>/icenine_py uv run python scripts/eval_reduction/smooth_keyoff_fixture.py --out tests/data/smooth_keyoff_ref.npz --commit 7d6ffbe` | 4 s | the script printed the scratch `icenine` path |
+| whole voxels, key off and on, pilot (E0 voxel 7336) | `smooth_voxel_timing.py --set e0 --voxels 7336 --contended` | 15 s | contended; errors equal the end-to-end caches |
+| whole voxels, first run | `smooth_voxel_timing.py --set e0 --repeats 2 --contended`, then `--set full --contended` | 132 s, 9 min | contended (preflight failed: 1-min load 4.23 and 4.66, a busy browser process); kept in `timing/contended/` |
+| whole voxels, E0, quiet | `smooth_voxel_timing.py --set e0 --repeats 2` | 129 s | **single-worker** (preflight passed, 1-min load 1.27; `timing/preflight_voxel_e0.json`) |
+| whole voxels, full sample, quiet | `smooth_voxel_timing.py --set full`, retried once a minute | not run | the preflight failed four times (load 2-3, Spotlight indexing); stopped by hand per N16, so `timing/voxel_wall_full.json` is the contended run |
+| E4 at the truth, split by peak | `smooth_e4_truth.py` (six full-sample voxels, 30 E0 voxels) | about 2 min | not a timing |
+| summaries | `smooth_rank_summary.py e2e --arms e34t25,e1234a`, `smooth_rank_summary.py timing`, `smooth_landscape_summary.py`, `collect_tables.py ...` | under 1 min each | |
+| targeted tests | `uv run pytest tests/test_smooth_cost.py` | 62 s | 12 passed |
+| full suite | `uv run pytest tests/ --junitxml=<scratch>/junit.xml` | 6 min 37 s | 1113 passed, 37 skipped, 1 deselected |
+
+What changed, by review fix:
+
+* 1, 2, 3, 4 (time). New `evalE_timing_voxel_wall` (measured whole voxels). `evalE_timing_per_voxel` is now a model of the full-sample voxel
+  only, with "modelled" column names, the as-shipped column first and the one-build column labelled a projection; its E0 rows (19.1 s,
+  +20.7%, +1.7%, +3.6%) are dropped, and "upper estimate" is withdrawn (section 7). Findings doc, MIGRATION_HISTORY, ROADMAP row E.
+* 5, 8, 9, 10 (Measurement 3 prose). `e2e/summary.json` gains `n_both_right`, `strict_evals_change`, the errors of the wrong voxels, the
+  counts near 60 deg and `task_c_base_identical` (200 of 200: this task's E0 lenient baseline equals Task C's baseline cache, error and
+  evaluation count). The `evalE_e2e` table is unchanged.
+* 6 and the review's suggestions on wording: "consistent with" for the other-grains mechanism of E1's dips and for E1's slowness; the
+  column "rays monotone to 5 deg" is now "rays with no drop over eps out to 5 deg" (generator changed, landscape tables regenerated; only
+  the header changed); the truth-basin radii are stated as derived from the level diameters.
+* 7. Measured instead of hedged (`e4_truth/`): the median share of predicted peaks with no attached ray within one frame is 0% on both
+  image sets (range 0-1.7% full sample, 0-3.2% E0). The earlier statement "because many predicted peaks have no observed ray attached" was
+  wrong and is withdrawn; the cost comes from the residual to the nearest ray.
+* 11. `tests/test_smooth_cost.py::test_key_off_equals_the_base_commit_fixture_exactly` against `tests/data/smooth_keyoff_ref.npz`, with a
+  negative control (the key on changes the level-0 order). The level-loop tests moved to a toy with about 20 level-0 candidates: the old
+  three-start toy keeps one candidate after the level-0 quick MC, so its key-on ordering assertions could not fail.
+* 12. `last_level_best` and the "best cost=" print take the strict-best candidate at a smooth-ranked level (test added).
+* 13 and the code suggestions: `need_grad`, `with_widths`, `RankFn` and the dead `rho = torch.ones` removed; the module's mypy errors
+  fixed (scipy stubs aside); the truncation-versus-floor note on the frame bin documented; the import order fixed.
+
+Not done: the quiet repeat of the full-sample whole voxel (N16); the `SmoothCost` cache per image set (N17, Task G); computing
+`lo_bin`/`hi_bin` once in `__init__` (review suggestion; a speed change that would make the measured times stale, left for the Task G cache
+work); `icenine/config_file.py` `black --check` (pre-existing on the base branch, not Task E).
