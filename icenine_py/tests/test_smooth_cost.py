@@ -1,15 +1,19 @@
 """Task E: smooth ranking costs (icenine/smooth_cost.py) and the SmoothCostRank key.
 
 The key parses and defaults to off; off leaves the level loop unchanged (no ranker is built, the
-recorded search is identical to a run without the attribute); on, the coarse levels are ordered by
-the smooth key. The arms are checked on the ThreeVoxels toy problem (real two-detector images):
-the control arm S reproduces the strict cost near the truth, the smoothed arms change in small
-increments along a fine ray where the strict cost steps, the shared multi-spec evaluation equals
-separate calls, and the E4 autograd gradient matches finite differences."""
+recorded search is identical to a run without the attribute, and equal bit for bit to a fixture
+recorded on the commit before Task E); on, the coarse levels are ordered by the smooth key, and the
+level's recorded best stays the best by the strict cost. The arms are checked on the ThreeVoxels toy
+problem (real two-detector images): the control arm S reproduces the strict cost near the truth, the
+smoothed arms change in small increments along a fine ray where the strict cost steps, the shared
+multi-spec evaluation equals separate calls, and the E4 autograd gradient matches finite
+differences."""
 
+import json
 import math
+import sys
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pytest
@@ -22,6 +26,9 @@ from icenine.reconstructor import _get_voxel_vertices
 from icenine.smooth_cost import SmoothCost, SmoothSpec, smoothstep
 
 needs_c = pytest.mark.skipif(not CF._HAS_C_RASTERIZE, reason="C extension missing")
+ROOT = Path(__file__).resolve().parents[1]
+KEYOFF_FIXTURE = ROOT / "tests" / "data" / "smooth_keyoff_ref.npz"
+sys.path.insert(0, str(ROOT / "scripts" / "eval_reduction"))
 
 
 # ------------------------------------------------------------------------------ spec and config
@@ -200,16 +207,11 @@ def test_e4_rays_attached_and_gradient_matches_finite_difference() -> None:
 
 
 # ------------------------------------------------------------------------------ the level loop
-def _run(**kw: Any) -> Tuple[Any, List[Tuple[str, Dict[str, Any]]], Any]:
-    rec, voxel, R_true = _toy()
-    for k, v in kw.items():
-        setattr(rec.setup.search_params, k, v)
-    events: List[Tuple[str, Dict[str, Any]]] = []
-    rec.recorder = lambda name, data: events.append((name, data))
-    res = rec.reconstruct_voxel(
-        _get_voxel_vertices(voxel), voxel.phase, rng=np.random.default_rng(7)
-    )
-    return res, events, rec
+def _run(smooth_rank: Optional[str] = None) -> Tuple[Any, List[Tuple[str, Dict[str, Any]]], Any]:
+    """The toy search of the key-off fixture (about 20 candidates at level 0, two levels)."""
+    from smooth_keyoff_fixture import toy_run
+
+    return toy_run(smooth_rank)
 
 
 def _same_events(a: List[Tuple[str, Dict[str, Any]]], b: List[Tuple[str, Dict[str, Any]]]) -> None:
@@ -223,7 +225,7 @@ def _same_events(a: List[Tuple[str, Dict[str, Any]]], b: List[Tuple[str, Dict[st
 @needs_c
 def test_key_off_is_bit_identical_to_the_default() -> None:
     res0, ev0, rec0 = _run()
-    res1, ev1, rec1 = _run(smooth_rank="off")
+    res1, ev1, rec1 = _run("off")
     np.testing.assert_array_equal(res0.orientation, res1.orientation)
     assert res0.cost == res1.cost
     _same_events(ev0, ev1)
@@ -231,9 +233,45 @@ def test_key_off_is_bit_identical_to_the_default() -> None:
 
 
 @needs_c
+def test_key_off_equals_the_base_commit_fixture_exactly() -> None:
+    """The key-off search equals the search recorded on the commit before Task E
+    (``tests/data/smooth_keyoff_ref.npz``, ``scripts/eval_reduction/smooth_keyoff_fixture.py``):
+    final orientation and cost, every recorder event and ``last_level_best``, bit for bit."""
+    import platform
+
+    from smooth_keyoff_fixture import arrays_of
+    from test_s1_evaluate import platform_difference
+
+    if not KEYOFF_FIXTURE.exists():
+        pytest.skip("tests/data/smooth_keyoff_ref.npz missing")
+    ref = np.load(KEYOFF_FIXTURE, allow_pickle=False)
+    meta = json.loads(str(ref["meta"]))
+    diff = platform_difference(meta, platform.system(), platform.machine(), torch.__version__)
+    if diff is not None:
+        pytest.skip(f"exact comparison only on the fixture's platform and torch build ({diff})")
+    prev = torch.get_num_threads()
+    torch.set_num_threads(int(meta["threads"]))
+    try:
+        res, ev, rec = _run()
+        got = arrays_of(res, ev, rec.last_level_best)
+        # negative control: the key on (E1+E2+E3 at level 0) changes the recorded level-0 order
+        res_on, ev_on, rec_on = _run("E1+E2+E3,levels=1")
+        on = arrays_of(res_on, ev_on, rec_on.last_level_best)
+    finally:
+        torch.set_num_threads(prev)
+    assert sorted(got) == sorted(k for k in ref.files if k != "meta")
+    perm0 = [k for k in got if k.endswith("_quick_mc/perm")][0]
+    assert len(got[perm0]) >= 10  # a list long enough for the ranking to matter
+    for k, v in got.items():
+        want = ref[k]
+        assert v.dtype == want.dtype and np.array_equal(v, want), k
+    assert not np.array_equal(on[perm0], ref[perm0])
+
+
+@needs_c
 def test_key_on_orders_the_coarse_level_by_the_smooth_cost() -> None:
     spec = "E1+E2+E3,levels=1"
-    res, ev, rec = _run(smooth_rank=spec)
+    res, ev, rec = _run(spec)
     ranker = rec.last_smooth_ranker
     assert ranker is not None and ranker.n_evals > 0
     q = [d for n, d in ev if n == "quick_mc" and d["level"] == 0][0]
@@ -245,7 +283,24 @@ def test_key_on_orders_the_coarse_level_by_the_smooth_cost() -> None:
         SmoothSpec.parse(spec),
         diameter_rad=float(disc["diameter"]),
     )
-    assert np.all(np.diff(key) >= 0)  # the recorded order is the smooth key's order
-    # the strict cost is still what every candidate carries
+    assert len(key) >= 10 and np.all(np.diff(key) >= 0)  # the recorded order is the smooth key's
+    # the strict cost is still what every candidate carries, and its order is not the recorded one
     assert np.all((q["cost"] >= 0) & (q["cost"] <= 1))
+    assert not np.all(np.diff(q["cost"]) >= 0)
     assert np.isfinite(res.cost)
+
+
+@needs_c
+def test_level_best_is_the_strict_best_under_smooth_ranking() -> None:
+    """At a smooth-ranked level, ``last_level_best`` holds the best candidate by the strict cost
+    (the first of equal costs in ranked order), not the first of the smooth-ranked list."""
+    res, ev, rec = _run("E1+E2+E3")
+    lists = [d for n, d in ev if n == "quick_mc"]
+    assert len(lists) == len(rec.last_level_best) == 2
+    first_differs = 0
+    for q, (lv, R_best, c_best) in zip(lists, rec.last_level_best):
+        i = int(np.argmin(q["cost"]))
+        assert lv == q["level"] and c_best == float(q["cost"][i])
+        np.testing.assert_array_equal(R_best, q["R"][i])
+        first_differs += int(q["cost"][0] > q["cost"][i])
+    assert first_differs >= 1  # the toy has a level where the smooth key's first is not the best
