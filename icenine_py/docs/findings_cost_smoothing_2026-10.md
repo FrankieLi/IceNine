@@ -89,6 +89,32 @@ for E2 and 0.42 deg for E4. The widths were set once by rule of thumb, not tuned
 
 We walked each cost along Task B's rays: 6 full-sample voxels x 20 directions, and 30 E0 voxels x 20 directions.
 
+One ray shows best what happens. This is Task B's ray plot (voxel 15901, ray 0, out to 0.5 deg), with each arm in red
+on its own panel against the strict cost in black. Read: a staircase is a cost that jumps; a smooth curve is one that
+does not.
+
+![Each arm against the strict cost](../benchmarks/eval_reduction/E/figures/ray_each_arm.png)
+
+* The strict cost (black) is a staircase all the way out.
+* S (the control) and E3 alone follow the same staircase: four-point sampling and soft peak weights do not remove the
+  pixel and frame steps.
+* E1 alone (distance credit) has fewer but larger jumps, with flat stretches between them. These are the frame steps it
+  leaves behind.
+* E2 alone (frame blending) is smoother but still has small pixel steps.
+* E1 + E2 is smooth apart from one jump near 0.46 deg, where a peak leaves the list. E1 + E2 + E3 is smooth: E3
+  removes that last kind of step.
+* E4 (observed rays) is smooth, but it starts high at the truth (about 0.39 at tau 0.05 deg), because many predicted
+  peaks have no observed ray attached.
+* E3 + E4 keeps small steps from its image part, but they are smaller than the strict cost's.
+
+The same ray with every arm on shared axes, at three ranges (0 to 0.1, 0 to 0.5 and 0 to 5 deg). Read the 5-degree
+panel for the far field: the strict cost reaches 1 by about 2 deg and stays flat, while E1 at 12 px and E1 + E2 level
+off well below 1. Far from the truth they separate orientations less well.
+
+![The strict cost and every arm along Task B's ray](../benchmarks/eval_reduction/E/figures/ray_strict_vs_arms.png)
+
+The tables below count the same thing over all 120 full-sample rays.
+
 Steps along the full-sample rays. Read across a row: a good arm has few steps per degree and a low share of its change
 in steps. The strict cost changes almost entirely in steps.
 
@@ -194,15 +220,7 @@ Basin size along the full-sample rays. Read: a larger radius means the cost fall
 | E3 + E4 (0.25 deg) | 0.549 | 4.983 | 3.837 | 60 of 120 | 5.000 | 120 of 120 |
 <!-- /table:evalE_land_basin_full -->
 
-Task B's ray plot (voxel 15901, ray 0), redrawn with the strict cost in black and every arm on the same axes:
-
-![The strict cost and every arm along Task B's ray](../benchmarks/eval_reduction/E/figures/ray_strict_vs_arms.png)
-
-Each arm on its own panel against the strict cost:
-
-![Each arm against the strict cost](../benchmarks/eval_reduction/E/figures/ray_each_arm.png)
-
-The arms at the level-0 widths:
+The arms at the level-0 widths, along the same ray:
 
 ![The arms at the level-0 widths](../benchmarks/eval_reduction/E/figures/ray_level0_widths.png)
 
