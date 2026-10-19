@@ -1,0 +1,181 @@
+#!/bin/bash
+# Usage: make_brief.sh --plan <plan.md> --task <task> [--section "<heading>"]
+#                      [--fixes <review report>] [--trailer "<Co-Authored-By line>"]
+#                      [--decisions <DECISIONS.md>]
+# Print the brief for an implementer agent. The brief points at study-conventions instead of
+# repeating it and takes its facts from the plan and the repository:
+#   - the approval: the last DECISIONS.md entry that names the plan's file name and contains
+#     "approved" (case-insensitive); refuses when there is none;
+#   - the process limit: `git config --local icenine.maxHeavyProcs` (refuses when unset or not a
+#     positive integer); a plan line starting "**Process limit exception:**" replaces the standard
+#     line;
+#   - the scope: a plan line starting "**Library changes:**", else "no change under
+#     `icenine_py/icenine/`";
+#   - the stop rule: every plan paragraph starting "**Stop rule:**" (up to the next blank line),
+#     else "stop and report if the plan cannot be followed";
+#   - the commit trailer from --trailer or MAKE_BRIEF_TRAILER (refuses when neither is set).
+# --plan is a path from the repository root or relative to icenine_py/ or icenine_py/docs/.
+# With --fixes the brief asks for the required fixes of that review report on the task branch.
+# MAKE_BRIEF_NOW (YYYYMMDD-HHMM) overrides the clock for the report name (for testing).
+set -euo pipefail
+
+usage() {
+    echo "usage: make_brief.sh --plan <plan.md> --task <task> [--section <heading>]" \
+        "[--fixes <review report>] [--trailer <line>] [--decisions <DECISIONS.md>]" >&2
+    exit 2
+}
+die() { echo "error: $*" >&2; exit 1; }
+
+PLAN=""
+TASK=""
+SECTION=""
+FIXES=""
+TRAILER="${MAKE_BRIEF_TRAILER:-}"
+DECISIONS=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --plan) shift; PLAN="${1:-}" ;;
+        --task) shift; TASK="${1:-}" ;;
+        --section) shift; SECTION="${1:-}" ;;
+        --fixes) shift; FIXES="${1:-}" ;;
+        --trailer) shift; TRAILER="${1:-}" ;;
+        --decisions) shift; DECISIONS="${1:-}" ;;
+        *) echo "unknown option: $1" >&2; usage ;;
+    esac
+    shift || true
+done
+[ -n "$PLAN" ] && [ -n "$TASK" ] || usage
+case "$TASK" in
+    *[!A-Za-z0-9._-]* | -*) die "task name '$TASK' may only contain letters, digits, '.', '_', '-'" ;;
+esac
+[ -n "$TRAILER" ] || die "no commit trailer: pass --trailer or set MAKE_BRIEF_TRAILER"
+
+ROOT=$(git rev-parse --show-toplevel)
+ROOT=$(cd "$ROOT" && pwd -P)
+cd "$ROOT"
+
+# --- plan file, as a path relative to the repository root
+PLAN_REL=""
+case "$PLAN" in
+    /*)
+        [ -f "$PLAN" ] || die "plan not found: $PLAN"
+        PLAN_ABS="$(cd "$(dirname "$PLAN")" && pwd -P)/$(basename "$PLAN")"
+        case "$PLAN_ABS" in
+            "$ROOT"/*) PLAN_REL="${PLAN_ABS#"$ROOT"/}" ;;
+            *) die "plan is outside the repository: $PLAN" ;;
+        esac
+        ;;
+    *)
+        for cand in "$PLAN" "icenine_py/$PLAN" "icenine_py/docs/$PLAN"; do
+            if [ -f "$cand" ]; then PLAN_REL="$cand"; break; fi
+        done
+        [ -n "$PLAN_REL" ] || die "plan not found: $PLAN (tried the repository root, icenine_py/ and icenine_py/docs/)"
+        ;;
+esac
+PLAN_REL="${PLAN_REL#./}"
+PLAN_NAME=$(basename "$PLAN_REL")
+
+if [ -n "$SECTION" ]; then
+    if ! awk -v s="$SECTION" '/^#+ / && index($0, s) { f = 1 } END { exit !f }' "$PLAN_REL"; then
+        die "no heading containing '$SECTION' in $PLAN_REL"
+    fi
+fi
+if [ -n "$FIXES" ]; then
+    [ -f "$FIXES" ] || die "review report not found: $FIXES"
+    case "$FIXES" in
+        "$ROOT"/*) FIXES="${FIXES#"$ROOT"/}" ;;
+        /*) die "review report is outside the repository: $FIXES" ;;
+    esac
+fi
+
+# --- approval
+[ -n "$DECISIONS" ] || DECISIONS="icenine_py/docs/DECISIONS.md"
+[ -f "$DECISIONS" ] || die "decision log not found: $DECISIONS"
+APPROVAL=$(awk -v name="$PLAN_NAME" '
+    function flush() {
+        if (head != "" && index(body, name) > 0 && tolower(body) ~ /approved/) found = head
+    }
+    /^### / { flush(); head = substr($0, 5); body = $0 "\n"; next }
+    head != "" { body = body $0 "\n" }
+    END { flush(); print found }
+' "$DECISIONS")
+[ -n "$APPROVAL" ] || die "no entry in $DECISIONS names $PLAN_NAME as approved; the plan needs an owner approval first"
+
+# --- process limit
+MAXPROCS=$(git config --local --get icenine.maxHeavyProcs || true)
+[ -n "$MAXPROCS" ] || die "icenine.maxHeavyProcs is not set; run: git config --local icenine.maxHeavyProcs <n>"
+case "$MAXPROCS" in
+    *[!0-9]* | 0 | 0[0-9]*) die "icenine.maxHeavyProcs must be a positive integer, got '$MAXPROCS'" ;;
+esac
+EXCEPTION=$(grep -m1 '^\*\*Process limit exception:\*\*' "$PLAN_REL" || true)
+if [ -n "$EXCEPTION" ]; then
+    COMPUTE="Compute (plan exception to the machine limit of $MAXPROCS heavy processes): $EXCEPTION"
+else
+    COMPUTE="Compute: at most $MAXPROCS heavy processes at once on this machine."
+fi
+
+# --- scope
+LIBRARY=$(grep -m1 '^\*\*Library changes:\*\*' "$PLAN_REL" || true)
+if [ -n "$LIBRARY" ]; then
+    SCOPE="Scope: $LIBRARY"
+else
+    SCOPE='Scope: no change under `icenine_py/icenine/`.'
+fi
+
+# --- stop rule (every paragraph starting with the marker, up to the next blank line)
+STOP=$(awk '
+    /^\*\*Stop rule:\*\*/ { inrule = 1 }
+    inrule && /^[[:space:]]*$/ { inrule = 0 }
+    inrule { print "> " $0 }
+' "$PLAN_REL")
+
+# --- branch
+CUR=$(git symbolic-ref --short -q HEAD || true)
+[ -n "$CUR" ] || die "detached HEAD; check out a feature/* branch"
+case "$CUR" in
+    feature/*) ;;
+    *) die "current branch '$CUR' is not a feature/* branch" ;;
+esac
+CUR_PARENT=$(git config "branch.$CUR.parent" || true)
+if [ -n "$FIXES" ]; then
+    if [ -n "$CUR_PARENT" ] && [ "${CUR%-"$TASK"}" != "$CUR" ]; then
+        BRANCH_LINE="Branch: work on the existing task branch \`$CUR\` (parent \`$CUR_PARENT\`); add new commits there."
+    elif git rev-parse --verify -q "refs/heads/$CUR-$TASK" >/dev/null; then
+        BRANCH_LINE="Branch: work on the existing task branch \`$CUR-$TASK\` (parent \`$CUR\`); add new commits there."
+    else
+        BRANCH_LINE="Branch: the task is already merged, so run \`scripts/dev/start_task.sh $TASK-fixes\` from \`$CUR\` (branch \`$CUR-$TASK-fixes\`)."
+    fi
+else
+    BRANCH_LINE="Branch: run \`scripts/dev/start_task.sh $TASK\` from \`$CUR\` (branch \`$CUR-$TASK\`)."
+fi
+
+# --- report path
+NOW="${MAKE_BRIEF_NOW:-$(date +%Y%m%d-%H%M)}"
+SUFFIX=""
+[ -z "$FIXES" ] || SUFFIX="-fixes"
+REPORT=".claude/reports/$NOW-$TASK$SUFFIX.md"
+
+# --- print
+echo "Follow study-conventions."
+if [ -n "$FIXES" ]; then
+    echo "Plan: $PLAN_REL${SECTION:+, section \"$SECTION\"}."
+    echo "Apply the required fixes in $FIXES, follow study-conventions, re-run the affected tests, and add the new commit hashes to your report. Name the fix numbers in your commit subjects."
+elif [ -n "$SECTION" ]; then
+    echo "Implement section \"$SECTION\" of $PLAN_REL."
+else
+    echo "Implement the plan $PLAN_REL."
+fi
+echo "Approval: $APPROVAL"
+echo "$BRANCH_LINE"
+echo "$SCOPE"
+echo 'No new dependency (`pyproject.toml`, `uv.lock` unchanged); no default flip; no golden change.'
+if [ -n "$STOP" ]; then
+    echo "Stop rule of the plan:"
+    echo "$STOP"
+else
+    echo "Stop rule: stop and report if the plan cannot be followed."
+fi
+echo "$COMPUTE"
+echo "Commits: stage by explicit path; end each commit message with:"
+echo "$TRAILER"
+echo "Report: write the full report to \`$REPORT\`; the final message is at most about 250 words."
