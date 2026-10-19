@@ -382,3 +382,10 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   agent-neutral (`icenine.agent`); the implementer drafts the study-conventions and protocol text and
   the owner commits it. Where: `docs/todo_ilium_workflow_tooling.md` "Instruction changes and sharing
   with Newt Agent".
+### D-20261018-N15 · E, G · Task E's remaining 24 full-sample voxels wait for Task G
+- 2026-10-18, owner. Recorded by Newt Agent. Supersedes: none.
+- Task E tested the smooth ranking (`SmoothCostRank`) on the six interior full-sample voxels only (cut from 30 for
+  time); all six are right with the strict search, so they can show harm but not a gain. The other 24 voxels of the
+  30-voxel set, which include voxels the strict search gets wrong, are run in Task G (carried arms E3+E4 tau 0.25 and
+  E1+E2+E3+E4, lenient and C++ rule, paired, breaks traced per N13), before the smooth key is chosen. Task E merges
+  without them. Where: eval-reduction plan Task G step 2b; `docs/findings_cost_smoothing_2026-10.md` "Limits".
