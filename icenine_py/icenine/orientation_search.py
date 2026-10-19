@@ -174,6 +174,13 @@ class SearchParameters:
     # before the quick MC (best k per clique; drop candidates within t x diameter of a better one)
     # and after it, before the ranking cut (the kept quarter counted over distinct candidates).
     candidate_dedup: str = "off"
+    # smooth_rank: opt-in (config key SmoothCostRank), default "off". The candidates of the coarse
+    # levels (0 .. levels-1 of the spec, default 0-2) are ranked for the quarter cut by a smooth
+    # cost (icenine/smooth_cost.py, SmoothSpec) instead of the post-quick-MC strict cost; the
+    # strict cost stays on every candidate and is used everywhere else. At a smooth-ranked level
+    # the reconstructor's last_level_best entry and its "best cost=" print take the best candidate
+    # by the strict cost, not the first of the smooth-ranked list.
+    smooth_rank: str = "off"
     # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
     # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
     # 0 .. ray_rule.levels-1 (default 0-2): screen, re-cost, quick MC and ranking cut. FindOptimal,
@@ -207,6 +214,9 @@ class SearchParameters:
         from .candidate_dedup import DedupSpec
 
         DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
+        from .smooth_cost import SmoothSpec
+
+        SmoothSpec.parse(self.smooth_rank)  # raises ValueError on a malformed spec
 
     @classmethod
     def from_config(cls, config) -> "SearchParameters":
@@ -242,6 +252,7 @@ class SearchParameters:
             batched_quick_mc=bool(getattr(config, "batched_quick_mc", False)),
             search_device=str(getattr(config, "search_device", "cpu")),
             candidate_dedup=str(getattr(config, "candidate_dedup", "off")),
+            smooth_rank=str(getattr(config, "smooth_rank", "off")),
             ray_rule=ray_rule_from_config(config),
         )
         # unstudied combination: warn only (owner 2026-10-12), do not force CppOverlapRule
