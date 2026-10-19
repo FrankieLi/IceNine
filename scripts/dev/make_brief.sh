@@ -4,18 +4,26 @@
 #                      [--decisions <DECISIONS.md>]
 # Print the brief for an implementer agent. The brief points at study-conventions instead of
 # repeating it and takes its facts from the plan and the repository:
-#   - the approval: the last DECISIONS.md entry that names the plan's file name and contains
-#     "approved" (case-insensitive); refuses when there is none;
+#   - the approval: the last DECISIONS.md entry that names the plan's file name (on a path
+#     boundary) and says "approved" (not "not approved", "unapproved", ...); refuses when there is
+#     none, or when a later entry names the plan and withdraws it or says
+#     "Supersedes: <the approval's ID>";
 #   - the process limit: `git config --local icenine.maxHeavyProcs` (refuses when unset or not a
-#     positive integer); a plan line starting "**Process limit exception:**" replaces the standard
-#     line;
-#   - the scope: a plan line starting "**Library changes:**", else "no change under
+#     positive integer); a plan paragraph starting "**Process limit exception:**" replaces the
+#     standard line;
+#   - the scope: a plan paragraph starting "**Library changes:**", else "no change under
 #     `icenine_py/icenine/`";
-#   - the stop rule: every plan paragraph starting "**Stop rule:**" (up to the next blank line),
-#     else "stop and report if the plan cannot be followed";
+#   - the stop rule: every plan paragraph starting "**Stop rule:**", else "stop and report if the
+#     plan cannot be followed";
+#   (a marker paragraph starts at column 0 or after a "- " bullet, runs to the next blank line,
+#   and is ignored inside code fences; the whole paragraph is quoted)
 #   - the commit trailer from --trailer or MAKE_BRIEF_TRAILER (refuses when neither is set).
 # --plan is a path from the repository root or relative to icenine_py/ or icenine_py/docs/.
-# With --fixes the brief asks for the required fixes of that review report on the task branch.
+# --section must match exactly one heading outside code fences (an exact match wins, else one
+# heading must contain the text); it only names the section in the brief. The approval and the
+# three markers are read from the WHOLE plan, never from the section alone.
+# With --fixes the brief asks for the required fixes of that review report on the task branch;
+# the report may be in any worktree and is printed as an absolute, resolved path.
 # MAKE_BRIEF_NOW (YYYYMMDD-HHMM) overrides the clock for the report name (for testing).
 set -euo pipefail
 
@@ -95,8 +103,25 @@ PLAN_REL="${PLAN_REL#./}"
 PLAN_NAME=$(basename "$PLAN_REL")
 
 if [ -n "$SECTION" ]; then
-    if ! awk -v s="$SECTION" '/^#+ / && index($0, s) { f = 1 } END { exit !f }' "$PLAN_REL"; then
+    # Headings outside code fences only. A heading that equals the text exactly wins; otherwise
+    # exactly one heading must contain it ("1" would match both "1. One" and "11. Eleven").
+    COUNTS=$(awk -v s="$SECTION" '
+        /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
+        !fence && /^#+ / {
+            h = $0; sub(/^#+ +/, "", h); sub(/[[:space:]]+$/, "", h)
+            if (h == s) exact++
+            if (index(h, s)) contains++
+        }
+        END { print exact + 0, contains + 0 }
+    ' "$PLAN_REL")
+    EXACT=${COUNTS% *}
+    CONTAINS=${COUNTS#* }
+    if [ "$EXACT" -eq 1 ] || { [ "$EXACT" -eq 0 ] && [ "$CONTAINS" -eq 1 ]; }; then
+        :
+    elif [ "$CONTAINS" -eq 0 ]; then
         die "no heading containing '$SECTION' in $PLAN_REL"
+    else
+        die "'$SECTION' matches $CONTAINS headings in $PLAN_REL; give more of the heading"
     fi
 fi
 if [ -n "$FIXES" ]; then

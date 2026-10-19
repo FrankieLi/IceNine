@@ -596,3 +596,28 @@ def test_fixes_report_outside_the_repository_is_printed_as_an_absolute_path(
     )
     assert out.returncode == 0, out.stderr
     assert f"Apply the required fixes in {expected}, follow" in out.stdout
+
+
+def test_section_must_match_exactly_one_heading_outside_code_fences(repo: Path) -> None:
+    plan = (
+        PLAN
+        + "\n## 11. Eleven\n\nText.\n\n```bash\n# not a heading\n```\n\n"
+        + "## 1. First step again\n\nText.\n"
+    )
+    _write(repo, "icenine_py/docs/todo_demo.md", plan)
+
+    def run(section: str) -> subprocess.CompletedProcess:
+        return _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t", "--section", section)
+
+    out = run("not a heading")
+    assert out.returncode == 1 and out.stdout == ""
+    assert "no heading containing 'not a heading'" in out.stderr
+    for ambiguous, count in (("1", 3), ("First step", 2)):
+        out = run(ambiguous)
+        assert out.returncode == 1 and out.stdout == ""
+        assert f"'{ambiguous}' matches {count} headings" in out.stderr, out.stderr
+    # an exact heading wins over longer headings that contain it; one containing heading is enough
+    for ok in ("1. First step", "Eleven", "Second step"):
+        out = run(ok)
+        assert out.returncode == 0, (ok, out.stderr)
+        assert f'Implement section "{ok}" of icenine_py/docs/todo_demo.md.\n' in out.stdout
