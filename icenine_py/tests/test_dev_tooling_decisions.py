@@ -1,13 +1,16 @@
 """Tests of scripts/dev/log_decision.sh and scripts/dev/roadmap_row.py.
 
 Temporary repositories only: a bare repository stands in for `origin` (no network), a stub stands in
-for shmem, and `icenine.agent` is set in the temporary repository, never in the real clone.
+for shmem, and `icenine.agent` is set in the temporary repository, never in the real clone. The
+user's and the system's git configuration are shut out (see `_env`). One test reads the real
+ROADMAP.md, read-only (`--show`).
 """
 
 import os
 import stat
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -29,10 +32,14 @@ GIT_ENV = {
 
 HEADER = "# Decision log\n\n## Entries\n"
 
+_HOME = tempfile.TemporaryDirectory(prefix="icenine-test-home-")  # an empty HOME for every command
+
 
 def _env(extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    """Environment without GIT_* and LOG_DECISION_* and without the user's or system git config."""
     env = {k: v for k, v in os.environ.items() if not k.startswith(("LOG_DECISION_", "GIT_"))}
     env.update(GIT_ENV)
+    env.update(HOME=_HOME.name, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
     env.update(extra or {})
     return env
 
@@ -51,15 +58,16 @@ def _entry(id_: str, title: str = "t") -> str:
 
 
 class Setup:
-    """A temporary clone with `origin`, branch feature/z (holding DECISIONS.md), task feature/z-job."""
+    """A temporary clone with `origin`, branch feature/z (has DECISIONS.md), task feature/z-job."""
 
     def __init__(self, tmp: Path, entries: str = "") -> None:
-        assert tmp.is_relative_to(Path(tmp.anchor))  # a temporary directory, never the real clone
+        assert tmp != REPO and REPO not in tmp.parents  # a temporary directory, never the clone
         self.tmp = tmp
         self.origin = tmp / "origin.git"
         subprocess.run(
-            ["git", "init", "-q", "--bare", "-b", "develop", str(self.origin)], check=True
-        )
+            ["git", "init", "-q", "--bare", "-b", "develop", str(self.origin)],
+            check=True, env=_env(),
+        )  # fmt: skip
         self.repo = tmp / "r"
         self.repo.mkdir()
         _git(self.repo, "init", "-q", "-b", "develop")
@@ -318,6 +326,21 @@ def test_refuses_unknown_supersedes_and_newlines(s: Setup) -> None:
     assert s.doc().count("### ") == 0
 
 
+def test_supersedes_is_a_literal_existing_id_not_a_pattern(tmp_path: Path) -> None:
+    s = Setup(tmp_path, _entry("D-20261014-I21"))
+    before = _git(s.repo, "rev-parse", "feature/z")
+    for pattern in ["D-.*", "D-20261014-I2.", "D-20261014-I2", "D-2026101[0-9]-I21"]:
+        res = s.run(s.repo, "--date", "2026-10-18", "--supersedes", pattern)
+        assert res.returncode in (1, 2), pattern  # 2: malformed, 1: well formed but unknown
+    assert s.run(s.repo, "--date", "2026-10-18", "--supersedes", "D-.*").returncode == 2
+    res = s.run(s.repo, "--date", "2026-10-18", "--supersedes", "D-20261014-I2")
+    assert res.returncode == 1 and "not an existing entry" in res.stderr  # a prefix is no match
+    assert _git(s.repo, "rev-parse", "feature/z") == before and s.shmem_lines() == []
+    res = s.run(s.repo, "--date", "2026-10-18", "--supersedes", "D-20261014-I21")
+    assert res.returncode == 0, res.stderr
+    assert "Supersedes: D-20261014-I21." in s.doc()
+
+
 def test_refuses_without_a_trailer_but_dry_run_does_not_need_one(s: Setup) -> None:
     res = s.run(s.repo, "--date", "2026-10-18", env={"LOG_DECISION_TRAILER": ""})
     assert res.returncode == 2 and "trailer" in res.stderr
@@ -348,6 +371,26 @@ def test_refuses_when_origin_is_ahead(s: Setup) -> None:
     assert s.run(s.repo, "--date", "2026-10-18").returncode == 0
 
 
+def test_origin_ahead_without_a_holder_hints_fast_forward_not_a_merge_into_the_task(
+    s: Setup,
+) -> None:
+    other = s.tmp / "other"
+    _git(s.tmp, "clone", "-q", str(s.origin), str(other))
+    _git(other, "checkout", "-q", "feature/z")
+    (other / "new.txt").write_text("n\n")
+    _git(other, "add", "new.txt")
+    _git(other, "commit", "-q", "-m", "ahead")
+    _git(other, "push", "-q", "origin", "feature/z")
+    _git(s.repo, "checkout", "-q", "feature/z-job")  # the caller is on the task; no holder
+    res = s.run(s.repo, "--date", "2026-10-18")
+    assert res.returncode == 1
+    assert "git fetch origin feature/z:feature/z" in res.stderr
+    assert "merge origin/feature/z in a checkout of feature/z" in res.stderr  # only the fallback
+    assert "-C" not in res.stderr
+    _git(s.repo, "fetch", "-q", "origin", "feature/z:feature/z")  # the hinted command
+    assert s.run(s.repo, "--date", "2026-10-18").returncode == 0
+
+
 def test_lock_is_released_after_a_failure_and_a_held_lock_refuses(s: Setup) -> None:
     lock = s.repo / ".git" / "log_decision.lock"
     res = s.run(s.repo, "--date", "2026-10-18", "--supersedes", "D-20990101-I1")
@@ -356,6 +399,12 @@ def test_lock_is_released_after_a_failure_and_a_held_lock_refuses(s: Setup) -> N
     res = s.run(s.repo, "--date", "2026-10-18")
     assert res.returncode == 1 and "lock" in res.stderr
     assert lock.exists()  # a refused run must not remove another run's lock
+    assert "owner unknown" in res.stderr and "rmdir" in res.stderr
+    (lock / "owner").write_text("pid 4242, started 2026-10-18 09:00:00\n")
+    res = s.run(s.repo, "--date", "2026-10-18")
+    assert res.returncode == 1 and "pid 4242, started 2026-10-18 09:00:00" in res.stderr
+    assert (lock / "owner").exists()
+    (lock / "owner").unlink()
     lock.rmdir()
     assert s.run(s.repo, "--date", "2026-10-18").returncode == 0
     assert not lock.exists()
@@ -403,19 +452,84 @@ def test_dry_run_prints_and_changes_nothing(s: Setup) -> None:
 
 def test_failed_shmem_keeps_the_commit_and_prints_the_rerun_command(s: Setup) -> None:
     res = s.run(s.repo, "--date", "2026-10-18", env={"LOG_DECISION_SHMEM_CMD": "false"})
-    assert res.returncode == 1
+    assert res.returncode == 3  # partial failure: committed, shmem failed
     assert "FAILED: false add --source user" in res.stdout
     assert "D-20261018-I1" in s.doc()
     assert "ok: pushed" in res.stdout  # the push still ran
     assert _git(s.origin, "rev-parse", "feature/z") == _git(s.repo, "rev-parse", "feature/z")
 
 
-def test_failed_push_keeps_the_commit_and_prints_the_rerun_command(s: Setup) -> None:
+def test_failed_push_keeps_the_commit_and_exits_3(s: Setup) -> None:
     _git(s.repo, "remote", "set-url", "origin", str(s.tmp / "missing.git"))
-    res = s.run(s.repo, "--date", "2026-10-18")
-    assert res.returncode == 1
+    res = s.run(s.repo, "--date", "2026-10-18", "--no-fetch")
+    assert res.returncode == 3  # partial failure: committed and in shmem, push failed
+    assert "FAILED: git push origin feature/z" in res.stdout
     assert "D-20261018-I1" in s.doc()
     assert len(s.shmem_lines()) == 1
+
+
+def test_unreachable_origin_refuses_and_no_fetch_skips_the_check_with_a_warning(s: Setup) -> None:
+    _git(s.repo, "remote", "set-url", "origin", str(s.tmp / "missing.git"))
+    before = _git(s.repo, "rev-parse", "feature/z")
+    res = s.run(s.repo, "--date", "2026-10-18", "--no-push")
+    assert res.returncode == 1 and "cannot reach origin" in res.stderr
+    assert "--no-fetch" in res.stderr
+    assert _git(s.repo, "rev-parse", "feature/z") == before and s.shmem_lines() == []
+    res = s.run(s.repo, "--date", "2026-10-18", "--no-push", "--no-fetch")
+    assert res.returncode == 0, res.stderr
+    assert "warning: --no-fetch" in res.stderr
+    assert "D-20261018-I1" in s.doc()
+
+
+def test_origin_without_the_branch_is_skipped_with_a_note(s: Setup) -> None:
+    _git(s.origin, "branch", "-D", "feature/z")
+    res = s.run(s.repo, "--date", "2026-10-18", "--no-push")
+    assert res.returncode == 0, res.stderr
+    assert "origin has no feature/z" in res.stderr
+
+
+def test_printed_shmem_rerun_command_is_safe_to_paste(s: Setup, tmp_path: Path) -> None:
+    stub = s.tmp / "flaky_shmem.sh"  # fails while STUB_FAIL is set, else records its arguments
+    stub.write_text(
+        '#!/bin/bash\n[ -z "${STUB_FAIL:-}" ] || exit 1\n'
+        f'printf "%s\\n" "$4" >> "{s.shmem_log}"\n'  # $1 add, $2 --source, $3 user, $4 the line
+    )
+    stub.chmod(stub.stat().st_mode | stat.S_IXUSR)
+    text = "Use `touch PWNED` and $(touch PWNED2) here, \"quoted\" and 'single' ; done"
+    res = s.run(s.repo, "--date", "2026-10-18", "--decision", text,
+                env={"LOG_DECISION_SHMEM_CMD": str(stub), "STUB_FAIL": "1"})  # fmt: skip
+    assert res.returncode == 3
+    printed = [ln for ln in res.stdout.splitlines() if ln.startswith("FAILED: ")]
+    assert len(printed) == 1
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    again = subprocess.run(
+        ["bash", "-c", printed[0][len("FAILED: "):]], cwd=scratch, env=_env(),
+        capture_output=True, text=True,
+    )  # fmt: skip
+    assert again.returncode == 0, again.stderr
+    assert list(scratch.iterdir()) == []  # no backtick or $(...) span ran
+    (line,) = s.shmem_lines()
+    assert line.startswith("Owner decision D-20261018-I1 (2026-10-18, IceNine S9): Tool title. ")
+    assert text in line
+
+
+def test_unfinished_commit_removes_the_temporary_worktree_and_the_lock(s: Setup) -> None:
+    _git(s.repo, "checkout", "-q", "feature/z-job")  # no worktree holds feature/z now
+    hook = s.repo / ".git" / "hooks" / "pre-commit"
+    hook.write_text("#!/bin/sh\nexit 1\n")
+    hook.chmod(hook.stat().st_mode | stat.S_IXUSR)
+    tmpdir = s.tmp / "tmpdir"
+    tmpdir.mkdir()
+    before = _git(s.repo, "rev-parse", "feature/z")
+    res = s.run(s.repo, "--date", "2026-10-18", env={"TMPDIR": str(tmpdir)})
+    assert res.returncode == 1 and "commit on feature/z failed" in res.stderr
+    assert list(tmpdir.iterdir()) == []  # the temporary worktree is gone
+    assert _git(s.repo, "worktree", "list", "--porcelain").count("worktree ") == 1
+    assert not (s.repo / ".git" / "log_decision.lock").exists()
+    assert _git(s.repo, "rev-parse", "feature/z") == before and s.shmem_lines() == []
+    hook.unlink()
+    assert s.run(s.repo, "--date", "2026-10-18", env={"TMPDIR": str(tmpdir)}).returncode == 0
 
 
 # ---------------------------------------------------------------------------------------------
