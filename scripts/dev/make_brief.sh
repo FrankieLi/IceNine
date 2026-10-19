@@ -42,7 +42,8 @@ paragraphs() {
         /^[[:space:]]*(```|~~~)/ { fence = !fence; inrule = 0; next }
         fence { next }
         inrule && ($0 ~ /^[[:space:]]*$/ || $0 ~ /^#/ || (bullet && $0 ~ /^[-*] /)) { inrule = 0 }
-        !inrule && (index($0, marker) == 1 || ($0 ~ /^[-*] / && index(substr($0, 3), marker) == 1)) {
+        !inrule && (index($0, marker) == 1 ||
+                    ($0 ~ /^[-*] / && index(substr($0, 3), marker) == 1)) {
             inrule = 1
             bullet = ($0 ~ /^[-*] /)
             if (bullet) $0 = substr($0, 3)
@@ -73,7 +74,8 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$PLAN" ] && [ -n "$TASK" ] || usage
 case "$TASK" in
-    *[!A-Za-z0-9._-]* | -*) die "task name '$TASK' may only contain letters, digits, '.', '_', '-'" ;;
+    *[!A-Za-z0-9._-]* | -*)
+        die "task name '$TASK' may only contain letters, digits, '.', '_', '-'" ;;
 esac
 [ -n "$TRAILER" ] || die "no commit trailer: pass --trailer or set MAKE_BRIEF_TRAILER"
 
@@ -96,7 +98,8 @@ case "$PLAN" in
         for cand in "$PLAN" "icenine_py/$PLAN" "icenine_py/docs/$PLAN"; do
             if [ -f "$cand" ]; then PLAN_REL="$cand"; break; fi
         done
-        [ -n "$PLAN_REL" ] || die "plan not found: $PLAN (tried the repository root, icenine_py/ and icenine_py/docs/)"
+        [ -n "$PLAN_REL" ] || die "plan not found: $PLAN" \
+            "(tried the repository root, icenine_py/ and icenine_py/docs/)"
         ;;
 esac
 PLAN_REL="${PLAN_REL#./}"
@@ -196,9 +199,11 @@ fi
 
 # --- process limit
 MAXPROCS=$(git config --local --get icenine.maxHeavyProcs || true)
-[ -n "$MAXPROCS" ] || die "icenine.maxHeavyProcs is not set; run: git config --local icenine.maxHeavyProcs <n>"
+[ -n "$MAXPROCS" ] || die "icenine.maxHeavyProcs is not set;" \
+    "run: git config --local icenine.maxHeavyProcs <n>"
 case "$MAXPROCS" in
-    *[!0-9]* | 0 | 0[0-9]*) die "icenine.maxHeavyProcs must be a positive integer, got '$MAXPROCS'" ;;
+    *[!0-9]* | 0 | 0[0-9]*)
+        die "icenine.maxHeavyProcs must be a positive integer, got '$MAXPROCS'" ;;
 esac
 EXCEPTION=$(paragraphs '**Process limit exception:**')
 if [ -n "$EXCEPTION" ]; then
@@ -228,18 +233,27 @@ esac
 CUR_PARENT=$(git config "branch.$CUR.parent" || true)
 if [ -n "$FIXES" ]; then
     if [ -n "$CUR_PARENT" ] && [ "${CUR%-"$TASK"}" != "$CUR" ]; then
-        BRANCH_LINE="Branch: work on the existing task branch \`$CUR\` (parent \`$CUR_PARENT\`); add new commits there."
+        BRANCH_LINE="Branch: work on the existing task branch \`$CUR\` (parent \`$CUR_PARENT\`);"
+        BRANCH_LINE="$BRANCH_LINE add new commits there."
     elif git rev-parse --verify -q "refs/heads/$CUR-$TASK" >/dev/null; then
-        BRANCH_LINE="Branch: work on the existing task branch \`$CUR-$TASK\` (parent \`$CUR\`); add new commits there."
+        BRANCH_LINE="Branch: work on the existing task branch \`$CUR-$TASK\` (parent \`$CUR\`);"
+        BRANCH_LINE="$BRANCH_LINE add new commits there."
     else
-        BRANCH_LINE="Branch: the task is already merged, so run \`scripts/dev/start_task.sh $TASK-fixes\` from \`$CUR\` (branch \`$CUR-$TASK-fixes\`)."
+        BRANCH_LINE="Branch: the task is already merged, so run"
+        BRANCH_LINE="$BRANCH_LINE \`scripts/dev/start_task.sh $TASK-fixes\` from \`$CUR\`"
+        BRANCH_LINE="$BRANCH_LINE (branch \`$CUR-$TASK-fixes\`)."
     fi
 else
-    BRANCH_LINE="Branch: run \`scripts/dev/start_task.sh $TASK\` from \`$CUR\` (branch \`$CUR-$TASK\`)."
+    BRANCH_LINE="Branch: run \`scripts/dev/start_task.sh $TASK\` from \`$CUR\`"
+    BRANCH_LINE="$BRANCH_LINE (branch \`$CUR-$TASK\`)."
 fi
 
 # --- report path
 NOW="${MAKE_BRIEF_NOW:-$(date +%Y%m%d-%H%M)}"
+case "$NOW" in
+    [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]) ;;
+    *) die "MAKE_BRIEF_NOW must look like YYYYMMDD-HHMM, got '$NOW'" ;;
+esac
 SUFFIX=""
 [ -z "$FIXES" ] || SUFFIX="-fixes"
 REPORT=".claude/reports/$NOW-$TASK$SUFFIX.md"
@@ -248,7 +262,9 @@ REPORT=".claude/reports/$NOW-$TASK$SUFFIX.md"
 echo "Follow study-conventions."
 if [ -n "$FIXES" ]; then
     echo "Plan: $PLAN_REL${SECTION:+, section \"$SECTION\"}."
-    echo "Apply the required fixes in $FIXES, follow study-conventions, re-run the affected tests, and add the new commit hashes to your report. Name the fix numbers in your commit subjects."
+    echo "Apply the required fixes in $FIXES, follow study-conventions, re-run the affected" \
+        "tests, and add the new commit hashes to your report. Name the fix numbers in your" \
+        "commit subjects."
 elif [ -n "$SECTION" ]; then
     echo "Implement section \"$SECTION\" of $PLAN_REL."
 else

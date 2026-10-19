@@ -75,8 +75,17 @@ Header text that mentions todo_demo.md and approved, before the entries.
 """
 
 
+GIT_LOCATION_VARS = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR")
+
+
+def _clean_environ() -> Dict[str, str]:
+    """os.environ without MAKE_BRIEF_TRAILER and without git variables that pick a repository."""
+    skip = ("MAKE_BRIEF_TRAILER", *GIT_LOCATION_VARS)
+    return {k: v for k, v in os.environ.items() if k not in skip}
+
+
 def _git(repo: Path, *args: str) -> str:
-    env = {**os.environ, **GIT_ENV}
+    env = {**_clean_environ(), **GIT_ENV}
     out = subprocess.run(["git", *args], cwd=repo, env=env, capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
     return out.stdout.strip()
@@ -107,7 +116,7 @@ def _brief(
     env: Optional[Dict[str, str]] = None,
     trailer: Optional[str] = TRAILER,
 ) -> subprocess.CompletedProcess:
-    full_env = {k: v for k, v in os.environ.items() if k != "MAKE_BRIEF_TRAILER"}
+    full_env = _clean_environ()
     full_env.update(GIT_ENV)
     full_env["MAKE_BRIEF_NOW"] = NOW
     full_env.update(env or {})
@@ -316,9 +325,9 @@ def test_fixes_on_existing_task_branch(repo: Path) -> None:
     assert out.stdout == _lines(
         "Follow study-conventions.",
         "Plan: icenine_py/docs/todo_demo.md.",
-        f"Apply the required fixes in {repo.resolve() / review}, follow study-conventions, re-run the affected "
-        "tests, and add the new commit hashes to your report. Name the fix numbers in your "
-        "commit subjects.",
+        f"Apply the required fixes in {repo.resolve() / review}, follow study-conventions, "
+        "re-run the affected tests, and add the new commit hashes to your report. Name the fix "
+        "numbers in your commit subjects.",
         APPROVAL,
         "Branch: work on the existing task branch `feature/par-demo-a` (parent `feature/par`); "
         "add new commits there.",
@@ -385,8 +394,12 @@ def test_plan_given_as_absolute_path_prints_a_repo_relative_path(repo: Path) -> 
 
 
 def test_real_plan_and_decisions_of_this_repository(tmp_path: Path) -> None:
-    """The plan of this very tooling is approved in the committed DECISIONS.md (D-20261018-I2)."""
-    env = {k: v for k, v in os.environ.items() if k != "MAKE_BRIEF_TRAILER"}
+    """The plan of this very tooling is approved in the committed DECISIONS.md.
+
+    The test pins no entry ID: a later entry may re-approve the plan; it fails only if the log has
+    no approval of the plan or a later entry withdraws it.
+    """
+    env = _clean_environ()
     env.update(GIT_ENV)
     plan = REPO / "icenine_py" / "docs" / "todo_ilium_workflow_tooling.md"
     decisions = REPO / "icenine_py" / "docs" / "DECISIONS.md"
@@ -406,7 +419,8 @@ def test_real_plan_and_decisions_of_this_repository(tmp_path: Path) -> None:
         text=True,
     )
     assert out.returncode == 0, out.stderr
-    assert "\nApproval: D-20261018-I2 " in out.stdout
+    assert "\nApproval: D-" in out.stdout
+    assert "Implement the plan icenine_py/docs/todo_ilium_workflow_tooling.md." in out.stdout
 
 
 def _entry(entry_id: str, title: str, text: str, supersedes: str = "none") -> str:
@@ -527,8 +541,8 @@ def test_wrapped_library_changes_and_exception_are_quoted_whole(repo: Path) -> N
     out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
     assert out.returncode == 0, out.stderr
     assert (
-        "Scope: **Library changes:** `icenine/x.py` may change, but only behind a new flag that is\n"
-        "off by default; nothing else under `icenine/`.\n"
+        "Scope: **Library changes:** `icenine/x.py` may change, but only behind a new flag "
+        "that is\noff by default; nothing else under `icenine/`.\n"
     ) in out.stdout
     assert (
         "Compute (plan exception to the machine limit of 6 heavy processes): "
@@ -621,3 +635,9 @@ def test_section_must_match_exactly_one_heading_outside_code_fences(repo: Path) 
         out = run(ok)
         assert out.returncode == 0, (ok, out.stderr)
         assert f'Implement section "{ok}" of icenine_py/docs/todo_demo.md.\n' in out.stdout
+
+
+def test_bad_clock_override_refused(repo: Path) -> None:
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t", env={"MAKE_BRIEF_NOW": "now"})
+    assert out.returncode == 1 and out.stdout == ""
+    assert "MAKE_BRIEF_NOW" in out.stderr
