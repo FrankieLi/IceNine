@@ -7843,8 +7843,8 @@ not wired into the reconstructor, no config key; tests `tests/test_outward_searc
 golden test changed, no default flipped, no shared file edited; `BatchedQuickMC`, `SearchDevice` and `CandidateDedup` off (nothing here touches
 the reconstructor). Tables are generated (`benchmarks/eval_reduction/F/doc_tables_all.md`); figures in `benchmarks/eval_reduction/F/figures/`.
 
-Plain-English findings doc: not created by the implementer (the write of `docs/findings_outward_search_2026-10.md` was refused by the tool, which
-says subagents return findings as text; as for Task E, the main session can write it from this subsection, which keeps every table).
+Plain-English findings: `docs/findings_outward_search_2026-10.md` (written in the main session from this subsection, which keeps the
+full record and every table; the implementer could not create the doc).
 
 #### Short answer
 
