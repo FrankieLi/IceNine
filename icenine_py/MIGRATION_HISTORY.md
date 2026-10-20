@@ -8945,3 +8945,49 @@ They now wrap the new function as well (3 files, 3 to 10 lines each; they read o
   scan a longer list on every call; a cached pointer array in `_rasterize.c` would be the fix (not started).
 - Why the whole search gains more than the Q-max 8 arms: see the Timing section (not tested).
 - S3's section above still says that the batched cost refuses `CppEdgeRules`; Step 4 supersedes that.
+
+## Workflow tooling for both agents (2026-10-18)
+
+Plan: `docs/todo_ilium_workflow_tooling.md` (approved D-20261018-I2; owner answers D-20261018-I1 to
+I5; ROADMAP row H12). Goal: the recurring manual steps of the agent workflow (decision entries,
+ROADMAP status cells, hand-back checks, read on fetch, implementer briefs) done by deterministic
+scripts that fail loudly, with thin skills on top. Usage is in the README "Developer tooling" table.
+
+### Completion summary (2026-10-18)
+
+Three task branches off `feature/python-speed-parity`, built in parallel, each reviewed by
+`/review-task` (Opus, all three REQUEST CHANGES) and fixed by a fresh implementer:
+
+- (a) `scripts/dev/log_decision.sh`: ID by the written rule (n from 1 per day and agent), entry in
+  the DECISIONS.md format, commit on the feature branch from a task branch (in the worktree holding
+  it, else a temporary worktree), shmem line, push; lock, fetch-and-refuse when origin is ahead or
+  unreachable (`--no-fetch` to skip), exit 3 on a partial failure with a quoted rerun command.
+  `scripts/dev/roadmap_row.py`: edits one status cell (`--status`, `--state`) of the caller's own
+  rows only (I: Track S and H12; N: Track E), handles rows without a closing `|`, exit 2 when no
+  or several rows match. Review fixes: shell quoting of the printed rerun command, silent skip of
+  the origin check, unchecked `--supersedes`, tests reading the global git config.
+- (b) `scripts/dev/verify_handback.sh`: commits since the parent, hash cross-check with the report,
+  file classes (shared files, other library code, `Src/`, dependencies, goldens: FLAG; committed
+  DECISIONS.md, CLAUDE.md, `.claude/**`: FAIL; ROADMAP outside own rows), the eight report fields,
+  unlabelled timings, `--fixes` numbering, and the tests the report names. `scripts/dev/
+  read_on_fetch.sh`: fetch, new commits on the other agent's branch, mailbox diff, the other
+  agent's decisions missing from shmem as ready `shmem add` lines (`--save` runs them), the merge
+  command printed, `--mark` moves the read point. Review fix: the field parser rejected
+  `Results (note):` headings, so it failed correct reports, including its own.
+- (c) `scripts/dev/make_brief.sh`: the brief from an approved plan (approval entry found and not
+  withdrawn or superseded, `**Library changes:**`, `**Stop rule:**`, `**Process limit
+  exception:**` paragraphs quoted whole, the per-machine limit `icenine.maxHeavyProcs`, trailer,
+  report path; `--fixes` for a review report in any worktree). Review fixes: "not approved"
+  passed the approval gate, a withdrawal was ignored, wrapped paragraphs were cut. The skills
+  `/decide`, `/implement-plan`, `/apply-fixes` are written but wait for the owner's commit, as do
+  the study-conventions and ROADMAP rule 2 / rule 6 text (D-20261018-I5).
+
+All tools take the agent letter from `git config --local icenine.agent` (or `--agent`) and refuse
+without it, so Newt Agent uses them unchanged. Tests: `tests/test_dev_tooling_decisions.py`,
+`test_dev_tooling_handback.py`, `test_dev_tooling_brief.py`; full suite after the merge: 1260 passed, 47 skipped, 1 deselected.
+
+Not done (review suggestions outside the required fixes, listed in the reports): a shebang and
+`--date` validation in `log_decision.sh`; one shared parser for ROADMAP and DECISIONS.md across the
+scripts; reading the plan and DECISIONS.md at `HEAD` in `make_brief.sh`. The plan's lower-priority
+items (`sync_doc_tables.py --section`, a timed-run wrapper, shared S4 study helpers, a mailbox
+writer) are not started.
