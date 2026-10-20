@@ -138,7 +138,7 @@ class ShellSearch:
         smooth_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
         spacing_deg: float = 0.3,
         r_max_deg: float = 6.0,
-        accept_cost: float = 0.5,
+        accept_cost: float = 0.8,
         n_smooth: int = 32,
         n_strict: int = 2,
         screen_chunk: int = 256,
@@ -258,7 +258,9 @@ class RayGaussNewton:
     ``strict_fn(R) -> cost`` the strict cost (evaluated twice per solve: start and end).
     ``tau_schedule_deg`` is the sequence of robust scales; each stage runs to convergence (a step
     below ``step_tol_deg`` or ``max_iter`` iterations) before the next. ``trust_deg`` is the
-    largest step of one iteration, the first step is limited to ``trust0_deg``."""
+    largest step of one iteration, the first step is limited to ``trust0_deg``. A predicted peak is
+    matched only to observed rays whose frame is within ``frame_window`` frames of its own (1, as in
+    ``SmoothCost`` E4); a start far from the truth moves peaks by more frames than that."""
 
     def __init__(
         self,
@@ -271,7 +273,8 @@ class RayGaussNewton:
         trust_deg: float = 2.0,
         trust0_deg: float = 1.0,
         step_tol_deg: float = 5e-4,
-        accept_cost: float = 0.5,
+        accept_cost: float = 0.8,
+        frame_window: int = 1,
     ) -> None:
         self.sc = smooth
         self.verts = voxel_vertices
@@ -285,6 +288,9 @@ class RayGaussNewton:
         self.trust0 = math.radians(trust0_deg)
         self.step_tol = math.radians(step_tol_deg)
         self.accept_cost = float(accept_cost)
+        self.frame_window = int(frame_window)
+        if self.frame_window < 1:
+            raise ValueError("RayGaussNewton: frame_window must be at least 1")
         self._ray_tables: Optional[Dict[str, Any]] = None
 
     # ---------------------------------------------------------------- rays of the voxel
@@ -323,6 +329,7 @@ class RayGaussNewton:
     # ---------------------------------------------------------------- matching and cost
     def _weights(self, pr: Any) -> torch.Tensor:
         """Per-peak weight: 1 for a peak seen on every detector and with a frame, else 0 (E4)."""
+        self._tables()  # builds the observed rays, which sets the detector size used below
         col, row, hit = pr.col[:, :, -1], pr.row[:, :, -1], pr.hit[:, :, -1]
         inb = hit & (col >= 0) & (col < self.sc.cols) & (row >= 0) & (row < self.sc.rows)
         return (inb.all(1) & (pr.frame >= 0)).to(torch.float64)
@@ -351,7 +358,7 @@ class RayGaussNewton:
             torch.maximum(tb["lo"][None] - om[:, None], om[:, None] - tb["hi"][None]), min=0.0
         )
         r2 = ang * ang + dom * dom
-        near = (tb["frame"][None] - pr.frame[:, None]).abs() <= 1
+        near = (tb["frame"][None] - pr.frame[:, None]).abs() <= self.frame_window
         r2 = torch.where(near, r2, torch.full_like(r2, math.inf))
         r2min, arg = r2.min(dim=1)
         arg = torch.where(torch.isfinite(r2min), arg, torch.full_like(arg, -1))

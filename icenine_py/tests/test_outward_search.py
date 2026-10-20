@@ -199,6 +199,8 @@ def test_ray_gn_recovers_the_truth_from_one_and_three_degrees() -> None:
         assert angle_deg(res.R, R_true) < 0.1, off
         assert res.accepted and res.strict_cost <= 0.8 and res.converged
         assert res.e4_end < res.e4_start
+        if off == 1.0:  # a fresh solver counts the peaks of its first evaluation (regression)
+            assert 0.0 < res.e4_start < 0.999
         assert calls["n"] == 2 == res.n_strict  # start and end only
         assert res.n_evals == res.n_jac + res.n_val + 2 and res.n_jac >= 3
         assert seen[0][0] == 1 and seen[-1][0] <= res.n_smooth and len(seen) >= 2
@@ -217,3 +219,19 @@ def test_ray_gn_at_the_optimum_does_nothing_and_a_bad_start_is_not_accepted() ->
     far = rotate_left(R_true, np.radians(40.0) * np.array([1.0, 0.0, 0.0]))
     out = gn.solve(far)
     assert out.strict_cost <= out.start_strict_cost
+
+
+@needs_c
+def test_ray_gn_frame_window_validated_and_wider_window_reaches_further() -> None:
+    gn1, _, R_true, _ = _toy_gn()
+    with pytest.raises(ValueError):
+        RayGaussNewton(gn1.sc, gn1.verts, gn1.strict_fn, gn1.phase, frame_window=0)
+    gn5 = RayGaussNewton(gn1.sc, gn1.verts, gn1.strict_fn, gn1.phase, frame_window=5)
+    assert gn1.frame_window == 1 and gn5.frame_window == 5
+    d = np.array([0.5, 0.5, -0.7])
+    d /= np.linalg.norm(d)
+    R0 = rotate_left(R_true, np.radians(5.0) * d)
+    # more peaks have a ray to match within a wider window: the E4 cost at the start is not higher
+    assert gn5.e4_value(R0, math.radians(0.25)) <= gn1.e4_value(R0, math.radians(0.25)) + 1e-12
+    res = gn5.solve(R0)
+    assert res.accepted and angle_deg(res.R, R_true) < 0.1

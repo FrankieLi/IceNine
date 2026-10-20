@@ -63,6 +63,8 @@ OFFSETS = [0.1, 0.5, 1.0, 2.0, 3.0, 5.0]
 CKPT = [3, 10, 30, 100, 300, 1000, 3000, 10000, 30000]
 THR = (0.05, 0.1, 1.0)
 METHODS = ["f1", "f2_05", "f2_1", "f2_2", "f3", "f4", "f5", "f54"]
+EXTRA = ["f4w"]  # run separately (--methods f4w --tag <tag>_f4w), merged by outward_summary
+F4W_FRAMES = 5  # frame window of f4w, chosen on the pilot voxels (RUN_LOG 3)
 SIGMA0 = {"f2_05": 0.5, "f2_1": 1.0, "f2_2": 2.0}
 CMA_BUDGET = 4000
 CMA_TOLX_DEG = 0.005  # CMA-ES stops when its step-size x scale falls below this
@@ -214,11 +216,14 @@ def curve_of(trace: List[Tuple[int, float]], err0: float) -> np.ndarray:
     return out
 
 
+CAPTURE_TOL = 1e-3  # deg. R_true is float32: a start exactly 1 deg out measures 0.9999 deg
+
+
 def evals_to(trace: List[Tuple[int, float]], thr: float, err0: float) -> float:
-    if err0 < thr:
+    if err0 < thr - CAPTURE_TOL:
         return 0.0
     for n, er in trace:
-        if er < thr:
+        if er < thr - CAPTURE_TOL:
             return float(n)
     return math.nan
 
@@ -334,22 +339,24 @@ def run_f3_batch(env: Dict[str, Any], starts: np.ndarray, offset: float) -> List
     return out
 
 
-def make_gn(env: Dict[str, Any], tr: Tracer, taus: Tuple[float, ...] = TAU_SCHEDULE) -> Any:
+def make_gn(
+    env: Dict[str, Any], tr: Tracer, taus: Tuple[float, ...] = TAU_SCHEDULE, window: int = 1
+) -> Any:
     from icenine.outward_search import RayGaussNewton
 
     return RayGaussNewton(
         lazy(env, "sc"), env["verts"], tr.strict, env["phase"], tau_schedule_deg=taus,
-        accept_cost=ACCEPT,
+        accept_cost=ACCEPT, frame_window=window,
     )  # fmt: skip
 
 
-def run_f4(env: Dict[str, Any], R0: np.ndarray) -> Dict[str, Any]:
+def run_f4(env: Dict[str, Any], R0: np.ndarray, window: int = 1) -> Dict[str, Any]:
     from icenine.outward_search import angle_deg
 
     err0 = angle_deg(R0, env["R_true"])
     trace: List[Tuple[int, float]] = []
     with Tracer(env["lf"], env["R_true"], env["verts"], env["phase"]) as tr:
-        gn = make_gn(env, tr)
+        gn = make_gn(env, tr, window=window)
         t0 = time.perf_counter()
         res = gn.solve(
             R0, callback=lambda R, ns, nt: trace.append((ns + nt, angle_deg(R, env["R_true"])))
@@ -436,6 +443,8 @@ def run_group(env: Dict[str, Any], oi: int, nd: int, methods: List[str]) -> Dict
                 rows[m].append(run_f2(env, R0, sg, seed))
         if "f4" in methods:
             rows["f4"].append(run_f4(env, R0))
+        if "f4w" in methods:
+            rows["f4w"].append(run_f4(env, R0, F4W_FRAMES))
         if "f5" in methods or "f54" in methods:
             r5, res5 = run_f5(env, R0)
             if "f5" in methods:
@@ -536,7 +545,7 @@ def timing(kind: str, voxels: List[int], dirs: int) -> None:
             gn.linearize(R, 0.004)
         ms["e4_value_and_jacobian"] = 1e3 * (time.perf_counter() - t0) / 30
     t0 = time.time()
-    run_pool_serial = [(kind, v, "timing_" + kind, dirs, METHODS) for v in voxels]
+    run_pool_serial = [(kind, v, "timing_" + kind, dirs, METHODS + EXTRA) for v in voxels]
     for it in run_pool_serial:
         task(it)
     ms["serial_run_s"] = time.time() - t0
