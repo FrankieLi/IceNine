@@ -389,3 +389,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   30-voxel set, which include voxels the strict search gets wrong, are run in Task G (carried arms E3+E4 tau 0.25 and
   E1+E2+E3+E4, lenient and C++ rule, paired, breaks traced per N13), before the smooth key is chosen. Task E merges
   without them. Where: eval-reduction plan Task G step 2b; `docs/findings_cost_smoothing_2026-10.md` "Limits".
+
+### D-20261018-N16 · E · Task E merges without a quiet-machine re-timing
+- 2026-10-18, owner. Recorded by Newt Agent. Supersedes: none.
+- The Task E review (`.claude/reports/20261018-2151-review-E.md`, fix 1) asks for whole-voxel times, key off and on.
+  The fix implementer re-times only if the timing preflight passes; otherwise the docs keep the "contended" label and
+  the repeat is listed as not done. The merge does not wait for it. Where: ROADMAP Track E row E; MIGRATION_HISTORY
+  "Task E".
+
+### D-20261018-N17 · E, G · The per-image-set SmoothCost cache is built in Task G
+- 2026-10-18, owner. Recorded by Newt Agent. Supersedes: none.
+- `SmoothCost` is rebuilt on every `reconstruct_voxel` call. Caching it per image set is done in Task G, if the smooth
+  ranking key is used there. Task E's docs lead with the as-shipped cost (rebuild per voxel) and give the
+  one-build-per-image-set figure as a projection. Where: eval-reduction plan Task G step 2c.

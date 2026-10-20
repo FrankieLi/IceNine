@@ -1,0 +1,390 @@
+{
+ "full": {
+  "n_voxels": 6,
+  "median_cost": 0.413569708127286,
+  "median_part_no_ray": 0.0,
+  "median_part_with_ray": 0.4050951318560996,
+  "median_peaks": 58.0,
+  "median_share_peaks_no_ray": 0.0,
+  "min_share_peaks_no_ray": 0.0,
+  "max_share_peaks_no_ray": 0.017241379310344827,
+  "median_attached": 217.5,
+  "median_residual_deg": 0.025635158249682887,
+  "voxels": [
+   {
+    "cost": 0.3925830482588334,
+    "part_no_ray": 0.01694915254237288,
+    "part_with_ray": 0.37563389571646055,
+    "peaks": 59,
+    "peaks_no_ray": 1,
+    "attached": 222,
+    "median_residual_deg": 0.023179430694747552,
+    "voxel": 15901
+   },
+   {
+    "cost": 0.37017984402097864,
+    "part_no_ray": 0.017241379310344827,
+    "part_with_ray": 0.3529384647106339,
+    "peaks": 58,
+    "peaks_no_ray": 1,
+    "attached": 210,
+    "median_residual_deg": 0.017880621966093378,
+    "voxel": 17034
+   },
+   {
+    "cost": 0.4345563679957386,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.4345563679957386,
+    "peaks": 56,
+    "peaks_no_ray": 0,
+    "attached": 210,
+    "median_residual_deg": 0.029059714954840603,
+    "voxel": 18558
+   },
+   {
+    "cost": 0.2884096649262876,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.2884096649262876,
+    "peaks": 58,
+    "peaks_no_ray": 0,
+    "attached": 393,
+    "median_residual_deg": 0.016055851749733244,
+    "voxel": 19889
+   },
+   {
+    "cost": 0.4569294047866238,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.4569294047866238,
+    "peaks": 62,
+    "peaks_no_ray": 0,
+    "attached": 213,
+    "median_residual_deg": 0.036763612724946784,
+    "voxel": 22867
+   },
+   {
+    "cost": 0.44004362438946,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.44004362438946,
+    "peaks": 55,
+    "peaks_no_ray": 0,
+    "attached": 232,
+    "median_residual_deg": 0.028090885804618222,
+    "voxel": 5242
+   }
+  ]
+ },
+ "e0": {
+  "n_voxels": 30,
+  "median_cost": 0.09774494771240225,
+  "median_part_no_ray": 0.0,
+  "median_part_with_ray": 0.09037952852653208,
+  "median_peaks": 58.0,
+  "median_share_peaks_no_ray": 0.0,
+  "min_share_peaks_no_ray": 0.0,
+  "max_share_peaks_no_ray": 0.03225806451612903,
+  "median_attached": 58.0,
+  "median_residual_deg": 0.014055097582075508,
+  "voxels": [
+   {
+    "cost": 0.09972531084521544,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.09972531084521544,
+    "peaks": 58,
+    "peaks_no_ray": 0,
+    "attached": 58,
+    "median_residual_deg": 0.014539344351909497,
+    "voxel": 7336
+   },
+   {
+    "cost": 0.08970959104521477,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.08970959104521477,
+    "peaks": 57,
+    "peaks_no_ray": 0,
+    "attached": 57,
+    "median_residual_deg": 0.014739519786969753,
+    "voxel": 3108
+   },
+   {
+    "cost": 0.10417222056119528,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.10417222056119528,
+    "peaks": 59,
+    "peaks_no_ray": 0,
+    "attached": 59,
+    "median_residual_deg": 0.01567790828763185,
+    "voxel": 2910
+   },
+   {
+    "cost": 0.07516316445250588,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.07516316445250588,
+    "peaks": 53,
+    "peaks_no_ray": 0,
+    "attached": 53,
+    "median_residual_deg": 0.011957691005517633,
+    "voxel": 16182
+   },
+   {
+    "cost": 0.1211386311742262,
+    "part_no_ray": 0.018518518518518517,
+    "part_with_ray": 0.10262011265570768,
+    "peaks": 54,
+    "peaks_no_ray": 1,
+    "attached": 53,
+    "median_residual_deg": 0.014898137017149841,
+    "voxel": 16269
+   },
+   {
+    "cost": 0.10324408511578068,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.10324408511578068,
+    "peaks": 57,
+    "peaks_no_ray": 0,
+    "attached": 57,
+    "median_residual_deg": 0.016664617015278632,
+    "voxel": 21356
+   },
+   {
+    "cost": 0.1025377808833359,
+    "part_no_ray": 0.03125,
+    "part_with_ray": 0.0712877808833359,
+    "peaks": 64,
+    "peaks_no_ray": 2,
+    "attached": 62,
+    "median_residual_deg": 0.0125508003782357,
+    "voxel": 20406
+   },
+   {
+    "cost": 0.11126011722561027,
+    "part_no_ray": 0.017241379310344827,
+    "part_with_ray": 0.09401873791526545,
+    "peaks": 58,
+    "peaks_no_ray": 1,
+    "attached": 57,
+    "median_residual_deg": 0.014324840715348876,
+    "voxel": 20206
+   },
+   {
+    "cost": 0.07636263859969213,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.07636263859969213,
+    "peaks": 56,
+    "peaks_no_ray": 0,
+    "attached": 56,
+    "median_residual_deg": 0.012966992512349684,
+    "voxel": 3142
+   },
+   {
+    "cost": 0.09561950155208158,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.09561950155208158,
+    "peaks": 53,
+    "peaks_no_ray": 0,
+    "attached": 53,
+    "median_residual_deg": 0.013494812573428397,
+    "voxel": 20480
+   },
+   {
+    "cost": 0.10564133375720507,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.10564133375720507,
+    "peaks": 61,
+    "peaks_no_ray": 0,
+    "attached": 61,
+    "median_residual_deg": 0.013437198381410977,
+    "voxel": 2177
+   },
+   {
+    "cost": 0.09061124381403984,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.09061124381403984,
+    "peaks": 59,
+    "peaks_no_ray": 0,
+    "attached": 59,
+    "median_residual_deg": 0.014793264946429217,
+    "voxel": 13884
+   },
+   {
+    "cost": 0.0709733488212671,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.0709733488212671,
+    "peaks": 62,
+    "peaks_no_ray": 0,
+    "attached": 62,
+    "median_residual_deg": 0.011561049952154732,
+    "voxel": 10531
+   },
+   {
+    "cost": 0.11647863496989375,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.11647863496989375,
+    "peaks": 58,
+    "peaks_no_ray": 0,
+    "attached": 57,
+    "median_residual_deg": 0.014352158714110629,
+    "voxel": 16905
+   },
+   {
+    "cost": 0.11002704964428234,
+    "part_no_ray": 0.017543859649122806,
+    "part_with_ray": 0.09248318999515953,
+    "peaks": 57,
+    "peaks_no_ray": 1,
+    "attached": 56,
+    "median_residual_deg": 0.014177255477738265,
+    "voxel": 17451
+   },
+   {
+    "cost": 0.08473684006142795,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.08473684006142795,
+    "peaks": 61,
+    "peaks_no_ray": 0,
+    "attached": 61,
+    "median_residual_deg": 0.012597980733430283,
+    "voxel": 24550
+   },
+   {
+    "cost": 0.08787190553983183,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.08787190553983183,
+    "peaks": 58,
+    "peaks_no_ray": 0,
+    "attached": 58,
+    "median_residual_deg": 0.014627510050990541,
+    "voxel": 1053
+   },
+   {
+    "cost": 0.09595490718881418,
+    "part_no_ray": 0.01818181818181818,
+    "part_with_ray": 0.07777308900699599,
+    "peaks": 55,
+    "peaks_no_ray": 1,
+    "attached": 54,
+    "median_residual_deg": 0.012381439233615718,
+    "voxel": 14217
+   },
+   {
+    "cost": 0.07986879806095552,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.07986879806095552,
+    "peaks": 56,
+    "peaks_no_ray": 0,
+    "attached": 56,
+    "median_residual_deg": 0.010561869401330285,
+    "voxel": 18541
+   },
+   {
+    "cost": 0.10467979405077868,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.10467979405077868,
+    "peaks": 59,
+    "peaks_no_ray": 0,
+    "attached": 59,
+    "median_residual_deg": 0.015535158074950815,
+    "voxel": 3866
+   },
+   {
+    "cost": 0.06641857881078565,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.06641857881078565,
+    "peaks": 61,
+    "peaks_no_ray": 0,
+    "attached": 61,
+    "median_residual_deg": 0.010707858184352723,
+    "voxel": 2489
+   },
+   {
+    "cost": 0.105997579668804,
+    "part_no_ray": 0.01639344262295082,
+    "part_with_ray": 0.08960413704585318,
+    "peaks": 61,
+    "peaks_no_ray": 1,
+    "attached": 60,
+    "median_residual_deg": 0.01569249140962397,
+    "voxel": 9484
+   },
+   {
+    "cost": 0.1326675169848522,
+    "part_no_ray": 0.03225806451612903,
+    "part_with_ray": 0.1004094524687232,
+    "peaks": 62,
+    "peaks_no_ray": 2,
+    "attached": 60,
+    "median_residual_deg": 0.013598086847958173,
+    "voxel": 7109
+   },
+   {
+    "cost": 0.1223793320521362,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.1223793320521362,
+    "peaks": 65,
+    "peaks_no_ray": 0,
+    "attached": 64,
+    "median_residual_deg": 0.016831181565533426,
+    "voxel": 970
+   },
+   {
+    "cost": 0.13484743892368473,
+    "part_no_ray": 0.016129032258064516,
+    "part_with_ray": 0.11871840666562021,
+    "peaks": 62,
+    "peaks_no_ray": 1,
+    "attached": 61,
+    "median_residual_deg": 0.01777652251672029,
+    "voxel": 19705
+   },
+   {
+    "cost": 0.0995349882359903,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.0995349882359903,
+    "peaks": 57,
+    "peaks_no_ray": 0,
+    "attached": 57,
+    "median_residual_deg": 0.016302101750345903,
+    "voxel": 9001
+   },
+   {
+    "cost": 0.07496342682606558,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.07496342682606558,
+    "peaks": 55,
+    "peaks_no_ray": 0,
+    "attached": 55,
+    "median_residual_deg": 0.011495045184297498,
+    "voxel": 13074
+   },
+   {
+    "cost": 0.09014781323902434,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.09014781323902434,
+    "peaks": 57,
+    "peaks_no_ray": 0,
+    "attached": 57,
+    "median_residual_deg": 0.011962794035486475,
+    "voxel": 12213
+   },
+   {
+    "cost": 0.08839119964716248,
+    "part_no_ray": 0.0,
+    "part_with_ray": 0.08839119964716248,
+    "peaks": 59,
+    "peaks_no_ray": 0,
+    "attached": 59,
+    "median_residual_deg": 0.013932939686412751,
+    "voxel": 14240
+   },
+   {
+    "cost": 0.09015781091186714,
+    "part_no_ray": 0.01639344262295082,
+    "part_with_ray": 0.07376436828891633,
+    "peaks": 61,
+    "peaks_no_ray": 1,
+    "attached": 60,
+    "median_residual_deg": 0.011723379968352899,
+    "voxel": 121
+   }
+  ]
+ }
+}

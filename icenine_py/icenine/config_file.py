@@ -223,6 +223,7 @@ class ConfigFile:
     batched_quick_mc: bool = False  # quick MC of a level in lockstep (opt-in, draw option B)
     search_device: str = "cpu"  # device of the batched quick-MC cost: cpu (default), mps or cuda
     candidate_dedup: str = "off"  # clique filter / de-duplication of the candidates (opt-in)
+    smooth_rank: str = "off"  # smooth ranking cost of the coarse levels (opt-in, Task E)
     # ray-consistency rule (coarse levels 0-2 only): "off", "R<n>" (isotropic n px) or "A"
     ray_overlap_rule: str = "off"
 
@@ -475,6 +476,7 @@ class ConfigFile:
             'BatchedQuickMC': self._parse_bool('batched_quick_mc'),
             'SearchDevice': self._parse_search_device,
             'CandidateDedup': self._parse_candidate_dedup,
+            'SmoothCostRank': self._parse_smooth_rank,
             'RayOverlapRule': self._parse_ray_overlap_rule,
 
             # Parameter Optimization
@@ -627,6 +629,16 @@ class ConfigFile:
 
         DedupSpec.parse(tokens[1])  # raises ValueError on a malformed spec
         self.candidate_dedup = tokens[1]
+
+    def _parse_smooth_rank(self, tokens: List[str]) -> None:
+        """SmoothCostRank off|<spec> (Python-only, opt-in; smooth_cost.SmoothSpec, no spaces),
+        e.g. ``SmoothCostRank E1+E2,sigma=8`` or ``SmoothCostRank E4,tau=0.25,levels=2``."""
+        if len(tokens) < 2:
+            raise ValueError(f"Missing value for {tokens[0]}")
+        from .smooth_cost import SmoothSpec
+
+        SmoothSpec.parse(tokens[1])  # raises ValueError on a malformed spec
+        self.smooth_rank = tokens[1]
 
     @staticmethod
     def _positive_validator(value: float, keyword: str) -> None:
