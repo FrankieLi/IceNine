@@ -23,6 +23,7 @@ checkpoints ``CKPT`` and the evaluations until the error first falls below 0.05 
   uv run python scripts/eval_reduction/outward_bench.py pilot
   nohup uv run python scripts/eval_reduction/outward_bench.py run --kind e0 --workers 5 &
   uv run python scripts/eval_reduction/outward_bench.py timing   # single worker, preflight-gated
+  uv run python scripts/eval_reduction/outward_bench.py timing-f5 --kind e0 --dirs 5  # F5 batches
 
 Outputs: benchmarks/eval_reduction/F/cache/<set>/v<voxel>_o<offset index>.npz (gitignored).
 """
@@ -558,9 +559,97 @@ def timing(kind: str, voxels: List[int], dirs: int) -> None:
     print(json.dumps(ms, indent=1))
 
 
+def timing_f5(kind: str, voxels: List[int], dirs: int) -> None:
+    """Single-worker timing (preflight-gated) of F5's evaluation kinds at the batch sizes F5 uses
+    them: ``ShellSearch`` is run from the timing run's starts (offsets 1, 2, 5 deg, ``dirs``
+    directions, every voxel of ``voxels``) with timers around its callables. The screen is called
+    in chunks of up to 256 rotations (a whole shell), E4 on the best 32 of a shell through
+    ``SmoothCost.evaluate_many``, the strict cost one rotation at a time. Also times F4's single
+    E4 value and value-and-Jacobian on every voxel (the per-evaluation weights of ``timing`` come
+    from the first voxel only). Writes F/timing/<kind>_f5.json (+ preflight_<kind>_f5.json)."""
+    import preflight
+    from icenine.outward_search import ShellSearch, screen_fn_from, smooth_fn_from
+
+    pf = preflight.preflight()
+    (OUT / "timing").mkdir(parents=True, exist_ok=True)
+    (OUT / "timing" / f"preflight_{kind}_f5.json").write_text(json.dumps(pf, indent=1) + "\n")
+    preflight.require_quiet(info=pf)
+    _init(kind, [2, 3, 5])
+    per_voxel: Dict[str, Any] = {}
+    for v in voxels:
+        env = voxel_env(v)
+        verts, phase, lf = env["verts"], env["phase"], env["lf"]
+        acc = {k: [0.0, 0] for k in ("screen", "smooth", "strict")}  # ms, orientations
+        calls = {k: 0 for k in acc}
+
+        def timed(fn: Any, k: str, many: bool) -> Any:
+            def g(x: np.ndarray) -> Any:
+                t0 = time.perf_counter()
+                out = fn(x)
+                acc[k][0] += 1e3 * (time.perf_counter() - t0)
+                acc[k][1] += len(x) if many else 1
+                calls[k] += 1
+                return out
+
+            return g
+
+        scr = screen_fn_from(lazy(env, "screen_cf"), verts, phase)
+        smo = smooth_fn_from(lazy(env, "sc"), verts, phase, "E4,tau=0.25")
+
+        def strict(R: np.ndarray) -> float:
+            return float(lf.evaluate(np.asarray(R, dtype=np.float64), verts, phase).cost)
+
+        warm = starts_for(env, 1.0, 8)
+        scr(warm), smo(warm), strict(warm[0])
+        ss = ShellSearch(timed(scr, "screen", True), timed(strict, "strict", False),
+                         timed(smo, "smooth", True), spacing_deg=SPACING_DEG,
+                         r_max_deg=R_MAX_DEG, accept_cost=ACCEPT)  # fmt: skip
+        search_ms = 0.0
+        for oi in (2, 3, 5):
+            for R0 in starts_for(env, OFFSETS[oi], dirs):
+                t0 = time.perf_counter()
+                ss.search(R0)
+                search_ms += 1e3 * (time.perf_counter() - t0)
+        rec = {
+            f"{k}_ms_per_orientation": (acc[k][0] / acc[k][1]) if acc[k][1] else math.nan
+            for k in acc
+        }
+        rec.update({f"{k}_orientations": acc[k][1] for k in acc})
+        rec.update({f"{k}_calls": calls[k] for k in calls})
+        rec["search_ms_total"] = search_ms
+        rec["callables_ms_total"] = sum(a[0] for a in acc.values())
+        with Tracer(lf, env["R_true"], verts, phase) as tr:
+            gn = make_gn(env, tr)
+            st = starts_for(env, 1.0, 30)
+            gn.e4_value(st[0], 0.004)
+            t0 = time.perf_counter()
+            for R in st:
+                gn.e4_value(R, 0.004)
+            rec["f4_e4_value_ms"] = 1e3 * (time.perf_counter() - t0) / len(st)
+            t0 = time.perf_counter()
+            for R in st:
+                gn.linearize(R, 0.004)
+            rec["f4_e4_value_and_jacobian_ms"] = 1e3 * (time.perf_counter() - t0) / len(st)
+        per_voxel[str(v)] = rec
+        print(v, json.dumps(rec, indent=1), flush=True)
+    (OUT / "timing" / f"{kind}_f5.json").write_text(
+        json.dumps(
+            dict(
+                label="single-worker",
+                voxels=voxels,
+                dirs=dirs,
+                offsets_deg=[1.0, 2.0, 5.0],
+                per_voxel=per_voxel,
+            ),  # fmt: skip
+            indent=1,
+        )
+        + "\n"
+    )
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["pilot", "run", "sets", "timing"])
+    ap.add_argument("cmd", choices=["pilot", "run", "sets", "timing", "timing-f5"])
     ap.add_argument("--kind", choices=["e0", "full"], default="e0")
     ap.add_argument("--workers", type=int, default=1)
     ap.add_argument("--dirs", type=int, default=20)
@@ -581,6 +670,10 @@ def main() -> None:
     if a.cmd == "timing":
         s = e0_sets(a.n_near, a.n_far)
         timing(a.kind, [s["near"][0], s["far"][0]] if a.kind == "e0" else [15901], a.dirs)
+        return
+    if a.cmd == "timing-f5":
+        s = e0_sets(a.n_near, a.n_far)
+        timing_f5(a.kind, [s["near"][0], s["far"][0]] if a.kind == "e0" else [15901], a.dirs)
         return
     if a.kind == "full":
         from parity_common import SIX_VOXELS

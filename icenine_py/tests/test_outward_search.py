@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Tuple
 
 import numpy as np
+import torch
 import pytest
 from scipy.spatial.transform import Rotation
 
@@ -172,14 +173,25 @@ def test_ray_gn_jacobian_matches_finite_differences_of_the_residual() -> None:
     lin = gn.linearize(R, tau)
     assert lin["m"] > 20 and lin["J"].shape == (3 * lin["m"], 3)
     h = 1e-6
+
+    def matched(Rm: np.ndarray) -> torch.Tensor:
+        with torch.no_grad():
+            pr = gn.sc.predict(torch.as_tensor(Rm, dtype=torch.float64)[None], gn.verts, gn.phase)
+            return gn._match(pr)[0]
+
+    arg0 = matched(R)
     for i in range(3):
         e = np.zeros(3)
         e[i] = h
         up = gn.linearize(rotate_left(R, e), tau)
         dn = gn.linearize(rotate_left(R, -e), tau)
         assert up["m"] == dn["m"] == lin["m"]
+        # the same rays are matched on both sides, so the residuals are differences of one function
+        assert torch.equal(matched(rotate_left(R, e)), arg0)
+        assert torch.equal(matched(rotate_left(R, -e)), arg0)
         fd = ((up["res"] - dn["res"]) / (2 * h)).numpy()
-        np.testing.assert_allclose(lin["J"][:, i].numpy(), fd, atol=2e-5)
+        # measured max abs difference 5.6e-9 (float64, max |J| about 11)
+        np.testing.assert_allclose(lin["J"][:, i].numpy(), fd, atol=1e-6)
     # the cost reported by the linearisation is the cost of the value function
     assert lin["cost"] == pytest.approx(gn.e4_value(R, tau), abs=1e-12)
 
