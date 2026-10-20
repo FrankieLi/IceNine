@@ -8185,7 +8185,8 @@ rank sum 6, and the tie went to the larger mean score (1.82 against 1.65 and 1.6
 | F1 FindOptimal, box = offset | 1.81 | 0.489 | 12 | 1.15 |  |
 <!-- /table:evalF_e0_choice_v1 -->
 
-Table 11c: the same with wall time: each method's strict-equivalent count scaled by its Table 4c ratio (current weights). It also carries F4 and F5.
+Table 11c: the same with wall time: each method's strict-equivalent count scaled by its Table 4c ratio (current weights). It also carries F4 and F5. In-sample: `timing-f5` re-ran the same cases (identical counts), so this
+table does not independently support carrying F5.
 
 <!-- table:evalF_e0_choice_wall -->
 | method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
@@ -8267,12 +8268,17 @@ Table 15: the same with the 5-frame window for the first step, E0 (in-sample).
 #### Why F4 fails from far starts
 
 `diag/e0_w1.json` (12 E0 voxels, 5 degrees): 10 of 240 runs end more than 1 degree out. Their E4 cost ends a median of 0.97 above its value at the
-truth, near 1 (almost no peak has a ray within one frame), so the step has no direction. The median share of peaks that start on the truth's own ray
+truth, near 1; consistent with few peaks having a ray within one frame and so little step direction (untested: a cost near 1 can also
+come from peaks matched to distant rays). The median share of peaks that start on the truth's own ray
 is 0.018 in the lost runs against 0.25 in the captured runs (the file stores medians only). With a 5-frame window all 240 are captured (`diag/e0_w5.json`). On the full sample 39 of 120 runs are lost with one frame and 31 of 120 with
-five. A voxel has a median of 217.5 attached rays for 58 predicted peaks on the full sample (E0: 58 for 58); this is consistent with a wide window
+five. Paired from 5 degrees, 1-frame against 5-frame window: E0 fixed 24, broken 0, both wrong 0; full sample fixed 10, broken 2, both wrong 29. A voxel has a median of 217.5 attached rays for 58 predicted peaks on the full sample (E0: 58 for 58); this is consistent with a wide window
 picking up other grains' rays (untested).
 
 #### Results on the full sample
+
+![Capture against the start offset, full sample](benchmarks/eval_reduction/F/figures/capture_vs_offset_full.png)
+
+Capture against evaluations (raw count, not time):
 
 ![Capture against evaluations, full sample](benchmarks/eval_reduction/F/figures/capture_vs_evals_full.png)
 

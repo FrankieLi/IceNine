@@ -288,22 +288,25 @@ was made up after reading the table above, so these numbers are in-sample.
 ## Why F4 fails from far starts
 
 We looked at 240 F4 runs from 5 degrees on 12 E0 voxels. Ten ended more than 1 degree out. In these ten, the E4 cost
-at the end was a median of 0.97 above its value at the truth, so it was close to 1: almost no predicted spot had an
-observed ray within one frame, and the cost gave no direction to step in. In the lost runs, a median of 2% of predicted
+at the end was a median of 0.97 above its value at the truth, so it was close to 1. That is consistent with few
+predicted spots having an observed ray within one frame, so that the cost gives little direction to step in; but a cost
+near 1 can also come from spots matched to rays far away, and we did not test which. In the lost runs, a median of 2% of predicted
 spots started on the truth's own ray. In the captured runs the median was 25%. These are medians
 (`diag/e0_w1.json`); we did not store each run's values.
 
 Widening the window to 5 frames captured all 240 runs. On the full sample it helped less: 31 of 120 runs were still lost
-(39 with one frame). A full-sample voxel has a median of 217.5 attached rays for 58 predicted spots, against 58 for 58 on
+(39 with one frame). From 5 degrees, paired run by run, the 5-frame window fixed 24 runs that one frame lost and broke none on E0 (none were wrong with both). On the full sample it fixed 10, broke 2, and 29 were wrong with both. A full-sample voxel has a median of 217.5 attached rays for 58 predicted spots, against 58 for 58 on
 E0. One possible reason is that a wide window picks up rays from other grains; we have not tested this.
 
 ## Results on the full sample
 
-The full sample adds neighbouring grains. The first plot shows capture against evaluations, as for E0.
+The full sample adds neighbouring grains. The first plot shows capture against the start offset.
+
+![Capture against the start offset, full sample](../benchmarks/eval_reduction/F/figures/capture_vs_offset_full.png)
+
+The next plot shows capture against evaluations, as for E0. Its x-axis is a raw count, not time.
 
 ![Capture against evaluations, full sample](../benchmarks/eval_reduction/F/figures/capture_vs_evals_full.png)
-
-As for E0, the x-axis of this plot is a raw count, not time.
 
 Read the next table the same way as for E0. Each cell is the share of 120 runs that ended within 1 degree. F4 is still
 perfect up to 2 degrees but drops to 68% at 5. F5, alone or followed by F4, reaches every run. These 120 runs come from
@@ -475,7 +478,8 @@ on the tie rule.
 <!-- /table:evalF_e0_choice_v1 -->
 
 As a check, the next table costs every method by its measured clock time instead: each method's strict-equivalent
-count is scaled by its ratio to the clock from the timing runs. It carries F4 and F5 too.
+count is scaled by its ratio to the clock from the timing runs. It carries F4 and F5 too. This check is in-sample:
+the F5 timing run re-ran the same cases the weights were measured on, so it does not support carrying F5 on its own.
 
 <!-- table:evalF_e0_choice_wall -->
 | method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |

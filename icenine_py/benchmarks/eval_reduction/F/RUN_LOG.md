@@ -93,9 +93,10 @@ that rest on them are not fully independent of the test voxels.
 ## 6. Why F4 fails from far starts (`diag/`)
 
 `diag/e0_w1.json`: at 5 deg, 10 of 240 runs on 12 E0 voxels end more than 1 deg out; they end with an E4 cost near
-1 (almost no peak has a ray within one frame), the share of peaks that start on the truth's ray is 0.02 against 0.25
-in the captured runs. With a 5-frame window all 240 are captured (`diag/e0_w5.json`). On the full sample the same
-holds partly: 39 of 120 not captured with one frame, 31 of 120 with five; a voxel has a median of 217.5 attached
+1 (consistent with few peaks having a ray within one frame; untested, a cost near 1 can also come from peaks matched
+to distant rays); the median share of peaks that start on the truth's ray is 0.02 against 0.25 in the captured runs. With a 5-frame window all 240 are captured (`diag/e0_w5.json`). On the full sample the same
+holds partly: 39 of 120 not captured with one frame, 31 of 120 with five (paired from 5 deg, 1 against 5 frames: E0 fixed 24, broken 0, both wrong 0; full sample
+fixed 10, broken 2, both wrong 29); a voxel has a median of 217.5 attached
 rays for 58 predicted peaks (E0: 58 for 58), consistent with a wide window picking up other grains' rays (untested).
 
 ## 7. Could be done better
