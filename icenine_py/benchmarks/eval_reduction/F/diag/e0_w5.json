@@ -1,0 +1,27 @@
+{
+ "kind": "e0",
+ "tau_deg": 0.25,
+ "frame_window": 5,
+ "median_attached_rays": 58.0,
+ "median_weighted_peaks_at_truth": 58.0,
+ "3": {
+  "n": 240,
+  "captured": {
+   "n": 240,
+   "median_share_same_ray_at_start": 0.9491525423728814,
+   "median_e4_end_minus_truth": -4.0305422890319145e-05,
+   "share_end_below_truth": 1.0,
+   "share_accepted": 1.0
+  }
+ },
+ "5": {
+  "n": 240,
+  "captured": {
+   "n": 240,
+   "median_share_same_ray_at_start": 0.8392857142857143,
+   "median_e4_end_minus_truth": -4.0304778885741615e-05,
+   "share_end_below_truth": 0.9875,
+   "share_accepted": 1.0
+  }
+ }
+}

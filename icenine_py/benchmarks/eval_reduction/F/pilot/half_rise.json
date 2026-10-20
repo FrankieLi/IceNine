@@ -1,0 +1,20 @@
+{
+ "e0": {
+  "n_walks": 600,
+  "screen_median_deg": 0.7802743315696716,
+  "screen_quartiles_deg": [
+   0.6185958385467529,
+   0.9109073281288147
+  ],
+  "strict_median_deg": 0.11249999701976776
+ },
+ "full": {
+  "n_walks": 120,
+  "screen_median_deg": 0.7635000050067902,
+  "screen_quartiles_deg": [
+   0.5966250151395798,
+   0.9169999808073044
+  ],
+  "strict_median_deg": 0.3270000070333481
+ }
+}

@@ -7835,6 +7835,628 @@ on the ranking after the quick MC, not on the screen, but each could be evaluate
   move") was not tested.
 * One image family, clean images, no extra seeds; wall times other than measurement 4 are contended and not timing claims.
 
+### Task F: searching outward from a start (2026-10-20, `feature/eval-reduction-F`)
+
+Run record: `benchmarks/eval_reduction/F/RUN_LOG.md`. Library: `icenine/outward_search.py` (`RayGaussNewton` = F4, `ShellSearch` = F5; library only,
+not wired into the reconstructor, no config key; tests `tests/test_outward_search.py`). Scripts: `scripts/eval_reduction/outward_bench.py`,
+`outward_summary.py`, `outward_pilot.py`, `outward_diag.py`. Clean images only (Q-max 8 configuration), no realistic images, no extra seeds, no
+golden test changed, no default flipped, no shared file edited; `BatchedQuickMC`, `SearchDevice` and `CandidateDedup` off (nothing here touches
+the reconstructor). Tables are generated (`benchmarks/eval_reduction/F/doc_tables_all.md`); figures in `benchmarks/eval_reduction/F/figures/`.
+
+Plain-English findings: `docs/findings_outward_search_2026-10.md` (written in the main session from this subsection, which keeps the
+full record and every table; the implementer could not create the doc).
+
+Review fixes (2026-10-20, `feature/eval-reduction-F-fixes`): F5's evaluations were re-costed at the batch sizes F5 uses (new single-worker,
+preflight-gated timing `timing/<set>_f5.json`); this changes F5's and F5+F4's strict-equivalent counts and **the E0 carry (now F4 and F5; the
+first weights carried F4 and F2 sigma0 1 deg by a three-way tie)**. The first-weight tables are kept as `*_v1`. Wording, attribution, interval and
+per-voxel fixes from the review are folded into the text below.
+
+#### Short answer
+
+1. *The two new methods reach furthest.* Table 1 shows the share of runs that end within 1 degree of the truth. From a 5 degree start F4
+   (Gauss-Newton on observed rays) reaches 95% on the E0 set and F5 (expanding shells) 100%; CMA-ES reaches 11% to 46% and FindOptimal with a
+   widened box 42%.
+2. *F4 is cheap per run, F5 cheap per evaluation.* From 5 degrees on E0 F4 makes a median of 33 raw evaluations: 13 E4 values with the Jacobian,
+   18 E4 values and 2 strict (`summary_e0.json` `composition`). One value with its Jacobian costs about 26 strict evaluations, so the Jacobians are
+   a median 92% of F4's strict-equivalent cost. In time F4 is about 358 strict evaluations: close to CMA-ES at 2 degrees, about half of CMA-ES
+   (1 degree first step) at 5 degrees. F5 needs 22,244 evaluations from 5 degrees, mostly cheap screen evaluations; at F5's own batch sizes that is
+   a median of 1,364 strict-equivalent (about 0.58 s per run, single worker).
+3. *F4 stops 0.02 to 0.05 degrees from the truth*, consistent with the resolution of the observed-ray cost (untested: `RayGNResult.converged` was
+   not saved, so a convergence failure is not ruled out); it hands over to the finisher.
+4. *F4's acceptance test was right in every run here.* The test (strict cost of the end point at most 0.8) accepted no run that ended 1 degree or
+   more out and rejected none within 1 degree, on both sets: at 5 degrees 0 of 456 accepted runs wrong (95% Wilson interval 0-0.8%) and 0 of 24
+   rejected runs right (0-13.8%) on E0; 0 of 81 (0-4.5%) and 0 of 39 (0-9.0%) on the full sample (runs counted as independent). The two groups
+   were far apart (accepted strict cost at most 0.472 on E0 and 0.159 on the full sample from 5 degrees, rejected at least 0.951; rejected runs end
+   at least 3.37 degrees out), so the test was only tried on a well-separated, two-mode outcome; it is untested where the outcomes are close. The
+   policy "F4 first, then F5 followed by F4 where F4 was rejected" ended within 1 degree in every run at every offset, on E0 and on the full sample
+   (in-sample: written down after the tables and computed from the same runs).
+5. *On the full sample F4 is weaker from far starts*: 68% within 1 degree from 5 degrees (E0: 95%). A full-sample voxel has a median of 217.5
+   attached observed rays for 58 predicted peaks (E0: 58 for 58).
+6. *A wider matching window fixes the E0 failure.* F4 matches a peak only to rays within one frame. From 5 degrees a peak moves further. With a
+   5-frame window F4 reaches 100% from 5 degrees on E0, 74% on the full sample.
+7. *The carry rule* (best capture per evaluation at 2 and 5 degrees, taken before the full-sample runs were read) carries **F4 and F5** with F5
+   costed at its own batch sizes (rank sums 3 and 3; next F2 sigma0 2 at 7, so the carry does not depend on the tie rule). With the first weights,
+   which overstated F5's time by 1.2-1.6x against its single-worker wall time, it carried F4 and F2 with a 1 degree first step, the second place by a
+   three-way tie at rank sum 6 broken by mean score (1.82 against 1.65 for F5 and 1.64 for F2 sigma0 2). A wall-time version of the rule also
+   carries F4 and F5. Run on the full sample, the same rule would carry the two CMA-ES variants (sigma0 2 and 1 degree) under every weighting; F4 is
+   third. F5 (alone or followed by F4) is the only method that finds the truth from 5 degrees in every run on both sets, which is why the policy uses
+   it as the fallback.
+8. *No default changed.* Separate module; no shared file, golden test or default touched.
+
+#### Terms
+
+* **Start, offset.** The orientation we begin from, and its angle from the true orientation: 0.1, 0.5, 1, 2, 3 and 5 degrees, 20 random directions each.
+* **Within X degrees (captured).** The method's final orientation is within X degrees of the truth (angle of R R_true^T, no symmetry reduction). The
+  truth only scores; no method uses it, except that F1's box is the offset. A tolerance of 0.001 degrees applies (R_true is float32, so a start exactly 1
+  degree out measures 0.9999 degrees).
+* **Evaluation kinds.** *Strict*: one strict cost. *Screen*: one orientation in the coarse pixel-radius screen (batched, cheap). *Smooth*: one E4
+  value, or one E4 value with its Jacobian. *Raw count*: every evaluation once. *Strict-equivalent*: each kind weighted by its measured single-worker time at the batch size the
+  method uses it (F4: one rotation per E4 call; F5: a shell per screen call, in chunks of up to 256, and 32 rotations per E4 call), relative to one
+  strict evaluation; the weights come from one voxel per set (E0 10531, full sample 15901).
+* **Ties in the choice rule.** At each offset a method's rank is 1 + the number of methods with a strictly higher score (ties share the better
+  rank); the two ranks are added; ties in the sum go to the larger mean of the two scores.
+* **Near-axis, far-from-axis.** Voxels within 120 micrometres of the rotation axis, or 250 micrometres or more from it.
+
+#### Methods
+
+* F1 FindOptimal (Monte Carlo plus variance-minimizing), box = max(default box, offset); told the offset. F2 CMA-ES, first step 0.5, 1, 2 degrees; stops at
+  a step size of 0.005 degrees or 4,000 evaluations. F3 centroid Gauss-Newton with Huber loss on windows (the hybrid finisher without the network; E0
+  only; its windows are re-rendered from the true orientation, so it is an optimistic reference).
+* F4 (new): Gauss-Newton on E4's observed-ray residual. Each predicted peak is matched to the nearest observed ray attached to the voxel (within one frame
+  in omega); the residual is the tangent-plane offset of the predicted ray (two numbers) plus the omega distance to the ray's frame; the loss is
+  `r^2 / (r^2 + tau^2)` with tau = 0.25 degrees, minimised by reweighting, Levenberg-Marquardt damping and a trust region (largest step 2 degrees, first
+  step 1 degree). The Jacobian is exact (autograd through `SmoothCost.predict`, one batched backward pass; tested against finite differences). The
+  strict cost is evaluated at the start and the end only.
+* F5 (new): equal-area points on spheres of radius k x 0.3 degrees in rotation-vector space about the start; per shell the batched screen scores every
+  point, the best 32 are re-ranked by E4 (tau 0.25 degrees), the best 2 are costed strictly; the search stops at the first strict cost of 0.8 or less
+  (at most 6 degrees). F5 then F4: F4 from the point F5 accepted. The spacing follows the basin size in `pilot/half_rise.json` (computed in Task F from
+  Task B's ray walks): the screen's score falls to half-way at 0.78 degrees (median over the E0 walks; 0.76 on the full sample), and 0.3 degrees is
+  0.38 of that (0.45 left 12% of the pilot runs without an accepted shell).
+* F6 (Riemannian Adam) was not run (the plan allows it only as a cheap reference at the smooth costs; Task E's costs are not wired into it).
+* Settings (acceptance 0.8, tau 0.25, spacing 0.3, the 5-frame window) were chosen on four E0 voxels the benchmark does not use (`pilot/`). The
+  acceptance level and the spacing also rest on the half-rise medians of `pilot/half_rise.json`, whose Task B walks include the benchmark E0 voxels
+  3108, 10531 and 17451 and all six full-sample voxels; those two settings are therefore not fully independent of the test voxels.
+
+#### Test set
+
+E0: 8 near-axis and 16 far-from-axis voxels of the 200 (per-voxel clean images), 20 directions, 6 offsets: 480 runs per method and offset. Full sample: the
+six interior voxels (clean full-sample images), 20 directions, offsets 1, 2, 5 degrees: 120 runs per method and offset; F3 does not run there.
+Main-run wall times are contended (five workers); single-worker times come from a separate preflight-gated run (`timing/`). The E0 run was done twice;
+all non-timing arrays are identical.
+
+#### Results on E0
+
+Capture against evaluations (read: the x-axis is a raw count, not time, so one F4 Jacobian counts 1 but costs about 26 strict evaluations and
+one F5 screen counts 1 but costs about 0.04; read it for lost runs, a curve that levels off below 1, and compare cost in Tables 6 and 18; F5 lies
+under F5+F4):
+
+![Capture against evaluations, E0](benchmarks/eval_reduction/F/figures/capture_vs_evals_e0.png)
+
+Table 1: share of runs ending within 1 degree of the truth, E0 (95% interval). A start exactly 1 degree out is not counted as captured (tolerance
+0.001 degrees), so the 1 degree column counts only runs that moved in. Intervals treat the 480 runs (24 voxels x 20) as independent; runs on one
+voxel share its images (per-voxel counts: Table 10b).
+
+<!-- table:evalF_e0_cap1 -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 100% (99-100) | 100% (99-100) | 99% (98-100) | 85% (81-88) | 66% (62-70) | 42% (38-47) |
+| F2 CMA-ES, sigma0 0.5 deg | 100% (99-100) | 100% (99-100) | 100% (99-100) | 82% (78-85) | 47% (43-52) | 11% (9-14) |
+| F2 CMA-ES, sigma0 1 deg | 100% (99-100) | 100% (99-100) | 99% (98-100) | 98% (96-99) | 80% (76-84) | 32% (28-37) |
+| F2 CMA-ES, sigma0 2 deg | 100% (99-100) | 99% (98-100) | 93% (91-95) | 89% (86-92) | 81% (77-84) | 46% (42-51) |
+| F3 centroid Gauss-Newton (windows) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 88% (85-91) |
+| F4 Gauss-Newton on E4 rays | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (98-100) | 95% (93-97) |
+| F4 with a 5-frame matching window | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+| F5 expanding shells | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+| F5 then F4 | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+<!-- /table:evalF_e0_cap1 -->
+
+Capture against the start offset:
+
+![Capture against the start offset, E0](benchmarks/eval_reduction/F/figures/capture_vs_offset_e0.png)
+
+Table 2: share within 0.05 degrees, E0 (95% interval). F4's share is flat near 90%, consistent with the resolution of E4 (untested). CMA-ES is
+sharper when it gets there.
+
+<!-- table:evalF_e0_cap005 -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 86% (83-89) | 66% (62-70) | 58% (53-62) | 32% (28-36) | 21% (18-25) | 7% (5-9) |
+| F2 CMA-ES, sigma0 0.5 deg | 100% (99-100) | 99% (98-100) | 99% (98-100) | 81% (77-84) | 46% (42-51) | 11% (8-14) |
+| F2 CMA-ES, sigma0 1 deg | 99% (98-100) | 99% (98-100) | 98% (96-99) | 96% (94-98) | 79% (75-82) | 32% (28-36) |
+| F2 CMA-ES, sigma0 2 deg | 94% (92-96) | 90% (87-93) | 92% (89-94) | 86% (83-89) | 80% (76-83) | 43% (39-48) |
+| F3 centroid Gauss-Newton (windows) | 96% (94-97) | 96% (94-97) | 96% (94-97) | 96% (94-97) | 96% (94-97) | 87% (83-89) |
+| F4 Gauss-Newton on E4 rays | 91% (88-93) | 90% (87-93) | 91% (88-93) | 91% (89-94) | 90% (87-92) | 87% (84-90) |
+| F4 with a 5-frame matching window | 92% (89-94) | 90% (87-93) | 93% (90-95) | 93% (91-95) | 93% (91-95) | 93% (90-95) |
+| F5 expanding shells | 0% (0-1) | 0% (0-1) | 0% (0-1) | 0% (0-1) | 6% (4-8) | 0% (0-1) |
+| F5 then F4 | 91% (88-93) | 91% (88-93) | 90% (87-92) | 91% (88-93) | 91% (88-93) | 90% (87-92) |
+<!-- /table:evalF_e0_cap005 -->
+
+Table 3: median final error in degrees, E0. F4 sits near 0.02 whatever the offset; F5 alone sits at the shell spacing.
+
+<!-- table:evalF_e0_err -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 0.0129 | 0.0212 | 0.0360 | 0.1118 | 0.2374 | 2.4255 |
+| F2 CMA-ES, sigma0 0.5 deg | 0.0000 | 0.0000 | 0.0000 | 0.0076 | 1.9106 | 4.9791 |
+| F2 CMA-ES, sigma0 1 deg | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0085 | 4.3222 |
+| F2 CMA-ES, sigma0 2 deg | 0.0012 | 0.0014 | 0.0020 | 0.0040 | 0.0084 | 2.3745 |
+| F3 centroid Gauss-Newton (windows) | 0.0110 | 0.0110 | 0.0110 | 0.0110 | 0.0110 | 0.0147 |
+| F4 Gauss-Newton on E4 rays | 0.0232 | 0.0238 | 0.0241 | 0.0235 | 0.0241 | 0.0244 |
+| F4 with a 5-frame matching window | 0.0220 | 0.0228 | 0.0220 | 0.0220 | 0.0228 | 0.0220 |
+| F5 expanding shells | 0.0996 | 0.2249 | 0.1608 | 0.2266 | 0.1460 | 0.2238 |
+| F5 then F4 | 0.0232 | 0.0244 | 0.0244 | 0.0241 | 0.0232 | 0.0232 |
+<!-- /table:evalF_e0_err -->
+
+Table 4: time of one evaluation of each kind, single worker, E0 images, voxel 10531 (preflight passed: `timing/preflight_e0.json`, load 1.39;
+`timing/preflight_e0_f5.json`, load 1.37). One E4 value with its Jacobian costs about 26 strict evaluations (16 single E4 values). F5's rows are
+timed in F5's own call pattern (`outward_bench.py timing-f5`); the 64-batch screen row gave the first (v1) weights only.
+
+<!-- table:evalF_e0_timing -->
+| kind of evaluation | used for | milliseconds | times a strict evaluation |
+|---|---|---|---|
+| strict cost | all methods | 0.4219 | 1.000 |
+| screen (pixel radius 3), per orientation, batches of 64 | v1 weights only | 0.0230 | 0.054 |
+| E4 value, one rotation per call | F4 | 0.6584 | 1.561 |
+| E4 value and Jacobian, one rotation per call | F4 | 10.7970 | 25.592 |
+| screen, per orientation, a shell at a time (chunks of up to 256) | F5 | 0.0175 | 0.042 |
+| E4 value, per orientation, 32 rotations per call | F5 | 0.3670 | 0.870 |
+<!-- /table:evalF_e0_timing -->
+
+Table 4b: the same times on both E0 timing voxels (single-worker, `timing/e0_f5.json`; the weights use 10531 only).
+
+<!-- table:evalF_e0_timing_voxels -->
+| voxel | weights from it | F4 E4 value (ms) | F4 E4 value and Jacobian (ms) | F5 screen (ms per orientation) | F5 E4 (ms per orientation) | strict inside F5 (ms) |
+|---|---|---|---|---|---|---|
+| 10531 | yes | 0.649 | 11.04 | 0.0175 | 0.367 | 0.443 |
+| 3108 |  | 0.630 | 8.76 | 0.0168 | 0.352 | 0.464 |
+<!-- /table:evalF_e0_timing_voxels -->
+
+Table 4c: strict-equivalent count over single-worker wall time (in strict evaluations), median per run on the timing run's cases (2 voxels,
+5 directions, 10 runs per cell), first (v1) weights -> current weights. The v1 weights overstated F5 by 1.5-1.6x and F5+F4 by 1.25-1.43x.
+
+<!-- table:evalF_e0_se_vs_wall -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 1.04 -> 1.04 | 1.03 -> 1.03 | 1.03 -> 1.03 |
+| F2 CMA-ES, sigma0 0.5 deg | 0.99 -> 0.99 | 0.99 -> 0.99 | 0.99 -> 0.99 |
+| F2 CMA-ES, sigma0 1 deg | 0.99 -> 0.99 | 0.99 -> 0.99 | 1.00 -> 1.00 |
+| F2 CMA-ES, sigma0 2 deg | 1.00 -> 1.00 | 1.00 -> 1.00 | 0.99 -> 0.99 |
+| F4 Gauss-Newton on E4 rays | 1.06 -> 1.06 | 1.08 -> 1.08 | 1.11 -> 1.11 |
+| F4 with a 5-frame matching window | 1.05 -> 1.05 | 1.05 -> 1.05 | 1.05 -> 1.05 |
+| F5 expanding shells | 1.62 -> 0.96 | 1.61 -> 0.99 | 1.48 -> 1.02 |
+| F5 then F4 | 1.25 -> 1.01 | 1.41 -> 1.02 | 1.43 -> 1.02 |
+<!-- /table:evalF_e0_se_vs_wall -->
+
+Table 5: evaluations until the method stops, raw count, median (90th percentile), E0. F3 makes no cost evaluations.
+
+<!-- table:evalF_e0_stop_raw -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 573 (650) | 496 (540) | 452 (474) | 467 (505) | 529 (551) | 870 (870) |
+| F2 CMA-ES, sigma0 0.5 deg | 225 (281) | 239 (302) | 260 (323) | 323 (562) | 456 (1030) | 715 (1422) |
+| F2 CMA-ES, sigma0 1 deg | 267 (330) | 267 (330) | 274 (345) | 309 (407) | 365 (786) | 659 (1919) |
+| F2 CMA-ES, sigma0 2 deg | 316 (457) | 330 (582) | 330 (541) | 344 (758) | 379 (1054) | 684 (2544) |
+| F3 centroid Gauss-Newton (windows) | n/a (n/a) | n/a (n/a) | n/a (n/a) | n/a (n/a) | n/a (n/a) | n/a (n/a) |
+| F4 Gauss-Newton on E4 rays | 14 (35) | 20 (40) | 26 (45) | 28 (43) | 30 (47) | 33 (48) |
+| F4 with a 5-frame matching window | 14 (34) | 20 (40) | 26 (46) | 28 (45) | 30 (46) | 32 (50) |
+| F5 expanding shells | 1 (1) | 32 (125) | 290 (290) | 1511 (2257) | 5916 (5916) | 22244 (26472) |
+| F5 then F4 | 15 (36) | 52.5 (141) | 304 (326) | 1529 (2271) | 5928 (5943) | 22261 (26486) |
+<!-- /table:evalF_e0_stop_raw -->
+
+Table 6: the same, strict-equivalent (time-weighted, current weights), E0. F3's row is its measured time per run divided by a strict
+evaluation's time. With the v1 weights F5 was 357 at 2 degrees and 1,986 at 5 degrees (`summary_e0.json` `stop_se_v1`).
+
+<!-- table:evalF_e0_stop_se -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 573 (650) | 496 (540) | 452 (474) | 467 (505) | 529 (551) | 870 (870) |
+| F2 CMA-ES, sigma0 0.5 deg | 225 (281) | 239 (302) | 260 (323) | 323 (562) | 456 (1030) | 715 (1422) |
+| F2 CMA-ES, sigma0 1 deg | 267 (330) | 267 (330) | 274 (345) | 309 (407) | 365 (786) | 659 (1919) |
+| F2 CMA-ES, sigma0 2 deg | 316 (457) | 330 (582) | 330 (541) | 344 (758) | 379 (1054) | 684 (2544) |
+| F3 centroid Gauss-Newton (windows) | 426 (426) | 426 (426) | 426 (426) | 426 (426) | 426 (426) | 426 (426) |
+| F4 Gauss-Newton on E4 rays | 141 (205) | 214 (288) | 268 (340) | 304 (377) | 331 (404) | 358 (431) |
+| F4 with a 5-frame matching window | 141 (216) | 214 (288) | 268 (359) | 304 (377) | 331 (395) | 358 (425) |
+| F5 expanding shells | 1 (1) | 15.7 (48) | 83.2 (83.2) | 219 (279) | 516 (516) | 1364 (1568) |
+| F5 then F4 | 142 (206) | 184 (255) | 224 (314) | 388 (452) | 647 (713) | 1533 (1709) |
+<!-- /table:evalF_e0_stop_se -->
+
+Table 7: seconds per run, single worker, E0 (two voxels, 5 directions, offsets 1, 2 and 5 degrees).
+
+<!-- table:evalF_e0_secs_single -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | n/a | n/a | 0.183 | 0.190 | n/a | 0.355 |
+| F2 CMA-ES, sigma0 0.5 deg | n/a | n/a | 0.142 | 0.146 | n/a | 0.333 |
+| F2 CMA-ES, sigma0 1 deg | n/a | n/a | 0.125 | 0.127 | n/a | 0.323 |
+| F2 CMA-ES, sigma0 2 deg | n/a | n/a | 0.151 | 0.143 | n/a | 0.453 |
+| F3 centroid Gauss-Newton (windows) | n/a | n/a | 0.177 | 0.182 | n/a | 0.185 |
+| F4 Gauss-Newton on E4 rays | n/a | n/a | 0.091 | 0.112 | n/a | 0.124 |
+| F4 with a 5-frame matching window | n/a | n/a | 0.091 | 0.113 | n/a | 0.133 |
+| F5 expanding shells | n/a | n/a | 0.037 | 0.094 | n/a | 0.579 |
+| F5 then F4 | n/a | n/a | 0.095 | 0.157 | n/a | 0.656 |
+<!-- /table:evalF_e0_secs_single -->
+
+Table 8: evaluations until the method's current best first comes within 1 degree, among the runs that get there, median (90th percentile), E0. This
+uses the truth (a diagnostic, not what a method can know).
+
+<!-- table:evalF_e0_tocap1 -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 0 (0) n=480 | 0 (0) n=480 | 5 (30.8) n=479 | 32 (193) n=409 | 81 (223) n=325 | 126 (433) n=211 |
+| F2 CMA-ES, sigma0 0.5 deg | 0 (0) n=480 | 0 (0) n=480 | 4 (13) n=479 | 32 (110) n=395 | 68 (177) n=227 | 133 (416) n=54 |
+| F2 CMA-ES, sigma0 1 deg | 0 (0) n=480 | 0 (0) n=480 | 9 (27.4) n=477 | 23 (74) n=471 | 44.5 (126) n=386 | 109 (236) n=157 |
+| F2 CMA-ES, sigma0 2 deg | 0 (0) n=480 | 0 (0) n=480 | 25 (82) n=451 | 30.5 (101) n=434 | 48 (135) n=392 | 82.5 (268) n=226 |
+| F3 centroid Gauss-Newton (windows) | 0 (0) n=480 | 0 (0) n=480 | 3 (3) n=480 | 3 (3) n=480 | 3 (3) n=480 | 3 (3) n=423 |
+| F4 Gauss-Newton on E4 rays | 0 (0) n=480 | 0 (0) n=480 | 5 (5) n=480 | 7 (7) n=480 | 9 (9) n=478 | 11 (11) n=456 |
+| F4 with a 5-frame matching window | 0 (0) n=480 | 0 (0) n=480 | 5 (5) n=480 | 7 (7) n=480 | 9 (9) n=480 | 11 (11) n=480 |
+| F5 expanding shells | 0 (0) n=480 | 0 (0) n=480 | 33 (33) n=480 | 558 (955) n=480 | 2258 (3221) n=480 | 15197 (18496) n=480 |
+| F5 then F4 | 0 (0) n=480 | 0 (0) n=480 | 33 (33) n=480 | 558 (955) n=480 | 2258 (3221) n=480 | 15197 (18496) n=480 |
+<!-- /table:evalF_e0_tocap1 -->
+
+Near-axis and far-from-axis voxels (read: the panels look alike for F4, F5 and CMA-ES; no detectable difference at the 1 degree bar with 8 and
+16 voxels; at 0.05 degrees see Table 10):
+
+![Near-axis and far-from-axis](benchmarks/eval_reduction/F/figures/nearfar_e0.png)
+
+Table 9: within 1 degree, by voxel class (95% interval).
+
+<!-- table:evalF_e0_nearfar_cap1 -->
+| method | near-axis, 2 deg | near-axis, 3 deg | near-axis, 5 deg | far-from-axis, 2 deg | far-from-axis, 3 deg | far-from-axis, 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 84% (77-89) | 66% (59-73) | 44% (36-51) | 85% (81-88) | 66% (61-71) | 42% (37-47) |
+| F2 CMA-ES, sigma0 0.5 deg | 77% (70-83) | 49% (42-57) | 12% (8-18) | 84% (80-88) | 46% (41-52) | 11% (8-14) |
+| F2 CMA-ES, sigma0 1 deg | 97% (93-99) | 77% (70-83) | 34% (27-41) | 98% (96-99) | 82% (77-86) | 32% (27-37) |
+| F2 CMA-ES, sigma0 2 deg | 89% (83-93) | 84% (78-89) | 53% (45-61) | 90% (86-93) | 79% (75-83) | 43% (38-48) |
+| F3 centroid Gauss-Newton (windows) | 100% (98-100) | 100% (98-100) | 89% (84-93) | 100% (99-100) | 100% (99-100) | 88% (83-91) |
+| F4 Gauss-Newton on E4 rays | 100% (98-100) | 99% (97-100) | 95% (90-97) | 100% (99-100) | 100% (98-100) | 95% (92-97) |
+| F4 with a 5-frame matching window | 100% (98-100) | 100% (98-100) | 100% (98-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+| F5 expanding shells | 100% (98-100) | 100% (98-100) | 100% (98-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+| F5 then F4 | 100% (98-100) | 100% (98-100) | 100% (98-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+<!-- /table:evalF_e0_nearfar_cap1 -->
+
+Table 10: within 0.05 degrees, by voxel class (95% interval). F4's far-from-axis share is lower than its near-axis share (5 degrees: 147/160
+near against 270/320 far; 2 degrees: 154/160 against 285/320); not investigated.
+
+<!-- table:evalF_e0_nearfar_cap005 -->
+| method | near-axis, 2 deg | near-axis, 3 deg | near-axis, 5 deg | far-from-axis, 2 deg | far-from-axis, 3 deg | far-from-axis, 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 22% (17-30) | 15% (10-21) | 4% (2-8) | 37% (31-42) | 24% (20-29) | 8% (6-12) |
+| F2 CMA-ES, sigma0 0.5 deg | 77% (70-83) | 47% (39-55) | 12% (8-18) | 83% (79-87) | 46% (41-52) | 10% (7-14) |
+| F2 CMA-ES, sigma0 1 deg | 94% (90-97) | 76% (68-82) | 31% (25-39) | 98% (95-99) | 80% (75-84) | 32% (27-37) |
+| F2 CMA-ES, sigma0 2 deg | 84% (78-89) | 82% (76-88) | 51% (43-58) | 88% (83-91) | 78% (73-82) | 39% (34-45) |
+| F3 centroid Gauss-Newton (windows) | 88% (81-92) | 88% (81-92) | 85% (79-90) | 100% (99-100) | 100% (99-100) | 88% (83-91) |
+| F4 Gauss-Newton on E4 rays | 96% (92-98) | 97% (93-99) | 92% (87-95) | 89% (85-92) | 87% (82-90) | 84% (80-88) |
+| F4 with a 5-frame matching window | 97% (93-99) | 99% (96-100) | 96% (92-98) | 92% (88-94) | 91% (87-93) | 91% (88-94) |
+| F5 expanding shells | 0% (0-2) | 6% (3-11) | 0% (0-2) | 0% (0-1) | 6% (4-9) | 0% (0-1) |
+| F5 then F4 | 94% (89-97) | 93% (88-96) | 92% (87-96) | 89% (85-92) | 90% (86-93) | 89% (85-92) |
+<!-- /table:evalF_e0_nearfar_cap005 -->
+
+Table 10b: per voxel, E0: on how many of the 24 voxels at least one of the 20 runs ended 1 degree or more out, and the fewest runs within
+1 degree on any voxel. F4 from 5 degrees loses runs on 14 of 24 voxels, at most 3 per voxel.
+
+<!-- table:evalF_e0_pervoxel_cap1 -->
+| method | 2 deg: voxels with a lost run | 2 deg: fewest within 1 deg | 3 deg: voxels with a lost run | 3 deg: fewest within 1 deg | 5 deg: voxels with a lost run | 5 deg: fewest within 1 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 23 of 24 | 12 of 20 | 24 of 24 | 7 of 20 | 24 of 24 | 6 of 20 |
+| F2 CMA-ES, sigma0 1 deg | 10 of 24 | 18 of 20 | 24 of 24 | 13 of 20 | 24 of 24 | 3 of 20 |
+| F2 CMA-ES, sigma0 2 deg | 22 of 24 | 16 of 20 | 24 of 24 | 13 of 20 | 24 of 24 | 3 of 20 |
+| F4 Gauss-Newton on E4 rays | 0 of 24 | 20 of 20 | 2 of 24 | 19 of 20 | 14 of 24 | 17 of 20 |
+| F4 with a 5-frame matching window | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 |
+| F5 expanding shells | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 |
+| F5 then F4 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 |
+<!-- /table:evalF_e0_pervoxel_cap1 -->
+
+#### Decision point (non-blocking; the plan's default taken)
+
+Rule (fixed before the full-sample runs were read): the share within 1 degree divided by the median strict-equivalent evaluations to stop, at 2 and
+at 5 degrees, ranked at each offset (rank = 1 + the number of strictly higher scores, so ties share the better rank), ranks added, the two lowest
+sums carried, ties in the sum by the larger mean score. The rule is unchanged by the review; the F5 weights under it changed. Candidates: the plan's methods (F1, F2 in
+three variants, F4, F5, F5+F4); F3 cannot run on the full sample.
+
+![Efficiency, E0](benchmarks/eval_reduction/F/figures/efficiency_e0.png)
+
+Table 11: the choice, E0, current weights. Score is the share within 1 degree per 1,000 strict-equivalent evaluations. **Carried: F4 and F5**
+(rank sums 3 and 3; the next, F2 sigma0 2, has 7, so the carry does not depend on the tie rule).
+
+<!-- table:evalF_e0_choice -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 3 | 2.97 | yes |
+| F5 expanding shells | 4.56 | 0.733 | 3 | 2.65 | yes |
+| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 7 | 1.64 |  |
+| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 8 | 1.82 |  |
+| F5 then F4 | 2.58 | 0.652 | 9 | 1.61 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 13 | 1.34 |  |
+| F1 FindOptimal, box = offset | 1.81 | 0.489 | 13 | 1.15 |  |
+<!-- /table:evalF_e0_choice -->
+
+Table 11b: the same with the first (v1) weights, as first reported. It carried F4 and F2 sigma0 1 degree; F2 sigma0 1, F5 and F2 sigma0 2 tied at
+rank sum 6, and the tie went to the larger mean score (1.82 against 1.65 and 1.64), nearly all of it from the 2 degree score.
+
+<!-- table:evalF_e0_choice_v1 -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 2 | 2.97 | yes |
+| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 6 | 1.82 | yes |
+| F5 expanding shells | 2.8 | 0.503 | 6 | 1.65 |  |
+| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 6 | 1.64 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 12 | 1.34 |  |
+| F5 then F4 | 1.9 | 0.464 | 12 | 1.18 |  |
+| F1 FindOptimal, box = offset | 1.81 | 0.489 | 12 | 1.15 |  |
+<!-- /table:evalF_e0_choice_v1 -->
+
+Table 11c: the same with wall time: each method's strict-equivalent count scaled by its Table 4c ratio (current weights). It also carries F4 and F5. In-sample: `timing-f5` re-ran the same cases (identical counts), so this
+table does not independently support carrying F5.
+
+<!-- table:evalF_e0_choice_wall -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 3.56 | 2.95 | 3 | 3.25 | yes |
+| F5 expanding shells | 4.51 | 0.746 | 3 | 2.63 | yes |
+| F5 then F4 | 2.62 | 0.665 | 8 | 1.64 |  |
+| F2 CMA-ES, sigma0 2 deg | 2.59 | 0.672 | 8 | 1.63 |  |
+| F2 CMA-ES, sigma0 1 deg | 3.13 | 0.492 | 9 | 1.81 |  |
+| F1 FindOptimal, box = offset | 1.87 | 0.501 | 12 | 1.19 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.51 | 0.154 | 13 | 1.33 |  |
+<!-- /table:evalF_e0_choice_wall -->
+
+Table 12: the same rule with F4 given the 5-frame window (added after the failure analysis; nothing is carried from this table).
+
+<!-- table:evalF_e0_choice_with_f4w -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 with a 5-frame matching window | 3.29 | 2.79 | 3 | 3.04 |  |
+| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 4 | 2.97 |  |
+| F5 expanding shells | 4.56 | 0.733 | 4 | 2.65 |  |
+| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 9 | 1.64 |  |
+| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 10 | 1.82 |  |
+| F5 then F4 | 2.58 | 0.652 | 11 | 1.61 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 15 | 1.34 |  |
+| F1 FindOptimal, box = offset | 1.81 | 0.489 | 15 | 1.15 |  |
+<!-- /table:evalF_e0_choice_with_f4w -->
+
+Table 13: acceptance (strict cost of the end point at most 0.8) against the truth, E0. Read each cell as: accepted, how many of those ended more than 1
+degree out, and how many of the rejected runs were nevertheless within 1 degree.
+
+<!-- table:evalF_e0_acc -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 478 accepted, 0 of them wrong; 0 of 2 rejected were right | 456 accepted, 0 of them wrong; 0 of 24 rejected were right |
+| F5 expanding shells | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right |
+| F5 then F4 | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right |
+<!-- /table:evalF_e0_acc -->
+
+Table 13b: the acceptance test with 95% Wilson intervals (runs counted as independent) and its margin, E0: largest accepted and smallest rejected
+strict cost, largest error accepted and smallest error rejected. The groups are far apart (rejected runs end 3.14 degrees or more out), so the test
+was not tried where a wrong end point is close to the truth.
+
+<!-- table:evalF_e0_acc_margin -->
+| method | runs | accepted but wrong | rejected but right | largest accepted strict cost | smallest rejected strict cost | largest error accepted (deg) | smallest error rejected (deg) |
+|---|---|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | all offsets | 0 of 2854 (0.0-0.1%) | 0 of 26 (0.0-12.9%) | 0.602 | 0.951 | 0.168 | 3.14 |
+| F4 Gauss-Newton on E4 rays | 5 deg | 0 of 456 (0.0-0.8%) | 0 of 24 (0.0-13.8%) | 0.472 | 0.951 | 0.168 | 3.71 |
+| F4 with a 5-frame matching window | all offsets | 0 of 2880 (0.0-0.1%) | none | 0.797 | n/a | 0.245 | n/a |
+| F4 with a 5-frame matching window | 5 deg | 0 of 480 (0.0-0.8%) | none | 0.469 | n/a | 0.169 | n/a |
+<!-- /table:evalF_e0_acc_margin -->
+
+Table 14: F4 first, then F5 followed by F4 where F4 was rejected, E0. Defined after Table 13, on the same runs: in-sample.
+
+<!-- table:evalF_e0_policy -->
+| offset | runs | F4 rejected, F5+F4 run | within 1 deg | within 0.1 deg | within 0.05 deg | median evals (strict-equivalent) | 90th percentile |
+|---|---|---|---|---|---|---|---|
+| 0.1 deg | 480 | 0 | 100% (99-100) | 99% (98-100) | 91% (88-93) | 141 | 205 |
+| 0.5 deg | 480 | 0 | 100% (99-100) | 99% (97-99) | 90% (87-93) | 214 | 288 |
+| 1 deg | 480 | 0 | 100% (99-100) | 99% (98-100) | 91% (88-93) | 268 | 340 |
+| 2 deg | 480 | 0 | 100% (99-100) | 98% (97-99) | 91% (89-94) | 304 | 377 |
+| 3 deg | 480 | 2 | 100% (99-100) | 98% (97-99) | 90% (87-93) | 331 | 410 |
+| 5 deg | 480 | 24 | 100% (99-100) | 99% (97-99) | 91% (89-94) | 358 | 468 |
+<!-- /table:evalF_e0_policy -->
+
+Table 15: the same with the 5-frame window for the first step, E0 (in-sample).
+
+<!-- table:evalF_e0_policy_f4w -->
+| offset | runs | F4 w5 rejected, F5+F4 run | within 1 deg | within 0.1 deg | within 0.05 deg | median evals (strict-equivalent) | 90th percentile |
+|---|---|---|---|---|---|---|---|
+| 0.1 deg | 480 | 0 | 100% (99-100) | 100% (98-100) | 92% (89-94) | 141 | 216 |
+| 0.5 deg | 480 | 0 | 100% (99-100) | 99% (97-99) | 90% (87-93) | 214 | 288 |
+| 1 deg | 480 | 0 | 100% (99-100) | 99% (98-100) | 93% (90-95) | 268 | 359 |
+| 2 deg | 480 | 0 | 100% (99-100) | 99% (97-99) | 93% (91-95) | 304 | 377 |
+| 3 deg | 480 | 0 | 100% (99-100) | 99% (98-100) | 93% (91-95) | 331 | 395 |
+| 5 deg | 480 | 0 | 100% (99-100) | 99% (97-99) | 93% (90-95) | 358 | 425 |
+<!-- /table:evalF_e0_policy_f4w -->
+
+#### Why F4 fails from far starts
+
+`diag/e0_w1.json` (12 E0 voxels, 5 degrees): 10 of 240 runs end more than 1 degree out. Their E4 cost ends a median of 0.97 above its value at the
+truth, near 1; consistent with few peaks having a ray within one frame and so little step direction (untested: a cost near 1 can also
+come from peaks matched to distant rays). The median share of peaks that start on the truth's own ray
+is 0.018 in the lost runs against 0.25 in the captured runs (the file stores medians only). With a 5-frame window all 240 are captured (`diag/e0_w5.json`). On the full sample 39 of 120 runs are lost with one frame and 31 of 120 with
+five. Paired from 5 degrees, 1-frame against 5-frame window: E0 fixed 24, broken 0, both wrong 0; full sample fixed 10, broken 2, both wrong 29. A voxel has a median of 217.5 attached rays for 58 predicted peaks on the full sample (E0: 58 for 58); this is consistent with a wide window
+picking up other grains' rays (untested).
+
+#### Results on the full sample
+
+![Capture against the start offset, full sample](benchmarks/eval_reduction/F/figures/capture_vs_offset_full.png)
+
+Capture against evaluations (raw count, not time):
+
+![Capture against evaluations, full sample](benchmarks/eval_reduction/F/figures/capture_vs_evals_full.png)
+
+Table 16: share within 1 degree, full sample (95% interval; the 120 runs come from 6 voxels and are counted as independent, see Table 16b).
+
+<!-- table:evalF_full_cap1 -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 100% (97-100) | 96% (91-98) | 56% (47-64) |
+| F2 CMA-ES, sigma0 0.5 deg | 100% (97-100) | 92% (86-96) | 11% (6-18) |
+| F2 CMA-ES, sigma0 1 deg | 100% (97-100) | 100% (97-100) | 42% (33-51) |
+| F2 CMA-ES, sigma0 2 deg | 97% (92-99) | 98% (93-99) | 76% (67-83) |
+| F4 Gauss-Newton on E4 rays | 100% (97-100) | 100% (97-100) | 68% (59-75) |
+| F4 with a 5-frame matching window | 100% (97-100) | 100% (97-100) | 74% (66-81) |
+| F5 expanding shells | 100% (97-100) | 100% (97-100) | 100% (97-100) |
+| F5 then F4 | 100% (97-100) | 100% (97-100) | 100% (97-100) |
+<!-- /table:evalF_full_cap1 -->
+
+Table 16b: runs within 1 degree out of 20, per full-sample voxel, from 5 degrees. F4 loses runs on every voxel (10 to 18 of 20 captured).
+
+<!-- table:evalF_full_pervoxel_cap1_5 -->
+| method | voxel 5242 | voxel 15901 | voxel 17034 | voxel 18558 | voxel 19889 | voxel 22867 |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 11 of 20 | 12 of 20 | 10 of 20 | 15 of 20 | 7 of 20 | 12 of 20 |
+| F2 CMA-ES, sigma0 1 deg | 9 of 20 | 9 of 20 | 6 of 20 | 7 of 20 | 7 of 20 | 12 of 20 |
+| F2 CMA-ES, sigma0 2 deg | 15 of 20 | 14 of 20 | 18 of 20 | 15 of 20 | 15 of 20 | 14 of 20 |
+| F4 Gauss-Newton on E4 rays | 14 of 20 | 18 of 20 | 14 of 20 | 12 of 20 | 13 of 20 | 10 of 20 |
+| F4 with a 5-frame matching window | 14 of 20 | 19 of 20 | 17 of 20 | 14 of 20 | 14 of 20 | 11 of 20 |
+| F5 expanding shells | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 |
+| F5 then F4 | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 |
+<!-- /table:evalF_full_pervoxel_cap1_5 -->
+
+Table 17: share within 0.05 degrees, full sample (95% interval). F4 resolves less well here than on E0.
+
+<!-- table:evalF_full_cap005 -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 81% (73-87) | 63% (54-71) | 22% (15-30) |
+| F2 CMA-ES, sigma0 0.5 deg | 89% (82-94) | 82% (74-88) | 8% (5-15) |
+| F2 CMA-ES, sigma0 1 deg | 92% (85-95) | 89% (82-94) | 41% (32-50) |
+| F2 CMA-ES, sigma0 2 deg | 91% (84-95) | 92% (86-96) | 66% (57-74) |
+| F4 Gauss-Newton on E4 rays | 33% (26-42) | 33% (26-42) | 25% (18-33) |
+| F4 with a 5-frame matching window | 50% (41-59) | 50% (41-59) | 37% (29-46) |
+| F5 expanding shells | 0% (0-3) | 0% (0-3) | 0% (0-3) |
+| F5 then F4 | 33% (26-42) | 33% (26-42) | 33% (26-42) |
+<!-- /table:evalF_full_cap005 -->
+
+Table 18a: time of one evaluation of each kind, single worker, full-sample images, voxel 15901 (preflight passed: `timing/preflight_full.json`,
+`timing/preflight_full_f5.json`). These are the weights of the full-sample tables: E4 value 3.41 and Jacobian 27.45 strict evaluations for F4.
+
+<!-- table:evalF_full_timing -->
+| kind of evaluation | used for | milliseconds | times a strict evaluation |
+|---|---|---|---|
+| strict cost | all methods | 0.4398 | 1.000 |
+| screen (pixel radius 3), per orientation, batches of 64 | v1 weights only | 0.0224 | 0.051 |
+| E4 value, one rotation per call | F4 | 1.4978 | 3.406 |
+| E4 value and Jacobian, one rotation per call | F4 | 12.0732 | 27.452 |
+| screen, per orientation, a shell at a time (chunks of up to 256) | F5 | 0.0175 | 0.040 |
+| E4 value, per orientation, 32 rotations per call | F5 | 1.2144 | 2.761 |
+<!-- /table:evalF_full_timing -->
+
+Table 18b: strict-equivalent over single-worker wall time, full sample (1 voxel, 5 directions, 5 runs per cell), v1 -> current weights.
+
+<!-- table:evalF_full_se_vs_wall -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 1.05 -> 1.05 | 1.04 -> 1.04 | 1.04 -> 1.04 |
+| F2 CMA-ES, sigma0 0.5 deg | 1.02 -> 1.02 | 1.00 -> 1.00 | 1.01 -> 1.01 |
+| F2 CMA-ES, sigma0 1 deg | 1.01 -> 1.01 | 1.01 -> 1.01 | 1.02 -> 1.02 |
+| F2 CMA-ES, sigma0 2 deg | 1.02 -> 1.02 | 1.02 -> 1.02 | 1.01 -> 1.01 |
+| F4 Gauss-Newton on E4 rays | 1.07 -> 1.07 | 1.06 -> 1.06 | 1.05 -> 1.05 |
+| F4 with a 5-frame matching window | 1.06 -> 1.06 | 1.06 -> 1.06 | 1.05 -> 1.05 |
+| F5 expanding shells | 1.18 -> 0.96 | 1.19 -> 0.97 | 1.22 -> 0.98 |
+| F5 then F4 | 1.10 -> 1.02 | 1.15 -> 0.99 | 1.20 -> 0.99 |
+<!-- /table:evalF_full_se_vs_wall -->
+
+Table 18: evaluations until the method stops, strict-equivalent (current weights), median (90th percentile), full sample. With the v1 weights F5
+was 2,523 at 5 degrees.
+
+<!-- table:evalF_full_stop_se -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 496 (540) | 467 (553) | 870 (902) |
+| F2 CMA-ES, sigma0 0.5 deg | 281 (422) | 323 (527) | 393 (569) |
+| F2 CMA-ES, sigma0 1 deg | 288 (415) | 312 (478) | 438 (625) |
+| F2 CMA-ES, sigma0 2 deg | 334 (499) | 326 (464) | 418 (682) |
+| F4 Gauss-Newton on E4 rays | 317 (431) | 372 (499) | 444 (658) |
+| F4 with a 5-frame matching window | 319 (403) | 367 (465) | 461 (657) |
+| F5 expanding shells | 137 (137) | 437 (438) | 2026 (2027) |
+| F5 then F4 | 392 (474) | 709 (813) | 2292 (2436) |
+<!-- /table:evalF_full_stop_se -->
+
+Table 19: acceptance against the truth, full sample. From 5 degrees F4 rejected 39 runs; none of them was within 1 degree (0 of 39, 95% Wilson
+interval 0-9.0%); none of the 81 accepted was wrong (0-4.5%).
+
+<!-- table:evalF_full_acc -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 81 accepted, 0 of them wrong; 0 of 39 rejected were right |
+| F5 expanding shells | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 120 accepted, 0 of them wrong; 0 of 0 rejected were right |
+| F5 then F4 | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 120 accepted, 0 of them wrong; 0 of 0 rejected were right |
+<!-- /table:evalF_full_acc -->
+
+Table 19b: the acceptance margin, full sample (as Table 13b).
+
+<!-- table:evalF_full_acc_margin -->
+| method | runs | accepted but wrong | rejected but right | largest accepted strict cost | smallest rejected strict cost | largest error accepted (deg) | smallest error rejected (deg) |
+|---|---|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | all offsets | 0 of 321 (0.0-1.2%) | 0 of 39 (0.0-9.0%) | 0.437 | 0.953 | 0.295 | 3.37 |
+| F4 Gauss-Newton on E4 rays | 5 deg | 0 of 81 (0.0-4.5%) | 0 of 39 (0.0-9.0%) | 0.159 | 0.953 | 0.086 | 3.37 |
+| F4 with a 5-frame matching window | all offsets | 0 of 329 (0.0-1.2%) | 0 of 31 (0.0-11.0%) | 0.437 | 0.953 | 0.295 | 3.42 |
+| F4 with a 5-frame matching window | 5 deg | 0 of 89 (0.0-4.1%) | 0 of 31 (0.0-11.0%) | 0.264 | 0.953 | 0.244 | 3.42 |
+<!-- /table:evalF_full_acc_margin -->
+
+Table 20: F4 first, then F5 followed by F4 where F4 was rejected, full sample (in-sample).
+
+<!-- table:evalF_full_policy -->
+| offset | runs | F4 rejected, F5+F4 run | within 1 deg | within 0.1 deg | within 0.05 deg | median evals (strict-equivalent) | 90th percentile |
+|---|---|---|---|---|---|---|---|
+| 1 deg | 120 | 0 | 100% (97-100) | 98% (94-100) | 33% (26-42) | 317 | 431 |
+| 2 deg | 120 | 0 | 100% (97-100) | 99% (95-100) | 33% (26-42) | 372 | 499 |
+| 5 deg | 120 | 39 | 100% (97-100) | 99% (95-100) | 33% (26-42) | 547 | 2806 |
+<!-- /table:evalF_full_policy -->
+
+Table 21: the same with the 5-frame window for the first step, full sample (in-sample).
+
+<!-- table:evalF_full_policy_f4w -->
+| offset | runs | F4 w5 rejected, F5+F4 run | within 1 deg | within 0.1 deg | within 0.05 deg | median evals (strict-equivalent) | 90th percentile |
+|---|---|---|---|---|---|---|---|
+| 1 deg | 120 | 0 | 100% (97-100) | 98% (94-100) | 50% (41-59) | 319 | 403 |
+| 2 deg | 120 | 0 | 100% (97-100) | 100% (97-100) | 50% (41-59) | 367 | 465 |
+| 5 deg | 120 | 31 | 100% (97-100) | 98% (93-99) | 42% (34-51) | 502 | 2816 |
+<!-- /table:evalF_full_policy_f4w -->
+
+Table 22: the choice rule on the full-sample runs (the carried methods were fixed on E0; current weights; the v1 and wall-time versions pick the
+same two). The strict cost's basin is wider here (`pilot/half_rise.json`, from Task B's walks: half-way at 0.327 degrees against 0.112 on E0),
+which is consistent with CMA-ES reaching further (untested).
+
+<!-- table:evalF_full_choice -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F2 CMA-ES, sigma0 2 deg | 2.99 | 1.82 | 3 | 2.4 | yes |
+| F2 CMA-ES, sigma0 1 deg | 3.2 | 0.95 | 4 | 2.08 | yes |
+| F4 Gauss-Newton on E4 rays | 2.69 | 1.52 | 6 | 2.1 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.86 | 0.276 | 10 | 1.57 |  |
+| F5 expanding shells | 2.29 | 0.494 | 10 | 1.39 |  |
+| F1 FindOptimal, box = offset | 2.05 | 0.642 | 10 | 1.35 |  |
+| F5 then F4 | 1.41 | 0.436 | 13 | 0.923 |  |
+<!-- /table:evalF_full_choice -->
+
+#### What this means
+
+* For a start within 2 degrees, F4 alone was enough on both sets (within 1 degree in every run on E0 and on the full sample up to 2 degrees), at
+  about 0.1 seconds, and ends 0.02 to 0.05 degrees out: it needs the finisher after it. From 3 degrees it already loses runs: 2 of 480 on E0, and
+  8 of 120 in the full-sample diagnostic (`diag/full_w1.json`; the full-sample benchmark did not run 3 degrees).
+* For a start up to 5 degrees, F4 with F5 followed by F4 on rejection reached every run within 1 degree here (in-sample), at a median of 358
+  strict-equivalent evaluations on E0 and 547 on the full sample (90th percentile 2,806 on the full sample, the runs that fall back; 3,303 with the
+  v1 weights).
+* CMA-ES (1 degree first step) costs about as much as F4 from 1 and 2 degrees on E0 (274 and 309 against 268 and 304), more from 0.1 and
+  0.5 degrees (267 and 267 against 141 and 214), and less on the full sample at 1 and 2 degrees (288 and 312 against 317 and 372); from 5 degrees it
+  reaches 32% (E0) and 42% (full). FindOptimal with a widened box needs more evaluations and loses accuracy from 0.1 degrees.
+* Decisions for the owner: whether Task G carries F4 and F5 as the rule now says (the first weights said F4 and F2 sigma0 1, by a tie; the
+  full-sample runs would say F2 sigma0 2 and 1), or F4 with the F5 fallback (the policy); whether the `frame_window` of F4 stays at the E4 value of
+  1 (library default) or is set to 5 for far starts.
+
+#### Limits
+
+* E0 images hold one voxel each, so E4's matching is easy there; the full-sample numbers come from six voxels and one image set. Intervals treat
+  runs as independent; runs on one voxel share its images (Tables 10b and 16b).
+* F3 is an optimistic reference (windows re-rendered from the truth). F1 is told the offset; the others are not. F5 stops at 6 degrees.
+* The policy and the wide window came after the first tables: their numbers are in-sample and need voxels they were not read from (Task G's other 24
+  full-sample voxels).
+* F4 inherits Task D's and Task E's assumptions (two detectors, binary centroids, pairing settings fitted on one sample, the matching rule of E4).
+* Clean images only: the capture rates and the acceptance test are not known on realistic images.
+* Main-run times are contended. The per-evaluation weights come from one voxel per set (E0 10531, full 15901; Table 4b shows a second E0 voxel);
+  the single-worker serial runs cover two E0 voxels and one full-sample voxel. F5's batch weights were measured after the first report, on review.
+  F6 not run. Nothing was tried inside a breadth-first sweep.
+
 ## S3: batched quick MC with a GPU option (2026-10-14)
 
 Branch `feature/python-speed-parity-s3` (off `feature/python-speed-parity`; not merged). Plan: `docs/todo_batched_quick_mc.md`
