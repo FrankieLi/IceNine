@@ -1,0 +1,7 @@
+F4 frame window (frames): share within 1 deg / within 0.1 deg / accepted, median Jacobian evaluations
+window 1: 2 deg 1.00 / 1.00 / 1.00 / 11; 3 deg 0.99 / 0.99 / 0.99 / 12; 5 deg 0.91 / 0.91 / 0.91 / 13
+window 2: 2 deg 1.00 / 0.99 / 1.00 / 11; 3 deg 1.00 / 1.00 / 1.00 / 12; 5 deg 0.97 / 0.97 / 0.97 / 13
+window 3: 2 deg 1.00 / 0.99 / 1.00 / 11; 3 deg 1.00 / 1.00 / 1.00 / 12; 5 deg 1.00 / 1.00 / 1.00 / 13
+window 5: 2 deg 1.00 / 0.99 / 1.00 / 11; 3 deg 1.00 / 1.00 / 1.00 / 12; 5 deg 1.00 / 1.00 / 1.00 / 13
+window 8: 2 deg 1.00 / 0.99 / 1.00 / 11; 3 deg 1.00 / 1.00 / 1.00 / 12; 5 deg 1.00 / 1.00 / 1.00 / 13
+window 12: 2 deg 1.00 / 0.99 / 1.00 / 11; 3 deg 1.00 / 1.00 / 1.00 / 12; 5 deg 1.00 / 1.00 / 1.00 / 13

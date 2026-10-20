@@ -3,6 +3,7 @@
   schedule  F4 with several robust-scale schedules (tau, deg), 4 voxels x 4 offsets x 8 directions
   window    F4 with frame windows of 1 to 12 frames (how far a peak looks for a ray), 4 voxels
             x offsets 2, 3, 5 deg x 20 directions
+  halfrise  half-way rise of the screen score and the strict cost along Task B's ray walks
   spacing   F5 with several shell spacings and acceptance costs, 4 voxels x offsets 2 and 5 deg x
             4 directions
 
@@ -78,6 +79,48 @@ def schedule() -> None:
     (OUT / "f4_schedule.json").write_text(json.dumps(out, indent=1) + "\n")
     (OUT / "f4_schedule.txt").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
+
+
+def halfrise() -> None:
+    """Half-way rise (deg) of the screen's peak-overlap count and of the strict cost along Task B's
+    ray walks (6 full-sample voxels x 20 rays to 5 deg; 30 E0 voxels x 20 rays, dense 0-0.5 deg plus
+    the log profile to 5 deg): the radius at which the value is half-way between its value at the
+    truth (mean of the first five points) and its far value (median beyond 0.8 x the longest radius
+    on the full sample, beyond 3 deg on E0). The basis of the F5 shell spacing."""
+    import glob
+
+    out: Dict[str, Any] = {}
+    for kind in ("e0", "full"):
+        rows = []
+        for f in sorted(
+            glob.glob(str(HERE.parents[1] / "benchmarks/eval_reduction/B/cache" / kind / "*.npz"))
+        ):
+            z = np.load(f)
+            segs = ["dense"] + (["profile"] if kind == "e0" else [])
+            r = np.concatenate([z[f"radii|{k}"] for k in segs])
+            pk = np.concatenate([z[f"screen|old|pkov|{k}"] for k in segs]).astype(float)
+            c = np.concatenate([z[f"full|old|cost|{k}"] for k in segs]).astype(float)
+            o = np.argsort(r)
+            r, pk, c = r[o], pk[o], c[o]
+            far_sel = r >= (3.0 if kind == "e0" else 0.8 * r.max())
+
+            def half(v: np.ndarray) -> float:
+                near, far = v[:5].mean(), np.median(v[far_sel])
+                lvl = (near + far) / 2
+                idx = np.nonzero((v <= lvl) if far < near else (v >= lvl))[0]
+                return float(r[idx[0]]) if len(idx) else float("nan")
+
+            rows.append([half(pk), half(c)])
+        a = np.array(rows)
+        out[kind] = dict(
+            n_walks=len(a),
+            screen_median_deg=float(np.nanmedian(a[:, 0])),
+            screen_quartiles_deg=[float(x) for x in np.nanpercentile(a[:, 0], [25, 75])],
+            strict_median_deg=float(np.nanmedian(a[:, 1])),
+        )
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "half_rise.json").write_text(json.dumps(out, indent=1) + "\n")
+    print(json.dumps(out, indent=1))
 
 
 def window() -> None:
@@ -178,4 +221,6 @@ def spacing() -> None:
 
 
 if __name__ == "__main__":
-    {"schedule": schedule, "spacing": spacing, "window": window}[sys.argv[1]]()
+    {"schedule": schedule, "spacing": spacing, "window": window, "halfrise": halfrise}[
+        sys.argv[1]
+    ]()

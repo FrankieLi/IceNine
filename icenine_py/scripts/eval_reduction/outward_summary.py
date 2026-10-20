@@ -16,6 +16,7 @@ added, the two lowest rank sums are carried, ties by the larger mean score.
 
   uv run python scripts/eval_reduction/outward_summary.py e0
   uv run python scripts/eval_reduction/outward_summary.py full
+  uv run python scripts/eval_reduction/outward_summary.py merge   # doc_tables_all.md
 """
 
 import argparse
@@ -128,6 +129,23 @@ def summarize(tag: str, kind: str) -> None:
     raw = {m: (D[f"{m}|n_strict"] + D[f"{m}|n_screen"] + D[f"{m}|n_smooth"]) if m != "f3"
            else np.full(len(D["voxel"]), math.nan) for m in methods}  # fmt: skip
     sets: Dict[str, np.ndarray] = {}
+    tables_timing = doc_tables.markdown_table(
+        [
+            {
+                "kind of evaluation": k,
+                "milliseconds": timing[key],
+                "times a strict evaluation": timing[key] / timing["strict"],
+            }
+            for k, key in (
+                ("strict cost", "strict"),
+                ("screen (pixel radius 3), per orientation in a batch", "screen"),
+                ("E4 value", "e4_value"),
+                ("E4 value and Jacobian", "e4_value_and_jacobian"),
+            )
+        ],
+        ["kind of evaluation", "milliseconds", "times a strict evaluation"],
+        {"milliseconds": ".3f", "times a strict evaluation": ".2f"},
+    )
     if kind == "e0":
         vs = json.loads((OUT / "voxel_sets.json").read_text())
         sets = {
@@ -144,6 +162,7 @@ def summarize(tag: str, kind: str) -> None:
         return int((D[f"{m}|err"][sel] < thr - TOL).sum()), int(sel.sum())
 
     prefix = "evalF_" + kind + "_"
+    tables[prefix + "timing"] = tables_timing
     present = [oi for oi in range(len(OFFSETS)) if (D["oi"] == oi).any()]
     ocols = [f"{OFFSETS[oi]:g} deg" for oi in present]
     # ---- capture matrices
@@ -251,20 +270,24 @@ def summarize(tag: str, kind: str) -> None:
     tables[prefix + "acc"] = doc_tables.markdown_table(rows, ["method"] + ocols)
     # ---- near / far axis
     if sets:
-        rows = []
-        for m in methods:
-            r = {"method": LABEL[m]}
-            for sname, mask in sets.items():
-                for thr, tn in ((1.0, "1 deg"), (0.05, "0.05 deg")):
+        for thr, tn, tname in (
+            (1.0, "1 deg", "nearfar_cap1"),
+            (0.05, "0.05 deg", "nearfar_cap005"),
+        ):
+            rows = []
+            for m in methods:
+                r = {"method": LABEL[m]}
+                for sname, mask in sets.items():
                     for oi in (3, 4, 5):
                         k, n = cell(m, oi, mask, thr)
-                        r[f"{sname}, {OFFSETS[oi]:g} deg, <{tn}"] = pct(k, n)
+                        r[f"{sname}, {OFFSETS[oi]:g} deg"] = pct(k, n)
                         summ.setdefault("nearfar", {}).setdefault(m, {})[
                             f"{sname}|{OFFSETS[oi]:g}|{thr:g}"
                         ] = [k, n]
-            rows.append(r)
-        cols = ["method"] + [c for c in rows[0] if c != "method"]
-        tables[prefix + "nearfar"] = doc_tables.markdown_table(rows, cols)
+                rows.append(r)
+            tables[prefix + tname] = doc_tables.markdown_table(
+                rows, ["method"] + [c for c in rows[0] if c != "method"]
+            )
 
     # ---- choice (the carry rule is applied to the methods that existed at the decision point;
     # a second table adds F4 with the 5-frame window, which came after)
@@ -454,9 +477,16 @@ def figures(
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("kind", choices=["e0", "full"])
+    ap.add_argument("kind", choices=["e0", "full", "merge"])
     ap.add_argument("--tag", default="")
     a = ap.parse_args()
+    if a.kind == "merge":  # every tables_<tag>.md into doc_tables_all.md for sync_doc_tables.py
+        merged: Dict[str, str] = {}
+        for f in sorted(OUT.glob("tables_*.md")):
+            merged.update(doc_tables.read_tables(f))
+        doc_tables.write_tables(OUT / "doc_tables_all.md", merged)
+        print(f"{len(merged)} tables -> doc_tables_all.md")
+        return
     summarize(a.tag or a.kind, a.kind)
 
 

@@ -1,0 +1,14 @@
+{
+ "label": "single-worker",
+ "ms_per_evaluation": {
+  "strict": 0.43978515624999714,
+  "screen": 0.022374870312497075,
+  "e4_value": 1.497805566666699,
+  "e4_value_and_jacobian": 12.073187500000058,
+  "serial_run_s": 23.915246963500977
+ },
+ "voxels": [
+  15901
+ ],
+ "dirs": 5
+}
