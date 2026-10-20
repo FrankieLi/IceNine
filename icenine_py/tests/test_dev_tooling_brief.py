@@ -134,6 +134,15 @@ NO_DEP = (
     "No new dependency (`pyproject.toml`, `uv.lock` unchanged); no default flip; no golden change."
 )
 COMMITS = "Commits: stage by explicit path; end each commit message with:"
+REFUSALS = (
+    "Refusals: if a tool or hook refuses an action (Edit or Write refused for a path, a hook "
+    "denial, a declined permission), stop and report it; never redo the action another way, "
+    "such as writing files through Bash."
+)
+INTERRUPTIONS = (
+    "Interruptions: commit each finished piece as you go (sleep or an app restart can stop you "
+    "at any point); when resumed, start from `git status` and `git log`."
+)
 REPORT = (
     "Report: write the full report to `.claude/reports/{name}.md`; "
     "the final message is at most about 250 words."
@@ -150,13 +159,15 @@ def test_full_brief_with_stop_rule_default_scope(repo: Path) -> None:
         "Follow study-conventions.",
         "Implement the plan icenine_py/docs/todo_demo.md.",
         APPROVAL,
-        "Branch: run `scripts/dev/start_task.sh demo-a` from `feature/par` "
-        "(branch `feature/par-demo-a`).",
+        "Branch: in your own worktree run `git checkout -b feature/par-demo-a feature/par` and "
+        "`git config branch.feature/par-demo-a.parent feature/par`.",
         "Scope: no change under `icenine_py/icenine/`.",
         NO_DEP,
         "Stop rule of the plan:",
         "> **Stop rule:** if step 1 fails, stop and",
         "> report. The premise is then wrong.",
+        REFUSALS,
+        INTERRUPTIONS,
         "Compute: at most 6 heavy processes at once on this machine.",
         COMMITS,
         TRAILER,
@@ -171,10 +182,13 @@ def test_section_and_default_stop_rule(repo: Path) -> None:
         "Follow study-conventions.",
         'Implement section "2. Second" of icenine_py/docs/todo_demo.md.',
         APPROVAL,
-        "Branch: run `scripts/dev/start_task.sh t` from `feature/par` (branch `feature/par-t`).",
+        "Branch: in your own worktree run `git checkout -b feature/par-t feature/par` and "
+        "`git config branch.feature/par-t.parent feature/par`.",
         "Scope: no change under `icenine_py/icenine/`.",
         NO_DEP,
         "Stop rule: stop and report if the plan cannot be followed.",
+        REFUSALS,
+        INTERRUPTIONS,
         "Compute: at most 6 heavy processes at once on this machine.",
         COMMITS,
         TRAILER,
@@ -207,7 +221,8 @@ def test_library_changes_exception_and_two_stop_rules(repo: Path) -> None:
         "Follow study-conventions.",
         "Implement the plan icenine_py/docs/todo_demo.md.",
         APPROVAL,
-        "Branch: run `scripts/dev/start_task.sh t` from `feature/par` (branch `feature/par-t`).",
+        "Branch: in your own worktree run `git checkout -b feature/par-t feature/par` and "
+        "`git config branch.feature/par-t.parent feature/par`.",
         "Scope: **Library changes:** `icenine/cost_functions.py` may change (flag-gated).",
         NO_DEP,
         "Stop rule of the plan:",
@@ -215,6 +230,8 @@ def test_library_changes_exception_and_two_stop_rules(repo: Path) -> None:
         "> report. The premise is then wrong.",
         "> **Stop rule:** a second rule",
         ">   on two lines.",
+        REFUSALS,
+        INTERRUPTIONS,
         "Compute (plan exception to the machine limit of 6 heavy processes): "
         "**Process limit exception:** 8 workers for the sweep in step 2.",
         COMMITS,
@@ -329,11 +346,13 @@ def test_fixes_on_existing_task_branch(repo: Path) -> None:
         "re-run the affected tests, and add the new commit hashes to your report. Name the fix "
         "numbers in your commit subjects.",
         APPROVAL,
-        "Branch: work on the existing task branch `feature/par-demo-a` (parent `feature/par`); "
-        "add new commits there.",
+        "Branch: in your own worktree, run `git checkout feature/par-demo-a` (parent "
+        "`feature/par`; the main session frees it first) and add new commits there.",
         "Scope: no change under `icenine_py/icenine/`.",
         NO_DEP,
         "Stop rule: stop and report if the plan cannot be followed.",
+        REFUSALS,
+        INTERRUPTIONS,
         "Compute: at most 6 heavy processes at once on this machine.",
         COMMITS,
         TRAILER,
@@ -348,8 +367,8 @@ def test_fixes_from_the_task_branch_itself(repo: Path) -> None:
     out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "demo-a", "--fixes", "review.md")
     assert out.returncode == 0, out.stderr
     assert (
-        "Branch: work on the existing task branch `feature/par-demo-a` (parent `feature/par`);"
-        in out.stdout
+        "Branch: in your own worktree, run `git checkout feature/par-demo-a` (parent "
+        "`feature/par`; the main session frees it first)" in out.stdout
     )
 
 
@@ -358,8 +377,9 @@ def test_fixes_after_the_task_was_merged_use_a_fixes_branch(repo: Path) -> None:
     out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "demo-a", "--fixes", "review.md")
     assert out.returncode == 0, out.stderr
     assert (
-        "Branch: the task is already merged, so run `scripts/dev/start_task.sh demo-a-fixes` "
-        "from `feature/par` (branch `feature/par-demo-a-fixes`).\n"
+        "Branch: the task is already merged, so in your own worktree run "
+        "`git checkout -b feature/par-demo-a-fixes feature/par` and "
+        "`git config branch.feature/par-demo-a-fixes.parent feature/par`.\n"
     ) in out.stdout
     assert f"{NOW}-demo-a-fixes.md" in out.stdout
 
@@ -571,13 +591,16 @@ def test_markers_as_bullets_and_not_inside_code_fences(repo: Path) -> None:
         "Follow study-conventions.",
         "Implement the plan icenine_py/docs/todo_demo.md.",
         APPROVAL,
-        "Branch: run `scripts/dev/start_task.sh t` from `feature/par` (branch `feature/par-t`).",
+        "Branch: in your own worktree run `git checkout -b feature/par-t feature/par` and "
+        "`git config branch.feature/par-t.parent feature/par`.",
         "Scope: **Library changes:** `icenine/y.py` only.",
         NO_DEP,
         "Stop rule of the plan:",
         "> **Stop rule:** a bullet rule",
         ">   that wraps.",
         "> **Stop rule:** a second bullet.",
+        REFUSALS,
+        INTERRUPTIONS,
         "Compute (plan exception to the machine limit of 6 heavy processes): "
         "**Process limit exception:** 9 for step 2.",
         COMMITS,

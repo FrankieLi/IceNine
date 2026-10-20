@@ -233,19 +233,23 @@ esac
 CUR_PARENT=$(git config "branch.$CUR.parent" || true)
 if [ -n "$FIXES" ]; then
     if [ -n "$CUR_PARENT" ] && [ "${CUR%-"$TASK"}" != "$CUR" ]; then
-        BRANCH_LINE="Branch: work on the existing task branch \`$CUR\` (parent \`$CUR_PARENT\`);"
-        BRANCH_LINE="$BRANCH_LINE add new commits there."
+        BRANCH_LINE="Branch: in your own worktree, run \`git checkout $CUR\` (parent"
+        BRANCH_LINE="$BRANCH_LINE \`$CUR_PARENT\`; the main session frees it first) and add new"
+        BRANCH_LINE="$BRANCH_LINE commits there."
     elif git rev-parse --verify -q "refs/heads/$CUR-$TASK" >/dev/null; then
-        BRANCH_LINE="Branch: work on the existing task branch \`$CUR-$TASK\` (parent \`$CUR\`);"
-        BRANCH_LINE="$BRANCH_LINE add new commits there."
+        BRANCH_LINE="Branch: in your own worktree, run \`git checkout $CUR-$TASK\` (parent"
+        BRANCH_LINE="$BRANCH_LINE \`$CUR\`; the main session frees it first) and add new"
+        BRANCH_LINE="$BRANCH_LINE commits there."
     else
-        BRANCH_LINE="Branch: the task is already merged, so run"
-        BRANCH_LINE="$BRANCH_LINE \`scripts/dev/start_task.sh $TASK-fixes\` from \`$CUR\`"
-        BRANCH_LINE="$BRANCH_LINE (branch \`$CUR-$TASK-fixes\`)."
+        NEW="$CUR-$TASK-fixes"
+        BRANCH_LINE="Branch: the task is already merged, so in your own worktree run"
+        BRANCH_LINE="$BRANCH_LINE \`git checkout -b $NEW $CUR\` and"
+        BRANCH_LINE="$BRANCH_LINE \`git config branch.$NEW.parent $CUR\`."
     fi
 else
-    BRANCH_LINE="Branch: run \`scripts/dev/start_task.sh $TASK\` from \`$CUR\`"
-    BRANCH_LINE="$BRANCH_LINE (branch \`$CUR-$TASK\`)."
+    NEW="$CUR-$TASK"
+    BRANCH_LINE="Branch: in your own worktree run \`git checkout -b $NEW $CUR\` and"
+    BRANCH_LINE="$BRANCH_LINE \`git config branch.$NEW.parent $CUR\`."
 fi
 
 # --- report path
@@ -280,6 +284,11 @@ if [ -n "$STOP" ]; then
 else
     echo "Stop rule: stop and report if the plan cannot be followed."
 fi
+echo "Refusals: if a tool or hook refuses an action (Edit or Write refused for a path, a hook" \
+    "denial, a declined permission), stop and report it; never redo the action another way," \
+    "such as writing files through Bash."
+echo "Interruptions: commit each finished piece as you go (sleep or an app restart can stop you" \
+    "at any point); when resumed, start from \`git status\` and \`git log\`."
 echo "$COMPUTE"
 echo "Commits: stage by explicit path; end each commit message with:"
 echo "$TRAILER"
