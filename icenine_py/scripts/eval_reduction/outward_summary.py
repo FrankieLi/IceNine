@@ -7,12 +7,20 @@ that angle of the truth (angle of R R_true^T, no symmetry reduction, offsets are
 
 Evaluation counts. Raw: strict + screen + smooth evaluations, each counted once (the convention of
 the evaluation ledger). Strict-equivalent: each kind weighted by its single-worker time relative to
-a strict evaluation (``timing/e0.json``: strict 0.41 ms, screen 0.023 ms, E4 value 0.66 ms, E4
-value-and-Jacobian 10.8 ms). The windows Gauss-Newton (f3) makes no cost evaluations; its entry is
-its measured single-worker time per run divided by the strict evaluation time.
+a strict evaluation, at the batch size the method uses it. F4 and the F4 part of F5+F4 use single
+calls (``timing/<kind>.json``, first timing voxel; E0: strict 0.422 ms, E4 value 0.66 ms, E4
+value-and-Jacobian 10.8 ms). F5 and the F5 part of F5+F4 use F5's own call pattern
+(``timing/<kind>_f5.json``, same voxel: the screen a shell at a time in chunks of up to 256, E4 on
+32 rotations at a time through ``evaluate_many``; E0: 0.0175 and 0.367 ms per orientation). The
+first weights (screen timed in batches of 64, every E4 value as a single call) overstated F5's time
+by a factor 1.2 to 1.6 against its single-worker wall time; they are kept as the ``*_v1`` tables.
+The windows Gauss-Newton (f3) makes no cost evaluations; its entry is its measured single-worker
+time per run divided by the strict evaluation time.
 Choice rule (Task F decision point): among the methods that can run on the full sample, the capture
-rate (1 deg) per strict-equivalent evaluation to stop, at 2 and at 5 deg; ranks at the two offsets
-added, the two lowest rank sums are carried, ties by the larger mean score.
+rate (1 deg) per strict-equivalent evaluation to stop, at 2 and at 5 deg (score = 1000 x share /
+median); at each offset a method's rank is 1 + the number of methods with a strictly higher score
+(ties share the better rank); the ranks at the two offsets are added, the two lowest rank sums are
+carried, and ties in the sum go to the larger mean of the two scores.
 
   uv run python scripts/eval_reduction/outward_summary.py e0
   uv run python scripts/eval_reduction/outward_summary.py full
@@ -82,15 +90,41 @@ def load(tag: str) -> Dict[str, Any]:
     return {k: np.concatenate(v) for k, v in cols.items()}
 
 
-def weights(timing: Dict[str, float]) -> Dict[str, float]:
+def weights(timing: Dict[str, float], f5: Optional[Dict[str, float]] = None) -> Dict[str, float]:
+    """Weights relative to a strict evaluation. ``screen_f5`` and ``val_f5`` are F5's screen and E4
+    at its own batch sizes (``timing/<kind>_f5.json``); without it (the v1 weights) they equal the
+    single-call ``screen`` and ``val``."""
     s = timing["strict"]
-    return dict(screen=timing["screen"] / s, val=timing["e4_value"] / s,
-                jac=timing["e4_value_and_jacobian"] / s)  # fmt: skip
+    w = dict(screen=timing["screen"] / s, val=timing["e4_value"] / s,
+             jac=timing["e4_value_and_jacobian"] / s)  # fmt: skip
+    w["screen_f5"] = f5["screen_ms_per_orientation"] / s if f5 else w["screen"]
+    w["val_f5"] = f5["smooth_ms_per_orientation"] / s if f5 else w["val"]
+    return w
+
+
+def f5_timing(kind: str, timing_voxels: Sequence[int]) -> Optional[Dict[str, float]]:
+    """F5's per-orientation times on the first timing voxel (the voxel of the other weights)."""
+    path = OUT / "timing" / f"{kind}_f5.json"
+    if not path.exists():
+        return None
+    pv = json.loads(path.read_text())["per_voxel"]
+    return dict(pv[str(timing_voxels[0])])
 
 
 def strict_equiv(D: Dict[str, Any], m: str, w: Dict[str, float], f3_se: float) -> np.ndarray:
     if m == "f3":
         return np.full(len(D["voxel"]), f3_se)
+    if m in ("f5", "f54"):
+        se5 = (D["f5|n_strict"] + w["screen_f5"] * D["f5|n_screen"]
+               + w["val_f5"] * D["f5|n_smooth"])  # fmt: skip
+        if m == "f5":
+            return se5
+        # F5+F4 shares the F5 run of the same case (outward_bench.run_f54); the rest is F4's
+        assert np.array_equal(D["f54|n_screen"], D["f5|n_screen"])
+        n_str = D["f54|n_strict"] - D["f5|n_strict"]
+        n_jac = D["f54|n_jac"]
+        n_val = D["f54|n_smooth"] - D["f5|n_smooth"] - n_jac
+        return se5 + n_str + w["val"] * n_val + w["jac"] * n_jac
     n_val = D[f"{m}|n_smooth"] - D[f"{m}|n_jac"]
     return (D[f"{m}|n_strict"] + w["screen"] * D[f"{m}|n_screen"] + w["val"] * n_val
             + w["jac"] * D[f"{m}|n_jac"])  # fmt: skip
@@ -99,6 +133,14 @@ def strict_equiv(D: Dict[str, Any], m: str, w: Dict[str, float], f3_se: float) -
 def pct(k: int, n: int) -> str:
     lo, hi = S.wilson(k, n)
     return f"{100 * k / n:.0f}% ({100 * lo:.0f}-{100 * hi:.0f})" if n else "n/a"
+
+
+def count_ci(k: int, n: int) -> str:
+    """``k of n`` with the 95% Wilson interval in percent (one decimal, for small shares)."""
+    if not n:
+        return "none"
+    lo, hi = S.wilson(k, n)
+    return f"{k} of {n} ({100 * lo:.1f}-{100 * hi:.1f}%)"
 
 
 def q(x: np.ndarray, p: float) -> float:
@@ -116,8 +158,11 @@ def summarize(tag: str, kind: str) -> None:
     tm_path = OUT / "timing" / f"{kind}.json"
     if not tm_path.exists():
         tm_path = OUT / "timing" / "e0.json"
-    timing = json.loads(tm_path.read_text())["ms_per_evaluation"]
-    w = weights(timing)
+    tm_json = json.loads(tm_path.read_text())
+    timing = tm_json["ms_per_evaluation"]
+    f5t = f5_timing(tm_path.stem, tm_json["voxels"])
+    w = weights(timing, f5t)
+    w_v1 = weights(timing)
     # f3 single-worker time per run from the timing run
     f3_se = math.nan
     tz = OUT / "cache" / "timing_e0"
@@ -126,26 +171,60 @@ def summarize(tag: str, kind: str) -> None:
         if "f3|secs" in T:
             f3_se = float(np.median(T["f3|secs"])) * 1e3 / timing["strict"]
     se = {m: strict_equiv(D, m, w, f3_se) for m in methods}
+    se_v1 = {m: strict_equiv(D, m, w_v1, f3_se) for m in methods}
     raw = {m: (D[f"{m}|n_strict"] + D[f"{m}|n_screen"] + D[f"{m}|n_smooth"]) if m != "f3"
            else np.full(len(D["voxel"]), math.nan) for m in methods}  # fmt: skip
     sets: Dict[str, np.ndarray] = {}
+    trows = [
+        ("strict cost", "all methods", timing["strict"]),
+        ("screen (pixel radius 3), per orientation, batches of 64", "v1 weights only",
+         timing["screen"]),
+        ("E4 value, one rotation per call", "F4", timing["e4_value"]),
+        ("E4 value and Jacobian, one rotation per call", "F4", timing["e4_value_and_jacobian"]),
+    ]  # fmt: skip
+    if f5t:
+        trows += [
+            ("screen, per orientation, a shell at a time (chunks of up to 256)", "F5",
+             f5t["screen_ms_per_orientation"]),
+            ("E4 value, per orientation, 32 rotations per call", "F5",
+             f5t["smooth_ms_per_orientation"]),
+        ]  # fmt: skip
     tables_timing = doc_tables.markdown_table(
         [
             {
                 "kind of evaluation": k,
-                "milliseconds": timing[key],
-                "times a strict evaluation": timing[key] / timing["strict"],
+                "used for": u,
+                "milliseconds": v,
+                "times a strict evaluation": v / timing["strict"],
             }
-            for k, key in (
-                ("strict cost", "strict"),
-                ("screen (pixel radius 3), per orientation in a batch", "screen"),
-                ("E4 value", "e4_value"),
-                ("E4 value and Jacobian", "e4_value_and_jacobian"),
-            )
+            for k, u, v in trows
         ],
-        ["kind of evaluation", "milliseconds", "times a strict evaluation"],
-        {"milliseconds": ".3f", "times a strict evaluation": ".2f"},
+        ["kind of evaluation", "used for", "milliseconds", "times a strict evaluation"],
+        {"milliseconds": ".4f", "times a strict evaluation": ".3f"},
     )
+    tables_timing_voxels = ""
+    if (OUT / "timing" / f"{tm_path.stem}_f5.json").exists():
+        pv = json.loads((OUT / "timing" / f"{tm_path.stem}_f5.json").read_text())["per_voxel"]
+        tables_timing_voxels = doc_tables.markdown_table(
+            [
+                {
+                    "voxel": int(v),
+                    "weights from it": "yes" if int(v) == tm_json["voxels"][0] else "",
+                    "F4 E4 value (ms)": r["f4_e4_value_ms"],
+                    "F4 E4 value and Jacobian (ms)": r["f4_e4_value_and_jacobian_ms"],
+                    "F5 screen (ms per orientation)": r["screen_ms_per_orientation"],
+                    "F5 E4 (ms per orientation)": r["smooth_ms_per_orientation"],
+                    "strict inside F5 (ms)": r["strict_ms_per_orientation"],
+                }
+                for v, r in pv.items()
+            ],
+            ["voxel", "weights from it", "F4 E4 value (ms)", "F4 E4 value and Jacobian (ms)",
+             "F5 screen (ms per orientation)", "F5 E4 (ms per orientation)",
+             "strict inside F5 (ms)"],
+            {"F4 E4 value (ms)": ".3f", "F4 E4 value and Jacobian (ms)": ".2f",
+             "F5 screen (ms per orientation)": ".4f", "F5 E4 (ms per orientation)": ".3f",
+             "strict inside F5 (ms)": ".3f"},
+        )  # fmt: skip
     if kind == "e0":
         vs = json.loads((OUT / "voxel_sets.json").read_text())
         sets = {
@@ -155,7 +234,8 @@ def summarize(tag: str, kind: str) -> None:
     allm = np.ones(len(D["voxel"]), dtype=bool)
     tables: Dict[str, str] = {}
     summ: Dict[str, Any] = {"tag": tag, "kind": kind, "n_runs": int(len(allm)),
-                            "weights_vs_strict": w, "f3_strict_equivalent": f3_se}  # fmt: skip
+                            "weights_vs_strict": w, "weights_vs_strict_v1": w_v1,
+                            "f3_strict_equivalent": f3_se}  # fmt: skip
 
     def cell(m: str, oi: int, mask: np.ndarray, thr: float) -> Tuple[int, int]:
         sel = mask & (D["oi"] == oi)
@@ -163,6 +243,8 @@ def summarize(tag: str, kind: str) -> None:
 
     prefix = "evalF_" + kind + "_"
     tables[prefix + "timing"] = tables_timing
+    if tables_timing_voxels:
+        tables[prefix + "timing_voxels"] = tables_timing_voxels
     present = [oi for oi in range(len(OFFSETS)) if (D["oi"] == oi).any()]
     ocols = [f"{OFFSETS[oi]:g} deg" for oi in present]
     # ---- capture matrices
@@ -251,6 +333,24 @@ def summarize(tag: str, kind: str) -> None:
             for m in methods
             if f"{m}|secs" in T
         }
+        # strict-equivalent against single-worker wall time (both in strict evaluations) on the
+        # timing run's cases: the median per-run ratio, with the v1 and the current weights
+        wall = {m: T[f"{m}|secs"] * 1e3 / timing["strict"] for m in methods if f"{m}|secs" in T}
+        rows = []
+        for m in [x for x in methods if x in wall and x != "f3"]:
+            r = {"method": LABEL[m]}
+            for oi, c in zip(present, ocols):
+                sel = T["oi"] == oi
+                if not sel.any():
+                    continue
+                r1 = float(np.median(strict_equiv(T, m, w_v1, f3_se)[sel] / wall[m][sel]))
+                r2 = float(np.median(strict_equiv(T, m, w, f3_se)[sel] / wall[m][sel]))
+                r[c] = f"{r1:.2f} -> {r2:.2f}"
+                summ.setdefault("se_over_wall", {}).setdefault(m, {})[f"{OFFSETS[oi]:g}"] = dict(
+                    v1=r1, current=r2, n=int(sel.sum()))  # fmt: skip
+            rows.append(r)
+        cols = [c for oi, c in zip(present, ocols) if (T["oi"] == oi).any()]
+        tables[prefix + "se_vs_wall"] = doc_tables.markdown_table(rows, ["method"] + cols)
     # ---- the method's own acceptance test (strict cost <= 0.8) against the truth
     rows = []
     for m in [x for x in ("f4", "f5", "f54") if x in methods]:
@@ -292,7 +392,7 @@ def summarize(tag: str, kind: str) -> None:
     # ---- choice (the carry rule is applied to the methods that existed at the decision point;
     # a second table adds F4 with the 5-frame window, which came after)
     def rank_table(
-        cand: List[str],
+        cand: List[str], cost: Dict[str, np.ndarray], scale: Optional[Dict[str, Dict[float, float]]]
     ) -> Tuple[Dict[str, Dict[float, float]], Dict[str, int], List[str]]:
         score: Dict[str, Dict[float, float]] = {m: {} for m in cand}
         rank_sum = {m: 0 for m in cand}
@@ -301,19 +401,34 @@ def summarize(tag: str, kind: str) -> None:
             sel = D["oi"] == oi
             for m in cand:
                 rate = float((D[f"{m}|err"][sel] < 1.0 - TOL).mean())
-                sc_[m] = 1000.0 * rate / float(np.median(se[m][sel]))
+                f = scale[m][OFFSETS[oi]] if scale else 1.0
+                sc_[m] = 1000.0 * rate / (float(np.median(cost[m][sel])) * f)
                 score[m][OFFSETS[oi]] = sc_[m]
             for m in cand:
                 rank_sum[m] += 1 + sum(sc_[o] > sc_[m] for o in cand)  # ties share the better rank
         order = sorted(cand, key=lambda m: (rank_sum[m], -np.mean(list(score[m].values()))))
         return score, rank_sum, order
 
-    for tname, pool in (("choice", CARRY_POOL), ("choice_with_f4w", FULL_OK)):
+    # wall-time scaling: the median ratio of single-worker wall time to strict-equivalent on the
+    # timing run's cases (current weights), per method and offset
+    wall_scale: Optional[Dict[str, Dict[float, float]]] = None
+    if "se_over_wall" in summ and all(
+        m in summ["se_over_wall"] for m in CARRY_POOL if m in methods
+    ):
+        wall_scale = {
+            m: {float(k): 1.0 / v["current"] for k, v in d.items()}
+            for m, d in summ["se_over_wall"].items()
+        }
+    variants = [("choice", CARRY_POOL, se, None), ("choice_with_f4w", FULL_OK, se, None),
+                ("choice_v1", CARRY_POOL, se_v1, None)]  # fmt: skip
+    if wall_scale is not None:
+        variants.append(("choice_wall", CARRY_POOL, se, wall_scale))
+    for tname, pool, cost, scale in variants:
         cand = [m for m in methods if m in pool]
         if "f4w" in pool and "f4w" not in methods:
             continue
-        score, rank_sum, order = rank_table(cand)
-        carry = order[:2] if tname == "choice" else []
+        score, rank_sum, order = rank_table(cand, cost, scale)
+        carry = order[:2] if tname != "choice_with_f4w" else []
         rows = []
         for m in order:
             rows.append(
@@ -322,14 +437,18 @@ def summarize(tag: str, kind: str) -> None:
                     "score 2 deg": score[m][2.0],
                     "score 5 deg": score[m][5.0],
                     "rank sum": rank_sum[m],
+                    "mean score (tie-break)": float(np.mean(list(score[m].values()))),
                     "carried": "yes" if m in carry else "",
                 }
             )
         tables[prefix + tname] = doc_tables.markdown_table(
-            rows, ["method", "score 2 deg", "score 5 deg", "rank sum", "carried"],
-            {"score 2 deg": ".3g", "score 5 deg": ".3g"})  # fmt: skip
+            rows, ["method", "score 2 deg", "score 5 deg", "rank sum", "mean score (tie-break)",
+                   "carried"],
+            {"score 2 deg": ".3g", "score 5 deg": ".3g",
+             "mean score (tie-break)": ".3g"})  # fmt: skip
         summ[tname] = {"score": {m: {f"{k:g}": v for k, v in score[m].items()} for m in cand},
-                       "rank_sum": rank_sum, "carry": carry, "candidates": cand}  # fmt: skip
+                       "rank_sum": rank_sum, "carry": carry, "candidates": cand,
+                       "order": order}  # fmt: skip
     carry = summ["choice"]["carry"]
     # ---- policy: F4 first, F5 then F4 only where F4's own acceptance test rejects it
     for f4m, pname in (("f4", "policy"), ("f4w", "policy_f4w")):
@@ -359,6 +478,80 @@ def summarize(tag: str, kind: str) -> None:
                 median_se=q(se_p[sel], 50), p90_se=q(se_p[sel], 90))  # fmt: skip
             rows.append(r)
         tables[prefix + pname] = doc_tables.markdown_table(rows, list(rows[0]))
+    # ---- per voxel: runs within 1 deg out of 20, at each offset of 2 deg or more (runs of one
+    # voxel share its images, so the Wilson intervals above, which treat runs as independent,
+    # are too narrow when the voxels differ)
+    vox = sorted(set(int(v) for v in D["voxel"]))
+    pv_m = [m for m in ("f1", "f2_1", "f2_2", "f4", "f4w", "f5", "f54") if m in methods]
+    for oi in [x for x in (3, 4, 5) if x in present]:
+        for m in pv_m:
+            ks = []
+            for v in vox:
+                sel = (D["oi"] == oi) & (D["voxel"] == v)
+                ks.append([int((D[f"{m}|err"][sel] < 1.0 - TOL).sum()), int(sel.sum())])
+            summ.setdefault("per_voxel_cap1", {}).setdefault(m, {})[f"{OFFSETS[oi]:g}"] = dict(
+                zip([str(v) for v in vox], ks))  # fmt: skip
+    if kind == "full":
+        rows = []
+        for m in pv_m:
+            r = {"method": LABEL[m]}
+            for v in vox:
+                k, n = summ["per_voxel_cap1"][m]["5"][str(v)]
+                r[f"voxel {v}"] = f"{k} of {n}"
+            rows.append(r)
+        tables[prefix + "pervoxel_cap1_5"] = doc_tables.markdown_table(rows, list(rows[0]))
+    else:
+        rows = []
+        for m in pv_m:
+            r = {"method": LABEL[m]}
+            for oi in [x for x in (3, 4, 5) if x in present]:
+                d = summ["per_voxel_cap1"][m][f"{OFFSETS[oi]:g}"]
+                lost = [v for v, (k, n) in d.items() if k < n]
+                r[f"{OFFSETS[oi]:g} deg: voxels with a lost run"] = f"{len(lost)} of {len(d)}"
+                r[f"{OFFSETS[oi]:g} deg: fewest within 1 deg"] = (
+                    f"{min(k for k, n in d.values())} of {list(d.values())[0][1]}")  # fmt: skip
+            rows.append(r)
+        tables[prefix + "pervoxel_cap1"] = doc_tables.markdown_table(rows, list(rows[0]))
+    # ---- acceptance margins, all offsets pooled (and 5 deg), with Wilson intervals (runs counted
+    # as independent; a run is wrong when it ends 1 deg or more out)
+    rows = []
+    for m in [x for x in ("f4", "f4w") if x in methods]:
+        for lab, sel in (("all offsets", np.ones(len(D["voxel"]), dtype=bool)),
+                         ("5 deg", D["oi"] == 5)):  # fmt: skip
+            acc = (D[f"{m}|flag"] > 0.5) & sel
+            rej = (D[f"{m}|flag"] < 0.5) & sel
+            ok = D[f"{m}|err"] < 1.0 - TOL
+            c, e = D[f"{m}|cost"], D[f"{m}|err"]
+            na, nr = int(acc.sum()), int(rej.sum())
+            r = {
+                "method": LABEL[m],
+                "runs": lab,
+                "accepted but wrong": count_ci(int((acc & ~ok).sum()), na),
+                "rejected but right": count_ci(int((rej & ok).sum()), nr),
+                "largest accepted strict cost": float(c[acc].max()) if na else math.nan,
+                "smallest rejected strict cost": float(c[rej].min()) if nr else math.nan,
+                "largest error accepted (deg)": float(e[acc].max()) if na else math.nan,
+                "smallest error rejected (deg)": float(e[rej].min()) if nr else math.nan,
+            }  # fmt: skip
+            summ.setdefault("acceptance_margin", {}).setdefault(m, {})[lab] = dict(
+                n_accepted=na, accepted_wrong=int((acc & ~ok).sum()), n_rejected=nr,
+                rejected_right=int((rej & ok).sum()),
+                max_cost_accepted=r["largest accepted strict cost"],
+                min_cost_rejected=r["smallest rejected strict cost"],
+                max_err_accepted=r["largest error accepted (deg)"],
+                min_err_rejected=r["smallest error rejected (deg)"])  # fmt: skip
+            rows.append(r)
+    if rows:
+        tables[prefix + "acc_margin"] = doc_tables.markdown_table(
+            rows, list(rows[0]),
+            {"largest accepted strict cost": ".3f", "smallest rejected strict cost": ".3f",
+             "largest error accepted (deg)": ".3f",
+             "smallest error rejected (deg)": ".2f"})  # fmt: skip
+    summ["stop_se_v1"] = {
+        m: {f"{OFFSETS[oi]:g}": [q(se_v1[m][D["oi"] == oi], p) for p in (50, 90)] for oi in present}
+        for m in ("f5", "f54")
+        if m in methods
+    }
     doc_tables.write_tables(OUT / f"tables_{tag}.md", tables)
     (OUT / f"summary_{tag}.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
     figures(D, methods, se, kind, tag, sets)
@@ -415,7 +608,10 @@ def figures(
     axes[0, 0].legend(fontsize=8, loc="lower right")
     fig.suptitle(f"Capture rate against evaluations ({kind}). F3 is not drawn: it makes no cost "
                  "evaluations. F5 lies under F5+F4.")  # fmt: skip
-    fig.supxlabel("cost evaluations so far (strict + screen + smooth, each counted once)")
+    fig.supxlabel(
+        "cost evaluations so far, raw count (strict + screen + smooth, each counted once; "
+        "not time: one F4 Jacobian costs about 26 strict evaluations, one screen about 0.04)"
+    )
     fig.tight_layout()
     fig.savefig(fdir / f"capture_vs_evals_{tag}.png", dpi=130)
     plt.close(fig)

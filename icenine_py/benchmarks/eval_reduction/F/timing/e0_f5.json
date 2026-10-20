@@ -1,0 +1,45 @@
+{
+ "label": "single-worker",
+ "voxels": [
+  10531,
+  3108
+ ],
+ "dirs": 5,
+ "offsets_deg": [
+  1.0,
+  2.0,
+  5.0
+ ],
+ "per_voxel": {
+  "10531": {
+   "screen_ms_per_orientation": 0.017509176728383,
+   "smooth_ms_per_orientation": 0.3669952793543344,
+   "strict_ms_per_orientation": 0.4428693692307336,
+   "screen_orientations": 121848,
+   "smooth_orientations": 3841,
+   "strict_orientations": 260,
+   "screen_calls": 548,
+   "smooth_calls": 128,
+   "strict_calls": 260,
+   "search_ms_total": 3680.750456000002,
+   "callables_ms_total": 3658.2330700000007,
+   "f4_e4_value_ms": 0.6493958333333438,
+   "f4_e4_value_and_jacobian_ms": 11.040309700000014
+  },
+  "3108": {
+   "screen_ms_per_orientation": 0.01683326376606919,
+   "smooth_ms_per_orientation": 0.3517132751378296,
+   "strict_ms_per_orientation": 0.46442009374989685,
+   "screen_orientations": 124618,
+   "smooth_orientations": 3809,
+   "strict_orientations": 256,
+   "screen_calls": 559,
+   "smooth_calls": 127,
+   "strict_calls": 256,
+   "search_ms_total": 3578.8295799999864,
+   "callables_ms_total": 3556.2950729999766,
+   "f4_e4_value_ms": 0.6301708333333286,
+   "f4_e4_value_and_jacobian_ms": 8.760406933333323
+  }
+ }
+}

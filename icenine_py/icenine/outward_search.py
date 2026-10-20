@@ -5,15 +5,18 @@ from the answer. These two searches are built for that case, not for the whole f
 
 * ``RayGaussNewton`` (F4). Gauss-Newton on the observed-ray residual of Task E's arm E4
   (``smooth_cost.SmoothCost``). Every predicted peak is matched to the nearest observed ray attached
-  to the voxel (within one frame). The residual of a peak is the tangent-plane offset of its
-  predicted scattered direction from that ray (two numbers) plus the distance of its predicted omega
-  to the ray's frame (one number). The Jacobian with respect to a small rotation is exact (autograd
-  through ``SmoothCost.predict``, one batched backward pass), so one evaluation gives a full
-  correction. The loss is E4's robust ``r^2 / (r^2 + tau^2)``, minimised by iteratively reweighted
-  Gauss-Newton with a Levenberg-Marquardt damping and a trust region on the step; ``tau`` can shrink
-  over a schedule. The strict cost is not used inside the loop (it is flat far from the answer); it
-  is evaluated at the start and at the end, and ``accepted`` says whether the end passes the
-  acceptance test. The matching is held fixed inside one Jacobian and redone at every trial point.
+  to the voxel (within ``frame_window`` frames, default 1). The residual of a peak is the
+  tangent-plane offset of its predicted scattered direction from that ray (two numbers, the sines
+  of the angle's components) plus the distance of its predicted omega to the ray's frame (one
+  number); the matching and the line search use the angle itself (atan2), which agrees with the
+  tangent-plane residual to first order. The Jacobian with respect to a small rotation is exact
+  (autograd through ``SmoothCost.predict``, one vmapped backward pass per residual component, 3m
+  in all), so one evaluation gives a full correction. The loss is E4's robust
+  ``r^2 / (r^2 + tau^2)``, minimised by iteratively reweighted Gauss-Newton with a
+  Levenberg-Marquardt damping and a trust region on the step; ``tau`` can shrink over a schedule.
+  The strict cost is not used inside the loop (it is flat far from the answer); it is evaluated at
+  the start and at the end, and ``accepted`` says whether the end passes the acceptance test.
+  The matching is held fixed inside one Jacobian and redone at every trial point.
 * ``ShellSearch`` (F5). Expanding shells on SO(3): deterministic points on spheres of radius
   ``k x spacing`` in rotation-vector space about the start (equal-area points per shell, hexagonal
   packing density). Each shell is scored with a coarse screen (callable, batched), the best
@@ -24,7 +27,9 @@ from the answer. These two searches are built for that case, not for the whole f
 
 Both count their evaluations by kind (strict, screen, smooth), so a result can be put next to
 another method's strict evaluations. A "smooth evaluation" is one E4 value or one E4 value with
-Jacobian; a Jacobian costs about as much as three values (single-worker, Task F RUN_LOG).
+Jacobian. Measured single-worker (Task F ``timing/e0.json`` and ``timing/full.json``, one voxel
+each), a value with its Jacobian costs about 16 single E4 values on E0 images (10.8 ms against
+0.66 ms) and about 8 on full-sample images (12.1 ms against 1.50 ms).
 
 Rotations are 3x3 matrices; a step is applied on the left, ``R_new = exp(delta) R`` (the convention
 of ``MCOptimizer`` and Task B's walks). Frame and beam assumptions of E4 hold (lab = Rz(omega)

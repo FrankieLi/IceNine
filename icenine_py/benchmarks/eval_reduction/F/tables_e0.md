@@ -6,6 +6,15 @@
 | F5 then F4 | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right |
 <!-- /table:evalF_e0_acc -->
 
+<!-- table:evalF_e0_acc_margin -->
+| method | runs | accepted but wrong | rejected but right | largest accepted strict cost | smallest rejected strict cost | largest error accepted (deg) | smallest error rejected (deg) |
+|---|---|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | all offsets | 0 of 2854 (0.0-0.1%) | 0 of 26 (0.0-12.9%) | 0.602 | 0.951 | 0.168 | 3.14 |
+| F4 Gauss-Newton on E4 rays | 5 deg | 0 of 456 (0.0-0.8%) | 0 of 24 (0.0-13.8%) | 0.472 | 0.951 | 0.168 | 3.71 |
+| F4 with a 5-frame matching window | all offsets | 0 of 2880 (0.0-0.1%) | none | 0.797 | n/a | 0.245 | n/a |
+| F4 with a 5-frame matching window | 5 deg | 0 of 480 (0.0-0.8%) | none | 0.469 | n/a | 0.169 | n/a |
+<!-- /table:evalF_e0_acc_margin -->
+
 <!-- table:evalF_e0_cap005 -->
 | method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
 |---|---|---|---|---|---|---|
@@ -49,28 +58,52 @@
 <!-- /table:evalF_e0_cap1 -->
 
 <!-- table:evalF_e0_choice -->
-| method | score 2 deg | score 5 deg | rank sum | carried |
-|---|---|---|---|---|
-| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 2 | yes |
-| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 6 | yes |
-| F5 expanding shells | 2.8 | 0.503 | 6 |  |
-| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 6 |  |
-| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 12 |  |
-| F5 then F4 | 1.9 | 0.464 | 12 |  |
-| F1 FindOptimal, box = offset | 1.81 | 0.489 | 12 |  |
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 3 | 2.97 | yes |
+| F5 expanding shells | 4.56 | 0.733 | 3 | 2.65 | yes |
+| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 7 | 1.64 |  |
+| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 8 | 1.82 |  |
+| F5 then F4 | 2.58 | 0.652 | 9 | 1.61 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 13 | 1.34 |  |
+| F1 FindOptimal, box = offset | 1.81 | 0.489 | 13 | 1.15 |  |
 <!-- /table:evalF_e0_choice -->
 
+<!-- table:evalF_e0_choice_v1 -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 2 | 2.97 | yes |
+| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 6 | 1.82 | yes |
+| F5 expanding shells | 2.8 | 0.503 | 6 | 1.65 |  |
+| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 6 | 1.64 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 12 | 1.34 |  |
+| F5 then F4 | 1.9 | 0.464 | 12 | 1.18 |  |
+| F1 FindOptimal, box = offset | 1.81 | 0.489 | 12 | 1.15 |  |
+<!-- /table:evalF_e0_choice_v1 -->
+
+<!-- table:evalF_e0_choice_wall -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 3.56 | 2.95 | 3 | 3.25 | yes |
+| F5 expanding shells | 4.51 | 0.746 | 3 | 2.63 | yes |
+| F5 then F4 | 2.62 | 0.665 | 8 | 1.64 |  |
+| F2 CMA-ES, sigma0 2 deg | 2.59 | 0.672 | 8 | 1.63 |  |
+| F2 CMA-ES, sigma0 1 deg | 3.13 | 0.492 | 9 | 1.81 |  |
+| F1 FindOptimal, box = offset | 1.87 | 0.501 | 12 | 1.19 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.51 | 0.154 | 13 | 1.33 |  |
+<!-- /table:evalF_e0_choice_wall -->
+
 <!-- table:evalF_e0_choice_with_f4w -->
-| method | score 2 deg | score 5 deg | rank sum | carried |
-|---|---|---|---|---|
-| F4 with a 5-frame matching window | 3.29 | 2.79 | 2 |  |
-| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 3 |  |
-| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 8 |  |
-| F5 expanding shells | 2.8 | 0.503 | 8 |  |
-| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 8 |  |
-| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 14 |  |
-| F5 then F4 | 1.9 | 0.464 | 14 |  |
-| F1 FindOptimal, box = offset | 1.81 | 0.489 | 14 |  |
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 with a 5-frame matching window | 3.29 | 2.79 | 3 | 3.04 |  |
+| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 4 | 2.97 |  |
+| F5 expanding shells | 4.56 | 0.733 | 4 | 2.65 |  |
+| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 9 | 1.64 |  |
+| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 10 | 1.82 |  |
+| F5 then F4 | 2.58 | 0.652 | 11 | 1.61 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 15 | 1.34 |  |
+| F1 FindOptimal, box = offset | 1.81 | 0.489 | 15 | 1.15 |  |
 <!-- /table:evalF_e0_choice_with_f4w -->
 
 <!-- table:evalF_e0_err -->
@@ -115,6 +148,18 @@
 | F5 then F4 | 100% (98-100) | 100% (98-100) | 100% (98-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
 <!-- /table:evalF_e0_nearfar_cap1 -->
 
+<!-- table:evalF_e0_pervoxel_cap1 -->
+| method | 2 deg: voxels with a lost run | 2 deg: fewest within 1 deg | 3 deg: voxels with a lost run | 3 deg: fewest within 1 deg | 5 deg: voxels with a lost run | 5 deg: fewest within 1 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 23 of 24 | 12 of 20 | 24 of 24 | 7 of 20 | 24 of 24 | 6 of 20 |
+| F2 CMA-ES, sigma0 1 deg | 10 of 24 | 18 of 20 | 24 of 24 | 13 of 20 | 24 of 24 | 3 of 20 |
+| F2 CMA-ES, sigma0 2 deg | 22 of 24 | 16 of 20 | 24 of 24 | 13 of 20 | 24 of 24 | 3 of 20 |
+| F4 Gauss-Newton on E4 rays | 0 of 24 | 20 of 20 | 2 of 24 | 19 of 20 | 14 of 24 | 17 of 20 |
+| F4 with a 5-frame matching window | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 |
+| F5 expanding shells | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 |
+| F5 then F4 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 |
+<!-- /table:evalF_e0_pervoxel_cap1 -->
+
 <!-- table:evalF_e0_policy -->
 | offset | runs | F4 rejected, F5+F4 run | within 1 deg | within 0.1 deg | within 0.05 deg | median evals (strict-equivalent) | 90th percentile |
 |---|---|---|---|---|---|---|---|
@@ -136,6 +181,19 @@
 | 3 deg | 480 | 0 | 100% (99-100) | 99% (98-100) | 93% (91-95) | 331 | 395 |
 | 5 deg | 480 | 0 | 100% (99-100) | 99% (97-99) | 93% (90-95) | 358 | 425 |
 <!-- /table:evalF_e0_policy_f4w -->
+
+<!-- table:evalF_e0_se_vs_wall -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 1.04 -> 1.04 | 1.03 -> 1.03 | 1.03 -> 1.03 |
+| F2 CMA-ES, sigma0 0.5 deg | 0.99 -> 0.99 | 0.99 -> 0.99 | 0.99 -> 0.99 |
+| F2 CMA-ES, sigma0 1 deg | 0.99 -> 0.99 | 0.99 -> 0.99 | 1.00 -> 1.00 |
+| F2 CMA-ES, sigma0 2 deg | 1.00 -> 1.00 | 1.00 -> 1.00 | 0.99 -> 0.99 |
+| F4 Gauss-Newton on E4 rays | 1.06 -> 1.06 | 1.08 -> 1.08 | 1.11 -> 1.11 |
+| F4 with a 5-frame matching window | 1.05 -> 1.05 | 1.05 -> 1.05 | 1.05 -> 1.05 |
+| F5 expanding shells | 1.62 -> 0.96 | 1.61 -> 0.99 | 1.48 -> 1.02 |
+| F5 then F4 | 1.25 -> 1.01 | 1.41 -> 1.02 | 1.43 -> 1.02 |
+<!-- /table:evalF_e0_se_vs_wall -->
 
 <!-- table:evalF_e0_secs -->
 | method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
@@ -189,18 +247,27 @@
 | F3 centroid Gauss-Newton (windows) | 426 (426) | 426 (426) | 426 (426) | 426 (426) | 426 (426) | 426 (426) |
 | F4 Gauss-Newton on E4 rays | 141 (205) | 214 (288) | 268 (340) | 304 (377) | 331 (404) | 358 (431) |
 | F4 with a 5-frame matching window | 141 (216) | 214 (288) | 268 (359) | 304 (377) | 331 (395) | 358 (425) |
-| F5 expanding shells | 1 (1) | 26.2 (81.4) | 140 (140) | 357 (448) | 797 (797) | 1986 (2266) |
-| F5 then F4 | 142 (206) | 195 (271) | 281 (365) | 526 (616) | 911 (994) | 2155 (2407) |
+| F5 expanding shells | 1 (1) | 15.7 (48) | 83.2 (83.2) | 219 (279) | 516 (516) | 1364 (1568) |
+| F5 then F4 | 142 (206) | 184 (255) | 224 (314) | 388 (452) | 647 (713) | 1533 (1709) |
 <!-- /table:evalF_e0_stop_se -->
 
 <!-- table:evalF_e0_timing -->
-| kind of evaluation | milliseconds | times a strict evaluation |
-|---|---|---|
-| strict cost | 0.422 | 1.00 |
-| screen (pixel radius 3), per orientation in a batch | 0.023 | 0.05 |
-| E4 value | 0.658 | 1.56 |
-| E4 value and Jacobian | 10.797 | 25.59 |
+| kind of evaluation | used for | milliseconds | times a strict evaluation |
+|---|---|---|---|
+| strict cost | all methods | 0.4219 | 1.000 |
+| screen (pixel radius 3), per orientation, batches of 64 | v1 weights only | 0.0230 | 0.054 |
+| E4 value, one rotation per call | F4 | 0.6584 | 1.561 |
+| E4 value and Jacobian, one rotation per call | F4 | 10.7970 | 25.592 |
+| screen, per orientation, a shell at a time (chunks of up to 256) | F5 | 0.0175 | 0.042 |
+| E4 value, per orientation, 32 rotations per call | F5 | 0.3670 | 0.870 |
 <!-- /table:evalF_e0_timing -->
+
+<!-- table:evalF_e0_timing_voxels -->
+| voxel | weights from it | F4 E4 value (ms) | F4 E4 value and Jacobian (ms) | F5 screen (ms per orientation) | F5 E4 (ms per orientation) | strict inside F5 (ms) |
+|---|---|---|---|---|---|---|
+| 10531 | yes | 0.649 | 11.04 | 0.0175 | 0.367 | 0.443 |
+| 3108 |  | 0.630 | 8.76 | 0.0168 | 0.352 | 0.464 |
+<!-- /table:evalF_e0_timing_voxels -->
 
 <!-- table:evalF_e0_tocap005 -->
 | method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
