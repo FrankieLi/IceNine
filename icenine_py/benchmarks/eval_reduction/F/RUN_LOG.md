@@ -32,7 +32,9 @@ physics code, every golden test. `SmoothCost` (Task E) and `ScreenEvaluator` are
   5 deg; ranks at the two offsets added; the two lowest sums are carried; ties by the larger mean score. The
   candidates are the plan's methods (F1, F2 in three variants, F4, F5, F5+F4); F3 cannot run on the full sample.
   Written before the full-sample runs were read.
-* **Counting.** Raw (every evaluation once) and strict-equivalent (weights from the single-worker timing run).
+* **Counting.** Raw (every evaluation once) and strict-equivalent (weights from the single-worker timing run). The
+  first (v1) weights timed the screen in batches of 64 and every E4 value as a single call; after review F5's kinds
+  were re-timed at the batch sizes F5 uses (section 8).
 * **Voxel sets.** E0: all 8 near-axis voxels (r_perp below 120 um) of the 200 with clean images, and 16 far-from-axis
   (r_perp 250 um or more) spread evenly; 4 more (2 near, 2 far) as pilot voxels, not used in the benchmark. Full
   sample: the six interior voxels. 20 directions (seed 7000 + voxel, the same directions at every offset).
@@ -49,7 +51,9 @@ physics code, every golden test. `SmoothCost` (Task E) and `ScreenEvaluator` are
 
 The strict cost at the truth, the screen's half-way rise (0.78 deg on E0, from Task B's cache, the median over the
 walks) and the strict cost's half-way rise (0.11 deg on E0, 0.33 deg full sample) were read from Task B's ray walks
-(`benchmarks/eval_reduction/B/cache`).
+(`benchmarks/eval_reduction/B/cache`; `outward_pilot.py halfrise` writes `pilot/half_rise.json`). Those walks include
+three benchmark E0 voxels (3108, 10531, 17451) and all six full-sample voxels, so the acceptance level and the spacing
+that rest on them are not fully independent of the test voxels.
 
 ## 4. Runs (commands from `icenine_py/`)
 
@@ -57,11 +61,12 @@ walks) and the strict cost's half-way rise (0.11 deg on E0, 0.33 deg full sample
 |---|---|---|---|
 | pilots | `outward_pilot.py schedule|spacing|window` | 2 to 6 min each | one process, others running (contended) |
 | E0, 24 voxels, 20 dirs, 6 offsets, all methods | `benchmarks/eval_reduction/F/run_all.sh` (`outward_bench.py run --kind e0 --workers 5 --dirs 20 --n-near 8 --n-far 16 --tag e0`) | 891 s | contended (5 workers) |
-| full sample, six voxels, offsets 1, 2, 5 deg | `outward_bench.py run --kind full --workers 5 --dirs 20 --offsets 2,3,5 --tag full --methods f1,f2_05,f2_1,f2_2,f4,f5,f54` | 191 s | contended |
+| full sample, six voxels, offsets 1, 2, 5 deg | `outward_bench.py run --kind full --workers 5 --dirs 20 --offsets 2,3,5 --tag full --methods f1,f2_05,f2_1,f2_2,f4,f5,f54` (`--offsets` takes indices into `OFFSETS` = 0.1, 0.5, 1, 2, 3, 5 deg, so 2,3,5 are 1, 2 and 5 deg) | 191 s | contended |
 | F4 with the 5-frame window, E0 and full | `outward_bench.py run ... --tag e0_f4w --methods f4w` (and `full_f4w`) | 2 min | contended |
 | timing, E0 (2 voxels, 5 dirs, offsets 1, 2, 5 deg) | `outward_bench.py timing --kind e0 --dirs 5` | 1 min | **single-worker**, preflight passed (`timing/preflight_e0.json`); the first attempts stopped on a busy preflight (load) and were retried |
 | timing, full (voxel 15901) | `outward_bench.py timing --kind full --dirs 5` | 25 s | **single-worker**, `timing/preflight_full.json` |
 | diagnostic of F4's failures | `outward_diag.py e0 --n-voxels 12`, `outward_diag.py full` | 5 min | contended |
+| F5 at its own batch sizes, E0 (voxels 10531, 3108) and full (15901), after review | `outward_bench.py timing-f5 --kind e0 --dirs 5`, `... --kind full --dirs 5` | under 1 min | **single-worker**, preflight passed (`timing/preflight_e0_f5.json` load 1.37, `timing/preflight_full_f5.json` load 1.28) |
 | summaries | `outward_summary.py e0`, `... full`, `... merge` | 1 min | |
 | reproducibility | the E0 run was done twice (once with a tolerance of 1e-6, then 1e-3): all 13,536 non-timing arrays are identical; a third check of one voxel after the library fix (`_weights`) is identical too | | |
 
@@ -77,8 +82,13 @@ walks) and the strict cost's half-way rise (0.11 deg on E0, 0.33 deg full sample
 * **The E0 failure mode was understood after the run.** F4 with one frame of matching window loses 5% of the E0 runs
   from 5 deg. The window variant (f4w) was added afterwards, chosen on pilot voxels, and reported as an addition, not as
   one of the plan's methods; the carry rule was taken without it.
-* **The findings doc.** The write of `docs/findings_outward_search_2026-10.md` was refused by the tool ("Subagents should
-  return findings as text, not write report files"). The draft is returned in the report; see the report.
+* **The findings doc.** The implementer could not write `docs/findings_outward_search_2026-10.md`; the main session
+  wrote it from MIGRATION_HISTORY "Task F" (commit b6352be).
+* **The v1 strict-equivalent weights overstated F5** (found in review). Against single-worker wall time on the timing
+  cases, F5's strict-equivalent count was 1.48-1.62x (E0) and 1.18-1.22x (full) too high, F5+F4's 1.25-1.43x and
+  1.10-1.20x; F1, F2 and F4 were within 0.99-1.11. F5 makes its screen calls a shell at a time (up to 256) and its E4
+  calls 32 at a time, while the weights were timed at 64 and 1. Re-timed (section 8), the ratios are 0.96-1.02. This
+  changed the E0 carry (section 8).
 
 ## 6. Why F4 fails from far starts (`diag/`)
 
@@ -90,12 +100,34 @@ rays for 58 predicted peaks (E0: 58 for 58), consistent with a wide window picki
 
 ## 7. Could be done better
 
-* The Jacobian (autograd, one batched backward pass) costs about 26 strict evaluations. Three forward differences
-  would cost about 3 E4 values (about 5 strict evaluations) and are accurate enough for Gauss-Newton; forward-mode
-  autograd was tried and was slower (13 ms against 9 ms on one voxel). Not done, because the plan asks for an
-  analytic Jacobian.
+* The Jacobian (autograd, 3m vmapped backward passes) costs about 26 strict evaluations, about 16 single E4 values on
+  E0 (8 on the full sample). Three forward differences would cost about 3 E4 values (about 5 strict evaluations);
+  whether they are accurate enough for Gauss-Newton is untested. A forward-mode trial was made during development, but
+  its timing was not saved, so no number is quoted. Not done, because the plan asks for an analytic Jacobian (a Task G
+  candidate).
 * F5 spends most of its screen evaluations on shells the truth is not in. A coarse-to-fine spacing would cut that.
-* The timing runs cover two E0 voxels and one full-sample voxel; more would tighten the strict-equivalent weights.
+* The per-evaluation weights come from one voxel per set (E0 10531, full 15901); the serial timing runs cover two E0
+  voxels and one full-sample voxel. A second E0 voxel (3108) gave an F4 Jacobian of 8.76 ms against 11.04 ms
+  (`timing/e0_f5.json`); more voxels would tighten the weights.
 * F3 on the full sample needs windows cut from the image stack (not built).
 * The policy "F4, then F5 and F4 on rejection" is in-sample; it needs a run on voxels it was not read from (Task G's
   other 24 full-sample voxels).
+
+## 8. Review fixes (2026-10-20, `feature/eval-reduction-F-fixes`)
+
+* **F5 re-costed.** `outward_bench.py timing-f5` runs `ShellSearch` from the timing run's starts (offsets 1, 2, 5 deg,
+  5 directions, voxels 10531 and 3108 on E0, 15901 on the full sample) with timers around its callables, single
+  worker, preflight-gated (`timing/e0_f5.json`, `timing/full_f5.json`). Per orientation on the weight voxels: screen
+  0.0175 ms (E0) and 0.0175 ms (full) against 0.0230 and 0.0224 at batches of 64; E4 through `evaluate_many` on 32
+  rotations 0.367 ms (E0) and 1.214 ms (full) against 0.658 and 1.498 as single calls. `outward_summary.py` now weights
+  F5 and the F5 part of F5+F4 with these; F4's weights are unchanged. The v1 tables are kept (`*_choice_v1`,
+  `stop_se_v1` in the summaries) and Table 4c / 18b of MIGRATION_HISTORY give strict-equivalent over wall time for both.
+* **The E0 carry changed.** With the current weights the choice rule carries **F4 and F5** (rank sums 3 and 3; next F2
+  sigma0 2 at 7). With the v1 weights it carried F4 and F2 sigma0 1, the second place by a three-way tie at rank sum 6
+  (F2 sigma0 1, F5, F2 sigma0 2) broken by mean score 1.82 against 1.65 and 1.64. Scaling every method by its measured
+  wall-time ratio also carries F4 and F5 (`*_choice_wall`). The full-sample rule still picks F2 sigma0 2 and 1.
+* **No run repeated.** Only the summaries were recomputed from the stored per-run records; the timing-f5 run is new.
+* New summary tables: per-voxel capture (`*_pervoxel_cap1*`), acceptance margins with Wilson intervals
+  (`*_acc_margin`), per-voxel timing (`e0_timing_voxels`), strict-equivalent over wall (`*_se_vs_wall`), F4's
+  evaluation mix (`composition` in the summaries: E0 5 deg median 13 Jacobians, 18 E4 values, 2 strict, Jacobians
+  92% of the strict-equivalent).

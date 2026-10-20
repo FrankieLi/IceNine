@@ -547,6 +547,27 @@ def summarize(tag: str, kind: str) -> None:
             {"largest accepted strict cost": ".3f", "smallest rejected strict cost": ".3f",
              "largest error accepted (deg)": ".3f",
              "smallest error rejected (deg)": ".2f"})  # fmt: skip
+    # ---- what F4's evaluations are made of: Jacobians, E4 values, strict (median per run)
+    for m in [x for x in ("f4", "f4w") if x in methods]:
+        for oi in present:
+            sel = D["oi"] == oi
+            nj = D[f"{m}|n_jac"][sel]
+            nv = D[f"{m}|n_smooth"][sel] - nj
+            share = w["jac"] * nj / se[m][sel]
+            summ.setdefault("composition", {}).setdefault(m, {})[f"{OFFSETS[oi]:g}"] = dict(
+                median_jac=float(np.median(nj)), median_val=float(np.median(nv)),
+                median_strict=float(np.median(D[f"{m}|n_strict"][sel])),
+                median_raw=float(np.median(raw[m][sel])),
+                median_share_se_from_jac=float(np.median(share)))  # fmt: skip
+    if "f4" in methods and "f54" in methods:  # the policy's cost with the v1 weights
+        rej = D["f4|flag"] < 0.5
+        se_p1 = se_v1["f4"] + rej * se_v1["f54"]
+        summ["policy_f4_v1"] = {
+            f"{OFFSETS[oi]:g}": dict(
+                median_se=q(se_p1[D["oi"] == oi], 50), p90_se=q(se_p1[D["oi"] == oi], 90)
+            )  # fmt: skip
+            for oi in present
+        }
     summ["stop_se_v1"] = {
         m: {f"{OFFSETS[oi]:g}": [q(se_v1[m][D["oi"] == oi], p) for p in (50, 90)] for oi in present}
         for m in ("f5", "f54")
