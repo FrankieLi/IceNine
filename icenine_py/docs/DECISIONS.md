@@ -418,3 +418,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - Go for S2, the fused C evaluation behind an opt-in key. Ilium Agent writes the plan for owner
   approval before any implementer runs. Where: ROADMAP Track S row S2; plan to come in
   docs/todo_s2_fused_c_eval.md.
+### D-20261021-N1 · Track E row F/G · Compare every Task F carry option side by side before choosing
+- 2026-10-21, owner. Recorded by Newt Agent. Supersedes: none.
+- Before choosing what Task G carries, run every option in parallel and summarize capture, timing
+  and evaluation counts so the owner can compare: F4 (1-frame window), F4 (5-frame window), F5, F5
+  then F4, the policy 'F4 then F5+F4 on rejection' with each window, and CMA-ES (sigma0 1 and 2
+  deg). The runs use voxels Task F did not use, so the policy and window numbers are out of
+  sample. The choice of carry (open from Task F) waits for this summary. Where: ROADMAP Track E
+  row F; docs/findings_outward_search_2026-10.md.
