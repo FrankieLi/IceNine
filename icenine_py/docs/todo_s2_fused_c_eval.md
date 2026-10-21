@@ -8,7 +8,8 @@ fontsize: 11pt
 
 # Status
 
-**Plan, waiting for owner approval.** S2 picked by the owner 2026-10-21 (D-20261021-I2). S3, which
+**Approved 2026-10-21 (D-20261021-I4), Step 0 in progress;** Opus at high effort implements it.
+S2 picked by the owner 2026-10-21 (D-20261021-I2). S3, which
 had to come first (D-20261013-I5), is merged. Written by Ilium Agent from a code investigation;
 the file and line references are on `feature/python-speed-parity` at ac2b49f. Built under the Track
 S rule: implementer on a task branch, `/review-task`, required fixes to a fresh implementer. Task
@@ -76,7 +77,7 @@ new Track E mode cannot slip into the fused path untested. Unaffected: `Candidat
 
 # Steps
 
-**Step 0, go/no-go (scripts only, no library change; its own implementer run).**
+## Step 0: go/no-go prototype (scripts only, no library change; its own implementer run)
 
 - 0a. Time a no-start search split by caller (screen, re-cost, quick MC, FindOptimal,
   VarianceMinimizing, final) on ThreeVoxels voxel 0 and 10 E0 voxels, with default keys and with
@@ -91,7 +92,7 @@ new Track E mode cannot slip into the fused path untested. Unaffected: `Candidat
 - Go: median <= 30 us per call on the triangle arm and every difference traced (see Parity).
   30-50 us: report to the owner before Step 1. Above 50 us: the stop rule.
 
-**Steps 1-6 (after a go).**
+## Steps 1-6 (after a go)
 
 1. The C kernel and the shared stage-D function in `_rasterize.c`. With the key off,
    `scripts/speed_parity/s1_parity.py compare` is exact against the base commit.
