@@ -412,3 +412,9 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the other agent's, let make_brief.sh accept a plan outside the repository, and update the S4
   row. Where: ROADMAP H12; .claude/reports/20261018-owner-text-workflow-tooling.md (Ilium's
   machine).
+
+### D-20261021-I2 · S2 · S2 is the next Track S item; plan it
+- 2026-10-21, owner. Recorded by Ilium Agent. Supersedes: none.
+- Go for S2, the fused C evaluation behind an opt-in key. Ilium Agent writes the plan for owner
+  approval before any implementer runs. Where: ROADMAP Track S row S2; plan to come in
+  docs/todo_s2_fused_c_eval.md.
