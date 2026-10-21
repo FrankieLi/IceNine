@@ -83,7 +83,7 @@ ROOT=$(git rev-parse --show-toplevel)
 ROOT=$(cd "$ROOT" && pwd -P)
 cd "$ROOT"
 
-# --- plan file, as a path relative to the repository root
+# --- plan file, as a path relative to the repository root (absolute if outside it)
 PLAN_REL=""
 case "$PLAN" in
     /*)
@@ -91,7 +91,12 @@ case "$PLAN" in
         PLAN_ABS="$(cd "$(dirname "$PLAN")" && pwd -P)/$(basename "$PLAN")"
         case "$PLAN_ABS" in
             "$ROOT"/*) PLAN_REL="${PLAN_ABS#"$ROOT"/}" ;;
-            *) die "plan is outside the repository: $PLAN" ;;
+            *)
+                # e.g. Track E's plan in ~/.claude/plans on Newt's machine: the brief names it by
+                # its absolute path, which only an agent on this machine can read.
+                PLAN_REL="$PLAN_ABS"
+                echo "note: plan outside the repository; the brief names it by absolute path" >&2
+                ;;
         esac
         ;;
     *)

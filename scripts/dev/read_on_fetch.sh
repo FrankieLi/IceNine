@@ -78,10 +78,13 @@ echo "agent $AGENT; other branch $REF at $(git rev-parse --short "$TIP")"
 echo "last read: $(git rev-parse --short "$LAST") ($FROM)"
 
 echo
-echo "== commits on $REF since the last read =="
-NEW=$(git log --oneline "$LAST..$REF")
+echo "== commits on $REF since the last read, not on your branch =="
+# Commits of your own that the other agent merged are already on HEAD; leave them out.
+NEW=$(git log --oneline "$LAST..$REF" --not HEAD)
+ALL_N=$(git rev-list --count "$LAST..$REF")
 if [ -z "$NEW" ]; then
     echo "none"
+    [ "$ALL_N" -eq 0 ] || echo "($ALL_N commit(s) since the last read are already on your branch)"
 else
     N=$(printf '%s\n' "$NEW" | wc -l | tr -d ' ')
     if [ "$N" -gt 40 ]; then
@@ -90,8 +93,10 @@ else
     else
         printf '%s\n' "$NEW"
     fi
-    echo "-- files changed ($(git rev-parse --short "$LAST") to $(git rev-parse --short "$TIP")):"
-    BASE=$(git merge-base "$LAST" "$REF" || echo "$LAST")
+    OWN_N=$((ALL_N - N))
+    [ "$OWN_N" -eq 0 ] || echo "($OWN_N commit(s) already on your branch left out)"
+    BASE=$(git merge-base HEAD "$REF" || echo "$LAST")
+    echo "-- files a merge would bring ($(git rev-parse --short "$BASE") to $(git rev-parse --short "$TIP")):"
     STAT=$(git diff --stat "$BASE" "$REF")
     NS=$(printf '%s\n' "$STAT" | wc -l | tr -d ' ')
     if [ "$NS" -gt 40 ]; then

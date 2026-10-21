@@ -196,6 +196,24 @@ def test_section_and_default_stop_rule(repo: Path) -> None:
     )
 
 
+def test_plan_outside_the_repository_named_by_absolute_path(repo: Path, tmp_path: Path) -> None:
+    outside = tmp_path / "plans" / "eval-reduction.md"
+    outside.parent.mkdir()
+    outside.write_text(PLAN.replace("todo_demo.md", "eval-reduction.md"))
+    _write(
+        repo,
+        "icenine_py/docs/DECISIONS.md",
+        "## Entries\n\n### D-20261004-N1 · E · Plan eval-reduction.md approved\n"
+        "- 2026-10-04, owner. Recorded by Newt Agent. Supersedes: none.\n"
+        "- The plan `~/.claude/plans/eval-reduction.md` is approved. Where: E.\n",
+    )
+    out = _brief(repo, "--plan", str(outside), "--task", "g")
+    assert out.returncode == 0, out.stderr
+    assert "note: plan outside the repository" in out.stderr
+    assert f"Implement the plan {outside.resolve()}." in out.stdout
+    assert "Approval: D-20261004-N1" in out.stdout
+
+
 def test_unknown_section_refused(repo: Path) -> None:
     out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t", "--section", "9. Missing")
     assert out.returncode == 1
