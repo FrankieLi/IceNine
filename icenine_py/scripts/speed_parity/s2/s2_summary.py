@@ -107,7 +107,7 @@ def search(s: Dict[str, Any]) -> Dict[str, Any]:
                 us_per_eval=m["us_per_evaluate"],
                 screen=m["screen_s"],
                 bqmc=m["bqmc_s"],
-                wrong=f"{m['wrong_repeat0']} of {m['n_cases']}",
+                wrong=f"{int(m['wrong_repeat0'])} of {int(m['n_cases'])}",
             )
         )
     out["table"] = DT.markdown_table(
@@ -126,7 +126,7 @@ def search(s: Dict[str, Any]) -> Dict[str, Any]:
             crow.append(
                 dict(
                     arm=ARM_LABEL[arm],
-                    caller=c,
+                    caller="screen (BatchedScreen, not in v1)" if c == "screen" else c,
                     calls=int(m[f"{c}_n"]),
                     seconds=m[f"{c}_s"],
                     share=m[f"{c}_s"] / m["wall_s"],
@@ -219,6 +219,33 @@ def parity(p: Dict[str, Any]) -> Dict[str, Any]:
                              fused_max_px=e["fused"]["pixel"]["max"])
                     )  # fmt: skip
     out["frame_rows_differing_total"] = any_frame
+    # headline: the plan's triangle arm (mode "local") and the screen ("screen_center"), totals
+    # over the datasets, per variant
+    head: Dict[str, Any] = {}
+    for mode in ("local", "screen_center"):
+        for v in meta["variants"]:
+            recs = [r for r in frows if r["mode"] == mode and r["variant"] == v]
+            n = sum(r["n"] for r in recs)
+            k = sum(r["differing"] for r in recs)
+            lo, hi = stats.wilson(k, n)
+            mm = [r["max_margin_ulp"] for r in recs if r["max_margin_ulp"] is not None]
+            mp = [r["max_margin_px"] for r in recs if r["max_margin_px"] is not None]
+            head[f"{mode}/{v}"] = dict(
+                n=n,
+                differing=k,
+                differing_pct=100.0 * k / n,
+                wilson_lo_pct=100.0 * lo,
+                wilson_hi_pct=100.0 * hi,
+                within_trace_ulp=sum(r["within_trace_ulp"] for r in recs),
+                beyond_trace_ulp=sum(r["beyond_trace_ulp"] for r in recs),
+                no_differing_peak=sum(r["no_differing_peak"] for r in recs),
+                max_margin_ulp=max(mm) if mm else None,
+                max_margin_px=max(mp) if mp else None,
+                flipped_peaks=sum(r["ref_nearer_torch"] + r["ref_nearer_fused"] for r in recs),
+                ref_nearer_torch=sum(r["ref_nearer_torch"] for r in recs),
+                ref_nearer_fused=sum(r["ref_nearer_fused"] for r in recs),
+            )
+    out["headline"] = head
     # one table row per (dataset, variant, mode group): the triangle modes and screen modes
     # differ almost identically within a group, so the group shows its first mode and the range
     trows = []
@@ -240,20 +267,33 @@ def parity(p: Dict[str, Any]) -> Dict[str, Any]:
                         variant=v,
                         modes=group,
                         differing=f"{min(dif)}-{max(dif)}" if min(dif) != max(dif) else min(dif),
-                        beyond_8ulp=f"{min(beyond)}-{max(beyond)}"
-                        if min(beyond) != max(beyond)
-                        else min(beyond),
+                        beyond_8ulp=(
+                            f"{min(beyond)}-{max(beyond)}"
+                            if min(beyond) != max(beyond)
+                            else min(beyond)
+                        ),
                         no_peak=sum(r["no_differing_peak"] for r in recs),
-                        causes=",".join(sorted({c for r in recs for c in r["causes"].split(",")}
-                                               - {"-"})) or "-",  # fmt: skip
+                        causes=",".join(
+                            sorted({c for r in recs for c in r["causes"].split(",")} - {"-"})
+                        )
+                        or "-",  # fmt: skip
                         max_margin_ulp=max(mm) if mm else None,
                         max_margin_px=max(mp) if mp else None,
                     )
                 )
     out["fields_table"] = DT.markdown_table(
         trows,
-        ["dataset", "variant", "modes", "differing", "beyond_8ulp", "no_peak", "causes",
-         "max_margin_ulp", "max_margin_px"],  # fmt: skip
+        [
+            "dataset",
+            "variant",
+            "modes",
+            "differing",
+            "beyond_8ulp",
+            "no_peak",
+            "causes",
+            "max_margin_ulp",
+            "max_margin_px",
+        ],  # fmt: skip
         formats=dict(max_margin_px=".4f"),
     )
     out["fields_rows"] = frows
