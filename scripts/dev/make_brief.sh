@@ -20,8 +20,9 @@
 #   - the commit trailer from --trailer or MAKE_BRIEF_TRAILER (refuses when neither is set).
 # --plan is a path from the repository root or relative to icenine_py/ or icenine_py/docs/.
 # --section must match exactly one heading outside code fences (an exact match wins, else one
-# heading must contain the text); it only names the section in the brief. The approval and the
-# three markers are read from the WHOLE plan, never from the section alone.
+# heading must contain the text). The approval is read from the whole plan. Each of the three
+# markers is read from the section (its heading up to the next heading of the same or a higher
+# level) when the section has that marker, else from the whole plan.
 # With --fixes the brief asks for the required fixes of that review report on the task branch;
 # the report may be in any worktree and is printed as an absolute, resolved path.
 # MAKE_BRIEF_NOW (YYYYMMDD-HHMM) overrides the clock for the report name (for testing).
@@ -36,11 +37,12 @@ die() { echo "error: $*" >&2; exit 1; }
 
 # paragraphs <marker>: every paragraph of the plan that starts with the marker (at column 0, or
 # after a "- " / "* " bullet marker, which is dropped), up to the next blank line, heading or
-# (for a bullet) next bullet. Fenced code blocks are skipped. The whole plan is read, not a section.
+# (for a bullet) next bullet. Fenced code blocks are skipped. Lines LO..HI only when given.
 paragraphs() {
-    awk -v marker="$1" '
+    awk -v marker="$1" -v lo="${2:-1}" -v hi="${3:-999999999}" '
         /^[[:space:]]*(```|~~~)/ { fence = !fence; inrule = 0; next }
         fence { next }
+        NR < lo || NR > hi { inrule = 0; next }
         inrule && ($0 ~ /^[[:space:]]*$/ || $0 ~ /^#/ || (bullet && $0 ~ /^[-*] /)) { inrule = 0 }
         !inrule && (index($0, marker) == 1 ||
                     ($0 ~ /^[-*] / && index(substr($0, 3), marker) == 1)) {
@@ -131,7 +133,28 @@ if [ -n "$SECTION" ]; then
     else
         die "'$SECTION' matches $CONTAINS headings in $PLAN_REL; give more of the heading"
     fi
+    # Line range of the section: its heading up to the next heading of the same or a higher level.
+    RANGE=$(awk -v s="$SECTION" -v exact="$EXACT" '
+        /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
+        fence || !/^#+ / { next }
+        {
+            h = $0; sub(/^#+ +/, "", h); sub(/[[:space:]]+$/, "", h)
+            lvl = index($0, " ") - 1
+        }
+        start && lvl <= slvl { print start, NR - 1; done = 1; exit }
+        !start && ((exact == 1 && h == s) || (exact == 0 && index(h, s))) { start = NR; slvl = lvl }
+        END { if (start && !done) print start, 999999999 }
+    ' "$PLAN_REL")
+    SEC_LO=${RANGE% *}
+    SEC_HI=${RANGE#* }
 fi
+# marker <text>: the paragraphs inside --section if it has any, else those of the whole plan
+marker() {
+    local found=""
+    [ -z "$SECTION" ] || found=$(paragraphs "$1" "$SEC_LO" "$SEC_HI")
+    [ -n "$found" ] || found=$(paragraphs "$1")
+    printf '%s' "$found"
+}
 if [ -n "$FIXES" ]; then
     # Review reports live in .claude/reports/ of the session that wrote them (gitignored, one per
     # worktree), so any existing file is accepted and printed as an absolute, resolved path.
@@ -210,7 +233,7 @@ case "$MAXPROCS" in
     *[!0-9]* | 0 | 0[0-9]*)
         die "icenine.maxHeavyProcs must be a positive integer, got '$MAXPROCS'" ;;
 esac
-EXCEPTION=$(paragraphs '**Process limit exception:**')
+EXCEPTION=$(marker '**Process limit exception:**')
 if [ -n "$EXCEPTION" ]; then
     COMPUTE="Compute (plan exception to the machine limit of $MAXPROCS heavy processes): $EXCEPTION"
 else
@@ -218,7 +241,7 @@ else
 fi
 
 # --- scope
-LIBRARY=$(paragraphs '**Library changes:**')
+LIBRARY=$(marker '**Library changes:**')
 if [ -n "$LIBRARY" ]; then
     SCOPE="Scope: $LIBRARY"
 else
@@ -226,7 +249,7 @@ else
 fi
 
 # --- stop rule (every paragraph starting with the marker, up to the next blank line)
-STOP=$(paragraphs '**Stop rule:**' | sed 's/^/> /')
+STOP=$(marker '**Stop rule:**' | sed 's/^/> /')
 
 # --- branch
 CUR=$(git symbolic-ref --short -q HEAD || true)

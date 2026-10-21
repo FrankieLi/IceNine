@@ -214,6 +214,28 @@ def test_plan_outside_the_repository_named_by_absolute_path(repo: Path, tmp_path
     assert "Approval: D-20261004-N1" in out.stdout
 
 
+def test_section_markers_win_over_the_whole_plan(repo: Path) -> None:
+    plan = (
+        PLAN
+        + "\n# Step 0: prototype\n\n**Library changes:** none in Step 0.\n\nText.\n"
+        + "\n## Detail of step 0\n\nMore.\n"
+        + "\n# Steps 1-6\n\n**Library changes:** many library files (later steps).\n"
+        + "\n# Rules\n\n**Stop rule:** stop if step 1 fails.\n"
+    )
+    _write(repo, "icenine_py/docs/todo_demo.md", plan)
+    s0 = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t", "--section", "Step 0")
+    assert s0.returncode == 0, s0.stderr
+    assert "Scope: **Library changes:** none in Step 0." in s0.stdout
+    assert "many library files" not in s0.stdout
+    assert "> **Stop rule:** stop if step 1 fails." in s0.stdout  # none in the section: whole plan
+    s1 = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t", "--section", "Steps 1-6")
+    assert s1.returncode == 0, s1.stderr
+    assert "Scope: **Library changes:** many library files (later steps)." in s1.stdout
+    assert "none in Step 0" not in s1.stdout
+    whole = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")  # no section: every one
+    assert "none in Step 0" in whole.stdout and "many library files" in whole.stdout
+
+
 def test_unknown_section_refused(repo: Path) -> None:
     out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t", "--section", "9. Missing")
     assert out.returncode == 1

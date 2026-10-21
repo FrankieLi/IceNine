@@ -79,6 +79,9 @@ new Track E mode cannot slip into the fused path untested. Unaffected: `Candidat
 
 ## Step 0: go/no-go prototype (scripts only, no library change; its own implementer run)
 
+**Library changes:** none in Step 0. All code goes under `scripts/speed_parity/s2/`, including the
+scratch C extension and its build; nothing under `icenine_py/icenine/`, `setup.py` unchanged.
+
 - 0a. Time a no-start search split by caller (screen, re-cost, quick MC, FindOptimal,
   VarianceMinimizing, final) on ThreeVoxels voxel 0 and 10 E0 voxels, with default keys and with
   `BatchedQuickMC 1`, wrapping the callers as `scripts/speed_parity/s4/step0_timing.py` and S1's
