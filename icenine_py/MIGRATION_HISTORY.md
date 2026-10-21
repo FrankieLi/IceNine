@@ -9613,3 +9613,488 @@ Not done (review suggestions outside the required fixes, listed in the reports):
 scripts; reading the plan and DECISIONS.md at `HEAD` in `make_brief.sh`. The plan's lower-priority
 items (`sync_doc_tables.py --section`, a timed-run wrapper, shared S4 study helpers, a mailbox
 writer) are not started.
+
+## S4: translation correctness and loop ordering (2026-10-15)
+
+Merged into `feature/python-speed-parity` as a finished study on 2026-10-21 (D-20261021-I3),
+scripts only; the hybrid library path stays parked (D-20261016-I22). Re-projecting under
+`CppOverlapRule` or reviving the library path waits for Task G's choice of overlap rule and carry.
+
+ROADMAP Track S item S4, picked by the owner (D-20261014-I19), sized down and parallelised (D-20261014-I20), approved
+(D-20261014-I21). Plan: `docs/todo_translation_screen_prototype.md`. Branch `feature/python-speed-parity-s4-translation-screen`.
+**Script-only**: no change to `icenine/`, no new dependency. Test bed: the Phase D clean full sample (24,570 voxels, one layer;
+the memmap stack of `ScatteringData_PhaseD/full/clean`, bit-identical to the ASCII images by `scripts/phase_d/memmap_check.py`),
+config `ReconstructPhaseD_cma_clean.config`; ThreeVoxels for fast checks and the smoke test. The level-0 cost functions, FZ
+set, local grid and screen arguments are captured from `AdaptiveVoxelReconstructor.reconstruct_voxel` itself (its call of
+`run_discrete_search_spaced` at level 0), so no setting is copied by hand: pixel radius 3, Q-max 5, centroid screen, the
+default qualified-peak rule, no `CppEdgeRules`, `BatchedScreen` with chunks of 32 FZ points.
+
+### What was built (`scripts/speed_parity/s4/`, results in `benchmarks/s4_translation/`)
+
+- `common.py`: data sets, the level-0 capture, the BatchedScreen reference, the peak table (`u = A_p x + c_p` in float64
+  per orientation, peak and detector, from the float32 peak set of `ScreenEvaluator._counts`), dilated bitmaps, the numpy
+  reference kernel.
+- `step0_reference.py` (equality reference, 4 workers), `step0_timing.py` (timings), `translation_correctness.py` (Step 1:
+  `law`, `bitmap`, `cost`), `screen_kernel.py` (Step 2), `s4kernel.c` + `s4kernel.py` (scratch C kernels for O1-O5 compiled
+  with the system `cc -O3 -ffp-contract=off`, loaded with ctypes, threads through the GIL-free ctypes call), `orderings.py`
+  (Step 3: `check`, `time`, `full`, `model`, `time_o4`; torch MPS arm; after the review `rules`, pass counts under both
+  qualified-peak rules, and `time_o3`), `recost.py` (Step 4; after the review `memory`, the bytes of a stored local-cost
+  table), `summary.py` (`summary.json`, `tables.md`).
+- `tests/test_s4_translation.py` (ThreeVoxels, about 5 s): the float64 affine law, the dilated bitmap equal to the C
+  pixel-radius test, the table screen equal to `BatchedScreen` on 64 FZ points, and the kernels' default and C++
+  qualified-peak rules against the library's `count_qualified_peaks` / `count_qualified_peaks_cpp` (truth table, 2 and
+  3 detectors).
+
+Two facts from the code that the kernels use:
+
+- `pixel_radius_overlap_uint8` lights a detector when **any pixel of the (2r+1)^2 box** is on the image (the centre within
+  r of the image), not only when the centre pixel is on it. "Bright" is one lookup in the frame dilated by the box and
+  padded by r. The centre pixel is the float-to-int32 cast of the coordinate (truncation toward zero).
+- With the default qualified-peak rule and two detectors, a peak counts toward `peak_overlap` exactly when it is bright on
+  **detector 0**; detector 1 cannot change the screen's pass set (`count_qualified_peaks_c`). The C++ rule
+  (`CppOverlapRule`) does read detector 1: bright on 0 and (bright on 1 or not lit on 1). The C kernels implement both
+  rules; the timings use the config's default rule, so they read detector 0 only. The C++ program's level 0 uses the
+  C++ rule (`CountQualifiedPeaks`, Src/OverlapInfo.tmpl.cpp:78-139, through `AcceptAnyPeakOverlap`,
+  Src/DiscreteAdaptive.tmpl.cpp:65-70).
+
+The two rules pass very different fractions of the level-0 (orientation, voxel) pairs on these images
+(`orderings.py rules`, O2 pass-only kernel, counts only, not timed; on the reference voxels equal to the numpy kernel):
+
+<!-- table:s4_rules -->
+| set | voxels | pairs | pass_default | pass_cpp_rule | default_only | cpp_only | cpp_rate_per_voxel |
+|---|---|---|---|---|---|---|---|
+| 20 reference voxels | 20 | 879480 | 691538 (78.6%) | 231694 (26.3%) | 459844 | 0 | 22.5-30.6% |
+| 2,000-voxel patch | 2000 | 87948000 | 70779143 (80.5%) | 25582783 (29.1%) | 45196360 | 0 | 27.2-31.4% |
+| whole layer | 24570 | 1080441180 | 848266117 (78.5%) | 286462978 (26.5%) | 561803139 | 0 | 19.6-31.4% |
+<!-- /table:s4_rules -->
+
+Every pair that passes the C++ rule also passes the default rule (`cpp_only` 0), as the two formulas imply. So the
+"weak filtering" below is a property of the **Python default rule**; `CppOverlapRule 1` (the C++ behaviour) passes about
+a third as many pairs. Everything timed and projected in this section uses the default rule.
+
+### Question 1: is a translated voxel's spot set the original's moved by A_p dx?
+
+160 orientations (100 from the level-0 set, 20 within 1 degree of the truth for each of 3 reference voxels), per orientation
+a base voxel and 6 same-type grid voxels from one voxel step to about 1 mm away, 2 out-of-layer moves (1a only) and 3
+integer-shift moves (1b(i)). Lit pixels come from the Phase D renderer's simulator (`ForwardSimulation._simulate_peaks_batched`
+vertices, `ImageData.add_triangle_scanline` raster, unchanged; the simulator's peaks were matched to the local cost
+function's peaks, 0 unmatched, largest vertex difference 8.0e-4 px).
+
+<!-- table:s4_q1 -->
+| check | n | result | off_detector | clipped_not_checked | exceptions |
+|---|---|---|---|---|---|
+| 1a float64: u(x + dx) - (u(x) + A dx), largest | 1760 | 1.8e-12 px | n/a | n/a | none |
+| 1a float32 (evaluate's stage-D input) against the float64 law, largest | 1760 | 8.5e-04 px | n/a | n/a | float32 alone at x: 8.0e-04 px |
+| 1a peak sets (omegas, normals, frames, plane hits) identical | 1760 | 1760 of 1760 moves | n/a | n/a | none |
+| 1b simulator peak sets identical (count and frames) | 1440 | 1440 of 1440 moves | n/a | n/a | none |
+| 1b(i) integer shift: S(x') = S(x) + m (float32 simulator) | 480 | 470 equal, 0 failures | 3 | 7 | 0 float flips |
+| 1b(i) the same in float64 vertices | 480 | 470 equal, 0 failures | 3 | 7 | 0 float flips |
+| 1b(ii) phase re-rasterised: S(x') = R(T + phi) + m (float32 simulator) | 201240 | 116531 equal, 0 failures | 84439 | 205 | 65 float flips (largest distance 2.3e-04 px) |
+| 1b(ii) the same in float64 vertices | 201240 | 116596 equal, 0 failures | 84439 | 205 | 0 float flips |
+| 1b(iii) pure pixel-set translation S(x) + round(A dx) = S(x') | 114695 | 30746 equal (26.8%, Wilson 0.266-0.271) | n/a | n/a | 86545 edge spots excluded |
+| 1e dilated bitmap and box bounds = pixel_radius_overlap_uint8 | 33882912 | equal | n/a | n/a | none (4 frames x 2 detectors, border band included) |
+<!-- /table:s4_q1 -->
+
+**Answer.** Exact where it should be, not where it should not:
+
+- **Continuous coordinates: exact** (to float64 rounding). The float64 law holds to 1.8e-12 px over moves up to 1.1 mm
+  (in and out of the layer);
+  the float32 path of `evaluate` agrees to 8.5e-4 px, the same as its own float32 error at a fixed position (8.0e-4 px).
+  The peak sets (observable reflections, omegas, normals, frames, eta filter, plane hits) were identical in every move.
+- **Integer shifts: exact on pixel sets.** The rasteriser floors each vertex first and then clips, rounds and fills integer
+  vertices (Bresenham and scanline), which commute with an integer translation. Every spot that stays inside the detector
+  matched, in float32 and float64 vertices. Of the 10 exceptions, 3 have no pixel on the detector at x' and 7 are clipped
+  by the detector edge; those 7 are classified as edge cases by `compare_sets`, not checked.
+- **Sub-pixel phase re-rasterised: exact.** `R(T + phi) + m` equals the moved spot for every on-detector spot in float64
+  vertices; with the simulator's float32 vertices, 65 spots differ, each because a vertex lies within 2.3e-4 px of a pixel
+  boundary (a float flip, counted). Exceptions by design: 84,439 spots with no pixel on the detector at x', and 205
+  spots clipped by the detector edge, which `compare_sets` classifies as edge cases without checking them (so they are
+  not verified); 1,676 / 1,717 spots left / entered the detector over the moves. Because the rasteriser floors the
+  vertices first, `R(T + phi)` is `R_int(floor(T + phi) + m)`: this check re-tests integer-translation invariance on top
+  of 1a rather than an independent sub-pixel property.
+- **Pure pixel-set translation by round(A_p dx): not exact.** Only 26.8% of on-detector spots come out equal; the median
+  difference is 3 px, 0.30 of the spot size. Every differing pixel lies within one pixel of the other set (all 114,695
+  spots), consistent with the mechanism: the three vertices are floored independently, so each moves by the floor or the
+  ceiling of its shift. The plan's criterion, that every differing pixel lies on its own set's 4-boundary, holds for
+  114,607 spots; 88 spots have a differing pixel with all four neighbours in its own set. The 5 recorded examples
+  (`interior_examples` in `step1_law.json`) are thin spots 3 px wide, 12 to 15 px in the moved set against 9 to 10 px
+  translated, where one interior pixel of the moved spot is missing from the translated one. The Wilson interval treats
+  the spots as independent; they are clustered in 160 orientations x 6 moves, so it is optimistic.
+
+<!-- table:s4_q1_pure -->
+| stat | value |
+|---|---|
+| spots compared (both on the detector, unclipped) | 114695 |
+| exactly equal | 30746 |
+| symmetric difference, median / 95th pct / max (px) | 3 / 12 / 17 |
+| symmetric difference / spot size, median / 95th pct | 0.30 / 1.57 |
+| spots with every differing pixel within 1 px (8-neighbour) of the other set | 114695 |
+| spots with every differing pixel on its set's 4-boundary | 114607 |
+| spots leaving / entering the detector over the moves | 1676 / 1717 |
+<!-- /table:s4_q1_pure -->
+
+**1c, the cost-level effect of a pure translation** (20 reference voxels, all their screen passers, local cost function
+in triangle mode; each spot rasterised once at the voxel of the same type nearest the sample centre and translated by the
+rounded shift, 68 to 545 um away):
+
+<!-- table:s4_q1_cost -->
+| measure | value |
+|---|---|
+| passers re-costed, exact and translated (20 voxels) | 691539 |
+| passers with any OverlapInfo field changed | 690613 (99.9%) |
+| passers with the re-cost (1 - confidence) changed | 203241 (29.4%) |
+| largest re-cost change | 0.082 |
+| largest quality change (final cost = 1 - quality) | 0.042 |
+| cliques whose spacing-filtered set is unchanged | 69881 of 97720 (71.5%) |
+| voxels with ties at the lowest filtered re-cost, exact / translated | 1 / 0 of 20 |
+| tied candidates at the lowest re-cost, exact, median (max) | 1 (2) |
+| voxels whose lowest filtered re-cost is unchanged | 8 of 20 |
+| voxels whose set of tied lowest candidates is unchanged | 13 of 20 (Wilson 0.433-0.819) |
+<!-- /table:s4_q1_cost -->
+
+Re-costs are discrete (1 - po/pon), so candidates can tie; the kept candidates are ordered by (re-cost, orientation
+index). At the lowest re-cost only one voxel has a tie (2 candidates, exact re-cost) and none with the translated re-cost,
+so the voxel count above compares the sets of tied lowest candidates and does not depend on the tie rule. The top-30
+overlap of the first version is dropped: in 7 of 20 voxels the candidates tied at rank 30 straddle the cut, so it
+depended on the tie rule.
+
+So "rasterise each spot once per (orientation, peak, triangle type), translate per voxel" is **not usable for the re-cost**:
+it changes the re-cost of 29.4% of the passers and the lowest spacing-filtered candidate in 7 of 20 voxels. Its use as a
+pre-filter with a margin was not tested. It is also not needed: the exact per-voxel rasterisation in C costs 28.9 us per
+(orientation, voxel) pair in orientation-major order (Step 4).
+
+**1e** (dilated bitmap): equal for every one of 33,882,912 centre pixels of 4 frames x 2 detectors, including a 5-pixel band
+outside the image (`translation_correctness.py bitmap`, compared run by run with `stage_d_overlap`).
+**1d** (C++ cross-check) was **skipped**: the repository's `IceNine` binary no longer starts (it links a Homebrew
+`libmpi.40.dylib` that is gone), and cmake, open-mpi, boost and eigen are not installed on this machine, so a rebuild is not
+a matter of minutes. The Python rasteriser is the one validated against C++ (`ImageData.add_triangle_scanline`).
+The stop rule (1a float64, 1b(i), 1b(ii), 1e) did not trigger.
+
+### Step 2: the table-driven screen and its equality
+
+The table holds 1,068,652 peaks (24.3 per orientation, 16 to 28; all 180 frames occur); it builds in 0.40 s. Equality with the
+BatchedScreen reference (20 Phase D voxels of both triangle types, 3 ThreeVoxels voxels; every (orientation, voxel) pair):
+
+<!-- table:s4_equality -->
+| set | table | pairs | peak_overlap_differs | pass_differs | peak_coordinate_flips | unexplained | largest_boundary_distance |
+|---|---|---|---|---|---|---|---|
+| Phase D (20 voxels) | float64 | 879480 | 56 | 15 | 10459 | 0 | 2.4e-04 |
+| Phase D (20 voxels) | float32 | 879480 | 35 | 7 | 6662 | 0 | 2.4e-04 |
+| ThreeVoxels (3 voxels) | float64 | 131922 | 0 | 0 | 1625 | 0 | n/a |
+| ThreeVoxels (3 voxels) | float32 | 131922 | 0 | 0 | 1044 | 0 | n/a |
+<!-- /table:s4_equality -->
+
+Every differing orientation is explained by a peak whose centre coordinate lies within 2.4e-4 px of a pixel boundary
+(float64 table against the float32 reference); the 91 listed cases are in `step2_equality_phase_d.json`. The float64 table
+flips 15 passes in 879,480 pairs. Every C ordering (O1-O5, uint8 and bit-packed bitmaps, default and C++ rule) equals the
+numpy kernel exactly on the reference voxels (`step3_check.json`).
+
+### Question 2: which loop ordering?
+
+Timings: one contiguous patch of the 2,000 voxels nearest the sample centre, 43,974 orientations, 3 interleaved repeats, one
+process, nothing else of ours running; **contended** (preflight 1-minute load 3.1 at the start, 2.2 to 2.9 at the end; no
+busy process listed). All arms give the same counts as the O2 reference on the patch.
+
+<!-- table:s4_orderings -->
+| arm | threads | median_s | ns_per_test | pairs_per_s | full_layer_s | equal |
+|---|---|---|---|---|---|---|
+| O1 counts u8 | 1 | 19 | 8.91 | 4.62e+06 | 234 | True |
+| O1 pass u8 | 1 | 10.3 | 4.84 | 8.51e+06 | 127 | True |
+| O2 counts u8 b=32FZ | 1 | 2.42 | 1.13 | 3.64e+07 | 29.7 | True |
+| O2 pass u8 b=32FZ | 1 | 3.18 | 1.49 | 2.77e+07 | 39.1 | True |
+| O3 counts u8 tile=256 | 1 | 2.38 | 1.12 | 3.69e+07 | 29.3 | True |
+| O3 counts u8 tile=2000 | 1 | 2.17 | 1.02 | 4.05e+07 | 26.7 | True |
+| O5 counts u8 tile=64 | 1 | 3.4 | 1.59 | 2.59e+07 | 41.8 | True |
+| O5 counts u8 tile=256 | 1 | 3.13 | 1.47 | 2.81e+07 | 38.5 | True |
+| O5 counts u8 tile=1024 | 1 | 2.61 | 1.22 | 3.37e+07 | 32.1 | True |
+| O1 counts packed | 1 | 15.2 | 7.09 | 5.8e+06 | 186 | True |
+| O1 pass packed | 1 | 7.97 | 3.73 | 1.1e+07 | 97.9 | True |
+| O2 counts packed b=32FZ | 1 | 2.4 | 1.12 | 3.67e+07 | 29.5 | True |
+| O2 pass packed b=32FZ | 1 | 3.32 | 1.55 | 2.65e+07 | 40.8 | True |
+| O3 counts packed tile=256 | 1 | 2.54 | 1.19 | 3.46e+07 | 31.2 | True |
+| O3 counts packed tile=2000 | 1 | 2.37 | 1.11 | 3.72e+07 | 29.1 | True |
+| O5 counts packed tile=64 | 1 | 2.62 | 1.23 | 3.36e+07 | 32.2 | True |
+| O5 counts packed tile=256 | 1 | 2.51 | 1.17 | 3.5e+07 | 30.8 | True |
+| O5 counts packed tile=1024 | 1 | 2.41 | 1.13 | 3.65e+07 | 29.6 | True |
+| O2 counts u8 b=1FZ | 1 | 2.43 | 1.14 | 3.62e+07 | 29.8 | True |
+| O2 counts u8 b=256FZ | 1 | 2.42 | 1.13 | 3.64e+07 | 29.7 | True |
+<!-- /table:s4_orderings -->
+
+Threads (seconds for the 2,000-voxel patch; the M5 has 4 performance and 6 efficiency cores):
+
+<!-- table:s4_threads -->
+| arm | 1 | 2 | 4 | 6 | 8 | 10 | speedup_10 |
+|---|---|---|---|---|---|---|---|
+| O2 counts u8 b=32FZ | 2.42 | 1.23 | 0.655 | 0.555 | 0.483 | 0.435 | 5.56 |
+| O2 pass u8 b=32FZ | 3.18 | 1.61 | 0.896 | 0.715 | 0.604 | 0.527 | 6.03 |
+| O1 pass packed | 7.97 | 4.31 | 2.39 | 2.83 | 1.93 | 1.78 | 4.47 |
+| O3 counts u8 tile=256 | 2.38 | 1.26 | 0.71 | 0.761 | 0.521 | 0.536 | 4.44 |
+| O5 counts u8 tile=256 | 3.13 | 1.82 | 1.07 | 0.9 | 0.783 | 0.692 | 4.53 |
+<!-- /table:s4_threads -->
+
+Linearity in the number of voxels (500, 1,000, 2,000 nested patches):
+
+<!-- table:s4_linearity -->
+| arm | s_500 | s_1000 | s_2000 | us_per_voxel_500 | us_per_voxel_1000 | us_per_voxel_2000 |
+|---|---|---|---|---|---|---|
+| O1 pass packed | 1.99 | 3.98 | 7.97 | 3.98e+03 | 3.98e+03 | 3.99e+03 |
+| O2 counts u8 b=32FZ | 0.661 | 1.26 | 2.42 | 1.32e+03 | 1.26e+03 | 1.21e+03 |
+| O3 counts u8 tile=256 | 0.586 | 1.18 | 2.38 | 1.17e+03 | 1.18e+03 | 1.19e+03 |
+| O5 counts u8 tile=256 | 0.721 | 1.51 | 3.13 | 1.44e+03 | 1.51e+03 | 1.57e+03 |
+| O2 counts u8 b=32FZ th=10 | 0.113 | 0.215 | 0.435 | 227 | 215 | 218 |
+<!-- /table:s4_linearity -->
+
+Streamed O2 (no stored table: the float32 peaks and float64 maps of each block of b FZ points computed and discarded) and
+the MPS arm (float32 `u = n_ref + (phi_ref + A (x - x_ref))`, integer `n_ref` from float64 on the CPU):
+
+<!-- table:s4_variants -->
+| arm | median_s | peaks_s | kernel_s | frames_changed | counts_differ | pass_differ |
+|---|---|---|---|---|---|---|
+| O2 streamed (no table), b=1FZ | 3.89 | 1.39 | 2.48 | 1 | some (patch) | n/a |
+| O2 streamed (no table), b=32FZ | 2.78 | 0.346 | 2.43 | 0 | 0 | n/a |
+| O2 streamed (no table), b=256FZ | 2.71 | 0.285 | 2.42 | 0 | 0 | n/a |
+| O2 on MPS (float32 offsets), block=288 | 8.68 | n/a | n/a | n/a | 10 | 1 |
+| O2 on MPS (float32 offsets), block=576 | 8.27 | n/a | n/a | n/a | 10 | 1 |
+| O2 on MPS (float32 offsets), block=1152 | 25 | n/a | n/a | n/a | 10 | 1 |
+<!-- /table:s4_variants -->
+
+**Cost model and what the measurements say.** Every ordering does the same tests (one per peak and voxel, about 2.1e9 on
+the patch); they differ in what stays in cache:
+
+- O1 (voxel-major) streams the whole table once per voxel and reads the bitmaps of all 180 frames for every voxel (a
+  working set of 760 MB as bytes, 95 MB packed, far above the L2): predicted memory-bound. Measured 7.9 times slower than
+  O2 (counts) and 3.3 times (pass-only, packed): consistent with the prediction (no memory or cache counters were read,
+  so that it is memory-bound is not tested).
+- O2 (orientation-major, voxel inner loop) reads the table once; for one peak the patch's voxels land in a few thousand
+  pixels of one frame (median bounding box 1,680 px), which stay in L1: predicted compute-bound, about 1 ns per test.
+  Measured 1.13 ns per test on one thread. The block size b does not matter for a stored table (1, 32 or 256 FZ points
+  give the same time); streaming the peaks costs 15% more at b = 32 FZ points and adds float32 batch-shape flips at b = 1
+  (1 frame changed, `frames_changed`).
+- O3 (frame-major) keeps one frame's bitmap resident (4.2 MB, 0.53 MB packed) and writes rows of the (orientation, voxel)
+  accumulator: predicted equal to O2. Measured 0.90 times O2 on one thread (tile 2,000), but it scales worse: 0.536 s against
+  0.435 s on 10 threads (tile 256). The fastest one-thread arm, O3 with tile 2,000, was not in the thread sweep; a
+  follow-up run (`orderings.py time_o3`, 5 interleaved repeats, alone, contended) timed it:
+
+<!-- table:s4_o3_threads -->
+| arm | median_s | equal |
+|---|---|---|
+| O2 counts u8 b=32FZ | 2.38 | True |
+| O3 counts u8 tile=2000 | 2.2 | True |
+| O3 counts u8 tile=256 | 2.36 | True |
+| O2 counts u8 b=32FZ th=10 | 0.397 | True |
+| O3 counts u8 tile=2000 th=10 | 2.2 | True |
+| O3 counts u8 tile=256 th=10 | 0.495 | True |
+| label | n/a | contended |
+<!-- /table:s4_o3_threads -->
+
+  These kernels thread O3 over voxel tiles, so tile 2,000 on the 2,000-voxel patch is a single job and runs on one thread
+  whatever the thread count (2.2 s at 10 threads); with tile 256 (8 jobs) it takes 0.495 s against O2's 0.397 s. An O3
+  threaded over frames, or with tiles of 200 voxels, was not timed, so "O2 best on threads" rests on O3 with tile 256.
+- O5 (O2 with voxel tiles) predicted no gain, since the coordinates of 2,000 voxels (32 KB) already fit in L1; measured 1.3
+  times slower at tile 256, consistent with the overhead of a shorter inner loop (not tested: no profile was taken).
+- Pass-only (stop at the first qualified peak) is slower than counting in O2 (1.31 times) even though 78.5% of the pairs
+  pass; this is consistent with the shrinking list of open voxels defeating the vectorised loop, which was not tested
+  (the generated code and vectorisation were not inspected). In O1 it halves the time.
+- O4 (pixel voting) model: per peak, visit the bright pixels of the patch footprint and back-project each to its voxels.
+  From the data, 6.5% of the tests are bright and 1.6 voxels share a pixel; at an assumed 10 ns per bright pixel the model
+  predicted 2.6 times faster than O2 (5 ns: 5.1 times, 20 ns: 1.3 times), so it was built (exact: equal to O2 on the patch
+  and on the reference voxels). Measured **3.3 times slower**: the scan of the footprint's bounding quadrilateral visits 225
+  bright pixels per peak (the model's 86 were the pixels the voxels actually hit), and the bounding box of a pixel's thin
+  preimage parallelogram holds 7.0 candidate voxels per bright pixel, at 33 ns per bright pixel. Tighter enumeration was
+  not tried.
+- MPS: 3.4 times slower than one CPU thread; this is consistent with the cost of gathers from a 760 MB byte tensor and of
+  `index_add_` on the GPU, but the GPU time was not broken down, so the cause is not tested. 10 count and 1 pass
+  differences against the float64 kernel in 87,948,000 pairs (float32 offsets).
+
+<!-- table:s4_o4 -->
+| quantity | model | measured |
+|---|---|---|
+| bright rate per O2 test (patch, sampled peaks) | 0.0654 | n/a |
+| voxels per distinct pixel hit | 1.59 | n/a |
+| bright pixels visited per peak | 86.4 | 225 |
+| candidate voxels tested per bright pixel | 1.59 | 6.97 |
+| cost per bright pixel (ns) | 5 / 10 / 20 (assumed) | 33.2 |
+| O2 time / O4 time, 1 thread | 5.06 / 2.57 / 1.30 | 0.3 |
+| O4 / O2 wall, 1 thread (s) | n/a | 7.97 / 2.39 |
+| O4 / O2 wall, 10 threads (s) | n/a | 1.13 / 0.41 |
+<!-- /table:s4_o4 -->
+
+**Best ordering: O2**, orientation-major with the voxel loop innermost, threads over blocks of orientations, either bitmap
+layout (equal speed; packed is 8 times smaller). One measured full-layer run:
+
+<!-- table:s4_full_layer -->
+| item | value |
+|---|---|
+| ordering | O2 counts, u8, 10 threads, voxel tiles of 4096 |
+| voxels x orientations | 24570 x 43974 |
+| wall time (s), kernel + pass reduction | 6.58 (6.00 + 0.58) |
+| kernel time projected linearly from the 2,000-voxel patch (10 threads) (s) | 5.35 |
+| BatchedScreen for the same work, single worker, projected from 10 voxels (h) | 3.94 |
+| passers (voxel, orientation) pairs | 848266117 (78.5%) |
+| passers per voxel, median (min-max) | 34466 (32991-35912) |
+| passer list as int32 pairs / as a bitset / counts as uint8 (GB) | 6.79 / 0.135 / 1.08 |
+| peak RSS of the run (GB) | 1.99 |
+| label | contended |
+<!-- /table:s4_full_layer -->
+
+The whole level-0 screen of the layer takes 6.58 s on 10 threads, measured. Against `BatchedScreen` (3.94 single-worker
+hours, a projection: 0.577 s per voxel from 10 voxels, contended, times 24,570) that is 2,155 times faster in wall time
+on 10 threads, and 478 times faster on one thread (both projected: the one-thread O2 layer time of 29.7 s is the patch
+time scaled to the layer, not a run). The linear scaling holds only roughly: per voxel, O2 on one thread falls from 1.32
+to 1.21 ms between 500 and 2,000 voxels and O5 rises from 1.44 to 1.57 ms, and the one measured full-layer kernel (10
+threads, voxel tiles of 4096) took 6.00 s against 5.35 s projected from the patch, 12% above linear. The patch is the
+2,000 voxels nearest the centre, whose footprint per peak is smaller than the layer's; the excess is consistent with
+that, which was not tested. The passers are 78.5% of all pairs (848,266,117; default rule), so the useful output is a
+bitset (0.135 GB) rather than a pair list (6.79 GB). Against the Step 0 reference the full-layer run differs by one
+passer on each of the 5 voxels checked (1423, 2091, 5852, 7288, 7320); each offset equals that voxel's net number of
+pass flips of the float64 table in Step 2 (`step2_equality_phase_d.json`).
+
+### Step 4: what follows the screen
+
+Step 0 on Phase D (single worker, contended; 10 voxels for the screen, 3 for the re-cost and the no-start search, 10 for the
+neighbour step):
+
+<!-- table:s4_step0 -->
+| part | value | unit | n |
+|---|---|---|---|
+| BatchedScreen, whole level-0 screen of one voxel (chunk 32) | 0.577 | s | 10 |
+|   of which torch geometry (Bragg solve, eta, stages B-C) | 0.401 | s | 10 |
+|   of which the per-orientation stage-D loop | 0.212 | s | 10 |
+| screen passers per voxel (of 43,974), median | 3.45e+04 | orientations | 10 |
+| re-cost of the passers (local evaluate), per voxel | 8.56 | s | 3 |
+| re-cost, per evaluate | 251 | us | 3 |
+| no-start search (reconstruct_voxel), wall | 73.6 | s | 3 |
+|   screens of all levels | 1.56 | s | 3 |
+|   re-costs of all levels | 17.4 | s | 3 |
+|   quick MC, all levels (level 0) | 50.9 (34.1) | s | 3 |
+|   rest of the discrete stage (spacing filter, loop) | 3.07 | s | 3 |
+|   FindOptimal, VarianceMinimizing, final | 0.265 | s | 3 |
+| BFS neighbour step (CMA, 250 evaluations) | 0.0732 | s | 10 |
+<!-- /table:s4_step0 -->
+
+Re-cost of the passers in orientation-major order (each orientation's local-cost peaks taken once from its own float32
+operations, float64 maps, every passing voxel rasterised through the library's stage-D C call):
+
+<!-- table:s4_recost -->
+| item | value | n |
+|---|---|---|
+| today: evaluate per (orientation, voxel) (us) | 266 | 4000 |
+| orientation-major: per pair, float64 vertices + stage-D C call (us) | 28.9 | 321456 |
+|   the same with one vertex product per orientation (us) | 29.8 | 321456 |
+|   set-up per orientation: peaks, A and c (us) | 458 | 200 |
+| speed-up per pair | 9.2x | 321456 |
+| equality: pairs compared with the Step 0 per-voxel evaluate | 691539 | 20 |
+|   pairs with any OverlapInfo field different | 33962 (4.9%) | 691539 |
+|   pairs with the re-cost (1 - confidence) different | 85 | 691539 |
+|   largest quality difference | 0.0092 | 691539 |
+|   sampled differing pairs explained by an integer-vertex flip | 400 of 400 (largest distance 4.1e-04 px) | 400 |
+<!-- /table:s4_recost -->
+
+The differences come from float64 vertices against `evaluate`'s float32 ones: in a sample of 400 differing pairs, every one
+has an integer vertex that differs, at most 4.1e-4 px from a pixel boundary. A library version would have to accept that or
+reproduce `evaluate`'s float32 arithmetic. The re-cost of every pair of the layer would take 6.82 single-worker hours this
+way, including one set-up per orientation (59.2 h with `evaluate`), since 78.5% of the pairs pass the default-rule screen.
+
+The per-pair time leaves out the **per-orientation set-up** (the Q-max 8 local-cost peaks, A and c: 458 us per
+orientation), which the timing amortised over about 1,607 passing voxels per orientation of the patch. In the BFS seeds
+arrive one at a time, so the set-up is paid either once per layer, for a stored layer-wide local-cost table, or once per
+(seed, passing orientation). A stored table costs 20.1 s to build (43,974 x 458 us) and, at 104 peaks per orientation
+and 136 bytes per peak (float64 A and c, wedge and detector-hit flags, a 2-byte frame index; `recost.py memory` on 200
+sampled orientations, not timed), about 0.62 GB. Re-costing one seed's 34,466 passing orientations alone would take
+16.8 s (set-up plus pairs), more than today's 8.56 s with `evaluate`. The set-up varied 10 times between runs (Limits),
+so the table build may take longer than 20.1 s.
+
+**Whole-run projections** (single-worker hours, Phase D layer, default qualified-peak rule; seeds 350 / 395 / 504 from
+the Phase D seed oracle; inputs: a no-start search of 73.6 s, of which level 0's screen and re-cost are 9.1 s; a neighbour
+step of 0.073 s; the global screen on one thread, itself a projection (29.7 s); the re-cost at 28.9 us per pair plus
+458 us set-up per orientation as stated per scenario; revisits and REFIT voxels not modelled). "rest" is the no-start wall
+time minus the level-0 screen and the level-0 re-cost (64.45 s), that is everything after them, **including the level-0
+quick MC**. The search times rest on n = 3 no-start searches (73.4-73.6 s) and the neighbour step on n = 10 CMA steps of
+250 evaluations. The Phase D pilot measured 0.28 s (`cma`) and 0.43 s (`mc`) per local neighbour fit ("Phase D pilot results",
+contended), against 0.073 s here for one CMA step without retries, so the neighbour share of these projections
+is likely understated:
+
+<!-- table:s4_projection -->
+| scenario | seeds | total_h | share_screen | share_setup | share_recost | share_rest | share_neighbours |
+|---|---|---|---|---|---|---|---|
+| (a) today's BFS | 350 | 7.65 | 0.007 | 0.000 | 0.109 | 0.819 | 0.064 |
+| (b) global screen and re-cost, per-voxel search after them | 350 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 350 | 6.87 | 0.001 | 0.001 | 0.014 | 0.912 | 0.072 |
+| (c') hybrid, each seed re-costed alone orientation-major | 350 | 8.4 | 0.001 | 0.183 | 0.012 | 0.746 | 0.059 |
+| (a) today's BFS | 395 | 8.57 | 0.007 | 0.000 | 0.110 | 0.826 | 0.057 |
+| (b) global screen and re-cost, per-voxel search after them | 395 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 395 | 7.69 | 0.001 | 0.001 | 0.014 | 0.920 | 0.064 |
+| (c') hybrid, each seed re-costed alone orientation-major | 395 | 9.41 | 0.001 | 0.184 | 0.012 | 0.751 | 0.052 |
+| (a) today's BFS | 504 | 10.8 | 0.007 | 0.000 | 0.111 | 0.836 | 0.045 |
+| (b) global screen and re-cost, per-voxel search after them | 504 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 504 | 9.67 | 0.001 | 0.001 | 0.014 | 0.934 | 0.051 |
+| (c') hybrid, each seed re-costed alone orientation-major | 504 | 11.9 | 0.001 | 0.186 | 0.012 | 0.760 | 0.041 |
+<!-- /table:s4_projection -->
+
+- (a) today's BFS: everything after the seeds' level-0 screen and re-cost ("rest", including the level-0 quick MC) takes
+  82-84% of the run, the level-0 re-cost 11%, the level-0 screen under 1%. The level-0 quick MC alone is 46% of a no-start
+  search (34.1 of 73.6 s).
+- (b) one global screen and re-cost for every voxel, then the per-voxel search from the candidate lists: 41 to 58 times
+  slower than (a), because every voxel would then run the rest of the search that the BFS gives only to the seeds. The
+  screen, set-up and re-cost are 1.5% of it.
+- (c) the hybrid with a **stored layer-wide local-cost table** (BFS as today; the seeds take their level-0 candidates
+  from one global pass and re-cost them orientation-major from the table, built once in 20.1 s, about 0.62 GB): saves
+  8.1 s per seed, 0.78 to 1.13 h, about 10% of the run. The 10% assumes this table. Voxels whose inherited orientation
+  fails would save the same 8.1 s each; their number was not modelled.
+- (c') the hybrid with each seed **re-costed alone** orientation-major (set-up per seed and passing orientation): 16.8 s
+  per seed instead of 8.56 s, so the run is 0.75 to 1.08 h longer than (a). Without the table a seed would keep
+  `evaluate` for its re-cost, and the hybrid saves only the screen: 0.048 to 0.073 h.
+
+**The search after the screen and re-cost dominates**, as the plan expected: it is per voxel and gains nothing from
+translation. The level-0 screen is cheap once table-driven, but on these images, under the **Python default qualified-peak
+rule**, it passes 78.5% of the orientations, so it barely filters; under `CppOverlapRule` (the C++ behaviour) it passes
+26.5% (whole layer). With the default rule, the re-cost and the level-0 quick MC of the 10,173 to 10,354 spacing-filtered
+candidates per seed (20 reference voxels) are what cost. What the C++ rule would do to the re-cost, the quick MC and the
+results was not measured.
+
+### Recommendation (a proposal for the owner, not built)
+
+- Ordering: **O2 on CPU threads** (orientation-major, voxel inner loop, one table per layer or one block of 32 FZ points at
+  a time; packed bitmaps). Not MPS (3.4 times slower than one CPU thread in this form), not O4.
+- Use: scenario (c), which needs the stored layer-wide local-cost table (20.1 s to build, about 0.62 GB); without it,
+  re-costing each seed alone orientation-major is slower than today (c'). It is worth about 10% of a Phase D run under the
+  default rule; the larger levers are the level-0 quick MC (S3's `BatchedQuickMC`, measured 4.7 times faster on E0, not
+  on Phase D) and the screen's weak filtering under the **Python default qualified-peak rule**. A stricter level-0 rule
+  already exists: `CppOverlapRule 1`, the C++ program's behaviour, passes 26.5% of the layer's pairs against 78.5%. Its
+  effect on the re-cost, the quick MC and the results was not measured, and these projections were not redone under it;
+  switching changes results and is the owner's call. S3's factor is from `benchmarks/s3_steps1_5` (quick-MC us per
+  evaluation, E0, CPU).
+- Library path: a new module `icenine/translation_screen.py` behind an opt-in key (for example `GlobalLevel0Screen 1`):
+  build the table from the level-0 global cost function, screen every voxel of a layer with a C kernel (a new function in
+  `_rasterize.c` or a small extension), keep the pass bitset; `reconstructor.py` would let `reconstruct_voxel` take a
+  precomputed level-0 pass set (seeds and failed inheritances only) and re-cost it orientation-major; `config_file.py` gains
+  the key; tests compare the pass sets with `BatchedScreen` up to listed float-boundary flips. Existing paths unchanged.
+
+### Limits and open items
+
+- Every timing is **contended** (1-minute load 1.9 to 3.1 at the starts; owner decision D-20261014-I16, no quiet repeat).
+  Ratios between orderings measured in the same run are the robust part.
+- The timings and the ordering verdict are for the default rule (rule 0), which reads only the detector-0 bitmaps
+  (760 MB as bytes). The `CppOverlapRule` kernels also read detector 1 (1.5 GB as bytes for both); they were checked for
+  equality and used for the pass counts, but not timed.
+- 1d (C++ cross-check) skipped, see above. `CppEdgeRules` is not implemented in the kernels (the config leaves it off);
+  `CppOmegaInterp` and the ray rule are out of scope. One layer only.
+- The O4 and MPS implementations are straightforward ones; a tighter O4 enumeration or a Metal kernel might behave
+  differently (not tested).
+- The Step 4 pair time (28.9 us) is mostly the stage-D C call; vectorising the vertex product over voxels did not help
+  (29.8 us). The per-orientation set-up varied between runs (458 us in the reported run, 4.3 ms in a first run with cold
+  frames).
+- Not done from the review's suggestions: re-running the Step 2 bitmap lookup with the reference's centre pixels to
+  recover `po_ref` exactly (all 91 listed cases have a flip on detector 0, 89 exactly one), and a negative control for
+  the Step 4 "400 of 400 explained" (the flip rate among pairs that do not differ).
+
+### Review follow-up (2026-10-15)
+
+The agent review (`.claude/reports/20261015-0058-review-s4-translation-screen.md`) asked for these changes, made on the
+same branch with no library change: the `CppOverlapRule` pass rate measured (`orderings.py rules`) and "barely filters"
+restated as a property of the Python default rule; projection (c) with the per-orientation re-cost set-up (stored table
+against each seed alone, `recost.py memory` for the table's size); "refine" relabelled "rest" (it includes the level-0
+quick MC); the 1b edge exceptions split into off-detector and clipped (not checked); untested causes reworded; O3 with
+tile 2,000 timed on threads (`orderings.py time_o3`); the full-layer linearity check and the projection labels; the 1c
+tie rule and tie counts (the top-30 statistic dropped); the 88 non-boundary spots of 1b(iii); and the rule-0 limit of
+the timings. The projections and the recommendation were not redone under `CppOverlapRule` (open owner decision).

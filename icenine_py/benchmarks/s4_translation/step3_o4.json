@@ -1,0 +1,67 @@
+{
+ "label": "contended",
+ "preflight_load": [
+  2.11328125,
+  2.34423828125,
+  2.62646484375
+ ],
+ "reps": 3,
+ "arms": {
+  "O2 counts packed th=1": {
+   "times": [
+    2.358766375,
+    2.3883929580000007,
+    2.400784625
+   ],
+   "equal": true,
+   "median_s": 2.3883929580000007
+  },
+  "O4 counts packed th=1": {
+   "times": [
+    7.778311417,
+    7.974112375000001,
+    8.007686500000002
+   ],
+   "equal": true,
+   "stats": {
+    "bright_pixels": 239988939,
+    "candidates": 1671633984
+   },
+   "median_s": 7.974112375000001
+  },
+  "O2 counts packed th=10": {
+   "times": [
+    0.41099200000000025,
+    0.4101046249999989,
+    0.41437370900000303
+   ],
+   "equal": true,
+   "median_s": 0.41099200000000025
+  },
+  "O4 counts packed th=10": {
+   "times": [
+    1.1281732500000015,
+    1.1226327909999974,
+    1.134174833000003
+   ],
+   "equal": true,
+   "stats": {
+    "bright_pixels": 239988939,
+    "candidates": 1671633984
+   },
+   "median_s": 1.1281732500000015
+  }
+ },
+ "bright_pixels_scanned": 239988939,
+ "bright_pixels_per_peak": 224.57164633575758,
+ "candidates": 1671633984,
+ "candidates_per_bright_pixel": 6.965462620758534,
+ "o2_tests": 2137304000,
+ "ns_per_bright_pixel_1thread": 33.22699957850975,
+ "o4_over_o2_1thread": 3.3386936384527717,
+ "preflight_end": [
+  2.8681640625,
+  2.53466796875,
+  2.68505859375
+ ]
+}
