@@ -402,3 +402,13 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - `SmoothCost` is rebuilt on every `reconstruct_voxel` call. Caching it per image set is done in Task G, if the smooth
   ranking key is used there. Task E's docs lead with the as-shipped cost (rebuild per voxel) and give the
   one-build-per-image-set figure as a projection. Where: eval-reduction plan Task G step 2c.
+
+### D-20261021-I1 · H12 · Commit the workflow skills and the owner text; do the small tooling follow-ups
+- 2026-10-21, owner. Recorded by Ilium Agent. Supersedes: none.
+- The owner approved committing the skills /decide, /implement-plan and /apply-fixes and the
+  drafted owner text (implementer.md, study-conventions.md, the caffeinate wrapper in the Bash
+  hook, one sentence each for ROADMAP protocol rules 2 and 6), committed by Ilium Agent at the
+  owner's request. Also approved: fix read_on_fetch.sh listing the caller's own merged commits as
+  the other agent's, let make_brief.sh accept a plan outside the repository, and update the S4
+  row. Where: ROADMAP H12; .claude/reports/20261018-owner-text-workflow-tooling.md (Ilium's
+  machine).
