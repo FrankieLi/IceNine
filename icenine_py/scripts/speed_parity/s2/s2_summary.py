@@ -336,6 +336,17 @@ def parity(p: Dict[str, Any]) -> Dict[str, Any]:
                              fused_max_px=e["fused"]["pixel"]["max"])
                     )  # fmt: skip
     out["frame_rows_differing_total"] = any_frame
+    # float64 pixel error of the CppEdgeRules mode (reference64 applies the -1 rule since fix 10)
+    out["edge_float64_error"] = {
+        f"{ds}/{v}": {
+            f"{who}_{k}_px": modes["edge"][v]["error_vs_float64"][who]["pixel"][k]
+            for who in ("torch", "fused")
+            for k in ("mean", "max")
+        }
+        for ds, modes in p["datasets"].items()
+        if "edge" in modes
+        for v in meta["variants"]
+    }
     # headline: the plan's triangle arm (mode "local") and the screen ("screen_center"), totals
     # over the datasets, per variant
     head: Dict[str, Any] = {}
