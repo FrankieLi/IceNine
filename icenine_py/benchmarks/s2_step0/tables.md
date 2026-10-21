@@ -53,6 +53,29 @@
 | full18558 | accelerate | 2.98e-04 | 2.99e-04 | 0.0669 | 0.0669 |
 <!-- /table:s2_step0_float64_error -->
 
+<!-- table:s2_step0_fmaf_probe -->
+| product | order | n | equal | equal_frac | max_ulp |
+|---|---|---|---|---|---|
+| g_lab (R @ g_hkl.T).T | plain | 6720 | 6244 | 0.929 | 73 |
+| g_lab (R @ g_hkl.T).T | fma_chain | 6720 | 5404 | 0.804 | 128 |
+| g_lab (R @ g_hkl.T).T | fma_rev | 6720 | 4546 | 0.676 | 286 |
+| torch.norm(g_lab) | plain | 2218 | 1926 | 0.868 | 1 |
+| torch.norm(g_lab) | fma_chain | 2218 | 2218 | 1.000 | 0 |
+| torch.norm(g_lab) | fma_rev | 2218 | 1802 | 0.812 | 1 |
+| Rz @ base | plain | 39924 | 39924 | 1.000 | 0 |
+| Rz @ base | fma_chain | 39924 | 39924 | 1.000 | 0 |
+| Rz @ base | fma_rev | 39924 | 39924 | 1.000 | 0 |
+| bmm(full_rot, normals) | plain | 13308 | 10007 | 0.752 | 8 |
+| bmm(full_rot, normals) | fma_chain | 13308 | 13308 | 1.000 | 0 |
+| bmm(full_rot, normals) | fma_rev | 13308 | 9280 | 0.697 | 9 |
+| torch.norm(reflected) | plain | 4436 | 4374 | 0.986 | 1 |
+| torch.norm(reflected) | fma_chain | 4436 | 4436 | 1.000 | 0 |
+| torch.norm(reflected) | fma_rev | 4436 | 3721 | 0.839 | 1 |
+| einsum vertices (4 x 4) | plain | 39924 | 39025 | 0.977 | 480 |
+| einsum vertices (4 x 4) | fma_chain | 39924 | 39924 | 1.000 | 0 |
+| einsum vertices (4 x 4) | fma_rev | 39924 | 37397 | 0.937 | 973 |
+<!-- /table:s2_step0_fmaf_probe -->
+
 <!-- table:s2_step0_intermediates -->
 | variant | intermediate | n | equal | equal_frac | max_ulp | max_abs |
 |---|---|---|---|---|---|---|

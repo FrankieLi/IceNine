@@ -1,7 +1,8 @@
 """S2 Step 0 summary: summary.json and tables.md (doc_tables) from the Step 0 results.
 
 Inputs (``--dir``, default benchmarks/s2_step0): parity.json (0d), timing.json (0c),
-search_three.json and search_e0.json (0a). Every number in the tables comes from these files.
+search_three.json and search_e0.json (0a), fmaf_probe.json (s2_fma_probe.py). Every number in
+the tables comes from these files.
 
   uv run python scripts/speed_parity/s2/s2_summary.py [--dir benchmarks/s2_step0]
 """
@@ -12,6 +13,8 @@ import statistics
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ICE = HERE.parents[2]
@@ -33,6 +36,112 @@ ARM_LABEL = {
 
 def load(path: Path) -> Optional[Dict[str, Any]]:
     return json.loads(path.read_text()) if path.exists() else None
+
+
+def pct(x: Optional[float]) -> Optional[float]:
+    return None if x is None else 100.0 * x
+
+
+def peak_stats(pk: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Per flipped pixel peak (the coordinate with the largest torch margin of each differing
+    (row, detector)): which float32 value is nearer the float64 value (tie: equal distance), the
+    side of the threshold the float64 value is on, the ratio of the larger to the smaller error,
+    and the two largest-margin peaks (by ulp and by px; they can be different peaks)."""
+    out: Dict[str, Any] = dict(n_pixel_peaks=len(pk))
+    if not pk:
+        return out
+    et = np.array([abs(x["torch"] - x["ref"]) for x in pk])
+    ef = np.array([abs(x["fused"] - x["ref"]) for x in pk])
+    n = len(pk)
+    side_t = sum(x["ref_side"] == "torch" for x in pk)
+    lo, hi = stats.wilson(side_t, n)
+    nt = int((et < ef).sum())
+    nlo, nhi = stats.wilson(nt, n)
+    ratio = np.maximum(et, ef) / np.maximum(np.minimum(et, ef), 1e-300)
+    out.update(
+        nearer_torch=nt,
+        nearer_fused=int((ef < et).sum()),
+        nearer_tie=int((et == ef).sum()),
+        nearer_torch_wilson_lo_pct=100.0 * nlo,
+        nearer_torch_wilson_hi_pct=100.0 * nhi,
+        side_torch=side_t,
+        side_fused=n - side_t,
+        side_torch_wilson_lo_pct=100.0 * lo,
+        side_torch_wilson_hi_pct=100.0 * hi,
+        torch_err_median_px=float(np.median(et)),
+        fused_err_median_px=float(np.median(ef)),
+        error_ratio_median=float(np.median(ratio)),
+        error_ratio_gt3_frac=float((ratio > 3).mean()),
+        fused_max_px_from_edge=max(x["fused_px_from_edge"] for x in pk),
+        fused_max_margin_ulp=max(x["fused_margin_ulp"] for x in pk),
+    )
+    keys = ("dataset", "index", "row", "det", "threshold", "margin_ulp", "torch_px_from_edge",
+            "fused_margin_ulp", "fused_px_from_edge")  # fmt: skip
+    by_ulp = max(pk, key=lambda x: x["margin_ulp"])
+    by_px = max(pk, key=lambda x: x["torch_px_from_edge"])
+    by_fused_px = max(pk, key=lambda x: x["fused_px_from_edge"])
+    out["max_ulp_peak"] = {k: by_ulp[k] for k in keys}
+    out["max_px_peak"] = {k: by_px[k] for k in keys}
+    out["max_fused_px_peak"] = {k: by_fused_px[k] for k in keys}
+    out["max_ulp_and_max_px_same_peak"] = by_ulp is by_px
+    return out
+
+
+def paired(s: Dict[str, Any]) -> Dict[str, Any]:
+    """Per arm pair, by case (voxel), on repeat 0 (the wrong sets of all repeats are compared):
+    fixed = wrong under the first arm only, broken = wrong under the second only, both wrong."""
+    reps = sorted({r["repeat"] for r in s["runs"]})
+
+    def wrong(arm: str, rep: int) -> Dict[str, bool]:
+        return {
+            r["case"]: (r["err_deg"] or 0.0) > 1.0
+            for r in s["runs"]
+            if r["arm"] == arm and r["repeat"] == rep
+        }
+
+    def err(arm: str) -> Dict[str, float]:
+        return {r["case"]: r["err_deg"] for r in s["runs"] if r["arm"] == arm and r["repeat"] == 0}
+
+    def evals(arm: str) -> Dict[str, int]:
+        return {
+            r["case"]: r["evaluate_n"] for r in s["runs"] if r["arm"] == arm and r["repeat"] == 0
+        }
+
+    out: Dict[str, Any] = {}
+    for a, b in (("default", "fused"), ("bqmc", "fused_bqmc"), ("default", "bqmc")):
+        if a not in s["arms"] or b not in s["arms"]:
+            continue
+        wa, wb = wrong(a, 0), wrong(b, 0)
+        cases = sorted(wa)
+        fixed, broken = stats.paired_discordant([wa[c] for c in cases], [wb[c] for c in cases])
+        out[f"{a}_vs_{b}"] = dict(
+            n=len(cases),
+            wrong_a=sum(wa.values()),
+            wrong_b=sum(wb.values()),
+            fixed=fixed,
+            broken=broken,
+            both_wrong=sum(wa[c] and wb[c] for c in cases),
+            wrong_cases_a=[c for c in cases if wa[c]],
+            wrong_cases_b=[c for c in cases if wb[c]],
+            path_changed=[c for c in cases if evals(a)[c] != evals(b)[c]],
+            err_deg_a={c: err(a)[c] for c in cases if wa[c] or wb[c]},
+            err_deg_b={c: err(b)[c] for c in cases if wa[c] or wb[c]},
+            same_wrong_sets_all_repeats=all(
+                wrong(x, r) == wrong(x, 0) for x in (a, b) for r in reps
+            ),
+        )
+    return out
+
+
+def probe(f: Dict[str, Any]) -> Dict[str, Any]:
+    rows = f["rows"]
+    out: Dict[str, Any] = dict(meta=f["meta"], rows=rows)
+    out["table"] = DT.markdown_table(
+        rows,
+        ["product", "order", "n", "equal", "equal_frac", "max_ulp"],
+        formats=dict(equal_frac=".3f"),
+    )
+    return out
 
 
 def per_call(t: Dict[str, Any]) -> Dict[str, Any]:
@@ -159,6 +268,7 @@ def parity(p: Dict[str, Any]) -> Dict[str, Any]:
     irows = []
     erows = []
     any_frame = 0
+    peaks: Dict[Any, List[Dict[str, Any]]] = {}
     for ds, modes in p["datasets"].items():
         out["datasets"][ds] = {}
         for group, names in (("triangle", TRIANGLE_MODES), ("screen", SCREEN_MODES)):
@@ -168,6 +278,12 @@ def parity(p: Dict[str, Any]) -> Dict[str, Any]:
                         continue
                     x = modes[mode][v]
                     rows = [r for d in x["differing"] for r in d["rows"]]
+                    peaks[(ds, mode, v)] = [
+                        dict(r, dataset=ds, index=d["index"])
+                        for d in x["differing"]
+                        for r in d["rows"]
+                        if r["cause"] == "pixel_integer"
+                    ]
                     causes = sorted({r["cause"] for r in rows})
                     px = [r["torch_px_from_edge"] for r in rows if "torch_px_from_edge" in r]
                     within = sum(
@@ -190,13 +306,14 @@ def parity(p: Dict[str, Any]) -> Dict[str, Any]:
                         max_margin_ulp=x["max_margin_ulp"],
                         max_margin_px=max(px) if px else None,
                         causes=",".join(causes) if causes else "-",
-                        ref_nearer_torch=x["ref_side"]["torch"],
-                        ref_nearer_fused=x["ref_side"]["fused"],
+                        ref_side_torch=x["ref_side"]["torch"],
+                        ref_side_fused=x["ref_side"]["fused"],
                         fields=",".join(
                             f"{k}:{n}" for k, n in x["field_orientations_differing"].items() if n
                         )
                         or "-",
                         silent=x["silent_input_differences"],
+                        field_names=list(x["field_orientations_differing"]),
                     )
                     out["datasets"][ds][f"{mode}/{v}"] = rec
                     frows.append(rec)
@@ -241,9 +358,25 @@ def parity(p: Dict[str, Any]) -> Dict[str, Any]:
                 no_differing_peak=sum(r["no_differing_peak"] for r in recs),
                 max_margin_ulp=max(mm) if mm else None,
                 max_margin_px=max(mp) if mp else None,
-                flipped_peaks=sum(r["ref_nearer_torch"] + r["ref_nearer_fused"] for r in recs),
-                ref_nearer_torch=sum(r["ref_nearer_torch"] for r in recs),
-                ref_nearer_fused=sum(r["ref_nearer_fused"] for r in recs),
+                flipped_peaks=sum(r["ref_side_torch"] + r["ref_side_fused"] for r in recs),
+                ref_side_torch=sum(r["ref_side_torch"] for r in recs),
+                ref_side_fused=sum(r["ref_side_fused"] for r in recs),
+            )
+            h = head[f"{mode}/{v}"]
+            lo, hi = stats.wilson(h["beyond_trace_ulp"], h["differing"]) if k else (None, None)
+            h.update(beyond_wilson_lo_pct=pct(lo), beyond_wilson_hi_pct=pct(hi))
+            h.update(peak_stats([pk for ds in p["datasets"] for pk in peaks[(ds, mode, v)]]))
+            h["fields"] = (
+                {
+                    f: sum(
+                        p["datasets"][ds][mode][v]["field_orientations_differing"][f]
+                        for ds in p["datasets"]
+                        if mode in p["datasets"][ds]
+                    )
+                    for f in recs[0]["field_names"]
+                }
+                if recs
+                else {}
             )
     out["headline"] = head
     # one table row per (dataset, variant, mode group): the triangle modes and screen modes
@@ -326,6 +459,7 @@ def main() -> None:
         s = load(d / f"search_{name}.json")
         if s:
             summary[f"search_{name}"] = ss = search(s)
+            ss["paired"] = paired(s)
             tables[f"s2_step0_search_{name}"] = ss.pop("table")
             tables[f"s2_step0_callers_{name}"] = ss.pop("callers_table")
     p = load(d / "parity.json")
@@ -334,6 +468,10 @@ def main() -> None:
         tables["s2_step0_parity"] = pp.pop("fields_table")
         tables["s2_step0_intermediates"] = pp.pop("intermediates_table")
         tables["s2_step0_float64_error"] = pp.pop("error_table")
+    f = load(d / "fmaf_probe.json")
+    if f:
+        summary["fmaf_probe"] = fp = probe(f)
+        tables["s2_step0_fmaf_probe"] = fp.pop("table")
     (d / "summary.json").write_text(json.dumps(summary, indent=1, default=float) + "\n")
     DT.write_tables(d / "tables.md", tables)
     print(f"wrote summary.json and tables.md ({len(tables)} tables)")
