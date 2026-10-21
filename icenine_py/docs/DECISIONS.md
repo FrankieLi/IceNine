@@ -402,3 +402,12 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - `SmoothCost` is rebuilt on every `reconstruct_voxel` call. Caching it per image set is done in Task G, if the smooth
   ranking key is used there. Task E's docs lead with the as-shipped cost (rebuild per voxel) and give the
   one-build-per-image-set figure as a projection. Where: eval-reduction plan Task G step 2c.
+
+### D-20261021-N1 · Track E row F/G · Compare every Task F carry option side by side before choosing
+- 2026-10-21, owner. Recorded by Newt Agent. Supersedes: none.
+- Before choosing what Task G carries, run every option in parallel and summarize capture, timing
+  and evaluation counts so the owner can compare: F4 (1-frame window), F4 (5-frame window), F5, F5
+  then F4, the policy 'F4 then F5+F4 on rejection' with each window, and CMA-ES (sigma0 1 and 2
+  deg). The runs use voxels Task F did not use, so the policy and window numbers are out of
+  sample. The choice of carry (open from Task F) waits for this summary. Where: ROADMAP Track E
+  row F; docs/findings_outward_search_2026-10.md.
