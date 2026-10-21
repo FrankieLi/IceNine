@@ -12,6 +12,16 @@ Every implementer and reviewer reads this first. Briefs from the main session ma
   `.claude/**` files are written but left uncommitted for the owner.
 - Commits end with the Co-Authored-By line given in the system reminder or plan.
 - Do not merge to develop, push, or open a PR unless the main session asks.
+- Record owner decisions with `scripts/dev/log_decision.sh` (or `/decide`), never by hand. Edit a
+  ROADMAP track status cell with `scripts/dev/roadmap_row.py`, never with `sed`.
+- Main session: run `scripts/dev/verify_handback.sh <parent> <report>` before `/review-task`; write
+  implementer briefs with `/implement-plan` and `/apply-fixes` (`scripts/dev/make_brief.sh`).
+- Plans state scope, stop rules and process-limit exceptions as paragraphs starting
+  `**Library changes:**`, `**Stop rule:**`, `**Process limit exception:**`; `make_brief.sh` quotes
+  them whole.
+- Set `git config --local icenine.agent I` (Ilium) or `N` (Newt) once per clone;
+  `log_decision.sh`, `read_on_fetch.sh` and `verify_handback.sh` refuse to run without it or
+  `--agent`.
 - Full suite: `uv run pytest tests/ --junitxml=<scratch>/junit.xml`, with no extra `-q`.
 
 ## Context use (owner rule)
@@ -43,8 +53,12 @@ by the PostToolUse hook; your reasoning between tool calls is not, so record fin
   agents, by owner decision.
 
 ## Compute and timing
-- At most 10 workers. Run long jobs with `nohup`, a log in `<dir>/cache/logs/<name>.log` and a
-  `<name>.done` marker; poll every 10-15 minutes.
+- At most `icenine.maxHeavyProcs` heavy processes at once on this machine (`git config --local
+  icenine.maxHeavyProcs <n>`, set per machine; 6 on Ilium's 16 GB machine). A plan or an owner
+  decision may grant an exception (a plan paragraph `**Process limit exception:** ...`).
+- Run long jobs with `nohup`, a log in `<dir>/cache/logs/<name>.log` and a `<name>.done` marker;
+  poll every 10-15 minutes. On macOS, start them under `caffeinate -i`
+  (`nohup caffeinate -i uv run ...`) so the machine does not idle-sleep mid-run.
 - Every timing run is preflight-gated (`preflight.require_quiet()` or
   `scripts/dev/timing_preflight.py --require --json <dir>/preflight.json`); save the JSON beside
   the results and label timings "single-worker" or "contended".

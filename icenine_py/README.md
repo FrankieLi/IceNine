@@ -815,7 +815,7 @@ Rules and checks that used to be repeated in LLM prompts live in code. Paths are
 
 | Script | Purpose and usage |
 |---|---|
-| `.claude/hooks/check-bash-command.sh` | Claude Code PreToolUse hook: denies bare `python*`/`pytest`/`pip*` (also behind `nohup`, `nice`, `env`, `time`, `sudo`, subshells), `git add -A/--all/./://*/-u`, `git commit -a/-am/--all/--no-verify`, and `ALLOW_*` assignments (handles `&&`, `;`, pipes, newlines, backslash continuations; ignores quoted text and heredoc bodies). Wired in `.claude/settings.json`. |
+| `.claude/hooks/check-bash-command.sh` | Claude Code PreToolUse hook: denies bare `python*`/`pytest`/`pip*` (also behind `nohup`, `nice`, `env`, `time`, `caffeinate`, `sudo`, subshells), `git add -A/--all/./://*/-u`, `git commit -a/-am/--all/--no-verify`, and `ALLOW_*` assignments (handles `&&`, `;`, pipes, newlines, backslash continuations; ignores quoted text and heredoc bodies). Wired in `.claude/settings.json`. |
 | `.githooks/pre-commit` | Runs `scripts/dev/precommit_check.py` on staged changes: forbidden paths (`*.pt`, `*.pkl`, `*.joblib`, `cache/`, big `.npz`, `CLAUDE.md`/`.claude/**`), files over 10 MB, absolute home paths, Black on new `.py` files, lines over 100 characters, "realistic" terminology. Overrides: `ALLOW_CLAUDE_CONFIG=1`, `ALLOW_LARGE=1`, `ALLOW_ABS_PATHS=1`, `noqa: realistic`. |
 | `scripts/dev/install_hooks.sh` | `git config core.hooksPath .githooks`; prints how to undo it. |
 | `scripts/dev/start_task.sh <task> [--push]` | Create `feature/<parent>-<task>` off the current feature branch and record its parent. |

@@ -42,7 +42,9 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
    track): `git fetch`, merge the other track's branch into your own, then read the other agent's
    mailbox and act on it or answer in your own, and read the new entries in `docs/DECISIONS.md`
    (save them to your shmem, rule 6). If a merge conflicts outside your own rows and mailbox, stop
-   and ask the owner.
+   and ask the owner. Run `scripts/dev/read_on_fetch.sh --save` for the fetch, the log, the mailbox
+   diff and the other agent's new decisions (saved to shmem), merge with the command it prints,
+   then rerun it with `--mark` to move the last-read point.
 3. **Push timing.** Push your feature branch (never `develop`) (a) with a `heads-up` entry before
    starting a task that touches a shared file (see "Coordination between Tracks E and S"), (b) when a
    task is merged into your feature branch, (c) whenever you add a `request` or `answer`, and (d)
@@ -61,7 +63,10 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
    (`shmem add --source user "Owner decision <ID> (<date>, IceNine <track/row>): <decision>"`); on
    read on fetch, save the other agent's new entries to your own shmem too. The file uses git's
    union merge (`.gitattributes`), so appends on both branches do not conflict. Format and ID rules
-   are at the top of the file. Track rows may still quote a decision; the log is the record.
+   are at the top of the file. Track rows may still quote a decision; the log is the record. Record a
+   decision with `scripts/dev/log_decision.sh` (or `/decide`), which picks the ID, appends the
+   entry, commits and pushes it on the feature branch and writes the shmem line; the recorder
+   follows `icenine.agent`.
 
 ## From Newt Agent
 
