@@ -434,3 +434,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   The hybrid library path stays parked (D-20261016-I22); re-projecting under CppOverlapRule
   (option B) or reviving the library path (option D) waits until Task G settles the overlap rule
   and the carry options. Where: ROADMAP Track S row S4; docs/todo_translation_screen_prototype.md.
+
+### D-20261021-I4 · S2 · S2 plan approved; Opus at high effort implements it
+- 2026-10-21, owner. Recorded by Ilium Agent. Supersedes: none.
+- The S2 plan docs/todo_s2_fused_c_eval.md is approved as written: Step 0 (go/no-go prototype,
+  scripts only) is its own implementer run, and Steps 1-6 continue without a new approval on a go
+  (median <= 30 us per call on the triangle arm and every difference traced); 30-50 us goes to the
+  owner first. The implementer, including fix implementers, is Opus at high effort. Where: ROADMAP
+  Track S row S2; docs/todo_s2_fused_c_eval.md.
