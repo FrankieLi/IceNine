@@ -8457,6 +8457,102 @@ which is consistent with CMA-ES reaching further (untested).
   the single-worker serial runs cover two E0 voxels and one full-sample voxel. F5's batch weights were measured after the first report, on review.
   F6 not run. Nothing was tried inside a breadth-first sweep.
 
+#### Comparing the carry options (D-20261021-N1, 2026-10-21, `feature/eval-reduction-Fcompare`)
+
+Owner request before Task G chooses its carry: run every Task F option side by side on voxels Task F did not use (so the policy and window numbers are
+out of sample) and summarize capture, time and evaluations. Full write-up (plot first, then all tables, paired comparisons, the cheapest option per capture
+level): `docs/findings_outward_search_2026-10.md` "Comparing the carry options (D-20261021-N1)". Run log: `benchmarks/eval_reduction/Fcompare/RUN_LOG.md`.
+No library, default, golden or key change.
+
+* **Options (8).** F4 1-frame; F4 5-frame; F5; F5 then F4; policy 1 (F4 1-frame, then F5+F4 from the original start where F4's own acceptance test
+  rejects); policy 5 (the same with the 5-frame window in both F4 parts, which is not what Task F's earlier `policy_f4w` did: that used the 1-frame F4
+  after F5); CMA-ES sigma0 1 and 2 deg. Settings as Task F. Policies are formed per run from the stored F4 and F5+F4 runs (`outward_compare_summary.py`).
+* **Voxels.** E0: 24 voxels disjoint from Task F's 24 + 4. Only 10 of the 200 have r_perp below 120 um and Task F used all 10, so the "near" group is the 8
+  unused voxels of smallest r_perp (122-150 um), the 16 far ones (>= 250 um) spread evenly (`Fcompare/voxel_sets.json`, chosen before any result).
+  Full sample: all 24 voxels of Task E's 30-voxel list except the six interior ones. Offsets 1, 2, 3, 5 deg, 20 directions (seed 7000 + voxel), 480 runs per
+  option, offset and set. A pilot (1 voxel per set, 3 directions, 4 offsets: 17 s on E0, 36 s on the full sample) put the whole run far under 3 h, so no voxel was cut.
+* **Time label.** Main runs (E0 2 workers, full 4 workers at once, 21 and 15 minutes) are **contended**. Seconds come from a single-worker, preflight-gated
+  pass on 2 voxels per set x the first 5 directions x 4 offsets x 8 options (10 runs per cell; preflight loads 1.35 and 1.48 against 1.5, saved in
+  `Fcompare/timing/`); its end points and counts equal the main pass's (40 of 40 per option and set); contended over single-worker medians on the same
+  runs 1.07 to 1.29. The quiet repeat on more voxels is not done.
+
+Reading: share of the 480 runs within 1 deg (count, Wilson interval in percent), runs that fell back, median strict-equivalent evaluations (Task F's current
+weights), median single-worker seconds (10 runs). Tables 23a to 23d (the other offsets, raw counts by kind, per-voxel counts, paired and contention tables are
+in the findings doc and `Fcompare/doc_tables_all.md`).
+
+Table 23a: 2 degree start, E0.
+
+<!-- table:evalFc_e0_main_2deg -->
+| option | within 1 deg | within 0.05 deg | fell back | strict-equivalent, median | strict-equivalent, 90th pct | seconds per run, median | seconds per run, 90th pct |
+|---|---|---|---|---|---|---|---|
+| F4, 1-frame window | 480 of 480, 100.0% (99.2-100.0) | 379 of 480, 79.0% (75.1-82.4) | n/a | 304 | 385 | 0.13 | 0.15 |
+| F4, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 392 of 480, 81.7% (78.0-84.9) | n/a | 304 | 429 | 0.13 | 0.21 |
+| F5 expanding shells | 480 of 480, 100.0% (99.2-100.0) | 0 of 480, 0.0% (0.0-0.8) | n/a | 219 | 279 | 0.10 | 0.12 |
+| F5 then F4 | 480 of 480, 100.0% (99.2-100.0) | 372 of 480, 77.5% (73.6-81.0) | n/a | 390 | 474 | 0.17 | 0.32 |
+| Policy, 1-frame window | 480 of 480, 100.0% (99.2-100.0) | 379 of 480, 79.0% (75.1-82.4) | 0 of 480 | 304 | 385 | 0.13 | 0.15 |
+| Policy, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 392 of 480, 81.7% (78.0-84.9) | 0 of 480 | 304 | 429 | 0.13 | 0.21 |
+| CMA-ES, sigma0 1 deg | 450 of 480, 93.8% (91.2-95.6) | 442 of 480, 92.1% (89.3-94.2) | n/a | 323 | 435 | 0.15 | 0.16 |
+| CMA-ES, sigma0 2 deg | 430 of 480, 89.6% (86.5-92.0) | 416 of 480, 86.7% (83.3-89.4) | n/a | 344 | 709 | 0.15 | 0.17 |
+<!-- /table:evalFc_e0_main_2deg -->
+
+Table 23b: 5 degree start, E0.
+
+<!-- table:evalFc_e0_main_5deg -->
+| option | within 1 deg | within 0.05 deg | fell back | strict-equivalent, median | strict-equivalent, 90th pct | seconds per run, median | seconds per run, 90th pct |
+|---|---|---|---|---|---|---|---|
+| F4, 1-frame window | 457 of 480, 95.2% (92.9-96.8) | 369 of 480, 76.9% (72.9-80.4) | n/a | 358 | 454 | 0.13 | 0.15 |
+| F4, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 401 of 480, 83.5% (80.0-86.6) | n/a | 370 | 475 | 0.15 | 0.23 |
+| F5 expanding shells | 480 of 480, 100.0% (99.2-100.0) | 0 of 480, 0.0% (0.0-0.8) | n/a | 1364 | 1568 | 0.58 | 0.66 |
+| F5 then F4 | 480 of 480, 100.0% (99.2-100.0) | 373 of 480, 77.7% (73.8-81.2) | n/a | 1533 | 1709 | 0.65 | 0.73 |
+| Policy, 1-frame window | 480 of 480, 100.0% (99.2-100.0) | 388 of 480, 80.8% (77.1-84.1) | 23 of 480 | 377 | 489 | 0.13 | 0.15 |
+| Policy, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 401 of 480, 83.5% (80.0-86.6) | 0 of 480 | 370 | 475 | 0.15 | 0.23 |
+| CMA-ES, sigma0 1 deg | 172 of 480, 35.8% (31.7-40.2) | 165 of 480, 34.4% (30.3-38.7) | n/a | 606 | 1591 | 0.23 | 0.48 |
+| CMA-ES, sigma0 2 deg | 261 of 480, 54.4% (49.9-58.8) | 248 of 480, 51.7% (47.2-56.1) | n/a | 554 | 2220 | 0.21 | 0.95 |
+<!-- /table:evalFc_e0_main_5deg -->
+
+Table 23c: 2 degree start, full sample.
+
+<!-- table:evalFc_full_main_2deg -->
+| option | within 1 deg | within 0.05 deg | fell back | strict-equivalent, median | strict-equivalent, 90th pct | seconds per run, median | seconds per run, 90th pct |
+|---|---|---|---|---|---|---|---|
+| F4, 1-frame window | 479 of 480, 99.8% (98.8-100.0) | 414 of 480, 86.2% (82.9-89.0) | n/a | 379 | 482 | 0.14 | 0.17 |
+| F4, 5-frame window | 479 of 480, 99.8% (98.8-100.0) | 375 of 480, 78.1% (74.2-81.6) | n/a | 379 | 471 | 0.15 | 0.17 |
+| F5 expanding shells | 480 of 480, 100.0% (99.2-100.0) | 0 of 480, 0.0% (0.0-0.8) | n/a | 437 | 548 | 0.27 | 0.28 |
+| F5 then F4 | 480 of 480, 100.0% (99.2-100.0) | 410 of 480, 85.4% (82.0-88.3) | n/a | 738 | 834 | 0.35 | 0.37 |
+| Policy, 1-frame window | 480 of 480, 100.0% (99.2-100.0) | 415 of 480, 86.5% (83.1-89.2) | 1 of 480 | 379 | 483 | 0.14 | 0.17 |
+| Policy, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 376 of 480, 78.3% (74.4-81.8) | 1 of 480 | 379 | 471 | 0.15 | 0.17 |
+| CMA-ES, sigma0 1 deg | 468 of 480, 97.5% (95.7-98.6) | 462 of 480, 96.2% (94.2-97.6) | n/a | 288 | 372 | 0.11 | 0.12 |
+| CMA-ES, sigma0 2 deg | 446 of 480, 92.9% (90.3-94.9) | 440 of 480, 91.7% (88.9-93.8) | n/a | 323 | 450 | 0.13 | 0.23 |
+<!-- /table:evalFc_full_main_2deg -->
+
+Table 23d: 5 degree start, full sample.
+
+<!-- table:evalFc_full_main_5deg -->
+| option | within 1 deg | within 0.05 deg | fell back | strict-equivalent, median | strict-equivalent, 90th pct | seconds per run, median | seconds per run, 90th pct |
+|---|---|---|---|---|---|---|---|
+| F4, 1-frame window | 315 of 480, 65.6% (61.3-69.7) | 279 of 480, 58.1% (53.7-62.5) | n/a | 461 | 657 | 0.17 | 0.20 |
+| F4, 5-frame window | 344 of 480, 71.7% (67.5-75.5) | 274 of 480, 57.1% (52.6-61.4) | n/a | 472 | 668 | 0.18 | 0.26 |
+| F5 expanding shells | 480 of 480, 100.0% (99.2-100.0) | 0 of 480, 0.0% (0.0-0.8) | n/a | 2026 | 2265 | 1.05 | 1.09 |
+| F5 then F4 | 480 of 480, 100.0% (99.2-100.0) | 409 of 480, 85.2% (81.8-88.1) | n/a | 2353 | 2547 | 1.14 | 1.17 |
+| Policy, 1-frame window | 480 of 480, 100.0% (99.2-100.0) | 410 of 480, 85.4% (82.0-88.3) | 165 of 480 | 562 | 2841 | 0.19 | 1.28 |
+| Policy, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 368 of 480, 76.7% (72.7-80.2) | 136 of 480 | 530 | 2891 | 0.18 | 0.36 |
+| CMA-ES, sigma0 1 deg | 165 of 480, 34.4% (30.3-38.7) | 162 of 480, 33.8% (29.7-38.1) | n/a | 421 | 659 | 0.20 | 0.40 |
+| CMA-ES, sigma0 2 deg | 272 of 480, 56.7% (52.2-61.0) | 261 of 480, 54.4% (49.9-58.8) | n/a | 428 | 785 | 0.16 | 0.29 |
+<!-- /table:evalFc_full_main_5deg -->
+
+* **Counts.** F5, F5 then F4 and both policies captured all 480 runs at every offset on both sets (interval lower end 99.2%). F4 alone: 457 of 480 on E0 from
+  5 deg (1-frame) and 480 (5-frame); 315 and 344 on the full sample. CMA-ES from 5 deg: 172 and 261 of 480 on E0, 165 and 272 on the full sample
+  (sigma0 1 and 2 deg). In every cell the policy's fallbacks equal F4's misses and nothing was broken (fixed equals fallbacks, broken 0): 23 on E0 and 165 on
+  the full sample at 5 deg (policy 1), 0 and 136 (policy 5). The 5-frame window against 1-frame (F4 alone) at 5 deg: E0 fixed 23, broken 0; full sample
+  fixed 33, broken 4, both wrong 132.
+* **Cost at 5 deg (median strict-equivalent, single-worker seconds).** E0: F4 358 (0.13), F4 5-frame 370 (0.15), F5 1,364 (0.58), F5+F4 1,533 (0.65), policy 1
+  377 (0.13), policy 5 370 (0.15), CMA-ES 606 (0.23) and 554 (0.21). Full sample: 461 (0.17), 472 (0.18), 2,026 (1.05), 2,353 (1.14), 562 (0.19),
+  530 (0.18), 421 (0.20), 428 (0.16). The policies' 90th percentile on the full sample (2,841 and 2,891) is above F5+F4's (2,547).
+* **Cheapest at each level** (point estimates, tie rule in the findings doc): F5 at 1 deg on both sets (83 on E0, 137 on the full sample); at 2 deg F5 on E0
+  (219) and, on the full sample, CMA-ES sigma0 1 deg for 90% and 95% (288) and policy 1 for 99% and 100% (379); at 3 and 5 deg F4 5-frame on E0 at 99% and 100%
+  (331 and 370; F4 1-frame, 358, at 5 deg for 90% and 95%) and policy 5 on the full sample (410 and 530).
+* **Left undone.** The quiet repeat of the timing on more voxels; realistic images; nothing here chooses a carry (owner decision).
+
 ## S3: batched quick MC with a GPU option (2026-10-14)
 
 Branch `feature/python-speed-parity-s3` (off `feature/python-speed-parity`; not merged). Plan: `docs/todo_batched_quick_mc.md`
