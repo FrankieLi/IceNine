@@ -4,18 +4,20 @@
  * filter, frame lookup, stages B and C, stage D).
  *
  * Scripts only: built by s2fused.py with the system cc into scripts/speed_parity/cache/s2/. Stage
- * D is not copied: the library's _rasterize.c is included, so triangle_overlap_uint8,
- * pixel_radius_overlap_uint8 and count_qualified_peaks_c are the library's own functions (its
- * module init is compiled in but unused).
+ * D: the helpers triangle_overlap_uint8, pixel_radius_overlap_uint8 and count_qualified_peaks_c
+ * are the library's own functions (the library's _rasterize.c is included; its module init is
+ * compiled in but unused). The per-peak loop around them (vertex-lit rule, accumulation, Welford
+ * quality) is a copy of _rasterize.c stage_d_overlap without its ray-rule block.
  *
  * Float32 throughout, in the operation order of the torch code (cost_functions.py evaluate and
  * calculate_diffraction_overlap_batched; diffraction_core.py scattering_omegas_fixed_beam). Where
  * torch's kernels fuse a multiply and an add (bmm, the Rz @ base product, the einsum of the
- * vertices, torch.norm) the code calls fmaf explicitly, in the order found to match torch bit for
- * bit (scripts/speed_parity/s2/README: probe); FP_CONTRACT is off (the pragma in _rasterize.c), so
- * the compiler fuses nothing else. Not reproduced bit for bit: the 3 x K product R @ g_hkl^T
- * (Accelerate sgemm, no simple formula found) and sin, cos, atan2, asin (torch: SLEEF vector
- * kernels; here: libm). Differences are measured by s2_parity.py.
+ * vertices, torch.norm) the code calls fmaf explicitly, in the order that matches torch bit for
+ * bit (the probe s2_fma_probe.py, results benchmarks/s2_step0/fmaf_probe.json); FP_CONTRACT is off
+ * (the pragma in _rasterize.c), so the compiler fuses nothing else. Not reproduced bit for bit: the
+ * 3 x K product R @ g_hkl^T (Accelerate sgemm on macOS; none of the orders the probe tries
+ * reproduces it, and the fmaf chain used here is not the closest of them) and sin, cos, atan2,
+ * asin (torch: SLEEF vector kernels; here: libm). Differences are measured by s2_parity.py.
  *
  * Not thread-safe: the scratch buffers live in the context.
  */
@@ -449,7 +451,8 @@ static PyObject *s2_evaluate(PyObject *self, PyObject *args) {
                 int all_hit = 1;
                 for (int v = 0; v < 3; v++) {
                     const float *o = LV[v];
-                    float numer = -(s2_sum3(o[0] * pn[0], o[1] * pn[1], o[2] * pn[2]) + c->det_d[d]);
+                    float numer =
+                        -(s2_sum3(o[0] * pn[0], o[1] * pn[1], o[2] * pn[2]) + c->det_d[d]);
                     float t = parallel ? 0.0f : numer / denom;
                     int h = !parallel && (t > 0.0f);
                     all_hit &= h;

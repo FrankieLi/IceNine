@@ -1,12 +1,12 @@
 """S2 Step 0c: us per call of the fused prototype against the torch ``evaluate``.
 
 S1's per-call set (``prof_eval``: ThreeVoxels voxel 0, ``Example2.Simulation.config``, 400
-orientations within 3 degrees of the truth, seed 0). Arms: the Q-max 8 triangle cost and the radius-3
-Q-max 5 screen (centroid), each with the default rule and with ``CppOverlapRule``. Implementations:
-``torch`` (the library ``evaluate``), ``fused`` (``s2fused.FusedEval``, portable C, building the
-``OverlapInfo``), ``fused_acc`` (the Accelerate-sgemm build), ``c_only`` (the bare C call of the
-portable build, no ``OverlapInfo``: the Python share of ``fused``). Each implementation has its own
-cost function object; one untimed warm-up pass fills the frames.
+orientations within 3 degrees of the truth, seed 0). Arms: the Q-max 8 triangle cost and the
+radius-3 Q-max 5 screen (centroid), each with the default rule and with ``CppOverlapRule``.
+Implementations: ``torch`` (the library ``evaluate``), ``fused`` (``s2fused.FusedEval``, portable
+C, building the ``OverlapInfo``), ``fused_acc`` (the Accelerate-sgemm build), ``c_only`` (the bare
+C call of the portable build, no ``OverlapInfo``: the Python share of ``fused``). Each
+implementation has its own cost function object; one untimed warm-up pass fills the frames.
 
 Single worker (torch threads 1), preflight-gated (``preflight.require_quiet``; ``--allow-busy`` runs
 anyway and labels the timings "contended"). ``--rounds`` interleaved rounds (the implementation

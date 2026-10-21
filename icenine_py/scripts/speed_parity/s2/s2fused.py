@@ -3,13 +3,15 @@
 ``build()`` compiles ``s2fused.c`` with the system ``cc`` and the flags setuptools uses for
 ``icenine._rasterize`` (``-O3 -fwrapv -DNDEBUG``, native architecture only) into
 ``scripts/speed_parity/cache/s2/`` (gitignored). The C file includes the library's ``_rasterize.c``,
-so stage D is the library's code, not a copy; a change to either file triggers a rebuild.
+so the stage-D helpers (triangle and pixel-radius overlap, qualified-peak count) are the library's;
+the per-peak stage-D loop around them is copied (without the ray-rule block). A change to either
+file triggers a rebuild.
 
 ``FusedEval(cost_fn)`` is the prototype of the planned key: ``evaluate(orientation, verts, phase)``
-returns the ``OverlapInfo`` of ``cost_fn.evaluate`` from one C call. Python keeps the key dispatch,
-``eval_count``, building the ``OverlapInfo`` and the lazy ``FrameTable`` fill (the C call returns the
-frames it needs; ``ensure`` fills them and the call is repeated). Covered: hard mode without a ray
-rule (pixel radius 0 and > 0, centroid and vertex 0, default rule, ``CppOverlapRule``,
+returns the ``OverlapInfo`` of ``cost_fn.evaluate`` from one C call. Python keeps the key
+dispatch, ``eval_count``, building the ``OverlapInfo`` and the lazy ``FrameTable`` fill (the C call
+returns the frames it needs; ``ensure`` fills them and the call is repeated). Covered: hard mode
+without a ray rule (pixel radius 0 and > 0, centroid and vertex 0, default rule, ``CppOverlapRule``,
 ``CppEdgeRules``, ``min_sin_eta``). Anything else raises ``Unsupported``.
 """
 
