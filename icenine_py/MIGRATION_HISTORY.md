@@ -10107,27 +10107,68 @@ and `uv.lock` unchanged; no golden and no default touched. Results: `benchmarks/
 `tables.md`, written by `scripts/speed_parity/s2/s2_summary.py`).
 
 **Answer.** The speed criterion is met: the prototype takes 14.4 us per call (median of 5 rounds, single-worker) on the
-Q-max 8 triangle arm against 234.1 us for `evaluate`, and a whole no-start search on ThreeVoxels voxel 0 takes 1.70 s
-instead of 5.44 s. The trace criterion is not met as the plan words it: every orientation whose `OverlapInfo` differs
-from torch is explained by one or a few peaks whose pixel coordinate lies on the other side of a pixel integer (no frame,
-eta, observability or t > 0 flip on 4 voxels x 1,000 orientations x 9 modes), but for 34 of the 129 differing
-orientations of the triangle arm that coordinate is more than 8 ulp (up to 312 ulp, 0.0033 px) from the integer. By the
-plan's stop rule Step 1 waits for the owner.
+Q-max 8 triangle arm against 234.1 us for `evaluate`. A whole no-start search on ThreeVoxels voxel 0 takes 1.70 s instead
+of 5.44 s, but the two runs are different searches: the fused arm took another path (8,084 evaluations against 8,311,
+ending 53.941 instead of 53.936 degrees from the truth, both wrong); per evaluation the cost is 114 us against 557 us.
+The trace criterion is not met as the plan words it: every orientation whose `OverlapInfo` differs from torch is
+explained by one or a few peaks whose pixel coordinate lies on the other side of a pixel integer (no frame, eta,
+observability or t > 0 flip on 4 voxels x 1,000 orientations x 9 modes), but for 34 of the 129 differing orientations of
+the triangle arm (Wilson 19.5-34.6%) that coordinate is more than 8 ulp from the integer. The two largest distances come
+from different peaks. The largest in ulp is 312 ulp, which is 0.0012 px (full18558 orientation 419, a column at pixel
+61, where an ulp is small). The largest in px is 0.0033 px, which is 27 ulp (full18558 orientation 136, detector 1, a
+column at pixel 1221). Both are torch's distances; the fused value's largest distance from its integer is 0.0034 px
+(orientation 437) and its largest in ulp 88 (orientation 419). By the plan's stop rule Step 1 waits for the owner.
 
 ### What was built (`scripts/speed_parity/s2/`)
 
 - `s2fused.c`: a scratch CPython extension, one call per `evaluate` (hard mode, no ray rule; pixel radius 0 and > 0,
   centroid and vertex 0, default rule, `CppOverlapRule`, `CppEdgeRules`, `min_sin_eta`). It `#include`s
-  `icenine/_rasterize.c`, so stage D is the library's code, not a copy. Float32 in torch's operation order: `fmaf` where
-  torch's kernels fuse (bmm, `Rz @ base`, the vertex einsum, `torch.norm`; found by a probe), plain products and sums
-  elsewhere, `FP_CONTRACT` off. The context (per cost function and phase) holds the g vectors, the Bragg constants, the
-  geometry, the frame lookup and a reference to the `FrameTable`; a call returns the 7 `OverlapInfo` values or the list of
-  frames to fill first (the lazy fill stays in Python). Variant `accelerate` (macOS) computes g_lab with Accelerate's
-  `cblas_sgemm`, the call torch makes there, and gets torch's g_lab bit for bit (no `fmaf` formula reproduces the sgemm).
+  `icenine/_rasterize.c`, so the stage-D helpers (`triangle_overlap_uint8`, `pixel_radius_overlap_uint8`,
+  `count_qualified_peaks_c`) are the library's own; the per-peak stage-D loop around them (vertex-lit rule,
+  accumulation, Welford quality) is copied from `stage_d_overlap`, without its ray-rule block. Float32 in torch's
+  operation order: `fmaf` where torch's kernels fuse (bmm, the vertex einsum, `torch.norm`, in the order the probe below
+  finds; also `Rz @ base`, which the probe cannot tell apart here), plain products and sums elsewhere, `FP_CONTRACT`
+  off. The context (per cost function
+  and phase) holds the g vectors, the Bragg constants, the geometry, the frame lookup and a reference to the
+  `FrameTable`; a call returns the 7 `OverlapInfo` values or the list of frames to fill first (the lazy fill stays in
+  Python). Variant `accelerate` (macOS) computes g_lab with Accelerate's `cblas_sgemm`, the call torch makes there, and
+  gets torch's g_lab bit for bit (none of the float32 orders the probe tries reproduces the sgemm).
 - `s2fused.py` (build with the system `cc` into `scripts/speed_parity/cache/s2/`; `FusedEval`), `torch_mirror.py` (the
   torch operations of `evaluate` with the intermediates kept, checked equal to the library on every orientation;
-  `reference64`, the same quantities in float64), `s2_parity.py` (0d), `s2_timing.py` (0c), `s2_search.py` (0a),
-  `run_step0_timing.sh`, `s2_summary.py`; test `tests/test_s2_fused_step0.py`.
+  `reference64`, the same quantities in float64, with the `CppEdgeRules` -1 rule), `s2_parity.py` (0d),
+  `s2_timing.py` (0c), `s2_search.py` (0a), `s2_fma_probe.py` (the operation-order probe), `run_step0_timing.sh`,
+  `s2_summary.py`; test `tests/test_s2_fused_step0.py`.
+
+The probe (`s2_fma_probe.py`, 20 orientations of ThreeVoxels voxel 0, the triangle cost at Q-max 8; `fmaf_probe.json`)
+runs each small product the library makes and compares it bit for bit with three float32 orders: `plain`
+(`(a0*b0 + a1*b1) + a2*b2`), `fma_chain` (`fmaf(a2, b2, fmaf(a1, b1, a0*b0))`, the order `s2fused.c` uses) and
+`fma_rev`, with libm's `fmaf`. The `fmaf` chain reproduces bmm, the vertex einsum and both `torch.norm` calls on every
+element. `Rz @ base` does not tell the orders apart here, because the sample-to-lab rotation of this setup is the
+identity. No order reproduces g_lab, and the plain order agrees with torch on more elements (0.929) than the `fmaf`
+chain the portable build uses (0.804); whether the plain order would reduce the portable build's flips is untested.
+
+<!-- table:s2_step0_fmaf_probe -->
+| product | order | n | equal | equal_frac | max_ulp |
+|---|---|---|---|---|---|
+| g_lab (R @ g_hkl.T).T | plain | 6720 | 6244 | 0.929 | 73 |
+| g_lab (R @ g_hkl.T).T | fma_chain | 6720 | 5404 | 0.804 | 128 |
+| g_lab (R @ g_hkl.T).T | fma_rev | 6720 | 4546 | 0.676 | 286 |
+| torch.norm(g_lab) | plain | 2218 | 1926 | 0.868 | 1 |
+| torch.norm(g_lab) | fma_chain | 2218 | 2218 | 1.000 | 0 |
+| torch.norm(g_lab) | fma_rev | 2218 | 1802 | 0.812 | 1 |
+| Rz @ base | plain | 39924 | 39924 | 1.000 | 0 |
+| Rz @ base | fma_chain | 39924 | 39924 | 1.000 | 0 |
+| Rz @ base | fma_rev | 39924 | 39924 | 1.000 | 0 |
+| bmm(full_rot, normals) | plain | 13308 | 10007 | 0.752 | 8 |
+| bmm(full_rot, normals) | fma_chain | 13308 | 13308 | 1.000 | 0 |
+| bmm(full_rot, normals) | fma_rev | 13308 | 9280 | 0.697 | 9 |
+| torch.norm(reflected) | plain | 4436 | 4374 | 0.986 | 1 |
+| torch.norm(reflected) | fma_chain | 4436 | 4436 | 1.000 | 0 |
+| torch.norm(reflected) | fma_rev | 4436 | 3721 | 0.839 | 1 |
+| einsum vertices (4 x 4) | plain | 39924 | 39025 | 0.977 | 480 |
+| einsum vertices (4 x 4) | fma_chain | 39924 | 39924 | 1.000 | 0 |
+| einsum vertices (4 x 4) | fma_rev | 39924 | 37397 | 0.937 | 973 |
+<!-- /table:s2_step0_fmaf_probe -->
 
 ### 0c: us per call (ThreeVoxels voxel 0, S1's 400 near-truth orientations, single-worker)
 
@@ -10171,8 +10212,13 @@ The share S2 v1 can reach is the covered `evaluate` time: 0.852 of the wall on T
 keys. With the fused path the E0 search is dominated by `BatchedScreen` (5.16 of 6.78 s). With `BatchedQuickMC 1` the
 torch forward of the batched cost becomes the larger part (431 us per orientation at 868 reflections), so `BatchedQuickMC
 1` plus the fused `evaluate` is slower than the fused `evaluate` alone (3.67 s against 1.70 s); Step 3's batched C entry
-targets that. The fused arms changed the search path of ThreeVoxels voxel 0 (8,084 evaluations against 8,311; the same
-wrong answer) and of one E0 voxel (the wrong count is 2 of 10 in every arm).
+targets that. The fused arms changed the search path of ThreeVoxels voxel 0 (8,084 evaluations against 8,311; wrong in
+both) and of one E0 voxel (e0_1, right in both), but not which voxels are wrong. Paired by voxel on E0 (the wrong sets
+are the same in every repeat): fused against default keys, 0 fixed, 0 broken, 2 both wrong (e0_0, e0_8);
+`BatchedQuickMC 1` plus fused against `BatchedQuickMC 1`, 0 fixed, 0 broken, 2 both wrong (e0_5, e0_8). The two
+`BatchedQuickMC 1` arms have another wrong set than the default-key arms: against default keys, `BatchedQuickMC 1`
+fixes e0_0 and breaks e0_5 (1 fixed, 1 broken, 1 both wrong, e0_8). On ThreeVoxels voxel 0 `BatchedQuickMC 1` fixes the
+voxel, with or without the fused path.
 
 <!-- table:s2_step0_callers_three -->
 | arm | caller | calls | seconds | share | us_per_call |
@@ -10265,9 +10311,22 @@ give the ranges shown. "beyond_8ulp": differing orientations with a flipped peak
 
 On the triangle arm (mode `local`, 4,000 orientations) the portable build differs on 129 (3.2%, Wilson 2.7-3.8%) and the
 Accelerate build on 44 (1.1%, 0.8-1.5%); the screen (`screen_center`) differs on 1 of 4,000 (portable) and 0
-(Accelerate). No frame index differs on any row both sides kept. The float32 error of both paths against the float64
-reference is the same size, and of the 140 flipped peaks of the portable build the float64 value lies on torch's side
-for 72 and on the fused side for 68:
+(Accelerate). No frame index differs on any row both sides kept.
+
+Per `OverlapInfo` field on the triangle arm (`local`, 4,000 orientations): in the portable build `pixel_on_detector`
+differs on 128 of the 129 differing orientations, `pixel_overlap` on 14 and `quality` on 12; in the Accelerate build on
+44, 2 and 1. No other field differs. The cost is 1 - `quality`, but the search also reads `hit_ratio`
+(`pixel_overlap / pixel_on_detector`) in `hit_ratio_converged`, so a flip can change the search path when the cost does
+not change.
+
+Against the float64 reference (`reference64`: the same quantities in float64 from the same float32 inputs), the mean
+float32 pixel error over all stage-D peaks is the same size for both paths (table below, 2.84e-04 to 2.99e-04 px); that
+is an aggregate mean, not a per-peak statement. Per flipped peak (the 140 pixel-integer flips of the portable build,
+`local`): torch's value is nearer the float64 value on 75 and the fused value on 65 (no ties; torch nearer on 45.3-61.6%,
+Wilson), and the float64 value lies on torch's side of the integer on 72 and on the fused side on 68 (torch's side on
+43.2-59.6%). On a single peak the two errors are not alike: the larger is a median 2.6 times the smaller (median |error|
+2.9e-04 px for torch, 3.1e-04 px for fused), and more than 3 times on 0.48 of the peaks. Neither path is systematically
+nearer float64, but each flip is one-sided. Accelerate build (44 flips): nearer 26 against 18, side 21 against 23.
 
 <!-- table:s2_step0_float64_error -->
 | dataset | variant | torch_mean_px | fused_mean_px | torch_max_px | fused_max_px |
@@ -10282,9 +10341,21 @@ for 72 and on the fused side for 68:
 | full18558 | accelerate | 2.98e-04 | 2.99e-04 | 0.0669 | 0.0669 |
 <!-- /table:s2_step0_float64_error -->
 
-The flips are consistent with float32 rounding at a pixel edge: a 1-ulp difference in sin, cos, asin or atan2 grows to
-tens or hundreds of ulp in the pixel coordinate through the ray intersection. Untested: matching torch's SLEEF `sin`,
-`cos`, `asin` and `atan2` in C, which together with the Accelerate g_lab would be needed for bit identity on this platform.
+The flips are consistent with float32 rounding at a pixel edge. The larger tested source is g_lab: with g_lab bit for
+bit equal to torch's (the Accelerate build, sgemm instead of the portable `fmaf` chain) the differing orientations drop
+from 129 to 44 and the `quality` differences from 12 to 1. The g_lab differences grow on the way: on ThreeVoxels voxel 0
+(the per-intermediate table) the portable omega differs from torch's by up to 7.01e-05 rad (8,704 ulp), against
+4.77e-07 rad with the Accelerate g_lab; that is consistent with asin near +/-1 amplifying them (untested). The remaining
+44 are consistent with libm `sin`, `cos`, `asin` and `atan2` differing from torch's SLEEF kernels (Accelerate build:
+omega up to 1024 ulp, eta up to 32 ulp in the table) and the ray intersection carrying that into the pixel coordinate
+(up to 254 ulp). Untested: matching SLEEF in C, which together with the Accelerate g_lab would be needed for bit identity
+on this platform.
+
+Since the review, `reference64` applies the `CppEdgeRules` -1 rule. The rerun at a clean commit (a6ab6ee; the
+first run recorded `dirty: true` at 8f33e1c without naming the file, so `parity.json` now lists `dirty_files`) reproduces
+every count and ulp statistic of the first run; only the float64 pixel errors of the two edge modes changed. They are now
+float32-sized on average (full18558 `edge`, portable: 2.8e-04 px mean for both paths); the largest, 1.50 px for both
+paths, is consistent with float32 and float64 putting one detector coordinate on different sides of 0 (not traced).
 
 ### Not done in Step 0
 
