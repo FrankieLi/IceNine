@@ -101,6 +101,7 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--n", type=int, default=20, help="orientations (half near, half FZ)")
     a = ap.parse_args()
+    out_path = Path(a.out).resolve()  # load_dataset changes the working directory
     with contextlib.redirect_stdout(io.StringIO()):
         ds = S1.load_dataset("three0")
     R_all = S1.orientation_set(ds, a.n // 2, a.n - a.n // 2)
@@ -200,7 +201,7 @@ def main() -> int:
         ),
         rows=rows,
     )
-    Path(a.out).write_text(json.dumps(out, indent=1) + "\n")
+    out_path.write_text(json.dumps(out, indent=1) + "\n")
     for r in rows:
         print(f"  {r['product']:28s} {r['order']:9s} {r['equal']:7d} / {r['n']:7d}  "
               f"max {r['max_ulp']} ulp")  # fmt: skip
