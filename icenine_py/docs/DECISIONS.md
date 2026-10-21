@@ -426,3 +426,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   deg). The runs use voxels Task F did not use, so the policy and window numbers are out of
   sample. The choice of carry (open from Task F) waits for this summary. Where: ROADMAP Track E
   row F; docs/findings_outward_search_2026-10.md.
+
+### D-20261021-I3 · S4 · Merge S4 as a finished study; library path stays parked
+- 2026-10-21, owner. Recorded by Ilium Agent. Supersedes: none.
+- Option A: merge feature/python-speed-parity-s4-translation-screen (scripts, results, findings,
+  review fixes 37b49a7; no library change) into feature/python-speed-parity as a finished study.
+  The hybrid library path stays parked (D-20261016-I22); re-projecting under CppOverlapRule
+  (option B) or reviving the library path (option D) waits until Task G settles the overlap rule
+  and the carry options. Where: ROADMAP Track S row S4; docs/todo_translation_screen_prototype.md.
