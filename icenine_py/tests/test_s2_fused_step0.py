@@ -101,6 +101,33 @@ def test_fused_differences_are_traced_peaks(s2: Dict[str, Any], mode: str) -> No
     assert n_diff <= max(2, len(R) // 10)
 
 
+def test_reference64_edge_rule(s2: Dict[str, Any]) -> None:
+    """With CppEdgeRules the float64 reference applies the -1 rule as the library does, so its
+    pixel error against torch stays at float32 size (without the rule it is about 1 px or more).
+    ThreeVoxels has no negative detector coordinate, so detector 0's origin is moved by the median
+    column coordinate of the first orientation for the test (restored afterwards)."""
+    ds, R, TM, SP = s2["ds"], s2["R"], s2["TM"], s2["SP"]
+    mir = ds.cost_fn(SP.MODES["edge_cpp_rule"])
+    det = mir.detector_list[0]
+    m0 = TM.mirror(mir, R[0], ds.verts, ds.phase)
+    shift = float(np.nanmedian(m0["jk"][m0["frame"] >= 0, 0, :, 0]))
+    origin = det._lab_frame_coord_origin
+    det._lab_frame_coord_origin = origin + shift * det._lab_frame_basis_j
+    try:
+        total, n, neg = 0.0, 0, 0
+        for i in range(len(R)):
+            m = TM.mirror(mir, R[i], ds.verts, ds.phase)
+            ref = TM.reference64(mir, R[i], ds.verts, ds.phase)
+            rows = m["frame"] >= 0
+            e = np.abs(m["pix"][rows].astype(np.float64) - ref["pix"][rows])
+            total, n = total + float(e.sum()), n + e.size
+            neg += int((ref["pix"][rows] == -1.0).sum())
+    finally:
+        det._lab_frame_coord_origin = origin
+    assert neg > 0  # the rule is exercised
+    assert total / n < 0.01
+
+
 def test_lazy_frame_fill(s2: Dict[str, Any]) -> None:
     ds, R, SF, SP = s2["ds"], s2["R"], s2["SF"], s2["SP"]
     kw = SP.MODES["screen_center"]
@@ -119,6 +146,8 @@ def test_lazy_frame_fill(s2: Dict[str, Any]) -> None:
 
 
 def test_frame_mode(s2: Dict[str, Any]) -> None:
+    # The expected modes follow NumPy 2 (NEP 50) promotion of a Python float with a numpy
+    # scalar, as under the lock (numpy 2.0.2); NumPy 1 value-based casting would differ.
     SF = s2["SF"]
     assert SF.frame_mode(np.float64(-1.5), 0.01) == 0
     assert SF.frame_mode(-1.5, np.float64(0.01)) == 1

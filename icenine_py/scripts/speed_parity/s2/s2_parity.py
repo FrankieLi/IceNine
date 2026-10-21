@@ -26,6 +26,7 @@ import argparse
 import contextlib
 import io
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -143,7 +144,8 @@ def trace(
     m: Dict[str, Any], d: Dict[str, Any], ref: Dict[str, Any], cf: Any, n_det: int
 ) -> List[Dict[str, Any]]:
     """Rows whose stage-D input differs between torch (m) and fused (d): the cause, the distance
-    of the torch value from the threshold in ulp (``margin_ulp``), the torch, fused and float64
+    of the torch value from the threshold in ulp (``margin_ulp``; for pixel peaks also the fused
+    value's, ``fused_margin_ulp``, and both in px, ``*_px_from_edge``), the torch, fused and float64
     reference values and the threshold (``ref_side``: the side of the threshold the float64 value
     is on, "torch" or "fused")."""
     out: List[Dict[str, Any]] = []
@@ -226,12 +228,26 @@ def trace(
                     e.update(torch=float(v), fused=float(fv[i]), ref=float(rv[i]), threshold=thr)
                     e["ref_side"] = side(e["torch"], e["fused"], e["ref"], thr)
                     e["torch_px_from_edge"] = abs(float(v) - thr)
+                    e["fused_margin_ulp"] = int(ulp_diff(np.float32(fv[i]), np.float32(thr)))
+                    e["fused_px_from_edge"] = abs(float(fv[i]) - thr)
                 if worst is None or e["margin_ulp"] > worst["margin_ulp"]:
                     worst = e
             assert worst is not None
             worst.update(row=r, det=det)
             out.append(worst)
     return out
+
+
+def dirty_files() -> Optional[List[str]]:
+    """Tracked files that differ from HEAD (``git status --porcelain``, untracked not listed), so a
+    run on a dirty tree names what was modified; None if git cannot say."""
+    try:
+        out = subprocess.check_output(
+            ["git", "status", "--porcelain", "--untracked-files=no"], cwd=S1.ROOT, text=True
+        )
+    except Exception:  # noqa: BLE001
+        return None
+    return [line[3:] for line in out.splitlines() if line.strip()]
 
 
 def run_dataset(
@@ -344,6 +360,7 @@ def main() -> int:
         meta=dict(
             head=S1.git_head(),
             dirty=S1.git_dirty(),
+            dirty_files=dirty_files(),
             torch=torch.__version__,
             numpy=np.__version__,
             threads=torch.get_num_threads(),

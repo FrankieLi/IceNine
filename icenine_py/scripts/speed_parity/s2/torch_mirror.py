@@ -25,7 +25,8 @@ from icenine.diffraction_core import BraggConstants, scattering_omegas_fixed_bea
 def reference64(cf: Any, orientation: np.ndarray, voxel_vertices: torch.Tensor, phase: int) -> Dict:
     """The same quantities in float64 (numpy) from the same float32 inputs (R rounded to float32,
     g_hkl, the Bragg constants, the geometry), for every row ``s * K + k``: a reference that tells
-    which of two float32 results is nearer the exact value. No filtering (all rows computed)."""
+    which of two float32 results is nearer the exact value. No filtering (all rows computed).
+    With ``cpp_edge_rules`` a negative detector coordinate gives pixel -1, as in the library."""
     f = np.float64
     if cf.center_screen and cf.pixel_radius > 0:
         voxel_vertices = voxel_vertices.mean(dim=0, keepdim=True).repeat(3, 1)
@@ -80,6 +81,11 @@ def reference64(cf: Any, orientation: np.ndarray, voxel_vertices: torch.Tensor, 
         pix[:, d, :, 1] = (k + float(np.float32(det.pixel_half_height))) / float(
             np.float32(det.pixel_height)
         )
+        if cf.cpp_edge_rules:
+            # CppEdgeRules -1 rule, as cost_functions._pixel_coordinate (C++ ToColPixel /
+            # ToRowPixel, Detector.cpp 528-548): a negative detector coordinate is pixel -1
+            pix[:, d, :, 0] = np.where(j < 0, -1.0, pix[:, d, :, 0])
+            pix[:, d, :, 1] = np.where(k < 0, -1.0, pix[:, d, :, 1])
         t_all[:, d] = t
     return dict(K=K, omega=om, eta=eta, pix=pix, t=t_all, obs_margin=np.abs(num) - np.abs(den))
 
