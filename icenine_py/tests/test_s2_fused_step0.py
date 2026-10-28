@@ -8,6 +8,9 @@ Pins the facts the Step 0 measurements rest on (docs/todo_s2_fused_c_eval.md, St
 3. the lazy frame fill: a fresh cost function's first fused call fills the frames it needs;
 4. numpy's promotion of ``(omega - low) / width`` is classified as the C code assumes;
 5. on macOS, the Accelerate build gives torch's g_lab bit for bit.
+
+It also tests the pure helpers of the Task A check (``taska_check.py``): the C++ float32 product
+order and the parity-rule classification.
 """
 
 import contextlib
@@ -164,3 +167,101 @@ def test_accelerate_glab_bit_identical(s2: Dict[str, Any]) -> None:
         m = TM.mirror(mir, R[i], ds.verts, ds.phase)
         d = fe.debug(R[i], ds.verts, ds.phase)
         assert np.array_equal(m["g_lab"].view(np.int32), d["g_lab"].view(np.int32)), i
+
+
+# ------------------------------------------------------------------------------------------------
+# S2 Task A check helpers (scripts/speed_parity/s2/taska_check.py): the C++ float32 product order
+# and the parity-rule classification. Pure functions; no dataset needed.
+# ------------------------------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def taska() -> Iterator[Any]:
+    names = ("taska_check", "parity_common", "s1_parity", "s2fused", "torch_mirror", "s2_parity")
+    saved = {n: sys.modules.pop(n) for n in names if n in sys.modules}
+    paths = [str(S2), str(SPEED), str(SPEED.parent / "eval_reduction")]
+    for p in paths:
+        sys.path.insert(0, p)
+    try:
+        import taska_check as TC
+
+        yield TC
+    finally:
+        for p in paths:
+            sys.path.remove(p)
+        for n in names:
+            sys.modules.pop(n, None)
+        sys.modules.update(saved)
+
+
+# a = 1 + 2^-12: a*a = 1 + 2^-11 + 2^-24 rounds (tie to even) to 1 + 2^-11 in float32, so
+# a*a - 1 is 2^-11 + 2^-24 when the product is fused into the add and 2^-11 when it is rounded first.
+_A = np.float32(1 + 2**-12)
+_FUSED = np.float32(2**-11 + 2**-24)
+_ROUNDED = np.float32(2**-11)
+
+
+def _dot(TC: Any, slots: Any, order: str) -> np.float32:
+    """Element (0, 0) of ``product`` with row 0 of local and column 0 of centre from ``slots``."""
+    L = np.zeros((3, 3), np.float32)
+    C = np.zeros((3, 3), np.float32)
+    for k, (x, y) in enumerate(slots):
+        L[0, k], C[k, 0] = x, y
+    return np.float32(TC.product(L, C, order)[0, 0])
+
+
+def test_taska_fmaf_is_fused(taska: Any) -> None:
+    assert taska.fmaf(_A, _A, np.float32(-1)) == _FUSED
+    assert np.float32(np.float32(_A * _A) - np.float32(1)) == _ROUNDED
+
+
+def test_taska_product_clang_order(taska: Any) -> None:
+    # clang -ffp-contract=on on m[i][0]*R[0][j] + m[i][1]*R[1][j] + m[i][2]*R[2][j]:
+    # fmaf(a2*b2, fmaf(a0*b0, a1*b1)); the a*a term is fused when it is in slot 0 or 2, not in 1.
+    neg1, zero = (np.float32(-1), np.float32(1)), (np.float32(0), np.float32(0))
+    cases = {
+        "slot0": [(_A, _A), neg1, zero],
+        "slot2": [neg1, zero, (_A, _A)],
+        "slot1": [zero, (_A, _A), neg1],
+    }
+    expect = {
+        "clang_contract": (_FUSED, _FUSED, _ROUNDED),
+        "plain": (_ROUNDED, _ROUNDED, _ROUNDED),
+        "fma_chain": (_ROUNDED, _FUSED, _ROUNDED),
+        "fma_rev": (_FUSED, _ROUNDED, _FUSED),
+    }
+    assert taska.PRODUCT_ORDER == "clang_contract"
+    for order, want in expect.items():
+        got = tuple(_dot(taska, cases[c], order) for c in ("slot0", "slot2", "slot1"))
+        assert got == want, order
+
+
+def test_taska_product_identity_local(taska: Any) -> None:
+    rng = np.random.default_rng(0)
+    C = rng.standard_normal((3, 3)).astype(np.float32)
+    for order in taska.ORDERS:
+        assert np.array_equal(taska.product(np.eye(3), C, order), C), order
+    m = dict(local=np.eye(3).tolist(), centre=C.astype(np.float64).tolist())
+    assert np.array_equal(taska.orientation_of(m), C.astype(np.float64))
+
+
+def test_taska_classify(taska: Any) -> None:
+    pw = 0.0015  # detector pixel width (any positive value)
+
+    def pint(t: float, f: float) -> Dict[str, Any]:
+        return dict(cause="pixel_integer", torch_px_from_edge=t, fused_px_from_edge=f)
+
+    v = taska.classify([pint(0.002, 0.004), pint(0.01, 0.03)], pw)
+    assert v == dict(causes=["pixel_integer"], worst_near_px=0.01, within_rule=True)
+    v = taska.classify([pint(0.002, 0.004), pint(0.02, 0.03)], pw)
+    assert v["within_rule"] is False and v["worst_near_px"] == 0.02
+    # an empty trace does not explain a difference
+    assert taska.classify([], pw) == dict(causes=[], worst_near_px=0.0, within_rule=False)
+    # the -1 rule: the distance is the detector coordinate (torch) over the pixel width
+    neg = dict(cause="pixel_negative", torch=-5.25e-05 * pw)
+    v = taska.classify([neg], pw)
+    assert v["causes"] == ["pixel_negative"] and v["within_rule"] is True
+    assert v["worst_near_px"] == pytest.approx(5.25e-05)
+    v = taska.classify([dict(cause="pixel_negative", torch=-0.02 * pw)], pw)
+    assert v["within_rule"] is False
+    # any other cause (frame, eta, observability, t > 0) is outside the rule
+    v = taska.classify([pint(0.001, 0.001), dict(cause="frame")], pw)
+    assert v == dict(causes=["frame", "pixel_integer"], worst_near_px=0.001, within_rule=False)

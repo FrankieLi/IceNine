@@ -1,0 +1,68 @@
+{
+ "meta": {
+  "head": "a668ffd",
+  "dirty": false,
+  "dirty_files": [],
+  "torch": "2.8.0",
+  "numpy": "2.0.2"
+ },
+ "voxels": {
+  "15901": 1077,
+  "22867": 577,
+  "5242": 576
+ },
+ "orders": {
+  "plain": {
+   "n_pairs": 2000,
+   "bit_equal_flag_matches": 1828,
+   "max_abs_diff_matches": 1446,
+   "both_match": 1446,
+   "product_differs_from_selected": 1619,
+   "product_differs_from_selected_yet_both_match": 1065
+  },
+  "clang_contract": {
+   "n_pairs": 2000,
+   "bit_equal_flag_matches": 2000,
+   "max_abs_diff_matches": 2000,
+   "both_match": 2000,
+   "product_differs_from_selected": 0,
+   "product_differs_from_selected_yet_both_match": 0
+  },
+  "fma_chain": {
+   "n_pairs": 2000,
+   "bit_equal_flag_matches": 1760,
+   "max_abs_diff_matches": 1286,
+   "both_match": 1286,
+   "product_differs_from_selected": 1558,
+   "product_differs_from_selected_yet_both_match": 844
+  },
+  "fma_rev": {
+   "n_pairs": 2000,
+   "bit_equal_flag_matches": 1694,
+   "max_abs_diff_matches": 1081,
+   "both_match": 1081,
+   "product_differs_from_selected": 1808,
+   "product_differs_from_selected_yet_both_match": 889
+  }
+ },
+ "n_records": 2230,
+ "records_by_kind": {
+  "0": 230,
+  "1": 2000
+ },
+ "single_records_identity_local": 230,
+ "pair_records_by_elements_differing": {
+  "0": 292,
+  "1": 542,
+  "2": 605,
+  "3": 403,
+  "4": 124,
+  "5": 29,
+  "6": 5
+ },
+ "pair_records_two_or_more_elements_differing": 1166,
+ "n_stored": 2230,
+ "labels_and_indices_differ": [],
+ "selected_order": "clang_contract",
+ "selected_order_matches_all": true
+}
