@@ -24,6 +24,8 @@ also compared bit for bit with the Step 0 prototype (`prototype_differs`).
 
 ## After the review fixes (fixes 1-5, D-20261027-I8)
 
+(The flag of fix 4 is removed again by the next section, D-20261027-I9.)
+
 Fix 4 adds `-ffp-contract=off` to the extension's compile flags. On clang arm64 the flag leaves
 the object code of `_fused_eval.c` unchanged (its multiply-adds are explicit `fmaf` calls) but
 removes clang's default multiply-add contraction from `_rasterize.c`, where it occurs only in the
@@ -43,3 +45,24 @@ Sutherland-Hodgman intersections (`p0.y + slope * (b - p0.x)`). So the key-off C
   with neither on some. So the flag can change a key-off count for a triangle that crosses the
   image border, although no s1_parity result changed. Whether the C++ build (also
   clang, where contraction is on by default) contracts the same expression was not checked.
+
+## After the review addendum (fix 1, D-20261027-I9): the flag removed again
+
+D-20261027-I9 supersedes part 4 of D-20261027-I8: key off must stay bit-identical, so commit
+a31bb78 removes `-ffp-contract=off` from `setup.py`. Contraction is off in `_fused_eval.c` only,
+by its per-file pragmas (clang's `fp contract(off)`, `STDC FP_CONTRACT OFF`, and a GCC `optimize`
+pragma guarded for GCC; no GCC is installed here, so that pragma has not been compiled and GCC
+stays unvalidated). All checks on macOS clang (arm64), the build at a31bb78:
+
+- **Object code (arm64):** the `_fused_eval.o` disassembly is identical to the build with the
+  flag (bad8ebb), with 49 multiply-add instructions (the explicit `fmaf` calls); `_rasterize.o`
+  has its 20 contracted multiply-adds again, as the base build at 832db36 has.
+- **`triangle_overlap` alone:** `contract_fuzz.py` with the build at 832db36 as OLD and the build
+  at a31bb78 as NEW (same seed and arms as `contract_fuzz.json`): `contract_fuzz_i9.json`, 0
+  differing triangles in each of the three arms.
+- **Key off, `s1_parity.py`:** a fresh base dump at 832db36 (a `git archive` copy, its own build)
+  against a dump at a31bb78: `keyoff_compare_i9.txt`, every field of every mode bit-identical (4
+  datasets x 15 modes).
+- **Key on, plain order:** `s2_core_parity.py --orders plain` at a31bb78 (clean tree): every
+  dataset-mode record of the plain arm equal to `glab_order.json` (36 of 36, the traced rows
+  included; totals equal).
