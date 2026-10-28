@@ -256,6 +256,13 @@
    "worst_near_px": null,
    "flipped_rows": 0,
    "ref_side": {},
+   "ref_side_torch": {
+    "k": 0,
+    "n": 0,
+    "frac": null,
+    "lo": NaN,
+    "hi": NaN
+   },
    "silent": 13,
    "silent_within_rule": 13,
    "silent_causes": [
@@ -279,6 +286,13 @@
    "worst_near_px": null,
    "flipped_rows": 0,
    "ref_side": {},
+   "ref_side_torch": {
+    "k": 0,
+    "n": 0,
+    "frac": null,
+    "lo": NaN,
+    "hi": NaN
+   },
    "silent": 10,
    "silent_within_rule": 10,
    "silent_causes": [
@@ -312,6 +326,13 @@
    "ref_side": {
     "fused": 53,
     "torch": 59
+   },
+   "ref_side_torch": {
+    "k": 59,
+    "n": 112,
+    "frac": 0.5267857142857143,
+    "lo": 0.4349709393866914,
+    "hi": 0.616823925325122
    },
    "silent": 99,
    "silent_within_rule": 99,
@@ -1643,6 +1664,13 @@
    "ref_side": {
     "fused": 18,
     "torch": 25
+   },
+   "ref_side_torch": {
+    "k": 25,
+    "n": 43,
+    "frac": 0.5813953488372093,
+    "lo": 0.43328315755711777,
+    "hi": 0.7161566566251477
    },
    "silent": 37,
    "silent_within_rule": 37,

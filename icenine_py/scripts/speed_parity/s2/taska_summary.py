@@ -197,6 +197,7 @@ def main() -> int:
                 worst_near_px=worst,
                 flipped_rows=len(flipped),
                 ref_side=dict(side),
+                ref_side_torch=frac(side.get("torch", 0), sum(side.values())),
                 silent=silent,
                 silent_within_rule=silent_rule,
                 silent_causes=silent_causes,
