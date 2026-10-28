@@ -5,8 +5,11 @@ import numpy as np
 ext_modules = [
     Extension(
         "icenine._rasterize",
-        sources=["icenine/_rasterize.c"],
+        # _fused_eval.c: the fused evaluate of the FusedCost key (S2); ICENINE_FUSED adds its
+        # method table entries and the HAS_FUSED constant in _rasterize.c
+        sources=["icenine/_rasterize.c", "icenine/_fused_eval.c"],
         include_dirs=[np.get_include()],
+        define_macros=[("ICENINE_FUSED", "1")],
     ),
 ]
 
