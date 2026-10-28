@@ -128,7 +128,9 @@ run at the same time and share the machine's 6).
 the sources in `setup.py`); in `_rasterize.c` the shared stage-D function, the method table entry
 and a `HAS_FUSED` module constant; `cost_functions.py` (fused dispatch in `evaluate`),
 `config_file.py`, `orientation_search.py`, `reconstructor.py` (key plumbing only) and the README
-config table. Not `batched_cost.py` (Step 3). No new dependency. Do not edit MIGRATION_HISTORY
+config table; after the review (D-20261027-I8): a small internal header for the shared stage-D
+declarations (listed in `setup.py` `depends=`) and `-ffp-contract=off` in the extension's compile
+flags. Not `batched_cost.py` (Step 3). No new dependency. Do not edit MIGRATION_HISTORY
 (the parallel Task A check writes there; Steps 4-6 write the S2 results).
 
 **Process limit exception:** at most 3 heavy processes at once (the Task A check and Steps 1-2
@@ -148,6 +150,8 @@ fused path for every orientation of a batch.
 
 4. Parity, as below, on the library path. Trace every flipped coordinate, not only the
    worst-by-ulp one per (row, detector) as `s2_parity.trace` did (Task A check review, fix 5).
+   Instrument the fused path through `fused_debug`: `parity_common.py` patches a function the
+   fused path never calls (Steps 1-2 review).
 5. Step 0c repeated on the library path (single-orientation and batched), plus quick-MC us per
    evaluation and the whole search, single-worker and preflight-gated.
 6. E0 A/B (key off against on, with and without `BatchedQuickMC`), paired and traced; then
