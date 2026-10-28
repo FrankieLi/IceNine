@@ -523,3 +523,12 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   validated on macOS clang only. Whether C++'s clang build fuses the same clip expression is
   recorded as an open question for the owner's review. Where: docs/todo_s2_fused_c_eval.md Steps
   1-2; benchmarks/s2_core.
+
+### D-20261027-I10 · S2 · Delegated: Steps 1-2 merge; GCC stays unvalidated and documented
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1: Steps 1-2 merge after review (APPROVE) and fixes, key off
+  bit-identical again after I9 (s1_parity 4 x 15 modes; triangle_overlap fuzz 0 of 600,000
+  differing). No GCC is installed here, so the guarded GCC pragma in _fused_eval.c is uncompiled;
+  FusedCost is documented as validated on macOS clang only, and a GCC or Linux check is listed for
+  the owner's review rather than installing a compiler. Where: ROADMAP Track S row S2; README
+  FusedCost row; benchmarks/s2_core.
