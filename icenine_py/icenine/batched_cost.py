@@ -134,7 +134,8 @@ class BatchedCostEvaluator:
     and adds B to ``cost_fn.eval_count``. ``timing`` accumulates seconds in "torch" (stages A-C and
     the host transfer), "host_prep" and "stage_d" (the C calls), and "fused" (the batched fused C
     calls, stages A-D, and building the results); ``counts`` the calls and orientations per
-    variant.
+    variant. Both "stage_d" and "fused" also hold the FrameTable fill (``table.ensure``, loading
+    the frame images) of the first calls, so a timing warms the table up first or subtracts it.
     """
 
     def __init__(self, cost_fn: VoxelCostFunction, device: str = "cpu") -> None:
