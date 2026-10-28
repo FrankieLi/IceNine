@@ -9,6 +9,10 @@
  *   fused_evaluate(ctx, R, verts[, debug]) -> the 7 OverlapInfo values, or the list of frames the
  *                                   FrameTable must fill first (Python calls ensure and repeats the
  *                                   call); debug=1: a dict of the intermediates
+ *   fused_evaluate_many(ctx, R, verts) -> (results, missing)   B orientations of one voxel in one
+ *                                   call (S2 Step 3, batched_cost.BatchedCostEvaluator with the key
+ *                                   on): per orientation the same functions as fused_evaluate, so
+ *                                   the same result; or the frames to fill first over the batch
  *
  * What it computes (cost_functions.py VoxelCostFunction.evaluate and
  * calculate_diffraction_overlap_batched; diffraction_core.py scattering_omegas_fixed_beam): g = R
@@ -37,7 +41,8 @@
  *
  * Not thread-safe: the scratch buffers live in the context. The GIL is held for the whole call,
  * and in the non-debug path no Python code runs between filling the scratch buffers and reading
- * them (rows and cols are attribute reads; Python objects are created only after stage D), so
+ * them (rows and cols are attribute reads, made before stages A-C in fused_evaluate_many; Python
+ * objects are created only after stage D), so
  * calls on one context are serialised. A cost function shared between threads of a free-threaded
  * Python would need per-call scratch.
  */
@@ -332,45 +337,18 @@ static int fused_frame(const FusedCtx *c, float om) {
 
 static inline float fused_sum3(float a, float b, float d) { return (a + b) + d; }
 
+/* R as float32: each float64 element rounded to float32, as torch .float() */
+static inline void fused_R_to_f32(const double *Rd, float *Rf) {
+    for (int i = 0; i < 9; i++) Rf[i] = (float)Rd[i];
+}
+
 /**
- * fused_evaluate(ctx, R, verts, debug=0) -> (po, pon, pko, pkon, quality, nq, det_ovlp)
- *   or a list of frame indices the FrameTable must fill first (call again after ensure);
- *   with debug=1 a dict of the intermediates instead ("result" is None and "missing" lists the
- *   frames while some are not filled).
- * R: (3, 3) array (any float dtype; cast to float64, then to float32 as torch .float()).
- * verts: (3, 3) float32 C-contiguous.
+ * Stages A-C of one orientation into the context scratch (g_lab, obs, om1, om2, the rows, pix, hit,
+ * tval); returns the number of rows. Rf: R as float32 (3 x 3 row-major); V0: the voxel vertices
+ * (3 x 3 row-major float32); debug: every (solution, reflection) row, row r = s * K + k. Shared by
+ * fused_evaluate and fused_evaluate_many, so both compute an orientation with the same operations.
  */
-PyObject *icenine_fused_evaluate(PyObject *self, PyObject *args) {
-    PyObject *cap, *R_o;
-    PyArrayObject *V_a;
-    int debug = 0;
-    (void)self;
-    if (!PyArg_ParseTuple(args, "OOO!|i", &cap, &R_o, &PyArray_Type, &V_a, &debug)) return NULL;
-    FusedCtx *c = (FusedCtx *)PyCapsule_GetPointer(cap, FUSED_CAPSULE);
-    if (!c) return NULL;
-    if (PyArray_TYPE(V_a) != NPY_FLOAT32 || !PyArray_IS_C_CONTIGUOUS(V_a) ||
-        PyArray_SIZE(V_a) != 9) {
-        PyErr_SetString(PyExc_TypeError, "verts must be (3, 3) C-contiguous float32");
-        return NULL;
-    }
-    float Rf[9];
-    if (PyArray_Check(R_o) && PyArray_TYPE((PyArrayObject *)R_o) == NPY_FLOAT64 &&
-        PyArray_IS_C_CONTIGUOUS((PyArrayObject *)R_o) && PyArray_SIZE((PyArrayObject *)R_o) == 9) {
-        const double *Rd = (const double *)PyArray_DATA((PyArrayObject *)R_o);
-        for (int i = 0; i < 9; i++) Rf[i] = (float)Rd[i];
-    } else {
-        PyArrayObject *a = (PyArrayObject *)PyArray_FROM_OTF(R_o, NPY_FLOAT64, NPY_ARRAY_IN_ARRAY);
-        if (!a) return NULL;
-        if (PyArray_SIZE(a) != 9) {
-            Py_DECREF(a);
-            PyErr_SetString(PyExc_ValueError, "R must have 9 elements");
-            return NULL;
-        }
-        const double *Rd = (const double *)PyArray_DATA(a);
-        for (int i = 0; i < 9; i++) Rf[i] = (float)Rd[i];
-        Py_DECREF(a);
-    }
-    const float *V0 = (const float *)PyArray_DATA(V_a);
+static int fused_stages_abc(FusedCtx *c, const float *Rf, const float *V0, int debug) {
     float V[9];
     if (c->center_screen && c->pixel_radius > 0) {
         /* verts.mean(dim=0, keepdim=True).repeat(3, 1): ((a + b) + c) / 3 */
@@ -511,93 +489,185 @@ PyObject *icenine_fused_evaluate(PyObject *self, PyObject *args) {
             }
         }
     }
+    return n_rows;
+}
 
-    /* frames to fill first */
-    PyObject *missing = NULL;
+/**
+ * Appends to *missing (a list created on demand) the frames of the rows that the FrameTable has not
+ * filled yet. seen: NULL (every row's frame is listed, as often as it occurs), or the address of a
+ * byte map of n_frames entries, allocated (zeroed) on the first unfilled frame and freed by the
+ * caller, that lists each frame once over several calls. Returns 0, or -1 with an exception set.
+ */
+static int fused_missing(const FusedCtx *c, int n_rows, PyObject **missing, unsigned char **seen) {
     for (int r = 0; r < n_rows; r++) {
         int fr = c->row_frame[r];
         if (fr < 0) continue;
         if (fr >= c->n_frames) {
             PyErr_SetString(PyExc_IndexError, "frame index beyond the FrameTable");
-            Py_XDECREF(missing);
+            return -1;
+        }
+        if (c->filled[fr]) continue;
+        if (seen) {
+            if (!*seen && !(*seen = (unsigned char *)calloc((size_t)c->n_frames, 1))) {
+                PyErr_NoMemory();
+                return -1;
+            }
+            if ((*seen)[fr]) continue;
+            (*seen)[fr] = 1;
+        }
+        if (!*missing && !(*missing = PyList_New(0))) return -1;
+        PyObject *v = PyLong_FromLong(fr);
+        if (!v || PyList_Append(*missing, v) < 0) {
+            Py_XDECREF(v);
+            return -1;
+        }
+        Py_DECREF(v);
+    }
+    return 0;
+}
+
+/* the FrameTable's frame size (its rows and cols, read on each call); -1 with an exception set */
+static int fused_table_size(const FusedCtx *c, long *image_rows, long *image_cols) {
+    PyObject *ro = PyObject_GetAttrString(c->table, "rows");
+    PyObject *co = PyObject_GetAttrString(c->table, "cols");
+    if (!ro || !co) {
+        Py_XDECREF(ro);
+        Py_XDECREF(co);
+        return -1;
+    }
+    *image_rows = PyLong_AsLong(ro);
+    *image_cols = PyLong_AsLong(co);
+    Py_DECREF(ro);
+    Py_DECREF(co);
+    return PyErr_Occurred() ? -1 : 0;
+}
+
+/**
+ * 4. Stage D of the rows of fused_stages_abc (icenine_stage_d_peak, as stage_d_overlap), rows in
+ * order, accumulated into acc (zeroed here). Every frame of the rows must be filled. Returns 0, or
+ * -1 with an exception set.
+ */
+static int fused_stage_d(const FusedCtx *c, int n_rows, long image_rows, long image_cols,
+                         IceStageDAcc *acc) {
+    const int n_det = c->n_det;
+    const IceStageDAcc zero = {0, 0, 0, 0, 0, 0, 0.0};
+    *acc = zero;
+    /* stage D reads every frame as image_rows x image_cols; FrameTable checks the size of
+       detector 0 only, so each frame's shape is checked here */
+    const npy_intp want_rows = (npy_intp)image_rows, want_cols = (npy_intp)image_cols;
+    Py_ssize_t n_images = PyList_GET_SIZE(c->images);
+    const unsigned char *peak_images[FUSED_MAX_DET];
+    npy_int32 centers[2 * FUSED_MAX_DET];
+    for (int r = 0; r < n_rows; r++) {
+        int wedge_idx = c->row_frame[r];
+        if (wedge_idx < 0) continue;
+        const unsigned char *hit = c->hit + (size_t)r * n_det;
+        const float *px = c->pix + 6 * (size_t)r * n_det;
+        for (int d = 0; d < n_det; d++) {
+            peak_images[d] = NULL;
+            Py_ssize_t img_idx = (Py_ssize_t)wedge_idx * n_det + d;
+            if (!hit[d] || img_idx < 0 || img_idx >= n_images) continue;
+            PyObject *item = PyList_GET_ITEM(c->images, img_idx);
+            if (!PyArray_Check(item) || PyArray_TYPE((PyArrayObject *)item) != NPY_UINT8 ||
+                PyArray_NDIM((PyArrayObject *)item) != 2 ||
+                !PyArray_IS_C_CONTIGUOUS((PyArrayObject *)item)) {
+                PyErr_SetString(PyExc_TypeError,
+                                "frame images must be C-contiguous 2D uint8 arrays");
+                return -1;
+            }
+            if (PyArray_DIM((PyArrayObject *)item, 0) != want_rows ||
+                PyArray_DIM((PyArrayObject *)item, 1) != want_cols) {
+                PyErr_Format(PyExc_ValueError,
+                             "frame %zd (detector %d) has shape (%zd, %zd), expected the "
+                             "FrameTable size (%zd, %zd)",
+                             img_idx, d, (Py_ssize_t)PyArray_DIM((PyArrayObject *)item, 0),
+                             (Py_ssize_t)PyArray_DIM((PyArrayObject *)item, 1),
+                             (Py_ssize_t)want_rows, (Py_ssize_t)want_cols);
+                return -1;
+            }
+            peak_images[d] = (const unsigned char *)PyArray_DATA((PyArrayObject *)item);
+            /* pixel radius: vertex 0 truncated to int, as .astype(np.int32) */
+            centers[2 * d] = (npy_int32)px[6 * d];
+            centers[2 * d + 1] = (npy_int32)px[6 * d + 1];
+        }
+        icenine_stage_d_peak(peak_images, image_rows, image_cols, hit,
+                             c->pixel_radius > 0 ? centers : NULL,
+                             c->pixel_radius > 0 ? NULL : px, n_det, c->pixel_radius, c->rule_bits,
+                             NULL, NULL, NULL, acc);
+    }
+    return 0;
+}
+
+/* the 7 OverlapInfo values of one evaluation, as a tuple */
+static PyObject *fused_result(const IceStageDAcc *acc) {
+    return Py_BuildValue("(iiiidii)", acc->pixel_overlap, acc->pixel_on_det, acc->peak_overlap,
+                         acc->peak_on_det, acc->quality, acc->n_quality_points,
+                         acc->last_n_det_ovlp);
+}
+
+/* the context of a capsule, after checking the vertices; NULL with an exception set */
+static FusedCtx *fused_ctx_checked(PyObject *cap, PyArrayObject *V_a) {
+    FusedCtx *c = (FusedCtx *)PyCapsule_GetPointer(cap, FUSED_CAPSULE);
+    if (!c) return NULL;
+    if (PyArray_TYPE(V_a) != NPY_FLOAT32 || !PyArray_IS_C_CONTIGUOUS(V_a) ||
+        PyArray_SIZE(V_a) != 9) {
+        PyErr_SetString(PyExc_TypeError, "verts must be (3, 3) C-contiguous float32");
+        return NULL;
+    }
+    return c;
+}
+
+/**
+ * fused_evaluate(ctx, R, verts, debug=0) -> (po, pon, pko, pkon, quality, nq, det_ovlp)
+ *   or a list of frame indices the FrameTable must fill first (call again after ensure);
+ *   with debug=1 a dict of the intermediates instead ("result" is None and "missing" lists the
+ *   frames while some are not filled).
+ * R: (3, 3) array (any float dtype; cast to float64, then to float32 as torch .float()).
+ * verts: (3, 3) float32 C-contiguous.
+ */
+PyObject *icenine_fused_evaluate(PyObject *self, PyObject *args) {
+    PyObject *cap, *R_o;
+    PyArrayObject *V_a;
+    int debug = 0;
+    (void)self;
+    if (!PyArg_ParseTuple(args, "OOO!|i", &cap, &R_o, &PyArray_Type, &V_a, &debug)) return NULL;
+    FusedCtx *c = fused_ctx_checked(cap, V_a);
+    if (!c) return NULL;
+    float Rf[9];
+    if (PyArray_Check(R_o) && PyArray_TYPE((PyArrayObject *)R_o) == NPY_FLOAT64 &&
+        PyArray_IS_C_CONTIGUOUS((PyArrayObject *)R_o) && PyArray_SIZE((PyArrayObject *)R_o) == 9) {
+        fused_R_to_f32((const double *)PyArray_DATA((PyArrayObject *)R_o), Rf);
+    } else {
+        PyArrayObject *a = (PyArrayObject *)PyArray_FROM_OTF(R_o, NPY_FLOAT64, NPY_ARRAY_IN_ARRAY);
+        if (!a) return NULL;
+        if (PyArray_SIZE(a) != 9) {
+            Py_DECREF(a);
+            PyErr_SetString(PyExc_ValueError, "R must have 9 elements");
             return NULL;
         }
-        if (!c->filled[fr]) {
-            if (!missing && !(missing = PyList_New(0))) return NULL;
-            PyObject *v = PyLong_FromLong(fr);
-            if (!v || PyList_Append(missing, v) < 0) {
-                Py_XDECREF(v);
-                Py_DECREF(missing);
-                return NULL;
-            }
-            Py_DECREF(v);
-        }
+        fused_R_to_f32((const double *)PyArray_DATA(a), Rf);
+        Py_DECREF(a);
+    }
+    const int K = c->K, n_det = c->n_det;
+    const int n_rows = fused_stages_abc(c, Rf, (const float *)PyArray_DATA(V_a), debug);
+
+    /* frames to fill first */
+    PyObject *missing = NULL;
+    if (fused_missing(c, n_rows, &missing, NULL) < 0) {
+        Py_XDECREF(missing);
+        return NULL;
     }
     if (missing && !debug) return missing;
 
-    /* 4. stage D (icenine_stage_d_peak, as stage_d_overlap), rows in order */
+    /* stage D, when every frame is filled */
     IceStageDAcc acc = {0, 0, 0, 0, 0, 0, 0.0};
     if (!missing) {
-        PyObject *ro = PyObject_GetAttrString(c->table, "rows");
-        PyObject *co = PyObject_GetAttrString(c->table, "cols");
-        if (!ro || !co) {
-            Py_XDECREF(ro);
-            Py_XDECREF(co);
+        long image_rows, image_cols;
+        if (fused_table_size(c, &image_rows, &image_cols) < 0 ||
+            fused_stage_d(c, n_rows, image_rows, image_cols, &acc) < 0)
             return NULL;
-        }
-        long image_rows = PyLong_AsLong(ro), image_cols = PyLong_AsLong(co);
-        Py_DECREF(ro);
-        Py_DECREF(co);
-        if (PyErr_Occurred()) return NULL;
-        /* stage D reads every frame as image_rows x image_cols; FrameTable checks the size of
-           detector 0 only, so each frame's shape is checked here */
-        const npy_intp want_rows = (npy_intp)image_rows, want_cols = (npy_intp)image_cols;
-        Py_ssize_t n_images = PyList_GET_SIZE(c->images);
-        const unsigned char *peak_images[FUSED_MAX_DET];
-        npy_int32 centers[2 * FUSED_MAX_DET];
-        for (int r = 0; r < n_rows; r++) {
-            int wedge_idx = c->row_frame[r];
-            if (wedge_idx < 0) continue;
-            const unsigned char *hit = c->hit + (size_t)r * n_det;
-            const float *px = c->pix + 6 * (size_t)r * n_det;
-            for (int d = 0; d < n_det; d++) {
-                peak_images[d] = NULL;
-                Py_ssize_t img_idx = (Py_ssize_t)wedge_idx * n_det + d;
-                if (!hit[d] || img_idx < 0 || img_idx >= n_images) continue;
-                PyObject *item = PyList_GET_ITEM(c->images, img_idx);
-                if (!PyArray_Check(item) || PyArray_TYPE((PyArrayObject *)item) != NPY_UINT8 ||
-                    PyArray_NDIM((PyArrayObject *)item) != 2 ||
-                    !PyArray_IS_C_CONTIGUOUS((PyArrayObject *)item)) {
-                    PyErr_SetString(PyExc_TypeError,
-                                    "frame images must be C-contiguous 2D uint8 arrays");
-                    return NULL;
-                }
-                if (PyArray_DIM((PyArrayObject *)item, 0) != want_rows ||
-                    PyArray_DIM((PyArrayObject *)item, 1) != want_cols) {
-                    PyErr_Format(PyExc_ValueError,
-                                 "frame %zd (detector %d) has shape (%zd, %zd), expected the "
-                                 "FrameTable size (%zd, %zd)",
-                                 img_idx, d, (Py_ssize_t)PyArray_DIM((PyArrayObject *)item, 0),
-                                 (Py_ssize_t)PyArray_DIM((PyArrayObject *)item, 1),
-                                 (Py_ssize_t)want_rows, (Py_ssize_t)want_cols);
-                    return NULL;
-                }
-                peak_images[d] = (const unsigned char *)PyArray_DATA((PyArrayObject *)item);
-                /* pixel radius: vertex 0 truncated to int, as .astype(np.int32) */
-                centers[2 * d] = (npy_int32)px[6 * d];
-                centers[2 * d + 1] = (npy_int32)px[6 * d + 1];
-            }
-            icenine_stage_d_peak(peak_images, image_rows, image_cols, hit,
-                                 c->pixel_radius > 0 ? centers : NULL,
-                                 c->pixel_radius > 0 ? NULL : px, n_det, c->pixel_radius,
-                                 c->rule_bits, NULL, NULL, NULL, &acc);
-        }
     }
-    if (!debug) {
-        return Py_BuildValue("(iiiidii)", acc.pixel_overlap, acc.pixel_on_det, acc.peak_overlap,
-                             acc.peak_on_det, acc.quality, acc.n_quality_points,
-                             acc.last_n_det_ovlp);
-    }
+    if (!debug) return fused_result(&acc);
 
     /* debug: the intermediates of every (solution, reflection) row, row r = s * K + k */
     npy_intp dK[2] = {K, 3}, dN1[1] = {n_rows}, dpix[4] = {n_rows, n_det, 3, 2},
@@ -641,9 +711,7 @@ PyObject *icenine_fused_evaluate(PyObject *self, PyObject *args) {
             ok = PyDict_SetItemString(out, "result", Py_None) == 0 &&
                  PyDict_SetItemString(out, "missing", missing) == 0;
         } else {
-            PyObject *res = Py_BuildValue("(iiiidii)", acc.pixel_overlap, acc.pixel_on_det,
-                                          acc.peak_overlap, acc.peak_on_det, acc.quality,
-                                          acc.n_quality_points, acc.last_n_det_ovlp);
+            PyObject *res = fused_result(&acc);
             ok = res && PyDict_SetItemString(out, "result", res) == 0;
             Py_XDECREF(res);
         }
@@ -654,4 +722,65 @@ PyObject *icenine_fused_evaluate(PyObject *self, PyObject *args) {
         return NULL;
     }
     return out;
+}
+
+/**
+ * fused_evaluate_many(ctx, R, verts) -> (results, missing)
+ * B orientations of one voxel in one call (BatchedCostEvaluator with the key FusedCost on, S2 Step
+ * 3). Each orientation goes through the functions of fused_evaluate (fused_stages_abc,
+ * fused_missing, fused_stage_d) in the same order, so its result equals what fused_evaluate returns
+ * for the same R and verts.
+ * R: (B, 3, 3) array (cast to float64, then each element to float32 as torch .float()).
+ * verts: (3, 3) float32 C-contiguous, the same for every orientation.
+ * Returns (a list of B tuples (po, pon, pko, pkon, quality, nq, det_ovlp), None); or, while some
+ * frames are not filled, (None, the list of those frames over the whole batch, each once): the
+ * FrameTable fills them (ensure) and the caller repeats the call. Stage D stops at the first
+ * orientation with an unfilled frame; stages A-C go on to collect the frames of the rest.
+ */
+PyObject *icenine_fused_evaluate_many(PyObject *self, PyObject *args) {
+    PyObject *cap, *R_o;
+    PyArrayObject *V_a;
+    (void)self;
+    if (!PyArg_ParseTuple(args, "OOO!", &cap, &R_o, &PyArray_Type, &V_a)) return NULL;
+    FusedCtx *c = fused_ctx_checked(cap, V_a);
+    if (!c) return NULL;
+    PyArrayObject *Ra = (PyArrayObject *)PyArray_FROM_OTF(R_o, NPY_FLOAT64, NPY_ARRAY_IN_ARRAY);
+    if (!Ra) return NULL;
+    if (PyArray_NDIM(Ra) != 3 || PyArray_DIM(Ra, 1) != 3 || PyArray_DIM(Ra, 2) != 3) {
+        Py_DECREF(Ra);
+        PyErr_SetString(PyExc_ValueError, "R must be (B, 3, 3)");
+        return NULL;
+    }
+    const Py_ssize_t nb = (Py_ssize_t)PyArray_DIM(Ra, 0);
+    const double *Rd = (const double *)PyArray_DATA(Ra);
+    const float *V0 = (const float *)PyArray_DATA(V_a);
+    PyObject *results = PyList_New(nb), *missing = NULL;
+    unsigned char *seen = NULL;
+    long image_rows = 0, image_cols = 0;
+    if (!results || (nb > 0 && fused_table_size(c, &image_rows, &image_cols) < 0)) goto fail;
+    for (Py_ssize_t b = 0; b < nb; b++) {
+        float Rf[9];
+        fused_R_to_f32(Rd + 9 * b, Rf);
+        const int n_rows = fused_stages_abc(c, Rf, V0, 0);
+        if (fused_missing(c, n_rows, &missing, &seen) < 0) goto fail;
+        if (missing) continue; /* frames to fill: collect them over the batch, no stage D */
+        IceStageDAcc acc;
+        if (fused_stage_d(c, n_rows, image_rows, image_cols, &acc) < 0) goto fail;
+        PyObject *res = fused_result(&acc);
+        if (!res) goto fail;
+        PyList_SET_ITEM(results, b, res); /* steals the reference */
+    }
+    free(seen);
+    Py_DECREF(Ra);
+    if (missing) {
+        Py_DECREF(results);
+        return Py_BuildValue("(ON)", Py_None, missing);
+    }
+    return Py_BuildValue("(NO)", results, Py_None);
+fail:
+    free(seen);
+    Py_DECREF(Ra);
+    Py_XDECREF(results);
+    Py_XDECREF(missing);
+    return NULL;
 }

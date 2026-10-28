@@ -50,6 +50,7 @@ ICENINE_HIDDEN void icenine_stage_d_peak(const unsigned char *const *images, npy
 /* _fused_eval.c: the fused evaluate (S2), in the method table of _rasterize.c */
 ICENINE_HIDDEN PyObject *icenine_fused_context(PyObject *self, PyObject *args);
 ICENINE_HIDDEN PyObject *icenine_fused_evaluate(PyObject *self, PyObject *args);
+ICENINE_HIDDEN PyObject *icenine_fused_evaluate_many(PyObject *self, PyObject *args);
 #endif
 
 #endif /* ICENINE_STAGE_D_H */
