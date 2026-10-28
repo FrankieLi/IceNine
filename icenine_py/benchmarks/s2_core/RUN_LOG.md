@@ -21,3 +21,25 @@ points) on `three0`, `full15901`, `full17034`, `full18558`, the 9 covered modes 
 default since this step). Every differing orientation traced with `s2_parity.trace`; the parity
 rule (D-20261027-I2) is checked with a 0.01 px bound. `totals` gives the counts; the `fma` order is
 also compared bit for bit with the Step 0 prototype (`prototype_differs`).
+
+## After the review fixes (fixes 1-5, D-20261027-I8)
+
+Fix 4 adds `-ffp-contract=off` to the extension's compile flags. On clang arm64 the flag leaves
+the object code of `_fused_eval.c` unchanged (its multiply-adds are explicit `fmaf` calls) but
+removes clang's default multiply-add contraction from `_rasterize.c`, where it occurs only in the
+Sutherland-Hodgman intersections (`p0.y + slope * (b - p0.x)`). So the key-off C code changes too.
+
+- **Key off, `s1_parity.py`:** a dump at commit bad8ebb (clean tree) against the same base dump
+  (832db36): `keyoff_compare_fixes.txt`, every field of every mode bit-identical (4 datasets x 15
+  modes). `tests/test_s1_evaluate.py` (the stored fixture) also passes.
+- **Key on, plain order:** `s2_core_parity.py --orders plain` at bad8ebb reproduces the plain
+  arm of `glab_order.json` record for record (every dataset-mode record identical, the traced
+  rows included).
+- **`triangle_overlap` alone:** `scripts/speed_parity/s2/contract_fuzz.py` compares the build at
+  37c1e47 (clang's default contraction) with the build at bad8ebb on random triangles in an
+  80 x 64 image: `contract_fuzz.json`. The builds differ on a few border-crossing triangles per
+  arm (`differ` against `crossing_border`). On those triangles the Python reference
+  (`python_reference_agrees_with`) agrees with the new build more often than with the old, and
+  with neither on some. So the flag can change a key-off count for a triangle that crosses the
+  image border, although no s1_parity result changed. Whether the C++ build (also
+  clang, where contraction is on by default) contracts the same expression was not checked.
