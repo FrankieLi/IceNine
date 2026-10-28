@@ -146,6 +146,8 @@ fused path for every orientation of a batch.
 **Library changes:** `batched_cost.py`, and the batched entry in `icenine/_fused_eval.c` and the
 `_rasterize` method table. No new dependency.
 
+**Process limit exception:** none: this task runs alone, so the machine limit applies in full.
+
 ## Steps 4-6: parity, timings, E0 and docs
 
 4. Parity, as below, on the library path. Trace every flipped coordinate, not only the
@@ -161,6 +163,8 @@ fused path for every orientation of a batch.
 
 **Library changes:** none expected; a parity or timing finding that needs a library fix is
 reported, not fixed in this task.
+
+**Process limit exception:** none: this task runs alone, so the machine limit applies in full.
 
 **Stop rule:** stop and report if the Step 0 prototype takes more than 50 us per call on the Q-max
 8 triangle arm; if any fused-versus-torch difference is not a pixel-edge flip within the parity
