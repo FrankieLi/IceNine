@@ -511,3 +511,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   validated on macOS clang only; key-off identity is rechecked after the flag. Where:
   docs/todo_s2_fused_c_eval.md Steps 1-2; .claude/reports/20261027-2232-review-s2-core.md (Ilium's
   machine).
+
+### D-20261027-I9 · S2 · Delegated: fp-contract off only in the fused file, not the whole extension
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: D-20261027-I8.
+- Ilium Agent under D-20261027-I1, correcting part (4) of I8; parts (1)-(3) stand. A global
+  -ffp-contract=off also changes the key-off _rasterize.c: clang stops fusing the multiply-adds of
+  the Sutherland-Hodgman clip, and triangle_overlap counts change on 106 of about 400,000
+  border-crossing fuzz triangles. Key off must stay bit-identical (rules for every task,
+  D-20261012-I1), so the global flag is removed; _fused_eval.c alone keeps fp contraction off (its
+  pragma, plus a GCC-honoured per-file pragma if one is portable), and results are stated as
+  validated on macOS clang only. Whether C++'s clang build fuses the same clip expression is
+  recorded as an open question for the owner's review. Where: docs/todo_s2_fused_c_eval.md Steps
+  1-2; benchmarks/s2_core.
