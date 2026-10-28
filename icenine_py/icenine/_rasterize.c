@@ -1151,8 +1151,8 @@ static PyObject* ray_flags_c(PyObject *self, PyObject *args) {
 
 /* ---- Module definition ---- */
 
-/* icenine_fused_context, icenine_fused_evaluate (S2, ICENINE_FUSED): _fused_eval.c, declared in
-   _stage_d.h */
+/* icenine_fused_context, icenine_fused_evaluate, icenine_fused_evaluate_many (S2, ICENINE_FUSED):
+   _fused_eval.c, declared in _stage_d.h */
 
 static PyMethodDef rasterize_methods[] = {
     {"triangle_overlap", triangle_overlap, METH_VARARGS,
@@ -1181,6 +1181,10 @@ static PyMethodDef rasterize_methods[] = {
      "fused_evaluate(ctx, R, verts[, debug]) -> (pixel_overlap, pixel_on_det, peak_overlap,\n"
      "    peak_on_det, quality, n_quality_points, detectors_overlap), or the list of frames the\n"
      "    FrameTable must fill first; debug=1: a dict of the intermediates (_fused_eval.c)."},
+    {"fused_evaluate_many", icenine_fused_evaluate_many, METH_VARARGS,
+     "fused_evaluate_many(ctx, R, verts) -> (results, missing): B orientations (B, 3, 3) of one\n"
+     "    voxel, each as fused_evaluate; results a list of B 7-tuples and missing None, or\n"
+     "    results None and missing the frames the FrameTable must fill first (_fused_eval.c)."},
 #endif
     {NULL, NULL, 0, NULL}
 };
