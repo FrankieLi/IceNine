@@ -63,11 +63,26 @@ def paired(a: List[bool], b: List[bool]) -> Dict[str, int]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--dir", default=str(ICE / "benchmarks" / "s2_taska"))
+    ap.add_argument(
+        "--variants",
+        nargs="+",
+        default=list(VARIANTS),
+        help="fused variants of run.json.gz (S2 Step 4: library)",
+    )
+    ap.add_argument(
+        "--prefix", default="s2_taska", help="table name prefix (S2 Step 4: s2_lib_taska)"
+    )
     a = ap.parse_args()
     d = Path(a.dir).resolve()
     inputs = json.loads((d / "inputs.json").read_text())
     run = json.loads(gzip.open(d / "run.json.gz").read())
-    outlier = json.loads((d / "outlier.json").read_text())
+    # the Step 0 outlier trace is optional (S2 Step 4 does not rerun it)
+    outlier = (
+        json.loads((d / "outlier.json").read_text())
+        if (d / "outlier.json").exists()
+        else dict(meta=None, modes={})
+    )
+    variants = tuple(a.variants)
     stored = {
         (int(r["voxel"]), int(r["id"])): r for r in json.loads(gzip.open(STORED).read())["rows"]
     }
@@ -130,7 +145,7 @@ def main() -> int:
             "torch (Task A, stored)": stp,
             f"torch ({run['meta']['head']})": [r[arm]["torch"] for r in rows],
         }
-        for v in VARIANTS:
+        for v in variants:
             paths[f"fused {v}"] = [r[arm][v]["agg"] for r in rows]
         S["cpp"][arm] = {}
         # the stored C++ screen values have pixel overlap and quality 0 (counted here; the C++ side
@@ -162,7 +177,7 @@ def main() -> int:
                 )
             )
         tkey = f"torch ({run['meta']['head']})"
-        for v in VARIANTS:
+        for v in variants:
             for what, mm in (("peak counts", peak_match), ("peak and pixel counts", pix_match)):
                 if what == "peak and pixel counts" and arm != "EXF_edge":
                     continue
@@ -186,7 +201,7 @@ def main() -> int:
     vt_rows: List[Dict[str, Any]] = []
     S["fused_vs_torch"] = {}
     for arm in FUSED_ARMS:
-        for v in VARIANTS:
+        for v in variants:
             diff = [r for r in rows if r[arm][v]["differs_from_torch"]]
             causes: Counter = Counter()
             fields: Counter = Counter()
@@ -359,6 +374,10 @@ def main() -> int:
             ),
         ),
     }
+    if not out_rows:
+        del tables["s2_taska_outlier"]
+    tables = {a.prefix + k[len("s2_taska") :]: t for k, t in tables.items()}
+    S["meta"]["variants"] = list(variants)
     (d / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
     DT.write_tables(d / "tables.md", tables)
     for k, t in tables.items():
