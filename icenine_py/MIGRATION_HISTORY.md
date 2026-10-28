@@ -10376,7 +10376,8 @@ fused-only on both arms; the screen miss is the same record on every path (voxel
 3 ulp from a frame boundary). Stop-rule item 4 is not triggered, so this check does not hold back Steps 1-2. The
 complete-cost quality is within 1e-6 of C++'s on 2,228 (torch), 2,229 (portable) and 2,228 (Accelerate) of 2,230
 orientations. The check certifies the Step 0 prototype, not the Steps 1-2 library kernel, which may change the g_lab
-order (D-20261027-I5); Step 4 reruns `taska_check.py run` against the library kernel.
+order (D-20261027-I5); Step 4 should rerun `taska_check.py run` against the library kernel (the plan does not yet
+say so).
 
 **Inputs.** Task A did not keep its input files or the C++ driver output, and the C++ toolchain (CMake, Boost, Eigen,
 Open MPI) is not installed on this machine, so the C++ side is the stored aggregates of
