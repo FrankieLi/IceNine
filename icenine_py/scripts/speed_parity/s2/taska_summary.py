@@ -133,6 +133,12 @@ def main() -> int:
         for v in VARIANTS:
             paths[f"fused {v}"] = [r[arm][v]["agg"] for r in rows]
         S["cpp"][arm] = {}
+        # the stored C++ screen values have pixel overlap and quality 0 (counted here; the C++ side
+        # was not traced), so only its peak counts compare; pixel counts and quality are compared on
+        # the complete cost only
+        S["cpp"][arm]["cpp_pixov_and_quality_zero"] = sum(
+            c["pixov"] == 0 and c["quality"] == 0.0 for c in cpp
+        )
         peak_match: Dict[str, List[bool]] = {}
         pix_match: Dict[str, List[bool]] = {}
         for p, aggs in paths.items():
@@ -140,9 +146,10 @@ def main() -> int:
             px = [eq(x, c, PEAK + PIXEL) for x, c in zip(aggs, cpp)]
             qu = [abs(x["quality"] - c["quality"]) <= QUALITY_TOL for x, c in zip(aggs, cpp)]
             peak_match[p], pix_match[p] = pk, px
-            ent: Dict[str, Any] = dict(peak_counts=frac(sum(pk), n), quality_within_tol=sum(qu))
+            ent: Dict[str, Any] = dict(peak_counts=frac(sum(pk), n))
             if arm == "EXF_edge":
                 ent["peak_and_pixel_counts"] = frac(sum(px), n)
+                ent["quality_within_tol"] = sum(qu)
             S["cpp"][arm][p] = ent
             cpp_rows.append(
                 dict(
@@ -151,7 +158,7 @@ def main() -> int:
                     n=n,
                     peak_counts_equal=sum(pk),
                     pixel_counts_equal=sum(px) if arm == "EXF_edge" else None,
-                    quality_within_1e6=sum(qu),
+                    quality_within_1e6=sum(qu) if arm == "EXF_edge" else None,
                 )
             )
         tkey = f"torch ({run['meta']['head']})"
