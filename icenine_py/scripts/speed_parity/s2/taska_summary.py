@@ -223,39 +223,36 @@ def main() -> int:
             )
 
     # ---- the Step 0 outlier ------------------------------------------------------------------
-    out_rows: List[Dict[str, Any]] = []
+    # one table row per (mode, orientation, Bragg row); the detector coordinate (in pixels, from
+    # the coordinate 0 of the -1 rule) only where the -1 rule decides the pixel
+    groups: Dict[Tuple[str, int, int], List[Dict[str, Any]]] = {}
     for mode, x in outlier["modes"].items():
         for e in x["entries"]:
-            out_rows.append(
-                dict(
-                    mode=mode,
-                    orientation=e["orientation"],
-                    row=e["row"],
-                    det=e["det"],
-                    vertex=e["vertex"],
-                    axis=e["axis"],
-                    torch_px=e["torch_pix"],
-                    fused_px=e["fused_pix"],
-                    f64_px=e["ref_pix"],
-                    coord_f32_px=e["coord_torch_over_pixel"],
-                    coord_f64_px=e["coord_f64_over_pixel"],
-                    int_f32=e["torch_stage_d_int"],
-                    int_f64=e["ref_stage_d_int"],
-                    asin_arg=e["asin_arg_torch"],
-                    omega_err_rad=abs(e["omega_torch"] - e["omega_ref"]),
-                )
+            groups.setdefault((mode, e["orientation"], e["row"]), []).append(e)
+    out_rows: List[Dict[str, Any]] = []
+    for (mode, o, r), es in groups.items():
+        neg = [e for e in es if e["torch_stage_d_int"] == -1 or e["ref_stage_d_int"] == -1]
+        out_rows.append(
+            dict(
+                mode=mode,
+                orientation=o,
+                row=r,
+                coords=len(es),
+                torch_max_err_px=max(e["torch_err"] for e in es),
+                fused_max_err_px=max(e["fused_err"] for e in es),
+                torch_eq_fused=all(e["torch_pix"] == e["fused_pix"] for e in es),
+                int_flips_vs_f64=sum(e["torch_stage_d_int"] != e["ref_stage_d_int"] for e in es),
+                asin_arg=es[0]["asin_arg_torch"],
+                omega_err_rad=max(abs(e["omega_torch"] - e["omega_ref"]) for e in es),
+                coord0_f32_px=neg[0]["coord_torch_over_pixel"] if neg else None,
+                coord0_f64_px=neg[0]["coord_f64_over_pixel"] if neg else None,
             )
+        )
     S["outlier"] = dict(
         meta=outlier["meta"],
         n_stage_d_rows={m: x["n_stage_d_rows"] for m, x in outlier["modes"].items()},
         n_entries={m: len(x["entries"]) for m, x in outlier["modes"].items()},
-        entries=out_rows,
-        torch_equals_fused_on_all=all(
-            e["torch_pix"] == e["fused_pix"]
-            for x in outlier["modes"].values()
-            for e in x["entries"]
-        ),
-        int_differs_from_f64=sum(r["int_f32"] != r["int_f64"] for r in out_rows),
+        groups=out_rows,
     )
 
     tables = {
@@ -293,27 +290,23 @@ def main() -> int:
                 "mode",
                 "orientation",
                 "row",
-                "det",
-                "vertex",
-                "axis",
-                "torch_px",
-                "fused_px",
-                "f64_px",
-                "coord_f32_px",
-                "coord_f64_px",
-                "int_f32",
-                "int_f64",
+                "coords",
+                "torch_max_err_px",
+                "fused_max_err_px",
+                "torch_eq_fused",
+                "int_flips_vs_f64",
                 "asin_arg",
                 "omega_err_rad",
+                "coord0_f32_px",
+                "coord0_f64_px",
             ],
             formats=dict(
-                torch_px=".4f",
-                fused_px=".4f",
-                f64_px=".4f",
-                coord_f32_px=".2e",
-                coord_f64_px=".2e",
+                torch_max_err_px=".4f",
+                fused_max_err_px=".4f",
                 asin_arg=".5f",
                 omega_err_rad=".2e",
+                coord0_f32_px=".2e",
+                coord0_f64_px=".2e",
             ),
         ),
     }
