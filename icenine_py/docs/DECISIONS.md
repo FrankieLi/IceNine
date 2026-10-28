@@ -480,3 +480,13 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
 - Ilium Agent under D-20261027-I1: Step 1 tries the plain order for g_lab (Step 0: matches torch
   on 0.929 of elements against 0.804 for the fmaf chain) and keeps it only if it gives fewer flips
   under the parity rule. Where: ROADMAP Track S row S2; docs/todo_s2_fused_c_eval.md.
+
+### D-20261027-I6 · S2 · Delegated: Task A inputs accepted on aggregates; no C++ toolchain install
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1: Task A kept neither its input files nor the C++ output, and the
+  C++ toolchain (cmake, boost, eigen, open-mpi) is not installed. The regenerated inputs are
+  accepted because labels and indices match on 2,230 of 2,230, the stored C++ product statistics
+  are reproduced on 2,000 of 2,000 pair records, and torch on them gives the stored Task A Python
+  aggregates on all 4 arms for every orientation. Installing the toolchain is a system change
+  outside S2; it waits for the owner's full review. Where: ROADMAP Track S row S2;
+  benchmarks/s2_taska; MIGRATION_HISTORY S2.
