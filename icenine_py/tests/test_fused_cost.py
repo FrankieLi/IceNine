@@ -292,6 +292,15 @@ def test_fallback_vertices_not_float32(s2: Dict[str, Any], fresh_warnings: None)
         cf.evaluate(R[0], ds.verts, ds.phase)
 
 
+def test_fallback_warning_names_both_torch_paths(fresh_warnings: None) -> None:
+    """The one warning per reason is shared by ``evaluate`` (torch evaluate) and the batched cost
+    (torch compact variant), so its text names both (D-20261028-I1)."""
+    with pytest.warns(RuntimeWarning) as rec:
+        CF._warn_fused_fallback("a test reason", stacklevel=2)
+    msg = str(rec[0].message)
+    assert "a test reason" in msg and "torch evaluate" in msg and "compact variant" in msg
+
+
 def test_reason_missing_extension(monkeypatch: Any) -> None:
     """A missing extension has its own reason, not the HAS_FUSED one (review fix 5)."""
     monkeypatch.setattr(CF, "_HAS_C_RASTERIZE", False)
