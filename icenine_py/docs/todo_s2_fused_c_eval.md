@@ -109,6 +109,9 @@ stops S2: Steps 1-2 are not merged.
 **Library changes:** none. Scripts and results under `scripts/speed_parity/s2/` and
 `benchmarks/s2_taska/`, and a subsection of MIGRATION_HISTORY "S2".
 
+**Process limit exception:** at most 3 heavy processes at once (the Task A check and Steps 1-2
+run at the same time and share the machine's 6).
+
 ## Steps 1-2: the fused kernel and its wiring (library)
 
 1. The C kernel and the shared stage-D function in `_rasterize.c`. With the key off,
@@ -127,6 +130,9 @@ and a `HAS_FUSED` module constant; `cost_functions.py` (fused dispatch in `evalu
 `config_file.py`, `orientation_search.py`, `reconstructor.py` (key plumbing only) and the README
 config table. Not `batched_cost.py` (Step 3). No new dependency. Do not edit MIGRATION_HISTORY
 (the parallel Task A check writes there; Steps 4-6 write the S2 results).
+
+**Process limit exception:** at most 3 heavy processes at once (the Task A check and Steps 1-2
+run at the same time and share the machine's 6).
 
 ## Step 3: the batched entry (library)
 
