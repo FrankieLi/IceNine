@@ -141,13 +141,20 @@ def stage_d_ints(x: Dict[str, Any], r: int, d: int, radius: int) -> Tuple[int, .
 
 
 def trace(
-    m: Dict[str, Any], d: Dict[str, Any], ref: Dict[str, Any], cf: Any, n_det: int
+    m: Dict[str, Any],
+    d: Dict[str, Any],
+    ref: Dict[str, Any],
+    cf: Any,
+    n_det: int,
+    every: bool = False,
 ) -> List[Dict[str, Any]]:
     """Rows whose stage-D input differs between torch (m) and fused (d): the cause, the distance
     of the torch value from the threshold in ulp (``margin_ulp``; for pixel peaks also the fused
     value's, ``fused_margin_ulp``, and both in px, ``*_px_from_edge``), the torch, fused and float64
     reference values and the threshold (``ref_side``: the side of the threshold the float64 value
-    is on, "torch" or "fused")."""
+    is on, "torch" or "fused"). ``every`` (S2 Step 4): one entry per flipped pixel coordinate
+    (``coord``: its index in the flattened (vertex, axis) list of the row and detector), not only
+    the one with the largest ulp margin per (row, detector)."""
     out: List[Dict[str, Any]] = []
     K = m["K"]
     radius = cf.pixel_radius
@@ -214,10 +221,10 @@ def trace(
             tv = m["pix"][r, det].reshape(-1)
             fv = d["pix"][r, det].reshape(-1)
             rv = ref["pix"][r, det].reshape(-1)
-            # Keeps one flipped coordinate per (row, detector), the one with the largest ulp margin,
-            # so a caller checking the 0.01 px rule sees only that coordinate (and ranking by ulp
-            # favours small pixel coordinates). Step 4's parity test must check every flipped
-            # coordinate (review of the S2 Task A check, fix 5).
+            # Without ``every``: one flipped coordinate per (row, detector), the one with the
+            # largest ulp margin, so a caller checking the 0.01 px rule sees only that coordinate
+            # (and ranking by ulp favours small pixel coordinates). Step 4 passes ``every=True``
+            # and checks every flipped coordinate (review of the S2 Task A check, fix 5).
             worst: Optional[Dict[str, Any]] = None
             for i in [i for i in range(len(it)) if it[i] != iff[i]]:
                 v = np.float32(tv[i])
@@ -234,8 +241,13 @@ def trace(
                     e["torch_px_from_edge"] = abs(float(v) - thr)
                     e["fused_margin_ulp"] = int(ulp_diff(np.float32(fv[i]), np.float32(thr)))
                     e["fused_px_from_edge"] = abs(float(fv[i]) - thr)
-                if worst is None or e["margin_ulp"] > worst["margin_ulp"]:
+                if every:
+                    e.update(row=r, det=det, coord=i)
+                    out.append(e)
+                elif worst is None or e["margin_ulp"] > worst["margin_ulp"]:
                     worst = e
+            if every:
+                continue
             assert worst is not None
             worst.update(row=r, det=det)
             out.append(worst)
