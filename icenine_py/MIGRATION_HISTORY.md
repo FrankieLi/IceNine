@@ -10373,7 +10373,10 @@ one process); results in `benchmarks/s2_taska/` (the tables below are its `table
 counts (peak overlap, peak on detector) equal C++'s on 2,230 of 2,230 orientations for the complete cost and on 2,229 of
 2,230 for the screen, for torch and for both prototype builds. Per orientation the paired split is 0 torch-only and 0
 fused-only on both arms; the screen miss is the same record on every path (voxel 15901, record 885, the A-exact peak
-3 ulp from a frame boundary). Stop-rule item 4 is not triggered, so this check does not hold back Steps 1-2.
+3 ulp from a frame boundary). Stop-rule item 4 is not triggered, so this check does not hold back Steps 1-2. The
+complete-cost quality is within 1e-6 of C++'s on 2,228 (torch), 2,229 (portable) and 2,228 (Accelerate) of 2,230
+orientations. The check certifies the Step 0 prototype, not the Steps 1-2 library kernel, which may change the g_lab
+order (D-20261027-I5); Step 4 reruns `taska_check.py run` against the library kernel.
 
 **Inputs.** Task A did not keep its input files or the C++ driver output, and the C++ toolchain (CMake, Boost, Eigen,
 Open MPI) is not installed on this machine, so the C++ side is the stored aggregates of
@@ -10381,8 +10384,13 @@ Open MPI) is not installed on this machine, so the C++ side is the stored aggreg
 the stored labels, kinds and FZ and grid indices. The driver scored its own float32 product `oLocal * oCenter`
 (`SMatrix3x3::operator*`, `XDM++/libXDM/3dMath.cpp:410-430`, Apple clang `-O3`). Of four float32 orders, only clang's
 FP contraction, `fmaf(a2, b2, fmaf(a0, b0, a1 * b1))`, reproduces two stored values on every one of the 2,000 pair
-records: whether the float64 product cast to float32 equals the C++ product, and their largest difference. The 230
-single-orientation records have the identity as local matrix. On the orientations built this way, the library
+records: whether the float64 product cast to float32 equals the C++ product, and their largest difference. The two
+statistics do not pin a single record's product: the plain order gives a product different from clang's on 1,619 of
+the 2,000 pair records, yet matches both statistics on 1,065 of them; and on 1,166 pair records two or more elements
+of the float64 product cast to float32 differ from the clang product, of which the largest difference pins only one.
+The evidence is therefore for one order used for every record, not a per-record check; only a C++ rerun would close
+this (D-20261027-I6). The 230 single-orientation records (kind 0) all have the identity as local matrix, so their
+product is exact in any order. On the orientations built this way, the library
 `evaluate` at fb42d8c gives the stored Task A Python aggregates (pixel and peak counts, quality) on all four arms and all
 2,230 orientations, and `torch_mirror` equals the library on both `CppEdgeRules` arms. This is consistent with the
 inputs being Task A's, but it compares aggregates, not input bits, and the product order is inferred from two stored
@@ -10405,16 +10413,16 @@ statistics per record, not read from C++ output.
 **Against C++** (stored C++ aggregates; "torch (Task A, stored)" is the Python result stored by Task A):
 
 <!-- table:s2_taska_cpp -->
-| arm | path | n | peak_counts_equal | pixel_counts_equal |
-|---|---|---|---|---|
-| screen, CppEdgeRules | torch (Task A, stored) | 2230 | 2229 | n/a |
-| screen, CppEdgeRules | torch (fb42d8c) | 2230 | 2229 | n/a |
-| screen, CppEdgeRules | fused portable | 2230 | 2229 | n/a |
-| screen, CppEdgeRules | fused accelerate | 2230 | 2229 | n/a |
-| complete cost, CppEdgeRules | torch (Task A, stored) | 2230 | 2230 | 1985 |
-| complete cost, CppEdgeRules | torch (fb42d8c) | 2230 | 2230 | 1985 |
-| complete cost, CppEdgeRules | fused portable | 2230 | 2230 | 1984 |
-| complete cost, CppEdgeRules | fused accelerate | 2230 | 2230 | 1985 |
+| arm | path | n | peak_counts_equal | pixel_counts_equal | quality_within_1e6 |
+|---|---|---|---|---|---|
+| screen, CppEdgeRules | torch (Task A, stored) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | torch (fb42d8c) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | fused portable | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | fused accelerate | 2230 | 2229 | n/a | n/a |
+| complete cost, CppEdgeRules | torch (Task A, stored) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | torch (fb42d8c) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | fused portable | 2230 | 2230 | 1984 | 2229 |
+| complete cost, CppEdgeRules | fused accelerate | 2230 | 2230 | 1985 | 2228 |
 <!-- /table:s2_taska_cpp -->
 
 Paired per orientation, torch at fb42d8c against each build ("both": both equal C++):
@@ -10432,6 +10440,9 @@ Paired per orientation, torch at fb42d8c against each build ("both": both equal 
 
 Pixel counts were not a Task A aim (A-exact: 1,985 of 2,230). On them the portable build matches C++ on 1,984 and
 exchanges 51 torch-only for 50 fused-only orientations; the Accelerate build matches on 1,985 (19 against 19).
+Quality (within 1e-6) is compared on the complete cost only: the stored C++ screen values have pixel overlap 0 and
+quality 0 on all 2,230 records (why the C++ screen stores 0 was not traced), so screen quality, like screen pixel
+counts, is n/a.
 
 **Fused against torch on this set** (`s2_parity.trace`, parity rule D-20261027-I2). "silent": orientations whose stage-D
 input differs while the `OverlapInfo` does not; "f64_side": for each flipped row, whose side of the pixel integer the
@@ -10451,7 +10462,11 @@ the Accelerate build on 43 (1.9%, 1.4-2.6%); on the screen on none. Every differ
 traced to pixel-integer flips within the rule's 0.01 px (worst 0.0019 px on a differing orientation, 0.0026 px on a
 silent one, portable); no frame, eta, observability or t > 0 flip. The fields that differ are `pixel_on_detector` (107
 orientations), `pixel_overlap` (4) and `quality` (1); peak counts never. The float64 value lies on torch's side on 59
-of the 112 flipped rows (Wilson 43.5-61.7%), so neither path is systematically nearer float64 here.
+of the 112 flipped rows (Wilson 43.5-61.7%): no detectable side preference. The 112 rows are pooled over 108
+orientations, so the interval treats rows of one orientation as independent, which they need not be.
+`s2_parity.trace` keeps one flipped coordinate per Bragg row and detector (the largest ulp margin), so the 0.01 px rule
+is checked on that coordinate. A separate check by the reviewer of every flipped coordinate found no row and detector
+with more than one, but the tool does not test this; Step 4's parity test must check every flipped coordinate.
 
 **The Step 0 outlier** (`taska_check.py outlier`: Phase D voxel 18558, S1's 1,000 orientations, modes `edge` and
 `screen_edge`, every stage-D coordinate more than 0.02 px from the float64 reference; one table row per orientation
@@ -10472,9 +10487,10 @@ and Bragg row; "coord0": the detector coordinate in pixels from 0, given where t
   -1 where float64 puts it in pixel 0. Whether C++ does the same was not tested (the orientation is not in Task A's
   set).
 - The next largest float64 error, the 0.0669 px of Step 0's float64 table (full18558), is orientation 735, reflection
-  83, both Bragg solutions (rows 83 and 195), 12 coordinates above 0.02 px, torch and fused bit for bit equal. The asin
-  argument is 0.99969 and omega is 1.5e-04 rad from float64 on both rows; this is consistent with float32 rounding
-  amplified near an asin argument of 1 (not tested). Two of the 12 integer pixel coordinates differ from float64. On
+  83, both Bragg solutions (rows 83 and 195), 12 coordinates above 0.02 px (6 per row), torch and fused bit for bit
+  equal. The asin argument is 0.99969 and omega is 1.5e-04 rad from float64 on both rows; this is consistent with
+  float32 rounding amplified near an asin argument of 1 (not tested). Of these coordinates, 2 (both on row 195) have an
+  integer pixel different from float64's. On
   `screen_edge` no coordinate is more than 0.02 px off.
 
 **Not done.** No C++ rerun (toolchain not installed; the inputs check above replaces the planned "regenerates the
