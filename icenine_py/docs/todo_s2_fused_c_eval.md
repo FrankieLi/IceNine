@@ -8,8 +8,10 @@ fontsize: 11pt
 
 # Status
 
-**Approved 2026-10-21 (D-20261021-I4), Step 0 in progress;** Opus at high effort implements it.
-S2 picked by the owner 2026-10-21 (D-20261021-I2). S3, which
+**Approved 2026-10-21 (D-20261021-I4). Step 0 done 2026-10-21 (speed go: 14.4 us per call against
+234.1; parity rule revised); Steps 1-6 run under owner delegation (D-20261027-I1), in four tasks
+(below), each reviewed and merged before the next that depends on it.** Opus at high effort
+implements every task. S2 picked by the owner 2026-10-21 (D-20261021-I2). S3, which
 had to come first (D-20261013-I5), is merged. Written by Ilium Agent from a code investigation;
 the file and line references are on `feature/python-speed-parity` at ac2b49f. Built under the Track
 S rule: implementer on a task branch, `/review-task`, required fixes to a fresh implementer. Task
@@ -95,28 +97,63 @@ scratch C extension and its build; nothing under `icenine_py/icenine/`, `setup.p
 - Go: median <= 30 us per call on the triangle arm and every difference traced (see Parity).
   30-50 us: report to the owner before Step 1. Above 50 us: the stop rule.
 
-## Steps 1-6 (after a go)
+## Task A check with the prototype (scripts only; runs in parallel with Steps 1-2)
+
+Decided D-20261027-I4. The Step 0 prototype (`scripts/speed_parity/s2/`) against C++ on Task A's
+2,230 orientations, as Parity item 2 describes, for the screen and the complete-cost arms, beside
+torch with `CppEdgeRules`. First check that `parity_inputs.py` regenerates the stored inputs. Also
+trace the one 1.50 px float64-reference outlier of Step 0 (voxel 18558, edge mode), which torch and
+the prototype share. A failure here (the prototype agrees with C++ on fewer orientations than torch)
+stops S2: Steps 1-2 are not merged.
+
+**Library changes:** none. Scripts and results under `scripts/speed_parity/s2/` and
+`benchmarks/s2_taska/`, and a subsection of MIGRATION_HISTORY "S2".
+
+## Steps 1-2: the fused kernel and its wiring (library)
 
 1. The C kernel and the shared stage-D function in `_rasterize.c`. With the key off,
-   `scripts/speed_parity/s1_parity.py compare` is exact against the base commit.
+   `scripts/speed_parity/s1_parity.py compare` is exact against the base commit. Try the plain
+   operation order for g_lab (Step 0: matches torch on 0.929 of elements against 0.804 for the fmaf
+   chain) and keep it only if it gives fewer flips under the parity rule (D-20261027-I5). Portable
+   C only, no Accelerate (D-20261027-I3).
 2. Wiring: the key in `config_file.py` (as the keys at 472-480), `SearchParameters`
-   (`orientation_search.py:156-170`), `_cost_flags` (`reconstructor.py:897-911`); fallbacks; the
-   frame-refill protocol.
-3. The many-orientation entry in `BatchedCostEvaluator`.
-4. Parity, as below.
-5. Step 0c repeated on the library path, plus quick-MC us per evaluation and the whole search.
-6. E0 A/B (key off against on), then MIGRATION_HISTORY, ROADMAP S2 row, README config table.
-
-**Stop rule:** stop and report if the Step 0 prototype takes more than 50 us per call on the Q-max
-8 triangle arm; if any fused-versus-torch difference cannot be traced to a near-threshold peak; if
-with the key off anything differs from the base commit in `s1_parity.py`; or if the fused path
-agrees with C++ on fewer Task A orientations than torch does.
+   (`orientation_search.py:156-170`), `_cost_flags` (`reconstructor.py:897-911`); fallbacks with a
+   one-time warning; the frame-refill protocol; the classification test of the "unsupported"
+   check. Tests for key off (bit-identical), key on (parity rule on a small set) and fallbacks.
 
 **Library changes:** new `icenine/_fused_eval.c`, compiled into the `_rasterize` module (added to
 the sources in `setup.py`); in `_rasterize.c` the shared stage-D function, the method table entry
-and a `HAS_FUSED` module constant; `cost_functions.py`, `batched_cost.py`, `config_file.py`,
-`orientation_search.py`, `reconstructor.py` (key plumbing only) and the README config table. No
-new dependency.
+and a `HAS_FUSED` module constant; `cost_functions.py` (fused dispatch in `evaluate`),
+`config_file.py`, `orientation_search.py`, `reconstructor.py` (key plumbing only) and the README
+config table. Not `batched_cost.py` (Step 3). No new dependency. Do not edit MIGRATION_HISTORY
+(the parallel Task A check writes there; Steps 4-6 write the S2 results).
+
+## Step 3: the batched entry (library)
+
+The many-orientation C entry, used by `BatchedCostEvaluator._forward_compact`
+(`batched_cost.py:388`) when the key is on; on `mps` or `cuda` at or above `GPU_MIN_BATCH` the torch
+fixed-shape variant keeps priority. Tests: key off unchanged, key on equal to the single-orientation
+fused path for every orientation of a batch.
+
+**Library changes:** `batched_cost.py`, and the batched entry in `icenine/_fused_eval.c` and the
+`_rasterize` method table. No new dependency.
+
+## Steps 4-6: parity, timings, E0 and docs
+
+4. Parity, as below, on the library path.
+5. Step 0c repeated on the library path (single-orientation and batched), plus quick-MC us per
+   evaluation and the whole search, single-worker and preflight-gated.
+6. E0 A/B (key off against on, with and without `BatchedQuickMC`), paired and traced; then
+   MIGRATION_HISTORY "S2", the ROADMAP S2 row and the README.
+
+**Library changes:** none expected; a parity or timing finding that needs a library fix is
+reported, not fixed in this task.
+
+**Stop rule:** stop and report if the Step 0 prototype takes more than 50 us per call on the Q-max
+8 triangle arm; if any fused-versus-torch difference is not a pixel-edge flip within the parity
+rule's bound (or is a frame, eta, observability or t > 0 flip); if with the key off anything differs
+from the base commit in `s1_parity.py`; or if the fused path agrees with C++ on fewer Task A
+orientations than torch does.
 
 # Parity
 
@@ -127,11 +164,14 @@ already flips last bits (MIGRATION_HISTORY, S3 draw notes). The C code uses floa
 operation order with `FP_CONTRACT OFF` (as `_rasterize.c:935-936`). If 0d finds every bit equal,
 S1's exact rule applies; otherwise:
 
-1. **Fused against torch.** `s1_parity.py` dumps every `OverlapInfo` field on S1's set
-   (ThreeVoxels voxel 0 and Phase D voxels 15901, 17034, 18558; 1,000 orientations each) for the
-   covered modes, which the test lists. Each differing orientation is traced by a per-peak diff to
-   a peak within 8 ulp of a frame edge, a pixel integer, the eta limit, or the observability or
-   t > 0 margin.
+1. **Fused against torch** (rule revised D-20261027-I2, after Step 0 found float32 rounding flips
+   up to 312 ulp and 0.0034 px, which the owner judged immaterial). `s1_parity.py` dumps every
+   `OverlapInfo` field on S1's set (ThreeVoxels voxel 0 and Phase D voxels 15901, 17034, 18558;
+   1,000 orientations each) for the covered modes, which the test lists. Every differing
+   orientation must be traced by a per-peak diff to pixel-edge flips: a peak whose torch or fused
+   pixel coordinate lies within 0.01 px of an integer (a bug guard, not a precision target). A
+   frame, eta, observability or t > 0 flip fails. Report, for the flipped peaks, which side is
+   nearer the float64 reference (Step 0: torch 75, fused 65).
 2. **Against C++.** Task A's 2,230 orientations (`scripts/eval_reduction/parity_inputs.py`; voxels
    15901, 22867, 5242) against the stored C++ aggregates
    (`benchmarks/eval_reduction/A/step0/results.json.gz`). The fused path must match at least as
@@ -166,12 +206,13 @@ S1's exact rule applies; otherwise:
   revived, it takes over the level-0 screen and re-cost and shrinks S2's share.
 - **Stale builds.** A stale `_rasterize` build falls back with a warning; README says to rebuild.
 
-# Owner decisions needed
+# Decisions
 
-- **Approval** of this plan, with Step 0 as its own implementer run and Steps 1-6 continuing
-  without a new approval on a go (<= 30 us and all differences traced).
-- **Implementer model:** Opus at high effort is recommended (C code and float-level parity work,
-  as for S4 and Track E's Task E); the default is Sonnet.
+- Plan approved, Opus at high effort (D-20261021-I4).
+- After Step 0 (D-20261027-I1 to I5): the owner delegates the rest of S2 to Ilium Agent and reviews
+  it in full at the end (I1); the parity rule above (I2); portable C, no Accelerate (I3); the Task A
+  check with the prototype runs in parallel with Steps 1-2 and gates their merge (I4); the plain
+  order for g_lab is tried in Step 1 and kept only if it gives fewer flips (I5).
 
 # Relation to other work
 
