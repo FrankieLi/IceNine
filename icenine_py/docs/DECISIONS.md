@@ -450,3 +450,12 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   where possible). The owner does a full review with Ilium Agent when the plan is finished.
   Decisions I2-I5 and later S2 entries marked 'delegated' are Ilium Agent's under this delegation.
   Where: ROADMAP Track S row S2; docs/todo_s2_fused_c_eval.md.
+
+### D-20261027-I2 · S2 · Parity rule: pixel-edge flips accepted (bound 0.01 px), real gates are C++ and E0
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Owner: a difference of 0.005 px does not matter much. A fused-versus-torch difference is
+  accepted when it is a pixel-edge flip, with the torch or fused pixel coordinate within 0.01 px
+  of an integer (a bug guard, not a precision target); frame, eta, observability or t>0 flips
+  fail. The gates that matter are Task A agreement with C++ (at least torch's) and the paired E0
+  comparison. Replaces the 8-ulp rule of the plan. Where: ROADMAP Track S row S2;
+  docs/todo_s2_fused_c_eval.md.
