@@ -466,3 +466,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   reflection vectors bit-identical to torch on macOS (129 to 44 differing orientations of 4,000)
   but does not remove the flips, ties the build to macOS and torch's BLAS, and the parity rule of
   I2 does not need it. Where: ROADMAP Track S row S2; docs/todo_s2_fused_c_eval.md.
+
+### D-20261027-I4 · S2 · Delegated: Task A check with the prototype runs in parallel with Steps 1-2 and gates their merge
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1, owner asked for parallel subagents: the Step 0 prototype is
+  compared with C++ on Task A's 2,230 orientations now (scripts only), in parallel with the Steps
+  1-2 library task; if the prototype agrees with C++ on fewer orientations than torch, Steps 1-2
+  are not merged and S2 stops for the owner. Step 3 follows Steps 1-2; Steps 4-6 follow Step 3.
+  Where: ROADMAP Track S row S2; docs/todo_s2_fused_c_eval.md.
