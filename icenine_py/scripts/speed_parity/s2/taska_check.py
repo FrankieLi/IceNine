@@ -308,8 +308,10 @@ def cmd_run(a: argparse.Namespace) -> int:
                         if differs:
                             ent["trace"] = tr
                             ent["verdict"] = classify(tr, pw)
-                        elif tr:
+                        elif tr:  # a stage-D input differs, the OverlapInfo does not
                             ent["silent_rows"] = len(tr)
+                            ent["silent_trace"] = tr
+                            ent["silent_verdict"] = classify(tr, pw)
                         row[arm][var] = ent
             rows.append(row)
             if len(rows) % 200 == 0:

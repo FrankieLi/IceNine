@@ -183,7 +183,11 @@ def main() -> int:
             n_rule = sum(r[arm][v]["verdict"]["within_rule"] for r in diff)
             flipped = [x for r in diff for x in r[arm][v]["trace"]]
             side = Counter(x.get("ref_side") for x in flipped if "ref_side" in x)
-            silent = sum(1 for r in rows if r[arm][v].get("silent_rows"))
+            sil = [r[arm][v]["silent_verdict"] for r in rows if r[arm][v].get("silent_rows")]
+            silent = len(sil)
+            silent_rule = sum(x["within_rule"] for x in sil)
+            silent_causes = sorted({c for x in sil for c in x["causes"]})
+            silent_worst = max((x["worst_near_px"] for x in sil), default=None)
             ent = dict(
                 n=n,
                 differing=frac(len(diff), n),
@@ -194,6 +198,9 @@ def main() -> int:
                 flipped_rows=len(flipped),
                 ref_side=dict(side),
                 silent=silent,
+                silent_within_rule=silent_rule,
+                silent_causes=silent_causes,
+                silent_worst_near_px=silent_worst,
                 differing_records=[
                     dict(
                         voxel=r["voxel"], id=r["id"], label=r["label"], verdict=r[arm][v]["verdict"]
@@ -216,9 +223,11 @@ def main() -> int:
                     pkov=fields["pkov"],
                     pkon=fields["pkon"],
                     quality=fields["quality"],
-                    nearer_f64_torch=side.get("torch", 0),
-                    nearer_f64_fused=side.get("fused", 0),
+                    f64_side_torch=side.get("torch", 0),
+                    f64_side_fused=side.get("fused", 0),
                     silent=silent,
+                    silent_within_rule=silent_rule,
+                    silent_causes=", ".join(silent_causes) or "-",
                 )
             )
 
@@ -278,9 +287,11 @@ def main() -> int:
                 "pkov",
                 "pkon",
                 "quality",
-                "nearer_f64_torch",
-                "nearer_f64_fused",
+                "f64_side_torch",
+                "f64_side_fused",
                 "silent",
+                "silent_within_rule",
+                "silent_causes",
             ],
             formats=dict(worst_px=".4f"),
         ),
