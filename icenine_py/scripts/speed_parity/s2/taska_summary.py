@@ -38,6 +38,7 @@ VARIANTS = ("portable", "accelerate")
 PEAK = ("pkov", "pkon")
 PIXEL = ("pixov", "pixon")
 ALL5 = ("pixov", "pixon", "pkov", "pkon", "quality")
+QUALITY_TOL = 1e-6  # the C++ ground-truth tolerance of the port (CLAUDE.md)
 
 
 def eq(a: Dict[str, Any], b: Dict[str, Any], keys: Tuple[str, ...]) -> bool:
@@ -84,6 +85,11 @@ def main() -> int:
         records=inputs["n_records"],
         stored=inputs["n_stored"],
         labels_and_indices_differ=len(inputs["labels_and_indices_differ"]),
+        records_by_kind=dict(Counter(str(r["kind"]) for r in rows)),
+        single_records_identity_local=inputs.get("single_records_identity_local"),
+        pair_records_two_or_more_elements_differing=inputs.get(
+            "pair_records_two_or_more_elements_differing"
+        ),
         orders=inputs["orders"],
         selected_order=inputs["selected_order"],
         torch_equals_stored_python=regen,
@@ -132,8 +138,9 @@ def main() -> int:
         for p, aggs in paths.items():
             pk = [eq(x, c, PEAK) for x, c in zip(aggs, cpp)]
             px = [eq(x, c, PEAK + PIXEL) for x, c in zip(aggs, cpp)]
+            qu = [abs(x["quality"] - c["quality"]) <= QUALITY_TOL for x, c in zip(aggs, cpp)]
             peak_match[p], pix_match[p] = pk, px
-            ent: Dict[str, Any] = dict(peak_counts=frac(sum(pk), n))
+            ent: Dict[str, Any] = dict(peak_counts=frac(sum(pk), n), quality_within_tol=sum(qu))
             if arm == "EXF_edge":
                 ent["peak_and_pixel_counts"] = frac(sum(px), n)
             S["cpp"][arm][p] = ent
@@ -144,6 +151,7 @@ def main() -> int:
                     n=n,
                     peak_counts_equal=sum(pk),
                     pixel_counts_equal=sum(px) if arm == "EXF_edge" else None,
+                    quality_within_1e6=sum(qu),
                 )
             )
         tkey = f"torch ({run['meta']['head']})"
@@ -196,6 +204,8 @@ def main() -> int:
                 fields=dict(fields),
                 worst_near_px=worst,
                 flipped_rows=len(flipped),
+                # the flipped rows are pooled over these orientations (not independent rows)
+                flipped_rows_orientations=sum(bool(r[arm][v]["trace"]) for r in diff),
                 ref_side=dict(side),
                 ref_side_torch=frac(side.get("torch", 0), sum(side.values())),
                 silent=silent,
@@ -263,12 +273,32 @@ def main() -> int:
         n_stage_d_rows={m: x["n_stage_d_rows"] for m, x in outlier["modes"].items()},
         n_entries={m: len(x["entries"]) for m, x in outlier["modes"].items()},
         groups=out_rows,
+        # coordinates beyond min_px, and their integer pixel flips against float64, per orientation
+        per_orientation=[
+            dict(
+                mode=mode,
+                orientation=o,
+                rows=sorted(
+                    g["row"] for g in out_rows if (g["mode"], g["orientation"]) == (mode, o)
+                ),
+                coords=sum(
+                    g["coords"] for g in out_rows if (g["mode"], g["orientation"]) == (mode, o)
+                ),
+                int_flips_vs_f64=sum(
+                    g["int_flips_vs_f64"]
+                    for g in out_rows
+                    if (g["mode"], g["orientation"]) == (mode, o)
+                ),
+            )
+            for mode, o in sorted({(g["mode"], g["orientation"]) for g in out_rows})
+        ],
     )
 
     tables = {
         "s2_taska_inputs": DT.markdown_table(t_inputs, ["check", "n", "equal"]),
         "s2_taska_cpp": DT.markdown_table(
-            cpp_rows, ["arm", "path", "n", "peak_counts_equal", "pixel_counts_equal"]
+            cpp_rows,
+            ["arm", "path", "n", "peak_counts_equal", "pixel_counts_equal", "quality_within_1e6"],
         ),
         "s2_taska_paired": DT.markdown_table(
             pair_rows, ["arm", "fused", "counts", "both", "torch_only", "fused_only", "neither"]
