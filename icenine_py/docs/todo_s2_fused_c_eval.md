@@ -146,7 +146,8 @@ fused path for every orientation of a batch.
 
 ## Steps 4-6: parity, timings, E0 and docs
 
-4. Parity, as below, on the library path.
+4. Parity, as below, on the library path. Trace every flipped coordinate, not only the
+   worst-by-ulp one per (row, detector) as `s2_parity.trace` did (Task A check review, fix 5).
 5. Step 0c repeated on the library path (single-orientation and batched), plus quick-MC us per
    evaluation and the whole search, single-worker and preflight-gated.
 6. E0 A/B (key off against on, with and without `BatchedQuickMC`), paired and traced; then
