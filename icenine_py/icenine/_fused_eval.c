@@ -29,9 +29,11 @@
  * parity rule, D-20261027-I2: such pixel-edge flips are accepted; frame, eta, observability and
  * t > 0 flips are not).
  *
- * Validated on macOS clang (arm64) only; GCC and other platforms are untested (the float order is
- * pinned by the explicit fmaf calls and -ffp-contract=off, but libm's sin, cos, atan2 and asin
- * differ between platforms).
+ * Validated on macOS clang (arm64) only; GCC and other platforms are untested. The float order is
+ * pinned by the explicit fmaf calls and this file's no-contraction pragmas (below; there is no
+ * extension-wide -ffp-contract=off, D-20261027-I9, because it changes the key-off _rasterize.c);
+ * the GCC pragma has not been compiled with GCC, and libm's sin, cos, atan2 and asin differ between
+ * platforms.
  *
  * Not thread-safe: the scratch buffers live in the context. The GIL is held for the whole call,
  * and in the non-debug path no Python code runs between filling the scratch buffers and reading
@@ -48,9 +50,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* no multiply-add contraction: every fused multiply-add is an explicit fmaf. setup.py also passes
-   -ffp-contract=off for the whole extension (D-20261027-I8), since GCC ignores STDC FP_CONTRACT
-   and documents its optimize pragma as unreliable; the pragmas stay for builds without the flag */
+/* no multiply-add contraction in this file only: every fused multiply-add is an explicit fmaf.
+   clang honours its fp contract pragma; GCC ignores STDC FP_CONTRACT, so it gets its per-file
+   optimize pragma (GCC documents the optimize pragma as meant for debugging; untested with GCC).
+   No extension-wide -ffp-contract=off (D-20261027-I9): it changes the key-off _rasterize.c */
 #if defined(__clang__)
 #pragma clang fp contract(off)
 #elif defined(__GNUC__)

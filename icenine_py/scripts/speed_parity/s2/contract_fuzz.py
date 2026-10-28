@@ -14,7 +14,12 @@ Usage (from ``icenine_py/``; the two ``.so`` files in separate directories)::
     uv run python scripts/speed_parity/s2/contract_fuzz.py OLD.so NEW.so --out OUT.json
 
 OLD: built without the flag (for example at commit 37c1e47, or with ``extra_compile_args``
-removed from ``setup.py``); NEW: the current build.
+removed from ``setup.py``); NEW: the build with the flag (commit bad8ebb): ``contract_fuzz.json``.
+
+After D-20261027-I9 (the flag removed again, contraction off in ``_fused_eval.c`` only) the same
+script checks that the key-off ``triangle_overlap`` is back to the base: OLD the build at commit
+832db36 (before S2 Steps 1-2), NEW the current build: ``contract_fuzz_i9.json`` (expected: 0
+differing triangles in every arm).
 """
 
 import argparse

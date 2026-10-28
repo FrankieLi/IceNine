@@ -1,18 +1,12 @@
 """Setup script for C extensions (numpy include dirs)."""
 
-import sys
-
 from setuptools import setup, Extension
 import numpy as np
 
-# no multiply-add contraction anywhere in the extension (D-20261027-I8): GCC contracts by default
-# (-ffp-contract=fast) and ignores the STDC FP_CONTRACT pragma, so the float order of
-# _fused_eval.c is pinned by the flag (clang already honours the file's pragma). In _rasterize.c
-# the flag also removes clang's default in-expression contraction (on arm64: the multiply-adds of
-# the Sutherland-Hodgman intersections), so the clip uses the plain double order of the Python
-# reference. Validated on macOS clang only.
-_NO_CONTRACT = [] if sys.platform == "win32" else ["-ffp-contract=off"]
-
+# No extension-wide -ffp-contract=off (D-20261027-I9, superseding part 4 of D-20261027-I8): the
+# flag also changes the key-off _rasterize.c (on clang arm64 it removes the multiply-adds of the
+# Sutherland-Hodgman intersections, so triangle_overlap moves on some border-crossing triangles).
+# Contraction is off in _fused_eval.c only, by its per-file pragmas. Validated on macOS clang only.
 ext_modules = [
     Extension(
         "icenine._rasterize",
@@ -23,7 +17,6 @@ ext_modules = [
         depends=["icenine/_stage_d.h"],
         include_dirs=[np.get_include()],
         define_macros=[("ICENINE_FUSED", "1")],
-        extra_compile_args=_NO_CONTRACT,
     ),
 ]
 
