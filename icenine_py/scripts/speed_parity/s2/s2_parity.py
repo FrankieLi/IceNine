@@ -214,6 +214,10 @@ def trace(
             tv = m["pix"][r, det].reshape(-1)
             fv = d["pix"][r, det].reshape(-1)
             rv = ref["pix"][r, det].reshape(-1)
+            # Keeps one flipped coordinate per (row, detector), the one with the largest ulp margin,
+            # so a caller checking the 0.01 px rule sees only that coordinate (and ranking by ulp
+            # favours small pixel coordinates). Step 4's parity test must check every flipped
+            # coordinate (review of the S2 Task A check, fix 5).
             worst: Optional[Dict[str, Any]] = None
             for i in [i for i in range(len(it)) if it[i] != iff[i]]:
                 v = np.float32(tv[i])
