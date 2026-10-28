@@ -43,6 +43,7 @@ import io
 import json
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple
 
@@ -158,6 +159,13 @@ def cmd_inputs(a: argparse.Namespace) -> int:
     order_ok = {o: 0 for o in ORDERS}
     order_bitflag_ok = {o: 0 for o in ORDERS}
     order_maxdiff_ok = {o: 0 for o in ORDERS}
+    # the limit of the evidence: how often another order gives a different product yet matches both
+    # statistics, and how often the statistics leave more than the largest element unpinned
+    order_differs = {o: 0 for o in ORDERS}
+    order_differs_both_match = {o: 0 for o in ORDERS}
+    pp_elements_differ: Counter = Counter()  # float64-cast vs selected order: elements differing
+    kinds: Counter = Counter()
+    single_identity_local = 0
     n_pairs = 0
     n_seen = 0
     for v in PC.PARITY_VOXELS:
@@ -175,12 +183,18 @@ def cmd_inputs(a: argparse.Namespace) -> int:
                 same = same and s.get("meta_" + k) == m.get(k)
             if not same:
                 meta_bad.append(dict(voxel=v, id=m["id"], label=m["label"]))
+            kinds[int(m["kind"])] += 1
             if int(m["kind"]) != 1:
+                single_identity_local += int(
+                    np.array_equal(np.asarray(m["local"], np.float64), np.eye(3))
+                )
                 continue
             n_pairs += 1
             L = np.asarray(m["local"], np.float64)
             C = np.asarray(m["centre"], np.float64)
             pp = (L @ C).astype(np.float32)
+            P_sel = product(L, C, PRODUCT_ORDER)
+            pp_elements_differ[int((pp != P_sel).sum())] += 1
             for o in ORDERS:
                 P = product(L, C, o)
                 be = bool(np.array_equal(pp, P))
@@ -190,14 +204,29 @@ def cmd_inputs(a: argparse.Namespace) -> int:
                 order_bitflag_ok[o] += int(ok_b)
                 order_maxdiff_ok[o] += int(ok_m)
                 order_ok[o] += int(ok_b and ok_m)
+                if not np.array_equal(P, P_sel):
+                    order_differs[o] += 1
+                    order_differs_both_match[o] += int(ok_b and ok_m)
     for o in ORDERS:
         res["orders"][o] = dict(
             n_pairs=n_pairs,
             bit_equal_flag_matches=order_bitflag_ok[o],
             max_abs_diff_matches=order_maxdiff_ok[o],
             both_match=order_ok[o],
+            product_differs_from_selected=order_differs[o],
+            product_differs_from_selected_yet_both_match=order_differs_both_match[o],
         )
     res["n_records"] = n_seen
+    res["records_by_kind"] = {str(k): kinds[k] for k in sorted(kinds)}
+    res["single_records_identity_local"] = single_identity_local
+    # per pair record, the elements (of 9) where the float64 product cast to float32 differs from
+    # the selected order's product; the stored largest difference pins only one of them
+    res["pair_records_by_elements_differing"] = {
+        str(k): pp_elements_differ[k] for k in sorted(pp_elements_differ)
+    }
+    res["pair_records_two_or_more_elements_differing"] = sum(
+        c for k, c in pp_elements_differ.items() if k >= 2
+    )
     res["n_stored"] = len(stored)
     res["labels_and_indices_differ"] = meta_bad
     res["selected_order"] = PRODUCT_ORDER
