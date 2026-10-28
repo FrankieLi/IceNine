@@ -490,3 +490,12 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   aggregates on all 4 arms for every orientation. Installing the toolchain is a system change
   outside S2; it waits for the owner's full review. Where: ROADMAP Track S row S2;
   benchmarks/s2_taska; MIGRATION_HISTORY S2.
+
+### D-20261027-I7 · S2 · Delegated: plain g_lab order kept; Step 4 compares the library path with C++ directly
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1 and I5: Step 1 measured fewer flips with the plain order (93 of
+  4,000 orientations against 129 with the fmaf chain, all pixel-edge flips), so the library uses
+  it. The Task A C++ check ran on the prototype (fmaf order), so it does not carry over bit for
+  bit; Step 4 reruns the Task A comparison on the library path with the order it ships, and the
+  gate (agreement with C++ at least torch's) applies there again. Where: ROADMAP Track S row S2;
+  docs/todo_s2_fused_c_eval.md Steps 4-6; benchmarks/s2_core.
