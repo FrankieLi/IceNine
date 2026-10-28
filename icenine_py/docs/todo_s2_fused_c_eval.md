@@ -152,6 +152,8 @@ fused path for every orientation of a batch.
    worst-by-ulp one per (row, detector) as `s2_parity.trace` did (Task A check review, fix 5).
    Instrument the fused path through `fused_debug`: `parity_common.py` patches a function the
    fused path never calls (Steps 1-2 review).
+   Rerun `scripts/speed_parity/s2/taska_check.py run` on the library kernel with the shipped
+   g_lab order (D-20261027-I7); the I4 gate applies again.
 5. Step 0c repeated on the library path (single-orientation and batched), plus quick-MC us per
    evaluation and the whole search, single-worker and preflight-gated.
 6. E0 A/B (key off against on, with and without `BatchedQuickMC`), paired and traced; then
