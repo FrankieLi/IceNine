@@ -29,19 +29,28 @@
  * parity rule, D-20261027-I2: such pixel-edge flips are accepted; frame, eta, observability and
  * t > 0 flips are not).
  *
- * Not thread-safe: the scratch buffers live in the context. The GIL is held for the whole call.
+ * Validated on macOS clang (arm64) only; GCC and other platforms are untested (the float order is
+ * pinned by the explicit fmaf calls and -ffp-contract=off, but libm's sin, cos, atan2 and asin
+ * differ between platforms).
+ *
+ * Not thread-safe: the scratch buffers live in the context. The GIL is held for the whole call,
+ * and in the non-debug path no Python code runs between filling the scratch buffers and reading
+ * them (rows and cols are attribute reads; Python objects are created only after stage D), so
+ * calls on one context are serialised. A cost function shared between threads of a free-threaded
+ * Python would need per-call scratch.
  */
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#define PY_ARRAY_UNIQUE_SYMBOL icenine_rasterize_ARRAY_API
 #define NO_IMPORT_ARRAY /* imported by the module init in _rasterize.c */
-#include <numpy/arrayobject.h>
+#include "_stage_d.h" /* numpy/arrayobject.h, MAX_DETECTORS, IceStageDAcc, icenine_stage_d_peak */
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* no multiply-add contraction: every fused multiply-add is an explicit fmaf */
+/* no multiply-add contraction: every fused multiply-add is an explicit fmaf. setup.py also passes
+   -ffp-contract=off for the whole extension (D-20261027-I8), since GCC ignores STDC FP_CONTRACT
+   and documents its optimize pragma as unreliable; the pragmas stay for builds without the flag */
 #if defined(__clang__)
 #pragma clang fp contract(off)
 #elif defined(__GNUC__)
@@ -49,21 +58,8 @@
 #endif
 #pragma STDC FP_CONTRACT OFF
 
-#define FUSED_MAX_DET 8 /* MAX_DETECTORS of _rasterize.c */
+#define FUSED_MAX_DET MAX_DETECTORS /* _stage_d.h */
 #define FUSED_CAPSULE "icenine._rasterize.fused_ctx"
-
-/* Stage-D accumulator: the same typedef as in _rasterize.c (keep the two identical) */
-typedef struct {
-    int pixel_overlap, pixel_on_det, peak_overlap, peak_on_det, n_quality_points, last_n_det_ovlp;
-    double quality;
-} IceStageDAcc;
-
-/* _rasterize.c: the per-peak body of stage D */
-void icenine_stage_d_peak(const unsigned char *const *images, npy_intp image_rows,
-                          npy_intp image_cols, const npy_uint8 *det_hit, const npy_int32 *centers,
-                          const float *vertices, int n_detectors, int pixel_radius, int rule_bits,
-                          const npy_uint8 *obs_in, const npy_uint8 *obs_bright, long *cases,
-                          IceStageDAcc *acc);
 
 typedef struct {
     /* phase: K reflections */
@@ -550,6 +546,9 @@ PyObject *icenine_fused_evaluate(PyObject *self, PyObject *args) {
         Py_DECREF(ro);
         Py_DECREF(co);
         if (PyErr_Occurred()) return NULL;
+        /* stage D reads every frame as image_rows x image_cols; FrameTable checks the size of
+           detector 0 only, so each frame's shape is checked here */
+        const npy_intp want_rows = (npy_intp)image_rows, want_cols = (npy_intp)image_cols;
         Py_ssize_t n_images = PyList_GET_SIZE(c->images);
         const unsigned char *peak_images[FUSED_MAX_DET];
         npy_int32 centers[2 * FUSED_MAX_DET];
@@ -568,6 +567,16 @@ PyObject *icenine_fused_evaluate(PyObject *self, PyObject *args) {
                     !PyArray_IS_C_CONTIGUOUS((PyArrayObject *)item)) {
                     PyErr_SetString(PyExc_TypeError,
                                     "frame images must be C-contiguous 2D uint8 arrays");
+                    return NULL;
+                }
+                if (PyArray_DIM((PyArrayObject *)item, 0) != want_rows ||
+                    PyArray_DIM((PyArrayObject *)item, 1) != want_cols) {
+                    PyErr_Format(PyExc_ValueError,
+                                 "frame %zd (detector %d) has shape (%zd, %zd), expected the "
+                                 "FrameTable size (%zd, %zd)",
+                                 img_idx, d, (Py_ssize_t)PyArray_DIM((PyArrayObject *)item, 0),
+                                 (Py_ssize_t)PyArray_DIM((PyArrayObject *)item, 1),
+                                 (Py_ssize_t)want_rows, (Py_ssize_t)want_cols);
                     return NULL;
                 }
                 peak_images[d] = (const unsigned char *)PyArray_DATA((PyArrayObject *)item);

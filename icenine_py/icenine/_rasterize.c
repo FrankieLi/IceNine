@@ -17,9 +17,9 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 /* the module has a second translation unit (_fused_eval.c, built with ICENINE_FUSED): both share
-   one numpy C-API table, imported here in the module init */
-#define PY_ARRAY_UNIQUE_SYMBOL icenine_rasterize_ARRAY_API
-#include <numpy/arrayobject.h>
+   one numpy C-API table, imported here in the module init, and the stage-D declarations of
+   _stage_d.h (which includes numpy/arrayobject.h) */
+#include "_stage_d.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,15 +28,7 @@
 #define MAX_POLY_VERTS 16
 /* Maximum scanlines for edge table */
 #define MAX_SCANLINES 4096
-/* Maximum detectors */
-#define MAX_DETECTORS 8
-
-/* Stage-D accumulator of one evaluation (the OverlapInfo fields). The same typedef is in
-   _fused_eval.c; keep the two identical. */
-typedef struct {
-    int pixel_overlap, pixel_on_det, peak_overlap, peak_on_det, n_quality_points, last_n_det_ovlp;
-    double quality;
-} IceStageDAcc;
+/* MAX_DETECTORS and IceStageDAcc: _stage_d.h */
 
 /* ---- Sutherland-Hodgman polygon clipping ---- */
 
@@ -604,7 +596,7 @@ static PyObject* pixel_radius_overlap(PyObject *self, PyObject *args) {
  *   obs_in, obs_bright: (n_det,) uint8 of the ray rule, or both NULL; cases: its 8 counters.
  *
  * Not static: _fused_eval.c (a second translation unit of this module) calls it, so stage D exists
- * once.
+ * once (declared hidden in _stage_d.h).
  */
 void icenine_stage_d_peak(
     const unsigned char *const *images, npy_intp image_rows, npy_intp image_cols,
@@ -1159,11 +1151,8 @@ static PyObject* ray_flags_c(PyObject *self, PyObject *args) {
 
 /* ---- Module definition ---- */
 
-#ifdef ICENINE_FUSED
-/* the fused evaluate (S2), defined in _fused_eval.c */
-PyObject *icenine_fused_context(PyObject *self, PyObject *args);
-PyObject *icenine_fused_evaluate(PyObject *self, PyObject *args);
-#endif
+/* icenine_fused_context, icenine_fused_evaluate (S2, ICENINE_FUSED): _fused_eval.c, declared in
+   _stage_d.h */
 
 static PyMethodDef rasterize_methods[] = {
     {"triangle_overlap", triangle_overlap, METH_VARARGS,
@@ -1212,7 +1201,9 @@ PyMODINIT_FUNC PyInit__rasterize(void) {
     /* 1 = vertex-lit rule that also lit on produced pixels (superset of C++); 2 = exact C++ rule */
     if (m != NULL) PyModule_AddIntConstant(m, "HAS_VERTEX_LIT", 2);
 #ifdef ICENINE_FUSED
-    /* 1 = fused_context / fused_evaluate (S2, the FusedCost key; _fused_eval.c) */
+    /* 1 = fused_context / fused_evaluate (S2, the FusedCost key; _fused_eval.c). Bump the level
+       (and the level cost_functions._C_HAS_FUSED requires) when the fused_context argument list
+       changes, so that a stale build falls back to torch instead of raising TypeError */
     if (m != NULL) PyModule_AddIntConstant(m, "HAS_FUSED", 1);
 #endif
     return m;
