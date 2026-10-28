@@ -1,14 +1,14 @@
 <!-- table:s2_taska_cpp -->
-| arm | path | n | peak_counts_equal | pixel_counts_equal |
-|---|---|---|---|---|
-| screen, CppEdgeRules | torch (Task A, stored) | 2230 | 2229 | n/a |
-| screen, CppEdgeRules | torch (fb42d8c) | 2230 | 2229 | n/a |
-| screen, CppEdgeRules | fused portable | 2230 | 2229 | n/a |
-| screen, CppEdgeRules | fused accelerate | 2230 | 2229 | n/a |
-| complete cost, CppEdgeRules | torch (Task A, stored) | 2230 | 2230 | 1985 |
-| complete cost, CppEdgeRules | torch (fb42d8c) | 2230 | 2230 | 1985 |
-| complete cost, CppEdgeRules | fused portable | 2230 | 2230 | 1984 |
-| complete cost, CppEdgeRules | fused accelerate | 2230 | 2230 | 1985 |
+| arm | path | n | peak_counts_equal | pixel_counts_equal | quality_within_1e6 |
+|---|---|---|---|---|---|
+| screen, CppEdgeRules | torch (Task A, stored) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | torch (fb42d8c) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | fused portable | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | fused accelerate | 2230 | 2229 | n/a | n/a |
+| complete cost, CppEdgeRules | torch (Task A, stored) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | torch (fb42d8c) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | fused portable | 2230 | 2230 | 1984 | 2229 |
+| complete cost, CppEdgeRules | fused accelerate | 2230 | 2230 | 1985 | 2228 |
 <!-- /table:s2_taska_cpp -->
 
 <!-- table:s2_taska_inputs -->
