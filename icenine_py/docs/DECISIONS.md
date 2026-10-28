@@ -532,3 +532,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   FusedCost is documented as validated on macOS clang only, and a GCC or Linux check is listed for
   the owner's review rather than installing a compiler. Where: ROADMAP Track S row S2; README
   FusedCost row; benchmarks/s2_core.
+
+### D-20261028-I1 · S2 · Delegated: Step 3 design accepted; two wording items and a GPU check deferred to Steps 4-6
+- 2026-10-28, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1, after the Step 3 review (APPROVE, 4 record fixes): accept the
+  batched fused dispatch in BatchedCostEvaluator.evaluate_many (not inside _forward_compact, since
+  the fused entry includes stage D), the new variant="fused", HAS_FUSED staying 1 with a guarded
+  import for the batched entry, and the one declaration line added to _stage_d.h outside the
+  listed scope (the header is where shared entry points live). Deferred to Steps 4-6: the fallback
+  warning text in cost_functions.py (says torch evaluate; the batched fallback is the torch
+  compact variant), README rows 86 and 91, and a Step 5 check of whether GPU_MIN_BATCH (64,
+  measured against the torch compact variant) should still send batches to the GPU when FusedCost
+  is on. Where: ROADMAP Track S row S2; plan todo_s2_fused_c_eval.md Steps 4-6;
+  .claude/reports/20261028-0930-review-s2-batched.md.
