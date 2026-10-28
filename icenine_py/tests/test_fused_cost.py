@@ -271,6 +271,51 @@ def test_mode_changed_on_live_object(s2: Dict[str, Any], fresh_warnings: None) -
         cf.evaluate(R[0], ds.verts, ds.phase)
 
 
+@needs_fused
+def test_fallback_vertices_not_float32(s2: Dict[str, Any], fresh_warnings: None) -> None:
+    """Vertices that are not a (3, 3) float32 CPU tensor use the torch path, with one warning
+    (review fix 1). float16 is an input the torch path accepts (float64 raises a dtype error in
+    torch's matmul with either key)."""
+    ds, R = s2["ds"], s2["R"]
+    verts16 = ds.verts.to(torch.float16)
+    torch_cf = ds.cost_fn(MODES["local"])
+    cf = ds.cost_fn(dict(MODES["local"], fused_cost=True))
+    with pytest.warns(RuntimeWarning, match="voxel vertices") as rec:
+        for i in range(3):
+            assert _tuple(cf.evaluate(R[i], verts16, ds.phase)) == _tuple(
+                torch_cf.evaluate(R[i], verts16, ds.phase)
+            )
+    assert sum("FusedCost" in str(w.message) for w in rec) == 1
+    assert cf.eval_count == 3
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # float32 vertices on the same object: no warning
+        cf.evaluate(R[0], ds.verts, ds.phase)
+
+
+def test_reason_missing_extension(monkeypatch: Any) -> None:
+    """A missing extension has its own reason, not the HAS_FUSED one (review fix 5)."""
+    monkeypatch.setattr(CF, "_HAS_C_RASTERIZE", False)
+    monkeypatch.setattr(CF, "_C_HAS_FUSED", False)
+    reason = fused_unsupported_reason(object())  # type: ignore[arg-type]
+    assert reason is not None and "not built" in reason and "HAS_FUSED" not in reason
+    monkeypatch.setattr(CF, "_HAS_C_RASTERIZE", True)
+    reason = fused_unsupported_reason(object())  # type: ignore[arg-type]
+    assert reason is not None and "HAS_FUSED" in reason
+
+
+@needs_fused
+def test_phase_without_reflections(s2: Dict[str, Any]) -> None:
+    """A phase without reflections gives the empty OverlapInfo, as the torch path does."""
+    ds, R = s2["ds"], s2["R"]
+    cf = ds.cost_fn(dict(MODES["local"], fused_cost=True))
+    torch_cf = ds.cost_fn(MODES["local"])
+    phase = max(cf._phase_recip_vecs) + 1
+    assert _tuple(cf.evaluate(R[0], ds.verts, phase)) == _tuple(
+        torch_cf.evaluate(R[0], ds.verts, phase)
+    )
+    assert cf.eval_count == 1
+
+
 # ---------------------------------------------------------------------------------------------
 # 5. the lazy frame fill and the context rebuild
 # ---------------------------------------------------------------------------------------------
@@ -293,6 +338,45 @@ def test_lazy_frame_fill(s2: Dict[str, Any]) -> None:
     assert table._filled[np.asarray(first)].all()
     assert b == _tuple(ds.cost_fn(dict(kw, fused_cost=True)).evaluate(R[0], ds.verts, ds.phase))
     assert cf.eval_count == 1
+
+
+@needs_fused
+def test_frames_still_missing_after_ensure(s2: Dict[str, Any], monkeypatch: Any) -> None:
+    ds, R = s2["ds"], s2["R"]
+    cf = ds.cost_fn(dict(MODES["local"], fused_cost=True))
+    monkeypatch.setattr(type(cf.frame_table()), "ensure", lambda self, frames: None)
+    with pytest.raises(RuntimeError, match="still missing after ensure"):
+        cf.evaluate(R[0], ds.verts, ds.phase)
+
+
+@needs_fused
+def test_frame_of_another_size_is_rejected(s2: Dict[str, Any]) -> None:
+    """A frame of detector 1 whose shape differs from the FrameTable size (FrameTable checks
+    detector 0 only) raises ValueError instead of being read out of bounds (review fix 2)."""
+    ds, R = s2["ds"], s2["R"]
+    cf = ds.cost_fn(dict(MODES["local"], fused_cost=True))
+    n_det = len(cf.detector_list)
+    if n_det < 2:
+        pytest.skip("needs a dataset with two or more detectors")
+    for i in range(len(R)):
+        d = cf.fused_debug(R[i], ds.verts, ds.phase)  # fills the frames of this orientation
+        rows = np.flatnonzero((d["frame"] >= 0) & d["hit"][:, 1].astype(bool))
+        if rows.size:
+            break
+    else:
+        pytest.skip("no orientation of the set hits detector 1")
+    table = cf.frame_table()
+    idx = int(d["frame"][rows[0]]) * n_det + 1
+    good = table.images[idx]
+    assert good.shape == (table.rows, table.cols)
+    table.images[idx] = np.zeros((table.rows, table.cols + 1), dtype=np.uint8)
+    try:
+        with pytest.raises(ValueError, match="FrameTable size"):
+            cf.evaluate(R[i], ds.verts, ds.phase)
+    finally:
+        table.images[idx] = good
+    ref = ds.cost_fn(dict(MODES["local"], fused_cost=True)).evaluate(R[i], ds.verts, ds.phase)
+    assert _tuple(cf.evaluate(R[i], ds.verts, ds.phase)) == _tuple(ref)
 
 
 def _results(cf: Any, ds: Any, R: np.ndarray) -> List[tuple]:

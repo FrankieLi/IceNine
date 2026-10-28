@@ -1029,7 +1029,12 @@ FUSED_ARGUMENTS: Dict[str, str] = {
     "fused_cost": "key",
 }
 
-_FUSED_MAX_DETECTORS = 8  # MAX_DETECTORS of _rasterize.c
+_FUSED_MAX_DETECTORS = 8  # MAX_DETECTORS of _stage_d.h
+_FUSED_BUILD_HINT = (
+    "build it: cd icenine_py && uv run --no-project --with setuptools --with numpy python setup.py "
+    "build_ext --inplace"
+)
+_FUSED_VERTICES_REASON = "voxel vertices that are not a (3, 3) float32 tensor on the CPU"
 _WARNED_FUSED: set = set()  # reasons already warned about (one RuntimeWarning per reason)
 
 
@@ -1038,11 +1043,12 @@ def fused_unsupported_reason(cost_fn: "VoxelCostFunction") -> Optional[str]:
     Checks every "fallback" argument of ``FUSED_ARGUMENTS`` and the build of the extension; the
     dtypes and the beam deflection are checked when the context is built
     (``_FusedContext.reason``)."""
-    if not (_HAS_C_RASTERIZE and _C_HAS_FUSED):
+    if not _HAS_C_RASTERIZE:
+        return "the _rasterize C extension is not built; " + _FUSED_BUILD_HINT
+    if not _C_HAS_FUSED:
         return (
             "the _rasterize extension was built without the fused evaluate (HAS_FUSED); rebuild: "
-            "cd icenine_py && uv run --no-project --with setuptools --with numpy python setup.py "
-            "build_ext --inplace"
+            + _FUSED_BUILD_HINT
         )
     if cost_fn.mode != "hard":
         return "soft mode"
@@ -1056,14 +1062,16 @@ def fused_unsupported_reason(cost_fn: "VoxelCostFunction") -> Optional[str]:
     return None
 
 
-def _warn_fused_fallback(reason: str) -> None:
+def _warn_fused_fallback(reason: str, stacklevel: int = 5) -> None:
+    """One ``RuntimeWarning`` per reason; ``stacklevel`` points at the caller of
+    ``VoxelCostFunction.evaluate`` (5 from ``_fused_context``, 4 from ``_evaluate_fused``)."""
     if reason not in _WARNED_FUSED:
         _WARNED_FUSED.add(reason)
         warnings.warn(
             f"FusedCost is not supported for this cost function ({reason}): using the torch "
             "evaluate",
             RuntimeWarning,
-            stacklevel=5,  # the caller of VoxelCostFunction.evaluate
+            stacklevel=stacklevel,
         )
 
 
@@ -1094,7 +1102,12 @@ class _FusedContext:
     ``BraggConstants.is_for``), a cost mode changed on the live object, or the geometry: the
     sample-to-lab matrix or the beam direction replaced or modified in place (tensor version), a
     detector's plane, position, frame origin or basis tensors replaced (``Detector.set_position``
-    and ``set_orientation`` replace them) or its pixel size changed."""
+    and ``set_orientation`` replace them) or its pixel size changed.
+
+    **Contract (D-20261027-I8).** The detector tensors are compared by identity only: an in-place
+    edit of a detector's plane, position, frame origin or basis tensors is not detected (checking
+    their versions would add cost to every call). Move a detector with ``Detector.set_position`` or
+    ``set_orientation``, which replace the tensors; no library code edits them in place."""
 
     __slots__ = (
         "capsule",
@@ -1495,6 +1508,7 @@ class VoxelCostFunction:
             return None
         verts = self._fused_vertices(voxel_vertices)
         if verts is None:
+            _warn_fused_fallback(_FUSED_VERTICES_REASON, stacklevel=4)
             return None
         r = _c_fused_evaluate(ctx.capsule, orientation, verts)
         if type(r) is list:
