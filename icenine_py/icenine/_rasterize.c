@@ -16,7 +16,10 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <numpy/arrayobject.h>
+/* the module has a second translation unit (_fused_eval.c, built with ICENINE_FUSED): both share
+   one numpy C-API table, imported here in the module init, and the stage-D declarations of
+   _stage_d.h (which includes numpy/arrayobject.h) */
+#include "_stage_d.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,8 +28,7 @@
 #define MAX_POLY_VERTS 16
 /* Maximum scanlines for edge table */
 #define MAX_SCANLINES 4096
-/* Maximum detectors */
-#define MAX_DETECTORS 8
+/* MAX_DETECTORS and IceStageDAcc: _stage_d.h */
 
 /* ---- Sutherland-Hodgman polygon clipping ---- */
 
@@ -578,6 +580,178 @@ static PyObject* pixel_radius_overlap(PyObject *self, PyObject *args) {
     return Py_BuildValue("(ii)", found_in_bounds, found_bright);
 }
 
+/* ---- Stage D: one peak (shared by stage_d_overlap and the fused evaluate, _fused_eval.c) ---- */
+
+/**
+ * icenine_stage_d_peak — the per-peak body of stage D: overlap of one peak on every detector, the
+ * optional ray-consistency rule, the qualified-peak count and the accumulation into ``acc``
+ * (OverlapInfo.update_counts and the Welford mean of OverlapInfo.update_quality).
+ *
+ *   images[d]: the binary frame (uint8, image_rows x image_cols) of this peak on detector d, or
+ *              NULL (no image: the detector is skipped, as an index outside the image list).
+ *   det_hit[d]: 1 if all three vertices hit detector d's plane (t > 0).
+ *   centers: (n_det, 2) int [col, row] when pixel_radius > 0; vertices: (n_det, 3, 2) float32
+ *            [col, row] when pixel_radius == 0 (converted to double, as stage_d_overlap always did).
+ *   rule_bits: 1 = C++ CountQualifiedPeaks rule, 2 = CppEdgeRules detector-lit rule.
+ *   obs_in, obs_bright: (n_det,) uint8 of the ray rule, or both NULL; cases: its 8 counters.
+ *
+ * Not static: _fused_eval.c (a second translation unit of this module) calls it, so stage D exists
+ * once (declared hidden in _stage_d.h).
+ */
+void icenine_stage_d_peak(
+    const unsigned char *const *images, npy_intp image_rows, npy_intp image_cols,
+    const npy_uint8 *det_hit, const npy_int32 *centers, const float *vertices,
+    int n_detectors, int pixel_radius, int rule_bits,
+    const npy_uint8 *obs_in, const npy_uint8 *obs_bright, long *cases,
+    IceStageDAcc *acc
+) {
+    /* rule_bits is a bit field: 1 = C++ CountQualifiedPeaks rule, 2 = CppEdgeRules detector-lit
+       rule, exactly C++ ShapePixelOverlapCounter (OverlapInfo.h:501-514): lit iff the pixel overlap
+       is > 0 or a vertex is in bounds, so a triangle with pixels but no vertex in bounds stays unlit
+       (without bit 2: lit on any produced pixel). Bit 2 acts only in the triangle (pixel_radius <= 0)
+       branch; 1 is what older callers pass */
+    const int cpp_vertex_lit = (rule_bits & 2) != 0;
+
+    int detector_lit[MAX_DETECTORS];
+    int spot_overlap[MAX_DETECTORS];
+    int peak_pixel_overlap = 0;
+    int peak_pixel_on_det = 0;
+
+    memset(detector_lit, 0, n_detectors * sizeof(int));
+    memset(spot_overlap, 0, n_detectors * sizeof(int));
+
+    for (int d = 0; d < n_detectors; d++) {
+        if (!det_hit[d]) continue;
+        const unsigned char *image_data = images[d];
+        if (image_data == NULL) continue;
+
+        if (pixel_radius > 0) {
+            int cx = centers[2 * d];
+            int cy = centers[2 * d + 1];
+
+            int in_bounds, bright;
+            pixel_radius_overlap_uint8(
+                image_data, image_rows, image_cols,
+                cx, cy, pixel_radius,
+                &in_bounds, &bright
+            );
+
+            if (in_bounds) {
+                detector_lit[d] = 1;
+                peak_pixel_on_det++;
+            }
+            if (bright) {
+                peak_pixel_overlap++;
+                spot_overlap[d] = 1;
+            }
+        } else {
+            const float *v = vertices + 6 * d;
+            double v0x = (double)v[0];
+            double v0y = (double)v[1];
+            double v1x = (double)v[2];
+            double v1y = (double)v[3];
+            double v2x = (double)v[4];
+            double v2y = (double)v[5];
+
+            int n_overlap, n_lit;
+            triangle_overlap_uint8(
+                image_data, image_rows, image_cols,
+                v0x, v0y, v1x, v1y, v2x, v2y,
+                &n_overlap, &n_lit
+            );
+
+            peak_pixel_overlap += n_overlap;
+            peak_pixel_on_det += n_lit;
+
+            if (n_overlap > 0) {
+                detector_lit[d] = 1;
+                spot_overlap[d] = 1;
+            } else if (cpp_vertex_lit) {
+                /* CppEdgeRules, exact C++ ShapePixelOverlapCounter (OverlapInfo.h:501-514): a
+                   detector is lit iff the pixel overlap is > 0 (branch above) or one of the
+                   three vertices is in bounds (IsInBound). There is no "pixels produced"
+                   clause, so a triangle that covers image pixels with all three vertices out of
+                   bounds (near a corner) stays unlit. Without CppEdgeRules the default rule
+                   (branch below: lit on any produced pixel) is unchanged. */
+                double vx[3] = {v0x, v1x, v2x}, vy[3] = {v0y, v1y, v2y};
+                for (int q = 0; q < 3; q++) {
+                    double px = (vx[q] < 0) ? -1.0 : floor(vx[q]);
+                    double py = (vy[q] < 0) ? -1.0 : floor(vy[q]);
+                    if (px >= 0 && px < image_cols && py >= 0 && py < image_rows) {
+                        detector_lit[d] = 1;
+                        break;
+                    }
+                }
+            } else if (n_lit > 0) {
+                detector_lit[d] = 1;
+            }
+        }
+    }
+
+    /* Ray-consistency rule (see ray_overlap.py): once the predicted spot is bright on
+       detector 0, a later detector d whose predicted spot is not bright is decided by the
+       observed ray. a: predicted bright (nothing). b: predicted lit and dark, observed ray
+       bright -> overlap. c: both in bounds and dark -> unchanged (invalid under the C++
+       rule). d: both out of bounds -> unchanged (unlit tolerated). e: predicted lit and
+       dark, observed out of bounds -> treated as unlit. f: predicted out of bounds,
+       observed in bounds and dark -> unchanged (always forgiven, as in the C++ rule; the
+       invalidating variant f1 was dropped 2026-10-12). Predicted out of bounds with the observed ray bright is
+       counted separately (f_bright) and left unchanged.
+       Pixel accounting in triangle mode (pixel_radius 0): the detector-d triangle already
+       added n_lit pixels to peak_pixel_on_det. Case b adds ONE overlap pixel (a partial
+       credit against n_lit pixels) and case e removes ONE on-detector pixel (an "unlit"
+       detector keeps n_lit-1 pixels in the denominator). Owner decision 2026-10-12: kept as
+       is, to be revisited; see open question 9 in
+       docs/findings_finisher_mc_study_2026-10.md. */
+    if (obs_in && spot_overlap[0]) {
+        cases[7]++;
+        for (int d = 1; d < n_detectors; d++) {
+            int oi = obs_in[d];
+            int ob = obs_bright[d];
+            if (spot_overlap[d]) { cases[0]++; continue; }
+            if (detector_lit[d]) {
+                if (ob) { spot_overlap[d] = 1; peak_pixel_overlap++; cases[1]++; }
+                else if (!oi) { detector_lit[d] = 0; peak_pixel_on_det--; cases[4]++; }
+                else cases[2]++;
+            } else if (!oi) {
+                cases[3]++;
+            } else if (ob) {
+                cases[6]++;
+            } else {
+                cases[5]++;
+            }
+        }
+    }
+
+    /* Qualified peak counting */
+    int peak_on_det, peak_ovlp, n_det_ovlp;
+    count_qualified_peaks_c(
+        detector_lit, spot_overlap, n_detectors,
+        &peak_on_det, &peak_ovlp, &n_det_ovlp, rule_bits & 1
+    );
+
+    /* Update counts (matches OverlapInfo.update_counts) */
+    acc->last_n_det_ovlp = n_det_ovlp;
+    acc->pixel_overlap += peak_pixel_overlap;
+    acc->pixel_on_det += peak_pixel_on_det;
+    acc->peak_overlap += peak_ovlp;
+    acc->peak_on_det += peak_on_det;
+
+    /* Update quality (Welford mean, matches OverlapInfo.update_quality) */
+    if (peak_pixel_on_det > 0 && n_detectors > 0) {
+        double pixel_ratio = (double)peak_pixel_overlap / peak_pixel_on_det;
+        double cur_quality;
+        if (n_det_ovlp > 0) {
+            double det_ratio = (double)n_det_ovlp / n_detectors;
+            cur_quality = pixel_ratio * det_ratio;
+        } else {
+            cur_quality = 0.0;
+        }
+        acc->quality += (cur_quality - acc->quality) / (acc->n_quality_points + 1);
+        acc->n_quality_points++;
+    }
+}
+
 /* ---- Batch Stage D overlap function ---- */
 
 /**
@@ -740,190 +914,45 @@ static PyObject* stage_d_overlap(PyObject *self, PyObject *args) {
         image_ptrs[i] = (const unsigned char *)PyArray_DATA(img);
     }
 
-    /* Accumulation variables */
-    int total_pixel_overlap = 0;
-    int total_pixel_on_det = 0;
-    int total_peak_overlap = 0;
-    int total_peak_on_det = 0;
-    double quality = 0.0;
-    int n_quality_points = 0;
-    int last_n_det_ovlp = 0;  /* detectors_overlap from last peak */
-
-    /* cpp_rule is a bit field: 1 = C++ CountQualifiedPeaks rule, 2 = CppEdgeRules detector-lit
-       rule, exactly C++ ShapePixelOverlapCounter (OverlapInfo.h:501-514): lit iff the pixel overlap
-       is > 0 or a vertex is in bounds, so a triangle with pixels but no vertex in bounds stays unlit
-       (without bit 2: lit on any produced pixel). Bit 2 acts only in the triangle (pixel_radius <= 0)
-       branch; 1 is what older callers pass */
-    const int cpp_vertex_lit = (cpp_rule & 2) != 0;
-
-    /* Main loop over peaks */
+    /* Main loop over peaks: the per-peak body is icenine_stage_d_peak (shared with the fused
+       evaluate, _fused_eval.c) */
+    IceStageDAcc acc = {0, 0, 0, 0, 0, 0, 0.0};
+    const unsigned char *peak_images[MAX_DETECTORS];
     for (int p = 0; p < n_peaks; p++) {
         int wedge_idx = wedge_indices[p];
-
-        int detector_lit[MAX_DETECTORS];
-        int spot_overlap[MAX_DETECTORS];
-        int peak_pixel_overlap = 0;
-        int peak_pixel_on_det = 0;
-
-        memset(detector_lit, 0, n_detectors * sizeof(int));
-        memset(spot_overlap, 0, n_detectors * sizeof(int));
-
+        /* image_list[wedge_idx * n_detectors + d]; NULL outside the list (skipped) */
         for (int d = 0; d < n_detectors; d++) {
-            /* det_hit_mask is (M, N_det), row-major */
-            if (!det_hit_mask[p * n_detectors + d]) continue;
-
-            /* Look up image: image_list[wedge_idx * n_detectors + d] */
             Py_ssize_t img_idx = (Py_ssize_t)wedge_idx * n_detectors + d;
-            if (img_idx < 0 || img_idx >= n_images) continue;
-
-            const unsigned char *image_data = image_ptrs[img_idx];
-
-            if (pixel_radius > 0) {
-                /* pixel_centers is (M, N_det, 2), row-major */
-                int base = (p * n_detectors + d) * 2;
-                int cx = pixel_centers[base];
-                int cy = pixel_centers[base + 1];
-
-                int in_bounds, bright;
-                pixel_radius_overlap_uint8(
-                    image_data, image_rows, image_cols,
-                    cx, cy, pixel_radius,
-                    &in_bounds, &bright
-                );
-
-                if (in_bounds) {
-                    detector_lit[d] = 1;
-                    peak_pixel_on_det++;
-                }
-                if (bright) {
-                    peak_pixel_overlap++;
-                    spot_overlap[d] = 1;
-                }
-            } else {
-                /* pixel_vertices is (M, N_det, 3, 2), row-major */
-                int base = ((p * n_detectors + d) * 3) * 2;
-                double v0x = (double)pixel_vertices[base + 0];
-                double v0y = (double)pixel_vertices[base + 1];
-                double v1x = (double)pixel_vertices[base + 2];
-                double v1y = (double)pixel_vertices[base + 3];
-                double v2x = (double)pixel_vertices[base + 4];
-                double v2y = (double)pixel_vertices[base + 5];
-
-                int n_overlap, n_lit;
-                triangle_overlap_uint8(
-                    image_data, image_rows, image_cols,
-                    v0x, v0y, v1x, v1y, v2x, v2y,
-                    &n_overlap, &n_lit
-                );
-
-                peak_pixel_overlap += n_overlap;
-                peak_pixel_on_det += n_lit;
-
-                if (n_overlap > 0) {
-                    detector_lit[d] = 1;
-                    spot_overlap[d] = 1;
-                } else if (cpp_vertex_lit) {
-                    /* CppEdgeRules, exact C++ ShapePixelOverlapCounter (OverlapInfo.h:501-514): a
-                       detector is lit iff the pixel overlap is > 0 (branch above) or one of the
-                       three vertices is in bounds (IsInBound). There is no "pixels produced"
-                       clause, so a triangle that covers image pixels with all three vertices out of
-                       bounds (near a corner) stays unlit. Without CppEdgeRules the default rule
-                       (branch below: lit on any produced pixel) is unchanged. */
-                    double vx[3] = {v0x, v1x, v2x}, vy[3] = {v0y, v1y, v2y};
-                    for (int q = 0; q < 3; q++) {
-                        double px = (vx[q] < 0) ? -1.0 : floor(vx[q]);
-                        double py = (vy[q] < 0) ? -1.0 : floor(vy[q]);
-                        if (px >= 0 && px < image_cols && py >= 0 && py < image_rows) {
-                            detector_lit[d] = 1;
-                            break;
-                        }
-                    }
-                } else if (n_lit > 0) {
-                    detector_lit[d] = 1;
-                }
-            }
+            peak_images[d] = (img_idx < 0 || img_idx >= n_images) ? NULL : image_ptrs[img_idx];
         }
-
-        /* Ray-consistency rule (see ray_overlap.py): once the predicted spot is bright on
-           detector 0, a later detector d whose predicted spot is not bright is decided by the
-           observed ray. a: predicted bright (nothing). b: predicted lit and dark, observed ray
-           bright -> overlap. c: both in bounds and dark -> unchanged (invalid under the C++
-           rule). d: both out of bounds -> unchanged (unlit tolerated). e: predicted lit and
-           dark, observed out of bounds -> treated as unlit. f: predicted out of bounds,
-           observed in bounds and dark -> unchanged (always forgiven, as in the C++ rule; the
-           invalidating variant f1 was dropped 2026-10-12). Predicted out of bounds with the observed ray bright is
-           counted separately (f_bright) and left unchanged.
-           Pixel accounting in triangle mode (pixel_radius 0): the detector-d triangle already
-           added n_lit pixels to peak_pixel_on_det. Case b adds ONE overlap pixel (a partial
-           credit against n_lit pixels) and case e removes ONE on-detector pixel (an "unlit"
-           detector keeps n_lit-1 pixels in the denominator). Owner decision 2026-10-12: kept as
-           is, to be revisited; see open question 9 in
-           docs/findings_finisher_mc_study_2026-10.md. */
-        if (obs_in && spot_overlap[0]) {
-            cases[7]++;
-            for (int d = 1; d < n_detectors; d++) {
-                int oi = obs_in[p * n_detectors + d];
-                int ob = obs_bright[p * n_detectors + d];
-                if (spot_overlap[d]) { cases[0]++; continue; }
-                if (detector_lit[d]) {
-                    if (ob) { spot_overlap[d] = 1; peak_pixel_overlap++; cases[1]++; }
-                    else if (!oi) { detector_lit[d] = 0; peak_pixel_on_det--; cases[4]++; }
-                    else cases[2]++;
-                } else if (!oi) {
-                    cases[3]++;
-                } else if (ob) {
-                    cases[6]++;
-                } else {
-                    cases[5]++;
-                }
-            }
-        }
-
-        /* Qualified peak counting */
-        int peak_on_det, peak_ovlp, n_det_ovlp;
-        count_qualified_peaks_c(
-            detector_lit, spot_overlap, n_detectors,
-            &peak_on_det, &peak_ovlp, &n_det_ovlp, cpp_rule & 1
+        icenine_stage_d_peak(
+            peak_images, image_rows, image_cols,
+            det_hit_mask + (npy_intp)p * n_detectors,
+            pixel_centers ? pixel_centers + (npy_intp)p * n_detectors * 2 : NULL,
+            pixel_vertices ? pixel_vertices + (npy_intp)p * n_detectors * 6 : NULL,
+            n_detectors, pixel_radius, cpp_rule,
+            obs_in ? obs_in + (npy_intp)p * n_detectors : NULL,
+            obs_bright ? obs_bright + (npy_intp)p * n_detectors : NULL,
+            cases, &acc
         );
-
-        /* Update counts (matches OverlapInfo.update_counts) */
-        last_n_det_ovlp = n_det_ovlp;
-        total_pixel_overlap += peak_pixel_overlap;
-        total_pixel_on_det += peak_pixel_on_det;
-        total_peak_overlap += peak_ovlp;
-        total_peak_on_det += peak_on_det;
-
-        /* Update quality (Welford mean, matches OverlapInfo.update_quality) */
-        if (peak_pixel_on_det > 0 && n_detectors > 0) {
-            double pixel_ratio = (double)peak_pixel_overlap / peak_pixel_on_det;
-            double cur_quality;
-            if (n_det_ovlp > 0) {
-                double det_ratio = (double)n_det_ovlp / n_detectors;
-                cur_quality = pixel_ratio * det_ratio;
-            } else {
-                cur_quality = 0.0;
-            }
-            quality += (cur_quality - quality) / (n_quality_points + 1);
-            n_quality_points++;
-        }
     }
 
     free(image_ptrs);
 
     if (obs_in) {
         return Py_BuildValue("(iiiidii(llllllll))",
-            total_pixel_overlap, total_pixel_on_det, total_peak_overlap, total_peak_on_det,
-            quality, n_quality_points, last_n_det_ovlp,
+            acc.pixel_overlap, acc.pixel_on_det, acc.peak_overlap, acc.peak_on_det,
+            acc.quality, acc.n_quality_points, acc.last_n_det_ovlp,
             cases[0], cases[1], cases[2], cases[3], cases[4], cases[5], cases[6], cases[7]);
     }
     return Py_BuildValue("(iiiidii)",
-        total_pixel_overlap,
-        total_pixel_on_det,
-        total_peak_overlap,
-        total_peak_on_det,
-        quality,
-        n_quality_points,
-        last_n_det_ovlp  /* detectors_overlap from last peak, matching Python fallback */
+        acc.pixel_overlap,
+        acc.pixel_on_det,
+        acc.peak_overlap,
+        acc.peak_on_det,
+        acc.quality,
+        acc.n_quality_points,
+        acc.last_n_det_ovlp  /* detectors_overlap from last peak, matching Python fallback */
     );
 }
 
@@ -1122,6 +1151,9 @@ static PyObject* ray_flags_c(PyObject *self, PyObject *args) {
 
 /* ---- Module definition ---- */
 
+/* icenine_fused_context, icenine_fused_evaluate (S2, ICENINE_FUSED): _fused_eval.c, declared in
+   _stage_d.h */
+
 static PyMethodDef rasterize_methods[] = {
     {"triangle_overlap", triangle_overlap, METH_VARARGS,
      "triangle_overlap(image, v0x, v0y, v1x, v1y, v2x, v2y) -> (overlap, lit)\n\n"
@@ -1141,6 +1173,15 @@ static PyMethodDef rasterize_methods[] = {
      "      quality, n_quality_points, detectors_overlap)\n\n"
      "Batch Stage D overlap: processes all peaks in a single C call.\n"
      "Uses uint8 binary images from ImageData.get_binary_numpy()."},
+#ifdef ICENINE_FUSED
+    {"fused_context", icenine_fused_context, METH_VARARGS,
+     "fused_context(...) -> capsule: the per-cost-function context of fused_evaluate\n"
+     "(see _fused_eval.c and cost_functions._FusedContext)."},
+    {"fused_evaluate", icenine_fused_evaluate, METH_VARARGS,
+     "fused_evaluate(ctx, R, verts[, debug]) -> (pixel_overlap, pixel_on_det, peak_overlap,\n"
+     "    peak_on_det, quality, n_quality_points, detectors_overlap), or the list of frames the\n"
+     "    FrameTable must fill first; debug=1: a dict of the intermediates (_fused_eval.c)."},
+#endif
     {NULL, NULL, 0, NULL}
 };
 
@@ -1159,5 +1200,11 @@ PyMODINIT_FUNC PyInit__rasterize(void) {
     if (m != NULL) PyModule_AddIntConstant(m, "HAS_RAY_RULE", 1);
     /* 1 = vertex-lit rule that also lit on produced pixels (superset of C++); 2 = exact C++ rule */
     if (m != NULL) PyModule_AddIntConstant(m, "HAS_VERTEX_LIT", 2);
+#ifdef ICENINE_FUSED
+    /* 1 = fused_context / fused_evaluate (S2, the FusedCost key; _fused_eval.c). Bump the level
+       (and the level cost_functions._C_HAS_FUSED requires) when the fused_context argument list
+       changes, so that a stale build falls back to torch instead of raising TypeError */
+    if (m != NULL) PyModule_AddIntConstant(m, "HAS_FUSED", 1);
+#endif
     return m;
 }

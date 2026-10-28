@@ -912,6 +912,8 @@ class AdaptiveVoxelReconstructor:
             flags = dict(cpp_overlap_rule=True, center_screen=center)
         if getattr(self.setup.search_params, "cpp_edge_rules", False):
             flags["cpp_edge_rules"] = True  # opt-in: the C++ low-edge conventions (CppEdgeRules)
+        if getattr(self.setup.search_params, "fused_cost", False):
+            flags["fused_cost"] = True  # opt-in: evaluate in one C call (FusedCost, S2)
         return flags
 
     def _make_local_cost_fn(self, ray_rule: Optional[RayRule] = None) -> VoxelCostFunction:

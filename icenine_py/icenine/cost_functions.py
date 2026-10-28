@@ -56,6 +56,15 @@ try:
     _C_HAS_VERTEX_LIT = _C_VERTEX_LIT_LEVEL >= 2
 except ImportError:
     _C_HAS_VERTEX_LIT = False  # extension missing or built before the exact cpp_edge_rules
+try:
+    from ._rasterize import HAS_FUSED as _C_FUSED_LEVEL
+    from ._rasterize import fused_context as _c_fused_context
+    from ._rasterize import fused_evaluate as _c_fused_evaluate
+
+    # 1 = the fused evaluate of the FusedCost key (S2, _fused_eval.c)
+    _C_HAS_FUSED = _C_FUSED_LEVEL >= 1
+except ImportError:
+    _C_HAS_FUSED = False  # extension missing, or built before (or without) _fused_eval.c
 _WARNED_STALE_EXT = False
 # Observed-ray flags in C (False = the per-peak Python reference ray_overlap.ray_flags; tests).
 USE_C_RAY_FLAGS = True
@@ -991,6 +1000,304 @@ def calculate_diffraction_overlap_batched(
 
 
 # ---------------------------------------------------------------------------
+# Fused evaluate (S2, opt-in key FusedCost): one C call for VoxelCostFunction.evaluate
+# ---------------------------------------------------------------------------
+
+#: How the fused path of ``VoxelCostFunction.evaluate`` (key FusedCost) treats each argument of
+#: ``VoxelCostFunction.__init__``: "context" (read into the C context, rebuilt when it changes),
+#: "covered" (every value is implemented in C), "fallback" (a value the C code does not implement
+#: falls back to the torch path, see ``fused_unsupported_reason``), "key" (the switch itself).
+#: tests/test_fused_cost.py fails when ``__init__`` gains an argument that is not listed here, so a
+#: new cost mode cannot reach the fused path untested: classify it, and make
+#: ``fused_unsupported_reason`` return a reason for its values that C does not implement.
+FUSED_ARGUMENTS: Dict[str, str] = {
+    "simulator": "context",  # beam direction, energy, chi (one chi for every reflection)
+    "detector_list": "fallback",  # geometry; more than 8 detectors fall back
+    "range_map": "context",  # the frame lookup
+    "exp_data": "context",  # the FrameTable
+    "sample": "context",  # sample-to-lab rotation and translation
+    "structure_list": "context",  # the reciprocal vectors of each phase
+    "mode": "fallback",  # 'hard' only; soft mode falls back
+    "eta_limit": "fallback",  # None falls back
+    "pixel_radius": "covered",  # 0 (triangle) and > 0 (pixel radius)
+    "max_q": "covered",  # filters the reflections before the context is built
+    "min_sin_eta": "covered",
+    "cpp_overlap_rule": "covered",
+    "center_screen": "covered",  # centroid or vertex 0 of the pixel-radius screen
+    "ray_rule": "fallback",  # RayOverlapRule falls back
+    "cpp_edge_rules": "covered",
+    "fused_cost": "key",
+}
+
+_FUSED_MAX_DETECTORS = 8  # MAX_DETECTORS of _stage_d.h
+_FUSED_BUILD_HINT = (
+    "build it: cd icenine_py && uv run --no-project --with setuptools --with numpy python setup.py "
+    "build_ext --inplace"
+)
+_FUSED_VERTICES_REASON = "voxel vertices that are not a (3, 3) float32 tensor on the CPU"
+_WARNED_FUSED: set = set()  # reasons already warned about (one RuntimeWarning per reason)
+
+
+def fused_unsupported_reason(cost_fn: "VoxelCostFunction") -> Optional[str]:
+    """Why the fused evaluate (key FusedCost) cannot compute ``cost_fn``'s costs (None: it can).
+    Checks every "fallback" argument of ``FUSED_ARGUMENTS`` and the build of the extension; the
+    dtypes and the beam deflection are checked when the context is built
+    (``_FusedContext.reason``)."""
+    if not _HAS_C_RASTERIZE:
+        return "the _rasterize C extension is not built; " + _FUSED_BUILD_HINT
+    if not _C_HAS_FUSED:
+        return (
+            "the _rasterize extension was built without the fused evaluate (HAS_FUSED); rebuild: "
+            + _FUSED_BUILD_HINT
+        )
+    if cost_fn.mode != "hard":
+        return "soft mode"
+    if cost_fn.ray_rule is not None:
+        return "the ray rule (RayOverlapRule)"
+    if cost_fn.eta_limit is None:
+        return "no eta limit"
+    n_det = len(cost_fn.detector_list)
+    if n_det < 1 or n_det > _FUSED_MAX_DETECTORS:
+        return f"{n_det} detectors (1 to {_FUSED_MAX_DETECTORS} supported)"
+    return None
+
+
+def _warn_fused_fallback(reason: str, stacklevel: int = 5) -> None:
+    """One ``RuntimeWarning`` per reason; ``stacklevel`` points at the caller of
+    ``VoxelCostFunction.evaluate`` (5 from ``_fused_context``, 4 from ``_evaluate_fused``)."""
+    if reason not in _WARNED_FUSED:
+        _WARNED_FUSED.add(reason)
+        warnings.warn(
+            f"FusedCost is not supported for this cost function ({reason}): using the torch "
+            "evaluate",
+            RuntimeWarning,
+            stacklevel=stacklevel,
+        )
+
+
+def _numpy_frame_mode(low: object, width: object) -> int:
+    """How numpy evaluates ``(omegas - low) / width`` (``_omega_bins``) for float32 omegas, as the
+    C frame lookup must repeat it: 0 both steps in float64, 1 the subtraction in float32 and the
+    division in float64, 2 both in float32 (NEP 50: a numpy float64 scalar promotes, a Python float
+    does not)."""
+    a = np.zeros(1, np.float32) - low
+    if a.dtype == np.float64:
+        return 0
+    return 1 if (a / width).dtype == np.float64 else 2
+
+
+#: g = R g_hkl in the fused C code: 1 = the plain order ``(r0 g0 + r1 g1) + r2 g2`` (the default),
+#: 0 = the fmaf chain of the S2 Step 0 prototype. Neither reproduces torch's sgemm bit for bit; on
+#: S1's parity set the plain order gave fewer pixel-edge flips against torch (S2 Step 1,
+#: D-20261027-I5; scripts/speed_parity/s2/s2_core_parity.py, benchmarks/s2_core/). Read when a
+#: context is built; 0 is kept for that comparison and the bit-for-bit check against the prototype.
+_FUSED_GLAB_ORDER = 1
+
+
+class _FusedContext:
+    """The C context of the fused evaluate for one (cost function, phase), the arrays it points
+    into, and the inputs it was built from. ``is_current`` is False after any of them changed: a
+    new FrameTable (``exp_data``, ``range_map`` or the detector count replaced; the checks of
+    ``VoxelCostFunction.frame_table``), new reciprocal vectors, beam energy or chi (the checks of
+    ``BraggConstants.is_for``), a cost mode changed on the live object, or the geometry: the
+    sample-to-lab matrix or the beam direction replaced or modified in place (tensor version), a
+    detector's plane, position, frame origin or basis tensors replaced (``Detector.set_position``
+    and ``set_orientation`` replace them) or its pixel size changed.
+
+    **Contract (D-20261027-I8).** The detector tensors are compared by identity only: an in-place
+    edit of a detector's plane, position, frame origin or basis tensors is not detected (checking
+    their versions would add cost to every call). Move a detector with ``Detector.set_position`` or
+    ``set_orientation``, which replace the tensors; no library code edits them in place."""
+
+    __slots__ = (
+        "capsule",
+        "reason",
+        "table",
+        "g_hkl_t",
+        "g_mag_t",
+        "energy",
+        "chi",
+        "modes",
+        "s2l",
+        "s2l_version",
+        "beam",
+        "beam_version",
+        "detectors",
+        "det_state",
+        "_keep",
+    )
+
+    def __init__(self, cf: "VoxelCostFunction", phase: int) -> None:
+        self.capsule: object = None
+        self.reason: Optional[str] = None
+        g_hkl_t, g_mag_t = cf._phase_recip_vecs[phase]
+        sim = cf.simulator
+        energy, chi = sim.beam_energy, sim.beam_deflection_chi
+        self.table = cf.frame_table()
+        self.g_hkl_t, self.g_mag_t = g_hkl_t, g_mag_t
+        self.energy, self.chi = energy, chi
+        self.modes = cf._fused_modes()
+        s2l = cf.sample.sample_to_lab_matrix
+        beam = sim.beam_direction
+        self.s2l, self.s2l_version = s2l, s2l._version
+        self.beam, self.beam_version = beam, beam._version
+        self.detectors = cf.detector_list
+        self.det_state = [_detector_state(det) for det in cf.detector_list]
+        self._keep: Tuple[np.ndarray, ...] = ()
+
+        # the torch path's Bragg constants (the same object, so the same values)
+        consts = cf._bragg_consts.get(phase)
+        if consts is None or not consts.is_for(g_mag_t, energy, chi):
+            consts = cf._bragg_consts[phase] = BraggConstants(g_mag_t, energy, chi)
+        sin_chi = consts.sin_chi_laue.reshape(-1)
+        cos_chi = consts.cos_chi_laue.reshape(-1)
+        tensors = [g_hkl_t, consts.sin_theta, consts.g_mag_eps, s2l, beam]
+        for det in cf.detector_list:
+            pl = det._detector_plane
+            tensors += [
+                pl.normal,
+                det._position,
+                det._lab_frame_coord_origin,
+                det._lab_frame_basis_j,
+                det._lab_frame_basis_k,
+            ]
+        if any(t.dtype != torch.float32 or t.device.type != "cpu" for t in tensors):
+            self.reason = "a geometry or reflection tensor that is not float32 on the CPU"
+            return
+        if not bool((sin_chi == sin_chi[0]).all()) or not bool((cos_chi == cos_chi[0]).all()):
+            self.reason = "a beam deflection chi that differs between reflections"
+            return
+
+        g_hkl = np.ascontiguousarray(g_hkl_t.numpy(), dtype=np.float32)
+        sin_theta = np.ascontiguousarray(consts.sin_theta.numpy(), dtype=np.float32)
+        g_mag_eps = np.ascontiguousarray(consts.g_mag_eps.numpy(), dtype=np.float32)
+        scal = np.array(
+            [
+                float(sin_chi[0]),
+                float(cos_chi[0]),
+                np.float32(consts.epsilon),
+                np.float32(cf.eta_limit),
+                np.float32(cf.min_sin_eta),
+            ],
+            np.float32,
+        )
+        rule_bits = (1 if cf.cpp_overlap_rule else 0) | (2 if cf.cpp_edge_rules else 0)
+        rmap = cf.range_map
+        ints = np.array(
+            [
+                cf.pixel_radius,
+                int(bool(cf.center_screen)),
+                rule_bits,
+                int(cf.min_sin_eta > 0.0),
+                _numpy_frame_mode(rmap.low, rmap.width),
+                len(cf.detector_list),
+                _FUSED_GLAB_ORDER,
+            ],
+            np.int32,
+        )
+        geom = np.stack(
+            [
+                np.concatenate(
+                    [
+                        det._detector_plane.normal.numpy(),
+                        np.array([float(det._detector_plane.d)], np.float32),
+                        det._position.numpy(),
+                        det._lab_frame_coord_origin.numpy(),
+                        det._lab_frame_basis_j.numpy(),
+                        det._lab_frame_basis_k.numpy(),
+                        np.array(
+                            [
+                                det.pixel_half_width,
+                                det.pixel_width,
+                                det.pixel_half_height,
+                                det.pixel_height,
+                            ],
+                            np.float32,
+                        ),
+                    ]
+                ).astype(np.float32)
+                for det in cf.detector_list
+            ]
+        )
+        frame_index = cf._frame_index
+        assert frame_index is not None  # set by frame_table()
+        self._keep = (g_hkl, sin_theta, g_mag_eps, frame_index)
+        self.capsule = _c_fused_context(
+            g_hkl,
+            sin_theta,
+            g_mag_eps,
+            scal,
+            beam.numpy(),
+            np.ascontiguousarray(s2l[:3, :3].numpy()),
+            np.ascontiguousarray(s2l[:3, 3].numpy()),
+            ints,
+            np.array([float(rmap.low), float(rmap.width)], np.float64),
+            np.ascontiguousarray(frame_index, dtype=np.int64),
+            np.ascontiguousarray(geom, dtype=np.float32),
+            self.table,
+            self.table.images,
+            self.table._filled,
+        )
+
+    def is_current(self, cf: "VoxelCostFunction", phase: int) -> bool:
+        sim = cf.simulator
+        s2l = cf.sample.sample_to_lab_matrix
+        beam = sim.beam_direction
+        recip = cf._phase_recip_vecs.get(phase)
+        if not (
+            self.table is cf.frame_table()
+            and recip is not None
+            and recip[0] is self.g_hkl_t
+            and recip[1] is self.g_mag_t
+            and self.energy == sim.beam_energy
+            and self.chi == sim.beam_deflection_chi
+            and s2l is self.s2l
+            and s2l._version == self.s2l_version
+            and beam is self.beam
+            and beam._version == self.beam_version
+            and cf.detector_list is self.detectors
+            and self.modes == cf._fused_modes()
+        ):
+            return False
+        if len(cf.detector_list) != len(self.det_state):
+            return False
+        for det, st in zip(cf.detector_list, self.det_state):
+            pl = det._detector_plane
+            if not (
+                pl is st[0]
+                and pl.coeffs is st[1]
+                and det._position is st[2]
+                and det._lab_frame_coord_origin is st[3]
+                and det._lab_frame_basis_j is st[4]
+                and det._lab_frame_basis_k is st[5]
+                and det.pixel_half_width == st[6]
+                and det.pixel_width == st[7]
+                and det.pixel_half_height == st[8]
+                and det.pixel_height == st[9]
+            ):
+                return False
+        return True
+
+
+def _detector_state(det: Detector) -> Tuple[object, ...]:
+    """What the fused context reads from a detector (``_FusedContext.is_current`` compares the
+    tensors by identity, the pixel sizes by value)."""
+    pl = det._detector_plane
+    return (
+        pl,
+        pl.coeffs,
+        det._position,
+        det._lab_frame_coord_origin,
+        det._lab_frame_basis_j,
+        det._lab_frame_basis_k,
+        det.pixel_half_width,
+        det.pixel_width,
+        det.pixel_half_height,
+        det.pixel_height,
+    )
+
+
+# ---------------------------------------------------------------------------
 # VoxelCostFunction — high-level cost evaluator
 # ---------------------------------------------------------------------------
 
@@ -1024,6 +1331,7 @@ class VoxelCostFunction:
         center_screen: bool = True,
         ray_rule: "Optional[RayRule]" = None,
         cpp_edge_rules: bool = False,
+        fused_cost: bool = False,
     ):
         """
         Args:
@@ -1066,7 +1374,22 @@ class VoxelCostFunction:
                    below the range has no frame; a detector coordinate below 0 is pixel -1; a
                    pixel-less triangle with an in-bounds vertex lights the detector; see
                    calculate_diffraction_overlap_batched).
+            fused_cost: Opt-in, default False (config key FusedCost, S2): ``evaluate`` computes
+                   the cost in one C call (``_rasterize.fused_evaluate``, icenine/_fused_eval.c)
+                   instead of the torch operations. Float32 in torch's operation order, but not
+                   bit for bit: a pixel coordinate within float32 rounding of an integer can floor
+                   to the other pixel (parity rule D-20261027-I2). Covered: hard mode, pixel radius
+                   0 and > 0 (centroid and vertex 0), the default rule, ``cpp_overlap_rule``,
+                   ``cpp_edge_rules``, ``min_sin_eta``. Everything else (soft mode, ``ray_rule``,
+                   no eta limit, more than 8 detectors, an extension built without
+                   ``HAS_FUSED``) uses the torch path, with one ``RuntimeWarning`` per reason
+                   (``fused_unsupported_reason``, ``FUSED_ARGUMENTS``).
         """
+        self.fused_cost = fused_cost
+        self._fused_ctx: Dict[int, _FusedContext] = {}
+        self._fused_vt: Optional[torch.Tensor] = None  # vertices of the cached array, its version
+        self._fused_vv = -1
+        self._fused_vn: Optional[np.ndarray] = None
         self.cpp_edge_rules = cpp_edge_rules
         self.ray_rule = ray_rule
         self.cpp_overlap_rule = cpp_overlap_rule or ray_rule is not None
@@ -1129,6 +1452,94 @@ class VoxelCostFunction:
         )
         return t
 
+    def _fused_modes(self) -> Tuple[object, ...]:
+        """The cost modes the fused C context is built for (a change rebuilds it)."""
+        return (
+            self.mode,
+            self.ray_rule,
+            self.pixel_radius,
+            self.center_screen,
+            self.cpp_overlap_rule,
+            self.cpp_edge_rules,
+            self.eta_limit,
+            self.min_sin_eta,
+        )
+
+    def _fused_context(self, phase_index: int) -> Optional[_FusedContext]:
+        """The current fused context of a phase (built or rebuilt as needed), or None when the
+        fused path does not cover this cost function (one RuntimeWarning per reason)."""
+        ctx = self._fused_ctx.get(phase_index)
+        if ctx is not None and ctx.is_current(self, phase_index):
+            return ctx if ctx.reason is None else None
+        reason = fused_unsupported_reason(self)
+        if reason is None:
+            ctx = self._fused_ctx[phase_index] = _FusedContext(self, phase_index)
+            reason = ctx.reason
+        if reason is not None:
+            _warn_fused_fallback(reason)
+            return None
+        return ctx
+
+    def _fused_vertices(self, voxel_vertices: torch.Tensor) -> Optional[np.ndarray]:
+        """``voxel_vertices`` as the (3, 3) float32 array of the C call (cached while the same
+        tensor is passed unmodified); None for anything the torch path would treat otherwise."""
+        vt = voxel_vertices
+        if vt is self._fused_vt and vt._version == self._fused_vv:
+            return self._fused_vn
+        if (
+            not isinstance(vt, torch.Tensor)
+            or vt.dtype != torch.float32
+            or vt.device.type != "cpu"
+            or tuple(vt.shape) != (3, 3)
+        ):
+            return None
+        self._fused_vn = np.ascontiguousarray(vt.detach().numpy())
+        self._fused_vt, self._fused_vv = vt, vt._version
+        return self._fused_vn
+
+    def _evaluate_fused(
+        self, orientation: np.ndarray, voxel_vertices: torch.Tensor, phase_index: int
+    ) -> Optional[OverlapInfo]:
+        """``evaluate`` through the fused C call (key FusedCost); None: use the torch path."""
+        if phase_index not in self._phase_recip_vecs:
+            return OverlapInfo()
+        ctx = self._fused_context(phase_index)
+        if ctx is None:
+            return None
+        verts = self._fused_vertices(voxel_vertices)
+        if verts is None:
+            _warn_fused_fallback(_FUSED_VERTICES_REASON, stacklevel=4)
+            return None
+        r = _c_fused_evaluate(ctx.capsule, orientation, verts)
+        if type(r) is list:
+            # lazy FrameTable fill: C names the frames it needs, Python fills them, C runs again
+            ctx.table.ensure(np.asarray(r, dtype=np.int64))
+            r = _c_fused_evaluate(ctx.capsule, orientation, verts)
+            if type(r) is list:
+                raise RuntimeError(f"fused evaluate: frames {r} still missing after ensure")
+        return OverlapInfo(r[0], r[1], r[2], r[3], r[6], r[4], r[5])
+
+    def fused_debug(
+        self, orientation: np.ndarray, voxel_vertices: torch.Tensor, phase_index: int = 0
+    ) -> Dict[str, np.ndarray]:
+        """The intermediates of the fused evaluate for one orientation (parity checks): per
+        reflection ``g_lab``, ``obs``, ``omega1``, ``omega2``; per (solution, reflection) row
+        ``r = s * K + k`` ``omega``, ``cos``, ``sin``, ``eta``, ``valid``, ``frame``,
+        ``lab_normal``, ``reflected``, ``pix`` (n_det, 3, 2), ``hit``, ``t``; and ``result``, the
+        7 values ``evaluate`` returns (frames are filled first). Does not count an evaluation.
+        Raises RuntimeError where the fused path does not cover the cost function."""
+        if phase_index not in self._phase_recip_vecs:
+            raise RuntimeError(f"no reflections for phase {phase_index}")
+        ctx = self._fused_context(phase_index)
+        verts = self._fused_vertices(voxel_vertices)
+        if ctx is None or verts is None:
+            raise RuntimeError("the fused evaluate does not cover this cost function or input")
+        d: Dict[str, np.ndarray] = _c_fused_evaluate(ctx.capsule, orientation, verts, 1)
+        if "missing" in d:
+            ctx.table.ensure(np.asarray(d["missing"], dtype=np.int64))
+            d = _c_fused_evaluate(ctx.capsule, orientation, verts, 1)
+        return d
+
     def evaluate(
         self,
         orientation: np.ndarray,
@@ -1149,6 +1560,10 @@ class VoxelCostFunction:
         C++ Reference: CostFunctions.h VoxelCostFunction::operator()
         """
         self.eval_count += 1
+        if self.fused_cost:
+            fused = self._evaluate_fused(orientation, voxel_vertices, phase_index)
+            if fused is not None:
+                return fused
         voxel_size = 0.0
         if self.ray_rule is not None:
             edges = voxel_vertices - voxel_vertices.roll(1, dims=0)
