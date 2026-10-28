@@ -20,6 +20,11 @@ Sets: ``three`` = ThreeVoxels voxel 0 with ``Example2.Simulation.config`` (S1's 
 ``e0`` = the first ``--n-voxels`` E0 clean voxels (``ReconstructQ8`` physics, seed 0 of each voxel).
 Single worker, preflight-gated (``--allow-busy`` labels the run "contended"); arms interleaved.
 
+S2 Step 5 (``--lib``): the ``fused`` and ``fused_bqmc`` arms turn the library key ``FusedCost``
+on instead of patching in the prototype (``evaluate`` and the batched quick-MC cost then run the
+library's fused entries); ``evaluate_fused_n`` counts the calls of covered key-on cost functions
+and ``batched_quick_mc.orientations_fused`` the orientations of the batched fused entry.
+
   uv run python scripts/speed_parity/s2/s2_search.py --set three --out benchmarks/s2_step0
   uv run python scripts/speed_parity/s2/s2_search.py --set e0 --n-voxels 10 --out ...
 """
@@ -74,6 +79,7 @@ class Split:
         self.fused_n = 0
         self.batched_s = 0.0
         self.batched_n = 0
+        self.batched_fused_n = 0  # orientations the batched cost scored with the fused entry
 
     def caller(self, cost_fn: Any) -> str:
         st = self.stack
@@ -139,7 +145,14 @@ def _evaluate(self: Any, orientation: Any, voxel_vertices: Any, phase_index: int
         c = sp.caller(self)
         sp.ev_s[c] += time.perf_counter() - t0
         sp.ev_n[c] += 1
-        sp.fused_n += fe is not None
+        # the library path (``--lib``): the key on, and the cost function covered by the fused path
+        cov = self.__dict__.get("_s2_lib_covered")
+        if cov is None:
+            cov = bool(getattr(self, "fused_cost", False)) and (
+                CF.fused_unsupported_reason(self) is None
+            )
+            self.__dict__["_s2_lib_covered"] = cov
+        sp.fused_n += fe is not None or cov
     return r
 
 
@@ -162,10 +175,12 @@ _orig_many = BC.BatchedCostEvaluator.evaluate_many
 def _many(self: Any, orientations: Any, *a: Any, **k: Any) -> Any:
     sp: Optional[Split] = STATE["split"]
     t0 = time.perf_counter()
+    n_fused = self.counts.get("orient_fused", 0)
     r = _orig_many(self, orientations, *a, **k)
     if sp is not None:
         sp.batched_s += time.perf_counter() - t0
         sp.batched_n += len(orientations)
+        sp.batched_fused_n += self.counts.get("orient_fused", 0) - n_fused
     return r
 
 
@@ -229,7 +244,9 @@ def timed_run(rec: Any, verts: Any, phase: int, rng: Any, truth: Optional[np.nda
         evaluate_n=sum(sp.ev_n.values()),
         evaluate_fused_n=sp.fused_n,
         screen_s=sp.ev_s.get("screen", 0.0),
-        batched_quick_mc=dict(s=sp.batched_s, orientations=sp.batched_n),
+        batched_quick_mc=dict(
+            s=sp.batched_s, orientations=sp.batched_n, orientations_fused=sp.batched_fused_n
+        ),
         evals=dict(global_=g, local=loc, total=tot),
         cost=float(res.cost),
         err_deg=err,
@@ -267,6 +284,11 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     ap.add_argument("--tag", default="")
     ap.add_argument("--allow-busy", action="store_true")
+    ap.add_argument(
+        "--lib",
+        action="store_true",
+        help="S2 Step 5: the fused arms turn the library key FusedCost on (no prototype)",
+    )
     a = ap.parse_args()
     out = Path(a.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -288,12 +310,17 @@ def main() -> None:
             min_sin_eta=getattr(rec, "min_sin_eta", None),
         )
         sp.batched_quick_mc, sp.search_device = False, "cpu"
+        sp.fused_cost = False
         STATE["fused"] = False
         timed_run(rec, case["verts"], case["phase"], case["rng"](), None)  # warm-up, untimed
         for rep in range(a.repeats):
             order = arms if rep % 2 == 0 else arms[::-1]
             for arm in order:
-                sp.batched_quick_mc, STATE["fused"] = ARMS[arm]
+                sp.batched_quick_mc, fused = ARMS[arm]
+                # --lib: the library key (the reconstructor builds its cost functions with it);
+                # otherwise the Step 0 prototype replaces evaluate
+                sp.fused_cost = fused and a.lib
+                STATE["fused"] = fused and not a.lib
                 r = timed_run(rec, case["verts"], case["phase"], case["rng"](), case["truth"])
                 r.update(case=case["name"], arm=arm, repeat=rep)
                 runs.append(r)
@@ -309,8 +336,10 @@ def main() -> None:
                     flush=True,
                 )
         sp.batched_quick_mc, STATE["fused"] = False, False
+        sp.fused_cost = False
     res = dict(
         label=info["label"],
+        lib=a.lib,
         preflight=info,
         torch=torch.__version__,
         torch_threads=torch.get_num_threads(),
