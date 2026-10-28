@@ -1,0 +1,45 @@
+{
+ "meta": {
+  "head": "fb42d8c",
+  "dirty": false,
+  "dirty_files": [],
+  "torch": "2.8.0",
+  "numpy": "2.0.2"
+ },
+ "voxels": {
+  "15901": 1077,
+  "22867": 577,
+  "5242": 576
+ },
+ "orders": {
+  "plain": {
+   "n_pairs": 2000,
+   "bit_equal_flag_matches": 1828,
+   "max_abs_diff_matches": 1446,
+   "both_match": 1446
+  },
+  "clang_contract": {
+   "n_pairs": 2000,
+   "bit_equal_flag_matches": 2000,
+   "max_abs_diff_matches": 2000,
+   "both_match": 2000
+  },
+  "fma_chain": {
+   "n_pairs": 2000,
+   "bit_equal_flag_matches": 1760,
+   "max_abs_diff_matches": 1286,
+   "both_match": 1286
+  },
+  "fma_rev": {
+   "n_pairs": 2000,
+   "bit_equal_flag_matches": 1694,
+   "max_abs_diff_matches": 1081,
+   "both_match": 1081
+  }
+ },
+ "n_records": 2230,
+ "n_stored": 2230,
+ "labels_and_indices_differ": [],
+ "selected_order": "clang_contract",
+ "selected_order_matches_all": true
+}
