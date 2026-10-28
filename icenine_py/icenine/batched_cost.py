@@ -6,8 +6,8 @@ MIGRATION_HISTORY "Python speed parity"). ``BatchedCostEvaluator`` scores B orie
 *local* cost (hard mode, ``pixel_radius`` 0, no ray rule) in one call, used by the lockstep quick
 MC (``batched_quick_mc.py``, config key ``BatchedQuickMC``, opt-in).
 
-Two forward variants, both reproducing ``evaluate`` (stages A-C in torch, stage D the existing C
-call once per orientation):
+Two torch forward variants, both reproducing ``evaluate`` (stages A-C in torch, stage D the
+existing C call once per orientation), and a fused C variant:
 
 * **compact** (CPU): rows of the observable reflections only, boolean-mask compaction after the eta
   filter and after the frame lookup, as ``ScreenEvaluator``. Data-dependent shapes (not suited to a
@@ -19,10 +19,20 @@ call once per orientation):
   the single packed transfer to the host. On a GPU the transcendental functions differ from the
   CPU's in the last bits, so a GPU result is *not* equal to ``evaluate`` (about 11% of the
   orientations differ in a count field on MPS at K = 112; compare wrong counts, not fields).
+* **fused** (CPU, used when the cost function's key ``FusedCost`` is on; S2 Step 3,
+  docs/todo_s2_fused_c_eval.md): one C call (``_rasterize.fused_evaluate_many``,
+  icenine/_fused_eval.c) scores the whole batch, stages A-D, each orientation with the functions of
+  the single-orientation fused ``evaluate``, so every result equals that of
+  ``VoxelCostFunction.evaluate`` with the key on. Like that path it is not bit-equal to the torch
+  variants (pixel-edge flips, parity rule D-20261027-I2). Where the fused path does not cover the
+  cost function (``cost_functions.fused_unsupported_reason``, the context's checks, the vertices) or
+  the build predates ``fused_evaluate_many``, the compact variant runs instead, with one
+  ``RuntimeWarning`` per reason.
 
 The GPU variant is used only for batches of at least ``GPU_MIN_BATCH`` orientations (the measured
 crossover against the CPU compact variant, S3 Step 0: 56-62 us at B = 64 against 2.3 ms at B = 1);
-smaller batches use the compact variant on the CPU.
+smaller batches use the compact variant on the CPU, or the fused one with the key on. On a GPU
+device at or above ``GPU_MIN_BATCH`` the fixed variant keeps priority over the fused one.
 
 Supported: the default rule, ``CppOverlapRule`` and ``CppEdgeRules`` (S1 Step 4: the frame lookup
 floors, a detector coordinate below 0 is pixel -1, the vertex-lit rule is in the C call's rule bits;
@@ -45,6 +55,18 @@ import torch
 from . import cost_functions as CF
 from .cost_functions import OverlapInfo, VoxelCostFunction
 from .diffraction_core import get_scattering_omegas_torch
+
+try:
+    from ._rasterize import fused_evaluate_many as _c_fused_evaluate_many
+
+    _C_HAS_FUSED_MANY = True
+except ImportError:  # extension missing, or built before the batched fused entry (S2 Step 3)
+    _C_HAS_FUSED_MANY = False
+
+_FUSED_MANY_REASON = (
+    "the _rasterize extension was built without the batched fused entry (fused_evaluate_many); "
+    "rebuild: " + CF._FUSED_BUILD_HINT
+)
 
 # Smallest batch sent to the GPU variant (S3 Step 0: MPS beats the CPU compact variant from about
 # a batch of 64; Step 4 re-checks it).
@@ -110,8 +132,9 @@ class BatchedCostEvaluator:
 
     ``evaluate_many(R, voxel_vertices, phase_index)`` returns one ``OverlapInfo`` per orientation
     and adds B to ``cost_fn.eval_count``. ``timing`` accumulates seconds in "torch" (stages A-C and
-    the host transfer), "host_prep" and "stage_d" (the C calls); ``counts`` the calls and
-    orientations per variant.
+    the host transfer), "host_prep" and "stage_d" (the C calls), and "fused" (the batched fused C
+    calls, stages A-D, and building the results); ``counts`` the calls and orientations per
+    variant.
     """
 
     def __init__(self, cost_fn: VoxelCostFunction, device: str = "cpu") -> None:
@@ -133,12 +156,19 @@ class BatchedCostEvaluator:
         self._rule_bits = (1 if cost_fn.cpp_overlap_rule else 0) | (
             2 if cost_fn.cpp_edge_rules else 0
         )
-        self.timing: Dict[str, float] = {"torch": 0.0, "host_prep": 0.0, "stage_d": 0.0}
+        self.timing: Dict[str, float] = {
+            "torch": 0.0,
+            "host_prep": 0.0,
+            "stage_d": 0.0,
+            "fused": 0.0,
+        }
         self.counts: Dict[str, int] = {
             "calls_compact": 0,
             "calls_fixed": 0,
+            "calls_fused": 0,
             "orient_compact": 0,
             "orient_fixed": 0,
+            "orient_fused": 0,
         }
 
     # ------------------------------------------------------------------ public
@@ -153,8 +183,10 @@ class BatchedCostEvaluator:
         """``OverlapInfo`` of each of B orientations (B, 3, 3), as ``cost_fn.evaluate`` returns.
 
         ``variant``: None picks the GPU variant for batches of at least ``GPU_MIN_BATCH`` on a
-        GPU device and the CPU compact variant otherwise; "compact" or "fixed" forces one (the
-        fixed one runs on ``self.device``, which is "cpu" for a CPU evaluator).
+        GPU device, otherwise the fused variant when the cost function's key ``fused_cost`` is on
+        and the CPU compact variant when it is off; "compact", "fixed" or "fused" forces one (the
+        fixed one runs on ``self.device``, which is "cpu" for a CPU evaluator; "fused" runs the
+        compact variant where the fused path does not cover the cost function).
         """
         cf = self.cf
         R_np = np.asarray(orientations, dtype=np.float64)
@@ -165,10 +197,18 @@ class BatchedCostEvaluator:
             return [cf.evaluate(R_np[b], voxel_vertices, phase_index) for b in range(B)]
         if variant is None:
             use_fixed = self.device != "cpu" and B >= GPU_MIN_BATCH
-        elif variant in ("compact", "fixed"):
+            use_fused = not use_fixed and bool(cf.fused_cost)
+        elif variant in ("compact", "fixed", "fused"):
             use_fixed = variant == "fixed"
+            use_fused = variant == "fused"
         else:
-            raise ValueError(f"variant must be None, 'compact' or 'fixed', got {variant!r}")
+            raise ValueError(
+                f"variant must be None, 'compact', 'fixed' or 'fused', got {variant!r}"
+            )
+        if use_fused:
+            fused = self._evaluate_fused(R_np, voxel_vertices, phase_index)
+            if fused is not None:
+                return fused
         dev_name = self.device if use_fixed else "cpu"
         consts = self._constants(dev_name)
         K, g_hkl_T, g_mag = consts.phase[phase_index]
@@ -210,6 +250,42 @@ class BatchedCostEvaluator:
         return out
 
     # ----------------------------------------------------------------- helpers
+
+    def _evaluate_fused(
+        self, R_np: np.ndarray, voxel_vertices: torch.Tensor, phase_index: int
+    ) -> Optional[List[OverlapInfo]]:
+        """The fused variant: every orientation of the batch in one C call
+        (``_rasterize.fused_evaluate_many``) on the cost function's fused context, the one its
+        ``evaluate`` uses with the key on. None (the caller runs the compact variant) where the
+        fused path does not cover the cost function, with one RuntimeWarning per reason."""
+        cf = self.cf
+        if not _C_HAS_FUSED_MANY:
+            # no extension, or one without the fused evaluate: the reason evaluate gives
+            reason = CF.fused_unsupported_reason(cf) if not CF._C_HAS_FUSED else None
+            CF._warn_fused_fallback(reason or _FUSED_MANY_REASON, stacklevel=4)
+            return None
+        ctx = cf._fused_context(phase_index)
+        if ctx is None:
+            return None
+        verts = cf._fused_vertices(voxel_vertices)
+        if verts is None:
+            CF._warn_fused_fallback(CF._FUSED_VERTICES_REASON, stacklevel=4)
+            return None
+        t0 = time.perf_counter()
+        res, missing = _c_fused_evaluate_many(ctx.capsule, R_np, verts)
+        if missing is not None:
+            # lazy FrameTable fill: C names the frames the batch needs, Python fills them, C runs
+            # the batch again
+            ctx.table.ensure(np.asarray(missing, dtype=np.int64))
+            res, missing = _c_fused_evaluate_many(ctx.capsule, R_np, verts)
+            if missing is not None:
+                raise RuntimeError(f"fused evaluate: frames {missing} still missing after ensure")
+        out = [OverlapInfo(r[0], r[1], r[2], r[3], r[6], r[4], r[5]) for r in res]
+        cf.eval_count += len(out)
+        self.timing["fused"] += time.perf_counter() - t0
+        self.counts["calls_fused"] += 1
+        self.counts["orient_fused"] += len(out)
+        return out
 
     def _constants(self, dev_name: str) -> _DeviceConstants:
         c = self._consts.get(dev_name)
