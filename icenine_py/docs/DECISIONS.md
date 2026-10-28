@@ -442,3 +442,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   (median <= 30 us per call on the triangle arm and every difference traced); 30-50 us goes to the
   owner first. The implementer, including fix implementers, is Opus at high effort. Where: ROADMAP
   Track S row S2; docs/todo_s2_fused_c_eval.md.
+
+### D-20261027-I1 · S2 · Rest of S2 delegated to Ilium Agent; owner reviews in full at the end
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- From Step 1 on, Ilium Agent goes through the whole S2 plan with its own recommendations, records
+  each decision here, and has every task reviewed and merged step by step (subagents, in parallel
+  where possible). The owner does a full review with Ilium Agent when the plan is finished.
+  Decisions I2-I5 and later S2 entries marked 'delegated' are Ilium Agent's under this delegation.
+  Where: ROADMAP Track S row S2; docs/todo_s2_fused_c_eval.md.
