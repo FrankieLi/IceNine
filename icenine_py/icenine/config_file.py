@@ -221,6 +221,7 @@ class ConfigFile:
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
     batched_screen: bool = True  # level screen: many orientations per call (default on 2026-10-13)
     batched_quick_mc: bool = False  # quick MC of a level in lockstep (opt-in, draw option B)
+    fused_cost: bool = False  # evaluate in one C call (opt-in, S2; see VoxelCostFunction)
     search_device: str = "cpu"  # device of the batched quick-MC cost: cpu (default), mps or cuda
     candidate_dedup: str = "off"  # clique filter / de-duplication of the candidates (opt-in)
     smooth_rank: str = "off"  # smooth ranking cost of the coarse levels (opt-in, Task E)
@@ -474,6 +475,7 @@ class ConfigFile:
             'CppOmegaInterp': self._parse_bool('cpp_omega_interp'),
             'BatchedScreen': self._parse_bool('batched_screen'),
             'BatchedQuickMC': self._parse_bool('batched_quick_mc'),
+            'FusedCost': self._parse_bool('fused_cost'),
             'SearchDevice': self._parse_search_device,
             'CandidateDedup': self._parse_candidate_dedup,
             'SmoothCostRank': self._parse_smooth_rank,

@@ -169,6 +169,11 @@ class SearchParameters:
     # equal to evaluate), "mps" or "cuda" (a GPU result is not bit-equal to the CPU's).
     batched_quick_mc: bool = False
     search_device: str = "cpu"
+    # fused_cost: opt-in (config key FusedCost, default off; S2). VoxelCostFunction.evaluate in one
+    # C call (_rasterize.fused_evaluate) instead of the torch operations; equal up to float32
+    # pixel-edge flips (parity rule D-20261027-I2). Modes it does not cover fall back to torch with
+    # a RuntimeWarning (see VoxelCostFunction).
+    fused_cost: bool = False
     # candidate_dedup: opt-in (config key CandidateDedup), default "off". Clique filter and
     # de-duplication of the coarse levels' candidates (icenine/candidate_dedup.py, DedupSpec):
     # before the quick MC (best k per clique; drop candidates within t x diameter of a better one)
@@ -251,6 +256,7 @@ class SearchParameters:
             screen_explicit="BatchedScreen" in getattr(config, "_initialized", ()),
             batched_quick_mc=bool(getattr(config, "batched_quick_mc", False)),
             search_device=str(getattr(config, "search_device", "cpu")),
+            fused_cost=bool(getattr(config, "fused_cost", False)),
             candidate_dedup=str(getattr(config, "candidate_dedup", "off")),
             smooth_rank=str(getattr(config, "smooth_rank", "off")),
             ray_rule=ray_rule_from_config(config),

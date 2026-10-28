@@ -22,11 +22,12 @@
  * multiply and an add (bmm, the Rz @ base product, the einsum of the vertices, torch.norm) the code
  * calls fmaf explicitly in the order that matches torch bit for bit (S2 Step 0 probe,
  * benchmarks/s2_step0/fmaf_probe.json); FP contraction is off in this file, so the compiler fuses
- * nothing else. Not bit for bit: the 3 x K product R @ g_hkl^T (torch: BLAS sgemm) and sin, cos,
- * atan2, asin (torch: vectorised kernels; here: libm). The differences are float32 rounding, so a
- * pixel coordinate within a few ulp of an integer can floor to the other pixel (the parity rule,
- * D-20261027-I2: such pixel-edge flips are accepted; frame, eta, observability and t > 0 flips are
- * not).
+ * nothing else. Not bit for bit: the 3 x K product R @ g_hkl^T (torch: BLAS sgemm; here the plain
+ * order by default, glab_order 1, which gave fewer flips than the prototype's fmaf chain, S2 Step
+ * 1) and sin, cos, atan2, asin (torch: vectorised kernels; here: libm). The differences are float32
+ * rounding, so a pixel coordinate within a few ulp of an integer can floor to the other pixel (the
+ * parity rule, D-20261027-I2: such pixel-edge flips are accepted; frame, eta, observability and
+ * t > 0 flips are not).
  *
  * Not thread-safe: the scratch buffers live in the context. The GIL is held for the whole call.
  */

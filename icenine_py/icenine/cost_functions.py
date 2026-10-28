@@ -1078,9 +1078,12 @@ def _numpy_frame_mode(low: object, width: object) -> int:
     return 1 if (a / width).dtype == np.float64 else 2
 
 
-#: g = R g_hkl in the fused C code: 0 = the fmaf chain, 1 = the plain order (S2 Step 1 compares
-#: them, D-20261027-I5)
-_FUSED_GLAB_ORDER = 0
+#: g = R g_hkl in the fused C code: 1 = the plain order ``(r0 g0 + r1 g1) + r2 g2`` (the default),
+#: 0 = the fmaf chain of the S2 Step 0 prototype. Neither reproduces torch's sgemm bit for bit; on
+#: S1's parity set the plain order gave fewer pixel-edge flips against torch (S2 Step 1,
+#: D-20261027-I5; scripts/speed_parity/s2/s2_core_parity.py, benchmarks/s2_core/). Read when a
+#: context is built; 0 is kept for that comparison and the bit-for-bit check against the prototype.
+_FUSED_GLAB_ORDER = 1
 
 
 class _FusedContext:
