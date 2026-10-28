@@ -157,12 +157,17 @@ fused path for every orientation of a batch.
    Rerun `scripts/speed_parity/s2/taska_check.py run` on the library kernel with the shipped
    g_lab order (D-20261027-I7); the I4 gate applies again.
 5. Step 0c repeated on the library path (single-orientation and batched), plus quick-MC us per
-   evaluation and the whole search, single-worker and preflight-gated.
+   evaluation and the whole search, single-worker and preflight-gated. Measure whether
+   `GPU_MIN_BATCH` (64, set against the torch compact variant) should still send batches to the
+   GPU when FusedCost is on; report the measurement, do not change the constant (D-20261028-I1).
 6. E0 A/B (key off against on, with and without `BatchedQuickMC`), paired and traced; then
-   MIGRATION_HISTORY "S2", the ROADMAP S2 row and the README.
+   MIGRATION_HISTORY "S2", the ROADMAP S2 row and the README. Deferred from Step 3
+   (D-20261028-I1): the batched fallback's warning in `cost_functions.py` says "using the torch
+   evaluate" but falls back to the torch compact variant (a wording fix, in scope here); README
+   rows 86 and 91.
 
-**Library changes:** none expected; a parity or timing finding that needs a library fix is
-reported, not fixed in this task.
+**Library changes:** only the fallback warning's text in `cost_functions.py` (D-20261028-I1); a
+parity or timing finding that needs any other library fix is reported, not fixed in this task.
 
 **Process limit exception:** none: this task runs alone, so the machine limit applies in full.
 
