@@ -499,3 +499,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   bit; Step 4 reruns the Task A comparison on the library path with the order it ships, and the
   gate (agreement with C++ at least torch's) applies there again. Where: ROADMAP Track S row S2;
   docs/todo_s2_fused_c_eval.md Steps 4-6; benchmarks/s2_core.
+
+### D-20261027-I8 · S2 · Delegated: Steps 1-2 review choices (header, fp-contract flag, detector contract, merge before the library C++ check)
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1, on the Steps 1-2 review (APPROVE, 5 fixes): (1) merge with the
+  plain g_lab order now; the C++ check on the library path is Step 4 (I7); (2) accept a small
+  internal header for the shared stage-D declarations, added to the plan's library changes; (3)
+  document the detector-tensor contract instead of per-call _version checks (the context's
+  geometry check covers moves, per-call checks would cost every call); (4) put -ffp-contract=off
+  in the extension's compile flags so GCC also keeps the float order, and state results are
+  validated on macOS clang only; key-off identity is rechecked after the flag. Where:
+  docs/todo_s2_fused_c_eval.md Steps 1-2; .claude/reports/20261027-2232-review-s2-core.md (Ilium's
+  machine).
