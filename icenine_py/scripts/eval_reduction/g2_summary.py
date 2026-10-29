@@ -281,13 +281,19 @@ def paired_rows(prs: List[Dict[str, Any]]) -> str:
     return DT.markdown_table(prs, ["a", "b", "wrong_a", "wrong_b", "fixed", "broken", "both_wrong"])
 
 
-def bfs_part(base: Path, others: List[Path], prefix: str) -> Optional[Dict[str, Any]]:
+def bfs_part(
+    base: Path, others: List[Path], prefix: str, also_base: Optional[Path] = None
+) -> Optional[Dict[str, Any]]:
+    """Runs ``base`` + ``others`` (those that exist), each paired against ``base``; with
+    ``also_base`` (a run in ``others``) the later runs are paired against it too."""
     dirs = [d for d in [base] + others if (d / "run.json").exists()]
     if len(dirs) < 2 or dirs[0] != base:
         return None
     w = _weights()
     runs = [_with_smooth(g2_bfs.run_summary(d), d) for d in dirs]
     prs = [g2_bfs.paired(base, d) for d in dirs[1:]]
+    if also_base is not None and also_base in dirs:
+        prs += [g2_bfs.paired(also_base, d) for d in dirs[dirs.index(also_base) + 1 :]]
     T = {f"{prefix}_{k}": v for k, v in bfs_rows(runs, w).items()}
     T[f"{prefix}_paired"] = paired_rows(prs)
     return dict(runs=runs, paired=prs, weights_ms=w, tables=T)
@@ -311,7 +317,14 @@ def main() -> None:
         res["keyoff_check"] = json.loads((OUT / "keyoff_pilot_compare.json").read_text())
         summary["pilot150"] = res
     bfs = CACHE / "bfs"
-    res = bfs_part(STORED, [bfs / "integrated", bfs / "outward_only"], "evalG2_bfs")
+    # the stored pilot predates the centroid-screen default (2026-10-12), so the key-off rerun on
+    # this branch is the like-for-like baseline; both are reported
+    res = bfs_part(
+        STORED,
+        [bfs / "keyoff_rerun", bfs / "integrated", bfs / "outward_only"],
+        "evalG2_bfs",
+        also_base=bfs / "keyoff_rerun",
+    )
     if res is not None:
         tables.update(res.pop("tables"))
         summary["bfs"] = res

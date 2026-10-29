@@ -75,7 +75,7 @@ def errors(run_dir: Path) -> Dict[str, np.ndarray]:
     src = np.array([records.get(str(i), {}).get("source", "not_visited") for i in range(n)])
     nev = np.array([records.get(str(i), {}).get("n_evals", 0) for i in range(n)])
     grain = np.load(ex / "rand_500grains_1mm_neworient_s0_grainmap.npy")[idx[row]]
-    return dict(err=err, row=row, source=src, n_evals=nev, grain=grain)
+    return dict(err=err, row=row, source=src, n_evals=nev, grain=grain, q_rec=q_rec, sym=sym)
 
 
 def _records(p: Path) -> Dict[str, Any]:
@@ -207,20 +207,52 @@ def run_summary(run_dir: Path, wrong_deg: float = 1.0) -> Dict[str, Any]:
 
 
 def paired(a: Path, b: Path, wrong_deg: float = 1.0) -> Dict[str, Any]:
-    """Paired split by voxel (fixed / broken / both wrong) of run b against run a."""
-    ea, eb = errors(a)["err"], errors(b)["err"]
+    """Paired split by voxel (fixed / broken / both wrong) of run b against run a.
+
+    Trace (b with an ``outward_log.json``): a voxel is "via a used reseed" when it is a reseed
+    voxel whose outward-search path replaced the full search (policy and seed test passed) or its
+    final orientation is within ``wrong_deg`` (cubic symmetry) of such a voxel's final orientation
+    (the expansion from it carried the orientation over). A break so marked is traced to the arm
+    (the full search it replaced is what the key-off run used); other breaks are untraced, and
+    count against the arm until traced (D-20261014-N13)."""
+    A, B = errors(a), errors(b)  # puts scripts/phase_d on the path
+    from score_bfs import pair_misorientation_deg
+
+    ea, eb = A["err"], B["err"]
     wa, wb = ea > wrong_deg, eb > wrong_deg
-    return dict(
+    broken_v = np.nonzero(~wa & wb)[0]
+    fixed_v = np.nonzero(wa & ~wb)[0]
+    out: Dict[str, Any] = dict(
         a=a.name,
         b=b.name,
         wrong_a=int(wa.sum()),
         wrong_b=int(wb.sum()),
-        fixed=int((wa & ~wb).sum()),
-        broken=int((~wa & wb).sum()),
+        fixed=int(len(fixed_v)),
+        broken=int(len(broken_v)),
         both_wrong=int((wa & wb).sum()),
-        broken_voxels=[int(i) for i in np.nonzero(~wa & wb)[0]],
-        fixed_voxels=[int(i) for i in np.nonzero(wa & ~wb)[0]],
+        broken_voxels=[int(i) for i in broken_v],
+        fixed_voxels=[int(i) for i in fixed_v],
     )
+    log_p = b / "outward_log.json"
+    if log_p.exists():
+        used = sorted(
+            {x["voxel"] for x in json.loads(log_p.read_text()) if x.get("seed_test") is True}
+        )
+        n = len(eb)
+        via = np.zeros(n, dtype=bool)
+        for u in used:
+            qu = np.repeat(B["q_rec"][u][None], n, axis=0)
+            via |= pair_misorientation_deg(B["q_rec"], qu, B["sym"]) <= wrong_deg
+        out.update(
+            used_reseeds=[int(u) for u in used],
+            used_reseeds_wrong=int(sum(1 for u in used if wb[u])),
+            voxels_via_used_reseeds=int(via.sum()),
+            voxels_via_used_reseeds_wrong=int((via & wb).sum()),
+            broken_traced_arm=int(via[broken_v].sum()),
+            broken_untraced=int((~via[broken_v]).sum()),
+            fixed_via_used_reseeds=int(via[fixed_v].sum()),
+        )
+    return out
 
 
 def main() -> None:

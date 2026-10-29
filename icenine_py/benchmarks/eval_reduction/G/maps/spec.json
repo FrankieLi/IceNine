@@ -1,0 +1,27 @@
+{
+  "title": "Task G2 pilot maps",
+  "summary": "SUMMARY_PLACEHOLDER",
+  "reference": {
+    "mic": "../../../../../Examples/Example2.ManyGrains/SimInput/rand_500grains_1mm_neworient_s0.mic",
+    "index": "../../../phase_d_pilot/region_index.npy",
+    "label": "Original (truth)"
+  },
+  "z": null,
+  "figures": [
+    {
+      "name": "pilot_region",
+      "title": "2,000-voxel pilot region, clean images, mc arm, reseed on",
+      "caption": "CAPTION_PLACEHOLDER",
+      "mics": [
+        {"path": "../../../phase_d_pilot_reseed_v2/runs/mc_clean/recon.mic", "label": "Stored pilot"},
+        {"path": "../g2/bfs/runs/keyoff_rerun/recon.mic", "label": "Stored configuration, today's code"},
+        {"path": "../g2/bfs/runs/integrated/recon.mic", "label": "Integrated configuration"},
+        {"path": "../g2/bfs/runs/outward_only/recon.mic", "label": "OutwardSearch only"}
+      ]
+    }
+  ],
+  "notes": [
+    "Clean simulated images (no realistic noise); one BFS seed order (rng seed 0) per run.",
+    "Wrong means more than 1 degree from the truth after cubic symmetry."
+  ]
+}

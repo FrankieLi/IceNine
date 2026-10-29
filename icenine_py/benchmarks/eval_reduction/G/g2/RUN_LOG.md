@@ -52,3 +52,33 @@ Task G). Approval D-20261028-N2. Commands from `icenine_py/`. Clean images only;
 The overlap rule is the one choice no decision names for Task G. The plan's words "overlap rule as decided for the
 coarse levels" were read as: no decision changed the coarse-level rule from the lenient default, and G1 chose the
 smooth key on lenient and C++ runs. The ray rule R2 (approved as a possible default, D-20261012-I3) was not tried in G2.
+
+Two implementation choices the plan leaves open, taken before the data:
+
+* **What "accepted" does.** Task F found that F4 stops 0.02-0.05 deg short and "a finisher is still needed after it", so
+  an accepted policy end point is the start of the existing local fit (the finisher), not the final orientation.
+* **Reseeds.** A reseed's start is the voxel's current fit (a rejected neighbour fit, kept by the Push rule). If the
+  policy accepts, one local fit from its end point is judged by the usual seed test; only if that passes does it
+  replace the full search. A rejected policy or seed test falls through to the full search, so the per-voxel finality
+  rule ("a failed full search is final") keeps its meaning.
+
+## 3. Runs (from `icenine_py/`)
+
+The plan's runner-script style (`nohup bash run.sh`) was refused by the worktree hook ("a construct too complex to
+verify"), so every run was started as its own plain command (the commands below).
+
+| What | Command | Wall | Label |
+|---|---|---|---|
+| key-off check and short pilot, 150-voxel sub-region (`g2_bfs.py subregion --n 150`) | `pilot_bfs.py --arm mc --variant clean --out G/cache/g2/pilot --sample G/cache/g2/subregion_150.mic` with `--name keyoff_base --reseed` (library of 4735f77 by `git archive` on `PYTHONPATH`), `--name keyoff_branch --reseed`, `--name integrated --config G/integrated_mc_clean.config`, `--name outward_only --config G/g2/outward_only_mc_clean.config` | 1013-1512 s | contended (4 runs, then 6 processes with the ledger) |
+| key-off comparison | `g2_bfs.py compare G/cache/g2/pilot/keyoff_base G/cache/g2/pilot/keyoff_branch --json G/g2/keyoff_pilot_compare.json` | seconds | |
+| step 2, six-voxel ledger | `eval_ledger.py run --voxel V --tag g2_base --dir G/g2/ledger` and `--tag g2_integrated --opt smooth_rank=E3+E4,tau=0.25`, V in the six | 118-180 s per voxel | contended (6 processes) |
+| step 2, E0 200 | `smooth_rank_probe.py run --kind e0 --rule old --spec "E3+E4,tau=0.25" --tag g2 --workers 2` | about 15 min | contended |
+| step 3, 2,000-voxel pilot region | `pilot_bfs.py --arm mc --variant clean --out G/cache/g2/bfs --name integrated --config G/integrated_mc_clean.config`, the same with `--name outward_only --config G/g2/outward_only_mc_clean.config`, and `--name keyoff_rerun --reseed` (the stored pilot's configuration on this branch, a reproduction check), each under `nohup caffeinate -i` | see section 4 | contended (3 BFS runs at once, plus the E0 run for its first 15 min) |
+| summary | `g2_summary.py` | seconds | writes `summary.json`, `tables.md` |
+
+Paths: `G` is `benchmarks/eval_reduction/G`. The 150-voxel `integrated` pilot ran before `pilot_bfs.py` recorded the smooth
+evaluations of the full searches, so its `smooth_full_searches` is 0 (not measured), not zero work.
+
+The first two 2,000-voxel runs were started as background tool commands, which stop after 30 minutes; they were killed
+after 1-5 minutes and restarted under `nohup` (the integrated run once more, to add the smooth count). No result of
+the killed starts is used.
