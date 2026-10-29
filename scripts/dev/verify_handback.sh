@@ -18,7 +18,8 @@
 #   FLAG if absent) named on the report's "Tests" field, run in the branch's worktree
 #   (FAIL on a failure, FLAG if none named or no worktree holds the branch; --no-tests skips); the
 #   line gives the passed / failed / skipped counts (from a JUnit XML file pytest writes through
-#   PYTEST_ADDOPTS, else pytest's count line) and pytest's exit code.
+#   PYTEST_ADDOPTS, else pytest's count line) and pytest's exit code (FLAG when exit 0 comes
+#   with neither, since then no count shows that a test ran).
 # The caller's own ROADMAP territory comes from `git config --local icenine.agent` or --agent:
 # I = Track S, row H12, "From Ilium Agent"; N = Track E, "From Newt Agent". With neither set the
 # script refuses to run (exit 2; it never defaults to one agent). The pytest command can be
@@ -391,6 +392,11 @@ EOF
         if [ "$RC" -ne 0 ] || [ "$BROKEN" -ne 0 ]; then
             fail "named tests failed (${#ARGS[@]} path(s)): $COUNTS; pytest exit $RC; last lines:"
             printf '%s\n' "$OUT" | tail -6 | sed 's/^/        | /'
+        elif [ "$COUNTS" = "no count line in the output" ]; then
+            # exit 0 but neither a JUnit file nor a count line (an overriding command that drops
+            # PYTEST_ADDOPTS and the count line): the gate cannot show that any test ran
+            flag "named tests (${#ARGS[@]} path(s)): no counts (no JUnit file, no count line in" \
+                "the output); pytest exit 0"
         else
             ok "named tests passed (${#ARGS[@]} path(s)): $COUNTS; pytest exit 0"
         fi

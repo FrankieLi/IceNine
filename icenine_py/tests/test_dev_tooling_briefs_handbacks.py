@@ -318,10 +318,14 @@ def test_count_line_fallback_and_missing_count_line(task: Task) -> None:
     res = task.run(env=_stub(task, f"echo '{out}'\necho\nexit 0\n"))
     assert res.returncode == 0, res.stdout
     assert _test_line(res.stdout).endswith(": 4 passed, 0 failed, 1 skipped; pytest exit 0")
-    # verbosity -2: no count line, the last line is the warnings' Docs link
+    # verbosity -2: no count line, the last line is the warnings' Docs link; with exit 0 the
+    # gate cannot show any count, so it is a FLAG (not a FAIL: exit code 0)
     res = task.run(env=_stub(task, f"echo '.. [100%]'\necho '{DOCS}'\nexit 0\n"))
     assert res.returncode == 0, res.stdout
-    assert _test_line(res.stdout).endswith(": no count line in the output; pytest exit 0")
+    line = _test_line(res.stdout)
+    assert line.startswith("FLAG  named tests (2 path(s)): no counts"), line
+    assert line.endswith("; pytest exit 0")
+    assert "summary: 0 FAIL, 1 FLAG" in res.stdout
     assert "Docs" not in res.stdout
     res = task.run(env=_stub(task, "echo '1 failed, 2 passed in 0.1s'\nexit 1\n"))
     assert res.returncode == 1
