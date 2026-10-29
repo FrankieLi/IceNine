@@ -145,7 +145,10 @@ def main() -> None:
                 ),
                 dict(
                     part="  quick MC, all levels (level 0)",
-                    value=f"{S['step0']['search_quick_mc_s']:.1f} ({S['step0']['search_quick_mc_level0_s']:.1f})",
+                    value=(
+                        f"{S['step0']['search_quick_mc_s']:.1f} "
+                        f"({S['step0']['search_quick_mc_level0_s']:.1f})"
+                    ),
                     unit="s",
                     n=len(sea),
                 ),
@@ -233,7 +236,10 @@ def main() -> None:
             dict(
                 check="1b(iii) pure pixel-set translation S(x) + round(A dx) = S(x')",
                 n=iii["n_spots"],
-                result=f"{iii['n_equal']} equal ({100 * iii['n_equal'] / iii['n_spots']:.1f}%, Wilson {wilson_str(iii['n_equal'], iii['n_spots'])})",
+                result=(
+                    f"{iii['n_equal']} equal ({100 * iii['n_equal'] / iii['n_spots']:.1f}%, "
+                    f"Wilson {wilson_str(iii['n_equal'], iii['n_spots'])})"
+                ),
                 exceptions=f"{iii['n_edge_excluded']} edge spots excluded",
             ),
             dict(
@@ -255,14 +261,18 @@ def main() -> None:
                 dict(stat="exactly equal", value=iii["n_equal"]),
                 dict(
                     stat="symmetric difference, median / 95th pct / max (px)",
-                    value=f"{iii['symdiff_px_median']:.0f} / {iii['symdiff_px_p95']:.0f} / {iii['symdiff_px_max']}",
+                    value=(
+                        f"{iii['symdiff_px_median']:.0f} / {iii['symdiff_px_p95']:.0f} / "
+                        f"{iii['symdiff_px_max']}"
+                    ),
                 ),
                 dict(
                     stat="symmetric difference / spot size, median / 95th pct",
                     value=f"{iii['rel_median']:.2f} / {iii['rel_p95']:.2f}",
                 ),
                 dict(
-                    stat="spots with every differing pixel within 1 px (8-neighbour) of the other set",
+                    stat="spots with every differing pixel within 1 px (8-neighbour) of the other "
+                    "set",
                     value=iii["all_adjacent_to_other_set"],
                 ),
                 dict(
@@ -337,11 +347,13 @@ def main() -> None:
                 ),
                 dict(
                     measure="passers with any OverlapInfo field changed",
-                    value=f"{agg['passers_any_field_changed']} ({100 * agg['passers_any_field_changed'] / agg['passers']:.1f}%)",
+                    value=f"{agg['passers_any_field_changed']} "
+                    f"({100 * agg['passers_any_field_changed'] / agg['passers']:.1f}%)",
                 ),
                 dict(
                     measure="passers with the re-cost (1 - confidence) changed",
-                    value=f"{agg['passers_recost_changed']} ({100 * agg['passers_recost_changed'] / agg['passers']:.1f}%)",
+                    value=f"{agg['passers_recost_changed']} "
+                    f"({100 * agg['passers_recost_changed'] / agg['passers']:.1f}%)",
                 ),
                 dict(measure="largest re-cost change", value=f"{agg['recost_abs_diff_max']:.3f}"),
                 dict(
@@ -350,7 +362,8 @@ def main() -> None:
                 ),
                 dict(
                     measure="cliques whose spacing-filtered set is unchanged",
-                    value=f"{agg['cliques_same']} of {agg['cliques']} ({100 * agg['cliques_same'] / agg['cliques']:.1f}%)",
+                    value=f"{agg['cliques_same']} of {agg['cliques']} "
+                    f"({100 * agg['cliques_same'] / agg['cliques']:.1f}%)",
                 ),
                 *(
                     [
@@ -584,11 +597,13 @@ def main() -> None:
                 )
                 for vid, c in full["reference_check"].items()
             }
+        o2_th10 = "O2 counts u8 b=32FZ th=10"  # the 2,000-voxel patch arm (Step 3 timing)
         T["s4_full_layer"] = doc_tables.markdown_table(
             [
                 dict(
                     item="ordering",
-                    value=f"{full['kind'].upper()} counts, {full['layout']}, {full['threads']} threads, voxel tiles of {full['voxel_tile']}",
+                    value=f"{full['kind'].upper()} counts, {full['layout']}, "
+                    f"{full['threads']} threads, voxel tiles of {full['voxel_tile']}",
                 ),
                 dict(
                     item="voxels x orientations", value=f"{full['n_voxels']} x {full['n_orient']}"
@@ -598,30 +613,36 @@ def main() -> None:
                     value=f"{full['wall_s']:.2f} ({full['kernel_s']:.2f} + {full['reduce_s']:.2f})",
                 ),
                 dict(
-                    item="kernel time projected linearly from the 2,000-voxel patch (10 threads) (s)",
+                    item="kernel time projected linearly from the 2,000-voxel patch (10 threads) "
+                    "(s)",
                     value=(
-                        f"{tim['arms']['O2 counts u8 b=32FZ th=10']['median_s'] * full['n_voxels'] / 2000:.2f}"  # noqa: E501
+                        f"{tim['arms'][o2_th10]['median_s'] * full['n_voxels'] / 2000:.2f}"
                         if tim
                         else "n/a"
                     ),
                 ),
                 dict(
-                    item="BatchedScreen for the same work, single worker, projected from 10 voxels (h)",
+                    item="BatchedScreen for the same work, single worker, projected from 10 voxels "
+                    "(h)",
                     value=(
                         f"{full['n_voxels'] * S['step0']['screen_s'] / 3600:.2f}" if s0 else "n/a"
                     ),
                 ),
                 dict(
                     item="passers (voxel, orientation) pairs",
-                    value=f"{full['passers_total']} ({100 * full['passers_total'] / (full['n_voxels'] * full['n_orient']):.1f}%)",
+                    value=f"{full['passers_total']} "
+                    f"({100 * full['passers_total'] / (full['n_voxels'] * full['n_orient']):.1f}%)",
                 ),
                 dict(
                     item="passers per voxel, median (min-max)",
-                    value=f"{full['passers_per_voxel_median']:.0f} ({full['passers_per_voxel_min']}-{full['passers_per_voxel_max']})",
+                    value=f"{full['passers_per_voxel_median']:.0f} "
+                    f"({full['passers_per_voxel_min']}-{full['passers_per_voxel_max']})",
                 ),
                 dict(
                     item="passer list as int32 pairs / as a bitset / counts as uint8 (GB)",
-                    value=f"{full['sparse_list_bytes_int32_pairs'] / 1e9:.2f} / {full['pass_bitset_bytes'] / 1e9:.3f} / {full['counts_matrix_bytes_uint8'] / 1e9:.2f}",
+                    value=f"{full['sparse_list_bytes_int32_pairs'] / 1e9:.2f} / "
+                    f"{full['pass_bitset_bytes'] / 1e9:.3f} / "
+                    f"{full['counts_matrix_bytes_uint8'] / 1e9:.2f}",
                 ),
                 dict(item="peak RSS of the run (GB)", value=f"{full['peak_rss_gb']:.2f}"),
                 dict(item="label", value=full["label"]),
@@ -665,18 +686,21 @@ def main() -> None:
                 ),
                 dict(
                     quantity="O2 time / O4 time, 1 thread",
-                    model=f"{model['o2_over_o4_tbp5']:.2f} / {model['o2_over_o4_tbp10']:.2f} / {model['o2_over_o4_tbp20']:.2f}",
+                    model=f"{model['o2_over_o4_tbp5']:.2f} / {model['o2_over_o4_tbp10']:.2f} / "
+                    f"{model['o2_over_o4_tbp20']:.2f}",
                     measured=1.0 / o4["o4_over_o2_1thread"],
                 ),
                 dict(
                     quantity="O4 / O2 wall, 1 thread (s)",
                     model=None,
-                    measured=f"{o4['arms']['O4 counts packed th=1']['median_s']:.2f} / {o4['arms']['O2 counts packed th=1']['median_s']:.2f}",
+                    measured=f"{o4['arms']['O4 counts packed th=1']['median_s']:.2f} / "
+                    f"{o4['arms']['O2 counts packed th=1']['median_s']:.2f}",
                 ),
                 dict(
                     quantity="O4 / O2 wall, 10 threads (s)",
                     model=None,
-                    measured=f"{o4['arms']['O4 counts packed th=10']['median_s']:.2f} / {o4['arms']['O2 counts packed th=10']['median_s']:.2f}",
+                    measured=f"{o4['arms']['O4 counts packed th=10']['median_s']:.2f} / "
+                    f"{o4['arms']['O2 counts packed th=10']['median_s']:.2f}",
                 ),
             ],
             ["quantity", "model", "measured"],
@@ -722,7 +746,8 @@ def main() -> None:
                 ),
                 dict(
                     item="  pairs with any OverlapInfo field different",
-                    value=f"{rce['any_field_diff']} ({100 * rce['any_field_diff'] / rce['pairs']:.1f}%)",
+                    value=f"{rce['any_field_diff']} "
+                    f"({100 * rce['any_field_diff'] / rce['pairs']:.1f}%)",
                     n=rce["pairs"],
                 ),
                 dict(
@@ -737,7 +762,8 @@ def main() -> None:
                 ),
                 dict(
                     item="  sampled differing pairs explained by an integer-vertex flip",
-                    value=f"{rce['explain_integer_vertex_differs']} of {rce['explain_sampled']} (largest distance {rce['explain_flip_dist_max']:.1e} px)",
+                    value=f"{rce['explain_integer_vertex_differs']} of {rce['explain_sampled']} "
+                    f"(largest distance {rce['explain_flip_dist_max']:.1e} px)",
                     n=rce["explain_sampled"],
                 ),
             ],

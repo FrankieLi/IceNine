@@ -154,7 +154,8 @@ def adjacent_ok(
 def boundary_ok(
     diff: Set[Tuple[int, int]], A: Set[Tuple[int, int]], B: Set[Tuple[int, int]]
 ) -> bool:
-    """Every differing pixel lies on the boundary of the set it belongs to (a 4-neighbour outside)."""
+    """Every differing pixel lies on the boundary of the set it belongs to (a 4-neighbour
+    outside)."""
     for q in diff:
         S = A if q in A else B
         c, r = q
