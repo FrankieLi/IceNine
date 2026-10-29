@@ -132,28 +132,28 @@
 <!-- /table:s2_lib_parity_local -->
 
 <!-- table:s2_lib_per_call -->
-| arm | torch | fused | fused_range | c_only | python_share | speedup | step0_prototype |
-|---|---|---|---|---|---|---|---|
-| triangle_q8_default | 235.7 | 15.9 | 15.4-16.1 | 13.8 | 2.0 | 14.9 | 14.4 |
-| triangle_q8_cpp | 235.0 | 15.6 | 15.3-15.8 | 13.7 | 1.9 | 15.1 | 14.2 |
-| screen_r3_q5_default | 202.1 | 4.4 | 4.3-4.5 | 2.5 | 1.9 | 45.5 | 3.3 |
-| screen_r3_q5_cpp | 202.1 | 4.3 | 4.2-4.4 | 2.4 | 1.9 | 46.8 | 3.3 |
+| arm | torch | torch_range | fused | fused_range | c_only | c_only_range | python_share | speedup | step0_prototype |
+|---|---|---|---|---|---|---|---|---|---|
+| triangle_q8_default | 235.7 | 235.0-236.7 | 15.9 | 15.4-16.1 | 13.8 | 13.6-14.3 | 2.0 | 14.9 | 14.4 |
+| triangle_q8_cpp | 235.0 | 234.3-235.8 | 15.6 | 15.3-15.8 | 13.7 | 13.4-13.8 | 1.9 | 15.1 | 14.2 |
+| screen_r3_q5_default | 202.1 | 201.4-208.6 | 4.4 | 4.3-4.5 | 2.5 | 2.5-2.6 | 1.9 | 45.5 | 3.3 |
+| screen_r3_q5_cpp | 202.1 | 201.0-202.3 | 4.3 | 4.2-4.4 | 2.4 | 2.4-2.5 | 1.9 | 46.8 | 3.3 |
 <!-- /table:s2_lib_per_call -->
 
 <!-- table:s2_lib_search_e0 -->
-| arm | wall | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
-|---|---|---|---|---|---|---|---|---|---|---|
-| default keys | 16.10 | 1.00 | 9.95 | 39759 | 250 | 6.91 | 27636 | 250 | 5.16 | 2 of 10 |
-| BatchedQuickMC 1 | 10.52 | 1.53 | 2.82 | 11219 | 251 | 1.73 | 27576 | 63 | 5.16 | 2 of 10 |
-| FusedCost 1 | 6.84 | 2.35 | 0.80 | 39869 | 20 | 0.56 | 27636 | 20 | 5.16 | 2 of 10 |
-| BatchedQuickMC 1, FusedCost 1 | 6.72 | 2.39 | 0.22 | 11219 | 20 | 0.56 | 27576 | 20 | 5.16 | 2 of 10 |
+| arm | wall | wall_range | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| default keys | 16.10 | 16.09-16.10 | 1.00 | 9.95 | 39759 | 250 | 6.91 | 27636 | 250 | 5.16 | 2 of 10 |
+| BatchedQuickMC 1 | 10.52 | 10.52-10.52 | 1.53 | 2.82 | 11219 | 251 | 1.73 | 27576 | 63 | 5.16 | 2 of 10 |
+| FusedCost 1 | 6.84 | 6.84-6.84 | 2.35 | 0.80 | 39869 | 20 | 0.56 | 27636 | 20 | 5.16 | 2 of 10 |
+| BatchedQuickMC 1, FusedCost 1 | 6.72 | 6.72-6.73 | 2.39 | 0.22 | 11219 | 20 | 0.56 | 27576 | 20 | 5.16 | 2 of 10 |
 <!-- /table:s2_lib_search_e0 -->
 
 <!-- table:s2_lib_search_three -->
-| arm | wall | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
-|---|---|---|---|---|---|---|---|---|---|---|
-| default keys | 5.40 | 1.00 | 4.60 | 8311 | 553 | 3.58 | 6456 | 554 | 0.62 | 1 of 1 |
-| BatchedQuickMC 1 | 4.50 | 1.20 | 1.00 | 1812 | 550 | 2.72 | 6408 | 425 | 0.62 | 0 of 1 |
-| FusedCost 1 | 1.72 | 3.14 | 0.94 | 8311 | 113 | 0.74 | 6456 | 114 | 0.63 | 1 of 1 |
-| BatchedQuickMC 1, FusedCost 1 | 1.76 | 3.07 | 0.20 | 1812 | 110 | 0.80 | 6408 | 125 | 0.63 | 0 of 1 |
+| arm | wall | wall_range | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| default keys | 5.40 | 5.35-5.43 | 1.00 | 4.60 | 8311 | 553 | 3.58 | 6456 | 554 | 0.62 | 1 of 1 |
+| BatchedQuickMC 1 | 4.50 | 4.48-4.53 | 1.20 | 1.00 | 1812 | 550 | 2.72 | 6408 | 425 | 0.62 | 0 of 1 |
+| FusedCost 1 | 1.72 | 1.72-1.74 | 3.14 | 0.94 | 8311 | 113 | 0.74 | 6456 | 114 | 0.63 | 1 of 1 |
+| BatchedQuickMC 1, FusedCost 1 | 1.76 | 1.76-1.80 | 3.07 | 0.20 | 1812 | 110 | 0.80 | 6408 | 125 | 0.63 | 0 of 1 |
 <!-- /table:s2_lib_search_three -->

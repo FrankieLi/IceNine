@@ -190,22 +190,28 @@ def keyoff(d: Path) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------------------------
 # Step 5: timings
 # ---------------------------------------------------------------------------------------------
+def frange(d: Dict[str, Any], fmt: str = ".1f") -> str:
+    """The min-max of a timing entry over its rounds or repeats."""
+    return f"{d['min']:{fmt}}-{d['max']:{fmt}}"
+
+
 def per_call(t: Dict[str, Any], t0: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     rows = []
     for arm, d in t["us_per_call"].items():
         tt, ff, cc = d["torch"]["median"], d["fused"]["median"], d["c_only"]["median"]
         p0 = t0["us_per_call"][arm]["fused"]["median"] if t0 else None
         rows.append(
-            dict(arm=arm, torch=tt, fused=ff, fused_range=f"{d['fused']['min']:.1f}-{d['fused']['max']:.1f}",
-                 c_only=cc, python_share=ff - cc, speedup=tt / ff, step0_prototype=p0)
+            dict(arm=arm, torch=tt, torch_range=frange(d["torch"]), fused=ff,
+                 fused_range=frange(d["fused"]), c_only=cc, c_only_range=frange(d["c_only"]),
+                 python_share=ff - cc, speedup=tt / ff, step0_prototype=p0)
         )  # fmt: skip
     return dict(
         label=t["meta"]["label"],
         rows=rows,
         table=DT.markdown_table(
             rows,
-            ["arm", "torch", "fused", "fused_range", "c_only", "python_share", "speedup",
-             "step0_prototype"],  # fmt: skip
+            ["arm", "torch", "torch_range", "fused", "fused_range", "c_only", "c_only_range",
+             "python_share", "speedup", "step0_prototype"],  # fmt: skip
             formats=dict(torch=".1f", fused=".1f", c_only=".1f", python_share=".1f",
                          speedup=".1f", step0_prototype=".1f"),  # fmt: skip
         ),
@@ -253,6 +259,8 @@ def search(s: Dict[str, Any]) -> Dict[str, Any]:
         rows.append(
             dict(
                 arm=ARM_LABEL.get(arm, arm), wall=m["wall_s"],
+                wall_range=frange(dict(min=min(m["wall_s_repeats"]),
+                                       max=max(m["wall_s_repeats"])), ".2f"),
                 vs_default=(base["wall_s"] / m["wall_s"]) if base else None,
                 evaluate=m["evaluate_s"], evaluate_n=int(m["evaluate_n"]),
                 us_per_eval=m["us_per_evaluate"], quick_mc=qmc_s, quick_mc_n=int(qmc_n),
@@ -262,8 +270,8 @@ def search(s: Dict[str, Any]) -> Dict[str, Any]:
         )  # fmt: skip
     ss["table"] = DT.markdown_table(
         rows,
-        ["arm", "wall", "vs_default", "evaluate", "evaluate_n", "us_per_eval", "quick_mc",
-         "quick_mc_n", "quick_mc_us", "screen", "wrong"],  # fmt: skip
+        ["arm", "wall", "wall_range", "vs_default", "evaluate", "evaluate_n", "us_per_eval",
+         "quick_mc", "quick_mc_n", "quick_mc_us", "screen", "wrong"],  # fmt: skip
         formats=dict(wall=".2f", vs_default=".2f", evaluate=".2f", us_per_eval=".0f",
                      quick_mc=".2f", quick_mc_us=".0f", screen=".2f"),  # fmt: skip
     )
