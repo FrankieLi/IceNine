@@ -12,11 +12,14 @@ and covered mode (``s2_parity.MODES``) on S1's orientation set (500 near the tru
 
 Every orientation with a differing stage-D input (``s2_parity.trace(..., every=True)``: one entry
 per flipped pixel coordinate, not only the worst per row and detector) is traced, whether its
-``OverlapInfo`` differs ("differing") or not ("silent"). The rule: every entry is a pixel-edge
-flip (cause ``pixel_integer``, or ``pixel_negative``: the ``CppEdgeRules`` -1 rule at detector
-coordinate 0, which is the edge of pixel 0) with the torch or the fused coordinate within
-``--bound-px`` (0.01) of the edge; a frame, eta, observability, ``min_sin_eta`` or t > 0 entry,
-or a differing orientation without an entry, fails. Per flipped coordinate: which value is nearer
+``OverlapInfo`` differs ("differing") or not ("silent"). The rule (D-20261027-I2): every entry
+is a pixel-edge flip, cause ``pixel_integer`` with the torch or the fused pixel coordinate within
+``--bound-px`` (0.01) of the integer; a frame, eta, observability, ``min_sin_eta``, t > 0 or
+``pixel_negative`` entry, or a differing orientation without an entry, fails, as in
+``s2_core_parity.py``. A ``pixel_negative`` entry (the ``CppEdgeRules`` -1 rule, detector
+coordinate d < 0) is not a pixel-edge flip: C++ ``ToColPixel`` / ``ToRowPixel`` truncate
+``(d + size/2) / size``, so d = 0 is pixel coordinate 0.5, the centre of pixel 0
+(D-20261028-I2). Per flipped coordinate: which value is nearer
 the float64 reference ("nearer": torch, fused or tie) and on whose side of the edge the float64
 value lies ("side"). Per intermediate the ulp statistics as in Step 0d.
 
@@ -49,17 +52,18 @@ import s2fused as SF  # noqa: E402
 import torch_mirror as TM  # noqa: E402
 from icenine import cost_functions as CF  # noqa: E402
 
-ACCEPTED = ("pixel_integer", "pixel_negative")
+ACCEPTED = ("pixel_integer",)
 
 
 def near_px(e: Dict[str, Any], ds: Any) -> float:
-    """Distance (px) of the nearer of the torch and fused coordinates from the pixel edge."""
-    if e["cause"] == "pixel_integer":
-        return float(min(e["torch_px_from_edge"], e["fused_px_from_edge"]))
-    # pixel_negative: e["torch"] is torch's detector coordinate (mm); the edge is coordinate 0
-    dev = ds.setup.detector_list[int(e["det"])]
-    width = float(np.float32(dev.pixel_width if e["coord"] % 2 == 0 else dev.pixel_height))
-    return abs(float(e["torch"])) / width
+    """Distance (px) of the nearer of the torch and fused coordinates from the pixel edge.
+
+    Defined for the accepted cause ``pixel_integer`` only; ``ds`` is unused and kept for the
+    callers' signature.
+    """
+    if e["cause"] not in ACCEPTED:
+        raise ValueError(f"near_px: cause {e['cause']} is not a pixel-edge flip")
+    return float(min(e["torch_px_from_edge"], e["fused_px_from_edge"]))
 
 
 def check(entries: List[Dict[str, Any]], ds: Any, bound_px: float) -> List[str]:

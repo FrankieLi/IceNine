@@ -126,7 +126,10 @@ class Shadow:
             entries=entries,
             within_rule=not bad,
             failures=bad,
-            max_near_px=max((LP.near_px(e, self.ds) for e in entries), default=None),
+            max_near_px=max(
+                (LP.near_px(e, self.ds) for e in entries if e["cause"] in LP.ACCEPTED),
+                default=None,
+            ),
         )
 
 
