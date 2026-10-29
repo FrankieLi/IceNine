@@ -1,0 +1,18 @@
+[
+ {
+  "voxel": 4,
+  "wall_s": 167.84376287460327,
+  "n_builds": 1,
+  "n_hits": 0,
+  "smooth_evals": 15097,
+  "strict_evals": 338486
+ },
+ {
+  "voxel": 19,
+  "wall_s": 139.1198971271515,
+  "n_builds": 1,
+  "n_hits": 1,
+  "smooth_evals": 15008,
+  "strict_evals": 333115
+ }
+]

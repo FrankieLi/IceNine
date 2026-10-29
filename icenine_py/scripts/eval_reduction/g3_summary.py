@@ -359,9 +359,18 @@ def probe(tr: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
                 untraced=sum(1 for x in vs if x["verdict"] == "untraced"),
             )
         )
+
+    def outcome(d: Dict[str, Any]) -> str:
+        off, on = d["err_key_off"] > WRONG_DEG, d["err_key_on"] > WRONG_DEG
+        if off == on:
+            return "both wrong" if off else "both right"
+        if on:
+            return f"key breaks it (trace: {d['broken_trace'][0]})"
+        return f"key fixes it (trace: {d['fixed_trace']})"
+
     prow = [
         dict(full_sample_voxel=v, **{k: d[k] for k in ("err_key_off", "err_key_on")},
-             trace=(d.get("broken_trace") or [d.get("fixed_trace", "-")])[0])
+             outcome=outcome(d))
         for v, d in pv.items()
     ]  # fmt: skip
     out["tables"] = {
@@ -369,7 +378,7 @@ def probe(tr: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
             rows, ["flip", "n", "traced_to_arm", "traced_to_draw", "untraced"]
         ),
         "evalG3_trace_probe": DT.markdown_table(
-            prow, ["full_sample_voxel", "err_key_off", "err_key_on", "trace"],
+            prow, ["full_sample_voxel", "err_key_off", "err_key_on", "outcome"],
             formats=dict(err_key_off=".3f", err_key_on=".3f"),
         ),  # fmt: skip
     }
@@ -503,6 +512,13 @@ def total(b: Optional[Dict[str, Any]]) -> Dict[str, Any]:
                     strict_equivalent=equiv,
                     wall_s=r["wall"]["total"],
                     timing=r["timing_label"],
+                    # for the figure: strict evaluations outside the policy, by stage, and the
+                    # policy's strict-equivalent (OutwardSearch runs)
+                    strict_outside_policy={
+                        s: r["evals"][s] - (pol[s]["strict"] + pol[s]["screen"] if s in pol else 0)
+                        for s in BFS_STAGES
+                    },
+                    policy_equiv=pol_equiv,
                 )
             )
         base_eq = runs["keyoff_rerun"]["strict_equivalent"]
@@ -515,6 +531,39 @@ def total(b: Optional[Dict[str, Any]]) -> Dict[str, Any]:
              "strict_equivalent", "equiv_change", "wall_s", "timing"],
             formats=dict(strict_equivalent=",.0f", equiv_change="+.1%", wall_s=",.0f",
                          **{s: ",d" for s in BFS_STAGES}, total=",d", smooth=",d"),
+        )  # fmt: skip
+        # time per full search (seeds and reseeds), and the time per smooth evaluation it implies
+        # if a strict evaluation took as long as in the key-off run (an assumption: the runs'
+        # contention differs)
+        kr0 = runs["keyoff_rerun"]
+        us_strict = (kr0["wall"]["seed"] + kr0["wall"]["reseed"]) / (
+            kr0["evals"]["seed"] + kr0["evals"]["reseed"]
+        )
+        fst = []
+        for name in ("keyoff_rerun", "smooth_only", "integrated"):
+            r = runs[name]
+            nf = r["seeds"] + r["reseeds"]
+            fw = r["wall"]["seed"] + r["wall"]["reseed"]
+            ev = r["evals"]["seed"] + r["evals"]["reseed"]
+            sm = r["smooth_full_searches"]
+            fst.append(
+                dict(
+                    run=LABEL[name],
+                    full_searches=nf,
+                    wall_per_full_search_s=fw / nf,
+                    strict_per_full_search=ev / nf,
+                    smooth_per_full_search=sm / nf,
+                    implied_ms_per_smooth=(fw - ev * us_strict) / sm * 1e3 if sm else None,
+                    timing=r["timing_label"],
+                )
+            )
+        out["full_search_time"] = dict(rows=fst, us_per_strict_key_off=us_strict * 1e6)
+        T["evalG3_full_search_time"] = DT.markdown_table(
+            fst,
+            ["run", "full_searches", "wall_per_full_search_s", "strict_per_full_search",
+             "smooth_per_full_search", "implied_ms_per_smooth", "timing"],
+            formats=dict(wall_per_full_search_s=".0f", strict_per_full_search=",.0f",
+                         smooth_per_full_search=",.0f", implied_ms_per_smooth=".2f"),
         )  # fmt: skip
         # full-sample estimate (one process): full searches scale with the grains, local fits with
         # the voxels (an assumption, untested); wall times keep their runs' timing labels
@@ -626,22 +675,26 @@ def levers(b: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     len_interp = row(ip, new="lenint", base="off")
     rows.append(
         dict(
-            lever="C++ omega interpolation and batched screen (`CppOmegaInterp`, `BatchedScreen`)",
+            lever=(
+                "C++ edge rules, omega interpolation, batched screen (`CppEdgeRules`, "
+                "`CppOmegaInterp`, `BatchedScreen`)"
+            ),
             task="A",
             evaluations=(
                 f"{base['total']} -> {row(lm, arm='lenient_interp_batched')['total']} per voxel "
-                "(six voxels, lenient rule)"
+                "(six voxels, lenient rule, all three)"
             ),
             wrong=(
-                f"E0 (lenient rule, interpolation): {len_interp['wrong_base'].split('/')[0]} -> "
+                f"E0 (lenient rule, edge rules and interpolation): "
+                f"{len_interp['wrong_base'].split('/')[0]} -> "
                 f"{len_interp['wrong_new'].split('/')[0]} ({len_interp['fixed']} fixed / "
                 f"{len_interp['broken']} broken)"
             ),
             time=(
-                f"{q1['wall_s']} -> {q2['wall_s']} s, voxel 15901, C++ rule with `CppEdgeRules` "
-                "(single-worker)"
+                f"{q1['wall_s']} -> {q2['wall_s']} s, voxel 15901, C++ rule with `CppEdgeRules`, "
+                "adding the other two (single-worker)"
             ),
-            carried="no (opt-in parity switches)",
+            carried="`BatchedScreen` on by default since 2026-10-13; the other two opt-in",
         )
     )
     c_six = row(table("C", "evalC_c_six"), arm="c0a_k1")
@@ -750,7 +803,7 @@ def figure(t: Dict[str, Any]) -> Optional[str]:
     import matplotlib.pyplot as plt
 
     k = t["smooth_x_strict"]["full"]
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.8), gridspec_kw=dict(width_ratios=[1, 2]))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5.6), gridspec_kw=dict(width_ratios=[1, 2]))
     cols = dict(
         screen="#4c72b0", recost="#8fb0d9", quick="#dd8452", find="#55a868", variance="#8c8c8c",
         final="#000000", seed="#4c72b0", reseed="#8fb0d9", neighbor="#dd8452",
@@ -777,30 +830,41 @@ def figure(t: Dict[str, Any]) -> Optional[str]:
     ax1.set_ylim(0, max(st["strict-equivalent" + f" (smooth x {k:.3f})"]["after"], 1) / 1e6 * 1.15)
     # right: BFS pilot region
     rows = t["bfs_rows"]
+    names = {
+        "stored configuration, today's code": "key off\n(stored config,\ntoday's code)",
+        "SmoothCostRank only": "SmoothCostRank\nonly",
+        "OutwardSearch only": "OutwardSearch\nonly",
+        "both (Task G2's integrated configuration)": "both\n(G2 integrated)",
+    }
     for i, r in enumerate(rows):
         y = 0.0
         for s in BFS_STAGES:
-            v = r[s] / 1e6
+            v = r["strict_outside_policy"][s] / 1e6
             ax2.bar(i, v, bottom=y, color=cols[s], label=s if i == 0 else None, width=0.6)
+            y += v
+        if r["policy_equiv"]:
+            v = r["policy_equiv"] / 1e6
+            ax2.bar(i, v, bottom=y, color=cols["policy"], hatch="..", width=0.6,
+                    label="outward-search policy (strict-equivalent)")  # fmt: skip
             y += v
         if r["smooth"]:
             v = r["smooth"] * k / 1e6
             ax2.bar(i, v, bottom=y, color=cols["smooth"], hatch="//", width=0.6,
-                    label="smooth key (strict-equivalent)" if r["smooth"] else None)  # fmt: skip
+                    label=f"smooth key (x {k:.2f}, strict-equivalent)")  # fmt: skip
             y += v
         ax2.text(i, y * 1.01, f"{r['wrong'].split(' ')[0]} wrong\n{r['fixed_broken']}",
                  ha="center", va="bottom", fontsize=8)  # fmt: skip
-    ax2.set_xticks(range(len(rows)), [r["run"].replace(" (", "\n(").replace(", ", ",\n")
-                                      for r in rows], fontsize=8)  # fmt: skip
-    ax2.set_ylabel("evaluations (millions; OutwardSearch runs: raw counts, mostly screen)")
+    ax2.set_xticks(range(len(rows)), [names.get(r["run"], r["run"]) for r in rows], fontsize=8)
+    ax2.set_ylabel("evaluations (millions, strict-equivalent)")
     ax2.set_title(
-        "BFS, 2,000-voxel pilot region (labels: wrong voxels; fixed / broken against key off)",
+        "BFS, 2,000-voxel pilot region\n(labels: wrong voxels; fixed / broken against key off)",
         fontsize=10,
     )
     h, lab = ax2.get_legend_handles_labels()
     seen = dict(zip(lab, h))
-    ax2.legend(seen.values(), seen.keys(), fontsize=8, loc="upper left")
-    ax2.set_ylim(0, max(r["total"] + r["smooth"] * k for r in rows) / 1e6 * 1.2)
+    ax2.legend(seen.values(), seen.keys(), fontsize=8, loc="lower center",
+               bbox_to_anchor=(0.5, -0.42), ncol=3)  # fmt: skip
+    ax2.set_ylim(0, max(r["strict_equivalent"] for r in rows) / 1e6 * 1.2)
     fig.tight_layout()
     p = OUT / "figures" / "evals_by_stage.png"
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -816,13 +880,13 @@ def maps_spec(b: Dict[str, Any]) -> None:
     runs = {r["run"]: r for r in b["runs"]}
     prs = {(p["a"], p["b"]): p for p in b["paired"]}
     names = ["mc_clean", "keyoff_rerun", "smooth_only", "outward_only", "integrated"]
-    wrong = ", ".join(f"{LABEL[n]} {runs[n]['wrong']}" for n in names)
+    wrong = "; ".join(f"{LABEL[n]}: {runs[n]['wrong']}" for n in names)
     pr = "; ".join(
-        f"{LABEL[n]} {prs[('keyoff_rerun', n)]['fixed']} fixed and "
+        f"{LABEL[n]}: {prs[('keyoff_rerun', n)]['fixed']} fixed and "
         f"{prs[('keyoff_rerun', n)]['broken']} broken"
         for n in names[2:]
     )
-    lost = ", ".join(f"{LABEL[n]} {len(runs[n]['grains_lost'])}" for n in names)
+    lost = "; ".join(f"{LABEL[n]}: {len(runs[n]['grains_lost'])}" for n in names)
     spec = {
         "title": "Task G pilot maps",
         "summary": (
