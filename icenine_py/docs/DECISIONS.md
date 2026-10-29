@@ -653,3 +653,13 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   on today's code (same 37 wrong, 14 fixed / 14 broken by voxel), so G compares against a key-off
   rerun. The overlap rule stayed lenient (no decision names one for Task G). Where:
   MIGRATION_HISTORY Task G2; .claude/reports/20261029-0212-G2.md.
+
+### D-20261029-N3 · Track E row G (G3) · Delegated: G3 adds one BFS pilot arm with SmoothCostRank alone
+- 2026-10-29, owner. Recorded by Newt Agent. Supersedes: none.
+- Delegated (owner 2026-10-28: Newt takes the plan's decision points). The plan's G3 allows a new
+  ablation run when two levers interact visibly: on the pilot region the integrated configuration
+  (SmoothCostRank E3+E4 plus OutwardSearch) has 42 wrong and OutwardSearch alone 36, so
+  SmoothCostRank may cost accuracy in BFS while it fixes 34 of 41 on E0. G3 runs one pilot arm
+  with SmoothCostRank E3+E4 tau 0.25 (with the cache) and OutwardSearch off, against the key-off
+  rerun, paired, breaks traced (D-20261014-N13), before the total is written. Where:
+  ~/.claude/plans/eval-reduction.md Task G3.
