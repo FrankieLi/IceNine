@@ -122,11 +122,73 @@ def same(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
     )
 
 
+def summary() -> None:
+    """``tables.md`` beside ``cache_timing.json``: whole-voxel seconds per step and the time the
+    cache saves per voxel (fresh minus warm on B, cold minus warm on A)."""
+    import doc_tables as DT
+
+    S = json.loads((OUT / "cache_timing.json").read_text())
+    W = {(r["spec"], r["step"]): r["wall_s"] for r in S["runs"]}
+    off_a, off_b = W[("off", "off A")], W[("off", "off B")]
+    rows = []
+    for spec, chk in S["checks"].items():
+        cold_a, warm_a = W[(spec, "1 cold A")], W[(spec, "4 warm A")]
+        warm_b, fresh_b = W[(spec, "2 warm B")], W[(spec, "3 fresh B")]
+        rows.append(
+            {
+                "arm (SmoothCostRank)": spec,
+                "timing": S["label"],
+                f"key off, {VOX_A} / {VOX_B} (s)": f"{off_a:.1f} / {off_b:.1f}",
+                f"{VOX_A}: cold cache / warm cache (s)": f"{cold_a:.1f} / {warm_a:.1f}",
+                f"{VOX_B}: fresh build / warm cache (s)": f"{fresh_b:.1f} / {warm_b:.1f}",
+                "saved per voxel by the cache (s), A / B": (
+                    f"{cold_a - warm_a:.1f} / {fresh_b - warm_b:.1f}"
+                ),
+                "extra time over key off, as before (fresh build), B": (
+                    f"+{100 * (fresh_b / off_b - 1):.1f}%"
+                ),
+                "extra time over key off, warm cache, A / B": (
+                    f"+{100 * (warm_a / off_a - 1):.1f}% / +{100 * (warm_b / off_b - 1):.1f}%"
+                ),
+                "warm equals fresh (B), cold equals warm (A)": (
+                    f"{'yes' if chk['warm_B_equals_fresh_B'] else 'NO'} / "
+                    f"{'yes' if chk['cold_A_equals_warm_A'] else 'NO'}"
+                ),
+            }
+        )
+    b = S["build"]
+    T = {
+        "evalG1_cache_timing": DT.markdown_table(rows, list(rows[0].keys()), {}),
+        "evalG1_cache_build": DT.markdown_table(
+            [
+                {
+                    "timing": S["label"],
+                    "SmoothCost constructor (s)": f"{b['constructor_s']:.3f}",
+                    "lit-pixel trees (s)": f"{b['trees_s']:.1f}",
+                    "observed rays (s)": f"{b['rays_s']:.1f}",
+                    "build total (s)": f"{b['total_s']:.1f}",
+                }
+            ],
+            ["timing", "SmoothCost constructor (s)", "lit-pixel trees (s)", "observed rays (s)"]
+            + ["build total (s)"],
+            {},
+        ),
+    }
+    DT.write_tables(OUT / "tables.md", T)
+    for k, t in T.items():
+        print(k)
+        print(t)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--retries", type=int, default=0, help="preflight retries, one a minute")
     ap.add_argument("--contended", action="store_true")
+    ap.add_argument("--summary", action="store_true", help="tables from cache_timing.json")
     a = ap.parse_args()
+    if a.summary:
+        summary()
+        return
     OUT.mkdir(parents=True, exist_ok=True)
     label = "contended"
     pf: Dict[str, Any] = {}
