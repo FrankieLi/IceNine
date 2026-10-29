@@ -10659,20 +10659,21 @@ the differing ones and 0.0012 px on the silent ones (`summary.json`; the `f64_si
 
 Per call on S1's per-call set (ThreeVoxels voxel 0, 400 near-truth orientations; median of 5 interleaved rounds; `fused` =
 `evaluate` with the key on, `c_only` = the bare `_rasterize.fused_evaluate` call on the cost function's context,
-`python_share` = their difference; `step0_prototype` = Step 0c's `fused`):
+`python_share` = their difference; `*_range` = min-max of the 5 rounds; `step0_prototype` = Step 0c's `fused`):
 
 <!-- table:s2_lib_per_call -->
-| arm | torch | fused | fused_range | c_only | python_share | speedup | step0_prototype |
-|---|---|---|---|---|---|---|---|
-| triangle_q8_default | 235.7 | 15.9 | 15.4-16.1 | 13.8 | 2.0 | 14.9 | 14.4 |
-| triangle_q8_cpp | 235.0 | 15.6 | 15.3-15.8 | 13.7 | 1.9 | 15.1 | 14.2 |
-| screen_r3_q5_default | 202.1 | 4.4 | 4.3-4.5 | 2.5 | 1.9 | 45.5 | 3.3 |
-| screen_r3_q5_cpp | 202.1 | 4.3 | 4.2-4.4 | 2.4 | 1.9 | 46.8 | 3.3 |
+| arm | torch | torch_range | fused | fused_range | c_only | c_only_range | python_share | speedup | step0_prototype |
+|---|---|---|---|---|---|---|---|---|---|
+| triangle_q8_default | 235.7 | 235.0-236.7 | 15.9 | 15.4-16.1 | 13.8 | 13.6-14.3 | 2.0 | 14.9 | 14.4 |
+| triangle_q8_cpp | 235.0 | 234.3-235.8 | 15.6 | 15.3-15.8 | 13.7 | 13.4-13.8 | 1.9 | 15.1 | 14.2 |
+| screen_r3_q5_default | 202.1 | 201.4-208.6 | 4.4 | 4.3-4.5 | 2.5 | 2.5-2.6 | 1.9 | 45.5 | 3.3 |
+| screen_r3_q5_cpp | 202.1 | 201.0-202.3 | 4.3 | 4.2-4.4 | 2.4 | 2.4-2.5 | 1.9 | 46.8 | 3.3 |
 <!-- /table:s2_lib_per_call -->
 
 The library path is slower than the prototype (15.9 against 14.4 us on the triangle arm, 4.4 against 3.3 us on the screen
-arm; Step 0c is a different run), mostly in the Python wrapper (`python_share` 2.0 us; Step 0c's `fused` 14.4 against its
-`c_only` 13.4) and partly in the C call (13.8 against 13.4 us).
+arm). Step 0c is a different run, so this comparison is unpaired. Within this run the Python wrapper takes 2.0 us of the
+triangle arm's 15.9 (`python_share`; in Step 0c, `fused` 14.4 against `c_only` 13.4). The C call shows no detectable
+difference across the two runs: 13.8 us here against 13.4 in Step 0c, inside this run's own `c_only` range (13.6-14.3).
 
 Batched (`BatchedCostEvaluator.evaluate_many`, 512 near-truth orientations in chunks of B, us per orientation; `fixed_gpu` =
 the fixed-shape variant on MPS; `evaluate_*` = one orientation per call; `three0_search` = the local cost of ThreeVoxels'
@@ -10707,50 +10708,61 @@ search config, 868 reflections):
 | e0_0 | 112 | 512 | 57.9 | 15.1 | 53.2 | 3.51 | 248.0 | 16.9 |
 <!-- /table:s2_lib_batched -->
 
-The batched fused entry costs the same per orientation at every B (14.1-17.6 us at 112 reflections, 92.7-97.3 us at 868), so
-batching adds little over the fused `evaluate` beyond the Python call. **GPU_MIN_BATCH** (64, set against the torch compact
-variant; D-20261028-I1 asks for the measurement, not a change): with the key on, `evaluate_many` still sends batches of 64 or
-more to the GPU when `SearchDevice` is a GPU, and on this machine (Apple MPS) the fixed variant is slower than the fused CPU
-entry at every B measured: 3.4-6.8 times at B 64-512 with 112 reflections, 2.4-2.5 times with 868. The constant is unchanged;
-whether the fused path should keep priority over the GPU with the key on is an owner decision (CUDA not measured).
+The batched fused entry costs about the same per orientation at B 8-512 (14.1-14.6 us on three0 and 15.0-15.4 us on e0_0, at
+112 reflections; 92.7-97.3 us at 868 on three0_search, B = 1 included); at 112 reflections B = 1 costs about 2 us more (16.6
+and 17.6 us). Batching thus adds little over the fused `evaluate` beyond the Python call.
+
+**GPU_MIN_BATCH** (64, set against the torch compact variant; D-20261028-I1 asks for the measurement, not a change): with
+the key on, `evaluate_many` still sends batches of 64 or more to the GPU when `SearchDevice` is a GPU, and on this machine
+(Apple MPS) the fixed variant is slower than the fused CPU entry at every B measured: 3.4-6.8 times at B 64-512 with 112
+reflections, 2.4-2.5 times with 868. The constant is unchanged; whether the fused path should keep priority over the GPU
+with the key on is left for the owner's review, nothing changed (D-20261028-I2; CUDA not measured).
 
 No-start search, split as Step 0a (ThreeVoxels voxel 0, `Example2.Simulation.config`, median of 3 repeats; 10 E0 clean voxels,
-sums, median of 2 repeats; `quick_mc_us` = quick-MC seconds per evaluation, the batched cost's for `BatchedQuickMC 1`):
+sums, median of 2 repeats; `wall_range` = min-max of the repeats; `quick_mc_us` = quick-MC microseconds per evaluation, the
+batched cost's for `BatchedQuickMC 1`):
 
 <!-- table:s2_lib_search_three -->
-| arm | wall | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
-|---|---|---|---|---|---|---|---|---|---|---|
-| default keys | 5.40 | 1.00 | 4.60 | 8311 | 553 | 3.58 | 6456 | 554 | 0.62 | 1 of 1 |
-| BatchedQuickMC 1 | 4.50 | 1.20 | 1.00 | 1812 | 550 | 2.72 | 6408 | 425 | 0.62 | 0 of 1 |
-| FusedCost 1 | 1.72 | 3.14 | 0.94 | 8311 | 113 | 0.74 | 6456 | 114 | 0.63 | 1 of 1 |
-| BatchedQuickMC 1, FusedCost 1 | 1.76 | 3.07 | 0.20 | 1812 | 110 | 0.80 | 6408 | 125 | 0.63 | 0 of 1 |
+| arm | wall | wall_range | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| default keys | 5.40 | 5.35-5.43 | 1.00 | 4.60 | 8311 | 553 | 3.58 | 6456 | 554 | 0.62 | 1 of 1 |
+| BatchedQuickMC 1 | 4.50 | 4.48-4.53 | 1.20 | 1.00 | 1812 | 550 | 2.72 | 6408 | 425 | 0.62 | 0 of 1 |
+| FusedCost 1 | 1.72 | 1.72-1.74 | 3.14 | 0.94 | 8311 | 113 | 0.74 | 6456 | 114 | 0.63 | 1 of 1 |
+| BatchedQuickMC 1, FusedCost 1 | 1.76 | 1.76-1.80 | 3.07 | 0.20 | 1812 | 110 | 0.80 | 6408 | 125 | 0.63 | 0 of 1 |
 <!-- /table:s2_lib_search_three -->
 
 <!-- table:s2_lib_search_e0 -->
-| arm | wall | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
-|---|---|---|---|---|---|---|---|---|---|---|
-| default keys | 16.10 | 1.00 | 9.95 | 39759 | 250 | 6.91 | 27636 | 250 | 5.16 | 2 of 10 |
-| BatchedQuickMC 1 | 10.52 | 1.53 | 2.82 | 11219 | 251 | 1.73 | 27576 | 63 | 5.16 | 2 of 10 |
-| FusedCost 1 | 6.84 | 2.35 | 0.80 | 39869 | 20 | 0.56 | 27636 | 20 | 5.16 | 2 of 10 |
-| BatchedQuickMC 1, FusedCost 1 | 6.72 | 2.39 | 0.22 | 11219 | 20 | 0.56 | 27576 | 20 | 5.16 | 2 of 10 |
+| arm | wall | wall_range | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| default keys | 16.10 | 16.09-16.10 | 1.00 | 9.95 | 39759 | 250 | 6.91 | 27636 | 250 | 5.16 | 2 of 10 |
+| BatchedQuickMC 1 | 10.52 | 10.52-10.52 | 1.53 | 2.82 | 11219 | 251 | 1.73 | 27576 | 63 | 5.16 | 2 of 10 |
+| FusedCost 1 | 6.84 | 6.84-6.84 | 2.35 | 0.80 | 39869 | 20 | 0.56 | 27636 | 20 | 5.16 | 2 of 10 |
+| BatchedQuickMC 1, FusedCost 1 | 6.72 | 6.72-6.73 | 2.39 | 0.22 | 11219 | 20 | 0.56 | 27576 | 20 | 5.16 | 2 of 10 |
 <!-- /table:s2_lib_search_e0 -->
 
 - ThreeVoxels voxel 0: the key-on search makes the same 8,311 evaluations as torch and ends 53.936 degrees from the truth
   (wrong) in both, with a final cost of 0.4355 against 0.4377 (`summary.json` `search_three.final`), so its path differs in
-  places; it is 3.14 times faster. With `BatchedQuickMC 1`
+  places; it is 3.14 times faster (1.72 s, repeats 1.72-1.74, against 5.40 s, repeats 5.35-5.43). With `BatchedQuickMC 1`
   the batched fused cost takes 125 us per evaluation against 425 us for the torch compact variant, and the search is 1.76 s
-  against 4.50 s (same 1,812 evaluate calls, both right).
-- E0 (10 voxels): 250 to 20 us per evaluate call; the search is 2.35 times faster (2.39 with `BatchedQuickMC 1` as well). The
-  wrong sets are the same per pair (default against `FusedCost 1`: 0 fixed, 0 broken, 2 both wrong). One voxel (e0_4) took
-  another path with the key (4,779 against 4,669 local evaluations, right in both). With the key on, `BatchedQuickMC 1` no
-  longer pays on this set (6.72 against 6.84 s), and the remaining time is mostly the batched screen (5.16 s), which S2 does
-  not cover.
+  (1.76-1.80) against 4.50 s (4.48-4.53) (same 1,812 evaluate calls, both right).
+- E0 (10 voxels): 250 to 20 us per evaluate call; the search is 2.35 times faster (6.84 s, repeats 6.84-6.84, against
+  16.10 s, 16.09-16.10), and 2.39 times with `BatchedQuickMC 1` as well (6.72 s, 6.72-6.73, against 10.52 s, 10.52-10.52).
+  The wrong sets are the same per pair (default against `FusedCost 1`: 0 fixed, 0 broken, 2 both wrong). One voxel (e0_4)
+  took another path with the key (4,779 against 4,669 local evaluations, right in both). The remaining time is mostly the
+  batched screen (5.16 s), which S2 does not cover.
+- `BatchedQuickMC` with the key on: per evaluation, the batched fused quick MC costs no less than the sequential fused one,
+  20 against 20 us on E0 and 125 against 114 us on ThreeVoxels (868 reflections; `quick_mc_us`). The search walls with and
+  without `BatchedQuickMC` (E0 6.72 against 6.84 s, ThreeVoxels 1.76 against 1.72 s) are different searches, not paired on
+  the same evaluations: draw option B changes the path. On ThreeVoxels the arm without it ends wrong at 53.936 degrees and
+  the arm with it ends right (quick-MC evaluations 6,456 against 6,408); on E0 the wrong sets are e0_0, e0_8 without it and
+  e0_5, e0_8 with it. Whether to keep `BatchedQuickMC` in the recommended configuration with the key on is left for the
+  owner's review, nothing changed (D-20261028-I2).
 
 ### Step 6: E0 A/B (E0 clean, 200 voxels, seed 0)
 
 `e0_run.py run --variants clean --n-seeds 1 --n-voxels 200 --workers 6`, arms `_s2off`, `--fused-cost --tag _s2on`,
 `--batched-quick-mc --tag _s2bq`, both (`_s2bqon`), the same images, voxels and random streams (`run_results_e0.sh`;
-`e0.json`). Wrong = reduced misorientation to the truth > 1 degree. Run times are 6 workers, not preflight-gated.
+`e0.json`). Wrong = reduced misorientation to the truth > 1 degree. Run times are contended (6 workers, not preflight-gated).
 
 <!-- table:s2_e0_wrong -->
 | arm | wrong | n | rate | wilson_low | wilson_high |
@@ -10782,7 +10794,7 @@ The key fixes and breaks no voxel, with or without `BatchedQuickMC` (35 both wro
 key-off arm against `BatchedQuickMC 1` (another random draw of the same search) splits 18 fixed and 18 broken, and S3's
 seed-to-seed calibration gave 14-23 flips each way. 182 of 200 voxels end at the same final orientation bit for bit; the
 evaluation counts per run are nearly the same (4,122.9 against 4,119.2 local, 44,499.9 against 44,499.8 global). Median run
-time per voxel 2.44 s with the key off, 1.01 s with it on.
+time per voxel, contended (6 workers, not preflight-gated): 2.44 s with the key off, 1.01 s with it on.
 
 **Traced.** No wrong flag changed, so there is no break to trace (D-20261014-N13); instead every voxel whose final
 orientation moved (18 per pair) was rerun with the key on and a shadow that recomputes each fused result on the torch path
@@ -10797,8 +10809,10 @@ evaluation counts), and every differing evaluation is traced with `s2_parity.tra
 <!-- /table:s2_e0_trace_pairs -->
 
 All 3,793 differing evaluations (of 148,511 shadowed in the 36 runs) are pixel-integer flips within 0.0018 px of the edge; 421
-of them change the cost. Up to the first of them the key-on search repeats the key-off search call for call, so where the two
-part is one of these flips; which one changed the path was not determined.
+of them change the cost. Up to the first of them the key-on search repeats the key-off search call for call by construction
+(the key changes only cost values and the shadow draws no random number; not compared against a key-off call log; the
+"reproduced" check covers the key-on side only), so where the two part is one of these flips; which one changed the path was
+not determined.
 
 ### Deviations and not done
 
