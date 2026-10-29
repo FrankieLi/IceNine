@@ -5,6 +5,11 @@ BFS rng seed 0. Writes <out>/<arm>_<variant>/{recon.mic, records.json, run.json}
 The configs (configs/ReconstructPhaseD_<arm>_<variant>.config, with BFSRevisitRefit 1) are used
 unchanged except for SampleFilename, which is pointed at the region grid in a copy under <out>.
 
+``--config PATH`` (Task G2) uses another config file in place of the arm's (it must still hold
+``BFSRevisitRefit 1``); ``--name`` names the run folder instead of <arm>_<variant>; ``--sample``
+points SampleFilename at another grid (a sub-region for short pilots). With
+``OutwardSearch 1`` the policy runs are written to <out>/<name>/outward_log.json.
+
 Usage (from icenine_py/):
   uv run python scripts/phase_d/pilot_bfs.py --arm mc --variant clean --out DIR [--max-voxels 50]
 """
@@ -55,13 +60,20 @@ def main() -> None:
         "--timing-label",
         default="contended: other jobs on the machine (state the actual number of concurrent runs)",
     )
+    ap.add_argument("--config", default=None, help="config file in place of the arm's")
+    ap.add_argument("--name", default=None, help="run folder name (default <arm>_<variant>)")
+    ap.add_argument("--sample", default=None, help="grid .mic in place of the pilot region's")
     a = ap.parse_args()
-    out = Path(a.out).resolve() / f"{a.arm}_{a.variant}"
+    out = Path(a.out).resolve() / (a.name or f"{a.arm}_{a.variant}")
     out.mkdir(parents=True, exist_ok=True)
-    text = (HERE / "configs" / f"ReconstructPhaseD_{a.arm}_{a.variant}.config").read_text()
-    text, n = re.subn(
-        r"(?m)^SampleFilename\s+\S+", f"SampleFilename {(REGION / 'region_grid.mic')}", text
+    cfg_src = (
+        Path(a.config).resolve()
+        if a.config
+        else HERE / "configs" / f"ReconstructPhaseD_{a.arm}_{a.variant}.config"
     )
+    text = cfg_src.read_text()
+    sample = Path(a.sample).resolve() if a.sample else REGION / "region_grid.mic"
+    text, n = re.subn(r"(?m)^SampleFilename\s+\S+", f"SampleFilename {sample}", text)
     assert n == 1 and "BFSRevisitRefit 1" in text
     if a.reseed:
         text += "\n# Phase D BFS reseed (opt-in)\nBFSReseed 1\n"
@@ -89,6 +101,8 @@ def main() -> None:
     (out / "records.json").write_text(
         json.dumps({str(k): asdict(v) for k, v in bfs.records.items()}) + "\n"
     )
+    if getattr(bfs, "outward_log", None):
+        (out / "outward_log.json").write_text(json.dumps(bfs.outward_log) + "\n")
     info = {
         "arm": a.arm,
         "variant": a.variant,
@@ -101,6 +115,15 @@ def main() -> None:
         "bfs_revisit_refit": bool(p.bfs_revisit_refit),
         "bfs_revisit_max": p.bfs_revisit_max,
         "bfs_reseed": bool(p.bfs_reseed),
+        **(
+            {
+                "config": str(cfg_src.name),
+                "outward_search": bool(getattr(p, "outward_search", False)),
+                "smooth_rank": str(getattr(p, "smooth_rank", "off")),
+            }
+            if a.config
+            else {}
+        ),
         "wall_total_s": wall,
         "setup_s": t_setup,
         "timing_label": a.timing_label,

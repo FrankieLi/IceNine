@@ -1,0 +1,268 @@
+{
+ "voxel": 18558,
+ "tag": "g2_integrated",
+ "opts": [
+  "smooth_rank=E3+E4,tau=0.25"
+ ],
+ "seed": 1,
+ "preflight": {
+  "timestamp": "2026-10-29T02:40:59",
+  "host": "newt.lan",
+  "loadavg": [
+   6.0849609375,
+   5.0439453125,
+   3.62451171875
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 25353,
+    "cpu": 99.0,
+    "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+   },
+   {
+    "pid": 25379,
+    "cpu": 99.7,
+    "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+   },
+   {
+    "pid": 25405,
+    "cpu": 99.0,
+    "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+   },
+   {
+    "pid": 25431,
+    "cpu": 100.0,
+    "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+   },
+   {
+    "pid": 26369,
+    "cpu": 99.7,
+    "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+   }
+  ],
+  "not_quiet": "machine not quiet for timing: 1-min load 6.08 > 1.5; busy process pid 25353 (99% CPU): /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python; busy process pid 25379 (100% CPU): /Library/Developer/CommandLineTools/Library/Fram"
+ },
+ "label": "single-worker, contended",
+ "quiet_preflight": false,
+ "wall_s": 158.83289129099998,
+ "evals_total": 330488,
+ "evals_by_radius": {
+  "r3": 77769,
+  "r0": 252719
+ },
+ "eval_time_s": 106.81160990299499,
+ "mean_us_per_eval": 323.19361036707835,
+ "library_eval_counts": [
+  77769,
+  252719,
+  330488
+ ],
+ "totals": {
+  "screen": 77769,
+  "recost": 66048,
+  "quick": 184896,
+  "find": 706,
+  "variance": 1068,
+  "final": 1,
+  "sum": 330488
+ },
+ "levels": [
+  {
+   "level": 0,
+   "fz_in": 4886,
+   "n_local": 9,
+   "n_recip": 26,
+   "diameter_deg": 5.0,
+   "candidates": 10253,
+   "cliques": 4886,
+   "passed_screen": 33766,
+   "screen_evals": 43974,
+   "recost_evals": 33766,
+   "screen_eval_s": 1.0497970399999956,
+   "recost_eval_s": 14.045058580000156,
+   "discrete_s": 18.034979042,
+   "kept": 2563,
+   "dropped": 7690,
+   "quick_evals": 123036,
+   "quick_s": 88.1850105,
+   "quick_calls": 10253,
+   "stage_evals": 200776
+  },
+  {
+   "level": 1,
+   "fz_in": 2563,
+   "n_local": 9,
+   "n_recip": 50,
+   "diameter_deg": 3.3333333333333335,
+   "candidates": 3602,
+   "cliques": 2563,
+   "passed_screen": 21740,
+   "screen_evals": 23067,
+   "recost_evals": 21740,
+   "screen_eval_s": 0.9246504939999767,
+   "recost_eval_s": 9.132603700000644,
+   "discrete_s": 11.382937624999997,
+   "kept": 900,
+   "dropped": 2702,
+   "quick_evals": 43224,
+   "quick_s": 24.798214333000004,
+   "quick_calls": 3602,
+   "stage_evals": 88031
+  },
+  {
+   "level": 2,
+   "fz_in": 900,
+   "n_local": 9,
+   "n_recip": 64,
+   "diameter_deg": 2.2222222222222223,
+   "candidates": 1169,
+   "cliques": 900,
+   "passed_screen": 7916,
+   "screen_evals": 8100,
+   "recost_evals": 7916,
+   "screen_eval_s": 0.38982708200006755,
+   "recost_eval_s": 3.264797412998945,
+   "discrete_s": 4.104242083000003,
+   "kept": 292,
+   "dropped": 877,
+   "quick_evals": 14028,
+   "quick_s": 8.127046249999978,
+   "quick_calls": 1169,
+   "stage_evals": 30044
+  },
+  {
+   "level": 3,
+   "fz_in": 292,
+   "n_local": 9,
+   "n_recip": 112,
+   "diameter_deg": 1.4814814814814814,
+   "candidates": 384,
+   "cliques": 292,
+   "passed_screen": 2626,
+   "screen_evals": 2628,
+   "recost_evals": 2626,
+   "screen_eval_s": 0.2003635409999447,
+   "recost_eval_s": 1.0778719279992686,
+   "discrete_s": 1.4275550829999872,
+   "kept": 96,
+   "dropped": 288,
+   "quick_evals": 4608,
+   "quick_s": 1.9983786669999972,
+   "quick_calls": 384,
+   "stage_evals": 9862
+  }
+ ],
+ "find": [
+  {
+   "index": 0,
+   "evals": 208,
+   "wall_s": 0.088281582999997,
+   "cost": 0.06310096153846156
+  },
+  {
+   "index": 1,
+   "evals": 161,
+   "wall_s": 0.06682754199999863,
+   "cost": 0.07948369565217384
+  },
+  {
+   "index": 2,
+   "evals": 129,
+   "wall_s": 0.05357983300001479,
+   "cost": 0.07980486727728842
+  },
+  {
+   "index": 3,
+   "evals": 208,
+   "wall_s": 0.0893817919999833,
+   "cost": 0.06250000000000011
+  }
+ ],
+ "find_optimal": {
+  "winner_index": 3,
+  "n_evaluated": 4,
+  "n_candidates": 384,
+  "converged": true
+ },
+ "variance": {
+  "evals": 1068,
+  "wall_s": 0.469720916
+ },
+ "final": {
+  "evals": 1,
+  "wall_s": 0.000428542000008747
+ },
+ "calls": {
+  "find": [
+   {
+    "kind": "find",
+    "evals": 208,
+    "cost": 0.06310096153846156,
+    "blocks": 7,
+    "steps": 200,
+    "restarts": 2,
+    "accepts": 5,
+    "stop": 0
+   },
+   {
+    "kind": "find",
+    "evals": 161,
+    "cost": 0.07948369565217384,
+    "blocks": 5,
+    "steps": 155,
+    "restarts": 3,
+    "accepts": 2,
+    "stop": 1
+   },
+   {
+    "kind": "find",
+    "evals": 129,
+    "cost": 0.07980486727728842,
+    "blocks": 4,
+    "steps": 124,
+    "restarts": 3,
+    "accepts": 1,
+    "stop": 1
+   },
+   {
+    "kind": "find",
+    "evals": 208,
+    "cost": 0.06250000000000011,
+    "blocks": 7,
+    "steps": 200,
+    "restarts": 1,
+    "accepts": 6,
+    "stop": 0
+   }
+  ],
+  "variance": [
+   {
+    "kind": "variance",
+    "evals": 1068,
+    "cost": 0.06250000000000011
+   }
+  ],
+  "quick": {
+   "n": 15408,
+   "evals_total": 184896,
+   "evals_per_call": {
+    "min": 12,
+    "median": 12.0,
+    "max": 12
+   },
+   "blocks_mean": 1.0,
+   "stop_codes": {
+    "0": 15408
+   }
+  }
+ },
+ "err_deg": 0.0042330600800022135,
+ "cost_final": 0.06250000000000011,
+ "c_ext": true,
+ "smooth_evals": 15024
+}
