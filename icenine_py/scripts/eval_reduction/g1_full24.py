@@ -162,6 +162,15 @@ def paired(rule: str, tag: str) -> Optional[Dict[str, Any]]:
         err_base={str(v): float(e) for v, e in zip(vox, eb)},
         err_arm={str(v): float(e) for v, e in zip(vox, ea)},
         n_both_right=int(both_right.sum()),
+        strict_evals_change_pct=round(
+            100.0
+            * (
+                np.mean([int(arm[v]["evals"]) for v in vox])
+                / np.mean([int(base[v]["evals"]) for v in vox])
+                - 1.0
+            ),
+            1,
+        ),
         median_err_both_right_base=float(np.median(eb[both_right])) if both_right.any() else None,
         median_err_both_right_arm=float(np.median(ea[both_right])) if both_right.any() else None,
         mean_evals_base=float(np.mean([int(base[v]["evals"]) for v in vox])),
@@ -268,6 +277,40 @@ def tables(P: Dict[str, Any], base_wrong: Dict[str, Any]) -> Dict[str, str]:
     return T
 
 
+def basin_ranks(v: int) -> Dict[str, Any]:
+    """Per run and level of a voxel: list length after the quick MC, the number kept, the basin
+    radius (deg) and the 0-based rank of the first truth-basin candidate in the recorded (run's own)
+    order and under the strict cost's order of the same list (-1: no basin candidate)."""
+    from smooth_rank_summary import basin_radius
+
+    out: Dict[str, Any] = {}
+    for rule in RULES:
+        for tag in ("base",) + tuple(ARMS):
+            f = run_dir(rule, tag) / f"v{v}.npz"
+            if not f.exists():
+                continue
+            z = dict(np.load(f))
+            levels = []
+            for lv in range(int(z["n_levels"])):
+                d = z[f"L{lv}_dist"].astype(np.float64)
+                c = z[f"L{lv}_cost"].astype(np.float64)
+                B = basin_radius(z, lv, "next")
+                own = np.nonzero(d <= B)[0]
+                strict = np.nonzero(d[np.argsort(c, kind="stable")] <= B)[0]
+                levels.append(
+                    dict(
+                        level=lv,
+                        n=int(len(d)),
+                        n_keep=int(z[f"L{lv}_n_keep"]),
+                        basin_deg=round(B, 2),
+                        first_basin_rank=int(own[0]) if len(own) else -1,
+                        first_basin_rank_strict_order=int(strict[0]) if len(strict) else -1,
+                    )
+                )
+            out[f"{rule}|{tag}"] = dict(err_deg=float(z["err_deg"]), levels=levels)
+    return out
+
+
 def summary() -> None:
     import doc_tables as DT
     from smooth_rank_summary import load_runs
@@ -282,11 +325,15 @@ def summary() -> None:
         rule: {str(v): float(z["err_deg"]) for v, z in load_runs(run_dir(rule, "base")).items()}
         for rule in RULES
     }
+    wrong_any = sorted(
+        {int(v) for x in P.values() for v in x["wrong_base_voxels"] + x["wrong_arm_voxels"]}
+    )
     S = dict(
         voxels=VOXELS_24,
         wrong_deg=WRONG_DEG,
         paired=P,
         strict_err=base_err,
+        basin_ranks_of_wrong_voxels={str(v): basin_ranks(v) for v in wrong_any},
         decision=decision(P),
         note="no-start search, clean full-sample images, Q-max 8 config, seed 1, min_sin_eta 0",
     )
