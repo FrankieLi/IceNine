@@ -2,8 +2,10 @@
 
 Usage: audit_numbers.py --doc FILE.md --section "Heading text" --sources FILE_OR_GLOB... [--strict] [-v] [--per-file]
 
-Numbers (decimals, percentages, ranges, "a / b" pairs, integers >= 10) are extracted from the
-section; a number matches when a source value equals it at the printed precision. Only for a
+The section runs from the first heading containing the text to the next heading of the same or a
+higher level; `#` lines in fenced code are not headings (the scan sync_doc_tables.py --section
+uses). Numbers (decimals, percentages, ranges, "a / b" pairs, integers >= 10) are extracted from
+the section; a number matches when a source value equals it at the printed precision. Only for a
 percentage or a fraction <= 1 are the x100 and /100 variants and sibling k/n ratios also tried.
 Unmatched numbers are listed with line numbers; -v prints the nearest source value and its
 file:key; --per-file requires each paragraph or table row to match within one source file. Exit 0
@@ -19,6 +21,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
+from sync_doc_tables import find_section as _section_range  # same dir as this script
 
 TEXT_SUFFIXES = {".txt", ".md", ".json", ".csv", ".log", ".tsv", ".yaml", ".yml", ".out"}
 MAX_ARRAY = 200
@@ -39,18 +42,12 @@ CONTEXT_SKIP_RE = re.compile(
 
 
 def find_section(lines: Sequence[str], heading: str) -> Tuple[int, int]:
-    """(start, end) line indexes (0-based, end exclusive) of the section whose heading line
-    contains ``heading``; it runs to the next heading of the same or a higher level."""
-    for i, line in enumerate(lines):
-        m = re.match(r"^(#+)\s+(.*)$", line)
-        if m and heading in m.group(2):
-            level = len(m.group(1))
-            for j in range(i + 1, len(lines)):
-                m2 = re.match(r"^(#+)\s", lines[j])
-                if m2 and len(m2.group(1)) <= level:
-                    return i, j
-            return i, len(lines)
-    raise ValueError(f"section not found: {heading!r}")
+    """(start, end) line indexes (0-based, end exclusive) of the first section whose heading line
+    contains ``heading``; it runs to the next heading of the same or a higher level. ``#`` lines
+    inside fenced code blocks are not headings (the heading scan of sync_doc_tables.py, shared so
+    the two tools cut a section the same way). Raises ValueError if no heading contains it."""
+    start, end, _ = _section_range(lines, heading)
+    return start, end
 
 
 def _clean(line: str) -> str:

@@ -85,7 +85,8 @@ def lib() -> ct.CDLL:
         L.o5_counts.argtypes = args_counts[:8] + [ct.c_int64, P_U8, ct.c_int64]
         L.o5_counts.restype = None
         L.o3_counts.argtypes = [ct.c_void_p, P_I64, ct.c_int64, ct.c_int64, P_I32, ct.c_int64,
-                                P_D, P_D, ct.c_int64, ct.c_int64, ct.c_int64, P_U8, ct.c_int64]  # fmt: skip
+                                P_D, P_D, ct.c_int64, ct.c_int64, ct.c_int64, P_U8,
+                                ct.c_int64]  # fmt: skip
         L.o3_counts.restype = None
         L.table_size.restype = ct.c_int64
         assert L.table_size() == ct.sizeof(_Table)
