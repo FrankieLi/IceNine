@@ -586,3 +586,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   plan that Ilium Agent has not done, merging each sub-task without asking; decision points take
   the plan's stated default, each recorded as a Delegated entry. Where:
   ~/.claude/plans/eval-reduction.md Task G; ROADMAP Track E row G.
+
+### D-20261028-N3 · Track E (merge of python-speed-parity) · One-time pre-commit bypass for the merge of Ilium's branch
+- 2026-10-28, owner. Recorded by Newt Agent. Supersedes: none.
+- The merge of origin/feature/python-speed-parity through de3e29d into feature/eval-reduction
+  (5e15bcd) was committed by the owner with --no-verify: the pre-commit hook refused the
+  owner-approved .claude/ files (D-20261021-I1) and lines over 100 characters in Ilium's S2/S4
+  scripts. One time only; agents still never bypass the hooks. Where: merge commit 5e15bcd;
+  scripts/dev/precommit_check.py.
