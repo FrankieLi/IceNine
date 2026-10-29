@@ -92,6 +92,20 @@ def main() -> None:
     p = setup.search_params
     t_setup = time.time() - t0
     bfs = BFSReconstruction(setup)
+    # SmoothCostRank (Task G2): the ranking key's smooth evaluations of every full search, in call
+    # order (ordinary seeds first, then the reseeds' full searches); not in the BFS stats
+    smooth_per_full_search: list = []
+    if str(getattr(p, "smooth_rank", "off")) != "off":
+        rv = bfs.reconstructor
+        full_search = rv.reconstruct_voxel
+
+        def counted(*args, **kw):  # type: ignore[no-untyped-def]
+            out = full_search(*args, **kw)
+            sr = rv.last_smooth_ranker
+            smooth_per_full_search.append(int(sr.n_evals) if sr is not None else 0)
+            return out
+
+        rv.reconstruct_voxel = counted  # type: ignore[method-assign]
     rng = np.random.default_rng(a.seed)
     t1 = time.time()
     order = bfs.reconstruct_sample(
@@ -128,6 +142,11 @@ def main() -> None:
         "setup_s": t_setup,
         "timing_label": a.timing_label,
         "torch_threads": torch.get_num_threads(),
+        **(
+            {"smooth_evals_per_full_search": smooth_per_full_search}
+            if smooth_per_full_search
+            else {}
+        ),
         "stats": bfs.stats,
     }
     (out / "run.json").write_text(json.dumps(info, indent=2, default=float) + "\n")
