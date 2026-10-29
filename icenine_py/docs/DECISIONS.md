@@ -570,3 +570,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   (Opus) reviews; no library change. Not started: S5 and S6 (need a plan and the owner's pick),
   the quiet-machine timing repeats of S1 and S3, and FusedCost's default (owner's review). Where:
   ROADMAP Track H row H12; docs/todo_ilium_workflow_tooling.md.
+
+### D-20261028-N1 · Track E (all remaining work) · Opus implements every remaining task; one Fable review at the end
+- 2026-10-28, owner. Recorded by Newt Agent. Supersedes: none.
+- From now on every implementer for Track E is Opus (fresh agent per task, fixes included); the
+  Sonnet default of the plan no longer applies. The per-task /review-task loop is dropped for the
+  remaining work: once everything is done, one review by a Fable reviewer covers the carry-option
+  comparison (Fcompare) and Task G, and replaces the plan's Review stage. Where:
+  ~/.claude/plans/eval-reduction.md Task G (owner note) and Review stage.
