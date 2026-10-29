@@ -545,3 +545,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   measured against the torch compact variant) should still send batches to the GPU when FusedCost
   is on. Where: ROADMAP Track S row S2; plan todo_s2_fused_c_eval.md Steps 4-6;
   .claude/reports/20261028-0930-review-s2-batched.md.
+
+### D-20261028-I2 · S2 · Delegated: parity checker keeps the I2 wording; GPU_MIN_BATCH and BatchedQuickMC-with-FusedCost go to the owner's review unchanged
+- 2026-10-28, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1, after the Steps 4-6 review (APPROVE, 8 record fixes): (1)
+  s2_lib_parity.py drops pixel_negative from its accepted causes, matching s2_core_parity.py and
+  the D-20261027-I2 wording (d = 0 is pixel coordinate 0.5, the centre of pixel 0, not an edge);
+  no pixel_negative case occurred, so no result changes. (2) GPU_MIN_BATCH stays 64: with
+  FusedCost on, MPS was 2.4-6.8x slower than the fused CPU entry at B 64-512 and CUDA is
+  unmeasured; whether a GPU SearchDevice should yield to the fused CPU entry is listed for the
+  owner's full review, not changed (no default flip, D-20261012-I1). (3) BatchedQuickMC with
+  FusedCost on gives no per-evaluation gain (E0 20 vs 20 us); no recommended-configuration change,
+  listed for the owner's review. Where: ROADMAP Track S row S2; MIGRATION_HISTORY S2;
+  .claude/reports/20261028-2100-review-s2-results.md.
