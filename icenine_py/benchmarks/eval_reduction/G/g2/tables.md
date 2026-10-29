@@ -1,3 +1,51 @@
+<!-- table:evalG2_bfs_accuracy -->
+| run | n | wrong | unresolved | grains_lost | median_err_right | seeds | reseeds | neighbor_fits | accepted_first | revisits |
+|---|---|---|---|---|---|---|---|---|---|---|
+| mc_clean | 2000 | 37 (1.3-2.5%) | 1 | 0 | 0.0118 | 34 | 35 (32 accepted) | 1966 | 770 | 2126 (1165 accepted) |
+| keyoff_rerun | 2000 | 37 (1.3-2.5%) | 2 | 0 | 0.0101 | 40 | 29 (28 accepted) | 1960 | 769 | 2089 (1167 accepted) |
+| integrated | 2000 | 42 (1.6-2.8%) | 0 | 1 | 0.0077 | 38 | 32 (32 accepted) | 1962 | 762 | 2140 (1173 accepted) |
+| outward_only | 2000 | 36 (1.3-2.5%) | 1 | 1 | 0.0113 | 34 | 36 (35 accepted) | 1966 | 764 | 2166 (1168 accepted) |
+<!-- /table:evalG2_bfs_accuracy -->
+
+<!-- table:evalG2_bfs_evals -->
+| run | seed | reseed | neighbor | revisit | total | smooth_full_searches |
+|---|---|---|---|---|---|---|
+| mc_clean | 11274936 | 11598290 | 1290496 | 1398836 | 25562558 | 0 |
+| keyoff_rerun | 13264873 | 9617992 | 1293861 | 1371209 | 25547935 | 0 |
+| integrated | 12747993 | 9493718 | 19736111 | 18843288 | 60821110 | 996303 |
+| outward_only | 11265144 | 10415877 | 19987665 | 19950797 | 61619483 | 0 |
+<!-- /table:evalG2_bfs_evals -->
+
+<!-- table:evalG2_bfs_paired -->
+| a | b | wrong_a | wrong_b | fixed | broken | both_wrong |
+|---|---|---|---|---|---|---|
+| mc_clean | keyoff_rerun | 37 | 37 | 14 | 14 | 23 |
+| mc_clean | integrated | 37 | 42 | 11 | 16 | 26 |
+| mc_clean | outward_only | 37 | 36 | 9 | 8 | 28 |
+| keyoff_rerun | integrated | 37 | 42 | 15 | 20 | 22 |
+| keyoff_rerun | outward_only | 37 | 36 | 18 | 17 | 19 |
+<!-- /table:evalG2_bfs_paired -->
+
+<!-- table:evalG2_bfs_policy -->
+| run | phase | runs | accepted | fallback | fallback_accepted | strict | screen | smooth | jac | strict_equiv | wall_s | median_wall_s | max_wall_s |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| integrated | neighbor | 1962 | 1523 | 455 | 16 | 23028 | 18424908 | 325119 | 13461 | 2391401 | 1218 | 0.11 | 3.0 |
+| integrated | reseed | 32 | 30 | 2 | 0 | 150 | 83314 | 1836 | 163 | 14561 | 7 | 0.09 | 2.6 |
+| integrated | revisit | 2140 | 1722 | 425 | 7 | 22283 | 17412731 | 312038 | 14757 | 2325773 | 1175 | 0.11 | 3.1 |
+| outward_only | neighbor | 1966 | 1521 | 460 | 15 | 23290 | 18674835 | 325889 | 12560 | 2385335 | 1239 | 0.10 | 17.8 |
+| outward_only | reseed | 36 | 33 | 3 | 0 | 201 | 124971 | 2599 | 209 | 20436 | 10 | 0.11 | 2.5 |
+| outward_only | revisit | 2166 | 1722 | 449 | 5 | 23444 | 18495783 | 327026 | 14220 | 2420169 | 1237 | 0.11 | 3.0 |
+<!-- /table:evalG2_bfs_policy -->
+
+<!-- table:evalG2_bfs_wall -->
+| run | seed | reseed | neighbor | revisit | total |
+|---|---|---|---|---|---|
+| mc_clean | 6025 | 6213 | 723 | 783 | 13744 |
+| keyoff_rerun | 4553 | 3295 | 559 | 590 | 8997 |
+| integrated | 5951 | 4325 | 1770 | 1775 | 13822 |
+| outward_only | 3852 | 3489 | 1791 | 1848 | 10980 |
+<!-- /table:evalG2_bfs_wall -->
+
 <!-- table:evalG2_e0 -->
 | n | wrong_base | wrong_integrated | fixed | broken | both_wrong | broken_traced | evals_base | evals_integrated | smooth | identical_to_task_e |
 |---|---|---|---|---|---|---|---|---|---|---|

@@ -1,6 +1,6 @@
 {
   "title": "Task G2 pilot maps",
-  "summary": "SUMMARY_PLACEHOLDER",
+  "summary": "The 2,000-voxel pilot region reconstructed four times with the same BFS seed order: the stored pilot (2026-10-10), the same configuration on today's code (the like-for-like baseline: the centroid screen became the default on 2026-10-12), the integrated configuration of Task G2 (SmoothCostRank E3+E4 tau 0.25 and OutwardSearch), and OutwardSearch alone. Wrong voxels (more than 1 degree from the truth): 37, 37, 42 and 36 of 2,000. The two OutwardSearch runs each lose grain 331 (a one-voxel grain), whose reseed took the outward-search path from a neighbouring grain's orientation.",
   "reference": {
     "mic": "../../../../../Examples/Example2.ManyGrains/SimInput/rand_500grains_1mm_neworient_s0.mic",
     "index": "../../../phase_d_pilot/region_index.npy",
@@ -11,7 +11,7 @@
     {
       "name": "pilot_region",
       "title": "2,000-voxel pilot region, clean images, mc arm, reseed on",
-      "caption": "CAPTION_PLACEHOLDER",
+      "caption": "Clean images, mc arm, revisit and reseed on, BFS rng seed 0. Wrong voxels: stored pilot 37, today's code 37, integrated 42, OutwardSearch only 36 (of 2,000). Paired against today's code: integrated 15 fixed and 20 broken, OutwardSearch only 18 fixed and 17 broken; 8 of the breaks in each carry the orientation of a reseed that the outward search accepted.",
       "mics": [
         {"path": "../../../phase_d_pilot_reseed_v2/runs/mc_clean/recon.mic", "label": "Stored pilot"},
         {"path": "../g2/bfs/runs/keyoff_rerun/recon.mic", "label": "Stored configuration, today's code"},

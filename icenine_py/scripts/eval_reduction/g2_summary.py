@@ -316,7 +316,7 @@ def main() -> None:
         tables.update(res.pop("tables"))
         res["keyoff_check"] = json.loads((OUT / "keyoff_pilot_compare.json").read_text())
         summary["pilot150"] = res
-    bfs = CACHE / "bfs"
+    bfs = OUT / "bfs" / "runs"  # committed copies of the runs (recon.mic, records, run, log)
     # the stored pilot predates the centroid-screen default (2026-10-12), so the key-off rerun on
     # this branch is the like-for-like baseline; both are reported
     res = bfs_part(
