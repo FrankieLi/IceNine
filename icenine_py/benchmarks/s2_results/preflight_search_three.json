@@ -1,0 +1,18 @@
+{
+ "timestamp": "2026-10-28T16:56:01",
+ "host": "ilium.local",
+ "loadavg": [
+  4.1796875,
+  3.34716796875,
+  3.0107421875
+ ],
+ "cpu_count": 10,
+ "power": "ac",
+ "omp_num_threads": null,
+ "mkl_num_threads": null,
+ "torch_threads": 1,
+ "busy_processes": [],
+ "quiet": false,
+ "not_quiet_reason": "machine not quiet for timing: 1-min load 4.18 > 1.5",
+ "label": "contended"
+}
