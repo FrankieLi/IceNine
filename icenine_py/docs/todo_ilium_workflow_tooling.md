@@ -280,6 +280,48 @@ branch, launch a **fresh** implementer (Track S rule: no owner review in between
 **Tests:** `make_brief.sh` on fixture plans with and without a stop rule, with and without an
 approval entry, with `--fixes`; golden text comparison of the brief.
 
+## Follow-ups found in S2 (2026-10-28)
+
+Gaps the S2 run hit (S2 review packet, D-20261028-I3). Two tasks with no shared files, run in
+parallel. Each task's tests go in its own test file; each adds or edits only its own tools' rows in
+the README "Developer tooling" table.
+
+### Task (d): briefs and hand-backs
+
+1. **`make_brief.sh --section`**: when the named section has no `**Library changes:**` or
+   `**Process limit exception:**` marker of its own, the brief falls back to the whole plan and
+   picks up another section's marker (S2: the Step 3 brief got the parallel tasks' "3 each").
+   With `--section`, use only markers inside that section or in the plan's text outside every
+   `## ` section under "# Steps" (the plan-wide default); otherwise write "none stated in this
+   section" and print a note on stderr. Without `--section`, behaviour is unchanged.
+2. **`verify_handback.sh`, hashes**: a hash the report names that is an ancestor of the branch
+   (the base or parent tip it started from) is not "not on the branch"; flag only hashes that
+   the branch does not contain.
+3. **`verify_handback.sh`, test summary**: it printed a pytest warning line ("-- Docs: ...") as
+   the test summary, and in this repo's quiet mode the count line is missing. Find why the count
+   line is missing, then report the real counts (passed, failed, skipped) and pytest's exit
+   code, never a warning line. A run with failures stays FAIL.
+
+**Library changes:** none.
+
+**Process limit exception:** at most 3 heavy processes at once (tasks (d) and (e) run at the same
+time and share the machine's 6).
+
+### Task (e): doc tables and line lengths
+
+1. **`sync_doc_tables.py --section "<heading>"`** (the item under "Lower priority" below): sync or
+   `--check` only the markers inside that heading's range. Also report, in the message of the
+   whole-file exit 2, which markers lack a generated block (S2: the whole MIGRATION_HISTORY.md
+   fails, so the fixer synced the S2 section through a scratch script).
+2. **S4 scripts**: the 21 lines over 100 characters in `scripts/speed_parity/s4/` wrapped to 100
+   (Black, then by hand where Black leaves a long string or comment). No behaviour change: the
+   scripts' own tests pass and a dry `--help` of each changed script prints as before.
+
+**Library changes:** none.
+
+**Process limit exception:** at most 3 heavy processes at once (tasks (d) and (e) run at the same
+time and share the machine's 6).
+
 ## Lower priority
 
 - **`sync_doc_tables.py --section "<heading>"`**: sync or `--check` only the markers inside that

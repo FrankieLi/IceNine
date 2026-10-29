@@ -293,6 +293,27 @@ def test_read_on_fetch_mark_moves_the_point(world: World) -> None:
     assert "newt more" in since.stdout and "newt work" in since.stdout
 
 
+def test_read_on_fetch_leaves_out_own_commits_the_peer_merged(world: World) -> None:
+    _commit(world.own, {"icenine_py/docs/ilium_note.md": "i\n"}, "ilium own work")
+    _git(world.own, "push", "-q", "origin", ILIUM_BRANCH)
+    _git(world.peer, "fetch", "-q", "origin")
+    _git(world.peer, "merge", "-q", "--no-edit", f"origin/{ILIUM_BRANCH}")
+    _git(world.peer, "push", "-q", "origin", NEWT_BRANCH)
+    base = _git(world.own, "rev-list", "--max-parents=0", "HEAD")
+    res = _run("read_on_fetch.sh", world.own, "--agent", "I", "--since", base, env=world.env())
+    assert res.returncode == 0, res.stderr
+    commits = res.stdout.split("== commits on", 1)[1].split("== mailbox", 1)[0]
+    assert "newt work" in commits
+    assert "ilium own work" not in commits
+    assert "(1 commit(s) already on your branch left out)" in commits
+    assert "newt_note.md" in commits and "ilium_note.md" not in commits
+    # once the peer branch is merged here too, nothing is new
+    _git(world.own, "merge", "-q", "--no-edit", f"origin/{NEWT_BRANCH}")
+    again = _run("read_on_fetch.sh", world.own, "--agent", "I", "--since", base, env=world.env())
+    commits = again.stdout.split("== commits on", 1)[1].split("== mailbox", 1)[0]
+    assert "none" in commits and "already on your branch)" in commits
+
+
 def test_read_on_fetch_unreachable_shmem_is_reported(world: World) -> None:
     res = _run(
         "read_on_fetch.sh",

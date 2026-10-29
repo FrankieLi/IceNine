@@ -1,0 +1,14 @@
+{
+ "n_orient_sampled": 200,
+ "n_orient_layer": 43974,
+ "peaks_per_orientation_mean": 104.23,
+ "peaks_per_orientation_min": 88,
+ "peaks_per_orientation_max": 110,
+ "bytes_per_orientation_mean": 14175.28,
+ "bytes_per_peak": 136.0,
+ "table_bytes_layer_estimate": 623343762.72,
+ "dtypes": {
+  "A": "float64",
+  "c": "float64"
+ }
+}

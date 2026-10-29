@@ -403,6 +403,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   ranking key is used there. Task E's docs lead with the as-shipped cost (rebuild per voxel) and give the
   one-build-per-image-set figure as a projection. Where: eval-reduction plan Task G step 2c.
 
+### D-20261021-I1 · H12 · Commit the workflow skills and the owner text; do the small tooling follow-ups
+- 2026-10-21, owner. Recorded by Ilium Agent. Supersedes: none.
+- The owner approved committing the skills /decide, /implement-plan and /apply-fixes and the
+  drafted owner text (implementer.md, study-conventions.md, the caffeinate wrapper in the Bash
+  hook, one sentence each for ROADMAP protocol rules 2 and 6), committed by Ilium Agent at the
+  owner's request. Also approved: fix read_on_fetch.sh listing the caller's own merged commits as
+  the other agent's, let make_brief.sh accept a plan outside the repository, and update the S4
+  row. Where: ROADMAP H12; .claude/reports/20261018-owner-text-workflow-tooling.md (Ilium's
+  machine).
+
+### D-20261021-I2 · S2 · S2 is the next Track S item; plan it
+- 2026-10-21, owner. Recorded by Ilium Agent. Supersedes: none.
+- Go for S2, the fused C evaluation behind an opt-in key. Ilium Agent writes the plan for owner
+  approval before any implementer runs. Where: ROADMAP Track S row S2; plan to come in
+  docs/todo_s2_fused_c_eval.md.
 ### D-20261021-N1 · Track E row F/G · Compare every Task F carry option side by side before choosing
 - 2026-10-21, owner. Recorded by Newt Agent. Supersedes: none.
 - Before choosing what Task G carries, run every option in parallel and summarize capture, timing
@@ -411,3 +426,147 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   deg). The runs use voxels Task F did not use, so the policy and window numbers are out of
   sample. The choice of carry (open from Task F) waits for this summary. Where: ROADMAP Track E
   row F; docs/findings_outward_search_2026-10.md.
+
+### D-20261021-I3 · S4 · Merge S4 as a finished study; library path stays parked
+- 2026-10-21, owner. Recorded by Ilium Agent. Supersedes: none.
+- Option A: merge feature/python-speed-parity-s4-translation-screen (scripts, results, findings,
+  review fixes 37b49a7; no library change) into feature/python-speed-parity as a finished study.
+  The hybrid library path stays parked (D-20261016-I22); re-projecting under CppOverlapRule
+  (option B) or reviving the library path (option D) waits until Task G settles the overlap rule
+  and the carry options. Where: ROADMAP Track S row S4; docs/todo_translation_screen_prototype.md.
+
+### D-20261021-I4 · S2 · S2 plan approved; Opus at high effort implements it
+- 2026-10-21, owner. Recorded by Ilium Agent. Supersedes: none.
+- The S2 plan docs/todo_s2_fused_c_eval.md is approved as written: Step 0 (go/no-go prototype,
+  scripts only) is its own implementer run, and Steps 1-6 continue without a new approval on a go
+  (median <= 30 us per call on the triangle arm and every difference traced); 30-50 us goes to the
+  owner first. The implementer, including fix implementers, is Opus at high effort. Where: ROADMAP
+  Track S row S2; docs/todo_s2_fused_c_eval.md.
+
+### D-20261027-I1 · S2 · Rest of S2 delegated to Ilium Agent; owner reviews in full at the end
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- From Step 1 on, Ilium Agent goes through the whole S2 plan with its own recommendations, records
+  each decision here, and has every task reviewed and merged step by step (subagents, in parallel
+  where possible). The owner does a full review with Ilium Agent when the plan is finished.
+  Decisions I2-I5 and later S2 entries marked 'delegated' are Ilium Agent's under this delegation.
+  Where: ROADMAP Track S row S2; docs/todo_s2_fused_c_eval.md.
+
+### D-20261027-I2 · S2 · Parity rule: pixel-edge flips accepted (bound 0.01 px), real gates are C++ and E0
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Owner: a difference of 0.005 px does not matter much. A fused-versus-torch difference is
+  accepted when it is a pixel-edge flip, with the torch or fused pixel coordinate within 0.01 px
+  of an integer (a bug guard, not a precision target); frame, eta, observability or t>0 flips
+  fail. The gates that matter are Task A agreement with C++ (at least torch's) and the paired E0
+  comparison. Replaces the 8-ulp rule of the plan. Where: ROADMAP Track S row S2;
+  docs/todo_s2_fused_c_eval.md.
+
+### D-20261027-I3 · S2 · Delegated: portable C, no Accelerate
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1: the fused kernel stays portable C. Accelerate's sgemm made the
+  reflection vectors bit-identical to torch on macOS (129 to 44 differing orientations of 4,000)
+  but does not remove the flips, ties the build to macOS and torch's BLAS, and the parity rule of
+  I2 does not need it. Where: ROADMAP Track S row S2; docs/todo_s2_fused_c_eval.md.
+
+### D-20261027-I4 · S2 · Delegated: Task A check with the prototype runs in parallel with Steps 1-2 and gates their merge
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1, owner asked for parallel subagents: the Step 0 prototype is
+  compared with C++ on Task A's 2,230 orientations now (scripts only), in parallel with the Steps
+  1-2 library task; if the prototype agrees with C++ on fewer orientations than torch, Steps 1-2
+  are not merged and S2 stops for the owner. Step 3 follows Steps 1-2; Steps 4-6 follow Step 3.
+  Where: ROADMAP Track S row S2; docs/todo_s2_fused_c_eval.md.
+
+### D-20261027-I5 · S2 · Delegated: plain operation order for g_lab tried in Step 1
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1: Step 1 tries the plain order for g_lab (Step 0: matches torch
+  on 0.929 of elements against 0.804 for the fmaf chain) and keeps it only if it gives fewer flips
+  under the parity rule. Where: ROADMAP Track S row S2; docs/todo_s2_fused_c_eval.md.
+
+### D-20261027-I6 · S2 · Delegated: Task A inputs accepted on aggregates; no C++ toolchain install
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1: Task A kept neither its input files nor the C++ output, and the
+  C++ toolchain (cmake, boost, eigen, open-mpi) is not installed. The regenerated inputs are
+  accepted because labels and indices match on 2,230 of 2,230, the stored C++ product statistics
+  are reproduced on 2,000 of 2,000 pair records, and torch on them gives the stored Task A Python
+  aggregates on all 4 arms for every orientation. Installing the toolchain is a system change
+  outside S2; it waits for the owner's full review. Where: ROADMAP Track S row S2;
+  benchmarks/s2_taska; MIGRATION_HISTORY S2.
+
+### D-20261027-I7 · S2 · Delegated: plain g_lab order kept; Step 4 compares the library path with C++ directly
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1 and I5: Step 1 measured fewer flips with the plain order (93 of
+  4,000 orientations against 129 with the fmaf chain, all pixel-edge flips), so the library uses
+  it. The Task A C++ check ran on the prototype (fmaf order), so it does not carry over bit for
+  bit; Step 4 reruns the Task A comparison on the library path with the order it ships, and the
+  gate (agreement with C++ at least torch's) applies there again. Where: ROADMAP Track S row S2;
+  docs/todo_s2_fused_c_eval.md Steps 4-6; benchmarks/s2_core.
+
+### D-20261027-I8 · S2 · Delegated: Steps 1-2 review choices (header, fp-contract flag, detector contract, merge before the library C++ check)
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1, on the Steps 1-2 review (APPROVE, 5 fixes): (1) merge with the
+  plain g_lab order now; the C++ check on the library path is Step 4 (I7); (2) accept a small
+  internal header for the shared stage-D declarations, added to the plan's library changes; (3)
+  document the detector-tensor contract instead of per-call _version checks (the context's
+  geometry check covers moves, per-call checks would cost every call); (4) put -ffp-contract=off
+  in the extension's compile flags so GCC also keeps the float order, and state results are
+  validated on macOS clang only; key-off identity is rechecked after the flag. Where:
+  docs/todo_s2_fused_c_eval.md Steps 1-2; .claude/reports/20261027-2232-review-s2-core.md (Ilium's
+  machine).
+
+### D-20261027-I9 · S2 · Delegated: fp-contract off only in the fused file, not the whole extension
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: D-20261027-I8.
+- Ilium Agent under D-20261027-I1, correcting part (4) of I8; parts (1)-(3) stand. A global
+  -ffp-contract=off also changes the key-off _rasterize.c: clang stops fusing the multiply-adds of
+  the Sutherland-Hodgman clip, and triangle_overlap counts change on 106 of about 400,000
+  border-crossing fuzz triangles. Key off must stay bit-identical (rules for every task,
+  D-20261012-I1), so the global flag is removed; _fused_eval.c alone keeps fp contraction off (its
+  pragma, plus a GCC-honoured per-file pragma if one is portable), and results are stated as
+  validated on macOS clang only. Whether C++'s clang build fuses the same clip expression is
+  recorded as an open question for the owner's review. Where: docs/todo_s2_fused_c_eval.md Steps
+  1-2; benchmarks/s2_core.
+
+### D-20261027-I10 · S2 · Delegated: Steps 1-2 merge; GCC stays unvalidated and documented
+- 2026-10-27, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1: Steps 1-2 merge after review (APPROVE) and fixes, key off
+  bit-identical again after I9 (s1_parity 4 x 15 modes; triangle_overlap fuzz 0 of 600,000
+  differing). No GCC is installed here, so the guarded GCC pragma in _fused_eval.c is uncompiled;
+  FusedCost is documented as validated on macOS clang only, and a GCC or Linux check is listed for
+  the owner's review rather than installing a compiler. Where: ROADMAP Track S row S2; README
+  FusedCost row; benchmarks/s2_core.
+
+### D-20261028-I1 · S2 · Delegated: Step 3 design accepted; two wording items and a GPU check deferred to Steps 4-6
+- 2026-10-28, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1, after the Step 3 review (APPROVE, 4 record fixes): accept the
+  batched fused dispatch in BatchedCostEvaluator.evaluate_many (not inside _forward_compact, since
+  the fused entry includes stage D), the new variant="fused", HAS_FUSED staying 1 with a guarded
+  import for the batched entry, and the one declaration line added to _stage_d.h outside the
+  listed scope (the header is where shared entry points live). Deferred to Steps 4-6: the fallback
+  warning text in cost_functions.py (says torch evaluate; the batched fallback is the torch
+  compact variant), README rows 86 and 91, and a Step 5 check of whether GPU_MIN_BATCH (64,
+  measured against the torch compact variant) should still send batches to the GPU when FusedCost
+  is on. Where: ROADMAP Track S row S2; plan todo_s2_fused_c_eval.md Steps 4-6;
+  .claude/reports/20261028-0930-review-s2-batched.md.
+
+### D-20261028-I2 · S2 · Delegated: parity checker keeps the I2 wording; GPU_MIN_BATCH and BatchedQuickMC-with-FusedCost go to the owner's review unchanged
+- 2026-10-28, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261027-I1, after the Steps 4-6 review (APPROVE, 8 record fixes): (1)
+  s2_lib_parity.py drops pixel_negative from its accepted causes, matching s2_core_parity.py and
+  the D-20261027-I2 wording (d = 0 is pixel coordinate 0.5, the centre of pixel 0, not an edge);
+  no pixel_negative case occurred, so no result changes. (2) GPU_MIN_BATCH stays 64: with
+  FusedCost on, MPS was 2.4-6.8x slower than the fused CPU entry at B 64-512 and CUDA is
+  unmeasured; whether a GPU SearchDevice should yield to the fused CPU entry is listed for the
+  owner's full review, not changed (no default flip, D-20261012-I1). (3) BatchedQuickMC with
+  FusedCost on gives no per-evaluation gain (E0 20 vs 20 us); no recommended-configuration change,
+  listed for the owner's review. Where: ROADMAP Track S row S2; MIGRATION_HISTORY S2;
+  .claude/reports/20261028-2100-review-s2-results.md.
+
+### D-20261028-I3 · H12 · While the owner reviews S2, Ilium does the S2 tooling follow-ups; Opus implements
+- 2026-10-28, owner. Recorded by Ilium Agent. Supersedes: none.
+- Owner: 'continue through the rest of the plan while I review' and 'use opus to implement'. The
+  S2 plan has no steps left, so Ilium Agent takes the tooling gaps S2 found
+  (todo_ilium_workflow_tooling.md, 'Follow-ups found in S2'): task (d) make_brief --section
+  without another section's markers and verify_handback's ancestor-hash flag and test summary;
+  task (e) sync_doc_tables --section and the 21 over-long lines in the S4 scripts. The two tasks
+  share no files and run in parallel (3 heavy processes each). Opus implements; /review-task
+  (Opus) reviews; no library change. Not started: S5 and S6 (need a plan and the owner's pick),
+  the quiet-machine timing repeats of S1 and S3, and FusedCost's default (owner's review). Where:
+  ROADMAP Track H row H12; docs/todo_ilium_workflow_tooling.md.

@@ -1,0 +1,18 @@
+{
+ "n_peaks_sampled": 3000,
+ "patch": 2000,
+ "tests_per_peak": 2000,
+ "bright_rate_per_test": 0.0654145,
+ "in_bounds_rate_per_test": 0.7211058333333333,
+ "distinct_pixels_per_peak_median": 967.5,
+ "voxels_per_distinct_pixel": 1.5920278560305672,
+ "bright_distinct_pixels_per_peak_mean": 86.39566666666667,
+ "bbox_pixels_per_peak_median": 1680.0,
+ "o2_ns_per_test": 1.1315082187653245,
+ "o4_ns_per_peak_tbp5": 447.27421614583335,
+ "o2_over_o4_tbp5": 5.0595727538937645,
+ "o4_ns_per_peak_tbp10": 879.2525494791666,
+ "o2_over_o4_tbp10": 2.5737957073552615,
+ "o4_ns_per_peak_tbp20": 1743.2092161458334,
+ "o2_over_o4_tbp20": 1.2981898079532237
+}

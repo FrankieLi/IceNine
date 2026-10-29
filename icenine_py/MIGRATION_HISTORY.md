@@ -9709,3 +9709,1210 @@ Not done (review suggestions outside the required fixes, listed in the reports):
 scripts; reading the plan and DECISIONS.md at `HEAD` in `make_brief.sh`. The plan's lower-priority
 items (`sync_doc_tables.py --section`, a timed-run wrapper, shared S4 study helpers, a mailbox
 writer) are not started.
+
+## S4: translation correctness and loop ordering (2026-10-15)
+
+Merged into `feature/python-speed-parity` as a finished study on 2026-10-21 (D-20261021-I3),
+scripts only; the hybrid library path stays parked (D-20261016-I22). Re-projecting under
+`CppOverlapRule` or reviving the library path waits for Task G's choice of overlap rule and carry.
+
+ROADMAP Track S item S4, picked by the owner (D-20261014-I19), sized down and parallelised (D-20261014-I20), approved
+(D-20261014-I21). Plan: `docs/todo_translation_screen_prototype.md`. Branch `feature/python-speed-parity-s4-translation-screen`.
+**Script-only**: no change to `icenine/`, no new dependency. Test bed: the Phase D clean full sample (24,570 voxels, one layer;
+the memmap stack of `ScatteringData_PhaseD/full/clean`, bit-identical to the ASCII images by `scripts/phase_d/memmap_check.py`),
+config `ReconstructPhaseD_cma_clean.config`; ThreeVoxels for fast checks and the smoke test. The level-0 cost functions, FZ
+set, local grid and screen arguments are captured from `AdaptiveVoxelReconstructor.reconstruct_voxel` itself (its call of
+`run_discrete_search_spaced` at level 0), so no setting is copied by hand: pixel radius 3, Q-max 5, centroid screen, the
+default qualified-peak rule, no `CppEdgeRules`, `BatchedScreen` with chunks of 32 FZ points.
+
+### What was built (`scripts/speed_parity/s4/`, results in `benchmarks/s4_translation/`)
+
+- `common.py`: data sets, the level-0 capture, the BatchedScreen reference, the peak table (`u = A_p x + c_p` in float64
+  per orientation, peak and detector, from the float32 peak set of `ScreenEvaluator._counts`), dilated bitmaps, the numpy
+  reference kernel.
+- `step0_reference.py` (equality reference, 4 workers), `step0_timing.py` (timings), `translation_correctness.py` (Step 1:
+  `law`, `bitmap`, `cost`), `screen_kernel.py` (Step 2), `s4kernel.c` + `s4kernel.py` (scratch C kernels for O1-O5 compiled
+  with the system `cc -O3 -ffp-contract=off`, loaded with ctypes, threads through the GIL-free ctypes call), `orderings.py`
+  (Step 3: `check`, `time`, `full`, `model`, `time_o4`; torch MPS arm; after the review `rules`, pass counts under both
+  qualified-peak rules, and `time_o3`), `recost.py` (Step 4; after the review `memory`, the bytes of a stored local-cost
+  table), `summary.py` (`summary.json`, `tables.md`).
+- `tests/test_s4_translation.py` (ThreeVoxels, about 5 s): the float64 affine law, the dilated bitmap equal to the C
+  pixel-radius test, the table screen equal to `BatchedScreen` on 64 FZ points, and the kernels' default and C++
+  qualified-peak rules against the library's `count_qualified_peaks` / `count_qualified_peaks_cpp` (truth table, 2 and
+  3 detectors).
+
+Two facts from the code that the kernels use:
+
+- `pixel_radius_overlap_uint8` lights a detector when **any pixel of the (2r+1)^2 box** is on the image (the centre within
+  r of the image), not only when the centre pixel is on it. "Bright" is one lookup in the frame dilated by the box and
+  padded by r. The centre pixel is the float-to-int32 cast of the coordinate (truncation toward zero).
+- With the default qualified-peak rule and two detectors, a peak counts toward `peak_overlap` exactly when it is bright on
+  **detector 0**; detector 1 cannot change the screen's pass set (`count_qualified_peaks_c`). The C++ rule
+  (`CppOverlapRule`) does read detector 1: bright on 0 and (bright on 1 or not lit on 1). The C kernels implement both
+  rules; the timings use the config's default rule, so they read detector 0 only. The C++ program's level 0 uses the
+  C++ rule (`CountQualifiedPeaks`, Src/OverlapInfo.tmpl.cpp:78-139, through `AcceptAnyPeakOverlap`,
+  Src/DiscreteAdaptive.tmpl.cpp:65-70).
+
+The two rules pass very different fractions of the level-0 (orientation, voxel) pairs on these images
+(`orderings.py rules`, O2 pass-only kernel, counts only, not timed; on the reference voxels equal to the numpy kernel):
+
+<!-- table:s4_rules -->
+| set | voxels | pairs | pass_default | pass_cpp_rule | default_only | cpp_only | cpp_rate_per_voxel |
+|---|---|---|---|---|---|---|---|
+| 20 reference voxels | 20 | 879480 | 691538 (78.6%) | 231694 (26.3%) | 459844 | 0 | 22.5-30.6% |
+| 2,000-voxel patch | 2000 | 87948000 | 70779143 (80.5%) | 25582783 (29.1%) | 45196360 | 0 | 27.2-31.4% |
+| whole layer | 24570 | 1080441180 | 848266117 (78.5%) | 286462978 (26.5%) | 561803139 | 0 | 19.6-31.4% |
+<!-- /table:s4_rules -->
+
+Every pair that passes the C++ rule also passes the default rule (`cpp_only` 0), as the two formulas imply. So the
+"weak filtering" below is a property of the **Python default rule**; `CppOverlapRule 1` (the C++ behaviour) passes about
+a third as many pairs. Everything timed and projected in this section uses the default rule.
+
+### Question 1: is a translated voxel's spot set the original's moved by A_p dx?
+
+160 orientations (100 from the level-0 set, 20 within 1 degree of the truth for each of 3 reference voxels), per orientation
+a base voxel and 6 same-type grid voxels from one voxel step to about 1 mm away, 2 out-of-layer moves (1a only) and 3
+integer-shift moves (1b(i)). Lit pixels come from the Phase D renderer's simulator (`ForwardSimulation._simulate_peaks_batched`
+vertices, `ImageData.add_triangle_scanline` raster, unchanged; the simulator's peaks were matched to the local cost
+function's peaks, 0 unmatched, largest vertex difference 8.0e-4 px).
+
+<!-- table:s4_q1 -->
+| check | n | result | off_detector | clipped_not_checked | exceptions |
+|---|---|---|---|---|---|
+| 1a float64: u(x + dx) - (u(x) + A dx), largest | 1760 | 1.8e-12 px | n/a | n/a | none |
+| 1a float32 (evaluate's stage-D input) against the float64 law, largest | 1760 | 8.5e-04 px | n/a | n/a | float32 alone at x: 8.0e-04 px |
+| 1a peak sets (omegas, normals, frames, plane hits) identical | 1760 | 1760 of 1760 moves | n/a | n/a | none |
+| 1b simulator peak sets identical (count and frames) | 1440 | 1440 of 1440 moves | n/a | n/a | none |
+| 1b(i) integer shift: S(x') = S(x) + m (float32 simulator) | 480 | 470 equal, 0 failures | 3 | 7 | 0 float flips |
+| 1b(i) the same in float64 vertices | 480 | 470 equal, 0 failures | 3 | 7 | 0 float flips |
+| 1b(ii) phase re-rasterised: S(x') = R(T + phi) + m (float32 simulator) | 201240 | 116531 equal, 0 failures | 84439 | 205 | 65 float flips (largest distance 2.3e-04 px) |
+| 1b(ii) the same in float64 vertices | 201240 | 116596 equal, 0 failures | 84439 | 205 | 0 float flips |
+| 1b(iii) pure pixel-set translation S(x) + round(A dx) = S(x') | 114695 | 30746 equal (26.8%, Wilson 0.266-0.271) | n/a | n/a | 86545 edge spots excluded |
+| 1e dilated bitmap and box bounds = pixel_radius_overlap_uint8 | 33882912 | equal | n/a | n/a | none (4 frames x 2 detectors, border band included) |
+<!-- /table:s4_q1 -->
+
+**Answer.** Exact where it should be, not where it should not:
+
+- **Continuous coordinates: exact** (to float64 rounding). The float64 law holds to 1.8e-12 px over moves up to 1.1 mm
+  (in and out of the layer);
+  the float32 path of `evaluate` agrees to 8.5e-4 px, the same as its own float32 error at a fixed position (8.0e-4 px).
+  The peak sets (observable reflections, omegas, normals, frames, eta filter, plane hits) were identical in every move.
+- **Integer shifts: exact on pixel sets.** The rasteriser floors each vertex first and then clips, rounds and fills integer
+  vertices (Bresenham and scanline), which commute with an integer translation. Every spot that stays inside the detector
+  matched, in float32 and float64 vertices. Of the 10 exceptions, 3 have no pixel on the detector at x' and 7 are clipped
+  by the detector edge; those 7 are classified as edge cases by `compare_sets`, not checked.
+- **Sub-pixel phase re-rasterised: exact.** `R(T + phi) + m` equals the moved spot for every on-detector spot in float64
+  vertices; with the simulator's float32 vertices, 65 spots differ, each because a vertex lies within 2.3e-4 px of a pixel
+  boundary (a float flip, counted). Exceptions by design: 84,439 spots with no pixel on the detector at x', and 205
+  spots clipped by the detector edge, which `compare_sets` classifies as edge cases without checking them (so they are
+  not verified); 1,676 / 1,717 spots left / entered the detector over the moves. Because the rasteriser floors the
+  vertices first, `R(T + phi)` is `R_int(floor(T + phi) + m)`: this check re-tests integer-translation invariance on top
+  of 1a rather than an independent sub-pixel property.
+- **Pure pixel-set translation by round(A_p dx): not exact.** Only 26.8% of on-detector spots come out equal; the median
+  difference is 3 px, 0.30 of the spot size. Every differing pixel lies within one pixel of the other set (all 114,695
+  spots), consistent with the mechanism: the three vertices are floored independently, so each moves by the floor or the
+  ceiling of its shift. The plan's criterion, that every differing pixel lies on its own set's 4-boundary, holds for
+  114,607 spots; 88 spots have a differing pixel with all four neighbours in its own set. The 5 recorded examples
+  (`interior_examples` in `step1_law.json`) are thin spots 3 px wide, 12 to 15 px in the moved set against 9 to 10 px
+  translated, where one interior pixel of the moved spot is missing from the translated one. The Wilson interval treats
+  the spots as independent; they are clustered in 160 orientations x 6 moves, so it is optimistic.
+
+<!-- table:s4_q1_pure -->
+| stat | value |
+|---|---|
+| spots compared (both on the detector, unclipped) | 114695 |
+| exactly equal | 30746 |
+| symmetric difference, median / 95th pct / max (px) | 3 / 12 / 17 |
+| symmetric difference / spot size, median / 95th pct | 0.30 / 1.57 |
+| spots with every differing pixel within 1 px (8-neighbour) of the other set | 114695 |
+| spots with every differing pixel on its set's 4-boundary | 114607 |
+| spots leaving / entering the detector over the moves | 1676 / 1717 |
+<!-- /table:s4_q1_pure -->
+
+**1c, the cost-level effect of a pure translation** (20 reference voxels, all their screen passers, local cost function
+in triangle mode; each spot rasterised once at the voxel of the same type nearest the sample centre and translated by the
+rounded shift, 68 to 545 um away):
+
+<!-- table:s4_q1_cost -->
+| measure | value |
+|---|---|
+| passers re-costed, exact and translated (20 voxels) | 691539 |
+| passers with any OverlapInfo field changed | 690613 (99.9%) |
+| passers with the re-cost (1 - confidence) changed | 203241 (29.4%) |
+| largest re-cost change | 0.082 |
+| largest quality change (final cost = 1 - quality) | 0.042 |
+| cliques whose spacing-filtered set is unchanged | 69881 of 97720 (71.5%) |
+| voxels with ties at the lowest filtered re-cost, exact / translated | 1 / 0 of 20 |
+| tied candidates at the lowest re-cost, exact, median (max) | 1 (2) |
+| voxels whose lowest filtered re-cost is unchanged | 8 of 20 |
+| voxels whose set of tied lowest candidates is unchanged | 13 of 20 (Wilson 0.433-0.819) |
+<!-- /table:s4_q1_cost -->
+
+Re-costs are discrete (1 - po/pon), so candidates can tie; the kept candidates are ordered by (re-cost, orientation
+index). At the lowest re-cost only one voxel has a tie (2 candidates, exact re-cost) and none with the translated re-cost,
+so the voxel count above compares the sets of tied lowest candidates and does not depend on the tie rule. The top-30
+overlap of the first version is dropped: in 7 of 20 voxels the candidates tied at rank 30 straddle the cut, so it
+depended on the tie rule.
+
+So "rasterise each spot once per (orientation, peak, triangle type), translate per voxel" is **not usable for the re-cost**:
+it changes the re-cost of 29.4% of the passers and the lowest spacing-filtered candidate in 7 of 20 voxels. Its use as a
+pre-filter with a margin was not tested. It is also not needed: the exact per-voxel rasterisation in C costs 28.9 us per
+(orientation, voxel) pair in orientation-major order (Step 4).
+
+**1e** (dilated bitmap): equal for every one of 33,882,912 centre pixels of 4 frames x 2 detectors, including a 5-pixel band
+outside the image (`translation_correctness.py bitmap`, compared run by run with `stage_d_overlap`).
+**1d** (C++ cross-check) was **skipped**: the repository's `IceNine` binary no longer starts (it links a Homebrew
+`libmpi.40.dylib` that is gone), and cmake, open-mpi, boost and eigen are not installed on this machine, so a rebuild is not
+a matter of minutes. The Python rasteriser is the one validated against C++ (`ImageData.add_triangle_scanline`).
+The stop rule (1a float64, 1b(i), 1b(ii), 1e) did not trigger.
+
+### Step 2: the table-driven screen and its equality
+
+The table holds 1,068,652 peaks (24.3 per orientation, 16 to 28; all 180 frames occur); it builds in 0.40 s. Equality with the
+BatchedScreen reference (20 Phase D voxels of both triangle types, 3 ThreeVoxels voxels; every (orientation, voxel) pair):
+
+<!-- table:s4_equality -->
+| set | table | pairs | peak_overlap_differs | pass_differs | peak_coordinate_flips | unexplained | largest_boundary_distance |
+|---|---|---|---|---|---|---|---|
+| Phase D (20 voxels) | float64 | 879480 | 56 | 15 | 10459 | 0 | 2.4e-04 |
+| Phase D (20 voxels) | float32 | 879480 | 35 | 7 | 6662 | 0 | 2.4e-04 |
+| ThreeVoxels (3 voxels) | float64 | 131922 | 0 | 0 | 1625 | 0 | n/a |
+| ThreeVoxels (3 voxels) | float32 | 131922 | 0 | 0 | 1044 | 0 | n/a |
+<!-- /table:s4_equality -->
+
+Every differing orientation is explained by a peak whose centre coordinate lies within 2.4e-4 px of a pixel boundary
+(float64 table against the float32 reference); the 91 listed cases are in `step2_equality_phase_d.json`. The float64 table
+flips 15 passes in 879,480 pairs. Every C ordering (O1-O5, uint8 and bit-packed bitmaps, default and C++ rule) equals the
+numpy kernel exactly on the reference voxels (`step3_check.json`).
+
+### Question 2: which loop ordering?
+
+Timings: one contiguous patch of the 2,000 voxels nearest the sample centre, 43,974 orientations, 3 interleaved repeats, one
+process, nothing else of ours running; **contended** (preflight 1-minute load 3.1 at the start, 2.2 to 2.9 at the end; no
+busy process listed). All arms give the same counts as the O2 reference on the patch.
+
+<!-- table:s4_orderings -->
+| arm | threads | median_s | ns_per_test | pairs_per_s | full_layer_s | equal |
+|---|---|---|---|---|---|---|
+| O1 counts u8 | 1 | 19 | 8.91 | 4.62e+06 | 234 | True |
+| O1 pass u8 | 1 | 10.3 | 4.84 | 8.51e+06 | 127 | True |
+| O2 counts u8 b=32FZ | 1 | 2.42 | 1.13 | 3.64e+07 | 29.7 | True |
+| O2 pass u8 b=32FZ | 1 | 3.18 | 1.49 | 2.77e+07 | 39.1 | True |
+| O3 counts u8 tile=256 | 1 | 2.38 | 1.12 | 3.69e+07 | 29.3 | True |
+| O3 counts u8 tile=2000 | 1 | 2.17 | 1.02 | 4.05e+07 | 26.7 | True |
+| O5 counts u8 tile=64 | 1 | 3.4 | 1.59 | 2.59e+07 | 41.8 | True |
+| O5 counts u8 tile=256 | 1 | 3.13 | 1.47 | 2.81e+07 | 38.5 | True |
+| O5 counts u8 tile=1024 | 1 | 2.61 | 1.22 | 3.37e+07 | 32.1 | True |
+| O1 counts packed | 1 | 15.2 | 7.09 | 5.8e+06 | 186 | True |
+| O1 pass packed | 1 | 7.97 | 3.73 | 1.1e+07 | 97.9 | True |
+| O2 counts packed b=32FZ | 1 | 2.4 | 1.12 | 3.67e+07 | 29.5 | True |
+| O2 pass packed b=32FZ | 1 | 3.32 | 1.55 | 2.65e+07 | 40.8 | True |
+| O3 counts packed tile=256 | 1 | 2.54 | 1.19 | 3.46e+07 | 31.2 | True |
+| O3 counts packed tile=2000 | 1 | 2.37 | 1.11 | 3.72e+07 | 29.1 | True |
+| O5 counts packed tile=64 | 1 | 2.62 | 1.23 | 3.36e+07 | 32.2 | True |
+| O5 counts packed tile=256 | 1 | 2.51 | 1.17 | 3.5e+07 | 30.8 | True |
+| O5 counts packed tile=1024 | 1 | 2.41 | 1.13 | 3.65e+07 | 29.6 | True |
+| O2 counts u8 b=1FZ | 1 | 2.43 | 1.14 | 3.62e+07 | 29.8 | True |
+| O2 counts u8 b=256FZ | 1 | 2.42 | 1.13 | 3.64e+07 | 29.7 | True |
+<!-- /table:s4_orderings -->
+
+Threads (seconds for the 2,000-voxel patch; the M5 has 4 performance and 6 efficiency cores):
+
+<!-- table:s4_threads -->
+| arm | 1 | 2 | 4 | 6 | 8 | 10 | speedup_10 |
+|---|---|---|---|---|---|---|---|
+| O2 counts u8 b=32FZ | 2.42 | 1.23 | 0.655 | 0.555 | 0.483 | 0.435 | 5.56 |
+| O2 pass u8 b=32FZ | 3.18 | 1.61 | 0.896 | 0.715 | 0.604 | 0.527 | 6.03 |
+| O1 pass packed | 7.97 | 4.31 | 2.39 | 2.83 | 1.93 | 1.78 | 4.47 |
+| O3 counts u8 tile=256 | 2.38 | 1.26 | 0.71 | 0.761 | 0.521 | 0.536 | 4.44 |
+| O5 counts u8 tile=256 | 3.13 | 1.82 | 1.07 | 0.9 | 0.783 | 0.692 | 4.53 |
+<!-- /table:s4_threads -->
+
+Linearity in the number of voxels (500, 1,000, 2,000 nested patches):
+
+<!-- table:s4_linearity -->
+| arm | s_500 | s_1000 | s_2000 | us_per_voxel_500 | us_per_voxel_1000 | us_per_voxel_2000 |
+|---|---|---|---|---|---|---|
+| O1 pass packed | 1.99 | 3.98 | 7.97 | 3.98e+03 | 3.98e+03 | 3.99e+03 |
+| O2 counts u8 b=32FZ | 0.661 | 1.26 | 2.42 | 1.32e+03 | 1.26e+03 | 1.21e+03 |
+| O3 counts u8 tile=256 | 0.586 | 1.18 | 2.38 | 1.17e+03 | 1.18e+03 | 1.19e+03 |
+| O5 counts u8 tile=256 | 0.721 | 1.51 | 3.13 | 1.44e+03 | 1.51e+03 | 1.57e+03 |
+| O2 counts u8 b=32FZ th=10 | 0.113 | 0.215 | 0.435 | 227 | 215 | 218 |
+<!-- /table:s4_linearity -->
+
+Streamed O2 (no stored table: the float32 peaks and float64 maps of each block of b FZ points computed and discarded) and
+the MPS arm (float32 `u = n_ref + (phi_ref + A (x - x_ref))`, integer `n_ref` from float64 on the CPU):
+
+<!-- table:s4_variants -->
+| arm | median_s | peaks_s | kernel_s | frames_changed | counts_differ | pass_differ |
+|---|---|---|---|---|---|---|
+| O2 streamed (no table), b=1FZ | 3.89 | 1.39 | 2.48 | 1 | some (patch) | n/a |
+| O2 streamed (no table), b=32FZ | 2.78 | 0.346 | 2.43 | 0 | 0 | n/a |
+| O2 streamed (no table), b=256FZ | 2.71 | 0.285 | 2.42 | 0 | 0 | n/a |
+| O2 on MPS (float32 offsets), block=288 | 8.68 | n/a | n/a | n/a | 10 | 1 |
+| O2 on MPS (float32 offsets), block=576 | 8.27 | n/a | n/a | n/a | 10 | 1 |
+| O2 on MPS (float32 offsets), block=1152 | 25 | n/a | n/a | n/a | 10 | 1 |
+<!-- /table:s4_variants -->
+
+**Cost model and what the measurements say.** Every ordering does the same tests (one per peak and voxel, about 2.1e9 on
+the patch); they differ in what stays in cache:
+
+- O1 (voxel-major) streams the whole table once per voxel and reads the bitmaps of all 180 frames for every voxel (a
+  working set of 760 MB as bytes, 95 MB packed, far above the L2): predicted memory-bound. Measured 7.9 times slower than
+  O2 (counts) and 3.3 times (pass-only, packed): consistent with the prediction (no memory or cache counters were read,
+  so that it is memory-bound is not tested).
+- O2 (orientation-major, voxel inner loop) reads the table once; for one peak the patch's voxels land in a few thousand
+  pixels of one frame (median bounding box 1,680 px), which stay in L1: predicted compute-bound, about 1 ns per test.
+  Measured 1.13 ns per test on one thread. The block size b does not matter for a stored table (1, 32 or 256 FZ points
+  give the same time); streaming the peaks costs 15% more at b = 32 FZ points and adds float32 batch-shape flips at b = 1
+  (1 frame changed, `frames_changed`).
+- O3 (frame-major) keeps one frame's bitmap resident (4.2 MB, 0.53 MB packed) and writes rows of the (orientation, voxel)
+  accumulator: predicted equal to O2. Measured 0.90 times O2 on one thread (tile 2,000), but it scales worse: 0.536 s against
+  0.435 s on 10 threads (tile 256). The fastest one-thread arm, O3 with tile 2,000, was not in the thread sweep; a
+  follow-up run (`orderings.py time_o3`, 5 interleaved repeats, alone, contended) timed it:
+
+<!-- table:s4_o3_threads -->
+| arm | median_s | equal |
+|---|---|---|
+| O2 counts u8 b=32FZ | 2.38 | True |
+| O3 counts u8 tile=2000 | 2.2 | True |
+| O3 counts u8 tile=256 | 2.36 | True |
+| O2 counts u8 b=32FZ th=10 | 0.397 | True |
+| O3 counts u8 tile=2000 th=10 | 2.2 | True |
+| O3 counts u8 tile=256 th=10 | 0.495 | True |
+| label | n/a | contended |
+<!-- /table:s4_o3_threads -->
+
+  These kernels thread O3 over voxel tiles, so tile 2,000 on the 2,000-voxel patch is a single job and runs on one thread
+  whatever the thread count (2.2 s at 10 threads); with tile 256 (8 jobs) it takes 0.495 s against O2's 0.397 s. An O3
+  threaded over frames, or with tiles of 200 voxels, was not timed, so "O2 best on threads" rests on O3 with tile 256.
+- O5 (O2 with voxel tiles) predicted no gain, since the coordinates of 2,000 voxels (32 KB) already fit in L1; measured 1.3
+  times slower at tile 256, consistent with the overhead of a shorter inner loop (not tested: no profile was taken).
+- Pass-only (stop at the first qualified peak) is slower than counting in O2 (1.31 times) even though 78.5% of the pairs
+  pass; this is consistent with the shrinking list of open voxels defeating the vectorised loop, which was not tested
+  (the generated code and vectorisation were not inspected). In O1 it halves the time.
+- O4 (pixel voting) model: per peak, visit the bright pixels of the patch footprint and back-project each to its voxels.
+  From the data, 6.5% of the tests are bright and 1.6 voxels share a pixel; at an assumed 10 ns per bright pixel the model
+  predicted 2.6 times faster than O2 (5 ns: 5.1 times, 20 ns: 1.3 times), so it was built (exact: equal to O2 on the patch
+  and on the reference voxels). Measured **3.3 times slower**: the scan of the footprint's bounding quadrilateral visits 225
+  bright pixels per peak (the model's 86 were the pixels the voxels actually hit), and the bounding box of a pixel's thin
+  preimage parallelogram holds 7.0 candidate voxels per bright pixel, at 33 ns per bright pixel. Tighter enumeration was
+  not tried.
+- MPS: 3.4 times slower than one CPU thread; this is consistent with the cost of gathers from a 760 MB byte tensor and of
+  `index_add_` on the GPU, but the GPU time was not broken down, so the cause is not tested. 10 count and 1 pass
+  differences against the float64 kernel in 87,948,000 pairs (float32 offsets).
+
+<!-- table:s4_o4 -->
+| quantity | model | measured |
+|---|---|---|
+| bright rate per O2 test (patch, sampled peaks) | 0.0654 | n/a |
+| voxels per distinct pixel hit | 1.59 | n/a |
+| bright pixels visited per peak | 86.4 | 225 |
+| candidate voxels tested per bright pixel | 1.59 | 6.97 |
+| cost per bright pixel (ns) | 5 / 10 / 20 (assumed) | 33.2 |
+| O2 time / O4 time, 1 thread | 5.06 / 2.57 / 1.30 | 0.3 |
+| O4 / O2 wall, 1 thread (s) | n/a | 7.97 / 2.39 |
+| O4 / O2 wall, 10 threads (s) | n/a | 1.13 / 0.41 |
+<!-- /table:s4_o4 -->
+
+**Best ordering: O2**, orientation-major with the voxel loop innermost, threads over blocks of orientations, either bitmap
+layout (equal speed; packed is 8 times smaller). One measured full-layer run:
+
+<!-- table:s4_full_layer -->
+| item | value |
+|---|---|
+| ordering | O2 counts, u8, 10 threads, voxel tiles of 4096 |
+| voxels x orientations | 24570 x 43974 |
+| wall time (s), kernel + pass reduction | 6.58 (6.00 + 0.58) |
+| kernel time projected linearly from the 2,000-voxel patch (10 threads) (s) | 5.35 |
+| BatchedScreen for the same work, single worker, projected from 10 voxels (h) | 3.94 |
+| passers (voxel, orientation) pairs | 848266117 (78.5%) |
+| passers per voxel, median (min-max) | 34466 (32991-35912) |
+| passer list as int32 pairs / as a bitset / counts as uint8 (GB) | 6.79 / 0.135 / 1.08 |
+| peak RSS of the run (GB) | 1.99 |
+| label | contended |
+<!-- /table:s4_full_layer -->
+
+The whole level-0 screen of the layer takes 6.58 s on 10 threads, measured. Against `BatchedScreen` (3.94 single-worker
+hours, a projection: 0.577 s per voxel from 10 voxels, contended, times 24,570) that is 2,155 times faster in wall time
+on 10 threads, and 478 times faster on one thread (both projected: the one-thread O2 layer time of 29.7 s is the patch
+time scaled to the layer, not a run). The linear scaling holds only roughly: per voxel, O2 on one thread falls from 1.32
+to 1.21 ms between 500 and 2,000 voxels and O5 rises from 1.44 to 1.57 ms, and the one measured full-layer kernel (10
+threads, voxel tiles of 4096) took 6.00 s against 5.35 s projected from the patch, 12% above linear. The patch is the
+2,000 voxels nearest the centre, whose footprint per peak is smaller than the layer's; the excess is consistent with
+that, which was not tested. The passers are 78.5% of all pairs (848,266,117; default rule), so the useful output is a
+bitset (0.135 GB) rather than a pair list (6.79 GB). Against the Step 0 reference the full-layer run differs by one
+passer on each of the 5 voxels checked (1423, 2091, 5852, 7288, 7320); each offset equals that voxel's net number of
+pass flips of the float64 table in Step 2 (`step2_equality_phase_d.json`).
+
+### Step 4: what follows the screen
+
+Step 0 on Phase D (single worker, contended; 10 voxels for the screen, 3 for the re-cost and the no-start search, 10 for the
+neighbour step):
+
+<!-- table:s4_step0 -->
+| part | value | unit | n |
+|---|---|---|---|
+| BatchedScreen, whole level-0 screen of one voxel (chunk 32) | 0.577 | s | 10 |
+|   of which torch geometry (Bragg solve, eta, stages B-C) | 0.401 | s | 10 |
+|   of which the per-orientation stage-D loop | 0.212 | s | 10 |
+| screen passers per voxel (of 43,974), median | 3.45e+04 | orientations | 10 |
+| re-cost of the passers (local evaluate), per voxel | 8.56 | s | 3 |
+| re-cost, per evaluate | 251 | us | 3 |
+| no-start search (reconstruct_voxel), wall | 73.6 | s | 3 |
+|   screens of all levels | 1.56 | s | 3 |
+|   re-costs of all levels | 17.4 | s | 3 |
+|   quick MC, all levels (level 0) | 50.9 (34.1) | s | 3 |
+|   rest of the discrete stage (spacing filter, loop) | 3.07 | s | 3 |
+|   FindOptimal, VarianceMinimizing, final | 0.265 | s | 3 |
+| BFS neighbour step (CMA, 250 evaluations) | 0.0732 | s | 10 |
+<!-- /table:s4_step0 -->
+
+Re-cost of the passers in orientation-major order (each orientation's local-cost peaks taken once from its own float32
+operations, float64 maps, every passing voxel rasterised through the library's stage-D C call):
+
+<!-- table:s4_recost -->
+| item | value | n |
+|---|---|---|
+| today: evaluate per (orientation, voxel) (us) | 266 | 4000 |
+| orientation-major: per pair, float64 vertices + stage-D C call (us) | 28.9 | 321456 |
+|   the same with one vertex product per orientation (us) | 29.8 | 321456 |
+|   set-up per orientation: peaks, A and c (us) | 458 | 200 |
+| speed-up per pair | 9.2x | 321456 |
+| equality: pairs compared with the Step 0 per-voxel evaluate | 691539 | 20 |
+|   pairs with any OverlapInfo field different | 33962 (4.9%) | 691539 |
+|   pairs with the re-cost (1 - confidence) different | 85 | 691539 |
+|   largest quality difference | 0.0092 | 691539 |
+|   sampled differing pairs explained by an integer-vertex flip | 400 of 400 (largest distance 4.1e-04 px) | 400 |
+<!-- /table:s4_recost -->
+
+The differences come from float64 vertices against `evaluate`'s float32 ones: in a sample of 400 differing pairs, every one
+has an integer vertex that differs, at most 4.1e-4 px from a pixel boundary. A library version would have to accept that or
+reproduce `evaluate`'s float32 arithmetic. The re-cost of every pair of the layer would take 6.82 single-worker hours this
+way, including one set-up per orientation (59.2 h with `evaluate`), since 78.5% of the pairs pass the default-rule screen.
+
+The per-pair time leaves out the **per-orientation set-up** (the Q-max 8 local-cost peaks, A and c: 458 us per
+orientation), which the timing amortised over about 1,607 passing voxels per orientation of the patch. In the BFS seeds
+arrive one at a time, so the set-up is paid either once per layer, for a stored layer-wide local-cost table, or once per
+(seed, passing orientation). A stored table costs 20.1 s to build (43,974 x 458 us) and, at 104 peaks per orientation
+and 136 bytes per peak (float64 A and c, wedge and detector-hit flags, a 2-byte frame index; `recost.py memory` on 200
+sampled orientations, not timed), about 0.62 GB. Re-costing one seed's 34,466 passing orientations alone would take
+16.8 s (set-up plus pairs), more than today's 8.56 s with `evaluate`. The set-up varied 10 times between runs (Limits),
+so the table build may take longer than 20.1 s.
+
+**Whole-run projections** (single-worker hours, Phase D layer, default qualified-peak rule; seeds 350 / 395 / 504 from
+the Phase D seed oracle; inputs: a no-start search of 73.6 s, of which level 0's screen and re-cost are 9.1 s; a neighbour
+step of 0.073 s; the global screen on one thread, itself a projection (29.7 s); the re-cost at 28.9 us per pair plus
+458 us set-up per orientation as stated per scenario; revisits and REFIT voxels not modelled). "rest" is the no-start wall
+time minus the level-0 screen and the level-0 re-cost (64.45 s), that is everything after them, **including the level-0
+quick MC**. The search times rest on n = 3 no-start searches (73.4-73.6 s) and the neighbour step on n = 10 CMA steps of
+250 evaluations. The Phase D pilot measured 0.28 s (`cma`) and 0.43 s (`mc`) per local neighbour fit ("Phase D pilot results",
+contended), against 0.073 s here for one CMA step without retries, so the neighbour share of these projections
+is likely understated:
+
+<!-- table:s4_projection -->
+| scenario | seeds | total_h | share_screen | share_setup | share_recost | share_rest | share_neighbours |
+|---|---|---|---|---|---|---|---|
+| (a) today's BFS | 350 | 7.65 | 0.007 | 0.000 | 0.109 | 0.819 | 0.064 |
+| (b) global screen and re-cost, per-voxel search after them | 350 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 350 | 6.87 | 0.001 | 0.001 | 0.014 | 0.912 | 0.072 |
+| (c') hybrid, each seed re-costed alone orientation-major | 350 | 8.4 | 0.001 | 0.183 | 0.012 | 0.746 | 0.059 |
+| (a) today's BFS | 395 | 8.57 | 0.007 | 0.000 | 0.110 | 0.826 | 0.057 |
+| (b) global screen and re-cost, per-voxel search after them | 395 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 395 | 7.69 | 0.001 | 0.001 | 0.014 | 0.920 | 0.064 |
+| (c') hybrid, each seed re-costed alone orientation-major | 395 | 9.41 | 0.001 | 0.184 | 0.012 | 0.751 | 0.052 |
+| (a) today's BFS | 504 | 10.8 | 0.007 | 0.000 | 0.111 | 0.836 | 0.045 |
+| (b) global screen and re-cost, per-voxel search after them | 504 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 504 | 9.67 | 0.001 | 0.001 | 0.014 | 0.934 | 0.051 |
+| (c') hybrid, each seed re-costed alone orientation-major | 504 | 11.9 | 0.001 | 0.186 | 0.012 | 0.760 | 0.041 |
+<!-- /table:s4_projection -->
+
+- (a) today's BFS: everything after the seeds' level-0 screen and re-cost ("rest", including the level-0 quick MC) takes
+  82-84% of the run, the level-0 re-cost 11%, the level-0 screen under 1%. The level-0 quick MC alone is 46% of a no-start
+  search (34.1 of 73.6 s).
+- (b) one global screen and re-cost for every voxel, then the per-voxel search from the candidate lists: 41 to 58 times
+  slower than (a), because every voxel would then run the rest of the search that the BFS gives only to the seeds. The
+  screen, set-up and re-cost are 1.5% of it.
+- (c) the hybrid with a **stored layer-wide local-cost table** (BFS as today; the seeds take their level-0 candidates
+  from one global pass and re-cost them orientation-major from the table, built once in 20.1 s, about 0.62 GB): saves
+  8.1 s per seed, 0.78 to 1.13 h, about 10% of the run. The 10% assumes this table. Voxels whose inherited orientation
+  fails would save the same 8.1 s each; their number was not modelled.
+- (c') the hybrid with each seed **re-costed alone** orientation-major (set-up per seed and passing orientation): 16.8 s
+  per seed instead of 8.56 s, so the run is 0.75 to 1.08 h longer than (a). Without the table a seed would keep
+  `evaluate` for its re-cost, and the hybrid saves only the screen: 0.048 to 0.073 h.
+
+**The search after the screen and re-cost dominates**, as the plan expected: it is per voxel and gains nothing from
+translation. The level-0 screen is cheap once table-driven, but on these images, under the **Python default qualified-peak
+rule**, it passes 78.5% of the orientations, so it barely filters; under `CppOverlapRule` (the C++ behaviour) it passes
+26.5% (whole layer). With the default rule, the re-cost and the level-0 quick MC of the 10,173 to 10,354 spacing-filtered
+candidates per seed (20 reference voxels) are what cost. What the C++ rule would do to the re-cost, the quick MC and the
+results was not measured.
+
+### Recommendation (a proposal for the owner, not built)
+
+- Ordering: **O2 on CPU threads** (orientation-major, voxel inner loop, one table per layer or one block of 32 FZ points at
+  a time; packed bitmaps). Not MPS (3.4 times slower than one CPU thread in this form), not O4.
+- Use: scenario (c), which needs the stored layer-wide local-cost table (20.1 s to build, about 0.62 GB); without it,
+  re-costing each seed alone orientation-major is slower than today (c'). It is worth about 10% of a Phase D run under the
+  default rule; the larger levers are the level-0 quick MC (S3's `BatchedQuickMC`, measured 4.7 times faster on E0, not
+  on Phase D) and the screen's weak filtering under the **Python default qualified-peak rule**. A stricter level-0 rule
+  already exists: `CppOverlapRule 1`, the C++ program's behaviour, passes 26.5% of the layer's pairs against 78.5%. Its
+  effect on the re-cost, the quick MC and the results was not measured, and these projections were not redone under it;
+  switching changes results and is the owner's call. S3's factor is from `benchmarks/s3_steps1_5` (quick-MC us per
+  evaluation, E0, CPU).
+- Library path: a new module `icenine/translation_screen.py` behind an opt-in key (for example `GlobalLevel0Screen 1`):
+  build the table from the level-0 global cost function, screen every voxel of a layer with a C kernel (a new function in
+  `_rasterize.c` or a small extension), keep the pass bitset; `reconstructor.py` would let `reconstruct_voxel` take a
+  precomputed level-0 pass set (seeds and failed inheritances only) and re-cost it orientation-major; `config_file.py` gains
+  the key; tests compare the pass sets with `BatchedScreen` up to listed float-boundary flips. Existing paths unchanged.
+
+### Limits and open items
+
+- Every timing is **contended** (1-minute load 1.9 to 3.1 at the starts; owner decision D-20261014-I16, no quiet repeat).
+  Ratios between orderings measured in the same run are the robust part.
+- The timings and the ordering verdict are for the default rule (rule 0), which reads only the detector-0 bitmaps
+  (760 MB as bytes). The `CppOverlapRule` kernels also read detector 1 (1.5 GB as bytes for both); they were checked for
+  equality and used for the pass counts, but not timed.
+- 1d (C++ cross-check) skipped, see above. `CppEdgeRules` is not implemented in the kernels (the config leaves it off);
+  `CppOmegaInterp` and the ray rule are out of scope. One layer only.
+- The O4 and MPS implementations are straightforward ones; a tighter O4 enumeration or a Metal kernel might behave
+  differently (not tested).
+- The Step 4 pair time (28.9 us) is mostly the stage-D C call; vectorising the vertex product over voxels did not help
+  (29.8 us). The per-orientation set-up varied between runs (458 us in the reported run, 4.3 ms in a first run with cold
+  frames).
+- Not done from the review's suggestions: re-running the Step 2 bitmap lookup with the reference's centre pixels to
+  recover `po_ref` exactly (all 91 listed cases have a flip on detector 0, 89 exactly one), and a negative control for
+  the Step 4 "400 of 400 explained" (the flip rate among pairs that do not differ).
+
+### Review follow-up (2026-10-15)
+
+The agent review (`.claude/reports/20261015-0058-review-s4-translation-screen.md`) asked for these changes, made on the
+same branch with no library change: the `CppOverlapRule` pass rate measured (`orderings.py rules`) and "barely filters"
+restated as a property of the Python default rule; projection (c) with the per-orientation re-cost set-up (stored table
+against each seed alone, `recost.py memory` for the table's size); "refine" relabelled "rest" (it includes the level-0
+quick MC); the 1b edge exceptions split into off-detector and clipped (not checked); untested causes reworded; O3 with
+tile 2,000 timed on threads (`orderings.py time_o3`); the full-layer linearity check and the projection labels; the 1c
+tie rule and tie counts (the top-30 statistic dropped); the 88 non-boundary spots of 1b(iii); and the rule-0 limit of
+the timings. The projections and the recommendation were not redone under `CppOverlapRule` (open owner decision).
+
+## S2: fused C evaluation, Step 0 go/no-go (2026-10-21)
+
+ROADMAP Track S item S2, plan `docs/todo_s2_fused_c_eval.md` (approved D-20261021-I4). Branch
+`feature/python-speed-parity-s2-fused`. **Scripts only**: nothing under `icenine/` changed; `setup.py`, `pyproject.toml`
+and `uv.lock` unchanged; no golden and no default touched. Results: `benchmarks/s2_step0/` (the tables below are its
+`tables.md`, written by `scripts/speed_parity/s2/s2_summary.py`).
+
+**Answer.** The speed criterion is met: the prototype takes 14.4 us per call (median of 5 rounds, single-worker) on the
+Q-max 8 triangle arm against 234.1 us for `evaluate`. A whole no-start search on ThreeVoxels voxel 0 takes 1.70 s instead
+of 5.44 s, but the two runs are different searches: the fused arm took another path (8,084 evaluations against 8,311,
+ending 53.941 instead of 53.936 degrees from the truth, both wrong); per evaluation the cost is 114 us against 557 us.
+The trace criterion is not met as the plan words it: every orientation whose `OverlapInfo` differs from torch is
+explained by one or a few peaks whose pixel coordinate lies on the other side of a pixel integer (no frame, eta,
+observability or t > 0 flip on 4 voxels x 1,000 orientations x 9 modes), but for 34 of the 129 differing orientations of
+the triangle arm (Wilson 19.5-34.6%) that coordinate is more than 8 ulp from the integer. The two largest distances come
+from different peaks. The largest in ulp is 312 ulp, which is 0.0012 px (full18558 orientation 419, a column at pixel
+61, where an ulp is small). The largest in px is 0.0033 px, which is 27 ulp (full18558 orientation 136, detector 1, a
+column at pixel 1221). Both are torch's distances; the fused value's largest distance from its integer is 0.0034 px
+(orientation 437) and its largest in ulp 88 (orientation 419). By the plan's stop rule Step 1 waits for the owner.
+
+### What was built (`scripts/speed_parity/s2/`)
+
+- `s2fused.c`: a scratch CPython extension, one call per `evaluate` (hard mode, no ray rule; pixel radius 0 and > 0,
+  centroid and vertex 0, default rule, `CppOverlapRule`, `CppEdgeRules`, `min_sin_eta`). It `#include`s
+  `icenine/_rasterize.c`, so the stage-D helpers (`triangle_overlap_uint8`, `pixel_radius_overlap_uint8`,
+  `count_qualified_peaks_c`) are the library's own; the per-peak stage-D loop around them (vertex-lit rule,
+  accumulation, Welford quality) is copied from `stage_d_overlap`, without its ray-rule block. Float32 in torch's
+  operation order: `fmaf` where torch's kernels fuse (bmm, the vertex einsum, `torch.norm`, in the order the probe below
+  finds; also `Rz @ base`, which the probe cannot tell apart here), plain products and sums elsewhere, `FP_CONTRACT`
+  off. The context (per cost function
+  and phase) holds the g vectors, the Bragg constants, the geometry, the frame lookup and a reference to the
+  `FrameTable`; a call returns the 7 `OverlapInfo` values or the list of frames to fill first (the lazy fill stays in
+  Python). Variant `accelerate` (macOS) computes g_lab with Accelerate's `cblas_sgemm`, the call torch makes there, and
+  gets torch's g_lab bit for bit (none of the float32 orders the probe tries reproduces the sgemm).
+- `s2fused.py` (build with the system `cc` into `scripts/speed_parity/cache/s2/`; `FusedEval`), `torch_mirror.py` (the
+  torch operations of `evaluate` with the intermediates kept, checked equal to the library on every orientation;
+  `reference64`, the same quantities in float64, with the `CppEdgeRules` -1 rule), `s2_parity.py` (0d),
+  `s2_timing.py` (0c), `s2_search.py` (0a), `s2_fma_probe.py` (the operation-order probe), `run_step0_timing.sh`,
+  `s2_summary.py`; test `tests/test_s2_fused_step0.py`.
+
+The probe (`s2_fma_probe.py`, 20 orientations of ThreeVoxels voxel 0, the triangle cost at Q-max 8; `fmaf_probe.json`)
+runs each small product the library makes and compares it bit for bit with three float32 orders: `plain`
+(`(a0*b0 + a1*b1) + a2*b2`), `fma_chain` (`fmaf(a2, b2, fmaf(a1, b1, a0*b0))`, the order `s2fused.c` uses) and
+`fma_rev`, with libm's `fmaf`. The `fmaf` chain reproduces bmm, the vertex einsum and both `torch.norm` calls on every
+element. `Rz @ base` does not tell the orders apart here, because the sample-to-lab rotation of this setup is the
+identity. No order reproduces g_lab, and the plain order agrees with torch on more elements (0.929) than the `fmaf`
+chain the portable build uses (0.804); whether the plain order would reduce the portable build's flips is untested.
+
+<!-- table:s2_step0_fmaf_probe -->
+| product | order | n | equal | equal_frac | max_ulp |
+|---|---|---|---|---|---|
+| g_lab (R @ g_hkl.T).T | plain | 6720 | 6244 | 0.929 | 73 |
+| g_lab (R @ g_hkl.T).T | fma_chain | 6720 | 5404 | 0.804 | 128 |
+| g_lab (R @ g_hkl.T).T | fma_rev | 6720 | 4546 | 0.676 | 286 |
+| torch.norm(g_lab) | plain | 2218 | 1926 | 0.868 | 1 |
+| torch.norm(g_lab) | fma_chain | 2218 | 2218 | 1.000 | 0 |
+| torch.norm(g_lab) | fma_rev | 2218 | 1802 | 0.812 | 1 |
+| Rz @ base | plain | 39924 | 39924 | 1.000 | 0 |
+| Rz @ base | fma_chain | 39924 | 39924 | 1.000 | 0 |
+| Rz @ base | fma_rev | 39924 | 39924 | 1.000 | 0 |
+| bmm(full_rot, normals) | plain | 13308 | 10007 | 0.752 | 8 |
+| bmm(full_rot, normals) | fma_chain | 13308 | 13308 | 1.000 | 0 |
+| bmm(full_rot, normals) | fma_rev | 13308 | 9280 | 0.697 | 9 |
+| torch.norm(reflected) | plain | 4436 | 4374 | 0.986 | 1 |
+| torch.norm(reflected) | fma_chain | 4436 | 4436 | 1.000 | 0 |
+| torch.norm(reflected) | fma_rev | 4436 | 3721 | 0.839 | 1 |
+| einsum vertices (4 x 4) | plain | 39924 | 39025 | 0.977 | 480 |
+| einsum vertices (4 x 4) | fma_chain | 39924 | 39924 | 1.000 | 0 |
+| einsum vertices (4 x 4) | fma_rev | 39924 | 37397 | 0.937 | 973 |
+<!-- /table:s2_step0_fmaf_probe -->
+
+### 0c: us per call (ThreeVoxels voxel 0, S1's 400 near-truth orientations, single-worker)
+
+`fused` builds the `OverlapInfo`; `c_only` is the bare C call (the difference is the Python wrapper).
+
+<!-- table:s2_step0_per_call -->
+| arm | torch | fused | fused_range | fused_acc | c_only | speedup |
+|---|---|---|---|---|---|---|
+| triangle_q8_default | 234.1 | 14.4 | 13.9-14.6 | 14.4 | 13.4 | 16.2 |
+| triangle_q8_cpp | 233.7 | 14.2 | 13.9-14.6 | 14.3 | 13.5 | 16.4 |
+| screen_r3_q5_default | 202.0 | 3.3 | 3.1-3.4 | 3.3 | 2.5 | 61.4 |
+| screen_r3_q5_cpp | 201.5 | 3.3 | 3.2-3.4 | 3.3 | 2.6 | 60.6 |
+<!-- /table:s2_step0_per_call -->
+
+### 0a: no-start search split by caller (single-worker)
+
+ThreeVoxels voxel 0 (`Example2.Simulation.config`, whose local cost has 868 reflections; median of 3 repeats) and the
+first 10 E0 clean voxels (`ReconstructQ8` physics, `min_sin_eta` 0.3; sums over the voxels, median of 2 repeats). The
+"fused" arms replace every `evaluate` call by the prototype; `BatchedScreen` (default on) and the batched quick-MC cost
+stay torch. Wrong: final error > 1 degree.
+
+<!-- table:s2_step0_search_three -->
+| arm | wall | vs_default | evaluate | evaluate_n | us_per_eval | screen | bqmc | wrong |
+|---|---|---|---|---|---|---|---|---|
+| default keys | 5.44 | 1.00 | 4.63 | 8311 | 557 | 0.63 | 0.00 | 1 of 1 |
+| BatchedQuickMC 1 | 4.53 | 1.20 | 0.99 | 1812 | 548 | 0.63 | 2.76 | 0 of 1 |
+| default keys, fused | 1.70 | 3.20 | 0.92 | 8084 | 114 | 0.63 | 0.00 | 1 of 1 |
+| BatchedQuickMC 1, fused | 3.67 | 1.48 | 0.20 | 1812 | 110 | 0.63 | 2.72 | 0 of 1 |
+<!-- /table:s2_step0_search_three -->
+
+<!-- table:s2_step0_search_e0 -->
+| arm | wall | vs_default | evaluate | evaluate_n | us_per_eval | screen | bqmc | wrong |
+|---|---|---|---|---|---|---|---|---|
+| default keys | 16.20 | 1.00 | 10.06 | 39759 | 253 | 5.16 | 0.00 | 2 of 10 |
+| BatchedQuickMC 1 | 10.52 | 1.54 | 2.84 | 11219 | 254 | 5.15 | 1.71 | 2 of 10 |
+| default keys, fused | 6.78 | 2.39 | 0.76 | 39803 | 19 | 5.16 | 0.00 | 2 of 10 |
+| BatchedQuickMC 1, fused | 7.88 | 2.05 | 0.21 | 11219 | 19 | 5.15 | 1.71 | 2 of 10 |
+<!-- /table:s2_step0_search_e0 -->
+
+The share S2 v1 can reach is the covered `evaluate` time: 0.852 of the wall on ThreeVoxels and 0.621 on E0 with default
+keys. With the fused path the E0 search is dominated by `BatchedScreen` (5.16 of 6.78 s). With `BatchedQuickMC 1` the
+torch forward of the batched cost becomes the larger part (431 us per orientation at 868 reflections), so `BatchedQuickMC
+1` plus the fused `evaluate` is slower than the fused `evaluate` alone (3.67 s against 1.70 s); Step 3's batched C entry
+targets that. The fused arms changed the search path of ThreeVoxels voxel 0 (8,084 evaluations against 8,311; wrong in
+both) and of one E0 voxel (e0_1, right in both), but not which voxels are wrong. Paired by voxel on E0 (the wrong sets
+are the same in every repeat): fused against default keys, 0 fixed, 0 broken, 2 both wrong (e0_0, e0_8);
+`BatchedQuickMC 1` plus fused against `BatchedQuickMC 1`, 0 fixed, 0 broken, 2 both wrong (e0_5, e0_8). The two
+`BatchedQuickMC 1` arms have another wrong set than the default-key arms: against default keys, `BatchedQuickMC 1`
+fixes e0_0 and breaks e0_5 (1 fixed, 1 broken, 1 both wrong, e0_8). On ThreeVoxels voxel 0 `BatchedQuickMC 1` fixes the
+voxel, with or without the fused path.
+
+<!-- table:s2_step0_callers_three -->
+| arm | caller | calls | seconds | share | us_per_call |
+|---|---|---|---|---|---|
+| default keys | screen (BatchedScreen, not in v1) | 0 | 0.63 | 0.115 | n/a |
+| default keys | recost | 893 | 0.50 | 0.093 | 564 |
+| default keys | quick_mc | 6456 | 3.62 | 0.665 | 560 |
+| default keys | find_optimal | 311 | 0.16 | 0.030 | 528 |
+| default keys | variance | 650 | 0.34 | 0.063 | 530 |
+| default keys | final | 1 | 0.00 | 0.000 | 535 |
+| default keys | batched quick-MC cost | 0 | 0.00 | 0.000 | n/a |
+| default keys | covered evaluate (all but screen) | 8311 | 4.63 | 0.852 | 557 |
+| BatchedQuickMC 1 | screen (BatchedScreen, not in v1) | 0 | 0.63 | 0.138 | n/a |
+| BatchedQuickMC 1 | recost | 916 | 0.52 | 0.114 | 565 |
+| BatchedQuickMC 1 | quick_mc | 0 | 0.00 | 0.000 | n/a |
+| BatchedQuickMC 1 | find_optimal | 311 | 0.16 | 0.036 | 529 |
+| BatchedQuickMC 1 | variance | 584 | 0.31 | 0.068 | 530 |
+| BatchedQuickMC 1 | final | 1 | 0.00 | 0.000 | 528 |
+| BatchedQuickMC 1 | batched quick-MC cost | 6408 | 2.76 | 0.610 | 431 |
+| BatchedQuickMC 1 | covered evaluate (all but screen) | 1812 | 0.99 | 0.219 | 548 |
+<!-- /table:s2_step0_callers_three -->
+
+<!-- table:s2_step0_callers_e0 -->
+| arm | caller | calls | seconds | share | us_per_call |
+|---|---|---|---|---|---|
+| default keys | screen (BatchedScreen, not in v1) | 0 | 5.16 | 0.318 | n/a |
+| default keys | recost | 3711 | 0.96 | 0.059 | 259 |
+| default keys | quick_mc | 27636 | 7.00 | 0.432 | 253 |
+| default keys | find_optimal | 4938 | 1.23 | 0.076 | 250 |
+| default keys | variance | 3464 | 0.87 | 0.053 | 250 |
+| default keys | final | 10 | 0.00 | 0.000 | 253 |
+| default keys | batched quick-MC cost | 0 | 0.00 | 0.000 | n/a |
+| default keys | covered evaluate (all but screen) | 39759 | 10.06 | 0.621 | 253 |
+| BatchedQuickMC 1 | screen (BatchedScreen, not in v1) | 0 | 5.15 | 0.490 | n/a |
+| BatchedQuickMC 1 | recost | 3650 | 0.95 | 0.090 | 260 |
+| BatchedQuickMC 1 | quick_mc | 0 | 0.00 | 0.000 | n/a |
+| BatchedQuickMC 1 | find_optimal | 3996 | 1.00 | 0.095 | 251 |
+| BatchedQuickMC 1 | variance | 3563 | 0.89 | 0.085 | 250 |
+| BatchedQuickMC 1 | final | 10 | 0.00 | 0.000 | 254 |
+| BatchedQuickMC 1 | batched quick-MC cost | 27576 | 1.71 | 0.163 | 62 |
+| BatchedQuickMC 1 | covered evaluate (all but screen) | 11219 | 2.84 | 0.270 | 254 |
+<!-- /table:s2_step0_callers_e0 -->
+
+### 0d: fused against torch (S1's 1,000 orientations of ThreeVoxels voxel 0 and of Phase D voxels 15901, 17034, 18558)
+
+Per intermediate, ThreeVoxels voxel 0, the triangle cost (rows both sides computed; pixel and t on the stage-D rows):
+
+<!-- table:s2_step0_intermediates -->
+| variant | intermediate | n | equal | equal_frac | max_ulp | max_abs |
+|---|---|---|---|---|---|---|
+| portable | g_lab | 336000 | 270828 | 0.806 | 10201 | 9.54e-07 |
+| portable | omega_bragg | 221820 | 197236 | 0.889 | 8704 | 7.01e-05 |
+| portable | omega | 202504 | 179463 | 0.886 | 8704 | 7.01e-05 |
+| portable | eta | 202504 | 152736 | 0.754 | 6648 | 6.51e-06 |
+| portable | pixel | 1221696 | 931346 | 0.762 | 253 | 9.77e-03 |
+| portable | t | 610848 | 562887 | 0.921 | 7 | 2.86e-06 |
+| accelerate | g_lab | 336000 | 336000 | 1.000 | 0 | 0.00e+00 |
+| accelerate | omega_bragg | 221820 | 212958 | 0.960 | 1024 | 4.77e-07 |
+| accelerate | omega | 202504 | 194325 | 0.960 | 1024 | 4.77e-07 |
+| accelerate | eta | 202504 | 178256 | 0.880 | 32 | 1.79e-07 |
+| accelerate | pixel | 1221696 | 1121235 | 0.918 | 254 | 3.88e-03 |
+| accelerate | t | 610848 | 593251 | 0.971 | 5 | 1.91e-06 |
+<!-- /table:s2_step0_intermediates -->
+
+Differing orientations per voxel and variant. The five triangle modes (default rule, `CppOverlapRule`, `CppEdgeRules`,
+both, `min_sin_eta` 0.2) and the four screen modes (default rule, `CppOverlapRule` centroid and vertex 0, `CppEdgeRules`)
+give the ranges shown. "beyond_8ulp": differing orientations with a flipped peak more than 8 ulp from its threshold;
+"no_peak": differing orientations where no stage-D input differs.
+
+<!-- table:s2_step0_parity -->
+| dataset | variant | modes | differing | beyond_8ulp | no_peak | causes | max_margin_ulp | max_margin_px |
+|---|---|---|---|---|---|---|---|---|
+| three0 | portable | triangle (5 modes) | 25 | 5 | 0 | pixel_integer | 54 | 0.0016 |
+| three0 | portable | screen (4 modes) | 0-1 | 0 | 0 | pixel_integer | 1 | 0.0001 |
+| three0 | accelerate | triangle (5 modes) | 8 | 3 | 0 | pixel_integer | 43 | 0.0009 |
+| three0 | accelerate | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full15901 | portable | triangle (5 modes) | 36-42 | 4-7 | 0 | pixel_integer | 49 | 0.0029 |
+| full15901 | portable | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full15901 | accelerate | triangle (5 modes) | 15 | 3 | 0 | pixel_integer | 49 | 0.0015 |
+| full15901 | accelerate | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full17034 | portable | triangle (5 modes) | 32-34 | 10-11 | 0 | pixel_integer | 197 | 0.0021 |
+| full17034 | portable | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full17034 | accelerate | triangle (5 modes) | 12 | 5 | 0 | pixel_integer | 197 | 0.0020 |
+| full17034 | accelerate | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full18558 | portable | triangle (5 modes) | 22-28 | 3-11 | 0 | pixel_integer | 312 | 0.0033 |
+| full18558 | portable | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full18558 | accelerate | triangle (5 modes) | 9 | 2 | 0 | pixel_integer | 312 | 0.0012 |
+| full18558 | accelerate | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+<!-- /table:s2_step0_parity -->
+
+On the triangle arm (mode `local`, 4,000 orientations) the portable build differs on 129 (3.2%, Wilson 2.7-3.8%) and the
+Accelerate build on 44 (1.1%, 0.8-1.5%); the screen (`screen_center`) differs on 1 of 4,000 (portable) and 0
+(Accelerate). No frame index differs on any row both sides kept.
+
+Per `OverlapInfo` field on the triangle arm (`local`, 4,000 orientations): in the portable build `pixel_on_detector`
+differs on 128 of the 129 differing orientations, `pixel_overlap` on 14 and `quality` on 12; in the Accelerate build on
+44, 2 and 1. No other field differs. The cost is 1 - `quality`, but the search also reads `hit_ratio`
+(`pixel_overlap / pixel_on_detector`) in `hit_ratio_converged`, so a flip can change the search path when the cost does
+not change.
+
+Against the float64 reference (`reference64`: the same quantities in float64 from the same float32 inputs), the mean
+float32 pixel error over all stage-D peaks is the same size for both paths (table below, 2.84e-04 to 2.99e-04 px); that
+is an aggregate mean, not a per-peak statement. Per flipped peak (the 140 pixel-integer flips of the portable build,
+`local`): torch's value is nearer the float64 value on 75 and the fused value on 65 (no ties; torch nearer on 45.3-61.6%,
+Wilson), and the float64 value lies on torch's side of the integer on 72 and on the fused side on 68 (torch's side on
+43.2-59.6%). On a single peak the two errors are not alike: the larger is a median 2.6 times the smaller (median |error|
+2.9e-04 px for torch, 3.1e-04 px for fused), and more than 3 times on 0.48 of the peaks. Neither path is systematically
+nearer float64, but each flip is one-sided. Accelerate build (44 flips): nearer 26 against 18, side 21 against 23.
+
+<!-- table:s2_step0_float64_error -->
+| dataset | variant | torch_mean_px | fused_mean_px | torch_max_px | fused_max_px |
+|---|---|---|---|---|---|
+| three0 | portable | 2.87e-04 | 2.85e-04 | 0.0112 | 0.0112 |
+| three0 | accelerate | 2.87e-04 | 2.87e-04 | 0.0112 | 0.0112 |
+| full15901 | portable | 2.86e-04 | 2.84e-04 | 0.0058 | 0.0066 |
+| full15901 | accelerate | 2.86e-04 | 2.86e-04 | 0.0058 | 0.0058 |
+| full17034 | portable | 2.85e-04 | 2.84e-04 | 0.0066 | 0.0066 |
+| full17034 | accelerate | 2.85e-04 | 2.86e-04 | 0.0066 | 0.0066 |
+| full18558 | portable | 2.98e-04 | 2.95e-04 | 0.0669 | 0.0669 |
+| full18558 | accelerate | 2.98e-04 | 2.99e-04 | 0.0669 | 0.0669 |
+<!-- /table:s2_step0_float64_error -->
+
+The flips are consistent with float32 rounding at a pixel edge. The larger tested source is g_lab: with g_lab bit for
+bit equal to torch's (the Accelerate build, sgemm instead of the portable `fmaf` chain) the differing orientations drop
+from 129 to 44 and the `quality` differences from 12 to 1. The g_lab differences grow on the way: on ThreeVoxels voxel 0
+(the per-intermediate table) the portable omega differs from torch's by up to 7.01e-05 rad (8,704 ulp), against
+4.77e-07 rad with the Accelerate g_lab; that is consistent with asin near +/-1 amplifying them (untested). The remaining
+44 are consistent with libm `sin`, `cos`, `asin` and `atan2` differing from torch's SLEEF kernels (Accelerate build:
+omega up to 1024 ulp, eta up to 32 ulp in the table) and the ray intersection carrying that into the pixel coordinate
+(up to 254 ulp). Untested: matching SLEEF in C, which together with the Accelerate g_lab would be needed for bit identity
+on this platform.
+
+Since the review, `reference64` applies the `CppEdgeRules` -1 rule. The rerun at a clean commit (a6ab6ee; the
+first run recorded `dirty: true` at 8f33e1c without naming the file, so `parity.json` now lists `dirty_files`) reproduces
+every count and ulp statistic of the first run; only the float64 pixel errors of the two edge modes changed. They are now
+float32-sized on average (full18558 `edge`, portable: 2.8e-04 px mean for both paths); the largest, 1.50 px for both
+paths, is consistent with float32 and float64 putting one detector coordinate on different sides of 0 (not traced).
+
+### Not done in Step 0
+
+Task A's C++ comparison (stop-rule item 4) is Step 4 work and was not run. With the key off nothing can differ from the
+base commit, because nothing in the library changed.
+
+### Task A check with the prototype (2026-10-27, `feature/python-speed-parity-s2-taska`)
+
+Plan section "Task A check with the prototype" (D-20261027-I4: runs in parallel with Steps 1-2 and gates their merge).
+**Scripts only**: nothing under `icenine/` changed; `pyproject.toml`, `uv.lock`, goldens and defaults unchanged; no
+timing taken. Scripts `scripts/speed_parity/s2/taska_check.py`, `taska_summary.py` and `run_taska.sh` (about 1 minute,
+one process); results in `benchmarks/s2_taska/` (the tables below are its `tables.md`, run at fb42d8c).
+
+**Answer.** The Step 0 prototype agrees with C++ on as many Task A orientations as torch with `CppEdgeRules`: the peak
+counts (peak overlap, peak on detector) equal C++'s on 2,230 of 2,230 orientations for the complete cost and on 2,229 of
+2,230 for the screen, for torch and for both prototype builds. Per orientation the paired split is 0 torch-only and 0
+fused-only on both arms; the screen miss is the same record on every path (voxel 15901, record 885, the A-exact peak
+3 ulp from a frame boundary). Stop-rule item 4 is not triggered, so this check does not hold back Steps 1-2. The
+complete-cost quality is within 1e-6 of C++'s on 2,228 (torch), 2,229 (portable) and 2,228 (Accelerate) of 2,230
+orientations. The check certifies the Step 0 prototype, not the Steps 1-2 library kernel, which may change the g_lab
+order (D-20261027-I5); Step 4 should rerun `taska_check.py run` against the library kernel (the plan does not yet
+say so).
+
+**Inputs.** Task A did not keep its input files or the C++ driver output, and the C++ toolchain (CMake, Boost, Eigen,
+Open MPI) is not installed on this machine, so the C++ side is the stored aggregates of
+`benchmarks/eval_reduction/A/step0/results.json.gz`, not a rerun. `parity_inputs.py` regenerates the 2,230 records with
+the stored labels, kinds and FZ and grid indices. The driver scored its own float32 product `oLocal * oCenter`
+(`SMatrix3x3::operator*`, `XDM++/libXDM/3dMath.cpp:410-430`, Apple clang `-O3`). Of four float32 orders, only clang's
+FP contraction, `fmaf(a2, b2, fmaf(a0, b0, a1 * b1))`, reproduces two stored values on every one of the 2,000 pair
+records: whether the float64 product cast to float32 equals the C++ product, and their largest difference. The two
+statistics do not pin a single record's product: the plain order gives a product different from clang's on 1,619 of
+the 2,000 pair records, yet matches both statistics on 1,065 of them; and on 1,166 pair records two or more elements
+of the float64 product cast to float32 differ from the clang product, of which the largest difference pins only one.
+The evidence is therefore for one order used for every record, not a per-record check; only a C++ rerun would close
+this (D-20261027-I6). The 230 single-orientation records (kind 0) all have the identity as local matrix, so their
+product is exact in any order. On the orientations built this way, the library
+`evaluate` at fb42d8c gives the stored Task A Python aggregates (pixel and peak counts, quality) on all four arms and all
+2,230 orientations, and `torch_mirror` equals the library on both `CppEdgeRules` arms. This is consistent with the
+inputs being Task A's, but it compares aggregates, not input bits, and the product order is inferred from two stored
+statistics per record, not read from C++ output.
+
+<!-- table:s2_taska_inputs -->
+| check | n | equal |
+|---|---|---|
+| records: label, kind, FZ and grid indices equal | 2230 | 2230 |
+| pair product, order plain: bit-equal flag and largest difference | 2000 | 1446 |
+| pair product, order clang_contract: bit-equal flag and largest difference | 2000 | 2000 |
+| pair product, order fma_chain: bit-equal flag and largest difference | 2000 | 1286 |
+| pair product, order fma_rev: bit-equal flag and largest difference | 2000 | 1081 |
+| torch at fb42d8c = stored Python, screen | 2230 | 2230 |
+| torch at fb42d8c = stored Python, complete cost | 2230 | 2230 |
+| torch at fb42d8c = stored Python, screen, CppEdgeRules | 2230 | 2230 |
+| torch at fb42d8c = stored Python, complete cost, CppEdgeRules | 2230 | 2230 |
+<!-- /table:s2_taska_inputs -->
+
+**Against C++** (stored C++ aggregates; "torch (Task A, stored)" is the Python result stored by Task A):
+
+<!-- table:s2_taska_cpp -->
+| arm | path | n | peak_counts_equal | pixel_counts_equal | quality_within_1e6 |
+|---|---|---|---|---|---|
+| screen, CppEdgeRules | torch (Task A, stored) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | torch (fb42d8c) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | fused portable | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | fused accelerate | 2230 | 2229 | n/a | n/a |
+| complete cost, CppEdgeRules | torch (Task A, stored) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | torch (fb42d8c) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | fused portable | 2230 | 2230 | 1984 | 2229 |
+| complete cost, CppEdgeRules | fused accelerate | 2230 | 2230 | 1985 | 2228 |
+<!-- /table:s2_taska_cpp -->
+
+Paired per orientation, torch at fb42d8c against each build ("both": both equal C++):
+
+<!-- table:s2_taska_paired -->
+| arm | fused | counts | both | torch_only | fused_only | neither |
+|---|---|---|---|---|---|---|
+| screen, CppEdgeRules | portable | peak counts | 2229 | 0 | 0 | 1 |
+| screen, CppEdgeRules | accelerate | peak counts | 2229 | 0 | 0 | 1 |
+| complete cost, CppEdgeRules | portable | peak counts | 2230 | 0 | 0 | 0 |
+| complete cost, CppEdgeRules | portable | peak and pixel counts | 1934 | 51 | 50 | 195 |
+| complete cost, CppEdgeRules | accelerate | peak counts | 2230 | 0 | 0 | 0 |
+| complete cost, CppEdgeRules | accelerate | peak and pixel counts | 1966 | 19 | 19 | 226 |
+<!-- /table:s2_taska_paired -->
+
+Pixel counts were not a Task A aim (A-exact: 1,985 of 2,230). On them the portable build matches C++ on 1,984 and
+exchanges 51 torch-only for 50 fused-only orientations; the Accelerate build matches on 1,985 (19 against 19).
+Quality (within 1e-6) is compared on the complete cost only: the stored C++ screen values have pixel overlap 0 and
+quality 0 on all 2,230 records (why the C++ screen stores 0 was not traced), so screen quality, like screen pixel
+counts, is n/a.
+
+**Fused against torch on this set** (`s2_parity.trace`, parity rule D-20261027-I2). "silent": orientations whose stage-D
+input differs while the `OverlapInfo` does not; "f64_side": for each flipped row, whose side of the pixel integer the
+float64 value lies on.
+
+<!-- table:s2_taska_vs_torch -->
+| arm | fused | n | differing | within_rule | causes | worst_px | pixon | pixov | pkov | pkon | quality | f64_side_torch | f64_side_fused | silent | silent_within_rule | silent_causes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| screen, CppEdgeRules | portable | 2230 | 0 | 0 | - | n/a | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 13 | 13 | pixel_integer |
+| screen, CppEdgeRules | accelerate | 2230 | 0 | 0 | - | n/a | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 10 | 10 | pixel_integer |
+| complete cost, CppEdgeRules | portable | 2230 | 108 | 108 | pixel_integer | 0.0019 | 107 | 4 | 0 | 0 | 1 | 59 | 53 | 99 | 99 | pixel_integer |
+| complete cost, CppEdgeRules | accelerate | 2230 | 43 | 43 | pixel_integer | 0.0009 | 42 | 3 | 0 | 0 | 0 | 25 | 18 | 37 | 37 | pixel_integer |
+<!-- /table:s2_taska_vs_torch -->
+
+On the complete cost the portable build differs from torch on 108 of 2,230 orientations (4.8%, Wilson 4.0-5.8%) and
+the Accelerate build on 43 (1.9%, 1.4-2.6%); on the screen on none. Every differing and every silent orientation is
+traced to pixel-integer flips within the rule's 0.01 px (worst 0.0019 px on a differing orientation, 0.0026 px on a
+silent one, portable); no frame, eta, observability or t > 0 flip. The fields that differ are `pixel_on_detector` (107
+orientations), `pixel_overlap` (4) and `quality` (1); peak counts never. The float64 value lies on torch's side on 59
+of the 112 flipped rows (Wilson 43.5-61.7%): no detectable side preference. The 112 rows are pooled over 108
+orientations, so the interval treats rows of one orientation as independent, which they need not be.
+`s2_parity.trace` keeps one flipped coordinate per Bragg row and detector (the largest ulp margin), so the 0.01 px rule
+is checked on that coordinate. A separate check by the reviewer of every flipped coordinate found no row and detector
+with more than one, but the tool does not test this; Step 4's parity test must check every flipped coordinate.
+
+**The Step 0 outlier** (`taska_check.py outlier`: Phase D voxel 18558, S1's 1,000 orientations, modes `edge` and
+`screen_edge`, every stage-D coordinate more than 0.02 px from the float64 reference; one table row per orientation
+and Bragg row; "coord0": the detector coordinate in pixels from 0, given where the -1 rule decides the pixel):
+
+<!-- table:s2_taska_outlier -->
+| mode | orientation | row | coords | torch_max_err_px | fused_max_err_px | torch_eq_fused | int_flips_vs_f64 | asin_arg | omega_err_rad | coord0_f32_px | coord0_f64_px |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| edge | 735 | 83 | 6 | 0.0669 | 0.0669 | True | 0 | 0.99969 | 1.54e-04 | n/a | n/a |
+| edge | 735 | 195 | 6 | 0.0658 | 0.0658 | True | 2 | 0.99969 | 1.53e-04 | n/a | n/a |
+| edge | 947 | 219 | 1 | 1.5005 | 1.5005 | True | 1 | 0.11969 | 6.87e-08 | -5.25e-05 | 5.37e-04 |
+<!-- /table:s2_taska_outlier -->
+
+- The 1.50 px outlier is the `CppEdgeRules` -1 sentinel, not a position error. Orientation 947 (an FZ point), Bragg
+  row 219, detector 1, vertex 1, column: the float32 detector coordinate is -5.25e-05 px (pixel -1, torch and fused bit
+  for bit equal), the float64 one +5.37e-04 px (pixel coordinate 0.5005, pixel 0). The error statistic compares the
+  sentinel -1 with 0.5005; the two coordinates differ by less than 0.001 px. Both float32 paths put this vertex in pixel
+  -1 where float64 puts it in pixel 0. Whether C++ does the same was not tested (the orientation is not in Task A's
+  set).
+- The next largest float64 error, the 0.0669 px of Step 0's float64 table (full18558), is orientation 735, reflection
+  83, both Bragg solutions (rows 83 and 195), 12 coordinates above 0.02 px (6 per row), torch and fused bit for bit
+  equal. The asin argument is 0.99969 and omega is 1.5e-04 rad from float64 on both rows; this is consistent with
+  float32 rounding amplified near an asin argument of 1 (not tested). Of these coordinates, 2 (both on row 195) have an
+  integer pixel different from float64's. On
+  `screen_edge` no coordinate is more than 0.02 px off.
+
+**Not done.** No C++ rerun (toolchain not installed; the inputs check above replaces the planned "regenerates the
+stored inputs exactly" by an aggregate-level check). No C++ value for the two outlier orientations.
+
+## S2: fused C evaluation, Steps 1-6 results (2026-10-28)
+
+ROADMAP Track S item S2, plan `docs/todo_s2_fused_c_eval.md` (approved D-20261021-I4; Steps 1-6 under owner delegation,
+D-20261027-I1). Steps 1-2 (branch `feature/python-speed-parity-s2-core`) and Step 3 (`feature/python-speed-parity-s2-batched`)
+built the library path; their checks are in `benchmarks/s2_core/RUN_LOG.md` and `benchmarks/s2_batched/RUN_LOG.md`. Steps 4-6
+(`feature/python-speed-parity-s2-results`) measured it: results in `benchmarks/s2_results/` (the tables below are its
+`tables.md` and `taska/tables.md`, written by `scripts/speed_parity/s2/s2_results_summary.py` and `taska_summary.py`). Library
+change in Steps 4-6: only the text of the fallback warning (`cost_functions._warn_fused_fallback`, D-20261028-I1). No new
+dependency, no golden and no default changed; `FusedCost` stays opt-in (default 0).
+
+**Answer.** With `FusedCost 1` the per-call cost of `evaluate` drops from 235.7 to 15.9 us on the Q-max 8 triangle arm (14.9
+times; single-worker, ThreeVoxels voxel 0) and the no-start search of ThreeVoxels voxel 0 from 5.40 to 1.72 s (3.14 times) with
+the same 8,311 evaluations; on 10 E0 voxels from 16.10 to 6.84 s (2.35 times), where the batched screen (not covered) is then
+5.16 of the 6.84 s. The fused path is not bit-equal to torch: on S1's parity set it differs on 93 of 4,000 orientations of the
+triangle arm (Wilson 1.9-2.8%), and every difference, in every covered mode, traces to pixel coordinates within 0.0014 px of a
+pixel edge (the parity rule, D-20261027-I2; no frame, eta, observability or t > 0 difference). Against C++ on Task A's 2,230
+orientations it matches the peak counts as often as torch (2,229 screen, 2,230 complete cost). On E0 (200 voxels, seed 0) the
+wrong count is 35 of 200 with and without the key, with and without `BatchedQuickMC`, with no voxel fixed or broken. With the
+key off every result is bit-identical to the commit before S2 (832db36). No stop rule fired.
+
+### What was built (Steps 1-3, library)
+
+- `icenine/_fused_eval.c` (a second source of the `_rasterize` module): `fused_context` (per cost function and phase: the
+  float32 g vectors, Bragg constants, beam and sample geometry, frame lookup, detector geometry, rule bits) and
+  `fused_evaluate` (one orientation: g = R g_hkl in the plain float32 order, the Bragg solve, observable rows, eta and the
+  `min_sin_eta` filter, the frame lookup, stages B and C with the `CppEdgeRules` -1 rule, stage D through
+  `icenine_stage_d_peak`); a debug mode returns every intermediate (`VoxelCostFunction.fused_debug`, used by the parity checks
+  below). `fused_evaluate_many` (Step 3) scores B orientations of one voxel in one call with the same per-orientation
+  functions. The per-peak stage-D body moved out of `stage_d_overlap` into `icenine_stage_d_peak` (`_rasterize.c`, declared in
+  `_stage_d.h`), so stage D exists once. Multiply-add contraction is off in `_fused_eval.c` only (per-file pragmas,
+  D-20261027-I9). Validated on macOS clang (arm64) only.
+- Wiring: the config key `FusedCost` (`config_file.py`, `SearchParameters.fused_cost`, `_cost_flags`); the fused dispatch in
+  `VoxelCostFunction.evaluate`; the lazy `FrameTable` fill (C names the frames, Python fills them, C repeats the call); the
+  fallbacks with one `RuntimeWarning` per reason (ray rule, soft mode, no eta limit, more than 8 detectors, non-float32 or
+  non-CPU tensors, vertices that are not a (3, 3) float32 CPU tensor, a missing or old extension); `FUSED_ARGUMENTS`, which
+  classifies every `__init__` argument, with a test that fails on an unclassified one; `BatchedCostEvaluator` uses
+  `fused_evaluate_many` when the key is on (CPU, and GPU batches below `GPU_MIN_BATCH`). Steps 1-2 kept the plain g_lab order
+  (`(a0*b0 + a1*b1) + a2*b2`) because it gave fewer flips than the prototype's `fmaf` chain (464 against 634 differing
+  orientations over the 36 dataset-modes; D-20261027-I5, `benchmarks/s2_core/glab_order.json`).
+- Steps 4-6 (scripts): `s2_lib_parity.py` (Step 4 on the library path; `s2_parity.trace(every=True)` traces every flipped
+  coordinate), `taska_check.py run --variants library --every-coord`, `s2_lib_timing.py` and `s2_search.py --lib` (Step 5),
+  `e0_run.py --fused-cost`, `s2_e0.py`, `s2_e0_trace.py` (Step 6), the runners `run_results_timing.sh` and
+  `run_results_e0.sh`, and `s2_results_summary.py`.
+
+### Step 4: parity
+
+**Key off.** `s1_parity.py dump` at the base 832db36 (a `git archive` copy with its own build) against a dump at 41efb45
+(`keyoff_compare.txt`): every field of every mode bit-identical, 60 groups (4 datasets x 15 modes); `s1_parity.py batched`
+against the base dump (`keyoff_batched.txt`): the compact and fixed variants equal the base `evaluate` in every field, 40
+rows. The E0 key-off arm against the base's (Step 6, `e0_keyoff_compare.txt`): 200 of 200 per-voxel records identical in
+every stored array but the run time (35 wrong in both; 8,899,974 global and 824,586 local evaluations in both).
+
+**Fused against torch** (`parity.json`; S1's 1,000 orientations of ThreeVoxels voxel 0 and Phase D voxels 15901, 17034,
+18558, the 9 covered modes, torch threads 1). "differing": orientations whose `OverlapInfo` differs; "silent": orientations
+whose stage-D input differs while the `OverlapInfo` does not; "flipped_coords": every flipped pixel coordinate of both;
+"max_near_px": the largest distance from the pixel edge of the nearer of the torch and fused coordinates;
+"several_coords": (row, detector) pairs with more than one flipped coordinate; "frame_differ": rows both sides kept whose
+frame differs. Ranges are over the modes of a group.
+
+<!-- table:s2_lib_parity -->
+| dataset | modes | n | differing | silent | flipped_coords | failing | causes | max_near_px | max_margin_ulp | several_coords | frame_differ |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| three0 | triangle (5 modes) | 1000 | 16 | 25-27 | 41-43 | 0 | pixel_integer | 0.0009 | 148 | 0 | 0 |
+| three0 | screen (4 modes) | 1000 | 0 | 1-2 | 1-2 | 0 | pixel_integer | 0.0000 | 1 | 0 | 0 |
+| full15901 | triangle (5 modes) | 1000 | 28 | 29 | 60 | 0 | pixel_integer | 0.0009 | 49 | 0 | 0 |
+| full15901 | screen (4 modes) | 1000 | 0 | 4-6 | 4-6 | 0 | pixel_integer | 0.0004 | 20 | 0 | 0 |
+| full17034 | triangle (5 modes) | 1000 | 29 | 33 | 64 | 0 | pixel_integer | 0.0014 | 265 | 0 | 0 |
+| full17034 | screen (4 modes) | 1000 | 0 | 2-5 | 2-5 | 0 | pixel_integer | 0.0010 | 76 | 0 | 0 |
+| full18558 | triangle (5 modes) | 1000 | 19-20 | 32 | 54-55 | 0 | pixel_integer | 0.0006 | 312 | 0 | 0 |
+| full18558 | screen (4 modes) | 1000 | 0 | 4-5 | 4-5 | 0 | pixel_integer | 0.0007 | 88 | 0 | 0 |
+<!-- /table:s2_lib_parity -->
+
+Every one of the 1,164 flipped coordinates (464 differing and 660 silent orientations over the 36 dataset-modes) is a
+pixel-integer flip within 0.0014 px of the edge; no orientation fails the rule. The differing orientations and the per-field
+counts are the same as in the Steps 1-2 run of the same path (36 of 36 dataset-modes against the plain order of
+`glab_order.json`, 9e99d63). No (row, detector) pair has more than one flipped coordinate, so the Task A check's
+one-coordinate-per-row trace (its review fix 5) missed nothing here. The screen modes differ on no orientation.
+
+On the triangle arm (`local`, 4,000 orientations), per `OverlapInfo` field and per flipped coordinate (differing and silent
+orientations pooled; Step 0's nearer counts, torch 75 and fused 65, were over the flipped peaks of differing orientations only,
+so the two are not like for like):
+
+<!-- table:s2_lib_parity_local -->
+| path | n | differing | wilson_low | wilson_high | pixel_on_detector | pixel_overlap | quality | peak_overlap | peak_on_detector | flipped_coords | nearer_torch | nearer_fused | side_torch | side_fused |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| library (plain g_lab) | 4000 | 93 | 0.019 | 0.028 | 92 | 5 | 5 | 0 | 0 | 222 | 113 | 109 | 109 | 113 |
+<!-- /table:s2_lib_parity_local -->
+
+The library path differs on 93 orientations against 129 for the Step 0 prototype's portable build and 44 for its Accelerate
+build (Step 0d). The float64 reference is nearer the torch value on 113 and the fused value on 109 of the 222 flipped
+coordinates (torch nearer on 44.4-57.4%, Wilson; coordinates of one orientation are not independent): no detectable
+preference. The peak counts never differ; the cost (1 - `quality`) differs on 5 orientations.
+
+Per intermediate on ThreeVoxels voxel 0 (`local`; Step 0d's masks): the plain g_lab order agrees with torch on 0.930 of the
+g_lab elements against 0.806 for the prototype's portable build, and the omega difference is at most 4.77e-07 rad (1,024 ulp)
+against 7.01e-05 rad there.
+
+<!-- table:s2_lib_intermediates -->
+| dataset | intermediate | n | equal | equal_frac | max_ulp | max_abs |
+|---|---|---|---|---|---|---|
+| three0 | g_lab | 336000 | 312648 | 0.930 | 1543 | 4.77e-07 |
+| three0 | omega_bragg | 221820 | 206137 | 0.929 | 1024 | 4.77e-07 |
+| three0 | omega | 202504 | 187762 | 0.927 | 1024 | 4.77e-07 |
+| three0 | eta | 202504 | 169248 | 0.836 | 33 | 2.38e-07 |
+| three0 | pixel | 1221696 | 1035205 | 0.847 | 254 | 3.88e-03 |
+| three0 | t | 610848 | 580405 | 0.950 | 5 | 1.91e-06 |
+<!-- /table:s2_lib_intermediates -->
+
+**Against C++** (Parity item 2, D-20261027-I7: `taska_check.py run --variants library --every-coord` on the library kernel
+with the shipped g_lab order, at 41efb45; `parity_inputs.py` regenerates the inputs as in the Task A check, first table).
+
+<!-- table:s2_lib_taska_inputs -->
+| check | n | equal |
+|---|---|---|
+| records: label, kind, FZ and grid indices equal | 2230 | 2230 |
+| pair product, order plain: bit-equal flag and largest difference | 2000 | 1446 |
+| pair product, order clang_contract: bit-equal flag and largest difference | 2000 | 2000 |
+| pair product, order fma_chain: bit-equal flag and largest difference | 2000 | 1286 |
+| pair product, order fma_rev: bit-equal flag and largest difference | 2000 | 1081 |
+| torch at 41efb45 = stored Python, screen | 2230 | 2230 |
+| torch at 41efb45 = stored Python, complete cost | 2230 | 2230 |
+| torch at 41efb45 = stored Python, screen, CppEdgeRules | 2230 | 2230 |
+| torch at 41efb45 = stored Python, complete cost, CppEdgeRules | 2230 | 2230 |
+<!-- /table:s2_lib_taska_inputs -->
+
+<!-- table:s2_lib_taska_cpp -->
+| arm | path | n | peak_counts_equal | pixel_counts_equal | quality_within_1e6 |
+|---|---|---|---|---|---|
+| screen, CppEdgeRules | torch (Task A, stored) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | torch (41efb45) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | fused library | 2230 | 2229 | n/a | n/a |
+| complete cost, CppEdgeRules | torch (Task A, stored) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | torch (41efb45) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | fused library | 2230 | 2230 | 1983 | 2228 |
+<!-- /table:s2_lib_taska_cpp -->
+
+<!-- table:s2_lib_taska_paired -->
+| arm | fused | counts | both | torch_only | fused_only | neither |
+|---|---|---|---|---|---|---|
+| screen, CppEdgeRules | library | peak counts | 2229 | 0 | 0 | 1 |
+| complete cost, CppEdgeRules | library | peak counts | 2230 | 0 | 0 | 0 |
+| complete cost, CppEdgeRules | library | peak and pixel counts | 1950 | 35 | 33 | 212 |
+<!-- /table:s2_lib_taska_paired -->
+
+<!-- table:s2_lib_taska_vs_torch -->
+| arm | fused | n | differing | within_rule | causes | worst_px | pixon | pixov | pkov | pkon | quality | f64_side_torch | f64_side_fused | silent | silent_within_rule | silent_causes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| screen, CppEdgeRules | library | 2230 | 0 | 0 | - | n/a | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 14 | 14 | pixel_integer |
+| complete cost, CppEdgeRules | library | 2230 | 73 | 73 | pixel_integer | 0.0010 | 72 | 3 | 0 | 0 | 0 | 39 | 35 | 80 | 80 | pixel_integer |
+<!-- /table:s2_lib_taska_vs_torch -->
+
+The library kernel matches C++'s peak counts on 2,229 (screen) and 2,230 (complete cost) of 2,230 orientations, as torch
+does, with no torch-only orientation: the I4 gate holds again. On the pixel counts, which were not a Task A aim, it matches on
+1,983 against torch's 1,985 (35 torch-only, 33 fused-only orientations; the Step 0 prototype: 1,984). Quality within 1e-6 of
+C++: 2,228 for both. Against torch on this set the library differs on 73 complete-cost orientations and on no screen
+orientation; every differing and every silent orientation traces to pixel-integer flips, within 0.0010 px of the edge on
+the differing ones and 0.0012 px on the silent ones (`summary.json`; the `f64_side` columns count coordinates).
+
+### Step 5: timings (single-worker, preflight quiet on every step)
+
+Per call on S1's per-call set (ThreeVoxels voxel 0, 400 near-truth orientations; median of 5 interleaved rounds; `fused` =
+`evaluate` with the key on, `c_only` = the bare `_rasterize.fused_evaluate` call on the cost function's context,
+`python_share` = their difference; `*_range` = min-max of the 5 rounds; `step0_prototype` = Step 0c's `fused`):
+
+<!-- table:s2_lib_per_call -->
+| arm | torch | torch_range | fused | fused_range | c_only | c_only_range | python_share | speedup | step0_prototype |
+|---|---|---|---|---|---|---|---|---|---|
+| triangle_q8_default | 235.7 | 235.0-236.7 | 15.9 | 15.4-16.1 | 13.8 | 13.6-14.3 | 2.0 | 14.9 | 14.4 |
+| triangle_q8_cpp | 235.0 | 234.3-235.8 | 15.6 | 15.3-15.8 | 13.7 | 13.4-13.8 | 1.9 | 15.1 | 14.2 |
+| screen_r3_q5_default | 202.1 | 201.4-208.6 | 4.4 | 4.3-4.5 | 2.5 | 2.5-2.6 | 1.9 | 45.5 | 3.3 |
+| screen_r3_q5_cpp | 202.1 | 201.0-202.3 | 4.3 | 4.2-4.4 | 2.4 | 2.4-2.5 | 1.9 | 46.8 | 3.3 |
+<!-- /table:s2_lib_per_call -->
+
+The library path is slower than the prototype (15.9 against 14.4 us on the triangle arm, 4.4 against 3.3 us on the screen
+arm). Step 0c is a different run, so this comparison is unpaired. Within this run the Python wrapper takes 2.0 us of the
+triangle arm's 15.9 (`python_share`; in Step 0c, `fused` 14.4 against `c_only` 13.4). The C call shows no detectable
+difference across the two runs: 13.8 us here against 13.4 in Step 0c, inside this run's own `c_only` range (13.6-14.3).
+
+Batched (`BatchedCostEvaluator.evaluate_many`, 512 near-truth orientations in chunks of B, us per orientation; `fixed_gpu` =
+the fixed-shape variant on MPS; `evaluate_*` = one orientation per call; `three0_search` = the local cost of ThreeVoxels'
+search config, 868 reflections):
+
+<!-- table:s2_lib_batched -->
+| set | K | B | compact | fused | fixed_gpu | gpu_over_fused | evaluate_torch | evaluate_fused |
+|---|---|---|---|---|---|---|---|---|
+| three0 | 112 | 1 | 245.7 | 16.6 | 2156.8 | 129.68 | 244.1 | 15.9 |
+| three0 | 112 | 8 | 87.8 | 14.6 | 317.3 | 21.75 | 244.1 | 15.9 |
+| three0 | 112 | 16 | 74.6 | 14.4 | 184.7 | 12.83 | 244.1 | 15.9 |
+| three0 | 112 | 32 | 68.4 | 14.3 | 119.4 | 8.36 | 244.1 | 15.9 |
+| three0 | 112 | 64 | 65.0 | 14.2 | 97.3 | 6.83 | 244.1 | 15.9 |
+| three0 | 112 | 128 | 63.4 | 14.2 | 65.5 | 4.60 | 244.1 | 15.9 |
+| three0 | 112 | 256 | 62.7 | 14.2 | 59.2 | 4.17 | 244.1 | 15.9 |
+| three0 | 112 | 512 | 63.4 | 14.1 | 48.4 | 3.44 | 244.1 | 15.9 |
+| three0_search | 868 | 1 | 628.2 | 93.3 | 2303.5 | 24.69 | 543.8 | 95.5 |
+| three0_search | 868 | 8 | 459.2 | 92.7 | 425.0 | 4.59 | 543.8 | 95.5 |
+| three0_search | 868 | 16 | 446.6 | 95.3 | 316.5 | 3.32 | 543.8 | 95.5 |
+| three0_search | 868 | 32 | 442.6 | 97.2 | 272.7 | 2.80 | 543.8 | 95.5 |
+| three0_search | 868 | 64 | 441.3 | 97.3 | 235.6 | 2.42 | 543.8 | 95.5 |
+| three0_search | 868 | 128 | 440.5 | 95.5 | 228.0 | 2.39 | 543.8 | 95.5 |
+| three0_search | 868 | 256 | 437.5 | 95.3 | 228.0 | 2.39 | 543.8 | 95.5 |
+| three0_search | 868 | 512 | 431.5 | 92.8 | 228.4 | 2.46 | 543.8 | 95.5 |
+| e0_0 | 112 | 1 | 248.6 | 17.6 | 2208.6 | 125.20 | 248.0 | 16.9 |
+| e0_0 | 112 | 8 | 83.3 | 15.4 | 318.5 | 20.64 | 248.0 | 16.9 |
+| e0_0 | 112 | 16 | 70.4 | 15.3 | 187.8 | 12.30 | 248.0 | 16.9 |
+| e0_0 | 112 | 32 | 63.6 | 15.2 | 117.9 | 7.75 | 248.0 | 16.9 |
+| e0_0 | 112 | 64 | 60.4 | 15.1 | 78.8 | 5.22 | 248.0 | 16.9 |
+| e0_0 | 112 | 128 | 58.9 | 15.0 | 70.4 | 4.69 | 248.0 | 16.9 |
+| e0_0 | 112 | 256 | 57.7 | 15.1 | 56.9 | 3.77 | 248.0 | 16.9 |
+| e0_0 | 112 | 512 | 57.9 | 15.1 | 53.2 | 3.51 | 248.0 | 16.9 |
+<!-- /table:s2_lib_batched -->
+
+The batched fused entry costs about the same per orientation at B 8-512 (14.1-14.6 us on three0 and 15.0-15.4 us on e0_0, at
+112 reflections; 92.7-97.3 us at 868 on three0_search, B = 1 included); at 112 reflections B = 1 costs about 2 us more (16.6
+and 17.6 us). Batching thus adds little over the fused `evaluate` beyond the Python call.
+
+**GPU_MIN_BATCH** (64, set against the torch compact variant; D-20261028-I1 asks for the measurement, not a change): with
+the key on, `evaluate_many` still sends batches of 64 or more to the GPU when `SearchDevice` is a GPU, and on this machine
+(Apple MPS) the fixed variant is slower than the fused CPU entry at every B measured: 3.4-6.8 times at B 64-512 with 112
+reflections, 2.4-2.5 times with 868. The constant is unchanged; whether the fused path should keep priority over the GPU
+with the key on is left for the owner's review, nothing changed (D-20261028-I2; CUDA not measured).
+
+No-start search, split as Step 0a (ThreeVoxels voxel 0, `Example2.Simulation.config`, median of 3 repeats; 10 E0 clean voxels,
+sums, median of 2 repeats; `wall_range` = min-max of the repeats; `quick_mc_us` = quick-MC microseconds per evaluation, the
+batched cost's for `BatchedQuickMC 1`):
+
+<!-- table:s2_lib_search_three -->
+| arm | wall | wall_range | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| default keys | 5.40 | 5.35-5.43 | 1.00 | 4.60 | 8311 | 553 | 3.58 | 6456 | 554 | 0.62 | 1 of 1 |
+| BatchedQuickMC 1 | 4.50 | 4.48-4.53 | 1.20 | 1.00 | 1812 | 550 | 2.72 | 6408 | 425 | 0.62 | 0 of 1 |
+| FusedCost 1 | 1.72 | 1.72-1.74 | 3.14 | 0.94 | 8311 | 113 | 0.74 | 6456 | 114 | 0.63 | 1 of 1 |
+| BatchedQuickMC 1, FusedCost 1 | 1.76 | 1.76-1.80 | 3.07 | 0.20 | 1812 | 110 | 0.80 | 6408 | 125 | 0.63 | 0 of 1 |
+<!-- /table:s2_lib_search_three -->
+
+<!-- table:s2_lib_search_e0 -->
+| arm | wall | wall_range | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| default keys | 16.10 | 16.09-16.10 | 1.00 | 9.95 | 39759 | 250 | 6.91 | 27636 | 250 | 5.16 | 2 of 10 |
+| BatchedQuickMC 1 | 10.52 | 10.52-10.52 | 1.53 | 2.82 | 11219 | 251 | 1.73 | 27576 | 63 | 5.16 | 2 of 10 |
+| FusedCost 1 | 6.84 | 6.84-6.84 | 2.35 | 0.80 | 39869 | 20 | 0.56 | 27636 | 20 | 5.16 | 2 of 10 |
+| BatchedQuickMC 1, FusedCost 1 | 6.72 | 6.72-6.73 | 2.39 | 0.22 | 11219 | 20 | 0.56 | 27576 | 20 | 5.16 | 2 of 10 |
+<!-- /table:s2_lib_search_e0 -->
+
+- ThreeVoxels voxel 0: the key-on search makes the same 8,311 evaluations as torch and ends 53.936 degrees from the truth
+  (wrong) in both, with a final cost of 0.4355 against 0.4377 (`summary.json` `search_three.final`), so its path differs in
+  places; it is 3.14 times faster (1.72 s, repeats 1.72-1.74, against 5.40 s, repeats 5.35-5.43). With `BatchedQuickMC 1`
+  the batched fused cost takes 125 us per evaluation against 425 us for the torch compact variant, and the search is 1.76 s
+  (1.76-1.80) against 4.50 s (4.48-4.53) (same 1,812 evaluate calls, both right).
+- E0 (10 voxels): 250 to 20 us per evaluate call; the search is 2.35 times faster (6.84 s, repeats 6.84-6.84, against
+  16.10 s, 16.09-16.10), and 2.39 times with `BatchedQuickMC 1` as well (6.72 s, 6.72-6.73, against 10.52 s, 10.52-10.52).
+  The wrong sets are the same per pair (default against `FusedCost 1`: 0 fixed, 0 broken, 2 both wrong). One voxel (e0_4)
+  took another path with the key (4,779 against 4,669 local evaluations, right in both). The remaining time is mostly the
+  batched screen (5.16 s), which S2 does not cover.
+- `BatchedQuickMC` with the key on: per evaluation, the batched fused quick MC costs no less than the sequential fused one,
+  20 against 20 us on E0 and 125 against 114 us on ThreeVoxels (868 reflections; `quick_mc_us`). The search walls with and
+  without `BatchedQuickMC` (E0 6.72 against 6.84 s, ThreeVoxels 1.76 against 1.72 s) are different searches, not paired on
+  the same evaluations: draw option B changes the path. On ThreeVoxels the arm without it ends wrong at 53.936 degrees and
+  the arm with it ends right (quick-MC evaluations 6,456 against 6,408); on E0 the wrong sets are e0_0, e0_8 without it and
+  e0_5, e0_8 with it. Whether to keep `BatchedQuickMC` in the recommended configuration with the key on is left for the
+  owner's review, nothing changed (D-20261028-I2).
+
+### Step 6: E0 A/B (E0 clean, 200 voxels, seed 0)
+
+`e0_run.py run --variants clean --n-seeds 1 --n-voxels 200 --workers 6`, arms `_s2off`, `--fused-cost --tag _s2on`,
+`--batched-quick-mc --tag _s2bq`, both (`_s2bqon`), the same images, voxels and random streams (`run_results_e0.sh`;
+`e0.json`). Wrong = reduced misorientation to the truth > 1 degree. Run times are contended (6 workers, not preflight-gated).
+
+<!-- table:s2_e0_wrong -->
+| arm | wrong | n | rate | wilson_low | wilson_high |
+|---|---|---|---|---|---|
+| key off | 35 | 200 | 0.175 | 0.129 | 0.234 |
+| FusedCost 1 | 35 | 200 | 0.175 | 0.129 | 0.234 |
+| BatchedQuickMC 1 | 35 | 200 | 0.175 | 0.129 | 0.234 |
+| BatchedQuickMC 1, FusedCost 1 | 35 | 200 | 0.175 | 0.129 | 0.234 |
+<!-- /table:s2_e0_wrong -->
+
+<!-- table:s2_e0_paired -->
+| pair | n | wrong_a | wrong_b | fixed | broken | both_wrong | both_right | same_final |
+|---|---|---|---|---|---|---|---|---|
+| key off vs FusedCost 1 | 200 | 35 | 35 | 0 | 0 | 35 | 165 | 182 |
+| BatchedQuickMC 1 vs BatchedQuickMC 1 + FusedCost 1 | 200 | 35 | 35 | 0 | 0 | 35 | 165 | 182 |
+| key off vs BatchedQuickMC 1 (another draw, for scale) | 200 | 35 | 35 | 18 | 18 | 17 | 147 | 0 |
+<!-- /table:s2_e0_paired -->
+
+<!-- table:s2_e0_evals -->
+| arm | local_mean | global_mean | runtime_median | workers |
+|---|---|---|---|---|
+| key off | 4122.9 | 44499.9 | 2.44 | 6 |
+| FusedCost 1 | 4119.2 | 44499.8 | 1.01 | 6 |
+| BatchedQuickMC 1 | 4133.6 | 44501.1 | 1.60 | 6 |
+| BatchedQuickMC 1, FusedCost 1 | 4132.7 | 44501.1 | 0.98 | 6 |
+<!-- /table:s2_e0_evals -->
+
+The key fixes and breaks no voxel, with or without `BatchedQuickMC` (35 both wrong, 165 both right per pair); for scale, the
+key-off arm against `BatchedQuickMC 1` (another random draw of the same search) splits 18 fixed and 18 broken, and S3's
+seed-to-seed calibration gave 14-23 flips each way. 182 of 200 voxels end at the same final orientation bit for bit; the
+evaluation counts per run are nearly the same (4,122.9 against 4,119.2 local, 44,499.9 against 44,499.8 global). Median run
+time per voxel, contended (6 workers, not preflight-gated): 2.44 s with the key off, 1.01 s with it on.
+
+**Traced.** No wrong flag changed, so there is no break to trace (D-20261014-N13); instead every voxel whose final
+orientation moved (18 per pair) was rerun with the key on and a shadow that recomputes each fused result on the torch path
+(`s2_e0_trace.py --changed`; `e0_trace.json`): every rerun reproduces the stored key-on record (final orientation and
+evaluation counts), and every differing evaluation is traced with `s2_parity.trace(every=True)`.
+
+<!-- table:s2_e0_trace_pairs -->
+| pair | voxels | changes | reproduced | shadowed | differing | within_rule | quality_differs | causes | max_near_px |
+|---|---|---|---|---|---|---|---|---|---|
+| bqmc vs bqmc_on | 18 | both right 16, both wrong 2 | 18 | 71672 | 1807 | 1807 | 198 | pixel_integer | 0.0018 |
+| off vs on | 18 | both right 15, both wrong 3 | 18 | 76839 | 1986 | 1986 | 223 | pixel_integer | 0.0016 |
+<!-- /table:s2_e0_trace_pairs -->
+
+All 3,793 differing evaluations (of 148,511 shadowed in the 36 runs) are pixel-integer flips within 0.0018 px of the edge; 421
+of them change the cost. Up to the first of them the key-on search repeats the key-off search call for call by construction
+(the key changes only cost values and the shadow draws no random number; not compared against a key-off call log; the
+"reproduced" check covers the key-on side only), so where the two part is one of these flips; which one changed the path was
+not determined.
+
+### Deviations and not done
+
+- E0 used the clean images only and one seed (the plan's "200 voxels, seed 0"); no realistic-image arm.
+- The C++ side of Task A is the stored aggregates (no C++ toolchain on this machine), as in the Task A check.
+- The `GPU_MIN_BATCH` measurement covers Apple MPS only; no CUDA machine was used.
+- `FusedCost` is validated on macOS clang (arm64) only (D-20261027-I10); GCC and other platforms are untested.

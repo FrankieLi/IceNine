@@ -1,0 +1,177 @@
+{
+ "n_orient": 43974,
+ "reference": {
+  "pairs": 879480,
+  "voxels": 20,
+  "pass_rule0": 691538,
+  "pass_rule1": 231694,
+  "rate_rule0": 0.7863032701141583,
+  "rate_rule1": 0.2634443080001819,
+  "rule0_only": 459844,
+  "rule1_only": 0,
+  "both": 231694,
+  "per_voxel_rate_rule0_min": 0.7659526083594852,
+  "per_voxel_rate_rule0_max": 0.8107745485968981,
+  "per_voxel_rate_rule1_min": 0.22508755173511621,
+  "per_voxel_rate_rule1_max": 0.3062491472233593,
+  "per_voxel_passers_rule1_median": 11500.5,
+  "equal_numpy": true,
+  "voxel_ids": [
+   1423,
+   2091,
+   5852,
+   7288,
+   7320,
+   7669,
+   8205,
+   9601,
+   10685,
+   11775,
+   14122,
+   14952,
+   16602,
+   16775,
+   18366,
+   18384,
+   19289,
+   22181,
+   22215,
+   24460
+  ],
+  "per_voxel": [
+   {
+    "vid": 1423,
+    "rule0": 34079,
+    "rule1": 10144
+   },
+   {
+    "vid": 2091,
+    "rule0": 34261,
+    "rule1": 11397
+   },
+   {
+    "vid": 5852,
+    "rule0": 34857,
+    "rule1": 12555
+   },
+   {
+    "vid": 7288,
+    "rule0": 34254,
+    "rule1": 10814
+   },
+   {
+    "vid": 7320,
+    "rule0": 35022,
+    "rule1": 11977
+   },
+   {
+    "vid": 7669,
+    "rule0": 35232,
+    "rule1": 12617
+   },
+   {
+    "vid": 8205,
+    "rule0": 33837,
+    "rule1": 10475
+   },
+   {
+    "vid": 9601,
+    "rule0": 35465,
+    "rule1": 13467
+   },
+   {
+    "vid": 10685,
+    "rule0": 35161,
+    "rule1": 12594
+   },
+   {
+    "vid": 11775,
+    "rule0": 34321,
+    "rule1": 11489
+   },
+   {
+    "vid": 14122,
+    "rule0": 33969,
+    "rule1": 10320
+   },
+   {
+    "vid": 14952,
+    "rule0": 33781,
+    "rule1": 10842
+   },
+   {
+    "vid": 16602,
+    "rule0": 34216,
+    "rule1": 11506
+   },
+   {
+    "vid": 16775,
+    "rule0": 35136,
+    "rule1": 11495
+   },
+   {
+    "vid": 18366,
+    "rule0": 35653,
+    "rule1": 12547
+   },
+   {
+    "vid": 18384,
+    "rule0": 35439,
+    "rule1": 12411
+   },
+   {
+    "vid": 19289,
+    "rule0": 33682,
+    "rule1": 9898
+   },
+   {
+    "vid": 22181,
+    "rule0": 34715,
+    "rule1": 11600
+   },
+   {
+    "vid": 22215,
+    "rule0": 34452,
+    "rule1": 11407
+   },
+   {
+    "vid": 24460,
+    "rule0": 34006,
+    "rule1": 12139
+   }
+  ]
+ },
+ "patch_2000": {
+  "pairs": 87948000,
+  "voxels": 2000,
+  "pass_rule0": 70779143,
+  "pass_rule1": 25582783,
+  "rate_rule0": 0.8047839973620776,
+  "rate_rule1": 0.2908853299677082,
+  "rule0_only": 45196360,
+  "rule1_only": 0,
+  "both": 25582783,
+  "per_voxel_rate_rule0_min": 0.7906490198753809,
+  "per_voxel_rate_rule0_max": 0.8166643925956247,
+  "per_voxel_rate_rule1_min": 0.2723427479874471,
+  "per_voxel_rate_rule1_max": 0.314322099422386,
+  "per_voxel_passers_rule1_median": 12776.0
+ },
+ "layer": {
+  "pairs": 1080441180,
+  "pass_rule0": 848266117,
+  "pass_rule1": 286462978,
+  "rule0_only": 561803139,
+  "rule1_only": 0,
+  "both": 286462978,
+  "voxels": 24570,
+  "rate_rule0": 0.7851108720235932,
+  "rate_rule1": 0.26513519042286043,
+  "per_voxel_passers_rule0_median": 34466.0,
+  "per_voxel_passers_rule1_median": 11757.0,
+  "per_voxel_passers_rule1_min": 8613,
+  "per_voxel_passers_rule1_max": 13822,
+  "per_voxel_rate_rule1_min": 0.19586573884568154,
+  "per_voxel_rate_rule1_max": 0.314322099422386
+ }
+}

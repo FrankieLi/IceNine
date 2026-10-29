@@ -1,0 +1,5762 @@
+{
+ "meta": {
+  "head": "41efb45",
+  "dirty": false,
+  "dirty_files": [],
+  "torch": "2.8.0",
+  "numpy": "2.0.2",
+  "threads": 1,
+  "seed": 20261014,
+  "n_near": 500,
+  "n_fz": 500,
+  "bound_px": 0.01,
+  "glab_order": 1,
+  "modes": {
+   "local": {
+    "pixel_radius": 0,
+    "max_q": 8.0
+   },
+   "cpp_rule": {
+    "pixel_radius": 0,
+    "max_q": 8.0,
+    "cpp_overlap_rule": true
+   },
+   "edge": {
+    "pixel_radius": 0,
+    "max_q": 8.0,
+    "cpp_edge_rules": true
+   },
+   "edge_cpp_rule": {
+    "pixel_radius": 0,
+    "max_q": 8.0,
+    "cpp_edge_rules": true,
+    "cpp_overlap_rule": true
+   },
+   "min_sin_eta": {
+    "pixel_radius": 0,
+    "max_q": 8.0,
+    "min_sin_eta": 0.2
+   },
+   "screen_default": {
+    "pixel_radius": 3,
+    "max_q": 5.0,
+    "center_screen": true
+   },
+   "screen_center": {
+    "pixel_radius": 3,
+    "max_q": 5.0,
+    "cpp_overlap_rule": true,
+    "center_screen": true
+   },
+   "screen_vertex0": {
+    "pixel_radius": 3,
+    "max_q": 5.0,
+    "cpp_overlap_rule": true,
+    "center_screen": false
+   },
+   "screen_edge": {
+    "pixel_radius": 3,
+    "max_q": 5.0,
+    "cpp_overlap_rule": true,
+    "cpp_edge_rules": true
+   }
+  }
+ },
+ "datasets": {
+  "three0": {
+   "local": {
+    "n": 1000,
+    "seconds": 2.03388275,
+    "n_differing": 16,
+    "n_silent": 27,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     129,
+     147,
+     253,
+     341,
+     373,
+     445,
+     511,
+     514,
+     537,
+     682,
+     710,
+     747,
+     887,
+     894,
+     903,
+     990
+    ],
+    "silent_index": [
+     13,
+     58,
+     89,
+     120,
+     148,
+     182,
+     195,
+     267,
+     325,
+     328,
+     396,
+     472,
+     475,
+     542,
+     595,
+     598,
+     614,
+     619,
+     624,
+     700,
+     723,
+     731,
+     778,
+     794,
+     796,
+     989,
+     992
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 16,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 16,
+     "silent": 27
+    },
+    "flipped_rows_dets": {
+     "differing": 16,
+     "silent": 27
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 43
+    },
+    "nearer_f64": {
+     "torch": 19,
+     "fused": 24,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 20,
+     "fused": 23
+    },
+    "max_near_px": 0.0008544921875,
+    "max_margin_ulp": 148,
+    "max_fused_margin_ulp": 84,
+    "frame_rows_both": 101808,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 312648,
+      "max_ulp": 1543,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       312648,
+       19486,
+       3278,
+       510,
+       78
+      ]
+     },
+     "omega_bragg": {
+      "n": 221820,
+      "equal": 206137,
+      "max_ulp": 1024,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       206137,
+       10746,
+       4494,
+       397,
+       46
+      ]
+     },
+     "omega": {
+      "n": 202504,
+      "equal": 187762,
+      "max_ulp": 1024,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       187762,
+       10031,
+       4273,
+       392,
+       46
+      ]
+     },
+     "eta": {
+      "n": 202504,
+      "equal": 169248,
+      "max_ulp": 33,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169248,
+       30679,
+       2568,
+       9,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1221696,
+      "equal": 1035205,
+      "max_ulp": 254,
+      "max_abs": 0.003875732421875,
+      "hist_0_1_2to8_9to64_gt64": [
+       1035205,
+       88428,
+       84658,
+       12123,
+       1282
+      ]
+     },
+     "t": {
+      "n": 610848,
+      "equal": 580405,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       580405,
+       27706,
+       2737,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "cpp_rule": {
+    "n": 1000,
+    "seconds": 2.0659194579999998,
+    "n_differing": 16,
+    "n_silent": 27,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     129,
+     147,
+     253,
+     341,
+     373,
+     445,
+     511,
+     514,
+     537,
+     682,
+     710,
+     747,
+     887,
+     894,
+     903,
+     990
+    ],
+    "silent_index": [
+     13,
+     58,
+     89,
+     120,
+     148,
+     182,
+     195,
+     267,
+     325,
+     328,
+     396,
+     472,
+     475,
+     542,
+     595,
+     598,
+     614,
+     619,
+     624,
+     700,
+     723,
+     731,
+     778,
+     794,
+     796,
+     989,
+     992
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 16,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 16,
+     "silent": 27
+    },
+    "flipped_rows_dets": {
+     "differing": 16,
+     "silent": 27
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 43
+    },
+    "nearer_f64": {
+     "torch": 19,
+     "fused": 24,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 20,
+     "fused": 23
+    },
+    "max_near_px": 0.0008544921875,
+    "max_margin_ulp": 148,
+    "max_fused_margin_ulp": 84,
+    "frame_rows_both": 101808,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 312648,
+      "max_ulp": 1543,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       312648,
+       19486,
+       3278,
+       510,
+       78
+      ]
+     },
+     "omega_bragg": {
+      "n": 221820,
+      "equal": 206137,
+      "max_ulp": 1024,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       206137,
+       10746,
+       4494,
+       397,
+       46
+      ]
+     },
+     "omega": {
+      "n": 202504,
+      "equal": 187762,
+      "max_ulp": 1024,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       187762,
+       10031,
+       4273,
+       392,
+       46
+      ]
+     },
+     "eta": {
+      "n": 202504,
+      "equal": 169248,
+      "max_ulp": 33,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169248,
+       30679,
+       2568,
+       9,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1221696,
+      "equal": 1035205,
+      "max_ulp": 254,
+      "max_abs": 0.003875732421875,
+      "hist_0_1_2to8_9to64_gt64": [
+       1035205,
+       88428,
+       84658,
+       12123,
+       1282
+      ]
+     },
+     "t": {
+      "n": 610848,
+      "equal": 580405,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       580405,
+       27706,
+       2737,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "edge": {
+    "n": 1000,
+    "seconds": 2.1432608329999994,
+    "n_differing": 16,
+    "n_silent": 25,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     129,
+     147,
+     253,
+     341,
+     373,
+     445,
+     511,
+     514,
+     537,
+     682,
+     710,
+     747,
+     887,
+     894,
+     903,
+     990
+    ],
+    "silent_index": [
+     13,
+     58,
+     89,
+     120,
+     148,
+     182,
+     195,
+     267,
+     328,
+     396,
+     475,
+     542,
+     595,
+     598,
+     614,
+     619,
+     624,
+     700,
+     723,
+     731,
+     778,
+     794,
+     796,
+     989,
+     992
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 16,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 16,
+     "silent": 25
+    },
+    "flipped_rows_dets": {
+     "differing": 16,
+     "silent": 25
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 41
+    },
+    "nearer_f64": {
+     "torch": 18,
+     "fused": 23,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 19,
+     "fused": 22
+    },
+    "max_near_px": 0.0008544921875,
+    "max_margin_ulp": 148,
+    "max_fused_margin_ulp": 84,
+    "frame_rows_both": 101252,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 312648,
+      "max_ulp": 1543,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       312648,
+       19486,
+       3278,
+       510,
+       78
+      ]
+     },
+     "omega_bragg": {
+      "n": 221820,
+      "equal": 206137,
+      "max_ulp": 1024,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       206137,
+       10746,
+       4494,
+       397,
+       46
+      ]
+     },
+     "omega": {
+      "n": 202504,
+      "equal": 187762,
+      "max_ulp": 1024,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       187762,
+       10031,
+       4273,
+       392,
+       46
+      ]
+     },
+     "eta": {
+      "n": 202504,
+      "equal": 169248,
+      "max_ulp": 33,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169248,
+       30679,
+       2568,
+       9,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1215024,
+      "equal": 1029322,
+      "max_ulp": 254,
+      "max_abs": 0.003875732421875,
+      "hist_0_1_2to8_9to64_gt64": [
+       1029322,
+       87986,
+       84324,
+       12110,
+       1282
+      ]
+     },
+     "t": {
+      "n": 607512,
+      "equal": 577215,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       577215,
+       27562,
+       2735,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "edge_cpp_rule": {
+    "n": 1000,
+    "seconds": 2.0330378750000015,
+    "n_differing": 16,
+    "n_silent": 25,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     129,
+     147,
+     253,
+     341,
+     373,
+     445,
+     511,
+     514,
+     537,
+     682,
+     710,
+     747,
+     887,
+     894,
+     903,
+     990
+    ],
+    "silent_index": [
+     13,
+     58,
+     89,
+     120,
+     148,
+     182,
+     195,
+     267,
+     328,
+     396,
+     475,
+     542,
+     595,
+     598,
+     614,
+     619,
+     624,
+     700,
+     723,
+     731,
+     778,
+     794,
+     796,
+     989,
+     992
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 16,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 16,
+     "silent": 25
+    },
+    "flipped_rows_dets": {
+     "differing": 16,
+     "silent": 25
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 41
+    },
+    "nearer_f64": {
+     "torch": 18,
+     "fused": 23,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 19,
+     "fused": 22
+    },
+    "max_near_px": 0.0008544921875,
+    "max_margin_ulp": 148,
+    "max_fused_margin_ulp": 84,
+    "frame_rows_both": 101252,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 312648,
+      "max_ulp": 1543,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       312648,
+       19486,
+       3278,
+       510,
+       78
+      ]
+     },
+     "omega_bragg": {
+      "n": 221820,
+      "equal": 206137,
+      "max_ulp": 1024,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       206137,
+       10746,
+       4494,
+       397,
+       46
+      ]
+     },
+     "omega": {
+      "n": 202504,
+      "equal": 187762,
+      "max_ulp": 1024,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       187762,
+       10031,
+       4273,
+       392,
+       46
+      ]
+     },
+     "eta": {
+      "n": 202504,
+      "equal": 169248,
+      "max_ulp": 33,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169248,
+       30679,
+       2568,
+       9,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1215024,
+      "equal": 1029322,
+      "max_ulp": 254,
+      "max_abs": 0.003875732421875,
+      "hist_0_1_2to8_9to64_gt64": [
+       1029322,
+       87986,
+       84324,
+       12110,
+       1282
+      ]
+     },
+     "t": {
+      "n": 607512,
+      "equal": 577215,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       577215,
+       27562,
+       2735,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "min_sin_eta": {
+    "n": 1000,
+    "seconds": 1.9059320419999999,
+    "n_differing": 16,
+    "n_silent": 27,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     129,
+     147,
+     253,
+     341,
+     373,
+     445,
+     511,
+     514,
+     537,
+     682,
+     710,
+     747,
+     887,
+     894,
+     903,
+     990
+    ],
+    "silent_index": [
+     13,
+     58,
+     89,
+     120,
+     148,
+     182,
+     195,
+     267,
+     325,
+     328,
+     396,
+     472,
+     475,
+     542,
+     595,
+     598,
+     614,
+     619,
+     624,
+     700,
+     723,
+     731,
+     778,
+     794,
+     796,
+     989,
+     992
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 16,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 16,
+     "silent": 27
+    },
+    "flipped_rows_dets": {
+     "differing": 16,
+     "silent": 27
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 43
+    },
+    "nearer_f64": {
+     "torch": 19,
+     "fused": 24,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 20,
+     "fused": 23
+    },
+    "max_near_px": 0.0008544921875,
+    "max_margin_ulp": 148,
+    "max_fused_margin_ulp": 84,
+    "frame_rows_both": 99452,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 312648,
+      "max_ulp": 1543,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       312648,
+       19486,
+       3278,
+       510,
+       78
+      ]
+     },
+     "omega_bragg": {
+      "n": 221820,
+      "equal": 206137,
+      "max_ulp": 1024,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       206137,
+       10746,
+       4494,
+       397,
+       46
+      ]
+     },
+     "omega": {
+      "n": 197816,
+      "equal": 183613,
+      "max_ulp": 1024,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       183613,
+       9733,
+       4068,
+       359,
+       43
+      ]
+     },
+     "eta": {
+      "n": 197816,
+      "equal": 166005,
+      "max_ulp": 5,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       166005,
+       29674,
+       2137,
+       0,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1193424,
+      "equal": 1008904,
+      "max_ulp": 254,
+      "max_abs": 0.003875732421875,
+      "hist_0_1_2to8_9to64_gt64": [
+       1008904,
+       86871,
+       84244,
+       12123,
+       1282
+      ]
+     },
+     "t": {
+      "n": 596712,
+      "equal": 566535,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       566535,
+       27440,
+       2737,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_default": {
+    "n": 1000,
+    "seconds": 0.8722002500000006,
+    "n_differing": 0,
+    "n_silent": 2,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     551,
+     578
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 2
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 2
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 2
+    },
+    "nearer_f64": {
+     "torch": 2,
+     "fused": 0,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 2,
+     "fused": 0
+    },
+    "max_near_px": 0.0,
+    "max_margin_ulp": 1,
+    "max_fused_margin_ulp": 1,
+    "frame_rows_both": 22845,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 73358,
+      "max_ulp": 3327,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       73358,
+       3841,
+       683,
+       102,
+       16
+      ]
+     },
+     "omega_bragg": {
+      "n": 51952,
+      "equal": 48642,
+      "max_ulp": 256,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       48642,
+       2434,
+       814,
+       55,
+       7
+      ]
+     },
+     "omega": {
+      "n": 45556,
+      "equal": 42514,
+      "max_ulp": 256,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       42514,
+       2227,
+       754,
+       54,
+       7
+      ]
+     },
+     "eta": {
+      "n": 45556,
+      "equal": 38106,
+      "max_ulp": 19,
+      "max_abs": 1.1920928955078125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       38106,
+       7003,
+       443,
+       4,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 274140,
+      "equal": 233364,
+      "max_ulp": 115,
+      "max_abs": 0.00372314453125,
+      "hist_0_1_2to8_9to64_gt64": [
+       233364,
+       21114,
+       18033,
+       1596,
+       33
+      ]
+     },
+     "t": {
+      "n": 137070,
+      "equal": 132720,
+      "max_ulp": 3,
+      "max_abs": 9.5367431640625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       132720,
+       4161,
+       189,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_center": {
+    "n": 1000,
+    "seconds": 0.8859188329999999,
+    "n_differing": 0,
+    "n_silent": 2,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     551,
+     578
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 2
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 2
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 2
+    },
+    "nearer_f64": {
+     "torch": 2,
+     "fused": 0,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 2,
+     "fused": 0
+    },
+    "max_near_px": 0.0,
+    "max_margin_ulp": 1,
+    "max_fused_margin_ulp": 1,
+    "frame_rows_both": 22845,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 73358,
+      "max_ulp": 3327,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       73358,
+       3841,
+       683,
+       102,
+       16
+      ]
+     },
+     "omega_bragg": {
+      "n": 51952,
+      "equal": 48642,
+      "max_ulp": 256,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       48642,
+       2434,
+       814,
+       55,
+       7
+      ]
+     },
+     "omega": {
+      "n": 45556,
+      "equal": 42514,
+      "max_ulp": 256,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       42514,
+       2227,
+       754,
+       54,
+       7
+      ]
+     },
+     "eta": {
+      "n": 45556,
+      "equal": 38106,
+      "max_ulp": 19,
+      "max_abs": 1.1920928955078125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       38106,
+       7003,
+       443,
+       4,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 274140,
+      "equal": 233364,
+      "max_ulp": 115,
+      "max_abs": 0.00372314453125,
+      "hist_0_1_2to8_9to64_gt64": [
+       233364,
+       21114,
+       18033,
+       1596,
+       33
+      ]
+     },
+     "t": {
+      "n": 137070,
+      "equal": 132720,
+      "max_ulp": 3,
+      "max_abs": 9.5367431640625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       132720,
+       4161,
+       189,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_vertex0": {
+    "n": 1000,
+    "seconds": 1.0446261669999988,
+    "n_differing": 0,
+    "n_silent": 1,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     147
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 1
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 1
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 1
+    },
+    "nearer_f64": {
+     "torch": 0,
+     "fused": 1,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 0,
+     "fused": 1
+    },
+    "max_near_px": 0.0,
+    "max_margin_ulp": 1,
+    "max_fused_margin_ulp": 0,
+    "frame_rows_both": 22845,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 73358,
+      "max_ulp": 3327,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       73358,
+       3841,
+       683,
+       102,
+       16
+      ]
+     },
+     "omega_bragg": {
+      "n": 51952,
+      "equal": 48642,
+      "max_ulp": 256,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       48642,
+       2434,
+       814,
+       55,
+       7
+      ]
+     },
+     "omega": {
+      "n": 45556,
+      "equal": 42514,
+      "max_ulp": 256,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       42514,
+       2227,
+       754,
+       54,
+       7
+      ]
+     },
+     "eta": {
+      "n": 45556,
+      "equal": 38106,
+      "max_ulp": 19,
+      "max_abs": 1.1920928955078125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       38106,
+       7003,
+       443,
+       4,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 274140,
+      "equal": 233782,
+      "max_ulp": 114,
+      "max_abs": 0.00384521484375,
+      "hist_0_1_2to8_9to64_gt64": [
+       233782,
+       20791,
+       17942,
+       1592,
+       33
+      ]
+     },
+     "t": {
+      "n": 137070,
+      "equal": 132709,
+      "max_ulp": 3,
+      "max_abs": 9.5367431640625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       132709,
+       4147,
+       214,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_edge": {
+    "n": 1000,
+    "seconds": 0.9470612500000009,
+    "n_differing": 0,
+    "n_silent": 2,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     551,
+     578
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 2
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 2
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 2
+    },
+    "nearer_f64": {
+     "torch": 2,
+     "fused": 0,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 2,
+     "fused": 0
+    },
+    "max_near_px": 0.0,
+    "max_margin_ulp": 1,
+    "max_fused_margin_ulp": 1,
+    "frame_rows_both": 22778,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 73358,
+      "max_ulp": 3327,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       73358,
+       3841,
+       683,
+       102,
+       16
+      ]
+     },
+     "omega_bragg": {
+      "n": 51952,
+      "equal": 48642,
+      "max_ulp": 256,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       48642,
+       2434,
+       814,
+       55,
+       7
+      ]
+     },
+     "omega": {
+      "n": 45556,
+      "equal": 42514,
+      "max_ulp": 256,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       42514,
+       2227,
+       754,
+       54,
+       7
+      ]
+     },
+     "eta": {
+      "n": 45556,
+      "equal": 38106,
+      "max_ulp": 19,
+      "max_abs": 1.1920928955078125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       38106,
+       7003,
+       443,
+       4,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 273336,
+      "equal": 232692,
+      "max_ulp": 115,
+      "max_abs": 0.00372314453125,
+      "hist_0_1_2to8_9to64_gt64": [
+       232692,
+       21048,
+       17967,
+       1596,
+       33
+      ]
+     },
+     "t": {
+      "n": 136668,
+      "equal": 132327,
+      "max_ulp": 3,
+      "max_abs": 9.5367431640625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       132327,
+       4152,
+       189,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  },
+  "full15901": {
+   "local": {
+    "n": 1000,
+    "seconds": 2.1653483330000007,
+    "n_differing": 28,
+    "n_silent": 29,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     1,
+     27,
+     52,
+     84,
+     144,
+     175,
+     189,
+     240,
+     288,
+     311,
+     346,
+     387,
+     420,
+     443,
+     458,
+     503,
+     544,
+     559,
+     570,
+     585,
+     599,
+     603,
+     699,
+     805,
+     880,
+     940,
+     976,
+     980
+    ],
+    "silent_index": [
+     69,
+     99,
+     112,
+     256,
+     347,
+     381,
+     423,
+     441,
+     447,
+     452,
+     492,
+     554,
+     564,
+     624,
+     672,
+     688,
+     705,
+     720,
+     732,
+     734,
+     751,
+     752,
+     793,
+     825,
+     828,
+     829,
+     840,
+     896,
+     923
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 4,
+     "pixel_on_detector": 27,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 3,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 29,
+     "silent": 31
+    },
+    "flipped_rows_dets": {
+     "differing": 29,
+     "silent": 31
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 60
+    },
+    "nearer_f64": {
+     "torch": 25,
+     "fused": 35,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 26,
+     "fused": 34
+    },
+    "max_near_px": 0.0008544921875,
+    "max_margin_ulp": 49,
+    "max_fused_margin_ulp": 25,
+    "frame_rows_both": 103709,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 294468,
+      "max_ulp": 9506,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       294468,
+       33940,
+       6818,
+       682,
+       92
+      ]
+     },
+     "omega_bragg": {
+      "n": 223204,
+      "equal": 202332,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       202332,
+       14017,
+       5951,
+       835,
+       69
+      ]
+     },
+     "omega": {
+      "n": 206636,
+      "equal": 186964,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       186964,
+       13070,
+       5712,
+       823,
+       67
+      ]
+     },
+     "eta": {
+      "n": 206636,
+      "equal": 165972,
+      "max_ulp": 27,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       165972,
+       36625,
+       4011,
+       28,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1244508,
+      "equal": 1004821,
+      "max_ulp": 264,
+      "max_abs": 0.0040283203125,
+      "hist_0_1_2to8_9to64_gt64": [
+       1004821,
+       113914,
+       110134,
+       14350,
+       1289
+      ]
+     },
+     "t": {
+      "n": 622254,
+      "equal": 582801,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       582801,
+       36152,
+       3301,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "cpp_rule": {
+    "n": 1000,
+    "seconds": 2.057210542,
+    "n_differing": 28,
+    "n_silent": 29,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     1,
+     27,
+     52,
+     84,
+     144,
+     175,
+     189,
+     240,
+     288,
+     311,
+     346,
+     387,
+     420,
+     443,
+     458,
+     503,
+     544,
+     559,
+     570,
+     585,
+     599,
+     603,
+     699,
+     805,
+     880,
+     940,
+     976,
+     980
+    ],
+    "silent_index": [
+     69,
+     99,
+     112,
+     256,
+     347,
+     381,
+     423,
+     441,
+     447,
+     452,
+     492,
+     554,
+     564,
+     624,
+     672,
+     688,
+     705,
+     720,
+     732,
+     734,
+     751,
+     752,
+     793,
+     825,
+     828,
+     829,
+     840,
+     896,
+     923
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 4,
+     "pixel_on_detector": 27,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 1,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 29,
+     "silent": 31
+    },
+    "flipped_rows_dets": {
+     "differing": 29,
+     "silent": 31
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 60
+    },
+    "nearer_f64": {
+     "torch": 25,
+     "fused": 35,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 26,
+     "fused": 34
+    },
+    "max_near_px": 0.0008544921875,
+    "max_margin_ulp": 49,
+    "max_fused_margin_ulp": 25,
+    "frame_rows_both": 103709,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 294468,
+      "max_ulp": 9506,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       294468,
+       33940,
+       6818,
+       682,
+       92
+      ]
+     },
+     "omega_bragg": {
+      "n": 223204,
+      "equal": 202332,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       202332,
+       14017,
+       5951,
+       835,
+       69
+      ]
+     },
+     "omega": {
+      "n": 206636,
+      "equal": 186964,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       186964,
+       13070,
+       5712,
+       823,
+       67
+      ]
+     },
+     "eta": {
+      "n": 206636,
+      "equal": 165972,
+      "max_ulp": 27,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       165972,
+       36625,
+       4011,
+       28,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1244508,
+      "equal": 1004821,
+      "max_ulp": 264,
+      "max_abs": 0.0040283203125,
+      "hist_0_1_2to8_9to64_gt64": [
+       1004821,
+       113914,
+       110134,
+       14350,
+       1289
+      ]
+     },
+     "t": {
+      "n": 622254,
+      "equal": 582801,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       582801,
+       36152,
+       3301,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "edge": {
+    "n": 1000,
+    "seconds": 2.005751666000002,
+    "n_differing": 28,
+    "n_silent": 29,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     1,
+     27,
+     52,
+     84,
+     144,
+     175,
+     189,
+     240,
+     288,
+     311,
+     346,
+     387,
+     420,
+     443,
+     458,
+     503,
+     544,
+     559,
+     570,
+     585,
+     599,
+     603,
+     699,
+     805,
+     880,
+     940,
+     976,
+     980
+    ],
+    "silent_index": [
+     69,
+     99,
+     112,
+     256,
+     347,
+     381,
+     423,
+     441,
+     447,
+     452,
+     492,
+     554,
+     564,
+     624,
+     672,
+     688,
+     705,
+     720,
+     732,
+     734,
+     751,
+     752,
+     793,
+     825,
+     828,
+     829,
+     840,
+     896,
+     923
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 4,
+     "pixel_on_detector": 27,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 3,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 29,
+     "silent": 31
+    },
+    "flipped_rows_dets": {
+     "differing": 29,
+     "silent": 31
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 60
+    },
+    "nearer_f64": {
+     "torch": 25,
+     "fused": 35,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 26,
+     "fused": 34
+    },
+    "max_near_px": 0.0008544921875,
+    "max_margin_ulp": 49,
+    "max_fused_margin_ulp": 25,
+    "frame_rows_both": 103318,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 294468,
+      "max_ulp": 9506,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       294468,
+       33940,
+       6818,
+       682,
+       92
+      ]
+     },
+     "omega_bragg": {
+      "n": 223204,
+      "equal": 202332,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       202332,
+       14017,
+       5951,
+       835,
+       69
+      ]
+     },
+     "omega": {
+      "n": 206636,
+      "equal": 186964,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       186964,
+       13070,
+       5712,
+       823,
+       67
+      ]
+     },
+     "eta": {
+      "n": 206636,
+      "equal": 165972,
+      "max_ulp": 27,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       165972,
+       36625,
+       4011,
+       28,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1239816,
+      "equal": 1000821,
+      "max_ulp": 264,
+      "max_abs": 0.0040283203125,
+      "hist_0_1_2to8_9to64_gt64": [
+       1000821,
+       113541,
+       109847,
+       14324,
+       1283
+      ]
+     },
+     "t": {
+      "n": 619908,
+      "equal": 580521,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       580521,
+       36098,
+       3289,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "edge_cpp_rule": {
+    "n": 1000,
+    "seconds": 2.2573780830000025,
+    "n_differing": 28,
+    "n_silent": 29,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     1,
+     27,
+     52,
+     84,
+     144,
+     175,
+     189,
+     240,
+     288,
+     311,
+     346,
+     387,
+     420,
+     443,
+     458,
+     503,
+     544,
+     559,
+     570,
+     585,
+     599,
+     603,
+     699,
+     805,
+     880,
+     940,
+     976,
+     980
+    ],
+    "silent_index": [
+     69,
+     99,
+     112,
+     256,
+     347,
+     381,
+     423,
+     441,
+     447,
+     452,
+     492,
+     554,
+     564,
+     624,
+     672,
+     688,
+     705,
+     720,
+     732,
+     734,
+     751,
+     752,
+     793,
+     825,
+     828,
+     829,
+     840,
+     896,
+     923
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 4,
+     "pixel_on_detector": 27,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 1,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 29,
+     "silent": 31
+    },
+    "flipped_rows_dets": {
+     "differing": 29,
+     "silent": 31
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 60
+    },
+    "nearer_f64": {
+     "torch": 25,
+     "fused": 35,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 26,
+     "fused": 34
+    },
+    "max_near_px": 0.0008544921875,
+    "max_margin_ulp": 49,
+    "max_fused_margin_ulp": 25,
+    "frame_rows_both": 103318,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 294468,
+      "max_ulp": 9506,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       294468,
+       33940,
+       6818,
+       682,
+       92
+      ]
+     },
+     "omega_bragg": {
+      "n": 223204,
+      "equal": 202332,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       202332,
+       14017,
+       5951,
+       835,
+       69
+      ]
+     },
+     "omega": {
+      "n": 206636,
+      "equal": 186964,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       186964,
+       13070,
+       5712,
+       823,
+       67
+      ]
+     },
+     "eta": {
+      "n": 206636,
+      "equal": 165972,
+      "max_ulp": 27,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       165972,
+       36625,
+       4011,
+       28,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1239816,
+      "equal": 1000821,
+      "max_ulp": 264,
+      "max_abs": 0.0040283203125,
+      "hist_0_1_2to8_9to64_gt64": [
+       1000821,
+       113541,
+       109847,
+       14324,
+       1283
+      ]
+     },
+     "t": {
+      "n": 619908,
+      "equal": 580521,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       580521,
+       36098,
+       3289,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "min_sin_eta": {
+    "n": 1000,
+    "seconds": 2.0484197500000008,
+    "n_differing": 28,
+    "n_silent": 29,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     1,
+     27,
+     52,
+     84,
+     144,
+     175,
+     189,
+     240,
+     288,
+     311,
+     346,
+     387,
+     420,
+     443,
+     458,
+     503,
+     544,
+     559,
+     570,
+     585,
+     599,
+     603,
+     699,
+     805,
+     880,
+     940,
+     976,
+     980
+    ],
+    "silent_index": [
+     69,
+     99,
+     112,
+     256,
+     347,
+     381,
+     423,
+     441,
+     447,
+     452,
+     492,
+     554,
+     564,
+     624,
+     672,
+     688,
+     705,
+     720,
+     732,
+     734,
+     751,
+     752,
+     793,
+     825,
+     828,
+     829,
+     840,
+     896,
+     923
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 4,
+     "pixel_on_detector": 27,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 3,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 29,
+     "silent": 31
+    },
+    "flipped_rows_dets": {
+     "differing": 29,
+     "silent": 31
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 60
+    },
+    "nearer_f64": {
+     "torch": 25,
+     "fused": 35,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 26,
+     "fused": 34
+    },
+    "max_near_px": 0.0008544921875,
+    "max_margin_ulp": 49,
+    "max_fused_margin_ulp": 25,
+    "frame_rows_both": 101622,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 294468,
+      "max_ulp": 9506,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       294468,
+       33940,
+       6818,
+       682,
+       92
+      ]
+     },
+     "omega_bragg": {
+      "n": 223204,
+      "equal": 202332,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       202332,
+       14017,
+       5951,
+       835,
+       69
+      ]
+     },
+     "omega": {
+      "n": 202552,
+      "equal": 183862,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       183862,
+       12534,
+       5315,
+       777,
+       64
+      ]
+     },
+     "eta": {
+      "n": 202552,
+      "equal": 164299,
+      "max_ulp": 5,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       164299,
+       35306,
+       2947,
+       0,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1219464,
+      "equal": 983363,
+      "max_ulp": 264,
+      "max_abs": 0.0040283203125,
+      "hist_0_1_2to8_9to64_gt64": [
+       983363,
+       111055,
+       109407,
+       14350,
+       1289
+      ]
+     },
+     "t": {
+      "n": 609732,
+      "equal": 570784,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       570784,
+       35651,
+       3297,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_default": {
+    "n": 1000,
+    "seconds": 0.9194073749999987,
+    "n_differing": 0,
+    "n_silent": 6,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     293,
+     307,
+     597,
+     665,
+     734,
+     897
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 6
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 6
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 6
+    },
+    "nearer_f64": {
+     "torch": 5,
+     "fused": 1,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 3,
+     "fused": 3
+    },
+    "max_near_px": 0.000244140625,
+    "max_margin_ulp": 2,
+    "max_fused_margin_ulp": 10,
+    "frame_rows_both": 24310,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 68877,
+      "max_ulp": 4071,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       68877,
+       6806,
+       1913,
+       364,
+       40
+      ]
+     },
+     "omega_bragg": {
+      "n": 51968,
+      "equal": 47076,
+      "max_ulp": 512,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47076,
+       3023,
+       1395,
+       436,
+       38
+      ]
+     },
+     "omega": {
+      "n": 48492,
+      "equal": 43803,
+      "max_ulp": 512,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       43803,
+       2851,
+       1369,
+       432,
+       37
+      ]
+     },
+     "eta": {
+      "n": 48492,
+      "equal": 39451,
+      "max_ulp": 10,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       39451,
+       8238,
+       801,
+       2,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 291720,
+      "equal": 242145,
+      "max_ulp": 121,
+      "max_abs": 0.003692626953125,
+      "hist_0_1_2to8_9to64_gt64": [
+       242145,
+       25245,
+       22329,
+       1923,
+       78
+      ]
+     },
+     "t": {
+      "n": 145860,
+      "equal": 139977,
+      "max_ulp": 3,
+      "max_abs": 1.430511474609375e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       139977,
+       5586,
+       297,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_center": {
+    "n": 1000,
+    "seconds": 0.8910211669999981,
+    "n_differing": 0,
+    "n_silent": 6,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     293,
+     307,
+     597,
+     665,
+     734,
+     897
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 6
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 6
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 6
+    },
+    "nearer_f64": {
+     "torch": 5,
+     "fused": 1,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 3,
+     "fused": 3
+    },
+    "max_near_px": 0.000244140625,
+    "max_margin_ulp": 2,
+    "max_fused_margin_ulp": 10,
+    "frame_rows_both": 24310,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 68877,
+      "max_ulp": 4071,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       68877,
+       6806,
+       1913,
+       364,
+       40
+      ]
+     },
+     "omega_bragg": {
+      "n": 51968,
+      "equal": 47076,
+      "max_ulp": 512,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47076,
+       3023,
+       1395,
+       436,
+       38
+      ]
+     },
+     "omega": {
+      "n": 48492,
+      "equal": 43803,
+      "max_ulp": 512,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       43803,
+       2851,
+       1369,
+       432,
+       37
+      ]
+     },
+     "eta": {
+      "n": 48492,
+      "equal": 39451,
+      "max_ulp": 10,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       39451,
+       8238,
+       801,
+       2,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 291720,
+      "equal": 242145,
+      "max_ulp": 121,
+      "max_abs": 0.003692626953125,
+      "hist_0_1_2to8_9to64_gt64": [
+       242145,
+       25245,
+       22329,
+       1923,
+       78
+      ]
+     },
+     "t": {
+      "n": 145860,
+      "equal": 139977,
+      "max_ulp": 3,
+      "max_abs": 1.430511474609375e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       139977,
+       5586,
+       297,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_vertex0": {
+    "n": 1000,
+    "seconds": 0.8803787080000021,
+    "n_differing": 0,
+    "n_silent": 4,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     1,
+     381,
+     564,
+     570
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 4
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 4
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 4
+    },
+    "nearer_f64": {
+     "torch": 2,
+     "fused": 2,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 3,
+     "fused": 1
+    },
+    "max_near_px": 0.0003662109375,
+    "max_margin_ulp": 20,
+    "max_fused_margin_ulp": 25,
+    "frame_rows_both": 24310,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 68877,
+      "max_ulp": 4071,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       68877,
+       6806,
+       1913,
+       364,
+       40
+      ]
+     },
+     "omega_bragg": {
+      "n": 51968,
+      "equal": 47076,
+      "max_ulp": 512,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47076,
+       3023,
+       1395,
+       436,
+       38
+      ]
+     },
+     "omega": {
+      "n": 48492,
+      "equal": 43803,
+      "max_ulp": 512,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       43803,
+       2851,
+       1369,
+       432,
+       37
+      ]
+     },
+     "eta": {
+      "n": 48492,
+      "equal": 39451,
+      "max_ulp": 10,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       39451,
+       8238,
+       801,
+       2,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 291720,
+      "equal": 242085,
+      "max_ulp": 121,
+      "max_abs": 0.003692626953125,
+      "hist_0_1_2to8_9to64_gt64": [
+       242085,
+       25072,
+       22553,
+       1931,
+       79
+      ]
+     },
+     "t": {
+      "n": 145860,
+      "equal": 140096,
+      "max_ulp": 4,
+      "max_abs": 1.430511474609375e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       140096,
+       5453,
+       311,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_edge": {
+    "n": 1000,
+    "seconds": 0.9379018749999979,
+    "n_differing": 0,
+    "n_silent": 6,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     293,
+     307,
+     597,
+     665,
+     734,
+     897
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 6
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 6
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 6
+    },
+    "nearer_f64": {
+     "torch": 5,
+     "fused": 1,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 3,
+     "fused": 3
+    },
+    "max_near_px": 0.000244140625,
+    "max_margin_ulp": 2,
+    "max_fused_margin_ulp": 10,
+    "frame_rows_both": 24246,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 68877,
+      "max_ulp": 4071,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       68877,
+       6806,
+       1913,
+       364,
+       40
+      ]
+     },
+     "omega_bragg": {
+      "n": 51968,
+      "equal": 47076,
+      "max_ulp": 512,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47076,
+       3023,
+       1395,
+       436,
+       38
+      ]
+     },
+     "omega": {
+      "n": 48492,
+      "equal": 43803,
+      "max_ulp": 512,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       43803,
+       2851,
+       1369,
+       432,
+       37
+      ]
+     },
+     "eta": {
+      "n": 48492,
+      "equal": 39451,
+      "max_ulp": 10,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       39451,
+       8238,
+       801,
+       2,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 290952,
+      "equal": 241491,
+      "max_ulp": 121,
+      "max_abs": 0.003692626953125,
+      "hist_0_1_2to8_9to64_gt64": [
+       241491,
+       25176,
+       22290,
+       1917,
+       78
+      ]
+     },
+     "t": {
+      "n": 145476,
+      "equal": 139611,
+      "max_ulp": 3,
+      "max_abs": 1.430511474609375e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       139611,
+       5574,
+       291,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  },
+  "full17034": {
+   "local": {
+    "n": 1000,
+    "seconds": 2.146471541999997,
+    "n_differing": 29,
+    "n_silent": 33,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     79,
+     178,
+     191,
+     196,
+     236,
+     336,
+     354,
+     435,
+     442,
+     446,
+     469,
+     516,
+     518,
+     555,
+     608,
+     610,
+     631,
+     650,
+     661,
+     665,
+     666,
+     757,
+     778,
+     834,
+     888,
+     900,
+     946,
+     974,
+     979
+    ],
+    "silent_index": [
+     28,
+     32,
+     69,
+     77,
+     122,
+     221,
+     270,
+     274,
+     315,
+     341,
+     371,
+     392,
+     393,
+     413,
+     415,
+     422,
+     426,
+     444,
+     473,
+     474,
+     558,
+     597,
+     644,
+     645,
+     649,
+     766,
+     783,
+     799,
+     800,
+     803,
+     840,
+     842,
+     846
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 29,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 1,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 30,
+     "silent": 34
+    },
+    "flipped_rows_dets": {
+     "differing": 30,
+     "silent": 34
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 64
+    },
+    "nearer_f64": {
+     "torch": 37,
+     "fused": 27,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 30,
+     "fused": 34
+    },
+    "max_near_px": 0.001373291015625,
+    "max_margin_ulp": 265,
+    "max_fused_margin_ulp": 180,
+    "frame_rows_both": 105317,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 300192,
+      "max_ulp": 13641,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       300192,
+       29570,
+       5556,
+       620,
+       62
+      ]
+     },
+     "omega_bragg": {
+      "n": 223496,
+      "equal": 203611,
+      "max_ulp": 262144,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       203611,
+       13111,
+       5916,
+       710,
+       148
+      ]
+     },
+     "omega": {
+      "n": 209096,
+      "equal": 190108,
+      "max_ulp": 262144,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       190108,
+       12450,
+       5697,
+       698,
+       143
+      ]
+     },
+     "eta": {
+      "n": 209096,
+      "equal": 169220,
+      "max_ulp": 13,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169220,
+       35932,
+       3940,
+       4,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1263804,
+      "equal": 1036564,
+      "max_ulp": 507,
+      "max_abs": 0.0040130615234375,
+      "hist_0_1_2to8_9to64_gt64": [
+       1036564,
+       108489,
+       101274,
+       15746,
+       1731
+      ]
+     },
+     "t": {
+      "n": 631902,
+      "equal": 594119,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       594119,
+       34131,
+       3652,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "cpp_rule": {
+    "n": 1000,
+    "seconds": 2.0204801659999987,
+    "n_differing": 29,
+    "n_silent": 33,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     79,
+     178,
+     191,
+     196,
+     236,
+     336,
+     354,
+     435,
+     442,
+     446,
+     469,
+     516,
+     518,
+     555,
+     608,
+     610,
+     631,
+     650,
+     661,
+     665,
+     666,
+     757,
+     778,
+     834,
+     888,
+     900,
+     946,
+     974,
+     979
+    ],
+    "silent_index": [
+     28,
+     32,
+     69,
+     77,
+     122,
+     221,
+     270,
+     274,
+     315,
+     341,
+     371,
+     392,
+     393,
+     413,
+     415,
+     422,
+     426,
+     444,
+     473,
+     474,
+     558,
+     597,
+     644,
+     645,
+     649,
+     766,
+     783,
+     799,
+     800,
+     803,
+     840,
+     842,
+     846
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 29,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 30,
+     "silent": 34
+    },
+    "flipped_rows_dets": {
+     "differing": 30,
+     "silent": 34
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 64
+    },
+    "nearer_f64": {
+     "torch": 37,
+     "fused": 27,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 30,
+     "fused": 34
+    },
+    "max_near_px": 0.001373291015625,
+    "max_margin_ulp": 265,
+    "max_fused_margin_ulp": 180,
+    "frame_rows_both": 105317,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 300192,
+      "max_ulp": 13641,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       300192,
+       29570,
+       5556,
+       620,
+       62
+      ]
+     },
+     "omega_bragg": {
+      "n": 223496,
+      "equal": 203611,
+      "max_ulp": 262144,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       203611,
+       13111,
+       5916,
+       710,
+       148
+      ]
+     },
+     "omega": {
+      "n": 209096,
+      "equal": 190108,
+      "max_ulp": 262144,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       190108,
+       12450,
+       5697,
+       698,
+       143
+      ]
+     },
+     "eta": {
+      "n": 209096,
+      "equal": 169220,
+      "max_ulp": 13,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169220,
+       35932,
+       3940,
+       4,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1263804,
+      "equal": 1036564,
+      "max_ulp": 507,
+      "max_abs": 0.0040130615234375,
+      "hist_0_1_2to8_9to64_gt64": [
+       1036564,
+       108489,
+       101274,
+       15746,
+       1731
+      ]
+     },
+     "t": {
+      "n": 631902,
+      "equal": 594119,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       594119,
+       34131,
+       3652,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "edge": {
+    "n": 1000,
+    "seconds": 2.1754525410000056,
+    "n_differing": 29,
+    "n_silent": 33,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     79,
+     178,
+     191,
+     196,
+     236,
+     336,
+     354,
+     435,
+     442,
+     446,
+     469,
+     516,
+     518,
+     555,
+     608,
+     610,
+     631,
+     650,
+     661,
+     665,
+     666,
+     757,
+     778,
+     834,
+     888,
+     900,
+     946,
+     974,
+     979
+    ],
+    "silent_index": [
+     28,
+     32,
+     69,
+     77,
+     122,
+     221,
+     270,
+     274,
+     315,
+     341,
+     371,
+     392,
+     393,
+     413,
+     415,
+     422,
+     426,
+     444,
+     473,
+     474,
+     558,
+     597,
+     644,
+     645,
+     649,
+     766,
+     783,
+     799,
+     800,
+     803,
+     840,
+     842,
+     846
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 29,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 1,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 30,
+     "silent": 34
+    },
+    "flipped_rows_dets": {
+     "differing": 30,
+     "silent": 34
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 64
+    },
+    "nearer_f64": {
+     "torch": 37,
+     "fused": 27,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 30,
+     "fused": 34
+    },
+    "max_near_px": 0.001373291015625,
+    "max_margin_ulp": 265,
+    "max_fused_margin_ulp": 180,
+    "frame_rows_both": 104548,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 300192,
+      "max_ulp": 13641,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       300192,
+       29570,
+       5556,
+       620,
+       62
+      ]
+     },
+     "omega_bragg": {
+      "n": 223496,
+      "equal": 203611,
+      "max_ulp": 262144,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       203611,
+       13111,
+       5916,
+       710,
+       148
+      ]
+     },
+     "omega": {
+      "n": 209096,
+      "equal": 190108,
+      "max_ulp": 262144,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       190108,
+       12450,
+       5697,
+       698,
+       143
+      ]
+     },
+     "eta": {
+      "n": 209096,
+      "equal": 169220,
+      "max_ulp": 13,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169220,
+       35932,
+       3940,
+       4,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1254576,
+      "equal": 1028130,
+      "max_ulp": 507,
+      "max_abs": 0.0040130615234375,
+      "hist_0_1_2to8_9to64_gt64": [
+       1028130,
+       108029,
+       100950,
+       15742,
+       1725
+      ]
+     },
+     "t": {
+      "n": 627288,
+      "equal": 589607,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       589607,
+       34038,
+       3643,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "edge_cpp_rule": {
+    "n": 1000,
+    "seconds": 2.0917577089999995,
+    "n_differing": 29,
+    "n_silent": 33,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     79,
+     178,
+     191,
+     196,
+     236,
+     336,
+     354,
+     435,
+     442,
+     446,
+     469,
+     516,
+     518,
+     555,
+     608,
+     610,
+     631,
+     650,
+     661,
+     665,
+     666,
+     757,
+     778,
+     834,
+     888,
+     900,
+     946,
+     974,
+     979
+    ],
+    "silent_index": [
+     28,
+     32,
+     69,
+     77,
+     122,
+     221,
+     270,
+     274,
+     315,
+     341,
+     371,
+     392,
+     393,
+     413,
+     415,
+     422,
+     426,
+     444,
+     473,
+     474,
+     558,
+     597,
+     644,
+     645,
+     649,
+     766,
+     783,
+     799,
+     800,
+     803,
+     840,
+     842,
+     846
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 29,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 30,
+     "silent": 34
+    },
+    "flipped_rows_dets": {
+     "differing": 30,
+     "silent": 34
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 64
+    },
+    "nearer_f64": {
+     "torch": 37,
+     "fused": 27,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 30,
+     "fused": 34
+    },
+    "max_near_px": 0.001373291015625,
+    "max_margin_ulp": 265,
+    "max_fused_margin_ulp": 180,
+    "frame_rows_both": 104548,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 300192,
+      "max_ulp": 13641,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       300192,
+       29570,
+       5556,
+       620,
+       62
+      ]
+     },
+     "omega_bragg": {
+      "n": 223496,
+      "equal": 203611,
+      "max_ulp": 262144,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       203611,
+       13111,
+       5916,
+       710,
+       148
+      ]
+     },
+     "omega": {
+      "n": 209096,
+      "equal": 190108,
+      "max_ulp": 262144,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       190108,
+       12450,
+       5697,
+       698,
+       143
+      ]
+     },
+     "eta": {
+      "n": 209096,
+      "equal": 169220,
+      "max_ulp": 13,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169220,
+       35932,
+       3940,
+       4,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1254576,
+      "equal": 1028130,
+      "max_ulp": 507,
+      "max_abs": 0.0040130615234375,
+      "hist_0_1_2to8_9to64_gt64": [
+       1028130,
+       108029,
+       100950,
+       15742,
+       1725
+      ]
+     },
+     "t": {
+      "n": 627288,
+      "equal": 589607,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       589607,
+       34038,
+       3643,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "min_sin_eta": {
+    "n": 1000,
+    "seconds": 2.084906541999999,
+    "n_differing": 29,
+    "n_silent": 33,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     79,
+     178,
+     191,
+     196,
+     236,
+     336,
+     354,
+     435,
+     442,
+     446,
+     469,
+     516,
+     518,
+     555,
+     608,
+     610,
+     631,
+     650,
+     661,
+     665,
+     666,
+     757,
+     778,
+     834,
+     888,
+     900,
+     946,
+     974,
+     979
+    ],
+    "silent_index": [
+     28,
+     32,
+     69,
+     77,
+     122,
+     221,
+     270,
+     274,
+     315,
+     341,
+     371,
+     392,
+     393,
+     413,
+     415,
+     422,
+     426,
+     444,
+     473,
+     474,
+     558,
+     597,
+     644,
+     645,
+     649,
+     766,
+     783,
+     799,
+     800,
+     803,
+     840,
+     842,
+     846
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 29,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 1,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 30,
+     "silent": 34
+    },
+    "flipped_rows_dets": {
+     "differing": 30,
+     "silent": 34
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 64
+    },
+    "nearer_f64": {
+     "torch": 37,
+     "fused": 27,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 30,
+     "fused": 34
+    },
+    "max_near_px": 0.001373291015625,
+    "max_margin_ulp": 265,
+    "max_fused_margin_ulp": 180,
+    "frame_rows_both": 103075,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 300192,
+      "max_ulp": 13641,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       300192,
+       29570,
+       5556,
+       620,
+       62
+      ]
+     },
+     "omega_bragg": {
+      "n": 223496,
+      "equal": 203611,
+      "max_ulp": 262144,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       203611,
+       13111,
+       5916,
+       710,
+       148
+      ]
+     },
+     "omega": {
+      "n": 204624,
+      "equal": 186782,
+      "max_ulp": 262144,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       186782,
+       11825,
+       5325,
+       593,
+       99
+      ]
+     },
+     "eta": {
+      "n": 204624,
+      "equal": 167089,
+      "max_ulp": 5,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       167089,
+       34393,
+       3142,
+       0,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1236900,
+      "equal": 1014199,
+      "max_ulp": 507,
+      "max_abs": 0.0040130615234375,
+      "hist_0_1_2to8_9to64_gt64": [
+       1014199,
+       104930,
+       100294,
+       15746,
+       1731
+      ]
+     },
+     "t": {
+      "n": 618450,
+      "equal": 581294,
+      "max_ulp": 5,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       581294,
+       33517,
+       3639,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_default": {
+    "n": 1000,
+    "seconds": 0.9429516249999992,
+    "n_differing": 0,
+    "n_silent": 2,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     650,
+     704
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 2
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 2
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 2
+    },
+    "nearer_f64": {
+     "torch": 0,
+     "fused": 2,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 0,
+     "fused": 2
+    },
+    "max_near_px": 0.0009765625,
+    "max_margin_ulp": 76,
+    "max_fused_margin_ulp": 32,
+    "frame_rows_both": 25231,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 69558,
+      "max_ulp": 2941,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       69558,
+       6158,
+       1765,
+       434,
+       85
+      ]
+     },
+     "omega_bragg": {
+      "n": 51968,
+      "equal": 47341,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47341,
+       2900,
+       1398,
+       261,
+       68
+      ]
+     },
+     "omega": {
+      "n": 49888,
+      "equal": 45403,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       45403,
+       2798,
+       1362,
+       259,
+       66
+      ]
+     },
+     "eta": {
+      "n": 49888,
+      "equal": 41431,
+      "max_ulp": 7,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       41431,
+       7669,
+       788,
+       0,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 302772,
+      "equal": 255222,
+      "max_ulp": 113,
+      "max_abs": 0.003662109375,
+      "hist_0_1_2to8_9to64_gt64": [
+       255222,
+       24492,
+       20634,
+       2361,
+       63
+      ]
+     },
+     "t": {
+      "n": 151386,
+      "equal": 145809,
+      "max_ulp": 3,
+      "max_abs": 9.5367431640625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       145809,
+       5298,
+       279,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_center": {
+    "n": 1000,
+    "seconds": 0.9380395419999985,
+    "n_differing": 0,
+    "n_silent": 2,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     650,
+     704
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 2
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 2
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 2
+    },
+    "nearer_f64": {
+     "torch": 0,
+     "fused": 2,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 0,
+     "fused": 2
+    },
+    "max_near_px": 0.0009765625,
+    "max_margin_ulp": 76,
+    "max_fused_margin_ulp": 32,
+    "frame_rows_both": 25231,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 69558,
+      "max_ulp": 2941,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       69558,
+       6158,
+       1765,
+       434,
+       85
+      ]
+     },
+     "omega_bragg": {
+      "n": 51968,
+      "equal": 47341,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47341,
+       2900,
+       1398,
+       261,
+       68
+      ]
+     },
+     "omega": {
+      "n": 49888,
+      "equal": 45403,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       45403,
+       2798,
+       1362,
+       259,
+       66
+      ]
+     },
+     "eta": {
+      "n": 49888,
+      "equal": 41431,
+      "max_ulp": 7,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       41431,
+       7669,
+       788,
+       0,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 302772,
+      "equal": 255222,
+      "max_ulp": 113,
+      "max_abs": 0.003662109375,
+      "hist_0_1_2to8_9to64_gt64": [
+       255222,
+       24492,
+       20634,
+       2361,
+       63
+      ]
+     },
+     "t": {
+      "n": 151386,
+      "equal": 145809,
+      "max_ulp": 3,
+      "max_abs": 9.5367431640625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       145809,
+       5298,
+       279,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_vertex0": {
+    "n": 1000,
+    "seconds": 0.9395529580000002,
+    "n_differing": 0,
+    "n_silent": 5,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     77,
+     371,
+     422,
+     518,
+     846
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 5
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 5
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 5
+    },
+    "nearer_f64": {
+     "torch": 2,
+     "fused": 3,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 2,
+     "fused": 3
+    },
+    "max_near_px": 0.0003662109375,
+    "max_margin_ulp": 4,
+    "max_fused_margin_ulp": 3,
+    "frame_rows_both": 25231,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 69558,
+      "max_ulp": 2941,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       69558,
+       6158,
+       1765,
+       434,
+       85
+      ]
+     },
+     "omega_bragg": {
+      "n": 51968,
+      "equal": 47341,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47341,
+       2900,
+       1398,
+       261,
+       68
+      ]
+     },
+     "omega": {
+      "n": 49888,
+      "equal": 45403,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       45403,
+       2798,
+       1362,
+       259,
+       66
+      ]
+     },
+     "eta": {
+      "n": 49888,
+      "equal": 41431,
+      "max_ulp": 7,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       41431,
+       7669,
+       788,
+       0,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 302772,
+      "equal": 255298,
+      "max_ulp": 113,
+      "max_abs": 0.003662109375,
+      "hist_0_1_2to8_9to64_gt64": [
+       255298,
+       24366,
+       20671,
+       2372,
+       65
+      ]
+     },
+     "t": {
+      "n": 151386,
+      "equal": 145937,
+      "max_ulp": 4,
+      "max_abs": 1.430511474609375e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       145937,
+       5168,
+       281,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_edge": {
+    "n": 1000,
+    "seconds": 0.9725703340000038,
+    "n_differing": 0,
+    "n_silent": 2,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     650,
+     704
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 2
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 2
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 2
+    },
+    "nearer_f64": {
+     "torch": 0,
+     "fused": 2,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 0,
+     "fused": 2
+    },
+    "max_near_px": 0.0009765625,
+    "max_margin_ulp": 76,
+    "max_fused_margin_ulp": 32,
+    "frame_rows_both": 24944,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 69558,
+      "max_ulp": 2941,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       69558,
+       6158,
+       1765,
+       434,
+       85
+      ]
+     },
+     "omega_bragg": {
+      "n": 51968,
+      "equal": 47341,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47341,
+       2900,
+       1398,
+       261,
+       68
+      ]
+     },
+     "omega": {
+      "n": 49888,
+      "equal": 45403,
+      "max_ulp": 4096,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       45403,
+       2798,
+       1362,
+       259,
+       66
+      ]
+     },
+     "eta": {
+      "n": 49888,
+      "equal": 41431,
+      "max_ulp": 7,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       41431,
+       7669,
+       788,
+       0,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 299328,
+      "equal": 251994,
+      "max_ulp": 113,
+      "max_abs": 0.003662109375,
+      "hist_0_1_2to8_9to64_gt64": [
+       251994,
+       24363,
+       20547,
+       2361,
+       63
+      ]
+     },
+     "t": {
+      "n": 149664,
+      "equal": 144111,
+      "max_ulp": 3,
+      "max_abs": 9.5367431640625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       144111,
+       5274,
+       279,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  },
+  "full18558": {
+   "local": {
+    "n": 1000,
+    "seconds": 2.0382697920000012,
+    "n_differing": 20,
+    "n_silent": 32,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     79,
+     116,
+     144,
+     292,
+     297,
+     304,
+     330,
+     341,
+     372,
+     374,
+     419,
+     648,
+     730,
+     823,
+     827,
+     868,
+     887,
+     931,
+     965,
+     966
+    ],
+    "silent_index": [
+     68,
+     90,
+     107,
+     110,
+     117,
+     145,
+     215,
+     221,
+     301,
+     327,
+     357,
+     375,
+     389,
+     413,
+     432,
+     455,
+     468,
+     510,
+     526,
+     548,
+     551,
+     608,
+     626,
+     629,
+     729,
+     821,
+     826,
+     830,
+     848,
+     850,
+     943,
+     998
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 1,
+     "pixel_on_detector": 20,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 1,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 20,
+     "silent": 35
+    },
+    "flipped_rows_dets": {
+     "differing": 20,
+     "silent": 35
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 55
+    },
+    "nearer_f64": {
+     "torch": 32,
+     "fused": 23,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 33,
+     "fused": 22
+    },
+    "max_near_px": 0.0006103515625,
+    "max_margin_ulp": 312,
+    "max_fused_margin_ulp": 88,
+    "frame_rows_both": 104298,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 303588,
+      "max_ulp": 1795,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       303588,
+       27180,
+       4608,
+       542,
+       82
+      ]
+     },
+     "omega_bragg": {
+      "n": 223496,
+      "equal": 204998,
+      "max_ulp": 524288,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       204998,
+       12523,
+       5297,
+       587,
+       91
+      ]
+     },
+     "omega": {
+      "n": 207656,
+      "equal": 190217,
+      "max_ulp": 524288,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       190217,
+       11814,
+       4972,
+       564,
+       89
+      ]
+     },
+     "eta": {
+      "n": 207656,
+      "equal": 169548,
+      "max_ulp": 25,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169548,
+       34732,
+       3365,
+       11,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1251576,
+      "equal": 1024611,
+      "max_ulp": 521284,
+      "max_abs": 0.004581451416015625,
+      "hist_0_1_2to8_9to64_gt64": [
+       1024611,
+       97995,
+       100988,
+       21986,
+       5996
+      ]
+     },
+     "t": {
+      "n": 625788,
+      "equal": 584418,
+      "max_ulp": 5,
+      "max_abs": 2.384185791015625e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       584418,
+       36345,
+       5025,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "cpp_rule": {
+    "n": 1000,
+    "seconds": 1.9858205000000027,
+    "n_differing": 20,
+    "n_silent": 32,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     79,
+     116,
+     144,
+     292,
+     297,
+     304,
+     330,
+     341,
+     372,
+     374,
+     419,
+     648,
+     730,
+     823,
+     827,
+     868,
+     887,
+     931,
+     965,
+     966
+    ],
+    "silent_index": [
+     68,
+     90,
+     107,
+     110,
+     117,
+     145,
+     215,
+     221,
+     301,
+     327,
+     357,
+     375,
+     389,
+     413,
+     432,
+     455,
+     468,
+     510,
+     526,
+     548,
+     551,
+     608,
+     626,
+     629,
+     729,
+     821,
+     826,
+     830,
+     848,
+     850,
+     943,
+     998
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 1,
+     "pixel_on_detector": 20,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 20,
+     "silent": 35
+    },
+    "flipped_rows_dets": {
+     "differing": 20,
+     "silent": 35
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 55
+    },
+    "nearer_f64": {
+     "torch": 32,
+     "fused": 23,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 33,
+     "fused": 22
+    },
+    "max_near_px": 0.0006103515625,
+    "max_margin_ulp": 312,
+    "max_fused_margin_ulp": 88,
+    "frame_rows_both": 104298,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 303588,
+      "max_ulp": 1795,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       303588,
+       27180,
+       4608,
+       542,
+       82
+      ]
+     },
+     "omega_bragg": {
+      "n": 223496,
+      "equal": 204998,
+      "max_ulp": 524288,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       204998,
+       12523,
+       5297,
+       587,
+       91
+      ]
+     },
+     "omega": {
+      "n": 207656,
+      "equal": 190217,
+      "max_ulp": 524288,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       190217,
+       11814,
+       4972,
+       564,
+       89
+      ]
+     },
+     "eta": {
+      "n": 207656,
+      "equal": 169548,
+      "max_ulp": 25,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169548,
+       34732,
+       3365,
+       11,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1251576,
+      "equal": 1024611,
+      "max_ulp": 521284,
+      "max_abs": 0.004581451416015625,
+      "hist_0_1_2to8_9to64_gt64": [
+       1024611,
+       97995,
+       100988,
+       21986,
+       5996
+      ]
+     },
+     "t": {
+      "n": 625788,
+      "equal": 584418,
+      "max_ulp": 5,
+      "max_abs": 2.384185791015625e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       584418,
+       36345,
+       5025,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "edge": {
+    "n": 1000,
+    "seconds": 2.035172375000002,
+    "n_differing": 20,
+    "n_silent": 32,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     79,
+     116,
+     144,
+     292,
+     297,
+     304,
+     330,
+     341,
+     372,
+     374,
+     419,
+     648,
+     730,
+     823,
+     827,
+     868,
+     887,
+     931,
+     965,
+     966
+    ],
+    "silent_index": [
+     68,
+     90,
+     107,
+     110,
+     117,
+     145,
+     215,
+     221,
+     301,
+     327,
+     357,
+     375,
+     389,
+     413,
+     432,
+     455,
+     468,
+     510,
+     526,
+     548,
+     551,
+     608,
+     626,
+     629,
+     729,
+     821,
+     826,
+     830,
+     848,
+     850,
+     943,
+     998
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 1,
+     "pixel_on_detector": 20,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 1,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 20,
+     "silent": 35
+    },
+    "flipped_rows_dets": {
+     "differing": 20,
+     "silent": 35
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 55
+    },
+    "nearer_f64": {
+     "torch": 32,
+     "fused": 23,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 33,
+     "fused": 22
+    },
+    "max_near_px": 0.0006103515625,
+    "max_margin_ulp": 312,
+    "max_fused_margin_ulp": 88,
+    "frame_rows_both": 103828,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 303588,
+      "max_ulp": 1795,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       303588,
+       27180,
+       4608,
+       542,
+       82
+      ]
+     },
+     "omega_bragg": {
+      "n": 223496,
+      "equal": 204998,
+      "max_ulp": 524288,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       204998,
+       12523,
+       5297,
+       587,
+       91
+      ]
+     },
+     "omega": {
+      "n": 207656,
+      "equal": 190217,
+      "max_ulp": 524288,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       190217,
+       11814,
+       4972,
+       564,
+       89
+      ]
+     },
+     "eta": {
+      "n": 207656,
+      "equal": 169548,
+      "max_ulp": 25,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169548,
+       34732,
+       3365,
+       11,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1245936,
+      "equal": 1024903,
+      "max_ulp": 19183,
+      "max_abs": 0.004581451416015625,
+      "hist_0_1_2to8_9to64_gt64": [
+       1024903,
+       97605,
+       100220,
+       18819,
+       4389
+      ]
+     },
+     "t": {
+      "n": 622968,
+      "equal": 581690,
+      "max_ulp": 5,
+      "max_abs": 2.384185791015625e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       581690,
+       36264,
+       5014,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "edge_cpp_rule": {
+    "n": 1000,
+    "seconds": 2.005631582999996,
+    "n_differing": 20,
+    "n_silent": 32,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     79,
+     116,
+     144,
+     292,
+     297,
+     304,
+     330,
+     341,
+     372,
+     374,
+     419,
+     648,
+     730,
+     823,
+     827,
+     868,
+     887,
+     931,
+     965,
+     966
+    ],
+    "silent_index": [
+     68,
+     90,
+     107,
+     110,
+     117,
+     145,
+     215,
+     221,
+     301,
+     327,
+     357,
+     375,
+     389,
+     413,
+     432,
+     455,
+     468,
+     510,
+     526,
+     548,
+     551,
+     608,
+     626,
+     629,
+     729,
+     821,
+     826,
+     830,
+     848,
+     850,
+     943,
+     998
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 1,
+     "pixel_on_detector": 20,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 20,
+     "silent": 35
+    },
+    "flipped_rows_dets": {
+     "differing": 20,
+     "silent": 35
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 55
+    },
+    "nearer_f64": {
+     "torch": 32,
+     "fused": 23,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 33,
+     "fused": 22
+    },
+    "max_near_px": 0.0006103515625,
+    "max_margin_ulp": 312,
+    "max_fused_margin_ulp": 88,
+    "frame_rows_both": 103828,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 303588,
+      "max_ulp": 1795,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       303588,
+       27180,
+       4608,
+       542,
+       82
+      ]
+     },
+     "omega_bragg": {
+      "n": 223496,
+      "equal": 204998,
+      "max_ulp": 524288,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       204998,
+       12523,
+       5297,
+       587,
+       91
+      ]
+     },
+     "omega": {
+      "n": 207656,
+      "equal": 190217,
+      "max_ulp": 524288,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       190217,
+       11814,
+       4972,
+       564,
+       89
+      ]
+     },
+     "eta": {
+      "n": 207656,
+      "equal": 169548,
+      "max_ulp": 25,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       169548,
+       34732,
+       3365,
+       11,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1245936,
+      "equal": 1024903,
+      "max_ulp": 19183,
+      "max_abs": 0.004581451416015625,
+      "hist_0_1_2to8_9to64_gt64": [
+       1024903,
+       97605,
+       100220,
+       18819,
+       4389
+      ]
+     },
+     "t": {
+      "n": 622968,
+      "equal": 581690,
+      "max_ulp": 5,
+      "max_abs": 2.384185791015625e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       581690,
+       36264,
+       5014,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "min_sin_eta": {
+    "n": 1000,
+    "seconds": 1.9710083330000003,
+    "n_differing": 19,
+    "n_silent": 32,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [
+     79,
+     116,
+     292,
+     297,
+     304,
+     330,
+     341,
+     372,
+     374,
+     419,
+     648,
+     730,
+     823,
+     827,
+     868,
+     887,
+     931,
+     965,
+     966
+    ],
+    "silent_index": [
+     68,
+     90,
+     107,
+     110,
+     117,
+     145,
+     215,
+     221,
+     301,
+     327,
+     357,
+     375,
+     389,
+     413,
+     432,
+     455,
+     468,
+     510,
+     526,
+     548,
+     551,
+     608,
+     626,
+     629,
+     729,
+     821,
+     826,
+     830,
+     848,
+     850,
+     943,
+     998
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 1,
+     "pixel_on_detector": 19,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 1,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 19,
+     "silent": 35
+    },
+    "flipped_rows_dets": {
+     "differing": 19,
+     "silent": 35
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 54
+    },
+    "nearer_f64": {
+     "torch": 31,
+     "fused": 23,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 32,
+     "fused": 22
+    },
+    "max_near_px": 0.0006103515625,
+    "max_margin_ulp": 312,
+    "max_fused_margin_ulp": 88,
+    "frame_rows_both": 102081,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 336000,
+      "equal": 303588,
+      "max_ulp": 1795,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       303588,
+       27180,
+       4608,
+       542,
+       82
+      ]
+     },
+     "omega_bragg": {
+      "n": 223496,
+      "equal": 204998,
+      "max_ulp": 524288,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       204998,
+       12523,
+       5297,
+       587,
+       91
+      ]
+     },
+     "omega": {
+      "n": 203248,
+      "equal": 186756,
+      "max_ulp": 524288,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       186756,
+       11347,
+       4534,
+       529,
+       82
+      ]
+     },
+     "eta": {
+      "n": 203248,
+      "equal": 167326,
+      "max_ulp": 5,
+      "max_abs": 2.384185791015625e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       167326,
+       33314,
+       2608,
+       0,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 1224972,
+      "equal": 1002880,
+      "max_ulp": 521284,
+      "max_abs": 0.004581451416015625,
+      "hist_0_1_2to8_9to64_gt64": [
+       1002880,
+       94240,
+       99870,
+       21986,
+       5996
+      ]
+     },
+     "t": {
+      "n": 612486,
+      "equal": 572055,
+      "max_ulp": 5,
+      "max_abs": 2.384185791015625e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       572055,
+       35436,
+       4995,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_default": {
+    "n": 1000,
+    "seconds": 0.9323432090000026,
+    "n_differing": 0,
+    "n_silent": 5,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     430,
+     485,
+     737,
+     884,
+     963
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 5
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 5
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 5
+    },
+    "nearer_f64": {
+     "torch": 2,
+     "fused": 3,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 3,
+     "fused": 2
+    },
+    "max_near_px": 0.00067138671875,
+    "max_margin_ulp": 44,
+    "max_fused_margin_ulp": 11,
+    "frame_rows_both": 24288,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 71655,
+      "max_ulp": 243,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       71655,
+       5517,
+       707,
+       105,
+       16
+      ]
+     },
+     "omega_bragg": {
+      "n": 51960,
+      "equal": 47844,
+      "max_ulp": 2048,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47844,
+       2859,
+       1074,
+       155,
+       28
+      ]
+     },
+     "omega": {
+      "n": 48332,
+      "equal": 44478,
+      "max_ulp": 2048,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       44478,
+       2666,
+       1009,
+       152,
+       27
+      ]
+     },
+     "eta": {
+      "n": 48332,
+      "equal": 40282,
+      "max_ulp": 11,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       40282,
+       7481,
+       568,
+       1,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 291456,
+      "equal": 242790,
+      "max_ulp": 275,
+      "max_abs": 0.0037841796875,
+      "hist_0_1_2to8_9to64_gt64": [
+       242790,
+       20979,
+       24312,
+       3186,
+       189
+      ]
+     },
+     "t": {
+      "n": 145728,
+      "equal": 138516,
+      "max_ulp": 4,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       138516,
+       6522,
+       690,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_center": {
+    "n": 1000,
+    "seconds": 0.9093884170000024,
+    "n_differing": 0,
+    "n_silent": 5,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     430,
+     485,
+     737,
+     884,
+     963
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 5
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 5
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 5
+    },
+    "nearer_f64": {
+     "torch": 2,
+     "fused": 3,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 3,
+     "fused": 2
+    },
+    "max_near_px": 0.00067138671875,
+    "max_margin_ulp": 44,
+    "max_fused_margin_ulp": 11,
+    "frame_rows_both": 24288,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 71655,
+      "max_ulp": 243,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       71655,
+       5517,
+       707,
+       105,
+       16
+      ]
+     },
+     "omega_bragg": {
+      "n": 51960,
+      "equal": 47844,
+      "max_ulp": 2048,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47844,
+       2859,
+       1074,
+       155,
+       28
+      ]
+     },
+     "omega": {
+      "n": 48332,
+      "equal": 44478,
+      "max_ulp": 2048,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       44478,
+       2666,
+       1009,
+       152,
+       27
+      ]
+     },
+     "eta": {
+      "n": 48332,
+      "equal": 40282,
+      "max_ulp": 11,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       40282,
+       7481,
+       568,
+       1,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 291456,
+      "equal": 242790,
+      "max_ulp": 275,
+      "max_abs": 0.0037841796875,
+      "hist_0_1_2to8_9to64_gt64": [
+       242790,
+       20979,
+       24312,
+       3186,
+       189
+      ]
+     },
+     "t": {
+      "n": 145728,
+      "equal": 138516,
+      "max_ulp": 4,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       138516,
+       6522,
+       690,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_vertex0": {
+    "n": 1000,
+    "seconds": 0.8843622500000023,
+    "n_differing": 0,
+    "n_silent": 4,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     413,
+     850,
+     931,
+     943
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 4
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 4
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 4
+    },
+    "nearer_f64": {
+     "torch": 1,
+     "fused": 3,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 2,
+     "fused": 2
+    },
+    "max_near_px": 0.000274658203125,
+    "max_margin_ulp": 88,
+    "max_fused_margin_ulp": 18,
+    "frame_rows_both": 24288,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 71655,
+      "max_ulp": 243,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       71655,
+       5517,
+       707,
+       105,
+       16
+      ]
+     },
+     "omega_bragg": {
+      "n": 51960,
+      "equal": 47844,
+      "max_ulp": 2048,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47844,
+       2859,
+       1074,
+       155,
+       28
+      ]
+     },
+     "omega": {
+      "n": 48332,
+      "equal": 44478,
+      "max_ulp": 2048,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       44478,
+       2666,
+       1009,
+       152,
+       27
+      ]
+     },
+     "eta": {
+      "n": 48332,
+      "equal": 40282,
+      "max_ulp": 11,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       40282,
+       7481,
+       568,
+       1,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 291456,
+      "equal": 242709,
+      "max_ulp": 274,
+      "max_abs": 0.0037841796875,
+      "hist_0_1_2to8_9to64_gt64": [
+       242709,
+       21257,
+       24169,
+       3133,
+       188
+      ]
+     },
+     "t": {
+      "n": 145728,
+      "equal": 138467,
+      "max_ulp": 4,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       138467,
+       6606,
+       655,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "screen_edge": {
+    "n": 1000,
+    "seconds": 0.9256161659999975,
+    "n_differing": 0,
+    "n_silent": 5,
+    "n_failing": 0,
+    "failures": [],
+    "differing_index": [],
+    "silent_index": [
+     430,
+     485,
+     737,
+     884,
+     963
+    ],
+    "field_orientations_differing": {
+     "pixel_overlap": 0,
+     "pixel_on_detector": 0,
+     "peak_overlap": 0,
+     "peak_on_detector": 0,
+     "quality": 0,
+     "n_quality_points": 0,
+     "detectors_overlap": 0
+    },
+    "flipped_coords": {
+     "differing": 0,
+     "silent": 5
+    },
+    "flipped_rows_dets": {
+     "differing": 0,
+     "silent": 5
+    },
+    "rows_dets_with_several_coords": 0,
+    "causes": {
+     "pixel_integer": 5
+    },
+    "nearer_f64": {
+     "torch": 2,
+     "fused": 3,
+     "tie": 0
+    },
+    "f64_side": {
+     "torch": 3,
+     "fused": 2
+    },
+    "max_near_px": 0.00067138671875,
+    "max_margin_ulp": 44,
+    "max_fused_margin_ulp": 11,
+    "frame_rows_both": 24166,
+    "frame_differ": 0,
+    "intermediates": {
+     "g_lab": {
+      "n": 78000,
+      "equal": 71655,
+      "max_ulp": 243,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       71655,
+       5517,
+       707,
+       105,
+       16
+      ]
+     },
+     "omega_bragg": {
+      "n": 51960,
+      "equal": 47844,
+      "max_ulp": 2048,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       47844,
+       2859,
+       1074,
+       155,
+       28
+      ]
+     },
+     "omega": {
+      "n": 48332,
+      "equal": 44478,
+      "max_ulp": 2048,
+      "max_abs": 4.76837158203125e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       44478,
+       2666,
+       1009,
+       152,
+       27
+      ]
+     },
+     "eta": {
+      "n": 48332,
+      "equal": 40282,
+      "max_ulp": 11,
+      "max_abs": 1.7881393432617188e-07,
+      "hist_0_1_2to8_9to64_gt64": [
+       40282,
+       7481,
+       568,
+       1,
+       0
+      ]
+     },
+     "pixel": {
+      "n": 289992,
+      "equal": 241428,
+      "max_ulp": 275,
+      "max_abs": 0.0037841796875,
+      "hist_0_1_2to8_9to64_gt64": [
+       241428,
+       20910,
+       24279,
+       3186,
+       189
+      ]
+     },
+     "t": {
+      "n": 144996,
+      "equal": 137790,
+      "max_ulp": 4,
+      "max_abs": 1.9073486328125e-06,
+      "hist_0_1_2to8_9to64_gt64": [
+       137790,
+       6516,
+       690,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  }
+ },
+ "totals": {
+  "differing": 464,
+  "silent": 660,
+  "failing": 0,
+  "flipped_coords": 1164,
+  "frame_differ": 0
+ }
+}
