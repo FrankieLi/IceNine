@@ -1,6 +1,6 @@
 {
-  "title": "Task G2 pilot maps",
-  "summary": "The 2,000-voxel pilot region reconstructed four times with the same BFS seed order: the stored pilot (2026-10-10), the same configuration on today's code (the like-for-like baseline: the centroid screen became the default on 2026-10-12), the integrated configuration of Task G2 (SmoothCostRank E3+E4 tau 0.25 and OutwardSearch), and OutwardSearch alone. Wrong voxels (more than 1 degree from the truth): 37, 37, 42 and 36 of 2,000. The two OutwardSearch runs each lose grain 331 (a one-voxel grain), whose reseed took the outward-search path from a neighbouring grain's orientation.",
+  "title": "Task G pilot maps",
+  "summary": "The 2,000-voxel pilot region reconstructed five times with the same BFS seed order: the stored pilot (2026-10-10), the same configuration on today's code (the like-for-like baseline: the centroid screen became the default on 2026-10-12), SmoothCostRank E3+E4 tau 0.25 alone (Task G3), OutwardSearch alone, and both (Task G2's integrated configuration). Wrong voxels (more than 1 degree from the truth, of 2,000): stored pilot (2026-10-10): 37; stored configuration, today's code: 37; SmoothCostRank only: 34; OutwardSearch only: 36; both (Task G2's integrated configuration): 42. Grains lost (of 60): stored pilot (2026-10-10): 0; stored configuration, today's code: 0; SmoothCostRank only: 0; OutwardSearch only: 1; both (Task G2's integrated configuration): 1.",
   "reference": {
     "mic": "../../../../../Examples/Example2.ManyGrains/SimInput/rand_500grains_1mm_neworient_s0.mic",
     "index": "../../../phase_d_pilot/region_index.npy",
@@ -11,12 +11,28 @@
     {
       "name": "pilot_region",
       "title": "2,000-voxel pilot region, clean images, mc arm, reseed on",
-      "caption": "Clean images, mc arm, revisit and reseed on, BFS rng seed 0. Wrong voxels: stored pilot 37, today's code 37, integrated 42, OutwardSearch only 36 (of 2,000). Paired against today's code: integrated 15 fixed and 20 broken, OutwardSearch only 18 fixed and 17 broken; 8 of the breaks in each carry the orientation of a reseed that the outward search accepted.",
+      "caption": "Clean images, mc arm, revisit and reseed on, BFS rng seed 0. Paired by voxel against the stored configuration on today's code: SmoothCostRank only: 14 fixed and 11 broken; OutwardSearch only: 18 fixed and 17 broken; both (Task G2's integrated configuration): 15 fixed and 20 broken.",
       "mics": [
-        {"path": "../../../phase_d_pilot_reseed_v2/runs/mc_clean/recon.mic", "label": "Stored pilot"},
-        {"path": "../g2/bfs/runs/keyoff_rerun/recon.mic", "label": "Stored configuration, today's code"},
-        {"path": "../g2/bfs/runs/integrated/recon.mic", "label": "Integrated configuration"},
-        {"path": "../g2/bfs/runs/outward_only/recon.mic", "label": "OutwardSearch only"}
+        {
+          "path": "../../../phase_d_pilot_reseed_v2/runs/mc_clean/recon.mic",
+          "label": "Stored pilot"
+        },
+        {
+          "path": "../g2/bfs/runs/keyoff_rerun/recon.mic",
+          "label": "Stored configuration, today's code"
+        },
+        {
+          "path": "../g3/bfs/runs/smooth_only/recon.mic",
+          "label": "SmoothCostRank only"
+        },
+        {
+          "path": "../g2/bfs/runs/outward_only/recon.mic",
+          "label": "OutwardSearch only"
+        },
+        {
+          "path": "../g2/bfs/runs/integrated/recon.mic",
+          "label": "Both (integrated configuration)"
+        }
       ]
     }
   ],

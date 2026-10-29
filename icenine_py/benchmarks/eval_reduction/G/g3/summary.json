@@ -1,0 +1,6836 @@
+{
+ "bfs": {
+  "runs": [
+   {
+    "run": "mc_clean",
+    "n": 2000,
+    "wrong": 37,
+    "wrong_wilson95": [
+     0.013451271532792346,
+     0.025394912716501614
+    ],
+    "unresolved": 1,
+    "median_err_right_deg": 0.011823475459908528,
+    "sources": {
+     "neighbor": 770,
+     "revisit": 1165,
+     "seed": 64,
+     "unresolved": 1
+    },
+    "seeds": 34,
+    "seed_rejected": 2,
+    "reseeds": 35,
+    "reseed_accepted": 32,
+    "neighbor_fits": 1966,
+    "neighbor_accepted_first": 770,
+    "revisit_attempted": 2126,
+    "revisit_accepted": 1165,
+    "evals": {
+     "seed": 11274936,
+     "reseed": 11598290,
+     "neighbor": 1290496,
+     "revisit": 1398836,
+     "total": 25562558
+    },
+    "wall": {
+     "seed": 6024.592644453049,
+     "reseed": 6213.391976356506,
+     "neighbor": 723.0638129711151,
+     "revisit": 782.5104613304138,
+     "total": 13744.131792783737
+    },
+    "timing_label": "contended: 4 concurrent single-process runs on a 12-core machine, run under caffeinate (see preflight.json)",
+    "outward": {},
+    "grains": 60,
+    "grains_lost": [],
+    "smooth_full_searches": 0
+   },
+   {
+    "run": "keyoff_rerun",
+    "n": 2000,
+    "wrong": 37,
+    "wrong_wilson95": [
+     0.013451271532792346,
+     0.025394912716501614
+    ],
+    "unresolved": 2,
+    "median_err_right_deg": 0.010137500333915877,
+    "sources": {
+     "neighbor": 769,
+     "revisit": 1167,
+     "seed": 62,
+     "unresolved": 2
+    },
+    "seeds": 40,
+    "seed_rejected": 6,
+    "reseeds": 29,
+    "reseed_accepted": 28,
+    "neighbor_fits": 1960,
+    "neighbor_accepted_first": 769,
+    "revisit_attempted": 2089,
+    "revisit_accepted": 1167,
+    "evals": {
+     "seed": 13264873,
+     "reseed": 9617992,
+     "neighbor": 1293861,
+     "revisit": 1371209,
+     "total": 25547935
+    },
+    "wall": {
+     "seed": 4552.900763034821,
+     "reseed": 3294.599467754364,
+     "neighbor": 559.2500941753387,
+     "revisit": 589.6144104003906,
+     "total": 8996.856884002686
+    },
+    "timing_label": "contended: 3 concurrent 2000-voxel BFS runs (Task G2)",
+    "outward": {},
+    "grains": 60,
+    "grains_lost": [],
+    "smooth_full_searches": 0,
+    "strict_equivalent": 25547935.0
+   },
+   {
+    "run": "smooth_only",
+    "n": 2000,
+    "wrong": 34,
+    "wrong_wilson95": [
+     0.012190606557782523,
+     0.02366132904431298
+    ],
+    "unresolved": 0,
+    "median_err_right_deg": 0.008239682367707444,
+    "sources": {
+     "neighbor": 768,
+     "revisit": 1170,
+     "seed": 62
+    },
+    "seeds": 35,
+    "seed_rejected": 3,
+    "reseeds": 30,
+    "reseed_accepted": 30,
+    "neighbor_fits": 1965,
+    "neighbor_accepted_first": 768,
+    "revisit_attempted": 2108,
+    "revisit_accepted": 1170,
+    "evals": {
+     "seed": 11743593,
+     "reseed": 10066910,
+     "neighbor": 1289656,
+     "revisit": 1390172,
+     "total": 24490331
+    },
+    "wall": {
+     "seed": 5381.4782819747925,
+     "reseed": 4629.380488395691,
+     "neighbor": 540.1631605625153,
+     "revisit": 584.8985297679901,
+     "total": 11136.343216180801
+    },
+    "timing_label": "contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled",
+    "outward": {},
+    "grains": 60,
+    "grains_lost": [],
+    "smooth_full_searches": 980594,
+    "strict_equivalent": 28703943.417999998
+   },
+   {
+    "run": "outward_only",
+    "n": 2000,
+    "wrong": 36,
+    "wrong_wilson95": [
+     0.013029914582859979,
+     0.02481818678403449
+    ],
+    "unresolved": 1,
+    "median_err_right_deg": 0.011348927295969126,
+    "sources": {
+     "neighbor": 764,
+     "revisit": 1168,
+     "seed": 67,
+     "unresolved": 1
+    },
+    "seeds": 34,
+    "seed_rejected": 2,
+    "reseeds": 36,
+    "reseed_accepted": 35,
+    "neighbor_fits": 1966,
+    "neighbor_accepted_first": 764,
+    "revisit_attempted": 2166,
+    "revisit_accepted": 1168,
+    "evals": {
+     "seed": 11265144,
+     "reseed": 10415877,
+     "neighbor": 19987665,
+     "revisit": 19950797,
+     "total": 61619483
+    },
+    "wall": {
+     "seed": 3851.500044107437,
+     "reseed": 3488.950330734253,
+     "neighbor": 1791.054417848587,
+     "revisit": 1848.2838423252106,
+     "total": 10980.478366851807
+    },
+    "timing_label": "contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2)",
+    "outward": {
+     "outward_neighbor_runs": 1966,
+     "outward_neighbor_accepted": 1521,
+     "outward_neighbor_fallback": 460,
+     "outward_neighbor_strict": 23290,
+     "outward_neighbor_screen": 18674835,
+     "outward_neighbor_smooth": 325889,
+     "outward_neighbor_jac": 12560,
+     "outward_neighbor_wall_s": 1238.5109403133392,
+     "outward_revisit_runs": 2166,
+     "outward_revisit_accepted": 1722,
+     "outward_revisit_fallback": 449,
+     "outward_revisit_strict": 23444,
+     "outward_revisit_screen": 18495783,
+     "outward_revisit_smooth": 327026,
+     "outward_revisit_jac": 14220,
+     "outward_revisit_wall_s": 1237.255755662918,
+     "outward_reseed_runs": 36,
+     "outward_reseed_accepted": 33,
+     "outward_reseed_fallback": 3,
+     "outward_reseed_strict": 201,
+     "outward_reseed_screen": 124971,
+     "outward_reseed_smooth": 2599,
+     "outward_reseed_jac": 209,
+     "outward_reseed_wall_s": 10.149264812469482,
+     "outward_reseed_seed_test_rejected": 28,
+     "outward_reseed_used": 5
+    },
+    "grains": 60,
+    "grains_lost": [
+     331
+    ],
+    "outward_log": {
+     "neighbor": {
+      "runs": 1966,
+      "accepted": 1521,
+      "fallback": 460,
+      "fallback_accepted": 15,
+      "median_wall_s": 0.1011725664138794,
+      "median_wall_fallback_s": 2.42061710357666,
+      "max_wall_s": 17.764421939849854,
+      "total_wall_s": 1238.5109403133392,
+      "strict": 23290,
+      "screen": 18674835,
+      "smooth": 325889,
+      "jac": 12560,
+      "end_cost_accepted_median": 0.13228345009910514
+     },
+     "reseed": {
+      "runs": 36,
+      "accepted": 33,
+      "fallback": 3,
+      "fallback_accepted": 0,
+      "median_wall_s": 0.10925185680389404,
+      "median_wall_fallback_s": 2.2777209281921387,
+      "max_wall_s": 2.503737688064575,
+      "total_wall_s": 10.149264812469482,
+      "strict": 201,
+      "screen": 124971,
+      "smooth": 2599,
+      "jac": 209,
+      "end_cost_accepted_median": 0.47813019835723625,
+      "seed_test": [
+       false,
+       false,
+       false,
+       false,
+       false,
+       true,
+       false,
+       false,
+       null,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       true,
+       true,
+       false,
+       false,
+       false,
+       false,
+       true,
+       false,
+       false,
+       false,
+       null,
+       false,
+       null,
+       false,
+       false,
+       false,
+       true,
+       false,
+       false,
+       false,
+       false
+      ],
+      "used_voxels_err_deg": [
+       54.51205449103158,
+       33.49339577334631,
+       33.49339577334631,
+       36.55714338538108,
+       45.75874961827919
+      ]
+     },
+     "revisit": {
+      "runs": 2166,
+      "accepted": 1722,
+      "fallback": 449,
+      "fallback_accepted": 5,
+      "median_wall_s": 0.10918915271759033,
+      "median_wall_fallback_s": 2.4559013843536377,
+      "max_wall_s": 2.95389986038208,
+      "total_wall_s": 1237.255755662918,
+      "strict": 23444,
+      "screen": 18495783,
+      "smooth": 327026,
+      "jac": 14220,
+      "end_cost_accepted_median": 0.07352941176470584
+     }
+    },
+    "smooth_full_searches": 0,
+    "strict_equivalent": 29102899.01747527
+   },
+   {
+    "run": "integrated",
+    "n": 2000,
+    "wrong": 42,
+    "wrong_wilson95": [
+     0.015573435706452522,
+     0.028263162954838873
+    ],
+    "unresolved": 0,
+    "median_err_right_deg": 0.007721749378589211,
+    "sources": {
+     "neighbor": 762,
+     "revisit": 1173,
+     "seed": 65
+    },
+    "seeds": 38,
+    "seed_rejected": 5,
+    "reseeds": 32,
+    "reseed_accepted": 32,
+    "neighbor_fits": 1962,
+    "neighbor_accepted_first": 762,
+    "revisit_attempted": 2140,
+    "revisit_accepted": 1173,
+    "evals": {
+     "seed": 12747993,
+     "reseed": 9493718,
+     "neighbor": 19736111,
+     "revisit": 18843288,
+     "total": 60821110
+    },
+    "wall": {
+     "seed": 5950.616836071014,
+     "reseed": 4325.351744413376,
+     "neighbor": 1769.9502656459808,
+     "revisit": 1774.995195865631,
+     "total": 13821.569776058197
+    },
+    "timing_label": "contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2)",
+    "outward": {
+     "outward_neighbor_runs": 1962,
+     "outward_neighbor_accepted": 1523,
+     "outward_neighbor_fallback": 455,
+     "outward_neighbor_strict": 23028,
+     "outward_neighbor_screen": 18424908,
+     "outward_neighbor_smooth": 325119,
+     "outward_neighbor_jac": 13461,
+     "outward_neighbor_wall_s": 1218.42214179039,
+     "outward_revisit_runs": 2140,
+     "outward_revisit_accepted": 1722,
+     "outward_revisit_fallback": 425,
+     "outward_revisit_strict": 22283,
+     "outward_revisit_screen": 17412731,
+     "outward_revisit_smooth": 312038,
+     "outward_revisit_jac": 14757,
+     "outward_revisit_wall_s": 1174.7640254497528,
+     "outward_reseed_runs": 32,
+     "outward_reseed_accepted": 30,
+     "outward_reseed_fallback": 2,
+     "outward_reseed_strict": 150,
+     "outward_reseed_screen": 83314,
+     "outward_reseed_smooth": 1836,
+     "outward_reseed_jac": 163,
+     "outward_reseed_wall_s": 7.213626146316528,
+     "outward_reseed_seed_test_rejected": 26,
+     "outward_reseed_used": 4
+    },
+    "grains": 60,
+    "grains_lost": [
+     331
+    ],
+    "outward_log": {
+     "neighbor": {
+      "runs": 1962,
+      "accepted": 1523,
+      "fallback": 455,
+      "fallback_accepted": 16,
+      "median_wall_s": 0.11363744735717773,
+      "median_wall_fallback_s": 2.423069953918457,
+      "max_wall_s": 2.960174083709717,
+      "total_wall_s": 1218.42214179039,
+      "strict": 23028,
+      "screen": 18424908,
+      "smooth": 325119,
+      "jac": 13461,
+      "end_cost_accepted_median": 0.13411947885020226
+     },
+     "reseed": {
+      "runs": 32,
+      "accepted": 30,
+      "fallback": 2,
+      "fallback_accepted": 0,
+      "median_wall_s": 0.09454357624053955,
+      "median_wall_fallback_s": 2.2796618938446045,
+      "max_wall_s": 2.5505638122558594,
+      "total_wall_s": 7.213626146316528,
+      "strict": 150,
+      "screen": 83314,
+      "smooth": 1836,
+      "jac": 163,
+      "end_cost_accepted_median": 0.482384305783634,
+      "seed_test": [
+       false,
+       false,
+       false,
+       false,
+       true,
+       false,
+       true,
+       false,
+       false,
+       null,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       true,
+       false,
+       false,
+       false,
+       false,
+       false,
+       null,
+       false,
+       false,
+       false,
+       true,
+       false,
+       false,
+       false
+      ],
+      "used_voxels_err_deg": [
+       49.49632040214679,
+       54.50835081873577,
+       36.554404160228984,
+       45.757236081186875
+      ]
+     },
+     "revisit": {
+      "runs": 2140,
+      "accepted": 1722,
+      "fallback": 425,
+      "fallback_accepted": 7,
+      "median_wall_s": 0.11146783828735352,
+      "median_wall_fallback_s": 2.4355618953704834,
+      "max_wall_s": 3.071263074874878,
+      "total_wall_s": 1174.7640254497528,
+      "strict": 22283,
+      "screen": 17412731,
+      "smooth": 312038,
+      "jac": 14757,
+      "end_cost_accepted_median": 0.07247399208349975
+     }
+    },
+    "smooth_full_searches": 996303,
+    "strict_equivalent": 33867545.23809108
+   }
+  ],
+  "paired": [
+   {
+    "a": "mc_clean",
+    "b": "keyoff_rerun",
+    "wrong_a": 37,
+    "wrong_b": 37,
+    "fixed": 14,
+    "broken": 14,
+    "both_wrong": 23,
+    "broken_voxels": [
+     401,
+     474,
+     628,
+     697,
+     726,
+     757,
+     795,
+     1267,
+     1489,
+     1714,
+     1741,
+     1760,
+     1854,
+     1949
+    ],
+    "fixed_voxels": [
+     149,
+     151,
+     260,
+     320,
+     643,
+     663,
+     665,
+     666,
+     707,
+     1079,
+     1088,
+     1317,
+     1384,
+     1706
+    ]
+   },
+   {
+    "a": "mc_clean",
+    "b": "smooth_only",
+    "wrong_a": 37,
+    "wrong_b": 34,
+    "fixed": 13,
+    "broken": 10,
+    "both_wrong": 24,
+    "broken_voxels": [
+     67,
+     91,
+     590,
+     628,
+     1049,
+     1196,
+     1375,
+     1760,
+     1845,
+     1854
+    ],
+    "fixed_voxels": [
+     149,
+     151,
+     244,
+     260,
+     320,
+     663,
+     665,
+     666,
+     1114,
+     1287,
+     1317,
+     1384,
+     1706
+    ]
+   },
+   {
+    "a": "mc_clean",
+    "b": "outward_only",
+    "wrong_a": 37,
+    "wrong_b": 36,
+    "fixed": 9,
+    "broken": 8,
+    "both_wrong": 28,
+    "broken_voxels": [
+     67,
+     171,
+     172,
+     536,
+     730,
+     731,
+     1345,
+     1349
+    ],
+    "fixed_voxels": [
+     128,
+     132,
+     166,
+     251,
+     663,
+     666,
+     1088,
+     1384,
+     1706
+    ],
+    "used_reseeds": [
+     67,
+     536,
+     731,
+     1345,
+     1349
+    ],
+    "used_reseeds_wrong": 5,
+    "voxels_via_used_reseeds": 177,
+    "voxels_via_used_reseeds_wrong": 9,
+    "broken_traced_arm": 8,
+    "broken_untraced": 0,
+    "fixed_via_used_reseeds": 0
+   },
+   {
+    "a": "mc_clean",
+    "b": "integrated",
+    "wrong_a": 37,
+    "wrong_b": 42,
+    "fixed": 11,
+    "broken": 16,
+    "both_wrong": 26,
+    "broken_voxels": [
+     67,
+     171,
+     172,
+     491,
+     536,
+     590,
+     591,
+     730,
+     731,
+     1049,
+     1375,
+     1396,
+     1489,
+     1497,
+     1760,
+     1845
+    ],
+    "fixed_voxels": [
+     149,
+     151,
+     320,
+     663,
+     665,
+     666,
+     1114,
+     1287,
+     1317,
+     1384,
+     1571
+    ],
+    "used_reseeds": [
+     67,
+     172,
+     536,
+     590
+    ],
+    "used_reseeds_wrong": 4,
+    "voxels_via_used_reseeds": 204,
+    "voxels_via_used_reseeds_wrong": 13,
+    "broken_traced_arm": 8,
+    "broken_untraced": 8,
+    "fixed_via_used_reseeds": 0
+   },
+   {
+    "a": "keyoff_rerun",
+    "b": "smooth_only",
+    "wrong_a": 37,
+    "wrong_b": 34,
+    "fixed": 14,
+    "broken": 11,
+    "both_wrong": 23,
+    "broken_voxels": [
+     67,
+     91,
+     590,
+     643,
+     707,
+     1049,
+     1079,
+     1088,
+     1196,
+     1375,
+     1845
+    ],
+    "fixed_voxels": [
+     244,
+     401,
+     474,
+     697,
+     726,
+     757,
+     795,
+     1114,
+     1267,
+     1287,
+     1489,
+     1714,
+     1741,
+     1949
+    ]
+   },
+   {
+    "a": "keyoff_rerun",
+    "b": "outward_only",
+    "wrong_a": 37,
+    "wrong_b": 36,
+    "fixed": 18,
+    "broken": 17,
+    "both_wrong": 19,
+    "broken_voxels": [
+     67,
+     149,
+     151,
+     171,
+     172,
+     260,
+     320,
+     536,
+     643,
+     665,
+     707,
+     730,
+     731,
+     1079,
+     1317,
+     1345,
+     1349
+    ],
+    "fixed_voxels": [
+     128,
+     132,
+     166,
+     251,
+     401,
+     474,
+     628,
+     697,
+     726,
+     757,
+     795,
+     1267,
+     1489,
+     1714,
+     1741,
+     1760,
+     1854,
+     1949
+    ],
+    "used_reseeds": [
+     67,
+     536,
+     731,
+     1345,
+     1349
+    ],
+    "used_reseeds_wrong": 5,
+    "voxels_via_used_reseeds": 177,
+    "voxels_via_used_reseeds_wrong": 9,
+    "broken_traced_arm": 8,
+    "broken_untraced": 9,
+    "fixed_via_used_reseeds": 2
+   },
+   {
+    "a": "keyoff_rerun",
+    "b": "integrated",
+    "wrong_a": 37,
+    "wrong_b": 42,
+    "fixed": 15,
+    "broken": 20,
+    "both_wrong": 22,
+    "broken_voxels": [
+     67,
+     171,
+     172,
+     260,
+     491,
+     536,
+     590,
+     591,
+     643,
+     707,
+     730,
+     731,
+     1049,
+     1079,
+     1088,
+     1375,
+     1396,
+     1497,
+     1706,
+     1845
+    ],
+    "fixed_voxels": [
+     401,
+     474,
+     628,
+     697,
+     726,
+     757,
+     795,
+     1114,
+     1267,
+     1287,
+     1571,
+     1714,
+     1741,
+     1854,
+     1949
+    ],
+    "used_reseeds": [
+     67,
+     172,
+     536,
+     590
+    ],
+    "used_reseeds_wrong": 4,
+    "voxels_via_used_reseeds": 204,
+    "voxels_via_used_reseeds_wrong": 13,
+    "broken_traced_arm": 8,
+    "broken_untraced": 12,
+    "fixed_via_used_reseeds": 2
+   },
+   {
+    "a": "smooth_only",
+    "b": "integrated",
+    "wrong_a": 34,
+    "wrong_b": 42,
+    "fixed": 5,
+    "broken": 13,
+    "both_wrong": 29,
+    "broken_voxels": [
+     171,
+     172,
+     244,
+     260,
+     491,
+     536,
+     591,
+     730,
+     731,
+     1396,
+     1489,
+     1497,
+     1706
+    ],
+    "fixed_voxels": [
+     91,
+     628,
+     1196,
+     1571,
+     1854
+    ],
+    "used_reseeds": [
+     67,
+     172,
+     536,
+     590
+    ],
+    "used_reseeds_wrong": 4,
+    "voxels_via_used_reseeds": 204,
+    "voxels_via_used_reseeds_wrong": 13,
+    "broken_traced_arm": 6,
+    "broken_untraced": 7,
+    "fixed_via_used_reseeds": 0
+   }
+  ],
+  "weights_ms": {
+   "strict": 0.43978515624999714,
+   "screen": 0.022374870312497075,
+   "e4_value": 1.497805566666699,
+   "e4_jac": 12.073187500000058
+  },
+  "smooth_only_run": {
+   "timing_label": "contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled",
+   "smooth_rank": "E3+E4,tau=0.25",
+   "outward_search": false,
+   "n_full_searches_counted": 65,
+   "setup_s": 0.09830307960510254
+  }
+ },
+ "trace": {
+  "keyoff_rerun->smooth_only": {
+   "broken": [
+    {
+     "voxel": 67,
+     "full_sample_voxel": 772,
+     "grain": 277,
+     "err_deg": 36.55944058890221,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 278,
+     "nearest_grain_deg": 0.002718870561797049,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      68
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 91,
+     "full_sample_voxel": 976,
+     "grain": 300,
+     "err_deg": 29.770757330563065,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 301,
+     "nearest_grain_deg": 0.008239682367707444,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      495
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 590,
+     "full_sample_voxel": 7141,
+     "grain": 146,
+     "err_deg": 49.49652816451606,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 23,
+     "nearest_grain_deg": 0.0037113625840366777,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1593
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 643,
+     "full_sample_voxel": 7194,
+     "grain": 351,
+     "err_deg": 51.85619987210656,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 154,
+     "nearest_grain_deg": 0.013033988343805283,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      98
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 707,
+     "full_sample_voxel": 8890,
+     "grain": 398,
+     "err_deg": 42.254909371505114,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 148,
+     "nearest_grain_deg": 0.004056056742913209,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      474
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1049,
+     "full_sample_voxel": 12709,
+     "grain": 154,
+     "err_deg": 36.9133598507919,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.004041897897852642,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1079,
+     "full_sample_voxel": 13250,
+     "grain": 300,
+     "err_deg": 46.257236476716635,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 148,
+     "nearest_grain_deg": 0.004056056742913209,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      474
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1088,
+     "full_sample_voxel": 13259,
+     "grain": 151,
+     "err_deg": 44.51243445013516,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.004041897897852642,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1196,
+     "full_sample_voxel": 14299,
+     "grain": 151,
+     "err_deg": 44.51243445013516,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.004041897897852642,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1375,
+     "full_sample_voxel": 16534,
+     "grain": 403,
+     "err_deg": 29.63825314544973,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.004041897897852642,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1845,
+     "full_sample_voxel": 21319,
+     "grain": 151,
+     "err_deg": 44.51243445013516,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.004041897897852642,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    }
+   ],
+   "fixed": [
+    {
+     "voxel": 244,
+     "full_sample_voxel": 3117,
+     "grain": 13,
+     "err_deg": 44.477242915716666,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 286,
+     "nearest_grain_deg": 0.004045264588265895,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1236
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 401,
+     "full_sample_voxel": 5008,
+     "grain": 247,
+     "err_deg": 31.450597411852346,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 399,
+     "nearest_grain_deg": 0.0051523682650746905,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1769
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 474,
+     "full_sample_voxel": 5876,
+     "grain": 148,
+     "err_deg": 42.251377040125945,
+     "source": "unresolved",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 9.375005960464478,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 697,
+     "full_sample_voxel": 8880,
+     "grain": 396,
+     "err_deg": 33.726078704426605,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 726,
+     "full_sample_voxel": 8909,
+     "grain": 57,
+     "err_deg": 44.107141823720724,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 332,
+     "nearest_grain_deg": 0.015168311768686297,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1736
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 757,
+     "full_sample_voxel": 8940,
+     "grain": 247,
+     "err_deg": 31.450597411852346,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 399,
+     "nearest_grain_deg": 0.0051523682650746905,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1769
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 795,
+     "full_sample_voxel": 8978,
+     "grain": 150,
+     "err_deg": 57.33992713623359,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 401,
+     "nearest_grain_deg": 0.00599649402018666,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1180
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1114,
+     "full_sample_voxel": 13672,
+     "grain": 146,
+     "err_deg": 36.68684797880942,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 75,
+     "nearest_grain_deg": 0.0005211573087081794,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      470
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1267,
+     "full_sample_voxel": 15749,
+     "grain": 492,
+     "err_deg": 45.7527057190422,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 331,
+     "nearest_grain_deg": 0.003095030152527673,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1267
+     ],
+     "carriers_wrong": [
+      1267
+     ]
+    },
+    {
+     "voxel": 1287,
+     "full_sample_voxel": 15907,
+     "grain": 279,
+     "err_deg": 46.01742141335689,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 75,
+     "nearest_grain_deg": 0.0005211573087081794,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      470
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1489,
+     "full_sample_voxel": 18179,
+     "grain": 301,
+     "err_deg": 29.775803257060343,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 300,
+     "nearest_grain_deg": 0.00856154302426126,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      749
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1714,
+     "full_sample_voxel": 21188,
+     "grain": 147,
+     "err_deg": 47.135425711504126,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 1741,
+     "full_sample_voxel": 21215,
+     "grain": 149,
+     "err_deg": 54.50885580339766,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 332,
+     "nearest_grain_deg": 0.015168311768686297,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1736
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1949,
+     "full_sample_voxel": 24334,
+     "grain": 57,
+     "err_deg": 50.84967022410545,
+     "source": "unresolved",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 56,
+     "nearest_grain_deg": 0.005707393235812724,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      654
+     ],
+     "carriers_wrong": []
+    }
+   ]
+  },
+  "keyoff_rerun->outward_only": {
+   "broken": [
+    {
+     "voxel": 67,
+     "full_sample_voxel": 772,
+     "grain": 277,
+     "err_deg": 36.55714338538108,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 278,
+     "nearest_grain_deg": 0.0023302972411545506,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      67,
+      68
+     ],
+     "carriers_wrong": [
+      67
+     ]
+    },
+    {
+     "voxel": 149,
+     "full_sample_voxel": 1964,
+     "grain": 394,
+     "err_deg": 43.77019891616773,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 395,
+     "nearest_grain_deg": 0.009893466537208505,
+     "nearest_grain_distance_um": 9.374760152883765,
+     "full_search_carriers": [
+      1666
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 151,
+     "full_sample_voxel": 1966,
+     "grain": 394,
+     "err_deg": 43.77019891616773,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 395,
+     "nearest_grain_deg": 0.009893466537208505,
+     "nearest_grain_distance_um": 9.374767602863297,
+     "full_search_carriers": [
+      1666
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 171,
+     "full_sample_voxel": 1986,
+     "grain": 332,
+     "err_deg": 54.51205449103158,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.03181745358406149,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      336,
+      731
+     ],
+     "carriers_wrong": [
+      731
+     ]
+    },
+    {
+     "voxel": 172,
+     "full_sample_voxel": 1987,
+     "grain": 332,
+     "err_deg": 54.50889635998954,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.03397769761990124,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      336,
+      731
+     ],
+     "carriers_wrong": [
+      731
+     ]
+    },
+    {
+     "voxel": 260,
+     "full_sample_voxel": 3213,
+     "grain": 300,
+     "err_deg": 54.03830610519091,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.02039365482323984,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 320,
+     "full_sample_voxel": 4193,
+     "grain": 394,
+     "err_deg": 43.77019891616773,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 395,
+     "nearest_grain_deg": 0.009893466537208505,
+     "nearest_grain_distance_um": 9.374760152883765,
+     "full_search_carriers": [
+      1666
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 536,
+     "full_sample_voxel": 6675,
+     "grain": 331,
+     "err_deg": 45.75874961827919,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 492,
+     "nearest_grain_deg": 0.015106746952921449,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      536,
+      1535
+     ],
+     "carriers_wrong": [
+      536
+     ]
+    },
+    {
+     "voxel": 643,
+     "full_sample_voxel": 7194,
+     "grain": 351,
+     "err_deg": 51.87215265613092,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 154,
+     "nearest_grain_deg": 0.017929169505842186,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      98
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 665,
+     "full_sample_voxel": 8848,
+     "grain": 394,
+     "err_deg": 43.77019891616773,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 395,
+     "nearest_grain_deg": 0.009893466537208505,
+     "nearest_grain_distance_um": 9.374760152883765,
+     "full_search_carriers": [
+      1666
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 707,
+     "full_sample_voxel": 8890,
+     "grain": 398,
+     "err_deg": 42.25532178601885,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 148,
+     "nearest_grain_deg": 0.004721069047873999,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      474
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 730,
+     "full_sample_voxel": 8913,
+     "grain": 332,
+     "err_deg": 54.51205449103158,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.03181745358406149,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      336,
+      731
+     ],
+     "carriers_wrong": [
+      731
+     ]
+    },
+    {
+     "voxel": 731,
+     "full_sample_voxel": 8914,
+     "grain": 332,
+     "err_deg": 54.51205449103158,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.03181745358406149,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      336,
+      731
+     ],
+     "carriers_wrong": [
+      731
+     ]
+    },
+    {
+     "voxel": 1079,
+     "full_sample_voxel": 13250,
+     "grain": 300,
+     "err_deg": 46.25771266201597,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 148,
+     "nearest_grain_deg": 0.004721069047873999,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      474
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1317,
+     "full_sample_voxel": 16476,
+     "grain": 394,
+     "err_deg": 49.078524313320735,
+     "source": "unresolved",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 144,
+     "nearest_grain_deg": 0.010358880090726864,
+     "nearest_grain_distance_um": 9.374760152883765,
+     "full_search_carriers": [
+      686
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1345,
+     "full_sample_voxel": 16504,
+     "grain": 150,
+     "err_deg": 33.49339577334631,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 400,
+     "nearest_grain_deg": 0.01723059052191451,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      765,
+      1345,
+      1349
+     ],
+     "carriers_wrong": [
+      1345,
+      1349
+     ]
+    },
+    {
+     "voxel": 1349,
+     "full_sample_voxel": 16508,
+     "grain": 150,
+     "err_deg": 33.49339577334631,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 400,
+     "nearest_grain_deg": 0.01723059052191451,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      765,
+      1345,
+      1349
+     ],
+     "carriers_wrong": [
+      1345,
+      1349
+     ]
+    }
+   ],
+   "fixed": [
+    {
+     "voxel": 128,
+     "full_sample_voxel": 1398,
+     "grain": 146,
+     "err_deg": 49.49382541424906,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 23,
+     "nearest_grain_deg": 0.0012828738147598721,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1593
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 132,
+     "full_sample_voxel": 1402,
+     "grain": 23,
+     "err_deg": 46.01171866434864,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 350,
+     "nearest_grain_deg": 0.011297689069805284,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1633
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 166,
+     "full_sample_voxel": 1981,
+     "grain": 147,
+     "err_deg": 34.20305783880498,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 23,
+     "nearest_grain_deg": 0.0012828738147598721,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1593
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 251,
+     "full_sample_voxel": 3204,
+     "grain": 147,
+     "err_deg": 34.20305783880498,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 23,
+     "nearest_grain_deg": 0.0012828738147598721,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1593
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 401,
+     "full_sample_voxel": 5008,
+     "grain": 247,
+     "err_deg": 31.450597411852346,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 399,
+     "nearest_grain_deg": 0.0051523682650746905,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1769
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 474,
+     "full_sample_voxel": 5876,
+     "grain": 148,
+     "err_deg": 42.251377040125945,
+     "source": "unresolved",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 9.375005960464478,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 628,
+     "full_sample_voxel": 7179,
+     "grain": 76,
+     "err_deg": 30.749339048917406,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 350,
+     "nearest_grain_deg": 0.011297689069805284,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1633
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 697,
+     "full_sample_voxel": 8880,
+     "grain": 396,
+     "err_deg": 33.726078704426605,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 726,
+     "full_sample_voxel": 8909,
+     "grain": 57,
+     "err_deg": 44.107141823720724,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 332,
+     "nearest_grain_deg": 0.015168311768686297,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1736
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 757,
+     "full_sample_voxel": 8940,
+     "grain": 247,
+     "err_deg": 31.450597411852346,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 399,
+     "nearest_grain_deg": 0.0051523682650746905,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1769
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 795,
+     "full_sample_voxel": 8978,
+     "grain": 150,
+     "err_deg": 57.33992713623359,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 401,
+     "nearest_grain_deg": 0.00599649402018666,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1180
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1267,
+     "full_sample_voxel": 15749,
+     "grain": 492,
+     "err_deg": 45.7527057190422,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 331,
+     "nearest_grain_deg": 0.003095030152527673,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1267
+     ],
+     "carriers_wrong": [
+      1267
+     ]
+    },
+    {
+     "voxel": 1489,
+     "full_sample_voxel": 18179,
+     "grain": 301,
+     "err_deg": 29.775803257060343,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 300,
+     "nearest_grain_deg": 0.00856154302426126,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      749
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1714,
+     "full_sample_voxel": 21188,
+     "grain": 147,
+     "err_deg": 47.135425711504126,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 1741,
+     "full_sample_voxel": 21215,
+     "grain": 149,
+     "err_deg": 54.50885580339766,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 332,
+     "nearest_grain_deg": 0.015168311768686297,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1736
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1760,
+     "full_sample_voxel": 21234,
+     "grain": 150,
+     "err_deg": 46.811201258500816,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 300,
+     "nearest_grain_deg": 0.00856154302426126,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      749
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1854,
+     "full_sample_voxel": 21328,
+     "grain": 403,
+     "err_deg": 47.23011280224439,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 151,
+     "nearest_grain_deg": 0.033048505157416815,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      844,
+      861
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1949,
+     "full_sample_voxel": 24334,
+     "grain": 57,
+     "err_deg": 50.84967022410545,
+     "source": "unresolved",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 56,
+     "nearest_grain_deg": 0.005707393235812724,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      654
+     ],
+     "carriers_wrong": []
+    }
+   ]
+  },
+  "keyoff_rerun->integrated": {
+   "broken": [
+    {
+     "voxel": 67,
+     "full_sample_voxel": 772,
+     "grain": 277,
+     "err_deg": 36.554404160228984,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 278,
+     "nearest_grain_deg": 0.010105083967544252,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      67,
+      68
+     ],
+     "carriers_wrong": [
+      67
+     ]
+    },
+    {
+     "voxel": 171,
+     "full_sample_voxel": 1986,
+     "grain": 332,
+     "err_deg": 54.50835081873577,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.004012429493974204,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      172,
+      336
+     ],
+     "carriers_wrong": [
+      172
+     ]
+    },
+    {
+     "voxel": 172,
+     "full_sample_voxel": 1987,
+     "grain": 332,
+     "err_deg": 54.50835081873577,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.004012429493974204,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      172,
+      336
+     ],
+     "carriers_wrong": [
+      172
+     ]
+    },
+    {
+     "voxel": 260,
+     "full_sample_voxel": 3213,
+     "grain": 300,
+     "err_deg": 54.04668664728069,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.01637986670013193,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 491,
+     "full_sample_voxel": 5893,
+     "grain": 150,
+     "err_deg": 38.446536312056104,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 301,
+     "nearest_grain_deg": 0.0035851694835133535,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1498
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 536,
+     "full_sample_voxel": 6675,
+     "grain": 331,
+     "err_deg": 45.757236081186875,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 492,
+     "nearest_grain_deg": 0.002190978810177085,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      536,
+      1535
+     ],
+     "carriers_wrong": [
+      536
+     ]
+    },
+    {
+     "voxel": 590,
+     "full_sample_voxel": 7141,
+     "grain": 146,
+     "err_deg": 49.49632040214679,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 23,
+     "nearest_grain_deg": 0.002803716219258624,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      590,
+      1593
+     ],
+     "carriers_wrong": [
+      590
+     ]
+    },
+    {
+     "voxel": 591,
+     "full_sample_voxel": 7142,
+     "grain": 146,
+     "err_deg": 49.49632040214679,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 23,
+     "nearest_grain_deg": 0.002803716219258624,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      590,
+      1593
+     ],
+     "carriers_wrong": [
+      590
+     ]
+    },
+    {
+     "voxel": 643,
+     "full_sample_voxel": 7194,
+     "grain": 351,
+     "err_deg": 51.856754218008994,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 154,
+     "nearest_grain_deg": 0.01928345036740389,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      98
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 707,
+     "full_sample_voxel": 8890,
+     "grain": 398,
+     "err_deg": 42.25125390120643,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 148,
+     "nearest_grain_deg": 0.0036674498654912977,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      474
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 730,
+     "full_sample_voxel": 8913,
+     "grain": 332,
+     "err_deg": 54.50835081873577,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.004012429493974204,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      172,
+      336
+     ],
+     "carriers_wrong": [
+      172
+     ]
+    },
+    {
+     "voxel": 731,
+     "full_sample_voxel": 8914,
+     "grain": 332,
+     "err_deg": 54.50835081873577,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.004012429493974204,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      172,
+      336
+     ],
+     "carriers_wrong": [
+      172
+     ]
+    },
+    {
+     "voxel": 1049,
+     "full_sample_voxel": 12709,
+     "grain": 154,
+     "err_deg": 36.917753863415356,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.011322270985698244,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1079,
+     "full_sample_voxel": 13250,
+     "grain": 300,
+     "err_deg": 46.25859530492078,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 148,
+     "nearest_grain_deg": 0.0036674498654912977,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      474
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1088,
+     "full_sample_voxel": 13259,
+     "grain": 151,
+     "err_deg": 44.51640928385285,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.011322270985698244,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1375,
+     "full_sample_voxel": 16534,
+     "grain": 403,
+     "err_deg": 29.646078939185784,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.011322270985698244,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1396,
+     "full_sample_voxel": 17286,
+     "grain": 399,
+     "err_deg": 31.44428807961156,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 247,
+     "nearest_grain_deg": 0.007721749378589211,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      545
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1497,
+     "full_sample_voxel": 18187,
+     "grain": 152,
+     "err_deg": 56.27596250029134,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 301,
+     "nearest_grain_deg": 0.0035851694835133535,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1498
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1706,
+     "full_sample_voxel": 21180,
+     "grain": 398,
+     "err_deg": 33.730637894464685,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 396,
+     "nearest_grain_deg": 0.0044923803924701656,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1696
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1845,
+     "full_sample_voxel": 21319,
+     "grain": 151,
+     "err_deg": 44.51640928385285,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.011322270985698244,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    }
+   ],
+   "fixed": [
+    {
+     "voxel": 401,
+     "full_sample_voxel": 5008,
+     "grain": 247,
+     "err_deg": 31.450597411852346,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 399,
+     "nearest_grain_deg": 0.0051523682650746905,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1769
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 474,
+     "full_sample_voxel": 5876,
+     "grain": 148,
+     "err_deg": 42.251377040125945,
+     "source": "unresolved",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 9.375005960464478,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 628,
+     "full_sample_voxel": 7179,
+     "grain": 76,
+     "err_deg": 30.749339048917406,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 350,
+     "nearest_grain_deg": 0.011297689069805284,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1633
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 697,
+     "full_sample_voxel": 8880,
+     "grain": 396,
+     "err_deg": 33.726078704426605,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 726,
+     "full_sample_voxel": 8909,
+     "grain": 57,
+     "err_deg": 44.107141823720724,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 332,
+     "nearest_grain_deg": 0.015168311768686297,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1736
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 757,
+     "full_sample_voxel": 8940,
+     "grain": 247,
+     "err_deg": 31.450597411852346,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 399,
+     "nearest_grain_deg": 0.0051523682650746905,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1769
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 795,
+     "full_sample_voxel": 8978,
+     "grain": 150,
+     "err_deg": 57.33992713623359,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 401,
+     "nearest_grain_deg": 0.00599649402018666,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1180
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1114,
+     "full_sample_voxel": 13672,
+     "grain": 146,
+     "err_deg": 36.68684797880942,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 75,
+     "nearest_grain_deg": 0.0005211573087081794,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      470
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1267,
+     "full_sample_voxel": 15749,
+     "grain": 492,
+     "err_deg": 45.7527057190422,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 331,
+     "nearest_grain_deg": 0.003095030152527673,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1267
+     ],
+     "carriers_wrong": [
+      1267
+     ]
+    },
+    {
+     "voxel": 1287,
+     "full_sample_voxel": 15907,
+     "grain": 279,
+     "err_deg": 46.01742141335689,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 75,
+     "nearest_grain_deg": 0.0005211573087081794,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      470
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1571,
+     "full_sample_voxel": 19418,
+     "grain": 146,
+     "err_deg": 36.68684797880942,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 75,
+     "nearest_grain_deg": 0.0005211573087081794,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      470
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1714,
+     "full_sample_voxel": 21188,
+     "grain": 147,
+     "err_deg": 47.135425711504126,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 1741,
+     "full_sample_voxel": 21215,
+     "grain": 149,
+     "err_deg": 54.50885580339766,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 332,
+     "nearest_grain_deg": 0.015168311768686297,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1736
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1854,
+     "full_sample_voxel": 21328,
+     "grain": 403,
+     "err_deg": 47.23011280224439,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 151,
+     "nearest_grain_deg": 0.033048505157416815,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      844,
+      861
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1949,
+     "full_sample_voxel": 24334,
+     "grain": 57,
+     "err_deg": 50.84967022410545,
+     "source": "unresolved",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 56,
+     "nearest_grain_deg": 0.005707393235812724,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      654
+     ],
+     "carriers_wrong": []
+    }
+   ]
+  },
+  "mc_clean->keyoff_rerun": {
+   "broken": [
+    {
+     "voxel": 401,
+     "full_sample_voxel": 5008,
+     "grain": 247,
+     "err_deg": 31.450597411852346,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 399,
+     "nearest_grain_deg": 0.0051523682650746905,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1769
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 474,
+     "full_sample_voxel": 5876,
+     "grain": 148,
+     "err_deg": 42.251377040125945,
+     "source": "unresolved",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 9.375005960464478,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 628,
+     "full_sample_voxel": 7179,
+     "grain": 76,
+     "err_deg": 30.749339048917406,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 350,
+     "nearest_grain_deg": 0.011297689069805284,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1633
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 697,
+     "full_sample_voxel": 8880,
+     "grain": 396,
+     "err_deg": 33.726078704426605,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 726,
+     "full_sample_voxel": 8909,
+     "grain": 57,
+     "err_deg": 44.107141823720724,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 332,
+     "nearest_grain_deg": 0.015168311768686297,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1736
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 757,
+     "full_sample_voxel": 8940,
+     "grain": 247,
+     "err_deg": 31.450597411852346,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 399,
+     "nearest_grain_deg": 0.0051523682650746905,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1769
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 795,
+     "full_sample_voxel": 8978,
+     "grain": 150,
+     "err_deg": 57.33992713623359,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 401,
+     "nearest_grain_deg": 0.00599649402018666,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1180
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1267,
+     "full_sample_voxel": 15749,
+     "grain": 492,
+     "err_deg": 45.7527057190422,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 331,
+     "nearest_grain_deg": 0.003095030152527673,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1267
+     ],
+     "carriers_wrong": [
+      1267
+     ]
+    },
+    {
+     "voxel": 1489,
+     "full_sample_voxel": 18179,
+     "grain": 301,
+     "err_deg": 29.775803257060343,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 300,
+     "nearest_grain_deg": 0.00856154302426126,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      749
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1714,
+     "full_sample_voxel": 21188,
+     "grain": 147,
+     "err_deg": 47.135425711504126,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 398,
+     "nearest_grain_deg": 0.003751032531719779,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      683
+     ],
+     "carriers_wrong": [
+      683
+     ]
+    },
+    {
+     "voxel": 1741,
+     "full_sample_voxel": 21215,
+     "grain": 149,
+     "err_deg": 54.50885580339766,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 332,
+     "nearest_grain_deg": 0.015168311768686297,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1736
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1760,
+     "full_sample_voxel": 21234,
+     "grain": 150,
+     "err_deg": 46.811201258500816,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 300,
+     "nearest_grain_deg": 0.00856154302426126,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      749
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1854,
+     "full_sample_voxel": 21328,
+     "grain": 403,
+     "err_deg": 47.23011280224439,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 151,
+     "nearest_grain_deg": 0.033048505157416815,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      844,
+      861
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1949,
+     "full_sample_voxel": 24334,
+     "grain": 57,
+     "err_deg": 50.84967022410545,
+     "source": "unresolved",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 56,
+     "nearest_grain_deg": 0.005707393235812724,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      654
+     ],
+     "carriers_wrong": []
+    }
+   ],
+   "fixed": [
+    {
+     "voxel": 149,
+     "full_sample_voxel": 1964,
+     "grain": 394,
+     "err_deg": 43.78553002183799,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 395,
+     "nearest_grain_deg": 0.022603367842469003,
+     "nearest_grain_distance_um": 9.374760152883765,
+     "full_search_carriers": [
+      665,
+      1666
+     ],
+     "carriers_wrong": [
+      665
+     ]
+    },
+    {
+     "voxel": 151,
+     "full_sample_voxel": 1966,
+     "grain": 394,
+     "err_deg": 43.78553002183799,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 395,
+     "nearest_grain_deg": 0.022603367842469003,
+     "nearest_grain_distance_um": 9.374767602863297,
+     "full_search_carriers": [
+      665,
+      1666
+     ],
+     "carriers_wrong": [
+      665
+     ]
+    },
+    {
+     "voxel": 260,
+     "full_sample_voxel": 3213,
+     "grain": 300,
+     "err_deg": 54.05793842527421,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.012194069145754225,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 320,
+     "full_sample_voxel": 4193,
+     "grain": 394,
+     "err_deg": 43.78553002183799,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 395,
+     "nearest_grain_deg": 0.022603367842469003,
+     "nearest_grain_distance_um": 9.374760152883765,
+     "full_search_carriers": [
+      665,
+      1666
+     ],
+     "carriers_wrong": [
+      665
+     ]
+    },
+    {
+     "voxel": 643,
+     "full_sample_voxel": 7194,
+     "grain": 351,
+     "err_deg": 51.8663682317479,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 154,
+     "nearest_grain_deg": 0.02329409490850421,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      98
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 663,
+     "full_sample_voxel": 8846,
+     "grain": 56,
+     "err_deg": 46.95684595660543,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 395,
+     "nearest_grain_deg": 0.0024033605307889876,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      665,
+      1666
+     ],
+     "carriers_wrong": [
+      665
+     ]
+    },
+    {
+     "voxel": 665,
+     "full_sample_voxel": 8848,
+     "grain": 394,
+     "err_deg": 43.77889916538758,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 395,
+     "nearest_grain_deg": 0.0024033605307889876,
+     "nearest_grain_distance_um": 9.374760152883765,
+     "full_search_carriers": [
+      665,
+      1666
+     ],
+     "carriers_wrong": [
+      665
+     ]
+    },
+    {
+     "voxel": 666,
+     "full_sample_voxel": 8849,
+     "grain": 56,
+     "err_deg": 46.95684595660543,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 395,
+     "nearest_grain_deg": 0.0024033605307889876,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      665,
+      1666
+     ],
+     "carriers_wrong": [
+      665
+     ]
+    },
+    {
+     "voxel": 707,
+     "full_sample_voxel": 8890,
+     "grain": 398,
+     "err_deg": 42.254904042642764,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 148,
+     "nearest_grain_deg": 0.00515562002384627,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      474
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1079,
+     "full_sample_voxel": 13250,
+     "grain": 300,
+     "err_deg": 46.257300912075436,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 148,
+     "nearest_grain_deg": 0.00515562002384627,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      474
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1088,
+     "full_sample_voxel": 13259,
+     "grain": 151,
+     "err_deg": 44.51247165512637,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.012194069145754225,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1317,
+     "full_sample_voxel": 16476,
+     "grain": 394,
+     "err_deg": 56.377426920180035,
+     "source": "unresolved",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 397,
+     "nearest_grain_deg": 0.0052892370953153125,
+     "nearest_grain_distance_um": 9.374760152883765,
+     "full_search_carriers": [
+      1679
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1384,
+     "full_sample_voxel": 16543,
+     "grain": 404,
+     "err_deg": 22.10068346931938,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 155,
+     "nearest_grain_deg": 0.0033141306758548168,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1380
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1706,
+     "full_sample_voxel": 21180,
+     "grain": 398,
+     "err_deg": 33.72590976234504,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 396,
+     "nearest_grain_deg": 0.0032181491085069795,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1696
+     ],
+     "carriers_wrong": []
+    }
+   ]
+  },
+  "smooth_only->integrated": {
+   "broken": [
+    {
+     "voxel": 171,
+     "full_sample_voxel": 1986,
+     "grain": 332,
+     "err_deg": 54.50835081873577,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.004012429493974204,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      172,
+      336
+     ],
+     "carriers_wrong": [
+      172
+     ]
+    },
+    {
+     "voxel": 172,
+     "full_sample_voxel": 1987,
+     "grain": 332,
+     "err_deg": 54.50835081873577,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.004012429493974204,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      172,
+      336
+     ],
+     "carriers_wrong": [
+      172
+     ]
+    },
+    {
+     "voxel": 244,
+     "full_sample_voxel": 3117,
+     "grain": 13,
+     "err_deg": 44.482897187489826,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 286,
+     "nearest_grain_deg": 0.007237277599072711,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1236
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 260,
+     "full_sample_voxel": 3213,
+     "grain": 300,
+     "err_deg": 54.04668664728069,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.01637986670013193,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 491,
+     "full_sample_voxel": 5893,
+     "grain": 150,
+     "err_deg": 38.446536312056104,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 301,
+     "nearest_grain_deg": 0.0035851694835133535,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1498
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 536,
+     "full_sample_voxel": 6675,
+     "grain": 331,
+     "err_deg": 45.757236081186875,
+     "source": "seed",
+     "cls": "another grain",
+     "origin": "own full search",
+     "nearest_grain": 492,
+     "nearest_grain_deg": 0.002190978810177085,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      536,
+      1535
+     ],
+     "carriers_wrong": [
+      536
+     ]
+    },
+    {
+     "voxel": 591,
+     "full_sample_voxel": 7142,
+     "grain": 146,
+     "err_deg": 49.49632040214679,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 23,
+     "nearest_grain_deg": 0.002803716219258624,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      590,
+      1593
+     ],
+     "carriers_wrong": [
+      590
+     ]
+    },
+    {
+     "voxel": 730,
+     "full_sample_voxel": 8913,
+     "grain": 332,
+     "err_deg": 54.50835081873577,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.004012429493974204,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      172,
+      336
+     ],
+     "carriers_wrong": [
+      172
+     ]
+    },
+    {
+     "voxel": 731,
+     "full_sample_voxel": 8914,
+     "grain": 332,
+     "err_deg": 54.50835081873577,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "carried from a wrong full search",
+     "nearest_grain": 149,
+     "nearest_grain_deg": 0.004012429493974204,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      172,
+      336
+     ],
+     "carriers_wrong": [
+      172
+     ]
+    },
+    {
+     "voxel": 1396,
+     "full_sample_voxel": 17286,
+     "grain": 399,
+     "err_deg": 31.44428807961156,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 247,
+     "nearest_grain_deg": 0.007721749378589211,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      545
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1489,
+     "full_sample_voxel": 18179,
+     "grain": 301,
+     "err_deg": 29.77315879033294,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 300,
+     "nearest_grain_deg": 0.003510927763806025,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1490
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1497,
+     "full_sample_voxel": 18187,
+     "grain": 152,
+     "err_deg": 56.27596250029134,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 301,
+     "nearest_grain_deg": 0.0035851694835133535,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1498
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1706,
+     "full_sample_voxel": 21180,
+     "grain": 398,
+     "err_deg": 33.730637894464685,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 396,
+     "nearest_grain_deg": 0.0044923803924701656,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1696
+     ],
+     "carriers_wrong": []
+    }
+   ],
+   "fixed": [
+    {
+     "voxel": 91,
+     "full_sample_voxel": 976,
+     "grain": 300,
+     "err_deg": 29.770757330563065,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 301,
+     "nearest_grain_deg": 0.008239682367707444,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      495
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 628,
+     "full_sample_voxel": 7179,
+     "grain": 76,
+     "err_deg": 30.749438420612478,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 350,
+     "nearest_grain_deg": 0.012131696804821184,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      1633
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1196,
+     "full_sample_voxel": 14299,
+     "grain": 151,
+     "err_deg": 44.51243445013516,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 24,
+     "nearest_grain_deg": 0.004041897897852642,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      832
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1571,
+     "full_sample_voxel": 19418,
+     "grain": 146,
+     "err_deg": 36.69237089361381,
+     "source": "neighbor",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 75,
+     "nearest_grain_deg": 0.015401921168309067,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      470
+     ],
+     "carriers_wrong": []
+    },
+    {
+     "voxel": 1854,
+     "full_sample_voxel": 21328,
+     "grain": 403,
+     "err_deg": 47.21234237982976,
+     "source": "revisit",
+     "cls": "another grain",
+     "origin": "boundary crossing",
+     "nearest_grain": 151,
+     "nearest_grain_deg": 0.012469703013145608,
+     "nearest_grain_distance_um": 0.0,
+     "full_search_carriers": [
+      844,
+      861
+     ],
+     "carriers_wrong": []
+    }
+   ]
+  },
+  "grain_spread_max_deg": 2.9575586669421963e-06,
+  "n_full_searches": {
+   "mc_clean": 67,
+   "keyoff_rerun": 63,
+   "smooth_only": 62,
+   "outward_only": 68,
+   "integrated": 65
+  },
+  "wrong_mc_clean": [
+   {
+    "voxel": 12,
+    "full_sample_voxel": 152,
+    "grain": 56,
+    "err_deg": 50.84553649717226,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 57,
+    "nearest_grain_deg": 0.015505282667244503,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1949
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 114,
+    "full_sample_voxel": 1384,
+    "grain": 22,
+    "err_deg": 20.54414571857389,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0021232792721543226,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 127,
+    "full_sample_voxel": 1397,
+    "grain": 146,
+    "err_deg": 49.49688627402618,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.00603345955017793,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 128,
+    "full_sample_voxel": 1398,
+    "grain": 146,
+    "err_deg": 49.49688627402618,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.00603345955017793,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 132,
+    "full_sample_voxel": 1402,
+    "grain": 23,
+    "err_deg": 45.98753824631094,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 350,
+    "nearest_grain_deg": 0.015935492247993312,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1633
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 149,
+    "full_sample_voxel": 1964,
+    "grain": 394,
+    "err_deg": 43.78553002183799,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 395,
+    "nearest_grain_deg": 0.022603367842469003,
+    "nearest_grain_distance_um": 9.374760152883765,
+    "full_search_carriers": [
+     665,
+     1666
+    ],
+    "carriers_wrong": [
+     665
+    ]
+   },
+   {
+    "voxel": 151,
+    "full_sample_voxel": 1966,
+    "grain": 394,
+    "err_deg": 43.78553002183799,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 395,
+    "nearest_grain_deg": 0.022603367842469003,
+    "nearest_grain_distance_um": 9.374767602863297,
+    "full_search_carriers": [
+     665,
+     1666
+    ],
+    "carriers_wrong": [
+     665
+    ]
+   },
+   {
+    "voxel": 166,
+    "full_sample_voxel": 1981,
+    "grain": 147,
+    "err_deg": 34.20599369093448,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.00603345955017793,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 244,
+    "full_sample_voxel": 3117,
+    "grain": 13,
+    "err_deg": 44.478503634975326,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 286,
+    "nearest_grain_deg": 0.00448753954351525,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1236
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 251,
+    "full_sample_voxel": 3204,
+    "grain": 147,
+    "err_deg": 34.20599369093448,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.00603345955017793,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 260,
+    "full_sample_voxel": 3213,
+    "grain": 300,
+    "err_deg": 54.05793842527421,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.012194069145754225,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 320,
+    "full_sample_voxel": 4193,
+    "grain": 394,
+    "err_deg": 43.78553002183799,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 395,
+    "nearest_grain_deg": 0.022603367842469003,
+    "nearest_grain_distance_um": 9.374760152883765,
+    "full_search_carriers": [
+     665,
+     1666
+    ],
+    "carriers_wrong": [
+     665
+    ]
+   },
+   {
+    "voxel": 446,
+    "full_sample_voxel": 5320,
+    "grain": 278,
+    "err_deg": 40.544411164021916,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 77,
+    "nearest_grain_deg": 0.006293155064801593,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     445
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 643,
+    "full_sample_voxel": 7194,
+    "grain": 351,
+    "err_deg": 51.8663682317479,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 154,
+    "nearest_grain_deg": 0.02329409490850421,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     98
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 663,
+    "full_sample_voxel": 8846,
+    "grain": 56,
+    "err_deg": 46.95684595660543,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 395,
+    "nearest_grain_deg": 0.0024033605307889876,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     665,
+     1666
+    ],
+    "carriers_wrong": [
+     665
+    ]
+   },
+   {
+    "voxel": 665,
+    "full_sample_voxel": 8848,
+    "grain": 394,
+    "err_deg": 43.77889916538758,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 395,
+    "nearest_grain_deg": 0.0024033605307889876,
+    "nearest_grain_distance_um": 9.374760152883765,
+    "full_search_carriers": [
+     665,
+     1666
+    ],
+    "carriers_wrong": [
+     665
+    ]
+   },
+   {
+    "voxel": 666,
+    "full_sample_voxel": 8849,
+    "grain": 56,
+    "err_deg": 46.95684595660543,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 395,
+    "nearest_grain_deg": 0.0024033605307889876,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     665,
+     1666
+    ],
+    "carriers_wrong": [
+     665
+    ]
+   },
+   {
+    "voxel": 683,
+    "full_sample_voxel": 8866,
+    "grain": 397,
+    "err_deg": 50.85073776793853,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 398,
+    "nearest_grain_deg": 0.0027240110791619597,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     706
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 707,
+    "full_sample_voxel": 8890,
+    "grain": 398,
+    "err_deg": 42.254904042642764,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 148,
+    "nearest_grain_deg": 0.00515562002384627,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     474
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 716,
+    "full_sample_voxel": 8899,
+    "grain": 147,
+    "err_deg": 34.20599369093448,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.00603345955017793,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 805,
+    "full_sample_voxel": 8988,
+    "grain": 402,
+    "err_deg": 52.01088008125798,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 153,
+    "nearest_grain_deg": 0.005286439012316519,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1815
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 853,
+    "full_sample_voxel": 9036,
+    "grain": 403,
+    "err_deg": 41.70148529514352,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 155,
+    "nearest_grain_deg": 0.0033141306758548168,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1380
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 922,
+    "full_sample_voxel": 11643,
+    "grain": 13,
+    "err_deg": 40.396113567158835,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 261,
+    "nearest_grain_deg": 0.00810438282824738,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     776
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1079,
+    "full_sample_voxel": 13250,
+    "grain": 300,
+    "err_deg": 46.257300912075436,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 148,
+    "nearest_grain_deg": 0.00515562002384627,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     474
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1088,
+    "full_sample_voxel": 13259,
+    "grain": 151,
+    "err_deg": 44.51247165512637,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.012194069145754225,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1114,
+    "full_sample_voxel": 13672,
+    "grain": 146,
+    "err_deg": 36.686487215578325,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0021232792721543226,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1287,
+    "full_sample_voxel": 15907,
+    "grain": 279,
+    "err_deg": 46.019027722476295,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0021232792721543226,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1311,
+    "full_sample_voxel": 16470,
+    "grain": 144,
+    "err_deg": 45.17757044915745,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 145,
+    "nearest_grain_deg": 0.021112637480551057,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1946
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1317,
+    "full_sample_voxel": 16476,
+    "grain": 394,
+    "err_deg": 56.377426920180035,
+    "source": "unresolved",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 397,
+    "nearest_grain_deg": 0.0052892370953153125,
+    "nearest_grain_distance_um": 9.374760152883765,
+    "full_search_carriers": [
+     1679
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1346,
+    "full_sample_voxel": 16505,
+    "grain": 150,
+    "err_deg": 33.48956321848805,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 400,
+    "nearest_grain_deg": 0.013593311797752392,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     765
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1384,
+    "full_sample_voxel": 16543,
+    "grain": 404,
+    "err_deg": 22.10068346931938,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 155,
+    "nearest_grain_deg": 0.0033141306758548168,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1380
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1571,
+    "full_sample_voxel": 19418,
+    "grain": 146,
+    "err_deg": 36.686487215578325,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0021232792721543226,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1588,
+    "full_sample_voxel": 19435,
+    "grain": 76,
+    "err_deg": 53.347160103208594,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 279,
+    "nearest_grain_deg": 0.03185267563081617,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     72
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1589,
+    "full_sample_voxel": 19436,
+    "grain": 76,
+    "err_deg": 53.347160103208594,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 279,
+    "nearest_grain_deg": 0.03185267563081617,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     72
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1706,
+    "full_sample_voxel": 21180,
+    "grain": 398,
+    "err_deg": 33.72590976234504,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 396,
+    "nearest_grain_deg": 0.0032181491085069795,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1696
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1886,
+    "full_sample_voxel": 21360,
+    "grain": 404,
+    "err_deg": 39.54452982354838,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 63,
+    "nearest_grain_deg": 0.020410865013282674,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     878
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1936,
+    "full_sample_voxel": 23940,
+    "grain": 109,
+    "err_deg": 12.21184223946087,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 261,
+    "nearest_grain_deg": 0.00810438282824738,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     776
+    ],
+    "carriers_wrong": []
+   }
+  ],
+  "wrong_keyoff_rerun": [
+   {
+    "voxel": 12,
+    "full_sample_voxel": 152,
+    "grain": 56,
+    "err_deg": 50.84419574784135,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 57,
+    "nearest_grain_deg": 0.0173964872236238,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     106
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 114,
+    "full_sample_voxel": 1384,
+    "grain": 22,
+    "err_deg": 20.543569901127597,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0005211573087081794,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 127,
+    "full_sample_voxel": 1397,
+    "grain": 146,
+    "err_deg": 49.49382541424906,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0012828738147598721,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 128,
+    "full_sample_voxel": 1398,
+    "grain": 146,
+    "err_deg": 49.49382541424906,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0012828738147598721,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 132,
+    "full_sample_voxel": 1402,
+    "grain": 23,
+    "err_deg": 46.01171866434864,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 350,
+    "nearest_grain_deg": 0.011297689069805284,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1633
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 166,
+    "full_sample_voxel": 1981,
+    "grain": 147,
+    "err_deg": 34.20305783880498,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0012828738147598721,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 244,
+    "full_sample_voxel": 3117,
+    "grain": 13,
+    "err_deg": 44.477242915716666,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 286,
+    "nearest_grain_deg": 0.004045264588265895,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1236
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 251,
+    "full_sample_voxel": 3204,
+    "grain": 147,
+    "err_deg": 34.20305783880498,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0012828738147598721,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 401,
+    "full_sample_voxel": 5008,
+    "grain": 247,
+    "err_deg": 31.450597411852346,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 399,
+    "nearest_grain_deg": 0.0051523682650746905,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1769
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 446,
+    "full_sample_voxel": 5320,
+    "grain": 278,
+    "err_deg": 40.54542833559644,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 77,
+    "nearest_grain_deg": 0.01448734295097531,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     445
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 474,
+    "full_sample_voxel": 5876,
+    "grain": 148,
+    "err_deg": 42.251377040125945,
+    "source": "unresolved",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 398,
+    "nearest_grain_deg": 0.003751032531719779,
+    "nearest_grain_distance_um": 9.375005960464478,
+    "full_search_carriers": [
+     683
+    ],
+    "carriers_wrong": [
+     683
+    ]
+   },
+   {
+    "voxel": 628,
+    "full_sample_voxel": 7179,
+    "grain": 76,
+    "err_deg": 30.749339048917406,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 350,
+    "nearest_grain_deg": 0.011297689069805284,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1633
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 683,
+    "full_sample_voxel": 8866,
+    "grain": 397,
+    "err_deg": 50.85030146491441,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 398,
+    "nearest_grain_deg": 0.003751032531719779,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     683
+    ],
+    "carriers_wrong": [
+     683
+    ]
+   },
+   {
+    "voxel": 697,
+    "full_sample_voxel": 8880,
+    "grain": 396,
+    "err_deg": 33.726078704426605,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 398,
+    "nearest_grain_deg": 0.003751032531719779,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     683
+    ],
+    "carriers_wrong": [
+     683
+    ]
+   },
+   {
+    "voxel": 716,
+    "full_sample_voxel": 8899,
+    "grain": 147,
+    "err_deg": 34.20305783880498,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0012828738147598721,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 726,
+    "full_sample_voxel": 8909,
+    "grain": 57,
+    "err_deg": 44.107141823720724,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 332,
+    "nearest_grain_deg": 0.015168311768686297,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1736
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 757,
+    "full_sample_voxel": 8940,
+    "grain": 247,
+    "err_deg": 31.450597411852346,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 399,
+    "nearest_grain_deg": 0.0051523682650746905,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1769
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 795,
+    "full_sample_voxel": 8978,
+    "grain": 150,
+    "err_deg": 57.33992713623359,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 401,
+    "nearest_grain_deg": 0.00599649402018666,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1180
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 805,
+    "full_sample_voxel": 8988,
+    "grain": 402,
+    "err_deg": 52.011583799408236,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 153,
+    "nearest_grain_deg": 0.0039807769175387985,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1815
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 853,
+    "full_sample_voxel": 9036,
+    "grain": 403,
+    "err_deg": 41.70391454562708,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 155,
+    "nearest_grain_deg": 0.005856414507921939,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1380
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 922,
+    "full_sample_voxel": 11643,
+    "grain": 13,
+    "err_deg": 40.40066635991376,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 261,
+    "nearest_grain_deg": 0.0025800909631013896,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     776
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1114,
+    "full_sample_voxel": 13672,
+    "grain": 146,
+    "err_deg": 36.68684797880942,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0005211573087081794,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1267,
+    "full_sample_voxel": 15749,
+    "grain": 492,
+    "err_deg": 45.7527057190422,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 331,
+    "nearest_grain_deg": 0.003095030152527673,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1267
+    ],
+    "carriers_wrong": [
+     1267
+    ]
+   },
+   {
+    "voxel": 1287,
+    "full_sample_voxel": 15907,
+    "grain": 279,
+    "err_deg": 46.01742141335689,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0005211573087081794,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1311,
+    "full_sample_voxel": 16470,
+    "grain": 144,
+    "err_deg": 45.17629291234057,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 145,
+    "nearest_grain_deg": 0.018440108955809165,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1946
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1346,
+    "full_sample_voxel": 16505,
+    "grain": 150,
+    "err_deg": 33.492998185127256,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 400,
+    "nearest_grain_deg": 0.004927227350869572,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     765
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1489,
+    "full_sample_voxel": 18179,
+    "grain": 301,
+    "err_deg": 29.775803257060343,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 300,
+    "nearest_grain_deg": 0.00856154302426126,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     749
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1571,
+    "full_sample_voxel": 19418,
+    "grain": 146,
+    "err_deg": 36.68684797880942,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0005211573087081794,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1588,
+    "full_sample_voxel": 19435,
+    "grain": 76,
+    "err_deg": 53.325917432257775,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 279,
+    "nearest_grain_deg": 0.005777193486320481,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     72
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1589,
+    "full_sample_voxel": 19436,
+    "grain": 76,
+    "err_deg": 53.325917432257775,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 279,
+    "nearest_grain_deg": 0.005777193486320481,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     72
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1714,
+    "full_sample_voxel": 21188,
+    "grain": 147,
+    "err_deg": 47.135425711504126,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 398,
+    "nearest_grain_deg": 0.003751032531719779,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     683
+    ],
+    "carriers_wrong": [
+     683
+    ]
+   },
+   {
+    "voxel": 1741,
+    "full_sample_voxel": 21215,
+    "grain": 149,
+    "err_deg": 54.50885580339766,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 332,
+    "nearest_grain_deg": 0.015168311768686297,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1736
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1760,
+    "full_sample_voxel": 21234,
+    "grain": 150,
+    "err_deg": 46.811201258500816,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 300,
+    "nearest_grain_deg": 0.00856154302426126,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     749
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1854,
+    "full_sample_voxel": 21328,
+    "grain": 403,
+    "err_deg": 47.23011280224439,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 151,
+    "nearest_grain_deg": 0.033048505157416815,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     844,
+     861
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1886,
+    "full_sample_voxel": 21360,
+    "grain": 404,
+    "err_deg": 39.543312795426594,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 63,
+    "nearest_grain_deg": 0.020156576828730084,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     878
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1936,
+    "full_sample_voxel": 23940,
+    "grain": 109,
+    "err_deg": 12.221084138115867,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 261,
+    "nearest_grain_deg": 0.0025800909631013896,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     776
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1949,
+    "full_sample_voxel": 24334,
+    "grain": 57,
+    "err_deg": 50.84967022410545,
+    "source": "unresolved",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 56,
+    "nearest_grain_deg": 0.005707393235812724,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     654
+    ],
+    "carriers_wrong": []
+   }
+  ],
+  "wrong_smooth_only": [
+   {
+    "voxel": 12,
+    "full_sample_voxel": 152,
+    "grain": 56,
+    "err_deg": 50.84956183794987,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 57,
+    "nearest_grain_deg": 0.013843705452095545,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1949
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 67,
+    "full_sample_voxel": 772,
+    "grain": 277,
+    "err_deg": 36.55944058890221,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 278,
+    "nearest_grain_deg": 0.002718870561797049,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     68
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 91,
+    "full_sample_voxel": 976,
+    "grain": 300,
+    "err_deg": 29.770757330563065,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 301,
+    "nearest_grain_deg": 0.008239682367707444,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     495
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 114,
+    "full_sample_voxel": 1384,
+    "grain": 22,
+    "err_deg": 20.54319558352665,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.015401921168309067,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 127,
+    "full_sample_voxel": 1397,
+    "grain": 146,
+    "err_deg": 49.49652816451606,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0037113625840366777,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 128,
+    "full_sample_voxel": 1398,
+    "grain": 146,
+    "err_deg": 49.49652816451606,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0037113625840366777,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 132,
+    "full_sample_voxel": 1402,
+    "grain": 23,
+    "err_deg": 46.012748759577576,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 350,
+    "nearest_grain_deg": 0.012131696804821184,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1633
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 166,
+    "full_sample_voxel": 1981,
+    "grain": 147,
+    "err_deg": 34.20525868200856,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0037113625840366777,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 251,
+    "full_sample_voxel": 3204,
+    "grain": 147,
+    "err_deg": 34.20525868200856,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0037113625840366777,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 446,
+    "full_sample_voxel": 5320,
+    "grain": 278,
+    "err_deg": 40.53635408791657,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 77,
+    "nearest_grain_deg": 0.006966367310209505,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     445
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 590,
+    "full_sample_voxel": 7141,
+    "grain": 146,
+    "err_deg": 49.49652816451606,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0037113625840366777,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 628,
+    "full_sample_voxel": 7179,
+    "grain": 76,
+    "err_deg": 30.749438420612478,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 350,
+    "nearest_grain_deg": 0.012131696804821184,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1633
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 643,
+    "full_sample_voxel": 7194,
+    "grain": 351,
+    "err_deg": 51.85619987210656,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 154,
+    "nearest_grain_deg": 0.013033988343805283,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     98
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 683,
+    "full_sample_voxel": 8866,
+    "grain": 397,
+    "err_deg": 50.84677973207347,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 398,
+    "nearest_grain_deg": 0.004539108768273582,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     706
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 707,
+    "full_sample_voxel": 8890,
+    "grain": 398,
+    "err_deg": 42.254909371505114,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 148,
+    "nearest_grain_deg": 0.004056056742913209,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     474
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 716,
+    "full_sample_voxel": 8899,
+    "grain": 147,
+    "err_deg": 34.20525868200856,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.0037113625840366777,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 805,
+    "full_sample_voxel": 8988,
+    "grain": 402,
+    "err_deg": 52.011179362230024,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 153,
+    "nearest_grain_deg": 0.004628908130008629,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1815
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 853,
+    "full_sample_voxel": 9036,
+    "grain": 403,
+    "err_deg": 41.69796953368007,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 155,
+    "nearest_grain_deg": 0.0013367227272854415,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1380
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 922,
+    "full_sample_voxel": 11643,
+    "grain": 13,
+    "err_deg": 40.39742336687613,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 261,
+    "nearest_grain_deg": 0.004526451507926851,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     776
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1049,
+    "full_sample_voxel": 12709,
+    "grain": 154,
+    "err_deg": 36.9133598507919,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.004041897897852642,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1079,
+    "full_sample_voxel": 13250,
+    "grain": 300,
+    "err_deg": 46.257236476716635,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 148,
+    "nearest_grain_deg": 0.004056056742913209,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     474
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1088,
+    "full_sample_voxel": 13259,
+    "grain": 151,
+    "err_deg": 44.51243445013516,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.004041897897852642,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1196,
+    "full_sample_voxel": 14299,
+    "grain": 151,
+    "err_deg": 44.51243445013516,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.004041897897852642,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1311,
+    "full_sample_voxel": 16470,
+    "grain": 144,
+    "err_deg": 45.18546196713642,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 145,
+    "nearest_grain_deg": 0.024126958567164524,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1946
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1346,
+    "full_sample_voxel": 16505,
+    "grain": 150,
+    "err_deg": 33.49049387400396,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 400,
+    "nearest_grain_deg": 0.011535464743087948,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     765
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1375,
+    "full_sample_voxel": 16534,
+    "grain": 403,
+    "err_deg": 29.63825314544973,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.004041897897852642,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1571,
+    "full_sample_voxel": 19418,
+    "grain": 146,
+    "err_deg": 36.69237089361381,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.015401921168309067,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1588,
+    "full_sample_voxel": 19435,
+    "grain": 76,
+    "err_deg": 53.34081990226763,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 279,
+    "nearest_grain_deg": 0.024755280212687157,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     72
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1589,
+    "full_sample_voxel": 19436,
+    "grain": 76,
+    "err_deg": 53.34081990226763,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 279,
+    "nearest_grain_deg": 0.024755280212687157,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     72
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1760,
+    "full_sample_voxel": 21234,
+    "grain": 150,
+    "err_deg": 46.812982994491776,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 300,
+    "nearest_grain_deg": 0.0017634450268842596,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     252
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1845,
+    "full_sample_voxel": 21319,
+    "grain": 151,
+    "err_deg": 44.51243445013516,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.004041897897852642,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1854,
+    "full_sample_voxel": 21328,
+    "grain": 403,
+    "err_deg": 47.21234237982976,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 151,
+    "nearest_grain_deg": 0.012469703013145608,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     844,
+     861
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1886,
+    "full_sample_voxel": 21360,
+    "grain": 404,
+    "err_deg": 39.54158463123135,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 63,
+    "nearest_grain_deg": 0.01237556536730716,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     878
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1936,
+    "full_sample_voxel": 23940,
+    "grain": 109,
+    "err_deg": 12.218890240239709,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 261,
+    "nearest_grain_deg": 0.004526451507926851,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     776
+    ],
+    "carriers_wrong": []
+   }
+  ],
+  "wrong_outward_only": [
+   {
+    "voxel": 12,
+    "full_sample_voxel": 152,
+    "grain": 56,
+    "err_deg": 50.852158110687235,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 57,
+    "nearest_grain_deg": 0.006376926296807901,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1949
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 67,
+    "full_sample_voxel": 772,
+    "grain": 277,
+    "err_deg": 36.55714338538108,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 278,
+    "nearest_grain_deg": 0.0023302972411545506,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     67,
+     68
+    ],
+    "carriers_wrong": [
+     67
+    ]
+   },
+   {
+    "voxel": 114,
+    "full_sample_voxel": 1384,
+    "grain": 22,
+    "err_deg": 20.543465417070678,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0016926505567681368,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 127,
+    "full_sample_voxel": 1397,
+    "grain": 146,
+    "err_deg": 49.493191880636566,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.010321094146182022,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 149,
+    "full_sample_voxel": 1964,
+    "grain": 394,
+    "err_deg": 43.77019891616773,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 395,
+    "nearest_grain_deg": 0.009893466537208505,
+    "nearest_grain_distance_um": 9.374760152883765,
+    "full_search_carriers": [
+     1666
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 151,
+    "full_sample_voxel": 1966,
+    "grain": 394,
+    "err_deg": 43.77019891616773,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 395,
+    "nearest_grain_deg": 0.009893466537208505,
+    "nearest_grain_distance_um": 9.374767602863297,
+    "full_search_carriers": [
+     1666
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 171,
+    "full_sample_voxel": 1986,
+    "grain": 332,
+    "err_deg": 54.51205449103158,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 149,
+    "nearest_grain_deg": 0.03181745358406149,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     336,
+     731
+    ],
+    "carriers_wrong": [
+     731
+    ]
+   },
+   {
+    "voxel": 172,
+    "full_sample_voxel": 1987,
+    "grain": 332,
+    "err_deg": 54.50889635998954,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 149,
+    "nearest_grain_deg": 0.03397769761990124,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     336,
+     731
+    ],
+    "carriers_wrong": [
+     731
+    ]
+   },
+   {
+    "voxel": 244,
+    "full_sample_voxel": 3117,
+    "grain": 13,
+    "err_deg": 44.48543559255479,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 286,
+    "nearest_grain_deg": 0.00829423551687265,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1236
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 260,
+    "full_sample_voxel": 3213,
+    "grain": 300,
+    "err_deg": 54.03830610519091,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.02039365482323984,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 320,
+    "full_sample_voxel": 4193,
+    "grain": 394,
+    "err_deg": 43.77019891616773,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 395,
+    "nearest_grain_deg": 0.009893466537208505,
+    "nearest_grain_distance_um": 9.374760152883765,
+    "full_search_carriers": [
+     1666
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 446,
+    "full_sample_voxel": 5320,
+    "grain": 278,
+    "err_deg": 40.53832328884399,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 77,
+    "nearest_grain_deg": 0.03508339458788178,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     445
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 536,
+    "full_sample_voxel": 6675,
+    "grain": 331,
+    "err_deg": 45.75874961827919,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 492,
+    "nearest_grain_deg": 0.015106746952921449,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     536,
+     1535
+    ],
+    "carriers_wrong": [
+     536
+    ]
+   },
+   {
+    "voxel": 643,
+    "full_sample_voxel": 7194,
+    "grain": 351,
+    "err_deg": 51.87215265613092,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 154,
+    "nearest_grain_deg": 0.017929169505842186,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     98
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 665,
+    "full_sample_voxel": 8848,
+    "grain": 394,
+    "err_deg": 43.77019891616773,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 395,
+    "nearest_grain_deg": 0.009893466537208505,
+    "nearest_grain_distance_um": 9.374760152883765,
+    "full_search_carriers": [
+     1666
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 683,
+    "full_sample_voxel": 8866,
+    "grain": 397,
+    "err_deg": 50.84963278336807,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 398,
+    "nearest_grain_deg": 0.007034625669520621,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     706
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 707,
+    "full_sample_voxel": 8890,
+    "grain": 398,
+    "err_deg": 42.25532178601885,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 148,
+    "nearest_grain_deg": 0.004721069047873999,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     474
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 716,
+    "full_sample_voxel": 8899,
+    "grain": 147,
+    "err_deg": 34.206170171920604,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.010400290415031299,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1593
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 730,
+    "full_sample_voxel": 8913,
+    "grain": 332,
+    "err_deg": 54.51205449103158,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 149,
+    "nearest_grain_deg": 0.03181745358406149,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     336,
+     731
+    ],
+    "carriers_wrong": [
+     731
+    ]
+   },
+   {
+    "voxel": 731,
+    "full_sample_voxel": 8914,
+    "grain": 332,
+    "err_deg": 54.51205449103158,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 149,
+    "nearest_grain_deg": 0.03181745358406149,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     336,
+     731
+    ],
+    "carriers_wrong": [
+     731
+    ]
+   },
+   {
+    "voxel": 805,
+    "full_sample_voxel": 8988,
+    "grain": 402,
+    "err_deg": 52.010685022524314,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 153,
+    "nearest_grain_deg": 0.0016484810489700026,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1815
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 853,
+    "full_sample_voxel": 9036,
+    "grain": 403,
+    "err_deg": 41.697735429992164,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 155,
+    "nearest_grain_deg": 0.0012973696666613707,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1380
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 922,
+    "full_sample_voxel": 11643,
+    "grain": 13,
+    "err_deg": 40.40175121774617,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 261,
+    "nearest_grain_deg": 0.004085485231518649,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     776
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1079,
+    "full_sample_voxel": 13250,
+    "grain": 300,
+    "err_deg": 46.25771266201597,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 148,
+    "nearest_grain_deg": 0.004721069047873999,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     474
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1114,
+    "full_sample_voxel": 13672,
+    "grain": 146,
+    "err_deg": 36.6868509403412,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0016926505567681368,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1287,
+    "full_sample_voxel": 15907,
+    "grain": 279,
+    "err_deg": 46.01885059457887,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0016926505567681368,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1311,
+    "full_sample_voxel": 16470,
+    "grain": 144,
+    "err_deg": 45.17629291234057,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 145,
+    "nearest_grain_deg": 0.018440108955809165,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1946
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1317,
+    "full_sample_voxel": 16476,
+    "grain": 394,
+    "err_deg": 49.078524313320735,
+    "source": "unresolved",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 144,
+    "nearest_grain_deg": 0.010358880090726864,
+    "nearest_grain_distance_um": 9.374760152883765,
+    "full_search_carriers": [
+     686
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1345,
+    "full_sample_voxel": 16504,
+    "grain": 150,
+    "err_deg": 33.49339577334631,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 400,
+    "nearest_grain_deg": 0.01723059052191451,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     765,
+     1345,
+     1349
+    ],
+    "carriers_wrong": [
+     1345,
+     1349
+    ]
+   },
+   {
+    "voxel": 1346,
+    "full_sample_voxel": 16505,
+    "grain": 150,
+    "err_deg": 33.49339577334631,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 400,
+    "nearest_grain_deg": 0.01723059052191451,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     765,
+     1345,
+     1349
+    ],
+    "carriers_wrong": [
+     1345,
+     1349
+    ]
+   },
+   {
+    "voxel": 1349,
+    "full_sample_voxel": 16508,
+    "grain": 150,
+    "err_deg": 33.49339577334631,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 400,
+    "nearest_grain_deg": 0.01723059052191451,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     765,
+     1345,
+     1349
+    ],
+    "carriers_wrong": [
+     1345,
+     1349
+    ]
+   },
+   {
+    "voxel": 1571,
+    "full_sample_voxel": 19418,
+    "grain": 146,
+    "err_deg": 36.6868509403412,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.0016926505567681368,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1588,
+    "full_sample_voxel": 19435,
+    "grain": 76,
+    "err_deg": 53.321156112246804,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 279,
+    "nearest_grain_deg": 0.002613620771381204,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     72
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1589,
+    "full_sample_voxel": 19436,
+    "grain": 76,
+    "err_deg": 53.321156112246804,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 279,
+    "nearest_grain_deg": 0.002613620771381204,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     72
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1886,
+    "full_sample_voxel": 21360,
+    "grain": 404,
+    "err_deg": 39.5394835421223,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 63,
+    "nearest_grain_deg": 0.009847590751452877,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     878
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1936,
+    "full_sample_voxel": 23940,
+    "grain": 109,
+    "err_deg": 12.22290320011114,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 261,
+    "nearest_grain_deg": 0.004085485231518649,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     776
+    ],
+    "carriers_wrong": []
+   }
+  ],
+  "wrong_integrated": [
+   {
+    "voxel": 12,
+    "full_sample_voxel": 152,
+    "grain": 56,
+    "err_deg": 50.845208597070275,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 57,
+    "nearest_grain_deg": 0.02681262134590549,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1949
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 67,
+    "full_sample_voxel": 772,
+    "grain": 277,
+    "err_deg": 36.554404160228984,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 278,
+    "nearest_grain_deg": 0.010105083967544252,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     67,
+     68
+    ],
+    "carriers_wrong": [
+     67
+    ]
+   },
+   {
+    "voxel": 114,
+    "full_sample_voxel": 1384,
+    "grain": 22,
+    "err_deg": 20.54538094116027,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 75,
+    "nearest_grain_deg": 0.006941534057357813,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     470
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 127,
+    "full_sample_voxel": 1397,
+    "grain": 146,
+    "err_deg": 49.49632040214679,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.002803716219258624,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     590,
+     1593
+    ],
+    "carriers_wrong": [
+     590
+    ]
+   },
+   {
+    "voxel": 128,
+    "full_sample_voxel": 1398,
+    "grain": 146,
+    "err_deg": 49.49632040214679,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.002803716219258624,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     590,
+     1593
+    ],
+    "carriers_wrong": [
+     590
+    ]
+   },
+   {
+    "voxel": 132,
+    "full_sample_voxel": 1402,
+    "grain": 23,
+    "err_deg": 46.00143228531339,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 350,
+    "nearest_grain_deg": 0.007446110977408651,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1633
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 166,
+    "full_sample_voxel": 1981,
+    "grain": 147,
+    "err_deg": 34.20595212222476,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.002803716219258624,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     590,
+     1593
+    ],
+    "carriers_wrong": [
+     590
+    ]
+   },
+   {
+    "voxel": 171,
+    "full_sample_voxel": 1986,
+    "grain": 332,
+    "err_deg": 54.50835081873577,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 149,
+    "nearest_grain_deg": 0.004012429493974204,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     172,
+     336
+    ],
+    "carriers_wrong": [
+     172
+    ]
+   },
+   {
+    "voxel": 172,
+    "full_sample_voxel": 1987,
+    "grain": 332,
+    "err_deg": 54.50835081873577,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 149,
+    "nearest_grain_deg": 0.004012429493974204,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     172,
+     336
+    ],
+    "carriers_wrong": [
+     172
+    ]
+   },
+   {
+    "voxel": 244,
+    "full_sample_voxel": 3117,
+    "grain": 13,
+    "err_deg": 44.482897187489826,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 286,
+    "nearest_grain_deg": 0.007237277599072711,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1236
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 251,
+    "full_sample_voxel": 3204,
+    "grain": 147,
+    "err_deg": 34.20595212222476,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.002803716219258624,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     590,
+     1593
+    ],
+    "carriers_wrong": [
+     590
+    ]
+   },
+   {
+    "voxel": 260,
+    "full_sample_voxel": 3213,
+    "grain": 300,
+    "err_deg": 54.04668664728069,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.01637986670013193,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 446,
+    "full_sample_voxel": 5320,
+    "grain": 278,
+    "err_deg": 40.54361154261817,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 77,
+    "nearest_grain_deg": 0.008850117465411004,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     445
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 491,
+    "full_sample_voxel": 5893,
+    "grain": 150,
+    "err_deg": 38.446536312056104,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 301,
+    "nearest_grain_deg": 0.0035851694835133535,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1498
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 536,
+    "full_sample_voxel": 6675,
+    "grain": 331,
+    "err_deg": 45.757236081186875,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 492,
+    "nearest_grain_deg": 0.002190978810177085,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     536,
+     1535
+    ],
+    "carriers_wrong": [
+     536
+    ]
+   },
+   {
+    "voxel": 590,
+    "full_sample_voxel": 7141,
+    "grain": 146,
+    "err_deg": 49.49632040214679,
+    "source": "seed",
+    "cls": "another grain",
+    "origin": "own full search",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.002803716219258624,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     590,
+     1593
+    ],
+    "carriers_wrong": [
+     590
+    ]
+   },
+   {
+    "voxel": 591,
+    "full_sample_voxel": 7142,
+    "grain": 146,
+    "err_deg": 49.49632040214679,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.002803716219258624,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     590,
+     1593
+    ],
+    "carriers_wrong": [
+     590
+    ]
+   },
+   {
+    "voxel": 643,
+    "full_sample_voxel": 7194,
+    "grain": 351,
+    "err_deg": 51.856754218008994,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 154,
+    "nearest_grain_deg": 0.01928345036740389,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     98
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 683,
+    "full_sample_voxel": 8866,
+    "grain": 397,
+    "err_deg": 50.85594052294972,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 398,
+    "nearest_grain_deg": 0.012388454609648176,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     706
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 707,
+    "full_sample_voxel": 8890,
+    "grain": 398,
+    "err_deg": 42.25125390120643,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 148,
+    "nearest_grain_deg": 0.0036674498654912977,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     474
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 716,
+    "full_sample_voxel": 8899,
+    "grain": 147,
+    "err_deg": 34.20595212222476,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 23,
+    "nearest_grain_deg": 0.002803716219258624,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     590,
+     1593
+    ],
+    "carriers_wrong": [
+     590
+    ]
+   },
+   {
+    "voxel": 730,
+    "full_sample_voxel": 8913,
+    "grain": 332,
+    "err_deg": 54.50835081873577,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 149,
+    "nearest_grain_deg": 0.004012429493974204,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     172,
+     336
+    ],
+    "carriers_wrong": [
+     172
+    ]
+   },
+   {
+    "voxel": 731,
+    "full_sample_voxel": 8914,
+    "grain": 332,
+    "err_deg": 54.50835081873577,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "carried from a wrong full search",
+    "nearest_grain": 149,
+    "nearest_grain_deg": 0.004012429493974204,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     172,
+     336
+    ],
+    "carriers_wrong": [
+     172
+    ]
+   },
+   {
+    "voxel": 805,
+    "full_sample_voxel": 8988,
+    "grain": 402,
+    "err_deg": 52.01082068239744,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 153,
+    "nearest_grain_deg": 0.002557767914454422,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1358
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 853,
+    "full_sample_voxel": 9036,
+    "grain": 403,
+    "err_deg": 41.699219681600546,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 155,
+    "nearest_grain_deg": 0.0012202549198667976,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1380
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 922,
+    "full_sample_voxel": 11643,
+    "grain": 13,
+    "err_deg": 40.401612694982546,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 261,
+    "nearest_grain_deg": 0.004494259608422532,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     776
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1049,
+    "full_sample_voxel": 12709,
+    "grain": 154,
+    "err_deg": 36.917753863415356,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.011322270985698244,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1079,
+    "full_sample_voxel": 13250,
+    "grain": 300,
+    "err_deg": 46.25859530492078,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 148,
+    "nearest_grain_deg": 0.0036674498654912977,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     474
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1088,
+    "full_sample_voxel": 13259,
+    "grain": 151,
+    "err_deg": 44.51640928385285,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.011322270985698244,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1311,
+    "full_sample_voxel": 16470,
+    "grain": 144,
+    "err_deg": 45.18546196713642,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 145,
+    "nearest_grain_deg": 0.024126958567164524,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1946
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1346,
+    "full_sample_voxel": 16505,
+    "grain": 150,
+    "err_deg": 33.49343157646924,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 400,
+    "nearest_grain_deg": 0.00909796132191172,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     765
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1375,
+    "full_sample_voxel": 16534,
+    "grain": 403,
+    "err_deg": 29.646078939185784,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.011322270985698244,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1396,
+    "full_sample_voxel": 17286,
+    "grain": 399,
+    "err_deg": 31.44428807961156,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 247,
+    "nearest_grain_deg": 0.007721749378589211,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     545
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1489,
+    "full_sample_voxel": 18179,
+    "grain": 301,
+    "err_deg": 29.77315879033294,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 300,
+    "nearest_grain_deg": 0.003510927763806025,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1490
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1497,
+    "full_sample_voxel": 18187,
+    "grain": 152,
+    "err_deg": 56.27596250029134,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 301,
+    "nearest_grain_deg": 0.0035851694835133535,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1498
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1588,
+    "full_sample_voxel": 19435,
+    "grain": 76,
+    "err_deg": 53.31665904529402,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 279,
+    "nearest_grain_deg": 0.008138246710383958,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     72
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1589,
+    "full_sample_voxel": 19436,
+    "grain": 76,
+    "err_deg": 53.31665904529402,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 279,
+    "nearest_grain_deg": 0.008138246710383958,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     72
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1706,
+    "full_sample_voxel": 21180,
+    "grain": 398,
+    "err_deg": 33.730637894464685,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 396,
+    "nearest_grain_deg": 0.0044923803924701656,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1696
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1760,
+    "full_sample_voxel": 21234,
+    "grain": 150,
+    "err_deg": 46.81239351634195,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 300,
+    "nearest_grain_deg": 0.003510927763806025,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     1490
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1845,
+    "full_sample_voxel": 21319,
+    "grain": 151,
+    "err_deg": 44.51640928385285,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 24,
+    "nearest_grain_deg": 0.011322270985698244,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     832
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1886,
+    "full_sample_voxel": 21360,
+    "grain": 404,
+    "err_deg": 39.5391665456567,
+    "source": "neighbor",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 63,
+    "nearest_grain_deg": 0.011701364991610157,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     878
+    ],
+    "carriers_wrong": []
+   },
+   {
+    "voxel": 1936,
+    "full_sample_voxel": 23940,
+    "grain": 109,
+    "err_deg": 12.222902004292635,
+    "source": "revisit",
+    "cls": "another grain",
+    "origin": "boundary crossing",
+    "nearest_grain": 261,
+    "nearest_grain_deg": 0.004494259608422532,
+    "nearest_grain_distance_um": 0.0,
+    "full_search_carriers": [
+     776
+    ],
+    "carriers_wrong": []
+   }
+  ]
+ },
+ "probe": {
+  "voxels": {
+   "8866": {
+    "err_key_off": 0.0014183680639349666,
+    "err_key_on": 0.02547579143280639,
+    "evals_key_off": 326662,
+    "evals_key_on": 337083
+   },
+   "15749": {
+    "err_key_off": 0.01988654908079114,
+    "err_key_on": 0.006972754711798452,
+    "evals_key_off": 334258,
+    "evals_key_on": 339863
+   }
+  },
+  "broken": [
+   {
+    "voxel": 67,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 91,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 590,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 643,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 707,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1049,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1079,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1088,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1196,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1375,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1845,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   }
+  ],
+  "fixed": [
+   {
+    "voxel": 244,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 401,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 474,
+    "origin": "carried from a wrong full search",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 697,
+    "origin": "carried from a wrong full search",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 726,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 757,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 795,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1114,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1267,
+    "origin": "own full search",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1287,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1489,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1714,
+    "origin": "carried from a wrong full search",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1741,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   },
+   {
+    "voxel": 1949,
+    "origin": "boundary crossing",
+    "verdict": "draw"
+   }
+  ]
+ },
+ "total": {
+  "smooth_x_strict": {
+   "full": 4.297,
+   "e0": 1.262
+  },
+  "nostart_stages": [
+   {
+    "stage": "screen",
+    "before": 465057,
+    "after": 466695,
+    "change": 0.003522148897876942
+   },
+   {
+    "stage": "recost",
+    "before": 402506,
+    "after": 404295,
+    "change": 0.0044446542411789025
+   },
+   {
+    "stage": "quick",
+    "before": 1098888,
+    "after": 1110036,
+    "change": 0.010144800926026987
+   },
+   {
+    "stage": "find",
+    "before": 17312,
+    "after": 15792,
+    "change": -0.0878003696857671
+   },
+   {
+    "stage": "variance",
+    "before": 8509,
+    "after": 10093,
+    "change": 0.18615583499823707
+   },
+   {
+    "stage": "final",
+    "before": 6,
+    "after": 6,
+    "change": 0.0
+   },
+   {
+    "stage": "strict, all stages",
+    "before": 1992278,
+    "after": 2006917,
+    "change": 0.0073478701265585755
+   },
+   {
+    "stage": "smooth key (E3+E4)",
+    "before": 0,
+    "after": 90183,
+    "change": null
+   },
+   {
+    "stage": "strict-equivalent (smooth x 4.297)",
+    "before": 1992278,
+    "after": 2394433.351,
+    "change": 0.20185704555287964
+   }
+  ],
+  "sets": [
+   {
+    "set": "six full-sample voxels (sum)",
+    "n": 6,
+    "wrong_before": "0 (0.0-39.0%)",
+    "wrong_after": "0 (0.0-39.0%)",
+    "fixed_broken": "0 / 0",
+    "strict_before": 1992278,
+    "strict_after": 2006917,
+    "smooth": 90183,
+    "equiv_change": 0.20185704555287964
+   },
+   {
+    "set": "Task E's other 24 full-sample voxels (per voxel)",
+    "n": 24,
+    "wrong_before": "1 (0.7-20.2%)",
+    "wrong_after": "0 (0.0-13.8%)",
+    "fixed_broken": "1 / 0",
+    "strict_before": 330584.0,
+    "strict_after": 335047.0,
+    "smooth": 15119.0,
+    "equiv_change": 0.21002027623841446
+   },
+   {
+    "set": "E0 200 voxels (per voxel)",
+    "n": 200,
+    "wrong_before": "41 (15.5-26.6%)",
+    "wrong_after": "7 (1.7-7.0%)",
+    "fixed_broken": "34 / 0",
+    "strict_before": 48699.525,
+    "strict_after": 49214.67,
+    "smooth": 252.165,
+    "equiv_change": 0.017112635698192102
+   },
+   {
+    "set": "BFS pilot region, 2,000 voxels (whole run)",
+    "n": 2000,
+    "wrong_before": "37 (1.3-2.5%)",
+    "wrong_after": "34 (1.2-2.4%)",
+    "fixed_broken": "14 / 11",
+    "strict_before": 25547935,
+    "strict_after": 24490331,
+    "smooth": 980594,
+    "equiv_change": 0.12353281852329734
+   }
+  ],
+  "bfs_rows": [
+   {
+    "run": "stored configuration, today's code",
+    "wrong": "37 (1.3-2.5%)",
+    "fixed_broken": "-",
+    "grains_lost": 0,
+    "seed": 13264873,
+    "reseed": 9617992,
+    "neighbor": 1293861,
+    "revisit": 1371209,
+    "total": 25547935,
+    "smooth": 0,
+    "strict_equivalent": 25547935.0,
+    "wall_s": 8996.856884002686,
+    "timing": "contended: 3 concurrent 2000-voxel BFS runs (Task G2)",
+    "strict_outside_policy": {
+     "seed": 13264873,
+     "reseed": 9617992,
+     "neighbor": 1293861,
+     "revisit": 1371209
+    },
+    "policy_equiv": 0,
+    "equiv_change": 0.0
+   },
+   {
+    "run": "SmoothCostRank only",
+    "wrong": "34 (1.2-2.4%)",
+    "fixed_broken": "14 / 11",
+    "grains_lost": 0,
+    "seed": 11743593,
+    "reseed": 10066910,
+    "neighbor": 1289656,
+    "revisit": 1390172,
+    "total": 24490331,
+    "smooth": 980594,
+    "strict_equivalent": 28703943.417999998,
+    "wall_s": 11136.343216180801,
+    "timing": "contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled",
+    "strict_outside_policy": {
+     "seed": 11743593,
+     "reseed": 10066910,
+     "neighbor": 1289656,
+     "revisit": 1390172
+    },
+    "policy_equiv": 0,
+    "equiv_change": 0.12353281852329734
+   },
+   {
+    "run": "OutwardSearch only",
+    "wrong": "36 (1.3-2.5%)",
+    "fixed_broken": "18 / 17",
+    "grains_lost": 1,
+    "seed": 11265144,
+    "reseed": 10415877,
+    "neighbor": 19987665,
+    "revisit": 19950797,
+    "total": 61619483,
+    "smooth": 0,
+    "strict_equivalent": 29102899.01747527,
+    "wall_s": 10980.478366851807,
+    "timing": "contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2)",
+    "strict_outside_policy": {
+     "seed": 11265144,
+     "reseed": 10290705,
+     "neighbor": 1289540,
+     "revisit": 1431570
+    },
+    "policy_equiv": 4825940.017475268,
+    "equiv_change": 0.13914878120189633
+   },
+   {
+    "run": "both (Task G2's integrated configuration)",
+    "wrong": "42 (1.6-2.8%)",
+    "fixed_broken": "15 / 20",
+    "grains_lost": 1,
+    "seed": 12747993,
+    "reseed": 9493718,
+    "neighbor": 19736111,
+    "revisit": 18843288,
+    "total": 60821110,
+    "smooth": 996303,
+    "strict_equivalent": 33867545.23809108,
+    "wall_s": 13821.569776058197,
+    "timing": "contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2)",
+    "strict_outside_policy": {
+     "seed": 12747993,
+     "reseed": 9410254,
+     "neighbor": 1288175,
+     "revisit": 1408274
+    },
+    "policy_equiv": 4731735.247091086,
+    "equiv_change": 0.3256470723794733
+   }
+  ],
+  "full_search_time": {
+   "rows": [
+    {
+     "run": "stored configuration, today's code",
+     "full_searches": 69,
+     "wall_per_full_search_s": 113.7318874027418,
+     "strict_per_full_search": 331635.72463768115,
+     "smooth_per_full_search": 0.0,
+     "implied_ms_per_smooth": null,
+     "timing": "contended: 3 concurrent 2000-voxel BFS runs (Task G2)"
+    },
+    {
+     "run": "SmoothCostRank only",
+     "full_searches": 65,
+     "wall_per_full_search_s": 154.01321185185358,
+     "strict_per_full_search": 335546.2,
+     "smooth_per_full_search": 15086.061538461538,
+     "implied_ms_per_smooth": 2.581207646394132,
+     "timing": "contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled"
+    },
+    {
+     "run": "both (Task G2's integrated configuration)",
+     "full_searches": 70,
+     "wall_per_full_search_s": 146.79955114977702,
+     "strict_per_full_search": 317738.72857142857,
+     "smooth_per_full_search": 14232.9,
+     "implied_ms_per_smooth": 2.658174388341653,
+     "timing": "contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2)"
+    }
+   ],
+   "us_per_strict_key_off": 342.94220722751214
+  },
+  "full_sample_estimate": {
+   "voxels": 24570,
+   "grains": 497,
+   "rows": [
+    {
+     "run": "stored configuration, today's code",
+     "full_searches": 69,
+     "full_search_wall_s": 7847.500230789185,
+     "local_fit_wall_s": 1148.8645045757294,
+     "grain_scale": 8.283333333333333,
+     "voxel_scale": 12.285,
+     "estimate_h": 21.9770168565972,
+     "timing": "contended: 3 concurrent 2000-voxel BFS runs (Task G2)"
+    },
+    {
+     "run": "SmoothCostRank only",
+     "full_searches": 65,
+     "full_search_wall_s": 10010.858770370483,
+     "local_fit_wall_s": 1125.0616903305054,
+     "grain_scale": 8.283333333333333,
+     "voxel_scale": 12.285,
+     "estimate_h": 26.87351750378123,
+     "timing": "contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled"
+    }
+   ]
+  }
+ },
+ "levers": {
+  "rule_split_e0": {
+   "n": 200,
+   "wrong_lenient": 41,
+   "wrong_cpp": 56,
+   "cpp_fixes": 15,
+   "cpp_breaks": 30,
+   "both_wrong": 26
+  },
+  "rows": [
+   {
+    "lever": "C++ overlap rule (`CppOverlapRule 1`)",
+    "task": "A",
+    "evaluations": "332,046 -> 228,146 per voxel (six full-sample voxels)",
+    "wrong": "E0: 41 -> 56 (15 fixed / 30 broken)",
+    "time": "173 -> 116 s per voxel (mixed labels)",
+    "carried": "no (lenient rule stays, D-20261013-I6)"
+   },
+   {
+    "lever": "C++ edge rules, omega interpolation, batched screen (`CppEdgeRules`, `CppOmegaInterp`, `BatchedScreen`)",
+    "task": "A",
+    "evaluations": "332,046 -> 329,595 per voxel (six voxels, lenient rule, all three)",
+    "wrong": "E0 (lenient rule, edge rules and interpolation): 41 -> 40 (21 fixed / 20 broken)",
+    "time": "122.5 -> 96.2 s, voxel 15901, C++ rule with `CppEdgeRules`, adding the other two (single-worker)",
+    "carried": "`BatchedScreen` on by default since 2026-10-13; the other two opt-in"
+   },
+   {
+    "lever": "candidate de-duplication, best arm (`CandidateDedup clique=cpp:1`)",
+    "task": "C",
+    "evaluations": "75.8% of the base (six voxels); 99.4% on E0",
+    "wrong": "E0: 41 -> 55 (10 fixed / 24 broken)",
+    "time": "not measured single-worker",
+    "carried": "no (D-20261014-N4)"
+   },
+   {
+    "lever": "smooth ranking key of levels 0-2 (`SmoothCostRank E3+E4,tau=0.25`)",
+    "task": "E, G1",
+    "evaluations": "E0 48,700 -> 49,215 strict + 252 smooth per voxel; six voxels 332,046 -> 334,486 + 15,030",
+    "wrong": "E0: 41 -> 7 (34 fixed / 0 broken)",
+    "time": "+21.1% per full-sample voxel with the cache (voxel 17034, single-worker)",
+    "carried": "yes (D-20261029-N1)"
+   },
+   {
+    "lever": "smooth ranking key of levels 0-2 (`SmoothCostRank E1+E2+E3+E4`)",
+    "task": "E, G1",
+    "evaluations": "E0 48,700 -> 49,653 strict + 263 smooth per voxel; six voxels 332,046 -> 348,018 + 15,755",
+    "wrong": "E0: 41 -> 5 (36 fixed / 0 broken)",
+    "time": "+106.9% per full-sample voxel with the cache (voxel 17034, single-worker)",
+    "carried": "no (G1 default rule: fewer net fixes on the full sample)"
+   },
+   {
+    "lever": "SmoothCost cache per image set",
+    "task": "G1",
+    "evaluations": "none (the same results)",
+    "wrong": "no change (bit-identical)",
+    "time": "saves the 16.7 s build per voxel (17.6 / 17.2 s measured, single-worker)",
+    "carried": "yes, under the key"
+   },
+   {
+    "lever": "outward search for BFS neighbours and reseeds (`OutwardSearch 1`)",
+    "task": "F, G2",
+    "evaluations": "BFS region 25.5M -> 61.6M (mostly screen evaluations)",
+    "wrong": "BFS region: 37 -> 36 (18 fixed / 17 broken)",
+    "time": "8,997 -> 10,980 s (contended)",
+    "carried": "no (D-20261029-N2)"
+   }
+  ]
+ },
+ "figure": "benchmarks/eval_reduction/G/g3/figures/evals_by_stage.png"
+}

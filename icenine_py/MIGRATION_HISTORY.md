@@ -8612,6 +8612,55 @@ session to publish).
   `SmoothCostRank E3+E4,tau=0.25` helps E0 (41 -> 7) at +1.1% strict evaluations; its BFS share is not separable here
   (integrated 42 against OutwardSearch alone 36, one seed order).
 
+### Task G3: the total and the consolidated findings (2026-10-29, `feature/eval-reduction-G3`)
+
+Steps 4 and 5 of Task G (plan approved D-20261028-N2), plus one BFS arm (D-20261029-N3). Run log and tables:
+`benchmarks/eval_reduction/G/g3/RUN_LOG.md` (`summary.json`, `tables.md`, `bfs/runs/smooth_only/`, `figures/`); findings
+`docs/findings_eval_reduction_2026-10.md`; maps `G/maps/` (fifth panel added; for the main session to publish). No library change.
+
+* **The extra arm.** `SmoothCostRank E3+E4,tau=0.25` alone (`OutwardSearch` off) on the 2,000-voxel pilot region, otherwise the
+  key-off rerun's configuration and seed order (`G/g3/smooth_only_mc_clean.config`). Against the key-off rerun: 34 wrong against 37
+  (14 fixed, 11 broken, 23 both wrong), 0 grains lost, 0 unresolved; strict evaluations 24,490,331 against 25,547,935 (35 seeds and
+  30 reseeds against 40 and 29) plus 980,594 smooth: +12.4% strict-equivalent; wall 11,136 s (contended, one run; the key-off run
+  8,997 s with three runs at once, not comparable). Neighbour acceptance unchanged (768 against 769 accepted first).
+* **Trace.** In all five pilot-region runs every wrong voxel carries the orientation of a grain it touches (within 0.01 deg of that
+  grain, its vertex within 9.4 um). With the key on none of the 34 comes from a wrong full search (key off: 5 of 37). The arm's 11
+  breaks are all boundary crossings from right full searches (where the key does not act): traced to the draw. Its 14 fixes include
+  4 from two wrong key-off full searches; the probe re-runs of those two (full-sample voxels 8866, 15749) are right with the key off
+  and on, so they are traced to the draw too (D-20261014-N13: 0 traced to the arm, 0 untraced).
+* **Time of the key in a BFS.** Per full search 154 s (smooth only) and 147 s (integrated) against 114 s key off, implying about
+  2.6 ms per smooth evaluation against Task E's 1.639 ms; a scratch check showed the cache is hit inside the BFS reconstructor (one
+  build, one hit), so it is not a rebuild. Contention differs; cause untested.
+* **The total** (key off -> smooth key, strict-equivalent): six full-sample voxels +20.2% (0 -> 0 wrong), Task E's other 24 +21.0%
+  (1 -> 0), E0 +1.7% (41 -> 7), BFS region +12.4% (37 -> 34). OutwardSearch alone +13.9%, both +32.6%.
+* **Full-sample estimate.** 24,570 voxels, 497 grains; scaling the pilot (full searches by grains, local fits by voxels; untested):
+  22.0 h key off and 26.9 h key on, one process.
+* **Proposals (owner).** No default flip, no golden change. `SmoothCostRank` stays opt-in (gain on full-sample images within the draw;
+  cost +20% per full search); if it became the default, the goldens that pin a default full search would move (by reading, not run:
+  `test_findoptimal_refactor.py`, `test_bfs_refit.py`, `test_coarse_proxy.py`, `test_ray_overlap.py`, the profiling test).
+  `OutwardSearch`, `CppOverlapRule`, `CandidateDedup` stay off. The full-sample BFS run looks affordable (about a day on one process).
+
+### Completion summary: evaluation reduction and cost smoothing (2026-10-29)
+
+The plan (Tasks 0, A to G, with A-exact, Fcompare and G1 to G3) is done. What it established:
+
+* **No lever reduced the total number of evaluations at equal accuracy.** The C++ overlap rule (Task A) makes 332,046 -> 228,146
+  evaluations per full-sample voxel but makes E0 worse (41 -> 56 wrong, 15 fixed and 30 broken by voxel, from Task E's stored runs);
+  the best candidate de-duplication arm (Task C, `clique=cpp:1`) makes 75.8% of the evaluations on six full-sample voxels and makes
+  E0 worse (41 -> 55). Both stay off.
+* **Speed without fewer evaluations.** Task A's batched screen (default since 2026-10-13) and omega interpolation made each search
+  faster at the same evaluation count; the residual C++/Python count gap was attributed (Task A).
+* **Understanding.** Task B located the cost's edges (frame crossings, pixel crossings; the cost at the truth is not zero). Task D
+  paired spots across detectors (98.7% of one-grain pairs) and showed a spot belongs to a grain, not a voxel.
+* **Smoothing.** Task E's `SmoothCostRank E3+E4,tau=0.25` (opt-in) fixes 34 of 41 wrong E0 voxels with none broken, at about +20%
+  time per full search; G1 added the per-image-set cache and found no harm on 24 more full-sample voxels; on the BFS region it is
+  34 against 37 wrong with every flip traced to the draw.
+* **Outward search.** Task F's F4/F5 policy found the basin from every 5 deg start on both sets, including Fcompare's fresh
+  voxels; as a BFS key (`OutwardSearch`, G2) it adds evaluations
+  and breaks reseeds; off.
+* **Open for the owner:** whether `SmoothCostRank` becomes a default; the full-sample BFS run (about a day on one process); the ray
+  rule R2 was never tried in Task G (D-20261012-I3).
+
 ## S3: batched quick MC with a GPU option (2026-10-14)
 
 Branch `feature/python-speed-parity-s3` (off `feature/python-speed-parity`; not merged). Plan: `docs/todo_batched_quick_mc.md`
