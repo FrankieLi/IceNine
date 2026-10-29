@@ -570,3 +570,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   (Opus) reviews; no library change. Not started: S5 and S6 (need a plan and the owner's pick),
   the quiet-machine timing repeats of S1 and S3, and FusedCost's default (owner's review). Where:
   ROADMAP Track H row H12; docs/todo_ilium_workflow_tooling.md.
+
+### D-20261028-I4 · H12 · Delegated: task (e) fix round also fixes audit_numbers' code-fence headings; keep --tables with several files; s2_e0_trace gets a marker
+- 2026-10-28, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261028-I3, after the task (e) review (APPROVE, fixes): (1) keep commit
+  1732831 (--tables takes several files; S2 Steps 1-6 draws tables from two files); (2) the fix
+  round also makes audit_numbers.find_section skip headings inside code fences, sharing the
+  heading scan with sync_doc_tables (today it cuts 6 MIGRATION_HISTORY and 9 README sections short
+  without saying so; no S2 or S4 section affected), outside task (e)'s listed items but the same
+  family and about 10 lines; (3) the S2 table s2_e0_trace, generated but referenced by no marker,
+  gets a marker in MIGRATION_HISTORY S2, written by the main session at merge with the tooling
+  completion entry. Where: ROADMAP Track H row H12; docs/todo_ilium_workflow_tooling.md task (e);
+  .claude/reports/20261029-0000-review-tooling-e.md.
