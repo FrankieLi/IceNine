@@ -10,7 +10,9 @@ fontsize: 11pt
 
 **Approved 2026-10-21 (D-20261021-I4). Step 0 done 2026-10-21 (speed go: 14.4 us per call against
 234.1; parity rule revised); Steps 1-6 run under owner delegation (D-20261027-I1), in four tasks
-(below), each reviewed and merged before the next that depends on it.** Opus at high effort
+(below), each reviewed and merged before the next that depends on it. Steps 1-6 done and merged
+2026-10-28 (decisions D-20261027-I1 to D-20261028-I2); the owner's full review is pending.**
+Opus at high effort
 implements every task. S2 picked by the owner 2026-10-21 (D-20261021-I2). S3, which
 had to come first (D-20261013-I5), is merged. Written by Ilium Agent from a code investigation;
 the file and line references are on `feature/python-speed-parity` at ac2b49f. Built under the Track
