@@ -145,7 +145,8 @@ cache; then the build on its own.
 ## 6. Tests
 
 * `uv run pytest tests/test_smooth_cost.py`: 15 passed (12 before plus 3 new), including the key-off base-commit fixture test.
-* Full suite: see the report (filled in after the run).
+* Full suite (`uv run pytest tests/ --junitxml=<scratch>/junit.xml`, 9 min 44 s, run alone after the timing): 1388 passed,
+  44 skipped, 1 deselected.
 
 ## 7. Could be done better
 
