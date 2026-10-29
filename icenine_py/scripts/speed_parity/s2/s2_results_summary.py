@@ -257,6 +257,14 @@ def search(s: Dict[str, Any]) -> Dict[str, Any]:
     )
     ss.pop("callers_table", None)
     ss["paired"] = S0.paired(s)
+    # per case and arm, repeat 0: the final error and cost (whether the fused arm took another path)
+    ss["final"] = {
+        f"{r['case']}/{r['arm']}": dict(
+            err_deg=r["err_deg"], cost=r["cost"], evaluate_n=r["evaluate_n"], evals=r["evals"]
+        )
+        for r in s["runs"]
+        if r["repeat"] == 0
+    }
     ss["fused_counts"] = {
         r["arm"]: dict(
             evaluate_fused_n=r["evaluate_fused_n"],
