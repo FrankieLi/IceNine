@@ -733,8 +733,13 @@ def test_verify_hash_cross_check_both_ways(task: Task) -> None:
     )
     (task.root / "report.md").write_text(text)
     res = task.run("--no-tests")
-    assert "report names hashes not on the branch" in res.stdout
-    assert "abcdef1" in res.stdout and parent_hash[:9] in res.stdout
+    flag_line = next(x for x in res.stdout.splitlines() if "hashes not on the branch" in x)
+    assert "abcdef1" in flag_line
+    # the parent tip the branch started from is on the branch's history: a note, not a FLAG
+    assert parent_hash[:9] not in flag_line
+    assert any(
+        x.startswith("note") and parent_hash[:9] in x for x in res.stdout.splitlines()
+    ), res.stdout
     assert res.returncode == 0  # FLAG only
     # a report with no hashes at all
     (task.root / "report.md").write_text(

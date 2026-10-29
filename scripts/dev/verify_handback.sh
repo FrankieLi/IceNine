@@ -4,7 +4,9 @@
 # Mechanical gate on an implementer hand-back, run before /review-task (it is not a review).
 # Each check prints `ok`, `FLAG` (the main session decides) or `FAIL` (exit 1):
 #   commits of <parent>..<branch> (none = FAIL; hashes named in the report and on the branch must
-#   agree, FLAG); uncommitted changes in the branch's worktree outside CLAUDE.md and .claude/**;
+#   agree, FLAG; a named hash the branch contains, such as the base or parent tip it started from,
+#   is a note, not a FLAG); uncommitted changes in the branch's worktree outside CLAUDE.md and
+#   .claude/**;
 #   changed files by class (shared Track E/S files, other icenine_py/icenine/**, Src/**,
 #   pyproject.toml and uv.lock, golden files: FLAG; DECISIONS.md, CLAUDE.md, .claude/** committed:
 #   FAIL; ROADMAP.md lines outside the caller's own rows and mailbox: FLAG); the eight report
@@ -14,11 +16,13 @@
 #   "Required fixes" list must appear as a fix number in the report (FLAG per missing number);
 #   the tests/...py[::name] paths (or bare test_*.py[::name] names, taken as icenine_py/tests/<name>;
 #   FLAG if absent) named on the report's "Tests" field, run in the branch's worktree
-#   (FAIL on a failure, FLAG if none named or no worktree holds the branch; --no-tests skips).
+#   (FAIL on a failure, FLAG if none named or no worktree holds the branch; --no-tests skips); the
+#   line gives the passed / failed / skipped counts (from a JUnit XML file pytest writes through
+#   PYTEST_ADDOPTS, else pytest's count line) and pytest's exit code.
 # The caller's own ROADMAP territory comes from `git config --local icenine.agent` or --agent:
 # I = Track S, row H12, "From Ilium Agent"; N = Track E, "From Newt Agent". With neither set the
 # script refuses to run (exit 2; it never defaults to one agent). The pytest command can be
-# overridden with VERIFY_HANDBACK_PYTEST_CMD (default `uv run pytest -q`; the test paths are
+# overridden with VERIFY_HANDBACK_PYTEST_CMD (default `uv run pytest`; the test paths are
 # appended; it runs in <worktree>/icenine_py). <report> and --fixes may be relative paths.
 set -euo pipefail
 PARENT=""
@@ -126,19 +130,29 @@ else
             [ $hit -eq 1 ] || MISSING="$MISSING$(printf '%s' "$H" | cut -c1-9)"$'\n'
         done
         EXTRA=""
+        ANCESTORS=""
         for T in $TOKENS; do
             on=0
             for H in $BR_COMMITS; do case "$H" in "$T"*) on=1; break ;; esac; done
             [ $on -eq 0 ] || continue
-            if printf '%s' "$T" | grep -q '[a-f]' && printf '%s' "$T" | grep -q '[0-9]'; then
-                EXTRA="$EXTRA$T"$'\n'
-            elif git rev-parse --verify -q "$T^{commit}" >/dev/null; then
+            # a commit the branch contains (the base or parent tip it started from) is on the
+            # branch's history, so only hashes the branch does not contain are flagged
+            if git rev-parse --verify -q "$T^{commit}" >/dev/null; then
+                if git merge-base --is-ancestor "$T" "$BRANCH"; then
+                    ANCESTORS="$ANCESTORS$T"$'\n'
+                else
+                    EXTRA="$EXTRA$T"$'\n'
+                fi
+            elif printf '%s' "$T" | grep -q '[a-f]' && printf '%s' "$T" | grep -q '[0-9]'; then
                 EXTRA="$EXTRA$T"$'\n'
             fi
         done
         [ -z "$MISSING" ] || flag "branch commits not named in the report: $(printf '%s' "$MISSING" | short_list)"
         [ -z "$EXTRA" ] || flag "report names hashes not on the branch: $(printf '%s' "$EXTRA" | short_list)"
         if [ -z "$MISSING" ] && [ -z "$EXTRA" ]; then ok "commit hashes agree between report and branch"; fi
+        [ -z "$ANCESTORS" ] ||
+            echo "note  report names commits from before $PARENT..$BRANCH (base or parent):" \
+                "$(printf '%s' "$ANCESTORS" | short_list)"
     fi
 fi
 
@@ -318,19 +332,67 @@ EOF2
         while IFS= read -r line; do ARGS+=("$line"); done <<EOF
 $TPATHS
 EOF
-        CMD="${VERIFY_HANDBACK_PYTEST_CMD:-uv run pytest -q}"
-        TLOG=$(mktemp)
+        # No -q here: icenine_py's addopts already has -q, and a second -q (verbosity -2) drops
+        # pytest's final count line, so the last output line was a warning-summary line. The
+        # counts come from a JUnit XML file requested through PYTEST_ADDOPTS (so an overriding
+        # command gets the same arguments), else from pytest's count line in the output.
+        CMD="${VERIFY_HANDBACK_PYTEST_CMD:-uv run pytest}"
+        TDIR=$(mktemp -d)
+        TLOG="$TDIR/out.log"
+        JUNIT="$TDIR/junit.xml"
         set +e
-        (cd "$WT/icenine_py" && bash -c "$CMD \"\$@\"" verify "${ARGS[@]}") > "$TLOG" 2>&1
+        (cd "$WT/icenine_py" &&
+            PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} --junitxml='$JUNIT'" \
+                bash -c "$CMD \"\$@\"" verify "${ARGS[@]}") > "$TLOG" 2>&1
         RC=$?
         set -e
         OUT=$(tail -20 "$TLOG")
-        rm -f "$TLOG"
-        if [ "$RC" -ne 0 ]; then
-            fail "named tests failed (${#ARGS[@]} path(s)); last lines:"
+        COUNTS=""
+        if [ -s "$JUNIT" ]; then
+            # the first <testsuite ...> tag: tests includes skipped, failures and errors
+            COUNTS=$(tr '\n' ' ' < "$JUNIT" | awk '{
+                if (!match($0, /<testsuite[ \t][^>]*>/)) exit
+                tag = substr($0, RSTART, RLENGTH)
+                n = split("tests failures errors skipped", K, " ")
+                for (i = 1; i <= n; i++) {
+                    v[K[i]] = 0
+                    if (match(tag, "[ \t]" K[i] "=\"[0-9]+\"")) {
+                        s = substr(tag, RSTART, RLENGTH); gsub(/[^0-9]/, "", s); v[K[i]] = s + 0
+                    }
+                }
+                p = v["tests"] - v["failures"] - v["errors"] - v["skipped"]
+                out = p " passed, " v["failures"] " failed, " v["skipped"] " skipped"
+                if (v["errors"] > 0) out = out ", " v["errors"] " errors"
+                print out
+            }')
+        fi
+        if [ -z "$COUNTS" ]; then
+            # pytest's count line, e.g. "==== 1 failed, 2 passed, 3 warnings in 0.12s ====";
+            # never a warning or "-- Docs:" line
+            COUNTS=$(awk '{
+                l = $0; gsub(/^[= \t]+|[= \t]+$/, "", l); sub(/ in [0-9.]+s( \([^)]*\))?$/, "", l)
+                if (l !~ /^[0-9]+ [a-z]+(, [0-9]+ [a-z]+)*$/) next
+                p = 0; f = 0; s = 0; e = 0; n = split(l, it, ", ")
+                for (i = 1; i <= n; i++) {
+                    split(it[i], w, " ")
+                    if (w[2] == "passed") p = w[1]; else if (w[2] == "failed") f = w[1]
+                    else if (w[2] == "skipped") s = w[1]
+                    else if (w[2] == "error" || w[2] == "errors") e = w[1]
+                }
+                c = p " passed, " f " failed, " s " skipped"
+                if (e > 0) c = c ", " e " errors"
+            } END { print c }' "$TLOG")
+        fi
+        rm -rf "$TDIR"
+        [ -n "$COUNTS" ] || COUNTS="no count line in the output"
+        BROKEN=$(printf '%s\n' "$COUNTS" | awk -F', ' '{ for (i = 1; i <= NF; i++) {
+            split($i, w, " "); if ((w[2] == "failed" || w[2] == "errors") && w[1] > 0) b = 1 } }
+            END { print b + 0 }')
+        if [ "$RC" -ne 0 ] || [ "$BROKEN" -ne 0 ]; then
+            fail "named tests failed (${#ARGS[@]} path(s)): $COUNTS; pytest exit $RC; last lines:"
             printf '%s\n' "$OUT" | tail -6 | sed 's/^/        | /'
         else
-            ok "named tests passed (${#ARGS[@]} path(s)): $(printf '%s\n' "$OUT" | tail -1)"
+            ok "named tests passed (${#ARGS[@]} path(s)): $COUNTS; pytest exit 0"
         fi
     fi
 fi
