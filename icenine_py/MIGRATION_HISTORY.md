@@ -9614,6 +9614,33 @@ scripts; reading the plan and DECISIONS.md at `HEAD` in `make_brief.sh`. The pla
 items (`sync_doc_tables.py --section`, a timed-run wrapper, shared S4 study helpers, a mailbox
 writer) are not started.
 
+### S2 follow-ups, task (d): briefs and hand-backs (2026-10-28)
+
+Plan section "Task (d): briefs and hand-backs" (D-20261028-I3); gaps the S2 run hit. No library
+change.
+
+- `make_brief.sh --section`: the `**Library changes:**` and `**Process limit exception:**` markers
+  come from the section, else from the plan-wide text (outside every `## ` section under
+  `# Steps`), else the brief says "none stated in this section" (with the default scope and the
+  machine limit) and a note goes to stderr. Before, a section without its own marker took the
+  first one of the whole plan (S2: the Step 3 brief got the parallel tasks' "3 each"). The stop
+  rule still falls back to the whole plan (a stop rule written in another section still applies;
+  the S2 plan's only stop rule sits in "Steps 4-6" and names Step 0). Without `--section`
+  nothing changes.
+- `verify_handback.sh`, hashes: a hash the report names that the branch contains (its base or the
+  parent tip it started from) is a `note`; only hashes the branch does not contain are flagged.
+- `verify_handback.sh`, test summary: the count line was missing because the default command
+  `uv run pytest -q` adds a second `-q` to `addopts = "-ra -q"`; at verbosity -2 pytest prints
+  no final count line, so with warnings the last output line was the "-- Docs: ..." link. The
+  default is now `uv run pytest`, and the counts (passed, failed, skipped, and errors when
+  non-zero) come from a JUnit XML file requested through `PYTEST_ADDOPTS` (so an override
+  command gets them too), else from pytest's count line; the line also gives pytest's exit code.
+  A non-zero exit or a failure in the counts stays FAIL.
+
+Tests: `tests/test_dev_tooling_briefs_handbacks.py` (new), and the existing goldens in
+`test_dev_tooling_brief.py` (a `--section` brief with no markers) and
+`test_dev_tooling_handback.py` (the parent tip is now a note) updated.
+
 ## S4: translation correctness and loop ordering (2026-10-15)
 
 Merged into `feature/python-speed-parity` as a finished study on 2026-10-21 (D-20261021-I3),
