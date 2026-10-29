@@ -154,7 +154,7 @@ def task(item: Tuple[Any, ...]) -> str:
         n_levels=np.int64(len(probe.levels)),
     )
     sc = None
-    if spec == "off":
+    if spec == "off" and not _W.get("no_rerank"):  # no_rerank: set by g1_full24.py (Task G1)
         sc = SmoothCost(
             setup.simulator,
             setup.detector_list,

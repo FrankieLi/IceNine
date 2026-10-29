@@ -8553,6 +8553,31 @@ Table 23d: 5 degree start, full sample.
   (331 and 370; F4 1-frame, 358, at 5 deg for 90% and 95%) and policy 5 on the full sample (410 and 530).
 * **Left undone.** The quiet repeat of the timing on more voxels; realistic images; nothing here chooses a carry (owner decision).
 
+### Task G1: Task E's other 24 full-sample voxels and the SmoothCost cache (2026-10-28, `feature/eval-reduction-G1`)
+
+Steps 2b and 2c of Task G (D-20261018-N15, N17; plan approved D-20261028-N2). Run log and tables:
+`benchmarks/eval_reduction/G/g1/RUN_LOG.md` (`summary.json`, `tables.md`, `timing/`).
+
+* **Library.** `smooth_cost.SmoothCostCache`: the `SmoothCost` of an image set is built once and reused while the reconstructor's
+  simulator, detectors, range map, `exp_data`, sample and structures are the same objects and the eta limit, `min_sin_eta` and the
+  sample-to-lab transform are unchanged. The hook in `reconstructor.py` is one attribute (`smooth_cost_cache`, `None` = the old
+  per-call build) and one keyword argument to `make_ranker`. Key off: nothing is built and the path is unchanged (the base-commit
+  fixture test passes). Key on: a warm-cache search equals a fresh build bit for bit (toy test with all four arms; full-sample check
+  on voxels 15901 and 17034 for both carried arms).
+* **Step 2b, the 24 voxels** (`VOXELS_30[6:]`, clean full-sample images, Task E's probe and seed). The strict search is wrong on 1 of
+  24 under the lenient rule (voxel 1729) and on 0 of 24 under the C++ rule. E3+E4 (tau 0.25 deg) fixes voxel 1729 and breaks none in
+  either rule; the fix is traced to the arm (at level 1 its key keeps a truth-basin candidate the strict cost ranks below the quarter
+  cut). E1+E2+E3+E4 fixes none and breaks none. Strict evaluations per voxel rise by 1.3% to 7.7% with the key on, plus 11,404 to
+  15,762 smooth evaluations.
+* **Decision (default rule, non-blocking).** The smooth ranking key carried into G2 is **E3+E4, tau 0.25 deg** (net fixed minus broken
+  across both rules +1 against 0). The margin is one voxel; the strict search is rarely wrong on these voxels, so the full-sample test
+  has little power.
+* **Step 2c, timing (single-worker).** The build takes 16.7 s (lit-pixel trees 4.6 s, observed rays 12.1 s); the cache saves 17.1 to
+  17.8 s per voxel. Voxel 17034 with E3+E4: +35.5% over the key off with a fresh build, +21.1% from the warm cache; with E1+E2+E3+E4
+  +121.3% and +106.9%.
+* **Proposals (owner).** No default flip and no golden change. The cache could stay always on under the key (it changes no result);
+  whether `SmoothCostRank E3+E4,tau=0.25` becomes a default is for after G2.
+
 ## S3: batched quick MC with a GPU option (2026-10-14)
 
 Branch `feature/python-speed-parity-s3` (off `feature/python-speed-parity`; not merged). Plan: `docs/todo_batched_quick_mc.md`
