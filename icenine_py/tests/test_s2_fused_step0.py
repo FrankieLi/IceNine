@@ -255,13 +255,11 @@ def test_taska_classify(taska: Any) -> None:
     assert v["within_rule"] is False and v["worst_near_px"] == 0.02
     # an empty trace does not explain a difference
     assert taska.classify([], pw) == dict(causes=[], worst_near_px=0.0, within_rule=False)
-    # the -1 rule: the distance is the detector coordinate (torch) over the pixel width
+    # the -1 rule fails however close: detector coordinate 0 is the centre of pixel 0, not an
+    # edge (D-20261028-I2)
     neg = dict(cause="pixel_negative", torch=-5.25e-05 * pw)
     v = taska.classify([neg], pw)
-    assert v["causes"] == ["pixel_negative"] and v["within_rule"] is True
-    assert v["worst_near_px"] == pytest.approx(5.25e-05)
-    v = taska.classify([dict(cause="pixel_negative", torch=-0.02 * pw)], pw)
-    assert v["within_rule"] is False
+    assert v["causes"] == ["pixel_negative"] and v["within_rule"] is False
     # any other cause (frame, eta, observability, t > 0) is outside the rule
     v = taska.classify([pint(0.001, 0.001), dict(cause="frame")], pw)
     assert v == dict(causes=["frame", "pixel_integer"], worst_near_px=0.001, within_rule=False)

@@ -271,15 +271,17 @@ def agg_of_tuple(t: Tuple[Any, ...]) -> Dict[str, Any]:
 
 
 def classify(rows: List[Dict[str, Any]], pixel_width: float) -> Dict[str, Any]:
-    """Whether every traced row is a pixel-edge flip within the parity rule's 0.01 px."""
+    """Whether every traced row is a pixel-edge flip within the parity rule's 0.01 px.
+
+    A ``pixel_negative`` row (the ``CppEdgeRules`` -1 rule) fails: detector coordinate 0 is pixel
+    coordinate 0.5, the centre of pixel 0, not an edge (D-20261028-I2, as ``s2_lib_parity.py``).
+    """
     causes = sorted({r["cause"] for r in rows})
     worst_px = 0.0
     ok = bool(rows)
     for r in rows:
         if r["cause"] == "pixel_integer":
             near = min(r["torch_px_from_edge"], r["fused_px_from_edge"])
-        elif r["cause"] == "pixel_negative":
-            near = abs(r["torch"]) / pixel_width  # detector coordinate 0 is the edge of pixel -1
         else:
             ok = False
             continue
