@@ -23,10 +23,13 @@
 # heading must contain the text). The approval is read from the whole plan. With --section, the
 # "**Library changes:**" and "**Process limit exception:**" markers are read from the section (its
 # heading up to the next heading of the same or a higher level) when it has them, else from the
-# plan-wide text (the plan outside every "## " section under "# Steps", where the other tasks'
-# markers are); when neither has one, the brief says "none stated in this section" and a note
-# goes to stderr. The stop rule is read from the section, else from the whole plan. Without
-# --section every marker is read from the whole plan.
+# plan-wide text: the plan outside every task-scoped "## " section, where the other tasks'
+# markers are. Task-scoped are the "## " sections under "# Steps" or, in a plan with no "# Steps"
+# heading, every "## " section (each up to the next "#" or "## " heading). When neither has one,
+# the brief says "none stated in this section" and a note goes to stderr; with no "# Steps"
+# heading a stderr note also names each marker paragraph left out (in another "## " section) and
+# its line. The stop rule is read from the section, else from the whole plan. Without --section
+# every marker is read from the whole plan.
 # With --fixes the brief asks for the required fixes of that review report on the task branch;
 # the report may be in any worktree and is printed as an absolute, resolved path.
 # MAKE_BRIEF_NOW (YYYYMMDD-HHMM) overrides the clock for the report name (for testing).
@@ -42,9 +45,11 @@ die() { echo "error: $*" >&2; exit 1; }
 # paragraphs <marker>: every paragraph of the plan that starts with the marker (at column 0, or
 # after a "- " / "* " bullet marker, which is dropped), up to the next blank line, heading or
 # (for a bullet) next bullet. Fenced code blocks are skipped. Lines LO..HI only when given, and
-# never the lines of SKIP ("a b;c d;": line ranges a..b, c..d) when given.
+# never the lines of SKIP ("a b;c d;": line ranges a..b, c..d) when given. With a fifth argument
+# "lines", print only the line number where each paragraph starts.
 paragraphs() {
-    awk -v marker="$1" -v lo="${2:-1}" -v hi="${3:-999999999}" -v skip="${4:-}" '
+    awk -v marker="$1" -v lo="${2:-1}" -v hi="${3:-999999999}" -v skip="${4:-}" \
+        -v mode="${5:-}" '
         BEGIN { ns = split(skip, S, ";") }
         function skipped(n,    i, p) {
             for (i = 1; i <= ns; i++) {
@@ -63,10 +68,10 @@ paragraphs() {
             inrule = 1
             bullet = ($0 ~ /^[-*] /)
             if (bullet) $0 = substr($0, 3)
-            print
+            if (mode == "lines") print NR; else print
             next
         }
-        inrule { print }
+        inrule && mode != "lines" { print }
     ' "$PLAN_REL"
 }
 
@@ -161,9 +166,17 @@ if [ -n "$SECTION" ]; then
     ' "$PLAN_REL")
     SEC_LO=${RANGE% *}
     SEC_HI=${RANGE#* }
-    # The "## " sections under "# Steps" (each up to the next "#" or "## " heading): the other
-    # tasks' markers live there, so the plan-wide default is the text outside all of them.
-    STEP_SECTIONS=$(awk '
+    # Task-scoped "## " sections (each up to the next "#" or "## " heading): the other tasks'
+    # markers live there, so the plan-wide default is the text outside all of them. They are the
+    # "## " sections under "# Steps"; a plan with no "# Steps" heading (the new_todo.sh template)
+    # has no such boundary, so there every "## " section is task-scoped.
+    HAS_STEPS=$(awk '
+        /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
+        !fence && /^# / { h = $0; sub(/^# +/, "", h); sub(/[[:space:]]+$/, "", h) }
+        !fence && /^# / && h == "Steps" { print 1; found = 1; exit }
+        END { if (!found) print 0 }
+    ' "$PLAN_REL")
+    SCOPED_SECTIONS=$(awk -v all="$((1 - HAS_STEPS))" '
         /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
         fence || !/^#+ / { next }
         {
@@ -172,20 +185,43 @@ if [ -n "$SECTION" ]; then
         }
         lvl <= 2 && sub_start { printf "%d %d;", sub_start, NR - 1; sub_start = 0 }
         lvl == 1 { steps = (h == "Steps"); next }
-        steps && lvl == 2 { sub_start = NR }
+        (all || steps) && lvl == 2 { sub_start = NR }
         END { if (sub_start) printf "%d %d;", sub_start, 999999999 }
     ' "$PLAN_REL")
 fi
+# heading_before <line>: the last "## " heading above the line, outside code fences
+heading_before() {
+    awk -v n="$1" '
+        NR >= n { exit }
+        /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
+        !fence && /^## / { h = $0 }
+        END { print h }
+    ' "$PLAN_REL"
+}
 # marker <text>: the paragraphs of the whole plan; with --section, those inside the section, else
-# those outside every "## " section under "# Steps" (the plan-wide default), else nothing
+# those outside every task-scoped "## " section (the plan-wide default), else nothing. In a plan
+# with no "# Steps" heading, a stderr note names each paragraph left out and its line.
 marker() {
     if [ -z "$SECTION" ]; then
         paragraphs "$1"
         return
     fi
-    local found=""
+    local found="" all="" kept="" ln=""
     found=$(paragraphs "$1" "$SEC_LO" "$SEC_HI")
-    [ -n "$found" ] || found=$(paragraphs "$1" 1 999999999 "$STEP_SECTIONS")
+    if [ -z "$found" ]; then
+        found=$(paragraphs "$1" 1 999999999 "$SCOPED_SECTIONS")
+        if [ "$HAS_STEPS" -eq 0 ]; then
+            all=$(paragraphs "$1" 1 999999999 "" lines)
+            kept=$(paragraphs "$1" 1 999999999 "$SCOPED_SECTIONS" lines)
+            for ln in $all; do
+                if ! printf '%s\n' "$kept" | grep -qx "$ln"; then
+                    echo "note: skipped the $1 paragraph at line $ln of $PLAN_REL: it is in" \
+                        "\"$(heading_before "$ln")\" and the plan has no \"# Steps\" heading," \
+                        "so every \"## \" section is its own task's" >&2
+                fi
+            done
+        fi
+    fi
     printf '%s' "$found"
 }
 # marker_or_whole <text>: the paragraphs inside --section if it has any, else the whole plan's
@@ -198,8 +234,10 @@ marker_or_whole() {
 }
 # none_note <marker>: the stderr note for a --section brief that states the marker nowhere
 none_note() {
-    echo "note: section \"$SECTION\" has no $1 paragraph and the plan has none outside the" \
-        "\"## \" sections under \"# Steps\"; the brief says \"none stated in this section\"" >&2
+    local where='the "## " sections under "# Steps"'
+    [ "$HAS_STEPS" -eq 1 ] || where='every "## " section (the plan has no "# Steps" heading)'
+    echo "note: section \"$SECTION\" has no $1 paragraph and the plan has none outside" \
+        "$where; the brief says \"none stated in this section\"" >&2
 }
 if [ -n "$FIXES" ]; then
     # Review reports live in .claude/reports/ of the session that wrote them (gitignored, one per

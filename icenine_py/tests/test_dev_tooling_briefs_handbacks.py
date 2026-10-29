@@ -3,22 +3,26 @@
 - `make_brief.sh --section` reads the "**Library changes:**" and "**Process limit exception:**"
   markers only from the section or from the plan-wide text (outside every "## " section under
   "# Steps"), never from another task's section; with neither, "none stated in this section".
+  In a plan with no "# Steps" heading every "## " section is its own task's, and a stderr note
+  names each marker paragraph left out (review fix 1, D-20261028-I5).
 - `verify_handback.sh` does not flag a named hash the branch contains (its base or parent tip).
-- `verify_handback.sh` reports pytest's real counts and exit code, never a warning line.
+- `verify_handback.sh` reports pytest's real counts and exit code, never a warning line; exit 0
+  with no counts is a FLAG (review fix 2).
+- `finish_task.sh` runs the suite without an extra `-q` (D-20261028-I5).
 
 Every test works in temporary repositories; pytest is a stub or this environment's own pytest.
 """
 
+import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Dict
 
 import pytest
-from test_dev_tooling_brief import (
-    PLAN,
-    _brief,
-    _write,
-)
+from test_dev_tooling_brief import GIT_ENV, PLAN, REPO, _brief, _clean_environ
+from test_dev_tooling_brief import _git as _bgit
+from test_dev_tooling_brief import _write
 from test_dev_tooling_brief import repo  # noqa: F401  (fixture)
 from test_dev_tooling_handback import Task, _executable, _git, _report
 from test_dev_tooling_handback import task  # noqa: F401  (fixture)
@@ -207,6 +211,147 @@ def test_without_section_behaviour_is_unchanged(repo: Path) -> None:
     plain = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
     assert "Scope: no change under `icenine_py/icenine/`.\n" in plain.stdout
     assert "Compute: at most 6 heavy processes at once on this machine.\n" in plain.stdout
+
+
+# A plan from the new_todo.sh template: no "# Steps" heading (D-20261028-I5, review fix 1).
+NO_STEPS = """\
+---
+title: "TODO: demo"
+---
+
+# Status
+
+Approved.
+
+# Experiments (sketch)
+
+Plan-wide text.
+
+## Task A
+
+**Library changes:** A changes cost_functions.py.
+
+**Process limit exception:** 3 each for A.
+
+**Stop rule:** stop if A is slower.
+
+## Task B
+
+Do B.
+
+# Risks
+
+## Compute
+
+**Process limit exception:** risks-section exception.
+"""
+
+
+def _line(text: str, needle: str) -> int:
+    """The 1-based line number of the first line of text that contains needle."""
+    return next(i for i, x in enumerate(text.splitlines(), 1) if needle in x)
+
+
+def test_no_steps_heading_every_section_is_its_own_tasks(repo: Path) -> None:
+    """The review's leak: Task B got Task A's permissions, with nothing on stderr."""
+    _plan(repo, NO_STEPS)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "b", "--section", "Task B")
+    assert out.returncode == 0, out.stderr
+    assert "cost_functions" not in out.stdout and "3 each" not in out.stdout
+    assert "risks-section" not in out.stdout  # a "## " section outside Task B, not plan-wide
+    assert out.stdout.count("none stated in this section") == 2
+    # each skipped marker paragraph is named with its line and its section
+    plan = "icenine_py/docs/todo_demo.md"
+    for needle, marker, head in [
+        ("A changes", "**Library changes:**", "## Task A"),
+        ("3 each for A", "**Process limit exception:**", "## Task A"),
+        ("risks-section", "**Process limit exception:**", "## Compute"),
+    ]:
+        note = (
+            f"note: skipped the {marker} paragraph at line {_line(NO_STEPS, needle)} of {plan}: "
+            f'it is in "{head}" and the plan has no "# Steps" heading, so every "## " section '
+            "is its own task's\n"
+        )
+        assert note in out.stderr, out.stderr
+    assert out.stderr.count("note: skipped") == 3
+    assert out.stderr.count('(the plan has no "# Steps" heading)') == 2
+    # the stop rule keeps its whole-plan fallback
+    assert "> **Stop rule:** stop if A is slower." in out.stdout
+    # the named section's own markers: used, no note
+    a = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "a", "--section", "Task A")
+    assert a.returncode == 0, a.stderr
+    assert "Scope: **Library changes:** A changes cost_functions.py.\n" in a.stdout
+    assert "**Process limit exception:** 3 each for A.\n" in a.stdout
+    assert "risks-section" not in a.stdout and a.stderr == ""
+
+
+def test_no_steps_heading_text_outside_every_section_is_plan_wide(repo: Path) -> None:
+    text = NO_STEPS.replace(
+        "Plan-wide text.\n", "Plan-wide text.\n\n**Library changes:** plan-wide: none.\n"
+    )
+    _plan(repo, text)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "b", "--section", "Task B")
+    assert out.returncode == 0, out.stderr
+    assert "Scope: **Library changes:** plan-wide: none.\n" in out.stdout
+    assert "cost_functions" not in out.stdout
+    # Task A's library paragraph was still left out, and the note says so
+    assert f"**Library changes:** paragraph at line {_line(text, 'A changes')} " in out.stderr
+    assert "has no **Library changes:** paragraph" not in out.stderr
+
+
+def test_with_steps_heading_other_hash_hash_sections_are_plan_wide(repo: Path) -> None:
+    """With "# Steps", only the "## " sections under it are task-scoped (unchanged)."""
+    text = NO_STEPS.replace("# Experiments (sketch)\n", "# Steps\n")
+    _plan(repo, text)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "b", "--section", "Task B")
+    assert out.returncode == 0, out.stderr
+    assert "**Process limit exception:** risks-section exception.\n" in out.stdout
+    assert "3 each" not in out.stdout and "cost_functions" not in out.stdout
+    assert "library changes none stated in this section" in out.stdout
+    assert out.stderr == (
+        'note: section "Task B" has no **Library changes:** paragraph and the plan has none '
+        'outside the "## " sections under "# Steps"; the brief says "none stated in this '
+        'section"\n'
+    )
+
+
+def test_no_steps_heading_without_section_is_unchanged(repo: Path) -> None:
+    _plan(repo, NO_STEPS)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 0, out.stderr
+    assert "Scope: **Library changes:** A changes cost_functions.py.\n" in out.stdout
+    assert "3 each for A." in out.stdout and "risks-section exception." in out.stdout
+    assert "none stated" not in out.stdout and out.stderr == ""
+
+
+# ---------------------------------------------------------------------------------------------
+# finish_task.sh: default test command
+# ---------------------------------------------------------------------------------------------
+
+
+def test_finish_task_default_pytest_has_no_extra_q(repo: Path, tmp_path: Path) -> None:
+    """addopts has -q; a second -q (verbosity -2) drops pytest's count line from the output."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    log = tmp_path / "uv_args.txt"
+    _executable(bin_dir / "uv", f'#!/bin/bash\necho "$(basename "$PWD") $*" > "{log}"\n')
+    _bgit(repo, "checkout", "-q", "-b", "feature/par-job")
+    _bgit(repo, "config", "branch.feature/par-job.parent", "feature/par")
+    _write(repo, "icenine_py/x.py", "x = 1\n")
+    _bgit(repo, "add", "icenine_py/x.py")
+    _bgit(repo, "commit", "-q", "-m", "add x")
+    env = {**_clean_environ(), **GIT_ENV, "PATH": f"{bin_dir}:{os.environ['PATH']}"}
+    env.pop("FINISH_TASK_TEST_CMD", None)
+    res = subprocess.run(
+        [str(REPO / "scripts/dev/finish_task.sh")],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0, res.stderr
+    assert log.read_text() == "icenine_py run pytest tests/\n"
+    assert _bgit(repo, "rev-parse", "--abbrev-ref", "HEAD") == "feature/par"
 
 
 # ---------------------------------------------------------------------------------------------
