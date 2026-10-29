@@ -10814,6 +10814,50 @@ of them change the cost. Up to the first of them the key-on search repeats the k
 "reproduced" check covers the key-on side only), so where the two part is one of these flips; which one changed the path was
 not determined.
 
+Per voxel (the 36 runs above; `first_call` is the first differing evaluation, `near_px` the largest distance from a pixel
+edge among its flips):
+
+<!-- table:s2_e0_trace -->
+| pair | voxel | change | reproduced | shadowed | differing | first_call | first_path | radius | fields | causes | within_rule | near_px |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| off vs on | 7336 | both wrong | True | 3165 | 87 | 55 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 16269 | both right | True | 4779 | 114 | 101 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0004 |
+| off vs on | 20406 | both right | True | 4251 | 96 | 1 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 10531 | both right | True | 4958 | 126 | 30 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 16905 | both right | True | 4415 | 113 | 11 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0013 |
+| off vs on | 14240 | both right | True | 5040 | 138 | 54 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 17977 | both right | True | 4070 | 102 | 117 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 10507 | both right | True | 3690 | 111 | 17 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0005 |
+| off vs on | 22302 | both wrong | True | 3597 | 77 | 37 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 14497 | both wrong | True | 3461 | 109 | 11 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 12015 | both right | True | 4151 | 100 | 34 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 9525 | both right | True | 5674 | 145 | 30 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 15019 | both right | True | 5067 | 137 | 1 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 177 | both right | True | 4031 | 104 | 108 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 10864 | both right | True | 4519 | 108 | 30 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0006 |
+| off vs on | 15620 | both right | True | 3439 | 77 | 17 | evaluate | 0 | pixel_on_detector, quality | pixel_integer | True | 0.0001 |
+| off vs on | 22863 | both right | True | 4005 | 98 | 51 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 6596 | both right | True | 4527 | 144 | 17 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 2177 | both right | True | 3491 | 87 | 13 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 14217 | both wrong | True | 4247 | 112 | 35 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 5384 | both right | True | 3355 | 71 | 2 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 21741 | both right | True | 3653 | 92 | 138 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 17771 | both right | True | 3846 | 95 | 6 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 24339 | both right | True | 4944 | 113 | 110 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0009 |
+| bqmc vs bqmc_on | 2807 | both right | True | 3747 | 106 | 21 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 1935 | both right | True | 4183 | 118 | 57 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 2735 | both right | True | 4714 | 99 | 86 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 22517 | both right | True | 3406 | 71 | 61 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 21726 | both right | True | 4147 | 119 | 90 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0015 |
+| bqmc vs bqmc_on | 628 | both right | True | 3728 | 87 | 101 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 10007 | both wrong | True | 3587 | 95 | 38 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 24420 | both right | True | 3869 | 82 | 28 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0002 |
+| bqmc vs bqmc_on | 20976 | both right | True | 3934 | 106 | 3 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 77 | both right | True | 4309 | 114 | 123 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 18723 | both right | True | 4197 | 116 | 32 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 14596 | both right | True | 4315 | 124 | 10 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+<!-- /table:s2_e0_trace -->
+
 ### Deviations and not done
 
 - E0 used the clean images only and one seed (the plan's "200 voxels, seed 0"); no realistic-image arm.
