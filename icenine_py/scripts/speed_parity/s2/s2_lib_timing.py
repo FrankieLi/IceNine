@@ -12,7 +12,8 @@ key on: the library path including the ``OverlapInfo``), ``c_only`` (the bare
 is the difference). One untimed warm-up pass fills the frames and builds the contexts.
 
 ``batched``: ``BatchedCostEvaluator.evaluate_many`` on the local (triangle) cost of ThreeVoxels
-voxel 0 (868 reflections) and of the first E0 clean voxel (``ReconstructQ8`` physics), 512
+voxel 0 (Q-max 8, and the search config's local cost) and of the first E0 clean voxel
+(``ReconstructQ8`` physics; the reflection count K is in the output), 512
 orientations within 3 degrees of the truth, scored in chunks of B; us per orientation for the
 variants ``compact`` (torch, key off), ``fused`` (key on, ``fused_evaluate_many``) and, when a GPU
 is available, ``fixed`` on it (the variant ``evaluate_many`` picks at B >= ``GPU_MIN_BATCH``). With
@@ -148,10 +149,15 @@ def _near(truth: np.ndarray, n: int, seed: int) -> np.ndarray:
 
 
 def _cases() -> List[Dict[str, Any]]:
-    """(name, local cost function factory, vertices, phase, truth) of the two batched sets."""
+    """(name, local cost function factory, vertices, phase, truth) of the batched sets: ThreeVoxels
+    voxel 0 at Q-max 8 (``three0``, Step 0c's triangle arm) and with the local cost of its search
+    config (``three0_search``, ``Example2.Simulation.config``, the reconstructor's local cost), and
+    the first E0 clean voxel (``e0_0``)."""
     import prof_eval as P
-    from s3_step0 import E0Set
+    from s3_step0 import E0Set, ThreeVoxels
 
+    with contextlib.redirect_stdout(io.StringIO()):
+        rec3 = ThreeVoxels().reconstructor("Example2.Simulation.config")
     out = [
         dict(
             name="three0",
@@ -159,7 +165,14 @@ def _cases() -> List[Dict[str, Any]]:
             verts=P.verts,
             phase=P.vox.phase,
             truth=P.truth,
-        )
+        ),
+        dict(
+            name="three0_search",
+            make=rec3._make_local_cost_fn,
+            verts=P.verts,
+            phase=P.vox.phase,
+            truth=P.truth,
+        ),
     ]
     with contextlib.redirect_stdout(io.StringIO()):
         SE = E0Set()

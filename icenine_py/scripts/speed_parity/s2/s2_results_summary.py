@@ -204,7 +204,7 @@ def batched(t: Dict[str, Any]) -> Dict[str, Any]:
     gpu = t.get("gpu")
     rows = []
     out: Dict[str, Any] = dict(label=t["meta"]["label"], gpu=gpu, gpu_min_batch=t["gpu_min_batch"])
-    for case in ("three0", "e0_0"):
+    for case in ("three0", "three0_search", "e0_0"):
         c = t.get(case)
         if c is None:
             continue

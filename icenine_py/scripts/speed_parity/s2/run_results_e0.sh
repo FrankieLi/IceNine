@@ -12,7 +12,7 @@
 # Log: scripts/speed_parity/cache/logs/s2_results_e0.log, marker s2_results_e0.done.
 cd "$(dirname "$0")/../../.." || exit 1
 ICE="$(pwd)"
-BASE=${S2_BASE:?set S2_BASE to the base copy's icenine_py directory}
+BASE=${S2_BASE:?set S2_BASE to the icenine_py directory of the base copy}
 W=${S2_E0_WORKERS:-6}
 OUT=benchmarks/s2_results
 LOGD=scripts/speed_parity/cache/logs
