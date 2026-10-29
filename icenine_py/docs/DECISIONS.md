@@ -594,3 +594,13 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   owner-approved .claude/ files (D-20261021-I1) and lines over 100 characters in Ilium's S2/S4
   scripts. One time only; agents still never bypass the hooks. Where: merge commit 5e15bcd;
   scripts/dev/precommit_check.py.
+
+### D-20261028-N4 · Track E rows F, G · Delegated: the outward search carried into Task G is the F fallback policy, 1-frame window
+- 2026-10-28, owner. Recorded by Newt Agent. Supersedes: none.
+- Delegated (owner 2026-10-28: Newt decides the plan's decision points). From the carry-option
+  comparison (D-20261021-N1, 24 fresh voxels per set): Task G uses the policy F4, then F5 then F4
+  where F4's acceptance test rejects, with F4's frame_window at 1 (library default). It reached
+  480/480 within 1 deg at every offset on both sets, and the 1-frame window ends within 0.05 deg
+  more often on the full sample (85-86% against 77-78%). CMA-ES is not carried (34-57% from 5
+  deg). The owner can override. Where: docs/findings_outward_search_2026-10.md 'Comparing the
+  carry options'; ~/.claude/plans/eval-reduction.md Task G.
