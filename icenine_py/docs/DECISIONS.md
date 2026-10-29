@@ -558,3 +558,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   FusedCost on gives no per-evaluation gain (E0 20 vs 20 us); no recommended-configuration change,
   listed for the owner's review. Where: ROADMAP Track S row S2; MIGRATION_HISTORY S2;
   .claude/reports/20261028-2100-review-s2-results.md.
+
+### D-20261028-I3 · H12 · While the owner reviews S2, Ilium does the S2 tooling follow-ups; Opus implements
+- 2026-10-28, owner. Recorded by Ilium Agent. Supersedes: none.
+- Owner: 'continue through the rest of the plan while I review' and 'use opus to implement'. The
+  S2 plan has no steps left, so Ilium Agent takes the tooling gaps S2 found
+  (todo_ilium_workflow_tooling.md, 'Follow-ups found in S2'): task (d) make_brief --section
+  without another section's markers and verify_handback's ancestor-hash flag and test summary;
+  task (e) sync_doc_tables --section and the 21 over-long lines in the S4 scripts. The two tasks
+  share no files and run in parallel (3 heavy processes each). Opus implements; /review-task
+  (Opus) reviews; no library change. Not started: S5 and S6 (need a plan and the owner's pick),
+  the quiet-machine timing repeats of S1 and S3, and FusedCost's default (owner's review). Where:
+  ROADMAP Track H row H12; docs/todo_ilium_workflow_tooling.md.
