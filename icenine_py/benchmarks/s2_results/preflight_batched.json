@@ -1,24 +1,18 @@
 {
- "timestamp": "2026-10-28T16:53:20",
+ "timestamp": "2026-10-28T17:12:58",
  "host": "ilium.local",
  "loadavg": [
-  3.85009765625,
-  2.94091796875,
-  2.83642578125
+  1.5205078125,
+  3.14453125,
+  3.44140625
  ],
  "cpu_count": 10,
  "power": "ac",
  "omp_num_threads": null,
  "mkl_num_threads": null,
  "torch_threads": 4,
- "busy_processes": [
-  {
-   "pid": 718,
-   "cpu": 178.0,
-   "command": "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd"
-  }
- ],
+ "busy_processes": [],
  "quiet": false,
- "not_quiet_reason": "machine not quiet for timing: 1-min load 3.85 > 1.5; busy process pid 718 (178% CPU): /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd",
+ "not_quiet_reason": "machine not quiet for timing: 1-min load 1.52 > 1.5",
  "label": "contended"
 }

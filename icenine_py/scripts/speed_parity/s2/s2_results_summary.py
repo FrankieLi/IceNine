@@ -312,6 +312,37 @@ def e0(e: Dict[str, Any], tr: Optional[Dict[str, Any]]) -> Dict[str, Any]:
                      within_rule=fs.get("within_rule"), near_px=fs.get("max_near_px"))
             )  # fmt: skip
         out["trace"] = tr["totals"]
+        prs = []
+        for pair in sorted({f["pair"] for f in tr["flips"]}):
+            ff = [f for f in tr["flips"] if f["pair"] == pair]
+            prs.append(
+                dict(pair=pair, voxels=len(ff),
+                     changes=", ".join(f"{c} {sum(f['change'] == c for f in ff)}"
+                                       for c in sorted({f["change"] for f in ff})),
+                     reproduced=sum(f["reproduced"] for f in ff),
+                     shadowed=sum(f["shadowed"] for f in ff),
+                     differing=sum(f["differing"] for f in ff),
+                     within_rule=sum(f["differing_within_rule"] for f in ff),
+                     quality_differs=sum(f["differing_fields"].get("quality", 0) for f in ff),
+                     causes=", ".join(sorted({c for f in ff for c in f["differing_causes"]})),
+                     max_near_px=max(f["differing_max_near_px"] for f in ff))
+            )  # fmt: skip
+        out["trace_pairs_table"] = DT.markdown_table(
+            prs,
+            [
+                "pair",
+                "voxels",
+                "changes",
+                "reproduced",
+                "shadowed",
+                "differing",
+                "within_rule",
+                "quality_differs",
+                "causes",
+                "max_near_px",
+            ],  # fmt: skip
+            formats=dict(max_near_px=".4f"),
+        )
         out["trace_table"] = DT.markdown_table(
             trows,
             [
@@ -365,7 +396,7 @@ def main() -> None:
     e = load(d / "e0.json")
     if e:
         ee = summary["e0"] = e0(e, load(d / "e0_trace.json"))
-        for k in ("wrong", "paired", "evals", "trace"):
+        for k in ("wrong", "paired", "evals", "trace_pairs", "trace"):
             if f"{k}_table" in ee:
                 tables[f"s2_e0_{k}"] = ee.pop(f"{k}_table")
     (d / "summary.json").write_text(json.dumps(summary, indent=1, default=float) + "\n")

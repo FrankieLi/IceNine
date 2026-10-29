@@ -1,0 +1,2584 @@
+{
+ "meta": {
+  "head": "09a117e",
+  "dirty": false,
+  "variant": "clean",
+  "arms": {
+   "off": [
+    "_s2off",
+    false,
+    false
+   ],
+   "on": [
+    "_s2on",
+    false,
+    true
+   ],
+   "bqmc": [
+    "_s2bq",
+    true,
+    false
+   ],
+   "bqmc_on": [
+    "_s2bqon",
+    true,
+    true
+   ]
+  },
+  "changed": true
+ },
+ "flips": [
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 7336,
+   "vpos": 0,
+   "wrong_off": true,
+   "wrong_on": true,
+   "change": "both wrong",
+   "reproduced": true,
+   "shadowed": 3165,
+   "differing": 87,
+   "differing_within_rule": 87,
+   "differing_fields": {
+    "pixel_on_detector": 86,
+    "pixel_overlap": 10,
+    "quality": 13
+   },
+   "differing_causes": {
+    "pixel_integer": 93
+   },
+   "differing_max_near_px": 0.001495361328125,
+   "failures": [],
+   "first": {
+    "call": 55,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1008,
+     0,
+     58,
+     0.0,
+     58,
+     0
+    ],
+    "fused": [
+     0,
+     1010,
+     0,
+     58,
+     0.0,
+     58,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1439.9998779296875,
+      "fused": 1440.0001220703125,
+      "ref": 1440.0000168828412,
+      "threshold": 1440.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 77,
+      "det": 1,
+      "coord": 4
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 1.6856020000000003
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 16269,
+   "vpos": 4,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4779,
+   "differing": 114,
+   "differing_within_rule": 114,
+   "differing_fields": {
+    "pixel_on_detector": 114,
+    "pixel_overlap": 9,
+    "quality": 18
+   },
+   "differing_causes": {
+    "pixel_integer": 121
+   },
+   "differing_max_near_px": 0.00091552734375,
+   "failures": [],
+   "first": {
+    "call": 101,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     7,
+     1040,
+     1,
+     63,
+     0.002777777777777778,
+     63,
+     0
+    ],
+    "fused": [
+     7,
+     1041,
+     1,
+     63,
+     0.002777777777777778,
+     63,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 26,
+      "torch": 203.00039672851562,
+      "fused": 202.99862670898438,
+      "ref": 202.9983328026014,
+      "threshold": 203.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.000396728515625,
+      "fused_margin_ulp": 90,
+      "fused_px_from_edge": 0.001373291015625,
+      "row": 134,
+      "det": 1,
+      "coord": 0
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.000396728515625
+   },
+   "seconds": 2.192379667
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 20406,
+   "vpos": 6,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4251,
+   "differing": 96,
+   "differing_within_rule": 96,
+   "differing_fields": {
+    "pixel_on_detector": 94,
+    "pixel_overlap": 9,
+    "quality": 11
+   },
+   "differing_causes": {
+    "pixel_integer": 98
+   },
+   "differing_max_near_px": 0.001373291015625,
+   "failures": [],
+   "first": {
+    "call": 1,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1039,
+     0,
+     63,
+     0.0,
+     63,
+     0
+    ],
+    "fused": [
+     0,
+     1041,
+     0,
+     63,
+     0.0,
+     63,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 0,
+      "torch": 1862.0,
+      "fused": 1861.9998779296875,
+      "ref": 1861.9998338223202,
+      "threshold": 1862.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 115,
+      "det": 0,
+      "coord": 5
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 2.036043791999999
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 10531,
+   "vpos": 12,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4958,
+   "differing": 126,
+   "differing_within_rule": 126,
+   "differing_fields": {
+    "pixel_on_detector": 125,
+    "quality": 7,
+    "pixel_overlap": 3
+   },
+   "differing_causes": {
+    "pixel_integer": 138
+   },
+   "differing_max_near_px": 0.0010223388671875,
+   "failures": [],
+   "first": {
+    "call": 30,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     17,
+     1073,
+     1,
+     63,
+     0.015873015873015872,
+     63,
+     0
+    ],
+    "fused": [
+     17,
+     1075,
+     1,
+     63,
+     0.015873015873015872,
+     63,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 3,
+      "torch": 482.0000915527344,
+      "fused": 481.9999694824219,
+      "ref": 482.00071452085217,
+      "threshold": 482.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 9.1552734375e-05,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 3.0517578125e-05,
+      "row": 165,
+      "det": 1,
+      "coord": 0
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 3.0517578125e-05
+   },
+   "seconds": 2.293387417
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 16905,
+   "vpos": 13,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4415,
+   "differing": 113,
+   "differing_within_rule": 113,
+   "differing_fields": {
+    "pixel_on_detector": 113,
+    "peak_on_detector": 1,
+    "n_quality_points": 1,
+    "pixel_overlap": 7,
+    "quality": 17
+   },
+   "differing_causes": {
+    "pixel_integer": 122
+   },
+   "differing_max_near_px": 0.00152587890625,
+   "failures": [],
+   "first": {
+    "call": 11,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1048,
+     0,
+     65,
+     0.0,
+     65,
+     0
+    ],
+    "fused": [
+     0,
+     1047,
+     0,
+     65,
+     0.0,
+     65,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 63,
+      "torch": 389.9980773925781,
+      "fused": 390.00128173828125,
+      "ref": 389.9996303013204,
+      "threshold": 390.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.001922607421875,
+      "fused_margin_ulp": 42,
+      "fused_px_from_edge": 0.00128173828125,
+      "row": 195,
+      "det": 1,
+      "coord": 4
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.00128173828125
+   },
+   "seconds": 2.1077749169999986
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 14240,
+   "vpos": 28,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 5040,
+   "differing": 138,
+   "differing_within_rule": 138,
+   "differing_fields": {
+    "pixel_on_detector": 138,
+    "pixel_overlap": 13,
+    "quality": 20,
+    "detectors_overlap": 4
+   },
+   "differing_causes": {
+    "pixel_integer": 142
+   },
+   "differing_max_near_px": 0.00091552734375,
+   "failures": [],
+   "first": {
+    "call": 54,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1030,
+     0,
+     62,
+     0.0,
+     62,
+     0
+    ],
+    "fused": [
+     0,
+     1029,
+     0,
+     62,
+     0.0,
+     62,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1934.0001220703125,
+      "fused": 1933.9998779296875,
+      "ref": 1933.9998685702978,
+      "threshold": 1934.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 4,
+      "det": 1,
+      "coord": 0
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 2.320698041
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 17977,
+   "vpos": 68,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4070,
+   "differing": 102,
+   "differing_within_rule": 102,
+   "differing_fields": {
+    "pixel_on_detector": 100,
+    "pixel_overlap": 9,
+    "quality": 10
+   },
+   "differing_causes": {
+    "pixel_integer": 107
+   },
+   "differing_max_near_px": 0.00054931640625,
+   "failures": [],
+   "first": {
+    "call": 117,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     997,
+     0,
+     61,
+     0.0,
+     61,
+     0
+    ],
+    "fused": [
+     0,
+     998,
+     0,
+     61,
+     0.0,
+     61,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1440.9998779296875,
+      "fused": 1441.0,
+      "ref": 1440.9999852841938,
+      "threshold": 1441.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 0,
+      "fused_px_from_edge": 0.0,
+      "row": 56,
+      "det": 1,
+      "coord": 0
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.9994499579999996
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 10507,
+   "vpos": 82,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3690,
+   "differing": 111,
+   "differing_within_rule": 111,
+   "differing_fields": {
+    "pixel_on_detector": 111,
+    "pixel_overlap": 6,
+    "quality": 12
+   },
+   "differing_causes": {
+    "pixel_integer": 119
+   },
+   "differing_max_near_px": 0.00152587890625,
+   "failures": [],
+   "first": {
+    "call": 17,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1012,
+     0,
+     60,
+     0.0,
+     60,
+     0
+    ],
+    "fused": [
+     0,
+     1013,
+     0,
+     60,
+     0.0,
+     60,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 4,
+      "torch": 1925.00048828125,
+      "fused": 1924.99951171875,
+      "ref": 1925.0003465718937,
+      "threshold": 1925.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.00048828125,
+      "fused_margin_ulp": 4,
+      "fused_px_from_edge": 0.00048828125,
+      "row": 29,
+      "det": 1,
+      "coord": 2
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.00048828125
+   },
+   "seconds": 1.8464807080000014
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 22302,
+   "vpos": 85,
+   "wrong_off": true,
+   "wrong_on": true,
+   "change": "both wrong",
+   "reproduced": true,
+   "shadowed": 3597,
+   "differing": 77,
+   "differing_within_rule": 77,
+   "differing_fields": {
+    "pixel_on_detector": 77,
+    "quality": 7,
+    "pixel_overlap": 1
+   },
+   "differing_causes": {
+    "pixel_integer": 79
+   },
+   "differing_max_near_px": 0.00164794921875,
+   "failures": [],
+   "first": {
+    "call": 37,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     19,
+     1031,
+     2,
+     65,
+     0.018401206636500765,
+     65,
+     0
+    ],
+    "fused": [
+     19,
+     1030,
+     2,
+     65,
+     0.018401206636500765,
+     65,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1850.9998779296875,
+      "fused": 1851.0,
+      "ref": 1850.9999907574822,
+      "threshold": 1851.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 0,
+      "fused_px_from_edge": 0.0,
+      "row": 60,
+      "det": 0,
+      "coord": 1
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.807800125
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 14497,
+   "vpos": 86,
+   "wrong_off": true,
+   "wrong_on": true,
+   "change": "both wrong",
+   "reproduced": true,
+   "shadowed": 3461,
+   "differing": 109,
+   "differing_within_rule": 109,
+   "differing_fields": {
+    "pixel_on_detector": 109,
+    "quality": 5,
+    "pixel_overlap": 4
+   },
+   "differing_causes": {
+    "pixel_integer": 121
+   },
+   "differing_max_near_px": 0.0013427734375,
+   "failures": [],
+   "first": {
+    "call": 11,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1053,
+     0,
+     64,
+     0.0,
+     64,
+     0
+    ],
+    "fused": [
+     0,
+     1057,
+     0,
+     64,
+     0.0,
+     64,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1748.9998779296875,
+      "fused": 1749.0,
+      "ref": 1748.9995042476157,
+      "threshold": 1749.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 0,
+      "fused_px_from_edge": 0.0,
+      "row": 121,
+      "det": 0,
+      "coord": 3
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.830259875000003
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 12015,
+   "vpos": 99,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4151,
+   "differing": 100,
+   "differing_within_rule": 100,
+   "differing_fields": {
+    "pixel_on_detector": 100,
+    "pixel_overlap": 4,
+    "quality": 7
+   },
+   "differing_causes": {
+    "pixel_integer": 104
+   },
+   "differing_max_near_px": 0.0008544921875,
+   "failures": [],
+   "first": {
+    "call": 34,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1061,
+     0,
+     64,
+     0.0,
+     64,
+     0
+    ],
+    "fused": [
+     0,
+     1058,
+     0,
+     64,
+     0.0,
+     64,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 9,
+      "torch": 1771.9989013671875,
+      "fused": 1772.0,
+      "ref": 1771.9996419984384,
+      "threshold": 1772.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0010986328125,
+      "fused_margin_ulp": 0,
+      "fused_px_from_edge": 0.0,
+      "row": 200,
+      "det": 1,
+      "coord": 1
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 2.016880791000002
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 9525,
+   "vpos": 100,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 5674,
+   "differing": 145,
+   "differing_within_rule": 145,
+   "differing_fields": {
+    "pixel_on_detector": 143,
+    "quality": 21,
+    "pixel_overlap": 11
+   },
+   "differing_causes": {
+    "pixel_integer": 154
+   },
+   "differing_max_near_px": 0.001129150390625,
+   "failures": [],
+   "first": {
+    "call": 30,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1013,
+     0,
+     61,
+     0.0,
+     61,
+     0
+    ],
+    "fused": [
+     0,
+     1012,
+     0,
+     61,
+     0.0,
+     61,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 2,
+      "torch": 1647.000244140625,
+      "fused": 1646.9998779296875,
+      "ref": 1646.9997753514872,
+      "threshold": 1647.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.000244140625,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 105,
+      "det": 1,
+      "coord": 2
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 2.5402957909999984
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 15019,
+   "vpos": 111,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 5067,
+   "differing": 137,
+   "differing_within_rule": 137,
+   "differing_fields": {
+    "pixel_on_detector": 136,
+    "quality": 12,
+    "pixel_overlap": 5
+   },
+   "differing_causes": {
+    "pixel_integer": 141
+   },
+   "differing_max_near_px": 0.00152587890625,
+   "failures": [],
+   "first": {
+    "call": 1,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     961,
+     0,
+     58,
+     0.0,
+     58,
+     0
+    ],
+    "fused": [
+     0,
+     960,
+     0,
+     58,
+     0.0,
+     58,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1853.0001220703125,
+      "fused": 1852.9998779296875,
+      "ref": 1852.9997303365471,
+      "threshold": 1853.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 81,
+      "det": 0,
+      "coord": 4
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 2.3466717499999987
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 177,
+   "vpos": 115,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4031,
+   "differing": 104,
+   "differing_within_rule": 104,
+   "differing_fields": {
+    "pixel_on_detector": 103,
+    "quality": 15,
+    "pixel_overlap": 10
+   },
+   "differing_causes": {
+    "pixel_integer": 109
+   },
+   "differing_max_near_px": 0.000885009765625,
+   "failures": [],
+   "first": {
+    "call": 108,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1037,
+     0,
+     65,
+     0.0,
+     65,
+     0
+    ],
+    "fused": [
+     0,
+     1038,
+     0,
+     65,
+     0.0,
+     65,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1118.9998779296875,
+      "fused": 1119.0001220703125,
+      "ref": 1119.0002280547874,
+      "threshold": 1119.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 43,
+      "det": 0,
+      "coord": 4
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 1.9858692080000004
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 10864,
+   "vpos": 145,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4519,
+   "differing": 108,
+   "differing_within_rule": 108,
+   "differing_fields": {
+    "pixel_on_detector": 108,
+    "quality": 8,
+    "pixel_overlap": 5
+   },
+   "differing_causes": {
+    "pixel_integer": 111
+   },
+   "differing_max_near_px": 0.000732421875,
+   "failures": [],
+   "first": {
+    "call": 30,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1026,
+     0,
+     64,
+     0.0,
+     64,
+     0
+    ],
+    "fused": [
+     0,
+     1024,
+     0,
+     64,
+     0.0,
+     64,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 6,
+      "torch": 1512.000732421875,
+      "fused": 1511.9993896484375,
+      "ref": 1512.000858211798,
+      "threshold": 1512.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.000732421875,
+      "fused_margin_ulp": 5,
+      "fused_px_from_edge": 0.0006103515625,
+      "row": 202,
+      "det": 1,
+      "coord": 5
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0006103515625
+   },
+   "seconds": 2.1280512080000022
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 15620,
+   "vpos": 148,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3439,
+   "differing": 77,
+   "differing_within_rule": 77,
+   "differing_fields": {
+    "pixel_on_detector": 76,
+    "quality": 16,
+    "pixel_overlap": 14
+   },
+   "differing_causes": {
+    "pixel_integer": 79
+   },
+   "differing_max_near_px": 0.00152587890625,
+   "failures": [],
+   "first": {
+    "call": 17,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector",
+     "quality"
+    ],
+    "torch": [
+     22,
+     741,
+     2,
+     42,
+     0.02794754265342501,
+     42,
+     0
+    ],
+    "fused": [
+     22,
+     740,
+     2,
+     42,
+     0.028411364545818333,
+     42,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 2,
+      "torch": 1621.000244140625,
+      "fused": 1620.9998779296875,
+      "ref": 1621.00027117494,
+      "threshold": 1621.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.000244140625,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 28,
+      "det": 1,
+      "coord": 4
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 1.7700863750000053
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 22863,
+   "vpos": 161,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4005,
+   "differing": 98,
+   "differing_within_rule": 98,
+   "differing_fields": {
+    "pixel_on_detector": 98,
+    "pixel_overlap": 12,
+    "quality": 13
+   },
+   "differing_causes": {
+    "pixel_integer": 99
+   },
+   "differing_max_near_px": 0.00103759765625,
+   "failures": [],
+   "first": {
+    "call": 51,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     970,
+     0,
+     59,
+     0.0,
+     59,
+     0
+    ],
+    "fused": [
+     0,
+     969,
+     0,
+     59,
+     0.0,
+     59,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1517.9998779296875,
+      "fused": 1518.0,
+      "ref": 1517.9997129602298,
+      "threshold": 1518.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 0,
+      "fused_px_from_edge": 0.0,
+      "row": 111,
+      "det": 0,
+      "coord": 2
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.9784853330000018
+  },
+  {
+   "pair": "off vs on",
+   "arm": "on",
+   "vidx": 6596,
+   "vpos": 184,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4527,
+   "differing": 144,
+   "differing_within_rule": 144,
+   "differing_fields": {
+    "pixel_on_detector": 144,
+    "quality": 11,
+    "pixel_overlap": 6
+   },
+   "differing_causes": {
+    "pixel_integer": 152
+   },
+   "differing_max_near_px": 0.00140380859375,
+   "failures": [],
+   "first": {
+    "call": 17,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1002,
+     0,
+     64,
+     0.0,
+     64,
+     0
+    ],
+    "fused": [
+     0,
+     1001,
+     0,
+     64,
+     0.0,
+     64,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1338.9998779296875,
+      "fused": 1339.0001220703125,
+      "ref": 1338.9999788951427,
+      "threshold": 1339.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 40,
+      "det": 1,
+      "coord": 2
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 2.2008936670000026
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 2177,
+   "vpos": 10,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3491,
+   "differing": 87,
+   "differing_within_rule": 87,
+   "differing_fields": {
+    "pixel_on_detector": 86,
+    "pixel_overlap": 9,
+    "quality": 11,
+    "peak_overlap": 1
+   },
+   "differing_causes": {
+    "pixel_integer": 89
+   },
+   "differing_max_near_px": 0.001190185546875,
+   "failures": [],
+   "first": {
+    "call": 13,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1039,
+     0,
+     62,
+     0.0,
+     62,
+     0
+    ],
+    "fused": [
+     0,
+     1042,
+     0,
+     62,
+     0.0,
+     62,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1515.9998779296875,
+      "fused": 1516.0,
+      "ref": 1515.9999214556856,
+      "threshold": 1516.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 0,
+      "fused_px_from_edge": 0.0,
+      "row": 16,
+      "det": 0,
+      "coord": 3
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.3227570000000028
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 14217,
+   "vpos": 17,
+   "wrong_off": true,
+   "wrong_on": true,
+   "change": "both wrong",
+   "reproduced": true,
+   "shadowed": 4247,
+   "differing": 112,
+   "differing_within_rule": 112,
+   "differing_fields": {
+    "pixel_on_detector": 112,
+    "pixel_overlap": 2,
+    "peak_overlap": 1,
+    "quality": 2
+   },
+   "differing_causes": {
+    "pixel_integer": 117
+   },
+   "differing_max_near_px": 0.0017490386962890625,
+   "failures": [],
+   "first": {
+    "call": 35,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     7,
+     1023,
+     1,
+     65,
+     0.006334841628959277,
+     65,
+     0
+    ],
+    "fused": [
+     7,
+     1025,
+     1,
+     65,
+     0.006334841628959277,
+     65,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 0,
+      "torch": 2004.0,
+      "fused": 2003.9998779296875,
+      "ref": 2003.9999215554344,
+      "threshold": 2004.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 103,
+      "det": 1,
+      "coord": 3
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.4622432500000002
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 5384,
+   "vpos": 33,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3355,
+   "differing": 71,
+   "differing_within_rule": 71,
+   "differing_fields": {
+    "pixel_on_detector": 70,
+    "pixel_overlap": 4,
+    "quality": 3
+   },
+   "differing_causes": {
+    "pixel_integer": 77
+   },
+   "differing_max_near_px": 0.000946044921875,
+   "failures": [],
+   "first": {
+    "call": 2,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1062,
+     0,
+     65,
+     0.0,
+     65,
+     0
+    ],
+    "fused": [
+     0,
+     1064,
+     0,
+     65,
+     0.0,
+     65,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 0,
+      "torch": 1550.0,
+      "fused": 1549.999755859375,
+      "ref": 1549.9998338438534,
+      "threshold": 1550.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0,
+      "fused_margin_ulp": 2,
+      "fused_px_from_edge": 0.000244140625,
+      "row": 77,
+      "det": 0,
+      "coord": 1
+     },
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 0,
+      "torch": 2345.0,
+      "fused": 2344.999755859375,
+      "ref": 2344.9997590441485,
+      "threshold": 2345.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.000244140625,
+      "row": 78,
+      "det": 0,
+      "coord": 5
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.3041547079999987
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 21741,
+   "vpos": 35,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3653,
+   "differing": 92,
+   "differing_within_rule": 92,
+   "differing_fields": {
+    "pixel_on_detector": 92,
+    "pixel_overlap": 4,
+    "quality": 5
+   },
+   "differing_causes": {
+    "pixel_integer": 100
+   },
+   "differing_max_near_px": 0.00140380859375,
+   "failures": [],
+   "first": {
+    "call": 138,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     13,
+     1010,
+     1,
+     60,
+     0.015476190476190477,
+     60,
+     0
+    ],
+    "fused": [
+     13,
+     1011,
+     1,
+     60,
+     0.015476190476190477,
+     60,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 2,
+      "torch": 559.9998779296875,
+      "fused": 560.0000610351562,
+      "ref": 559.9994224820551,
+      "threshold": 560.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 6.103515625e-05,
+      "row": 162,
+      "det": 1,
+      "coord": 4
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 6.103515625e-05
+   },
+   "seconds": 1.3921573750000036
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 17771,
+   "vpos": 42,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3846,
+   "differing": 95,
+   "differing_within_rule": 95,
+   "differing_fields": {
+    "pixel_on_detector": 94,
+    "quality": 13,
+    "pixel_overlap": 8
+   },
+   "differing_causes": {
+    "pixel_integer": 99
+   },
+   "differing_max_near_px": 0.0015869140625,
+   "failures": [],
+   "first": {
+    "call": 6,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1085,
+     0,
+     64,
+     0.0,
+     64,
+     0
+    ],
+    "fused": [
+     0,
+     1083,
+     0,
+     64,
+     0.0,
+     64,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 3,
+      "torch": 1642.0003662109375,
+      "fused": 1641.9998779296875,
+      "ref": 1642.0002749197984,
+      "threshold": 1642.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0003662109375,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 25,
+      "det": 1,
+      "coord": 0
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 1.4020397090000003
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 24339,
+   "vpos": 72,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4944,
+   "differing": 113,
+   "differing_within_rule": 113,
+   "differing_fields": {
+    "pixel_on_detector": 112,
+    "quality": 12,
+    "pixel_overlap": 7
+   },
+   "differing_causes": {
+    "pixel_integer": 119
+   },
+   "differing_max_near_px": 0.00157928466796875,
+   "failures": [],
+   "first": {
+    "call": 110,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     21,
+     1085,
+     2,
+     68,
+     0.007635746606334842,
+     68,
+     0
+    ],
+    "fused": [
+     21,
+     1087,
+     2,
+     68,
+     0.007635746606334842,
+     68,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 34,
+      "torch": 409.99896240234375,
+      "fused": 410.00091552734375,
+      "ref": 409.9997614469892,
+      "threshold": 410.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.00103759765625,
+      "fused_margin_ulp": 30,
+      "fused_px_from_edge": 0.00091552734375,
+      "row": 178,
+      "det": 1,
+      "coord": 4
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.00091552734375
+   },
+   "seconds": 1.5915557910000047
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 2807,
+   "vpos": 83,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3747,
+   "differing": 106,
+   "differing_within_rule": 106,
+   "differing_fields": {
+    "pixel_on_detector": 104,
+    "pixel_overlap": 10,
+    "quality": 13
+   },
+   "differing_causes": {
+    "pixel_integer": 110
+   },
+   "differing_max_near_px": 0.0013885498046875,
+   "failures": [],
+   "first": {
+    "call": 21,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1040,
+     0,
+     63,
+     0.0,
+     63,
+     0
+    ],
+    "fused": [
+     0,
+     1039,
+     0,
+     63,
+     0.0,
+     63,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 2,
+      "torch": 1793.000244140625,
+      "fused": 1792.9998779296875,
+      "ref": 1792.9998347864232,
+      "threshold": 1793.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.000244140625,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 136,
+      "det": 0,
+      "coord": 1
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 1.397520415999999
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 1935,
+   "vpos": 90,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4183,
+   "differing": 118,
+   "differing_within_rule": 118,
+   "differing_fields": {
+    "pixel_on_detector": 117,
+    "quality": 18,
+    "pixel_overlap": 8
+   },
+   "differing_causes": {
+    "pixel_integer": 122
+   },
+   "differing_max_near_px": 0.00177001953125,
+   "failures": [],
+   "first": {
+    "call": 57,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1002,
+     0,
+     61,
+     0.0,
+     61,
+     0
+    ],
+    "fused": [
+     0,
+     1001,
+     0,
+     61,
+     0.0,
+     61,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 0,
+      "torch": 1141.0,
+      "fused": 1140.9998779296875,
+      "ref": 1140.9997786615306,
+      "threshold": 1141.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 93,
+      "det": 1,
+      "coord": 4
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.5081085419999951
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 2735,
+   "vpos": 103,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4714,
+   "differing": 99,
+   "differing_within_rule": 99,
+   "differing_fields": {
+    "pixel_on_detector": 98,
+    "pixel_overlap": 4,
+    "quality": 9
+   },
+   "differing_causes": {
+    "pixel_integer": 111
+   },
+   "differing_max_near_px": 0.001312255859375,
+   "failures": [],
+   "first": {
+    "call": 86,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     4,
+     1057,
+     1,
+     66,
+     0.00432900432900433,
+     66,
+     0
+    ],
+    "fused": [
+     4,
+     1060,
+     1,
+     66,
+     0.00432900432900433,
+     66,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 0,
+      "torch": 1627.0,
+      "fused": 1626.9998779296875,
+      "ref": 1626.9998216169577,
+      "threshold": 1627.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 99,
+      "det": 0,
+      "coord": 5
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.5257733330000036
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 22517,
+   "vpos": 120,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3406,
+   "differing": 71,
+   "differing_within_rule": 71,
+   "differing_fields": {
+    "pixel_on_detector": 70,
+    "quality": 5,
+    "pixel_overlap": 3
+   },
+   "differing_causes": {
+    "pixel_integer": 72
+   },
+   "differing_max_near_px": 0.00146484375,
+   "failures": [],
+   "first": {
+    "call": 61,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     1007,
+     0,
+     62,
+     0.0,
+     62,
+     0
+    ],
+    "fused": [
+     0,
+     1006,
+     0,
+     62,
+     0.0,
+     62,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 14,
+      "torch": 539.0008544921875,
+      "fused": 538.9999389648438,
+      "ref": 539.0000288721951,
+      "threshold": 539.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0008544921875,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 6.103515625e-05,
+      "row": 160,
+      "det": 1,
+      "coord": 4
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 6.103515625e-05
+   },
+   "seconds": 1.3100964160000004
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 21726,
+   "vpos": 140,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4147,
+   "differing": 119,
+   "differing_within_rule": 119,
+   "differing_fields": {
+    "pixel_on_detector": 115,
+    "pixel_overlap": 17,
+    "quality": 19
+   },
+   "differing_causes": {
+    "pixel_integer": 126
+   },
+   "differing_max_near_px": 0.0015869140625,
+   "failures": [],
+   "first": {
+    "call": 90,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     9,
+     976,
+     1,
+     62,
+     0.0012096774193548385,
+     62,
+     0
+    ],
+    "fused": [
+     9,
+     975,
+     1,
+     62,
+     0.0012096774193548385,
+     62,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 25,
+      "torch": 882.0015258789062,
+      "fused": 881.998046875,
+      "ref": 881.9999473273305,
+      "threshold": 882.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.00152587890625,
+      "fused_margin_ulp": 32,
+      "fused_px_from_edge": 0.001953125,
+      "row": 184,
+      "det": 1,
+      "coord": 0
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.00152587890625
+   },
+   "seconds": 1.5091099999999997
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 628,
+   "vpos": 144,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3728,
+   "differing": 87,
+   "differing_within_rule": 87,
+   "differing_fields": {
+    "pixel_on_detector": 87,
+    "pixel_overlap": 8,
+    "quality": 10
+   },
+   "differing_causes": {
+    "pixel_integer": 93
+   },
+   "differing_max_near_px": 0.000732421875,
+   "failures": [],
+   "first": {
+    "call": 101,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     993,
+     0,
+     62,
+     0.0,
+     62,
+     0
+    ],
+    "fused": [
+     0,
+     992,
+     0,
+     62,
+     0.0,
+     62,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 2,
+      "torch": 793.9998779296875,
+      "fused": 794.0001831054688,
+      "ref": 793.9997339216469,
+      "threshold": 794.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 3,
+      "fused_px_from_edge": 0.00018310546875,
+      "row": 132,
+      "det": 0,
+      "coord": 4
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 1.3464735000000019
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 10007,
+   "vpos": 153,
+   "wrong_off": true,
+   "wrong_on": true,
+   "change": "both wrong",
+   "reproduced": true,
+   "shadowed": 3587,
+   "differing": 95,
+   "differing_within_rule": 95,
+   "differing_fields": {
+    "pixel_on_detector": 95,
+    "quality": 3,
+    "pixel_overlap": 1
+   },
+   "differing_causes": {
+    "pixel_integer": 97
+   },
+   "differing_max_near_px": 0.0011749267578125,
+   "failures": [],
+   "first": {
+    "call": 38,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     19,
+     1035,
+     2,
+     65,
+     0.020146520146520155,
+     65,
+     0
+    ],
+    "fused": [
+     19,
+     1032,
+     2,
+     65,
+     0.020146520146520155,
+     65,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1850.9998779296875,
+      "fused": 1851.0,
+      "ref": 1850.9999907574822,
+      "threshold": 1851.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 0,
+      "fused_px_from_edge": 0.0,
+      "row": 60,
+      "det": 0,
+      "coord": 1
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.3411105830000025
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 24420,
+   "vpos": 162,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3869,
+   "differing": 82,
+   "differing_within_rule": 82,
+   "differing_fields": {
+    "pixel_on_detector": 81,
+    "quality": 15,
+    "pixel_overlap": 10
+   },
+   "differing_causes": {
+    "pixel_integer": 84
+   },
+   "differing_max_near_px": 0.0012664794921875,
+   "failures": [],
+   "first": {
+    "call": 28,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     990,
+     0,
+     59,
+     0.0,
+     59,
+     0
+    ],
+    "fused": [
+     0,
+     994,
+     0,
+     59,
+     0.0,
+     59,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 3,
+      "torch": 1213.9996337890625,
+      "fused": 1214.000244140625,
+      "ref": 1213.9996206117169,
+      "threshold": 1214.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0003662109375,
+      "fused_margin_ulp": 2,
+      "fused_px_from_edge": 0.000244140625,
+      "row": 122,
+      "det": 1,
+      "coord": 3
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.000244140625
+   },
+   "seconds": 1.425483542000002
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 20976,
+   "vpos": 172,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 3934,
+   "differing": 106,
+   "differing_within_rule": 106,
+   "differing_fields": {
+    "pixel_on_detector": 105,
+    "pixel_overlap": 10,
+    "quality": 13
+   },
+   "differing_causes": {
+    "pixel_integer": 110
+   },
+   "differing_max_near_px": 0.00091552734375,
+   "failures": [],
+   "first": {
+    "call": 3,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     3,
+     1075,
+     1,
+     66,
+     0.0022727272727272726,
+     66,
+     0
+    ],
+    "fused": [
+     3,
+     1076,
+     1,
+     66,
+     0.0022727272727272726,
+     66,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 0,
+      "torch": 1590.0,
+      "fused": 1589.9998779296875,
+      "ref": 1589.9996937813432,
+      "threshold": 1590.0,
+      "ref_side": "fused",
+      "torch_px_from_edge": 0.0,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 115,
+      "det": 0,
+      "coord": 5
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.418687583999997
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 77,
+   "vpos": 174,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4309,
+   "differing": 114,
+   "differing_within_rule": 114,
+   "differing_fields": {
+    "pixel_on_detector": 114,
+    "quality": 16,
+    "pixel_overlap": 9
+   },
+   "differing_causes": {
+    "pixel_integer": 118
+   },
+   "differing_max_near_px": 0.0008544921875,
+   "failures": [],
+   "first": {
+    "call": 123,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     993,
+     0,
+     61,
+     0.0,
+     61,
+     0
+    ],
+    "fused": [
+     0,
+     990,
+     0,
+     61,
+     0.0,
+     61,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 2,
+      "torch": 1721.999755859375,
+      "fused": 1722.0001220703125,
+      "ref": 1721.9998437719037,
+      "threshold": 1722.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.000244140625,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 3,
+      "det": 1,
+      "coord": 2
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 1.5217319160000002
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 18723,
+   "vpos": 178,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4197,
+   "differing": 116,
+   "differing_within_rule": 116,
+   "differing_fields": {
+    "pixel_on_detector": 116,
+    "pixel_overlap": 10,
+    "quality": 17
+   },
+   "differing_causes": {
+    "pixel_integer": 121
+   },
+   "differing_max_near_px": 0.00140380859375,
+   "failures": [],
+   "first": {
+    "call": 32,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     14,
+     1044,
+     1,
+     65,
+     0.007692307692307693,
+     65,
+     0
+    ],
+    "fused": [
+     14,
+     1041,
+     1,
+     65,
+     0.007692307692307693,
+     65,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 9,
+      "torch": 1648.9989013671875,
+      "fused": 1649.0,
+      "ref": 1648.9992690736663,
+      "threshold": 1649.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0010986328125,
+      "fused_margin_ulp": 0,
+      "fused_px_from_edge": 0.0,
+      "row": 197,
+      "det": 0,
+      "coord": 3
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0
+   },
+   "seconds": 1.4852479169999953
+  },
+  {
+   "pair": "bqmc vs bqmc_on",
+   "arm": "bqmc_on",
+   "vidx": 14596,
+   "vpos": 190,
+   "wrong_off": false,
+   "wrong_on": false,
+   "change": "both right",
+   "reproduced": true,
+   "shadowed": 4315,
+   "differing": 124,
+   "differing_within_rule": 124,
+   "differing_fields": {
+    "pixel_on_detector": 123,
+    "pixel_overlap": 10,
+    "quality": 14
+   },
+   "differing_causes": {
+    "pixel_integer": 127
+   },
+   "differing_max_near_px": 0.000885009765625,
+   "failures": [],
+   "first": {
+    "call": 10,
+    "path": "evaluate",
+    "pixel_radius": 0,
+    "fields": [
+     "pixel_on_detector"
+    ],
+    "torch": [
+     0,
+     994,
+     0,
+     63,
+     0.0,
+     63,
+     0
+    ],
+    "fused": [
+     0,
+     995,
+     0,
+     63,
+     0.0,
+     63,
+     0
+    ],
+    "entries": [
+     {
+      "cause": "pixel_integer",
+      "margin_ulp": 1,
+      "torch": 1762.9998779296875,
+      "fused": 1763.0001220703125,
+      "ref": 1762.9997955947729,
+      "threshold": 1763.0,
+      "ref_side": "torch",
+      "torch_px_from_edge": 0.0001220703125,
+      "fused_margin_ulp": 1,
+      "fused_px_from_edge": 0.0001220703125,
+      "row": 132,
+      "det": 1,
+      "coord": 3
+     }
+    ],
+    "within_rule": true,
+    "failures": [],
+    "max_near_px": 0.0001220703125
+   },
+   "seconds": 1.5324649580000056
+  }
+ ],
+ "totals": {
+  "n": 36,
+  "reproduced": 36,
+  "first_within_rule": 36,
+  "no_difference": 0,
+  "shadowed": 148511,
+  "differing": 3793,
+  "differing_within_rule": 3793,
+  "differing_quality": 421,
+  "max_near_px": 0.00177001953125
+ }
+}
