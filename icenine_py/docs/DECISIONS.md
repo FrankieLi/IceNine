@@ -578,3 +578,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   remaining work: once everything is done, one review by a Fable reviewer covers the carry-option
   comparison (Fcompare) and Task G, and replaces the plan's Review stage. Where:
   ~/.claude/plans/eval-reduction.md Task G (owner note) and Review stage.
+
+### D-20261028-N2 · Track E row G · Task G plan approved; Newt runs the rest of the plan without sign-off between sub-tasks
+- 2026-10-28, owner. Recorded by Newt Agent. Supersedes: none.
+- The Task G plan in ~/.claude/plans/eval-reduction.md (sub-tasks G1, G2, G3, with its Library
+  changes and Stop rule paragraphs) is approved; implement now. Newt Agent runs the rest of the
+  plan that Ilium Agent has not done, merging each sub-task without asking; decision points take
+  the plan's stated default, each recorded as a Delegated entry. Where:
+  ~/.claude/plans/eval-reduction.md Task G; ROADMAP Track E row G.
