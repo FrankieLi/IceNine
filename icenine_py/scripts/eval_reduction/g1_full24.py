@@ -180,15 +180,38 @@ def decision(P: Dict[str, Any]) -> Dict[str, Any]:
         complete[tag] = all(x is not None and x["n"] == len(VOXELS_24) for x in xs)
         net[tag] = sum(x["net"] for x in xs if x is not None) if any(xs) else None
     cands = {t: n for t, n in net.items() if n is not None and n > 0}
+    ms = ms_per_eval()
     if not cands:
         choice = "off"
         reason = "neither arm fixes more voxels than it breaks across both rules"
     else:
         best = max(cands.values())
         tops = [t for t, n in cands.items() if n == best]
-        choice = ARMS[tops[0]] if len(tops) == 1 else "tie: " + " / ".join(ARMS[t] for t in tops)
-        reason = f"net fixed minus broken across both rules: {best}"
-    return dict(net_across_rules=net, complete=complete, choice=choice, reason=reason)
+        # tie-break (as Task E's decision point): the cheaper arm per smooth evaluation
+        tops.sort(key=lambda t: ms.get(t, float("inf")))
+        choice = ARMS[tops[0]]
+        reason = f"net fixed minus broken across both rules: {best}" + (
+            f"; tie between {', '.join(ARMS[t] for t in tops)} broken by ms per evaluation"
+            if len(tops) > 1
+            else ""
+        )
+    return dict(
+        net_across_rules=net,
+        complete=complete,
+        choice=choice,
+        reason=reason,
+        tie_break_ms_per_eval_batch256_full=ms,
+    )
+
+
+def ms_per_eval() -> Dict[str, float]:
+    """Task E measurement 4 (single-worker, full-sample images, batch of 256): ms per smooth
+    evaluation of each carried arm (tau enters only the final ratio, so E3+E4 stands for tau 0.25).
+    """
+    f = ICE / "benchmarks" / "eval_reduction" / "E" / "timing" / "timing_full.json"
+    arms = json.loads(f.read_text())["arms"]
+    names = {"e34t25": "E3+E4", "e1234a": "E1+E2+E3+E4"}
+    return {t: float(arms[n]["ms_per_eval_batch256"]) for t, n in names.items() if n in arms}
 
 
 def tables(P: Dict[str, Any], base_wrong: Dict[str, Any]) -> Dict[str, str]:
