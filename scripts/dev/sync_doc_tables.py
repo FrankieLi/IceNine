@@ -1,12 +1,14 @@
 """Copy generated markdown tables into a doc between matching table markers.
 
-Usage: sync_doc_tables.py --doc DOC.md --tables GENERATED.md [--section "Heading"] [--check]
+Usage: sync_doc_tables.py --doc DOC.md --tables GENERATED.md [MORE.md ...] [--section "Heading"]
+                          [--check]
 
 Both files use ``<!-- table:NAME -->`` ... ``<!-- /table:NAME -->`` blocks (see
 icenine_py/scripts/common/doc_tables.py). A marker in the doc with no generated block is an error
 (exit 2, listing each such marker with its line and heading); generated blocks the doc does not use
 are listed. With --check the doc is not written and the exit code is 1 if it differs from what
-would be written.
+would be written. Several --tables files are merged; a block name in two of them with different
+contents is exit 2.
 
 --section "Heading" syncs (or checks) only the markers inside that section: the first heading
 whose text contains "Heading", up to the next heading of the same or a higher level (the rule of
@@ -126,13 +128,20 @@ def _offset(lines_keepends: Sequence[str], line: int) -> int:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
     ap.add_argument("--doc", required=True, type=Path)
-    ap.add_argument("--tables", required=True, type=Path)
+    ap.add_argument("--tables", required=True, type=Path, nargs="+")
     ap.add_argument("--section", help="sync only the markers under this heading")
     ap.add_argument("--check", action="store_true")
     args = ap.parse_args(argv)
 
     doc = args.doc.read_text()
-    generated = parse_blocks(args.tables.read_text())
+    generated: Dict[str, str] = {}
+    for path in args.tables:
+        for name, block in parse_blocks(path.read_text()).items():
+            if generated.get(name, block) != block:
+                print(f"error: block {name} differs between --tables files", file=sys.stderr)
+                return 2
+            generated[name] = block
+    sources = ", ".join(str(p) for p in args.tables)
     keep = doc.splitlines(keepends=True)
     prefix, body, suffix = "", doc, ""
     lo, hi = 0, len(keep)  # 0-based line range of body in the doc (hi exclusive)
@@ -174,7 +183,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         where = f" in section {args.section!r}" if args.section is not None else ""
         print(
             f"error: {len(missing)} marker(s){where} of {args.doc} have no generated block in "
-            f"{args.tables}:\n{describe(missing)}",
+            f"{sources}:\n{describe(missing)}",
             file=sys.stderr,
         )
         if args.section is None:
@@ -190,7 +199,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if new == doc:
         return 0
     if args.check:
-        print(f"{args.doc}: tables differ from {args.tables}", file=sys.stderr)
+        print(f"{args.doc}: tables differ from {sources}", file=sys.stderr)
         return 1
     args.doc.write_text(new)
     print(f"{args.doc}: updated")

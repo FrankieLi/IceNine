@@ -189,3 +189,23 @@ def test_find_section_agrees_with_audit_numbers_without_fences(heading: str) -> 
     lines = [ln for ln in lines if ln != "uv run python x.py"]
     start, end, _ = sync_doc_tables.find_section(lines, heading)
     assert (start, end) == audit_numbers.find_section(lines, heading)
+
+
+def test_several_tables_files_merge(tmp_path: Path) -> None:
+    # a section whose markers come from two generated files (S2 Step 4: s2_results and taska)
+    doc, first = _files(tmp_path, {"a1": "| new a1 |"})
+    second = tmp_path / "second.md"
+    doc_tables.write_tables(second, {"a2": "| new a2 |"})
+    res = _run(doc, first, str(second), "--section", "Alpha")
+    assert res.returncode == 0, res.stderr
+    assert "| new a1 |" in doc.read_text() and "| new a2 |" in doc.read_text()
+    assert _run(doc, first, str(second), "--section", "Alpha", "--check").returncode == 0
+
+
+def test_several_tables_files_conflict(tmp_path: Path) -> None:
+    doc, first = _files(tmp_path, {"a1": "| one |"})
+    second = tmp_path / "second.md"
+    doc_tables.write_tables(second, {"a1": "| two |"})
+    res = _run(doc, first, str(second), "--section", "Alpha")
+    assert res.returncode == 2 and "block a1 differs between --tables files" in res.stderr
+    assert doc.read_text() == DOC
