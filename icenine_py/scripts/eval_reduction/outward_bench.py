@@ -389,16 +389,18 @@ def run_f5(
     return out, res
 
 
-def run_f54(env: Dict[str, Any], R0: np.ndarray, f5: Dict[str, Any], f5res: Any) -> Dict[str, Any]:
+def run_f54(
+    env: Dict[str, Any], R0: np.ndarray, f5: Dict[str, Any], f5res: Any, window: int = 1
+) -> Dict[str, Any]:
     """f5, then f4 from f5's result; counts and time are the sums, the trace is f5's followed by
-    f4's shifted by f5's evaluations."""
+    f4's shifted by f5's evaluations. ``window`` is f4's frame window (Fcompare uses 5)."""
     from icenine.outward_search import angle_deg
 
     err0 = angle_deg(R0, env["R_true"])
     base_n = f5res.n_evals
     trace = [(n, angle_deg(Rb, env["R_true"])) for _, _, n, Rb in f5res.trace]
     with Tracer(env["lf"], env["R_true"], env["verts"], env["phase"]) as tr:
-        gn = make_gn(env, tr)
+        gn = make_gn(env, tr, window=window)
         t0 = time.perf_counter()
         res = gn.solve(
             f5res.R,

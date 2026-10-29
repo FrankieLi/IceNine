@@ -597,3 +597,36 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   implement-plan and apply-fixes skills show make_brief's stderr notes, and the
   run-tests-on-change.sh hook's extra -q. Where: ROADMAP Track H row H12;
   docs/todo_ilium_workflow_tooling.md task (d); .claude/reports/20261029-0010-review-tooling-d.md.
+### D-20261028-N1 · Track E (all remaining work) · Opus implements every remaining task; one Fable review at the end
+- 2026-10-28, owner. Recorded by Newt Agent. Supersedes: none.
+- From now on every implementer for Track E is Opus (fresh agent per task, fixes included); the
+  Sonnet default of the plan no longer applies. The per-task /review-task loop is dropped for the
+  remaining work: once everything is done, one review by a Fable reviewer covers the carry-option
+  comparison (Fcompare) and Task G, and replaces the plan's Review stage. Where:
+  ~/.claude/plans/eval-reduction.md Task G (owner note) and Review stage.
+
+### D-20261028-N2 · Track E row G · Task G plan approved; Newt runs the rest of the plan without sign-off between sub-tasks
+- 2026-10-28, owner. Recorded by Newt Agent. Supersedes: none.
+- The Task G plan in ~/.claude/plans/eval-reduction.md (sub-tasks G1, G2, G3, with its Library
+  changes and Stop rule paragraphs) is approved; implement now. Newt Agent runs the rest of the
+  plan that Ilium Agent has not done, merging each sub-task without asking; decision points take
+  the plan's stated default, each recorded as a Delegated entry. Where:
+  ~/.claude/plans/eval-reduction.md Task G; ROADMAP Track E row G.
+
+### D-20261028-N3 · Track E (merge of python-speed-parity) · One-time pre-commit bypass for the merge of Ilium's branch
+- 2026-10-28, owner. Recorded by Newt Agent. Supersedes: none.
+- The merge of origin/feature/python-speed-parity through de3e29d into feature/eval-reduction
+  (5e15bcd) was committed by the owner with --no-verify: the pre-commit hook refused the
+  owner-approved .claude/ files (D-20261021-I1) and lines over 100 characters in Ilium's S2/S4
+  scripts. One time only; agents still never bypass the hooks. Where: merge commit 5e15bcd;
+  scripts/dev/precommit_check.py.
+
+### D-20261028-N4 · Track E rows F, G · Delegated: the outward search carried into Task G is the F fallback policy, 1-frame window
+- 2026-10-28, owner. Recorded by Newt Agent. Supersedes: none.
+- Delegated (owner 2026-10-28: Newt decides the plan's decision points). From the carry-option
+  comparison (D-20261021-N1, 24 fresh voxels per set): Task G uses the policy F4, then F5 then F4
+  where F4's acceptance test rejects, with F4's frame_window at 1 (library default). It reached
+  480/480 within 1 deg at every offset on both sets, and the 1-frame window ends within 0.05 deg
+  more often on the full sample (85-86% against 77-78%). CMA-ES is not carried (34-57% from 5
+  deg). The owner can override. Where: docs/findings_outward_search_2026-10.md 'Comparing the
+  carry options'; ~/.claude/plans/eval-reduction.md Task G.
