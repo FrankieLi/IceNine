@@ -161,6 +161,28 @@ def test_marker_crossing_section_end_is_an_error(tmp_path: Path) -> None:
     assert doc.read_text() == text
 
 
+def test_inline_marker_mention_is_not_a_marker(tmp_path: Path) -> None:
+    # review fix 1: README "Developer tooling" quotes the syntax in a table row and in prose
+    text = (
+        "## Tools\n"
+        "| tool | Copy blocks into the matching `<!-- table:NAME -->` markers |\n"
+        "Prose naming `<!-- table:other -->` inline.\n"
+        "<!-- table:x -->\nold\n<!-- /table:x -->\n"
+        "## Next\n"
+    )
+    doc, tables = _files(tmp_path, {"x": "| x |"}, text)
+    res = _run(doc, tables, "--section", "Tools", "--check")
+    assert res.returncode == 1 and "without closing" not in res.stderr, res.stderr
+    assert _run(doc, tables, "--section", "Tools").returncode == 0
+    assert "<!-- table:x -->\n| x |\n<!-- /table:x -->" in doc.read_text()
+    assert [m.name for m in sync_doc_tables.markers(doc.read_text())] == ["x"]
+    # a section holding only a mention has no markers
+    only = "## Tools\nsee `<!-- table:NAME -->`\n## Next\n"
+    doc, tables = _files(tmp_path, {}, only)
+    res = _run(doc, tables, "--section", "Tools", "--check")
+    assert res.returncode == 0 and "no table markers in section 'Tools'" in res.stderr
+
+
 def test_section_to_end_of_file_without_trailing_newline(tmp_path: Path) -> None:
     text = "## A\nkeep\n## B\n<!-- table:x -->\nold\n<!-- /table:x -->"
     doc, tables = _files(tmp_path, {"x": "| x |"}, text)
