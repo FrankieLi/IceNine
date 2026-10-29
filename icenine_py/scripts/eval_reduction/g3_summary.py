@@ -14,9 +14,12 @@ Parts (each skipped when its inputs are missing):
              another grain   within 1 deg of the orientation of another grain of the sample (the
                              BFS carried a neighbouring grain over the boundary; a neighbour fit
                              and its acceptance test, where SmoothCostRank does not act)
-             no grain        more than 1 deg from every grain's orientation (a full search ended
-                             on a wrong orientation and the BFS carried it); the full-search
-                             voxels of that run within 1 deg of it are listed
+             no grain        more than 1 deg from every grain's orientation
+           and by origin: own full search, carried from a wrong full search, boundary crossing
+           (a local fit carried a right full search's orientation over a grain boundary),
+           untraced (see ``classify``); the run's full-search voxels within 1 deg are listed
+  probe    Task E's broken-voxel rule (D-20261014-N13) for the SmoothCostRank-only arm's flips,
+           from the probe re-runs of their full searches (``g3_trace_probe.py``)
   total    evaluations by stage before and after: six full-sample voxels and the E0 200 (no-start
            search, Task G2), Task G1's 24 full-sample voxels, and the BFS runs; smooth evaluations
            also in strict-equivalent units (Task E's measured time ratio of an E3+E4 evaluation to
