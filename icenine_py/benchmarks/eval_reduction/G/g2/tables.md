@@ -1,3 +1,9 @@
+<!-- table:evalG2_e0 -->
+| n | wrong_base | wrong_integrated | fixed | broken | both_wrong | broken_traced | evals_base | evals_integrated | smooth | identical_to_task_e |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 200 | 41 (15.5-26.6%) | 7 (1.7-7.0%) | 34 | 0 | 7 | 0 / 0 / 0 | 48700 | 49215 | 252 | 200 of 200 |
+<!-- /table:evalG2_e0 -->
+
 <!-- table:evalG2_ledger_stages -->
 | stage | task_a | integrated | change |
 |---|---|---|---|
