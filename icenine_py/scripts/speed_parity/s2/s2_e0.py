@@ -76,7 +76,11 @@ def identical(da: Path, db: Path, names: List[str]) -> Dict[str, Any]:
         x, y = np.load(da / nm), np.load(db / nm)
         n += 1
         bad = sorted(
-            {k for k in x.files if "runtime" not in k and (k not in y.files or not np.array_equal(x[k], y[k]))}
+            {
+                k
+                for k in x.files
+                if "runtime" not in k and (k not in y.files or not np.array_equal(x[k], y[k]))
+            }
             | {k for k in y.files if k not in x.files}
         )  # fmt: skip
         same += not bad
@@ -123,7 +127,9 @@ def main() -> int:
             evals_local_total=sum(x["loc"] for x in r),
             evals_global_total=sum(x["g"] for x in r),
             runtime_median=statistics.median(x["t"] for x in r),
-            flags_ok=all(x["fused"] == arm.endswith("on") and x["bqmc"] == arm.startswith("bqmc") for x in r),
+            flags_ok=all(
+                x["fused"] == arm.endswith("on") and x["bqmc"] == arm.startswith("bqmc") for x in r
+            ),
             wrong_voxels=[v for v in common if recs[arm][v]["wrong"]],
         )  # fmt: skip
         lo, hi = stats.wilson(res["arms"][arm]["wrong"], len(r))

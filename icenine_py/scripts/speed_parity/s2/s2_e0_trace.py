@@ -21,7 +21,8 @@ Per voxel: the pair, the flag change (fixed / broken), the number of shadowed an
 evaluations, the first differing one (call number, path, pixel radius, which ``OverlapInfo`` fields
 differ, the traced entries and the rule verdict), and whether the rerun reproduced the record.
 
-  uv run python scripts/speed_parity/s2/s2_e0_trace.py --cache scripts/findoptimal_robustness/cache \
+  uv run python scripts/speed_parity/s2/s2_e0_trace.py \
+      --cache scripts/findoptimal_robustness/cache \
       --out benchmarks/s2_results/e0_trace.json
 """
 
