@@ -389,6 +389,38 @@ class BasicVoxelReconstructor:
 
 
 # ---------------------------------------------------------------------------
+# OutwardSearch (opt-in, Task G2): the Task F fallback policy from a start orientation
+# ---------------------------------------------------------------------------
+
+# Settings of the policy as Task F chose them and the carry-option comparison ran them
+# (scripts/eval_reduction/outward_bench.py; D-20261028-N4: 1-frame window)
+OUTWARD_ACCEPT_COST = 0.8  # strict cost at most this passes the acceptance test (F4 and F5)
+OUTWARD_TAU_DEG = (0.25,)  # E4 robust scale schedule of F4
+OUTWARD_FRAME_WINDOW = 1  # F4 matches a peak to rays at most this many frames away
+OUTWARD_SHELL_SPACING_DEG = 0.3  # F5 shell spacing
+OUTWARD_R_MAX_DEG = 6.0  # F5 outermost shell
+OUTWARD_SCREEN_MAX_Q = 5.0  # F5 screen: pixel radius 3 (global_pixel_radius), Q-max 5
+
+
+@dataclass
+class OutwardPolicyResult:
+    """Outcome of ``AdaptiveVoxelReconstructor.outward_search``. ``accepted``: the end point's
+    strict cost passed the acceptance test; ``fallback``: F4 alone was rejected, so F5 then F4 ran.
+    Counts: strict (pixel-radius-0 cost), screen (pixel-radius-3 cost, F5's shells), smooth (E4
+    values, ``n_jac`` of them with the Jacobian)."""
+
+    orientation: np.ndarray
+    accepted: bool
+    strict_cost: float
+    fallback: bool
+    n_strict: int
+    n_screen: int
+    n_smooth: int
+    n_jac: int
+    wall_s: float
+
+
+# ---------------------------------------------------------------------------
 # AdaptiveVoxelReconstructor — single voxel, adaptive narrowing
 # ---------------------------------------------------------------------------
 
@@ -458,6 +490,8 @@ class AdaptiveVoxelReconstructor:
         self.last_smooth_ranker: Any = None
         # SmoothCostRank: SmoothCost built once per image set (None: rebuilt on every call)
         self.smooth_cost_cache: Optional[SmoothCostCache] = SmoothCostCache()
+        # OutwardSearch: (image-set key, strict cost, screen cost, SmoothCost) of the last call
+        self._outward_costs_cache: Optional[Tuple[Any, ...]] = None
 
     @property
     def last_eval_counts(self) -> tuple:
@@ -1299,6 +1333,106 @@ class AdaptiveVoxelReconstructor:
 
         return result
 
+    def _outward_costs(self) -> Tuple[VoxelCostFunction, VoxelCostFunction, Any]:
+        """(strict cost, screen cost, SmoothCost) of the OutwardSearch policy, built once per image
+        set (the identity key of ``SmoothCostCache``). The SmoothCost comes from
+        ``smooth_cost_cache`` when it is set, so SmoothCostRank and the policy share one build."""
+        from .smooth_cost import _build_smooth_cost
+
+        eta_limit = self.setup.exp_setup.get_eta_limit()
+        refs, scalars = SmoothCostCache._key(self.setup, eta_limit, self.min_sin_eta)
+        old = self._outward_costs_cache
+        same = (
+            old is not None
+            and len(old[0]) == len(refs)
+            and all(a is b for a, b in zip(old[0], refs))
+            and old[1] == scalars
+        )
+        if self.smooth_cost_cache is not None:
+            sc = self.smooth_cost_cache.get(self.setup, eta_limit, self.min_sin_eta)
+        elif same:
+            sc = old[4]  # type: ignore[index]
+        else:
+            sc = _build_smooth_cost(self.setup, eta_limit, self.min_sin_eta)
+        if same:
+            strict_cf, screen_cf = old[2], old[3]  # type: ignore[index]
+        else:
+            strict_cf = self._make_local_cost_fn()
+            screen_cf = VoxelCostFunction(
+                simulator=self.setup.simulator,
+                detector_list=self.setup.detector_list,
+                range_map=self.setup.range_map,
+                exp_data=self.setup.exp_data,
+                **self._cost_flags(),
+                sample=self.setup.sample,
+                structure_list=self.setup.structure_list,
+                mode="hard",
+                eta_limit=eta_limit,
+                pixel_radius=self.global_pixel_radius,
+                max_q=OUTWARD_SCREEN_MAX_Q,
+                min_sin_eta=self.min_sin_eta,
+            )
+        self._outward_costs_cache = (refs, scalars, strict_cf, screen_cf, sc)
+        return strict_cf, screen_cf, sc
+
+    def outward_search(
+        self, voxel_vertices: torch.Tensor, phase_index: int, start: np.ndarray
+    ) -> OutwardPolicyResult:
+        """OutwardSearch (opt-in, Task G2): the Task F fallback policy from ``start``. F4
+        (``RayGaussNewton``, 1-frame window); where F4's acceptance test rejects, F5
+        (``ShellSearch`` from ``start``) then F4 from F5's point. Deterministic (no random
+        numbers). The settings are the module's ``OUTWARD_*`` constants."""
+        from .outward_search import RayGaussNewton, ShellSearch, screen_fn_from, smooth_fn_from
+
+        t0 = time.time()
+        strict_cf, screen_cf, sc = self._outward_costs()
+
+        def strict(R: np.ndarray) -> float:
+            info = strict_cf.evaluate(np.asarray(R, dtype=np.float64), voxel_vertices, phase_index)
+            return float(info.cost)
+
+        gn = RayGaussNewton(
+            sc,
+            voxel_vertices,
+            strict,
+            phase_index,
+            tau_schedule_deg=OUTWARD_TAU_DEG,
+            accept_cost=OUTWARD_ACCEPT_COST,
+            frame_window=OUTWARD_FRAME_WINDOW,
+        )
+        R0 = np.asarray(start, dtype=np.float64)
+        r4 = gn.solve(R0)
+        out = OutwardPolicyResult(
+            orientation=r4.R,
+            accepted=bool(r4.accepted),
+            strict_cost=float(r4.strict_cost),
+            fallback=False,
+            n_strict=r4.n_strict,
+            n_screen=0,
+            n_smooth=r4.n_smooth,
+            n_jac=r4.n_jac,
+            wall_s=0.0,
+        )
+        if not r4.accepted:
+            shells = ShellSearch(
+                screen_fn_from(screen_cf, voxel_vertices, phase_index),
+                strict,
+                smooth_fn_from(sc, voxel_vertices, phase_index, "E4,tau=0.25"),
+                spacing_deg=OUTWARD_SHELL_SPACING_DEG,
+                r_max_deg=OUTWARD_R_MAX_DEG,
+                accept_cost=OUTWARD_ACCEPT_COST,
+            )
+            r5 = shells.search(R0)
+            r54 = gn.solve(r5.R)
+            out.orientation, out.accepted = r54.R, bool(r54.accepted)
+            out.strict_cost, out.fallback = float(r54.strict_cost), True
+            out.n_strict += r5.n_strict + r54.n_strict
+            out.n_screen += r5.n_screen
+            out.n_smooth += r5.n_smooth + r54.n_smooth
+            out.n_jac += r54.n_jac
+        out.wall_s = time.time() - t0
+        return out
+
 
 # ---------------------------------------------------------------------------
 # BFSReconstruction — breadth-first spatial propagation
@@ -1412,6 +1546,8 @@ class BFSReconstruction:
         self.stats: Dict[str, Any] = {}
         self._refit_candidates: List[int] = []
         self.reseed_log: List[Dict[str, Any]] = []
+        # OutwardSearch (opt-in): one entry per policy run (empty with the key off)
+        self.outward_log: List[Dict[str, Any]] = []
 
     @staticmethod
     def _ratios(info: Optional[OverlapInfo]) -> Tuple[float, float]:
@@ -1490,6 +1626,7 @@ class BFSReconstruction:
         self.stats = self._new_stats()
         self._refit_candidates = []
         self.reseed_log = []
+        self.outward_log = []
 
         # Randomized seed order (C++ uses random_shuffle)
         voxel_order = list(range(n_process))
@@ -1626,7 +1763,11 @@ class BFSReconstruction:
             s0 = dict(self.stats)
             t0 = time.time()
             print(f"\n  Reseed: cluster of {len(cluster)} REFIT voxels, voxel {vox}", flush=True)
-            solution = self._fit_from_seed(mic, vox, rng, force_revisit=True)
+            # OutwardSearch (opt-in): the voxel's current (failed) fit is the policy's start
+            start = (
+                old_state[0] if getattr(self.setup.search_params, "outward_search", False) else None
+            )
+            solution = self._fit_from_seed(mic, vox, rng, force_revisit=True, start=start)
             seconds = time.time() - t0
             rec = self.records[vox]
             rec.reseeded = True
@@ -1692,10 +1833,13 @@ class BFSReconstruction:
         seed_idx: int,
         rng: np.random.Generator,
         force_revisit: bool = False,
+        start: Optional[np.ndarray] = None,
     ) -> List[int]:
         """
         Full reconstruction on seed, then BFS propagation to neighbors.
         ``force_revisit`` (reseed) makes the expansion revisit REFIT neighbours.
+        ``start`` (OutwardSearch reseeds only): try the policy and a local fit from it first;
+        the full search runs only if that is rejected (see ``_outward_reseed``).
 
         C++ Reference: BreadthFirstReconstructor.tmpl.cpp:112-188 Fit()
         """
@@ -1703,25 +1847,31 @@ class BFSReconstruction:
         vertices = _get_voxel_vertices(voxel)
         rec = self.records[seed_idx] = BFSVoxelRecord(seed_idx, source="seed")
 
-        # Full adaptive reconstruction on seed
-        t0 = time.time()
-        result = self.reconstructor.reconstruct_voxel(
-            voxel_vertices=vertices,
-            phase_index=voxel.phase,
-            rng=rng,
-        )
-        t_recon = time.time() - t0
-        n_ev = self.reconstructor.last_eval_counts[2]
-        rec.n_evals += n_ev
-        rec.wall_s += t_recon
-        self.stats["n_evals_seed"] += n_ev
-        self.stats["wall_seed_s"] += t_recon
+        found = None
+        if start is not None:
+            found = self._outward_reseed(voxel, vertices, start, rng, rec)
+        if found is not None:
+            result, overlap_info, t_recon = found
+        else:
+            # Full adaptive reconstruction on seed
+            t0 = time.time()
+            result = self.reconstructor.reconstruct_voxel(
+                voxel_vertices=vertices,
+                phase_index=voxel.phase,
+                rng=rng,
+            )
+            t_recon = time.time() - t0
+            n_ev = self.reconstructor.last_eval_counts[2]
+            rec.n_evals += n_ev
+            rec.wall_s += t_recon
+            self.stats["n_evals_seed"] += n_ev
+            self.stats["wall_seed_s"] += t_recon
 
-        # Evaluate overlap
-        # C++ BreadthFirstReconstructor.tmpl.cpp:136
-        overlap_info = self.reconstructor.evaluate_overlap(
-            result.orientation, vertices, voxel.phase
-        )
+            # Evaluate overlap
+            # C++ BreadthFirstReconstructor.tmpl.cpp:136
+            overlap_info = self.reconstructor.evaluate_overlap(
+                result.orientation, vertices, voxel.phase
+            )
 
         # Compute confidence and hit_ratio
         hit_ratio, confidence = self._ratios(overlap_info)
@@ -1780,11 +1930,19 @@ class BFSReconstruction:
             kwargs["cma_max_evals"] = params.cma_neighbor_max_evals
             if sigma0_deg is not None:
                 kwargs["cma_sigma0_deg"] = sigma0_deg
+        start = voxel.orientation
+        if getattr(params, "outward_search", False) and sigma0_deg is None:
+            # OutwardSearch (opt-in): the policy first; its end point is the start if accepted
+            res = self._run_outward(
+                vertices, voxel.phase, start, rec, phase, f"n_evals_{phase}", f"wall_{phase}_s"
+            )
+            if res.accepted:
+                start = res.orientation
         t0 = time.time()
         opt_result = self.reconstructor.local_optimization(
             voxel_vertices=vertices,
             phase_index=voxel.phase,
-            initial_orientation=voxel.orientation,
+            initial_orientation=start,
             rng=rng,
             **kwargs,
         )
@@ -1796,6 +1954,104 @@ class BFSReconstruction:
         self.stats[f"wall_{phase}_s"] += dt
         hit, conf = self._ratios(opt_result.overlap_info)
         return opt_result, hit, conf
+
+    def _run_outward(
+        self,
+        vertices: torch.Tensor,
+        phase_index: int,
+        start: np.ndarray,
+        rec: BFSVoxelRecord,
+        phase: str,
+        evals_key: str,
+        wall_key: str,
+    ) -> OutwardPolicyResult:
+        """OutwardSearch (opt-in): one policy run from ``start``. Its strict and screen
+        evaluations (cost-function evaluations, as a seed's level screens are) and its time go to
+        ``rec`` and to the stats buckets ``evals_key`` / ``wall_key``; every count, the smooth
+        (E4) evaluations included, also goes to ``stats["outward_<phase>_*"]`` and to
+        ``outward_log``."""
+        res = self.reconstructor.outward_search(vertices, phase_index, start)
+        n_ev = res.n_strict + res.n_screen
+        rec.n_evals += n_ev
+        rec.wall_s += res.wall_s
+        self.stats[evals_key] += n_ev
+        self.stats[wall_key] += res.wall_s
+        for what, value in (
+            ("runs", 1),
+            ("accepted", int(res.accepted)),
+            ("fallback", int(res.fallback)),
+            ("strict", res.n_strict),
+            ("screen", res.n_screen),
+            ("smooth", res.n_smooth),
+            ("jac", res.n_jac),
+            ("wall_s", res.wall_s),
+        ):
+            key = f"outward_{phase}_{what}"
+            self.stats[key] = self.stats.get(key, 0) + value
+        self.outward_log.append(
+            dict(
+                voxel=int(rec.voxel_idx),
+                phase=phase,
+                accepted=bool(res.accepted),
+                fallback=bool(res.fallback),
+                strict_cost=float(res.strict_cost),
+                n_strict=int(res.n_strict),
+                n_screen=int(res.n_screen),
+                n_smooth=int(res.n_smooth),
+                n_jac=int(res.n_jac),
+                wall_s=float(res.wall_s),
+            )
+        )
+        return res
+
+    def _outward_reseed(
+        self,
+        voxel: Any,
+        vertices: torch.Tensor,
+        start: np.ndarray,
+        rng: np.random.Generator,
+        rec: BFSVoxelRecord,
+    ) -> Optional[Tuple[SearchCandidate, OverlapInfo, float]]:
+        """OutwardSearch (opt-in) for a reseed: the policy from ``start``; if accepted, a local fit
+        from its end point (the finisher) and the seed acceptance test. Returns (result, overlap,
+        seconds) when that passes; None (the caller runs the full search) when the policy or the
+        seed test rejects, so a voxel is final only after a full search. Evaluations and time
+        count as the reseed's (``n_evals_seed`` / ``wall_seed_s``, moved to the reseed buckets
+        by ``_reseed_clusters``)."""
+        res = self._run_outward(
+            vertices, voxel.phase, start, rec, "reseed", "n_evals_seed", "wall_seed_s"
+        )
+        log = self.outward_log[-1]
+        log["seed_test"] = None
+        if not res.accepted:
+            return None
+        t0 = time.time()
+        result = self.reconstructor.local_optimization(
+            voxel_vertices=vertices,
+            phase_index=voxel.phase,
+            initial_orientation=res.orientation,
+            rng=rng,
+        )
+        dt = time.time() - t0
+        n_ev = self.reconstructor.last_local_optimization_evals
+        rec.n_evals += n_ev
+        rec.wall_s += dt
+        self.stats["n_evals_seed"] += n_ev
+        self.stats["wall_seed_s"] += dt
+        info = self.reconstructor.evaluate_overlap(result.orientation, vertices, voxel.phase)
+        hit, _ = self._ratios(info)
+        passed = hit >= self.setup.config.min_acceleration_threshold
+        log.update(seed_test=bool(passed), finisher_evals=int(n_ev), finisher_wall_s=float(dt))
+        key = "outward_reseed_used" if passed else "outward_reseed_seed_test_rejected"
+        self.stats[key] = self.stats.get(key, 0) + 1
+        print(
+            f"    Reseed voxel {rec.voxel_idx}: outward search accepted, local fit "
+            f"hit_ratio={hit:.3f} ({'used' if passed else 'below the seed test: full search'})",
+            flush=True,
+        )
+        if not passed:
+            return None
+        return result, info, res.wall_s + dt
 
     def _expand(
         self,

@@ -347,6 +347,10 @@ def run_one(voxel: int, tag: str, opts: List[str], seed: int, out_dir: Path) -> 
         cost_final=float(res.cost),
         c_ext=bool(getattr(CF, "_HAS_C_RASTERIZE", False)),
     )
+    if rec.last_smooth_ranker is not None:
+        # SmoothCostRank (Task G2): smooth evaluations of the ranking key, outside evaluate();
+        # the wall time includes the SmoothCost build (one per process, i.e. per voxel here)
+        out["smooth_evals"] = int(rec.last_smooth_ranker.n_evals)
     out_dir.mkdir(parents=True, exist_ok=True)
     fn = out_dir / f"{tag}_v{voxel}.json"
     fn.write_text(json.dumps(out, indent=1, default=float) + "\n")

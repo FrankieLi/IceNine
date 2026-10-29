@@ -8578,6 +8578,40 @@ Steps 2b and 2c of Task G (D-20261018-N15, N17; plan approved D-20261028-N2). Ru
 * **Proposals (owner).** No default flip and no golden change. The cache could stay always on under the key (it changes no result);
   whether `SmoothCostRank E3+E4,tau=0.25` becomes a default is for after G2.
 
+### Task G2: the integrated configuration, no-start search and BFS pilot (2026-10-29, `feature/eval-reduction-G2`)
+
+Steps 1-3 of Task G (plan approved D-20261028-N2). Run log and tables: `benchmarks/eval_reduction/G/g2/RUN_LOG.md`
+(`summary.json`, `tables.md`, `ledger/`, `bfs/runs/`); maps `benchmarks/eval_reduction/G/maps/` (`index.html`, for the main
+session to publish).
+
+* **Library (opt-in, default off).** Config key `OutwardSearch` (`config_file.py`, `orientation_search.py`); in
+  `reconstructor.py` `AdaptiveVoxelReconstructor.outward_search` (the Task F fallback policy of D-20261028-N4: F4 with the
+  1-frame window, and F5 then F4 where F4 rejects; Task F's settings; strict, screen and `SmoothCost` built once per image
+  set) and the BFS hooks: a neighbour's (revisit's, restart's) local fit starts from an accepted end point; a reseed
+  takes one local fit from an accepted end point instead of the full search if the seed test passes, else the full search
+  runs. Key off: a 150-voxel BFS run is bit-identical to the base commit (4735f77); scripted-grid golden unchanged; tests
+  `tests/test_outward_bfs.py` (12). Full suite 1448 passed, 41 skipped, 1 deselected.
+* **Step 1, configuration** (`G/integrated_mc_clean.config`): lenient overlap rule (no decision changed it: D-20261013-I6,
+  D-20261012-I3), no dedup (D-20261014-N4), `SmoothCostRank E3+E4,tau=0.25` with G1's cache (D-20261029-N1), classic MC
+  finisher, revisit and reseed on, `OutwardSearch 1`.
+* **Step 2, no-start search.** Six interior full-sample voxels: 0 of 6 wrong before and after; strict evaluations
+  1,992,278 -> 2,006,917 (+0.7%) plus 90,183 smooth; the key-off ledger equals Task A's. E0 200: wrong 41 -> 7 (34 fixed,
+  0 broken), +1.1% strict evaluations plus 252 smooth per voxel; identical to Task E's own run of the key on 200 of 200.
+* **Step 3, 2,000-voxel pilot region.** The stored pilot (2026-10-10) does not reproduce on today's code (same 37 wrong,
+  14 fixed / 14 broken by voxel; consistent with the centroid-screen default of 2026-10-12, untested), so a key-off rerun is
+  the baseline. Against it: integrated configuration 42 wrong (15 fixed, 20 broken: 8 traced to the outward-search
+  reseeds, 12 untraced), 1 grain lost (0 before), 60.8M evaluations against 25.5M (neighbours and revisits 38.6M against
+  2.7M, mostly F5 screen evaluations), wall 13,822 s against 8,997 s (contended, three runs at once). OutwardSearch alone:
+  36 wrong (18 fixed, 17 broken: 8 traced, 9 untraced), 1 grain lost, 61.6M evaluations, 10,980 s. Neighbour acceptance
+  did not change (769 accepted first key off, 762 and 764 with the key). Every reseed that took the outward-search path
+  ended wrong (4 of 4 and 5 of 5): the start of a reseed is a rejected fit, often a neighbouring grain's orientation, which
+  passes F4's acceptance test (strict cost at most 0.8) and the absolute seed test.
+* **Proposals (owner).** No default flip, no golden change. `OutwardSearch` stays off: on the pilot region it adds
+  evaluations and breaks reseeds, with no detectable gain on neighbours. If revisited: no outward search for reseeds (or
+  the BFS relative test instead of the absolute one), and F4 alone for neighbours (F5 accepted 20 of 909 fall-backs).
+  `SmoothCostRank E3+E4,tau=0.25` helps E0 (41 -> 7) at +1.1% strict evaluations; its BFS share is not separable here
+  (integrated 42 against OutwardSearch alone 36, one seed order).
+
 ## S3: batched quick MC with a GPU option (2026-10-14)
 
 Branch `feature/python-speed-parity-s3` (off `feature/python-speed-parity`; not merged). Plan: `docs/todo_batched_quick_mc.md`

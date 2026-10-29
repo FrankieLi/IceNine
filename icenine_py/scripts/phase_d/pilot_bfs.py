@@ -5,6 +5,11 @@ BFS rng seed 0. Writes <out>/<arm>_<variant>/{recon.mic, records.json, run.json}
 The configs (configs/ReconstructPhaseD_<arm>_<variant>.config, with BFSRevisitRefit 1) are used
 unchanged except for SampleFilename, which is pointed at the region grid in a copy under <out>.
 
+``--config PATH`` (Task G2) uses another config file in place of the arm's (it must still hold
+``BFSRevisitRefit 1``); ``--name`` names the run folder instead of <arm>_<variant>; ``--sample``
+points SampleFilename at another grid (a sub-region for short pilots). With
+``OutwardSearch 1`` the policy runs are written to <out>/<name>/outward_log.json.
+
 Usage (from icenine_py/):
   uv run python scripts/phase_d/pilot_bfs.py --arm mc --variant clean --out DIR [--max-voxels 50]
 """
@@ -55,13 +60,20 @@ def main() -> None:
         "--timing-label",
         default="contended: other jobs on the machine (state the actual number of concurrent runs)",
     )
+    ap.add_argument("--config", default=None, help="config file in place of the arm's")
+    ap.add_argument("--name", default=None, help="run folder name (default <arm>_<variant>)")
+    ap.add_argument("--sample", default=None, help="grid .mic in place of the pilot region's")
     a = ap.parse_args()
-    out = Path(a.out).resolve() / f"{a.arm}_{a.variant}"
+    out = Path(a.out).resolve() / (a.name or f"{a.arm}_{a.variant}")
     out.mkdir(parents=True, exist_ok=True)
-    text = (HERE / "configs" / f"ReconstructPhaseD_{a.arm}_{a.variant}.config").read_text()
-    text, n = re.subn(
-        r"(?m)^SampleFilename\s+\S+", f"SampleFilename {(REGION / 'region_grid.mic')}", text
+    cfg_src = (
+        Path(a.config).resolve()
+        if a.config
+        else HERE / "configs" / f"ReconstructPhaseD_{a.arm}_{a.variant}.config"
     )
+    text = cfg_src.read_text()
+    sample = Path(a.sample).resolve() if a.sample else REGION / "region_grid.mic"
+    text, n = re.subn(r"(?m)^SampleFilename\s+\S+", f"SampleFilename {sample}", text)
     assert n == 1 and "BFSRevisitRefit 1" in text
     if a.reseed:
         text += "\n# Phase D BFS reseed (opt-in)\nBFSReseed 1\n"
@@ -80,6 +92,20 @@ def main() -> None:
     p = setup.search_params
     t_setup = time.time() - t0
     bfs = BFSReconstruction(setup)
+    # SmoothCostRank (Task G2): the ranking key's smooth evaluations of every full search, in call
+    # order (ordinary seeds first, then the reseeds' full searches); not in the BFS stats
+    smooth_per_full_search: list = []
+    if str(getattr(p, "smooth_rank", "off")) != "off":
+        rv = bfs.reconstructor
+        full_search = rv.reconstruct_voxel
+
+        def counted(*args, **kw):  # type: ignore[no-untyped-def]
+            out = full_search(*args, **kw)
+            sr = rv.last_smooth_ranker
+            smooth_per_full_search.append(int(sr.n_evals) if sr is not None else 0)
+            return out
+
+        rv.reconstruct_voxel = counted  # type: ignore[method-assign]
     rng = np.random.default_rng(a.seed)
     t1 = time.time()
     order = bfs.reconstruct_sample(
@@ -89,6 +115,8 @@ def main() -> None:
     (out / "records.json").write_text(
         json.dumps({str(k): asdict(v) for k, v in bfs.records.items()}) + "\n"
     )
+    if getattr(bfs, "outward_log", None):
+        (out / "outward_log.json").write_text(json.dumps(bfs.outward_log) + "\n")
     info = {
         "arm": a.arm,
         "variant": a.variant,
@@ -101,10 +129,24 @@ def main() -> None:
         "bfs_revisit_refit": bool(p.bfs_revisit_refit),
         "bfs_revisit_max": p.bfs_revisit_max,
         "bfs_reseed": bool(p.bfs_reseed),
+        **(
+            {
+                "config": str(cfg_src.name),
+                "outward_search": bool(getattr(p, "outward_search", False)),
+                "smooth_rank": str(getattr(p, "smooth_rank", "off")),
+            }
+            if a.config
+            else {}
+        ),
         "wall_total_s": wall,
         "setup_s": t_setup,
         "timing_label": a.timing_label,
         "torch_threads": torch.get_num_threads(),
+        **(
+            {"smooth_evals_per_full_search": smooth_per_full_search}
+            if smooth_per_full_search
+            else {}
+        ),
         "stats": bfs.stats,
     }
     (out / "run.json").write_text(json.dumps(info, indent=2, default=float) + "\n")
