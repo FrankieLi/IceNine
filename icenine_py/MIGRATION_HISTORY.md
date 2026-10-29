@@ -9641,6 +9641,22 @@ Tests: `tests/test_dev_tooling_briefs_handbacks.py` (new), and the existing gold
 `test_dev_tooling_brief.py` (a `--section` brief with no markers) and
 `test_dev_tooling_handback.py` (the parent tip is now a note) updated.
 
+Review fixes (D-20261028-I5):
+- Fix 1: in a plan with no `# Steps` heading (every plan from `new_todo.sh`), the plan-wide text
+  was the whole plan, so a `--section` brief silently quoted another section's permissions. Now
+  every `## ` section of such a plan is its own task's: only markers inside the named section or
+  outside every `## ` section count, else "none stated in this section", and a stderr note names
+  each marker paragraph left out and its line. Plans with `# Steps` and briefs without
+  `--section` are unchanged: 31 runs over the `todo_*.md` plans in `docs/` (each plan without
+  `--section`, and each `## ` section of the plans that have markers or lack `# Steps`) give
+  byte-identical stdout, stderr and exit code to the previous script's. No plan in `docs/` has a
+  marker and lacks `# Steps`, so the new case is covered by the tests only. The stop rule keeps
+  its whole-plan fallback.
+- Fix 2: `verify_handback.sh` flags pytest exit 0 with no counts (no JUnit file and no count
+  line), where it printed `ok`.
+- `finish_task.sh` runs `uv run pytest tests/` without the extra `-q`, so its output keeps
+  pytest's count line.
+
 ## S4: translation correctness and loop ordering (2026-10-15)
 
 Merged into `feature/python-speed-parity` as a finished study on 2026-10-21 (D-20261021-I3),
