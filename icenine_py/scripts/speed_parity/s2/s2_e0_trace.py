@@ -8,7 +8,8 @@ on its fused entry) is recomputed on the torch path (``evaluate`` with the key o
 ``evaluate_many(variant="compact")``) without counting it, and the search goes on with the fused
 result. Up to the first evaluation where the two differ, the key-on search makes exactly the key-off
 search's calls (the key changes nothing else, and the shadow consumes no random number), so the
-first differing evaluation is where the two searches can first part. It is traced with
+first differing evaluation is where the two searches can first part. Every differing evaluation
+of the run (so also the one where the paths do part, wherever it is) is traced with
 ``s2_parity.trace(every=True)`` (``fused_debug`` intermediates against ``torch_mirror``) and
 checked with the parity rule of ``s2_lib_parity.check``. The rerun must reproduce the key-on arm's
 stored record (final orientation and evaluation counts), else the trace does not describe that run.
@@ -77,6 +78,16 @@ class Shadow:
         self.n_diff = 0
         self.first: Optional[Dict[str, Any]] = None
         self.ds: Any = None
+        self.reset()
+
+    def reset(self) -> None:
+        """Per run: every differing evaluation is traced, not only the first."""
+        self.n, self.n_diff, self.first = 0, 0, None
+        self.n_within_rule = 0
+        self.failures: List[Dict[str, Any]] = []
+        self.causes: Dict[str, int] = {}
+        self.field_counts: Dict[str, int] = {}
+        self.max_near_px = 0.0
 
     def record(
         self, path: str, cf: Any, R: np.ndarray, verts: Any, phase: int, f: Any, t: Any
@@ -85,8 +96,6 @@ class Shadow:
         if f == t:
             return
         self.n_diff += 1
-        if self.first is not None:
-            return
         fields = [SF.FIELDS[j] for j in range(len(f)) if f[j] != t[j]]
         with contextlib.redirect_stdout(io.StringIO()):
             m = TM.mirror(cf, R, verts, phase)
@@ -96,6 +105,17 @@ class Shadow:
             raise SystemExit("shadow: mirror or fused_debug does not reproduce the results")
         entries = SP.trace(m, d, ref, cf, len(cf.detector_list), every=True)
         bad = LP.check(entries, self.ds, 0.01) if entries else ["no traced entry"]
+        self.n_within_rule += not bad
+        for fl in fields:
+            self.field_counts[fl] = self.field_counts.get(fl, 0) + 1
+        for e in entries:
+            self.causes[e["cause"]] = self.causes.get(e["cause"], 0) + 1
+            if e["cause"] in LP.ACCEPTED:
+                self.max_near_px = max(self.max_near_px, LP.near_px(e, self.ds))
+        if bad:
+            self.failures.append(dict(call=self.n, path=path, failures=bad, entries=entries))
+        if self.first is not None:
+            return
         self.first = dict(
             call=self.n,
             path=path,
@@ -222,7 +242,8 @@ def main() -> int:
         sp = rec.setup.search_params
         sp.batched_quick_mc, sp.search_device = bqmc, "cpu"
         sp.cpp_center_screen, sp.batched_screen, sp.fused_cost = True, True, fused
-        SH.active, SH.n, SH.n_diff, SH.first = True, 0, 0, None
+        SH.reset()
+        SH.active = True
         try:
             with C.quiet():
                 r = rec.reconstruct_voxel(
@@ -248,6 +269,11 @@ def main() -> int:
             reproduced=reproduced,
             shadowed=SH.n,
             differing=SH.n_diff,
+            differing_within_rule=SH.n_within_rule,
+            differing_fields=SH.field_counts,
+            differing_causes=SH.causes,
+            differing_max_near_px=SH.max_near_px,
+            failures=SH.failures,
             first=SH.first,
             seconds=time.perf_counter() - t0,
         )
@@ -255,7 +281,7 @@ def main() -> int:
         fs = SH.first
         print(
             f"{f['pair']:16s} v{f['vidx']:<6d} {ent['change']:7s} reproduced {reproduced}  "
-            f"shadowed {SH.n} differing {SH.n_diff}  first "
+            f"shadowed {SH.n} differing {SH.n_diff} (within rule {SH.n_within_rule})  first "
             + (
                 f"call {fs['call']} {fs['path']} r={fs['pixel_radius']} {fs['fields']} "
                 f"rule {fs['within_rule']} {fs['max_near_px']}"
@@ -278,6 +304,11 @@ def main() -> int:
             reproduced=sum(r["reproduced"] for r in res),
             first_within_rule=sum(bool(r["first"] and r["first"]["within_rule"]) for r in res),
             no_difference=sum(r["first"] is None for r in res),
+            shadowed=sum(r["shadowed"] for r in res),
+            differing=sum(r["differing"] for r in res),
+            differing_within_rule=sum(r["differing_within_rule"] for r in res),
+            differing_quality=sum(r["differing_fields"].get("quality", 0) for r in res),
+            max_near_px=max((r["differing_max_near_px"] for r in res), default=None),
         ),
     )
     out_path.parent.mkdir(parents=True, exist_ok=True)
