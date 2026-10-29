@@ -604,3 +604,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   more often on the full sample (85-86% against 77-78%). CMA-ES is not carried (34-57% from 5
   deg). The owner can override. Where: docs/findings_outward_search_2026-10.md 'Comparing the
   carry options'; ~/.claude/plans/eval-reduction.md Task G.
+
+### D-20261029-N1 · Track E row G (G1) · Delegated: G2 runs with SmoothCostRank E3+E4 tau 0.25
+- 2026-10-29, owner. Recorded by Newt Agent. Supersedes: none.
+- Delegated (D-20261028-N2: the plan's default at the decision point). On Task E's other 24
+  full-sample voxels the strict search is wrong on 1 voxel (1729, lenient) and none under the C++
+  rule; E3+E4 tau 0.25 fixes 1729 (traced to the arm) and breaks none under either rule,
+  E1+E2+E3+E4 fixes none. By the plan's rule (more fixed minus broken across both rules) G2
+  carries SmoothCostRank E3+E4 tau 0.25, with the per-image-set SmoothCost cache on whenever the
+  key is on. The choice rests on one voxel; the owner can override. Where:
+  ~/.claude/plans/eval-reduction.md Task G1; MIGRATION_HISTORY Task G1;
+  .claude/reports/20261028-2338-G1.md.
