@@ -304,3 +304,101 @@ def test_level_best_is_the_strict_best_under_smooth_ranking() -> None:
         np.testing.assert_array_equal(R_best, q["R"][i])
         first_differs += int(q["cost"][0] > q["cost"][i])
     assert first_differs >= 1  # the toy has a level where the smooth key's first is not the best
+
+
+# ------------------------------------------------------------------------------ SmoothCost cache
+def _toy_search(rec: Any, voxel: Any) -> Tuple[Any, List[Tuple[str, Dict[str, Any]]]]:
+    import contextlib
+    import io
+
+    events: List[Tuple[str, Dict[str, Any]]] = []
+    rec.recorder = lambda name, data: events.append((name, data))
+    with contextlib.redirect_stdout(io.StringIO()):
+        res = rec.reconstruct_voxel(
+            _get_voxel_vertices(voxel), voxel.phase, rng=np.random.default_rng(7)
+        )
+    return res, events
+
+
+@needs_c
+def test_smooth_cost_cache_builds_once_per_image_set() -> None:
+    """Same objects and settings: the cached ``SmoothCost`` is returned. A new image-set object,
+    another ``min_sin_eta`` or eta limit, or a sample-to-lab transform changed in place give a new
+    build."""
+    import copy
+
+    from icenine.smooth_cost import SmoothCostCache
+
+    rec, _, _ = _toy()
+    s = rec.setup
+    eta = s.exp_setup.get_eta_limit()
+    cache = SmoothCostCache()
+    a = cache.get(s, eta, 0.0)
+    assert cache.get(s, eta, 0.0) is a
+    assert (cache.n_builds, cache.n_hits) == (1, 1)
+    b = cache.get(s, eta, 0.3)  # another min_sin_eta
+    assert b is not a and b.min_sin_eta == 0.3
+    c = cache.get(s, eta * 0.5, 0.3)  # another eta limit
+    assert c is not b and c.eta_limit == pytest.approx(eta * 0.5)
+    assert cache.n_builds == 3
+    old = s.exp_data
+    try:
+        s.exp_data = copy.copy(old)  # a new image-set object (equal content)
+        d = cache.get(s, eta * 0.5, 0.3)
+        assert d is not c and d.exp_data is s.exp_data and cache.n_builds == 4
+    finally:
+        s.exp_data = old
+    e = cache.get(s, eta, 0.0)  # back to the first image set: one more build, then hits
+    assert cache.get(s, eta, 0.0) is e and cache.n_builds == 5
+    m = s.sample.sample_to_lab_matrix
+    keep = m.clone()
+    try:
+        m[0, 3] += 1e-3  # changed in place
+        assert cache.get(s, eta, 0.0) is not e and cache.n_builds == 6
+    finally:
+        m.copy_(keep)
+    cache.clear()
+    assert cache.get(s, eta, 0.0) is not e and cache.n_builds == 7
+
+
+@needs_c
+def test_cached_smooth_cost_search_equals_a_fresh_build_bit_for_bit() -> None:
+    """Key on (all four arms, so the lit-pixel trees, the observed rays and the attached rays are
+    all cached): a second search on the same reconstructor, served by the warm cache after the cost
+    has also been used for another voxel position, equals a search whose ``SmoothCost`` is built
+    fresh (``smooth_cost_cache`` None, the behaviour before the cache), bit for bit."""
+    from smooth_keyoff_fixture import arrays_of, build_toy
+
+    spec = "E1+E2+E3+E4"
+    rec, voxel = build_toy()
+    rec.setup.search_params.smooth_rank = spec
+    res1, ev1 = _toy_search(rec, voxel)
+    first = arrays_of(res1, ev1, rec.last_level_best)
+    sc = rec.last_smooth_ranker.cost
+    sc.attached_rays(_get_voxel_vertices(voxel) + 0.01)  # warm state of another position
+    res2, ev2 = _toy_search(rec, voxel)
+    second = arrays_of(res2, ev2, rec.last_level_best)
+    assert rec.last_smooth_ranker.cost is sc
+    assert (rec.smooth_cost_cache.n_builds, rec.smooth_cost_cache.n_hits) == (1, 1)
+    assert sc._rays is not None and len(sc._attached) == 2
+
+    fresh_rec, voxel_f = build_toy()
+    fresh_rec.setup.search_params.smooth_rank = spec
+    fresh_rec.smooth_cost_cache = None
+    res3, ev3 = _toy_search(fresh_rec, voxel_f)
+    fresh = arrays_of(res3, ev3, fresh_rec.last_level_best)
+    assert fresh_rec.last_smooth_ranker.n_evals == rec.last_smooth_ranker.n_evals > 0
+    for got in (first, second):
+        assert sorted(got) == sorted(fresh)
+        for k, v in fresh.items():
+            assert got[k].dtype == v.dtype and np.array_equal(got[k], v), k
+
+
+@needs_c
+def test_key_off_builds_no_smooth_cost() -> None:
+    from smooth_keyoff_fixture import build_toy
+
+    rec, voxel = build_toy()
+    _toy_search(rec, voxel)
+    assert rec.last_smooth_ranker is None
+    assert rec.smooth_cost_cache is not None and rec.smooth_cost_cache.n_builds == 0

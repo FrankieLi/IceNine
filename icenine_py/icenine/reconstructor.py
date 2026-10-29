@@ -52,7 +52,7 @@ from .sampling import (
 from .simulation import Simulation
 from .ray_overlap import RayRule
 from .simulation_range import SimulationRange
-from .smooth_cost import SmoothSpec, make_ranker
+from .smooth_cost import SmoothCostCache, SmoothSpec, make_ranker
 
 if TYPE_CHECKING:
     from .differentiable_cost import DifferentiableCostFunction
@@ -456,6 +456,8 @@ class AdaptiveVoxelReconstructor:
         self.rank_key: Optional[Callable[[int, List[SearchCandidate]], np.ndarray]] = None
         # SmoothCostRank ranker of the most recent reconstruct_voxel call (None: key off)
         self.last_smooth_ranker: Any = None
+        # SmoothCostRank: SmoothCost built once per image set (None: rebuilt on every call)
+        self.smooth_cost_cache: Optional[SmoothCostCache] = SmoothCostCache()
 
     @property
     def last_eval_counts(self) -> tuple:
@@ -782,7 +784,13 @@ class AdaptiveVoxelReconstructor:
         if not spec.active:
             return None
         self.last_smooth_ranker = make_ranker(
-            self.setup, spec, voxel_vertices, phase_index, eta_limit, self.min_sin_eta
+            self.setup,
+            spec,
+            voxel_vertices,
+            phase_index,
+            eta_limit,
+            self.min_sin_eta,
+            cache=self.smooth_cost_cache,
         )
         return self.last_smooth_ranker
 

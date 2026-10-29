@@ -872,16 +872,9 @@ class SmoothRanker:
         return key
 
 
-def make_ranker(
-    setup: Any,
-    spec: SmoothSpec,
-    voxel_vertices: Any,
-    phase: int,
-    eta_limit: float,
-    min_sin_eta: float,
-) -> SmoothRanker:
-    """``SmoothRanker`` of a reconstruction setup (all reflections, the local cost's peak set)."""
-    sc = SmoothCost(
+def _build_smooth_cost(setup: Any, eta_limit: float, min_sin_eta: float) -> SmoothCost:
+    """``SmoothCost`` of a reconstruction setup (all reflections, the local cost's peak set)."""
+    return SmoothCost(
         simulator=setup.simulator,
         detector_list=setup.detector_list,
         range_map=setup.range_map,
@@ -891,4 +884,79 @@ def make_ranker(
         eta_limit=eta_limit,
         min_sin_eta=min_sin_eta,
     )
+
+
+class SmoothCostCache:
+    """Per-image-set cache of ``SmoothCost`` (Task G1, plan step 2c).
+
+    A ``SmoothCost`` builds its lit-pixel trees and its observed rays (E4) once, on first use; on
+    the full sample that takes about 16 s, and without a cache it was paid again by every
+    ``reconstruct_voxel`` call. This cache keeps the most recent ``SmoothCost`` with the objects it
+    was built from and returns it while a call names the same objects (by identity: simulator,
+    detector list, range map, images ``exp_data``, sample, structures), the same eta limit and
+    ``min_sin_eta`` and an unchanged sample-to-lab transform; otherwise it builds a new one. A
+    caller that swaps ``setup.exp_data`` (a new image set) therefore gets a new build. Images
+    changed in place are not detected (the ``FrameTable`` contract: they must not change).
+
+    The cached object's lazy state (trees, rays, per-voxel attached rays, Bragg constants) is a
+    function of its inputs only, so a cached ``SmoothCost`` returns the same values as a fresh one.
+    """
+
+    def __init__(self) -> None:
+        self._refs: Optional[Tuple[Any, ...]] = None
+        self._scalars: Optional[Tuple[float, float, bytes]] = None
+        self._cost: Optional[SmoothCost] = None
+        self.n_builds = 0
+        self.n_hits = 0
+
+    @staticmethod
+    def _key(setup: Any, eta_limit: float, min_sin_eta: float) -> Tuple[Tuple[Any, ...], Any]:
+        refs = (
+            setup.simulator,
+            setup.detector_list,
+            setup.range_map,
+            setup.exp_data,
+            setup.sample,
+        ) + tuple(setup.structure_list)
+        m = np.ascontiguousarray(
+            setup.sample.sample_to_lab_matrix.detach().double().numpy(), dtype=np.float64
+        )
+        return refs, (float(eta_limit), float(min_sin_eta), m.tobytes())
+
+    def get(self, setup: Any, eta_limit: float, min_sin_eta: float) -> SmoothCost:
+        refs, scalars = self._key(setup, eta_limit, min_sin_eta)
+        old = self._refs
+        if (
+            self._cost is not None
+            and old is not None
+            and len(old) == len(refs)
+            and all(a is b for a, b in zip(old, refs))
+            and self._scalars == scalars
+        ):
+            self.n_hits += 1
+            return self._cost
+        self._cost = _build_smooth_cost(setup, eta_limit, min_sin_eta)
+        self._refs, self._scalars = refs, scalars
+        self.n_builds += 1
+        return self._cost
+
+    def clear(self) -> None:
+        self._refs = self._scalars = self._cost = None
+
+
+def make_ranker(
+    setup: Any,
+    spec: SmoothSpec,
+    voxel_vertices: Any,
+    phase: int,
+    eta_limit: float,
+    min_sin_eta: float,
+    cache: Optional[SmoothCostCache] = None,
+) -> SmoothRanker:
+    """``SmoothRanker`` of a reconstruction setup (all reflections, the local cost's peak set).
+    With ``cache`` the ``SmoothCost`` of the setup's image set is built once and reused."""
+    if cache is None:
+        sc = _build_smooth_cost(setup, eta_limit, min_sin_eta)
+    else:
+        sc = cache.get(setup, eta_limit, min_sin_eta)
     return SmoothRanker(cost=sc, spec=spec, voxel_vertices=voxel_vertices, phase=phase)
