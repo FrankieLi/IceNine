@@ -20,9 +20,13 @@
 #   - the commit trailer from --trailer or MAKE_BRIEF_TRAILER (refuses when neither is set).
 # --plan is a path from the repository root or relative to icenine_py/ or icenine_py/docs/.
 # --section must match exactly one heading outside code fences (an exact match wins, else one
-# heading must contain the text). The approval is read from the whole plan. Each of the three
-# markers is read from the section (its heading up to the next heading of the same or a higher
-# level) when the section has that marker, else from the whole plan.
+# heading must contain the text). The approval is read from the whole plan. With --section, the
+# "**Library changes:**" and "**Process limit exception:**" markers are read from the section (its
+# heading up to the next heading of the same or a higher level) when it has them, else from the
+# plan-wide text (the plan outside every "## " section under "# Steps", where the other tasks'
+# markers are); when neither has one, the brief says "none stated in this section" and a note
+# goes to stderr. The stop rule is read from the section, else from the whole plan. Without
+# --section every marker is read from the whole plan.
 # With --fixes the brief asks for the required fixes of that review report on the task branch;
 # the report may be in any worktree and is printed as an absolute, resolved path.
 # MAKE_BRIEF_NOW (YYYYMMDD-HHMM) overrides the clock for the report name (for testing).
@@ -37,12 +41,22 @@ die() { echo "error: $*" >&2; exit 1; }
 
 # paragraphs <marker>: every paragraph of the plan that starts with the marker (at column 0, or
 # after a "- " / "* " bullet marker, which is dropped), up to the next blank line, heading or
-# (for a bullet) next bullet. Fenced code blocks are skipped. Lines LO..HI only when given.
+# (for a bullet) next bullet. Fenced code blocks are skipped. Lines LO..HI only when given, and
+# never the lines of SKIP ("a b;c d;": line ranges a..b, c..d) when given.
 paragraphs() {
-    awk -v marker="$1" -v lo="${2:-1}" -v hi="${3:-999999999}" '
+    awk -v marker="$1" -v lo="${2:-1}" -v hi="${3:-999999999}" -v skip="${4:-}" '
+        BEGIN { ns = split(skip, S, ";") }
+        function skipped(n,    i, p) {
+            for (i = 1; i <= ns; i++) {
+                if (S[i] == "") continue
+                split(S[i], p, " ")
+                if (p[1] <= n && n <= p[2]) return 1
+            }
+            return 0
+        }
         /^[[:space:]]*(```|~~~)/ { fence = !fence; inrule = 0; next }
         fence { next }
-        NR < lo || NR > hi { inrule = 0; next }
+        NR < lo || NR > hi || skipped(NR) { inrule = 0; next }
         inrule && ($0 ~ /^[[:space:]]*$/ || $0 ~ /^#/ || (bullet && $0 ~ /^[-*] /)) { inrule = 0 }
         !inrule && (index($0, marker) == 1 ||
                     ($0 ~ /^[-*] / && index(substr($0, 3), marker) == 1)) {
@@ -147,13 +161,45 @@ if [ -n "$SECTION" ]; then
     ' "$PLAN_REL")
     SEC_LO=${RANGE% *}
     SEC_HI=${RANGE#* }
+    # The "## " sections under "# Steps" (each up to the next "#" or "## " heading): the other
+    # tasks' markers live there, so the plan-wide default is the text outside all of them.
+    STEP_SECTIONS=$(awk '
+        /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
+        fence || !/^#+ / { next }
+        {
+            h = $0; sub(/^#+ +/, "", h); sub(/[[:space:]]+$/, "", h)
+            lvl = index($0, " ") - 1
+        }
+        lvl <= 2 && sub_start { printf "%d %d;", sub_start, NR - 1; sub_start = 0 }
+        lvl == 1 { steps = (h == "Steps"); next }
+        steps && lvl == 2 { sub_start = NR }
+        END { if (sub_start) printf "%d %d;", sub_start, 999999999 }
+    ' "$PLAN_REL")
 fi
-# marker <text>: the paragraphs inside --section if it has any, else those of the whole plan
+# marker <text>: the paragraphs of the whole plan; with --section, those inside the section, else
+# those outside every "## " section under "# Steps" (the plan-wide default), else nothing
 marker() {
+    if [ -z "$SECTION" ]; then
+        paragraphs "$1"
+        return
+    fi
+    local found=""
+    found=$(paragraphs "$1" "$SEC_LO" "$SEC_HI")
+    [ -n "$found" ] || found=$(paragraphs "$1" 1 999999999 "$STEP_SECTIONS")
+    printf '%s' "$found"
+}
+# marker_or_whole <text>: the paragraphs inside --section if it has any, else the whole plan's
+# (the stop rule: a rule written in another section still applies)
+marker_or_whole() {
     local found=""
     [ -z "$SECTION" ] || found=$(paragraphs "$1" "$SEC_LO" "$SEC_HI")
     [ -n "$found" ] || found=$(paragraphs "$1")
     printf '%s' "$found"
+}
+# none_note <marker>: the stderr note for a --section brief that states the marker nowhere
+none_note() {
+    echo "note: section \"$SECTION\" has no $1 paragraph and the plan has none outside the" \
+        "\"## \" sections under \"# Steps\"; the brief says \"none stated in this section\"" >&2
 }
 if [ -n "$FIXES" ]; then
     # Review reports live in .claude/reports/ of the session that wrote them (gitignored, one per
@@ -236,6 +282,10 @@ esac
 EXCEPTION=$(marker '**Process limit exception:**')
 if [ -n "$EXCEPTION" ]; then
     COMPUTE="Compute (plan exception to the machine limit of $MAXPROCS heavy processes): $EXCEPTION"
+elif [ -n "$SECTION" ]; then
+    none_note '**Process limit exception:**'
+    COMPUTE="Compute: process limit exception none stated in this section; at most $MAXPROCS heavy"
+    COMPUTE="$COMPUTE processes at once on this machine."
 else
     COMPUTE="Compute: at most $MAXPROCS heavy processes at once on this machine."
 fi
@@ -244,12 +294,16 @@ fi
 LIBRARY=$(marker '**Library changes:**')
 if [ -n "$LIBRARY" ]; then
     SCOPE="Scope: $LIBRARY"
+elif [ -n "$SECTION" ]; then
+    none_note '**Library changes:**'
+    SCOPE='Scope: library changes none stated in this section, so no change under'
+    SCOPE="$SCOPE \`icenine_py/icenine/\`."
 else
     SCOPE='Scope: no change under `icenine_py/icenine/`.'
 fi
 
 # --- stop rule (every paragraph starting with the marker, up to the next blank line)
-STOP=$(marker '**Stop rule:**' | sed 's/^/> /')
+STOP=$(marker_or_whole '**Stop rule:**' | sed 's/^/> /')
 
 # --- branch
 CUR=$(git symbolic-ref --short -q HEAD || true)

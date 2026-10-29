@@ -184,16 +184,19 @@ def test_section_and_default_stop_rule(repo: Path) -> None:
         APPROVAL,
         "Branch: in your own worktree run `git checkout -b feature/par-t feature/par` and "
         "`git config branch.feature/par-t.parent feature/par`.",
-        "Scope: no change under `icenine_py/icenine/`.",
+        "Scope: library changes none stated in this section, so no change under "
+        "`icenine_py/icenine/`.",
         NO_DEP,
         "Stop rule: stop and report if the plan cannot be followed.",
         REFUSALS,
         INTERRUPTIONS,
-        "Compute: at most 6 heavy processes at once on this machine.",
+        "Compute: process limit exception none stated in this section; at most 6 heavy "
+        "processes at once on this machine.",
         COMMITS,
         TRAILER,
         REPORT.format(name=f"{NOW}-t"),
     )
+    assert out.stderr.count("none stated in this section") == 2
 
 
 def test_plan_outside_the_repository_named_by_absolute_path(repo: Path, tmp_path: Path) -> None:
