@@ -571,6 +571,32 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the quiet-machine timing repeats of S1 and S3, and FusedCost's default (owner's review). Where:
   ROADMAP Track H row H12; docs/todo_ilium_workflow_tooling.md.
 
+### D-20261028-I4 · H12 · Delegated: task (e) fix round also fixes audit_numbers' code-fence headings; keep --tables with several files; s2_e0_trace gets a marker
+- 2026-10-28, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261028-I3, after the task (e) review (APPROVE, fixes): (1) keep commit
+  1732831 (--tables takes several files; S2 Steps 1-6 draws tables from two files); (2) the fix
+  round also makes audit_numbers.find_section skip headings inside code fences, sharing the
+  heading scan with sync_doc_tables (today it cuts 6 MIGRATION_HISTORY and 9 README sections short
+  without saying so; no S2 or S4 section affected), outside task (e)'s listed items but the same
+  family and about 10 lines; (3) the S2 table s2_e0_trace, generated but referenced by no marker,
+  gets a marker in MIGRATION_HISTORY S2, written by the main session at merge with the tooling
+  completion entry. Where: ROADMAP Track H row H12; docs/todo_ilium_workflow_tooling.md task (e);
+  .claude/reports/20261029-0000-review-tooling-e.md.
+
+### D-20261028-I5 · H12 · Delegated: task (d) fix round; section-scoped markers in plans without # Steps; .claude/ items left for the owner
+- 2026-10-28, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent under D-20261028-I3, after the task (d) review (APPROVE, 2 fixes): (1) the stop rule
+  keeps falling back to the whole plan (taking a stop rule from elsewhere only tightens a brief);
+  (2) in a plan with no '# Steps' heading, make_brief --section treats every '## ' section as its
+  own task's: a library-changes or process-limit marker inside another '## ' section is never
+  used, only markers in the named section or outside every '## ' section, with a stderr note
+  naming any marker it skipped (stricter than review fix 1, which asked only for the note); (3)
+  verify_handback: no count line with exit 0 is a FLAG (review fix 2); (4)
+  scripts/dev/finish_task.sh drops its extra -q so its pytest output keeps the count line. Left
+  for the owner's review, because .claude/ files are committed only by the owner: whether the
+  implement-plan and apply-fixes skills show make_brief's stderr notes, and the
+  run-tests-on-change.sh hook's extra -q. Where: ROADMAP Track H row H12;
+  docs/todo_ilium_workflow_tooling.md task (d); .claude/reports/20261029-0010-review-tooling-d.md.
 ### D-20261028-N1 · Track E (all remaining work) · Opus implements every remaining task; one Fable review at the end
 - 2026-10-28, owner. Recorded by Newt Agent. Supersedes: none.
 - From now on every implementer for Track E is Opus (fresh agent per task, fixes included); the

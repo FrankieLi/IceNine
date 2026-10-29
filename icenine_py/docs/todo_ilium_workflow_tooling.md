@@ -9,7 +9,7 @@ fontsize: 11pt
 # Status
 
 **Scripts done and merged 2026-10-18** (MIGRATION_HISTORY "Workflow tooling for both
-agents"); the three skills and the study-conventions / rule 2 / rule 6 text wait for the
+agents"); **S2 follow-ups, tasks (d) and (e), merged 2026-10-29** (D-20261028-I3 to I5); the three skills and the study-conventions / rule 2 / rule 6 text wait for the
 owner's commit. Approved D-20261018-I2; owner answers to O1-O9 in D-20261018-I1 to
 I5. Written 2026-10-16 by Ilium Agent after the S4 session, at the owner's request ("which parts
 could become skills or deterministic scripts"). Owner answers: O1 keep the written ID rule (n from 1
@@ -205,8 +205,9 @@ closing pipe, pipe in the text, idempotent second run, `--show`.
 - With `--fixes`: every number of the review's "Required fixes" list appears in the hand-back
   report (FLAG per missing number).
 - Tests: the `tests/...py[::name]` paths named on the report's "Tests" line, run in the branch's
-  worktree as `cd icenine_py && uv run pytest <paths> -q` (output through `tail -20`); FAIL on a
-  failure; FLAG if the report names none. `--no-tests` skips this.
+  worktree as `cd icenine_py && uv run pytest <paths>` (counts from a JUnit file; a second `-q`
+  would hide the count line, task (d)); FAIL on a failure; FLAG if the report names none.
+  `--no-tests` skips this.
 
 The output is at most about 30 lines. It is a gate before `/review-task`, not a review.
 

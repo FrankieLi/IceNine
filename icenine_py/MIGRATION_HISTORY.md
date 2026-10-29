@@ -9735,6 +9735,75 @@ scripts; reading the plan and DECISIONS.md at `HEAD` in `make_brief.sh`. The pla
 items (`sync_doc_tables.py --section`, a timed-run wrapper, shared S4 study helpers, a mailbox
 writer) are not started.
 
+### S2 follow-ups, task (d): briefs and hand-backs (2026-10-28)
+
+Plan section "Task (d): briefs and hand-backs" (D-20261028-I3); gaps the S2 run hit. No library
+change.
+
+- `make_brief.sh --section`: the `**Library changes:**` and `**Process limit exception:**` markers
+  come from the section, else from the plan-wide text (outside every `## ` section under
+  `# Steps`), else the brief says "none stated in this section" (with the default scope and the
+  machine limit) and a note goes to stderr. Before, a section without its own marker took the
+  first one of the whole plan (S2: the Step 3 brief got the parallel tasks' "3 each"). The stop
+  rule still falls back to the whole plan (a stop rule written in another section still applies;
+  the S2 plan's only stop rule sits in "Steps 4-6" and names Step 0). Without `--section`
+  nothing changes.
+- `verify_handback.sh`, hashes: a hash the report names that the branch contains (its base or the
+  parent tip it started from) is a `note`; only hashes the branch does not contain are flagged.
+- `verify_handback.sh`, test summary: the count line was missing because the default command
+  `uv run pytest -q` adds a second `-q` to `addopts = "-ra -q"`; at verbosity -2 pytest prints
+  no final count line, so with warnings the last output line was the "-- Docs: ..." link. The
+  default is now `uv run pytest`, and the counts (passed, failed, skipped, and errors when
+  non-zero) come from a JUnit XML file requested through `PYTEST_ADDOPTS` (so an override
+  command gets them too), else from pytest's count line; the line also gives pytest's exit code.
+  A non-zero exit or a failure in the counts stays FAIL.
+
+Tests: `tests/test_dev_tooling_briefs_handbacks.py` (new), and the existing goldens in
+`test_dev_tooling_brief.py` (a `--section` brief with no markers) and
+`test_dev_tooling_handback.py` (the parent tip is now a note) updated.
+
+Review fixes (D-20261028-I5):
+- Fix 1: in a plan with no `# Steps` heading (every plan from `new_todo.sh`), the plan-wide text
+  was the whole plan, so a `--section` brief silently quoted another section's permissions. Now
+  every `## ` section of such a plan is its own task's: only markers inside the named section or
+  outside every `## ` section count, else "none stated in this section", and a stderr note names
+  each marker paragraph left out and its line. Plans with `# Steps` and briefs without
+  `--section` are unchanged: 31 runs over the `todo_*.md` plans in `docs/` (each plan without
+  `--section`, and each `## ` section of the plans that have markers or lack `# Steps`) give
+  byte-identical stdout, stderr and exit code to the previous script's. No plan in `docs/` has a
+  marker and lacks `# Steps`, so the new case is covered by the tests only. The stop rule keeps
+  its whole-plan fallback.
+- Fix 2: `verify_handback.sh` flags pytest exit 0 with no counts (no JUnit file and no count
+  line), where it printed `ok`.
+- `finish_task.sh` runs `uv run pytest tests/` without the extra `-q`, so its output keeps
+  pytest's count line.
+
+### S2 follow-ups, task (e): doc tables and line lengths (2026-10-28)
+
+Plan section "Task (e): doc tables and line lengths" (D-20261028-I3, I4). No library change.
+
+- `sync_doc_tables.py --section "<heading>"` syncs or checks only the markers under that heading
+  (up to the next heading of the same or a higher level). `--tables` takes several files (S2's
+  results section draws on two). A doc marker with no generated block is still exit 2, and the
+  message now lists each such marker by line and heading (the whole MIGRATION_HISTORY.md lists
+  289). A marker is a line of its own, so an inline mention of the syntax (README "Developer
+  tooling") is not an unclosed marker (review fix 1).
+- `audit_numbers.py --section` shares that heading scan, so `#` lines in fenced code no longer end
+  a section (review fix 3, D-20261028-I4). Under the old rule 7 MIGRATION_HISTORY sections (the
+  title included) and 10 README sections were cut short, and the audit checked less than it said;
+  no S2 or S4 results section changes.
+- The 21 lines over 100 characters in `scripts/speed_parity/s4/` are wrapped. `summary.py` still
+  writes the committed `summary.json`, `tables.md` and `step1_cost.json` byte for byte.
+- The S2 table `s2_e0_trace` (36 per-voxel E0 traces), generated but referenced by no marker, now
+  has one in "S2: fused C evaluation, Steps 1-6 results", synced with `--section`.
+
+Tests: `tests/test_dev_tooling_sync.py` (new, 25 tests; the first hand-back said 22 where there
+were 18). Full suite after both tasks merged: see the commit that adds this entry.
+
+Not done: a missing `--tables` file ends in a traceback rather than an `error:` line; the
+review's optional fence rule (a fence closed by a shorter one of the same character; no doc has
+one today); `mypy --strict` reports one older error in `audit_numbers.py`.
+
 ## S4: translation correctness and loop ordering (2026-10-15)
 
 Merged into `feature/python-speed-parity` as a finished study on 2026-10-21 (D-20261021-I3),
@@ -10934,6 +11003,50 @@ of them change the cost. Up to the first of them the key-on search repeats the k
 (the key changes only cost values and the shadow draws no random number; not compared against a key-off call log; the
 "reproduced" check covers the key-on side only), so where the two part is one of these flips; which one changed the path was
 not determined.
+
+Per voxel (the 36 runs above; `first_call` is the first differing evaluation, `near_px` the largest distance from a pixel
+edge among its flips):
+
+<!-- table:s2_e0_trace -->
+| pair | voxel | change | reproduced | shadowed | differing | first_call | first_path | radius | fields | causes | within_rule | near_px |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| off vs on | 7336 | both wrong | True | 3165 | 87 | 55 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 16269 | both right | True | 4779 | 114 | 101 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0004 |
+| off vs on | 20406 | both right | True | 4251 | 96 | 1 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 10531 | both right | True | 4958 | 126 | 30 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 16905 | both right | True | 4415 | 113 | 11 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0013 |
+| off vs on | 14240 | both right | True | 5040 | 138 | 54 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 17977 | both right | True | 4070 | 102 | 117 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 10507 | both right | True | 3690 | 111 | 17 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0005 |
+| off vs on | 22302 | both wrong | True | 3597 | 77 | 37 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 14497 | both wrong | True | 3461 | 109 | 11 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 12015 | both right | True | 4151 | 100 | 34 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 9525 | both right | True | 5674 | 145 | 30 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 15019 | both right | True | 5067 | 137 | 1 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 177 | both right | True | 4031 | 104 | 108 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 10864 | both right | True | 4519 | 108 | 30 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0006 |
+| off vs on | 15620 | both right | True | 3439 | 77 | 17 | evaluate | 0 | pixel_on_detector, quality | pixel_integer | True | 0.0001 |
+| off vs on | 22863 | both right | True | 4005 | 98 | 51 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 6596 | both right | True | 4527 | 144 | 17 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 2177 | both right | True | 3491 | 87 | 13 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 14217 | both wrong | True | 4247 | 112 | 35 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 5384 | both right | True | 3355 | 71 | 2 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 21741 | both right | True | 3653 | 92 | 138 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 17771 | both right | True | 3846 | 95 | 6 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 24339 | both right | True | 4944 | 113 | 110 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0009 |
+| bqmc vs bqmc_on | 2807 | both right | True | 3747 | 106 | 21 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 1935 | both right | True | 4183 | 118 | 57 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 2735 | both right | True | 4714 | 99 | 86 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 22517 | both right | True | 3406 | 71 | 61 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 21726 | both right | True | 4147 | 119 | 90 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0015 |
+| bqmc vs bqmc_on | 628 | both right | True | 3728 | 87 | 101 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 10007 | both wrong | True | 3587 | 95 | 38 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 24420 | both right | True | 3869 | 82 | 28 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0002 |
+| bqmc vs bqmc_on | 20976 | both right | True | 3934 | 106 | 3 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 77 | both right | True | 4309 | 114 | 123 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 18723 | both right | True | 4197 | 116 | 32 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 14596 | both right | True | 4315 | 124 | 10 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+<!-- /table:s2_e0_trace -->
 
 ### Deviations and not done
 
