@@ -641,3 +641,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   key is on. The choice rests on one voxel; the owner can override. Where:
   ~/.claude/plans/eval-reduction.md Task G1; MIGRATION_HISTORY Task G1;
   .claude/reports/20261028-2338-G1.md.
+
+### D-20261029-N2 · Track E row G (G2) · Delegated: OutwardSearch stays off; the pilot baseline is today's key-off rerun
+- 2026-10-29, owner. Recorded by Newt Agent. Supersedes: none.
+- Delegated (owner 2026-10-28: Newt takes the plan's decision points). On the 2,000-voxel pilot
+  region OutwardSearch (Task F fallback policy for BFS neighbours and reseeds) gave 36 wrong
+  against 37 key off (18 fixed, 17 broken, 8 traced to it) at about 2.4x the evaluations; Task F's
+  acceptance test (strict cost at most 0.8) accepts a neighbouring grain at boundaries, and all 9
+  reseeds on its path ended 33-55 deg wrong. The key stays opt-in and off; a revisit would use F4
+  alone for neighbours and no policy for reseeds. The stored 2026-10-10 pilot no longer reproduces
+  on today's code (same 37 wrong, 14 fixed / 14 broken by voxel), so G compares against a key-off
+  rerun. The overlap rule stayed lenient (no decision names one for Task G). Where:
+  MIGRATION_HISTORY Task G2; .claude/reports/20261029-0212-G2.md.
