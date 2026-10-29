@@ -1,4 +1,5 @@
-"""Tests of scripts/dev/sync_doc_tables.py: --section and the exit-2 marker listing.
+"""Tests of scripts/dev/sync_doc_tables.py: --section and the exit-2 marker listing; and of the
+heading scan audit_numbers.py --section shares with it.
 
 The whole-file round trip and the missing-marker error are also covered in test_dev_tooling.py.
 Every test works on files in a temporary directory.
@@ -205,12 +206,36 @@ def test_headings_skip_fenced_code() -> None:
 
 
 @pytest.mark.parametrize("heading", ["Report", "Alpha", "Beta", "Gamma", "Alpha detail"])
-def test_find_section_agrees_with_audit_numbers_without_fences(heading: str) -> None:
-    # same heading rule as audit_numbers.py --section on a doc with no fenced code
-    lines: List[str] = [ln for ln in DOC.splitlines() if not ln.startswith(("```", "# a shell"))]
-    lines = [ln for ln in lines if ln != "uv run python x.py"]
+@pytest.mark.parametrize("fenced", [False, True])
+def test_find_section_agrees_with_audit_numbers(heading: str, fenced: bool) -> None:
+    # same heading rule as audit_numbers.py --section, with and without fenced code (review fix 3)
+    lines: List[str] = DOC.splitlines()
+    if not fenced:
+        lines = [ln for ln in lines if not ln.startswith(("```", "# a shell"))]
+        lines = [ln for ln in lines if ln != "uv run python x.py"]
     start, end, _ = sync_doc_tables.find_section(lines, heading)
     assert (start, end) == audit_numbers.find_section(lines, heading)
+
+
+def test_audit_numbers_section_skips_fenced_comments(tmp_path: Path) -> None:
+    # review fix 3: a `#` comment in a code fence neither ends nor starts an audit section
+    lines = DOC.splitlines()
+    start, end = audit_numbers.find_section(lines, "Alpha detail")
+    assert lines[start] == "### Alpha detail" and lines[end] == "## Beta (2026-10-02)"
+    start, end = audit_numbers.find_section(lines, "Report")
+    assert (start, end) == (0, len(lines))
+    with pytest.raises(ValueError):
+        audit_numbers.find_section(lines, "a shell comment")
+    # end to end: the number 0.5 after the fence is inside the section
+    doc = tmp_path / "doc.md"
+    doc.write_text(DOC.replace("<!-- table:a2 -->", "Rate 0.5 here.\n\n<!-- table:a2 -->"))
+    src = tmp_path / "src.json"
+    src.write_text('{"r": 0.25}')
+    script = DEV / "audit_numbers.py"
+    cmd = [sys.executable, str(script), "--doc", str(doc), "--section", "Alpha detail"]
+    res = subprocess.run([*cmd, "--sources", str(src)], capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr
+    assert res.stdout.startswith("0/1 numbers matched") and "0.5" in res.stdout
 
 
 def test_several_tables_files_merge(tmp_path: Path) -> None:

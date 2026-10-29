@@ -12,10 +12,11 @@ contents is exit 2.
 
 --section "Heading" syncs (or checks) only the markers inside that section: the first heading
 whose text contains "Heading", up to the next heading of the same or a higher level (the rule of
-audit_numbers.py --section; heading-like lines inside fenced code blocks are not headings). Markers
-outside it are left as they are, with or without a generated block. Exit 2 if the section is not
-found or a marker opens in it without closing in it; a section with no markers is a note, exit 0.
-A marker is a line of its own: an inline mention of the syntax in prose or a table row is not one.
+audit_numbers.py --section, which shares this heading scan; heading-like lines inside fenced code
+blocks are not headings). Markers outside it are left as they are, with or without a generated
+block. Exit 2 if the section is not found or a marker opens in it without closing in it; a section
+with no markers is a note, exit 0. A marker is a line of its own: an inline mention of the syntax
+in prose or a table row is not one.
 """
 
 import argparse
