@@ -287,7 +287,7 @@ owner review in between.
 | H9 | `icenine/sampling.py:338` `get_random_local_grid` uses `default_rng(seed=None)` (fresh entropy), so its "preserves C++ determinism" docstring is wrong; the function is unused | fix the docstring or remove the function |
 | H10 | `_parse_*` helpers of `mic_file.py` have no direct tests | low priority |
 | H11 | root `README.md` is from 2014 (Boost 1.43, gcc 4.2, XDM++ "obtained separately") | refresh |
-| H12 | `scripts/dev/`, `.claude/skills/` | workflow tooling, shared by both agents: `log_decision.sh`, `roadmap_row.py`, `verify_handback.sh`, `read_on_fetch.sh`, `make_brief.sh` and the `/decide`, `/implement-plan`, `/apply-fixes` skills (`docs/todo_ilium_workflow_tooling.md`); **scripts merged; skills and owner text waiting for the owner** (approved D-20261018-I2, row D-20261018-I3; Ilium Agent, task branches off `feature/python-speed-parity`) |
+| H12 | `scripts/dev/`, `.claude/skills/` | workflow tooling, shared by both agents: `log_decision.sh`, `roadmap_row.py`, `verify_handback.sh`, `read_on_fetch.sh`, `make_brief.sh` and the `/decide`, `/implement-plan`, `/apply-fixes` skills (`docs/todo_ilium_workflow_tooling.md`); **scripts merged; S2 follow-ups (d) and (e) merged 2026-10-29 (D-20261028-I3 to I5); skills and owner text waiting for the owner** (approved D-20261018-I2, row D-20261018-I3; Ilium Agent, task branches off `feature/python-speed-parity`) |
 
 # Track Q: search accuracy open questions
 

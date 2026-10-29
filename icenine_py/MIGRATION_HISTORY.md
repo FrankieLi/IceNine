@@ -9657,6 +9657,32 @@ Review fixes (D-20261028-I5):
 - `finish_task.sh` runs `uv run pytest tests/` without the extra `-q`, so its output keeps
   pytest's count line.
 
+### S2 follow-ups, task (e): doc tables and line lengths (2026-10-28)
+
+Plan section "Task (e): doc tables and line lengths" (D-20261028-I3, I4). No library change.
+
+- `sync_doc_tables.py --section "<heading>"` syncs or checks only the markers under that heading
+  (up to the next heading of the same or a higher level). `--tables` takes several files (S2's
+  results section draws on two). A doc marker with no generated block is still exit 2, and the
+  message now lists each such marker by line and heading (the whole MIGRATION_HISTORY.md lists
+  289). A marker is a line of its own, so an inline mention of the syntax (README "Developer
+  tooling") is not an unclosed marker (review fix 1).
+- `audit_numbers.py --section` shares that heading scan, so `#` lines in fenced code no longer end
+  a section (review fix 3, D-20261028-I4). Under the old rule 7 MIGRATION_HISTORY sections (the
+  title included) and 10 README sections were cut short, and the audit checked less than it said;
+  no S2 or S4 results section changes.
+- The 21 lines over 100 characters in `scripts/speed_parity/s4/` are wrapped. `summary.py` still
+  writes the committed `summary.json`, `tables.md` and `step1_cost.json` byte for byte.
+- The S2 table `s2_e0_trace` (36 per-voxel E0 traces), generated but referenced by no marker, now
+  has one in "S2: fused C evaluation, Steps 1-6 results", synced with `--section`.
+
+Tests: `tests/test_dev_tooling_sync.py` (new, 25 tests; the first hand-back said 22 where there
+were 18). Full suite after both tasks merged: see the commit that adds this entry.
+
+Not done: a missing `--tables` file ends in a traceback rather than an `error:` line; the
+review's optional fence rule (a fence closed by a shorter one of the same character; no doc has
+one today); `mypy --strict` reports one older error in `audit_numbers.py`.
+
 ## S4: translation correctness and loop ordering (2026-10-15)
 
 Merged into `feature/python-speed-parity` as a finished study on 2026-10-21 (D-20261021-I3),
