@@ -105,7 +105,12 @@
     0.5563453166081642
    ]
   },
-  "step0_present": true
+  "step0_present": true,
+  "same_as_steps12": {
+   "equal": 36,
+   "n": 36,
+   "head": "9e99d63"
+  }
  },
  "keyoff": {
   "evaluate": {

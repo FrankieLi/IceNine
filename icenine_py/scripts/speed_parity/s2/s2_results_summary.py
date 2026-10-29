@@ -142,6 +142,18 @@ def parity(p: Dict[str, Any]) -> Dict[str, Any]:
         formats=dict(wilson_low=".3f", wilson_high=".3f"),
     )
     out["step0_present"] = step0 is not None
+    # the same library path in Steps 1-2 (benchmarks/s2_core/glab_order.json, order plain): the
+    # differing orientations and per-field counts of every dataset-mode
+    core = load(ICE / "benchmarks" / "s2_core" / "glab_order.json")
+    if core is not None:
+        same = [
+            r["differing_index"] == core["datasets"][ds][m]["orders"]["plain"]["differing_index"]
+            and r["field_orientations_differing"]
+            == core["datasets"][ds][m]["orders"]["plain"]["field_orientations_differing"]
+            for ds, dd in p["datasets"].items()
+            for m, r in dd.items()
+        ]
+        out["same_as_steps12"] = dict(equal=sum(same), n=len(same), head=core["meta"]["head"])
     # intermediates of three0 local (Step 0d's table, library row)
     irows = []
     for ds in p["datasets"]:
