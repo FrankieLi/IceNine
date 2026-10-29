@@ -1069,7 +1069,8 @@ def _warn_fused_fallback(reason: str, stacklevel: int = 5) -> None:
         _WARNED_FUSED.add(reason)
         warnings.warn(
             f"FusedCost is not supported for this cost function ({reason}): using the torch "
-            "evaluate",
+            "path (VoxelCostFunction.evaluate: the torch evaluate; BatchedCostEvaluator: the "
+            "torch compact variant)",
             RuntimeWarning,
             stacklevel=stacklevel,
         )

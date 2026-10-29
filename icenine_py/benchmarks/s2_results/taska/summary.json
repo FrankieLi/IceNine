@@ -1,0 +1,1177 @@
+{
+ "meta": {
+  "run": {
+   "head": "41efb45",
+   "dirty": false,
+   "dirty_files": [],
+   "torch": "2.8.0",
+   "numpy": "2.0.2",
+   "voxels": [
+    15901,
+    22867,
+    5242
+   ],
+   "variants": [
+    "library"
+   ],
+   "every_coord": true,
+   "product_order": "clang_contract",
+   "threads": 1,
+   "seconds": 7.891134042
+  },
+  "inputs": {
+   "head": "41efb45",
+   "dirty": false,
+   "dirty_files": [],
+   "torch": "2.8.0",
+   "numpy": "2.0.2"
+  },
+  "variants": [
+   "library"
+  ]
+ },
+ "n": 2230,
+ "regeneration": {
+  "records": 2230,
+  "stored": 2230,
+  "labels_and_indices_differ": 0,
+  "records_by_kind": {
+   "0": 230,
+   "1": 2000
+  },
+  "single_records_identity_local": 230,
+  "pair_records_two_or_more_elements_differing": 1166,
+  "orders": {
+   "plain": {
+    "n_pairs": 2000,
+    "bit_equal_flag_matches": 1828,
+    "max_abs_diff_matches": 1446,
+    "both_match": 1446,
+    "product_differs_from_selected": 1619,
+    "product_differs_from_selected_yet_both_match": 1065
+   },
+   "clang_contract": {
+    "n_pairs": 2000,
+    "bit_equal_flag_matches": 2000,
+    "max_abs_diff_matches": 2000,
+    "both_match": 2000,
+    "product_differs_from_selected": 0,
+    "product_differs_from_selected_yet_both_match": 0
+   },
+   "fma_chain": {
+    "n_pairs": 2000,
+    "bit_equal_flag_matches": 1760,
+    "max_abs_diff_matches": 1286,
+    "both_match": 1286,
+    "product_differs_from_selected": 1558,
+    "product_differs_from_selected_yet_both_match": 844
+   },
+   "fma_rev": {
+    "n_pairs": 2000,
+    "bit_equal_flag_matches": 1694,
+    "max_abs_diff_matches": 1081,
+    "both_match": 1081,
+    "product_differs_from_selected": 1808,
+    "product_differs_from_selected_yet_both_match": 889
+   }
+  },
+  "selected_order": "clang_contract",
+  "torch_equals_stored_python": {
+   "EXS": 2230,
+   "EXF": 2230,
+   "EXS_edge": 2230,
+   "EXF_edge": 2230
+  },
+  "mirror_equal": {
+   "EXS_edge": 2230,
+   "EXF_edge": 2230
+  }
+ },
+ "cpp": {
+  "EXS_edge": {
+   "cpp_pixov_and_quality_zero": 2230,
+   "torch (Task A, stored)": {
+    "peak_counts": {
+     "k": 2229,
+     "n": 2230,
+     "frac": 0.9995515695067264,
+     "lo": 0.9974641146899378,
+     "hi": 0.9999208386567987
+    }
+   },
+   "torch (41efb45)": {
+    "peak_counts": {
+     "k": 2229,
+     "n": 2230,
+     "frac": 0.9995515695067264,
+     "lo": 0.9974641146899378,
+     "hi": 0.9999208386567987
+    }
+   },
+   "fused library": {
+    "peak_counts": {
+     "k": 2229,
+     "n": 2230,
+     "frac": 0.9995515695067264,
+     "lo": 0.9974641146899378,
+     "hi": 0.9999208386567987
+    }
+   },
+   "paired_library_peak_counts": {
+    "both": 2229,
+    "torch_only": 0,
+    "fused_only": 0,
+    "neither": 1
+   },
+   "peak_mismatch_records": [
+    {
+     "voxel": 15901,
+     "id": 885,
+     "label": "pair_differ_pass",
+     "cpp": [
+      1,
+      17
+     ],
+     "torch (Task A, stored)": [
+      0,
+      17
+     ],
+     "torch (41efb45)": [
+      0,
+      17
+     ],
+     "fused library": [
+      0,
+      17
+     ]
+    }
+   ]
+  },
+  "EXF_edge": {
+   "cpp_pixov_and_quality_zero": 103,
+   "torch (Task A, stored)": {
+    "peak_counts": {
+     "k": 2230,
+     "n": 2230,
+     "frac": 1.0,
+     "lo": 0.998280271976312,
+     "hi": 1.0
+    },
+    "peak_and_pixel_counts": {
+     "k": 1985,
+     "n": 2230,
+     "frac": 0.8901345291479821,
+     "lo": 0.8764778028747076,
+     "hi": 0.9024494048556884
+    },
+    "quality_within_tol": 2228
+   },
+   "torch (41efb45)": {
+    "peak_counts": {
+     "k": 2230,
+     "n": 2230,
+     "frac": 1.0,
+     "lo": 0.998280271976312,
+     "hi": 1.0
+    },
+    "peak_and_pixel_counts": {
+     "k": 1985,
+     "n": 2230,
+     "frac": 0.8901345291479821,
+     "lo": 0.8764778028747076,
+     "hi": 0.9024494048556884
+    },
+    "quality_within_tol": 2228
+   },
+   "fused library": {
+    "peak_counts": {
+     "k": 2230,
+     "n": 2230,
+     "frac": 1.0,
+     "lo": 0.998280271976312,
+     "hi": 1.0
+    },
+    "peak_and_pixel_counts": {
+     "k": 1983,
+     "n": 2230,
+     "frac": 0.889237668161435,
+     "lo": 0.8755363617293574,
+     "hi": 0.9016002087418882
+    },
+    "quality_within_tol": 2228
+   },
+   "paired_library_peak_counts": {
+    "both": 2230,
+    "torch_only": 0,
+    "fused_only": 0,
+    "neither": 0
+   },
+   "paired_library_peak_and_pixel_counts": {
+    "both": 1950,
+    "torch_only": 35,
+    "fused_only": 33,
+    "neither": 212
+   },
+   "peak_mismatch_records": []
+  }
+ },
+ "fused_vs_torch": {
+  "EXS_edge/library": {
+   "n": 2230,
+   "differing": {
+    "k": 0,
+    "n": 2230,
+    "frac": 0.0,
+    "lo": 0.0,
+    "hi": 0.001719728023687982
+   },
+   "within_rule": 0,
+   "causes": {},
+   "fields": {},
+   "worst_near_px": null,
+   "flipped_rows": 0,
+   "flipped_rows_orientations": 0,
+   "ref_side": {},
+   "ref_side_torch": {
+    "k": 0,
+    "n": 0,
+    "frac": null,
+    "lo": NaN,
+    "hi": NaN
+   },
+   "silent": 14,
+   "silent_within_rule": 14,
+   "silent_causes": [
+    "pixel_integer"
+   ],
+   "silent_worst_near_px": 0.00042724609375,
+   "differing_records": []
+  },
+  "EXF_edge/library": {
+   "n": 2230,
+   "differing": {
+    "k": 73,
+    "n": 2230,
+    "frac": 0.03273542600896861,
+    "lo": 0.026116132247387423,
+    "hi": 0.04096185573528779
+   },
+   "within_rule": 73,
+   "causes": {
+    "pixel_integer": 73
+   },
+   "fields": {
+    "pixov": 3,
+    "pixon": 72,
+    "pkov": 0,
+    "pkon": 0,
+    "quality": 0
+   },
+   "worst_near_px": 0.00103759765625,
+   "flipped_rows": 74,
+   "flipped_rows_orientations": 73,
+   "ref_side": {
+    "fused": 35,
+    "torch": 39
+   },
+   "ref_side_torch": {
+    "k": 39,
+    "n": 74,
+    "frac": 0.527027027027027,
+    "lo": 0.41477158311547435,
+    "hi": 0.6366148220971626
+   },
+   "silent": 80,
+   "silent_within_rule": 80,
+   "silent_causes": [
+    "pixel_integer"
+   ],
+   "silent_worst_near_px": 0.001220703125,
+   "differing_records": [
+    {
+     "voxel": 15901,
+     "id": 9,
+     "label": "off_3.0",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.000244140625,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 56,
+     "label": "random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.000244140625,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 64,
+     "label": "random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 83,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 98,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 162,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 6.103515625e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 232,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 287,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 326,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 6.103515625e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 327,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 6.103515625e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 359,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 385,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 394,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 6.103515625e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 397,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 406,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.00103759765625,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 417,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 433,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.000732421875,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 449,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0006103515625,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 482,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 513,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 565,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.00067138671875,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 591,
+     "label": "pair_differ_pass",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 603,
+     "label": "pair_differ_pass",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 684,
+     "label": "pair_differ_pass",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 719,
+     "label": "pair_differ_pass",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0003662109375,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 732,
+     "label": "pair_differ_pass",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 6.103515625e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 739,
+     "label": "pair_differ_pass",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 898,
+     "label": "pair_differ_pass",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 900,
+     "label": "pair_differ_pass",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 947,
+     "label": "pair_differ_pass",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0003662109375,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 1025,
+     "label": "pair_differ_count",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 15901,
+     "id": 1066,
+     "label": "pair_differ_count",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0006103515625,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 70,
+     "label": "random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 74,
+     "label": "random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.000244140625,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 84,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 106,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 138,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.000244140625,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 203,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 206,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 6.103515625e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 235,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 6.103515625e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 248,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 254,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 9.1552734375e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 321,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.000946044921875,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 326,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 344,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 357,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 374,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 401,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 406,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.00091552734375,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 412,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 433,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 511,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 22867,
+     "id": 544,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 1.52587890625e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 23,
+     "label": "random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 27,
+     "label": "random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 66,
+     "label": "random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.00018310546875,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 87,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 118,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 127,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 136,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 3.0517578125e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 137,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 246,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 316,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 3.0517578125e-05,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 320,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 330,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0003662109375,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 337,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0002288818359375,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 354,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 375,
+     "label": "pair_random",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 390,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0001220703125,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 422,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 456,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 506,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.0,
+      "within_rule": true
+     }
+    },
+    {
+     "voxel": 5242,
+     "id": 511,
+     "label": "sweep",
+     "verdict": {
+      "causes": [
+       "pixel_integer"
+      ],
+      "worst_near_px": 0.000885009765625,
+      "within_rule": true
+     }
+    }
+   ]
+  }
+ },
+ "outlier": {
+  "meta": null,
+  "n_stage_d_rows": {},
+  "n_entries": {},
+  "groups": [],
+  "per_orientation": []
+ }
+}

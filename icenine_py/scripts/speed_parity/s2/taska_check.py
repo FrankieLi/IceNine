@@ -19,7 +19,10 @@ Parity item 2. Scripts only; no library change. Three subcommands:
     ``CppEdgeRules`` arms also ``torch_mirror.mirror`` (must equal the library), the float64
     reference and the fused prototype (``s2fused.FusedEval``, variants ``portable`` and
     ``accelerate``). Every orientation whose fused ``OverlapInfo`` differs from torch is traced
-    with ``s2_parity.trace``. Writes one JSON per call.
+    with ``s2_parity.trace``. Writes one JSON per call. S2 Step 4 (D-20261027-I7): ``--variants
+    library`` runs the library kernel instead (``VoxelCostFunction`` with the key FusedCost, the
+    shipped g_lab order, intermediates from ``fused_debug``), and ``--every-coord`` traces every
+    flipped pixel coordinate, not only the worst per row and detector.
 
 ``outlier`` traces the 1.50 px float64-reference outlier of Step 0 (Phase D voxel 18558, mode
     ``edge``, S1's 1,000 orientations): every stage-D pixel coordinate whose torch or fused value
@@ -285,6 +288,34 @@ def classify(rows: List[Dict[str, Any]], pixel_width: float) -> Dict[str, Any]:
     return dict(causes=causes, worst_near_px=worst_px, within_rule=ok)
 
 
+class LibraryFused:
+    """Variant ``library`` (S2 Step 4): the library kernel (``VoxelCostFunction`` with the key
+    FusedCost on, the shipped g_lab order) in the prototype's ``debug`` interface. The
+    intermediates come from ``fused_debug``, the instrumented fused path (``parity_common``'s
+    probes patch torch functions the fused path never calls); ``debug`` also checks that the
+    plain ``evaluate`` gives the same result and counts every call."""
+
+    def __init__(self, cf: Any) -> None:
+        cf.fused_cost = True
+        self.cf = cf
+
+    def debug(self, R: np.ndarray, verts: Any, phase: int) -> Dict[str, Any]:
+        n0 = self.cf.eval_count
+        oi = self.cf.evaluate(R, verts, phase)
+        if self.cf.eval_count != n0 + 1:
+            raise SystemExit("library fused evaluate did not count one evaluation")
+        d = dict(self.cf.fused_debug(R, verts, phase))
+        r = SF.result_tuple(oi)
+        if tuple(d["result"]) != r:
+            raise SystemExit(f"fused_debug {tuple(d['result'])} differs from evaluate {r}")
+        d["K"] = int(d["g_lab"].shape[0])
+        return d
+
+
+def make_fused(cf: Any, variant: str) -> Any:
+    return LibraryFused(cf) if variant == "library" else SF.FusedEval(cf, variant)
+
+
 def cmd_run(a: argparse.Namespace) -> int:
     torch.set_num_threads(1)
     d = Path(a.dir).resolve()
@@ -294,7 +325,7 @@ def cmd_run(a: argparse.Namespace) -> int:
     cfs = {arm: ctx.cost_fn(*ARMS[arm]) for arm in ARMS}
     mirror_cf = {arm: ctx.cost_fn(*ARMS[arm]) for arm in FUSED_ARMS}
     fused = {
-        (arm, v): SF.FusedEval(ctx.cost_fn(*ARMS[arm]), v) for arm in FUSED_ARMS for v in a.variants
+        (arm, v): make_fused(ctx.cost_fn(*ARMS[arm]), v) for arm in FUSED_ARMS for v in a.variants
     }
     n_det = len(ctx.setup.detector_list)
     pw = float(ctx.setup.detector_list[0].pixel_width)
@@ -330,7 +361,7 @@ def cmd_run(a: argparse.Namespace) -> int:
                     for var in a.variants:
                         dd = fused[(arm, var)].debug(R, verts, phase)
                         fa = agg_of_tuple(tuple(dd["result"]))
-                        tr = S2P.trace(mm, dd, ref, mcf, n_det)
+                        tr = S2P.trace(mm, dd, ref, mcf, n_det, every=a.every_coord)
                         ent: Dict[str, Any] = dict(agg=fa)
                         differs = tuple(dd["result"]) != tuple(mt)
                         ent["differs_from_torch"] = differs
@@ -350,6 +381,7 @@ def cmd_run(a: argparse.Namespace) -> int:
             git_meta(),
             voxels=a.voxels,
             variants=a.variants,
+            every_coord=a.every_coord,
             product_order=PRODUCT_ORDER,
             threads=torch.get_num_threads(),
             seconds=time.perf_counter() - t0,
@@ -482,7 +514,14 @@ def main() -> int:
     p.add_argument("--dir", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--voxels", type=int, nargs="+", default=PC.PARITY_VOXELS)
-    p.add_argument("--variants", nargs="+", default=["portable", "accelerate"])
+    p.add_argument(
+        "--variants",
+        nargs="+",
+        default=["portable", "accelerate"],
+        choices=["portable", "accelerate", "library"],
+        help="library: the S2 library kernel (key FusedCost; Step 4)",
+    )
+    p.add_argument("--every-coord", action="store_true", help="trace every flipped coordinate")
     p.add_argument("--limit", type=int, default=0, help="first N records per voxel (pilot)")
     p = sub.add_parser("outlier")
     p.add_argument("--out", required=True)

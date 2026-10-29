@@ -31,6 +31,11 @@ Baseline check (S3 review): ``--no-center-screen`` (cpp_center_screen False, the
 screen of before 2026-10-12) and ``--no-batched-screen`` (BatchedScreen off, the default before
 2026-10-13) switch the two screen defaults back. Both together with ``--n-seeds 1`` (tag
 _s3off_c0b0) reproduce the aggregates of the 2026-10-08 C++-faithful rerun.
+
+S2 A/B (the fused C evaluation, config key FusedCost): ``--fused-cost`` turns the key on (with or
+without ``--batched-quick-mc``). A record gets the field ``fused_cost`` only when the key is on, so a
+key-off record keeps the fields of earlier runs (compared field by field with
+``scripts/speed_parity/s1_parity.py compare-e0``).
 """
 
 import argparse
@@ -46,7 +51,11 @@ import common as C  # noqa: E402
 
 N_SPARE = 8  # extra voxels queued in case some cannot be built
 DEFAULT_OPTS = dict(
-    batched_quick_mc=False, search_device="cpu", cpp_center_screen=True, batched_screen=True
+    batched_quick_mc=False,
+    search_device="cpu",
+    cpp_center_screen=True,
+    batched_screen=True,
+    fused_cost=False,
 )
 
 
@@ -80,6 +89,7 @@ def task(item):
     sp.search_device = str(opts["search_device"])
     sp.cpp_center_screen = bool(opts["cpp_center_screen"])
     sp.batched_screen = bool(opts["batched_screen"])
+    sp.fused_cost = bool(opts.get("fused_cost", False))
     vertices, phase = vctx.vertices, vctx.voxel.phase
     cost_true = W.local_fn.evaluate(R_true.astype(np.float32), vertices, phase).cost
     out = dict(R_true=R_true, cost_true=cost_true, n_pixels=len(keys), vidx=vidx, vpos=vpos)
@@ -87,6 +97,8 @@ def task(item):
     out["search_device"] = sp.search_device
     out["cpp_center_screen"] = sp.cpp_center_screen
     out["batched_screen"] = sp.batched_screen
+    if sp.fused_cost:  # only when on, so a key-off record has the fields of earlier runs
+        out["fused_cost"] = True
     for s in range(n_seeds):
         recorder = C.Recorder()
         rec.recorder = recorder
@@ -147,6 +159,7 @@ def main():
         "--no-center-screen", action="store_true", help="cpp_center_screen False (vertex-0 screen)"
     )
     ap.add_argument("--no-batched-screen", action="store_true", help="BatchedScreen off")
+    ap.add_argument("--fused-cost", action="store_true", help="S2: FusedCost on")
     ap.add_argument("--tag", default="", help="results go to cache/e0<tag> (e.g. _s3on)")
     a = ap.parse_args()
     opts = dict(
@@ -154,6 +167,7 @@ def main():
         search_device=a.search_device,
         cpp_center_screen=not a.no_center_screen,
         batched_screen=not a.no_batched_screen,
+        fused_cost=a.fused_cost,
     )
     if a.cmd != "select" and not a.tag and opts != DEFAULT_OPTS:
         raise SystemExit(
