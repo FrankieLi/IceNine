@@ -137,6 +137,13 @@ class SearchParameters:
     #   with revisit; rejected -> that voxel is final (never searched again) and the cluster is
     #   recomputed without it and reseeded on another voxel. Off by default.
     bfs_reseed: bool = False
+    # outward_search: opt-in (config key OutwardSearch, default off; Task G2). BFS neighbours
+    #   (with revisits and the restart pass) and reseeds first run the Task F fallback policy
+    #   from their start (icenine/outward_search.py: F4; where F4's acceptance test rejects, F5
+    #   then F4; 1-frame window). Accepted: the existing search runs from the policy's end point
+    #   (a neighbour's local fit; a reseed's local fit instead of the full search, falling back
+    #   to the full search if the seed test rejects it). Rejected: the existing search as before.
+    outward_search: bool = False
     # cpp_overlap_rule: opt-in (config key CppOverlapRule). The literal C++ CountQualifiedPeaks
     # overlap rule and the centroid projection of the pixel-radius screen (see VoxelCostFunction).
     # cpp_center_screen (not a config key, default True, applies to every rule): False is the
@@ -249,6 +256,7 @@ class SearchParameters:
             bfs_revisit_max=getattr(config, "bfs_revisit_max", 3),
             bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
+            outward_search=bool(getattr(config, "outward_search", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
             cpp_omega_interp=bool(getattr(config, "cpp_omega_interp", False)),
