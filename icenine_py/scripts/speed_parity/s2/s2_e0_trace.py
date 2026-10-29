@@ -13,6 +13,9 @@ first differing evaluation is where the two searches can first part. It is trace
 checked with the parity rule of ``s2_lib_parity.check``. The rerun must reproduce the key-on arm's
 stored record (final orientation and evaluation counts), else the trace does not describe that run.
 
+``--changed`` also traces every voxel whose final orientation differs between the two arms while
+its wrong flag does not (change "both right" / "both wrong"): the search took another path.
+
 Per voxel: the pair, the flag change (fixed / broken), the number of shadowed and differing
 evaluations, the first differing one (call number, path, pixel radius, which ``OverlapInfo`` fields
 differ, the traced entries and the rule verdict), and whether the rerun reproduced the record.
@@ -171,6 +174,11 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--variant", default="clean")
     ap.add_argument("--limit", type=int, default=0, help="first N flips per pair (pilot)")
+    ap.add_argument(
+        "--changed",
+        action="store_true",
+        help="also every voxel whose final orientation differs while its wrong flag does not",
+    )
     a = ap.parse_args()
     out_path = Path(a.out).resolve()
     cache = Path(a.cache).resolve()
@@ -187,13 +195,18 @@ def main() -> int:
             if not (pa.exists() and pb.exists()):
                 continue
             wa, wb = wrong(pa), wrong(pb)
-            if wa is None or wb is None or wa == wb:
+            if wa is None or wb is None:
                 continue
-            flips.append(dict(pair=f"{off} vs {on}", arm=on, vidx=v, vpos=vpos, wrong_off=wa))
+            moved = not np.array_equal(np.load(pa)["s0_R_final"], np.load(pb)["s0_R_final"])
+            if wa == wb and not (a.changed and moved):
+                continue
+            flips.append(
+                dict(pair=f"{off} vs {on}", arm=on, vidx=v, vpos=vpos, wrong_off=wa, wrong_on=wb)
+            )
             n += 1
             if a.limit and n >= a.limit:
                 break
-    print(f"{len(flips)} flipped voxels to trace", flush=True)
+    print(f"{len(flips)} voxels to trace", flush=True)
     C.init_worker(C.worker_args())
     W = C.get_worker()
     SH.ds = _Ds(W.rec.setup)
@@ -227,7 +240,11 @@ def main() -> int:
         )
         ent = dict(
             f,
-            change="fixed" if f["wrong_off"] else "broken",
+            change=(
+                ("fixed" if f["wrong_off"] else "broken")
+                if f["wrong_off"] != f["wrong_on"]
+                else ("both wrong" if f["wrong_off"] else "both right")
+            ),
             reproduced=reproduced,
             shadowed=SH.n,
             differing=SH.n_diff,
@@ -248,7 +265,13 @@ def main() -> int:
             flush=True,
         )
     out = dict(
-        meta=dict(head=S1.git_head(), dirty=S1.git_dirty(), variant=a.variant, arms=ARMS),
+        meta=dict(
+            head=S1.git_head(),
+            dirty=S1.git_dirty(),
+            variant=a.variant,
+            arms=ARMS,
+            changed=a.changed,
+        ),
         flips=res,
         totals=dict(
             n=len(res),
