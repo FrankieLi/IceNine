@@ -61,6 +61,7 @@ KEYOFF = RUNS2 / "keyoff_rerun"
 SMOOTH = RUNS3 / "smooth_only"
 OUTWARD = RUNS2 / "outward_only"
 INTEGRATED = RUNS2 / "integrated"
+PROBE_RESULTS = OUT / "trace_probe_results.json"  # committed per-voxel probe results
 EX = ICE.parent / "Examples" / "Example2.ManyGrains" / "SimInput"
 WRONG_DEG = 1.0
 LABEL = {
@@ -309,20 +310,30 @@ def probe(tr: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     from smooth_rank_summary import trace as e_trace
 
     vox = json.loads(TP.VOXELS.read_text())["voxels"]
-    base, arm = load_runs(TP.run_dir("base")), load_runs(TP.run_dir("e34t25"))
-    if not all(v in base and v in arm for v in vox):
+    pv: Dict[int, Dict[str, Any]] = {}
+    base_dir, arm_dir = TP.run_dir("base"), TP.run_dir("e34t25")
+    base = load_runs(base_dir) if base_dir.exists() else {}
+    arm = load_runs(arm_dir) if arm_dir.exists() else {}
+    if all(v in base and v in arm for v in vox):
+        for v in vox:
+            eb, ea = float(base[v]["err_deg"]), float(arm[v]["err_deg"])
+            d: Dict[str, Any] = dict(err_key_off=eb, err_key_on=ea,
+                                     evals_key_off=int(base[v]["evals"]),
+                                     evals_key_on=int(arm[v]["evals"]))  # fmt: skip
+            if ea > WRONG_DEG and eb <= WRONG_DEG:
+                d["broken_trace"] = list(e_trace(arm[v], 3))
+            if eb > WRONG_DEG and ea <= WRONG_DEG:
+                d["fixed_trace"] = fixed_trace(arm[v], 3)
+            pv[v] = d
+        PROBE_RESULTS.write_text(json.dumps(dict(flip=TP.FLIP, voxels=pv), indent=1) + "\n")
+    elif PROBE_RESULTS.exists():
+        # the probe npz files are gitignored; their per-voxel results are committed here
+        pv = {int(v): d for v, d in json.loads(PROBE_RESULTS.read_text())["voxels"].items()}
+        if sorted(pv) != sorted(int(v) for v in vox):
+            return None
+    else:
         return None
     idx = np.load(ICE / "benchmarks" / "phase_d_pilot" / "region_index.npy")
-    pv: Dict[int, Dict[str, Any]] = {}
-    for v in vox:
-        eb, ea = float(base[v]["err_deg"]), float(arm[v]["err_deg"])
-        d: Dict[str, Any] = dict(err_key_off=eb, err_key_on=ea, evals_key_off=int(base[v]["evals"]),
-                                 evals_key_on=int(arm[v]["evals"]))  # fmt: skip
-        if ea > WRONG_DEG and eb <= WRONG_DEG:
-            d["broken_trace"] = list(e_trace(arm[v], 3))
-        if eb > WRONG_DEG and ea <= WRONG_DEG:
-            d["fixed_trace"] = fixed_trace(arm[v], 3)
-        pv[v] = d
 
     def verdict(x: Dict[str, Any], kind: str) -> str:
         if x["origin"] == "boundary crossing":

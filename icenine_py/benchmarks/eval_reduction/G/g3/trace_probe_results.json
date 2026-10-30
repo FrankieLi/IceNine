@@ -1,0 +1,17 @@
+{
+ "flip": "keyoff_rerun->smooth_only",
+ "voxels": {
+  "8866": {
+   "err_key_off": 0.0014183680639349666,
+   "err_key_on": 0.02547579143280639,
+   "evals_key_off": 326662,
+   "evals_key_on": 337083
+  },
+  "15749": {
+   "err_key_off": 0.01988654908079114,
+   "err_key_on": 0.006972754711798452,
+   "evals_key_off": 334258,
+   "evals_key_on": 339863
+  }
+ }
+}
