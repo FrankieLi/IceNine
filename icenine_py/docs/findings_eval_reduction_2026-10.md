@@ -32,19 +32,27 @@ their neighbours).
    fixes 34 of the 41 wrong E0 voxels and breaks none. It adds few strict evaluations (+0.7% on the six
    full-sample voxels) but 90,183 smooth ones, which are slower. In strict-equivalent units that is
    +20.2% on the six voxels and +21.0% on Task E's other 24.
-3. **On the BFS pilot region the key alone is slightly better and about 12% dearer.** It has 34 wrong
-   voxels against 37 with the key off (14 fixed, 11 broken), and no grain lost. All 25 flips trace to
-   the draw, none to the key. It makes fewer strict evaluations (24,490,331 against 25,547,935, because
-   it needed fewer full searches) plus 980,594 smooth ones: +12.4% in strict-equivalent units.
+3. **On the BFS pilot region the key alone is slightly better and dearer; by how much is not
+   settled.** It has 34 wrong voxels against 37 with the key off (14 fixed, 11 broken), and no grain
+   lost. None of the 25 flips traces to the key's ranking. All 11 it breaks are boundary crossings in
+   neighbour fits, where the key does not act, but after the key had changed the BFS path (fewer
+   seeds and reseeds). It makes fewer strict evaluations (24,490,331 against 25,547,935, because it
+   needed 65 full searches against 69) plus 980,594 smooth ones: +12.4% in strict-equivalent units
+   over the whole run. Measured per full search, though, the BFS took 35.4% longer with the key
+   (154 s against 114 s), where the strict-equivalent weight predicts +20.7%. The runs were contended
+   at different levels and the cause was not tested, so the key's true time cost in a BFS may be
+   higher than +12.4%.
 4. **Every wrong voxel in the BFS runs is a boundary voxel with its neighbour's orientation.** In all
    five pilot-region runs, each wrong voxel carries the orientation of a grain it touches. With the key
    on, none of them comes from a wrong full search. All come from a neighbour fit that crossed a grain
-   boundary, where the key does not act.
+   boundary, where the key does not act (the key did change which path the BFS took to get there).
 5. **The outward search for BFS neighbours and reseeds does not pay.** Alone it gives 36 wrong against
    37 (18 fixed, 17 broken) for +13.9% strict-equivalent and one lost grain. With the smooth key it
    gives 42 wrong (+32.6%). It stays off (D-20261029-N2).
 6. **A full-sample BFS run would take about a day on one process.** Scaling the pilot linearly gives
-   22.0 h with the key off and 26.9 h with the key on. This scaling is an assumption, not tested.
+   22.0 h with the key off and 26.9 h with the key on. This scaling is an assumption, not tested,
+   and the two runs it scales were contended at different levels, so the gap between them is not
+   the key's cost.
 
 ## Terms
 
@@ -55,8 +63,9 @@ their neighbours).
   candidates at levels 0 to 2, where a quarter of the list is kept. E3+E4 means soft peak weights (E3)
   plus a distance to the observed rays (E4); tau 0.25 is E4's width in degrees.
 * **Strict-equivalent.** Evaluations of other kinds converted to strict ones by measured time. One
-  E3+E4 evaluation takes as long as about 4.3 strict ones on the full-sample images (Task E, batches
-  of 256).
+  E3+E4 evaluation takes as long as 4.297 strict ones on the full-sample images and 1.262 on the E0
+  images (Task E, batches of 256). The weight depends on the images, so every full-sample row (and
+  the BFS) uses 4.297 and the E0 row uses 1.262 (column `smooth_weight`).
 * **Full search** (no-start search). The coarse-to-fine search of a voxel from scratch: the screen,
   its recost, the quick Monte Carlo (MC) at each level, then FindOptimal and the final MC
   (`variance`).
@@ -69,7 +78,12 @@ their neighbours).
   right in the second; broken = the reverse.
 * **Traced to the arm / to the draw** (owner rule D-20261014-N13). A change also flips voxels just by
   changing the random draws. A broken voxel counts against a change only if the change itself caused
-  it (for example its key dropped the truth's basin), or if nobody could trace it.
+  it (for example its key dropped the truth's basin), or if nobody could trace it ("untraced"). In
+  the BFS a third verdict is kept apart: *boundary crossing*, a neighbour fit that carried a right
+  orientation over a grain boundary. It is not called the draw, because the change may have altered
+  the BFS path that led there, and it is not traced to the arm either.
+* **Origin not found.** In the BFS origin tables, a wrong voxel whose orientation matches none of
+  the run's full-search voxels. This is a different thing from the N13 verdict "untraced".
 * **Voxel sets.** *Six full-sample voxels*: six interior voxels of the clean full-sample images.
   *Task E's other 24*: the rest of a 30-voxel set on the same images. *E0*: 200 voxels with their own
   clean images, the set where the strict search is often wrong. *Pilot region*: 2,000 voxels (60
@@ -92,15 +106,17 @@ search (brown, dotted) costs about as much as the smooth key, and they add up.
 
 Reading the table: one row per voxel set, the key off ("before") against `SmoothCostRank E3+E4,tau=0.25`
 ("after"). Strict evaluations are sums for the six voxels and the BFS run, and means per voxel for the
-24 and for E0. The last column is the change in strict-equivalent units.
+24 and for E0. "smooth_weight" is the strict-equivalent weight of one smooth evaluation: 4.297 on
+the full-sample images (six voxels, the 24, the BFS) and 1.262 on the E0 images. The last column is
+the change in strict-equivalent units with that weight.
 
 <!-- table:evalG3_total_sets -->
-| set | n | wrong_before | wrong_after | fixed_broken | strict_before | strict_after | smooth | equiv_change |
-|---|---|---|---|---|---|---|---|---|
-| six full-sample voxels (sum) | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 / 0 | 1,992,278 | 2,006,917 | 90,183 | +20.2% |
-| Task E's other 24 full-sample voxels (per voxel) | 24 | 1 (0.7-20.2%) | 0 (0.0-13.8%) | 1 / 0 | 330,584 | 335,047 | 15,119 | +21.0% |
-| E0 200 voxels (per voxel) | 200 | 41 (15.5-26.6%) | 7 (1.7-7.0%) | 34 / 0 | 48,700 | 49,215 | 252 | +1.7% |
-| BFS pilot region, 2,000 voxels (whole run) | 2000 | 37 (1.3-2.5%) | 34 (1.2-2.4%) | 14 / 11 | 25,547,935 | 24,490,331 | 980,594 | +12.4% |
+| set | n | wrong_before | wrong_after | fixed_broken | strict_before | strict_after | smooth | smooth_weight | equiv_change |
+|---|---|---|---|---|---|---|---|---|---|
+| six full-sample voxels (sum) | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 / 0 | 1,992,278 | 2,006,917 | 90,183 | 4.297 | +20.2% |
+| Task E's other 24 full-sample voxels (per voxel) | 24 | 1 (0.7-20.2%) | 0 (0.0-13.8%) | 1 / 0 | 330,584 | 335,047 | 15,119 | 4.297 | +21.0% |
+| E0 200 voxels (per voxel) | 200 | 41 (15.5-26.6%) | 7 (1.7-7.0%) | 34 / 0 | 48,700 | 49,215 | 252 | 1.262 | +1.7% |
+| BFS pilot region, 2,000 voxels (whole run) | 2000 | 37 (1.3-2.5%) | 34 (1.2-2.4%) | 14 / 11 | 25,547,935 | 24,490,331 | 980,594 | 4.297 | +12.4% |
 <!-- /table:evalG3_total_sets -->
 
 Reading the table: the six full-sample voxels by stage, summed. "screen" and "recost" are the coarse
@@ -137,21 +153,27 @@ different levels, so they do not compare across runs.
 
 The strict-equivalent weight of a smooth evaluation (4.297) is Task E's measured time ratio in batches
 of 256. In the BFS runs a full search took longer than that weight predicts. Reading the table: time
-per full search, and the time per smooth evaluation it implies if a strict evaluation took as long as
-in the key-off run.
+per full search (seeds and reseeds; "full_searches" counts the searches run) and its change against
+the key-off run ("wall_change", measured); "equiv_change_predicted" is the change the weight predicts
+from the strict and smooth evaluations per full search; the last number is the time per smooth
+evaluation implied if a strict evaluation took as long as in the key-off run. In the "both" row the
+reseeds also run the outward search first, so its evaluations and time include that search.
 
 <!-- table:evalG3_full_search_time -->
-| run | full_searches | wall_per_full_search_s | strict_per_full_search | smooth_per_full_search | implied_ms_per_smooth | timing |
-|---|---|---|---|---|---|---|
-| stored configuration, today's code | 69 | 114 | 331,636 | 0 | n/a | contended: 3 concurrent 2000-voxel BFS runs (Task G2) |
-| SmoothCostRank only | 65 | 154 | 335,546 | 15,086 | 2.58 | contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled |
-| both (Task G2's integrated configuration) | 70 | 147 | 317,739 | 14,233 | 2.66 | contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2) |
+| run | full_searches | wall_per_full_search_s | wall_change | strict_per_full_search | smooth_per_full_search | equiv_change_predicted | implied_ms_per_smooth | timing |
+|---|---|---|---|---|---|---|---|---|
+| stored configuration, today's code | 69 | 114 | +0.0% | 331,636 | 0 | +0.0% | n/a | contended: 3 concurrent 2000-voxel BFS runs (Task G2) |
+| SmoothCostRank only | 65 | 154 | +35.4% | 335,546 | 15,086 | +20.7% | 2.58 | contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled |
+| both (Task G2's integrated configuration) | 70 | 147 | +29.1% | 317,739 | 14,233 | +14.3% | 2.66 | contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2) |
 <!-- /table:evalG3_full_search_time -->
 
-That implied cost is about 2.6 ms, against 1.639 ms in Task E's timing. A scratch check showed that the
-BFS reconstructor does reuse the cached `SmoothCost` (one build, then a hit on the second full search;
-`G/g3/cache_check.json`), so a rebuild per search is not the cause. The runs were contended at
-different levels; the cause was not tested. So the true time cost of the key in a BFS may be higher
+With the key alone, a full search took 35.4% longer than with the key off, where the weight predicts
++20.7%. The whole-run +12.4% is lower because the key run needed fewer full searches (65 against
+69) and because the whole run also counts the local fits, where the key does not act. The implied
+time per smooth evaluation is about 2.6 ms, against 1.639 ms in Task E's timing. A scratch check
+showed that the BFS reconstructor does reuse the cached `SmoothCost` (one build, then a hit on the
+second full search; `G/g3/cache_check.json`), so a rebuild per search is not the cause. The runs
+were contended at different levels; the cause was not tested. So the true time cost of the key in a BFS may be higher
 than +12.4%.
 
 ## The integrated configuration
@@ -257,11 +279,13 @@ another grain to within 0.01 degree, and touches that grain (its corner is at mo
 * *carried from a wrong full search*: a local fit took it from a full search that was itself wrong;
 * *boundary crossing*: a local fit carried a right full search's orientation over a grain boundary.
 
-Reading the table: every wrong voxel of each run, split by origin; "full_searches" is the number of
-voxels whose record is a full search.
+Reading the table: every wrong voxel of each run, split by origin; "origin not found" means no
+full-search voxel of the run within 1 degree (not the N13 verdict "untraced"); "full_search_voxels" is
+the number of voxels whose record is a full search (not the number of full searches run, which
+counts every seed and reseed and is "full_searches" in the time table above).
 
 <!-- table:evalG3_wrong_by_origin -->
-| run | n | another grain | own full search | carried from a wrong full search | boundary crossing | untraced | max_distance_um | full_searches |
+| run | n | another grain | own full search | carried from a wrong full search | boundary crossing | origin not found | max_distance_um | full_search_voxels |
 |---|---|---|---|---|---|---|---|---|
 | stored pilot (2026-10-10) | 37 | 37 | 1 | 5 | 31 | 0 | 9.4 | 67 |
 | stored configuration, today's code | 37 | 37 | 2 | 3 | 32 | 0 | 9.4 | 63 |
@@ -278,7 +302,7 @@ Reading the table: the flips of each pair split the same way. "broken" voxels ar
 "fixed" ones in run a.
 
 <!-- table:evalG3_trace -->
-| a | b | flip | n | another grain | own full search | carried from a wrong full search | boundary crossing | untraced |
+| a | b | flip | n | another grain | own full search | carried from a wrong full search | boundary crossing | origin not found |
 |---|---|---|---|---|---|---|---|---|
 | stored configuration, today's code | SmoothCostRank only | broken (wrong in b) | 11 | 11 | 0 | 0 | 11 | 0 |
 | stored configuration, today's code | SmoothCostRank only | fixed (wrong in a) | 14 | 14 | 1 | 3 | 10 | 0 |
@@ -293,18 +317,22 @@ Reading the table: the flips of each pair split the same way. "broken" voxels ar
 <!-- /table:evalG3_trace -->
 
 **The broken-voxel trace (D-20261014-N13) for the smooth key.** The key acts only in full searches.
-All 11 voxels it breaks are boundary crossings from right full searches, so they trace to the draw
-(the BFS took a different path). Of the 14 it fixes, 4 came from two wrong full searches of the key-off
-run. We re-ran those two full searches through Task E's probe with the key off and on. Both came out
-right either way, so those fixes also trace to the draw, not to the key.
+All 11 voxels it breaks are boundary crossings from right full searches: neighbour fits, where the
+key's ranking does not act. None traces to the key's ranking. They are not called the draw either:
+the key changed the BFS path (fewer seeds rejected, a different set of full searches), and these
+crossings happened downstream of that path. Of the 14 it fixes, 10 are boundary crossings in the
+key-off run and 4 came from two wrong full searches of the key-off run. We re-ran those two full
+searches through Task E's probe with the key off and on. Both came out right either way, so those 4
+fixes trace to the draw, not to the key.
 
-Reading the table: the totals by verdict.
+Reading the table: the totals by verdict. "boundary_crossing" is its own verdict, neither the arm
+nor the draw; "untraced" (no traced origin, N13) is 0 in both rows.
 
 <!-- table:evalG3_trace_n13 -->
-| flip | n | traced_to_arm | traced_to_draw | untraced |
-|---|---|---|---|---|
-| broken | 11 | 0 | 11 | 0 |
-| fixed | 14 | 0 | 14 | 0 |
+| flip | n | traced_to_arm | boundary_crossing | traced_to_draw | untraced |
+|---|---|---|---|---|---|
+| broken | 11 | 0 | 11 | 0 | 0 |
+| fixed | 14 | 0 | 10 | 4 | 0 |
 <!-- /table:evalG3_trace_n13 -->
 
 Reading the table: the probe re-runs (full-sample voxel index, error in degrees with the key off and on).
@@ -321,7 +349,12 @@ Reading the table: the probe re-runs (full-sample voxel index, error in degrees 
 acceptance did not change (768 accepted at the first try against 769).
 
 **OutwardSearch.** Task G2's result stands. Alone it fixes 18 and breaks 17; Task G2 traced 8 of the
-breaks to reseeds whose outward search took a neighbouring grain. It costs about as much as the smooth
+breaks to reseeds whose outward search took a neighbouring grain and left 9 untraced in the N13
+sense (the integrated run: 8 traced, 12 untraced). The "origin not found" count of 0 in the origin
+tables above is a different measure and does not revise those verdicts. The 9 boundary crossings
+among its 17 breaks are not called the draw: unlike the smooth key, the outward search runs in every
+neighbour fit and accepts a touching grain at a strict cost of 0.8 or below, so they are candidates
+for "traced to the arm"; this was not tested voxel by voxel. It costs about as much as the smooth
 key. Added on top of the smooth key it gives 42 wrong against 34 (5 fixed, 13 broken).
 
 ## Smooth ranking on the full sample (Task E's 24 voxels)
@@ -403,9 +436,12 @@ the outward search alone 36, both together 42. That is why Task G3 ran the smoot
 No default was flipped and no golden test changed in any task. These are proposals.
 
 1. **`SmoothCostRank E3+E4,tau=0.25` as the default?** For: E0 41 -> 7 wrong with 0 broken; on the
-   full sample 1 fixed, 0 broken; on the BFS region 34 against 37, with no flip traced to the key. Against:
-   about +20% time per full-sample full search, and in the BFS +12.4% strict-equivalent, perhaps more
-   (see the full-search time above). On the full sample the strict search is already rarely wrong, so the
+   full sample 1 fixed, 0 broken; on the BFS region 34 against 37, with no flip traced to the key's
+   ranking (its 11 breaks are boundary crossings after the key changed the BFS path). Against: about
+   +20% time per full-sample full search, and in the BFS +12.4% strict-equivalent over the whole run,
+   perhaps more: measured per full search the BFS took 35.4% longer with the key, against the +20.7%
+   the weight predicts (contended at different levels, cause untested; see the full-search time
+   above). On the full sample the strict search is already rarely wrong, so the
    gain there is small and within the draw. Proposal: keep it opt-in, and turn it on for runs where
    full searches are often wrong (E0-like voxels). If it becomes the default, the goldens that pin a
    default full search would move. By reading (not run), these are likely the `reconstruct_voxel` golden
@@ -418,8 +454,13 @@ No default was flipped and no golden test changed in any task. These are proposa
 3. **`CppOverlapRule`, `CandidateDedup`** stay off: each saves evaluations but costs accuracy on E0.
 4. **Is the full-sample BFS run affordable?** About a day on one process by the scaling below
    (22.0 h key off, 26.9 h key on). That is affordable as one long background run. Several arms at
-   once fit the machine's limit of 6 heavy processes. The estimate assumes full searches grow with the
-   number of grains and local fits with the number of voxels; that is not tested.
+   once fit the machine's limit of 6 heavy processes. Two caveats. First, the two estimates scale
+   runs made at different contention (three BFS runs at once for the key-off run, one for the key-on
+   run), so their difference is not the key's cost. Second, the estimate assumes full searches grow
+   with the number of grains and local fits with the number of voxels; that is not tested. The pilot
+   region has about 33 voxels per grain and the full sample about 49, so the share of boundary
+   voxels, of clusters that need a reseed and of reseeds per grain will differ. Larger grains have
+   relatively fewer boundary voxels, so the estimate is likely on the high side, but that is untested.
 
 Reading the table: the pilot region's full searches and local fits, their wall time, the scale factors
 to the full sample (24,570 voxels, 497 grains) and the estimate in hours on one process.
@@ -442,9 +483,10 @@ to the full sample (24,570 voxels, 497 grains) and the estimate in hours on one 
   searches imply a slower smooth evaluation than Task E measured; the cause is not known.
 * **The trace.** Which grain's orientation a wrong voxel carries is measured directly (within 0.01
   degree of one grain). Where it came from is read from the records and the run's full-search voxels
-  within 1 degree of it. Saying that a boundary
-  crossing is "the draw" rests on the key acting only in full searches. The probe re-runs repeat the
-  same search on the same images, with their own random draws, not the BFS's.
+  within 1 degree of it. A boundary crossing is kept as its own verdict, not called the draw: saying
+  it is not the key's ranking rests on the key acting only in full searches, but the key changed the
+  BFS path that led to it. The probe re-runs repeat the same search on the same images, with their
+  own random draws, not the BFS's.
 * **The full-sample estimate** is a linear scaling of one 2,000-voxel region.
 * **The stored pilot** does not reproduce on today's code; the like-for-like baseline is the rerun.
 * **Small full-sample sets.** The strict search is wrong on 0 of 6 and 1 of 24 full-sample voxels, so
