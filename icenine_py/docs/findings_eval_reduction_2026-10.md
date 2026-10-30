@@ -351,8 +351,9 @@ acceptance did not change (768 accepted at the first try against 769).
 **OutwardSearch.** Task G2's result stands. Alone it fixes 18 and breaks 17; Task G2 traced 8 of the
 breaks to reseeds whose outward search took a neighbouring grain and left 9 untraced in the N13
 sense (the integrated run: 8 traced, 12 untraced). The "origin not found" count of 0 in the origin
-tables above is a different measure and does not revise those verdicts. The 9 boundary crossings
-among its 17 breaks are not called the draw: unlike the smooth key, the outward search runs in every
+tables above is a different measure and does not revise those verdicts. The 9 untraced breaks are
+exactly its 9 boundary crossings (and the integrated run's 12 untraced are its 12). They are not
+called the draw: unlike the smooth key, the outward search runs in every
 neighbour fit and accepts a touching grain at a strict cost of 0.8 or below, so they are candidates
 for "traced to the arm"; this was not tested voxel by voxel. It costs about as much as the smooth
 key. Added on top of the smooth key it gives 42 wrong against 34 (5 fixed, 13 broken).
