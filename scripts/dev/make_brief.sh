@@ -281,12 +281,15 @@ RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
     }
     # The text of the entry'"'"'s "Supersedes:" field, up to the end of its line ("" without one).
     # The field is looked for below the "### " header line, so a title containing "Supersedes:"
-    # does not hide it.
+    # does not hide it. A field that begins with "none" (any case, after spaces) reads as ""
+    # even when it cites an ID (D-20261031-I1): "Supersedes: none (a one-off exception to
+    # D-20261014-N1)" replaces nothing.
     function supersedes_field(s,    i) {
         s = substr(s, index(s, "\n") + 1)
         if ((i = index(s, "Supersedes:")) == 0) return ""
         s = substr(s, i + 11)
         sub(/\n.*/, "", s)
+        if (tolower(s) ~ /^[ \t]*none/) return ""
         return s
     }
     # 1 when s contains id as a whole ID: no letter or digit before it and no digit after it,

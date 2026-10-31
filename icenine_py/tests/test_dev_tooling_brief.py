@@ -623,6 +623,31 @@ def test_supersedes_in_a_title_does_not_hide_the_field(repo: Path) -> None:
     assert APPROVAL in out.stdout
 
 
+def test_a_supersedes_field_that_begins_with_none_supersedes_nothing(repo: Path) -> None:
+    # D-20261031-I1: "Supersedes: none (...)" replaces nothing even when it cites the approval
+    for sup in (
+        "none (a one-off exception to D-20261004-I1)",
+        "None; follows D-20261004-I1",
+        "  NONE, see D-20261004-I1",
+    ):
+        log = DECISIONS + _entry("D-20261005-I1", "Exception", "No file named.", sup)
+        _write(repo, "icenine_py/docs/DECISIONS.md", log)
+        out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+        assert out.returncode == 0, (sup, out.stderr)
+        assert APPROVAL in out.stdout, sup
+    # "none" later in the field does not hide an ID before it
+    log = DECISIONS + _entry("D-20261005-I2", "Replaced", "No file.", "D-20261004-I1 (none else)")
+    _write(repo, "icenine_py/docs/DECISIONS.md", log)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 1 and "D-20261005-I2" in out.stderr
+    # a withdrawal that names the plan still refuses whatever its Supersedes field says
+    withdrawn = "The plan `docs/todo_demo.md` is withdrawn."
+    log = DECISIONS + _entry("D-20261005-I3", "Withdrawn", withdrawn, "none (D-20261004-I1)")
+    _write(repo, "icenine_py/docs/DECISIONS.md", log)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 1 and "D-20261005-I3" in out.stderr
+
+
 def test_plan_name_is_matched_on_a_path_boundary(repo: Path) -> None:
     for text in (
         "The plan `docs/old_todo_demo.md` is approved.",
