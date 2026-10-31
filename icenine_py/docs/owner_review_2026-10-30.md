@@ -17,7 +17,7 @@ Reading the table: one row per branch, with its newest commit and what it holds.
 | `develop` | 0226857 | finisher and MC study (PR #40) | base of both tracks |
 | `feature/eval-reduction` | 2993462 | Track E Tasks A-G, plus all of Track S through b1eb09f | final review done (APPROVE, 7 wording fixes) |
 | `feature/eval-reduction-review-fixes` | f52142b | the 7 review fixes (docs, tables, one summary script) | not merged; needs `/review-task`, then merge |
-| `feature/python-speed-parity` | b1eb09f | Track S S0-S4, Q8, tooling (H12) | S2 waits for your full review |
+| `feature/python-speed-parity` | see state | Track S S0-S4, Q8, tooling (H12) and its S2 follow-ups; since 2026-10-31 also all of `feature/eval-reduction` through 78fccc5, the `make_brief.sh` supersede fix and Ilium's check of this page | S2 waits for your full review |
 
 ## What Track E found (evaluation reduction)
 
@@ -47,29 +47,35 @@ Items 3 and 6 use the corrected wording of the review-fix branch, which is not m
 
 ## What Track S found (cost per evaluation)
 
-The question was why one Python evaluation cost about 390-500 µs against C++'s 42-55 µs (Task A's
-figures). Over 95% of it was Python and torch overhead. Findings: MIGRATION_HISTORY "Python speed
-parity" and the S1 to S4 sections.
+The question was why one Python evaluation cost 396-533 µs on the full images against C++'s
+49-51 µs (Task A's figures). The evaluation count was already at parity. About 210 µs of each call
+was fixed overhead, and the pixel overlap itself took 8.3 of 317 µs (S0, ThreeVoxels voxel 0): the
+rest was Python and torch dispatch. Findings: MIGRATION_HISTORY "Python speed parity" and the S1 to
+S4 sections.
 
-1. **S1, loops out of `evaluate`** (merged): 1.31x faster per call, bit-identical results. The timings
-   are contended; the quiet-machine repeat is still open (D-20261014-I16).
+1. **S1, loops out of `evaluate`** (merged): 1.31x faster per call on the Q-max 8 re-cost and final
+   arms (1.14x on the screen arm), bit-identical results. The timings are contended; the
+   quiet-machine repeat is still open (D-20261014-I16).
 2. **S2, a fused C evaluation behind the opt-in key `FusedCost`** (merged, waits for your review):
-   235.7 -> 15.9 µs per call (14.9x). A no-start search is 3.14x faster on ThreeVoxels voxel 0 and
-   2.35x on 10 E0 voxels. On those, the batched screen (not covered by S2) is now 5.16 of 6.84 s.
-   E0: 35 of 200 wrong with and without the key (0 fixed, 0 broken). Not bit-equal to torch: 93 of
-   4,000 orientations differ, every one at a pixel edge (within 0.0014 px). Key off is bit-identical.
-   Built and checked with macOS clang only.
+   235.7 -> 15.9 µs per call (14.8x), single-worker on a quiet machine. A no-start search is 3.14x
+   faster on ThreeVoxels voxel 0 and 2.35x on 10 E0 voxels. On those, the batched screen (not
+   covered by S2) is now 5.16 of 6.84 s. E0: 35 of 200 wrong with and without the key (0 fixed,
+   0 broken). Not bit-equal to torch: on S1's parity set, 16-29 of 1,000 orientations differ per
+   triangle mode and none in the screen modes (464 over 36 dataset-modes), every one a flip at a
+   pixel edge (within 0.0014 px). Against C++ on Task A it agrees as often as torch (2,229 and 2,230
+   of 2,230). Key off is bit-identical. Built and checked with macOS clang only.
 3. **S3, batched quick MC (`BatchedQuickMC`, opt-in)** (merged): the quick MC is 4.5-4.7x cheaper per
    evaluation and the search 1.7-1.9x faster (contended). It changes the random draws, so results
    differ from key off (E0: 107 of 600 wrong against 111). Stays off until a large-scale test
    (D-20261014-I2).
 4. **S4, level-0 screen from one table per sample** (merged as a study, library path parked): the
-   level-0 screen of the whole layer takes 6.58 s on 10 threads against 3.94 hours on one worker,
-   but the search after it dominates, so a run saves only about 10%.
+   level-0 screen of the whole layer takes 6.58 s on 10 threads against 3.94 hours on one worker
+   (projected from 10 voxels), but the search after it dominates, so a run saves only about 10%.
 5. **Q8, noise model** (merged): images no longer drop 10% of spots at random by default. Studies
-   still use clean images (D-20261014-I5).
+   still use clean images (D-20261014-I5 to I8).
 6. **H12, workflow tooling** (merged): the brief, hand-back, decision and fetch scripts both agents
-   use.
+   use, with the S2 follow-ups of 2026-10-29 (D-20261028-I3 to I5) and the `make_brief.sh`
+   supersede fix of 2026-10-31 (item 16).
 
 ## Waiting on you
 
@@ -104,11 +110,15 @@ Track S:
     more, and on this Mac (MPS) that is 2.4-6.8x slower than the fused CPU path. Should the fused
     path take priority? CUDA is not measured.
 11. **`BatchedQuickMC` with `FusedCost` on** (D-20261028-I2). It gives no per-evaluation gain
-    (E0 20 against 20 µs). Keep it in the recommended configuration?
+    (quick MC: E0 20 against 20 µs; ThreeVoxels 125 against 114 µs). Keep it in the recommended
+    configuration?
 12. **`.claude/` tooling items Ilium cannot commit** (D-20261028-I5): should the `/implement-plan`
     and `/apply-fixes` skills show `make_brief.sh`'s stderr notes, and should the
     `run-tests-on-change.sh` hook drop its extra `-q`?
-13. **S1 quiet-machine timing repeat** (D-20261014-I16), still open: the machine was never quiet.
+13. **S1 and S3 quiet-machine timing repeats** (D-20261014-I16), still open: their timings are
+    labelled contended. The preflight did pass on every S2 Step 5 timing (2026-10-28), so the repeat
+    can be run now. Ilium's proposal: rerun S1's and S3's timing scripts single-worker under the
+    preflight and relabel; no plan change. Run it?
 
 Both tracks:
 
@@ -117,12 +127,53 @@ Both tracks:
     to about 1/15 of their cost. The smooth evaluations are a separate code path, not covered by it.
     So with both keys, the smooth key's share of the time would grow. A short E0 and BFS-pilot run
     with both keys would show the real combined time. This is a proposal, not planned.
+    Ilium (2026-10-31): no reason it would not work. `SmoothCost` is its own float64 torch code and
+    never calls `VoxelCostFunction.evaluate`; under `SmoothCostRank` the strict cost on each
+    candidate is the ordinary `evaluate`, which `FusedCost` covers for the integrated
+    configuration's settings (default rule, hard mode, pixel radius 0 and 3, eta limit; no ray rule,
+    no soft mode). Three things to expect: the results are not bit-equal (pixel-edge flips), so the
+    run compares wrong counts against G2's E0 (41 -> 7) and the pilot, not records; the speedup is
+    capped by the two parts `FusedCost` does not cover, the batched screen and the smooth
+    evaluations; and the timing arms need a quiet machine, single-worker.
 15. **S6 needs Newt's machine.** Repeating Track S's measurements on the full-sample Phase D images
     needs those images, which are on Newt's machine. Run it here, or copy the images?
-16. **`make_brief.sh` bug** (Newt's request of 2026-10-29, not yet answered by Ilium): the brief
-    script refuses an approved plan when a later decision entry cites the approval and says
-    "Supersedes: none." Newt worked around it for the review-fix brief by running the script on a
-    copy of DECISIONS.md without those lines.
+16. **`make_brief.sh` bug** (Newt's request of 2026-10-29): the brief script refused an approved
+    plan when a later decision entry cites the approval and says "Supersedes: none." Newt worked
+    around it for the review-fix brief by running the script on a copy of DECISIONS.md without those
+    lines. Ilium fixed it on 2026-10-31: only the approval's ID on a later entry's `Supersedes:` line
+    refuses now (task branch `feature/python-speed-parity-brief-supersede`, Opus review, then merge;
+    nothing for you to decide).
+
+Track S, added by Ilium (2026-10-31; these were only in Ilium's reports):
+
+17. **`FusedCost` on GCC and Linux.** Validated with macOS clang (arm64) only; the GCC pragma that
+    keeps multiply-adds unfused in `_fused_eval.c` has never been compiled (D-20261027-I10).
+    Validate on Linux before anyone turns the key on there?
+18. **Does C++'s clang build fuse the clip's multiply-adds?** The Python key-off `_rasterize.c`
+    is compiled with fusing on, and switching it off changed 106 of about 400,000 border
+    triangles (D-20261027-I9). Whether C++ fuses the same expression (`SutherlandHodgman.h:181`)
+    decides which of the two matches C++ bit for bit. It needs the C++ build to check (item 19).
+19. **Install the C++ toolchain** (cmake, boost, eigen, open-mpi) on Ilium's machine? Task A's
+    inputs for S2's C++ comparison were accepted on aggregates because the C++ driver cannot run
+    here (D-20261027-I6). It is a system change, so it waits for you.
+20. **`FusedCost` default.** It stays opt-in and off; no change is proposed (D-20261012-I1). Items
+    10, 11, 14 and 17 bear on it.
+21. **The batched screen is now the largest cost with `FusedCost` on** (5.16 of 6.84 s on 10 E0
+    voxels). Porting the screen to the fused C path would be the next Track S item if you want more
+    speed; it needs a plan and your pick. S5 (a BFS neighbour's first evaluation as a translation
+    of the parent's spots) is still an idea.
+22. **Pre-commit hook on merges** (D-20261028-N3): the hook refused your approved `.claude/` files
+    and long lines when merging across branches. The long lines are fixed (2c8b487). The
+    `.claude/` refusal would recur whenever a merge brings `.claude/` changes. Should
+    `precommit_check.py` let a merge commit bring `.claude/` files that are already committed on the
+    other branch? That file belongs to the shared tooling, so either agent can change it once you
+    say.
+23. **Refused commands in agent runs.** In the tooling fix rounds the worktree guard refused some
+    combined shell commands; the agents reran them as plain commands or with the Edit tool, as the
+    refusal messages suggested. Ilium reads that as allowed (the briefs forbid redoing a refused
+    action another way, such as writing files through Bash when Edit is refused). Confirm?
+24. **Q8 leftovers.** The Phase D pilot and reseed on no-drop images (skipped, X1), and whether the
+    study scripts with their own `VARIANTS = ["clean", "all"]` should move to the no-drop images.
 
 ## Where to read more
 
@@ -136,8 +187,11 @@ Reading the table: one row per document, with the track and what it covers.
 | E | `docs/findings_cost_smoothing_2026-10.md` | Task E: the smooth costs |
 | E | `docs/findings_outward_search_2026-10.md` | Task F: searching outward from a start |
 | E | `benchmarks/eval_reduction/G/maps/` | BFS pilot maps (also an Artifact page, link in Newt's checkpoint) |
-| S | MIGRATION_HISTORY "S1" to "S4", "Q8", "S2 follow-ups" | each Track S item's record |
+| S | MIGRATION_HISTORY "Python speed parity" (S0), "S1" to "S4", "Q8", "S2 follow-ups" | each Track S item's record |
+| S | MIGRATION_HISTORY "S2: fused C evaluation, Step 0" and "Steps 1-6 results" | S2's results, parity and timings |
 | S | `docs/todo_s2_fused_c_eval.md` | the S2 plan |
+| S | `docs/DECISIONS.md` D-20261027-I1 to D-20261028-I5 | the decisions Ilium made under your S2 delegation |
+| S | Ilium's review page "S2 Fused Cost Review" (private Artifact; link in Ilium's session) | S2 and the tooling follow-ups on one page |
 | both | `docs/ROADMAP.md` | one row per item, and the two agents' mailboxes |
 | both | `docs/DECISIONS.md` | every owner decision (N = Newt, I = Ilium) |
 

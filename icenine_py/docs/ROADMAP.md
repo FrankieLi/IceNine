@@ -218,6 +218,27 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   `audit_numbers.py --section` skips `#` lines in fenced code; `finish_task.sh` drops the extra
   `-q`. Task G's shared files (`reconstructor.py`, `config_file.py`, `orientation_search.py`): no
   Ilium work on them is in flight.
+- 2026-10-31 answer (to your requests of 2026-10-29 and 2026-10-30): merged your branch through
+  78fccc5 (a fast-forward). `docs/owner_review_2026-10-30.md` Track S parts checked and corrected
+  in place:
+  - Track S intro: Task A's figures are 396-533 µs against C++'s 49-51 µs, and the pixel overlap
+    is 8.3 of 317 µs (S0).
+  - S1: 1.31x on the re-cost and final arms, 1.14x on the screen arm.
+  - S2: 14.8x, not 14.9x. The parity line is the library-path result: 16-29 of 1,000 per
+    triangle mode, 464 over 36 dataset-modes. "93 of 4,000" was Step 1's g_lab-order count. Task A
+    agreement added.
+  - S4: "projected" added. Q8: I5 to I8. H12: the follow-ups.
+  - Items 11, 13 and 16 updated. New items 17-24 (GCC and Linux, C++'s clip fusing, the C++
+    toolchain, `FusedCost` default, the screen as the next speed item, the pre-commit hook on
+    merges, refused commands in agent runs, Q8 leftovers). The reading table gains the S2
+    sections and the I decisions.
+  - Item 14: no reason the two keys would not work together. Reasons in the item:
+    `SmoothCost` never calls `evaluate`; the integrated configuration is within `FusedCost`'s
+    covered modes; compare wrong counts; the screen and the smooth evaluations cap the gain.
+  - `make_brief.sh` supersede check: fixed. Only the approval's ID on a later entry's
+    `Supersedes:` line refuses. It is on a task branch under review and merges here next.
+  - Also corrected: Track S row Q8 said "not merged"; it was merged as c83484e.
+  Nothing in your Track E parts was changed.
 
 # State on 2026-10-13
 
@@ -340,7 +361,7 @@ owner review in between.
 |---|---|---|
 | X1 | full-sample BFS end to end on the 500-grain sample (classic vs NN and hybrid finisher) | data and library ready; long runs deferred 2026-10-09, again 2026-10-13 ("later") (`todo_500grain_bfs_end_to_end.md`) |
 | X2 | reseed on other regions, seed orders and full-sample scale | deferred 2026-10-09 |
-| Q8 | noise model of the realistic images (unphysical 10% spot drop) | owner 2026-10-13: remove the random spot drop (keep jitter, hot pixels, blobs), then re-render and re-run the realistic comparisons; Ilium Agent (owner 2026-10-13); **Steps 1-8 done 2026-10-14** on `feature/python-speed-parity-q8-nodrop` (not merged; `docs/todo_q8_noise_nodrop.md`, MIGRATION_HISTORY "Q8"): no-drop variants for Phase D (`render_full.py --noise nodrop`, `full/realistic_nodrop` rendered at Q-max 8 only) and E0 (`RealismConfig` `all_nodrop`, label `realistic_nodrop`); E0 200-voxel re-runs of the Q3 and ray-overlap rows on clean, old realistic and no-drop images (the lenient rule's lead on the old realistic images is gone on the no-drop ones; `min_sin_eta` 0 mean evaluations per voxel on the no-drop images: lenient 51,901, ray 2-pixel window 51,652, C++ rule 49,281). Owner decisions of 2026-10-14 (D-20261014-I5 to I8): **no drop is now the default noise** (Step 6: `NoiseParams()`, `RealismConfig()`, `render_full.py`, E0 harness default images `clean` and `realistic_nodrop`; the named variants `toy`, `all`, `noise` keep the 10% drop; the six `*_realistic*.config` Phase D arms still read the drop images); studies stay on clean images, so the rule "clean images only" is not lifted; no Phase D runs on noisy images for now. Step 7 (are the noisy images easier): the no-drop images give more level-0 candidates in 200 of 200 voxels for the lenient and ray rules, 199 of 200 for the C++ rule (lenient median 182 against 289) and a wider cost function (level-0 halfway width 0.235 to 0.310 degrees), but the closest candidate is at the same distance in 174 of 200 voxels (lenient) and the link to the fixed voxels is weak; cause untested (neighbour layer against noise not separated). Step 8: the four lenient wrong counts that differed from the stored ones are the vertex-0 against centroid screen start (arm `offv0` reproduces all four). Open: the Phase D pilot and reseed on no-drop images (skipped for now, X1); whether any other study script (own `VARIANTS = ["clean", "all"]`) should move to no-drop |
+| Q8 | noise model of the realistic images (unphysical 10% spot drop) | owner 2026-10-13: remove the random spot drop (keep jitter, hot pixels, blobs), then re-render and re-run the realistic comparisons; Ilium Agent (owner 2026-10-13); **Steps 1-8 done 2026-10-14** on `feature/python-speed-parity-q8-nodrop` (merged into `feature/python-speed-parity` as c83484e; `docs/todo_q8_noise_nodrop.md`, MIGRATION_HISTORY "Q8"): no-drop variants for Phase D (`render_full.py --noise nodrop`, `full/realistic_nodrop` rendered at Q-max 8 only) and E0 (`RealismConfig` `all_nodrop`, label `realistic_nodrop`); E0 200-voxel re-runs of the Q3 and ray-overlap rows on clean, old realistic and no-drop images (the lenient rule's lead on the old realistic images is gone on the no-drop ones; `min_sin_eta` 0 mean evaluations per voxel on the no-drop images: lenient 51,901, ray 2-pixel window 51,652, C++ rule 49,281). Owner decisions of 2026-10-14 (D-20261014-I5 to I8): **no drop is now the default noise** (Step 6: `NoiseParams()`, `RealismConfig()`, `render_full.py`, E0 harness default images `clean` and `realistic_nodrop`; the named variants `toy`, `all`, `noise` keep the 10% drop; the six `*_realistic*.config` Phase D arms still read the drop images); studies stay on clean images, so the rule "clean images only" is not lifted; no Phase D runs on noisy images for now. Step 7 (are the noisy images easier): the no-drop images give more level-0 candidates in 200 of 200 voxels for the lenient and ray rules, 199 of 200 for the C++ rule (lenient median 182 against 289) and a wider cost function (level-0 halfway width 0.235 to 0.310 degrees), but the closest candidate is at the same distance in 174 of 200 voxels (lenient) and the link to the fixed voxels is weak; cause untested (neighbour layer against noise not separated). Step 8: the four lenient wrong counts that differed from the stored ones are the vertex-0 against centroid screen start (arm `offv0` reproduces all four). Open: the Phase D pilot and reseed on no-drop images (skipped for now, X1); whether any other study script (own `VARIANTS = ["clean", "all"]`) should move to no-drop |
 | X3 | multiple detectors with many grains and voxels far from the axis | deferred (`todo_multidetector_many_grains.md`) |
 | X4 | intensity inputs and distribution losses for the orientation network | deferred (`todo_intensity_and_distribution_losses.md`) |
 | X5 | not yet ported: MPI server/client, step-size file reading, unique-reflection filtering, quadtree peak search | open |
