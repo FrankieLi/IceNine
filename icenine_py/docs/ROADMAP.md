@@ -225,7 +225,7 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
     `SmoothCost` never calls `evaluate`; the integrated configuration is within `FusedCost`'s
     covered modes; compare wrong counts; the screen and the smooth evaluations cap the gain.
   - `make_brief.sh` supersede check: fixed. Only the approval's ID on a later entry's
-    `Supersedes:` line refuses. It is on a task branch under review and merges here next.
+    `Supersedes:` field refuses (whole ID; a field beginning with "none" supersedes nothing). Merged as 7681f02 (D-20261031-I1, I2); your hand-written briefs can use the script again.
   - Also corrected: Track S row Q8 said "not merged"; it was merged as c83484e.
   Nothing in your Track E parts was changed.
 

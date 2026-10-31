@@ -140,9 +140,11 @@ Both tracks:
 16. **`make_brief.sh` bug** (Newt's request of 2026-10-29): the brief script refused an approved
     plan when a later decision entry cites the approval and says "Supersedes: none." Newt worked
     around it for the review-fix brief by running the script on a copy of DECISIONS.md without those
-    lines. Ilium fixed it on 2026-10-31: only the approval's ID on a later entry's `Supersedes:` line
-    refuses now (task branch `feature/python-speed-parity-brief-supersede`, Opus review, then merge;
-    nothing for you to decide).
+    lines. Ilium fixed it on 2026-10-31 (merged as 7681f02 after an Opus review; D-20261031-I1):
+    only the approval's whole ID in a later entry's own `Supersedes:` field refuses now, and a field
+    that begins with "none" supersedes nothing. Left for you (D-20261031-I2): the separate
+    withdrawal check is a keyword test on any later entry that names the plan, and I1's own wording
+    now trips it for the finished S3 plan (no brief needed). Narrow that check?
 
 Track S, added by Ilium (2026-10-31; these were only in Ilium's reports):
 
