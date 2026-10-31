@@ -286,6 +286,18 @@ RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
         sub(/\n.*/, "", s)
         return s
     }
+    # 1 when s contains id as a whole ID: no letter or digit before it and no digit after it,
+    # so D-20261004-I1 is not found in D-20261004-I10.
+    function cites_id(s, id,    i, before, after, n) {
+        n = length(id)
+        while ((i = index(s, id)) > 0) {
+            before = (i == 1) ? " " : substr(s, i - 1, 1)
+            after = substr(s, i + n, 1)
+            if (before !~ /[A-Za-z0-9]/ && after !~ /[0-9]/) return 1
+            s = substr(s, i + 1)
+        }
+        return 0
+    }
     function flush(    id) {
         if (head == "") return
         id = head; sub(/ .*/, "", id)
@@ -293,7 +305,7 @@ RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
             approved_head = head; approved_id = id; refused = ""
         } else if (approved_head != "" && names_plan(body) && withdraws(body)) {
             refused = head
-        } else if (approved_head != "" && index(supersedes_field(body), approved_id) > 0) {
+        } else if (approved_head != "" && cites_id(supersedes_field(body), approved_id)) {
             refused = head
         }
     }

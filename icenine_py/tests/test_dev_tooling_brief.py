@@ -589,6 +589,23 @@ def test_citing_the_approval_with_supersedes_none_keeps_it(repo: Path) -> None:
         assert "D-20261005-I2" in out.stderr, sup
 
 
+def test_supersedes_matches_the_approval_id_as_a_whole_id(repo: Path) -> None:
+    # review fix 1: D-20261004-I1 is not D-20261004-I10 (nor D-20261004-I12 in a list)
+    for sup in ("D-20261004-I10", "D-20261004-I12, D-20261004-I10 (part 2)", "XD-20261004-I1"):
+        log = DECISIONS + _entry("D-20261005-I1", "Other approval replaced", "No file.", sup)
+        _write(repo, "icenine_py/docs/DECISIONS.md", log)
+        out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+        assert out.returncode == 0, (sup, out.stderr)
+        assert APPROVAL in out.stdout, sup
+    # the whole ID after the longer one, or next to punctuation, still refuses
+    for sup in ("D-20261004-I10, D-20261004-I1", "D-20261004-I1;", "(D-20261004-I1)"):
+        log = DECISIONS + _entry("D-20261005-I2", "Approval replaced", "No file named.", sup)
+        _write(repo, "icenine_py/docs/DECISIONS.md", log)
+        out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+        assert out.returncode == 1, sup
+        assert "D-20261005-I2" in out.stderr, sup
+
+
 def test_plan_name_is_matched_on_a_path_boundary(repo: Path) -> None:
     for text in (
         "The plan `docs/old_todo_demo.md` is approved.",
