@@ -280,7 +280,10 @@ RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
         return s ~ /approved/
     }
     # The text of the entry'"'"'s "Supersedes:" field, up to the end of its line ("" without one).
+    # The field is looked for below the "### " header line, so a title containing "Supersedes:"
+    # does not hide it.
     function supersedes_field(s,    i) {
+        s = substr(s, index(s, "\n") + 1)
         if ((i = index(s, "Supersedes:")) == 0) return ""
         s = substr(s, i + 11)
         sub(/\n.*/, "", s)

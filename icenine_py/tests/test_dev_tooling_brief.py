@@ -606,6 +606,23 @@ def test_supersedes_matches_the_approval_id_as_a_whole_id(repo: Path) -> None:
         assert "D-20261005-I2" in out.stderr, sup
 
 
+def test_supersedes_in_a_title_does_not_hide_the_field(repo: Path) -> None:
+    # review fix 2: the field is read below the "### " header line, not from the title
+    log = DECISIONS + _entry(
+        "D-20261005-I1", "Fix the Supersedes: parser", "No file named.", "D-20261004-I1"
+    )
+    _write(repo, "icenine_py/docs/DECISIONS.md", log)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 1, out.stdout
+    assert "D-20261005-I1" in out.stderr
+    # a title that cites the approval after "Supersedes:" does not cancel it either
+    log = DECISIONS + _entry("D-20261005-I2", "Supersedes: D-20261004-I1 is cited", "No file.")
+    _write(repo, "icenine_py/docs/DECISIONS.md", log)
+    out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+    assert out.returncode == 0, out.stderr
+    assert APPROVAL in out.stdout
+
+
 def test_plan_name_is_matched_on_a_path_boundary(repo: Path) -> None:
     for text in (
         "The plan `docs/old_todo_demo.md` is approved.",
