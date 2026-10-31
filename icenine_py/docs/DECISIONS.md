@@ -674,3 +674,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   plan still refuses as before. On the real DECISIONS.md the fix changes one brief:
   todo_batched_quick_mc.md, which the old check wrongly refused. Where: ROADMAP Track H row H12;
   scripts/dev/make_brief.sh; .claude/reports/20261031-review-brief-supersede.md.
+
+### D-20261031-I2 · H12 · Delegated: correction to D-20261031-I1; no brief needed for the S3 plan, withdrawal check left as is
+- 2026-10-31, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent: D-20261031-I1 names the S3 plan's file and uses the word for taking a plan back, so
+  make_brief.sh's withdrawal check, which this fix left unchanged, now reads I1 as taking back the
+  S3 plan, and I1's sentence that the fix changes one brief no longer holds. S3 finished on
+  2026-10-14 and needs no brief, so no action: the log stays append-only and the S3 plan gets a
+  fresh owner entry only if it is ever reopened. That check is a keyword test on any later entry
+  that names a plan; narrowing it is listed for the owner's review, not started. Lesson for
+  entries: describe a plan by its row (S3) when the text also mentions taking plans back. Where:
+  ROADMAP Track H row H12; scripts/dev/make_brief.sh; docs/owner_review_2026-10-30.md item 16.
