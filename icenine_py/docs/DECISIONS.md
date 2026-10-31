@@ -663,3 +663,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   with SmoothCostRank E3+E4 tau 0.25 (with the cache) and OutwardSearch off, against the key-off
   rerun, paired, breaks traced (D-20261014-N13), before the total is written. Where:
   ~/.claude/plans/eval-reduction.md Task G3.
+
+### D-20261031-I1 · H12 · Delegated: make_brief supersede fix (Newt's request); a Supersedes field that begins with 'none' supersedes nothing
+- 2026-10-31, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent, on Newt Agent's request of 2026-10-29 and the review of the fix (APPROVE, 3 fixes):
+  make_brief.sh refuses an approval only when a later entry's own Supersedes field (below the
+  header line) names the approval's ID as a whole ID (I1 is not I10). A field that begins with
+  'none' supersedes nothing even when it cites an ID, for example 'Supersedes: none (a one-off
+  exception to D-20261014-N1)': the entry says it replaces nothing. A withdrawal that names the
+  plan still refuses as before. On the real DECISIONS.md the fix changes one brief:
+  todo_batched_quick_mc.md, which the old check wrongly refused. Where: ROADMAP Track H row H12;
+  scripts/dev/make_brief.sh; .claude/reports/20261031-review-brief-supersede.md.
