@@ -568,6 +568,27 @@ def test_a_withdrawn_or_superseded_approval_is_refused(repo: Path) -> None:
     assert "\nApproval: D-20261006-I1 · H2 · Demo plan approved again\n" in out.stdout
 
 
+def test_citing_the_approval_with_supersedes_none_keeps_it(repo: Path) -> None:
+    # Newt's request of 2026-10-29: every entry has "Supersedes: none.", so an entry that only
+    # cites the approval's ID (D-20261029-N1 citing D-20261028-N2) must not cancel it.
+    for text in (
+        "Delegated under D-20261004-I1: run the next task with E3+E4.",
+        "Follows D-20261004-I1; this supersedes nothing.",
+    ):
+        log = DECISIONS + _entry("D-20261005-I1", "Delegated choice", text)
+        _write(repo, "icenine_py/docs/DECISIONS.md", log)
+        out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+        assert out.returncode == 0, (text, out.stderr)
+        assert APPROVAL in out.stdout, text
+    # the ID on the Supersedes line still refuses, also in a list or with a part note
+    for sup in ("D-20261004-I1", "D-20261003-I1, D-20261004-I1", "D-20261004-I1 (part 2)"):
+        log = DECISIONS + _entry("D-20261005-I2", "Approval replaced", "No file named.", sup)
+        _write(repo, "icenine_py/docs/DECISIONS.md", log)
+        out = _brief(repo, "--plan", "docs/todo_demo.md", "--task", "t")
+        assert out.returncode == 1, sup
+        assert "D-20261005-I2" in out.stderr, sup
+
+
 def test_plan_name_is_matched_on_a_path_boundary(repo: Path) -> None:
     for text in (
         "The plan `docs/old_todo_demo.md` is approved.",

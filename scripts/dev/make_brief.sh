@@ -279,6 +279,13 @@ RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
         gsub(/(un|dis)approved/, "", s)
         return s ~ /approved/
     }
+    # The text of the entry'"'"'s "Supersedes:" field, up to the end of its line ("" without one).
+    function supersedes_field(s,    i) {
+        if ((i = index(s, "Supersedes:")) == 0) return ""
+        s = substr(s, i + 11)
+        sub(/\n.*/, "", s)
+        return s
+    }
     function flush(    id) {
         if (head == "") return
         id = head; sub(/ .*/, "", id)
@@ -286,8 +293,7 @@ RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
             approved_head = head; approved_id = id; refused = ""
         } else if (approved_head != "" && names_plan(body) && withdraws(body)) {
             refused = head
-        } else if (approved_head != "" && index(body, approved_id) > 0 \
-                   && tolower(body) ~ /supersede/) {
+        } else if (approved_head != "" && index(supersedes_field(body), approved_id) > 0) {
             refused = head
         }
     }
