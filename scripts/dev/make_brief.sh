@@ -7,7 +7,8 @@
 #   - the approval: the last DECISIONS.md entry that names the plan's file name (on a path
 #     boundary) and says "approved" (not "not approved", "unapproved", ...); refuses when there is
 #     none, or when a later entry names the plan and withdraws it or says
-#     "Supersedes: <the approval's ID>";
+#     "Supersedes: <the approval's ID>" (a whole ID in its own field, not a field that begins
+#     with "none"; a mere citation of the ID does not cancel the approval);
 #   - the process limit: `git config --local icenine.maxHeavyProcs` (refuses when unset or not a
 #     positive integer); a plan paragraph starting "**Process limit exception:**" replaces the
 #     standard line;
@@ -256,7 +257,10 @@ fi
 # approval; it is refused when a later entry names the plan and withdraws it (a negated
 # approval, or "withdrawn", "revoked", "rescinded", "cancelled", "rewrite", "on hold") or says
 # "Supersedes: <the approval's ID>" (the log is append-only). A later entry that only mentions
-# the plan (a cost decision, a note) does not cancel the approval.
+# the plan (a cost decision, a note) does not cancel the approval. Citing the approval's ID
+# outside the entry's own Supersedes field (in its title or text, or in a field that begins with
+# "none") does not cancel it either. The ID must be whole (I1 is not I10), and the field is read
+# to the end of its line, so an ID on a hand-wrapped continuation line is not seen.
 RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
     function names_plan(s,    i, before, after, n) {
         n = length(name)
