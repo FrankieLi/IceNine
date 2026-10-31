@@ -7,7 +7,8 @@
 #   - the approval: the last DECISIONS.md entry that names the plan's file name (on a path
 #     boundary) and says "approved" (not "not approved", "unapproved", ...); refuses when there is
 #     none, or when a later entry names the plan and withdraws it or says
-#     "Supersedes: <the approval's ID>";
+#     "Supersedes: <the approval's ID>" (a whole ID in its own field, not a field that begins
+#     with "none"; a mere citation of the ID does not cancel the approval);
 #   - the process limit: `git config --local icenine.maxHeavyProcs` (refuses when unset or not a
 #     positive integer); a plan paragraph starting "**Process limit exception:**" replaces the
 #     standard line;
@@ -256,7 +257,10 @@ fi
 # approval; it is refused when a later entry names the plan and withdraws it (a negated
 # approval, or "withdrawn", "revoked", "rescinded", "cancelled", "rewrite", "on hold") or says
 # "Supersedes: <the approval's ID>" (the log is append-only). A later entry that only mentions
-# the plan (a cost decision, a note) does not cancel the approval.
+# the plan (a cost decision, a note) does not cancel the approval. Citing the approval's ID
+# outside the entry's own Supersedes field (in its title or text, or in a field that begins with
+# "none") does not cancel it either. The ID must be whole (I1 is not I10), and the field is read
+# to the end of its line, so an ID on a hand-wrapped continuation line is not seen.
 RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
     function names_plan(s,    i, before, after, n) {
         n = length(name)
@@ -279,6 +283,31 @@ RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
         gsub(/(un|dis)approved/, "", s)
         return s ~ /approved/
     }
+    # The text of the entry'"'"'s "Supersedes:" field, up to the end of its line ("" without one).
+    # The field is looked for below the "### " header line, so a title containing "Supersedes:"
+    # does not hide it. A field that begins with "none" (any case, after spaces) reads as ""
+    # even when it cites an ID (D-20261031-I1): "Supersedes: none (a one-off exception to
+    # D-20261014-N1)" replaces nothing.
+    function supersedes_field(s,    i) {
+        s = substr(s, index(s, "\n") + 1)
+        if ((i = index(s, "Supersedes:")) == 0) return ""
+        s = substr(s, i + 11)
+        sub(/\n.*/, "", s)
+        if (tolower(s) ~ /^[ \t]*none/) return ""
+        return s
+    }
+    # 1 when s contains id as a whole ID: no letter or digit before it and no digit after it,
+    # so D-20261004-I1 is not found in D-20261004-I10.
+    function cites_id(s, id,    i, before, after, n) {
+        n = length(id)
+        while ((i = index(s, id)) > 0) {
+            before = (i == 1) ? " " : substr(s, i - 1, 1)
+            after = substr(s, i + n, 1)
+            if (before !~ /[A-Za-z0-9]/ && after !~ /[0-9]/) return 1
+            s = substr(s, i + 1)
+        }
+        return 0
+    }
     function flush(    id) {
         if (head == "") return
         id = head; sub(/ .*/, "", id)
@@ -286,8 +315,7 @@ RESULT=$(awk -v name="$PLAN_NAME" -v sq="'" '
             approved_head = head; approved_id = id; refused = ""
         } else if (approved_head != "" && names_plan(body) && withdraws(body)) {
             refused = head
-        } else if (approved_head != "" && index(body, approved_id) > 0 \
-                   && tolower(body) ~ /supersede/) {
+        } else if (approved_head != "" && cites_id(supersedes_field(body), approved_id)) {
             refused = head
         }
     }
