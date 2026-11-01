@@ -696,3 +696,13 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   'statistically the same' is judged (against the key-off arm's own seed-to-seed spread; no
   p-values). Where: ROADMAP Track S row S3; docs/owner_review_2026-10-30.md (review page, S3
   finding).
+
+### D-20261101-I2 · S4 (later stage) · Ordering of the layer-wide screen and the BFS goes to a later autoresearch stage, with experiments
+- 2026-11-01, owner. Recorded by Ilium Agent. Supersedes: none.
+- Owner, on the review page (S4 thread, after Ilium's answer that the S4 hybrid keeps the BFS):
+  add to a todo for a later autoresearch stage the question of which order of operations keeps the
+  advantage of the layer-wide screen and of the BFS, for example screening in batches, growing the
+  BFS from every voxel whose candidates take, and alternating back to screening; with experiments.
+  Recorded as idea A1 in docs/todo_autoresearch.md (new file for such ideas). Not planned; waits
+  for that stage and the owner's pick. Where: docs/todo_autoresearch.md A1; ROADMAP Track S row
+  S7.
