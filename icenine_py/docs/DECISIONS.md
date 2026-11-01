@@ -685,3 +685,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   that names a plan; narrowing it is listed for the owner's review, not started. Lesson for
   entries: describe a plan by its row (S3) when the text also mentions taking plans back. Where:
   ROADMAP Track H row H12; scripts/dev/make_brief.sh; docs/owner_review_2026-10-30.md item 16.
+
+### D-20261101-I1 · S3 · BatchedQuickMC: the E0 difference is probably fine; a large-scale test comes next, and its results must be statistically the same as key off
+- 2026-11-01, owner. Recorded by Ilium Agent. Supersedes: none.
+- Owner, on the review page (comment on S3's E0 result, 107 of 600 wrong against 111): 'This is
+  probably fine. I want to do large scale test next. We expect minor difference with different
+  stochasticity. We need answers to be statistically the same.' BatchedQuickMC stays off by
+  default until that test (D-20261014-I2). The large-scale test is the next Track S item; Ilium
+  Agent drafts its plan for the owner's approval, and the plan sets the scale and how
+  'statistically the same' is judged (against the key-off arm's own seed-to-seed spread; no
+  p-values). Where: ROADMAP Track S row S3; docs/owner_review_2026-10-30.md (review page, S3
+  finding).
