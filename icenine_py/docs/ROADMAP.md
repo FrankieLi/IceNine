@@ -256,6 +256,14 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   `realistic_nodrop`), so S6 no longer needs your machine except for C++. Also D-20261101-I1
   (owner): `BatchedQuickMC` gets a large-scale test next; it may share the full-sample BFS run
   (item 5).
+- 2026-11-01 heads-up: at the owner's request the review page is now organized by theme, not by
+  track: 1 cheaper cost evaluation and search (1a system level, 1b reordering), 2 local search
+  that reaches the optimum from farther away (smoothing), 3 fewer evaluations, 4 checking at scale
+  and measuring well, 5 process, tooling and merges. Items keep their numbers 1-24. Your Track E
+  findings are now under themes 2, 3 and 4; every decision ID on the page comes after words saying
+  what it decided, and one "All decisions" section lists them with links. Owner decision
+  D-20261101-I2: the order of the layer-wide screen and the BFS is idea A1 in the new
+  `docs/todo_autoresearch.md`, for a later autoresearch stage.
 
 # State on 2026-10-13
 
