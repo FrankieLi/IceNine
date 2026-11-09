@@ -800,3 +800,23 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   expected'. No default depends on this; SmoothCostRank stays opt-in (D-20261109-N2). Where:
   docs/findings_eval_reduction_2026-10.md (Terms and the N13 paragraph); MIGRATION_HISTORY Task
   G3.
+
+### D-20261109-N7 · Track E row AR (AR1 review, AR2 arm) · Delegated: AR1's 3 broken voxels count against the best-1 arm; AR2 uses the finisher on the best 2, set before its first run; non-cubic operators fixed now
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1, on the review of AR1 (.claude/reports/20261109-review-ar1.md,
+  'Decisions for the owner' 1-3). (1) The 3 pilot voxels that the arm 'strict cost on 5
+  candidates, finisher on the best 1' breaks (7141, 8848, 23942) are traced to the arm's own rule:
+  it picks one candidate before refining, and after the finisher the true grain has the lower
+  strict cost in all 3. Under D-20261014-N13 a break caused by the arm counts against it, so they
+  count against best-1. They are also shown in a boundary-crossing column (D-20261109-N6) if the
+  grain taken touches the voxel; that column does not excuse them here. (2) AR2 uses the finisher
+  on the best 2 candidates as its main arm, with best 1 and best 3 as side arms. Best 2 and best 3
+  were both chosen after the best-1 result was seen, so their 0 of 69 is not a test. The test is a
+  holdout: voxels outside the pilot region, picked by a fixed stride (no random draw), all three
+  arms fixed before the run, wrong counts against the truth. It runs as the first step of AR2. (3)
+  The plan says symmetry comes from the crystal's own operators, so ray_indexing.py is fixed now
+  to use Cartesian operators, with a hexagonal unit test. The findings page still says the
+  measurements are on one cubic copper sample. Reason for (2): at a boundary voxel two real grains
+  are among the candidates, and the unrefined cost does not rank them reliably; refining two costs
+  about 800 more evaluations per full search (mean 1,926 against 1,125), small against 332,000.
+  Where: docs/autoresearch/PLAN.md (AR1, AR2); docs/autoresearch/findings_ar1_ray_indexing.md.
