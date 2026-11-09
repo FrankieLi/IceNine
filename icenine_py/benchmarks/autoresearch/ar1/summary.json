@@ -96,8 +96,18 @@
   "true_explained_mixed_total": 65,
   "true_explained_other_total": 5,
   "true_explained_total": 3095,
-  "rank1_extra_rays_median": 5.0,
-  "rank1_extra_rays_min": 0
+  "rank1_extra_rays_vs_refined_truth_median": 5.0,
+  "rank1_extra_rays_vs_refined_truth_min": 0,
+  "rank1_extra_rays_vs_refined_truth_ties": 1,
+  "rank1_other_grain": 28,
+  "rank1_grain_touches_voxel": 27,
+  "rank1_grain_shares_edge": 16,
+  "rank1_grain_not_touching": [
+   {
+    "voxel": 11294,
+    "gap_sides": 0.9999745226987763
+   }
+  ]
  },
  "e2e_e0": {
   "stored full search": {
@@ -140,7 +150,7 @@
    "median_evals": 20.0,
    "median_err_deg": 0.03838345279643697
   },
-  "AR1: strict on 5, finisher on best 1": {
+  "AR1: strict on 5, finisher on best 1 (set in advance)": {
    "n": 200,
    "wrong": 0,
    "fixed": 41,
@@ -150,7 +160,7 @@
    "median_evals": 530.0,
    "median_err_deg": 0.017478792142870327
   },
-  "AR1: strict on 5, finisher on best 2 (added after seeing the first arm)": {
+  "AR1: strict on 5, finisher on best 2 (chosen after seeing best 1)": {
    "n": 200,
    "wrong": 0,
    "fixed": 41,
@@ -160,7 +170,7 @@
    "median_evals": 951.0,
    "median_err_deg": 0.017478792142870327
   },
-  "AR1: strict on 5, finisher on best 3": {
+  "AR1: strict on 5, finisher on best 3 (chosen after seeing best 1)": {
    "n": 200,
    "wrong": 0,
    "fixed": 41,
@@ -255,7 +265,7 @@
    "median_evals": 20.0,
    "median_err_deg": 0.05350380088381766
   },
-  "AR1: strict on 5, finisher on best 1": {
+  "AR1: strict on 5, finisher on best 1 (set in advance)": {
    "n": 69,
    "wrong": 3,
    "fixed": 4,
@@ -265,7 +275,7 @@
    "median_evals": 1138.0,
    "median_err_deg": 0.019843966160087073
   },
-  "AR1: strict on 5, finisher on best 2 (added after seeing the first arm)": {
+  "AR1: strict on 5, finisher on best 2 (chosen after seeing best 1)": {
    "n": 69,
    "wrong": 0,
    "fixed": 4,
@@ -275,7 +285,7 @@
    "median_evals": 1907.0,
    "median_err_deg": 0.019020769932813212
   },
-  "AR1: strict on 5, finisher on best 3": {
+  "AR1: strict on 5, finisher on best 3 (chosen after seeing best 1)": {
    "n": 69,
    "wrong": 0,
    "fixed": 4,
@@ -291,6 +301,166 @@
    15749,
    24334
   ]
+ },
+ "e2e_pilot_split": {
+  "seeds": {
+   "stored full search": {
+    "n": 62,
+    "wrong": 2,
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 2,
+    "fixed_voxels": [],
+    "broken_voxels": []
+   },
+   "AR1: strict on 5, finisher on best 1 (set in advance)": {
+    "n": 62,
+    "wrong": 3,
+    "fixed": 2,
+    "broken": 3,
+    "both_wrong": 0,
+    "fixed_voxels": [
+     8866,
+     15749
+    ],
+    "broken_voxels": [
+     7141,
+     8848,
+     23942
+    ]
+   },
+   "AR1: strict on 5, finisher on best 2 (chosen after seeing best 1)": {
+    "n": 62,
+    "wrong": 0,
+    "fixed": 2,
+    "broken": 0,
+    "both_wrong": 0,
+    "fixed_voxels": [
+     8866,
+     15749
+    ],
+    "broken_voxels": []
+   },
+   "AR1: strict on 5, finisher on best 3 (chosen after seeing best 1)": {
+    "n": 62,
+    "wrong": 0,
+    "fixed": 2,
+    "broken": 0,
+    "both_wrong": 0,
+    "fixed_voxels": [
+     8866,
+     15749
+    ],
+    "broken_voxels": []
+   }
+  },
+  "rejected seeds": {
+   "stored full search": {
+    "n": 7,
+    "wrong": 2,
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 2,
+    "fixed_voxels": [],
+    "broken_voxels": []
+   },
+   "AR1: strict on 5, finisher on best 1 (set in advance)": {
+    "n": 7,
+    "wrong": 0,
+    "fixed": 2,
+    "broken": 0,
+    "both_wrong": 0,
+    "fixed_voxels": [
+     5876,
+     24334
+    ],
+    "broken_voxels": []
+   },
+   "AR1: strict on 5, finisher on best 2 (chosen after seeing best 1)": {
+    "n": 7,
+    "wrong": 0,
+    "fixed": 2,
+    "broken": 0,
+    "both_wrong": 0,
+    "fixed_voxels": [
+     5876,
+     24334
+    ],
+    "broken_voxels": []
+   },
+   "AR1: strict on 5, finisher on best 3 (chosen after seeing best 1)": {
+    "n": 7,
+    "wrong": 0,
+    "fixed": 2,
+    "broken": 0,
+    "both_wrong": 0,
+    "fixed_voxels": [
+     5876,
+     24334
+    ],
+    "broken_voxels": []
+   }
+  },
+  "rejected_seed_sources": {
+   "1282": "revisit",
+   "5876": "unresolved",
+   "8995": "revisit",
+   "13559": "revisit",
+   "16476": "revisit",
+   "19093": "revisit",
+   "24334": "unresolved"
+  }
+ },
+ "e2e_pilot_broken_best1": [
+  {
+   "voxel": 7141,
+   "grain_taken": 23,
+   "touches": true,
+   "shares_edge": true,
+   "start_deg": 49.488679589664784,
+   "cost_taken": 0.18273754469471004,
+   "cost_truth": 0.20122569620712638,
+   "fin_taken": 0.17708569108758065,
+   "fin_truth": 0.07988215488215489,
+   "fin_evals_taken": 847
+  },
+  {
+   "voxel": 8848,
+   "grain_taken": 395,
+   "touches": true,
+   "shares_edge": true,
+   "start_deg": 43.80310754723166,
+   "cost_taken": 0.18749824975315177,
+   "cost_truth": 0.1897996767060064,
+   "fin_taken": 0.13882939707869668,
+   "fin_truth": 0.028301886792452824,
+   "fin_evals_taken": 877
+  },
+  {
+   "voxel": 23942,
+   "grain_taken": 286,
+   "touches": true,
+   "shares_edge": true,
+   "start_deg": 54.37297297712192,
+   "cost_taken": 0.2712173711344432,
+   "cost_truth": 0.3351409821151501,
+   "fin_taken": 0.20929920158469484,
+   "fin_truth": 0.11062472906358922,
+   "fin_evals_taken": 835
+  }
+ ],
+ "e2e_pilot_finisher_start": {
+  "n_start_right": 66,
+  "start_right_max_deg": 0.12007536485501531,
+  "start_wrong_min_deg": 43.80310754723166,
+  "start_wrong_max_deg": 54.37297297712192,
+  "finisher_evals_median_start_right": 1137.5,
+  "finisher_evals_start_wrong": [
+   847,
+   877,
+   835
+  ],
+  "finisher_evals_median_all": 1133.0
  },
  "sparse_pilot": {
   "stride 1": {
@@ -403,5 +573,24 @@
   "cluster_s_median": 0.0849099170000045,
   "refine_s_median": 0.06936837499999626,
   "per_voxel_total_s_median": 0.17910324999999716
+ },
+ "context_pilot": {
+  "mic_voxels": 24570,
+  "region_voxels": 2000,
+  "region_grains": 60,
+  "full_search_min_evals": 100000,
+  "frame_width_deg": 1.0000000000000013,
+  "voxel_side_mm": 0.009375
+ },
+ "outside_count_pilot": {
+  "label": "contended",
+  "pairing_s_once": 17.069419042,
+  "attach_s_median": 0.0020578749999984325,
+  "index_s_median": 0.17693495900000045,
+  "finisher_s_per_eval_median": 0.00044225859884559096,
+  "finisher_ms_per_eval_median": 0.44225859884559093,
+  "finisher_s_median": 0.49387412499999783,
+  "index_in_strict_evals": 400.0712693022732,
+  "index_share_of_finisher_time": 0.35825922040358205
  }
 }

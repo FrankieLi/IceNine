@@ -1,8 +1,9 @@
 """AR1 summary: summary.json, tables.md (doc tables) and the figure from the saved results.
 
   uv run python scripts/autoresearch/ar1/summary.py
-Reads benchmarks/autoresearch/ar1/{sanity_*,recall_*,e2e_*,misses_pilot_base,sparse_pilot,
-timing_pilot}.json; writes summary.json, tables.md and ar1_recall.png beside them.
+Reads benchmarks/autoresearch/ar1/{sanity_*,recall_*,e2e_*,misses_pilot_base,context_pilot,
+sparse_pilot,timing_pilot}.json and the stored pilot records (seed_rejected); writes summary.json,
+tables.md and ar1_recall.png beside them.
 """
 
 import json
@@ -19,7 +20,15 @@ import doc_tables  # noqa: E402
 from stats import wilson  # noqa: E402
 
 OUT = AC.OUT
-SETS = [("e0", "E0 (200 voxels)"), ("pilot", "Pilot full searches (69 voxels)")]
+# E0's images hold only each voxel's own spots: the easy case for indexing
+SETS = [
+    ("e0", "E0 (200 voxels, easy: own spots only)"),
+    ("pilot", "Pilot full searches (69 voxels)"),
+]
+FIG_NAMES = {"e0": "E0 (easy)", "pilot": "pilot"}
+ARM1 = "AR1: strict on 5, finisher on best 1 (set in advance)"
+ARM2 = "AR1: strict on 5, finisher on best 2 (chosen after seeing best 1)"
+ARM3 = "AR1: strict on 5, finisher on best 3 (chosen after seeing best 1)"
 KS = (1, 5, 20)
 WRONG_DEG = 1.0
 
@@ -46,6 +55,133 @@ def arm(rows: List[Dict[str, Any]], n_fin: int, k_strict: int = 5) -> Dict[str, 
         err.append(min(f, key=lambda x: x["cost"])["err"])
         ev.append(k_strict + sum(x["evals"] for x in f))
     return dict(err=np.array(err), evals=np.array(ev))
+
+
+def pilot_extra(
+    S: Dict[str, Any],
+    tables: Dict[str, str],
+    rows: List[Dict[str, Any]],
+    sw: np.ndarray,
+    a1: Dict[str, Any],
+    a2: Dict[str, Any],
+    a3: Dict[str, Any],
+) -> None:
+    """Pilot only: the baseline split into seeds and rejected-seed voxels (fix 5), the trace of
+    the voxels the best-1 arm breaks (fixes 4, 9) and the finisher's start (fix 8)."""
+    stored = AC.pilot_stored()
+    rej = np.array([stored[r["voxel"]]["seed_rejected"] for r in rows])
+    vox = np.array([r["voxel"] for r in rows])
+    split_rows = []
+    arms = [("stored full search", None), (ARM1, a1), (ARM2, a2), (ARM3, a3)]
+    for sub, m in (("seeds", ~rej), ("rejected seeds", rej)):
+        n = int(m.sum())
+        for name, a in arms:
+            w = (np.array([r["stored_err"] for r in rows]) if a is None else a["err"]) > WRONG_DEG
+            d = dict(
+                n=n,
+                wrong=int((w & m).sum()),
+                fixed=int((sw & ~w & m).sum()),
+                broken=int((~sw & w & m).sum()),
+                both_wrong=int((sw & w & m).sum()),
+                fixed_voxels=[int(x) for x in vox[sw & ~w & m]],
+                broken_voxels=[int(x) for x in vox[~sw & w & m]],
+            )
+            S.setdefault("e2e_pilot_split", {}).setdefault(sub, {})[name] = d
+            split_rows.append(
+                dict(
+                    subset=f"{n} {sub}",
+                    arm=name,
+                    wrong=frac(d["wrong"], n),
+                    fixed=d["fixed"],
+                    broken=d["broken"],
+                    both=d["both_wrong"],
+                )
+            )
+    S["e2e_pilot_split"]["rejected_seed_sources"] = {
+        str(int(v)): stored[int(v)]["source"] for v in vox[rej]
+    }
+    tables["ar1_e2e_split"] = doc_tables.markdown_table(
+        split_rows, ["subset", "arm", "wrong", "fixed", "broken", "both"]
+    )
+    # the voxels the best-1 arm breaks: grain taken, unrefined and finished strict costs
+    M = {r["voxel"]: r for r in json.loads((OUT / "misses_pilot_base.json").read_text())}
+    w1 = a1["err"] > WRONG_DEG
+    br_rows, br = [], []
+    for r, b in zip(rows, ~sw & w1):
+        if not b:
+            continue
+        f0 = r["finishers"][0]
+        jt = int(np.argmax(np.array(r["dist"][:5]) < 2.0))  # the truth among the first 5
+        ft = [f for f in r["finishers"] if f["cand"] == jt]
+        mr = M.get(r["voxel"], {})
+        t = mr.get("rank1_grain_touch", {})
+        taken = (mr.get("rank1_majority_grain") or {}).get("grain")
+        same = bool(f0["cand"] == 0 and taken is not None)
+        d = dict(
+            voxel=int(r["voxel"]),
+            grain_taken=taken if same else None,
+            touches=bool(t.get("touches")) if same else None,
+            shares_edge=bool(t.get("shares_edge")) if same else None,
+            start_deg=float(r["dist"][f0["cand"]]),
+            cost_taken=float(r["strict_costs"][f0["cand"]]),
+            cost_truth=float(r["strict_costs"][jt]),
+            fin_taken=float(f0["cost"]),
+            fin_truth=float(ft[0]["cost"]) if ft else None,
+            fin_evals_taken=int(f0["evals"]),
+        )
+        br.append(d)
+        br_rows.append(
+            dict(
+                voxel=d["voxel"],
+                taken=f"grain {taken}" if same else "?",
+                boundary=(
+                    ("yes (shares an edge)" if d["shares_edge"] else "yes (shares a vertex)")
+                    if d["touches"]
+                    else "no"
+                ),
+                cost_taken=d["cost_taken"],
+                cost_truth=d["cost_truth"],
+                fin_taken=d["fin_taken"],
+                fin_truth=d["fin_truth"],
+                start_deg=d["start_deg"],
+                against_best1="yes",
+            )
+        )
+    S["e2e_pilot_broken_best1"] = br
+    tables["ar1_broken"] = doc_tables.markdown_table(
+        br_rows,
+        [
+            "voxel",
+            "taken",
+            "boundary",
+            "cost_taken",
+            "cost_truth",
+            "fin_taken",
+            "fin_truth",
+            "start_deg",
+            "against_best1",
+        ],
+        {
+            "cost_taken": ".3f",
+            "cost_truth": ".3f",
+            "fin_taken": ".3f",
+            "fin_truth": ".3f",
+            "start_deg": ".1f",
+        },
+    )
+    # the finisher's start (best 1): distance of the picked candidate, and the finisher's count
+    start = np.array([r["dist"][r["finishers"][0]["cand"]] for r in rows])
+    fev = np.array([r["finishers"][0]["evals"] for r in rows])
+    ok = start < 2.0
+    S["e2e_pilot_finisher_start"] = dict(
+        n_start_right=int(ok.sum()),
+        start_right_max_deg=float(start[ok].max()),
+        start_wrong_min_deg=float(start[~ok].min()) if (~ok).any() else None,
+        start_wrong_max_deg=float(start[~ok].max()) if (~ok).any() else None,
+        finisher_evals_median_start_right=float(np.median(fev[ok])),
+        finisher_evals_start_wrong=[int(x) for x in fev[~ok]],
+        finisher_evals_median_all=float(np.median(fev)),
+    )
 
 
 def main() -> None:
@@ -197,7 +333,12 @@ def main() -> None:
             k: float(np.median([r[k] for r in M]))
             for k in ("n_att", "n_own_pure", "n_own_mixed", "n_other", "n_true_explained")
         }
-        gain = [r["rank1_explained"] - r["n_true_explained"] for r in miss]
+        rrows, _ = AC.load_recall("pilot")
+        refined = {r["voxel"]: r["n_true_explained_refined"] for r in rrows}
+        # like for like: the rank-1 candidate's count after refinement against the truth's count
+        # after the same refinement (recall.py n_true_explained_refined)
+        gain = [r["rank1_explained"] - refined[r["voxel"]] for r in miss]
+        tch = [r["rank1_grain_touch"] for r in miss if "rank1_grain_touch" in r]
         rank = {k: sum(1 for r in M if r["rank_of_truth"] == k) for k in (1, 2, 3)}
         S["misses_pilot"] = dict(
             n=len(M),
@@ -208,14 +349,27 @@ def main() -> None:
             true_explained_mixed_total=int(sum(r["true_explained_mixed"] for r in M)),
             true_explained_other_total=int(sum(r["true_explained_other"] for r in M)),
             true_explained_total=int(sum(r["n_true_explained"] for r in M)),
-            rank1_extra_rays_median=float(np.median(gain)) if gain else None,
-            rank1_extra_rays_min=int(min(gain)) if gain else None,
+            rank1_extra_rays_vs_refined_truth_median=float(np.median(gain)) if gain else None,
+            rank1_extra_rays_vs_refined_truth_min=int(min(gain)) if gain else None,
+            rank1_extra_rays_vs_refined_truth_ties=int(sum(1 for x in gain if x == 0)),
+            rank1_other_grain=len(tch),
+            rank1_grain_touches_voxel=int(sum(t["touches"] for t in tch)),
+            rank1_grain_shares_edge=int(sum(t["shares_edge"] for t in tch)),
+            rank1_grain_not_touching=[
+                dict(voxel=r["voxel"], gap_sides=r["rank1_grain_touch"]["gap_sides"])
+                for r in miss
+                if "rank1_grain_touch" in r and not r["rank1_grain_touch"]["touches"]
+            ],
         )
         rows_m = [
             dict(what="rank-1 candidate is not the truth", n=f"{len(miss)}/{len(M)}"),
             dict(what="  reason: too few rays (truth explains < 8)", n=reasons["too_few_rays"]),
             dict(what="  reason: another real grain explains more rays", n=reasons["neighbour"]),
             dict(what="  reason: matches no grain (coincidence of rays)", n=reasons["no_grain"]),
+            dict(
+                what="rank-1 grain touches the voxel (shares a vertex / an edge)",
+                n=f"{sum(t['touches'] for t in tch)} / {sum(t['shares_edge'] for t in tch)}",
+            ),
             dict(
                 what="truth is candidate 1 / 2 / 3 (of 20)", n=f"{rank[1]} / {rank[2]} / {rank[3]}"
             ),
@@ -282,13 +436,11 @@ def main() -> None:
             err = np.array([r["err_pick"][str(K)] for r in rows])
             add(f"strict cost on first {K}, no finisher", err, np.full(n, float(K)))
         a1, a2, a3 = arm(rows, 1), arm(rows, 2), arm(rows, 3)
-        add("AR1: strict on 5, finisher on best 1", a1["err"], a1["evals"])
-        add(
-            "AR1: strict on 5, finisher on best 2 (added after seeing the first arm)",
-            a2["err"],
-            a2["evals"],
-        )
-        add("AR1: strict on 5, finisher on best 3", a3["err"], a3["evals"])
+        add(ARM1, a1["err"], a1["evals"])
+        add(ARM2, a2["err"], a2["evals"])
+        add(ARM3, a3["err"], a3["evals"])
+        if kind == "pilot":
+            pilot_extra(S, tables, rows, sw, a1, a2, a3)
         fig_ev[kind] = dict(stored=float(np.median(stored_ev)), ar1=float(np.median(a1["evals"])))
         S.setdefault(f"e2e_{kind}", {})["stored_wrong_voxels"] = [
             int(r["voxel"]) for r, w in zip(rows, sw) if w
@@ -339,6 +491,26 @@ def main() -> None:
             ["quantity", "seconds"],
             {"seconds": ".3f"},
         )
+    # ---- context (fix 15) and costs outside the evaluation count (fix 7)
+    cp = OUT / "context_pilot.json"
+    if cp.exists():
+        S["context_pilot"] = json.loads(cp.read_text())
+    prow = load_e2e("pilot")
+    if prow and "timing_pilot" in S:
+        f0 = [r["finishers"][0] for r in prow]
+        per_ev = float(np.median([f["seconds"] / f["evals"] for f in f0]))
+        idx_s = float(S["timing_pilot"]["index_s_median"])
+        S["outside_count_pilot"] = dict(
+            label="contended",
+            pairing_s_once=float(S["timing_pilot"]["observed_rays_build_s"]),
+            attach_s_median=float(S["timing_pilot"]["attach_s_median"]),
+            index_s_median=idx_s,
+            finisher_s_per_eval_median=per_ev,
+            finisher_ms_per_eval_median=1e3 * per_ev,
+            finisher_s_median=float(np.median([f["seconds"] for f in f0])),
+            index_in_strict_evals=idx_s / per_ev,
+            index_share_of_finisher_time=idx_s / float(np.median([f["seconds"] for f in f0])),
+        )
     # ---- files
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
@@ -363,7 +535,7 @@ def main() -> None:
         names, vals = [], []
         for kind, label in SETS:
             if kind in fig_ev:
-                names += [f"{kind}\nstored", f"{kind}\nAR1"]
+                names += [f"{FIG_NAMES[kind]}\nstored", f"{FIG_NAMES[kind]}\nAR1 best 1"]
                 vals += [fig_ev[kind]["stored"], fig_ev[kind]["ar1"]]
         if names:
             bars = ax[1].bar(range(len(vals)), vals, color=["0.6", "C0"] * (len(vals) // 2))
