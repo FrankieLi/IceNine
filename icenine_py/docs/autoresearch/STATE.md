@@ -38,15 +38,22 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
   merged and pushed (d113694). D-20261109-N6 settles how a boundary crossing is counted.
 - AR0 is done: reviewed, 12 fixes applied, merged and pushed (0decc3a). Results below.
 - AR1 is built and measured (branch `feature/eval-reduction-ar1`, 4 commits up to 3182d40). The
-  hand-back check passes (0 FAIL). The review is running. Not merged yet. Numbers below are
-  not reviewed yet.
+  hand-back check passes (0 FAIL). The review is done: REQUEST CHANGES, 18 required fixes
+  (`.claude/reports/20261109-review-ar1.md`). An Opus implementer is applying them in the AR1
+  worktree; its report will be `.claude/reports/20261109-1538-ar1-fixes.md`. Not merged yet.
+- D-20261109-N7 settles the review's three questions: the 3 broken voxels count against the
+  best-1 arm; AR2 uses the finisher on the best 2 and starts with a holdout; the symmetry
+  operators are fixed now for non-cubic crystals.
+- The plan's AR2 section now has two steps: the holdout of the finisher arms, then the key.
 
 ## Next action
 
 1. AR0: done. Nothing left.
-2. AR1: the review report will be `.claude/reports/20261109-review-ar1.md`. If it is not there, run
-   `/review-task` again from the worktree `.claude/worktrees/agent-af5119989737208f0`. Apply its
-   required fixes with a fresh Opus implementer in that worktree. Merge from the worktree with
+2. AR1: when `.claude/reports/20261109-1538-ar1-fixes.md` exists, check that all 18 fixes of
+   `.claude/reports/20261109-review-ar1.md` are applied (if there is no fix report and no new commit
+   after 3182d40 on the branch, start a fresh Opus implementer in the worktree
+   `.claude/worktrees/agent-af5119989737208f0` with the brief from `make_brief.sh --fixes`). Rerun
+   `sync_doc_tables.py --check` and `audit_numbers.py` on the findings page. Merge from the worktree with
    `../../../scripts/dev/finish_task.sh --yes --push` (with tests, in the background). Do not commit
    the untracked symlink and cache directories of that worktree. Then write the reviewed result
    here, in MIGRATION_HISTORY, in the README (new module `icenine/ray_indexing.py`), and in the
@@ -55,11 +62,10 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    `git log feature/eval-reduction..feature/eval-reduction-ar1` in its worktree, and start a fresh
    implementer with the same brief (regenerate it with `make_brief.sh`) and the note "continue from
    the commits on the branch".
-4. After AR1 is merged: the gate is met (69 of 69, if the review confirms it). Start AR2 (opt-in
-   key `SeedByIndexing`, pilot run paired against the key-off rerun) and AR3 (index the layer, paint
-   grains). Open choice for AR2: the finisher on the best 1 candidate or on the best 2. Best 2 had
-   0 of 69 wrong but was chosen after the fact; AR2's pilot run is the test on new voxels. AR4 (the
-   learned proposer) aims at what voting misses: voxels with few rays.
+4. After AR1 is merged: the gate is met (69 of 69; the review found no leakage). Start AR2 from
+   the plan's section "AR2: indexing as the BFS seed search": step 1 is the holdout of the finisher
+   arms on voxels outside the pilot region, step 2 is the key `SeedByIndexing`. Then AR3 (index the
+   layer, paint grains). AR4 (the learned proposer) aims at what voting misses: voxels with few rays.
 5. Item 7: PR #41 is open. Do not merge it. On a quiet machine run `uv run pytest tests/` in
    `icenine_py` and put the count line in the PR body.
 
@@ -90,8 +96,8 @@ Reading the table: one row per step, in order, with its state.
 ## Running jobs
 
 Agents of the session of 2026-11-09 (they die with the session; `git worktree list` shows their
-worktrees, and their branches keep the commits): the AR1 reviewer (it writes
-`.claude/reports/20261109-review-ar1.md`). No detached compute job is running.
+worktrees, and their branches keep the commits): the AR1 fix implementer (Opus, in the AR1
+worktree). No detached compute job is running.
 
 ## Results so far
 
@@ -111,7 +117,7 @@ voxels; the pilot is the 2,000-voxel BFS key-off rerun. Lower cost is better.
 - Pilot: at a hit-ratio cut of 0.93, all 1,948 answers at or above are right; all 37 wrong ones
   are below, with 15 right local fits. Picked and read on the same run.
 
-**AR1 (measured, not reviewed yet).** Page on the task branch:
+**AR1 (measured and reviewed; fixes are being applied; the wording below follows the review).** Page on the task branch:
 `docs/autoresearch/findings_ar1_ray_indexing.md`. Module: `icenine/ray_indexing.py`. The idea: a
 spot on detector 0 paired with its spot on detector 1 gives a ray, a ray gives a scattering vector,
 and two vectors of different families give an orientation. So candidates come from votes, not from
@@ -123,8 +129,13 @@ a grid.
 - Evaluations for one full search on those voxels: median 1,138 (strict cost on 5 candidates, then
   the finisher on the best one) against 332,154 for the stored grid search.
 - Wrong voxels (more than 1 degree off): 3 of 69 against 4 of 69 stored. It fixes the 4 and breaks
-  3 boundary voxels. With the finisher on the best 2: 0 of 69, at a mean of 1,926 evaluations; this
-  arm was added after the first result was seen.
+  3. The review traced the 3: the arm picks one candidate before refining, and the neighbour grain
+  is ahead only on the unrefined cost; after the finisher the true grain is lower in all 3. So the
+  breaks count against this arm. Two of the 4 "fixed" are against an unresolved stored fit (7 of the
+  69 are rejected seeds, not plain full searches). With the finisher on the best 2 or the best 3:
+  0 of 69, at a mean of 1,926 or 2,546 evaluations; both arms were added after the first result was
+  seen, so they need the holdout of AR2 step 1.
+- Pairing and indexing time are outside the evaluation count.
 - E0 (the easy case: its images hold only each voxel's own spots): 200 of 200 at every K; 0 wrong
   against 41 stored; median 530 evaluations against 48,724.
 - Indexing one voxel: median 0.18 s; one-time pairing of all spots: 17 s. Both contended. No
