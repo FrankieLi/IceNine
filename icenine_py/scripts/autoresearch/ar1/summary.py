@@ -281,8 +281,13 @@ def main() -> None:
         for K in (1, 5, 20):
             err = np.array([r["err_pick"][str(K)] for r in rows])
             add(f"strict cost on first {K}, no finisher", err, np.full(n, float(K)))
-        a1, a3 = arm(rows, 1), arm(rows, 3)
+        a1, a2, a3 = arm(rows, 1), arm(rows, 2), arm(rows, 3)
         add("AR1: strict on 5, finisher on best 1", a1["err"], a1["evals"])
+        add(
+            "AR1: strict on 5, finisher on best 2 (added after seeing the first arm)",
+            a2["err"],
+            a2["evals"],
+        )
         add("AR1: strict on 5, finisher on best 3", a3["err"], a3["evals"])
         fig_ev[kind] = dict(stored=float(np.median(stored_ev)), ar1=float(np.median(a1["evals"])))
         S.setdefault(f"e2e_{kind}", {})["stored_wrong_voxels"] = [

@@ -52,7 +52,7 @@ def main() -> None:
 
     rows: List[Dict[str, Any]] = []
     for v in voxels:
-        e = AC.env(kind, v)
+        e = AC.env(kind, v, need_sc=False)
         rec, lf, verts, phase, Rt = e["rec"], e["lf"], e["verts"], e["phase"], e["R_true"]
         sym = RI.proper_rotations(AC.symmetry_of(e))
         R = cand[f"v{v}"]

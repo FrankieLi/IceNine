@@ -95,11 +95,12 @@ def init(kind: str) -> None:
     bench().init_worker(kind)
 
 
-def env(kind: str, voxel: int) -> Dict[str, Any]:
-    """Environment of one voxel with its SmoothCost (observed rays built)."""
+def env(kind: str, voxel: int, need_sc: bool = True) -> Dict[str, Any]:
+    """Environment of one voxel, with its SmoothCost (observed rays built) when ``need_sc``."""
     B = bench()
     e = B.voxel_env(voxel)
-    e["sc"] = B.lazy(e, "sc")
+    if need_sc:
+        e["sc"] = B.lazy(e, "sc")
     return e
 
 
