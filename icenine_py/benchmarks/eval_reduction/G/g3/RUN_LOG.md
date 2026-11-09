@@ -43,9 +43,10 @@ seeds), so the estimate was about 3.2 h against the 3 h budget and the 8 h stop 
 Correction (review fix 5, 2026-10-30): the "3 h budget and 8 h stop line" above have no source. The plan gives Task G3 "about
 1 h" (no new runs planned), so its stop rule (a pilot estimate over twice the sub-task's budget) sat at about 2 h, and the 3.2 h
 estimate passed it. The nearest source for "3 h" is the plan's Task G line "the pilot region is about 3 h" (a G2 run).
-D-20261029-N3 authorised the extra arm but stated no budget. The arm ran on that delegated decision, not on a budget; whether
-N3 covered the 3.2 h, or the stop rule should have fired, is left to the owner (review `20261029-1123-review-fable-G`,
-"Decisions for the owner"). Nothing in DECISIONS.md was changed here.
+D-20261029-N3 authorised the extra arm but stated no budget. The arm ran on that delegated decision, not on a budget. The
+question this raised (review `20261029-1123-review-fable-G`, "Decisions for the owner") is now decided: D-20261109-N2, item 1,
+accepted the 3.2 h run after the fact, and a run that passes its plan's stop line is from now on stopped, or gets a decision
+entry before it goes on. Nothing in DECISIONS.md was changed here.
 
 ## 3. Results (all numbers from `summary.json` / `tables.md`)
 
