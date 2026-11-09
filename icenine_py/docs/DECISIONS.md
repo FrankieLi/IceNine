@@ -751,3 +751,31 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   FusedCost on and off. Item 16: the withdrawal check of make_brief.sh stays as it is; it is
   narrowed only when it refuses a plan that is in use. Where: docs/owner_review_2026-10-30.md,
   section "Decisions of 2026-11-09".
+
+### D-20261109-N4 · Track S rows S1-S6, Q8, H12 (review items 9-13, 17-24) · Delegated: review items 9-13 and 17-24 (Track S); items 12, 22 and 23 stay with the owner
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1. Item 9: S2 is accepted on its record (the agent reviews, E0 35
+  of 200 wrong with and without the key, agreement with C++ on Task A); the owner's own reading
+  stays open and nothing waits for it. Item 10: the fused CPU path takes priority over a GPU
+  SearchDevice for the strict cost; no GPU work on it until CUDA hardware is in use. Item 11:
+  BatchedQuickMC is not part of the recommended configuration when FusedCost is on, because it
+  gives no gain there; its large-scale test (D-20261101-I1) stays, and Newt recommends that its
+  accuracy arms run with FusedCost on, which is cheaper and does not change the random-draw
+  question; Ilium's plan sets the scale. Item 13: Ilium reruns the S1 and S3 timing scripts
+  single-worker under the preflight and relabels. Item 17: FusedCost is validated on GCC and Linux
+  before its first use there; no such machine is in use, so nothing runs now; Ilium makes the key
+  warn on a compiler other than the validated one if it does not already. Item 18: Newt checks on
+  Newt's machine, which has the C++ build, whether clang fuses the clip's multiply-adds. Item 19:
+  the C++ toolchain is not installed on Ilium's machine; C++ checks go to Newt through the
+  mailbox. Item 20: FusedCost stays opt-in and off by default; every timing baseline of new work
+  uses FusedCost on. Item 21: porting the batched screen to the fused C path is the next Track S
+  speed item; Ilium drafts the plan, designed layer-wide (one orientation across all voxels at a
+  time, the owner's point of 2026-11-09 and idea A1); the plan's approval stays with the owner.
+  Item 24: no reseed (owner rule of 2026-10-12: no extra seeds); the Phase D pilot on no-drop
+  images is dropped as a separate item; studies stay on clean images; scripts with their own
+  VARIANTS use the no-drop images at their next run and are not rerun for that alone. Not decided
+  by Newt, because they change what the agents themselves may do: item 12 (two .claude/ edits;
+  Newt recommends yes to both), item 22 (let a merge commit bring .claude/ files; Newt recommends
+  yes when the files are identical to the merged branch's committed files) and item 23 (rerunning
+  a refused command in the form the refusal message suggests; Newt recommends confirming). Where:
+  docs/owner_review_2026-10-30.md, section "Decisions of 2026-11-09".
