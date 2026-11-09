@@ -36,13 +36,14 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
 - Plan approved under the mandate (D-20261109-N5).
 - Item 6 is done: the review-fix branch was reviewed (APPROVE, 4 required fixes, all applied) and
   merged and pushed (d113694). D-20261109-N6 settles how a boundary crossing is counted.
-- AR0 analysis is done and written up on its branch; its review is running.
+- AR0 analysis is done and written up on its branch. Its review (`.claude/reports/20261109-review-ar0.md`) asks for 12 fixes; an Opus implementer is applying
+  them in the AR0 worktree (brief: fixes by path, report `.claude/reports/20261109-1509-ar0-fixes.md`).
 - AR1 implementer is running.
 
 ## Next action
 
-1. AR0: read `.claude/reports/20261109-review-ar0.md` when it exists. Apply its required fixes
-   (fresh Opus implementer, by path), then merge `feature/eval-reduction-ar0` with
+1. AR0: when the fix agent has reported (commits on the branch after baa63ce), check the fixes
+   against the review's list, then merge `feature/eval-reduction-ar0` with
    `scripts/dev/finish_task.sh --yes --push` from its worktree
    (`.claude/worktrees/agent-a3380edb16bb98f26`). Then add the AR0 result to MIGRATION_HISTORY.
 2. AR1: when `.claude/reports/20261109-1439-ar1.md` exists (in the main checkout or in the worktree
@@ -70,7 +71,7 @@ Reading the table: one row per step, in order, with its state.
 | step | what | state |
 |---|---|---|
 | item 6 | review and merge the review fixes | **done** 2026-11-09 (d113694) |
-| AR0 | stop rules from the stored results | analysis and findings on `feature/eval-reduction-ar0` (f4a1654, baa63ce); review running |
+| AR0 | stop rules from the stored results | analysis and findings on `feature/eval-reduction-ar0` (f4a1654, baa63ce); reviewed, 12 fixes being applied |
 | AR1 | recall of the ray-indexing proposer | implementer running, branch `feature/eval-reduction-ar1` |
 | item 7 | open the PR to `develop` (merge waits for the owner) | **open**: PR #41 (2026-11-09). Not merged. Add a full-suite test count to its body before asking for the merge |
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
@@ -79,18 +80,23 @@ Reading the table: one row per step, in order, with its state.
 | AR2 | indexing as the BFS seed search | waits for AR1 |
 | AR3 | index the layer and paint grains | waits for AR1 |
 | AR4 | the learned proposer | waits for AR1 |
-| AR5 | the stop rule | waits for AR1; AR0 says where it must act (below) |
+| AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 
 ## Running jobs
 
 Agents of the session of 2026-11-09 (they die with the session; `git worktree list` shows their
-worktrees, and their branches keep the commits): the AR0 reviewer and the AR1 implementer. No
+worktrees, and their branches keep the commits): the AR0 fix agent and the AR1 implementer. No
 detached compute job is running.
 
 ## Results so far
 
-**AR0 (not yet reviewed).** Page: `docs/autoresearch/findings_ar0_stopping.md` on the AR0 branch.
+**AR0 (reviewed; fixes in progress, so the numbers below can still change).** The review's main
+point: the shares below are E0's. On full-sample voxels the level-0 screen is about a quarter of a
+full search, not nine tenths, so a stop after level 0 could save up to about 39% there. That is
+untested: the pilot's `records.json` has no per-level record. A per-level record on full-sample
+voxels is a new run and belongs to AR5. Also: with the finisher charged, the safe savings on E0
+are smaller still (0.1% to 0.4%). Page: `docs/autoresearch/findings_ar0_stopping.md` on the AR0 branch.
 E0 is 200 hard voxels; the pilot is the 2,000-voxel BFS key-off rerun. Lower cost is better.
 
 - After a search, the final cost tells right from wrong with no mistake on E0: 159 right voxels all
