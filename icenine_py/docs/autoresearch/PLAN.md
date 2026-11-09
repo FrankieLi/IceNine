@@ -145,6 +145,31 @@ Only if AR1's recall at 20 is at least 90% on the pilot's full-search voxels. An
 the grid search when no candidate passes the seed test. Run the pilot against the key-off rerun,
 paired. Budget: 2 hours.
 
+Added 2026-11-09 after AR1 and its review (D-20261109-N7). The gate is met (69 of 69). AR2 has two
+steps, in this order.
+
+**Step 1, holdout of the finisher arms.** AR1 chose "finisher on the best 2" and "on the best 3"
+after it saw the result of "on the best 1", on the same 69 voxels. So their 0 of 69 is not a test.
+The test: voxels of the layer outside the pilot region, picked by a fixed stride over the voxel
+index (no random draw), in two sets fixed before the run: 150 boundary voxels (a voxel with a
+neighbour of another grain in the true map) and 150 interior voxels. Index each voxel, take the
+strict cost on the first 5 candidates, then run the finisher on the best 1, the best 2 and the
+best 3. Report, per set and arm: wrong voxels against the truth with intervals, recall at 1, 5 and
+20, and evaluations. The main arm for step 2 is best 2. It is kept unless it has more wrong voxels
+than best 3 on the holdout; then best 3 is used. No stored grid search exists for these voxels, so
+this step gives wrong counts and evaluations of the indexing path only. Budget: 30 minutes.
+
+**Step 2, the key.** `SeedByIndexing` (off by default; the off path stays bit-identical) in
+`config_file.py` and `reconstructor.py`. The rays are paired once per run. A seed or reseed is
+indexed, its first 5 candidates get the strict cost, the finisher runs on the best 2 (or the arm
+step 1 picks), and the result goes through the same seed test as today. If no candidate passes,
+the grid search runs as today. The pilot region is run with the key on and compared with the
+key-off rerun on the same voxels: wrong counts (fixed, broken, each break traced, boundary
+crossings in their own column), evaluations, the number of fallbacks, and wall time. For wall time
+both arms run with `FusedCost` on, one worker, under the timing preflight; the key-off arm of that
+pair is the pilot run of review item 14. Indexing time and the one-time pairing are reported beside
+the evaluations, since they are outside the evaluation count. Budget: 2 hours.
+
 ## AR3: index the layer and paint grains
 
 Only if AR1 passes. Layer-level voting, grain list, batched painting, local fits for unclear
