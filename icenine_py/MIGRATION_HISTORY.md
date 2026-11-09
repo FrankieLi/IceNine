@@ -8600,10 +8600,14 @@ session to publish).
 * **Step 3, 2,000-voxel pilot region.** The stored pilot (2026-10-10) does not reproduce on today's code (same 37 wrong,
   14 fixed / 14 broken by voxel; consistent with the centroid-screen default of 2026-10-12, untested), so a key-off rerun is
   the baseline. Against it: integrated configuration 42 wrong (15 fixed, 20 broken: 8 traced to the outward-search
-  reseeds, 12 untraced), 1 grain lost (0 before), 60.8M evaluations against 25.5M (neighbours and revisits 38.6M against
-  2.7M, mostly F5 screen evaluations), wall 13,822 s against 8,997 s (contended, three runs at once). OutwardSearch alone:
-  36 wrong (18 fixed, 17 broken: 8 traced, 9 untraced), 1 grain lost, 61.6M evaluations, 10,980 s. Neighbour acceptance
-  did not change (769 accepted first key off, 762 and 764 with the key). Every reseed that took the outward-search path
+  reseeds, 12 untraced in G2, the N13 verdict, not G3's origin class "origin not found", 0 in every run; G3 traced
+  the 12 as exactly the run's 12 boundary-crossing breaks, which under D-20261109-N6 count neither for nor against
+  it), 1 grain lost (0 before), 60.8M evaluations against 25.5M (neighbours and revisits 38.6M against 2.7M, mostly F5
+  screen evaluations), wall 13,822 s against 8,997 s (contended, three runs at once). OutwardSearch alone: 36 wrong (18
+  fixed, 17 broken: 8 traced, 9 untraced in G2; G3 traced the 9 as exactly its 9 boundary crossings, so under
+  D-20261109-N6 they count neither for nor against it; the policy runs in neighbour fits and accepts a touching grain at
+  strict cost at most 0.8, so it may have caused some, untested voxel by voxel), 1 grain lost, 61.6M evaluations,
+  10,980 s. Neighbour acceptance did not change (769 accepted first key off, 762 and 764 with the key). Every reseed that took the outward-search path
   ended wrong (4 of 4 and 5 of 5): the start of a reseed is a rejected fit, often a neighbouring grain's orientation, which
   passes F4's acceptance test (strict cost at most 0.8) and the absolute seed test.
 * **Proposals (owner).** No default flip, no golden change. `OutwardSearch` stays off: on the pilot region it adds
@@ -8625,16 +8629,24 @@ Steps 4 and 5 of Task G (plan approved D-20261028-N2), plus one BFS arm (D-20261
   8,997 s with three runs at once, not comparable). Neighbour acceptance unchanged (768 against 769 accepted first).
 * **Trace.** In all five pilot-region runs every wrong voxel carries the orientation of a grain it touches (within 0.01 deg of that
   grain, its vertex within 9.4 um). With the key on none of the 34 comes from a wrong full search (key off: 5 of 37). The arm's 11
-  breaks are all boundary crossings from right full searches (where the key does not act): traced to the draw. Its 14 fixes include
-  4 from two wrong key-off full searches; the probe re-runs of those two (full-sample voxels 8866, 15749) are right with the key off
-  and on, so they are traced to the draw too (D-20261014-N13: 0 traced to the arm, 0 untraced).
-* **Time of the key in a BFS.** Per full search 154 s (smooth only) and 147 s (integrated) against 114 s key off, implying about
-  2.6 ms per smooth evaluation against Task E's 1.639 ms; a scratch check showed the cache is hit inside the BFS reconstructor (one
-  build, one hit), so it is not a rebuild. Contention differs; cause untested.
+  breaks are all boundary crossings from right full searches (neighbour fits, where the key's ranking does not act): none traced to
+  the key's ranking, but not the draw either, since the key changed the BFS path (review fix 2: verdict "boundary crossing"). N13
+  does not cover a boundary crossing; under D-20261109-N6 it counts neither for nor against the key (counted as untraced, the N13
+  default, all 11 breaks would count against it). Its 14 fixes are 10 boundary crossings and 4 from two wrong key-off full
+  searches; the probe re-runs of those two (full-sample voxels 8866, 15749) are right with the key off and on, so those 4 are
+  traced to the draw (D-20261014-N13: 0 traced to the arm, 0 untraced). The same holds for OutwardSearch: G2's untraced breaks
+  are exactly its boundary crossings (9 = 9 alone, 12 = 12 integrated), so under D-20261109-N6 they count neither for nor against
+  it. Its verdict does not change: it stays off (D-20261029-N2) for +13.9% strict-equivalent, no gain in wrong voxels (36 against
+  37: 18 fixed, 17 broken) and one grain lost, none of which depends on how those breaks are counted.
+* **Time of the key in a BFS.** Per full search 154 s (smooth only) and 147 s (integrated) against 114 s key off (+35.4% with the key
+  alone, where the strict-equivalent weight predicts +20.7%), implying about 2.6 ms per smooth evaluation against Task E's 1.639 ms;
+  a scratch check showed the cache is hit inside the BFS reconstructor (one build, one hit), so it is not a rebuild. Contention
+  differs; cause untested.
 * **The total** (key off -> smooth key, strict-equivalent): six full-sample voxels +20.2% (0 -> 0 wrong), Task E's other 24 +21.0%
   (1 -> 0), E0 +1.7% (41 -> 7), BFS region +12.4% (37 -> 34). OutwardSearch alone +13.9%, both +32.6%.
 * **Full-sample estimate.** 24,570 voxels, 497 grains; scaling the pilot (full searches by grains, local fits by voxels; untested):
-  22.0 h key off and 26.9 h key on, one process.
+  22.0 h key off and 26.9 h key on, one process. The two runs were at different contention, so the gap is not the key's cost; the
+  pilot region has about 33 voxels per grain against 49 in the full sample (untested effect on boundary voxels and reseeds).
 * **Proposals (owner).** No default flip, no golden change. `SmoothCostRank` stays opt-in (gain on full-sample images within the draw;
   cost +20% per full search); if it became the default, the goldens that pin a default full search would move (by reading, not run:
   `test_findoptimal_refactor.py`, `test_bfs_refit.py`, `test_coarse_proxy.py`, `test_ray_overlap.py`, the profiling test).
@@ -8654,7 +8666,8 @@ The plan (Tasks 0, A to G, with A-exact, Fcompare and G1 to G3) is done. What it
   paired spots across detectors (98.7% of one-grain pairs) and showed a spot belongs to a grain, not a voxel.
 * **Smoothing.** Task E's `SmoothCostRank E3+E4,tau=0.25` (opt-in) fixes 34 of 41 wrong E0 voxels with none broken, at about +20%
   time per full search; G1 added the per-image-set cache and found no harm on 24 more full-sample voxels; on the BFS region it is
-  34 against 37 wrong with every flip traced to the draw.
+  34 against 37 wrong with no flip traced to the key's ranking (the 11 breaks are boundary crossings after the key changed the BFS
+  path), at +12.4% strict-equivalent over the run but +35.4% measured wall per full search (contended, cause untested).
 * **Outward search.** Task F's F4/F5 policy found the basin from every 5 deg start on both sets, including Fcompare's fresh
   voxels; as a BFS key (`OutwardSearch`, G2) it adds evaluations
   and breaks reseeds; off.

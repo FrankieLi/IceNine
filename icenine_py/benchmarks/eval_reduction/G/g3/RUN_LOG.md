@@ -40,15 +40,23 @@ hook refuses runner scripts and compound commands).
 Compute: the pilot gave about 161 s per seed full search (G2's key-off rerun 116 s on the same voxel, +39%, like G2's integrated
 seeds), so the estimate was about 3.2 h against the 3 h budget and the 8 h stop line.
 
+Correction (review fix 5, 2026-10-30): the "3 h budget and 8 h stop line" above have no source. The plan gives Task G3 "about
+1 h" (no new runs planned), so its stop rule (a pilot estimate over twice the sub-task's budget) sat at about 2 h, and the 3.2 h
+estimate passed it. The nearest source for "3 h" is the plan's Task G line "the pilot region is about 3 h" (a G2 run).
+D-20261029-N3 authorised the extra arm but stated no budget. The arm ran on that delegated decision, not on a budget. The
+question this raised (review `20261029-1123-review-fable-G`, "Decisions for the owner") is now decided: D-20261109-N2, item 1,
+accepted the 3.2 h run after the fact, and a run that passes its plan's stop line is from now on stopped, or gets a decision
+entry before it goes on. Nothing in DECISIONS.md was changed here.
+
 ## 3. Results (all numbers from `summary.json` / `tables.md`)
 
 <!-- table:evalG3_total_sets -->
-| set | n | wrong_before | wrong_after | fixed_broken | strict_before | strict_after | smooth | equiv_change |
-|---|---|---|---|---|---|---|---|---|
-| six full-sample voxels (sum) | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 / 0 | 1,992,278 | 2,006,917 | 90,183 | +20.2% |
-| Task E's other 24 full-sample voxels (per voxel) | 24 | 1 (0.7-20.2%) | 0 (0.0-13.8%) | 1 / 0 | 330,584 | 335,047 | 15,119 | +21.0% |
-| E0 200 voxels (per voxel) | 200 | 41 (15.5-26.6%) | 7 (1.7-7.0%) | 34 / 0 | 48,700 | 49,215 | 252 | +1.7% |
-| BFS pilot region, 2,000 voxels (whole run) | 2000 | 37 (1.3-2.5%) | 34 (1.2-2.4%) | 14 / 11 | 25,547,935 | 24,490,331 | 980,594 | +12.4% |
+| set | n | wrong_before | wrong_after | fixed_broken | strict_before | strict_after | smooth | smooth_weight | equiv_change |
+|---|---|---|---|---|---|---|---|---|---|
+| six full-sample voxels (sum) | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 / 0 | 1,992,278 | 2,006,917 | 90,183 | 4.297 | +20.2% |
+| Task E's other 24 full-sample voxels (per voxel) | 24 | 1 (0.7-20.2%) | 0 (0.0-13.8%) | 1 / 0 | 330,584 | 335,047 | 15,119 | 4.297 | +21.0% |
+| E0 200 voxels (per voxel) | 200 | 41 (15.5-26.6%) | 7 (1.7-7.0%) | 34 / 0 | 48,700 | 49,215 | 252 | 1.262 | +1.7% |
+| BFS pilot region, 2,000 voxels (whole run) | 2000 | 37 (1.3-2.5%) | 34 (1.2-2.4%) | 14 / 11 | 25,547,935 | 24,490,331 | 980,594 | 4.297 | +12.4% |
 <!-- /table:evalG3_total_sets -->
 
 <!-- table:evalG3_bfs_paired -->
@@ -65,7 +73,7 @@ seeds), so the estimate was about 3.2 h against the 3 h budget and the 8 h stop 
 <!-- /table:evalG3_bfs_paired -->
 
 <!-- table:evalG3_wrong_by_origin -->
-| run | n | another grain | own full search | carried from a wrong full search | boundary crossing | untraced | max_distance_um | full_searches |
+| run | n | another grain | own full search | carried from a wrong full search | boundary crossing | origin not found | max_distance_um | full_search_voxels |
 |---|---|---|---|---|---|---|---|---|
 | stored pilot (2026-10-10) | 37 | 37 | 1 | 5 | 31 | 0 | 9.4 | 67 |
 | stored configuration, today's code | 37 | 37 | 2 | 3 | 32 | 0 | 9.4 | 63 |
@@ -75,18 +83,18 @@ seeds), so the estimate was about 3.2 h against the 3 h budget and the 8 h stop 
 <!-- /table:evalG3_wrong_by_origin -->
 
 <!-- table:evalG3_trace_n13 -->
-| flip | n | traced_to_arm | traced_to_draw | untraced |
-|---|---|---|---|---|
-| broken | 11 | 0 | 11 | 0 |
-| fixed | 14 | 0 | 14 | 0 |
+| flip | n | traced_to_arm | boundary_crossing | traced_to_draw | untraced |
+|---|---|---|---|---|---|
+| broken | 11 | 0 | 11 | 0 | 0 |
+| fixed | 14 | 0 | 10 | 4 | 0 |
 <!-- /table:evalG3_trace_n13 -->
 
 <!-- table:evalG3_full_search_time -->
-| run | full_searches | wall_per_full_search_s | strict_per_full_search | smooth_per_full_search | implied_ms_per_smooth | timing |
-|---|---|---|---|---|---|---|
-| stored configuration, today's code | 69 | 114 | 331,636 | 0 | n/a | contended: 3 concurrent 2000-voxel BFS runs (Task G2) |
-| SmoothCostRank only | 65 | 154 | 335,546 | 15,086 | 2.58 | contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled |
-| both (Task G2's integrated configuration) | 70 | 147 | 317,739 | 14,233 | 2.66 | contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2) |
+| run | full_searches | wall_per_full_search_s | wall_change | strict_per_full_search | smooth_per_full_search | equiv_change_predicted | implied_ms_per_smooth | timing |
+|---|---|---|---|---|---|---|---|---|
+| stored configuration, today's code | 69 | 114 | +0.0% | 331,636 | 0 | +0.0% | n/a | contended: 3 concurrent 2000-voxel BFS runs (Task G2) |
+| SmoothCostRank only | 65 | 154 | +35.4% | 335,546 | 15,086 | +20.7% | 2.58 | contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled |
+| both (Task G2's integrated configuration) | 70 | 147 | +29.1% | 317,739 | 14,233 | +14.3% | 2.66 | contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2) |
 <!-- /table:evalG3_full_search_time -->
 
 <!-- table:evalG3_full_sample_estimate -->

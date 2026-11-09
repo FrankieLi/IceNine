@@ -17,7 +17,8 @@ Parts (each skipped when its inputs are missing):
              no grain        more than 1 deg from every grain's orientation
            and by origin: own full search, carried from a wrong full search, boundary crossing
            (a local fit carried a right full search's orientation over a grain boundary),
-           untraced (see ``classify``); the run's full-search voxels within 1 deg are listed
+           origin not found (see ``classify``; not the N13 verdict "untraced"); the run's
+           full-search voxels within 1 deg are listed
   probe    Task E's broken-voxel rule (D-20261014-N13) for the SmoothCostRank-only arm's flips,
            from the probe re-runs of their full searches (``g3_trace_probe.py``)
   total    evaluations by stage before and after: six full-sample voxels and the E0 200 (no-start
@@ -61,6 +62,7 @@ KEYOFF = RUNS2 / "keyoff_rerun"
 SMOOTH = RUNS3 / "smooth_only"
 OUTWARD = RUNS2 / "outward_only"
 INTEGRATED = RUNS2 / "integrated"
+PROBE_RESULTS = OUT / "trace_probe_results.json"  # committed per-voxel probe results
 EX = ICE.parent / "Examples" / "Example2.ManyGrains" / "SimInput"
 WRONG_DEG = 1.0
 LABEL = {
@@ -170,7 +172,12 @@ def full_search_voxels(run_dir: Path) -> List[int]:
     return sorted(seeds | reseeds)
 
 
-ORIGINS = ["own full search", "carried from a wrong full search", "boundary crossing", "untraced"]
+ORIGINS = [
+    "own full search",
+    "carried from a wrong full search",
+    "boundary crossing",
+    "origin not found",
+]
 
 
 def grain_distance_um(v_xy: np.ndarray, g: int) -> float:
@@ -190,7 +197,7 @@ def classify(run_dir: Path, voxels: List[int]) -> List[Dict[str, Any]]:
     reseed), "carried from a wrong full search" (a local fit; a full-search voxel of the run within
     1 deg of it is wrong for itself), "boundary crossing" (a local fit; every such full-search
     voxel is right for itself, so the BFS carried a right orientation over a grain boundary),
-    "untraced" (no full-search voxel within 1 deg)."""
+    "origin not found" (no full-search voxel within 1 deg; not the N13 verdict "untraced")."""
     from score_bfs import pair_misorientation_deg
 
     ids, qg = grain_quats()
@@ -278,13 +285,13 @@ def trace() -> Optional[Dict[str, Any]]:
                 n=len(c),
                 **_split(c),
                 max_distance_um=max(dist) if dist else None,
-                full_searches=res["n_full_searches"][d.name],
+                full_search_voxels=res["n_full_searches"][d.name],
             )
         )
     res["tables"] = {
         "evalG3_trace": DT.markdown_table(rows, ["a", "b", "flip", *cols]),
         "evalG3_wrong_by_origin": DT.markdown_table(
-            wrong_rows, ["run", *cols, "max_distance_um", "full_searches"],
+            wrong_rows, ["run", *cols, "max_distance_um", "full_search_voxels"],
             formats=dict(max_distance_um=".1f"),
         ),  # fmt: skip
     }
@@ -295,8 +302,9 @@ def probe(tr: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """Task E's trace rule (D-20261014-N13) for the flips of the SmoothCostRank-only arm against
     the key-off rerun, from the probe re-runs of their full searches (``g3_trace_probe.py``).
 
-    Verdict of a broken voxel: "boundary crossing" origin -> draw (the BFS path: a neighbour fit
-    took a neighbouring grain from a right full search, where the key does not act); a full-search
+    Verdict of a broken voxel: "boundary crossing" origin -> "boundary crossing", its own verdict,
+    not the draw (a neighbour fit took a neighbouring grain from a right full search; the key does
+    not act in neighbour fits, but it changed the BFS path that led there); a full-search
     origin -> the probe of that full search: key-on wrong and key-off right -> Task E's ``trace``
     of the key-on run (arm / draw / untraced); otherwise (the probe outcome does not depend on the
     key) -> draw; no probe run -> untraced. Fixed voxels the same way with ``fixed_trace``."""
@@ -309,25 +317,35 @@ def probe(tr: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     from smooth_rank_summary import trace as e_trace
 
     vox = json.loads(TP.VOXELS.read_text())["voxels"]
-    base, arm = load_runs(TP.run_dir("base")), load_runs(TP.run_dir("e34t25"))
-    if not all(v in base and v in arm for v in vox):
+    pv: Dict[int, Dict[str, Any]] = {}
+    base_dir, arm_dir = TP.run_dir("base"), TP.run_dir("e34t25")
+    base = load_runs(base_dir) if base_dir.exists() else {}
+    arm = load_runs(arm_dir) if arm_dir.exists() else {}
+    if all(v in base and v in arm for v in vox):
+        for v in vox:
+            eb, ea = float(base[v]["err_deg"]), float(arm[v]["err_deg"])
+            d: Dict[str, Any] = dict(err_key_off=eb, err_key_on=ea,
+                                     evals_key_off=int(base[v]["evals"]),
+                                     evals_key_on=int(arm[v]["evals"]))  # fmt: skip
+            if ea > WRONG_DEG and eb <= WRONG_DEG:
+                d["broken_trace"] = list(e_trace(arm[v], 3))
+            if eb > WRONG_DEG and ea <= WRONG_DEG:
+                d["fixed_trace"] = fixed_trace(arm[v], 3)
+            pv[v] = d
+        PROBE_RESULTS.write_text(json.dumps(dict(flip=TP.FLIP, voxels=pv), indent=1) + "\n")
+    elif PROBE_RESULTS.exists():
+        # the probe npz files are gitignored; their per-voxel results are committed here
+        pv = {int(v): d for v, d in json.loads(PROBE_RESULTS.read_text())["voxels"].items()}
+        if sorted(pv) != sorted(int(v) for v in vox):
+            return None
+    else:
         return None
     idx = np.load(ICE / "benchmarks" / "phase_d_pilot" / "region_index.npy")
-    pv: Dict[int, Dict[str, Any]] = {}
-    for v in vox:
-        eb, ea = float(base[v]["err_deg"]), float(arm[v]["err_deg"])
-        d: Dict[str, Any] = dict(err_key_off=eb, err_key_on=ea, evals_key_off=int(base[v]["evals"]),
-                                 evals_key_on=int(arm[v]["evals"]))  # fmt: skip
-        if ea > WRONG_DEG and eb <= WRONG_DEG:
-            d["broken_trace"] = list(e_trace(arm[v], 3))
-        if eb > WRONG_DEG and ea <= WRONG_DEG:
-            d["fixed_trace"] = fixed_trace(arm[v], 3)
-        pv[v] = d
 
     def verdict(x: Dict[str, Any], kind: str) -> str:
         if x["origin"] == "boundary crossing":
-            return "draw"
-        if x["origin"] == "untraced":
+            return "boundary crossing"
+        if x["origin"] == ORIGINS[3]:
             return "untraced"
         src = (
             [int(x["full_sample_voxel"])]
@@ -358,6 +376,7 @@ def probe(tr: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
                 flip=kind,
                 n=len(vs),
                 traced_to_arm=sum(1 for x in vs if x["verdict"] == "arm"),
+                boundary_crossing=sum(1 for x in vs if x["verdict"] == "boundary crossing"),
                 traced_to_draw=sum(1 for x in vs if x["verdict"] == "draw"),
                 untraced=sum(1 for x in vs if x["verdict"] == "untraced"),
             )
@@ -378,7 +397,7 @@ def probe(tr: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     ]  # fmt: skip
     out["tables"] = {
         "evalG3_trace_n13": DT.markdown_table(
-            rows, ["flip", "n", "traced_to_arm", "traced_to_draw", "untraced"]
+            rows, ["flip", "n", "traced_to_arm", "boundary_crossing", "traced_to_draw", "untraced"]
         ),
         "evalG3_trace_probe": DT.markdown_table(
             prow, ["full_sample_voxel", "err_key_off", "err_key_on", "outcome"],
@@ -450,6 +469,7 @@ def total(b: Optional[Dict[str, Any]]) -> Dict[str, Any]:
             strict_before=tb,
             strict_after=ta,
             smooth=sm,
+            smooth_weight=k["full"],
             equiv_change=eq / tb - 1.0,
         )
     )
@@ -467,6 +487,7 @@ def total(b: Optional[Dict[str, Any]]) -> Dict[str, Any]:
             strict_before=sb24,
             strict_after=sa24,
             smooth=sm24,
+            smooth_weight=k["full"],
             equiv_change=(sa24 + sm24 * k["full"]) / sb24 - 1.0,
         )
     )
@@ -481,6 +502,7 @@ def total(b: Optional[Dict[str, Any]]) -> Dict[str, Any]:
             strict_before=eb,
             strict_after=ea,
             smooth=es,
+            smooth_weight=k["e0"],
             equiv_change=(ea + es * k["e0"]) / eb - 1.0,
         )
     )
@@ -560,13 +582,23 @@ def total(b: Optional[Dict[str, Any]]) -> Dict[str, Any]:
                     timing=r["timing_label"],
                 )
             )
+        # per full search against the key-off run: the measured wall time, and the change the
+        # strict-equivalent weight predicts (strict + smooth x weight)
+        f0 = fst[0]
+        for x in fst:
+            x["wall_change"] = x["wall_per_full_search_s"] / f0["wall_per_full_search_s"] - 1.0
+            x["equiv_change_predicted"] = (
+                x["strict_per_full_search"] + x["smooth_per_full_search"] * k["full"]
+            ) / f0["strict_per_full_search"] - 1.0
         out["full_search_time"] = dict(rows=fst, us_per_strict_key_off=us_strict * 1e6)
         T["evalG3_full_search_time"] = DT.markdown_table(
             fst,
-            ["run", "full_searches", "wall_per_full_search_s", "strict_per_full_search",
-             "smooth_per_full_search", "implied_ms_per_smooth", "timing"],
+            ["run", "full_searches", "wall_per_full_search_s", "wall_change",
+             "strict_per_full_search", "smooth_per_full_search", "equiv_change_predicted",
+             "implied_ms_per_smooth", "timing"],
             formats=dict(wall_per_full_search_s=".0f", strict_per_full_search=",.0f",
-                         smooth_per_full_search=",.0f", implied_ms_per_smooth=".2f"),
+                         smooth_per_full_search=",.0f", implied_ms_per_smooth=".2f",
+                         wall_change="+.1%", equiv_change_predicted="+.1%"),
         )  # fmt: skip
         # full-sample estimate (one process): full searches scale with the grains, local fits with
         # the voxels (an assumption, untested); wall times keep their runs' timing labels
@@ -590,7 +622,14 @@ def total(b: Optional[Dict[str, Any]]) -> Dict[str, Any]:
                     timing=r["timing_label"],
                 )
             )
-        out["full_sample_estimate"] = dict(voxels=n_vox, grains=n_grains, rows=aff)
+        pr0 = runs["keyoff_rerun"]
+        out["full_sample_estimate"] = dict(
+            voxels=n_vox,
+            grains=n_grains,
+            voxels_per_grain_full=n_vox / n_grains,
+            voxels_per_grain_pilot=pr0["n"] / pr0["grains"],
+            rows=aff,
+        )
         T["evalG3_full_sample_estimate"] = DT.markdown_table(
             aff,
             ["run", "full_searches", "full_search_wall_s", "local_fit_wall_s", "grain_scale",
@@ -611,15 +650,16 @@ def total(b: Optional[Dict[str, Any]]) -> Dict[str, Any]:
                 strict_before=kr["evals"]["total"],
                 strict_after=sm_r["evals"]["total"],
                 smooth=sm_r["smooth_full_searches"],
+                smooth_weight=k["full"],
                 equiv_change=sm_r["strict_equivalent"] / kr["strict_equivalent"] - 1.0,
             )
         )
     T["evalG3_total_sets"] = DT.markdown_table(
         sets,
         ["set", "n", "wrong_before", "wrong_after", "fixed_broken", "strict_before",
-         "strict_after", "smooth", "equiv_change"],
+         "strict_after", "smooth", "smooth_weight", "equiv_change"],
         formats=dict(strict_before=",.0f", strict_after=",.0f", smooth=",.0f",
-                     equiv_change="+.1%"),
+                     smooth_weight=".3f", equiv_change="+.1%"),
     )  # fmt: skip
     out["tables"] = T
     return out

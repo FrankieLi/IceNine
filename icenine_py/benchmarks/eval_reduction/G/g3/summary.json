@@ -6378,69 +6378,69 @@
    {
     "voxel": 67,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 91,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 590,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 643,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 707,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1049,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1079,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1088,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1196,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1375,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1845,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    }
   ],
   "fixed": [
    {
     "voxel": 244,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 401,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 474,
@@ -6455,22 +6455,22 @@
    {
     "voxel": 726,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 757,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 795,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1114,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1267,
@@ -6480,12 +6480,12 @@
    {
     "voxel": 1287,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1489,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1714,
@@ -6495,12 +6495,12 @@
    {
     "voxel": 1741,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    },
    {
     "voxel": 1949,
     "origin": "boundary crossing",
-    "verdict": "draw"
+    "verdict": "boundary crossing"
    }
   ]
  },
@@ -6575,6 +6575,7 @@
     "strict_before": 1992278,
     "strict_after": 2006917,
     "smooth": 90183,
+    "smooth_weight": 4.297,
     "equiv_change": 0.20185704555287964
    },
    {
@@ -6586,6 +6587,7 @@
     "strict_before": 330584.0,
     "strict_after": 335047.0,
     "smooth": 15119.0,
+    "smooth_weight": 4.297,
     "equiv_change": 0.21002027623841446
    },
    {
@@ -6597,6 +6599,7 @@
     "strict_before": 48699.525,
     "strict_after": 49214.67,
     "smooth": 252.165,
+    "smooth_weight": 1.262,
     "equiv_change": 0.017112635698192102
    },
    {
@@ -6608,6 +6611,7 @@
     "strict_before": 25547935,
     "strict_after": 24490331,
     "smooth": 980594,
+    "smooth_weight": 4.297,
     "equiv_change": 0.12353281852329734
    }
   ],
@@ -6714,7 +6718,9 @@
      "strict_per_full_search": 331635.72463768115,
      "smooth_per_full_search": 0.0,
      "implied_ms_per_smooth": null,
-     "timing": "contended: 3 concurrent 2000-voxel BFS runs (Task G2)"
+     "timing": "contended: 3 concurrent 2000-voxel BFS runs (Task G2)",
+     "wall_change": 0.0,
+     "equiv_change_predicted": 0.0
     },
     {
      "run": "SmoothCostRank only",
@@ -6723,7 +6729,9 @@
      "strict_per_full_search": 335546.2,
      "smooth_per_full_search": 15086.061538461538,
      "implied_ms_per_smooth": 2.581207646394132,
-     "timing": "contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled"
+     "timing": "contended: one 2000-voxel BFS run (Task G3); preflight quiet at the start, other jobs on the machine not controlled",
+     "wall_change": 0.35417792994562314,
+     "equiv_change_predicted": 0.2072613916012298
     },
     {
      "run": "both (Task G2's integrated configuration)",
@@ -6732,7 +6740,9 @@
      "strict_per_full_search": 317738.72857142857,
      "smooth_per_full_search": 14232.9,
      "implied_ms_per_smooth": 2.658174388341653,
-     "timing": "contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2)"
+     "timing": "contended: 2 concurrent 2000-voxel BFS runs plus the E0 run (2 workers) and a 150-voxel pilot at the start (Task G2)",
+     "wall_change": 0.2907510329969081,
+     "equiv_change_predicted": 0.142511109999931
     }
    ],
    "us_per_strict_key_off": 342.94220722751214
@@ -6740,6 +6750,8 @@
   "full_sample_estimate": {
    "voxels": 24570,
    "grains": 497,
+   "voxels_per_grain_full": 49.436619718309856,
+   "voxels_per_grain_pilot": 33.333333333333336,
    "rows": [
     {
      "run": "stored configuration, today's code",
