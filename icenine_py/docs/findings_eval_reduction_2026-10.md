@@ -353,15 +353,17 @@ Reading the table: the probe re-runs (full-sample voxel index, error in degrees 
 40 and 29, with 3 seeds rejected against 6. That is why its strict evaluations went down. Neighbour
 acceptance did not change (768 accepted at the first try against 769).
 
-**OutwardSearch.** Task G2's result stands. Alone it fixes 18 and breaks 17; Task G2 traced 8 of the
-breaks to reseeds whose outward search took a neighbouring grain and left 9 untraced in the N13
-sense (the integrated run: 8 traced, 12 untraced). The "origin not found" count of 0 in the origin
-tables above is a different measure and does not revise those verdicts. The 9 untraced breaks are
-exactly its 9 boundary crossings (and the integrated run's 12 untraced are its 12). They are not
-called the draw: unlike the smooth key, the outward search runs in every
-neighbour fit and accepts a touching grain at a strict cost of 0.8 or below, so they are candidates
-for "traced to the arm"; this was not tested voxel by voxel. It costs about as much as the smooth
-key. Added on top of the smooth key it gives 42 wrong against 34 (5 fixed, 13 broken).
+**OutwardSearch.** Alone it fixes 18 and breaks 17. Task G2 traced 8 of the breaks to reseeds whose
+outward search took a neighbouring grain; these count against it. Task G2 left the other 9 untraced
+(the integrated run: 8 traced, 12 untraced). Task G3 traced them: the 9 are exactly its 9 boundary
+crossings, and the integrated run's 12 are exactly its 12. So under D-20261109-N6 they count neither
+for nor against it, like the smooth key's 11. (The outward search runs in every neighbour fit and
+accepts a touching grain at a strict cost of 0.8 or below, so it may have caused some of these
+crossings; this was not tested voxel by voxel.) The verdict on OutwardSearch does not change. It
+stays off (D-20261029-N2): it costs +13.9% strict-equivalent, gives no gain in wrong voxels (36
+against 37 with the key off: 18 fixed, 17 broken), and loses one grain. None of these depends on how
+the 9 breaks are counted. It costs about as much as the smooth key. Added on top of the smooth key
+it gives 42 wrong against 34 (5 fixed, 13 broken).
 
 ## Smooth ranking on the full sample (Task E's 24 voxels)
 

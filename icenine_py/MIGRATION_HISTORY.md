@@ -8600,13 +8600,14 @@ session to publish).
 * **Step 3, 2,000-voxel pilot region.** The stored pilot (2026-10-10) does not reproduce on today's code (same 37 wrong,
   14 fixed / 14 broken by voxel; consistent with the centroid-screen default of 2026-10-12, untested), so a key-off rerun is
   the baseline. Against it: integrated configuration 42 wrong (15 fixed, 20 broken: 8 traced to the outward-search
-  reseeds, 12 untraced; "untraced" here is the N13 verdict, not G3's origin class "origin not found", which is 0 in
-  every run and does not revise it; the 12 are exactly the run's 12 boundary-crossing breaks), 1 grain lost (0 before), 60.8M evaluations against 25.5M (neighbours and revisits 38.6M against
-  2.7M, mostly F5 screen evaluations), wall 13,822 s against 8,997 s (contended, three runs at once). OutwardSearch alone:
-  36 wrong (18 fixed, 17 broken: 8 traced, 9 untraced; the 9 are boundary crossings in neighbour fits, where the policy
-  runs and accepts a touching grain at strict cost at most 0.8, so they are candidates for "traced to the arm", not the
-  draw; untested voxel by voxel), 1 grain lost, 61.6M evaluations, 10,980 s. Neighbour acceptance
-  did not change (769 accepted first key off, 762 and 764 with the key). Every reseed that took the outward-search path
+  reseeds, 12 untraced in G2, the N13 verdict, not G3's origin class "origin not found", 0 in every run; G3 traced
+  the 12 as exactly the run's 12 boundary-crossing breaks, which under D-20261109-N6 count neither for nor against
+  it), 1 grain lost (0 before), 60.8M evaluations against 25.5M (neighbours and revisits 38.6M against 2.7M, mostly F5
+  screen evaluations), wall 13,822 s against 8,997 s (contended, three runs at once). OutwardSearch alone: 36 wrong (18
+  fixed, 17 broken: 8 traced, 9 untraced in G2; G3 traced the 9 as exactly its 9 boundary crossings, so under
+  D-20261109-N6 they count neither for nor against it; the policy runs in neighbour fits and accepts a touching grain at
+  strict cost at most 0.8, so it may have caused some, untested voxel by voxel), 1 grain lost, 61.6M evaluations,
+  10,980 s. Neighbour acceptance did not change (769 accepted first key off, 762 and 764 with the key). Every reseed that took the outward-search path
   ended wrong (4 of 4 and 5 of 5): the start of a reseed is a rejected fit, often a neighbouring grain's orientation, which
   passes F4's acceptance test (strict cost at most 0.8) and the absolute seed test.
 * **Proposals (owner).** No default flip, no golden change. `OutwardSearch` stays off: on the pilot region it adds
@@ -8633,7 +8634,10 @@ Steps 4 and 5 of Task G (plan approved D-20261028-N2), plus one BFS arm (D-20261
   does not cover a boundary crossing; under D-20261109-N6 it counts neither for nor against the key (counted as untraced, the N13
   default, all 11 breaks would count against it). Its 14 fixes are 10 boundary crossings and 4 from two wrong key-off full
   searches; the probe re-runs of those two (full-sample voxels 8866, 15749) are right with the key off and on, so those 4 are
-  traced to the draw (D-20261014-N13: 0 traced to the arm, 0 untraced).
+  traced to the draw (D-20261014-N13: 0 traced to the arm, 0 untraced). The same holds for OutwardSearch: G2's untraced breaks
+  are exactly its boundary crossings (9 = 9 alone, 12 = 12 integrated), so under D-20261109-N6 they count neither for nor against
+  it. Its verdict does not change: it stays off (D-20261029-N2) for +13.9% strict-equivalent, no gain in wrong voxels (36 against
+  37: 18 fixed, 17 broken) and one grain lost, none of which depends on how those breaks are counted.
 * **Time of the key in a BFS.** Per full search 154 s (smooth only) and 147 s (integrated) against 114 s key off (+35.4% with the key
   alone, where the strict-equivalent weight predicts +20.7%), implying about 2.6 ms per smooth evaluation against Task E's 1.639 ms;
   a scratch check showed the cache is hit inside the BFS reconstructor (one build, one hit), so it is not a rebuild. Contention
