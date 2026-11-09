@@ -4,10 +4,11 @@ full-search voxels (clean full-sample images), each with its truth, SmoothCost a
 The environments are those of Task F's ``outward_bench`` (E0: ``init_worker("e0")``; pilot:
 ``init_worker("full")``, the clean full-sample reconstruction with the pilot's config). Data that
 is not in git (images, caches, stored runs) is read from the main checkout when the worktree has
-no copy (``MAIN``).
+no copy (``data_path``).
 """
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -16,7 +17,28 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ICE = HERE.parents[2]
-MAIN = ICE.parents[3] / "icenine_py"  # read-only data of the main checkout (worktree parent)
+
+
+def _main_checkout() -> Path:
+    """``icenine_py`` of the main checkout: the parent of the git common directory (the same as
+    ``ICE`` outside a worktree)."""
+    out = subprocess.run(
+        ["git", "rev-parse", "--git-common-dir"],
+        cwd=ICE,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    return (ICE / out).resolve().parent / "icenine_py"
+
+
+def data_path(rel: str) -> Path:
+    """``ICE / rel`` when it exists (a checkout with the data), else the main checkout's copy
+    (read-only data that is not in git, seen from a worktree)."""
+    here = ICE / rel
+    return here if here.exists() else _main_checkout() / rel
+
+
 for sub in (
     ICE / "scripts" / "eval_reduction",
     ICE / "scripts" / "phase_d",
@@ -25,8 +47,11 @@ for sub in (
     sys.path.insert(0, str(sub))
 
 OUT = ICE / "benchmarks" / "autoresearch" / "ar1"
-E0_STORED = MAIN / "benchmarks" / "eval_reduction" / "E" / "cache" / "rank" / "e0_old_base"
-PILOT_RUN = MAIN / "benchmarks" / "eval_reduction" / "G" / "g2" / "bfs" / "runs" / "keyoff_rerun"
+E0_STORED = data_path("benchmarks/eval_reduction/E/cache/rank/e0_old_base")
+PILOT_RUN = data_path("benchmarks/eval_reduction/G/g2/bfs/runs/keyoff_rerun")
+# the pilot voxels that took a full search: more evaluations than this (a full search costs about
+# 330 000, a local fit about 700; the gap in records.json is clean)
+FULL_SEARCH_MIN_EVALS = 100_000
 
 _B: Any = None
 
@@ -53,7 +78,8 @@ def e0_stored() -> Dict[int, Dict[str, float]]:
 
 def pilot_stored() -> Dict[int, Dict[str, Any]]:
     """Stored pilot (key-off rerun) full searches: full-sample voxel index -> row, err (deg),
-    source, evaluations, hit ratio. Error from recon.mic against the truth (cubic symmetry)."""
+    source, evaluations, hit ratio, seed_rejected. Error from recon.mic against the truth (cubic
+    symmetry)."""
     import g2_bfs
 
     e = g2_bfs.errors(PILOT_RUN)
@@ -63,15 +89,18 @@ def pilot_stored() -> Dict[int, Dict[str, Any]]:
     for i, (src, nev) in enumerate(zip(e["source"], e["n_evals"])):
         # a full search costs about 330 000 evaluations, a local fit about 700; the 69 full searches
         # are the 62 voxels whose final source is "seed" plus 5 "revisit" and 2 "unresolved"
-        # voxels that a reseed searched and a later revisit or a failed fit overwrote
-        if nev > 100_000:
+        # voxels: these 7 are seeds that the seed test rejected (seed_rejected = True), whose
+        # stored result is the later revisit or the failed fit, not the full search's own result
+        if nev > FULL_SEARCH_MIN_EVALS:
+            r = rec[str(int(e["row"][i]))]
             out[int(idx[e["row"][i]])] = dict(
                 row=int(e["row"][i]),
                 err=float(e["err"][i]),
                 source=str(src),
                 evals=int(nev),
-                hit=float(rec[str(i)]["hit_ratio"]),
+                hit=float(r["hit_ratio"]),
                 grain=int(e["grain"][i]),
+                seed_rejected=bool(r["seed_rejected"]),
             )
     return out
 
