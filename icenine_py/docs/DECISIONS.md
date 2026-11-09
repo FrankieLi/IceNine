@@ -779,3 +779,12 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   yes when the files are identical to the merged branch's committed files) and item 23 (rerunning
   a refused command in the form the refusal message suggests; Newt recommends confirming). Where:
   docs/owner_review_2026-10-30.md, section "Decisions of 2026-11-09".
+
+### D-20261109-N5 · Track E row AR (autoresearch) · Delegated: the autoresearch plan docs/autoresearch/PLAN.md is approved under the owner's mandate of 2026-11-09
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1 (the owner asked for an autoresearch stage that runs and
+  restarts by itself): docs/autoresearch/PLAN.md is approved for implementation, steps AR0 to AR5,
+  in the plan's order and with its gates (AR2, AR3 and AR4 start only after AR1). The owner has
+  not read the plan; any word from the owner on it replaces this entry. Limits as in N1: no merge
+  to develop without the owner's go, no change to .claude/ files, no loosening of a guard on the
+  agents. Where: docs/autoresearch/PLAN.md; docs/autoresearch/STATE.md.
