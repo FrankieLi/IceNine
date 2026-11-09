@@ -85,7 +85,7 @@ are still yours; they come first.
 
 Still with you:
 
-- **Item 7, the merge to `develop`.** Newt opens the PR; the merge waits for your go.
+- **Item 7, the merge to `develop`.** PR #41 is open (2026-11-09); the merge waits for your go.
 - **Items 12, 22 and 23.** They change what the agents themselves may do, so an agent should not
   decide them. Newt recommends yes to all three (for item 22: only when the `.claude/` files are
   identical to the files already committed on the merged branch).
@@ -103,7 +103,7 @@ Reading the table: one row per item, with the decision and who acts next.
 | 3 timing A/B | Run it as part of item 14: `FusedCost` on in both arms, smooth key on against off, one worker each. | Newt |
 | 4 `SmoothCostRank` default | Stays opt-in, off by default. No golden moves. | none |
 | 5 full-sample BFS run | Run once after item 14, `FusedCost` on, smooth key off. It is the baseline of the autoresearch stage and the key-off arm of the `BatchedQuickMC` test. | Newt |
-| 6 review fixes | `/review-task`, then merge. | Newt |
+| 6 review fixes | `/review-task`, then merge. **Done 2026-11-09**: approved, 4 fixes applied, merged (d113694). | done |
 | 7 PR to `develop` | Newt opens it after item 6. | you (merge) |
 | 8 `ScreenEvaluator` follow-up | Folded into the screen port (item 21). | Ilium |
 | 9 S2 full review | S2 is accepted on its record. Your own reading stays open; nothing waits for it. | none |
@@ -115,7 +115,7 @@ Reading the table: one row per item, with the decision and who acts next.
 | 15 S6 | Ilium runs it on Ilium's machine, after the screen port. | Ilium |
 | 16 withdrawal check | Left as it is until it refuses a plan that is in use. | none |
 | 17 GCC and Linux | Validate before the first use on Linux. Nothing to run now; the key should warn on an unvalidated compiler. | Ilium |
-| 18 does C++ fuse | Newt checks on Newt's machine, which has the C++ build. | Newt |
+| 18 does C++ fuse | **Checked 2026-11-09: yes.** Apple clang 21 at the Release flags (`-O3`, no contraction flag) compiles the clip's `p0 + slope * (m - p0)` to one fused multiply-add, in single precision. With `-ffp-contract=off` it is a separate multiply and add. Test: `scripts/autoresearch/item18/clip_fma.cpp`. | done |
 | 19 C++ toolchain for Ilium | Not installed. C++ checks go to Newt through the mailbox. | none |
 | 20 `FusedCost` default | Off by default. Every timing baseline of new work uses it on. | both |
 | 21 screen port | Next Track S speed item. Design it layer-wide: one orientation across all voxels at a time. | Ilium (plan), you (approval) |

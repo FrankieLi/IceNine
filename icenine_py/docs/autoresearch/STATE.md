@@ -74,7 +74,7 @@ Reading the table: one row per step, in order, with its state.
 | AR1 | recall of the ray-indexing proposer | implementer running, branch `feature/eval-reduction-ar1` |
 | item 7 | open the PR to `develop` (merge waits for the owner) | **open**: PR #41 (2026-11-09). Not merged. Add a full-suite test count to its body before asking for the merge |
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
-| item 18 | does C++'s clang fuse the clip's multiply-adds | not started |
+| item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
 | AR2 | indexing as the BFS seed search | waits for AR1 |
 | AR3 | index the layer and paint grains | waits for AR1 |
@@ -102,6 +102,11 @@ E0 is 200 hard voxels; the pilot is the 2,000-voxel BFS key-off rerun. Lower cos
   proposer must replace the screen (AR1, AR4).
 - Pilot: at a hit-ratio cut of 0.93, all 1,948 answers at or above are right; all 37 wrong ones
   are below, with 15 right local fits. Picked and read on the same run.
+
+**Item 18.** The C++ build on this machine fuses the clip's multiply-add: Apple clang 21.0.0 (arm64) at
+`-O3 -DNDEBUG` compiles `p0 + slope * (m - p0)` of `SutherlandHodgman.h` to one `fmadd` (single
+precision); with `-ffp-contract=off` it is `fmul` then `fadd`. Test: `scripts/autoresearch/item18/clip_fma.cpp`.
+Not checked: GCC, x86.
 
 ## For the owner
 
