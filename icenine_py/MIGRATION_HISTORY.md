@@ -11163,3 +11163,21 @@ rule from the hit ratio and the votes of the rays the current orientation leaves
 learned proposer that reads the rays near a voxel and ranks grid orientations, measured against H1;
 H5, the order of the layer-wide screen and the BFS (idea A1) as the fallback. Steps AR0 to AR5; no
 step has run yet. Results will be added here step by step.
+
+## Autoresearch AR0: what the stored results say about stopping (done 2026-11-09)
+
+Step AR0 of `docs/autoresearch/PLAN.md`. No new search was run. Script
+`scripts/autoresearch/ar0/stopping.py`; results `benchmarks/autoresearch/ar0/`; findings
+`docs/autoresearch/findings_ar0_stopping.md`. Reviewed (12 fixes, all applied) and merged (0decc3a).
+
+- On E0 (200 hard voxels) the final cost tells right from wrong with no mistake: 159 right voxels at
+  0.390 or less, 41 wrong at 0.673 or more. The cut was read on the same 200 voxels.
+- The best cost after a grid level does not separate them. On E0 a rule "stop after level k when
+  the best cost is at most c" saves at most 1.26% of the evaluations with no voxel broken if the
+  finisher is skipped, and 0.37% if it still runs.
+- That is an E0 result. On E0 the level-0 screen and re-cost is 90.7% of the evaluations; on
+  full-sample voxels it is 23.7%, and 39.2% come after level 0. A stop after level 0 could save far
+  more there. Untested: no per-level record exists for full-sample searches. It is the first job of
+  step AR5.
+- On the pilot's key-off rerun a hit-ratio cut of 0.93 has all 37 wrong voxels below it, with 15
+  right ones; all 1,948 answers at or above it are right. Picked and read on the same run.
