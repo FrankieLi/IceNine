@@ -741,3 +741,13 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   item 6; the merge waits for the owner's go. Item 8: the ScreenEvaluator follow-up is folded into
   the screen port (item 21) and is not scheduled by itself. Where:
   docs/owner_review_2026-10-30.md, section "Decisions of 2026-11-09".
+
+### D-20261109-N3 · Both tracks (review items 14-16) · Delegated: review items 14-16 (both tracks)
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1. Item 14: FusedCost and SmoothCostRank are run together on E0
+  (200 voxels) and on the 2,000-voxel BFS pilot; Newt runs it; the arms compare wrong counts, not
+  records, and the timing arms are single-worker on a quiet machine. Item 15: Ilium runs S6 on
+  Ilium's machine, where the Phase D images now are, after the screen port (item 21), with
+  FusedCost on and off. Item 16: the withdrawal check of make_brief.sh stays as it is; it is
+  narrowed only when it refuses a plan that is in use. Where: docs/owner_review_2026-10-30.md,
+  section "Decisions of 2026-11-09".
