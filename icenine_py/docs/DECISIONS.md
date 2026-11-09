@@ -724,3 +724,20 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   merge to develop without the owner's go, no change to .claude/ files, and no loosening of a
   guard that constrains the agents. Where: docs/autoresearch/PLAN.md; docs/autoresearch/STATE.md;
   docs/owner_review_2026-10-30.md, section "Decisions of 2026-11-09".
+
+### D-20261109-N2 · Track E rows G, X1 (review items 1-8) · Delegated: review items 1-8 (Track E)
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1. Item 1: the G3 arm's 3.2 h run is accepted after the fact;
+  D-20261029-N3 approved the arm and set no time. From now on a run that passes its plan's stop
+  line is stopped, or gets a decision entry before it goes on. Item 2: the key-off rerun on
+  today's code is the baseline of the BFS pilot. Item 3: the timing A/B is run as part of item 14,
+  with FusedCost on in both arms, SmoothCostRank on against off, one worker each, on a quiet
+  machine; no separate run with FusedCost off. Item 4: SmoothCostRank stays opt-in and off by
+  default; no golden moves. Item 5: the full-sample BFS run goes ahead once, after item 14, with
+  FusedCost on and SmoothCostRank off; it is the wall-clock and accuracy baseline of Track A and
+  the key-off arm of the BatchedQuickMC large-scale test (D-20261101-I1). A SmoothCostRank arm at
+  full scale is run only if item 14 shows a gain larger than the pilot's 3 voxels. Item 6:
+  /review-task on the review-fix branch, then merge it. Item 7: Newt opens the PR to develop after
+  item 6; the merge waits for the owner's go. Item 8: the ScreenEvaluator follow-up is folded into
+  the screen port (item 21) and is not scheduled by itself. Where:
+  docs/owner_review_2026-10-30.md, section "Decisions of 2026-11-09".
