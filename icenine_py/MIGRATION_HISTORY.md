@@ -8629,9 +8629,11 @@ Steps 4 and 5 of Task G (plan approved D-20261028-N2), plus one BFS arm (D-20261
 * **Trace.** In all five pilot-region runs every wrong voxel carries the orientation of a grain it touches (within 0.01 deg of that
   grain, its vertex within 9.4 um). With the key on none of the 34 comes from a wrong full search (key off: 5 of 37). The arm's 11
   breaks are all boundary crossings from right full searches (neighbour fits, where the key's ranking does not act): none traced to
-  the key's ranking, but not the draw either, since the key changed the BFS path (review fix 2: verdict "boundary crossing"). Its
-  14 fixes are 10 boundary crossings and 4 from two wrong key-off full searches; the probe re-runs of those two (full-sample voxels
-  8866, 15749) are right with the key off and on, so those 4 are traced to the draw (D-20261014-N13: 0 traced to the arm, 0 untraced).
+  the key's ranking, but not the draw either, since the key changed the BFS path (review fix 2: verdict "boundary crossing"). N13
+  does not cover a boundary crossing; under D-20261109-N6 it counts neither for nor against the key (counted as untraced, the N13
+  default, all 11 breaks would count against it). Its 14 fixes are 10 boundary crossings and 4 from two wrong key-off full
+  searches; the probe re-runs of those two (full-sample voxels 8866, 15749) are right with the key off and on, so those 4 are
+  traced to the draw (D-20261014-N13: 0 traced to the arm, 0 untraced).
 * **Time of the key in a BFS.** Per full search 154 s (smooth only) and 147 s (integrated) against 114 s key off (+35.4% with the key
   alone, where the strict-equivalent weight predicts +20.7%), implying about 2.6 ms per smooth evaluation against Task E's 1.639 ms;
   a scratch check showed the cache is hit inside the BFS reconstructor (one build, one hit), so it is not a rebuild. Contention

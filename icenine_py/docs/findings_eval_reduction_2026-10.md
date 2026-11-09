@@ -36,8 +36,9 @@ their neighbours).
    settled.** It has 34 wrong voxels against 37 with the key off (14 fixed, 11 broken), and no grain
    lost. None of the 25 flips traces to the key's ranking. All 11 it breaks are boundary crossings in
    neighbour fits, where the key does not act, but after the key had changed the BFS path (fewer
-   seeds and reseeds). It makes fewer strict evaluations (24,490,331 against 25,547,935, because it
-   needed 65 full searches against 69) plus 980,594 smooth ones: +12.4% in strict-equivalent units
+   full searches: 35 seeds against 40, 30 reseeds against 29; 3 seed rejections against 6). It
+   makes fewer strict evaluations (24,490,331 against 25,547,935, because it needed 65 full
+   searches against 69) plus 980,594 smooth ones: +12.4% in strict-equivalent units
    over the whole run. Measured per full search, though, the BFS took 35.4% longer with the key
    (154 s against 114 s), where the strict-equivalent weight predicts +20.7%. The runs were contended
    at different levels and the cause was not tested, so the key's true time cost in a BFS may be
@@ -81,7 +82,9 @@ their neighbours).
   it (for example its key dropped the truth's basin), or if nobody could trace it ("untraced"). In
   the BFS a third verdict is kept apart: *boundary crossing*, a neighbour fit that carried a right
   orientation over a grain boundary. It is not called the draw, because the change may have altered
-  the BFS path that led there, and it is not traced to the arm either.
+  the BFS path that led there, and it is not traced to the arm either. N13 does not cover this case;
+  under D-20261109-N6 a boundary crossing counts neither for nor against the change, and it is
+  reported in its own column.
 * **Origin not found.** In the BFS origin tables, a wrong voxel whose orientation matches none of
   the run's full-search voxels. This is a different thing from the N13 verdict "untraced".
 * **Voxel sets.** *Six full-sample voxels*: six interior voxels of the clean full-sample images.
@@ -320,7 +323,9 @@ Reading the table: the flips of each pair split the same way. "broken" voxels ar
 All 11 voxels it breaks are boundary crossings from right full searches: neighbour fits, where the
 key's ranking does not act. None traces to the key's ranking. They are not called the draw either:
 the key changed the BFS path (fewer seeds rejected, a different set of full searches), and these
-crossings happened downstream of that path. Of the 14 it fixes, 10 are boundary crossings in the
+crossings happened downstream of that path. N13 does not cover such a voxel; under D-20261109-N6
+it counts neither for nor against the key. Counted as untraced (the N13 default), all 11 breaks
+would count against the key. Of the 14 it fixes, 10 are boundary crossings in the
 key-off run and 4 came from two wrong full searches of the key-off run. We re-ran those two full
 searches through Task E's probe with the key off and on. Both came out right either way, so those 4
 fixes trace to the draw, not to the key.
