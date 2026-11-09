@@ -12,18 +12,24 @@ orientations under 1 degree) and how many attached rays it explains. A miss (ran
   too_few_rays   the truth explains fewer than 8 attached rays
   neighbour      rank 1 equals the true orientation of another grain, which explains more rays
   no_grain       rank 1 matches no grain of the sample (a coincidence of rays)
+For a miss whose rank 1 is another grain, whether that grain touches the voxel: a voxel of that
+grain shares a vertex with it (``touches``), and the smallest vertex-to-vertex distance between
+the voxel and that grain in voxel sides (``gap_sides``, 0 when touching). Grain map and vertices
+from the simulation's input .mic.
 
   uv run python scripts/autoresearch/ar1/misses.py [--tag base]
-Writes benchmarks/autoresearch/ar1/misses_pilot_<tag>.json.
+Writes benchmarks/autoresearch/ar1/misses_pilot_<tag>.json and context_pilot.json (voxels in the
+.mic, grains in the pilot region, the frame width, the full-search threshold).
 """
 
 import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
+from scipy.spatial import cKDTree
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ar1_common as AC  # noqa: E402
@@ -38,7 +44,40 @@ GRAINMAP = (
     / "SimInput"
     / "rand_500grains_1mm_neworient_s0_grainmap.npy"
 )
+MIC = GRAINMAP.parent / "rand_500grains_1mm_neworient_s0.mic"
 P = RI.IndexParams()
+
+
+def voxel_vertices_xy(mic_path: Path) -> Tuple[np.ndarray, np.ndarray]:
+    """In-plane vertices (N, 3, 2) of the .mic's triangles (as ``_get_voxel_vertices``) and the
+    side length of each voxel (N,)."""
+    from icenine.mic_file import MicFile
+
+    m = MicFile.read(str(mic_path))
+    xy = np.array([v.position[:2] for v in m.voxels], dtype=np.float64)
+    s = np.array([v.side_length for v in m.voxels], dtype=np.float64)
+    up = np.array([v.points_up for v in m.voxels], dtype=bool)
+    h = s * np.sqrt(3.0) / 2.0
+    out = np.empty((len(xy), 3, 2))
+    out[:, 0] = xy
+    out[:, 1, 0] = np.where(up, xy[:, 0] + s, xy[:, 0] + s / 2.0)
+    out[:, 1, 1] = np.where(up, xy[:, 1], xy[:, 1] - h)
+    out[:, 2, 0] = np.where(up, xy[:, 0] + s / 2.0, xy[:, 0] + s)
+    out[:, 2, 1] = np.where(up, xy[:, 1] + h, xy[:, 1])
+    return out, s
+
+
+def touch(voxel: int, grain: int, gmap: np.ndarray, vxy: np.ndarray, side: np.ndarray) -> Dict:
+    """Whether ``grain`` touches ``voxel`` (a voxel of the grain shares a vertex with it, within
+    1e-3 of a side), whether one shares an edge (two vertices), and the smallest vertex distance
+    between them in voxel sides."""
+    gv = vxy[gmap == grain]  # (m, 3, 2)
+    d, j = cKDTree(gv.reshape(-1, 2)).query(vxy[voxel], k=1)
+    gap = float(d.min() / side[voxel])
+    tol = 1e-3 * side[voxel]
+    near = np.linalg.norm(gv[:, :, None, :] - vxy[voxel][None, None, :, :], axis=-1) < tol
+    shared = near.any(axis=2).sum(axis=1)  # vertices of each grain voxel on the voxel's vertices
+    return dict(touches=bool(gap < 1e-3), shares_edge=bool((shared >= 2).any()), gap_sides=gap)
 
 
 def ray_grains(sc: Any, z: Any, grain_of_voxel: np.ndarray, att: np.ndarray) -> List[set]:
@@ -81,6 +120,8 @@ def main() -> None:
         [[0], np.cumsum(np.bincount(tri_comp, minlength=len(z["comp_frame"])))]
     )
     gmap = np.load(GRAINMAP)
+    vxy, side = voxel_vertices_xy(MIC)
+    assert len(vxy) == len(gmap), "grain map and .mic differ in length"
     stored = AC.pilot_stored()
     cand = np.load(AC.OUT / f"cand_pilot_{a.tag}.npz")
     AC.init("full")
@@ -142,13 +183,30 @@ def main() -> None:
                 row["reason"] = "neighbour"
             else:
                 row["reason"] = "no_grain"
+            if match is not None and maj != G:
+                row["rank1_grain_touch"] = touch(v, maj, gmap, vxy, side)
         rows.append(row)
     AC.OUT.mkdir(parents=True, exist_ok=True)
     (AC.OUT / f"misses_pilot_{a.tag}.json").write_text(json.dumps(rows) + "\n")
+    region = np.load(AC.ICE / "benchmarks" / "phase_d_pilot" / "region_index.npy")
+    sc0 = AC.env("full", sorted(stored)[0])["sc"]
+    context = dict(
+        mic_voxels=int(len(gmap)),
+        region_voxels=int(len(region)),
+        region_grains=int(len(np.unique(gmap[region]))),
+        full_search_min_evals=int(AC.FULL_SEARCH_MIN_EVALS),
+        frame_width_deg=float(np.degrees(np.median(np.diff(RI.frame_centre_omegas(sc0))))),
+        voxel_side_mm=float(np.median(side)),
+    )
+    (AC.OUT / "context_pilot.json").write_text(json.dumps(context, indent=1) + "\n")
     miss = [r for r in rows if "reason" in r]
     print("n", len(rows), "rank1 misses", len(miss))
     for k in ("too_few_rays", "neighbour", "no_grain"):
         print(k, sum(r["reason"] == k for r in miss))
+    print(
+        "rank-1 grain touches the voxel",
+        sum(r.get("rank1_grain_touch", {}).get("touches", False) for r in miss),
+    )
     print(
         "median attached",
         np.median([r["n_att"] for r in rows]),
