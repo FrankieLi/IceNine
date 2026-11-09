@@ -32,6 +32,7 @@ def main() -> None:
     ap.add_argument("kind", choices=["e0", "pilot"])
     ap.add_argument("--n", type=int, default=0)
     ap.add_argument("--tag", default="base")
+    ap.add_argument("--part", default="0/1", help="i/n: this process takes voxels i::n")
     ap.add_argument("--set", nargs="*", default=[], help="IndexParams overrides key=value")
     a = ap.parse_args()
     p = RI.IndexParams()
@@ -43,6 +44,8 @@ def main() -> None:
     voxels = sorted(stored)
     if a.n:
         voxels = voxels[: a.n]
+    pi, pn = (int(x) for x in a.part.split("/"))
+    voxels = voxels[pi::pn]
     AC.init(kind)
     rows: List[Dict[str, Any]] = []
     cand_R: Dict[str, np.ndarray] = {}
@@ -97,7 +100,7 @@ def main() -> None:
             flush=True,
         )
     AC.OUT.mkdir(parents=True, exist_ok=True)
-    stem = f"{a.kind}_{a.tag}"
+    stem = f"{a.kind}_{a.tag}" + (f"_p{pi}" if pn > 1 else "")
     (AC.OUT / f"recall_{stem}.json").write_text(
         json.dumps(dict(params=asdict(p), rows=rows)) + "\n"
     )

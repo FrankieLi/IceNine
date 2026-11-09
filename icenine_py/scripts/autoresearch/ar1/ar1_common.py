@@ -76,6 +76,21 @@ def pilot_stored() -> Dict[int, Dict[str, Any]]:
     return out
 
 
+def load_recall(kind: str, tag: str = "base") -> Tuple[List[Dict[str, Any]], Dict[str, np.ndarray]]:
+    """Rows and candidate rotations of recall.py, merged over its parts (``_p<i>``) if split."""
+    files = sorted(OUT.glob(f"recall_{kind}_{tag}.json")) or sorted(
+        OUT.glob(f"recall_{kind}_{tag}_p*.json")
+    )
+    rows: List[Dict[str, Any]] = []
+    cand: Dict[str, np.ndarray] = {}
+    for f in files:
+        rows += json.loads(f.read_text())["rows"]
+        z = np.load(OUT / f.name.replace("recall_", "cand_").replace(".json", ".npz"))
+        cand.update({k: z[k] for k in z.files})
+    rows.sort(key=lambda r: r["voxel"])
+    return rows, cand
+
+
 def init(kind: str) -> None:
     bench().init_worker(kind)
 

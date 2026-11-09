@@ -44,10 +44,8 @@ def main() -> None:
     i, n = (int(x) for x in a.part.split("/"))
     voxels = voxels[i::n]
     stem = f"{a.kind}_{a.tag}"
-    cand = np.load(AC.OUT / f"cand_{stem}.npz")
-    recall = {
-        r["voxel"]: r for r in json.loads((AC.OUT / f"recall_{stem}.json").read_text())["rows"]
-    }
+    rrows, cand = AC.load_recall(a.kind, a.tag)
+    recall = {r["voxel"]: r for r in rrows}
     out_path = AC.OUT / f"e2e_{stem}_part{i}of{n}.json"
     AC.init(kind)
     from icenine.reconstructor import SearchCandidate
@@ -69,16 +67,32 @@ def main() -> None:
         dist = RI.misorientation_deg(R, Rt[None], sym)
         pick = {K: int(np.argmin(costs[: min(K, len(R))])) for K in (1, 5, 20)}
         best = pick[K_FINISH]
-        t1 = time.perf_counter()
-        res = rec.refine_from_candidates(
-            [SearchCandidate(orientation=R[best].copy(), cost=float(costs[best]))],
-            verts,
-            phase,
-            rng=np.random.default_rng(0),
-        )
-        t_fin = time.perf_counter() - t1
-        n_fin = int(rec.last_eval_counts[1])
-        err_fin = float(RI.misorientation_deg(np.asarray(res.orientation)[None], Rt[None], sym)[0])
+        # the finisher on the best three of the first five by strict cost, one run each (arm
+        # "finish 1" is the first, "finish 3" keeps the lowest final cost of the three)
+        order = np.argsort(costs[: min(K_FINISH, len(R))], kind="stable")[:3]
+        fins: List[Dict[str, Any]] = []
+        for j in order:
+            t1 = time.perf_counter()
+            res = rec.refine_from_candidates(
+                [SearchCandidate(orientation=R[j].copy(), cost=float(costs[j]))],
+                verts,
+                phase,
+                rng=np.random.default_rng(0),
+            )
+            fins.append(
+                dict(
+                    cand=int(j),
+                    evals=int(rec.last_eval_counts[1]),
+                    seconds=time.perf_counter() - t1,
+                    err=float(
+                        RI.misorientation_deg(np.asarray(res.orientation)[None], Rt[None], sym)[0]
+                    ),
+                    cost=float(res.cost),
+                )
+            )
+        t_fin = fins[0]["seconds"]
+        n_fin = fins[0]["evals"]
+        err_fin = fins[0]["err"]
         rows.append(
             dict(
                 voxel=v,
@@ -92,7 +106,8 @@ def main() -> None:
                 finisher_evals=n_fin,
                 strict_evals=len(R),
                 err_final=err_fin,
-                cost_final=float(res.cost),
+                cost_final=fins[0]["cost"],
+                finishers=fins,
                 index_s=recall[v]["wall_s"],
                 strict_s=t_strict,
                 finisher_s=t_fin,
@@ -101,7 +116,8 @@ def main() -> None:
         print(
             v,
             f"stored={stored[v]['err']:.3f} pick5={dist[best]:.3f} final={err_fin:.3f}",
-            f"fin_evals={n_fin} cost={float(res.cost):.3f} fin_s={t_fin:.1f}",
+            f"fin_evals={n_fin} cost={fins[0]['cost']:.3f} fin_s={t_fin:.1f}",
+            f"best3_err={min(fins, key=lambda f: f['cost'])['err']:.3f}",
             flush=True,
         )
         out_path.write_text(json.dumps(dict(rows=rows, label="contended")) + "\n")
