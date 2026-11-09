@@ -77,9 +77,58 @@ S4 sections.
    use, with the S2 follow-ups of 2026-10-29 (D-20261028-I3 to I5) and the `make_brief.sh`
    supersede fix of 2026-10-31 (item 16).
 
+## Decisions of 2026-11-09
+
+On 2026-11-09 you asked Newt to decide the 24 items below (D-20261109-N1). The decisions are
+recorded as D-20261109-N2 (items 1-8), N3 (items 14-16) and N4 (items 9-13, 17-24). Four things
+are still yours; they come first.
+
+Still with you:
+
+- **Item 7, the merge to `develop`.** Newt opens the PR; the merge waits for your go.
+- **Items 12, 22 and 23.** They change what the agents themselves may do, so an agent should not
+  decide them. Newt recommends yes to all three (for item 22: only when the `.claude/` files are
+  identical to the files already committed on the merged branch).
+- **Approval of Ilium's next plans**: the screen port (item 21) and the `BatchedQuickMC` large-scale
+  test (D-20261101-I1).
+- **shmem**: `shmem ask` fails on this machine (the API key in `~/.shmem/.env` is refused, and the
+  local embedder is not running). `shmem query` and `shmem add` work.
+
+Reading the table: one row per item, with the decision and who acts next.
+
+| item | decision | who acts |
+|---|---|---|
+| 1 G3 budget | The 3.2 h run is accepted after the fact. From now on a run that passes its stop line is stopped, or gets a decision entry first. | none |
+| 2 pilot baseline | The key-off rerun on today's code is the baseline. | none |
+| 3 timing A/B | Run it as part of item 14: `FusedCost` on in both arms, smooth key on against off, one worker each. | Newt |
+| 4 `SmoothCostRank` default | Stays opt-in, off by default. No golden moves. | none |
+| 5 full-sample BFS run | Run once after item 14, `FusedCost` on, smooth key off. It is the baseline of the autoresearch stage and the key-off arm of the `BatchedQuickMC` test. | Newt |
+| 6 review fixes | `/review-task`, then merge. | Newt |
+| 7 PR to `develop` | Newt opens it after item 6. | you (merge) |
+| 8 `ScreenEvaluator` follow-up | Folded into the screen port (item 21). | Ilium |
+| 9 S2 full review | S2 is accepted on its record. Your own reading stays open; nothing waits for it. | none |
+| 10 GPU or fused CPU | The fused CPU path takes priority. No GPU work on the strict cost until CUDA hardware is in use. | none |
+| 11 `BatchedQuickMC` with `FusedCost` | Not in the recommended configuration when `FusedCost` is on. Its large-scale test stays; run its accuracy arms with `FusedCost` on. | Ilium (plan) |
+| 12 `.claude/` edits | Not decided by Newt. Recommendation: yes to both. | you |
+| 13 quiet-machine repeats | Rerun the S1 and S3 timings single-worker under the preflight, and relabel. | Ilium |
+| 14 both keys together | Run on E0 and the BFS pilot; compare wrong counts; time single-worker. | Newt |
+| 15 S6 | Ilium runs it on Ilium's machine, after the screen port. | Ilium |
+| 16 withdrawal check | Left as it is until it refuses a plan that is in use. | none |
+| 17 GCC and Linux | Validate before the first use on Linux. Nothing to run now; the key should warn on an unvalidated compiler. | Ilium |
+| 18 does C++ fuse | Newt checks on Newt's machine, which has the C++ build. | Newt |
+| 19 C++ toolchain for Ilium | Not installed. C++ checks go to Newt through the mailbox. | none |
+| 20 `FusedCost` default | Off by default. Every timing baseline of new work uses it on. | both |
+| 21 screen port | Next Track S speed item. Design it layer-wide: one orientation across all voxels at a time. | Ilium (plan), you (approval) |
+| 22 hook on merges | Not decided by Newt. Recommendation: yes, for identical files only. | you |
+| 23 refused commands | Not decided by Newt. Recommendation: confirm Ilium's reading. | you |
+| 24 Q8 leftovers | No reseed. The no-drop pilot is dropped. Studies stay on clean images. | none |
+
+What comes next is the autoresearch stage (Track A): plan `docs/autoresearch/PLAN.md`, saved state
+`docs/autoresearch/STATE.md`.
+
 ## Waiting on you
 
-One list for both tracks. Each item names its track, the question, the agent's proposal if any, and
+The list as it stood before the decisions above. One list for both tracks. Each item names its track, the question, the agent's proposal if any, and
 where to read.
 
 Track E:
