@@ -706,3 +706,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   Recorded as idea A1 in docs/todo_autoresearch.md (new file for such ideas). Not planned; waits
   for that stage and the owner's pick. Where: docs/todo_autoresearch.md A1; ROADMAP Track S row
   S7.
+
+### D-20261109-N1 · Both tracks (review page) and Track A (autoresearch) · Owner delegates the 24 review items to Newt and sets five goals for an autoresearch stage that restarts by itself
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Owner, 2026-11-09, to Newt Agent: 'go through the doc and make the best possible decision based
+  on what you understand and answers from shmem.' Goals, in the owner's words: (1) 'Find ways to
+  reduce both the total number of operations and the total wall-clock time of performing the HEDM
+  reconstruction for a strain-free sample using the current physical assumptions.' (2) 'Look for
+  ways to accelerate with deep learning methods', in particular an approximation that accelerates
+  the grid search, given the repetitive nature of the problem. (3) 'We are allowed to discard this
+  assumption of voxel-by-voxel reconstruction.' (4) A lower-quality approximation followed by a
+  final optimization is fine. (5) 'General early stopping algorithms are desired': a way to
+  predict whether further optimization will improve a voxel. Also: 'Create a mechanism so that you
+  will restart automatically and save states accordingly', using shmem. Newt reads this as the go
+  for an autoresearch stage (Track A) that runs without a per-plan approval: its plan is
+  docs/autoresearch/PLAN.md and its saved state docs/autoresearch/STATE.md. Limits Newt keeps: no
+  merge to develop without the owner's go, no change to .claude/ files, and no loosening of a
+  guard that constrains the agents. Where: docs/autoresearch/PLAN.md; docs/autoresearch/STATE.md;
+  docs/owner_review_2026-10-30.md, section "Decisions of 2026-11-09".
