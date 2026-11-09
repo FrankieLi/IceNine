@@ -36,16 +36,12 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
 - Plan approved under the mandate (D-20261109-N5).
 - Item 6 is done: the review-fix branch was reviewed (APPROVE, 4 required fixes, all applied) and
   merged and pushed (d113694). D-20261109-N6 settles how a boundary crossing is counted.
-- AR0 analysis is done and written up on its branch. Its review (`.claude/reports/20261109-review-ar0.md`) asks for 12 fixes; an Opus implementer is applying
-  them in the AR0 worktree (brief: fixes by path, report `.claude/reports/20261109-1509-ar0-fixes.md`).
+- AR0 is done: reviewed, 12 fixes applied, merged and pushed (0decc3a). Results below.
 - AR1 implementer is running.
 
 ## Next action
 
-1. AR0: when the fix agent has reported (commits on the branch after baa63ce), check the fixes
-   against the review's list, then merge `feature/eval-reduction-ar0` with
-   `scripts/dev/finish_task.sh --yes --push` from its worktree
-   (`.claude/worktrees/agent-a3380edb16bb98f26`). Then add the AR0 result to MIGRATION_HISTORY.
+1. AR0: done. Nothing left.
 2. AR1: when `.claude/reports/20261109-1439-ar1.md` exists (in the main checkout or in the worktree
    `.claude/worktrees/agent-af5119989737208f0`), run `scripts/dev/verify_handback.sh`, then
    `/review-task`, apply fixes, merge, and write the result under "Results so far", in
@@ -71,7 +67,7 @@ Reading the table: one row per step, in order, with its state.
 | step | what | state |
 |---|---|---|
 | item 6 | review and merge the review fixes | **done** 2026-11-09 (d113694) |
-| AR0 | stop rules from the stored results | analysis and findings on `feature/eval-reduction-ar0` (f4a1654, baa63ce); reviewed, 12 fixes being applied |
+| AR0 | stop rules from the stored results | **done** 2026-11-09 (0decc3a) |
 | AR1 | recall of the ray-indexing proposer | implementer running, branch `feature/eval-reduction-ar1` |
 | item 7 | open the PR to `develop` (merge waits for the owner) | **open**: PR #41 (2026-11-09). Not merged. Add a full-suite test count to its body before asking for the merge |
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
@@ -86,28 +82,29 @@ Reading the table: one row per step, in order, with its state.
 ## Running jobs
 
 Agents of the session of 2026-11-09 (they die with the session; `git worktree list` shows their
-worktrees, and their branches keep the commits): the AR0 fix agent and the AR1 implementer. No
+worktrees, and their branches keep the commits): the AR1 implementer. No
 detached compute job is running.
 
 ## Results so far
 
-**AR0 (reviewed; fixes in progress, so the numbers below can still change).** The review's main
-point: the shares below are E0's. On full-sample voxels the level-0 screen is about a quarter of a
-full search, not nine tenths, so a stop after level 0 could save up to about 39% there. That is
-untested: the pilot's `records.json` has no per-level record. A per-level record on full-sample
-voxels is a new run and belongs to AR5. Also: with the finisher charged, the safe savings on E0
-are smaller still (0.1% to 0.4%). Page: `docs/autoresearch/findings_ar0_stopping.md` on the AR0 branch.
-E0 is 200 hard voxels; the pilot is the 2,000-voxel BFS key-off rerun. Lower cost is better.
+**AR0 (done, reviewed).** Page: `docs/autoresearch/findings_ar0_stopping.md`. E0 is 200 hard
+voxels; the pilot is the 2,000-voxel BFS key-off rerun. Lower cost is better.
 
 - After a search, the final cost tells right from wrong with no mistake on E0: 159 right voxels all
-  at 0.390 or less, 41 wrong voxels all at 0.673 or more.
-- During a search, the best cost after a level does not. A rule "stop after level k when the best
-  cost is at most c" saves 1.3% of the evaluations at most with no voxel broken.
-- The reason: 90.7% of E0's evaluations are the level-0 screen. The true basin is near the top of
-  the level-0 list (median position 3 of 182). So a stop must act inside the level-0 screen, or a
-  proposer must replace the screen (AR1, AR4).
+  at 0.390 or less, 41 wrong voxels all at 0.673 or more. Read on the same 200 voxels.
+- During a search, the best cost after a level does not. On E0 a rule "stop after level k when the
+  best cost is at most c" saves at most 1.26% of the evaluations with no voxel broken (finisher
+  skipped), 0.37% if the finisher still runs.
+- That is E0 only. Level-0 screen and re-cost: 90.7% of the evaluations on E0, 23.7% on full-sample
+  voxels (332,046 per search), where 39.2% come after level 0. A stop after level 0 could save far
+  more there. Untested: the pilot's `records.json` has no per-level record. First job of AR5.
+- On full-sample voxels the screen is 13.2% of the evaluations but 0.9% of the wall time (contended
+  timing). So evaluations and wall time do not rank the stages the same way.
 - Pilot: at a hit-ratio cut of 0.93, all 1,948 answers at or above are right; all 37 wrong ones
   are below, with 15 right local fits. Picked and read on the same run.
+
+Note on the `.md` refusal: the AR0 fix agent's Write of a new report file was allowed the same
+afternoon. The refusal is not consistent; the rule in "Next action" still holds when it happens.
 
 **Item 18.** The C++ build on this machine fuses the clip's multiply-add: Apple clang 21.0.0 (arm64) at
 `-O3 -DNDEBUG` compiles `p0 + slope * (m - p0)` of `SutherlandHodgman.h` to one `fmadd` (single
