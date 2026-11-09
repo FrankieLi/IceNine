@@ -788,3 +788,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   not read the plan; any word from the owner on it replaces this entry. Limits as in N1: no merge
   to develop without the owner's go, no change to .claude/ files, no loosening of a guard on the
   agents. Where: docs/autoresearch/PLAN.md; docs/autoresearch/STATE.md.
+
+### D-20261109-N6 · Track E row G (G3, broken-voxel rule) · Delegated: a boundary crossing counts neither for nor against a lever under D-20261014-N13
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1, on the review of the review-fix branch
+  (.claude/reports/20261109-review-review-fixes.md). A broken voxel whose trace is a boundary
+  crossing (a boundary voxel that takes a touching grain's orientation) counts neither for nor
+  against the lever under the broken-voxel rule D-20261014-N13; it is reported in its own column.
+  Reason: the owner's comment of 2026-11-01 on the review page, on the finding that every wrong
+  BFS voxel is a boundary voxel carrying a touching grain's orientation: 'this is acceptable and
+  expected'. No default depends on this; SmoothCostRank stays opt-in (D-20261109-N2). Where:
+  docs/findings_eval_reduction_2026-10.md (Terms and the N13 paragraph); MIGRATION_HISTORY Task
+  G3.
