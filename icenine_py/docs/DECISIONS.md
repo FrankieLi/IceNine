@@ -663,3 +663,140 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   with SmoothCostRank E3+E4 tau 0.25 (with the cache) and OutwardSearch off, against the key-off
   rerun, paired, breaks traced (D-20261014-N13), before the total is written. Where:
   ~/.claude/plans/eval-reduction.md Task G3.
+
+### D-20261031-I1 · H12 · Delegated: make_brief supersede fix (Newt's request); a Supersedes field that begins with 'none' supersedes nothing
+- 2026-10-31, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent, on Newt Agent's request of 2026-10-29 and the review of the fix (APPROVE, 3 fixes):
+  make_brief.sh refuses an approval only when a later entry's own Supersedes field (below the
+  header line) names the approval's ID as a whole ID (I1 is not I10). A field that begins with
+  'none' supersedes nothing even when it cites an ID, for example 'Supersedes: none (a one-off
+  exception to D-20261014-N1)': the entry says it replaces nothing. A withdrawal that names the
+  plan still refuses as before. On the real DECISIONS.md the fix changes one brief:
+  todo_batched_quick_mc.md, which the old check wrongly refused. Where: ROADMAP Track H row H12;
+  scripts/dev/make_brief.sh; .claude/reports/20261031-review-brief-supersede.md.
+
+### D-20261031-I2 · H12 · Delegated: correction to D-20261031-I1; no brief needed for the S3 plan, withdrawal check left as is
+- 2026-10-31, owner. Recorded by Ilium Agent. Supersedes: none.
+- Ilium Agent: D-20261031-I1 names the S3 plan's file and uses the word for taking a plan back, so
+  make_brief.sh's withdrawal check, which this fix left unchanged, now reads I1 as taking back the
+  S3 plan, and I1's sentence that the fix changes one brief no longer holds. S3 finished on
+  2026-10-14 and needs no brief, so no action: the log stays append-only and the S3 plan gets a
+  fresh owner entry only if it is ever reopened. That check is a keyword test on any later entry
+  that names a plan; narrowing it is listed for the owner's review, not started. Lesson for
+  entries: describe a plan by its row (S3) when the text also mentions taking plans back. Where:
+  ROADMAP Track H row H12; scripts/dev/make_brief.sh; docs/owner_review_2026-10-30.md item 16.
+
+### D-20261101-I1 · S3 · BatchedQuickMC: the E0 difference is probably fine; a large-scale test comes next, and its results must be statistically the same as key off
+- 2026-11-01, owner. Recorded by Ilium Agent. Supersedes: none.
+- Owner, on the review page (comment on S3's E0 result, 107 of 600 wrong against 111): 'This is
+  probably fine. I want to do large scale test next. We expect minor difference with different
+  stochasticity. We need answers to be statistically the same.' BatchedQuickMC stays off by
+  default until that test (D-20261014-I2). The large-scale test is the next Track S item; Ilium
+  Agent drafts its plan for the owner's approval, and the plan sets the scale and how
+  'statistically the same' is judged (against the key-off arm's own seed-to-seed spread; no
+  p-values). Where: ROADMAP Track S row S3; docs/owner_review_2026-10-30.md (review page, S3
+  finding).
+
+### D-20261101-I2 · S4 (later stage) · Ordering of the layer-wide screen and the BFS goes to a later autoresearch stage, with experiments
+- 2026-11-01, owner. Recorded by Ilium Agent. Supersedes: none.
+- Owner, on the review page (S4 thread, after Ilium's answer that the S4 hybrid keeps the BFS):
+  add to a todo for a later autoresearch stage the question of which order of operations keeps the
+  advantage of the layer-wide screen and of the BFS, for example screening in batches, growing the
+  BFS from every voxel whose candidates take, and alternating back to screening; with experiments.
+  Recorded as idea A1 in docs/todo_autoresearch.md (new file for such ideas). Not planned; waits
+  for that stage and the owner's pick. Where: docs/todo_autoresearch.md A1; ROADMAP Track S row
+  S7.
+
+### D-20261109-N1 · Both tracks (review page) and Track A (autoresearch) · Owner delegates the 24 review items to Newt and sets five goals for an autoresearch stage that restarts by itself
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Owner, 2026-11-09, to Newt Agent: 'go through the doc and make the best possible decision based
+  on what you understand and answers from shmem.' Goals, in the owner's words: (1) 'Find ways to
+  reduce both the total number of operations and the total wall-clock time of performing the HEDM
+  reconstruction for a strain-free sample using the current physical assumptions.' (2) 'Look for
+  ways to accelerate with deep learning methods', in particular an approximation that accelerates
+  the grid search, given the repetitive nature of the problem. (3) 'We are allowed to discard this
+  assumption of voxel-by-voxel reconstruction.' (4) A lower-quality approximation followed by a
+  final optimization is fine. (5) 'General early stopping algorithms are desired': a way to
+  predict whether further optimization will improve a voxel. Also: 'Create a mechanism so that you
+  will restart automatically and save states accordingly', using shmem. Newt reads this as the go
+  for an autoresearch stage (Track A) that runs without a per-plan approval: its plan is
+  docs/autoresearch/PLAN.md and its saved state docs/autoresearch/STATE.md. Limits Newt keeps: no
+  merge to develop without the owner's go, no change to .claude/ files, and no loosening of a
+  guard that constrains the agents. Where: docs/autoresearch/PLAN.md; docs/autoresearch/STATE.md;
+  docs/owner_review_2026-10-30.md, section "Decisions of 2026-11-09".
+
+### D-20261109-N2 · Track E rows G, X1 (review items 1-8) · Delegated: review items 1-8 (Track E)
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1. Item 1: the G3 arm's 3.2 h run is accepted after the fact;
+  D-20261029-N3 approved the arm and set no time. From now on a run that passes its plan's stop
+  line is stopped, or gets a decision entry before it goes on. Item 2: the key-off rerun on
+  today's code is the baseline of the BFS pilot. Item 3: the timing A/B is run as part of item 14,
+  with FusedCost on in both arms, SmoothCostRank on against off, one worker each, on a quiet
+  machine; no separate run with FusedCost off. Item 4: SmoothCostRank stays opt-in and off by
+  default; no golden moves. Item 5: the full-sample BFS run goes ahead once, after item 14, with
+  FusedCost on and SmoothCostRank off; it is the wall-clock and accuracy baseline of Track A and
+  the key-off arm of the BatchedQuickMC large-scale test (D-20261101-I1). A SmoothCostRank arm at
+  full scale is run only if item 14 shows a gain larger than the pilot's 3 voxels. Item 6:
+  /review-task on the review-fix branch, then merge it. Item 7: Newt opens the PR to develop after
+  item 6; the merge waits for the owner's go. Item 8: the ScreenEvaluator follow-up is folded into
+  the screen port (item 21) and is not scheduled by itself. Where:
+  docs/owner_review_2026-10-30.md, section "Decisions of 2026-11-09".
+
+### D-20261109-N3 · Both tracks (review items 14-16) · Delegated: review items 14-16 (both tracks)
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1. Item 14: FusedCost and SmoothCostRank are run together on E0
+  (200 voxels) and on the 2,000-voxel BFS pilot; Newt runs it; the arms compare wrong counts, not
+  records, and the timing arms are single-worker on a quiet machine. Item 15: Ilium runs S6 on
+  Ilium's machine, where the Phase D images now are, after the screen port (item 21), with
+  FusedCost on and off. Item 16: the withdrawal check of make_brief.sh stays as it is; it is
+  narrowed only when it refuses a plan that is in use. Where: docs/owner_review_2026-10-30.md,
+  section "Decisions of 2026-11-09".
+
+### D-20261109-N4 · Track S rows S1-S6, Q8, H12 (review items 9-13, 17-24) · Delegated: review items 9-13 and 17-24 (Track S); items 12, 22 and 23 stay with the owner
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1. Item 9: S2 is accepted on its record (the agent reviews, E0 35
+  of 200 wrong with and without the key, agreement with C++ on Task A); the owner's own reading
+  stays open and nothing waits for it. Item 10: the fused CPU path takes priority over a GPU
+  SearchDevice for the strict cost; no GPU work on it until CUDA hardware is in use. Item 11:
+  BatchedQuickMC is not part of the recommended configuration when FusedCost is on, because it
+  gives no gain there; its large-scale test (D-20261101-I1) stays, and Newt recommends that its
+  accuracy arms run with FusedCost on, which is cheaper and does not change the random-draw
+  question; Ilium's plan sets the scale. Item 13: Ilium reruns the S1 and S3 timing scripts
+  single-worker under the preflight and relabels. Item 17: FusedCost is validated on GCC and Linux
+  before its first use there; no such machine is in use, so nothing runs now; Ilium makes the key
+  warn on a compiler other than the validated one if it does not already. Item 18: Newt checks on
+  Newt's machine, which has the C++ build, whether clang fuses the clip's multiply-adds. Item 19:
+  the C++ toolchain is not installed on Ilium's machine; C++ checks go to Newt through the
+  mailbox. Item 20: FusedCost stays opt-in and off by default; every timing baseline of new work
+  uses FusedCost on. Item 21: porting the batched screen to the fused C path is the next Track S
+  speed item; Ilium drafts the plan, designed layer-wide (one orientation across all voxels at a
+  time, the owner's point of 2026-11-09 and idea A1); the plan's approval stays with the owner.
+  Item 24: no reseed (owner rule of 2026-10-12: no extra seeds); the Phase D pilot on no-drop
+  images is dropped as a separate item; studies stay on clean images; scripts with their own
+  VARIANTS use the no-drop images at their next run and are not rerun for that alone. Not decided
+  by Newt, because they change what the agents themselves may do: item 12 (two .claude/ edits;
+  Newt recommends yes to both), item 22 (let a merge commit bring .claude/ files; Newt recommends
+  yes when the files are identical to the merged branch's committed files) and item 23 (rerunning
+  a refused command in the form the refusal message suggests; Newt recommends confirming). Where:
+  docs/owner_review_2026-10-30.md, section "Decisions of 2026-11-09".
+
+### D-20261109-N5 · Track E row AR (autoresearch) · Delegated: the autoresearch plan docs/autoresearch/PLAN.md is approved under the owner's mandate of 2026-11-09
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1 (the owner asked for an autoresearch stage that runs and
+  restarts by itself): docs/autoresearch/PLAN.md is approved for implementation, steps AR0 to AR5,
+  in the plan's order and with its gates (AR2, AR3 and AR4 start only after AR1). The owner has
+  not read the plan; any word from the owner on it replaces this entry. Limits as in N1: no merge
+  to develop without the owner's go, no change to .claude/ files, no loosening of a guard on the
+  agents. Where: docs/autoresearch/PLAN.md; docs/autoresearch/STATE.md.
+
+### D-20261109-N6 · Track E row G (G3, broken-voxel rule) · Delegated: a boundary crossing counts neither for nor against a lever under D-20261014-N13
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Newt Agent, under D-20261109-N1, on the review of the review-fix branch
+  (.claude/reports/20261109-review-review-fixes.md). A broken voxel whose trace is a boundary
+  crossing (a boundary voxel that takes a touching grain's orientation) counts neither for nor
+  against the lever under the broken-voxel rule D-20261014-N13; it is reported in its own column.
+  Reason: the owner's comment of 2026-11-01 on the review page, on the finding that every wrong
+  BFS voxel is a boundary voxel carrying a touching grain's orientation: 'this is acceptable and
+  expected'. No default depends on this; SmoothCostRank stays opt-in (D-20261109-N2). Where:
+  docs/findings_eval_reduction_2026-10.md (Terms and the N13 paragraph); MIGRATION_HISTORY Task
+  G3.

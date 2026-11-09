@@ -11150,3 +11150,16 @@ edge among its flips):
 - The C++ side of Task A is the stored aggregates (no C++ toolchain on this machine), as in the Task A check.
 - The `GPU_MIN_BATCH` measurement covers Apple MPS only; no CUDA machine was used.
 - `FusedCost` is validated on macOS clang (arm64) only (D-20261027-I10); GCC and other platforms are untested.
+
+## Autoresearch stage (Track A): plan (2026-11-09)
+
+Owner mandate D-20261109-N1. The plan is `docs/autoresearch/PLAN.md` and the saved state, read first
+after a restart, is `docs/autoresearch/STATE.md`. In the 2,000-voxel BFS pilot, 69 full searches take
+22.88 M of 25.55 M evaluations and 87% of the time, so the stage aims at the full search first.
+Hypotheses: H1, index the rays near a seed voxel (pairs of scattering vectors vote for an
+orientation) in place of the grid search; H2, index the whole layer into grains and paint each
+grain's orientation over its voxels in one batched pass, with no voxel-by-voxel search; H3, a stop
+rule from the hit ratio and the votes of the rays the current orientation leaves unexplained; H4, a
+learned proposer that reads the rays near a voxel and ranks grid orientations, measured against H1;
+H5, the order of the layer-wide screen and the BFS (idea A1) as the fallback. Steps AR0 to AR5; no
+step has run yet. Results will be added here step by step.
