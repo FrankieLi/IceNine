@@ -190,6 +190,51 @@ def test_symmetry_independent_result(crystal: RI.CrystalModel, sym: np.ndarray) 
     assert RI.misorientation_deg(b.R[0], R_eq, sym) < 0.05
 
 
+def hcp_vectors(a: float, c: float, q_max: float) -> Tuple[np.ndarray, RI.CrystalModel]:
+    """All reciprocal-lattice vectors of a hexagonal lattice up to ``q_max`` (pymatgen Cartesian
+    frame, as ``CrystalStructure``), and the CrystalModel built with the hexagonal symmetry."""
+    from pymatgen.core.lattice import Lattice
+    from pymatgen.core.structure import Structure
+
+    from icenine.symmetry import CrystalSymmetry
+
+    st = Structure(
+        Lattice.hexagonal(a, c), ["Ti", "Ti"], [[1 / 3, 2 / 3, 0.25], [2 / 3, 1 / 3, 0.75]]
+    )
+    symmetry = CrystalSymmetry(st)
+    # the lattice-basis operators of a hexagonal crystal are not rotations
+    raw = [np.asarray(m, dtype=np.float64) for m in symmetry.get_rotation_matrices()]
+    assert max(np.abs(m @ m.T - np.eye(3)).max() for m in raw) > 0.1
+    rl = st.lattice.reciprocal_lattice
+    r = range(-6, 7)
+    hkl = np.array([(h, k, l) for h in r for k in r for l in r if (h, k, l) != (0, 0, 0)])
+    vec = rl.get_cartesian_coords(hkl.astype(np.float64))
+    vec = vec[np.linalg.norm(vec, axis=1) <= q_max]
+    return vec, RI.build_crystal(vec, RI.proper_rotations(symmetry), q_max=q_max)
+
+
+def test_hexagonal_operators_and_indexing() -> None:
+    """Hexagonal (hcp Ti): the operators are Cartesian rotations, the vector list is closed under
+    them, the {10-10} family has 6 members, and exact vectors index to the right orientation."""
+    vec, cr = hcp_vectors(2.95, 4.68, 5.0)
+    sym = cr.sym
+    assert sym.shape == (12, 3, 3)  # point group 622 (proper part of 6/mmm)
+    for s in sym:
+        assert np.allclose(s @ s.T, np.eye(3), atol=1e-9)
+        assert np.linalg.det(s) > 0
+    # the shortest in-plane family {10-10}: 6 vectors of one length, perpendicular to c (z)
+    q100 = 4.0 * np.pi / (np.sqrt(3.0) * 2.95)
+    o = int(np.argmin(np.abs(cr.orbit_len - q100)))
+    assert abs(cr.orbit_len[o] - q100) < 1e-9
+    assert len(cr.orbit_members[o]) == 6
+    assert np.allclose(cr.h[cr.orbit_members[o]][:, 2], 0.0)
+    R = rand_rot(41)
+    g = make_rays(R, cr, 25, 6)
+    res = RI.index_rays(g, cr, RI.IndexParams())
+    assert RI.misorientation_deg(res.R[0], R, sym) < 0.05
+    assert res.explained[0] == 25
+
+
 def test_match_rays(crystal: RI.CrystalModel) -> None:
     R = rand_rot(31)
     g = make_rays(R, crystal, 10, 4)

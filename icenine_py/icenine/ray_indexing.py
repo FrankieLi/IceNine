@@ -11,7 +11,8 @@ Two rays of one grain fix its orientation: if ray 1 is of family F1 and ray 2 of
 angle between ``g1`` and ``g2`` equals the angle between ``h1`` and some ``h2`` of F2, then the
 rotation taking the triad (h1, h2) to (g1, g2) is a vote for the grain's orientation. A *family*
 is an orbit of reciprocal vectors under the crystal's own proper rotations (nothing cubic-
-specific: the operators come from the symmetry object). Votes are reduced with the same operators
+specific: the operators come from the symmetry object, converted to the Cartesian frame of its
+lattice; a hexagonal unit test covers the construction). Votes are reduced with the same operators
 and clustered; each cluster is scored by the number of attached rays it explains and refined by a
 least-squares (Procrustes) fit of the explained rays.
 
@@ -69,11 +70,40 @@ class Candidates:
 # --------------------------------------------------------------------------------------------
 # symmetry helpers (matrix based, any point group)
 # --------------------------------------------------------------------------------------------
-def proper_rotations(symmetry: Any) -> np.ndarray:
-    """(S, 3, 3) proper rotation matrices (det > 0) of a ``CrystalSymmetry``, duplicates removed."""
+def cartesian_operators(symmetry: Any) -> List[np.ndarray]:
+    """Point-group operators of a ``CrystalSymmetry`` in the Cartesian frame of its lattice.
+
+    ``CrystalSymmetry.get_rotation_matrices()`` returns pymatgen's operators in the lattice
+    (fractional) basis. They equal their Cartesian form only for orthogonal axes (cubic,
+    tetragonal, orthorhombic); for a hexagonal lattice they are integer matrices that are not
+    rotations. The Cartesian form is ``S_c = L^T S L^-T`` with ``L`` the lattice matrix (rows a, b,
+    c), as in pymatgen's ``get_point_group_operations(cartesian=True)``. This is the frame of the
+    reciprocal vectors of ``CrystalStructure`` (pymatgen Cartesian coordinates). Entries within
+    1e-9 of an integer are set to that integer, so that orthogonal-axis operators stay exact.
+    """
     mats = [np.asarray(m, dtype=np.float64) for m in symmetry.get_rotation_matrices()]
-    keep: List[np.ndarray] = []
+    structure = getattr(symmetry, "structure", None)
+    if structure is None:
+        return mats  # already Cartesian (no lattice to convert from)
+    L = np.asarray(structure.lattice.matrix, dtype=np.float64)
+    Lt, Lt_inv = L.T, np.linalg.inv(L.T)
+    out: List[np.ndarray] = []
     for m in mats:
+        c = Lt @ m @ Lt_inv
+        near = np.abs(c - np.round(c)) < 1e-9
+        c[near] = np.round(c[near])
+        out.append(c)
+    return out
+
+
+def proper_rotations(symmetry: Any) -> np.ndarray:
+    """(S, 3, 3) proper rotation matrices (det > 0) of a ``CrystalSymmetry`` in the Cartesian
+    frame (``cartesian_operators``), duplicates removed. Raises ``ValueError`` if an operator is
+    not orthonormal."""
+    keep: List[np.ndarray] = []
+    for m in cartesian_operators(symmetry):
+        if np.abs(m @ m.T - np.eye(3)).max() > 1e-6:
+            raise ValueError("a symmetry operator is not orthonormal in the Cartesian frame")
         if np.linalg.det(m) > 0 and not any(np.abs(m - k).max() < 1e-6 for k in keep):
             keep.append(m)
     return np.stack(keep)
