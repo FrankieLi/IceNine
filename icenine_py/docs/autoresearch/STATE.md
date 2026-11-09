@@ -55,8 +55,8 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    the commits on the branch".
 4. After AR1: decide the gate (recall at 20 of at least 90% on the pilot's full-search voxels),
    then start AR2 and AR3, or AR4 first if the voting misses too much.
-5. Item 7: open the PR `feature/eval-reduction` to `develop` if "Queue" does not say it is open.
-   Do not merge it.
+5. Item 7: PR #41 is open. Do not merge it. On a quiet machine run `uv run pytest tests/` in
+   `icenine_py` and put the count line in the PR body.
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
 ("subagents must return findings as text"). The agent stops and returns the text. The main
@@ -72,7 +72,7 @@ Reading the table: one row per step, in order, with its state.
 | item 6 | review and merge the review fixes | **done** 2026-11-09 (d113694) |
 | AR0 | stop rules from the stored results | analysis and findings on `feature/eval-reduction-ar0` (f4a1654, baa63ce); review running |
 | AR1 | recall of the ray-indexing proposer | implementer running, branch `feature/eval-reduction-ar1` |
-| item 7 | open the PR to `develop` (merge waits for the owner) | see "Results so far" |
+| item 7 | open the PR to `develop` (merge waits for the owner) | **open**: PR #41 (2026-11-09). Not merged. Add a full-suite test count to its body before asking for the merge |
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
 | item 18 | does C++'s clang fuse the clip's multiply-adds | not started |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
