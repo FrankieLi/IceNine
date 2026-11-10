@@ -894,3 +894,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   embedder is no longer run, so its warning is expected. A page comment alone was not acted on;
   the session message is the authority. Where: docs/owner_review_2026-10-30.md items 12, 22, 23;
   PR #41; scripts/dev/precommit_check.py; ROADMAP Newt mailbox.
+
+### D-20261109-N12 · Shared tooling (pre-commit check) · Owner: tighten the pre-commit check on CLAUDE.md/.claude files
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- The owner's word in the session of 2026-11-09 ('tighten the pre-commit check'), on the gaps the
+  review of the item 22 change found. (1) A new hook .githooks/pre-merge-commit runs the same
+  check for a merge that git commits by itself. git has not recorded the merged branch at that
+  point, so a merge that brings CLAUDE.md/.claude files is left staged and is concluded with 'git
+  commit', where the item 22 exception applies. (2) A staged deletion, a rename away and a change
+  of type of a guarded file are refused like any other change. (3) Guarded names are matched in
+  any letter case. (4) The item 22 exception (D-20261109-N11) is narrowed so that closing (1)
+  holds: the merged commit must be on a remote-tracking branch (a stash or another local-only
+  commit gets no exception), and a deletion passes only when the merged branch lacks the file and
+  the merge base has it. The override ALLOW_CLAUDE_CONFIG=1 stays with the owner. Where:
+  scripts/dev/precommit_check.py; .githooks/pre-merge-commit; icenine_py/README.md, Developer
+  tooling.
