@@ -587,7 +587,9 @@ cheaper seed of step 2's seed record.
 **Files.** `icenine/gradient_sample.py`, `tests/test_gradient_sample.py`; scripts in
 `scripts/autoresearch/ar3/`; results in `benchmarks/autoresearch/ar3/gradient/`; findings in
 `docs/autoresearch/findings_ar3_gradient.md` (returned as text, see "Task split"). The README
-gets the new module; `MIGRATION_HISTORY.md` gets the summary.
+gets the new module; `MIGRATION_HISTORY.md` gets the summary. Only the result files that the
+summary script reads are committed (D-20261110-N4); a per-voxel record above 2 MB is stored
+gzipped and read gzipped.
 
 ## AR4: the learned proposer
 
