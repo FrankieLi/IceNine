@@ -202,8 +202,8 @@ twin-invariant reflections land on the target's own spots. Results hold for this
 
 **Detector noise** (`RealismConfig`; per sample and entry independently, in this order): `neighbours=True` (overlay `dis_windows`); `p_flip=0.05` (each lit
 pixel dropped, each 4-neighbour of a lit pixel lit with its code: edge jitter); `p_hot=0.05` (one isolated hot pixel, random frame code); `p_blob=0.1` (one
-$2$--$4\times2$--$4$ px blob, random frame code); `p_miss=0.1` (whole window zeroed). Variants (`RealismConfig.named`): `clean`/`none`, `neighbours` (layer only),
-`noise` (pixel terms only), `all`. `make_realistic_dataset(windows, distractors, name, K, seed=12345, chunk=100)` gives a deterministic copy so all methods see identical test inputs.
+$2$--$4\times2$--$4$ px blob, random frame code); `p_miss` (whole window zeroed: 0.1 in the named variants `noise` and `all`, which is what every run in this document used; 0 in the class default since 2026-10-14, Q8 / D-20261014-I6, and in `noise_nodrop` / `all_nodrop`). Variants (`RealismConfig.named`): `clean`/`none`, `neighbours` (layer only),
+`noise` (pixel terms only), `all`, `noise_nodrop`, `all_nodrop` (the last two without the random spot drop). `make_realistic_dataset(windows, distractors, name, K, seed=12345, chunk=100)` gives a deterministic copy so all methods see identical test inputs.
 Quirk (from the code, not tested): the realism layer also hits zero-padded entries, which can then count as "present"; their $J=0$ so they add nothing to $A$ or $b$ and can only perturb the pooled covariance features.
 The GN baselines slice windows to the true peak count and do not see them. `make_realistic_windows` / `make_realistic_dataset` take an optional `valid` mask that zeroes padded entries (tested); it was not used in the reported runs.
 

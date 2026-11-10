@@ -75,6 +75,10 @@ class SearchCandidate:
     orientation: np.ndarray  # 3x3 rotation matrix
     cost: float = 1.0
     overlap_info: Optional[OverlapInfo] = None
+    # clique: index of the FZ point whose local grid produced the candidate (C++ "clique",
+    # DiscreteSearch.h GetSpacedCandidates); -1 = not from a discrete search. Read only by
+    # candidate_dedup (config key CandidateDedup); no other code uses it.
+    clique: int = -1
 
     def __lt__(self, other: "SearchCandidate") -> bool:
         return self.cost < other.cost
@@ -133,12 +137,68 @@ class SearchParameters:
     #   with revisit; rejected -> that voxel is final (never searched again) and the cluster is
     #   recomputed without it and reseeded on another voxel. Off by default.
     bfs_reseed: bool = False
+    # outward_search: opt-in (config key OutwardSearch, default off; Task G2). BFS neighbours
+    #   (with revisits and the restart pass) and reseeds first run the Task F fallback policy
+    #   from their start (icenine/outward_search.py: F4; where F4's acceptance test rejects, F5
+    #   then F4; 1-frame window). Accepted: the existing search runs from the policy's end point
+    #   (a neighbour's local fit; a reseed's local fit instead of the full search, falling back
+    #   to the full search if the seed test rejects it). Rejected: the existing search as before.
+    outward_search: bool = False
+    # seed_by_indexing: opt-in (config key SeedByIndexing, default off; AR2). A BFS seed
+    #   or reseed first indexes the voxel from the observed rays (icenine/ray_indexing.py): strict
+    #   cost on the first 5 candidates, the finisher on the best 2, the lower final cost taken. It
+    #   goes through the usual seed test; if there is no candidate or the test fails, the grid
+    #   search runs as before.
+    seed_by_indexing: bool = False
     # cpp_overlap_rule: opt-in (config key CppOverlapRule). The literal C++ CountQualifiedPeaks
     # overlap rule and the centroid projection of the pixel-radius screen (see VoxelCostFunction).
     # cpp_center_screen (not a config key, default True, applies to every rule): False is the
     # explicit opt-out that keeps vertex 0 in the screen.
     cpp_overlap_rule: bool = False
     cpp_center_screen: bool = True
+    # cpp_edge_rules: opt-in (config key CppEdgeRules). The C++ conventions at the low edges of
+    # the frame range and the detector, and the pixel-less triangle rule (see VoxelCostFunction).
+    cpp_edge_rules: bool = False
+    # cpp_omega_interp: opt-in (config key CppOmegaInterp). The level screen takes the omegas of the
+    # local-grid orientations from the FZ centre as C++ LocalAngularInterpProcess does (see
+    # icenine/batched_screen.py). batched_screen: default on since 2026-10-13 (owner; config key
+    # BatchedScreen, 0 restores the per-orientation screen). The screen scores screen_chunk FZ
+    # points (x local grid) per call instead of one orientation per call (same arithmetic).
+    # CppOmegaInterp solves the centre once per FZ point; with BatchedScreen 0 its chunk is one FZ
+    # point per call, under the default (BatchedScreen 1) screen_chunk FZ points per call.
+    cpp_omega_interp: bool = False
+    batched_screen: bool = True
+    screen_chunk: int = 32
+    # screen_explicit: BatchedScreen was written in the config file. A fallback to the
+    # per-orientation screen (ray rule at a level, no C extension) warns only then or when
+    # cpp_omega_interp is on; under the implicit default it falls back silently.
+    screen_explicit: bool = False
+    # batched_quick_mc: opt-in (config key BatchedQuickMC, default off). The quick MC of a level
+    # runs its candidates in lockstep through one batched local cost per step
+    # (icenine/batched_quick_mc.py) with draw option B (a fixed slice of 33 uniforms per
+    # candidate), so the random stream and the results differ from the sequential quick MC's;
+    # compare wrong counts, not equality.
+    # search_device: device of the batched quick-MC cost (config key SearchDevice): "cpu" (default;
+    # equal to evaluate), "mps" or "cuda" (a GPU result is not bit-equal to the CPU's).
+    batched_quick_mc: bool = False
+    search_device: str = "cpu"
+    # fused_cost: opt-in (config key FusedCost, default off; S2). VoxelCostFunction.evaluate in one
+    # C call (_rasterize.fused_evaluate) instead of the torch operations; equal up to float32
+    # pixel-edge flips (parity rule D-20261027-I2). Modes it does not cover fall back to torch with
+    # a RuntimeWarning (see VoxelCostFunction).
+    fused_cost: bool = False
+    # candidate_dedup: opt-in (config key CandidateDedup), default "off". Clique filter and
+    # de-duplication of the coarse levels' candidates (icenine/candidate_dedup.py, DedupSpec):
+    # before the quick MC (best k per clique; drop candidates within t x diameter of a better one)
+    # and after it, before the ranking cut (the kept quarter counted over distinct candidates).
+    candidate_dedup: str = "off"
+    # smooth_rank: opt-in (config key SmoothCostRank), default "off". The candidates of the coarse
+    # levels (0 .. levels-1 of the spec, default 0-2) are ranked for the quarter cut by a smooth
+    # cost (icenine/smooth_cost.py, SmoothSpec) instead of the post-quick-MC strict cost; the
+    # strict cost stays on every candidate and is used everywhere else. At a smooth-ranked level
+    # the reconstructor's last_level_best entry and its "best cost=" print take the best candidate
+    # by the strict cost, not the first of the smooth-ranked list.
+    smooth_rank: str = "off"
     # ray_rule: opt-in (config key RayOverlapRule), default None = off. The
     # ray-consistency rule (icenine/ray_overlap.py) is used ONLY for the coarse levels
     # 0 .. ray_rule.levels-1 (default 0-2): screen, re-cost, quick MC and ranking cut. FindOptimal,
@@ -165,6 +225,16 @@ class SearchParameters:
             raise ValueError(f"cma_retry_sigma0_deg must be >= 0, got {self.cma_retry_sigma0_deg}")
         if self.bfs_revisit_max < 1:
             raise ValueError(f"bfs_revisit_max must be >= 1, got {self.bfs_revisit_max}")
+        if self.search_device not in ("cpu", "mps", "cuda"):
+            raise ValueError(
+                f"search_device must be 'cpu', 'mps' or 'cuda', got {self.search_device!r}"
+            )
+        from .candidate_dedup import DedupSpec
+
+        DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
+        from .smooth_cost import SmoothSpec
+
+        SmoothSpec.parse(self.smooth_rank)  # raises ValueError on a malformed spec
 
     @classmethod
     def from_config(cls, config) -> "SearchParameters":
@@ -192,7 +262,18 @@ class SearchParameters:
             bfs_revisit_max=getattr(config, "bfs_revisit_max", 3),
             bfs_restart_pass=bool(getattr(config, "bfs_restart_pass", False)),
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
+            outward_search=bool(getattr(config, "outward_search", False)),
+            seed_by_indexing=bool(getattr(config, "seed_by_indexing", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
+            cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
+            cpp_omega_interp=bool(getattr(config, "cpp_omega_interp", False)),
+            batched_screen=bool(getattr(config, "batched_screen", True)),
+            screen_explicit="BatchedScreen" in getattr(config, "_initialized", ()),
+            batched_quick_mc=bool(getattr(config, "batched_quick_mc", False)),
+            search_device=str(getattr(config, "search_device", "cpu")),
+            fused_cost=bool(getattr(config, "fused_cost", False)),
+            candidate_dedup=str(getattr(config, "candidate_dedup", "off")),
+            smooth_rank=str(getattr(config, "smooth_rank", "off")),
             ray_rule=ray_rule_from_config(config),
         )
         # unstudied combination: warn only (owner 2026-10-12), do not force CppOverlapRule
@@ -358,6 +439,9 @@ def run_discrete_search_spaced(
     symmetry_quats: np.ndarray,
     phase_index: int = 0,
     recorder: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+    screen: Any = None,
+    screen_interp: bool = False,
+    screen_chunk: int = 1,
 ) -> List[SearchCandidate]:
     """
     Discrete search with per-clique angular spacing filter.
@@ -384,6 +468,11 @@ def run_discrete_search_spaced(
             recorder("fz", info) per FZ point and recorder("level_end", info) once.
             "fz" info: fz (index), peak_overlap (per local-grid j), j (screened indices),
             cost (re-cost of each), kept (j of the filtered survivors, in output order).
+        screen: Optional ``batched_screen.ScreenEvaluator`` (default None: the screen scores one
+            orientation per ``global_cost_fn.evaluate`` call, unchanged). With it the screen of
+            ``screen_chunk`` FZ points x the whole local grid is scored in one call, with the
+            omegas interpolated from the FZ centre when ``screen_interp`` (C++ behaviour) and
+            exact otherwise; everything after the screen is unchanged.
 
     Returns:
         List of SearchCandidate (sorted by cost), filtered by spacing
@@ -404,8 +493,25 @@ def run_discrete_search_spaced(
             ),
         )
 
+    screen_po = None  # peak_overlap of the current chunk of FZ points, (chunk, n_local)
+    chunk_start = 0
     for fz_idx in range(len(fz_orientations)):
         search_center = fz_orientations[fz_idx]
+
+        if screen is not None and (screen_po is None or fz_idx >= chunk_start + len(screen_po)):
+            chunk_start = fz_idx
+            chunk = np.asarray(fz_orientations[fz_idx : fz_idx + max(int(screen_chunk), 1)])
+            if screen_interp:
+                screen_po, _ = screen.overlaps_interp(
+                    chunk, local_grid, voxel_vertices, phase_index
+                )
+            else:
+                prod = np.matmul(local_grid[None, :, :, :], chunk[:, None, :, :])
+                po_flat, _ = screen.overlaps_exact(
+                    prod.reshape(-1, 3, 3), voxel_vertices, phase_index
+                )
+                screen_po = po_flat.reshape(len(chunk), len(local_grid))
+            global_cost_fn.eval_count += int(screen_po.size)
 
         # Phase 1: Screen with global cost fn (pixel_radius=3)
         clique_candidates = []
@@ -413,18 +519,23 @@ def run_discrete_search_spaced(
         screen_j: List[int] = []
         for lg_idx in range(len(local_grid)):
             candidate_orientation = local_grid[lg_idx] @ search_center
-            overlap_info = global_cost_fn.evaluate(
-                orientation=candidate_orientation,
-                voxel_vertices=voxel_vertices,
-                phase_index=phase_index,
-            )
+            if screen is not None:
+                peak_overlap = int(screen_po[fz_idx - chunk_start, lg_idx])
+            else:
+                overlap_info = global_cost_fn.evaluate(
+                    orientation=candidate_orientation,
+                    voxel_vertices=voxel_vertices,
+                    phase_index=phase_index,
+                )
+                peak_overlap = overlap_info.peak_overlap
             if recorder is not None:
-                screen_overlap.append(int(overlap_info.peak_overlap))
-            if overlap_info.peak_overlap > 0:
+                screen_overlap.append(int(peak_overlap))
+            if peak_overlap > 0:
                 clique_candidates.append(
                     SearchCandidate(
                         orientation=candidate_orientation,
                         cost=0.0,  # will be set by local cost fn below
+                        clique=fz_idx,
                     )
                 )
                 screen_j.append(lg_idx)

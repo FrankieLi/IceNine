@@ -9,8 +9,18 @@ Work is split by omega frame over worker processes: every worker runs the (cheap
 physics for all voxels and rasterizes only the frames it owns (the others are null sinks), so no
 worker holds more than ~1/W of the 360 dense images and nothing needs merging.
 
+Noise variants (Q8, scripts/phase_d/noise.py NoiseParams.named): the default `--noise nodrop` (no
+random spot drop; D-20261014-I6) writes <tag>/realistic_nodrop/ and the run record
+render_<tag>_nodrop.json (+ preflight_render_<tag>_nodrop.json). `--noise toy` (10% random spot
+drop) keeps its meaning and writes <tag>/realistic/ and render_<tag>.json, the existing images and
+their tracked records. The script refuses to write into a directory that already holds files
+(clean/ or the variant's directory) unless --overwrite is given, so a bare call on an existing
+tag can never touch the existing clean/ or realistic/ images; --variants realistic skips clean/.
+
 Usage (from icenine_py/):
   uv run python scripts/phase_d/render_full.py --workers 10 [--n-voxels 500] [--tag pilot]
+  uv run python scripts/phase_d/render_full.py --workers 6 --variants realistic   # existing tag
+  uv run python scripts/phase_d/render_full.py --noise toy --tag newtag   # only for a new tag
 """
 
 import argparse
@@ -20,6 +30,7 @@ import os
 import resource
 import sys
 import time
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -29,10 +40,25 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "common"))
 
+from noise import DEFAULT_NOISE, NOISE_VARIANTS, NoiseParams  # noqa: E402
+
 ROOT = HERE.parents[2]
 EX = ROOT / "Examples" / "Example2.ManyGrains"
 NOISE_SEED = 12345
 BASENAME = "500Grains.sim"
+
+
+def realistic_dirname(noise: str) -> str:
+    """Output directory of a noise variant: realistic (toy, the existing images) or
+    realistic_<variant>."""
+    return "realistic" if noise == "toy" else f"realistic_{noise}"
+
+
+def existing_targets(out: Path, noise: str, variants: List[str]) -> List[str]:
+    """Directories this render would write into that already hold files (the images it must not
+    overwrite): clean/ when "clean" is in variants, and the noise variant's directory."""
+    names = (["clean"] if "clean" in variants else []) + [realistic_dirname(noise)]
+    return [n for n in names if (out / n).is_dir() and any((out / n).iterdir())]
 
 
 class _NullImage:
@@ -51,7 +77,7 @@ def _worker(args: Dict[str, Any]) -> Dict[str, Any]:
     from icenine.forward_simulation import ForwardSimulation
     from icenine.image_data import ImageData
     from icenine.sample import Sample
-    from noise import NoiseParams, add_detector_noise, write_ascii_image
+    from noise import add_detector_noise, write_ascii_image
 
     t0 = time.time()
     w, W = args["worker"], args["workers"]
@@ -88,12 +114,13 @@ def _worker(args: Dict[str, Any]) -> Dict[str, Any]:
     t_sim = time.time() - t1
 
     t2 = time.time()
-    out_clean, out_real = Path(args["out"]) / "clean", Path(args["out"]) / "realistic"
+    out_clean = Path(args["out"]) / "clean"
+    out_real = Path(args["out"]) / realistic_dirname(args.get("noise", DEFAULT_NOISE))
     if "clean" in args["variants"]:
         out_clean.mkdir(parents=True, exist_ok=True)
     out_real.mkdir(parents=True, exist_ok=True)
     kept: Dict[Any, Any] = {}
-    params = NoiseParams()
+    params = NoiseParams.named(args.get("noise", DEFAULT_NOISE))
     frames: List[Dict[str, Any]] = []
     for di in range(len(dets)):
         for i in owned:
@@ -129,7 +156,7 @@ def _worker(args: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0, help="new-orientation sample seed")
@@ -139,16 +166,42 @@ def main() -> None:
     ap.add_argument("--noise-seed", type=int, default=NOISE_SEED)
     ap.add_argument("--max-q", type=float, default=0.0, help="override Q-max (0 = config)")
     ap.add_argument("--variants", default="clean,realistic")
+    ap.add_argument(
+        "--noise",
+        default=DEFAULT_NOISE,
+        choices=NOISE_VARIANTS,
+        help="noise variant of the realistic images (nodrop: p_miss 0, the default; "
+        "toy: p_miss 0.1, the existing realistic/ images)",
+    )
     ap.add_argument("--out-root", default=str(EX / "ScatteringData_PhaseD"))
+    ap.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="write into clean/ or the variant's directory even if it already holds files",
+    )
+    return ap
+
+
+def main() -> None:
+    ap = build_parser()
     args = ap.parse_args()
     assert args.workers <= 10
+    suffix = "" if args.noise == "toy" else f"_{args.noise}"
+    busy = existing_targets(Path(args.out_root) / args.tag, args.noise, args.variants.split(","))
+    if busy and not args.overwrite:
+        ap.error(
+            f"{', '.join(busy)} of tag {args.tag} already hold images: not overwritten "
+            "(--variants realistic skips clean/; --overwrite to override)"
+        )
 
     import preflight
 
     res_dir = HERE / "results"
     res_dir.mkdir(exist_ok=True)
     info = preflight.preflight()
-    (res_dir / f"preflight_render_{args.tag}.json").write_text(json.dumps(info, indent=2) + "\n")
+    (res_dir / f"preflight_render_{args.tag}{suffix}.json").write_text(
+        json.dumps(info, indent=2) + "\n"
+    )
     try:
         preflight.require_quiet(info=info)
         quiet = True
@@ -172,6 +225,7 @@ def main() -> None:
             "voxel_idx": voxel_idx,
             "batch": args.batch,
             "noise_seed": args.noise_seed,
+            "noise": args.noise,
             "max_q": args.max_q,
             "variants": args.variants.split(","),
         }
@@ -190,6 +244,8 @@ def main() -> None:
         "tag": args.tag,
         "sample_seed": args.seed,
         "noise_seed": args.noise_seed,
+        "noise_variant": args.noise,
+        "noise_params": asdict(NoiseParams.named(args.noise)),
         "n_voxels": results[0]["n_voxels"],
         "workers": args.workers,
         "timing_label": f"contended ({args.workers} workers; machine quiet at start: {quiet})",
@@ -220,8 +276,9 @@ def main() -> None:
         "hot_total": int(sum(f["n_hot"] for f in frames)),
         "blob_total": int(sum(f["n_blob"] for f in frames)),
         "output_dir": str(out.relative_to(ROOT)),
+        "realistic_dir": realistic_dirname(args.noise),
     }
-    (res_dir / f"render_{args.tag}.json").write_text(json.dumps(summary, indent=2) + "\n")
+    (res_dir / f"render_{args.tag}{suffix}.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary, indent=2))
 
 

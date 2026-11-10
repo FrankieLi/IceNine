@@ -1,0 +1,4 @@
+voxels compared 200, records identical (all arrays but runtime): 200
+  run A: n=200  wrong (>1 deg) 35  evaluations global 8899974  local 824586
+  run B: n=200  wrong (>1 deg) 35  evaluations global 8899974  local 824586
+RESULT: per-voxel records identical

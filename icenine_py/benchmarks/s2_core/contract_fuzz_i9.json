@@ -1,0 +1,42 @@
+{
+ "meta": {
+  "seed": 20261027,
+  "rows": 64,
+  "cols": 80,
+  "n": 200000,
+  "image": "uniform, 30% bright"
+ },
+ "small_border": {
+  "n": 200000,
+  "crossing_border": 101395,
+  "differ": 0,
+  "python_reference_agrees_with": {
+   "old": 0,
+   "new": 0,
+   "neither": 0
+  },
+  "examples": []
+ },
+ "large_border": {
+  "n": 200000,
+  "crossing_border": 197677,
+  "differ": 0,
+  "python_reference_agrees_with": {
+   "old": 0,
+   "new": 0,
+   "neither": 0
+  },
+  "examples": []
+ },
+ "integer_border": {
+  "n": 200000,
+  "crossing_border": 101581,
+  "differ": 0,
+  "python_reference_agrees_with": {
+   "old": 0,
+   "new": 0,
+   "neither": 0
+  },
+  "examples": []
+ }
+}

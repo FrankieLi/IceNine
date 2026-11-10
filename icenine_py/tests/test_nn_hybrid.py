@@ -260,6 +260,29 @@ def test_stage_timer_refuses_double_install_and_uses_callable_names():
     assert _Cls().method(1) == 2 and st.calls["big"] == 1  # uninstalled by the context manager
 
 
+class _Batch:
+    def score(self, centres, grid, tag=None):
+        return len(centres) * len(grid)
+
+
+def test_stage_timer_patch_counted_reads_positional_and_keyword_counts():
+    """patch_counted adds the call's evaluation count (product of len() of the named arguments,
+    positional or keyword, or a callable) to the stage's calls, and returns the result untouched."""
+    st = _import("stage_timer").StageTimer()
+    with st.installed():
+        st.patch_counted(_Batch, "score", "screen", [(1, "centres"), (2, "grid")])
+        b = _Batch()
+        assert b.score([0, 1, 2], [0, 1]) == 6
+        assert st.calls["screen"] == 6
+        assert b.score(centres=[0], grid=[0, 1, 2, 3]) == 4
+        assert st.calls["screen"] == 10
+        assert b.score([0, 1], grid=[0]) == 2  # mixed positional / keyword
+        assert st.calls["screen"] == 12
+        st.patch_counted(_Cls, "method", "m", lambda a, k: 5)
+        assert _Cls().method(1) == 2 and st.calls["m"] == 5
+    assert _Batch().score([0], [0]) == 1 and st.calls["screen"] == 12  # uninstalled
+
+
 def test_stage_timer_evaluation_counts_by_role_without_strong_refs():
     import gc
     import weakref

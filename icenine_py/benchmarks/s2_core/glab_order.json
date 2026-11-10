@@ -1,0 +1,4978 @@
+{
+ "meta": {
+  "head": "9e99d63",
+  "dirty": false,
+  "dirty_files": [],
+  "torch": "2.8.0",
+  "numpy": "2.0.2",
+  "threads": 1,
+  "seed": 20261014,
+  "n_near": 500,
+  "n_fz": 500,
+  "bound_px": 0.01,
+  "orders": [
+   "fma",
+   "plain"
+  ],
+  "modes": {
+   "local": {
+    "pixel_radius": 0,
+    "max_q": 8.0
+   },
+   "cpp_rule": {
+    "pixel_radius": 0,
+    "max_q": 8.0,
+    "cpp_overlap_rule": true
+   },
+   "edge": {
+    "pixel_radius": 0,
+    "max_q": 8.0,
+    "cpp_edge_rules": true
+   },
+   "edge_cpp_rule": {
+    "pixel_radius": 0,
+    "max_q": 8.0,
+    "cpp_edge_rules": true,
+    "cpp_overlap_rule": true
+   },
+   "min_sin_eta": {
+    "pixel_radius": 0,
+    "max_q": 8.0,
+    "min_sin_eta": 0.2
+   },
+   "screen_default": {
+    "pixel_radius": 3,
+    "max_q": 5.0,
+    "center_screen": true
+   },
+   "screen_center": {
+    "pixel_radius": 3,
+    "max_q": 5.0,
+    "cpp_overlap_rule": true,
+    "center_screen": true
+   },
+   "screen_vertex0": {
+    "pixel_radius": 3,
+    "max_q": 5.0,
+    "cpp_overlap_rule": true,
+    "center_screen": false
+   },
+   "screen_edge": {
+    "pixel_radius": 3,
+    "max_q": 5.0,
+    "cpp_overlap_rule": true,
+    "cpp_edge_rules": true
+   }
+  }
+ },
+ "datasets": {
+  "three0": {
+   "local": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 25,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       66,
+       80,
+       129,
+       133,
+       147,
+       173,
+       223,
+       253,
+       341,
+       373,
+       440,
+       441,
+       452,
+       456,
+       535,
+       547,
+       675,
+       698,
+       710,
+       778,
+       824,
+       887,
+       894,
+       920,
+       944
+      ],
+      "flipped_rows": 26,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 25,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 2,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 34,
+      "ref_side": {
+       "torch": 12,
+       "fused": 14
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 54,
+      "g_lab": {
+       "n": 336000,
+       "equal": 270828,
+       "max_ulp": 10201,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        270828,
+        52238,
+        11520,
+        1234,
+        180
+       ]
+      },
+      "pixel": {
+       "n": 1221696,
+       "equal": 931346,
+       "max_ulp": 253,
+       "max_abs": 0.009765625,
+       "hist_0_1_2to8_9to64_gt64": [
+        931346,
+        130512,
+        137513,
+        20370,
+        1955
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 16,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       129,
+       147,
+       253,
+       341,
+       373,
+       445,
+       511,
+       514,
+       537,
+       682,
+       710,
+       747,
+       887,
+       894,
+       903,
+       990
+      ],
+      "flipped_rows": 16,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 16,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 27,
+      "ref_side": {
+       "torch": 7,
+       "fused": 9
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 43,
+      "g_lab": {
+       "n": 336000,
+       "equal": 312648,
+       "max_ulp": 1543,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        312648,
+        19486,
+        3278,
+        510,
+        78
+       ]
+      },
+      "pixel": {
+       "n": 1221696,
+       "equal": 1035205,
+       "max_ulp": 254,
+       "max_abs": 0.003875732421875,
+       "hist_0_1_2to8_9to64_gt64": [
+        1035205,
+        88428,
+        84658,
+        12123,
+        1282
+       ]
+      }
+     }
+    }
+   },
+   "cpp_rule": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 25,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       66,
+       80,
+       129,
+       133,
+       147,
+       173,
+       223,
+       253,
+       341,
+       373,
+       440,
+       441,
+       452,
+       456,
+       535,
+       547,
+       675,
+       698,
+       710,
+       778,
+       824,
+       887,
+       894,
+       920,
+       944
+      ],
+      "flipped_rows": 26,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 25,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 2,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 34,
+      "ref_side": {
+       "torch": 12,
+       "fused": 14
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 54,
+      "g_lab": {
+       "n": 336000,
+       "equal": 270828,
+       "max_ulp": 10201,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        270828,
+        52238,
+        11520,
+        1234,
+        180
+       ]
+      },
+      "pixel": {
+       "n": 1221696,
+       "equal": 931346,
+       "max_ulp": 253,
+       "max_abs": 0.009765625,
+       "hist_0_1_2to8_9to64_gt64": [
+        931346,
+        130512,
+        137513,
+        20370,
+        1955
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 16,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       129,
+       147,
+       253,
+       341,
+       373,
+       445,
+       511,
+       514,
+       537,
+       682,
+       710,
+       747,
+       887,
+       894,
+       903,
+       990
+      ],
+      "flipped_rows": 16,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 16,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 27,
+      "ref_side": {
+       "torch": 7,
+       "fused": 9
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 43,
+      "g_lab": {
+       "n": 336000,
+       "equal": 312648,
+       "max_ulp": 1543,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        312648,
+        19486,
+        3278,
+        510,
+        78
+       ]
+      },
+      "pixel": {
+       "n": 1221696,
+       "equal": 1035205,
+       "max_ulp": 254,
+       "max_abs": 0.003875732421875,
+       "hist_0_1_2to8_9to64_gt64": [
+        1035205,
+        88428,
+        84658,
+        12123,
+        1282
+       ]
+      }
+     }
+    }
+   },
+   "edge": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 25,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       66,
+       80,
+       129,
+       133,
+       147,
+       173,
+       223,
+       253,
+       341,
+       373,
+       440,
+       441,
+       452,
+       456,
+       535,
+       547,
+       675,
+       698,
+       710,
+       778,
+       824,
+       887,
+       894,
+       920,
+       944
+      ],
+      "flipped_rows": 26,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 25,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 2,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 33,
+      "ref_side": {
+       "torch": 12,
+       "fused": 14
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 54,
+      "g_lab": {
+       "n": 336000,
+       "equal": 270828,
+       "max_ulp": 10201,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        270828,
+        52238,
+        11520,
+        1234,
+        180
+       ]
+      },
+      "pixel": {
+       "n": 1215024,
+       "equal": 926020,
+       "max_ulp": 253,
+       "max_abs": 0.009765625,
+       "hist_0_1_2to8_9to64_gt64": [
+        926020,
+        129806,
+        136917,
+        20326,
+        1955
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 16,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       129,
+       147,
+       253,
+       341,
+       373,
+       445,
+       511,
+       514,
+       537,
+       682,
+       710,
+       747,
+       887,
+       894,
+       903,
+       990
+      ],
+      "flipped_rows": 16,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 16,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 25,
+      "ref_side": {
+       "torch": 7,
+       "fused": 9
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 43,
+      "g_lab": {
+       "n": 336000,
+       "equal": 312648,
+       "max_ulp": 1543,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        312648,
+        19486,
+        3278,
+        510,
+        78
+       ]
+      },
+      "pixel": {
+       "n": 1215024,
+       "equal": 1029322,
+       "max_ulp": 254,
+       "max_abs": 0.003875732421875,
+       "hist_0_1_2to8_9to64_gt64": [
+        1029322,
+        87986,
+        84324,
+        12110,
+        1282
+       ]
+      }
+     }
+    }
+   },
+   "edge_cpp_rule": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 25,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       66,
+       80,
+       129,
+       133,
+       147,
+       173,
+       223,
+       253,
+       341,
+       373,
+       440,
+       441,
+       452,
+       456,
+       535,
+       547,
+       675,
+       698,
+       710,
+       778,
+       824,
+       887,
+       894,
+       920,
+       944
+      ],
+      "flipped_rows": 26,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 25,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 2,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 33,
+      "ref_side": {
+       "torch": 12,
+       "fused": 14
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 54,
+      "g_lab": {
+       "n": 336000,
+       "equal": 270828,
+       "max_ulp": 10201,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        270828,
+        52238,
+        11520,
+        1234,
+        180
+       ]
+      },
+      "pixel": {
+       "n": 1215024,
+       "equal": 926020,
+       "max_ulp": 253,
+       "max_abs": 0.009765625,
+       "hist_0_1_2to8_9to64_gt64": [
+        926020,
+        129806,
+        136917,
+        20326,
+        1955
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 16,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       129,
+       147,
+       253,
+       341,
+       373,
+       445,
+       511,
+       514,
+       537,
+       682,
+       710,
+       747,
+       887,
+       894,
+       903,
+       990
+      ],
+      "flipped_rows": 16,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 16,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 25,
+      "ref_side": {
+       "torch": 7,
+       "fused": 9
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 43,
+      "g_lab": {
+       "n": 336000,
+       "equal": 312648,
+       "max_ulp": 1543,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        312648,
+        19486,
+        3278,
+        510,
+        78
+       ]
+      },
+      "pixel": {
+       "n": 1215024,
+       "equal": 1029322,
+       "max_ulp": 254,
+       "max_abs": 0.003875732421875,
+       "hist_0_1_2to8_9to64_gt64": [
+        1029322,
+        87986,
+        84324,
+        12110,
+        1282
+       ]
+      }
+     }
+    }
+   },
+   "min_sin_eta": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 25,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       66,
+       80,
+       129,
+       133,
+       147,
+       173,
+       223,
+       253,
+       341,
+       373,
+       440,
+       441,
+       452,
+       456,
+       535,
+       547,
+       675,
+       698,
+       710,
+       778,
+       824,
+       887,
+       894,
+       920,
+       944
+      ],
+      "flipped_rows": 26,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 25,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 2,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 33,
+      "ref_side": {
+       "torch": 12,
+       "fused": 14
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 54,
+      "g_lab": {
+       "n": 336000,
+       "equal": 270828,
+       "max_ulp": 10201,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        270828,
+        52238,
+        11520,
+        1234,
+        180
+       ]
+      },
+      "pixel": {
+       "n": 1193424,
+       "equal": 906852,
+       "max_ulp": 253,
+       "max_abs": 0.00390625,
+       "hist_0_1_2to8_9to64_gt64": [
+        906852,
+        129150,
+        135902,
+        19577,
+        1943
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 16,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       129,
+       147,
+       253,
+       341,
+       373,
+       445,
+       511,
+       514,
+       537,
+       682,
+       710,
+       747,
+       887,
+       894,
+       903,
+       990
+      ],
+      "flipped_rows": 16,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 16,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 27,
+      "ref_side": {
+       "torch": 7,
+       "fused": 9
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 43,
+      "g_lab": {
+       "n": 336000,
+       "equal": 312648,
+       "max_ulp": 1543,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        312648,
+        19486,
+        3278,
+        510,
+        78
+       ]
+      },
+      "pixel": {
+       "n": 1193424,
+       "equal": 1008904,
+       "max_ulp": 254,
+       "max_abs": 0.003875732421875,
+       "hist_0_1_2to8_9to64_gt64": [
+        1008904,
+        86871,
+        84244,
+        12123,
+        1282
+       ]
+      }
+     }
+    }
+   },
+   "screen_default": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 1,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       106
+      ],
+      "flipped_rows": 1,
+      "field_orientations_differing": {
+       "pixel_overlap": 1,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 1
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 1
+      },
+      "max_px_from_edge": 0.0001220703125,
+      "max_margin_ulp": 1,
+      "g_lab": {
+       "n": 78000,
+       "equal": 67498,
+       "max_ulp": 7970,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        67498,
+        8865,
+        1435,
+        162,
+        40
+       ]
+      },
+      "pixel": {
+       "n": 274140,
+       "equal": 224463,
+       "max_ulp": 130,
+       "max_abs": 0.009521484375,
+       "hist_0_1_2to8_9to64_gt64": [
+        224463,
+        25023,
+        22710,
+        1914,
+        30
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 2,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 73358,
+       "max_ulp": 3327,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        73358,
+        3841,
+        683,
+        102,
+        16
+       ]
+      },
+      "pixel": {
+       "n": 274140,
+       "equal": 233364,
+       "max_ulp": 115,
+       "max_abs": 0.00372314453125,
+       "hist_0_1_2to8_9to64_gt64": [
+        233364,
+        21114,
+        18033,
+        1596,
+        33
+       ]
+      }
+     }
+    }
+   },
+   "screen_center": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 1,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       106
+      ],
+      "flipped_rows": 1,
+      "field_orientations_differing": {
+       "pixel_overlap": 1,
+       "pixel_on_detector": 0,
+       "peak_overlap": 1,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 1
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 1
+      },
+      "max_px_from_edge": 0.0001220703125,
+      "max_margin_ulp": 1,
+      "g_lab": {
+       "n": 78000,
+       "equal": 67498,
+       "max_ulp": 7970,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        67498,
+        8865,
+        1435,
+        162,
+        40
+       ]
+      },
+      "pixel": {
+       "n": 274140,
+       "equal": 224463,
+       "max_ulp": 130,
+       "max_abs": 0.009521484375,
+       "hist_0_1_2to8_9to64_gt64": [
+        224463,
+        25023,
+        22710,
+        1914,
+        30
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 2,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 73358,
+       "max_ulp": 3327,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        73358,
+        3841,
+        683,
+        102,
+        16
+       ]
+      },
+      "pixel": {
+       "n": 274140,
+       "equal": 233364,
+       "max_ulp": 115,
+       "max_abs": 0.00372314453125,
+       "hist_0_1_2to8_9to64_gt64": [
+        233364,
+        21114,
+        18033,
+        1596,
+        33
+       ]
+      }
+     }
+    }
+   },
+   "screen_vertex0": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 2,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 67498,
+       "max_ulp": 7970,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        67498,
+        8865,
+        1435,
+        162,
+        40
+       ]
+      },
+      "pixel": {
+       "n": 274140,
+       "equal": 224748,
+       "max_ulp": 128,
+       "max_abs": 0.009765625,
+       "hist_0_1_2to8_9to64_gt64": [
+        224748,
+        24882,
+        22533,
+        1947,
+        30
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 1,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 73358,
+       "max_ulp": 3327,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        73358,
+        3841,
+        683,
+        102,
+        16
+       ]
+      },
+      "pixel": {
+       "n": 274140,
+       "equal": 233782,
+       "max_ulp": 114,
+       "max_abs": 0.00384521484375,
+       "hist_0_1_2to8_9to64_gt64": [
+        233782,
+        20791,
+        17942,
+        1592,
+        33
+       ]
+      }
+     }
+    }
+   },
+   "screen_edge": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 1,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       106
+      ],
+      "flipped_rows": 1,
+      "field_orientations_differing": {
+       "pixel_overlap": 1,
+       "pixel_on_detector": 0,
+       "peak_overlap": 1,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 1
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 1
+      },
+      "max_px_from_edge": 0.0001220703125,
+      "max_margin_ulp": 1,
+      "g_lab": {
+       "n": 78000,
+       "equal": 67498,
+       "max_ulp": 7970,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        67498,
+        8865,
+        1435,
+        162,
+        40
+       ]
+      },
+      "pixel": {
+       "n": 273336,
+       "equal": 223797,
+       "max_ulp": 130,
+       "max_abs": 0.009521484375,
+       "hist_0_1_2to8_9to64_gt64": [
+        223797,
+        24933,
+        22662,
+        1914,
+        30
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 2,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 73358,
+       "max_ulp": 3327,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        73358,
+        3841,
+        683,
+        102,
+        16
+       ]
+      },
+      "pixel": {
+       "n": 273336,
+       "equal": 232692,
+       "max_ulp": 115,
+       "max_abs": 0.00372314453125,
+       "hist_0_1_2to8_9to64_gt64": [
+        232692,
+        21048,
+        17967,
+        1596,
+        33
+       ]
+      }
+     }
+    }
+   }
+  },
+  "full15901": {
+   "local": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 42,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       5,
+       27,
+       44,
+       52,
+       65,
+       84,
+       93,
+       135,
+       162,
+       200,
+       216,
+       232,
+       290,
+       304,
+       311,
+       341,
+       349,
+       420,
+       425,
+       432,
+       442,
+       483,
+       507,
+       559,
+       574,
+       585,
+       599,
+       636,
+       638,
+       660,
+       699,
+       721,
+       751,
+       779,
+       798,
+       805,
+       808,
+       818,
+       880,
+       940,
+       976,
+       980
+      ],
+      "flipped_rows": 47,
+      "field_orientations_differing": {
+       "pixel_overlap": 7,
+       "pixel_on_detector": 42,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 3,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 54,
+      "ref_side": {
+       "torch": 26,
+       "fused": 21
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 49,
+      "g_lab": {
+       "n": 336000,
+       "equal": 261854,
+       "max_ulp": 7970,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        261854,
+        53348,
+        18232,
+        2302,
+        264
+       ]
+      },
+      "pixel": {
+       "n": 1244508,
+       "equal": 948262,
+       "max_ulp": 264,
+       "max_abs": 0.01025390625,
+       "hist_0_1_2to8_9to64_gt64": [
+        948262,
+        131697,
+        143870,
+        19328,
+        1351
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 28,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       1,
+       27,
+       52,
+       84,
+       144,
+       175,
+       189,
+       240,
+       288,
+       311,
+       346,
+       387,
+       420,
+       443,
+       458,
+       503,
+       544,
+       559,
+       570,
+       585,
+       599,
+       603,
+       699,
+       805,
+       880,
+       940,
+       976,
+       980
+      ],
+      "flipped_rows": 29,
+      "field_orientations_differing": {
+       "pixel_overlap": 4,
+       "pixel_on_detector": 27,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 3,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 29,
+      "ref_side": {
+       "torch": 13,
+       "fused": 16
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 49,
+      "g_lab": {
+       "n": 336000,
+       "equal": 294468,
+       "max_ulp": 9506,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        294468,
+        33940,
+        6818,
+        682,
+        92
+       ]
+      },
+      "pixel": {
+       "n": 1244508,
+       "equal": 1004821,
+       "max_ulp": 264,
+       "max_abs": 0.0040283203125,
+       "hist_0_1_2to8_9to64_gt64": [
+        1004821,
+        113914,
+        110134,
+        14350,
+        1289
+       ]
+      }
+     }
+    }
+   },
+   "cpp_rule": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 42,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       5,
+       27,
+       44,
+       52,
+       65,
+       84,
+       93,
+       135,
+       162,
+       200,
+       216,
+       232,
+       290,
+       304,
+       311,
+       341,
+       349,
+       420,
+       425,
+       432,
+       442,
+       483,
+       507,
+       559,
+       574,
+       585,
+       599,
+       636,
+       638,
+       660,
+       699,
+       721,
+       751,
+       779,
+       798,
+       805,
+       808,
+       818,
+       880,
+       940,
+       976,
+       980
+      ],
+      "flipped_rows": 47,
+      "field_orientations_differing": {
+       "pixel_overlap": 7,
+       "pixel_on_detector": 42,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 54,
+      "ref_side": {
+       "torch": 26,
+       "fused": 21
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 49,
+      "g_lab": {
+       "n": 336000,
+       "equal": 261854,
+       "max_ulp": 7970,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        261854,
+        53348,
+        18232,
+        2302,
+        264
+       ]
+      },
+      "pixel": {
+       "n": 1244508,
+       "equal": 948262,
+       "max_ulp": 264,
+       "max_abs": 0.01025390625,
+       "hist_0_1_2to8_9to64_gt64": [
+        948262,
+        131697,
+        143870,
+        19328,
+        1351
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 28,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       1,
+       27,
+       52,
+       84,
+       144,
+       175,
+       189,
+       240,
+       288,
+       311,
+       346,
+       387,
+       420,
+       443,
+       458,
+       503,
+       544,
+       559,
+       570,
+       585,
+       599,
+       603,
+       699,
+       805,
+       880,
+       940,
+       976,
+       980
+      ],
+      "flipped_rows": 29,
+      "field_orientations_differing": {
+       "pixel_overlap": 4,
+       "pixel_on_detector": 27,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 29,
+      "ref_side": {
+       "torch": 13,
+       "fused": 16
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 49,
+      "g_lab": {
+       "n": 336000,
+       "equal": 294468,
+       "max_ulp": 9506,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        294468,
+        33940,
+        6818,
+        682,
+        92
+       ]
+      },
+      "pixel": {
+       "n": 1244508,
+       "equal": 1004821,
+       "max_ulp": 264,
+       "max_abs": 0.0040283203125,
+       "hist_0_1_2to8_9to64_gt64": [
+        1004821,
+        113914,
+        110134,
+        14350,
+        1289
+       ]
+      }
+     }
+    }
+   },
+   "edge": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 42,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       5,
+       27,
+       44,
+       52,
+       65,
+       84,
+       93,
+       135,
+       162,
+       200,
+       216,
+       232,
+       290,
+       304,
+       311,
+       341,
+       349,
+       420,
+       425,
+       432,
+       442,
+       483,
+       507,
+       559,
+       574,
+       585,
+       599,
+       636,
+       638,
+       660,
+       699,
+       721,
+       751,
+       779,
+       798,
+       805,
+       808,
+       818,
+       880,
+       940,
+       976,
+       980
+      ],
+      "flipped_rows": 47,
+      "field_orientations_differing": {
+       "pixel_overlap": 7,
+       "pixel_on_detector": 42,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 3,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 54,
+      "ref_side": {
+       "torch": 26,
+       "fused": 21
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 49,
+      "g_lab": {
+       "n": 336000,
+       "equal": 261854,
+       "max_ulp": 7970,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        261854,
+        53348,
+        18232,
+        2302,
+        264
+       ]
+      },
+      "pixel": {
+       "n": 1239816,
+       "equal": 944590,
+       "max_ulp": 264,
+       "max_abs": 0.01025390625,
+       "hist_0_1_2to8_9to64_gt64": [
+        944590,
+        131224,
+        143481,
+        19173,
+        1348
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 28,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       1,
+       27,
+       52,
+       84,
+       144,
+       175,
+       189,
+       240,
+       288,
+       311,
+       346,
+       387,
+       420,
+       443,
+       458,
+       503,
+       544,
+       559,
+       570,
+       585,
+       599,
+       603,
+       699,
+       805,
+       880,
+       940,
+       976,
+       980
+      ],
+      "flipped_rows": 29,
+      "field_orientations_differing": {
+       "pixel_overlap": 4,
+       "pixel_on_detector": 27,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 3,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 29,
+      "ref_side": {
+       "torch": 13,
+       "fused": 16
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 49,
+      "g_lab": {
+       "n": 336000,
+       "equal": 294468,
+       "max_ulp": 9506,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        294468,
+        33940,
+        6818,
+        682,
+        92
+       ]
+      },
+      "pixel": {
+       "n": 1239816,
+       "equal": 1000821,
+       "max_ulp": 264,
+       "max_abs": 0.0040283203125,
+       "hist_0_1_2to8_9to64_gt64": [
+        1000821,
+        113541,
+        109847,
+        14324,
+        1283
+       ]
+      }
+     }
+    }
+   },
+   "edge_cpp_rule": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 42,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       5,
+       27,
+       44,
+       52,
+       65,
+       84,
+       93,
+       135,
+       162,
+       200,
+       216,
+       232,
+       290,
+       304,
+       311,
+       341,
+       349,
+       420,
+       425,
+       432,
+       442,
+       483,
+       507,
+       559,
+       574,
+       585,
+       599,
+       636,
+       638,
+       660,
+       699,
+       721,
+       751,
+       779,
+       798,
+       805,
+       808,
+       818,
+       880,
+       940,
+       976,
+       980
+      ],
+      "flipped_rows": 47,
+      "field_orientations_differing": {
+       "pixel_overlap": 7,
+       "pixel_on_detector": 42,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 54,
+      "ref_side": {
+       "torch": 26,
+       "fused": 21
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 49,
+      "g_lab": {
+       "n": 336000,
+       "equal": 261854,
+       "max_ulp": 7970,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        261854,
+        53348,
+        18232,
+        2302,
+        264
+       ]
+      },
+      "pixel": {
+       "n": 1239816,
+       "equal": 944590,
+       "max_ulp": 264,
+       "max_abs": 0.01025390625,
+       "hist_0_1_2to8_9to64_gt64": [
+        944590,
+        131224,
+        143481,
+        19173,
+        1348
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 28,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       1,
+       27,
+       52,
+       84,
+       144,
+       175,
+       189,
+       240,
+       288,
+       311,
+       346,
+       387,
+       420,
+       443,
+       458,
+       503,
+       544,
+       559,
+       570,
+       585,
+       599,
+       603,
+       699,
+       805,
+       880,
+       940,
+       976,
+       980
+      ],
+      "flipped_rows": 29,
+      "field_orientations_differing": {
+       "pixel_overlap": 4,
+       "pixel_on_detector": 27,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 29,
+      "ref_side": {
+       "torch": 13,
+       "fused": 16
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 49,
+      "g_lab": {
+       "n": 336000,
+       "equal": 294468,
+       "max_ulp": 9506,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        294468,
+        33940,
+        6818,
+        682,
+        92
+       ]
+      },
+      "pixel": {
+       "n": 1239816,
+       "equal": 1000821,
+       "max_ulp": 264,
+       "max_abs": 0.0040283203125,
+       "hist_0_1_2to8_9to64_gt64": [
+        1000821,
+        113541,
+        109847,
+        14324,
+        1283
+       ]
+      }
+     }
+    }
+   },
+   "min_sin_eta": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 36,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       5,
+       27,
+       44,
+       52,
+       65,
+       84,
+       162,
+       200,
+       216,
+       232,
+       304,
+       311,
+       349,
+       420,
+       425,
+       442,
+       483,
+       507,
+       559,
+       585,
+       599,
+       636,
+       638,
+       660,
+       699,
+       721,
+       751,
+       779,
+       798,
+       805,
+       808,
+       818,
+       880,
+       940,
+       976,
+       980
+      ],
+      "flipped_rows": 41,
+      "field_orientations_differing": {
+       "pixel_overlap": 7,
+       "pixel_on_detector": 36,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 3,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 49,
+      "ref_side": {
+       "torch": 22,
+       "fused": 19
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 49,
+      "g_lab": {
+       "n": 336000,
+       "equal": 261854,
+       "max_ulp": 7970,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        261854,
+        53348,
+        18232,
+        2302,
+        264
+       ]
+      },
+      "pixel": {
+       "n": 1219464,
+       "equal": 931656,
+       "max_ulp": 264,
+       "max_abs": 0.0040283203125,
+       "hist_0_1_2to8_9to64_gt64": [
+        931656,
+        129130,
+        140236,
+        17110,
+        1332
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 28,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       1,
+       27,
+       52,
+       84,
+       144,
+       175,
+       189,
+       240,
+       288,
+       311,
+       346,
+       387,
+       420,
+       443,
+       458,
+       503,
+       544,
+       559,
+       570,
+       585,
+       599,
+       603,
+       699,
+       805,
+       880,
+       940,
+       976,
+       980
+      ],
+      "flipped_rows": 29,
+      "field_orientations_differing": {
+       "pixel_overlap": 4,
+       "pixel_on_detector": 27,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 3,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 29,
+      "ref_side": {
+       "torch": 13,
+       "fused": 16
+      },
+      "max_px_from_edge": 0.0008544921875,
+      "max_margin_ulp": 49,
+      "g_lab": {
+       "n": 336000,
+       "equal": 294468,
+       "max_ulp": 9506,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        294468,
+        33940,
+        6818,
+        682,
+        92
+       ]
+      },
+      "pixel": {
+       "n": 1219464,
+       "equal": 983363,
+       "max_ulp": 264,
+       "max_abs": 0.0040283203125,
+       "hist_0_1_2to8_9to64_gt64": [
+        983363,
+        111055,
+        109407,
+        14350,
+        1289
+       ]
+      }
+     }
+    }
+   },
+   "screen_default": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 63537,
+       "max_ulp": 7970,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        63537,
+        10524,
+        3299,
+        568,
+        72
+       ]
+      },
+      "pixel": {
+       "n": 291720,
+       "equal": 235557,
+       "max_ulp": 121,
+       "max_abs": 0.008544921875,
+       "hist_0_1_2to8_9to64_gt64": [
+        235557,
+        27546,
+        26478,
+        2106,
+        33
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 6,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 68877,
+       "max_ulp": 4071,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        68877,
+        6806,
+        1913,
+        364,
+        40
+       ]
+      },
+      "pixel": {
+       "n": 291720,
+       "equal": 242145,
+       "max_ulp": 121,
+       "max_abs": 0.003692626953125,
+       "hist_0_1_2to8_9to64_gt64": [
+        242145,
+        25245,
+        22329,
+        1923,
+        78
+       ]
+      }
+     }
+    }
+   },
+   "screen_center": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 63537,
+       "max_ulp": 7970,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        63537,
+        10524,
+        3299,
+        568,
+        72
+       ]
+      },
+      "pixel": {
+       "n": 291720,
+       "equal": 235557,
+       "max_ulp": 121,
+       "max_abs": 0.008544921875,
+       "hist_0_1_2to8_9to64_gt64": [
+        235557,
+        27546,
+        26478,
+        2106,
+        33
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 6,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 68877,
+       "max_ulp": 4071,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        68877,
+        6806,
+        1913,
+        364,
+        40
+       ]
+      },
+      "pixel": {
+       "n": 291720,
+       "equal": 242145,
+       "max_ulp": 121,
+       "max_abs": 0.003692626953125,
+       "hist_0_1_2to8_9to64_gt64": [
+        242145,
+        25245,
+        22329,
+        1923,
+        78
+       ]
+      }
+     }
+    }
+   },
+   "screen_vertex0": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 6,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 63537,
+       "max_ulp": 7970,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        63537,
+        10524,
+        3299,
+        568,
+        72
+       ]
+      },
+      "pixel": {
+       "n": 291720,
+       "equal": 235723,
+       "max_ulp": 121,
+       "max_abs": 0.008544921875,
+       "hist_0_1_2to8_9to64_gt64": [
+        235723,
+        27097,
+        26769,
+        2097,
+        34
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 4,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 68877,
+       "max_ulp": 4071,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        68877,
+        6806,
+        1913,
+        364,
+        40
+       ]
+      },
+      "pixel": {
+       "n": 291720,
+       "equal": 242085,
+       "max_ulp": 121,
+       "max_abs": 0.003692626953125,
+       "hist_0_1_2to8_9to64_gt64": [
+        242085,
+        25072,
+        22553,
+        1931,
+        79
+       ]
+      }
+     }
+    }
+   },
+   "screen_edge": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 63537,
+       "max_ulp": 7970,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        63537,
+        10524,
+        3299,
+        568,
+        72
+       ]
+      },
+      "pixel": {
+       "n": 290952,
+       "equal": 234924,
+       "max_ulp": 121,
+       "max_abs": 0.008544921875,
+       "hist_0_1_2to8_9to64_gt64": [
+        234924,
+        27459,
+        26439,
+        2097,
+        33
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 6,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 68877,
+       "max_ulp": 4071,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        68877,
+        6806,
+        1913,
+        364,
+        40
+       ]
+      },
+      "pixel": {
+       "n": 290952,
+       "equal": 241491,
+       "max_ulp": 121,
+       "max_abs": 0.003692626953125,
+       "hist_0_1_2to8_9to64_gt64": [
+        241491,
+        25176,
+        22290,
+        1917,
+        78
+       ]
+      }
+     }
+    }
+   }
+  },
+  "full17034": {
+   "local": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 34,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       80,
+       174,
+       196,
+       205,
+       236,
+       243,
+       246,
+       279,
+       344,
+       354,
+       385,
+       389,
+       442,
+       450,
+       455,
+       469,
+       546,
+       571,
+       587,
+       608,
+       631,
+       650,
+       665,
+       699,
+       720,
+       757,
+       777,
+       778,
+       879,
+       888,
+       900,
+       902,
+       926
+      ],
+      "flipped_rows": 36,
+      "field_orientations_differing": {
+       "pixel_overlap": 2,
+       "pixel_on_detector": 34,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 3,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 41,
+      "ref_side": {
+       "torch": 22,
+       "fused": 14
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 197,
+      "g_lab": {
+       "n": 336000,
+       "equal": 260612,
+       "max_ulp": 41568,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        260612,
+        55004,
+        17436,
+        2590,
+        358
+       ]
+      },
+      "pixel": {
+       "n": 1263804,
+       "equal": 947780,
+       "max_ulp": 538,
+       "max_abs": 0.008544921875,
+       "hist_0_1_2to8_9to64_gt64": [
+        947780,
+        140891,
+        148651,
+        24558,
+        1924
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 29,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       178,
+       191,
+       196,
+       236,
+       336,
+       354,
+       435,
+       442,
+       446,
+       469,
+       516,
+       518,
+       555,
+       608,
+       610,
+       631,
+       650,
+       661,
+       665,
+       666,
+       757,
+       778,
+       834,
+       888,
+       900,
+       946,
+       974,
+       979
+      ],
+      "flipped_rows": 30,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 29,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 33,
+      "ref_side": {
+       "torch": 14,
+       "fused": 16
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 197,
+      "g_lab": {
+       "n": 336000,
+       "equal": 300192,
+       "max_ulp": 13641,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        300192,
+        29570,
+        5556,
+        620,
+        62
+       ]
+      },
+      "pixel": {
+       "n": 1263804,
+       "equal": 1036564,
+       "max_ulp": 507,
+       "max_abs": 0.0040130615234375,
+       "hist_0_1_2to8_9to64_gt64": [
+        1036564,
+        108489,
+        101274,
+        15746,
+        1731
+       ]
+      }
+     }
+    }
+   },
+   "cpp_rule": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 34,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       80,
+       174,
+       196,
+       205,
+       236,
+       243,
+       246,
+       279,
+       344,
+       354,
+       385,
+       389,
+       442,
+       450,
+       455,
+       469,
+       546,
+       571,
+       587,
+       608,
+       631,
+       650,
+       665,
+       699,
+       720,
+       757,
+       777,
+       778,
+       879,
+       888,
+       900,
+       902,
+       926
+      ],
+      "flipped_rows": 36,
+      "field_orientations_differing": {
+       "pixel_overlap": 2,
+       "pixel_on_detector": 34,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 41,
+      "ref_side": {
+       "torch": 22,
+       "fused": 14
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 197,
+      "g_lab": {
+       "n": 336000,
+       "equal": 260612,
+       "max_ulp": 41568,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        260612,
+        55004,
+        17436,
+        2590,
+        358
+       ]
+      },
+      "pixel": {
+       "n": 1263804,
+       "equal": 947780,
+       "max_ulp": 538,
+       "max_abs": 0.008544921875,
+       "hist_0_1_2to8_9to64_gt64": [
+        947780,
+        140891,
+        148651,
+        24558,
+        1924
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 29,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       178,
+       191,
+       196,
+       236,
+       336,
+       354,
+       435,
+       442,
+       446,
+       469,
+       516,
+       518,
+       555,
+       608,
+       610,
+       631,
+       650,
+       661,
+       665,
+       666,
+       757,
+       778,
+       834,
+       888,
+       900,
+       946,
+       974,
+       979
+      ],
+      "flipped_rows": 30,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 29,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 33,
+      "ref_side": {
+       "torch": 14,
+       "fused": 16
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 197,
+      "g_lab": {
+       "n": 336000,
+       "equal": 300192,
+       "max_ulp": 13641,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        300192,
+        29570,
+        5556,
+        620,
+        62
+       ]
+      },
+      "pixel": {
+       "n": 1263804,
+       "equal": 1036564,
+       "max_ulp": 507,
+       "max_abs": 0.0040130615234375,
+       "hist_0_1_2to8_9to64_gt64": [
+        1036564,
+        108489,
+        101274,
+        15746,
+        1731
+       ]
+      }
+     }
+    }
+   },
+   "edge": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 34,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       80,
+       174,
+       196,
+       205,
+       236,
+       243,
+       246,
+       279,
+       344,
+       354,
+       385,
+       389,
+       442,
+       450,
+       455,
+       469,
+       546,
+       571,
+       587,
+       608,
+       631,
+       650,
+       665,
+       699,
+       720,
+       757,
+       777,
+       778,
+       879,
+       888,
+       900,
+       902,
+       926
+      ],
+      "flipped_rows": 36,
+      "field_orientations_differing": {
+       "pixel_overlap": 2,
+       "pixel_on_detector": 34,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 3,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 40,
+      "ref_side": {
+       "torch": 22,
+       "fused": 14
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 197,
+      "g_lab": {
+       "n": 336000,
+       "equal": 260612,
+       "max_ulp": 41568,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        260612,
+        55004,
+        17436,
+        2590,
+        358
+       ]
+      },
+      "pixel": {
+       "n": 1254576,
+       "equal": 941103,
+       "max_ulp": 538,
+       "max_abs": 0.008544921875,
+       "hist_0_1_2to8_9to64_gt64": [
+        941103,
+        139596,
+        147465,
+        24497,
+        1915
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 29,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       178,
+       191,
+       196,
+       236,
+       336,
+       354,
+       435,
+       442,
+       446,
+       469,
+       516,
+       518,
+       555,
+       608,
+       610,
+       631,
+       650,
+       661,
+       665,
+       666,
+       757,
+       778,
+       834,
+       888,
+       900,
+       946,
+       974,
+       979
+      ],
+      "flipped_rows": 30,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 29,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 33,
+      "ref_side": {
+       "torch": 14,
+       "fused": 16
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 197,
+      "g_lab": {
+       "n": 336000,
+       "equal": 300192,
+       "max_ulp": 13641,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        300192,
+        29570,
+        5556,
+        620,
+        62
+       ]
+      },
+      "pixel": {
+       "n": 1254576,
+       "equal": 1028130,
+       "max_ulp": 507,
+       "max_abs": 0.0040130615234375,
+       "hist_0_1_2to8_9to64_gt64": [
+        1028130,
+        108029,
+        100950,
+        15742,
+        1725
+       ]
+      }
+     }
+    }
+   },
+   "edge_cpp_rule": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 34,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       80,
+       174,
+       196,
+       205,
+       236,
+       243,
+       246,
+       279,
+       344,
+       354,
+       385,
+       389,
+       442,
+       450,
+       455,
+       469,
+       546,
+       571,
+       587,
+       608,
+       631,
+       650,
+       665,
+       699,
+       720,
+       757,
+       777,
+       778,
+       879,
+       888,
+       900,
+       902,
+       926
+      ],
+      "flipped_rows": 36,
+      "field_orientations_differing": {
+       "pixel_overlap": 2,
+       "pixel_on_detector": 34,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 40,
+      "ref_side": {
+       "torch": 22,
+       "fused": 14
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 197,
+      "g_lab": {
+       "n": 336000,
+       "equal": 260612,
+       "max_ulp": 41568,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        260612,
+        55004,
+        17436,
+        2590,
+        358
+       ]
+      },
+      "pixel": {
+       "n": 1254576,
+       "equal": 941103,
+       "max_ulp": 538,
+       "max_abs": 0.008544921875,
+       "hist_0_1_2to8_9to64_gt64": [
+        941103,
+        139596,
+        147465,
+        24497,
+        1915
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 29,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       178,
+       191,
+       196,
+       236,
+       336,
+       354,
+       435,
+       442,
+       446,
+       469,
+       516,
+       518,
+       555,
+       608,
+       610,
+       631,
+       650,
+       661,
+       665,
+       666,
+       757,
+       778,
+       834,
+       888,
+       900,
+       946,
+       974,
+       979
+      ],
+      "flipped_rows": 30,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 29,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 33,
+      "ref_side": {
+       "torch": 14,
+       "fused": 16
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 197,
+      "g_lab": {
+       "n": 336000,
+       "equal": 300192,
+       "max_ulp": 13641,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        300192,
+        29570,
+        5556,
+        620,
+        62
+       ]
+      },
+      "pixel": {
+       "n": 1254576,
+       "equal": 1028130,
+       "max_ulp": 507,
+       "max_abs": 0.0040130615234375,
+       "hist_0_1_2to8_9to64_gt64": [
+        1028130,
+        108029,
+        100950,
+        15742,
+        1725
+       ]
+      }
+     }
+    }
+   },
+   "min_sin_eta": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 32,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       80,
+       174,
+       196,
+       205,
+       236,
+       243,
+       246,
+       279,
+       344,
+       354,
+       442,
+       450,
+       455,
+       469,
+       546,
+       571,
+       587,
+       608,
+       631,
+       650,
+       665,
+       699,
+       720,
+       757,
+       777,
+       778,
+       879,
+       888,
+       900,
+       902,
+       926
+      ],
+      "flipped_rows": 34,
+      "field_orientations_differing": {
+       "pixel_overlap": 1,
+       "pixel_on_detector": 32,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 3,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 38,
+      "ref_side": {
+       "torch": 21,
+       "fused": 13
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 197,
+      "g_lab": {
+       "n": 336000,
+       "equal": 260612,
+       "max_ulp": 41568,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        260612,
+        55004,
+        17436,
+        2590,
+        358
+       ]
+      },
+      "pixel": {
+       "n": 1236900,
+       "equal": 928795,
+       "max_ulp": 538,
+       "max_abs": 0.0041046142578125,
+       "hist_0_1_2to8_9to64_gt64": [
+        928795,
+        138033,
+        145046,
+        23110,
+        1916
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 29,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       178,
+       191,
+       196,
+       236,
+       336,
+       354,
+       435,
+       442,
+       446,
+       469,
+       516,
+       518,
+       555,
+       608,
+       610,
+       631,
+       650,
+       661,
+       665,
+       666,
+       757,
+       778,
+       834,
+       888,
+       900,
+       946,
+       974,
+       979
+      ],
+      "flipped_rows": 30,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 29,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 33,
+      "ref_side": {
+       "torch": 14,
+       "fused": 16
+      },
+      "max_px_from_edge": 0.0009765625,
+      "max_margin_ulp": 197,
+      "g_lab": {
+       "n": 336000,
+       "equal": 300192,
+       "max_ulp": 13641,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        300192,
+        29570,
+        5556,
+        620,
+        62
+       ]
+      },
+      "pixel": {
+       "n": 1236900,
+       "equal": 1014199,
+       "max_ulp": 507,
+       "max_abs": 0.0040130615234375,
+       "hist_0_1_2to8_9to64_gt64": [
+        1014199,
+        104930,
+        100294,
+        15746,
+        1731
+       ]
+      }
+     }
+    }
+   },
+   "screen_default": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 4,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 63828,
+       "max_ulp": 2941,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        63828,
+        9588,
+        3579,
+        872,
+        133
+       ]
+      },
+      "pixel": {
+       "n": 302772,
+       "equal": 241350,
+       "max_ulp": 113,
+       "max_abs": 0.00830078125,
+       "hist_0_1_2to8_9to64_gt64": [
+        241350,
+        30717,
+        27912,
+        2742,
+        51
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 2,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 69558,
+       "max_ulp": 2941,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        69558,
+        6158,
+        1765,
+        434,
+        85
+       ]
+      },
+      "pixel": {
+       "n": 302772,
+       "equal": 255222,
+       "max_ulp": 113,
+       "max_abs": 0.003662109375,
+       "hist_0_1_2to8_9to64_gt64": [
+        255222,
+        24492,
+        20634,
+        2361,
+        63
+       ]
+      }
+     }
+    }
+   },
+   "screen_center": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 4,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 63828,
+       "max_ulp": 2941,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        63828,
+        9588,
+        3579,
+        872,
+        133
+       ]
+      },
+      "pixel": {
+       "n": 302772,
+       "equal": 241350,
+       "max_ulp": 113,
+       "max_abs": 0.00830078125,
+       "hist_0_1_2to8_9to64_gt64": [
+        241350,
+        30717,
+        27912,
+        2742,
+        51
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 2,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 69558,
+       "max_ulp": 2941,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        69558,
+        6158,
+        1765,
+        434,
+        85
+       ]
+      },
+      "pixel": {
+       "n": 302772,
+       "equal": 255222,
+       "max_ulp": 113,
+       "max_abs": 0.003662109375,
+       "hist_0_1_2to8_9to64_gt64": [
+        255222,
+        24492,
+        20634,
+        2361,
+        63
+       ]
+      }
+     }
+    }
+   },
+   "screen_vertex0": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 63828,
+       "max_ulp": 2941,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        63828,
+        9588,
+        3579,
+        872,
+        133
+       ]
+      },
+      "pixel": {
+       "n": 302772,
+       "equal": 241422,
+       "max_ulp": 115,
+       "max_abs": 0.008544921875,
+       "hist_0_1_2to8_9to64_gt64": [
+        241422,
+        30807,
+        27749,
+        2742,
+        52
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 69558,
+       "max_ulp": 2941,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        69558,
+        6158,
+        1765,
+        434,
+        85
+       ]
+      },
+      "pixel": {
+       "n": 302772,
+       "equal": 255298,
+       "max_ulp": 113,
+       "max_abs": 0.003662109375,
+       "hist_0_1_2to8_9to64_gt64": [
+        255298,
+        24366,
+        20671,
+        2372,
+        65
+       ]
+      }
+     }
+    }
+   },
+   "screen_edge": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 4,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 63828,
+       "max_ulp": 2941,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        63828,
+        9588,
+        3579,
+        872,
+        133
+       ]
+      },
+      "pixel": {
+       "n": 299328,
+       "equal": 239301,
+       "max_ulp": 113,
+       "max_abs": 0.00830078125,
+       "hist_0_1_2to8_9to64_gt64": [
+        239301,
+        29973,
+        27288,
+        2715,
+        51
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 2,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 69558,
+       "max_ulp": 2941,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        69558,
+        6158,
+        1765,
+        434,
+        85
+       ]
+      },
+      "pixel": {
+       "n": 299328,
+       "equal": 251994,
+       "max_ulp": 113,
+       "max_abs": 0.003662109375,
+       "hist_0_1_2to8_9to64_gt64": [
+        251994,
+        24363,
+        20547,
+        2361,
+        63
+       ]
+      }
+     }
+    }
+   }
+  },
+  "full18558": {
+   "local": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 28,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       21,
+       54,
+       99,
+       104,
+       116,
+       136,
+       139,
+       200,
+       241,
+       330,
+       341,
+       349,
+       372,
+       386,
+       419,
+       437,
+       459,
+       469,
+       497,
+       514,
+       536,
+       640,
+       675,
+       709,
+       823,
+       827,
+       979,
+       983
+      ],
+      "flipped_rows": 31,
+      "field_orientations_differing": {
+       "pixel_overlap": 5,
+       "pixel_on_detector": 27,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 4,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 46,
+      "ref_side": {
+       "torch": 12,
+       "fused": 19
+      },
+      "max_px_from_edge": 0.0018310546875,
+      "max_margin_ulp": 312,
+      "g_lab": {
+       "n": 336000,
+       "equal": 277298,
+       "max_ulp": 756576,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        277298,
+        46736,
+        10370,
+        1410,
+        186
+       ]
+      },
+      "pixel": {
+       "n": 1251576,
+       "equal": 972413,
+       "max_ulp": 521284,
+       "max_abs": 0.011474609375,
+       "hist_0_1_2to8_9to64_gt64": [
+        972413,
+        110341,
+        127748,
+        33300,
+        7774
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 20,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       116,
+       144,
+       292,
+       297,
+       304,
+       330,
+       341,
+       372,
+       374,
+       419,
+       648,
+       730,
+       823,
+       827,
+       868,
+       887,
+       931,
+       965,
+       966
+      ],
+      "flipped_rows": 20,
+      "field_orientations_differing": {
+       "pixel_overlap": 1,
+       "pixel_on_detector": 20,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 32,
+      "ref_side": {
+       "torch": 16,
+       "fused": 4
+      },
+      "max_px_from_edge": 0.0006103515625,
+      "max_margin_ulp": 312,
+      "g_lab": {
+       "n": 336000,
+       "equal": 303588,
+       "max_ulp": 1795,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        303588,
+        27180,
+        4608,
+        542,
+        82
+       ]
+      },
+      "pixel": {
+       "n": 1251576,
+       "equal": 1024611,
+       "max_ulp": 521284,
+       "max_abs": 0.004581451416015625,
+       "hist_0_1_2to8_9to64_gt64": [
+        1024611,
+        97995,
+        100988,
+        21986,
+        5996
+       ]
+      }
+     }
+    }
+   },
+   "cpp_rule": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 28,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       21,
+       54,
+       99,
+       104,
+       116,
+       136,
+       139,
+       200,
+       241,
+       330,
+       341,
+       349,
+       372,
+       386,
+       419,
+       437,
+       459,
+       469,
+       497,
+       514,
+       536,
+       640,
+       675,
+       709,
+       823,
+       827,
+       979,
+       983
+      ],
+      "flipped_rows": 31,
+      "field_orientations_differing": {
+       "pixel_overlap": 5,
+       "pixel_on_detector": 27,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 46,
+      "ref_side": {
+       "torch": 12,
+       "fused": 19
+      },
+      "max_px_from_edge": 0.0018310546875,
+      "max_margin_ulp": 312,
+      "g_lab": {
+       "n": 336000,
+       "equal": 277298,
+       "max_ulp": 756576,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        277298,
+        46736,
+        10370,
+        1410,
+        186
+       ]
+      },
+      "pixel": {
+       "n": 1251576,
+       "equal": 972413,
+       "max_ulp": 521284,
+       "max_abs": 0.011474609375,
+       "hist_0_1_2to8_9to64_gt64": [
+        972413,
+        110341,
+        127748,
+        33300,
+        7774
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 20,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       116,
+       144,
+       292,
+       297,
+       304,
+       330,
+       341,
+       372,
+       374,
+       419,
+       648,
+       730,
+       823,
+       827,
+       868,
+       887,
+       931,
+       965,
+       966
+      ],
+      "flipped_rows": 20,
+      "field_orientations_differing": {
+       "pixel_overlap": 1,
+       "pixel_on_detector": 20,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 32,
+      "ref_side": {
+       "torch": 16,
+       "fused": 4
+      },
+      "max_px_from_edge": 0.0006103515625,
+      "max_margin_ulp": 312,
+      "g_lab": {
+       "n": 336000,
+       "equal": 303588,
+       "max_ulp": 1795,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        303588,
+        27180,
+        4608,
+        542,
+        82
+       ]
+      },
+      "pixel": {
+       "n": 1251576,
+       "equal": 1024611,
+       "max_ulp": 521284,
+       "max_abs": 0.004581451416015625,
+       "hist_0_1_2to8_9to64_gt64": [
+        1024611,
+        97995,
+        100988,
+        21986,
+        5996
+       ]
+      }
+     }
+    }
+   },
+   "edge": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 28,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       21,
+       54,
+       99,
+       104,
+       116,
+       136,
+       139,
+       200,
+       241,
+       330,
+       341,
+       349,
+       372,
+       386,
+       419,
+       437,
+       459,
+       469,
+       497,
+       514,
+       536,
+       640,
+       675,
+       709,
+       823,
+       827,
+       979,
+       983
+      ],
+      "flipped_rows": 31,
+      "field_orientations_differing": {
+       "pixel_overlap": 5,
+       "pixel_on_detector": 27,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 4,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 46,
+      "ref_side": {
+       "torch": 12,
+       "fused": 19
+      },
+      "max_px_from_edge": 0.0018310546875,
+      "max_margin_ulp": 312,
+      "g_lab": {
+       "n": 336000,
+       "equal": 277298,
+       "max_ulp": 756576,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        277298,
+        46736,
+        10370,
+        1410,
+        186
+       ]
+      },
+      "pixel": {
+       "n": 1245936,
+       "equal": 974820,
+       "max_ulp": 24477,
+       "max_abs": 0.011474609375,
+       "hist_0_1_2to8_9to64_gt64": [
+        974820,
+        109892,
+        126918,
+        28680,
+        5626
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 20,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       116,
+       144,
+       292,
+       297,
+       304,
+       330,
+       341,
+       372,
+       374,
+       419,
+       648,
+       730,
+       823,
+       827,
+       868,
+       887,
+       931,
+       965,
+       966
+      ],
+      "flipped_rows": 20,
+      "field_orientations_differing": {
+       "pixel_overlap": 1,
+       "pixel_on_detector": 20,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 32,
+      "ref_side": {
+       "torch": 16,
+       "fused": 4
+      },
+      "max_px_from_edge": 0.0006103515625,
+      "max_margin_ulp": 312,
+      "g_lab": {
+       "n": 336000,
+       "equal": 303588,
+       "max_ulp": 1795,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        303588,
+        27180,
+        4608,
+        542,
+        82
+       ]
+      },
+      "pixel": {
+       "n": 1245936,
+       "equal": 1024903,
+       "max_ulp": 19183,
+       "max_abs": 0.004581451416015625,
+       "hist_0_1_2to8_9to64_gt64": [
+        1024903,
+        97605,
+        100220,
+        18819,
+        4389
+       ]
+      }
+     }
+    }
+   },
+   "edge_cpp_rule": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 28,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       21,
+       54,
+       99,
+       104,
+       116,
+       136,
+       139,
+       200,
+       241,
+       330,
+       341,
+       349,
+       372,
+       386,
+       419,
+       437,
+       459,
+       469,
+       497,
+       514,
+       536,
+       640,
+       675,
+       709,
+       823,
+       827,
+       979,
+       983
+      ],
+      "flipped_rows": 31,
+      "field_orientations_differing": {
+       "pixel_overlap": 5,
+       "pixel_on_detector": 27,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 46,
+      "ref_side": {
+       "torch": 12,
+       "fused": 19
+      },
+      "max_px_from_edge": 0.0018310546875,
+      "max_margin_ulp": 312,
+      "g_lab": {
+       "n": 336000,
+       "equal": 277298,
+       "max_ulp": 756576,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        277298,
+        46736,
+        10370,
+        1410,
+        186
+       ]
+      },
+      "pixel": {
+       "n": 1245936,
+       "equal": 974820,
+       "max_ulp": 24477,
+       "max_abs": 0.011474609375,
+       "hist_0_1_2to8_9to64_gt64": [
+        974820,
+        109892,
+        126918,
+        28680,
+        5626
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 20,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       116,
+       144,
+       292,
+       297,
+       304,
+       330,
+       341,
+       372,
+       374,
+       419,
+       648,
+       730,
+       823,
+       827,
+       868,
+       887,
+       931,
+       965,
+       966
+      ],
+      "flipped_rows": 20,
+      "field_orientations_differing": {
+       "pixel_overlap": 1,
+       "pixel_on_detector": 20,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 32,
+      "ref_side": {
+       "torch": 16,
+       "fused": 4
+      },
+      "max_px_from_edge": 0.0006103515625,
+      "max_margin_ulp": 312,
+      "g_lab": {
+       "n": 336000,
+       "equal": 303588,
+       "max_ulp": 1795,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        303588,
+        27180,
+        4608,
+        542,
+        82
+       ]
+      },
+      "pixel": {
+       "n": 1245936,
+       "equal": 1024903,
+       "max_ulp": 19183,
+       "max_abs": 0.004581451416015625,
+       "hist_0_1_2to8_9to64_gt64": [
+        1024903,
+        97605,
+        100220,
+        18819,
+        4389
+       ]
+      }
+     }
+    }
+   },
+   "min_sin_eta": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 22,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       21,
+       54,
+       79,
+       99,
+       104,
+       116,
+       136,
+       139,
+       200,
+       241,
+       330,
+       341,
+       349,
+       372,
+       419,
+       459,
+       640,
+       675,
+       823,
+       827,
+       979,
+       983
+      ],
+      "flipped_rows": 22,
+      "field_orientations_differing": {
+       "pixel_overlap": 5,
+       "pixel_on_detector": 22,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 3,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 42,
+      "ref_side": {
+       "torch": 9,
+       "fused": 13
+      },
+      "max_px_from_edge": 0.0010986328125,
+      "max_margin_ulp": 312,
+      "g_lab": {
+       "n": 336000,
+       "equal": 277298,
+       "max_ulp": 756576,
+       "max_abs": 9.5367431640625e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        277298,
+        46736,
+        10370,
+        1410,
+        186
+       ]
+      },
+      "pixel": {
+       "n": 1224972,
+       "equal": 955184,
+       "max_ulp": 521284,
+       "max_abs": 0.004581451416015625,
+       "hist_0_1_2to8_9to64_gt64": [
+        955184,
+        108357,
+        124351,
+        29381,
+        7699
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 19,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [
+       79,
+       116,
+       292,
+       297,
+       304,
+       330,
+       341,
+       372,
+       374,
+       419,
+       648,
+       730,
+       823,
+       827,
+       868,
+       887,
+       931,
+       965,
+       966
+      ],
+      "flipped_rows": 19,
+      "field_orientations_differing": {
+       "pixel_overlap": 1,
+       "pixel_on_detector": 19,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 1,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 32,
+      "ref_side": {
+       "torch": 15,
+       "fused": 4
+      },
+      "max_px_from_edge": 0.0006103515625,
+      "max_margin_ulp": 312,
+      "g_lab": {
+       "n": 336000,
+       "equal": 303588,
+       "max_ulp": 1795,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        303588,
+        27180,
+        4608,
+        542,
+        82
+       ]
+      },
+      "pixel": {
+       "n": 1224972,
+       "equal": 1002880,
+       "max_ulp": 521284,
+       "max_abs": 0.004581451416015625,
+       "hist_0_1_2to8_9to64_gt64": [
+        1002880,
+        94240,
+        99870,
+        21986,
+        5996
+       ]
+      }
+     }
+    }
+   },
+   "screen_default": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 6,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 67903,
+       "max_ulp": 23626,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        67903,
+        8273,
+        1557,
+        233,
+        34
+       ]
+      },
+      "pixel": {
+       "n": 291456,
+       "equal": 240075,
+       "max_ulp": 275,
+       "max_abs": 0.01025390625,
+       "hist_0_1_2to8_9to64_gt64": [
+        240075,
+        21204,
+        25938,
+        3987,
+        252
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 71655,
+       "max_ulp": 243,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        71655,
+        5517,
+        707,
+        105,
+        16
+       ]
+      },
+      "pixel": {
+       "n": 291456,
+       "equal": 242790,
+       "max_ulp": 275,
+       "max_abs": 0.0037841796875,
+       "hist_0_1_2to8_9to64_gt64": [
+        242790,
+        20979,
+        24312,
+        3186,
+        189
+       ]
+      }
+     }
+    }
+   },
+   "screen_center": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 6,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 67903,
+       "max_ulp": 23626,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        67903,
+        8273,
+        1557,
+        233,
+        34
+       ]
+      },
+      "pixel": {
+       "n": 291456,
+       "equal": 240075,
+       "max_ulp": 275,
+       "max_abs": 0.01025390625,
+       "hist_0_1_2to8_9to64_gt64": [
+        240075,
+        21204,
+        25938,
+        3987,
+        252
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 71655,
+       "max_ulp": 243,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        71655,
+        5517,
+        707,
+        105,
+        16
+       ]
+      },
+      "pixel": {
+       "n": 291456,
+       "equal": 242790,
+       "max_ulp": 275,
+       "max_abs": 0.0037841796875,
+       "hist_0_1_2to8_9to64_gt64": [
+        242790,
+        20979,
+        24312,
+        3186,
+        189
+       ]
+      }
+     }
+    }
+   },
+   "screen_vertex0": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 67903,
+       "max_ulp": 23626,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        67903,
+        8273,
+        1557,
+        233,
+        34
+       ]
+      },
+      "pixel": {
+       "n": 291456,
+       "equal": 239990,
+       "max_ulp": 274,
+       "max_abs": 0.010009765625,
+       "hist_0_1_2to8_9to64_gt64": [
+        239990,
+        21237,
+        26091,
+        3887,
+        251
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 4,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 71655,
+       "max_ulp": 243,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        71655,
+        5517,
+        707,
+        105,
+        16
+       ]
+      },
+      "pixel": {
+       "n": 291456,
+       "equal": 242709,
+       "max_ulp": 274,
+       "max_abs": 0.0037841796875,
+       "hist_0_1_2to8_9to64_gt64": [
+        242709,
+        21257,
+        24169,
+        3133,
+        188
+       ]
+      }
+     }
+    }
+   },
+   "screen_edge": {
+    "n": 1000,
+    "prototype_differs": 0,
+    "orders": {
+     "fma": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 6,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 67903,
+       "max_ulp": 23626,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        67903,
+        8273,
+        1557,
+        233,
+        34
+       ]
+      },
+      "pixel": {
+       "n": 289992,
+       "equal": 238743,
+       "max_ulp": 275,
+       "max_abs": 0.01025390625,
+       "hist_0_1_2to8_9to64_gt64": [
+        238743,
+        21132,
+        25878,
+        3987,
+        252
+       ]
+      }
+     },
+     "plain": {
+      "n_orientations_differing": 0,
+      "n_failing": 0,
+      "failures": [],
+      "differing_index": [],
+      "flipped_rows": 0,
+      "field_orientations_differing": {
+       "pixel_overlap": 0,
+       "pixel_on_detector": 0,
+       "peak_overlap": 0,
+       "peak_on_detector": 0,
+       "quality": 0,
+       "n_quality_points": 0,
+       "detectors_overlap": 0
+      },
+      "silent_input_differences": 5,
+      "ref_side": {
+       "torch": 0,
+       "fused": 0
+      },
+      "max_px_from_edge": 0.0,
+      "max_margin_ulp": 0,
+      "g_lab": {
+       "n": 78000,
+       "equal": 71655,
+       "max_ulp": 243,
+       "max_abs": 4.76837158203125e-07,
+       "hist_0_1_2to8_9to64_gt64": [
+        71655,
+        5517,
+        707,
+        105,
+        16
+       ]
+      },
+      "pixel": {
+       "n": 289992,
+       "equal": 241428,
+       "max_ulp": 275,
+       "max_abs": 0.0037841796875,
+       "hist_0_1_2to8_9to64_gt64": [
+        241428,
+        20910,
+        24279,
+        3186,
+        189
+       ]
+      }
+     }
+    }
+   }
+  }
+ },
+ "totals": {
+  "orders": {
+   "fma": {
+    "differing": 634,
+    "failing": 0,
+    "flipped_rows": 686
+   },
+   "plain": {
+    "differing": 464,
+    "failing": 0,
+    "flipped_rows": 474
+   }
+  },
+  "prototype_differs": 0
+ }
+}

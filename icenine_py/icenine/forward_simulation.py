@@ -10,7 +10,7 @@ Python port of Src/ForwardSimulation.h/cpp
 Author: S. F. Li
 """
 
-from typing import List, Optional
+from typing import Callable, List, Optional
 from pathlib import Path
 import math
 import time
@@ -80,6 +80,11 @@ class ForwardSimulation:
         self.exp_setup = XDMExperimentSetup(config_file)
         self.simulator = Simulation()
         self.images: List[List[ImageData]] = []
+        # Opt-in provenance hook of the batched path (default None = off, no effect): a callable
+        # peak_hook(voxel_index, reflection_index, image_index, omega) called once per rasterized
+        # peak just before its per-detector triangles are drawn. Task D (spot pairing) uses it to
+        # attribute lit pixels to (voxel, reflection) pairs; it changes no physics or output.
+        self.peak_hook: Optional[Callable[[int, int, int, float], None]] = None
 
     def simulate_detector_images(
         self,
@@ -651,12 +656,20 @@ class ForwardSimulation:
 
                 # Detach and convert to numpy for fast sequential access
                 wedge_np = valid_wedge_idx[final_valid].numpy()
+                if self.peak_hook is not None:
+                    gvox_np = (
+                        chunk_start + torch.where(phase_mask)[0][voxel_idx[final_valid]]
+                    ).numpy()
+                    refl_np = refl_idx[final_valid].numpy()
+                    omega_np = valid_omegas[final_valid].detach().numpy()
                 intensity_np = intensity[final_valid].detach().numpy()
                 px_np = [pc[final_valid].detach().numpy() for pc in pixel_coords_list]
 
                 for i in range(n_raster):
                     oi = int(wedge_np[i])
                     inten = float(intensity_np[i])
+                    if self.peak_hook is not None:
+                        self.peak_hook(int(gvox_np[i]), int(refl_np[i]), oi, float(omega_np[i]))
                     for di in range(num_detectors):
                         v0c, v0r = float(px_np[di][i, 0, 0]), float(px_np[di][i, 0, 1])
                         v1c, v1r = float(px_np[di][i, 1, 0]), float(px_np[di][i, 1, 1])

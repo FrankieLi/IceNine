@@ -1,0 +1,208 @@
+{
+ "voxel": 18558,
+ "tag": "c0a_k2",
+ "opts": [
+  "candidate_dedup=clique=cpp:2"
+ ],
+ "seed": 1,
+ "preflight": {
+  "timestamp": "2026-10-14T11:40:00",
+  "host": "newt.lan",
+  "loadavg": [
+   1.27587890625,
+   2.8193359375,
+   3.8349609375
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": []
+ },
+ "label": "single-worker",
+ "quiet_preflight": true,
+ "wall_s": 133.780980292,
+ "evals_total": 314241,
+ "evals_by_radius": {
+  "r3": 77535,
+  "r0": 236706
+ },
+ "eval_time_s": 124.79677587300158,
+ "mean_us_per_eval": 397.13715229076274,
+ "library_eval_counts": [
+  77535,
+  236706,
+  314241
+ ],
+ "totals": {
+  "screen": 77535,
+  "recost": 65713,
+  "quick": 169116,
+  "find": 401,
+  "variance": 1475,
+  "final": 1,
+  "sum": 314241
+ },
+ "levels": [
+  {
+   "level": 0,
+   "fz_in": 4886,
+   "n_local": 9,
+   "n_recip": 26,
+   "diameter_deg": 5.0,
+   "candidates": 10253,
+   "cliques": 4886,
+   "passed_screen": 33766,
+   "screen_evals": 43974,
+   "recost_evals": 33766,
+   "screen_eval_s": 1.0139633719999908,
+   "recost_eval_s": 17.46905678300003,
+   "discrete_s": 21.315423291000002,
+   "kept": 2563,
+   "dropped": 7690,
+   "quick_evals": 110496,
+   "quick_s": 59.966964625,
+   "quick_calls": 9208,
+   "stage_evals": 188236
+  },
+  {
+   "level": 1,
+   "fz_in": 2563,
+   "n_local": 9,
+   "n_recip": 50,
+   "diameter_deg": 3.3333333333333335,
+   "candidates": 3531,
+   "cliques": 2563,
+   "passed_screen": 21661,
+   "screen_evals": 23067,
+   "recost_evals": 21661,
+   "screen_eval_s": 0.9084654119999414,
+   "recost_eval_s": 11.158508051000467,
+   "discrete_s": 13.308414541999994,
+   "kept": 882,
+   "dropped": 2649,
+   "quick_evals": 41232,
+   "quick_s": 22.312054542,
+   "quick_calls": 3436,
+   "stage_evals": 85960
+  },
+  {
+   "level": 2,
+   "fz_in": 882,
+   "n_local": 9,
+   "n_recip": 64,
+   "diameter_deg": 2.2222222222222223,
+   "candidates": 1138,
+   "cliques": 882,
+   "passed_screen": 7733,
+   "screen_evals": 7938,
+   "recost_evals": 7733,
+   "screen_eval_s": 0.376061290999985,
+   "recost_eval_s": 3.9899013709999878,
+   "discrete_s": 4.792617457999995,
+   "kept": 284,
+   "dropped": 854,
+   "quick_evals": 13320,
+   "quick_s": 7.242359416999989,
+   "quick_calls": 1110,
+   "stage_evals": 28991
+  },
+  {
+   "level": 3,
+   "fz_in": 284,
+   "n_local": 9,
+   "n_recip": 112,
+   "diameter_deg": 1.4814814814814814,
+   "candidates": 340,
+   "cliques": 284,
+   "passed_screen": 2553,
+   "screen_evals": 2556,
+   "recost_evals": 2553,
+   "screen_eval_s": 0.19679045799998107,
+   "recost_eval_s": 1.2940624539996008,
+   "discrete_s": 1.625017458000002,
+   "kept": 85,
+   "dropped": 255,
+   "quick_evals": 4068,
+   "quick_s": 2.208748999999983,
+   "quick_calls": 339,
+   "stage_evals": 9177
+  }
+ ],
+ "find": [
+  {
+   "index": 0,
+   "evals": 193,
+   "wall_s": 0.10211829200000011,
+   "cost": 0.07193283279220786
+  },
+  {
+   "index": 1,
+   "evals": 208,
+   "wall_s": 0.10949108300002308,
+   "cost": 0.06250000000000011
+  }
+ ],
+ "find_optimal": {
+  "winner_index": 1,
+  "n_evaluated": 2,
+  "n_candidates": 339,
+  "converged": true
+ },
+ "variance": {
+  "evals": 1475,
+  "wall_s": 0.7932676669999807
+ },
+ "final": {
+  "evals": 1,
+  "wall_s": 0.000524750000010954
+ },
+ "calls": {
+  "find": [
+   {
+    "kind": "find",
+    "evals": 193,
+    "cost": 0.07193283279220786,
+    "blocks": 6,
+    "steps": 186,
+    "restarts": 3,
+    "accepts": 3,
+    "stop": 1
+   },
+   {
+    "kind": "find",
+    "evals": 208,
+    "cost": 0.06250000000000011,
+    "blocks": 7,
+    "steps": 200,
+    "restarts": 1,
+    "accepts": 6,
+    "stop": 0
+   }
+  ],
+  "variance": [
+   {
+    "kind": "variance",
+    "evals": 1475,
+    "cost": 0.06250000000000011
+   }
+  ],
+  "quick": {
+   "n": 14093,
+   "evals_total": 169116,
+   "evals_per_call": {
+    "min": 12,
+    "median": 12.0,
+    "max": 12
+   },
+   "blocks_mean": 1.0,
+   "stop_codes": {
+    "0": 14093
+   }
+  }
+ },
+ "err_deg": 0.0011804437763166568,
+ "cost_final": 0.06250000000000011,
+ "c_ext": true
+}

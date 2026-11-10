@@ -1,0 +1,27 @@
+{
+ "timestamp": "2026-10-18T23:45:06",
+ "host": "newt.lan",
+ "loadavg": [
+  4.23388671875,
+  3.93115234375,
+  3.115234375
+ ],
+ "cpu_count": 12,
+ "power": "ac",
+ "omp_num_threads": "1",
+ "mkl_num_threads": "1",
+ "torch_threads": 1,
+ "busy_processes": [
+  {
+   "pid": 596,
+   "cpu": 20.4,
+   "command": "/usr/libexec/searchpartyd"
+  },
+  {
+   "pid": 5372,
+   "cpu": 85.9,
+   "command": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/155.0.8059.84/Helpers/Google Chrome Helper (Aperitif Renderer).app/Contents/MacOS/Google Chrome Helper (Aperitif Renderer)"
+  }
+ ],
+ "not_quiet": "machine not quiet for timing: 1-min load 4.23 > 1.5; busy process pid 596 (20% CPU): /usr/libexec/searchpartyd; busy process pid 5372 (86% CPU): /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/155.0.8059.84/Helpers/Google Chrome Helper (Aperitif Renderer).app/Contents/MacOS/Google Chrome Helper (Aperitif Renderer)"
+}

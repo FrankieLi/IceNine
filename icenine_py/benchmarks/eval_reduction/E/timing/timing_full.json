@@ -1,0 +1,77 @@
+{
+ "set": "full",
+ "voxel": 15901,
+ "label": "single-worker",
+ "n_orientations": 1000,
+ "level0_diameter_deg": 5.0,
+ "strict_ms_per_eval": 0.3814732079999996,
+ "build_trees_s": 4.5379953330000005,
+ "build_rays_s": 12.033643915999999,
+ "arms": {
+  "S": {
+   "ms_per_eval_batch256": 0.4703872500000017,
+   "ms_per_eval_single": 0.8094979200000019,
+   "ratio_batch256_to_strict": 1.2330806990775671
+  },
+  "E1": {
+   "ms_per_eval_batch256": 1.332270458,
+   "ms_per_eval_single": 1.6488397949999898,
+   "ratio_batch256_to_strict": 3.4924351961304745
+  },
+  "E2": {
+   "ms_per_eval_batch256": 2.080102457999999,
+   "ms_per_eval_single": 2.6753506249999863,
+   "ratio_batch256_to_strict": 5.452814023049297
+  },
+  "E3": {
+   "ms_per_eval_batch256": 0.4730059159999982,
+   "ms_per_eval_single": 0.8444897899999759,
+   "ratio_batch256_to_strict": 1.239945312227533
+  },
+  "E4": {
+   "ms_per_eval_batch256": 1.185893292000003,
+   "ms_per_eval_single": 2.1531810449999966,
+   "ratio_batch256_to_strict": 3.108719740024322
+  },
+  "E1+E2": {
+   "ms_per_eval_batch256": 6.6626573329999985,
+   "ms_per_eval_single": 7.268286454999996,
+   "ratio_batch256_to_strict": 17.465597041352392
+  },
+  "E1+E2+E3": {
+   "ms_per_eval_batch256": 6.728154082999992,
+   "ms_per_eval_single": 7.485257499999989,
+   "ratio_batch256_to_strict": 17.637291274725637
+  },
+  "E2+E3": {
+   "ms_per_eval_batch256": 2.1357557079999907,
+   "ms_per_eval_single": 2.792224164999979,
+   "ratio_batch256_to_strict": 5.598704347278808
+  },
+  "E3+E4": {
+   "ms_per_eval_batch256": 1.6391502919999967,
+   "ms_per_eval_single": 2.8111589550000105,
+   "ratio_batch256_to_strict": 4.29689492636662
+  },
+  "E1+E2+E3+E4": {
+   "ms_per_eval_batch256": 7.903317749999986,
+   "ms_per_eval_single": 9.498696039999999,
+   "ratio_batch256_to_strict": 20.717884203285895
+  }
+ },
+ "preflight_after": {
+  "timestamp": "2026-10-15T03:55:52",
+  "host": "newt.lan",
+  "loadavg": [
+   1.3154296875,
+   2.091796875,
+   4.02197265625
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": []
+ }
+}

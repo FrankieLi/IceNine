@@ -216,7 +216,17 @@ class ConfigFile:
     bfs_revisit_max: int = 3  # local fits per voxel while REFIT
     bfs_restart_pass: bool = False  # FITTED border voxels push onto REFIT voxels after the BFS
     bfs_reseed: bool = False  # one full no-start search per leftover REFIT cluster (opt-in)
+    outward_search: bool = False  # BFS neighbours / reseeds start with the Task F policy (opt-in)
+    seed_by_indexing: bool = False  # BFS seeds / reseeds indexed first (opt-in)
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
+    cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
+    cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
+    batched_screen: bool = True  # level screen: many orientations per call (default on 2026-10-13)
+    batched_quick_mc: bool = False  # quick MC of a level in lockstep (opt-in, draw option B)
+    fused_cost: bool = False  # evaluate in one C call (opt-in, S2; see VoxelCostFunction)
+    search_device: str = "cpu"  # device of the batched quick-MC cost: cpu (default), mps or cuda
+    candidate_dedup: str = "off"  # clique filter / de-duplication of the candidates (opt-in)
+    smooth_rank: str = "off"  # smooth ranking cost of the coarse levels (opt-in, Task E)
     # ray-consistency rule (coarse levels 0-2 only): "off", "R<n>" (isotropic n px) or "A"
     ray_overlap_rule: str = "off"
 
@@ -462,7 +472,17 @@ class ConfigFile:
             ),
             'BFSRestartPass': self._parse_bool('bfs_restart_pass'),
             'BFSReseed': self._parse_bool('bfs_reseed'),
+            'OutwardSearch': self._parse_bool('outward_search'),
+            'SeedByIndexing': self._parse_bool('seed_by_indexing'),
             'CppOverlapRule': self._parse_bool('cpp_overlap_rule'),
+            'CppEdgeRules': self._parse_bool('cpp_edge_rules'),
+            'CppOmegaInterp': self._parse_bool('cpp_omega_interp'),
+            'BatchedScreen': self._parse_bool('batched_screen'),
+            'BatchedQuickMC': self._parse_bool('batched_quick_mc'),
+            'FusedCost': self._parse_bool('fused_cost'),
+            'SearchDevice': self._parse_search_device,
+            'CandidateDedup': self._parse_candidate_dedup,
+            'SmoothCostRank': self._parse_smooth_rank,
             'RayOverlapRule': self._parse_ray_overlap_rule,
 
             # Parameter Optimization
@@ -595,6 +615,36 @@ class ConfigFile:
         if value not in ('mc', 'cma'):
             raise ValueError(f"LocalOptimizer must be 'mc' or 'cma', got {tokens[1]!r}")
         self.local_optimizer = value
+
+    def _parse_search_device(self, tokens: List[str]) -> None:
+        """SearchDevice cpu|mps|cuda (Python-only; the device of the batched quick-MC cost, used
+        only with BatchedQuickMC; mps and cuda results are not bit-equal to the CPU's)."""
+        if len(tokens) < 2:
+            raise ValueError(f"Missing value for {tokens[0]}")
+        value = tokens[1].lower()
+        if value not in ('cpu', 'mps', 'cuda'):
+            raise ValueError(f"SearchDevice must be 'cpu', 'mps' or 'cuda', got {tokens[1]!r}")
+        self.search_device = value
+
+    def _parse_candidate_dedup(self, tokens: List[str]) -> None:
+        """CandidateDedup off|<spec> (Python-only, opt-in; candidate_dedup.DedupSpec, no spaces),
+        e.g. ``CandidateDedup clique=cpp:1`` or ``CandidateDedup pre=0.5,post=0.5``."""
+        if len(tokens) < 2:
+            raise ValueError(f"Missing value for {tokens[0]}")
+        from .candidate_dedup import DedupSpec
+
+        DedupSpec.parse(tokens[1])  # raises ValueError on a malformed spec
+        self.candidate_dedup = tokens[1]
+
+    def _parse_smooth_rank(self, tokens: List[str]) -> None:
+        """SmoothCostRank off|<spec> (Python-only, opt-in; smooth_cost.SmoothSpec, no spaces),
+        e.g. ``SmoothCostRank E1+E2,sigma=8`` or ``SmoothCostRank E4,tau=0.25,levels=2``."""
+        if len(tokens) < 2:
+            raise ValueError(f"Missing value for {tokens[0]}")
+        from .smooth_cost import SmoothSpec
+
+        SmoothSpec.parse(tokens[1])  # raises ValueError on a malformed spec
+        self.smooth_rank = tokens[1]
 
     @staticmethod
     def _positive_validator(value: float, keyword: str) -> None:

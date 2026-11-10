@@ -141,8 +141,8 @@ which no config change could fix.
   centroid in C++. The "Num Cliques" spacing filter is not a cause (it reproduces C++'s kept lists on 3,537 of
   3,537 cliques given C++'s own inputs). With the opt-in `CppOverlapRule 1` the level-0 count is 0.995–1.003×
   C++'s on the six voxels, evaluations 0.95–0.98× C++'s (before 1.31–1.57×), and the cost offset of -0.013
-  against C++ vanishes. The switch is off by default: with it on, E0 gets worse (wrong 40 to 61 clean, 25 to 42
-  realistic of 200; paired by voxel 17 fixed / 38 broken / 23 both wrong, and 8 / 25 / 17), so whether to flip the default is open. C++ is wrong on 71 and 52 of the same 200 voxels with its default random seed (56 to 71 and 46 to 52 over three seeds; wrong on 10 to 24 of the voxels the switch broke in each seed), and in Python all 63 lose their truth basin before FindOptimal (pruned by the 1/4 ranking at levels 0 to 2 in 59, never present in 4). C++ (default seed) is right on 28 of those 63 and wrong on 35; on those 35 it loses the basin the same way (the 63 were selected as wrong with the switch on). Like for like (`min_sin_eta` 0, as C++), Python with the rule is wrong on 56 of the 200 realistic voxels against 46, 52 and 52 for C++ over three seeds, i.e. worse than every C++ seed there; paired against the rule off (18 wrong) 6 fixed / 44 broken / 12 both wrong.
+  against C++ vanishes. The switch is off by default: with it on, E0 gets worse (like for like, the centroid screen on
+  both sides, `benchmarks/q8_nodrop/e0_summary.json`: wrong 35 to 61 clean, 27 to 42 realistic of 200; paired by voxel 15 fixed / 41 broken / 20 both wrong, and 10 / 25 / 17), so whether to flip the default is open. At `min_sin_eta` 0 realistic, like for like: 25 to 56 (7 / 38 / 18); the C++ rule is the worse arm in all three. Restated 2026-10-14 (owner, D-20261014-I10): the figures first quoted here (40 to 61 clean and 25 to 42 realistic; 17 / 38 / 23 and 8 / 25 / 17) paired rule-off runs with the vertex-0 level-0 screen against rule-on runs with the centroid screen, so they were not like for like; the rule-off count 18 below also comes from the vertex-0 screen. C++ is wrong on 71 and 52 of the same 200 voxels with its default random seed (56 to 71 and 46 to 52 over three seeds; wrong on 10 to 24 of the voxels the switch broke in each seed), and in Python all 63 lose their truth basin before FindOptimal (pruned by the 1/4 ranking at levels 0 to 2 in 59, never present in 4). C++ (default seed) is right on 28 of those 63 and wrong on 35; on those 35 it loses the basin the same way (the 63 were selected as wrong with the switch on). Like for like (`min_sin_eta` 0, as C++), Python with the rule is wrong on 56 of the 200 realistic voxels against 46, 52 and 52 for C++ over three seeds, i.e. worse than every C++ seed there; paired against the rule off (18 wrong) 6 fixed / 44 broken / 12 both wrong. On images without the random spot drop (Q8, 2026-10-14) the rule on is wrong on 39 of the 200 voxels against 16 with the rule off at `min_sin_eta` 0.3 (5 fixed / 28 broken / 11 both wrong), and on 38 against 22 at `min_sin_eta` 0 (10 / 26 / 12), so the realistic half of this loss persists without the drop (the counts do not show whether the drop adds to it).
 - Per evaluation, Python is about 10× slower (about 500 µs against 50 µs).
 
 **Tests.**
@@ -261,7 +261,9 @@ Other results from B3:
 **Setup.**
 
 - 2,000 voxels covering 60 grains.
-- Five single-process BFS runs (MC, CMA and CMA without retry on clean images; MC and CMA on realistic Q-max 16).
+- Five single-process BFS runs (MC, CMA and CMA without retry on clean images; MC and CMA on realistic Q-max 16). The realistic images
+  carry the 10% random spot drop; the same arms on the no-drop images (`full/realistic_nodrop`, rendered at Q-max 8 only) were not run
+  (Q8, 2026-10-14: that row waits with X1).
 - The revisit option was on in every run.
 - Each run took about 2.1–2.4 h (contended).
 
@@ -486,13 +488,21 @@ The earlier report's precision and timing numbers for the default finisher carry
    CMA fits?
 3. **Coarse candidates.** Answered (3(b)): the overlap rule of `CountQualifiedPeaks` and the centroid screen.
    With `CppOverlapRule 1` Python's seed evaluations fall by about 30% to 0.95–0.98× C++'s. The default
-   stays off because E0 accuracy drops with it (40 to 61 and 25 to 42 wrong of 200); C++ itself is wrong on 56 to 71 and
+   stays off because E0 accuracy drops with it (35 to 61 and 27 to 42 wrong of 200, like for like with the centroid screen on both sides, Q8 Step 8; first quoted as 40 to 61 and 25 to 42, which mixed the two screens; D-20261014-I10); C++ itself is wrong on 56 to 71 and
    46 to 52 of the same voxels (three seeds), so the loss is consistent with being a property of the C++ rule (the quick-MC ranking sees a nearly flat cost around
    the truth is the suggested mechanism; the link to the ranking was not tested by a controlled change of the ranking). Caveat: like for
-   like (`min_sin_eta` 0) Python with the rule is wrong on 56 of 200 realistic voxels, more than each of the three C++ seeds (46 to 52), so
+   like (`min_sin_eta` 0) Python with the rule is wrong on 56 of 200 realistic voxels (38 on images without the random drop, Q8), more than each of the three C++ seeds (46 to 52), so
    Python is not shown to be no worse than C++ there. Open: do the BFS seed test (hit ratio 0.8) and the reseed pilot change with the rule? A default flip
    changes 11 goldens and, in principle, every stored result computed through the cost function
    (`benchmarks/phase_d_seed_diag/level0/default_flip_would_change.md`).
+   *Update 2026-10-13 (evaluation-reduction Task A, MIGRATION_HISTORY "Task A").* The remaining 2 to 5% (Python
+   0.946 to 0.978 times C++'s evaluations) is a net sum: the second complete-cost call C++ makes on every returned
+   candidate (10,829 evaluations per voxel, not made by Python) is partly offset by the other stages (+2,342 net per
+   voxel, mostly FindOptimal, +1,895, which in Python misses its convergence test on 3 of 6 voxels); with
+   `CppEdgeRules` the second re-cost is 101% of the deficit and the other stages net +79 through offsetting terms
+   (quick MC +236, FindOptimal -261). The 1.4% of level-0 pairs that still differed was the C++ omega interpolation
+   (confirmed: per-FZ-point pass sets 4,885 of 4,886 with `CppOmegaInterp` and `CppEdgeRules`, 4,466 with exact
+   omegas), plus three C++ edge conventions that the opt-in `CppEdgeRules` reproduces.
 4. **Which difference matters.** Which of the C++ differences (block halving, restart base, fixed step) produces
    the faithful MC's gain? An ablation is untested.
 5. **Per-evaluation cost: batch the coarse stage (separate task, owner 2026-10-12).** Can the 10× per-evaluation
@@ -503,6 +513,9 @@ The earlier report's precision and timing numbers for the default finisher carry
    the quick MC). Batching changes float32 shapes, so results will be near-identical rather than bit-identical;
    it needs its own equivalence check (per-level candidates and wrong counts against the unbatched path, e.g. the
    ray-overlap step-2 voxels). Benefits every rule and the normal reconstruction, not only the ray study.
+   *Update 2026-10-13 (Task A).* The level screen is batched (opt-in `BatchedScreen`): identical overlap on all
+   43,974 level-0 pairs of voxel 15901, 17 times faster per orientation (388 to 22 microseconds, single worker), a
+   whole no-start search 21 to 25% faster. The quick MC (about 58% of the evaluations) is not batched.
 6. **Seeds 1–2 for E0.** Closed (owner, 2026-10-12): not needed. The search uses randomness to explore the search
    space, not as independent samples, so repeat seeds do not measure a rule or finisher.
 7. **Multi-client C++ reference.** Does C++ with several clients seed any of the grains that the single-client BFS
@@ -517,6 +530,21 @@ The earlier report's precision and timing numbers for the default finisher carry
    reseed on realistic images) are tilted against the strict rules. Work from clean full-sample images until this
    is redone. Options: no random drop (keep jitter, hot pixels, blobs); intensity-based drop near a detection
    threshold; or a small fixed rate (about 1%) as a stand-in. Then re-render and re-run the realistic comparisons.
+   **Status 2026-10-14 (Q8, `MIGRATION_HISTORY.md` "Q8: realistic images without the random spot drop").** The owner chose
+   "no random drop" (jitter, hot pixels and blobs kept). It is built as variants (`nodrop`, `all_nodrop`, label
+   `realistic_nodrop`) and, by the owner's decision of 2026-10-14 (D-20261014-I6), is now the default noise; the named
+   variants `toy`, `noise` and `all` keep the 10% drop. At the truth the C++ and ray rules reject real peaks on the no-drop images as on
+   clean ones (E0 images: 0 of 12,439, against 974 of 11,174 with the drop at `min_sin_eta` 0.3). Re-run on the E0 200-voxel set (seed
+   0, `min_sin_eta` 0, wrong counts clean / old realistic / no drop): lenient 41 / 25 / 22, C++ rule 56 / 56 / 38, ray rule 2-pixel
+   window 40 / 32 / 14, geometric window 41 / 29 / 14, so the lenient rule's lead on the old realistic images is gone; the C++ rule
+   stays the worst. Mean evaluations per voxel on the no-drop images at `min_sin_eta` 0: lenient 51,901, ray 2-pixel window 51,652,
+   geometric window 51,677, C++ rule 49,281 (clean: 48,700, 48,641, 48,649, 47,230). Not re-run: the Phase D pilot and reseed on realistic images (skipped for now, D-20261014-I7). The owner decided
+   (2026-10-14): the "clean images only" rule is not lifted, the studies stay on clean images (D-20261014-I5). The lenient counts
+   that differ from the stored ones (35 against 40, 27 against 25, 41 against 39, 25 against 18) are the screen start point: the
+   stored runs projected the first vertex, the re-runs the centroid (tested, `MIGRATION_HISTORY.md` "Q8" Step 8). The no-drop images
+   give more level-0 candidates than the clean ones (200 of 200 voxels for the lenient and ray rules, 199 of 200 for the C++ rule) and
+   a wider cost function (200 of 200 voxels for every arm; Step 7), which is consistent with the lower wrong counts but was not tested
+   as their cause.
 9. **Ray rule pixel counting for cases b and e (deferred, owner 2026-10-12).** At radius 0 (the local re-cost of
    levels 0-2) the predicted detector-1 triangle covers n dark pixels. Case b (observed ray bright) adds only 1
    overlap pixel, so the peak gets 1/n pixel credit; case e (observed ray off detector, treated as unlit) removes only

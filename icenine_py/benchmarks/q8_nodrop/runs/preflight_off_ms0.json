@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-10-14T11:27:26",
+  "host": "ilium.lan",
+  "loadavg": [
+    30.2890625,
+    50.13134765625,
+    53.6708984375
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 4,
+  "busy_processes": [
+    {
+      "pid": 730,
+      "cpu": 100.1,
+      "command": "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd"
+    }
+  ]
+}

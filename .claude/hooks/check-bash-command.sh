@@ -40,7 +40,8 @@ while IFS= read -r seg; do
             block 'Do not set ALLOW_* pre-commit overrides from an agent; ask the owner.'
         fi
     done
-    # skip leading assignments and wrappers (nohup, time, sudo, nice [-n N], env [-u X] ...)
+    # skip leading assignments and wrappers (nohup, time, caffeinate [-i -t N ...], sudo,
+    # nice [-n N], env [-u X] ...)
     i=0
     while [ $i -lt ${#tok[@]} ]; do
         t="${tok[$i]}"
@@ -48,6 +49,14 @@ while IFS= read -r seg; do
             i=$((i + 1))
         elif [[ "$t" =~ ^(nohup|time|exec|command)$ ]]; then
             i=$((i + 1))
+        elif [ "$t" = "caffeinate" ]; then
+            i=$((i + 1))
+            while [[ "${tok[$i]:-}" == -* ]]; do
+                case "${tok[$i]}" in
+                    -t | -w) i=$((i + 2)) ;;
+                    *) i=$((i + 1)) ;;
+                esac
+            done
         elif [ "$t" = "sudo" ]; then
             i=$((i + 1))
             while [[ "${tok[$i]:-}" == -* ]]; do i=$((i + 1)); done

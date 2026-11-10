@@ -1,0 +1,41 @@
+{
+ "voxel": 15901,
+ "n_fz": 600,
+ "n_local": 9,
+ "n_orientations": 5400,
+ "label": "single-worker",
+ "c_ext": true,
+ "torch_threads": 1,
+ "unbatched": {
+  "total_s": 2.0974284170000015,
+  "us_per_orientation": 388.41266981481505,
+  "us_solve": 61.67159500000286,
+  "us_stage_d": 8.640099259251935,
+  "us_other": 333.1896329629675,
+  "us_per_orientation_with_timers": 403.5013272222223
+ },
+ "batched": {
+  "total_s": 0.119789707999999,
+  "us_per_orientation": 22.183279259259074,
+  "us_solve": 0.6462650000002466,
+  "us_stage_d": 7.674299259246585,
+  "us_other": 14.117738148160614,
+  "us_per_orientation_with_timers": 22.438302407407445
+ },
+ "interp1": {
+  "total_s": 0.4348534579999992,
+  "us_per_orientation": 80.52841814814799,
+  "us_solve": 6.78619444444411,
+  "us_stage_d": 7.417073148170417,
+  "us_other": 67.20897777775588,
+  "us_per_orientation_with_timers": 81.4122453703704
+ },
+ "interp32": {
+  "total_s": 0.12279787499999983,
+  "us_per_orientation": 22.740347222222194,
+  "us_solve": 0.30959166666535665,
+  "us_stage_d": 7.714031111104539,
+  "us_other": 15.025960555563271,
+  "us_per_orientation_with_timers": 23.049583333333167
+ }
+}

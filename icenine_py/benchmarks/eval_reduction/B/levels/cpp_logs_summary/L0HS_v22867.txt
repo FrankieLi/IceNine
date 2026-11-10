@@ -1,0 +1,8 @@
+L0H call 0 n_fz 4886 n_local 9 nQMax 5 diameter_rad 0.08726646006 diameter_deg 4.999999523 n_sym 24 n_recip 26
+L0S call 0 n_cliques 4495 n_candidates 8234
+L0H call 1 n_fz 2058 n_local 9 nQMax 6 diameter_rad 0.0581776388 diameter_deg 3.333333015 n_sym 24 n_recip 50
+L0S call 1 n_cliques 2057 n_candidates 2454
+L0H call 2 n_fz 613 n_local 9 nQMax 7 diameter_rad 0.03878509253 diameter_deg 2.22222209 n_sym 24 n_recip 64
+L0S call 2 n_cliques 613 n_candidates 670
+L0H call 3 n_fz 167 n_local 9 nQMax 8 diameter_rad 0.02585672773 diameter_deg 1.481481314 n_sym 24 n_recip 112
+L0S call 3 n_cliques 167 n_candidates 191

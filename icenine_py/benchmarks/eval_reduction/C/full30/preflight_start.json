@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-10-14T14:17:16",
+  "host": "newt.lan",
+  "loadavg": [
+    2.998046875,
+    2.7890625,
+    2.60546875
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 8,
+  "busy_processes": [
+    {
+      "pid": 1596,
+      "cpu": 52.5,
+      "command": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/155.0.8059.79/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+    },
+    {
+      "pid": 76953,
+      "cpu": 32.0,
+      "command": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/155.0.8059.79/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper"
+    }
+  ]
+}

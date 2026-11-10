@@ -1,0 +1,17 @@
+{
+  "tag": "pilot",
+  "sample_seed": 0,
+  "n_voxels": 500,
+  "workers": 10,
+  "timing_label": "contended (10 workers; machine quiet at start: True)",
+  "wall_s": 4.471379995346069,
+  "worker_t_sim_s_max": 0.6795761585235596,
+  "worker_t_label_s_max": 1.422476053237915,
+  "worker_peak_rss_gb_max": 1.026473984,
+  "n_triangles": 61048,
+  "n_components": 2332,
+  "n_frames_checked_against_clean": 360,
+  "n_frames_check_mismatch": 0,
+  "connectivity": 4,
+  "output_dir": "Examples/Example2.ManyGrains/ScatteringData_PhaseD/pilot/provenance"
+}

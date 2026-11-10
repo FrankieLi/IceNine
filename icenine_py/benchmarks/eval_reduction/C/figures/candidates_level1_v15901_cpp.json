@@ -1,0 +1,12 @@
+{
+ "voxel": 15901,
+ "rule": "cpp",
+ "level": 1,
+ "n_candidates": 2487,
+ "n_cliques": 2027,
+ "n_keep": 621,
+ "diameter_deg": 3.3333333333333335,
+ "nearest_to_truth_deg": 0.6049873559408416,
+ "nearest_is_kept": true,
+ "n_near_panel": 121
+}

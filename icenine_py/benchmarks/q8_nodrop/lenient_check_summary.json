@@ -1,0 +1,95 @@
+{
+ "0.3|clean": {
+  "msin": 0.3,
+  "images": "clean",
+  "stored": 40,
+  "stored_evals": 48442.255,
+  "stored_source": "Q3 study (summary_on.json, faithful-MC rerun)",
+  "vertex0": 40,
+  "vertex0_interval": [
+   0.15045120743928825,
+   0.26085639611170436
+  ],
+  "centroid": 35,
+  "evals_vertex0": 48442.255,
+  "evals_centroid": 48622.795,
+  "paired_centroid_vs_vertex0": {
+   "fixed": 19,
+   "broken": 14,
+   "both_wrong": 21,
+   "both_right": 146
+  },
+  "reproduces_stored": true,
+  "evals_equal_stored": true
+ },
+ "0.3|all": {
+  "msin": 0.3,
+  "images": "all",
+  "stored": 25,
+  "stored_evals": 51058.025,
+  "stored_source": "Q3 study (summary_on.json, faithful-MC rerun)",
+  "vertex0": 25,
+  "vertex0_interval": [
+   0.0861191515921568,
+   0.1780153528465839
+  ],
+  "centroid": 27,
+  "evals_vertex0": 51058.025,
+  "evals_centroid": 51454.5,
+  "paired_centroid_vs_vertex0": {
+   "fixed": 13,
+   "broken": 15,
+   "both_wrong": 12,
+   "both_right": 160
+  },
+  "reproduces_stored": true,
+  "evals_equal_stored": true
+ },
+ "0.0|clean": {
+  "msin": 0.0,
+  "images": "clean",
+  "stored": 39,
+  "stored_evals": 48500.555,
+  "stored_source": "ray-overlap study (e2e_summary.json, arm old)",
+  "vertex0": 39,
+  "vertex0_interval": [
+   0.14605441564505764,
+   0.25544164796511815
+  ],
+  "centroid": 41,
+  "evals_vertex0": 48500.555,
+  "evals_centroid": 48699.525,
+  "paired_centroid_vs_vertex0": {
+   "fixed": 14,
+   "broken": 16,
+   "both_wrong": 25,
+   "both_right": 145
+  },
+  "reproduces_stored": true,
+  "evals_equal_stored": true
+ },
+ "0.0|all": {
+  "msin": 0.0,
+  "images": "all",
+  "stored": 18,
+  "stored_evals": 51162.625,
+  "stored_source": "ray-overlap study (e2e_summary.json, arm old)",
+  "vertex0": 18,
+  "vertex0_interval": [
+   0.05768697871453362,
+   0.13776674613848952
+  ],
+  "centroid": 25,
+  "evals_vertex0": 51162.625,
+  "evals_centroid": 51519.645,
+  "paired_centroid_vs_vertex0": {
+   "fixed": 8,
+   "broken": 15,
+   "both_wrong": 10,
+   "both_right": 167
+  },
+  "reproduces_stored": true,
+  "evals_equal_stored": true
+ },
+ "n_voxels": 200
+}

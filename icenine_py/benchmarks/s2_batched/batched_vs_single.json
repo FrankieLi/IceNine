@@ -1,0 +1,806 @@
+{
+ "ref": "fused_new.npz",
+ "rows": [
+  {
+   "dataset": "three0",
+   "mode": "local",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "local",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "local",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "local",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "cpp_rule",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "cpp_rule",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "cpp_rule",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "cpp_rule",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "edge",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "edge",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "edge",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "edge",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "edge_cpp_rule",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "edge_cpp_rule",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "edge_cpp_rule",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "edge_cpp_rule",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "min_sin_eta",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "min_sin_eta",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "min_sin_eta",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "three0",
+   "mode": "min_sin_eta",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "local",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "local",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "local",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "local",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "cpp_rule",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "cpp_rule",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "cpp_rule",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "cpp_rule",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "edge",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "edge",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "edge",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "edge",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "edge_cpp_rule",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "edge_cpp_rule",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "edge_cpp_rule",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "edge_cpp_rule",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "min_sin_eta",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "min_sin_eta",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "min_sin_eta",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full15901",
+   "mode": "min_sin_eta",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "local",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "local",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "local",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "local",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "cpp_rule",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "cpp_rule",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "cpp_rule",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "cpp_rule",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "edge",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "edge",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "edge",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "edge",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "edge_cpp_rule",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "edge_cpp_rule",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "edge_cpp_rule",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "edge_cpp_rule",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "min_sin_eta",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "min_sin_eta",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "min_sin_eta",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full17034",
+   "mode": "min_sin_eta",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "local",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "local",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "local",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "local",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "cpp_rule",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "cpp_rule",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "cpp_rule",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "cpp_rule",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "edge",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "edge",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "edge",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "edge",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "edge_cpp_rule",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "edge_cpp_rule",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "edge_cpp_rule",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "edge_cpp_rule",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "min_sin_eta",
+   "batch": 1,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "min_sin_eta",
+   "batch": 7,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "min_sin_eta",
+   "batch": 64,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  },
+  {
+   "dataset": "full18558",
+   "mode": "min_sin_eta",
+   "batch": 1000,
+   "n": 1000,
+   "differing": {},
+   "eval_count": 1000,
+   "orient_fused": 1000,
+   "identical": true
+  }
+ ],
+ "failing": 0
+}

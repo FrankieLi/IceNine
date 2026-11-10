@@ -1,0 +1,24 @@
+{
+ "timestamp": "2026-10-14T00:46:39",
+ "host": "ilium.lan",
+ "loadavg": [
+  5.298828125,
+  5.43310546875,
+  4.9375
+ ],
+ "cpu_count": 10,
+ "power": "ac",
+ "omp_num_threads": null,
+ "mkl_num_threads": null,
+ "torch_threads": 1,
+ "busy_processes": [
+  {
+   "pid": 730,
+   "cpu": 99.2,
+   "command": "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd"
+  }
+ ],
+ "quiet": false,
+ "not_quiet_reason": "machine not quiet for timing: 1-min load 5.30 > 1.5; busy process pid 730 (99% CPU): /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd",
+ "label": "contended"
+}

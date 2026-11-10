@@ -1,0 +1,199 @@
+{
+ "voxel": 15901,
+ "tag": "c3_qf",
+ "opts": [
+  "candidate_dedup=clique=merged:2@0.5,pre=0.25,post=0.25,quarter=filtered"
+ ],
+ "seed": 1,
+ "preflight": {
+  "timestamp": "2026-10-14T13:58:59",
+  "host": "newt.lan",
+  "loadavg": [
+   3.8408203125,
+   3.41650390625,
+   2.888671875
+  ],
+  "cpu_count": 12,
+  "power": "battery",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 99534,
+    "cpu": 59.2,
+    "command": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/155.0.8059.79/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+   }
+  ],
+  "not_quiet": "machine not quiet for timing: 1-min load 3.84 > 1.5; running on battery power; busy process pid 99534 (59% CPU): /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/155.0.8059.79/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helpe"
+ },
+ "label": "single-worker, contended",
+ "quiet_preflight": false,
+ "wall_s": 112.757044458,
+ "evals_total": 189028,
+ "evals_by_radius": {
+  "r3": 58455,
+  "r0": 130573
+ },
+ "eval_time_s": 103.84980850900227,
+ "mean_us_per_eval": 549.3884954028094,
+ "library_eval_counts": [
+  58455,
+  130573,
+  189028
+ ],
+ "totals": {
+  "screen": 58455,
+  "recost": 49352,
+  "quick": 79152,
+  "find": 208,
+  "variance": 1860,
+  "final": 1,
+  "sum": 189028
+ },
+ "levels": [
+  {
+   "level": 0,
+   "fz_in": 4886,
+   "n_local": 9,
+   "n_recip": 26,
+   "diameter_deg": 5.0,
+   "candidates": 10187,
+   "cliques": 4886,
+   "passed_screen": 35232,
+   "screen_evals": 43974,
+   "recost_evals": 35232,
+   "screen_eval_s": 1.4905553680000216,
+   "recost_eval_s": 27.919755029999955,
+   "discrete_s": 33.809723209,
+   "kept": 1145,
+   "dropped": 9042,
+   "quick_evals": 55248,
+   "quick_s": 45.090142875000005,
+   "quick_calls": 4604,
+   "stage_evals": 134454
+  },
+  {
+   "level": 1,
+   "fz_in": 1145,
+   "n_local": 9,
+   "n_recip": 50,
+   "diameter_deg": 3.3333333333333335,
+   "candidates": 1488,
+   "cliques": 1145,
+   "passed_screen": 9984,
+   "screen_evals": 10305,
+   "recost_evals": 9984,
+   "screen_eval_s": 0.6007422080000282,
+   "recost_eval_s": 7.942502387001014,
+   "discrete_s": 9.368856584,
+   "kept": 357,
+   "dropped": 1131,
+   "quick_evals": 17220,
+   "quick_s": 13.932988707999996,
+   "quick_calls": 1435,
+   "stage_evals": 37509
+  },
+  {
+   "level": 2,
+   "fz_in": 357,
+   "n_local": 9,
+   "n_recip": 64,
+   "diameter_deg": 2.2222222222222223,
+   "candidates": 444,
+   "cliques": 357,
+   "passed_screen": 3173,
+   "screen_evals": 3213,
+   "recost_evals": 3173,
+   "screen_eval_s": 0.21366600100003552,
+   "recost_eval_s": 2.4113055110001937,
+   "discrete_s": 2.874313749999999,
+   "kept": 107,
+   "dropped": 337,
+   "quick_evals": 5148,
+   "quick_s": 3.9720849999999928,
+   "quick_calls": 429,
+   "stage_evals": 11534
+  },
+  {
+   "level": 3,
+   "fz_in": 107,
+   "n_local": 9,
+   "n_recip": 112,
+   "diameter_deg": 1.4814814814814814,
+   "candidates": 128,
+   "cliques": 107,
+   "passed_screen": 963,
+   "screen_evals": 963,
+   "recost_evals": 963,
+   "screen_eval_s": 0.10469129099999464,
+   "recost_eval_s": 0.6959109610002514,
+   "discrete_s": 0.8712466669999941,
+   "kept": 32,
+   "dropped": 96,
+   "quick_evals": 1536,
+   "quick_s": 1.1713095409999994,
+   "quick_calls": 128,
+   "stage_evals": 3462
+  }
+ ],
+ "find": [
+  {
+   "index": 0,
+   "evals": 208,
+   "wall_s": 0.16371720899999787,
+   "cost": 0.053030303030303205
+  }
+ ],
+ "find_optimal": {
+  "winner_index": 0,
+  "n_evaluated": 1,
+  "n_candidates": 128,
+  "converged": true
+ },
+ "variance": {
+  "evals": 1860,
+  "wall_s": 1.4956639580000086
+ },
+ "final": {
+  "evals": 1,
+  "wall_s": 0.0007427079999899888
+ },
+ "calls": {
+  "find": [
+   {
+    "kind": "find",
+    "evals": 208,
+    "cost": 0.053030303030303205,
+    "blocks": 7,
+    "steps": 200,
+    "restarts": 3,
+    "accepts": 4,
+    "stop": 1
+   }
+  ],
+  "variance": [
+   {
+    "kind": "variance",
+    "evals": 1860,
+    "cost": 0.053030303030303205
+   }
+  ],
+  "quick": {
+   "n": 6596,
+   "evals_total": 79152,
+   "evals_per_call": {
+    "min": 12,
+    "median": 12.0,
+    "max": 12
+   },
+   "blocks_mean": 1.0,
+   "stop_codes": {
+    "0": 6596
+   }
+  }
+ },
+ "err_deg": 0.04372891927327928,
+ "cost_final": 0.053030303030303205,
+ "c_ext": true
+}

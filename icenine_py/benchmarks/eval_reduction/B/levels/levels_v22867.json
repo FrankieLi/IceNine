@@ -1,0 +1,173 @@
+{
+ "voxel": 22867,
+ "levels": [
+  {
+   "level": 0,
+   "n_fz": 4886,
+   "q_max": 5.0,
+   "cpp_pass_pairs": 12635,
+   "cpp_fz_with_pass": 4495,
+   "local_grid_max_abs_diff": 1.3777846905732583e-07,
+   "arms": {
+    "exact|edge0": {
+     "fz_identical_pass_set": 4450,
+     "pairs_pass_differs": 460,
+     "pairs_cpp_only": 205,
+     "pairs_py_only": 255,
+     "overlap_equal_pairs": 43340,
+     "n_pairs": 43974
+    },
+    "interp|edge0": {
+     "fz_identical_pass_set": 4839,
+     "pairs_pass_differs": 50,
+     "pairs_cpp_only": 3,
+     "pairs_py_only": 47,
+     "overlap_equal_pairs": 43901,
+     "n_pairs": 43974
+    },
+    "exact|edge1": {
+     "fz_identical_pass_set": 4491,
+     "pairs_pass_differs": 414,
+     "pairs_cpp_only": 205,
+     "pairs_py_only": 209,
+     "overlap_equal_pairs": 43404,
+     "n_pairs": 43974
+    },
+    "interp|edge1": {
+     "fz_identical_pass_set": 4882,
+     "pairs_pass_differs": 4,
+     "pairs_cpp_only": 3,
+     "pairs_py_only": 1,
+     "overlap_equal_pairs": 43968,
+     "n_pairs": 43974
+    }
+   }
+  },
+  {
+   "level": 1,
+   "n_fz": 2058,
+   "q_max": 6.0,
+   "cpp_pass_pairs": 11230,
+   "cpp_fz_with_pass": 2057,
+   "local_grid_max_abs_diff": 1.1802093473345376e-07,
+   "arms": {
+    "exact|edge0": {
+     "fz_identical_pass_set": 1927,
+     "pairs_pass_differs": 134,
+     "pairs_cpp_only": 64,
+     "pairs_py_only": 70,
+     "overlap_equal_pairs": 18184,
+     "n_pairs": 18522
+    },
+    "interp|edge0": {
+     "fz_identical_pass_set": 2045,
+     "pairs_pass_differs": 14,
+     "pairs_cpp_only": 0,
+     "pairs_py_only": 14,
+     "overlap_equal_pairs": 18486,
+     "n_pairs": 18522
+    },
+    "exact|edge1": {
+     "fz_identical_pass_set": 1940,
+     "pairs_pass_differs": 120,
+     "pairs_cpp_only": 64,
+     "pairs_py_only": 56,
+     "overlap_equal_pairs": 18218,
+     "n_pairs": 18522
+    },
+    "interp|edge1": {
+     "fz_identical_pass_set": 2058,
+     "pairs_pass_differs": 0,
+     "pairs_cpp_only": 0,
+     "pairs_py_only": 0,
+     "overlap_equal_pairs": 18520,
+     "n_pairs": 18522
+    }
+   }
+  },
+  {
+   "level": 2,
+   "n_fz": 613,
+   "q_max": 7.0,
+   "cpp_pass_pairs": 4166,
+   "cpp_fz_with_pass": 613,
+   "local_grid_max_abs_diff": 9.960081702106716e-08,
+   "arms": {
+    "exact|edge0": {
+     "fz_identical_pass_set": 595,
+     "pairs_pass_differs": 20,
+     "pairs_cpp_only": 8,
+     "pairs_py_only": 12,
+     "overlap_equal_pairs": 5442,
+     "n_pairs": 5517
+    },
+    "interp|edge0": {
+     "fz_identical_pass_set": 611,
+     "pairs_pass_differs": 2,
+     "pairs_cpp_only": 0,
+     "pairs_py_only": 2,
+     "overlap_equal_pairs": 5506,
+     "n_pairs": 5517
+    },
+    "exact|edge1": {
+     "fz_identical_pass_set": 597,
+     "pairs_pass_differs": 18,
+     "pairs_cpp_only": 8,
+     "pairs_py_only": 10,
+     "overlap_equal_pairs": 5452,
+     "n_pairs": 5517
+    },
+    "interp|edge1": {
+     "fz_identical_pass_set": 613,
+     "pairs_pass_differs": 0,
+     "pairs_cpp_only": 0,
+     "pairs_py_only": 0,
+     "overlap_equal_pairs": 5516,
+     "n_pairs": 5517
+    }
+   }
+  },
+  {
+   "level": 3,
+   "n_fz": 167,
+   "q_max": 8.0,
+   "cpp_pass_pairs": 1441,
+   "cpp_fz_with_pass": 167,
+   "local_grid_max_abs_diff": 1.1699092516623266e-07,
+   "arms": {
+    "exact|edge0": {
+     "fz_identical_pass_set": 163,
+     "pairs_pass_differs": 4,
+     "pairs_cpp_only": 4,
+     "pairs_py_only": 0,
+     "overlap_equal_pairs": 1469,
+     "n_pairs": 1503
+    },
+    "interp|edge0": {
+     "fz_identical_pass_set": 167,
+     "pairs_pass_differs": 0,
+     "pairs_cpp_only": 0,
+     "pairs_py_only": 0,
+     "overlap_equal_pairs": 1492,
+     "n_pairs": 1503
+    },
+    "exact|edge1": {
+     "fz_identical_pass_set": 163,
+     "pairs_pass_differs": 4,
+     "pairs_cpp_only": 4,
+     "pairs_py_only": 0,
+     "overlap_equal_pairs": 1479,
+     "n_pairs": 1503
+    },
+    "interp|edge1": {
+     "fz_identical_pass_set": 167,
+     "pairs_pass_differs": 0,
+     "pairs_cpp_only": 0,
+     "pairs_py_only": 0,
+     "overlap_equal_pairs": 1502,
+     "n_pairs": 1503
+    }
+   }
+  }
+ ]
+}

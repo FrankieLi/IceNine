@@ -1,0 +1,162 @@
+{
+ "meta": {
+  "head": "9f5cc5c",
+  "dirty": true,
+  "dirty_files": [
+   "icenine_py/benchmarks/s2_step0/parity.json"
+  ],
+  "torch": "2.8.0",
+  "numpy": "2.0.2",
+  "machine": "arm64",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "dataset": "three0",
+  "mode": "local",
+  "n_orientations": 20
+ },
+ "rows": [
+  {
+   "product": "g_lab (R @ g_hkl.T).T",
+   "order": "plain",
+   "n": 6720,
+   "equal": 6244,
+   "equal_frac": 0.9291666666666667,
+   "max_ulp": 73
+  },
+  {
+   "product": "g_lab (R @ g_hkl.T).T",
+   "order": "fma_chain",
+   "n": 6720,
+   "equal": 5404,
+   "equal_frac": 0.8041666666666667,
+   "max_ulp": 128
+  },
+  {
+   "product": "g_lab (R @ g_hkl.T).T",
+   "order": "fma_rev",
+   "n": 6720,
+   "equal": 4546,
+   "equal_frac": 0.6764880952380953,
+   "max_ulp": 286
+  },
+  {
+   "product": "torch.norm(g_lab)",
+   "order": "plain",
+   "n": 2218,
+   "equal": 1926,
+   "equal_frac": 0.8683498647430117,
+   "max_ulp": 1
+  },
+  {
+   "product": "torch.norm(g_lab)",
+   "order": "fma_chain",
+   "n": 2218,
+   "equal": 2218,
+   "equal_frac": 1.0,
+   "max_ulp": 0
+  },
+  {
+   "product": "torch.norm(g_lab)",
+   "order": "fma_rev",
+   "n": 2218,
+   "equal": 1802,
+   "equal_frac": 0.8124436429215509,
+   "max_ulp": 1
+  },
+  {
+   "product": "Rz @ base",
+   "order": "plain",
+   "n": 39924,
+   "equal": 39924,
+   "equal_frac": 1.0,
+   "max_ulp": 0
+  },
+  {
+   "product": "Rz @ base",
+   "order": "fma_chain",
+   "n": 39924,
+   "equal": 39924,
+   "equal_frac": 1.0,
+   "max_ulp": 0
+  },
+  {
+   "product": "Rz @ base",
+   "order": "fma_rev",
+   "n": 39924,
+   "equal": 39924,
+   "equal_frac": 1.0,
+   "max_ulp": 0
+  },
+  {
+   "product": "bmm(full_rot, normals)",
+   "order": "plain",
+   "n": 13308,
+   "equal": 10007,
+   "equal_frac": 0.7519537120529005,
+   "max_ulp": 8
+  },
+  {
+   "product": "bmm(full_rot, normals)",
+   "order": "fma_chain",
+   "n": 13308,
+   "equal": 13308,
+   "equal_frac": 1.0,
+   "max_ulp": 0
+  },
+  {
+   "product": "bmm(full_rot, normals)",
+   "order": "fma_rev",
+   "n": 13308,
+   "equal": 9280,
+   "equal_frac": 0.6973249173429517,
+   "max_ulp": 9
+  },
+  {
+   "product": "torch.norm(reflected)",
+   "order": "plain",
+   "n": 4436,
+   "equal": 4374,
+   "equal_frac": 0.9860234445446348,
+   "max_ulp": 1
+  },
+  {
+   "product": "torch.norm(reflected)",
+   "order": "fma_chain",
+   "n": 4436,
+   "equal": 4436,
+   "equal_frac": 1.0,
+   "max_ulp": 0
+  },
+  {
+   "product": "torch.norm(reflected)",
+   "order": "fma_rev",
+   "n": 4436,
+   "equal": 3721,
+   "equal_frac": 0.8388187556357078,
+   "max_ulp": 1
+  },
+  {
+   "product": "einsum vertices (4 x 4)",
+   "order": "plain",
+   "n": 39924,
+   "equal": 39025,
+   "equal_frac": 0.9774822162108006,
+   "max_ulp": 480
+  },
+  {
+   "product": "einsum vertices (4 x 4)",
+   "order": "fma_chain",
+   "n": 39924,
+   "equal": 39924,
+   "equal_frac": 1.0,
+   "max_ulp": 0
+  },
+  {
+   "product": "einsum vertices (4 x 4)",
+   "order": "fma_rev",
+   "n": 39924,
+   "equal": 37397,
+   "equal_frac": 0.9367047390041078,
+   "max_ulp": 973
+  }
+ ]
+}

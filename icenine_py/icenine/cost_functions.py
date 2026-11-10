@@ -16,7 +16,7 @@ The main entry point is `VoxelCostFunction.evaluate()`, which:
 import math
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -24,9 +24,11 @@ import torch
 from .crystal_structure import CrystalStructure
 from .detector import Detector
 from .diffraction_core import (
+    BraggConstants,
     build_reflected_ray,
     get_illuminated_pixel,
     get_scattering_omegas_torch,
+    scattering_omegas_fixed_beam,
 )
 from .experimental_data import ExperimentalData
 from .ray_overlap import RayRule, apply_cases_python, ray_flags, ray_flags_c
@@ -47,6 +49,22 @@ try:
     from ._rasterize import HAS_RAY_RULE as _C_HAS_RAY_RULE
 except ImportError:
     _C_HAS_RAY_RULE = False
+try:
+    from ._rasterize import HAS_VERTEX_LIT as _C_VERTEX_LIT_LEVEL
+
+    # 2 = the exact C++ vertex-lit rule (1 was the superset rule of the first Task A build)
+    _C_HAS_VERTEX_LIT = _C_VERTEX_LIT_LEVEL >= 2
+except ImportError:
+    _C_HAS_VERTEX_LIT = False  # extension missing or built before the exact cpp_edge_rules
+try:
+    from ._rasterize import HAS_FUSED as _C_FUSED_LEVEL
+    from ._rasterize import fused_context as _c_fused_context
+    from ._rasterize import fused_evaluate as _c_fused_evaluate
+
+    # 1 = the fused evaluate of the FusedCost key (S2, _fused_eval.c)
+    _C_HAS_FUSED = _C_FUSED_LEVEL >= 1
+except ImportError:
+    _C_HAS_FUSED = False  # extension missing, or built before (or without) _fused_eval.c
 _WARNED_STALE_EXT = False
 # Observed-ray flags in C (False = the per-peak Python reference ray_overlap.ray_flags; tests).
 USE_C_RAY_FLAGS = True
@@ -446,6 +464,106 @@ def calculate_diffraction_overlap(
     return overlap_info
 
 
+def _omega_bins(omegas: np.ndarray, low: float, width: float, cpp_edge_rules: bool) -> np.ndarray:
+    """Uniform omega bin of each angle. Default: truncation toward zero (historical), so an omega in
+    [low - width, low) falls in bin 0. ``cpp_edge_rules``: floor, so it is bin -1 (no frame), as C++
+    ``CSimulationRange::AngleToIndex``."""
+    f = (omegas - low) / width
+    return (np.floor(f) if cpp_edge_rules else f).astype(int)
+
+
+def frame_index_array(range_map: SimulationRange) -> np.ndarray:
+    """Frame (wedge) index of each omega bin of ``range_map`` as an ``int64`` array of length
+    ``n_bins + 1``: ``-1`` where ``index_list`` has ``None`` (a gap), and a final ``-1`` entry that
+    ``frame_of_omegas`` uses for every bin outside the range."""
+    return np.array(
+        [-1 if i is None else int(i) for i in range_map.index_list] + [-1], dtype=np.int64
+    )
+
+
+def frame_of_omegas(
+    omegas: np.ndarray, low: float, width: float, index: np.ndarray, cpp_edge_rules: bool
+) -> np.ndarray:
+    """Frame index of each omega (``-1``: no frame), one vectorised lookup.
+
+    ``index`` is ``frame_index_array(range_map)``; the bin is ``_omega_bins`` (truncation, or floor
+    with ``cpp_edge_rules``). A bin below 0, at or above the number of bins, or on a gap has no
+    frame. The result equals the loop it replaces (``0 <= n < n_bins and index_list[n] is not
+    None``) for every input. The bin is clipped to ``[-1, n_bins]``: both ends read the trailing
+    ``-1`` entry of ``index`` (index ``-1`` is its last element)."""
+    bins = _omega_bins(omegas, low, width, cpp_edge_rules)
+    return index[bins.clip(-1, len(index) - 1)]
+
+
+_PLACEHOLDER_FRAME = np.zeros((1, 1), dtype=np.uint8)
+_PLACEHOLDER_FRAME.flags.writeable = False
+
+
+class FrameTable:
+    """The binary frames of one ``ExperimentalData`` for the C stage: ``images[frame * n_det +
+    det]``, each filled on first use.
+
+    The C extension (``stage_d_overlap``, ``ray_flags``) only indexes this list, so passing the
+    whole table with the global frame indices gives the results of a per-call list of just the
+    frames in use, without building that list on every call. A frame that has not been used holds
+    a 1x1 placeholder that the C code never reads (it reads a frame only for a peak that maps to
+    it, and ``ensure`` fills those first).
+
+    **Contract.** The table belongs to the ``exp_data`` it was built for (``source``) and keeps
+    each frame's ``get_binary_numpy()`` array from the first fill: the images must not change
+    afterwards. Swapping the whole ``exp_data`` object of a cost function is handled
+    (``VoxelCostFunction.frame_table`` rebuilds the table). The frame size is read from detector 0
+    of the first frame filled and every later detector-0 frame must have the same size.
+    ``source`` is not touched until the first fill, so a cost function may be built with
+    ``exp_data=None`` and have its data attached later.
+    """
+
+    __slots__ = ("source", "n_frames", "n_det", "images", "rows", "cols", "_filled")
+
+    def __init__(self, exp_data: ExperimentalData, n_frames: int, n_det: int) -> None:
+        self.source = exp_data
+        self.n_frames = n_frames
+        self.n_det = n_det
+        self.images: List[np.ndarray] = [_PLACEHOLDER_FRAME] * (n_frames * n_det)
+        self.rows = 0
+        self.cols = 0
+        self._filled = np.zeros(n_frames, dtype=bool)
+
+    def ensure(self, frames: np.ndarray) -> None:
+        """Fill the frames in ``frames`` (integer frame indices, all in ``[0, n_frames)``)."""
+        filled = self._filled[frames]
+        if filled.all():
+            return
+        exp = self.source
+        n_det = self.n_det
+        for w in np.unique(frames[~filled]):
+            w = int(w)
+            for d in range(n_det):
+                im = exp.get_image(w, d)
+                self.images[w * n_det + d] = im.get_binary_numpy()
+                if d == 0:
+                    size = (im.num_rows, im.num_cols)
+                    if self.rows == 0:
+                        self.rows, self.cols = size
+                    elif size != (self.rows, self.cols):
+                        raise ValueError(
+                            f"frame {w} of detector 0 has size {size}, the table's frames have "
+                            f"{(self.rows, self.cols)}"
+                        )
+            self._filled[w] = True
+
+
+def _pixel_coordinate(
+    d: torch.Tensor, half: float, size: float, cpp_edge_rules: bool
+) -> torch.Tensor:
+    """Continuous pixel coordinate of a detector coordinate ``d`` (mm). ``cpp_edge_rules``: a
+    negative ``d`` is pixel -1, as C++ ``ToColPixel`` / ``ToRowPixel``."""
+    pix = (d + half) / size
+    if cpp_edge_rules:
+        pix = torch.where(d < 0, torch.full_like(pix, -1.0), pix)
+    return pix
+
+
 def calculate_diffraction_overlap_batched(
     sample: Sample,
     voxel_vertices: torch.Tensor,
@@ -460,6 +578,9 @@ def calculate_diffraction_overlap_batched(
     cpp_rule: bool = False,
     ray_rule: "Optional[RayRule]" = None,
     voxel_size: float = 0.0,
+    cpp_edge_rules: bool = False,
+    frame_index: Optional[np.ndarray] = None,
+    frame_table: "Optional[FrameTable]" = None,
 ) -> OverlapInfo:
     """
     Batched version of calculate_diffraction_overlap.
@@ -475,9 +596,36 @@ def calculate_diffraction_overlap_batched(
     for brightness, providing tolerance for small orientation errors during
     discrete search.
 
+    ``cpp_edge_rules`` (opt-in, default False): three C++ conventions at the edges.
+    (1) Frame lookup as C++ ``CSimulationRange`` (``AngleToIndex``: an omega below the range's low
+    edge has no frame). The default keeps the historical truncation toward zero, which maps an
+    omega in [low - width, low) to the first bin (about 0.3% of the peaks of a 180-frame,
+    1 degree scan are compared with frame 0 instead of being dropped). C++ Reference:
+    SimulationData.h:317-322 and 446-453.
+    (2) Detector coordinate below zero is pixel -1 (C++ ``ToRowPixel``/``ToColPixel`` test the
+    millimetre coordinate ``d < 0`` before adding the half pixel), where the default floors
+    ``(d + half) / width`` and so gives pixel 0 for a coordinate in [0, 0.5). C++ Reference:
+    Detector.cpp:528-548.
+    (3) Detector-lit rule as C++ ``ShapePixelOverlapCounter`` (OverlapInfo.h:501-514), exactly: a
+    detector is lit iff the pixel overlap is > 0 or one of the three vertices is in bounds. There is
+    no "pixels produced" clause, so a triangle that covers pixels with all three vertices out of
+    bounds stays unlit, and a triangle that produced no pixel (the fill stops one row early at the
+    last image row or column) with a vertex in bounds is lit. The default lights on any produced
+    pixel (unchanged). Pixel counts (``peak_pixel_on_det``) are the rasterizer's and need not match
+    C++.
+    Needs the extension built with ``HAS_VERTEX_LIT`` >= 2 (exact rule), else the slow per-peak
+    path is used.
+
     ``ray_rule`` (opt-in, default None): apply the ray-consistency rule of ``ray_overlap`` on top
     of the C++ CountQualifiedPeaks rule (it implies ``cpp_rule``). It is meant for the coarse
     search levels only; the final cost stays the strict C++ rule. See ray_overlap.py.
+
+    ``frame_index`` / ``frame_table`` (optional, S1): ``frame_index_array(range_map)`` and a
+    ``FrameTable`` of ``exp_data`` that the caller keeps across calls (``VoxelCostFunction`` does).
+    With neither, the index array is built from ``range_map`` and the fast path fills a table
+    private to this call, so the results are the same; with them the per-call work of mapping
+    omegas to frames and of collecting the binary frames for the C stage is skipped. A
+    ``frame_table`` built for another ``exp_data`` or detector count is ignored.
 
     C++ Reference: OverlapInfo.h PixelBasedPeakOverlapCounter (pixel_radius > 0)
                    OverlapInfo.h ShapePixelOverlapCounter (pixel_radius == 0)
@@ -502,19 +650,12 @@ def calculate_diffraction_overlap_batched(
     else:
         normals = torch.stack(peak_normals)  # (N, 3)
 
-    # Map omega to wedge index using range_map internals
-    low = range_map.low
-    width = range_map.width
-    bin_indices = ((omegas.numpy() - low) / width).astype(int)
-
-    # Look up wedge indices, filtering invalid bins
-    wedge_indices = np.full(n_peaks, -1, dtype=np.int64)
-    index_list = range_map.index_list
-    n_bins = len(index_list)
-    for i in range(n_peaks):
-        n = bin_indices[i]
-        if 0 <= n < n_bins and index_list[n] is not None:
-            wedge_indices[i] = index_list[n]
+    # Map omega to wedge index (one vectorised lookup; -1: no frame)
+    if frame_index is None:
+        frame_index = frame_index_array(range_map)
+    wedge_indices = frame_of_omegas(
+        omegas.numpy(), range_map.low, range_map.width, frame_index, cpp_edge_rules
+    )
 
     valid_mask = wedge_indices >= 0
     if not np.any(valid_mask):
@@ -596,8 +737,10 @@ def calculate_diffraction_overlap_batched(
         k = (pixel_loc * detector._lab_frame_basis_k).sum(dim=1)  # (M*3,)
 
         # to_col_pixel / to_row_pixel inlined:
-        col = (j + detector.pixel_half_width) / detector.pixel_width
-        row = (k + detector.pixel_half_height) / detector.pixel_height
+        col = _pixel_coordinate(j, detector.pixel_half_width, detector.pixel_width, cpp_edge_rules)
+        row = _pixel_coordinate(
+            k, detector.pixel_half_height, detector.pixel_height, cpp_edge_rules
+        )
 
         # Reshape to (M, 3): per peak, per vertex
         # Match serial: detector_lit uses ray-plane hit only (no bounds check)
@@ -655,21 +798,36 @@ def calculate_diffraction_overlap_batched(
             stacklevel=2,
         )
 
-    if _HAS_C_RASTERIZE and mode == 'hard' and (_C_HAS_CPP_RULE or not cpp_rule):
-        # ---- Fast path: batch C extension ----
-        # Build compact image lookup — only unique wedges needed
-        v_wedge_np = np.asarray(v_wedge, dtype=np.int32)
-        unique_wedges = np.unique(v_wedge_np)
-        wedge_to_local = np.full(int(v_wedge_np.max()) + 1, -1, dtype=np.int32)
-        for i, w in enumerate(unique_wedges):
-            wedge_to_local[w] = i
-        local_wedge = wedge_to_local[v_wedge_np]  # (M,) re-indexed
+    if cpp_edge_rules and _HAS_C_RASTERIZE and not _C_HAS_VERTEX_LIT and not _WARNED_STALE_EXT:
+        _WARNED_STALE_EXT = True
+        warnings.warn(
+            "CppEdgeRules is on but the _rasterize extension was built before the exact "
+            "cpp_edge_rules; using the much slower per-peak Python loop. Rebuild: cd icenine_py "
+            "&& uv run --no-project --with setuptools --with numpy python setup.py "
+            "build_ext --inplace",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
-        # Build image list: [local_wedge * n_det + det] -> binary numpy
-        image_list = []
-        for w in unique_wedges:
-            for d in range(n_detectors):
-                image_list.append(exp_data.get_image(int(w), d).get_binary_numpy())
+    # bit field for the C extension: 1 = C++ CountQualifiedPeaks rule, 2 = vertex-lit rule
+    rule_bits = (1 if cpp_rule else 0) | (2 if cpp_edge_rules else 0)
+
+    if (
+        _HAS_C_RASTERIZE
+        and mode == 'hard'
+        and (_C_HAS_CPP_RULE or not cpp_rule)
+        and (_C_HAS_VERTEX_LIT or not cpp_edge_rules)
+    ):
+        # ---- Fast path: batch C extension ----
+        # Binary frames [frame * n_det + det], filled on first use and kept across calls by the
+        # caller's FrameTable; the C code indexes it with the global frame indices
+        v_wedge_np = np.asarray(v_wedge, dtype=np.int32)
+        table = frame_table
+        if table is None or table.source is not exp_data or table.n_det != n_detectors:
+            table = FrameTable(exp_data, int(frame_index.max()) + 1, n_detectors)
+        table.ensure(v_wedge_np)
+        image_list = table.images
+        local_wedge = v_wedge_np  # (M,) frame indices into the table
 
         if ray_rule is not None and obs_in is None:
             # observed-ray check for all peaks of the evaluation in one C call (no Python loop)
@@ -692,10 +850,9 @@ def calculate_diffraction_overlap_batched(
             axis=1,
         )  # (M, n_det)
 
-        # Get image dimensions from first image
-        first_image = exp_data.get_image(int(unique_wedges[0]), 0)
-        img_rows = first_image.num_rows
-        img_cols = first_image.num_cols
+        # Image dimensions: detector 0's frame size (the table checks every frame against it)
+        img_rows = table.rows
+        img_cols = table.cols
 
         if pixel_radius > 0:
             # pixel_centers: (M, n_det, 2) int32 — first vertex as center
@@ -709,7 +866,7 @@ def calculate_diffraction_overlap_batched(
                 image_list, local_wedge, det_hit,
                 centers, None,
                 n_detectors, pixel_radius, M, img_rows, img_cols,
-                *((1,) if cpp_rule else ()),
+                *((rule_bits,) if rule_bits else ()),
                 *((obs_in, obs_bright) if ray_rule is not None else ()),
             )
         else:
@@ -724,7 +881,7 @@ def calculate_diffraction_overlap_batched(
                 image_list, local_wedge, det_hit,
                 None, verts,
                 n_detectors, pixel_radius, M, img_rows, img_cols,
-                *((1,) if cpp_rule else ()),
+                *((rule_bits,) if rule_bits else ()),
                 *((obs_in, obs_bright) if ray_rule is not None else ()),
             )
 
@@ -802,6 +959,17 @@ def calculate_diffraction_overlap_batched(
                     if n_overlap_int > 0:
                         detector_lit[det_idx] = True
                         spot_overlap[det_idx] = True
+                    elif cpp_edge_rules:
+                        # CppEdgeRules, exact C++ ShapePixelOverlapCounter (OverlapInfo.h:501-514):
+                        # lit iff overlap > 0 (above) or a vertex is in bounds; no "pixels produced"
+                        # clause, so a triangle covering pixels with all vertices out of bounds is
+                        # unlit
+                        for vtx in (v0, v1, v2):
+                            vx = -1.0 if float(vtx[0]) < 0 else math.floor(float(vtx[0]))
+                            vy = -1.0 if float(vtx[1]) < 0 else math.floor(float(vtx[1]))
+                            if 0 <= vx < exp_image.num_cols and 0 <= vy < exp_image.num_rows:
+                                detector_lit[det_idx] = True
+                                break
                     elif n_lit_int > 0:
                         detector_lit[det_idx] = True
 
@@ -829,6 +997,305 @@ def calculate_diffraction_overlap_batched(
             overlap_info.ray_cases = tuple(int(x) for x in case_counts)
 
     return overlap_info
+
+
+# ---------------------------------------------------------------------------
+# Fused evaluate (S2, opt-in key FusedCost): one C call for VoxelCostFunction.evaluate
+# ---------------------------------------------------------------------------
+
+#: How the fused path of ``VoxelCostFunction.evaluate`` (key FusedCost) treats each argument of
+#: ``VoxelCostFunction.__init__``: "context" (read into the C context, rebuilt when it changes),
+#: "covered" (every value is implemented in C), "fallback" (a value the C code does not implement
+#: falls back to the torch path, see ``fused_unsupported_reason``), "key" (the switch itself).
+#: tests/test_fused_cost.py fails when ``__init__`` gains an argument that is not listed here, so a
+#: new cost mode cannot reach the fused path untested: classify it, and make
+#: ``fused_unsupported_reason`` return a reason for its values that C does not implement.
+FUSED_ARGUMENTS: Dict[str, str] = {
+    "simulator": "context",  # beam direction, energy, chi (one chi for every reflection)
+    "detector_list": "fallback",  # geometry; more than 8 detectors fall back
+    "range_map": "context",  # the frame lookup
+    "exp_data": "context",  # the FrameTable
+    "sample": "context",  # sample-to-lab rotation and translation
+    "structure_list": "context",  # the reciprocal vectors of each phase
+    "mode": "fallback",  # 'hard' only; soft mode falls back
+    "eta_limit": "fallback",  # None falls back
+    "pixel_radius": "covered",  # 0 (triangle) and > 0 (pixel radius)
+    "max_q": "covered",  # filters the reflections before the context is built
+    "min_sin_eta": "covered",
+    "cpp_overlap_rule": "covered",
+    "center_screen": "covered",  # centroid or vertex 0 of the pixel-radius screen
+    "ray_rule": "fallback",  # RayOverlapRule falls back
+    "cpp_edge_rules": "covered",
+    "fused_cost": "key",
+}
+
+_FUSED_MAX_DETECTORS = 8  # MAX_DETECTORS of _stage_d.h
+_FUSED_BUILD_HINT = (
+    "build it: cd icenine_py && uv run --no-project --with setuptools --with numpy python setup.py "
+    "build_ext --inplace"
+)
+_FUSED_VERTICES_REASON = "voxel vertices that are not a (3, 3) float32 tensor on the CPU"
+_WARNED_FUSED: set = set()  # reasons already warned about (one RuntimeWarning per reason)
+
+
+def fused_unsupported_reason(cost_fn: "VoxelCostFunction") -> Optional[str]:
+    """Why the fused evaluate (key FusedCost) cannot compute ``cost_fn``'s costs (None: it can).
+    Checks every "fallback" argument of ``FUSED_ARGUMENTS`` and the build of the extension; the
+    dtypes and the beam deflection are checked when the context is built
+    (``_FusedContext.reason``)."""
+    if not _HAS_C_RASTERIZE:
+        return "the _rasterize C extension is not built; " + _FUSED_BUILD_HINT
+    if not _C_HAS_FUSED:
+        return (
+            "the _rasterize extension was built without the fused evaluate (HAS_FUSED); rebuild: "
+            + _FUSED_BUILD_HINT
+        )
+    if cost_fn.mode != "hard":
+        return "soft mode"
+    if cost_fn.ray_rule is not None:
+        return "the ray rule (RayOverlapRule)"
+    if cost_fn.eta_limit is None:
+        return "no eta limit"
+    n_det = len(cost_fn.detector_list)
+    if n_det < 1 or n_det > _FUSED_MAX_DETECTORS:
+        return f"{n_det} detectors (1 to {_FUSED_MAX_DETECTORS} supported)"
+    return None
+
+
+def _warn_fused_fallback(reason: str, stacklevel: int = 5) -> None:
+    """One ``RuntimeWarning`` per reason; ``stacklevel`` points at the caller of
+    ``VoxelCostFunction.evaluate`` (5 from ``_fused_context``, 4 from ``_evaluate_fused``)."""
+    if reason not in _WARNED_FUSED:
+        _WARNED_FUSED.add(reason)
+        warnings.warn(
+            f"FusedCost is not supported for this cost function ({reason}): using the torch "
+            "path (VoxelCostFunction.evaluate: the torch evaluate; BatchedCostEvaluator: the "
+            "torch compact variant)",
+            RuntimeWarning,
+            stacklevel=stacklevel,
+        )
+
+
+def _numpy_frame_mode(low: object, width: object) -> int:
+    """How numpy evaluates ``(omegas - low) / width`` (``_omega_bins``) for float32 omegas, as the
+    C frame lookup must repeat it: 0 both steps in float64, 1 the subtraction in float32 and the
+    division in float64, 2 both in float32 (NEP 50: a numpy float64 scalar promotes, a Python float
+    does not)."""
+    a = np.zeros(1, np.float32) - low
+    if a.dtype == np.float64:
+        return 0
+    return 1 if (a / width).dtype == np.float64 else 2
+
+
+#: g = R g_hkl in the fused C code: 1 = the plain order ``(r0 g0 + r1 g1) + r2 g2`` (the default),
+#: 0 = the fmaf chain of the S2 Step 0 prototype. Neither reproduces torch's sgemm bit for bit; on
+#: S1's parity set the plain order gave fewer pixel-edge flips against torch (S2 Step 1,
+#: D-20261027-I5; scripts/speed_parity/s2/s2_core_parity.py, benchmarks/s2_core/). Read when a
+#: context is built; 0 is kept for that comparison and the bit-for-bit check against the prototype.
+_FUSED_GLAB_ORDER = 1
+
+
+class _FusedContext:
+    """The C context of the fused evaluate for one (cost function, phase), the arrays it points
+    into, and the inputs it was built from. ``is_current`` is False after any of them changed: a
+    new FrameTable (``exp_data``, ``range_map`` or the detector count replaced; the checks of
+    ``VoxelCostFunction.frame_table``), new reciprocal vectors, beam energy or chi (the checks of
+    ``BraggConstants.is_for``), a cost mode changed on the live object, or the geometry: the
+    sample-to-lab matrix or the beam direction replaced or modified in place (tensor version), a
+    detector's plane, position, frame origin or basis tensors replaced (``Detector.set_position``
+    and ``set_orientation`` replace them) or its pixel size changed.
+
+    **Contract (D-20261027-I8).** The detector tensors are compared by identity only: an in-place
+    edit of a detector's plane, position, frame origin or basis tensors is not detected (checking
+    their versions would add cost to every call). Move a detector with ``Detector.set_position`` or
+    ``set_orientation``, which replace the tensors; no library code edits them in place."""
+
+    __slots__ = (
+        "capsule",
+        "reason",
+        "table",
+        "g_hkl_t",
+        "g_mag_t",
+        "energy",
+        "chi",
+        "modes",
+        "s2l",
+        "s2l_version",
+        "beam",
+        "beam_version",
+        "detectors",
+        "det_state",
+        "_keep",
+    )
+
+    def __init__(self, cf: "VoxelCostFunction", phase: int) -> None:
+        self.capsule: object = None
+        self.reason: Optional[str] = None
+        g_hkl_t, g_mag_t = cf._phase_recip_vecs[phase]
+        sim = cf.simulator
+        energy, chi = sim.beam_energy, sim.beam_deflection_chi
+        self.table = cf.frame_table()
+        self.g_hkl_t, self.g_mag_t = g_hkl_t, g_mag_t
+        self.energy, self.chi = energy, chi
+        self.modes = cf._fused_modes()
+        s2l = cf.sample.sample_to_lab_matrix
+        beam = sim.beam_direction
+        self.s2l, self.s2l_version = s2l, s2l._version
+        self.beam, self.beam_version = beam, beam._version
+        self.detectors = cf.detector_list
+        self.det_state = [_detector_state(det) for det in cf.detector_list]
+        self._keep: Tuple[np.ndarray, ...] = ()
+
+        # the torch path's Bragg constants (the same object, so the same values)
+        consts = cf._bragg_consts.get(phase)
+        if consts is None or not consts.is_for(g_mag_t, energy, chi):
+            consts = cf._bragg_consts[phase] = BraggConstants(g_mag_t, energy, chi)
+        sin_chi = consts.sin_chi_laue.reshape(-1)
+        cos_chi = consts.cos_chi_laue.reshape(-1)
+        tensors = [g_hkl_t, consts.sin_theta, consts.g_mag_eps, s2l, beam]
+        for det in cf.detector_list:
+            pl = det._detector_plane
+            tensors += [
+                pl.normal,
+                det._position,
+                det._lab_frame_coord_origin,
+                det._lab_frame_basis_j,
+                det._lab_frame_basis_k,
+            ]
+        if any(t.dtype != torch.float32 or t.device.type != "cpu" for t in tensors):
+            self.reason = "a geometry or reflection tensor that is not float32 on the CPU"
+            return
+        if not bool((sin_chi == sin_chi[0]).all()) or not bool((cos_chi == cos_chi[0]).all()):
+            self.reason = "a beam deflection chi that differs between reflections"
+            return
+
+        g_hkl = np.ascontiguousarray(g_hkl_t.numpy(), dtype=np.float32)
+        sin_theta = np.ascontiguousarray(consts.sin_theta.numpy(), dtype=np.float32)
+        g_mag_eps = np.ascontiguousarray(consts.g_mag_eps.numpy(), dtype=np.float32)
+        scal = np.array(
+            [
+                float(sin_chi[0]),
+                float(cos_chi[0]),
+                np.float32(consts.epsilon),
+                np.float32(cf.eta_limit),
+                np.float32(cf.min_sin_eta),
+            ],
+            np.float32,
+        )
+        rule_bits = (1 if cf.cpp_overlap_rule else 0) | (2 if cf.cpp_edge_rules else 0)
+        rmap = cf.range_map
+        ints = np.array(
+            [
+                cf.pixel_radius,
+                int(bool(cf.center_screen)),
+                rule_bits,
+                int(cf.min_sin_eta > 0.0),
+                _numpy_frame_mode(rmap.low, rmap.width),
+                len(cf.detector_list),
+                _FUSED_GLAB_ORDER,
+            ],
+            np.int32,
+        )
+        geom = np.stack(
+            [
+                np.concatenate(
+                    [
+                        det._detector_plane.normal.numpy(),
+                        np.array([float(det._detector_plane.d)], np.float32),
+                        det._position.numpy(),
+                        det._lab_frame_coord_origin.numpy(),
+                        det._lab_frame_basis_j.numpy(),
+                        det._lab_frame_basis_k.numpy(),
+                        np.array(
+                            [
+                                det.pixel_half_width,
+                                det.pixel_width,
+                                det.pixel_half_height,
+                                det.pixel_height,
+                            ],
+                            np.float32,
+                        ),
+                    ]
+                ).astype(np.float32)
+                for det in cf.detector_list
+            ]
+        )
+        frame_index = cf._frame_index
+        assert frame_index is not None  # set by frame_table()
+        self._keep = (g_hkl, sin_theta, g_mag_eps, frame_index)
+        self.capsule = _c_fused_context(
+            g_hkl,
+            sin_theta,
+            g_mag_eps,
+            scal,
+            beam.numpy(),
+            np.ascontiguousarray(s2l[:3, :3].numpy()),
+            np.ascontiguousarray(s2l[:3, 3].numpy()),
+            ints,
+            np.array([float(rmap.low), float(rmap.width)], np.float64),
+            np.ascontiguousarray(frame_index, dtype=np.int64),
+            np.ascontiguousarray(geom, dtype=np.float32),
+            self.table,
+            self.table.images,
+            self.table._filled,
+        )
+
+    def is_current(self, cf: "VoxelCostFunction", phase: int) -> bool:
+        sim = cf.simulator
+        s2l = cf.sample.sample_to_lab_matrix
+        beam = sim.beam_direction
+        recip = cf._phase_recip_vecs.get(phase)
+        if not (
+            self.table is cf.frame_table()
+            and recip is not None
+            and recip[0] is self.g_hkl_t
+            and recip[1] is self.g_mag_t
+            and self.energy == sim.beam_energy
+            and self.chi == sim.beam_deflection_chi
+            and s2l is self.s2l
+            and s2l._version == self.s2l_version
+            and beam is self.beam
+            and beam._version == self.beam_version
+            and cf.detector_list is self.detectors
+            and self.modes == cf._fused_modes()
+        ):
+            return False
+        if len(cf.detector_list) != len(self.det_state):
+            return False
+        for det, st in zip(cf.detector_list, self.det_state):
+            pl = det._detector_plane
+            if not (
+                pl is st[0]
+                and pl.coeffs is st[1]
+                and det._position is st[2]
+                and det._lab_frame_coord_origin is st[3]
+                and det._lab_frame_basis_j is st[4]
+                and det._lab_frame_basis_k is st[5]
+                and det.pixel_half_width == st[6]
+                and det.pixel_width == st[7]
+                and det.pixel_half_height == st[8]
+                and det.pixel_height == st[9]
+            ):
+                return False
+        return True
+
+
+def _detector_state(det: Detector) -> Tuple[object, ...]:
+    """What the fused context reads from a detector (``_FusedContext.is_current`` compares the
+    tensors by identity, the pixel sizes by value)."""
+    pl = det._detector_plane
+    return (
+        pl,
+        pl.coeffs,
+        det._position,
+        det._lab_frame_coord_origin,
+        det._lab_frame_basis_j,
+        det._lab_frame_basis_k,
+        det.pixel_half_width,
+        det.pixel_width,
+        det.pixel_half_height,
+        det.pixel_height,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -864,6 +1331,8 @@ class VoxelCostFunction:
         cpp_overlap_rule: bool = False,
         center_screen: bool = True,
         ray_rule: "Optional[RayRule]" = None,
+        cpp_edge_rules: bool = False,
+        fused_cost: bool = False,
     ):
         """
         Args:
@@ -902,7 +1371,27 @@ class VoxelCostFunction:
                    implies the C++ rule. The reconstructor gives it only to the coarse levels
                    0-2 (screen, re-cost, quick MC); FindOptimal, VarianceMinimizing and the final
                    cost use a cost function without it (two costs by design, see ray_overlap.py).
+            cpp_edge_rules: Opt-in, default False: the C++ conventions at the edges (an omega
+                   below the range has no frame; a detector coordinate below 0 is pixel -1; a
+                   pixel-less triangle with an in-bounds vertex lights the detector; see
+                   calculate_diffraction_overlap_batched).
+            fused_cost: Opt-in, default False (config key FusedCost, S2): ``evaluate`` computes
+                   the cost in one C call (``_rasterize.fused_evaluate``, icenine/_fused_eval.c)
+                   instead of the torch operations. Float32 in torch's operation order, but not
+                   bit for bit: a pixel coordinate within float32 rounding of an integer can floor
+                   to the other pixel (parity rule D-20261027-I2). Covered: hard mode, pixel radius
+                   0 and > 0 (centroid and vertex 0), the default rule, ``cpp_overlap_rule``,
+                   ``cpp_edge_rules``, ``min_sin_eta``. Everything else (soft mode, ``ray_rule``,
+                   no eta limit, more than 8 detectors, an extension built without
+                   ``HAS_FUSED``) uses the torch path, with one ``RuntimeWarning`` per reason
+                   (``fused_unsupported_reason``, ``FUSED_ARGUMENTS``).
         """
+        self.fused_cost = fused_cost
+        self._fused_ctx: Dict[int, _FusedContext] = {}
+        self._fused_vt: Optional[torch.Tensor] = None  # vertices of the cached array, its version
+        self._fused_vv = -1
+        self._fused_vn: Optional[np.ndarray] = None
+        self.cpp_edge_rules = cpp_edge_rules
         self.ray_rule = ray_rule
         self.cpp_overlap_rule = cpp_overlap_rule or ray_rule is not None
         self.center_screen = center_screen
@@ -917,6 +1406,12 @@ class VoxelCostFunction:
         self.eta_limit = eta_limit
         self.pixel_radius = pixel_radius
         self.eval_count = 0
+        # S1: the frame lookup array and the binary-frame table are built on first use
+        # (``frame_table``); the Bragg constants per phase on its first ``evaluate``
+        self._frame_index: Optional[np.ndarray] = None
+        self._frame_range: Optional[SimulationRange] = None
+        self._frame_table: Optional[FrameTable] = None
+        self._bragg_consts: Dict[int, BraggConstants] = {}
 
         # Pre-compute reciprocal vectors per phase
         self._phase_recip_vecs = {}
@@ -935,6 +1430,116 @@ class VoxelCostFunction:
                     [rv.q_mag for rv in recp_vecs], dtype=torch.float32
                 )
                 self._phase_recip_vecs[phase_idx] = (g_hkl_batch, g_mag_batch)
+
+    def frame_table(self) -> FrameTable:
+        """The binary-frame table of ``self.exp_data`` (see ``FrameTable``), built on first use and
+        rebuilt, together with the frame lookup array, when ``exp_data`` (or ``range_map``, or the
+        detector count) has been replaced since: swapping the data of a live cost function keeps
+        working. Changing the images of the same ``exp_data`` object after the first ``evaluate`` is
+        not supported (``FrameTable`` contract)."""
+        t = self._frame_table
+        if (
+            t is not None
+            and t.source is self.exp_data
+            and self._frame_range is self.range_map
+            and t.n_det == len(self.detector_list)
+        ):
+            return t
+        if self._frame_index is None or self._frame_range is not self.range_map:
+            self._frame_index = frame_index_array(self.range_map)
+            self._frame_range = self.range_map
+        t = self._frame_table = FrameTable(
+            self.exp_data, int(self._frame_index.max()) + 1, len(self.detector_list)
+        )
+        return t
+
+    def _fused_modes(self) -> Tuple[object, ...]:
+        """The cost modes the fused C context is built for (a change rebuilds it)."""
+        return (
+            self.mode,
+            self.ray_rule,
+            self.pixel_radius,
+            self.center_screen,
+            self.cpp_overlap_rule,
+            self.cpp_edge_rules,
+            self.eta_limit,
+            self.min_sin_eta,
+        )
+
+    def _fused_context(self, phase_index: int) -> Optional[_FusedContext]:
+        """The current fused context of a phase (built or rebuilt as needed), or None when the
+        fused path does not cover this cost function (one RuntimeWarning per reason)."""
+        ctx = self._fused_ctx.get(phase_index)
+        if ctx is not None and ctx.is_current(self, phase_index):
+            return ctx if ctx.reason is None else None
+        reason = fused_unsupported_reason(self)
+        if reason is None:
+            ctx = self._fused_ctx[phase_index] = _FusedContext(self, phase_index)
+            reason = ctx.reason
+        if reason is not None:
+            _warn_fused_fallback(reason)
+            return None
+        return ctx
+
+    def _fused_vertices(self, voxel_vertices: torch.Tensor) -> Optional[np.ndarray]:
+        """``voxel_vertices`` as the (3, 3) float32 array of the C call (cached while the same
+        tensor is passed unmodified); None for anything the torch path would treat otherwise."""
+        vt = voxel_vertices
+        if vt is self._fused_vt and vt._version == self._fused_vv:
+            return self._fused_vn
+        if (
+            not isinstance(vt, torch.Tensor)
+            or vt.dtype != torch.float32
+            or vt.device.type != "cpu"
+            or tuple(vt.shape) != (3, 3)
+        ):
+            return None
+        self._fused_vn = np.ascontiguousarray(vt.detach().numpy())
+        self._fused_vt, self._fused_vv = vt, vt._version
+        return self._fused_vn
+
+    def _evaluate_fused(
+        self, orientation: np.ndarray, voxel_vertices: torch.Tensor, phase_index: int
+    ) -> Optional[OverlapInfo]:
+        """``evaluate`` through the fused C call (key FusedCost); None: use the torch path."""
+        if phase_index not in self._phase_recip_vecs:
+            return OverlapInfo()
+        ctx = self._fused_context(phase_index)
+        if ctx is None:
+            return None
+        verts = self._fused_vertices(voxel_vertices)
+        if verts is None:
+            _warn_fused_fallback(_FUSED_VERTICES_REASON, stacklevel=4)
+            return None
+        r = _c_fused_evaluate(ctx.capsule, orientation, verts)
+        if type(r) is list:
+            # lazy FrameTable fill: C names the frames it needs, Python fills them, C runs again
+            ctx.table.ensure(np.asarray(r, dtype=np.int64))
+            r = _c_fused_evaluate(ctx.capsule, orientation, verts)
+            if type(r) is list:
+                raise RuntimeError(f"fused evaluate: frames {r} still missing after ensure")
+        return OverlapInfo(r[0], r[1], r[2], r[3], r[6], r[4], r[5])
+
+    def fused_debug(
+        self, orientation: np.ndarray, voxel_vertices: torch.Tensor, phase_index: int = 0
+    ) -> Dict[str, np.ndarray]:
+        """The intermediates of the fused evaluate for one orientation (parity checks): per
+        reflection ``g_lab``, ``obs``, ``omega1``, ``omega2``; per (solution, reflection) row
+        ``r = s * K + k`` ``omega``, ``cos``, ``sin``, ``eta``, ``valid``, ``frame``,
+        ``lab_normal``, ``reflected``, ``pix`` (n_det, 3, 2), ``hit``, ``t``; and ``result``, the
+        7 values ``evaluate`` returns (frames are filled first). Does not count an evaluation.
+        Raises RuntimeError where the fused path does not cover the cost function."""
+        if phase_index not in self._phase_recip_vecs:
+            raise RuntimeError(f"no reflections for phase {phase_index}")
+        ctx = self._fused_context(phase_index)
+        verts = self._fused_vertices(voxel_vertices)
+        if ctx is None or verts is None:
+            raise RuntimeError("the fused evaluate does not cover this cost function or input")
+        d: Dict[str, np.ndarray] = _c_fused_evaluate(ctx.capsule, orientation, verts, 1)
+        if "missing" in d:
+            ctx.table.ensure(np.asarray(d["missing"], dtype=np.int64))
+            d = _c_fused_evaluate(ctx.capsule, orientation, verts, 1)
+        return d
 
     def evaluate(
         self,
@@ -956,6 +1561,10 @@ class VoxelCostFunction:
         C++ Reference: CostFunctions.h VoxelCostFunction::operator()
         """
         self.eval_count += 1
+        if self.fused_cost:
+            fused = self._evaluate_fused(orientation, voxel_vertices, phase_index)
+            if fused is not None:
+                return fused
         voxel_size = 0.0
         if self.ray_rule is not None:
             edges = voxel_vertices - voxel_vertices.roll(1, dims=0)
@@ -978,13 +1587,15 @@ class VoxelCostFunction:
         orientation_t = torch.from_numpy(orientation).float()
         g_lab_batch = (orientation_t @ g_hkl_batch.T).T
 
-        # Compute Bragg angles for all reflections
-        bragg_result = get_scattering_omegas_torch(
-            g_lab_batch,
-            g_mag_batch,
-            self.simulator.beam_energy,
-            self.simulator.beam_deflection_chi,
-        )
+        # Compute Bragg angles for all reflections: get_scattering_omegas_torch with the
+        # call-independent constants hoisted (BraggConstants; the omegas of unobservable rows are
+        # not zeroed, they are dropped below). Rebuilt when |g|, the beam energy or chi changed.
+        energy = self.simulator.beam_energy
+        chi = self.simulator.beam_deflection_chi
+        consts = self._bragg_consts.get(phase_index)
+        if consts is None or not consts.is_for(g_mag_batch, energy, chi):
+            consts = self._bragg_consts[phase_index] = BraggConstants(g_mag_batch, energy, chi)
+        bragg_result = scattering_omegas_fixed_beam(g_lab_batch, consts)
 
         # Collect observable peaks using vectorized eta filtering
         obs_mask = bragg_result.observable
@@ -1041,6 +1652,7 @@ class VoxelCostFunction:
             return OverlapInfo()
 
         # Calculate diffraction overlap (batched for performance)
+        table = self.frame_table()
         return calculate_diffraction_overlap_batched(
             sample=self.sample,
             voxel_vertices=voxel_vertices,
@@ -1052,7 +1664,10 @@ class VoxelCostFunction:
             beam_direction=self.simulator.beam_direction,
             mode=self.mode,
             pixel_radius=self.pixel_radius,
+            frame_index=self._frame_index,
+            frame_table=table,
             **({"cpp_rule": True} if self.cpp_overlap_rule else {}),
+            **({"cpp_edge_rules": True} if self.cpp_edge_rules else {}),
             **(
                 {"ray_rule": self.ray_rule, "voxel_size": voxel_size}
                 if self.ray_rule is not None

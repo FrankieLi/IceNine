@@ -1,0 +1,29 @@
+{
+ "label": "single-worker",
+ "voxels": [
+  15901
+ ],
+ "dirs": 5,
+ "offsets_deg": [
+  1.0,
+  2.0,
+  5.0
+ ],
+ "per_voxel": {
+  "15901": {
+   "screen_ms_per_orientation": 0.017531345107802868,
+   "smooth_ms_per_orientation": 1.2143625436447107,
+   "strict_ms_per_orientation": 0.5056549636363624,
+   "screen_orientations": 94385,
+   "smooth_orientations": 3265,
+   "strict_orientations": 220,
+   "screen_calls": 430,
+   "smooth_calls": 110,
+   "strict_calls": 220,
+   "search_ms_total": 5750.784002999992,
+   "callables_ms_total": 5730.833804999955,
+   "f4_e4_value_ms": 1.4557166666666177,
+   "f4_e4_value_and_jacobian_ms": 11.631647199999998
+  }
+ }
+}

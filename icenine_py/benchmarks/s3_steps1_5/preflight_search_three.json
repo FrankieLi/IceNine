@@ -1,0 +1,24 @@
+{
+ "timestamp": "2026-10-14T00:45:39",
+ "host": "ilium.lan",
+ "loadavg": [
+  5.97314453125,
+  5.52294921875,
+  4.931640625
+ ],
+ "cpu_count": 10,
+ "power": "ac",
+ "omp_num_threads": null,
+ "mkl_num_threads": null,
+ "torch_threads": 1,
+ "busy_processes": [
+  {
+   "pid": 814,
+   "cpu": 225.0,
+   "command": "/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd"
+  }
+ ],
+ "quiet": false,
+ "not_quiet_reason": "machine not quiet for timing: 1-min load 5.97 > 1.5; busy process pid 814 (225% CPU): /System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd",
+ "label": "contended"
+}

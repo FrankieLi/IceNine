@@ -1,0 +1,28 @@
+{
+ "set": "phase_d",
+ "n_orient": 43974,
+ "n_peaks": 1068652,
+ "peaks_per_orientation_mean": 24.301905671533177,
+ "peaks_per_orientation_median": 24.0,
+ "peaks_per_orientation_min": 16,
+ "peaks_per_orientation_max": 28,
+ "hit_fraction": [
+  1.0,
+  1.0
+ ],
+ "frames_occurring": 180,
+ "table_bytes_float64": 147473976,
+ "bitmap_packed_bytes": 190036080,
+ "meta": {
+  "n_orient": 43974,
+  "n_peaks": 1068652,
+  "build_s_untimed": 0.39908591699999985,
+  "pixel_radius": 3,
+  "cpp_overlap_rule": false,
+  "cpp_edge_rules": false,
+  "center_screen": true,
+  "screen_chunk": 32,
+  "n_fz": 4886,
+  "n_local": 9
+ }
+}

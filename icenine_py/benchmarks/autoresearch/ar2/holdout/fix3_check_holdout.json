@@ -1,0 +1,1821 @@
+{
+ "set": "holdout",
+ "voxels": 300,
+ "candidates_identical": 300,
+ "candidates_max_abs_diff": 0.0,
+ "candidates_same_shape": 300,
+ "distances": 6000,
+ "dist_max_abs_change": 0.007822997880500338,
+ "dist_max_abs_change_below_1deg": 0.007822997880500338,
+ "dist_max_abs_change_above_1deg": 8.034962813541213e-05,
+ "dist_exact_zero_old": 0,
+ "dist_exact_zero_new": 0,
+ "threshold_flips": {
+  "0.5": 0,
+  "1": 0,
+  "2": 0,
+  "5": 0
+ },
+ "per_voxel": [
+  {
+   "voxel": 0,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 135,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 172,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 283,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 357,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 502,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 509,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 651,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 664,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 788,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 859,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 913,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1025,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1101,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1186,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1239,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1338,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1439,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1545,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1553,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1687,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1747,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1811,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1936,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2070,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2134,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2225,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2282,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2359,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2441,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2481,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2610,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2627,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2752,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2800,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2904,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2990,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3080,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3105,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3259,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3299,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3417,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3426,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3562,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3608,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3757,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3766,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3915,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3916,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4047,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4103,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4267,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4374,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4400,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4535,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4567,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4690,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4704,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4835,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4873,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4966,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5102,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5111,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5263,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5275,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5402,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5489,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5505,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5648,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5662,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5776,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5952,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5995,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6126,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6164,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6274,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6294,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6433,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6441,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6575,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6598,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6744,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6755,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6910,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6915,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7005,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7080,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7303,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7340,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7454,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7460,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7554,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7646,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7671,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7775,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7818,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7956,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7960,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8089,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8207,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8214,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8343,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8411,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8504,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8518,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8656,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8670,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8803,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8830,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9164,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9284,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9339,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9419,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9483,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9581,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9634,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9743,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9748,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9890,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9907,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10014,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10074,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10161,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10229,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10277,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10349,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10427,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10487,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10608,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10610,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10749,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10762,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10886,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 10944,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11040,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11083,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11171,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11227,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11331,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11407,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11466,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11568,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11586,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11717,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11784,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11876,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11934,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12040,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12055,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12242,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12250,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12409,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12420,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12552,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12596,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12715,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12764,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12895,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 12922,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13029,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13106,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13182,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13240,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13380,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13413,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13507,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13568,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13703,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13760,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13811,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13931,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14008,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14053,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14181,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14325,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14363,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14498,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14515,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14628,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14679,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14743,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14844,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14880,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14994,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15019,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15139,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15231,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15322,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15339,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15510,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15542,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15661,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15669,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15806,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15882,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16007,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16027,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16155,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16164,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16298,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16362,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16431,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16636,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16657,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16778,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16845,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16928,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16970,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17084,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17116,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17215,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17321,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17361,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17501,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17547,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17703,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17715,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17782,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17882,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18004,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18008,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18229,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18281,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18362,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18467,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18503,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18566,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18673,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18718,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18824,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18858,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18993,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19041,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19143,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19218,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19313,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19323,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19539,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19644,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19685,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19759,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19854,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19865,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19970,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20043,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20099,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20189,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20260,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20327,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20457,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20490,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20588,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20707,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20723,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20806,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20896,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 20958,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21042,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21125,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21414,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21535,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21599,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21670,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21765,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21843,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21911,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21977,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22025,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22117,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22158,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22285,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22331,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22373,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22482,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22535,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22629,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22684,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22747,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22841,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 22882,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23001,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23032,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23134,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23227,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23291,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23362,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23455,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23473,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23616,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23646,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23743,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23819,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23856,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23978,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 24056,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 24136,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 24188,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 24268,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 24337,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  }
+ ]
+}

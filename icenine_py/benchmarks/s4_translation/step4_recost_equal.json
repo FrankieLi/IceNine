@@ -1,0 +1,173 @@
+{
+ "explain_sampled": 400,
+ "explain_integer_vertex_differs": 400,
+ "explain_flip_dist_max": 0.0004053492539242143,
+ "rows": [
+  {
+   "vid": 1423,
+   "n_passers": 34078,
+   "any_field_diff": 1705,
+   "recost_diff": 4,
+   "quality_abs_diff_max": 0.005636070853462158,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 2091,
+   "n_passers": 34262,
+   "any_field_diff": 1666,
+   "recost_diff": 8,
+   "quality_abs_diff_max": 0.0041958041958041915,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 5852,
+   "n_passers": 34858,
+   "any_field_diff": 1808,
+   "recost_diff": 7,
+   "quality_abs_diff_max": 0.004072681704260651,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 7288,
+   "n_passers": 34253,
+   "any_field_diff": 1665,
+   "recost_diff": 2,
+   "quality_abs_diff_max": 0.0016544117647058825,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 7320,
+   "n_passers": 35021,
+   "any_field_diff": 1728,
+   "recost_diff": 6,
+   "quality_abs_diff_max": 0.0021978021978022004,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 7669,
+   "n_passers": 35232,
+   "any_field_diff": 1800,
+   "recost_diff": 4,
+   "quality_abs_diff_max": 0.008953168044077139,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 8205,
+   "n_passers": 33836,
+   "any_field_diff": 1670,
+   "recost_diff": 4,
+   "quality_abs_diff_max": 0.0033140219952867284,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 9601,
+   "n_passers": 35465,
+   "any_field_diff": 1729,
+   "recost_diff": 4,
+   "quality_abs_diff_max": 0.003135813148788925,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 10685,
+   "n_passers": 35161,
+   "any_field_diff": 1737,
+   "recost_diff": 2,
+   "quality_abs_diff_max": 0.002814522938361954,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 11775,
+   "n_passers": 34321,
+   "any_field_diff": 1617,
+   "recost_diff": 3,
+   "quality_abs_diff_max": 0.002272727272727274,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 14122,
+   "n_passers": 33969,
+   "any_field_diff": 1658,
+   "recost_diff": 1,
+   "quality_abs_diff_max": 0.002606017531390668,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 14952,
+   "n_passers": 33782,
+   "any_field_diff": 1651,
+   "recost_diff": 6,
+   "quality_abs_diff_max": 0.0021739130434782657,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 16602,
+   "n_passers": 34217,
+   "any_field_diff": 1725,
+   "recost_diff": 4,
+   "quality_abs_diff_max": 0.005128205128205124,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 16775,
+   "n_passers": 35137,
+   "any_field_diff": 1687,
+   "recost_diff": 4,
+   "quality_abs_diff_max": 0.006115819925899605,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 18366,
+   "n_passers": 35653,
+   "any_field_diff": 1739,
+   "recost_diff": 7,
+   "quality_abs_diff_max": 0.0037878787878787828,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 18384,
+   "n_passers": 35439,
+   "any_field_diff": 1767,
+   "recost_diff": 6,
+   "quality_abs_diff_max": 0.00918964076858814,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 19289,
+   "n_passers": 33683,
+   "any_field_diff": 1588,
+   "recost_diff": 4,
+   "quality_abs_diff_max": 0.004237288135593216,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 22181,
+   "n_passers": 34714,
+   "any_field_diff": 1765,
+   "recost_diff": 2,
+   "quality_abs_diff_max": 0.0021428571428571443,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 22215,
+   "n_passers": 34451,
+   "any_field_diff": 1621,
+   "recost_diff": 3,
+   "quality_abs_diff_max": 0.0021072796934865877,
+   "pixel_overlap_abs_diff_max": 4.0
+  },
+  {
+   "vid": 24460,
+   "n_passers": 34007,
+   "any_field_diff": 1636,
+   "recost_diff": 4,
+   "quality_abs_diff_max": 0.0028462998102466762,
+   "pixel_overlap_abs_diff_max": 4.0
+  }
+ ],
+ "pairs": 691539,
+ "any_field_diff": 33962,
+ "recost_diff": 85,
+ "quality_abs_diff_max": 0.00918964076858814,
+ "wall_s_untimed": 41.05129599571228,
+ "orientations": 43974
+}

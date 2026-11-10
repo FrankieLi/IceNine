@@ -1,0 +1,54 @@
+{
+ "label": "contended",
+ "preflight_load": [
+  1.78173828125,
+  2.65869140625,
+  2.8271484375
+ ],
+ "kind": "o2",
+ "layout": "u8",
+ "threads": 10,
+ "block": 288,
+ "tile": 256,
+ "voxel_tile": 4096,
+ "n_voxels": 24570,
+ "n_orient": 43974,
+ "wall_s": 6.583315541999999,
+ "kernel_s": 6.001587956999999,
+ "reduce_s": 0.5816740840000021,
+ "passers_total": 848266117,
+ "passers_per_voxel_median": 34466.0,
+ "passers_per_voxel_min": 32991,
+ "passers_per_voxel_max": 35912,
+ "sparse_list_bytes_int32_pairs": 6786128936,
+ "pass_bitset_bytes": 135055147,
+ "counts_matrix_bytes_uint8": 1080441180,
+ "reference_check": {
+  "1423": {
+   "ref_passers": 34078,
+   "passers": 34079
+  },
+  "2091": {
+   "ref_passers": 34262,
+   "passers": 34261
+  },
+  "5852": {
+   "ref_passers": 34858,
+   "passers": 34857
+  },
+  "7288": {
+   "ref_passers": 34253,
+   "passers": 34254
+  },
+  "7320": {
+   "ref_passers": 35021,
+   "passers": 35022
+  }
+ },
+ "peak_rss_gb": 1.987198976,
+ "preflight_end": [
+  2.6796875,
+  2.830078125,
+  2.88671875
+ ]
+}

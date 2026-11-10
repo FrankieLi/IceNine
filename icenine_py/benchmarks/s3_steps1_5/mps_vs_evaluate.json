@@ -1,0 +1,35 @@
+{
+ "max_q_0": {
+  "cost_differs": 18,
+  "fields_differing": {
+   "detectors_overlap": 0,
+   "n_quality_points": 0,
+   "peak_on_detector": 0,
+   "peak_overlap": 6,
+   "pixel_on_detector": 134,
+   "pixel_overlap": 15,
+   "quality": 18,
+   "ray_cases": 0
+  },
+  "max_abs_dcost": 0.0012144053601341742,
+  "max_q": 0.0,
+  "n_orientations": 361
+ },
+ "max_q_5": {
+  "cost_differs": 0,
+  "fields_differing": {
+   "detectors_overlap": 0,
+   "n_quality_points": 0,
+   "peak_on_detector": 0,
+   "peak_overlap": 0,
+   "pixel_on_detector": 8,
+   "pixel_overlap": 1,
+   "quality": 0,
+   "ray_cases": 0
+  },
+  "max_abs_dcost": 0.0,
+  "max_q": 5.0,
+  "n_orientations": 361
+ },
+ "torch": "2.8.0"
+}

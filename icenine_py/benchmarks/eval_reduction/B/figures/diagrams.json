@@ -1,0 +1,19 @@
+{
+ "frame": {
+  "voxel": 15901,
+  "n_peaks_that_change_frame": 43,
+  "n_present_all_steps": 102,
+  "shown": 5
+ },
+ "pixel": {
+  "voxel": 15901,
+  "radius_before": 0.188,
+  "radius_after": 0.1885,
+  "q_before": 1.0,
+  "q_after": 0.85,
+  "frame": 13
+ },
+ "detector": {
+  "n": 3
+ }
+}

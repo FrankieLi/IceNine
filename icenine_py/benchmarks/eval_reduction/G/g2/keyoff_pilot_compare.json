@@ -1,0 +1,14 @@
+{
+ "a": "keyoff_base",
+ "b": "keyoff_branch",
+ "recon_mic_identical": true,
+ "n_records": 150,
+ "records_differing": [],
+ "stats_differing": [],
+ "n_voxels": 150,
+ "n_seeds": 4,
+ "n_reseeds": 4,
+ "n_neighbor_fits": 146,
+ "n_revisit_attempted": 123,
+ "identical": true
+}

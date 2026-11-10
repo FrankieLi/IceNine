@@ -1,0 +1,20 @@
+[
+ {
+  "voxel": 11294,
+  "n": 20,
+  "n_stored": 20,
+  "max_abs_diff": 0.0
+ },
+ {
+  "voxel": 4206,
+  "n": 20,
+  "n_stored": 20,
+  "max_abs_diff": 0.0
+ },
+ {
+  "voxel": 983,
+  "n": 20,
+  "n_stored": 20,
+  "max_abs_diff": 0.0
+ }
+]

@@ -1,0 +1,2202 @@
+{
+ "plain": {
+  "voxel": 5242,
+  "n_evaluations": 48,
+  "n_differing_all_fields": 0,
+  "fields": [
+   "pixel_overlap",
+   "pixel_on_detector",
+   "peak_overlap",
+   "peak_on_detector",
+   "quality"
+  ],
+  "per_arm": {
+   "screen/cpp_edge_rules=True": {
+    "n": 12,
+    "all_equal": 12,
+    "peak_counts_equal": 12,
+    "peak_on_detector_sum_C": 215,
+    "peak_on_detector_sum_slow": 215
+   },
+   "screen/cpp_edge_rules=False": {
+    "n": 12,
+    "all_equal": 12,
+    "peak_counts_equal": 12,
+    "peak_on_detector_sum_C": 219,
+    "peak_on_detector_sum_slow": 219
+   },
+   "full/cpp_edge_rules=True": {
+    "n": 12,
+    "all_equal": 12,
+    "peak_counts_equal": 12,
+    "peak_on_detector_sum_C": 770,
+    "peak_on_detector_sum_slow": 770
+   },
+   "full/cpp_edge_rules=False": {
+    "n": 12,
+    "all_equal": 12,
+    "peak_counts_equal": 12,
+    "peak_on_detector_sum_C": 766,
+    "peak_on_detector_sum_slow": 766
+   }
+  },
+  "evaluations": [
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 0,
+    "orientation": "truth + 0.00 rad noise",
+    "C": [
+     36,
+     36,
+     19,
+     19,
+     0.9473684210526314
+    ],
+    "slow": [
+     36,
+     36,
+     19,
+     19,
+     0.9473684210526314
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 1,
+    "orientation": "truth + 0.01 rad noise",
+    "C": [
+     18,
+     36,
+     7,
+     19,
+     0.31578947368421056
+    ],
+    "slow": [
+     18,
+     36,
+     7,
+     19,
+     0.31578947368421056
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 2,
+    "orientation": "truth + 0.02 rad noise",
+    "C": [
+     15,
+     36,
+     6,
+     19,
+     0.2894736842105263
+    ],
+    "slow": [
+     15,
+     36,
+     6,
+     19,
+     0.2894736842105263
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 3,
+    "orientation": "truth + 0.03 rad noise",
+    "C": [
+     8,
+     36,
+     3,
+     19,
+     0.15789473684210525
+    ],
+    "slow": [
+     8,
+     36,
+     3,
+     19,
+     0.15789473684210525
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 4,
+    "orientation": "random",
+    "C": [
+     3,
+     31,
+     1,
+     17,
+     0.058823529411764705
+    ],
+    "slow": [
+     3,
+     31,
+     1,
+     17,
+     0.058823529411764705
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 5,
+    "orientation": "random",
+    "C": [
+     2,
+     34,
+     0,
+     18,
+     0.0
+    ],
+    "slow": [
+     2,
+     34,
+     0,
+     18,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 6,
+    "orientation": "random",
+    "C": [
+     2,
+     36,
+     1,
+     19,
+     0.02631578947368421
+    ],
+    "slow": [
+     2,
+     36,
+     1,
+     19,
+     0.02631578947368421
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 7,
+    "orientation": "random",
+    "C": [
+     3,
+     32,
+     0,
+     16,
+     0.0
+    ],
+    "slow": [
+     3,
+     32,
+     0,
+     16,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 8,
+    "orientation": "random",
+    "C": [
+     2,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     2,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 9,
+    "orientation": "random",
+    "C": [
+     2,
+     37,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     2,
+     37,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 10,
+    "orientation": "random",
+    "C": [
+     6,
+     33,
+     1,
+     17,
+     0.058823529411764705
+    ],
+    "slow": [
+     6,
+     33,
+     1,
+     17,
+     0.058823529411764705
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 11,
+    "orientation": "random",
+    "C": [
+     3,
+     31,
+     1,
+     16,
+     0.0625
+    ],
+    "slow": [
+     3,
+     31,
+     1,
+     16,
+     0.0625
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 0,
+    "orientation": "truth + 0.00 rad noise",
+    "C": [
+     36,
+     36,
+     19,
+     19,
+     0.9473684210526314
+    ],
+    "slow": [
+     36,
+     36,
+     19,
+     19,
+     0.9473684210526314
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 1,
+    "orientation": "truth + 0.01 rad noise",
+    "C": [
+     30,
+     36,
+     16,
+     19,
+     0.7894736842105262
+    ],
+    "slow": [
+     30,
+     36,
+     16,
+     19,
+     0.7894736842105262
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 2,
+    "orientation": "truth + 0.02 rad noise",
+    "C": [
+     4,
+     37,
+     1,
+     19,
+     0.05263157894736842
+    ],
+    "slow": [
+     4,
+     37,
+     1,
+     19,
+     0.05263157894736842
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 3,
+    "orientation": "truth + 0.03 rad noise",
+    "C": [
+     1,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     1,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 4,
+    "orientation": "random",
+    "C": [
+     3,
+     36,
+     1,
+     19,
+     0.05263157894736843
+    ],
+    "slow": [
+     3,
+     36,
+     1,
+     19,
+     0.05263157894736843
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 5,
+    "orientation": "random",
+    "C": [
+     3,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     3,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 6,
+    "orientation": "random",
+    "C": [
+     4,
+     38,
+     1,
+     20,
+     0.025000000000000005
+    ],
+    "slow": [
+     4,
+     38,
+     1,
+     20,
+     0.025000000000000005
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 7,
+    "orientation": "random",
+    "C": [
+     0,
+     31,
+     0,
+     16,
+     0.0
+    ],
+    "slow": [
+     0,
+     31,
+     0,
+     16,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 8,
+    "orientation": "random",
+    "C": [
+     3,
+     37,
+     0,
+     20,
+     0.0
+    ],
+    "slow": [
+     3,
+     37,
+     0,
+     20,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 9,
+    "orientation": "random",
+    "C": [
+     1,
+     31,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     1,
+     31,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 10,
+    "orientation": "random",
+    "C": [
+     1,
+     34,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     1,
+     34,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 11,
+    "orientation": "random",
+    "C": [
+     1,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     1,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 0,
+    "orientation": "truth + 0.00 rad noise",
+    "C": [
+     1041,
+     1041,
+     64,
+     65,
+     0.921875
+    ],
+    "slow": [
+     1041,
+     1041,
+     64,
+     65,
+     0.921875
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 1,
+    "orientation": "truth + 0.01 rad noise",
+    "C": [
+     250,
+     1019,
+     16,
+     65,
+     0.17984361355878378
+    ],
+    "slow": [
+     250,
+     1019,
+     16,
+     65,
+     0.17984361355878378
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 2,
+    "orientation": "truth + 0.02 rad noise",
+    "C": [
+     7,
+     1033,
+     0,
+     66,
+     0.0
+    ],
+    "slow": [
+     7,
+     1033,
+     0,
+     66,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 3,
+    "orientation": "truth + 0.03 rad noise",
+    "C": [
+     35,
+     1014,
+     1,
+     66,
+     0.015151515151515152
+    ],
+    "slow": [
+     35,
+     1014,
+     1,
+     66,
+     0.015151515151515152
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 4,
+    "orientation": "random",
+    "C": [
+     14,
+     1011,
+     0,
+     66,
+     0.0
+    ],
+    "slow": [
+     14,
+     1011,
+     0,
+     66,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 5,
+    "orientation": "random",
+    "C": [
+     3,
+     929,
+     0,
+     59,
+     0.0
+    ],
+    "slow": [
+     3,
+     929,
+     0,
+     59,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 6,
+    "orientation": "random",
+    "C": [
+     26,
+     1037,
+     1,
+     64,
+     0.015625
+    ],
+    "slow": [
+     26,
+     1037,
+     1,
+     64,
+     0.015625
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 7,
+    "orientation": "random",
+    "C": [
+     16,
+     1005,
+     0,
+     63,
+     0.0
+    ],
+    "slow": [
+     16,
+     1005,
+     0,
+     63,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 8,
+    "orientation": "random",
+    "C": [
+     28,
+     995,
+     0,
+     62,
+     0.0
+    ],
+    "slow": [
+     28,
+     995,
+     0,
+     62,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 9,
+    "orientation": "random",
+    "C": [
+     17,
+     1021,
+     1,
+     67,
+     0.007974481658692181
+    ],
+    "slow": [
+     17,
+     1021,
+     1,
+     67,
+     0.007974481658692181
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 10,
+    "orientation": "random",
+    "C": [
+     18,
+     986,
+     0,
+     66,
+     0.0
+    ],
+    "slow": [
+     18,
+     986,
+     0,
+     66,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 11,
+    "orientation": "random",
+    "C": [
+     3,
+     982,
+     0,
+     61,
+     0.0
+    ],
+    "slow": [
+     3,
+     982,
+     0,
+     61,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 0,
+    "orientation": "truth + 0.00 rad noise",
+    "C": [
+     1041,
+     1056,
+     64,
+     65,
+     0.9076923076923076
+    ],
+    "slow": [
+     1041,
+     1056,
+     64,
+     65,
+     0.9076923076923076
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 1,
+    "orientation": "truth + 0.01 rad noise",
+    "C": [
+     258,
+     1048,
+     16,
+     64,
+     0.1969831343621978
+    ],
+    "slow": [
+     258,
+     1048,
+     16,
+     64,
+     0.1969831343621978
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 2,
+    "orientation": "truth + 0.02 rad noise",
+    "C": [
+     68,
+     981,
+     3,
+     62,
+     0.04354838709677419
+    ],
+    "slow": [
+     68,
+     981,
+     3,
+     62,
+     0.04354838709677419
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 3,
+    "orientation": "truth + 0.03 rad noise",
+    "C": [
+     44,
+     1015,
+     3,
+     63,
+     0.03463203463203463
+    ],
+    "slow": [
+     44,
+     1015,
+     3,
+     63,
+     0.03463203463203463
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 4,
+    "orientation": "random",
+    "C": [
+     5,
+     1031,
+     0,
+     67,
+     0.0
+    ],
+    "slow": [
+     5,
+     1031,
+     0,
+     67,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 5,
+    "orientation": "random",
+    "C": [
+     7,
+     972,
+     0,
+     57,
+     0.0
+    ],
+    "slow": [
+     7,
+     972,
+     0,
+     57,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 6,
+    "orientation": "random",
+    "C": [
+     23,
+     959,
+     1,
+     60,
+     0.007142857142857142
+    ],
+    "slow": [
+     23,
+     959,
+     1,
+     60,
+     0.007142857142857142
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 7,
+    "orientation": "random",
+    "C": [
+     16,
+     1061,
+     0,
+     66,
+     0.0
+    ],
+    "slow": [
+     16,
+     1061,
+     0,
+     66,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 8,
+    "orientation": "random",
+    "C": [
+     13,
+     1073,
+     1,
+     68,
+     0.007352941176470588
+    ],
+    "slow": [
+     13,
+     1073,
+     1,
+     68,
+     0.007352941176470588
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 9,
+    "orientation": "random",
+    "C": [
+     27,
+     972,
+     0,
+     62,
+     0.0
+    ],
+    "slow": [
+     27,
+     972,
+     0,
+     62,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 10,
+    "orientation": "random",
+    "C": [
+     16,
+     1048,
+     0,
+     68,
+     0.0
+    ],
+    "slow": [
+     16,
+     1048,
+     0,
+     68,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 11,
+    "orientation": "random",
+    "C": [
+     32,
+     1017,
+     1,
+     64,
+     0.0078125
+    ],
+    "slow": [
+     32,
+     1017,
+     1,
+     64,
+     0.0078125
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   }
+  ]
+ },
+ "stub": {
+  "voxel": 5242,
+  "n_evaluations": 48,
+  "n_differing_all_fields": 24,
+  "fields": [
+   "pixel_overlap",
+   "pixel_on_detector",
+   "peak_overlap",
+   "peak_on_detector",
+   "quality"
+  ],
+  "per_arm": {
+   "screen/cpp_edge_rules=True": {
+    "n": 12,
+    "all_equal": 12,
+    "peak_counts_equal": 12,
+    "peak_on_detector_sum_C": 215,
+    "peak_on_detector_sum_slow": 215
+   },
+   "screen/cpp_edge_rules=False": {
+    "n": 12,
+    "all_equal": 12,
+    "peak_counts_equal": 12,
+    "peak_on_detector_sum_C": 219,
+    "peak_on_detector_sum_slow": 219
+   },
+   "full/cpp_edge_rules=True": {
+    "n": 12,
+    "all_equal": 0,
+    "peak_counts_equal": 12,
+    "peak_on_detector_sum_C": 770,
+    "peak_on_detector_sum_slow": 770
+   },
+   "full/cpp_edge_rules=False": {
+    "n": 12,
+    "all_equal": 0,
+    "peak_counts_equal": 0,
+    "peak_on_detector_sum_C": 766,
+    "peak_on_detector_sum_slow": 1263
+   }
+  },
+  "evaluations": [
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 0,
+    "orientation": "truth + 0.00 rad noise",
+    "C": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 1,
+    "orientation": "truth + 0.01 rad noise",
+    "C": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 2,
+    "orientation": "truth + 0.02 rad noise",
+    "C": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 3,
+    "orientation": "truth + 0.03 rad noise",
+    "C": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 4,
+    "orientation": "random",
+    "C": [
+     0,
+     31,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     0,
+     31,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 5,
+    "orientation": "random",
+    "C": [
+     0,
+     34,
+     0,
+     18,
+     0.0
+    ],
+    "slow": [
+     0,
+     34,
+     0,
+     18,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 6,
+    "orientation": "random",
+    "C": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 7,
+    "orientation": "random",
+    "C": [
+     0,
+     32,
+     0,
+     16,
+     0.0
+    ],
+    "slow": [
+     0,
+     32,
+     0,
+     16,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 8,
+    "orientation": "random",
+    "C": [
+     0,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     0,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 9,
+    "orientation": "random",
+    "C": [
+     0,
+     37,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     37,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 10,
+    "orientation": "random",
+    "C": [
+     0,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     0,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": true,
+    "i": 11,
+    "orientation": "random",
+    "C": [
+     0,
+     31,
+     0,
+     16,
+     0.0
+    ],
+    "slow": [
+     0,
+     31,
+     0,
+     16,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 0,
+    "orientation": "truth + 0.00 rad noise",
+    "C": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 1,
+    "orientation": "truth + 0.01 rad noise",
+    "C": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 2,
+    "orientation": "truth + 0.02 rad noise",
+    "C": [
+     0,
+     37,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     37,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 3,
+    "orientation": "truth + 0.03 rad noise",
+    "C": [
+     0,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     0,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 4,
+    "orientation": "random",
+    "C": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     36,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 5,
+    "orientation": "random",
+    "C": [
+     0,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     0,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 6,
+    "orientation": "random",
+    "C": [
+     0,
+     38,
+     0,
+     20,
+     0.0
+    ],
+    "slow": [
+     0,
+     38,
+     0,
+     20,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 7,
+    "orientation": "random",
+    "C": [
+     0,
+     31,
+     0,
+     16,
+     0.0
+    ],
+    "slow": [
+     0,
+     31,
+     0,
+     16,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 8,
+    "orientation": "random",
+    "C": [
+     0,
+     37,
+     0,
+     20,
+     0.0
+    ],
+    "slow": [
+     0,
+     37,
+     0,
+     20,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 9,
+    "orientation": "random",
+    "C": [
+     0,
+     31,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     0,
+     31,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 10,
+    "orientation": "random",
+    "C": [
+     0,
+     34,
+     0,
+     19,
+     0.0
+    ],
+    "slow": [
+     0,
+     34,
+     0,
+     19,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "screen",
+    "cpp_edge_rules": false,
+    "i": 11,
+    "orientation": "random",
+    "C": [
+     0,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "slow": [
+     0,
+     33,
+     0,
+     17,
+     0.0
+    ],
+    "all_equal": true,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 0,
+    "orientation": "truth + 0.00 rad noise",
+    "C": [
+     0,
+     1041,
+     0,
+     65,
+     0.0
+    ],
+    "slow": [
+     0,
+     1060,
+     0,
+     65,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 1,
+    "orientation": "truth + 0.01 rad noise",
+    "C": [
+     0,
+     1019,
+     0,
+     65,
+     0.0
+    ],
+    "slow": [
+     0,
+     1060,
+     0,
+     65,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 2,
+    "orientation": "truth + 0.02 rad noise",
+    "C": [
+     0,
+     1033,
+     0,
+     66,
+     0.0
+    ],
+    "slow": [
+     0,
+     1080,
+     0,
+     66,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 3,
+    "orientation": "truth + 0.03 rad noise",
+    "C": [
+     0,
+     1014,
+     0,
+     66,
+     0.0
+    ],
+    "slow": [
+     0,
+     1080,
+     0,
+     66,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 4,
+    "orientation": "random",
+    "C": [
+     0,
+     1011,
+     0,
+     66,
+     0.0
+    ],
+    "slow": [
+     0,
+     1040,
+     0,
+     66,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 5,
+    "orientation": "random",
+    "C": [
+     0,
+     929,
+     0,
+     59,
+     0.0
+    ],
+    "slow": [
+     0,
+     980,
+     0,
+     59,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 6,
+    "orientation": "random",
+    "C": [
+     0,
+     1037,
+     0,
+     64,
+     0.0
+    ],
+    "slow": [
+     0,
+     1060,
+     0,
+     64,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 7,
+    "orientation": "random",
+    "C": [
+     0,
+     1005,
+     0,
+     63,
+     0.0
+    ],
+    "slow": [
+     0,
+     1040,
+     0,
+     63,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 8,
+    "orientation": "random",
+    "C": [
+     0,
+     995,
+     0,
+     62,
+     0.0
+    ],
+    "slow": [
+     0,
+     1040,
+     0,
+     62,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 9,
+    "orientation": "random",
+    "C": [
+     0,
+     1021,
+     0,
+     67,
+     0.0
+    ],
+    "slow": [
+     0,
+     1060,
+     0,
+     67,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 10,
+    "orientation": "random",
+    "C": [
+     0,
+     986,
+     0,
+     66,
+     0.0
+    ],
+    "slow": [
+     0,
+     1060,
+     0,
+     66,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": true,
+    "i": 11,
+    "orientation": "random",
+    "C": [
+     0,
+     982,
+     0,
+     61,
+     0.0
+    ],
+    "slow": [
+     0,
+     1000,
+     0,
+     61,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": true
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 0,
+    "orientation": "truth + 0.00 rad noise",
+    "C": [
+     0,
+     1056,
+     0,
+     65,
+     0.0
+    ],
+    "slow": [
+     0,
+     1070,
+     0,
+     107,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 1,
+    "orientation": "truth + 0.01 rad noise",
+    "C": [
+     0,
+     1048,
+     0,
+     64,
+     0.0
+    ],
+    "slow": [
+     0,
+     1060,
+     0,
+     106,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 2,
+    "orientation": "truth + 0.02 rad noise",
+    "C": [
+     0,
+     981,
+     0,
+     62,
+     0.0
+    ],
+    "slow": [
+     0,
+     1040,
+     0,
+     104,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 3,
+    "orientation": "truth + 0.03 rad noise",
+    "C": [
+     0,
+     1015,
+     0,
+     63,
+     0.0
+    ],
+    "slow": [
+     0,
+     1060,
+     0,
+     106,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 4,
+    "orientation": "random",
+    "C": [
+     0,
+     1031,
+     0,
+     67,
+     0.0
+    ],
+    "slow": [
+     0,
+     1070,
+     0,
+     107,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 5,
+    "orientation": "random",
+    "C": [
+     0,
+     972,
+     0,
+     57,
+     0.0
+    ],
+    "slow": [
+     0,
+     990,
+     0,
+     99,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 6,
+    "orientation": "random",
+    "C": [
+     0,
+     959,
+     0,
+     60,
+     0.0
+    ],
+    "slow": [
+     0,
+     1000,
+     0,
+     100,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 7,
+    "orientation": "random",
+    "C": [
+     0,
+     1061,
+     0,
+     66,
+     0.0
+    ],
+    "slow": [
+     0,
+     1070,
+     0,
+     107,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 8,
+    "orientation": "random",
+    "C": [
+     0,
+     1073,
+     0,
+     68,
+     0.0
+    ],
+    "slow": [
+     0,
+     1070,
+     0,
+     107,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 9,
+    "orientation": "random",
+    "C": [
+     0,
+     972,
+     0,
+     62,
+     0.0
+    ],
+    "slow": [
+     0,
+     1070,
+     0,
+     107,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 10,
+    "orientation": "random",
+    "C": [
+     0,
+     1048,
+     0,
+     68,
+     0.0
+    ],
+    "slow": [
+     0,
+     1090,
+     0,
+     109,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   },
+   {
+    "arm": "full",
+    "cpp_edge_rules": false,
+    "i": 11,
+    "orientation": "random",
+    "C": [
+     0,
+     1017,
+     0,
+     64,
+     0.0
+    ],
+    "slow": [
+     0,
+     1040,
+     0,
+     104,
+     0.0
+    ],
+    "all_equal": false,
+    "peak_counts_equal": false
+   }
+  ]
+ }
+}

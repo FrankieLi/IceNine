@@ -1,0 +1,41 @@
+{
+ "kind": "e0",
+ "tau_deg": 0.25,
+ "frame_window": 1,
+ "median_attached_rays": 58.0,
+ "median_weighted_peaks_at_truth": 58.0,
+ "3": {
+  "n": 240,
+  "captured": {
+   "n": 239,
+   "median_share_same_ray_at_start": 0.4489795918367347,
+   "median_e4_end_minus_truth": -4.030546825585599e-05,
+   "share_end_below_truth": 0.9916317991631799,
+   "share_accepted": 1.0
+  },
+  "not_captured": {
+   "n": 1,
+   "median_share_same_ray_at_start": 0.015384615384615385,
+   "median_e4_end_minus_truth": 0.9779615184846268,
+   "share_end_below_truth": 0.0,
+   "share_accepted": 0.0
+  }
+ },
+ "5": {
+  "n": 240,
+  "captured": {
+   "n": 230,
+   "median_share_same_ray_at_start": 0.25,
+   "median_e4_end_minus_truth": -4.0305415840091556e-05,
+   "share_end_below_truth": 0.9869565217391304,
+   "share_accepted": 1.0
+  },
+  "not_captured": {
+   "n": 10,
+   "median_share_same_ray_at_start": 0.017711598746081504,
+   "median_e4_end_minus_truth": 0.9688248548351197,
+   "share_end_below_truth": 0.0,
+   "share_accepted": 0.0
+  }
+ }
+}

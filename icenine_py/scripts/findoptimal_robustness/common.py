@@ -31,7 +31,19 @@ import findoptimal_sweep as fs  # noqa: E402
 import optimizer_sweep as osw  # noqa: E402
 import perturbation_sweep as ps  # noqa: E402
 
-VARIANTS = ["clean", "all"]  # "all" = realistic
+# The STORED variants: the published cache/e0 and every downstream reader (analyze_e0, the E2/F1
+# scripts, summaries) read the files v<voxel>_<variant>.npz of these two by name. "all" = the old
+# realistic images (10% random spot drop) and keeps that meaning.
+VARIANTS = ["clean", "all"]
+# Q8: realistic images without the random spot drop. The label is "realistic_nodrop" (file names
+# v<voxel>_realistic_nodrop.npz); the realism layer's name is "all_nodrop" (RealismConfig.named).
+# Since D-20261014-I6 it is the harness's default realistic variant: what e0_run.py and
+# e0_cpprule.py render and run without a named variant (DEFAULT_VARIANTS). The old "all" stays
+# available by name (--variants clean all, --variant all).
+NODROP_VARIANT = "realistic_nodrop"
+ALL_VARIANTS = VARIANTS + [NODROP_VARIANT]
+DEFAULT_VARIANTS = ["clean", NODROP_VARIANT]
+REALISM_NAME = {"all": "all", NODROP_VARIANT: "all_nodrop"}
 OUT_DIR = ICENINE_PY / "benchmarks" / "findoptimal_robustness"
 CACHE_DIR = ICENINE_PY / "scripts" / "findoptimal_robustness" / "cache"  # gitignored
 SWEEP_RAW = ICENINE_PY / "benchmarks" / "toy_orientation_sweep" / "perturbation_sweep_raw.npz"
@@ -77,6 +89,13 @@ def get_worker() -> SimpleNamespace:
     return _W
 
 
+def render_variant(variant: str) -> str:
+    """The realism layer's name of an E0 image variant label (clean stays clean)."""
+    if variant not in ALL_VARIANTS:
+        raise ValueError(f"unknown E0 image variant {variant!r} (expected one of {ALL_VARIANTS})")
+    return REALISM_NAME.get(variant, variant)
+
+
 def build_case(
     vidx: int, vpos: int, variant: str
 ) -> Optional[Tuple[np.ndarray, np.ndarray, SimpleNamespace]]:
@@ -102,7 +121,9 @@ def build_case(
         return None
     seed = a.realism_seed + 1000003 * vpos + 0
     layers: Dict[str, torch.Tensor] = {}
-    b1 = ps.render_batch(prep1, delta0, draws, vctx.sources, variant, seed, a, layers=layers)
+    b1 = ps.render_batch(
+        prep1, delta0, draws, vctx.sources, render_variant(variant), seed, a, layers=layers
+    )
     if b1["n_present"].numpy()[0] < a.min_present:
         return None
     edit = None

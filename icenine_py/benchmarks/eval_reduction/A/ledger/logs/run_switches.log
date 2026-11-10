@@ -1,0 +1,24 @@
+cpp_edge_interp_batched v15901: 98.3s evals=238868 (sum of stages 238868) err=0.0126 single-worker, contended -> cpp_edge_interp_batched_v15901.json
+cpp_edge_interp_batched v17034: 99.0s evals=241204 (sum of stages 241204) err=0.0138 single-worker -> cpp_edge_interp_batched_v17034.json
+cpp_edge_interp_batched v18558: 83.6s evals=209970 (sum of stages 209970) err=0.0050 single-worker -> cpp_edge_interp_batched_v18558.json
+cpp_edge_interp_batched v19889: 94.4s evals=225069 (sum of stages 225069) err=0.0258 single-worker -> cpp_edge_interp_batched_v19889.json
+cpp_edge_interp_batched v22867: 98.6s evals=239581 (sum of stages 239581) err=0.0219 single-worker -> cpp_edge_interp_batched_v22867.json
+cpp_edge_interp_batched v5242: 77.8s evals=199195 (sum of stages 199195) err=0.0557 single-worker -> cpp_edge_interp_batched_v5242.json
+cpp_edge_batched v15901: 97.9s evals=237890 (sum of stages 237890) err=0.0161 single-worker, contended -> cpp_edge_batched_v15901.json
+cpp_edge_batched v17034: 103.1s evals=240626 (sum of stages 240626) err=0.0444 single-worker, contended -> cpp_edge_batched_v17034.json
+cpp_edge_batched v18558: 86.6s evals=210243 (sum of stages 210243) err=0.0046 single-worker -> cpp_edge_batched_v18558.json
+cpp_edge_batched v19889: 91.3s evals=226375 (sum of stages 226375) err=0.0339 single-worker, contended -> cpp_edge_batched_v19889.json
+cpp_edge_batched v22867: 99.0s evals=240779 (sum of stages 240779) err=0.0380 single-worker, contended -> cpp_edge_batched_v22867.json
+cpp_edge_batched v5242: 77.9s evals=199386 (sum of stages 199386) err=0.0118 single-worker -> cpp_edge_batched_v5242.json
+cpp_edge_interp v15901: 102.7s evals=238868 (sum of stages 238868) err=0.0126 single-worker, contended -> cpp_edge_interp_v15901.json
+cpp_edge_interp v17034: 108.6s evals=241204 (sum of stages 241204) err=0.0138 single-worker, contended -> cpp_edge_interp_v17034.json
+cpp_edge_interp v18558: 87.9s evals=209970 (sum of stages 209970) err=0.0050 single-worker -> cpp_edge_interp_v18558.json
+cpp_edge_interp v19889: 98.9s evals=225069 (sum of stages 225069) err=0.0258 single-worker, contended -> cpp_edge_interp_v19889.json
+cpp_edge_interp v22867: 102.3s evals=239581 (sum of stages 239581) err=0.0219 single-worker -> cpp_edge_interp_v22867.json
+cpp_edge_interp v5242: 84.5s evals=199195 (sum of stages 199195) err=0.0557 single-worker -> cpp_edge_interp_v5242.json
+lenient_interp_batched v15901: 152.1s evals=328715 (sum of stages 328715) err=0.0154 single-worker -> lenient_interp_batched_v15901.json
+lenient_interp_batched v17034: 148.9s evals=333134 (sum of stages 333134) err=0.0238 single-worker -> lenient_interp_batched_v17034.json
+lenient_interp_batched v18558: 148.8s evals=327621 (sum of stages 327621) err=0.0043 single-worker -> lenient_interp_batched_v18558.json
+lenient_interp_batched v19889: 146.7s evals=330409 (sum of stages 330409) err=0.0303 single-worker -> lenient_interp_batched_v19889.json
+lenient_interp_batched v22867: 151.9s evals=330301 (sum of stages 330301) err=0.0416 single-worker -> lenient_interp_batched_v22867.json
+lenient_interp_batched v5242: 151.2s evals=327390 (sum of stages 327390) err=0.0220 single-worker -> lenient_interp_batched_v5242.json

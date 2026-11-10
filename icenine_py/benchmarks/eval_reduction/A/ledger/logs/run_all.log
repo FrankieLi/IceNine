@@ -1,0 +1,23 @@
+base v17034: 179.3s evals=340422 (sum of stages 340422) err=0.0217 single-worker, contended -> base_v17034.json
+base v18558: 172.0s evals=329915 (sum of stages 329915) err=0.0050 single-worker, contended -> base_v18558.json
+base v19889: 171.7s evals=329724 (sum of stages 329724) err=0.0145 single-worker, contended -> base_v19889.json
+base v22867: 172.5s evals=333046 (sum of stages 333046) err=0.0119 single-worker, contended -> base_v22867.json
+base v5242: 172.9s evals=331552 (sum of stages 331552) err=0.0604 single-worker -> base_v5242.json
+cpp v15901: 121.4s evals=237739 (sum of stages 237739) err=0.0291 single-worker -> cpp_v15901.json
+cpp v17034: 125.2s evals=246127 (sum of stages 246127) err=0.0639 single-worker, contended -> cpp_v17034.json
+cpp v18558: 105.9s evals=209728 (sum of stages 209728) err=0.0034 single-worker, contended -> cpp_v18558.json
+cpp v19889: 115.6s evals=226453 (sum of stages 226453) err=0.0212 single-worker, contended -> cpp_v19889.json
+cpp v22867: 123.9s evals=244186 (sum of stages 244186) err=0.0530 single-worker, contended -> cpp_v22867.json
+cpp v5242: 103.2s evals=204646 (sum of stages 204646) err=0.0281 single-worker, contended -> cpp_v5242.json
+r2 v15901: 135.0s evals=250495 (sum of stages 250495) err=0.0144 single-worker, contended -> r2_v15901.json
+r2 v17034: 144.4s evals=256771 (sum of stages 256771) err=0.0251 single-worker, contended -> r2_v17034.json
+r2 v18558: 125.1s evals=223744 (sum of stages 223744) err=0.0048 single-worker -> r2_v18558.json
+r2 v19889: 133.4s evals=243577 (sum of stages 243577) err=0.0333 single-worker -> r2_v19889.json
+r2 v22867: 140.0s evals=257829 (sum of stages 257829) err=0.0606 single-worker -> r2_v22867.json
+r2 v5242: 116.1s evals=218577 (sum of stages 218577) err=0.0231 single-worker -> r2_v5242.json
+cpp_edge v15901: 131.2s evals=237890 (sum of stages 237890) err=0.0161 single-worker, contended -> cpp_edge_v15901.json
+cpp_edge v17034: 126.8s evals=240626 (sum of stages 240626) err=0.0444 single-worker, contended -> cpp_edge_v17034.json
+cpp_edge v18558: 109.6s evals=210243 (sum of stages 210243) err=0.0046 single-worker, contended -> cpp_edge_v18558.json
+cpp_edge v19889: 118.3s evals=226375 (sum of stages 226375) err=0.0339 single-worker, contended -> cpp_edge_v19889.json
+cpp_edge v22867: 126.5s evals=240779 (sum of stages 240779) err=0.0380 single-worker -> cpp_edge_v22867.json
+cpp_edge v5242: 103.7s evals=199386 (sum of stages 199386) err=0.0118 single-worker, contended -> cpp_edge_v5242.json

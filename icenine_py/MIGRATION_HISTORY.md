@@ -6047,3 +6047,5281 @@ Implementation: `MCOptimizer.optimize` is the block loop, `_mc_block` its inner 
 **Stale results on develop.** The MC results recorded on develop with the old optimizer (HP sweep, finisher diagnosis, FindOptimal robustness) predate this fix and are not re-run here.
 
 **Effect on existing behaviour.** This changes the default classic reconstruction path (the quick MC and FindOptimal MC draw different random numbers and run a different block structure), so results are not bit-identical to before and no earlier random-draw pin is valid. Tests: new `tests/test_variance_stage_parity.py` and `tests/test_mc_cpp_parity.py` (scripted semantics tests that fail on the old code); `GOLDEN` in `tests/test_findoptimal_refactor.py` (4 tests) re-recorded (old values in the comment); `test_logged_mc_matches_mcoptimizer` (3 cases) passes again after `scripts/finisher_diagnosis/diagnose.py` `LoggedMC` was changed to log the library `optimize` and to use the new variance restart; `test_findoptimal_alone_reproduces_stored_experiment_b` (skipped when the sweep raws are absent) patches in the frozen pre-fix methods of `tests/legacy_variance_stage.py`, since the stored experiment predates both fixes. No `cpp_outputs`-based check changed. For the reruns of earlier MC results with the corrected optimizer, see `feature/finisher-mc-study`, MIGRATION_HISTORY subsections "C++ vs Python variance stage" and "C++-faithful MC: reruns".
+
+## Evaluation reduction and cost smoothing (2026-10-12)
+
+Owner goal: reduce the total number of cost-function evaluations in the orientation search (the Monte Carlo
+search is the bottleneck), and, where the geometry and physics of near-field HEDM allow it, smooth the cost
+function. The work is a feature branch `feature/eval-reduction` with one task branch per task
+(`feature/eval-reduction-<task>`), run one after another and reviewed once at the end. Plan:
+`~/.claude/plans/eval-reduction.md` (not committed). Rules for every task: clean full-sample images and the E0
+200-voxel set only (no realistic images until the noise model is redone), no extra seeds, every new switch
+opt-in and off by default, no default flips and no golden regeneration inside a task (listed for the owner),
+evaluations and wrong counts always quoted side by side, no p-values.
+
+| Owner ask | Task | Content |
+|---|---|---|
+| 2. C++ and Python evaluation counts still differ for identical methods | A | fixed-orientation parity of C++ and Python, per-stage evaluation ledger, residual-gap attribution, C++ omega interpolation (`CppOmegaInterp`) and batched screen (`BatchedScreen`) as opt-in switches |
+| 1. The cost function and peak overlap have odd edges | B | anatomy of the cost function's edges |
+| 3. Candidate list growth across levels; overlap | C | candidate overlap and de-duplication |
+| 5. Which peaks belong to a voxel; which spots on the two detectors are one peak | D | spot pairing across detectors, peak-to-voxel attribution |
+| (goal) smooth the cost with geometry and physics | E | cost modes and ranking keys |
+| 4. Search outward from a start orientation to 2-5 deg | F | uniform or gradient outward search |
+| (goal) the total | G | integration, no-start search ledger, 2,000-voxel BFS pilot, decisions |
+
+Baseline numbers the tasks measure against (verified per task against the source): a no-start search on six
+interior full-sample voxels (clean images, Q-max 8, seed 1) takes 332,320 evaluations with the lenient overlap
+rule (1.46x C++'s about 237k) and 0.95-0.98x C++'s evaluations with the C++ overlap rule.
+
+Per-task completion summaries are added below as subsections when each task lands.
+
+### Task A: evaluation ledger and the residual C++ vs Python gap (2026-10-13, `feature/eval-reduction-A`)
+
+Run record: `benchmarks/eval_reduction/A/RUN_LOG.md`. Scripts: `scripts/eval_reduction/`. Clean full-sample images, Q-max 8
+configuration, seed 1 (six interior voxels 15901, 17034, 18558, 19889, 22867, 5242) and seed 0 (E0); no realistic
+images, no extra seeds. Switches added, all opt-in and off: `CppEdgeRules`, `CppOmegaInterp`, `BatchedScreen`
+(README, config table). With them off the default path is unchanged: the full suite is 889 passed, 37 skipped, 1
+deselected, and the default no-start search of voxel 15901 gives the stored 327,619 evaluations and 0.0378 degrees.
+
+**Short answers.**
+
+1. *Fixed orientation, C++ against Python (Step 0).* By default the two cost functions are not identical. Three C++
+   conventions explain almost every difference: (a) an omega below the first frame has no frame in C++, while the
+   Python batched lookup truncates toward zero and compares it with frame 0 (1,333 of 463,012 peaks, about 0.3%);
+   (b) a negative detector coordinate is pixel -1 in C++ (Python gives pixel 0 for a position in [0, 0.5) pixels);
+   (c) C++ lights a detector for a triangle that produced no pixel when a vertex is in bounds (311 peaks; every
+   one of the 306 with no produced pixel has a vertex at row or column 2047). `CppEdgeRules` switches the three on.
+2. *The gap with the C++ rule on (Steps 1 and 2).* Python makes 0.964 times C++'s evaluations (means over six voxels,
+   228,146 against 236,634). C++ recomputes the complete cost of every returned candidate once more after the
+   discrete search (10,829 evaluations per voxel, 4.6% of its total); the value is identical, so Python does not.
+   The gap is a net sum, not that loop alone: with the C++ rule the second re-cost (-10,829 per voxel) is partly
+   offset by the other stages (+2,342 net, mostly FindOptimal, +1,895, which in Python misses its convergence test
+   on 3 of 6 voxels); with `CppEdgeRules` on, the deficit is 10,750 per voxel, the second re-cost is 101% of it, and
+   the other stages net +79 through offsetting terms (quick MC +236, FindOptimal -261).
+3. *The untested omega-interpolation hypothesis is confirmed (Step 3).* C++ interpolated and C++ exact screens differ
+   in pass status on 401 of the 442 level-0 pairs where the stored C++ and Python screens differ; Python with
+   `CppOmegaInterp` and `CppEdgeRules` has the C++ per-FZ-point level-0 pass sets on 4,885 of 4,886 FZ points
+   (4,466 with exact omegas) and the C++ pass decision on all 2,000 fixed test pairs.
+4. *Speed.* In the level-0 screen the exact omega solve is 62 of 388 microseconds per orientation (single worker);
+   the rest is mostly Python and torch overhead. The interpolation can remove at most that solve (16%). The
+   interpolated arm with one FZ point per call is 4.8 times faster mostly because it scores the 9 local-grid
+   orientations of an FZ point in one call: its solve drops by 55 microseconds (61.7 to 6.8) and the rest by 266
+   (333.2 to 67.2). Batching 32 FZ points per call makes either variant 17 times faster. A whole no-start search is 21
+   to 25% faster.
+5. *E0 clean (200 voxels, paired).* No detectable change in the wrong count; 20 to 25% of the voxels change status
+   in each comparison, in both directions.
+
+Figures (`scripts/eval_reduction/make_figures.py`): `benchmarks/eval_reduction/A/figures/parity_with_cpp.png`,
+`stages_python_vs_cpp.png`, `screen_time_split.png`.
+
+#### Step 0: fixed-orientation parity
+
+A scratch C++ build (`benchmarks/eval_reduction/A/step0/cpp_parity_patch.py.txt`; the build is not kept) reads
+orientations as float32 binary and writes, per orientation and per peak, the reflection and omega branch, omega, frame
+index, projected pixel of each vertex on each detector, lit and overlap flags and counts, all as hex floats. Three
+arms per orientation: the production interpolated screen (`INT`), the exact screen (`EXS`: Q-max 5, pixel radius 3,
+centre point) and the complete cost (`EXF`: all reflections, triangle). The Python side wraps the library functions
+for the duration of one call (no library change for the measurement) and compares peak by peak, matching peaks by
+branch, direction and |G| (the sides order equal-|G| reflections differently). Orientations (2,230 in all, three
+voxels 15901, 22867, 5242): truth and 0.1, 1 and 3 degrees off (3 random axes each), 200 random, 900 random level-0
+(FZ point, local-grid point) pairs, an offset sweep of 600 pairs, and on 15901 the 442 level-0 pairs where the stored
+C++ and Python screens differ in pass status plus 58 where only the overlap count differs (the stored trace has only 442
+pass differences, so the 500 asked for are filled with count-only pairs). The C++ driver reproduces the stored C++
+trace: pass status and overlap count equal on 442 of 442 pairs.
+
+<!-- table:evalA_parity_exact -->
+| arm | n | cost | counts | frames | qual |
+|---|---|---|---|---|---|
+| screen, Python default | 2230 | 1965 (88.1%) | 1965 (88.1%) | 1846 (82.8%) | n/a |
+| screen, Python with CppEdgeRules | 2230 | 2229 (99.96%) | 2229 (99.96%) | 2187 (98.1%) | n/a |
+| complete cost, Python default | 2230 | 1371 (61.5%) | 1124 (50.4%) | 887 (39.8%) | 2020 (90.6%) |
+| complete cost, Python with CppEdgeRules | 2230 | 2230 (100.0%) | 1985 (89.0%) | 1690 (75.8%) | 2228 (99.9%) |
+<!-- /table:evalA_parity_exact -->
+
+Columns: orientations with the same peak counts (screen: peak overlap and peak on detector; complete cost: the
+confidence), with the same pixel counts as well (complete cost), with every peak on the same frame and pixels, and
+with quality within 1e-6. "Edge rules" is `CppEdgeRules`.
+
+<!-- table:evalA_parity_causes -->
+| arm | peaks | frame_below_range | frame_boundary | pixel | counts | omega_only |
+|---|---|---|---|---|---|---|
+| screen, Python default | 108196 | 283 | 1 | 0 | 0 | 32487 |
+| screen, Python with CppEdgeRules | 108196 | 0 | 1 | 0 | 0 | 32586 |
+| complete cost, Python default | 463012 | 856 | 1 | 269 | 311 | 137918 |
+| complete cost, Python with CppEdgeRules | 463012 | 0 | 1 | 259 | 0 | 138368 |
+<!-- /table:evalA_parity_causes -->
+
+Peaks whose counts differ, by the first stage that differs. Omega bits are not identical for 30% of the peaks (99th
+percentile of the difference 1e-6 rad, largest 0.014 degrees), and that alone almost never changes a count ("omega
+only" counts peaks where omega differs and nothing downstream does).
+
+<!-- table:evalA_parity_by_group -->
+| group | n | EXS | EXS_edge | EXF | EXF_edge |
+|---|---|---|---|---|---|
+| truth | 3 | 2 | 3 | 3 | 3 |
+| off_0.1 | 9 | 6 | 9 | 5 | 9 |
+| off_1.0 | 9 | 6 | 9 | 3 | 9 |
+| off_3.0 | 9 | 9 | 9 | 4 | 9 |
+| random | 200 | 178 | 200 | 128 | 200 |
+| pair_random | 900 | 815 | 900 | 553 | 900 |
+| sweep | 600 | 547 | 600 | 382 | 600 |
+| pair_differ_pass | 442 | 356 | 441 | 261 | 442 |
+| pair_differ_count | 58 | 46 | 58 | 32 | 58 |
+<!-- /table:evalA_parity_by_group -->
+
+Orientations with the same confidence, by group. A level-0 pair's orientation is the product of the local-grid matrix
+and the FZ matrix; C++ forms it in float32 and Python in float64 (bit-identical for 292 of 2,000 pairs, largest
+difference 6e-8). The Python numbers above use the C++ product.
+
+* **(a) Frame below the range.** `((omega - low) / width).astype(int)` truncates toward zero, so an omega in
+  [low - width, low) gets bin 0. C++ (`SimulationData.h:317-322`) returns -1 and has no frame. On the 2,230 screens it
+  changes the pass decision for 42 orientations (C++ passes 700, the Python default 740, Python with the key 699).
+* **(b) Detector coordinate below zero.** C++ `ToColPixel`/`ToRowPixel` (`Detector.cpp:528-548`) test the millimetre
+  coordinate `d < 0` before adding the half pixel; Python floors `(d + half) / width`.
+* **(c) A triangle without pixels.** At the last image row or column the fill produces no pixel, but C++
+  `ShapePixelOverlapCounter` (`OverlapInfo.h`) still calls the detector lit when a vertex is in bounds.
+* **What stays.** Pixel boundaries from float32 arithmetic: 599 coordinates land on different sides of a boundary
+  (distance to the integer at most 0.017 pixel, median 0.0003); against a double-precision recomputation C++ is right
+  on 300 and Python on 299. The confidence is unaffected (2,230 of 2,230 identical); the pixel counts differ on 245
+  orientations. The re-cost used by the search, 1 - confidence, of the same orientation: Python default against C++
+  identical for 1,724 of 2,230 orientations, within 1e-3 for 2,204 (largest 0.016); with `CppEdgeRules` all 2,230 agree
+  within 3e-8.
+* **The 12-line probe** `benchmarks/phase_d_seed_diag/level0/cpp_exact_vs_interp_omegas.txt` (C++ exact against
+  interpolated omegas, 4 FZ points, local-grid points 0 to 2), summarised: identity at j = 0, the largest of 48 to 52
+  omega differences is 0.013 to 0.12 degrees at j = 1 and 2 (a pair of 360 degrees is a wrap at plus and minus 180), the
+  median 0.001 degrees (print precision). The step-3 sweep below measures the same thing on 600 orientations.
+
+#### Step 1: the evaluation ledger
+
+`scripts/eval_reduction/eval_ledger.py run --voxel V --tag T [--opt NAME=VALUE]` runs a no-start search and writes,
+per level and per stage, the evaluations (screen, first re-cost, quick MC, FindOptimal per candidate,
+VarianceMinimizing, final), the candidates in, returned, kept and dropped, and the wall time per stage; `summary` writes
+`ledger.json` and `tables.md`. It uses the existing hooks (`discrete_recorder`, `recorder`) and wraps
+`VoxelCostFunction.evaluate` and the MC optimizer for the counts (no library change). Six voxels x arms: `base`
+(lenient rule, the default), `cpp` (C++ rule), `r2` (ray rule, 2 pixels), `cpp_edge` (C++ rule with `CppEdgeRules`),
+and the switch arms of Step 3. One process at a time. Every quick-MC call used exactly 12 evaluations (11,498 calls on
+15901 in the `cpp` arm: min, median and max 12, one block).
+
+<!-- table:evalA_ledger_mean -->
+| arm | n | screen | recost | quick | find | variance | final | total | wall_s | us_per_eval |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | 6 | 77,510 | 67,084 | 183,148 | 2,885 | 1,418 | 1 | 332,046 | 173 | 491 |
+| cpp | 6 | 67,978 | 26,148 | 130,266 | 2,354 | 1,398 | 1 | 228,146 | 116 | 486 |
+| cpp_edge | 6 | 67,968 | 26,077 | 130,184 | 198 | 1,455 | 1 | 225,883 | 119 | 506 |
+| cpp_edge_batched | 6 | 67,968 | 26,077 | 130,184 | 198 | 1,455 | 1 | 225,883 | 93 | 388 |
+| cpp_edge_interp | 6 | 67,911 | 26,016 | 129,894 | 182 | 1,644 | 1 | 225,648 | 97 | 410 |
+| cpp_edge_interp_batched | 6 | 67,911 | 26,016 | 129,894 | 182 | 1,644 | 1 | 225,648 | 92 | 386 |
+| lenient_interp_batched | 6 | 77,540 | 67,050 | 183,304 | 238 | 1,462 | 1 | 329,595 | 150 | 426 |
+| r2 | 6 | 69,416 | 30,522 | 138,052 | 2,444 | 1,398 | 1 | 241,832 | 132 | 525 |
+<!-- /table:evalA_ledger_mean -->
+
+Mean evaluations per voxel by stage. The arm `lenient_interp_batched` is the lenient rule with all three switches
+(`CppEdgeRules`, `CppOmegaInterp`, `BatchedScreen`; run options `cpp_edge_rules=1, cpp_omega_interp=1,
+batched_screen=1`), so it includes the edge rules although its tag does not say so. The wall-time columns come
+from back-to-back runs, most of which carry the
+label "contended" in `ledger.json`: the one-minute load average read 1.5 to 1.6 at their start (their own previous
+run in it; no other process above 20% CPU), over the 1.5 limit of the preflight. The timing claims are the quiet
+repeats in Step 3.
+
+<!-- table:evalA_levels_base_v15901 -->
+| level | fz_in | local | screen | passed | recost | cands | quick | kept | dropped | screen_s | recost_s | discrete_s | quick_s |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 4886 | 9 | 43974 | 35232 | 35232 | 10187 | 122244 | 2546 | 7641 | 17.0 | 17.8 | 37.8 | 65.1 |
+| 1 | 2546 | 9 | 22914 | 22180 | 22180 | 3461 | 41532 | 865 | 2596 | 9.7 | 11.1 | 22.0 | 21.8 |
+| 2 | 865 | 9 | 7785 | 7705 | 7705 | 1098 | 13176 | 274 | 824 | 3.5 | 3.8 | 7.7 | 6.9 |
+| 3 | 274 | 9 | 2466 | 2465 | 2465 | 343 | 4116 | 85 | 258 | 1.3 | 1.2 | 2.6 | 2.1 |
+<!-- /table:evalA_levels_base_v15901 -->
+
+<!-- table:evalA_levels_cpp_v15901 -->
+| level | fz_in | local | screen | passed | recost | cands | quick | kept | dropped | screen_s | recost_s | discrete_s | quick_s |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 4886 | 9 | 43974 | 12338 | 12338 | 8110 | 97320 | 2027 | 6083 | 17.4 | 6.4 | 24.6 | 53.1 |
+| 1 | 2027 | 9 | 18243 | 10909 | 10909 | 2487 | 29844 | 621 | 1866 | 7.9 | 5.6 | 14.1 | 16.4 |
+| 2 | 621 | 9 | 5589 | 4181 | 4181 | 697 | 8364 | 174 | 523 | 2.5 | 2.1 | 4.9 | 4.5 |
+| 3 | 174 | 9 | 1566 | 1492 | 1492 | 204 | 2448 | 51 | 153 | 0.8 | 0.8 | 1.7 | 1.3 |
+<!-- /table:evalA_levels_cpp_v15901 -->
+
+Voxel 15901 by level for the lenient and the C++ rule (candidates per level 10,187, 3,461, 1,098 and 343, and 8,110,
+2,487, 697 and 204; a quarter is kept at each level). The lenient rule passes 80% of the level-0 screen pairs
+(35,232 of 43,974), the C++ rule 28%.
+
+#### Step 2: the residual gap with the C++ rule on
+
+C++ counters from a scratch build (`benchmarks/eval_reduction/A/step2/cpp_ledger_patch.py.txt`; counts in
+`cpp_ledger.json`, lines in `cpp_ledger_lines.txt`; its totals equal the stored C++ totals for all six voxels).
+
+<!-- table:evalA_stages_cpp -->
+| stage | python | cpp | diff | share_of_gap |
+|---|---|---|---|---|
+| screen | 67,978 | 67,928 | 51 | -1 |
+| recost | 26,148 | 26,046 | 102 | -1 |
+| rerecost | 0 | 10,829 | -10,829 | 128 |
+| quick | 130,266 | 129,948 | 318 | -4 |
+| find | 2,354 | 459 | 1,895 | -22 |
+| variance | 1,398 | 1,423 | -25 | 0 |
+| final | 1 | 1 | 0 | -0 |
+| total | 228,146 | 236,634 | -8,487 | 100 |
+<!-- /table:evalA_stages_cpp -->
+
+<!-- table:evalA_stages_cpp_edge -->
+| stage | python | cpp | diff | share_of_gap |
+|---|---|---|---|---|
+| screen | 67,968 | 67,928 | 40 | -0 |
+| recost | 26,077 | 26,046 | 31 | -0 |
+| rerecost | 0 | 10,829 | -10,829 | 101 |
+| quick | 130,184 | 129,948 | 236 | -2 |
+| find | 198 | 459 | -261 | 2 |
+| variance | 1,455 | 1,423 | 32 | -0 |
+| final | 1 | 1 | 0 | -0 |
+| total | 225,883 | 236,634 | -10,750 | 100 |
+<!-- /table:evalA_stages_cpp_edge -->
+
+Mean evaluations per voxel, Python against C++, for the C++ rule without and with `CppEdgeRules` ("share of gap" =
+the stage's difference over the total difference).
+
+* **Exactly explained by the unit counts:** the screen (9.00 evaluations per FZ point in both implementations), the
+  first re-cost (1.00 per passed pair) and the quick MC (12.00 per candidate); their totals differ only through the
+  unit counts, which differ by well under 1%.
+* **A residual of its own:** the second re-cost (C++ only, the whole deficit) and FindOptimal. Without
+  `CppEdgeRules` Python's FindOptimal misses its hit-ratio-1 convergence test on 3 of 6 voxels (17034, 22867, 5242)
+  and evaluates all 30 candidates (4,205 to 4,984 evaluations); C++ converges on candidate 1 on all six. With the key
+  all six converge on the first or second candidate. The hit ratio of the complete cost at the true orientation is 1.0
+  with and without it (`step2/hit_ratio_at_truth.json`). This is consistent with a change in how candidates near the
+  truth are scored, but that was not separated from the change in the candidate lists: with the key the level-0
+  candidate counts also change on all six voxels (by 2 to 20; `l0_candidates_cpp_vs_cpp_edge` in
+  `step2/attribution.json`), so the MC random stream differs too. Which of the three conventions matters was not
+  separated either.
+* **Random stages:** FindOptimal (when it converges) and VarianceMinimizing have their own distribution; per voxel the
+  Python count over the C++ count ranges from 0.14 to 2.0 with the C++ rule and from 0.26 to 1.74 with `CppEdgeRules`
+  (FindOptimal only on voxels where both converged; `step2/attribution.json`, `random_ratio_range_*`).
+
+<!-- table:evalA_units_cpp_edge -->
+| voxel | fz_py | fz_cpp | passed_py | passed_cpp | cands_py | cands_cpp | l0_py | l0_cpp | screen_per_fz_py | screen_per_fz_cpp | quick_per_cand_py | quick_per_cand_cpp | recost_per_pass_py | recost_per_pass_cpp | ratio_total |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 15901 | 7,702 | 7,726 | 28,871 | 28,873 | 11,462 | 11,562 | 8,107 | 8,151 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.947 |
+| 17034 | 7,751 | 7,744 | 29,632 | 29,509 | 11,646 | 11,609 | 8,264 | 8,284 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.956 |
+| 18558 | 7,351 | 7,336 | 21,948 | 21,860 | 10,039 | 9,973 | 7,028 | 7,026 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.957 |
+| 19889 | 7,556 | 7,544 | 26,527 | 26,408 | 10,857 | 10,820 | 7,688 | 7,673 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.958 |
+| 22867 | 7,740 | 7,724 | 29,504 | 29,472 | 11,619 | 11,549 | 8,231 | 8,234 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.960 |
+| 5242 | 7,212 | 7,211 | 19,981 | 20,154 | 9,469 | 9,461 | 6,668 | 6,674 | 9.00 | 9.00 | 12.00 | 12.00 | 1.00 | 1.00 | 0.950 |
+<!-- /table:evalA_units_cpp_edge -->
+
+#### Step 3: omega interpolation and the batched screen
+
+`icenine/batched_screen.py`, `ScreenEvaluator` (`overlaps_exact`, `overlaps_interp`, `interp_peaks`), reached through
+`run_discrete_search_spaced(screen=, screen_interp=, screen_chunk=)` and `AdaptiveVoxelReconstructor._screen_kwargs`.
+`CppOmegaInterp` follows C++ `LocalAngularInterpProcess` (`DiscreteSearch.h:145-230`, `DiffractionCore.h:187-348`, read
+line by line): the observable reflections and both omegas are solved once at the FZ centre; for a local rotation `L`,
+`G' = L dir` and `omega' = omega + (Rz(omega)[0] . G' - (Rz(omega) dir)_x) / (Rz(omega)[1] . G')`; the peak is dropped
+when the shift exceeds 1 radian and the observable set stays that of the centre. `BatchedScreen` scores 32 FZ points
+x the whole local grid per call; with `CppOmegaInterp` alone the chunk is one FZ point. A ray rule at a level makes the
+reconstructor fall back to the per-orientation screen with a warning.
+
+<!-- table:evalA_passsets_l0 -->
+| arm | edge_rules | pass_pairs | cpp_pass_pairs | fz_identical | pairs_pass_differs | overlap_equal | overlap_equal_pct |
+|---|---|---|---|---|---|---|---|
+| exact, one orientation per call (today) | off | 12,338 | 12,326 | 4,466 | 442 | 43,359 | 98.601 |
+| exact, 32 FZ points per call (BatchedScreen) | off | 12,338 | 12,326 | 4,466 | 442 | 43,359 | 98.601 |
+| interpolated, one FZ point per call (CppOmegaInterp) | off | 12,364 | 12,326 | 4,849 | 40 | 43,913 | 99.861 |
+| interpolated, 32 FZ points per call (both) | off | 12,364 | 12,326 | 4,849 | 40 | 43,912 | 99.859 |
+| exact, one orientation per call (today) | on | 12,298 | 12,326 | 4,500 | 402 | 43,416 | 98.731 |
+| exact, 32 FZ points per call (BatchedScreen) | on | 12,298 | 12,326 | 4,500 | 402 | 43,416 | 98.731 |
+| interpolated, one FZ point per call (CppOmegaInterp) | on | 12,325 | 12,326 | 4,885 | 1 | 43,970 | 99.991 |
+| interpolated, 32 FZ points per call (both) | on | 12,325 | 12,326 | 4,885 | 1 | 43,969 | 99.989 |
+<!-- /table:evalA_passsets_l0 -->
+
+Level-0 pass sets of voxel 15901 against the stored C++ trace, the four ways of computing the screen, without and with
+`CppEdgeRules`. The batched exact screen has the same peak overlap as the unbatched on all 43,974 pairs; the
+interpolated screen differs from its 32-point batch on one pair.
+
+<!-- table:evalA_interp_vs_cpp -->
+| group | n | py_interp_pass_matches_cpp | py_interp_counts_match_cpp | py_exact_pass_matches_cpp_interp |
+|---|---|---|---|---|
+| pair_random | 900 | 900 [0.9957, 1.0000] | 900 | 890 |
+| sweep | 600 | 600 [0.9936, 1.0000] | 600 | 599 |
+| pair_differ_pass | 442 | 442 [0.9914, 1.0000] | 442 | 40 |
+| pair_differ_count | 58 | 58 [0.9379, 1.0000] | 56 | 58 |
+| ALL | 2000 | 2000 [0.9981, 1.0000] | 1998 | 1587 |
+<!-- /table:evalA_interp_vs_cpp -->
+
+The Python interpolation against the C++ interpolated screen on the same (centre, local rotation) pairs.
+
+<!-- table:evalA_interp_by_theta -->
+| theta_deg | n | same_pass_pct | same_counts_pct | same_counts_lo | same_counts_hi | omega_err_median_of_max_deg | omega_err_p90_of_max_deg | omega_err_worst_deg | pct_with_exact_peak_missing | pct_with_extra_peak |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0.05 | 75 | 100.0 | 100.0 | 95.1 | 100.0 | 0.0000 | 0.0005 | 0.602 | 0.0 | 0.0 |
+| 0.10 | 75 | 100.0 | 100.0 | 95.1 | 100.0 | 0.0001 | 0.0011 | 0.631 | 0.0 | 0.0 |
+| 0.20 | 75 | 100.0 | 100.0 | 95.1 | 100.0 | 0.0004 | 0.0033 | 0.074 | 0.0 | 0.0 |
+| 0.50 | 75 | 100.0 | 98.7 | 92.8 | 99.8 | 0.0021 | 0.0818 | 174.464 | 1.3 | 1.3 |
+| 1.00 | 75 | 100.0 | 100.0 | 95.1 | 100.0 | 0.0113 | 0.1912 | 7.303 | 0.0 | 0.0 |
+| 2.00 | 75 | 100.0 | 98.7 | 92.8 | 99.8 | 0.0428 | 1.3502 | 170.192 | 1.3 | 1.3 |
+| 3.00 | 75 | 98.7 | 96.0 | 88.9 | 98.6 | 0.1182 | 0.4056 | 173.865 | 2.7 | 1.3 |
+| 5.00 | 75 | 100.0 | 97.3 | 90.8 | 99.3 | 0.3495 | 1.6521 | 8.550 | 4.0 | 4.0 |
+<!-- /table:evalA_interp_by_theta -->
+
+Accuracy cost of the interpolation, measured on C++ (interpolated against exact, same orientation): a random FZ
+centre and a local rotation of theta degrees about a random axis, 25 per voxel per angle, three voxels (the level-0
+local grid has offsets of 0 and 2.84 degrees). The omega columns are over each orientation's worst peak; the large
+worst cases (170 to 174 degrees at offsets of 0.5, 2 and 3 degrees) are consistent with peaks near tangency, where the
+first-order shift is poor, but that was not checked; worst errors near 180 degrees also look like an omega-branch or
+wrap mismatch between the interpolated and the exact peak. "Exact peak missing" is a reflection
+observable at the rotated orientation but not at the centre, "extra peak" one that stops being observable.
+
+<!-- table:evalA_speed_screen -->
+| arm | us_total | us_solve | us_overlap_c | us_rest | speedup |
+|---|---|---|---|---|---|
+| exact, one orientation per call (today) | 388.4 | 61.7 | 8.6 | 333.2 | 1.0 |
+| exact, 32 FZ points per call (BatchedScreen) | 22.2 | 0.6 | 7.7 | 14.1 | 17.5 |
+| interpolated, one FZ point per call (CppOmegaInterp) | 80.5 | 6.8 | 7.4 | 67.2 | 4.8 |
+| interpolated, 32 FZ points per call (both) | 22.7 | 0.3 | 7.7 | 15.0 | 17.1 |
+<!-- /table:evalA_speed_screen -->
+
+Level-0 screen, voxel 15901, first 600 FZ points x 9 local orientations, single worker (preflight passed, load 1.22;
+timer overhead about a microsecond per call). "solve" is `get_scattering_omegas_torch`, "overlap_c" the C extension,
+"rest" the torch geometry, frame lookup and Python glue.
+
+<!-- table:evalA_speed_voxel -->
+| switches | n | l0_screen_us | l0_screen_s | levels012_s | wall_s | evals | contended |
+|---|---|---|---|---|---|---|---|
+| off | 6 | 415.2 | 18.3 | 115.6 | 119.3 | 225,883 | 5 |
+| BatchedScreen | 6 | 24.0 | 1.1 | 89.6 | 92.6 | 225,883 | 4 |
+| CppOmegaInterp | 6 | 88.3 | 3.9 | 94.2 | 97.5 | 225,648 | 3 |
+| both | 6 | 24.7 | 1.1 | 88.9 | 92.0 | 225,648 | 1 |
+<!-- /table:evalA_speed_voxel -->
+
+<!-- table:evalA_speed_voxel_quiet -->
+| arm | voxel | label | wall_s | evals | l0_screen_us | us_per_eval | load |
+|---|---|---|---|---|---|---|---|
+| cpp_edge | 15901 | single-worker | 122.5 | 237,890 | 406.9 | 493 | 1.39 |
+| cpp_edge | 5242 | single-worker | 100.8 | 199,386 | 398.7 | 486 | 1.29 |
+| cpp_edge_interp_batched | 15901 | single-worker | 96.2 | 238,868 | 24.2 | 381 | 1.35 |
+| cpp_edge_interp_batched | 5242 | single-worker | 75.6 | 199,195 | 24.1 | 360 | 1.19 |
+<!-- /table:evalA_speed_voxel_quiet -->
+
+Whole no-start searches (C++ rule and edge rules): mean over six voxels (the last column counts the runs labelled
+"contended", see above) and a quiet single-worker repeat on two voxels (each run started with the load below 1.4 and
+the preflight passed). Evaluations agree to within 0.5% because the interpolation changes the candidate counts a
+little.
+
+<!-- table:evalA_e0_interp_paired -->
+| new | base | n | wrong_base | wrong_new | fixed | broken | both_wrong | evals_base | evals_new | l0_base | l0_new | basin_miss_base | basin_miss_new | runtime_base | runtime_new |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| edge | on | 200 | 56/200 [0.222, 0.346] | 62/200 [0.250, 0.377] | 21 | 27 | 35 | 47,230 | 47,216 | 125 | 125 | 6 | 6 | 24.2 | 24.8 |
+| interp | on | 200 | 56/200 [0.222, 0.346] | 65/200 [0.264, 0.393] | 20 | 29 | 36 | 47,230 | 47,179 | 125 | 122 | 6 | 7 | 24.2 | 3.4 |
+| interp | edge | 200 | 62/200 [0.250, 0.377] | 65/200 [0.264, 0.393] | 20 | 23 | 42 | 47,216 | 47,179 | 125 | 122 | 6 | 7 | 24.8 | 3.4 |
+| lenint | off | 200 | 41/200 [0.155, 0.266] | 40/200 [0.150, 0.261] | 21 | 20 | 20 | 48,700 | 48,633 | 182 | 180 | 4 | 4 | 26.0 | 4.4 |
+<!-- /table:evalA_e0_interp_paired -->
+
+E0 clean, 200 voxels, per-voxel images, seed 0, `mc` arm, `min_sin_eta` 0, against the Task 0 baselines. Arms:
+`edge` = C++ rule + `CppEdgeRules`, `interp` = C++ rule + `CppEdgeRules` + `CppOmegaInterp` + `BatchedScreen`,
+`lenint` = lenient rule with the same three switches (it includes `CppEdgeRules` although its tag does not say so);
+baselines `on` = C++ rule, `off` = lenient. Paired by voxel (fixed = wrong before and right after). Ten workers,
+contended: the runtime
+columns are not timing claims; the ratio is large because on single-voxel images the level-0 screen is most of the
+evaluations (43,974 of a mean 47,179 in the `interp` arm).
+
+**Decision point (non-blocking, taken by default).** After Step 2 the attribution table was recorded and Step 3 was
+implemented because the interpolation was the only stage with an untested hypothesis.
+
+**Defaults and goldens (not changed).** Switching `CppEdgeRules` on by default changes 9 pinned tests (recorded BFS
+result, coarse-proxy features, the four `reconstruct_voxel` goldens of `test_findoptimal_refactor.py`, a ray-overlap
+count) and all three switches 10 (adding `test_profiling.py`); `benchmarks/eval_reduction/A/default_flip_would_change.md`
+has the lists. `BatchedScreen` alone gives the same screen results as the default on every pair tested; with only
+`BatchedScreen` flipped the suite moves two tests (see "BatchedScreen as the default: attempted" below).
+
+**BatchedScreen as the default: attempted, not made (Task A fixes, 2026-10-13, `feature/eval-reduction-A-fixes`).**
+The owner approved making `BatchedScreen` the default (config key and `SearchParameters` default 1, `screen_chunk` 32,
+the reconstructor's per-orientation fallback for ray-rule levels unchanged) on condition that no pinned test or golden
+moves. Peak memory first (`scripts/eval_reduction/screen_memory.py`, results `benchmarks/eval_reduction/A/memory/`):
+one no-start search of voxel 15901, default configuration (lenient rule, Q-max 8, clean images, seed 1), one process,
+torch threads 1, each switch set explicitly, one run each:
+
+<!-- table:evalA_memory_batched_screen -->
+| voxel | batched_screen | screen_chunk | rss_setup_mib | rss_peak_mib | evals | err_deg | wall_s | label |
+|---|---|---|---|---|---|---|---|---|
+| 15901 | off | 1 | 285.7 | 872.3 | 327,619 | 0.0378 | 173.0 | single-worker, contended |
+| 15901 | on | 32 | 286.9 | 880.5 | 327,619 | 0.0378 | 145.4 | single-worker, contended |
+<!-- /table:evalA_memory_batched_screen -->
+
+Peak RSS is the process high-water mark (`getrusage`), so it includes the Python and torch runtime, the setup and the
+touched pages of the memory-mapped image stack; with the batched screen it is 8.2 MiB (0.9%) higher, one run per arm, so
+run-to-run allocator variation is not separated from it. Both runs give the stored 327,619 evaluations and 0.0378
+degrees. The machine was loaded (1-minute load 4.7 and 3.0, the second run overlapping the test suite), so the wall
+times are not timing claims. Then the full suite with only `BatchedScreen` flipped (review fix 9): 887 passed, 2 failed,
+37 skipped, 1 deselected. The failures: `test_batched_screen.py::test_config_keys_and_default_off` (asserts the old
+default; expected) and `test_profiling.py::test_instrumented_reconstruct_voxel_is_bit_identical_and_uninstalled`: the
+profiling instrument (`scripts/profiling/prof_common.py`) counts global evaluations by wrapping
+`VoxelCostFunction.evaluate`, which the batched screen does not call, so it counts 0 instead of 27; the orientation, the
+cost and the reconstructor's own evaluation counts in that test are identical with and without the flip. No golden
+moved. Because a pinned test moved, the flip was reverted (patch kept outside the repository; the default stays off) and
+left to the owner: the instrument would need to count `ScreenEvaluator` calls as `eval_ledger.py` does.
+
+**BatchedScreen as the default: made (2026-10-13, `feature/eval-reduction-A-flip`).** `BatchedScreen` now defaults to 1
+in the config file and in `SearchParameters` (`screen_chunk` stays 32; `CppEdgeRules` and `CppOmegaInterp` stay off;
+`BatchedScreen 0` restores the per-orientation screen). The profiling instrument (`scripts/profiling/prof_common.py`,
+through the new `StageTimer.patch_counted`) now counts `ScreenEvaluator.overlaps_exact` / `overlaps_interp` calls as
+their number of orientations, as `eval_ledger.py` does, so `test_profiling.py` passes with the reconstructor's own
+counts. The fallback warning of `_screen_kwargs` (ray rule at a level, no C extension) fires only when `BatchedScreen`
+is written in the config file (`SearchParameters.screen_explicit`) or `CppOmegaInterp` is on; a config with only
+`CppOmegaInterp 0` falls back silently, as does the implicit default. `test_config_keys_and_default_off` became
+`test_config_keys_and_defaults`. Review fixes: the scripts that count evaluations by wrapping
+`VoxelCostFunction.evaluate` around a no-start search (`scripts/phase_d/seed_diag.py`, `ray_overlap_study.py`,
+`level0_trace.py`, `scripts/coarse_proxy/eval_split.py`) pin `batched_screen=False`, since the batched screen does not
+call `evaluate`, and the unbatched arms of `benchmarks/eval_reduction/A/ledger/run_all.sh`, `run_switches.sh`
+(`cpp_edge_interp`) and `run_timing.sh` (`timing_cpp_edge`) pass `--opt batched_screen=0`, so re-runs reproduce the
+recorded arms. `StageTimer.patch_counted` also takes (position, keyword) pairs and reads the counted arguments from
+keyword arguments when they are not positional.
+
+**Not done.** The interpolation with the ray rule (falls back with a warning); a batched quick MC (the quick MC is
+about 58% of the evaluations with the C++ rule and is untouched); reproducing the second candidate re-cost of C++ (it would only add evaluations);
+an E0 run on the realistic images (excluded by the plan).
+
+### Task A-exact: `CppEdgeRules` lights a detector exactly as C++ (2026-10-13, `feature/eval-reduction-A-exact`)
+
+Owner decision 2026-10-13: `CppEdgeRules` stays off by default; make it exact for the cost and the peak overlap (pixel
+counts need not match). Under the switch only, a detector is lit iff the pixel overlap is > 0 or one of the three
+vertices is in bounds (C++ `OverlapInfo.h:501-514`); the `n_lit > 0` clause (lit on any produced pixel) is no longer
+applied. Changed: `icenine/_rasterize.c` (`stage_d_overlap`; module constant `HAS_VERTEX_LIT` = 2 marks the exact
+build, so an extension built with the earlier superset rule is treated as stale and the slow path is used with the
+existing warning) and the slow path of `calculate_diffraction_overlap_batched` in `icenine/cost_functions.py`; docstring
+and README row updated. Two new tests: `test_triangle_with_pixels_and_no_vertex_in_bounds_is_unlit_with_the_switch`
+(C path) and `test_slow_path_lit_rule_with_a_stubbed_triangle_counter` (Python slow path, review fix). The default path
+(switch off) takes the same branches as before.
+
+*Fixed-orientation parity rerun* (the Task A Step 0 inputs, 2,230 orientations of voxels 15901, 22867, 5242, C++ driver
+rebuilt from `step0/cpp_parity_patch.py.txt` and rerun, Python with the rebuilt extension): the rerun `results.json.gz`
+is byte-identical to the committed Step 0 file (all four Python arms: default and `CppEdgeRules`, screen and complete
+cost; record `benchmarks/eval_reduction/A/a_exact/parity_rerun.json`), so the summary tables of Task A stand: with
+`CppEdgeRules`, peak overlap and peak-on-detector equal C++ on 2,230 of 2,230 orientations of the complete cost and on
+2,229 of 2,230 of the screen. The old (superset) and exact rules give the same counts on all of them, i.e. no peak of
+the test set has a triangle with pixels and no vertex in bounds, so the test cannot distinguish the two rules (the C
+unit test and a slow-path check do). Residual: one screen orientation (voxel 15901, pair 885, `pair_differ_pass`)
+differs by one overlapping peak (C++ 1, Python 0 of 17): a peak whose omega is 3 float32 ulps from a frame boundary gets
+a different frame (cause named by the per-peak record; not tested further). Pixel counts match on 1,985 of 2,230 (89.0%)
+of the complete cost, as before (not a goal).
+Slow path against the C path (`scripts/eval_reduction/slow_path_check.py`, voxel 5242, 12 orientations per arm, dense
+images; output in `benchmarks/eval_reduction/A/a_exact/slow_path_check.json`, run record in `RUN_LOG.md` section 6):
+with `CppEdgeRules` on and off, all 48 evaluations have identical pixel and peak counts and quality. With `--stub`
+(all-dark images; the slow path's triangle counter returns zero overlap and five lit pixels for every triangle), only
+the complete cost tests the lit rule, since the screen's pixel-radius branch never calls the triangle counter. With the
+switch, the peak counts of the slow path equal the C path's in 12 of 12 evaluations: the slow path lights a detector
+only through an in-bounds vertex, as the C path does on a dark image. Without the switch the stub separates the two
+rules: peak-on-detector sums 1263 (slow path, lit on the stub's pixels) against 766 (C path), equal in 0 of 12.
+
+### Task B: anatomy of the cost function's edges (2026-10-14, `feature/eval-reduction-B`)
+
+Run record: `benchmarks/eval_reduction/B/RUN_LOG.md`. Findings (plain English, generated tables):
+`docs/findings_cost_edges_2026-10.md`. Scripts: `scripts/eval_reduction/cost_edges*.py`, `peak_rejects.py`,
+`truth_cost_anatomy.py`, `interp_levels*.py`; tests `tests/test_cost_edges.py`. No library change, no default
+flipped, no golden regenerated. Clean images, Q-max 8, no extra seeds. The method is a per-peak trace of one cost
+evaluation (taken by wrapping three module functions for one call and calling the C overlap stage once per peak, so
+the per-peak values recombine to the library's own quality to float precision on every evaluation), walked along
+rays of 20 random directions from the truth: six full-sample voxels, 0 to 5 degrees at 0.0005 degree (120 rays), and
+30 E0 voxels (600 rays; 0 to 0.5 degree dense plus four 0.05-degree windows). Eight cost settings (complete cost and
+level-0 screen, each with the lenient, C++, C++ + `CppEdgeRules` and ray R2 rules). Deviation from the plan: the plan
+asked for log-spaced radii; a log grid puts several events into one step at large radius, so the walks use equal
+0.0005-degree steps instead (E0 keeps a 121-point log profile for the cost only, without minimum widths). The
+per-peak trace is tested on the ThreeVoxels images (`tests/test_cost_edges.py`: recombination below 1e-12, module
+functions restored after an exception, parts sum to a real change of the cost).
+
+**Short answers.**
+
+1. *Catalogue* (complete cost, C++ rule, full-sample voxels; cost-changing of all events per degree, in the three
+   regimes under 0.05, 0.05 to 0.5 and 0.5 to 5 degrees): frame crossings 51 of 81, 39 of 86, 2.7 of 86; pixel
+   crossings 150 of 5,091, 372 of 4,982, 26 of 4,975; detector, eta cut, no frame, Bragg limit: a few events per
+   degree and (almost) none change the cost; no sub-pixel and no rule-only event was seen. A frame crossing moves the
+   cost by about one peak's share, a pixel crossing by several times less.
+2. *Share of the change of the cost* (gross, by type): frame crossings 73.7% under 0.05 degree on the full-sample
+   voxels, pixel crossings 59.5% and 55.6% beyond it (E0: pixel 86.5%, 82.4%, 64.2%, the last over four 0.05-degree
+   windows per ray); the denominator of the ratio 1.2 to 1.3% of the change of the complete cost on the full-sample
+   voxels (up to 2.4% for the full-sample screen and 3.7% for the E0 screen). The level-0 screen sees almost only frame crossings under 0.05 degree (its 7 x 7 box hides
+   pixel crossings).
+3. *The 3 of 524 real peaks rejected at the truth* (the 30 voxels of the Phase D ray-overlap study, full-sample
+   images) are a detector-edge effect of the pixel-radius screen: all three have a detector-1 centre 1 to 3 rows past
+   the last image row, the whole triangle is off the image, the 7 x 7 box reaches back in, detector 1 counts as lit
+   with no bright pixel. Of the 524, exactly these 3 have the centre outside with the box reaching in (3 of 3
+   rejected, 95% Wilson 43.8-100%; 0 of 66 with the box not reaching in, 0.0-5.5%). The rule is C++'s own:
+   `Src/OverlapInfo.h:345-382` lights the detector for any in-bounds box pixel and `Src/OverlapInfo.tmpl.cpp:113-130`
+   rejects lit without overlap on detector 1. With the exact C++ lit rule (`CppEdgeRules`) the complete cost rejects
+   8 of 1,972 real peaks at the truth (0 without); all 8 have a detector-1 triangle on the last image row (that C++
+   rejects them too is inferred from `Src/OverlapInfo.h:501-516` and Task A-exact, not from a C++ run).
+4. *The cost at the truth is not zero* (median 0.0703 on the six voxels, 0.0606 on E0): 85.5% and 87.6% of it is peaks
+   whose spot is off detector 1, which score 1/2 for ever; most of the rest is peaks with no qualified overlap (4 and
+   15 peaks; with `CppEdgeRules` 0 and 1), consistent with the omega-below-the-first-frame convention of Task A
+   (not shown: `CppEdgeRules` bundles three conventions and the omegas were not checked).
+5. *Non-monotone basins*: no local minimum of depth 0.05 or more with the complete cost; at depth 0.01 the full-sample
+   images have one on 72 of 120 rays (95% Wilson 51.1-68.3%, C++ rule, median 2.96 degrees from the truth); the
+   level-0 screen has minima of depth 0.05 or more on 68 of 120 full-sample rays (47.7-65.2%, median 2.68 degrees,
+   created by pixel events 69 and frame events 28). E0 was walked densely only to 0.5 degree, so these far dips are
+   not compared with E0. Over 0 to 0.5 degree the two image sets are alike: depth-0.01 minima on 6 of 120
+   full-sample rays (2.3-10.5%) and 12 of 600 E0 rays (1.1-3.5%); screen depth-0.05 minima on 0 of 120 (0.0-3.1%)
+   and 6 of 600 (0.5-2.2%). The truth is the lowest point on all 120 full-sample rays; on 38 of 600 E0 rays
+   (4.6-8.6%, 5 voxels) a point within 0.001 degree is lower, by pixel events.
+6. *Added item: pass-set parity of `CppOmegaInterp` with C++ at levels 1 to 3.* With both switches the FZ points with
+   an identical pass set over the six voxels are 29,303 of 29,316 (level 0), 11,504 of 11,508 (level 1), 3,497 of 3,498
+   (level 2) and 963 of 963 (level 3); exact omegas by default: 26,749, 10,687, 3,348 and 930. The same code at level
+   0 reproduces Task A's 4,885 of 4,886 for voxel 15901. Residual differences were not traced to a cause.
+
+Figures: `benchmarks/eval_reduction/B/figures/` (`cost_vs_angle_ray.png`, `events_per_degree.png`,
+`variation_share.png`, `minima_example.png`, `slice_maps.png`, `diagram_frame_crossing.png`,
+`diagram_pixel_crossing.png`, `diagram_detector_edge.png`).
+
+Left over: the E0 0.5-to-5 degree regime is windowed, not continuous (so E0 minima beyond 0.5 degree are not
+measured); no counterfactual run of a screen that ignores its box at the detector edge; the omegas of the
+no-overlap peaks at the truth; the sources of the residual pass differences; a per-event edge list (only per-step
+aggregates are stored); realistic images (excluded until Q8).
+
+## Python speed parity: per-evaluation cost (2026-10-13)
+
+Branch `feature/python-speed-parity` (off `feature/eval-reduction` at 0c187a4). Question from the owner: why is the
+Python reconstruction about 10 times slower than C++, and what would make it as fast? Open items are tracked as
+Track S of `docs/ROADMAP.md`, which from this date is the single list of open work for the port.
+
+**Answer.** The evaluation count is at parity (0.95 to 0.98 times C++'s with the C++ overlap rule, Task A); the gap
+is the cost of one `VoxelCostFunction.evaluate` call, and almost all of that cost is Python and torch dispatch, not
+physics. Scripts: `scripts/speed_parity/` (Example2.ThreeVoxels voxel 0, single thread, `torch` 2.8.0, orientations
+within 3 degrees of the truth).
+
+| arm | reflections | omega solutions | us per evaluate | aten ops per call |
+|---|---|---|---|---|
+| screen (pixel radius 3, Q-max 5, C++ rule) | 26 | 52 | 237 | 768 |
+| re-cost / quick MC (pixel radius 3, Q-max 8) | 112 | 220 | 318 | 768 |
+| final (triangle, Q-max 8, C++ rule) | 112 | 220 | 317 | 735 |
+
+Four times the reflections cost only 35% more time: about 210 us of each call is fixed overhead. Stage split of the
+final arm (`stage_split.py`, one orientation, 110 valid peaks on 87 frames):
+
+| part | us |
+|---|---|
+| Bragg solve (`get_scattering_omegas_torch`) | 41 |
+| eta filter, peak expansion, stages B and C (torch) and numpy conversions | 200 to 230 |
+| stage A Python loop over peaks (a lookup table takes 2) | 18 to 20 |
+| image list Python loop (174 `get_image` calls per call) | 29 |
+| stage D C call (the pixel overlap itself) | 8.3 to 8.5 |
+| total | 323 to 325 |
+
+Two runs; the torch row is the total minus the separately timed parts, so its internal split (eta filter vs
+stages B and C) moves by about 30 us between runs and is not given.
+
+The screen arm's stage D is 1.0 us of 241 us. The physics and pixel work of one evaluation is therefore about 10 us,
+below C++'s 42 to 55 us (236,634 evaluations in 10 to 13 s per no-start search, Task A). Outside `evaluate`, the
+search machinery costs 4.2 us per evaluation (`search_split.py`, develop before `BatchedScreen`: 18.0 s, 53,491
+evaluations, 98.8% inside `evaluate`). With `BatchedScreen` on (0c187a4) the same search takes 7.7 s and makes
+8,311 `evaluate` calls (the screen no longer calls it), still 88.7% of the time; those calls average 820 us, more
+than the arms above, probably because this example's config has `MaxQ 16` (not checked).
+
+**Differentiability.** The search cost is already not differentiable (the orientation enters as a numpy array and
+stage D returns integer counts); gradient work uses `differentiable_cost.py`, which shares only
+`get_scattering_omegas_torch` with it. A C path for the search cost would leave that module unchanged, at the price
+of a second implementation of the geometry kept equal by a parity test.
+
+**Spot translation** (`docs/spot_translation_derivation.md`, check `translation_check.py`). For a fixed orientation
+each peak's spot moves rigidly when the voxel moves: `u_p(x) = A_p x + c_p` with `A_p = Pi Q_p Rz(omega_p) B`, exact
+for any displacement. Checked on 20 orientations and in-layer moves up to 150 um: equal shift for the three vertices
+to 9.8e-4 px, linear and additive to 1.2e-3 px (float32), frames unchanged; the two detectors' shifts differ by up to
+0.37 px of 54 px (not exactly parallel). It makes the level-0 screen (the same 43,974 orientations for every voxel)
+a candidate for a per-sample table (ROADMAP S4).
+
+**Not done.** No library change. The ThreeVoxels figures are not yet repeated on the full-sample Phase D images (on
+Newt Agent's machine; ROADMAP S6). The C++ figure is taken from Task A's runs, not re-measured.
+
+### Task C: candidate overlap and de-duplication (2026-10-14, `feature/eval-reduction-C`)
+
+Run record: `benchmarks/eval_reduction/C/RUN_LOG.md`. Library: `icenine/candidate_dedup.py`, config key `CandidateDedup`
+(opt-in, off by default; README config table), `SearchCandidate.clique`. Scripts: `scripts/eval_reduction/candidate_*.py`;
+tests `tests/test_candidate_dedup.py` and `tests/test_candidate_dedup_levels.py`. Tables below are generated
+(`benchmarks/eval_reduction/C/step1/tables_*.md`, `step3/tables*.md`, merged in `doc_tables_all.md`); figures are in
+`benchmarks/eval_reduction/C/figures/`. All images are clean simulated images, Q-max 8 configuration, no extra seeds, no golden
+test changed, no default flipped. `BatchedQuickMC` and `SearchDevice` were off in every arm.
+
+**Short answer.**
+
+1. *Neighbouring candidates are common at the coarse scale and rare at the fine scale.* On the six full-sample voxels (levels 0 to 2,
+   C++ rule, 64,041 candidates) 18.7% of the candidates are suppressed in a greedy scan in score order by a better-scored kept candidate
+   within half the level's diameter, and 63.6% within a full diameter (the spacing filter's own radius, which only acts inside one FZ point).
+   With the lenient rule the shares are 18.6% and 67.3% of 89,458 candidates. The literal share, candidates with any better-scored candidate
+   within half a diameter, is a little larger: 20.5% (C++ rule) and 21.2% (lenient).
+2. *The quick MC does not make candidates converge.* After it 23.1% (C++ rule) and 25.6% (lenient) of the candidates are suppressed in the
+   same greedy scan within half a diameter, but only 0.06% and 0.03% within 0.1 degree. Far fewer than half are duplicates, so the plan's trigger
+   for arm C4 (a shorter quick MC on duplicates) is not met and C4 was not built or run.
+3. *Cliques overlap heavily at level 0 when linked at one diameter.* A clique is the set of candidates of one FZ point. At level 0 on
+   full-sample images 99.5% (C++ rule) and 100% (lenient) of the cliques have a candidate within one diameter of another clique's candidate,
+   and the largest connected component holds 3,915 to 4,480 cliques of the run (with the lenient rule all 4,886 in 5 of the 6 runs; voxel
+   22867 has two components, the largest 4,885). The merged clique as the plan words it is
+   degenerate there; linked at half a diameter the largest component is 18 to 61 cliques.
+4. *What the arms save and what they cost* (tables below; every arm runs with the lenient (default) overlap rule). On the six full-sample voxels, keeping the best candidate of each FZ point (`clique=cpp:1`) saves 24.2% of the evaluations with 0 of 6 wrong; on the 30-voxel full-sample set it saves 23.9% with 2 of 30 wrong against 1 of 30 in the baseline (2 broken, 1 fixed). On the 200 E0 voxels the same arm has 55 wrong against 41: paired by voxel 24 broken and 10 fixed, net +14. These E0 counts are not all caused by the arm. An arm that drops candidates before the quick MC changes how many quick-MC runs draw from the shared random stream (this one drops some at level 0 in all 200 runs), so every later draw differs, and the paired split mixes the arm's effect with the effect of a new draw. For scale, two seeds of the same key-off code on the same 200 voxels flip 14 to 23 voxels each way, net +2 to +4 (table `s3_ab_paired`, "S3" below). The net +14 is larger than that, and part of it can be traced without random numbers (the level-0 discrete stage uses none): the truth basin (3 degrees) is among the level-0 quick-MC inputs in 188 of 200 runs against 196 in the baseline, and the 8 runs that lose it end 5 broken and 3 both wrong. So 5 of the 24 broken voxels are traced to the filter; the other 19 cannot be told apart from the change of draw. On E0 no arm saves more than 2.8% of the evaluations: the screens and re-costs of all levels are 92.2% of the E0 evaluations (the level-0 screen and re-cost alone 90.7%), and no filter touches them.
+5. *Choice for Task G (the plan's rule): the baseline (key off).* No arm has zero broken E0 voxels (the fewest are 6 for `post=0.25` and 8 for `clique=cpp:2`). The plan's zero-broken rule cannot be met by any arm that changes the candidate list, because the later draws change with it, and two seeds of the same code already break 18 to 23 voxels; so "no arm qualifies" says nothing about the arms themselves. Whether to keep or replace that rule for later tasks is an open owner question. Two arms show no clear loss on full-sample images: `clique=cpp:1` (23.9% fewer evaluations on 30 voxels; E0 net +14, 5 broken voxels traced to the filter) and `pre=0.5` (8.9% fewer, 0 of 30 wrong; E0 30 broken and 21 fixed, net +9, none traced: its level-0 inputs lose the basin in 2 runs, 1 broken and 1 fixed). The owner decided not to try them in Task G for now (D-20261014-N4).
+
+**Step 1 (measurement only).** The existing recorder hooks were wrapped (no library change) on the six full-sample voxels (Phase D clean
+images, seed 1) and the first 30 E0 voxels (per-voxel clean images, seed 0), each with the lenient and the C++ overlap rule. Per level:
+duplicate quick-MC inputs and outputs, the share of quick-MC evaluations that went to them, the kept quarter and the truth basin in it,
+next-level grid points that coincide with points already screened, and the clique statistics. A "duplicate" is an element that is not the first
+of its group in a greedy scan in rank order within a symmetry-reduced tolerance t x D (D = the level's diameter, the local-grid radius). "Truth
+basin" = a candidate within 3 degrees (and 1 degree) of the true orientation. The clique labels recovered from the recorder events reproduce the
+recorded candidate list in every run.
+
+Column key of the Step 1 tables: `inputs_dup_025 / _05 / _1` = share of the candidates handed to the quick MC that are suppressed by a better-scored
+kept one within 0.25, 0.5 and 1 D (greedy scan); `outputs_dup_01deg / _05D` = the same for the post-quick-MC list within 0.1 degree and 0.5 D;
+`evals_dup_inputs_05` and `evals_dup_outputs_05D` = the share of the quick-MC evaluations spent on those duplicates; `evals_later_in_clique` = the share
+spent on the second and later candidates of a clique. `kept_distinct_05D` / `_01deg` = distinct orientations (0.5 D / 0.1 degree) in the kept
+quarter; `truth3_*` = number of runs with a candidate within 3 degrees of the truth in the discrete list, after the quick MC and in the kept
+quarter (`truth1_*` the same within 1 degree). `overlap_cliques_1D / _05D` = cliques with a candidate within 1 D / 0.5 D of a candidate of another
+clique; `max_comp_cliques_*` = the largest connected component of cliques (largest over the runs); `next_in_prev_*` = next-level screened points within
+0.1 degree / 0.25 x the next diameter of a point screened at the previous level, `next_self_dup_025Dn` = next-level points within 0.25 x the next
+diameter of an earlier point of their own level.
+
+Six full-sample voxels, C++ rule:
+
+<!-- table:evalC_c_step1_full_cpp_dups -->
+| level | runs | diameter_deg | candidates | inputs_dup_025 | inputs_dup_05 | inputs_dup_1 | outputs_dup_01deg | outputs_dup_05D | evals_dup_inputs_05 | evals_dup_outputs_05D | evals_later_in_clique | quick_evals |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 5.00 | 46,031 | 6.0% | 22.9% | 75.3% | 0.0% | 28.3% | 22.9% | 28.3% | 43.7% | 552,372 |
+| 1 | 6 | 3.33 | 14,103 | 2.8% | 7.8% | 37.0% | 0.1% | 9.9% | 7.8% | 9.9% | 18.5% | 169,236 |
+| 2 | 6 | 2.22 | 3,907 | 4.3% | 8.2% | 22.0% | 0.3% | 9.8% | 8.2% | 9.8% | 9.8% | 46,884 |
+| 3 | 6 | 1.48 | 1,092 | 8.8% | 14.4% | 26.7% | 1.4% | 18.0% | 14.4% | 18.0% | 10.7% | 13,104 |
+<!-- /table:evalC_c_step1_full_cpp_dups -->
+
+<!-- table:evalC_c_step1_full_cpp_kept -->
+| level | runs | kept | kept_distinct_05D | kept_distinct_01deg | truth3_in_candidates | truth3_after_mc | truth3_in_kept | truth1_after_mc | truth1_in_kept |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 11,505 | 9947 | 11500 | 6 | 6 | 6 | 3 | 3 |
+| 1 | 6 | 3,523 | 3186 | 3517 | 6 | 6 | 6 | 6 | 6 |
+| 2 | 6 | 975 | 829 | 970 | 6 | 6 | 6 | 6 | 6 |
+| 3 | 6 | 272 | 160 | 261 | 6 | 6 | 6 | 6 | 6 |
+<!-- /table:evalC_c_step1_full_cpp_kept -->
+
+<!-- table:evalC_c_step1_full_cpp_cliques -->
+| level | runs | cliques | candidates | cand_per_clique | cliques_with_kept | kept | kept_in_cliques_2plus | overlap_cliques_1D | max_comp_cliques_1D | overlap_cliques_05D | max_comp_cliques_05D | next_in_prev_01deg | next_in_prev_025Dn | next_self_dup_025Dn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 25,928 | 46,031 | 1.78 | 10060 | 11,505 | 2819 | 99.5% | 4480 | 58.6% | 61 | 1.5% | 23.8% | 5.9% |
+| 1 | 6 | 11,490 | 14,103 | 1.23 | 3342 | 3,523 | 355 | 53.0% | 31 | 16.9% | 7 | 4.5% | 24.5% | 4.7% |
+| 2 | 6 | 3,523 | 3,907 | 1.11 | 915 | 975 | 117 | 28.0% | 15 | 15.0% | 11 | 5.3% | 24.9% | 9.4% |
+| 3 | 6 | 975 | 1,092 | 1.12 | 247 | 272 | 50 | 30.9% | 17 | 23.8% | 12 | n/a | n/a | n/a |
+<!-- /table:evalC_c_step1_full_cpp_cliques -->
+
+Six full-sample voxels, lenient rule:
+
+<!-- table:evalC_c_step1_full_lenient_dups -->
+| level | runs | diameter_deg | candidates | inputs_dup_025 | inputs_dup_05 | inputs_dup_1 | outputs_dup_01deg | outputs_dup_05D | evals_dup_inputs_05 | evals_dup_outputs_05D | evals_later_in_clique | quick_evals |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 5.00 | 61,547 | 5.9% | 23.6% | 79.2% | 0.0% | 32.0% | 23.6% | 32.0% | 52.4% | 738,564 |
+| 1 | 6 | 3.33 | 21,158 | 2.6% | 7.7% | 44.2% | 0.0% | 11.8% | 7.7% | 11.8% | 27.3% | 253,896 |
+| 2 | 6 | 2.22 | 6,753 | 3.2% | 7.1% | 30.6% | 0.1% | 11.3% | 7.1% | 11.3% | 21.7% | 81,036 |
+| 3 | 6 | 1.48 | 2,116 | 6.2% | 13.6% | 34.2% | 1.0% | 19.3% | 13.6% | 19.3% | 20.3% | 25,392 |
+<!-- /table:evalC_c_step1_full_lenient_dups -->
+
+<!-- table:evalC_c_step1_full_lenient_kept -->
+| level | runs | kept | kept_distinct_05D | kept_distinct_01deg | truth3_in_candidates | truth3_after_mc | truth3_in_kept | truth1_after_mc | truth1_in_kept |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 15,384 | 13248 | 15382 | 6 | 6 | 6 | 4 | 4 |
+| 1 | 6 | 5,287 | 4847 | 5285 | 6 | 6 | 6 | 6 | 6 |
+| 2 | 6 | 1,686 | 1448 | 1682 | 6 | 6 | 6 | 6 | 6 |
+| 3 | 6 | 526 | 365 | 511 | 6 | 6 | 6 | 6 | 6 |
+<!-- /table:evalC_c_step1_full_lenient_kept -->
+
+<!-- table:evalC_c_step1_full_lenient_cliques -->
+| level | runs | cliques | candidates | cand_per_clique | cliques_with_kept | kept | kept_in_cliques_2plus | overlap_cliques_1D | max_comp_cliques_1D | overlap_cliques_05D | max_comp_cliques_05D | next_in_prev_01deg | next_in_prev_025Dn | next_self_dup_025Dn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 6 | 29,316 | 61,547 | 2.10 | 13040 | 15,384 | 4594 | 100.0% | 4886 | 65.7% | 43 | 1.6% | 24.4% | 6.1% |
+| 1 | 6 | 15,384 | 21,158 | 1.38 | 4960 | 5,287 | 643 | 60.2% | 21 | 18.0% | 6 | 4.3% | 24.5% | 3.9% |
+| 2 | 6 | 5,287 | 6,753 | 1.28 | 1563 | 1,686 | 240 | 28.1% | 9 | 14.4% | 6 | 4.8% | 25.2% | 7.2% |
+| 3 | 6 | 1,686 | 2,116 | 1.26 | 468 | 526 | 116 | 34.5% | 12 | 25.1% | 8 | n/a | n/a | n/a |
+<!-- /table:evalC_c_step1_full_lenient_cliques -->
+
+Thirty E0 voxels (per-voxel images; a level has about 120 candidates per voxel, so overlap is lower), C++ rule and lenient rule (the clique tables of
+the E0 set are in `benchmarks/eval_reduction/C/step1/tables_e0.md`):
+
+<!-- table:evalC_c_step1_e0_cpp_dups -->
+| level | runs | diameter_deg | candidates | inputs_dup_025 | inputs_dup_05 | inputs_dup_1 | outputs_dup_01deg | outputs_dup_05D | evals_dup_inputs_05 | evals_dup_outputs_05D | evals_later_in_clique | quick_evals |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 30 | 5.00 | 3,686 | 5.5% | 12.9% | 36.4% | 0.0% | 15.2% | 12.9% | 15.2% | 7.7% | 44,232 |
+| 1 | 30 | 3.33 | 967 | 2.6% | 5.2% | 16.5% | 0.0% | 6.1% | 5.2% | 6.1% | 6.2% | 11,604 |
+| 2 | 30 | 2.22 | 241 | 3.3% | 6.6% | 11.6% | 0.0% | 8.3% | 6.6% | 8.3% | 4.1% | 2,892 |
+| 3 | 30 | 1.48 | 50 | 6.0% | 6.0% | 8.0% | 0.0% | 6.0% | 6.0% | 6.0% | 2.0% | 600 |
+<!-- /table:evalC_c_step1_e0_cpp_dups -->
+
+<!-- table:evalC_c_step1_e0_cpp_kept -->
+| level | runs | kept | kept_distinct_05D | kept_distinct_01deg | truth3_in_candidates | truth3_after_mc | truth3_in_kept | truth1_after_mc | truth1_in_kept |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 30 | 910 | 840 | 910 | 30 | 30 | 24 | 11 | 11 |
+| 1 | 30 | 231 | 215 | 231 | 25 | 25 | 20 | 18 | 18 |
+| 2 | 30 | 49 | 46 | 49 | 20 | 20 | 17 | 18 | 17 |
+| 3 | 30 | 30 | 30 | 30 | 17 | 17 | 17 | 17 | 17 |
+<!-- /table:evalC_c_step1_e0_cpp_kept -->
+
+<!-- table:evalC_c_step1_e0_lenient_dups -->
+| level | runs | diameter_deg | candidates | inputs_dup_025 | inputs_dup_05 | inputs_dup_1 | outputs_dup_01deg | outputs_dup_05D | evals_dup_inputs_05 | evals_dup_outputs_05D | evals_later_in_clique | quick_evals |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 30 | 5.00 | 5,379 | 5.8% | 15.7% | 42.7% | 0.0% | 18.5% | 15.7% | 18.5% | 9.9% | 64,548 |
+| 1 | 30 | 3.33 | 1,444 | 3.2% | 7.8% | 21.1% | 0.1% | 9.0% | 7.8% | 9.0% | 7.8% | 17,328 |
+| 2 | 30 | 2.22 | 367 | 6.8% | 13.1% | 18.5% | 0.5% | 13.1% | 13.1% | 13.1% | 5.2% | 4,404 |
+| 3 | 30 | 1.48 | 80 | 13.8% | 20.0% | 21.2% | 2.5% | 21.2% | 20.0% | 21.2% | 1.2% | 960 |
+<!-- /table:evalC_c_step1_e0_lenient_dups -->
+
+<!-- table:evalC_c_step1_e0_lenient_kept -->
+| level | runs | kept | kept_distinct_05D | kept_distinct_01deg | truth3_in_candidates | truth3_after_mc | truth3_in_kept | truth1_after_mc | truth1_in_kept |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 30 | 1,336 | 1200 | 1336 | 30 | 30 | 26 | 16 | 16 |
+| 1 | 30 | 348 | 309 | 348 | 26 | 26 | 24 | 22 | 22 |
+| 2 | 30 | 79 | 63 | 79 | 24 | 24 | 23 | 22 | 22 |
+| 3 | 30 | 30 | 30 | 30 | 23 | 23 | 20 | 22 | 20 |
+<!-- /table:evalC_c_step1_e0_lenient_kept -->
+
+What Step 1 says, levels 0 to 2 pooled (counts in `step1/summary_full.json` and `step1/summary_e0.json`):
+
+* *Duplicate inputs.* Suppressed in the greedy scan by a better-scored kept candidate within 0.5 D: 18.7% (C++ rule) and 18.6% (lenient) of the
+  full-sample candidates, 11.1% and 13.9% of the E0 candidates. Within 0.25 D: 5.1% and 4.9% (full), 4.8% and 5.3% (E0). Within 1 D: 63.6% and
+  67.3% (full), 31.2% and 37.1% (E0). The literal share, any better-scored candidate within 0.5 D, is 20.5% and 21.2% (full), 11.5% and 14.5% (E0).
+  The share of quick-MC evaluations equals the share of candidates (every candidate costs 12 evaluations).
+* *Duplicate outputs* (the same greedy scan in rank order). Within 0.5 D: 23.1% and 25.6% (full), 13.0% and 16.3% (E0); within 0.1 degree: 0.06% and 0.03% (full), 0.02% and 0.07% (E0).
+* *Second and later candidates of a clique* take 36.1% (C++ rule) and 44.1% (lenient) of the quick-MC evaluations on the full-sample voxels (level 0:
+  43.7% and 52.4%) and 7.2% and 9.2% on E0. This is the largest duplicate class, and a "best one per clique" filter removes it. On the full-sample
+  voxels a clique averages 1.56 (C++ rule) and 1.79 (lenient) candidates.
+* *Kept quarter.* At level 0 the C++-rule full-sample runs keep 11,505 candidates, 9,947 of them distinct at 0.5 D; 2,819 of the kept candidates sit in a
+  clique with two or more kept candidates. The truth basin (3 degrees) is in the kept quarter of all six full-sample voxels at every level. On the 30 E0
+  voxels it is lost mostly at levels 0 and 1 (the C++ rule keeps it at level 0 in 24 of 30 runs).
+* *Next level.* 23.8% to 24.9% of the next level's screened points (C++ rule, six voxels) lie within 0.25 x the next diameter of a point screened
+  at the previous level, 1.5% to 5.3% within 0.1 degree, and 4.7% to 9.4% within 0.25 x the next diameter of an earlier point of their own level. No arm
+  removes these (the screen is not changed).
+
+*Is the truth-nearest candidate the best-scored of its clique?* If often not, a best-one-per-clique filter drops it. Counts over the stored
+step-1 runs (`step1/clique_truth.json`; `near3` = discrete candidates within 3 degrees of the truth, `near3_not_first` = those that are not the best-scored
+of their clique, `nearest_not_first` = runs whose truth-nearest candidate is not the best-scored of its clique, out of `runs_with_near3`):
+
+<!-- table:evalC_c_clique_truth -->
+| set | rule | level | runs | near3 | near3_not_first | near1 | near1_not_first | runs_with_near3 | nearest_not_first | nearest_in_multi | nearest_not_first_multi |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| full | cpp | 0 | 6 | 22 | 7 | 1 | 0 | 6 | 1 | 5 | 1 |
+| full | cpp | 1 | 6 | 45 | 15 | 13 | 0 | 6 | 0 | 3 | 0 |
+| full | cpp | 2 | 6 | 60 | 17 | 28 | 1 | 6 | 0 | 1 | 0 |
+| full | cpp | 3 | 6 | 78 | 20 | 47 | 6 | 6 | 0 | 0 | 0 |
+| full | lenient | 0 | 6 | 19 | 6 | 1 | 0 | 6 | 1 | 6 | 1 |
+| full | lenient | 1 | 6 | 37 | 8 | 9 | 0 | 6 | 0 | 2 | 0 |
+| full | lenient | 2 | 6 | 55 | 18 | 25 | 3 | 6 | 0 | 1 | 0 |
+| full | lenient | 3 | 6 | 64 | 16 | 43 | 5 | 6 | 0 | 0 | 0 |
+| e0 | cpp | 0 | 30 | 87 | 30 | 5 | 0 | 30 | 9 | 12 | 9 |
+| e0 | cpp | 1 | 30 | 50 | 13 | 19 | 1 | 25 | 2 | 9 | 2 |
+| e0 | cpp | 2 | 30 | 30 | 1 | 27 | 1 | 20 | 0 | 1 | 0 |
+| e0 | cpp | 3 | 30 | 20 | 0 | 20 | 0 | 17 | 0 | 0 | 0 |
+| e0 | lenient | 0 | 30 | 100 | 32 | 6 | 0 | 30 | 7 | 15 | 7 |
+| e0 | lenient | 1 | 30 | 78 | 23 | 32 | 1 | 26 | 0 | 8 | 0 |
+| e0 | lenient | 2 | 30 | 57 | 7 | 46 | 2 | 24 | 0 | 1 | 0 |
+| e0 | lenient | 3 | 30 | 39 | 1 | 38 | 1 | 23 | 0 | 0 | 0 |
+<!-- /table:evalC_c_clique_truth -->
+
+At level 0 on E0 the truth-nearest candidate is not the best-scored of its clique in 9 of 30 runs with the C++ rule (7 of 30 lenient); on the six
+full-sample voxels in 1 of 6 (both rules). This is consistent with the E0 loss of the clique filter. Traced run by run on the 200 E0 voxels (table
+`evalC_c_e0_level0` below): `clique=cpp:1` removes the truth basin from the level-0 quick-MC inputs in 8 runs, which end 5 broken and 3 both wrong.
+
+**Diagram.** `figures/candidates_level0_v15901_cpp.png` (and `candidates_level1_v15901_cpp.png`): the candidates of one level of voxel 15901 in orientation
+space (rotation-vector projection of the symmetry-reduced orientation), cliques coloured, kept quarter ringed, truth marked; right panel: a zoom of the
+misorientation to the truth with circles of D and 0.5 D around the nearest candidate.
+
+**Step 2 (library, opt-in).** `candidate_dedup.py` clusters orientation matrices with a `scipy.spatial.cKDTree` after reducing each to the member of its
+symmetry class with the largest quaternion w, plus boundary copies (both signs, only for members within twice the chord radius of the zone); it returns the
+same groups as `csl.dedup_orientations` (tests: random sets, sets on the cubic fundamental-zone boundary, a 4-fold group, no symmetry; a mutation check
+confirmed that the tests fail without the boundary copies); its speed was not timed (the unit test only guards against a pairwise loop). The key `CandidateDedup` takes `clique=cpp:K`,
+`clique=merged:K[@L]`, `pre=T`, `post=T` and `quarter=orig|filtered`. Hooks in `reconstruct_voxel`: the filters C0 and C1 sit before the quick-MC branch (the
+sequential and the lockstep quick MC both see the filtered list); C2 sits after the quick MC and before the ranking cut and moves the candidates that are
+within `post` x D of a better one behind the distinct ones (also in the FindOptimal hand-off of the last level); the "discrete" recorder record is unchanged
+and the "quick_mc" record gains `dd_n_discrete`, `dd_n_mc`, `dd_n_distinct` with the key on. With the key off the loop is the old code (bit-identical results
+and recorder keys, tested). The kept quarter is counted from the discrete stage's list by default (`quarter=orig`: freed slots go to the next candidate), or
+from the shorter list with `quarter=filtered`.
+
+**Step 3 (arms).** Each arm is one value of the key: the C++ clique (`clique=cpp`, k = 1, 2), the merged clique linked at half a diameter (`merged@0.5`, k = 1, 2) and,
+because the plan's one-diameter link is degenerate at level 0, also linked at one diameter (`merged`, k = 1, 2); dedup before the quick MC at 0.25 and 0.5 D (C1);
+the kept quarter counted over distinct candidates at 0.25 and 0.5 D (C2); C3 = `merged:2@0.5` + `pre=0.25` + `post=0.25`; and two variants that count the quarter from
+the shorter list (`quarter=filtered`: C1 at 0.5 D and C3). "Broken" = right in the baseline and wrong in the arm, "fixed" = the reverse, wrong = error above 1 degree,
+counted by voxel. Every arm, the baseline included, uses the lenient (default) overlap rule; the C++ rule appears only in the Step 1 measurement. Six
+voxels = the six full-sample voxels, one process each (the Task A ledger tool); E0 = the 200 E0 voxels, per-voxel clean images, seed 0,
+`min_sin_eta` 0, 10 workers. The six-voxel wrong counts carry Wilson intervals; six voxels cannot show an accuracy loss of a few percent, so they
+measure the savings, not the accuracy. Wall times are in `step3/tables.md`, labelled by how many of the six runs passed the quiet-machine check; evaluation counts do not
+depend on the load.
+
+<!-- table:evalC_c_all -->
+| arm | spec | six_evals | six_vs_base | six_wrong | e0_mean_evals | e0_vs_base | e0_wrong | e0_broken | e0_fixed | e0_both_wrong |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | off | 1,992,278 | 100.0% | 0/6 [0.000, 0.390] | 48,700 | 100.0% | 41/200 | 0 | 0 | 41 |
+| c0a_k1 | clique=cpp:1 | 1,510,635 | 75.8% | 0/6 [0.000, 0.390] | 48,400 | 99.4% | 55/200 | 24 | 10 | 31 |
+| c0a_k2 | clique=cpp:2 | 1,906,552 | 95.7% | 0/6 [0.000, 0.390] | 48,677 | 100.0% | 42/200 | 8 | 7 | 34 |
+| c0b_k1 | clique=merged:1@0.5 | 1,313,590 | 65.9% | 1/6 [0.030, 0.564] | 47,998 | 98.6% | 73/200 | 44 | 12 | 29 |
+| c0b_k2 | clique=merged:2@0.5 | 1,570,440 | 78.8% | 0/6 [0.000, 0.390] | 48,422 | 99.4% | 50/200 | 18 | 9 | 32 |
+| c0bL1_k1 | clique=merged:1 | 476,991 | 23.9% | 5/6 [0.436, 0.970] | 47,360 | 97.2% | 99/200 | 67 | 9 | 32 |
+| c0bL1_k2 | clique=merged:2 | 476,783 | 23.9% | 5/6 [0.436, 0.970] | 47,879 | 98.3% | 81/200 | 50 | 10 | 31 |
+| c1_t025 | pre=0.25 | 1,952,142 | 98.0% | 0/6 [0.000, 0.390] | 48,515 | 99.6% | 39/200 | 11 | 13 | 28 |
+| c1_t05 | pre=0.5 | 1,811,077 | 90.9% | 0/6 [0.000, 0.390] | 48,317 | 99.2% | 50/200 | 30 | 21 | 20 |
+| c2_t025 | post=0.25 | 1,997,954 | 100.3% | 0/6 [0.000, 0.390] | 48,684 | 100.0% | 44/200 | 6 | 3 | 38 |
+| c2_t05 | post=0.5 | 1,994,867 | 100.1% | 0/6 [0.000, 0.390] | 48,640 | 99.9% | 50/200 | 13 | 4 | 37 |
+| c3 | clique=merged:2@0.5,pre=0.25,post=0.25 | 1,569,151 | 78.8% | 0/6 [0.000, 0.390] | 48,350 | 99.3% | 50/200 | 25 | 16 | 25 |
+| c1_t05_qf | pre=0.5,quarter=filtered | 1,622,208 | 81.4% | 0/6 [0.000, 0.390] | 47,958 | 98.5% | 66/200 | 41 | 16 | 25 |
+| c3_qf | clique=merged:2@0.5,pre=0.25,post=0.25,quarter=filtered | 1,148,297 | 57.6% | 0/6 [0.000, 0.390] | 48,002 | 98.6% | 57/200 | 29 | 13 | 28 |
+<!-- /table:evalC_c_all -->
+
+Evaluations per stage on the six voxels (sum over the six; `screen` = level screens, `recost` = the complete cost of every passing candidate, `quick` = quick MC, `sum` = all):
+
+<!-- table:evalC_c_stage -->
+| arm | screen | recost | quick | find | variance | final | sum |
+|---|---|---|---|---|---|---|---|
+| base | 465,057 | 402,506 | 1,098,888 | 17,312 | 8,509 | 6 | 1,992,278 |
+| c0a_k1 | 464,643 | 402,236 | 619,524 | 15,970 | 8,256 | 6 | 1,510,635 |
+| c0a_k2 | 465,129 | 402,419 | 1,013,772 | 16,607 | 8,619 | 6 | 1,906,552 |
+| c0b_k1 | 459,162 | 396,585 | 432,672 | 16,381 | 8,784 | 6 | 1,313,590 |
+| c0b_k2 | 466,146 | 403,551 | 675,900 | 16,097 | 8,740 | 6 | 1,570,440 |
+| c0bL1_k1 | 264,015 | 208,285 | 312 | 1,122 | 3,251 | 6 | 476,991 |
+| c0bL1_k2 | 264,069 | 208,336 | 456 | 1,028 | 2,888 | 6 | 476,783 |
+| c1_t025 | 465,741 | 403,150 | 1,052,700 | 21,420 | 9,125 | 6 | 1,952,142 |
+| c1_t05 | 465,831 | 403,224 | 917,148 | 16,337 | 8,531 | 6 | 1,811,077 |
+| c2_t025 | 465,210 | 402,655 | 1,099,656 | 21,071 | 9,356 | 6 | 1,997,954 |
+| c2_t05 | 464,922 | 402,231 | 1,097,580 | 20,673 | 9,455 | 6 | 1,994,867 |
+| c3 | 465,543 | 402,919 | 670,416 | 20,306 | 9,961 | 6 | 1,569,151 |
+| c1_t05_qf | 415,557 | 354,624 | 826,632 | 16,682 | 8,707 | 6 | 1,622,208 |
+| c3_qf | 350,532 | 291,953 | 473,832 | 22,079 | 9,895 | 6 | 1,148,297 |
+<!-- /table:evalC_c_stage -->
+
+E0 arms with Wilson intervals on the wrong count and the paired split; `med_err_right_both` = median error in degrees over the `n_right_both` voxels
+that are right in both the arm and the baseline (n differs by arm):
+
+<!-- table:evalC_c_e0_arms -->
+| arm | spec | n | wrong | broken | fixed | both_wrong | mean_evals | vs_base | n_right_both | med_err_right_both |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | off | 200 | 41 [0.155, 0.266] | 0 | 0 | 41 | 48,700 | 100.0% | 159 | 0.0130 |
+| c0a_k1 | clique=cpp:1 | 200 | 55 [0.218, 0.341] | 24 | 10 | 31 | 48,400 | 99.4% | 135 | 0.0139 |
+| c0a_k2 | clique=cpp:2 | 200 | 42 [0.159, 0.272] | 8 | 7 | 34 | 48,677 | 100.0% | 151 | 0.0129 |
+| c0bL1_k1 | clique=merged:1 | 200 | 99 [0.426, 0.564] | 67 | 9 | 32 | 47,360 | 97.2% | 92 | 0.0138 |
+| c0bL1_k2 | clique=merged:2 | 200 | 81 [0.339, 0.474] | 50 | 10 | 31 | 47,879 | 98.3% | 109 | 0.0156 |
+| c0b_k1 | clique=merged:1@0.5 | 200 | 73 [0.301, 0.434] | 44 | 12 | 29 | 47,998 | 98.6% | 115 | 0.0165 |
+| c0b_k2 | clique=merged:2@0.5 | 200 | 50 [0.195, 0.314] | 18 | 9 | 32 | 48,422 | 99.4% | 141 | 0.0128 |
+| c1_t025 | pre=0.25 | 200 | 39 [0.146, 0.255] | 11 | 13 | 28 | 48,515 | 99.6% | 148 | 0.0169 |
+| c1_t05 | pre=0.5 | 200 | 50 [0.195, 0.314] | 30 | 21 | 20 | 48,317 | 99.2% | 129 | 0.0159 |
+| c1_t05_qf | pre=0.5,quarter=filtered | 200 | 66 [0.269, 0.398] | 41 | 16 | 25 | 47,958 | 98.5% | 118 | 0.0213 |
+| c2_t025 | post=0.25 | 200 | 44 [0.168, 0.282] | 6 | 3 | 38 | 48,684 | 100.0% | 153 | 0.0156 |
+| c2_t05 | post=0.5 | 200 | 50 [0.195, 0.314] | 13 | 4 | 37 | 48,640 | 99.9% | 146 | 0.0152 |
+| c3 | clique=merged:2@0.5,pre=0.25,post=0.25 | 200 | 50 [0.195, 0.314] | 25 | 16 | 25 | 48,350 | 99.3% | 134 | 0.0184 |
+| c3_qf | clique=merged:2@0.5,pre=0.25,post=0.25,quarter=filtered | 200 | 57 [0.227, 0.351] | 29 | 13 | 28 | 48,002 | 98.6% | 130 | 0.0183 |
+<!-- /table:evalC_c_e0_arms -->
+
+Truth basin (3 degrees) in the kept quarter, runs of 200 (`kept_L<level>`), and number of runs with it in the quick-MC inputs (`mcin_L<level>`):
+
+<!-- table:evalC_c_e0_truth -->
+| arm | kept_L0 | kept_L1 | kept_L2 | kept_L3 | mcin_L0 | mcin_L1 | mcin_L2 | mcin_L3 |
+|---|---|---|---|---|---|---|---|---|
+| base | 182/200 | 171/200 | 160/200 | 155/200 | 196 | 182 | 171 | 160 |
+| c0a_k1 | 168/200 | 151/200 | 146/200 | 144/200 | 188 | 169 | 152 | 146 |
+| c0a_k2 | 182/200 | 167/200 | 160/200 | 157/200 | 196 | 183 | 167 | 160 |
+| c0bL1_k1 | 117/200 | 106/200 | 104/200 | 99/200 | 118 | 118 | 107 | 104 |
+| c0bL1_k2 | 136/200 | 128/200 | 121/200 | 118/200 | 142 | 138 | 129 | 121 |
+| c0b_k1 | 159/200 | 139/200 | 129/200 | 125/200 | 175 | 162 | 140 | 129 |
+| c0b_k2 | 175/200 | 157/200 | 151/200 | 147/200 | 193 | 177 | 158 | 151 |
+| c1_t025 | 181/200 | 168/200 | 162/200 | 160/200 | 196 | 184 | 168 | 162 |
+| c1_t05 | 185/200 | 164/200 | 151/200 | 147/200 | 194 | 186 | 165 | 151 |
+| c1_t05_qf | 180/200 | 156/200 | 137/200 | 134/200 | 194 | 180 | 156 | 137 |
+| c2_t025 | 182/200 | 167/200 | 157/200 | 155/200 | 196 | 182 | 167 | 157 |
+| c2_t05 | 182/200 | 163/200 | 150/200 | 149/200 | 196 | 182 | 164 | 150 |
+| c3 | 177/200 | 161/200 | 152/200 | 148/200 | 193 | 177 | 161 | 152 |
+| c3_qf | 168/200 | 152/200 | 145/200 | 143/200 | 193 | 169 | 152 | 145 |
+<!-- /table:evalC_c_e0_truth -->
+
+Level 0, run by run (added after review): `l0_filter_drop_runs` = runs in which the arm dropped candidates before the level-0 quick MC (from then on
+the random draws differ from the baseline's); `mcin_L0` = runs with the truth basin (3 degrees) in the level-0 quick-MC inputs; `lost_L0` = runs
+that have it in the baseline and not in the arm, split by final outcome against the baseline; `gained_L0` = the reverse. The level-0 discrete
+stage uses no random numbers, so a lost basin is the filter's doing; the outcome after it still passes through later draws.
+
+<!-- table:evalC_c_e0_level0 -->
+| arm | spec | l0_filter_drop_runs | mcin_L0 | lost_L0 | lost_broken | lost_fixed | lost_both_wrong | lost_both_right | gained_L0 | broken | fixed |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| base | off | 0 | 196 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| c0a_k1 | clique=cpp:1 | 200 | 188 | 8 | 5 | 0 | 3 | 0 | 0 | 24 | 10 |
+| c0a_k2 | clique=cpp:2 | 131 | 196 | 0 | 0 | 0 | 0 | 0 | 0 | 8 | 7 |
+| c0bL1_k1 | clique=merged:1 | 200 | 118 | 78 | 56 | 0 | 22 | 0 | 0 | 67 | 9 |
+| c0bL1_k2 | clique=merged:2 | 200 | 142 | 54 | 37 | 1 | 15 | 1 | 0 | 50 | 10 |
+| c0b_k1 | clique=merged:1@0.5 | 200 | 175 | 21 | 14 | 0 | 7 | 0 | 0 | 44 | 12 |
+| c0b_k2 | clique=merged:2@0.5 | 200 | 193 | 3 | 2 | 0 | 0 | 1 | 0 | 18 | 9 |
+| c1_t025 | pre=0.25 | 200 | 196 | 0 | 0 | 0 | 0 | 0 | 0 | 11 | 13 |
+| c1_t05 | pre=0.5 | 200 | 194 | 2 | 1 | 1 | 0 | 0 | 0 | 30 | 21 |
+| c1_t05_qf | pre=0.5,quarter=filtered | 200 | 194 | 2 | 1 | 1 | 0 | 0 | 0 | 41 | 16 |
+| c2_t025 | post=0.25 | 0 | 196 | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 3 |
+| c2_t05 | post=0.5 | 0 | 196 | 0 | 0 | 0 | 0 | 0 | 0 | 13 | 4 |
+| c3 | clique=merged:2@0.5,pre=0.25,post=0.25 | 200 | 193 | 3 | 3 | 0 | 0 | 0 | 0 | 25 | 16 |
+| c3_qf | clique=merged:2@0.5,pre=0.25,post=0.25,quarter=filtered | 200 | 193 | 3 | 3 | 0 | 0 | 0 | 0 | 29 | 13 |
+<!-- /table:evalC_c_e0_level0 -->
+
+**Extension: the 30-voxel full-sample set (not in the plan).** Six voxels are too few to see a loss, and the E0 set cannot show the savings, so the baseline and the five arms with a saving on the six (`clique=cpp:1`, `clique=cpp:2`, `clique=merged:2@0.5`, `pre=0.5`, C3) were also run on the other 24 voxels of the 30-voxel ray-study set (`benchmarks/phase_d_seed_diag/ray_overlap/voxels.json`; the six ledger runs are reused, the other 144 runs were made 8 at a time, so they are contended; evaluation counts and results do not depend on the load). Clean images, seed 1, lenient (default) overlap rule, wrong = error above 1 degree, paired by voxel against the baseline; `median_err_all30` = median error in degrees over all 30 voxels, wrong ones included:
+
+<!-- table:evalC_c_full30 -->
+| arm | spec | evals | vs_base | wrong | broken | fixed | both_wrong | median_err_all30 |
+|---|---|---|---|---|---|---|---|---|
+| base | off | 9,926,300 | 100.0% | 1/30 [0.006, 0.167] | 0 | 0 | 1 | 0.0078 |
+| c0a_k1 | clique=cpp:1 | 7,550,309 | 76.1% | 2/30 [0.018, 0.213] | 2 | 1 | 0 | 0.0163 |
+| c0a_k2 | clique=cpp:2 | 9,499,632 | 95.7% | 1/30 [0.006, 0.167] | 0 | 0 | 1 | 0.0124 |
+| c0b_k2 | clique=merged:2@0.5 | 7,821,945 | 78.8% | 2/30 [0.018, 0.213] | 2 | 1 | 0 | 0.0121 |
+| c1_t05 | pre=0.5 | 9,038,525 | 91.1% | 0/30 [0.000, 0.114] | 0 | 1 | 0 | 0.0128 |
+| c3 | clique=merged:2@0.5,pre=0.25,post=0.25 | 7,836,757 | 78.9% | 1/30 [0.006, 0.167] | 1 | 1 | 0 | 0.0160 |
+<!-- /table:evalC_c_full30 -->
+
+
+**Diagram.** `figures/arms_evals_and_wrong.png`: evaluations and wrong counts of every arm side by side.
+
+**Reading the results.**
+
+* *The savings come from the quick MC.* On the six full-sample voxels the quick MC is 55.2% of the baseline's evaluations (1,098,888 of 1,992,278), the screens 23.3% and the re-costs 20.2%. A filter before the quick MC removes quick-MC evaluations only: with `quarter=orig` the next levels still screen the same number of kept candidates (465,057 screen evaluations in the baseline, 464,643 with `clique=cpp:1`). Counting the quarter from the shorter list (`quarter=filtered`) also shrinks the later screens and re-costs: C3 with it (`c3_qf`) makes 350,532 screen, 291,953 re-cost and 473,832 quick-MC evaluations, 57.6% of the baseline's in all, 0 of 6 wrong, but on E0 29 broken and 13 fixed (57 wrong against 41).
+* *C2 alone saves nothing* (100.3% and 100.1% of the baseline's evaluations on the six): it changes which candidates fill the kept slots, not how many.
+* *E0 measures accuracy, not savings.* A per-voxel image leaves about 182 candidates per voxel at level 0 (mean over the 200 baseline runs), so the quick MC is 6.0% of the E0 evaluations.
+* *Accuracy on E0.* Every arm that changes the candidate list has both broken and fixed voxels (the wrong count changes by +14 for `clique=cpp:1`, +1 for `clique=cpp:2`, -2 for `pre=0.25`, +9 for `pre=0.5`, +9 for C3, +25 and +16 with `quarter=filtered`). The filters C0 and C1 change the quick-MC inputs of a level; `post` (C2) leaves them alone and changes the kept list instead (+3 and +9 for `post=0.25` and `post=0.5`), and so the next level's inputs. Either way the number or order of quick-MC runs changes, and with it the random numbers every later run receives, so the paired split mixes the arm's effect with the effect of a new draw. The scale of the draw alone: two seeds of the same key-off code on these 200 voxels give 20/22, 14/18 and 21/23 fixed/broken (net +2, +4, +2; `s3_ab_paired`, same voxels and images, `e0_run.py` settings with 35 to 39 wrong per seed). Against that scale `clique=cpp:1` (net +14) and three of the four merged-clique arms (net +32 to +58) stand out, `clique=merged:2@0.5`, `pre=0.5`, `post=0.5` and C3 (net +9 each) are above it by less, and `clique=cpp:2`, `pre=0.25` and `post=0.25` (8/7, 11/13, 6/3 broken/fixed) are within it. Only the part that passes through the level-0 inputs can be traced without random numbers (table `evalC_c_e0_level0`): 5 of the 24 broken voxels of `clique=cpp:1` lose the truth basin from the level-0 quick-MC inputs (8 runs lose it: 5 broken, 3 both wrong); `pre=0.5` loses it in 2 runs (1 broken, 1 fixed), so its net +9 arises later and is not separated from the draw. This is consistent with Step 1, where in 9 of 30 E0 runs the candidate nearest to the truth is not the best-scored of its clique at level 0.
+* *The plan's one-diameter merged clique* (`clique=merged:1` and `:2`) cuts the evaluations to 23.9% of the baseline's and leaves 5 of the 6 full-sample voxels wrong (99 and 81 of the 200 E0 voxels wrong): at level 0 it keeps k candidates for the whole run, as Step 1 predicted. Linked at half a diameter (`@0.5`) it keeps 78.8% (k = 2) of the evaluations with 0 of 6 wrong; on E0 18 broken and 9 fixed (net +9; 2 broken traced to the level-0 inputs).
+* *Full-sample set.* On 30 voxels the largest saving without a clear loss is `clique=cpp:1` (23.9% fewer evaluations; 2 wrong against 1; Wilson intervals of 2/30 and 1/30 overlap almost entirely), then `pre=0.5` (8.9% fewer, 0 wrong). These counts are too small to separate a loss of one or two voxels from the draw, and they are on clean images only.
+* *Decision point taken (non-blocking).* The plan's rule names the arm with the fewest evaluations among those with no broken E0 voxel (and no more wrong of the six than the baseline); no arm qualifies, so the baseline is carried to Task G. The rule cannot be met by any arm that changes the candidate list: the draw changes with it, and two seeds of the same code already break 18 to 23 of the 200 voxels. "No arm qualifies" therefore says nothing about the arms. Keeping or replacing that rule for later tasks (for example, net change against the seed-to-seed scale plus a check that uses no random numbers, such as the truth basin in the level-0 quick-MC inputs) is an open owner question. The full-sample evidence (2 broken of 30 for `clique=cpp:1`, 0 for `pre=0.5`) against the E0 evidence (net +14 with 5 broken traced, and net +9 not traced) was weighed by the owner: neither filter is tried in Task G for now (D-20261014-N4).
+
+
+**Not tested.** Realistic images (the noise model is not yet redone, findings open question 8) and extra seeds (not allowed): every comparison is one draw of the
+random numbers per voxel. An arm that changes how many quick-MC runs a level makes also changes which random numbers the later runs receive, so part of the "broken"
+and "fixed" voxels is the same effect as any change of the draw. No extra seeds were run for Task C; the scale used above is the existing seed-to-seed split of the same
+key-off code on the same 200 voxels (`s3_ab_paired`: 20/22, 14/18, 21/23 fixed/broken per 200). The shorter quick MC on duplicates (C4) was not
+built (trigger not met). Not tried: the BFS setting (a start from a neighbour's orientation), more than 30 full-sample voxels, and a timing of any arm with `BatchedQuickMC` on.
+
+**The E0 baseline against the stored E0 runs (corrected after review).** Today's baseline has 41 of 200 wrong, the stored lenient-rule run `off_ms0` 39; they differ in
+30 voxels (16 wrong only now, 14 wrong only before). The cause is measured, not open: it is the centroid screen start point (a deliberate change, "Centroid start point
+everywhere", 2026-10-12). The stored run made after that change and before `BatchedScreen` existed (`off_ms0_centroid`, per-orientation screen) gives the same error as
+today's baseline on all 200 voxels, and `off_ms0` against it is the centroid study's own split (`centroid_e0_paired`, row "old": 14 fixed, 16 broken, 25 both wrong).
+`BatchedScreen` changed no E0 result (also shown in "S3" below: no flag and no cost changed). An earlier version of this section blamed `BatchedScreen` and called the
+cause untested; that was wrong.
+
+<!-- table:evalC_c_e0_reference -->
+| run | what | n | wrong_run | wrong_base | same_error_1e9 | max_abs_err_diff | wrong_only_in_run | wrong_only_in_base | both_wrong |
+|---|---|---|---|---|---|---|---|---|---|
+| off_ms0 | before the centroid screen start point (2026-10-12) and BatchedScreen | 200 | 39 | 41 | 0 | 6.00e+01 | 14 | 16 | 25 |
+| off_ms0_centroid | centroid start point, per-orientation screen (before BatchedScreen) | 200 | 41 | 41 | 200 | 0.00e+00 | 0 | 0 | 41 |
+| off_ms0_c_ref | e0_cpprule.py off arm on the Task C code, uninstrumented | 200 | 41 | 41 | 200 | 0.00e+00 | 0 | 0 | 41 |
+<!-- /table:evalC_c_e0_reference -->
+
+**Verified, not assumed:** the instrumented E0 baseline (the probe wrappers only count) gives the same error and evaluation count on all 200 voxels as the uninstrumented
+`e0_cpprule.py` off arm run on today's code (`off_ms0_c_ref`, 200 of 200 identical), and the same error as the pre-Task-C run `off_ms0_centroid` (200 of 200), which is
+stronger evidence that key off leaves the results unchanged than the unit test (that test compares "off" with the default inside the new code, so it pins only the
+absence of the `dd_` recorder keys).
+
+**Files.** See the "Task C" paragraph of the README for scripts and runners. Results: `step1/` (overlap statistics, `metrics_*.json`, `summary_*.json`, `tables_*.md`,
+`clique_truth.json`), `step3/` (`summary.json`, `summary_e0.json`, `tables*.md`, preflight files), `ledger/runs/` (six-voxel ledger runs), `full30/runs/` (the other 24 voxels
+of the 30-voxel set), `figures/`.
+
+### Task D: spot pairing across detectors and peak-to-voxel attribution (2026-10-14, `feature/eval-reduction-D`)
+
+Run record: `benchmarks/eval_reduction/D/RUN_LOG.md`. Library: `icenine/spot_pairing.py` (pure geometry, numpy, `cKDTree` for the
+attribution; tests `tests/test_spot_pairing.py`), plus the opt-in `ForwardSimulation.peak_hook` (default `None`, no effect when off).
+Provenance writer: `scripts/phase_d/render_provenance.py` (a sibling of `render_full.py`, which is unchanged). Scripts:
+`scripts/eval_reduction/pairing_*.py`. Everything is the clean full-sample render (24,570 voxels, Q-max 8 configuration, sample seed 0), no
+realistic images, no extra seeds, no golden test changed, no default flipped. The tables below are generated
+(`benchmarks/eval_reduction/D/doc_tables_all.md`); figures are in `benchmarks/eval_reduction/D/figures/` (`pairing_geometry.png` is the diagram of
+the pairing geometry, `origin_error_map.png` the origin-error map, `attribution.png`, `sharpness.png`).
+
+**Short answer.**
+
+1. *Almost no spot has one source.* Of 30,191 detector-0 and 27,198 detector-1 spots (4-connected components of lit pixels) only 10 and 20 are drawn by
+   a single (voxel, reflection) pair; the others are unions of all voxels of one grain (median 44 sources, about 100 pixels) or of several grains (1,770
+   on detector 0, 2,593 on both). No true pair (a pair of spots sharing a source) has two single-source spots (0 of 27,888), so the plan's "single-source recall" is
+   not measurable on this sample.
+2. *The line through two centroids pairs the one-grain spots (0.987) but needs the ring angle.* Rule: the line meets the layer z = 0 on a physical
+   ray, inside the sample hull (widened by the origin's own tolerance, one voxel and the arc motion r d_omega / 2), and its scattering angle matches
+   one of the eight Cu rings; 1 pixel centroid tolerance on each detector; greedy assignment. Precision 0.887 (24,412 of 27,513 predicted pairs);
+   recall 0.987 on one-grain pairs (23,208 of 23,502) and 0.275 on pairs involving a union of several grains (1,204 of 4,386). With the hull test
+   alone, precision is 0.476 and 76% of the detector-0 spots that have a partner have more than one candidate (median 2). The preset and the
+   size-gate offset were chosen on this sample after seeing its results, so all numbers are in-sample.
+3. *Origin on the layer.* Correct one-grain pairs (23,205 pairs, sample frame, frame-centre omega): median 2.7 um (1.7 um in the lab frame), 90th
+   percentile 15.6 um, 99th percentile 88.6 um; it grows when the ray is nearly in the layer (31 um median for |u_z| below 0.02, 1.9 um above 0.1).
+   Voxel side 9.4 um.
+4. *Attribution.* A union spot's origin is the grain footprint's centre, so a radius around the voxel centroid trades recall for false pairs: on the
+   30-voxel set r = 30 um finds 66.1% of a voxel's true peaks with about 42 false pairs attached per voxel, r = 50 um finds 81.3% with about 162.
+5. *The discriminating test.* At the 0.05 degree direction tolerance, a cost restricted to the attributed peaks is not sharper than the
+   pixel-overlap cost: half-score radius 0.38 degrees against 0.26 degrees. The radius follows the tolerance (0.18 to 0.72 degrees over 0.02 to 0.2
+   degrees), so at 0.02 degrees it is sharper. Both keep wrong orientations at 1 degree and more below half the truth score when the attributed list
+   is good: 0 of 30 voxels (Wilson 95% interval 0 to 0.114) for pixel, B and oracle (median best wrong over truth 0.139 against 0.110). A short
+   list (r = 15.7 um) gives a truth score of 0.078.
+6. *Step 4 (classifier) not run:* skipped by owner decision D-20261014-N6. Single-source recall is not defined; the nearest class (one grain) has
+   recall 0.987, above 0.95. Precision and the several-grain spots remain open.
+
+**Owner reading (D-20261014-N7).** Spot-to-grain association is the useful result; voxel-level association is not needed. A grain's spots give a
+starting orientation, and the area around the grain can be sampled with it. FindOptimal or outward searches can run from it. The orientations defined
+by the peak-grain combinations may give a much smaller starting candidate list. These are follow-ups to plan; none is started. Items 4 and 5 are why
+the level is the grain, not the voxel: origins find the grain, a radius filter loses real peaks, and a hit-or-miss peak-list score is no sharper than
+the pixel cost. *Untested proposal (main session):* a matched pair gives the scattered ray direction; with the beam and the frame's omega it gives the
+scattering vector in the sample frame, and the ring gate gives its {hkl} family. Two non-parallel vectors of one grain fix the orientation up to a
+small set (standard indexing). Error budget per spot (D-20261014-N10). The measured ray-direction error on clean images is small. It is the radial
+part only: 2theta of the line through the two centroids minus the nearest Cu ring. Over all 23,483 true links whose two spots are both one-grain
+spots, with no gate, the median is 0.0045 degrees and the 90th percentile 0.0163 degrees. The tail is long: p99 0.091 degrees, largest 0.74 degrees,
+and 422 links (1.8%) above 0.042 degrees. These large errors are not traced. The 23,205 correct one-grain pairs chosen by `ring_tight` give a median
+of 0.0044, p90 0.0155 and a largest error of 0.080 degrees, but their tail is cut by the ring gate itself: the gate allows one pixel on each centroid,
+added linearly, over the spot separation, 0.080 to 0.084 degrees (`spot_pairing.py:319`), and it cuts 256 of the 23,483 links. The line uses both
+centroids, so the error includes both detectors. The sideways part (a turn about the beam) was not measured. One pixel is kept as the tolerance and as
+an upper estimate of the ray-direction error. The detectors sit at 3.362 and 5.387 mm in `StandardGeometry.2Det`, gap 2.03 mm, pixel 1.48 um. So one
+pixel on one detector turns the ray by 1.48 um / 2.03 mm = 0.042 degrees, and one pixel on each detector by 0.059 degrees in quadrature. It is not a
+strict limit (see the tail above). A sideways ray error maps to about 1 / sin 2theta times as much on the scattering vector (eight rings, 2theta 5.3
+to 13.7 degrees). One pixel on one detector only gives 0.45 to 0.18 degrees; one pixel on each detector gives 0.64 to 0.25 degrees. Over all one-grain
+links the measured median gives 0.049 to 0.019 degrees, the p90 0.18 to 0.069 degrees and the p99 0.99 to 0.38 degrees, if the sideways error is about
+as large as the radial one (untested). The 1 degree frames leave omega uncertain by +-0.5 degrees. That moves the sample-frame scattering vector by up
+to about 0.43 degrees (median sin(g, z) 0.86 over the chosen pairs). On clean images this frame term dominates for at least 90% of pairs (same
+untested sideways assumption); at the p99 the ray term is about as large or larger. Real data will have a larger direction error than these clean
+images. The frame term can exceed the pixel cost's half-score radius (0.26 degrees; a rough comparison, a direction error against an orientation
+radius). So one pair does not fix the orientation, and a fit over many spots of the grain is needed. Each grain has a median of 50 one-grain
+detector-0 spots with a true partner, matched or not (at least 33, even for 4-voxel grains). How close the fit gets is untested. Risks: small grains
+give small spots, with few pixels per centroid; spot groups of neighbouring grains may merge. *How to test it:* cluster the matched rays' origins into
+grains; index each cluster (pairs of scattering vectors with their ring families, then a fit over the cluster's spots); count grains whose seed lands
+within 0.1 and 0.5 degrees of the true orientation, by grain size; then run FindOptimal from those seeds and count its cost evaluations; compare them,
+per voxel, with the counted evaluations of the no-start search (the Task A and C evaluation ledger). Two reasons it may hold up, both untested:
+indexing can split merged clusters of neighbouring grains, since another grain's vectors do not fit the same orientation; and the poorly matched
+several-grain spots matter little, because each grain has many one-grain spots.
+
+**Notes for planning the learned model (D-20261014-N8; main session, nothing built).** Labels come free from the provenance writer (about 35 s per
+labelled render, contended). Grain IDs are arbitrary, so train for association (an embedding per spot with a pairwise or contrastive loss), not fixed
+grain classes. The detector-1 spot has about the same size and shape as its detector-0 partner. Over 23,022 true one-grain pairs off the detector
+edges, the pixel-count ratio has median 1.00 (p10 to p90 0.89 to 1.13; `step1/summary.json` `partner_size_ratio`). This fits the geometry: a
+grain's spot is a parallel projection, because all its voxels diffract along the same direction. The detector-1 spot is shifted outward from the
+beam by about the detector gap times tan 2theta. The shift depends on the spot position, so give the model the position or crops around candidate
+pairs. A hybrid, where the geometric gates
+propose pairs and the model scores crops, targets what geometry cannot do (the 0.887 precision, the several-grain spots). The main planning item is
+the sim-to-real gap: simulated spots are clean, with sharp edges, no blur and no detector noise, and the current noise model is flagged unphysical.
+
+**Step 1 (truth).** `render_provenance.py` re-renders the clean images through a recording image (35 s, 10 workers, contended): all 360 images
+(180 frames x 2 detectors) have the same lit pixels as the stock `clean/` files, with intensities equal to the stored precision, the 57,389 components equal `spots_total` of `render_full.json`, 2,957,243 triangle records. 27,888 true pairs carry
+1,375,053 peaks; 3,890 detector-0 spots have no partner (not traced further).
+
+<!-- table:evalD_step1_components -->
+| detector | class | components | with a true partner | median pixels | p90 pixels | median sources | max sources |
+|---|---|---|---|---|---|---|---|
+| 0 | single-source | 10 | 0 | 10 | 11 | 1 | 1 |
+| 0 | one grain, several voxels | 28411 | 24671 | 97 | 223 | 44 | 185 |
+| 0 | several grains | 1770 | 1630 | 230 | 462 | 106 | 296 |
+| 1 | single-source | 20 | 20 | 3 | 10 | 1 | 1 |
+| 1 | one grain, several voxels | 26355 | 26355 | 103 | 235 | 44 | 185 |
+| 1 | several grains | 823 | 823 | 249 | 472 | 103 | 296 |
+<!-- /table:evalD_step1_components -->
+
+**Step 2 (pairing).** Presets: `hull_*` (hull gate only), `ring_*` (hull + ring), `shape_*` (adds a rigid pixel-count and bounding-box gate); `tight` = 1
+pixel centroid tolerance on each detector (its own pixel), `plan` = adds the registration (10 um) and voxel size x (L1/L0 - 1) (5.65 um,
+L1/L0 = 1.603 from the detector distances) on detector 1 (arm A terms read
+as half-widths; the simulated data has no registration error, so `plan` only loosens the gate); `_c0.5`, `_c2` = centroid tolerance 0.5 and 2 pixels;
+`_binary` = unweighted centroid. The main pairing is `ring_tight`. Precision and recall carry Wilson intervals; peak recall is the share of the
+1,375,053 true peaks whose spot pair is found.
+
+<!-- table:evalD_step2_presets -->
+| preset | predicted pairs | precision | link recall | peak recall | recall, one grain | recall, several grains |
+|---|---|---|---|---|---|---|
+| hull_tight | 54646 | 0.476 [0.472, 0.480] (26019/54646) | 0.933 [0.930, 0.936] (26019/27888) | 0.947 | 0.942 [0.939, 0.945] (22141/23502) | 0.884 [0.874, 0.893] (3878/4386) |
+| hull_plan | 68984 | 0.377 [0.374, 0.381] (26034/68984) | 0.934 [0.931, 0.936] (26034/27888) | 0.947 | 0.942 [0.939, 0.945] (22141/23502) | 0.888 [0.878, 0.897] (3893/4386) |
+| ring_tight | 27513 | 0.887 [0.883, 0.891] (24412/27513) | 0.875 [0.871, 0.879] (24412/27888) | 0.872 | 0.987 [0.986, 0.989] (23208/23502) | 0.275 [0.262, 0.288] (1204/4386) |
+| ring_plan | 54706 | 0.497 [0.493, 0.501] (27196/54706) | 0.975 [0.973, 0.977] (27196/27888) | 0.977 | 0.998 [0.997, 0.998] (23453/23502) | 0.853 [0.843, 0.864] (3743/4386) |
+| shape_tight | 24968 | 0.932 [0.929, 0.935] (23272/24968) | 0.834 [0.830, 0.839] (23272/27888) | 0.836 | 0.964 [0.962, 0.966] (22656/23502) | 0.140 [0.130, 0.151] (616/4386) |
+| shape_plan | 43452 | 0.560 [0.555, 0.564] (24324/43452) | 0.872 [0.868, 0.876] (24324/27888) | 0.883 | 0.974 [0.972, 0.976] (22892/23502) | 0.326 [0.313, 0.341] (1432/4386) |
+| ring_tight_c0.5 | 25121 | 0.945 [0.942, 0.947] (23728/25121) | 0.851 [0.847, 0.855] (23728/27888) | 0.845 | 0.980 [0.978, 0.982] (23033/23502) | 0.158 [0.148, 0.170] (695/4386) |
+| ring_tight_c2 | 32754 | 0.778 [0.773, 0.782] (25481/32754) | 0.914 [0.910, 0.917] (25481/27888) | 0.914 | 0.992 [0.991, 0.993] (23313/23502) | 0.494 [0.480, 0.509] (2168/4386) |
+| shape_tight_c0.5 | 23610 | 0.968 [0.966, 0.970] (22857/23610) | 0.820 [0.815, 0.824] (22857/27888) | 0.818 | 0.957 [0.954, 0.959] (22481/23502) | 0.086 [0.078, 0.094] (376/4386) |
+| shape_tight_c2 | 27890 | 0.852 [0.848, 0.856] (23756/27890) | 0.852 [0.848, 0.856] (23756/27888) | 0.858 | 0.968 [0.966, 0.971] (22759/23502) | 0.227 [0.215, 0.240] (997/4386) |
+| ring_tight_binary | 26111 | 0.880 [0.876, 0.884] (22969/26111) | 0.824 [0.819, 0.828] (22969/27888) | 0.815 | 0.929 [0.926, 0.932] (21835/23502) | 0.259 [0.246, 0.272] (1134/4386) |
+| shape_tight_binary | 23634 | 0.927 [0.924, 0.931] (21919/23634) | 0.786 [0.781, 0.791] (21919/27888) | 0.782 | 0.908 [0.904, 0.912] (21344/23502) | 0.131 [0.121, 0.141] (575/4386) |
+<!-- /table:evalD_step2_presets -->
+
+Of the 3,101 false pairs of `ring_tight`, 3,038 join two spots that both have another true partner, 63 involve one spot without a partner. Of the true
+pairs it misses, 3,405 fail the ring gate (272 one-grain, 3,133 several-grain) and 48 the hull gate; none fails the ray or origin-uncertainty gate.
+That several-grain pairs mostly fail the ring gate is consistent with mixing the centroids of different grains; the unions were not split to test it.
+Origin error by ray slope (correct one-grain pairs; truth is the mean of the source voxel centroids; the predicted sigma comes from the tight
+tolerances of `ring_tight`, 1 pixel on each detector, and is 10 to 32 times the median sample-frame error per row, 21 times overall: a gate, not an
+error estimate). The origin-error map shows no visible spatial pattern (judged by eye):
+
+<!-- table:evalD_step2_origin_error -->
+| ray z-slope (abs u_z) | pairs | lab-frame error median (um) | lab-frame error p90 (um) | sample-frame error median (um) | sample-frame error p90 (um) | predicted sigma median (um) |
+|---|---|---|---|---|---|---|
+| 0 to 0.02 | 2127 | 30.8 | 92.8 | 30.8 | 92.8 | 302.0 |
+| 0.02 to 0.05 | 5555 | 4.2 | 19.6 | 4.6 | 19.8 | 149.8 |
+| 0.05 to 0.1 | 5821 | 1.6 | 4.3 | 2.4 | 5.1 | 61.7 |
+| 0.1 to 1 | 9702 | 1.0 | 2.6 | 1.9 | 4.0 | 30.6 |
+<!-- /table:evalD_step2_origin_error -->
+
+**Step 3 (attribution).** Rule A: the pair's origin within r of the voxel centroid; rule B: the ray from the voxel centroid along the pair's direction
+hits the bounding box of both spots (tolerance 1 pixel plus arc motion). A voxel's true peaks are those it drew on both detectors; an attached pair is
+true when the voxel is a source of both spots with a shared reflection. 30 voxels = the 30-voxel ray-study set, which contains the six interior voxels
+(the plan's "six and 30 others" is 30, not 36); `step3/attach_summary.json` also has 300 evenly spread voxels (same picture: r = 30 um 69.7%,
+r = 50 um 82.1%). The ceiling is the pair recall: 0.872 of the true peaks have a chosen spot pair.
+
+<!-- table:evalD_step3_attach_voxels30 -->
+| attachment | true peaks found | attached pairs per voxel | false attached per voxel | share of attached that are false | recall, interior | recall, boundary |
+|---|---|---|---|---|---|---|
+| A r=2 um | 0.004 [0.002, 0.008] (7/1714) | 0.3 | 0.1 | 0.222 | 0.008 | 0.002 |
+| A r=5 um | 0.020 [0.014, 0.028] (34/1714) | 1.7 | 0.5 | 0.320 | 0.049 | 0.003 |
+| A r=10 um | 0.127 [0.112, 0.143] (217/1714) | 9.3 | 2.0 | 0.219 | 0.320 | 0.015 |
+| A r=15 um | 0.230 [0.211, 0.250] (394/1714) | 18.9 | 5.8 | 0.306 | 0.492 | 0.078 |
+| A r=20 um | 0.370 [0.348, 0.394] (635/1714) | 34.5 | 13.4 | 0.387 | 0.545 | 0.270 |
+| A r=30 um | 0.661 [0.638, 0.683] (1133/1714) | 79.8 | 42.1 | 0.527 | 0.667 | 0.657 |
+| A r=50 um | 0.813 [0.794, 0.830] (1393/1714) | 208.8 | 162.3 | 0.778 | 0.804 | 0.818 |
+| A r=100 um | 0.844 [0.826, 0.861] (1447/1714) | 783.6 | 735.4 | 0.938 | 0.839 | 0.847 |
+| B footprint | 0.840 [0.822, 0.857] (1440/1714) | 374.7 | 326.7 | 0.872 | 0.836 | 0.843 |
+<!-- /table:evalD_step3_attach_voxels30 -->
+
+Discriminating test (30 voxels): the true orientation and wrong ones (8 random axes at each of 0.05 to 20 degrees; rotations of 10 to 60 degrees about
+low-index crystal axes, near-degenerate candidates). `pixel` is 1 - cost of the strict C++ rule, radius 0; the attributed score is the share of the orientation's predicted observable
+peaks matching an attributed observed peak (same frame, ray direction within 0.05 degrees = one pixel of centroid error on both detectors over the
+2 mm separation; the oracle list is the voxel's own true pairs). Normalised by the voxel's score at the truth. Caveats: the two scores use
+different peak sets (the attributed score needs the voxel centre on both detectors; the C++ rule `CountQualifiedPeaks` also counts peaks lit on
+detector 0 and off detector 1); both half-score radii are log-linear interpolations between the 0.25 and 0.5 degree points; the `A r=15.7 um` column
+is not interpretable as a sharpness (truth score median 0.078, minimum 0; the 7 voxels with a truth score of 0 drop out, leaving 23 of 30; 15.7 um is
+about the 90th-percentile origin error, 15.6 um after the review fixes). Voxel counts out of 30 carry Wilson intervals in
+`step3/separate_summary.json` (0 of 30: 0 to 0.114; 28 of 30: 0.787 to 0.982):
+
+<!-- table:evalD_step3_truth_scores -->
+| score | median at the truth | minimum at the truth | half-score radius (deg) |
+|---|---|---|---|
+| pixel overlap (C++ rule) | 0.936 | 0.894 | 0.258 |
+| attributed, A r=15.7 um | 0.078 | 0.000 | 0.384 |
+| attributed, A r=30 um | 0.719 | 0.018 | 0.376 |
+| attributed, B footprint | 0.792 | 0.696 | 0.377 |
+| attributed, oracle (true pairs) | 0.789 | 0.696 | 0.378 |
+<!-- /table:evalD_step3_truth_scores -->
+
+<!-- table:evalD_step3_sharpness -->
+| misorientation (deg) | pixel overlap (C++ rule) | attributed, A r=15.7 um | attributed, A r=30 um | attributed, B footprint | attributed, oracle (true pairs) |
+|---|---|---|---|---|---|
+| 0.05 | 0.927 | 0.976 | 0.967 | 0.958 | 0.958 |
+| 0.1 | 0.819 | 0.944 | 0.922 | 0.921 | 0.920 |
+| 0.25 | 0.512 | 0.764 | 0.732 | 0.731 | 0.733 |
+| 0.5 | 0.235 | 0.338 | 0.338 | 0.342 | 0.342 |
+| 1 | 0.061 | 0.072 | 0.085 | 0.087 | 0.088 |
+| 2 | 0.017 | 0.012 | 0.017 | 0.020 | 0.018 |
+| 5 | 0.004 | 0.000 | 0.003 | 0.003 | 0.003 |
+| 10 | 0.001 | 0.000 | 0.000 | 0.000 | 0.000 |
+| 20 | 0.003 | 0.000 | 0.000 | 0.000 | 0.000 |
+<!-- /table:evalD_step3_sharpness -->
+
+<!-- table:evalD_step3_separation -->
+| wrong orientations | score | median best wrong / truth | max over voxels | voxels >= 0.5 truth | voxels >= truth |
+|---|---|---|---|---|---|
+| random axis, 1 degree and more | pixel overlap (C++ rule) | 0.110 | 0.173 | 0 | 0 |
+| random axis, 1 degree and more | attributed, A r=15.7 um | 0.178 | 1.035 | 5 | 1 |
+| random axis, 1 degree and more | attributed, A r=30 um | 0.138 | 0.983 | 2 | 0 |
+| random axis, 1 degree and more | attributed, B footprint | 0.139 | 0.260 | 0 | 0 |
+| random axis, 1 degree and more | attributed, oracle (true pairs) | 0.139 | 0.260 | 0 | 0 |
+| random axis, 0.25 to 0.5 degree | pixel overlap (C++ rule) | 0.640 | 0.818 | 28 | 0 |
+| random axis, 0.25 to 0.5 degree | attributed, A r=15.7 um | 0.962 | 1.035 | 23 | 11 |
+| random axis, 0.25 to 0.5 degree | attributed, A r=30 um | 0.849 | 1.526 | 30 | 3 |
+| random axis, 0.25 to 0.5 degree | attributed, B footprint | 0.830 | 0.921 | 30 | 0 |
+| random axis, 0.25 to 0.5 degree | attributed, oracle (true pairs) | 0.830 | 0.921 | 30 | 0 |
+| rotations about low-index crystal axes | pixel overlap (C++ rule) | 0.310 | 0.350 | 0 | 0 |
+| rotations about low-index crystal axes | attributed, A r=15.7 um | 0.316 | 1.000 | 4 | 1 |
+| rotations about low-index crystal axes | attributed, A r=30 um | 0.309 | 0.667 | 2 | 0 |
+| rotations about low-index crystal axes | attributed, B footprint | 0.310 | 0.435 | 0 | 0 |
+| rotations about low-index crystal axes | attributed, oracle (true pairs) | 0.307 | 0.435 | 0 | 0 |
+<!-- /table:evalD_step3_separation -->
+
+The sharpness of the attributed cost is set by its direction tolerance (0.02 degrees: half-score radius 0.18 degrees, completeness at the truth 0.736;
+0.2 degrees: 0.72 degrees, 0.814; a one-frame window widens it again; `step3/tables_separate.md`, `step3_tolerance`). The default was set from the
+pixel tolerance before the scan; the table is evidence, not a tuned result. The gentler score is consistent with the ray direction moving only about sin 2theta times an
+azimuthal turn of g (a 0.05 degree ray tolerance acting like 0.2 to 0.5 degrees in orientation); untested. Whether a smooth direction residual helps
+a search was not tested.
+
+**Not tested / left.** Splitting unions of several grains (their misses are consistent with a centroid lying on no single ray; untested); noise; a per-pair attribution radius from the predicted origin
+tolerance; searches with the attributed cost (Tasks E, F); the cause of the 3,890 unpartnered detector-0 spots; a real layer thickness (the simulated
+layer is exact, z = 0); the N7 follow-ups and the indexing proposal and its test above; a learned spot-association model (ConvNet or ViT on the detector-image
+pair), parked as a research idea by D-20261014-N8 and needing its own plan.
+
+**Review fixes (D-20261014-N9).** The review found the detector distance taken at the pixel-(0, 0) corner (L1/L0 1.621 instead of 1.603) and the
+detector-1 centroid tolerance scaled by L1/L0 on top of the detector-0 error that the line fit already carries. Both were fixed and every pairing,
+attribution and separation result rerun: `ring_tight` precision 0.854 -> 0.887, one-grain recall 0.990 -> 0.987, several-grain recall 0.349 -> 0.275;
+the truth-score, sharpness and separation tables did not change at their printed precision. `load_geometry` now refuses set-ups where lab = Rz(omega)
+sample does not hold; a multi-chunk `peak_hook` test was added.
+
+**Second review fixes (D-20261014-N10).** Two notes were corrected against the branch's own data. Partner spots have the same size; they are not
+scaled by L1/L0. The 1-pixel term of the error budget is a tolerance, about ten times the measured direction error, so the frame term dominates on
+clean images. Wording fixes followed: one detector or both, the half-score radius instead of "FindOptimal's reach", spots per grain, the baseline of
+the test plan, "consistent with" for the several-grain misses, the preflight load, and "not binary". `pairing_summary.py` now also writes the size
+ratio and the measured ray error to the step 1 and step 2 summaries. Nothing else was rerun, and every table is unchanged.
+
+**Third review fixes (D-20261014-N9, N10).** The measured ray-direction error had been taken over pairs that passed the ring gate, which cuts
+on that same error, so its tail was truncated and the sentence "99% below 0.042 degrees" was wrong. `pairing_summary.py` now also measures it
+over all true one-grain links with no gate (`derived_geometry` `all_links_*` keys, with the ring-gate tolerance and the p90 and p99
+scattering-vector figures). The error budget above leads with these figures. The frame term dominates for at least 90% of pairs, not in the
+1% tail. Only `pairing_summary.py` was rerun; every table is unchanged.
+
+**Files.** See the "Task D" paragraph of the README. Results: `step1/`, `step2/`, `step3/` (`summary*.json`, `tables*.md`), `figures/`, `cache/`
+(gitignored: provenance-derived arrays, pairs per preset).
+
+### Task E: smoothing the cost with geometry and physics (2026-10-15, `feature/eval-reduction-E`)
+
+Run record: `benchmarks/eval_reduction/E/RUN_LOG.md`. Library: `icenine/smooth_cost.py`, config key `SmoothCostRank` (opt-in, default
+`off`; tests `tests/test_smooth_cost.py`). Hooks: one `elif` in the level loop of `reconstructor.py` (after the existing `rank_key` branch),
+`SearchParameters.smooth_rank`, `ConfigFile` key. Scripts: `scripts/eval_reduction/smooth_*.py`. Clean images only (Q-max 8 configuration),
+no realistic images, no extra seeds, no golden test changed, no default flipped; `BatchedQuickMC`, `SearchDevice` and `CandidateDedup` off in
+every run. Tables are generated (`benchmarks/eval_reduction/E/doc_tables_all.md`); figures in `benchmarks/eval_reduction/E/figures/`.
+
+Plain-English findings: `docs/findings_cost_smoothing_2026-10.md` (written in the main session from this subsection, which keeps the
+full record and every table; the implementer could not create the doc).
+
+Review fixes (2026-10-18, `feature/eval-reduction-E-fixes`, review `.claude/reports/20261018-2151-review-E.md`): the per-voxel time is now
+measured on whole voxels (key off against on) and the count x ms model is kept for the full sample only, labelled as a model, with the
+as-shipped figure (a `SmoothCost` build per voxel) first and the one-build-per-image-set figure as a projection (D-20261018-N17); the E0 rows
+of the model and "+1.7% and +3.6% per E0 voxel" are withdrawn. E4's high cost at the truth was re-measured: it does not come from peaks
+without a ray (the earlier wording was wrong). Measurement 3 gives the review's pairing check, the subsets of the medians and the C++-rule
+counts. The key-off test now compares with a fixture recorded on the base commit; `last_level_best` and the "best cost=" print take the
+strict-best candidate under `SmoothCostRank`; unused code was removed from `smooth_cost.py`. RUN_LOG section 9.
+
+#### Short answer
+
+1. *The strict cost changes in steps; the arms can remove them.* On the full-sample rays 88.2% of the strict cost's change under 0.05 deg happens
+   in isolated steps. Distance credit (E1) removes the pixel steps, omega blending (E2) the frame steps, soft peak weights (E3) the steps where a
+   peak enters or leaves the list. E1 + E2 + E3 together leave 19 isolated steps on all 120 rays (0.0 per degree).
+2. *Smoothing alone adds dips.* E1 alone gives credit for any lit pixel near a predicted spot; on the full-sample images 12 to 46 of 120 rays then
+   have a dip of depth 0.05, where the strict cost has none. The observed-ray residual (E4) alone adds shallow dips on the E0 rays. The
+   combinations with E3 and E4 have the fewest dips.
+3. *Two arms were carried to the end-to-end test,* by the plan's rule (raise the truth basin's survival at the quarter cut without adding dips):
+   **E3 + E4** (tau 0.25 deg) and **E1 + E2 + E3 + E4** (level widths). As the ranking key of levels 0-2 on the E0 200 they cut the wrong
+   voxels from 41 to 7 and to 5 (lenient rule) and from 56 to 9 (C++ rule, both arms), with 0 broken voxels in every run. The strict cost's
+   evaluations rose by 1.1% and 2.0%; each voxel also needed 252 and 263 smooth evaluations (lenient; 172 and 177 with the C++ rule).
+4. *The full-sample test could only show harm, and showed none.* On the six interior full-sample voxels nothing is wrong with or without the
+   arms (0 of 6). The E0 images hold only the voxel's own spots, so whether the gain carries over to full-sample voxels that the strict search
+   gets wrong is not tested; that is the next measurement.
+5. *The cost is time.* A full-sample voxel needs 15,030 and 15,755 smooth evaluations (lenient; every post-MC candidate of levels 0-2). At
+   level-0 widths, single worker, E3 + E4 costs 1.639 ms per evaluation and E1 + E2 + E3 + E4 7.903 ms, against 0.381 ms for the strict cost.
+   As shipped (a `SmoothCost` build of 16.6 s in every `reconstruct_voxel`) the model gives +33.3% and +116.2% per full-sample voxel; a
+   contended wall-time check of voxel 15901 gave +36% and +125%. With one build per image set (a cache not built yet; Task G, D-20261018-N17)
+   the projection is +20.2% and +103.1%. On E0, where every voxel has its own images and so its own build, the measured whole-voxel time
+   (single-worker, four voxels) rose by +130% to +201%. The quiet-machine repeat of the full-sample voxel was not done (D-20261018-N16).
+6. *E4 agrees with Task D:* the observed-ray residual is not sharper than the pixel cost (half-way rise at 0.4285 deg against 0.3118 deg),
+   and alone it adds dips. Its high cost at the truth does not come from missing rays (almost every predicted peak has an attached ray within
+   one frame) but from the residual to the nearest ray. It helps as part of a combination, and it has a gradient for Task F.
+7. *All four arms could be evaluated from a per-sample level-0 table* built by translating spots (S4), as far as the geometry goes (last
+   subsection). No default was flipped and no golden test changed.
+
+#### Terms
+
+* **Strict cost.** The cost the search uses today: one minus the share of predicted spot pixels that land on lit pixels, averaged over the
+  peaks and the two detectors. It changes in steps.
+* **Arm.** One way of making the cost smoother. An arm is used only to order (rank) candidates; the strict cost stays the judge everywhere
+  else (quick MC, level 3, FindOptimal, the final cost), as for the ray rule.
+* **Quick MC, quarter cut.** At each coarse level (0, 1, 2) every candidate is polished by a short Monte Carlo run (the quick MC); the list is
+  then sorted and the best quarter is kept (the quarter cut).
+* **Truth basin.** The candidates close enough to the truth that the next level's grid around them contains it: within the level's diameter
+  divided by 1.5 (3.33 deg at level 0, 2.22 deg at level 1, 1.48 deg at level 2).
+* **Kept, fixed, broken.** The basin is kept when at least one basin candidate survives the quarter cut. On the same list, *fixed* = the arm
+  keeps it and the strict ranking does not; *broken* = the reverse.
+* **Isolated step.** A jump between two neighbouring points of a ray (0.0005 deg apart): a change above 1e-6 and more than three times the
+  change of both neighbouring steps. A smooth slope has none.
+* **Local minimum of depth d.** A dip along a ray, away from the truth, at least d below the lower of the two surrounding peaks (Task B's
+  prominence).
+* **Basin radius at tolerance eps.** How far out from the truth the cost never falls more than eps below the highest value reached so far.
+* **Wrong.** A final orientation more than 1 deg from the truth.
+
+#### The arms
+
+All arms predict the same spots as the strict cost (same Bragg solution, detectors and frames). They differ in how a predicted spot is scored
+against the image. A spot is looked at in four points: its three projected corners and its centre.
+
+* **S, the control.** A point scores 1 if its pixel is lit, else 0: the strict cost's test at four points instead of every pixel of the spot.
+  It shows what the four-point sampling alone does.
+* **E1, distance kernel.** A point scores by its distance to the nearest lit pixel of its image: 1 inside a lit pixel, then falling off
+  smoothly with width sigma (pixels). The coarse screen's pixel radius made continuous.
+* **E2, omega blending.** A spot also takes credit from the neighbouring frames, weighted by how close its predicted omega is to each frame:
+  full weight on its own frame and at the edge of the next, zero once it is "reach" frames past that edge. It keeps the best weighted credit,
+  so a spot that crosses a frame edge loses its credit gradually. (A first version that averaged over the frames raised the cost at the
+  truth of voxel 15901 from 0.053 to 0.296, because these images put each spot on one frame; it was replaced before any measurement.)
+* **E3, soft peak weights.** Each peak counts with a weight that falls smoothly to zero near a detector edge, near the eta limit and near
+  either end of the omega scan, so the score does not jump when a peak enters or leaves the list. A peak's credit is averaged over the
+  detectors its spot can reach, which removes the fixed half credit of a spot that misses detector 1 (Task B, section 5).
+* **E4, observed-ray residual.** Spots are found in the images and paired across the two detectors with Task D's method (`ring_tight`, binary
+  centroids); Task D's footprint rule attaches the rays that pass through the voxel. Per predicted peak, the residual is the angle to the
+  nearest attached observed ray plus how far its omega lies outside that ray's frame; the cost is the mean of r^2 / (r^2 + tau^2). It changes
+  smoothly with the orientation and has a gradient (`SmoothCost.e4_cost_torch`, checked against finite differences; for Task F).
+* **E5, combinations,** written with "+". With E4 and an image arm together, the cost is the mean of the two.
+
+Widths. On the rays of measurement 1 the widths are fixed (sigma 3 or 12 px, reach 1 frame, tau 0.05 or 0.25 deg). In the search ("auto")
+they follow the level, from the quick MC's trial radius r = max(diameter / 3, 0.2 deg): sigma = r x (detector-0 pixels per radian) / 4,
+reach = max(1, r / frame width), tau = r / 4. At level 0 (diameter 5 deg) that is sigma 16.5 px, reach 1.67 frames, tau 0.42 deg; the rays
+were walked a second time at these level-0 widths.
+
+#### Measurement 1: the cost along Task B's rays
+
+Same rays as Task B: 6 full-sample voxels x 20 directions, 0 to 5 deg in steps of 0.0005 deg; 30 E0 voxels x 20 directions, 0 to 0.5 deg plus
+four 0.05-deg windows and a log profile to 5 deg. The strict cost is Task B's (its cache, re-checked at five points of one ray of each set
+to 2.4e-8).
+
+Steps per degree and the share of the cost's change that happens in steps. Read across a row: the strict cost changes almost entirely in steps;
+an arm that smooths well has few steps and a low share.
+
+<!-- table:evalE_land_steps_full -->
+| cost | cost at the truth (median) | steps per deg, under 0.05 deg | steps per deg, 0.05 to 0.5 deg | steps per deg, 0.5 to 5 deg | variation in steps, under 0.05 deg | variation in steps, 0.05 to 0.5 deg | variation in steps, 0.5 to 5 deg |
+|---|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 0.0703 | 113.8 | 261.5 | 25.0 | 88.2% | 84.2% | 94.0% |
+| strict cost, lenient rule | 0.0703 | 116.3 | 323.6 | 108.2 | 87.5% | 78.4% | 89.6% |
+| S: sampled binary (control) | 0.0717 | 96.8 | 239.0 | 46.9 | 87.6% | 75.1% | 93.5% |
+| E1: distance kernel 3 px | 0.0717 | 49.3 | 45.1 | 30.3 | 97.7% | 80.5% | 73.5% |
+| E1: distance kernel 12 px | 0.0694 | 49.3 | 49.5 | 47.7 | 97.5% | 93.6% | 89.4% |
+| E2: omega blending, 1 frame | 0.0717 | 55.2 | 236.3 | 89.8 | 54.9% | 52.6% | 65.4% |
+| E3: soft peak weights | 0.0000 | 96.5 | 241.2 | 45.4 | 87.3% | 75.0% | 92.8% |
+| E4: ray residual, tau 0.05 deg | 0.4136 | 0.2 | 1.4 | 8.0 | 0.0% | 1.7% | 2.6% |
+| E4: ray residual, tau 0.25 deg | 0.2930 | 4.5 | 4.3 | 13.2 | 0.3% | 6.5% | 9.7% |
+| E1 + E2 | 0.0717 | 0.0 | 2.2 | 2.0 | 0.0% | 7.8% | 4.5% |
+| E1 + E2 + E3 | 0.0000 | 0.0 | 0.0 | 0.0 | 0.0% | 0.0% | 0.1% |
+| E2 + E3 | 0.0000 | 55.8 | 237.9 | 88.1 | 56.3% | 52.9% | 65.5% |
+| E3 + E4 (0.25 deg) | 0.1464 | 96.3 | 239.7 | 54.8 | 84.2% | 63.0% | 55.5% |
+<!-- /table:evalE_land_steps_full -->
+
+The same on the E0 images (per-voxel images: the voxel's own spots only).
+
+<!-- table:evalE_land_steps_e0 -->
+| cost | cost at the truth (median) | steps per deg, under 0.05 deg | steps per deg, 0.05 to 0.5 deg | steps per deg, 0.5 to 5 deg (4 windows of 0.05 deg) | variation in steps, under 0.05 deg | variation in steps, 0.05 to 0.5 deg | variation in steps, 0.5 to 5 deg (4 windows of 0.05 deg) |
+|---|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 0.0606 | 330.8 | 284.7 | 25.8 | 40.7% | 61.9% | 86.2% |
+| strict cost, lenient rule | 0.0606 | 318.5 | 349.5 | 50.2 | 38.0% | 55.5% | 84.2% |
+| S: sampled binary (control) | 0.0616 | 247.0 | 228.7 | 25.9 | 31.6% | 48.3% | 91.6% |
+| E1: distance kernel 3 px | 0.0606 | 42.7 | 42.3 | 13.3 | 94.9% | 64.3% | 52.9% |
+| E1: distance kernel 12 px | 0.0606 | 42.7 | 42.3 | 14.2 | 96.0% | 91.4% | 82.8% |
+| E2: omega blending, 1 frame | 0.0616 | 217.7 | 234.7 | 36.9 | 20.9% | 37.3% | 68.6% |
+| E3: soft peak weights | 0.0000 | 263.2 | 235.0 | 25.3 | 33.4% | 50.3% | 90.9% |
+| E4: ray residual, tau 0.05 deg | 0.0977 | 2.0 | 1.4 | 4.9 | 4.9% | 1.2% | 1.3% |
+| E4: ray residual, tau 0.25 deg | 0.0049 | 1.8 | 4.3 | 11.1 | 25.6% | 4.8% | 6.4% |
+| E1 + E2 | 0.0606 | 2.2 | 1.7 | 1.4 | 46.7% | 3.4% | 1.7% |
+| E1 + E2 + E3 | 0.0000 | 0.0 | 0.0 | 0.0 | 0.0% | 0.1% | 0.0% |
+| E2 + E3 | 0.0000 | 236.3 | 239.9 | 36.0 | 23.2% | 39.1% | 69.0% |
+| E3 + E4 (0.25 deg) | 0.0021 | 249.2 | 229.2 | 34.2 | 31.0% | 40.6% | 27.5% |
+<!-- /table:evalE_land_steps_e0 -->
+
+Which strict-cost event each remaining step coincides with (Task B's per-peak events on the same step of the same ray). Read: E1 alone leaves
+the frame steps, E2 alone leaves the pixel steps; together they leave the peak-set (presence) and detector-edge steps, which E3 removes.
+
+<!-- table:evalE_land_types_full -->
+| cost | isolated steps | at a frame event | at a pixel event | at a presence event | at a detector event | at no strict event |
+|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 28290 | 15.2% | 83.1% | 1.6% | 0.1% | 0.0% |
+| strict cost, lenient rule | 76615 | 10.6% | 88.5% | 0.8% | 0.1% | 0.0% |
+| S: sampled binary (control) | 38789 | 18.5% | 76.5% | 1.7% | 0.7% | 2.6% |
+| E1: distance kernel 3 px | 19069 | 92.2% | 2.1% | 3.6% | 1.8% | 0.2% |
+| E1: distance kernel 12 px | 28709 | 92.9% | 2.2% | 2.6% | 2.1% | 0.2% |
+| E2: omega blending, 1 frame | 61571 | 4.0% | 91.3% | 1.0% | 0.5% | 3.2% |
+| E3: soft peak weights | 38094 | 18.8% | 78.3% | 0.2% | 0.1% | 2.6% |
+| E4: ray residual, tau 0.05 deg | 4409 | 78.1% | 6.8% | 14.0% | 0.4% | 0.7% |
+| E4: ray residual, tau 0.25 deg | 7400 | 86.4% | 4.6% | 8.3% | 0.2% | 0.5% |
+| E1 + E2 | 1189 | 2.0% | 9.2% | 54.5% | 33.6% | 0.8% |
+| E1 + E2 + E3 | 19 | 5.3% | 42.1% | 52.6% | 0.0% | 0.0% |
+| E2 + E3 | 60777 | 4.0% | 92.6% | 0.1% | 0.1% | 3.2% |
+| E3 + E4 (0.25 deg) | 43125 | 28.8% | 68.6% | 0.2% | 0.1% | 2.3% |
+<!-- /table:evalE_land_types_full -->
+
+Local minima away from the truth. Read: an arm passes when it has no more rays with a minimum than the strict cost (C++ rule) at either depth.
+The last two columns show where an arm's lowest point lies when it is not at the truth, and how much lower it is.
+
+<!-- table:evalE_land_minima_full -->
+| cost | rays with a minimum of depth 0.01, dense, 0 to 5 deg | rays with a minimum of depth 0.05, dense, 0 to 5 deg | rays with a minimum of depth 0.01, 0 to 0.5 deg | rays with a minimum of depth 0.05, 0 to 0.5 deg | rays where the truth is not the lowest point | lowest point when not the truth: median deg (max) | ... and its depth below the truth (median) |
+|---|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 72 of 120 (51.1-68.3%) | 0 of 120 (0.0-3.1%) | 6 of 120 (2.3-10.5%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| strict cost, lenient rule | 97 of 120 (72.9-86.9%) | 0 of 120 (0.0-3.1%) | 5 of 120 (1.8-9.4%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| S: sampled binary (control) | 120 of 120 (96.9-100.0%) | 3 of 120 (0.9-7.1%) | 9 of 120 (4.0-13.6%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E1: distance kernel 3 px | 120 of 120 (96.9-100.0%) | 12 of 120 (5.8-16.7%) | 11 of 120 (5.2-15.7%) | 0 of 120 (0.0-3.1%) | 12 of 120 | 0.0150 (0.0215) | 0.0000 |
+| E1: distance kernel 12 px | 120 of 120 (96.9-100.0%) | 43 of 120 (27.8-44.7%) | 9 of 120 (4.0-13.6%) | 0 of 120 (0.0-3.1%) | 37 of 120 | 0.0205 (0.0725) | 0.0000 |
+| E2: omega blending, 1 frame | 114 of 120 (89.5-97.7%) | 6 of 120 (2.3-10.5%) | 17 of 120 (9.0-21.5%) | 0 of 120 (0.0-3.1%) | 1 of 120 | 0.2230 (0.2230) | 0.0062 |
+| E3: soft peak weights | 120 of 120 (96.9-100.0%) | 7 of 120 (2.9-11.6%) | 5 of 120 (1.8-9.4%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E4: ray residual, tau 0.05 deg | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 54 of 120 | 0.0095 (0.0825) | 0.0002 |
+| E4: ray residual, tau 0.25 deg | 31 of 120 (18.8-34.3%) | 0 of 120 (0.0-3.1%) | 24 of 120 (13.8-28.0%) | 0 of 120 (0.0-3.1%) | 55 of 120 | 0.0195 (0.2230) | 0.0001 |
+| E1 + E2 | 69 of 120 (48.6-66.0%) | 2 of 120 (0.5-5.9%) | 19 of 120 (10.4-23.4%) | 0 of 120 (0.0-3.1%) | 17 of 120 | 0.1280 (0.2500) | 0.0041 |
+| E1 + E2 + E3 | 52 of 120 (34.8-52.3%) | 1 of 120 (0.1-4.6%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E2 + E3 | 119 of 120 (95.4-99.9%) | 10 of 120 (4.6-14.7%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E3 + E4 (0.25 deg) | 52 of 120 (34.8-52.3%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 60 of 120 | 0.0115 (0.0460) | 0.0000 |
+<!-- /table:evalE_land_minima_full -->
+
+<!-- table:evalE_land_minima_e0 -->
+| cost | rays with a minimum of depth 0.01, dense, 0 to 0.5 deg | rays with a minimum of depth 0.05, dense, 0 to 0.5 deg | rays where the truth is not the lowest point | lowest point when not the truth: median deg (max) | ... and its depth below the truth (median) |
+|---|---|---|---|---|---|
+| strict cost, C++ rule | 12 of 600 (1.1-3.5%) | 0 of 600 (0.0-0.6%) | 38 of 600 | 0.0005 (0.0010) | 0.0021 |
+| strict cost, lenient rule | 13 of 600 (1.3-3.7%) | 0 of 600 (0.0-0.6%) | 38 of 600 | 0.0005 (0.0010) | 0.0021 |
+| S: sampled binary (control) | 12 of 600 (1.1-3.5%) | 0 of 600 (0.0-0.6%) | 0 of 600 |  |  |
+| E1: distance kernel 3 px | 54 of 600 (7.0-11.6%) | 0 of 600 (0.0-0.6%) | 10 of 600 | 0.0005 (0.0020) | 0.0000 |
+| E1: distance kernel 12 px | 61 of 600 (8.0-12.8%) | 0 of 600 (0.0-0.6%) | 0 of 600 |  |  |
+| E2: omega blending, 1 frame | 17 of 600 (1.8-4.5%) | 0 of 600 (0.0-0.6%) | 0 of 600 |  |  |
+| E3: soft peak weights | 0 of 600 (0.0-0.6%) | 0 of 600 (0.0-0.6%) | 6 of 600 | 0.0008 (0.0030) | 0.0000 |
+| E4: ray residual, tau 0.05 deg | 54 of 600 (7.0-11.6%) | 0 of 600 (0.0-0.6%) | 291 of 600 | 0.0075 (0.0625) | 0.0003 |
+| E4: ray residual, tau 0.25 deg | 71 of 600 (9.5-14.7%) | 0 of 600 (0.0-0.6%) | 287 of 600 | 0.0080 (0.1535) | 0.0000 |
+| E1 + E2 | 88 of 600 (12.1-17.7%) | 0 of 600 (0.0-0.6%) | 38 of 600 | 0.0690 (0.1920) | 0.0080 |
+| E1 + E2 + E3 | 6 of 600 (0.5-2.2%) | 0 of 600 (0.0-0.6%) | 30 of 600 | 0.0075 (0.0235) | 0.0000 |
+| E2 + E3 | 0 of 600 (0.0-0.6%) | 0 of 600 (0.0-0.6%) | 6 of 600 | 0.0008 (0.0030) | 0.0000 |
+| E3 + E4 (0.25 deg) | 6 of 600 (0.5-2.2%) | 0 of 600 (0.0-0.6%) | 124 of 600 | 0.0010 (0.0060) | 0.0000 |
+<!-- /table:evalE_land_minima_e0 -->
+
+Basin radius along the full-sample rays. Read: larger is a wider basin. The strict cost reaches 1 (no overlap) beyond about 2 deg and stays flat, so
+it has no drop there; the arms keep some credit far out and their wiggles there count against them.
+
+<!-- table:evalE_land_basin_full -->
+| cost | half-way rise from the truth (median deg) | basin radius, eps 0.01 (median deg) | basin radius, eps 0.01 (lower quartile deg) | rays with no drop over eps out to 5 deg, eps 0.01 | basin radius, eps 0.05 (median deg) | rays with no drop over eps out to 5 deg, eps 0.05 |
+|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 0.312 | 3.693 | 1.729 | 45 of 120 | 5.000 | 120 of 120 |
+| strict cost, lenient rule | 0.333 | 2.783 | 1.971 | 15 of 120 | 5.000 | 120 of 120 |
+| S: sampled binary (control) | 0.348 | 1.688 | 1.315 | 0 of 120 | 5.000 | 111 of 120 |
+| E1: distance kernel 3 px | 0.667 | 1.697 | 1.287 | 0 of 120 | 5.000 | 95 of 120 |
+| E1: distance kernel 12 px | 1.269 | 1.081 | 0.758 | 0 of 120 | 4.701 | 54 of 120 |
+| E2: omega blending, 1 frame | 0.482 | 2.111 | 1.626 | 4 of 120 | 5.000 | 110 of 120 |
+| E3: soft peak weights | 0.348 | 1.698 | 1.267 | 0 of 120 | 5.000 | 105 of 120 |
+| E4: ray residual, tau 0.05 deg | 0.428 | 5.000 | 5.000 | 117 of 120 | 5.000 | 120 of 120 |
+| E4: ray residual, tau 0.25 deg | 1.075 | 5.000 | 3.427 | 87 of 120 | 5.000 | 120 of 120 |
+| E1 + E2 | 1.064 | 3.750 | 1.901 | 25 of 120 | 5.000 | 111 of 120 |
+| E1 + E2 + E3 | 1.069 | 4.238 | 3.420 | 31 of 120 | 5.000 | 109 of 120 |
+| E2 + E3 | 0.481 | 2.228 | 1.787 | 0 of 120 | 5.000 | 103 of 120 |
+| E3 + E4 (0.25 deg) | 0.549 | 4.983 | 3.837 | 60 of 120 | 5.000 | 120 of 120 |
+<!-- /table:evalE_land_basin_full -->
+
+The same rays at the level-0 widths the search uses (minima only; the other tables are in `landscape_L0/tables.md`):
+
+<!-- table:evalE_landL0_minima_full -->
+| cost | rays with a minimum of depth 0.01, dense, 0 to 5 deg | rays with a minimum of depth 0.05, dense, 0 to 5 deg | rays with a minimum of depth 0.01, 0 to 0.5 deg | rays with a minimum of depth 0.05, 0 to 0.5 deg | rays where the truth is not the lowest point | lowest point when not the truth: median deg (max) | ... and its depth below the truth (median) |
+|---|---|---|---|---|---|---|---|
+| strict cost, C++ rule | 72 of 120 (51.1-68.3%) | 0 of 120 (0.0-3.1%) | 6 of 120 (2.3-10.5%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| strict cost, lenient rule | 97 of 120 (72.9-86.9%) | 0 of 120 (0.0-3.1%) | 5 of 120 (1.8-9.4%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E1, level-0 width (16.5 px) | 120 of 120 (96.9-100.0%) | 46 of 120 (30.1-47.3%) | 5 of 120 (1.8-9.4%) | 0 of 120 (0.0-3.1%) | 36 of 120 | 0.0203 (0.0460) | 0.0000 |
+| E2, level-0 reach (1.67 frames) | 113 of 120 (88.4-97.1%) | 6 of 120 (2.3-10.5%) | 18 of 120 (9.7-22.5%) | 0 of 120 (0.0-3.1%) | 2 of 120 | 0.2083 (0.2230) | 0.0057 |
+| E4, level-0 tau (0.42 deg) | 39 of 120 (24.8-41.3%) | 0 of 120 (0.0-3.1%) | 24 of 120 (13.8-28.0%) | 0 of 120 (0.0-3.1%) | 55 of 120 | 0.0235 (0.2230) | 0.0001 |
+| E1 + E2, level-0 widths | 74 of 120 (52.7-69.9%) | 0 of 120 (0.0-3.1%) | 16 of 120 (8.4-20.6%) | 0 of 120 (0.0-3.1%) | 35 of 120 | 0.0960 (0.2950) | 0.0019 |
+| E1 + E2 + E3, level-0 widths | 34 of 120 (21.0-37.0%) | 1 of 120 (0.1-4.6%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E2 + E3, level-0 reach | 115 of 120 (90.6-98.2%) | 10 of 120 (4.6-14.7%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 |  |  |
+| E3 + E4, level-0 tau | 46 of 120 (30.1-47.3%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 65 of 120 | 0.0145 (0.0575) | 0.0000 |
+| E1 + E2 + E3 + E4, level-0 widths | 16 of 120 (8.4-20.6%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 0 of 120 (0.0-3.1%) | 72 of 120 | 0.0255 (0.0765) | 0.0000 |
+<!-- /table:evalE_landL0_minima_full -->
+
+<!-- table:evalE_landL0_minima_e0 -->
+| cost | rays with a minimum of depth 0.01, dense, 0 to 0.5 deg | rays with a minimum of depth 0.05, dense, 0 to 0.5 deg | rays where the truth is not the lowest point | lowest point when not the truth: median deg (max) | ... and its depth below the truth (median) |
+|---|---|---|---|---|---|
+| strict cost, C++ rule | 12 of 600 (1.1-3.5%) | 0 of 600 (0.0-0.6%) | 38 of 600 | 0.0005 (0.0010) | 0.0021 |
+| strict cost, lenient rule | 13 of 600 (1.3-3.7%) | 0 of 600 (0.0-0.6%) | 38 of 600 | 0.0005 (0.0010) | 0.0021 |
+| E1, level-0 width (16.5 px) | 61 of 600 (8.0-12.8%) | 0 of 600 (0.0-0.6%) | 0 of 600 |  |  |
+| E2, level-0 reach (1.67 frames) | 17 of 600 (1.8-4.5%) | 0 of 600 (0.0-0.6%) | 0 of 600 |  |  |
+| E4, level-0 tau (0.42 deg) | 70 of 600 (9.3-14.5%) | 0 of 600 (0.0-0.6%) | 292 of 600 | 0.0085 (0.1730) | 0.0000 |
+| E1 + E2, level-0 widths | 83 of 600 (11.3-16.8%) | 0 of 600 (0.0-0.6%) | 49 of 600 | 0.1370 (0.4475) | 0.0119 |
+| E1 + E2 + E3, level-0 widths | 6 of 600 (0.5-2.2%) | 0 of 600 (0.0-0.6%) | 30 of 600 | 0.0235 (0.0450) | 0.0000 |
+| E2 + E3, level-0 reach | 0 of 600 (0.0-0.6%) | 0 of 600 (0.0-0.6%) | 6 of 600 | 0.0008 (0.0030) | 0.0000 |
+| E3 + E4, level-0 tau | 6 of 600 (0.5-2.2%) | 0 of 600 (0.0-0.6%) | 124 of 600 | 0.0010 (0.0060) | 0.0000 |
+| E1 + E2 + E3 + E4, level-0 widths | 6 of 600 (0.5-2.2%) | 0 of 600 (0.0-0.6%) | 281 of 600 | 0.0080 (0.0330) | 0.0000 |
+<!-- /table:evalE_landL0_minima_e0 -->
+
+Task B's ray plot (voxel 15901, ray 0) redrawn with the strict cost (black) and every arm on the same axes, at 0 to 0.1, 0 to 0.5 and 0 to 5
+deg; then each arm on its own panel against the strict cost; then the level-0 widths.
+
+![strict cost and every arm along Task B's ray](benchmarks/eval_reduction/E/figures/ray_strict_vs_arms.png)
+
+![each arm against the strict cost](benchmarks/eval_reduction/E/figures/ray_each_arm.png)
+
+![the arms at the level-0 widths](benchmarks/eval_reduction/E/figures/ray_level0_widths.png)
+
+What the walks show (full-sample images unless said otherwise):
+
+* The strict cost changes almost only in steps: 88.2% of its change under 0.05 deg happens in isolated steps (84.2% at 0.05 to 0.5 deg,
+  94.0% beyond).
+* E1 alone removes the pixel steps and keeps the frame steps: 92.2% of its remaining steps fall on a frame crossing. E2 alone does the
+  reverse: 91.3% of its steps fall on a pixel event.
+* E1 + E2 together leave 0.0 steps per degree under 0.05 deg and 2.2 at 0.05 to 0.5 deg; what is left falls on peaks entering or leaving the
+  list (54.5%) and on detector edges (33.6%). Adding E3 removes those too: E1 + E2 + E3 has 0.0 steps per degree in every range (19 isolated
+  steps on all 120 rays together).
+* E3 moves the cost at the truth from 0.0703 to 0.0000 (medians): the half credit of spots that miss detector 1 is gone.
+* E4 has almost no steps (0.2, 1.4 and 8.0 per degree with tau 0.05 deg), but its cost at the truth is 0.4136 (tau 0.05 deg): many of the
+  voxel's predicted peaks have no attached observed ray. Its lowest point is off the truth on 54 of 120 rays, a median 0.0095 deg away. The
+  observed rays come from binary centroids, so their small errors move E4's minimum slightly; the strict cost's lowest point is at the truth on
+  every full-sample ray.
+* Smoothing does not remove the far dips by itself, and E1 alone adds some. With E1 alone, 12 (3 px) and 43 (12 px) of 120 rays have a dip of
+  depth 0.05, where the strict cost has none. This is consistent with E1 giving credit for lit pixels of neighbouring grains near a predicted
+  spot; on the E0 images, which hold no other grain, E1 adds no 0.05-deep dip. The neighbour explanation itself was not tested.
+* The combinations with E3 and E4 have the fewest dips: E1 + E2 + E3 + E4 at level-0 widths has a 0.01-deep dip on 16 of 120 rays (strict
+  cost: 72) and none of depth 0.05.
+* Basin radius (eps 0.01, median): strict cost 3.693 deg, E1 + E2 + E3 4.238 deg, E3 + E4 4.983 deg, E4 5.000 deg. On the E0 images almost
+  every cost has no drop over 0.01 out to 5 deg.
+
+#### Measurement 2: the arms as the ranking key, on the strict search's own lists
+
+One no-start search per voxel with the strict cost (Task C's probe, no further library change). At levels 0, 1 and 2 the post-quick-MC list is
+re-ordered by each arm and the quarter cut is applied to both orders. The search's evaluations are the same for every arm, so this isolates the
+ranking. Sets: the E0 200 (per-voxel clean images, seed 0) with the lenient and the C++ rule; the six full-sample voxels (seed 1) with both
+rules. Arm names: `a` = auto widths of the level; `s3`, `s8`, `s12` = sigma in pixels; `w1` = reach 1 frame; `t05`, `t25` = tau 0.05 and
+0.25 deg.
+
+E0, lenient rule. Read a cell as "kept of present (+fixed / -broken)"; the last columns pool levels 0 to 2.
+
+<!-- table:evalE_rank_e0_old_next -->
+| ranking key | level 0: basin kept | level 0: best rank (median) | level 1: basin kept | level 1: best rank (median) | level 2: basin kept | level 2: best rank (median) | levels 0-2: kept (95% Wilson) | levels 0-2: fixed / broken |
+|---|---|---|---|---|---|---|---|---|
+| strict (baseline) | 186 of 197 | 1 | 166 of 176 | 0 | 160 of 163 | 0 | 512 of 536 (93.4-97.0%) |  |
+| S | 188 of 197 (+3 / -1) | 1 | 164 of 176 (+0 / -2) | 0 | 160 of 163 (+0 / -0) | 0 | 512 of 536 (93.4-97.0%) | 3 / 3 |
+| E1s3 | 195 of 197 (+9 / -0) | 0 | 175 of 176 (+9 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 532 of 536 (98.1-99.7%) | 20 / 0 |
+| E1s8 | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+| E1a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+| E2a | 188 of 197 (+4 / -2) | 0 | 169 of 176 (+3 / -0) | 0 | 160 of 163 (+1 / -1) | 0 | 517 of 536 (94.5-97.7%) | 8 / 3 |
+| E3 | 188 of 197 (+4 / -2) | 1 | 163 of 176 (+1 / -4) | 0 | 159 of 163 (+0 / -1) | 0 | 510 of 536 (93.0-96.7%) | 5 / 7 |
+| E4t05 | 195 of 197 (+10 / -1) | 0 | 174 of 176 (+8 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 531 of 536 (97.8-99.6%) | 20 / 1 |
+| E4t25 | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E4a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E12a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E123a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E23a | 188 of 197 (+4 / -2) | 0 | 170 of 176 (+5 / -1) | 0 | 160 of 163 (+1 / -1) | 0 | 518 of 536 (94.8-97.9%) | 10 / 4 |
+| E34a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+| E1234a | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E1s12 | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+| E2w1 | 186 of 197 (+2 / -2) | 1 | 167 of 176 (+3 / -2) | 0 | 160 of 163 (+1 / -1) | 0 | 513 of 536 (93.6-97.1%) | 6 / 5 |
+| E12s3 | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 536 of 536 (99.3-100.0%) | 24 / 0 |
+| E123s3 | 196 of 197 (+10 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 163 of 163 (+3 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+| E23w1 | 186 of 197 (+3 / -3) | 1 | 169 of 176 (+5 / -2) | 0 | 160 of 163 (+1 / -1) | 0 | 515 of 536 (94.1-97.4%) | 9 / 6 |
+| E34t25 | 197 of 197 (+11 / -0) | 0 | 176 of 176 (+10 / -0) | 0 | 162 of 163 (+2 / -0) | 0 | 535 of 536 (99.0-100.0%) | 23 / 0 |
+<!-- /table:evalE_rank_e0_old_next -->
+
+E0, C++ rule.
+
+<!-- table:evalE_rank_e0_cpp_next -->
+| ranking key | level 0: basin kept | level 0: best rank (median) | level 1: basin kept | level 1: best rank (median) | level 2: basin kept | level 2: best rank (median) | levels 0-2: kept (95% Wilson) | levels 0-2: fixed / broken |
+|---|---|---|---|---|---|---|---|---|
+| strict (baseline) | 181 of 196 | 3 | 149 of 165 | 0 | 144 of 147 | 0 | 474 of 508 (90.8-95.2%) |  |
+| S | 184 of 196 (+5 / -2) | 2 | 150 of 165 (+2 / -1) | 0 | 144 of 147 (+0 / -0) | 0 | 478 of 508 (91.7-95.8%) | 7 / 3 |
+| E1s3 | 195 of 196 (+14 / -0) | 0 | 163 of 165 (+14 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 505 of 508 (98.3-99.8%) | 31 / 0 |
+| E1s8 | 195 of 196 (+14 / -0) | 0 | 163 of 165 (+14 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 505 of 508 (98.3-99.8%) | 31 / 0 |
+| E1a | 195 of 196 (+14 / -0) | 0 | 163 of 165 (+14 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 505 of 508 (98.3-99.8%) | 31 / 0 |
+| E2a | 186 of 196 (+8 / -3) | 1 | 159 of 165 (+10 / -0) | 0 | 143 of 147 (+0 / -1) | 0 | 488 of 508 (94.0-97.4%) | 18 / 4 |
+| E3 | 177 of 196 (+4 / -8) | 2 | 149 of 165 (+4 / -4) | 0 | 144 of 147 (+0 / -0) | 0 | 470 of 508 (89.9-94.5%) | 8 / 12 |
+| E4t05 | 193 of 196 (+12 / -0) | 0 | 163 of 165 (+14 / -0) | 0 | 146 of 147 (+2 / -0) | 0 | 502 of 508 (97.4-99.5%) | 28 / 0 |
+| E4t25 | 195 of 196 (+14 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 507 of 508 (98.9-100.0%) | 33 / 0 |
+| E4a | 196 of 196 (+15 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 508 of 508 (99.2-100.0%) | 34 / 0 |
+| E12a | 196 of 196 (+15 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 508 of 508 (99.2-100.0%) | 34 / 0 |
+| E123a | 196 of 196 (+15 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 508 of 508 (99.2-100.0%) | 34 / 0 |
+| E23a | 186 of 196 (+8 / -3) | 1 | 156 of 165 (+9 / -2) | 0 | 144 of 147 (+1 / -1) | 0 | 486 of 508 (93.5-97.1%) | 18 / 6 |
+| E34a | 195 of 196 (+14 / -0) | 0 | 164 of 165 (+15 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 506 of 508 (98.6-99.9%) | 32 / 0 |
+| E1234a | 196 of 196 (+15 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 508 of 508 (99.2-100.0%) | 34 / 0 |
+| E1s12 | 195 of 196 (+14 / -0) | 0 | 163 of 165 (+14 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 505 of 508 (98.3-99.8%) | 31 / 0 |
+| E2w1 | 184 of 196 (+8 / -5) | 1 | 159 of 165 (+10 / -0) | 0 | 143 of 147 (+0 / -1) | 0 | 486 of 508 (93.5-97.1%) | 18 / 6 |
+| E12s3 | 195 of 196 (+14 / -0) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 507 of 508 (98.9-100.0%) | 33 / 0 |
+| E123s3 | 194 of 196 (+14 / -1) | 0 | 165 of 165 (+16 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 506 of 508 (98.6-99.9%) | 33 / 1 |
+| E23w1 | 185 of 196 (+8 / -4) | 1 | 156 of 165 (+9 / -2) | 0 | 144 of 147 (+1 / -1) | 0 | 485 of 508 (93.3-97.0%) | 18 / 7 |
+| E34t25 | 194 of 196 (+13 / -0) | 0 | 164 of 165 (+15 / -0) | 0 | 147 of 147 (+3 / -0) | 0 | 505 of 508 (98.3-99.8%) | 31 / 0 |
+<!-- /table:evalE_rank_e0_cpp_next -->
+
+The six full-sample voxels (lenient rule; the C++-rule table is in `rank/tables.md`). Read: the strict ranking already keeps the basin in all
+18 cases, so no arm can fix one here; none breaks one.
+
+<!-- table:evalE_rank_full_old_next -->
+| ranking key | level 0: basin kept | level 0: best rank (median) | level 1: basin kept | level 1: best rank (median) | level 2: basin kept | level 2: best rank (median) | levels 0-2: kept (95% Wilson) | levels 0-2: fixed / broken |
+|---|---|---|---|---|---|---|---|---|
+| strict (baseline) | 6 of 6 | 1 | 6 of 6 | 0 | 6 of 6 | 0 | 18 of 18 (82.4-100.0%) |  |
+| S | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E1s3 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E1s8 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E1a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E2a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E3 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E4t05 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E4t25 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E4a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E12a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E123a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E23a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E34a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E1234a | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E1s12 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E2w1 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E12s3 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E123s3 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E23w1 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+| E34t25 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 6 of 6 (+0 / -0) | 0 | 18 of 18 (82.4-100.0%) | 0 / 0 |
+<!-- /table:evalE_rank_full_old_next -->
+
+What the ranking tables show:
+
+* On the E0 lists the basin is present after the quick MC in 536 level cases (lenient rule); the strict ranking keeps it in 512. Every level-width arm with
+  E1 or E4, and the wider fixed widths (E1 8 and 12 px, E4 tau 0.25 deg), keep it in 535 or 536 (23 or 24 fixed, none broken); the narrowest
+  keep a little less (E1 3 px: 532; E4 tau 0.05 deg: 531, with 1 broken). E2 alone (+8 / -3) and E3 alone (+5 / -7) barely help, and the control S is
+  neutral (+3 / -3): the gain comes from distance credit and from the observed rays, not from the four-point sampling.
+* With the C++ rule the strict ranking keeps 474 of 508; E1 + E2 + E3 + E4 keeps 508 (34 fixed, none broken).
+* With a fixed 1 deg basin the strict cut loses only 4 of 436 cases (lenient). So the basin candidates that the strict ranking cuts are mostly
+  1 to 3 deg from the truth: far enough that their spots no longer overlap the truth's (the strict cost is near 1 there), close enough that the
+  next level's grid would still contain the truth. That is where a smooth key helps.
+* On the six full-sample voxels the strict ranking already puts a basin candidate among its first 11 at level 0 and first 2 at levels 1-2,
+  out of about 10,000, 3,500 and 1,100 candidates; every arm keeps the basin in all 18 cases, so this set does not discriminate.
+
+#### Decision point (non-blocking, the plan's default taken)
+
+Rule (written down before the ranking data, RUN_LOG section 2): carry at most three arms that keep the basin more often than they lose it
+(pooled levels 0-2, lenient rule, E0 and full-sample) and whose landscape twin has no more rays with a dip than the strict cost (C++ rule), at
+depth 0.01 and 0.05, on both image sets. The full-sample part reduced to "no broken case" because the six voxels saturate (RUN_LOG section 4).
+
+* Qualify: **E1 + E2 + E3 + E4** (level widths; E0 net +24; dips at level-0 widths: full 16 / 0, E0 6 / 0 of 120 and 600 rays) and
+  **E3 + E4** (net +23 for both the tau-0.25 and the level-width variant; dips full 52 / 0 and 46 / 0, E0 6 / 0). The two E3 + E4 variants
+  tie; tau 0.25 deg was carried (its runs had started on its fixed-width twin; the time per evaluation is the same code path).
+* Do not qualify (they add dips): E1 alone, E1 + E2, E4 alone (E0: 70 of 600 rays at depth 0.01 against 12), E2 alone, E2 + E3, and
+  **E1 + E2 + E3, the closest miss**: one full-sample ray of 120 with a dip of depth 0.05, where the strict cost has none.
+* Only two arms qualify; the third slot stays empty.
+
+#### Measurement 3: end to end, with the key on
+
+`SmoothCostRank` on, levels 0-2 ranked by the arm, everything else strict. Paired by voxel against the strict search (same seeds). Wrong
+counts carry a 95% Wilson interval. Every broken voxel is traced (owner rule D-20261014-N13): *traced to the arm* = at a level the arm ranks,
+the basin was present after the quick MC, the arm cut it and the strict cost would have kept it on the same list; *traced to the draw* = the arm
+kept the basin at every level it ranks (or the strict cost would have cut it too, or it was already gone after a quick MC, where the arm does
+not act); *untraced* = records missing (counts against the arm). Fixed voxels are traced the same way. The evaluation columns are means per voxel:
+the strict cost's evaluations (all stages) and, separately, the smooth cost's.
+
+<!-- table:evalE_e2e -->
+| voxel set | rule | arm (SmoothCostRank) | n | wrong, baseline | wrong, arm | fixed | broken | both wrong | broken: traced to arm / draw / untraced | fixed: traced to arm / draw | median error of voxels right in both (deg), baseline / arm | strict evaluations per voxel, baseline | strict evaluations per voxel, arm | smooth evaluations per voxel |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| E0 200 | lenient | E3+E4,tau=0.25 | 200 | 41 (15.5-26.6%) | 7 (1.7-7.0%) | 34 | 0 | 7 | 0 / 0 / 0 | 17 / 17 | 0.0130 / 0.0054 | 48700 | 49215 | 252 |
+| E0 200 | C++ | E3+E4,tau=0.25 | 200 | 56 (22.2-34.6%) | 9 (2.4-8.3%) | 47 | 0 | 9 | 0 / 0 / 0 | 21 / 26 | 0.0223 / 0.0082 | 47230 | 47551 | 172 |
+| six full-sample | lenient | E3+E4,tau=0.25 | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 | 0 | 0 | 0 / 0 / 0 | 0 / 0 | 0.0181 / 0.0163 | 332046 | 334486 | 15030 |
+| six full-sample | C++ | E3+E4,tau=0.25 | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 | 0 | 0 | 0 / 0 / 0 | 0 / 0 | 0.0286 / 0.0291 | 228146 | 235524 | 11084 |
+| E0 200 | lenient | E1+E2+E3+E4 | 200 | 41 (15.5-26.6%) | 5 (1.1-5.7%) | 36 | 0 | 5 | 0 / 0 / 0 | 15 / 21 | 0.0130 / 0.0050 | 48700 | 49653 | 263 |
+| E0 200 | C++ | E1+E2+E3+E4 | 200 | 56 (22.2-34.6%) | 9 (2.4-8.3%) | 47 | 0 | 9 | 0 / 0 / 0 | 21 / 26 | 0.0223 / 0.0112 | 47230 | 47767 | 177 |
+| six full-sample | lenient | E1+E2+E3+E4 | 6 | 0 (0.0-39.0%) | 0 (0.0-39.0%) | 0 | 0 | 0 | 0 / 0 / 0 | 0 / 0 | 0.0181 / 0.0284 | 332046 | 348018 | 15755 |
+<!-- /table:evalE_e2e -->
+
+* *E0 200.* Lenient rule: wrong 41 -> 7 (E3 + E4) and 41 -> 5 (E1 + E2 + E3 + E4); C++ rule: 56 -> 9 with both arms. No voxel broke
+  in any run, so nothing needed tracing. Of the fixed voxels, 17 of 34 and 15 of 36 (lenient) are traced to the arm: on the same list, its key
+  kept a basin candidate that the strict cost would have cut. The others were fixed by a later difference that the change of list sets off
+  (a different kept quarter, other random draws). The voxels right in both runs also end closer to the truth: E0, lenient, the 159 voxels
+  right in both runs, median 0.0130 deg -> 0.0054 deg (E3 + E4) and 0.0050 deg (E1 + E2 + E3 + E4).
+* *The zero-broken pairing (checked by the Task E review).* Arm and baseline cover the same 200 voxel IDs, joined by ID, with the same seeds
+  (`C.run_seed(vpos, 0)` on the same filtered voxel list), the same images and the same rule. The baseline (`e0_<rule>_base`, key off on this
+  branch) equals Task C's baseline cache on all 200 voxels with the lenient rule (`task_c_base_identical` 200 of 200 in `e2e/summary.json`:
+  equal `err_deg` and `evals`). Every voxel still wrong with an arm (7 / 5 lenient, 9 / 9 C++) ends 59.9-60.0 deg from the truth, a
+  near-degenerate solution, and was wrong in the baseline too. The baseline's wrong voxels are 30 of 41 within 1 deg of 60 deg (lenient; 37 of
+  56 with the C++ rule); of the others the arms fix 10 of 11 (lenient) and 16 of 19 (C++ rule). The seed-to-seed calibration (14-23 flips each
+  way, key off, `s3_ab_paired` in `benchmarks/s3_steps1_5/tables.md`) pairs runs with 35-39 of 200 wrong each, so it does not set the number of
+  breaks to expect from an arm that leaves 5-9 wrong. That the arms remove the quarter-cut losses and leave the near-degenerate solutions is
+  consistent with these counts; it was not tested.
+* *Six full-sample voxels.* 0 of 6 wrong before and after, both arms and both rules (E1 + E2 + E3 + E4 was run with the lenient rule only; its
+  C++-rule run on the six was not done). The median error of the six moved from 0.0181 to 0.0163 deg (E3 + E4, lenient), to 0.0284 deg
+  (E1 + E2 + E3 + E4, lenient) and from 0.0286 to 0.0291 deg (E3 + E4, C++ rule); with six voxels that is not a measured difference.
+* *Evaluations.* The strict cost's own evaluations change little (lenient): +1.1% and +2.0% per E0 voxel, +0.7% and +4.8% per full-sample
+  voxel; with the C++ rule +0.7% and +1.1% (E0) and +3.2% (full sample, E3 + E4). The smooth evaluations are counted separately (every post-MC
+  candidate of levels 0-2 is scored once): 252 and 263 per E0 voxel and 15,030 and 15,755 per full-sample voxel with the lenient rule; 172 and
+  177 per E0 voxel and 11,084 per full-sample voxel (E3 + E4) with the C++ rule. Their price is in measurement 4.
+
+#### Measurement 4: time per evaluation and per voxel
+
+One process, preflight passed (`timing/preflight_full.json`, `timing/preflight_e0.json`): **single-worker**. 1,000 orientations (500 within
+5 deg of the truth, 500 random), arms at the level-0 widths (the widest, so the slowest), batches of 256 as the ranker calls them, and one per
+call. Read: "x strict" is the time per evaluation against the strict cost's.
+
+<!-- table:evalE_timing_ms -->
+| cost | full-sample: ms per evaluation, batch of 256 | full-sample: ms per evaluation, one per call | full-sample: x strict | E0: ms per evaluation, batch of 256 | E0: ms per evaluation, one per call | E0: x strict |
+|---|---|---|---|---|---|---|
+| strict cost (one call per orientation) | 0.381 | 0.381 | 1.000 | 0.392 | 0.392 | 1.000 |
+| S | 0.470 | 0.809 | 1.233 | 0.228 | 0.601 | 0.581 |
+| E1 | 1.332 | 1.649 | 3.492 | 0.240 | 0.634 | 0.613 |
+| E2 | 2.080 | 2.675 | 5.453 | 0.886 | 1.590 | 2.261 |
+| E3 | 0.473 | 0.844 | 1.240 | 0.227 | 0.640 | 0.580 |
+| E4 | 1.186 | 2.153 | 3.109 | 0.313 | 1.248 | 0.798 |
+| E1+E2 | 6.663 | 7.268 | 17.466 | 0.950 | 1.710 | 2.424 |
+| E1+E2+E3 | 6.728 | 7.485 | 17.637 | 0.952 | 1.747 | 2.430 |
+| E2+E3 | 2.136 | 2.792 | 5.599 | 0.888 | 1.627 | 2.265 |
+| E3+E4 | 1.639 | 2.811 | 4.297 | 0.495 | 1.632 | 1.262 |
+| E1+E2+E3+E4 | 7.903 | 9.499 | 20.718 | 1.223 | 2.745 | 3.120 |
+<!-- /table:evalE_timing_ms -->
+
+Whole voxels, key off against on (review fix 1, `scripts/eval_reduction/smooth_voxel_timing.py`): one process, one torch thread, lenient
+rule, the probe's seeds; the wall time of `reconstruct_voxel`, which includes the `SmoothCost` build the library does on every call. E0:
+the review's four voxels, two interleaved repeats each (median of 2), preflight passed (`timing/preflight_voxel_e0.json`):
+**single-worker**. Full sample: voxel 15901, one run; the preflight failed (a browser process, then Spotlight indexing;
+`timing/preflight_voxel_full.json`), so that time is **contended**, and by D-20261018-N16 its quiet repeat was not waited for and is not
+done. A first E0 run, contended, gave similar extra times; its files are kept in `timing/contended/`. Every run ended with the error of its end-to-end run.
+
+<!-- table:evalE_timing_voxel_wall -->
+| voxel set | voxel | timing | key off (s) | E3+E4,tau=0.25 (s) | E3+E4,tau=0.25: extra time | E1+E2+E3+E4 (s) | E1+E2+E3+E4: extra time | same error as the end-to-end run |
+|---|---|---|---|---|---|---|---|---|
+| E0 | 7336 | single-worker, median of 2 | 2.1 | 6.0 | +179% | 6.4 | +201% | yes |
+| E0 | 3108 | single-worker, median of 2 | 2.4 | 6.5 | +173% | 7.1 | +195% | yes |
+| E0 | 2910 | single-worker, median of 2 | 3.0 | 7.0 | +130% | 7.7 | +153% | yes |
+| E0 | 16182 | single-worker, median of 2 | 2.5 | 6.5 | +164% | 6.9 | +179% | yes |
+| full-sample | 15901 | contended, median of 1 | 117.4 | 159.6 | +36% | 263.9 | +125% | yes |
+<!-- /table:evalE_timing_voxel_wall -->
+
+A model of the full-sample voxel, for the carried arms (lenient runs): the strict cost's evaluations x its ms per evaluation, plus the smooth
+evaluations x ms per evaluation at batch 256, plus the build of a `SmoothCost` (lit-pixel trees and, for E4, the observed rays: 16.6 s on the
+full sample, 3.6 s on an E0 image set). As shipped the library builds one per `reconstruct_voxel` call; a cache per image set is not built
+(Task G, D-20261018-N17), so that column is a projection. It is not an upper estimate: lists shorter than 256 cost more per evaluation (2.811
+against 1.639 ms for E3 + E4 on the full sample). The E0 rows of an earlier version are dropped: on E0 most counted evaluations are screen and
+re-cost evaluations, far cheaper than one local `evaluate` call, so the model overstated the E0 voxel several times over (Task E review); the
+measured table above replaces them.
+
+<!-- table:evalE_timing_per_voxel -->
+| voxel set | arm | modelled strict cost time per voxel, baseline (s) | modelled strict cost time per voxel, arm (s) | smooth evaluations per voxel | modelled smooth cost time per voxel (s) | SmoothCost build (s) | extra time as shipped (a build per voxel) | projection: one build per image set (cache not built) |
+|---|---|---|---|---|---|---|---|---|
+| six full-sample | E3+E4,tau=0.25 | 126.7 | 127.6 | 15030 | 24.6 | 16.6 | +33.3% | +20.2% |
+| six full-sample | E1+E2+E3+E4 | 126.7 | 132.8 | 15755 | 124.5 | 16.6 | +116.2% | +103.1% |
+<!-- /table:evalE_timing_per_voxel -->
+
+E1 is slow on the full-sample images, consistent with its nearest-lit-pixel search reaching far (4 sigma = 66 px at level 0) through about 3.9
+million lit pixels per detector (not profiled); on the sparse E0 images it is as cheap as the strict cost. E2 multiplies the searches by the frames it reaches.
+
+#### What smoothing removed and what it cost
+
+*Removed.*
+
+* The frame edge (E2): a predicted spot crossing a frame boundary keeps its credit and loses it gradually.
+* The pixel staircase (E1): credit falls off with the distance to the nearest lit pixel instead of jumping from hit to miss.
+* The jumps when a peak enters or leaves the list, at a detector edge, the eta limit or the ends of the scan (E3), and the fixed half credit of
+  spots that miss detector 1, which held the strict cost at 0.0703 at the truth (E3 brings it to 0.0000).
+* Together (E1 + E2 + E3): 19 isolated steps on 120 full-sample rays, against 28,290 for the strict cost. E4 adds a gradient.
+* As a ranking key: the truth basin is cut at the quarter far less often on E0 (24 of 536 cases lost by the strict ranking, at most 1 by the
+  carried arms), and the wrong E0 voxels fall from 41 to 5-7 (lenient) and from 56 to 9 (C++ rule).
+
+*What it cost.*
+
+* Time: as shipped (a build per voxel) +33.3% (E3 + E4) and +116.2% (E1 + E2 + E3 + E4) per full-sample voxel, modelled; +36% and +125%
+  measured on voxel 15901 (contended). Projected with a build cache per image set (not built): +20.2% and +103.1%. E0 voxels: +130% to +201%
+  measured (single-worker). The cheap arm is E3 + E4.
+* Dips: E1 alone adds dips on the full-sample rays (consistent with credit for lit pixels of other grains, not tested), E4 alone on the E0
+  rays. Only the combinations stay below the strict cost.
+* Far-field discrimination: E1 + E2 at level-0 widths does not rise half-way to 1 within 5 deg on most full-sample rays, so far from the truth
+  it separates orientations less than the strict cost does. That is why these costs rank only after the quick MC and the strict cost accepts.
+* E4's lowest point is a few thousandths of a degree off the truth (median 0.0095 deg on the full-sample rays): harmless for ranking, a reason
+  not to accept on it.
+* Not shown: any gain on full-sample voxels that are wrong today (none of the six was wrong).
+
+*Defaults and goldens.* No default flipped, no golden changed. Nothing here argues for flipping a default yet: the gain is on E0 images
+without neighbouring grains. Candidate for a later owner decision: `SmoothCostRank E3+E4,tau=0.25` (cheapest carried arm), after a
+full-sample set with wrong voxels (for example the rest of the 30-voxel set, or the FindOptimal robustness cases).
+
+#### E4 against Task D's finding
+
+Task D found that a spot's origin points to the grain, not the voxel, and that a hit-or-miss score on the attributed peaks at a 0.05 deg
+tolerance was gentler than the pixel cost, not sharper (its score halves 0.38 deg from the truth, the pixel cost's at 0.26 deg). E4 is the
+continuous version of that score, with Task D's footprint attachment. The results agree with Task D and add three points:
+
+* *Not sharper.* Along the full-sample rays E4 (tau 0.05 deg) rises half-way from its truth value to 1 at a median 0.4285 deg; the strict
+  cost does so at 0.3118 deg (same rays, landscape table "half-way rise"). With tau 0.25 deg it is 1.0748 deg.
+* *High at the truth, but not from missing rays.* E4's cost at the truth is 0.4136 (tau 0.05 deg, median over the full-sample rays) and 0.0977
+  on the E0 images (only the voxel's own spots there). An earlier version of this section put that down to predicted peaks with no attached
+  ray; measured (review fix, `scripts/eval_reduction/smooth_e4_truth.py`, table below), the median share of predicted peaks with no attached
+  ray within one frame is 0% on both image sets, and nearly all of the cost comes from peaks that have one. The median residual to the nearest
+  ray is 0.0256 deg on the full-sample images against 0.0141 deg on E0, and the full sample attaches 217.5 rays against 58; both fit
+  neighbouring grains' spots merging with or shifting the voxel's own (not tested). Whether the mix of the grain's and the voxel's rays
+  matters was not tested, inside a grain or at a grain boundary.
+
+  E4 at the truth split by peak (medians over voxels, so the parts need not add up to the cost):
+
+<!-- table:evalE_e4_truth -->
+| voxel set | n | E4 cost at the truth, tau 0.05 deg (median) | part from peaks with no observed ray nearby (median) | part from peaks with a ray (median) | predicted peaks (median) | share of peaks with no ray nearby, median (range) | residual to the nearest ray, peaks with a ray (median over voxels of the voxel median, deg) | observed rays attached (median) |
+|---|---|---|---|---|---|---|---|---|
+| six full-sample voxels | 6 | 0.4136 | 0.0000 | 0.4051 | 58.0 | 0.0% (0.0%-1.7%) | 0.0256 | 217.5 |
+| 30 E0 voxels | 30 | 0.0977 | 0.0000 | 0.0904 | 58.0 | 0.0% (0.0%-3.2%) | 0.0141 | 58.0 |
+<!-- /table:evalE_e4_truth -->
+
+* *Its lowest point is slightly off the truth.* On 54 of 120 full-sample rays and 291 of 600 E0 rays the lowest point of E4 (tau 0.05 deg) is
+  not at the truth, a median 0.0095 deg away on the full-sample rays: consistent with the small errors of the binary spot centroids (not
+  separately tested). That is far below what the coarse levels resolve, but it is why E4 should rank, not accept.
+* *As a ranking key it is strong, alone it adds dips.* E4 alone keeps the basin as often as any arm on the E0 lists (net 24 - 0 at level
+  widths), but adds 0.01-deep dips on the E0 rays (70 of 600 at level-0 tau, strict cost 12), so it failed the carry rule. Averaged with the
+  image arms (E3 + E4, E1 + E2 + E3 + E4) the dips go away (6 of 600).
+
+#### Could a per-sample level-0 table carry the arms? (for Track S's S4)
+
+S4 may replace the per-voxel level-0 screen by a per-sample table built by translating spots (`docs/spot_translation_derivation.md`: for a
+fixed orientation every spot moves rigidly with the voxel position; omega and the ray direction do not depend on the position). The arms here act
+on the ranking after the quick MC, not on the screen, but each could be evaluated from such a table:
+
+* **E1:** yes. It needs the predicted spot points (translated by the table) and a per-image distance-to-lit field instead of the binary image;
+  the field is computed once per image set (here a `cKDTree` of lit pixels; a distance-transform image would do the same).
+* **E2:** yes. It needs each peak's omega, which does not depend on the voxel position, and lookups in the neighbouring frames.
+* **E3:** yes. The eta and omega margins do not depend on the position; the detector-edge margin is recomputed from the translated spot.
+* **E4:** yes, without the table. The residual uses the predicted ray direction and omega (position-free) and the voxel's attached observed rays,
+  a per-voxel list computed once from the images (no orientation involved).
+
+#### Limits
+
+* **E0 is the only set with wrong voxels, and its images hold one voxel.** The E0 per-voxel images contain only the voxel's own spots
+  (about 500 lit pixels per detector), so they test the ranking without neighbouring grains. The full-sample images have neighbours, but the six
+  interior voxels are all right with the strict cost and their basin is never cut, so they can show breaks only, not fixes. The 30-voxel set
+  was dropped for time (RUN_LOG section 4). Whether the E0 gain carries over to full-sample voxels that the strict search gets wrong is
+  untested; the other 24 voxels of the 30-voxel set run in Task G (D-20261018-N15).
+* **The full-sample whole-voxel time is contended.** Its quiet-machine repeat was not done (D-20261018-N16).
+* **The widths were set once, by rule of thumb, not tuned.** The level-0 widths come from the quick MC's trial radius; the ranking table shows
+  that E1 at 3, 8 px and auto, and E4 at tau 0.05, 0.25 deg and auto, rank about equally on E0.
+* **E2 is not the physics of omega integration.** The clean images put each spot on one frame, so E2 is a tolerance across frame edges, not
+  a model of a spot spread over frames. On real data the images themselves spread spots over frames (not tested).
+* **E3's ramps are fixed** (10 px, 1 deg, 0.5 frame). The Bragg-limit cut (about 0.1 per degree, Task B) and the `min_sin_eta` cut are not
+  softened.
+* **E4 follows Task D's assumptions:** lab = Rz(omega) sample, beam along +x, two detectors, binary centroids, `ring_tight` preset chosen
+  in-sample by Task D.
+* **The arms rank only; they do not move.** The quick MC still uses the strict cost; using a smooth cost to move (the plan's "to rank and to
+  move") was not tested.
+* One image family, clean images, no extra seeds; wall times other than measurement 4 are contended and not timing claims.
+
+### Task F: searching outward from a start (2026-10-20, `feature/eval-reduction-F`)
+
+Run record: `benchmarks/eval_reduction/F/RUN_LOG.md`. Library: `icenine/outward_search.py` (`RayGaussNewton` = F4, `ShellSearch` = F5; library only,
+not wired into the reconstructor, no config key; tests `tests/test_outward_search.py`). Scripts: `scripts/eval_reduction/outward_bench.py`,
+`outward_summary.py`, `outward_pilot.py`, `outward_diag.py`. Clean images only (Q-max 8 configuration), no realistic images, no extra seeds, no
+golden test changed, no default flipped, no shared file edited; `BatchedQuickMC`, `SearchDevice` and `CandidateDedup` off (nothing here touches
+the reconstructor). Tables are generated (`benchmarks/eval_reduction/F/doc_tables_all.md`); figures in `benchmarks/eval_reduction/F/figures/`.
+
+Plain-English findings: `docs/findings_outward_search_2026-10.md` (written in the main session from this subsection, which keeps the
+full record and every table; the implementer could not create the doc).
+
+Review fixes (2026-10-20, `feature/eval-reduction-F-fixes`): F5's evaluations were re-costed at the batch sizes F5 uses (new single-worker,
+preflight-gated timing `timing/<set>_f5.json`); this changes F5's and F5+F4's strict-equivalent counts and **the E0 carry (now F4 and F5; the
+first weights carried F4 and F2 sigma0 1 deg by a three-way tie)**. The first-weight tables are kept as `*_v1`. Wording, attribution, interval and
+per-voxel fixes from the review are folded into the text below.
+
+#### Short answer
+
+1. *The two new methods reach furthest.* Table 1 shows the share of runs that end within 1 degree of the truth. From a 5 degree start F4
+   (Gauss-Newton on observed rays) reaches 95% on the E0 set and F5 (expanding shells) 100%; CMA-ES reaches 11% to 46% and FindOptimal with a
+   widened box 42%.
+2. *F4 is cheap per run, F5 cheap per evaluation.* From 5 degrees on E0 F4 makes a median of 33 raw evaluations: 13 E4 values with the Jacobian,
+   18 E4 values and 2 strict (`summary_e0.json` `composition`). One value with its Jacobian costs about 26 strict evaluations, so the Jacobians are
+   a median 92% of F4's strict-equivalent cost. In time F4 is about 358 strict evaluations: close to CMA-ES at 2 degrees, about half of CMA-ES
+   (1 degree first step) at 5 degrees. F5 needs 22,244 evaluations from 5 degrees, mostly cheap screen evaluations; at F5's own batch sizes that is
+   a median of 1,364 strict-equivalent (about 0.58 s per run, single worker).
+3. *F4 stops 0.02 to 0.05 degrees from the truth*, consistent with the resolution of the observed-ray cost (untested: `RayGNResult.converged` was
+   not saved, so a convergence failure is not ruled out); it hands over to the finisher.
+4. *F4's acceptance test was right in every run here.* The test (strict cost of the end point at most 0.8) accepted no run that ended 1 degree or
+   more out and rejected none within 1 degree, on both sets: at 5 degrees 0 of 456 accepted runs wrong (95% Wilson interval 0-0.8%) and 0 of 24
+   rejected runs right (0-13.8%) on E0; 0 of 81 (0-4.5%) and 0 of 39 (0-9.0%) on the full sample (runs counted as independent). The two groups
+   were far apart (accepted strict cost at most 0.472 on E0 and 0.159 on the full sample from 5 degrees, rejected at least 0.951; rejected runs end
+   at least 3.37 degrees out), so the test was only tried on a well-separated, two-mode outcome; it is untested where the outcomes are close. The
+   policy "F4 first, then F5 followed by F4 where F4 was rejected" ended within 1 degree in every run at every offset, on E0 and on the full sample
+   (in-sample: written down after the tables and computed from the same runs).
+5. *On the full sample F4 is weaker from far starts*: 68% within 1 degree from 5 degrees (E0: 95%). A full-sample voxel has a median of 217.5
+   attached observed rays for 58 predicted peaks (E0: 58 for 58).
+6. *A wider matching window fixes the E0 failure.* F4 matches a peak only to rays within one frame. From 5 degrees a peak moves further. With a
+   5-frame window F4 reaches 100% from 5 degrees on E0, 74% on the full sample.
+7. *The carry rule* (best capture per evaluation at 2 and 5 degrees, taken before the full-sample runs were read) carries **F4 and F5** with F5
+   costed at its own batch sizes (rank sums 3 and 3; next F2 sigma0 2 at 7, so the carry does not depend on the tie rule). With the first weights,
+   which overstated F5's time by 1.2-1.6x against its single-worker wall time, it carried F4 and F2 with a 1 degree first step, the second place by a
+   three-way tie at rank sum 6 broken by mean score (1.82 against 1.65 for F5 and 1.64 for F2 sigma0 2). A wall-time version of the rule also
+   carries F4 and F5. Run on the full sample, the same rule would carry the two CMA-ES variants (sigma0 2 and 1 degree) under every weighting; F4 is
+   third. F5 (alone or followed by F4) is the only method that finds the truth from 5 degrees in every run on both sets, which is why the policy uses
+   it as the fallback.
+8. *No default changed.* Separate module; no shared file, golden test or default touched.
+
+#### Terms
+
+* **Start, offset.** The orientation we begin from, and its angle from the true orientation: 0.1, 0.5, 1, 2, 3 and 5 degrees, 20 random directions each.
+* **Within X degrees (captured).** The method's final orientation is within X degrees of the truth (angle of R R_true^T, no symmetry reduction). The
+  truth only scores; no method uses it, except that F1's box is the offset. A tolerance of 0.001 degrees applies (R_true is float32, so a start exactly 1
+  degree out measures 0.9999 degrees).
+* **Evaluation kinds.** *Strict*: one strict cost. *Screen*: one orientation in the coarse pixel-radius screen (batched, cheap). *Smooth*: one E4
+  value, or one E4 value with its Jacobian. *Raw count*: every evaluation once. *Strict-equivalent*: each kind weighted by its measured single-worker time at the batch size the
+  method uses it (F4: one rotation per E4 call; F5: a shell per screen call, in chunks of up to 256, and 32 rotations per E4 call), relative to one
+  strict evaluation; the weights come from one voxel per set (E0 10531, full sample 15901).
+* **Ties in the choice rule.** At each offset a method's rank is 1 + the number of methods with a strictly higher score (ties share the better
+  rank); the two ranks are added; ties in the sum go to the larger mean of the two scores.
+* **Near-axis, far-from-axis.** Voxels within 120 micrometres of the rotation axis, or 250 micrometres or more from it.
+
+#### Methods
+
+* F1 FindOptimal (Monte Carlo plus variance-minimizing), box = max(default box, offset); told the offset. F2 CMA-ES, first step 0.5, 1, 2 degrees; stops at
+  a step size of 0.005 degrees or 4,000 evaluations. F3 centroid Gauss-Newton with Huber loss on windows (the hybrid finisher without the network; E0
+  only; its windows are re-rendered from the true orientation, so it is an optimistic reference).
+* F4 (new): Gauss-Newton on E4's observed-ray residual. Each predicted peak is matched to the nearest observed ray attached to the voxel (within one frame
+  in omega); the residual is the tangent-plane offset of the predicted ray (two numbers) plus the omega distance to the ray's frame; the loss is
+  `r^2 / (r^2 + tau^2)` with tau = 0.25 degrees, minimised by reweighting, Levenberg-Marquardt damping and a trust region (largest step 2 degrees, first
+  step 1 degree). The Jacobian is exact (autograd through `SmoothCost.predict`, one batched backward pass; tested against finite differences). The
+  strict cost is evaluated at the start and the end only.
+* F5 (new): equal-area points on spheres of radius k x 0.3 degrees in rotation-vector space about the start; per shell the batched screen scores every
+  point, the best 32 are re-ranked by E4 (tau 0.25 degrees), the best 2 are costed strictly; the search stops at the first strict cost of 0.8 or less
+  (at most 6 degrees). F5 then F4: F4 from the point F5 accepted. The spacing follows the basin size in `pilot/half_rise.json` (computed in Task F from
+  Task B's ray walks): the screen's score falls to half-way at 0.78 degrees (median over the E0 walks; 0.76 on the full sample), and 0.3 degrees is
+  0.38 of that (0.45 left 12% of the pilot runs without an accepted shell).
+* F6 (Riemannian Adam) was not run (the plan allows it only as a cheap reference at the smooth costs; Task E's costs are not wired into it).
+* Settings (acceptance 0.8, tau 0.25, spacing 0.3, the 5-frame window) were chosen on four E0 voxels the benchmark does not use (`pilot/`). The
+  acceptance level and the spacing also rest on the half-rise medians of `pilot/half_rise.json`, whose Task B walks include the benchmark E0 voxels
+  3108, 10531 and 17451 and all six full-sample voxels; those two settings are therefore not fully independent of the test voxels.
+
+#### Test set
+
+E0: 8 near-axis and 16 far-from-axis voxels of the 200 (per-voxel clean images), 20 directions, 6 offsets: 480 runs per method and offset. Full sample: the
+six interior voxels (clean full-sample images), 20 directions, offsets 1, 2, 5 degrees: 120 runs per method and offset; F3 does not run there.
+Main-run wall times are contended (five workers); single-worker times come from a separate preflight-gated run (`timing/`). The E0 run was done twice;
+all non-timing arrays are identical.
+
+#### Results on E0
+
+Capture against evaluations (read: the x-axis is a raw count, not time, so one F4 Jacobian counts 1 but costs about 26 strict evaluations and
+one F5 screen counts 1 but costs about 0.04; read it for lost runs, a curve that levels off below 1, and compare cost in Tables 6 and 18; F5 lies
+under F5+F4):
+
+![Capture against evaluations, E0](benchmarks/eval_reduction/F/figures/capture_vs_evals_e0.png)
+
+Table 1: share of runs ending within 1 degree of the truth, E0 (95% interval). A start exactly 1 degree out is not counted as captured (tolerance
+0.001 degrees), so the 1 degree column counts only runs that moved in. Intervals treat the 480 runs (24 voxels x 20) as independent; runs on one
+voxel share its images (per-voxel counts: Table 10b).
+
+<!-- table:evalF_e0_cap1 -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 100% (99-100) | 100% (99-100) | 99% (98-100) | 85% (81-88) | 66% (62-70) | 42% (38-47) |
+| F2 CMA-ES, sigma0 0.5 deg | 100% (99-100) | 100% (99-100) | 100% (99-100) | 82% (78-85) | 47% (43-52) | 11% (9-14) |
+| F2 CMA-ES, sigma0 1 deg | 100% (99-100) | 100% (99-100) | 99% (98-100) | 98% (96-99) | 80% (76-84) | 32% (28-37) |
+| F2 CMA-ES, sigma0 2 deg | 100% (99-100) | 99% (98-100) | 93% (91-95) | 89% (86-92) | 81% (77-84) | 46% (42-51) |
+| F3 centroid Gauss-Newton (windows) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 88% (85-91) |
+| F4 Gauss-Newton on E4 rays | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (98-100) | 95% (93-97) |
+| F4 with a 5-frame matching window | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+| F5 expanding shells | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+| F5 then F4 | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+<!-- /table:evalF_e0_cap1 -->
+
+Capture against the start offset:
+
+![Capture against the start offset, E0](benchmarks/eval_reduction/F/figures/capture_vs_offset_e0.png)
+
+Table 2: share within 0.05 degrees, E0 (95% interval). F4's share is flat near 90%, consistent with the resolution of E4 (untested). CMA-ES is
+sharper when it gets there.
+
+<!-- table:evalF_e0_cap005 -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 86% (83-89) | 66% (62-70) | 58% (53-62) | 32% (28-36) | 21% (18-25) | 7% (5-9) |
+| F2 CMA-ES, sigma0 0.5 deg | 100% (99-100) | 99% (98-100) | 99% (98-100) | 81% (77-84) | 46% (42-51) | 11% (8-14) |
+| F2 CMA-ES, sigma0 1 deg | 99% (98-100) | 99% (98-100) | 98% (96-99) | 96% (94-98) | 79% (75-82) | 32% (28-36) |
+| F2 CMA-ES, sigma0 2 deg | 94% (92-96) | 90% (87-93) | 92% (89-94) | 86% (83-89) | 80% (76-83) | 43% (39-48) |
+| F3 centroid Gauss-Newton (windows) | 96% (94-97) | 96% (94-97) | 96% (94-97) | 96% (94-97) | 96% (94-97) | 87% (83-89) |
+| F4 Gauss-Newton on E4 rays | 91% (88-93) | 90% (87-93) | 91% (88-93) | 91% (89-94) | 90% (87-92) | 87% (84-90) |
+| F4 with a 5-frame matching window | 92% (89-94) | 90% (87-93) | 93% (90-95) | 93% (91-95) | 93% (91-95) | 93% (90-95) |
+| F5 expanding shells | 0% (0-1) | 0% (0-1) | 0% (0-1) | 0% (0-1) | 6% (4-8) | 0% (0-1) |
+| F5 then F4 | 91% (88-93) | 91% (88-93) | 90% (87-92) | 91% (88-93) | 91% (88-93) | 90% (87-92) |
+<!-- /table:evalF_e0_cap005 -->
+
+Table 3: median final error in degrees, E0. F4 sits near 0.02 whatever the offset; F5 alone sits at the shell spacing.
+
+<!-- table:evalF_e0_err -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 0.0129 | 0.0212 | 0.0360 | 0.1118 | 0.2374 | 2.4255 |
+| F2 CMA-ES, sigma0 0.5 deg | 0.0000 | 0.0000 | 0.0000 | 0.0076 | 1.9106 | 4.9791 |
+| F2 CMA-ES, sigma0 1 deg | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0085 | 4.3222 |
+| F2 CMA-ES, sigma0 2 deg | 0.0012 | 0.0014 | 0.0020 | 0.0040 | 0.0084 | 2.3745 |
+| F3 centroid Gauss-Newton (windows) | 0.0110 | 0.0110 | 0.0110 | 0.0110 | 0.0110 | 0.0147 |
+| F4 Gauss-Newton on E4 rays | 0.0232 | 0.0238 | 0.0241 | 0.0235 | 0.0241 | 0.0244 |
+| F4 with a 5-frame matching window | 0.0220 | 0.0228 | 0.0220 | 0.0220 | 0.0228 | 0.0220 |
+| F5 expanding shells | 0.0996 | 0.2249 | 0.1608 | 0.2266 | 0.1460 | 0.2238 |
+| F5 then F4 | 0.0232 | 0.0244 | 0.0244 | 0.0241 | 0.0232 | 0.0232 |
+<!-- /table:evalF_e0_err -->
+
+Table 4: time of one evaluation of each kind, single worker, E0 images, voxel 10531 (preflight passed: `timing/preflight_e0.json`, load 1.39;
+`timing/preflight_e0_f5.json`, load 1.37). One E4 value with its Jacobian costs about 26 strict evaluations (16 single E4 values). F5's rows are
+timed in F5's own call pattern (`outward_bench.py timing-f5`); the 64-batch screen row gave the first (v1) weights only.
+
+<!-- table:evalF_e0_timing -->
+| kind of evaluation | used for | milliseconds | times a strict evaluation |
+|---|---|---|---|
+| strict cost | all methods | 0.4219 | 1.000 |
+| screen (pixel radius 3), per orientation, batches of 64 | v1 weights only | 0.0230 | 0.054 |
+| E4 value, one rotation per call | F4 | 0.6584 | 1.561 |
+| E4 value and Jacobian, one rotation per call | F4 | 10.7970 | 25.592 |
+| screen, per orientation, a shell at a time (chunks of up to 256) | F5 | 0.0175 | 0.042 |
+| E4 value, per orientation, 32 rotations per call | F5 | 0.3670 | 0.870 |
+<!-- /table:evalF_e0_timing -->
+
+Table 4b: the same times on both E0 timing voxels (single-worker, `timing/e0_f5.json`; the weights use 10531 only).
+
+<!-- table:evalF_e0_timing_voxels -->
+| voxel | weights from it | F4 E4 value (ms) | F4 E4 value and Jacobian (ms) | F5 screen (ms per orientation) | F5 E4 (ms per orientation) | strict inside F5 (ms) |
+|---|---|---|---|---|---|---|
+| 10531 | yes | 0.649 | 11.04 | 0.0175 | 0.367 | 0.443 |
+| 3108 |  | 0.630 | 8.76 | 0.0168 | 0.352 | 0.464 |
+<!-- /table:evalF_e0_timing_voxels -->
+
+Table 4c: strict-equivalent count over single-worker wall time (in strict evaluations), median per run on the timing run's cases (2 voxels,
+5 directions, 10 runs per cell), first (v1) weights -> current weights. The v1 weights overstated F5 by 1.5-1.6x and F5+F4 by 1.25-1.43x.
+
+<!-- table:evalF_e0_se_vs_wall -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 1.04 -> 1.04 | 1.03 -> 1.03 | 1.03 -> 1.03 |
+| F2 CMA-ES, sigma0 0.5 deg | 0.99 -> 0.99 | 0.99 -> 0.99 | 0.99 -> 0.99 |
+| F2 CMA-ES, sigma0 1 deg | 0.99 -> 0.99 | 0.99 -> 0.99 | 1.00 -> 1.00 |
+| F2 CMA-ES, sigma0 2 deg | 1.00 -> 1.00 | 1.00 -> 1.00 | 0.99 -> 0.99 |
+| F4 Gauss-Newton on E4 rays | 1.06 -> 1.06 | 1.08 -> 1.08 | 1.11 -> 1.11 |
+| F4 with a 5-frame matching window | 1.05 -> 1.05 | 1.05 -> 1.05 | 1.05 -> 1.05 |
+| F5 expanding shells | 1.62 -> 0.96 | 1.61 -> 0.99 | 1.48 -> 1.02 |
+| F5 then F4 | 1.25 -> 1.01 | 1.41 -> 1.02 | 1.43 -> 1.02 |
+<!-- /table:evalF_e0_se_vs_wall -->
+
+Table 5: evaluations until the method stops, raw count, median (90th percentile), E0. F3 makes no cost evaluations.
+
+<!-- table:evalF_e0_stop_raw -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 573 (650) | 496 (540) | 452 (474) | 467 (505) | 529 (551) | 870 (870) |
+| F2 CMA-ES, sigma0 0.5 deg | 225 (281) | 239 (302) | 260 (323) | 323 (562) | 456 (1030) | 715 (1422) |
+| F2 CMA-ES, sigma0 1 deg | 267 (330) | 267 (330) | 274 (345) | 309 (407) | 365 (786) | 659 (1919) |
+| F2 CMA-ES, sigma0 2 deg | 316 (457) | 330 (582) | 330 (541) | 344 (758) | 379 (1054) | 684 (2544) |
+| F3 centroid Gauss-Newton (windows) | n/a (n/a) | n/a (n/a) | n/a (n/a) | n/a (n/a) | n/a (n/a) | n/a (n/a) |
+| F4 Gauss-Newton on E4 rays | 14 (35) | 20 (40) | 26 (45) | 28 (43) | 30 (47) | 33 (48) |
+| F4 with a 5-frame matching window | 14 (34) | 20 (40) | 26 (46) | 28 (45) | 30 (46) | 32 (50) |
+| F5 expanding shells | 1 (1) | 32 (125) | 290 (290) | 1511 (2257) | 5916 (5916) | 22244 (26472) |
+| F5 then F4 | 15 (36) | 52.5 (141) | 304 (326) | 1529 (2271) | 5928 (5943) | 22261 (26486) |
+<!-- /table:evalF_e0_stop_raw -->
+
+Table 6: the same, strict-equivalent (time-weighted, current weights), E0. F3's row is its measured time per run divided by a strict
+evaluation's time. With the v1 weights F5 was 357 at 2 degrees and 1,986 at 5 degrees (`summary_e0.json` `stop_se_v1`).
+
+<!-- table:evalF_e0_stop_se -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 573 (650) | 496 (540) | 452 (474) | 467 (505) | 529 (551) | 870 (870) |
+| F2 CMA-ES, sigma0 0.5 deg | 225 (281) | 239 (302) | 260 (323) | 323 (562) | 456 (1030) | 715 (1422) |
+| F2 CMA-ES, sigma0 1 deg | 267 (330) | 267 (330) | 274 (345) | 309 (407) | 365 (786) | 659 (1919) |
+| F2 CMA-ES, sigma0 2 deg | 316 (457) | 330 (582) | 330 (541) | 344 (758) | 379 (1054) | 684 (2544) |
+| F3 centroid Gauss-Newton (windows) | 426 (426) | 426 (426) | 426 (426) | 426 (426) | 426 (426) | 426 (426) |
+| F4 Gauss-Newton on E4 rays | 141 (205) | 214 (288) | 268 (340) | 304 (377) | 331 (404) | 358 (431) |
+| F4 with a 5-frame matching window | 141 (216) | 214 (288) | 268 (359) | 304 (377) | 331 (395) | 358 (425) |
+| F5 expanding shells | 1 (1) | 15.7 (48) | 83.2 (83.2) | 219 (279) | 516 (516) | 1364 (1568) |
+| F5 then F4 | 142 (206) | 184 (255) | 224 (314) | 388 (452) | 647 (713) | 1533 (1709) |
+<!-- /table:evalF_e0_stop_se -->
+
+Table 7: seconds per run, single worker, E0 (two voxels, 5 directions, offsets 1, 2 and 5 degrees).
+
+<!-- table:evalF_e0_secs_single -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | n/a | n/a | 0.183 | 0.190 | n/a | 0.355 |
+| F2 CMA-ES, sigma0 0.5 deg | n/a | n/a | 0.142 | 0.146 | n/a | 0.333 |
+| F2 CMA-ES, sigma0 1 deg | n/a | n/a | 0.125 | 0.127 | n/a | 0.323 |
+| F2 CMA-ES, sigma0 2 deg | n/a | n/a | 0.151 | 0.143 | n/a | 0.453 |
+| F3 centroid Gauss-Newton (windows) | n/a | n/a | 0.177 | 0.182 | n/a | 0.185 |
+| F4 Gauss-Newton on E4 rays | n/a | n/a | 0.091 | 0.112 | n/a | 0.124 |
+| F4 with a 5-frame matching window | n/a | n/a | 0.091 | 0.113 | n/a | 0.133 |
+| F5 expanding shells | n/a | n/a | 0.037 | 0.094 | n/a | 0.579 |
+| F5 then F4 | n/a | n/a | 0.095 | 0.157 | n/a | 0.656 |
+<!-- /table:evalF_e0_secs_single -->
+
+Table 8: evaluations until the method's current best first comes within 1 degree, among the runs that get there, median (90th percentile), E0. This
+uses the truth (a diagnostic, not what a method can know).
+
+<!-- table:evalF_e0_tocap1 -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 0 (0) n=480 | 0 (0) n=480 | 5 (30.8) n=479 | 32 (193) n=409 | 81 (223) n=325 | 126 (433) n=211 |
+| F2 CMA-ES, sigma0 0.5 deg | 0 (0) n=480 | 0 (0) n=480 | 4 (13) n=479 | 32 (110) n=395 | 68 (177) n=227 | 133 (416) n=54 |
+| F2 CMA-ES, sigma0 1 deg | 0 (0) n=480 | 0 (0) n=480 | 9 (27.4) n=477 | 23 (74) n=471 | 44.5 (126) n=386 | 109 (236) n=157 |
+| F2 CMA-ES, sigma0 2 deg | 0 (0) n=480 | 0 (0) n=480 | 25 (82) n=451 | 30.5 (101) n=434 | 48 (135) n=392 | 82.5 (268) n=226 |
+| F3 centroid Gauss-Newton (windows) | 0 (0) n=480 | 0 (0) n=480 | 3 (3) n=480 | 3 (3) n=480 | 3 (3) n=480 | 3 (3) n=423 |
+| F4 Gauss-Newton on E4 rays | 0 (0) n=480 | 0 (0) n=480 | 5 (5) n=480 | 7 (7) n=480 | 9 (9) n=478 | 11 (11) n=456 |
+| F4 with a 5-frame matching window | 0 (0) n=480 | 0 (0) n=480 | 5 (5) n=480 | 7 (7) n=480 | 9 (9) n=480 | 11 (11) n=480 |
+| F5 expanding shells | 0 (0) n=480 | 0 (0) n=480 | 33 (33) n=480 | 558 (955) n=480 | 2258 (3221) n=480 | 15197 (18496) n=480 |
+| F5 then F4 | 0 (0) n=480 | 0 (0) n=480 | 33 (33) n=480 | 558 (955) n=480 | 2258 (3221) n=480 | 15197 (18496) n=480 |
+<!-- /table:evalF_e0_tocap1 -->
+
+Near-axis and far-from-axis voxels (read: the panels look alike for F4, F5 and CMA-ES; no detectable difference at the 1 degree bar with 8 and
+16 voxels; at 0.05 degrees see Table 10):
+
+![Near-axis and far-from-axis](benchmarks/eval_reduction/F/figures/nearfar_e0.png)
+
+Table 9: within 1 degree, by voxel class (95% interval).
+
+<!-- table:evalF_e0_nearfar_cap1 -->
+| method | near-axis, 2 deg | near-axis, 3 deg | near-axis, 5 deg | far-from-axis, 2 deg | far-from-axis, 3 deg | far-from-axis, 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 84% (77-89) | 66% (59-73) | 44% (36-51) | 85% (81-88) | 66% (61-71) | 42% (37-47) |
+| F2 CMA-ES, sigma0 0.5 deg | 77% (70-83) | 49% (42-57) | 12% (8-18) | 84% (80-88) | 46% (41-52) | 11% (8-14) |
+| F2 CMA-ES, sigma0 1 deg | 97% (93-99) | 77% (70-83) | 34% (27-41) | 98% (96-99) | 82% (77-86) | 32% (27-37) |
+| F2 CMA-ES, sigma0 2 deg | 89% (83-93) | 84% (78-89) | 53% (45-61) | 90% (86-93) | 79% (75-83) | 43% (38-48) |
+| F3 centroid Gauss-Newton (windows) | 100% (98-100) | 100% (98-100) | 89% (84-93) | 100% (99-100) | 100% (99-100) | 88% (83-91) |
+| F4 Gauss-Newton on E4 rays | 100% (98-100) | 99% (97-100) | 95% (90-97) | 100% (99-100) | 100% (98-100) | 95% (92-97) |
+| F4 with a 5-frame matching window | 100% (98-100) | 100% (98-100) | 100% (98-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+| F5 expanding shells | 100% (98-100) | 100% (98-100) | 100% (98-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+| F5 then F4 | 100% (98-100) | 100% (98-100) | 100% (98-100) | 100% (99-100) | 100% (99-100) | 100% (99-100) |
+<!-- /table:evalF_e0_nearfar_cap1 -->
+
+Table 10: within 0.05 degrees, by voxel class (95% interval). F4's far-from-axis share is lower than its near-axis share (5 degrees: 147/160
+near against 270/320 far; 2 degrees: 154/160 against 285/320); not investigated.
+
+<!-- table:evalF_e0_nearfar_cap005 -->
+| method | near-axis, 2 deg | near-axis, 3 deg | near-axis, 5 deg | far-from-axis, 2 deg | far-from-axis, 3 deg | far-from-axis, 5 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 22% (17-30) | 15% (10-21) | 4% (2-8) | 37% (31-42) | 24% (20-29) | 8% (6-12) |
+| F2 CMA-ES, sigma0 0.5 deg | 77% (70-83) | 47% (39-55) | 12% (8-18) | 83% (79-87) | 46% (41-52) | 10% (7-14) |
+| F2 CMA-ES, sigma0 1 deg | 94% (90-97) | 76% (68-82) | 31% (25-39) | 98% (95-99) | 80% (75-84) | 32% (27-37) |
+| F2 CMA-ES, sigma0 2 deg | 84% (78-89) | 82% (76-88) | 51% (43-58) | 88% (83-91) | 78% (73-82) | 39% (34-45) |
+| F3 centroid Gauss-Newton (windows) | 88% (81-92) | 88% (81-92) | 85% (79-90) | 100% (99-100) | 100% (99-100) | 88% (83-91) |
+| F4 Gauss-Newton on E4 rays | 96% (92-98) | 97% (93-99) | 92% (87-95) | 89% (85-92) | 87% (82-90) | 84% (80-88) |
+| F4 with a 5-frame matching window | 97% (93-99) | 99% (96-100) | 96% (92-98) | 92% (88-94) | 91% (87-93) | 91% (88-94) |
+| F5 expanding shells | 0% (0-2) | 6% (3-11) | 0% (0-2) | 0% (0-1) | 6% (4-9) | 0% (0-1) |
+| F5 then F4 | 94% (89-97) | 93% (88-96) | 92% (87-96) | 89% (85-92) | 90% (86-93) | 89% (85-92) |
+<!-- /table:evalF_e0_nearfar_cap005 -->
+
+Table 10b: per voxel, E0: on how many of the 24 voxels at least one of the 20 runs ended 1 degree or more out, and the fewest runs within
+1 degree on any voxel. F4 from 5 degrees loses runs on 14 of 24 voxels, at most 3 per voxel.
+
+<!-- table:evalF_e0_pervoxel_cap1 -->
+| method | 2 deg: voxels with a lost run | 2 deg: fewest within 1 deg | 3 deg: voxels with a lost run | 3 deg: fewest within 1 deg | 5 deg: voxels with a lost run | 5 deg: fewest within 1 deg |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 23 of 24 | 12 of 20 | 24 of 24 | 7 of 20 | 24 of 24 | 6 of 20 |
+| F2 CMA-ES, sigma0 1 deg | 10 of 24 | 18 of 20 | 24 of 24 | 13 of 20 | 24 of 24 | 3 of 20 |
+| F2 CMA-ES, sigma0 2 deg | 22 of 24 | 16 of 20 | 24 of 24 | 13 of 20 | 24 of 24 | 3 of 20 |
+| F4 Gauss-Newton on E4 rays | 0 of 24 | 20 of 20 | 2 of 24 | 19 of 20 | 14 of 24 | 17 of 20 |
+| F4 with a 5-frame matching window | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 |
+| F5 expanding shells | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 |
+| F5 then F4 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 | 0 of 24 | 20 of 20 |
+<!-- /table:evalF_e0_pervoxel_cap1 -->
+
+#### Decision point (non-blocking; the plan's default taken)
+
+Rule (fixed before the full-sample runs were read): the share within 1 degree divided by the median strict-equivalent evaluations to stop, at 2 and
+at 5 degrees, ranked at each offset (rank = 1 + the number of strictly higher scores, so ties share the better rank), ranks added, the two lowest
+sums carried, ties in the sum by the larger mean score. The rule is unchanged by the review; the F5 weights under it changed. Candidates: the plan's methods (F1, F2 in
+three variants, F4, F5, F5+F4); F3 cannot run on the full sample.
+
+![Efficiency, E0](benchmarks/eval_reduction/F/figures/efficiency_e0.png)
+
+Table 11: the choice, E0, current weights. Score is the share within 1 degree per 1,000 strict-equivalent evaluations. **Carried: F4 and F5**
+(rank sums 3 and 3; the next, F2 sigma0 2, has 7, so the carry does not depend on the tie rule).
+
+<!-- table:evalF_e0_choice -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 3 | 2.97 | yes |
+| F5 expanding shells | 4.56 | 0.733 | 3 | 2.65 | yes |
+| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 7 | 1.64 |  |
+| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 8 | 1.82 |  |
+| F5 then F4 | 2.58 | 0.652 | 9 | 1.61 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 13 | 1.34 |  |
+| F1 FindOptimal, box = offset | 1.81 | 0.489 | 13 | 1.15 |  |
+<!-- /table:evalF_e0_choice -->
+
+Table 11b: the same with the first (v1) weights, as first reported. It carried F4 and F2 sigma0 1 degree; F2 sigma0 1, F5 and F2 sigma0 2 tied at
+rank sum 6, and the tie went to the larger mean score (1.82 against 1.65 and 1.64), nearly all of it from the 2 degree score.
+
+<!-- table:evalF_e0_choice_v1 -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 2 | 2.97 | yes |
+| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 6 | 1.82 | yes |
+| F5 expanding shells | 2.8 | 0.503 | 6 | 1.65 |  |
+| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 6 | 1.64 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 12 | 1.34 |  |
+| F5 then F4 | 1.9 | 0.464 | 12 | 1.18 |  |
+| F1 FindOptimal, box = offset | 1.81 | 0.489 | 12 | 1.15 |  |
+<!-- /table:evalF_e0_choice_v1 -->
+
+Table 11c: the same with wall time: each method's strict-equivalent count scaled by its Table 4c ratio (current weights). It also carries F4 and F5. In-sample: `timing-f5` re-ran the same cases (identical counts), so this
+table does not independently support carrying F5.
+
+<!-- table:evalF_e0_choice_wall -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 3.56 | 2.95 | 3 | 3.25 | yes |
+| F5 expanding shells | 4.51 | 0.746 | 3 | 2.63 | yes |
+| F5 then F4 | 2.62 | 0.665 | 8 | 1.64 |  |
+| F2 CMA-ES, sigma0 2 deg | 2.59 | 0.672 | 8 | 1.63 |  |
+| F2 CMA-ES, sigma0 1 deg | 3.13 | 0.492 | 9 | 1.81 |  |
+| F1 FindOptimal, box = offset | 1.87 | 0.501 | 12 | 1.19 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.51 | 0.154 | 13 | 1.33 |  |
+<!-- /table:evalF_e0_choice_wall -->
+
+Table 12: the same rule with F4 given the 5-frame window (added after the failure analysis; nothing is carried from this table).
+
+<!-- table:evalF_e0_choice_with_f4w -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F4 with a 5-frame matching window | 3.29 | 2.79 | 3 | 3.04 |  |
+| F4 Gauss-Newton on E4 rays | 3.29 | 2.65 | 4 | 2.97 |  |
+| F5 expanding shells | 4.56 | 0.733 | 4 | 2.65 |  |
+| F2 CMA-ES, sigma0 2 deg | 2.6 | 0.677 | 9 | 1.64 |  |
+| F2 CMA-ES, sigma0 1 deg | 3.16 | 0.493 | 10 | 1.82 |  |
+| F5 then F4 | 2.58 | 0.652 | 11 | 1.61 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.53 | 0.154 | 15 | 1.34 |  |
+| F1 FindOptimal, box = offset | 1.81 | 0.489 | 15 | 1.15 |  |
+<!-- /table:evalF_e0_choice_with_f4w -->
+
+Table 13: acceptance (strict cost of the end point at most 0.8) against the truth, E0. Read each cell as: accepted, how many of those ended more than 1
+degree out, and how many of the rejected runs were nevertheless within 1 degree.
+
+<!-- table:evalF_e0_acc -->
+| method | 0.1 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 478 accepted, 0 of them wrong; 0 of 2 rejected were right | 456 accepted, 0 of them wrong; 0 of 24 rejected were right |
+| F5 expanding shells | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right |
+| F5 then F4 | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right | 480 accepted, 0 of them wrong; 0 of 0 rejected were right |
+<!-- /table:evalF_e0_acc -->
+
+Table 13b: the acceptance test with 95% Wilson intervals (runs counted as independent) and its margin, E0: largest accepted and smallest rejected
+strict cost, largest error accepted and smallest error rejected. The groups are far apart (rejected runs end 3.14 degrees or more out), so the test
+was not tried where a wrong end point is close to the truth.
+
+<!-- table:evalF_e0_acc_margin -->
+| method | runs | accepted but wrong | rejected but right | largest accepted strict cost | smallest rejected strict cost | largest error accepted (deg) | smallest error rejected (deg) |
+|---|---|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | all offsets | 0 of 2854 (0.0-0.1%) | 0 of 26 (0.0-12.9%) | 0.602 | 0.951 | 0.168 | 3.14 |
+| F4 Gauss-Newton on E4 rays | 5 deg | 0 of 456 (0.0-0.8%) | 0 of 24 (0.0-13.8%) | 0.472 | 0.951 | 0.168 | 3.71 |
+| F4 with a 5-frame matching window | all offsets | 0 of 2880 (0.0-0.1%) | none | 0.797 | n/a | 0.245 | n/a |
+| F4 with a 5-frame matching window | 5 deg | 0 of 480 (0.0-0.8%) | none | 0.469 | n/a | 0.169 | n/a |
+<!-- /table:evalF_e0_acc_margin -->
+
+Table 14: F4 first, then F5 followed by F4 where F4 was rejected, E0. Defined after Table 13, on the same runs: in-sample.
+
+<!-- table:evalF_e0_policy -->
+| offset | runs | F4 rejected, F5+F4 run | within 1 deg | within 0.1 deg | within 0.05 deg | median evals (strict-equivalent) | 90th percentile |
+|---|---|---|---|---|---|---|---|
+| 0.1 deg | 480 | 0 | 100% (99-100) | 99% (98-100) | 91% (88-93) | 141 | 205 |
+| 0.5 deg | 480 | 0 | 100% (99-100) | 99% (97-99) | 90% (87-93) | 214 | 288 |
+| 1 deg | 480 | 0 | 100% (99-100) | 99% (98-100) | 91% (88-93) | 268 | 340 |
+| 2 deg | 480 | 0 | 100% (99-100) | 98% (97-99) | 91% (89-94) | 304 | 377 |
+| 3 deg | 480 | 2 | 100% (99-100) | 98% (97-99) | 90% (87-93) | 331 | 410 |
+| 5 deg | 480 | 24 | 100% (99-100) | 99% (97-99) | 91% (89-94) | 358 | 468 |
+<!-- /table:evalF_e0_policy -->
+
+Table 15: the same with the 5-frame window for the first step, E0 (in-sample).
+
+<!-- table:evalF_e0_policy_f4w -->
+| offset | runs | F4 w5 rejected, F5+F4 run | within 1 deg | within 0.1 deg | within 0.05 deg | median evals (strict-equivalent) | 90th percentile |
+|---|---|---|---|---|---|---|---|
+| 0.1 deg | 480 | 0 | 100% (99-100) | 100% (98-100) | 92% (89-94) | 141 | 216 |
+| 0.5 deg | 480 | 0 | 100% (99-100) | 99% (97-99) | 90% (87-93) | 214 | 288 |
+| 1 deg | 480 | 0 | 100% (99-100) | 99% (98-100) | 93% (90-95) | 268 | 359 |
+| 2 deg | 480 | 0 | 100% (99-100) | 99% (97-99) | 93% (91-95) | 304 | 377 |
+| 3 deg | 480 | 0 | 100% (99-100) | 99% (98-100) | 93% (91-95) | 331 | 395 |
+| 5 deg | 480 | 0 | 100% (99-100) | 99% (97-99) | 93% (90-95) | 358 | 425 |
+<!-- /table:evalF_e0_policy_f4w -->
+
+#### Why F4 fails from far starts
+
+`diag/e0_w1.json` (12 E0 voxels, 5 degrees): 10 of 240 runs end more than 1 degree out. Their E4 cost ends a median of 0.97 above its value at the
+truth, near 1; consistent with few peaks having a ray within one frame and so little step direction (untested: a cost near 1 can also
+come from peaks matched to distant rays). The median share of peaks that start on the truth's own ray
+is 0.018 in the lost runs against 0.25 in the captured runs (the file stores medians only). With a 5-frame window all 240 are captured (`diag/e0_w5.json`). On the full sample 39 of 120 runs are lost with one frame and 31 of 120 with
+five. Paired from 5 degrees, 1-frame against 5-frame window: E0 fixed 24, broken 0, both wrong 0; full sample fixed 10, broken 2, both wrong 29. A voxel has a median of 217.5 attached rays for 58 predicted peaks on the full sample (E0: 58 for 58); this is consistent with a wide window
+picking up other grains' rays (untested).
+
+#### Results on the full sample
+
+![Capture against the start offset, full sample](benchmarks/eval_reduction/F/figures/capture_vs_offset_full.png)
+
+Capture against evaluations (raw count, not time):
+
+![Capture against evaluations, full sample](benchmarks/eval_reduction/F/figures/capture_vs_evals_full.png)
+
+Table 16: share within 1 degree, full sample (95% interval; the 120 runs come from 6 voxels and are counted as independent, see Table 16b).
+
+<!-- table:evalF_full_cap1 -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 100% (97-100) | 96% (91-98) | 56% (47-64) |
+| F2 CMA-ES, sigma0 0.5 deg | 100% (97-100) | 92% (86-96) | 11% (6-18) |
+| F2 CMA-ES, sigma0 1 deg | 100% (97-100) | 100% (97-100) | 42% (33-51) |
+| F2 CMA-ES, sigma0 2 deg | 97% (92-99) | 98% (93-99) | 76% (67-83) |
+| F4 Gauss-Newton on E4 rays | 100% (97-100) | 100% (97-100) | 68% (59-75) |
+| F4 with a 5-frame matching window | 100% (97-100) | 100% (97-100) | 74% (66-81) |
+| F5 expanding shells | 100% (97-100) | 100% (97-100) | 100% (97-100) |
+| F5 then F4 | 100% (97-100) | 100% (97-100) | 100% (97-100) |
+<!-- /table:evalF_full_cap1 -->
+
+Table 16b: runs within 1 degree out of 20, per full-sample voxel, from 5 degrees. F4 loses runs on every voxel (10 to 18 of 20 captured).
+
+<!-- table:evalF_full_pervoxel_cap1_5 -->
+| method | voxel 5242 | voxel 15901 | voxel 17034 | voxel 18558 | voxel 19889 | voxel 22867 |
+|---|---|---|---|---|---|---|
+| F1 FindOptimal, box = offset | 11 of 20 | 12 of 20 | 10 of 20 | 15 of 20 | 7 of 20 | 12 of 20 |
+| F2 CMA-ES, sigma0 1 deg | 9 of 20 | 9 of 20 | 6 of 20 | 7 of 20 | 7 of 20 | 12 of 20 |
+| F2 CMA-ES, sigma0 2 deg | 15 of 20 | 14 of 20 | 18 of 20 | 15 of 20 | 15 of 20 | 14 of 20 |
+| F4 Gauss-Newton on E4 rays | 14 of 20 | 18 of 20 | 14 of 20 | 12 of 20 | 13 of 20 | 10 of 20 |
+| F4 with a 5-frame matching window | 14 of 20 | 19 of 20 | 17 of 20 | 14 of 20 | 14 of 20 | 11 of 20 |
+| F5 expanding shells | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 |
+| F5 then F4 | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 | 20 of 20 |
+<!-- /table:evalF_full_pervoxel_cap1_5 -->
+
+Table 17: share within 0.05 degrees, full sample (95% interval). F4 resolves less well here than on E0.
+
+<!-- table:evalF_full_cap005 -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 81% (73-87) | 63% (54-71) | 22% (15-30) |
+| F2 CMA-ES, sigma0 0.5 deg | 89% (82-94) | 82% (74-88) | 8% (5-15) |
+| F2 CMA-ES, sigma0 1 deg | 92% (85-95) | 89% (82-94) | 41% (32-50) |
+| F2 CMA-ES, sigma0 2 deg | 91% (84-95) | 92% (86-96) | 66% (57-74) |
+| F4 Gauss-Newton on E4 rays | 33% (26-42) | 33% (26-42) | 25% (18-33) |
+| F4 with a 5-frame matching window | 50% (41-59) | 50% (41-59) | 37% (29-46) |
+| F5 expanding shells | 0% (0-3) | 0% (0-3) | 0% (0-3) |
+| F5 then F4 | 33% (26-42) | 33% (26-42) | 33% (26-42) |
+<!-- /table:evalF_full_cap005 -->
+
+Table 18a: time of one evaluation of each kind, single worker, full-sample images, voxel 15901 (preflight passed: `timing/preflight_full.json`,
+`timing/preflight_full_f5.json`). These are the weights of the full-sample tables: E4 value 3.41 and Jacobian 27.45 strict evaluations for F4.
+
+<!-- table:evalF_full_timing -->
+| kind of evaluation | used for | milliseconds | times a strict evaluation |
+|---|---|---|---|
+| strict cost | all methods | 0.4398 | 1.000 |
+| screen (pixel radius 3), per orientation, batches of 64 | v1 weights only | 0.0224 | 0.051 |
+| E4 value, one rotation per call | F4 | 1.4978 | 3.406 |
+| E4 value and Jacobian, one rotation per call | F4 | 12.0732 | 27.452 |
+| screen, per orientation, a shell at a time (chunks of up to 256) | F5 | 0.0175 | 0.040 |
+| E4 value, per orientation, 32 rotations per call | F5 | 1.2144 | 2.761 |
+<!-- /table:evalF_full_timing -->
+
+Table 18b: strict-equivalent over single-worker wall time, full sample (1 voxel, 5 directions, 5 runs per cell), v1 -> current weights.
+
+<!-- table:evalF_full_se_vs_wall -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 1.05 -> 1.05 | 1.04 -> 1.04 | 1.04 -> 1.04 |
+| F2 CMA-ES, sigma0 0.5 deg | 1.02 -> 1.02 | 1.00 -> 1.00 | 1.01 -> 1.01 |
+| F2 CMA-ES, sigma0 1 deg | 1.01 -> 1.01 | 1.01 -> 1.01 | 1.02 -> 1.02 |
+| F2 CMA-ES, sigma0 2 deg | 1.02 -> 1.02 | 1.02 -> 1.02 | 1.01 -> 1.01 |
+| F4 Gauss-Newton on E4 rays | 1.07 -> 1.07 | 1.06 -> 1.06 | 1.05 -> 1.05 |
+| F4 with a 5-frame matching window | 1.06 -> 1.06 | 1.06 -> 1.06 | 1.05 -> 1.05 |
+| F5 expanding shells | 1.18 -> 0.96 | 1.19 -> 0.97 | 1.22 -> 0.98 |
+| F5 then F4 | 1.10 -> 1.02 | 1.15 -> 0.99 | 1.20 -> 0.99 |
+<!-- /table:evalF_full_se_vs_wall -->
+
+Table 18: evaluations until the method stops, strict-equivalent (current weights), median (90th percentile), full sample. With the v1 weights F5
+was 2,523 at 5 degrees.
+
+<!-- table:evalF_full_stop_se -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F1 FindOptimal, box = offset | 496 (540) | 467 (553) | 870 (902) |
+| F2 CMA-ES, sigma0 0.5 deg | 281 (422) | 323 (527) | 393 (569) |
+| F2 CMA-ES, sigma0 1 deg | 288 (415) | 312 (478) | 438 (625) |
+| F2 CMA-ES, sigma0 2 deg | 334 (499) | 326 (464) | 418 (682) |
+| F4 Gauss-Newton on E4 rays | 317 (431) | 372 (499) | 444 (658) |
+| F4 with a 5-frame matching window | 319 (403) | 367 (465) | 461 (657) |
+| F5 expanding shells | 137 (137) | 437 (438) | 2026 (2027) |
+| F5 then F4 | 392 (474) | 709 (813) | 2292 (2436) |
+<!-- /table:evalF_full_stop_se -->
+
+Table 19: acceptance against the truth, full sample. From 5 degrees F4 rejected 39 runs; none of them was within 1 degree (0 of 39, 95% Wilson
+interval 0-9.0%); none of the 81 accepted was wrong (0-4.5%).
+
+<!-- table:evalF_full_acc -->
+| method | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 81 accepted, 0 of them wrong; 0 of 39 rejected were right |
+| F5 expanding shells | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 120 accepted, 0 of them wrong; 0 of 0 rejected were right |
+| F5 then F4 | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 120 accepted, 0 of them wrong; 0 of 0 rejected were right | 120 accepted, 0 of them wrong; 0 of 0 rejected were right |
+<!-- /table:evalF_full_acc -->
+
+Table 19b: the acceptance margin, full sample (as Table 13b).
+
+<!-- table:evalF_full_acc_margin -->
+| method | runs | accepted but wrong | rejected but right | largest accepted strict cost | smallest rejected strict cost | largest error accepted (deg) | smallest error rejected (deg) |
+|---|---|---|---|---|---|---|---|
+| F4 Gauss-Newton on E4 rays | all offsets | 0 of 321 (0.0-1.2%) | 0 of 39 (0.0-9.0%) | 0.437 | 0.953 | 0.295 | 3.37 |
+| F4 Gauss-Newton on E4 rays | 5 deg | 0 of 81 (0.0-4.5%) | 0 of 39 (0.0-9.0%) | 0.159 | 0.953 | 0.086 | 3.37 |
+| F4 with a 5-frame matching window | all offsets | 0 of 329 (0.0-1.2%) | 0 of 31 (0.0-11.0%) | 0.437 | 0.953 | 0.295 | 3.42 |
+| F4 with a 5-frame matching window | 5 deg | 0 of 89 (0.0-4.1%) | 0 of 31 (0.0-11.0%) | 0.264 | 0.953 | 0.244 | 3.42 |
+<!-- /table:evalF_full_acc_margin -->
+
+Table 20: F4 first, then F5 followed by F4 where F4 was rejected, full sample (in-sample).
+
+<!-- table:evalF_full_policy -->
+| offset | runs | F4 rejected, F5+F4 run | within 1 deg | within 0.1 deg | within 0.05 deg | median evals (strict-equivalent) | 90th percentile |
+|---|---|---|---|---|---|---|---|
+| 1 deg | 120 | 0 | 100% (97-100) | 98% (94-100) | 33% (26-42) | 317 | 431 |
+| 2 deg | 120 | 0 | 100% (97-100) | 99% (95-100) | 33% (26-42) | 372 | 499 |
+| 5 deg | 120 | 39 | 100% (97-100) | 99% (95-100) | 33% (26-42) | 547 | 2806 |
+<!-- /table:evalF_full_policy -->
+
+Table 21: the same with the 5-frame window for the first step, full sample (in-sample).
+
+<!-- table:evalF_full_policy_f4w -->
+| offset | runs | F4 w5 rejected, F5+F4 run | within 1 deg | within 0.1 deg | within 0.05 deg | median evals (strict-equivalent) | 90th percentile |
+|---|---|---|---|---|---|---|---|
+| 1 deg | 120 | 0 | 100% (97-100) | 98% (94-100) | 50% (41-59) | 319 | 403 |
+| 2 deg | 120 | 0 | 100% (97-100) | 100% (97-100) | 50% (41-59) | 367 | 465 |
+| 5 deg | 120 | 31 | 100% (97-100) | 98% (93-99) | 42% (34-51) | 502 | 2816 |
+<!-- /table:evalF_full_policy_f4w -->
+
+Table 22: the choice rule on the full-sample runs (the carried methods were fixed on E0; current weights; the v1 and wall-time versions pick the
+same two). The strict cost's basin is wider here (`pilot/half_rise.json`, from Task B's walks: half-way at 0.327 degrees against 0.112 on E0),
+which is consistent with CMA-ES reaching further (untested).
+
+<!-- table:evalF_full_choice -->
+| method | score 2 deg | score 5 deg | rank sum | mean score (tie-break) | carried |
+|---|---|---|---|---|---|
+| F2 CMA-ES, sigma0 2 deg | 2.99 | 1.82 | 3 | 2.4 | yes |
+| F2 CMA-ES, sigma0 1 deg | 3.2 | 0.95 | 4 | 2.08 | yes |
+| F4 Gauss-Newton on E4 rays | 2.69 | 1.52 | 6 | 2.1 |  |
+| F2 CMA-ES, sigma0 0.5 deg | 2.86 | 0.276 | 10 | 1.57 |  |
+| F5 expanding shells | 2.29 | 0.494 | 10 | 1.39 |  |
+| F1 FindOptimal, box = offset | 2.05 | 0.642 | 10 | 1.35 |  |
+| F5 then F4 | 1.41 | 0.436 | 13 | 0.923 |  |
+<!-- /table:evalF_full_choice -->
+
+#### What this means
+
+* For a start within 2 degrees, F4 alone was enough on both sets (within 1 degree in every run on E0 and on the full sample up to 2 degrees), at
+  about 0.1 seconds, and ends 0.02 to 0.05 degrees out: it needs the finisher after it. From 3 degrees it already loses runs: 2 of 480 on E0, and
+  8 of 120 in the full-sample diagnostic (`diag/full_w1.json`; the full-sample benchmark did not run 3 degrees).
+* For a start up to 5 degrees, F4 with F5 followed by F4 on rejection reached every run within 1 degree here (in-sample), at a median of 358
+  strict-equivalent evaluations on E0 and 547 on the full sample (90th percentile 2,806 on the full sample, the runs that fall back; 3,303 with the
+  v1 weights).
+* CMA-ES (1 degree first step) costs about as much as F4 from 1 and 2 degrees on E0 (274 and 309 against 268 and 304), more from 0.1 and
+  0.5 degrees (267 and 267 against 141 and 214), and less on the full sample at 1 and 2 degrees (288 and 312 against 317 and 372); from 5 degrees it
+  reaches 32% (E0) and 42% (full). FindOptimal with a widened box needs more evaluations and loses accuracy from 0.1 degrees.
+* Decisions for the owner: whether Task G carries F4 and F5 as the rule now says (the first weights said F4 and F2 sigma0 1, by a tie; the
+  full-sample runs would say F2 sigma0 2 and 1), or F4 with the F5 fallback (the policy); whether the `frame_window` of F4 stays at the E4 value of
+  1 (library default) or is set to 5 for far starts.
+
+#### Limits
+
+* E0 images hold one voxel each, so E4's matching is easy there; the full-sample numbers come from six voxels and one image set. Intervals treat
+  runs as independent; runs on one voxel share its images (Tables 10b and 16b).
+* F3 is an optimistic reference (windows re-rendered from the truth). F1 is told the offset; the others are not. F5 stops at 6 degrees.
+* The policy and the wide window came after the first tables: their numbers are in-sample and need voxels they were not read from (Task G's other 24
+  full-sample voxels).
+* F4 inherits Task D's and Task E's assumptions (two detectors, binary centroids, pairing settings fitted on one sample, the matching rule of E4).
+* Clean images only: the capture rates and the acceptance test are not known on realistic images.
+* Main-run times are contended. The per-evaluation weights come from one voxel per set (E0 10531, full 15901; Table 4b shows a second E0 voxel);
+  the single-worker serial runs cover two E0 voxels and one full-sample voxel. F5's batch weights were measured after the first report, on review.
+  F6 not run. Nothing was tried inside a breadth-first sweep.
+
+#### Comparing the carry options (D-20261021-N1, 2026-10-21, `feature/eval-reduction-Fcompare`)
+
+Owner request before Task G chooses its carry: run every Task F option side by side on voxels Task F did not use (so the policy and window numbers are
+out of sample) and summarize capture, time and evaluations. Full write-up (plot first, then all tables, paired comparisons, the cheapest option per capture
+level): `docs/findings_outward_search_2026-10.md` "Comparing the carry options (D-20261021-N1)". Run log: `benchmarks/eval_reduction/Fcompare/RUN_LOG.md`.
+No library, default, golden or key change.
+
+* **Options (8).** F4 1-frame; F4 5-frame; F5; F5 then F4; policy 1 (F4 1-frame, then F5+F4 from the original start where F4's own acceptance test
+  rejects); policy 5 (the same with the 5-frame window in both F4 parts, which is not what Task F's earlier `policy_f4w` did: that used the 1-frame F4
+  after F5); CMA-ES sigma0 1 and 2 deg. Settings as Task F. Policies are formed per run from the stored F4 and F5+F4 runs (`outward_compare_summary.py`).
+* **Voxels.** E0: 24 voxels disjoint from Task F's 24 + 4. Only 10 of the 200 have r_perp below 120 um and Task F used all 10, so the "near" group is the 8
+  unused voxels of smallest r_perp (122-150 um), the 16 far ones (>= 250 um) spread evenly (`Fcompare/voxel_sets.json`, chosen before any result).
+  Full sample: all 24 voxels of Task E's 30-voxel list except the six interior ones. Offsets 1, 2, 3, 5 deg, 20 directions (seed 7000 + voxel), 480 runs per
+  option, offset and set. A pilot (1 voxel per set, 3 directions, 4 offsets: 17 s on E0, 36 s on the full sample) put the whole run far under 3 h, so no voxel was cut.
+* **Time label.** Main runs (E0 2 workers, full 4 workers at once, 21 and 15 minutes) are **contended**. Seconds come from a single-worker, preflight-gated
+  pass on 2 voxels per set x the first 5 directions x 4 offsets x 8 options (10 runs per cell; preflight loads 1.35 and 1.48 against 1.5, saved in
+  `Fcompare/timing/`); its end points and counts equal the main pass's (40 of 40 per option and set); contended over single-worker medians on the same
+  runs 1.07 to 1.29. The quiet repeat on more voxels is not done.
+
+Reading: share of the 480 runs within 1 deg (count, Wilson interval in percent), runs that fell back, median strict-equivalent evaluations (Task F's current
+weights), median single-worker seconds (10 runs). Tables 23a to 23d (the other offsets, raw counts by kind, per-voxel counts, paired and contention tables are
+in the findings doc and `Fcompare/doc_tables_all.md`).
+
+Table 23a: 2 degree start, E0.
+
+<!-- table:evalFc_e0_main_2deg -->
+| option | within 1 deg | within 0.05 deg | fell back | strict-equivalent, median | strict-equivalent, 90th pct | seconds per run, median | seconds per run, 90th pct |
+|---|---|---|---|---|---|---|---|
+| F4, 1-frame window | 480 of 480, 100.0% (99.2-100.0) | 379 of 480, 79.0% (75.1-82.4) | n/a | 304 | 385 | 0.13 | 0.15 |
+| F4, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 392 of 480, 81.7% (78.0-84.9) | n/a | 304 | 429 | 0.13 | 0.21 |
+| F5 expanding shells | 480 of 480, 100.0% (99.2-100.0) | 0 of 480, 0.0% (0.0-0.8) | n/a | 219 | 279 | 0.10 | 0.12 |
+| F5 then F4 | 480 of 480, 100.0% (99.2-100.0) | 372 of 480, 77.5% (73.6-81.0) | n/a | 390 | 474 | 0.17 | 0.32 |
+| Policy, 1-frame window | 480 of 480, 100.0% (99.2-100.0) | 379 of 480, 79.0% (75.1-82.4) | 0 of 480 | 304 | 385 | 0.13 | 0.15 |
+| Policy, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 392 of 480, 81.7% (78.0-84.9) | 0 of 480 | 304 | 429 | 0.13 | 0.21 |
+| CMA-ES, sigma0 1 deg | 450 of 480, 93.8% (91.2-95.6) | 442 of 480, 92.1% (89.3-94.2) | n/a | 323 | 435 | 0.15 | 0.16 |
+| CMA-ES, sigma0 2 deg | 430 of 480, 89.6% (86.5-92.0) | 416 of 480, 86.7% (83.3-89.4) | n/a | 344 | 709 | 0.15 | 0.17 |
+<!-- /table:evalFc_e0_main_2deg -->
+
+Table 23b: 5 degree start, E0.
+
+<!-- table:evalFc_e0_main_5deg -->
+| option | within 1 deg | within 0.05 deg | fell back | strict-equivalent, median | strict-equivalent, 90th pct | seconds per run, median | seconds per run, 90th pct |
+|---|---|---|---|---|---|---|---|
+| F4, 1-frame window | 457 of 480, 95.2% (92.9-96.8) | 369 of 480, 76.9% (72.9-80.4) | n/a | 358 | 454 | 0.13 | 0.15 |
+| F4, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 401 of 480, 83.5% (80.0-86.6) | n/a | 370 | 475 | 0.15 | 0.23 |
+| F5 expanding shells | 480 of 480, 100.0% (99.2-100.0) | 0 of 480, 0.0% (0.0-0.8) | n/a | 1364 | 1568 | 0.58 | 0.66 |
+| F5 then F4 | 480 of 480, 100.0% (99.2-100.0) | 373 of 480, 77.7% (73.8-81.2) | n/a | 1533 | 1709 | 0.65 | 0.73 |
+| Policy, 1-frame window | 480 of 480, 100.0% (99.2-100.0) | 388 of 480, 80.8% (77.1-84.1) | 23 of 480 | 377 | 489 | 0.13 | 0.15 |
+| Policy, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 401 of 480, 83.5% (80.0-86.6) | 0 of 480 | 370 | 475 | 0.15 | 0.23 |
+| CMA-ES, sigma0 1 deg | 172 of 480, 35.8% (31.7-40.2) | 165 of 480, 34.4% (30.3-38.7) | n/a | 606 | 1591 | 0.23 | 0.48 |
+| CMA-ES, sigma0 2 deg | 261 of 480, 54.4% (49.9-58.8) | 248 of 480, 51.7% (47.2-56.1) | n/a | 554 | 2220 | 0.21 | 0.95 |
+<!-- /table:evalFc_e0_main_5deg -->
+
+Table 23c: 2 degree start, full sample.
+
+<!-- table:evalFc_full_main_2deg -->
+| option | within 1 deg | within 0.05 deg | fell back | strict-equivalent, median | strict-equivalent, 90th pct | seconds per run, median | seconds per run, 90th pct |
+|---|---|---|---|---|---|---|---|
+| F4, 1-frame window | 479 of 480, 99.8% (98.8-100.0) | 414 of 480, 86.2% (82.9-89.0) | n/a | 379 | 482 | 0.14 | 0.17 |
+| F4, 5-frame window | 479 of 480, 99.8% (98.8-100.0) | 375 of 480, 78.1% (74.2-81.6) | n/a | 379 | 471 | 0.15 | 0.17 |
+| F5 expanding shells | 480 of 480, 100.0% (99.2-100.0) | 0 of 480, 0.0% (0.0-0.8) | n/a | 437 | 548 | 0.27 | 0.28 |
+| F5 then F4 | 480 of 480, 100.0% (99.2-100.0) | 410 of 480, 85.4% (82.0-88.3) | n/a | 738 | 834 | 0.35 | 0.37 |
+| Policy, 1-frame window | 480 of 480, 100.0% (99.2-100.0) | 415 of 480, 86.5% (83.1-89.2) | 1 of 480 | 379 | 483 | 0.14 | 0.17 |
+| Policy, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 376 of 480, 78.3% (74.4-81.8) | 1 of 480 | 379 | 471 | 0.15 | 0.17 |
+| CMA-ES, sigma0 1 deg | 468 of 480, 97.5% (95.7-98.6) | 462 of 480, 96.2% (94.2-97.6) | n/a | 288 | 372 | 0.11 | 0.12 |
+| CMA-ES, sigma0 2 deg | 446 of 480, 92.9% (90.3-94.9) | 440 of 480, 91.7% (88.9-93.8) | n/a | 323 | 450 | 0.13 | 0.23 |
+<!-- /table:evalFc_full_main_2deg -->
+
+Table 23d: 5 degree start, full sample.
+
+<!-- table:evalFc_full_main_5deg -->
+| option | within 1 deg | within 0.05 deg | fell back | strict-equivalent, median | strict-equivalent, 90th pct | seconds per run, median | seconds per run, 90th pct |
+|---|---|---|---|---|---|---|---|
+| F4, 1-frame window | 315 of 480, 65.6% (61.3-69.7) | 279 of 480, 58.1% (53.7-62.5) | n/a | 461 | 657 | 0.17 | 0.20 |
+| F4, 5-frame window | 344 of 480, 71.7% (67.5-75.5) | 274 of 480, 57.1% (52.6-61.4) | n/a | 472 | 668 | 0.18 | 0.26 |
+| F5 expanding shells | 480 of 480, 100.0% (99.2-100.0) | 0 of 480, 0.0% (0.0-0.8) | n/a | 2026 | 2265 | 1.05 | 1.09 |
+| F5 then F4 | 480 of 480, 100.0% (99.2-100.0) | 409 of 480, 85.2% (81.8-88.1) | n/a | 2353 | 2547 | 1.14 | 1.17 |
+| Policy, 1-frame window | 480 of 480, 100.0% (99.2-100.0) | 410 of 480, 85.4% (82.0-88.3) | 165 of 480 | 562 | 2841 | 0.19 | 1.28 |
+| Policy, 5-frame window | 480 of 480, 100.0% (99.2-100.0) | 368 of 480, 76.7% (72.7-80.2) | 136 of 480 | 530 | 2891 | 0.18 | 0.36 |
+| CMA-ES, sigma0 1 deg | 165 of 480, 34.4% (30.3-38.7) | 162 of 480, 33.8% (29.7-38.1) | n/a | 421 | 659 | 0.20 | 0.40 |
+| CMA-ES, sigma0 2 deg | 272 of 480, 56.7% (52.2-61.0) | 261 of 480, 54.4% (49.9-58.8) | n/a | 428 | 785 | 0.16 | 0.29 |
+<!-- /table:evalFc_full_main_5deg -->
+
+* **Counts.** F5, F5 then F4 and both policies captured all 480 runs at every offset on both sets (interval lower end 99.2%). F4 alone: 457 of 480 on E0 from
+  5 deg (1-frame) and 480 (5-frame); 315 and 344 on the full sample. CMA-ES from 5 deg: 172 and 261 of 480 on E0, 165 and 272 on the full sample
+  (sigma0 1 and 2 deg). In every cell the policy's fallbacks equal F4's misses and nothing was broken (fixed equals fallbacks, broken 0): 23 on E0 and 165 on
+  the full sample at 5 deg (policy 1), 0 and 136 (policy 5). The 5-frame window against 1-frame (F4 alone) at 5 deg: E0 fixed 23, broken 0; full sample
+  fixed 33, broken 4, both wrong 132.
+* **Cost at 5 deg (median strict-equivalent, single-worker seconds).** E0: F4 358 (0.13), F4 5-frame 370 (0.15), F5 1,364 (0.58), F5+F4 1,533 (0.65), policy 1
+  377 (0.13), policy 5 370 (0.15), CMA-ES 606 (0.23) and 554 (0.21). Full sample: 461 (0.17), 472 (0.18), 2,026 (1.05), 2,353 (1.14), 562 (0.19),
+  530 (0.18), 421 (0.20), 428 (0.16). The policies' 90th percentile on the full sample (2,841 and 2,891) is above F5+F4's (2,547).
+* **Cheapest at each level** (point estimates, tie rule in the findings doc): F5 at 1 deg on both sets (83 on E0, 137 on the full sample); at 2 deg F5 on E0
+  (219) and, on the full sample, CMA-ES sigma0 1 deg for 90% and 95% (288) and policy 1 for 99% and 100% (379); at 3 and 5 deg F4 5-frame on E0 at 99% and 100%
+  (331 and 370; F4 1-frame, 358, at 5 deg for 90% and 95%) and policy 5 on the full sample (410 and 530).
+* **Left undone.** The quiet repeat of the timing on more voxels; realistic images; nothing here chooses a carry (owner decision).
+
+### Task G1: Task E's other 24 full-sample voxels and the SmoothCost cache (2026-10-28, `feature/eval-reduction-G1`)
+
+Steps 2b and 2c of Task G (D-20261018-N15, N17; plan approved D-20261028-N2). Run log and tables:
+`benchmarks/eval_reduction/G/g1/RUN_LOG.md` (`summary.json`, `tables.md`, `timing/`).
+
+* **Library.** `smooth_cost.SmoothCostCache`: the `SmoothCost` of an image set is built once and reused while the reconstructor's
+  simulator, detectors, range map, `exp_data`, sample and structures are the same objects and the eta limit, `min_sin_eta` and the
+  sample-to-lab transform are unchanged. The hook in `reconstructor.py` is one attribute (`smooth_cost_cache`, `None` = the old
+  per-call build) and one keyword argument to `make_ranker`. Key off: nothing is built and the path is unchanged (the base-commit
+  fixture test passes). Key on: a warm-cache search equals a fresh build bit for bit (toy test with all four arms; full-sample check
+  on voxels 15901 and 17034 for both carried arms).
+* **Step 2b, the 24 voxels** (`VOXELS_30[6:]`, clean full-sample images, Task E's probe and seed). The strict search is wrong on 1 of
+  24 under the lenient rule (voxel 1729) and on 0 of 24 under the C++ rule. E3+E4 (tau 0.25 deg) fixes voxel 1729 and breaks none in
+  either rule; the fix is traced to the arm (at level 1 its key keeps a truth-basin candidate the strict cost ranks below the quarter
+  cut). E1+E2+E3+E4 fixes none and breaks none. Strict evaluations per voxel rise by 1.3% to 7.7% with the key on, plus 11,404 to
+  15,762 smooth evaluations.
+* **Decision (default rule, non-blocking).** The smooth ranking key carried into G2 is **E3+E4, tau 0.25 deg** (net fixed minus broken
+  across both rules +1 against 0). The margin is one voxel; the strict search is rarely wrong on these voxels, so the full-sample test
+  has little power.
+* **Step 2c, timing (single-worker).** The build takes 16.7 s (lit-pixel trees 4.6 s, observed rays 12.1 s); the cache saves 17.1 to
+  17.8 s per voxel. Voxel 17034 with E3+E4: +35.5% over the key off with a fresh build, +21.1% from the warm cache; with E1+E2+E3+E4
+  +121.3% and +106.9%.
+* **Proposals (owner).** No default flip and no golden change. The cache could stay always on under the key (it changes no result);
+  whether `SmoothCostRank E3+E4,tau=0.25` becomes a default is for after G2.
+
+### Task G2: the integrated configuration, no-start search and BFS pilot (2026-10-29, `feature/eval-reduction-G2`)
+
+Steps 1-3 of Task G (plan approved D-20261028-N2). Run log and tables: `benchmarks/eval_reduction/G/g2/RUN_LOG.md`
+(`summary.json`, `tables.md`, `ledger/`, `bfs/runs/`); maps `benchmarks/eval_reduction/G/maps/` (`index.html`, for the main
+session to publish).
+
+* **Library (opt-in, default off).** Config key `OutwardSearch` (`config_file.py`, `orientation_search.py`); in
+  `reconstructor.py` `AdaptiveVoxelReconstructor.outward_search` (the Task F fallback policy of D-20261028-N4: F4 with the
+  1-frame window, and F5 then F4 where F4 rejects; Task F's settings; strict, screen and `SmoothCost` built once per image
+  set) and the BFS hooks: a neighbour's (revisit's, restart's) local fit starts from an accepted end point; a reseed
+  takes one local fit from an accepted end point instead of the full search if the seed test passes, else the full search
+  runs. Key off: a 150-voxel BFS run is bit-identical to the base commit (4735f77); scripted-grid golden unchanged; tests
+  `tests/test_outward_bfs.py` (12). Full suite 1448 passed, 41 skipped, 1 deselected.
+* **Step 1, configuration** (`G/integrated_mc_clean.config`): lenient overlap rule (no decision changed it: D-20261013-I6,
+  D-20261012-I3), no dedup (D-20261014-N4), `SmoothCostRank E3+E4,tau=0.25` with G1's cache (D-20261029-N1), classic MC
+  finisher, revisit and reseed on, `OutwardSearch 1`.
+* **Step 2, no-start search.** Six interior full-sample voxels: 0 of 6 wrong before and after; strict evaluations
+  1,992,278 -> 2,006,917 (+0.7%) plus 90,183 smooth; the key-off ledger equals Task A's. E0 200: wrong 41 -> 7 (34 fixed,
+  0 broken), +1.1% strict evaluations plus 252 smooth per voxel; identical to Task E's own run of the key on 200 of 200.
+* **Step 3, 2,000-voxel pilot region.** The stored pilot (2026-10-10) does not reproduce on today's code (same 37 wrong,
+  14 fixed / 14 broken by voxel; consistent with the centroid-screen default of 2026-10-12, untested), so a key-off rerun is
+  the baseline. Against it: integrated configuration 42 wrong (15 fixed, 20 broken: 8 traced to the outward-search
+  reseeds, 12 untraced in G2, the N13 verdict, not G3's origin class "origin not found", 0 in every run; G3 traced
+  the 12 as exactly the run's 12 boundary-crossing breaks, which under D-20261109-N6 count neither for nor against
+  it), 1 grain lost (0 before), 60.8M evaluations against 25.5M (neighbours and revisits 38.6M against 2.7M, mostly F5
+  screen evaluations), wall 13,822 s against 8,997 s (contended, three runs at once). OutwardSearch alone: 36 wrong (18
+  fixed, 17 broken: 8 traced, 9 untraced in G2; G3 traced the 9 as exactly its 9 boundary crossings, so under
+  D-20261109-N6 they count neither for nor against it; the policy runs in neighbour fits and accepts a touching grain at
+  strict cost at most 0.8, so it may have caused some, untested voxel by voxel), 1 grain lost, 61.6M evaluations,
+  10,980 s. Neighbour acceptance did not change (769 accepted first key off, 762 and 764 with the key). Every reseed that took the outward-search path
+  ended wrong (4 of 4 and 5 of 5): the start of a reseed is a rejected fit, often a neighbouring grain's orientation, which
+  passes F4's acceptance test (strict cost at most 0.8) and the absolute seed test.
+* **Proposals (owner).** No default flip, no golden change. `OutwardSearch` stays off: on the pilot region it adds
+  evaluations and breaks reseeds, with no detectable gain on neighbours. If revisited: no outward search for reseeds (or
+  the BFS relative test instead of the absolute one), and F4 alone for neighbours (F5 accepted 20 of 909 fall-backs).
+  `SmoothCostRank E3+E4,tau=0.25` helps E0 (41 -> 7) at +1.1% strict evaluations; its BFS share is not separable here
+  (integrated 42 against OutwardSearch alone 36, one seed order).
+
+### Task G3: the total and the consolidated findings (2026-10-29, `feature/eval-reduction-G3`)
+
+Steps 4 and 5 of Task G (plan approved D-20261028-N2), plus one BFS arm (D-20261029-N3). Run log and tables:
+`benchmarks/eval_reduction/G/g3/RUN_LOG.md` (`summary.json`, `tables.md`, `bfs/runs/smooth_only/`, `figures/`); findings
+`docs/findings_eval_reduction_2026-10.md`; maps `G/maps/` (fifth panel added; for the main session to publish). No library change.
+
+* **The extra arm.** `SmoothCostRank E3+E4,tau=0.25` alone (`OutwardSearch` off) on the 2,000-voxel pilot region, otherwise the
+  key-off rerun's configuration and seed order (`G/g3/smooth_only_mc_clean.config`). Against the key-off rerun: 34 wrong against 37
+  (14 fixed, 11 broken, 23 both wrong), 0 grains lost, 0 unresolved; strict evaluations 24,490,331 against 25,547,935 (35 seeds and
+  30 reseeds against 40 and 29) plus 980,594 smooth: +12.4% strict-equivalent; wall 11,136 s (contended, one run; the key-off run
+  8,997 s with three runs at once, not comparable). Neighbour acceptance unchanged (768 against 769 accepted first).
+* **Trace.** In all five pilot-region runs every wrong voxel carries the orientation of a grain it touches (within 0.01 deg of that
+  grain, its vertex within 9.4 um). With the key on none of the 34 comes from a wrong full search (key off: 5 of 37). The arm's 11
+  breaks are all boundary crossings from right full searches (neighbour fits, where the key's ranking does not act): none traced to
+  the key's ranking, but not the draw either, since the key changed the BFS path (review fix 2: verdict "boundary crossing"). N13
+  does not cover a boundary crossing; under D-20261109-N6 it counts neither for nor against the key (counted as untraced, the N13
+  default, all 11 breaks would count against it). Its 14 fixes are 10 boundary crossings and 4 from two wrong key-off full
+  searches; the probe re-runs of those two (full-sample voxels 8866, 15749) are right with the key off and on, so those 4 are
+  traced to the draw (D-20261014-N13: 0 traced to the arm, 0 untraced). The same holds for OutwardSearch: G2's untraced breaks
+  are exactly its boundary crossings (9 = 9 alone, 12 = 12 integrated), so under D-20261109-N6 they count neither for nor against
+  it. Its verdict does not change: it stays off (D-20261029-N2) for +13.9% strict-equivalent, no gain in wrong voxels (36 against
+  37: 18 fixed, 17 broken) and one grain lost, none of which depends on how those breaks are counted.
+* **Time of the key in a BFS.** Per full search 154 s (smooth only) and 147 s (integrated) against 114 s key off (+35.4% with the key
+  alone, where the strict-equivalent weight predicts +20.7%), implying about 2.6 ms per smooth evaluation against Task E's 1.639 ms;
+  a scratch check showed the cache is hit inside the BFS reconstructor (one build, one hit), so it is not a rebuild. Contention
+  differs; cause untested.
+* **The total** (key off -> smooth key, strict-equivalent): six full-sample voxels +20.2% (0 -> 0 wrong), Task E's other 24 +21.0%
+  (1 -> 0), E0 +1.7% (41 -> 7), BFS region +12.4% (37 -> 34). OutwardSearch alone +13.9%, both +32.6%.
+* **Full-sample estimate.** 24,570 voxels, 497 grains; scaling the pilot (full searches by grains, local fits by voxels; untested):
+  22.0 h key off and 26.9 h key on, one process. The two runs were at different contention, so the gap is not the key's cost; the
+  pilot region has about 33 voxels per grain against 49 in the full sample (untested effect on boundary voxels and reseeds).
+* **Proposals (owner).** No default flip, no golden change. `SmoothCostRank` stays opt-in (gain on full-sample images within the draw;
+  cost +20% per full search); if it became the default, the goldens that pin a default full search would move (by reading, not run:
+  `test_findoptimal_refactor.py`, `test_bfs_refit.py`, `test_coarse_proxy.py`, `test_ray_overlap.py`, the profiling test).
+  `OutwardSearch`, `CppOverlapRule`, `CandidateDedup` stay off. The full-sample BFS run looks affordable (about a day on one process).
+
+### Completion summary: evaluation reduction and cost smoothing (2026-10-29)
+
+The plan (Tasks 0, A to G, with A-exact, Fcompare and G1 to G3) is done. What it established:
+
+* **No lever reduced the total number of evaluations at equal accuracy.** The C++ overlap rule (Task A) makes 332,046 -> 228,146
+  evaluations per full-sample voxel but makes E0 worse (41 -> 56 wrong, 15 fixed and 30 broken by voxel, from Task E's stored runs);
+  the best candidate de-duplication arm (Task C, `clique=cpp:1`) makes 75.8% of the evaluations on six full-sample voxels and makes
+  E0 worse (41 -> 55). Both stay off.
+* **Speed without fewer evaluations.** Task A's batched screen (default since 2026-10-13) and omega interpolation made each search
+  faster at the same evaluation count; the residual C++/Python count gap was attributed (Task A).
+* **Understanding.** Task B located the cost's edges (frame crossings, pixel crossings; the cost at the truth is not zero). Task D
+  paired spots across detectors (98.7% of one-grain pairs) and showed a spot belongs to a grain, not a voxel.
+* **Smoothing.** Task E's `SmoothCostRank E3+E4,tau=0.25` (opt-in) fixes 34 of 41 wrong E0 voxels with none broken, at about +20%
+  time per full search; G1 added the per-image-set cache and found no harm on 24 more full-sample voxels; on the BFS region it is
+  34 against 37 wrong with no flip traced to the key's ranking (the 11 breaks are boundary crossings after the key changed the BFS
+  path), at +12.4% strict-equivalent over the run but +35.4% measured wall per full search (contended, cause untested).
+* **Outward search.** Task F's F4/F5 policy found the basin from every 5 deg start on both sets, including Fcompare's fresh
+  voxels; as a BFS key (`OutwardSearch`, G2) it adds evaluations
+  and breaks reseeds; off.
+* **Open for the owner:** whether `SmoothCostRank` becomes a default; the full-sample BFS run (about a day on one process); the ray
+  rule R2 was never tried in Task G (D-20261012-I3).
+
+## S3: batched quick MC with a GPU option (2026-10-14)
+
+Branch `feature/python-speed-parity-s3` (off `feature/python-speed-parity`; not merged). Plan: `docs/todo_batched_quick_mc.md`
+(ROADMAP S3). Step 0 (go/no-go) and Steps 1-5 (built here). Everything is opt-in: config keys `BatchedQuickMC`
+(default 0) and `SearchDevice` (default `cpu`); with the key off the sequential code is unchanged, no golden changed and no
+default flipped.
+
+**Answer.** With `BatchedQuickMC 1` the quick MC of a level runs all its candidates in lockstep through one batched local
+cost per step. On the E0 clean set (200 voxels x 3 seeds) the wrong count is not detectably different (key off 111/600,
+key on 107/600), the counted evaluations are the same, the quick MC costs 4.5-4.7 times less per evaluation on the CPU
+(5.3-5.4 on MPS) and a whole no-start search takes 1.7-1.9 times less wall time (contended machine). The results are
+not equal to the key-off results, by design (draw option B below).
+
+### What was built
+
+- `icenine/batched_cost.py`, `BatchedCostEvaluator(cost_fn, device)`: `evaluate_many(R, voxel_vertices, phase_index)`
+  returns one `OverlapInfo` per orientation and adds B to `cost_fn.eval_count`. CPU compact variant (rows of the
+  observable reflections only; equal to `evaluate` in every `OverlapInfo` field) and fixed-shape variant (all 2K omega
+  rows, validity as a mask, one packed transfer to the host; used on `mps` or `cuda` for batches of at least
+  `GPU_MIN_BATCH` = 64 orientations, smaller batches use the CPU variant). Stage D stays the existing C call, once per
+  orientation. Covers the default rule and `CppOverlapRule`; `make_batched_cost_evaluator` returns None (and warns)
+  for `CppEdgeRules`, the ray rule, soft mode, `pixel_radius` > 0 and a build without the `_rasterize` extension (or one
+  older than `CppOverlapRule`); the tests cover each of these. The
+  g vectors must be computed with one 3x3 gemm per orientation against the `g_hkl.T` view and kept component-major, or
+  the CPU result is not bit-equal to `evaluate` (Step 0).
+- `icenine/batched_quick_mc.py`, `run_batched_quick_mc`: draws the level's buffer, evaluates both start evaluations of
+  every candidate (the matrix, then the quaternion round trip, as `optimize`), then 10 trial steps, each one
+  `evaluate_many` over the N candidates, strict `<` acceptance per candidate; fills `orientation`, `cost`,
+  `overlap_info` and a per-candidate `last_run` as `optimize` does. Evaluations per candidate: 12, as sequential.
+  Applies to a plain `MCOptimizer` with a single block (`n_min_ergodic >= 10`, all shipped configs: 31); otherwise
+  `reconstruct_voxel` runs the sequential path, with a `RuntimeWarning` naming the reason (study subclasses such as
+  `LoggedMC`, the ray rule, `CppEdgeRules`). **Mixed mode under the ray rule:** levels 0 .. `levels`-1 of the rule
+  (0-2 by default) score with a ray cost function made per level, which the batched cost does not cover, so they run
+  the sequential quick MC (one warning per level); the later levels use the strict local cost function and run in
+  lockstep. A test (`test_ray_rule_levels_run_sequentially_and_later_levels_batched`) checks this on a three-level
+  search with a rule of two levels.
+- `reconstructor.py`: `AdaptiveVoxelReconstructor._batched_quick_mc` is called in the level loop; `config_file.py` and
+  `SearchParameters`: `batched_quick_mc`, `search_device` (`cpu`, `mps`, `cuda`; an unavailable device raises).
+  `scripts/coarse_proxy/eval_split.py`, `scripts/phase_d/{level0_trace,ray_overlap_study,seed_diag}.py` pin the key off
+  (they count evaluations by patching `evaluate`); `scripts/eval_reduction/eval_ledger.py` also counts `evaluate_many`.
+- Scripts: `scripts/speed_parity/s3_timing.py` (+ `run_s3_timing.sh`), `s3_summary.py`, `s3_draw_check.py`;
+  `scripts/findoptimal_robustness/e0_run.py` got `--batched-quick-mc`, `--search-device`, `--tag` (results in
+  `cache/e0<tag>`; the images of a built case are reused by the other arm), `--no-center-screen` and
+  `--no-batched-screen` (the baseline check below). The S3 arms keep their own tags (`_s3off`, `_s3on`, ...); a
+  non-default run without a tag is refused, because `cache/e0` is the published Diagnosis cache that
+  `scripts/cma_finisher/e0_cma.py` and `analyze_e0.py` read.
+
+### Draw option B (owner 2026-10-14) and why option A was dropped
+
+Sequentially, candidate i's 30 trial uniforms start at stream position 30 i + 3 F_i, F_i the failed blocks among
+candidates 0 .. i-1 (a failed block draws 3 more uniforms for a restart it never uses). Step 0 found 30-70% of quick-MC
+blocks fail, so reproducing these draws exactly by speculation (option A) cost 21-67 times the counted evaluations (5.5-13
+times with reuse), and the modelled quick MC was slower, not faster (0.26 times on E0). Option B: one buffer
+`rng.uniform(-r, r, size=33 N)` per level (the same stream consumption as `rng.random(33 N)`); candidate i owns positions
+33 i .. 33 i + 32 (30 trial draws, then the unused restart's 3). The generator advances by exactly 33 N per level
+whatever the outcomes, so the key-on stream, and with it every later level and FindOptimal, differs from the sequential
+one; the key is compared by wrong counts (an A/B), not equality. Given the slices, each candidate's result equals
+`MCOptimizer.optimize` replayed on its slice exactly (tests).
+
+The buffer is drawn with `Generator.uniform(-r, r, size=...)` rather than `rng.random` plus `low + (high - low) * u`
+because the latter is not the scalar draw: numpy's C `random_uniform` rounds `lower + range * u` once (a fused
+multiply-add, checked with exact arithmetic), and the two-rounding numpy expression differs from the scalar
+`rng.uniform(-r, r)` in 10,714 of 20,000 draws (`benchmarks/s3_steps1_5/draw_check.json`). The trial-rotation build stays
+a per-candidate scalar loop: the quaternion product and the batch quaternion-to-matrix conversion were bit-equal to the
+scalar ones in 4,000 of 4,000 draws, but a numpy-vectorised `get_near_identity_point` differs in 414 of 4,000 (last bit),
+and the near-identity point is most of the build.
+
+### Tests (`tests/test_batched_cost.py`, `tests/test_batched_quick_mc.py`)
+
+- Batched cost: for 145 orientations (the truth, 24 perturbations each of 0.1, 0.4, 1, 3 and 8 degrees about random axes,
+  and 24 random rotations) at B = 1, 7 and 64, default rule, `CppOverlapRule` and `min_sin_eta` 0.4, all reflections and
+  Q-max 5, the CPU compact variant and the fixed-shape variant run on the CPU equal `evaluate` in every `OverlapInfo`
+  field (0 differing). MPS (run here, Apple GPU) uses 361 orientations (60 of each kind) in one call: with all
+  reflections 134 of 361 differ in `pixel_on_detector`, 15 in `pixel_overlap`, 6 in `peak_overlap`, 18 in the quality
+  (largest cost difference 0.0012); with Q-max 5, 8 differ in `pixel_on_detector`, 1 in `pixel_overlap` and none in the
+  cost. The counts are saved in `benchmarks/s3_steps1_5/mps_vs_evaluate.json` (the test writes them when the environment
+  variable `ICENINE_S3_MPS_JSON` names a file). Reported, not asserted equal (only |cost difference| < 0.1).
+- Lockstep quick MC: result (orientation, cost, `OverlapInfo`, `last_run`) equal to the replayed sequential `optimize`
+  for 0, 1, 5 and 40 candidates with stub costs (every block fails; mixed outcomes with 0 < improved < 40) and for 26
+  candidates with the real cost through `evaluate` and through `BatchedCostEvaluator` (CPU), default rule and
+  `CppOverlapRule` (17 and 15 of 26 blocks improved); generator state after the level equals the state after
+  `uniform(-r, r, 33 N)`; the offsets equal 33 N scalar `rng.uniform(-r, r)` draws bit for bit; `eval_count` 12 per
+  candidate. Wiring: config keys, one level through `reconstruct_voxel` (11 batched calls: the starts together, then ten
+  steps), fallbacks with their warnings, key off builds no evaluator.
+- Full suite (`uv run pytest tests/`, key off throughout): 954 passed, 41 skipped, 1 deselected, against 887 passed, 41
+  skipped, 1 deselected before this work (+67 tests: 43 in `test_batched_cost.py`, 24 in `test_batched_quick_mc.py`;
+  `benchmarks/s3_steps1_5/run_notes.json`). No golden value changed. The review added the ray-rule and missing-extension
+  cases to `test_unsupported_cost_functions` and the mixed-mode wiring test.
+
+### Step 4: timing (single worker, **contended**)
+
+`s3_timing.py search`, one torch thread, nothing else of ours running, `--allow-busy`: the machine's 1-minute load was
+5-6 (system indexing daemons, not ours), so every figure here is contended. Arms interleave within a repeat (so drifting
+load hits all arms alike), two repeats, an untimed warm-up first. The key-on arms draw a different stream, so their
+searches differ (candidates per level, evaluations); the quick MC is compared per evaluation as well as per search.
+Preflight JSON: `benchmarks/s3_steps1_5/preflight_*.json`. Repeats agree: median relative difference of the search wall
+time between the two repeats 0.4-3.0% (largest single difference 4.1%); the quick-MC time of the MPS arm is noisier
+(median 2.4-11.6%, largest 17.2%).
+
+Arms: `off` = sequential quick MC (`BatchedQuickMC 0`), `cpu` = `BatchedQuickMC 1` with `SearchDevice cpu`, `mps` = `BatchedQuickMC 1` with
+`SearchDevice mps`. The speedup columns are ratios of the `off` arm to the arm. ThreeVoxels voxel 0, Q-max 8, 3 seeds x 2 repeats:
+
+<!-- table:s3_timing_three -->
+| arm (off = sequential quick MC) | searches | wall s, median | quick MC s, median | quick MC us per evaluation, median | candidates per level, median | evaluations per search, median | wall speedup (sum of searches) | quick-MC us per evaluation speedup |
+|---|---|---|---|---|---|---|---|---|
+| off | 6 | 3.78 | 2.24 | 348 | 397/105/27/6 | 53853 | n/a | n/a |
+| cpu | 6 | 2.01 | 0.49 | 77 | 397/103/26/6 | 53924 | 1.89 | 4.50 |
+| mps | 6 | 1.94 | 0.41 | 65 | 397/103/26/6 | 53924 | 1.95 | 5.36 |
+<!-- /table:s3_timing_three -->
+
+First 10 E0 clean voxels, seed 0, 2 repeats:
+
+<!-- table:s3_timing_e0 -->
+| arm (off = sequential quick MC) | searches | wall s, median | quick MC s, median | quick MC us per evaluation, median | candidates per level, median | evaluations per search, median | wall speedup (sum of searches) | quick-MC us per evaluation speedup |
+|---|---|---|---|---|---|---|---|---|
+| off | 20 | 1.97 | 0.98 | 359 | 167.5/43.5/11.5/2.5 | 48362 | n/a | n/a |
+| cpu | 20 | 1.19 | 0.21 | 76 | 167.5/43.5/10.5/2 | 48312 | 1.69 | 4.71 |
+| mps | 20 | 1.16 | 0.18 | 67 | 167.5/43.5/10.5/2 | 48312 | 1.73 | 5.33 |
+<!-- /table:s3_timing_e0 -->
+
+The quick MC was 0.60 (ThreeVoxels) and 0.50 (E0) of the search's wall time with the key off (Step 0: 0.60 and 0.50);
+with the CPU key on it is 0.25 and 0.18; the rest of the search (the screen, re-cost, FindOptimal and VarianceMinimizing,
+not split here) is now 0.75 and 0.82 of the wall time, so the next gain lies there (S2, S4).
+Step 0 had modelled the quick MC at 5.2 times on E0 and 4.6 / 6.6 times on ThreeVoxels (CPU / MPS), the whole search at
+1.67 (E0) and 1.88 / 2.03 (ThreeVoxels); measured 4.7 / 5.3 and 4.5 / 5.4 for the quick MC, 1.69 / 1.73 and 1.89 / 1.95
+for the search.
+
+Crossover of the batched cost alone (E0 voxel 0, K = 112 reflections, microseconds per orientation, median of 9
+repetitions; MPS = fixed-shape variant, CPU compact = the default CPU variant):
+
+<!-- table:s3_crossover -->
+| batch B | CPU compact us per orientation | CPU fixed-shape us per orientation | MPS fixed-shape us per orientation |
+|---|---|---|---|
+| 1 | 258 | 290 | 3415 |
+| 2 | 159 | 198 | 1560 |
+| 4 | 110 | 145 | 831 |
+| 8 | 83 | 119 | 420 |
+| 16 | 70 | 110 | 220 |
+| 32 | 62 | 103 | 173 |
+| 48 | 60 | 100 | 111 |
+| 64 | 59 | 98 | 108 |
+| 96 | 57 | 97 | 41 |
+| 128 | 56 | 96 | 40 |
+| 192 | 56 | 97 | 35 |
+| 256 | 56 | 96 | 32 |
+| 512 | 55 | 96 | 30 |
+<!-- /table:s3_crossover -->
+
+A second, finer run (`timing_crossover_fine.json`, 15 repetitions, B = 56 to 128) has MPS ahead of the CPU compact
+variant from B = 56 (55 against 59) and clearly from B = 64 (50 against 59); the 9-repetition run has MPS behind at
+B = 64 (108 against 59) and ahead from B = 96. The GPU call latency is noisy on this machine, so `GPU_MIN_BATCH` stays 64
+(the plan's value); the crossover lies between about 56 and 96.
+
+### Step 4: A/B on wrong counts (E0 clean, 200 voxels x 3 seeds)
+
+`e0_run.py run --variants clean --n-voxels 200 --workers 10` for the key-off arm (257 s for the 195 voxels left after a
+5-voxel pilot; it was run without a tag, into `cache/e0`, and after review moved to `cache/e0_s3off`) and with
+`--batched-quick-mc --tag _s3on` for the key-on CPU arm (146 s); the same images, voxels and seeds. Wrong = reduced misorientation to the
+truth > 1 degree. Seeds of one voxel are not independent, so the pooled intervals are optimistic. Both arms were run
+for all three seeds (the 4 h limit did not bind). Run times are 10 workers on a contended machine; the key-off arm also
+built the case images in the same pool (the image files are stamped 00:50-00:56, the arm's results 00:50-00:56; the key-on
+arms' results 00:56 onwards, `file_times` in summary.json), so its timed runs overlapped with other workers' image
+rendering and its run time is not comparable with the key-on arm's. The two-worker table below, where every arm reuses the images, is
+the fair run-time comparison.
+
+<!-- table:s3_ab_wrong -->
+| arm | scope | wrong (> 1 deg) | runs | rate | Wilson 95% low | Wilson 95% high |
+|---|---|---|---|---|---|---|
+| key off | seed 0 | 35 | 200 | 0.175 | 0.129 | 0.234 |
+| key off | seed 1 | 37 | 200 | 0.185 | 0.137 | 0.245 |
+| key off | seed 2 | 39 | 200 | 0.195 | 0.146 | 0.255 |
+| key off | pooled | 111 | 600 | 0.185 | 0.156 | 0.218 |
+| key on (CPU) | seed 0 | 35 | 200 | 0.175 | 0.129 | 0.234 |
+| key on (CPU) | seed 1 | 40 | 200 | 0.200 | 0.150 | 0.261 |
+| key on (CPU) | seed 2 | 32 | 200 | 0.160 | 0.116 | 0.217 |
+| key on (CPU) | pooled | 107 | 600 | 0.178 | 0.150 | 0.211 |
+| key on (MPS; seed 0, voxels 0-49) | seed 0 | 8 | 50 | 0.160 | 0.083 | 0.285 |
+| key on (MPS; seed 0, voxels 0-49) | pooled | 8 | 50 | 0.160 | 0.083 | 0.285 |
+<!-- /table:s3_ab_wrong -->
+
+Paired by run (same voxel, same seed; fixed = wrong with the key off and right with it on; broken = the reverse), and, as
+a calibration, the same split between two seeds of the key-off arm itself (a different random stream, same code):
+
+<!-- table:s3_ab_paired -->
+| pair (a vs b) | scope | paired runs | wrong a | wrong b | fixed (wrong a, right b) | broken (right a, wrong b) | both wrong | both right |
+|---|---|---|---|---|---|---|---|---|
+| off vs on_cpu | all seeds | 600 | 111 | 107 | 60 | 56 | 51 | 433 |
+| off vs on_cpu | seed 0 | 200 | 35 | 35 | 18 | 18 | 17 | 147 |
+| off vs on_cpu | seed 1 | 200 | 37 | 40 | 15 | 18 | 22 | 145 |
+| off vs on_cpu | seed 2 | 200 | 39 | 32 | 27 | 20 | 12 | 141 |
+| on_cpu vs on_mps | all seeds | 50 | 8 | 8 | 0 | 0 | 8 | 42 |
+| on_cpu vs on_mps | seed 0 | 50 | 8 | 8 | 0 | 0 | 8 | 42 |
+| off_2w vs on_mps | all seeds | 50 | 12 | 8 | 8 | 4 | 4 | 34 |
+| off_2w vs on_mps | seed 0 | 50 | 12 | 8 | 8 | 4 | 4 | 34 |
+| on_cpu_2w vs on_mps | all seeds | 50 | 8 | 8 | 0 | 0 | 8 | 42 |
+| on_cpu_2w vs on_mps | seed 0 | 50 | 8 | 8 | 0 | 0 | 8 | 42 |
+| key off, seed 0 vs seed 1 | same voxels | 200 | 35 | 37 | 20 | 22 | 15 | 143 |
+| key off, seed 0 vs seed 2 | same voxels | 200 | 35 | 39 | 14 | 18 | 21 | 147 |
+| key off, seed 1 vs seed 2 | same voxels | 200 | 37 | 39 | 21 | 23 | 16 | 140 |
+<!-- /table:s3_ab_paired -->
+
+Evaluations per run (local = the quick MC, re-cost, FindOptimal and VarianceMinimizing; global = the screen):
+
+<!-- table:s3_ab_evals -->
+| arm | candidates per level, median | local evaluations per run, mean | global evaluations per run, mean | quick-MC evaluations per run, mean | run time s, median (10 workers, contended) | case images (cache/images) |
+|---|---|---|---|---|---|---|
+| key off | 178.5/47/12/3 | 4125 | 44500 | 2896 | 3.8 | built in this arm's pool |
+| key on (CPU) | 178.5/47/12/3 | 4120 | 44501 | 2896 | 2.3 | reused |
+| key on (MPS; seed 0, voxels 0-49) | 176.5/47/12/3 | 4121 | 44499 | 2891 | n/a | reused |
+<!-- /table:s3_ab_evals -->
+
+Per voxel, the number of seeds (of 3) in which it is wrong, 0 / 1 / 2 / 3 seeds: key off 128 / 46 / 13 / 13 voxels, key on
+126 / 46 / 23 / 5. The wrong-in-all-three-seeds voxels fall from 13 to 5 and the wrong-in-two-seeds voxels rise from 13 to
+23; this is one draw of the key-on arm, not followed up (no repeat of the key-on arm with other seeds was run).
+
+- The key-on wrong count is not detectably different from the key-off count (111 and 107 of 600; the intervals overlap
+  almost entirely). The runs flip in both directions (60 fixed, 56 broken per 600; 18/18, 15/18 and 27/20 per seed), by about the
+  same amount as between two seeds of the key-off arm (20/22, 14/18 and 21/23 per 200), consistent with the key-on arm
+  being another draw of the same random search. A difference smaller than the interval is not excluded.
+- The counted evaluations are the same (local 4,125 and 4,120, global 44,500 and 44,501 per run): the lockstep path does
+  no speculative evaluation. Median run time 3.8 s with the key off and 2.3 s with it on (10 workers, contended; not a
+  like-for-like comparison, see above: the key-off arm rendered the images; at two workers with the images reused the
+  medians are 2.16 and 1.28 s, below).
+- **The key-off arm does not reproduce the Diagnosis' 204/600, and the reason is now partly tested.** It gives
+  111/600 = 0.185 [0.156, 0.218] (seed 0: 35/200). Run by run against the stored 2026-10-05 runs, 435 of 600 have the
+  same wrong flag, 15 the same final error (to 1e-3 deg) and none the same evaluation counts. The 204/600 (seed 0:
+  67/200, 4,711 local evaluations; the Phase C "E0 baseline" is the same seed-0 run) is the pre-port Diagnosis of
+  2026-10-05, before the MC port of 2026-10-08. The nearest published baseline is the C++-faithful MC rerun of
+  2026-10-08 (`benchmarks/cma_finisher/mcfaithful`, see "C++-faithful MC: reruns"): seed 0 at 40/200, 3,962.95 local and
+  44,479.3 global evaluations. Baseline check (`e0_run.py --no-center-screen --no-batched-screen --tag _s3off_c0b0`
+  and `--no-center-screen --tag _s3off_c0`, seed 0, the same 200 voxels and images, key off; table `s3_ab_baseline`):
+  with the two screen defaults switched back, the harness gives 40/200 with the same 3,962.95 local and 44,479.3 global
+  evaluations as the published rerun, so the images, config, Q-max, overlap rules, random streams and wrong criterion
+  are the same as in the published runs. The centroid screen (default since 2026-10-12) accounts for 40 -> 35: paired by
+  voxel, centroid off against on, 19 voxels are right only with it, 14 wrong only with it and 21 wrong either way, about
+  the size of the flips between two seeds of the same code (20/22, 14/18 and 21/23 per 200), so the drop is not shown to
+  be a change in accuracy (the centroid study's own E0, "Step 3 results" above, `min_sin_eta` 0, lenient rule, went 39 -> 41, 14 fixed and 16 broken). It costs about 160 more
+  local and 20 more global evaluations per run. `BatchedScreen` (default since 2026-10-13) changes none of the 200 flags
+  and none of the costs, and 199 of 200 evaluation counts are the same. What remains of the gap to 67/200 is consistent with the MC
+  port (its own rerun moved seed 0 from 67 to 40/200); that step was not re-run here. The A/B above compares the key
+  against today's default code, not against any published E0 run.
+
+<!-- table:s3_ab_baseline -->
+| arm (E0 clean, seed 0, 200 voxels) | wrong (> 1 deg) | runs | rate | Wilson 95% low | Wilson 95% high | local evaluations per run, mean | global evaluations per run, mean |
+|---|---|---|---|---|---|---|---|
+| published, before the MC port (Diagnosis and Phase C, 2026-10-05) | 67 | 200 | 0.335 | 0.273 | 0.403 | 4711.26 | 44478.50 |
+| published, C++-faithful MC rerun (2026-10-08) | 40 | 200 | 0.200 | 0.150 | 0.261 | 3962.95 | 44479.31 |
+| this branch, key off, centroid screen and BatchedScreen off | 40 | 200 | 0.200 | 0.150 | 0.261 | 3962.95 | 44479.31 |
+| this branch, key off, centroid screen off | 40 | 200 | 0.200 | 0.150 | 0.261 | 3962.93 | 44479.35 |
+| this branch, key off, today's defaults (centroid screen and BatchedScreen on) | 35 | 200 | 0.175 | 0.129 | 0.234 | 4122.93 | 44499.87 |
+<!-- /table:s3_ab_baseline -->
+
+<!-- table:s3_ab_baseline_paired -->
+| change (a -> b) | paired runs | wrong a | wrong b | fixed (wrong a, right b) | broken (right a, wrong b) | both wrong | both right | same answer (1e-3 deg) | same evaluation counts |
+|---|---|---|---|---|---|---|---|---|---|
+| centroid screen off -> on (BatchedScreen on) | 200 | 40 | 35 | 19 | 14 | 21 | 146 | 12 | 1 |
+| BatchedScreen off -> on (centroid screen off) | 200 | 40 | 40 | 0 | 0 | 40 | 160 | 200 | 199 |
+| both off -> both on (today's defaults) | 200 | 40 | 35 | 19 | 14 | 21 | 146 | 13 | 1 |
+<!-- /table:s3_ab_baseline_paired -->
+
+- MPS arm (seed 0, first 50 voxels, 2 workers, `SearchDevice mps`): 8/50 wrong [0.083, 0.285] against 8/50 for the CPU key-on
+  arm on the same runs; 0 fixed, 0 broken; all 50 runs end at the same answer (to 1e-3 degrees) and the same cost as the CPU
+  run, and 48 also have the same evaluation counts; the other two differ in the number of local evaluations (consistent with a
+  trial accepted differently where the MPS cost differs in the last bits; not traced). The two-worker run time (seed 0, first 50 voxels, the three arms run one after
+  the other) is:
+
+<!-- table:s3_ab_timing_2w -->
+| arm | runs | wrong (> 1 deg) | run time s, median | run time s, mean | run time s, sum |
+|---|---|---|---|---|---|
+| key off (2 workers) | 50 | 12 | 2.16 | 2.14 | 106.8 |
+| key on (CPU, 2 workers) | 50 | 8 | 1.28 | 1.28 | 64.2 |
+| key on (MPS; seed 0, voxels 0-49) | 50 | 8 | 1.45 | 1.48 | 74.0 |
+<!-- /table:s3_ab_timing_2w -->
+
+  The MPS arm is slower than the CPU arm here (1.45 against 1.28 s median), unlike the single-worker timing above (1.16
+  against 1.19 s on E0): consistent with two processes sharing one GPU, or with a one-time kernel warm-up in each worker's first
+  MPS use (neither was tested or separated; the median is less affected by a warm-up than the sum). The GPU variant is therefore not a clear win on this machine
+  at the batch size of the E0 level 0 (a median of 178.5 candidates; levels 1-3 have a median of 47, 12 and 3 and use the CPU
+  variant); its case is a larger batch such as the level-0 screen (43,974 orientations, out of scope).
+
+### Limits and open items
+
+- All timings are contended single-worker or contended 10-worker; a quiet-machine repeat is open. CUDA was not available;
+  the `cuda` device is untested. MPS results are not bit-equal to the CPU's; the A/B above covers 50 runs.
+- Clean images only; the realistic-image (Q8) comparison waits for the Q8 task. The E0 voxels are one sample (copper,
+  ReconstructQ8 physics); ThreeVoxels voxel 0 was timed, not A/B-tested.
+- `CppEdgeRules` and the ray rule fall back to the sequential quick MC (with a warning). After A-exact merges into
+  `feature/python-speed-parity`, `CppEdgeRules` can be added to the batched cost and the Step 1 equality test extended
+  (a small reviewed follow-up).
+- Scripts that count evaluations by wrapping `VoxelCostFunction.evaluate` or `MCOptimizer.optimize`
+  (`scripts/speed_parity/prof_common.py`, `scripts/nn_hybrid/stage_timer.py`, `scripts/speed_parity/search_split.py`)
+  would miss the quick MC with `BatchedQuickMC 1`, and `lockstep_applicable` (a plain `MCOptimizer`, tested by type)
+  cannot see a class-level patch of `optimize`. Harmless while the key is opt-in; those scripts need `evaluate_many`
+  counted (as `eval_ledger.py` does) before any default flip.
+- No default flipped and no golden regenerated. Whether to flip `BatchedQuickMC` to default on is the owner's decision; this
+  work provides the evidence above (same wrong count within the interval, same evaluations, 1.7-1.9 times shorter search).
+
+## Q8: realistic images without the random spot drop (2026-10-14)
+
+Branch `feature/python-speed-parity-q8-nodrop` (off `feature/python-speed-parity` at 6433b29; not merged). Plan:
+`docs/todo_q8_noise_nodrop.md` (ROADMAP Q8). Step 0 was done 2026-10-13 (Phase D Q-max 8 images regenerated and equal to the
+other machine's); Steps 1, 2, 4 and 5 were built and run here (2026-10-14, opt-in variants); Step 3 (Q-max 16) was not needed,
+because the two E0 rows of Step 4 do not use the Phase D images. Steps 6 to 8 followed the owner's decisions on those results
+(D-20261014-I5 to I8): no drop became the default noise (Step 6), the noisy images were checked for more candidates and a wider
+cost function (Step 7), and the lenient counts that differed from the stored ones were explained (Step 8). No golden was
+regenerated, and the existing images, configs and run records are untouched. Wording below: "old realistic" = the images with
+the 10% random spot drop (Phase D `toy`, E0 `all`), "no drop" = `nodrop` / `realistic_nodrop` / `all_nodrop`.
+
+**Answer.** The old realistic images erase each spot at random with probability 0.1 (the window of each spot in E0, each
+connected component of a frame in Phase D). Without that drop (jitter, hot pixels and blobs kept, the other random draws
+unchanged), the two image sets differ only by the dropped spots.
+
+- **At the true orientation the no-drop images reject the same real peaks as the clean ones, for every overlap rule.** The C++ rule and both ray
+  windows reject the same 3 of 524 real peaks as on clean images (initial screen) and 0 of 521 without a search radius, on
+  30 full-sample voxels, against 43 of 475 (9.1%) and 41 of 471 (8.7%) on the old realistic images. On the E0 images (200
+  voxels) the C++ rule rejects 974 of 11,174 real peaks (8.7%) on the old realistic images and 0 of 12,439 on the no-drop ones
+  (also 0 of 12,439 on clean). The cost at the truth is not the clean one: the median over 30 voxels is 0.0643 (clean),
+  0.1162 (no drop, the same for all four rules) and 0.2646 to 0.2831 (old realistic, by rule); the paired median rise over clean is 0.0476
+  and is positive in all 30 voxels (the same for all four rules); it is consistent with the edge jitter and the extra lit pixels (the cause was not isolated).
+- **Wrong counts on E0 (200 voxels, seed 0, wrong = over 1 degree).** Without the drop the ray rule is ahead of the lenient
+  default and the C++ rule on the same voxels, where with the drop it was behind the lenient rule. With `min_sin_eta` 0:
+  lenient 41 / 25 / 22, C++ rule 56 / 56 / 38, ray rule 2-pixel window 40 / 32 / 14, geometric window 41 / 29 / 14 (clean / old
+  realistic / no drop). Paired per voxel on the no-drop images, the 2-pixel window against the lenient rule is 15 fixed, 7 broken,
+  7 both wrong (on the old realistic images 10 fixed, 17 broken, 15 both wrong; on clean 10, 9, 31), and the C++ rule against
+  the lenient rule is 10 fixed, 26 broken, 12 both wrong. The Q3 rows (`min_sin_eta` 0.3, C++ rule off and on): lenient
+  35 / 27 / 16, C++ rule 61 / 42 / 39; on the no-drop images the C++ rule against the lenient rule is 5 fixed, 28 broken, 11 both
+  wrong (old realistic: 10, 25, 17), so the C++ rule's loss of accuracy in the realistic half of Q3 persists without the drop (the
+  counts do not show whether the drop adds to it).
+- **Every arm has fewer wrong voxels on the no-drop images than on the clean ones** (lenient 22 against 41, C++ rule 38
+  against 56, 2-pixel window 14 against 40, geometric window 14 against 41 at `min_sin_eta` 0). The no-drop images carry many
+  more lit pixels than the clean ones (508,606 against 212,610 over the 200 voxels: neighbour and twin spots, jitter, hot
+  pixels, blobs). This is consistent with extra lit pixels making an overlap test easier to pass; no arm separated the
+  components, so it is untested.
+- **Evaluations.** The no-drop runs use 49,227 to 51,901 evaluations per voxel against 48,731 to 51,520 on the old realistic
+  images and 47,174 to 48,700 on clean (per arm in the table below).
+
+### What was built (Step 1)
+
+- `scripts/phase_d/noise.py`: `NoiseParams.named("toy" | "nodrop")` (`nodrop` is `p_miss` 0; the miss draw is still taken, so the
+  jitter, hot-pixel and blob draws of a frame are the same as in `toy`). `render_full.py --noise nodrop --variants realistic`
+  writes `<tag>/realistic_nodrop/` and the run record `results/render_<tag>_nodrop.json` (and its preflight), refused
+  `clean` in `--variants` with `nodrop` (replaced in Step 6 by a guard against overwriting), and records `noise_variant` and `noise_params`. `make_configs.py` adds
+  `ReconstructPhaseD_{mc,cma,cma_noretry}_realistic_nodrop.config` (the existing nine are byte-identical).
+- `icenine/orientation_eval.py`: `RealismConfig.named` gets `noise_nodrop` and `all_nodrop` (`p_miss` 0). The miss is the last
+  draw of `make_realistic_windows` and only taken when `p_miss > 0`, so with one generator per call a no-drop window equals its
+  `p_miss` 0.1 twin wherever that one did not miss. The E0 harness seeds one generator per voxel (one
+  `make_realistic_dataset` call of 20 cases, one chunk), so no draw had to be taken and ignored; with several chunks
+  (one shared generator) the later chunks would shift, which the docstring of `make_realistic_dataset` says.
+- E0 harness: `findoptimal_robustness/common.py` accepts the label `realistic_nodrop` (`C.ALL_VARIANTS`; `C.VARIANTS` stays
+  `clean, all`) and maps it to the realism layer `all_nodrop`; `perturbation_sweep.render_batch` draws the distractor layer for
+  `all_nodrop` as for `all`. `e0_run.py images` builds the cached case images of chosen variants and voxels;
+  `e0_cpprule.py` takes `--variant realistic_nodrop` and `--meta-dir`, and now only needs the cached image of a case (not the
+  published `cache/e0`, which is not on this machine).
+- Tests (`tests/test_phase_d.py`, `tests/test_orientation_eval.py::TestRealismNoDrop`, `tests/test_findoptimal_robustness.py`):
+  a `nodrop` frame equals the `toy` frame outside the 4 spots `toy` missed (40 spots; inside them `toy` is empty and `nodrop` has
+  the spot), no clean spot is missing in `nodrop`, `all_nodrop` windows equal `all` windows wherever `all` did not miss (16 of
+  200 windows missed), the named variants and the label mapping, the `render_full.py` option, and the config set (12
+  configs, the three new ones differ from their realistic twins only in header, image path and output name).
+
+### Step 2: render and the three variants at the truth
+
+`render_full.py --workers 6 --noise nodrop --variants realistic` (contended: the machine was not quiet at the start, load
+above 1.5, 6 workers) wrote `full/realistic_nodrop/` in 49 s. Every deterministic field of the run record equals the old
+one except the miss-related counts: 57,389 spots, 7,414,841 lit clean pixels, missed spots 5,743 to 0, lit pixels 6,592,953
+to 7,338,831, hot pixels 2,293 to 2,547, blobs 5,148 to 5,727. On 12 sampled frames the old realistic pixel set is a subset of
+the no-drop set (checked ad hoc, not stored). `sanity_checks.py --variant realistic_nodrop` runs
+(`results/sanity_full_realistic_nodrop.json`; the clean and realistic ones reproduce their stored cost numbers when re-run).
+
+`q8_sanity.py` evaluates the hard cost at the truth of 30 full-sample voxels (the ray-overlap study's selection) under the
+lenient rule, the C++ rule and the two ray windows; at the truth every detector-0 overlap is a real peak, so a rejected real
+peak is a detector-0 overlap the rule does not keep. Cost is 1 - quality (Q-max 8, `min_sin_eta` 0; the first column is the
+six-voxel median of `sanity_checks.py`, lenient rule, `min_sin_eta` 0.3):
+
+<!-- table:q8_sanity_cost -->
+| variant | 6 voxels, lenient (sanity_checks) | lenient | C++ rule | ray 2px | ray geometric |
+|---|---|---|---|---|---|
+| clean | 0.0674 | 0.0643 | 0.0643 | 0.0643 | 0.0643 |
+| realistic | 0.2586 | 0.2646 | 0.2831 | 0.2831 | 0.2825 |
+| realistic_nodrop | 0.1168 | 0.1162 | 0.1162 | 0.1162 | 0.1162 |
+<!-- /table:q8_sanity_cost -->
+
+Real peaks rejected at the truth (initial screen = pixel radius 3, Q-max 5; local = no search radius, Q-max 5; Wilson 95%):
+
+<!-- table:q8_sanity_rejected -->
+| variant | setting | det0_overlaps | C++ rule | C++ rule 95% interval | ray 2px | ray 2px 95% interval | ray geometric | ray geometric 95% interval |
+|---|---|---|---|---|---|---|---|---|
+| clean | screen | 524 | 3 of 524 (0.6%) | 0.19 to 1.67% | 3 of 524 (0.6%) | 0.19 to 1.67% | 3 of 524 (0.6%) | 0.19 to 1.67% |
+| clean | local | 521 | 0 of 521 (0.0%) | 0.00 to 0.73% | 0 of 521 (0.0%) | 0.00 to 0.73% | 0 of 521 (0.0%) | 0.00 to 0.73% |
+| realistic | screen | 475 | 43 of 475 (9.1%) | 6.79 to 11.97% | 43 of 475 (9.1%) | 6.79 to 11.97% | 39 of 475 (8.2%) | 6.06 to 11.03% |
+| realistic | local | 471 | 41 of 471 (8.7%) | 6.48 to 11.60% | 40 of 471 (8.5%) | 6.30 to 11.36% | 36 of 471 (7.6%) | 5.57 to 10.40% |
+| realistic_nodrop | screen | 524 | 3 of 524 (0.6%) | 0.19 to 1.67% | 3 of 524 (0.6%) | 0.19 to 1.67% | 3 of 524 (0.6%) | 0.19 to 1.67% |
+| realistic_nodrop | local | 521 | 0 of 521 (0.0%) | 0.00 to 0.73% | 0 of 521 (0.0%) | 0.00 to 0.73% | 0 of 521 (0.0%) | 0.00 to 0.73% |
+<!-- /table:q8_sanity_rejected -->
+
+The same on the E0 per-voxel images (`q8_e0_truth.py`, 200 voxels, local cost, Q-max 8; `msin` = `min_sin_eta`; cost = 1 - quality,
+median over the 200 voxels):
+
+<!-- table:q8_e0_truth_cost -->
+| msin | images | lenient | C++ rule | ray 2px | ray geometric |
+|---|---|---|---|---|---|
+| 0.3 | clean | 0.0682 | 0.0682 | 0.0682 | 0.0682 |
+| 0.3 | realistic (10% drop) | 0.2627 | 0.2794 | 0.2793 | 0.2793 |
+| 0.3 | realistic, no drop | 0.1148 | 0.1148 | 0.1148 | 0.1148 |
+| 0.0 | clean | 0.0662 | 0.0662 | 0.0662 | 0.0662 |
+| 0.0 | realistic (10% drop) | 0.2531 | 0.2681 | 0.2677 | 0.2677 |
+| 0.0 | realistic, no drop | 0.1120 | 0.1120 | 0.1120 | 0.1120 |
+<!-- /table:q8_e0_truth_cost -->
+
+<!-- table:q8_e0_truth_rejected -->
+| msin | images | det0_overlaps | C++ rule | C++ rule 95% interval | ray 2px | ray 2px 95% interval | ray geometric | ray geometric 95% interval |
+|---|---|---|---|---|---|---|---|---|
+| 0.3 | clean | 12439 | 0 of 12439 (0.0%) | 0.00 to 0.03% | 0 of 12439 (0.0%) | 0.00 to 0.03% | 0 of 12439 (0.0%) | 0.00 to 0.03% |
+| 0.3 | realistic (10% drop) | 11174 | 974 of 11174 (8.7%) | 8.21 to 9.25% | 965 of 11174 (8.6%) | 8.13 to 9.17% | 964 of 11174 (8.6%) | 8.12 to 9.16% |
+| 0.3 | realistic, no drop | 12439 | 0 of 12439 (0.0%) | 0.00 to 0.03% | 0 of 12439 (0.0%) | 0.00 to 0.03% | 0 of 12439 (0.0%) | 0.00 to 0.03% |
+| 0 | clean | 12932 | 0 of 12932 (0.0%) | 0.00 to 0.03% | 0 of 12932 (0.0%) | 0.00 to 0.03% | 0 of 12932 (0.0%) | 0.00 to 0.03% |
+| 0 | realistic (10% drop) | 11667 | 975 of 11667 (8.4%) | 7.87 to 8.87% | 966 of 11667 (8.3%) | 7.79 to 8.79% | 965 of 11667 (8.3%) | 7.79 to 8.78% |
+| 0 | realistic, no drop | 12932 | 0 of 12932 (0.0%) | 0.00 to 0.03% | 0 of 12932 (0.0%) | 0.00 to 0.03% | 0 of 12932 (0.0%) | 0.00 to 0.03% |
+<!-- /table:q8_e0_truth_rejected -->
+
+The E0 case images (200 voxels, all buildable in all three variants): every pixel lit on the old realistic images is lit on the
+no-drop ones (0 missing), and 35,891 no-drop pixels are not lit on the old realistic images (the dropped windows with their hot
+pixels and blobs).
+
+### Step 4: E0 re-runs (200 voxels, seed 0)
+
+`run_q8_step4.sh` runs `e0_cpprule.py` for six arms on the three image variants (18 blocks, one 10-worker pool at a time):
+`off` and `on` at `min_sin_eta` 0.3 (Q3 rows) and `off`, `on`, `rayR2`, `rayA` at `min_sin_eta` 0 (the ray-overlap rows; the
+ray rule at levels 0-2 only). The clean and the old realistic runs were repeated here with the same code and options (the
+per-voxel caches of the earlier runs are not on this machine), so every pairing is like for like. The Phase D pilot and reseed
+row waits with X1 and was not run. `BatchedQuickMC` and `SearchDevice` stay off and cpu; `CppEdgeRules` is off.
+
+Columns: `evals` = mean cost evaluations per voxel; `runtime` = mean seconds per voxel and `wall_min` = minutes for the 200 voxels, both
+contended (10 workers sharing the machine, preflight not quiet: not timing claims); `med_err` = median error in degrees over each
+arm's own right voxels; `stored_earlier` = the count stored from the earlier runs on another machine
+(`benchmarks/phase_d_seed_diag/level0/e0/summary_on.json`, `ray_overlap/e2e_summary.json`). The earlier C++-rule and ray-rule
+counts, and their evaluations (47,230, 48,769, 48,641, 50,915), are reproduced exactly; the earlier lenient counts used the
+vertex-0 screen, so they differ (tested in Step 8: the lenient rule with the vertex-0 screen reproduces all four).
+
+<!-- table:q8_e0_wrong -->
+| arm | images | wrong | interval | evals | runtime | wall_min | med_err | stored_earlier |
+|---|---|---|---|---|---|---|---|---|
+| lenient rule, min_sin_eta 0.3 | clean | 35 of 200 | 0.129 to 0.234 | 48623 | 24.9 | 8.5 | 0.0123 | 40 |
+| lenient rule, min_sin_eta 0.3 | realistic (10% drop) | 27 of 200 | 0.094 to 0.189 | 51454 | 26.9 | 9.3 | 0.0081 | 25 |
+| lenient rule, min_sin_eta 0.3 | realistic, no drop | 16 of 200 | 0.050 to 0.126 | 51825 | 27.1 | 9.3 | 0.0116 | n/a |
+| C++ rule, min_sin_eta 0.3 | clean | 61 of 200 | 0.245 to 0.372 | 47174 | 23.6 | 8.1 | 0.0193 | 61 |
+| C++ rule, min_sin_eta 0.3 | realistic (10% drop) | 42 of 200 | 0.159 to 0.272 | 48731 | 24.0 | 8.3 | 0.0148 | 42 |
+| C++ rule, min_sin_eta 0.3 | realistic, no drop | 39 of 200 | 0.146 to 0.255 | 49227 | 24.3 | 8.4 | 0.0121 | n/a |
+| lenient rule, min_sin_eta 0 | clean | 41 of 200 | 0.155 to 0.266 | 48700 | 23.5 | 8.1 | 0.0130 | 39 |
+| lenient rule, min_sin_eta 0 | realistic (10% drop) | 25 of 200 | 0.086 to 0.178 | 51520 | 25.0 | 8.6 | 0.0100 | 18 |
+| lenient rule, min_sin_eta 0 | realistic, no drop | 22 of 200 | 0.074 to 0.161 | 51901 | 25.5 | 8.8 | 0.0080 | n/a |
+| C++ rule, min_sin_eta 0 | clean | 56 of 200 | 0.222 to 0.346 | 47230 | 23.5 | 8.1 | 0.0223 | 56 |
+| C++ rule, min_sin_eta 0 | realistic (10% drop) | 56 of 200 | 0.222 to 0.346 | 48769 | 24.4 | 8.4 | 0.0132 | 56 |
+| C++ rule, min_sin_eta 0 | realistic, no drop | 38 of 200 | 0.142 to 0.250 | 49281 | 24.4 | 8.4 | 0.0109 | n/a |
+| ray rule 2-pixel window, min_sin_eta 0 | clean | 40 of 200 | 0.150 to 0.261 | 48641 | 26.5 | 9.1 | 0.0097 | 40 |
+| ray rule 2-pixel window, min_sin_eta 0 | realistic (10% drop) | 32 of 200 | 0.116 to 0.217 | 50915 | 27.2 | 9.4 | 0.0087 | 32 |
+| ray rule 2-pixel window, min_sin_eta 0 | realistic, no drop | 14 of 200 | 0.042 to 0.114 | 51652 | 27.0 | 9.3 | 0.0072 | n/a |
+| ray rule geometric window, min_sin_eta 0 | clean | 41 of 200 | 0.155 to 0.266 | 48649 | 25.1 | 8.6 | 0.0114 | 41 |
+| ray rule geometric window, min_sin_eta 0 | realistic (10% drop) | 29 of 200 | 0.103 to 0.200 | 50967 | 26.7 | 9.2 | 0.0100 | 29 |
+| ray rule geometric window, min_sin_eta 0 | realistic, no drop | 14 of 200 | 0.042 to 0.114 | 51677 | 27.1 | 9.3 | 0.0086 | n/a |
+<!-- /table:q8_e0_wrong -->
+
+Paired by voxel (200 voxels): for an arm against a reference, `fixed` = wrong under the reference and right under the arm,
+`broken` = the reverse, `both_wrong`, `both_right`. "no drop vs clean" has clean as the reference.
+
+<!-- table:q8_e0_paired_variants -->
+| arm | comparison | fixed | broken | both_wrong | both_right |
+|---|---|---|---|---|---|
+| lenient rule, min_sin_eta 0.3 | no drop vs clean | 28 | 9 | 7 | 156 |
+| lenient rule, min_sin_eta 0.3 | no drop vs old realistic | 17 | 6 | 10 | 167 |
+| lenient rule, min_sin_eta 0.3 | old realistic vs clean | 24 | 16 | 11 | 149 |
+| C++ rule, min_sin_eta 0.3 | no drop vs clean | 37 | 15 | 24 | 124 |
+| C++ rule, min_sin_eta 0.3 | no drop vs old realistic | 21 | 18 | 21 | 140 |
+| C++ rule, min_sin_eta 0.3 | old realistic vs clean | 34 | 15 | 27 | 124 |
+| lenient rule, min_sin_eta 0 | no drop vs clean | 31 | 12 | 10 | 147 |
+| lenient rule, min_sin_eta 0 | no drop vs old realistic | 14 | 11 | 11 | 164 |
+| lenient rule, min_sin_eta 0 | old realistic vs clean | 27 | 11 | 14 | 148 |
+| C++ rule, min_sin_eta 0 | no drop vs clean | 32 | 14 | 24 | 130 |
+| C++ rule, min_sin_eta 0 | no drop vs old realistic | 33 | 15 | 23 | 129 |
+| C++ rule, min_sin_eta 0 | old realistic vs clean | 27 | 27 | 29 | 117 |
+| ray rule 2-pixel window, min_sin_eta 0 | no drop vs clean | 35 | 9 | 5 | 151 |
+| ray rule 2-pixel window, min_sin_eta 0 | no drop vs old realistic | 26 | 8 | 6 | 160 |
+| ray rule 2-pixel window, min_sin_eta 0 | old realistic vs clean | 23 | 15 | 17 | 145 |
+| ray rule geometric window, min_sin_eta 0 | no drop vs clean | 35 | 8 | 6 | 151 |
+| ray rule geometric window, min_sin_eta 0 | no drop vs old realistic | 24 | 9 | 5 | 162 |
+| ray rule geometric window, min_sin_eta 0 | old realistic vs clean | 30 | 18 | 11 | 141 |
+<!-- /table:q8_e0_paired_variants -->
+
+The same split between rules, on each image variant (reference = the second rule; `wrong_rule` and `wrong_ref` are their counts of 200):
+
+<!-- table:q8_e0_paired_rules -->
+| images | rule | reference | wrong_rule | wrong_ref | fixed | broken | both_wrong |
+|---|---|---|---|---|---|---|---|
+| clean | C++ rule, min_sin_eta 0.3 | lenient rule, min_sin_eta 0.3 | 61 | 35 | 15 | 41 | 20 |
+| realistic (10% drop) | C++ rule, min_sin_eta 0.3 | lenient rule, min_sin_eta 0.3 | 42 | 27 | 10 | 25 | 17 |
+| realistic, no drop | C++ rule, min_sin_eta 0.3 | lenient rule, min_sin_eta 0.3 | 39 | 16 | 5 | 28 | 11 |
+| clean | C++ rule, min_sin_eta 0 | lenient rule, min_sin_eta 0 | 56 | 41 | 15 | 30 | 26 |
+| realistic (10% drop) | C++ rule, min_sin_eta 0 | lenient rule, min_sin_eta 0 | 56 | 25 | 7 | 38 | 18 |
+| realistic, no drop | C++ rule, min_sin_eta 0 | lenient rule, min_sin_eta 0 | 38 | 22 | 10 | 26 | 12 |
+| clean | ray rule 2-pixel window, min_sin_eta 0 | lenient rule, min_sin_eta 0 | 40 | 41 | 10 | 9 | 31 |
+| realistic (10% drop) | ray rule 2-pixel window, min_sin_eta 0 | lenient rule, min_sin_eta 0 | 32 | 25 | 10 | 17 | 15 |
+| realistic, no drop | ray rule 2-pixel window, min_sin_eta 0 | lenient rule, min_sin_eta 0 | 14 | 22 | 15 | 7 | 7 |
+| clean | ray rule geometric window, min_sin_eta 0 | lenient rule, min_sin_eta 0 | 41 | 41 | 11 | 11 | 30 |
+| realistic (10% drop) | ray rule geometric window, min_sin_eta 0 | lenient rule, min_sin_eta 0 | 29 | 25 | 14 | 18 | 11 |
+| realistic, no drop | ray rule geometric window, min_sin_eta 0 | lenient rule, min_sin_eta 0 | 14 | 22 | 14 | 6 | 8 |
+| clean | ray rule 2-pixel window, min_sin_eta 0 | C++ rule, min_sin_eta 0 | 40 | 56 | 32 | 16 | 24 |
+| realistic (10% drop) | ray rule 2-pixel window, min_sin_eta 0 | C++ rule, min_sin_eta 0 | 32 | 56 | 38 | 14 | 18 |
+| realistic, no drop | ray rule 2-pixel window, min_sin_eta 0 | C++ rule, min_sin_eta 0 | 14 | 38 | 30 | 6 | 8 |
+| clean | ray rule geometric window, min_sin_eta 0 | C++ rule, min_sin_eta 0 | 41 | 56 | 31 | 16 | 25 |
+| realistic (10% drop) | ray rule geometric window, min_sin_eta 0 | C++ rule, min_sin_eta 0 | 29 | 56 | 37 | 10 | 19 |
+| realistic, no drop | ray rule geometric window, min_sin_eta 0 | C++ rule, min_sin_eta 0 | 14 | 38 | 29 | 5 | 9 |
+| clean | ray rule geometric window, min_sin_eta 0 | ray rule 2-pixel window, min_sin_eta 0 | 41 | 40 | 4 | 5 | 36 |
+| realistic (10% drop) | ray rule geometric window, min_sin_eta 0 | ray rule 2-pixel window, min_sin_eta 0 | 29 | 32 | 12 | 9 | 20 |
+| realistic, no drop | ray rule geometric window, min_sin_eta 0 | ray rule 2-pixel window, min_sin_eta 0 | 14 | 14 | 3 | 3 | 11 |
+<!-- /table:q8_e0_paired_rules -->
+
+Total wall of the 18 blocks: 157 minutes (10 workers, contended). One seed per voxel (the search uses randomness to explore, so
+repeat seeds are not independent samples; owner 2026-10-12); intervals treat voxels as independent.
+
+### Step 6: no drop is the default (owner 2026-10-14, D-20261014-I6)
+
+Whatever a caller gets without naming a variant is now no-drop; every named variant keeps its meaning, so the existing images,
+caches and run records stay valid and are reproduced by name. Commit 00ae8b9.
+
+- **Phase D** (`scripts/phase_d/noise.py`): `NoiseParams().p_miss` is 0 (`noise.DEFAULT_NOISE = "nodrop"`); `named("toy")` is
+  `p_miss` 0.1 (`TOY_P_MISS`), `named("nodrop")` is the defaults. The miss draw is still always taken, so the random stream of a
+  frame is the same in both. `add_detector_noise(img, rng)` without parameters is no-drop.
+- **`render_full.py`**: without `--noise` it renders `nodrop` into `<tag>/realistic_nodrop/` and writes
+  `results/render_<tag>_nodrop.json`; `--noise toy` writes `<tag>/realistic/` and the tracked `results/render_<tag>.json` as before.
+  New guard: it refuses (an argument error before any work, before the preflight file is written) to write into `clean/` or the
+  variant's directory when that directory already holds files, unless `--overwrite`. This replaces the Step 1 rule that refused
+  `clean` in `--variants` with `--noise nodrop`; a bare call on a new tag now renders clean and no-drop, on an existing tag it
+  needs `--variants realistic`. The worker reads `args.get("noise", DEFAULT_NOISE)`: `frame_split_check.py` and `seed_diag.py` build
+  job dicts without a `noise` key, which would have raised `KeyError` since Step 1 (a regression of mine, found now).
+- **E0 library** (`icenine/orientation_eval.py`): `RealismConfig().p_miss` is 0; `DROP_P_MISS = 0.1`; `named("noise")` and
+  `named("all")` pass `p_miss=DROP_P_MISS` (meaning unchanged, bit for bit); `neighbours` keeps its explicit zeros;
+  `noise_nodrop` and `all_nodrop` are as in Step 1.
+- **E0 harness** (`scripts/findoptimal_robustness/common.py`): new `C.DEFAULT_VARIANTS = ["clean", "realistic_nodrop"]`, the
+  default of `e0_run.py --variants` and of `e0_cpprule.py run` / `pilot`. `C.VARIANTS` stays `["clean", "all"]`: it is the list
+  of the *stored* variants, read by name by the downstream scripts (`analyze_e0.py`, the E2 and F1 scripts, `summarize_fixes.py`)
+  and by `e0_cpprule.py summary` (which now passes `variants=C.VARIANTS` explicitly, because it compares with the stored Q3
+  base). `all` is the old realistic images (10% drop) and stays available by name (`--variants clean all`, `--variant all`);
+  a default `e0_run.py run` adds `v*_realistic_nodrop.npz` files to the cache next to the stored ones and overwrites nothing.
+- **Tests that named the old default** (`tests/test_phase_d.py`, `tests/test_orientation_eval.py`): the noise determinism test now
+  names `toy`; `test_noise_named_variants` checks `toy` = 0.1 and `nodrop` = 0; `RealismConfig.named("all")` is compared with
+  `RealismConfig(True, 0.1)` (it was `RealismConfig(True)`). New tests: the defaults are no-drop (`NoiseParams()`,
+  `add_detector_noise` without parameters misses none of 40 spots where `toy` misses some, `RealismConfig()`), `render_full.py`
+  parses to `nodrop` and refuses to overwrite an existing `clean/` or `realistic/` (also with `--noise toy`), and the harness
+  default variants. Full suite: 981 passed, 42 skipped, 1 deselected (977 before, plus 4 new; 987 at the end of Step 8 with the 6 tests of
+  `tests/test_q8_step7.py`); the 42 skips are the C++ ground-truth and benchmark skips of before.
+- **No golden depends on a noise default**: no C++ or stored reference file is compared with noisy data, nothing was
+  regenerated, and no existing image, config or run record was written (checked by `git status` and the full suite).
+
+Left as they were, for the owner:
+
+- The six realistic Phase D arms still read the 10%-drop images: `ReconstructPhaseD_{mc,cma,cma_noretry}_realistic.config`
+  (`full/realistic`) and `..._realistic_q16.config` (`full_q16/realistic`). The three `..._realistic_nodrop.config` twins exist
+  (`full/realistic_nodrop`); no Phase D run on noisy images for now (D-20261014-I7).
+- Study scripts with their own `VARIANTS = ["clean", "all"]` (stored results they read by name): `perturbation_sweep.py`,
+  `mc_mechanism/mc_trace.py`, `finisher_bench/bench.py`, `cost_sensitivity/landscape.py`, `profiling/prof_summary.py`, and the
+  `findoptimal_robustness` readers through `C.VARIANTS`. Moving any of them to no-drop would change which stored results they read.
+
+### Step 7: are the noisy images easier to reconstruct? (D-20261014-I8)
+
+The owner's experience is that the noisy images give more candidates and a wider cost function, so the search is easier. The
+existing data covered only the fine scale (Phase A: the old realistic images' cost rises about 30% more slowly than clean within
+0.1° of the truth); nothing covered the candidates or the degree scale where the wrong voxels come from. Analysis only, no
+full searches: `scripts/phase_d/q8_step7.py`, the 200 E0 voxels, `min_sin_eta` 0, image sets `clean` and `realistic_nodrop`
+(`all_nodrop`: the neighbour and twin layer plus edge jitter, hot pixels and blobs, no drop), and three arms of Step 4: lenient
+rule, C++ rule and ray rule with the 2-pixel window. Compute was estimated from a pilot first (about 100 CPU-minutes, so 10 to 15
+minutes on 10 workers, well under the 1 h limit); the run took 1,075 s for the 1,200 level-0 tasks plus 71 s for the 400 cost
+tasks (contended, not a timing claim). Output `benchmarks/q8_nodrop/step7/` (`summary.json`, `tables.md`, `per_voxel.npz`).
+
+- **(a) Candidates.** Level 0 of `reconstruct_voxel`, the code path of the Step 4 runs, stopped after the discrete search (it
+  draws no random number). Per voxel: the candidates that pass the screen (`peak_overlap > 0` at pixel radius 3) and the spacing
+  filter, their symmetry-reduced misorientation to the truth, the closest one, how many lie within 1° and 3°, and the closest
+  one's rank in the list (sorted by the level-0 cost 1 minus the peak ratio; stable sort, ties keep the order of the
+  fundamental-zone points). "Top quarter" is rank at most a quarter of the list, the cut `keep_fraction` 0.25 applies after
+  the quick MC (which reorders the list), so here it is by the screen order only. Cross-check: the candidate count, the count
+  within 3° and the closest distance equal those recorded by the Step 4 runs in all 1,200 (voxel, images, arm) tasks, although
+  this script used the library's default batched exact screen for the lenient and C++ arms (Step 4 forced the per-orientation
+  screen, which took 17.5 times as long for the screen alone in the single-worker, preflight-passed measurement of table
+  `evalA_speed_screen` above: one voxel, not measured again here).
+- **(b) Cost width.** The truth rotated by r in {0.03, 0.1, 0.3, 0.5, 1, 2, 3}° about 50 random axes (drawn from the voxel
+  alone, so the same on both image sets); the level-0 cost (1 minus the peak ratio of the arm's level-0 local cost function) and
+  the final cost (1 minus the pixel quality of the arm's final cost function: the C++ rule for the ray arm, which never uses
+  the ray rule at the end). Width = the smallest r at which the pooled median (over voxels and axes) reaches halfway from the
+  cost at the truth to the cost at 3°; since the grid is coarse, an interpolated width (linear in log r between the
+  bracketing grid points) is also given, with a 95% interval from 1,000 resamples of the voxels (the same voxels for both
+  image sets). Also the fraction of the rotated truths that pass the level-0 screen, which is what decides how many
+  candidates a voxel has.
+- **(c) Link to the outcome.** The voxels grouped by the Step 4 pairing of no drop against clean (fixed = wrong on clean,
+  right on no drop; broken = the reverse), for each arm; (a) and (b) per group. Group sizes (lenient arm): fixed 31, broken 12,
+  both right 147, both wrong 10; (ray arm) 35, 9, 151, 5; (C++ rule) 32, 14, 130, 24.
+
+**Answer to (a): more candidates in 200 of 200 voxels for the lenient and ray rules (199 of 200 for the C++ rule), but the closest candidate to the truth hardly changes.** The no-drop images give
+more level-0 candidates than clean in 200 of 200 voxels (lenient rule, median 182 against 289, median per-voxel ratio 1.64;
+ray rule 181 against 284; the C++ rule 125 against 194, in 199 voxels and equal in 1). The closest candidate is as near as before: median 1.295° on both image
+sets, nearer in 15 voxels, farther in 11, at the same distance in 174. Voxels with a candidate within 1°: 54 of 200 on clean, 55 on no drop; within
+3°: 196 and 199. The closest candidate is in the top quarter of the screen order in 160 voxels on clean and 174 on no drop
+(paired: 155 both, 19 only no drop, 5 only clean, 21 neither). The median number of candidates within 3° of the truth goes from 3 to 4, so
+the extra candidates are mostly additional far points, not closer ones.
+
+<!-- table:step7_candidates -->
+| arm | images | median candidates | median passing the screen | median closest (deg) | closest within 1 deg | closest within 3 deg | median within 1 deg | median within 3 deg | median rank of closest | closest ranked first | closest in top quarter |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| lenient rule | clean | 182 | 190 | 1.295 | 54 of 200 (21 to 34%) | 196 of 200 (95 to 99%) | 0 | 3 | 10 | 39 | 160 |
+| lenient rule | no drop | 289 | 306 | 1.295 | 55 of 200 (22 to 34%) | 199 of 200 (97 to 100%) | 0 | 4 | 7 | 48 | 174 |
+| C++ rule | clean | 125 | 128 | 1.310 | 52 of 200 (20 to 32%) | 194 of 200 (94 to 99%) | 0 | 3 | 13 | 27 | 147 |
+| C++ rule | no drop | 194 | 204 | 1.310 | 54 of 200 (21 to 34%) | 196 of 200 (95 to 99%) | 0 | 3 | 14 | 40 | 161 |
+| ray rule, 2-pixel window | clean | 181 | 189 | 1.295 | 54 of 200 (21 to 34%) | 196 of 200 (95 to 99%) | 0 | 3 | 10 | 39 | 160 |
+| ray rule, 2-pixel window | no drop | 284 | 301 | 1.295 | 55 of 200 (22 to 34%) | 199 of 200 (97 to 100%) | 0 | 4 | 7 | 47 | 174 |
+<!-- /table:step7_candidates -->
+
+Medians over the 200 voxels; "closest within" counts voxels (of 200); the interval is Wilson 95%. `top quarter` counts voxels.
+
+<!-- table:step7_candidates_paired -->
+| arm | candidates: more / fewer / equal (no drop) | median ratio of candidates | closest: nearer / farther / same (no drop) | within 1 deg: both / only no drop / only clean / neither | within 3 deg: both / only no drop / only clean / neither | in top quarter: both / only no drop / only clean / neither |
+|---|---|---|---|---|---|---|
+| lenient rule | 200 / 0 / 0 | 1.64 | 15 / 11 / 174 | 54 / 1 / 0 / 145 | 196 / 3 / 0 / 1 | 155 / 19 / 5 / 21 |
+| C++ rule | 199 / 0 / 1 | 1.59 | 12 / 7 / 181 | 52 / 2 / 0 / 146 | 194 / 2 / 0 / 4 | 140 / 21 / 7 / 32 |
+| ray rule, 2-pixel window | 200 / 0 / 0 | 1.60 | 15 / 11 / 174 | 54 / 1 / 0 / 145 | 196 / 3 / 0 / 1 | 154 / 20 / 6 / 20 |
+<!-- /table:step7_candidates_paired -->
+
+**Answer to (b): the cost is wider on the no-drop images at both scales, in every voxel.** Fine scale: the level-0 cost at 0.1°
+is 0.154 on clean and 0.115 on no drop (lenient rule), the rise above the cost at the truth is 0.75 of the clean rise at 0.1°
+(0.84 for the final cost), in line with the roughly 30% slower rise of the old realistic images that Phase A found (a different
+image set and measure: not the same number). The level-0 halfway width is 0.235° on clean and 0.310° on no drop (ratio 1.32,
+interval 1.31 to 1.36; the ray rule 1.32, the C++ rule 1.22); the final-cost width 0.115° and 0.133° (ratio 1.16; part of this is the higher cost at the truth on no
+drop, 0.112 against 0.066, which raises the halfway level). The per-voxel width is larger on no drop in all 200 voxels, for every arm and both
+costs. Degree scale: the share of the rotated truths that still pass the level-0 screen is 0.692 on clean and 0.752 on no drop at 2°, and 0.366 and 0.436 at 3° (lenient rule;
+C++ rule 0.545 and 0.617 at 2°, 0.256 and 0.301 at 3°). The median level-0 cost at 2° is 0.986 (clean) and 0.985 (no drop) for the lenient and ray rules and 1.000 on both for the C++ rule;
+at 3° it is 1.000 for every arm and image set. The difference at those radii is therefore in the tail (the mean level-0 cost at 1° is
+0.952 and 0.928, in `tables.md`).
+
+<!-- table:step7_width -->
+| arm | cost | images | truth | 0.03 deg | 0.1 deg | 0.3 deg | 0.5 deg | 1 deg | 2 deg | 3 deg | width, grid (deg) | width, interpolated (deg) | median per-voxel width, grid (deg) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| lenient rule | level-0 cost | clean | 0.0000 | 0.0303 | 0.1538 | 0.6000 | 0.8154 | 0.9545 | 0.9859 | 1.0000 | 0.3 | 0.235 | 0.3 |
+| lenient rule | level-0 cost | no drop | 0.0000 | 0.0282 | 0.1148 | 0.4839 | 0.7302 | 0.9318 | 0.9848 | 1.0000 | 0.5 | 0.310 | 0.5 |
+| lenient rule | final cost | clean | 0.0662 | 0.1920 | 0.4887 | 0.8432 | 0.9318 | 0.9833 | 0.9995 | 1.0000 | 0.3 | 0.115 | 0.3 |
+| lenient rule | final cost | no drop | 0.1120 | 0.2172 | 0.4660 | 0.8103 | 0.9128 | 0.9778 | 0.9978 | 1.0000 | 0.3 | 0.133 | 0.3 |
+| C++ rule | level-0 cost | clean | 0.0000 | 0.0435 | 0.2656 | 0.7463 | 0.8923 | 0.9701 | 1.0000 | 1.0000 | 0.3 | 0.171 | 0.3 |
+| C++ rule | level-0 cost | no drop | 0.0000 | 0.0308 | 0.1940 | 0.6515 | 0.8361 | 0.9552 | 1.0000 | 1.0000 | 0.3 | 0.208 | 0.3 |
+| C++ rule | final cost | clean | 0.0662 | 0.1947 | 0.5081 | 0.8589 | 0.9392 | 0.9852 | 1.0000 | 1.0000 | 0.3 | 0.108 | 0.3 |
+| C++ rule | final cost | no drop | 0.1120 | 0.2186 | 0.4790 | 0.8247 | 0.9205 | 0.9799 | 1.0000 | 1.0000 | 0.3 | 0.128 | 0.3 |
+| ray rule, 2-pixel window | level-0 cost | clean | 0.0000 | 0.0303 | 0.1538 | 0.6000 | 0.8154 | 0.9545 | 0.9859 | 1.0000 | 0.3 | 0.235 | 0.3 |
+| ray rule, 2-pixel window | level-0 cost | no drop | 0.0000 | 0.0282 | 0.1159 | 0.4848 | 0.7333 | 0.9344 | 0.9848 | 1.0000 | 0.5 | 0.309 | 0.5 |
+| ray rule, 2-pixel window | final cost | clean | 0.0662 | 0.1947 | 0.5081 | 0.8589 | 0.9392 | 0.9852 | 1.0000 | 1.0000 | 0.3 | 0.108 | 0.3 |
+| ray rule, 2-pixel window | final cost | no drop | 0.1120 | 0.2186 | 0.4790 | 0.8247 | 0.9205 | 0.9799 | 1.0000 | 1.0000 | 0.3 | 0.128 | 0.3 |
+<!-- /table:step7_width -->
+
+Median cost over voxels and axes at each radius (width columns: grid = the smallest radius reaching halfway, interpolated =
+linear in log r; the per-voxel column is the median over voxels of each voxel's own grid width).
+
+<!-- table:step7_rise_ratio -->
+| arm | cost | 0.03 deg | 0.1 deg | 0.3 deg | 0.5 deg | 1 deg | 2 deg | 3 deg |
+|---|---|---|---|---|---|---|---|---|
+| lenient rule | level-0 cost | 0.930 | 0.746 | 0.806 | 0.895 | 0.976 | 0.999 | 1.000 |
+| lenient rule | final cost | 0.836 | 0.838 | 0.899 | 0.925 | 0.944 | 0.949 | 0.951 |
+| C++ rule | level-0 cost | 0.708 | 0.730 | 0.873 | 0.937 | 0.985 | 1.000 | 1.000 |
+| C++ rule | final cost | 0.830 | 0.830 | 0.899 | 0.926 | 0.944 | 0.951 | 0.951 |
+| ray rule, 2-pixel window | level-0 cost | 0.930 | 0.754 | 0.808 | 0.899 | 0.979 | 0.999 | 1.000 |
+| ray rule, 2-pixel window | final cost | 0.830 | 0.830 | 0.899 | 0.926 | 0.944 | 0.951 | 0.951 |
+<!-- /table:step7_rise_ratio -->
+
+Rise of the median cost above its value at the truth, no drop divided by clean (below 1: slower rise on no drop).
+
+<!-- table:step7_screen_pass -->
+| arm | images | truth | 0.03 deg | 0.1 deg | 0.3 deg | 0.5 deg | 1 deg | 2 deg | 3 deg |
+|---|---|---|---|---|---|---|---|---|---|
+| lenient rule | clean | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 0.978 | 0.692 | 0.366 |
+| lenient rule | no drop | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 0.985 | 0.752 | 0.436 |
+| C++ rule | clean | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 0.968 | 0.545 | 0.256 |
+| C++ rule | no drop | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 0.979 | 0.617 | 0.301 |
+| ray rule, 2-pixel window | clean | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 0.978 | 0.690 | 0.364 |
+| ray rule, 2-pixel window | no drop | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 0.985 | 0.746 | 0.421 |
+<!-- /table:step7_screen_pass -->
+
+Fraction of the 50 axes x 200 voxels rotated truths that pass the level-0 screen.
+
+<!-- table:step7_width_paired -->
+| arm | cost | voxels | no drop wider | no drop narrower | same | median per-voxel width, clean (deg) | median per-voxel width, no drop (deg) | pooled width, clean (deg) | pooled width, no drop (deg) | pooled width ratio (no drop / clean) | ratio 95% interval (voxel bootstrap) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| lenient rule | level-0 cost | 200 | 200 | 0 | 0 | 0.235 | 0.306 | 0.235 | 0.310 | 1.323 | 1.31 to 1.36 |
+| lenient rule | final cost | 200 | 200 | 0 | 0 | 0.115 | 0.130 | 0.115 | 0.133 | 1.161 | 1.15 to 1.18 |
+| C++ rule | level-0 cost | 200 | 200 | 0 | 0 | 0.172 | 0.204 | 0.171 | 0.208 | 1.220 | 1.20 to 1.24 |
+| C++ rule | final cost | 200 | 200 | 0 | 0 | 0.108 | 0.124 | 0.108 | 0.128 | 1.181 | 1.17 to 1.20 |
+| ray rule, 2-pixel window | level-0 cost | 200 | 200 | 0 | 0 | 0.235 | 0.305 | 0.235 | 0.309 | 1.320 | 1.30 to 1.35 |
+| ray rule, 2-pixel window | final cost | 200 | 200 | 0 | 0 | 0.108 | 0.124 | 0.108 | 0.128 | 1.181 | 1.17 to 1.20 |
+<!-- /table:step7_width_paired -->
+
+Per-voxel width = interpolated halfway width of the voxel's own median-over-axes curve; "no drop wider" counts voxels
+(ties are exact equality). Pooled = from the median curve over all voxels and axes.
+
+**Answer to (c): the owner's two effects are there in (nearly) every voxel, so they do not by themselves separate the voxels that flip;
+the link to the outcome is weak.** Lenient rule, by group of the Step 4 pairing (the other two arms in `tables.md` and below):
+
+- *Fixed* voxels (wrong on clean, right on no drop; 31) have a farther closest candidate than the always-right ones (median 1.78° on
+  clean, 1.62° on no drop, against 1.20° for the 147 both-right voxels), consistent with voxels near the edge of what the search can
+  recover (not tested). Their cost widens more than that of the broken and both-wrong voxels (level-0 width ratio 1.36, interval 1.31 to 1.43; the
+  screen pass at 3° rises from 0.358 to 0.459), against 1.24 (1.17 to 1.35) for the broken voxels and 1.22 (1.18 to 1.32) for the
+  both-wrong ones (groups of 12 and 10, so the intervals overlap); the both-right voxels widen by 1.34 (1.31 to 1.37), so the
+  width ratio alone does not predict a fix. The ray arm has the same ordering (fixed 1.35, broken 1.29, both right 1.32, both
+  wrong 1.22); the C++ rule has 1.20 to 1.23 in every group.
+- The screen-order data give no sign that the extra candidates explain the fixes: in 22 of the 31 fixed voxels (Wilson 95% interval
+  53 to 84%) the closest candidate is already ranked in the top quarter of the screen order on clean, against 23 of 31 (57 to 86%) on
+  no drop (on both image sets 20 of 31, 47 to 79%; only no drop 3, only clean 2, neither 6). This is the rank in the discrete-stage
+  order. The real level-0 cut is applied after the quick MC, which reorders the list, and `keep_union_discrete` is off by default, so
+  whether the closest candidate survived that cut was not recorded; the numbers do not show that it was kept on clean. The broken
+  voxels also have more candidates (180 to 282) and 9 of 12 closest candidates (47 to 91%) ranked in the top quarter on no drop (6
+  of 12 on clean, 25 to 75%).
+- The both-wrong voxels have the farthest closest candidate (median 2.34° on clean, 2.21° on no drop; none within 1°).
+
+<!-- table:step7_groups_paired -->
+| arm | group | voxels | in top quarter: both / only no drop / only clean / neither | in top quarter on both image sets (Wilson 95%) | in top quarter on clean (Wilson 95%) | in top quarter on no drop (Wilson 95%) | within 3 deg: both / only no drop / only clean / neither | level-0 width, clean (deg) | level-0 width, no drop (deg) | width ratio | ratio 95% interval (voxel bootstrap) | screen pass at 3 deg, clean | screen pass at 3 deg, no drop |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| lenient rule | fixed | 31 | 20 / 3 / 2 / 6 | 20 of 31 (47 to 79%) | 22 of 31 (53 to 84%) | 23 of 31 (57 to 86%) | 29 / 2 / 0 / 0 | 0.235 | 0.321 | 1.36 | 1.31 to 1.43 | 0.358 | 0.459 |
+| lenient rule | broken | 12 | 6 / 3 / 0 / 3 | 6 of 12 (25 to 75%) | 6 of 12 (25 to 75%) | 9 of 12 (47 to 91%) | 12 / 0 / 0 / 0 | 0.236 | 0.293 | 1.24 | 1.17 to 1.35 | 0.363 | 0.402 |
+| lenient rule | both right | 147 | 125 / 13 / 2 / 7 | 125 of 147 (78 to 90%) | 127 of 147 (80 to 91%) | 138 of 147 (89 to 97%) | 147 / 0 / 0 / 0 | 0.234 | 0.314 | 1.34 | 1.31 to 1.37 | 0.370 | 0.437 |
+| lenient rule | both wrong | 10 | 4 / 0 / 1 / 5 | 4 of 10 (17 to 69%) | 5 of 10 (24 to 76%) | 4 of 10 (17 to 69%) | 8 / 1 / 0 / 1 | 0.226 | 0.276 | 1.22 | 1.18 to 1.32 | 0.340 | 0.394 |
+| C++ rule | fixed | 32 | 19 / 6 / 0 / 7 | 19 of 32 (42 to 74%) | 19 of 32 (42 to 74%) | 25 of 32 (61 to 89%) | 31 / 1 / 0 / 0 | 0.171 | 0.210 | 1.23 | 1.19 to 1.29 | 0.264 | 0.338 |
+| C++ rule | broken | 14 | 6 / 2 / 2 / 4 | 6 of 14 (21 to 67%) | 8 of 14 (33 to 79%) | 8 of 14 (33 to 79%) | 14 / 0 / 0 / 0 | 0.174 | 0.212 | 1.22 | 1.14 to 1.34 | 0.240 | 0.270 |
+| C++ rule | both right | 130 | 103 / 11 / 4 / 12 | 103 of 130 (71 to 85%) | 107 of 130 (75 to 88%) | 114 of 130 (81 to 92%) | 129 / 1 / 0 / 0 | 0.171 | 0.209 | 1.22 | 1.20 to 1.25 | 0.258 | 0.299 |
+| C++ rule | both wrong | 24 | 12 / 2 / 1 / 9 | 12 of 24 (31 to 69%) | 13 of 24 (35 to 72%) | 14 of 24 (39 to 76%) | 20 / 0 / 0 / 4 | 0.168 | 0.202 | 1.20 | 1.16 to 1.24 | 0.245 | 0.285 |
+| ray rule, 2-pixel window | fixed | 35 | 18 / 5 / 4 / 8 | 18 of 35 (36 to 67%) | 22 of 35 (46 to 77%) | 23 of 35 (49 to 79%) | 32 / 3 / 0 / 0 | 0.234 | 0.317 | 1.35 | 1.30 to 1.41 | 0.336 | 0.411 |
+| ray rule, 2-pixel window | broken | 9 | 5 / 2 / 0 / 2 | 5 of 9 (27 to 81%) | 5 of 9 (27 to 81%) | 7 of 9 (45 to 94%) | 9 / 0 / 0 / 0 | 0.232 | 0.300 | 1.29 | 1.18 to 1.40 | 0.356 | 0.396 |
+| ray rule, 2-pixel window | both right | 151 | 129 / 12 / 2 / 8 | 129 of 151 (79 to 90%) | 131 of 151 (80 to 91%) | 141 of 151 (88 to 96%) | 151 / 0 / 0 / 0 | 0.234 | 0.310 | 1.32 | 1.30 to 1.35 | 0.373 | 0.426 |
+| ray rule, 2-pixel window | both wrong | 5 | 2 / 1 / 0 / 2 | 2 of 5 (12 to 77%) | 2 of 5 (12 to 77%) | 3 of 5 (23 to 88%) | 4 / 0 / 0 / 1 | 0.235 | 0.287 | 1.22 | 1.14 to 1.36 | 0.320 | 0.360 |
+<!-- /table:step7_groups_paired -->
+
+Each group counts voxels; "within 3°" and "in top quarter" are paired clean against no drop; the ratio is the level-0 width on
+no drop over clean, with a 95% interval from 1,000 resamples of the group's voxels (wide for groups of 5 to 14).
+
+<!-- table:step7_groups_off -->
+| group | images | voxels | median candidates | median closest (deg) | closest within 1 deg | closest within 3 deg | closest in top quarter | median rank of closest | median rank / candidates | level-0 width (deg) | screen pass at 1 deg | screen pass at 3 deg |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| fixed | clean | 31 | 176 | 1.784 | 1 of 31 (1 to 16%) | 29 of 31 (79 to 98%) | 22 of 31 (53 to 84%) | 23 | 0.127 | 0.235 | 0.980 | 0.358 |
+| fixed | no drop | 31 | 246 | 1.621 | 1 of 31 (1 to 16%) | 31 of 31 (89 to 100%) | 23 of 31 (57 to 86%) | 16 | 0.056 | 0.321 | 0.984 | 0.459 |
+| broken | clean | 12 | 180 | 1.610 | 0 of 12 (0 to 24%) | 12 of 12 (76 to 100%) | 6 of 12 (25 to 75%) | 47 | 0.260 | 0.236 | 0.982 | 0.363 |
+| broken | no drop | 12 | 282 | 1.612 | 0 of 12 (0 to 24%) | 12 of 12 (76 to 100%) | 9 of 12 (47 to 91%) | 48 | 0.180 | 0.293 | 0.983 | 0.402 |
+| both right | clean | 147 | 184 | 1.197 | 53 of 147 (29 to 44%) | 147 of 147 (97 to 100%) | 127 of 147 (80 to 91%) | 6 | 0.033 | 0.234 | 0.977 | 0.370 |
+| both right | no drop | 147 | 306 | 1.196 | 54 of 147 (29 to 45%) | 147 of 147 (97 to 100%) | 138 of 147 (89 to 97%) | 4 | 0.012 | 0.314 | 0.985 | 0.437 |
+| both wrong | clean | 10 | 162 | 2.344 | 0 of 10 (0 to 28%) | 8 of 10 (49 to 94%) | 5 of 10 (24 to 76%) | 44 | 0.298 | 0.226 | 0.980 | 0.340 |
+| both wrong | no drop | 10 | 275 | 2.206 | 0 of 10 (0 to 28%) | 9 of 10 (60 to 98%) | 4 of 10 (17 to 69%) | 70 | 0.352 | 0.276 | 0.986 | 0.394 |
+<!-- /table:step7_groups_off -->
+
+Lenient arm: per group and image set.
+
+<!-- table:step7_groups_rayR2 -->
+| group | images | voxels | median candidates | median closest (deg) | closest within 1 deg | closest within 3 deg | closest in top quarter | median rank of closest | median rank / candidates | level-0 width (deg) | screen pass at 1 deg | screen pass at 3 deg |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| fixed | clean | 35 | 168 | 1.833 | 1 of 35 (1 to 15%) | 32 of 35 (78 to 97%) | 22 of 35 (46 to 77%) | 39 | 0.209 | 0.234 | 0.978 | 0.336 |
+| fixed | no drop | 35 | 262 | 1.713 | 1 of 35 (1 to 15%) | 35 of 35 (90 to 100%) | 23 of 35 (49 to 79%) | 39 | 0.164 | 0.317 | 0.986 | 0.411 |
+| broken | clean | 9 | 183 | 1.665 | 0 of 9 (0 to 30%) | 9 of 9 (70 to 100%) | 5 of 9 (27 to 81%) | 43 | 0.199 | 0.232 | 0.960 | 0.356 |
+| broken | no drop | 9 | 280 | 1.681 | 0 of 9 (0 to 30%) | 9 of 9 (70 to 100%) | 7 of 9 (45 to 94%) | 36 | 0.156 | 0.300 | 0.969 | 0.396 |
+| both right | clean | 151 | 184 | 1.197 | 53 of 151 (28 to 43%) | 151 of 151 (98 to 100%) | 131 of 151 (80 to 91%) | 7 | 0.039 | 0.234 | 0.979 | 0.373 |
+| both right | no drop | 151 | 294 | 1.196 | 54 of 151 (29 to 44%) | 151 of 151 (98 to 100%) | 141 of 151 (88 to 96%) | 4 | 0.014 | 0.310 | 0.986 | 0.426 |
+| both wrong | clean | 5 | 159 | 1.916 | 0 of 5 (0 to 43%) | 4 of 5 (38 to 96%) | 2 of 5 (12 to 77%) | 76 | 0.478 | 0.235 | 0.980 | 0.320 |
+| both wrong | no drop | 5 | 261 | 1.916 | 0 of 5 (0 to 43%) | 4 of 5 (38 to 96%) | 3 of 5 (23 to 88%) | 73 | 0.222 | 0.287 | 0.980 | 0.360 |
+<!-- /table:step7_groups_rayR2 -->
+
+Ray 2-pixel arm: per group and image set.
+
+<!-- table:step7_groups_on -->
+| group | images | voxels | median candidates | median closest (deg) | closest within 1 deg | closest within 3 deg | closest in top quarter | median rank of closest | median rank / candidates | level-0 width (deg) | screen pass at 1 deg | screen pass at 3 deg |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| fixed | clean | 32 | 126 | 1.513 | 1 of 32 (1 to 16%) | 31 of 32 (84 to 99%) | 19 of 32 (42 to 74%) | 23 | 0.210 | 0.171 | 0.978 | 0.264 |
+| fixed | no drop | 32 | 208 | 1.481 | 1 of 32 (1 to 16%) | 32 of 32 (89 to 100%) | 25 of 32 (61 to 89%) | 18 | 0.086 | 0.210 | 0.988 | 0.338 |
+| broken | clean | 14 | 124 | 1.493 | 1 of 14 (1 to 31%) | 14 of 14 (78 to 100%) | 8 of 14 (33 to 79%) | 28 | 0.219 | 0.174 | 0.969 | 0.240 |
+| broken | no drop | 14 | 222 | 1.664 | 1 of 14 (1 to 31%) | 14 of 14 (78 to 100%) | 8 of 14 (33 to 79%) | 46 | 0.202 | 0.212 | 0.973 | 0.270 |
+| both right | clean | 130 | 128 | 1.175 | 50 of 130 (31 to 47%) | 129 of 130 (96 to 100%) | 107 of 130 (75 to 88%) | 8 | 0.063 | 0.171 | 0.966 | 0.258 |
+| both right | no drop | 130 | 192 | 1.168 | 52 of 130 (32 to 49%) | 130 of 130 (97 to 100%) | 114 of 130 (81 to 92%) | 7 | 0.043 | 0.209 | 0.978 | 0.299 |
+| both wrong | clean | 24 | 116 | 2.067 | 0 of 24 (0 to 14%) | 20 of 24 (64 to 93%) | 13 of 24 (35 to 72%) | 26 | 0.209 | 0.168 | 0.968 | 0.245 |
+| both wrong | no drop | 24 | 172 | 2.067 | 0 of 24 (0 to 14%) | 20 of 24 (64 to 93%) | 14 of 24 (39 to 76%) | 40 | 0.225 | 0.202 | 0.980 | 0.285 |
+<!-- /table:step7_groups_on -->
+
+C++ rule arm: per group and image set.
+
+What this does and does not show. It shows that the owner's two observations hold on these 200 voxels (more candidates; a wider
+cost function at 0.03° to 3°), and that they hold in every voxel (more candidates: 200 of 200 for the lenient and ray rules, 199 of 200
+for the C++ rule; wider cost: 200 of 200 for every arm), so they are a property of the image set. It does not show that
+they cause the lower wrong counts: no run changed one of them while holding the other fixed. The closest-candidate view argues
+against the simplest story (a nearer or better-ranked candidate): the closest candidate is at the same distance in 174 of 200 voxels and
+is ranked in the top quarter of the screen order in most of the fixed voxels on clean as well (22 of 31; whether it survived the
+post-quick-MC level-0 cut was not recorded). What remains consistent with the data, untested, is that the
+wider cost and the larger candidate set help the later levels (quick MC and FindOptimal start from more, and more spread-out,
+candidates). The no-drop images combine two changes against clean, the neighbour and twin layer and the noise (jitter, hot
+pixels, blobs); the analysis did not separate them (a noise-only and a layer-only image set would; not built).
+
+### Step 8: why four lenient wrong counts differ from the stored ones
+
+Step 4 reported four lenient-rule counts that differ from the stored ones (clean / old realistic): 35 against 40 and 27 against 25
+at `min_sin_eta` 0.3 (Q3 study, `summary_on.json`), and 41 against 39 and 25 against 18 at `min_sin_eta` 0 (ray-overlap study,
+`e2e_summary.json`, arm `old`). The C++ rule and ray arms reproduce their stored counts and evaluations exactly, so the code, the
+images and the seeds match; only the lenient arm differs.
+
+**Cause, tested: the screen start point.** The stored lenient runs projected the first triangle vertex in the level-0 screen
+(the library default until the centroid task, `MIGRATION_HISTORY.md` 2026-10-13: "lenient rule on E0 clean 39 -> 41 wrong, 14 fixed,
+16 broken"); the Step 4 re-runs use the voxel centroid, as every other rule already did (which is why those arms reproduce). Test:
+`e0_cpprule.py --arm offv0` (new, opt-in) is the lenient rule with the vertex-0 screen (`cpp_center_screen` False), on the same
+200 voxels, images, seed and options as the Step 4 `off` arm (`run_q8_offv0.sh`: 4 blocks, 8.6 to 9.0 minutes each on 10 workers,
+contended). It reproduces all four stored counts and the stored mean evaluations per voxel (48,442, 51,058, 48,501, 51,163) to the
+printed precision. The per-voxel files of the stored runs are not on this machine, so equality per voxel was not checked; what was
+compared is the count and the mean evaluations over the 200 voxels, which agree in all four cases.
+
+<!-- table:q8_lenient_check -->
+| min_sin_eta | images | stored count (vertex-0 screen) | re-run, vertex-0 screen (arm offv0) | 95% interval | re-run, centroid screen (arm off, Step 4) | centroid fixes (wrong with vertex-0, right with centroid) | centroid breaks | wrong with both | stored evaluations per voxel | evaluations per voxel, vertex-0 | evaluations per voxel, centroid |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0.3 | clean | 40 | 40 of 200 | 0.150 to 0.261 | 35 of 200 | 19 | 14 | 21 | 48442 | 48442 | 48623 |
+| 0.3 | old realistic (10% drop) | 25 | 25 of 200 | 0.086 to 0.178 | 27 of 200 | 13 | 15 | 12 | 51058 | 51058 | 51454 |
+| 0 | clean | 39 | 39 of 200 | 0.146 to 0.255 | 41 of 200 | 14 | 16 | 25 | 48501 | 48501 | 48700 |
+| 0 | old realistic (10% drop) | 18 | 18 of 200 | 0.058 to 0.138 | 25 of 200 | 8 | 15 | 10 | 51163 | 51163 | 51520 |
+<!-- /table:q8_lenient_check -->
+
+Wrong = error over 1°. "Centroid fixes" counts voxels wrong with the vertex-0 start and right with the centroid start (paired by
+voxel, one run per voxel; no p-values). Each difference is therefore the net of a larger churn: clean at 0.3, 19 fixed against 14
+broken (stored 40, now 35); old realistic at 0.3, 13 against 15 (25, now 27); clean at 0, 14 against 16 (39, now 41, the split
+the centroid task reported); old realistic at 0, 8 against 15 (18, now 25). Nothing else needs explaining: the lenient counts of
+Step 4 are the current-default (centroid) counts, the stored ones are the vertex-0 counts.
+
+Consequence for the stored comparisons on the old realistic images: the lenient count there (18 at `min_sin_eta` 0, 25 at 0.3) was
+a vertex-0 run set beside C++ and ray runs that used the centroid, so "lenient 18 against ray 29 to 32" and the Q3 realistic
+half (rule off against rule on, where `on` also projects the centroid) were not like for like. With the centroid start for every arm (Step 4) the lenient rule has 25 against 32 and 29 for the ray
+windows on the old realistic images, and 22 against 14 on the no-drop images.
+
+The Q3 clean half has the same problem: the stored rule-off count there (40) is a vertex-0 run, against 61 with the rule on and the
+centroid start. Like for like, with the centroid screen on both sides (Step 4, `e0_summary.json`; paired per voxel, rule on against rule
+off): clean 35 against 61 (15 fixed / 41 broken / 20 both wrong); old realistic 27 against 42 (10 / 25 / 17); at `min_sin_eta` 0 old
+realistic 25 against 56 (7 / 38 / 18). The C++ rule is the worse arm in all three; the stored Q3 numbers (40 to 61 clean, 25 to 42
+realistic; 17 / 38 / 23 and 8 / 25 / 17; 6 / 44 / 12 against 18 wrong) mix a vertex-0 run with a centroid run, and the findings
+documents carry this caveat beside them.
+
+### Limits and open items
+
+- One sample of 200 voxels (copper, ReconstructQ8 physics), one seed, E0 per-voxel images (the images are the sweep's
+  approximation of the data, as in the earlier E0 studies); not tested: other seeds, other regions, the Phase D BFS pilot and
+  reseed (waits with X1; the Q-max 8 no-drop images are rendered, the Q-max 16 ones are not).
+- Untested causes. (1) Why every rule does better on the no-drop images than on clean ones. Step 7 shows that the no-drop images
+  give more level-0 candidates and a wider cost function in (nearly) every voxel, but no run held one of the two fixed, so neither is a
+  tested cause; the closest candidate hardly changes and, for most fixed voxels, was already ranked in the top quarter of the screen order on
+  clean (22 of 31; survival of the real level-0 cut was not recorded). (2) Which part of the
+  no-drop images does it: they combine the neighbour and twin layer with the noise (jitter, hot pixels, blobs). A noise-only
+  and a layer-only image set would separate them (not built). (3) Why the cost at the truth rises by 0.0476 (paired median) over
+  clean (jitter against hot pixels and blobs against neighbour spots were not separated either).
+- The no-drop model is itself a stand-in: only an intensity-based drop near a detection threshold would be physical. The options
+  of findings_finisher_mc_study §7 item 8 other than "no drop" were not built.
+- Step 7 is one sample of 200 voxels and one image realisation; the width needs the 3° cost, where the median has saturated
+  at 1, so it is defined on a coarse radius grid (the interpolated width is an estimate); its intervals resample voxels only.
+- Owner decisions listed as open before 2026-10-14, now answered: (1) the rule "clean images only until Q8" is **not lifted**:
+  the studies stay on clean images, the noisy images are not needed for them (D-20261014-I5); (2) the realistic default **moved
+  to no-drop** (D-20261014-I6, Step 6); (3) the ray rule may become the default (D-20261012-I3, backfilled); that flip is not part
+  of Q8 and was not made; (4) the Phase D pilot and reseed are **not re-run** on `full/realistic_nodrop` for now (D-20261014-I7);
+  (5) whether the noisy images are easier was checked (D-20261014-I8, Step 7).
+
+## S1: per-call loops out of evaluate (2026-10-14)
+
+Branch `feature/python-speed-parity-s1-loops` (off `feature/python-speed-parity`; not merged). Plan:
+`docs/todo_s1_evaluate_loops.md` (ROADMAP S1), Steps 0-6, with Step 4 (owner, D-20261014-I15). No config key, no default flip, no
+golden changed; `orientation_search.py`, `batched_screen.py`, `_rasterize.c` and `config_file.py` are untouched (no rebuild of
+the extension), and `reconstructor.py` has a docstring-only edit (review fix: `CppEdgeRules` is no longer listed as unsupported
+by `_batched_quick_mc`; no code line changed).
+
+**Answer.** `VoxelCostFunction.evaluate` is bit-identical to the base commit in every `OverlapInfo` field of 15 cost modes on 4
+voxels (44,800 orientation evaluations, 0 differing values), an E0 run (208 voxels, default keys) gives identical per-voxel
+records, and a call is 1.31 times cheaper on the Q-max 8 re-cost and final arms (1.14 times on the screen arm). A whole no-start
+search on ThreeVoxels voxel 0 takes 7.5 s on the base commit and 5.5 s with S1, with the same 8,311 `evaluate` calls and the same
+result. Timings are single-worker on a **contended** machine (the preflight never reached "quiet"), 5 rounds with the base commit
+(a git worktree) and S1 interleaved. A quiet-machine repeat was asked for after the review (owner decision D-20261014-I16) and was
+**not done**: the preflight was not quiet (1-minute load 2.59 and 2.76 against the limit of 1.5, no busy process listed) when the
+review fixes began and again after them, so nothing was timed and the labels stay "contended".
+
+### What was built
+
+- `icenine/cost_functions.py`:
+  - `frame_index_array(range_map)` and `frame_of_omegas(omegas, low, width, index, cpp_edge_rules)`: stage A is one vectorised
+    lookup (`_omega_bins`, a clip to `[-1, n_bins]`, one take; `index` carries a trailing `-1` that both ends of the clip read). It
+    equals the per-peak loop it replaced for every input (tested on ranges with gaps, a backwards range, edge omegas and both
+    edge rules; the loop is kept in the test as the reference). `BatchedCostEvaluator._wedge` calls the same function.
+  - `FrameTable(exp_data, n_frames, n_det)`: `images[frame * n_det + det]` filled per frame on first use with
+    `get_image(w, d).get_binary_numpy()`, a 1x1 placeholder elsewhere (the C code reads a frame only for a peak that maps to it).
+    The frame size comes from detector 0 of the first frame filled and every later detector-0 frame is checked against it
+    (`ValueError`). `exp_data` is not touched at construction. `evaluate` passes the table and the global frame indices (`int32`)
+    to `stage_d_overlap` and `ray_flags_c`; the `np.unique`, re-index and `get_image` loops are gone.
+  - `VoxelCostFunction.frame_table()` builds the table (and the index array) on first use and rebuilds them when `exp_data`,
+    `range_map` or the detector count is no longer the one they were built for. `evaluate` calls it once per call (an identity
+    check and a fill check, 1.0 us). `calculate_diffraction_overlap_batched` takes the index and the table as optional keywords;
+    a caller that passes none gets the index built from `range_map` and a table private to the call (same results).
+- `icenine/diffraction_core.py` (additive; `get_scattering_omegas_torch` is unchanged): `BraggConstants(g_mag, energy, chi)` holds
+  the call-independent tensors (`sin_theta`, `|g| + eps`, `sin` and `cos` of chi), built with the same float32 expressions on
+  tensors of the same shape, and `scattering_omegas_fixed_beam(g, constants)` returns `observable`, `omega1`, `omega2`. On
+  observable rows it equals the original bit for bit; the omegas of unobservable rows are unspecified (the two zeroing `where`
+  calls are skipped, `evaluate` drops those rows; the docstring says so). `evaluate` builds the constants per phase on its first
+  call and rebuilds them when the `|g|` tensor, `simulator.beam_energy` or `beam_deflection_chi` is no longer the one they were
+  built from (lazily, not in `__init__`: a cost function that is never evaluated costs nothing extra).
+- `icenine/batched_cost.py`: `BatchedCostEvaluator` uses the cost function's table (`cf.frame_table()`) instead of its own
+  `_table`, `_filled` and `_ensure_frames`, and the shared lookup. The S3 evaluator read `cf.exp_data` at the time a frame was
+  filled and kept the frames it had filled already, so after an `exp_data` swap on a live cost function it mixed frames of the old
+  data (already filled) with frames of the new data (filled later); it now follows the swap through the cost function's table.
+  Tested (review fix) by `tests/test_batched_cost.py::test_exp_data_swap_of_a_live_cost_function_is_followed`: after the swap to
+  dark stand-in images `evaluate_many` equals a fresh cost function's `evaluate`, and after swapping back it equals the first
+  results. The test fails on the base commit's evaluator (run against a worktree of `42672d1`: the swapped result still counts
+  overlapping pixels for the truth, on images that are dark) and passes with S1. Step 4 below.
+- Scripts (`scripts/speed_parity/`): `s1_parity.py` (`dump`, `compare`, `compare-e0`, `batched`), `run_s1_timing.sh` (interleaved
+  base-against-S1 timings), `s1_summary.py` (this section's tables, `benchmarks/s1_loops/`); `stage_split.py` also reports the S1
+  parts, `search_split.py` prints the full-precision cost and an orientation hash, `prof_eval.py` `--lp` includes the new function.
+  Tests: `tests/test_s1_evaluate.py` (46 tests) and the fixture `tests/data/s1_evaluate_ref.npz` (45,049 bytes; new, made on the base
+  commit with `s1_parity.py dump --fixture`, not a regenerated golden).
+- Track E files edited outside the plan's file list (owner accepted, D-20261014-I17): `scripts/eval_reduction/cost_edges.py`,
+  `scripts/eval_reduction/parity_common.py`, `scripts/eval_reduction/screen_timing.py` and `tests/test_cost_edges.py` (commit
+  `66e639c`, 3 to 10 lines each). These read `evaluate`'s Bragg result by replacing `get_scattering_omegas_torch` on
+  `cost_functions`, which `evaluate` no longer calls; each now also wraps `scattering_omegas_fixed_beam` and restores it in
+  `finally` (the restore check of the test lists it too). The consumers read only the observable rows (`observable`, `omega1`,
+  `omega2`), never `.g_vectors`. Without the edit `test_trace_recombines_the_library_cost` fails. A grep of `scripts/`, `tests/`
+  and `benchmarks/` finds no other place that replaces the Bragg function on `cost_functions`.
+
+### Parity (Step 0 against Step 5)
+
+The harness dumps every `OverlapInfo` field (`pixel_overlap`, `pixel_on_detector`, `peak_overlap`, `peak_on_detector`, `quality`,
+`n_quality_points`, `detectors_overlap`, `ray_cases`) of `evaluate` for 1,000 orientations (500 within 3 degrees of the truth, 500
+drawn without replacement from the fundamental-zone file of the config; seed fixed) of ThreeVoxels voxel 0 and of three interior
+Phase D clean full-sample voxels (15901, 17034, 18558; Q-max 8), single-threaded. The base dump was made on the base commit before
+any library edit (`da999c5` holds the harness on top of `42672d1`, whose library files are unchanged); `compare` tests every
+field with `==`, `quality` included. A negative control (one `quality` value moved by one unit in the last place, one `ray_cases`
+count by one) is reported by `compare`. `compare` also checks that the two dumps hold the same arrays, the same orientations and
+the same orientation subset of each mode (`index`), and counts a shape or dtype mismatch as a difference. Its negative controls
+are unit tests (`tests/test_s1_evaluate.py`): they change a copy of the fixture (one `quality` value by one unit in the last
+place, one `ray_cases` count, the index, the orientation set, a shorter array, a float32 array) and expect a difference;
+replacing `!=` by a tolerance fails the 1-ulp test and skipping the index check fails the index test. The four slow modes (soft
+and the three Python fallback modes, run with the C extension patched off) use 50 orientations per voxel. The new dump was made
+at commit `b3f4a9f`, the committed head after the review fixes (no tracked file modified; head and a dirty flag are in the
+dump's meta); the first new dump (head recorded as `da999c5`) had been made before the library was committed and was replaced.
+Result: every dataset and mode row identical, 0 differing values.
+
+<!-- table:s1_parity -->
+| mode | orientations (4 voxels) | field arrays | differing values |
+|---|---|---|---|
+| cpp_rule | 4000 | 32 | 0 |
+| edge | 4000 | 32 | 0 |
+| edge_cpp_rule | 4000 | 32 | 0 |
+| fallback_cpp_edge | 200 | 32 | 0 |
+| fallback_local | 200 | 32 | 0 |
+| fallback_screen | 200 | 32 | 0 |
+| local | 4000 | 32 | 0 |
+| min_sin_eta | 4000 | 32 | 0 |
+| ray_c_local | 4000 | 32 | 0 |
+| ray_c_screen | 4000 | 32 | 0 |
+| ray_py_screen | 4000 | 32 | 0 |
+| screen_center | 4000 | 32 | 0 |
+| screen_edge | 4000 | 32 | 0 |
+| screen_vertex0 | 4000 | 32 | 0 |
+| soft | 200 | 32 | 0 |
+<!-- /table:s1_parity -->
+
+Coverage of the edge bins, counted on the dump (the harness counts these rows so they are shown, not assumed; the example scans
+have no gap bins, those are covered by the synthetic ranges of the unit test):
+
+<!-- table:s1_coverage -->
+| voxel | cost | omega rows | in [low - width, low) | above the range | further below | in gap bins | frames used |
+|---|---|---|---|---|---|---|---|
+| three0 | local | 202504 | 556 | 50302 | 50394 | 0 | 180 |
+| three0 | screen | 45556 | 67 | 11283 | 11428 | 0 | 180 |
+| full15901 | local | 206636 | 391 | 52919 | 50008 | 0 | 180 |
+| full15901 | screen | 48492 | 64 | 13075 | 11107 | 0 | 180 |
+| full17034 | local | 209096 | 769 | 52597 | 51182 | 0 | 180 |
+| full17034 | screen | 49888 | 287 | 12570 | 12087 | 0 | 180 |
+| full18558 | local | 207656 | 470 | 51371 | 51987 | 0 | 180 |
+| full18558 | screen | 48332 | 122 | 12429 | 11615 | 0 | 180 |
+<!-- /table:s1_coverage -->
+
+The soft-mode counts are small (the soft overlaps are cast to `int` in the existing fallback loop, so the soft quality is 0 on
+these images), and on the full-sample voxels the triangle-mode fallback modes (`fallback_local`, `fallback_cpp_edge`, `soft`) see
+empty images (the memory-mapped loader keeps binary frames only), so they check the omega-to-frame and Bragg parts through the lit
+counts; the ThreeVoxels rows run them on real pixels. The fixture is compared exactly only on the system, machine and torch version that made it
+(Darwin, arm64, torch 2.8.0, 1 thread, recorded in its meta); on any other the test is skipped with a message naming the
+difference, because another CPU could differ in the last bit of a float32 geometry value (owner decision D-20261014-I18). For
+the review fix the fixture was regenerated on the base commit `42672d1` so that its meta records the platform; its arrays are
+identical to the first fixture in every mode (`compare`).
+
+### Timing (single-worker, contended; 5 interleaved rounds, medians)
+
+`scripts/speed_parity/run_s1_timing.sh`; preflight saved in `benchmarks/s1_loops/preflight.json` (1-minute load 2.97 at the start,
+exit code 1: not quiet). The first run did not gate on the preflight (the script wrote the exit code and timed anyway; it now
+stops unless `S1_ALLOW_CONTENDED=1`, and leaves earlier results alone). Quiet-machine repeat not done (preflight not quiet),
+owner decision D-20261014-I16: the preflight showed a 1-minute load of 2.59 and 2.76 (`quiet_repeat_preflights` in `summary.json`).
+Per `evaluate` call, ThreeVoxels voxel 0, 400 near-truth orientations:
+
+<!-- table:s1_per_call -->
+| arm | base commit (us) | S1 (us) | saved (us) | base / S1 | base min | S1 min | rounds | aten ops per call, base / S1 |
+|---|---|---|---|---|---|---|---|---|
+| screen (pixel radius 3, Q-max 5, C++ rule) | 244.8 | 215.0 | 29.8 | 1.14 | 244.7 | 212.4 | 5 | 768 / 726 |
+| re-cost arm (pixel radius 3, Q-max 8, C++ rule) | 329.4 | 251.9 | 77.5 | 1.31 | 324.6 | 250.5 | 5 | 768 / 726 |
+| final (triangle, Q-max 8, C++ rule) | 322.4 | 247.0 | 75.4 | 1.31 | 319.1 | 246.1 | 5 | 735 / 693 |
+<!-- /table:s1_per_call -->
+
+Stage split of one call (the `stage_split.py` method, medians over the same rounds; "before" is the loop or call that S1 removed,
+"after" what replaced it):
+
+<!-- table:s1_stage_split -->
+| part | before (us) | after (us) | saved (us) |
+|---|---|---|---|
+| evaluate() total (Q-max 8, 110 valid peaks) | 332.1 | 258.4 | 73.7 |
+| stage A: loop over the peaks / frame_of_omegas | 19.0 | 1.7 | 17.3 |
+| frame list: 174 get_image calls / table check | 30.9 | 1.0 | 29.9 |
+| Bragg solve on g: original function / hoisted constants | 37.9 | 26.5 | 11.4 |
+| stage D C call: compact list of 174 / table of 360 entries | 8.5 | 8.7 | -0.2 |
+<!-- /table:s1_stage_split -->
+
+The three parts S1 removes add up to 58.6 us on the Q-max 8 final-cost arm that `stage_split.py` times (the plan's estimate was
+55-60 us), the whole call fell by 73.7 us. About 15 us of the difference is not attributed to a part: the removed `np.unique` and the re-index loop over the 87
+frames in use were not timed separately. The pointer prefetch of the C call (it type-checks every entry of the list, now 360 instead
+of 174) costs about 0.2 us more per call (the table call is higher in 4 of 5 rounds and equal in 1; medians 8.7 us against
+8.5 us) for this 180-frame, two-detector scan.
+
+Whole no-start search (`search_split.py`, ThreeVoxels voxel 0, default keys):
+
+<!-- table:s1_search -->
+| arm | wall (s) | evaluate calls | us per evaluate | evaluate share (%) | cost | orientation sha1 | same in all rounds |
+|---|---|---|---|---|---|---|---|
+| base commit | 7.5 | 8311 | 800 | 88.5 | 0.4376801801801802 | 7a8743d0e2d1 | True |
+| S1 | 5.5 | 8311 | 564 | 84.9 | 0.4376801801801802 | 7a8743d0e2d1 | True |
+<!-- /table:s1_search -->
+
+The whole search gains more (1.36 times) than the plan's 1.15 times and than the Q-max 8 arms (1.31 times per call). The walls of
+these rounds were printed to 0.1 s, so the ratio of the medians carries about +-0.02 from rounding alone (1.34 to 1.39);
+`search_split.py` now prints 3 decimals, which needs a new timing run (not done, see above). Per `evaluate` call the search saves
+236 us (800 to 564), 3.0 times the 77.5 us saved per call on the Q-max 8 re-cost arm. One candidate explanation is that the
+removed loops grow with the number of peaks and the search runs levels up to nQMax 10; this was **not measured** (no per-level
+split of the search and no Q-max 10 per-call timing were made), and the search also differs from the per-call arms in its mix of
+cost functions and orientations, so the cause of the larger gain is untested.
+
+### E0 (200 voxels, seed 0, clean, default keys)
+
+`e0_run.py run --variants clean --n-seeds 1 --tag _s1base` (before any library edit) and `--tag _s1` (after); `cache/e0` is not
+touched. `s1_parity.py compare-e0` finds every stored array equal (orientations, costs, candidates per level, FindOptimal,
+variance and final results; only the wall-clock `*_runtime` differs) in all 208 voxels (the 200 voxels of the earlier `e0_s3off`
+set plus 8 spare):
+
+<!-- table:s1_e0 -->
+| run | voxels | wrong (> 1 deg) | wrong, the 200 voxels of e0_s3off | evaluations, global | evaluations, local |
+|---|---|---|---|---|---|
+| base commit | 208 | 37 | 35 | 9256059 | 858079 |
+| S1 | 208 | 37 | 35 | 9256059 | 858079 |
+<!-- /table:s1_e0 -->
+
+The two E0 runs used 10 workers and were made at different times (not interleaved), so their wall-clock runtimes are not a timing
+comparison and are not tabulated; `summary.json` keeps the sums with a note. The timings are the interleaved single-worker rounds
+above.
+
+### Step 4: `CppEdgeRules` in the batched local cost (S3's follow-up)
+
+`BatchedCostEvaluator._stage_bc` uses `cost_functions._pixel_coordinate` (a detector coordinate below 0 is pixel -1, the function
+`evaluate` uses), the frame lookup floors through the shared helper, and the vertex-lit rule is already in the C call's rule bits;
+`unsupported_reason` now refuses `CppEdgeRules` only for an extension older than `HAS_VERTEX_LIT` 2. The compact CPU variant and
+the fixed variant run on the CPU equal the **base commit's** `evaluate` in every field, with `CppEdgeRules` alone and with
+`CppOverlapRule`, on the whole Step 0 orientation set (batches of 64):
+
+<!-- table:s1_batched -->
+| check | modes | (voxel, mode, variant) rows | identical |
+|---|---|---|---|
+| BatchedCostEvaluator (CPU compact and fixed) against the base evaluate | cpp_rule, edge, edge_cpp_rule, local, min_sin_eta | 40 | 40 |
+<!-- /table:s1_batched -->
+
+The check is not vacuous: on the fixture orientations `CppEdgeRules` changes `peak_on_detector` in 21 of 64 orientations, and on
+the Step 0 set it changes the quality in 37 (ThreeVoxels) to 501 (voxel 17034) of 1,000. **Effect:** a run with both opt-in keys
+(`BatchedQuickMC` and `CppEdgeRules`) now uses the lockstep quick MC and its draws (draw option B), so its results change
+relative to before S1; neither key is on by default, so no default run changes. Tests: `tests/test_batched_cost.py` runs its
+equality test with the two `CppEdgeRules` flag sets (all four CPU variants and batch sizes), `unsupported_reason` for an old
+extension; `tests/test_batched_quick_mc.py`: the fallback-with-a-warning test now uses the ray rule, and a `CppEdgeRules` cost
+function runs the lockstep quick MC without a warning.
+
+### Step 2: image mutators and `exp_data` swaps on a live cost function (grep of `icenine/`, `scripts/`, `tests/`, `benchmarks/`, `examples/`)
+
+Contract of `FrameTable`: the images of one `exp_data` object do not change after the first `evaluate` of a cost function.
+
+- Image mutators (`set_pixel`, `add_to_pixel`, `set_pixels`, `add_triangle`, `add_triangle_scanline`, `load_ascii`,
+  `_binary_cache`, `ensure_binary_cache`): `icenine/image_data.py` (the mutators; each resets `_binary_cache`);
+  `icenine/experimental_data.py:151,236` (`load_ascii` in the loaders), `:288` (`from_binary_memmap` sets the caches),
+  `:301` (`prepare_for_reconstruction`); `icenine/simulation.py:346,420`, `icenine/forward_simulation.py:435,664`,
+  `icenine/orientation_nn.py:340` (`add_triangle_scanline` on images or canvases being built); tests that build images
+  (`tests/test_phase_d.py:247`, `tests/test_differentiable_cost.py:53,177-178`, `tests/test_experimental_data.py:67`,
+  `tests/test_image_data.py`). **Every hit builds an image before any cost function reads it** (loaders, forward simulation, test
+  setup), so the table's contract holds; none changes an image behind a `VoxelCostFunction`.
+- `exp_data` replaced on a live cost function: `scripts/optimizer_sweep.py:442` (`fn.exp_data = PixelSetData(...)` per case) and
+  `:468` (`fn.exp_data = None` afterwards); `scripts/findoptimal_sweep.py:202-203` (`attach_images`: `local_fn.exp_data` and
+  `rsetup.exp_data` per case); `scripts/findoptimal_robustness/features.py:266` (`fn.exp_data = lf.exp_data`, following the swap
+  above). All are handled: the table's `source` is compared with `cost_fn.exp_data` by identity on every call and rebuilt when
+  they differ (a swap to `None` builds a table that touches nothing; evaluating with `None` fails on `get_image` as before).
+  Cost functions built with `exp_data=None` and given their data later (`optimizer_sweep.py:320`, `findoptimal_sweep.py:125`) work
+  because construction does not touch the data. Tested in `test_s1_evaluate.py` (swap to dark images, back, attach later).
+- New cost functions made per level and per voxel by the reconstructor (`setup.exp_data`) each have their own table.
+- A stand-in `exp_data` whose `get_image` returns different arrays over time would break the contract; none exists in the repo
+  (`PixelSetData._PixelImage` caches its array; the test stand-ins return fixed arrays).
+
+### Compatibility changes outside the three library files
+
+`scripts/eval_reduction/cost_edges.py` (`trace_eval`), `parity_common.py` (`probe_eval`) and `screen_timing.py`, and the restore
+check of `tests/test_cost_edges.py`, read the Bragg result of `evaluate` by wrapping `CF.get_scattering_omegas_torch`; `evaluate`
+now solves with `scattering_omegas_fixed_beam`, so those wrappers saw no call (`test_trace_recombines_the_library_cost` failed).
+They now wrap the new function as well (3 files, 3 to 10 lines each; they read observable rows only). These are Track E scripts.
+
+### Limits and open items
+
+- Timings are contended (load 2 to 4 during the runs, 3 at the start; the desktop did not reach the preflight's 1.5). The base and
+  S1 arms were interleaved, so they share conditions, but a quiet-machine repeat is not made.
+- `batched_screen.py` keeps its own per-call frame list (Track E's `ScreenEvaluator`); it could use `FrameTable`. Not done (out of
+  scope, listed in the mailbox heads-up).
+- The prefetch cost of the C call is measured for one scan geometry (180 frames, two detectors). A scan with many more frames would
+  scan a longer list on every call; a cached pointer array in `_rasterize.c` would be the fix (not started).
+- Why the whole search gains more than the Q-max 8 arms: see the Timing section (not tested).
+- S3's section above still says that the batched cost refuses `CppEdgeRules`; Step 4 supersedes that.
+
+## Workflow tooling for both agents (2026-10-18)
+
+Plan: `docs/todo_ilium_workflow_tooling.md` (approved D-20261018-I2; owner answers D-20261018-I1 to
+I5; ROADMAP row H12). Goal: the recurring manual steps of the agent workflow (decision entries,
+ROADMAP status cells, hand-back checks, read on fetch, implementer briefs) done by deterministic
+scripts that fail loudly, with thin skills on top. Usage is in the README "Developer tooling" table.
+
+### Completion summary (2026-10-18)
+
+Three task branches off `feature/python-speed-parity`, built in parallel, each reviewed by
+`/review-task` (Opus, all three REQUEST CHANGES) and fixed by a fresh implementer:
+
+- (a) `scripts/dev/log_decision.sh`: ID by the written rule (n from 1 per day and agent), entry in
+  the DECISIONS.md format, commit on the feature branch from a task branch (in the worktree holding
+  it, else a temporary worktree), shmem line, push; lock, fetch-and-refuse when origin is ahead or
+  unreachable (`--no-fetch` to skip), exit 3 on a partial failure with a quoted rerun command.
+  `scripts/dev/roadmap_row.py`: edits one status cell (`--status`, `--state`) of the caller's own
+  rows only (I: Track S and H12; N: Track E), handles rows without a closing `|`, exit 2 when no
+  or several rows match. Review fixes: shell quoting of the printed rerun command, silent skip of
+  the origin check, unchecked `--supersedes`, tests reading the global git config.
+- (b) `scripts/dev/verify_handback.sh`: commits since the parent, hash cross-check with the report,
+  file classes (shared files, other library code, `Src/`, dependencies, goldens: FLAG; committed
+  DECISIONS.md, CLAUDE.md, `.claude/**`: FAIL; ROADMAP outside own rows), the eight report fields,
+  unlabelled timings, `--fixes` numbering, and the tests the report names. `scripts/dev/
+  read_on_fetch.sh`: fetch, new commits on the other agent's branch, mailbox diff, the other
+  agent's decisions missing from shmem as ready `shmem add` lines (`--save` runs them), the merge
+  command printed, `--mark` moves the read point. Review fix: the field parser rejected
+  `Results (note):` headings, so it failed correct reports, including its own.
+- (c) `scripts/dev/make_brief.sh`: the brief from an approved plan (approval entry found and not
+  withdrawn or superseded, `**Library changes:**`, `**Stop rule:**`, `**Process limit
+  exception:**` paragraphs quoted whole, the per-machine limit `icenine.maxHeavyProcs`, trailer,
+  report path; `--fixes` for a review report in any worktree). Review fixes: "not approved"
+  passed the approval gate, a withdrawal was ignored, wrapped paragraphs were cut. The skills
+  `/decide`, `/implement-plan`, `/apply-fixes` are written but wait for the owner's commit, as do
+  the study-conventions and ROADMAP rule 2 / rule 6 text (D-20261018-I5).
+
+All tools take the agent letter from `git config --local icenine.agent` (or `--agent`) and refuse
+without it, so Newt Agent uses them unchanged. Tests: `tests/test_dev_tooling_decisions.py`,
+`test_dev_tooling_handback.py`, `test_dev_tooling_brief.py`; full suite after the merge: 1260 passed, 47 skipped, 1 deselected.
+
+Not done (review suggestions outside the required fixes, listed in the reports): a shebang and
+`--date` validation in `log_decision.sh`; one shared parser for ROADMAP and DECISIONS.md across the
+scripts; reading the plan and DECISIONS.md at `HEAD` in `make_brief.sh`. The plan's lower-priority
+items (`sync_doc_tables.py --section`, a timed-run wrapper, shared S4 study helpers, a mailbox
+writer) are not started.
+
+### S2 follow-ups, task (d): briefs and hand-backs (2026-10-28)
+
+Plan section "Task (d): briefs and hand-backs" (D-20261028-I3); gaps the S2 run hit. No library
+change.
+
+- `make_brief.sh --section`: the `**Library changes:**` and `**Process limit exception:**` markers
+  come from the section, else from the plan-wide text (outside every `## ` section under
+  `# Steps`), else the brief says "none stated in this section" (with the default scope and the
+  machine limit) and a note goes to stderr. Before, a section without its own marker took the
+  first one of the whole plan (S2: the Step 3 brief got the parallel tasks' "3 each"). The stop
+  rule still falls back to the whole plan (a stop rule written in another section still applies;
+  the S2 plan's only stop rule sits in "Steps 4-6" and names Step 0). Without `--section`
+  nothing changes.
+- `verify_handback.sh`, hashes: a hash the report names that the branch contains (its base or the
+  parent tip it started from) is a `note`; only hashes the branch does not contain are flagged.
+- `verify_handback.sh`, test summary: the count line was missing because the default command
+  `uv run pytest -q` adds a second `-q` to `addopts = "-ra -q"`; at verbosity -2 pytest prints
+  no final count line, so with warnings the last output line was the "-- Docs: ..." link. The
+  default is now `uv run pytest`, and the counts (passed, failed, skipped, and errors when
+  non-zero) come from a JUnit XML file requested through `PYTEST_ADDOPTS` (so an override
+  command gets them too), else from pytest's count line; the line also gives pytest's exit code.
+  A non-zero exit or a failure in the counts stays FAIL.
+
+Tests: `tests/test_dev_tooling_briefs_handbacks.py` (new), and the existing goldens in
+`test_dev_tooling_brief.py` (a `--section` brief with no markers) and
+`test_dev_tooling_handback.py` (the parent tip is now a note) updated.
+
+Review fixes (D-20261028-I5):
+- Fix 1: in a plan with no `# Steps` heading (every plan from `new_todo.sh`), the plan-wide text
+  was the whole plan, so a `--section` brief silently quoted another section's permissions. Now
+  every `## ` section of such a plan is its own task's: only markers inside the named section or
+  outside every `## ` section count, else "none stated in this section", and a stderr note names
+  each marker paragraph left out and its line. Plans with `# Steps` and briefs without
+  `--section` are unchanged: 31 runs over the `todo_*.md` plans in `docs/` (each plan without
+  `--section`, and each `## ` section of the plans that have markers or lack `# Steps`) give
+  byte-identical stdout, stderr and exit code to the previous script's. No plan in `docs/` has a
+  marker and lacks `# Steps`, so the new case is covered by the tests only. The stop rule keeps
+  its whole-plan fallback.
+- Fix 2: `verify_handback.sh` flags pytest exit 0 with no counts (no JUnit file and no count
+  line), where it printed `ok`.
+- `finish_task.sh` runs `uv run pytest tests/` without the extra `-q`, so its output keeps
+  pytest's count line.
+
+### S2 follow-ups, task (e): doc tables and line lengths (2026-10-28)
+
+Plan section "Task (e): doc tables and line lengths" (D-20261028-I3, I4). No library change.
+
+- `sync_doc_tables.py --section "<heading>"` syncs or checks only the markers under that heading
+  (up to the next heading of the same or a higher level). `--tables` takes several files (S2's
+  results section draws on two). A doc marker with no generated block is still exit 2, and the
+  message now lists each such marker by line and heading (the whole MIGRATION_HISTORY.md lists
+  289). A marker is a line of its own, so an inline mention of the syntax (README "Developer
+  tooling") is not an unclosed marker (review fix 1).
+- `audit_numbers.py --section` shares that heading scan, so `#` lines in fenced code no longer end
+  a section (review fix 3, D-20261028-I4). Under the old rule 7 MIGRATION_HISTORY sections (the
+  title included) and 10 README sections were cut short, and the audit checked less than it said;
+  no S2 or S4 results section changes.
+- The 21 lines over 100 characters in `scripts/speed_parity/s4/` are wrapped. `summary.py` still
+  writes the committed `summary.json`, `tables.md` and `step1_cost.json` byte for byte.
+- The S2 table `s2_e0_trace` (36 per-voxel E0 traces), generated but referenced by no marker, now
+  has one in "S2: fused C evaluation, Steps 1-6 results", synced with `--section`.
+
+Tests: `tests/test_dev_tooling_sync.py` (new, 25 tests; the first hand-back said 22 where there
+were 18). Full suite after both tasks merged: see the commit that adds this entry.
+
+Not done: a missing `--tables` file ends in a traceback rather than an `error:` line; the
+review's optional fence rule (a fence closed by a shorter one of the same character; no doc has
+one today); `mypy --strict` reports one older error in `audit_numbers.py`.
+
+## S4: translation correctness and loop ordering (2026-10-15)
+
+Merged into `feature/python-speed-parity` as a finished study on 2026-10-21 (D-20261021-I3),
+scripts only; the hybrid library path stays parked (D-20261016-I22). Re-projecting under
+`CppOverlapRule` or reviving the library path waits for Task G's choice of overlap rule and carry.
+
+ROADMAP Track S item S4, picked by the owner (D-20261014-I19), sized down and parallelised (D-20261014-I20), approved
+(D-20261014-I21). Plan: `docs/todo_translation_screen_prototype.md`. Branch `feature/python-speed-parity-s4-translation-screen`.
+**Script-only**: no change to `icenine/`, no new dependency. Test bed: the Phase D clean full sample (24,570 voxels, one layer;
+the memmap stack of `ScatteringData_PhaseD/full/clean`, bit-identical to the ASCII images by `scripts/phase_d/memmap_check.py`),
+config `ReconstructPhaseD_cma_clean.config`; ThreeVoxels for fast checks and the smoke test. The level-0 cost functions, FZ
+set, local grid and screen arguments are captured from `AdaptiveVoxelReconstructor.reconstruct_voxel` itself (its call of
+`run_discrete_search_spaced` at level 0), so no setting is copied by hand: pixel radius 3, Q-max 5, centroid screen, the
+default qualified-peak rule, no `CppEdgeRules`, `BatchedScreen` with chunks of 32 FZ points.
+
+### What was built (`scripts/speed_parity/s4/`, results in `benchmarks/s4_translation/`)
+
+- `common.py`: data sets, the level-0 capture, the BatchedScreen reference, the peak table (`u = A_p x + c_p` in float64
+  per orientation, peak and detector, from the float32 peak set of `ScreenEvaluator._counts`), dilated bitmaps, the numpy
+  reference kernel.
+- `step0_reference.py` (equality reference, 4 workers), `step0_timing.py` (timings), `translation_correctness.py` (Step 1:
+  `law`, `bitmap`, `cost`), `screen_kernel.py` (Step 2), `s4kernel.c` + `s4kernel.py` (scratch C kernels for O1-O5 compiled
+  with the system `cc -O3 -ffp-contract=off`, loaded with ctypes, threads through the GIL-free ctypes call), `orderings.py`
+  (Step 3: `check`, `time`, `full`, `model`, `time_o4`; torch MPS arm; after the review `rules`, pass counts under both
+  qualified-peak rules, and `time_o3`), `recost.py` (Step 4; after the review `memory`, the bytes of a stored local-cost
+  table), `summary.py` (`summary.json`, `tables.md`).
+- `tests/test_s4_translation.py` (ThreeVoxels, about 5 s): the float64 affine law, the dilated bitmap equal to the C
+  pixel-radius test, the table screen equal to `BatchedScreen` on 64 FZ points, and the kernels' default and C++
+  qualified-peak rules against the library's `count_qualified_peaks` / `count_qualified_peaks_cpp` (truth table, 2 and
+  3 detectors).
+
+Two facts from the code that the kernels use:
+
+- `pixel_radius_overlap_uint8` lights a detector when **any pixel of the (2r+1)^2 box** is on the image (the centre within
+  r of the image), not only when the centre pixel is on it. "Bright" is one lookup in the frame dilated by the box and
+  padded by r. The centre pixel is the float-to-int32 cast of the coordinate (truncation toward zero).
+- With the default qualified-peak rule and two detectors, a peak counts toward `peak_overlap` exactly when it is bright on
+  **detector 0**; detector 1 cannot change the screen's pass set (`count_qualified_peaks_c`). The C++ rule
+  (`CppOverlapRule`) does read detector 1: bright on 0 and (bright on 1 or not lit on 1). The C kernels implement both
+  rules; the timings use the config's default rule, so they read detector 0 only. The C++ program's level 0 uses the
+  C++ rule (`CountQualifiedPeaks`, Src/OverlapInfo.tmpl.cpp:78-139, through `AcceptAnyPeakOverlap`,
+  Src/DiscreteAdaptive.tmpl.cpp:65-70).
+
+The two rules pass very different fractions of the level-0 (orientation, voxel) pairs on these images
+(`orderings.py rules`, O2 pass-only kernel, counts only, not timed; on the reference voxels equal to the numpy kernel):
+
+<!-- table:s4_rules -->
+| set | voxels | pairs | pass_default | pass_cpp_rule | default_only | cpp_only | cpp_rate_per_voxel |
+|---|---|---|---|---|---|---|---|
+| 20 reference voxels | 20 | 879480 | 691538 (78.6%) | 231694 (26.3%) | 459844 | 0 | 22.5-30.6% |
+| 2,000-voxel patch | 2000 | 87948000 | 70779143 (80.5%) | 25582783 (29.1%) | 45196360 | 0 | 27.2-31.4% |
+| whole layer | 24570 | 1080441180 | 848266117 (78.5%) | 286462978 (26.5%) | 561803139 | 0 | 19.6-31.4% |
+<!-- /table:s4_rules -->
+
+Every pair that passes the C++ rule also passes the default rule (`cpp_only` 0), as the two formulas imply. So the
+"weak filtering" below is a property of the **Python default rule**; `CppOverlapRule 1` (the C++ behaviour) passes about
+a third as many pairs. Everything timed and projected in this section uses the default rule.
+
+### Question 1: is a translated voxel's spot set the original's moved by A_p dx?
+
+160 orientations (100 from the level-0 set, 20 within 1 degree of the truth for each of 3 reference voxels), per orientation
+a base voxel and 6 same-type grid voxels from one voxel step to about 1 mm away, 2 out-of-layer moves (1a only) and 3
+integer-shift moves (1b(i)). Lit pixels come from the Phase D renderer's simulator (`ForwardSimulation._simulate_peaks_batched`
+vertices, `ImageData.add_triangle_scanline` raster, unchanged; the simulator's peaks were matched to the local cost
+function's peaks, 0 unmatched, largest vertex difference 8.0e-4 px).
+
+<!-- table:s4_q1 -->
+| check | n | result | off_detector | clipped_not_checked | exceptions |
+|---|---|---|---|---|---|
+| 1a float64: u(x + dx) - (u(x) + A dx), largest | 1760 | 1.8e-12 px | n/a | n/a | none |
+| 1a float32 (evaluate's stage-D input) against the float64 law, largest | 1760 | 8.5e-04 px | n/a | n/a | float32 alone at x: 8.0e-04 px |
+| 1a peak sets (omegas, normals, frames, plane hits) identical | 1760 | 1760 of 1760 moves | n/a | n/a | none |
+| 1b simulator peak sets identical (count and frames) | 1440 | 1440 of 1440 moves | n/a | n/a | none |
+| 1b(i) integer shift: S(x') = S(x) + m (float32 simulator) | 480 | 470 equal, 0 failures | 3 | 7 | 0 float flips |
+| 1b(i) the same in float64 vertices | 480 | 470 equal, 0 failures | 3 | 7 | 0 float flips |
+| 1b(ii) phase re-rasterised: S(x') = R(T + phi) + m (float32 simulator) | 201240 | 116531 equal, 0 failures | 84439 | 205 | 65 float flips (largest distance 2.3e-04 px) |
+| 1b(ii) the same in float64 vertices | 201240 | 116596 equal, 0 failures | 84439 | 205 | 0 float flips |
+| 1b(iii) pure pixel-set translation S(x) + round(A dx) = S(x') | 114695 | 30746 equal (26.8%, Wilson 0.266-0.271) | n/a | n/a | 86545 edge spots excluded |
+| 1e dilated bitmap and box bounds = pixel_radius_overlap_uint8 | 33882912 | equal | n/a | n/a | none (4 frames x 2 detectors, border band included) |
+<!-- /table:s4_q1 -->
+
+**Answer.** Exact where it should be, not where it should not:
+
+- **Continuous coordinates: exact** (to float64 rounding). The float64 law holds to 1.8e-12 px over moves up to 1.1 mm
+  (in and out of the layer);
+  the float32 path of `evaluate` agrees to 8.5e-4 px, the same as its own float32 error at a fixed position (8.0e-4 px).
+  The peak sets (observable reflections, omegas, normals, frames, eta filter, plane hits) were identical in every move.
+- **Integer shifts: exact on pixel sets.** The rasteriser floors each vertex first and then clips, rounds and fills integer
+  vertices (Bresenham and scanline), which commute with an integer translation. Every spot that stays inside the detector
+  matched, in float32 and float64 vertices. Of the 10 exceptions, 3 have no pixel on the detector at x' and 7 are clipped
+  by the detector edge; those 7 are classified as edge cases by `compare_sets`, not checked.
+- **Sub-pixel phase re-rasterised: exact.** `R(T + phi) + m` equals the moved spot for every on-detector spot in float64
+  vertices; with the simulator's float32 vertices, 65 spots differ, each because a vertex lies within 2.3e-4 px of a pixel
+  boundary (a float flip, counted). Exceptions by design: 84,439 spots with no pixel on the detector at x', and 205
+  spots clipped by the detector edge, which `compare_sets` classifies as edge cases without checking them (so they are
+  not verified); 1,676 / 1,717 spots left / entered the detector over the moves. Because the rasteriser floors the
+  vertices first, `R(T + phi)` is `R_int(floor(T + phi) + m)`: this check re-tests integer-translation invariance on top
+  of 1a rather than an independent sub-pixel property.
+- **Pure pixel-set translation by round(A_p dx): not exact.** Only 26.8% of on-detector spots come out equal; the median
+  difference is 3 px, 0.30 of the spot size. Every differing pixel lies within one pixel of the other set (all 114,695
+  spots), consistent with the mechanism: the three vertices are floored independently, so each moves by the floor or the
+  ceiling of its shift. The plan's criterion, that every differing pixel lies on its own set's 4-boundary, holds for
+  114,607 spots; 88 spots have a differing pixel with all four neighbours in its own set. The 5 recorded examples
+  (`interior_examples` in `step1_law.json`) are thin spots 3 px wide, 12 to 15 px in the moved set against 9 to 10 px
+  translated, where one interior pixel of the moved spot is missing from the translated one. The Wilson interval treats
+  the spots as independent; they are clustered in 160 orientations x 6 moves, so it is optimistic.
+
+<!-- table:s4_q1_pure -->
+| stat | value |
+|---|---|
+| spots compared (both on the detector, unclipped) | 114695 |
+| exactly equal | 30746 |
+| symmetric difference, median / 95th pct / max (px) | 3 / 12 / 17 |
+| symmetric difference / spot size, median / 95th pct | 0.30 / 1.57 |
+| spots with every differing pixel within 1 px (8-neighbour) of the other set | 114695 |
+| spots with every differing pixel on its set's 4-boundary | 114607 |
+| spots leaving / entering the detector over the moves | 1676 / 1717 |
+<!-- /table:s4_q1_pure -->
+
+**1c, the cost-level effect of a pure translation** (20 reference voxels, all their screen passers, local cost function
+in triangle mode; each spot rasterised once at the voxel of the same type nearest the sample centre and translated by the
+rounded shift, 68 to 545 um away):
+
+<!-- table:s4_q1_cost -->
+| measure | value |
+|---|---|
+| passers re-costed, exact and translated (20 voxels) | 691539 |
+| passers with any OverlapInfo field changed | 690613 (99.9%) |
+| passers with the re-cost (1 - confidence) changed | 203241 (29.4%) |
+| largest re-cost change | 0.082 |
+| largest quality change (final cost = 1 - quality) | 0.042 |
+| cliques whose spacing-filtered set is unchanged | 69881 of 97720 (71.5%) |
+| voxels with ties at the lowest filtered re-cost, exact / translated | 1 / 0 of 20 |
+| tied candidates at the lowest re-cost, exact, median (max) | 1 (2) |
+| voxels whose lowest filtered re-cost is unchanged | 8 of 20 |
+| voxels whose set of tied lowest candidates is unchanged | 13 of 20 (Wilson 0.433-0.819) |
+<!-- /table:s4_q1_cost -->
+
+Re-costs are discrete (1 - po/pon), so candidates can tie; the kept candidates are ordered by (re-cost, orientation
+index). At the lowest re-cost only one voxel has a tie (2 candidates, exact re-cost) and none with the translated re-cost,
+so the voxel count above compares the sets of tied lowest candidates and does not depend on the tie rule. The top-30
+overlap of the first version is dropped: in 7 of 20 voxels the candidates tied at rank 30 straddle the cut, so it
+depended on the tie rule.
+
+So "rasterise each spot once per (orientation, peak, triangle type), translate per voxel" is **not usable for the re-cost**:
+it changes the re-cost of 29.4% of the passers and the lowest spacing-filtered candidate in 7 of 20 voxels. Its use as a
+pre-filter with a margin was not tested. It is also not needed: the exact per-voxel rasterisation in C costs 28.9 us per
+(orientation, voxel) pair in orientation-major order (Step 4).
+
+**1e** (dilated bitmap): equal for every one of 33,882,912 centre pixels of 4 frames x 2 detectors, including a 5-pixel band
+outside the image (`translation_correctness.py bitmap`, compared run by run with `stage_d_overlap`).
+**1d** (C++ cross-check) was **skipped**: the repository's `IceNine` binary no longer starts (it links a Homebrew
+`libmpi.40.dylib` that is gone), and cmake, open-mpi, boost and eigen are not installed on this machine, so a rebuild is not
+a matter of minutes. The Python rasteriser is the one validated against C++ (`ImageData.add_triangle_scanline`).
+The stop rule (1a float64, 1b(i), 1b(ii), 1e) did not trigger.
+
+### Step 2: the table-driven screen and its equality
+
+The table holds 1,068,652 peaks (24.3 per orientation, 16 to 28; all 180 frames occur); it builds in 0.40 s. Equality with the
+BatchedScreen reference (20 Phase D voxels of both triangle types, 3 ThreeVoxels voxels; every (orientation, voxel) pair):
+
+<!-- table:s4_equality -->
+| set | table | pairs | peak_overlap_differs | pass_differs | peak_coordinate_flips | unexplained | largest_boundary_distance |
+|---|---|---|---|---|---|---|---|
+| Phase D (20 voxels) | float64 | 879480 | 56 | 15 | 10459 | 0 | 2.4e-04 |
+| Phase D (20 voxels) | float32 | 879480 | 35 | 7 | 6662 | 0 | 2.4e-04 |
+| ThreeVoxels (3 voxels) | float64 | 131922 | 0 | 0 | 1625 | 0 | n/a |
+| ThreeVoxels (3 voxels) | float32 | 131922 | 0 | 0 | 1044 | 0 | n/a |
+<!-- /table:s4_equality -->
+
+Every differing orientation is explained by a peak whose centre coordinate lies within 2.4e-4 px of a pixel boundary
+(float64 table against the float32 reference); the 91 listed cases are in `step2_equality_phase_d.json`. The float64 table
+flips 15 passes in 879,480 pairs. Every C ordering (O1-O5, uint8 and bit-packed bitmaps, default and C++ rule) equals the
+numpy kernel exactly on the reference voxels (`step3_check.json`).
+
+### Question 2: which loop ordering?
+
+Timings: one contiguous patch of the 2,000 voxels nearest the sample centre, 43,974 orientations, 3 interleaved repeats, one
+process, nothing else of ours running; **contended** (preflight 1-minute load 3.1 at the start, 2.2 to 2.9 at the end; no
+busy process listed). All arms give the same counts as the O2 reference on the patch.
+
+<!-- table:s4_orderings -->
+| arm | threads | median_s | ns_per_test | pairs_per_s | full_layer_s | equal |
+|---|---|---|---|---|---|---|
+| O1 counts u8 | 1 | 19 | 8.91 | 4.62e+06 | 234 | True |
+| O1 pass u8 | 1 | 10.3 | 4.84 | 8.51e+06 | 127 | True |
+| O2 counts u8 b=32FZ | 1 | 2.42 | 1.13 | 3.64e+07 | 29.7 | True |
+| O2 pass u8 b=32FZ | 1 | 3.18 | 1.49 | 2.77e+07 | 39.1 | True |
+| O3 counts u8 tile=256 | 1 | 2.38 | 1.12 | 3.69e+07 | 29.3 | True |
+| O3 counts u8 tile=2000 | 1 | 2.17 | 1.02 | 4.05e+07 | 26.7 | True |
+| O5 counts u8 tile=64 | 1 | 3.4 | 1.59 | 2.59e+07 | 41.8 | True |
+| O5 counts u8 tile=256 | 1 | 3.13 | 1.47 | 2.81e+07 | 38.5 | True |
+| O5 counts u8 tile=1024 | 1 | 2.61 | 1.22 | 3.37e+07 | 32.1 | True |
+| O1 counts packed | 1 | 15.2 | 7.09 | 5.8e+06 | 186 | True |
+| O1 pass packed | 1 | 7.97 | 3.73 | 1.1e+07 | 97.9 | True |
+| O2 counts packed b=32FZ | 1 | 2.4 | 1.12 | 3.67e+07 | 29.5 | True |
+| O2 pass packed b=32FZ | 1 | 3.32 | 1.55 | 2.65e+07 | 40.8 | True |
+| O3 counts packed tile=256 | 1 | 2.54 | 1.19 | 3.46e+07 | 31.2 | True |
+| O3 counts packed tile=2000 | 1 | 2.37 | 1.11 | 3.72e+07 | 29.1 | True |
+| O5 counts packed tile=64 | 1 | 2.62 | 1.23 | 3.36e+07 | 32.2 | True |
+| O5 counts packed tile=256 | 1 | 2.51 | 1.17 | 3.5e+07 | 30.8 | True |
+| O5 counts packed tile=1024 | 1 | 2.41 | 1.13 | 3.65e+07 | 29.6 | True |
+| O2 counts u8 b=1FZ | 1 | 2.43 | 1.14 | 3.62e+07 | 29.8 | True |
+| O2 counts u8 b=256FZ | 1 | 2.42 | 1.13 | 3.64e+07 | 29.7 | True |
+<!-- /table:s4_orderings -->
+
+Threads (seconds for the 2,000-voxel patch; the M5 has 4 performance and 6 efficiency cores):
+
+<!-- table:s4_threads -->
+| arm | 1 | 2 | 4 | 6 | 8 | 10 | speedup_10 |
+|---|---|---|---|---|---|---|---|
+| O2 counts u8 b=32FZ | 2.42 | 1.23 | 0.655 | 0.555 | 0.483 | 0.435 | 5.56 |
+| O2 pass u8 b=32FZ | 3.18 | 1.61 | 0.896 | 0.715 | 0.604 | 0.527 | 6.03 |
+| O1 pass packed | 7.97 | 4.31 | 2.39 | 2.83 | 1.93 | 1.78 | 4.47 |
+| O3 counts u8 tile=256 | 2.38 | 1.26 | 0.71 | 0.761 | 0.521 | 0.536 | 4.44 |
+| O5 counts u8 tile=256 | 3.13 | 1.82 | 1.07 | 0.9 | 0.783 | 0.692 | 4.53 |
+<!-- /table:s4_threads -->
+
+Linearity in the number of voxels (500, 1,000, 2,000 nested patches):
+
+<!-- table:s4_linearity -->
+| arm | s_500 | s_1000 | s_2000 | us_per_voxel_500 | us_per_voxel_1000 | us_per_voxel_2000 |
+|---|---|---|---|---|---|---|
+| O1 pass packed | 1.99 | 3.98 | 7.97 | 3.98e+03 | 3.98e+03 | 3.99e+03 |
+| O2 counts u8 b=32FZ | 0.661 | 1.26 | 2.42 | 1.32e+03 | 1.26e+03 | 1.21e+03 |
+| O3 counts u8 tile=256 | 0.586 | 1.18 | 2.38 | 1.17e+03 | 1.18e+03 | 1.19e+03 |
+| O5 counts u8 tile=256 | 0.721 | 1.51 | 3.13 | 1.44e+03 | 1.51e+03 | 1.57e+03 |
+| O2 counts u8 b=32FZ th=10 | 0.113 | 0.215 | 0.435 | 227 | 215 | 218 |
+<!-- /table:s4_linearity -->
+
+Streamed O2 (no stored table: the float32 peaks and float64 maps of each block of b FZ points computed and discarded) and
+the MPS arm (float32 `u = n_ref + (phi_ref + A (x - x_ref))`, integer `n_ref` from float64 on the CPU):
+
+<!-- table:s4_variants -->
+| arm | median_s | peaks_s | kernel_s | frames_changed | counts_differ | pass_differ |
+|---|---|---|---|---|---|---|
+| O2 streamed (no table), b=1FZ | 3.89 | 1.39 | 2.48 | 1 | some (patch) | n/a |
+| O2 streamed (no table), b=32FZ | 2.78 | 0.346 | 2.43 | 0 | 0 | n/a |
+| O2 streamed (no table), b=256FZ | 2.71 | 0.285 | 2.42 | 0 | 0 | n/a |
+| O2 on MPS (float32 offsets), block=288 | 8.68 | n/a | n/a | n/a | 10 | 1 |
+| O2 on MPS (float32 offsets), block=576 | 8.27 | n/a | n/a | n/a | 10 | 1 |
+| O2 on MPS (float32 offsets), block=1152 | 25 | n/a | n/a | n/a | 10 | 1 |
+<!-- /table:s4_variants -->
+
+**Cost model and what the measurements say.** Every ordering does the same tests (one per peak and voxel, about 2.1e9 on
+the patch); they differ in what stays in cache:
+
+- O1 (voxel-major) streams the whole table once per voxel and reads the bitmaps of all 180 frames for every voxel (a
+  working set of 760 MB as bytes, 95 MB packed, far above the L2): predicted memory-bound. Measured 7.9 times slower than
+  O2 (counts) and 3.3 times (pass-only, packed): consistent with the prediction (no memory or cache counters were read,
+  so that it is memory-bound is not tested).
+- O2 (orientation-major, voxel inner loop) reads the table once; for one peak the patch's voxels land in a few thousand
+  pixels of one frame (median bounding box 1,680 px), which stay in L1: predicted compute-bound, about 1 ns per test.
+  Measured 1.13 ns per test on one thread. The block size b does not matter for a stored table (1, 32 or 256 FZ points
+  give the same time); streaming the peaks costs 15% more at b = 32 FZ points and adds float32 batch-shape flips at b = 1
+  (1 frame changed, `frames_changed`).
+- O3 (frame-major) keeps one frame's bitmap resident (4.2 MB, 0.53 MB packed) and writes rows of the (orientation, voxel)
+  accumulator: predicted equal to O2. Measured 0.90 times O2 on one thread (tile 2,000), but it scales worse: 0.536 s against
+  0.435 s on 10 threads (tile 256). The fastest one-thread arm, O3 with tile 2,000, was not in the thread sweep; a
+  follow-up run (`orderings.py time_o3`, 5 interleaved repeats, alone, contended) timed it:
+
+<!-- table:s4_o3_threads -->
+| arm | median_s | equal |
+|---|---|---|
+| O2 counts u8 b=32FZ | 2.38 | True |
+| O3 counts u8 tile=2000 | 2.2 | True |
+| O3 counts u8 tile=256 | 2.36 | True |
+| O2 counts u8 b=32FZ th=10 | 0.397 | True |
+| O3 counts u8 tile=2000 th=10 | 2.2 | True |
+| O3 counts u8 tile=256 th=10 | 0.495 | True |
+| label | n/a | contended |
+<!-- /table:s4_o3_threads -->
+
+  These kernels thread O3 over voxel tiles, so tile 2,000 on the 2,000-voxel patch is a single job and runs on one thread
+  whatever the thread count (2.2 s at 10 threads); with tile 256 (8 jobs) it takes 0.495 s against O2's 0.397 s. An O3
+  threaded over frames, or with tiles of 200 voxels, was not timed, so "O2 best on threads" rests on O3 with tile 256.
+- O5 (O2 with voxel tiles) predicted no gain, since the coordinates of 2,000 voxels (32 KB) already fit in L1; measured 1.3
+  times slower at tile 256, consistent with the overhead of a shorter inner loop (not tested: no profile was taken).
+- Pass-only (stop at the first qualified peak) is slower than counting in O2 (1.31 times) even though 78.5% of the pairs
+  pass; this is consistent with the shrinking list of open voxels defeating the vectorised loop, which was not tested
+  (the generated code and vectorisation were not inspected). In O1 it halves the time.
+- O4 (pixel voting) model: per peak, visit the bright pixels of the patch footprint and back-project each to its voxels.
+  From the data, 6.5% of the tests are bright and 1.6 voxels share a pixel; at an assumed 10 ns per bright pixel the model
+  predicted 2.6 times faster than O2 (5 ns: 5.1 times, 20 ns: 1.3 times), so it was built (exact: equal to O2 on the patch
+  and on the reference voxels). Measured **3.3 times slower**: the scan of the footprint's bounding quadrilateral visits 225
+  bright pixels per peak (the model's 86 were the pixels the voxels actually hit), and the bounding box of a pixel's thin
+  preimage parallelogram holds 7.0 candidate voxels per bright pixel, at 33 ns per bright pixel. Tighter enumeration was
+  not tried.
+- MPS: 3.4 times slower than one CPU thread; this is consistent with the cost of gathers from a 760 MB byte tensor and of
+  `index_add_` on the GPU, but the GPU time was not broken down, so the cause is not tested. 10 count and 1 pass
+  differences against the float64 kernel in 87,948,000 pairs (float32 offsets).
+
+<!-- table:s4_o4 -->
+| quantity | model | measured |
+|---|---|---|
+| bright rate per O2 test (patch, sampled peaks) | 0.0654 | n/a |
+| voxels per distinct pixel hit | 1.59 | n/a |
+| bright pixels visited per peak | 86.4 | 225 |
+| candidate voxels tested per bright pixel | 1.59 | 6.97 |
+| cost per bright pixel (ns) | 5 / 10 / 20 (assumed) | 33.2 |
+| O2 time / O4 time, 1 thread | 5.06 / 2.57 / 1.30 | 0.3 |
+| O4 / O2 wall, 1 thread (s) | n/a | 7.97 / 2.39 |
+| O4 / O2 wall, 10 threads (s) | n/a | 1.13 / 0.41 |
+<!-- /table:s4_o4 -->
+
+**Best ordering: O2**, orientation-major with the voxel loop innermost, threads over blocks of orientations, either bitmap
+layout (equal speed; packed is 8 times smaller). One measured full-layer run:
+
+<!-- table:s4_full_layer -->
+| item | value |
+|---|---|
+| ordering | O2 counts, u8, 10 threads, voxel tiles of 4096 |
+| voxels x orientations | 24570 x 43974 |
+| wall time (s), kernel + pass reduction | 6.58 (6.00 + 0.58) |
+| kernel time projected linearly from the 2,000-voxel patch (10 threads) (s) | 5.35 |
+| BatchedScreen for the same work, single worker, projected from 10 voxels (h) | 3.94 |
+| passers (voxel, orientation) pairs | 848266117 (78.5%) |
+| passers per voxel, median (min-max) | 34466 (32991-35912) |
+| passer list as int32 pairs / as a bitset / counts as uint8 (GB) | 6.79 / 0.135 / 1.08 |
+| peak RSS of the run (GB) | 1.99 |
+| label | contended |
+<!-- /table:s4_full_layer -->
+
+The whole level-0 screen of the layer takes 6.58 s on 10 threads, measured. Against `BatchedScreen` (3.94 single-worker
+hours, a projection: 0.577 s per voxel from 10 voxels, contended, times 24,570) that is 2,155 times faster in wall time
+on 10 threads, and 478 times faster on one thread (both projected: the one-thread O2 layer time of 29.7 s is the patch
+time scaled to the layer, not a run). The linear scaling holds only roughly: per voxel, O2 on one thread falls from 1.32
+to 1.21 ms between 500 and 2,000 voxels and O5 rises from 1.44 to 1.57 ms, and the one measured full-layer kernel (10
+threads, voxel tiles of 4096) took 6.00 s against 5.35 s projected from the patch, 12% above linear. The patch is the
+2,000 voxels nearest the centre, whose footprint per peak is smaller than the layer's; the excess is consistent with
+that, which was not tested. The passers are 78.5% of all pairs (848,266,117; default rule), so the useful output is a
+bitset (0.135 GB) rather than a pair list (6.79 GB). Against the Step 0 reference the full-layer run differs by one
+passer on each of the 5 voxels checked (1423, 2091, 5852, 7288, 7320); each offset equals that voxel's net number of
+pass flips of the float64 table in Step 2 (`step2_equality_phase_d.json`).
+
+### Step 4: what follows the screen
+
+Step 0 on Phase D (single worker, contended; 10 voxels for the screen, 3 for the re-cost and the no-start search, 10 for the
+neighbour step):
+
+<!-- table:s4_step0 -->
+| part | value | unit | n |
+|---|---|---|---|
+| BatchedScreen, whole level-0 screen of one voxel (chunk 32) | 0.577 | s | 10 |
+|   of which torch geometry (Bragg solve, eta, stages B-C) | 0.401 | s | 10 |
+|   of which the per-orientation stage-D loop | 0.212 | s | 10 |
+| screen passers per voxel (of 43,974), median | 3.45e+04 | orientations | 10 |
+| re-cost of the passers (local evaluate), per voxel | 8.56 | s | 3 |
+| re-cost, per evaluate | 251 | us | 3 |
+| no-start search (reconstruct_voxel), wall | 73.6 | s | 3 |
+|   screens of all levels | 1.56 | s | 3 |
+|   re-costs of all levels | 17.4 | s | 3 |
+|   quick MC, all levels (level 0) | 50.9 (34.1) | s | 3 |
+|   rest of the discrete stage (spacing filter, loop) | 3.07 | s | 3 |
+|   FindOptimal, VarianceMinimizing, final | 0.265 | s | 3 |
+| BFS neighbour step (CMA, 250 evaluations) | 0.0732 | s | 10 |
+<!-- /table:s4_step0 -->
+
+Re-cost of the passers in orientation-major order (each orientation's local-cost peaks taken once from its own float32
+operations, float64 maps, every passing voxel rasterised through the library's stage-D C call):
+
+<!-- table:s4_recost -->
+| item | value | n |
+|---|---|---|
+| today: evaluate per (orientation, voxel) (us) | 266 | 4000 |
+| orientation-major: per pair, float64 vertices + stage-D C call (us) | 28.9 | 321456 |
+|   the same with one vertex product per orientation (us) | 29.8 | 321456 |
+|   set-up per orientation: peaks, A and c (us) | 458 | 200 |
+| speed-up per pair | 9.2x | 321456 |
+| equality: pairs compared with the Step 0 per-voxel evaluate | 691539 | 20 |
+|   pairs with any OverlapInfo field different | 33962 (4.9%) | 691539 |
+|   pairs with the re-cost (1 - confidence) different | 85 | 691539 |
+|   largest quality difference | 0.0092 | 691539 |
+|   sampled differing pairs explained by an integer-vertex flip | 400 of 400 (largest distance 4.1e-04 px) | 400 |
+<!-- /table:s4_recost -->
+
+The differences come from float64 vertices against `evaluate`'s float32 ones: in a sample of 400 differing pairs, every one
+has an integer vertex that differs, at most 4.1e-4 px from a pixel boundary. A library version would have to accept that or
+reproduce `evaluate`'s float32 arithmetic. The re-cost of every pair of the layer would take 6.82 single-worker hours this
+way, including one set-up per orientation (59.2 h with `evaluate`), since 78.5% of the pairs pass the default-rule screen.
+
+The per-pair time leaves out the **per-orientation set-up** (the Q-max 8 local-cost peaks, A and c: 458 us per
+orientation), which the timing amortised over about 1,607 passing voxels per orientation of the patch. In the BFS seeds
+arrive one at a time, so the set-up is paid either once per layer, for a stored layer-wide local-cost table, or once per
+(seed, passing orientation). A stored table costs 20.1 s to build (43,974 x 458 us) and, at 104 peaks per orientation
+and 136 bytes per peak (float64 A and c, wedge and detector-hit flags, a 2-byte frame index; `recost.py memory` on 200
+sampled orientations, not timed), about 0.62 GB. Re-costing one seed's 34,466 passing orientations alone would take
+16.8 s (set-up plus pairs), more than today's 8.56 s with `evaluate`. The set-up varied 10 times between runs (Limits),
+so the table build may take longer than 20.1 s.
+
+**Whole-run projections** (single-worker hours, Phase D layer, default qualified-peak rule; seeds 350 / 395 / 504 from
+the Phase D seed oracle; inputs: a no-start search of 73.6 s, of which level 0's screen and re-cost are 9.1 s; a neighbour
+step of 0.073 s; the global screen on one thread, itself a projection (29.7 s); the re-cost at 28.9 us per pair plus
+458 us set-up per orientation as stated per scenario; revisits and REFIT voxels not modelled). "rest" is the no-start wall
+time minus the level-0 screen and the level-0 re-cost (64.45 s), that is everything after them, **including the level-0
+quick MC**. The search times rest on n = 3 no-start searches (73.4-73.6 s) and the neighbour step on n = 10 CMA steps of
+250 evaluations. The Phase D pilot measured 0.28 s (`cma`) and 0.43 s (`mc`) per local neighbour fit ("Phase D pilot results",
+contended), against 0.073 s here for one CMA step without retries, so the neighbour share of these projections
+is likely understated:
+
+<!-- table:s4_projection -->
+| scenario | seeds | total_h | share_screen | share_setup | share_recost | share_rest | share_neighbours |
+|---|---|---|---|---|---|---|---|
+| (a) today's BFS | 350 | 7.65 | 0.007 | 0.000 | 0.109 | 0.819 | 0.064 |
+| (b) global screen and re-cost, per-voxel search after them | 350 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 350 | 6.87 | 0.001 | 0.001 | 0.014 | 0.912 | 0.072 |
+| (c') hybrid, each seed re-costed alone orientation-major | 350 | 8.4 | 0.001 | 0.183 | 0.012 | 0.746 | 0.059 |
+| (a) today's BFS | 395 | 8.57 | 0.007 | 0.000 | 0.110 | 0.826 | 0.057 |
+| (b) global screen and re-cost, per-voxel search after them | 395 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 395 | 7.69 | 0.001 | 0.001 | 0.014 | 0.920 | 0.064 |
+| (c') hybrid, each seed re-costed alone orientation-major | 395 | 9.41 | 0.001 | 0.184 | 0.012 | 0.751 | 0.052 |
+| (a) today's BFS | 504 | 10.8 | 0.007 | 0.000 | 0.111 | 0.836 | 0.045 |
+| (b) global screen and re-cost, per-voxel search after them | 504 | 447 | 0.000 | 0.000 | 0.015 | 0.985 | 0.000 |
+| (c) hybrid, stored layer-wide local-cost table | 504 | 9.67 | 0.001 | 0.001 | 0.014 | 0.934 | 0.051 |
+| (c') hybrid, each seed re-costed alone orientation-major | 504 | 11.9 | 0.001 | 0.186 | 0.012 | 0.760 | 0.041 |
+<!-- /table:s4_projection -->
+
+- (a) today's BFS: everything after the seeds' level-0 screen and re-cost ("rest", including the level-0 quick MC) takes
+  82-84% of the run, the level-0 re-cost 11%, the level-0 screen under 1%. The level-0 quick MC alone is 46% of a no-start
+  search (34.1 of 73.6 s).
+- (b) one global screen and re-cost for every voxel, then the per-voxel search from the candidate lists: 41 to 58 times
+  slower than (a), because every voxel would then run the rest of the search that the BFS gives only to the seeds. The
+  screen, set-up and re-cost are 1.5% of it.
+- (c) the hybrid with a **stored layer-wide local-cost table** (BFS as today; the seeds take their level-0 candidates
+  from one global pass and re-cost them orientation-major from the table, built once in 20.1 s, about 0.62 GB): saves
+  8.1 s per seed, 0.78 to 1.13 h, about 10% of the run. The 10% assumes this table. Voxels whose inherited orientation
+  fails would save the same 8.1 s each; their number was not modelled.
+- (c') the hybrid with each seed **re-costed alone** orientation-major (set-up per seed and passing orientation): 16.8 s
+  per seed instead of 8.56 s, so the run is 0.75 to 1.08 h longer than (a). Without the table a seed would keep
+  `evaluate` for its re-cost, and the hybrid saves only the screen: 0.048 to 0.073 h.
+
+**The search after the screen and re-cost dominates**, as the plan expected: it is per voxel and gains nothing from
+translation. The level-0 screen is cheap once table-driven, but on these images, under the **Python default qualified-peak
+rule**, it passes 78.5% of the orientations, so it barely filters; under `CppOverlapRule` (the C++ behaviour) it passes
+26.5% (whole layer). With the default rule, the re-cost and the level-0 quick MC of the 10,173 to 10,354 spacing-filtered
+candidates per seed (20 reference voxels) are what cost. What the C++ rule would do to the re-cost, the quick MC and the
+results was not measured.
+
+### Recommendation (a proposal for the owner, not built)
+
+- Ordering: **O2 on CPU threads** (orientation-major, voxel inner loop, one table per layer or one block of 32 FZ points at
+  a time; packed bitmaps). Not MPS (3.4 times slower than one CPU thread in this form), not O4.
+- Use: scenario (c), which needs the stored layer-wide local-cost table (20.1 s to build, about 0.62 GB); without it,
+  re-costing each seed alone orientation-major is slower than today (c'). It is worth about 10% of a Phase D run under the
+  default rule; the larger levers are the level-0 quick MC (S3's `BatchedQuickMC`, measured 4.7 times faster on E0, not
+  on Phase D) and the screen's weak filtering under the **Python default qualified-peak rule**. A stricter level-0 rule
+  already exists: `CppOverlapRule 1`, the C++ program's behaviour, passes 26.5% of the layer's pairs against 78.5%. Its
+  effect on the re-cost, the quick MC and the results was not measured, and these projections were not redone under it;
+  switching changes results and is the owner's call. S3's factor is from `benchmarks/s3_steps1_5` (quick-MC us per
+  evaluation, E0, CPU).
+- Library path: a new module `icenine/translation_screen.py` behind an opt-in key (for example `GlobalLevel0Screen 1`):
+  build the table from the level-0 global cost function, screen every voxel of a layer with a C kernel (a new function in
+  `_rasterize.c` or a small extension), keep the pass bitset; `reconstructor.py` would let `reconstruct_voxel` take a
+  precomputed level-0 pass set (seeds and failed inheritances only) and re-cost it orientation-major; `config_file.py` gains
+  the key; tests compare the pass sets with `BatchedScreen` up to listed float-boundary flips. Existing paths unchanged.
+
+### Limits and open items
+
+- Every timing is **contended** (1-minute load 1.9 to 3.1 at the starts; owner decision D-20261014-I16, no quiet repeat).
+  Ratios between orderings measured in the same run are the robust part.
+- The timings and the ordering verdict are for the default rule (rule 0), which reads only the detector-0 bitmaps
+  (760 MB as bytes). The `CppOverlapRule` kernels also read detector 1 (1.5 GB as bytes for both); they were checked for
+  equality and used for the pass counts, but not timed.
+- 1d (C++ cross-check) skipped, see above. `CppEdgeRules` is not implemented in the kernels (the config leaves it off);
+  `CppOmegaInterp` and the ray rule are out of scope. One layer only.
+- The O4 and MPS implementations are straightforward ones; a tighter O4 enumeration or a Metal kernel might behave
+  differently (not tested).
+- The Step 4 pair time (28.9 us) is mostly the stage-D C call; vectorising the vertex product over voxels did not help
+  (29.8 us). The per-orientation set-up varied between runs (458 us in the reported run, 4.3 ms in a first run with cold
+  frames).
+- Not done from the review's suggestions: re-running the Step 2 bitmap lookup with the reference's centre pixels to
+  recover `po_ref` exactly (all 91 listed cases have a flip on detector 0, 89 exactly one), and a negative control for
+  the Step 4 "400 of 400 explained" (the flip rate among pairs that do not differ).
+
+### Review follow-up (2026-10-15)
+
+The agent review (`.claude/reports/20261015-0058-review-s4-translation-screen.md`) asked for these changes, made on the
+same branch with no library change: the `CppOverlapRule` pass rate measured (`orderings.py rules`) and "barely filters"
+restated as a property of the Python default rule; projection (c) with the per-orientation re-cost set-up (stored table
+against each seed alone, `recost.py memory` for the table's size); "refine" relabelled "rest" (it includes the level-0
+quick MC); the 1b edge exceptions split into off-detector and clipped (not checked); untested causes reworded; O3 with
+tile 2,000 timed on threads (`orderings.py time_o3`); the full-layer linearity check and the projection labels; the 1c
+tie rule and tie counts (the top-30 statistic dropped); the 88 non-boundary spots of 1b(iii); and the rule-0 limit of
+the timings. The projections and the recommendation were not redone under `CppOverlapRule` (open owner decision).
+
+## S2: fused C evaluation, Step 0 go/no-go (2026-10-21)
+
+ROADMAP Track S item S2, plan `docs/todo_s2_fused_c_eval.md` (approved D-20261021-I4). Branch
+`feature/python-speed-parity-s2-fused`. **Scripts only**: nothing under `icenine/` changed; `setup.py`, `pyproject.toml`
+and `uv.lock` unchanged; no golden and no default touched. Results: `benchmarks/s2_step0/` (the tables below are its
+`tables.md`, written by `scripts/speed_parity/s2/s2_summary.py`).
+
+**Answer.** The speed criterion is met: the prototype takes 14.4 us per call (median of 5 rounds, single-worker) on the
+Q-max 8 triangle arm against 234.1 us for `evaluate`. A whole no-start search on ThreeVoxels voxel 0 takes 1.70 s instead
+of 5.44 s, but the two runs are different searches: the fused arm took another path (8,084 evaluations against 8,311,
+ending 53.941 instead of 53.936 degrees from the truth, both wrong); per evaluation the cost is 114 us against 557 us.
+The trace criterion is not met as the plan words it: every orientation whose `OverlapInfo` differs from torch is
+explained by one or a few peaks whose pixel coordinate lies on the other side of a pixel integer (no frame, eta,
+observability or t > 0 flip on 4 voxels x 1,000 orientations x 9 modes), but for 34 of the 129 differing orientations of
+the triangle arm (Wilson 19.5-34.6%) that coordinate is more than 8 ulp from the integer. The two largest distances come
+from different peaks. The largest in ulp is 312 ulp, which is 0.0012 px (full18558 orientation 419, a column at pixel
+61, where an ulp is small). The largest in px is 0.0033 px, which is 27 ulp (full18558 orientation 136, detector 1, a
+column at pixel 1221). Both are torch's distances; the fused value's largest distance from its integer is 0.0034 px
+(orientation 437) and its largest in ulp 88 (orientation 419). By the plan's stop rule Step 1 waits for the owner.
+
+### What was built (`scripts/speed_parity/s2/`)
+
+- `s2fused.c`: a scratch CPython extension, one call per `evaluate` (hard mode, no ray rule; pixel radius 0 and > 0,
+  centroid and vertex 0, default rule, `CppOverlapRule`, `CppEdgeRules`, `min_sin_eta`). It `#include`s
+  `icenine/_rasterize.c`, so the stage-D helpers (`triangle_overlap_uint8`, `pixel_radius_overlap_uint8`,
+  `count_qualified_peaks_c`) are the library's own; the per-peak stage-D loop around them (vertex-lit rule,
+  accumulation, Welford quality) is copied from `stage_d_overlap`, without its ray-rule block. Float32 in torch's
+  operation order: `fmaf` where torch's kernels fuse (bmm, the vertex einsum, `torch.norm`, in the order the probe below
+  finds; also `Rz @ base`, which the probe cannot tell apart here), plain products and sums elsewhere, `FP_CONTRACT`
+  off. The context (per cost function
+  and phase) holds the g vectors, the Bragg constants, the geometry, the frame lookup and a reference to the
+  `FrameTable`; a call returns the 7 `OverlapInfo` values or the list of frames to fill first (the lazy fill stays in
+  Python). Variant `accelerate` (macOS) computes g_lab with Accelerate's `cblas_sgemm`, the call torch makes there, and
+  gets torch's g_lab bit for bit (none of the float32 orders the probe tries reproduces the sgemm).
+- `s2fused.py` (build with the system `cc` into `scripts/speed_parity/cache/s2/`; `FusedEval`), `torch_mirror.py` (the
+  torch operations of `evaluate` with the intermediates kept, checked equal to the library on every orientation;
+  `reference64`, the same quantities in float64, with the `CppEdgeRules` -1 rule), `s2_parity.py` (0d),
+  `s2_timing.py` (0c), `s2_search.py` (0a), `s2_fma_probe.py` (the operation-order probe), `run_step0_timing.sh`,
+  `s2_summary.py`; test `tests/test_s2_fused_step0.py`.
+
+The probe (`s2_fma_probe.py`, 20 orientations of ThreeVoxels voxel 0, the triangle cost at Q-max 8; `fmaf_probe.json`)
+runs each small product the library makes and compares it bit for bit with three float32 orders: `plain`
+(`(a0*b0 + a1*b1) + a2*b2`), `fma_chain` (`fmaf(a2, b2, fmaf(a1, b1, a0*b0))`, the order `s2fused.c` uses) and
+`fma_rev`, with libm's `fmaf`. The `fmaf` chain reproduces bmm, the vertex einsum and both `torch.norm` calls on every
+element. `Rz @ base` does not tell the orders apart here, because the sample-to-lab rotation of this setup is the
+identity. No order reproduces g_lab, and the plain order agrees with torch on more elements (0.929) than the `fmaf`
+chain the portable build uses (0.804); whether the plain order would reduce the portable build's flips is untested.
+
+<!-- table:s2_step0_fmaf_probe -->
+| product | order | n | equal | equal_frac | max_ulp |
+|---|---|---|---|---|---|
+| g_lab (R @ g_hkl.T).T | plain | 6720 | 6244 | 0.929 | 73 |
+| g_lab (R @ g_hkl.T).T | fma_chain | 6720 | 5404 | 0.804 | 128 |
+| g_lab (R @ g_hkl.T).T | fma_rev | 6720 | 4546 | 0.676 | 286 |
+| torch.norm(g_lab) | plain | 2218 | 1926 | 0.868 | 1 |
+| torch.norm(g_lab) | fma_chain | 2218 | 2218 | 1.000 | 0 |
+| torch.norm(g_lab) | fma_rev | 2218 | 1802 | 0.812 | 1 |
+| Rz @ base | plain | 39924 | 39924 | 1.000 | 0 |
+| Rz @ base | fma_chain | 39924 | 39924 | 1.000 | 0 |
+| Rz @ base | fma_rev | 39924 | 39924 | 1.000 | 0 |
+| bmm(full_rot, normals) | plain | 13308 | 10007 | 0.752 | 8 |
+| bmm(full_rot, normals) | fma_chain | 13308 | 13308 | 1.000 | 0 |
+| bmm(full_rot, normals) | fma_rev | 13308 | 9280 | 0.697 | 9 |
+| torch.norm(reflected) | plain | 4436 | 4374 | 0.986 | 1 |
+| torch.norm(reflected) | fma_chain | 4436 | 4436 | 1.000 | 0 |
+| torch.norm(reflected) | fma_rev | 4436 | 3721 | 0.839 | 1 |
+| einsum vertices (4 x 4) | plain | 39924 | 39025 | 0.977 | 480 |
+| einsum vertices (4 x 4) | fma_chain | 39924 | 39924 | 1.000 | 0 |
+| einsum vertices (4 x 4) | fma_rev | 39924 | 37397 | 0.937 | 973 |
+<!-- /table:s2_step0_fmaf_probe -->
+
+### 0c: us per call (ThreeVoxels voxel 0, S1's 400 near-truth orientations, single-worker)
+
+`fused` builds the `OverlapInfo`; `c_only` is the bare C call (the difference is the Python wrapper).
+
+<!-- table:s2_step0_per_call -->
+| arm | torch | fused | fused_range | fused_acc | c_only | speedup |
+|---|---|---|---|---|---|---|
+| triangle_q8_default | 234.1 | 14.4 | 13.9-14.6 | 14.4 | 13.4 | 16.2 |
+| triangle_q8_cpp | 233.7 | 14.2 | 13.9-14.6 | 14.3 | 13.5 | 16.4 |
+| screen_r3_q5_default | 202.0 | 3.3 | 3.1-3.4 | 3.3 | 2.5 | 61.4 |
+| screen_r3_q5_cpp | 201.5 | 3.3 | 3.2-3.4 | 3.3 | 2.6 | 60.6 |
+<!-- /table:s2_step0_per_call -->
+
+### 0a: no-start search split by caller (single-worker)
+
+ThreeVoxels voxel 0 (`Example2.Simulation.config`, whose local cost has 868 reflections; median of 3 repeats) and the
+first 10 E0 clean voxels (`ReconstructQ8` physics, `min_sin_eta` 0.3; sums over the voxels, median of 2 repeats). The
+"fused" arms replace every `evaluate` call by the prototype; `BatchedScreen` (default on) and the batched quick-MC cost
+stay torch. Wrong: final error > 1 degree.
+
+<!-- table:s2_step0_search_three -->
+| arm | wall | vs_default | evaluate | evaluate_n | us_per_eval | screen | bqmc | wrong |
+|---|---|---|---|---|---|---|---|---|
+| default keys | 5.44 | 1.00 | 4.63 | 8311 | 557 | 0.63 | 0.00 | 1 of 1 |
+| BatchedQuickMC 1 | 4.53 | 1.20 | 0.99 | 1812 | 548 | 0.63 | 2.76 | 0 of 1 |
+| default keys, fused | 1.70 | 3.20 | 0.92 | 8084 | 114 | 0.63 | 0.00 | 1 of 1 |
+| BatchedQuickMC 1, fused | 3.67 | 1.48 | 0.20 | 1812 | 110 | 0.63 | 2.72 | 0 of 1 |
+<!-- /table:s2_step0_search_three -->
+
+<!-- table:s2_step0_search_e0 -->
+| arm | wall | vs_default | evaluate | evaluate_n | us_per_eval | screen | bqmc | wrong |
+|---|---|---|---|---|---|---|---|---|
+| default keys | 16.20 | 1.00 | 10.06 | 39759 | 253 | 5.16 | 0.00 | 2 of 10 |
+| BatchedQuickMC 1 | 10.52 | 1.54 | 2.84 | 11219 | 254 | 5.15 | 1.71 | 2 of 10 |
+| default keys, fused | 6.78 | 2.39 | 0.76 | 39803 | 19 | 5.16 | 0.00 | 2 of 10 |
+| BatchedQuickMC 1, fused | 7.88 | 2.05 | 0.21 | 11219 | 19 | 5.15 | 1.71 | 2 of 10 |
+<!-- /table:s2_step0_search_e0 -->
+
+The share S2 v1 can reach is the covered `evaluate` time: 0.852 of the wall on ThreeVoxels and 0.621 on E0 with default
+keys. With the fused path the E0 search is dominated by `BatchedScreen` (5.16 of 6.78 s). With `BatchedQuickMC 1` the
+torch forward of the batched cost becomes the larger part (431 us per orientation at 868 reflections), so `BatchedQuickMC
+1` plus the fused `evaluate` is slower than the fused `evaluate` alone (3.67 s against 1.70 s); Step 3's batched C entry
+targets that. The fused arms changed the search path of ThreeVoxels voxel 0 (8,084 evaluations against 8,311; wrong in
+both) and of one E0 voxel (e0_1, right in both), but not which voxels are wrong. Paired by voxel on E0 (the wrong sets
+are the same in every repeat): fused against default keys, 0 fixed, 0 broken, 2 both wrong (e0_0, e0_8);
+`BatchedQuickMC 1` plus fused against `BatchedQuickMC 1`, 0 fixed, 0 broken, 2 both wrong (e0_5, e0_8). The two
+`BatchedQuickMC 1` arms have another wrong set than the default-key arms: against default keys, `BatchedQuickMC 1`
+fixes e0_0 and breaks e0_5 (1 fixed, 1 broken, 1 both wrong, e0_8). On ThreeVoxels voxel 0 `BatchedQuickMC 1` fixes the
+voxel, with or without the fused path.
+
+<!-- table:s2_step0_callers_three -->
+| arm | caller | calls | seconds | share | us_per_call |
+|---|---|---|---|---|---|
+| default keys | screen (BatchedScreen, not in v1) | 0 | 0.63 | 0.115 | n/a |
+| default keys | recost | 893 | 0.50 | 0.093 | 564 |
+| default keys | quick_mc | 6456 | 3.62 | 0.665 | 560 |
+| default keys | find_optimal | 311 | 0.16 | 0.030 | 528 |
+| default keys | variance | 650 | 0.34 | 0.063 | 530 |
+| default keys | final | 1 | 0.00 | 0.000 | 535 |
+| default keys | batched quick-MC cost | 0 | 0.00 | 0.000 | n/a |
+| default keys | covered evaluate (all but screen) | 8311 | 4.63 | 0.852 | 557 |
+| BatchedQuickMC 1 | screen (BatchedScreen, not in v1) | 0 | 0.63 | 0.138 | n/a |
+| BatchedQuickMC 1 | recost | 916 | 0.52 | 0.114 | 565 |
+| BatchedQuickMC 1 | quick_mc | 0 | 0.00 | 0.000 | n/a |
+| BatchedQuickMC 1 | find_optimal | 311 | 0.16 | 0.036 | 529 |
+| BatchedQuickMC 1 | variance | 584 | 0.31 | 0.068 | 530 |
+| BatchedQuickMC 1 | final | 1 | 0.00 | 0.000 | 528 |
+| BatchedQuickMC 1 | batched quick-MC cost | 6408 | 2.76 | 0.610 | 431 |
+| BatchedQuickMC 1 | covered evaluate (all but screen) | 1812 | 0.99 | 0.219 | 548 |
+<!-- /table:s2_step0_callers_three -->
+
+<!-- table:s2_step0_callers_e0 -->
+| arm | caller | calls | seconds | share | us_per_call |
+|---|---|---|---|---|---|
+| default keys | screen (BatchedScreen, not in v1) | 0 | 5.16 | 0.318 | n/a |
+| default keys | recost | 3711 | 0.96 | 0.059 | 259 |
+| default keys | quick_mc | 27636 | 7.00 | 0.432 | 253 |
+| default keys | find_optimal | 4938 | 1.23 | 0.076 | 250 |
+| default keys | variance | 3464 | 0.87 | 0.053 | 250 |
+| default keys | final | 10 | 0.00 | 0.000 | 253 |
+| default keys | batched quick-MC cost | 0 | 0.00 | 0.000 | n/a |
+| default keys | covered evaluate (all but screen) | 39759 | 10.06 | 0.621 | 253 |
+| BatchedQuickMC 1 | screen (BatchedScreen, not in v1) | 0 | 5.15 | 0.490 | n/a |
+| BatchedQuickMC 1 | recost | 3650 | 0.95 | 0.090 | 260 |
+| BatchedQuickMC 1 | quick_mc | 0 | 0.00 | 0.000 | n/a |
+| BatchedQuickMC 1 | find_optimal | 3996 | 1.00 | 0.095 | 251 |
+| BatchedQuickMC 1 | variance | 3563 | 0.89 | 0.085 | 250 |
+| BatchedQuickMC 1 | final | 10 | 0.00 | 0.000 | 254 |
+| BatchedQuickMC 1 | batched quick-MC cost | 27576 | 1.71 | 0.163 | 62 |
+| BatchedQuickMC 1 | covered evaluate (all but screen) | 11219 | 2.84 | 0.270 | 254 |
+<!-- /table:s2_step0_callers_e0 -->
+
+### 0d: fused against torch (S1's 1,000 orientations of ThreeVoxels voxel 0 and of Phase D voxels 15901, 17034, 18558)
+
+Per intermediate, ThreeVoxels voxel 0, the triangle cost (rows both sides computed; pixel and t on the stage-D rows):
+
+<!-- table:s2_step0_intermediates -->
+| variant | intermediate | n | equal | equal_frac | max_ulp | max_abs |
+|---|---|---|---|---|---|---|
+| portable | g_lab | 336000 | 270828 | 0.806 | 10201 | 9.54e-07 |
+| portable | omega_bragg | 221820 | 197236 | 0.889 | 8704 | 7.01e-05 |
+| portable | omega | 202504 | 179463 | 0.886 | 8704 | 7.01e-05 |
+| portable | eta | 202504 | 152736 | 0.754 | 6648 | 6.51e-06 |
+| portable | pixel | 1221696 | 931346 | 0.762 | 253 | 9.77e-03 |
+| portable | t | 610848 | 562887 | 0.921 | 7 | 2.86e-06 |
+| accelerate | g_lab | 336000 | 336000 | 1.000 | 0 | 0.00e+00 |
+| accelerate | omega_bragg | 221820 | 212958 | 0.960 | 1024 | 4.77e-07 |
+| accelerate | omega | 202504 | 194325 | 0.960 | 1024 | 4.77e-07 |
+| accelerate | eta | 202504 | 178256 | 0.880 | 32 | 1.79e-07 |
+| accelerate | pixel | 1221696 | 1121235 | 0.918 | 254 | 3.88e-03 |
+| accelerate | t | 610848 | 593251 | 0.971 | 5 | 1.91e-06 |
+<!-- /table:s2_step0_intermediates -->
+
+Differing orientations per voxel and variant. The five triangle modes (default rule, `CppOverlapRule`, `CppEdgeRules`,
+both, `min_sin_eta` 0.2) and the four screen modes (default rule, `CppOverlapRule` centroid and vertex 0, `CppEdgeRules`)
+give the ranges shown. "beyond_8ulp": differing orientations with a flipped peak more than 8 ulp from its threshold;
+"no_peak": differing orientations where no stage-D input differs.
+
+<!-- table:s2_step0_parity -->
+| dataset | variant | modes | differing | beyond_8ulp | no_peak | causes | max_margin_ulp | max_margin_px |
+|---|---|---|---|---|---|---|---|---|
+| three0 | portable | triangle (5 modes) | 25 | 5 | 0 | pixel_integer | 54 | 0.0016 |
+| three0 | portable | screen (4 modes) | 0-1 | 0 | 0 | pixel_integer | 1 | 0.0001 |
+| three0 | accelerate | triangle (5 modes) | 8 | 3 | 0 | pixel_integer | 43 | 0.0009 |
+| three0 | accelerate | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full15901 | portable | triangle (5 modes) | 36-42 | 4-7 | 0 | pixel_integer | 49 | 0.0029 |
+| full15901 | portable | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full15901 | accelerate | triangle (5 modes) | 15 | 3 | 0 | pixel_integer | 49 | 0.0015 |
+| full15901 | accelerate | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full17034 | portable | triangle (5 modes) | 32-34 | 10-11 | 0 | pixel_integer | 197 | 0.0021 |
+| full17034 | portable | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full17034 | accelerate | triangle (5 modes) | 12 | 5 | 0 | pixel_integer | 197 | 0.0020 |
+| full17034 | accelerate | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full18558 | portable | triangle (5 modes) | 22-28 | 3-11 | 0 | pixel_integer | 312 | 0.0033 |
+| full18558 | portable | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+| full18558 | accelerate | triangle (5 modes) | 9 | 2 | 0 | pixel_integer | 312 | 0.0012 |
+| full18558 | accelerate | screen (4 modes) | 0 | 0 | 0 | - | n/a | n/a |
+<!-- /table:s2_step0_parity -->
+
+On the triangle arm (mode `local`, 4,000 orientations) the portable build differs on 129 (3.2%, Wilson 2.7-3.8%) and the
+Accelerate build on 44 (1.1%, 0.8-1.5%); the screen (`screen_center`) differs on 1 of 4,000 (portable) and 0
+(Accelerate). No frame index differs on any row both sides kept.
+
+Per `OverlapInfo` field on the triangle arm (`local`, 4,000 orientations): in the portable build `pixel_on_detector`
+differs on 128 of the 129 differing orientations, `pixel_overlap` on 14 and `quality` on 12; in the Accelerate build on
+44, 2 and 1. No other field differs. The cost is 1 - `quality`, but the search also reads `hit_ratio`
+(`pixel_overlap / pixel_on_detector`) in `hit_ratio_converged`, so a flip can change the search path when the cost does
+not change.
+
+Against the float64 reference (`reference64`: the same quantities in float64 from the same float32 inputs), the mean
+float32 pixel error over all stage-D peaks is the same size for both paths (table below, 2.84e-04 to 2.99e-04 px); that
+is an aggregate mean, not a per-peak statement. Per flipped peak (the 140 pixel-integer flips of the portable build,
+`local`): torch's value is nearer the float64 value on 75 and the fused value on 65 (no ties; torch nearer on 45.3-61.6%,
+Wilson), and the float64 value lies on torch's side of the integer on 72 and on the fused side on 68 (torch's side on
+43.2-59.6%). On a single peak the two errors are not alike: the larger is a median 2.6 times the smaller (median |error|
+2.9e-04 px for torch, 3.1e-04 px for fused), and more than 3 times on 0.48 of the peaks. Neither path is systematically
+nearer float64, but each flip is one-sided. Accelerate build (44 flips): nearer 26 against 18, side 21 against 23.
+
+<!-- table:s2_step0_float64_error -->
+| dataset | variant | torch_mean_px | fused_mean_px | torch_max_px | fused_max_px |
+|---|---|---|---|---|---|
+| three0 | portable | 2.87e-04 | 2.85e-04 | 0.0112 | 0.0112 |
+| three0 | accelerate | 2.87e-04 | 2.87e-04 | 0.0112 | 0.0112 |
+| full15901 | portable | 2.86e-04 | 2.84e-04 | 0.0058 | 0.0066 |
+| full15901 | accelerate | 2.86e-04 | 2.86e-04 | 0.0058 | 0.0058 |
+| full17034 | portable | 2.85e-04 | 2.84e-04 | 0.0066 | 0.0066 |
+| full17034 | accelerate | 2.85e-04 | 2.86e-04 | 0.0066 | 0.0066 |
+| full18558 | portable | 2.98e-04 | 2.95e-04 | 0.0669 | 0.0669 |
+| full18558 | accelerate | 2.98e-04 | 2.99e-04 | 0.0669 | 0.0669 |
+<!-- /table:s2_step0_float64_error -->
+
+The flips are consistent with float32 rounding at a pixel edge. The larger tested source is g_lab: with g_lab bit for
+bit equal to torch's (the Accelerate build, sgemm instead of the portable `fmaf` chain) the differing orientations drop
+from 129 to 44 and the `quality` differences from 12 to 1. The g_lab differences grow on the way: on ThreeVoxels voxel 0
+(the per-intermediate table) the portable omega differs from torch's by up to 7.01e-05 rad (8,704 ulp), against
+4.77e-07 rad with the Accelerate g_lab; that is consistent with asin near +/-1 amplifying them (untested). The remaining
+44 are consistent with libm `sin`, `cos`, `asin` and `atan2` differing from torch's SLEEF kernels (Accelerate build:
+omega up to 1024 ulp, eta up to 32 ulp in the table) and the ray intersection carrying that into the pixel coordinate
+(up to 254 ulp). Untested: matching SLEEF in C, which together with the Accelerate g_lab would be needed for bit identity
+on this platform.
+
+Since the review, `reference64` applies the `CppEdgeRules` -1 rule. The rerun at a clean commit (a6ab6ee; the
+first run recorded `dirty: true` at 8f33e1c without naming the file, so `parity.json` now lists `dirty_files`) reproduces
+every count and ulp statistic of the first run; only the float64 pixel errors of the two edge modes changed. They are now
+float32-sized on average (full18558 `edge`, portable: 2.8e-04 px mean for both paths); the largest, 1.50 px for both
+paths, is consistent with float32 and float64 putting one detector coordinate on different sides of 0 (not traced).
+
+### Not done in Step 0
+
+Task A's C++ comparison (stop-rule item 4) is Step 4 work and was not run. With the key off nothing can differ from the
+base commit, because nothing in the library changed.
+
+### Task A check with the prototype (2026-10-27, `feature/python-speed-parity-s2-taska`)
+
+Plan section "Task A check with the prototype" (D-20261027-I4: runs in parallel with Steps 1-2 and gates their merge).
+**Scripts only**: nothing under `icenine/` changed; `pyproject.toml`, `uv.lock`, goldens and defaults unchanged; no
+timing taken. Scripts `scripts/speed_parity/s2/taska_check.py`, `taska_summary.py` and `run_taska.sh` (about 1 minute,
+one process); results in `benchmarks/s2_taska/` (the tables below are its `tables.md`, run at fb42d8c).
+
+**Answer.** The Step 0 prototype agrees with C++ on as many Task A orientations as torch with `CppEdgeRules`: the peak
+counts (peak overlap, peak on detector) equal C++'s on 2,230 of 2,230 orientations for the complete cost and on 2,229 of
+2,230 for the screen, for torch and for both prototype builds. Per orientation the paired split is 0 torch-only and 0
+fused-only on both arms; the screen miss is the same record on every path (voxel 15901, record 885, the A-exact peak
+3 ulp from a frame boundary). Stop-rule item 4 is not triggered, so this check does not hold back Steps 1-2. The
+complete-cost quality is within 1e-6 of C++'s on 2,228 (torch), 2,229 (portable) and 2,228 (Accelerate) of 2,230
+orientations. The check certifies the Step 0 prototype, not the Steps 1-2 library kernel, which may change the g_lab
+order (D-20261027-I5); Step 4 should rerun `taska_check.py run` against the library kernel (the plan does not yet
+say so).
+
+**Inputs.** Task A did not keep its input files or the C++ driver output, and the C++ toolchain (CMake, Boost, Eigen,
+Open MPI) is not installed on this machine, so the C++ side is the stored aggregates of
+`benchmarks/eval_reduction/A/step0/results.json.gz`, not a rerun. `parity_inputs.py` regenerates the 2,230 records with
+the stored labels, kinds and FZ and grid indices. The driver scored its own float32 product `oLocal * oCenter`
+(`SMatrix3x3::operator*`, `XDM++/libXDM/3dMath.cpp:410-430`, Apple clang `-O3`). Of four float32 orders, only clang's
+FP contraction, `fmaf(a2, b2, fmaf(a0, b0, a1 * b1))`, reproduces two stored values on every one of the 2,000 pair
+records: whether the float64 product cast to float32 equals the C++ product, and their largest difference. The two
+statistics do not pin a single record's product: the plain order gives a product different from clang's on 1,619 of
+the 2,000 pair records, yet matches both statistics on 1,065 of them; and on 1,166 pair records two or more elements
+of the float64 product cast to float32 differ from the clang product, of which the largest difference pins only one.
+The evidence is therefore for one order used for every record, not a per-record check; only a C++ rerun would close
+this (D-20261027-I6). The 230 single-orientation records (kind 0) all have the identity as local matrix, so their
+product is exact in any order. On the orientations built this way, the library
+`evaluate` at fb42d8c gives the stored Task A Python aggregates (pixel and peak counts, quality) on all four arms and all
+2,230 orientations, and `torch_mirror` equals the library on both `CppEdgeRules` arms. This is consistent with the
+inputs being Task A's, but it compares aggregates, not input bits, and the product order is inferred from two stored
+statistics per record, not read from C++ output.
+
+<!-- table:s2_taska_inputs -->
+| check | n | equal |
+|---|---|---|
+| records: label, kind, FZ and grid indices equal | 2230 | 2230 |
+| pair product, order plain: bit-equal flag and largest difference | 2000 | 1446 |
+| pair product, order clang_contract: bit-equal flag and largest difference | 2000 | 2000 |
+| pair product, order fma_chain: bit-equal flag and largest difference | 2000 | 1286 |
+| pair product, order fma_rev: bit-equal flag and largest difference | 2000 | 1081 |
+| torch at fb42d8c = stored Python, screen | 2230 | 2230 |
+| torch at fb42d8c = stored Python, complete cost | 2230 | 2230 |
+| torch at fb42d8c = stored Python, screen, CppEdgeRules | 2230 | 2230 |
+| torch at fb42d8c = stored Python, complete cost, CppEdgeRules | 2230 | 2230 |
+<!-- /table:s2_taska_inputs -->
+
+**Against C++** (stored C++ aggregates; "torch (Task A, stored)" is the Python result stored by Task A):
+
+<!-- table:s2_taska_cpp -->
+| arm | path | n | peak_counts_equal | pixel_counts_equal | quality_within_1e6 |
+|---|---|---|---|---|---|
+| screen, CppEdgeRules | torch (Task A, stored) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | torch (fb42d8c) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | fused portable | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | fused accelerate | 2230 | 2229 | n/a | n/a |
+| complete cost, CppEdgeRules | torch (Task A, stored) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | torch (fb42d8c) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | fused portable | 2230 | 2230 | 1984 | 2229 |
+| complete cost, CppEdgeRules | fused accelerate | 2230 | 2230 | 1985 | 2228 |
+<!-- /table:s2_taska_cpp -->
+
+Paired per orientation, torch at fb42d8c against each build ("both": both equal C++):
+
+<!-- table:s2_taska_paired -->
+| arm | fused | counts | both | torch_only | fused_only | neither |
+|---|---|---|---|---|---|---|
+| screen, CppEdgeRules | portable | peak counts | 2229 | 0 | 0 | 1 |
+| screen, CppEdgeRules | accelerate | peak counts | 2229 | 0 | 0 | 1 |
+| complete cost, CppEdgeRules | portable | peak counts | 2230 | 0 | 0 | 0 |
+| complete cost, CppEdgeRules | portable | peak and pixel counts | 1934 | 51 | 50 | 195 |
+| complete cost, CppEdgeRules | accelerate | peak counts | 2230 | 0 | 0 | 0 |
+| complete cost, CppEdgeRules | accelerate | peak and pixel counts | 1966 | 19 | 19 | 226 |
+<!-- /table:s2_taska_paired -->
+
+Pixel counts were not a Task A aim (A-exact: 1,985 of 2,230). On them the portable build matches C++ on 1,984 and
+exchanges 51 torch-only for 50 fused-only orientations; the Accelerate build matches on 1,985 (19 against 19).
+Quality (within 1e-6) is compared on the complete cost only: the stored C++ screen values have pixel overlap 0 and
+quality 0 on all 2,230 records (why the C++ screen stores 0 was not traced), so screen quality, like screen pixel
+counts, is n/a.
+
+**Fused against torch on this set** (`s2_parity.trace`, parity rule D-20261027-I2). "silent": orientations whose stage-D
+input differs while the `OverlapInfo` does not; "f64_side": for each flipped row, whose side of the pixel integer the
+float64 value lies on.
+
+<!-- table:s2_taska_vs_torch -->
+| arm | fused | n | differing | within_rule | causes | worst_px | pixon | pixov | pkov | pkon | quality | f64_side_torch | f64_side_fused | silent | silent_within_rule | silent_causes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| screen, CppEdgeRules | portable | 2230 | 0 | 0 | - | n/a | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 13 | 13 | pixel_integer |
+| screen, CppEdgeRules | accelerate | 2230 | 0 | 0 | - | n/a | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 10 | 10 | pixel_integer |
+| complete cost, CppEdgeRules | portable | 2230 | 108 | 108 | pixel_integer | 0.0019 | 107 | 4 | 0 | 0 | 1 | 59 | 53 | 99 | 99 | pixel_integer |
+| complete cost, CppEdgeRules | accelerate | 2230 | 43 | 43 | pixel_integer | 0.0009 | 42 | 3 | 0 | 0 | 0 | 25 | 18 | 37 | 37 | pixel_integer |
+<!-- /table:s2_taska_vs_torch -->
+
+On the complete cost the portable build differs from torch on 108 of 2,230 orientations (4.8%, Wilson 4.0-5.8%) and
+the Accelerate build on 43 (1.9%, 1.4-2.6%); on the screen on none. Every differing and every silent orientation is
+traced to pixel-integer flips within the rule's 0.01 px (worst 0.0019 px on a differing orientation, 0.0026 px on a
+silent one, portable); no frame, eta, observability or t > 0 flip. The fields that differ are `pixel_on_detector` (107
+orientations), `pixel_overlap` (4) and `quality` (1); peak counts never. The float64 value lies on torch's side on 59
+of the 112 flipped rows (Wilson 43.5-61.7%): no detectable side preference. The 112 rows are pooled over 108
+orientations, so the interval treats rows of one orientation as independent, which they need not be.
+`s2_parity.trace` keeps one flipped coordinate per Bragg row and detector (the largest ulp margin), so the 0.01 px rule
+is checked on that coordinate. A separate check by the reviewer of every flipped coordinate found no row and detector
+with more than one, but the tool does not test this; Step 4's parity test must check every flipped coordinate.
+
+**The Step 0 outlier** (`taska_check.py outlier`: Phase D voxel 18558, S1's 1,000 orientations, modes `edge` and
+`screen_edge`, every stage-D coordinate more than 0.02 px from the float64 reference; one table row per orientation
+and Bragg row; "coord0": the detector coordinate in pixels from 0, given where the -1 rule decides the pixel):
+
+<!-- table:s2_taska_outlier -->
+| mode | orientation | row | coords | torch_max_err_px | fused_max_err_px | torch_eq_fused | int_flips_vs_f64 | asin_arg | omega_err_rad | coord0_f32_px | coord0_f64_px |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| edge | 735 | 83 | 6 | 0.0669 | 0.0669 | True | 0 | 0.99969 | 1.54e-04 | n/a | n/a |
+| edge | 735 | 195 | 6 | 0.0658 | 0.0658 | True | 2 | 0.99969 | 1.53e-04 | n/a | n/a |
+| edge | 947 | 219 | 1 | 1.5005 | 1.5005 | True | 1 | 0.11969 | 6.87e-08 | -5.25e-05 | 5.37e-04 |
+<!-- /table:s2_taska_outlier -->
+
+- The 1.50 px outlier is the `CppEdgeRules` -1 sentinel, not a position error. Orientation 947 (an FZ point), Bragg
+  row 219, detector 1, vertex 1, column: the float32 detector coordinate is -5.25e-05 px (pixel -1, torch and fused bit
+  for bit equal), the float64 one +5.37e-04 px (pixel coordinate 0.5005, pixel 0). The error statistic compares the
+  sentinel -1 with 0.5005; the two coordinates differ by less than 0.001 px. Both float32 paths put this vertex in pixel
+  -1 where float64 puts it in pixel 0. Whether C++ does the same was not tested (the orientation is not in Task A's
+  set).
+- The next largest float64 error, the 0.0669 px of Step 0's float64 table (full18558), is orientation 735, reflection
+  83, both Bragg solutions (rows 83 and 195), 12 coordinates above 0.02 px (6 per row), torch and fused bit for bit
+  equal. The asin argument is 0.99969 and omega is 1.5e-04 rad from float64 on both rows; this is consistent with
+  float32 rounding amplified near an asin argument of 1 (not tested). Of these coordinates, 2 (both on row 195) have an
+  integer pixel different from float64's. On
+  `screen_edge` no coordinate is more than 0.02 px off.
+
+**Not done.** No C++ rerun (toolchain not installed; the inputs check above replaces the planned "regenerates the
+stored inputs exactly" by an aggregate-level check). No C++ value for the two outlier orientations.
+
+## S2: fused C evaluation, Steps 1-6 results (2026-10-28)
+
+ROADMAP Track S item S2, plan `docs/todo_s2_fused_c_eval.md` (approved D-20261021-I4; Steps 1-6 under owner delegation,
+D-20261027-I1). Steps 1-2 (branch `feature/python-speed-parity-s2-core`) and Step 3 (`feature/python-speed-parity-s2-batched`)
+built the library path; their checks are in `benchmarks/s2_core/RUN_LOG.md` and `benchmarks/s2_batched/RUN_LOG.md`. Steps 4-6
+(`feature/python-speed-parity-s2-results`) measured it: results in `benchmarks/s2_results/` (the tables below are its
+`tables.md` and `taska/tables.md`, written by `scripts/speed_parity/s2/s2_results_summary.py` and `taska_summary.py`). Library
+change in Steps 4-6: only the text of the fallback warning (`cost_functions._warn_fused_fallback`, D-20261028-I1). No new
+dependency, no golden and no default changed; `FusedCost` stays opt-in (default 0).
+
+**Answer.** With `FusedCost 1` the per-call cost of `evaluate` drops from 235.7 to 15.9 us on the Q-max 8 triangle arm (14.9
+times; single-worker, ThreeVoxels voxel 0) and the no-start search of ThreeVoxels voxel 0 from 5.40 to 1.72 s (3.14 times) with
+the same 8,311 evaluations; on 10 E0 voxels from 16.10 to 6.84 s (2.35 times), where the batched screen (not covered) is then
+5.16 of the 6.84 s. The fused path is not bit-equal to torch: on S1's parity set it differs on 93 of 4,000 orientations of the
+triangle arm (Wilson 1.9-2.8%), and every difference, in every covered mode, traces to pixel coordinates within 0.0014 px of a
+pixel edge (the parity rule, D-20261027-I2; no frame, eta, observability or t > 0 difference). Against C++ on Task A's 2,230
+orientations it matches the peak counts as often as torch (2,229 screen, 2,230 complete cost). On E0 (200 voxels, seed 0) the
+wrong count is 35 of 200 with and without the key, with and without `BatchedQuickMC`, with no voxel fixed or broken. With the
+key off every result is bit-identical to the commit before S2 (832db36). No stop rule fired.
+
+### What was built (Steps 1-3, library)
+
+- `icenine/_fused_eval.c` (a second source of the `_rasterize` module): `fused_context` (per cost function and phase: the
+  float32 g vectors, Bragg constants, beam and sample geometry, frame lookup, detector geometry, rule bits) and
+  `fused_evaluate` (one orientation: g = R g_hkl in the plain float32 order, the Bragg solve, observable rows, eta and the
+  `min_sin_eta` filter, the frame lookup, stages B and C with the `CppEdgeRules` -1 rule, stage D through
+  `icenine_stage_d_peak`); a debug mode returns every intermediate (`VoxelCostFunction.fused_debug`, used by the parity checks
+  below). `fused_evaluate_many` (Step 3) scores B orientations of one voxel in one call with the same per-orientation
+  functions. The per-peak stage-D body moved out of `stage_d_overlap` into `icenine_stage_d_peak` (`_rasterize.c`, declared in
+  `_stage_d.h`), so stage D exists once. Multiply-add contraction is off in `_fused_eval.c` only (per-file pragmas,
+  D-20261027-I9). Validated on macOS clang (arm64) only.
+- Wiring: the config key `FusedCost` (`config_file.py`, `SearchParameters.fused_cost`, `_cost_flags`); the fused dispatch in
+  `VoxelCostFunction.evaluate`; the lazy `FrameTable` fill (C names the frames, Python fills them, C repeats the call); the
+  fallbacks with one `RuntimeWarning` per reason (ray rule, soft mode, no eta limit, more than 8 detectors, non-float32 or
+  non-CPU tensors, vertices that are not a (3, 3) float32 CPU tensor, a missing or old extension); `FUSED_ARGUMENTS`, which
+  classifies every `__init__` argument, with a test that fails on an unclassified one; `BatchedCostEvaluator` uses
+  `fused_evaluate_many` when the key is on (CPU, and GPU batches below `GPU_MIN_BATCH`). Steps 1-2 kept the plain g_lab order
+  (`(a0*b0 + a1*b1) + a2*b2`) because it gave fewer flips than the prototype's `fmaf` chain (464 against 634 differing
+  orientations over the 36 dataset-modes; D-20261027-I5, `benchmarks/s2_core/glab_order.json`).
+- Steps 4-6 (scripts): `s2_lib_parity.py` (Step 4 on the library path; `s2_parity.trace(every=True)` traces every flipped
+  coordinate), `taska_check.py run --variants library --every-coord`, `s2_lib_timing.py` and `s2_search.py --lib` (Step 5),
+  `e0_run.py --fused-cost`, `s2_e0.py`, `s2_e0_trace.py` (Step 6), the runners `run_results_timing.sh` and
+  `run_results_e0.sh`, and `s2_results_summary.py`.
+
+### Step 4: parity
+
+**Key off.** `s1_parity.py dump` at the base 832db36 (a `git archive` copy with its own build) against a dump at 41efb45
+(`keyoff_compare.txt`): every field of every mode bit-identical, 60 groups (4 datasets x 15 modes); `s1_parity.py batched`
+against the base dump (`keyoff_batched.txt`): the compact and fixed variants equal the base `evaluate` in every field, 40
+rows. The E0 key-off arm against the base's (Step 6, `e0_keyoff_compare.txt`): 200 of 200 per-voxel records identical in
+every stored array but the run time (35 wrong in both; 8,899,974 global and 824,586 local evaluations in both).
+
+**Fused against torch** (`parity.json`; S1's 1,000 orientations of ThreeVoxels voxel 0 and Phase D voxels 15901, 17034,
+18558, the 9 covered modes, torch threads 1). "differing": orientations whose `OverlapInfo` differs; "silent": orientations
+whose stage-D input differs while the `OverlapInfo` does not; "flipped_coords": every flipped pixel coordinate of both;
+"max_near_px": the largest distance from the pixel edge of the nearer of the torch and fused coordinates;
+"several_coords": (row, detector) pairs with more than one flipped coordinate; "frame_differ": rows both sides kept whose
+frame differs. Ranges are over the modes of a group.
+
+<!-- table:s2_lib_parity -->
+| dataset | modes | n | differing | silent | flipped_coords | failing | causes | max_near_px | max_margin_ulp | several_coords | frame_differ |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| three0 | triangle (5 modes) | 1000 | 16 | 25-27 | 41-43 | 0 | pixel_integer | 0.0009 | 148 | 0 | 0 |
+| three0 | screen (4 modes) | 1000 | 0 | 1-2 | 1-2 | 0 | pixel_integer | 0.0000 | 1 | 0 | 0 |
+| full15901 | triangle (5 modes) | 1000 | 28 | 29 | 60 | 0 | pixel_integer | 0.0009 | 49 | 0 | 0 |
+| full15901 | screen (4 modes) | 1000 | 0 | 4-6 | 4-6 | 0 | pixel_integer | 0.0004 | 20 | 0 | 0 |
+| full17034 | triangle (5 modes) | 1000 | 29 | 33 | 64 | 0 | pixel_integer | 0.0014 | 265 | 0 | 0 |
+| full17034 | screen (4 modes) | 1000 | 0 | 2-5 | 2-5 | 0 | pixel_integer | 0.0010 | 76 | 0 | 0 |
+| full18558 | triangle (5 modes) | 1000 | 19-20 | 32 | 54-55 | 0 | pixel_integer | 0.0006 | 312 | 0 | 0 |
+| full18558 | screen (4 modes) | 1000 | 0 | 4-5 | 4-5 | 0 | pixel_integer | 0.0007 | 88 | 0 | 0 |
+<!-- /table:s2_lib_parity -->
+
+Every one of the 1,164 flipped coordinates (464 differing and 660 silent orientations over the 36 dataset-modes) is a
+pixel-integer flip within 0.0014 px of the edge; no orientation fails the rule. The differing orientations and the per-field
+counts are the same as in the Steps 1-2 run of the same path (36 of 36 dataset-modes against the plain order of
+`glab_order.json`, 9e99d63). No (row, detector) pair has more than one flipped coordinate, so the Task A check's
+one-coordinate-per-row trace (its review fix 5) missed nothing here. The screen modes differ on no orientation.
+
+On the triangle arm (`local`, 4,000 orientations), per `OverlapInfo` field and per flipped coordinate (differing and silent
+orientations pooled; Step 0's nearer counts, torch 75 and fused 65, were over the flipped peaks of differing orientations only,
+so the two are not like for like):
+
+<!-- table:s2_lib_parity_local -->
+| path | n | differing | wilson_low | wilson_high | pixel_on_detector | pixel_overlap | quality | peak_overlap | peak_on_detector | flipped_coords | nearer_torch | nearer_fused | side_torch | side_fused |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| library (plain g_lab) | 4000 | 93 | 0.019 | 0.028 | 92 | 5 | 5 | 0 | 0 | 222 | 113 | 109 | 109 | 113 |
+<!-- /table:s2_lib_parity_local -->
+
+The library path differs on 93 orientations against 129 for the Step 0 prototype's portable build and 44 for its Accelerate
+build (Step 0d). The float64 reference is nearer the torch value on 113 and the fused value on 109 of the 222 flipped
+coordinates (torch nearer on 44.4-57.4%, Wilson; coordinates of one orientation are not independent): no detectable
+preference. The peak counts never differ; the cost (1 - `quality`) differs on 5 orientations.
+
+Per intermediate on ThreeVoxels voxel 0 (`local`; Step 0d's masks): the plain g_lab order agrees with torch on 0.930 of the
+g_lab elements against 0.806 for the prototype's portable build, and the omega difference is at most 4.77e-07 rad (1,024 ulp)
+against 7.01e-05 rad there.
+
+<!-- table:s2_lib_intermediates -->
+| dataset | intermediate | n | equal | equal_frac | max_ulp | max_abs |
+|---|---|---|---|---|---|---|
+| three0 | g_lab | 336000 | 312648 | 0.930 | 1543 | 4.77e-07 |
+| three0 | omega_bragg | 221820 | 206137 | 0.929 | 1024 | 4.77e-07 |
+| three0 | omega | 202504 | 187762 | 0.927 | 1024 | 4.77e-07 |
+| three0 | eta | 202504 | 169248 | 0.836 | 33 | 2.38e-07 |
+| three0 | pixel | 1221696 | 1035205 | 0.847 | 254 | 3.88e-03 |
+| three0 | t | 610848 | 580405 | 0.950 | 5 | 1.91e-06 |
+<!-- /table:s2_lib_intermediates -->
+
+**Against C++** (Parity item 2, D-20261027-I7: `taska_check.py run --variants library --every-coord` on the library kernel
+with the shipped g_lab order, at 41efb45; `parity_inputs.py` regenerates the inputs as in the Task A check, first table).
+
+<!-- table:s2_lib_taska_inputs -->
+| check | n | equal |
+|---|---|---|
+| records: label, kind, FZ and grid indices equal | 2230 | 2230 |
+| pair product, order plain: bit-equal flag and largest difference | 2000 | 1446 |
+| pair product, order clang_contract: bit-equal flag and largest difference | 2000 | 2000 |
+| pair product, order fma_chain: bit-equal flag and largest difference | 2000 | 1286 |
+| pair product, order fma_rev: bit-equal flag and largest difference | 2000 | 1081 |
+| torch at 41efb45 = stored Python, screen | 2230 | 2230 |
+| torch at 41efb45 = stored Python, complete cost | 2230 | 2230 |
+| torch at 41efb45 = stored Python, screen, CppEdgeRules | 2230 | 2230 |
+| torch at 41efb45 = stored Python, complete cost, CppEdgeRules | 2230 | 2230 |
+<!-- /table:s2_lib_taska_inputs -->
+
+<!-- table:s2_lib_taska_cpp -->
+| arm | path | n | peak_counts_equal | pixel_counts_equal | quality_within_1e6 |
+|---|---|---|---|---|---|
+| screen, CppEdgeRules | torch (Task A, stored) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | torch (41efb45) | 2230 | 2229 | n/a | n/a |
+| screen, CppEdgeRules | fused library | 2230 | 2229 | n/a | n/a |
+| complete cost, CppEdgeRules | torch (Task A, stored) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | torch (41efb45) | 2230 | 2230 | 1985 | 2228 |
+| complete cost, CppEdgeRules | fused library | 2230 | 2230 | 1983 | 2228 |
+<!-- /table:s2_lib_taska_cpp -->
+
+<!-- table:s2_lib_taska_paired -->
+| arm | fused | counts | both | torch_only | fused_only | neither |
+|---|---|---|---|---|---|---|
+| screen, CppEdgeRules | library | peak counts | 2229 | 0 | 0 | 1 |
+| complete cost, CppEdgeRules | library | peak counts | 2230 | 0 | 0 | 0 |
+| complete cost, CppEdgeRules | library | peak and pixel counts | 1950 | 35 | 33 | 212 |
+<!-- /table:s2_lib_taska_paired -->
+
+<!-- table:s2_lib_taska_vs_torch -->
+| arm | fused | n | differing | within_rule | causes | worst_px | pixon | pixov | pkov | pkon | quality | f64_side_torch | f64_side_fused | silent | silent_within_rule | silent_causes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| screen, CppEdgeRules | library | 2230 | 0 | 0 | - | n/a | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 14 | 14 | pixel_integer |
+| complete cost, CppEdgeRules | library | 2230 | 73 | 73 | pixel_integer | 0.0010 | 72 | 3 | 0 | 0 | 0 | 39 | 35 | 80 | 80 | pixel_integer |
+<!-- /table:s2_lib_taska_vs_torch -->
+
+The library kernel matches C++'s peak counts on 2,229 (screen) and 2,230 (complete cost) of 2,230 orientations, as torch
+does, with no torch-only orientation: the I4 gate holds again. On the pixel counts, which were not a Task A aim, it matches on
+1,983 against torch's 1,985 (35 torch-only, 33 fused-only orientations; the Step 0 prototype: 1,984). Quality within 1e-6 of
+C++: 2,228 for both. Against torch on this set the library differs on 73 complete-cost orientations and on no screen
+orientation; every differing and every silent orientation traces to pixel-integer flips, within 0.0010 px of the edge on
+the differing ones and 0.0012 px on the silent ones (`summary.json`; the `f64_side` columns count coordinates).
+
+### Step 5: timings (single-worker, preflight quiet on every step)
+
+Per call on S1's per-call set (ThreeVoxels voxel 0, 400 near-truth orientations; median of 5 interleaved rounds; `fused` =
+`evaluate` with the key on, `c_only` = the bare `_rasterize.fused_evaluate` call on the cost function's context,
+`python_share` = their difference; `*_range` = min-max of the 5 rounds; `step0_prototype` = Step 0c's `fused`):
+
+<!-- table:s2_lib_per_call -->
+| arm | torch | torch_range | fused | fused_range | c_only | c_only_range | python_share | speedup | step0_prototype |
+|---|---|---|---|---|---|---|---|---|---|
+| triangle_q8_default | 235.7 | 235.0-236.7 | 15.9 | 15.4-16.1 | 13.8 | 13.6-14.3 | 2.0 | 14.9 | 14.4 |
+| triangle_q8_cpp | 235.0 | 234.3-235.8 | 15.6 | 15.3-15.8 | 13.7 | 13.4-13.8 | 1.9 | 15.1 | 14.2 |
+| screen_r3_q5_default | 202.1 | 201.4-208.6 | 4.4 | 4.3-4.5 | 2.5 | 2.5-2.6 | 1.9 | 45.5 | 3.3 |
+| screen_r3_q5_cpp | 202.1 | 201.0-202.3 | 4.3 | 4.2-4.4 | 2.4 | 2.4-2.5 | 1.9 | 46.8 | 3.3 |
+<!-- /table:s2_lib_per_call -->
+
+The library path is slower than the prototype (15.9 against 14.4 us on the triangle arm, 4.4 against 3.3 us on the screen
+arm). Step 0c is a different run, so this comparison is unpaired. Within this run the Python wrapper takes 2.0 us of the
+triangle arm's 15.9 (`python_share`; in Step 0c, `fused` 14.4 against `c_only` 13.4). The C call shows no detectable
+difference across the two runs: 13.8 us here against 13.4 in Step 0c, inside this run's own `c_only` range (13.6-14.3).
+
+Batched (`BatchedCostEvaluator.evaluate_many`, 512 near-truth orientations in chunks of B, us per orientation; `fixed_gpu` =
+the fixed-shape variant on MPS; `evaluate_*` = one orientation per call; `three0_search` = the local cost of ThreeVoxels'
+search config, 868 reflections):
+
+<!-- table:s2_lib_batched -->
+| set | K | B | compact | fused | fixed_gpu | gpu_over_fused | evaluate_torch | evaluate_fused |
+|---|---|---|---|---|---|---|---|---|
+| three0 | 112 | 1 | 245.7 | 16.6 | 2156.8 | 129.68 | 244.1 | 15.9 |
+| three0 | 112 | 8 | 87.8 | 14.6 | 317.3 | 21.75 | 244.1 | 15.9 |
+| three0 | 112 | 16 | 74.6 | 14.4 | 184.7 | 12.83 | 244.1 | 15.9 |
+| three0 | 112 | 32 | 68.4 | 14.3 | 119.4 | 8.36 | 244.1 | 15.9 |
+| three0 | 112 | 64 | 65.0 | 14.2 | 97.3 | 6.83 | 244.1 | 15.9 |
+| three0 | 112 | 128 | 63.4 | 14.2 | 65.5 | 4.60 | 244.1 | 15.9 |
+| three0 | 112 | 256 | 62.7 | 14.2 | 59.2 | 4.17 | 244.1 | 15.9 |
+| three0 | 112 | 512 | 63.4 | 14.1 | 48.4 | 3.44 | 244.1 | 15.9 |
+| three0_search | 868 | 1 | 628.2 | 93.3 | 2303.5 | 24.69 | 543.8 | 95.5 |
+| three0_search | 868 | 8 | 459.2 | 92.7 | 425.0 | 4.59 | 543.8 | 95.5 |
+| three0_search | 868 | 16 | 446.6 | 95.3 | 316.5 | 3.32 | 543.8 | 95.5 |
+| three0_search | 868 | 32 | 442.6 | 97.2 | 272.7 | 2.80 | 543.8 | 95.5 |
+| three0_search | 868 | 64 | 441.3 | 97.3 | 235.6 | 2.42 | 543.8 | 95.5 |
+| three0_search | 868 | 128 | 440.5 | 95.5 | 228.0 | 2.39 | 543.8 | 95.5 |
+| three0_search | 868 | 256 | 437.5 | 95.3 | 228.0 | 2.39 | 543.8 | 95.5 |
+| three0_search | 868 | 512 | 431.5 | 92.8 | 228.4 | 2.46 | 543.8 | 95.5 |
+| e0_0 | 112 | 1 | 248.6 | 17.6 | 2208.6 | 125.20 | 248.0 | 16.9 |
+| e0_0 | 112 | 8 | 83.3 | 15.4 | 318.5 | 20.64 | 248.0 | 16.9 |
+| e0_0 | 112 | 16 | 70.4 | 15.3 | 187.8 | 12.30 | 248.0 | 16.9 |
+| e0_0 | 112 | 32 | 63.6 | 15.2 | 117.9 | 7.75 | 248.0 | 16.9 |
+| e0_0 | 112 | 64 | 60.4 | 15.1 | 78.8 | 5.22 | 248.0 | 16.9 |
+| e0_0 | 112 | 128 | 58.9 | 15.0 | 70.4 | 4.69 | 248.0 | 16.9 |
+| e0_0 | 112 | 256 | 57.7 | 15.1 | 56.9 | 3.77 | 248.0 | 16.9 |
+| e0_0 | 112 | 512 | 57.9 | 15.1 | 53.2 | 3.51 | 248.0 | 16.9 |
+<!-- /table:s2_lib_batched -->
+
+The batched fused entry costs about the same per orientation at B 8-512 (14.1-14.6 us on three0 and 15.0-15.4 us on e0_0, at
+112 reflections; 92.7-97.3 us at 868 on three0_search, B = 1 included); at 112 reflections B = 1 costs about 2 us more (16.6
+and 17.6 us). Batching thus adds little over the fused `evaluate` beyond the Python call.
+
+**GPU_MIN_BATCH** (64, set against the torch compact variant; D-20261028-I1 asks for the measurement, not a change): with
+the key on, `evaluate_many` still sends batches of 64 or more to the GPU when `SearchDevice` is a GPU, and on this machine
+(Apple MPS) the fixed variant is slower than the fused CPU entry at every B measured: 3.4-6.8 times at B 64-512 with 112
+reflections, 2.4-2.5 times with 868. The constant is unchanged; whether the fused path should keep priority over the GPU
+with the key on is left for the owner's review, nothing changed (D-20261028-I2; CUDA not measured).
+
+No-start search, split as Step 0a (ThreeVoxels voxel 0, `Example2.Simulation.config`, median of 3 repeats; 10 E0 clean voxels,
+sums, median of 2 repeats; `wall_range` = min-max of the repeats; `quick_mc_us` = quick-MC microseconds per evaluation, the
+batched cost's for `BatchedQuickMC 1`):
+
+<!-- table:s2_lib_search_three -->
+| arm | wall | wall_range | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| default keys | 5.40 | 5.35-5.43 | 1.00 | 4.60 | 8311 | 553 | 3.58 | 6456 | 554 | 0.62 | 1 of 1 |
+| BatchedQuickMC 1 | 4.50 | 4.48-4.53 | 1.20 | 1.00 | 1812 | 550 | 2.72 | 6408 | 425 | 0.62 | 0 of 1 |
+| FusedCost 1 | 1.72 | 1.72-1.74 | 3.14 | 0.94 | 8311 | 113 | 0.74 | 6456 | 114 | 0.63 | 1 of 1 |
+| BatchedQuickMC 1, FusedCost 1 | 1.76 | 1.76-1.80 | 3.07 | 0.20 | 1812 | 110 | 0.80 | 6408 | 125 | 0.63 | 0 of 1 |
+<!-- /table:s2_lib_search_three -->
+
+<!-- table:s2_lib_search_e0 -->
+| arm | wall | wall_range | vs_default | evaluate | evaluate_n | us_per_eval | quick_mc | quick_mc_n | quick_mc_us | screen | wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| default keys | 16.10 | 16.09-16.10 | 1.00 | 9.95 | 39759 | 250 | 6.91 | 27636 | 250 | 5.16 | 2 of 10 |
+| BatchedQuickMC 1 | 10.52 | 10.52-10.52 | 1.53 | 2.82 | 11219 | 251 | 1.73 | 27576 | 63 | 5.16 | 2 of 10 |
+| FusedCost 1 | 6.84 | 6.84-6.84 | 2.35 | 0.80 | 39869 | 20 | 0.56 | 27636 | 20 | 5.16 | 2 of 10 |
+| BatchedQuickMC 1, FusedCost 1 | 6.72 | 6.72-6.73 | 2.39 | 0.22 | 11219 | 20 | 0.56 | 27576 | 20 | 5.16 | 2 of 10 |
+<!-- /table:s2_lib_search_e0 -->
+
+- ThreeVoxels voxel 0: the key-on search makes the same 8,311 evaluations as torch and ends 53.936 degrees from the truth
+  (wrong) in both, with a final cost of 0.4355 against 0.4377 (`summary.json` `search_three.final`), so its path differs in
+  places; it is 3.14 times faster (1.72 s, repeats 1.72-1.74, against 5.40 s, repeats 5.35-5.43). With `BatchedQuickMC 1`
+  the batched fused cost takes 125 us per evaluation against 425 us for the torch compact variant, and the search is 1.76 s
+  (1.76-1.80) against 4.50 s (4.48-4.53) (same 1,812 evaluate calls, both right).
+- E0 (10 voxels): 250 to 20 us per evaluate call; the search is 2.35 times faster (6.84 s, repeats 6.84-6.84, against
+  16.10 s, 16.09-16.10), and 2.39 times with `BatchedQuickMC 1` as well (6.72 s, 6.72-6.73, against 10.52 s, 10.52-10.52).
+  The wrong sets are the same per pair (default against `FusedCost 1`: 0 fixed, 0 broken, 2 both wrong). One voxel (e0_4)
+  took another path with the key (4,779 against 4,669 local evaluations, right in both). The remaining time is mostly the
+  batched screen (5.16 s), which S2 does not cover.
+- `BatchedQuickMC` with the key on: per evaluation, the batched fused quick MC costs no less than the sequential fused one,
+  20 against 20 us on E0 and 125 against 114 us on ThreeVoxels (868 reflections; `quick_mc_us`). The search walls with and
+  without `BatchedQuickMC` (E0 6.72 against 6.84 s, ThreeVoxels 1.76 against 1.72 s) are different searches, not paired on
+  the same evaluations: draw option B changes the path. On ThreeVoxels the arm without it ends wrong at 53.936 degrees and
+  the arm with it ends right (quick-MC evaluations 6,456 against 6,408); on E0 the wrong sets are e0_0, e0_8 without it and
+  e0_5, e0_8 with it. Whether to keep `BatchedQuickMC` in the recommended configuration with the key on is left for the
+  owner's review, nothing changed (D-20261028-I2).
+
+### Step 6: E0 A/B (E0 clean, 200 voxels, seed 0)
+
+`e0_run.py run --variants clean --n-seeds 1 --n-voxels 200 --workers 6`, arms `_s2off`, `--fused-cost --tag _s2on`,
+`--batched-quick-mc --tag _s2bq`, both (`_s2bqon`), the same images, voxels and random streams (`run_results_e0.sh`;
+`e0.json`). Wrong = reduced misorientation to the truth > 1 degree. Run times are contended (6 workers, not preflight-gated).
+
+<!-- table:s2_e0_wrong -->
+| arm | wrong | n | rate | wilson_low | wilson_high |
+|---|---|---|---|---|---|
+| key off | 35 | 200 | 0.175 | 0.129 | 0.234 |
+| FusedCost 1 | 35 | 200 | 0.175 | 0.129 | 0.234 |
+| BatchedQuickMC 1 | 35 | 200 | 0.175 | 0.129 | 0.234 |
+| BatchedQuickMC 1, FusedCost 1 | 35 | 200 | 0.175 | 0.129 | 0.234 |
+<!-- /table:s2_e0_wrong -->
+
+<!-- table:s2_e0_paired -->
+| pair | n | wrong_a | wrong_b | fixed | broken | both_wrong | both_right | same_final |
+|---|---|---|---|---|---|---|---|---|
+| key off vs FusedCost 1 | 200 | 35 | 35 | 0 | 0 | 35 | 165 | 182 |
+| BatchedQuickMC 1 vs BatchedQuickMC 1 + FusedCost 1 | 200 | 35 | 35 | 0 | 0 | 35 | 165 | 182 |
+| key off vs BatchedQuickMC 1 (another draw, for scale) | 200 | 35 | 35 | 18 | 18 | 17 | 147 | 0 |
+<!-- /table:s2_e0_paired -->
+
+<!-- table:s2_e0_evals -->
+| arm | local_mean | global_mean | runtime_median | workers |
+|---|---|---|---|---|
+| key off | 4122.9 | 44499.9 | 2.44 | 6 |
+| FusedCost 1 | 4119.2 | 44499.8 | 1.01 | 6 |
+| BatchedQuickMC 1 | 4133.6 | 44501.1 | 1.60 | 6 |
+| BatchedQuickMC 1, FusedCost 1 | 4132.7 | 44501.1 | 0.98 | 6 |
+<!-- /table:s2_e0_evals -->
+
+The key fixes and breaks no voxel, with or without `BatchedQuickMC` (35 both wrong, 165 both right per pair); for scale, the
+key-off arm against `BatchedQuickMC 1` (another random draw of the same search) splits 18 fixed and 18 broken, and S3's
+seed-to-seed calibration gave 14-23 flips each way. 182 of 200 voxels end at the same final orientation bit for bit; the
+evaluation counts per run are nearly the same (4,122.9 against 4,119.2 local, 44,499.9 against 44,499.8 global). Median run
+time per voxel, contended (6 workers, not preflight-gated): 2.44 s with the key off, 1.01 s with it on.
+
+**Traced.** No wrong flag changed, so there is no break to trace (D-20261014-N13); instead every voxel whose final
+orientation moved (18 per pair) was rerun with the key on and a shadow that recomputes each fused result on the torch path
+(`s2_e0_trace.py --changed`; `e0_trace.json`): every rerun reproduces the stored key-on record (final orientation and
+evaluation counts), and every differing evaluation is traced with `s2_parity.trace(every=True)`.
+
+<!-- table:s2_e0_trace_pairs -->
+| pair | voxels | changes | reproduced | shadowed | differing | within_rule | quality_differs | causes | max_near_px |
+|---|---|---|---|---|---|---|---|---|---|
+| bqmc vs bqmc_on | 18 | both right 16, both wrong 2 | 18 | 71672 | 1807 | 1807 | 198 | pixel_integer | 0.0018 |
+| off vs on | 18 | both right 15, both wrong 3 | 18 | 76839 | 1986 | 1986 | 223 | pixel_integer | 0.0016 |
+<!-- /table:s2_e0_trace_pairs -->
+
+All 3,793 differing evaluations (of 148,511 shadowed in the 36 runs) are pixel-integer flips within 0.0018 px of the edge; 421
+of them change the cost. Up to the first of them the key-on search repeats the key-off search call for call by construction
+(the key changes only cost values and the shadow draws no random number; not compared against a key-off call log; the
+"reproduced" check covers the key-on side only), so where the two part is one of these flips; which one changed the path was
+not determined.
+
+Per voxel (the 36 runs above; `first_call` is the first differing evaluation, `near_px` the largest distance from a pixel
+edge among its flips):
+
+<!-- table:s2_e0_trace -->
+| pair | voxel | change | reproduced | shadowed | differing | first_call | first_path | radius | fields | causes | within_rule | near_px |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| off vs on | 7336 | both wrong | True | 3165 | 87 | 55 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 16269 | both right | True | 4779 | 114 | 101 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0004 |
+| off vs on | 20406 | both right | True | 4251 | 96 | 1 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 10531 | both right | True | 4958 | 126 | 30 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 16905 | both right | True | 4415 | 113 | 11 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0013 |
+| off vs on | 14240 | both right | True | 5040 | 138 | 54 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 17977 | both right | True | 4070 | 102 | 117 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 10507 | both right | True | 3690 | 111 | 17 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0005 |
+| off vs on | 22302 | both wrong | True | 3597 | 77 | 37 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 14497 | both wrong | True | 3461 | 109 | 11 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 12015 | both right | True | 4151 | 100 | 34 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 9525 | both right | True | 5674 | 145 | 30 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 15019 | both right | True | 5067 | 137 | 1 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 177 | both right | True | 4031 | 104 | 108 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| off vs on | 10864 | both right | True | 4519 | 108 | 30 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0006 |
+| off vs on | 15620 | both right | True | 3439 | 77 | 17 | evaluate | 0 | pixel_on_detector, quality | pixel_integer | True | 0.0001 |
+| off vs on | 22863 | both right | True | 4005 | 98 | 51 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| off vs on | 6596 | both right | True | 4527 | 144 | 17 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 2177 | both right | True | 3491 | 87 | 13 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 14217 | both wrong | True | 4247 | 112 | 35 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 5384 | both right | True | 3355 | 71 | 2 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 21741 | both right | True | 3653 | 92 | 138 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 17771 | both right | True | 3846 | 95 | 6 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 24339 | both right | True | 4944 | 113 | 110 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0009 |
+| bqmc vs bqmc_on | 2807 | both right | True | 3747 | 106 | 21 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 1935 | both right | True | 4183 | 118 | 57 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 2735 | both right | True | 4714 | 99 | 86 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 22517 | both right | True | 3406 | 71 | 61 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 21726 | both right | True | 4147 | 119 | 90 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0015 |
+| bqmc vs bqmc_on | 628 | both right | True | 3728 | 87 | 101 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 10007 | both wrong | True | 3587 | 95 | 38 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 24420 | both right | True | 3869 | 82 | 28 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0002 |
+| bqmc vs bqmc_on | 20976 | both right | True | 3934 | 106 | 3 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 77 | both right | True | 4309 | 114 | 123 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+| bqmc vs bqmc_on | 18723 | both right | True | 4197 | 116 | 32 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0000 |
+| bqmc vs bqmc_on | 14596 | both right | True | 4315 | 124 | 10 | evaluate | 0 | pixel_on_detector | pixel_integer | True | 0.0001 |
+<!-- /table:s2_e0_trace -->
+
+### Deviations and not done
+
+- E0 used the clean images only and one seed (the plan's "200 voxels, seed 0"); no realistic-image arm.
+- The C++ side of Task A is the stored aggregates (no C++ toolchain on this machine), as in the Task A check.
+- The `GPU_MIN_BATCH` measurement covers Apple MPS only; no CUDA machine was used.
+- `FusedCost` is validated on macOS clang (arm64) only (D-20261027-I10); GCC and other platforms are untested.
+
+## Autoresearch stage (Track A): plan (2026-11-09)
+
+Owner mandate D-20261109-N1. The plan is `docs/autoresearch/PLAN.md` and the saved state, read first
+after a restart, is `docs/autoresearch/STATE.md`. In the 2,000-voxel BFS pilot, 69 full searches take
+22.88 M of 25.55 M evaluations and 87% of the time, so the stage aims at the full search first.
+Hypotheses: H1, index the rays near a seed voxel (pairs of scattering vectors vote for an
+orientation) in place of the grid search; H2, index the whole layer into grains and paint each
+grain's orientation over its voxels in one batched pass, with no voxel-by-voxel search; H3, a stop
+rule from the hit ratio and the votes of the rays the current orientation leaves unexplained; H4, a
+learned proposer that reads the rays near a voxel and ranks grid orientations, measured against H1;
+H5, the order of the layer-wide screen and the BFS (idea A1) as the fallback. Steps AR0 to AR5; no
+step has run yet. Results will be added here step by step.
+
+## Autoresearch AR0: what the stored results say about stopping (done 2026-11-09)
+
+Step AR0 of `docs/autoresearch/PLAN.md`. No new search was run. Script
+`scripts/autoresearch/ar0/stopping.py`; results `benchmarks/autoresearch/ar0/`; findings
+`docs/autoresearch/findings_ar0_stopping.md`. Reviewed (12 fixes, all applied) and merged (0decc3a).
+
+- On E0 (200 hard voxels) the final cost tells right from wrong with no mistake: 159 right voxels at
+  0.390 or less, 41 wrong at 0.673 or more. The cut was read on the same 200 voxels.
+- The best cost after a grid level does not separate them. On E0 a rule "stop after level k when
+  the best cost is at most c" saves at most 1.26% of the evaluations with no voxel broken if the
+  finisher is skipped, and 0.37% if it still runs.
+- That is an E0 result. On E0 the level-0 screen and re-cost is 90.7% of the evaluations; on
+  full-sample voxels it is 23.7%, and 39.2% come after level 0. A stop after level 0 could save far
+  more there. Untested: no per-level record exists for full-sample searches. It is the first job of
+  step AR5.
+- On the pilot's key-off rerun a hit-ratio cut of 0.93 has all 37 wrong voxels below it, with 15
+  right ones; all 1,948 answers at or above it are right. Picked and read on the same run.
+
+## Autoresearch AR1: indexing the rays instead of grid-searching (done 2026-11-09)
+
+Step AR1 of `docs/autoresearch/PLAN.md` (hypothesis H1). Merged as 5bd9ecc after a review with 18
+required fixes, all applied. Findings: `docs/autoresearch/findings_ar1_ray_indexing.md`.
+
+What was added:
+
+- `icenine/ray_indexing.py` (the only library change) and `tests/test_ray_indexing.py` (11 tests,
+  one on a hexagonal crystal). A ray is a spot on detector 0 paired with its spot on detector 1.
+  Each ray gives a scattering vector. Two vectors of different families give an orientation (a
+  vote). Clusters of votes, refined on the rays they explain, are the candidates. The symmetry
+  comes from the crystal's own operators.
+- Scripts in `scripts/autoresearch/ar1/`, results in `benchmarks/autoresearch/ar1/`.
+
+What was measured (clean full-sample images, Q-max 8). E0 is 200 hard voxels whose images hold only
+their own spots, so it is the easy case. The pilot set is the 69 voxels of the 2,000-voxel BFS
+pilot that took a full search; its images hold the spots of all grains.
+
+- Recall on the pilot set: the truth is within 2 degrees of one of the first 5 candidates for 69
+  of 69 voxels, and of the first candidate for 41 of 69. In the other 28 the first candidate is
+  the true orientation of another grain; in 27 of them that grain touches the voxel.
+- The path set in advance (strict cost on 5 candidates, then the finisher on the best one) takes a
+  median of 1,138 evaluations per voxel against 332,154 for the stored grid search. It gets 3 of 69
+  wrong against 4 stored: it fixes 4 and breaks 3. Two of the 4 fixed are rejected seeds whose
+  stored result is not the full search's own.
+- The 3 breaks come from the arm's rule. It picks one candidate before refining. After the finisher
+  the true grain has the lower cost in all 3. They count against this arm (D-20261109-N7).
+- With the finisher on the best 2 or the best 3 candidates, 0 of 69 are wrong, at a mean of 1,926
+  or 2,546 evaluations. Both arms were chosen after the first result was seen, so this is not a
+  test yet.
+- E0: 200 of 200 at every K; 0 wrong against 41 stored; median 530 evaluations against 48,724.
+- Outside the evaluation count: pairing all spots once (17 s) and indexing a voxel (median 0.18 s,
+  about as long as 400 strict evaluations). Both contended. No wall-time comparison yet.
+
+Not tested: realistic images, another sample or material, local fits, wall time on a quiet machine.
+
+Next (plan, section AR2): a holdout of the three finisher arms on voxels outside the pilot region,
+then the opt-in key `SeedByIndexing` in the BFS, on the pilot against the key-off rerun.
+
+## Autoresearch AR2 step 1: a holdout of the finisher arms (done 2026-11-09)
+
+Plan: `docs/autoresearch/PLAN.md`, section AR2, step 1 (D-20261109-N7). Findings:
+`docs/autoresearch/findings_ar2_holdout.md`. Merged on `feature/eval-reduction` as 86dd905 after a
+review (10 required fixes, all applied; its three questions are decided in D-20261109-N8).
+
+Why. AR1 chose "finisher on the best 2 candidates" after it saw "best 1" fail on the same 69
+voxels. So its 0 of 69 was not a test. This step tests the arms on voxels they had not seen.
+
+What was added.
+
+- Scripts in `scripts/autoresearch/ar2/` (`select_voxels.py`, `holdout_run.py`,
+  `holdout_summary.py`, `fix3_check.py`), results in `benchmarks/autoresearch/ar2/holdout/`.
+- One library change: `misorientation_deg` in `icenine/ray_indexing.py` takes the angle with atan2
+  of the sine and cosine parts. The old arccos of a clipped cosine had a floor of a few thousandths
+  of a degree, because stored orientations are off orthonormal by about 5e-8. Four unit tests
+  added. No candidate and no wrong count changed (checked on the 300 holdout, 69 pilot and 200 E0
+  voxels). The AR1 page has a dated note.
+
+What was measured (clean full-sample images, Q-max 8). The holdout is 300 voxels outside the pilot
+region, picked by a fixed stride and committed before the run: 150 boundary voxels (76 share an
+edge with another grain, 74 only a corner) and 150 interior voxels. Each arm takes the strict cost
+on the first 5 indexing candidates, then runs the finisher on the best 1, 2 or 3. Wrong means more
+than 1 degree from the truth.
+
+- Wrong voxels: best 1 has 5 of 300, best 2 has 1 of 300, best 3 has 1 of 300. Interior voxels: 0
+  of 150 in every arm. All 5 wrong voxels share an edge with another grain.
+- Paired by voxel, best 2 against best 1: 4 fixed, 0 broken, 1 wrong in both. Best 3 takes the
+  same candidate as best 2 on all 300 voxels. By the plan's rule best 2 stays the main arm.
+- Mean evaluations per voxel: 1,302 (best 1), 2,046 (best 2), 2,634 (best 3).
+- The truth is within 2 degrees of one of the first 5 candidates for 300 of 300 voxels, and of the
+  first candidate for 207 of 300.
+- Voxel 17361 is wrong in every arm. The strict cost is lower at the truth (0.0949) than at the
+  result taken (0.133), but the finisher, started 0.045 degrees from the truth, did not move in 924
+  evaluations. It counts against all three arms (D-20261109-N8). Why the finisher did not move is
+  not known.
+
+Not tested: a stored grid search for these voxels (none exists), the seed test and the grid
+fallback, few-ray voxels (every holdout voxel has at least 30 explained rays), realistic images,
+another sample, wall time on a quiet machine (all times here are contended).
+
+Next (plan, section AR2, step 2): the opt-in key `SeedByIndexing` in the BFS, with the finisher on
+the best 2, on the pilot region against the key-off rerun. Voxel 17361 is a named test case.
+
+## Autoresearch AR2 step 2: indexing as the BFS seed search, the key `SeedByIndexing` (done 2026-11-09)
+
+Plan: `docs/autoresearch/PLAN.md`, section AR2, step 2. Findings:
+`docs/autoresearch/findings_ar2_key.md`. Merged on `feature/eval-reduction` as a8c99b7 after a
+review (14 required fixes, all applied; its questions are decided in D-20261109-N9 and N10). Full
+suite at the merge: 1473 passed, 47 skipped, 1 deselected.
+
+Why. AR1 and step 1 showed, voxel by voxel, that indexing the rays finds a seed orientation in
+about 2,000 cost evaluations where the grid search takes about 332,000. This step puts that into
+the breadth-first reconstruction (BFS) and measures a whole run.
+
+What was added.
+
+- The opt-in config key `SeedByIndexing` (0 or 1, default 0; Python only). With it on, every seed
+  and reseed of the BFS is indexed first: the strict cost on the first 5 candidates, the finisher on
+  the best 2, then the usual seed test. If there is no candidate, or the seed test fails, the grid
+  search runs as before. The rays are paired once per run.
+- Library (additions only): `icenine/config_file.py`, `icenine/orientation_search.py`,
+  `icenine/reconstructor.py` (`AdaptiveVoxelReconstructor.index_seed`, `stats["index_*"]`,
+  `BFSReconstruction.index_log`) and `icenine/ray_indexing.py` (`seed_by_indexing`).
+- Tests: `tests/test_seed_by_indexing.py`, 12 tests. With the key off the new code is not entered.
+  This is shown with a scripted BFS and the golden grid. It was not shown on real images against
+  an older commit.
+- Scripts in `scripts/autoresearch/ar2/` (`key_*.py`, three configs), results in
+  `benchmarks/autoresearch/ar2/key/`. `scripts/phase_d/pilot_bfs.py` also writes the index log.
+
+What was measured (clean full-sample images, Q-max 8, the 2,000-voxel pilot region, one run per
+arm). Wrong means more than 1 degree from the truth.
+
+- Evaluations: 2,819,906 with the key on against 25,547,935 with it off, about 9.1 times fewer.
+  The 64 indexing paths cost 122,198 (1,909 each). The grid searches cost 22,882,865 (331,636
+  each). The local fits cost about the same in both runs (2,697,708 on, 2,665,070 off). So with the
+  key on, almost all remaining evaluations are local fits.
+- The indexed seeds themselves: 0 of 64 are wrong (0.0 to 5.7%). The grid search has 2 wrong of 62
+  (0.9 to 11.0%). The intervals overlap, so the two are not shown different.
+- All 64 indexed seeds passed the seed test. With the key off, 7 of 69 grid results failed it.
+  No seed fell back to the grid search, so the fallback ran on no real voxel.
+- Whole-run wrong voxels: 22 of 2,000 with the key on, 37 for the stored key-off run. Paired: 22
+  fixed, 7 broken, 15 wrong in both. No gain is claimed from this (D-20261109-N9). The same
+  key-off run with only `FusedCost` switched on has 24 wrong, and against it the key gives 14
+  fixed and 12 broken. Two key-off runs alone differ by 20 fixed and 7 broken.
+- Every fixed and broken voxel shares an edge with another grain and takes that grain's
+  orientation. Three fixes are on the key's own path and count for it (D-20261109-N10): voxels
+  5876 and 24334, and 16476 in the `FusedCost` pair. Each was a seed in both runs; the seed test
+  rejected the grid result and the indexed result is right. The others count neither way.
+- The key changes which voxels become seeds, so the BFS spreads in a different order. That effect
+  is inside the whole-run counts. It was not tested on its own.
+- Wall time, a first reading on a busy machine (`FusedCost` on, one worker, one run per arm): 213 s
+  with the key on, 1633 s with it off. Pairing took 17.6 s once and indexing 0.186 s per seed. The
+  timing on a quiet machine (review item 14) stays open.
+- Voxel 17361: both finisher stages ran and accepted no step. The strict cost is 0.0949 at the
+  truth and 0.1556 at 0.02 degrees from it. The finisher's first step is 0.132 degrees. This is
+  consistent with a minimum narrower than the first step. A smaller step was not tried.
+
+Not tested: the fallback on real voxels, the route change on its own, bit-identity of the key-off
+path on real images, the whole layer (a larger hull pairs the rays differently), few-ray voxels,
+realistic images, another sample, a quiet machine.
+
+Next (plan, section AR3): the local fits are now the cost. Index the layer once, list the grains,
+and paint voxels from the grain list, with local fits only where the painting is unclear.

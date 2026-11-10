@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-10-14T12:45:58",
+  "host": "ilium.lan",
+  "loadavg": [
+    11.02685546875,
+    17.2353515625,
+    32.7998046875
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 4,
+  "busy_processes": []
+}

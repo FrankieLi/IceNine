@@ -1,0 +1,40 @@
+{
+ "set": "full",
+ "label": "contended",
+ "repeats": 1,
+ "rule": "lenient",
+ "note": "whole reconstruct_voxel wall time, one process, one torch thread; includes the SmoothCost build the library does on every reconstruct_voxel call",
+ "runs": [
+  {
+   "voxel": 15901,
+   "spec": "off",
+   "wall_s": 117.440672125,
+   "err_deg": 0.03777718360172443,
+   "err_deg_cached": 0.03777718360172443,
+   "same_as_cache": true,
+   "smooth_evals": 0,
+   "repeat": 0
+  },
+  {
+   "voxel": 15901,
+   "spec": "E3+E4,tau=0.25",
+   "wall_s": 159.56395954200002,
+   "err_deg": 0.009509408798505606,
+   "err_deg_cached": 0.009509408798505606,
+   "same_as_cache": true,
+   "smooth_evals": 14804,
+   "repeat": 0
+  },
+  {
+   "voxel": 15901,
+   "spec": "E1+E2+E3+E4",
+   "wall_s": 263.87623625,
+   "err_deg": 0.0481258330861765,
+   "err_deg_cached": 0.0481258330861765,
+   "same_as_cache": true,
+   "smooth_evals": 15592,
+   "repeat": 0
+  }
+ ],
+ "wall_total_s": 541.217719078064
+}

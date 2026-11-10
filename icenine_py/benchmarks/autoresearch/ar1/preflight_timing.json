@@ -1,0 +1,22 @@
+{
+ "timestamp": "2026-11-09T15:20:27",
+ "host": "newt.lan",
+ "loadavg": [
+  2.47216796875,
+  3.54052734375,
+  3.86767578125
+ ],
+ "cpu_count": 12,
+ "power": "ac",
+ "omp_num_threads": null,
+ "mkl_num_threads": null,
+ "torch_threads": 8,
+ "busy_processes": [
+  {
+   "pid": 18415,
+   "cpu": 97.6,
+   "command": "<home>/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+  }
+ ],
+ "require_quiet_refused": "machine not quiet for timing: 1-min load 2.59 > 1.5; busy process pid 18415 (97% CPU): <home>/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+}

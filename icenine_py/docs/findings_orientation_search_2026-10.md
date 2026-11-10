@@ -27,7 +27,10 @@ This report collects one week of work on finding and refining a voxel's orientat
 - **Samples.** The Cu (FCC) ThreeVoxels and ManyGrains examples. Most single-voxel studies use random voxels of the
   500-grain ManyGrains sample.
 - **"Realistic" data.** Exact synthetic detector windows plus neighbour/twin overlap plus detector noise (missing
-  spots, edge jitter, spurious blobs). The labels stay exact.
+  spots, edge jitter, spurious blobs). The labels stay exact. Caveat (Q8, 2026-10-14): the "missing spots" are a random
+  drop of 10% of the spots whatever their intensity, which the owner has ruled unphysical; every realistic number below
+  carries it. Only the E0 `mc` arm was re-run without the drop (`MIGRATION_HISTORY.md` "Q8: realistic images without the
+  random spot drop"); the network, sweep and finisher results here were not.
 - **Images.** All studies render per-voxel images, with at most 3 distractor sources, not full-sample renders.
 
 **Conventions.**

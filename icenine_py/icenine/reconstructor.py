@@ -12,6 +12,7 @@ C++ Reference:
 
 import math
 import time
+import warnings
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,6 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TYPE_CHECKIN
 import numpy as np
 import torch
 
+from .candidate_dedup import DedupSpec, distinct_order, keep_before_quick_mc
 from .config_file import ConfigFile
 from .cost_functions import OverlapInfo, VoxelCostFunction
 from .crystal_structure import CrystalStructure
@@ -50,6 +52,7 @@ from .sampling import (
 from .simulation import Simulation
 from .ray_overlap import RayRule
 from .simulation_range import SimulationRange
+from .smooth_cost import SmoothCostCache, SmoothSpec, make_ranker
 
 if TYPE_CHECKING:
     from .differentiable_cost import DifferentiableCostFunction
@@ -386,6 +389,38 @@ class BasicVoxelReconstructor:
 
 
 # ---------------------------------------------------------------------------
+# OutwardSearch (opt-in, Task G2): the Task F fallback policy from a start orientation
+# ---------------------------------------------------------------------------
+
+# Settings of the policy as Task F chose them and the carry-option comparison ran them
+# (scripts/eval_reduction/outward_bench.py; D-20261028-N4: 1-frame window)
+OUTWARD_ACCEPT_COST = 0.8  # strict cost at most this passes the acceptance test (F4 and F5)
+OUTWARD_TAU_DEG = (0.25,)  # E4 robust scale schedule of F4
+OUTWARD_FRAME_WINDOW = 1  # F4 matches a peak to rays at most this many frames away
+OUTWARD_SHELL_SPACING_DEG = 0.3  # F5 shell spacing
+OUTWARD_R_MAX_DEG = 6.0  # F5 outermost shell
+OUTWARD_SCREEN_MAX_Q = 5.0  # F5 screen: pixel radius 3 (global_pixel_radius), Q-max 5
+
+
+@dataclass
+class OutwardPolicyResult:
+    """Outcome of ``AdaptiveVoxelReconstructor.outward_search``. ``accepted``: the end point's
+    strict cost passed the acceptance test; ``fallback``: F4 alone was rejected, so F5 then F4 ran.
+    Counts: strict (pixel-radius-0 cost), screen (pixel-radius-3 cost, F5's shells), smooth (E4
+    values, ``n_jac`` of them with the Jacobian)."""
+
+    orientation: np.ndarray
+    accepted: bool
+    strict_cost: float
+    fallback: bool
+    n_strict: int
+    n_screen: int
+    n_smooth: int
+    n_jac: int
+    wall_s: float
+
+
+# ---------------------------------------------------------------------------
 # AdaptiveVoxelReconstructor — single voxel, adaptive narrowing
 # ---------------------------------------------------------------------------
 
@@ -425,6 +460,9 @@ class AdaptiveVoxelReconstructor:
         # the quick MC, and FindOptimal's winner (candidate index, converged flag)
         self.last_level_best: List[Tuple[int, np.ndarray, float]] = []
         self.last_find_optimal: Dict[str, Any] = {}
+        # BatchedCostEvaluator of each cost function used by the lockstep quick MC of the voxel in
+        # progress (None: not supported, sequential); reset by every reconstruct_voxel call
+        self._quick_mc_evaluators: Dict[int, Any] = {}
         # Optional non-invasive recorder: called as recorder(event, data) with copies of the
         # search state ("discrete", "quick_mc", "find_candidate", "find_final", "variance",
         # "final"). It never touches the random stream, so results are bit-identical with or
@@ -448,6 +486,15 @@ class AdaptiveVoxelReconstructor:
         # Optional hook: rank_key(level, candidates) -> array, lower = better, replaces the
         # post-quick-MC local cost as the sort key used for pruning (and the hand-off order)
         self.rank_key: Optional[Callable[[int, List[SearchCandidate]], np.ndarray]] = None
+        # SmoothCostRank ranker of the most recent reconstruct_voxel call (None: key off)
+        self.last_smooth_ranker: Any = None
+        # SmoothCostRank: SmoothCost built once per image set (None: rebuilt on every call)
+        self.smooth_cost_cache: Optional[SmoothCostCache] = SmoothCostCache()
+        # OutwardSearch: (image-set key, strict cost, screen cost, SmoothCost) of the last call
+        self._outward_costs_cache: Optional[Tuple[Any, ...]] = None
+        # SeedByIndexing: (image-set key, SmoothCost, IndexParams, strict cost, crystals by phase)
+        self._index_ctx_cache: Optional[Tuple[Any, ...]] = None
+        self.index_pairing_s = 0.0  # one-time SmoothCost build + ray pairing (seconds)
 
     @property
     def last_eval_counts(self) -> tuple:
@@ -476,6 +523,7 @@ class AdaptiveVoxelReconstructor:
         """
         self._check_local_optimizer()
         eta_limit = self.setup.exp_setup.get_eta_limit()
+        self._quick_mc_evaluators = {}  # batched local costs of this voxel's cost functions
 
         # Local cost function (pixel_radius=0) for MC and re-evaluation
         # C++ Reference: DiscreteAdaptive.tmpl.cpp:120-121 LocalSearchCostFunctions
@@ -492,6 +540,11 @@ class AdaptiveVoxelReconstructor:
         symmetry_quats = (
             get_symmetry_quaternions(symmetry) if symmetry is not None else np.zeros((0, 4))
         )
+
+        # CandidateDedup (opt-in, default off): clique filter / de-duplication of the candidates
+        dedup = DedupSpec.parse(getattr(self.params, "candidate_dedup", "off"))
+        # SmoothCostRank (opt-in, default off): rank the coarse levels by a smooth cost
+        smooth_ranker = self._smooth_ranker(voxel_vertices, phase_index, eta_limit)
 
         # Initialize search state
         # C++ DiscreteAdaptive.tmpl.cpp:139-141
@@ -567,6 +620,7 @@ class AdaptiveVoxelReconstructor:
                 symmetry_quats=symmetry_quats,
                 phase_index=phase_index,
                 **({} if self.discrete_recorder is None else dict(recorder=self.discrete_recorder)),
+                **self._screen_kwargs(global_cost_fn),
             )
             t_discrete = time.time() - t_level
 
@@ -608,7 +662,15 @@ class AdaptiveVoxelReconstructor:
             # Phase 3: Quick MC on all candidates (10 steps, 5 restarts)
             # C++ DiscreteAdaptive.tmpl.cpp:173-194
             t_mc = time.time()
-            ids = {id(c): i for i, c in enumerate(candidates)}
+            ids = {id(c): i for i, c in enumerate(candidates)}  # index in the "discrete" record
+            n_discrete = len(candidates)
+            if dedup.clique or dedup.pre > 0:
+                # CandidateDedup C0 / C1 (before the quick MC, so both quick-MC paths see it): the
+                # candidates dropped here are not run, ranked or kept; ``ids`` keeps the indices
+                # of the "discrete" record
+                candidates = self._dedup_before_quick_mc(
+                    dedup, candidates, diameter, symmetry_quats
+                )
             disc_scores = np.array([c.cost for c in candidates])
             trial_radius = max(diameter / 3.0, math.radians(0.2))
             # C++ ContinuousSearch.h:70-73 CalculateSearchParameter
@@ -617,35 +679,76 @@ class AdaptiveVoxelReconstructor:
             trial_box_width = trial_radius / (2**self.params.min_local_resolution)
             trial_step = trial_box_width * self.params.mc_radius_scale_factor
 
-            for cand in candidates:
-                result = level_mc.optimize(
-                    initial_orientation=cand.orientation,
-                    angular_box_side=trial_box_width,
-                    angular_step=trial_step,
-                    max_mc_steps=10,
-                    max_restarts=5,
-                    max_convergence_cost=self.params.max_convergence_cost,
-                )
-                cand.orientation = result.orientation
-                cand.cost = result.cost
-                cand.overlap_info = result.overlap_info
+            # Opt-in lockstep quick MC (BatchedQuickMC, draw option B): the whole level through one
+            # batched local cost per step; else the sequential per-candidate quick MC below.
+            if not self._batched_quick_mc(
+                level_mc, candidates, voxel_vertices, phase_index, trial_box_width, trial_step
+            ):
+                for cand in candidates:
+                    result = level_mc.optimize(
+                        initial_orientation=cand.orientation,
+                        angular_box_side=trial_box_width,
+                        angular_step=trial_step,
+                        max_mc_steps=10,
+                        max_restarts=5,
+                        max_convergence_cost=self.params.max_convergence_cost,
+                    )
+                    cand.orientation = result.orientation
+                    cand.cost = result.cost
+                    cand.overlap_info = result.overlap_info
             t_quick = time.time() - t_mc
 
             # Phase 4: Shrink diameter, keep top 1/4
             # C++ DiscreteAdaptive.tmpl.cpp:196-205
+            level_diameter = diameter
             diameter /= 1.5
             pre_sort = list(candidates)  # discrete-stage order (the quick MC mutated in place)
+            smooth_ranked = False
             if self.rank_key is not None:
                 key = np.asarray(self.rank_key(level, candidates))
                 assert len(key) == len(candidates), "rank_key must return one key per candidate"
                 order = np.argsort(key, kind="stable")
                 candidates = [candidates[i] for i in order]
+            elif smooth_ranker is not None and smooth_ranker.applies(level):
+                # SmoothCostRank: the smooth cost ranks (the strict cost stays on cand.cost)
+                key = smooth_ranker(level, candidates, level_diameter)
+                order = np.argsort(key, kind="stable")
+                candidates = [candidates[i] for i in order]
+                smooth_ranked = True
             else:
                 candidates.sort()
+            n_distinct = -1
+            if dedup.post > 0:
+                # CandidateDedup C2: the distinct candidates (within post x diameter of no better
+                # one) first, in rank order, then the passed-over ones; the best stays first
+                order, n_distinct = distinct_order(
+                    dedup,
+                    np.stack([c.orientation for c in candidates]),
+                    level_diameter,
+                    symmetry_quats,
+                )
+                candidates = [candidates[i] for i in order]
+            # the level's best candidate: the first of the ranked list, except under SmoothCostRank,
+            # where the first is the best by the smooth key; then the best by the strict cost (the
+            # first of equal costs in ranked order) is recorded and printed
+            level_best = candidates[0]
+            if smooth_ranked:
+                level_best = candidates[int(np.argmin([c.cost for c in candidates]))]
             self.last_level_best.append(
-                (level, candidates[0].orientation.copy(), float(candidates[0].cost))
+                (level, level_best.orientation.copy(), float(level_best.cost))
             )
-            n_keep = max(1, int(len(candidates) * self.keep_fraction))
+            if dedup.active:
+                # the quarter is counted from the discrete stage's list (freed slots go to the next
+                # candidate) or, quarter=filtered, from the list the last filter left
+                n_base = n_discrete if dedup.quarter == "orig" else len(candidates)
+                if dedup.post > 0 and dedup.quarter == "filtered":
+                    n_base = n_distinct
+                n_keep = max(1, int(n_base * self.keep_fraction))
+                if dedup.post > 0:
+                    n_keep = min(n_keep, n_distinct)  # never a passed-over candidate
+                n_keep = min(n_keep, len(candidates))
+            else:
+                n_keep = max(1, int(len(candidates) * self.keep_fraction))
             kept_list = list(candidates[:n_keep])
             if self.keep_union_discrete:
                 # top n_keep by the discrete-stage score as well; the candidate objects carry the
@@ -665,6 +768,15 @@ class AdaptiveVoxelReconstructor:
                         R=np.stack([c.orientation for c in candidates]).copy(),
                         cost=np.array([c.cost for c in candidates]),
                         n_keep=n_keep,
+                        **(
+                            dict(  # additive keys, only with CandidateDedup on
+                                dd_n_discrete=n_discrete,
+                                dd_n_mc=len(candidates),
+                                dd_n_distinct=n_distinct,
+                            )
+                            if dedup.active
+                            else {}
+                        ),
                     ),
                 )
 
@@ -675,7 +787,7 @@ class AdaptiveVoxelReconstructor:
             print(
                 f"    Level {level}: quick MC ({t_quick:.1f}s), "
                 f"kept {len(kept_list)}/{len(candidates)}, "
-                f"best cost={candidates[0].cost:.4f}, "
+                f"best cost={level_best.cost:.4f}, "
                 f"level total={t_total:.1f}s",
                 flush=True,
             )
@@ -701,6 +813,99 @@ class AdaptiveVoxelReconstructor:
 
         return best_candidate
 
+    def _smooth_ranker(self, voxel_vertices: Any, phase_index: int, eta_limit: float) -> Any:
+        """SmoothCostRank (opt-in): the ranking key of the coarse levels, or None when off. Kept
+        on ``last_smooth_ranker`` (evaluation count) for the caller."""
+        spec = SmoothSpec.parse(getattr(self.params, "smooth_rank", "off"))
+        self.last_smooth_ranker = None
+        if not spec.active:
+            return None
+        self.last_smooth_ranker = make_ranker(
+            self.setup,
+            spec,
+            voxel_vertices,
+            phase_index,
+            eta_limit,
+            self.min_sin_eta,
+            cache=self.smooth_cost_cache,
+        )
+        return self.last_smooth_ranker
+
+    def _dedup_before_quick_mc(
+        self,
+        spec: DedupSpec,
+        candidates: List[SearchCandidate],
+        diameter: float,
+        symmetry_quats: np.ndarray,
+    ) -> List[SearchCandidate]:
+        """CandidateDedup C0 (clique filter) and C1 (dedup): the candidates the quick MC runs on,
+        in their original order. See candidate_dedup.keep_before_quick_mc."""
+        keep = keep_before_quick_mc(
+            spec,
+            np.stack([c.orientation for c in candidates]),
+            np.array([c.cost for c in candidates]),
+            np.array([c.clique for c in candidates]),
+            diameter,
+            symmetry_quats,
+        )
+        return [c for c, k in zip(candidates, keep) if k]
+
+    def _batched_quick_mc(
+        self,
+        level_mc: MCOptimizer,
+        candidates: List[SearchCandidate],
+        voxel_vertices: torch.Tensor,
+        phase_index: int,
+        trial_box_width: float,
+        trial_step: float,
+    ) -> bool:
+        """Run this level's quick MC in lockstep (config key BatchedQuickMC, opt-in, default off).
+
+        Every candidate's 10 trial steps are scored together, one ``BatchedCostEvaluator`` call
+        per step, with draw option B (a fixed slice of 33 uniforms per candidate, see
+        batched_quick_mc.py): the random stream, and so the results, differ from the sequential
+        quick MC's. Returns False (the caller runs the sequential quick MC, a RuntimeWarning says
+        why) when the level is not supported: a study subclass of MCOptimizer, more than one MC
+        block, or a cost function the batched cost does not cover (ray rule, no C extension, or
+        ``CppEdgeRules`` with an extension older than ``HAS_VERTEX_LIT`` 2). ``SearchDevice``
+        selects the device of the batched cost.
+        """
+        if not getattr(self.params, "batched_quick_mc", False):
+            return False
+        from .batched_cost import make_batched_cost_evaluator
+        from .batched_quick_mc import lockstep_applicable, run_batched_quick_mc
+
+        if not lockstep_applicable(level_mc, trial_box_width, trial_step, 10):
+            warnings.warn(
+                "BatchedQuickMC is not supported for this level (a subclass of MCOptimizer or "
+                "more than one MC block): using the sequential quick MC",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return False
+        cost_fn = level_mc.cost_fn
+        cache = self._quick_mc_evaluators
+        key = id(cost_fn)
+        if key not in cache:
+            cache[key] = make_batched_cost_evaluator(
+                cost_fn, str(getattr(self.params, "search_device", "cpu"))
+            )
+        evaluator = cache[key]
+        if evaluator is None:
+            return False
+        runs = run_batched_quick_mc(
+            candidates,
+            lambda R: evaluator.evaluate_many(R, voxel_vertices, phase_index),
+            level_mc.rng,
+            trial_box_width,
+            trial_step,
+            max_mc_steps=10,
+            max_restarts=5,
+            max_convergence_cost=self.params.max_convergence_cost,
+        )
+        level_mc.last_run = runs[-1]  # as the sequential loop leaves the last candidate's run
+        return True
+
     def _ray_rule_for_level(self, level: int) -> Optional[RayRule]:
         """The ray-consistency rule for this search level, or None (strict C++ / default rule).
 
@@ -713,15 +918,48 @@ class AdaptiveVoxelReconstructor:
             return rule
         return None
 
+    def _screen_kwargs(self, global_cost_fn: VoxelCostFunction) -> Dict[str, Any]:
+        """Arguments of run_discrete_search_spaced for the batched / interpolated screen (config
+        keys BatchedScreen, default on since 2026-10-13, and CppOmegaInterp, opt-in); empty when
+        both are off, which gives the per-orientation screen. Falls back to the per-orientation
+        screen when the cost function is not supported (ray rule at this level, no C extension):
+        with a warning if BatchedScreen was written in the config file or CppOmegaInterp is on,
+        silently under the implicit default."""
+        sp = self.setup.search_params
+        interp = bool(getattr(sp, "cpp_omega_interp", False))
+        batched = bool(getattr(sp, "batched_screen", True))
+        if not (interp or batched):
+            return {}
+        from .batched_screen import make_screen_evaluator
+
+        evaluator = make_screen_evaluator(global_cost_fn)
+        if evaluator is None:
+            if interp or getattr(sp, "screen_explicit", False):
+                warnings.warn(
+                    "BatchedScreen / CppOmegaInterp are not supported for this level (ray rule or "
+                    "no C extension): using the per-orientation screen",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+            return {}
+        chunk = int(getattr(sp, "screen_chunk", 32)) if batched else 1
+        return dict(screen=evaluator, screen_interp=interp, screen_chunk=chunk)
+
     def _cost_flags(self, ray: Optional[RayRule] = None) -> Dict[str, Any]:
         """The literal C++ CountQualifiedPeaks rule is opt-in (config key CppOverlapRule;
         also on with ``ray`` at the coarse levels). The centroid projection of the pixel-radius
         screen is the default for every rule; ``cpp_center_screen=False`` is the explicit vertex-0
-        opt-out."""
+        opt-out. ``CppEdgeRules`` (opt-in, independent of the overlap rule) adds the C++
+        conventions at the low edges (see ``VoxelCostFunction``)."""
         center = bool(getattr(self.setup.search_params, "cpp_center_screen", True))
+        flags: Dict[str, Any] = dict(center_screen=center)
         if ray is not None or getattr(self.setup.search_params, "cpp_overlap_rule", False):
-            return dict(cpp_overlap_rule=True, center_screen=center)
-        return dict(center_screen=center)
+            flags = dict(cpp_overlap_rule=True, center_screen=center)
+        if getattr(self.setup.search_params, "cpp_edge_rules", False):
+            flags["cpp_edge_rules"] = True  # opt-in: the C++ low-edge conventions (CppEdgeRules)
+        if getattr(self.setup.search_params, "fused_cost", False):
+            flags["fused_cost"] = True  # opt-in: evaluate in one C call (FusedCost, S2)
+        return flags
 
     def _make_local_cost_fn(self, ray_rule: Optional[RayRule] = None) -> VoxelCostFunction:
         """Local cost function (pixel_radius=0) used for MC, re-evaluation and the final overlap.
@@ -1098,6 +1336,163 @@ class AdaptiveVoxelReconstructor:
 
         return result
 
+    def _outward_costs(self) -> Tuple[VoxelCostFunction, VoxelCostFunction, Any]:
+        """(strict cost, screen cost, SmoothCost) of the OutwardSearch policy, built once per image
+        set (the identity key of ``SmoothCostCache``). The SmoothCost comes from
+        ``smooth_cost_cache`` when it is set, so SmoothCostRank and the policy share one build."""
+        from .smooth_cost import _build_smooth_cost
+
+        eta_limit = self.setup.exp_setup.get_eta_limit()
+        refs, scalars = SmoothCostCache._key(self.setup, eta_limit, self.min_sin_eta)
+        old = self._outward_costs_cache
+        same = (
+            old is not None
+            and len(old[0]) == len(refs)
+            and all(a is b for a, b in zip(old[0], refs))
+            and old[1] == scalars
+        )
+        if self.smooth_cost_cache is not None:
+            sc = self.smooth_cost_cache.get(self.setup, eta_limit, self.min_sin_eta)
+        elif same:
+            sc = old[4]  # type: ignore[index]
+        else:
+            sc = _build_smooth_cost(self.setup, eta_limit, self.min_sin_eta)
+        if same:
+            strict_cf, screen_cf = old[2], old[3]  # type: ignore[index]
+        else:
+            strict_cf = self._make_local_cost_fn()
+            screen_cf = VoxelCostFunction(
+                simulator=self.setup.simulator,
+                detector_list=self.setup.detector_list,
+                range_map=self.setup.range_map,
+                exp_data=self.setup.exp_data,
+                **self._cost_flags(),
+                sample=self.setup.sample,
+                structure_list=self.setup.structure_list,
+                mode="hard",
+                eta_limit=eta_limit,
+                pixel_radius=self.global_pixel_radius,
+                max_q=OUTWARD_SCREEN_MAX_Q,
+                min_sin_eta=self.min_sin_eta,
+            )
+        self._outward_costs_cache = (refs, scalars, strict_cf, screen_cf, sc)
+        return strict_cf, screen_cf, sc
+
+    def outward_search(
+        self, voxel_vertices: torch.Tensor, phase_index: int, start: np.ndarray
+    ) -> OutwardPolicyResult:
+        """OutwardSearch (opt-in, Task G2): the Task F fallback policy from ``start``. F4
+        (``RayGaussNewton``, 1-frame window); where F4's acceptance test rejects, F5
+        (``ShellSearch`` from ``start``) then F4 from F5's point. Deterministic (no random
+        numbers). The settings are the module's ``OUTWARD_*`` constants."""
+        from .outward_search import RayGaussNewton, ShellSearch, screen_fn_from, smooth_fn_from
+
+        t0 = time.time()
+        strict_cf, screen_cf, sc = self._outward_costs()
+
+        def strict(R: np.ndarray) -> float:
+            info = strict_cf.evaluate(np.asarray(R, dtype=np.float64), voxel_vertices, phase_index)
+            return float(info.cost)
+
+        gn = RayGaussNewton(
+            sc,
+            voxel_vertices,
+            strict,
+            phase_index,
+            tau_schedule_deg=OUTWARD_TAU_DEG,
+            accept_cost=OUTWARD_ACCEPT_COST,
+            frame_window=OUTWARD_FRAME_WINDOW,
+        )
+        R0 = np.asarray(start, dtype=np.float64)
+        r4 = gn.solve(R0)
+        out = OutwardPolicyResult(
+            orientation=r4.R,
+            accepted=bool(r4.accepted),
+            strict_cost=float(r4.strict_cost),
+            fallback=False,
+            n_strict=r4.n_strict,
+            n_screen=0,
+            n_smooth=r4.n_smooth,
+            n_jac=r4.n_jac,
+            wall_s=0.0,
+        )
+        if not r4.accepted:
+            shells = ShellSearch(
+                screen_fn_from(screen_cf, voxel_vertices, phase_index),
+                strict,
+                smooth_fn_from(sc, voxel_vertices, phase_index, "E4,tau=0.25"),
+                spacing_deg=OUTWARD_SHELL_SPACING_DEG,
+                r_max_deg=OUTWARD_R_MAX_DEG,
+                accept_cost=OUTWARD_ACCEPT_COST,
+            )
+            r5 = shells.search(R0)
+            r54 = gn.solve(r5.R)
+            out.orientation, out.accepted = r54.R, bool(r54.accepted)
+            out.strict_cost, out.fallback = float(r54.strict_cost), True
+            out.n_strict += r5.n_strict + r54.n_strict
+            out.n_screen += r5.n_screen
+            out.n_smooth += r5.n_smooth + r54.n_smooth
+            out.n_jac += r54.n_jac
+        out.wall_s = time.time() - t0
+        return out
+
+    def _index_context(self, phase_index: int) -> Tuple[Any, Any, Any, Any]:
+        """(SmoothCost, CrystalModel of ``phase_index``, IndexParams, strict cost function) of
+        SeedByIndexing, built once per image set (the identity key of ``SmoothCostCache``). The
+        observed rays are paired here, once; the time of the build and the pairing is kept in
+        ``index_pairing_s``."""
+        from . import ray_indexing as RI
+        from .smooth_cost import _build_smooth_cost
+
+        eta_limit = self.setup.exp_setup.get_eta_limit()
+        refs, scalars = SmoothCostCache._key(self.setup, eta_limit, self.min_sin_eta)
+        old = self._index_ctx_cache
+        same = (
+            old is not None
+            and len(old[0]) == len(refs)
+            and all(a is b for a, b in zip(old[0], refs))
+            and old[1] == scalars
+        )
+        if not same:
+            t0 = time.perf_counter()
+            if self.smooth_cost_cache is not None:
+                sc = self.smooth_cost_cache.get(self.setup, eta_limit, self.min_sin_eta)
+            else:
+                sc = _build_smooth_cost(self.setup, eta_limit, self.min_sin_eta)
+            sc.observed_rays()  # the one-time pairing of the two detectors' spots
+            self.index_pairing_s += time.perf_counter() - t0
+            params = RI.IndexParams(q_max=float(self.setup.config.max_q))
+            self._index_ctx_cache = (refs, scalars, sc, params, self._make_local_cost_fn(), {})
+        _, _, sc, params, strict_cf, crystals = self._index_ctx_cache  # type: ignore[misc]
+        if phase_index not in crystals:
+            sym = self.setup.exp_setup.get_sample_symmetry()
+            crystals[phase_index] = RI.crystal_from_smooth_cost(sc, sym, phase_index, params.q_max)
+        return sc, crystals[phase_index], params, strict_cf
+
+    def index_seed(
+        self,
+        voxel_vertices: torch.Tensor,
+        phase_index: int,
+        n_cost: int = 5,
+        n_refine: int = 2,
+    ) -> Any:
+        """SeedByIndexing (opt-in): the voxel's seed search from its observed rays
+        (``ray_indexing.seed_by_indexing``): strict cost on the first ``n_cost`` candidates, the
+        finisher on the ``n_refine`` lowest, the lowest final cost. Returns a ``SeedResult``
+        (``orientation`` None: no candidate). The caller applies the seed acceptance test."""
+        from . import ray_indexing as RI
+
+        sc, crystal, params, strict_cf = self._index_context(phase_index)
+
+        def strict(R: np.ndarray) -> float:
+            return float(
+                strict_cf.evaluate(np.asarray(R, np.float64), voxel_vertices, phase_index).cost
+            )
+
+        return RI.seed_by_indexing(
+            self, sc, crystal, voxel_vertices, phase_index, params, strict, n_cost, n_refine
+        )
+
 
 # ---------------------------------------------------------------------------
 # BFSReconstruction — breadth-first spatial propagation
@@ -1211,6 +1606,10 @@ class BFSReconstruction:
         self.stats: Dict[str, Any] = {}
         self._refit_candidates: List[int] = []
         self.reseed_log: List[Dict[str, Any]] = []
+        # OutwardSearch (opt-in): one entry per policy run (empty with the key off)
+        self.outward_log: List[Dict[str, Any]] = []
+        # SeedByIndexing (opt-in): one entry per indexed seed or reseed (empty with the key off)
+        self.index_log: List[Dict[str, Any]] = []
 
     @staticmethod
     def _ratios(info: Optional[OverlapInfo]) -> Tuple[float, float]:
@@ -1289,6 +1688,8 @@ class BFSReconstruction:
         self.stats = self._new_stats()
         self._refit_candidates = []
         self.reseed_log = []
+        self.outward_log = []
+        self.index_log = []
 
         # Randomized seed order (C++ uses random_shuffle)
         voxel_order = list(range(n_process))
@@ -1349,6 +1750,10 @@ class BFSReconstruction:
         self.stats["n_unresolved"] = n_refit
         self.stats["n_voxels"] = len(all_processed)
         self.stats["wall_total_s"] = total_time
+        if getattr(self.setup.search_params, "seed_by_indexing", False):
+            self.stats["index_pairing_s"] = float(
+                getattr(self.reconstructor, "index_pairing_s", 0.0)
+            )
         print(
             f"\nBFS complete: {n_seeds} seeds, {n_fitted} fitted, "
             f"{n_refit} refit, {total_time:.1f}s total",
@@ -1425,7 +1830,11 @@ class BFSReconstruction:
             s0 = dict(self.stats)
             t0 = time.time()
             print(f"\n  Reseed: cluster of {len(cluster)} REFIT voxels, voxel {vox}", flush=True)
-            solution = self._fit_from_seed(mic, vox, rng, force_revisit=True)
+            # OutwardSearch (opt-in): the voxel's current (failed) fit is the policy's start
+            start = (
+                old_state[0] if getattr(self.setup.search_params, "outward_search", False) else None
+            )
+            solution = self._fit_from_seed(mic, vox, rng, force_revisit=True, start=start)
             seconds = time.time() - t0
             rec = self.records[vox]
             rec.reseeded = True
@@ -1491,10 +1900,13 @@ class BFSReconstruction:
         seed_idx: int,
         rng: np.random.Generator,
         force_revisit: bool = False,
+        start: Optional[np.ndarray] = None,
     ) -> List[int]:
         """
         Full reconstruction on seed, then BFS propagation to neighbors.
         ``force_revisit`` (reseed) makes the expansion revisit REFIT neighbours.
+        ``start`` (OutwardSearch reseeds only): try the policy and a local fit from it first;
+        the full search runs only if that is rejected (see ``_outward_reseed``).
 
         C++ Reference: BreadthFirstReconstructor.tmpl.cpp:112-188 Fit()
         """
@@ -1502,25 +1914,41 @@ class BFSReconstruction:
         vertices = _get_voxel_vertices(voxel)
         rec = self.records[seed_idx] = BFSVoxelRecord(seed_idx, source="seed")
 
-        # Full adaptive reconstruction on seed
-        t0 = time.time()
-        result = self.reconstructor.reconstruct_voxel(
-            voxel_vertices=vertices,
-            phase_index=voxel.phase,
-            rng=rng,
-        )
-        t_recon = time.time() - t0
-        n_ev = self.reconstructor.last_eval_counts[2]
-        rec.n_evals += n_ev
-        rec.wall_s += t_recon
-        self.stats["n_evals_seed"] += n_ev
-        self.stats["wall_seed_s"] += t_recon
+        found = None
+        if start is not None:
+            found = self._outward_reseed(voxel, vertices, start, rng, rec)
+        index_fallback = False
+        if found is None and getattr(self.setup.search_params, "seed_by_indexing", False):
+            # SeedByIndexing (opt-in): index the voxel first; the grid search below is the
+            # fallback when there is no candidate or the result fails the seed test
+            found = self._index_seed(voxel, vertices, rec, force_revisit)
+            index_fallback = found is None
+        if found is not None:
+            result, overlap_info, t_recon = found
+        else:
+            # Full adaptive reconstruction on seed
+            t0 = time.time()
+            result = self.reconstructor.reconstruct_voxel(
+                voxel_vertices=vertices,
+                phase_index=voxel.phase,
+                rng=rng,
+            )
+            t_recon = time.time() - t0
+            n_ev = self.reconstructor.last_eval_counts[2]
+            rec.n_evals += n_ev
+            rec.wall_s += t_recon
+            self.stats["n_evals_seed"] += n_ev
+            self.stats["wall_seed_s"] += t_recon
+            if index_fallback:
+                self._count("index_fallback_grid_evals", n_ev)
+                self._count("index_fallback_grid_wall_s", t_recon)
+                self.index_log[-1]["grid_evals"] = int(n_ev)
 
-        # Evaluate overlap
-        # C++ BreadthFirstReconstructor.tmpl.cpp:136
-        overlap_info = self.reconstructor.evaluate_overlap(
-            result.orientation, vertices, voxel.phase
-        )
+            # Evaluate overlap
+            # C++ BreadthFirstReconstructor.tmpl.cpp:136
+            overlap_info = self.reconstructor.evaluate_overlap(
+                result.orientation, vertices, voxel.phase
+            )
 
         # Compute confidence and hit_ratio
         hit_ratio, confidence = self._ratios(overlap_info)
@@ -1579,11 +2007,19 @@ class BFSReconstruction:
             kwargs["cma_max_evals"] = params.cma_neighbor_max_evals
             if sigma0_deg is not None:
                 kwargs["cma_sigma0_deg"] = sigma0_deg
+        start = voxel.orientation
+        if getattr(params, "outward_search", False) and sigma0_deg is None:
+            # OutwardSearch (opt-in): the policy first; its end point is the start if accepted
+            res = self._run_outward(
+                vertices, voxel.phase, start, rec, phase, f"n_evals_{phase}", f"wall_{phase}_s"
+            )
+            if res.accepted:
+                start = res.orientation
         t0 = time.time()
         opt_result = self.reconstructor.local_optimization(
             voxel_vertices=vertices,
             phase_index=voxel.phase,
-            initial_orientation=voxel.orientation,
+            initial_orientation=start,
             rng=rng,
             **kwargs,
         )
@@ -1595,6 +2031,171 @@ class BFSReconstruction:
         self.stats[f"wall_{phase}_s"] += dt
         hit, conf = self._ratios(opt_result.overlap_info)
         return opt_result, hit, conf
+
+    def _run_outward(
+        self,
+        vertices: torch.Tensor,
+        phase_index: int,
+        start: np.ndarray,
+        rec: BFSVoxelRecord,
+        phase: str,
+        evals_key: str,
+        wall_key: str,
+    ) -> OutwardPolicyResult:
+        """OutwardSearch (opt-in): one policy run from ``start``. Its strict and screen
+        evaluations (cost-function evaluations, as a seed's level screens are) and its time go to
+        ``rec`` and to the stats buckets ``evals_key`` / ``wall_key``; every count, the smooth
+        (E4) evaluations included, also goes to ``stats["outward_<phase>_*"]`` and to
+        ``outward_log``."""
+        res = self.reconstructor.outward_search(vertices, phase_index, start)
+        n_ev = res.n_strict + res.n_screen
+        rec.n_evals += n_ev
+        rec.wall_s += res.wall_s
+        self.stats[evals_key] += n_ev
+        self.stats[wall_key] += res.wall_s
+        for what, value in (
+            ("runs", 1),
+            ("accepted", int(res.accepted)),
+            ("fallback", int(res.fallback)),
+            ("strict", res.n_strict),
+            ("screen", res.n_screen),
+            ("smooth", res.n_smooth),
+            ("jac", res.n_jac),
+            ("wall_s", res.wall_s),
+        ):
+            key = f"outward_{phase}_{what}"
+            self.stats[key] = self.stats.get(key, 0) + value
+        self.outward_log.append(
+            dict(
+                voxel=int(rec.voxel_idx),
+                phase=phase,
+                accepted=bool(res.accepted),
+                fallback=bool(res.fallback),
+                strict_cost=float(res.strict_cost),
+                n_strict=int(res.n_strict),
+                n_screen=int(res.n_screen),
+                n_smooth=int(res.n_smooth),
+                n_jac=int(res.n_jac),
+                wall_s=float(res.wall_s),
+            )
+        )
+        return res
+
+    def _count(self, key: str, value: Any = 1) -> None:
+        """Add to a counter that exists only when its key is on (SeedByIndexing, OutwardSearch)."""
+        self.stats[key] = self.stats.get(key, 0) + value
+
+    def _index_seed(
+        self, voxel: Any, vertices: torch.Tensor, rec: BFSVoxelRecord, reseed: bool
+    ) -> Optional[Tuple[SearchCandidate, OverlapInfo, float]]:
+        """SeedByIndexing (opt-in) for a seed or a reseed: the voxel is indexed from its observed
+        rays, the strict cost is taken on the first 5 candidates and the finisher runs on the best
+        2 (``AdaptiveVoxelReconstructor.index_seed``). Returns (result, overlap, seconds) when the
+        result passes the seed test; None (the caller runs the grid search) when there is no
+        candidate or the test fails. All of its cost evaluations and its time count as the
+        seed's (``n_evals_seed`` / ``wall_seed_s``, moved to the reseed buckets by
+        ``_reseed_clusters``), used or not; ``stats["index_*"]`` and ``index_log`` split them."""
+        t0 = time.time()
+        res = self.reconstructor.index_seed(vertices, voxel.phase)
+        dt = time.time() - t0  # includes the one-time pairing on the first call
+        rec.n_evals += res.evals
+        rec.wall_s += dt
+        self.stats["n_evals_seed"] += res.evals
+        self.stats["wall_seed_s"] += dt
+        entry: Dict[str, Any] = dict(
+            voxel=int(rec.voxel_idx),
+            phase="reseed" if reseed else "seed",
+            n_att=int(res.n_att),
+            n_cand=int(res.n_cand),
+            evals=int(res.evals),
+            index_s=float(res.index_s),
+            path_s=float(res.total_s),
+            taken=int(res.taken),
+            strict_costs=[float(c) for c in res.strict_costs],
+            refined=[int(j) for j in res.refined],
+            finisher_costs=[float(c) for c in res.finisher_costs],
+            finisher_evals=[int(e) for e in res.finisher_evals],
+            hit_ratio=None,
+            used=False,
+        )
+        self.index_log.append(entry)
+        self._count("index_runs")
+        self._count("index_evals", res.evals)
+        self._count("index_s", res.index_s)
+        self._count("index_path_wall_s", dt)
+        if res.orientation is None:
+            self._count("index_fallback_no_candidate")
+            self._count("index_evals_wasted", res.evals)
+            entry["fallback"] = "no_candidate"
+            print(f"    Seed voxel {rec.voxel_idx}: no index candidate: grid search", flush=True)
+            return None
+        result = SearchCandidate(orientation=res.orientation, cost=float(res.cost))
+        info = self.reconstructor.evaluate_overlap(result.orientation, vertices, voxel.phase)
+        hit, _ = self._ratios(info)
+        entry["hit_ratio"] = float(hit)
+        if hit < self.setup.config.min_acceleration_threshold:
+            self._count("index_fallback_seed_test")
+            self._count("index_evals_wasted", res.evals)
+            entry["fallback"] = "seed_test"
+            print(
+                f"    Seed voxel {rec.voxel_idx}: index result hit_ratio={hit:.3f} below the "
+                "seed test: grid search",
+                flush=True,
+            )
+            return None
+        entry["used"] = True
+        self._count("index_used")
+        self._count("index_evals_used", res.evals)
+        return result, info, dt
+
+    def _outward_reseed(
+        self,
+        voxel: Any,
+        vertices: torch.Tensor,
+        start: np.ndarray,
+        rng: np.random.Generator,
+        rec: BFSVoxelRecord,
+    ) -> Optional[Tuple[SearchCandidate, OverlapInfo, float]]:
+        """OutwardSearch (opt-in) for a reseed: the policy from ``start``; if accepted, a local fit
+        from its end point (the finisher) and the seed acceptance test. Returns (result, overlap,
+        seconds) when that passes; None (the caller runs the full search) when the policy or the
+        seed test rejects, so a voxel is final only after a full search. Evaluations and time
+        count as the reseed's (``n_evals_seed`` / ``wall_seed_s``, moved to the reseed buckets
+        by ``_reseed_clusters``)."""
+        res = self._run_outward(
+            vertices, voxel.phase, start, rec, "reseed", "n_evals_seed", "wall_seed_s"
+        )
+        log = self.outward_log[-1]
+        log["seed_test"] = None
+        if not res.accepted:
+            return None
+        t0 = time.time()
+        result = self.reconstructor.local_optimization(
+            voxel_vertices=vertices,
+            phase_index=voxel.phase,
+            initial_orientation=res.orientation,
+            rng=rng,
+        )
+        dt = time.time() - t0
+        n_ev = self.reconstructor.last_local_optimization_evals
+        rec.n_evals += n_ev
+        rec.wall_s += dt
+        self.stats["n_evals_seed"] += n_ev
+        self.stats["wall_seed_s"] += dt
+        info = self.reconstructor.evaluate_overlap(result.orientation, vertices, voxel.phase)
+        hit, _ = self._ratios(info)
+        passed = hit >= self.setup.config.min_acceleration_threshold
+        log.update(seed_test=bool(passed), finisher_evals=int(n_ev), finisher_wall_s=float(dt))
+        key = "outward_reseed_used" if passed else "outward_reseed_seed_test_rejected"
+        self.stats[key] = self.stats.get(key, 0) + 1
+        print(
+            f"    Reseed voxel {rec.voxel_idx}: outward search accepted, local fit "
+            f"hit_ratio={hit:.3f} ({'used' if passed else 'below the seed test: full search'})",
+            flush=True,
+        )
+        if not passed:
+            return None
+        return result, info, res.wall_s + dt
 
     def _expand(
         self,

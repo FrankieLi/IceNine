@@ -1,0 +1,65 @@
+{
+ "set": "three",
+ "n_voxels": 3,
+ "n_orient": 43974,
+ "n_peaks": 1068652,
+ "rows": [
+  {
+   "vid": 0,
+   "points_up": true,
+   "f64_peak_overlap_diff": 0,
+   "f64_peak_on_det_diff": 2,
+   "f64_pass_diff": 0,
+   "f64_peak_coord_flips": 505,
+   "f64_flip_dist_max": 0.0003705228691615048,
+   "f32_peak_overlap_diff": 0,
+   "f32_peak_on_det_diff": 1,
+   "f32_pass_diff": 0,
+   "f32_peak_coord_flips": 341,
+   "f32_flip_dist_max": 0.0003705228691615048,
+   "passers_ref": 410
+  },
+  {
+   "vid": 1,
+   "points_up": false,
+   "f64_peak_overlap_diff": 0,
+   "f64_peak_on_det_diff": 0,
+   "f64_pass_diff": 0,
+   "f64_peak_coord_flips": 534,
+   "f64_flip_dist_max": 0.0003397172486074851,
+   "f32_peak_overlap_diff": 0,
+   "f32_peak_on_det_diff": 0,
+   "f32_pass_diff": 0,
+   "f32_peak_coord_flips": 331,
+   "f32_flip_dist_max": 0.0003397172486074851,
+   "passers_ref": 406
+  },
+  {
+   "vid": 2,
+   "points_up": false,
+   "f64_peak_overlap_diff": 0,
+   "f64_peak_on_det_diff": 1,
+   "f64_pass_diff": 0,
+   "f64_peak_coord_flips": 586,
+   "f64_flip_dist_max": 0.0003880596618728305,
+   "f32_peak_overlap_diff": 0,
+   "f32_peak_on_det_diff": 1,
+   "f32_pass_diff": 0,
+   "f32_peak_coord_flips": 372,
+   "f32_flip_dist_max": 0.0003880596618728305,
+   "passers_ref": 263
+  }
+ ],
+ "listed": [],
+ "totals": {
+  "f64_peak_overlap_diff": 0,
+  "f64_peak_on_det_diff": 3,
+  "f64_pass_diff": 0,
+  "f64_peak_coord_flips": 1625,
+  "f32_peak_overlap_diff": 0,
+  "f32_peak_on_det_diff": 2,
+  "f32_pass_diff": 0,
+  "f32_peak_coord_flips": 1044
+ },
+ "wall_s": 1.556708812713623
+}
