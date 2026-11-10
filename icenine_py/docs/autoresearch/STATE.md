@@ -28,11 +28,12 @@ plain English with the plot before the table.
 
 ## The wake-up job
 
-A session cron job (id 6f6deed3, created 2026-11-09, every 3 hours at :23) sends the wake-up
-prompt while the session is open and idle. It expires on 2026-11-16: create it again on or after
-2026-11-15 and write the new date here. Its prompt still says "one step per wake"; point 4
-above overrules that. It dies with the session. After a closed session the owner
-types `/resume` or "continue the autoresearch"; this file is enough to go on.
+A session cron job (id b645c248, created 2026-11-10, every 3 hours at :23) sends the wake-up
+prompt while the session is open and idle. Its prompt says to do every step that is ready (the
+earlier job 6f6deed3 said one step per wake and was replaced). It expires on 2026-11-17: create
+it again on or after 2026-11-16 and write the new date here. It dies with the session. After a
+closed session the owner types `/resume` or "continue the autoresearch"; this file is enough to
+go on.
 
 ## Status (2026-11-10)
 
