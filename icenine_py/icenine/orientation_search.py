@@ -155,6 +155,10 @@ class SearchParameters:
     #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
     #   passing grain of lowest strict cost). Needs ``seed_by_indexing``; refused with
     #   ``outward_search``. The BFS's revisits, restart pass and reseeding do not run.
+    #   Painting is a starting approximation: every painted voxel takes its grain entry's
+    #   orientation unfitted. That is exact only when a grain holds one orientation (as in the
+    #   simulated test sample). Grains with orientation gradients need a per-voxel refinement
+    #   after painting (not built).
     paint_grains: bool = False
     # cpp_overlap_rule: opt-in (config key CppOverlapRule). The literal C++ CountQualifiedPeaks
     # overlap rule and the centroid projection of the pixel-radius screen (see VoxelCostFunction).

@@ -14,6 +14,10 @@ Terms (see ``docs/autoresearch/PLAN.md``, AR3):
   does not depend on them.
 * A voxel is **contested** when two or more grains pass on it, **unpainted** when none does.
 
+Painting is a starting approximation: every painted voxel takes its grain entry's orientation
+unfitted. That is exact only when a grain holds one orientation (as in the simulated test sample).
+Grains with orientation gradients need a per-voxel refinement after painting (not built).
+
 Two design choices of the loop (neither is in the plan's text; both matter once fits are accepted):
 
 * A voxel settled "by a fit" keeps its fit, even if a grain seeded later passes there with a lower

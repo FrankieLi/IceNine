@@ -1797,8 +1797,18 @@ class BFSReconstruction:
         order and the generator the BFS would use. Writes what the BFS writes: the voxels'
         orientation, cost, hit ratio and state, one record per voxel (source "seed", "paint",
         "fit" or "failed"; "unresolved" for a voxel that was never reached) and the evaluations by
-        stage in ``stats``. Painted voxels carry confidence 0 (the loop scores the hit ratio
-        only). The result stays on ``self.paint_result`` and the hooks on ``self.paint_hooks``."""
+        stage in ``stats``; the records' ``n_evals`` add up to ``stats["paint_evals_total"]``.
+        Painted voxels carry confidence 0 (the loop scores the hit ratio only). The result stays
+        on ``self.paint_result`` and the hooks on ``self.paint_hooks``.
+
+        Painting is a starting approximation: every painted voxel takes its grain entry's
+        orientation unfitted. That is exact only when a grain holds one orientation (as in the
+        simulated test sample). Grains with orientation gradients need a per-voxel refinement
+        after painting (not built).
+
+        With ``max_voxels`` below the voxel count, the floods may still score voxels outside
+        ``voxel_order``; only voxels in the order are written to the map and the records (no run
+        uses this)."""
         from . import grain_paint as GP
 
         start_time = time.time()
@@ -1838,14 +1848,21 @@ class BFSReconstruction:
             rec.source = "fit" if src == "fit" else "paint"
             if res.stage.get(v) == "seed":
                 rec.source = "seed"
-        for row in res.log:  # the seed paths' evaluations, one count per score
+        # per-voxel evaluations, adding up to stats["paint_evals_total"]: the seed paths and grid
+        # searches (from the loop's log), the local fits (from the hooks' fit record) and one per
+        # flood score; a seed's own score is its entry, not an evaluation, so it is skipped
+        for row in res.log:
             r = self.records.get(int(row["voxel"]))
             if r is not None:
                 r.n_evals += int(row.get("index_evals", 0) or 0)
                 r.n_evals += int(row.get("grid_evals", 0) or 0)
-        for sc in res.scores:
+        for fv, fn in hooks.fit_records:
+            if fv in self.records:
+                self.records[fv].n_evals += int(fn)
+        for g, sc in enumerate(res.scores):
+            seed_v = res.entries[g].voxel
             for v in sc:
-                if v in self.records:
+                if v != seed_v and v in self.records:
                     self.records[v].n_evals += 1
         total_time = time.time() - start_time
         self.stats["n_seeds"] = res.counts["seeds"]

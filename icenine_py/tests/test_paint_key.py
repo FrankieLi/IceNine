@@ -98,6 +98,46 @@ def test_key_off_never_calls_the_paint_loop_and_changes_nothing(
 
 
 # ------------------------------------------------------------------------------ key on
+@pytest.mark.parametrize(
+    "kw",
+    [
+        dict(weak={8: 0.5}),  # voxel 8 settled by an accepted fit
+        dict(weak={8: 0.5}, fit_hit={8: 0.5}),  # a rejected fit, then voxel 8 becomes a seed
+        dict(weak={8: 0.5}, fit_hit={8: 0.5}, index_fail={8}),  # ... seeded by the grid search
+        dict(weak={8: 0.5}, fit_hit={8: 0.5}, no_seed={8}),  # ... and failed
+    ],
+)
+def test_key_records_add_up_to_the_stage_total(
+    monkeypatch: pytest.MonkeyPatch, kw: Dict[str, Any]
+) -> None:
+    """The per-voxel ``n_evals`` the key writes add up to ``stats["paint_evals_total"]``: the seed
+    paths, grid searches and local fits are counted on their voxel, one per flood score, and a
+    seed's own score (its entry) is not an evaluation. Fake cost (no physics)."""
+    from test_grain_paint import W, FakeHooks
+
+    class _Hooks(FakeHooks):
+        def __init__(self, _bfs: Any, _mic: Any, _rng: Any) -> None:
+            super().__init__(**kw)
+            self.fit_records: List[Any] = []
+
+        def local_fit(self, v: int, R0: np.ndarray) -> Any:
+            out = super().local_fit(v, R0)
+            self.fit_records.append((int(v), int(out[3])))
+            return out
+
+    monkeypatch.setattr(GP, "ReconstructorHooks", _Hooks)
+    bfs: Any = BFSReconstruction.__new__(BFSReconstruction)
+    bfs.reconstructor, bfs.records, bfs.stats = SimpleNamespace(), {}, {}
+    n = W * W
+    mic: Any = SimpleNamespace(voxels=[SimpleNamespace() for _ in range(n)])
+    order = [0, 5, 8] + list(range(n))
+    bfs._paint_sample(mic, order, n, np.random.default_rng(0), None)
+    res = bfs.paint_result
+    assert res.counts["fits_accepted"] + res.counts["fits_rejected"] == 1
+    assert sum(r.n_evals for r in bfs.records.values()) == bfs.stats["paint_evals_total"]
+    assert bfs.records[8].n_evals >= 100  # the local fit's evaluations sit on voxel 8
+
+
 @pytest.fixture(scope="module")
 def toy() -> Any:
     from test_findoptimal_refactor import _build
@@ -143,6 +183,11 @@ def test_key_on_equals_a_direct_call(toy: Any) -> None:
         assert res.evals["score"] == bfs.paint_hooks.cost_fn.eval_count
         assert res.evals["seed_index"] + res.evals["index_rejected"] == seed_paths
         assert bfs.stats["paint_evals_total"] == sum(res.evals.values())
+        # the local-fit stages equal the local optimizer's own counts
+        fit_evals = sum(ne for _v, ne in bfs.paint_hooks.fit_records)
+        assert res.evals["fit_accepted"] + res.evals["fit_rejected"] == fit_evals
+        # the per-voxel records add up to the stage total (as the BFS's records do)
+        assert sum(bfs.records[v].n_evals for v in range(n)) == bfs.stats["paint_evals_total"]
         assert all(bfs.records[v].source in ("seed", "paint", "fit", "failed") for v in range(n))
     finally:
         p.seed_by_indexing, p.paint_grains = old
