@@ -54,11 +54,13 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    `git log feature/eval-reduction..<task branch>` in its worktree, and start a fresh
    implementer with the same brief (regenerate it with `make_brief.sh`) and the note "continue from
    the commits on the branch".
-4. AR2 step 1 (the holdout of the finisher arms): start it now. Before the task:
-   `scripts/dev/read_on_fetch.sh --save`, merge `origin/feature/python-speed-parity` if it has new
-   commits, `--mark`. Brief: `scripts/dev/make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md
-   --task ar2a --section "AR2: indexing as the BFS seed search"`, with the note "step 1 only". A
-   fresh Sonnet implementer in its own worktree. Then AR2 step 2 (the key), then AR3.
+4. AR2 step 1 (the holdout of the finisher arms): a Sonnet implementer is running on branch
+   `feature/eval-reduction-ar2a` (started 2026-11-09 16:05). Its report will be
+   `.claude/reports/20261109-1605-ar2a.md`. When it exists: place the findings page
+   `docs/autoresearch/findings_ar2_holdout.md` if the agent's write was refused, run
+   `scripts/dev/verify_handback.sh`, `/review-task`, apply fixes, merge. Then apply the plan's rule
+   (best 2 is kept unless it has more wrong voxels than best 3) and start AR2 step 2 (the key)
+   with a brief from `make_brief.sh --task ar2b`, note "step 2 only". Then AR3.
 5. Item 7: PR #41 is open and has the test count. Do not merge it; the owner does.
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
@@ -79,7 +81,7 @@ Reading the table: one row per step, in order, with its state.
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
-| AR2 | indexing as the BFS seed search | next: step 1 (holdout), then step 2 (the key) |
+| AR2 | indexing as the BFS seed search | step 1 (holdout) running, branch `feature/eval-reduction-ar2a`; then step 2 (the key) |
 | AR3 | index the layer and paint grains | after AR2's first result |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
@@ -88,7 +90,8 @@ Reading the table: one row per step, in order, with its state.
 ## Running jobs
 
 Agents of the session of 2026-11-09 (they die with the session; `git worktree list` shows their
-worktrees, and their branches keep the commits): none. No detached compute job is running.
+worktrees, and their branches keep the commits): the AR2 step 1 implementer (branch
+`feature/eval-reduction-ar2a`). No detached compute job is running.
 
 ## Results so far
 
