@@ -7,10 +7,12 @@ order of ``default_rng(0)``.
 
 Writes ``<OUT>/gradient/runs/<name>/``. P: ``recon.mic`` (the painted map), ``records.json``,
 ``run.json``, ``preflight.json``, ``paint.json.gz`` (entries, stages, evaluations, scores of each
-grain, the loop's log), ``seed_records.json.gz``, ``refine_R.json.gz`` and ``refine_R2.json.gz``
-(one row per refined voxel: start cost and hit ratio, the entry's best hit ratio, end orientation,
-cost and hit ratio, evaluations, and the trace of the fit), ``maps.npz`` (P, R, R2 orientation
-maps), ``trace_check.json``. D: as run C/D of step 2 (``fit_log.json.gz``).
+grain, the loop's log), ``seed_records.json.gz`` (not committed; the summary does not read it),
+``refine_R.json.gz`` and ``refine_R2.json.gz`` (one row per refined voxel: start cost and hit
+ratio, the entry's best hit ratio, end orientation, cost and hit ratio, evaluations, and the trace
+of the fit), ``maps.npz`` (P, R, R2 orientation maps), ``trace_check.json``. D: as run C/D of
+step 2 (``fit_log.json.gz``), with the map gzipped as ``recon.mic.gz`` (a per-voxel record above
+2 MB, D-20261110-N4).
 
 The trace of a fit. ``variance_minimizing_optimize`` (the BFS's local fit) has no ``trajectory``
 argument, so the trace wraps ``MCOptimizer._zero_temp_with_variance`` (one call per block of the
@@ -37,8 +39,8 @@ import run_layer as RL
 RUNS = G.GRAD / "runs"
 R_CAP_S = 60 * 60
 R2_CAP_S = 30 * 60
-P_CAP_S = 90 * 60
-D_CAP_S = 150 * 60
+# The plan's 90-minute cap on P and 150-minute cap on D are not coded: the BFS loop writes its
+# output only at the end, so P and D were watched and left to finish (see the findings page).
 
 
 class Tracer:
@@ -362,6 +364,17 @@ def run_refine(a: argparse.Namespace) -> None:
     print("all done", flush=True)
 
 
+def gzip_map(path: Path) -> None:
+    """Replace ``path`` by ``path.gz`` (no name or time in the gzip header: reproducible)."""
+    import gzip
+    import shutil
+
+    with open(path, "rb") as fi, open(str(path) + ".gz", "wb") as raw:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as fo:
+            shutil.copyfileobj(fi, fo)
+    path.unlink()
+
+
 def run_d(a: argparse.Namespace) -> None:
     out = RUNS / "D"
     out.mkdir(parents=True, exist_ok=True)
@@ -380,6 +393,7 @@ def run_d(a: argparse.Namespace) -> None:
         json.dumps({str(k): vars(v) for k, v in bfs.records.items()}) + "\n"
     )
     G.dump_gz(rows, out / "fit_log.json.gz")
+    gzip_map(out / "recon.mic")
     st = bfs.stats
     info = dict(
         name="D",

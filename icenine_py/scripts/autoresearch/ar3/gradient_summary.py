@@ -2,11 +2,14 @@
 
   uv run python scripts/autoresearch/ar3/gradient_summary.py
 
-Reads ``gradient/runs/{P,D}``, ``gradient/reading0.json.gz`` and the step-2 maps of runs C and D
-(the control). Writes ``gradient/summary.json``, ``gradient/tables.md`` and the figure
-``gradient/ar3_gradient.png``. No p-values. A rule's threshold is picked on the pick set A (grains
-with an even id) and reported on the test set B (odd id) with the threshold fixed. Ties in a pick
-take the more conservative threshold (stated where it applies).
+Reads ``gradient/runs/{P,D}``, ``gradient/reading0.json.gz``, ``gradient/grad_stack.json`` (written
+by ``grad_stack_note.py``), the render records of the gradient and the stored images
+(``scripts/phase_d/results``), step 2's ``layer/summary.json`` and the step-2 maps of runs C and D
+(the control). Also measures the local fit's trial steps at the run's settings with the library's
+``QuaternionGrid`` (``step_sizes``). Writes ``gradient/summary.json``, ``gradient/tables.md`` and
+the figure ``gradient/ar3_gradient.png``. No p-values. A rule's threshold is picked on the pick
+set A (grains with an even id) and reported on the test set B (odd id) with the threshold fixed.
+Ties in a pick take the more conservative threshold (stated where it applies).
 """
 
 import json
@@ -22,6 +25,7 @@ import stats as ST  # noqa: E402
 
 RUNS = G.GRAD / "runs"
 L2 = C.OUT / "layer" / "runs"
+RENDER = C.ICE / "scripts" / "phase_d" / "results"
 LEVELS = G.LEVELS
 HIT_T = [round(0.90 + 0.01 * i, 2) for i in range(11)]
 ZAP = 0.02  # degrees: "within 0.02 degrees of its own end"
@@ -98,14 +102,25 @@ class Data:
         self.Rm = mp["R"].astype(np.float64)
         self.R2m = mp["R2"].astype(np.float64)
         self.paint = G.load_gz(P / "paint.json.gz")
-        self.seeds = G.load_gz(P / "seed_records.json.gz")
         self.rR = G.load_gz(P / "refine_R.json.gz")
         self.rR2 = G.load_gz(P / "refine_R2.json.gz")
         self.runP = json.loads((P / "run.json").read_text())
+        self.trace_check = json.loads((P / "trace_check.json").read_text())
+        self.cfgP = (P / "run.config").read_text()
         self.runD = json.loads((RUNS / "D" / "run.json").read_text())
         self.Dlog = G.load_gz(RUNS / "D" / "fit_log.json.gz")
-        self.Dm, _ = G.read_map(RUNS / "D" / "recon.mic", self.n)
+        self.Dm, _ = G.read_map(RUNS / "D" / "recon.mic.gz", self.n)
         self.r0 = np.array(G.load_gz(G.GRAD / "reading0.json.gz")["rows"])
+        # strict cost and hit ratio of each voxel's true orientation (Reading 0), by voxel index
+        self.cost_true = np.full(self.n, np.nan)
+        self.hit_true = np.full(self.n, np.nan)
+        self.cost_true[self.r0[:, 0].astype(int)] = self.r0[:, 3]
+        self.hit_true[self.r0[:, 0].astype(int)] = self.r0[:, 4]
+        assert not np.isnan(self.cost_true).any()
+        self.step2 = json.loads((C.OUT / "layer" / "summary.json").read_text())
+        self.render_grad = json.loads((RENDER / "render_grad_nodrop.json").read_text())
+        self.render_full = json.loads((RENDER / "render_full.json").read_text())
+        self.stack_note = json.loads((G.GRAD / "grad_stack.json").read_text())
         self.eP = T.err(self.Pm)
         self.eR = T.err(self.Rm)
         self.eR2 = T.err(self.R2m)
@@ -246,6 +261,22 @@ def point1(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
         ["level", "grains", "entries", "mean", "mx", "multi", "none", "grid"],
         {"mean": ".2f"},
     )
+    # entries within 1 degree of an earlier entry (paint.json.gz `near_earlier`), the true grain
+    # of the two entries' voxels, the flood size, and the fit-settled branch (P/run.json counts)
+    near = [e for e in ent if e["near_earlier"] is not None]
+    same = sum(
+        1 for e in near if T_.gmap[e["voxel"]] == T_.gmap[ent[int(e["near_earlier"])]["voxel"]]
+    )
+    cnt = D.runP["counts"]
+    S["entries_detail"] = dict(
+        near_earlier=len(near),
+        near_same_true_grain=int(same),
+        near_other_true_grain=len(near) - int(same),
+        flood_passes_median=float(np.median([e["flood_passes"] for e in ent])),
+        fit_branch_tried=int(cnt["fits_accepted"] + cnt["fits_rejected"]),
+        fit_branch_accepted=int(cnt["fits_accepted"]),
+        seed_share_of_voxels=len(ent) / D.n,
+    )
     ev = D.paint["evals"]
     tot = int(sum(ev.values()))
     n_idx = sum(1 for e in ent if e["kind"] == "index")
@@ -279,6 +310,25 @@ def point1(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
         ["what", "n", "per"],
         {"per": ",.0f", "n": ","},
         labels=None,
+    )
+    # the 172 grid-fallback entries alone (without the 4 rejected grid searches of failed voxels)
+    sc["grid_entries_only_share"] = ev.get("seed_grid", 0) / tot
+    st_d = D.runD["stats"]
+    sc["D_fallbacks"] = int(st_d["index_fallback_seed_test"])
+    sc["D_fallback_grid_evals"] = int(st_d["index_fallback_grid_evals"])
+    # P against step 2's whole-layer paint (one orientation per grain), with and without the
+    # grid fallback
+    s2 = D.step2["evals"]
+    no_grid = tot - ev.get("seed_grid", 0) - ev.get("grid_rejected", 0)
+    S["vs_step2_paint"] = dict(
+        step2_evals=int(s2["C"]["total"]),
+        step2_entries=int(s2["n_entries"]),
+        step2_key_on_bfs_evals=int(s2["D"]["total"]),
+        P_evals=tot,
+        P_evals_without_grid=int(no_grid),
+        ratio=tot / s2["C"]["total"],
+        ratio_without_grid=no_grid / s2["C"]["total"],
+        entries_ratio=len(ent) / s2["n_entries"],
     )
     S["evals_P_by_stage"] = dict(ev, total=tot)
     T["ar3c_evals_stage"] = DT.markdown_table(
@@ -405,6 +455,168 @@ def paired_vs_start(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
     )
 
 
+ERR_EDGES = [0.0, 0.05, 0.1, 0.2, 0.5, 1e9]
+
+
+def bin_name(lo: float, hi: float) -> str:
+    return f"{lo:g} to {hi:g}" if hi < 1e8 else f"{lo:g} and above"
+
+
+def fit_cause(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
+    """Can the strict cost tell the painted start from the truth, and did the fit get there?
+
+    Per painted voxel: the strict cost of its true orientation (Reading 0) against the cost of its
+    start (refine_R `start_cost`), and whether R's fit ended at a lower cost than its start. The
+    truth enters this analysis only (no decision)."""
+    v = D.vR
+    sc = np.array([r["start_cost"] for r in D.rR])
+    ec = np.array([r["end_cost"] for r in D.rR])
+    sh = np.array([r["start_hit"] for r in D.rR])
+    ct, ht = D.cost_true[v], D.hit_true[v]
+    lev, es = D.lev[v], D.eP[v]
+    groups: List[Tuple[str, np.ndarray]] = [("all painted voxels", np.ones(len(v), bool))]
+    groups += [(lvl_name(L), lev == L) for L in LEVELS]
+    groups += [
+        (f"start error {bin_name(lo, hi)}", (es >= lo) & (es < hi))
+        for lo, hi in zip(ERR_EDGES[:-1], ERR_EDGES[1:])
+    ]
+    rows = []
+    S["fit_cause"] = {}
+    for name, m in groups:
+        nm = int(m.sum())
+        lower = int((ct[m] < sc[m]).sum())
+        d = dict(
+            n=nm,
+            truth_lower=wil(lower, nm),
+            truth_lower_share=lower / nm,
+            equal=int((ct[m] == sc[m]).sum()),
+            truth_higher=int((ct[m] > sc[m]).sum()),
+            fit_lowered=wil(int((ec[m] < sc[m]).sum()), nm),
+            median_gap=float(np.median(sc[m] - ct[m])),
+        )
+        S["fit_cause"][name] = d
+        rows.append(
+            dict(
+                group=name,
+                n=nm,
+                truth_lower=wil_str(d["truth_lower"]),
+                equal=d["equal"],
+                truth_higher=d["truth_higher"],
+                fit_lowered=wil_str(d["fit_lowered"]),
+                med_gap=d["median_gap"],
+            )
+        )
+    gt = es > 0.1
+    S["fit_cause_extra"] = dict(
+        truth_hit_higher=int((ht > sh).sum()),
+        start_error_median=float(np.median(es)),
+        gt01=int(gt.sum()),
+        gt01_truth_lower=int((ct[gt] < sc[gt]).sum()),
+    )
+    T["ar3c_truth_vs_start"] = DT.markdown_table(
+        rows,
+        ["group", "n", "truth_lower", "equal", "truth_higher", "fit_lowered", "med_gap"],
+        {"n": ",", "med_gap": ".4f"},
+    )
+
+
+def cfg_value(text: str, key: str) -> float:
+    import re
+
+    m = re.search(rf"(?m)^{key}\s+(\S+)", text)
+    assert m, key
+    return float(m.group(1))
+
+
+def step_sizes(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
+    """The trial steps of the local fit at the run's settings, measured with the library.
+
+    ``variance_minimizing_optimize`` (C++ ``AdaptiveSamplingZeroTemp``) at box width
+    LocalOrientationGridRadius / 2^MinLocalResolution. Block k searches a subregion of radius
+    r_k (r_1 = tan(box) / sqrt(48); doubled after a failed block, capped at the box) with
+    max(ceil(r_k / 0.5 deg)^2.7, 10) trial steps; a trial is ``get_near_identity_point`` of an
+    offset drawn uniformly in +-tan(r_k) / sqrt(12) per axis. Before block k >= 2 the search
+    restarts from the start plus ``get_near_identity_point`` of an offset uniform in +-r_k. The
+    blocks are listed as in a fit whose blocks all fail (no budget extension), until MaxMCSteps.
+    Step and offset angles: 10,000 draws each from default_rng(0) (a measurement of the
+    distribution, not part of any run)."""
+    import math
+
+    from icenine.sampling import QuaternionGrid
+
+    radius_deg = cfg_value(D.cfgP, "LocalOrientationGridRadius")
+    min_res = cfg_value(D.cfgP, "MinLocalResolution")
+    max_steps = cfg_value(D.cfgP, "MaxMCSteps")
+    box = math.radians(radius_deg) / 2**min_res
+    res = math.radians(0.5)
+    g = QuaternionGrid()
+    rng = np.random.default_rng(0)
+    n_draw = 10_000
+
+    def angles(half: float) -> np.ndarray:
+        xyz = rng.uniform(-half, half, size=(n_draw, 3))
+        w = np.array([abs(g.get_near_identity_point(*p)[0]) for p in xyz])
+        return np.degrees(2 * np.arccos(np.minimum(w, 1.0)))
+
+    zero = float(np.degrees(2 * np.arccos(min(abs(g.get_near_identity_point(0, 0, 0)[0]), 1.0))))
+    sub = math.tan(box) / math.sqrt(48.0)
+    total, ev, k = 0, 1, 0
+    rows = []
+    blocks = []
+    while total < max_steps:
+        k += 1
+        n = max(int(math.ceil(sub / res) ** 2.7), 10)
+        st = angles(math.tan(sub) / math.sqrt(12.0))
+        rs = angles(sub) if k > 1 else None
+        ev += 1 + n
+        b = dict(
+            block=k,
+            radius_deg=math.degrees(sub),
+            steps=n,
+            evals_at_end=ev,
+            step_median=float(np.median(st)),
+            step_p05=float(np.percentile(st, 5)),
+            restart_median=None if rs is None else float(np.median(rs)),
+        )
+        blocks.append(b)
+        rows.append(
+            dict(
+                block=k,
+                radius_deg=b["radius_deg"],
+                steps=n,
+                evals_at_end=ev,
+                step_med=b["step_median"],
+                step_p05=b["step_p05"],
+                restart_med="none" if rs is None else f"{b['restart_median']:.1f}",
+            )
+        )
+        total += n
+        sub = min(2.0 * sub, box)
+    ev_fit = ev + 1  # the final overlap evaluation
+    tr = [r["trace"] for r in D.rR]
+    ev_pat = [b["evals_at_end"] for b in blocks]
+    four_failed = sum(1 for t in tr if t["ev"] == ev_pat and all(t["fl"]))
+    ev_R = np.array([r["evals"] for r in D.rR])
+    S["fit_steps"] = dict(
+        LocalOrientationGridRadius=radius_deg,
+        MinLocalResolution=min_res,
+        MaxMCSteps=max_steps,
+        box_deg=math.degrees(box),
+        identity_offset_deg=zero,
+        blocks=blocks,
+        evals_all_blocks_fail=ev_fit,
+        R_median_evals=float(np.median(ev_R)),
+        R_fits=len(tr),
+        R_fits_all_blocks_failed=int(four_failed),
+    )
+    assert ev_fit == S["fit_steps"]["R_median_evals"]
+    T["ar3c_steps"] = DT.markdown_table(
+        rows,
+        ["block", "radius_deg", "steps", "evals_at_end", "step_med", "step_p05", "restart_med"],
+        {"radius_deg": ".3f", "step_med": ".2f", "step_p05": ".2f"},
+    )
+
+
 # --------------------------------------------------------------------------------------------
 def pick_skip(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> Dict[str, Any]:
     rows = D.rR
@@ -486,6 +698,10 @@ def pick_skip(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> Dict[str, Any]:
             },
         )
         d = S["skip"][kind]
+        # the most permissive end of the grid: the lowest t; for c the 100th percentile of A's
+        # start costs (A's largest start cost)
+        edge = res[kind]["sweep"][0]["t"] if kind == "hit" else res[kind]["sweep"][-1]["t"]
+        d["pick_at_grid_edge"] = bool(p["t"] == edge)
         out_rows.append(
             dict(
                 rule="start hit ratio >= t x entry best" if kind == "hit" else "start cost <= c",
@@ -678,6 +894,11 @@ def block_stop(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
             },
         )
         d = S["stop"][kind]
+        if kind == "cost":
+            # which grid point the pick is: percentiles 10 to 100 of A's end costs (100 = A's
+            # largest end cost, the grid's edge)
+            d["pick_percentile"] = 10 * (grid.index(pick["t"]) + 1)
+            d["pick_at_grid_edge"] = bool(pick["t"] == grid[-1])
         prow.append(
             dict(
                 rule=(
@@ -796,6 +1017,7 @@ def second_fit(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
         S["second"]["B"] = dict(
             predicted=k,
             right=wil(right, k),
+            right_share=right / k if k else float("nan"),
             B_total=int((~isA).sum()),
             B_helped=wil(int((helped & ~isA).sum()), int((~isA).sum())),
             predicted_helped=int((pred & helped).sum()),
@@ -826,6 +1048,54 @@ def point6(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
     end = np.array([r["end"] for r in lg])
     err_end = D.T.err(end, vox)
     err_start = D.T.err(np.array([r["start"] for r in lg]), vox)
+    # `exact_same` is bitwise (np.array_equal); "not lowered" is the fit's own test (end cost not
+    # below the start cost), which also counts ends equal to the start up to the quaternion round
+    # trip
+    sc_d = np.array([r["start_cost"] for r in lg])
+    ec_d = np.array([r["end_cost"] for r in lg])
+    not_lowered = ec_d >= sc_d
+    rt = not_lowered & ~same
+    S["D_fit_inert"] = dict(
+        fits=len(lg),
+        exact_same=int(same.sum()),
+        not_lowered=wil(int(not_lowered.sum()), len(lg)),
+        not_lowered_share=float(not_lowered.mean()),
+        roundtrip_only=int(rt.sum()),
+        roundtrip_moved_median_deg=float(np.median(ang[rt])) if rt.any() else float("nan"),
+        roundtrip_moved_max_deg=float(np.max(ang[rt])) if rt.any() else float("nan"),
+    )
+    # the fit's success by the start's error, and whether the truth's strict cost was lower than
+    # the start's (Reading 0; truth used in this analysis only)
+    ct = D.cost_true[vox]
+    edges = [0.0, 0.05, 0.1, 0.2, 0.5, 1.0, 5.0, 1e9]
+    drow = []
+    S["D_fit_by_start_error"] = {}
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        m = (err_start >= lo) & (err_start < hi)
+        nm = int(m.sum())
+        if not nm:
+            continue
+        name = bin_name(lo, hi)
+        lowered = int((ec_d[m] < sc_d[m]).sum())
+        tl = int((ct[m] < sc_d[m]).sum())
+        S["D_fit_by_start_error"][name] = dict(
+            fits=nm,
+            lowered=wil(lowered, nm),
+            lowered_share=lowered / nm,
+            truth_lower=wil(tl, nm),
+            truth_lower_share=tl / nm,
+        )
+        drow.append(
+            dict(
+                start_error=name,
+                fits=nm,
+                lowered=wil_str(wil(lowered, nm)),
+                truth_lower=wil_str(wil(tl, nm)),
+            )
+        )
+    T["ar3c_dfit_bins"] = DT.markdown_table(
+        drow, ["start_error", "fits", "lowered", "truth_lower"], {"fits": ","}
+    )
     rows = []
     S["D_fits"] = {}
     for L in LEVELS + (None,):
@@ -839,6 +1109,7 @@ def point6(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
             moved_median=float(np.median(ang[m])),
             moved_p95=float(np.percentile(ang[m], 95)),
             exact_same=wil(int(same[m].sum()), nm),
+            not_lowered=wil(int(not_lowered[m].sum()), nm),
             end_four=four(err_end[m]),
             start_four=four(err_start[m]),
         )
@@ -852,6 +1123,7 @@ def point6(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
                 mv_med=d["moved_median"],
                 mv_p95=d["moved_p95"],
                 same=wil_str(d["exact_same"]),
+                not_lowered=wil_str(d["not_lowered"]),
                 s_med=d["start_four"]["median"],
                 e_med=d["end_four"]["median"],
                 e_p95=d["end_four"]["p95"],
@@ -868,6 +1140,7 @@ def point6(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
             "mv_med",
             "mv_p95",
             "same",
+            "not_lowered",
             "s_med",
             "e_med",
             "e_p95",
@@ -900,6 +1173,7 @@ def point6(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
             broken=int((~wD & wR).sum()),
             both=int((wD & wR).sum()),
             intervals_overlap=overlap(four(D.eR[m])["wrong"], four(D.eD[m])["wrong"]),
+            gt01_overlap=overlap(four(D.eR[m])["gt01"], four(D.eD[m])["gt01"]),
         )
         d = S["map_vs_D"][key]
         prow.append(
@@ -913,13 +1187,38 @@ def point6(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
                 broken=d["broken"],
                 both=d["both"],
                 iv="overlap" if d["intervals_overlap"] else "do not overlap",
+                iv_gt01="overlap" if d["gt01_overlap"] else "do not overlap",
             )
         )
     T["ar3c_map_vs_D"] = DT.markdown_table(
         prow,
-        ["level", "n", "P_wrong", "PR_wrong", "D_wrong", "fixed", "broken", "both", "iv"],
+        [
+            "level",
+            "n",
+            "P_wrong",
+            "PR_wrong",
+            "D_wrong",
+            "fixed",
+            "broken",
+            "both",
+            "iv",
+            "iv_gt01",
+        ],
         {"n": ","},
     )
+    # gains under the plan's rule (the two rates' intervals do not overlap), P plus R against D
+    S["gains_PR_vs_D"] = [
+        dict(
+            group=k,
+            measure=meas,
+            PR=S["map_vs_D"][k]["PR"][meas],
+            D=S["map_vs_D"][k]["D"][meas],
+            PR_better=S["map_vs_D"][k]["PR"][meas]["k"] < S["map_vs_D"][k]["D"][meas]["k"],
+        )
+        for k in S["map_vs_D"]
+        for meas, flag in (("gt01", "gt01_overlap"), ("wrong", "intervals_overlap"))
+        if not S["map_vs_D"][k][flag]
+    ]
     frows = [
         four_row("P plus R, all", D.eR),
         four_row("D, all", D.eD),
@@ -935,8 +1234,6 @@ def control(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
     m = D.lev == 0.0
     out = {}
     rows = []
-    for name, R in (("step 2 run C (paint)", None), ("step 2 run D (BFS)", None)):
-        pass
     maps = {}
     for k in ("C", "D"):
         mapk, _ = G.read_map(L2 / k / "recon.mic", D.n)
@@ -963,15 +1260,33 @@ def walls(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
             wall=rp["wall_total_s"],
             label=rp["timing_label"],
         ),
-        dict(run="R (one fit per painted voxel)", wall=rp["wall_R_s"], label="same process as P"),
+        # R and R2 ran in a separate refine-stage process (`--stage refine`, P's stored paint and
+        # generator state) with no preflight, about 11:24 to 11:42; run D ran until 11:39 (the
+        # mtimes of refine_R.json.gz 11:38, refine_R2.json.gz 11:42, D's fit_log.json.gz 11:39)
+        dict(
+            run="R (one fit per painted voxel)",
+            wall=rp["wall_R_s"],
+            label="contended: separate refine-stage process, no preflight; run D running",
+        ),
         dict(
             run="R2 (second fit, every fourth voxel)",
             wall=rp["wall_R2_s"],
-            label="same process as P",
+            label="contended: separate refine-stage process, no preflight; run D running at start",
         ),
         dict(run="D (BFS)", wall=rd["wall_total_s"], label=rd["timing_label"]),
     ]
     S["walls"] = {r["run"]: r for r in rows}
+    tot_s = rp["wall_total_s"] + rp["wall_R_s"] + rp["wall_R2_s"] + rd["wall_total_s"]
+    S["compute"] = dict(
+        P_h=rp["wall_total_s"] / 3600,
+        D_h=rd["wall_total_s"] / 3600,
+        R_plus_R2_h=(rp["wall_R_s"] + rp["wall_R2_s"]) / 3600,
+        total_h=tot_s / 3600,
+        budget_h=4.0,
+        P_cap_min=90,
+        D_cap_min=150,
+        caps_coded=False,
+    )
     T["ar3c_wall"] = DT.markdown_table(rows, ["run", "wall", "label"], {"wall": ".0f"})
 
 
@@ -1072,9 +1387,23 @@ def main() -> None:
         n_by_level={str(L): int((D.lev == L).sum()) for L in LEVELS},
     )
     T: Dict[str, str] = {}
+    sn = D.stack_note
+    S["provenance"] = dict(
+        render_grad_lit_clean=int(D.render_grad["lit_clean_total"]),
+        render_grad_spots=int(D.render_grad["spots_total"]),
+        render_stored_lit_clean=int(D.render_full["lit_clean_total"]),
+        render_stored_spots=int(D.render_full["spots_total"]),
+        stack_nonzero=int(sn["stack_nonzero"]),
+        stack_matches_render=bool(sn["stack_matches_render"]),
+        render_mic_sha256=sn["mic_sha256"],
+        trace_check=D.trace_check,
+    )
+    assert sn["mic_sha256"] == D.T.sha
     point0(D, S, T)
     point1(D, S, T)
     paired_vs_start(D, S, T)
+    fit_cause(D, S, T)
+    step_sizes(D, S, T)
     pick_skip(D, S, T)
     block_stop(D, S, T)
     second_fit(D, S, T)

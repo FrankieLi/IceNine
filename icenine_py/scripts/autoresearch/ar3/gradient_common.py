@@ -66,9 +66,18 @@ class Truth:
 
 
 def read_map(path: Path, n: int) -> Tuple[np.ndarray, np.ndarray]:
-    """(orientations (n, 3, 3), have (n,)) of a run's recon.mic."""
+    """(orientations (n, 3, 3), have (n,)) of a run's recon.mic (plain, or gzipped ``.mic.gz``)."""
+    import shutil
+    import tempfile
+
     from icenine.mic_file import MicFile
 
+    if path.suffix == ".gz":
+        with tempfile.TemporaryDirectory() as td:
+            plain = Path(td) / path.stem
+            with gzip.open(path, "rb") as fi, open(plain, "wb") as fo:
+                shutil.copyfileobj(fi, fo)
+            return read_map(plain, n)
     mic = MicFile.read(str(path))
     R = np.array([v.orientation for v in mic.voxels], dtype=np.float64)
     assert len(R) == n

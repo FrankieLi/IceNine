@@ -19,15 +19,27 @@
 | all | 19,013 | 662 | 0.998 | 0.998 | 18977 of 19013 (99.7 to 99.9%) |
 <!-- /table:ar3c_converged -->
 
+<!-- table:ar3c_dfit_bins -->
+| start_error | fits | lowered | truth_lower |
+|---|---|---|---|
+| 0 to 0.05 | 8,973 | 6 of 8973 (0.03 to 0.15%) | 7240 of 8973 (79.9 to 81.5%) |
+| 0.05 to 0.1 | 8,240 | 62 of 8240 (0.59 to 0.96%) | 8213 of 8240 (99.5 to 99.8%) |
+| 0.1 to 0.2 | 11,121 | 518 of 11121 (4.3 to 5.1%) | 11121 of 11121 (100.0 to 100.0%) |
+| 0.2 to 0.5 | 14,762 | 3931 of 14762 (25.9 to 27.3%) | 14762 of 14762 (100.0 to 100.0%) |
+| 0.5 to 1 | 3,493 | 2212 of 3493 (61.7 to 64.9%) | 3493 of 3493 (99.9 to 100.0%) |
+| 1 to 5 | 167 | 91 of 167 (46.9 to 61.9%) | 167 of 167 (97.8 to 100.0%) |
+| 5 and above | 43,436 | 8633 of 43436 (19.5 to 20.3%) | 43436 of 43436 (100.0 to 100.0%) |
+<!-- /table:ar3c_dfit_bins -->
+
 <!-- table:ar3c_dfits -->
-| level | fits | evals | med_evals | mv_med | mv_p95 | same | s_med | e_med | e_p95 | e_wrong |
-|---|---|---|---|---|---|---|---|---|---|---|
-| level 0 | 8,617 | 5,695,834 | 662 | 0.0000 | 0.3226 | 4908 of 8617 (55.9 to 58.0%) | 0.0484 | 0.0484 | 53.2871 | 3846 of 8617 (43.6 to 45.7%) |
-| level 0.1 | 11,893 | 7,875,695 | 662 | 0.0000 | 0.3705 | 6865 of 11893 (56.8 to 58.6%) | 0.1953 | 0.1954 | 54.0878 | 5930 of 11893 (49.0 to 50.8%) |
-| level 0.2 | 18,608 | 12,369,093 | 662 | 0.0000 | 0.3983 | 10077 of 18608 (53.4 to 54.9%) | 20.7688 | 20.7151 | 54.3637 | 9843 of 18608 (52.2 to 53.6%) |
-| level 0.5 | 22,516 | 15,059,166 | 662 | 0.0000 | 0.4481 | 11119 of 22516 (48.7 to 50.0%) | 0.4467 | 0.3998 | 53.4110 | 10847 of 22516 (47.5 to 48.8%) |
-| level 1 | 28,558 | 19,320,043 | 662 | 0.0000 | 0.6240 | 12484 of 28558 (43.1 to 44.3%) | 0.6528 | 0.5059 | 53.8450 | 12963 of 28558 (44.8 to 46.0%) |
-| all | 90,192 | 60,319,831 | 662 | 0.0000 | 0.5093 | 45453 of 90192 (50.1 to 50.7%) | 0.6252 | 0.4857 | 53.9183 | 43429 of 90192 (47.8 to 48.5%) |
+| level | fits | evals | med_evals | mv_med | mv_p95 | same | not_lowered | s_med | e_med | e_p95 | e_wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| level 0 | 8,617 | 5,695,834 | 662 | 0.0000 | 0.3226 | 4908 of 8617 (55.9 to 58.0%) | 7866 of 8617 (90.7 to 91.9%) | 0.0484 | 0.0484 | 53.2871 | 3846 of 8617 (43.6 to 45.7%) |
+| level 0.1 | 11,893 | 7,875,695 | 662 | 0.0000 | 0.3705 | 6865 of 11893 (56.8 to 58.6%) | 10621 of 11893 (88.7 to 89.8%) | 0.1953 | 0.1954 | 54.0878 | 5930 of 11893 (49.0 to 50.8%) |
+| level 0.2 | 18,608 | 12,369,093 | 662 | 0.0000 | 0.3983 | 10077 of 18608 (53.4 to 54.9%) | 16382 of 18608 (87.6 to 88.5%) | 20.7688 | 20.7151 | 54.3637 | 9843 of 18608 (52.2 to 53.6%) |
+| level 0.5 | 22,516 | 15,059,166 | 662 | 0.0000 | 0.4481 | 11119 of 22516 (48.7 to 50.0%) | 18821 of 22516 (83.1 to 84.1%) | 0.4467 | 0.3998 | 53.4110 | 10847 of 22516 (47.5 to 48.8%) |
+| level 1 | 28,558 | 19,320,043 | 662 | 0.0000 | 0.6240 | 12484 of 28558 (43.1 to 44.3%) | 21049 of 28558 (73.2 to 74.2%) | 0.6528 | 0.5059 | 53.8450 | 12963 of 28558 (44.8 to 46.0%) |
+| all | 90,192 | 60,319,831 | 662 | 0.0000 | 0.5093 | 45453 of 90192 (50.1 to 50.7%) | 74739 of 90192 (82.6 to 83.1%) | 0.6252 | 0.4857 | 53.9183 | 43429 of 90192 (47.8 to 48.5%) |
 <!-- /table:ar3c_dfits -->
 
 <!-- table:ar3c_entries -->
@@ -82,14 +94,14 @@
 <!-- /table:ar3c_map_four -->
 
 <!-- table:ar3c_map_vs_D -->
-| level | n | P_wrong | PR_wrong | D_wrong | fixed | broken | both | iv |
-|---|---|---|---|---|---|---|---|---|
-| level 0 | 4,877 | 3 of 4877 (0.02 to 0.18%) | 3 of 4877 (0.02 to 0.18%) | 17 of 4877 (0.22 to 0.56%) | 16 | 2 | 1 | do not overlap |
-| level 0.1 | 4,488 | 10 of 4488 (0.12 to 0.41%) | 10 of 4488 (0.12 to 0.41%) | 23 of 4488 (0.34 to 0.77%) | 16 | 3 | 7 | overlap |
-| level 0.2 | 5,041 | 23 of 5041 (0.30 to 0.68%) | 23 of 5041 (0.30 to 0.68%) | 38 of 5041 (0.5 to 1.0%) | 23 | 8 | 15 | overlap |
-| level 0.5 | 4,625 | 39 of 4625 (0.6 to 1.2%) | 39 of 4625 (0.6 to 1.2%) | 47 of 4625 (0.8 to 1.3%) | 22 | 14 | 25 | overlap |
-| level 1 | 5,539 | 95 of 5539 (1.4 to 2.1%) | 95 of 5539 (1.4 to 2.1%) | 78 of 5539 (1.1 to 1.8%) | 14 | 31 | 64 | overlap |
-| all | 24,570 | 170 of 24570 (0.60 to 0.80%) | 170 of 24570 (0.60 to 0.80%) | 203 of 24570 (0.72 to 0.95%) | 91 | 58 | 112 | overlap |
+| level | n | P_wrong | PR_wrong | D_wrong | fixed | broken | both | iv | iv_gt01 |
+|---|---|---|---|---|---|---|---|---|---|
+| level 0 | 4,877 | 3 of 4877 (0.02 to 0.18%) | 3 of 4877 (0.02 to 0.18%) | 17 of 4877 (0.22 to 0.56%) | 16 | 2 | 1 | do not overlap | do not overlap |
+| level 0.1 | 4,488 | 10 of 4488 (0.12 to 0.41%) | 10 of 4488 (0.12 to 0.41%) | 23 of 4488 (0.34 to 0.77%) | 16 | 3 | 7 | overlap | do not overlap |
+| level 0.2 | 5,041 | 23 of 5041 (0.30 to 0.68%) | 23 of 5041 (0.30 to 0.68%) | 38 of 5041 (0.5 to 1.0%) | 23 | 8 | 15 | overlap | do not overlap |
+| level 0.5 | 4,625 | 39 of 4625 (0.6 to 1.2%) | 39 of 4625 (0.6 to 1.2%) | 47 of 4625 (0.8 to 1.3%) | 22 | 14 | 25 | overlap | do not overlap |
+| level 1 | 5,539 | 95 of 5539 (1.4 to 2.1%) | 95 of 5539 (1.4 to 2.1%) | 78 of 5539 (1.1 to 1.8%) | 14 | 31 | 64 | overlap | overlap |
+| all | 24,570 | 170 of 24570 (0.60 to 0.80%) | 170 of 24570 (0.60 to 0.80%) | 203 of 24570 (0.72 to 0.95%) | 91 | 58 | 112 | overlap | do not overlap |
 <!-- /table:ar3c_map_vs_D -->
 
 <!-- table:ar3c_reading0 -->
@@ -207,6 +219,15 @@
 | level 1 | 5,539 | 0.0551 | 0.1875 | 1573 of 5539 (27.2 to 29.6%) | 95 of 5539 (1.4 to 2.1%) |
 <!-- /table:ar3c_start -->
 
+<!-- table:ar3c_steps -->
+| block | radius_deg | steps | evals_at_end | step_med | step_p05 | restart_med |
+|---|---|---|---|---|---|---|
+| 1 | 0.724 | 10 | 12 | 0.70 | 0.32 | none |
+| 2 | 1.447 | 19 | 32 | 1.41 | 0.64 | 4.9 |
+| 3 | 2.894 | 126 | 159 | 2.82 | 1.31 | 9.7 |
+| 4 | 5.000 | 501 | 661 | 4.86 | 2.29 | 16.8 |
+<!-- /table:ar3c_steps -->
+
 <!-- table:ar3c_stop -->
 | rule | threshold | A_saved_share | B_saved | B_saved_share | B_hurt | B_med | B_p95 | B_gt01 | B_wrong |
 |---|---|---|---|---|---|---|---|---|---|
@@ -229,11 +250,27 @@
 | cost | level 1 | 1658 | 1,149,052 | 1,170,606 | 0 |
 <!-- /table:ar3c_stop_level -->
 
+<!-- table:ar3c_truth_vs_start -->
+| group | n | truth_lower | equal | truth_higher | fit_lowered | med_gap |
+|---|---|---|---|---|---|---|
+| all painted voxels | 19,013 | 16591 of 19013 (86.8 to 87.7%) | 2219 | 203 | 36 of 19013 (0.14 to 0.26%) | 0.0207 |
+| level 0 | 4,774 | 2938 of 4774 (60.2 to 62.9%) | 1713 | 123 | 0 of 4774 (0.00 to 0.08%) | 0.0029 |
+| level 0.1 | 4,152 | 3760 of 4152 (89.6 to 91.4%) | 358 | 34 | 0 of 4152 (0.00 to 0.09%) | 0.0161 |
+| level 0.2 | 4,332 | 4178 of 4332 (95.9 to 97.0%) | 131 | 23 | 7 of 4332 (0.08 to 0.33%) | 0.0231 |
+| level 0.5 | 3,196 | 3167 of 3196 (98.7 to 99.4%) | 16 | 13 | 10 of 3196 (0.17 to 0.58%) | 0.0346 |
+| level 1 | 2,559 | 2548 of 2559 (99.2 to 99.8%) | 1 | 10 | 19 of 2559 (0.5 to 1.2%) | 0.0506 |
+| start error 0 to 0.05 | 11,423 | 9058 of 11423 (78.5 to 80.0%) | 2180 | 185 | 3 of 11423 (0.01 to 0.08%) | 0.0100 |
+| start error 0.05 to 0.1 | 5,350 | 5293 of 5350 (98.6 to 99.2%) | 39 | 18 | 11 of 5350 (0.11 to 0.37%) | 0.0345 |
+| start error 0.1 to 0.2 | 2,042 | 2042 of 2042 (99.8 to 100.0%) | 0 | 0 | 20 of 2042 (0.6 to 1.5%) | 0.0588 |
+| start error 0.2 to 0.5 | 111 | 111 of 111 (96.7 to 100.0%) | 0 | 0 | 2 of 111 (0.5 to 6.3%) | 0.0815 |
+| start error 0.5 and above | 87 | 87 of 87 (95.8 to 100.0%) | 0 | 0 | 0 of 87 (0.0 to 4.2%) | 0.0738 |
+<!-- /table:ar3c_truth_vs_start -->
+
 <!-- table:ar3c_wall -->
 | run | wall | label |
 |---|---|---|
 | P (paint, with set-up of pairing) | 7390 | contended: timing preflight refused (cpptools at 100% CPU, Python at 99% CPU); single run, one worker |
-| R (one fit per painted voxel) | 841 | same process as P |
-| R2 (second fit, every fourth voxel) | 219 | same process as P |
+| R (one fit per painted voxel) | 841 | contended: separate refine-stage process, no preflight; run D running |
+| R2 (second fit, every fourth voxel) | 219 | contended: separate refine-stage process, no preflight; run D running at start |
 | D (BFS) | 9369 | contended: timing preflight refused (cpptools at 114% CPU, Python at 100% CPU); single run, one worker |
 <!-- /table:ar3c_wall -->
