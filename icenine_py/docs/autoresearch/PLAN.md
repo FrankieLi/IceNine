@@ -219,7 +219,9 @@ AR3 has two steps, in this order.
 before step 1 is reviewed and merged, and no part of it belongs in `ar3a`. Added 2026-11-10:
 step 1 is merged (8e3098f), so task `ar3b` is step 2 as written under "Step 2, the details"
 below; step 1 is not redone. Task `ar3c` is step 3 as written under "Step 3" below; it starts
-after `ar3b` is merged and redoes nothing of steps 1 and 2. For the implementer of
+after `ar3b` is merged and redoes nothing of steps 1 and 2. Task `ar3d` is step 4 as written
+under "Step 4" below; it starts after `ar3c` is merged and reruns nothing of step 3. For the
+implementer of
 any of these tasks: the tool refuses a helper agent's write of a new `.md` file. So do not write the
 findings page or the hand-back report as files. Return each as text in the final message, the
 findings page between the lines `=== FINDINGS PAGE ===` and `=== END FINDINGS PAGE ===`, the
@@ -603,6 +605,125 @@ commit the symlink, the images or any cache. The spot pairing of the new images 
 gets the new module; `MIGRATION_HISTORY.md` gets the summary. Only the result files that the
 summary script reads are committed (D-20261110-N4); a per-voxel record above 2 MB is stored
 gzipped and read gzipped.
+
+### Step 4: a local fit whose step matches the error
+
+Added 2026-11-10 after the review of step 3. Task `ar3d`.
+
+**Why.** Step 3 found that the local fit moves almost none of the painted voxels. The review
+found the reason in the stored records and in the code. The cost does tell the truth from the
+painted start: the true orientation costs less than the start on 16,591 of 19,013 painted
+voxels, and on every voxel that starts more than 0.1 degrees off. But the fit searches a box of
+5 degrees. Its smallest trial step is about 0.7 degrees, and after each failed block it restarts
+2 to 17 degrees away. The painted starts are 0.04 degrees off (median). A trial of that size
+almost never lands in the small region near the truth. So the fit spends about 660 evaluations
+and returns its start. The C++ source has the same logic, and all 43 config files in this
+repository set the same box (LocalOrientationGridRadius 5, MinLocalResolution 0).
+
+**The idea.** Start the fit with a box that matches the error of its start, and widen it only
+when that fails. A box of 5/8 degree gives a first trial step of about 0.09 degrees. By the
+step rule of the code, a fit in a small box runs about 46 evaluations where the stock fit runs
+662. So a finer box may be both closer to the truth and about 14 times cheaper. Both are to be
+measured; neither is claimed here.
+
+**Terms.**
+
+- The **box** is the side of the region that the local fit searches (`search_box_side` of
+  `MCOptimizer.variance_minimizing_optimize`). The **stock** box is 5 degrees.
+- A **fine fit** is the same fit with a smaller box. Nothing else changes.
+- A **ladder** runs a fine fit first and a wider one only when the fine one failed.
+- **Start**, **error**, **wrong**, **level**, **hurt**, pick set **A** and test set **B** are as
+  in step 3.
+
+**Part 1: fits from the stored painted starts.** No whole-layer run. Reuse step 3's refine
+stage: P's stored paint and generator state, the 19,013 painted voxels of the gradient sample,
+the same images. Every arm starts every voxel from the same painted start and from the same
+generator state. One run per arm.
+
+| arm | the fit |
+|---|---|
+| `B5` | the stock fit, box 5 degrees. This is step 3's run R. It is read from the stored record and not rerun. |
+| `B06` | box 5/8 degree |
+| `B03` | box 5/16 degree |
+| `B015` | box 5/32 degree |
+| `L` | a ladder: box 5/32; when the cost did not fall, box 5/8; when it still did not fall, the stock box. The evaluations of every rung count. |
+| `C` | the existing CMA local fit (`local_optimizer` "cma"), first step 0.05 degrees, at most 60 evaluations. Run it only if it can be called from a script with no library change; otherwise leave it out and say so. |
+
+The box is passed to the optimizer by the script. The config key MinLocalResolution is not
+used for this, because it also changes the Q range of the adaptive search and the trial box.
+
+Readings of part 1, for each arm, on all voxels, by level and by the size of the start's error:
+
+1. How many voxels came closer to the truth by more than 0.05 degrees, and how many were hurt.
+2. Median and 95th percentile of the error, the share above 0.1 degrees, the wrong count.
+3. The share of fits that lowered the cost. The share whose end costs no more than the true
+   orientation (the truth is used here for analysis only).
+4. Evaluations per fit (median and total), with the final evaluation counted as in step 3.
+
+**The pick.** On A: the arm with the lowest share of voxels above 0.1 degrees after the fit.
+Among arms whose intervals overlap with that one, the arm with the fewest evaluations. The pick
+is then reported on B. It is called a gain over the start, or over `B5`, only when the
+intervals on B do not overlap.
+
+**Gate.** If no arm is a gain over the start on B, stop after part 1 and report. Parts 2 and 3
+are then not run.
+
+**Part 2: the stop readings again, on a fit that moves.** With the picked arm, redo step 3's
+readings 3, 4 and 5 with step 3's summary code: skip the fit from what is known before it; stop
+inside the fit from its trace; a second fit on every fourth voxel and whether it helps. Rules
+are picked on A and reported on B. A pick that sits at the edge of its grid is called
+uninformative, in the section where it appears.
+
+**Part 3: the whole layer with the picked fit.** Still no library change. A script wrapper
+replaces the fit inside the reconstructor's `local_optimization` and nowhere else: not in the
+seed path, not in the grid search, not in the finisher. The implementer checks this by counting
+the calls and says so on the page. The wrapped fit is "fine first, stock as fallback": the
+picked fit runs first; when its end does not pass the acceptance test that the caller applies
+next, the stock fit runs from the same start, and the end with the lower cost is returned.
+Read that test in `reconstructor.py` and `grain_paint.py` and name it on the page. If it cannot
+be evaluated inside a script wrapper, use "the cost did not fall" as the trigger and say so.
+
+| run | what | compared with | cap |
+|---|---|---|---|
+| `D4` | BFS with indexed seeds on the gradient sample, wrapped fit | step 3's D (118,350,225 evaluations, 203 wrong) | 150 min |
+| `P4` | paint through the key on the gradient sample, wrapped fit in the fit-settled branch; then `R4`, one picked fit from each painted start | step 3's P plus R (90,985,770 evaluations, 170 wrong) | 120 min |
+| `E4` | `D4`'s protocol on step 2's sample (one orientation per grain, stored images) | step 2's D (33,040,126 evaluations, 153 wrong) | 90 min |
+
+The three runs may run side by side. Each cap is coded: the background script kills the run at
+its cap, and a killed run is reported as not finished. Where it is cheap, a run writes what it
+has at intervals so that a killed run still leaves a record.
+
+Readings of part 3: evaluations by stage; the number of grain entries and of grid fallbacks;
+wrong voxels, the share above 0.1 degrees, median and 95th percentile of the error, all by
+level; paired counts by voxel against the compared run (fixed, broken, wrong in both). A
+difference is a gain or a loss only when the intervals do not overlap. Each arm is one run with
+one voxel order, and the page says so next to each comparison.
+
+**Stop rules of the task.** Part 1 and part 2 together: 60 minutes. Part 3: the caps above.
+Total compute about 4.5 hours. The general stop rule holds as well (twice a budget, a baseline
+that does not reproduce, a plan that cannot be followed).
+
+**Not claimed.** That C++ behaves the same (the source has the same logic; the program is not
+run here). That the gradient model matches a real sample. A change of any default. A tested
+wall time unless the preflight passes.
+
+**What comes after** (not part of `ar3d`). If the wrapped fit is a gain on the whole layer: an
+opt-in key for it in the library, with the off path bit-identical. Then the stop rule inside
+the loop, the grain-wide model of the orientation field, and the cheaper seed, as listed under
+step 3.
+
+**Practical notes for the implementer.** Step 3 is merged: reuse `run_gradient.py` (its refine
+stage and its trace wrapper), `gradient_common.py` and `gradient_summary.py`. The untracked run
+files of step 3 (P's `recon.mic` and `records.json`, the pairing cache, the image symlink) are
+in the worktree named in `docs/autoresearch/STATE.md`; link them, do not commit them. Check
+first that the trace wrapper does not change a fine fit: the first 200 fits identical with the
+trace on and off.
+
+**Files.** No file under `icenine_py/icenine/` changes. Scripts in `scripts/autoresearch/ar3/`;
+results in `benchmarks/autoresearch/ar3/fine/`; findings in
+`docs/autoresearch/findings_ar3_fine.md` (returned as text, see "Task split").
+`MIGRATION_HISTORY.md` gets the summary. Only the result files that the summary script reads
+are committed; a per-voxel record above 2 MB is stored gzipped and read gzipped.
 
 ## AR4: the learned proposer
 
