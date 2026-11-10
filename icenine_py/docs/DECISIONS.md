@@ -876,3 +876,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   different from the grid search, and every other fixed or broken voxel is a boundary crossing
   that counts neither way. The owner can overrule this. Where:
   icenine_py/docs/autoresearch/findings_ar2_key.md.
+
+### D-20261109-N11 · Track E (PR #41, review items 12, 22, 23) · Owner: merge PR #41; yes to review items 12, 22 and 23
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- The owner's word in the session of 2026-11-09 ('I have left comment in the artifact. Go ahead
+  and execute according to the comments'), on the owner's own comments on the review page. (1) PR
+  #41 (feature/eval-reduction to develop) is merged with a merge commit (357a2b3, at branch head
+  16c72db); the branch is kept, later autoresearch steps go in a new PR. (2) Item 12: yes to both
+  edits under .claude/ (show the 'note:' lines of make_brief.sh in /implement-plan and
+  /apply-fixes; drop the extra -q in run-tests-on-change.sh). Newt applies them to the working
+  tree; the commit of .claude/ files stays with the owner. (3) Item 22: yes. precommit_check.py
+  lets a merge commit bring a .claude/ or CLAUDE.md file only when the staged file is identical to
+  that file on the branch being merged; every other .claude/ change is still refused. (4) Item 23:
+  yes. When the worktree guard refuses a combined shell command, an agent may rerun it as plain
+  commands, as the refusal message suggests. Doing a refused action another way (such as writing a
+  file through the shell after Edit or Write was refused) stays forbidden. Also noted: the shmem
+  embedder is no longer run, so its warning is expected. A page comment alone was not acted on;
+  the session message is the authority. Where: docs/owner_review_2026-10-30.md items 12, 22, 23;
+  PR #41; scripts/dev/precommit_check.py; ROADMAP Newt mailbox.
