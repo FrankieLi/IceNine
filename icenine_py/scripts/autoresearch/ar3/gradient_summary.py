@@ -248,6 +248,38 @@ def point1(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
     )
     ev = D.paint["evals"]
     tot = int(sum(ev.values()))
+    n_idx = sum(1 for e in ent if e["kind"] == "index")
+    n_grid = sum(1 for e in ent if e["kind"] == "grid")
+    S["seed_cost"] = dict(
+        entries=len(ent),
+        index_entries=n_idx,
+        grid_entries=n_grid,
+        evals_per_index_entry=ev.get("seed_index", 0) / max(n_idx, 1),
+        evals_per_grid_entry=ev.get("seed_grid", 0) / max(n_grid, 1),
+        seed_share_of_total=(
+            ev.get("seed_index", 0)
+            + ev.get("seed_grid", 0)
+            + ev.get("index_rejected", 0)
+            + ev.get("grid_rejected", 0)
+        )
+        / tot,
+        grid_share_of_total=(ev.get("seed_grid", 0) + ev.get("grid_rejected", 0)) / tot,
+        per_voxel=tot / D.n,
+    )
+    sc = S["seed_cost"]
+    T["ar3c_seed_cost"] = DT.markdown_table(
+        [
+            dict(what="entries from the seed path", n=n_idx, per=sc["evals_per_index_entry"]),
+            dict(
+                what="entries from the grid search (fallback)",
+                n=n_grid,
+                per=sc["evals_per_grid_entry"],
+            ),
+        ],
+        ["what", "n", "per"],
+        {"per": ",.0f", "n": ","},
+        labels=None,
+    )
     S["evals_P_by_stage"] = dict(ev, total=tot)
     T["ar3c_evals_stage"] = DT.markdown_table(
         [dict(stage=k, evals=v) for k, v in ev.items()] + [dict(stage="total", evals=tot)],
@@ -323,6 +355,34 @@ def paired_vs_start(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
             "w_d",
         ],
         {k: ".4f" for k in ("med_s", "med_r", "med_d", "p95_s", "p95_r", "p95_d")} | {"n": ","},
+    )
+    # by the size of the start's error: does the fit help where it is needed?
+    edges = [0.0, 0.05, 0.1, 0.2, 0.5, 1e9]
+    brow = []
+    S["refine_by_start_error"] = {}
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        mm = m & (D.eP >= lo) & (D.eP < hi)
+        nm = int(mm.sum())
+        if not nm:
+            continue
+        closer = int((D.eR[mm] < D.eP[mm] - G.HURT).sum())
+        hurt = int((D.eR[mm] > D.eP[mm] + G.HURT).sum())
+        moved = int((D.T.mis(D.Pm[mm], D.Rm[mm]) > ZAP).sum())
+        name = f"{lo:g} to {hi:g}" if hi < 1e8 else f"{lo:g} and above"
+        S["refine_by_start_error"][name] = dict(
+            n=nm, moved=wil(moved, nm), closer=wil(closer, nm), hurt=wil(hurt, nm)
+        )
+        brow.append(
+            dict(
+                err=name,
+                n=nm,
+                moved=wil_str(wil(moved, nm)),
+                closer=wil_str(wil(closer, nm)),
+                hurt=wil_str(wil(hurt, nm)),
+            )
+        )
+    T["ar3c_refine_bins"] = DT.markdown_table(
+        brow, ["err", "n", "moved", "closer", "hurt"], {"n": ","}
     )
     evP = D.runP["evals_total"]
     S["evals_total"] = dict(
