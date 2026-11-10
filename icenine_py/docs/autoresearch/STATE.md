@@ -85,9 +85,12 @@ go on.
   implementer from the stored records, no new run), merged and pushed (a442712). Full suite at
   the merge: 1520 passed, 44 skipped, 1 deselected. PR #43 now holds steps 2 and 3. Numbers:
   "Results so far".
-- **AR3 step 4 is planned and approved** under the mandate (plan 592937a, D-20261110-N5; task
-  `ar3d`): a local fit whose step matches the error of its start. Its implementer is started
-  next (see "Running jobs").
+- **AR3 step 4 is implemented and in review** (plan 592937a, D-20261110-N5; task `ar3d`): a
+  local fit whose step matches the error of its start. The Sonnet implementer handed back on
+  2026-11-10 (branch `feature/eval-reduction-ar3d`, head 160a43d; its full suite: 1520 passed,
+  44 skipped, 1 deselected). `verify_handback.sh`: 0 FAIL, 2 FLAG (the page commit is the main
+  session's; untracked run files). The Opus review was started at 15:55. Its numbers are **not
+  reviewed yet**; a first reading is under "Running jobs".
 
 ## Next action
 
@@ -126,18 +129,32 @@ go on.
    gate: if no fine fit is a gain over the start on set B, it stops after part 1.
    - If the agent died with the session (a branch `feature/eval-reduction-ar3d` with no
      report): see point 3 above.
-   - When it hands back: place the report and the findings page if its writes were refused;
-     `scripts/dev/verify_handback.sh feature/eval-reduction <report> --branch
-     feature/eval-reduction-ar3d`; `/review-task` (Opus) with the extra focus "is the fine fit
-     compared on one footing with the stock fit (same starts, same generator state, every
-     rung's evaluations counted), and does the wrapper touch only the local fit"; fixes by a
-     fresh Opus implementer; `scripts/dev/finish_task.sh --yes --push` in the worktree that
-     holds the task branch; then `gh pr edit 43` or a new PR if #43 is merged by then; this
-     file; the review page (plot before table); one shmem fact.
-   - After step 4: if "fine first, stock as fallback" is a gain on the whole layer, plan the
-     opt-in key for it (off path bit-identical); then the stop rule inside the loop, the
-     grain-wide model of the orientation field, a cheaper seed. Next decision ID:
-     D-20261110-N6 or later.
+   - Handed back 2026-11-10. Report: `.claude/reports/20261110-1313-ar3d.md` (copied from the
+     agent's worktree; its hand-back call carried the word "placeholder" by mistake). The
+     findings page `docs/autoresearch/findings_ar3_fine.md` was placed on the task branch by
+     the main session from the agent's draft (160a43d); tables match `tables.md`. The task
+     branch is checked out in `.claude/worktrees/agent-ac609f1c28c619ed0` (locked).
+   - The review (`code-reviewer`, Opus) runs in the background and writes
+     `.claude/reports/20261110-1555-review-ar3d.md`. If that file is missing and no agent is
+     running, start the review again (`/review-task`; extra focus: one footing of the fine
+     arms and the stock fit, the pick rule with B015 and L left out, the wrapper touches only
+     the local fit, the fairness of P4+R4 against P+R, the rise in wrong voxels in P4 and E4,
+     the audit's unmatched numbers).
+   - When the review is back: fixes by a fresh Opus implementer (first free the branch:
+     `git -C .claude/worktrees/agent-ac609f1c28c619ed0 checkout --detach`; brief from
+     `make_brief.sh ... --task ar3d --fixes <review report>`); `verify_handback.sh ... --fixes
+     <review>`; `scripts/dev/finish_task.sh --yes --push` in the worktree that holds the task
+     branch (background, about 12 minutes; keep the main checkout clean while it runs); then
+     `gh pr edit 43` or a new PR if #43 is merged by then; this file; the review page (plot
+     before table); one shmem fact; a heads-up to Ilium only if a shared file changed (step 4
+     changes scripts only).
+   - After step 4: the unreviewed result says the CMA fit is the fit to carry on, and that
+     the wrapped fit adds wrong voxels in the paint and on the sample without gradients. So
+     the next plan is likely: find where the extra wrong voxels come from (a variant that
+     hands the voxels the caller rejects to the stock fit), and only then an opt-in key (off
+     path bit-identical). Then the stop rule inside the loop, the grain-wide model of the
+     orientation field, a cheaper seed (the grid fallback is 25.8 of D4's 35.1 million
+     evaluations). Next decision ID: D-20261110-N6 or later.
 7. Item 7: **PR #41 is merged** into `develop` (357a2b3, 2026-11-09, at branch head 16c72db), on
    the owner's word in the session (D-20261109-N11). The branch `feature/eval-reduction` is kept.
    **PR #42 is merged** into `develop` (66e93fd, 2026-11-10, at branch head 0b3852d) on the
@@ -180,23 +197,36 @@ Reading the table: one row per step, in order, with its state.
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
 | AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) **done** 2026-11-09 (a8c99b7) |
-| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer) **done** 2026-11-10 (741e8fc), in PR #43; step 3 (paint as a start, then refine, on grains with gradients; stop-rule readings) **done** 2026-11-10 (a442712), in PR #43; step 4 (a local fit whose step matches the error, task `ar3d`): planned (592937a, D-20261110-N5), **implementer running** |
+| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer) **done** 2026-11-10 (741e8fc), in PR #43; step 3 (paint as a start, then refine, on grains with gradients; stop-rule readings) **done** 2026-11-10 (a442712), in PR #43; step 4 (a local fit whose step matches the error, task `ar3d`): implemented 2026-11-10 (task branch head 160a43d), **in review** |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 
 ## Running jobs
 
-One agent is running (started 2026-11-10): the Sonnet implementer of task `ar3d` (AR3 step 4),
-on the branch `feature/eval-reduction-ar3d` in its own worktree (`git worktree list` names it).
-It starts compute jobs of its own (part 3: up to three whole-layer runs side by side, each
-with a coded time cap). Check: `git log --oneline
-feature/eval-reduction..feature/eval-reduction-ar3d` and `scripts/dev/job_status.sh`.
-Seen at 14:14 on 2026-11-10: parts 1 and 2 are committed on the task branch (e6186d0), so
-the gate of part 1 was passed. The three whole-layer runs of part 3 (D4, P4, E4;
-`scripts/autoresearch/ar3/run_wrapped.py`) started at about 14:12 in the worktree
-`.claude/worktrees/agent-ac609f1c28c619ed0`; the longest cap is 150 minutes. No number of step
-4 is recorded here yet: nothing is handed back or reviewed.
+One agent is running (started 2026-11-10 at 15:55): the Opus `code-reviewer` of task `ar3d`
+(AR3 step 4). It reads the task branch in `.claude/worktrees/agent-ac609f1c28c619ed0` and
+writes `.claude/reports/20261110-1555-review-ar3d.md`. It starts no reconstruction run. Check:
+`ls .claude/reports/ | tail -3`. No compute job of step 4 is running (D4, P4, R4 and E4
+finished below their caps).
+
+First reading of step 4, from the implementer's report. **Not reviewed; do not quote as a
+finding.** Scope: the simulated linear-gradient sample of step 3 (run E4: step 2's sample).
+
+- Part 1, 19,013 painted voxels, share more than 0.1 degrees off: start 2,240; stock fit
+  2,230; box 5/8 degree 937; box 5/16 degree 542; the existing CMA fit (first step 0.05
+  degrees, at most 60 evaluations) 334. Median evaluations per fit: 662, 398, 1,245 and 61.
+  A finer box of the stock fit is not cheaper (the plan had guessed about 46 per fit). The
+  box 5/32 and the ladder ran on 600 voxels only (about 22,000 evaluations per fit). Wrong
+  voxels: 87 in every arm. The pick on set A is the CMA fit; on set B it is a gain.
+- Part 2: with a fit of 61 evaluations a skip or stop rule saves little (best: 195,627 of
+  567,605 on B at about 1% hurt); a second fit helps 73 of 4,768.
+- Part 3, whole layer, "CMA first, stock fit when the cost did not fall": D4 35,129,496
+  evaluations against 118,350,225, wrong 225 against 203 (no difference); P4 plus R4
+  50,892,696 against 90,985,770, wrong 281 against 170 (a loss); E4 13,608,181 against
+  33,040,126, wrong 305 against 153 (a loss). The share above 0.1 degrees is a gain in D4
+  and in P4 plus R4.
+
 Old agent worktrees under `.claude/worktrees/` are
 detached and can stay; `agent-a3fcfcc95d9db6295` holds the untracked run files of the pilot
 paint run, `agent-a849170b7d4502001` those of the layer runs (pairing cache, the image symlink).
