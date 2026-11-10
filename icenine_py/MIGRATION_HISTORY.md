@@ -11416,7 +11416,8 @@ from `fit_records.json`). The fit log's "wrong at the end" is now counted by vox
 none). The second finisher run is 41.6% of the seed-path evaluations (measured); on the 15 seeds
 whose taken candidate was not the lowest-cost one, the first run's end is more than 1 degree from
 the truth on all 15. The page and docstrings are scoped to the one-orientation-per-grain sample;
-step 1's page carries a dated correction (D-20261110-N3).
+step 1's page carries a dated correction (D-20261110-N3). Full suite after the fixes: 1515 passed,
+44 skipped, 1 deselected.
 
 Not claimed: realistic images, another Q-max or voxel order, samples whose grains hold orientation
 gradients, other layers, a tested stop rule or cheaper seed, a tested wall time, a parallel run;

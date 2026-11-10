@@ -73,7 +73,8 @@ C, how often the candidate with the lowest strict cost is the one the finisher e
   this code agree (not a comparison with the base commit; check B is that); key on gives the
   same map and stage evaluations as a direct call, the stages sum to the cost function's, seed
   paths' and local optimizer's counts, and the per-voxel records sum to the stage total, on the
-  real case and on four fake-cost cases (added by the review fixes)).
+  real case and on four fake-cost cases (added by the review fixes)). Full suite after the
+  review fixes: 1515 passed, 44 skipped, 1 deselected.
 
 ## Evaluations
 
