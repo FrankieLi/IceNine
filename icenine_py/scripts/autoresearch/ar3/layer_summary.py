@@ -335,6 +335,19 @@ def main() -> None:
     direct["wrong_voxels"] = [r["voxel"] for r in rows if r["distinct"] and not r["cost_right"]][
         :40
     ]
+    # ties on the distinct contested voxels: the top hit ratio or the lowest cost shared by two
+    # passing grains (the "highest_hit" rule sorts by (-hit, cost, index), so it needs a tie rule
+    # only if such ties exist)
+    n_tie_hit = n_tie_cost = 0
+    for r in rows:
+        if not r["distinct"]:
+            continue
+        pg = passing[r["voxel"]]
+        hs = sorted((t[2] for t in pg), reverse=True)
+        cs = sorted(t[1] for t in pg)
+        n_tie_hit += int(hs[0] == hs[1])
+        n_tie_cost += int(cs[0] == cs[1])
+    direct["ties"] = dict(top_hit_tied=n_tie_hit, lowest_cost_tied=n_tie_cost)
     S["direct"] = direct
 
     # ---- the side arm
@@ -403,6 +416,13 @@ def main() -> None:
         dup_rows.append(
             dict(
                 entry=i,
+                near_entry=int(e["near_earlier"]),
+                true_grain=None if entry_grain[i] is None else int(entry_grain[i]),
+                near_true_grain=(
+                    None
+                    if entry_grain[e["near_earlier"]] is None
+                    else int(entry_grain[e["near_earlier"]])
+                ),
                 same_true_grain=bool(entry_grain[i] == entry_grain[e["near_earlier"]]),
                 voxel=e["voxel"],
                 in_pilot=bool(W.in_region[e["voxel"]]),
@@ -437,6 +457,19 @@ def main() -> None:
             n_pilot=sum(r["in_pilot"] for r in dup_rows),
             seed_path_evals=sum(r["seed_path_evals"] for r in dup_rows),
             flood_scores=sum(r["flood_scores"] for r in dup_rows),
+            evals_all=sum(r["seed_path_evals"] + r["flood_scores"] for r in dup_rows),
+            evals_share_of_C=sum(r["seed_path_evals"] + r["flood_scores"] for r in dup_rows) / totC,
+            different_true_grain=[
+                dict(
+                    entry=r["entry"],
+                    near_entry=r["near_entry"],
+                    true_grain=r["true_grain"],
+                    near_true_grain=r["near_true_grain"],
+                    near_deg=r["near_deg"],
+                )
+                for r in dup_rows
+                if not r["same_true_grain"]
+            ],
             rows=dup_rows,
         ),
     )
@@ -511,12 +544,18 @@ def main() -> None:
     }
 
     # ---- wall
+    wsC = info["C"]["stats"].get("paint_wall_s") or {}
+    seed_s = float(wsC.get("seed_index", 0.0) + wsC.get("index_rejected", 0.0))
     S["wall"] = dict(
         C=dict(
             wall_s=info["C"]["wall_total_s"],
             label=info["C"]["timing_label"],
             pairing_s=info["C"]["index_pairing_s"],
             by_stage_s=info["C"]["stats"].get("paint_wall_s"),
+            # the seed paths' wall time includes the one-time pairing (built on the first seed
+            # path); the indexing alone (voting, clustering) is not timed apart in the record
+            seed_paths_s=seed_s,
+            seed_paths_without_pairing_s=seed_s - info["C"]["index_pairing_s"],
         ),
         D=dict(
             wall_s=info["D"]["wall_total_s"],
@@ -530,6 +569,11 @@ def main() -> None:
     # ---- the fit log (runs B and D) and the seed record (run C)
     S["fit_log"] = {k: fit_log_summary(W, RUNS / k, e) for k, e in (("B", None), ("D", eD))}
     S["seed_record"] = seed_record_summary(W, seed_recs)
+    S["seed_record"]["by_region"] = {
+        k: seed_record_summary(W, [r for r in seed_recs if m[r["voxel"]]])
+        for k, m in regions.items()
+        if k != "layer"
+    }
 
     (LAYER_OUT / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
     tables(S)
@@ -550,11 +594,34 @@ BINS = [
 ]
 
 
+def _by_voxel(
+    vox: np.ndarray, moved: np.ndarray, wrong: np.ndarray, voxels: np.ndarray
+) -> Dict[str, Any]:
+    """Wrong voxels in the run's final map, counted by voxel over ``voxels`` (layer indices): the
+    voxels with at least one local fit that moved over 0.1 degrees, the fitted voxels with none,
+    and the voxels never fitted (seeds). ``vox``/``moved`` are per fit row."""
+    sel = np.isin(vox, voxels)
+    fitted = np.unique(vox[sel])
+    big = np.unique(vox[sel & moved])
+    small = np.setdiff1d(fitted, big)
+    unfit = np.setdiff1d(voxels, fitted)
+    return dict(
+        n_voxels=int(len(voxels)),
+        n_fitted=int(len(fitted)),
+        any_fit_moved_over_0p1=wil_dict(int(wrong[big].sum()), int(len(big))),
+        no_fit_moved_over_0p1=wil_dict(int(wrong[small].sum()), int(len(small))),
+        not_fitted=dict(n=int(len(unfit)), wrong=int(wrong[unfit].sum())),
+    )
+
+
 def fit_log_summary(W: World, run: Path, err: Optional[np.ndarray]) -> Dict[str, Any]:
     rows = json.loads((run / "fit_log.json").read_text())
     if err is None:  # run B: the pilot region, errors from its own map
         R, have = W.read_map(run)
         err = W.err(R)
+        run_voxels = np.nonzero(have)[0]
+    else:
+        run_voxels = np.arange(W.n)
     ang = np.array([r["angle_deg"] for r in rows])
     same = np.array([r["exact_same"] for r in rows])
     ev = np.array([r["evals"] for r in rows])
@@ -570,33 +637,55 @@ def fit_log_summary(W: World, run: Path, err: Optional[np.ndarray]) -> Dict[str,
     out["bins"] = {
         names[i]: dict(n=int((cls == i).sum()), evals=int(ev[cls == i].sum())) for i in range(4)
     }
+    pil = W.in_region[vox]
+    out["bins_by_region"] = {
+        k: {
+            names[i]: dict(n=int(((cls == i) & m).sum()), evals=int(ev[(cls == i) & m].sum()))
+            for i in range(4)
+        }
+        for k, m in (("pilot", pil), ("rest", ~pil))
+    }
     fall = sc - ec
+    # quartiles of the start cost, half-open bins [lo, hi) with the top bin closed, so every
+    # fit falls in exactly one bin
     qs = np.quantile(sc, [0, 0.25, 0.5, 0.75, 1.0])
+    qi = np.clip(np.searchsorted(qs[1:-1], sc, side="right"), 0, 3)
     fb = []
-    for a, b in zip(qs[:-1], qs[1:]):
-        m = (sc >= a) & (sc <= b)
+    for i in range(4):
+        m = qi == i
         fb.append(
             dict(
-                start_cost_lo=float(a),
-                start_cost_hi=float(b),
+                start_cost_lo=float(qs[i]),
+                start_cost_hi=float(qs[i + 1]),
                 n=int(m.sum()),
-                mean_fall=float(fall[m].mean()),
-                median_fall=float(np.median(fall[m])),
+                mean_fall=float(fall[m].mean()) if m.any() else None,
+                median_fall=float(np.median(fall[m])) if m.any() else None,
             )
         )
+    assert sum(b["n"] for b in fb) == len(rows)
     out["cost_fall_by_start_cost_quartile"] = fb
     out["fall_share_zero"] = float((fall <= 0).mean())
+    low = cls <= 1  # the bins "not at all" and "under 0.01"
+    out["fall_vs_move"] = dict(
+        n_fall_zero=int((fall == 0).sum()),
+        n_fall_negative=int((fall < 0).sum()),
+        n_fall_positive=int((fall > 0).sum()),
+        n_first_two_bins=int(low.sum()),
+        fall_zero_in_first_two_bins=int(((fall == 0) & low).sum()),
+        fall_zero_outside_first_two_bins=int(((fall == 0) & ~low).sum()),
+        fall_positive_in_first_two_bins=int(((fall > 0) & low).sum()),
+    )
     out["start_hit_median"] = float(np.median([r["start_hit"] for r in rows]))
+    # wrong "at the end" = wrong in the run's final map (a revisit can overwrite a fit), counted
+    # by voxel, not per fit row
     moved = cls == 3
-    final_wrong = err[vox[moved]] > WRONG
-    out["moved_over_0p1"] = dict(
-        n=int(moved.sum()), wrong_at_end=wil_dict(int(final_wrong.sum()), int(moved.sum()))
-    )
-    unmoved = ~moved
-    out["not_moved_over_0p1"] = dict(
-        n=int(unmoved.sum()),
-        wrong_at_end=wil_dict(int((err[vox[unmoved]] > WRONG).sum()), int(unmoved.sum())),
-    )
+    wrong = err > WRONG
+    out["n_moved_over_0p1_fits"] = int(moved.sum())
+    out["by_voxel"] = _by_voxel(vox, moved, wrong, run_voxels)
+    out["by_voxel_by_region"] = {
+        k: _by_voxel(vox, moved, wrong, run_voxels[m[run_voxels]])
+        for k, m in (("pilot", W.in_region), ("rest", ~W.in_region))
+    }
     out["angle_pct"] = pct(ang, (50, 90, 99))
     out["extra_start_evals"] = len(rows)
     return out
@@ -616,6 +705,19 @@ def seed_record_summary(W: World, recs: List[Dict[str, Any]]) -> Dict[str, Any]:
         fall.append((sc[t] if t < len(sc) else np.nan) - r["cost"])
         i_taken.append(t < len(sc))
     fall_a = np.array(fall, dtype=float)
+    # the second finisher run's share of the seed-path evaluations (each finisher run has its own
+    # default_rng(0), so the first run's end does not depend on the second and is recorded)
+    second = int(sum(r["finisher_evals"][1] for r in recs if len(r["finisher_evals"]) >= 2))
+    all_ev = int(sum(r["evals"] for r in recs))
+    # seeds whose taken candidate is not the lowest-strict-cost one: is the first finisher run's
+    # end (on the lowest-cost candidate) within 1 degree of the seed voxel's truth? and the taken
+    # end? (a reading against the truth; a shorter path would also change the seed test's input)
+    other = [r for r, f in zip(ok, first) if not f and len(r["finisher_R"]) >= 1]
+    first_end_deg = [W.mis(np.array(r["finisher_R"][0]), W.Rtrue[r["voxel"]]) for r in other]
+    first_end_right = sum(d <= WRONG for d in first_end_deg)
+    taken_end_right = sum(
+        W.mis(np.array(r["orientation"]), W.Rtrue[r["voxel"]]) <= WRONG for r in other
+    )
     return dict(
         n_seed_paths=len(recs),
         n_with_candidate=len(ok),
@@ -636,6 +738,16 @@ def seed_record_summary(W: World, recs: List[Dict[str, Any]]) -> Dict[str, Any]:
                 if len(r["finisher_R"]) == 2
                 and W.mis(np.array(r["finisher_R"][0]), np.array(r["finisher_R"][1])) <= WRONG
             )
+        ),
+        seed_path_evals=all_ev,
+        second_finisher_evals=second,
+        second_finisher_share=second / max(1, all_ev),
+        lowest_not_taken=dict(
+            n=len(other),
+            first_run_end_right=int(first_end_right),
+            taken_end_right=int(taken_end_right),
+            first_run_end_deg_min=min(first_end_deg) if first_end_deg else None,
+            first_run_end_deg_max=max(first_end_deg) if first_end_deg else None,
         ),
     )
 
@@ -759,6 +871,45 @@ def tables(S: Dict[str, Any]) -> None:
             ["moved", "fits", "share", "evals", "evals_share"],
             formats={"fits": ",", "evals": ",", "share": ".3f", "evals_share": ".3f"},
         )
+    fD = S["fit_log"]["D"]
+    T["ar3b_fitlog_D_regions"] = DT.markdown_table(
+        [
+            dict(
+                moved=name,
+                pilot=fD["bins_by_region"]["pilot"][name]["n"],
+                rest=fD["bins_by_region"]["rest"][name]["n"],
+                pilot_share=fD["bins_by_region"]["pilot"][name]["n"]
+                / max(1, sum(b["n"] for b in fD["bins_by_region"]["pilot"].values())),
+                rest_share=fD["bins_by_region"]["rest"][name]["n"]
+                / max(1, sum(b["n"] for b in fD["bins_by_region"]["rest"].values())),
+            )
+            for name in fD["bins"]
+        ],
+        ["moved", "pilot", "rest", "pilot_share", "rest_share"],
+        formats={"pilot": ",", "rest": ",", "pilot_share": ".3f", "rest_share": ".3f"},
+    )
+    vr = []
+    for run, reg, bv in (
+        ("B", "pilot", S["fit_log"]["B"]["by_voxel"]),
+        ("D", "layer", fD["by_voxel"]),
+        ("D", "pilot", fD["by_voxel_by_region"]["pilot"]),
+        ("D", "rest", fD["by_voxel_by_region"]["rest"]),
+    ):
+        vr.append(
+            dict(
+                run=run,
+                region=reg,
+                voxels=bv["n_voxels"],
+                moved_over_0p1=wil_str(bv["any_fit_moved_over_0p1"]),
+                none_over_0p1=wil_str(bv["no_fit_moved_over_0p1"]),
+                not_fitted=f"{bv['not_fitted']['wrong']} of {bv['not_fitted']['n']}",
+            )
+        )
+    T["ar3b_fitlog_byvoxel"] = DT.markdown_table(
+        vr,
+        ["run", "region", "voxels", "moved_over_0p1", "none_over_0p1", "not_fitted"],
+        formats={"voxels": ","},
+    )
     ac = [
         dict(
             region=reg,

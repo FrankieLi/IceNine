@@ -48,6 +48,24 @@
 | over 0.1 | 5,403 | 0.111 | 3,193,643 | 0.100 |
 <!-- /table:ar3b_fitlog_D -->
 
+<!-- table:ar3b_fitlog_D_regions -->
+| moved | pilot | rest | pilot_share | rest_share |
+|---|---|---|---|---|
+| not at all | 2,175 | 25,469 | 0.521 | 0.573 |
+| under 0.01 | 1,533 | 13,968 | 0.367 | 0.314 |
+| 0.01 to 0.1 | 13 | 78 | 0.003 | 0.002 |
+| over 0.1 | 453 | 4,950 | 0.109 | 0.111 |
+<!-- /table:ar3b_fitlog_D_regions -->
+
+<!-- table:ar3b_fitlog_byvoxel -->
+| run | region | voxels | moved_over_0p1 | none_over_0p1 | not_fitted |
+|---|---|---|---|---|---|
+| B | pilot | 2,000 | 4 of 353 (0.4 to 2.9%) | 18 of 1614 (0.7 to 1.8%) | 0 of 33 |
+| D | layer | 24,570 | 25 of 4747 (0.36 to 0.78%) | 128 of 19491 (0.55 to 0.78%) | 0 of 332 |
+| D | pilot | 2,000 | 6 of 401 (0.7 to 3.2%) | 13 of 1571 (0.5 to 1.4%) | 0 of 28 |
+| D | rest | 22,570 | 19 of 4346 (0.28 to 0.68%) | 115 of 17920 (0.53 to 0.77%) | 0 of 304 |
+<!-- /table:ar3b_fitlog_byvoxel -->
+
 <!-- table:ar3b_kinds -->
 | region | kind | voxels | C | D | crossC | crossD |
 |---|---|---|---|---|---|---|
