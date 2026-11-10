@@ -16,5 +16,5 @@
  "wall_total_s": 8996.856884002686,
  "timing_label": "contended: 3 concurrent 2000-voxel BFS runs (Task G2)",
  "torch_threads": 1,
- "reproduced": true
+ "recomputed_matches_stored": true
 }
