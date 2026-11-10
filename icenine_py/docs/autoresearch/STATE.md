@@ -78,26 +78,27 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    not be removed (untracked link and cache); harmless, removable with
    `git worktree remove --force`. Left open and recorded: `key_run_bg.sh` still writes "single
    run" into the label of future runs.
-6. **AR3 step 1 (task `ar3a`) is with an implementer** (Sonnet, own worktree, started
-   2026-11-10 about 03:55 from the brief of `make_brief.sh`, verbatim). See "Running jobs" for
-   how to check it. Do nothing else while it runs.
-   - The plan section "AR3: index the layer and paint grains" (approved, D-20261110-N1) has a
-     paragraph "Task split": `ar3a` is step 1 only, and the implementer returns the findings
-     page and the report as text between marker lines, since its write of a new `.md` file is
-     refused.
-   - When it hands back: write the report to `.claude/reports/20261110-0353-ar3a.md` and the
-     findings page to `icenine_py/docs/autoresearch/findings_ar3_paint.md` from its text and
-     the committed result files (say so in both; the page is committed on the task branch).
-     Then `scripts/dev/verify_handback.sh feature/eval-reduction <report> --branch
-     feature/eval-reduction-ar3a`, `/review-task` (code-reviewer, model opus), fixes by a fresh
-     Opus implementer (`make_brief.sh ... --fixes <review report>`), then
-     `finish_task.sh --yes --push` from the task branch.
-   - If it stopped without a hand-back (sleep, restart): look at its worktree
-     (`git worktree list`; `git -C <worktree> log --oneline feature/eval-reduction..HEAD`;
-     `git -C <worktree> status --short`). Resume the same agent with SendMessage if the session
-     still lists it (ListAgents). If the session is new, start a fresh implementer with the same
-     brief and the note "continue from the commits on the branch feature/eval-reduction-ar3a".
-     Never two agents on one branch.
+6. **AR3 step 1 (task `ar3a`) is handed back and under review** (2026-11-10, about 04:30).
+   - Branch `feature/eval-reduction-ar3a`, in the worktree
+     `.claude/worktrees/agent-a3fcfcc95d9db6295`: 6af4cd2 (module `icenine/grain_paint.py` and
+     tests), 83865d5 (runs, summary, figure), f7a1dcf (README, MIGRATION_HISTORY), d66b6bf (the
+     findings page `docs/autoresearch/findings_ar3_paint.md`, written by the main session from
+     the implementer's text, tables synced from `tables.md`). Not merged yet.
+   - Report: `.claude/reports/20261110-0353-ar3a.md`. `verify_handback.sh`: 0 FAIL, 2 FLAG, both
+     expected (untracked run files and the image symlink in the worktree; the new library module
+     the plan asks for).
+   - The implementer's numbers, not yet reviewed: paint 156,766 evaluations against 2,819,906
+     for key on; 0 wrong of 2,000 against 22; the gate for step 2 is met. Do not quote them as
+     results until the review is done.
+   - A code-reviewer (model opus) is running; its report goes to
+     `.claude/reports/20261110-0430-review-ar3a.md`. When it returns: if there are required
+     fixes, a fresh Opus implementer applies them (`make_brief.sh --plan ... --task ar3a
+     --section "AR3: index the layer and paint grains" --fixes <review report>`; it must work on
+     the same branch, so no agent may still be running there), then `verify_handback.sh ...
+     --fixes`, then `finish_task.sh --yes --push` from the task branch (run it in the worktree
+     that holds the branch).
+   - If the session is new and no review report exists, start the reviewer again with the
+     `/review-task` brief.
    - The gate for step 2 is fixed in the plan: paint breaks at most 20 voxels against the key-on
      run and needs at most half of its evaluations.
    After step 1 is merged: write step 2's details into the plan (the key `PaintGrains`, the whole
@@ -149,11 +150,9 @@ Reading the table: one row per step, in order, with its state.
 
 ## Running jobs
 
-One agent is running (2026-11-10, started about 03:55): the implementer of AR3 step 1, task
-`ar3a`, branch `feature/eval-reduction-ar3a` in its own worktree under `.claude/worktrees/`.
-Check: `git worktree list` and `git log --oneline feature/eval-reduction..feature/eval-reduction-ar3a`
-(the branch exists once the agent has created it). The session is told when it finishes. Its
-compute budget is 1 hour; the stop rule is twice that.
+One agent is running (2026-11-10, started about 04:30): the code-reviewer of AR3 step 1 (task
+`ar3a`). It only reads. Check: does `.claude/reports/20261110-0430-review-ar3a.md` exist? The
+session is told when it finishes. The implementer has finished (see Next action 6).
 
 ## Results so far
 
