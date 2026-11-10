@@ -820,3 +820,24 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   are among the candidates, and the unrefined cost does not rank them reliably; refining two costs
   about 800 more evaluations per full search (mean 1,926 against 1,125), small against 332,000.
   Where: docs/autoresearch/PLAN.md (AR1, AR2); docs/autoresearch/findings_ar1_ray_indexing.md.
+
+### D-20261109-N8 · AR / AR2 step 1 · Holdout review: voxel 17361 counts against all arms; fix the angle function in the library; split boundary voxels by edge and corner
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Taken by Newt under the owner mandate D-20261109-N1, on the three questions of the AR2 step 1
+  review. (1) Voxel 17361 counts against all three finisher arms. The review found the strict cost
+  at the exact truth is 0.0949, lower than the touching grain's 0.133; the finisher started 0.044
+  degrees from the truth and did not move (0.162 before and after). So the cause is the path's own
+  finisher, not the cost. By the rule of D-20261014-N13 and item 1 of D-20261109-N7 a break traced
+  to the arm counts against it. It is still shown in the boundary-crossing column (the voxel took
+  a touching grain's orientation), which does not excuse it. This holds if the fix run reproduces
+  the truth cost; if not, the question is open again. The best-2 choice for the key is unchanged
+  (1 of 300 in best 2 and best 3). The finisher failure inside 0.05 degrees becomes a named test
+  case for AR2 step 2 and AR5. (2) misorientation_deg in icenine/ray_indexing.py is fixed now, not
+  left as a TODO: a robust angle (atan2 of the sine and cosine parts, or an orthonormalised input)
+  with a unit test for small angles and slightly non-orthonormal input. The AR2 errors are
+  regenerated. The AR1 page gets a note that its small distances have a floor of a few thousandths
+  of a degree and that its wrong counts are not affected; AR1 medians are recomputed only if the
+  stored files allow it without a rerun. (3) From now on a report with a boundary set gives the
+  split into edge-sharing and corner-only voxels. Where:
+  icenine_py/docs/autoresearch/findings_ar2_holdout.md; review report
+  .claude/reports/20261109-review-ar2a.md; PLAN.md AR2.
