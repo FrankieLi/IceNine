@@ -3,9 +3,19 @@
 Prints one line per problem, ``file:line: reason``, and exits 1; silent with exit 0 when clean.
 Overrides (environment): ALLOW_CLAUDE_CONFIG=1, ALLOW_LARGE=1, ALLOW_ABS_PATHS=1.
 
-CLAUDE.md/.claude files: refused, with one exception (owner decision D-20261109-N11). A commit
-that concludes a merge may bring such a file when the staged file is identical, in content and
-mode, to that file on a branch being merged. Any other change to it is still refused.
+CLAUDE.md/.claude files (any letter case, for example ``.Claude/``): every staged change is
+refused, including a deletion, a rename away and a change of type (file to symlink). There is
+one exception (owner decisions D-20261109-N11 and N12). A commit that concludes a merge may bring
+such a file as it is on a branch being merged, when that branch's commit is on a remote-tracking
+branch (so a stash or another local-only commit does not count):
+
+- an added or changed file passes when the staged file is identical, in content and mode, to
+  that file on the merged branch;
+- a deletion passes when the merged branch does not have the file and the merge base has it.
+
+The hook ``pre-merge-commit`` runs the same checks for a merge that git commits by itself. git has
+not recorded the merged branch at that point, so the exception cannot apply there: such a merge
+is left staged and is concluded with ``git commit``, where it does apply.
 """
 
 import fnmatch
@@ -120,6 +130,40 @@ def _mode_and_blob(repo: Path, path: str, head: Optional[str] = None) -> Optiona
     return (fields[0], fields[1] if head is None else fields[2])
 
 
+def is_guarded(path: str) -> bool:
+    """True for CLAUDE.md at any depth and for anything under a top-level .claude/ (any case)."""
+    parts = path.split("/")
+    return parts[-1].lower() == "claude.md" or parts[0].lower() == ".claude"
+
+
+def guarded_changes(repo: Path) -> List[Tuple[str, str]]:
+    """(status, path) of every staged change to a guarded file; status is A, M, D or T.
+
+    Renames and copies are not paired here, so a rename shows as a deletion plus an addition.
+    """
+    raw = _git(
+        repo, *DIFF_OPTS, "--cached", "--name-status", "--no-renames", "--diff-filter=AMDT", "-z"
+    )
+    parts = raw.split("\0")
+    pairs = [(parts[i][:1], parts[i + 1]) for i in range(0, len(parts) - 1, 2)]
+    return [(status, path) for status, path in pairs if is_guarded(path)]
+
+
+def published_heads(repo: Path, heads: List[str]) -> List[str]:
+    """The merged commits that are on a remote-tracking branch."""
+    out = []
+    for h in heads:
+        res = subprocess.run(
+            ["git", "for-each-ref", "--count=1", "--contains", h, "refs/remotes"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            out.append(h)
+    return out
+
+
 def same_as_merged(repo: Path, path: str, heads: List[str]) -> bool:
     """True when the staged file has the content and mode of ``path`` on a branch being merged."""
     staged = _mode_and_blob(repo, path)
@@ -128,12 +172,43 @@ def same_as_merged(repo: Path, path: str, heads: List[str]) -> bool:
     return any(_mode_and_blob(repo, path, h) == staged for h in heads)
 
 
+def deleted_on_merged(repo: Path, path: str, heads: List[str]) -> bool:
+    """True when a branch being merged lacks ``path`` and every merge base with it has the file."""
+    for h in heads:
+        if _mode_and_blob(repo, path, h) is not None:
+            continue
+        res = subprocess.run(
+            ["git", "merge-base", "--all", "HEAD", h], cwd=repo, capture_output=True, text=True
+        )
+        bases = res.stdout.split() if res.returncode == 0 else []
+        if bases and all(_mode_and_blob(repo, path, b) is not None for b in bases):
+            return True
+    return False
+
+
+def guarded_problems(repo: Path, env: Mapping[str, str]) -> List[str]:
+    """One line per staged change to a CLAUDE.md/.claude file that the merge exception does not cover."""
+    if env.get("ALLOW_CLAUDE_CONFIG") == "1":
+        return []
+    changes = guarded_changes(repo)
+    if not changes:
+        return []
+    heads = published_heads(repo, merge_heads(repo))
+    problems = []
+    for status, path in changes:
+        if status == "D":
+            if not deleted_on_merged(repo, path, heads):
+                problems.append(f"{path}:1: CLAUDE.md/.claude deletion (set ALLOW_CLAUDE_CONFIG=1)")
+        elif not same_as_merged(repo, path, heads):
+            problems.append(f"{path}:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)")
+    return problems
+
+
 def check(repo: Path, env: Optional[Mapping[str, str]] = None) -> List[str]:
     env = os.environ if env is None else env
-    problems: List[str] = []
+    problems: List[str] = guarded_problems(repo, env)
     files = staged_files(repo)
     added = added_lines(repo)
-    heads = merge_heads(repo)
 
     for status, path in files:
         name = os.path.basename(path)
@@ -143,9 +218,6 @@ def check(repo: Path, env: Optional[Mapping[str, str]] = None) -> List[str]:
                 problems.append(f"{path}:1: forbidden file type {g}")
         if "cache" in parts[:-1]:
             problems.append(f"{path}:1: file under a cache/ directory")
-        if env.get("ALLOW_CLAUDE_CONFIG") != "1" and (name == "CLAUDE.md" or parts[0] == ".claude"):
-            if not same_as_merged(repo, path, heads):
-                problems.append(f"{path}:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)")
         size = len(
             subprocess.run(
                 ["git", "cat-file", "blob", f":{path}"], cwd=repo, capture_output=True, check=True
