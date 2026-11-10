@@ -194,6 +194,49 @@ def test_precommit_claude_config_override(repo: Path) -> None:
     assert precommit_check.check(repo, {"ALLOW_CLAUDE_CONFIG": "1"}) == []
 
 
+def _start_merge(repo: Path) -> None:
+    """Leave ``repo`` in a merge of branch ``other``, which changed three guarded files."""
+    _git(repo, "checkout", "-q", "-b", "other")
+    for rel in ["CLAUDE.md", ".claude/agents/a.md", ".claude/hooks/h.sh"]:
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text("from the other branch\n")
+    (repo / ".claude/hooks/h.sh").chmod(0o755)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "other: guarded files")
+    _git(repo, "checkout", "-q", "develop")
+    _git(repo, "merge", "--no-ff", "--no-commit", "other")
+
+
+def test_precommit_merge_brings_identical_claude_files(repo: Path) -> None:
+    _start_merge(repo)
+    assert precommit_check.merge_heads(repo) == [_git(repo, "rev-parse", "other")]
+    assert precommit_check.check(repo, {}) == []
+
+
+def test_precommit_merge_refuses_claude_file_that_differs_from_merged_branch(repo: Path) -> None:
+    _start_merge(repo)
+    _stage(repo, ".claude/agents/a.md", "edited during the merge\n")
+    _stage(repo, ".claude/agents/new.md", "not on the other branch\n")
+    msgs = precommit_check.check(repo, {})
+    assert sorted(m.split(":")[0] for m in msgs) == [".claude/agents/a.md", ".claude/agents/new.md"]
+    assert precommit_check.check(repo, {"ALLOW_CLAUDE_CONFIG": "1"}) == []
+
+
+def test_precommit_merge_refuses_claude_file_with_changed_mode(repo: Path) -> None:
+    _start_merge(repo)
+    _git(repo, "update-index", "--chmod=-x", ".claude/hooks/h.sh")
+    msgs = precommit_check.check(repo, {})
+    assert [m.split(":")[0] for m in msgs] == [".claude/hooks/h.sh"]
+
+
+def test_precommit_same_claude_file_outside_a_merge_is_refused(repo: Path) -> None:
+    _start_merge(repo)
+    _git(repo, "merge", "--abort")
+    assert precommit_check.merge_heads(repo) == []
+    _git(repo, "checkout", "-q", "other", "--", "CLAUDE.md", ".claude")
+    assert len(precommit_check.check(repo, {})) == 3
+
+
 def test_precommit_large_files(repo: Path) -> None:
     _stage(repo, "big.bin", "", binary_size=11 * 1024 * 1024)
     _stage(repo, "mid.npz", "", binary_size=6 * 1024 * 1024)

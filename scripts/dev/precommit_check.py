@@ -2,6 +2,10 @@
 
 Prints one line per problem, ``file:line: reason``, and exits 1; silent with exit 0 when clean.
 Overrides (environment): ALLOW_CLAUDE_CONFIG=1, ALLOW_LARGE=1, ALLOW_ABS_PATHS=1.
+
+CLAUDE.md/.claude files: refused, with one exception (owner decision D-20261109-N11). A commit
+that concludes a merge may bring such a file when the staged file is identical, in content and
+mode, to that file on a branch being merged. Any other change to it is still refused.
 """
 
 import fnmatch
@@ -85,11 +89,38 @@ def added_lines(repo: Path) -> Added:
     return out
 
 
+def merge_heads(repo: Path) -> List[str]:
+    """Commits being merged into HEAD (empty when no merge is in progress)."""
+    path = Path(_git(repo, "rev-parse", "--git-path", "MERGE_HEAD").strip())
+    if not path.is_absolute():
+        path = repo / path
+    return path.read_text().split() if path.is_file() else []
+
+
+def _mode_and_blob(repo: Path, *args: str) -> Optional[Tuple[str, str]]:
+    """(mode, blob id) from one ``git ls-files -s`` or ``git ls-tree`` line, None if no line."""
+    res = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+    lines = res.stdout.splitlines()
+    if res.returncode != 0 or len(lines) != 1:
+        return None
+    fields = lines[0].split("\t")[0].split()
+    return (fields[0], fields[1] if args[0] == "ls-files" else fields[2])
+
+
+def same_as_merged(repo: Path, path: str, heads: List[str]) -> bool:
+    """True when the staged file has the content and mode of ``path`` on a branch being merged."""
+    staged = _mode_and_blob(repo, "ls-files", "-s", "--", path)
+    if staged is None:
+        return False
+    return any(_mode_and_blob(repo, "ls-tree", h, "--", path) == staged for h in heads)
+
+
 def check(repo: Path, env: Optional[Mapping[str, str]] = None) -> List[str]:
     env = os.environ if env is None else env
     problems: List[str] = []
     files = staged_files(repo)
     added = added_lines(repo)
+    heads = merge_heads(repo)
 
     for status, path in files:
         name = os.path.basename(path)
@@ -100,7 +131,8 @@ def check(repo: Path, env: Optional[Mapping[str, str]] = None) -> List[str]:
         if "cache" in parts[:-1]:
             problems.append(f"{path}:1: file under a cache/ directory")
         if env.get("ALLOW_CLAUDE_CONFIG") != "1" and (name == "CLAUDE.md" or parts[0] == ".claude"):
-            problems.append(f"{path}:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)")
+            if not same_as_merged(repo, path, heads):
+                problems.append(f"{path}:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)")
         size = len(
             subprocess.run(
                 ["git", "cat-file", "blob", f":{path}"], cwd=repo, capture_output=True, check=True
