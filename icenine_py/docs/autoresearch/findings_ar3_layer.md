@@ -45,14 +45,18 @@ C, how often the candidate with the lowest strict cost is the one the finisher e
   grain; the test cannot fail there.
 - All 14 wrong voxels of C and all 153 of D carry the orientation of a grain that touches the
   voxel (all edge-sharing). None is interior or corner-only.
-- The rule "no fit on a contested voxel" holds: one local fit from each of the two lowest-cost
-  grains fixes 0 and breaks 0 of the 363 voxels, at every margin, for 482,493 evaluations (36.7%
-  of C's).
+- On this sample, the rule "no fit on a contested voxel" holds by the plan's test: one local fit
+  from each of the two lowest-cost grains fixes 0 and breaks 0 of the 363 voxels, at every
+  margin, for 482,493 evaluations (36.7% of C's). But all 363 kept fits ended within 0.01 degrees
+  of their start, so the side arm could not differ from the lowest-cost rule here. The 0 and 0
+  show that the fit did not move, not that a fit could not help.
 - No local fit was accepted (0 of 372 tried), no voxel failed or stayed unpainted, the grid
   search never ran.
-- A BFS local fit rarely moves its start. In D, 56.8% of the 48,639 fits end exactly where they
-  started and 31.9% move under 0.01 degrees; together 89.8% of D's local-fit evaluations. A
-  reading on a sample where each grain has one orientation.
+- On this simulated sample, whose truth map has exactly one orientation per grain by
+  construction, a BFS local fit rarely moves its start: in D, 56.8% of the 48,639 fits end
+  exactly where they started and 31.9% move under 0.01 degrees; together 89.8% of D's local-fit
+  evaluations. This need not carry over to grains with orientation gradients (see "What
+  orientation gradients inside grains would change").
 - Wall time (contended): C 194.3 s, D 2,263.8 s.
 
 ## Checks before C and D
@@ -61,13 +65,15 @@ C, how often the candidate with the lowest strict cost is the one the finisher e
   rejected fits 31,036; grid 0), 62 entries, same orientation on every voxel as
   `runs/paint/recon.mic` (0 of 2,000 differ). Passed.
 - **B is the stored run**: 2,816,897 evaluations, same orientation on every voxel as the stored
-  `key_on_fused` map (0 of 2,000 differ). So the off path is unchanged and the fit log does not
-  disturb the run. Passed.
-- **Tests**: `tests/test_paint_key.py` (6: key parses, default off; the two refused settings
-  raise a `ValueError` naming the keys; key off never calls the loop and a small BFS run is
-  unchanged; key on gives the same map and stage evaluations as a direct call, and the stages
-  sum to the cost function's and seed paths' counts). Full suite: 1511 passed, 44 skipped, 1
-  deselected.
+  `key_on_fused` map (0 of 2,000 differ). So, in this configuration (`SeedByIndexing 1`, the
+  pilot), the path with `PaintGrains` off is unchanged and the fit log does not disturb the run.
+  Passed.
+- **Tests**: `tests/test_paint_key.py` (10: key parses, default off; the two refused settings
+  raise a `ValueError` naming the keys; key off never calls the loop and two key-off runs of
+  this code agree (not a comparison with the base commit; check B is that); key on gives the
+  same map and stage evaluations as a direct call, the stages sum to the cost function's, seed
+  paths' and local optimizer's counts, and the per-voxel records sum to the stage total, on the
+  real case and on four fake-cost cases (added by the review fixes)).
 
 ## Evaluations
 
@@ -86,7 +92,14 @@ total by the voxel the work was spent on; last column: wrong voxels of the layer
   local fits (18.7%). The cost function's own count is 79,979, equal to the scores.
 - D: seed paths 1,131,396 (3.4%), local fits 31,908,730 (96.6%); the per-voxel records add up to
   the same total.
-- One-time pairing of the two detectors' spots: 19.1 s in C, 17.5 s in D.
+- C's per-voxel split above is rebuilt from the run's seed and fit records. C's committed
+  `records.json` was written before review fix 6 and leaves out the local fits; the key's records
+  now add up to the stage total (tested), but run C was not repeated.
+- Time beside the evaluations (contended): C's seed paths took 170.8 s of its 194.3 s. That
+  includes the one-time pairing of the two detectors' spots (19.1 s, built on the first seed
+  path), so 151.8 s for the 528 seed paths themselves. The indexing alone (voting and
+  clustering, before the strict costs and the finisher) is not timed apart in the seed record.
+  Pairing in D: 17.5 s.
 
 ## Wrong voxels
 
@@ -154,6 +167,8 @@ corner and interior rows are empty.
   highest hit ratio on 3; the two differ on 14. The intervals (94.0 to 97.9% and 97.6 to 99.7%)
   overlap slightly, so no ranking of the two rules is claimed; the key keeps the lowest cost (the
   rule of step 1).
+- No ties: on none of the 363 voxels do two passing grains share the top hit ratio (0) or the
+  lowest cost (0), so neither column depends on a tie rule.
 - Contested voxels between two entries of one grain: 2,023 (155 in the pilot). They cannot fail.
 
 ## The rule "no fit on a contested voxel"
@@ -177,9 +192,13 @@ test a margin.
 | all | 363 | 482,493 | 0 | 0 |
 <!-- /table:ar3b_side -->
 
-- Fixed 0, broken 0 at every margin: the rule holds by the plan's test. All 363 kept fits end
-  within 0.01 degrees of the entry they started from (186 exactly at it; none over 0.1).
-  Consistent with the local fit not leaving its start on these voxels; why was not tested.
+- Fixed 0, broken 0 at every margin: on this sample the rule holds by the plan's test. All 363
+  kept fits end within 0.01 degrees of the entry they started from (186 exactly at it; none over
+  0.1), so keeping "the lower final cost" picked the lowest-cost grain again. The test could not
+  tell "no fit" from "fit" here: the plan's test was met, but it had no room to fail. Consistent
+  with the local fit not leaving its start on these voxels; why was not tested.
+- Pilot and rest: 47 of the 363 voxels are in the pilot region (fixed 0, broken 0) and 316 in the
+  rest (fixed 0, broken 0).
 - Cost: 482,493 evaluations for no change in the map.
 
 ## The grain list
@@ -187,8 +206,10 @@ test a margin.
 - 497 true grains, 528 entries (all from the seed path, none from the grid). Every true grain has
   an entry; every entry matches a true grain within 1 degree. 31 grains hold two entries.
 - 32 entries are within 1 degree of an earlier entry: 31 are a second entry of the same true
-  grain (0.003 to 0.124 degrees apart); 1 is a different true grain 0.749 degrees away (grains
-  341 and 11). 3 are in the pilot (step 1: 2).
+  grain (0.003 to 0.124 degrees apart); 1 is a different true grain 0.749 degrees away (entry
+  461, true grain 341, near entry 303, true grain 11). 3 are in the pilot (step 1: 2).
+- Grains 341 and 11 are 0.749 degrees apart, under the 1-degree line, so the "wrong" test would in
+  general not detect a voxel of one painted with the other.
 - Cost of the duplicates: 61,977 evaluations in seed paths and 5,872 scores in floods, 67,849 in
   all, 5.2% of C's.
 - Which test let a duplicate become a seed: all 32 first got a local fit from a grain that
@@ -219,8 +240,11 @@ weighted by grain size, not independent.
 
 - Layer: median 0.0172 degrees for C, 0.0205 for D; 90th percentile 0.0374 against 0.0446; over
   0.1 degrees 53 voxels in C and 171 in D (of 24,411). Painting without a final fit is as
-  accurate as the BFS's fits on this sample (one orientation per grain); a final fit is not
-  needed here for accuracy at this scale.
+  accurate as the BFS's fits on this sample, whose truth map has one orientation per grain by
+  construction; a final fit is not needed here for accuracy at this scale. This does not carry
+  over to grains with orientation gradients: there a painted voxel would be off by about its
+  misorientation from the seed voxel (plus the entry's own error), and a per-voxel refinement
+  after painting is the expected next step.
 
 ## The fit log (a reading for an early stop)
 
@@ -247,15 +271,49 @@ counted apart.
 | over 0.1 | 5,403 | 0.111 | 3,193,643 | 0.100 |
 <!-- /table:ar3b_fitlog_D -->
 
-- In D, 88.7% of fits fall in the first two bins (89.8% of local-fit evaluations). Median start
-  hit ratio 0.879 in D, 0.731 in B.
-- The cost fall is 0 for 88.7% of D's fits (90.1% in B). By quartile of start cost it is largest
-  in the top quartile (mean 0.0254 in D; 0.0001 in the third; under 0.00001 in the lowest two).
-- For the 5,403 fits that moved over 0.1 degrees in D, the voxel is wrong at the end in 27 (0.34
-  to 0.73%); for the other 43,236, in 209 (0.42 to 0.55%). In B: 6 of 401 and 27 of 3,694. A
-  voxel whose fit moved a lot is not detectably more often wrong at the end.
+Reading the next table. D's fits split by where the fitted voxel lies: the pilot region or the
+rest of the layer; the shares are within each part.
+
+<!-- table:ar3b_fitlog_D_regions -->
+| moved | pilot | rest | pilot_share | rest_share |
+|---|---|---|---|---|
+| not at all | 2,175 | 25,469 | 0.521 | 0.573 |
+| under 0.01 | 1,533 | 13,968 | 0.367 | 0.314 |
+| 0.01 to 0.1 | 13 | 78 | 0.003 | 0.002 |
+| over 0.1 | 453 | 4,950 | 0.109 | 0.111 |
+<!-- /table:ar3b_fitlog_D_regions -->
+
+- In D, 88.7% of fits fall in the first two bins (89.8% of local-fit evaluations); the first two
+  bins together hold much the same share of fits in the pilot and in the rest (table above).
+  Median start hit ratio 0.879 in D, 0.731 in B.
+- The cost fall is not a second finding: it is exactly 0 for every fit in the first two bins
+  (D: 43,145 fits, the 27,644 and 15,501 above; B: 3,688), positive for every fit that moved 0.01
+  degrees or more (D: 5,494; B: 407), and never negative. By quartile of start cost (half-open
+  bins, each fit in one) the mean fall is largest in the top quartile (0.0254 in D; 0.0001 in the
+  third; under 0.00001 in the lowest two).
+
+Reading the next table. Wrong voxels at the end, counted by voxel: "at the end" is the voxel's
+state in the run's final map (a revisit can overwrite a fit). "moved_over_0p1": voxels with at
+least one local fit that moved over 0.1 degrees; "none_over_0p1": fitted voxels with no such fit;
+"not_fitted": voxels with no local fit at all (seeds). B is the pilot run.
+
+<!-- table:ar3b_fitlog_byvoxel -->
+| run | region | voxels | moved_over_0p1 | none_over_0p1 | not_fitted |
+|---|---|---|---|---|---|
+| B | pilot | 2,000 | 4 of 353 (0.4 to 2.9%) | 18 of 1614 (0.7 to 1.8%) | 0 of 33 |
+| D | layer | 24,570 | 25 of 4747 (0.36 to 0.78%) | 128 of 19491 (0.55 to 0.78%) | 0 of 332 |
+| D | pilot | 2,000 | 6 of 401 (0.7 to 3.2%) | 13 of 1571 (0.5 to 1.4%) | 0 of 28 |
+| D | rest | 22,570 | 19 of 4346 (0.28 to 0.68%) | 115 of 17920 (0.53 to 0.77%) | 0 of 304 |
+<!-- /table:ar3b_fitlog_byvoxel -->
+
+- In D, 25 of the 4,747 voxels with a fit that moved over 0.1 degrees are wrong at the end, and
+  128 of the 19,491 fitted voxels with none; the 332 seeds are not fitted and none is wrong. The
+  intervals overlap (in B and in each part of D too): a voxel whose fit moved a lot is not
+  detectably more often wrong at the end.
 - This says how much of the BFS's work could have been skipped on this sample. It picks a stop
-  rule for AR5; it does not test one. Paint is the simplest such rule run for real.
+  rule for AR5; it does not test one. Paint is the simplest such rule run for real. On grains
+  with orientation gradients an inherited start would not be the voxel's own orientation, so the
+  fits would move and these shares may not transfer.
 
 ## The seed record (a reading for a cheaper seed)
 
@@ -264,11 +322,20 @@ In the 528 seed paths of C (strict cost on up to 5 candidates, then the finisher
 - The lowest-strict-cost candidate is the one the finisher ends on in 513 of 528 (95.4 to 98.3%).
 - The finisher moves the taken candidate by a median 0.053 degrees (90th percentile 0.100, 99th
   0.156, largest 0.476) and lowers its strict cost by a median 0.054 (90th percentile 0.126).
-- The finisher is 99.7% of a seed path's evaluations (1,875.7 on average).
+- The finisher is 99.7% of a seed path's evaluations (1,875.7 on average). The second finisher
+  run used 412,046 of the 990,350 seed-path evaluations (41.6%, measured).
+- Each finisher run has its own generator (`default_rng(0)`), so the first run's end does not
+  depend on the second and is recorded. On the 15 seeds whose taken candidate was not the
+  lowest-cost one, the first run's end is within 1 degree of the voxel's truth on 0 of 15 (14.3
+  to 55.8 degrees away); the taken end is within 1 degree on all 15.
 - Consistent with: a finisher on the lowest-cost candidate alone would end on the same candidate
-  in 513 of 528 and cut about half of the seed-path evaluations if the two finisher runs cost
-  about the same. Not tested (accuracy of the shorter path was not measured); it is tested later
-  (AR5).
+  in 513 of 528 and save the second run's 41.6% of the seed-path evaluations, but it would end
+  on a wrong orientation on the other 15 seeds. Whether the seed test would reject those 15 ends
+  (their hit ratios were not recorded), and what that does to the map, was not measured; it is
+  tested later (AR5).
+- Pilot and rest: the lowest-cost candidate is taken in 49 of 50 seed paths in the pilot region
+  (89.5 to 99.6%) and 464 of 478 in the rest (95.1 to 98.2%); the second run's share is 43.6% and
+  41.4%.
 
 ## Wall time
 
@@ -279,10 +346,33 @@ pairing). A and B: 38.2 s and 215.5 s. The loop scores one voxel at a time in Py
 is a first reading of an unbatched loop. D took 11.7 times as long as C. Preflight JSONs are
 beside the results.
 
+## What orientation gradients inside grains would change (not measured)
+
+The truth map of this simulated sample has exactly one orientation per grain by construction. A
+real strain-free grain can still hold small orientation gradients, so every voxel may have its own
+orientation. None of the following was measured; each is what the design implies.
+
+- Accuracy: a painted voxel carries its entry's orientation, so its error would be about its
+  misorientation from the seed voxel. "C at least as accurate as D" and "a final fit is not
+  needed" would not carry over. A per-voxel refinement from the painted start is the expected
+  next step (paint, then refine; PLAN.md, AR3 step 3).
+- The flood: the test (hit ratio over 0.9 times the best) may stop before the grain's edge as the
+  entry fits worse away from its seed. That would mean more seeds, more near-duplicate entries,
+  possibly unpainted voxels and more seed-path evaluations. The 4.0% share and 528 entries for
+  497 grains are readings on this sample only.
+- The fit log: an inherited start would no longer equal the voxel's own orientation, so fits
+  would move. The 88.7% under 0.01 degrees, and any early stop picked from it, may not transfer.
+- "No fit on a contested voxel" and the 0 and 0 of the side arm: with gradients a fit can move,
+  so fitting the contested voxels could fix or break voxels. The rule is untested there.
+- The direct test (lowest strict cost names the true grain on 350 of 363): at a boundary far from
+  its seed, the true grain's single orientation would fit worse, so it could lose more often.
+- Near-duplicate entries within 1 degree would be harder to tell from a real gradient. A merge
+  rule with a fixed 1-degree threshold would not be safe.
+
 ## Not claimed
 
 Nothing about realistic images or another Q-max; another voxel order; samples whose grains hold
-more than one orientation (the truth map has exactly one per grain, so the premise holds by
-construction); other layers; a tested stop rule or cheaper seed (both are readings); a tested
+orientation gradients (here the truth map has exactly one orientation per grain by
+construction; see the section above); other layers; a tested stop rule or cheaper seed (both are readings); a tested
 wall time; a parallel run. The fallback and the fit-settled branch still ended no voxel. The 8
 voxels wrong in both runs were not traced.
