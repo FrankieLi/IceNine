@@ -13,7 +13,7 @@ import re  # noqa: E402
 import sys  # noqa: E402
 import time  # noqa: E402
 from pathlib import Path  # noqa: E402
-from typing import Any, Dict, Tuple  # noqa: E402
+from typing import Any, Dict, Optional, Tuple  # noqa: E402
 
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
@@ -53,12 +53,17 @@ def preflight_label(out: Path) -> str:
         )
 
 
-def build(config: Path, out: Path) -> Tuple[Any, Any, float]:
-    """(setup, BFSReconstruction, setup seconds) on the pilot region with clean images."""
+def build(
+    config: Path, out: Path, sample: Optional[Path] = None, extra: str = ""
+) -> Tuple[Any, Any, float]:
+    """(setup, BFSReconstruction, setup seconds) with clean images; the pilot region unless
+    ``sample`` is given (AR3 step 2: the whole layer). ``extra`` is appended to the config."""
     cfg_text = config.read_text()
-    sample = REGION / "region_grid.mic"
+    sample = sample or REGION / "region_grid.mic"
     cfg_text, n = re.subn(r"(?m)^SampleFilename\s+\S+", f"SampleFilename {sample}", cfg_text)
     assert n == 1 and "BFSRevisitRefit 1" in cfg_text
+    if extra:
+        cfg_text += "\n" + extra + "\n"
     cfg_path = out / "run.config"
     cfg_path.write_text(cfg_text)
     os.chdir(EX)

@@ -291,6 +291,7 @@ class ReconstructorHooks:
         self._vcache: Dict[int, Any] = {}
         # study record (AR3 step 2): one row per seed path run, from ``SeedResult``
         self.seed_records: List[Dict[str, Any]] = []
+        self.fit_records: List[Tuple[int, int]] = []  # (voxel, evaluations) per local fit
 
     def vertices(self, v: int) -> Any:
         if v not in self._vcache:
@@ -319,12 +320,9 @@ class ReconstructorHooks:
             rng=self.rng,
         )
         hit, _ = self.bfs._ratios(r.overlap_info)
-        return (
-            np.asarray(r.orientation, np.float64),
-            float(r.cost),
-            float(hit),
-            int(self.rec.last_local_optimization_evals),
-        )
+        n = int(self.rec.last_local_optimization_evals)
+        self.fit_records.append((int(v), n))
+        return np.asarray(r.orientation, np.float64), float(r.cost), float(hit), n
 
     def index_seed(self, v: int) -> Tuple[Optional[np.ndarray], float, float, int]:
         vox = self.mic.voxels[v]
@@ -340,6 +338,12 @@ class ReconstructorHooks:
                 finisher_costs=[float(c) for c in s.finisher_costs],
                 finisher_evals=[int(e) for e in s.finisher_evals],
                 orientation=None if s.orientation is None else np.asarray(s.orientation).tolist(),
+                candidate_taken=(
+                    None
+                    if s.candidates is None or s.taken < 0
+                    else np.asarray(s.candidates[s.taken]).tolist()
+                ),
+                finisher_R=[np.asarray(r).tolist() for r in s.finisher_R],
                 cost=float(s.cost) if s.orientation is not None else None,
             )
         )
