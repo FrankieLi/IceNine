@@ -1,0 +1,18 @@
+{
+  "arm": "C",
+  "n_fits2": 4768,
+  "evals2": 290848,
+  "n_fits": 19013,
+  "evals": 1159793,
+  "wall_s": 130.5580780506134,
+  "timing_label": "contended: timing preflight refused (cpptools at 100% CPU, Python at 100% CPU, Python at 99% CPU); single run, one worker",
+  "box_deg": null,
+  "ladder_deg": null,
+  "cma": {
+    "sigma0_deg": 0.05,
+    "max_evals": 60
+  },
+  "n_vmo_with_box": 0,
+  "n_vmo_without_box": 0,
+  "limit": 0
+}

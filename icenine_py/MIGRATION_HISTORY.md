@@ -11473,3 +11473,27 @@ the 4-hour budget. R and R2 ran as a stage that loads P's stored paint and gener
 
 Not claimed: sharp sub-grain boundaries, realistic images, another Q-max, voxel order or layer, a
 tested stop rule, a tested wall time, another local optimizer.
+
+## Autoresearch AR3 step 4: a local fit whose step matches the error (done 2026-11-10, task ar3d)
+
+No change under `icenine/`; scripts `scripts/autoresearch/ar3/{run_fine,fine_summary,fine_part2,
+run_wrapped,wrapped_bg,wrapped_summary}.py`, results `benchmarks/autoresearch/ar3/fine/`, page
+`docs/autoresearch/findings_ar3_fine.md` (returned as text; the tool refuses a new `.md`). The box
+(`search_box_side`, radians) is replaced by the script while its own `local_optimization` call
+runs; no config key. Gradient sample of step 3 only; C++ not run; one run per arm. Part 1, fits
+from step 3's stored painted starts (19,013 voxels), stock box reproduces run R on the first 200
+fits (200 of 200). Share above 0.1 degrees: start 11.3 to 12.2%, stock 11.3 to 12.2%, box 5/8
+4.6 to 5.2%, box 5/16 2.6 to 3.1%, CMA fit (first step 0.05 degrees, 60 evaluations) 1.6 to 2.0%
+at 61 evaluations per fit. The plan's "about 46 evaluations" for a small box was wrong: medians
+398 (5/8), 1,245 (5/16), 22,145 (5/32, run on 600 voxels only; the ladder too); the MC budget
+extends while a block's cost spread is large (consistent with; two voxels looked at, not
+tabulated). Wrong count unchanged (87) in every arm. Pick on set A: the CMA fit; on set B a gain
+over the start and the stock box (204 of 9,305 above 0.1 against 1,304). Part 2 (step 3's stop
+readings on the CMA fit, trace by generation): little to save; second fit helps 73 of 4,768.
+Part 3, whole layer, wrapped fit (CMA first, stock fit when the cost did not fall; the caller's
+acceptance test is not visible to the wrapper): D4 35,129,496 evaluations against 118,350,225,
+wrong 225 against 203 (no difference), above 0.1 a gain; P4 plus R4 50,892,696 against
+90,985,770, wrong 281 against 170 (loss); E4 13,608,181 against 33,040,126, wrong 305 against 153
+(loss). No run killed at its cap; all walls contended. Wrapper only in `local_optimization`:
+every CMA call is the wrapper's. Owner decides on a variant that gives the caller-rejected voxels
+to the stock fit.

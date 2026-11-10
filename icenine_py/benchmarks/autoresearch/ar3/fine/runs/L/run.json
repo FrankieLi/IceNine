@@ -1,0 +1,17 @@
+{
+  "arm": "L",
+  "n_fits": 600,
+  "evals": 19194236,
+  "wall_s": 1116.0430521965027,
+  "timing_label": "contended: timing preflight refused (cpptools at 100% CPU); single run, one worker",
+  "box_deg": null,
+  "ladder_deg": [
+    0.15625,
+    0.625,
+    5.0
+  ],
+  "cma": null,
+  "n_vmo_with_box": 922,
+  "n_vmo_without_box": 0,
+  "limit": 600
+}
