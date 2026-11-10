@@ -78,28 +78,30 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    not be removed (untracked link and cache); harmless, removable with
    `git worktree remove --force`. Left open and recorded: `key_run_bg.sh` still writes "single
    run" into the label of future runs.
-6. **AR3 step 1 is next: start the implementer.** The plan section "AR3: index the layer and
-   paint grains" in `PLAN.md` is written in full and approved (D-20261110-N1). Do, in order:
-   - `scripts/dev/read_on_fetch.sh --save`; merge `origin/feature/python-speed-parity` if it
-     moved (last read 347a8a4, already merged); rerun with `--mark`.
-   - `scripts/dev/start_task.sh ar3a`, then `scripts/dev/make_brief.sh --plan
-     icenine_py/docs/autoresearch/PLAN.md --task ar3a --section "AR3: index the layer and paint
-     grains"`.
-   - A fresh Sonnet implementer in a worktree, in the background. Tell it: "Step 1 only (painting
-     on the pilot region). Step 2 is not part of this task. Return the findings page as text
-     between markers; do not write the page. `shmem ask` before large scans; `shmem add --source
-     llm` for findings. At most 6 heavy processes."
-   - Then `scripts/dev/verify_handback.sh`, `/review-task`, fixes by an Opus implementer, the
-     findings page placed by the main session, merge with `finish_task.sh --yes --push`.
-   What the implementer needs from AR2 step 2 (all in the plan section too): the stored key-on
-   run and its config are under `benchmarks/autoresearch/ar2/key/` and
-   `scripts/autoresearch/ar2/` (`key_on_fused.config`, `key_run_bg.sh`, `key_summary.py`); the
-   seed path is `ray_indexing.seed_by_indexing`; the BFS neighbour test and neighbourhood are in
-   `reconstructor.py` (`BFSReconstruction._expand`, `_insert_seed`). The gate for step 2 is fixed
-   in the plan: paint breaks at most 20 voxels against the key-on run and needs at most half of
-   its evaluations.
+6. **AR3 step 1 (task `ar3a`) is with an implementer** (Sonnet, own worktree, started
+   2026-11-10 about 03:55 from the brief of `make_brief.sh`, verbatim). See "Running jobs" for
+   how to check it. Do nothing else while it runs.
+   - The plan section "AR3: index the layer and paint grains" (approved, D-20261110-N1) has a
+     paragraph "Task split": `ar3a` is step 1 only, and the implementer returns the findings
+     page and the report as text between marker lines, since its write of a new `.md` file is
+     refused.
+   - When it hands back: write the report to `.claude/reports/20261110-0353-ar3a.md` and the
+     findings page to `icenine_py/docs/autoresearch/findings_ar3_paint.md` from its text and
+     the committed result files (say so in both; the page is committed on the task branch).
+     Then `scripts/dev/verify_handback.sh feature/eval-reduction <report> --branch
+     feature/eval-reduction-ar3a`, `/review-task` (code-reviewer, model opus), fixes by a fresh
+     Opus implementer (`make_brief.sh ... --fixes <review report>`), then
+     `finish_task.sh --yes --push` from the task branch.
+   - If it stopped without a hand-back (sleep, restart): look at its worktree
+     (`git worktree list`; `git -C <worktree> log --oneline feature/eval-reduction..HEAD`;
+     `git -C <worktree> status --short`). Resume the same agent with SendMessage if the session
+     still lists it (ListAgents). If the session is new, start a fresh implementer with the same
+     brief and the note "continue from the commits on the branch feature/eval-reduction-ar3a".
+     Never two agents on one branch.
+   - The gate for step 2 is fixed in the plan: paint breaks at most 20 voxels against the key-on
+     run and needs at most half of its evaluations.
    After step 1 is merged: write step 2's details into the plan (the key `PaintGrains`, the whole
-   layer), log the approval, and go on the same way.
+   layer), log the approval, and go on the same way. Open the new PR to `develop` then (point 7).
 7. Item 7: **PR #41 is merged** into `develop` (357a2b3, 2026-11-09, at branch head 16c72db), on
    the owner's word in the session (D-20261109-N11). The branch `feature/eval-reduction` is kept.
    There is no open PR now. Open a new PR to `develop` when AR3 is merged on the branch (title
@@ -147,7 +149,11 @@ Reading the table: one row per step, in order, with its state.
 
 ## Running jobs
 
-No agent and no compute job is running (2026-11-09, after the merge of AR2 step 2).
+One agent is running (2026-11-10, started about 03:55): the implementer of AR3 step 1, task
+`ar3a`, branch `feature/eval-reduction-ar3a` in its own worktree under `.claude/worktrees/`.
+Check: `git worktree list` and `git log --oneline feature/eval-reduction..feature/eval-reduction-ar3a`
+(the branch exists once the agent has created it). The session is told when it finishes. Its
+compute budget is 1 hour; the stop rule is twice that.
 
 ## Results so far
 
