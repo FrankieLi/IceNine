@@ -93,12 +93,19 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    index the layer and paint grains"`, a fresh Sonnet implementer in a worktree, `/review-task`,
    fixes by an Opus implementer, merge. Tell every implementer: "return the findings page as text
    between markers; do not write the page".
-7. Item 7: PR #41 is open. Its text was refreshed on 2026-11-09 after the merge of AR2 step 2:
-   the four landed steps and the test count 1473 passed, 47 skipped, 1 deselected (run at
-   7caa9fa). Refresh it again after each later merge. Do not merge it; the owner does.
-   The owner's review page (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW) is at Version 4,
-   updated after the merge; its source is in the session scratchpad (republish from a read of
-   the page if the scratchpad is gone).
+7. Item 7: **PR #41 is merged** into `develop` (357a2b3, 2026-11-09, at branch head 16c72db), on
+   the owner's word in the session (D-20261109-N11). The branch `feature/eval-reduction` is kept.
+   There is no open PR now. Open a new PR to `develop` when AR3 is merged on the branch (title
+   and text like PR #41's, listing what landed since 357a2b3: the item 22 hook change fd1721f
+   and AR3). Do not merge that PR without the owner's word in the session.
+   The owner's review page (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW) is updated after
+   each step; its source is in the session scratchpad (republish from a read of the page if the
+   scratchpad is gone).
+8. Working tree: three files under `.claude/` are modified and **not committed** (item 12, the
+   owner commits them): `.claude/skills/implement-plan/SKILL.md`,
+   `.claude/skills/apply-fixes/SKILL.md`, `.claude/hooks/run-tests-on-change.sh`. Never stage
+   them, never `git add -A`, never `git stash`. If a script refuses a dirty tree because of
+   them, say so to the owner; do not work around it.
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
 ("subagents must return findings as text"). The agent stops and returns the text. The main
@@ -114,7 +121,8 @@ Reading the table: one row per step, in order, with its state.
 | item 6 | review and merge the review fixes | **done** 2026-11-09 (d113694) |
 | AR0 | stop rules from the stored results | **done** 2026-11-09 (0decc3a) |
 | AR1 | recall of the ray-indexing proposer | **done** 2026-11-09 (5bd9ecc) |
-| item 7 | open the PR to `develop` (merge waits for the owner) | **open**: PR #41 (2026-11-09). Not merged. Test count added to its body 2026-11-09 |
+| item 7 | open the PR to `develop` (merge waits for the owner) | **done**: PR #41 merged 2026-11-09 (357a2b3) on the owner's word (D-20261109-N11) |
+| items 12, 22, 23 | owner said yes to all three (D-20261109-N11) | 22 **done** (fd1721f, hook exception for merges); 23 **done** (rule recorded, Ilium told); 12 applied in the working tree, **commit waits for the owner** |
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
@@ -239,16 +247,26 @@ Not checked: GCC, x86.
 
 ## For the owner
 
-- Still yours: the merge to `develop` (item 7), items 12, 22 and 23, and Ilium's plan approvals.
-- Page comments of 2026-11-09 (evening), both by the owner on the review page: "go ahead and
-  merge" on the PR #41 card, and "go ahead and agree with this" on item 12. A page comment is
-  not taken as the owner's word for a merge or for a change under `.claude/`. Both threads are
-  answered and left open. PR #41 is still open: merge it only when the owner says so in the
-  session (with `gh pr merge 41 --merge`, without `--delete-branch`, the branch is still in use).
-  Item 12 is prepared as a patch in the session scratchpad (`item12.patch`, not applied): one
-  sentence in each of `.claude/skills/implement-plan/SKILL.md` and `apply-fixes/SKILL.md` (show
-  every `note:` line `make_brief.sh` prints on stderr) and the `-q` dropped on the two pytest
-  lines of `.claude/hooks/run-tests-on-change.sh`. The owner applies and commits it.
-- `shmem ask` works again (owner updated the key, 2026-11-09). It still prints one warning: the
-  local embedder (ollama on port 11434) is not running, so new facts are not embedded and a
-  search uses what is already embedded plus keywords. Answers were correct in a test.
+- Still yours: the commit of the three item 12 files (below), Ilium's plan approvals, and the
+  four notes on the pre-commit check (below).
+- 2026-11-09 (evening): the owner commented on the review page (merge PR #41; yes to items 12,
+  22, 23; the embedder is no longer run) and then said in the session "Go ahead and execute
+  according to the comments". That session message is the authority (D-20261109-N11); the page
+  comments alone were not acted on. Done: PR #41 merged (357a2b3); item 22 implemented, reviewed
+  (1 required fix, applied) and merged (fd1721f; suite 1489 passed, 37 skipped, 1 deselected);
+  item 23 recorded and Ilium told (ROADMAP mailbox); item 12 applied in the working tree.
+- Item 12, one step left for the owner: commit the three `.claude/` files. From the repository
+  root: `git add .claude/skills/implement-plan/SKILL.md .claude/skills/apply-fixes/SKILL.md
+  .claude/hooks/run-tests-on-change.sh`, then `ALLOW_CLAUDE_CONFIG=1 git commit -m "Item 12:
+  show make_brief notes; drop the extra -q in the test hook"`. The agents do not use that
+  override.
+- Notes from the review of the item 22 change, all true before the change and not changed by it.
+  Each would be a tightening of the guard; none is done without the owner's word.
+  (a) A `git merge` that commits by itself runs no pre-commit check: there is no
+  `.githooks/pre-merge-commit`. (b) The check lists added, copied, modified and renamed files
+  only, so a staged deletion or a change of type (file to symlink) of a `.claude/` file passes.
+  (c) `.Claude/` and other case variants are not guarded; on macOS they name the same directory.
+  (d) Because of (a), the new exception adds no new way in: a commit made outside the hooks
+  (a stash, for example) can already be merged without the check.
+- The `shmem` warning about the local embedder (ollama, port 11434) is expected: the owner said
+  on 2026-11-09 that the embedder is no longer run. Do not report it.
