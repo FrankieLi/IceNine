@@ -939,3 +939,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   seeds. The fit log and the seed record are readings for AR5, not tests. Budget 3 hours. Task
   ar3b. No merge to develop without the owner's word. Where: icenine_py/docs/autoresearch/PLAN.md,
   section AR3, Step 2, the details.
+
+### D-20261110-N3 · Track E / PR #42 · PR #42 merged into develop; painting is a starting approximation, grains hold orientation gradients
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Owner, 2026-11-10: comment 'merge now' on the PR #42 card of the review page, then 'added
+  comments' in the session. PR #42 merged with a merge commit (66e93fd, at branch head 0b3852d);
+  branch feature/eval-reduction kept. Two more owner comments, same day: (1) 'one cost evaluation
+  and no fit per voxel is fine as a starting approximation, and then we can refine it'; (2) it is
+  NOT true that a strain-free grain has one orientation: there can be micro-gradients, so every
+  voxel in a grain may have a different orientation. Consequence: 'one orientation per grain' is a
+  property of the simulated test sample only; painting gives the start, a per-voxel refinement
+  follows; the next step needs a test sample with gradients inside grains. Also in the session:
+  the agent may run more per wake (more token limit left). Where: PR #42;
+  icenine_py/docs/autoresearch/STATE.md; review page comments of 2026-11-10.
