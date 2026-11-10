@@ -11264,3 +11264,64 @@ another sample, wall time on a quiet machine (all times here are contended).
 
 Next (plan, section AR2, step 2): the opt-in key `SeedByIndexing` in the BFS, with the finisher on
 the best 2, on the pilot region against the key-off rerun. Voxel 17361 is a named test case.
+
+## Autoresearch AR2 step 2: indexing as the BFS seed search, the key `SeedByIndexing` (done 2026-11-09)
+
+Plan: `docs/autoresearch/PLAN.md`, section AR2, step 2. Findings:
+`docs/autoresearch/findings_ar2_key.md`. Merged on `feature/eval-reduction` as a8c99b7 after a
+review (14 required fixes, all applied; its questions are decided in D-20261109-N9 and N10). Full
+suite at the merge: 1473 passed, 47 skipped, 1 deselected.
+
+Why. AR1 and step 1 showed, voxel by voxel, that indexing the rays finds a seed orientation in
+about 2,000 cost evaluations where the grid search takes about 332,000. This step puts that into
+the breadth-first reconstruction (BFS) and measures a whole run.
+
+What was added.
+
+- The opt-in config key `SeedByIndexing` (0 or 1, default 0; Python only). With it on, every seed
+  and reseed of the BFS is indexed first: the strict cost on the first 5 candidates, the finisher on
+  the best 2, then the usual seed test. If there is no candidate, or the seed test fails, the grid
+  search runs as before. The rays are paired once per run.
+- Library (additions only): `icenine/config_file.py`, `icenine/orientation_search.py`,
+  `icenine/reconstructor.py` (`AdaptiveVoxelReconstructor.index_seed`, `stats["index_*"]`,
+  `BFSReconstruction.index_log`) and `icenine/ray_indexing.py` (`seed_by_indexing`).
+- Tests: `tests/test_seed_by_indexing.py`, 12 tests. With the key off the new code is not entered.
+  This is shown with a scripted BFS and the golden grid. It was not shown on real images against
+  an older commit.
+- Scripts in `scripts/autoresearch/ar2/` (`key_*.py`, three configs), results in
+  `benchmarks/autoresearch/ar2/key/`. `scripts/phase_d/pilot_bfs.py` also writes the index log.
+
+What was measured (clean full-sample images, Q-max 8, the 2,000-voxel pilot region, one run per
+arm). Wrong means more than 1 degree from the truth.
+
+- Evaluations: 2,819,906 with the key on against 25,547,935 with it off, about 9.1 times fewer.
+  The 64 indexing paths cost 122,198 (1,909 each). The grid searches cost 22,882,865 (331,636
+  each). The local fits cost about the same in both runs (2,697,708 on, 2,665,070 off). So with the
+  key on, almost all remaining evaluations are local fits.
+- The indexed seeds themselves: 0 of 64 are wrong (0.0 to 5.7%). The grid search has 2 wrong of 62
+  (0.9 to 11.0%). The intervals overlap, so the two are not shown different.
+- All 64 indexed seeds passed the seed test. With the key off, 7 of 69 grid results failed it.
+  No seed fell back to the grid search, so the fallback ran on no real voxel.
+- Whole-run wrong voxels: 22 of 2,000 with the key on, 37 for the stored key-off run. Paired: 22
+  fixed, 7 broken, 15 wrong in both. No gain is claimed from this (D-20261109-N9). The same
+  key-off run with only `FusedCost` switched on has 24 wrong, and against it the key gives 14
+  fixed and 12 broken. Two key-off runs alone differ by 20 fixed and 7 broken.
+- Every fixed and broken voxel shares an edge with another grain and takes that grain's
+  orientation. Three fixes are on the key's own path and count for it (D-20261109-N10): voxels
+  5876 and 24334, and 16476 in the `FusedCost` pair. Each was a seed in both runs; the seed test
+  rejected the grid result and the indexed result is right. The others count neither way.
+- The key changes which voxels become seeds, so the BFS spreads in a different order. That effect
+  is inside the whole-run counts. It was not tested on its own.
+- Wall time, a first reading on a busy machine (`FusedCost` on, one worker, one run per arm): 213 s
+  with the key on, 1633 s with it off. Pairing took 17.6 s once and indexing 0.186 s per seed. The
+  timing on a quiet machine (review item 14) stays open.
+- Voxel 17361: both finisher stages ran and accepted no step. The strict cost is 0.0949 at the
+  truth and 0.1556 at 0.02 degrees from it. The finisher's first step is 0.132 degrees. This is
+  consistent with a minimum narrower than the first step. A smaller step was not tried.
+
+Not tested: the fallback on real voxels, the route change on its own, bit-identity of the key-off
+path on real images, the whole layer (a larger hull pairs the rays differently), few-ray voxels,
+realistic images, another sample, a quiet machine.
+
+Next (plan, section AR3): the local fits are now the cost. Index the layer once, list the grains,
+and paint voxels from the grain list, with local fits only where the painting is unclear.

@@ -47,6 +47,10 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
 - AR2 step 1 (the holdout) is done: reviewed (10 fixes applied, D-20261109-N8), merged and pushed
   (86dd905). Full suite on the task branch: 1461 passed, 47 skipped, 1 deselected (6 skips are
   `test_coarse_proxy.py` caches not linked into that worktree). Results below.
+- AR2 step 2 (the key `SeedByIndexing`) is done: reviewed (14 fixes applied, D-20261109-N9 and
+  N10), merged and pushed (a8c99b7). Full suite at the merge: 1473 passed, 47 skipped, 1
+  deselected. MIGRATION_HISTORY entry, ROADMAP row AR and the heads-up to Ilium are written.
+  Results below.
 
 ## Next action
 
@@ -61,42 +65,37 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
 4. AR2 step 1 (the holdout): done, merged and pushed (86dd905). Its worktree
    `.claude/worktrees/agent-a1bb4d7c15c5bb0d5` could not be removed (untracked link, cache and
    marker files); harmless, removable with `git worktree remove --force`.
-5. AR2 step 2 (the key `SeedByIndexing`, main arm: finisher on the best 2): the implementer
-   handed back on 2026-11-09 at 18:25. Branch `feature/eval-reduction-ar2b`, worktree
-   `.claude/worktrees/agent-aa30ebdcbce5ec948`, 6 commits (head 7789887). Its write of the
-   findings page was refused, so the main session placed `docs/autoresearch/findings_ar2_key.md`
-   from its text, synced the tables and ran the number audit (commit 7789887).
-   `verify_handback.sh` gave 0 FAIL. Its report is in the worktree:
-   `.claude/reports/20261109-1700-ar2b.md` (copy it to the main checkout's `.claude/reports/`).
-   The review is done: REQUEST CHANGES, 14 required fixes, all on the page, the summary and
-   tables, or the figure; the code is correct and every number recomputed
-   (`.claude/reports/20261109-review-ar2b.md` in the worktree). Its two questions are decided in
-   D-20261109-N9 (938a342). **Fixes, state at 19:20:** the Opus fix implementer
-   committed 1cee7261d (`key_summary.py`, summary, tables, figure: fixes 1, 4, 5, 6, 7, 9, 10,
-   12). Its write of the revised page was refused, so the page is still as at 7789887 and fixes
-   2, 3, 8, 11, 13 and the page side of the others are not in the repo yet. The agent was
-   resumed to return the page text; the main session places it over
-   `docs/autoresearch/findings_ar2_key.md`, runs `sync_doc_tables.py` (then `--check`) and
-   `audit_numbers.py`, fills the audit count in the provenance sentence, and commits. If the
-   agent died with the session: start a fresh Opus implementer with the same brief plus "return
-   the page text, do not write the page". Its finding on fix 1: the two key-on runs differ in
-   orientation on 2 of 2,000 voxels, not 637 (the review used the angle function with a floor).
-   Its new case (seeds in both runs, only the indexed result right: voxels 5876, 24334; 16476 in
-   the FusedCost pair) is decided in D-20261109-N10 (44c24f2): counts for the key. Report:
-   `.claude/reports/20261109-1838-ar2b-fixes.md` in the worktree. After the page is placed: `scripts/dev/verify_handback.sh feature/eval-reduction <report>
-   --branch feature/eval-reduction-ar2b --agent N` from the worktree, check that each fix number
-   is applied, then merge with `../../../scripts/dev/finish_task.sh --yes --push` from the
-   worktree. If the fix agent died with the session, regenerate the brief
-   (`scripts/dev/make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar2b --section
-   "AR2: indexing as the BFS seed search" --fixes <review report>`), add "work in the existing
-   worktree", "N9 binds fixes 3, 4, 8, 9" and "fix 14 is the main session's", and start a fresh
-   Opus implementer. At the merge: fix 14 (the MIGRATION_HISTORY entry), a heads-up to Ilium in the ROADMAP mailbox (the branch changes the
-   shared files `icenine/orientation_search.py` and `icenine/reconstructor.py`, opt-in key only),
-   ROADMAP row AR, MIGRATION_HISTORY, a shmem fact, and the owner's review page
-   (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW; source in the session scratchpad,
-   republish from a read of the page if the scratchpad is gone). Unreviewed numbers from the
-   hand-back are in "Results so far" below. Then AR3.
-6. Item 7: PR #41 is open and has the test count. Do not merge it; the owner does.
+5. AR2 step 2 (the key `SeedByIndexing`): done, merged and pushed (a8c99b7). Reports:
+   `.claude/reports/20261109-1700-ar2b.md`, `20261109-review-ar2b.md`,
+   `20261109-1838-ar2b-fixes.md`. Its worktree `.claude/worktrees/agent-aa30ebdcbce5ec948` could
+   not be removed (untracked link and cache); harmless, removable with
+   `git worktree remove --force`. Left open and recorded: `key_run_bg.sh` still writes "single
+   run" into the label of future runs.
+6. **AR3 is next.** Its section in `PLAN.md` is four lines. First step, by the main session: write
+   the AR3 section in full, as AR2's was (what is built, the arms, how each is judged, what is
+   compared with what, what is not claimed), log the approval with `log_decision.sh` under the
+   mandate, and commit. What the plan must take from AR2 step 2:
+   - With the key on, local fits are 2,697,708 of the 2,819,906 evaluations (4,095 fits at about
+     658 each). The grid searches are gone. So AR3's target is the local fits.
+   - The idea: index the layer once, list the grains (distinct orientations among the indexed
+     seeds, or from layer-level votes), then paint each voxel with the strict cost of the few
+     candidate grains near it, and run a local fit only where the painting is unclear (no grain
+     passes, or two grains are close). One strict cost per candidate replaces a 658-evaluation fit.
+   - Every wrong voxel so far is an edge-sharing boundary voxel that takes the touching grain's
+     orientation. Painting scores both touching grains on each such voxel, so it is a direct test
+     of that failure. Count boundary crossings in their own column (N6, N9).
+   - Compare with the key-on run of AR2 step 2 and with the stored key-off run. Two key-off runs
+     differ by 27 voxels, so a wrong-count difference of that size is not a result (N9).
+   - First measure where the 213 s of the key-on run go (profile), before choosing what to batch.
+   - The pilot pairs rays with the hull of the 2,000-voxel region; the whole layer has another
+     hull. Run the pilot first, then the whole layer.
+   Then: `make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar3 --section "AR3:
+   index the layer and paint grains"`, a fresh Sonnet implementer in a worktree, `/review-task`,
+   fixes by an Opus implementer, merge. Tell every implementer: "return the findings page as text
+   between markers; do not write the page".
+7. Item 7: PR #41 is open and has the test count (an older one: 1463 passed, 41 skipped; refresh
+   the PR body with 1473 passed, 47 skipped, 1 deselected before the owner merges). Do not merge
+   it; the owner does.
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
 ("subagents must return findings as text"). The agent stops and returns the text. The main
@@ -116,41 +115,48 @@ Reading the table: one row per step, in order, with its state.
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
-| AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) handed back 2026-11-09, in review, branch `feature/eval-reduction-ar2b` |
-| AR3 | index the layer and paint grains | after AR2's first result |
+| AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) **done** 2026-11-09 (a8c99b7) |
+| AR3 | index the layer and paint grains | **next**: write its plan section in full first |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 
 ## Running jobs
 
-Agents of the session of 2026-11-09 (they die with the session; `git worktree list` shows their
-worktrees, and their branches keep the commits): the fix implementer of AR2 step 2 (branch
-`feature/eval-reduction-ar2b`, started 2026-11-09 about 19:00). No compute job is running.
+No agent and no compute job is running (2026-11-09, after the merge of AR2 step 2).
 
 ## Results so far
 
-AR2 step 2, **as handed back, not yet reviewed** (2026-11-09; page `findings_ar2_key.md` on the
-task branch). Pilot region, clean images, Q-max 8, every time contended (the preflight refused).
-- The stored key-off baseline reproduced: 37 wrong, 25,547,935 evaluations, 69 full searches.
-- Key on: 22 wrong of 2,000 against 37. Paired: 22 fixed, 7 broken, 15 wrong in both. All 7
-  breaks are edge-sharing boundary voxels that take a touching grain's orientation, carried by
-  local fits from an indexed seed that is right for its own voxel. 0 of 64 indexed seeds and
-  reseeds are wrong. 0 fell back, so the fallback path ran on no real voxel.
-- The key-off wrong count is not stable: the same key-off config with `FusedCost` on gives 24
-  wrong, not 37 (20 fixed, 7 broken). Against that run the key gives 14 fixed, 12 broken. So the
-  reading is "no worse than the grid search here, not shown better". The cause is not known.
-- Evaluations: 2,819,906 against 25,547,935 (about 9.1 times fewer); 64 full searches at 1,909
-  each against 69 at 331,636. The rest (2.70 M) is the local fits, unchanged.
+**AR2 step 2, the key (done, reviewed).** Page: `docs/autoresearch/findings_ar2_key.md`. Pilot
+region, clean images, Q-max 8, one run per arm, every time contended (the preflight refused).
+
+- The stored key-off numbers were recomputed from the stored files (no rerun): 37 wrong,
+  25,547,935 evaluations, 69 full searches.
+- Evaluations: 2,819,906 with the key on against 25,547,935 (about 9.1 times fewer). 64 indexing
+  paths at 1,909 each against 69 grid searches at 331,636. Local fits: 2,697,708 on, 2,665,070 off.
+- The key's own path (N9: the chain on the seed voxel itself): 0 of 64 indexed seeds wrong (0.0 to
+  5.7%) against 2 of 62 for the grid search (0.9 to 11.0%); not shown different. 64 of 64 passed
+  the seed test (grid: 7 of 69 failed). 0 fallbacks, so the fallback ran on no real voxel.
+- Whole run: 22 wrong of 2,000 against 37 (22 fixed, 7 broken, 15 both). With `FusedCost` on in
+  both: 22 against 24 (14 fixed, 12 broken, 10 both). Two key-off runs alone differ by 20 fixed
+  and 7 broken. So no gain in wrong voxels is claimed (N9).
+- Every flip is an edge-sharing boundary voxel that takes a touching grain's orientation. Three
+  fixes are on the key's own path and count for it (N10): 5876, 24334, and 16476 in the
+  `FusedCost` pair. The rest count neither way. The trace is an orientation match within 1 degree;
+  how an orientation reached a voxel is inferred, since no parent is recorded.
+- The key changes which voxels are seeds, so the BFS route changes. Not tested on its own.
+- The two key-on runs (`FusedCost` off and on) differ in stored orientation on 2 of 2,000 voxels.
+  The review's 637 came from an angle function with a floor.
 - Wall time, `FusedCost` on, one worker, contended, one run per arm: 213 s key on, 1633 s key off.
-  Pairing 17.6 s once, indexing 0.186 s per voxel, outside the evaluation count.
+  Pairing 17.6 s once, indexing 0.186 s per voxel. A first reading only; item 14 stays open.
 - Voxel 17361: both finisher stages ran and accepted nothing. One `RayGaussNewton` step reaches
-  0.128 (exact truth 0.0949). The strict cost is 0.156 at 0.02 degrees from the truth and the
+  0.1283 (exact truth 0.0949). The strict cost is 0.1556 at 0.02 degrees from the truth and the
   finisher's first step is 0.132 degrees: consistent with a minimum narrower than the first step,
-  not tested with a smaller step.
-- Open questions it raises: the BFS pilot pairs rays with the hull of the 2,000-voxel region, not
-  of the whole sample as AR1 did; key-off bit-identity was shown with fakes and the golden grid,
-  not on real images.
+  not tested with a smaller step. A named case for AR5.
+- Not tested: the fallback on real voxels; key-off bit-identity on real images (shown with fakes
+  and the golden grid); the library's hull and crystal build against the scripts'; the whole
+  layer (the pilot pairs rays with the hull of the 2,000-voxel region); few-ray voxels;
+  realistic images.
 
 **AR0 (done, reviewed).** Page: `docs/autoresearch/findings_ar0_stopping.md`. E0 is 200 hard
 voxels; the pilot is the 2,000-voxel BFS key-off rerun. Lower cost is better.
