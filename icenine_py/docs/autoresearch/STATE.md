@@ -57,7 +57,10 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
   of `icenine_py/README.md`. What it cannot do: "For the owner" below.
 - The AR3 section of the plan is written in full and approved under the mandate (D-20261110-N1,
   2026-11-10). Two steps: painting on the pilot region as a study, then the key and the whole
-  layer. No implementer has started yet.
+  layer.
+- **AR3 step 1 is done** (2026-11-10): implemented, reviewed (12 required fixes, all applied),
+  merged and pushed (8e3098f). Full suite at the merge: 1505 passed, 44 skipped, 1 deselected.
+  Numbers: "Results so far". The gate for step 2 is met.
 
 ## Next action
 
@@ -78,47 +81,33 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    not be removed (untracked link and cache); harmless, removable with
    `git worktree remove --force`. Left open and recorded: `key_run_bg.sh` still writes "single
    run" into the label of future runs.
-6. **AR3 step 1 (task `ar3a`) is handed back and under review** (2026-11-10, about 04:30).
-   - Branch `feature/eval-reduction-ar3a`, in the worktree
-     `.claude/worktrees/agent-a3fcfcc95d9db6295`: 6af4cd2 (module `icenine/grain_paint.py` and
-     tests), 83865d5 (runs, summary, figure), f7a1dcf (README, MIGRATION_HISTORY), d66b6bf (the
-     findings page `docs/autoresearch/findings_ar3_paint.md`, written by the main session from
-     the implementer's text, tables synced from `tables.md`). Not merged yet.
-   - Report: `.claude/reports/20261110-0353-ar3a.md`. `verify_handback.sh`: 0 FAIL, 2 FLAG, both
-     expected (untracked run files and the image symlink in the worktree; the new library module
-     the plan asks for).
-   - The implementer's numbers, not yet reviewed: paint 156,766 evaluations against 2,819,906
-     for key on; 0 wrong of 2,000 against 22; the gate for step 2 is met. Do not quote them as
-     results until the review is done.
-   - Review done (2026-11-10): `.claude/reports/20261110-0430-review-ar3a.md`, verdict "request
-     changes", 12 required fixes. The reviewer found no leak of the truth into paint's decisions,
-     the same inputs and tests as the stored key-on run, and the evaluation count on the same
-     footing. The fixes are a table label bug, wording of the page (lead with 44 of 44; the other
-     82 contested voxels are duplicate entries of one grain; 22 fixed and 0 broken is not called
-     a gain by the count alone), more unit tests, and a split of one evaluation bucket.
-   - A fresh Opus implementer is applying the fixes (started about 04:40) on the same branch in
-     its own worktree; the old worktree `agent-a3fcfcc95d9db6295` is detached at d66b6bf and
-     still holds the untracked run files. Its report path: `.claude/reports/20261110-0437-ar3a-
-     fixes.md` (it returns the text if the write is refused; the main session writes it).
-   - When it hands back: `verify_handback.sh feature/eval-reduction <fixes report> --branch
-     feature/eval-reduction-ar3a --fixes .claude/reports/20261110-0430-review-ar3a.md`, read the
-     page once more, then `finish_task.sh --yes --push` from the worktree that holds the branch.
-     If the session is new and the fixes are not all there (`git log --oneline
-     feature/eval-reduction..feature/eval-reduction-ar3a`), start a fresh Opus implementer with
-     the same brief (`make_brief.sh ... --fixes ...`) after freeing the branch
-     (`git -C <worktree> checkout --detach`).
-   - Two points the reviewer left for a decision, to settle in step 2's plan: whether a voxel
-     settled by a fit keeps its fit when a later grain passes there with a lower cost; and how to
-     word 22 fixed, 0 broken (the count alone is not a gain under the 20 and 7 rule).
-   - The gate for step 2 is fixed in the plan: paint breaks at most 20 voxels against the key-on
-     run and needs at most half of its evaluations.
-   After step 1 is merged: write step 2's details into the plan (the key `PaintGrains`, the whole
-   layer), log the approval, and go on the same way. Open the new PR to `develop` then (point 7).
+6. **AR3 step 2 is next: write its details into the plan, then start the implementer.**
+   Step 1 is merged (8e3098f); its page is `docs/autoresearch/findings_ar3_paint.md`, the review
+   `.claude/reports/20261110-0430-review-ar3a.md`.
+   - Write the details under "Step 2" of the plan section "AR3: index the layer and paint
+     grains" (the opt-in key `PaintGrains`, off path bit-identical; the pilot through the key
+     reproduces step 1; the whole layer, 24,570 voxels and 497 grains, against the key-on BFS on
+     the whole layer; a margin rule tested outside the pilot; budget 3 hours). Add a "Task split"
+     line for task `ar3b`. Log the approval with `scripts/dev/log_decision.sh` (delegated, under
+     D-20261109-N1), then `make_brief.sh --plan ... --task ar3b --section "AR3: index the layer
+     and paint grains"`, and a Sonnet implementer in its own worktree with the brief verbatim.
+   - Settle in that plan text the two points the step 1 review left open: (a) whether a voxel
+     settled by a fit keeps its fit when a later grain passes there with a lower cost (in step 1
+     no fit was accepted, so the rule was never used); (b) the wording rule for a paired count
+     (22 fixed and 0 broken is not called a gain by the count alone; the direct test carries it).
+   - Take up the finding of the fixes round: the stored key-on BFS map has only 64 distinct
+     orientations over 2,000 voxels (key off: 63). So the BFS local fits nearly always return
+     their start. They are 2,697,708 of key on's 2,819,906 evaluations. Not traced. A cheap
+     first check for step 2 or AR5: per local fit, did the orientation move, and by how much did
+     the cost fall. If most fits do not move, a stop rule on the first few evaluations of a fit
+     is the early stop the owner asked for (goal 5).
+   - Seed paths are 76% of paint's evaluations (1,920 per seed): the next lever after painting.
 7. Item 7: **PR #41 is merged** into `develop` (357a2b3, 2026-11-09, at branch head 16c72db), on
    the owner's word in the session (D-20261109-N11). The branch `feature/eval-reduction` is kept.
-   There is no open PR now. Open a new PR to `develop` when AR3 is merged on the branch (title
-   and text like PR #41's, listing what landed since 357a2b3: the item 22 hook change fd1721f,
-   the tightened pre-commit check f76f776 and AR3). Do not merge that PR without the owner's word in the session.
+   **PR #42 is open** (2026-11-10, https://github.com/FrankieLi/IceNine/pull/42): what landed
+   since 357a2b3 (the item 22 hook change fd1721f, the tightened pre-commit check f76f776, AR3
+   step 1 8e3098f). It gains commits as later steps merge; update its text then (`gh pr edit 42`).
+   Do not merge that PR without the owner's word in the session.
    The owner's review page (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW) is updated after
    each step; its source is in the session scratchpad (republish from a read of the page if the
    scratchpad is gone).
@@ -154,17 +143,16 @@ Reading the table: one row per step, in order, with its state.
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
 | AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) **done** 2026-11-09 (a8c99b7) |
-| AR3 | index the layer and paint grains | plan written and approved 2026-11-10 (D-20261110-N1); **next**: step 1, the implementer |
+| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; **next**: step 2 (the key `PaintGrains`, the whole layer): write the plan details, then the implementer |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 
 ## Running jobs
 
-One agent is running (2026-11-10, started about 04:40): the Opus implementer of the review fixes
-of AR3 step 1 (task `ar3a`), in its own worktree on `feature/eval-reduction-ar3a`. Check:
-`git worktree list` and `git log --oneline feature/eval-reduction..feature/eval-reduction-ar3a`.
-The session is told when it finishes.
+No agent and no compute job is running (2026-11-10, after the merge of AR3 step 1). Old agent
+worktrees under `.claude/worktrees/` are detached and can stay; `agent-a3fcfcc95d9db6295` holds
+the untracked run files of the paint run (pairing cache, `run.config` files, the image symlink).
 
 ## Results so far
 
@@ -274,6 +262,33 @@ afternoon. The refusal is not consistent; the rule in "Next action" still holds 
 `-O3 -DNDEBUG` compiles `p0 + slope * (m - p0)` of `SutherlandHodgman.h` to one `fmadd` (single
 precision); with `-ffp-contract=off` it is `fmul` then `fadd`. Test: `scripts/autoresearch/item18/clip_fma.cpp`.
 Not checked: GCC, x86.
+
+**AR3 step 1 (paint grains on the pilot; reviewed).** Page: `docs/autoresearch/findings_ar3_paint.md`.
+Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel order.
+- Evaluations: paint 156,766; key-on BFS 2,819,906 (paint is 5.6%); key-off BFS 25,547,935
+  (0.6%). By stage in paint: seed paths 119,033 (62 seeds), scoring 6,697, rejected local fits
+  31,036 (48 fits, none accepted), grid search 0.
+- Wrong voxels: paint 0 of 2,000 (0.0 to 0.2%); key on 22; key off 37. Against key on: 22
+  fixed, 0 broken. Two key-off runs alone differ by 20 one way and 7 the other, so the count
+  alone is not called a gain.
+- The direct test carries the result: on the 44 contested voxels whose passing grains are over
+  1 degree apart, the lowest strict cost names the true grain in 44 of 44 (92 to 100%). The
+  other 82 contested voxels are passed only by two entries of one grain; the test cannot fail
+  there.
+- Of the 22 voxels wrong in key on: on 19 the wrong grain passes in paint too and loses on cost;
+  on 3 it does not pass without a fit.
+- Passes outside the true grain: 44, all within 1 voxel side. 62 entries for 60 grains.
+- Accuracy without a fit: median 0.0169 degrees against 0.0159 for key on (62 distinct values,
+  not 1,978 independent ones).
+- Wall, contended, one worker: paint 37.9 s (17.2 s of it the one-time pairing); key on 224.3 s
+  in the same session. A first reading of an unbatched loop.
+- Review: no leak of the truth into any decision; same inputs and tests as the stored key-on
+  run; evaluations counted on the same footing.
+- Limits: the truth has exactly one orientation per grain, so the premise is true by
+  construction. Not tested: the whole layer, realistic images, another voxel order, the
+  fallback and the fit-settled branch (they ended no voxel).
+- Found on the way, not traced: the key-on BFS map has only 64 distinct orientations (key off
+  63), so the BFS local fits nearly always return their start.
 
 ## For the owner
 
