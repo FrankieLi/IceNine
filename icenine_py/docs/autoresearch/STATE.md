@@ -51,6 +51,10 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
   N10), merged and pushed (a8c99b7). Full suite at the merge: 1473 passed, 47 skipped, 1
   deselected. MIGRATION_HISTORY entry, ROADMAP row AR and the heads-up to Ilium are written.
   Results below.
+- The pre-commit check is tightened on the owner's word "tighten the pre-commit check"
+  (D-20261109-N12): reviewed (2 required fixes, applied), merged and pushed (f76f776). Full suite
+  at the merge: 1500 passed, 37 skipped, 1 deselected. What it does: the Developer-tooling table
+  of `icenine_py/README.md`. What it cannot do: "For the owner" below.
 
 ## Next action
 
@@ -96,16 +100,21 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
 7. Item 7: **PR #41 is merged** into `develop` (357a2b3, 2026-11-09, at branch head 16c72db), on
    the owner's word in the session (D-20261109-N11). The branch `feature/eval-reduction` is kept.
    There is no open PR now. Open a new PR to `develop` when AR3 is merged on the branch (title
-   and text like PR #41's, listing what landed since 357a2b3: the item 22 hook change fd1721f
-   and AR3). Do not merge that PR without the owner's word in the session.
+   and text like PR #41's, listing what landed since 357a2b3: the item 22 hook change fd1721f,
+   the tightened pre-commit check f76f776 and AR3). Do not merge that PR without the owner's word in the session.
    The owner's review page (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW) is updated after
    each step; its source is in the session scratchpad (republish from a read of the page if the
    scratchpad is gone).
-8. Working tree: three files under `.claude/` are modified and **not committed** (item 12, the
-   owner commits them): `.claude/skills/implement-plan/SKILL.md`,
-   `.claude/skills/apply-fixes/SKILL.md`, `.claude/hooks/run-tests-on-change.sh`. Never stage
-   them, never `git add -A`, never `git stash`. If a script refuses a dirty tree because of
-   them, say so to the owner; do not work around it.
+8. Item 12 is **not applied**. Its two edits to three `.claude/` files are kept as a patch,
+   `icenine_py/docs/autoresearch/item12_owner.patch`. The owner applies and commits it (commands
+   under "For the owner"). The working tree is clean, so `finish_task.sh` runs. Do not apply
+   the patch in the main checkout again: a dirty tree makes `finish_task.sh` refuse. Never
+   `git add -A`, never `git stash`.
+9. Merges and the tightened check (f76f776). A merge that git commits by itself and that brings
+   a `CLAUDE.md`/`.claude/` change is refused by `.githooks/pre-merge-commit` and left staged.
+   Run `git commit` to conclude it. That passes when a fetched remote branch brings the file
+   unchanged (for example a merge of `origin/feature/python-speed-parity`). If `git commit`
+   refuses too, stop and tell the owner; do not go around it (`git merge --abort` is fine).
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
 ("subagents must return findings as text"). The agent stops and returns the text. The main
@@ -122,7 +131,8 @@ Reading the table: one row per step, in order, with its state.
 | AR0 | stop rules from the stored results | **done** 2026-11-09 (0decc3a) |
 | AR1 | recall of the ray-indexing proposer | **done** 2026-11-09 (5bd9ecc) |
 | item 7 | open the PR to `develop` (merge waits for the owner) | **done**: PR #41 merged 2026-11-09 (357a2b3) on the owner's word (D-20261109-N11) |
-| items 12, 22, 23 | owner said yes to all three (D-20261109-N11) | 22 **done** (fd1721f, hook exception for merges); 23 **done** (rule recorded, Ilium told); 12 applied in the working tree, **commit waits for the owner** |
+| items 12, 22, 23 | owner said yes to all three (D-20261109-N11) | 22 **done** (fd1721f, hook exception for merges); 23 **done** (rule recorded, Ilium told); 12 is a patch file, **apply and commit wait for the owner** |
+| pre-commit tightening | owner: "tighten the pre-commit check" (D-20261109-N12) | **done** 2026-11-09 (f76f776) |
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
@@ -247,26 +257,45 @@ Not checked: GCC, x86.
 
 ## For the owner
 
-- Still yours: the commit of the three item 12 files (below), Ilium's plan approvals, and the
-  four notes on the pre-commit check (below).
+- Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
+  the pre-commit check cannot do (below).
 - 2026-11-09 (evening): the owner commented on the review page (merge PR #41; yes to items 12,
   22, 23; the embedder is no longer run) and then said in the session "Go ahead and execute
   according to the comments". That session message is the authority (D-20261109-N11); the page
   comments alone were not acted on. Done: PR #41 merged (357a2b3); item 22 implemented, reviewed
   (1 required fix, applied) and merged (fd1721f; suite 1489 passed, 37 skipped, 1 deselected);
-  item 23 recorded and Ilium told (ROADMAP mailbox); item 12 applied in the working tree.
-- Item 12, one step left for the owner: commit the three `.claude/` files. From the repository
-  root: `git add .claude/skills/implement-plan/SKILL.md .claude/skills/apply-fixes/SKILL.md
+  item 23 recorded and Ilium told (ROADMAP mailbox).
+- Item 12, left for the owner. The edits are a patch file, not in the working tree (uncommitted
+  `.claude/` files made `finish_task.sh` refuse every merge, so they were taken out again on
+  2026-11-09). From the repository root, on `feature/eval-reduction`:
+  `git apply icenine_py/docs/autoresearch/item12_owner.patch`, then
+  `git add .claude/skills/implement-plan/SKILL.md .claude/skills/apply-fixes/SKILL.md
   .claude/hooks/run-tests-on-change.sh`, then `ALLOW_CLAUDE_CONFIG=1 git commit -m "Item 12:
-  show make_brief notes; drop the extra -q in the test hook"`. The agents do not use that
-  override.
-- Notes from the review of the item 22 change, all true before the change and not changed by it.
-  Each would be a tightening of the guard; none is done without the owner's word.
-  (a) A `git merge` that commits by itself runs no pre-commit check: there is no
-  `.githooks/pre-merge-commit`. (b) The check lists added, copied, modified and renamed files
-  only, so a staged deletion or a change of type (file to symlink) of a `.claude/` file passes.
-  (c) `.Claude/` and other case variants are not guarded; on macOS they name the same directory.
-  (d) Because of (a), the new exception adds no new way in: a commit made outside the hooks
-  (a stash, for example) can already be merged without the check.
+  show make_brief notes; drop the extra -q in the test hook"`. The agents cannot do this: the
+  Bash hook refuses an agent that sets an `ALLOW_*` override. An earlier offer on the review
+  page to commit with the override was wrong and is withdrawn.
+- 2026-11-09 (night): the owner said in the session "tighten the pre-commit check"
+  (D-20261109-N12). Done and merged (f76f776). The three gaps noted before are closed: a merge
+  that git commits by itself is now checked (`.githooks/pre-merge-commit`); a deletion, a rename
+  away, a change of type and a submodule entry are refused; any letter case is guarded. The
+  merge exception of item 22 is narrower: the merged commit must be on a remote-tracking branch
+  and not already part of `HEAD`, and the merged branch must have changed the file since every
+  merge base. The reviewer required 2 fixes (submodule entries; a merge head already in `HEAD`);
+  both are applied. One further narrowing came from a reviewer note (a merge could bring back an
+  older copy that the merged branch merely still had).
+- What the pre-commit check cannot do. It is a git hook, so it runs only for `git commit` and
+  for merges. The reviewer tried each route below and each one changes a guarded file with no
+  check. None is new. An agent taking one would be breaking the rule "agents never bypass the
+  hooks" (D-20261028-N3); the hook guards against accidents, not against that.
+  (a) `git commit-tree` with `git update-ref`. (b) A fast-forward merge of a commit made that
+  way. (c) `git cherry-pick`, `git revert`, `git rebase`, `git am` of such a commit.
+  (d) `git merge --no-verify` (the Bash hook blocks `--no-verify` only for `git commit`).
+  (e) `git -c core.hooksPath=... commit`. (f) Making a local commit look fetched with
+  `git update-ref refs/remotes/...` or a remote that points at the clone itself.
+  Routes (d) to (f) could be refused in `.claude/hooks/check-bash-command.sh`. That file is the
+  owner's; no agent has changed it. A stronger backstop is on GitHub: a rule on `develop` that
+  needs the owner's review for `CLAUDE.md` and `.claude/**` (a CODEOWNERS file).
+- Small, known, not fixed: `precommit_check.py` stops with a traceback (so it refuses) when a
+  submodule entry is staged anywhere outside `.claude/`. The repository has no submodules.
 - The `shmem` warning about the local embedder (ollama, port 11434) is expected: the owner said
   on 2026-11-09 that the embedder is no longer run. Do not report it.
