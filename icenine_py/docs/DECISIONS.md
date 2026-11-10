@@ -909,3 +909,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the merge base has it. The override ALLOW_CLAUDE_CONFIG=1 stays with the owner. Where:
   scripts/dev/precommit_check.py; .githooks/pre-merge-commit; icenine_py/README.md, Developer
   tooling.
+
+### D-20261110-N1 · Track E / AR3 · Delegated: the AR3 plan (paint grains on the pilot, then the key and the whole layer) is approved under the owner's mandate
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Taken by Newt Agent under the owner's mandate D-20261109-N1; not the owner's own word. The
+  section 'AR3: index the layer and paint grains' of docs/autoresearch/PLAN.md is approved for
+  implementation. Step 1 is a study on the 2,000-voxel pilot region: a new module
+  icenine/grain_paint.py lists grains by indexing unpainted voxels one at a time, scores each
+  grain's orientation on the voxels around it with one strict evaluation and no fit, and gives
+  each voxel the passing grain with the lowest strict cost. It is compared with the stored key-on
+  run (22 wrong, 2,819,906 evaluations) and the stored key-off run (37 wrong, 25,547,935
+  evaluations). The gate for step 2 is fixed before the run: paint breaks at most 20 voxels
+  against the key-on run and needs at most half of its evaluations. A wrong-count difference no
+  larger than that between two runs of the same arm (20 one way, 7 the other) is not called a gain
+  or a loss. A margin rule for contested voxels is only picked in step 1 and is tested in step 2
+  on the voxels outside the pilot region. Step 2 (an opt-in key PaintGrains, off by default, and
+  the whole layer) has its details fixed after step 1 and its review. The layer-wide vote over all
+  rays of the first draft is not built. Where: docs/autoresearch/PLAN.md, section AR3;
+  docs/autoresearch/STATE.md.
