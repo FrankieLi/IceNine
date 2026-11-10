@@ -11422,3 +11422,54 @@ step 1's page carries a dated correction (D-20261110-N3). Full suite after the f
 Not claimed: realistic images, another Q-max or voxel order, samples whose grains hold orientation
 gradients, other layers, a tested stop rule or cheaper seed, a tested wall time, a parallel run;
 the fallback and the fit-settled branch still ended no voxel.
+
+## Autoresearch AR3 step 3: paint as a start, then refine, on grains with gradients (done 2026-11-10, task ar3c)
+
+New module `icenine/gradient_sample.py` (`gradient_orientations`, `spread_deg`, `LEVELS_DEG`; tests
+in `tests/test_gradient_sample.py`): a copy of the layer's truth in which each grain keeps its
+orientation at its centre and turns linearly with position, to a per-grain level of 0, 0.1, 0.2,
+0.5 or 1.0 degrees (one draw per grain, seed 0; 98, 81, 101, 101, 116 grains). Measured spread
+equals the level to 5.1e-5 degrees. Images rendered with `render_full.py` (new option `--mic`),
+tag `grad`. No config key, no change to the reconstructor, no new dependency. The gradient model is
+a choice, not measured on a real sample. Runs on the whole layer (clean, Q-max 8, `FusedCost` on,
+one worker, contended by an editor helper process at about 100% CPU; P and D ran side by side):
+P (paint through the key) 78,142,641 evaluations, 5,369 grain entries for 497 true grains (4.12 to
+24.52 per grain at levels 0.1 to 1.0, against 1.05 at level 0), 172 of them from the grid fallback
+and 74.8% of P's evaluations (76.6% with the 4 rejected grid searches); 59 times step 2's paint
+with the fallback, 13.9 times without it, for 10.2 times the entries; 170 wrong of 24,570 (0.60 to
+0.80%), median error 0.0342 degrees, consistent with the many seeds (21.9% of voxels; untested);
+7,390 s. R (one BFS local fit on each of the 19,013 painted voxels): 12,843,129 evaluations, 9
+voxels closer by more than 0.05 degrees, 2 hurt, wrong count unchanged; the fit ended within 0.02
+degrees of its start on 18,977 of 19,013. R2 (second fit on 4,768): 9 moved, 4 closer. D (BFS,
+indexed seeds): 118,350,225 evaluations, 203 wrong (0.72 to 0.95%), 9,369 s; 45,453 of its 90,192
+fits returned their start bit for bit, and 74,739 (82.9%) did not lower the cost; the share that
+did rises with the start's error up to 1 degree. P plus R against D: 91 fixed, 58 broken, 112 wrong
+in both; wrong-share intervals overlap on the layer, but P (R adds nothing) beats D on the share
+above 0.1 degrees, 2,531 (9.9 to 10.7%) against 3,545 (14.0 to 14.9%), and at levels 0.1 to 0.5,
+at 90,985,770 against 118,350,225 evaluations, one run each. Rules for skipping or stopping the fit
+were picked on grains with an even id and tested on odd ids; they sit at the edge of their grids and
+save 98 to 100% of the fit evaluations at 0 to 3 hurt voxels of 9,305, which says the fit moves
+nothing here, not that a fit can stop safely. Why the fit is inert, from the stored records: the
+strict cost of the true orientation is below the start's on 16,591 of 19,013 painted voxels (all
+2,240 starts more than 0.1 degrees off), yet the fit lowered the cost on 36; its first-block trial
+steps (median 0.70 degrees, 5th percentile 0.32, measured with `QuaternionGrid`) are many times the
+start's error (median 0.0406), and 18,500 fits are four failed blocks. Consistent with a step too
+coarse for this start (the C++ `AdaptiveSamplingZeroTemp` has the same logic; not run); a
+finer-box run would test it (step 4). Step 2's sample showed the same inertness. Reading 0: at
+level 1.0, 92.6 to 93.9% of voxels have a centre-orientation hit ratio under 0.9 times the true
+one's. Wall times are all contended; R and R2 ran in a separate process without a preflight while
+D was running. The image stack's build and the truth's sha256 are in `gradient/grad_stack.json`
+(`grad_stack_note.py`). Review fixes applied from the stored records, no new run. Page:
+`docs/autoresearch/findings_ar3_gradient.md` (returned as text by the implementer, since the tool
+refuses a new `.md`; the main session places it). Results:
+`benchmarks/autoresearch/ar3/gradient/`.
+
+Full suite: 1517 passed, 47 skipped, 1 deselected (5 new tests; 3 more skips than step 2's count,
+consistent with the `benchmarks` extra not being installed in this worktree; not checked).
+
+Deviations: the 90- and 150-minute stops on P and D were not coded. P ran 123 minutes
+(all-or-nothing output; below twice the budget); D 156 minutes. Total compute about 4.95 h against
+the 4-hour budget. R and R2 ran as a stage that loads P's stored paint and generator state.
+
+Not claimed: sharp sub-grain boundaries, realistic images, another Q-max, voxel order or layer, a
+tested stop rule, a tested wall time, another local optimizer.
