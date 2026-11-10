@@ -4,18 +4,21 @@ Prints one line per problem, ``file:line: reason``, and exits 1; silent with exi
 Overrides (environment): ALLOW_CLAUDE_CONFIG=1, ALLOW_LARGE=1, ALLOW_ABS_PATHS=1.
 
 CLAUDE.md/.claude files (any letter case, for example ``.Claude/``): every staged change is
-refused, including a deletion, a rename away and a change of type (file to symlink). There is
-one exception (owner decisions D-20261109-N11 and N12). A commit that concludes a merge may bring
-such a file as it is on a branch being merged, when that branch's commit is on a remote-tracking
-branch (so a stash or another local-only commit does not count):
+refused, including a deletion, a rename away, a change of type (file to symlink) and a submodule
+entry. There is one exception (owner decisions D-20261109-N11 and N12). A commit that concludes a
+merge may bring such a file as the merged branch changed it. The merged commit must be on a
+remote-tracking branch (a stash or another local-only commit does not count) and must not be an
+ancestor of HEAD. Then:
 
 - an added or changed file passes when the staged file is identical, in content and mode, to
-  that file on the merged branch;
-- a deletion passes when the merged branch does not have the file and the merge base has it.
+  that file on the merged branch, and the merged branch changed it since every merge base (so
+  an older copy that the merged branch merely still has cannot undo a later change);
+- a deletion passes when the merged branch does not have the file and every merge base has it.
 
-The hook ``pre-merge-commit`` runs the same checks for a merge that git commits by itself. git has
-not recorded the merged branch at that point, so the exception cannot apply there: such a merge
-is left staged and is concluded with ``git commit``, where it does apply.
+``--guarded-only`` runs the CLAUDE.md/.claude rule alone. The hook ``pre-merge-commit`` uses it
+for a merge that git commits by itself. git has not recorded the merged branch at that point, so
+the exception cannot apply there: such a merge is left staged and is concluded with
+``git commit``, where the full check runs and the exception applies.
 """
 
 import fnmatch
@@ -142,34 +145,58 @@ def guarded_changes(repo: Path) -> List[Tuple[str, str]]:
     Renames and copies are not paired here, so a rename shows as a deletion plus an addition.
     """
     raw = _git(
-        repo, *DIFF_OPTS, "--cached", "--name-status", "--no-renames", "--diff-filter=AMDT", "-z"
+        repo,
+        *DIFF_OPTS,
+        "--cached",
+        "--name-status",
+        "--no-renames",
+        "--ignore-submodules=none",
+        "--diff-filter=AMDT",
+        "-z",
     )
     parts = raw.split("\0")
     pairs = [(parts[i][:1], parts[i + 1]) for i in range(0, len(parts) - 1, 2)]
     return [(status, path) for status, path in pairs if is_guarded(path)]
 
 
-def published_heads(repo: Path, heads: List[str]) -> List[str]:
-    """The merged commits that are on a remote-tracking branch."""
+def _run_ok(repo: Path, *args: str) -> Tuple[bool, str]:
+    res = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+    return res.returncode == 0, res.stdout
+
+
+def usable_heads(repo: Path, heads: List[str]) -> List[str]:
+    """The merged commits that count for the exception: on a remote-tracking branch, and not
+    already part of HEAD (an ancestor brings nothing, so it cannot justify a change)."""
     out = []
     for h in heads:
-        res = subprocess.run(
-            ["git", "for-each-ref", "--count=1", "--contains", h, "refs/remotes"],
-            cwd=repo,
-            capture_output=True,
-            text=True,
-        )
-        if res.returncode == 0 and res.stdout.strip():
-            out.append(h)
+        on_remote = _run_ok(repo, "for-each-ref", "--count=1", "--contains", h, "refs/remotes")
+        if not (on_remote[0] and on_remote[1].strip()):
+            continue
+        if _run_ok(repo, "merge-base", "--is-ancestor", h, "HEAD")[0]:
+            continue
+        out.append(h)
     return out
 
 
+def _bases(repo: Path, head: str) -> List[str]:
+    ok, out = _run_ok(repo, "merge-base", "--all", "HEAD", head)
+    return out.split() if ok else []
+
+
 def same_as_merged(repo: Path, path: str, heads: List[str]) -> bool:
-    """True when the staged file has the content and mode of ``path`` on a branch being merged."""
+    """True when the staged file is ``path`` as a branch being merged changed it: identical in
+    content and mode to the merged branch's file, which differs from the file at every merge base.
+    """
     staged = _mode_and_blob(repo, path)
     if staged is None:
         return False
-    return any(_mode_and_blob(repo, path, h) == staged for h in heads)
+    for h in heads:
+        if _mode_and_blob(repo, path, h) != staged:
+            continue
+        bases = _bases(repo, h)
+        if bases and all(_mode_and_blob(repo, path, b) != staged for b in bases):
+            return True
+    return False
 
 
 def deleted_on_merged(repo: Path, path: str, heads: List[str]) -> bool:
@@ -177,10 +204,7 @@ def deleted_on_merged(repo: Path, path: str, heads: List[str]) -> bool:
     for h in heads:
         if _mode_and_blob(repo, path, h) is not None:
             continue
-        res = subprocess.run(
-            ["git", "merge-base", "--all", "HEAD", h], cwd=repo, capture_output=True, text=True
-        )
-        bases = res.stdout.split() if res.returncode == 0 else []
+        bases = _bases(repo, h)
         if bases and all(_mode_and_blob(repo, path, b) is not None for b in bases):
             return True
     return False
@@ -193,7 +217,7 @@ def guarded_problems(repo: Path, env: Mapping[str, str]) -> List[str]:
     changes = guarded_changes(repo)
     if not changes:
         return []
-    heads = published_heads(repo, merge_heads(repo))
+    heads = usable_heads(repo, merge_heads(repo))
     problems = []
     for status, path in changes:
         if status == "D":
@@ -255,7 +279,13 @@ def check(repo: Path, env: Optional[Mapping[str, str]] = None) -> List[str]:
 
 def main() -> int:
     repo = Path(_git(Path.cwd(), "rev-parse", "--show-toplevel").strip())
-    problems = check(repo)
+    if sys.argv[1:] == ["--guarded-only"]:
+        problems = guarded_problems(repo, os.environ)
+    elif sys.argv[1:]:
+        print("usage: precommit_check.py [--guarded-only]", file=sys.stderr)
+        return 2
+    else:
+        problems = check(repo)
     for p in problems:
         print(p)
     return 1 if problems else 0

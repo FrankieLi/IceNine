@@ -1,13 +1,14 @@
 #!/bin/bash
-# Git pre-merge-commit hook: the checks of pre-commit, for a merge that git commits by itself.
-# git has not recorded the merged branch yet at this point (there is no MERGE_HEAD), so a
-# CLAUDE.md/.claude file that the merge brings is refused here. git then leaves the merge staged.
-# Conclude it with `git commit`: the pre-commit hook knows the merged branch and passes such a
-# file when it is identical to the merged branch's. Activate with scripts/dev/install_hooks.sh.
+# Git pre-merge-commit hook, for a merge that git commits by itself: the CLAUDE.md/.claude rule of
+# scripts/dev/precommit_check.py (the other checks ran when each merged commit was made).
+# git has not recorded the merged branch yet at this point (there is no MERGE_HEAD), so every
+# CLAUDE.md/.claude change that the merge brings is refused here. git then leaves the merge staged.
+# `git commit` concludes it: the pre-commit hook knows the merged branch and passes such a file
+# when a fetched remote branch brings it unchanged. Activate with scripts/dev/install_hooks.sh.
 ROOT=$(git rev-parse --show-toplevel) || exit 1
 cd "$ROOT" || exit 1
-uv run --project icenine_py python scripts/dev/precommit_check.py && exit 0
-echo "pre-merge-commit: refused; the merge is left staged. If the lines above name only" >&2
-echo "CLAUDE.md/.claude files that the merged branch brings unchanged, run 'git commit' to" >&2
-echo "conclude the merge: that check compares them with the merged branch." >&2
+uv run --project icenine_py python scripts/dev/precommit_check.py --guarded-only && exit 0
+echo "pre-merge-commit: refused; the merge is left staged. Try 'git commit' to conclude it:" >&2
+echo "that check passes CLAUDE.md/.claude files that a fetched remote branch brings unchanged." >&2
+echo "If it refuses too, the change needs the owner (or 'git merge --abort')." >&2
 exit 1

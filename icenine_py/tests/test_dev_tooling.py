@@ -342,7 +342,10 @@ def _install_test_hooks(repo: Path) -> None:
     hooks.mkdir()
     for name in ["pre-commit", "pre-merge-commit"]:
         hook = hooks / name
-        hook.write_text(f'#!/bin/bash\nexec "{sys.executable}" "{DEV / "precommit_check.py"}"\n')
+        flag = " --guarded-only" if name == "pre-merge-commit" else ""
+        hook.write_text(
+            f'#!/bin/bash\nexec "{sys.executable}" "{DEV / "precommit_check.py"}"{flag}\n'
+        )
         hook.chmod(0o755)
     _git(repo, "add", "hooks")
     _git(repo, "commit", "-q", "-m", "hooks")
@@ -373,6 +376,79 @@ def test_merge_that_git_commits_itself_is_checked_and_concluded_with_git_commit(
     _git(repo, "commit", "-q", "--no-edit")  # pre-commit knows the merged branch and passes it
     assert _git(repo, "rev-parse", "HEAD^2") == _git(repo, "rev-parse", "other")
     assert (repo / ".claude/agents/a.md").read_text() == "from the other branch\n"
+
+
+def test_precommit_guarded_only_flag_runs_the_guarded_rule_alone(repo: Path) -> None:
+    _stage(repo, "m.pt", "x")
+    _stage(repo, ".claude/agents/a.md", "x\n")
+    script = str(DEV / "precommit_check.py")
+    full = subprocess.run([sys.executable, script], cwd=repo, capture_output=True, text=True)
+    only = subprocess.run(
+        [sys.executable, script, "--guarded-only"], cwd=repo, capture_output=True, text=True
+    )
+    assert full.returncode == 1 and len(full.stdout.splitlines()) == 2
+    assert only.returncode == 1
+    assert only.stdout.splitlines() == [
+        ".claude/agents/a.md:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)"
+    ]
+    bad = subprocess.run([sys.executable, script, "--nope"], cwd=repo, capture_output=True)
+    assert bad.returncode == 2
+
+
+def test_precommit_guarded_submodule_entry_is_refused_despite_ignore_config(repo: Path) -> None:
+    head = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "update-index", "--add", "--cacheinfo", f"160000,{head},.claude/agents")
+    _git(repo, "config", "diff.ignoreSubmodules", "all")
+    msgs = precommit_check.guarded_problems(repo, {})
+    assert msgs == [".claude/agents:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)"]
+
+
+def _published_old_and_new_claude_md(repo: Path) -> None:
+    """``other`` forks off with the old CLAUDE.md; develop then gets the owner's newer one."""
+    _stage(repo, "CLAUDE.md", "old\n")
+    _git(repo, "commit", "-q", "-m", "owner: CLAUDE.md")
+    _git(repo, "branch", "other")
+    _stage(repo, "CLAUDE.md", "new, by the owner\n")
+    _git(repo, "commit", "-q", "-m", "owner: newer CLAUDE.md")
+
+
+def test_precommit_merge_cannot_bring_back_an_older_copy(repo: Path) -> None:
+    # The merged branch still has the old CLAUDE.md but never changed it: staging that copy would
+    # undo the owner's later edit, so it is not "what the merge brings".
+    _published_old_and_new_claude_md(repo)
+    _git(repo, "checkout", "-q", "other")
+    _stage(repo, "notes.md", "x\n")
+    _git(repo, "commit", "-q", "-m", "other moves on")
+    _git(repo, "update-ref", "refs/remotes/origin/other", "other")
+    _git(repo, "checkout", "-q", "develop")
+    _git(repo, "merge", "--no-ff", "--no-commit", "other")
+    assert precommit_check.check(repo, {}) == []
+    _stage(repo, "CLAUDE.md", "old\n")
+    assert [m.split(":")[0] for m in precommit_check.check(repo, {})] == ["CLAUDE.md"]
+
+
+def test_precommit_merge_head_that_is_already_in_head_gets_no_exception(repo: Path) -> None:
+    _published_old_and_new_claude_md(repo)
+    _git(repo, "update-ref", "refs/remotes/origin/other", "other")
+    merge_head = Path(_git(repo, "rev-parse", "--git-path", "MERGE_HEAD"))
+    (repo / merge_head).write_text(_git(repo, "rev-parse", "other") + "\n")
+    _stage(repo, "CLAUDE.md", "old\n")
+    assert precommit_check.usable_heads(repo, precommit_check.merge_heads(repo)) == []
+    assert [m.split(":")[0] for m in precommit_check.check(repo, {})] == ["CLAUDE.md"]
+
+
+def test_precommit_octopus_merge_counts_only_the_published_head(repo: Path) -> None:
+    for name in ["pub", "loc"]:
+        _git(repo, "checkout", "-q", "-b", name, "develop")
+        _stage(repo, f".claude/agents/{name}.md", f"from {name}\n")
+        _git(repo, "commit", "-q", "-m", name)
+    _git(repo, "update-ref", "refs/remotes/origin/pub", "pub")
+    _git(repo, "checkout", "-q", "develop")
+    _stage(repo, "notes.md", "x\n")
+    _git(repo, "commit", "-q", "-m", "develop moves on")
+    _git(repo, "merge", "--no-commit", "pub", "loc")
+    assert len(precommit_check.merge_heads(repo)) == 2
+    assert [m.split(":")[0] for m in precommit_check.check(repo, {})] == [".claude/agents/loc.md"]
 
 
 def test_precommit_same_claude_file_outside_a_merge_is_refused(repo: Path) -> None:
@@ -455,7 +531,7 @@ def test_githook_and_installer_exist_and_are_not_activated_by_default(tmp_path: 
     assert "scripts/dev/precommit_check.py" in (REPO / ".githooks" / "pre-commit").read_text()
     merge_hook = REPO / ".githooks" / "pre-merge-commit"
     assert os.access(merge_hook, os.X_OK)
-    assert "scripts/dev/precommit_check.py" in merge_hook.read_text()
+    assert "scripts/dev/precommit_check.py --guarded-only" in merge_hook.read_text()
     clone = tmp_path / "clone"
     subprocess.run(
         ["git", "clone", "-q", "--no-checkout", str(REPO), str(clone)],
