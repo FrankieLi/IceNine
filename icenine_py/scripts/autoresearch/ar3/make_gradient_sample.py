@@ -41,6 +41,11 @@ def main() -> None:
         g: np.asarray(truth.voxels[int(np.nonzero(gmap == g)[0][0])].orientation, np.float64)
         for g in gids
     }
+    # the model assumes one orientation per grain in the stored truth (R_old is taken from the
+    # grain's first voxel): every voxel of a grain must hold exactly that orientation
+    R_all = np.array([v.orientation for v in truth.voxels], dtype=np.float64)
+    for g in gids:
+        assert np.array_equal(R_all[gmap == g], np.broadcast_to(R_old[g], R_all[gmap == g].shape))
     rng = np.random.default_rng(SEED)
     lv_idx = rng.integers(0, len(LEVELS_DEG), size=len(gids))
     levels = {g: float(LEVELS_DEG[i]) for g, i in zip(gids, lv_idx)}

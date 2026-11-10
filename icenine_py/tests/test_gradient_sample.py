@@ -53,6 +53,12 @@ def test_level_zero_bit_for_bit_and_one_voxel_grain() -> None:
 
 
 def test_centre_orientation_kept() -> None:
+    """The orientation at the grain centre c is the grain's orientation.
+
+    Checked through the mean rotation vector: the model's rotation vector is M (x - c), linear in
+    position, and c is the mean of the voxel centres, so the rotation vector at c is zero exactly
+    when the mean of the voxels' rotation vectors is zero. For this model the two tests are
+    equivalent (no voxel need sit at c)."""
     xy, ids, Rg = _layer()
     out = gradient_orientations(xy, ids, Rg, _levels(), np.random.default_rng(0))
     for g in range(1, 6):
