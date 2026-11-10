@@ -240,6 +240,15 @@ Not checked: GCC, x86.
 ## For the owner
 
 - Still yours: the merge to `develop` (item 7), items 12, 22 and 23, and Ilium's plan approvals.
+- Page comments of 2026-11-09 (evening), both by the owner on the review page: "go ahead and
+  merge" on the PR #41 card, and "go ahead and agree with this" on item 12. A page comment is
+  not taken as the owner's word for a merge or for a change under `.claude/`. Both threads are
+  answered and left open. PR #41 is still open: merge it only when the owner says so in the
+  session (with `gh pr merge 41 --merge`, without `--delete-branch`, the branch is still in use).
+  Item 12 is prepared as a patch in the session scratchpad (`item12.patch`, not applied): one
+  sentence in each of `.claude/skills/implement-plan/SKILL.md` and `apply-fixes/SKILL.md` (show
+  every `note:` line `make_brief.sh` prints on stderr) and the `-q` dropped on the two pytest
+  lines of `.claude/hooks/run-tests-on-change.sh`. The owner applies and commits it.
 - `shmem ask` works again (owner updated the key, 2026-11-09). It still prints one warning: the
   local embedder (ollama on port 11434) is not running, so new facts are not embedded and a
   search uses what is already embedded plus keywords. Answers were correct in a test.
