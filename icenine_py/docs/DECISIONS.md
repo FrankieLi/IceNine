@@ -841,3 +841,24 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   split into edge-sharing and corner-only voxels. Where:
   icenine_py/docs/autoresearch/findings_ar2_holdout.md; review report
   .claude/reports/20261109-review-ar2a.md; PLAN.md AR2.
+
+### D-20261109-N9 · AR / AR2 step 2 · AR2 step 2 review: route-caused boundary crossings are not the key's own path, on both sides; the contended timing pair is a first reading only
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Taken by Newt Agent under the owner's mandate D-20261109-N1, after the review of AR2 step 2
+  (review report 20261109-review-ar2b, 14 required fixes, all to be applied). (1) The key's own
+  path, in the sense of N7 and N8, is the chain on the seed voxel itself: index, strict cost on
+  the first 5 candidates, finisher on the best 2, seed test. A boundary voxel that takes a
+  touching grain's orientation through local fits from a seed that is right for its own voxel is a
+  boundary crossing under N6. It counts neither for nor against the key. This holds on both sides:
+  the 7 (12) broken voxels and the fixed voxels are treated alike, and the fixed voxels are traced
+  in the key-off run the same way. The key does change which voxels are seeds, so it changes the
+  route of the BFS; that is an effect of the key on the run, it is reported in full (whole-run
+  wrong counts and the paired split for both pairs), and it is named as not tested. The claim on
+  accuracy is therefore limited to: no wrong result among the 64 indexed seeds, and a whole-run
+  wrong count that is not shown different from the grid search, given that two key-off runs that
+  differ only in FusedCost differ by 27 voxels. No gain in wrong voxels is claimed. (2) The
+  wall-time pair (213 s against 1633 s, FusedCost on) was taken after a refused preflight on a
+  contended machine, one run per arm. It is kept as a first contended reading. Review item 14
+  (both keys on E0 and the pilot, timing on a quiet machine) stays open and is not replaced by it.
+  The owner can overrule either point. Where: icenine_py/docs/autoresearch/findings_ar2_key.md;
+  docs/autoresearch/STATE.md.
