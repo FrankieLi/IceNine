@@ -14,6 +14,19 @@ Terms (see ``docs/autoresearch/PLAN.md``, AR3):
   does not depend on them.
 * A voxel is **contested** when two or more grains pass on it, **unpainted** when none does.
 
+Two design choices of the loop (neither is in the plan's text; both matter once fits are accepted):
+
+* A voxel settled "by a fit" keeps its fit, even if a grain seeded later passes there with a lower
+  strict cost. The painted map takes the fit first (``PaintResult.final_orientation``).
+* The fit test compares the fit's hit ratio with the grain's best hit ratio at the end of that
+  grain's whole flood (``GrainEntry.best_hit``), not with a running best at the moment the voxel is
+  reached, as ``BFSReconstruction._expand`` does. The flood is finished before any fit runs, so the
+  whole-flood best is the only one there is.
+
+Evaluations are counted by stage (``STAGES``): the seed path's evaluations go to ``seed_index``
+when its result is accepted and to ``index_rejected`` when not; the grid search's go to
+``seed_grid`` when accepted and to ``grid_rejected`` when not.
+
 ``paint_grains`` is independent of the physics: it works through a ``PaintHooks`` object (a fake
 cost in the unit tests, ``ReconstructorHooks`` for a real run). It is a study module: nothing in
 the reconstructor uses it, and no config key switches it on.
@@ -27,7 +40,15 @@ from typing import Any, Deque, Dict, List, Optional, Protocol, Sequence, Set, Tu
 import numpy as np
 
 PASS_FRACTION = 0.9  # the BFS neighbour test: hit / best > 0.9
-STAGES = ("seed_index", "seed_grid", "score", "fit_accepted", "fit_rejected", "seed_rejected")
+STAGES = (
+    "seed_index",
+    "seed_grid",
+    "score",
+    "fit_accepted",
+    "fit_rejected",
+    "index_rejected",
+    "grid_rejected",
+)
 
 
 class PaintHooks(Protocol):
@@ -133,10 +154,11 @@ def paint_grains(
     ``order`` is the shuffled voxel order of the BFS runs (no new random draw here). The next voxel
     that is unpainted, not settled and not failed becomes a seed. If at least one grain was scored
     on it, it first gets one local fit from the lowest-cost of those grains; if that fit passes the
-    neighbour test (against that grain's best hit ratio) the voxel is settled "by a fit" and the
-    loop goes on. Otherwise the seed path runs; if its result passes the seed test it becomes a
-    grain entry and is flooded; if not, the grid search runs and the same test applies; a voxel
-    whose search is rejected is failed (it may still be painted by a later grain).
+    neighbour test (against that grain's best hit ratio over its whole flood) the voxel is settled
+    "by a fit", keeps that fit whatever grain later passes there, and the loop goes on. Otherwise
+    the seed path runs; if its result passes the seed test it becomes a grain entry and is flooded;
+    if not, the grid search runs and the same test applies; a voxel whose search is rejected is
+    failed (it may still be painted by a later grain).
     """
     res = PaintResult()
     res.counts.update({k: 0 for k in ("seeds", "fits_accepted", "fits_rejected", "failed")})
@@ -217,7 +239,7 @@ def paint_grains(
             res.log.append(row)
             add_entry(v, R_i, float(cost_i), float(hit_i), "index")
             continue
-        res._add("seed_rejected", n_i, dt)  # the seed path's evaluations that were not used
+        res._add("index_rejected", n_i, dt)  # the seed path's evaluations that were not used
         t0 = time.perf_counter()
         R_g, cost_g, hit_g, n_g = hooks.grid_seed(v)
         dt = time.perf_counter() - t0
@@ -228,7 +250,7 @@ def paint_grains(
             res.log.append(row)
             add_entry(v, R_g, float(cost_g), float(hit_g), "grid")
             continue
-        res._add("seed_rejected", n_g, dt)
+        res._add("grid_rejected", n_g, dt)  # a rejected grid search: not a seed path
         row["seed"] = "failed"
         res.log.append(row)
         res.failed[v] = VoxelFit(np.asarray(R_g, dtype=np.float64), cost_g, hit_g)
