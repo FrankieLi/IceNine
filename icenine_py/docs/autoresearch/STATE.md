@@ -68,13 +68,19 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    from its text, synced the tables and ran the number audit (commit 7789887).
    `verify_handback.sh` gave 0 FAIL. Its report is in the worktree:
    `.claude/reports/20261109-1700-ar2b.md` (copy it to the main checkout's `.claude/reports/`).
-   **Now running: the review** (Opus `code-reviewer`), report
-   `.claude/reports/20261109-review-ar2b.md` in the worktree. When it exists: apply the fixes
-   (fresh Opus implementer in that worktree, brief from `scripts/dev/make_brief.sh --plan
-   icenine_py/docs/autoresearch/PLAN.md --task ar2b --section "AR2: indexing as the BFS seed
-   search" --fixes <review report>`), then merge with `finish_task.sh --yes --push` from the
-   worktree. If the review agent died with the session, run `/review-task` again from the
-   worktree. At the merge: a heads-up to Ilium in the ROADMAP mailbox (the branch changes the
+   The review is done: REQUEST CHANGES, 14 required fixes, all on the page, the summary and
+   tables, or the figure; the code is correct and every number recomputed
+   (`.claude/reports/20261109-review-ar2b.md` in the worktree). Its two questions are decided in
+   D-20261109-N9 (938a342). **Now running: the fixes** (Opus implementer in that worktree,
+   started 2026-11-09 about 19:00), report `.claude/reports/20261109-1838-ar2b-fixes.md` in the
+   worktree. When it exists: `scripts/dev/verify_handback.sh feature/eval-reduction <report>
+   --branch feature/eval-reduction-ar2b --agent N` from the worktree, check that each fix number
+   is applied, then merge with `../../../scripts/dev/finish_task.sh --yes --push` from the
+   worktree. If the fix agent died with the session, regenerate the brief
+   (`scripts/dev/make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar2b --section
+   "AR2: indexing as the BFS seed search" --fixes <review report>`), add "work in the existing
+   worktree", "N9 binds fixes 3, 4, 8, 9" and "fix 14 is the main session's", and start a fresh
+   Opus implementer. At the merge: fix 14 (the MIGRATION_HISTORY entry), a heads-up to Ilium in the ROADMAP mailbox (the branch changes the
    shared files `icenine/orientation_search.py` and `icenine/reconstructor.py`, opt-in key only),
    ROADMAP row AR, MIGRATION_HISTORY, a shmem fact, and the owner's review page
    (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW; source in the session scratchpad,
@@ -109,8 +115,8 @@ Reading the table: one row per step, in order, with its state.
 ## Running jobs
 
 Agents of the session of 2026-11-09 (they die with the session; `git worktree list` shows their
-worktrees, and their branches keep the commits): the reviewer of AR2 step 2 (branch
-`feature/eval-reduction-ar2b`, started 2026-11-09 about 18:45). No compute job is running.
+worktrees, and their branches keep the commits): the fix implementer of AR2 step 2 (branch
+`feature/eval-reduction-ar2b`, started 2026-11-09 about 19:00). No compute job is running.
 
 ## Results so far
 
