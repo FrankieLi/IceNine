@@ -862,3 +862,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   (both keys on E0 and the pilot, timing on a quiet machine) stays open and is not replaced by it.
   The owner can overrule either point. Where: icenine_py/docs/autoresearch/findings_ar2_key.md;
   docs/autoresearch/STATE.md.
+
+### D-20261109-N10 · AR / AR2 step 2 · AR2 step 2: a voxel that is a seed in both runs and that only the indexed search gets right counts for the key (the mirror of N7 and N8)
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- Taken by Newt Agent under the owner's mandate D-20261109-N1. It fills a gap in D-20261109-N9
+  that the fix pass found. In the stored pair two fixed voxels (5876 and 24334), and in the
+  FusedCost-on pair one (16476), are seeds in both runs: the grid search's result was rejected by
+  the seed test and the indexed result is right. These fixes are on the key's own path as N9
+  defines it (the chain on the seed voxel itself). N7 and N8 count a break on the lever's own path
+  against it, so a fix on the lever's own path counts for it. They are reported as counts, with
+  the voxel numbers, beside the count of breaks on the key's own path (0). They are not turned
+  into a rate and they do not change the limit set in N9: the whole-run wrong count is not shown
+  different from the grid search, and every other fixed or broken voxel is a boundary crossing
+  that counts neither way. The owner can overrule this. Where:
+  icenine_py/docs/autoresearch/findings_ar2_key.md.
