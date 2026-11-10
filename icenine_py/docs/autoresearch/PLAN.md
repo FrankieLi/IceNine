@@ -582,7 +582,19 @@ No tested wall time unless the preflight passes.
 stop rule run for real inside the loop; a grain-wide model of the orientation field fitted to
 a few refined voxels and scored once on the others (this drops the voxel-by-voxel assumption,
 goal 3), on a sample that also has sharp sub-grain boundaries so that the model can fail; the
-cheaper seed of step 2's seed record.
+cheaper seed of step 2's seed record. Note from step 2's fixes (2026-11-10): on the 15 seeds
+where the finisher's end was not the lowest-cost candidate, that candidate's own finisher run
+ends 14 to 56 degrees from the truth. So "finisher on the lowest-cost candidate only" is not
+safe as it stands; it needs the seed test's verdict on those ends, which was not recorded.
+
+**Practical notes for the implementer.** Step 2 is merged (741e8fc): reuse its scripts
+(`scripts/autoresearch/ar3/run_layer.py`, `run_layer_bg.sh`, `ar3_common.py`, the fit log of
+`install_fit_log`) and its run configs (`benchmarks/autoresearch/ar3/layer/runs/C` and `D`) as
+the templates for P and D. The image data is gitignored and lives in the main checkout: a
+worktree needs a symlink `Examples/Example2.ManyGrains/ScatteringData_PhaseD` to the main
+checkout's directory of that name; the new images go below it under the tag `grad`. Do not
+commit the symlink, the images or any cache. The spot pairing of the new images is new work
+(about 20 s); do not reuse step 2's pairing cache for them.
 
 **Files.** `icenine/gradient_sample.py`, `tests/test_gradient_sample.py`; scripts in
 `scripts/autoresearch/ar3/`; results in `benchmarks/autoresearch/ar3/gradient/`; findings in
