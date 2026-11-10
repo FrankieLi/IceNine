@@ -927,3 +927,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the whole layer) has its details fixed after step 1 and its review. The layer-wide vote over all
   rays of the first draft is not built. Where: docs/autoresearch/PLAN.md, section AR3;
   docs/autoresearch/STATE.md.
+
+### D-20261110-N2 · Track A / AR3 step 2 · AR3 step 2 plan approved under the owner's mandate (key PaintGrains, whole layer)
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved by Newt Agent under D-20261109-N1 (delegated): the details of AR3 step 2 in PLAN.md.
+  Opt-in key PaintGrains (default off, needs SeedByIndexing 1, loop of grain_paint.py unchanged).
+  Checks first: the pilot through the key gives step 1 again; the key-on BFS with the fit log is
+  the stored run. Then the whole layer (24,570 voxels), paint against the key-on BFS, counts split
+  pilot / rest. Fixed here: a fit-settled voxel keeps its fit in the key, both rules are reported;
+  a paired count is called a gain only when the error-rate intervals do not overlap; no extra
+  seeds. The fit log and the seed record are readings for AR5, not tests. Budget 3 hours. Task
+  ar3b. No merge to develop without the owner's word. Where: icenine_py/docs/autoresearch/PLAN.md,
+  section AR3, Step 2, the details.
