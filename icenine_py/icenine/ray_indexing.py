@@ -120,12 +120,25 @@ def reduce_rotations(R: np.ndarray, sym: np.ndarray) -> np.ndarray:
 
 def misorientation_deg(Ra: np.ndarray, Rb: np.ndarray, sym: np.ndarray) -> np.ndarray:
     """Symmetry-reduced angle (deg) between matching rotations ``Ra`` and ``Rb`` (broadcast
-    (..., 3, 3)): the smallest rotation angle of ``Ra S Rb^T`` over the crystal operators."""
+    (..., 3, 3)): the smallest rotation angle of ``Ra S Rb^T`` over the crystal operators.
+
+    The operator ``S`` is the one with the largest trace of ``Rb^T Ra S``; the angle of that
+    relative rotation is ``atan2(sine part, cosine part)``, with the sine part the norm of its
+    axial vector and the cosine part ``(trace - 1) / 2``. Unlike ``arccos`` of a clipped cosine,
+    this keeps small angles exact when the inputs are not orthonormal to the last few digits
+    (stored orientations often are off at the 1e-8 level)."""
     M = np.einsum("...ji,...jk->...ik", Rb, Ra)  # Rb^T Ra
-    flat = M.reshape(-1, 9)
-    tr = flat @ sym.transpose(0, 2, 1).reshape(len(sym), 9).T  # tr(M S)
-    c = np.clip((tr.max(axis=1) - 1.0) / 2.0, -1.0, 1.0)
-    return np.degrees(np.arccos(c)).reshape(M.shape[:-2])
+    shape = M.shape[:-2]
+    m = M.reshape(-1, 3, 3)
+    tr = m.reshape(-1, 9) @ sym.transpose(0, 2, 1).reshape(len(sym), 9).T  # tr(M S)
+    s = np.argmax(tr, axis=1)
+    ms = np.einsum("nij,njk->nik", m, sym[s])  # M S with the best S
+    cos_part = (tr[np.arange(len(s)), s] - 1.0) / 2.0
+    axial = np.stack(
+        [ms[:, 2, 1] - ms[:, 1, 2], ms[:, 0, 2] - ms[:, 2, 0], ms[:, 1, 0] - ms[:, 0, 1]], axis=1
+    )
+    sin_part = 0.5 * np.linalg.norm(axial, axis=1)
+    return np.degrees(np.arctan2(sin_part, cos_part)).reshape(shape)
 
 
 def _quat_pm(R: np.ndarray) -> np.ndarray:

@@ -1,0 +1,461 @@
+{
+ "set": "pilot",
+ "voxels": 69,
+ "candidates_identical": 69,
+ "candidates_max_abs_diff": 0.0,
+ "candidates_same_shape": 69,
+ "distances": 1380,
+ "dist_max_abs_change": 0.0031115256106951823,
+ "dist_max_abs_change_below_1deg": 0.0031115256106951823,
+ "dist_max_abs_change_above_1deg": 3.5234253399352156e-05,
+ "dist_exact_zero_old": 0,
+ "dist_exact_zero_new": 0,
+ "threshold_flips": {
+  "0.5": 0,
+  "1": 0,
+  "2": 0,
+  "5": 0
+ },
+ "per_voxel": [
+  {
+   "voxel": 32,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 62,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 69,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 411,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 772,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 773,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 777,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 983,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1243,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 1282,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2018,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2032,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 2897,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3017,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 3108,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 4206,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5319,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5860,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5872,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5876,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5877,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5897,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5906,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 5930,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6676,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 6685,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7141,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7176,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7185,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 7944,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8848,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8858,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8866,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8924,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8932,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8948,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8959,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8983,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 8995,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9015,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9027,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9044,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9061,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 9067,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11294,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 11666,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 13559,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 14283,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15392,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 15749,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16476,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16497,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 16539,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 17407,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 18211,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19093,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19440,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 19480,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21138,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21170,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21210,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21243,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21289,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 21363,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 23942,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 24281,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 24334,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 24375,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  },
+  {
+   "voxel": 24480,
+   "same_shape": true,
+   "max_abs_diff": 0.0,
+   "n": 20
+  }
+ ],
+ "ar1_medians": {
+  "old": {
+   "best_med": 0.05350380088381766,
+   "best_p90": 0.0824690436548002,
+   "best_max": 0.13725071850781123,
+   "top1_med": 0.047723056436438926
+  },
+  "new": {
+   "best_med": 0.053670083756454504,
+   "best_p90": 0.0831607786362604,
+   "best_max": 0.13765774642982356,
+   "top1_med": 0.04849519509260254
+  },
+  "no_finisher_first1_med_err": {
+   "old": 0.07349154555297101,
+   "new": 0.07384480739992129
+  },
+  "no_finisher_first5_med_err": {
+   "old": 0.05350380088381766,
+   "new": 0.053670083756454504
+  },
+  "no_finisher_first20_med_err": {
+   "old": 0.05350380088381766,
+   "new": 0.053670083756454504
+  }
+ }
+}
