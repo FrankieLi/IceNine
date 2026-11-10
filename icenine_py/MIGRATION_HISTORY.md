@@ -11368,3 +11368,57 @@ runs' voxel order). Wrong means more than 1 degree from the truth.
 Not claimed: anything about the whole layer, realistic images, another Q-max, samples with more than
 one orientation per grain, another voxel order, the fallback (it ran on no voxel). Step 2 (the key
 and the whole layer) starts only after this step's review.
+
+## Autoresearch AR3 step 2: the key PaintGrains and the whole layer (done 2026-11-10, task ar3b)
+
+New opt-in config key `PaintGrains` (default 0; `config_file.py`, `orientation_search.py`,
+`reconstructor.py`): `BFSReconstruction.reconstruct_sample` runs `grain_paint.paint_grains` in place
+of the BFS, with the BFS's voxel order and generator. It writes the map (confidence 0 on painted
+voxels), one record per voxel (`seed`, `paint`, `fit`, `failed`, `unresolved`) and the evaluations
+by stage in `stats["paint_evals"]`; the result stays on `bfs.paint_result`. It needs
+`SeedByIndexing 1` and refuses `OutwardSearch 1` (a `ValueError` naming the keys, in
+`setup_reconstruction` and `BFSReconstruction.__init__`). The BFS's revisits, restart pass and
+reseeding do not run under the key; single-process only. The loop in `grain_paint.py` is unchanged;
+`ReconstructorHooks` now keeps one record per seed path and per local fit for study scripts. Off
+path: one `if` after the shuffle and an early-return check; check B below (pilot, `SeedByIndexing
+1`, `PaintGrains` off) reproduced a run stored before the key existed, on every orientation and the
+evaluation total. The tests in
+`tests/test_paint_key.py` compare two key-off runs of this code and check that the loop is never
+called; they do not compare with the base commit. Painting is a starting approximation: every
+painted voxel takes its grain entry's orientation unfitted, exact only when a grain holds one
+orientation (as in the simulated test sample); grains with orientation gradients need a per-voxel
+refinement after painting (not built).
+
+Checks: run A (pilot through the key) gives step 1 again (156,766 evaluations, same stages, 62
+entries, same map); run B (key-on BFS with the fit log) is the stored run (2,816,897 evaluations,
+same map). Then the whole layer (clean images, Q-max 8, `FusedCost` on, one worker, contended by an
+editor process at about 98% CPU): C paint 1,316,345 evaluations, 14 wrong of 24,570 (0.03 to
+0.10%), 528 entries for 497 true grains; D key-on BFS 33,040,126 evaluations, 153 wrong (0.53 to
+0.73%). C is 4.0% of D's evaluations. Paired against D: 145 fixed, 6 broken, 8 wrong in both; the
+intervals do not overlap in the layer, the pilot or the rest. Direct test: lowest strict cost names
+the true grain on 350 of 363 contested voxels (94.0 to 97.9%). On this simulated sample, whose
+truth map has exactly one orientation per grain by construction, the side arm (fit the contested)
+fixed 0 and broke 0 at every margin (482,493 evaluations); all 363 kept fits ended within 0.01
+degrees of their start, so the arm could not differ from the lowest-cost rule here and does not
+show that a fit could not help elsewhere. No fit accepted (0 of 372), no failed voxel, grid search
+never ran. Wall: C 194.3 s, D 2,263.8 s (contended). BFS fit log, on the same sample: 88.7% of D's
+fits move under 0.01 degrees (89.8% of local-fit evaluations); a reading that need not transfer to
+grains with orientation gradients, where an inherited start is not the voxel's own orientation.
+Seed record: lowest-cost candidate is the finisher's end in 513 of 528 seeds. Page:
+`docs/autoresearch/findings_ar3_layer.md` (returned as text by the implementer, since the tool
+refuses a new `.md`; the main session places it). Results: `benchmarks/autoresearch/ar3/layer/`.
+
+Review fixes (task ar3b, 2026-11-10): the key's per-voxel records now include the local-fit
+evaluations and skip each seed's own score, so they add up to `stats["paint_evals_total"]` (new
+test; run C's committed `records.json` was written before the fix, and the page rebuilds C's split
+from `fit_records.json`). The fit log's "wrong at the end" is now counted by voxel in the final map
+(D: 25 of 4,747 voxels with a fit that moved over 0.1 degrees, 128 of 19,491 fitted voxels with
+none). The second finisher run is 41.6% of the seed-path evaluations (measured); on the 15 seeds
+whose taken candidate was not the lowest-cost one, the first run's end is more than 1 degree from
+the truth on all 15. The page and docstrings are scoped to the one-orientation-per-grain sample;
+step 1's page carries a dated correction (D-20261110-N3). Full suite after the fixes: 1515 passed,
+44 skipped, 1 deselected.
+
+Not claimed: realistic images, another Q-max or voxel order, samples whose grains hold orientation
+gradients, other layers, a tested stop rule or cheaper seed, a tested wall time, a parallel run;
+the fallback and the fit-settled branch still ended no voxel.

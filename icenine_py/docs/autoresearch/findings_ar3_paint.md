@@ -1,5 +1,12 @@
 # AR3 step 1: painting grains on the pilot region
 
+**Correction 2026-11-10 (D-20261110-N3).** The truth map of the test sample has exactly one
+orientation per grain by construction. A real strain-free grain can hold micro-gradients of
+orientation, so every voxel may have its own orientation. "No fit is needed" on this page, and the
+premise of painting being true, are properties of this sample, not of strain-free samples in
+general. Painting is a starting approximation; a per-voxel refinement follows (PLAN.md, AR3 step
+3). No number on this page is changed.
+
 Step 1 of "AR3: index the layer and paint grains" in `docs/autoresearch/PLAN.md` (2026-11-10),
 under D-20261110-N1. This is a study: `icenine/grain_paint.py` runs outside the reconstructor, and
 no config key switches it on. Scripts: `scripts/autoresearch/ar3/`. Results:
