@@ -6,6 +6,23 @@ Step AR1 of `docs/autoresearch/PLAN.md` (2026-11-09), hypothesis H1. Code:
 (commits 3a35b30, 780dd97, d6dbbcd). This page was placed by the main session from the
 implementer's draft, because the implementer's write of this file was refused by the tool.
 
+**Note added 2026-11-09 (AR2 step 1 review, D-20261109-N8): small distances had a floor.** The
+distances and errors on this page were computed with `misorientation_deg` of
+`icenine/ray_indexing.py`. It took the arccos of a cosine clipped to 1, and the stored true
+orientations are off orthonormal by about 5e-8. So distances below about a tenth of a degree were
+cut or shifted by up to a few thousandths of a degree, and some errors read exactly 0. The
+function now uses atan2 (see `findings_ar2_holdout.md`, "The error metric"). The wrong counts,
+the recall counts and the candidates are not affected: indexing the 69 pilot and the 200 E0
+voxels again gives identical candidates, and no candidate distance crosses 0.5, 1, 2 or 5 degrees
+(`benchmarks/autoresearch/ar2/holdout/fix3_check_pilot.json` and `fix3_check_e0.json`). The
+tables below are left as AR1 computed them. The candidate distances can be recomputed from the
+stored candidates: on the pilot, `best_med` is 0.0537 (table 0.054), `best_p90` 0.0832 (0.082),
+`best_max` 0.1377 (0.137), `top1_med` 0.0485 (0.048), and `med_err` of "strict cost on first 1"
+0.0738 (0.073). On E0, `best_med` and `top1_med` are 0.0388 (table 0.038), `best_p90` 0.0763
+(0.076), `best_max` 0.1256 (0.125), and the no-finisher `med_err` 0.0388 (0.038). The finisher arms' `med_err` (0.017 to 0.020) cannot be
+recomputed without a rerun, because the final orientations were not stored. On AR2's holdout the
+same fix moved such medians by less than 0.001 degrees.
+
 ## The result in one picture
 
 Reading the picture. Left: for each K, the share of voxels whose true orientation is within
