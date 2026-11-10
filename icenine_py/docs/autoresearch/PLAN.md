@@ -184,9 +184,19 @@ is now the local fits. And every wrong voxel so far is a boundary voxel that too
 of a grain it touches. The BFS gives a voxel to the first grain that reaches it and passes the
 test. It never asks whether the other grain fits better.
 
-**The idea.** The sample is strain-free, so one grain has one orientation. Once a grain's
-orientation is known from its seed, a voxel of that grain needs no fit. It needs one evaluation,
-to check that the orientation fits there. Terms:
+**The idea.** Once a grain's orientation is known from its seed, a voxel of that grain can
+start from it with no search. One evaluation checks that the orientation fits there. On the
+simulated test sample, which has exactly one orientation per grain, that start is already the
+answer and no fit is needed. On a real sample it is a starting approximation, and a refinement
+of each voxel follows (step 3).
+
+Corrected 2026-11-10 on the owner's word (D-20261110-N3). This paragraph first read "The sample
+is strain-free, so one grain has one orientation." That is not true of a real sample: a
+strain-free grain can hold micro-gradients of orientation, so every voxel in a grain may have
+its own orientation. Steps 1 and 2 were planned and run under the first wording. Their results
+hold for a sample with one orientation per grain and for nothing else.
+
+Terms:
 
 - A **grain entry** is one accepted seed: its voxel, its orientation and its hit ratio. The hit
   ratio is the share of predicted spots that are lit (the BFS's own acceptance number).
@@ -207,8 +217,9 @@ AR3 has two steps, in this order.
 **Task split.** Task `ar3a` is step 1 only. Step 2 is a later task (`ar3b`); it is not started
 before step 1 is reviewed and merged, and no part of it belongs in `ar3a`. Added 2026-11-10:
 step 1 is merged (8e3098f), so task `ar3b` is step 2 as written under "Step 2, the details"
-below; step 1 is not redone. For the implementer of
-either task: the tool refuses a helper agent's write of a new `.md` file. So do not write the
+below; step 1 is not redone. Task `ar3c` is step 3 as written under "Step 3" below; it starts
+after `ar3b` is merged and redoes nothing of steps 1 and 2. For the implementer of
+any of these tasks: the tool refuses a helper agent's write of a new `.md` file. So do not write the
 findings page or the hand-back report as files. Return each as text in the final message, the
 findings page between the lines `=== FINDINGS PAGE ===` and `=== END FINDINGS PAGE ===`, the
 report between `=== REPORT ===` and `=== END REPORT ===`. The main session places both and says
@@ -442,6 +453,141 @@ are readings); no tested wall time unless the preflight passes; nothing about a 
 Files. Scripts in `scripts/autoresearch/ar3/`, results in `benchmarks/autoresearch/ar3/layer/`,
 findings in `docs/autoresearch/findings_ar3_layer.md` (returned as text, see "Task split"). The
 README gets the key; `MIGRATION_HISTORY.md` gets the summary.
+
+### Step 3: paint as a start, then refine, on grains with gradients
+
+Added 2026-11-10. Task `ar3c`. It starts after `ar3b` (step 2) is merged.
+
+**Why.** The owner corrected the premise on 2026-11-10 (D-20261110-N3). A strain-free grain can
+hold micro-gradients of orientation, so every voxel in a grain may have its own orientation.
+The test sample of steps 1 and 2 has exactly one orientation per grain. So their two main
+readings, "no fit is needed" and "the BFS fits rarely move", were never able to fail. The
+owner's design: painting gives each voxel a start, and a refinement of each voxel follows.
+Step 3 asks three things on a sample where grains hold gradients. How good is the painted
+start? What does the refinement cost and give? When can the refinement stop (goal 5 of the
+mandate: predict whether more optimization will give a better orientation)?
+
+**Terms.**
+
+- The **gradient sample** is a copy of the layer's truth map with the same voxels and the same
+  voxel-to-grain map. Each grain keeps its old orientation at its centre. Inside the grain the
+  orientation turns smoothly with position.
+- The **spread** of a grain is the misorientation between the orientation at its centre and the
+  orientation of the voxel farthest from the centre.
+- The **level** of a grain is the spread chosen for it: 0, 0.1, 0.2, 0.5 or 1.0 degrees.
+- The **start** of a voxel is the orientation painting gives it.
+- The **refinement** of a voxel is one local fit of the BFS (`local_optimization`, unchanged
+  settings) from its start.
+- The **error** of a voxel is the misorientation between its orientation and its own true
+  orientation, with the crystal's symmetry operators. "Wrong" stays: error above 1 degree.
+- A voxel is **hurt** by a shortcut when its error with the shortcut is more than 0.05 degrees
+  above its error without it.
+
+**The sample.** New module `icenine/gradient_sample.py` with one pure function. Inputs: voxel
+centres, the grain id of each voxel, each grain's orientation, each grain's level, a numpy
+generator. For grain `g` with centre `c` (the mean of its voxel centres) it draws a 3 by 2
+matrix `M` of standard normal numbers. The rotation vector at position `x` is `M (x - c)`,
+scaled so that its largest length over the grain's voxels equals the level. The voxel's
+orientation is that small rotation applied to the grain's orientation; the docstring states on
+which side. A grain of one voxel, and a grain of level 0, keep their orientation exactly.
+Levels are drawn per grain, uniformly from the five values, in grain-id order, generator seed
+0; one draw, no second seed. Tests in `tests/test_gradient_sample.py`: the measured spread
+equals the level; level 0 is unchanged bit for bit; the centre orientation is kept; two calls
+with the same seed agree; positions and grain ids are untouched.
+
+A script writes the gradient truth map, a grid-only copy for the reconstruction (orientation
+columns zeroed, as for the stored sample) and a small JSON (seed, level of each grain, measured
+spread, sha256 of the truth map). The two `.mic` files are committed only if the pre-commit
+size check lets them through; no override is used. The JSON and the script are committed.
+
+**The images.** Rendered with `scripts/phase_d/render_full.py` (the Python forward model that
+made the stored images): clean only, same geometry and Q-max as the images of runs C and D of
+step 2, a new tag `grad`. If the script cannot take another truth map, add an option; without
+the option it must do what it did. The rendering took about 48 s for the stored sample.
+
+**Reading 0: what an offset costs** (uses the truth; for analysis only, in no decision). For
+each voxel, one strict score of its true orientation and one of its grain's centre
+orientation. By level: the hit ratio and the cost of both, and the ratio of the two hit ratios
+against the neighbour test's 0.9. This says how far a flood can reach before it must stop.
+
+**The runs.** Clean images, Q-max 8, `FusedCost 1`, one worker, the voxel order of step 2.
+
+- **P**: paint through the key (`SeedByIndexing 1`, `PaintGrains 1`), as run C of step 2.
+- **R**: the refinement of P's map, a script on `ReconstructorHooks`. In the run's voxel order,
+  every voxel that a grain painted gets one `local_fit` from its start. Seeds, voxels settled
+  by a fit and failed voxels keep what P gave them. Per voxel: the start's cost and hit ratio,
+  the entry's best hit ratio, the end orientation, cost and hit ratio, the evaluations, and the
+  trace.
+- **R2**: a second fit from R's end, on every fourth voxel of the voxel order (fixed here). Same
+  record.
+- **D**: the BFS with indexed seeds (`SeedByIndexing 1`, `PaintGrains 0`) with step 2's fit log.
+
+The **trace** of a fit: after each block of the Monte Carlo fit, the evaluations so far, the
+best cost, the best orientation, and whether the block failed. `MCOptimizer.optimize` already
+takes a `trajectory` list; use it if it gives this, else a wrapper in the script as for step
+2's fit log. Check: the first 200 fits give the same result with the trace on and off (same
+generator state). No change to the library's fit is planned. If one is needed, it is off by
+default, the off path is bit-identical, and a test shows it.
+
+P and D may run side by side. R and R2 follow P. Every wall time is labelled as the timing
+preflight says.
+
+**The split for every rule that is picked.** Grains with an even id are the pick set A. Grains
+with an odd id are the test set B. A rule's threshold is chosen on A and then reported on B
+with the threshold fixed. Fixed here, before any run.
+
+**Judging.** Every count is given by level. The plot comes before the table. A difference
+between two arms is called a gain or a loss only when the two rates' intervals do not overlap.
+
+1. **The start.** Error of the painted orientation: median, 95th percentile, the share above
+   0.1 degrees and the share wrong. Where the voxels came from (a grain, a fit, a seed,
+   failed). Entries per true grain. Evaluations by stage. This is the first run in which the
+   fit-settled branch and the extra seeds are expected to carry real weight.
+2. **The refinement.** Error after R against the start and against D, paired on voxels: the
+   same four numbers, and how many voxels the fit brings closer by more than 0.05 degrees and
+   how many it hurts. Evaluations of P, of P plus R, and of D.
+3. **Stop before the fit** (goal 5). Two rule families, both from run-time numbers only. "Skip
+   the fit when the start's hit ratio is at least t times the entry's best hit ratio" (t from
+   0.90 to 1.00 in steps of 0.01). "Skip the fit when the start's strict cost is at most c" (c
+   on the deciles of A's start costs). On A: the rule that skips the most evaluations while it
+   hurts at most 1% of A's painted voxels. On B, with that threshold: the evaluations skipped,
+   the share hurt with its interval, and the four error numbers of the resulting map.
+4. **Stop inside the fit** (goal 5). From the trace: how many of a fit's evaluations come
+   after it is within 0.02 degrees of its own end. Then two rule families, simulated on the
+   trace at block ends. "Stop at the first block that fails." "Stop when the best cost is at
+   most c" (the fit's own `max_convergence_cost`; c on the deciles of A's end costs). Picked on
+   A and reported on B as in point 3. A simulated stop is exact for its own voxel. In a real
+   run the shared generator would then differ for later voxels; say so.
+5. **Does a second fit help?** (goal 5 in the owner's words). From R2: the share of voxels a
+   second fit moves by more than 0.05 degrees, and the share it brings closer to the truth by
+   more than 0.05 degrees. Then one threshold on the first fit's end hit ratio over the entry's
+   best, picked on A, that says "a second fit will not help"; on B: how often it is right.
+6. **The BFS under gradients.** D's fit log by level: how far the fits move, the error, the
+   evaluations. P plus R against D on the four error numbers and on evaluations.
+7. **The control.** Level-0 grains inside P and D against the same voxels in step 2's C and D.
+   Their neighbours differ, so this is a reading, not a repeat.
+8. **Wall time**, labelled.
+
+**Stop rules of the task.** If the sample tests fail, or Reading 0 shows no difference between
+the levels (the images did not take the gradient), stop. P is stopped after 90 minutes, R
+after 60, D after 150; a stopped run is reported as far as it got. Budget: 4 hours of compute.
+
+**Not claimed in step 3.** The gradient model is a choice (linear in position, five levels),
+not measured on a real sample; the owner is asked which sizes and shapes are typical. Nothing
+about sharp sub-grain boundaries. Clean images, one layer, one voxel order. The stop rules of
+points 3 to 5 are simulated from records; a later step runs the chosen one inside the loop.
+No tested wall time unless the preflight passes.
+
+**What comes after** (not part of `ar3c`). Step 4 is planned from these readings: the chosen
+stop rule run for real inside the loop; a grain-wide model of the orientation field fitted to
+a few refined voxels and scored once on the others (this drops the voxel-by-voxel assumption,
+goal 3), on a sample that also has sharp sub-grain boundaries so that the model can fail; the
+cheaper seed of step 2's seed record.
+
+**Files.** `icenine/gradient_sample.py`, `tests/test_gradient_sample.py`; scripts in
+`scripts/autoresearch/ar3/`; results in `benchmarks/autoresearch/ar3/gradient/`; findings in
+`docs/autoresearch/findings_ar3_gradient.md` (returned as text, see "Task split"). The README
+gets the new module; `MIGRATION_HISTORY.md` gets the summary.
 
 ## AR4: the learned proposer
 
