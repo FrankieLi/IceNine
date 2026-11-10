@@ -69,11 +69,35 @@ class FitBox:
         self.box_rad = math.radians(deg)
 
 
+class CostRecorder:
+    """Records (cost, orientation) of every ``VoxelCostFunction.evaluate`` call while ``on``. It
+    draws no random number and changes no value."""
+
+    def __init__(self) -> None:
+        from icenine.cost_functions import VoxelCostFunction
+
+        self.on = False
+        self.calls: List[Tuple[float, np.ndarray]] = []
+        orig = VoxelCostFunction.evaluate
+        me = self
+
+        def patched(self_: Any, orientation: Any, *args: Any, **kw: Any) -> Any:
+            out = orig(self_, orientation, *args, **kw)
+            if me.on:
+                me.calls.append((float(out.cost), np.array(orientation, np.float64)))
+            return out
+
+        VoxelCostFunction.evaluate = patched
+
+
+CMA_POP = 7  # the cma package's default population in 3 dimensions (4 + int(3 ln 3))
+
+
 class Fitter:
     """One local fit of a voxel from a start, with a box, as the ladder or as CMA."""
 
-    def __init__(self, hooks: Any, tracer: Any, T: Any, fb: FitBox) -> None:
-        self.h, self.tr, self.T, self.fb = hooks, tracer, T, fb
+    def __init__(self, hooks: Any, tracer: Any, T: Any, fb: FitBox, cr: Any = None) -> None:
+        self.h, self.tr, self.T, self.fb, self.cr = hooks, tracer, T, fb, cr
 
     def one(
         self,
@@ -96,6 +120,10 @@ class Fitter:
         if cma:
             rec.params.local_optimizer = "cma"
             kw = dict(cma_sigma0_deg=CMA_SIGMA0_DEG, cma_max_evals=CMA_MAX_EVALS)
+        use_cr = bool(cma and trace and self.cr is not None)
+        if use_cr:
+            self.cr.calls = []
+            self.cr.on = True
         try:
             r = rec.local_optimization(
                 voxel_vertices=h.vertices(v),
@@ -107,6 +135,8 @@ class Fitter:
         finally:
             rec.params.local_optimizer = old
             self.fb.active = False
+            if use_cr:
+                self.cr.on = False
         hit, _ = h.bfs._ratios(r.overlap_info)
         Re = np.asarray(r.orientation, np.float64)
         out: Dict[str, Any] = dict(
@@ -116,6 +146,18 @@ class Fitter:
             evals=int(rec.last_local_optimization_evals),
         )
         if trace and not cma:
+            out["trace"] = self.tr.trace(R0, c0, Re, self.T, v)
+        elif use_cr:
+            # blocks of CMA_POP evaluations after the start's own (the call after the optimizer,
+            # the final overlap evaluation, is dropped): as the MC fit's blocks, (evaluations so
+            # far, best cost in the block, its orientation)
+            calls = self.cr.calls[:-1]
+            assert len(calls) == out["evals"] - 1
+            self.tr.reset()
+            for j in range(1, len(calls), CMA_POP):
+                blk = calls[j : j + CMA_POP]
+                k = min(range(len(blk)), key=lambda i: blk[i][0])
+                self.tr.rows.append((j + len(blk), blk[k][0], blk[k][1]))
             out["trace"] = self.tr.trace(R0, c0, Re, self.T, v)
         return out
 
@@ -148,7 +190,7 @@ class Fitter:
             fit["last_rung"] = last["box_deg"]
             fit["trace"] = best.get("trace")
         elif arm == "C":
-            fit = self.one(v, R0, c0, None, cma=True, trace=False)
+            fit = self.one(v, R0, c0, None, cma=True, trace=trace)
         elif arm == "B5":
             fit = self.one(v, R0, c0, None, trace=trace)
         else:
@@ -209,6 +251,8 @@ def main() -> None:
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--name", default="")
+    ap.add_argument("--trace-cma", action="store_true", help="arm C with a per-generation trace")
+    ap.add_argument("--second", action="store_true", help="then a second fit, every fourth voxel")
     a = ap.parse_args()
     assert a.check or a.arm
     FINE.mkdir(parents=True, exist_ok=True)
@@ -220,8 +264,11 @@ def main() -> None:
     tracer = RG.Tracer()
     tracer.on = True
     fb = FitBox()
-    fit = Fitter(hooks, tracer, T, fb)
+    cr = CostRecorder() if a.trace_cma else None
+    fit = Fitter(hooks, tracer, T, fb, cr)
+    ebh = None
     rR = G.load_gz(RG.RUNS / "P" / "refine_R.json.gz")
+    ebh = {r["voxel"]: r["entry_best_hit"] for r in rR}
     assert [r["voxel"] for r in rR] == voxels, "voxel order differs from stored run R"
 
     if a.check:
@@ -248,7 +295,7 @@ def main() -> None:
 
     todo = voxels[: a.limit] if a.limit else voxels
     # trace check: first 200 fits of this arm with the trace off and on from the same state
-    if a.arm not in ("C",):
+    if a.arm != "C":
         k = min(200, len(todo))
         offs, ons = [], []
         for on, store in ((False, offs), (True, ons)):
@@ -270,12 +317,40 @@ def main() -> None:
     t0 = time.time()
     for i, v in enumerate(todo):
         rows.append(fit.row(v, starts[v], sc[v], sh[v], a.arm))
+        rows[-1]["entry_best_hit"] = ebh[v]
         if (i + 1) % 1000 == 0:
             print(f"  fit {i + 1}/{len(todo)} {time.time() - t0:.0f}s", flush=True)
     wall = time.time() - t0
     G.dump_gz(rows, out / "refine.json.gz")
+    if a.trace_cma:
+        old = {r["voxel"]: r for r in G.load_gz(FRUNS / "C" / "refine.json.gz")}
+        same = sum(
+            1
+            for r in rows
+            if r["end"] == old[r["voxel"]]["end"] and r["evals"] == old[r["voxel"]]["evals"]
+        )
+        (out / "trace_check.json").write_text(
+            json.dumps(dict(arm="C", n_fits=len(rows), same_end_and_evals_as_run_C=same)) + "\n"
+        )
+        print("trace vs untraced C run:", same, "of", len(rows), flush=True)
+    rows2: List[Dict[str, Any]] = []
+    if a.second:
+        order_all = list(range(T.n))
+        np.random.default_rng(0).shuffle(order_all)
+        done = {r["voxel"]: r for r in rows}
+        v2 = [v for i, v in enumerate(order_all) if i % 4 == 0 and v in done]
+        t2 = time.time()
+        for v in v2:
+            d = done[v]
+            r2 = fit.row(v, np.array(d["end"]), d["end_cost"], d["end_hit"], a.arm)
+            r2["entry_best_hit"] = ebh[v]
+            rows2.append(r2)
+        G.dump_gz(rows2, out / "refine2.json.gz")
+        print(f"second fits {len(rows2)} {time.time() - t2:.0f}s", flush=True)
     info = dict(
         arm=a.arm,
+        n_fits2=len(rows2),
+        evals2=int(sum(r["evals"] for r in rows2)),
         n_fits=len(rows),
         evals=int(sum(r["evals"] for r in rows)),
         wall_s=wall,
