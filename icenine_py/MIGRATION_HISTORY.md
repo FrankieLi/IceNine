@@ -11325,3 +11325,33 @@ realistic images, another sample, a quiet machine.
 
 Next (plan, section AR3): the local fits are now the cost. Index the layer once, list the grains,
 and paint voxels from the grain list, with local fits only where the painting is unclear.
+
+## Autoresearch AR3 step 1: painting grains on the pilot region (done 2026-11-10)
+
+A study; no config key. The new module `icenine/grain_paint.py` lists grains by indexing, floods each
+grain with single strict scores (the BFS neighbour test, unchanged) and gives each voxel the passing
+grain with the lowest strict cost. Nothing else under `icenine/` changed. Tests:
+`tests/test_grain_paint.py` (7, a fake cost on a small grid with two grains). Scripts in
+`scripts/autoresearch/ar3/`, results in `benchmarks/autoresearch/ar3/` (`summary.json`, `tables.md`,
+`ar3_paint.png`, runs).
+
+Measured on the 2,000-voxel pilot region (clean images, Q-max 8, `FusedCost` on, one run, the BFS
+runs' voxel order). Wrong means more than 1 degree from the truth.
+
+- Evaluations: 156,766 for paint against 2,819,906 (key on, stored) and 25,547,935 (key off): 5.6%
+  and 0.6%. Paint: seed paths 119,033, scoring 6,697, 48 rejected local fits 31,036.
+- Wrong voxels: 0 of 2,000 (0.0 to 0.2%) against 22 (key on) and 37 (key off). Paired against key
+  on: 22 fixed, 0 broken. Two key-off runs alone differ by 20 and 7 (AR2). The arms differ in two
+  ways (the route and the per-voxel fit), so neither is credited alone.
+- 62 grain entries for 60 true grains; every true grain has an entry; 2 grains have two entries
+  (0.055 and 0.041 degrees apart). Contested voxels: 126. The lowest strict cost is the true grain
+  in 126 of 126 (97 to 100%); 44 of them lie between different orientations.
+- The truth map holds one orientation per grain (largest spread 0.0 degrees, 497 grains).
+- Wall time (contended: cpptools at about 98% CPU; one worker): paint 37.9 s, 17.2 s of it the
+  one-time pairing; key on 224.3 s in the same session. The key-on time splits as 54% cost
+  evaluations inside local fits, 29% the local fits' own optimizer work, 9% indexing and the
+  finisher, 8% pairing.
+
+Not claimed: anything about the whole layer, realistic images, another Q-max, samples with more than
+one orientation per grain, another voxel order, the fallback (it ran on no voxel). Step 2 (the key
+and the whole layer) starts only after this step's review.
