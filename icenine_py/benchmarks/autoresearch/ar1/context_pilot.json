@@ -1,0 +1,8 @@
+{
+ "mic_voxels": 24570,
+ "region_voxels": 2000,
+ "region_grains": 60,
+ "full_search_min_evals": 100000,
+ "frame_width_deg": 1.0000000000000013,
+ "voxel_side_mm": 0.009375
+}
