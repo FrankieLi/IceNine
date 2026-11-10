@@ -54,13 +54,17 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    `git log feature/eval-reduction..<task branch>` in its worktree, and start a fresh
    implementer with the same brief (regenerate it with `make_brief.sh`) and the note "continue from
    the commits on the branch".
-4. AR2 step 1 (the holdout of the finisher arms): a Sonnet implementer is running on branch
-   `feature/eval-reduction-ar2a` (started 2026-11-09 16:05). Its report will be
-   `.claude/reports/20261109-1605-ar2a.md`. When it exists: place the findings page
-   `docs/autoresearch/findings_ar2_holdout.md` if the agent's write was refused, run
-   `scripts/dev/verify_handback.sh`, `/review-task`, apply fixes, merge. Then apply the plan's rule
-   (best 2 is kept unless it has more wrong voxels than best 3) and start AR2 step 2 (the key)
-   with a brief from `make_brief.sh --task ar2b`, note "step 2 only". Then AR3.
+4. AR2 step 1 (the holdout of the finisher arms): measured, on branch
+   `feature/eval-reduction-ar2a` (worktree `.claude/worktrees/agent-a1bb4d7c15c5bb0d5`, head
+   4d8e445). Hand-back report `.claude/reports/20261109-1605-ar2a.md`; the findings page
+   `docs/autoresearch/findings_ar2_holdout.md` was placed by the main session (the agent's write
+   was refused); `verify_handback.sh` gave 0 FAIL. The review (Opus) is running; its report will
+   be `.claude/reports/20261109-review-ar2a.md`. When it exists: have a fresh Opus implementer
+   apply the required fixes in that worktree, then merge from the worktree with
+   `../../../scripts/dev/finish_task.sh --yes --push` (no library or test change). If the review
+   agent died with the session, start it again (`/review-task` on that branch).
+   Then start AR2 step 2 (the key, main arm: finisher on the best 2) with a brief from
+   `make_brief.sh --task ar2b`, note "step 2 only". Then AR3.
 5. Item 7: PR #41 is open and has the test count. Do not merge it; the owner does.
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
@@ -81,7 +85,7 @@ Reading the table: one row per step, in order, with its state.
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
-| AR2 | indexing as the BFS seed search | step 1 (holdout) running, branch `feature/eval-reduction-ar2a`; then step 2 (the key) |
+| AR2 | indexing as the BFS seed search | step 1 (holdout) measured, in review, branch `feature/eval-reduction-ar2a`; then step 2 (the key) |
 | AR3 | index the layer and paint grains | after AR2's first result |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
@@ -90,8 +94,8 @@ Reading the table: one row per step, in order, with its state.
 ## Running jobs
 
 Agents of the session of 2026-11-09 (they die with the session; `git worktree list` shows their
-worktrees, and their branches keep the commits): the AR2 step 1 implementer (branch
-`feature/eval-reduction-ar2a`). No detached compute job is running.
+worktrees, and their branches keep the commits): the AR2 step 1 reviewer (branch
+`feature/eval-reduction-ar2a`, read-only). No detached compute job is running.
 
 ## Results so far
 
@@ -137,6 +141,25 @@ a grid.
 - Indexing one voxel: median 0.18 s; one-time pairing of all spots: 17 s. Both contended. No
   wall-time comparison yet.
 - The gate for AR2 (recall at 20 of at least 90%) is met.
+
+**AR2 step 1, the holdout (measured 2026-11-09, NOT yet reviewed or merged).** Page on the task
+branch: `docs/autoresearch/findings_ar2_holdout.md`. 300 voxels outside the pilot region, fixed by
+stride before the run: 150 boundary voxels (134 grains) and 150 interior voxels (116 grains).
+Arms: strict cost on the first 5 indexing candidates, then the finisher on the best 1, 2 or 3.
+
+- Wrong voxels (more than 1 degree off), both sets: best 1 has 5 of 300, best 2 has 1 of 300,
+  best 3 has 1 of 300. All wrong voxels are boundary voxels; interior is 0 of 150 in every arm.
+- The plan's rule: best 2 does not have more wrong voxels than best 3, so best 2 stays the main arm
+  for the key.
+- Mean evaluations per voxel: 1,302 (best 1), 2,046 (best 2), 2,634 (best 3).
+- The truth is among the first 5 candidates for 300 of 300, and is the first for 207 of 300
+  (boundary 78 of 150, interior 129 of 150).
+- Four of best 1's wrong voxels (1687, 8343, 11568, 21535) are the AR1 pattern: the truth is
+  second on the unrefined cost and wins after the finisher. They count against best 1.
+- Voxel 17361 is wrong in every arm: the truth refines to 0.044 degrees but its strict cost
+  (0.162) stays above the touching grain's (0.133). A boundary crossing (D-20261109-N6).
+- Not covered: every holdout voxel has at least 30 explained rays, so few-ray voxels are untested
+  (target of AR4). Timing was contended (3 processes). No stored grid search for these voxels.
 
 Note on the `.md` refusal: the AR0 fix agent's Write of a new report file was allowed the same
 afternoon. The refusal is not consistent; the rule in "Next action" still holds when it happens.
