@@ -217,6 +217,7 @@ class ConfigFile:
     bfs_restart_pass: bool = False  # FITTED border voxels push onto REFIT voxels after the BFS
     bfs_reseed: bool = False  # one full no-start search per leftover REFIT cluster (opt-in)
     outward_search: bool = False  # BFS neighbours / reseeds start with the Task F policy (opt-in)
+    seed_by_indexing: bool = False  # BFS seeds / reseeds indexed first (opt-in)
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
@@ -472,6 +473,7 @@ class ConfigFile:
             'BFSRestartPass': self._parse_bool('bfs_restart_pass'),
             'BFSReseed': self._parse_bool('bfs_reseed'),
             'OutwardSearch': self._parse_bool('outward_search'),
+            'SeedByIndexing': self._parse_bool('seed_by_indexing'),
             'CppOverlapRule': self._parse_bool('cpp_overlap_rule'),
             'CppEdgeRules': self._parse_bool('cpp_edge_rules'),
             'CppOmegaInterp': self._parse_bool('cpp_omega_interp'),
