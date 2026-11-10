@@ -61,16 +61,25 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
 4. AR2 step 1 (the holdout): done, merged and pushed (86dd905). Its worktree
    `.claude/worktrees/agent-a1bb4d7c15c5bb0d5` could not be removed (untracked link, cache and
    marker files); harmless, removable with `git worktree remove --force`.
-5. AR2 step 2 (the key `SeedByIndexing`, main arm: finisher on the best 2): a Sonnet implementer
-   is running on branch `feature/eval-reduction-ar2b` in its own worktree (started 2026-11-09
-   17:00). Its report will be `.claude/reports/20261109-1700-ar2b.md`. When it exists: place the
-   findings page `docs/autoresearch/findings_ar2_key.md` and the report if the agent's writes
-   were refused, run `scripts/dev/verify_handback.sh`, `/review-task`, apply fixes (fresh Opus
-   implementer in that worktree), merge with `finish_task.sh --yes --push`. If the agent died
-   with the session: regenerate the brief (`scripts/dev/make_brief.sh --plan
+5. AR2 step 2 (the key `SeedByIndexing`, main arm: finisher on the best 2): the implementer
+   handed back on 2026-11-09 at 18:25. Branch `feature/eval-reduction-ar2b`, worktree
+   `.claude/worktrees/agent-aa30ebdcbce5ec948`, 6 commits (head 7789887). Its write of the
+   findings page was refused, so the main session placed `docs/autoresearch/findings_ar2_key.md`
+   from its text, synced the tables and ran the number audit (commit 7789887).
+   `verify_handback.sh` gave 0 FAIL. Its report is in the worktree:
+   `.claude/reports/20261109-1700-ar2b.md` (copy it to the main checkout's `.claude/reports/`).
+   **Now running: the review** (Opus `code-reviewer`), report
+   `.claude/reports/20261109-review-ar2b.md` in the worktree. When it exists: apply the fixes
+   (fresh Opus implementer in that worktree, brief from `scripts/dev/make_brief.sh --plan
    icenine_py/docs/autoresearch/PLAN.md --task ar2b --section "AR2: indexing as the BFS seed
-   search"`), add "step 2 only", "voxel 17361 is a named test case (D-20261109-N8)" and "continue
-   from the commits on the branch". Then AR3.
+   search" --fixes <review report>`), then merge with `finish_task.sh --yes --push` from the
+   worktree. If the review agent died with the session, run `/review-task` again from the
+   worktree. At the merge: a heads-up to Ilium in the ROADMAP mailbox (the branch changes the
+   shared files `icenine/orientation_search.py` and `icenine/reconstructor.py`, opt-in key only),
+   ROADMAP row AR, MIGRATION_HISTORY, a shmem fact, and the owner's review page
+   (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW; source in the session scratchpad,
+   republish from a read of the page if the scratchpad is gone). Unreviewed numbers from the
+   hand-back are in "Results so far" below. Then AR3.
 6. Item 7: PR #41 is open and has the test count. Do not merge it; the owner does.
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
@@ -91,7 +100,7 @@ Reading the table: one row per step, in order, with its state.
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
-| AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) running, branch `feature/eval-reduction-ar2b` |
+| AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) handed back 2026-11-09, in review, branch `feature/eval-reduction-ar2b` |
 | AR3 | index the layer and paint grains | after AR2's first result |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
@@ -100,10 +109,32 @@ Reading the table: one row per step, in order, with its state.
 ## Running jobs
 
 Agents of the session of 2026-11-09 (they die with the session; `git worktree list` shows their
-worktrees, and their branches keep the commits): the AR2 step 2 implementer (branch
-`feature/eval-reduction-ar2b`). It may start detached compute jobs of its own (the pilot run).
+worktrees, and their branches keep the commits): the reviewer of AR2 step 2 (branch
+`feature/eval-reduction-ar2b`, started 2026-11-09 about 18:45). No compute job is running.
 
 ## Results so far
+
+AR2 step 2, **as handed back, not yet reviewed** (2026-11-09; page `findings_ar2_key.md` on the
+task branch). Pilot region, clean images, Q-max 8, every time contended (the preflight refused).
+- The stored key-off baseline reproduced: 37 wrong, 25,547,935 evaluations, 69 full searches.
+- Key on: 22 wrong of 2,000 against 37. Paired: 22 fixed, 7 broken, 15 wrong in both. All 7
+  breaks are edge-sharing boundary voxels that take a touching grain's orientation, carried by
+  local fits from an indexed seed that is right for its own voxel. 0 of 64 indexed seeds and
+  reseeds are wrong. 0 fell back, so the fallback path ran on no real voxel.
+- The key-off wrong count is not stable: the same key-off config with `FusedCost` on gives 24
+  wrong, not 37 (20 fixed, 7 broken). Against that run the key gives 14 fixed, 12 broken. So the
+  reading is "no worse than the grid search here, not shown better". The cause is not known.
+- Evaluations: 2,819,906 against 25,547,935 (about 9.1 times fewer); 64 full searches at 1,909
+  each against 69 at 331,636. The rest (2.70 M) is the local fits, unchanged.
+- Wall time, `FusedCost` on, one worker, contended, one run per arm: 213 s key on, 1633 s key off.
+  Pairing 17.6 s once, indexing 0.186 s per voxel, outside the evaluation count.
+- Voxel 17361: both finisher stages ran and accepted nothing. One `RayGaussNewton` step reaches
+  0.128 (exact truth 0.0949). The strict cost is 0.156 at 0.02 degrees from the truth and the
+  finisher's first step is 0.132 degrees: consistent with a minimum narrower than the first step,
+  not tested with a smaller step.
+- Open questions it raises: the BFS pilot pairs rays with the hull of the 2,000-voxel region, not
+  of the whole sample as AR1 did; key-off bit-identity was shown with fakes and the golden grid,
+  not on real images.
 
 **AR0 (done, reviewed).** Page: `docs/autoresearch/findings_ar0_stopping.md`. E0 is 200 hard
 voxels; the pilot is the 2,000-voxel BFS key-off rerun. Lower cost is better.
