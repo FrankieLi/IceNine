@@ -1,0 +1,13 @@
+{
+  "run": "A",
+  "n_voxels": 2000,
+  "n_orientation_differ": 0,
+  "max_abs_diff": 0.0,
+  "evals_total": 156766,
+  "evals_expected": 156766,
+  "evals_match": true,
+  "stages_match": true,
+  "n_entries": 62,
+  "entries_match": true,
+  "passes": true
+}

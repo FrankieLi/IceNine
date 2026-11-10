@@ -42,7 +42,8 @@ def wil_dict(k: int, n: int) -> Dict[str, Any]:
 def wil_str(d: Dict[str, Any]) -> str:
     if not d["n"]:
         return "0 of 0"
-    return f"{d['k']} of {d['n']} ({100 * d['lo']:.1f} to {100 * d['hi']:.1f}%)"
+    nd = 2 if d["hi"] < 0.01 else 1  # small rates need a second decimal
+    return f"{d['k']} of {d['n']} ({100 * d['lo']:.{nd}f} to {100 * d['hi']:.{nd}f}%)"
 
 
 def overlap(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
@@ -360,7 +361,13 @@ def main() -> None:
                     broken=int((~wC[vs] & wS[vs]).sum()) if len(vs) else 0,
                 )
             )
+        moved = np.array(
+            [W.mis(Rk, Re[r["grains"][r["kept"]]]) for r, Rk in zip(side["rows"], z["R"])]
+        )
         S["side"] = dict(
+            kept_fit_moved_exactly_0=int((moved == 0).sum()),
+            kept_fit_moved_under_0p01=int((moved < 0.01).sum()),
+            kept_fit_moved_over_0p1=int((moved > 0.1).sum()),
             n_voxels=len(sv),
             evals=side["evals"],
             wall_s=side["wall_s"],
@@ -396,6 +403,7 @@ def main() -> None:
         dup_rows.append(
             dict(
                 entry=i,
+                same_true_grain=bool(entry_grain[i] == entry_grain[e["near_earlier"]]),
                 voxel=e["voxel"],
                 in_pilot=bool(W.in_region[e["voxel"]]),
                 near_deg=e["near_deg"],
@@ -425,6 +433,7 @@ def main() -> None:
         grains_with_two_or_more=int(sum(v >= 2 for v in per_grain.values())),
         duplicates=dict(
             n=len(near),
+            same_true_grain=sum(r["same_true_grain"] for r in dup_rows),
             n_pilot=sum(r["in_pilot"] for r in dup_rows),
             seed_path_evals=sum(r["seed_path_evals"] for r in dup_rows),
             flood_scores=sum(r["flood_scores"] for r in dup_rows),
