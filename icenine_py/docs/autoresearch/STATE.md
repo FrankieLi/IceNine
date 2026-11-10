@@ -93,9 +93,12 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    index the layer and paint grains"`, a fresh Sonnet implementer in a worktree, `/review-task`,
    fixes by an Opus implementer, merge. Tell every implementer: "return the findings page as text
    between markers; do not write the page".
-7. Item 7: PR #41 is open and has the test count (an older one: 1463 passed, 41 skipped; refresh
-   the PR body with 1473 passed, 47 skipped, 1 deselected before the owner merges). Do not merge
-   it; the owner does.
+7. Item 7: PR #41 is open. Its text was refreshed on 2026-11-09 after the merge of AR2 step 2:
+   the four landed steps and the test count 1473 passed, 47 skipped, 1 deselected (run at
+   7caa9fa). Refresh it again after each later merge. Do not merge it; the owner does.
+   The owner's review page (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW) is at Version 4,
+   updated after the merge; its source is in the session scratchpad (republish from a read of
+   the page if the scratchpad is gone).
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
 ("subagents must return findings as text"). The agent stops and returns the text. The main
