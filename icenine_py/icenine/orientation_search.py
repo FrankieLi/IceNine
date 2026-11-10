@@ -150,6 +150,12 @@ class SearchParameters:
     #   goes through the usual seed test; if there is no candidate or the test fails, the grid
     #   search runs as before.
     seed_by_indexing: bool = False
+    # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
+    #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
+    #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
+    #   passing grain of lowest strict cost). Needs ``seed_by_indexing``; refused with
+    #   ``outward_search``. The BFS's revisits, restart pass and reseeding do not run.
+    paint_grains: bool = False
     # cpp_overlap_rule: opt-in (config key CppOverlapRule). The literal C++ CountQualifiedPeaks
     # overlap rule and the centroid projection of the pixel-radius screen (see VoxelCostFunction).
     # cpp_center_screen (not a config key, default True, applies to every rule): False is the
@@ -264,6 +270,7 @@ class SearchParameters:
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
             outward_search=bool(getattr(config, "outward_search", False)),
             seed_by_indexing=bool(getattr(config, "seed_by_indexing", False)),
+            paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
             cpp_omega_interp=bool(getattr(config, "cpp_omega_interp", False)),

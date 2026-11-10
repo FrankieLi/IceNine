@@ -96,6 +96,16 @@ class ReconstructionSetup:
     diff_cost_fn: Optional["DifferentiableCostFunction"] = None  # set for hybrid optimizer
 
 
+def check_paint_grains_keys(params: Any) -> None:
+    """PaintGrains (opt-in) needs SeedByIndexing and cannot run with OutwardSearch."""
+    if not getattr(params, "paint_grains", False):
+        return
+    if not getattr(params, "seed_by_indexing", False):
+        raise ValueError("PaintGrains 1 needs SeedByIndexing 1 (the seed path is the indexing)")
+    if getattr(params, "outward_search", False):
+        raise ValueError("PaintGrains 1 cannot be combined with OutwardSearch 1")
+
+
 def setup_reconstruction(
     config: ConfigFile,
     exp_data: Optional[ExperimentalData] = None,
@@ -141,6 +151,7 @@ def setup_reconstruction(
 
     # Search parameters
     search_params = SearchParameters.from_config(config)
+    check_paint_grains_keys(search_params)
 
     return ReconstructionSetup(
         config=config,
@@ -1600,8 +1611,12 @@ class BFSReconstruction:
     """
 
     def __init__(self, setup: ReconstructionSetup):
+        check_paint_grains_keys(setup.search_params)
         self.setup = setup
         self.reconstructor = AdaptiveVoxelReconstructor(setup)
+        # PaintGrains (opt-in): the paint result and hooks of the last run (None with the key off)
+        self.paint_result: Any = None
+        self.paint_hooks: Any = None
         self.records: Dict[int, BFSVoxelRecord] = {}
         self.stats: Dict[str, Any] = {}
         self._refit_candidates: List[int] = []
@@ -1695,6 +1710,9 @@ class BFSReconstruction:
         voxel_order = list(range(n_process))
         rng.shuffle(voxel_order)
 
+        if getattr(self.setup.search_params, "paint_grains", False):
+            return self._paint_sample(mic, voxel_order, n_total, rng, output_mic)
+
         print(f"BFS Reconstruction: {n_process} voxels", flush=True)
         start_time = time.time()
         all_processed = []
@@ -1766,6 +1784,89 @@ class BFSReconstruction:
             print(f"Saved reconstructed mic to {output_mic}", flush=True)
 
         return all_processed
+
+    def _paint_sample(
+        self,
+        mic: MicFile,
+        voxel_order: List[int],
+        n_total: int,
+        rng: np.random.Generator,
+        output_mic: Optional[str],
+    ) -> List[int]:
+        """PaintGrains (opt-in): ``grain_paint.paint_grains`` in place of the BFS, with the voxel
+        order and the generator the BFS would use. Writes what the BFS writes: the voxels'
+        orientation, cost, hit ratio and state, one record per voxel (source "seed", "paint",
+        "fit" or "failed"; "unresolved" for a voxel that was never reached) and the evaluations by
+        stage in ``stats``. Painted voxels carry confidence 0 (the loop scores the hit ratio
+        only). The result stays on ``self.paint_result`` and the hooks on ``self.paint_hooks``."""
+        from . import grain_paint as GP
+
+        start_time = time.time()
+        print(f"Grain painting: {len(voxel_order)} voxels", flush=True)
+        hooks = GP.ReconstructorHooks(self, mic, rng)
+        res = GP.paint_grains(voxel_order, n_total, hooks)
+        self.paint_hooks, self.paint_result = hooks, res
+        processed: List[int] = []
+        n_unresolved = 0
+        for v in sorted(set(voxel_order)):
+            vox = mic.voxels[v]
+            R, src = res.final_orientation(v)
+            rec = self.records[v] = BFSVoxelRecord(v)
+            processed.append(v)
+            if R is None:
+                rec.source = "unresolved"
+                vox.reconstruction_id = ReconstructionState.REFIT
+                n_unresolved += 1
+                continue
+            vox.orientation = np.asarray(R, dtype=np.float64).copy()
+            if src == "fit":
+                cost, hit = res.fits[v].cost, res.fits[v].hit
+            elif src == "failed":
+                cost, hit = res.failed[v].cost, res.failed[v].hit
+            else:
+                g = res.painted_grain(v)
+                assert g is not None
+                cost, hit = res.scores[g][v][0], res.scores[g][v][1]
+            vox.cost, vox.confidence, vox.overlap_ratio = float(cost), 0.0, float(hit)
+            rec.hit_ratio = float(hit)
+            if src == "failed":
+                vox.reconstruction_id = ReconstructionState.REFIT
+                rec.source, rec.seed_rejected = "failed", True
+                n_unresolved += 1
+                continue
+            vox.reconstruction_id = ReconstructionState.FITTED
+            rec.source = "fit" if src == "fit" else "paint"
+            if res.stage.get(v) == "seed":
+                rec.source = "seed"
+        for row in res.log:  # the seed paths' evaluations, one count per score
+            r = self.records.get(int(row["voxel"]))
+            if r is not None:
+                r.n_evals += int(row.get("index_evals", 0) or 0)
+                r.n_evals += int(row.get("grid_evals", 0) or 0)
+        for sc in res.scores:
+            for v in sc:
+                if v in self.records:
+                    self.records[v].n_evals += 1
+        total_time = time.time() - start_time
+        self.stats["n_seeds"] = res.counts["seeds"]
+        self.stats["n_unresolved"] = n_unresolved
+        self.stats["n_voxels"] = len(processed)
+        self.stats["wall_total_s"] = total_time
+        self.stats["paint_evals"] = dict(res.evals)
+        self.stats["paint_evals_total"] = int(sum(res.evals.values()))
+        self.stats["paint_wall_s"] = dict(res.wall_s)
+        self.stats["paint_counts"] = dict(res.counts)
+        self.stats["index_pairing_s"] = float(getattr(self.reconstructor, "index_pairing_s", 0.0))
+        print(
+            f"\nGrain painting complete: {res.counts['seeds']} grain entries, "
+            f"{res.counts['fits_accepted']} fit-settled, {res.counts['failed']} failed, "
+            f"{total_time:.1f}s total",
+            flush=True,
+        )
+        if output_mic is not None:
+            mic.write(output_mic)
+            print(f"Saved reconstructed mic to {output_mic}", flush=True)
+        return processed
 
     def _refit_clusters(
         self, mic: MicFile, n_limit: int, failed: Optional[Set[int]] = None

@@ -28,8 +28,9 @@ when its result is accepted and to ``index_rejected`` when not; the grid search'
 ``seed_grid`` when accepted and to ``grid_rejected`` when not.
 
 ``paint_grains`` is independent of the physics: it works through a ``PaintHooks`` object (a fake
-cost in the unit tests, ``ReconstructorHooks`` for a real run). It is a study module: nothing in
-the reconstructor uses it, and no config key switches it on.
+cost in the unit tests, ``ReconstructorHooks`` for a real run). The opt-in config key
+``PaintGrains`` (step 2) runs it through ``BFSReconstruction.reconstruct_sample``; with the key off
+nothing calls this module.
 """
 
 import time
@@ -288,6 +289,8 @@ class ReconstructorHooks:
         self._vertices = _get_voxel_vertices
         self._nb: Dict[int, List[int]] = {}
         self._vcache: Dict[int, Any] = {}
+        # study record (AR3 step 2): one row per seed path run, from ``SeedResult``
+        self.seed_records: List[Dict[str, Any]] = []
 
     def vertices(self, v: int) -> Any:
         if v not in self._vcache:
@@ -326,6 +329,20 @@ class ReconstructorHooks:
     def index_seed(self, v: int) -> Tuple[Optional[np.ndarray], float, float, int]:
         vox = self.mic.voxels[v]
         s = self.rec.index_seed(self.vertices(v), vox.phase)
+        self.seed_records.append(
+            dict(
+                voxel=int(v),
+                n_cand=int(s.n_cand),
+                evals=int(s.evals),
+                taken=int(s.taken),
+                strict_costs=[float(c) for c in s.strict_costs],
+                refined=[int(j) for j in s.refined],
+                finisher_costs=[float(c) for c in s.finisher_costs],
+                finisher_evals=[int(e) for e in s.finisher_evals],
+                orientation=None if s.orientation is None else np.asarray(s.orientation).tolist(),
+                cost=float(s.cost) if s.orientation is not None else None,
+            )
+        )
         if s.orientation is None:
             return None, 1.0, 0.0, int(s.evals)
         info = self.rec.evaluate_overlap(s.orientation, self.vertices(v), vox.phase)
