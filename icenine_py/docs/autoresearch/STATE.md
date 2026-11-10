@@ -192,6 +192,11 @@ on the branch `feature/eval-reduction-ar3d` in its own worktree (`git worktree l
 It starts compute jobs of its own (part 3: up to three whole-layer runs side by side, each
 with a coded time cap). Check: `git log --oneline
 feature/eval-reduction..feature/eval-reduction-ar3d` and `scripts/dev/job_status.sh`.
+Seen at 14:14 on 2026-11-10: parts 1 and 2 are committed on the task branch (e6186d0), so
+the gate of part 1 was passed. The three whole-layer runs of part 3 (D4, P4, E4;
+`scripts/autoresearch/ar3/run_wrapped.py`) started at about 14:12 in the worktree
+`.claude/worktrees/agent-ac609f1c28c619ed0`; the longest cap is 150 minutes. No number of step
+4 is recorded here yet: nothing is handed back or reviewed.
 Old agent worktrees under `.claude/worktrees/` are
 detached and can stay; `agent-a3fcfcc95d9db6295` holds the untracked run files of the pilot
 paint run, `agent-a849170b7d4502001` those of the layer runs (pairing cache, the image symlink).
