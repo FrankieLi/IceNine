@@ -30,7 +30,7 @@ prompt while the session is open and idle. It expires on 2026-11-16: create it a
 2026-11-15 and write the new date here. It dies with the session. After a closed session the owner
 types `/resume` or "continue the autoresearch"; this file is enough to go on.
 
-## Status (2026-11-09, evening)
+## Status (2026-11-10)
 
 - Review page: 24 items decided (D-20261109-N2 to N4). Table on
   `docs/owner_review_2026-10-30.md`, "Decisions of 2026-11-09".
@@ -51,6 +51,16 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
   N10), merged and pushed (a8c99b7). Full suite at the merge: 1473 passed, 47 skipped, 1
   deselected. MIGRATION_HISTORY entry, ROADMAP row AR and the heads-up to Ilium are written.
   Results below.
+- The pre-commit check is tightened on the owner's word "tighten the pre-commit check"
+  (D-20261109-N12): reviewed (2 required fixes, applied), merged and pushed (f76f776). Full suite
+  at the merge: 1500 passed, 37 skipped, 1 deselected. What it does: the Developer-tooling table
+  of `icenine_py/README.md`. What it cannot do: "For the owner" below.
+- The AR3 section of the plan is written in full and approved under the mandate (D-20261110-N1,
+  2026-11-10). Two steps: painting on the pilot region as a study, then the key and the whole
+  layer.
+- **AR3 step 1 is done** (2026-11-10): implemented, reviewed (12 required fixes, all applied),
+  merged and pushed (8e3098f). Full suite at the merge: 1505 passed, 44 skipped, 1 deselected.
+  Numbers: "Results so far". The gate for step 2 is met.
 
 ## Next action
 
@@ -71,34 +81,52 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    not be removed (untracked link and cache); harmless, removable with
    `git worktree remove --force`. Left open and recorded: `key_run_bg.sh` still writes "single
    run" into the label of future runs.
-6. **AR3 is next.** Its section in `PLAN.md` is four lines. First step, by the main session: write
-   the AR3 section in full, as AR2's was (what is built, the arms, how each is judged, what is
-   compared with what, what is not claimed), log the approval with `log_decision.sh` under the
-   mandate, and commit. What the plan must take from AR2 step 2:
-   - With the key on, local fits are 2,697,708 of the 2,819,906 evaluations (4,095 fits at about
-     658 each). The grid searches are gone. So AR3's target is the local fits.
-   - The idea: index the layer once, list the grains (distinct orientations among the indexed
-     seeds, or from layer-level votes), then paint each voxel with the strict cost of the few
-     candidate grains near it, and run a local fit only where the painting is unclear (no grain
-     passes, or two grains are close). One strict cost per candidate replaces a 658-evaluation fit.
-   - Every wrong voxel so far is an edge-sharing boundary voxel that takes the touching grain's
-     orientation. Painting scores both touching grains on each such voxel, so it is a direct test
-     of that failure. Count boundary crossings in their own column (N6, N9).
-   - Compare with the key-on run of AR2 step 2 and with the stored key-off run. Two key-off runs
-     differ by 27 voxels, so a wrong-count difference of that size is not a result (N9).
-   - First measure where the 213 s of the key-on run go (profile), before choosing what to batch.
-   - The pilot pairs rays with the hull of the 2,000-voxel region; the whole layer has another
-     hull. Run the pilot first, then the whole layer.
-   Then: `make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar3 --section "AR3:
-   index the layer and paint grains"`, a fresh Sonnet implementer in a worktree, `/review-task`,
-   fixes by an Opus implementer, merge. Tell every implementer: "return the findings page as text
-   between markers; do not write the page".
-7. Item 7: PR #41 is open. Its text was refreshed on 2026-11-09 after the merge of AR2 step 2:
-   the four landed steps and the test count 1473 passed, 47 skipped, 1 deselected (run at
-   7caa9fa). Refresh it again after each later merge. Do not merge it; the owner does.
-   The owner's review page (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW) is at Version 4,
-   updated after the merge; its source is in the session scratchpad (republish from a read of
-   the page if the scratchpad is gone).
+6. **AR3 step 2 is running: the implementer of task `ar3b` was started 2026-11-10.**
+   Step 1 is merged (8e3098f); its page is `docs/autoresearch/findings_ar3_paint.md`, the review
+   `.claude/reports/20261110-0430-review-ar3a.md`. The details of step 2 are in the plan
+   (7ac1216, section "AR3: index the layer and paint grains", "Step 2, the details"), approved
+   under the mandate (D-20261110-N2, ad16c3a). What the plan fixes: the opt-in key `PaintGrains`
+   (needs `SeedByIndexing 1`; the loop of `grain_paint.py` is not changed); checks first (the
+   pilot through the key gives step 1 again; the key-on BFS with a fit log is the stored run);
+   then the whole layer, paint against the key-on BFS, every count split into the pilot region
+   and the rest; a fit-settled voxel keeps its fit and both rules are reported; a paired count
+   is called a gain only when the error-rate intervals do not overlap; a log of every BFS local
+   fit (did it move, how far did the cost fall) as the first reading for an early stop; a
+   per-seed record as the reading for a cheaper seed. Budget 3 hours.
+   - Is the agent alive? `git -C .claude/worktrees/agent-a849170b7d4502001 log --oneline -5`
+     and `git -C .claude/worktrees/agent-a849170b7d4502001 status --short | head`. New commits
+     or changed files mean it is working: do nothing else on this wake. If the session was
+     restarted and there is no hand-back, follow point 3 (fresh Sonnet implementer, the brief
+     from `make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar3b --section
+     "AR3: index the layer and paint grains"`, the note "continue from the commits on the
+     branch"; first `git -C <old worktree> checkout --detach` to free the branch).
+   - When it hands back: write the findings page (`docs/autoresearch/findings_ar3_layer.md`) and
+     the report (`.claude/reports/20261110-0658-ar3b.md`) from its returned text, commit the
+     page on the task branch, then `scripts/dev/verify_handback.sh feature/eval-reduction
+     <report> --branch feature/eval-reduction-ar3b`, then `/review-task` (Opus), fixes by an
+     Opus implementer, `finish_task.sh --yes --push` in the task's worktree.
+   - Before that merge: post to Ilium in `docs/ROADMAP.md` (the task changes the shared files
+     `reconstructor.py`, `config_file.py`, `orientation_search.py`). After it: `gh pr edit 42`,
+     this file, the review page, one shmem fact.
+7. Item 7: **PR #41 is merged** into `develop` (357a2b3, 2026-11-09, at branch head 16c72db), on
+   the owner's word in the session (D-20261109-N11). The branch `feature/eval-reduction` is kept.
+   **PR #42 is open** (2026-11-10, https://github.com/FrankieLi/IceNine/pull/42): what landed
+   since 357a2b3 (the item 22 hook change fd1721f, the tightened pre-commit check f76f776, AR3
+   step 1 8e3098f). It gains commits as later steps merge; update its text then (`gh pr edit 42`).
+   Do not merge that PR without the owner's word in the session.
+   The owner's review page (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW) is updated after
+   each step; its source is in the session scratchpad (republish from a read of the page if the
+   scratchpad is gone).
+8. Item 12 is **not applied**. Its two edits to three `.claude/` files are kept as a patch,
+   `icenine_py/docs/autoresearch/item12_owner.patch`. The owner applies and commits it (commands
+   under "For the owner"). The working tree is clean, so `finish_task.sh` runs. Do not apply
+   the patch in the main checkout again: a dirty tree makes `finish_task.sh` refuse. Never
+   `git add -A`, never `git stash`.
+9. Merges and the tightened check (f76f776). A merge that git commits by itself and that brings
+   a `CLAUDE.md`/`.claude/` change is refused by `.githooks/pre-merge-commit` and left staged.
+   Run `git commit` to conclude it. That passes when a fetched remote branch brings the file
+   unchanged (for example a merge of `origin/feature/python-speed-parity`). If `git commit`
+   refuses too, stop and tell the owner; do not go around it (`git merge --abort` is fine).
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
 ("subagents must return findings as text"). The agent stops and returns the text. The main
@@ -114,19 +142,27 @@ Reading the table: one row per step, in order, with its state.
 | item 6 | review and merge the review fixes | **done** 2026-11-09 (d113694) |
 | AR0 | stop rules from the stored results | **done** 2026-11-09 (0decc3a) |
 | AR1 | recall of the ray-indexing proposer | **done** 2026-11-09 (5bd9ecc) |
-| item 7 | open the PR to `develop` (merge waits for the owner) | **open**: PR #41 (2026-11-09). Not merged. Test count added to its body 2026-11-09 |
+| item 7 | open the PR to `develop` (merge waits for the owner) | **done**: PR #41 merged 2026-11-09 (357a2b3) on the owner's word (D-20261109-N11) |
+| items 12, 22, 23 | owner said yes to all three (D-20261109-N11) | 22 **done** (fd1721f, hook exception for merges); 23 **done** (rule recorded, Ilium told); 12 is a patch file, **apply and commit wait for the owner** |
+| pre-commit tightening | owner: "tighten the pre-commit check" (D-20261109-N12) | **done** 2026-11-09 (f76f776) |
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
 | AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) **done** 2026-11-09 (a8c99b7) |
-| AR3 | index the layer and paint grains | **next**: write its plan section in full first |
+| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer): plan details written (7ac1216, D-20261110-N2), **implementer running** (task `ar3b`, started 2026-11-10) |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 
 ## Running jobs
 
-No agent and no compute job is running (2026-11-09, after the merge of AR2 step 2).
+One agent is running (started 2026-11-10): the Sonnet implementer of task `ar3b` (AR3 step 2),
+branch `feature/eval-reduction-ar3b`, worktree `.claude/worktrees/agent-a849170b7d4502001`. It
+will start two whole-layer runs in the background (paint, then the key-on BFS; the BFS may take
+about an hour). Check: the two `git -C` commands under "Next action" 6, and
+`scripts/dev/job_status.sh` for its compute jobs. Old agent
+worktrees under `.claude/worktrees/` are detached and can stay; `agent-a3fcfcc95d9db6295` holds
+the untracked run files of the paint run (pairing cache, `run.config` files, the image symlink).
 
 ## Results so far
 
@@ -237,18 +273,74 @@ afternoon. The refusal is not consistent; the rule in "Next action" still holds 
 precision); with `-ffp-contract=off` it is `fmul` then `fadd`. Test: `scripts/autoresearch/item18/clip_fma.cpp`.
 Not checked: GCC, x86.
 
+**AR3 step 1 (paint grains on the pilot; reviewed).** Page: `docs/autoresearch/findings_ar3_paint.md`.
+Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel order.
+- Evaluations: paint 156,766; key-on BFS 2,819,906 (paint is 5.6%); key-off BFS 25,547,935
+  (0.6%). By stage in paint: seed paths 119,033 (62 seeds), scoring 6,697, rejected local fits
+  31,036 (48 fits, none accepted), grid search 0.
+- Wrong voxels: paint 0 of 2,000 (0.0 to 0.2%); key on 22; key off 37. Against key on: 22
+  fixed, 0 broken. Two key-off runs alone differ by 20 one way and 7 the other, so the count
+  alone is not called a gain.
+- The direct test carries the result: on the 44 contested voxels whose passing grains are over
+  1 degree apart, the lowest strict cost names the true grain in 44 of 44 (92 to 100%). The
+  other 82 contested voxels are passed only by two entries of one grain; the test cannot fail
+  there.
+- Of the 22 voxels wrong in key on: on 19 the wrong grain passes in paint too and loses on cost;
+  on 3 it does not pass without a fit.
+- Passes outside the true grain: 44, all within 1 voxel side. 62 entries for 60 grains.
+- Accuracy without a fit: median 0.0169 degrees against 0.0159 for key on (62 distinct values,
+  not 1,978 independent ones).
+- Wall, contended, one worker: paint 37.9 s (17.2 s of it the one-time pairing); key on 224.3 s
+  in the same session. A first reading of an unbatched loop.
+- Review: no leak of the truth into any decision; same inputs and tests as the stored key-on
+  run; evaluations counted on the same footing.
+- Limits: the truth has exactly one orientation per grain, so the premise is true by
+  construction. Not tested: the whole layer, realistic images, another voxel order, the
+  fallback and the fit-settled branch (they ended no voxel).
+- Found on the way, not traced: the key-on BFS map has only 64 distinct orientations (key off
+  63), so the BFS local fits nearly always return their start.
+
 ## For the owner
 
-- Still yours: the merge to `develop` (item 7), items 12, 22 and 23, and Ilium's plan approvals.
-- Page comments of 2026-11-09 (evening), both by the owner on the review page: "go ahead and
-  merge" on the PR #41 card, and "go ahead and agree with this" on item 12. A page comment is
-  not taken as the owner's word for a merge or for a change under `.claude/`. Both threads are
-  answered and left open. PR #41 is still open: merge it only when the owner says so in the
-  session (with `gh pr merge 41 --merge`, without `--delete-branch`, the branch is still in use).
-  Item 12 is prepared as a patch in the session scratchpad (`item12.patch`, not applied): one
-  sentence in each of `.claude/skills/implement-plan/SKILL.md` and `apply-fixes/SKILL.md` (show
-  every `note:` line `make_brief.sh` prints on stderr) and the `-q` dropped on the two pytest
-  lines of `.claude/hooks/run-tests-on-change.sh`. The owner applies and commits it.
-- `shmem ask` works again (owner updated the key, 2026-11-09). It still prints one warning: the
-  local embedder (ollama on port 11434) is not running, so new facts are not embedded and a
-  search uses what is already embedded plus keywords. Answers were correct in a test.
+- Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
+  the pre-commit check cannot do (below).
+- 2026-11-09 (evening): the owner commented on the review page (merge PR #41; yes to items 12,
+  22, 23; the embedder is no longer run) and then said in the session "Go ahead and execute
+  according to the comments". That session message is the authority (D-20261109-N11); the page
+  comments alone were not acted on. Done: PR #41 merged (357a2b3); item 22 implemented, reviewed
+  (1 required fix, applied) and merged (fd1721f; suite 1489 passed, 37 skipped, 1 deselected);
+  item 23 recorded and Ilium told (ROADMAP mailbox).
+- Item 12, left for the owner. The edits are a patch file, not in the working tree (uncommitted
+  `.claude/` files made `finish_task.sh` refuse every merge, so they were taken out again on
+  2026-11-09). From the repository root, on `feature/eval-reduction`:
+  `git apply icenine_py/docs/autoresearch/item12_owner.patch`, then
+  `git add .claude/skills/implement-plan/SKILL.md .claude/skills/apply-fixes/SKILL.md
+  .claude/hooks/run-tests-on-change.sh`, then `ALLOW_CLAUDE_CONFIG=1 git commit -m "Item 12:
+  show make_brief notes; drop the extra -q in the test hook"`. The agents cannot do this: the
+  Bash hook refuses an agent that sets an `ALLOW_*` override. An earlier offer on the review
+  page to commit with the override was wrong and is withdrawn.
+- 2026-11-09 (night): the owner said in the session "tighten the pre-commit check"
+  (D-20261109-N12). Done and merged (f76f776). The three gaps noted before are closed: a merge
+  that git commits by itself is now checked (`.githooks/pre-merge-commit`); a deletion, a rename
+  away, a change of type and a submodule entry are refused; any letter case is guarded. The
+  merge exception of item 22 is narrower: the merged commit must be on a remote-tracking branch
+  and not already part of `HEAD`, and the merged branch must have changed the file since every
+  merge base. The reviewer required 2 fixes (submodule entries; a merge head already in `HEAD`);
+  both are applied. One further narrowing came from a reviewer note (a merge could bring back an
+  older copy that the merged branch merely still had).
+- What the pre-commit check cannot do. It is a git hook, so it runs only for `git commit` and
+  for merges. The reviewer tried each route below and each one changes a guarded file with no
+  check. None is new. An agent taking one would be breaking the rule "agents never bypass the
+  hooks" (D-20261028-N3); the hook guards against accidents, not against that.
+  (a) `git commit-tree` with `git update-ref`. (b) A fast-forward merge of a commit made that
+  way. (c) `git cherry-pick`, `git revert`, `git rebase`, `git am` of such a commit.
+  (d) `git merge --no-verify` (the Bash hook blocks `--no-verify` only for `git commit`).
+  (e) `git -c core.hooksPath=... commit`. (f) Making a local commit look fetched with
+  `git update-ref refs/remotes/...` or a remote that points at the clone itself.
+  Routes (d) to (f) could be refused in `.claude/hooks/check-bash-command.sh`. That file is the
+  owner's; no agent has changed it. A stronger backstop is on GitHub: a rule on `develop` that
+  needs the owner's review for `CLAUDE.md` and `.claude/**` (a CODEOWNERS file).
+- Small, known, not fixed: `precommit_check.py` stops with a traceback (so it refuses) when a
+  submodule entry is staged anywhere outside `.claude/`. The repository has no submodules.
+- The `shmem` warning about the local embedder (ollama, port 11434) is expected: the owner said
+  on 2026-11-09 that the embedder is no longer run. Do not report it.

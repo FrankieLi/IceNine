@@ -175,6 +175,274 @@ the evaluations, since they are outside the evaluation count. Budget: 2 hours.
 Only if AR1 passes. Layer-level voting, grain list, batched painting, local fits for unclear
 voxels. Run on the pilot region, then the whole layer. Compare with the full-sample baseline.
 
+Added 2026-11-10 after AR2 step 2 and its review (D-20261110-N1). The four lines above are the
+first draft and are kept for the record. The plan below replaces them.
+
+**Why this step.** With the key `SeedByIndexing` on, the grid searches are gone. Of the 2,819,906
+evaluations of the pilot, 2,697,708 are local fits: 4,095 fits at about 658 each. So the target
+is now the local fits. And every wrong voxel so far is a boundary voxel that took the orientation
+of a grain it touches. The BFS gives a voxel to the first grain that reaches it and passes the
+test. It never asks whether the other grain fits better.
+
+**The idea.** The sample is strain-free, so one grain has one orientation. Once a grain's
+orientation is known from its seed, a voxel of that grain needs no fit. It needs one evaluation,
+to check that the orientation fits there. Terms:
+
+- A **grain entry** is one accepted seed: its voxel, its orientation and its hit ratio. The hit
+  ratio is the share of predicted spots that are lit (the BFS's own acceptance number).
+- To **score** a grain on a voxel is one strict evaluation of the grain's orientation on that
+  voxel, with no fit. It gives a cost and a hit ratio.
+- A grain **passes** on a voxel by the BFS's own neighbour test, unchanged: hit ratio above 0.9
+  times the best hit ratio seen so far in that grain's flood.
+- To **flood** a grain is to score it on the neighbours of its seed, then on the neighbours of
+  every voxel where it passes, and so on. The neighbourhood is the BFS's (radius 2 side lengths).
+  A flood runs through every voxel where the grain passes, also where another grain passes. So
+  one grain's flood does not depend on any other grain.
+- A voxel is **contested** when two or more grains pass on it. It is **unpainted** when no grain
+  passes on it.
+- To **paint** is to give each voxel the passing grain with the lowest strict cost.
+
+AR3 has two steps, in this order.
+
+**Task split.** Task `ar3a` is step 1 only. Step 2 is a later task (`ar3b`); it is not started
+before step 1 is reviewed and merged, and no part of it belongs in `ar3a`. Added 2026-11-10:
+step 1 is merged (8e3098f), so task `ar3b` is step 2 as written under "Step 2, the details"
+below; step 1 is not redone. For the implementer of
+either task: the tool refuses a helper agent's write of a new `.md` file. So do not write the
+findings page or the hand-back report as files. Return each as text in the final message, the
+findings page between the lines `=== FINDINGS PAGE ===` and `=== END FINDINGS PAGE ===`, the
+report between `=== REPORT ===` and `=== END REPORT ===`. The main session places both and says
+so in them. Everything else (code, tests, scripts, result files, plots) is committed on the task
+branch as usual.
+
+**Step 1, painting on the pilot region (a study; no key yet).**
+
+What is built. A new module `icenine/grain_paint.py` with unit tests in
+`tests/test_grain_paint.py` (a fake cost on a small grid with two grains and a known boundary).
+Nothing else under `icenine_py/icenine/` changes. The module uses the pieces the key already
+uses: the seed path `ray_indexing.seed_by_indexing` (index, strict cost on 5 candidates, finisher
+on the best 2), the reconstructor's strict cost built once per run, and its local fit. The loop:
+
+1. Take the voxels in the same shuffled order as the BFS runs of AR2 (the order the config's seed
+   gives; no new random draw).
+2. The next voxel that is unpainted and has not been a seed becomes a seed. If at least one grain
+   was scored on it, it first gets one local fit from the lowest-cost of those grains, as the BFS
+   would. If that fit passes the neighbour test, the voxel is settled "by a fit" and the loop goes
+   on. Otherwise it is indexed by the seed path. If the result passes the seed test (the same as
+   today), it becomes a grain entry and is flooded. If not, the grid search runs as with the key
+   (the fallback), and a voxel whose search is rejected is failed, as today.
+3. Repeat until every voxel is painted, settled by a fit, a seed, or failed.
+4. Paint. Record for every voxel each grain scored on it (cost, hit ratio, passed or not), the
+   stage that settled it, and the evaluations by stage.
+
+A new seed whose orientation is within 1 degree of an earlier grain entry is still its own entry.
+Such pairs are counted and reported. Distances use the crystal's own symmetry operators.
+
+Before the paint run, two short measurements:
+
+- **Where the 213 s go.** Rerun the key-on pilot (`FusedCost` on, one worker, timing preflight)
+  under a profiler. Report the time by part: cost evaluations inside local fits, the optimizer's
+  own work, indexing, pairing, set-up, the rest. This says what a batched pass could save.
+- **Is the premise true on this sample.** From the true map: the number of distinct orientations
+  inside each true grain of the region. Painting assumes one.
+
+The arms. All on the 2,000-voxel pilot region, clean images, Q-max 8.
+
+| arm | what | source |
+|---|---|---|
+| key off | BFS, grid search on seeds | stored run of the key-off rerun (37 wrong, 25,547,935 evaluations) |
+| key on | BFS, seeds indexed, a local fit on every other voxel | stored run of AR2 step 2 (22 wrong, 2,819,906 evaluations) |
+| paint | the loop above; a contested voxel takes the lowest cost | new, one run |
+| paint + fit the contested (side arm) | as paint, then on every contested voxel one local fit from each of its two lowest-cost grains; the lower final cost is kept | new, same run, its evaluations counted apart |
+
+Reading the table: one row per arm. The two stored arms are not rerun, except for the profile.
+
+How each is judged.
+
+- **Evaluations** (the main number): paint against key on and key off, split by stage (seed
+  paths, scoring, local fits, fallbacks). One score is one evaluation. Indexing time and the
+  one-time pairing are reported beside them, as in AR2.
+- **Wrong voxels**, against the truth, with intervals, and paired against the key-on run: fixed,
+  broken, both wrong. Each break is traced. Boundary crossings are in their own column, split
+  into edge-sharing and corner-only (N6, N8, N9). Two runs of the same key-off arm differ by 20
+  voxels one way and 7 the other. So a difference of that size, either way, is not called a gain
+  or a loss.
+- **The direct test of the boundary failure.** On every contested voxel: is the grain with the
+  lowest strict cost the true grain? Counts with an interval, split into edge-sharing and
+  corner-only boundary voxels and interior voxels. This asks whether the cost itself can tell the
+  two touching grains apart when both are scored. It does not depend on the BFS route. Also: how
+  often the lowest cost and the highest hit ratio name different grains.
+- **How far a wrong grain floods.** For each grain, the voxels where it passes outside its true
+  grain, by distance to the true boundary in voxels.
+- **Accuracy without a fit.** The distance to the truth of painted voxels against the same voxels
+  in the key-on run (which fitted each one): the plot of both distributions first, then the
+  table. This says whether a final fit per voxel, or one per grain, is needed (goal 4).
+- **The side arm.** For a margin m, a rule "fit a contested voxel when its two lowest costs are
+  closer than m" has a cost (the fits) and a gain (the voxels fixed). The side arm gives both for
+  every m. The curve is read on this run, so it picks an m; it does not test it. The test is the
+  rest of the layer, in step 2.
+- **Wall time**: the paint run with `FusedCost` on, one worker, under the timing preflight,
+  beside the profiled key-on run of the same session. The paint loop scores one voxel at a time
+  in Python. So the wall time is a first reading of an unbatched loop, labelled as such.
+
+The gate for step 2, fixed now: go on unless paint breaks more than 20 voxels against the key-on
+run, or needs more than half of the key-on run's evaluations.
+
+What is not claimed in step 1: nothing about the whole layer (the pilot pairs rays with the hull
+of its own region); nothing about samples whose grains hold more than one orientation; nothing
+about realistic images or another Q-max; no margin rule (it is only picked here); no tested wall
+time; nothing about another seed order (the loop is run with one fixed order); nothing about the
+fallback if it runs on no voxel again. A layer-wide vote over all rays (the first draft of H2) is
+not built: grains are listed by indexing unpainted voxels one at a time. If the seed paths turn
+out to be the largest share of the paint arm's evaluations, a cheaper seed (fewer finisher runs,
+or one finisher run per grain over several voxels) is the next thing to try, in step 2 or AR5.
+
+Scripts in `scripts/autoresearch/ar3/`, results in `benchmarks/autoresearch/ar3/`, findings in
+`docs/autoresearch/findings_ar3_paint.md`. Budget: 1 hour of compute.
+
+**Step 2, the key and the whole layer.** Only if the gate is met. Its details are fixed after
+step 1 and its review, as AR2's were. In outline: an opt-in key `PaintGrains` (off by default; the
+off path stays bit-identical) in `config_file.py` and `reconstructor.py`, which runs the loop of
+`grain_paint.py` in place of the BFS. The pilot through the key must give step 1's numbers again.
+Then the whole layer (24,570 voxels, 497 grains), rays paired with the layer's own hull, with the
+key-on BFS (`SeedByIndexing`) on the whole layer as the arm to compare with. The margin rule
+picked in step 1 is tested on the voxels outside the pilot region. Budget: 3 hours.
+
+**Step 2, the details.** Added 2026-11-10 after step 1 and its review (D-20261110-N2). The gate
+is met: paint broke 0 voxels against the key-on run (limit 20) and used 5.6% of its evaluations
+(limit 50%). Step 1's page is `docs/autoresearch/findings_ar3_paint.md`. Three things from step 1
+shape this step:
+
+- The side arm fixed 0 and broke 0 voxels at every margin. So step 1 picked no margin. The rule
+  it leaves is "no fit on a contested voxel". Step 2 tests that rule.
+- No local fit was accepted (0 of 48). So the rule "a voxel settled by a fit keeps its fit" was
+  never used.
+- The key-on BFS map holds only 64 distinct orientations over 2,000 voxels. So its local fits
+  nearly always seem to return their start. They are 2,697,708 of its 2,819,906 evaluations.
+
+What is built.
+
+1. **The key.** `PaintGrains` (0 or 1, default 0) in `config_file.py`, carried as `paint_grains`
+   in the search parameters of `orientation_search.py`, beside `seed_by_indexing`. With the key
+   on, `BFSReconstruction.reconstruct_sample` runs the loop `grain_paint.paint_grains` through
+   `ReconstructorHooks` in place of the BFS. It uses the voxel order and the random generator
+   that the BFS would use. It writes what the BFS writes: the map, one record per voxel (source
+   `seed`, `paint`, `fit` or `failed`) and the evaluations by stage in `stats`. The paint result
+   stays on the object so that a script can save it. The loop in `grain_paint.py` is not changed:
+   the rule for a fit-settled voxel stays as in step 1.
+2. **What the key refuses.** `PaintGrains 1` needs `SeedByIndexing 1` (the seed path is the
+   indexing). With `SeedByIndexing 0`, or with `OutwardSearch 1`, the set-up raises a
+   `ValueError` that names the keys. The BFS's revisits, restart pass and reseeding do not run
+   under the key; the README says so. Only the single-process path is built.
+3. **Tests** in `tests/test_paint_key.py`: the key parses, default off; with the key off the
+   paint loop is never called (the loop is patched to raise) and the result of a small BFS run
+   is unchanged; the two refused settings raise; with the key on, a small real case gives the
+   same map and the same evaluations by stage as a direct call of `paint_grains` with the same
+   order and generator, and the stages sum to the cost function's own count.
+4. **Study records, no change to the loop.** The hooks keep, per seed, what the seed path already
+   returns (`SeedResult`: the strict costs of the costed candidates, the finisher's final costs,
+   its evaluations, the candidate taken). A script wraps the BFS's local fit to log each fit
+   (see "The fit log" below). Both live in the scripts or in the hooks, not in the BFS.
+
+The runs. Clean images, Q-max 8, `FusedCost` on, one worker, one fixed voxel order. Runs longer
+than a few minutes are started in the background with a log (as
+`scripts/autoresearch/ar2/key_run_bg.sh` does) and watched with `scripts/dev/job_status.sh`. The
+two whole-layer runs go one after the other, not at the same time, so that their wall times can
+be read side by side.
+
+| run | sample | what | compared with |
+|---|---|---|---|
+| A | pilot, 2,000 voxels | paint through the key | step 1's stored paint run |
+| B | pilot, 2,000 voxels | key-on BFS with the fit log | the stored key-on run (`key_on_fused`) |
+| C | whole layer, 24,570 voxels | paint through the key, then the side arm | run D and the truth |
+| D | whole layer, 24,570 voxels | key-on BFS with the fit log | run C and the truth |
+
+Reading the table: one row per run. A and B are checks that must pass before C and D start. C
+and D are the result. The whole layer pairs rays with the layer's own hull, so the pilot voxels
+inside C and D do not see the same rays as in A and B.
+
+The checks, in this order. If one fails, stop and report; do not go on to C and D.
+
+- **A gives step 1 again**: 156,766 evaluations with the same split by stage, 62 entries, 0 wrong
+  voxels, and the same orientation on every voxel as `runs/paint/recon.mic`.
+- **B is the stored run**: 2,816,897 evaluations and the same orientation on every voxel as the
+  stored `key_on_fused` map. This shows two things: the off path is unchanged by the key, and
+  the fit log does not disturb the run.
+- The full test suite passes.
+
+How C and D are judged. Every count is given for the whole layer and split into the pilot region
+(2,000 voxels, where the method was worked out) and the rest (22,570 voxels, the test).
+
+- **Evaluations** (the main number): paint against the key-on BFS, by stage, as in step 1.
+  Indexing time and the one-time pairing beside them.
+- **Wrong voxels** against the truth, with intervals, and paired against run D: fixed, broken,
+  both wrong. Boundary crossings in their own column, edge-sharing and corner-only apart. Each
+  break is traced, or a sample of 20 if there are more.
+- **The wording rule for a paired count** (fixed here, for this page and later ones). A paired
+  count is given as numbers: fixed, broken, both wrong. It is called a gain or a loss only when
+  the two error rates' intervals do not overlap. Next to it, each fixed voxel is put in one of
+  two bins by the scores of run C: the grain that run D gave it passes in paint and loses on
+  strict cost, or it does not pass at all. The run-to-run difference of one arm on the whole
+  layer is not measured. The pilot's (20 and 7 voxels of 2,000) is quoted beside the counts as
+  the scale. No extra seeds are run.
+- **The direct test.** On every contested voxel whose passing grains are more than 1 degree
+  apart: is the lowest strict cost the true grain? Count and interval, split into edge-sharing,
+  corner-only and interior. Contested voxels between two entries of one grain are counted apart;
+  they cannot fail.
+- **The rule "no fit on a contested voxel".** The side arm of step 1, run on the contested voxels
+  whose passing grains are more than 1 degree apart: one local fit from each of the two
+  lowest-cost grains, the lower final cost kept. Fixed and broken against run C, evaluations
+  counted apart. The rule holds if the side arm fixes no more than it breaks.
+- **The grain list.** Entries against the 497 true grains: grains with no entry, and entries
+  within 1 degree of an earlier one (duplicates) with what they cost (seed path and flood). For
+  the two duplicates of the pilot and for those of the layer: which test let the voxel become a
+  seed (read from the loop's log: the hit ratio of the rejected fit against the grain's best,
+  and the seed's own hit ratio). No merge rule is built here.
+- **Voxels no grain paints**: unpainted, failed, and every grid-search fallback that ran, each
+  listed with its outcome. This is the first test of the fallback on real voxels, if it runs.
+- **Fit-settled voxels.** How many fits are accepted. For each: does a grain pass there with a
+  lower strict cost than the fit's? The wrong count is given under both rules (the fit is kept;
+  the lowest cost wins). Both come from the scores of run C, with no new evaluations. The key
+  keeps step 1's rule; the page says which rule the numbers favour.
+- **Accuracy without a fit.** Distance to the truth, run C against run D on the same voxels: the
+  plot first, then the table.
+- **Wall time.** C and D with the timing preflight, labelled as it comes out (single-worker, or
+  contended with the reason). The loop still scores one voxel at a time.
+
+The fit log (the first reading for an early stop, goal 5 of the owner's mandate). In runs B and
+D, each local fit of the BFS is logged: the start and the end orientation, the angle between
+them (with the crystal's symmetry operators), the final cost, the evaluations used, and the
+strict cost and hit ratio of the start. The start's score is one extra evaluation on a second
+cost function; it is counted apart and does not touch the run's generator. Reported, plot first:
+
+- the share of fits by how far they moved (not at all; under 0.01 degrees; 0.01 to 0.1; over
+  0.1), with the evaluations spent in each bin;
+- the cost fall against the start's cost;
+- for the fits that moved more than 0.1 degrees: was the voxel right at the end?
+
+This is a reading on one sample whose grains each hold exactly one orientation. It says how much
+of the BFS's work could have been skipped here. It picks a stop rule for AR5; it does not test
+one. Paint is the simplest such rule run for real (score once, keep the start if it passes).
+
+The seed record (a reading for a cheaper seed). Seed paths were 76% of paint's evaluations in
+step 1, at 1,920 per seed. From the per-seed record of run C: how often the candidate with the
+lowest strict cost is also the one the finisher ends on; how far the finisher moved the taken
+candidate; how much the cost fell. This says what "finisher on one candidate" or "a shorter
+finisher" would have changed. It is read on this run only and is tested later (AR5).
+
+Stop rules. If check A or B fails, stop. If run D is not done after 120 minutes of wall time,
+stop it, say so, and judge run C against the truth alone. If the whole-layer pairing does not
+fit in memory, report that and stop. Budget: 3 hours of compute.
+
+What is not claimed in step 2: nothing about realistic images or another Q-max; nothing about
+another voxel order (one fixed order); nothing about samples whose grains hold more than one
+orientation; nothing about other layers; no tested stop rule and no tested cheaper seed (both
+are readings); no tested wall time unless the preflight passes; nothing about a parallel run.
+
+Files. Scripts in `scripts/autoresearch/ar3/`, results in `benchmarks/autoresearch/ar3/layer/`,
+findings in `docs/autoresearch/findings_ar3_layer.md` (returned as text, see "Task split"). The
+README gets the key; `MIGRATION_HISTORY.md` gets the summary.
+
 ## AR4: the learned proposer
 
 Train and measure H4 on the same voxels as AR1. It starts after AR1 so that it can be compared

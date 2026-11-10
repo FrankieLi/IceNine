@@ -876,3 +876,66 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   different from the grid search, and every other fixed or broken voxel is a boundary crossing
   that counts neither way. The owner can overrule this. Where:
   icenine_py/docs/autoresearch/findings_ar2_key.md.
+
+### D-20261109-N11 · Track E (PR #41, review items 12, 22, 23) · Owner: merge PR #41; yes to review items 12, 22 and 23
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- The owner's word in the session of 2026-11-09 ('I have left comment in the artifact. Go ahead
+  and execute according to the comments'), on the owner's own comments on the review page. (1) PR
+  #41 (feature/eval-reduction to develop) is merged with a merge commit (357a2b3, at branch head
+  16c72db); the branch is kept, later autoresearch steps go in a new PR. (2) Item 12: yes to both
+  edits under .claude/ (show the 'note:' lines of make_brief.sh in /implement-plan and
+  /apply-fixes; drop the extra -q in run-tests-on-change.sh). Newt applies them to the working
+  tree; the commit of .claude/ files stays with the owner. (3) Item 22: yes. precommit_check.py
+  lets a merge commit bring a .claude/ or CLAUDE.md file only when the staged file is identical to
+  that file on the branch being merged; every other .claude/ change is still refused. (4) Item 23:
+  yes. When the worktree guard refuses a combined shell command, an agent may rerun it as plain
+  commands, as the refusal message suggests. Doing a refused action another way (such as writing a
+  file through the shell after Edit or Write was refused) stays forbidden. Also noted: the shmem
+  embedder is no longer run, so its warning is expected. A page comment alone was not acted on;
+  the session message is the authority. Where: docs/owner_review_2026-10-30.md items 12, 22, 23;
+  PR #41; scripts/dev/precommit_check.py; ROADMAP Newt mailbox.
+
+### D-20261109-N12 · Shared tooling (pre-commit check) · Owner: tighten the pre-commit check on CLAUDE.md/.claude files
+- 2026-11-09, owner. Recorded by Newt Agent. Supersedes: none.
+- The owner's word in the session of 2026-11-09 ('tighten the pre-commit check'), on the gaps the
+  review of the item 22 change found. (1) A new hook .githooks/pre-merge-commit runs the same
+  check for a merge that git commits by itself. git has not recorded the merged branch at that
+  point, so a merge that brings CLAUDE.md/.claude files is left staged and is concluded with 'git
+  commit', where the item 22 exception applies. (2) A staged deletion, a rename away and a change
+  of type of a guarded file are refused like any other change. (3) Guarded names are matched in
+  any letter case. (4) The item 22 exception (D-20261109-N11) is narrowed so that closing (1)
+  holds: the merged commit must be on a remote-tracking branch (a stash or another local-only
+  commit gets no exception), and a deletion passes only when the merged branch lacks the file and
+  the merge base has it. The override ALLOW_CLAUDE_CONFIG=1 stays with the owner. Where:
+  scripts/dev/precommit_check.py; .githooks/pre-merge-commit; icenine_py/README.md, Developer
+  tooling.
+
+### D-20261110-N1 · Track E / AR3 · Delegated: the AR3 plan (paint grains on the pilot, then the key and the whole layer) is approved under the owner's mandate
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Taken by Newt Agent under the owner's mandate D-20261109-N1; not the owner's own word. The
+  section 'AR3: index the layer and paint grains' of docs/autoresearch/PLAN.md is approved for
+  implementation. Step 1 is a study on the 2,000-voxel pilot region: a new module
+  icenine/grain_paint.py lists grains by indexing unpainted voxels one at a time, scores each
+  grain's orientation on the voxels around it with one strict evaluation and no fit, and gives
+  each voxel the passing grain with the lowest strict cost. It is compared with the stored key-on
+  run (22 wrong, 2,819,906 evaluations) and the stored key-off run (37 wrong, 25,547,935
+  evaluations). The gate for step 2 is fixed before the run: paint breaks at most 20 voxels
+  against the key-on run and needs at most half of its evaluations. A wrong-count difference no
+  larger than that between two runs of the same arm (20 one way, 7 the other) is not called a gain
+  or a loss. A margin rule for contested voxels is only picked in step 1 and is tested in step 2
+  on the voxels outside the pilot region. Step 2 (an opt-in key PaintGrains, off by default, and
+  the whole layer) has its details fixed after step 1 and its review. The layer-wide vote over all
+  rays of the first draft is not built. Where: docs/autoresearch/PLAN.md, section AR3;
+  docs/autoresearch/STATE.md.
+
+### D-20261110-N2 · Track A / AR3 step 2 · AR3 step 2 plan approved under the owner's mandate (key PaintGrains, whole layer)
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved by Newt Agent under D-20261109-N1 (delegated): the details of AR3 step 2 in PLAN.md.
+  Opt-in key PaintGrains (default off, needs SeedByIndexing 1, loop of grain_paint.py unchanged).
+  Checks first: the pilot through the key gives step 1 again; the key-on BFS with the fit log is
+  the stored run. Then the whole layer (24,570 voxels), paint against the key-on BFS, counts split
+  pilot / rest. Fixed here: a fit-settled voxel keeps its fit in the key, both rules are reported;
+  a paired count is called a gain only when the error-rate intervals do not overlap; no extra
+  seeds. The fit log and the seed record are readings for AR5, not tests. Budget 3 hours. Task
+  ar3b. No merge to develop without the owner's word. Where: icenine_py/docs/autoresearch/PLAN.md,
+  section AR3, Step 2, the details.

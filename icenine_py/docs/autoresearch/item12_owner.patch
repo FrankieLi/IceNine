@@ -1,0 +1,46 @@
+diff --git a/.claude/skills/implement-plan/SKILL.md b/.claude/skills/implement-plan/SKILL.md
+--- a/.claude/skills/implement-plan/SKILL.md
++++ b/.claude/skills/implement-plan/SKILL.md
+@@ -12,7 +12,8 @@
+    branch, which is named `<current>-<task>`. Run `scripts/dev/make_brief.sh --plan <plan> --task
+    <task> [--section "<section>"] --trailer "<the Co-Authored-By line from the current system
+    reminder>"`. If it refuses (unapproved plan, `icenine.maxHeavyProcs` unset, no trailer), show
+-   the error and stop.
++   the error and stop. If it succeeds, show the user every `note:` line it printed on stderr
++   (for example a section with no stated criteria), word for word, before launching the agent.
+ 2. If the session has a keep-awake tool (in the desktop app, `request_keep_awake`), request it
+    until the session is idle, before launching: sleep stops background agents mid-run.
+ 3. Launch the `implementer` agent in the background with `isolation: "worktree"`, with the brief
+diff --git a/.claude/skills/apply-fixes/SKILL.md b/.claude/skills/apply-fixes/SKILL.md
+--- a/.claude/skills/apply-fixes/SKILL.md
++++ b/.claude/skills/apply-fixes/SKILL.md
+@@ -11,7 +11,8 @@
+ 1. Find the current branch and the task branch the review covered (the review report names it;
+    ask the user if it does not, never guess). Run `scripts/dev/make_brief.sh --plan <plan> --task
+    <task> --fixes <review report> [--section "<section>"] --trailer "<the Co-Authored-By line
+-   from the current system reminder>"`. If it refuses, show the error and stop.
++   from the current system reminder>"`. If it refuses, show the error and stop. If it succeeds,
++   show the user every `note:` line it printed on stderr, word for word, before going on.
+ 2. Free the task branch, so the new agent can check it out in its own worktree (a subagent's Edit
+    and Write tools work only inside its own worktree; never point it at another worktree's path).
+    Find the worktree holding the branch (`git worktree list --porcelain`). If that worktree has
+diff --git a/.claude/hooks/run-tests-on-change.sh b/.claude/hooks/run-tests-on-change.sh
+--- a/.claude/hooks/run-tests-on-change.sh
++++ b/.claude/hooks/run-tests-on-change.sh
+@@ -11,14 +11,14 @@
+ 
+     # If editing a test file, run that specific test
+     if [[ "$BASENAME" == test_* ]]; then
+-        cd "$PROJECT_DIR" && uv run pytest "tests/$BASENAME.py" -q --tb=short 2>&1
++        cd "$PROJECT_DIR" && uv run pytest "tests/$BASENAME.py" --tb=short 2>&1
+         exit $?
+     fi
+ 
+     # If editing a source file, look for a matching test
+     TEST_FILE="$PROJECT_DIR/tests/test_${BASENAME}.py"
+     if [[ -f "$TEST_FILE" ]]; then
+-        cd "$PROJECT_DIR" && uv run pytest "tests/test_${BASENAME}.py" -q --tb=short 2>&1
++        cd "$PROJECT_DIR" && uv run pytest "tests/test_${BASENAME}.py" --tb=short 2>&1
+         exit $?
+     fi
+ fi

@@ -194,6 +194,271 @@ def test_precommit_claude_config_override(repo: Path) -> None:
     assert precommit_check.check(repo, {"ALLOW_CLAUDE_CONFIG": "1"}) == []
 
 
+def _start_merge(repo: Path, published: bool = True) -> None:
+    """Leave ``repo`` in a merge of branch ``other``, which changed three guarded files.
+
+    With ``published`` the branch is also a remote-tracking branch, as a fetched branch is.
+    """
+    _git(repo, "checkout", "-q", "-b", "other")
+    for rel in ["CLAUDE.md", ".claude/agents/a.md", ".claude/hooks/h.sh"]:
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text("from the other branch\n")
+    (repo / ".claude/hooks/h.sh").chmod(0o755)
+    _git(repo, "add", "CLAUDE.md", ".claude")
+    _git(repo, "commit", "-q", "-m", "other: guarded files")
+    if published:
+        _git(repo, "update-ref", "refs/remotes/origin/other", "other")
+    _git(repo, "checkout", "-q", "develop")
+    _git(repo, "merge", "--no-ff", "--no-commit", "other")
+
+
+def test_precommit_merge_brings_identical_claude_files(repo: Path) -> None:
+    _start_merge(repo)
+    assert precommit_check.merge_heads(repo) == [_git(repo, "rev-parse", "other")]
+    assert precommit_check.check(repo, {}) == []
+
+
+def test_precommit_merge_refuses_claude_file_that_differs_from_merged_branch(repo: Path) -> None:
+    _start_merge(repo)
+    _stage(repo, ".claude/agents/a.md", "edited during the merge\n")
+    _stage(repo, ".claude/agents/new.md", "not on the other branch\n")
+    msgs = precommit_check.check(repo, {})
+    assert sorted(m.split(":")[0] for m in msgs) == [".claude/agents/a.md", ".claude/agents/new.md"]
+    assert precommit_check.check(repo, {"ALLOW_CLAUDE_CONFIG": "1"}) == []
+
+
+def test_precommit_merge_refuses_claude_file_with_changed_mode(repo: Path) -> None:
+    _start_merge(repo)
+    _git(repo, "update-index", "--chmod=-x", ".claude/hooks/h.sh")
+    msgs = precommit_check.check(repo, {})
+    assert [m.split(":")[0] for m in msgs] == [".claude/hooks/h.sh"]
+
+
+def test_precommit_merge_takes_the_staged_path_literally(repo: Path) -> None:
+    # ":/CLAUDE.md" as a pathspec means the top-level CLAUDE.md, which the merge brings unchanged.
+    # As a literal path it is a new file in a directory named ":", and must be refused.
+    _start_merge(repo)
+    rel = ":/CLAUDE.md"
+    (repo / ":").mkdir()
+    (repo / rel).write_text("not on the other branch\n")
+    _git(repo, "--literal-pathspecs", "add", rel)
+    msgs = precommit_check.check(repo, {})
+    assert msgs == [f"{rel}:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)"]
+
+
+def test_precommit_merge_renamed_claude_file_is_refused(repo: Path) -> None:
+    _start_merge(repo)
+    _git(repo, "mv", ".claude/agents/a.md", ".claude/agents/b.md")
+    msgs = precommit_check.check(repo, {})
+    assert [m.split(":")[0] for m in msgs] == [".claude/agents/b.md"]
+
+
+def test_precommit_merge_of_a_local_only_commit_gets_no_exception(repo: Path) -> None:
+    # A branch that is on no remote-tracking branch (as a stash is) does not count as merged-in.
+    _start_merge(repo, published=False)
+    assert len(precommit_check.check(repo, {})) == 3
+    assert precommit_check.check(repo, {"ALLOW_CLAUDE_CONFIG": "1"}) == []
+
+
+def _guarded_base(repo: Path) -> None:
+    """Commit two guarded files on develop (as the owner would), then branch ``other`` off it."""
+    for rel in [".claude/agents/gone.md", ".claude/agents/kept.md"]:
+        _stage(repo, rel, "committed by the owner\n")
+    _git(repo, "commit", "-q", "-m", "guarded files")
+    _git(repo, "branch", "other")
+
+
+def test_precommit_guarded_deletion_rename_and_type_change_are_refused(repo: Path) -> None:
+    _guarded_base(repo)
+    _git(repo, "rm", "-q", ".claude/agents/gone.md")
+    msgs = precommit_check.check(repo, {})
+    assert msgs == [
+        ".claude/agents/gone.md:1: CLAUDE.md/.claude deletion (set ALLOW_CLAUDE_CONFIG=1)"
+    ]
+    assert precommit_check.check(repo, {"ALLOW_CLAUDE_CONFIG": "1"}) == []
+    # a rename out of .claude/ is a deletion there, whatever the new name is
+    _git(repo, "mv", ".claude/agents/kept.md", "kept.md")
+    assert [m.split(":")[0] for m in precommit_check.check(repo, {})] == [
+        ".claude/agents/gone.md",
+        ".claude/agents/kept.md",
+    ]
+    _git(repo, "reset", "-q", "--hard")
+    # file to symlink: a change of type
+    (repo / ".claude/agents/kept.md").unlink()
+    os.symlink("../../README", repo / ".claude/agents/kept.md")
+    _git(repo, "add", ".claude/agents/kept.md")
+    msgs = precommit_check.check(repo, {})
+    assert msgs == [
+        ".claude/agents/kept.md:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)"
+    ]
+
+
+def test_precommit_guarded_names_in_any_letter_case(repo: Path) -> None:
+    for rel in [".Claude/agents/a.md", ".CLAUDE/b.md", "docs/Claude.md", "claude.MD"]:
+        assert precommit_check.is_guarded(rel), rel
+    for rel in ["docs/.claude/a.md", "claude.md.txt", "notes/claude/x.md"]:
+        assert not precommit_check.is_guarded(rel), rel
+    _stage(repo, ".Claude/agents/a.md", "x\n")
+    _stage(repo, "docs/Claude.md", "x\n")
+    assert len(precommit_check.check(repo, {})) == 2
+
+
+def test_precommit_merge_brings_a_deletion_made_on_the_merged_branch(repo: Path) -> None:
+    _guarded_base(repo)
+    _git(repo, "checkout", "-q", "other")
+    _git(repo, "rm", "-q", ".claude/agents/gone.md")
+    _git(repo, "commit", "-q", "-m", "other: owner deletes a guarded file")
+    _git(repo, "update-ref", "refs/remotes/origin/other", "other")
+    _git(repo, "checkout", "-q", "develop")
+    _stage(repo, "notes.md", "so that the merge is not a fast-forward\n")
+    _git(repo, "commit", "-q", "-m", "develop moves on")
+    _git(repo, "merge", "--no-ff", "--no-commit", "other")
+    assert precommit_check.check(repo, {}) == []
+    # deleting, during the merge, a guarded file that the merged branch still has is refused
+    _git(repo, "rm", "-q", ".claude/agents/kept.md")
+    msgs = precommit_check.check(repo, {})
+    assert [m.split(":")[0] for m in msgs] == [".claude/agents/kept.md"]
+
+
+def test_precommit_merge_deleting_a_file_the_merged_branch_never_had_is_refused(repo: Path) -> None:
+    _git(repo, "branch", "other")
+    _stage(repo, ".claude/agents/ours.md", "added on develop after the fork\n")
+    _git(repo, "commit", "-q", "-m", "develop: guarded file")
+    _git(repo, "checkout", "-q", "other")
+    _stage(repo, "notes.md", "x\n")
+    _git(repo, "commit", "-q", "-m", "other moves on")
+    _git(repo, "update-ref", "refs/remotes/origin/other", "other")
+    _git(repo, "checkout", "-q", "develop")
+    _git(repo, "merge", "--no-ff", "--no-commit", "other")
+    assert precommit_check.check(repo, {}) == []
+    _git(repo, "rm", "-q", ".claude/agents/ours.md")
+    msgs = precommit_check.check(repo, {})
+    assert [m.split(":")[0] for m in msgs] == [".claude/agents/ours.md"]
+
+
+def _install_test_hooks(repo: Path) -> None:
+    """Hooks that run the real check script, as .githooks does, with this test's interpreter."""
+    hooks = repo / "hooks"
+    hooks.mkdir()
+    for name in ["pre-commit", "pre-merge-commit"]:
+        hook = hooks / name
+        flag = " --guarded-only" if name == "pre-merge-commit" else ""
+        hook.write_text(
+            f'#!/bin/bash\nexec "{sys.executable}" "{DEV / "precommit_check.py"}"{flag}\n'
+        )
+        hook.chmod(0o755)
+    _git(repo, "add", "hooks")
+    _git(repo, "commit", "-q", "-m", "hooks")
+    _git(repo, "config", "core.hooksPath", "hooks")
+
+
+def test_merge_that_git_commits_itself_is_checked_and_concluded_with_git_commit(repo: Path) -> None:
+    _install_test_hooks(repo)
+    _git(repo, "checkout", "-q", "-b", "plain")
+    _stage(repo, "notes.md", "nothing guarded\n")
+    _git(repo, "commit", "-q", "-m", "plain")
+    _git(repo, "checkout", "-q", "-b", "other", "develop")
+    _stage(repo, ".claude/agents/a.md", "from the other branch\n")
+    _git(repo, "commit", "-q", "--no-verify", "-m", "other: committed by the owner")
+    _git(repo, "update-ref", "refs/remotes/origin/other", "other")
+    _git(repo, "checkout", "-q", "develop")
+    env = {**os.environ, **GIT_ENV}
+
+    def merge(branch: str) -> "subprocess.CompletedProcess[str]":
+        cmd = ["git", "merge", "--no-ff", "-m", "m", branch]
+        return subprocess.run(cmd, cwd=repo, env=env, capture_output=True, text=True)
+
+    assert merge("plain").returncode == 0  # nothing guarded: the merge commits by itself
+    res = merge("other")  # a guarded file: refused at pre-merge-commit, left staged
+    assert res.returncode != 0
+    assert ".claude/agents/a.md:1: CLAUDE.md/.claude change" in res.stdout + res.stderr
+    assert precommit_check.merge_heads(repo) == [_git(repo, "rev-parse", "other")]
+    _git(repo, "commit", "-q", "--no-edit")  # pre-commit knows the merged branch and passes it
+    assert _git(repo, "rev-parse", "HEAD^2") == _git(repo, "rev-parse", "other")
+    assert (repo / ".claude/agents/a.md").read_text() == "from the other branch\n"
+
+
+def test_precommit_guarded_only_flag_runs_the_guarded_rule_alone(repo: Path) -> None:
+    _stage(repo, "m.pt", "x")
+    _stage(repo, ".claude/agents/a.md", "x\n")
+    script = str(DEV / "precommit_check.py")
+    full = subprocess.run([sys.executable, script], cwd=repo, capture_output=True, text=True)
+    only = subprocess.run(
+        [sys.executable, script, "--guarded-only"], cwd=repo, capture_output=True, text=True
+    )
+    assert full.returncode == 1 and len(full.stdout.splitlines()) == 2
+    assert only.returncode == 1
+    assert only.stdout.splitlines() == [
+        ".claude/agents/a.md:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)"
+    ]
+    bad = subprocess.run([sys.executable, script, "--nope"], cwd=repo, capture_output=True)
+    assert bad.returncode == 2
+
+
+def test_precommit_guarded_submodule_entry_is_refused_despite_ignore_config(repo: Path) -> None:
+    head = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "update-index", "--add", "--cacheinfo", f"160000,{head},.claude/agents")
+    _git(repo, "config", "diff.ignoreSubmodules", "all")
+    msgs = precommit_check.guarded_problems(repo, {})
+    assert msgs == [".claude/agents:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)"]
+
+
+def _published_old_and_new_claude_md(repo: Path) -> None:
+    """``other`` forks off with the old CLAUDE.md; develop then gets the owner's newer one."""
+    _stage(repo, "CLAUDE.md", "old\n")
+    _git(repo, "commit", "-q", "-m", "owner: CLAUDE.md")
+    _git(repo, "branch", "other")
+    _stage(repo, "CLAUDE.md", "new, by the owner\n")
+    _git(repo, "commit", "-q", "-m", "owner: newer CLAUDE.md")
+
+
+def test_precommit_merge_cannot_bring_back_an_older_copy(repo: Path) -> None:
+    # The merged branch still has the old CLAUDE.md but never changed it: staging that copy would
+    # undo the owner's later edit, so it is not "what the merge brings".
+    _published_old_and_new_claude_md(repo)
+    _git(repo, "checkout", "-q", "other")
+    _stage(repo, "notes.md", "x\n")
+    _git(repo, "commit", "-q", "-m", "other moves on")
+    _git(repo, "update-ref", "refs/remotes/origin/other", "other")
+    _git(repo, "checkout", "-q", "develop")
+    _git(repo, "merge", "--no-ff", "--no-commit", "other")
+    assert precommit_check.check(repo, {}) == []
+    _stage(repo, "CLAUDE.md", "old\n")
+    assert [m.split(":")[0] for m in precommit_check.check(repo, {})] == ["CLAUDE.md"]
+
+
+def test_precommit_merge_head_that_is_already_in_head_gets_no_exception(repo: Path) -> None:
+    _published_old_and_new_claude_md(repo)
+    _git(repo, "update-ref", "refs/remotes/origin/other", "other")
+    merge_head = Path(_git(repo, "rev-parse", "--git-path", "MERGE_HEAD"))
+    (repo / merge_head).write_text(_git(repo, "rev-parse", "other") + "\n")
+    _stage(repo, "CLAUDE.md", "old\n")
+    assert precommit_check.usable_heads(repo, precommit_check.merge_heads(repo)) == []
+    assert [m.split(":")[0] for m in precommit_check.check(repo, {})] == ["CLAUDE.md"]
+
+
+def test_precommit_octopus_merge_counts_only_the_published_head(repo: Path) -> None:
+    for name in ["pub", "loc"]:
+        _git(repo, "checkout", "-q", "-b", name, "develop")
+        _stage(repo, f".claude/agents/{name}.md", f"from {name}\n")
+        _git(repo, "commit", "-q", "-m", name)
+    _git(repo, "update-ref", "refs/remotes/origin/pub", "pub")
+    _git(repo, "checkout", "-q", "develop")
+    _stage(repo, "notes.md", "x\n")
+    _git(repo, "commit", "-q", "-m", "develop moves on")
+    _git(repo, "merge", "--no-commit", "pub", "loc")
+    assert len(precommit_check.merge_heads(repo)) == 2
+    assert [m.split(":")[0] for m in precommit_check.check(repo, {})] == [".claude/agents/loc.md"]
+
+
+def test_precommit_same_claude_file_outside_a_merge_is_refused(repo: Path) -> None:
+    _start_merge(repo)
+    _git(repo, "merge", "--abort")
+    assert precommit_check.merge_heads(repo) == []
+    _git(repo, "checkout", "-q", "other", "--", "CLAUDE.md", ".claude")
+    assert len(precommit_check.check(repo, {})) == 3
+
+
 def test_precommit_large_files(repo: Path) -> None:
     _stage(repo, "big.bin", "", binary_size=11 * 1024 * 1024)
     _stage(repo, "mid.npz", "", binary_size=6 * 1024 * 1024)
@@ -264,6 +529,9 @@ def test_githook_and_installer_exist_and_are_not_activated_by_default(tmp_path: 
     assert os.access(REPO / ".githooks" / "pre-commit", os.X_OK)
     assert os.access(DEV / "install_hooks.sh", os.X_OK)
     assert "scripts/dev/precommit_check.py" in (REPO / ".githooks" / "pre-commit").read_text()
+    merge_hook = REPO / ".githooks" / "pre-merge-commit"
+    assert os.access(merge_hook, os.X_OK)
+    assert "scripts/dev/precommit_check.py --guarded-only" in merge_hook.read_text()
     clone = tmp_path / "clone"
     subprocess.run(
         ["git", "clone", "-q", "--no-checkout", str(REPO), str(clone)],
