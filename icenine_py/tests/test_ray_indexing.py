@@ -67,6 +67,41 @@ def test_reduce_and_misorientation(sym: np.ndarray) -> None:
     assert abs(RI.misorientation_deg((d @ R[1])[None], R[1:2], sym)[0] - 3.0) < 1e-6
 
 
+@pytest.mark.parametrize("small_deg", [0.0, 0.003, 0.02])
+def test_misorientation_small_angle_robust(sym: np.ndarray, small_deg: float) -> None:
+    """Small angles stay exact, also when an input is off orthonormal at the 5e-8 level (as the
+    stored truth rotations are); an arccos of a clipped cosine reports 0 or a shifted angle."""
+    R = rand_rot(3)
+    axis = np.array([1.0, -2.0, 0.5]) / np.linalg.norm([1.0, -2.0, 0.5])
+    d = Rotation.from_rotvec(np.radians(small_deg) * axis).as_matrix()
+    Ra = (d @ R)[None]
+    tol = 1e-6
+    assert abs(RI.misorientation_deg(Ra, R[None], sym)[0] - small_deg) < tol
+    # symmetric (scale) and general perturbations of about 5e-8, on either argument
+    rng = np.random.default_rng(0)
+    for E in (5e-8 * np.eye(3), 5e-8 * rng.uniform(-1.0, 1.0, (3, 3))):
+        Rn = (np.eye(3) + E) @ R
+        assert np.abs(Rn @ Rn.T - np.eye(3)).max() > 1e-8  # really not orthonormal
+        assert abs(RI.misorientation_deg(Ra, Rn[None], sym)[0] - small_deg) < 1e-5
+        assert abs(RI.misorientation_deg(Rn[None], Ra, sym)[0] - small_deg) < 1e-5
+    # an equivalent copy under a crystal operator gives the same small angle
+    Rs = (d @ R @ sym[5])[None]
+    assert abs(RI.misorientation_deg(Rs, R[None], sym)[0] - small_deg) < tol
+
+
+def test_misorientation_matches_rotation_magnitude() -> None:
+    """With the identity as the only operator the angle is the plain rotation angle, over the
+    whole range 0 to 180 degrees (the atan2 form has no trouble near 180)."""
+    ident = np.eye(3)[None]
+    Ra = np.stack([rand_rot(100 + i) for i in range(50)])
+    Rb = np.stack([rand_rot(200 + i) for i in range(50)])
+    got = RI.misorientation_deg(Ra, Rb, ident)
+    want = np.degrees(Rotation.from_matrix(np.einsum("nji,njk->nik", Rb, Ra)).magnitude())
+    assert np.allclose(got, want, atol=1e-8)
+    near_pi = Rotation.from_rotvec(np.radians(179.999) * np.array([0.0, 0.6, 0.8])).as_matrix()
+    assert abs(RI.misorientation_deg(near_pi[None], ident, ident)[0] - 179.999) < 1e-6
+
+
 def test_orbits(crystal: RI.CrystalModel) -> None:
     # every vector belongs to exactly one orbit, and an orbit has a single length
     seen = np.concatenate(crystal.orbit_members)
