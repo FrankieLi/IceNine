@@ -1,0 +1,286 @@
+{
+  "name": "keyon_profile",
+  "wall_total_s": 235.61809301376343,
+  "profiled": true,
+  "timing_label": "contended: timing preflight refused (cpptools at 97% CPU); single run, one worker",
+  "setup_s": 0.10066795349121094,
+  "pairing_s": 17.414154667,
+  "evals": {
+    "seed": 64578,
+    "reseed": 57576,
+    "neighbor": 1297236,
+    "revisit": 1397507
+  },
+  "evals_total": 2816897,
+  "parts": {
+    "local_fit": {
+      "incl_s": 197.42445971100122,
+      "calls": 4095,
+      "eval_s": 121.84394937401058,
+      "evals": 2694743
+    },
+    "finisher": {
+      "incl_s": 7.977240382999895,
+      "calls": 128,
+      "eval_s": 4.418890305998929,
+      "evals": 121834
+    },
+    "indexing": {
+      "incl_s": 12.24955570599991,
+      "calls": 64,
+      "eval_s": 0.0,
+      "evals": 0
+    },
+    "seed_path": {
+      "incl_s": 37.67896725199998,
+      "calls": 64,
+      "eval_s": 0.021788699999945038,
+      "evals": 320
+    },
+    "overlap": {
+      "incl_s": 0.0378126199999258,
+      "calls": 64,
+      "eval_s": 0.02287533699993105,
+      "evals": 64
+    },
+    "grid_search": {
+      "incl_s": 0.0,
+      "calls": 0,
+      "eval_s": 0.0,
+      "evals": 0
+    },
+    "other_evals": {
+      "eval_s": 0.0,
+      "evals": 0
+    }
+  },
+  "top_by_tottime": [
+    {
+      "func": "~:0:<built-in method icenine._rasterize.fused_evaluate>",
+      "calls": 2897245,
+      "tottime_s": 106.43364100800001,
+      "cumtime_s": 106.43364100800001
+    },
+    {
+      "func": "sampling.py:125:slerp",
+      "calls": 19645325,
+      "tottime_s": 38.666974491000005,
+      "cumtime_s": 43.378366922000005
+    },
+    {
+      "func": "orientation_search.py:815:_zero_temp_with_variance",
+      "calls": 27904,
+      "tottime_s": 12.468037094000001,
+      "cumtime_s": 200.578309681
+    },
+    {
+      "func": "cost_functions.py:1243:is_current",
+      "calls": 2812673,
+      "tottime_s": 7.0824522430000005,
+      "cumtime_s": 9.361031899
+    },
+    {
+      "func": "~:0:<method 'nonzero' of 'numpy.ndarray' objects>",
+      "calls": 32448,
+      "tottime_s": 6.930667023000001,
+      "cumtime_s": 6.930667023000001
+    },
+    {
+      "func": "sampling.py:558:quaternion_to_matrix",
+      "calls": 2840258,
+      "tottime_s": 5.9139803230000005,
+      "cumtime_s": 5.9139803230000005
+    },
+    {
+      "func": "sampling.py:541:_quat_multiply",
+      "calls": 2806475,
+      "tottime_s": 4.805089803,
+      "cumtime_s": 5.6005128730000004
+    },
+    {
+      "func": "ray_indexing.py:354:cluster_votes",
+      "calls": 64,
+      "tottime_s": 4.68706486,
+      "cumtime_s": 6.0174913320000005
+    },
+    {
+      "func": "sampling.py:235:barycentric_to_quaternion",
+      "calls": 2806475,
+      "tottime_s": 4.33781674,
+      "cumtime_s": 47.716183662000006
+    },
+    {
+      "func": "_measurements.py:44:label",
+      "calls": 360,
+      "tottime_s": 3.573370981,
+      "cumtime_s": 3.576636048
+    },
+    {
+      "func": "~:0:<built-in method scipy.ndimage._nd_image.find_objects>",
+      "calls": 360,
+      "tottime_s": 3.044652831,
+      "cumtime_s": 3.044652831
+    },
+    {
+      "func": "sampling.py:271:get_near_identity_point",
+      "calls": 2806475,
+      "tottime_s": 3.025206718,
+      "cumtime_s": 52.112730881000005
+    },
+    {
+      "func": "ray_indexing.py:238:match_rays",
+      "calls": 28799,
+      "tottime_s": 2.929443844,
+      "cumtime_s": 3.949821656
+    },
+    {
+      "func": "~:0:<built-in method math.sin>",
+      "calls": 58935975,
+      "tottime_s": 2.5176470500000003,
+      "cumtime_s": 2.5176470500000003
+    },
+    {
+      "func": "cost_functions.py:1501:_evaluate_fused",
+      "calls": 2816961,
+      "tottime_s": 2.4515694320000003,
+      "cumtime_s": 123.68855793600001
+    },
+    {
+      "func": "profile_keyon.py:75:timed_eval",
+      "calls": 2816961,
+      "tottime_s": 2.276081482,
+      "cumtime_s": 127.54469820000001
+    },
+    {
+      "func": "~:0:<built-in method numpy.array>",
+      "calls": 8502083,
+      "tottime_s": 2.2251367980000003,
+      "cumtime_s": 2.2251367980000003
+    },
+    {
+      "func": "smooth_cost.py:378:_ensure_trees",
+      "calls": 1,
+      "tottime_s": 1.2562303160000001,
+      "cumtime_s": 4.798145666
+    },
+    {
+      "func": "~:0:<method 'reduce' of 'numpy.ufunc' objects>",
+      "calls": 229275,
+      "tottime_s": 1.1358840490000002,
+      "cumtime_s": 1.139792442
+    },
+    {
+      "func": "~:0:<built-in method math.acos>",
+      "calls": 19645325,
+      "tottime_s": 1.122566396,
+      "cumtime_s": 1.122566396
+    },
+    {
+      "func": "spot_pairing.py:102:pixel_to_lab",
+      "calls": 2160,
+      "tottime_s": 1.10842897,
+      "cumtime_s": 1.108885994
+    },
+    {
+      "func": "multiarray.py:750:dot",
+      "calls": 19645325,
+      "tottime_s": 1.071178985,
+      "cumtime_s": 1.071178985
+    },
+    {
+      "func": "cost_functions.py:1544:evaluate",
+      "calls": 2816961,
+      "tottime_s": 1.030357513,
+      "cumtime_s": 124.71891544900001
+    },
+    {
+      "func": "cost_functions.py:1469:_fused_context",
+      "calls": 2816961,
+      "tottime_s": 1.028413153,
+      "cumtime_s": 11.201308147
+    },
+    {
+      "func": "cost_functions.py:1434:frame_table",
+      "calls": 2816961,
+      "tottime_s": 1.017420196,
+      "cumtime_s": 1.226294491
+    },
+    {
+      "func": "~:0:<built-in method numpy._core._multiarray_umath.c_einsum>",
+      "calls": 39778,
+      "tottime_s": 0.947973163,
+      "cumtime_s": 0.947973163
+    },
+    {
+      "func": "cost_functions.py:532:ensure",
+      "calls": 80285,
+      "tottime_s": 0.916775954,
+      "cumtime_s": 1.7117395510000002
+    },
+    {
+      "func": "cost_functions.py:1456:_fused_modes",
+      "calls": 2816961,
+      "tottime_s": 0.843740233,
+      "cumtime_s": 0.843740233
+    },
+    {
+      "func": "~:0:<method 'argmax' of 'numpy.ndarray' objects>",
+      "calls": 41872,
+      "tottime_s": 0.7814305260000001,
+      "cumtime_s": 0.7814305260000001
+    },
+    {
+      "func": "cost_functions.py:1484:_fused_vertices",
+      "calls": 2816961,
+      "tottime_s": 0.5995286350000001,
+      "cumtime_s": 0.606159024
+    }
+  ],
+  "fused_cost": true,
+  "torch_threads": 1,
+  "stats": {
+    "n_seeds": 33,
+    "n_seed_rejected": 0,
+    "n_neighbor_fits": 1967,
+    "n_neighbor_accepted_first": 760,
+    "n_revisit_capped": 1,
+    "n_restart_candidates": 0,
+    "n_unresolved": 0,
+    "n_evals_seed": 64578,
+    "wall_seed_s": 27.843740224838257,
+    "n_reseeds": 31,
+    "n_reseed_accepted": 31,
+    "n_reseed_rejected": 0,
+    "n_reseed_final_voxels": 0,
+    "n_evals_reseed": 57576,
+    "wall_reseed_s": 9.835309743881226,
+    "wall_reseed_total_s": 50.8877055644989,
+    "n_retry_attempted_neighbor": 0,
+    "n_retry_accepted_neighbor": 0,
+    "n_evals_neighbor": 1297236,
+    "wall_neighbor_s": 95.14030027389526,
+    "n_retry_attempted_revisit": 0,
+    "n_retry_accepted_revisit": 0,
+    "n_evals_revisit": 1397507,
+    "wall_revisit_s": 102.29920387268066,
+    "n_retry_attempted_restart": 0,
+    "n_retry_accepted_restart": 0,
+    "n_evals_restart": 0,
+    "wall_restart_s": 0.0,
+    "n_revisit_attempted": 2128,
+    "n_revisit_accepted": 1176,
+    "n_revisit_rejected": 952,
+    "n_restart_attempted": 0,
+    "n_restart_accepted": 0,
+    "n_restart_rejected": 0,
+    "index_runs": 64,
+    "index_evals": 122154,
+    "index_s": 12.249782204999896,
+    "index_path_wall_s": 37.67904996871948,
+    "index_used": 64,
+    "index_evals_used": 122154,
+    "n_voxels": 2000,
+    "wall_total_s": 235.58765697479248,
+    "index_pairing_s": 17.414154667
+  }
+}
