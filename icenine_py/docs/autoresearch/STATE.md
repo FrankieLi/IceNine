@@ -7,8 +7,9 @@ is `docs/autoresearch/PLAN.md`. The mandate is D-20261109-N1 in `docs/DECISIONS.
 
 1. In the repository root, check `git status` and the branch (`feature/eval-reduction`
    or one of its task branches).
-2. Read "Next action" below. For more context: `shmem query "IceNine autoresearch"` (`shmem ask`
-   was broken on 2026-11-09; try it, fall back to `query`).
+2. Read "Next action" below. For more context: `shmem ask "What is the state of the IceNine
+   autoresearch stage?"` (it works again since the evening of 2026-11-09, after the owner updated
+   the key; fall back to `shmem query "IceNine autoresearch"` if it fails).
 3. Before a new task: `scripts/dev/read_on_fetch.sh --save`, merge
    `origin/feature/python-speed-parity`, rerun with `--mark`, read Ilium's mailbox in
    `docs/ROADMAP.md`.
@@ -183,5 +184,6 @@ Not checked: GCC, x86.
 ## For the owner
 
 - Still yours: the merge to `develop` (item 7), items 12, 22 and 23, and Ilium's plan approvals.
-- `shmem ask` fails here: the API key in `~/.shmem/.env` is refused and the local embedder is
-  not running.
+- `shmem ask` works again (owner updated the key, 2026-11-09). It still prints one warning: the
+  local embedder (ollama on port 11434) is not running, so new facts are not embedded and a
+  search uses what is already embedded plus keywords. Answers were correct in a test.
