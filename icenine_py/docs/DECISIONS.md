@@ -971,3 +971,19 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   check B, with no stored output from the base commit. Where:
   icenine_py/docs/autoresearch/PLAN.md, AR3 Step 3; review report 20261110-0900-review-ar3b.md
   under .claude/reports.
+
+### D-20261110-N5 · Track A / AR3 step 4 · AR3 step 4 plan approved under the mandate: a local fit whose step matches the error (task ar3d)
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. Step 3's
+  review found that the BFS local fit moves almost no painted voxel because its step is too
+  coarse: a box of 5 degrees, smallest trial step about 0.7 degrees, against a start that is 0.04
+  degrees off (median), while the true orientation costs less than the start on 16,591 of 19,013
+  painted voxels. Step 4 (PLAN.md 'Step 4', commit 592937a) tests a fit that starts with a small
+  box. Part 1: boxes of 5/8, 5/16 and 5/32 degree, a ladder and the existing CMA fit, from step
+  3's stored painted starts; picked on set A, reported on set B; stop if no arm is a gain over the
+  start. Part 2: the stop readings again on the picked fit. Part 3: whole-layer runs with a script
+  wrapper 'fine first, stock as fallback' (BFS with indexed seeds and paint plus refine on the
+  gradient sample, and the BFS on step 2's sample), each with a coded time cap. The box is set by
+  the script, not by MinLocalResolution. No library change, no default changed, C++ not run. An
+  opt-in key comes after, only if the whole-layer runs show a gain. Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR3 'Step 4'.
