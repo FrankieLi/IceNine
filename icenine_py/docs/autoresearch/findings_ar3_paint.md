@@ -7,27 +7,35 @@ no config key switches it on. Scripts: `scripts/autoresearch/ar3/`. Results:
 
 How this page was made. The implementer's write of a new `.md` file is refused by the tool, so it
 returned the text and the main session wrote the file. The tables are copied from `tables.md` by
-`scripts/dev/sync_doc_tables.py`, not typed.
+`scripts/dev/sync_doc_tables.py`, not typed. The review fixes of 2026-11-10 were edited into this
+file by an implementer.
 
 ## The result in one picture
 
-Reading the picture. Left: distance of the painted voxels to the truth, painted without a fit
-(orange) and fitted one by one by the key-on BFS (blue), over the 1,978 voxels that are right in
-both runs; the two curves lie on top of each other. Middle: the side arm (a local fit on contested
-voxels) against wrong voxels; every point is at 0. Right: voxels where a grain passes outside its
-own true grain, by distance from that grain.
+Reading the picture. Left: wrong voxels of 2,000 for each arm (one run each), with a Wilson 95%
+interval and the evaluations under each bar. Middle: distance to the truth of the 1,978 voxels
+that are painted and right in both runs, painted without a fit (orange) and in the key-on BFS
+(blue). Both curves are steps: paint takes 62 distinct values (one per entry), and the key-on map
+holds only 64 distinct orientations. Right: voxels where a grain passes outside its own true grain,
+by distance from that grain.
 
-![Accuracy without a fit, the side arm, and how far a wrong grain floods](../../benchmarks/autoresearch/ar3/ar3_paint.png)
+![Wrong voxels by arm, accuracy without a fit, and how far a wrong grain floods](../../benchmarks/autoresearch/ar3/ar3_paint.png)
 
 - Painting the 2,000-voxel pilot costs 156,766 evaluations. The key-on BFS costs 2,819,906, the
   key-off BFS 25,547,935. Painting is 5.6% of the first and 0.6% of the second.
 - Painting has 0 wrong voxels of 2,000 (0.0 to 0.2%). Key on has 22, key off 37. Against key on:
-  22 fixed, 0 broken.
-- Of the 126 voxels where two or more grains pass, the lowest strict cost names the true grain in
-  126 of 126 (97 to 100%). 44 of them lie between grains of different orientation; there it is 44
-  of 44 (92 to 100%).
-- Without a fit, painted voxels are as close to the truth as fitted ones: median 0.0169 degrees
-  against 0.0159.
+  22 fixed, 0 broken. That is about the size of the BFS's own run-to-run churn (20 voxels one way,
+  7 the other), so the count alone is not called a gain. The one-sided split (22 and 0) is an
+  observation of one run.
+- What supports painting is the direct test. On the 44 contested voxels whose passing grains are
+  over 1 degree apart, the lowest strict cost names the true grain in 44 of 44 (92 to 100%). The
+  other 82 contested voxels are passed only by two entries of one grain, so the test cannot fail
+  there.
+- For 19 of the 22 key-on wrong voxels, the wrong grain passes in paint too and loses on cost. For
+  the other 3, the wrong grain does not pass without a fit.
+- Without a fit, the painted voxels' distances to the truth are close to the key-on run's: median
+  0.0169 degrees against 0.0159, 90th percentile 0.0362 against 0.0384, largest 0.0594 against
+  0.1085. These are 62 distinct values weighted by grain size, not 1,978 independent ones.
 - The gate for step 2 is met: 0 breaks against key on (limit 20), and 5.6% of key on's evaluations
   (limit 50%).
 - Main caveat: the truth of this sample has exactly one orientation per grain. So the premise of
@@ -61,13 +69,23 @@ draw). For the next voxel that is unpainted and not settled:
    passes the seed test, it becomes a grain entry and is flooded.
 3. Otherwise the grid search runs (the fallback). A voxel it rejects is failed.
 
-Then each voxel takes the passing grain of lowest cost. The side arm fits each contested voxel from
+Then each voxel takes the passing grain of lowest cost. Two choices of the loop are not in the
+plan's text. Neither changed a voxel here (no fit was accepted), but both matter for step 2:
+
+- A voxel settled by a fit keeps its fit, even if a grain seeded later passes there with a lower
+  cost.
+- The fit test compares the fit's hit ratio with the grain's best hit ratio over its whole flood,
+  not with a running best at the moment the voxel is reached, as the BFS does. The flood is
+  finished before any fit runs, so the whole-flood best is the only one there is.
+
+Evaluations of a rejected seed path and of a rejected grid search are counted apart
+(`index_rejected`, `grid_rejected`); both are 0 here. The side arm fits each contested voxel from
 its two lowest-cost grains and keeps the lower final cost. Clean images, Q-max 8, FusedCost on, one
 worker.
 
 Baseline reproduced: the key-on profile rerun made 2,816,897 evaluations, equal to the stored
 FusedCost key-on run. The stored key-off numbers were recomputed: 37 wrong, 25,547,935
-evaluations, 69 full searches.
+evaluations, 69 full searches (grid searches; `evals.key_off.full_searches` in `summary.json`).
 
 ## Evaluations
 
@@ -118,11 +136,17 @@ Reading the table. The wrong voxels of paint by kind. All rows are 0.
 - The 22 voxels wrong in key on all share an edge with another grain. In paint, 18 of them are
   contested between two grains, 1 between three, and 3 have one passing grain. All 22 are painted
   right.
+- On 19 of the 22, the key-on run's wrong orientation passes in paint too, and loses on cost. On
+  the other 3 (the voxels with one passing grain), the wrong grain is scored but does not pass
+  under a single score; in the BFS, a local fit from it did pass. For those 3, the fix comes from
+  not fitting, not from the lowest-cost choice.
 - Paint has 0 wrong voxels, so there is no break to trace and no boundary crossing to split by
   edge or corner.
-- Two key-off runs alone differ by 20 voxels one way and 7 the other (AR2). 22 against 0 is
-  larger. But paint and the BFS differ in two ways at once (the route and the per-voxel fit), and
-  neither is credited alone.
+- Two key-off runs alone differ by 20 voxels one way and 7 the other (AR2). 22 fixed, 0 broken is
+  about the size of that churn, and paint is one run whose own run-to-run spread is unknown. So
+  the count alone is not called a gain. What supports painting is the direct test below (44 of
+  44), and that the true grain passes on all 22 voxels. Paint and the BFS also differ in two ways
+  at once (the route and the per-voxel fit), and neither is credited alone.
 - Entries: 62 for 60 true grains. Every true grain has one. 2 grains have two (0.055 and 0.041
   degrees apart, kept as their own entries). No entry is wrong.
 
@@ -130,25 +154,32 @@ Reading the table. The wrong voxels of paint by kind. All rows are 0.
 
 Reading the table. Each row is a set of contested voxels. The columns say how often the true grain
 passes, how often the lowest cost names it, how often the highest hit ratio names it, and how often
-those two rules name different grains. The rows that say "different orientations" are the
-contested voxels whose passing grains are over 1 degree apart.
+those two rules name grains over 1 degree apart. The first rows are the informative set: contested
+voxels where at least two passing grains are over 1 degree apart. The next row holds the voxels
+passed only by duplicate entries of one grain; every rule picks that grain there, so they carry
+no interval. The last row is both sets together.
 
 <!-- table:ar3_direct -->
-| set | n | true grain passes | lowest cost is the true grain | highest hit is the true grain | lowest cost and highest hit differ |
+| set | n | true grain passes | lowest cost is the true grain | highest hit is the true grain | lowest cost and highest hit name grains over 1 degree apart |
 |---|---|---|---|---|---|
-| all: all kinds | 126 | 126 of 126 (97 to 100%) | 126 of 126 (97 to 100%) | 126 of 126 (97 to 100%) | 0 of 126 (0 to 3%) |
-| all: edge | 63 | 63 of 63 (94 to 100%) | 63 of 63 (94 to 100%) | 63 of 63 (94 to 100%) | 0 of 63 (0 to 6%) |
-| all: corner | 32 | 32 of 32 (89 to 100%) | 32 of 32 (89 to 100%) | 32 of 32 (89 to 100%) | 0 of 32 (0 to 11%) |
-| all: interior | 31 | 31 of 31 (89 to 100%) | 31 of 31 (89 to 100%) | 31 of 31 (89 to 100%) | 0 of 31 (0 to 11%) |
-| lowest cost and highest hit different orientations: all kinds | 44 | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 0 of 44 (0 to 8%) |
-| lowest cost and highest hit different orientations: edge | 44 | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 0 of 44 (0 to 8%) |
+| passing grains over 1 degree apart: all kinds | 44 | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 0 of 44 (0 to 8%) |
+| passing grains over 1 degree apart: edge | 44 | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 0 of 44 (0 to 8%) |
+| passing entries all of one grain (duplicates within 1 degree; rules cannot differ) | 82 | 82 of 82 (no interval) | 82 of 82 (any rule; no interval) | 82 of 82 (any rule; no interval) | 0 of 82 (by construction) |
+| all contested (the two sets above) | 126 | 126 of 126 | 126 of 126 | 126 of 126 | 0 of 126 |
 <!-- /table:ar3_direct -->
 
-- Of the 126 contested voxels, 44 lie between grains of different orientation, and all 44 are
-  edge-sharing. The other 82 are voxels of the two grains that have two entries.
-- On the 44, the true grain passes and has the lowest cost in 44 of 44 (92 to 100%). So the cost
-  tells touching grains apart once both are scored, whatever the BFS route.
-- The lowest cost and the highest hit ratio never name different grains here: 0 of 126 (0 to 3%).
+- Of the 126 contested voxels, 44 lie between grains over 1 degree apart, and all 44 are
+  edge-sharing. On the 44, the true grain passes and has the lowest cost in 44 of 44 (92 to 100%).
+- The other 82 are voxels of the two grains that have two entries (19 edge-sharing, 32
+  corner-only, 31 interior). They are passed only by those two entries, 0.041 and 0.055 degrees
+  apart, so any rule names the true grain there. The test cannot fail on them, and the 126-voxel
+  row is not informative.
+- On these 44 voxels, the cost told the touching grains apart once both were scored. This sample
+  has one orientation per grain and clean images, and the entries are close to their grain's true
+  orientation (99th percentile of the entry error 0.0539 degrees). The highest hit ratio also names the true grain in 44 of 44, so the
+  cost is not the only rule that works here.
+- The lowest cost and the highest hit ratio never name grains over 1 degree apart on the 44: 0 of
+  44 (0 to 8%).
 
 ## How far a wrong grain floods
 
@@ -172,7 +203,9 @@ grain (in voxel sides).
 ## Accuracy without a fit
 
 Reading the table. Distance to the truth (degrees) over the 1,978 voxels painted by a grain that
-are right in both runs. Painted voxels carry their grain's orientation unchanged.
+are right in both runs. Painted voxels carry their entry's orientation unchanged, and the truth is
+one orientation per grain. So a painted voxel's distance is its entry's error: the 1,978 voxels
+carry 62 distinct values, one per entry, weighted by grain size.
 
 <!-- table:ar3_accuracy -->
 | arm | median | 90th | 99th | largest |
@@ -181,9 +214,16 @@ are right in both runs. Painted voxels carry their grain's orientation unchanged
 | key on (fitted) | 0.0159 | 0.0384 | 0.0577 | 0.1085 |
 <!-- /table:ar3_accuracy -->
 
-- Without a fit, the painted orientation is as accurate as the fitted one on this subset. This is
-  consistent with no final fit per voxel or per grain being needed (goal 4). It is not shown for
-  samples whose grains hold several orientations.
+- Paint's median is higher (0.0169 against 0.0159 degrees). Its 90th percentile (0.0362 against
+  0.0384) and its largest value (0.0594 against 0.1085) are lower.
+- The key-on map is not one fit result per voxel either. It holds only 64 distinct orientations
+  over its 2,000 voxels (63 with FusedCost), so its local fits nearly always kept the orientation
+  they started from. This is consistent with a pixel-overlap cost that is flat near the optimum;
+  it was not traced. So this table compares entry orientations in both arms more than fitted
+  against unfitted voxels.
+- On this sample, the numbers are consistent with no final fit per voxel being needed (goal 4).
+  A fit per grain was not run, so nothing is said about it. Nothing is shown for samples whose
+  grains hold several orientations.
 
 ## The side arm
 
@@ -281,7 +321,12 @@ over 1 degree.
 - The whole layer (a larger hull pairs rays differently).
 - Samples with several orientations per grain.
 - Realistic images, another Q-max, another voxel order (one fixed order was used).
-- The fallback and the "settled by a fit" branch (they ended no voxel).
+- The fallback and the "settled by a fit" branch (they ended no voxel). The unit tests run both
+  on a fake cost.
+- The paint seed rule's blind spot. A voxel where any grain passes never becomes a seed. So a small
+  grain whose voxels are all passed by its neighbours' floods gets no entry and is painted wrong,
+  as with the BFS seed rule. Here, wrong passes reach at most 1 voxel side, and all 60 grains got
+  an entry. Missing grains are worth counting on the whole layer (497 grains) in step 2.
 - A margin rule (none was needed here).
 - A tested wall time, and a batched version.
 - Why 2 grains got two entries (not traced).
