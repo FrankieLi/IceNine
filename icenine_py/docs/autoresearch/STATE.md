@@ -90,15 +90,26 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    - The implementer's numbers, not yet reviewed: paint 156,766 evaluations against 2,819,906
      for key on; 0 wrong of 2,000 against 22; the gate for step 2 is met. Do not quote them as
      results until the review is done.
-   - A code-reviewer (model opus) is running; its report goes to
-     `.claude/reports/20261110-0430-review-ar3a.md`. When it returns: if there are required
-     fixes, a fresh Opus implementer applies them (`make_brief.sh --plan ... --task ar3a
-     --section "AR3: index the layer and paint grains" --fixes <review report>`; it must work on
-     the same branch, so no agent may still be running there), then `verify_handback.sh ...
-     --fixes`, then `finish_task.sh --yes --push` from the task branch (run it in the worktree
-     that holds the branch).
-   - If the session is new and no review report exists, start the reviewer again with the
-     `/review-task` brief.
+   - Review done (2026-11-10): `.claude/reports/20261110-0430-review-ar3a.md`, verdict "request
+     changes", 12 required fixes. The reviewer found no leak of the truth into paint's decisions,
+     the same inputs and tests as the stored key-on run, and the evaluation count on the same
+     footing. The fixes are a table label bug, wording of the page (lead with 44 of 44; the other
+     82 contested voxels are duplicate entries of one grain; 22 fixed and 0 broken is not called
+     a gain by the count alone), more unit tests, and a split of one evaluation bucket.
+   - A fresh Opus implementer is applying the fixes (started about 04:40) on the same branch in
+     its own worktree; the old worktree `agent-a3fcfcc95d9db6295` is detached at d66b6bf and
+     still holds the untracked run files. Its report path: `.claude/reports/20261110-0437-ar3a-
+     fixes.md` (it returns the text if the write is refused; the main session writes it).
+   - When it hands back: `verify_handback.sh feature/eval-reduction <fixes report> --branch
+     feature/eval-reduction-ar3a --fixes .claude/reports/20261110-0430-review-ar3a.md`, read the
+     page once more, then `finish_task.sh --yes --push` from the worktree that holds the branch.
+     If the session is new and the fixes are not all there (`git log --oneline
+     feature/eval-reduction..feature/eval-reduction-ar3a`), start a fresh Opus implementer with
+     the same brief (`make_brief.sh ... --fixes ...`) after freeing the branch
+     (`git -C <worktree> checkout --detach`).
+   - Two points the reviewer left for a decision, to settle in step 2's plan: whether a voxel
+     settled by a fit keeps its fit when a later grain passes there with a lower cost; and how to
+     word 22 fixed, 0 broken (the count alone is not a gain under the 20 and 7 rule).
    - The gate for step 2 is fixed in the plan: paint breaks at most 20 voxels against the key-on
      run and needs at most half of its evaluations.
    After step 1 is merged: write step 2's details into the plan (the key `PaintGrains`, the whole
@@ -150,9 +161,10 @@ Reading the table: one row per step, in order, with its state.
 
 ## Running jobs
 
-One agent is running (2026-11-10, started about 04:30): the code-reviewer of AR3 step 1 (task
-`ar3a`). It only reads. Check: does `.claude/reports/20261110-0430-review-ar3a.md` exist? The
-session is told when it finishes. The implementer has finished (see Next action 6).
+One agent is running (2026-11-10, started about 04:40): the Opus implementer of the review fixes
+of AR3 step 1 (task `ar3a`), in its own worktree on `feature/eval-reduction-ar3a`. Check:
+`git worktree list` and `git log --oneline feature/eval-reduction..feature/eval-reduction-ar3a`.
+The session is told when it finishes.
 
 ## Results so far
 
