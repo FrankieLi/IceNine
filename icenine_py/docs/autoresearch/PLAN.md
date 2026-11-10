@@ -100,7 +100,8 @@ where H1, H2 and H4 give no candidate.
   on finding 6).
 - New switches are opt-in and off by default. No default flips and no golden regeneration.
 
-**Library changes:** new modules only (`icenine/ray_indexing.py`, later `icenine/grain_paint.py`
+**Library changes:** new modules only (`icenine/ray_indexing.py`, later `icenine/grain_paint.py`,
+`icenine/gradient_sample.py` (AR3 step 3, D-20261110-N4)
 and `icenine/ray_proposer_nn.py`), and opt-in keys in `reconstructor.py`, `config_file.py` and
 `orientation_search.py` whose off path is bit-identical. Steps AR0 and AR1 change nothing under
 `icenine_py/icenine/` except adding `ray_indexing.py`.
