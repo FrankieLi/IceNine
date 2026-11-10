@@ -43,6 +43,9 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
   best-1 arm; AR2 uses the finisher on the best 2 and starts with a holdout; the symmetry
   operators are fixed now for non-cubic crystals.
 - The plan's AR2 section now has two steps: the holdout of the finisher arms, then the key.
+- AR2 step 1 (the holdout) is done: reviewed (10 fixes applied, D-20261109-N8), merged and pushed
+  (86dd905). Full suite on the task branch: 1461 passed, 47 skipped, 1 deselected (6 skips are
+  `test_coarse_proxy.py` caches not linked into that worktree). Results below.
 
 ## Next action
 
@@ -54,23 +57,16 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    `git log feature/eval-reduction..<task branch>` in its worktree, and start a fresh
    implementer with the same brief (regenerate it with `make_brief.sh`) and the note "continue from
    the commits on the branch".
-4. AR2 step 1 (the holdout of the finisher arms): measured, on branch
-   `feature/eval-reduction-ar2a` (worktree `.claude/worktrees/agent-a1bb4d7c15c5bb0d5`, head
-   4d8e445). Hand-back report `.claude/reports/20261109-1605-ar2a.md`; the findings page
-   `docs/autoresearch/findings_ar2_holdout.md` was placed by the main session (the agent's write
-   was refused); `verify_handback.sh` gave 0 FAIL. The review is done: REQUEST CHANGES, 10 required
-   fixes, report `.claude/reports/20261109-review-ar2a.md`; its three questions are decided in
-   D-20261109-N8. An Opus implementer is applying the fixes in that worktree (started 2026-11-09
-   16:27); its report will be `.claude/reports/20261109-1627-ar2a-fixes.md`. When it exists:
-   check the fixes against the review's list, then merge from the worktree with
-   `../../../scripts/dev/finish_task.sh --yes --push` (the fixes change `icenine/ray_indexing.py`,
-   so the full suite runs, about 10 minutes). If the fix agent died with the session, look at
-   `git log feature/eval-reduction..feature/eval-reduction-ar2a` and start a fresh Opus
-   implementer with the same brief (`make_brief.sh --task ar2a --fixes <review report>`, plus
-   D-20261109-N8).
-   Then start AR2 step 2 (the key, main arm: finisher on the best 2) with a brief from
-   `make_brief.sh --task ar2b`, note "step 2 only". Then AR3.
-5. Item 7: PR #41 is open and has the test count. Do not merge it; the owner does.
+4. AR2 step 1 (the holdout): done, merged and pushed (86dd905). Its worktree
+   `.claude/worktrees/agent-a1bb4d7c15c5bb0d5` could not be removed (untracked link, cache and
+   marker files); harmless, removable with `git worktree remove --force`.
+5. AR2 step 2 (the key `SeedByIndexing`, main arm: finisher on the best 2): start a fresh Sonnet
+   implementer in its own worktree, task `ar2b`, brief from
+   `scripts/dev/make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar2b --section
+   "AR2: indexing as the BFS seed search"`, with the notes "step 2 only" and "voxel 17361 is a
+   named test case (D-20261109-N8)". Report: `.claude/reports/<date>-ar2b.md`. Then
+   `verify_handback.sh`, `/review-task`, fixes, merge. Then AR3.
+6. Item 7: PR #41 is open and has the test count. Do not merge it; the owner does.
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
 ("subagents must return findings as text"). The agent stops and returns the text. The main
@@ -90,7 +86,7 @@ Reading the table: one row per step, in order, with its state.
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
-| AR2 | indexing as the BFS seed search | step 1 (holdout) measured and reviewed, fixes being applied, branch `feature/eval-reduction-ar2a`; then step 2 (the key) |
+| AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) next |
 | AR3 | index the layer and paint grains | after AR2's first result |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
@@ -99,8 +95,7 @@ Reading the table: one row per step, in order, with its state.
 ## Running jobs
 
 Agents of the session of 2026-11-09 (they die with the session; `git worktree list` shows their
-worktrees, and their branches keep the commits): the AR2 step 1 fix agent (branch
-`feature/eval-reduction-ar2a`). No detached compute job is running.
+worktrees, and their branches keep the commits): none. No detached compute job is running.
 
 ## Results so far
 
@@ -147,8 +142,7 @@ a grid.
   wall-time comparison yet.
 - The gate for AR2 (recall at 20 of at least 90%) is met.
 
-**AR2 step 1, the holdout (measured and reviewed 2026-11-09, fixes NOT yet applied or merged).** Page on the task
-branch: `docs/autoresearch/findings_ar2_holdout.md`. 300 voxels outside the pilot region, fixed by
+**AR2 step 1, the holdout (done, reviewed).** Page: `docs/autoresearch/findings_ar2_holdout.md`. 300 voxels outside the pilot region, fixed by
 stride before the run: 150 boundary voxels (134 grains) and 150 interior voxels (116 grains).
 Arms: strict cost on the first 5 indexing candidates, then the finisher on the best 1, 2 or 3.
 
@@ -168,7 +162,7 @@ Arms: strict cost on the first 5 indexing candidates, then the finisher on the b
   (D-20261109-N8). Why the finisher did not move is not known: a named test case for AR2 step 2
   and AR5.
 - The review also found: the error angle has a floor of a few thousandths of a degree (the
-  function clips; wrong counts are not affected; being fixed in the library), and 74 of the 150
+  function clipped; wrong counts are not affected; fixed in the library with atan2), and 74 of the 150
   boundary voxels touch another grain only at a corner (all 5 wrong voxels share an edge).
 - Not covered: every holdout voxel has at least 30 explained rays, so few-ray voxels are untested
   (target of AR4). Timing was contended (3 processes). No stored grid search for these voxels.

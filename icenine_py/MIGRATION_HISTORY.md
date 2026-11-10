@@ -11220,3 +11220,47 @@ Not tested: realistic images, another sample or material, local fits, wall time 
 
 Next (plan, section AR2): a holdout of the three finisher arms on voxels outside the pilot region,
 then the opt-in key `SeedByIndexing` in the BFS, on the pilot against the key-off rerun.
+
+## Autoresearch AR2 step 1: a holdout of the finisher arms (done 2026-11-09)
+
+Plan: `docs/autoresearch/PLAN.md`, section AR2, step 1 (D-20261109-N7). Findings:
+`docs/autoresearch/findings_ar2_holdout.md`. Merged on `feature/eval-reduction` as 86dd905 after a
+review (10 required fixes, all applied; its three questions are decided in D-20261109-N8).
+
+Why. AR1 chose "finisher on the best 2 candidates" after it saw "best 1" fail on the same 69
+voxels. So its 0 of 69 was not a test. This step tests the arms on voxels they had not seen.
+
+What was added.
+
+- Scripts in `scripts/autoresearch/ar2/` (`select_voxels.py`, `holdout_run.py`,
+  `holdout_summary.py`, `fix3_check.py`), results in `benchmarks/autoresearch/ar2/holdout/`.
+- One library change: `misorientation_deg` in `icenine/ray_indexing.py` takes the angle with atan2
+  of the sine and cosine parts. The old arccos of a clipped cosine had a floor of a few thousandths
+  of a degree, because stored orientations are off orthonormal by about 5e-8. Four unit tests
+  added. No candidate and no wrong count changed (checked on the 300 holdout, 69 pilot and 200 E0
+  voxels). The AR1 page has a dated note.
+
+What was measured (clean full-sample images, Q-max 8). The holdout is 300 voxels outside the pilot
+region, picked by a fixed stride and committed before the run: 150 boundary voxels (76 share an
+edge with another grain, 74 only a corner) and 150 interior voxels. Each arm takes the strict cost
+on the first 5 indexing candidates, then runs the finisher on the best 1, 2 or 3. Wrong means more
+than 1 degree from the truth.
+
+- Wrong voxels: best 1 has 5 of 300, best 2 has 1 of 300, best 3 has 1 of 300. Interior voxels: 0
+  of 150 in every arm. All 5 wrong voxels share an edge with another grain.
+- Paired by voxel, best 2 against best 1: 4 fixed, 0 broken, 1 wrong in both. Best 3 takes the
+  same candidate as best 2 on all 300 voxels. By the plan's rule best 2 stays the main arm.
+- Mean evaluations per voxel: 1,302 (best 1), 2,046 (best 2), 2,634 (best 3).
+- The truth is within 2 degrees of one of the first 5 candidates for 300 of 300 voxels, and of the
+  first candidate for 207 of 300.
+- Voxel 17361 is wrong in every arm. The strict cost is lower at the truth (0.0949) than at the
+  result taken (0.133), but the finisher, started 0.045 degrees from the truth, did not move in 924
+  evaluations. It counts against all three arms (D-20261109-N8). Why the finisher did not move is
+  not known.
+
+Not tested: a stored grid search for these voxels (none exists), the seed test and the grid
+fallback, few-ray voxels (every holdout voxel has at least 30 explained rays), realistic images,
+another sample, wall time on a quiet machine (all times here are contended).
+
+Next (plan, section AR2, step 2): the opt-in key `SeedByIndexing` in the BFS, with the finisher on
+the best 2, on the pilot region against the key-off rerun. Voxel 17361 is a named test case.
