@@ -11181,3 +11181,42 @@ Step AR0 of `docs/autoresearch/PLAN.md`. No new search was run. Script
   step AR5.
 - On the pilot's key-off rerun a hit-ratio cut of 0.93 has all 37 wrong voxels below it, with 15
   right ones; all 1,948 answers at or above it are right. Picked and read on the same run.
+
+## Autoresearch AR1: indexing the rays instead of grid-searching (done 2026-11-09)
+
+Step AR1 of `docs/autoresearch/PLAN.md` (hypothesis H1). Merged as 5bd9ecc after a review with 18
+required fixes, all applied. Findings: `docs/autoresearch/findings_ar1_ray_indexing.md`.
+
+What was added:
+
+- `icenine/ray_indexing.py` (the only library change) and `tests/test_ray_indexing.py` (11 tests,
+  one on a hexagonal crystal). A ray is a spot on detector 0 paired with its spot on detector 1.
+  Each ray gives a scattering vector. Two vectors of different families give an orientation (a
+  vote). Clusters of votes, refined on the rays they explain, are the candidates. The symmetry
+  comes from the crystal's own operators.
+- Scripts in `scripts/autoresearch/ar1/`, results in `benchmarks/autoresearch/ar1/`.
+
+What was measured (clean full-sample images, Q-max 8). E0 is 200 hard voxels whose images hold only
+their own spots, so it is the easy case. The pilot set is the 69 voxels of the 2,000-voxel BFS
+pilot that took a full search; its images hold the spots of all grains.
+
+- Recall on the pilot set: the truth is within 2 degrees of one of the first 5 candidates for 69
+  of 69 voxels, and of the first candidate for 41 of 69. In the other 28 the first candidate is
+  the true orientation of another grain; in 27 of them that grain touches the voxel.
+- The path set in advance (strict cost on 5 candidates, then the finisher on the best one) takes a
+  median of 1,138 evaluations per voxel against 332,154 for the stored grid search. It gets 3 of 69
+  wrong against 4 stored: it fixes 4 and breaks 3. Two of the 4 fixed are rejected seeds whose
+  stored result is not the full search's own.
+- The 3 breaks come from the arm's rule. It picks one candidate before refining. After the finisher
+  the true grain has the lower cost in all 3. They count against this arm (D-20261109-N7).
+- With the finisher on the best 2 or the best 3 candidates, 0 of 69 are wrong, at a mean of 1,926
+  or 2,546 evaluations. Both arms were chosen after the first result was seen, so this is not a
+  test yet.
+- E0: 200 of 200 at every K; 0 wrong against 41 stored; median 530 evaluations against 48,724.
+- Outside the evaluation count: pairing all spots once (17 s) and indexing a voxel (median 0.18 s,
+  about as long as 400 strict evaluations). Both contended. No wall-time comparison yet.
+
+Not tested: realistic images, another sample or material, local fits, wall time on a quiet machine.
+
+Next (plan, section AR2): a holdout of the three finisher arms on voxels outside the pilot region,
+then the opt-in key `SeedByIndexing` in the BFS, on the pilot against the key-off rerun.

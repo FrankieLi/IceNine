@@ -37,10 +37,8 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
 - Item 6 is done: the review-fix branch was reviewed (APPROVE, 4 required fixes, all applied) and
   merged and pushed (d113694). D-20261109-N6 settles how a boundary crossing is counted.
 - AR0 is done: reviewed, 12 fixes applied, merged and pushed (0decc3a). Results below.
-- AR1 is built and measured (branch `feature/eval-reduction-ar1`, 4 commits up to 3182d40). The
-  hand-back check passes (0 FAIL). The review is done: REQUEST CHANGES, 18 required fixes
-  (`.claude/reports/20261109-review-ar1.md`). An Opus implementer is applying them in the AR1
-  worktree; its report will be `.claude/reports/20261109-1538-ar1-fixes.md`. Not merged yet.
+- AR1 is done: reviewed (18 fixes applied), merged and pushed (5bd9ecc). Full suite on the task
+  branch: 1463 passed, 41 skipped, 1 deselected. Results below.
 - D-20261109-N7 settles the review's three questions: the 3 broken voxels count against the
   best-1 arm; AR2 uses the finisher on the best 2 and starts with a holdout; the symmetry
   operators are fixed now for non-cubic crystals.
@@ -49,25 +47,19 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
 ## Next action
 
 1. AR0: done. Nothing left.
-2. AR1: when `.claude/reports/20261109-1538-ar1-fixes.md` exists, check that all 18 fixes of
-   `.claude/reports/20261109-review-ar1.md` are applied (if there is no fix report and no new commit
-   after 3182d40 on the branch, start a fresh Opus implementer in the worktree
-   `.claude/worktrees/agent-af5119989737208f0` with the brief from `make_brief.sh --fixes`). Rerun
-   `sync_doc_tables.py --check` and `audit_numbers.py` on the findings page. Merge from the worktree with
-   `../../../scripts/dev/finish_task.sh --yes --push` (with tests, in the background). Do not commit
-   the untracked symlink and cache directories of that worktree. Then write the reviewed result
-   here, in MIGRATION_HISTORY, in the README (new module `icenine/ray_indexing.py`), and in the
-   ROADMAP (row AR and a note to Ilium about the new module).
+2. AR1: done. Nothing left. Its old worktree `.claude/worktrees/agent-af5119989737208f0` could not be
+   removed (it holds two untracked links into the main checkout and 216K of run logs); it is
+   harmless and can be removed with `git worktree remove --force`.
 3. If an agent died with the session (a task branch exists but no report): look at
-   `git log feature/eval-reduction..feature/eval-reduction-ar1` in its worktree, and start a fresh
+   `git log feature/eval-reduction..<task branch>` in its worktree, and start a fresh
    implementer with the same brief (regenerate it with `make_brief.sh`) and the note "continue from
    the commits on the branch".
-4. After AR1 is merged: the gate is met (69 of 69; the review found no leakage). Start AR2 from
-   the plan's section "AR2: indexing as the BFS seed search": step 1 is the holdout of the finisher
-   arms on voxels outside the pilot region, step 2 is the key `SeedByIndexing`. Then AR3 (index the
-   layer, paint grains). AR4 (the learned proposer) aims at what voting misses: voxels with few rays.
-5. Item 7: PR #41 is open. Do not merge it. On a quiet machine run `uv run pytest tests/` in
-   `icenine_py` and put the count line in the PR body.
+4. AR2 step 1 (the holdout of the finisher arms): start it now. Before the task:
+   `scripts/dev/read_on_fetch.sh --save`, merge `origin/feature/python-speed-parity` if it has new
+   commits, `--mark`. Brief: `scripts/dev/make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md
+   --task ar2a --section "AR2: indexing as the BFS seed search"`, with the note "step 1 only". A
+   fresh Sonnet implementer in its own worktree. Then AR2 step 2 (the key), then AR3.
+5. Item 7: PR #41 is open and has the test count. Do not merge it; the owner does.
 
 Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
 ("subagents must return findings as text"). The agent stops and returns the text. The main
@@ -82,12 +74,12 @@ Reading the table: one row per step, in order, with its state.
 |---|---|---|
 | item 6 | review and merge the review fixes | **done** 2026-11-09 (d113694) |
 | AR0 | stop rules from the stored results | **done** 2026-11-09 (0decc3a) |
-| AR1 | recall of the ray-indexing proposer | built and measured; in review; branch `feature/eval-reduction-ar1` |
-| item 7 | open the PR to `develop` (merge waits for the owner) | **open**: PR #41 (2026-11-09). Not merged. Add a full-suite test count to its body before asking for the merge |
+| AR1 | recall of the ray-indexing proposer | **done** 2026-11-09 (5bd9ecc) |
+| item 7 | open the PR to `develop` (merge waits for the owner) | **open**: PR #41 (2026-11-09). Not merged. Test count added to its body 2026-11-09 |
 | item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
-| AR2 | indexing as the BFS seed search | next, after the AR1 merge |
+| AR2 | indexing as the BFS seed search | next: step 1 (holdout), then step 2 (the key) |
 | AR3 | index the layer and paint grains | after AR2's first result |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
@@ -96,8 +88,7 @@ Reading the table: one row per step, in order, with its state.
 ## Running jobs
 
 Agents of the session of 2026-11-09 (they die with the session; `git worktree list` shows their
-worktrees, and their branches keep the commits): the AR1 fix implementer (Opus, in the AR1
-worktree). No detached compute job is running.
+worktrees, and their branches keep the commits): none. No detached compute job is running.
 
 ## Results so far
 
@@ -117,7 +108,7 @@ voxels; the pilot is the 2,000-voxel BFS key-off rerun. Lower cost is better.
 - Pilot: at a hit-ratio cut of 0.93, all 1,948 answers at or above are right; all 37 wrong ones
   are below, with 15 right local fits. Picked and read on the same run.
 
-**AR1 (measured and reviewed; fixes are being applied; the wording below follows the review).** Page on the task branch:
+**AR1 (done, reviewed).** Page:
 `docs/autoresearch/findings_ar1_ray_indexing.md`. Module: `icenine/ray_indexing.py`. The idea: a
 spot on detector 0 paired with its spot on detector 1 gives a ray, a ray gives a scattering vector,
 and two vectors of different families give an orientation. So candidates come from votes, not from
@@ -135,7 +126,9 @@ a grid.
   69 are rejected seeds, not plain full searches). With the finisher on the best 2 or the best 3:
   0 of 69, at a mean of 1,926 or 2,546 evaluations; both arms were added after the first result was
   seen, so they need the holdout of AR2 step 1.
-- Pairing and indexing time are outside the evaluation count.
+- Pairing and indexing time are outside the evaluation count. Indexing one voxel takes about as
+  long as 400 strict evaluations (contended).
+- In 27 of the 28 voxels whose first candidate is another grain, that grain touches the voxel.
 - E0 (the easy case: its images hold only each voxel's own spots): 200 of 200 at every K; 0 wrong
   against 41 stored; median 530 evaluations against 48,724.
 - Indexing one voxel: median 0.18 s; one-time pairing of all spots: 17 s. Both contended. No
