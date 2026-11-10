@@ -79,10 +79,10 @@ go on.
   merged and pushed (741e8fc). Full suite after the fixes: 1515 passed, 44 skipped, 1
   deselected. Numbers: "Results so far". **PR #43** to `develop` is open and waits for the
   owner's word in the session.
-- **AR3 step 3 is running** (2026-11-10): planned and approved under the mandate (D-20261110-N4,
-  plan at 93be764, notes at 3c40695 and ba66762): paint as a start, then refine each voxel, on a
-  sample whose grains hold gradients; readings for a stop rule (goal 5). Task `ar3c`; a Sonnet
-  implementer works on `feature/eval-reduction-ar3c` in its own worktree.
+- **AR3 step 3 is implemented and in review** (2026-11-10; plan D-20261110-N4 at 93be764): paint
+  as a start, then refine each voxel, on a sample whose grains hold gradients. Task `ar3c`,
+  branch `feature/eval-reduction-ar3c` at a359b87 (the findings page was placed by the main
+  session). An Opus reviewer is running. Numbers, not yet reviewed: "Results so far".
 
 ## Next action
 
@@ -107,23 +107,24 @@ go on.
    `20261110-0900-review-ar3b.md` (with the main session's additions at its end),
    `20261110-0827-ar3b-fixes.md`. The fixes worktree `.claude/worktrees/agent-a5f0af83ed49c9fc0`
    is locked and was not removed; harmless. PR #43 holds the step.
-   **AR3 step 3 (task `ar3c`) is with a Sonnet implementer** (started 2026-11-10, agent id
-   ae68d32fb972a8ad4, branch `feature/eval-reduction-ar3c`, own worktree, budget about 4 hours
-   of compute). The plan is the part "Step 3" of the section "AR3: index the layer and paint
-   grains" of `PLAN.md`. Report expected at `.claude/reports/20261110-0852-ar3c.md`.
-   - Is the agent alive? `git log --oneline feature/eval-reduction..feature/eval-reduction-ar3c`
-     and `scripts/dev/job_status.sh`. If the session was restarted and there is no report: free
-     the branch (`git worktree list`, then `git -C <worktree> checkout --detach`), regenerate
-     the brief (`scripts/dev/make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task
-     ar3c --section "AR3: index the layer and paint grains"`), and start a fresh Sonnet
-     implementer with the note "continue from the commits on the branch".
-   - When it hands back: write the findings page `docs/autoresearch/findings_ar3_gradient.md`
-     and the report from its returned text if the tool refused the files, and commit the page
-     on the task branch; `sync_doc_tables.py --check`, `audit_numbers.py`;
-     `scripts/dev/verify_handback.sh feature/eval-reduction <report> --branch
-     feature/eval-reduction-ar3c`; `/review-task` (Opus); fixes by a fresh Opus implementer
-     (free the branch first); a heads-up to Ilium in `docs/ROADMAP.md` if shared files change;
-     `scripts/dev/finish_task.sh --yes --push` in the worktree that holds the task branch.
+   **AR3 step 3 (task `ar3c`) is handed back and in review** (2026-11-10). Branch
+   `feature/eval-reduction-ar3c` at a359b87 in the worktree
+   `.claude/worktrees/agent-ae68d32fb972a8ad4` (it holds the untracked run files, the image
+   symlink and the cache). Report `.claude/reports/20261110-0852-ar3c.md`; `verify_handback.sh`
+   gave 0 FAIL, 3 FLAG (the page commit, untracked run files, the planned library module). The
+   number audit matched 1076 of 1087; the 11 others are with the reviewer.
+   - The Opus reviewer writes `.claude/reports/20261110-1215-review-ar3c.md`. If the session
+     was restarted and that file is missing: run `/review-task` again for the branch, with the
+     extra focus "is the local fit inert because the cost cannot tell the start from the
+     truth, because of its step, or because of the script".
+   - When the review is back: fixes by a fresh Opus implementer (first `git -C
+     .claude/worktrees/agent-ae68d32fb972a8ad4 checkout --detach`; brief from
+     `scripts/dev/make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar3c
+     --section "AR3: index the layer and paint grains" --fixes <review report>`); then
+     `verify_handback.sh ... --fixes <review report>`; a heads-up to Ilium in `docs/ROADMAP.md`
+     (`scripts/phase_d/render_full.py` got a `--mic` option; `scripts/autoresearch/ar3/ar3_common.py`
+     a `stack_name` argument); `scripts/dev/finish_task.sh --yes --push` in the worktree that
+     holds the task branch.
    - After the merge: `gh pr edit 43` (title and text now cover step 3 too); this file; the
      review page (a results section for step 3, plot before table); one shmem fact.
    - Then plan step 4 from step 3's readings (the stop rule in the loop; a grain-wide
@@ -172,22 +173,46 @@ Reading the table: one row per step, in order, with its state.
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
 | AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) **done** 2026-11-09 (a8c99b7) |
-| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer) **done** 2026-11-10 (741e8fc), in PR #43; step 3 (paint as a start, then refine, on grains with gradients; stop-rule readings): **implementer running** since 2026-11-10 (task `ar3c`, plan 93be764, D-20261110-N4) |
+| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer) **done** 2026-11-10 (741e8fc), in PR #43; step 3 (paint as a start, then refine, on grains with gradients; stop-rule readings): implemented 2026-11-10 (task `ar3c`, a359b87), **in review** |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 
 ## Running jobs
 
-One agent is running (started 2026-11-10): the Sonnet implementer of task `ar3c` (AR3 step 3),
-branch `feature/eval-reduction-ar3c`, in its own worktree under `.claude/worktrees/`. It renders
-images of the gradient sample and runs four whole-layer jobs (paint, refine, second fit, BFS),
-within the limit of 6 heavy processes. Check: the `git log` command under "Next action" 6, and
+One agent is running (started 2026-11-10): the Opus reviewer of task `ar3c` (AR3 step 3). It
+reads the branch in `.claude/worktrees/agent-ae68d32fb972a8ad4` and runs summaries only, no
+whole-layer run. No compute job is running. Check: the review file under "Next action" 6, and
 `scripts/dev/job_status.sh` for compute jobs. Old agent worktrees under `.claude/worktrees/` are
 detached and can stay; `agent-a3fcfcc95d9db6295` holds the untracked run files of the pilot
 paint run, `agent-a849170b7d4502001` those of the layer runs (pairing cache, the image symlink).
 
 ## Results so far
+
+**AR3 step 3, paint then refine on grains with gradients (NOT YET REVIEWED).** Page on the task
+branch: `docs/autoresearch/findings_ar3_gradient.md`. Whole layer, 24,570 voxels, 497 grains,
+each grain turning linearly from its centre by its level (0, 0.1, 0.2, 0.5 or 1.0 degrees at the
+edge); clean images, Q-max 8, FusedCost on, one worker, one run per arm, walls contended.
+
+- Paint (P): 78,142,641 evaluations, 5,369 grain entries for 497 grains (21.9% of the voxels
+  are seeds), 170 wrong of 24,570 (0.60 to 0.80%), median error 0.0342 degrees. 172 entries came
+  from the grid-search fallback and are 76.6% of the evaluations. Step 2's paint on the sample
+  without gradients cost 1,316,345.
+- Why so many entries: a flood from one orientation stops early. The centre orientation fails
+  the 0.9 hit-ratio test on 21.8% of the voxels at level 0.1 and on 93.3% at level 1.0.
+- Refinement (R, one local fit from each of the 19,013 painted starts): 12,843,129 evaluations;
+  9 voxels came closer by more than 0.05 degrees, 2 were hurt, wrong count unchanged (87). The
+  fit ended within 0.02 degrees of its start on 18,977. A second fit (R2) moved 9 of 4,768.
+- BFS with indexed seeds (D): 118,350,225 evaluations, 203 wrong (0.72 to 0.95%). P plus R
+  against D: 91 fixed, 58 broken, 112 wrong in both; intervals overlap. At level 1.0 paint is
+  worse (95 wrong against 78).
+- Stop rules read from the records sit at the edges of their grids (they save 98 to 100% of
+  the fit evaluations at 0 to 3 of 9,305 voxels hurt). That says the fit moves nothing here; it
+  is not a tested stop rule.
+- Open, with the reviewer: is the fit inert because the cost cannot tell the start (median
+  0.04 degrees off) from the truth, because of its step, or because of the script.
+- Deviations: P ran 123 minutes against a 90-minute stop rule, D 156 against 150.
+- Full suite on the task branch: 1517 passed, 47 skipped, 1 deselected.
 
 **AR3 step 2, the key `PaintGrains` on the whole layer (done, reviewed, fixes applied).** Page:
 `docs/autoresearch/findings_ar3_layer.md`. Whole layer: 24,570 voxels, 497 grains, clean images,
