@@ -1186,6 +1186,7 @@
   "MaxMCSteps": 200.0,
   "box_deg": 5.0,
   "identity_offset_deg": 2.4148365394514667e-06,
+  "n_draws_per_row": 10000,
   "blocks": [
    {
     "block": 1,
@@ -2007,6 +2008,7 @@
  "D_fit_by_start_error": {
   "0 to 0.05": {
    "fits": 8973,
+   "revisit_fits": 5155,
    "lowered": {
     "k": 6,
     "n": 8973,
@@ -2024,6 +2026,7 @@
   },
   "0.05 to 0.1": {
    "fits": 8240,
+   "revisit_fits": 5668,
    "lowered": {
     "k": 62,
     "n": 8240,
@@ -2041,6 +2044,7 @@
   },
   "0.1 to 0.2": {
    "fits": 11121,
+   "revisit_fits": 8417,
    "lowered": {
     "k": 518,
     "n": 11121,
@@ -2058,6 +2062,7 @@
   },
   "0.2 to 0.5": {
    "fits": 14762,
+   "revisit_fits": 12115,
    "lowered": {
     "k": 3931,
     "n": 14762,
@@ -2075,6 +2080,7 @@
   },
   "0.5 to 1": {
    "fits": 3493,
+   "revisit_fits": 3036,
    "lowered": {
     "k": 2212,
     "n": 3493,
@@ -2092,6 +2098,7 @@
   },
   "1 to 5": {
    "fits": 167,
+   "revisit_fits": 149,
    "lowered": {
     "k": 91,
     "n": 167,
@@ -2109,6 +2116,7 @@
   },
   "5 and above": {
    "fits": 43436,
+   "revisit_fits": 31522,
    "lowered": {
     "k": 8633,
     "n": 43436,

@@ -4,7 +4,8 @@ Step 3 of "AR3" in `docs/autoresearch/PLAN.md`, task `ar3c` (D-20261110-N4). New
 `icenine/gradient_sample.py` (no config key, no reconstructor change). Scripts
 `scripts/autoresearch/ar3/`; results `benchmarks/autoresearch/ar3/gradient/`. This page was placed
 by the main session from the text the implementer returned (the tool refused the implementer's own
-write of the file); the tables are filled from the committed `tables.md`.
+write of the file); the tables are filled from the committed `tables.md`. The review fixes of
+2026-11-10 are applied from the stored records; no run was added.
 
 Terms: a **grain entry** is one accepted seed; to **paint** is to give each voxel the passing grain
 of lowest strict cost; the **start** is the painted orientation; the **refinement** is one BFS
@@ -18,7 +19,10 @@ The sample: the layer's truth (24,570 voxels, 497 grains); each grain keeps its 
 centre and turns linearly with position to its level (98/81/101/101/116 grains at
 0/0.1/0.2/0.5/1.0). Measured spread equals the level to 5.1e-5 deg. Clean images rendered with
 `render_full.py --mic` (tag `grad`): 9,444,080 lit pixels and 104,912 spots, against 7,414,841 and
-57,389 for the stored images. The gradient is a modelling choice, not measured on a real sample.
+57,389 for the stored images. The packed image stack has 9,444,080 non-zero pixels, the grad
+render's count; how it was built, and the sha256 of the truth map, are in `grad_stack.json`
+(`scripts/autoresearch/ar3/grad_stack_note.py`). The gradient is a modelling choice, not
+measured on a real sample.
 
 Runs (Q-max 8, FusedCost, one worker, voxel order of default_rng(0)): P paint through the key; R
 one fit from the start on each of the 19,013 painted voxels; R2 a second fit on every fourth
@@ -35,15 +39,27 @@ middle: stop inside the fit. Bottom right: wrong voxels by level.
 
 ![Error by level, Reading 0, skip and stop rules, wrong voxels](../../benchmarks/autoresearch/ar3/gradient/ar3_gradient.png)
 
-- The start is good only because painting seeded a lot: 5,369 entries for 497 grains (21.9% of
-  voxels are seeds). Median error 0.0342 deg, 170 wrong of 24,570 (0.60 to 0.80%). Cost 78,142,641
-  evaluations, 76.6% of them in 172 grid-fallback entries.
-- The refinement did nothing detectable: of 19,013 painted voxels, 9 came closer by more than 0.05
-  deg and 2 were hurt; the fit ended within 0.02 deg of its start on 18,977 (99.7 to 99.9%).
-- So skipping or stopping the fit saves almost everything at no measured cost. That is the fit not
-  moving anything here, not a finding about when a fit can stop.
-- P plus R (90,985,770 evaluations) against D (118,350,225): 170 against 203 wrong; intervals
-  overlap, so neither is called a gain.
+- The cost can tell the truth from the painted start, but the fit does not get there. On 16,591
+  of 19,013 painted voxels (86.8 to 87.7%) the strict cost of the true orientation is below the
+  cost of the start, and on all 2,240 voxels whose start is more than 0.1 deg off. The fit lowered
+  the cost on only 36 of them.
+- The fit's trial steps are many times the start's error. The start is a median 0.0406 deg from
+  the truth. In the fit's first block the trial steps have a median of 0.70 deg (5th percentile
+  0.32 deg). After a failed block the search restarts a median 4.9 to 16.8 deg from the start,
+  with larger steps. 18,500 of the 19,013 fits are four failed blocks. This is consistent with a
+  step too coarse for this start; a run with a finer box would test it (planned as step 4).
+- So the refinement did nothing detectable: 9 voxels came closer by more than 0.05 deg and 2 were
+  hurt; the fit ended within 0.02 deg of its start on 18,977 (99.7 to 99.9%). Skipping or stopping
+  the fit saves almost everything at no measured cost here. That is the fit not moving, not a
+  finding about when a fit can stop.
+- The start: 5,369 entries for 497 grains (21.9% of voxels are seeds); median error 0.0342 deg,
+  170 wrong of 24,570 (0.60 to 0.80%); 78,142,641 evaluations, 74.8% of them in 172 grid-fallback
+  entries. A start this close is consistent with the many seeds; untested, since no arm with
+  fewer seeds was run.
+- Under the plan's rule P beats D on the share of voxels above 0.1 deg: 2,531 (9.9 to 10.7%) with
+  R against 3,545 (14.0 to 14.9%), and at levels 0.1, 0.2 and 0.5. It also beats D on wrong voxels
+  at level 0 (3 against 17), not overall (170 against 203, intervals overlap). The gain is P's (R
+  adds nothing), at 90,985,770 evaluations against 118,350,225. One run of each arm.
 
 ## Reading 0: what an offset costs (truth used; analysis only)
 
@@ -107,11 +123,13 @@ with no entry; `grid`: grid-fallback entries).
 | level 1 | 116 | 2844 | 24.52 | 48 | 116 of 116 (96.8 to 100.0%) | 0 | 137 |
 <!-- /table:ar3c_entries -->
 
-Of 5,369 entries, 4,844 are within 1 deg of an earlier entry (the same grain turning). The median
-entry floods to 3 voxels. The fit-settled branch was tried 5,263 times and accepted 184 times (all
-at levels 0.1 and above).
+Of 5,369 entries, 4,844 are within 1 deg of an earlier entry; 4,748 of them lie in the same true
+grain as that entry and 96 in another. The median entry floods to 3 voxels (its `flood_passes`).
+The fit-settled branch was tried 5,263 times and accepted 184 times (all at levels 0.1 and above).
 
-Reading the tables. Evaluations by stage, then per entry.
+Reading the tables. Evaluations by stage, then per entry. The 172 grid-fallback entries take
+74.8% of P's evaluations (76.6% with the 4 rejected grid searches of the failed voxels). The
+fallback is part of the key's design and ran in D too: 142 times, 48,273,080 evaluations.
 
 <!-- table:ar3c_evals_stage -->
 | stage | evals |
@@ -134,8 +152,9 @@ Reading the tables. Evaluations by stage, then per entry.
 <!-- /table:ar3c_seed_cost -->
 
 The whole-layer paint on step 2's sample (one orientation per grain) cost 1,316,345 evaluations
-with 528 entries; here 78,142,641 with 5,369. The key-on BFS of that sample (33,040,126) is not a
-like-for-like comparison.
+with 528 entries; here 78,142,641 with 5,369. That is 59 times the evaluations with the grid
+fallback and 13.9 times without it (18,319,248), for 10.2 times the entries. The key-on BFS of
+that sample (33,040,126) is not a like-for-like comparison.
 
 ## 2. The refinement
 
@@ -187,16 +206,84 @@ Reading the table. Evaluations of each run.
 | D (BFS, indexed seeds) | 118,350,225 |
 <!-- /table:ar3c_evals -->
 
+### Why the fit moves almost nothing
+
+Two questions, answered from the stored records (the truth is used here for analysis only). Can
+the strict cost tell the start from the truth? And can the fit's trial steps reach the truth?
+
+Reading the table. Each painted voxel's strict cost at its true orientation (Reading 0) against
+the cost at its painted start (run R's record), by level and by the start's error in degrees.
+`truth_lower`: voxels where the truth's cost is strictly below the start's; `equal`,
+`truth_higher`: the other two cases; `fit_lowered`: voxels where R's fit ended below the start's
+cost; `med_gap`: median of the start's cost minus the truth's cost.
+
+<!-- table:ar3c_truth_vs_start -->
+| group | n | truth_lower | equal | truth_higher | fit_lowered | med_gap |
+|---|---|---|---|---|---|---|
+| all painted voxels | 19,013 | 16591 of 19013 (86.8 to 87.7%) | 2219 | 203 | 36 of 19013 (0.14 to 0.26%) | 0.0207 |
+| level 0 | 4,774 | 2938 of 4774 (60.2 to 62.9%) | 1713 | 123 | 0 of 4774 (0.00 to 0.08%) | 0.0029 |
+| level 0.1 | 4,152 | 3760 of 4152 (89.6 to 91.4%) | 358 | 34 | 0 of 4152 (0.00 to 0.09%) | 0.0161 |
+| level 0.2 | 4,332 | 4178 of 4332 (95.9 to 97.0%) | 131 | 23 | 7 of 4332 (0.08 to 0.33%) | 0.0231 |
+| level 0.5 | 3,196 | 3167 of 3196 (98.7 to 99.4%) | 16 | 13 | 10 of 3196 (0.17 to 0.58%) | 0.0346 |
+| level 1 | 2,559 | 2548 of 2559 (99.2 to 99.8%) | 1 | 10 | 19 of 2559 (0.5 to 1.2%) | 0.0506 |
+| start error 0 to 0.05 | 11,423 | 9058 of 11423 (78.5 to 80.0%) | 2180 | 185 | 3 of 11423 (0.01 to 0.08%) | 0.0100 |
+| start error 0.05 to 0.1 | 5,350 | 5293 of 5350 (98.6 to 99.2%) | 39 | 18 | 11 of 5350 (0.11 to 0.37%) | 0.0345 |
+| start error 0.1 to 0.2 | 2,042 | 2042 of 2042 (99.8 to 100.0%) | 0 | 0 | 20 of 2042 (0.6 to 1.5%) | 0.0588 |
+| start error 0.2 to 0.5 | 111 | 111 of 111 (96.7 to 100.0%) | 0 | 0 | 2 of 111 (0.5 to 6.3%) | 0.0815 |
+| start error 0.5 and above | 87 | 87 of 87 (95.8 to 100.0%) | 0 | 0 | 0 of 87 (0.0 to 4.2%) | 0.0738 |
+<!-- /table:ar3c_truth_vs_start -->
+
+So the cost can tell them apart for most voxels: the truth's cost is lower on 16,591 of 19,013,
+and on all 2,240 voxels whose start is more than 0.1 deg off. The truth's hit ratio is also above
+the start's on 16,953 voxels. A flat or quantised cost at this scale does not explain the
+inertness. Only at level 0, where the start is closest, are ties common.
+
+Reading the table. The trial steps of the fit at the run's settings (LocalOrientationGridRadius
+5, MinLocalResolution 0, so a box of 5 deg; MaxMCSteps 200), as in a fit whose blocks all fail.
+`radius_deg`: the block's subregion radius; `steps`: its trial steps; `evals_at_end`: evaluations
+when it ends; `step_med`, `step_p05`: median and 5th percentile of a trial step's angle;
+`restart_med`: median angle from the start of the point the block starts from (block 1 starts at
+the start). The angles are measured with the library's `QuaternionGrid.get_near_identity_point`
+on 10,000 draws per row, in `gradient_summary.py`.
+
+<!-- table:ar3c_steps -->
+| block | radius_deg | steps | evals_at_end | step_med | step_p05 | restart_med |
+|---|---|---|---|---|---|---|
+| 1 | 0.724 | 10 | 12 | 0.70 | 0.32 | none |
+| 2 | 1.447 | 19 | 32 | 1.41 | 0.64 | 4.9 |
+| 3 | 2.894 | 126 | 159 | 2.82 | 1.31 | 9.7 |
+| 4 | 5.000 | 501 | 661 | 4.86 | 2.29 | 16.8 |
+<!-- /table:ar3c_steps -->
+
+With the final evaluation, these four blocks make 662 evaluations, the median at every level.
+18,500 of the 19,013 R fits are exactly this pattern of four failed blocks. Only block 1 searches
+near the start, with 10 trials whose steps are many times the start's error (median 0.0406 deg).
+A trial counts only if its cost is strictly lower, so a trial almost never lands in the small
+region near the truth where the cost is lower. After block 1 fails, the search moves degrees away.
+This is consistent with a step too coarse for this start. It is untested: a run of R with a finer
+box, paired on voxels against R, would test it (planned as step 4).
+
+The C++ source has the same logic: `ContinuousSearch.h` line 70 sets the box width to
+LocalGridRadius / 2^nLocalResolution, `SearchDetails.cpp` line 50 sets nLocalResolution to
+MinLocalResolution, and `AdaptiveSamplingZeroTemp` (`OrientationSearch.cpp` lines 206 to 287)
+has the same radius, step count, doubling and restart. The C++ program itself was not run here, so
+the same inertness in C++ at these settings is expected, not measured.
+
 ## 3. Stop before the fit
 
 Skip when the start's hit ratio is at least t times the entry's best (t 0.90 to 1.00) or when its
 strict cost is at most c (deciles of A's start costs). Picked on pick set A (even grain ids): the
 rule skipping the most evaluations while hurting at most 1% of A's painted voxels; reported on test
-set B (odd ids), threshold fixed. Both picks sit at the grid edge (t = 0.90; c at the highest
-decile): every threshold was within the limit because the fit moved nothing worth the name.
+set B (odd ids), threshold fixed. Both picks sit at the grid's edge: t = 0.90, the lowest t, and
+c = 0.3054, the top of the grid (the 100th percentile, that is A's largest start cost, so every A
+voxel is skipped). Every threshold was within the limit because the fit moved nothing worth the
+name. The rules are uninformative here.
 
 Reading the tables. The picked rules on B, then by level. `A_share`: share of A's fit evaluations
-skipped.
+skipped; `B_skipped`: B's painted voxels whose fit is skipped; `B_evals`: B's fit evaluations
+skipped; `B_hurt`: B's painted voxels hurt by the skip; `B_med`, `B_p95`, `B_gt01`, `B_wrong`:
+median error, 95th percentile, share above 0.1 deg and share wrong of the resulting map over all
+of B's voxels (12,184).
 
 <!-- table:ar3c_skip -->
 | rule | threshold | A_share | B_skipped | B_evals | B_hurt | B_med | B_p95 | B_gt01 | B_wrong |
@@ -241,7 +328,14 @@ Two simulated rules at block ends: stop at the first failed block; stop when the
 most c (deciles of A's end costs). Picked on A, reported on B. A simulated stop is exact for its
 own voxel; in a real run the shared generator would differ for later voxels (not simulated).
 
-Reading the tables. The picked rules on B, then by level.
+Both rules are uninformative here. The cost pick c = 0.3054 is the top of its grid (the 100th
+percentile, A's largest end cost). "Stop at the first failed block" saves 98.1% because 18,500 of
+the 19,013 fits never improve: all four blocks fail, so the rule ends each of them after block 1.
+
+Reading the tables. The picked rules on B, then by level. `A_saved_share`: share of A's fit
+evaluations saved; `B_saved`, `B_saved_share`: B's fit evaluations saved; `B_hurt`: B's fits hurt
+by the stop; `B_med`, `B_p95`, `B_gt01`, `B_wrong`: the four error numbers of the resulting map
+over all of B's voxels (12,184).
 
 <!-- table:ar3c_stop -->
 | rule | threshold | A_saved_share | B_saved | B_saved_share | B_hurt | B_med | B_p95 | B_gt01 | B_wrong |
@@ -292,11 +386,13 @@ Reading the tables. The counts with intervals, then by level.
 
 A threshold on the first fit's end hit ratio over the entry's best ("a second fit will not help"),
 picked on A (lowest t with at most 1% of predicted voxels helped), reported on B. It sits at the
-grid edge and says "will not help" for almost every voxel, so its 99.7% is near the base rate
-(`B_base`). Both B voxels a second fit helped were predicted not to need it. The rule is not
-informative.
+grid edge and says "will not help" for almost every voxel, so its 99.9% (2,288 of 2,290) is near
+the base rate (`B_base`). Both B voxels a second fit helped were predicted not to need it. The
+rule is not informative.
 
-Reading the table. The picked rule on B.
+Reading the table. The picked rule on B. `A_pred`, `B_pred`: voxels the rule says a second fit
+will not help; `A_helped`: of A's predicted voxels, those a second fit helped; `B_right`: B's
+predicted voxels a second fit did not help; `B_base`: B's voxels a second fit helped.
 
 <!-- table:ar3c_second_rule -->
 | threshold | A_pred | A_helped | B_pred | B_right | B_base |
@@ -307,33 +403,63 @@ Reading the table. The picked rule on B.
 ## 6. The BFS under gradients
 
 Reading the table. D's fit log by voxel level (`fits`: every local fit of D, all phases; `same`:
-returned the start exactly; `mv`: distance moved; `s_med`, `e_med`: median error of the start and
-end of the fit; `e_wrong`: fits whose end is wrong; a wrong fit end is not a wrong voxel, since
-later visits change it).
+returned the start bit for bit; `not_lowered`: the end's cost is not below the start's, the fit's
+own test; `mv`: distance moved; `s_med`, `e_med`: median error of the start and end of the fit;
+`e_wrong`: fits whose end is wrong; a wrong fit end is not a wrong voxel, since later visits
+change it).
 
 <!-- table:ar3c_dfits -->
-| level | fits | evals | med_evals | mv_med | mv_p95 | same | s_med | e_med | e_p95 | e_wrong |
-|---|---|---|---|---|---|---|---|---|---|---|
-| level 0 | 8,617 | 5,695,834 | 662 | 0.0000 | 0.3226 | 4908 of 8617 (55.9 to 58.0%) | 0.0484 | 0.0484 | 53.2871 | 3846 of 8617 (43.6 to 45.7%) |
-| level 0.1 | 11,893 | 7,875,695 | 662 | 0.0000 | 0.3705 | 6865 of 11893 (56.8 to 58.6%) | 0.1953 | 0.1954 | 54.0878 | 5930 of 11893 (49.0 to 50.8%) |
-| level 0.2 | 18,608 | 12,369,093 | 662 | 0.0000 | 0.3983 | 10077 of 18608 (53.4 to 54.9%) | 20.7688 | 20.7151 | 54.3637 | 9843 of 18608 (52.2 to 53.6%) |
-| level 0.5 | 22,516 | 15,059,166 | 662 | 0.0000 | 0.4481 | 11119 of 22516 (48.7 to 50.0%) | 0.4467 | 0.3998 | 53.4110 | 10847 of 22516 (47.5 to 48.8%) |
-| level 1 | 28,558 | 19,320,043 | 662 | 0.0000 | 0.6240 | 12484 of 28558 (43.1 to 44.3%) | 0.6528 | 0.5059 | 53.8450 | 12963 of 28558 (44.8 to 46.0%) |
-| all | 90,192 | 60,319,831 | 662 | 0.0000 | 0.5093 | 45453 of 90192 (50.1 to 50.7%) | 0.6252 | 0.4857 | 53.9183 | 43429 of 90192 (47.8 to 48.5%) |
+| level | fits | evals | med_evals | mv_med | mv_p95 | same | not_lowered | s_med | e_med | e_p95 | e_wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| level 0 | 8,617 | 5,695,834 | 662 | 0.0000 | 0.3226 | 4908 of 8617 (55.9 to 58.0%) | 7866 of 8617 (90.7 to 91.9%) | 0.0484 | 0.0484 | 53.2871 | 3846 of 8617 (43.6 to 45.7%) |
+| level 0.1 | 11,893 | 7,875,695 | 662 | 0.0000 | 0.3705 | 6865 of 11893 (56.8 to 58.6%) | 10621 of 11893 (88.7 to 89.8%) | 0.1953 | 0.1954 | 54.0878 | 5930 of 11893 (49.0 to 50.8%) |
+| level 0.2 | 18,608 | 12,369,093 | 662 | 0.0000 | 0.3983 | 10077 of 18608 (53.4 to 54.9%) | 16382 of 18608 (87.6 to 88.5%) | 20.7688 | 20.7151 | 54.3637 | 9843 of 18608 (52.2 to 53.6%) |
+| level 0.5 | 22,516 | 15,059,166 | 662 | 0.0000 | 0.4481 | 11119 of 22516 (48.7 to 50.0%) | 18821 of 22516 (83.1 to 84.1%) | 0.4467 | 0.3998 | 53.4110 | 10847 of 22516 (47.5 to 48.8%) |
+| level 1 | 28,558 | 19,320,043 | 662 | 0.0000 | 0.6240 | 12484 of 28558 (43.1 to 44.3%) | 21049 of 28558 (73.2 to 74.2%) | 0.6528 | 0.5059 | 53.8450 | 12963 of 28558 (44.8 to 46.0%) |
+| all | 90,192 | 60,319,831 | 662 | 0.0000 | 0.5093 | 45453 of 90192 (50.1 to 50.7%) | 74739 of 90192 (82.6 to 83.1%) | 0.6252 | 0.4857 | 53.9183 | 43429 of 90192 (47.8 to 48.5%) |
 <!-- /table:ar3c_dfits -->
 
-Reading the tables. P plus R against D on the maps by level (`fixed`, `broken`, `both`), then the
-four-way counts.
+`same` is a bitwise test, so it understates how often the fit does nothing. The fit did not lower
+the cost on 74,739 of 90,192 fits (82.6 to 83.1%). Of these, 45,453 return the start bit for bit
+and 29,286 return it up to the quaternion round trip (median 3.6e-15 deg).
+
+Reading the table. D's fits by the error of their start: `lowered`, fits that ended below the
+start's cost; `truth_lower`, fits whose voxel's true orientation has a lower strict cost than the
+start (Reading 0).
+
+<!-- table:ar3c_dfit_bins -->
+| start_error | fits | lowered | truth_lower |
+|---|---|---|---|
+| 0 to 0.05 | 8,973 | 6 of 8973 (0.03 to 0.15%) | 7240 of 8973 (79.9 to 81.5%) |
+| 0.05 to 0.1 | 8,240 | 62 of 8240 (0.59 to 0.96%) | 8213 of 8240 (99.5 to 99.8%) |
+| 0.1 to 0.2 | 11,121 | 518 of 11121 (4.3 to 5.1%) | 11121 of 11121 (100.0 to 100.0%) |
+| 0.2 to 0.5 | 14,762 | 3931 of 14762 (25.9 to 27.3%) | 14762 of 14762 (100.0 to 100.0%) |
+| 0.5 to 1 | 3,493 | 2212 of 3493 (61.7 to 64.9%) | 3493 of 3493 (99.9 to 100.0%) |
+| 1 to 5 | 167 | 91 of 167 (46.9 to 61.9%) | 167 of 167 (97.8 to 100.0%) |
+| 5 and above | 43,436 | 8633 of 43436 (19.5 to 20.3%) | 43436 of 43436 (100.0 to 100.0%) |
+<!-- /table:ar3c_dfit_bins -->
+
+Up to 1 deg, the share of fits that lower the cost rises with the start's error, while the truth's
+cost is lower than the start's in almost every fit above 0.05 deg. The fit succeeds once the start
+error nears the step scale of the table above. This is consistent with the same step-size cause
+as in R. The 43,436 fits that start 5 deg or more from the truth (31,522 of them revisits) are a
+different case: they start from another grain's orientation.
+
+Reading the tables. P plus R against D on the maps by level, then the four error numbers.
+`P_wrong`, `PR_wrong`, `D_wrong`: wrong voxels of P, of P plus R and of D; `fixed`: wrong in D,
+right in P plus R; `broken`: right in D, wrong in P plus R; `both`: wrong in both; `iv`: whether
+the intervals of the wrong share of P plus R and of D overlap; `iv_gt01`: the same for the share
+above 0.1 deg.
 
 <!-- table:ar3c_map_vs_D -->
-| level | n | P_wrong | PR_wrong | D_wrong | fixed | broken | both | iv |
-|---|---|---|---|---|---|---|---|---|
-| level 0 | 4,877 | 3 of 4877 (0.02 to 0.18%) | 3 of 4877 (0.02 to 0.18%) | 17 of 4877 (0.22 to 0.56%) | 16 | 2 | 1 | do not overlap |
-| level 0.1 | 4,488 | 10 of 4488 (0.12 to 0.41%) | 10 of 4488 (0.12 to 0.41%) | 23 of 4488 (0.34 to 0.77%) | 16 | 3 | 7 | overlap |
-| level 0.2 | 5,041 | 23 of 5041 (0.30 to 0.68%) | 23 of 5041 (0.30 to 0.68%) | 38 of 5041 (0.5 to 1.0%) | 23 | 8 | 15 | overlap |
-| level 0.5 | 4,625 | 39 of 4625 (0.6 to 1.2%) | 39 of 4625 (0.6 to 1.2%) | 47 of 4625 (0.8 to 1.3%) | 22 | 14 | 25 | overlap |
-| level 1 | 5,539 | 95 of 5539 (1.4 to 2.1%) | 95 of 5539 (1.4 to 2.1%) | 78 of 5539 (1.1 to 1.8%) | 14 | 31 | 64 | overlap |
-| all | 24,570 | 170 of 24570 (0.60 to 0.80%) | 170 of 24570 (0.60 to 0.80%) | 203 of 24570 (0.72 to 0.95%) | 91 | 58 | 112 | overlap |
+| level | n | P_wrong | PR_wrong | D_wrong | fixed | broken | both | iv | iv_gt01 |
+|---|---|---|---|---|---|---|---|---|---|
+| level 0 | 4,877 | 3 of 4877 (0.02 to 0.18%) | 3 of 4877 (0.02 to 0.18%) | 17 of 4877 (0.22 to 0.56%) | 16 | 2 | 1 | do not overlap | do not overlap |
+| level 0.1 | 4,488 | 10 of 4488 (0.12 to 0.41%) | 10 of 4488 (0.12 to 0.41%) | 23 of 4488 (0.34 to 0.77%) | 16 | 3 | 7 | overlap | do not overlap |
+| level 0.2 | 5,041 | 23 of 5041 (0.30 to 0.68%) | 23 of 5041 (0.30 to 0.68%) | 38 of 5041 (0.5 to 1.0%) | 23 | 8 | 15 | overlap | do not overlap |
+| level 0.5 | 4,625 | 39 of 4625 (0.6 to 1.2%) | 39 of 4625 (0.6 to 1.2%) | 47 of 4625 (0.8 to 1.3%) | 22 | 14 | 25 | overlap | do not overlap |
+| level 1 | 5,539 | 95 of 5539 (1.4 to 2.1%) | 95 of 5539 (1.4 to 2.1%) | 78 of 5539 (1.1 to 1.8%) | 14 | 31 | 64 | overlap | overlap |
+| all | 24,570 | 170 of 24570 (0.60 to 0.80%) | 170 of 24570 (0.60 to 0.80%) | 203 of 24570 (0.72 to 0.95%) | 91 | 58 | 112 | overlap | do not overlap |
 <!-- /table:ar3c_map_vs_D -->
 
 <!-- table:ar3c_map_four -->
@@ -353,6 +479,13 @@ four-way counts.
 | P plus R, level 1 | 5,539 | 0.0550 | 0.1873 | 1565 of 5539 (27.1 to 29.5%) | 95 of 5539 (1.4 to 2.1%) |
 | D, level 1 | 5,539 | 0.0535 | 0.1960 | 1544 of 5539 (26.7 to 29.1%) | 78 of 5539 (1.1 to 1.8%) |
 <!-- /table:ar3c_map_four -->
+
+Under the plan's rule (a gain only when the intervals do not overlap), P plus R beats D on the
+share of voxels above 0.1 deg: 2,531 (9.9 to 10.7%) against 3,545 (14.0 to 14.9%) overall, and at
+levels 0.1, 0.2 and 0.5. On wrong voxels it wins only at level 0 (3 against 17); overall the
+intervals overlap (170 against 203). The gain is P's: P alone has 2,541 voxels above 0.1 deg and
+the same wrong counts, so R adds nothing. P plus R costs 90,985,770 evaluations against D's
+118,350,225. This is one run of each arm.
 
 Scale: two key-off pilot runs of step 2 differ by 20 voxels one way and 7 the other, of 2,000; the
 run-to-run difference on the whole layer is not measured.
@@ -374,24 +507,30 @@ Reading the table. Level-0 grains (4,877 voxels) in P and D here against the sam
 
 ## 8. Wall time
 
-Reading the table. P and D ran side by side with a busy editor helper process; every wall time is
-contended and no timing comparison is claimed.
+Reading the table. P and D ran side by side with a busy editor helper process. R and R2 ran
+later in a separate refine-stage process, with no preflight, while D was still running (R
+throughout, R2 at its start). Every wall time is contended and no timing comparison is claimed.
 
 <!-- table:ar3c_wall -->
 | run | wall | label |
 |---|---|---|
 | P (paint, with set-up of pairing) | 7390 | contended: timing preflight refused (cpptools at 100% CPU, Python at 99% CPU); single run, one worker |
-| R (one fit per painted voxel) | 841 | same process as P |
-| R2 (second fit, every fourth voxel) | 219 | same process as P |
+| R (one fit per painted voxel) | 841 | contended: separate refine-stage process, no preflight; run D running |
+| R2 (second fit, every fourth voxel) | 219 | contended: separate refine-stage process, no preflight; run D running at start |
 | D (BFS) | 9369 | contended: timing preflight refused (cpptools at 114% CPU, Python at 100% CPU); single run, one worker |
 <!-- /table:ar3c_wall -->
 
 ## What is and is not claimed
 
-Claimed: on this gradient sample, at these settings, the painted start is close to the truth only
-because painting seeded a fifth of the voxels, and the BFS local fit moved almost none of the
-19,013 painted voxels. Consistent with, cause untested: a flat or quantised cost at this scale, or
-a step too coarse for 0.05 deg; step 2's sample showed the same inertness.
+Claimed: on this gradient sample, at these settings, the painted start is close to the truth
+(consistent with the many seeds, 21.9% of voxels; untested, no arm with fewer seeds), and the BFS
+local fit moved almost none of the 19,013 painted voxels. The stored records show that the strict
+cost does tell the truth from the start (lower at the truth on 16,591 of 19,013, and on all 2,240
+starts more than 0.1 deg off), yet the fit lowered the cost on only 36. The fit's first-block
+trial steps (median 0.70 deg, 5th percentile 0.32 deg) are many times the start's error, and its
+restarts land 4.9 to 16.8 deg (median) from the start. Consistent with a step too coarse for this
+start; a run with a finer box would test it (step 4). Step 2's sample showed the same inertness.
+P (with R) beats D on the share above 0.1 deg, in one run of each arm.
 
 Not claimed: that the gradient model matches a real sample (the owner is asked which sizes and
 shapes are typical); sharp sub-grain boundaries; realistic images, another Q-max, layer or voxel
@@ -399,7 +538,9 @@ order; a tested stop rule (the rules are simulated from records, at grid edges);
 time; another local optimizer (the CMA key exists, not run); the run-to-run difference of one arm
 on the layer.
 
-Deviations: P ran 7,390 s against a 90-minute stop (output is written only at the end, so it was
-left to finish, under twice the budget); D 9,369 s against 150 minutes. R and R2 ran as a stage
-loading P's stored paint and generator state; the P map outside painted voxels is read from
-`recon.mic` (Euler angles to 1e-4 deg).
+Deviations: the 90-minute stop on P and the 150-minute stop on D were not coded (the constants
+were defined and unused, now removed). P ran 7,390 s (output is written only at the end, so it was
+left to finish, under twice the budget); D 9,369 s. The total compute was about 4.95 h against the
+plan's 4-hour budget: P 2.05 h, D 2.60 h, R and R2 0.29 h. R and R2 ran as a stage loading P's
+stored paint and generator state; the P map outside painted voxels is read from `recon.mic`
+(Euler angles to 1e-4 deg). D's map is stored gzipped (`recon.mic.gz`).

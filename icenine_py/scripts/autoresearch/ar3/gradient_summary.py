@@ -603,6 +603,7 @@ def step_sizes(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
         MaxMCSteps=max_steps,
         box_deg=math.degrees(box),
         identity_offset_deg=zero,
+        n_draws_per_row=n_draw,
         blocks=blocks,
         evals_all_blocks_fail=ev_fit,
         R_median_evals=float(np.median(ev_R)),
@@ -1067,6 +1068,7 @@ def point6(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
     # the fit's success by the start's error, and whether the truth's strict cost was lower than
     # the start's (Reading 0; truth used in this analysis only)
     ct = D.cost_true[vox]
+    phase = np.array([r["phase"] for r in lg])
     edges = [0.0, 0.05, 0.1, 0.2, 0.5, 1.0, 5.0, 1e9]
     drow = []
     S["D_fit_by_start_error"] = {}
@@ -1080,6 +1082,7 @@ def point6(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
         tl = int((ct[m] < sc_d[m]).sum())
         S["D_fit_by_start_error"][name] = dict(
             fits=nm,
+            revisit_fits=int((phase[m] == "revisit").sum()),
             lowered=wil(lowered, nm),
             lowered_share=lowered / nm,
             truth_lower=wil(tl, nm),
