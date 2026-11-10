@@ -952,3 +952,22 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   follows; the next step needs a test sample with gradients inside grains. Also in the session:
   the agent may run more per wake (more token limit left). Where: PR #42;
   icenine_py/docs/autoresearch/STATE.md; review page comments of 2026-11-10.
+
+### D-20261110-N4 · Track A / AR3 step 3 · AR3 step 3 plan approved under the owner's mandate (paint as a start, refine, on grains with gradients); step 2 review items settled
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Taken by Newt Agent under the owner's mandate D-20261109-N1; the owner may overrule any part.
+  (1) AR3 step 3 (task ar3c) is approved as written in PLAN.md at 93be764: a gradient sample (same
+  voxels and grains, a linear rotation field inside each grain, levels 0, 0.1, 0.2, 0.5 and 1.0
+  degrees drawn per grain with seed 0), clean images of it, runs P (paint), R (one local fit from
+  each painted start, with a trace), R2 (a second fit on every fourth voxel) and D (BFS with
+  indexed seeds), and stop-rule readings for goal 5 picked on even-id grains and reported on
+  odd-id grains. The gradient model is the agent's choice, not measured data; the owner is asked
+  which sizes and shapes are typical, and the task does not wait for the answer. It starts after
+  ar3b is merged. (2) Step 2 review (verdict: request changes, 12 fixes): all 12 go to a fresh
+  Opus implementer, plus fix 13, a dated correction note on step 1's findings page. (3) The
+  reviewer's three owner items: the plan's premise line is already corrected (D-20261110-N3); the
+  whole-layer result files of step 2 stay in git as committed and history is not rewritten, and
+  from step 3 on a task commits only the result files its summary reads; the off-path claim cites
+  check B, with no stored output from the base commit. Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR3 Step 3; review report 20261110-0900-review-ar3b.md
+  under .claude/reports.
