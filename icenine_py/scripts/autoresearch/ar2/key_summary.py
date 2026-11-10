@@ -505,7 +505,33 @@ def main() -> None:
             onf = load_run(fused)
             ptf = paired_trace(onf, L, off_fused)
             summ["pair_fused"] = ptf
+            pn = g2_bfs.paired(OFF, off_fused)
+            summ["noise"] = {
+                k: pn[k] for k in ("wrong_a", "wrong_b", "fixed", "broken", "both_wrong")
+            }
             summ["break_trace_fused"] = trace_breaks(ptf, onf, L)
+    d: Dict[str, Any] = dict(
+        evals_ratio_off_over_on=summ["off"]["evals"]["total"] / summ["on"]["evals"]["total"],
+        evals_per_grid_full_search_off=summ["off"]["evals"]["full"] / summ["off"]["full_searches"],
+        evals_per_indexed_seed_on=summ["on"]["index"]["evals_used"] / summ["on"]["index"]["runs"],
+        full_search_share_of_evals_off=summ["off"]["evals"]["full"] / summ["off"]["evals"]["total"],
+        full_search_share_of_evals_on=summ["on"]["evals"]["full"] / summ["on"]["evals"]["total"],
+    )
+    if "on_fused" in summ and "off_fused" in summ:
+        d["evals_ratio_fused_off_over_on"] = (
+            summ["off_fused"]["evals"]["total"] / summ["on_fused"]["evals"]["total"]
+        )
+        d["wall_ratio_fused_off_over_on"] = (
+            summ["off_fused"]["wall_total_s"] / summ["on_fused"]["wall_total_s"]
+        )
+        d["wall_fused_on_seed_reseed_s"] = (
+            summ["on_fused"]["index"]["wall_seed_s"] + summ["on_fused"]["index"]["wall_reseed_s"]
+        )
+        d["wall_fused_on_local_fit_s"] = (
+            summ["on_fused"]["index"]["wall_neighbor_s"]
+            + summ["on_fused"]["index"]["wall_revisit_s"]
+        )
+    summ["derived"] = d
     (OUT / "summary.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
     tables(summ)
     figure(summ)
@@ -590,6 +616,10 @@ def tables(S: Dict[str, Any]) -> None:
         dict(item="evaluations of used indexing paths", value=f"{ix['evals_used']:,d}"),
         dict(item="evaluations of indexing paths that fell back", value=f"{ix['evals_wasted']:,d}"),
         dict(item="evaluations of the grid fallbacks", value=f"{ix['evals_fallback_grid']:,d}"),
+        dict(item="key off: voxels whose result is their own grid search, wrong",
+             value=wil(off["seed_source_wrong"], off["seed_source"])),
+        dict(item="key on: voxels whose result is their own indexed seed, wrong",
+             value=wil(on["seed_source_wrong"], on["seed_source"])),
     ]  # fmt: skip
     t_ix = DT.markdown_table(t_ix_rows, ["item", "value"])
     # times
@@ -640,6 +670,48 @@ def tables(S: Dict[str, Any]) -> None:
     t_ct = (
         DT.markdown_table(ct_rows, cols_ct) if ct_rows else "no wrong indexed result behind a break"
     )
+    t_noise = ""
+    if "noise" in S:
+        nz = S["noise"]
+        t_noise = DT.markdown_table(
+            [dict(pair="key off with FusedCost on, against key off without", wrong_a=nz["wrong_a"],
+                  wrong_b=nz["wrong_b"], fixed=nz["fixed"], broken=nz["broken"],
+                  both_wrong=nz["both_wrong"])],
+            ["pair", "wrong_a", "wrong_b", "fixed", "broken", "both_wrong"],
+        )  # fmt: skip
+    t_17361 = ""
+    p17 = OUT / "voxel_17361.json"
+    if p17.exists():
+        v = json.loads(p17.read_text())
+        fo, vm = v["stages"]["findoptimal"], v["stages"]["variance_minimizing"]
+        rs, gn = v["restart_from_end"], v["ray_gauss_newton_from_end"]
+        pert = v["strict_cost_at_truth_perturbed"]
+        items = [
+            ("truth candidate: rank in the indexer's list", v["truth_rank"]),
+            ("truth candidate: distance from the truth (deg)", f"{v['truth_start_deg']:.4f}"),
+            ("truth candidate: strict cost", f"{v['truth_candidate_cost']:.4f}"),
+            ("strict cost at the exact truth", f"{v['cost_at_exact_truth']:.4f}"),
+            ("strict cost 0.02 deg from the truth", f"{pert['0.02deg']:.4f}"),
+            ("strict cost 0.045 deg from the truth", f"{pert['0.045deg']:.4f}"),
+            ("strict cost 0.1 deg from the truth", f"{pert['0.1deg']:.4f}"),
+            ("finisher, total evaluations (truth candidate)", v["finisher_evals"][1]),
+            ("stage 1 (FindOptimal, MC blocks): evaluations", fo["evals"]),
+            ("stage 1: blocks run, blocks accepted",
+             f"{int(fo['n_blocks'])}, {int(fo['n_accept'])}"),
+            ("stage 1: first MC step and box (deg)", f"{v['stages']['step_deg']:.3f}, "
+                                                    f"{v['stages']['box_deg']:.3f}"),
+            ("stage 1: cost before, after", f"{fo['cost_before']:.4f}, {fo['cost_after']:.4f}"),
+            ("stage 2 (VarianceMinimizing): evaluations", vm["evals"]),
+            ("stage 2: cost before, after", f"{vm['cost_before']:.4f}, {vm['cost_after']:.4f}"),
+            ("restart of the finisher from its end point: cost, moved (deg)",
+             f"{rs['cost']:.4f}, {rs['moved_deg']:.4f}"),
+            ("ray Gauss-Newton from the end point: cost, accepted",
+             f"{gn['cost']:.4f}, {gn['accepted']}"),
+            ("ray Gauss-Newton: moved (deg), distance from the truth after (deg)",
+             f"{gn['moved_deg']:.4f}, {gn['err_deg']:.4f}"),
+            ("ray Gauss-Newton: strict, smooth evaluations", f"{gn['n_strict']}, {gn['n_smooth']}"),
+        ]  # fmt: skip
+        t_17361 = DT.markdown_table([dict(item=a, value=b) for a, b in items], ["item", "value"])
     # kinds
     k = pt["kinds_wrong"]
     t_kind = DT.markdown_table(
@@ -676,6 +748,8 @@ def tables(S: Dict[str, Any]) -> None:
             ),
             "ar2b_kinds": t_kind,
             "ar2b_flip_kinds": t_fxbk,
+            **({"ar2b_noise": t_noise} if t_noise else {}),
+            **({"ar2b_17361": t_17361} if t_17361 else {}),
         },
     )
 

@@ -1,3 +1,26 @@
+<!-- table:ar2b_17361 -->
+| item | value |
+|---|---|
+| truth candidate: rank in the indexer's list | 1 |
+| truth candidate: distance from the truth (deg) | 0.0449 |
+| truth candidate: strict cost | 0.1623 |
+| strict cost at the exact truth | 0.0949 |
+| strict cost 0.02 deg from the truth | 0.1556 |
+| strict cost 0.045 deg from the truth | 0.2367 |
+| strict cost 0.1 deg from the truth | 0.4356 |
+| finisher, total evaluations (truth candidate) | 924 |
+| stage 1 (FindOptimal, MC blocks): evaluations | 97 |
+| stage 1: blocks run, blocks accepted | 3, 0 |
+| stage 1: first MC step and box (deg) | 0.132, 0.329 |
+| stage 1: cost before, after | 0.1623, 0.1623 |
+| stage 2 (VarianceMinimizing): evaluations | 826 |
+| stage 2: cost before, after | 0.1623, 0.1623 |
+| restart of the finisher from its end point: cost, moved (deg) | 0.1623, 0.0000 |
+| ray Gauss-Newton from the end point: cost, accepted | 0.1283, True |
+| ray Gauss-Newton: moved (deg), distance from the truth after (deg) | 0.0627, 0.0190 |
+| ray Gauss-Newton: strict, smooth evaluations | 2, 14 |
+<!-- /table:ar2b_17361 -->
+
 <!-- table:ar2b_accuracy -->
 | run | wrong | fixed | broken | both_wrong | unresolved |
 |---|---|---|---|---|---|
@@ -97,6 +120,8 @@ no wrong indexed result behind a break
 | evaluations of used indexing paths | 122,198 |
 | evaluations of indexing paths that fell back | 0 |
 | evaluations of the grid fallbacks | 0 |
+| key off: voxels whose result is their own grid search, wrong | 2 of 62 (0.9 to 11.0%) |
+| key on: voxels whose result is their own indexed seed, wrong | 0 of 64 (0.0 to 5.7%) |
 <!-- /table:ar2b_index -->
 
 <!-- table:ar2b_kinds -->
@@ -105,6 +130,12 @@ no wrong indexed result behind a break
 | key off (stored rerun) | 37 | 0 | 0 |
 | key on | 22 | 0 | 0 |
 <!-- /table:ar2b_kinds -->
+
+<!-- table:ar2b_noise -->
+| pair | wrong_a | wrong_b | fixed | broken | both_wrong |
+|---|---|---|---|---|---|
+| key off with FusedCost on, against key off without | 37 | 24 | 20 | 7 | 17 |
+<!-- /table:ar2b_noise -->
 
 <!-- table:ar2b_times -->
 | item | value |

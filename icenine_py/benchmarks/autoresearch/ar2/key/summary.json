@@ -1649,6 +1649,13 @@
   "unresolved_on": 0,
   "unresolved_off": 1
  },
+ "noise": {
+  "wrong_a": 37,
+  "wrong_b": 24,
+  "fixed": 20,
+  "broken": 7,
+  "both_wrong": 17
+ },
  "break_trace_fused": [
   {
    "voxel": 1402,
@@ -1878,5 +1885,16 @@
     0.053030303030303094
    ]
   }
- ]
+ ],
+ "derived": {
+  "evals_ratio_off_over_on": 9.059853413553501,
+  "evals_per_grid_full_search_off": 331635.72463768115,
+  "evals_per_indexed_seed_on": 1909.34375,
+  "full_search_share_of_evals_off": 0.8956835454607193,
+  "full_search_share_of_evals_on": 0.04333406858242792,
+  "evals_ratio_fused_off_over_on": 9.088860189066196,
+  "wall_ratio_fused_off_over_on": 7.661203237744318,
+  "wall_fused_on_seed_reseed_s": 35.815977573394775,
+  "wall_fused_on_local_fit_s": 176.96337175369263
+ }
 }
