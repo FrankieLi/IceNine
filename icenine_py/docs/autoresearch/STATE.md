@@ -71,9 +71,19 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    The review is done: REQUEST CHANGES, 14 required fixes, all on the page, the summary and
    tables, or the figure; the code is correct and every number recomputed
    (`.claude/reports/20261109-review-ar2b.md` in the worktree). Its two questions are decided in
-   D-20261109-N9 (938a342). **Now running: the fixes** (Opus implementer in that worktree,
-   started 2026-11-09 about 19:00), report `.claude/reports/20261109-1838-ar2b-fixes.md` in the
-   worktree. When it exists: `scripts/dev/verify_handback.sh feature/eval-reduction <report>
+   D-20261109-N9 (938a342). **Fixes, state at 19:20:** the Opus fix implementer
+   committed 1cee7261d (`key_summary.py`, summary, tables, figure: fixes 1, 4, 5, 6, 7, 9, 10,
+   12). Its write of the revised page was refused, so the page is still as at 7789887 and fixes
+   2, 3, 8, 11, 13 and the page side of the others are not in the repo yet. The agent was
+   resumed to return the page text; the main session places it over
+   `docs/autoresearch/findings_ar2_key.md`, runs `sync_doc_tables.py` (then `--check`) and
+   `audit_numbers.py`, fills the audit count in the provenance sentence, and commits. If the
+   agent died with the session: start a fresh Opus implementer with the same brief plus "return
+   the page text, do not write the page". Its finding on fix 1: the two key-on runs differ in
+   orientation on 2 of 2,000 voxels, not 637 (the review used the angle function with a floor).
+   Its new case (seeds in both runs, only the indexed result right: voxels 5876, 24334; 16476 in
+   the FusedCost pair) is decided in D-20261109-N10 (44c24f2): counts for the key. Report:
+   `.claude/reports/20261109-1838-ar2b-fixes.md` in the worktree. After the page is placed: `scripts/dev/verify_handback.sh feature/eval-reduction <report>
    --branch feature/eval-reduction-ar2b --agent N` from the worktree, check that each fix number
    is applied, then merge with `../../../scripts/dev/finish_task.sh --yes --push` from the
    worktree. If the fix agent died with the session, regenerate the brief
