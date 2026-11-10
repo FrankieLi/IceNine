@@ -194,6 +194,68 @@ def test_precommit_claude_config_override(repo: Path) -> None:
     assert precommit_check.check(repo, {"ALLOW_CLAUDE_CONFIG": "1"}) == []
 
 
+def _start_merge(repo: Path) -> None:
+    """Leave ``repo`` in a merge of branch ``other``, which changed three guarded files."""
+    _git(repo, "checkout", "-q", "-b", "other")
+    for rel in ["CLAUDE.md", ".claude/agents/a.md", ".claude/hooks/h.sh"]:
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text("from the other branch\n")
+    (repo / ".claude/hooks/h.sh").chmod(0o755)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "other: guarded files")
+    _git(repo, "checkout", "-q", "develop")
+    _git(repo, "merge", "--no-ff", "--no-commit", "other")
+
+
+def test_precommit_merge_brings_identical_claude_files(repo: Path) -> None:
+    _start_merge(repo)
+    assert precommit_check.merge_heads(repo) == [_git(repo, "rev-parse", "other")]
+    assert precommit_check.check(repo, {}) == []
+
+
+def test_precommit_merge_refuses_claude_file_that_differs_from_merged_branch(repo: Path) -> None:
+    _start_merge(repo)
+    _stage(repo, ".claude/agents/a.md", "edited during the merge\n")
+    _stage(repo, ".claude/agents/new.md", "not on the other branch\n")
+    msgs = precommit_check.check(repo, {})
+    assert sorted(m.split(":")[0] for m in msgs) == [".claude/agents/a.md", ".claude/agents/new.md"]
+    assert precommit_check.check(repo, {"ALLOW_CLAUDE_CONFIG": "1"}) == []
+
+
+def test_precommit_merge_refuses_claude_file_with_changed_mode(repo: Path) -> None:
+    _start_merge(repo)
+    _git(repo, "update-index", "--chmod=-x", ".claude/hooks/h.sh")
+    msgs = precommit_check.check(repo, {})
+    assert [m.split(":")[0] for m in msgs] == [".claude/hooks/h.sh"]
+
+
+def test_precommit_merge_takes_the_staged_path_literally(repo: Path) -> None:
+    # ":/CLAUDE.md" as a pathspec means the top-level CLAUDE.md, which the merge brings unchanged.
+    # As a literal path it is a new file in a directory named ":", and must be refused.
+    _start_merge(repo)
+    rel = ":/CLAUDE.md"
+    (repo / ":").mkdir()
+    (repo / rel).write_text("not on the other branch\n")
+    _git(repo, "--literal-pathspecs", "add", rel)
+    msgs = precommit_check.check(repo, {})
+    assert msgs == [f"{rel}:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)"]
+
+
+def test_precommit_merge_renamed_claude_file_is_refused(repo: Path) -> None:
+    _start_merge(repo)
+    _git(repo, "mv", ".claude/agents/a.md", ".claude/agents/b.md")
+    msgs = precommit_check.check(repo, {})
+    assert [m.split(":")[0] for m in msgs] == [".claude/agents/b.md"]
+
+
+def test_precommit_same_claude_file_outside_a_merge_is_refused(repo: Path) -> None:
+    _start_merge(repo)
+    _git(repo, "merge", "--abort")
+    assert precommit_check.merge_heads(repo) == []
+    _git(repo, "checkout", "-q", "other", "--", "CLAUDE.md", ".claude")
+    assert len(precommit_check.check(repo, {})) == 3
+
+
 def test_precommit_large_files(repo: Path) -> None:
     _stage(repo, "big.bin", "", binary_size=11 * 1024 * 1024)
     _stage(repo, "mid.npz", "", binary_size=6 * 1024 * 1024)
