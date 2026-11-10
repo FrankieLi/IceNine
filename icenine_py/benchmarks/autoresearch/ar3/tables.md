@@ -6,14 +6,12 @@
 <!-- /table:ar3_accuracy -->
 
 <!-- table:ar3_direct -->
-| set | n | true grain passes | lowest cost is the true grain | highest hit is the true grain | lowest cost and highest hit differ |
+| set | n | true grain passes | lowest cost is the true grain | highest hit is the true grain | lowest cost and highest hit name grains over 1 degree apart |
 |---|---|---|---|---|---|
-| all: all kinds | 126 | 126 of 126 (97 to 100%) | 126 of 126 (97 to 100%) | 126 of 126 (97 to 100%) | 0 of 126 (0 to 3%) |
-| all: edge | 63 | 63 of 63 (94 to 100%) | 63 of 63 (94 to 100%) | 63 of 63 (94 to 100%) | 0 of 63 (0 to 6%) |
-| all: corner | 32 | 32 of 32 (89 to 100%) | 32 of 32 (89 to 100%) | 32 of 32 (89 to 100%) | 0 of 32 (0 to 11%) |
-| all: interior | 31 | 31 of 31 (89 to 100%) | 31 of 31 (89 to 100%) | 31 of 31 (89 to 100%) | 0 of 31 (0 to 11%) |
-| lowest cost and highest hit different orientations: all kinds | 44 | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 0 of 44 (0 to 8%) |
-| lowest cost and highest hit different orientations: edge | 44 | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 0 of 44 (0 to 8%) |
+| passing grains over 1 degree apart: all kinds | 44 | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 0 of 44 (0 to 8%) |
+| passing grains over 1 degree apart: edge | 44 | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 44 of 44 (92 to 100%) | 0 of 44 (0 to 8%) |
+| passing entries all of one grain (duplicates within 1 degree; rules cannot differ) | 82 | 82 of 82 (no interval) | 82 of 82 (any rule; no interval) | 82 of 82 (any rule; no interval) | 0 of 82 (by construction) |
+| all contested (the two sets above) | 126 | 126 of 126 | 126 of 126 | 126 of 126 | 0 of 126 |
 <!-- /table:ar3_direct -->
 
 <!-- table:ar3_evals -->

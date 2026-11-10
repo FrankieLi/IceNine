@@ -158,7 +158,14 @@ def main() -> None:
     )
 
     # ---- evaluations
-    ev = run["evals"]
+    ev = dict(run["evals"])
+    # The stored paint run predates the split of "seed_rejected" into "index_rejected" and
+    # "grid_rejected" (review fix 10). The old bucket mixed the two, so it is only read when 0.
+    if "seed_rejected" in ev:
+        legacy = int(ev.pop("seed_rejected"))
+        assert legacy == 0, f"unsplit seed_rejected = {legacy}: rerun the paint run"
+        ev.setdefault("index_rejected", 0)
+        ev.setdefault("grid_rejected", 0)
     key_on = json.loads((C.STORED_KEY_ON / "run.json").read_text())["stats"]
     key_f = json.loads((C.STORED_KEY_ON_FUSED / "run.json").read_text())["stats"]
     key_off = KS.baseline()
@@ -184,15 +191,18 @@ def main() -> None:
             scoring=0,
             local_fits=key_off["evals"]["local"],
             grid=key_off["evals"]["full"],
+            full_searches=key_off["full_searches"],  # grid searches of the key-off run (fix 11)
         ),
         key_on=on_split(key_on, ke),
         key_on_fused=on_split(key_f, kf),
         paint=dict(
             total=paint_total,
-            seed_paths=ev["seed_index"] + ev["seed_rejected"],
+            seed_paths=ev["seed_index"] + ev["index_rejected"],
             scoring=ev["score"],
             local_fits=fit_ev,
-            grid=ev["seed_grid"],
+            grid=ev["seed_grid"] + ev["grid_rejected"],
+            index_rejected=ev["index_rejected"],
+            grid_rejected=ev["grid_rejected"],
             fit_accepted=ev["fit_accepted"],
             fit_rejected=ev["fit_rejected"],
         ),
@@ -302,21 +312,37 @@ def main() -> None:
         by_cost = sorted(pg, key=lambda t: (t[1], t[0]))
         by_hit = sorted(pg, key=lambda t: (-t[2], t[1], t[0]))
         c0, h0 = by_cost[0][0], by_hit[0][0]
-        distinct = any(mis(Re[a[0]], Re[b[0]], sym) > WRONG for a in pg for b in pg if a[0] < b[0])
+        pair_deg = [mis(Re[a[0]], Re[b[0]], sym) for a in pg for b in pg if a[0] < b[0]]
+        distinct = any(d > WRONG for d in pair_deg)
         rows.append(
             dict(
                 voxel=v,
                 kind=str(kind[v]),
                 n_passing=len(pg),
                 distinct=bool(distinct),
+                max_pair_deg=float(max(pair_deg)),
                 cost_right=bool(mis(Re[c0], Rtrue[v], sym) <= WRONG),
                 hit_right=bool(mis(Re[h0], Rtrue[v], sym) <= WRONG),
-                differ=bool(mis(Re[c0], Re[h0], sym) > WRONG),
+                cost_hit_differ=bool(mis(Re[c0], Re[h0], sym) > WRONG),
                 true_among=bool(any(mis(Re[g], Rtrue[v], sym) <= WRONG for g, _, _ in pg)),
                 margin=float(by_cost[1][1] - by_cost[0][1]),
             )
         )
     direct: Dict[str, Any] = dict(n_contested=len(rows))
+    # Contested voxels whose passing entries are all within 1 degree of each other: duplicate
+    # entries of one grain. Every rule picks an entry of that grain there, so the direct test cannot
+    # fail on them and cannot tell the rules apart (review fix 2).
+    dup = [r for r in rows if not r["distinct"]]
+    direct["duplicate_entries"] = dict(
+        n=len(dup),
+        kinds={k: sum(r["kind"] == k for r in dup) for k in ("edge", "corner", "interior")},
+        true_among=sum(r["true_among"] for r in dup),
+        cost_right=sum(r["cost_right"] for r in dup),
+        hit_right=sum(r["hit_right"] for r in dup),
+        cost_hit_differ=sum(r["cost_hit_differ"] for r in dup),  # 0 by construction
+        max_pair_deg=float(max((r["max_pair_deg"] for r in dup), default=float("nan"))),
+        pair_deg_values=sorted({round(r["max_pair_deg"], 5) for r in dup}),
+    )
     for sel_name, sel in (
         ("all", lambda r: True),
         ("different_orientations", lambda r: r["distinct"]),
@@ -327,7 +353,7 @@ def main() -> None:
             true_among=wil_dict(sum(r["true_among"] for r in sub), len(sub)),
             cost_right=wil_dict(sum(r["cost_right"] for r in sub), len(sub)),
             hit_right=wil_dict(sum(r["hit_right"] for r in sub), len(sub)),
-            cost_hit_differ=wil_dict(sum(r["differ"] for r in sub), len(sub)),
+            cost_hit_differ=wil_dict(sum(r["cost_hit_differ"] for r in sub), len(sub)),
         )
         for k in ("edge", "corner", "interior"):
             ss = [r for r in sub if r["kind"] == k]
@@ -336,16 +362,40 @@ def main() -> None:
                 cost_right=wil_dict(sum(r["cost_right"] for r in ss), len(ss)),
                 hit_right=wil_dict(sum(r["hit_right"] for r in ss), len(ss)),
                 true_among=wil_dict(sum(r["true_among"] for r in ss), len(ss)),
-                cost_hit_differ=wil_dict(sum(r["differ"] for r in ss), len(ss)),
+                cost_hit_differ=wil_dict(sum(r["cost_hit_differ"] for r in ss), len(ss)),
             )
         direct[sel_name] = d
     direct["rows"] = rows
     S["direct"] = direct
     kw = np.nonzero(EK["err"] > WRONG)[0]
+    # Does the key-on run's (wrong) orientation pass in paint? An entry within 1 degree of it that
+    # passes on the voxel (review fix 6: where it does not, the fix comes from not fitting).
+    from score_bfs import mats_to_quats, pair_misorientation_deg
+
+    q_ent = mats_to_quats(Re)
+
+    def near_key_on(v: int, gs: List[int]) -> bool:
+        if not gs:
+            return False
+        qk = np.broadcast_to(EK["q_rec"][v], (len(gs), 4))
+        return bool((pair_misorientation_deg(q_ent[gs], qk, EK["sym"]) <= WRONG).any())
+
+    wrong_passes = [near_key_on(int(v), [g for g, _, _ in passing.get(int(v), [])]) for v in kw]
+    wrong_scored = [
+        near_key_on(int(v), [g for g, t in scored.get(int(v), {}).items() if not t[2]]) for v in kw
+    ]
     S["key_on_wrong_in_paint"] = dict(
         n=len(kw),
         passing_counts={str(k): int((n_pass[kw] == k).sum()) for k in sorted(set(n_pass[kw]))},
         painted_right=int((E["err"][kw] <= WRONG).sum()),
+        wrong_orientation_passes=int(sum(wrong_passes)),
+        wrong_orientation_does_not_pass=int(len(kw) - sum(wrong_passes)),
+        wrong_orientation_scored_not_passed=int(
+            sum(s and not p for s, p in zip(wrong_scored, wrong_passes))
+        ),
+        one_passing_and_wrong_does_not_pass=int(
+            sum((n_pass[v] == 1) and not p for v, p in zip(kw, wrong_passes))
+        ),
     )
 
     # ---- how far a wrong grain floods
@@ -407,6 +457,26 @@ def main() -> None:
     by_grain = E["source"] == "grain"
     right_both = by_grain & (E["err"] <= WRONG) & (EK["err"] <= WRONG)
     q = [50, 90, 99]
+    # A painted voxel carries its entry's orientation and the truth is one orientation per grain,
+    # so the paint errors take one value per painting entry (review fix 5).
+    rb = [int(v) for v in np.nonzero(right_both)[0]]
+    painted_entry = {v: min(passing[v], key=lambda t: (t[1], t[0]))[0] for v in rb}
+
+    def n_orient(e: Any, sel: np.ndarray) -> int:  # distinct stored orientations (to 1e-7)
+        q = e["q_rec"][sel]
+        q = q * np.where(q[:, :1] < 0, -1.0, 1.0)
+        return int(len(np.unique(np.round(q, 7), axis=0)))
+
+    S["accuracy_distinct"] = dict(
+        n_entries_painting=len(set(painted_entry.values())),
+        n_distinct_paint_err=len({round(float(E["err"][v]), 9) for v in rb}),
+        n_distinct_key_on_err=len({round(float(EK["err"][v]), 9) for v in rb}),
+        # the key-on map is not one fit result per voxel either: it holds few orientations
+        n_orientations_paint_map=n_orient(E, np.arange(n)),
+        n_orientations_key_on_map=n_orient(EK, np.arange(n)),
+        n_orientations_key_on_fused_map=n_orient(EF, np.arange(n)),
+        n_orientations_key_on_right_both=n_orient(EK, right_both),
+    )
     S["accuracy"] = dict(
         n_painted_by_grain=int(by_grain.sum()),
         n_right_in_both=int(right_both.sum()),
@@ -595,22 +665,52 @@ def tables(S: Dict[str, Any]) -> None:
             true_among=f(x["true_among"]),
             cost_right=f(x["cost_right"]),
             hit_right=f(x["hit_right"]),
-            differ=f(x["cost_hit_differ"]),
+            cost_hit_differ=f(x["cost_hit_differ"]),
         )
 
-    dr = []
-    for nm in ("all", "different_orientations"):
-        dr.append(drow(f"{nm.replace('_', ' ')}: all kinds", dict(d[nm], n=d[nm]["n"])))
-        for k in ("edge", "corner", "interior"):
-            if d[nm][k]["n"]:
-                dr.append(drow(f"{nm.replace('_', ' ')}: {k}", d[nm][k]))
-    T["ar3_direct"] = (
-        DT.markdown_table(dr, ["set", "n", "true_among", "cost_right", "hit_right", "differ"])
-        .replace("true_among", "true grain passes")
-        .replace("cost_right", "lowest cost is the true grain")
-        .replace("hit_right", "highest hit is the true grain")
-        .replace("differ", "lowest cost and highest hit differ")
+    # Review fixes 1 and 2: the informative set leads (passing grains over 1 degree apart, with
+    # intervals); the duplicate-entry voxels, where the test cannot fail, get bare counts only.
+    far = "passing grains over 1 degree apart"
+    dr = [drow(f"{far}: all kinds", d["different_orientations"])]
+    for k in ("edge", "corner", "interior"):
+        if d["different_orientations"][k]["n"]:
+            dr.append(drow(f"{far}: {k}", d["different_orientations"][k]))
+    du = d["duplicate_entries"]
+    bare = "{} of {} (any rule; no interval)"
+    dr.append(
+        dict(
+            set=(
+                "passing entries all of one grain (duplicates within 1 degree; "
+                "rules cannot differ)"
+            ),
+            n=du["n"],
+            true_among=f"{du['true_among']} of {du['n']} (no interval)",
+            cost_right=bare.format(du["cost_right"], du["n"]),
+            hit_right=bare.format(du["hit_right"], du["n"]),
+            cost_hit_differ=f"{du['cost_hit_differ']} of {du['n']} (by construction)",
+        )
     )
+    a = d["all"]
+    dr.append(
+        dict(
+            set="all contested (the two sets above)",
+            n=a["n"],
+            true_among=f"{a['true_among']['k']} of {a['n']}",
+            cost_right=f"{a['cost_right']['k']} of {a['n']}",
+            hit_right=f"{a['hit_right']['k']} of {a['n']}",
+            cost_hit_differ=f"{a['cost_hit_differ']['k']} of {a['n']}",
+        )
+    )
+    cols = ["set", "n", "true_among", "cost_right", "hit_right", "cost_hit_differ"]
+    head = {
+        "true_among": "true grain passes",
+        "cost_right": "lowest cost is the true grain",
+        "hit_right": "highest hit is the true grain",
+        "cost_hit_differ": "lowest cost and highest hit name grains over 1 degree apart",
+    }
+    md = DT.markdown_table(dr, cols).split("\n")
+    md[0] = "| " + " | ".join(head.get(c, c) for c in cols) + " |"  # header row only
+    T["ar3_direct"] = "\n".join(md)
     cv = [
         dict(
             m="all" if c["margin"] is None else f"{c['margin']:g}",
@@ -763,30 +863,46 @@ def figure(S: Dict[str, Any], E: Any, EK: Any, EF: Any, EO: Any, L: Any) -> None
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(1, 3, figsize=(15, 4.4))
+    # left: the effect (wrong voxels by arm, Wilson 95% interval, evaluations under each bar)
+    arms = [
+        ("key off", "key_off", "C7"),
+        ("key on", "key_on", "C0"),
+        ("paint", "paint", "C1"),
+    ]
+    ev = S["evals"]
+    for i, (lab, k, col) in enumerate(arms):
+        w = S["wrong"][k]
+        ax[0].bar(i, w["k"], color=col)
+        lo, hi = w["lo"] * w["n"], w["hi"] * w["n"]
+        ax[0].errorbar(i, w["k"], yerr=[[w["k"] - lo], [hi - w["k"]]], color="k", capsize=4)
+        ax[0].annotate(
+            str(w["k"]),
+            (i, hi),
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            xytext=(0, 2),
+            textcoords="offset points",
+        )
+    ax[0].set_xticks(range(len(arms)))
+    ax[0].set_xticklabels([f"{lab}\n{ev[k]['total']:,}\nevaluations" for lab, k, _ in arms])
+    ax[0].set_ylim(0, 1.15 * max(S["wrong"][k]["hi"] * S["wrong"][k]["n"] for _, k, _ in arms))
+    ax[0].set_ylabel("wrong voxels of 2,000 (Wilson 95% interval)")
+    ax[0].set_title("Wrong voxels by arm (one run each)")
     by_grain = E["source"] == "grain"
     ok = by_grain & (E["err"] <= WRONG) & (EK["err"] <= WRONG)
     for e, lab, col in ((E, "paint (no fit)", "C1"), (EK, "key on (every voxel fitted)", "C0")):
         x = np.sort(np.maximum(e["err"][ok], 1e-4))
-        ax[0].plot(x, np.arange(1, len(x) + 1) / len(x), label=lab, color=col)
-    ax[0].set_xscale("log")
-    ax[0].set_xlabel("distance to the truth (degrees)")
-    ax[0].set_ylabel("share of voxels")
-    ax[0].set_title(f"Painted voxels that are right in both runs (n={int(ok.sum())})")
-    ax[0].legend(fontsize=8)
-    cv = S["side"]["curve"]
-    xs = [c["evals"] for c in cv]
-    ax[1].plot(xs, [c["wrong_after"] for c in cv], "o-", color="C2")
-    for c in cv:
-        ax[1].annotate(
-            "all" if c["margin"] is None else f"{c['margin']:g}",
-            (c["evals"], c["wrong_after"]),
-            fontsize=7,
-        )
-    ax[1].axhline(S["wrong"]["paint"]["k"], color="C1", ls=":", label="paint, no fit")
-    ax[1].axhline(S["wrong"]["key_on"]["k"], color="C0", ls=":", label="key on")
-    ax[1].set_xlabel("extra evaluations of the fits on contested voxels")
-    ax[1].set_ylabel("wrong voxels")
-    ax[1].set_title("Side arm: fit when the two lowest costs differ by less than m")
+        ax[1].plot(x, np.arange(1, len(x) + 1) / len(x), label=lab, color=col)
+    ax[1].set_xscale("log")
+    ax[1].set_xlabel("distance to the truth (degrees)")
+    ax[1].set_ylabel("share of voxels")
+    nd = S["accuracy_distinct"]["n_entries_painting"]
+    ax[1].set_title(
+        f"Voxels painted and right in both runs (n={int(ok.sum())});\n"
+        f"paint takes {nd} distinct values, one per entry",
+        fontsize=10,
+    )
     ax[1].legend(fontsize=8)
     fh = S["flood"]["outside_by_distance_sides"]
     ax[2].bar(list(fh), list(fh.values()), color="C3")
