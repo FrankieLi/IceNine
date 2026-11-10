@@ -81,27 +81,33 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    not be removed (untracked link and cache); harmless, removable with
    `git worktree remove --force`. Left open and recorded: `key_run_bg.sh` still writes "single
    run" into the label of future runs.
-6. **AR3 step 2 is next: write its details into the plan, then start the implementer.**
+6. **AR3 step 2 is running: the implementer of task `ar3b` was started 2026-11-10.**
    Step 1 is merged (8e3098f); its page is `docs/autoresearch/findings_ar3_paint.md`, the review
-   `.claude/reports/20261110-0430-review-ar3a.md`.
-   - Write the details under "Step 2" of the plan section "AR3: index the layer and paint
-     grains" (the opt-in key `PaintGrains`, off path bit-identical; the pilot through the key
-     reproduces step 1; the whole layer, 24,570 voxels and 497 grains, against the key-on BFS on
-     the whole layer; a margin rule tested outside the pilot; budget 3 hours). Add a "Task split"
-     line for task `ar3b`. Log the approval with `scripts/dev/log_decision.sh` (delegated, under
-     D-20261109-N1), then `make_brief.sh --plan ... --task ar3b --section "AR3: index the layer
-     and paint grains"`, and a Sonnet implementer in its own worktree with the brief verbatim.
-   - Settle in that plan text the two points the step 1 review left open: (a) whether a voxel
-     settled by a fit keeps its fit when a later grain passes there with a lower cost (in step 1
-     no fit was accepted, so the rule was never used); (b) the wording rule for a paired count
-     (22 fixed and 0 broken is not called a gain by the count alone; the direct test carries it).
-   - Take up the finding of the fixes round: the stored key-on BFS map has only 64 distinct
-     orientations over 2,000 voxels (key off: 63). So the BFS local fits nearly always return
-     their start. They are 2,697,708 of key on's 2,819,906 evaluations. Not traced. A cheap
-     first check for step 2 or AR5: per local fit, did the orientation move, and by how much did
-     the cost fall. If most fits do not move, a stop rule on the first few evaluations of a fit
-     is the early stop the owner asked for (goal 5).
-   - Seed paths are 76% of paint's evaluations (1,920 per seed): the next lever after painting.
+   `.claude/reports/20261110-0430-review-ar3a.md`. The details of step 2 are in the plan
+   (7ac1216, section "AR3: index the layer and paint grains", "Step 2, the details"), approved
+   under the mandate (D-20261110-N2, ad16c3a). What the plan fixes: the opt-in key `PaintGrains`
+   (needs `SeedByIndexing 1`; the loop of `grain_paint.py` is not changed); checks first (the
+   pilot through the key gives step 1 again; the key-on BFS with a fit log is the stored run);
+   then the whole layer, paint against the key-on BFS, every count split into the pilot region
+   and the rest; a fit-settled voxel keeps its fit and both rules are reported; a paired count
+   is called a gain only when the error-rate intervals do not overlap; a log of every BFS local
+   fit (did it move, how far did the cost fall) as the first reading for an early stop; a
+   per-seed record as the reading for a cheaper seed. Budget 3 hours.
+   - Is the agent alive? `git -C .claude/worktrees/agent-a849170b7d4502001 log --oneline -5`
+     and `git -C .claude/worktrees/agent-a849170b7d4502001 status --short | head`. New commits
+     or changed files mean it is working: do nothing else on this wake. If the session was
+     restarted and there is no hand-back, follow point 3 (fresh Sonnet implementer, the brief
+     from `make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar3b --section
+     "AR3: index the layer and paint grains"`, the note "continue from the commits on the
+     branch"; first `git -C <old worktree> checkout --detach` to free the branch).
+   - When it hands back: write the findings page (`docs/autoresearch/findings_ar3_layer.md`) and
+     the report (`.claude/reports/20261110-0658-ar3b.md`) from its returned text, commit the
+     page on the task branch, then `scripts/dev/verify_handback.sh feature/eval-reduction
+     <report> --branch feature/eval-reduction-ar3b`, then `/review-task` (Opus), fixes by an
+     Opus implementer, `finish_task.sh --yes --push` in the task's worktree.
+   - Before that merge: post to Ilium in `docs/ROADMAP.md` (the task changes the shared files
+     `reconstructor.py`, `config_file.py`, `orientation_search.py`). After it: `gh pr edit 42`,
+     this file, the review page, one shmem fact.
 7. Item 7: **PR #41 is merged** into `develop` (357a2b3, 2026-11-09, at branch head 16c72db), on
    the owner's word in the session (D-20261109-N11). The branch `feature/eval-reduction` is kept.
    **PR #42 is open** (2026-11-10, https://github.com/FrankieLi/IceNine/pull/42): what landed
@@ -143,14 +149,18 @@ Reading the table: one row per step, in order, with its state.
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
 | AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) **done** 2026-11-09 (a8c99b7) |
-| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; **next**: step 2 (the key `PaintGrains`, the whole layer): write the plan details, then the implementer |
+| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer): plan details written (7ac1216, D-20261110-N2), **implementer running** (task `ar3b`, started 2026-11-10) |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 
 ## Running jobs
 
-No agent and no compute job is running (2026-11-10, after the merge of AR3 step 1). Old agent
+One agent is running (started 2026-11-10): the Sonnet implementer of task `ar3b` (AR3 step 2),
+branch `feature/eval-reduction-ar3b`, worktree `.claude/worktrees/agent-a849170b7d4502001`. It
+will start two whole-layer runs in the background (paint, then the key-on BFS; the BFS may take
+about an hour). Check: the two `git -C` commands under "Next action" 6, and
+`scripts/dev/job_status.sh` for its compute jobs. Old agent
 worktrees under `.claude/worktrees/` are detached and can stay; `agent-a3fcfcc95d9db6295` holds
 the untracked run files of the paint run (pairing cache, `run.config` files, the image symlink).
 
