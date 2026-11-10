@@ -1,0 +1,42 @@
+{
+  "name": "paint",
+  "config": "key_on_fused.config",
+  "n_voxels": 2000,
+  "n_order": 2000,
+  "n_entries": 62,
+  "evals": {
+    "seed_index": 119033,
+    "score": 6697,
+    "fit_rejected": 31036,
+    "seed_grid": 0,
+    "fit_accepted": 0,
+    "seed_rejected": 0
+  },
+  "evals_total": 156766,
+  "counts": {
+    "seeds": 62,
+    "fits_accepted": 0,
+    "fits_rejected": 48,
+    "failed": 0
+  },
+  "wall_total_s": 37.94379901885986,
+  "wall_by_stage_s": {
+    "seed_index": 35.54886483499998,
+    "score": 0.2515161689998706,
+    "fit_rejected": 2.071493747999984,
+    "seed_grid": 0.0,
+    "fit_accepted": 0.0,
+    "seed_rejected": 0.0
+  },
+  "index_pairing_s": 17.230882917,
+  "setup_s": 0.10043907165527344,
+  "timing_label": "contended: timing preflight refused (cpptools at 98% CPU); single run, one worker",
+  "fused_cost": true,
+  "torch_threads": 1,
+  "cost_fn_eval_count": 6697,
+  "side": {
+    "n_contested": 126,
+    "evals": 167326,
+    "wall_s": 11.031713707999998
+  }
+}

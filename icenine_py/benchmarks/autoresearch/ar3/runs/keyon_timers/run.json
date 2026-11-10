@@ -1,0 +1,105 @@
+{
+  "name": "keyon_timers",
+  "wall_total_s": 224.2533519268036,
+  "profiled": false,
+  "timing_label": "contended: timing preflight refused (cpptools at 96% CPU); single run, one worker",
+  "setup_s": 0.10025501251220703,
+  "pairing_s": 17.579415375,
+  "evals": {
+    "seed": 64578,
+    "reseed": 57576,
+    "neighbor": 1297236,
+    "revisit": 1397507
+  },
+  "evals_total": 2816897,
+  "parts": {
+    "local_fit": {
+      "incl_s": 186.77122960900059,
+      "calls": 4095,
+      "eval_s": 121.24821280599781,
+      "evals": 2694743
+    },
+    "finisher": {
+      "incl_s": 7.388554199999874,
+      "calls": 128,
+      "eval_s": 4.309713751004949,
+      "evals": 121834
+    },
+    "indexing": {
+      "incl_s": 11.887823161999933,
+      "calls": 64,
+      "eval_s": 0.0,
+      "evals": 0
+    },
+    "seed_path": {
+      "incl_s": 36.89708708400002,
+      "calls": 64,
+      "eval_s": 0.025137340000242148,
+      "evals": 320
+    },
+    "overlap": {
+      "incl_s": 0.03851153899998394,
+      "calls": 64,
+      "eval_s": 0.02425929199992538,
+      "evals": 64
+    },
+    "grid_search": {
+      "incl_s": 0.0,
+      "calls": 0,
+      "eval_s": 0.0,
+      "evals": 0
+    },
+    "other_evals": {
+      "eval_s": 0.0,
+      "evals": 0
+    }
+  },
+  "top_by_tottime": [],
+  "fused_cost": true,
+  "torch_threads": 1,
+  "stats": {
+    "n_seeds": 33,
+    "n_seed_rejected": 0,
+    "n_neighbor_fits": 1967,
+    "n_neighbor_accepted_first": 760,
+    "n_revisit_capped": 1,
+    "n_restart_candidates": 0,
+    "n_unresolved": 0,
+    "n_evals_seed": 64578,
+    "wall_seed_s": 27.50883960723877,
+    "n_reseeds": 31,
+    "n_reseed_accepted": 31,
+    "n_reseed_rejected": 0,
+    "n_reseed_final_voxels": 0,
+    "n_evals_reseed": 57576,
+    "wall_reseed_s": 9.388309955596924,
+    "wall_reseed_total_s": 48.349677324295044,
+    "n_retry_attempted_neighbor": 0,
+    "n_retry_accepted_neighbor": 0,
+    "n_evals_neighbor": 1297236,
+    "wall_neighbor_s": 89.77993512153625,
+    "n_retry_attempted_revisit": 0,
+    "n_retry_accepted_revisit": 0,
+    "n_evals_revisit": 1397507,
+    "wall_revisit_s": 97.00444602966309,
+    "n_retry_attempted_restart": 0,
+    "n_retry_accepted_restart": 0,
+    "n_evals_restart": 0,
+    "wall_restart_s": 0.0,
+    "n_revisit_attempted": 2128,
+    "n_revisit_accepted": 1176,
+    "n_revisit_rejected": 952,
+    "n_restart_attempted": 0,
+    "n_restart_accepted": 0,
+    "n_restart_rejected": 0,
+    "index_runs": 64,
+    "index_evals": 122154,
+    "index_s": 11.887994005999783,
+    "index_path_wall_s": 36.89714956283569,
+    "index_used": 64,
+    "index_evals_used": 122154,
+    "n_voxels": 2000,
+    "wall_total_s": 224.22547221183777,
+    "index_pairing_s": 17.579415375
+  }
+}
