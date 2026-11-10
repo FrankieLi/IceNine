@@ -54,10 +54,15 @@ def preflight_label(out: Path) -> str:
 
 
 def build(
-    config: Path, out: Path, sample: Optional[Path] = None, extra: str = ""
+    config: Path,
+    out: Path,
+    sample: Optional[Path] = None,
+    extra: str = "",
+    stack_name: str = "clean.npy",
 ) -> Tuple[Any, Any, float]:
     """(setup, BFSReconstruction, setup seconds) with clean images; the pilot region unless
-    ``sample`` is given (AR3 step 2: the whole layer). ``extra`` is appended to the config."""
+    ``sample`` is given (AR3 step 2: the whole layer). ``extra`` is appended to the config.
+    ``stack_name``: the uint8 stack under ``stacks/`` (AR3 step 3: ``grad_clean.npy``)."""
     cfg_text = config.read_text()
     sample = sample or REGION / "region_grid.mic"
     cfg_text, n = re.subn(r"(?m)^SampleFilename\s+\S+", f"SampleFilename {sample}", cfg_text)
@@ -72,7 +77,7 @@ def build(
     from icenine.reconstructor import BFSReconstruction, setup_reconstruction
 
     cfg = ConfigFile.from_file(str(cfg_path))
-    stack = EX / "ScatteringData_PhaseD" / "stacks" / "clean.npy"
+    stack = EX / "ScatteringData_PhaseD" / "stacks" / stack_name
     t0 = time.time()
     setup = setup_reconstruction(cfg, exp_data=ExperimentalData.from_binary_memmap(stack, 180, 2))
     return setup, BFSReconstruction(setup), time.time() - t0
