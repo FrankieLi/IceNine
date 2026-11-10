@@ -614,8 +614,8 @@ Added 2026-11-10 after the review of step 3. Task `ar3d`.
 found the reason in the stored records and in the code. The cost does tell the truth from the
 painted start: the true orientation costs less than the start on 16,591 of 19,013 painted
 voxels, and on every voxel that starts more than 0.1 degrees off. But the fit searches a box of
-5 degrees. Its smallest trial step is about 0.7 degrees, and after each failed block it restarts
-2 to 17 degrees away. The painted starts are 0.04 degrees off (median). A trial of that size
+5 degrees. Its first trial steps are about 0.7 degrees, and after each failed block it restarts
+5 to 17 degrees away. The painted starts are 0.04 degrees off (median). A trial of that size
 almost never lands in the small region near the truth. So the fit spends about 660 evaluations
 and returns its start. The C++ source has the same logic, and all 43 config files in this
 repository set the same box (LocalOrientationGridRadius 5, MinLocalResolution 0).
