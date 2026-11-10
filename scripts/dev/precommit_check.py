@@ -97,22 +97,35 @@ def merge_heads(repo: Path) -> List[str]:
     return path.read_text().split() if path.is_file() else []
 
 
-def _mode_and_blob(repo: Path, *args: str) -> Optional[Tuple[str, str]]:
-    """(mode, blob id) from one ``git ls-files -s`` or ``git ls-tree`` line, None if no line."""
-    res = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
-    lines = res.stdout.splitlines()
-    if res.returncode != 0 or len(lines) != 1:
+def _mode_and_blob(repo: Path, path: str, head: Optional[str] = None) -> Optional[Tuple[str, str]]:
+    """(mode, blob id) of ``path`` in the index, or in commit ``head``; None if it is not there.
+
+    ``path`` is taken literally (no pathspec magic such as ``:/`` or globs), and the entry git
+    returns must carry exactly that path.
+    """
+    args = ["ls-files", "-s", "-z"] if head is None else ["ls-tree", "-z", head]
+    res = subprocess.run(
+        ["git", "--literal-pathspecs", *args, "--", path],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+    )
+    entries = [e for e in res.stdout.split("\0") if e]
+    if res.returncode != 0 or len(entries) != 1:
         return None
-    fields = lines[0].split("\t")[0].split()
-    return (fields[0], fields[1] if args[0] == "ls-files" else fields[2])
+    meta, _, name = entries[0].partition("\t")
+    if name != path:
+        return None
+    fields = meta.split()
+    return (fields[0], fields[1] if head is None else fields[2])
 
 
 def same_as_merged(repo: Path, path: str, heads: List[str]) -> bool:
     """True when the staged file has the content and mode of ``path`` on a branch being merged."""
-    staged = _mode_and_blob(repo, "ls-files", "-s", "--", path)
+    staged = _mode_and_blob(repo, path)
     if staged is None:
         return False
-    return any(_mode_and_blob(repo, "ls-tree", h, "--", path) == staged for h in heads)
+    return any(_mode_and_blob(repo, path, h) == staged for h in heads)
 
 
 def check(repo: Path, env: Optional[Mapping[str, str]] = None) -> List[str]:

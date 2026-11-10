@@ -229,6 +229,25 @@ def test_precommit_merge_refuses_claude_file_with_changed_mode(repo: Path) -> No
     assert [m.split(":")[0] for m in msgs] == [".claude/hooks/h.sh"]
 
 
+def test_precommit_merge_takes_the_staged_path_literally(repo: Path) -> None:
+    # ":/CLAUDE.md" as a pathspec means the top-level CLAUDE.md, which the merge brings unchanged.
+    # As a literal path it is a new file in a directory named ":", and must be refused.
+    _start_merge(repo)
+    rel = ":/CLAUDE.md"
+    (repo / ":").mkdir()
+    (repo / rel).write_text("not on the other branch\n")
+    _git(repo, "--literal-pathspecs", "add", rel)
+    msgs = precommit_check.check(repo, {})
+    assert msgs == [f"{rel}:1: CLAUDE.md/.claude change (set ALLOW_CLAUDE_CONFIG=1)"]
+
+
+def test_precommit_merge_renamed_claude_file_is_refused(repo: Path) -> None:
+    _start_merge(repo)
+    _git(repo, "mv", ".claude/agents/a.md", ".claude/agents/b.md")
+    msgs = precommit_check.check(repo, {})
+    assert [m.split(":")[0] for m in msgs] == [".claude/agents/b.md"]
+
+
 def test_precommit_same_claude_file_outside_a_merge_is_refused(repo: Path) -> None:
     _start_merge(repo)
     _git(repo, "merge", "--abort")
