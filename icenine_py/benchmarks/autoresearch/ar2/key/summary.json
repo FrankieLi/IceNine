@@ -1,0 +1,1882 @@
+{
+ "baseline": {
+  "wrong": 37,
+  "evals": {
+   "seed": 13264873,
+   "reseed": 9617992,
+   "neighbor": 1293861,
+   "revisit": 1371209,
+   "full": 22882865,
+   "local": 2665070,
+   "total": 25547935
+  },
+  "seeds": 40,
+  "reseeds": 29,
+  "full_searches": 69,
+  "full_search_voxels_by_evals": 69,
+  "wall_total_s": 8996.856884002686,
+  "timing_label": "contended: 3 concurrent 2000-voxel BFS runs (Task G2)",
+  "torch_threads": 1,
+  "reproduced": true
+ },
+ "off": {
+  "name": "key off (stored rerun)",
+  "evals": {
+   "seed": 13264873,
+   "reseed": 9617992,
+   "neighbor": 1293861,
+   "revisit": 1371209,
+   "full": 22882865,
+   "local": 2665070,
+   "total": 25547935
+  },
+  "seeds": 40,
+  "reseeds": 29,
+  "seed_rejected": 6,
+  "reseed_rejected": 1,
+  "neighbor_fits": 1960,
+  "revisit_attempted": 2089,
+  "wall_total_s": 8996.856884002686,
+  "timing_label": "contended: 3 concurrent 2000-voxel BFS runs (Task G2)",
+  "torch_threads": 1,
+  "fused_cost": null,
+  "seed_by_indexing": null,
+  "full_searches": 69,
+  "wrong": 37,
+  "seed_source": 62,
+  "seed_source_wrong": 2
+ },
+ "on": {
+  "name": "key on",
+  "evals": {
+   "seed": 64622,
+   "reseed": 57576,
+   "neighbor": 1293057,
+   "revisit": 1404651,
+   "full": 122198,
+   "local": 2697708,
+   "total": 2819906
+  },
+  "seeds": 33,
+  "reseeds": 31,
+  "seed_rejected": 0,
+  "reseed_rejected": 0,
+  "neighbor_fits": 1967,
+  "revisit_attempted": 2128,
+  "wall_total_s": 1271.6411230564117,
+  "timing_label": "contended: timing preflight refused (an editor process at about 200% CPU), single run",
+  "torch_threads": 1,
+  "fused_cost": false,
+  "seed_by_indexing": true,
+  "full_searches": 64,
+  "wrong": 22,
+  "seed_source": 64,
+  "seed_source_wrong": 0,
+  "index": {
+   "runs": 64,
+   "used": 64,
+   "fallback_no_candidate": 0,
+   "fallback_seed_test": 0,
+   "evals_used": 122198,
+   "evals_wasted": 0,
+   "evals_fallback_grid": 0,
+   "pairing_s": 17.569892708,
+   "index_s_total": 11.87544225100065,
+   "index_s_per_voxel_mean": 0.18555378517188514,
+   "index_s_per_voxel_median": 0.18074000000001433,
+   "index_s_per_voxel_max": 0.33262533299998154,
+   "path_s_total": 64.43343724700105,
+   "path_s_per_voxel_mean": 1.0067724569843914,
+   "evals_per_voxel_mean": 1909.34375,
+   "wall_seed_s": 52.132179737091064,
+   "wall_reseed_s": 29.87875270843506,
+   "wall_neighbor_s": 577.4674842357635,
+   "wall_revisit_s": 611.6195077896118
+  }
+ },
+ "pair": {
+  "wrong_off": 37,
+  "wrong_on": 22,
+  "paired": {
+   "fixed": 22,
+   "broken": 7,
+   "both_wrong": 15
+  },
+  "broken": [
+   {
+    "voxel": 643,
+    "full_sample_voxel": 7194,
+    "grain": 351,
+    "err_on": 51.858172227217366,
+    "err_off": 0.013956551809979196,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 154,
+    "taken_touches": true,
+    "carriers": [
+     98
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 707,
+    "full_sample_voxel": 8890,
+    "grain": 398,
+    "err_on": 42.27296427985271,
+    "err_off": 0.003751032531719779,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 148,
+    "taken_touches": true,
+    "carriers": [
+     474
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1196,
+    "full_sample_voxel": 14299,
+    "grain": 151,
+    "err_on": 44.52287729597049,
+    "err_off": 0.033048505157416815,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 24,
+    "taken_touches": true,
+    "carriers": [
+     832
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1349,
+    "full_sample_voxel": 16508,
+    "grain": 150,
+    "err_on": 33.4902269597102,
+    "err_off": 0.027324720581641135,
+    "source_on": "revisit",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 400,
+    "taken_touches": true,
+    "carriers": [
+     765
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1375,
+    "full_sample_voxel": 16534,
+    "grain": 403,
+    "err_on": 29.64762623578581,
+    "err_off": 0.018207092856836457,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 24,
+    "taken_touches": true,
+    "carriers": [
+     832
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1396,
+    "full_sample_voxel": 17286,
+    "grain": 399,
+    "err_on": 31.438744905331728,
+    "err_off": 0.0051523682650746905,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 247,
+    "taken_touches": true,
+    "carriers": [
+     545
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1706,
+    "full_sample_voxel": 21180,
+    "grain": 398,
+    "err_on": 33.72848174139213,
+    "err_off": 0.003751032531719779,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 396,
+    "taken_touches": true,
+    "carriers": [
+     1696
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   }
+  ],
+  "fixed": [
+   {
+    "voxel": 114,
+    "full_sample_voxel": 1384,
+    "kind": "edge"
+   },
+   {
+    "voxel": 128,
+    "full_sample_voxel": 1398,
+    "kind": "edge"
+   },
+   {
+    "voxel": 166,
+    "full_sample_voxel": 1981,
+    "kind": "edge"
+   },
+   {
+    "voxel": 251,
+    "full_sample_voxel": 3204,
+    "kind": "edge"
+   },
+   {
+    "voxel": 401,
+    "full_sample_voxel": 5008,
+    "kind": "edge"
+   },
+   {
+    "voxel": 474,
+    "full_sample_voxel": 5876,
+    "kind": "edge"
+   },
+   {
+    "voxel": 697,
+    "full_sample_voxel": 8880,
+    "kind": "edge"
+   },
+   {
+    "voxel": 716,
+    "full_sample_voxel": 8899,
+    "kind": "edge"
+   },
+   {
+    "voxel": 726,
+    "full_sample_voxel": 8909,
+    "kind": "edge"
+   },
+   {
+    "voxel": 757,
+    "full_sample_voxel": 8940,
+    "kind": "edge"
+   },
+   {
+    "voxel": 795,
+    "full_sample_voxel": 8978,
+    "kind": "edge"
+   },
+   {
+    "voxel": 805,
+    "full_sample_voxel": 8988,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1114,
+    "full_sample_voxel": 13672,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1267,
+    "full_sample_voxel": 15749,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1287,
+    "full_sample_voxel": 15907,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1311,
+    "full_sample_voxel": 16470,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1489,
+    "full_sample_voxel": 18179,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1571,
+    "full_sample_voxel": 19418,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1589,
+    "full_sample_voxel": 19436,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1714,
+    "full_sample_voxel": 21188,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1741,
+    "full_sample_voxel": 21215,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1949,
+    "full_sample_voxel": 24334,
+    "kind": "edge"
+   }
+  ],
+  "both_wrong": [
+   {
+    "voxel": 12,
+    "full_sample_voxel": 152,
+    "grain": 56,
+    "err_on": 50.84535607299522,
+    "err_off": 50.84419574784135,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 57,
+    "taken_touches": true,
+    "carriers": [
+     1949
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 127,
+    "full_sample_voxel": 1397,
+    "grain": 146,
+    "err_on": 49.48867932247838,
+    "err_off": 49.49382541424906,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 23,
+    "taken_touches": true,
+    "carriers": [
+     1593
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 132,
+    "full_sample_voxel": 1402,
+    "grain": 23,
+    "err_on": 46.002120432138284,
+    "err_off": 46.01171866434864,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 350,
+    "taken_touches": true,
+    "carriers": [
+     1633
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 244,
+    "full_sample_voxel": 3117,
+    "grain": 13,
+    "err_on": 44.479618416686144,
+    "err_off": 44.477242915716666,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 286,
+    "taken_touches": true,
+    "carriers": [
+     1236
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 446,
+    "full_sample_voxel": 5320,
+    "grain": 278,
+    "err_on": 40.54320182979579,
+    "err_off": 40.54542833559644,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 77,
+    "taken_touches": true,
+    "carriers": [
+     445
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 628,
+    "full_sample_voxel": 7179,
+    "grain": 76,
+    "err_on": 30.74085938898948,
+    "err_off": 30.749339048917406,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 350,
+    "taken_touches": true,
+    "carriers": [
+     1633
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 683,
+    "full_sample_voxel": 8866,
+    "grain": 397,
+    "err_on": 50.861076125453856,
+    "err_off": 50.85030146491441,
+    "source_on": "revisit",
+    "source_off": "seed",
+    "kind": "edge",
+    "taken_grain": 398,
+    "taken_touches": true,
+    "carriers": [
+     706
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 853,
+    "full_sample_voxel": 9036,
+    "grain": 403,
+    "err_on": 41.70126385102931,
+    "err_off": 41.70391454562708,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 155,
+    "taken_touches": true,
+    "carriers": [
+     1380
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 922,
+    "full_sample_voxel": 11643,
+    "grain": 13,
+    "err_on": 40.402333225626734,
+    "err_off": 40.40066635991376,
+    "source_on": "revisit",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 261,
+    "taken_touches": true,
+    "carriers": [
+     776
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1346,
+    "full_sample_voxel": 16505,
+    "grain": 150,
+    "err_on": 33.4902269597102,
+    "err_off": 33.492998185127256,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 400,
+    "taken_touches": true,
+    "carriers": [
+     765
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1588,
+    "full_sample_voxel": 19435,
+    "grain": 76,
+    "err_on": 53.3426307272365,
+    "err_off": 53.325917432257775,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 279,
+    "taken_touches": true,
+    "carriers": [
+     72
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1760,
+    "full_sample_voxel": 21234,
+    "grain": 150,
+    "err_on": 46.81421703539153,
+    "err_off": 46.811201258500816,
+    "source_on": "revisit",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 300,
+    "taken_touches": true,
+    "carriers": [
+     252
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1854,
+    "full_sample_voxel": 21328,
+    "grain": 403,
+    "err_on": 47.22681796907676,
+    "err_off": 47.23011280224439,
+    "source_on": "revisit",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 151,
+    "taken_touches": true,
+    "carriers": [
+     844,
+     861
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1886,
+    "full_sample_voxel": 21360,
+    "grain": 404,
+    "err_on": 39.54478225350707,
+    "err_off": 39.543312795426594,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 63,
+    "taken_touches": true,
+    "carriers": [
+     878
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1936,
+    "full_sample_voxel": 23940,
+    "grain": 109,
+    "err_on": 12.226600833141301,
+    "err_off": 12.221084138115867,
+    "source_on": "revisit",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 261,
+    "taken_touches": true,
+    "carriers": [
+     776
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   }
+  ],
+  "used_indexed": 64,
+  "used_indexed_wrong": 0,
+  "fallback_voxels": [],
+  "kinds_wrong": {
+   "off": {
+    "edge": 37,
+    "corner": 0,
+    "interior": 0
+   },
+   "on": {
+    "edge": 22,
+    "corner": 0,
+    "interior": 0
+   }
+  },
+  "median_err_right_on": 0.015945557087843315,
+  "median_err_right_off": 0.010137500333915877,
+  "unresolved_on": 0,
+  "unresolved_off": 2
+ },
+ "candidate_trace": [],
+ "break_trace": [
+  {
+   "voxel": 7194,
+   "region_voxel": 643,
+   "source_on": "neighbor",
+   "result_cost": 0.12343633117155806,
+   "cost_at_truth": 0.0461538461538461,
+   "taken_grain": 154,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 51.858172227217366,
+   "carrier": 983,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.0046577664898198225,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.06923076923076954,
+    0.0538461538461541
+   ]
+  },
+  {
+   "voxel": 8890,
+   "region_voxel": 707,
+   "source_on": "neighbor",
+   "result_cost": 0.15671978039160717,
+   "cost_at_truth": 0.05223880597014918,
+   "taken_grain": 148,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 42.27296427985271,
+   "carrier": 5876,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.022553229860448772,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.12321818823128639,
+    0.07782335311747057
+   ]
+  },
+  {
+   "voxel": 14299,
+   "region_voxel": 1196,
+   "source_on": "neighbor",
+   "result_cost": 0.137331663704235,
+   "cost_at_truth": 0.053030303030303094,
+   "taken_grain": 24,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 44.52287729597049,
+   "carrier": 9015,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.016877924187507366,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.11331626120358507,
+    0.05633802816901423
+   ]
+  },
+  {
+   "voxel": 16508,
+   "region_voxel": 1349,
+   "source_on": "revisit",
+   "result_cost": 0.19207190402995067,
+   "cost_at_truth": 0.05714285714285705,
+   "taken_grain": 400,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 33.4902269597102,
+   "carrier": 8948,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.009186286725272535,
+   "carrier_taken_rank": 2,
+   "carrier_cost": [
+    0.15117187499999996,
+    0.11860795454545459
+   ]
+  },
+  {
+   "voxel": 16534,
+   "region_voxel": 1375,
+   "source_on": "neighbor",
+   "result_cost": 0.13537765983586414,
+   "cost_at_truth": 0.0454545454545453,
+   "taken_grain": 24,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 29.64762623578581,
+   "carrier": 9015,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.016877924187507366,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.11331626120358507,
+    0.05633802816901423
+   ]
+  },
+  {
+   "voxel": 17286,
+   "region_voxel": 1396,
+   "source_on": "neighbor",
+   "result_cost": 0.12128838852914903,
+   "cost_at_truth": 0.024193548387096975,
+   "taken_grain": 247,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 31.438744905331728,
+   "carrier": 6684,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.015290643915695432,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.04585034013605471,
+    0.04585034013605471
+   ]
+  },
+  {
+   "voxel": 21180,
+   "region_voxel": 1706,
+   "source_on": "neighbor",
+   "result_cost": 0.14311310085531515,
+   "cost_at_truth": 0.05223880597014918,
+   "taken_grain": 396,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 33.72848174139213,
+   "carrier": 21170,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.004164436548518978,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.08578431372549034,
+    0.0661764705882355
+   ]
+  }
+ ],
+ "ar1_comparison": {
+  "n_common": 47,
+  "same_rays": 9,
+  "same_rays_identical": 8,
+  "other_rays": 38,
+  "other_rays_identical": 24,
+  "detail": [
+   {
+    "voxel": 24281,
+    "n_att_ar1": 330,
+    "n_att_run": 321,
+    "identical": false
+   },
+   {
+    "voxel": 15392,
+    "n_att_ar1": 541,
+    "n_att_run": 522,
+    "identical": true
+   },
+   {
+    "voxel": 16539,
+    "n_att_ar1": 395,
+    "n_att_run": 397,
+    "identical": true
+   },
+   {
+    "voxel": 24334,
+    "n_att_ar1": 466,
+    "n_att_run": 465,
+    "identical": true
+   },
+   {
+    "voxel": 19480,
+    "n_att_ar1": 294,
+    "n_att_run": 296,
+    "identical": false
+   },
+   {
+    "voxel": 5876,
+    "n_att_ar1": 399,
+    "n_att_run": 399,
+    "identical": true
+   },
+   {
+    "voxel": 21289,
+    "n_att_ar1": 416,
+    "n_att_run": 419,
+    "identical": true
+   },
+   {
+    "voxel": 11666,
+    "n_att_ar1": 458,
+    "n_att_run": 448,
+    "identical": true
+   },
+   {
+    "voxel": 5872,
+    "n_att_ar1": 315,
+    "n_att_run": 316,
+    "identical": true
+   },
+   {
+    "voxel": 21170,
+    "n_att_ar1": 346,
+    "n_att_run": 346,
+    "identical": true
+   },
+   {
+    "voxel": 9061,
+    "n_att_ar1": 384,
+    "n_att_run": 384,
+    "identical": false
+   },
+   {
+    "voxel": 16476,
+    "n_att_ar1": 427,
+    "n_att_run": 427,
+    "identical": true
+   },
+   {
+    "voxel": 5319,
+    "n_att_ar1": 236,
+    "n_att_run": 233,
+    "identical": false
+   },
+   {
+    "voxel": 9015,
+    "n_att_ar1": 334,
+    "n_att_run": 336,
+    "identical": false
+   },
+   {
+    "voxel": 5897,
+    "n_att_ar1": 425,
+    "n_att_run": 428,
+    "identical": true
+   },
+   {
+    "voxel": 14283,
+    "n_att_ar1": 411,
+    "n_att_run": 415,
+    "identical": true
+   },
+   {
+    "voxel": 2032,
+    "n_att_ar1": 422,
+    "n_att_run": 419,
+    "identical": false
+   },
+   {
+    "voxel": 777,
+    "n_att_ar1": 262,
+    "n_att_run": 263,
+    "identical": true
+   },
+   {
+    "voxel": 983,
+    "n_att_ar1": 312,
+    "n_att_run": 316,
+    "identical": false
+   },
+   {
+    "voxel": 18211,
+    "n_att_ar1": 364,
+    "n_att_run": 367,
+    "identical": true
+   },
+   {
+    "voxel": 19093,
+    "n_att_ar1": 428,
+    "n_att_run": 427,
+    "identical": true
+   },
+   {
+    "voxel": 773,
+    "n_att_ar1": 248,
+    "n_att_run": 248,
+    "identical": true
+   },
+   {
+    "voxel": 24375,
+    "n_att_ar1": 451,
+    "n_att_run": 451,
+    "identical": true
+   },
+   {
+    "voxel": 19440,
+    "n_att_ar1": 295,
+    "n_att_run": 295,
+    "identical": true
+   },
+   {
+    "voxel": 8959,
+    "n_att_ar1": 478,
+    "n_att_run": 481,
+    "identical": true
+   },
+   {
+    "voxel": 8948,
+    "n_att_ar1": 420,
+    "n_att_run": 421,
+    "identical": true
+   },
+   {
+    "voxel": 21138,
+    "n_att_ar1": 385,
+    "n_att_run": 375,
+    "identical": false
+   },
+   {
+    "voxel": 9067,
+    "n_att_ar1": 420,
+    "n_att_run": 412,
+    "identical": false
+   },
+   {
+    "voxel": 9027,
+    "n_att_ar1": 383,
+    "n_att_run": 385,
+    "identical": true
+   },
+   {
+    "voxel": 32,
+    "n_att_ar1": 481,
+    "n_att_run": 476,
+    "identical": true
+   },
+   {
+    "voxel": 7141,
+    "n_att_ar1": 305,
+    "n_att_run": 305,
+    "identical": true
+   },
+   {
+    "voxel": 5860,
+    "n_att_ar1": 287,
+    "n_att_run": 289,
+    "identical": true
+   },
+   {
+    "voxel": 7185,
+    "n_att_ar1": 286,
+    "n_att_run": 289,
+    "identical": false
+   },
+   {
+    "voxel": 69,
+    "n_att_ar1": 301,
+    "n_att_run": 304,
+    "identical": true
+   },
+   {
+    "voxel": 7944,
+    "n_att_ar1": 428,
+    "n_att_run": 423,
+    "identical": true
+   },
+   {
+    "voxel": 7176,
+    "n_att_ar1": 282,
+    "n_att_run": 285,
+    "identical": false
+   },
+   {
+    "voxel": 411,
+    "n_att_ar1": 439,
+    "n_att_run": 440,
+    "identical": true
+   },
+   {
+    "voxel": 5906,
+    "n_att_ar1": 432,
+    "n_att_run": 435,
+    "identical": true
+   },
+   {
+    "voxel": 772,
+    "n_att_ar1": 280,
+    "n_att_run": 280,
+    "identical": true
+   },
+   {
+    "voxel": 3017,
+    "n_att_ar1": 238,
+    "n_att_run": 239,
+    "identical": true
+   },
+   {
+    "voxel": 2018,
+    "n_att_ar1": 370,
+    "n_att_run": 372,
+    "identical": false
+   },
+   {
+    "voxel": 2897,
+    "n_att_ar1": 485,
+    "n_att_run": 474,
+    "identical": true
+   },
+   {
+    "voxel": 3108,
+    "n_att_ar1": 482,
+    "n_att_run": 467,
+    "identical": true
+   },
+   {
+    "voxel": 5930,
+    "n_att_ar1": 427,
+    "n_att_run": 428,
+    "identical": false
+   },
+   {
+    "voxel": 9044,
+    "n_att_ar1": 413,
+    "n_att_run": 415,
+    "identical": true
+   },
+   {
+    "voxel": 21363,
+    "n_att_ar1": 422,
+    "n_att_run": 413,
+    "identical": false
+   },
+   {
+    "voxel": 23942,
+    "n_att_ar1": 491,
+    "n_att_run": 470,
+    "identical": false
+   }
+  ]
+ },
+ "on_fused": {
+  "name": "key on, FusedCost on",
+  "evals": {
+   "seed": 64578,
+   "reseed": 57576,
+   "neighbor": 1297236,
+   "revisit": 1397507,
+   "full": 122154,
+   "local": 2694743,
+   "total": 2816897
+  },
+  "seeds": 33,
+  "reseeds": 31,
+  "seed_rejected": 0,
+  "reseed_rejected": 0,
+  "neighbor_fits": 1967,
+  "revisit_attempted": 2128,
+  "wall_total_s": 213.1246030330658,
+  "timing_label": "contended: timing preflight refused (an editor process at about 200% CPU), single run",
+  "torch_threads": 1,
+  "fused_cost": true,
+  "seed_by_indexing": true,
+  "full_searches": 64,
+  "wrong": 22,
+  "seed_source": 64,
+  "seed_source_wrong": 0,
+  "index": {
+   "runs": 64,
+   "used": 64,
+   "fallback_no_candidate": 0,
+   "fallback_seed_test": 0,
+   "evals_used": 122154,
+   "evals_wasted": 0,
+   "evals_fallback_grid": 0,
+   "pairing_s": 17.107305874999998,
+   "index_s_total": 11.607898039999988,
+   "index_s_per_voxel_mean": 0.1813734068749998,
+   "index_s_per_voxel_median": 0.1800614579999973,
+   "index_s_per_voxel_max": 0.2866591249999999,
+   "path_s_total": 18.700788330000098,
+   "path_s_per_voxel_mean": 0.2921998176562515,
+   "evals_per_voxel_mean": 1908.65625,
+   "wall_seed_s": 26.736887454986572,
+   "wall_reseed_s": 9.079090118408203,
+   "wall_neighbor_s": 85.0399980545044,
+   "wall_revisit_s": 91.92337369918823
+  },
+  "paired_vs_off": {
+   "fixed": 22,
+   "broken": 7,
+   "both_wrong": 15
+  },
+  "paired_vs_on": {
+   "fixed": 0,
+   "broken": 0,
+   "both_wrong": 22
+  },
+  "recon_identical_to_on": false
+ },
+ "off_fused": {
+  "name": "key off, FusedCost on",
+  "evals": {
+   "seed": 12280306,
+   "reseed": 10623820,
+   "neighbor": 1295110,
+   "revisit": 1403147,
+   "full": 22904126,
+   "local": 2698257,
+   "total": 25602383
+  },
+  "seeds": 37,
+  "reseeds": 32,
+  "seed_rejected": 5,
+  "reseed_rejected": 1,
+  "neighbor_fits": 1963,
+  "revisit_attempted": 2129,
+  "wall_total_s": 1632.7908987998962,
+  "timing_label": "contended: timing preflight refused (an editor process at about 200% CPU), single run",
+  "torch_threads": 1,
+  "fused_cost": true,
+  "seed_by_indexing": false,
+  "full_searches": 69,
+  "wrong": 24,
+  "seed_source": 63,
+  "seed_source_wrong": 0
+ },
+ "pair_fused": {
+  "wrong_off": 24,
+  "wrong_on": 22,
+  "paired": {
+   "fixed": 14,
+   "broken": 12,
+   "both_wrong": 10
+  },
+  "broken": [
+   {
+    "voxel": 132,
+    "full_sample_voxel": 1402,
+    "grain": 23,
+    "err_on": 46.002120432138284,
+    "err_off": 0.04430318164209324,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 350,
+    "taken_touches": true,
+    "carriers": [
+     1633
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 628,
+    "full_sample_voxel": 7179,
+    "grain": 76,
+    "err_on": 30.74085938898948,
+    "err_off": 0.034197907140411474,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 350,
+    "taken_touches": true,
+    "carriers": [
+     1633
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 643,
+    "full_sample_voxel": 7194,
+    "grain": 351,
+    "err_on": 51.858172227217366,
+    "err_off": 0.008165482941678232,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 154,
+    "taken_touches": true,
+    "carriers": [
+     98
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 683,
+    "full_sample_voxel": 8866,
+    "grain": 397,
+    "err_on": 50.861076125453856,
+    "err_off": 0.028605940999759504,
+    "source_on": "revisit",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 398,
+    "taken_touches": true,
+    "carriers": [
+     706
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 707,
+    "full_sample_voxel": 8890,
+    "grain": 398,
+    "err_on": 42.27296427985271,
+    "err_off": 0.027552715922897167,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 148,
+    "taken_touches": true,
+    "carriers": [
+     474
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1196,
+    "full_sample_voxel": 14299,
+    "grain": 151,
+    "err_on": 44.52287729597049,
+    "err_off": 0.03138454792878548,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 24,
+    "taken_touches": true,
+    "carriers": [
+     832
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1349,
+    "full_sample_voxel": 16508,
+    "grain": 150,
+    "err_on": 33.4902269597102,
+    "err_off": 0.013195334965865682,
+    "source_on": "revisit",
+    "source_off": "seed",
+    "kind": "edge",
+    "taken_grain": 400,
+    "taken_touches": true,
+    "carriers": [
+     765
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1375,
+    "full_sample_voxel": 16534,
+    "grain": 403,
+    "err_on": 29.64762623578581,
+    "err_off": 0.020964714251989387,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 24,
+    "taken_touches": true,
+    "carriers": [
+     832
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1396,
+    "full_sample_voxel": 17286,
+    "grain": 399,
+    "err_on": 31.438744905331728,
+    "err_off": 0.009033831522263518,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 247,
+    "taken_touches": true,
+    "carriers": [
+     545
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1706,
+    "full_sample_voxel": 21180,
+    "grain": 398,
+    "err_on": 33.72848174139213,
+    "err_off": 0.027552715922897167,
+    "source_on": "neighbor",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 396,
+    "taken_touches": true,
+    "carriers": [
+     1696
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1760,
+    "full_sample_voxel": 21234,
+    "grain": 150,
+    "err_on": 46.81421703539153,
+    "err_off": 0.013195334965865682,
+    "source_on": "revisit",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 300,
+    "taken_touches": true,
+    "carriers": [
+     252
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1854,
+    "full_sample_voxel": 21328,
+    "grain": 403,
+    "err_on": 47.22681796907676,
+    "err_off": 0.020964714251989387,
+    "source_on": "revisit",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 151,
+    "taken_touches": true,
+    "carriers": [
+     844,
+     861
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   }
+  ],
+  "fixed": [
+   {
+    "voxel": 114,
+    "full_sample_voxel": 1384,
+    "kind": "edge"
+   },
+   {
+    "voxel": 149,
+    "full_sample_voxel": 1964,
+    "kind": "edge"
+   },
+   {
+    "voxel": 260,
+    "full_sample_voxel": 3213,
+    "kind": "edge"
+   },
+   {
+    "voxel": 696,
+    "full_sample_voxel": 8879,
+    "kind": "edge"
+   },
+   {
+    "voxel": 795,
+    "full_sample_voxel": 8978,
+    "kind": "edge"
+   },
+   {
+    "voxel": 805,
+    "full_sample_voxel": 8988,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1079,
+    "full_sample_voxel": 13250,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1114,
+    "full_sample_voxel": 13672,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1287,
+    "full_sample_voxel": 15907,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1317,
+    "full_sample_voxel": 16476,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1384,
+    "full_sample_voxel": 16543,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1571,
+    "full_sample_voxel": 19418,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1589,
+    "full_sample_voxel": 19436,
+    "kind": "edge"
+   },
+   {
+    "voxel": 1690,
+    "full_sample_voxel": 21164,
+    "kind": "edge"
+   }
+  ],
+  "both_wrong": [
+   {
+    "voxel": 12,
+    "full_sample_voxel": 152,
+    "grain": 56,
+    "err_on": 50.84535607299522,
+    "err_off": 50.848585744591816,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 57,
+    "taken_touches": true,
+    "carriers": [
+     1949
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 127,
+    "full_sample_voxel": 1397,
+    "grain": 146,
+    "err_on": 49.48867932247838,
+    "err_off": 49.49267002076429,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 23,
+    "taken_touches": true,
+    "carriers": [
+     1593
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 244,
+    "full_sample_voxel": 3117,
+    "grain": 13,
+    "err_on": 44.479618416686144,
+    "err_off": 44.47929870377791,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 286,
+    "taken_touches": true,
+    "carriers": [
+     1236
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 446,
+    "full_sample_voxel": 5320,
+    "grain": 278,
+    "err_on": 40.54320182979579,
+    "err_off": 40.54379423377177,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 77,
+    "taken_touches": true,
+    "carriers": [
+     445
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 853,
+    "full_sample_voxel": 9036,
+    "grain": 403,
+    "err_on": 41.70126385102931,
+    "err_off": 41.70123796024877,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 155,
+    "taken_touches": true,
+    "carriers": [
+     1380
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 922,
+    "full_sample_voxel": 11643,
+    "grain": 13,
+    "err_on": 40.402333225626734,
+    "err_off": 40.39964868136658,
+    "source_on": "revisit",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 261,
+    "taken_touches": true,
+    "carriers": [
+     776
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1346,
+    "full_sample_voxel": 16505,
+    "grain": 150,
+    "err_on": 33.4902269597102,
+    "err_off": 33.49011036543522,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 400,
+    "taken_touches": true,
+    "carriers": [
+     765
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1588,
+    "full_sample_voxel": 19435,
+    "grain": 76,
+    "err_on": 53.3426307272365,
+    "err_off": 53.332106128737905,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 279,
+    "taken_touches": true,
+    "carriers": [
+     72
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1886,
+    "full_sample_voxel": 21360,
+    "grain": 404,
+    "err_on": 39.54478225350707,
+    "err_off": 39.53803340609469,
+    "source_on": "neighbor",
+    "source_off": "neighbor",
+    "kind": "edge",
+    "taken_grain": 63,
+    "taken_touches": true,
+    "carriers": [
+     878
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   },
+   {
+    "voxel": 1936,
+    "full_sample_voxel": 23940,
+    "grain": 109,
+    "err_on": 12.226600833141301,
+    "err_off": 12.218121397042223,
+    "source_on": "revisit",
+    "source_off": "revisit",
+    "kind": "edge",
+    "taken_grain": 261,
+    "taken_touches": true,
+    "carriers": [
+     776
+    ],
+    "origin": "carried from a right full search (crossing)",
+    "carriers_wrong_indexed": [],
+    "against_path": false
+   }
+  ],
+  "used_indexed": 64,
+  "used_indexed_wrong": 0,
+  "fallback_voxels": [],
+  "kinds_wrong": {
+   "off": {
+    "edge": 24,
+    "corner": 0,
+    "interior": 0
+   },
+   "on": {
+    "edge": 22,
+    "corner": 0,
+    "interior": 0
+   }
+  },
+  "median_err_right_on": 0.015945557087843315,
+  "median_err_right_off": 0.012477999140313438,
+  "unresolved_on": 0,
+  "unresolved_off": 1
+ },
+ "break_trace_fused": [
+  {
+   "voxel": 1402,
+   "region_voxel": 132,
+   "source_on": "neighbor",
+   "result_cost": 0.11094391194792652,
+   "cost_at_truth": 0.051470588235294046,
+   "taken_grain": 350,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 46.002120432138284,
+   "carrier": 19480,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.0027146565160744607,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.08750000000000036,
+    0.02941176470588236
+   ]
+  },
+  {
+   "voxel": 7179,
+   "region_voxel": 628,
+   "source_on": "neighbor",
+   "result_cost": 0.11462589479474838,
+   "cost_at_truth": 0.050724637681159535,
+   "taken_grain": 350,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 30.74085938898948,
+   "carrier": 19480,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.0027146565160744607,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.08750000000000036,
+    0.02941176470588236
+   ]
+  },
+  {
+   "voxel": 7194,
+   "region_voxel": 643,
+   "source_on": "neighbor",
+   "result_cost": 0.12343633117155806,
+   "cost_at_truth": 0.0461538461538461,
+   "taken_grain": 154,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 51.858172227217366,
+   "carrier": 983,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.0046577664898198225,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.06923076923076954,
+    0.0538461538461541
+   ]
+  },
+  {
+   "voxel": 8866,
+   "region_voxel": 683,
+   "source_on": "revisit",
+   "result_cost": 0.13408132654235572,
+   "cost_at_truth": 0.05303030303030298,
+   "taken_grain": 398,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 50.861076125453856,
+   "carrier": 8889,
+   "carrier_phase": "reseed",
+   "carrier_err_deg": 0.012498124684325426,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.06342099028666193,
+    0.06342099028666193
+   ]
+  },
+  {
+   "voxel": 8890,
+   "region_voxel": 707,
+   "source_on": "neighbor",
+   "result_cost": 0.15671978039160717,
+   "cost_at_truth": 0.05223880597014918,
+   "taken_grain": 148,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 42.27296427985271,
+   "carrier": 5876,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.022553229860448772,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.12321818823128639,
+    0.07782335311747057
+   ]
+  },
+  {
+   "voxel": 14299,
+   "region_voxel": 1196,
+   "source_on": "neighbor",
+   "result_cost": 0.137331663704235,
+   "cost_at_truth": 0.053030303030303094,
+   "taken_grain": 24,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 44.52287729597049,
+   "carrier": 9015,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.016877924187507366,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.11331626120358507,
+    0.05633802816901423
+   ]
+  },
+  {
+   "voxel": 16508,
+   "region_voxel": 1349,
+   "source_on": "revisit",
+   "result_cost": 0.19207190402995067,
+   "cost_at_truth": 0.05714285714285705,
+   "taken_grain": 400,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 33.4902269597102,
+   "carrier": 8948,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.009186286725272535,
+   "carrier_taken_rank": 2,
+   "carrier_cost": [
+    0.15117187499999996,
+    0.11860795454545459
+   ]
+  },
+  {
+   "voxel": 16534,
+   "region_voxel": 1375,
+   "source_on": "neighbor",
+   "result_cost": 0.13537765983586414,
+   "cost_at_truth": 0.0454545454545453,
+   "taken_grain": 24,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 29.64762623578581,
+   "carrier": 9015,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.016877924187507366,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.11331626120358507,
+    0.05633802816901423
+   ]
+  },
+  {
+   "voxel": 17286,
+   "region_voxel": 1396,
+   "source_on": "neighbor",
+   "result_cost": 0.12128838852914903,
+   "cost_at_truth": 0.024193548387096975,
+   "taken_grain": 247,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 31.438744905331728,
+   "carrier": 6684,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.015290643915695432,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.04585034013605471,
+    0.04585034013605471
+   ]
+  },
+  {
+   "voxel": 21180,
+   "region_voxel": 1706,
+   "source_on": "neighbor",
+   "result_cost": 0.14311310085531515,
+   "cost_at_truth": 0.05223880597014918,
+   "taken_grain": 396,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 33.72848174139213,
+   "carrier": 21170,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.004164436548518978,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.08578431372549034,
+    0.0661764705882355
+   ]
+  },
+  {
+   "voxel": 21234,
+   "region_voxel": 1760,
+   "source_on": "revisit",
+   "result_cost": 0.11847252255288931,
+   "cost_at_truth": 0.05714285714285705,
+   "taken_grain": 300,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 46.81421703539153,
+   "carrier": 3205,
+   "carrier_phase": "reseed",
+   "carrier_err_deg": 0.00338621696906788,
+   "carrier_taken_rank": 2,
+   "carrier_cost": [
+    0.18077060799836409,
+    0.03623188405797095
+   ]
+  },
+  {
+   "voxel": 21328,
+   "region_voxel": 1854,
+   "source_on": "revisit",
+   "result_cost": 0.1307257650471899,
+   "cost_at_truth": 0.0454545454545453,
+   "taken_grain": 151,
+   "taken_touches": true,
+   "kind": "edge",
+   "err_deg": 47.22681796907676,
+   "carrier": 9027,
+   "carrier_phase": "seed",
+   "carrier_err_deg": 0.021312240020261608,
+   "carrier_taken_rank": 1,
+   "carrier_cost": [
+    0.11146496598778222,
+    0.053030303030303094
+   ]
+  }
+ ]
+}

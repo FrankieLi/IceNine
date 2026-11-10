@@ -1,0 +1,49 @@
+{
+ "n": 6,
+ "same_as_script": 6,
+ "same_as_stored_log": 6,
+ "rows": [
+  {
+   "voxel": 1946,
+   "n_att": 321,
+   "evals": 2337,
+   "same_as_script": true,
+   "same_as_stored_log": true
+  },
+  {
+   "voxel": 1696,
+   "n_att": 346,
+   "evals": 1765,
+   "same_as_script": true,
+   "same_as_stored_log": true
+  },
+  {
+   "voxel": 98,
+   "n_att": 316,
+   "evals": 2347,
+   "same_as_script": true,
+   "same_as_stored_log": true
+  },
+  {
+   "voxel": 883,
+   "n_att": 412,
+   "evals": 1864,
+   "same_as_script": true,
+   "same_as_stored_log": true
+  },
+  {
+   "voxel": 5,
+   "n_att": 282,
+   "evals": 2371,
+   "same_as_script": true,
+   "same_as_stored_log": true
+  },
+  {
+   "voxel": 227,
+   "n_att": 239,
+   "evals": 2207,
+   "same_as_script": true,
+   "same_as_stored_log": true
+  }
+ ]
+}

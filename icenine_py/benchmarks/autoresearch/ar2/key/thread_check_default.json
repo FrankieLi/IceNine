@@ -1,0 +1,82 @@
+[
+ {
+  "voxel": 24281,
+  "n_att": 330,
+  "n_cand": 20,
+  "n_cand_ar1": 20,
+  "max_abs_diff_R": 0.0,
+  "same_strict_first5": true,
+  "n_first5_same": 5,
+  "torch_threads": 1
+ },
+ {
+  "voxel": 9061,
+  "n_att": 384,
+  "n_cand": 20,
+  "n_cand_ar1": 20,
+  "max_abs_diff_R": 0.0,
+  "same_strict_first5": true,
+  "n_first5_same": 5,
+  "torch_threads": 1
+ },
+ {
+  "voxel": 5319,
+  "n_att": 236,
+  "n_cand": 20,
+  "n_cand_ar1": 20,
+  "max_abs_diff_R": 0.0,
+  "same_strict_first5": true,
+  "n_first5_same": 5,
+  "torch_threads": 1
+ },
+ {
+  "voxel": 19480,
+  "n_att": 294,
+  "n_cand": 20,
+  "n_cand_ar1": 20,
+  "max_abs_diff_R": 0.0,
+  "same_strict_first5": true,
+  "n_first5_same": 5,
+  "torch_threads": 1
+ },
+ {
+  "voxel": 2032,
+  "n_att": 422,
+  "n_cand": 20,
+  "n_cand_ar1": 20,
+  "max_abs_diff_R": 0.0,
+  "same_strict_first5": true,
+  "n_first5_same": 5,
+  "torch_threads": 1
+ },
+ {
+  "voxel": 983,
+  "n_att": 312,
+  "n_cand": 20,
+  "n_cand_ar1": 20,
+  "max_abs_diff_R": 0.0,
+  "same_strict_first5": true,
+  "n_first5_same": 5,
+  "torch_threads": 1
+ },
+ {
+  "voxel": 4206,
+  "n_att": 333,
+  "n_cand": 20,
+  "n_cand_ar1": 20,
+  "max_abs_diff_R": 0.0,
+  "same_strict_first5": true,
+  "n_first5_same": 5,
+  "torch_threads": 1
+ },
+ {
+  "voxel": 11294,
+  "n_att": 458,
+  "n_cand": 20,
+  "n_cand_ar1": 20,
+  "max_abs_diff_R": 0.0,
+  "same_strict_first5": true,
+  "n_first5_same": 5,
+  "torch_threads": 1
+ }
+]

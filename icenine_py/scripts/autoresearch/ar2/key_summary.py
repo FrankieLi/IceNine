@@ -139,11 +139,11 @@ class Layer:
 # --------------------------------------------------------------------------------------------
 # paired comparison and the trace of every break
 # --------------------------------------------------------------------------------------------
-def paired_trace(on: Dict[str, Any], L: Layer) -> Dict[str, Any]:
-    A, B = g2_bfs.errors(OFF), g2_bfs.errors(on["dir"])
+def paired_trace(on: Dict[str, Any], L: Layer, off_dir: Path = OFF) -> Dict[str, Any]:
+    A, B = g2_bfs.errors(off_dir), g2_bfs.errors(on["dir"])
     ea, eb = A["err"], B["err"]
     wa, wb = ea > WRONG_DEG, eb > WRONG_DEG
-    pr = g2_bfs.paired(OFF, on["dir"])
+    pr = g2_bfs.paired(off_dir, on["dir"])
     idx = L.region
     log = on["index_log"]
     used = {int(e["voxel"]) for e in log if e["used"]}
@@ -235,6 +235,99 @@ def paired_trace(on: Dict[str, Any], L: Layer) -> Dict[str, Any]:
         unresolved_on=int((B["source"] == "unresolved").sum()),
         unresolved_off=int((A["source"] == "unresolved").sum()),
     )
+
+
+def ar1_comparison(on: Dict[str, Any], L: Layer) -> Dict[str, Any]:
+    """The indexing paths of this run against AR1's stored ones (``ar1/e2e.py``,
+    ``benchmarks/autoresearch/ar1/e2e_pilot_base_part0of1.json``, ``recall_pilot_base.json``) on the
+    voxels that are both an indexed seed of this run and one of AR1's 69 full-search voxels.
+
+    AR1 paired the rays with the hull of the full sample; the BFS pilot's sample is the 2,000-voxel
+    region, so its hull (and with it the paired rays, ``sample_hull_points`` in ``SmoothCost``) is
+    smaller. A voxel is "same rays" when the numbers of attached rays are equal. Only those can be
+    expected to give the identical result."""
+    rows = json.loads((AC.OUT / "e2e_pilot_base_part0of1.json").read_text())["rows"]
+    ar1 = {int(r["voxel"]): r for r in rows if not r.get("no_candidates")}
+    rec_rows = json.loads((AC.OUT / "recall_pilot_base.json").read_text())["rows"]
+    natt = {int(r["voxel"]): int(r["n_att"]) for r in rec_rows}
+    out: Dict[str, Any] = dict(
+        n_common=0, same_rays=0, same_rays_identical=0, other_rays=0, other_rays_identical=0
+    )
+    detail = []
+    for e in on["index_log"]:
+        f = int(L.region[int(e["voxel"])])
+        if f not in ar1:
+            continue
+        a = ar1[f]
+        fins = a["finishers"][:2]
+        ident = (
+            np.array_equal(np.array(a["strict_costs"][:5]), e["strict_costs"])
+            and [f_["cand"] for f_ in fins] == e["refined"]
+            and [f_["cost"] for f_ in fins] == e["finisher_costs"]
+            and [f_["evals"] for f_ in fins] == e["finisher_evals"]
+        )
+        same_rays = natt[f] == int(e["n_att"])
+        out["n_common"] += 1
+        k = "same_rays" if same_rays else "other_rays"
+        out[k] += 1
+        out[k + "_identical"] += int(ident)
+        detail.append(
+            dict(voxel=f, n_att_ar1=natt[f], n_att_run=int(e["n_att"]), identical=bool(ident))
+        )
+    out["detail"] = detail
+    return out
+
+
+def trace_breaks(pt: Dict[str, Any], on: Dict[str, Any], L: Layer) -> List[Dict[str, Any]]:
+    """Every break, in full: the voxel's own result (strict cost, the strict cost at its exact
+    truth, the grain taken and whether it touches the voxel) and the full search it comes from (the
+    nearest indexed seed or reseed within 1 degree of its orientation: the candidate taken and the
+    strict costs before and after the finisher)."""
+    from score_bfs import pair_misorientation_deg
+
+    log = {int(e["voxel"]): e for e in on["index_log"]}
+    B = g2_bfs.errors(on["dir"])
+    out = []
+    for b in pt["broken"]:
+        r, f = b["voxel"], b["full_sample_voxel"]
+        e = AC.env("full", f, need_sc=False)
+        lf, verts, phase, Rt = e["lf"], e["verts"], e["phase"], e["R_true"]
+        from icenine.mic_file import MicFile
+
+        if "_recon" not in on:
+            on["_recon"] = MicFile.read(str(on["dir"] / "recon.mic"))
+        Rb = np.asarray(on["_recon"].voxels[r].orientation, dtype=np.float64)
+        row: Dict[str, Any] = dict(
+            voxel=f,
+            region_voxel=r,
+            source_on=b["source_on"],
+            result_cost=float(lf.evaluate(Rb, verts, phase).cost),
+            cost_at_truth=float(lf.evaluate(Rt, verts, phase).cost),
+            taken_grain=b["taken_grain"],
+            taken_touches=b["taken_touches"],
+            kind=b["kind"],
+            err_deg=b["err_on"],
+        )
+        cars = [c for c in b["carriers"] if c in log]
+        if cars:
+            d = pair_misorientation_deg(
+                np.repeat(B["q_rec"][r][None], len(cars), axis=0), B["q_rec"][cars], B["sym"]
+            )
+            c = int(cars[int(np.argmin(d))])
+            ent = log[c]
+            k = ent["refined"].index(ent["taken"])
+            row.update(
+                carrier=int(L.region[c]),
+                carrier_phase=ent["phase"],
+                carrier_err_deg=float(B["err"][c]),
+                carrier_taken_rank=int(ent["taken"]) + 1,
+                carrier_cost=[
+                    float(ent["strict_costs"][ent["taken"]]),
+                    float(ent["finisher_costs"][k]),
+                ],
+            )
+        out.append(row)
+    return out
 
 
 def trace_candidates(
@@ -340,6 +433,9 @@ def run_block(name: str, d: Path) -> Dict[str, Any]:
     out["full_searches"] = out["seeds"] + out["reseeds"]
     E = g2_bfs.errors(d)
     out["wrong"] = int((E["err"] > WRONG_DEG).sum())
+    is_seed = E["source"] == "seed"  # voxels whose final result is their own full search
+    out["seed_source"] = int(is_seed.sum())
+    out["seed_source_wrong"] = int((E["err"][is_seed] > WRONG_DEG).sum())
     if r["index_log"]:
         n = len(r["index_log"])
         ix = [e["index_s"] for e in r["index_log"]]
@@ -389,6 +485,8 @@ def main() -> None:
         on=run_block("key on", on_dir),
         pair=pt,
         candidate_trace=cand,
+        break_trace=trace_breaks(pt, on, L),
+        ar1_comparison=ar1_comparison(on, L),
     )
     fused = RUNS / "key_on_fused"
     if (fused / "run.json").exists():
@@ -403,9 +501,46 @@ def main() -> None:
     off_fused = RUNS / "key_off_fused"
     if (off_fused / "run.json").exists():
         summ["off_fused"] = run_block("key off, FusedCost on", off_fused)
+        if "on_fused" in summ:
+            onf = load_run(fused)
+            ptf = paired_trace(onf, L, off_fused)
+            summ["pair_fused"] = ptf
+            summ["break_trace_fused"] = trace_breaks(ptf, onf, L)
     (OUT / "summary.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
     tables(summ)
     figure(summ)
+
+
+def break_tables(pt: Dict[str, Any], trace: List[Dict[str, Any]]) -> Any:
+    """(table of the breaks with their origin, table of each break's trace)."""
+    br_rows = []
+    for b in pt["broken"]:
+        br_rows.append(
+            dict(voxel=b["full_sample_voxel"], kind=b["kind"], source_on=b["source_on"],
+                 err_on=f"{b['err_on']:.2f}",
+                 taken=("no grain" if b["taken_grain"] is None else f"grain {b['taken_grain']}"),
+                 crossing=("no" if not b["taken_touches"] else "yes"), origin=b["origin"],
+                 against_path=("yes" if b["against_path"] else "no"))
+        )  # fmt: skip
+    cols_br = ["voxel", "kind", "source_on", "err_on", "taken", "crossing", "origin",
+               "against_path"]  # fmt: skip
+    t_br = DT.markdown_table(br_rows, cols_br) if br_rows else "no broken voxel"
+    bt_rows = []
+    for c in trace:
+        bt_rows.append(
+            dict(voxel=c["voxel"], source=c["source_on"], err_deg=f"{c['err_deg']:.1f}",
+                 result_cost=f"{c['result_cost']:.3f}", cost_at_truth=f"{c['cost_at_truth']:.3f}",
+                 carrier=c.get("carrier", "n/a"),
+                 carrier_err=("n/a" if "carrier_err_deg" not in c
+                              else f"{c['carrier_err_deg']:.3f}"),
+                 carrier_rank=c.get("carrier_taken_rank", "n/a"),
+                 carrier_cost=("n/a" if "carrier_cost" not in c else
+                               f"{c['carrier_cost'][0]:.3f} to {c['carrier_cost'][1]:.3f}"))
+        )  # fmt: skip
+    cols_bt = ["voxel", "source", "err_deg", "result_cost", "cost_at_truth", "carrier",
+               "carrier_err", "carrier_rank", "carrier_cost"]  # fmt: skip
+    t_bt = DT.markdown_table(bt_rows, cols_bt) if bt_rows else "no broken voxel"
+    return t_br, t_bt
 
 
 def tables(S: Dict[str, Any]) -> None:
@@ -419,10 +554,22 @@ def tables(S: Dict[str, Any]) -> None:
              broken=pt["paired"]["broken"], both_wrong=pt["paired"]["both_wrong"],
              unresolved=pt["unresolved_on"]),
     ]  # fmt: skip
+    if "pair_fused" in S:
+        pf = S["pair_fused"]
+        rows += [
+            dict(run="key off, FusedCost on", wrong=wil(S["off_fused"]["wrong"], n), fixed="",
+                 broken="", both_wrong="", unresolved=pf["unresolved_off"]),
+            dict(run="key on, FusedCost on", wrong=wil(S["on_fused"]["wrong"], n),
+                 fixed=pf["paired"]["fixed"], broken=pf["paired"]["broken"],
+                 both_wrong=pf["paired"]["both_wrong"], unresolved=pf["unresolved_on"]),
+        ]  # fmt: skip
     t_acc = DT.markdown_table(rows, ["run", "wrong", "fixed", "broken", "both_wrong", "unresolved"])
     # evaluations
     ev_rows = []
-    for name, r in (("key off (stored rerun)", off), ("key on", on)):
+    arms = [("key off (stored rerun)", off), ("key on", on)]
+    if "pair_fused" in S:
+        arms += [("key off, FusedCost on", S["off_fused"]), ("key on, FusedCost on", S["on_fused"])]
+    for name, r in arms:
         e = r["evals"]
         n_fits = r["neighbor_fits"] + r["revisit_attempted"]
         ev_rows.append(
@@ -475,27 +622,7 @@ def tables(S: Dict[str, Any]) -> None:
                  conditions=f["timing_label"])
         )  # fmt: skip
     t_wall = DT.markdown_table(wall_rows, ["run", "wall_s", "conditions"])
-    # breaks
-    br_rows = []
-    for b in pt["broken"]:
-        br_rows.append(
-            dict(voxel=b["full_sample_voxel"], kind=b["kind"], source_on=b["source_on"],
-                 err_on=f"{b['err_on']:.2f}",
-                 taken=("no grain" if b["taken_grain"] is None else f"grain {b['taken_grain']}"),
-                 crossing=("no" if not b["taken_touches"] else "yes"), origin=b["origin"],
-                 against_path=("yes" if b["against_path"] else "no"))
-        )  # fmt: skip
-    cols_br = [
-        "voxel",
-        "kind",
-        "source_on",
-        "err_on",
-        "taken",
-        "crossing",
-        "origin",
-        "against_path",
-    ]
-    t_br = DT.markdown_table(br_rows, cols_br) if br_rows else "no broken voxel"
+    t_br, t_bt = break_tables(pt, S["break_trace"])
     ct_rows = []
     for c in S["candidate_trace"]:
         ct_rows.append(
@@ -536,6 +663,17 @@ def tables(S: Dict[str, Any]) -> None:
             "ar2b_wall": t_wall,
             "ar2b_breaks": t_br,
             "ar2b_candidates": t_ct,
+            "ar2b_break_trace": t_bt,
+            **(
+                dict(
+                    zip(
+                        ("ar2b_breaks_fused", "ar2b_break_trace_fused"),
+                        break_tables(S["pair_fused"], S["break_trace_fused"]),
+                    )
+                )
+                if "pair_fused" in S
+                else {}
+            ),
             "ar2b_kinds": t_kind,
             "ar2b_flip_kinds": t_fxbk,
         },
@@ -559,9 +697,12 @@ def figure(S: Dict[str, Any]) -> None:
     ax[0].bar(0, full_off, color="C0", label="full searches (grid)")
     b = 0.0
     names = ("full searches: indexing, used", "indexing that fell back", "grid fallbacks")
-    for v, c, lab in zip(parts_on, ("C1", "C3", "C0"), names):
-        ax[0].bar(1, v / 1e6, bottom=b, color=c, label=lab)
+    for v, c, lab in zip(parts_on, ("C1", "C3", "C4"), names):
+        if v > 0:  # a part that is zero in this run is neither drawn nor listed
+            ax[0].bar(1, v / 1e6, bottom=b, color=c, label=lab)
         b += v / 1e6
+    ax[0].text(1.0, b / 2 + 0.6, f"indexing: {ix['evals_used'] / 1e6:.2f} M", ha="center",
+               fontsize=8)  # fmt: skip
     ax[0].bar([0, 1], local, bottom=[full_off, b], color="C2", label="local fits")
     for x, tot in ((0, off["evals"]["total"]), (1, on["evals"]["total"])):
         ax[0].text(x, tot / 1e6 + 0.3, f"{tot / 1e6:.2f} M", ha="center")
