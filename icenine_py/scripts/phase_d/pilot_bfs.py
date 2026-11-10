@@ -117,6 +117,8 @@ def main() -> None:
     )
     if getattr(bfs, "outward_log", None):
         (out / "outward_log.json").write_text(json.dumps(bfs.outward_log) + "\n")
+    if getattr(bfs, "index_log", None):  # SeedByIndexing (AR2)
+        (out / "index_log.json").write_text(json.dumps(bfs.index_log) + "\n")
     info = {
         "arm": a.arm,
         "variant": a.variant,
@@ -134,6 +136,8 @@ def main() -> None:
                 "config": str(cfg_src.name),
                 "outward_search": bool(getattr(p, "outward_search", False)),
                 "smooth_rank": str(getattr(p, "smooth_rank", "off")),
+                "seed_by_indexing": bool(getattr(p, "seed_by_indexing", False)),
+                "fused_cost": bool(getattr(p, "fused_cost", False)),
             }
             if a.config
             else {}

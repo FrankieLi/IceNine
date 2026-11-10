@@ -492,6 +492,9 @@ class AdaptiveVoxelReconstructor:
         self.smooth_cost_cache: Optional[SmoothCostCache] = SmoothCostCache()
         # OutwardSearch: (image-set key, strict cost, screen cost, SmoothCost) of the last call
         self._outward_costs_cache: Optional[Tuple[Any, ...]] = None
+        # SeedByIndexing: (image-set key, SmoothCost, IndexParams, strict cost, crystals by phase)
+        self._index_ctx_cache: Optional[Tuple[Any, ...]] = None
+        self.index_pairing_s = 0.0  # one-time SmoothCost build + ray pairing (seconds)
 
     @property
     def last_eval_counts(self) -> tuple:
@@ -1433,6 +1436,63 @@ class AdaptiveVoxelReconstructor:
         out.wall_s = time.time() - t0
         return out
 
+    def _index_context(self, phase_index: int) -> Tuple[Any, Any, Any, Any]:
+        """(SmoothCost, CrystalModel of ``phase_index``, IndexParams, strict cost function) of
+        SeedByIndexing, built once per image set (the identity key of ``SmoothCostCache``). The
+        observed rays are paired here, once; the time of the build and the pairing is kept in
+        ``index_pairing_s``."""
+        from . import ray_indexing as RI
+        from .smooth_cost import _build_smooth_cost
+
+        eta_limit = self.setup.exp_setup.get_eta_limit()
+        refs, scalars = SmoothCostCache._key(self.setup, eta_limit, self.min_sin_eta)
+        old = self._index_ctx_cache
+        same = (
+            old is not None
+            and len(old[0]) == len(refs)
+            and all(a is b for a, b in zip(old[0], refs))
+            and old[1] == scalars
+        )
+        if not same:
+            t0 = time.perf_counter()
+            if self.smooth_cost_cache is not None:
+                sc = self.smooth_cost_cache.get(self.setup, eta_limit, self.min_sin_eta)
+            else:
+                sc = _build_smooth_cost(self.setup, eta_limit, self.min_sin_eta)
+            sc.observed_rays()  # the one-time pairing of the two detectors' spots
+            self.index_pairing_s += time.perf_counter() - t0
+            params = RI.IndexParams(q_max=float(self.setup.config.max_q))
+            self._index_ctx_cache = (refs, scalars, sc, params, self._make_local_cost_fn(), {})
+        _, _, sc, params, strict_cf, crystals = self._index_ctx_cache  # type: ignore[misc]
+        if phase_index not in crystals:
+            sym = self.setup.exp_setup.get_sample_symmetry()
+            crystals[phase_index] = RI.crystal_from_smooth_cost(sc, sym, phase_index, params.q_max)
+        return sc, crystals[phase_index], params, strict_cf
+
+    def index_seed(
+        self,
+        voxel_vertices: torch.Tensor,
+        phase_index: int,
+        n_cost: int = 5,
+        n_refine: int = 2,
+    ) -> Any:
+        """SeedByIndexing (opt-in): the voxel's seed search from its observed rays
+        (``ray_indexing.seed_by_indexing``): strict cost on the first ``n_cost`` candidates, the
+        finisher on the ``n_refine`` lowest, the lowest final cost. Returns a ``SeedResult``
+        (``orientation`` None: no candidate). The caller applies the seed acceptance test."""
+        from . import ray_indexing as RI
+
+        sc, crystal, params, strict_cf = self._index_context(phase_index)
+
+        def strict(R: np.ndarray) -> float:
+            return float(
+                strict_cf.evaluate(np.asarray(R, np.float64), voxel_vertices, phase_index).cost
+            )
+
+        return RI.seed_by_indexing(
+            self, sc, crystal, voxel_vertices, phase_index, params, strict, n_cost, n_refine
+        )
+
 
 # ---------------------------------------------------------------------------
 # BFSReconstruction — breadth-first spatial propagation
@@ -1548,6 +1608,8 @@ class BFSReconstruction:
         self.reseed_log: List[Dict[str, Any]] = []
         # OutwardSearch (opt-in): one entry per policy run (empty with the key off)
         self.outward_log: List[Dict[str, Any]] = []
+        # SeedByIndexing (opt-in): one entry per indexed seed or reseed (empty with the key off)
+        self.index_log: List[Dict[str, Any]] = []
 
     @staticmethod
     def _ratios(info: Optional[OverlapInfo]) -> Tuple[float, float]:
@@ -1627,6 +1689,7 @@ class BFSReconstruction:
         self._refit_candidates = []
         self.reseed_log = []
         self.outward_log = []
+        self.index_log = []
 
         # Randomized seed order (C++ uses random_shuffle)
         voxel_order = list(range(n_process))
@@ -1687,6 +1750,10 @@ class BFSReconstruction:
         self.stats["n_unresolved"] = n_refit
         self.stats["n_voxels"] = len(all_processed)
         self.stats["wall_total_s"] = total_time
+        if getattr(self.setup.search_params, "seed_by_indexing", False):
+            self.stats["index_pairing_s"] = float(
+                getattr(self.reconstructor, "index_pairing_s", 0.0)
+            )
         print(
             f"\nBFS complete: {n_seeds} seeds, {n_fitted} fitted, "
             f"{n_refit} refit, {total_time:.1f}s total",
@@ -1850,6 +1917,12 @@ class BFSReconstruction:
         found = None
         if start is not None:
             found = self._outward_reseed(voxel, vertices, start, rng, rec)
+        index_fallback = False
+        if found is None and getattr(self.setup.search_params, "seed_by_indexing", False):
+            # SeedByIndexing (opt-in): index the voxel first; the grid search below is the
+            # fallback when there is no candidate or the result fails the seed test
+            found = self._index_seed(voxel, vertices, rec, force_revisit)
+            index_fallback = found is None
         if found is not None:
             result, overlap_info, t_recon = found
         else:
@@ -1866,6 +1939,10 @@ class BFSReconstruction:
             rec.wall_s += t_recon
             self.stats["n_evals_seed"] += n_ev
             self.stats["wall_seed_s"] += t_recon
+            if index_fallback:
+                self._count("index_fallback_grid_evals", n_ev)
+                self._count("index_fallback_grid_wall_s", t_recon)
+                self.index_log[-1]["grid_evals"] = int(n_ev)
 
             # Evaluate overlap
             # C++ BreadthFirstReconstructor.tmpl.cpp:136
@@ -2003,6 +2080,73 @@ class BFSReconstruction:
             )
         )
         return res
+
+    def _count(self, key: str, value: Any = 1) -> None:
+        """Add to a counter that exists only when its key is on (SeedByIndexing, OutwardSearch)."""
+        self.stats[key] = self.stats.get(key, 0) + value
+
+    def _index_seed(
+        self, voxel: Any, vertices: torch.Tensor, rec: BFSVoxelRecord, reseed: bool
+    ) -> Optional[Tuple[SearchCandidate, OverlapInfo, float]]:
+        """SeedByIndexing (opt-in) for a seed or a reseed: the voxel is indexed from its observed
+        rays, the strict cost is taken on the first 5 candidates and the finisher runs on the best
+        2 (``AdaptiveVoxelReconstructor.index_seed``). Returns (result, overlap, seconds) when the
+        result passes the seed test; None (the caller runs the grid search) when there is no
+        candidate or the test fails. All of its cost evaluations and its time count as the
+        seed's (``n_evals_seed`` / ``wall_seed_s``, moved to the reseed buckets by
+        ``_reseed_clusters``), used or not; ``stats["index_*"]`` and ``index_log`` split them."""
+        t0 = time.time()
+        res = self.reconstructor.index_seed(vertices, voxel.phase)
+        dt = time.time() - t0  # includes the one-time pairing on the first call
+        rec.n_evals += res.evals
+        rec.wall_s += dt
+        self.stats["n_evals_seed"] += res.evals
+        self.stats["wall_seed_s"] += dt
+        entry: Dict[str, Any] = dict(
+            voxel=int(rec.voxel_idx),
+            phase="reseed" if reseed else "seed",
+            n_att=int(res.n_att),
+            n_cand=int(res.n_cand),
+            evals=int(res.evals),
+            index_s=float(res.index_s),
+            path_s=float(res.total_s),
+            taken=int(res.taken),
+            strict_costs=[float(c) for c in res.strict_costs],
+            refined=[int(j) for j in res.refined],
+            finisher_costs=[float(c) for c in res.finisher_costs],
+            finisher_evals=[int(e) for e in res.finisher_evals],
+            hit_ratio=None,
+            used=False,
+        )
+        self.index_log.append(entry)
+        self._count("index_runs")
+        self._count("index_evals", res.evals)
+        self._count("index_s", res.index_s)
+        self._count("index_path_wall_s", dt)
+        if res.orientation is None:
+            self._count("index_fallback_no_candidate")
+            self._count("index_evals_wasted", res.evals)
+            entry["fallback"] = "no_candidate"
+            print(f"    Seed voxel {rec.voxel_idx}: no index candidate: grid search", flush=True)
+            return None
+        result = SearchCandidate(orientation=res.orientation, cost=float(res.cost))
+        info = self.reconstructor.evaluate_overlap(result.orientation, vertices, voxel.phase)
+        hit, _ = self._ratios(info)
+        entry["hit_ratio"] = float(hit)
+        if hit < self.setup.config.min_acceleration_threshold:
+            self._count("index_fallback_seed_test")
+            self._count("index_evals_wasted", res.evals)
+            entry["fallback"] = "seed_test"
+            print(
+                f"    Seed voxel {rec.voxel_idx}: index result hit_ratio={hit:.3f} below the "
+                "seed test: grid search",
+                flush=True,
+            )
+            return None
+        entry["used"] = True
+        self._count("index_used")
+        self._count("index_evals_used", res.evals)
+        return result, info, dt
 
     def _outward_reseed(
         self,

@@ -474,3 +474,92 @@ def index_voxel(
     g = scattering_vectors(sc, att)
     res = index_rays(g, crystal, p, top_k, keep_votes)
     return res, att
+
+
+# --------------------------------------------------------------------------------------------
+# the BFS seed search (autoresearch AR2): index, strict cost on the first candidates, finisher
+# --------------------------------------------------------------------------------------------
+SEED_N_COST = 5  # candidates that get the strict cost
+SEED_N_REFINE = 2  # candidates the finisher runs on (the lowest strict costs)
+SEED_TOP_K = 20  # candidates the indexer returns
+
+
+@dataclass
+class SeedResult:
+    """Outcome of ``seed_by_indexing`` for one voxel (``orientation`` None: no candidate).
+
+    ``evals`` is the strict cost on the costed candidates plus the cost calls of the finisher runs
+    (attaching rays and indexing are not cost evaluations and are not counted). ``taken`` is the
+    candidate (index into the indexer's list) whose finisher run gave the lowest final cost."""
+
+    orientation: Optional[np.ndarray] = None
+    cost: float = 1.0
+    taken: int = -1
+    n_cand: int = 0
+    n_att: int = 0
+    evals: int = 0
+    index_s: float = 0.0  # indexing only (voting, clustering, refining; rays already attached)
+    total_s: float = 0.0  # indexing + strict costs + finisher runs
+    strict_costs: List[float] = field(default_factory=list)  # of the costed candidates
+    refined: List[int] = field(default_factory=list)  # candidate indices, in finisher order
+    finisher_costs: List[float] = field(default_factory=list)  # final strict cost per run
+    finisher_evals: List[int] = field(default_factory=list)
+    finisher_R: List[np.ndarray] = field(default_factory=list)
+    candidates: Optional[np.ndarray] = None  # (K, 3, 3), the indexer's list
+
+
+def seed_by_indexing(
+    rec: Any,
+    sc: Any,
+    crystal: CrystalModel,
+    voxel_vertices: Any,
+    phase_index: int,
+    p: IndexParams,
+    strict_fn: Any,
+    n_cost: int = SEED_N_COST,
+    n_refine: int = SEED_N_REFINE,
+    top_k: int = SEED_TOP_K,
+) -> SeedResult:
+    """The AR2 seed search of one voxel: index it, take the strict cost on the first ``n_cost``
+    candidates, run the finisher (``rec.refine_from_candidates``: FindOptimal, VarianceMinimizing,
+    one run per candidate, ``default_rng(0)``) on the ``n_refine`` candidates with the lowest strict
+    cost (stable order) and keep the lowest final cost. The same path and parameters as
+    ``scripts/autoresearch/ar2/holdout_run.py`` and ``ar1/e2e.py``.
+
+    ``strict_fn(R)`` returns the strict cost of an orientation on this voxel (the caller's strict
+    local cost function). Returns a ``SeedResult`` with ``orientation`` None if there is no
+    candidate."""
+    from .orientation_search import SearchCandidate
+
+    t0 = time.perf_counter()
+    res, att = index_voxel(sc, voxel_vertices, crystal, p, top_k)
+    index_s = time.perf_counter() - t0
+    out = SeedResult(
+        n_cand=len(res.R), n_att=int(len(att)), index_s=index_s, total_s=index_s, candidates=res.R
+    )
+    if len(res.R) == 0:
+        return out
+    R = res.R
+    k = min(n_cost, len(R))
+    costs = np.array([float(strict_fn(R[j])) for j in range(k)], dtype=np.float64)
+    out.strict_costs = [float(c) for c in costs]
+    out.evals = k
+    order = [int(j) for j in np.argsort(costs, kind="stable")[:n_refine]]
+    for j in order:
+        r = rec.refine_from_candidates(
+            [SearchCandidate(orientation=R[j].copy(), cost=float(costs[j]))],
+            voxel_vertices,
+            phase_index,
+            rng=np.random.default_rng(0),
+        )
+        out.refined.append(j)
+        out.finisher_costs.append(float(r.cost))
+        out.finisher_evals.append(int(rec.last_eval_counts[1]))
+        out.finisher_R.append(np.asarray(r.orientation, dtype=np.float64))
+    out.evals += int(sum(out.finisher_evals))
+    best = int(np.argmin(out.finisher_costs))  # first of equal costs, as min() in the scripts
+    out.taken = out.refined[best]
+    out.orientation = out.finisher_R[best]
+    out.cost = out.finisher_costs[best]
+    out.total_s = time.perf_counter() - t0
+    return out

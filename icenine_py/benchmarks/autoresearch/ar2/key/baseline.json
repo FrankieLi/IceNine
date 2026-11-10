@@ -1,0 +1,20 @@
+{
+ "wrong": 37,
+ "evals": {
+  "seed": 13264873,
+  "reseed": 9617992,
+  "neighbor": 1293861,
+  "revisit": 1371209,
+  "full": 22882865,
+  "local": 2665070,
+  "total": 25547935
+ },
+ "seeds": 40,
+ "reseeds": 29,
+ "full_searches": 69,
+ "full_search_voxels_by_evals": 69,
+ "wall_total_s": 8996.856884002686,
+ "timing_label": "contended: 3 concurrent 2000-voxel BFS runs (Task G2)",
+ "torch_threads": 1,
+ "recomputed_matches_stored": true
+}
