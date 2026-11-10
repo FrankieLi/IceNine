@@ -42,20 +42,21 @@ middle: stop inside the fit. Bottom right: wrong voxels by level.
 - The cost can tell the truth from the painted start, but the fit does not get there. On 16,591
   of 19,013 painted voxels (86.8 to 87.7%) the strict cost of the true orientation is below the
   cost of the start, and on all 2,240 voxels whose start is more than 0.1 deg off. The fit lowered
-  the cost on only 36 of them.
-- The fit's trial steps are many times the start's error. The start is a median 0.0406 deg from
-  the truth. In the fit's first block the trial steps have a median of 0.70 deg (5th percentile
-  0.32 deg). After a failed block the search restarts a median 4.9 to 16.8 deg from the start,
-  with larger steps. 18,500 of the 19,013 fits are four failed blocks. This is consistent with a
-  step too coarse for this start; a run with a finer box would test it (planned as step 4).
-- So the refinement did nothing detectable: 9 voxels came closer by more than 0.05 deg and 2 were
+  the cost on only 36 of the 19,013.
+- The fit's trial steps are many times the start's error. On the painted voxels the start is a
+  median 0.0406 deg from the truth. In the fit's first block the trial steps have a median of
+  0.70 deg (5th percentile 0.32 deg). After a failed block the search restarts a median 4.9 to
+  16.8 deg from the start, with larger steps. 18,500 of the 19,013 fits are four failed blocks.
+  This is consistent with a step too coarse for this start; a run with a finer box would test it
+  (planned as step 4).
+- The refinement did nothing detectable: 9 voxels came closer by more than 0.05 deg and 2 were
   hurt; the fit ended within 0.02 deg of its start on 18,977 (99.7 to 99.9%). Skipping or stopping
   the fit saves almost everything at no measured cost here. That is the fit not moving, not a
   finding about when a fit can stop.
-- The start: 5,369 entries for 497 grains (21.9% of voxels are seeds); median error 0.0342 deg,
-  170 wrong of 24,570 (0.60 to 0.80%); 78,142,641 evaluations, 74.8% of them in 172 grid-fallback
-  entries. A start this close is consistent with the many seeds; untested, since no arm with
-  fewer seeds was run.
+- The start: 5,369 entries for 497 grains (21.9% of voxels are seeds); median error 0.0342 deg
+  over all voxels, 170 wrong of 24,570 (0.60 to 0.80%); 78,142,641 evaluations, 74.8% of them in
+  172 grid-fallback entries. A start this close is consistent with the many seeds; untested,
+  since no arm with fewer seeds was run.
 - Under the plan's rule P beats D on the share of voxels above 0.1 deg: 2,531 (9.9 to 10.7%) with
   R against 3,545 (14.0 to 14.9%), and at levels 0.1, 0.2 and 0.5. It also beats D on wrong voxels
   at level 0 (3 against 17), not overall (170 against 203, intervals overlap). The gain is P's (R
