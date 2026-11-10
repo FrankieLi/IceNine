@@ -30,7 +30,7 @@ prompt while the session is open and idle. It expires on 2026-11-16: create it a
 2026-11-15 and write the new date here. It dies with the session. After a closed session the owner
 types `/resume` or "continue the autoresearch"; this file is enough to go on.
 
-## Status (2026-11-09, evening)
+## Status (2026-11-10)
 
 - Review page: 24 items decided (D-20261109-N2 to N4). Table on
   `docs/owner_review_2026-10-30.md`, "Decisions of 2026-11-09".
@@ -55,6 +55,9 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
   (D-20261109-N12): reviewed (2 required fixes, applied), merged and pushed (f76f776). Full suite
   at the merge: 1500 passed, 37 skipped, 1 deselected. What it does: the Developer-tooling table
   of `icenine_py/README.md`. What it cannot do: "For the owner" below.
+- The AR3 section of the plan is written in full and approved under the mandate (D-20261110-N1,
+  2026-11-10). Two steps: painting on the pilot region as a study, then the key and the whole
+  layer. No implementer has started yet.
 
 ## Next action
 
@@ -75,28 +78,28 @@ types `/resume` or "continue the autoresearch"; this file is enough to go on.
    not be removed (untracked link and cache); harmless, removable with
    `git worktree remove --force`. Left open and recorded: `key_run_bg.sh` still writes "single
    run" into the label of future runs.
-6. **AR3 is next.** Its section in `PLAN.md` is four lines. First step, by the main session: write
-   the AR3 section in full, as AR2's was (what is built, the arms, how each is judged, what is
-   compared with what, what is not claimed), log the approval with `log_decision.sh` under the
-   mandate, and commit. What the plan must take from AR2 step 2:
-   - With the key on, local fits are 2,697,708 of the 2,819,906 evaluations (4,095 fits at about
-     658 each). The grid searches are gone. So AR3's target is the local fits.
-   - The idea: index the layer once, list the grains (distinct orientations among the indexed
-     seeds, or from layer-level votes), then paint each voxel with the strict cost of the few
-     candidate grains near it, and run a local fit only where the painting is unclear (no grain
-     passes, or two grains are close). One strict cost per candidate replaces a 658-evaluation fit.
-   - Every wrong voxel so far is an edge-sharing boundary voxel that takes the touching grain's
-     orientation. Painting scores both touching grains on each such voxel, so it is a direct test
-     of that failure. Count boundary crossings in their own column (N6, N9).
-   - Compare with the key-on run of AR2 step 2 and with the stored key-off run. Two key-off runs
-     differ by 27 voxels, so a wrong-count difference of that size is not a result (N9).
-   - First measure where the 213 s of the key-on run go (profile), before choosing what to batch.
-   - The pilot pairs rays with the hull of the 2,000-voxel region; the whole layer has another
-     hull. Run the pilot first, then the whole layer.
-   Then: `make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar3 --section "AR3:
-   index the layer and paint grains"`, a fresh Sonnet implementer in a worktree, `/review-task`,
-   fixes by an Opus implementer, merge. Tell every implementer: "return the findings page as text
-   between markers; do not write the page".
+6. **AR3 step 1 is next: start the implementer.** The plan section "AR3: index the layer and
+   paint grains" in `PLAN.md` is written in full and approved (D-20261110-N1). Do, in order:
+   - `scripts/dev/read_on_fetch.sh --save`; merge `origin/feature/python-speed-parity` if it
+     moved (last read 347a8a4, already merged); rerun with `--mark`.
+   - `scripts/dev/start_task.sh ar3a`, then `scripts/dev/make_brief.sh --plan
+     icenine_py/docs/autoresearch/PLAN.md --task ar3a --section "AR3: index the layer and paint
+     grains"`.
+   - A fresh Sonnet implementer in a worktree, in the background. Tell it: "Step 1 only (painting
+     on the pilot region). Step 2 is not part of this task. Return the findings page as text
+     between markers; do not write the page. `shmem ask` before large scans; `shmem add --source
+     llm` for findings. At most 6 heavy processes."
+   - Then `scripts/dev/verify_handback.sh`, `/review-task`, fixes by an Opus implementer, the
+     findings page placed by the main session, merge with `finish_task.sh --yes --push`.
+   What the implementer needs from AR2 step 2 (all in the plan section too): the stored key-on
+   run and its config are under `benchmarks/autoresearch/ar2/key/` and
+   `scripts/autoresearch/ar2/` (`key_on_fused.config`, `key_run_bg.sh`, `key_summary.py`); the
+   seed path is `ray_indexing.seed_by_indexing`; the BFS neighbour test and neighbourhood are in
+   `reconstructor.py` (`BFSReconstruction._expand`, `_insert_seed`). The gate for step 2 is fixed
+   in the plan: paint breaks at most 20 voxels against the key-on run and needs at most half of
+   its evaluations.
+   After step 1 is merged: write step 2's details into the plan (the key `PaintGrains`, the whole
+   layer), log the approval, and go on the same way.
 7. Item 7: **PR #41 is merged** into `develop` (357a2b3, 2026-11-09, at branch head 16c72db), on
    the owner's word in the session (D-20261109-N11). The branch `feature/eval-reduction` is kept.
    There is no open PR now. Open a new PR to `develop` when AR3 is merged on the branch (title
@@ -137,7 +140,7 @@ Reading the table: one row per step, in order, with its state.
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
 | AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) **done** 2026-11-09 (a8c99b7) |
-| AR3 | index the layer and paint grains | **next**: write its plan section in full first |
+| AR3 | index the layer and paint grains | plan written and approved 2026-11-10 (D-20261110-N1); **next**: step 1, the implementer |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
