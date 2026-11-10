@@ -204,6 +204,15 @@ to check that the orientation fits there. Terms:
 
 AR3 has two steps, in this order.
 
+**Task split.** Task `ar3a` is step 1 only. Step 2 is a later task (`ar3b`); it is not started
+before step 1 is reviewed and merged, and no part of it belongs in `ar3a`. For the implementer of
+either task: the tool refuses a helper agent's write of a new `.md` file. So do not write the
+findings page or the hand-back report as files. Return each as text in the final message, the
+findings page between the lines `=== FINDINGS PAGE ===` and `=== END FINDINGS PAGE ===`, the
+report between `=== REPORT ===` and `=== END REPORT ===`. The main session places both and says
+so in them. Everything else (code, tests, scripts, result files, plots) is committed on the task
+branch as usual.
+
 **Step 1, painting on the pilot region (a study; no key yet).**
 
 What is built. A new module `icenine/grain_paint.py` with unit tests in
