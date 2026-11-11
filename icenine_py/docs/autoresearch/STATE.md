@@ -25,19 +25,23 @@ Read this file first after any restart or wake. It holds only what is true now a
 ## Next action
 
 AR5 step 1 (stop rules for the boundary pass, the grid fallbacks and the finished map; task
-`ar5a`; scripts only; plan in `PLAN.md` under "AR5 step 1: ...", approved by D-20261111-N10).
+`ar5a`; scripts only; plan D-20261111-N10). Implemented on branch `feature/eval-reduction-ar5a`
+(worktree `agent-a68538c58665829a1`, 10 commits to 29e9b56; the last one is the findings page,
+placed by the main session). Hand-back check: 0 FAIL. Result: no rule passed its pass rule,
+predictions 1 to 5 do not agree, run `T1` was not run. Reports are in the main
+`.claude/reports/` (`20261111-1008-ar5a.md` and `...-findings-page.md`).
 
-1. Wait for the implementer's hand-back (report `20261111-1008-ar5a.md` in its worktree, and
-   a `...-findings-page.md` beside it if its Write of the page was refused). Then runbook, "A
-   step, from plan to merge", points 5 to 9: `verify_handback.sh`, the reports copied to the
-   main `.claude/reports/`, review (`code-reviewer`, Opus), the decision on the fixes
+1. Wait for the review (`code-reviewer`, Opus; report `20261111-1215-review-ar5a.md` in the
+   main `.claude/reports/`). Then runbook points 7 to 9: the decision on the fixes
    (D-20261111-N11 or the day's next ID), a fixes round (Opus), `finish_task.sh --yes --push`,
-   close. If run `T1` ran, its rows go on the plots of cost against accuracy.
-2. Then AR4 (the learned proposer): plan first.
+   close (page version 38; no new plot point since `T1` did not run).
+2. AR4: an Explore agent gathers facts for the plan (the seed step's refinement cost, the
+   Procrustes step, the learned refiners in the library). Write the plan when it reports.
 
 ## Running jobs
 
-- AR5 step 1 implementer (Sonnet, own worktree), started 2026-11-11 at 10:10.
+- Review of AR5 step 1 (`code-reviewer`, Opus), started 2026-11-11 at 12:15.
+- Explore agent for the AR4 plan (read-only), started 2026-11-11 at 12:20.
 - The review page is at version 37 (step 10 is on it; no new plot point). No page job.
 
 ## Queue
@@ -47,8 +51,8 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR5 step 1 | stop rules: pass tries, grid fallbacks, finished map (task `ar5a`) | implementer running |
-| AR4 | the learned proposer | after AR5 step 1 |
+| AR5 step 1 | stop rules: pass tries, grid fallbacks, finished map (task `ar5a`) | in review |
+| AR4 | the learned proposer | plan being prepared |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
