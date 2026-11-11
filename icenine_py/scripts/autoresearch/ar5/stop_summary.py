@@ -26,9 +26,21 @@ sys.path.insert(0, str(HERE))
 import doc_tables as DT  # noqa: E402
 import stop_part1_lib as P1  # noqa: E402
 import stop_rules as SR  # noqa: E402
+import stop_summary_review as RV  # noqa: E402
 
 SAMPLES = ("big", "grad", "mid")
 NAME = {"big": "big", "grad": "first gradient sample", "mid": "mid"}
+# label offsets (points) in the try-test plot, so that the labels of dots that sit together do not
+# overlap; the dots themselves are not moved
+LABEL_OFFSET = {
+    "P1 d=0": (4, 5),
+    "P1 d=0.02": (4, -3),
+    "P1 d=0.05": (4, -6),
+    "P1 d=0.1": (4, -9),
+    "P1 d=0.2": (4, -9),
+    "P3 d=0.2 m=1": (4, 3),
+    "P3 d=0.2 m=2": (4, 10),
+}
 
 
 def J(name: str) -> Any:
@@ -195,7 +207,7 @@ def main() -> None:
     tables["p2_failed"] = DT.markdown_table(
         fail_rows,
         ["sample", "voxel", "kind", "cand", "rank", "c20", "r5", "s8best", "gridhit", "griderr"],
-        {"s8best": ".3f", "gridhit": ".3f", "griderr": ".2f"},
+        {"s8best": ".4f", "gridhit": ".4f", "griderr": ".2f"},
     )
     tables["p2_rungs"] = DT.markdown_table(
         rung_rows,
@@ -213,8 +225,8 @@ def main() -> None:
             "gridev",
         ],
         {
-            "r1hit": ".3f",
-            "r3hit": ".3f",
+            "r1hit": ".4f",
+            "r3hit": ".4f",
             "r1err": ".2f",
             "r3err": ".2f",
             "r1ev": ",d",
@@ -419,6 +431,11 @@ def main() -> None:
         prediction5_holds=bool(not vt["groups"]["all"]["separates"]),
     )
 
+    # ---- numbers added in the fixes round (review 20261111-1215)
+    rv, rv_tables = RV.review(p1, p1p, cases, p3f, thr)
+    tables.update(rv_tables)
+    rv2 = rv["part2"]
+
     # ---- predictions and rules
     p1s, p2s, p3s = summary["part1"], summary["part2"], summary["part3"]
     pred = [
@@ -434,7 +451,8 @@ def main() -> None:
             "cases",
             "does not agree",
             f"{p2s['prediction2']['cases_with_candidate_in_first100_not_costed20']} of "
-            f"{p2s['prediction2']['n']}",
+            f"{p2s['prediction2']['n']}; no list held 100 (they held {rv2['n_cand_min']} to "
+            f"{rv2['n_cand_max']}), so the first 100 were all candidates",
         ),
         (
             "3",
@@ -454,13 +472,16 @@ def main() -> None:
         (
             "5",
             "the vote count does not separate wrong from right among flagged voxels",
-            "agrees" if p3s["prediction5_holds"] else "does not agree",
+            ("agrees" if p3s["prediction5_holds"] else "does not agree")
+            + " (on a cut chosen after the result)",
             "a weak separation exists; "
             f"cut {vt['groups']['all']['best_cut']['cut']:.0f}: "
             f"{vt['groups']['all']['best_cut']['wrong_ge']} of "
             f"{vt['groups']['all']['best_cut']['n_wrong']} wrong, "
             f"{vt['groups']['all']['best_cut']['right_ge']} of "
-            f"{vt['groups']['all']['best_cut']['n_right']} right at or above",
+            f"{vt['groups']['all']['best_cut']['n_right']} right at or above; the best cut moves "
+            f"from {rv['part3_votes']['cut_min']:.0f} to {rv['part3_votes']['cut_max']:.0f} "
+            "between samples",
         ),
         (
             "6",
@@ -503,13 +524,14 @@ def main() -> None:
     )
     summary["rules"] = [dict(rule=a, what=b, verdict=c, numbers=d) for a, b, c, d in rules]
     summary["predictions"] = [dict(n=a, what=b, result=c, numbers=d) for a, b, c, d in pred]
+    summary["review"] = rv
     (AR5 / "summary.json").write_text(json.dumps(summary, indent=1, default=float) + "\n")
     DT.write_tables(AR5 / "tables.md", tables)
 
     # ---- plots
     plot_try_test(p1)
     plot_flag(p3f)
-    plot_votes()
+    plot_votes(vt["groups"]["all"]["best_cut"]["cut"])
 
 
 def plot_try_test(p1: Dict[str, Any]) -> None:
@@ -522,16 +544,20 @@ def plot_try_test(p1: Dict[str, Any]) -> None:
             r = per[s]
             x = 100.0 * r["tries_kept"] / r["tries"]
             y = 100.0 * (1 - r["net_gain"] / full["net_gain"])
+            kind = name[:2]
             ax.scatter(
                 x,
                 y,
-                color="C0" if name.startswith("P1") else "C1" if name.startswith("P2") else "C2",
+                color={"P1": "C0", "P2": "C1", "P3": "C2"}[kind],
+                marker={"P1": "o", "P2": "s", "P3": "^"}[kind],
+                s={"P1": 46, "P2": 30, "P3": 18}[kind],  # P1 drawn larger: P3 dots sit on it
+                zorder={"P1": 2, "P2": 3, "P3": 3}[kind],
             )
             ax.annotate(
                 name.replace("P3 d=0.2 ", "P3 "),
                 (x, y),
                 fontsize=6,
-                xytext=(3, 3),
+                xytext=LABEL_OFFSET.get(name, (3, 3)),
                 textcoords="offset points",
             )
         ax.axhline(5, color="k", ls="--", lw=0.8)
@@ -552,7 +578,8 @@ def plot_flag(p3f: Dict[str, Any]) -> None:
             a = row["all"]
             xs.append(100.0 * a["flagged"] / a["n"])
             ys.append(100.0 * a["wrong_flagged"] / a["n_wrong"])
-        ax.plot(xs, ys, marker="o", label=NAME[s])
+        # markers only: nothing between two thresholds was measured, so no line joins them
+        ax.plot(xs, ys, marker={"big": "o", "grad": "s", "mid": "^"}[s], ls="none", label=NAME[s])
     ax.axvline(5, color="k", ls="--", lw=0.8)
     ax.axhline(80, color="k", ls=":", lw=0.8)
     ax.set_xlabel("voxels flagged (% of all voxels), thresholds 0.50 to 0.95")
@@ -563,7 +590,7 @@ def plot_flag(p3f: Dict[str, Any]) -> None:
     plt.close(fig)
 
 
-def plot_votes() -> None:
+def plot_votes(cut: float) -> None:
     z = np.load(AR5 / "part3_votes.npz")
     wv, rv = [], []
     for s in SAMPLES:
@@ -575,6 +602,15 @@ def plot_votes() -> None:
     for y, d, c in ((1, wv, "C3"), (0, rv, "C0")):
         jit = ((np.arange(len(d)) * 0.6180339887) % 1.0 - 0.5) * 0.5  # fixed spread, no random
         ax.scatter(d, y + jit, s=3, alpha=0.4, color=c)
+    ax.axvline(cut, color="k", ls="--", lw=0.8)
+    ax.annotate(
+        f"cut {cut:,.0f}\n(chosen after the result)",
+        (cut, 0.5),
+        xytext=(4, 0),
+        textcoords="offset points",
+        fontsize=7,
+        va="center",
+    )
     ax.set_yticks([0, 1])
     ax.set_yticklabels([f"right (n={len(rv)})", f"wrong (n={len(wv)})"])
     ax.set_xlabel("highest vote count, unexplained rays (flagged voxels)")

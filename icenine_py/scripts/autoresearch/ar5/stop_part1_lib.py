@@ -15,9 +15,8 @@ WRONG = 1.0
 AR5 = Path(__file__).resolve().parents[3] / "benchmarks" / "autoresearch" / "ar5"
 
 
-def load(sample: str, held: bool = False) -> Dict[str, np.ndarray]:
-    p = (AR5 / "cache" / "held" if held else AR5) / f"starts_{sample}.npz"
-    z = np.load(p)
+def load(sample: str) -> Dict[str, np.ndarray]:
+    z = np.load(AR5 / f"starts_{sample}.npz")
     return {k: z[k] for k in z.files}
 
 

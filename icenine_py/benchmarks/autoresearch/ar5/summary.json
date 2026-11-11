@@ -506,7 +506,7 @@
    "n": "2",
    "what": "a candidate near the truth is in the first 100 and not the 20 costed, in half the cases",
    "result": "does not agree",
-   "numbers": "0 of 31"
+   "numbers": "0 of 31; no list held 100 (they held 32 to 62), so the first 100 were all candidates"
   },
   {
    "n": "3",
@@ -523,8 +523,8 @@
   {
    "n": "5",
    "what": "the vote count does not separate wrong from right among flagged voxels",
-   "result": "does not agree",
-   "numbers": "a weak separation exists; cut 2369: 67 of 118 wrong, 1410 of 7908 right at or above"
+   "result": "does not agree (on a cut chosen after the result)",
+   "numbers": "a weak separation exists; cut 2369: 67 of 118 wrong, 1410 of 7908 right at or above; the best cut moves from 1975 to 3035 between samples"
   },
   {
    "n": "6",
@@ -532,5 +532,349 @@
    "result": "not evaluated",
    "numbers": "no rule passed, so T1 was not run"
   }
- ]
+ ],
+ "review": {
+  "scope": {
+   "big": {
+    "n_grains": 32,
+    "n_voxels": 24570,
+    "levels_deg": [
+     0.0,
+     0.2,
+     0.5,
+     1.0,
+     2.0,
+     4.0
+    ],
+    "max_level_deg": 4.0,
+    "s8_total_evals": 8340428
+   },
+   "grad": {
+    "n_grains": 497,
+    "n_voxels": 24570,
+    "levels_deg": [
+     0.0,
+     0.1,
+     0.2,
+     0.5,
+     1.0
+    ],
+    "max_level_deg": 1.0,
+    "s8_total_evals": 18000230
+   },
+   "mid": {
+    "n_grains": 120,
+    "n_voxels": 24570,
+    "levels_deg": [
+     0.0,
+     0.2,
+     0.5,
+     1.0,
+     2.0,
+     4.0
+    ],
+    "max_level_deg": 4.0,
+    "s8_total_evals": 26443074
+   }
+  },
+  "part1": {
+   "pick_margin": {
+    "full_gain": 190,
+    "needed_gain": 180.5,
+    "pick_gain": 181,
+    "margin_voxels": 0.5
+   },
+   "p3_every_d": [
+    {
+     "d": 0.0,
+     "m": 1,
+     "pick_samples_gain": 76,
+     "pick_samples_evals": 84780,
+     "reaches_needed_gain": false,
+     "mid_gain": 30,
+     "mid_lost_pc": 43.39622641509434,
+     "mid_cut_pc": 98.2907940638192
+    },
+    {
+     "d": 0.0,
+     "m": 2,
+     "pick_samples_gain": 76,
+     "pick_samples_evals": 84841,
+     "reaches_needed_gain": false,
+     "mid_gain": 30,
+     "mid_lost_pc": 43.39622641509434,
+     "mid_cut_pc": 98.2907940638192
+    },
+    {
+     "d": 0.02,
+     "m": 1,
+     "pick_samples_gain": 88,
+     "pick_samples_evals": 86854,
+     "reaches_needed_gain": false,
+     "mid_gain": 31,
+     "mid_lost_pc": 41.509433962264154,
+     "mid_cut_pc": 98.27482568121675
+    },
+    {
+     "d": 0.02,
+     "m": 2,
+     "pick_samples_gain": 88,
+     "pick_samples_evals": 86915,
+     "reaches_needed_gain": false,
+     "mid_gain": 31,
+     "mid_lost_pc": 41.509433962264154,
+     "mid_cut_pc": 98.27482568121675
+    },
+    {
+     "d": 0.05,
+     "m": 1,
+     "pick_samples_gain": 102,
+     "pick_samples_evals": 91185,
+     "reaches_needed_gain": false,
+     "mid_gain": 33,
+     "mid_lost_pc": 37.735849056603776,
+     "mid_cut_pc": 98.20097191168044
+    },
+    {
+     "d": 0.05,
+     "m": 2,
+     "pick_samples_gain": 102,
+     "pick_samples_evals": 91246,
+     "reaches_needed_gain": false,
+     "mid_gain": 33,
+     "mid_lost_pc": 37.735849056603776,
+     "mid_cut_pc": 98.20097191168044
+    },
+    {
+     "d": 0.1,
+     "m": 1,
+     "pick_samples_gain": 125,
+     "pick_samples_evals": 114731,
+     "reaches_needed_gain": false,
+     "mid_gain": 35,
+     "mid_lost_pc": 33.9622641509434,
+     "mid_cut_pc": 97.95745407699312
+    },
+    {
+     "d": 0.1,
+     "m": 2,
+     "pick_samples_gain": 125,
+     "pick_samples_evals": 114792,
+     "reaches_needed_gain": false,
+     "mid_gain": 35,
+     "mid_lost_pc": 33.9622641509434,
+     "mid_cut_pc": 97.95545802916781
+    },
+    {
+     "d": 0.2,
+     "m": 1,
+     "pick_samples_gain": 156,
+     "pick_samples_evals": 204401,
+     "reaches_needed_gain": false,
+     "mid_gain": 44,
+     "mid_lost_pc": 16.981132075471695,
+     "mid_cut_pc": 96.22887666027822
+    },
+    {
+     "d": 0.2,
+     "m": 2,
+     "pick_samples_gain": 156,
+     "pick_samples_evals": 205438,
+     "reaches_needed_gain": false,
+     "mid_gain": 44,
+     "mid_lost_pc": 16.981132075471695,
+     "mid_cut_pc": 96.15901498639252
+    }
+   ],
+   "p3_every_d_max_pick_samples_gain": 156,
+   "p3_every_d_any_reaches": false,
+   "hindsight_mid_whatif": {
+    "settings": {
+     "P1 d=0": {
+      "cut_pc": 98.2907940638192,
+      "lost_pc": 43.39622641509434,
+      "passes": false
+     },
+     "P1 d=0.02": {
+      "cut_pc": 98.27482568121675,
+      "lost_pc": 41.509433962264154,
+      "passes": false
+     },
+     "P1 d=0.05": {
+      "cut_pc": 98.20097191168044,
+      "lost_pc": 37.735849056603776,
+      "passes": false
+     },
+     "P1 d=0.1": {
+      "cut_pc": 97.95545802916781,
+      "lost_pc": 33.9622641509434,
+      "passes": false
+     },
+     "P1 d=0.2": {
+      "cut_pc": 96.1530268429166,
+      "lost_pc": 16.981132075471695,
+      "passes": false
+     },
+     "P2 m=1": {
+      "cut_pc": 62.713237625566954,
+      "lost_pc": 9.433962264150942,
+      "passes": false
+     },
+     "P2 m=2": {
+      "cut_pc": 38.930327787047226,
+      "lost_pc": 0.0,
+      "passes": false
+     },
+     "P3 d=0.2 m=1": {
+      "cut_pc": 96.22887666027822,
+      "lost_pc": 16.981132075471695,
+      "passes": false
+     },
+     "P3 d=0.2 m=2": {
+      "cut_pc": 96.15901498639252,
+      "lost_pc": 16.981132075471695,
+      "passes": false
+     }
+    },
+    "any_plan_setting_passes": false,
+    "min_lost_pc_p1_p3_plan": 16.981132075471695,
+    "min_lost_pc_p1_p3_every_d": 16.981132075471695
+   }
+  },
+  "part2": {
+   "n_cases": 31,
+   "n_cand_min": 32,
+   "n_cand_max": 62,
+   "r1_costed_every_candidate": 31,
+   "r1_repeats_seed_step_refinements": 20,
+   "grid_evals_mean": 342140.3548387097,
+   "grid_evals_min": 332369,
+   "grid_evals_max": 347951,
+   "level0_reuse_whatif": {
+    "label": "what-if, not a result: a ladder whose grid search reuses R3's level 0",
+    "assumption": "the grid search's own level 0 costs what R3's level 0 cost (R3 used default_rng(0); the stored grid search used another random state)",
+    "ladder_evals": 11364144.0,
+    "grid_evals": 10606351.0,
+    "two_thirds_limit": 7070900.666666666,
+    "cases_ending_at_grid": 14,
+    "r3_level0_evals_in_those": 2827283.0,
+    "reuse_level0_evals": 8536861.0,
+    "reuse_level0_share_pc": 80.48819994737116,
+    "r1_evals_all_cases": 166291.0,
+    "reuse_level0_no_r1_evals": 8370570.0,
+    "reuse_level0_no_r1_share_pc": 78.92035630350155,
+    "under_two_thirds": false,
+    "under_two_thirds_no_r1": false
+   },
+   "intervals": {
+    "r1_right": {
+     "k": 23,
+     "n": 31,
+     "share": 0.7419354838709677,
+     "lo": 0.5675352757228489,
+     "hi": 0.8629845626313024
+    },
+    "r3_pass": {
+     "k": 17,
+     "n": 31,
+     "share": 0.5483870967741935,
+     "lo": 0.37771879603669134,
+     "hi": 0.7083851716341388
+    },
+    "r3_right": {
+     "k": 25,
+     "n": 31,
+     "share": 0.8064516129032258,
+     "lo": 0.6371939644454013,
+     "hi": 0.9081311641365236
+    },
+    "r3_right_when_pass": {
+     "k": 17,
+     "n": 17,
+     "share": 1.0,
+     "lo": 0.8156763396284354,
+     "hi": 1.0
+    },
+    "ladder_right": {
+     "k": 30,
+     "n": 31,
+     "share": 0.967741935483871,
+     "lo": 0.8380554282383037,
+     "hi": 0.9942829259130554
+    },
+    "grid_right": {
+     "k": 28,
+     "n": 31,
+     "share": 0.9032258064516129,
+     "lo": 0.7509971000182295,
+     "hi": 0.966535963905356
+    }
+   }
+  },
+  "part3_flags": {
+   "big": {
+    "flagged": 1532,
+    "flagged_between_lower_and_thr": 1452,
+    "lower": 0.9,
+    "boundary_share_pc": 44.98982498982499
+   },
+   "grad": {
+    "flagged": 2785,
+    "flagged_between_lower_and_thr": 2491,
+    "lower": 0.9,
+    "boundary_share_pc": 94.12291412291412
+   },
+   "mid": {
+    "flagged": 3709,
+    "flagged_between_lower_and_thr": 3225,
+    "lower": 0.9,
+    "boundary_share_pc": 72.68620268620269
+   }
+  },
+  "part3_votes": {
+   "cut_per_sample": {
+    "big": 2446.0,
+    "grad": 3035.0,
+    "mid": 1975.0
+   },
+   "cut_min": 1975.0,
+   "cut_max": 3035.0,
+   "pick_sample_cut_whatif": {
+    "label": "what-if: the cut chosen on big and grad pooled, read on mid",
+    "cut": 2919.0,
+    "mid_wrong": {
+     "k": 12,
+     "n": 31,
+     "share": 0.3870967741935484,
+     "lo": 0.23732875351271562,
+     "hi": 0.5617619885886803
+    },
+    "mid_right": {
+     "k": 281,
+     "n": 3678,
+     "share": 0.07640021750951605,
+     "lo": 0.06825031939906488,
+     "hi": 0.08543407593179346
+    },
+    "separates": true
+   },
+   "all_three": {
+    "cut": 2369.0,
+    "wrong_among_above": {
+     "k": 67,
+     "n": 1477,
+     "share": 0.04536222071767095,
+     "lo": 0.035877142121746246,
+     "hi": 0.05720614241050891
+    },
+    "wrong_among_flagged": {
+     "k": 118,
+     "n": 8026,
+     "share": 0.01470221779217543,
+     "lo": 0.012291616603687522,
+     "hi": 0.017577166860235353
+    }
+   }
+  }
+ }
 }

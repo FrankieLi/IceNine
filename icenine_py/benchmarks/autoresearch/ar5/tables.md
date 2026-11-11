@@ -59,73 +59,84 @@
 <!-- table:p2_failed -->
 | sample | voxel | kind | cand | rank | c20 | r5 | s8best | gridhit | griderr |
 |---|---|---|---|---|---|---|---|---|---|
-| first gradient sample | 19058 | first seed | 45 | 1 | yes | yes | 0.792 | 0.971 | 0.02 |
-| first gradient sample | 367 | reseed | 48 | 1 | yes | yes | 0.783 | 0.980 | 0.00 |
-| first gradient sample | 18267 | reseed | 49 | 1 | yes | yes | 0.774 | 1.000 | 0.00 |
-| first gradient sample | 20136 | reseed | 53 | 3 | yes | yes | 0.721 | 0.984 | 0.01 |
-| first gradient sample | 1672 | reseed | 38 | 1 | yes | yes | 0.786 | 0.984 | 0.00 |
-| first gradient sample | 3957 | reseed | 46 | 1 | yes | yes | 0.795 | 0.993 | 0.01 |
-| first gradient sample | 8146 | reseed | 49 | 1 | yes | yes | 0.758 | 0.990 | 0.01 |
-| first gradient sample | 2740 | reseed | 38 | 1 | yes | yes | 0.784 | 0.996 | 0.00 |
-| first gradient sample | 2744 | reseed | 54 | 1 | yes | yes | 0.784 | 0.966 | 0.01 |
-| first gradient sample | 3494 | reseed | 36 | 1 | yes | yes | 0.689 | 0.401 | 1.40 |
-| first gradient sample | 19063 | reseed | 44 | 1 | yes | yes | 0.791 | 0.988 | 0.03 |
-| first gradient sample | 6768 | reseed | 51 | 1 | yes | yes | 0.800 | 0.984 | 0.00 |
-| first gradient sample | 11536 | reseed | 39 | 1 | yes | yes | 0.784 | 1.000 | 0.00 |
-| first gradient sample | 11654 | reseed | 58 | 1 | yes | yes | 0.791 | 0.997 | 0.00 |
-| first gradient sample | 24194 | reseed | 32 | 1 | yes | yes | 0.656 | 0.995 | 0.01 |
-| first gradient sample | 23825 | reseed | 45 | 1 | yes | yes | 0.756 | 0.998 | 0.01 |
-| mid | 17538 | first seed | 40 | 1 | yes | yes | 0.779 | 0.996 | 0.01 |
-| mid | 7134 | reseed | 47 | 1 | yes | yes | 0.711 | 0.967 | 0.01 |
-| mid | 7167 | reseed | 42 | 1 | yes | yes | 0.723 | 0.988 | 0.00 |
-| mid | 20676 | reseed | 42 | 1 | yes | yes | 0.734 | 1.000 | 0.00 |
-| mid | 1339 | reseed | 47 | 1 | yes | yes | 0.747 | 0.751 | 34.96 |
-| mid | 1158 | reseed | 36 | 1 | yes | yes | 0.799 | 0.969 | 0.01 |
-| mid | 17608 | reseed | 53 | 1 | yes | yes | 0.787 | 1.000 | 0.00 |
-| mid | 15577 | reseed | 48 | 1 | yes | yes | 0.763 | 0.853 | 0.10 |
-| mid | 13439 | reseed | 39 | 1 | yes | yes | 0.771 | 0.986 | 0.03 |
-| mid | 8425 | reseed | 44 | 1 | yes | yes | 0.741 | 0.997 | 0.00 |
-| mid | 10395 | reseed | 61 | 2 | yes | yes | 0.796 | 0.970 | 0.01 |
-| mid | 10603 | reseed | 62 | 2 | yes | yes | 0.783 | 1.000 | 0.01 |
-| mid | 12282 | reseed | 47 | 1 | yes | yes | 0.785 | 0.977 | 0.00 |
-| mid | 16731 | reseed | 57 | 1 | yes | yes | 0.742 | 0.992 | 0.01 |
-| mid | 20251 | reseed | 55 | 2 | yes | yes | 0.769 | 0.734 | 45.70 |
+| first gradient sample | 19058 | first seed | 45 | 1 | yes | yes | 0.7921 | 0.9705 | 0.02 |
+| first gradient sample | 367 | reseed | 48 | 1 | yes | yes | 0.7830 | 0.9796 | 0.00 |
+| first gradient sample | 18267 | reseed | 49 | 1 | yes | yes | 0.7741 | 1.0000 | 0.00 |
+| first gradient sample | 20136 | reseed | 53 | 3 | yes | yes | 0.7207 | 0.9839 | 0.01 |
+| first gradient sample | 1672 | reseed | 38 | 1 | yes | yes | 0.7855 | 0.9843 | 0.00 |
+| first gradient sample | 3957 | reseed | 46 | 1 | yes | yes | 0.7954 | 0.9928 | 0.01 |
+| first gradient sample | 8146 | reseed | 49 | 1 | yes | yes | 0.7576 | 0.9903 | 0.01 |
+| first gradient sample | 2740 | reseed | 38 | 1 | yes | yes | 0.7838 | 0.9963 | 0.00 |
+| first gradient sample | 2744 | reseed | 54 | 1 | yes | yes | 0.7838 | 0.9665 | 0.01 |
+| first gradient sample | 3494 | reseed | 36 | 1 | yes | yes | 0.6893 | 0.4007 | 1.40 |
+| first gradient sample | 19063 | reseed | 44 | 1 | yes | yes | 0.7910 | 0.9882 | 0.03 |
+| first gradient sample | 6768 | reseed | 51 | 1 | yes | yes | 0.7998 | 0.9839 | 0.00 |
+| first gradient sample | 11536 | reseed | 39 | 1 | yes | yes | 0.7841 | 1.0000 | 0.00 |
+| first gradient sample | 11654 | reseed | 58 | 1 | yes | yes | 0.7909 | 0.9973 | 0.00 |
+| first gradient sample | 24194 | reseed | 32 | 1 | yes | yes | 0.6561 | 0.9953 | 0.01 |
+| first gradient sample | 23825 | reseed | 45 | 1 | yes | yes | 0.7556 | 0.9982 | 0.01 |
+| mid | 17538 | first seed | 40 | 1 | yes | yes | 0.7789 | 0.9963 | 0.01 |
+| mid | 7134 | reseed | 47 | 1 | yes | yes | 0.7113 | 0.9672 | 0.01 |
+| mid | 7167 | reseed | 42 | 1 | yes | yes | 0.7231 | 0.9877 | 0.00 |
+| mid | 20676 | reseed | 42 | 1 | yes | yes | 0.7340 | 1.0000 | 0.00 |
+| mid | 1339 | reseed | 47 | 1 | yes | yes | 0.7467 | 0.7508 | 34.96 |
+| mid | 1158 | reseed | 36 | 1 | yes | yes | 0.7991 | 0.9686 | 0.01 |
+| mid | 17608 | reseed | 53 | 1 | yes | yes | 0.7865 | 1.0000 | 0.00 |
+| mid | 15577 | reseed | 48 | 1 | yes | yes | 0.7632 | 0.8527 | 0.10 |
+| mid | 13439 | reseed | 39 | 1 | yes | yes | 0.7713 | 0.9864 | 0.03 |
+| mid | 8425 | reseed | 44 | 1 | yes | yes | 0.7407 | 0.9970 | 0.00 |
+| mid | 10395 | reseed | 61 | 2 | yes | yes | 0.7956 | 0.9700 | 0.01 |
+| mid | 10603 | reseed | 62 | 2 | yes | yes | 0.7835 | 1.0000 | 0.01 |
+| mid | 12282 | reseed | 47 | 1 | yes | yes | 0.7851 | 0.9773 | 0.00 |
+| mid | 16731 | reseed | 57 | 1 | yes | yes | 0.7418 | 0.9917 | 0.01 |
+| mid | 20251 | reseed | 55 | 2 | yes | yes | 0.7688 | 0.7338 | 45.70 |
 <!-- /table:p2_failed -->
+
+<!-- table:p2_intervals -->
+| count | k | n | lo | hi |
+|---|---|---|---|---|
+| R1 end right | 23 | 31 | 57 | 86 |
+| R3 passes the seed test | 17 | 31 | 38 | 71 |
+| R3 end right | 25 | 31 | 64 | 91 |
+| R3 end right, of the cases it passes | 17 | 17 | 82 | 100 |
+| ladder end right | 30 | 31 | 84 | 99 |
+| grid search end right | 28 | 31 | 75 | 97 |
+<!-- /table:p2_intervals -->
 
 <!-- table:p2_rungs -->
 | sample | voxel | r1hit | r1ev | r1err | r3hit | r3ev | r3err | ends | ladev | gridev |
 |---|---|---|---|---|---|---|---|---|---|---|
-| first gradient sample | 19058 | 0.792 | 4,350 | 0.26 | 0.797 | 210,151 | 0.21 | grid | 557,093 | 342,592 |
-| first gradient sample | 367 | 0.783 | 3,561 | 0.33 | 0.620 | 209,558 | 47.71 | grid | 557,965 | 344,846 |
-| first gradient sample | 18267 | 0.774 | 5,218 | 52.54 | 0.864 | 212,299 | 0.11 | R3 | 217,517 | 343,763 |
-| first gradient sample | 20136 | 0.721 | 4,773 | 0.21 | 0.673 | 209,577 | 24.34 | grid | 560,222 | 345,872 |
-| first gradient sample | 1672 | 0.786 | 5,317 | 25.88 | 0.967 | 208,144 | 0.03 | R3 | 213,461 | 347,730 |
-| first gradient sample | 3957 | 0.795 | 3,762 | 0.43 | 1.000 | 207,507 | 0.00 | R3 | 211,269 | 346,279 |
-| first gradient sample | 8146 | 0.752 | 5,495 | 18.02 | 0.757 | 209,962 | 18.02 | grid | 562,048 | 346,591 |
-| first gradient sample | 2740 | 0.784 | 5,483 | 0.07 | 0.877 | 211,540 | 0.05 | R3 | 217,023 | 345,796 |
-| first gradient sample | 2744 | 0.784 | 4,288 | 0.06 | 0.726 | 208,260 | 0.19 | grid | 558,590 | 346,042 |
-| first gradient sample | 3494 | 0.689 | 4,092 | 0.57 | 0.997 | 207,132 | 0.00 | R3 | 211,224 | 343,279 |
-| first gradient sample | 19063 | 0.791 | 5,469 | 0.18 | 0.926 | 210,505 | 0.08 | R3 | 215,974 | 347,701 |
-| first gradient sample | 6768 | 0.800 | 4,415 | 0.10 | 0.802 | 211,105 | 0.10 | R3 | 215,520 | 346,340 |
-| first gradient sample | 11536 | 0.784 | 4,715 | 0.15 | 0.999 | 207,049 | 0.00 | R3 | 211,764 | 339,153 |
-| first gradient sample | 11654 | 0.791 | 4,342 | 0.25 | 0.980 | 207,732 | 0.01 | R3 | 212,074 | 345,632 |
-| first gradient sample | 24194 | 0.656 | 3,590 | 0.58 | 0.655 | 209,128 | 0.58 | grid | 557,060 | 344,342 |
-| first gradient sample | 23825 | 0.756 | 4,387 | 0.16 | 0.845 | 209,810 | 0.09 | R3 | 214,197 | 342,629 |
-| mid | 17538 | 0.752 | 7,630 | 0.33 | 0.758 | 202,240 | 0.33 | grid | 542,616 | 332,746 |
-| mid | 7134 | 0.711 | 8,320 | 37.59 | 0.948 | 205,521 | 0.01 | R3 | 213,841 | 347,951 |
-| mid | 7167 | 0.723 | 6,980 | 0.08 | 0.757 | 208,501 | 0.10 | grid | 556,571 | 341,090 |
-| mid | 20676 | 0.734 | 5,813 | 0.58 | 0.809 | 204,078 | 0.07 | R3 | 209,891 | 332,369 |
-| mid | 1339 | 0.747 | 6,692 | 34.96 | 0.729 | 207,345 | 35.02 | grid | 554,245 | 340,208 |
-| mid | 1158 | 0.799 | 6,061 | 0.24 | 0.707 | 203,782 | 0.33 | grid | 551,380 | 341,537 |
-| mid | 17608 | 0.787 | 7,442 | 0.20 | 0.863 | 211,212 | 0.15 | R3 | 218,654 | 340,577 |
-| mid | 15577 | 0.763 | 5,089 | 36.67 | 0.747 | 203,739 | 36.69 | grid | 544,411 | 335,583 |
-| mid | 13439 | 0.771 | 4,868 | 0.05 | 0.792 | 203,631 | 0.04 | grid | 548,421 | 339,922 |
-| mid | 8425 | 0.696 | 7,772 | 56.26 | 0.702 | 204,150 | 56.30 | grid | 553,968 | 342,046 |
-| mid | 10395 | 0.796 | 5,214 | 0.11 | 0.974 | 201,128 | 0.01 | R3 | 206,342 | 339,552 |
-| mid | 10603 | 0.783 | 4,234 | 0.28 | 0.999 | 201,648 | 0.01 | R3 | 205,882 | 335,381 |
-| mid | 12282 | 0.785 | 4,921 | 0.11 | 0.516 | 200,675 | 0.59 | grid | 540,868 | 335,272 |
-| mid | 16731 | 0.731 | 6,145 | 53.41 | 0.859 | 210,412 | 0.15 | R3 | 216,557 | 342,091 |
-| mid | 20251 | 0.769 | 5,853 | 0.09 | 0.989 | 201,643 | 0.02 | R3 | 207,496 | 341,439 |
+| first gradient sample | 19058 | 0.7921 | 4,350 | 0.26 | 0.7966 | 210,151 | 0.21 | grid | 557,093 | 342,592 |
+| first gradient sample | 367 | 0.7830 | 3,561 | 0.33 | 0.6202 | 209,558 | 47.71 | grid | 557,965 | 344,846 |
+| first gradient sample | 18267 | 0.7741 | 5,218 | 52.54 | 0.8642 | 212,299 | 0.11 | R3 | 217,517 | 343,763 |
+| first gradient sample | 20136 | 0.7207 | 4,773 | 0.21 | 0.6728 | 209,577 | 24.34 | grid | 560,222 | 345,872 |
+| first gradient sample | 1672 | 0.7855 | 5,317 | 25.88 | 0.9671 | 208,144 | 0.03 | R3 | 213,461 | 347,730 |
+| first gradient sample | 3957 | 0.7954 | 3,762 | 0.43 | 1.0000 | 207,507 | 0.00 | R3 | 211,269 | 346,279 |
+| first gradient sample | 8146 | 0.7518 | 5,495 | 18.02 | 0.7569 | 209,962 | 18.02 | grid | 562,048 | 346,591 |
+| first gradient sample | 2740 | 0.7838 | 5,483 | 0.07 | 0.8772 | 211,540 | 0.05 | R3 | 217,023 | 345,796 |
+| first gradient sample | 2744 | 0.7838 | 4,288 | 0.06 | 0.7262 | 208,260 | 0.19 | grid | 558,590 | 346,042 |
+| first gradient sample | 3494 | 0.6893 | 4,092 | 0.57 | 0.9973 | 207,132 | 0.00 | R3 | 211,224 | 343,279 |
+| first gradient sample | 19063 | 0.7910 | 5,469 | 0.18 | 0.9261 | 210,505 | 0.08 | R3 | 215,974 | 347,701 |
+| first gradient sample | 6768 | 0.7998 | 4,415 | 0.10 | 0.8018 | 211,105 | 0.10 | R3 | 215,520 | 346,340 |
+| first gradient sample | 11536 | 0.7841 | 4,715 | 0.15 | 0.9991 | 207,049 | 0.00 | R3 | 211,764 | 339,153 |
+| first gradient sample | 11654 | 0.7909 | 4,342 | 0.25 | 0.9804 | 207,732 | 0.01 | R3 | 212,074 | 345,632 |
+| first gradient sample | 24194 | 0.6561 | 3,590 | 0.58 | 0.6545 | 209,128 | 0.58 | grid | 557,060 | 344,342 |
+| first gradient sample | 23825 | 0.7556 | 4,387 | 0.16 | 0.8449 | 209,810 | 0.09 | R3 | 214,197 | 342,629 |
+| mid | 17538 | 0.7524 | 7,630 | 0.33 | 0.7580 | 202,240 | 0.33 | grid | 542,616 | 332,746 |
+| mid | 7134 | 0.7113 | 8,320 | 37.59 | 0.9475 | 205,521 | 0.01 | R3 | 213,841 | 347,951 |
+| mid | 7167 | 0.7231 | 6,980 | 0.08 | 0.7574 | 208,501 | 0.10 | grid | 556,571 | 341,090 |
+| mid | 20676 | 0.7340 | 5,813 | 0.58 | 0.8091 | 204,078 | 0.07 | R3 | 209,891 | 332,369 |
+| mid | 1339 | 0.7467 | 6,692 | 34.96 | 0.7293 | 207,345 | 35.02 | grid | 554,245 | 340,208 |
+| mid | 1158 | 0.7991 | 6,061 | 0.24 | 0.7071 | 203,782 | 0.33 | grid | 551,380 | 341,537 |
+| mid | 17608 | 0.7865 | 7,442 | 0.20 | 0.8635 | 211,212 | 0.15 | R3 | 218,654 | 340,577 |
+| mid | 15577 | 0.7632 | 5,089 | 36.67 | 0.7471 | 203,739 | 36.69 | grid | 544,411 | 335,583 |
+| mid | 13439 | 0.7713 | 4,868 | 0.05 | 0.7918 | 203,631 | 0.04 | grid | 548,421 | 339,922 |
+| mid | 8425 | 0.6964 | 7,772 | 56.26 | 0.7022 | 204,150 | 56.30 | grid | 553,968 | 342,046 |
+| mid | 10395 | 0.7956 | 5,214 | 0.11 | 0.9738 | 201,128 | 0.01 | R3 | 206,342 | 339,552 |
+| mid | 10603 | 0.7835 | 4,234 | 0.28 | 0.9990 | 201,648 | 0.01 | R3 | 205,882 | 335,381 |
+| mid | 12282 | 0.7851 | 4,921 | 0.11 | 0.5156 | 200,675 | 0.59 | grid | 540,868 | 335,272 |
+| mid | 16731 | 0.7306 | 6,145 | 53.41 | 0.8587 | 210,412 | 0.15 | R3 | 216,557 | 342,091 |
+| mid | 20251 | 0.7688 | 5,853 | 0.09 | 0.9893 | 201,643 | 0.02 | R3 | 207,496 | 341,439 |
 <!-- /table:p2_rungs -->
 
 <!-- table:p2_totals -->
@@ -221,10 +232,10 @@
 | n | what | result | numbers |
 |---|---|---|---|
 | 1 | a try-test setting cuts 70% of the pass and loses at most 5% of its gain | does not agree | best cut within the 5% loss: 55.1% |
-| 2 | a candidate near the truth is in the first 100 and not the 20 costed, in half the cases | does not agree | 0 of 31 |
+| 2 | a candidate near the truth is in the first 100 and not the 20 costed, in half the cases | does not agree | 0 of 31; no list held 100 (they held 32 to 62), so the first 100 were all candidates |
 | 3 | the ladder passes its rule | does not agree | 107.1% of the grid evaluations |
 | 4 | a hit-ratio threshold flags 80% of wrong voxels and at most 5% of voxels | does not agree | first part holds (100% of wrong voxels caught); second part fails (8.8% of voxels flagged on the pick samples, 15.1% on mid) |
-| 5 | the vote count does not separate wrong from right among flagged voxels | does not agree | a weak separation exists; cut 2369: 67 of 118 wrong, 1410 of 7908 right at or above |
+| 5 | the vote count does not separate wrong from right among flagged voxels | does not agree (on a cut chosen after the result) | a weak separation exists; cut 2369: 67 of 118 wrong, 1410 of 7908 right at or above; the best cut moves from 1975 to 3035 between samples |
 | 6 | T1 needs under 14 M (gradient) and 22 M (mid) evaluations | not evaluated | no rule passed, so T1 was not run |
 <!-- /table:predictions -->
 
