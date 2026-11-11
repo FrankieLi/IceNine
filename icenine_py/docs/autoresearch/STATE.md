@@ -25,10 +25,11 @@ Read this file first after any restart or wake. It holds only what is true now a
 ## Next action
 
 Step 8 of AR3 (why the seed step costs so much in grains with strong gradients, task `ar3h`;
-plan in `PLAN.md` under "Step 8: ...", approved by D-20261111-N4). An implementer is running.
+plan in `PLAN.md` under "Step 8: ...", approved by D-20261111-N4). Handed back at 2aaa72a
+(worktree `agent-a635b2f904279bdc9`, page placed by the main session); the review is running.
 
-1. Wait for its notification. Then: `verify_handback.sh feature/eval-reduction <report>
-   --branch feature/eval-reduction-ar3h`, `/review-task`, the decision on the fixes
+1. Wait for the review (report `.claude/reports/20261111-0545-review-ar3h.md`). Then the
+   decision on the fixes
    (D-20261111-N5 or the day's next ID), a fixes round, `finish_task.sh --yes --push` in the
    worktree that holds the branch, and the close (runbook, "A step, from plan to merge",
    points 5 to 9). Copy the fixes report out of the fixes worktree before the merge: after
@@ -41,11 +42,11 @@ plan in `PLAN.md` under "Step 8: ...", approved by D-20261111-N4). An implemente
 
 ## Running jobs
 
-- Step 8 implementer (Sonnet, own worktree, branch `feature/eval-reduction-ar3h`), started
-  2026-11-11. Its report: `.claude/reports/20261111-0423-ar3h.md` (maybe in its own worktree;
-  the findings page may sit next to it if its Write was refused).
-- The review page is at version 34 (step 7 done, step 8 running, decision N4). No page job
-  is open.
+- Step 8 review (`code-reviewer`, Opus), started 2026-11-11. The implementer's report and
+  page text: `.claude/reports/20261111-0423-ar3h*.md`. Result, not yet reviewed: remedy `E1`
+  (stop the seed step at the first refinement with hit ratio 0.95) gives run `S8`; with the
+  pass 8.34 million evaluations on `big` (`D4` 11.94), 24 wrong.
+- The review page is at version 34 (step 8 running, decision N4). No page job is open.
 
 ## Queue
 
@@ -54,7 +55,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 8 | where the seed step's evaluations go; remedies (task `ar3h`) | implementer running |
+| AR3 step 8 | where the seed step's evaluations go; remedies (task `ar3h`) | review running |
 | AR3 later | opt-in keys for the seed step and the boundary pass | with settings; the owner picks |
 | AR4 | the learned proposer | after step 8 |
 | AR5 | the stop rule inside the grid search | after step 8 |
