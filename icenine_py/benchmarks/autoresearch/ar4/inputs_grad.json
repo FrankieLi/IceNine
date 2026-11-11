@@ -1,0 +1,31 @@
+{
+ "sample": "grad",
+ "n_pairs": 94306,
+ "n_evaluations": 94306,
+ "library_calls_per_pair": 2,
+ "by_kind": {
+  "after": 24570,
+  "before": 752,
+  "try_start": 60381,
+  "seed_end": 2356,
+  "seed_cand": 2560,
+  "turn_01": 1229,
+  "turn_03": 1229,
+  "turn_05": 1229
+ },
+ "n_right": 36607,
+ "n_seed_steps": 1279,
+ "seed_replay_evals_and_hits_match": 1279,
+ "seed_replay_mismatch": 0,
+ "sum_back": {
+  "n_pairs_checked": 94306,
+  "max_abs_pixel_overlap_diff_vs_fused": 6.0,
+  "max_abs_pixel_on_detector_diff_vs_fused": 6.0,
+  "max_abs_hit_ratio_diff_vs_fused": 0.004283714132435348,
+  "n_pairs_pixel_counts_differ_from_fused": 2574,
+  "max_abs_pixel_diff_vs_stage_d_aggregate": 0.0
+ },
+ "wall_seed_replay_s": 825.0773181915283,
+ "wall_pairs_s": 188.3529269695282,
+ "timing_label": "contended (another agent on the machine); not a timing result"
+}
