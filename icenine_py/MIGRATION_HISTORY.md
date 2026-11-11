@@ -11873,9 +11873,8 @@ golden, no dependency, no step 2 script changed (so no rerun of step 2's base ch
 `scripts/autoresearch/ar5/mix_*.py` (they import step 2's `fit_*.py`; `mix_common.py` adds the arms
 `X60` and `X200` to `fit_common.refine_arm` at run time), tests of the pure rule functions
 `tests/test_ar5_mix_rules.py` (12 tests, committed before `mix_rules.py`), results in
-`benchmarks/autoresearch/ar5/mix/`. The findings page text `findings_ar5_mix.md` was not writable
-by the implementer (the Write was refused); the text, with the tables filled, is in the report
-folder for the main session to place.
+`benchmarks/autoresearch/ar5/mix/`, findings page `docs/autoresearch/findings_ar5_mix.md`
+(placed by the main session from the implementer's text, commit `6174af7`).
 Mixed refinement: a CMA fit (at most 60 or 200 evaluations); the stock MC optimizer from the same
 candidate only when the CMA end hit ratio is below 0.95; the lower-cost end is kept; the early
 stop is tested on it.
@@ -11895,3 +11894,17 @@ three (`mid` is at the limit of 5). `S11a` not needed. Grid fallbacks 0, 11, 12 
 Predictions 1, 2 and 4 agree; 3 does not. The mixed rule was found in a replay that included
 `mid`, so no sample is held out for it. Rows of the three `S11` runs (before and after the pass)
 were added to `docs/autoresearch/pareto/pareto_rows.json`. Walls contended, not timing results.
+
+Fixes round (review `20261111-1503-review-ar5c`, decision D-20261111-N16; documents, the Part 1
+and summary scripts only, no new run and no new evaluation). The parent was merged into the
+task branch. `mix_part1.py --all` also stores the plan's what-if count: a variant that stops
+when either end of a candidate reaches 0.95 (`mix_rules.mixed_step(stop_on_either=True)`, off
+by default, two new tests) gives 5,643,374 on `mid`; it differs from the rule as run only at
+replay step 442 (CMA end hit 0.94752, cost 0.06939; MC end hit 0.95300, cost 0.07189).
+`mix_summary.py` adds the share of `S11`'s saving by stage against `S8` and `S10` (against `S10`
+the grid-fallback stage is 47.8% on the first gradient sample and 15.2% on `mid`), the cost of
+one grid fallback (333,517 to 340,594 evaluations), and the uncounted hit-ratio checks of the
+mixed refinement (436, 2,158 and 2,814, under 0.02%). The page no longer calls the seed step
+the largest piece of the saving (false against `S8` on `big` and the first gradient sample),
+words the lower fallback count as consistent with a direct or a path effect, and says plainly
+that `mid` has 36 wrong voxels after the pass against 31 for `S8`, at the rule's limit.
