@@ -50,7 +50,7 @@ brief and the note "continue from the commits on the branch".
   `feature/eval-reduction-ar3g`), started 2026-11-11 at about 01:50. Its report:
   `.claude/reports/20261111-0151-ar3g.md` (maybe in its own worktree). Four whole-layer runs,
   caps 180 and 90 minutes, so the hand-back can take several hours.
-- The review page is at version 31 (step 6 done, step 7 running). No page job is open.
+- The review page is at version 32 (step 6 done, step 7 running; "grid search" defined). No page job is open.
 
 ## Queue
 
