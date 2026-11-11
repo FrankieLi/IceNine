@@ -41,7 +41,8 @@ so this is not a like-for-like comparison; the matched levels are in the section
 2. **Does step 6's seed step still do no harm?** Wrong voxels after the pass: `S5` 30 of
    24,570 (0.09 to 0.17%), `D4` 21 (0.06 to 0.13%). The intervals overlap. By voxel, `S5`
    fixes 6 of `D4`'s 21 and breaks 15 (15 wrong in both). So there is no detectable difference
-   in wrong voxels, and the point count of `S5` is higher.
+   in wrong voxels, and the raw count of `S5` (the count itself, without its interval) is
+   higher.
 3. **Is it cheaper than `D4`?** No, not here. `S5` with the pass costs 13.00 million
    evaluations, `D4` with the pass 11.94 million: 8.8% more. On the gradient sample `S5` cost
    20.63 million against 38.81 million. The grid fallbacks that `S5` removes were few on `big`
@@ -331,8 +332,10 @@ reverse; `both_wrong` is wrong in both.
 
 `S5` against `D4` after the pass: 30 against 21 wrong, 6 fixed, 15 broken. `S5` against `D`: 30
 against 26, 12 fixed, 16 broken. `P4R4` against `S5`: 31 against 30, 11 fixed, 12 broken. The
-intervals overlap in each pair. Before the pass `P4R4` is worse (102 against 71, 20 fixed and 51
-broken); the pass closes that gap. The pass itself costs 1.12 to 1.19 million evaluations on
+intervals overlap in each pair. Before the pass `P4R4` has more wrong voxels in the raw count
+(102 against 71, 20 fixed and 51 broken), but the intervals overlap narrowly (0.34 to 0.50%
+against 0.23 to 0.36%), so this is not called a loss. After the pass the counts are 31 against
+30. The pass itself costs 1.12 to 1.19 million evaluations on
 `big` (46 to 48 per voxel), for 10,999 to 11,478 boundary voxels, and about 2 minutes (contended).
 
 ## What the result decides
