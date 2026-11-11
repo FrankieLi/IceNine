@@ -1202,3 +1202,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   rule, this step only). The step recommends no seed step: the choice stays the owner's. No key
   for the start test (D-20261111-N7). No default flip, no golden change, no new dependency. Where:
   icenine_py/docs/autoresearch/PLAN.md (Step 10).
+
+### D-20261111-N9 · Track A / AR3 step 10 · Review of AR3 step 10 (task ar3j): apply the 8 required fixes, test the rounded-map reading, keep the word fit on the repo page
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Under the owner mandate D-20261109-N1, yours to overrule. The review (Opus,
+  .claude/reports/20261111-0941-review-ar3j.md) asks for changes in documentation and one test; it
+  found the library code, the tests and the validation runs sound. (1) All 8 required fixes are
+  applied in one fixes round (Opus), and the cheap suggestions with them (the both-wrong column,
+  the uncounted evaluations given as numbers, the type annotations, the README rows, the
+  docstrings, the note on the stored S8 label). (2) The reviewer left open whether to test the
+  reading that the boundary pass inside the run differs from the stored run because its input map
+  is not rounded. It is tested: the library pass is applied in a fresh process to the unrounded
+  map of the library run for D4L and S8L if the cache holds that map bit for bit, otherwise by one
+  BFS rerun of S8L. Equal tries to the in-run pass means the rounding accounts for the difference
+  and the process does not; anything else is reported as it is. No setting is changed and no key
+  default changes. (3) The page keeps the word fit, like the other repo pages; a repo-wide rename
+  to local optimization waits for the owner's word. The review page for the owner says local
+  optimization. No setting is recommended; the choice of the seed step stays the owner's. Where:
+  icenine_py/docs/autoresearch/PLAN.md, Step 10; review report 20261111-0941-review-ar3j.md.
