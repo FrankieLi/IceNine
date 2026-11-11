@@ -264,6 +264,14 @@ def main() -> None:
                 inside=sum(not r["boundary"] for r in sel),
             )
         )
+    rows_lv.append(
+        dict(
+            level="controls, all",
+            voxels=len(ctl),
+            at_boundary=sum(r["boundary"] for r in ctl),
+            inside=sum(not r["boundary"] for r in ctl),
+        )
+    )
     SUM["by_level"] = rows_lv
     T["ar3f_levels"] = DT.markdown_table(rows_lv, ["level", "voxels", "at_boundary", "inside"])
 

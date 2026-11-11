@@ -59,6 +59,7 @@
 | controls, level 0.2 | 21 | 18 | 3 |
 | controls, level 0.5 | 36 | 31 | 5 |
 | controls, level 1 | 120 | 111 | 9 |
+| controls, all | 200 | 178 | 22 |
 <!-- /table:ar3f_levels -->
 
 <!-- table:ar3f_lists -->

@@ -137,6 +137,12 @@
    "voxels": 120,
    "at_boundary": 111,
    "inside": 9
+  },
+  {
+   "level": "controls, all",
+   "voxels": 200,
+   "at_boundary": 178,
+   "inside": 22
   }
  ],
  "check2": {
