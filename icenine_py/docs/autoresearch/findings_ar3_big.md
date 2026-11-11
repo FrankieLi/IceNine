@@ -9,7 +9,10 @@ in `benchmarks/autoresearch/ar3/big/`. Every table below is filled from `tables.
 each grain with a small orientation gradient. One run of each pipeline, one voxel order. It does
 not hold for a real sample. C++ was not run. No extra random seed was run. Counts carry a Wilson
 95% interval; no p-values. A difference is a gain or a loss only when the intervals do not
-overlap. Every wall time on this page was measured with other jobs running (contended) and is
+overlap. The intervals count voxels as independent, but wrong voxels cluster in a few grains
+(after the pass, `S5`'s 30 wrong voxels sit in 10 grains, 15 of them in two grains of level 4;
+`D4`'s 21 sit in 9 grains), so the intervals are too narrow for statements across grains, such
+as the matched levels and the second picture. Every wall time on this page was measured with other jobs running (contended) and is
 not a timing result. The evaluation count is the cost that counts.
 
 ## The result in two pictures
