@@ -1008,3 +1008,33 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   change, no default changed, C++ source read but not run. An opt-in key for the pass comes after,
   only if the pass is a gain. Where: icenine_py/docs/autoresearch/PLAN.md, 'Step 5' of the AR3
   section.
+
+### D-20261110-N7 · Track A / AR3 step 5 review, step 6 · AR3 step 5 review decisions approved under the mandate: all 15 fixes with no rerun, per-try arrays kept, no K rerun yet, step 6 is the seed cost
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. Step 5's
+  review (verdict request changes, 15 required fixes, the numbers reproduce) left four choices.
+  (1) All 15 fixes are applied, to text, the summary script and the tables only; no pass and no
+  run is repeated. Added to the fixes: a plot first (wrong voxels against evaluations per
+  pipeline, pass on both sides), the old-end score check cited, 'fit-settled' and 'grid fallback'
+  defined, a reading line before the ratio table, wall times labelled as contended, the run order
+  of boundary_summary.py and boundary_ratio.py documented, and 'local optimization' in place of
+  'finisher' in the page and the step 5 scripts. The lead result is the one-footing comparison:
+  with the boundary pass on both sides the CMA-first run shows no detectable difference in wrong
+  voxels on the gradient sample at about a third to 58% of the evaluations (D4+pass 74 against
+  D+pass 88 wrong at 38.8M against 122.1M; P4R4+pass 82 against PR+pass 78 at 54.6M against
+  94.7M), and 0 against 14 on step 2's sample at 16.6M against 36.1M. (2) The 14 tries.npz files
+  (about 47 MB) stay as committed: D-20261110-N4 allows them because the summary reads every one,
+  and removing them now would not shrink the history. From the next task on per-try arrays are
+  stored slim (only the fields the summary reads). The owner can ask for a prune or Git LFS. (3)
+  Run K (cma keys with the paint) is not repeated now: at its 60-minute cap it had already used
+  38.1M evaluations, more than D4's 35.1M, and 31.07M of them were grid fallbacks behind failed
+  index seeds; it also started under 8-process contention. It is repeated after step 6. (4) Step 6
+  is the seed cost: grid fallbacks behind failed index seeds are the largest remaining cost (25.8M
+  of D4's 35.1M). First read the stored records (does the grid search succeed where the index seed
+  failed, and why does the index miss), then test remedies. The opt-in library key for the
+  boundary pass waits for a check on a sample with larger grains, because here 93 to 94% of the
+  voxels are boundary voxels. The review's C++ note (in parallel mode several clients fit accepted
+  voxels again and the server keeps the higher confidence, the keep rule that breaks thousands of
+  right voxels here) goes to the owner as a question; it is not tested. Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR3 section; review report
+  .claude/reports/20261110-2220-review-ar3e.md; findings_ar3_boundary.md after the fixes.
