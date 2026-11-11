@@ -76,11 +76,17 @@ where the interval on `big` lies wholly above the interval on the gradient sampl
    ratio of 2.35. (On the gradient sample the same two numbers are 839.6 and 388.3.) The local
    optimizations and the pass are themselves cheaper per voxel on `big` (225.1, not about 390).
 3. *At the levels with the same voxel-to-voxel change, the share of wrong voxels is no higher
-   than on the gradient sample.* **Agrees**, for `S5` and for the other three pipelines. No
-   matched level has a higher interval on `big`. In the point counts, the share on `big` is
-   lower or equal at every matched level for `S5`. Each level holds 1 to 9 grains (see the
-   sample section), so each result is a result on those grains. How the levels are matched is
-   in the section on wrong voxels.
+   than on the gradient sample.* **Agrees**, judged first on the plan's two matched pairs:
+   `big` level 2 against gradient level 0.5, and `big` level 4 against gradient level 1. For
+   `S5` the counts are 4 of 4,700 against 13 of 4,625, and 25 of 4,184 against 48 of 5,539.
+   Both pairs overlap, so neither interval on `big` lies above. In the raw counts the share on
+   `big` is lower in both pairs. The other three pipelines agree on these two pairs too (at
+   level 4 against 1 their intervals on `big` lie wholly below). Added beyond the plan: the
+   pairs `big` 0.5 against 0.1 and `big` 1 against 0.2 (a factor of 5), and level 0 against 0.
+   The plan calls 0.2 to 1 degree on `big` a gentler change, so these are not true matches,
+   and a gentler change makes "no higher" easier to pass. They also agree. Each level holds 1
+   to 9 grains (see the sample section), so each result is a result on those grains. How the
+   levels are matched is in the section on wrong voxels.
 
 ## The sample and the checks
 
@@ -301,9 +307,10 @@ level 4 (`D4`: 17 of 21; `D`: 20 of 26; `P4R4`: 22 of 31).
 
 How the levels are matched (prediction 3). A grain here is about 4 times wider than in the
 gradient sample, so the same voxel-to-voxel change needs a level about 4 times higher. The
-`big` levels 2 and 4 are matched to the gradient levels 0.5 and 1 (factor 4). The `big` levels
-0.5 and 1 are matched to 0.1 and 0.2 (factor 5, a slightly gentler change on `big`); the level
-0 is matched to 0. The level 0.2 has no match (gentler than any). The width factor was taken
+plan's matched pairs are the `big` levels 2 and 4 against the gradient levels 0.5 and 1
+(factor 4); prediction 3 is judged on these first. Added beyond the plan: the `big` levels 0.5
+and 1 against 0.1 and 0.2 (factor 5, a gentler change on `big`, so not a true match), and the
+level 0 against 0. The level 0.2 has no match (gentler than any). The width factor was taken
 from the plan; the voxel-to-voxel change itself was not measured.
 
 Reading of the table: the share wrong after the pass at each matched pair of levels, with the
@@ -419,8 +426,11 @@ uv run python scripts/autoresearch/ar3/big_summary.py --slim
   most 4 heavy processes at once, within the limit of 6), not after all four runs.
 - `pass.json` says "side by side" with the number given by `--side-by-side`; that number counts
   the jobs that ran at the time, not four passes together.
-- The levels 0.5 and 1 are matched with a factor of 5, not 4 (the plan matches 0.4 to 4 degrees
-  to 0.1 to 1, and 0.4 is not a level).
+- The plan's matched pairs are only `big` 2 against 0.5 and 4 against 1 (its 0.4 is not a
+  level). The pairs 0.5 against 0.1 and 1 against 0.2 (a factor of 5, a gentler change) and 0
+  against 0 were added; they were fixed in `big_summary.py` before the first whole-layer run
+  ended.
+  Prediction 3 is judged on the plan's two pairs first.
 - Added beyond the plan (marked as added in the text): seed steps by level, the cost of an
   index run and the break-even rate, and the thresholds for "order of", "comes close" and "no
   higher" in the predictions.
