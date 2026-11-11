@@ -11541,3 +11541,38 @@ and 1 took about 145 minutes, not 90. Next: step 6, the seed cost (grid fallback
 35.1 million); the opt-in key for the pass waits for a larger-grain check; K is repeated after
 step 6. Review fixes (same day, decision D-20261110-N7): text, summary keys, tables and a lead
 plot only; no pass, K or reconstruction rerun; summary.json gained new keys only.
+
+## Autoresearch AR3 step 6: the seed cost (done 2026-11-10, task ar3f)
+
+No change under `icenine/`; scripts `scripts/autoresearch/ar3/{seed_common,seed_replay,seed_part01,
+seed_extra,seed_summary,seed_pick,run_seed,seed_bg,seed_pass,seed_summary2}.py`, results
+`benchmarks/autoresearch/ar3/seed/` (slim, 2.19 MB), page `docs/autoresearch/
+findings_ar3_seed.md` (placed by the main session; the tool refused the implementer's write).
+Gradient sample only; C++ not run; one run per setting, one voxel order.
+Why the index seed fails: of 189 different fallback voxels (511 listings in D4, step 3's D, P4, P)
+the replay fails the seed test on 189 and passes 200 of 200 control seeds (evaluations equal on
+200 of 200). On 188 a candidate within 1 degree of the truth is among the indexer's first 5; on 175
+it is costed but not refined, because the strict cost of an unrefined candidate puts it behind a
+wrong one (median 0.449 degrees off the truth, against 0.220 on the controls; among the 2 refined
+on 13 of 188 against 196 of 200). Class (a) (truth fails the test) holds 0 voxels. Remedies by
+replay on A (91 voxels): refine the best 5 of 20 costed candidates leaves 9 for the grid search;
+tries from the neighbours in the final map leave 30 (a limit: that map was made after the voxel was
+settled); the pick (tries, then the 20/5 seed step) leaves 6 (3 to 14%) at a mean 24,124
+evaluations, against 341,893 for the stored seed step plus grid search. On the controls the tries
+break 6 of 200 right ends. Whole-layer runs with the pass on both sides: S (the pick) 11 grid
+fallbacks against 76, 16.1 against 38.8 million evaluations (D4 plus pass), but 100 wrong voxels
+against 74 (intervals overlap; the 602 voxels settled by tries are wrong on 59, the same voxels in
+D4 on 27); S5 (added: the 20/5 seed step without the tries) 15 fallbacks, 20.6 million, 62 wrong
+after the pass (no detectable difference from D4 plus pass); K2 (library CMA keys plus the pick) 53
+fallbacks, 30.3 million, 96 wrong. Two remedies (7a, 7b: indexer order, no strict cost) and run S5
+were added beyond the plan. Parts 0 and 1 took about 8 minutes of compute. Not done: an opt-in key
+for the remedy (waits for the owner and a larger-grain check); README unchanged (no library
+module).
+Review fixes (2026-11-11, decision D-20261111-N1, all 11 fixes, no rerun): page text, summary
+keys, tables and the plot label only; summary files gained new keys only. The pass did not repair
+most tries-settled wrong voxels: 40 of the 59 are still wrong after it (D4: 24 on the same 602
+voxels). S5 against S after the pass: 62 against 100, intervals do not overlap, 57 fixed and 19
+broken (S5 added after S). The tries are "consistent with" the extra wrong voxels, not shown per
+voxel. The 14 near-truth refined ends all fail the 0.80 seed test (median hit 0.779). Default
+until the owner decides: the S5 seed step (best 5 of 20, no tries), checked on larger grains
+before any opt-in key.
