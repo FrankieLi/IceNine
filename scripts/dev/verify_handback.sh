@@ -119,7 +119,7 @@ if [ -z "$BR_COMMITS" ]; then
 else
     NC=$(printf '%s\n' "$BR_COMMITS" | wc -l | tr -d ' ')
     ok "$NC commit(s) since $PARENT"
-    git log --oneline "$PARENT..$BRANCH" | head -8 | sed 's/^/        /'
+    git log --oneline -8 "$PARENT..$BRANCH" | sed 's/^/        /'
     TOKENS=$(field_block "branch / commits" | tr -c '0-9a-zA-Z' '\n' | grep -xE '[0-9a-f]{7,40}' | sort -u || true)
     if [ -z "$TOKENS" ]; then
         flag "report names no commit hash under \"Branch / commits\""
