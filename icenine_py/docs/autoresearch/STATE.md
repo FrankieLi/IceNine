@@ -24,22 +24,27 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-Two implementers run (Sonnet, own worktrees). Each hands back by message; then runbook, "A
-step, from plan to merge", points 5 to 9 for each. Both add a section to
-`MIGRATION_HISTORY.md`: merge the parent into the second task branch before its fixes round.
+Runbook, "A step, from plan to merge". Both tasks add a section to `MIGRATION_HISTORY.md`:
+merge the parent into each task branch before its fixes round.
 
-1. AR5 step 2 (seed refinement by CMA, no MC fallback after CMA, run `S10`; task `ar5b`;
-   scripts only; plan D-20261111-N12). Report `.claude/reports/20261111-1134-ar5b.md` in its
-   worktree. Finished `S10` runs add rows to the plots of cost against accuracy
-   (`docs/autoresearch/pareto/pareto_rows.json`). Its branch was cut before AR5 step 1 merged.
+1. AR5 step 2 (task `ar5b`, plan D-20261111-N12): handed back, in review (Opus, started
+   13:10). Branch `feature/eval-reduction-ar5b` at 591ad30 in worktree `agent-acc78ac2a483ed86f`
+   (cut before AR5 step 1 merged). Reports in `.claude/reports/`: `20261111-1134-ar5b.md`,
+   review to come at `20261111-1310-review-ar5b.md`. Then points 6 to 9: decision N14 (fixes;
+   the two questions below), fixes round, merge, close. At the close put the 6 `S10` rows of
+   `docs/autoresearch/pareto/pareto_rows.json` on the page's plots (version 39).
+   Result, review pending: no CMA seed refinement met the 1% rule (pick stays MC). Run `S10`
+   (no MC fallback) needs 29.3 / 15.7 / 14.3% fewer evaluations than `S8`; wrong 22/24, 67/63,
+   35/31. Questions: an opt-in key for it? CMA seed with MC only under hit ratio 0.95?
 2. AR4 step 1 (a learned verifier against the hit ratio, offline; task `ar4a`; plan
-   D-20261111-N13). Report `.claude/reports/20261111-1208-ar4a.md` in its worktree.
+   D-20261111-N13): implementer runs. Report `.claude/reports/20261111-1208-ar4a.md` in its
+   worktree. At hand-back: points 5 to 9.
 3. After both: plan the next step from their results (a library key for `S10`'s changes if it
    passes; the verifier inside the BFS if a model passes).
 
 ## Running jobs
 
-- AR5 step 2 implementer (started 2026-11-11 about 11:40), at most 3 heavy processes.
+- AR5 step 2 reviewer (started 2026-11-11 13:10); it hands back by message.
 - AR4 step 1 implementer (started 2026-11-11 about 12:40), at most 2 heavy processes.
 - The review page is at version 38 (AR5 step 1 is on it; no new plot point). No page job.
 
@@ -50,7 +55,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR5 step 2 | CMA seed refinement, no MC fallback, run `S10` (task `ar5b`) | running |
+| AR5 step 2 | CMA seed refinement, no MC fallback, run `S10` (task `ar5b`) | in review |
 | AR4 step 1 | learned verifier against the hit ratio, offline (task `ar4a`) | running |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
@@ -69,6 +74,7 @@ rule passed, run `T1` was not run. More in `STATE_HISTORY.md`, "AR5 step 1".
 
 Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, do not commit it.
 
+- `agent-acc78ac2a483ed86f` (AR5 step 2, branch `ar5b`): `ar5/fit/cache/` and links.
 - `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
 - `agent-a6c7c67b4a03d1843` (step 10, detached at 84ce8b5): `ar3/keys/cache/` (28 MB) and
   links; `agent-a3145f902bf0a61fb` (step 10 fixes): a copy of it plus the two reruns.
