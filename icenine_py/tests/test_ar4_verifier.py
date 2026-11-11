@@ -145,6 +145,50 @@ def test_logistic_fit_separates_a_clear_signal() -> None:
     assert p.min() >= 0.0 and p.max() <= 1.0
 
 
+def test_set_net_is_small_and_ignores_padding() -> None:
+    import torch
+    import verify_models as VM
+
+    torch.manual_seed(0)
+    net = VM.SetNet()
+    assert VM.n_parameters(net) < 50_000
+    x = torch.rand(2, 6, 5)
+    mask = torch.tensor([[1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0]], dtype=torch.bool)
+    s = torch.rand(2, 6)
+    a = net(x, mask, s)
+    x2 = x.clone()
+    x2[0, 3:] = 99.0  # changing the padded rows must not change the output
+    b = net(x2, mask, s)
+    assert torch.allclose(a, b, atol=1e-6) and a.shape == (2,)
+    # a pair with no peak gives a finite score
+    c = net(x, torch.zeros_like(mask), s)
+    assert torch.isfinite(c).all()
+
+
+def test_set_net_is_invariant_to_peak_order() -> None:
+    import torch
+    import verify_models as VM
+
+    torch.manual_seed(1)
+    net = VM.SetNet()
+    x = torch.rand(1, 5, 5)
+    mask = torch.ones(1, 5, dtype=torch.bool)
+    s = torch.rand(1, 6)
+    perm = torch.tensor([3, 0, 4, 1, 2])
+    assert torch.allclose(net(x, mask, s), net(x[:, perm], mask, s), atol=1e-6)
+
+
+def test_gather_batch_pads_and_masks_the_chosen_pairs() -> None:
+    import verify_models as VM
+
+    flat = np.arange(1, 16, dtype=np.float32).reshape(3, 5) * 0 + np.arange(3)[:, None] + 1
+    offsets = np.array([0, 1, 1, 3])  # pair 0: 1 peak, pair 1: none, pair 2: 2 peaks
+    x, m = VM.gather_batch(flat, offsets, np.array([2, 1, 0]), max_len=4)
+    assert x.shape == (3, 4, 5) and m.sum(axis=1).tolist() == [2, 0, 1]
+    assert np.all(x[1] == 0) and np.all(x[0, 2:] == 0)
+    assert x[0, 0, 3] == VM.scale_peaks(flat[1:2])[0, 3]
+
+
 def test_wrong_label_is_error_above_one_degree() -> None:
     err = np.array([0.0, 0.99, 1.0, 1.01, 30.0])
     assert VL.right_label(err).tolist() == [True, True, True, False, False]
