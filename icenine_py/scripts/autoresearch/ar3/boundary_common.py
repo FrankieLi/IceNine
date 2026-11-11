@@ -38,6 +38,12 @@ MAPS: Dict[str, Tuple[str, str, Optional[str]]] = {
     "D2": ("layer", "step 2 D (BFS, stock fit)", None),
 }
 STEP4 = ("D4", "P4R4", "E4")
+# part 2 maps (made by run_keys.py); compared with the step 4 map of the same sample
+MAPS_KEYS: Dict[str, Tuple[str, str, Optional[str]]] = {
+    "K": ("grad", "run K (BFS, indexed seeds, CMA keys, gradient sample)", "D4"),
+    "KE": ("layer", "run KE (BFS, indexed seeds, CMA keys, step 2's sample)", "E4"),
+}
+ALL_MAPS = {**MAPS, **MAPS_KEYS}
 
 
 def orthonormal(R: np.ndarray) -> np.ndarray:
@@ -64,6 +70,8 @@ def load_map(name: str, n: int) -> np.ndarray:
         return orthonormal(R)
     if name == "D2":
         return G.read_map(L2 / "D" / "recon.mic", n)[0]
+    if name in MAPS_KEYS:
+        return G.read_map(RUNS / name / "recon.mic.gz", n)[0]
     raise KeyError(name)
 
 
