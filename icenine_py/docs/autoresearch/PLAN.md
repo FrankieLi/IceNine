@@ -1572,6 +1572,64 @@ keys in "Key Config Parameters for Reconstruction" and the new module in "Packag
 `MIGRATION_HISTORY.md`: a section for step 10. Results in `benchmarks/autoresearch/ar3/keys/`,
 slim, under 5 MB tracked; maps and records are linked from the worktrees, not committed.
 
+### AR3 step 11: a held-out sample with its `S8` baseline
+
+Task `ar3k`. Scripts and results only: no file under `icenine_py/icenine/` changes. It starts
+after AR5 step 2 is merged, because the baseline uses that step's script layer. Planned on
+2026-11-11 (D-20261111-N15).
+
+**Why.** Three samples exist (`big`, the first gradient sample, `mid`) and every one has now
+been read for a choice. The mixed seed refinement of AR5 step 3 was found in a replay that
+included `mid`. The cut of the learned verifier of AR4 step 1 was set on the other two, and
+its use for accepting a seed was then read on `mid`. A rule picked on all the samples can fit
+them. The next whole-layer tests therefore need one sample that no choice has seen. This is a
+test of whether a result carries over to a new sample. It is not a repeat with a new random
+seed to make a comparison look firmer.
+
+**The sample `held`.** Built like `mid` (`scripts/autoresearch/ar3/start_make_mid.py`), with
+three differences: 250 Voronoi cells instead of 120, generator seed 1 instead of 0 for the
+centres, the orientations and the gradient levels, and the tag `held`. Same 24,570 voxel
+centres, same six gradient levels (0, 0.2, 0.5, 1, 2 and 4 degrees), same rule that redraws an
+orientation closer than 5 degrees to a neighbour grain's. Images: clean, rendered and packed as
+for `mid` (`scripts/phase_d/render_full.py`, the `clean` variant). The step records the grain
+sizes, the grains per level, the measured spread per level, the lit pixels and the spots, as
+`mid_check.json` does for `mid`.
+
+**The baseline.** Run `S8` on `held` with the boundary pass, with the script layer of AR5
+step 2 and both of its changes off (the layer that reproduced stored `S8` on `big` exactly).
+First repeat that check on `big` (7,201,863 evaluations, 67 wrong before the pass); if it
+differs, stop and report. At most 120 minutes for the run on `held`; a run at its cap is
+reported as unfinished. Keep the per-voxel log, the seed-step log and the maps before and
+after the pass in the cache, in the layout of step 9, so that later steps can replay seed
+steps and pair voxels.
+
+**What is reported.** Evaluations by stage, grid fallbacks, wrong voxels before and after the
+pass with Wilson 95% intervals, the median error over all voxels, the boundary share of the
+voxels. One table with `held` next to the three other samples. One row pair in
+`docs/autoresearch/pareto/pareto_rows.json` (before and after the pass).
+
+**What must not happen.** No other run on `held`: no other arm, no replay with another
+refinement, no scoring by a model. The sample stays unread for choices until the plans of the
+steps that use it are committed with their predictions.
+
+**Predictions, written before the run.**
+
+1. `S8` on `held` with the pass needs between 20 and 40 million evaluations (more grains mean
+   more seed steps; `mid` with 120 grains needed 26.44, the first gradient sample with 497
+   grains 18.00).
+2. Wrong voxels after the pass: between 30 and 120 (0.12% to 0.49%).
+3. Grid fallbacks: between 5 and 40.
+
+**Budgets.** Sample and images: 15 minutes. Baseline: at most 120 minutes, at most 2 heavy
+processes. All wall times are contended and are not timing results.
+
+**Files.** `scripts/autoresearch/ar3/held_*.py`, a test of the sample builder's pure parts in
+`tests/test_ar3_held_sample.py`, results in `benchmarks/autoresearch/ar3/held/` (under 5 MB
+tracked; the image stack and the caches stay untracked), a short page
+`docs/autoresearch/findings_ar3_held.md`.
+
+**Not in this step.** Any comparison of methods on `held`. A timing. Realistic images.
+
 ## AR4: learning where the search is uncertain
 
 The first plan put the learned part at the proposer (H4): a network that proposes orientations
