@@ -9,11 +9,13 @@ there.
 sample (32 grains, six levels of orientation gradient inside the grains). `grad` is the first
 gradient sample of steps 3 to 6 (497 grains, levels up to 1 degree). Neither is a real sample, and
 C++ was not run. No extra random seed was run. Counts carry a Wilson 95% interval; there are no
-p-values. The intervals count voxels as independent, but wrong voxels cluster in a few grains, so
-the intervals are too narrow for statements across grains. A gradient level holds 1 to 9 grains
-on `big`: a result by level is a result on those grains. Every wall time here was measured with
-other jobs running (contended) and is not a timing result. The cost that counts is the
-evaluation count.
+p-values. The intervals count voxels or seed steps as independent, but wrong voxels cluster in a
+few grains, so the intervals are too narrow for statements across grains. The same holds for the
+intervals on shares of seed steps and of cluster voxels (`first_ok_ci`, `A_ci`): these cluster
+too, for example 267 of the 349 seed steps of `S5` on `big` are in the 6 grains at 4 degrees.
+A gradient level holds 1 to 9 grains on `big`: a result by level is a result on those grains.
+Every wall time here was measured with other jobs running (contended) and is not a timing
+result. The cost that counts is the evaluation count.
 
 ## Terms
 
