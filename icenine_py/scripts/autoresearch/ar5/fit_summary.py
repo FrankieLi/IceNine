@@ -105,7 +105,7 @@ HEADERS: Dict[str, Dict[str, str]] = {
         wrong_a="wrong after the pass",
         fix_b="fixed / broken before",
         fix_a="fixed / broken after",
-        med="median error after (deg)",
+        med="median error after, all 24570 voxels (deg)",
     ),
     "fits": dict(
         s8_fits="S8 fits",
@@ -123,7 +123,7 @@ HEADERS: Dict[str, Dict[str, str]] = {
         a="rule (a)",
         net="broken minus fixed",
         b="rule (b)",
-        meddiff="median error minus S8's (deg)",
+        meddiff="median error minus S8's, all 24570 voxels (deg)",
         c="rule (c)",
         passes="passes",
     ),
@@ -148,6 +148,12 @@ def pretty(name: str, md: str) -> str:
     cells = [c.strip() for c in lines[0].strip("|").split("|")]
     lines[0] = "| " + " | ".join(m.get(c, c) for c in cells) + " |"
     return "\n".join(lines)
+
+
+def missing_row(columns: List[str], **keys: str) -> Dict[str, Any]:
+    """A row not computed yet: the key cells (sample, arm) stay in their own columns and every
+    other cell says "not evaluated" (``markdown_table`` would merge them into one label cell)."""
+    return {c: keys.get(c, "not evaluated") for c in columns}
 
 
 def wrong_text(side: Dict[str, Any]) -> str:
@@ -244,14 +250,26 @@ def main() -> None:
     )
 
     # ---- Part 1 counts
+    cols1 = [
+        "sample",
+        "arm",
+        "steps",
+        "passed",
+        "passed_ci",
+        "m_only_p",
+        "arm_only_p",
+        "right",
+        "m_only_r",
+        "arm_only_r",
+        "evals",
+        "fall",
+    ]
     rows1: List[Optional[Dict[str, Any]]] = []
-    lab1: List[str] = []
     for s in SAMPLES:
         d = S["part1"][s]
         for arm in FC.ARMS:
-            lab1.append(f"{NAMES[s]} {arm}")
             if d is None:
-                rows1.append(None)
+                rows1.append(missing_row(cols1, sample=NAMES[s], arm=arm))
                 continue
             c, m, n = d["counts"][arm], d["counts"]["M"], d["n_steps"]
             pp = d["paired_passed"].get(arm)
@@ -272,35 +290,16 @@ def main() -> None:
                     fall=100 * FR.fall(c["evals"], m["evals"]),
                 )
             )
-    T["part1"] = markdown_table(
-        rows1,
-        [
-            "sample",
-            "arm",
-            "steps",
-            "passed",
-            "passed_ci",
-            "m_only_p",
-            "arm_only_p",
-            "right",
-            "m_only_r",
-            "arm_only_r",
-            "evals",
-            "fall",
-        ],
-        formats=dict(fall=".1f", evals="d"),
-        labels=lab1,
-    )
+    T["part1"] = markdown_table(rows1, cols1, formats=dict(fall=".1f", evals="d"))
 
     # ---- end errors of the arms
+    cols_e = ["sample", "arm", "steps", "median", "p90", "within"]
     rows_e: List[Optional[Dict[str, Any]]] = []
-    lab_e: List[str] = []
     for s in SAMPLES:
         d = S["part1"][s]
         for arm in FC.ARMS:
-            lab_e.append(f"{NAMES[s]} {arm}")
             if d is None or "err_q" not in d:
-                rows_e.append(None)
+                rows_e.append(missing_row(cols_e, sample=NAMES[s], arm=arm))
                 continue
             q = d["err_q"][arm]
             rows_e.append(
@@ -313,12 +312,7 @@ def main() -> None:
                     within=100 * q["within_0_2"],
                 )
             )
-    T["err"] = markdown_table(
-        rows_e,
-        ["sample", "arm", "steps", "median", "p90", "within"],
-        formats=dict(median=".3f", p90=".3f", within=".1f"),
-        labels=lab_e,
-    )
+    T["err"] = markdown_table(rows_e, cols_e, formats=dict(median=".3f", p90=".3f", within=".1f"))
     # ---- pick
     pk = S["pick"]
     if pk:
@@ -549,12 +543,44 @@ def main() -> None:
             ["item", "new", "stored"],
             formats=dict(new="d", stored="d"),
         )
+    S.setdefault("derived", {})["whatif_s10_with_c60_seed"] = whatif_c60_seed(S)
     T["pred"] = predictions(S)
     T = {k: pretty(k, v) for k, v in T.items()}
     write_tables(FIT / "tables.md", T)
     (FIT / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
     plots(S)
     print("summary written;", sorted(T))
+
+
+PRED4_LIMITS = dict(big=4.0e6, grad=14.0e6, mid=13.5e6)  # prediction 4 of the plan
+
+
+def whatif_c60_seed(S: Dict[str, Any]) -> Dict[str, Any]:
+    """Arithmetic only, NOT a run: S10's total with its seed-step evaluations replaced by those of
+    the C60 replay (Part 1, on S8's stored seed steps). It asks whether the seed step alone keeps
+    S10 above prediction 4's limits. C60 fails the pick rules, and the path of such a run would
+    differ (S10 has its own seed steps), so this is only a size check."""
+    out: Dict[str, Any] = {"note": "arithmetic, not run"}
+    for s in SAMPLES:
+        d = S["part2"]["S10"][s]
+        p1 = S["part1"][s]
+        if not d or d.get("unfinished") or not p1:
+            out[s] = None
+            continue
+        st = d["stages"]
+        c60 = p1["counts"]["C60"]["evals"]
+        total = st["total"] - st["seed_step"] + c60
+        out[s] = dict(
+            s10_total=st["total"],
+            s10_seed_step=st["seed_step"],
+            c60_seed_step=c60,
+            total=total,
+            total_millions=round(total / 1e6, 2),
+            limit=int(PRED4_LIMITS[s]),
+            limit_millions=PRED4_LIMITS[s] / 1e6,
+            under_limit=bool(total < PRED4_LIMITS[s]),
+        )
+    return out
 
 
 def predictions(S: Dict[str, Any]) -> str:
@@ -613,7 +639,7 @@ def predictions(S: Dict[str, Any]) -> str:
             )
         )
     # 4: S10 with the pass under 4.0 / 14 / 13.5 million and passes its rule on all three
-    lim = dict(big=4.0e6, grad=14.0e6, mid=13.5e6)
+    lim = PRED4_LIMITS
     obs4 = []
     ok4: Optional[bool] = True
     for s in SAMPLES:

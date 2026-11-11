@@ -17,10 +17,10 @@
 | first gradient sample | C60 | 1279 | 0.058 | 17.465 | 74.2 |
 | first gradient sample | C200 | 1279 | 0.010 | 0.234 | 87.3 |
 | first gradient sample | C0 | 1279 | 0.276 | 44.539 | 40.3 |
-| mid M | not evaluated | not evaluated | not evaluated | not evaluated | not evaluated |
-| mid C60 | not evaluated | not evaluated | not evaluated | not evaluated | not evaluated |
-| mid C200 | not evaluated | not evaluated | not evaluated | not evaluated | not evaluated |
-| mid C0 | not evaluated | not evaluated | not evaluated | not evaluated | not evaluated |
+| mid | M | 1611 | 0.020 | 0.076 | 97.8 |
+| mid | C60 | 1611 | 0.160 | 23.341 | 56.0 |
+| mid | C200 | 1611 | 0.013 | 0.317 | 85.5 |
+| mid | C0 | 1611 | 0.423 | 41.431 | 16.1 |
 <!-- /table:err -->
 
 <!-- table:fits -->
@@ -65,7 +65,7 @@
 <!-- /table:part1 -->
 
 <!-- table:part2 -->
-| run | sample | seed step | grid fallback | neighbour fits | revisits | boundary pass | total | grid fallbacks (count) | wrong before the pass | wrong after the pass | fixed / broken before | fixed / broken after | median error after (deg) |
+| run | sample | seed step | grid fallback | neighbour fits | revisits | boundary pass | total | grid fallbacks (count) | wrong before the pass | wrong after the pass | fixed / broken before | fixed / broken after | median error after, all 24570 voxels (deg) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | S8 | big | 2856712 | 0 | 3491437 | 853714 | 1138565 | 8340428 | 0 | 67 (0.21 to 0.35%) | 24 (0.07 to 0.15%) |  |  | 0.0316 |
 | S8 | first gradient sample | 3008757 | 5449501 | 2798001 | 3060730 | 3683241 | 18000230 | 16 | 210 (0.75 to 0.98%) | 63 (0.20 to 0.33%) |  |  | 0.0226 |
@@ -95,7 +95,7 @@
 <!-- /table:pred -->
 
 <!-- table:rule -->
-| run | sample | fewer than S8 (%) | rule (a) | broken minus fixed | rule (b) | median error minus S8's (deg) | rule (c) | passes |
+| run | sample | fewer than S8 (%) | rule (a) | broken minus fixed | rule (b) | median error minus S8's, all 24570 voxels (deg) | rule (c) | passes |
 |---|---|---|---|---|---|---|---|---|
 | S10 | big | 29.3 | True | -2 | True | +0.0002 | True | True |
 | S10 | first gradient sample | 15.7 | False | 4 | True | -0.0002 | True | False |
