@@ -69,6 +69,9 @@ Chosen after I had seen results (so not predictions):
   pick set only.
 - Counting voxels at their first appearance in a cluster (a voxel can be in several clusters,
   see below), and the cluster's class by its most common class (used to read "cost share").
+- The test grid of `E2`: hit ratio at least 0.60 to 0.85, or at least 0.7 to 0.9 times the hit
+  ratio of the neighbour the fit started from. It widens the plan's examples and was set after
+  the hit ratios of class A (median 0.835) had been seen.
 - Judging a remedy on the test set of each sample separately, and requiring both to pass.
 - The unit of "distance to the boundary": the centre-to-centre distance to the nearest voxel of
   another true grain, in voxel side lengths (1.0 means a neighbouring voxel is of another grain).
@@ -526,7 +529,8 @@ decide what to do with the grid fallbacks that remain on `grad`.
 
 What is left on `big` after `S8`: neighbour and revisit local optimizations (4.35 million) and
 the pass (1.14 million) are now more than half of the 8.34 million; the reseeds still cost
-2.52 million in seed steps. The reseed cost comes from class A (a fit that ended right and was
+2.52 million in seed steps. By the plurality reading (each cluster given its most common class,
+in `S5`'s clusters), the reseed cost comes from class A (a fit that ended right and was
 rejected); `E2` did not reach it without keeping wrong fits at boundary voxels. The next step
 for those cases is AR4 or AR5 (a learned proposer, or a stop rule): a test that tells a right
 fit from a wrong one at a boundary voxel is what is missing.
@@ -605,4 +609,5 @@ RESEED_SAMPLE=<big|grad> uv run python scripts/autoresearch/ar3/reseed_s8_slim.p
 ## What comes after
 
 The keys step needs the owner's choice of seed step. For the rejections of fits that ended right
-(class A, 96.2% of the reseed cost), the next measurement is AR4 or AR5 on these cases.
+(class A, 96.2% of the reseed cost by the plurality reading), the next measurement is AR4 or AR5
+on these cases.
