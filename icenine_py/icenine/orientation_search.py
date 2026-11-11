@@ -150,6 +150,25 @@ class SearchParameters:
     #   goes through the usual seed test; if there is no candidate or the test fails, the grid
     #   search runs as before.
     seed_by_indexing: bool = False
+    # AR3 step 10 (D-20261111-N8): opt-in keys of the indexed seed step and the boundary pass, all
+    #   off at their defaults (the library then does what it did before). Documented in
+    #   docs/autoresearch/findings_ar3_keys.md; no setting is recommended.
+    # bfs_neighbor_cma_first (BFSNeighborCMAFirst): each BFS neighbour and revisit fit runs a CMA
+    #   fit first (CMASigma0, CMANeighborMaxEvals); if its end cost is not below its start cost the
+    #   stock MC fit runs from the same start and the lower cost is kept (the CMA end on a tie).
+    #   Needs local_optimizer "mc". The seed path and the grid search are unchanged.
+    # seed_index_n_cost, seed_index_n_refine (SeedIndexCandidates n_cost n_refine): the indexed
+    #   seed step costs n_cost candidates and refines the n_refine cheapest (needs
+    #   seed_by_indexing).
+    # seed_index_stop_hit (SeedIndexStopHitRatio t, 0 = off): the seed step stops at the first
+    #   refinement whose end has hit ratio >= t (needs seed_by_indexing).
+    # boundary_pass (BoundaryPass): one boundary pass over the whole map before the .mic is written
+    #   (icenine/boundary_pass.py; its settings are constants of that module).
+    bfs_neighbor_cma_first: bool = False
+    seed_index_n_cost: int = 5
+    seed_index_n_refine: int = 2
+    seed_index_stop_hit: float = 0.0
+    boundary_pass: bool = False
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
     #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
     #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
@@ -239,6 +258,17 @@ class SearchParameters:
             raise ValueError(
                 f"search_device must be 'cpu', 'mps' or 'cuda', got {self.search_device!r}"
             )
+        from .ray_indexing import SEED_TOP_K
+
+        if not 1 <= self.seed_index_n_refine <= self.seed_index_n_cost <= SEED_TOP_K:
+            raise ValueError(
+                "SeedIndexCandidates needs 1 <= n_refine <= n_cost <= "
+                f"{SEED_TOP_K}, got {self.seed_index_n_cost} {self.seed_index_n_refine}"
+            )
+        if not 0.0 <= self.seed_index_stop_hit <= 1.0:
+            raise ValueError(
+                f"seed_index_stop_hit must be in [0, 1], got {self.seed_index_stop_hit}"
+            )
         from .candidate_dedup import DedupSpec
 
         DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
@@ -274,6 +304,11 @@ class SearchParameters:
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
             outward_search=bool(getattr(config, "outward_search", False)),
             seed_by_indexing=bool(getattr(config, "seed_by_indexing", False)),
+            bfs_neighbor_cma_first=bool(getattr(config, "bfs_neighbor_cma_first", False)),
+            seed_index_n_cost=int(getattr(config, "seed_index_n_cost", 5)),
+            seed_index_n_refine=int(getattr(config, "seed_index_n_refine", 2)),
+            seed_index_stop_hit=float(getattr(config, "seed_index_stop_hit", 0.0)),
+            boundary_pass=bool(getattr(config, "boundary_pass", False)),
             paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
@@ -305,6 +340,7 @@ class CMAResult(SearchCandidate):
 
     n_evals: int = 0  # cost evaluations used, the start included
     stop_reason: str = ""  # "max_evals", "converged_cost" or the cma package's stop key(s)
+    start_cost: Optional[float] = None  # cost of the start's own evaluation (the first one)
 
 
 # ---------------------------------------------------------------------------
@@ -1082,6 +1118,7 @@ class CMAOptimizer:
         best_info = self.cost_fn.evaluate(R0, self.voxel_vertices, self.phase_index)
         n += 1
         best_cost = float(best_info.cost)
+        start_cost = best_cost
         best_R = R0.copy()
         stop_reason = "max_evals"
 
@@ -1089,9 +1126,23 @@ class CMAOptimizer:
             return self.max_convergence_cost > 0 and best_cost < self.max_convergence_cost
 
         if converged():
-            return CMAResult(best_R, best_cost, best_info, n_evals=n, stop_reason="converged_cost")
+            return CMAResult(
+                best_R,
+                best_cost,
+                best_info,
+                n_evals=n,
+                stop_reason="converged_cost",
+                start_cost=start_cost,
+            )
         if n >= self.max_evals:
-            return CMAResult(best_R, best_cost, best_info, n_evals=n, stop_reason="max_evals")
+            return CMAResult(
+                best_R,
+                best_cost,
+                best_info,
+                n_evals=n,
+                stop_reason="max_evals",
+                start_cost=start_cost,
+            )
 
         opts: Dict[str, Any] = dict(
             # cma would reseed the global legacy numpy RNG from an integer seed; NaN skips that and
@@ -1133,7 +1184,9 @@ class CMAOptimizer:
                     done = True
         if stop_reason == "max_evals" and n < self.max_evals:
             stop_reason = "+".join(sorted(es.stop().keys())) or "cma_stop"
-        return CMAResult(best_R, best_cost, best_info, n_evals=n, stop_reason=stop_reason)
+        return CMAResult(
+            best_R, best_cost, best_info, n_evals=n, stop_reason=stop_reason, start_cost=start_cost
+        )
 
 
 # ---------------------------------------------------------------------------
