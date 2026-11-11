@@ -100,6 +100,33 @@ def flag_counts(score: np.ndarray, wrong: np.ndarray, cut: float) -> Tuple[int, 
     return int(f.sum()), int((f & np.asarray(wrong, dtype=bool)).sum())
 
 
+def auc(score: np.ndarray, right: np.ndarray) -> float:
+    """Share of (right, wrong) pairs in which the right one scores higher (a tie counts one half);
+    NaN when there is no right or no wrong voxel. Counts ordered pairs; not a test."""
+    score = np.asarray(score, dtype=np.float64)
+    right = np.asarray(right, dtype=bool)
+    a, b = score[right], score[~right]
+    if len(a) == 0 or len(b) == 0:
+        return float("nan")
+    b_sorted = np.sort(b)
+    lo = np.searchsorted(b_sorted, a, side="left")  # wrong scores strictly under each right one
+    hi = np.searchsorted(b_sorted, a, side="right")  # wrong scores at or under
+    return float(((lo + hi) / 2.0).sum() / (len(a) * len(b)))
+
+
+def curve_at_wrong_scores(
+    score: np.ndarray, wrong: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Measured points of the flag curve: for each distinct score of a wrong voxel as the cut,
+    (cuts, voxels flagged, wrong voxels flagged), in rising cut order."""
+    score = np.asarray(score, dtype=np.float64)
+    wrong = np.asarray(wrong, dtype=bool)
+    cuts = np.unique(score[wrong])
+    flagged = np.array([int((score <= c).sum()) for c in cuts], dtype=np.int64)
+    wf = np.array([int(((score <= c) & wrong).sum()) for c in cuts], dtype=np.int64)
+    return cuts, flagged, wf
+
+
 def random_axes(n: int, seed: int = 0) -> np.ndarray:
     """``n`` random unit axes (normal vectors, seeded)."""
     a = np.random.default_rng(seed).normal(size=(n, 3))

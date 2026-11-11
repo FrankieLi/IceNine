@@ -189,6 +189,24 @@ def test_gather_batch_pads_and_masks_the_chosen_pairs() -> None:
     assert x[0, 0, 3] == VM.scale_peaks(flat[1:2])[0, 3]
 
 
+def test_auc_counts_ordered_pairs_with_ties_as_half() -> None:
+    # right voxels score 0.9, 0.8, 0.5; wrong score 0.5, 0.1: pairs (right > wrong):
+    # 0.9>0.5, 0.9>0.1, 0.8>0.5, 0.8>0.1, 0.5=0.5 (half), 0.5>0.1 -> 5.5 of 6
+    score = np.array([0.9, 0.8, 0.5, 0.5, 0.1])
+    right = np.array([True, True, True, False, False])
+    assert np.isclose(VL.auc(score, right), 5.5 / 6)
+    assert np.isnan(VL.auc(score[:3], right[:3]))
+
+
+def test_curve_cuts_are_the_wrong_voxel_scores() -> None:
+    score = np.array([0.3, 0.1, 0.2, 0.9, 0.2])
+    wrong = np.array([True, True, True, False, False])
+    cuts, flagged, wrong_flagged = VL.curve_at_wrong_scores(score, wrong)
+    assert cuts.tolist() == [0.1, 0.2, 0.3]
+    assert wrong_flagged.tolist() == [1, 2, 3]
+    assert flagged.tolist() == [1, 3, 4]  # the right voxel at 0.2 is flagged with its tie
+
+
 def test_wrong_label_is_error_above_one_degree() -> None:
     err = np.array([0.0, 0.99, 1.0, 1.01, 30.0])
     assert VL.right_label(err).tolist() == [True, True, True, False, False]
