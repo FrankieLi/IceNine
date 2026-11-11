@@ -1326,3 +1326,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   repeat to firm up a comparison (owner rule of 2026-10-12). Where:
   icenine_py/docs/autoresearch/PLAN.md (AR4 step 1; AR3 step 11),
   .claude/reports/20261111-1335-review-ar4a.md.
+
+### D-20261111-N16 · Track A / AR5 step 3 · AR5 step 3 review: approve, 8 document fixes; no key for the mixed seed refinement before the test on the sample held; that test splits evaluations by stage
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Review of AR5 step 3 (task ar5c): APPROVE with 8 required fixes, all wording or traceability, no
+  new run. All 8 are applied in a fixes round (Opus), then the step is merged as a study with
+  scripts only. Reviewed numbers: pick X200; run S11 with the boundary pass needs 51.9%, 31.6% and
+  39.2% fewer evaluations than S8 on big, the first gradient sample and mid and meets the pass
+  rule on all three; on mid broken minus fixed is 5 (15 broken, 10 fixed), exactly at the limit,
+  with 36 wrong voxels against 31. The mixed rule was found in a replay that included mid, so no
+  sample is held out for it. Therefore no library key is added now. The test on the sample held
+  (AR3 step 11) comes first: runs S10 and S11, and S11 plus the verifier N1 as an added
+  seed-accept rule, against the S8 baseline, with evaluations by stage and the grid-fallback cases
+  paired by seed step, so that the fallback part of the saving (30% and 10% of it against S8,
+  untested why) is seen separately. Its plan and predictions are written after held exists and
+  before any run on it. Decided under the mandate D-20261109-N1; the owner may overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 3); review
+  .claude/reports/20261111-1503-review-ar5c.md; page
+  icenine_py/docs/autoresearch/findings_ar5_mix.md.
