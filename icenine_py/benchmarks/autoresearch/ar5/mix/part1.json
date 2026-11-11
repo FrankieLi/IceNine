@@ -261,5 +261,51 @@
     }
    }
   }
+ },
+ "plan_whatif": {
+  "note": "the plan's what-if count for X200 comes from a variant that stops when either end of a candidate reaches 0.95; the rule as defined (and run) tests the stop on the kept lower-cost end. Both counts and every step where they differ.",
+  "plan_counts": {
+   "pick": 2501991,
+   "mid": 5643374
+  },
+  "pick_evals_variant": 2501991,
+  "by_sample": {
+   "big": {
+    "evals_rule": 938875,
+    "evals_variant": 938875,
+    "n_pass_variant": 329,
+    "steps_differ": []
+   },
+   "grad": {
+    "evals_rule": 1563116,
+    "evals_variant": 1563116,
+    "n_pass_variant": 1267,
+    "steps_differ": []
+   },
+   "mid": {
+    "evals_rule": 5643575,
+    "evals_variant": 5643374,
+    "n_pass_variant": 1600,
+    "steps_differ": [
+     {
+      "replay_index": 442,
+      "step": 442,
+      "candidate": 0,
+      "cma_hit": 0.9475164011246485,
+      "cma_cost": 0.06939037946502724,
+      "cma_evals": 201,
+      "mc_hit": 0.9529953917050691,
+      "mc_cost": 0.07189203327919702,
+      "mc_evals": 5983,
+      "next_cma_evals": 201,
+      "next_cma_hit": 0.9792060491493384,
+      "evals_rule": 6405,
+      "evals_variant": 6204,
+      "passed_rule": true,
+      "passed_variant": true
+     }
+    ]
+   }
+  }
  }
 }

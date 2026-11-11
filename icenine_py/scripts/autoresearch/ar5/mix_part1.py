@@ -106,6 +106,54 @@ def summarize(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     return out
 
 
+PLAN_WHATIF_X200 = dict(pick=2_501_991, mid=5_643_374)  # PLAN.md, AR5 step 3, what-if table
+
+
+def whatif_variant(rows: List[Dict[str, Any]], arm: str = "X200") -> Dict[str, Any]:
+    """The plan's what-if variant (stop when either end of a candidate reaches 0.95,
+    ``mix_rules.mixed_step(stop_on_either=True)``) against the rule as defined (stop test on the
+    kept lower-cost end), with every step where they differ (review fix 6)."""
+    diffs: List[Dict[str, Any]] = []
+    tot_rule = tot_var = pass_var = 0
+    for i, r in enumerate(rows):
+        c, m = r["arms"].get(MIXED[arm]), r["arms"].get("M")
+        a = MR.mixed_step(r["costed"], c, m)
+        b = MR.mixed_step(r["costed"], c, m, stop_on_either=True)
+        tot_rule += a["evals"]
+        tot_var += b["evals"]
+        pass_var += int(b["passed"])
+        if a["evals"] == b["evals"] and a["taken"] == b["taken"]:
+            continue
+        assert c is not None and m is not None
+        p = int(b["taken"])
+        nxt = p + 1 if p + 1 < len(c["fin_hit"]) else None
+        diffs.append(
+            dict(
+                replay_index=i,
+                step=int(r["step"]),
+                candidate=p,
+                cma_hit=float(c["fin_hit"][p]),
+                cma_cost=float(c["fin_cost"][p]),
+                cma_evals=int(c["fin_evals"][p]),
+                mc_hit=float(m["fin_hit"][p]),
+                mc_cost=float(m["fin_cost"][p]),
+                mc_evals=int(m["fin_evals"][p]),
+                next_cma_evals=(int(c["fin_evals"][nxt]) if nxt is not None else None),
+                next_cma_hit=(float(c["fin_hit"][nxt]) if nxt is not None else None),
+                evals_rule=int(a["evals"]),
+                evals_variant=int(b["evals"]),
+                passed_rule=bool(a["passed"]),
+                passed_variant=bool(b["passed"]),
+            )
+        )
+    return dict(
+        evals_rule=int(tot_rule),
+        evals_variant=int(tot_var),
+        n_pass_variant=int(pass_var),
+        steps_differ=diffs,
+    )
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=True)
@@ -141,6 +189,20 @@ def main() -> None:
     )
     if a.all:
         out["by_sample"] = by_sample
+        wi = {s: whatif_variant(per[s]) for s in samples}
+        for s in samples:
+            assert wi[s]["evals_rule"] == by_sample[s]["arms"]["X200"]["evals"]
+        pick_var = sum(wi[s]["evals_variant"] for s in PICK_SAMPLES)
+        assert pick_var == PLAN_WHATIF_X200["pick"], pick_var
+        assert wi["mid"]["evals_variant"] == PLAN_WHATIF_X200["mid"], wi["mid"]["evals_variant"]
+        out["plan_whatif"] = dict(
+            note="the plan's what-if count for X200 comes from a variant that stops when either "
+            "end of a candidate reaches 0.95; the rule as defined (and run) tests the stop on the "
+            "kept lower-cost end. Both counts and every step where they differ.",
+            plan_counts=PLAN_WHATIF_X200,
+            pick_evals_variant=int(pick_var),
+            by_sample=wi,
+        )
         dest = MIX / "part1.json"
         old = json.loads(PICK_FILE.read_text())
         assert old["pick"] == pick_arm and old["pooled"] == pooled, "pick file does not match"

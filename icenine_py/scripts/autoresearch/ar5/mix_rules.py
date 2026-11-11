@@ -42,6 +42,7 @@ def mixed_step(
     c: Optional[Dict[str, Any]],
     m: Optional[Dict[str, Any]],
     tau: float = FR.TAU,
+    stop_on_either: bool = False,
 ) -> Dict[str, Any]:
     """One seed step with the mixed refinement, from the replay row's arms ``c`` (CMA) and ``m``
     (MC): dicts with lists ``fin_hit``, ``fin_cost``, ``fin_evals`` and ``fin_err`` (one entry per
@@ -53,7 +54,12 @@ def mixed_step(
     (seed test) and ``right`` (within 1 degree), and ``missing``: True when the rule needed the MC
     end of a candidate that the replay did not compute (MC had stopped earlier in the replay). In
     that case the CMA fit of that candidate is counted and the step ends there; the caller must
-    report such steps."""
+    report such steps.
+
+    ``stop_on_either`` (default False, the rule of the plan's definition and of the runs) gives
+    the variant behind the plan's what-if count: when MC ran on a candidate and its end reaches
+    ``tau`` while the kept lower-cost CMA end does not, the step keeps the MC end and stops. Used
+    only to explain the one-step difference from the plan's what-if (``mix_part1.py``)."""
     out: Dict[str, Any] = dict(
         evals=0,
         taken=None,
@@ -86,6 +92,8 @@ def mixed_step(
             int(m["fin_evals"][p]) if mc_p else 0,
             tau,
         )
+        if stop_on_either and k["mc_ran"] and k["hit"] < tau and m["fin_hit"][p] >= tau:
+            k = dict(k, end="M", hit=m["fin_hit"][p], cost=m["fin_cost"][p])
         evals += k["evals"] - int(c["fin_evals"][p])
         out["mc_ran"] += int(k["mc_ran"])
         src = m if k["end"] == "M" else c

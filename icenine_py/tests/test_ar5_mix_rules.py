@@ -99,3 +99,22 @@ def test_pick_takes_the_cheaper_arm_that_meets_both_rules() -> None:
     assert FR.pick_arm(arms, 1608) == "X200"
     arms["X200"]["n_pass"] = 1570  # 22 below M: more than 1% of 1,608 steps
     assert FR.pick_arm(arms, 1608) == "X60"
+
+
+# ---- the variant behind the plan's what-if (review fix 6) ------------------------------------
+def test_either_stop_variant_stops_on_the_mc_end_the_rule_does_not_keep() -> None:
+    # like replay step 442 of mid: the CMA end (hit 0.9475) has the lower cost, the MC end has
+    # hit 0.953; the rule keeps the CMA end and goes on, the variant stops on the MC end
+    c = _arm([0.9475, 0.979], [0.0694, 0.05], [201, 201], [0.2, 0.3])
+    m = _arm([0.953, 0.5], [0.0719, 0.2], [5983, 400], [0.25, 0.4])
+    rule = MR.mixed_step(20, c, m)
+    either = MR.mixed_step(20, c, m, stop_on_either=True)
+    assert rule["evals"] == 20 + 201 + 5983 + 201 and rule["taken"] == 1 and rule["stopped"]
+    assert either["evals"] == 20 + 201 + 5983 and either["taken"] == 0 and either["stopped"]
+    assert either["hit"] == 0.953 and either["err"] == 0.25
+
+
+def test_either_stop_variant_is_the_rule_when_the_kept_end_decides() -> None:
+    c = _arm([0.50, 0.99], [0.30, 0.1], [50, 50])
+    m = _arm([0.96, 0.5], [0.20, 0.2], [400, 400])
+    assert MR.mixed_step(20, c, m, stop_on_either=True) == MR.mixed_step(20, c, m)
