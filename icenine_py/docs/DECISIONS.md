@@ -1126,3 +1126,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the seed step for the opt-in key stays the owner's. The opt-in keys step waits for this result.
   Where: icenine_py/docs/autoresearch/PLAN.md, 'Step 8: why the seed step costs so much in grains
   with strong gradients'.
+
+### D-20261111-N5 · Track A / AR3 step 8 · AR3 step 8 review: apply all 10 required fixes, no rerun; the plan's remedy E1 did not pass, run S8 is a variant chosen after results
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The review of task ar3h (report .claude/reports/20261111-0545-review-ar3h.md) asks for changes:
+  every number it recomputed matches, the page's wording and what it discloses do not. Apply all
+  10 required fixes in one fixes round. No whole-layer run is repeated; existing values in the
+  result files stay unchanged; nothing under icenine_py/icenine/ changes. On the reviewer's
+  question: by the plan's own rule the listed remedy E1 (stop at the seed test, hit ratio 0.80)
+  failed Part 2, so no listed remedy passed. Run S8 uses a variant (stop at hit ratio 0.95) whose
+  test was added after the 0.80 rows of one test set had been read. Its whole-layer numbers stand
+  as measured, and they meet the three parts of prediction 3, but the page reports prediction 3 as
+  met by that variant only, not as a confirmed prediction of the plan. The variant is not
+  confirmed until it is an arm of a whole-layer run on a sample it was not chosen on; the next
+  step that makes such a run includes it. The hit ratio at the true orientation of the class A
+  voxels (the reviewer's cheap check) is the first part of the next step, not of the fixes round.
+  The choice of the seed step for the opt-in key stays with the owner; the key takes the stop test
+  as a setting that is off by default. Taken under the mandate D-20261109-N1; the owner can
+  overrule. Where: icenine_py/docs/autoresearch/PLAN.md, Step 8; findings_ar3_reseed.md.
