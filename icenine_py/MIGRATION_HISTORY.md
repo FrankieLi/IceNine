@@ -11546,7 +11546,7 @@ plot only; no pass, K or reconstruction rerun; summary.json gained new keys only
 
 No change under `icenine/`; scripts `scripts/autoresearch/ar3/{seed_common,seed_replay,seed_part01,
 seed_extra,seed_summary,seed_pick,run_seed,seed_bg,seed_pass,seed_summary2}.py`, results
-`benchmarks/autoresearch/ar3/seed/` (slim, about 0.37 MB), page `docs/autoresearch/
+`benchmarks/autoresearch/ar3/seed/` (slim, 2.19 MB), page `docs/autoresearch/
 findings_ar3_seed.md` (placed by the main session; the tool refused the implementer's write).
 Gradient sample only; C++ not run; one run per setting, one voxel order.
 Why the index seed fails: of 189 different fallback voxels (511 listings in D4, step 3's D, P4, P)
