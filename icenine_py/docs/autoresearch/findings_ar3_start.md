@@ -124,9 +124,10 @@ there start more than 1 degree from the truth (Part 1).
 6. **Does a kept start add up error across a grain?** The error rises: the median error after
    the pass rises by 0.013 to 0.023 degrees (answer 3). Whether it adds up along the BFS path was
    not measured. The median also rises at level 0 (`big`: 0.0165 to 0.0406 degrees), where there
-   is no gradient to add up. The one large change by level is `grad` at 1
-   degree: the 99th percentile error is 0.339 degrees for `S8` and 5.872 for `S9` (5,539 voxels;
-   53 and 56 wrong voxels). The number of grains behind it was not counted.
+   is no gradient to add up. The jump of the 99th percentile error on `grad` at 1 degree (0.339
+   degrees for `S8`, 5.872 for `S9`) is a threshold effect, not a large change: that level has
+   5,539 voxels, and 1% of them is 55.4. `S9` has 56 wrong voxels there and `S8` 53, so `S9`'s 99th
+   percentile falls among its wrong voxels and `S8`'s does not (Part 3).
 
 ## Part 1: what the stored runs say
 
@@ -557,9 +558,12 @@ What the tables say.
   something downstream of the kept starts. What it is was not measured.
 - **Accuracy.** The median error rises on every sample and at every level (table by level), by
   0.013 to 0.023 degrees overall. The wrong voxels rise by 5 (`big`), 7 (`grad`) and 9 (`mid`);
-  the intervals overlap, and the change has the same direction on all three. The one large change
-  by level is `grad` at 1 degree: the 99th percentile error is 0.339 degrees for `S8` and 5.872
-  for `S9`. A few voxels moved far; how many grains they lie in was not counted.
+  the intervals overlap, and the change has the same direction on all three. On `grad` at 1
+  degree the 99th percentile error jumps from 0.339 degrees (`S8`) to 5.872 (`S9`). This is a
+  threshold effect. The level has 5,539 voxels, and 1% of them is 55.4. `S8` has 53 wrong voxels
+  there and `S9` 56, so only `S9`'s 99th percentile falls among wrong voxels. Paired at that
+  level, `S9` against `S8`: 23 fixed and 26 broken. The 23 fixed voxels lie in 23 grains (one
+  each), the 26 broken in 23 grains (1 or 2 each); together 43 of the level's 116 grains.
 - **Prediction 4 on the other two samples.** `grad`: 14.63 million, 70 wrong (0.23 to 0.36%)
   against 63 (0.20 to 0.33%), median error 0.0134 above. `mid`: 22.67 million, 40 wrong (0.12 to
   0.22%) against 31 (0.09 to 0.18%), 0.0132 above.
