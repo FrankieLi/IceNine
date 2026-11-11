@@ -121,8 +121,10 @@ there start more than 1 degree from the truth (Part 1).
    672 test clusters do. Even if `F2` cost nothing, the pooled cut would be 21.5% at 0.2 degrees
    and 26.2% at 0.1, under a third. It runs on every rejected fit (38,438 in the two sets, 61
    evaluations each), and class A is 1,658 voxels in all.
-6. **Does a kept start add up error across a grain?** A little. The median error after the pass
-   rises by 0.013 to 0.023 degrees (answer 3). The one large change by level is `grad` at 1
+6. **Does a kept start add up error across a grain?** The error rises: the median error after
+   the pass rises by 0.013 to 0.023 degrees (answer 3). Whether it adds up along the BFS path was
+   not measured. The median also rises at level 0 (`big`: 0.0165 to 0.0406 degrees), where there
+   is no gradient to add up. The one large change by level is `grad` at 1
    degree: the 99th percentile error is 0.339 degrees for `S8` and 5.872 for `S9` (5,539 voxels;
    53 and 56 wrong voxels). The number of grains behind it was not counted.
 
