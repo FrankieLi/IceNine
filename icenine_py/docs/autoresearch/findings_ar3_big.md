@@ -33,11 +33,12 @@ so this is not a like-for-like comparison; the matched levels are in the section
 
 ## Short answers
 
-1. **Do the pipelines cost less on larger grains?** Yes, all four. With the pass, evaluations
-   per voxel on `big` against the gradient sample: `D` 2,681 against 4,968 (65.87 million
-   against 122.07 million), `D4` 486 against 1,579 (11.94 against 38.81 million), `S5` 529
-   against 840 (13.00 against 20.63 million), `P4R4` 812 against 2,221 (19.96 against 54.56
-   million).
+1. **Do the pipelines cost less on `big`?** On `big` all four cost less than on the gradient
+   sample. This is not credited to grain size alone: the two samples also differ in their
+   levels and their orientations. With the pass, evaluations per voxel on `big` against the
+   gradient sample: `D` 2,681 against 4,968 (65.87 million against 122.07 million), `D4` 486
+   against 1,579 (11.94 against 38.81 million), `S5` 529 against 840 (13.00 against 20.63
+   million), `P4R4` 812 against 2,221 (19.96 against 54.56 million).
 2. **Does step 6's seed step still do no harm?** Wrong voxels after the pass: `S5` 30 of
    24,570 (0.09 to 0.17%), `D4` 21 (0.06 to 0.13%). The intervals overlap. By voxel, `S5`
    fixes 6 of `D4`'s 21 and breaks 15 (15 wrong in both). So there is no detectable difference
