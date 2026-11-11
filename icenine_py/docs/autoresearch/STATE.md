@@ -27,21 +27,22 @@ Read this file first after any restart or wake. It holds only what is true now a
 Two agents run. At each hand-back: runbook, "A step, from plan to merge", points 5
 to 9. Merge the parent into a task branch before its fixes round (shared files conflict).
 
-1. AR5 step 3 (task `ar5c`, N14): handed back 2026-11-11 15:00, in review (Opus; report
-   `.claude/reports/20261111-1503-review-ar5c.md`). Branch `feature/eval-reduction-ar5c` in
-   worktree `agent-a5a3601b746680640` (page placed by the main session, 6174af7). Unreviewed:
-   pick `X200`; `S11` with the pass 51.9 / 31.6 / 39.2% fewer evaluations than `S8`, wrong 18
-   / 62 / 36; passes on all three (`mid` at the limit). Then decision N16, fixes, merge, close.
+1. AR5 step 3 fixes round (task `ar5c`; Opus; review APPROVE with 8 document fixes,
+   `.claude/reports/20261111-1503-review-ar5c.md`; decision N16: no key before the test on
+   `held`). Report `.claude/reports/20261111-1520-ar5c-fixes.md` in its worktree. Then the
+   hand-back check with `--fixes`, `finish_task.sh --yes --push` there, close (page with the
+   `S11` rows on the plots, PR text, history). First-round worktree `agent-a5a3601b746680640`.
 2. AR3 step 11 (task `ar3k`, plan approved by N15; Sonnet; at most 2 heavy processes): the
    sample `held` (250 grains) and its `S8` baseline. Report `20261111-1351-ar3k.md`. No other
    run may read `held` before the plan of the step that uses it is committed.
-3. After `S11` and `held`: plan the test on `held` (`S8` against `S11`, and `S11` plus the
-   verifier `N1` as an added seed-accept rule), predictions first; a key only after it.
+3. After `S11` and `held`: plan the test on `held` (`S10`, `S11`, and `S11` plus verifier
+   `N1` as an added seed-accept rule, against `S8`; evaluations by stage, fallback cases
+   paired by seed step; N16), predictions first; a key only after it.
 
 ## Running jobs
 
-- AR3 step 11 implementer (started 2026-11-11 about 13:55) and the AR5 step 3 reviewer
-  (started 15:05); each hands back by message.
+- AR3 step 11 implementer (started 2026-11-11 about 13:55) and the AR5 step 3
+  fixes implementer (started 15:25); each hands back by message.
 - No other job. The review page is at artifact version 41 (its small print says 40; the next
   build is 42). The text of PR #43 holds AR5 step 2 and AR4 step 1.
 
@@ -52,7 +53,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR5 step 3 | mixed seed refinement (CMA, MC under 0.95), run `S11` (task `ar5c`) | in review |
+| AR5 step 3 | mixed seed refinement (CMA, MC under 0.95), run `S11` (task `ar5c`) | fixes round |
 | AR3 step 11 | sample `held` (250 grains) with its `S8` baseline (task `ar3k`) | running |
 | test on `held` | `S8`, `S11`, `S11` + verifier `N1` on the held-out sample | after both |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
@@ -104,7 +105,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   that rule did harm in the Python test of step 5. A reading of the source, not a test.
 - A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
 - A choice: an opt-in key for "no MC fallback" alone (`S10`; N14 says not now).
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N15 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N16 (all
   on the review page). N13 makes AR4 a learned verifier; N15 adds the sample `held` (new seed).
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
@@ -112,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N16.
+- Next decision ID: D-20261111-N17.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
