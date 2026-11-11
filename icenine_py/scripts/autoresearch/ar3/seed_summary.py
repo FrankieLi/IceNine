@@ -381,6 +381,23 @@ def main() -> None:
         SUM[f"near_cost_pos_{nm}"] = dict(
             n=len(pos), refined=sum(p < 2 for p in pos), lowest=sum(p == 0 for p in pos)
         )
+        # error of that candidate (degrees) and its raw hit ratio, by group
+        ne = [
+            (
+                r["cand"]["first"][r["cand"]["rank1"]]["err"],
+                r["cand"]["first"][r["cand"]["rank1"]]["hit"],
+            )
+            for r in sel
+            if r["cand"]["rank1"] is not None and r["cand"]["rank1"] < len(r["cand"]["first"])
+        ]
+        SUM[f"near_err_{nm}"] = dict(
+            n=len(ne),
+            median_err=float(np.median([x[0] for x in ne])),
+            q25_err=float(np.percentile([x[0] for x in ne], 25)),
+            q75_err=float(np.percentile([x[0] for x in ne], 75)),
+            median_hit=float(np.median([x[1] for x in ne])),
+            hit_ge_080=sum(x[1] >= S.TEST for x in ne),
+        )
     # the refined ends of the stock replay: how close to the truth, and their hit ratio
     fe = [(e, h) for r in fb for e, h in zip(r["stock"]["fin_err"], r["stock"]["fin_hit"])]
     SUM["stock_ends"] = dict(
@@ -702,11 +719,15 @@ def figure(SUM: Dict[str, Any], P1: Dict[str, Any]) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    fig, ax = plt.subplots(1, 2, figsize=(12.5, 4.4))
-    labels = [NAME[m] for m in REMEDIES]
+    items = [(NAME[m], P1["A"][m], P1["B"][m]) for m in REMEDIES + EXTRAS]
+    pk = SUM["pick"]
+    if pk["picked"]:
+        lab = "pick: " + pk["picked"].replace("_only", "").replace(" then ", " then\n")
+        items.append((lab, pk["A"], pk["B"]))
+    fig, ax = plt.subplots(1, 2, figsize=(13, 4.8))
     for j, (sn, col) in enumerate((("A", "tab:blue"), ("B", "tab:orange"))):
-        for i, m in enumerate(REMEDIES):
-            s = P1[sn][m]
+        for i, it in enumerate(items):
+            s = it[1 + j]
             n = s["n"]
             p = s["need_grid"]["k"] / n if n else float("nan")
             x = i + (j - 0.5) * 0.3
@@ -720,17 +741,17 @@ def figure(SUM: Dict[str, Any], P1: Dict[str, Any]) -> None:
             )
             ax[1].bar(x, s["total_mean"], width=0.28, color=col)
     ax[0].axhline(100, color="gray", lw=0.6)
-    ax[0].set_ylabel("fallback voxels still sent to the grid search (%)")
-    ax[0].set_title("After each remedy (Wilson 95%); stored runs: 100%")
-    ax[0].legend()
+    ax[0].set_ylabel("still sent to the grid search (%)")
+    ax[0].set_title("Fallback voxels after each remedy (Wilson 95%); stored runs: 100%")
+    ax[0].legend(loc="center right")
     ax[1].set_yscale("log")
-    ax[1].set_ylabel("mean evaluations per voxel, grid search included when needed")
-    ax[1].set_title("Cost; stored runs: seed step plus grid search")
-    base = SUM["baseline"]
-    ax[1].axhline(base["mean_A"], color="gray", lw=0.8, ls="--")
+    ax[1].set_ylim(1e3, 6e5)
+    ax[1].set_ylabel("mean evaluations per voxel")
+    ax[1].set_title("Cost, grid search included when needed (dashed: stored runs)")
+    ax[1].axhline(SUM["baseline"]["mean_A"], color="gray", lw=0.8, ls="--")
     for a_ in ax:
-        a_.set_xticks(range(len(REMEDIES)))
-        a_.set_xticklabels(labels, rotation=30, ha="right", fontsize=8)
+        a_.set_xticks(range(len(items)))
+        a_.set_xticklabels([it[0] for it in items], rotation=35, ha="right", fontsize=8)
     fig.tight_layout()
     fig.savefig(S.SEED / "ar3_seed.png", dpi=110)
 

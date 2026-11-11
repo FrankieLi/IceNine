@@ -34,32 +34,31 @@ N = 24570
 
 
 def pack() -> None:
-    """Pack the maps (float32) so that the summary reads committed files only."""
-    for k in ("S", "K2"):
+    """Pack the error of every voxel against the truth (float32, one array per map) so that the
+    summary reads committed files only; the maps themselves are not committed."""
+    T = G.Truth()
+    out = {}
+    for k in ("S", "K2", "S5"):
         if not (RUNS / k / "run.json").exists():
             continue
         before = G.read_map(RUNS / k / "recon.mic.gz", N)[0]
-        after = np.load(S.CACHE / "passes" / f"after_{k}.npy")
-        np.savez_compressed(
-            RUNS / k / "maps.npz", before=before.astype(np.float32), after=after.astype(np.float32)
-        )
+        after = np.load(S.CACHE / "passes" / f"after_{k}.npy").astype(np.float64)
+        out[f"{k} before"] = np.asarray(T.err(before), np.float32)
+        out[f"{k} after"] = np.asarray(T.err(after), np.float32)
     # step 5's maps after the pass, checked against the committed tries (rule ``hit``)
-    out = {}
     chk = {}
     for k in ("D4", "D"):
         R0 = B.load_map(k, N)
         t = BL.Tries(B.RUNS / k)
         redo, _ = BL.apply_rule(t, R0, "hit")
         a = np.load(OTHER / f"after_{k}.npy").astype(np.float64)
-        d = B.orthonormal(redo)
         chk[k] = dict(
             max_abs_diff=float(np.abs(a - redo).max()),
             identical_voxels=int((np.abs(a - redo).reshape(N, -1).max(1) < 1e-6).sum()),
         )
-        out[f"{k}_before"] = R0.astype(np.float32)
-        out[f"{k}_after"] = redo.astype(np.float32)
-        del d
-    np.savez_compressed(RUNS / "compare.npz", **out)
+        out[f"{k} before"] = np.asarray(T.err(R0), np.float32)
+        out[f"{k} after"] = np.asarray(T.err(redo), np.float32)
+    np.savez_compressed(RUNS / "errors.npz", **out)
     (RUNS / "compare_check.json").write_text(json.dumps(chk) + "\n")
     print("packed", chk)
 
@@ -81,8 +80,8 @@ def stage_evals(st: Dict[str, Any], pass_evals: int) -> Dict[str, int]:
     )
 
 
-def per_level(T: Any, R: np.ndarray) -> Dict[str, Any]:
-    e = np.asarray(T.err(R), dtype=float)
+def per_level(T: Any, err: np.ndarray) -> Dict[str, Any]:
+    e = np.asarray(err, dtype=float)
     out: Dict[str, Any] = dict(
         all=dict(n=len(e), wrong=int((e > G.WRONG).sum()), median=float(np.median(e)))
     )
@@ -116,21 +115,24 @@ def main() -> None:
     if a.pack:
         pack()
     T = G.Truth()
-    cmp = np.load(RUNS / "compare.npz")
-    maps: Dict[str, np.ndarray] = {
-        "D4 before": cmp["D4_before"].astype(np.float64),
-        "D4 after": cmp["D4_after"].astype(np.float64),
-        "D before": cmp["D_before"].astype(np.float64),
-        "D after": cmp["D_after"].astype(np.float64),
-    }
+    z = np.load(RUNS / "errors.npz")
+    order = [
+        "D before",
+        "D after",
+        "D4 before",
+        "D4 after",
+        "S before",
+        "S after",
+        "K2 before",
+        "K2 after",
+        "S5 before",
+        "S5 after",
+    ]
+    maps: Dict[str, np.ndarray] = {k: z[k].astype(np.float64) for k in order if k in z.files}
     info: Dict[str, Any] = {}
-    for k in ("S", "K2"):
-        if not (RUNS / k / "maps.npz").exists():
+    for k in ("S", "K2", "S5"):
+        if f"{k} after" not in maps:
             continue
-        z = np.load(RUNS / k / "maps.npz")
-        maps[f"{k} before"], maps[f"{k} after"] = z["before"].astype(np.float64), z["after"].astype(
-            np.float64
-        )
         info[k] = json.loads((RUNS / k / "run.json").read_text())
     info["D4"] = json.loads((C.OUT / "fine" / "runs" / "D4" / "run.json").read_text())
     info["D"] = json.loads((G.GRAD / "runs" / "D" / "run.json").read_text())
@@ -138,18 +140,14 @@ def main() -> None:
         "D4": json.loads((C.OUT / "boundary" / "runs" / "D4" / "pass.json").read_text())["evals"],
         "D": json.loads((C.OUT / "boundary" / "runs" / "D" / "pass.json").read_text())["evals"],
     }
-    for k in ("S", "K2"):
+    for k in ("S", "K2", "S5"):
         if k in info:
-            p = (
-                json.loads((S.CACHE / "passes" / f"D4_{k}" / "pass.json").read_text())
-                if (S.CACHE / "passes" / f"D4_{k}" / "pass.json").exists()
-                else None
-            )
-            pass_ev[k] = p["evals"] if p else (info[k].get("pass_evals") or 0)
+            # the pass record is copied from seed/cache/passes/D4_<kind>/ to seed/runs/<kind>/
+            pass_ev[k] = json.loads((RUNS / k / "pass.json").read_text())["evals"]
     SUM: Dict[str, Any] = dict(pass_evals=pass_ev)
     T_: Dict[str, str] = {}
     # ---- stages
-    names = [k for k in ("D", "D4", "S", "K2") if k in info]
+    names = [k for k in ("D", "D4", "S", "K2", "S5") if k in info]
     rows = []
     for k in names:
         st = info[k]["stats"]
@@ -189,8 +187,8 @@ def main() -> None:
     # ---- errors
     errs: Dict[str, np.ndarray] = {}
     levels = []
-    for nm, R in maps.items():
-        pl = per_level(T, R)
+    for nm, e0 in maps.items():
+        pl = per_level(T, e0)
         errs[nm] = pl["err"]
         for lv, d in pl["rows"].items():
             levels.append(
@@ -215,6 +213,10 @@ def main() -> None:
     # ---- paired, the pass on both sides
     pairs = [
         ("S after", "D4 after"),
+        ("S5 after", "D4 after"),
+        ("S5 after", "D after"),
+        ("S5 after", "S after"),
+        ("S5 before", "D4 before"),
         ("S after", "D after"),
         ("K2 after", "S after"),
         ("K2 after", "D4 after"),
@@ -233,14 +235,61 @@ def main() -> None:
         for sn, sel in (("A", isA), ("B", ~isA)):
             q = paired(errs[a_], errs[b_], sel)
             p[f"fixed_{sn}"], p[f"broken_{sn}"] = q["fixed"], q["broken"]
+    for p in prow:
+        wa0 = wil(p["wrong_a"], p["n"])
+        p["wrong_a_s"] = f"{wa0['k']} ({1e4 * wa0['lo']:.0f} to {1e4 * wa0['hi']:.0f} per 10,000)"
+        wb0 = wil(p["wrong_b"], p["n"])
+        p["wrong_b_s"] = f"{wb0['k']} ({1e4 * wb0['lo']:.0f} to {1e4 * wb0['hi']:.0f} per 10,000)"
+        wa_, wb_ = wil(p["wrong_a"], p["n"]), wil(p["wrong_b"], p["n"])
+        p["intervals_overlap"] = bool(not (wa_["hi"] < wb_["lo"] or wb_["hi"] < wa_["lo"]))
     SUM["paired"] = prow
+    # where S's and K2's seed results were made (tries or seed step) and how often they are wrong
+    # in the run's own map, against the same voxels in D4's map (before the pass)
+    rows_by = []
+    for k in ("S", "K2", "S5"):
+        lg = (
+            G.load_gz(RUNS / k / "seed_log.json.gz")
+            if (RUNS / k / "seed_log.json.gz").exists()
+            else []
+        )
+        for by in ("tries", "seed_step"):
+            vs = np.array(sorted({int(e["voxel"]) for e in lg if e["by"] == by}), dtype=int)
+            if not len(vs):
+                continue
+            ek = maps[f"{k} before"][vs]
+            e4 = maps["D4 before"][vs]
+            rows_by.append(
+                dict(
+                    run=k,
+                    settled_by=by,
+                    voxels=len(vs),
+                    wrong_in_run=int((ek > G.WRONG).sum()),
+                    wrong_in_D4=int((e4 > G.WRONG).sum()),
+                    run_wrong_D4_right=int(((ek > G.WRONG) & ~(e4 > G.WRONG)).sum()),
+                    run_right_D4_wrong=int((~(ek > G.WRONG) & (e4 > G.WRONG)).sum()),
+                )
+            )
+    SUM["by_path"] = rows_by
+    if rows_by:
+        T_["ar3f_bypath"] = DT.markdown_table(
+            rows_by,
+            [
+                "run",
+                "settled_by",
+                "voxels",
+                "wrong_in_run",
+                "wrong_in_D4",
+                "run_wrong_D4_right",
+                "run_right_D4_wrong",
+            ],
+        )
     T_["ar3f_paired"] = DT.markdown_table(
         prow,
         [
             "a",
             "b",
-            "wrong_a",
-            "wrong_b",
+            "wrong_a_s",
+            "wrong_b_s",
             "fixed",
             "broken",
             "both_wrong",
@@ -252,7 +301,7 @@ def main() -> None:
     )
     # ---- the picked remedy's own counters
     prow2 = []
-    for k in ("S", "K2"):
+    for k in ("S", "K2", "S5"):
         if k in info:
             pk = info[k]["pick"]
             st = info[k]["stats"]
@@ -286,7 +335,44 @@ def main() -> None:
         )
     DT.write_tables(S.SEED / "tables_part2.md", T_)
     (S.SEED / "summary_part2.json").write_text(json.dumps(SUM, indent=1, default=float) + "\n")
+    figure2(rows, maps)
     print("part 2 summary written", [r["run"] for r in rows])
+
+
+def figure2(rows: List[Dict[str, Any]], maps: Dict[str, np.ndarray]) -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 4.4))
+    stages = [
+        ("seed_step", "seed step"),
+        ("grid_fallback", "grid fallbacks"),
+        ("neighbour", "neighbour fits"),
+        ("revisit", "revisit fits"),
+        ("pass_", "boundary pass"),
+    ]
+    bottom = np.zeros(len(rows))
+    for key, lab in stages:
+        v = np.array([r[key] for r in rows], dtype=float) / 1e6
+        ax[0].bar([r["run"] for r in rows], v, bottom=bottom, label=lab)
+        bottom += v
+    ax[0].set_ylabel("evaluations (millions)")
+    ax[0].set_title("Where the evaluations go (each run plus the boundary pass)")
+    ax[0].legend(fontsize=8)
+    for i, r in enumerate(rows):
+        nm = r["run"].replace(" + pass", "") + " after"
+        w = wil(int((maps[nm] > G.WRONG).sum()), len(maps[nm]))
+        p = w["k"] / w["n"]
+        ax[1].errorbar(i, 1e4 * p, yerr=[[1e4 * (p - w["lo"])], [1e4 * (w["hi"] - p)]], fmt="o")
+    ax[1].set_xticks(range(len(rows)))
+    ax[1].set_xticklabels([r["run"] for r in rows])
+    ax[1].set_ylabel("wrong voxels per 10,000 (Wilson 95%)")
+    ax[1].set_title("Wrong voxels after the pass (error above 1 degree)")
+    ax[1].set_ylim(bottom=0)
+    fig.tight_layout()
+    fig.savefig(S.SEED / "ar3_seed_runs.png", dpi=110)
 
 
 if __name__ == "__main__":

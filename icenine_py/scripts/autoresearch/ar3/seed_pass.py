@@ -24,7 +24,7 @@ PASSES = S.CACHE / "passes"
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--kind", required=True, choices=["S", "K2"])
+    ap.add_argument("--kind", required=True, choices=["S", "K2", "S5"])
     ap.add_argument("--side-by-side", type=int, default=1)
     a = ap.parse_args()
     PASSES.mkdir(parents=True, exist_ok=True)

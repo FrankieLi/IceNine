@@ -31,7 +31,15 @@ MERGE_DEG = 0.5
 
 
 class SeedPick:
-    def __init__(self, bfs: Any, mic: Any, orig_local_optimization: Any, sym: np.ndarray) -> None:
+    def __init__(
+        self,
+        bfs: Any,
+        mic: Any,
+        orig_local_optimization: Any,
+        sym: np.ndarray,
+        use_tries: bool = True,
+    ) -> None:
+        self.use_tries = use_tries  # False (run S5, added): step 2 of the chain only
         self.bfs = bfs
         self.mic = mic
         self.rec = bfs.reconstructor
@@ -117,7 +125,7 @@ class SeedPick:
         starts = [
             j
             for j in self._neighbours(v)
-            if self.mic.voxels[j].reconstruction_id == ReconstructionState.FITTED
+            if self.use_tries and self.mic.voxels[j].reconstruction_id == ReconstructionState.FITTED
         ]
         starts = self._distinct(starts)
         entry["n_starts"] = len(starts)

@@ -17,7 +17,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 LOGS = HERE.parents[2] / "benchmarks" / "autoresearch" / "ar3" / "seed" / "cache" / "logs"
-CAPS_MIN = {"S": 60, "K2": 60}
+CAPS_MIN = {"S": 60, "K2": 60, "S5": 60}
 
 
 def main() -> None:

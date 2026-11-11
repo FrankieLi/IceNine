@@ -240,10 +240,26 @@
   "refined": 13,
   "lowest": 7
  },
+ "near_err_fallbacks": {
+  "n": 188,
+  "median_err": 0.44940199999999997,
+  "q25_err": 0.3648245,
+  "q75_err": 0.571824,
+  "median_hit": 0.411357,
+  "hit_ge_080": 0
+ },
  "near_cost_pos_controls": {
   "n": 200,
   "refined": 196,
   "lowest": 149
+ },
+ "near_err_controls": {
+  "n": 200,
+  "median_err": 0.22046749999999998,
+  "q25_err": 0.1046755,
+  "q75_err": 0.39913299999999996,
+  "median_hit": 0.727564,
+  "hit_ge_080": 75
  },
  "stock_ends": {
   "n": 378,

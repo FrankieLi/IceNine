@@ -36,7 +36,7 @@ def run(kind: str, out: Path, max_voxels: Optional[int]) -> None:
     p = setup.search_params
     assert not p.paint_grains and p.seed_by_indexing and p.fused_cost
     w = None
-    if kind == "S":
+    if kind in ("S", "S5"):
         assert p.local_optimizer != "cma"
         w = RW.Wrap(bfs)
         orig_lo = w.orig
@@ -44,7 +44,7 @@ def run(kind: str, out: Path, max_voxels: Optional[int]) -> None:
         assert p.local_optimizer == "cma" and p.cma_sigma0_deg == 0.05
         orig_lo = bfs.reconstructor.local_optimization
     sym = RI.proper_rotations(setup.exp_setup.get_sample_symmetry())
-    pick = SeedPick(bfs, mic, orig_lo, sym)
+    pick = SeedPick(bfs, mic, orig_lo, sym, use_tries=kind != "S5")
     pick.install()
     rng = np.random.default_rng(0)
     t0 = time.time()
@@ -91,7 +91,7 @@ def run(kind: str, out: Path, max_voxels: Optional[int]) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--kind", required=True, choices=["S", "K2"])
+    ap.add_argument("--kind", required=True, choices=["S", "K2", "S5"])
     ap.add_argument("--smoke", type=int, default=0, help="pilot: first N voxels, own folder")
     a = ap.parse_args()
     out = RUNS / (f"smoke_{a.kind}" if a.smoke else a.kind)
