@@ -48,8 +48,8 @@ samples. The rules, the grids of settings and the pick rules are fixed by the pl
 `stop_rules.py`, which was committed before either pick. The Part 3 pick has no free choice.
 The Part 1 pick has one: the `d` of `P3` when no `P1` setting qualifies. That choice cannot
 change the pick: at no `d` does `P3` reach the net gain of 180.5 that the pick needs (the most is
-156). And with hindsight no setting of the plan passes on `mid` (a what-if under Part 1's
-tables), so the Part 1 negative does not depend on the pick.
+156). And with hindsight no setting of the plan passes on `mid`, so the Part 1 negative does not
+depend on the pick. That last check is a what-if (see Terms), given under Part 1's tables.
 
 ## Terms
 
