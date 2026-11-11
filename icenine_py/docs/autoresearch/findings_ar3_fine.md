@@ -5,7 +5,8 @@ Scripts are in `scripts/autoresearch/ar3/` (`run_fine.py`, `fine_summary.py`, `f
 `run_wrapped.py`, `wrapped_bg.py`, `wrapped_summary.py`). Results are in
 `benchmarks/autoresearch/ar3/fine/`. Every table below is filled from `tables.md` there.
 The main session placed this page from the draft the implementer left (the tool refused
-the implementer's own write of the file). The numbers are the implementer's.
+the implementer's own write of the file). The numbers are the implementer's. The page was then
+revised after the review: the new counts come from the stored records, and no run was repeated.
 
 **Scope.** Every result holds for the simulated linear-gradient sample of step 3 (and, for run
 `E4`, for step 2's one-orientation-per-grain sample). It does not hold for a real sample. C++ was
@@ -27,42 +28,61 @@ Wilson 95% intervals do not overlap.
 - Arms: `B5` stock fit (step 3's run R, read from its stored record); `B06`, `B03`, `B015` the
   same fit with a box of 5/8, 5/16 and 5/32 degree; `L` a ladder (box 5/32; when the cost did
   not fall, 5/8; when it still did not fall, 5; all evaluations counted); `C` the existing CMA
-  local fit (`local_optimizer` "cma"), first step 0.05 degrees, at most 60 evaluations. `C` could
-  be called from a script with no library change, so it was run.
+  local fit (`local_optimizer` "cma"), first step 0.05 degrees, at most 60 evaluations plus the
+  final one, so 61 per fit. The **first step** is the initial standard deviation of the CMA
+  search (sigma0), in degrees of the rotation vector. `C` could be called from a script with no
+  library change, so it was run.
 - **Set A** is the grains with an even id (the pick set), **set B** the odd ids (the test set).
 - An evaluation is one call of the cost function. The final overlap evaluation of a fit is
   counted, as in step 3.
 
 ## Lead
 
-- The stock fit does nothing here, and a smaller box makes the fit move. On the 19,013 painted
-  voxels the share above 0.1 is 2230 of 19013 (11.3 to 12.2%) after the stock fit, the same as
-  the start (2240 of 19013). It is 937 of 19013 (4.6 to 5.2%) after box 5/8, 542 of 19013
-  (2.6 to 3.1%) after box 5/16 and 334 of 19013 (1.6 to 2.0%) after the CMA fit.
-- A smaller box is not cheaper, contrary to the plan's estimate. The plan expected about 46
-  evaluations per fit in a small box. Measured medians are 398 (box 5/8), 1,245 (5/16) and
-  22,145 (5/32, on 600 voxels), against 662 for the stock box. The CMA fit costs 61 on every
-  voxel. This is consistent with the budget rule of the fit: a block whose cost spread is above
-  a limit extends the budget. In a look at two voxels (not tabulated) the spread of most
-  blocks near the start was above that limit for the fine boxes. The rule was not changed, and
-  no run tested it.
-- The pick on A is the CMA fit (`C`). On B it is a gain over the start and over the stock box:
-  204 of 9305 (1.9 to 2.5%) above 0.1, against 1304 of 9305 (13.3 to 14.7%) for the start.
-  It uses 1,159,793 evaluations on the 19,013 voxels, against 12,843,129 for the stock fit.
-  The gate was open, so parts 2 and 3 were run.
+- The stock fit moves almost no voxel here (9 closer, 2 hurt), and a smaller box makes the fit
+  move. On the 19,013 painted voxels the share above 0.1 is 2230 of 19013 (11.3 to 12.2%)
+  after the stock fit, the same as the start (2240 of 19013). It is 937 of 19013 (4.6 to 5.2%)
+  after box 5/8, 542 of 19013 (2.6 to 3.1%) after box 5/16 and 334 of 19013 (1.6 to 2.0%)
+  after the CMA fit.
+- A smaller box is not the 14 times saving the plan expected (about 46 evaluations per fit in
+  a small box). Box 5/8 is about 1.6 times cheaper than the stock box: a median of 398 against
+  662 evaluations per fit, and 7,833,539 against 12,843,129 in total. The finer boxes cost
+  more: medians of 1,245 (5/16) and 22,145 (5/32, on 600 voxels). The CMA fit costs 61 on
+  every voxel. The cost of the finer boxes is consistent with the budget rule of the fit: a
+  block whose cost spread is above a limit extends the budget. In a look at two voxels (not
+  tabulated) the spread of most blocks near the start was above that limit for the fine
+  boxes. The rule was not changed, and no run tested it.
+- The pick on A is the CMA fit (`C`). The candidates were the four arms run on all voxels;
+  `B015` and `L` ran on 600 voxels only and were not candidates. Had they been, the rule would
+  still pick `C`: on the 299 set-A voxels of those 600, `B015` and `B03` have 1 above 0.1, `C`
+  and `L` 2 and `B06` 5, all five intervals overlap, and `C` has the fewest evaluations. On B
+  `C` is a gain over the start and over the stock box: 204 of 9305 (1.9 to 2.5%) above 0.1,
+  against 1304 of 9305 (13.3 to 14.7%) for the start. It uses 1,159,793 evaluations on the
+  19,013 voxels, against 12,843,129 for the stock fit. The gate was open, so parts 2 and 3
+  were run.
 - No arm changed the wrong count: it is 87 of 19013 (0.37 to 0.56%) for the start and for every
   arm run on all voxels. These are voxels whose start is far from the truth; a local fit of
   this size does not reach them.
-- Whole layer, wrapped fit ("CMA first, stock fit when the cost did not fall"): evaluations fall
-  to 35,129,496 (`D4`, against 118,350,225), 50,892,696 (`P4` plus `R4`, against 90,985,770)
-  and 13,608,181 (`E4`, against 33,040,126). Above 0.1 is a gain for `D4` and for `P4`+`R4`
-  and no difference for `E4`. Wrong voxels are no different for `D4` (225 against 203), a loss
-  for `P4`+`R4` (281 against 170) and a loss for `E4` (305 against 153).
-- In `P4` the CMA fit settles 7,078 voxels in the paint, where the stock fit settled 184. Of
-  those 7,078, 135 are wrong. This is consistent with the loss in wrong voxels coming from
-  fits that now pass the acceptance test from a neighbouring grain's orientation. The
-  other half of that claim (that the stock fit would have sent them to a seed and got them
-  right) was not tested.
+- Whole layer, wrapped fit ("CMA first, stock fit when the cost did not fall"), one run of each
+  with one voxel order: evaluations fall to 35,129,496 (`D4`, against 118,350,225), 50,892,696
+  (`P4` plus `R4`, against 90,985,770) and 13,608,181 (`E4`, against 33,040,126). Above 0.1 is
+  a gain for `D4` and for `P4`+`R4` and no difference for `E4`. Wrong voxels are no different
+  for `D4` (225 against 203), a loss for `P4`+`R4` (281 against 170) and a loss for `E4` (305
+  against 153).
+- Part 3 does not test the plan's design ("fine first, stock as fallback" on the caller's
+  acceptance test). Its trigger was "the cost did not fall", so the stock fit ran on only
+  3,974 of 53,373 calls (`D4`), 232 of 9,290 (`P4` paint) and 14,609 of 48,237 (`E4`), and
+  never on a fit the caller rejected after its cost fell. Every loss above is for the CMA fit
+  with almost no fallback.
+- The stored records show where the extra wrong voxels of `P4`+`R4` sit (one run, one voxel
+  order). All 134 broken voxels (right in step 3's `P`+`R`, wrong here) were already wrong
+  after the paint, so `R4` broke none. 107 of them were settled by a fit in the paint (the CMA
+  fit settles 7,078 voxels there, the stock fit settled 184). 104 of those 107 were fitted
+  from a grain entry seeded in another true grain, and all 107 passed the 0.9 test (lowest
+  ratio 0.9001). In step 3's `P`, 78 of the same 107 got a stock fit that failed the test and
+  became seeds, and 29 were painted. This is consistent with the CMA fit staying near the
+  entry's orientation from a neighbouring grain and passing the test where the stock fit was
+  rejected. The two paints differ, so the entry a fit starts from also differs between the
+  runs; that part is not separated here.
 - All wall times of these runs are labelled "contended" (the timing preflight refused, and the
   runs also ran side by side). No timing comparison is claimed; the cost is in evaluations.
 
@@ -86,7 +106,9 @@ Reading the table. Arms run on every painted voxel (19,013). `closer`: ends more
 nearer the truth than the start; `hurt`: more than 0.05 deg farther. `med`, `p95`: median and
 95th percentile of the error (deg). `gt01`: above 0.1. `lowered`: the fit lowered the strict
 cost. `le_true`: the end costs no more than the true orientation (the truth is used here for
-analysis only). `ev_med`, `ev_tot`: evaluations per fit (median) and in total.
+analysis only). `ev_med`, `ev_tot`: evaluations per fit (median) and in total. `lowered` uses
+a strict "less than", so a drop at noise level counts: 22 (`C`), 5 (`B06`) and 9 (`B03`) of
+the lowered fits fell by less than 1e-9. No conclusion changes.
 
 <!-- table:ar3d_main_full -->
 | arm | n | closer | hurt | med | p95 | gt01 | wrong | lowered | le_true | ev_med | ev_tot |
@@ -114,8 +136,9 @@ has a fit of 380,954.
 <!-- /table:ar3d_evals -->
 
 `B015` and `L` ran on the first 600 painted voxels of the voxel order only (the order is a random
-shuffle). At about 22,000 evaluations per fit, all 19,013 fits would have been hundreds of
-millions of evaluations. Reading the table: every arm cut to the same 600 voxels.
+shuffle). At a median of 22,145 evaluations per fit (mean 31,860, box 5/32), all 19,013 fits
+would have been hundreds of millions of evaluations. Reading the table: every arm cut to the
+same 600 voxels.
 
 <!-- table:ar3d_main_sub -->
 | arm | n | closer | hurt | med | p95 | gt01 | wrong | lowered | le_true | ev_med | ev_tot |
@@ -193,6 +216,24 @@ interval does not overlap the start's (gain over start) or the stock arm's (gain
 | B | B03 box 5/16 deg | 9,305 | 0.0224 | 311 of 9305 (3.0 to 3.7%) | 44 of 9305 (0.35 to 0.63%) | 14,038,275 | gain over start; gain over B5 |
 | B | C CMA, step 0.05 deg | 9,305 | 0.0176 | 204 of 9305 (1.9 to 2.5%) | 44 of 9305 (0.35 to 0.63%) | 567,605 | gain over start; gain over B5 |
 <!-- /table:ar3d_sets -->
+
+`B015` and `L` were not candidates, because they ran on 600 voxels only. A check of the pick
+with them added: the same rule on the set-A voxels of those 600 voxels (299), every arm cut to
+them. The lowest share is shared by `B015` and `B03` (1 each; the tie is broken by name, and
+the overlap set does not depend on it). Reading the table: `in overlap` marks the arms whose
+interval overlaps the lowest; among them `C` has the fewest evaluations, so the rule still
+picks `C`.
+
+<!-- table:ar3d_pick_sub -->
+| arm | n | gt01 | ev_tot | mark |
+|---|---|---|---|---|
+| B5 stock box 5 deg | 299 | 12 of 299 (2.3 to 6.9%) | 201,954 |  |
+| B06 box 5/8 deg | 299 | 5 of 299 (0.7 to 3.9%) | 120,190 | in overlap |
+| B03 box 5/16 deg | 299 | 1 of 299 (0.1 to 1.9%) | 419,830 | in overlap |
+| C CMA, step 0.05 deg | 299 | 2 of 299 (0.2 to 2.4%) | 18,239 | picked |
+| B015 box 5/32 deg | 299 | 1 of 299 (0.1 to 1.9%) | 9,882,129 | in overlap |
+| L ladder 5/32, 5/8, 5 | 299 | 2 of 299 (0.2 to 2.4%) | 10,118,883 | in overlap |
+<!-- /table:ar3d_pick_sub -->
 
 ## Part 2: the stop readings again, on the CMA fit
 
@@ -275,23 +316,37 @@ every voxel.
 
 The wrapper (`run_wrapped.py`, class `Wrap`) replaces the instance method `local_optimization`
 of the run's reconstructor object and nothing else. A call runs the CMA fit first (first step 0.05
-degrees, 60 evaluations at most). When its end cost is not below the start cost, the stock fit
-runs from the same start and the end with the lower cost is returned (the CMA end on a tie). The
-evaluations of both are counted.
+degrees, at most 60 evaluations plus the final one, 61). When its end cost is not below the
+start cost, the stock fit runs from the same start and the end with the lower cost is returned
+(the CMA end on a tie). The evaluations of both are counted.
 
 The caller's acceptance test. In the BFS (`_expand` in `reconstructor.py`) a fit is accepted when
-its hit ratio divided by the best hit ratio of the expansion is above 0.9. In the paint
-(`grain_paint.py`) it is accepted when its hit ratio divided by the larger of the entry's best
-hit ratio and its own is above 0.9. Both need a best value that the wrapper does not see. So the
-stock fit is started by "the cost did not fall", not by the caller's test.
+its hit ratio divided by the best hit ratio of the expansion is above 0.9. That best already
+includes the fit's own hit ratio (it is raised before the test, as in C++,
+`BreadthFirstReconstructor.tmpl.cpp` lines 162 to 163). In the paint (`grain_paint.py`) a fit
+is accepted when its hit ratio divided by the larger of the entry's best hit ratio and its own
+is above 0.9. The wrapper did not evaluate either test: it would need the caller's local
+variables (`best_conf` in `_expand`; the entry in the paint loop). So the stock fit is started
+by "the cost did not fall", not by the caller's test.
 
-Reading the table. The wrapper replaced the fit in no other place. `calls` and `callers`: calls
-of the wrapper and the function that made each. `fell`: the CMA end cost was below the start
-cost. `fallback`: the stock fit ran. `fallback_won`: its end cost was lower than the CMA
-end's. `cma_calls`: all calls of the CMA optimizer in the run (equal to `calls`, so the seed
-path, the grid search and the finisher made none). `vmo_in`, `vmo_out`: calls of the stock
-optimizer inside and outside the wrapper (outside: the seed path and the finisher, unchanged).
-The `P4` row counts the paint only; `R4` makes more CMA calls after it.
+What that trigger means for this part. The stock fit ran on 3,974 of 53,373 calls (`D4`), 232
+of 9,290 (`P4` paint) and 14,609 of 48,237 (`E4`). It never ran on a fit whose cost fell and
+that the caller then rejected. So part 3 measures the CMA fit with almost no fallback. It is
+not a test of the plan's "fine first, stock as fallback" on the caller's test.
+
+Reading the picture. Left: evaluations of each compared run (gray) and the wrapped run (red).
+Middle: share of voxels above 0.1 with Wilson bars. Right: share wrong with Wilson bars. One run
+of each, one voxel order.
+
+![Evaluations, share above 0.1 and share wrong for the three pairs](../../benchmarks/autoresearch/ar3/fine/ar3_fine_layer.png)
+
+Reading the table (a check). The wrapper replaced the fit in no other place. `calls` and
+`callers`: calls of the wrapper and the function that made each. `fell`: the CMA end cost was
+below the start cost. `fallback`: the stock fit ran. `fallback_won`: its end cost was lower
+than the CMA end's. `cma_calls`: all calls of the CMA optimizer in the run (equal to `calls`,
+so the seed path, the grid search and the finisher made none). `vmo_in`, `vmo_out`: calls of
+the stock optimizer inside and outside the wrapper (outside: the seed path and the finisher,
+unchanged). The `P4` row counts the paint only; `R4` makes more CMA calls after it.
 
 <!-- table:ar3d_p3_wrapper -->
 | run | calls | callers | fell | fallback | fallback_won | cma_calls | vmo_in | vmo_out |
@@ -301,13 +356,10 @@ The `P4` row counts the paint only; `R4` makes more CMA calls after it.
 | E4 | 48,237 | _local_fit 48237 | 33,628 | 14,609 | 0 | 48,237 | 14,609 | 1,014 |
 <!-- /table:ar3d_p3_wrapper -->
 
-Reading the picture. Left: evaluations of each compared run (gray) and the wrapped run (red).
-Middle: share of voxels above 0.1 with Wilson bars. Right: share wrong with Wilson bars. One run
-of each, one voxel order.
-
-![Evaluations, share above 0.1 and share wrong for the three pairs](../../benchmarks/autoresearch/ar3/fine/ar3_fine_layer.png)
-
-Reading the table. No run was killed at its cap.
+Reading the table. No run was killed at its cap. Each run's `run.json` labels its timing
+"single run, one worker"; that is wrong, because `D4`, `P4` and `E4` ran side by side. The
+summary writes the corrected label (`timing_label` under `part3` in `summary.json`) and keeps
+the stored one beside it. All wall times stay "contended".
 
 <!-- table:ar3d_p3_status -->
 | run | finished | killed |
@@ -332,6 +384,11 @@ neighbour fits, revisit fits, reseeds. For the paint runs: `seed_index`, `seed_g
 | E4 | 649,395 | 6,219,398 | 6,439,797 | 299,591 | 0 | 13,608,181 |  |  |  |  |  |  |  |  |
 | D (step 2) | 648,496 | 15,883,966 | 16,024,764 | 482,900 | 0 | 33,040,126 |  |  |  |  |  |  |  |  |
 <!-- /table:ar3d_p3_evals -->
+
+Where `D4`'s saving comes from. The fits (neighbour plus revisit) drop from 60,319,831 to
+5,906,748 evaluations. The reseeds drop from 55,571,593 to 27,665,843, with 1,298 grain
+entries against 3,855 (next table). `D4` left 2 voxels unresolved; 1 of them is among its
+broken voxels.
 
 Reading the table. Grain entries (accepted seeds, BFS: seeds plus reseeds) and grid
 fallbacks (BFS: seeds that failed the index seed test and went to the grid search; paint: voxels
@@ -407,7 +464,9 @@ right here; `broken`: the reverse; `both_wrong`: wrong in both.
 
 Reading the table. Where the wrong voxels are, by the stage that settled the voxel in the
 paint. "Painted from a grain" voxels are those given a grain's orientation and then fitted once
-by `R4` (or `R`).
+by `R4` (or `R`). A "failed" voxel is one whose seed search was rejected; when a later grain
+painted it, it got that grain's start and was refined as well ("failed, later painted"). So
+`R4` refined 14,955 voxels: the 14,953 painted from a grain and the 2 failed, later painted.
 
 <!-- table:ar3d_p3_stage -->
 | run | stage | n | wrong |
@@ -415,28 +474,101 @@ by `R4` (or `R`).
 | P4 plus R4 | seed | 2,535 | 58 of 2535 (1.8 to 2.9%) |
 | P4 plus R4 | fit-settled | 7,078 | 135 of 7078 (1.6 to 2.3%) |
 | P4 plus R4 | painted from a grain | 14,953 | 86 of 14953 (0.47 to 0.71%) |
-| P4 plus R4 | failed | 4 | 2 of 4 (15.0 to 85.0%) |
+| P4 plus R4 | failed, later painted | 2 | 0 of 2 (0.0 to 65.8%) |
+| P4 plus R4 | failed, not painted | 2 | 2 of 2 (34.2 to 100.0%) |
 | P plus R (step 3) | seed | 5,369 | 80 of 5369 (1.2 to 1.9%) |
 | P plus R (step 3) | fit-settled | 184 | 0 of 184 (0.0 to 2.0%) |
 | P plus R (step 3) | painted from a grain | 19,013 | 87 of 19013 (0.37 to 0.56%) |
-| P plus R (step 3) | failed | 4 | 3 of 4 (30.1 to 95.4%) |
+| P plus R (step 3) | failed, later painted | 0 | 0 of 0 |
+| P plus R (step 3) | failed, not painted | 4 | 3 of 4 (30.1 to 95.4%) |
 <!-- /table:ar3d_p3_stage -->
 
-What this part shows.
+Reading the table. The broken voxels of `P4`+`R4` (right in step 3's `P`+`R`, wrong here), by
+the stage that settled them in `P4`'s paint. `wrong_after_paint`: already wrong in `P4`'s map
+before `R4`. `entry_other_grain`: for fit-settled voxels, the fit started from a grain entry
+whose seed voxel lies in another true grain. The `P:` columns say what step 3's `P` did on the
+same voxels: a seed after its stock fit failed the 0.9 test, or painted from a grain (no other
+outcome occurs). One run of each, one voxel order.
 
-- `D4` against step 3's `D`. Evaluations fall to 35,129,496 from 118,350,225. Above 0.1 is a
-  gain: 1458 of 24570 (5.6 to 6.2%) against 3545 of 24570 (14.0 to 14.9%). Wrong voxels are not
-  different (225 against 203, intervals overlap); the paired split is 86 fixed, 108 broken and
-  117 wrong in both. At no single level are the wrong counts different (intervals overlap).
-- `P4` plus `R4` against step 3's `P` plus `R`. Evaluations fall to 50,892,696 from 90,985,770.
-  Above 0.1 is a gain: 1140 of 24570 (4.4 to 4.9%) against 2531 (9.9 to 10.7%). Wrong voxels are
-  a loss: 281 against 170 (1.0 to 1.3% against 0.60 to 0.80%), with 23 fixed and 134 broken.
-  The paint has 2,535 grain entries, against 5,369.
-- `E4` against step 2's `D`. Evaluations fall to 13,608,181 from 33,040,126. Above 0.1 is no
-  different (334 of 24570 against 326). Wrong voxels are a loss: 305 against 153, with 18 fixed
-  and 170 broken. This is consistent with the small CMA step not following inherited
-  orientations across grain boundaries as far as the wide stock fit does. A run that gives the
-  stock fit back on the voxels the caller rejects would be needed to test it.
+<!-- table:ar3d_p3_broken_paint -->
+| stage_P4 | broken | wrong_after_paint | entry_other_grain | P: seed after a rejected fit | P: painted from a grain |
+|---|---|---|---|---|---|
+| seed | 3 | 3 |  | 1 | 2 |
+| fit-settled | 107 | 107 | 104 | 78 | 29 |
+| painted from a grain | 22 | 22 |  | 0 | 22 |
+| failed, not painted | 2 | 2 |  | 1 | 1 |
+<!-- /table:ar3d_p3_broken_paint -->
+
+The 107 fit-settled broken voxels all passed the paint's 0.9 test; the lowest ratio is 0.9001.
+Each end stays close to the entry's orientation: the median distance is 0.045 degrees and the
+largest 0.374 degrees.
+
+Reading the table. The broken voxels of the BFS runs, by how the voxel was settled (its last
+accepted fit). `this_run`: in `D4` or `E4`; `compared`: in the compared run. Step 3's `D`
+stored no per-voxel records (only its fit log), so its column is "not stored". `neighbor`: the
+first fit from a neighbour was accepted; `revisit`: a later fit of a rejected voxel was
+accepted; `unresolved`: no fit was accepted.
+
+<!-- table:ar3d_p3_broken_bfs -->
+| pair | source | this_run | compared |
+|---|---|---|---|
+| D4 vs D (step 3) | neighbor | 61 | not stored |
+| D4 vs D (step 3) | revisit | 39 | not stored |
+| D4 vs D (step 3) | seed | 7 | not stored |
+| D4 vs D (step 3) | unresolved | 1 | not stored |
+| E4 vs D (step 2) | neighbor | 114 | 0 |
+| E4 vs D (step 2) | revisit | 56 | 165 |
+| E4 vs D (step 2) | seed | 0 | 5 |
+<!-- /table:ar3d_p3_broken_bfs -->
+
+Reading the table. A description of the accepted fits by the ratio the acceptance test looked
+at, with the number wrong in each bin; no threshold is picked and no rule is claimed. For `P4`
+the ratio is exact: the fit's hit ratio over the larger of the entry's best hit ratio and its
+own, for all 7,078 fit-settled voxels. The BFS records of `E4` hold only the fit's hit ratio,
+not the best of the expansion it was divided by. That stored hit ratio stands in for the ratio
+here; since the best is at most 1, the stored value is at most the ratio the test used (hence
+the "below 0.90" row). Each bin includes its lower edge; "1.00 exactly" is its own row.
+
+<!-- table:ar3d_p3_ratio -->
+| run | ratio | n | wrong |
+|---|---|---|---|
+| P4 fit-settled (ratio tested) | 0.90 to 0.92 | 342 | 113 of 342 (28.3 to 38.2%) |
+| P4 fit-settled (ratio tested) | 0.92 to 0.95 | 614 | 22 of 614 (2.4 to 5.4%) |
+| P4 fit-settled (ratio tested) | 0.95 to 0.98 | 1,845 | 0 of 1845 (0.00 to 0.21%) |
+| P4 fit-settled (ratio tested) | 0.98 to 1.00 | 3,124 | 0 of 3124 (0.00 to 0.12%) |
+| P4 fit-settled (ratio tested) | 1.00 exactly | 1,153 | 0 of 1153 (0.00 to 0.33%) |
+| E4 neighbour or revisit (stored hit ratio) | below 0.90 | 87 | 87 of 87 (95.8 to 100.0%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.90 to 0.92 | 218 | 212 of 218 (94.1 to 98.7%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.92 to 0.95 | 114 | 6 of 114 (2.4 to 11.0%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.95 to 0.98 | 3,520 | 0 of 3520 (0.00 to 0.11%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.98 to 1.00 | 11,962 | 0 of 11962 (0.00 to 0.03%) |
+| E4 neighbour or revisit (stored hit ratio) | 1.00 exactly | 8,162 | 0 of 8162 (0.00 to 0.05%) |
+<!-- /table:ar3d_p3_ratio -->
+
+What this part shows. Each comparison is one run of each arm with one voxel order, and the
+wrapper's trigger is "the cost did not fall" (see above).
+
+- `D4` against step 3's `D` (one run each, one voxel order). Evaluations fall to 35,129,496
+  from 118,350,225. Above 0.1 is a gain: 1458 of 24570 (5.6 to 6.2%) against 3545 of 24570
+  (14.0 to 14.9%). Wrong voxels are not different (225 against 203, intervals overlap); the
+  paired split is 86 fixed, 108 broken and 117 wrong in both. At no single level are the wrong
+  counts different by the intervals; the most one-sided level is level 0, at 30 against 17,
+  with 1 fixed and 14 broken.
+- `P4` plus `R4` against step 3's `P` plus `R` (one run each, one voxel order). Evaluations
+  fall to 50,892,696 from 90,985,770. Above 0.1 is a gain: 1140 of 24570 (4.4 to 4.9%) against
+  2531 (9.9 to 10.7%). Wrong voxels are a loss: 281 against 170 (1.0 to 1.3% against 0.60 to
+  0.80%), with 23 fixed and 134 broken. The paint has 2,535 grain entries, against 5,369. All
+  134 broken voxels were already wrong after the paint, and 107 were fit-settled there (tables
+  above).
+- `E4` against step 2's `D` (one run each, one voxel order). Evaluations fall to 13,608,181
+  from 33,040,126. Above 0.1 is no different (334 of 24570 against 326). Wrong voxels are a
+  loss: 305 against 153, with 18 fixed and 170 broken. `E4` accepted 114 of the 170 at the
+  first neighbour fit and 56 at a revisit. Step 2's `D` settled the same voxels by a revisit
+  (165) or a seed (5). This is consistent with the CMA end staying at the inherited
+  orientation of a neighbouring grain and passing the 0.9 test at once, where the stock fit's
+  first try was rejected and a later revisit got the voxel right. No run tested this.
+- In the ratio table, every wrong fit-settled voxel of `P4` (135) and every wrong voxel of
+  `E4` (305) sits below 0.95 on the ratio shown. This describes these two runs only.
 - In none of the runs did the stock fallback often win: it ended lower than the CMA end in 6 of
   3,974 fallbacks (`D4`), 2 of 232 (`P4`, paint) and 0 of 14,609 (`E4`). Where the CMA fit
   finds no lower cost, the stock fit almost never does either.
@@ -450,22 +582,36 @@ What this part shows.
 - For part 2 the CMA fit has no blocks like the MC fit's. Its trace is built from a second run
   of `C`, with blocks of one CMA generation (7 evaluations). The ends of that run equal the
   untraced run's on all 19,013 voxels.
-- The trigger of the stock fallback is "the cost did not fall" (see Part 3), not the caller's test.
+- The trigger of the stock fallback is "the cost did not fall" (see Part 3), not the caller's
+  test. The caller's test was not evaluated in the wrapper (it would need the caller's local
+  variables). So part 3 does not test the plan's "fine first, stock as fallback".
 - `P4` needed a refinement stage after the paint; `R4` is one CMA fit (no stock fallback) from
-  each painted start of `P4`. The number of painted starts differs from step 3's (14,953 against
-  19,013), because the paint settles more voxels by a fit.
+  each painted start of `P4`. `R4` refined 14,955 voxels against step 3's 19,013: the 14,953
+  painted from a grain plus 2 failed voxels that a later grain painted. The paint settles more
+  voxels by a fit, so fewer are painted.
 - The timing script is `scripts/dev/timing_preflight.py` (there is no `.sh`); it refused in
-  every run, so every wall time is "contended".
+  every run, so every wall time is "contended". The part 3 runs' stored label "single run, one
+  worker" is wrong (they ran side by side); the summary corrects it.
 
 ## Not claimed
 
 That C++ behaves the same. That the gradient model matches a real sample. That a change of
-default is justified. A wall-time comparison. Why the wrapped fit adds wrong voxels in the
-paint and in `E4` beyond what is stated as "consistent with" above.
+default is justified. A wall-time comparison. A test of the plan's "fine first, stock as
+fallback" on the caller's test. Why the wrapped fit adds wrong voxels in the paint and in `E4`
+beyond what is stated as "consistent with" above. A threshold on the acceptance ratio.
 
 ## What comes after
 
 The CMA fit is a gain on the share above 0.1 and cuts the evaluations in each of the three runs,
-but adds wrong voxels in two of them. Before any library key: a variant that hands the voxels the
-caller rejects to the stock fit, and a check of whether the extra wrong voxels were fit-settled
-from a neighbouring grain. The owner decides.
+but adds wrong voxels in two of them. These losses are for the trigger "the cost did not fall";
+the plan's design (the stock fit on the voxels the caller rejects) was not run.
+
+The records say something about that design, as a reading and not a tested result. The extra
+wrong voxels sit mostly in fits the caller accepted. In `P4` all 107 fit-settled broken voxels
+passed the 0.9 test. In `E4`, 114 of the 170 broken voxels were accepted at the first neighbour
+fit and 56 at a revisit. A variant that hands only the rejected voxels to the stock fit would
+not act on those accepted fits. (The 56 revisited voxels had an earlier fit that was rejected;
+such a variant would give that earlier fit to the stock fit, with an outcome not known here.)
+The open question in its place: does something known at the moment of
+acceptance (the hit ratio over the best, or the cost) tell these fits apart? The ratio table in
+Part 3 describes the two runs; it picks no threshold. The owner decides the next step.
