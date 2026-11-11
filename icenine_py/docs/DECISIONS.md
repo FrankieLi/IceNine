@@ -1220,3 +1220,20 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   to local optimization waits for the owner's word. The review page for the owner says local
   optimization. No setting is recommended; the choice of the seed step stays the owner's. Where:
   icenine_py/docs/autoresearch/PLAN.md, Step 10; review report 20261111-0941-review-ar3j.md.
+
+### D-20261111-N10 · Track A / AR5 step 1 · AR5 step 1 plan approved: stop rules for the boundary pass, the grid fallbacks and the finished map; scripts only
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Under the owner mandate D-20261109-N1, yours to overrule. Plan in
+  icenine_py/docs/autoresearch/PLAN.md, section AR5 step 1 (commit a633bfd), task ar5a. No library
+  file, key or default changes. Four parts: (1) a test before each try of the boundary pass, one
+  evaluation of the try's start, picked on big and the first gradient sample and tested on mid;
+  (2) a ladder of cheaper searches before a grid fallback (100 candidates costed; grid level 0
+  then a local optimization), on the 31 stored fallback cases of run S8; (3) a flag for voxels
+  that are not finished: the hit ratio after the pass, the vote count of unexplained rays (H3),
+  and a check that reruns the seed step at flagged voxels; (4) one whole-layer run T1 per sample
+  with the rules that passed. Pass rules and six predictions are written in the plan before any
+  run. The original AR5 line (AR0 thresholds with the H3 vote count) is kept as part 3; parts 1
+  and 2 are added because the stage table of S8 shows the boundary pass at 12 to 20 percent and
+  the grid fallbacks at 19 and 30 percent of the evaluations. It starts while the fixes round of
+  AR3 step 10 runs: it does not depend on step 10. Where: icenine_py/docs/autoresearch/PLAN.md,
+  AR5 step 1.
