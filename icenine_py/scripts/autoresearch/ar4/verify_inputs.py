@@ -1,8 +1,9 @@
 """AR4 step 1: the pairs of one sample and the numbers of one evaluation of each.
 
-  RESEED_SAMPLE=big|grad uv run python scripts/autoresearch/ar4/verify_inputs.py [--limit N]
+  RESEED_SAMPLE=big|grad|mid uv run python scripts/autoresearch/ar4/verify_inputs.py [--limit N]
 
-(``mid`` is run only by ``verify_score_mid.py`` after the thresholds are committed.)
+(``mid`` was run by this script, with ``RESEED_SAMPLE=mid``, only after the thresholds file was
+committed in ``669b9a3``.)
 
 Pairs (plan, "Pairs"), kinds in ``KINDS``:
   after / before   every voxel with its S8 orientation after the boundary pass; before it too where

@@ -206,7 +206,11 @@ class Evaluator:
         return int(ex.sum())
 
     def explained_and_votes(self, R: np.ndarray, v: int) -> Tuple[int, int]:
-        """(attached rays the orientation explains, best vote count among the rest)."""
+        """(attached rays the orientation explains, best vote count among the rest).
+
+        The pilot's function only: it timed the vote count (``best_votes``) on a few voxels of
+        ``big``; the pilot's output was not kept. No run of the step calls it; the inputs use
+        ``explained_and_votes_cheap``, and ``best_votes`` was not computed."""
         g, crystal, params, _n = self.rays(v)
         ex = self.RI.explained_mask(
             np.asarray(R, np.float64), g, crystal, params.ang_tol_deg, params.len_tol
