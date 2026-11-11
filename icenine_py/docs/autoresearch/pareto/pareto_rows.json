@@ -2265,6 +2265,90 @@
    "source_json": "icenine_py/benchmarks/autoresearch/ar3/big/summary.json :: big[P4R4].{total, stages} ; levels_big[pipe=P4R4, when=after, level=all].k",
    "source_page": "icenine_py/docs/autoresearch/findings_ar3_big.md",
    "flag": "run P4R4 on the sample with larger grains"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 8",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA (run S8)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 7201863,
+   "evals_per_voxel": 293.12,
+   "per_voxel_derived": true,
+   "wrong": 67,
+   "n": 24570,
+   "interval_pct": [
+    0.21,
+    0.35
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 2,856,712, neighbour local optimizations 3,491,437, revisit local optimizations 853,714",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/reseed/summary.json :: s8[big][S8].{total, stages, wrong_before, ci_before}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_reseed.md",
+   "flag": "run S8 on the sample with larger grains: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 0 grid-search fallbacks; the stop test was chosen after results (D-20261111-N5), so this is not a confirmed result; derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 8",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA + boundary pass (run S8)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 8340428,
+   "evals_per_voxel": 339.46,
+   "per_voxel_derived": true,
+   "wrong": 24,
+   "n": 24570,
+   "interval_pct": [
+    0.07,
+    0.15
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 2,856,712, neighbour local optimizations 3,491,437, revisit local optimizations 853,714, boundary pass 1,138,565",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/reseed/summary.json :: s8[big][S8].{total, stages, wrong_after, ci_after}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_reseed.md",
+   "flag": "run S8 on the sample with larger grains: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 0 grid-search fallbacks; the stop test was chosen after results (D-20261111-N5), so this is not a confirmed result"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR3 step 8",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA (run S8)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 14316989,
+   "evals_per_voxel": 582.7,
+   "per_voxel_derived": true,
+   "wrong": 210,
+   "n": 24570,
+   "interval_pct": [
+    0.75,
+    0.98
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 3,008,757, grid-search fallbacks 5,449,501, neighbour local optimizations 2,798,001, revisit local optimizations 3,060,730",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/reseed/summary.json :: s8[grad][S8].{total, stages, wrong_before, ci_before}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_reseed.md",
+   "flag": "run S8 on the first gradient sample: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 16 grid-search fallbacks; the stop test was chosen after results (D-20261111-N5), so this is not a confirmed result; derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR3 step 8",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA + boundary pass (run S8)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 18000230,
+   "evals_per_voxel": 732.61,
+   "per_voxel_derived": true,
+   "wrong": 63,
+   "n": 24570,
+   "interval_pct": [
+    0.2,
+    0.33
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 3,008,757, grid-search fallbacks 5,449,501, neighbour local optimizations 2,798,001, revisit local optimizations 3,060,730, boundary pass 3,683,241",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/reseed/summary.json :: s8[grad][S8].{total, stages, wrong_after, ci_after}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_reseed.md",
+   "flag": "run S8 on the first gradient sample: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 16 grid-search fallbacks; the stop test was chosen after results (D-20261111-N5), so this is not a confirmed result"
   }
  ],
  "excluded": [

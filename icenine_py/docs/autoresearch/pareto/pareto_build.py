@@ -56,10 +56,28 @@ LABELS = {
             "end",
         ),
         "BFS indexed, best 5 of 20 seeds, CMA + boundary pass (run S5)": (
-            "new seed step, no tries, + pass (S5)",
-            -8,
+            "S5 + pass",
+            4,
             25,
-            "middle",
+            "start",
+        ),
+        "BFS indexed, best 5 of 20 seeds, CMA (run S5)": (
+            "new seed step, no tries (S5)",
+            12,
+            4,
+            "start",
+        ),
+        "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA + boundary pass (run S8)": (
+            "S8 + pass",
+            -4,
+            25,
+            "end",
+        ),
+        "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA (run S8)": (
+            "S5 with early stop (S8)",
+            -12,
+            4,
+            "end",
         ),
         "BFS indexed, neighbour tries + best 5 of 20 seeds, lib. CMA + boundary pass (run K2)": (
             "K2 + pass",
@@ -82,7 +100,12 @@ LABELS = {
         "Paint + CMA + boundary pass": ("paint + CMA + pass", 12, -5, "start"),
     },
     "big_24570": {
-        "BFS indexed seeds, CMA local optimization (run D4)": ("old seed step (D4)", -17, 4, "end"),
+        "BFS indexed seeds, CMA local optimization (run D4)": (
+            "old seed step (D4)",
+            -6,
+            22,
+            "middle",
+        ),
         "BFS indexed, CMA + boundary pass (run D4)": ("D4 + pass", -17, 4, "end"),
         "BFS indexed, best 5 of 20 seeds, CMA (run S5)": ("new seed step (S5)", 12, -8, "start"),
         "BFS indexed, best 5 of 20 seeds, CMA + boundary pass (run S5)": (
@@ -90,6 +113,18 @@ LABELS = {
             10,
             -8,
             "start",
+        ),
+        "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA (run S8)": (
+            "S5 with early stop (S8)",
+            0,
+            -14,
+            "middle",
+        ),
+        "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA + boundary pass (run S8)": (
+            "S8 + pass",
+            0,
+            25,
+            "middle",
         ),
         "Paint + CMA local optimization (run P4R4)": ("paint + CMA (P4R4)", 12, 4, "start"),
         "Paint + CMA + boundary pass (run P4R4)": ("P4R4 + pass", 12, 14, "start"),
