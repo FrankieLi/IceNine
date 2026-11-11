@@ -23,7 +23,8 @@
 # The caller's own ROADMAP territory comes from `git config --local icenine.agent` or --agent:
 # I = Track S, row H12, "From Ilium Agent"; N = Track E, "From Newt Agent". With neither set the
 # script refuses to run (exit 2; it never defaults to one agent). The pytest command can be
-# overridden with VERIFY_HANDBACK_PYTEST_CMD (default `uv run pytest`; the test paths are
+# overridden with VERIFY_HANDBACK_PYTEST_CMD (default `uv run --extra dev pytest`, so
+# that a worktree runs its own pytest against its own library code; the test paths are
 # appended; it runs in <worktree>/icenine_py). <report> and --fixes may be relative paths.
 set -euo pipefail
 PARENT=""
@@ -337,7 +338,7 @@ EOF
         # pytest's final count line, so the last output line was a warning-summary line. The
         # counts come from a JUnit XML file requested through PYTEST_ADDOPTS (so an overriding
         # command gets the same arguments), else from pytest's count line in the output.
-        CMD="${VERIFY_HANDBACK_PYTEST_CMD:-uv run pytest}"
+        CMD="${VERIFY_HANDBACK_PYTEST_CMD:-uv run --extra dev pytest}"
         TDIR=$(mktemp -d)
         TLOG="$TDIR/out.log"
         JUNIT="$TDIR/junit.xml"

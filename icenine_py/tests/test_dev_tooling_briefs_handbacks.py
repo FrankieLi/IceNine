@@ -350,7 +350,7 @@ def test_finish_task_default_pytest_has_no_extra_q(repo: Path, tmp_path: Path) -
         text=True,
     )
     assert res.returncode == 0, res.stderr
-    assert log.read_text() == "icenine_py run pytest tests/\n"
+    assert log.read_text() == "icenine_py run --extra dev pytest tests/\n"
     assert _bgit(repo, "rev-parse", "--abbrev-ref", "HEAD") == "feature/par"
 
 
