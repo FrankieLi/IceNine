@@ -126,9 +126,9 @@ the truth (Part 1).
    two samples, on the test set it cuts the seed-step evaluations of the reseed clusters by 4.8%
    (0.2 degrees, the pick), not by the third the plan asks for. By sample it differs: on `big`
    alone the cut is 34.1%, above a third; on `grad` it is negative (-11.8%). The pass rule is
-   judged on the pooled test set, so the pooled rule decides the fail (Part 2). The cut is small
-   because a reseed cluster vanishes only if every member's last rejected fit passes: 137 of the
-   672 test clusters do. Even if `F2` cost nothing, the pooled cut would be 21.5% at 0.2 degrees
+   judged on the pooled test set, so the pooled rule decides the fail (Part 2). In counts: a
+   reseed cluster vanishes only if every member's last rejected fit passes, and 137 of the 672
+   test clusters do. Even if `F2` cost nothing, the pooled cut would be 21.5% at 0.2 degrees
    and 26.2% at 0.1, under a third. It runs on every rejected fit (38,438 in the two sets, 61
    evaluations each), and class A is 1,658 voxels in all.
 6. **Does a kept start add up error across a grain?** The error rises: the median error after
@@ -355,7 +355,8 @@ alone, `F2` at 0.2 degrees cuts 34.1%: (1,134,114 - 258,701) / 2,570,539, with 0
 broken. That is above a third. On `big`'s pick set alone the pick would also be 0.2 degrees. On
 `grad` the net cut is negative at every setting. The rule that the pass is judged on the pooled
 test set was written in the scripts (commit `5cfff2f`) before any `F2` result. So it was not
-chosen after a result, but it decides the verdict; the owner can weigh the by-sample numbers.
+chosen after a result, but it decides the verdict. The owner decided that the fail stands
+(D-20261111-N7).
 
 Reading of the table: `F2` on the test set, by sample and pooled. `clusters` is the reseed
 clusters and `vanish` those whose every member's last rejected fit passes after the extra fit.
@@ -377,18 +378,19 @@ cut in percent; `gross_cut` leaves out `F2`'s own cost, as if `F2` were free.
 | test | pooled | 0.2 deg | 672 | 137 | 7090641 | 1524801 | 1183583 | 4.8 | 21.5 |
 <!-- /table:p2_f2_by_sample -->
 
-Two accounting facts explain why the cut is small. First, a cluster vanishes only if every member's
-last rejected fit passes, and only 137 of the 672 test clusters do at 0.2 degrees. Clusters also
-hold voxels of classes B and C, so "the truth passes in all of class A" does not make clusters
-vanish. Second, even with `F2`'s own cost set to zero the pooled cut is
-21.5% at 0.2 degrees and 26.2% at 0.1, under a third. These are counts, not a tested cause.
+Two counts go with the small cut. First, a cluster vanishes only if every member's last rejected
+fit passes, and only 137 of the 672 test clusters do at 0.2 degrees. Clusters also hold voxels of
+classes B and C, whose last rejected fit need not pass after the extra fit; that the truth passes
+in all of class A says nothing about them. Second, even with `F2`'s own cost set to zero the
+pooled cut is 21.5% at 0.2 degrees and 26.2% at 0.1, under a third. These are counts, not a
+tested cause.
 
-Two things the stored cases do not show. They cannot show the accumulation of error along a
-grain (Part 3 does). And the pass rule counts *broken* only where the stored fit ended right: at
-0.90, 41 kept starts on the test set are wrong where the stored fit was also wrong (*both
-wrong*), and 7 kept starts fail the relative test; at 0.95 and 0.98 there are none of either. The
-pick rule chose 0.90 by the evaluations it saves, as written; 0.95 cuts 52.9% on the test set with
-none of these.
+Two things the stored cases do not show. They cannot show the error in the whole layer (Part 3
+measures it, but not its accumulation along the BFS path). And the pass rule counts *broken*
+only where the stored fit ended right: at 0.90, 41 kept starts on the test set are wrong where
+the stored fit was also wrong (*both wrong*), and 7 kept starts fail the relative test; at 0.95
+and 0.98 there are none of either. The pick rule chose 0.90 by the evaluations it saves, as
+written; 0.95 cuts 52.9% on the test set with none of these.
 
 ## Part 3: whole-layer runs
 
