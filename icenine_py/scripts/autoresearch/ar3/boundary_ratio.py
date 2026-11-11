@@ -1,6 +1,15 @@
 """AR3 step 5, reading 6 (candidate feature): stored acceptance ratio of P4's fit-settled voxels.
 
-  uv run python scripts/autoresearch/ar3/boundary_ratio.py
+  uv run python scripts/autoresearch/ar3/boundary_summary.py    # first
+  uv run python scripts/autoresearch/ar3/boundary_ratio.py      # then this one
+
+Run order: ``boundary_summary.py`` first, then this script. The summary rewrites ``tables.md``
+(it keeps an ``ar3e_ratio`` block that is already there); this script reads ``tables.md`` back,
+replaces the ``ar3e_ratio`` block and writes it again.
+
+A "fit-settled" voxel of the paint run P4 is one whose orientation in the paint came from one run
+of the local optimization (a "fit") started from a painted grain's orientation and accepted by
+the paint's test (fit hit ratio over the grain entry's best hit ratio above 0.9).
 
 Step 4's review found that every wrong voxel among the fits the caller accepted in P4 has an
 acceptance ratio (hit ratio of the fit over the entry's best hit ratio) below 0.95. This is a

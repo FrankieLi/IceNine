@@ -62,6 +62,16 @@
 | PR | level 1 | after | 5,539 | 61 of 5539 (0.9 to 1.4%) | 1153 of 5539 (19.8 to 21.9%) | 0.0459 | 0.166 |
 <!-- /table:ar3e_level -->
 
+<!-- table:ar3e_old_end -->
+| map | n | within_tol | share_within_tol | max_abs_diff |
+|---|---|---|---|---|
+| D4 | 24,570 | 24,266 | 98.76% | 0.0177 |
+| E4 | 24,570 | 24,272 | 98.79% | 0.0243 |
+| KE | 24,570 | 24,336 | 99.05% | 0.0207 |
+| D | 24,570 | 24,160 | 98.33% | 0.0193 |
+| D2 | 24,570 | 24,259 | 98.73% | 0.0202 |
+<!-- /table:ar3e_old_end -->
+
 <!-- table:ar3e_other_rules -->
 | map | rule | wrong_after | changed | fixed | broken |
 |---|---|---|---|---|---|
@@ -94,14 +104,14 @@
 <!-- /table:ar3e_paired -->
 
 <!-- table:ar3e_part0 -->
-| map | boundary | cands | wrong | wrong_cand1 | tr_cost | tr_hit | tr_conf | newly | newly_both |
-|---|---|---|---|---|---|---|---|---|---|
-| D4 | 23,121 | 60,290 | 225 | 225 | 225 | 225 | 46 | 108 | 108 |
-| P4R4 | 23,109 | 60,180 | 281 | 281 | 281 | 281 | 67 | 134 | 134 |
-| E4 | 22,875 | 49,601 | 305 | 305 | 302 | 305 | 73 | 170 | 170 |
-| D | 23,181 | 60,982 | 203 | 203 | 202 | 203 | 66 | 0 | 0 |
-| PR | 23,183 | 61,031 | 170 | 170 | 168 | 170 | 44 | 0 | 0 |
-| D2 | 22,956 | 50,009 | 153 | 153 | 152 | 153 | 38 | 0 | 0 |
+| map | boundary | bnd_share | cands | cands_per_bnd | wrong | wrong_cand1 | tr_cost | tr_hit | tr_conf | newly | newly_both |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| D4 | 23,121 | 94.1% | 60,290 | 2.61 | 225 | 225 | 225 | 225 | 46 | 108 | 108 |
+| P4R4 | 23,109 | 94.1% | 60,180 | 2.60 | 281 | 281 | 281 | 281 | 67 | 134 | 134 |
+| E4 | 22,875 | 93.1% | 49,601 | 2.17 | 305 | 305 | 302 | 305 | 73 | 170 | 170 |
+| D | 23,181 | 94.3% | 60,982 | 2.63 | 203 | 203 | 202 | 203 | 66 | 0 | 0 |
+| PR | 23,183 | 94.4% | 61,031 | 2.63 | 170 | 170 | 168 | 170 | 44 | 0 | 0 |
+| D2 | 22,956 | 93.4% | 50,009 | 2.18 | 153 | 153 | 152 | 153 | 38 | 0 | 0 |
 <!-- /table:ar3e_part0 -->
 
 <!-- table:ar3e_pass -->
@@ -116,20 +126,34 @@
 | KE | 22,869 | 49,555 | 3,022,855 | 5,431,381 | 55.7% |
 <!-- /table:ar3e_pass -->
 
+<!-- table:ar3e_pick_paired -->
+| set | pick | other | n | pick_wrong_only | other_wrong_only | both_wrong |
+|---|---|---|---|---|---|---|
+| A | hit | cost | 37,158 | 4 | 44 | 72 |
+| A | hit | conf | 37,158 | 7 | 4565 | 69 |
+| B | hit | cost | 36,552 | 4 | 26 | 76 |
+| B | hit | conf | 36,552 | 16 | 4075 | 64 |
+<!-- /table:ar3e_pick_paired -->
+
 <!-- table:ar3e_pipeline -->
 | this | against | evals_this | evals_against | wrong_this | wrong_against | fixed | broken | both_wrong | verdict |
 |---|---|---|---|---|---|---|---|---|---|
-| D4 plus pass | D (run only) | 38,807,186 | 118,350,225 | 74 of 24570 (0.24 to 0.38%) | 203 of 24570 (0.72 to 0.95%) | 155 | 26 | 48 | gain |
 | D4 plus pass | D (run plus pass) | 38,807,186 | 122,070,127 | 74 of 24570 (0.24 to 0.38%) | 88 of 24570 (0.29 to 0.44%) | 45 | 31 | 43 | no gain or loss (intervals overlap) |
-| P4R4 plus pass | PR (run only) | 54,563,676 | 90,985,770 | 82 of 24570 (0.27 to 0.41%) | 170 of 24570 (0.60 to 0.80%) | 113 | 25 | 57 | gain |
 | P4R4 plus pass | PR (run plus pass) | 54,563,676 | 94,708,661 | 82 of 24570 (0.27 to 0.41%) | 78 of 24570 (0.25 to 0.40%) | 28 | 32 | 50 | no gain or loss (intervals overlap) |
-| E4 plus pass | D2 (run only) | 16,633,842 | 33,040,126 | 0 of 24570 (0.00 to 0.02%) | 153 of 24570 (0.53 to 0.73%) | 153 | 0 | 0 | gain |
 | E4 plus pass | D2 (run plus pass) | 16,633,842 | 36,090,675 | 0 of 24570 (0.00 to 0.02%) | 14 of 24570 (0.03 to 0.10%) | 14 | 0 | 0 | gain |
-| KE plus pass | E4 (run only) | 8,454,236 | 13,608,181 | 0 of 24570 (0.00 to 0.02%) | 305 of 24570 (1.1 to 1.4%) | 305 | 0 | 0 | gain |
 | KE plus pass | E4 (run plus pass) | 8,454,236 | 16,633,842 | 0 of 24570 (0.00 to 0.02%) | 0 of 24570 (0.00 to 0.02%) | 0 | 0 | 0 | no gain or loss (intervals overlap) |
-| KE plus pass | D2 (run only) | 8,454,236 | 33,040,126 | 0 of 24570 (0.00 to 0.02%) | 153 of 24570 (0.53 to 0.73%) | 153 | 0 | 0 | gain |
 | KE plus pass | D2 (run plus pass) | 8,454,236 | 36,090,675 | 0 of 24570 (0.00 to 0.02%) | 14 of 24570 (0.03 to 0.10%) | 14 | 0 | 0 | gain |
 <!-- /table:ar3e_pipeline -->
+
+<!-- table:ar3e_pipeline_onesided -->
+| this | against | evals_this | evals_against | wrong_this | wrong_against | fixed | broken | both_wrong |
+|---|---|---|---|---|---|---|---|---|
+| D4 plus pass | D (run only) | 38,807,186 | 118,350,225 | 74 of 24570 (0.24 to 0.38%) | 203 of 24570 (0.72 to 0.95%) | 155 | 26 | 48 |
+| P4R4 plus pass | PR (run only) | 54,563,676 | 90,985,770 | 82 of 24570 (0.27 to 0.41%) | 170 of 24570 (0.60 to 0.80%) | 113 | 25 | 57 |
+| E4 plus pass | D2 (run only) | 16,633,842 | 33,040,126 | 0 of 24570 (0.00 to 0.02%) | 153 of 24570 (0.53 to 0.73%) | 153 | 0 | 0 |
+| KE plus pass | E4 (run only) | 8,454,236 | 13,608,181 | 0 of 24570 (0.00 to 0.02%) | 305 of 24570 (1.1 to 1.4%) | 305 | 0 | 0 |
+| KE plus pass | D2 (run only) | 8,454,236 | 33,040,126 | 0 of 24570 (0.00 to 0.02%) | 153 of 24570 (0.53 to 0.73%) | 153 | 0 | 0 |
+<!-- /table:ar3e_pipeline_onesided -->
 
 <!-- table:ar3e_ratio -->
 | set | theta | fit_settled | skipped | wrong_skipped | tries_skipped | fixed_lost | fixed_in_set | broken_avoided |
@@ -156,14 +180,14 @@
 <!-- /table:ar3e_rules -->
 
 <!-- table:ar3e_second -->
-| map | boundary | tries | changed_again | changed_first | wrong_after_first | wrong_after_second | fixed | broken |
-|---|---|---|---|---|---|---|---|---|
-| D4 | 23,192 | 60,442 | 389 | 739 | 74 | 57 | 20 | 3 |
-| P4R4 | 23,191 | 60,562 | 283 | 550 | 82 | 63 | 24 | 5 |
-| E4 | 23,002 | 50,435 | 0 | 305 | 0 | 0 | 0 | 0 |
-| D | 23,196 | 60,715 | 515 | 1027 | 88 | 65 | 34 | 11 |
-| PR | 23,181 | 60,722 | 497 | 932 | 78 | 56 | 27 | 5 |
-| D2 | 23,000 | 50,393 | 16 | 167 | 14 | 4 | 13 | 3 |
+| map | boundary | tries | changed_again | changed_first | wrong_after_first | wrong_after_second | fixed | broken | evals_second |
+|---|---|---|---|---|---|---|---|---|---|
+| D4 | 23,192 | 60,442 | 389 | 739 | 74 | 57 | 20 | 3 | 3,686,962 |
+| P4R4 | 23,191 | 60,562 | 283 | 550 | 82 | 63 | 24 | 5 | 3,694,282 |
+| E4 | 23,002 | 50,435 | 0 | 305 | 0 | 0 | 0 | 0 | 3,076,535 |
+| D | 23,196 | 60,715 | 515 | 1027 | 88 | 65 | 34 | 11 | 3,703,615 |
+| PR | 23,181 | 60,722 | 497 | 932 | 78 | 56 | 27 | 5 | 3,704,042 |
+| D2 | 23,000 | 50,393 | 16 | 167 | 14 | 4 | 13 | 3 | 3,073,973 |
 <!-- /table:ar3e_second -->
 
 <!-- table:ar3e_skip -->
@@ -172,6 +196,16 @@
 | A | 84,245 | 77968 (92.5%) | 360 | 0 | 0 of 360 (0.0 to 1.1%) | 0 | 76 | 76 |
 | B | 85,826 | 78599 (91.6%) | 313 | 1 | 1 of 313 (0.1 to 1.8%) | 0 | 80 | 81 |
 <!-- /table:ar3e_skip -->
+
+<!-- table:ar3e_skip_evals -->
+| scope | evals_pass | evals_kept | kept_share |
+|---|---|---|---|
+| D4 | 3,677,690 | 480,131 | 13.1% |
+| P4R4 | 3,670,980 | 292,495 | 8.0% |
+| E4 | 3,025,661 | 51,118 | 1.7% |
+| set A (3 maps) | 5,138,945 | 382,897 | 7.5% |
+| set B (3 maps) | 5,235,386 | 440,847 | 8.4% |
+<!-- /table:ar3e_skip_evals -->
 
 <!-- table:ar3e_skip_grid -->
 | rel_hit | skipped | lost | fixed | broken_avoided |
@@ -185,8 +219,9 @@
 <!-- /table:ar3e_skip_grid -->
 
 <!-- table:ar3e_stages -->
-| run | seed | neighbor | revisit | reseed | total | entries | index_used | grid_fallbacks | grid_evals | neighbor_fits | first_accepted | retries | retries_accepted | wall_s |
+| run | seed | neighbor | revisit | reseed | total | entries | index_used | grid_fallbacks | grid_evals | neighbor_fits | first_accepted | retries | retries_accepted | wall_s_contended |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| K (unfinished, at 3,300 s) | 1,762,722 | 2,375,462 | 2,685,403 | 31,325,889 | 38,149,476 | 1006 | 917 | 90 | 31,067,562 | 24224 | 9506 | 29971 | 111 | 3300 |
 | D4 | 1,556,905 | 2,817,382 | 3,089,366 | 27,665,843 | 35,129,496 | 1298 | 1222 | 76 | 25,833,494 | 24226 | 9516 | 0 | 0 | 3125 |
 | D | 2,458,801 | 16,088,317 | 44,231,514 | 55,571,593 | 118,350,225 | 3855 | 3713 | 142 | 48,273,080 | 24130 | 7155 | 0 | 0 | 9369 |
 | KE | 666,324 | 2,346,548 | 2,065,277 | 353,232 | 5,431,381 | 508 | 508 | 0 | 0 | 24238 | 10008 | 24132 | 1 | 681 |

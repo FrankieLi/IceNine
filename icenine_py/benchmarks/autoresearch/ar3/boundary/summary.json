@@ -95,6 +95,43 @@
    "passes": true
   }
  },
+ "part0_totals": {
+  "wrong": 1337,
+  "tr_hit": 1337,
+  "tr_cost": 1330,
+  "per_map": {
+   "D4": {
+    "n": 24570,
+    "boundary_share": 0.941025641025641,
+    "cands_per_boundary": 2.607586177068466
+   },
+   "P4R4": {
+    "n": 24570,
+    "boundary_share": 0.9405372405372405,
+    "cands_per_boundary": 2.604180189536544
+   },
+   "E4": {
+    "n": 24570,
+    "boundary_share": 0.931013431013431,
+    "cands_per_boundary": 2.1683497267759564
+   },
+   "D": {
+    "n": 24570,
+    "boundary_share": 0.9434676434676434,
+    "cands_per_boundary": 2.6306889262758295
+   },
+   "PR": {
+    "n": 24570,
+    "boundary_share": 0.9435490435490436,
+    "cands_per_boundary": 2.6325755941853943
+   },
+   "D2": {
+    "n": 24570,
+    "boundary_share": 0.9343101343101343,
+    "cands_per_boundary": 2.1784718592089214
+   }
+  }
+ },
  "pick": {
   "fewest_wrong_on_A": "hit",
   "overlapping": [
@@ -168,6 +205,68 @@
     "fixed": 215,
     "broken": 3972
    }
+  }
+ },
+ "pick_margin": {
+  "cost": {
+   "pick_hi_A": 0.002559021013959539,
+   "other_lo_A": 0.0026036542517588893,
+   "gap_A": 4.4633237799350176e-05,
+   "gap_A_voxels": 1.6584818501482539,
+   "overlap_A": false,
+   "overlap_B": true,
+   "changed_A_pick": 733,
+   "changed_A_other": 732,
+   "tie_break_if_overlap": "cost"
+  },
+  "conf": {
+   "pick_hi_A": 0.002559021013959539,
+   "other_lo_A": 0.12139007208246984,
+   "gap_A": 0.1188310510685103,
+   "gap_A_voxels": 4415.524195603706,
+   "overlap_A": false,
+   "overlap_B": false,
+   "changed_A_pick": 733,
+   "changed_A_other": 5193,
+   "tie_break_if_overlap": "hit"
+  }
+ },
+ "pick_paired": {
+  "A/cost": {
+   "set": "A",
+   "pick": "hit",
+   "other": "cost",
+   "n": 37158,
+   "pick_wrong_only": 4,
+   "other_wrong_only": 44,
+   "both_wrong": 72
+  },
+  "A/conf": {
+   "set": "A",
+   "pick": "hit",
+   "other": "conf",
+   "n": 37158,
+   "pick_wrong_only": 7,
+   "other_wrong_only": 4565,
+   "both_wrong": 69
+  },
+  "B/cost": {
+   "set": "B",
+   "pick": "hit",
+   "other": "cost",
+   "n": 36552,
+   "pick_wrong_only": 4,
+   "other_wrong_only": 26,
+   "both_wrong": 76
+  },
+  "B/conf": {
+   "set": "B",
+   "pick": "hit",
+   "other": "conf",
+   "n": 36552,
+   "pick_wrong_only": 16,
+   "other_wrong_only": 4075,
+   "both_wrong": 64
   }
  },
  "maps": {
@@ -1359,6 +1458,71 @@
    "verdict": "gain"
   }
  ],
+ "pipeline_plot": [
+  {
+   "map": "D4",
+   "panel": "grad",
+   "evals": 38807186,
+   "wrong": 74,
+   "n": 24570,
+   "lo": 0.0023999678496171954,
+   "hi": 0.003779025344511637
+  },
+  {
+   "map": "D",
+   "panel": "grad",
+   "evals": 122070127,
+   "wrong": 88,
+   "n": 24570,
+   "lo": 0.0029082586896587515,
+   "hi": 0.004410157491554038
+  },
+  {
+   "map": "P4R4",
+   "panel": "grad",
+   "evals": 54563676,
+   "wrong": 82,
+   "n": 24570,
+   "lo": 0.002689773985497236,
+   "hi": 0.004140318058393858
+  },
+  {
+   "map": "PR",
+   "panel": "grad",
+   "evals": 94708661,
+   "wrong": 78,
+   "n": 24570,
+   "lo": 0.0025446422733002966,
+   "hi": 0.003959900345709668
+  },
+  {
+   "map": "E4",
+   "panel": "layer",
+   "evals": 16633842,
+   "wrong": 0,
+   "n": 24570,
+   "lo": 0.0,
+   "hi": 0.00015632883382791883
+  },
+  {
+   "map": "KE",
+   "panel": "layer",
+   "evals": 8454236,
+   "wrong": 0,
+   "n": 24570,
+   "lo": 0.0,
+   "hi": 0.00015632883382791883
+  },
+  {
+   "map": "D2",
+   "panel": "layer",
+   "evals": 36090675,
+   "wrong": 14,
+   "n": 24570,
+   "lo": 0.00033945856057601063,
+   "hi": 0.0009562932603358648
+  }
+ ],
  "stages": [
   {
    "run": "D4",
@@ -1446,6 +1610,34 @@
    "wall_s": 2263.7728741168976
   }
  ],
+ "K_progress": {
+  "source": "boundary/runs/K/progress.json",
+  "status": "unfinished, stopped at its cap",
+  "elapsed_s": 3300.262447118759,
+  "seeds": 346,
+  "reseeds": 660,
+  "entries": 1006,
+  "index_used": 917,
+  "grid_fallbacks": 90,
+  "grid_evals": 31067562,
+  "evals_seed": 1762722,
+  "evals_neighbor": 2375462,
+  "evals_revisit": 2685403,
+  "evals_reseed": 31325889,
+  "evals_total": 38149476,
+  "evals_neighbor_revisit": 5060865,
+  "neighbor_fits": 24224,
+  "first_accepted": 9506,
+  "retries": 29971,
+  "retries_accepted": 111
+ },
+ "derived": {
+  "KE_evals_neighbor_revisit": 4411825,
+  "E4_evals_neighbor_revisit": 12659195,
+  "D4_evals_neighbor_revisit": 5906748,
+  "D2_evals_neighbor_revisit": 31908730,
+  "KE_pass_share_of_run": 0.5565536647125289
+ },
  "second": [
   {
    "map": "D4",
@@ -1514,6 +1706,51 @@
    "broken": 3
   }
  ],
+ "second_evals": {
+  "D4": 3686962,
+  "P4R4": 3694282,
+  "E4": 3076535,
+  "D": 3703615,
+  "PR": 3704042,
+  "D2": 3073973
+ },
+ "old_end_check": {
+  "D4": {
+   "n": 24570,
+   "within_tol": 24266,
+   "share_within_tol": 0.9876271876271876,
+   "max_abs_diff": 0.017714771036315247,
+   "tol": 0.001
+  },
+  "E4": {
+   "n": 24570,
+   "within_tol": 24272,
+   "share_within_tol": 0.9878713878713878,
+   "max_abs_diff": 0.024271844660194164,
+   "tol": 0.001
+  },
+  "KE": {
+   "n": 24570,
+   "within_tol": 24336,
+   "share_within_tol": 0.9904761904761905,
+   "max_abs_diff": 0.02073514033930257,
+   "tol": 0.001
+  },
+  "D": {
+   "n": 24570,
+   "within_tol": 24160,
+   "share_within_tol": 0.9833129833129833,
+   "max_abs_diff": 0.01934238897485485,
+   "tol": 0.001
+  },
+  "D2": {
+   "n": 24570,
+   "within_tol": 24259,
+   "share_within_tol": 0.9873422873422874,
+   "max_abs_diff": 0.020183479816513694,
+   "tol": 0.001
+  }
+ },
  "skip": {
   "rel_hit": 0.94,
   "cost_quantile": 100,
@@ -1527,5 +1764,38 @@
    "90": 0.11492444555090814,
    "100": 0.6108443611266412
   }
+ },
+ "skip_evals": {
+  "D4": {
+   "evals_pass": 3677690,
+   "evals_kept": 480131,
+   "kept_share": 0.13055233040305192
+  },
+  "P4R4": {
+   "evals_pass": 3670980,
+   "evals_kept": 292495,
+   "kept_share": 0.07967763376537056
+  },
+  "E4": {
+   "evals_pass": 3025661,
+   "evals_kept": 51118,
+   "kept_share": 0.016894820668938125
+  },
+  "set A": {
+   "evals_pass": 5138945,
+   "evals_kept": 382897,
+   "kept_share": 0.07450887293014422
+  },
+  "set B": {
+   "evals_pass": 5235386,
+   "evals_kept": 440847,
+   "kept_share": 0.08420525248759117
+  }
+ },
+ "skip_cost_axis": {
+  "cost_quantile_picked": 100,
+  "cost_grid_edge": true,
+  "uninformative": true,
+  "rule": "plan: a pick at the edge of its grid is called uninformative"
  }
 }
