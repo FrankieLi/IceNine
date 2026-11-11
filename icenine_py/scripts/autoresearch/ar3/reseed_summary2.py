@@ -50,6 +50,7 @@ def classes() -> Tuple[Dict[str, Any], Dict[str, str]]:
         first.setdefault(m["voxel"], m)
     rows: List[Dict[str, Any]] = []
     out: Dict[str, Any] = dict(entries=len(mem), voxels=len(first))
+    out["entries_by_class"] = {c_: sum(1 for m in mem if m["cls"] == c_) for c_ in "ABCN"}
     for L in [1.0, 2.0, 4.0, None]:
         sel = [m for m in first.values() if L is None or m["level"] == L]
         if not sel:
@@ -81,6 +82,8 @@ def classes() -> Tuple[Dict[str, Any], Dict[str, str]]:
             start_A=med([m["err_start"] for m in a]),
             dist_A=med([m["dist"] for m in a]),
             dist_C=med([m["dist"] for m in c]),
+            start_B=med([m["err_start"] for m in b]),
+            err_C=med([m["err_end"] for m in c]),
         )
         rows.append(d)
         out[d["level"]] = d
@@ -91,7 +94,19 @@ def classes() -> Tuple[Dict[str, Any], Dict[str, str]]:
     )
     tab2 = markdown_table(
         rows,
-        ["level", "hit_A", "best_A", "err_A", "start_A", "dist_A", "hit_B", "hit_C", "dist_C"],
+        [
+            "level",
+            "hit_A",
+            "best_A",
+            "err_A",
+            "start_A",
+            "dist_A",
+            "hit_B",
+            "start_B",
+            "hit_C",
+            "err_C",
+            "dist_C",
+        ],
         formats=dict(
             hit_A=".3f",
             best_A=".3f",
@@ -100,6 +115,8 @@ def classes() -> Tuple[Dict[str, Any], Dict[str, str]]:
             dist_A=".1f",
             hit_B=".3f",
             hit_C=".3f",
+            start_B=".1f",
+            err_C=".1f",
             dist_C=".1f",
         ),
     )

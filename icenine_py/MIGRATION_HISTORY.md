@@ -11609,3 +11609,35 @@ seed steps by level, the cost of an index run and the break-even grid fallback r
 fallbacks in 1,293 index runs; `D4` fell back on 2.4% and 5.9%). On `big` 0.43 of the 1.00
 million extra seed-step evaluations of `S5` come from its 20 extra index runs (priced at `S5`'s
 cost; untested cause). Review fixes 1 to 10 applied to the page (D-20261111-N3).
+
+## Autoresearch AR3 step 8: why the seed step costs so much in grains with strong gradients (done 2026-11-11, task ar3h)
+
+No change under `icenine/`; no key, no default, no dependency. Scripts
+`scripts/autoresearch/ar3/reseed_*.py`; results `benchmarks/autoresearch/ar3/reseed/` (slim, under
+2 MB; caches stay out of git); page `docs/autoresearch/findings_ar3_reseed.md` (the tool refused
+the implementer's write; the page text was returned to the main session). Simulated samples only
+(`big`: 32 grains; the first gradient sample: 497 grains); C++ not run; one run per arm, one voxel
+order; wall times contended.
+Part 1 (seed steps replayed from the stored runs, one logged rerun of `S5` on `big` that
+reproduced the stored counters and reseed list exactly; every replayed seed step has the stored
+evaluation count): the refinements are 99.9% of the evaluations of a seed step in `S5` on `big`
+(mean 21,403 per step; 20 evaluations of costing), 99.6% on the gradient sample (mean 4,633).
+The first refinement alone costs 4,710 at level 0 on `big` (5 steps) against 1,115 on the
+gradient sample (101 steps); in the grains at 4 degrees refinements 2 to 5 are 16,554 of 24,427.
+62.2% of `S5`'s seed-step evaluations on `big` (55.5% on the gradient sample) run after a
+refinement already passed the seed test at a right orientation. Of the 1,471 voxels in the 314
+reseed clusters of `S5` on `big`, 1,069 (72.7%) were reached by a local optimization that ended
+right (median error 0.294 degrees) and was rejected by the relative test (median hit ratio
+0.835, flood best 1.000: class A); 22 started in their own grain at a wrong orientation (B); 380
+started from another grain (C). 314 reseeds settle 1,471 voxels (4.7 per reseed). Part 2: `E1`
+(stop the refinements at the first that passes) with the stop test 0.95, chosen on the pick set
+(even grains), cuts the seed step by 58.4% on `big` and 48.4% on the gradient sample on the
+test set (odd grains) and breaks no case; the plain test 0.80 breaks 6 against 0 fixed and 51
+against 2. `E2` (keep a rejected fit that passes a second test) fails on the pick set: no test
+has broken at most fixed (best: 3 broken, 2 fixed, 4.4% cut); `E3` not tried (class B 1.5%).
+Part 3: `S8` = `S5` + `E1`, with the pass: 8.34 million evaluations on `big` (`D4` 11.94, `S5`
+13.00) and 18.00 on the gradient sample (`S5` 20.63, `D4` 38.81); wrong voxels after the pass 24
+(`D4` 21, `S5` 30) and 63 (`S5` 62, `D4` 74), intervals overlap. Predictions (written before the
+runs): all three agree. The key choice stays the owner's; `S8`'s seed step is my recommendation.
+Added after seeing results (labelled on the page): the stop-test grid of `E1`, counting voxels at
+their first appearance in a cluster, and the plurality reading of "cost share".
