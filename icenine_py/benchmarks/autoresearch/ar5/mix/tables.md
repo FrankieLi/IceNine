@@ -12,6 +12,14 @@
 | 20 | 10 | 20 | 121659 | 121659 |
 <!-- /table:check -->
 
+<!-- table:fallback_cost -->
+| sample | S8 grid-fallback evaluations | S8 fallbacks | S8 per fallback | S10 grid-fallback evaluations | S10 fallbacks | S10 per fallback | S11 grid-fallback evaluations | S11 fallbacks | S11 per fallback |
+|---|---|---|---|---|---|---|---|---|---|
+| big | 0 | 0 | n/a | 0 | 0 | n/a | 0 | 0 | n/a |
+| first gradient sample | 5449501 | 16 | 340594 | 5108107 | 15 | 340540 | 3741408 | 11 | 340128 |
+| mid | 5002750 | 15 | 333517 | 5008366 | 15 | 333891 | 4004585 | 12 | 333715 |
+<!-- /table:fallback_cost -->
+
 <!-- table:nogrid -->
 | sample | S8 without grid fallbacks | S10 without grid fallbacks | S11 without grid fallbacks | S11 fewer than S8 (%) | S11 fewer than S10 (%) | grid-fallback evaluations S11 saves against S8 | all evaluations S11 saves against S8 |
 |---|---|---|---|---|---|---|---|
@@ -66,6 +74,17 @@
 | mid | S11 | 5 | 0.02913 | 0.02972 | -0.00060 | True | True | True | True | 39.2 |
 <!-- /table:rule -->
 
+<!-- table:shares -->
+| sample | against | evaluations S11 saves | seed step (%) | grid fallback (%) | neighbour fits (%) | revisits (%) | boundary pass (%) |
+|---|---|---|---|---|---|---|---|
+| big | S8 | 4325086 | 45.5 | 0.0 | 46.1 | 8.3 | 0.1 |
+| first gradient sample | S8 | 5692236 | 24.3 | 30.0 | 23.2 | 22.6 | -0.0 |
+| mid | S8 | 10360378 | 59.7 | 9.6 | 22.9 | 7.7 | 0.1 |
+| big | S10 | 1882916 | 101.0 | 0.0 | -0.0 | -0.8 | -0.2 |
+| first gradient sample | S10 | 2860004 | 52.3 | 47.8 | -0.0 | 0.1 | -0.2 |
+| mid | S10 | 6586008 | 85.1 | 15.2 | -0.0 | -0.4 | 0.1 |
+<!-- /table:shares -->
+
 <!-- table:stages -->
 | sample | run | seed step | grid fallback | neighbour fits | revisits | before the pass | boundary pass | total with the pass | fewer than S8 (%) | fewer than S10 (%) | grid fallbacks (count) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -79,3 +98,17 @@
 | mid | S10 | 11431628 | 5008366 | 1489254 | 1687748 | 19616996 | 3051708 | 22668704 | 14.3 | 0.0 | 15 |
 | mid | S11 | 5825184 | 4004585 | 1489620 | 1715137 | 13034526 | 3048170 | 16082696 | 39.2 | 29.1 | 12 |
 <!-- /table:stages -->
+
+<!-- table:uncounted -->
+| sample | uncounted hit-ratio checks (one per mixed candidate) | counted evaluations of S11 with the pass | uncounted as a share of counted (%) |
+|---|---|---|---|
+| big | 436 | 4015342 | 0.0109 |
+| first gradient sample | 2158 | 12307994 | 0.0175 |
+| mid | 2814 | 16082696 | 0.0175 |
+<!-- /table:uncounted -->
+
+<!-- table:whatif -->
+| sample | replay step | candidate | CMA end hit ratio | CMA end cost | CMA evaluations | MC end hit ratio | MC end cost | MC evaluations | next candidate: CMA evaluations | next candidate: CMA end hit ratio | X200 seed-step evaluations, this page | the plan's what-if |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mid | 442 | 1 | 0.94752 | 0.06939 | 201 | 0.95300 | 0.07189 | 5983 | 201 | 0.979 | 5643575 | 5643374 |
+<!-- /table:whatif -->

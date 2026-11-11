@@ -410,5 +410,177 @@
    "grad": null,
    "mid": null
   }
+ },
+ "stage_shares": {
+  "big": {
+   "S8": {
+    "total_saving": 4325086,
+    "seed_step": 0.455101239605409,
+    "grid_fallback": 0.0,
+    "neighbour": 0.46121672493911103,
+    "revisit": 0.08300505469717828,
+    "pass_": 0.0006769807583016847
+   },
+   "S10": {
+    "total_saving": 1882916,
+    "seed_step": 1.0103992955607155,
+    "grid_fallback": 0.0,
+    "neighbour": -3.2396559379175704e-05,
+    "revisit": -0.007969553607277224,
+    "pass_": -0.002397345394059002
+   }
+  },
+  "grad": {
+   "S8": {
+    "total_saving": 5692236,
+    "seed_step": 0.24279017946550355,
+    "grid_fallback": 0.30007417120442653,
+    "neighbour": 0.23197544866375885,
+    "revisit": 0.22561028741605232,
+    "pass_": -0.00045008674974122645
+   },
+   "S10": {
+    "total_saving": 2860004,
+    "seed_step": 0.5228590589383791,
+    "grid_fallback": 0.47786611487256664,
+    "neighbour": -2.13286414984035e-05,
+    "revisit": 0.0008958029429329469,
+    "pass_": -0.0015996481123802624
+   }
+  },
+  "mid": {
+   "S8": {
+    "total_saving": 10360378,
+    "seed_step": 0.5967125909884755,
+    "grid_fallback": 0.09634445770221897,
+    "neighbour": 0.22876008964151695,
+    "revisit": 0.07742333339575062,
+    "pass_": 0.0007595282720379507
+   },
+   "S10": {
+    "total_saving": 6586008,
+    "seed_step": 0.8512658958203513,
+    "grid_fallback": 0.15241114192390898,
+    "neighbour": -5.557235885531873e-05,
+    "revisit": -0.004158664854339685,
+    "pass_": 0.0005371994689347477
+   }
+  }
+ },
+ "grid_fallback_cost": {
+  "big": {
+   "S8": {
+    "grid_evals": 0,
+    "fallbacks": 0,
+    "per_fallback": null
+   },
+   "S10": {
+    "grid_evals": 0,
+    "fallbacks": 0,
+    "per_fallback": null
+   },
+   "S11": {
+    "grid_evals": 0,
+    "fallbacks": 0,
+    "per_fallback": null
+   }
+  },
+  "grad": {
+   "S8": {
+    "grid_evals": 5449501,
+    "fallbacks": 16,
+    "per_fallback": 340593.8125
+   },
+   "S10": {
+    "grid_evals": 5108107,
+    "fallbacks": 15,
+    "per_fallback": 340540.4666666667
+   },
+   "S11": {
+    "grid_evals": 3741408,
+    "fallbacks": 11,
+    "per_fallback": 340128.0
+   }
+  },
+  "mid": {
+   "S8": {
+    "grid_evals": 5002750,
+    "fallbacks": 15,
+    "per_fallback": 333516.6666666667
+   },
+   "S10": {
+    "grid_evals": 5008366,
+    "fallbacks": 15,
+    "per_fallback": 333891.06666666665
+   },
+   "S11": {
+    "grid_evals": 4004585,
+    "fallbacks": 12,
+    "per_fallback": 333715.4166666667
+   }
+  }
+ },
+ "uncounted_hit_checks": {
+  "big": {
+   "mixed_candidates": 436,
+   "total_evals": 4015342,
+   "share": 0.00010858352787882079
+  },
+  "grad": {
+   "mixed_candidates": 2158,
+   "total_evals": 12307994,
+   "share": 0.0001753332021448824
+  },
+  "mid": {
+   "mixed_candidates": 2814,
+   "total_evals": 16082696,
+   "share": 0.00017497066412248296
+  }
+ },
+ "plan_whatif": {
+  "note": "the plan's what-if count for X200 comes from a variant that stops when either end of a candidate reaches 0.95; the rule as defined (and run) tests the stop on the kept lower-cost end. Both counts and every step where they differ.",
+  "plan_counts": {
+   "pick": 2501991,
+   "mid": 5643374
+  },
+  "pick_evals_variant": 2501991,
+  "by_sample": {
+   "big": {
+    "evals_rule": 938875,
+    "evals_variant": 938875,
+    "n_pass_variant": 329,
+    "steps_differ": []
+   },
+   "grad": {
+    "evals_rule": 1563116,
+    "evals_variant": 1563116,
+    "n_pass_variant": 1267,
+    "steps_differ": []
+   },
+   "mid": {
+    "evals_rule": 5643575,
+    "evals_variant": 5643374,
+    "n_pass_variant": 1600,
+    "steps_differ": [
+     {
+      "replay_index": 442,
+      "step": 442,
+      "candidate": 0,
+      "cma_hit": 0.9475164011246485,
+      "cma_cost": 0.06939037946502724,
+      "cma_evals": 201,
+      "mc_hit": 0.9529953917050691,
+      "mc_cost": 0.07189203327919702,
+      "mc_evals": 5983,
+      "next_cma_evals": 201,
+      "next_cma_hit": 0.9792060491493384,
+      "evals_rule": 6405,
+      "evals_variant": 6204,
+      "passed_rule": true,
+      "passed_variant": true
+     }
+    ]
+   }
+  }
  }
 }

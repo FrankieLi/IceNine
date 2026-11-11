@@ -58,6 +58,49 @@ def fmt_int(n: int) -> str:
     return f"{n:,}"
 
 
+def derived() -> Dict[str, Any]:
+    """Numbers derived for the review fixes (D-20261111-N16): the share of S11's saving by stage
+    against S8 and S10, the cost of one grid fallback, the uncounted hit-ratio checks of the
+    mixed seed refinement, and the plan's what-if step (from part1.json)."""
+    shares: Dict[str, Any] = {}
+    fallback: Dict[str, Any] = {}
+    unc: Dict[str, Any] = {}
+    for s in SAMPLES:
+        d10 = load(FIT / f"part2_S10_{s}.json")
+        d11 = load(MIX / f"part2_S11_{s}.json")
+        if not d11 or d11.get("unfinished"):
+            continue
+        st11 = d11["stages"]
+        refs = dict(S8=(d10["stages_s8"], d10["grid_fallbacks_s8"]))
+        refs["S10"] = (d10["stages"], d10["grid_fallbacks"])
+        shares[s] = {}
+        for ref, (st, _) in refs.items():
+            save = st["total"] - st11["total"]
+            shares[s][ref] = dict(
+                total_saving=int(save),
+                **{k: float((st[k] - st11[k]) / save) for k in STAGES},
+            )
+        per = {}
+        for name, (st, g) in (*refs.items(), ("S11", (st11, d11["grid_fallbacks"]))):
+            per[name] = dict(
+                grid_evals=int(st["grid_fallback"]),
+                fallbacks=int(g),
+                per_fallback=(float(st["grid_fallback"] / g) if g else None),
+            )
+        fallback[s] = per
+        n = int(d11["mc_share"]["candidates"])
+        unc[s] = dict(
+            mixed_candidates=n, total_evals=int(st11["total"]), share=float(n / st11["total"])
+        )
+    p1 = load(MIX / "part1.json")
+    return dict(
+        stage_shares=shares,
+        grid_fallback_cost=fallback,
+        uncounted_hit_checks=unc,
+        plan_whatif=p1.get("plan_whatif") if p1 else None,
+    )
+
+
 def tables() -> Dict[str, str]:
     p1 = load(MIX / "part1.json")
     pk = load(MIX / "pick.json")
@@ -331,6 +374,103 @@ def tables() -> Dict[str, str]:
         " | S8 grid fallbacks | S11 seed-step evaluations | Part 1 count, same sample"
         " | difference (%) | candidates where MC ran (%) | candidates refined |",
     )
+    # ---- review fixes (D-20261111-N16): shares by stage, cost of a fallback, uncounted checks
+    D = derived()
+    rows = []
+    for ref in ("S8", "S10"):
+        for s in SAMPLES:
+            if s not in D["stage_shares"]:
+                continue
+            sh = D["stage_shares"][s][ref]
+            rows.append(
+                dict(
+                    sample=NAMES[s],
+                    vs=ref,
+                    save=sh["total_saving"],
+                    **{k: pct(sh[k]) for k in STAGES},
+                )
+            )
+    T["shares"] = markdown_table(
+        rows, ["sample", "vs", "save", *STAGES], {k: ".1f" for k in STAGES}
+    ).replace(
+        "| sample | vs | save | seed_step | grid_fallback | neighbour | revisit | pass_ |",
+        "| sample | against | evaluations S11 saves | seed step (%) | grid fallback (%)"
+        " | neighbour fits (%) | revisits (%) | boundary pass (%) |",
+    )
+    rows = []
+    for s in SAMPLES:
+        if s not in D["grid_fallback_cost"]:
+            continue
+        fb = D["grid_fallback_cost"][s]
+        row: Dict[str, Any] = dict(sample=NAMES[s])
+        for r in ("S8", "S10", "S11"):
+            row[f"g{r}"] = fb[r]["grid_evals"]
+            row[f"n{r}"] = fb[r]["fallbacks"]
+            pf = fb[r]["per_fallback"]
+            row[f"p{r}"] = "n/a" if pf is None else f"{pf:,.0f}".replace(",", "")
+        rows.append(row)
+    gcols = [f"{x}{r}" for r in ("S8", "S10", "S11") for x in ("g", "n", "p")]
+    T["fallback_cost"] = markdown_table(rows, ["sample", *gcols]).replace(
+        "| sample | " + " | ".join(gcols) + " |",
+        "| sample | S8 grid-fallback evaluations | S8 fallbacks | S8 per fallback"
+        " | S10 grid-fallback evaluations | S10 fallbacks | S10 per fallback"
+        " | S11 grid-fallback evaluations | S11 fallbacks | S11 per fallback |",
+    )
+    rows = [
+        dict(sample=NAMES[s], n=u["mixed_candidates"], tot=u["total_evals"], sh=pct(u["share"]))
+        for s, u in D["uncounted_hit_checks"].items()
+    ]
+    T["uncounted"] = markdown_table(rows, ["sample", "n", "tot", "sh"], {"sh": ".4f"}).replace(
+        "| sample | n | tot | sh |",
+        "| sample | uncounted hit-ratio checks (one per mixed candidate) | counted evaluations"
+        " of S11 with the pass | uncounted as a share of counted (%) |",
+    )
+    wi = D["plan_whatif"]
+    if wi:
+        rows = []
+        for s in SAMPLES:
+            w = wi["by_sample"][s]
+            for x in w["steps_differ"]:
+                rows.append(
+                    dict(
+                        sample=NAMES[s],
+                        step=x["step"],
+                        cand=x["candidate"] + 1,
+                        ch=x["cma_hit"],
+                        cc=x["cma_cost"],
+                        ce=x["cma_evals"],
+                        mh=x["mc_hit"],
+                        mc=x["mc_cost"],
+                        me=x["mc_evals"],
+                        ne=x["next_cma_evals"],
+                        nh=x["next_cma_hit"],
+                        er=w["evals_rule"],
+                        ev=w["evals_variant"],
+                    )
+                )
+        fm = {"ch": ".5f", "cc": ".5f", "mh": ".5f", "mc": ".5f", "nh": ".3f"}
+        cols = [
+            "sample",
+            "step",
+            "cand",
+            "ch",
+            "cc",
+            "ce",
+            "mh",
+            "mc",
+            "me",
+            "ne",
+            "nh",
+            "er",
+            "ev",
+        ]
+        T["whatif"] = markdown_table(rows, cols, fm).replace(
+            "| " + " | ".join(cols) + " |",
+            "| sample | replay step | candidate | CMA end hit ratio | CMA end cost"
+            " | CMA evaluations | MC end hit ratio | MC end cost | MC evaluations"
+            " | next candidate: CMA evaluations | next candidate: CMA end hit ratio"
+            " | X200 seed-step evaluations, this page | the plan's what-if |",
+        )
     return T
 
 
@@ -386,6 +526,7 @@ def main() -> None:
     summary: Dict[str, Any] = dict(
         pick=load(MIX / "pick.json")["pick"],
         part2={r: {s: load(MIX / f"part2_{r}_{s}.json") for s in SAMPLES} for r in ("S11", "S11a")},
+        **derived(),
     )
     (MIX / "summary.json").write_text(json.dumps(summary, indent=1) + "\n")
     print("wrote tables.md, summary.json and two plots")
