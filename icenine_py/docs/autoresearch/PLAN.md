@@ -1579,8 +1579,174 @@ with the voting and aimed at the voxels the voting misses.
 
 ## AR5: the stop rule
 
-Combine AR0's thresholds with the unexplained-ray vote count of H3; test as a stop rule inside the
-arms that survive.
+The first line of this section in the first plan read: "Combine AR0's thresholds with the
+unexplained-ray vote count of H3; test as a stop rule inside the arms that survive." The arm
+that survives is run `S8` with the boundary pass. Step 1 below tests stop rules at the three
+places where that run still spends evaluations without knowing whether they can help.
+
+### AR5 step 1: stop rules for the boundary pass, the grid fallbacks and the finished map
+
+Task `ar5a`. No file under `icenine_py/icenine/` changes. No key is added and no default
+changes. Script code only, as in AR3 steps 4 to 9.
+
+**Why.** The owner asked for a way to tell whether more optimization can still improve a
+voxel, so that the search can stop earlier. Reading the table: one row per sample; the
+evaluations of run `S8` with the boundary pass, by stage (from `findings_ar3_start.md`, table
+`p3_stages`).
+
+| sample | seed steps | grid fallbacks | neighbour fits | revisits | boundary pass | total |
+|---|---|---|---|---|---|---|
+| `big` | 2,856,712 | 0 | 3,491,437 | 853,714 | 1,138,565 | 8,340,428 |
+| first gradient sample | 3,008,757 | 5,449,501 | 2,798,001 | 3,060,730 | 3,683,241 | 18,000,230 |
+| `mid` | 12,007,352 | 5,002,750 | 3,859,661 | 2,517,272 | 3,056,039 | 26,443,074 |
+
+- *The boundary pass* is 12% to 20% of the total. It makes one try of up to 61 evaluations
+  from every distinct neighbour orientation. In step 5 only 739 of 60,290 tries changed a
+  voxel (run `D4`, first gradient sample). Nothing tells a try in advance that it cannot win.
+- *The grid fallbacks* are 19% and 30% of the total on the two samples that have them: 15 and
+  16 full grid searches of about 333,000 evaluations each. AR0 found that a stop between the
+  grid levels can save at most 39% of one search, and that the best cost after a level does
+  not tell right from wrong. So the saving has to come from cheaper tries before the grid.
+- *The finished map.* After the pass 24, 63 and 31 voxels are wrong. Nothing in the run says
+  which voxels are finished and which would gain from more search. AR0 found on the pilot
+  that a hit ratio under 0.93 flags all 37 wrong voxels and 15 right ones. That was a small
+  region without gradients.
+
+The start test for the neighbour fits (run `S9`, step 9) is not repeated: it broke more
+voxels than it fixed.
+
+**Terms.** As in AR3 step 9 (BFS, neighbour fit, revisit, reseed, seed step, seed test, grid
+fallback, boundary pass, hit ratio, right, wrong, error). *Try*: one local optimization of a
+boundary voxel from one neighbour's orientation, in the boundary pass. *Start score*: the hit
+ratio and cost of a try's start, one evaluation. *Try test*: a rule that reads the start
+score and skips the try. *Net gain of the pass*: wrong voxels before the pass minus wrong
+voxels after it. *Rung*: a cheaper search tried before the full grid search. *Ladder*: the
+rungs in order, then the grid search if all fail. *Flag*: a rule without the truth that marks
+a voxel as possibly not finished. *Unexplained rays*: the rays attached to a voxel that the
+voxel's orientation does not explain (`explained_mask` in `icenine/ray_indexing.py`).
+
+**Samples and stored data.** `big`, the first gradient sample and `mid`, clean images, Q-max
+8, the stored voxel order. The stored maps, tries (`tries.npz`), seed-step logs
+(`e1_log.json.gz`), records and errors of `S8` are in the worktrees of steps 8 to 10 that
+`STATE.md` lists; they are linked, not copied into git. The truth is read only by scoring
+code. Settings are picked on `big` and the first gradient sample and tested on `mid`, with
+nothing changed after the pick. The pick is written to a results file and committed before
+the script that reads `mid` is run, so that git shows the order.
+
+**Part 1: a try test for the boundary pass.** For every stored try of `S8`'s pass on the
+three samples, compute the start score (one evaluation each). The voxel's score before the
+pass is stored. The rules and their settings are fixed here; none is added after a result.
+
+| rule | what it does | settings |
+|---|---|---|
+| `P1` | skip a try whose start hit ratio is more than `d` under the voxel's hit ratio | `d` = 0, 0.02, 0.05, 0.10, 0.20 |
+| `P2` | per voxel, keep only the `m` tries with the highest start hit ratio | `m` = 1, 2 |
+| `P3` | `P1` and `P2` together | the picked `d` with `m` = 1, 2 |
+
+A rule's result is computed from the stored tries: the voxel keeps the best end among its
+kept tries and its old orientation (rule `hit`, as in the pass). Its cost is one evaluation
+per try plus the evaluations of the kept tries. Reported per rule and sample: tries kept,
+evaluations, wrong voxels after the pass, and paired against the full pass the voxels fixed
+and broken. *The pick*: the setting with the fewest evaluations among those that lose at most
+5% of the net gain of the pass, pooled over the two pick samples. *The pass rule*: on `mid`
+the picked setting cuts the evaluations of the pass by at least half and loses at most 5% of
+its net gain.
+
+**Part 2: a ladder before the grid search.** The cases are the seed steps of `S8` that ended
+in a grid fallback on the first gradient sample and on `mid` (16 and 15; an entry of
+`e1_log.json.gz` with `stop` = -1 and no refined hit ratio of 0.80). These are few cases; the
+page says so, lists every case, and picks no setting on them.
+
+1. *What failed.* For each case: the number of candidates the indexing gave; the rank of the
+   first candidate within 2 degrees of the truth; whether it was among the 20 costed and
+   among the 5 refined; the end of the grid search (hit ratio, error). A helper's reading of
+   the caches gave 15 of 16 and 13 of 15 grid ends right; the step recomputes this.
+2. *The rungs*, each run on every case, then as a ladder:
+   - `R1`, more candidates: cost the first 100 candidates, refine the 5 cheapest with the
+     seed step's local optimization, stop at the first hit ratio of 0.95.
+   - `R3`, grid level 0: run only level 0 of the grid search (its screen, re-cost and quick
+     MC, as the library does them), refine its 5 best orientations the same way, stop at the
+     first hit ratio of 0.95. If the library cannot continue a search after level 0, the
+     ladder's last rung is a full grid search and its level 0 is counted twice; the page
+     says which.
+   - A rung passes a case if its end passes the seed test (hit ratio 0.80).
+   - A rung that moves the seed to another voxel of the cluster is not in this step: it
+     needs the BFS's cluster list.
+3. *Reported* per case and rung: evaluations, seed test passed or not, right or wrong. For
+   the ladder: the total against the stored grid fallbacks of the same cases.
+
+*The pass rule*: over all cases the ladder needs at most two thirds of the evaluations of
+the grid fallbacks it replaces, and ends right in at most one case fewer than the grid
+search did. Every case the grid search got right and the ladder got wrong is listed.
+
+**Part 3: is a voxel finished?** On the maps of `S8` after the pass, three samples.
+
+1. *A flag from the hit ratio.* The hit ratio of each voxel after the pass comes from the
+   stored scores and tries. For thresholds 0.50 to 0.95 in steps of 0.05: voxels under the
+   threshold, the wrong ones among them, the wrong ones above it. Also by the voxel's source
+   (seed, neighbour fit, revisit, reseed) and for boundary voxels alone. *The pick*: the
+   lowest threshold that flags at least 80% of the wrong voxels pooled over the pick samples.
+2. *The vote count of H3.* For every flagged voxel and for every 20th unflagged boundary
+   voxel by index: index the unexplained rays (`index_rays`) and take the highest vote
+   count. Shown as two strips of dots, wrong and right; then the counts at the cut that
+   separates best, labelled as chosen after the result.
+3. *A check that costs evaluations*, `V1`: at each flagged voxel run `S8`'s seed step (20
+   candidates costed, up to 5 refined, stop at hit ratio 0.95) and keep its end if its hit
+   ratio is higher than the voxel's. Reported: evaluations, fixed and broken against the map
+   after the pass. *The pass rule*: on `mid`, at the picked threshold, `V1` fixes more voxels
+   than it breaks, fixes at least a quarter of the flagged wrong voxels, and costs under 5%
+   of the run's total.
+4. *What "finished" would mean.* The page gives, for the picked threshold, the wrong voxels
+   among the unflagged ones with a 95% interval. That count is what a user who stops at the
+   flag leaves behind.
+
+**Part 4: whole-layer run `T1`.** `S8` with every rule that passed: the ladder at each grid
+fallback, the try test in the pass, `V1` after the pass. On the three samples, one run each,
+cap 90 minutes per run. Only if a rule passed. `S8` is run by the stored script runner of
+steps 8 and 9, or by the keys of step 10 if that step is merged when the run starts. On `big`
+the run has no grid fallback, so before the pass it must equal the stored `S8` exactly; if it
+does not, stop and report. Accounting as in step 9: evaluations by stage, seeds, reseeds,
+grid fallbacks, wrong voxels before and after the pass with 95% intervals, the error
+percentiles, counts paired against `S8`. The runs go into
+`docs/autoresearch/pareto/pareto_rows.json` as rows of a new run `T1`.
+
+**Written down before the runs.** (1) Some setting of the try test removes at least 70% of
+the pass's evaluations on the pick samples and loses at most 5% of its net gain; it passes
+on `mid`. (2) In at least half of the fallback cases a candidate within 2 degrees of the
+truth is among the first 100 and not among the 20 costed. (3) The ladder passes its rule.
+(4) A hit-ratio threshold flags at least 80% of the wrong voxels and at most 5% of all
+voxels, on the pick samples and on `mid`. (5) The vote count of the unexplained rays does not
+separate wrong from right among flagged voxels: a ray's line crosses many voxels, so rays of
+the neighbouring grain are attached to every boundary voxel. (6) `T1` with the pass needs
+under 14 million evaluations on the first gradient sample (`S8`: 18.00) and under 22 million
+on `mid` (`S8`: 26.44), with intervals of wrong voxels that overlap `S8`'s. The page says for
+each whether the result agrees.
+
+**What the result decides.** A rule that passes on stored data and in `T1` is a candidate
+for an opt-in key in a later step; what a key recommends stays the owner's choice. A rule
+that fails is reported as failed, with its numbers. If prediction 5 holds, the vote count
+of H3 is dropped as a stop rule and the page says what replaced it.
+
+**Rules of the study.** One run per arm; no extra random seeds. No p-values: counts, paired
+fixed and broken, 95% intervals. Intervals treat voxels and tries as independent although
+they cluster in grains; the page says so. Every number chosen after a result is listed as
+such. Nothing here is specific to cubic symmetry or to special misorientations.
+
+**Stop rules of the task.** Part 1: 45 minutes of compute. Part 2: 90 minutes. Part 3: 60
+minutes. Part 4: the caps above. A run that hits its cap is reported with what it reached,
+not repeated. The general stop rule holds as well.
+
+**Not claimed.** That C++ behaves the same. That the gradient model matches a real sample.
+A change of any default. A tested wall time unless the timing preflight passes. That three
+samples stand for all samples. That realistic images give the same thresholds.
+
+**Files.** Scripts in `scripts/autoresearch/ar5/` (`stop_*.py`); results in
+`benchmarks/autoresearch/ar5/`, slim, under 5 MB; findings in
+`docs/autoresearch/findings_ar5_stop.md` (returned as text if the write is refused).
+`MIGRATION_HISTORY.md` gets the summary. The page says "local optimization", defines each
+term at first use, and leads with a plot: evaluations by stage for `S8` and `T1` on the
+three samples (or, if no rule passed, the tries kept against the net gain lost for each
+setting of the try test); then the tables.
 
 ## Machine-time runs from the review page
 
