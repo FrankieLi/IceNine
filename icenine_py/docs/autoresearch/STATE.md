@@ -40,10 +40,6 @@ Step 7 of AR3 (the same pipelines on larger grains, task `ar3g`; plan in `PLAN.m
    for the voxels every seed step leaves to the grid search; AR5 (stop rule inside the grid
    search).
 
-If an agent died with the session (a task branch exists but no report): look at
-`git log feature/eval-reduction..<task branch>`, then start a fresh implementer with the same
-brief and the note "continue from the commits on the branch".
-
 ## Running jobs
 
 - Step 7 review (`code-reviewer`, Opus), started 2026-11-11 after the hand-back. It reads the
