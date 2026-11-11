@@ -1,0 +1,142 @@
+{
+ "rule": "cheapest arm with (a) passes and (b) right-within-1-degree each at most 1% of all steps fewer than M (net counts, pooled over the pick samples)",
+ "pick_samples": [
+  "big",
+  "grad"
+ ],
+ "n_steps": 1608,
+ "n_steps_by_sample": {
+  "big": 329,
+  "grad": 1279
+ },
+ "log_mismatches_M": {
+  "big": 0,
+  "grad": 0
+ },
+ "counts_pooled": {
+  "M": {
+   "n_pass": 1592,
+   "n_right": 1583,
+   "evals": 5865469
+  },
+  "C60": {
+   "n_pass": 1347,
+   "n_right": 1448,
+   "evals": 362292
+  },
+  "C200": {
+   "n_pass": 1532,
+   "n_right": 1546,
+   "evals": 650436
+  },
+  "C0": {
+   "n_pass": 542,
+   "n_right": 1177,
+   "evals": 32160
+  }
+ },
+ "counts_by_sample": {
+  "big": {
+   "M": {
+    "n_pass": 329,
+    "n_right": 329,
+    "evals": 2856712
+   },
+   "C60": {
+    "n_pass": 244,
+    "n_right": 303,
+    "evals": 88503
+   },
+   "C200": {
+    "n_pass": 323,
+    "n_right": 324,
+    "evals": 117733
+   },
+   "C0": {
+    "n_pass": 43,
+    "n_right": 254,
+    "evals": 6580
+   }
+  },
+  "grad": {
+   "M": {
+    "n_pass": 1263,
+    "n_right": 1254,
+    "evals": 3008757
+   },
+   "C60": {
+    "n_pass": 1103,
+    "n_right": 1145,
+    "evals": 273789
+   },
+   "C200": {
+    "n_pass": 1209,
+    "n_right": 1222,
+    "evals": 532703
+   },
+   "C0": {
+    "n_pass": 499,
+    "n_right": 923,
+    "evals": 25580
+   }
+  }
+ },
+ "paired_passed": {
+  "C60": {
+   "both": 1345,
+   "m_only": 247,
+   "arm_only": 2,
+   "neither": 14
+  },
+  "C200": {
+   "both": 1528,
+   "m_only": 64,
+   "arm_only": 4,
+   "neither": 12
+  },
+  "C0": {
+   "both": 542,
+   "m_only": 1050,
+   "arm_only": 0,
+   "neither": 16
+  }
+ },
+ "paired_right": {
+  "C60": {
+   "both": 1446,
+   "m_only": 137,
+   "arm_only": 2,
+   "neither": 23
+  },
+  "C200": {
+   "both": 1538,
+   "m_only": 45,
+   "arm_only": 8,
+   "neither": 17
+  },
+  "C0": {
+   "both": 1173,
+   "m_only": 410,
+   "arm_only": 4,
+   "neither": 21
+  }
+ },
+ "one_percent_of_steps": 16.08,
+ "rule_a": {
+  "C60": false,
+  "C200": false,
+  "C0": false
+ },
+ "rule_b": {
+  "C60": false,
+  "C200": false,
+  "C0": false
+ },
+ "evals_fall_vs_M": {
+  "M": 0.0,
+  "C60": 0.9382330722402591,
+  "C200": 0.889107588839017,
+  "C0": 0.9945170624889501
+ },
+ "pick": "M"
+}

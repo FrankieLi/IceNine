@@ -1,0 +1,31 @@
+{
+ "sample": "big",
+ "seed_steps": 329,
+ "seed_steps_stopped_early": 322,
+ "seed_refinements": 465,
+ "seed_refinement_evals": 2850132,
+ "seed_refinement_evals_mean": 6129.316129032258,
+ "seed_costing_evals": 6580,
+ "seed_step_evals": 2856712,
+ "seed_step_evals_check": 2856712,
+ "grid_fallback_evals": 0,
+ "grid_fallbacks": 0,
+ "neighbour_fit_calls": 32563,
+ "mc_fallback_runs": 3197,
+ "mc_fallback_share": 0.09817891471915978,
+ "mc_fallback_evals": 2358808,
+ "mc_fallback_evals_mean": 737.8192055051611,
+ "mc_fallback_won": 3,
+ "evals_before_pass": 7201863,
+ "pass_evals": 1138565,
+ "evals_with_pass": 8340428,
+ "share_seed_refinements": 0.34172490908140446,
+ "share_mc_fallback": 0.2828161816156197,
+ "share_both": 0.6245410906970241,
+ "stages": {
+  "seed": 339810,
+  "reseed": 2516902,
+  "neighbour": 3491437,
+  "revisit": 853714
+ }
+}

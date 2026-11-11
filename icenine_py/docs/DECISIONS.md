@@ -1285,3 +1285,44 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   search. Offline only; no BFS change. H4 comes back if ray indexing fails on realistic images
   (not tested). Starts after AR5 step 1 is merged. Implementer: Sonnet, own worktree, at most 2
   heavy processes. Where: PLAN.md AR4, AR4 step 1.
+
+### D-20261111-N14 · Track A / AR5 step 2 · AR5 step 2 review: 4 fixes to the documents; no key for 'no MC fallback' alone; next is a whole-layer test of a mixed seed refinement
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Review verdict APPROVE with 4 required fixes (report
+  .claude/reports/20261111-1310-review-ar5b.md); all four are applied in a fixes round, no new
+  run. On the implementer's two questions, decided under the mandate D-20261109-N1 and the owner's
+  to overrule: (1) No library key now for 'no MC fallback after CMA' alone. Run S10 keeps accuracy
+  on all three samples (broken minus fixed -2, 4, 4; limit 5) but meets the plan's 20% rule on 1
+  of 3 (29.3, 15.7, 14.3% fewer evaluations than S8 with the pass). The plan made a key
+  conditional on S10 passing, and I do not waive a rule written before the runs. (2) The next
+  step, AR5 step 3, tests a mixed seed refinement on whole layers: CMA with at most 200
+  evaluations first, the stock MC optimizer from the same start only when the CMA end hit ratio is
+  below 0.95, together with no MC fallback (run S11). The reviewer's what-if from the stored
+  replay (not a run): the same seed-test passes as MC (1,596 against 1,592 on the pick samples,
+  1,600 against 1,596 on mid) with 57.3% and 53.0% fewer seed-step evaluations. The sample mid is
+  no longer held out for this idea; the step says so and the whole-layer runs, with predictions
+  written first, are the test. A key for both changes together is considered only if S11 passes
+  its rule. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 2; AR5 step 3 to be added),
+  .claude/reports/20261111-1310-review-ar5b.md.
+
+### D-20261111-N15 · Track A / AR4 step 1 · AR4 step 1 review: 10 fixes; the verifier's seed-acceptance use gets a whole-layer test only on a sample no choice has read; build that sample (held) with its S8 baseline
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Review verdict REQUEST CHANGES with 10 required fixes, 2 of them critical and both in the
+  findings page and its derived numbers (report .claude/reports/20261111-1335-review-ar4a.md); no
+  leakage and no code defect found. All 10 are applied in a fixes round, no new run. Result as
+  reviewed: no model passed the plan's rule for use 1 (flag of unfinished voxels): on mid the hit
+  ratio flags 31 of 31 wrong voxels at 1,760 voxels, the set network N1 23 of 31 at 190. Use 2
+  (accept a seed that fails the hit-ratio test when N1 scores it high) on the 15 fallback cases of
+  mid: 7 of 10 right ends accepted, 0 of 5 wrong; corrected what-if 2,325,301 of 5,002,750 grid
+  evaluations. It is usable only as an added rule (accept when the hit ratio or N1 says so); as a
+  replacement of the seed test it refuses 20 right seeds. Decided under the mandate D-20261109-N1,
+  the owner's to overrule: (1) AR4 step 1 closes as a script-only result after the fixes. (2) Use
+  2 as an added rule gets a whole-layer test with N1 frozen as trained, but only on a sample that
+  no choice has read, together with the mixed seed refinement of AR5 step 3 if run S11 passes. (3)
+  Approved now: AR3 step 11 (task ar3k) builds that sample, held (250 Voronoi grains with
+  gradients, built like mid, generator seed 1), and runs its S8 baseline with the boundary pass;
+  no other run reads held until the plans of the steps that use it are committed with their
+  predictions. The new generator seed makes a different sample for a carry-over test; it is not a
+  repeat to firm up a comparison (owner rule of 2026-10-12). Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR4 step 1; AR3 step 11),
+  .claude/reports/20261111-1335-review-ar4a.md.
