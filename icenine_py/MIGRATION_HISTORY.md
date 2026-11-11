@@ -11515,16 +11515,29 @@ boundary_check,boundary_pass,boundary_lib,boundary_summary,boundary_ratio,run_ke
 results `benchmarks/autoresearch/ar3/boundary/`, page `docs/autoresearch/findings_ar3_boundary.md`
 (placed by the main session; the tool refused the implementer's write).
 Gradient sample of step 3 and step 2's sample; C++ read, not run; one run, one voxel order.
-Part 0 gate passed (412 of 412 newly wrong voxels have a candidate within 1 degree of the truth
-and a truth that scores better), but 94% of voxels are boundary voxels (grains of about 50
-voxels), so the test is weak. One try reproduces run C on 200 of 200 voxels. Pass (every try of
-every boundary voxel, 61 evaluations each, 3.0 to 3.7 million evaluations, 3 to 22% of a run):
-pick on set A is the `hit` rule; wrong voxels after it: D4 225 to 74, P4R4 281 to 82, E4 305 to 0
-(step 3's D, PR and step 2's D: 203 to 88, 170 to 78, 153 to 14). D4 plus pass against D without
-the pass: 74 against 203 wrong at 38.8 against 118.4 million evaluations; against D plus pass no
-gain or loss (74 against 88). A skip rule on the neighbour-relative hit ratio (at least 0.94)
-skips about 92% of the tries and loses none of 360 fixed voxels on A, 1 of 313 on B. Run `KE`
-(library keys, no wrapper) finished: 5.4 against 13.6 million evaluations for E4, 0 wrong after the
-pass. Run `K` hit its cap of 60 awake minutes in the reseed stage (no map). The first K and KE
-attempts were stopped by a wall-clock cap while the machine slept and were rerun with an awake-time
-cap. Parts 0 and 1 took about 145 minutes, not 90.
+On one footing (the same pass on both sides): D4 plus pass 74 wrong against step 3's D plus pass
+88 (38.8 against 122.1 million evaluations), P4R4 plus pass 82 against PR plus pass 78 (54.6
+against 94.7 million): no detectable difference, fewer evaluations. Step 2's sample: E4 plus pass
+0 against step 2's D plus pass 14 (16.6 against 36.1 million), a gain by the interval rule, but
+all 14 of D2's wrong voxels after the pass were right before it (broken by the pass). KE plus
+pass and E4 plus pass both end with 0 wrong (8.45 against 16.63 million). One-sided (pass on one
+side only, no verdict): D4 plus pass 74 against D without it 203. The pass (every try of every
+boundary voxel, 61 evaluations each, 3.0 to 3.7 million evaluations, 3 to 22% of a stored run's
+evaluations; for the KE run the pass is 56% of its evaluations): pick on set A is the `hit` rule,
+by a margin of about 2 voxels over `cost`; wrong voxels after it (A and B pooled): D4 225 to 74,
+P4R4 281 to 82, E4 305 to 0 (step 3's D, PR and step 2's D: 203 to 88, 170 to 78, 153 to 14). A
+skip rule on the neighbour-relative hit ratio (at least 0.94) skips about 92% of the tries and
+loses none of 360 fixed voxels on A, 1 of 313 on B; the cost axis of the skip grid is
+uninformative. Part 0 gate passed (412 of 412), but it could hardly fail here: 93 to 94% of
+voxels are boundary voxels (about 50 voxels per grain) and the truth beats the end on hit ratio
+for 1,337 of 1,337 wrong voxels. One try reproduces run C on 200 of 200 voxels. C++ (source
+read): one client never refits an accepted voxel, but in mode `p` each client has a private grid
+and the server keeps the strictly higher confidence, so several clients do refit; harm to C++ not
+tested. Run `KE` (library keys, no wrapper; the seed's local optimization also switches to CMA)
+finished. Run `K` hit its cap of 60 awake minutes (no map; 38.1 million evaluations by then, 31.07
+million in grid fallbacks; 8 heavy processes for a few minutes). The first K and KE attempts were
+stopped by a wall-clock cap while the machine slept and were rerun with an awake-time cap. Parts 0
+and 1 took about 145 minutes, not 90. Next: step 6, the seed cost (grid fallbacks: 25.8 of D4's
+35.1 million); the opt-in key for the pass waits for a larger-grain check; K is repeated after
+step 6. Review fixes (same day, decision D-20261110-N7): text, summary keys, tables and a lead
+plot only; no pass, K or reconstruction rerun; summary.json gained new keys only.
