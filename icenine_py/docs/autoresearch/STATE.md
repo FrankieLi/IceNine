@@ -12,7 +12,7 @@ Read this file first after any restart or wake. It holds only what is true now a
 | finished steps, old notes (archive, use `grep`) | `docs/autoresearch/STATE_HISTORY.md` |
 | numbers of a finished step | its findings page, or `shmem query "IceNine autoresearch <step>"` |
 | review page for the owner | https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW |
-| open PR | #43 (AR3 steps 2 to 10, AR5 steps 1 and 2), https://github.com/FrankieLi/IceNine/pull/43 |
+| open PR | #43 (AR3 steps 2 to 10, AR5 steps 1 and 2, AR4 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
 
 ## How to restart
 
@@ -24,37 +24,32 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-Three implementers run. At each hand-back: runbook, "A step, from plan to merge", points 5
+Two implementers run. At each hand-back: runbook, "A step, from plan to merge", points 5
 to 9. Merge the parent into a task branch before its fixes round (shared files conflict).
 
-1. AR4 step 1 fixes round (task `ar4a`; Opus; review REQUEST CHANGES with 10 fixes,
-   `.claude/reports/20261111-1335-review-ar4a.md`; decision N15). Report
-   `.claude/reports/20261111-1351-ar4a-fixes.md` in its worktree. Then hand-back check with
-   `--fixes`, `finish_task.sh --yes --push` in its worktree, close (page, PR text, history).
-2. AR5 step 3 (task `ar5c`, plan approved by N14; Sonnet; at most 3 heavy processes): the
+1. AR5 step 3 (task `ar5c`, plan approved by N14; Sonnet; at most 3 heavy processes): the
    mixed seed refinement, run `S11` on three samples. Report `20261111-1351-ar5c.md`.
-3. AR3 step 11 (task `ar3k`, plan approved by N15; Sonnet; at most 2 heavy processes): the
+2. AR3 step 11 (task `ar3k`, plan approved by N15; Sonnet; at most 2 heavy processes): the
    sample `held` (250 grains) and its `S8` baseline. Report `20261111-1351-ar3k.md`. No other
    run may read `held` before the plan of the step that uses it is committed.
-4. After `S11` and `held`: plan the test on `held` (`S8` against `S11`, and `S11` plus the
+3. After `S11` and `held`: plan the test on `held` (`S8` against `S11`, and `S11` plus the
    verifier `N1` as an added seed-accept rule), predictions first; a key only after it.
 
 ## Running jobs
 
-- AR4 step 1 fixes implementer, AR5 step 3 implementer, AR3 step 11 implementer (all started
-  2026-11-11 about 13:55); each hands back by message.
-- No other job. The review page is at version 39 (AR5 step 2, `S10` on the plots, N15); the
-  text of PR #43 holds AR5 step 2.
+- AR5 step 3 implementer, AR3 step 11 implementer (both started 2026-11-11 about 13:55);
+  each hands back by message.
+- No other job. The review page is at artifact version 41 (its small print says 40; the next
+  build is 42). The text of PR #43 holds AR5 step 2 and AR4 step 1.
 
 ## Queue
 
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
-7, 18, 22, 23, AR0 to AR2, AR3 steps 1 to 10, AR5 steps 1, 2) are in `STATE_HISTORY.md`, "Queue".
+7, 18, 22, 23, AR0 to AR2, AR3 1 to 10, AR5 1 and 2, AR4 1) are in `STATE_HISTORY.md`, "Queue".
 
 | step | what | state |
 |---|---|---|
 | AR5 step 3 | mixed seed refinement (CMA, MC under 0.95), run `S11` (task `ar5c`) | running |
-| AR4 step 1 | learned verifier against the hit ratio, offline (task `ar4a`) | fixes round |
 | AR3 step 11 | sample `held` (250 grains) with its `S8` baseline (task `ar3k`) | running |
 | test on `held` | `S8`, `S11`, `S11` + verifier `N1` on the held-out sample | after both |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
@@ -64,10 +59,11 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 ## Last finished step
 
-AR5 step 2 (CMA seed refinement; no MC fallback after CMA, run `S10`; task `ar5b`; scripts
-only): merged into `feature/eval-reduction` at c688191 on 2026-11-11, pushed; suite 1609
-passed, 47 skipped, 1 deselected. Page: `docs/autoresearch/findings_ar5_fits.md`. Decisions
-D-20261111-N12 (plan), N14 (review; no key for `S10` alone). More: `STATE_HISTORY.md`.
+AR4 step 1 (a learned verifier against the hit ratio, offline; task `ar4a`; scripts only; no
+model passed its rule): merged into `feature/eval-reduction` at 1ffee63 on 2026-11-11, pushed;
+suite 1635 passed, 47 skipped, 1 deselected. Page: `docs/autoresearch/findings_ar4_verifier.md`.
+Decisions D-20261111-N13 (plan), N15 (review). Before it: AR5 step 2 (c688191). More:
+`STATE_HISTORY.md`.
 
 ## Untracked data that later steps need
 
@@ -94,7 +90,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
-- Your word on PR #43 ("merge PR 43" in the session). It holds AR3 steps 2 to 10, AR5 steps 1, 2.
+- Your word on PR #43 ("merge PR 43" in the session). It holds AR3 2 to 10, AR5 1 and 2, AR4 1.
 - A choice: which seed step the documentation of the keys recommends. Step 10 added the
   keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
   5`, `SeedIndexStopHitRatio 0.95`): cheapest on all three samples, wrong counts not worse.

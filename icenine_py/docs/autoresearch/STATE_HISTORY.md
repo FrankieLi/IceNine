@@ -741,6 +741,37 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
   `20261111-1310-review-ar5b.md`, `20261111-1317-ar5b-fixes.md`. Cache (untracked):
   worktree `agent-acc78ac2a483ed86f`, `ar5/fit/cache/`.
 
+### AR4 step 1 (a learned verifier, offline; task `ar4a`), merged at 1ffee63 on 2026-11-11
+
+- Page `findings_ar4_verifier.md`; results `benchmarks/autoresearch/ar4/`; scripts
+  `scripts/autoresearch/ar4/verify_*.py`; tests `tests/test_ar4_verifier.py` (26). Decisions
+  D-20261111-N13 (plan; AR4 recast from a learned proposer to a learned verifier), N15
+  (review: request changes, 10 fixes, all applied; no new run). Suite at the merge: 1635
+  passed, 47 skipped, 1 deselected.
+- Scripts only, clean images. Models `B0` (hit ratio), `B1` (logistic regression), `N1` (small
+  set network). Trained on `big` and the first gradient sample; thresholds committed at
+  12:43:51 (669b9a3), first read of `mid` at 12:44:18.
+- Use 1, flag of unfinished voxels on `mid` (31 wrong of 24,570, all at boundary voxels): `B0`
+  flags 31 of 31 at 1,760 voxels, `N1` 23 of 31 at 190, `B1` 31 of 31 at 13,653. No model
+  passes. `N1` scores 8 wrong voxels at 0.83 to 0.99 (it misses 4 of 87 in-sample).
+- Use 2, accept a seed that failed the seed test (15 fallback cases on `mid`): `N1` accepts 7
+  of 10 right ends and 0 of 5 wrong. Arithmetic on stored numbers, not a run: as an added rule
+  it skips 2,325,301 of 5,002,750 grid evaluations on `mid` (3,744,760 of 5,449,501 on the
+  first gradient sample, in-sample). In place of the seed test it refuses 20 right and 9 wrong
+  passing seeds on `mid` (about 6,670,333 and 3,001,650 extra evaluations at the mean grid
+  search of 333,517).
+- Grid-only evaluations of the fallback cases equal the library counter of `S8`; AR5 step 1's
+  figures were larger by the seed steps of the reseed cases (85,014 and 69,086).
+- The share of peaks with any lit pixel does not separate right from wrong at boundary voxels
+  (AUC 0.496 against 0.974 for the hit ratio; every peak lit for 77.1% of right and 77.4% of
+  wrong). Predictions 1 and 3 agree; 2 and 4 do not. The vote-count input was skipped.
+- Per-peak sums differ from the fused evaluation on 2.5% to 2.8% of pairs, the same for right
+  and wrong; consistent with D-20261027-I2, not traced pair by pair.
+- Next (N15): use 2 only as an added rule, tested on the unread sample `held` (AR3 step 11).
+- Worktrees: `agent-ab349f0b6193c2ca1` (first round; `ar4/cache`), `agent-a5a51f7021e6cc8c1`
+  (fixes round; a link to that cache). Reports `.claude/reports/20261111-1208-ar4a.md`,
+  `20261111-1335-review-ar4a.md`, `20261111-1351-ar4a-fixes.md`.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
