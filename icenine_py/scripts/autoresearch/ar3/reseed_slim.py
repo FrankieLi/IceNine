@@ -44,8 +44,11 @@ def geometry(T: Any) -> Dict[str, Any]:
 
     xy = np.asarray(T.xy, float)
     g = np.asarray(T.gmap)
-    d_all, _ = cKDTree(xy).query(xy, k=2)
-    spacing = float(np.median(d_all[:, 1]))
+    from icenine.mic_file import MicFile
+
+    # the layer is a triangle mesh with two voxels at about each position: the unit is the side
+    # length of a voxel, read from the truth file
+    spacing = float(MicFile.read(str(G.TRUTH_MIC)).voxels[0].side_length)
     dist = np.full(len(xy), np.inf)
     for gid in np.unique(g):
         inside = g == gid
@@ -147,6 +150,21 @@ def logged(T: Any, geo: Dict[str, Any]) -> None:
     err_end = T.err(Re, v)
     err_start = T.err(Rs, v)
     same = np.where(expd >= 0, gm[np.clip(expd, 0, None)] == gm[v], False)
+    # the hit ratio of the expander's own accepted fit (or, for the flood's seed, of its seed step)
+    seeds = RC.read_gz(d / "seeds.json.gz")
+    seed_hit = {s["flood"]: s["fin_hit"][s["refined"].index(s["taken"])] for s in seeds}
+    seed_vox = {s["flood"]: s["voxel"] for s in seeds}
+    last_hit: Dict[int, float] = {}
+    exp_hit = np.full(n, np.nan)
+    seen_flood = set()
+    for i in range(n):
+        f = int(flood[i])
+        if f not in seen_flood:
+            seen_flood.add(f)
+            last_hit[seed_vox[f]] = seed_hit[f]
+        if expd[i] >= 0:
+            exp_hit[i] = last_hit.get(int(expd[i]), np.nan)
+        last_hit[int(v[i])] = float(hit[i])
 
     # ---- the stored run against the logged run
     st_n = run["stats"]
@@ -203,6 +221,7 @@ def logged(T: Any, geo: Dict[str, Any]) -> None:
             err_end=round(float(err_end[i]), 4),
             err_start=round(float(err_start[i]), 4),
             same_grain=bool(same[i]),
+            exp_hit=None if np.isnan(exp_hit[i]) else round(float(exp_hit[i]), 4),
         )
         for i in idx
     ]
