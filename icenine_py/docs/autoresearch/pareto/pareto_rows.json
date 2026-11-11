@@ -2608,6 +2608,132 @@
    "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[grad][S9].{total, stages, wrong_after}",
    "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
    "flag": "run S9: run S8 plus a start test for the neighbour local optimizations (one evaluation of the start; if its hit ratio is at least 0.90 the start is kept and the local optimization is skipped) (on the first gradient sample); 14 grid-search fallbacks; with the boundary pass S9 breaks more voxels than it fixes against S8 on all three samples (10 fixed and 15 broken on big, 31 and 38 on the first gradient sample, 9 and 18 on mid) and the median error rises; not a candidate for a key (D-20261111-N7)"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR5 step 2",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA fits without the MC fallback (run S10)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 4767135,
+   "evals_per_voxel": 194.02,
+   "per_voxel_derived": true,
+   "wrong": 77,
+   "n": 24570,
+   "interval_pct": [
+    0.25,
+    0.39
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 2,790,857, neighbour local optimizations 1,496,574, revisit local optimizations 479,704",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/fit/part2_S10_big.json :: stages, before",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar5_fits.md",
+   "flag": "run S10: run S8 with no MC fallback after a CMA neighbour or revisit fit (a fit returns what its CMA run returned) (on the sample with larger grains); 0 grid-search fallbacks; no seed-refinement arm met the plan's 1% rule, so the seed step is S8's; script layer, no library key; the change was chosen from stored counts before the run; derived: evals_total = total minus the pass"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR5 step 2",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA fits without the MC fallback + boundary pass (run S10)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 5898258,
+   "evals_per_voxel": 240.06,
+   "per_voxel_derived": true,
+   "wrong": 22,
+   "n": 24570,
+   "interval_pct": [
+    0.06,
+    0.14
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 2,790,857, neighbour local optimizations 1,496,574, revisit local optimizations 479,704, boundary pass 1,131,123",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/fit/part2_S10_big.json :: stages, after",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar5_fits.md",
+   "flag": "run S10: run S8 with no MC fallback after a CMA neighbour or revisit fit (a fit returns what its CMA run returned) (on the sample with larger grains); 0 grid-search fallbacks; no seed-refinement arm met the plan's 1% rule, so the seed step is S8's; script layer, no library key; the change was chosen from stored counts before the run"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR5 step 2",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA fits without the MC fallback (run S10)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 11486770,
+   "evals_per_voxel": 467.51,
+   "per_voxel_derived": true,
+   "wrong": 198,
+   "n": 24570,
+   "interval_pct": [
+    0.7,
+    0.93
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 3,122,117, grid-search fallbacks 5,108,107, neighbour local optimizations 1,477,481, revisit local optimizations 1,779,065",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/fit/part2_S10_grad.json :: stages, before",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar5_fits.md",
+   "flag": "run S10: run S8 with no MC fallback after a CMA neighbour or revisit fit (a fit returns what its CMA run returned) (on the first gradient sample); 15 grid-search fallbacks; no seed-refinement arm met the plan's 1% rule, so the seed step is S8's; script layer, no library key; the change was chosen from stored counts before the run; derived: evals_total = total minus the pass"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR5 step 2",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA fits without the MC fallback + boundary pass (run S10)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 15167998,
+   "evals_per_voxel": 617.34,
+   "per_voxel_derived": true,
+   "wrong": 67,
+   "n": 24570,
+   "interval_pct": [
+    0.21,
+    0.35
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 3,122,117, grid-search fallbacks 5,108,107, neighbour local optimizations 1,477,481, revisit local optimizations 1,779,065, boundary pass 3,681,228",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/fit/part2_S10_grad.json :: stages, after",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar5_fits.md",
+   "flag": "run S10: run S8 with no MC fallback after a CMA neighbour or revisit fit (a fit returns what its CMA run returned) (on the first gradient sample); 15 grid-search fallbacks; no seed-refinement arm met the plan's 1% rule, so the seed step is S8's; script layer, no library key; the change was chosen from stored counts before the run"
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR5 step 2",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA fits without the MC fallback (run S10)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 19616996,
+   "evals_per_voxel": 798.41,
+   "per_voxel_derived": true,
+   "wrong": 73,
+   "n": 24570,
+   "interval_pct": [
+    0.24,
+    0.37
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 11,431,628, grid-search fallbacks 5,008,366, neighbour local optimizations 1,489,254, revisit local optimizations 1,687,748",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/fit/part2_S10_mid.json :: stages, before",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar5_fits.md",
+   "flag": "run S10: run S8 with no MC fallback after a CMA neighbour or revisit fit (a fit returns what its CMA run returned) (on mid); 15 grid-search fallbacks; no seed-refinement arm met the plan's 1% rule, so the seed step is S8's; script layer, no library key; the change was chosen from stored counts before the run; derived: evals_total = total minus the pass"
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR5 step 2",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA fits without the MC fallback + boundary pass (run S10)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 22668704,
+   "evals_per_voxel": 922.62,
+   "per_voxel_derived": true,
+   "wrong": 35,
+   "n": 24570,
+   "interval_pct": [
+    0.1,
+    0.2
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 11,431,628, grid-search fallbacks 5,008,366, neighbour local optimizations 1,489,254, revisit local optimizations 1,687,748, boundary pass 3,051,708",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/fit/part2_S10_mid.json :: stages, after",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar5_fits.md",
+   "flag": "run S10: run S8 with no MC fallback after a CMA neighbour or revisit fit (a fit returns what its CMA run returned) (on mid); 15 grid-search fallbacks; no seed-refinement arm met the plan's 1% rule, so the seed step is S8's; script layer, no library key; the change was chosen from stored counts before the run"
   }
  ],
  "excluded": [

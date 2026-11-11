@@ -11786,3 +11786,39 @@ vote-count verdict rests on a cut chosen after the result; the best cut moves fr
 between samples. The page now says that all three samples have orientation gradients inside
 grains, defines `H3`, gives hit ratios near 0.80 with 4 decimals, Wilson intervals for the Part 2
 counts and the boundary-voxel shares; the flag plot shows markers only and the vote plot the cut.
+
+## Autoresearch AR5 step 2: two long local optimizations that rarely change the result (done 2026-11-11, task ar5b)
+
+Scripts and results only (D-20261111-N12): nothing under `icenine/` changed, no key, no default,
+no golden, no dependency. Scripts `scripts/autoresearch/ar5/fit_*.py`, tests of the pure rule
+functions `tests/test_ar5_fit_rules.py` (13 tests, committed before `fit_rules.py`), results in
+`benchmarks/autoresearch/ar5/fit/`. Page text: `docs/autoresearch/findings_ar5_fits.md` (the
+implementer's Write of the page was refused; the text was left in the report folder for the
+main session to place).
+Part 0 (stored `S8`): the seed refinements and the MC fallbacks are 62.5%, 31.1% and 57.5% of the
+evaluations with the pass (`big`, first gradient sample, `mid`); the MC fallback ended lower than
+the CMA end in 3 of 3,197, 3 of 3,903 and 45 of 4,568 runs.
+Part 1 (replay of all 3,219 stored seed steps, `M` on every step, 0 differences from the log; arms
+`C60`, `C200`, `C0` against the stock refinement `M`): no CMA arm meets the plan's 1% rule on the
+pick samples pooled (1,608 steps): `C200` loses 60 passes net (limit 16); `C60` 245; `C0` 1,050.
+Pick: `M` (commit `e5f422f`, before any `mid` run; the first `mid` run at 12:00:47). On `mid` all
+three arms fail rules (a) and (b) as well. So change (i) was not applied.
+Part 2: the base check (script layer, both changes off, `big`) reproduces stored `S8` exactly
+(7,201,863 evaluations, 67 wrong, same map). `S10` = `S8` with no MC fallback after CMA (script
+`fit_run.py --no-mc-fallback`): with the pass 5,898,258, 15,167,998 and 22,668,704 evaluations
+against 8,340,428, 18,000,230 and 26,443,074 (29.3%, 15.7% and 14.3% fewer); wrong after the pass
+22, 67 and 35 against 24, 63 and 31; broken minus fixed -2, 4 and 4; the plan's rule passes on
+`big` and fails on the other two (fewer than 20% evaluations). `S10a` and `S10b` were not run
+separately (no arm picked, so they would be `S8` and `S10`). Predictions 1, 3 and 5 agree; 2 and 4
+do not. Rows of the three `S10` runs (before and after the pass) were added to
+`docs/autoresearch/pareto/pareto_rows.json`. Walls contended, not timing results. Full suite on
+the branch: 1589 passed, 47 skipped, 1 deselected.
+
+Fixes round (review `20261111-1310-review-ar5b`, decision D-20261111-N14; documents, the summary
+script and `part1_mid.json` only, no new run). The parent was merged into the task branch.
+`part1_mid.json` was written again from the cached replay of `mid` and now holds the end errors,
+so the page's error table has the `mid` rows (median 0.020, 0.160, 0.013, 0.423 degree for `M`,
+`C60`, `C200`, `C0`). The Part 2 and rule tables say their medians are over all 24,570 voxels.
+Prediction 4 no longer gives an untested cause; it gives a what-if by arithmetic, not run (`S10`
+with the `C60` replay's seed-step evaluations: about 3.20, 12.32 and 11.68 million, under the
+limits). The Reproduce section names the two sibling worktrees that hold the stored `S8` runs.
