@@ -497,6 +497,25 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
 - Found on the way, not traced: the key-on BFS map has only 64 distinct orientations (key off
   63), so the BFS local fits nearly always return their start.
 
+### AR3 step 6 (the seed cost, task `ar3f`), merged at 73992b8 on 2026-11-11
+
+- Page `findings_ar3_seed.md`; results `benchmarks/autoresearch/ar3/seed/`; decisions
+  D-20261110-N8 (plan), D-20261111-N1 (review: 11 fixes to text, tables and one plot label, no
+  rerun; three optional suggestions of the reviewer left undone).
+- Replay of 189 grid-fallback voxels: on 188 the indexer had a candidate within 1 degree among
+  its first 5; on 175 it was costed and not among the 2 that were refined.
+- Remedy 1b (cost 20 candidates, refine the best 5): passes the seed test on 82 of 91 (pick
+  set) and 88 of 98 (test set); about 4,300 evaluations.
+- Whole layer, gradient sample, run plus boundary pass: `S5` (1b alone, added after seeing
+  `S`) 15 fallbacks, 20,629,760 evaluations, 62 wrong; `S` (neighbour tries, then 1b) 11,
+  16,140,762, 100; `K2` (library CMA keys, tries, 1b) 53, 30,343,782, 96; `D4` 76, 38,807,186,
+  74; `D` 142, 122,070,127, 88.
+- `S5` against `S`: 57 voxels wrong only in `S`, 19 only in `S5`. Of the 602 voxels the tries
+  settle, 59 are wrong before the pass and 40 after; in `D4` 27 and 24 of the same voxels.
+- `S5` by stage: seed step 5,990,794; grid fallbacks 5,098,353; neighbour 2,786,526; revisit
+  3,072,127; pass 3,681,960.
+- The step's rows are on the cost-against-accuracy panels (review page version 31).
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
