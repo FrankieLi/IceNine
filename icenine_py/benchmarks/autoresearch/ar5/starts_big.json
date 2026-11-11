@@ -1,0 +1,12 @@
+{
+ "sample": "big",
+ "n_tries": 18665,
+ "pass_evals": 1138565,
+ "start_evals": 18665,
+ "wrong_before": 67,
+ "wrong_after": 24,
+ "stored_map_reproduced": true,
+ "wall_total_s": 4.9504640102386475,
+ "wall_start_scores_s": 4.888693809509277,
+ "timing_label": "contended (another agent on the machine); not a timing result"
+}
