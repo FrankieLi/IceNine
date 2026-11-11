@@ -585,6 +585,42 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
 - Run `S8` is on the plots of cost against accuracy (review page version 35). PR #43 now
   holds steps 2 to 8.
 
+### AR3 step 9 (a start test, the rejected fits that end right, a third sample; task `ar3i`), merged at 0b081fb on 2026-11-11
+
+- Page `findings_ar3_start.md`; results `benchmarks/autoresearch/ar3/start/` (about 4 MB);
+  decisions D-20261111-N6 (plan), D-20261111-N7 (review: 13 fixes to wording and to what the
+  page discloses, no rerun; no earlier value of `summary.json` changed). Suite at the merge:
+  1517 passed, 47 skipped, 1 deselected.
+- Third sample `mid` (24,570 voxels, a 120-cell Voronoi grain map, not step 7's generator: a
+  deviation the page states). Evaluations with the boundary pass and wrong voxels after it:
+  `D4` 40,560,874 and 48; `S5` 39,093,613 and 34; `S8` 26,443,074 and 31; `S9` 22,672,792 and
+  40. The intervals overlap. D-20261111-N7 counts `S8` as confirmed on one new sample.
+- Run `S9` = `S8` plus a start test (one evaluation of the start; hit ratio at least 0.90
+  keeps the start and skips the fit). With the pass: `big` 5,634,362 and 29 (`S8` 8,340,428
+  and 24); first gradient sample 14,631,262 and 70 (`S8` 18,000,230 and 63). Cut against `S8`:
+  32.4%, 18.7%, 14.3% (`mid`). Fixed and broken against `S8`: 10 and 15, 31 and 38, 9 and 18.
+  The median error rises on all three (0.0316 to 0.0550, 0.0226 to 0.0360, 0.0297 to 0.0429
+  degrees). Not a candidate for a key. The test at 0.95 was not run on a whole layer.
+- Class A (a fit that ended right and was rejected). The truth passes the relative test in
+  all of them, by construction of the samples. One more fit from the rejected end passes in
+  807 of 1,069 (`big`) and 451 of 589 (first gradient sample).
+- Remedy `F2` (one more fit before rejecting, at 0.2 degrees) failed: net cut of the
+  seed-step evaluations of the reseed clusters 34.1% on `big`, -11.8% on the first gradient
+  sample, 4.8% pooled; the plan asks a third. 137 of 672 clusters vanish.
+- First gradient sample at 1 degree: 53 against 56 wrong of 5,539; 23 fixed, 26 broken.
+- The plan's predictions: 1 agrees (by construction), 2 does not agree, 3 agrees (`S8` on
+  `mid`), 4 agrees on `big`.
+- The fixes, one commit each: afec122 (1), d78468a (2), 8ff31cb (3), cf8744e (4), 3cc10cb (5),
+  75b4173 (6), 556c105 (7), f312e84 (8), 3e3c646 (9), 25f1360 (10), 94bc34f (11), 47cfcda
+  (12), 8f71633 (13); then a152ac5, 33d958e, 47769e0, 21d88ac. The fixes report is in the
+  main `.claude/reports/`.
+- The hand-back check on the fixes report showed one FAIL: report fields missing. The cause
+  is the main session's brief, which asked for other field names; the content is there.
+- The findings page was placed by the main session from the implementer's text (its Write
+  was refused; the standing exception the owner knows).
+- The runs on `mid` and run `S9` are on the plots of cost against accuracy (review page
+  version 36). PR #43 now holds steps 2 to 9.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what

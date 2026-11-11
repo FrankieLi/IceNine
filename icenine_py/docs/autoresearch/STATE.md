@@ -12,7 +12,7 @@ Read this file first after any restart or wake. It holds only what is true now a
 | finished steps, old notes (archive, use `grep`) | `docs/autoresearch/STATE_HISTORY.md` |
 | numbers of a finished step | its findings page, or `shmem query "IceNine autoresearch <step>"` |
 | review page for the owner | https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW |
-| open PR | #43 (AR3 steps 2 to 8), https://github.com/FrankieLi/IceNine/pull/43 |
+| open PR | #43 (AR3 steps 2 to 9), https://github.com/FrankieLi/IceNine/pull/43 |
 
 ## How to restart
 
@@ -24,38 +24,36 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-Step 9 of AR3 (a start test for the neighbour fits, the rejected fits that end right, a
-third sample; task `ar3i`; plan in `PLAN.md` under "Step 9: ...", approved by D-20261111-N6).
-Reviewed (main `.claude/reports/20261111-0810-review-ar3i.md`): 13 fixes to wording, no
-rerun; decision D-20261111-N7. The fixes round runs (Opus, own worktree, branch
-`feature/eval-reduction-ar3i`, was 86e3ffa; report `20261111-0815-ar3i-fixes.md`).
+Step 10 of AR3 (opt-in keys in the library: the indexed seed step, its early stop, the
+CMA-first neighbour fit, the boundary pass; all off by default; task `ar3j`; plan in `PLAN.md`
+under "Step 10: ...", approved by D-20261111-N8).
+The implementer runs (Sonnet, own worktree, branch `feature/eval-reduction-ar3j` off 4ff3ce6;
+report `.claude/reports/20261111-0834-ar3j.md`).
 
-1. Wait for the fixes hand-back. Then runbook, "A step, from plan to merge", points 5, 8, 9:
-   `verify_handback.sh ... --fixes <review report>` in the worktree that holds the branch,
-   copy the fixes report to the main `.claude/reports/` (a merged worktree can vanish),
-   `finish_task.sh --yes --push` there, close.
-2. At the close: add the runs on the third sample (`mid`) and run `S9`, if it ran, to
-   `docs/autoresearch/pareto/pareto_rows.json` (a new panel for `mid`); say on the review page
-   whether run `S8` is confirmed (prediction 3 of step 9) and check the other predictions.
-3. Then step 10 (opt-in keys, task `ar3j`, plan approved by D-20261111-N8): brief and
-   implementer (Sonnet). Step 9's plot rows are ready in the scratchpad folder `pareto9`.
+1. Wait for the implementer's hand-back. Then runbook, "A step, from plan to merge", points 5
+   to 9: `verify_handback.sh`, review (`code-reviewer`, Opus), the decision on the fixes
+   (D-20261111-N9 or the day's next ID), a fixes round (Opus; it may change the library files
+   the step touched, D-20261111-N8), `finish_task.sh --yes --push`, close. Copy every report
+   to the main `.claude/reports/` before a merge. In a brief, name the report fields as the
+   hand-back check does (branch / commits; files; tests; criteria; suspicious / unexpected).
+2. At the close: `D4L`, `S5L`, `S8L` must equal the stored runs, so they add no point to the
+   plots; say so on the review page. Then AR5 (the stop rule inside the grid search), then AR4.
 
 ## Running jobs
 
-- Step 9 fixes round (`implementer`, Opus, own worktree), started 2026-11-11.
-- The review page is at version 35 (run `S8` is on its plots). No page job is open.
+- Step 10 implementer (`implementer`, Sonnet, own worktree), started 2026-11-11.
+- The review page is at version 36 (`mid` and run `S9` are on its plots). No page job.
 
 ## Queue
 
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
-7, 18, 22, 23, AR0, AR1, AR2, AR3 steps 1 to 8) are in `STATE_HISTORY.md` under "Queue".
+7, 18, 22, 23, AR0, AR1, AR2, AR3 steps 1 to 9) are in `STATE_HISTORY.md` under "Queue".
 
 | step | what | state |
 |---|---|---|
-| AR3 step 9 | start test, rejected fits that end right, third sample (task `ar3i`) | fixes round running |
-| AR3 later | opt-in keys for the seed step and the boundary pass | with settings; the owner picks |
+| AR3 step 10 | opt-in keys: seed step, early stop, CMA-first fit, pass (task `ar3j`) | implementer running |
 | AR4 | the learned proposer | after AR5 |
-| AR5 | the stop rule inside the grid search (the grid fallbacks) | after step 9 |
+| AR5 | the stop rule inside the grid search (the grid fallbacks) | after step 10 |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -63,21 +61,22 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 ## Last finished step
 
-AR3 step 8 (where the seed step's evaluations go, task `ar3h`): merged into
-`feature/eval-reduction` at ce9b106 on 2026-11-11, pushed; suite 1517 passed, 47 skipped, 1
-deselected. Page: `docs/autoresearch/findings_ar3_reseed.md`. Decisions D-20261111-N4 (plan), N5
-(review: 10 fixes, no rerun). Refinements are 99.9% of a seed step on `big`. The plan's early
-stop (hit ratio 0.80) failed on stored cases; a variant (0.95), chosen after results, gives run
-`S8`. `S8` plus pass: 8.34 million evaluations and 24 wrong on `big` (`D4` 11.94 and 21, `S5`
-13.00 and 30); 18.00 million and 63 on the first gradient sample (`S5` 20.63 and 62). Prediction
-3 is met by the variant only: not confirmed until step 9's third sample. 1,069 of 1,471 voxels
-in reseed clusters had a fit that ended right and was rejected (class A); the cause is not
-tested. More in `STATE_HISTORY.md`, "AR3 step 8".
+AR3 step 9 (a start test, the rejected fits that end right, a third sample; task `ar3i`): merged
+into `feature/eval-reduction` at 0b081fb on 2026-11-11, pushed; suite 1517 passed, 47 skipped, 1
+deselected. Page: `docs/autoresearch/findings_ar3_start.md`. Decisions D-20261111-N6 (plan), N7
+(review: 13 fixes, no rerun). Third sample `mid`, with the pass: `D4` 40.56 million evaluations and
+48 wrong, `S5` 39.09 and 34, `S8` 26.44 and 31; `S8` counts as confirmed on one new sample (N7).
+Run `S9` (`S8` plus a start test at hit ratio 0.90) saves 14% to 32% but breaks more voxels than it
+fixes on all three samples: not a candidate for a key. One more fit from a rejected end passes the
+relative test in 807 of 1,069 and 451 of 589 voxels; the remedy built on it (`F2`) failed its test
+(4.8% pooled, a third asked). More in `STATE_HISTORY.md`, "AR3 step 9".
 
 ## Untracked data that later steps need
 
 Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, do not commit it.
 
+- `agent-a9c88b610fb10e1b6` (step 9, detached at 86e3ffa): `ar3/start/cache/`, the image
+  stack and the samples of `mid`, and links.
 - `agent-a635b2f904279bdc9` (step 8, detached at 2aaa72a): `ar3/reseed/cache/` (the logged
   rerun and the `S8` maps), and links to the image stacks of both gradient samples.
 - `agent-a38ba6f5a25aa033e` (step 7, detached at b762441): its caches and runs under
@@ -95,10 +94,10 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
-- Your word on PR #43 ("merge PR 43" in the session). It now holds AR3 steps 2 to 8.
-- A choice: which seed step the opt-in key recommends. Three candidates: the old one (`D4`),
-  step 6's (`S5`), and `S5` with the early stop (`S8`). `S8` was cheapest on both samples but
-  its stop test was chosen after results; I recommend nothing before step 9 has tested it.
+- Your word on PR #43 ("merge PR 43" in the session). It now holds AR3 steps 2 to 9.
+- A choice: which seed step the documentation of the keys recommends. Step 10 adds the keys
+  and recommends none. My recommendation: the settings of `S8` (20 candidates costed, 5
+  refined, stop at hit ratio 0.95): cheapest on all three samples, wrong counts not worse.
 - Item 12: apply and commit `docs/autoresearch/item12_owner.patch` (the commands are in the
   history file). Agents cannot: it needs your `ALLOW_CLAUDE_CONFIG=1`.
 - Questions that block nothing: the shape and size of real orientation gradients; your
