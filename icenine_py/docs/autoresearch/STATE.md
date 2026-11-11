@@ -43,8 +43,8 @@ to 9. Merge the parent into a task branch before its fixes round (shared files c
 
 - AR4 step 1 fixes implementer, AR5 step 3 implementer, AR3 step 11 implementer (all started
   2026-11-11 about 13:55); each hands back by message.
-- Page builder for version 39 (AR5 step 2, `S10` on the plots; started about 13:40): it writes
-  `build_v39.py` in the scratchpad; rerun with hash c688191 and the suite line, publish.
+- No other job. The review page is at version 39 (AR5 step 2, `S10` on the plots, N15); the
+  text of PR #43 holds AR5 step 2.
 
 ## Queue
 
@@ -94,7 +94,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
-- Your word on PR #43 ("merge PR 43" in the session). It now holds AR3 steps 2 to 10 and AR5 step 1.
+- Your word on PR #43 ("merge PR 43" in the session). It holds AR3 steps 2 to 10, AR5 steps 1, 2.
 - A choice: which seed step the documentation of the keys recommends. Step 10 added the
   keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
   5`, `SeedIndexStopHitRatio 0.95`): cheapest on all three samples, wrong counts not worse.
