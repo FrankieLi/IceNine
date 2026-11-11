@@ -127,6 +127,7 @@ def after_split(
         after_wrong_in_run=int(wk.sum()),
         after_wrong_in_D4=int(w4.sum()),
         after_still_wrong=int((wk_b & wk).sum()),
+        after_repaired=int((wk_b & ~wk).sum()),
         after_fixed=int((w4 & ~wk).sum()),
         after_broken=int((~w4 & wk).sum()),
     )

@@ -438,6 +438,11 @@ def main() -> None:
         within1_median_hit=float(np.median(near_h)) if near_h else None,
         within1_max_hit=float(max(near_h)) if near_h else None,
         within1_below_test=sum(h < S.TEST for h in near_h),
+        # class of the voxels that hold such an end (one end per voxel here)
+        within1_voxels_by_class={
+            c: sum(r["class"] == c and any(e <= WRONG for e in r["stock"]["fin_err"]) for r in fb)
+            for c in "abcdef"
+        },
     )
 
     # ---------------- part 0 item 5: the grid end and the neighbours

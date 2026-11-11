@@ -1068,6 +1068,7 @@
    "after_wrong_in_run": 40,
    "after_wrong_in_D4": 24,
    "after_still_wrong": 40,
+   "after_repaired": 19,
    "after_fixed": 5,
    "after_broken": 21
   },
@@ -1094,6 +1095,7 @@
    "after_wrong_in_run": 1,
    "after_wrong_in_D4": 1,
    "after_still_wrong": 1,
+   "after_repaired": 1,
    "after_fixed": 1,
    "after_broken": 1
   },
@@ -1120,6 +1122,7 @@
    "after_wrong_in_run": 39,
    "after_wrong_in_D4": 21,
    "after_still_wrong": 39,
+   "after_repaired": 26,
    "after_fixed": 5,
    "after_broken": 23
   },
@@ -1146,6 +1149,7 @@
    "after_wrong_in_run": 3,
    "after_wrong_in_D4": 1,
    "after_still_wrong": 3,
+   "after_repaired": 1,
    "after_fixed": 0,
    "after_broken": 2
   },
@@ -1172,6 +1176,7 @@
    "after_wrong_in_run": 22,
    "after_wrong_in_D4": 30,
    "after_still_wrong": 19,
+   "after_repaired": 5,
    "after_fixed": 14,
    "after_broken": 6
   }
@@ -1200,6 +1205,7 @@
    "after_wrong_in_run": 60,
    "after_wrong_in_D4": 50,
    "after_still_wrong": 39,
+   "after_repaired": 167,
    "after_fixed": 21,
    "after_broken": 31
   },
@@ -1226,6 +1232,7 @@
    "after_wrong_in_run": 57,
    "after_wrong_in_D4": 53,
    "after_still_wrong": 40,
+   "after_repaired": 163,
    "after_fixed": 26,
    "after_broken": 30
   }
