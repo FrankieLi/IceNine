@@ -205,11 +205,27 @@ Reading the table: one row per step, in order, with its state.
 
 ## Running jobs
 
-One agent is running (started 2026-11-10 at about 18:40): the Sonnet implementer of task
-`ar3e` (AR3 step 5), in its own worktree (`git worktree list` names it; branch
-`feature/eval-reduction-ar3e`). Parts 0 and 1 read stored maps and run short fits; part 2
-starts two whole-layer runs (`K`, `KE`, capped at 60 minutes each). Check:
-`git log --oneline 5ccbd2e..feature/eval-reduction-ar3e`.
+Step 5 (task `ar3e`) was handed back on 2026-11-10 at about 22:05, status partial: parts 0
+and 1 done, run `KE` done, run `K` stopped at its cap with no map. The report is copied to the
+main `.claude/reports/20261110-1836-ar3e.md`. The main session placed the page
+`docs/autoresearch/findings_ar3_boundary.md` on the task branch (commits 2eda7ec, 3813d69; the
+implementer's write was refused). `verify_handback.sh`: 0 FAIL, 3 expected FLAGs. One agent is
+running: the Opus reviewer (started at about 22:20). Its report will be
+`.claude/reports/20261110-2220-review-ar3e.md`; check with `ls -la` on that path. The task
+branch is in the worktree `.claude/worktrees/agent-a4fd6282107a76186` (it holds untracked
+`boundary/cache/`, preflight and progress files and `runs/KE/records.json.gz`).
+
+Unreviewed numbers of step 5 (from the implementer's report; do not quote before the review):
+gate 412 of 412; wrong voxels before and after the pass with the `hit` keep rule: D4 225 to
+74, P4R4 281 to 82, E4 305 to 0, D 203 to 88, PR 170 to 78, D2 153 to 14; the pass costs 3.0
+to 3.7 million evaluations; 94% of the voxels are boundary voxels, so the pass is a second
+look at nearly everything; skip rule (hit ratio over the best neighbour's at least 0.94)
+skips 92% of the tries; KE 5.4 against 13.6 million evaluations; K at its cap had 38.1
+million evaluations, 31.07 of them in 90 grid fallbacks. Open after the review, to decide
+under the mandate (next ID D-20261110-N7 or later): keep or drop about 47 MB of `tries.npz`
+in git; whether to rerun K with a longer cap; whether a sample with large grains is needed
+before an opt-in key. Also for the fixes: the owner's term is "local optimization", not
+"finisher" (2026-11-10).
 
 Step 4 (merged, 5ccbd2e; page `docs/autoresearch/findings_ar3_fine.md`). The review
 recomputed these numbers from the stored records. Scope: the simulated linear-gradient sample
