@@ -1237,3 +1237,20 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the grid fallbacks at 19 and 30 percent of the evaluations. It starts while the fixes round of
   AR3 step 10 runs: it does not depend on step 10. Where: icenine_py/docs/autoresearch/PLAN.md,
   AR5 step 1.
+
+### D-20261111-N11 · Track A / AR5 step 1 (task ar5a) · AR5 step 1 review: apply the 12 required fixes; V1 and the vote count are not adopted
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under the owner mandate D-20261109-N1; the owner may overrule. Review
+  report .claude/reports/20261111-1215-review-ar5a.md: verdict REQUEST CHANGES, documents only, no
+  result changes, the negative results stand at their stated scope. (1) All 12 required fixes are
+  applied in a fixes round (Opus), with the parent merged into the task branch first (fix 2). The
+  suggestions that cost little are applied too: remove the unused held parameter, offset the plot
+  labels, draw the vote cut, give the share of boundary voxels, Wilson intervals for the Part 2
+  counts. The audit_numbers tool artifact goes to the tooling queue. (2) The implementer's two
+  questions: the check V1 after the 0.95 flag is not adopted (13 of 31 wrong voxels fixed on mid
+  for 105.4% of the run's evaluations; 99.4% of them spent on right voxels); the vote count is
+  dropped as a stop rule (its cut was chosen after the result and moves between samples). (3) The
+  run T1 is not run. No new point on the plots of cost against accuracy. (4) The reviewer's three
+  next-step options: option 1 (try test P2 m=2 as an opt-in key) is left to the owner; options 2
+  and 3 (a second check beside the hit ratio) go into AR4 step 1. Where: PLAN.md AR5 step 1;
+  findings_ar5_stop.md.
