@@ -11629,15 +11629,20 @@ refinement already passed the seed test at a right orientation. Of the 1,471 vox
 reseed clusters of `S5` on `big`, 1,069 (72.7%) were reached by a local optimization that ended
 right (median error 0.294 degrees) and was rejected by the relative test (median hit ratio
 0.835, flood best 1.000: class A); 22 started in their own grain at a wrong orientation (B); 380
-started from another grain (C). 314 reseeds settle 1,471 voxels (4.7 per reseed). Part 2: `E1`
-(stop the refinements at the first that passes) with the stop test 0.95, chosen on the pick set
-(even grains), cuts the seed step by 58.4% on `big` and 48.4% on the gradient sample on the
-test set (odd grains) and breaks no case; the plain test 0.80 breaks 6 against 0 fixed and 51
-against 2. `E2` (keep a rejected fit that passes a second test) fails on the pick set: no test
-has broken at most fixed (best: 3 broken, 2 fixed, 4.4% cut); `E3` not tried (class B 1.5%).
-Part 3: `S8` = `S5` + `E1`, with the pass: 8.34 million evaluations on `big` (`D4` 11.94, `S5`
-13.00) and 18.00 on the gradient sample (`S5` 20.63, `D4` 38.81); wrong voxels after the pass 24
-(`D4` 21, `S5` 30) and 63 (`S5` 62, `D4` 74), intervals overlap. Predictions (written before the
-runs): all three agree. The key choice stays the owner's; `S8`'s seed step is my recommendation.
+started from another grain (C). 314 reseeds settle 1,471 voxels (4.7 per reseed). Part 2: the
+plan's `E1` (stop the refinements at the first that passes the seed test, 0.80) fails the plan's
+rule on the test set (odd grains): 6 broken against 0 fixed on `big` and 51 against 2 on the
+gradient sample. So by the plan's rule no listed remedy passed. A variant of `E1` with a stop
+test of 0.95, added after those results and chosen on the pick set (even grains), cuts the seed
+step by 58.4% on `big` and 48.4% on the gradient sample on the test set and breaks no case.
+`E2` (keep a rejected fit that passes a second test) fails on the pick set: no test has broken
+at most fixed (best: 3 broken, 2 fixed, 4.4% cut); `E3` not tried (class B 1.5%). Part 3 was
+run on the variant: `S8` = `S5` + the variant (stop at 0.95), with the pass: 8.34 million
+evaluations on `big` (`D4` 11.94, `S5` 13.00) and 18.00 on the gradient sample (`S5` 20.63, `D4`
+38.81); wrong voxels after the pass 24 (`D4` 21, `S5` 30) and 63 (`S5` 62, `D4` 74), intervals
+overlap. Predictions (written before the runs): 1 and 2 agree; 3 is met by the variant only, not
+a confirmed prediction of the plan (D-20261111-N5). The variant is not confirmed until it is an
+arm of a whole-layer run on a sample it was not chosen on. The choice of the seed step for the
+opt-in key stays the owner's; no recommendation is made.
 Added after seeing results (labelled on the page): the stop-test grid of `E1`, counting voxels at
 their first appearance in a cluster, and the plurality reading of "cost share".

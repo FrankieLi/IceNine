@@ -35,7 +35,8 @@ evaluation count.
 - **Right**: within 1 degree of the truth (the limit step 7's page uses). **Wrong**: above it.
 - **Boundary pass**: step 5's pass, rule `hit`.
 - **Pick set** and **test set**: the true grains with an even index and with an odd index.
-- `S8`: `S5` with remedy `E1` (below).
+- `S8`: `S5` with a variant of remedy `E1` that stops at hit ratio 0.95 (below). The variant was
+  added after results; the plan's own `E1` stops at 0.80.
 
 ## Written down before the runs
 
@@ -50,9 +51,14 @@ The plan wrote down three predictions. Whether the result agrees:
    `big`. The refinements are 99.9% of the evaluations.
 3. *`S8` with the pass needs under 9.0 million evaluations on `big` and no more than `S5`'s 20.6
    million on the first gradient sample, with intervals of wrong voxels that overlap `D4`'s on
-   `big` and `S5`'s on the first gradient sample.* **Agrees on every part.** `S8` with the pass:
-   8.34 million on `big` and 18.00 million on `grad`; wrong voxels after the pass 24 on `big`
-   (`D4`: 21) and 63 on `grad` (`S5`: 62), with overlapping intervals.
+   `big` and `S5`'s on the first gradient sample.* **Met by the variant only, not a confirmed
+   prediction of the plan.** By the plan's own rule the listed remedy `E1` (stop at the seed
+   test, hit ratio 0.80) failed Part 2, so no listed remedy passed. `S8` is `S5` plus a variant
+   of `E1` (stop at hit ratio 0.95) whose stop test was added after results. Its whole-layer
+   numbers stand as measured and meet the three parts: 8.34 million on `big` and 18.00 million
+   on `grad`; wrong voxels after the pass 24 on `big` (`D4`: 21) and 63 on `grad` (`S5`: 62),
+   with overlapping intervals. The variant is not confirmed until it is an arm of a whole-layer
+   run on a sample it was not chosen on.
 
 Chosen after I had seen results (so not predictions):
 
@@ -114,11 +120,13 @@ by stage (millions). `S8` is the third bar of each panel.
    and 197,122 in their floods; 91.1% of that is in the 258 clusters of level 4. They settle
    1,471 voxels in all, 4.7 voxels per reseed. A median cluster has 3 voxels and 102 are a single
    voxel. The flood from a reseed accepts a median 1 voxel.
-6. **Which remedy works?** `E1` (stop the refinements at the first that passes) with the stop
-   test 0.95 chosen on the pick set: on the test sets it cuts the seed step's evaluations by
-   58.4% on `big` and 48.4% on `grad` and breaks no case. `E2` (keep a rejected fit that passes
-   a second test) fails: no second test breaks no more cases than it fixes. `E3` was not tried
-   (class B is 22 of 1,471 voxels).
+6. **Which remedy works?** None of the listed remedies, by the plan's rule. The plan's `E1` (stop
+   the refinements at the first that passes the seed test, 0.80) fails: on the test sets it
+   breaks 6 cases and fixes 0 on `big`, and breaks 51 and fixes 2 on `grad`. A variant of `E1`,
+   with a stop test of 0.95 added after those results and chosen on the pick set, passes: on the
+   test sets it cuts the seed step's evaluations by 58.4% on `big` and 48.4% on `grad` and
+   breaks no case. `E2` (keep a rejected fit that passes a second test) fails: no second test
+   breaks no more cases than it fixes. `E3` was not tried (class B is 22 of 1,471 voxels).
 7. **Does `S8` do no harm?** `S8` with the pass costs 8,340,428 evaluations on `big` (`D4`
    11,943,692, `S5` 12,999,852) and 18,000,230 on `grad` (`S5` 20,629,760, `D4` 38,807,186).
    Wrong voxels after the pass: 24 of 24,570 on `big` (`D4` 21, `S5` 30) and 63 on `grad` (`S5` 62,
@@ -333,11 +341,13 @@ rule is judged on `S5`.
 | grad D4 | 0.95 | test | 667 | 1840958 | 1415074 | 23.1 | 0 | 0 | 44 | 1 |
 <!-- /table:e1_sets -->
 
-On the test sets, `E1` with 0.95 cuts the evaluations of `S5`'s seed steps by 58.4% on `big`
-and 48.4% on `grad`. It fixes 0 and breaks 0 on `big`, and fixes 1 and breaks 0 on `grad`. It
-passes the rule on both samples. With the plain 0.80 it would not: 6 broken against 0 fixed on
-the `big` test set and 51 against 2 on the `grad` test set. A seed step that stops at 0.80 can
-keep a refinement that is not the lowest-cost one, and some of these end past the 1 degree limit.
+The plan's `E1` (the plain 0.80) fails the plan's rule: 6 broken against 0 fixed on the `big`
+test set and 51 against 2 on the `grad` test set. So by the plan's rule no listed remedy passes.
+The variant with 0.95, added after those results, cuts the evaluations of `S5`'s seed steps on
+the test sets by 58.4% on `big` and 48.4% on `grad`. It fixes 0 and breaks 0 on `big`, and
+fixes 1 and breaks 0 on `grad`, so the variant passes the rule on both samples. A seed step that
+stops at 0.80 can keep a refinement that is not the lowest-cost one, and some of these end past
+the 1 degree limit.
 This is an observed pattern in the replay; the cause was not tested.
 
 ### E2: keep a rejected fit that passes a second test
@@ -386,15 +396,18 @@ clusters (0.0% of the reseed cost).
 
 ## Part 3: whole-layer runs
 
-Only `E1` passed. `S8` is `S5` with `E1` (stop test 0.95), on `big` and on `grad`, each followed
-by the boundary pass. It changes one thing, in a script: the loop of the library's seed step
-stops at the first refinement whose end has hit ratio at least 0.95 (`reseed_s8.py`; the
-library's own indexing, costing and refinement functions are called). If none passes, all 5 are
-refined and the lowest final cost is kept, as in `S5`. The hit ratio of each refinement's end is
-one overlap evaluation, not counted in the totals (the library's own seed test is not counted
-either); there are at most 5 per seed step. Before the runs the loop was checked against the
-library's `index_seed` on 12 steps per sample (identical results with the stop test off, and
-the same evaluations as the replay with it on). Each run ended well inside its cap of 90 minutes.
+The plan runs Part 3 only if a listed remedy passes, and none did: the plan's `E1` (0.80) failed.
+Part 3 was run on the variant of `E1` with the stop test 0.95, which was added after the results
+of Part 2. So these runs test the variant, not a remedy of the plan. `S8` is `S5` with that
+variant, on `big` and on `grad`, each followed by the boundary pass. It changes one thing, in a
+script: the loop of the library's seed step stops at the first refinement whose end has hit
+ratio at least 0.95 (`reseed_s8.py`; the library's own indexing, costing and refinement
+functions are called). If none passes, all 5 are refined and the lowest final cost is kept, as
+in `S5`. The hit ratio of each refinement's end is one overlap evaluation, not counted in the
+totals (the library's own seed test is not counted either); there are at most 5 per seed step.
+Before the runs the loop was checked against the library's `index_seed` on 12 steps per sample
+(identical results with the stop test off, and the same evaluations as the replay with it on).
+Each run ended well inside its cap of 90 minutes.
 
 Reading of the table: evaluations by stage with the pass, `seeds` and `reseeds` as counted by the
 run, `grid` the grid fallbacks. `seed_step` is the evaluations of all seed steps, `grid_fallback`
@@ -483,12 +496,15 @@ Reading of the table: the same on `grad`.
 
 ## What the result decides
 
-Prediction 3 holds on every part, so `S8`'s seed step is my recommendation for the opt-in key:
-`S5`'s seed step (20 candidates costed, 5 refined) with the stop at hit ratio 0.95. It costs
-less than both stored pipelines on both samples without a detectable change in wrong voxels. This
-is my recommendation only. The choice between the old seed step (`D4`'s), `S5`'s and `S8`'s
-stays the owner's. The key step also has to decide what to do with the grid fallbacks that
-remain on `grad`.
+By the plan's own rule the listed remedy `E1` (stop at the seed test, hit ratio 0.80) failed
+Part 2, so no listed remedy passed. Prediction 3 is met by the variant only (`S5`'s seed step,
+20 candidates costed and 5 refined, with the stop at hit ratio 0.95). It is not a confirmed
+prediction of the plan, so I do not make the recommendation that the plan ties to it. The
+variant's numbers stand as measured: it costs less than both stored pipelines on both samples,
+with no detectable change in wrong voxels. The variant is not confirmed until it is an arm of a
+whole-layer run on a sample it was not chosen on. The choice of the seed step for the opt-in key
+stays the owner's: the old seed step (`D4`'s), `S5`'s, or the variant. The key step also has to
+decide what to do with the grid fallbacks that remain on `grad`.
 
 What is left on `big` after `S8`: neighbour and revisit local optimizations (4.35 million) and
 the pass (1.14 million) are now more than half of the 8.34 million; the reseeds still cost
@@ -544,8 +560,12 @@ RESEED_SAMPLE=<big|grad> uv run python scripts/autoresearch/ar3/reseed_s8_slim.p
   three runs (`D4` on `big`, both on `grad`) was made by replaying their stored seed steps, which
   the brief of this step allowed. The classes (1.2) and the clusters in detail (1.3) exist for
   `S5` on `big` only (the one rerun).
-- `E1`'s stop test was tuned on the pick set (0.80 to 0.98) after the plain test had been seen
-  to break cases (see "Chosen after I had seen results").
+- The plan's `E1` (stop at the seed test, 0.80) failed Part 2: on the test sets it broke 6 and
+  fixed 0 on `big`, and broke 51 and fixed 2 on `grad`. By the plan's rule no listed remedy
+  passed, and there was no Part 3 to run. Instead a stop test was tuned on the pick set (0.80 to
+  0.98) after the plain test had been seen to break cases (see "Chosen after I had seen
+  results"), and Part 3 ran `S8` with that variant (0.95). Prediction 3 is judged on the variant
+  only.
 - `E2` was evaluated at the level of stored fits and clusters, not by a rerun; its saving is an
   estimate. `E3` was not tried.
 - The classes count voxels at their first appearance; the plan did not say how to count a voxel
