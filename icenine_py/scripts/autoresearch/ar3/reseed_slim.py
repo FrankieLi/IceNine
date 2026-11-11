@@ -293,6 +293,7 @@ def logged(T: Any, geo: Dict[str, Any]) -> None:
                     accepted=bool(accepted[i]),
                     phase=int(phase[i]),
                     evals_last=int(ev[i]),
+                    exp_hit=None if np.isnan(exp_hit[i]) else round(float(exp_hit[i]), 4),
                     row=int(i),
                 )
             m_out.append(row)
