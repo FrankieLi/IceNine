@@ -497,9 +497,12 @@ What the tables say.
 - **`S9`.** The start test cuts the neighbour and revisit stages by 47 to 68% (table above). The
   total falls less because the seed step and the pass are not touched: 32.4% on `big`, 18.7% on
   `grad`, 14.3% on `mid`. On `big` and `grad` the number of reseeds rises (292 to 339, 932 to
-  973); on `mid` it falls (1,455 to 1,443). A cause is untested; the rise is consistent with kept
-  starts that the BFS then rejects, which feeds the clusters, but the rejected kept starts were
-  not counted in the whole-layer runs.
+  973); on `mid` it falls (1,455 to 1,443). Kept starts that the BFS rejects cannot explain it. The
+  relative test accepts a fit if its hit ratio divided by the flood's best is above 0.9, and a
+  hit ratio is at most 1. So a start kept at a hit ratio of 0.90 or more fails the test only on
+  the tie of a hit ratio of exactly 0.90 against a best of 1.0. All 7 kept starts on the test set
+  that fail the test (3 on the pick set) are that tie. The extra reseeds therefore come from
+  something downstream of the kept starts. What it is was not measured.
 - **Accuracy.** The median error rises on every sample and at every level (table by level), by
   0.013 to 0.023 degrees overall. The wrong voxels rise by 5 (`big`), 7 (`grad`) and 9 (`mid`);
   the intervals overlap, and the change has the same direction on all three. The one large change
@@ -592,8 +595,9 @@ sample name `mid`; nothing else changed there.
 
 Not claimed: that C++ behaves the same; that the gradient model or these levels match a real
 sample; a change of any default; a tested wall time (every wall time here is contended); that three
-samples stand for all samples; a cause for the rise in reseeds under `F1` or for the rise in error
-(both are consistent with kept starts, untested). `mid` is a different grain size, not a repeat;
+samples stand for all samples; a cause for the rise in reseeds under `F1` (a kept start can fail
+the relative test only on a tie, so the cause is downstream and was not measured) or for the rise
+in error. `mid` is a different grain size, not a repeat;
 there is no repeat of any run. Stored-case results do not show downstream effects: a kept start is
 passed on to the next voxel in the whole-layer run only.
 
