@@ -25,6 +25,12 @@ ICE = HERE.parents[2]  # icenine_py
 EX = ICE.parent / "Examples" / "Example2.ManyGrains"
 REGION = ICE / "benchmarks" / "phase_d_pilot"
 OUT = ICE / "benchmarks" / "autoresearch" / "ar3"
+# AR3 step 7: AR3_SAMPLE=big switches every script that reads ``OUT`` (and gradient_common) to the
+# 32-grain sample; the default (unset) is the gradient sample, so earlier scripts behave as before.
+SAMPLE_KIND = os.environ.get("AR3_SAMPLE", "gradient")
+assert SAMPLE_KIND in ("gradient", "big"), SAMPLE_KIND
+if SAMPLE_KIND == "big":
+    OUT = OUT / "big"
 CONFIG = ICE / "scripts" / "autoresearch" / "ar2" / "key_on_fused.config"
 STORED_KEY_ON = ICE / "benchmarks" / "autoresearch" / "ar2" / "key" / "runs" / "key_on"
 STORED_KEY_ON_FUSED = ICE / "benchmarks" / "autoresearch" / "ar2" / "key" / "runs" / "key_on_fused"
