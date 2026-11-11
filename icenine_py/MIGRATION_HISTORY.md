@@ -11681,10 +11681,11 @@ member must pass); with `F2` free the pooled cut would be 21.5% (26.2% at 0.1), 
 Part 3: `mid` with the pass, `D4` 40.56, `S5` 39.09, `S8` 26.44 million evaluations; wrong voxels
 48, 34, 31 (intervals overlap): `S8` is confirmed on a sample it was not chosen on (prediction 3).
 `S9` (`S8` + `F1` 0.90): 5.63 million on `big` (`S8` 8.34), 14.63 on `grad` (18.00), 22.67 on `mid`
-(26.44); wrong voxels 29 (24), 70 (63), 40 (31), intervals overlap; median error after the pass
-0.0550 (0.0316), 0.0360 (0.0226), 0.0429 (0.0297) degrees. Predictions: 1, 3 and 4 agree; 2 does
+(26.44); wrong voxels 29 (24), 70 (63), 40 (31), intervals overlap, but paired against `S8` it
+breaks more than it fixes on all three (10 fixed / 15 broken, 31 / 38, 9 / 18), which fails Part
+2's own rule in the whole layer; median error after the pass 0.0550 (0.0316), 0.0360 (0.0226),
+0.0429 (0.0297) degrees. Predictions: 1 (by construction on clean images), 3 and 4 agree; 2 does
 not agree (its first part fails: 49.9% of the neighbour fits at 1 degree or less start at 0.95,
 interval 49.1 to 50.7, not more than half; its second part, 0.6% at 4 degrees, holds). The
-choice of keys stays the owner's: `S8`'s seed step is the plan's recommendation; `F1` is a
-candidate for a second key, with a small systematic rise in error and a threshold that won the
-pick under a rule blind to kept wrong starts.
+choice of keys stays the owner's: `S8`'s seed step is the plan's recommendation; `F1` at 0.90 is
+not a candidate for a key (D-20261111-N7); `F1` at 0.95 was not run on a whole layer.

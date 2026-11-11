@@ -63,6 +63,10 @@ The plan wrote down four predictions. Whether the result agrees:
    above `S8`'s.* **Agrees on `big`.** 5,634,362 evaluations; 29 wrong voxels (0.08 to 0.17%)
    against `S8`'s 24 (0.07 to 0.15%); median error 0.0550 against 0.0316 degrees, 0.0234 above.
    (The prediction names `big` only. On `grad` and `mid` the same three numbers are in Part 3.)
+   But in the whole layer `S9` breaks more voxels than it fixes on all three samples (after the
+   pass, against `S8`: `big` 10 fixed and 15 broken, `grad` 31 and 38, `mid` 9 and 18). By Part
+   2's own rule ("breaks no more cases than it fixes") that is a fail in every whole-layer run;
+   the "0 broken" of the stored cases did not carry over.
 
 Chosen after I had seen results: nothing in the plan's tables. Some rules were fixed in the
 scripts after Part 1 and before the pick; they are listed under "Deviations" so a reader can
@@ -98,7 +102,8 @@ there start more than 1 degree from the truth (Part 1).
    error after the pass rises from 0.0316 to 0.0550 degrees on `big`, from 0.0226 to 0.0360 on
    `grad` and from 0.0297 to 0.0429 on `mid`. Wrong voxels after the pass: 29 against 24, 70
    against 63 and 40 against 31. The intervals overlap on all three samples. Paired with `S8`
-   after the pass: `big` 10 fixed and 15 broken, `grad` 31 and 38, `mid` 9 and 18.
+   after the pass: `big` 10 fixed and 15 broken, `grad` 31 and 38, `mid` 9 and 18. So `S9` breaks
+   more voxels than it fixes on all three samples.
 4. **Why were the class A fits rejected?** The data are consistent with fits that stop short. In
    every class A voxel (1,069 on `big`, 589 on `grad`) the true orientation itself passes the
    relative test, so the second explanation (the truth scores below 0.9 times the flood's best)
@@ -564,12 +569,15 @@ least 0.95) counts as confirmed on a sample it was not chosen on. By the plan's 
 recommendation for the opt-in key. The plan's other branch ("both numbers as settings, no stop
 test") is not needed.
 
-`F1` passed Part 2 and prediction 4 holds on `big`, so by the plan's rule the start test is a
-candidate for a second opt-in key. The numbers the owner should weigh: 14 to 32% of the
-evaluations saved on three samples; a small rise in error that has the same direction on every
-sample and level (0.013 to 0.023 degrees at the median) and 5 to 9 more wrong voxels per sample;
-a threshold (0.90) that won the pick under a rule that does not count a kept start that is wrong
-where the stored fit was wrong too. The choice of what a key recommends stays the owner's.
+`F1` at 0.90 passed Part 2 and prediction 4 holds on `big`. But in the whole layer `S9` breaks
+more voxels than it fixes on all three samples (against `S8` after the pass: 10 fixed and 15
+broken on `big`, 31 and 38 on `grad`, 9 and 18 on `mid`), which fails Part 2's own rule there.
+The owner decided (D-20261111-N7) that `F1` at 0.90 is not a candidate for a key. What it would
+have cost and saved: 14 to 32% of the evaluations saved on three samples; a rise in error that has
+the same direction on every sample and level (0.013 to 0.023 degrees at the median) and 5 to 9
+more wrong voxels per sample; a threshold (0.90) that won the pick under a rule that does not count
+a kept start that is wrong where the stored fit was wrong too. `F1` at 0.95 was not run on a whole
+layer. On the stored cases it kept no wrong start (Part 2); nothing is claimed for it beyond that.
 
 AR5 proper (a stop rule inside the grid search) is not part of this step. The grid fallbacks are
 still large on `mid`: 5.0 of `S9`'s 22.67 million evaluations.
@@ -648,7 +656,8 @@ passed on to the next voxel in the whole-layer run only.
 
 ## What comes after
 
-Left for the owner and the next step: whether `F1` is worth a key at 0.90, or at 0.95 (both are in
-the Part 2 table; 0.95 keeps no wrong start in the stored cases and was not run on the whole
-layer); whether a rule that also counts a kept wrong start belongs in the pass rule; AR5 (the grid
+Left for the owner and the next step: `F1` at 0.90 is not a candidate for a key (D-20261111-N7).
+`F1` at 0.95 keeps no wrong start in the stored cases and was not run on the whole layer; a
+whole-layer test of it would be a variant chosen after results and needs its own plan. Also left:
+whether a rule that also counts a kept wrong start belongs in the pass rule; AR5 (the grid
 fallbacks) and the reseed cost, which is the largest stage on `mid`.
