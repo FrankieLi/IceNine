@@ -1038,3 +1038,22 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   right voxels here) goes to the owner as a question; it is not tested. Where:
   icenine_py/docs/autoresearch/PLAN.md, AR3 section; review report
   .claude/reports/20261110-2220-review-ar3e.md; findings_ar3_boundary.md after the fixes.
+
+### D-20261110-N8 · Track A / AR3 step 6 · AR3 step 6 plan approved under the mandate: why the index seed fails and what replaces the grid fallback (task ar3f)
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. Step 6
+  (PLAN.md 'Step 6', commit c88fdd8) follows D-20261110-N7. Reason: in run D4 the grid search
+  behind 76 failed index seeds took 25.8M of 35.1M evaluations, about 340,000 each; 74 of the 76
+  are at reseeds, 36 of them for a cluster of one voxel; and after the grid search 73 of the 76
+  voxels have a hit ratio of 0.88 or more, so a passing orientation exists that the index seed did
+  not reach (main session's reading of the stored records, to be derived again by the task). Part
+  0 replays the seed step on the fallback voxels and on 200 control seeds and puts each failure in
+  one class (the truth fails the seed test; no candidate near the truth; candidate not costed; not
+  refined; local optimization ends away). Part 1 tests six remedies by replay, with no whole-layer
+  run: more candidates, the cma-mode seed step, a wide CMA fit, tries from the neighbours, no seed
+  for clusters of one or two voxels, the existing outward search. Picked on set A, reported on B,
+  counts with intervals. Part 2 makes two whole-layer runs with the pick through a script wrapper
+  (S, and K2 which repeats step 5's unfinished run K), each with a coded 60-minute cap, then the
+  boundary pass; it is skipped if no remedy removes half of the grid fallbacks on A. No library
+  change, no default changed. Committed results stay under 5 MB and hold only what the summary
+  reads. Where: icenine_py/docs/autoresearch/PLAN.md, 'Step 6' of the AR3 section.
