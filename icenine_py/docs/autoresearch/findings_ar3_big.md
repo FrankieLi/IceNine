@@ -46,7 +46,8 @@ so this is not a like-for-like comparison; the matched levels are in the section
 3. **Is it cheaper than `D4`?** No, not here. `S5` with the pass costs 13.00 million
    evaluations, `D4` with the pass 11.94 million: 8.8% more. On the gradient sample `S5` cost
    20.63 million against 38.81 million. The grid fallbacks that `S5` removes were few on `big`
-   (8 of 329 index runs in `D4`, 1.24 to 4.72%).
+   (8 of 329 index runs in `D4`, 1.24 to 4.72%), and `S5` ran 20 more index runs than `D4`
+   (see "Why `S5` is not cheaper than `D4` on `big`").
 4. **What is the largest part of `S5` on `big`?** The seed step: 7.47 million of 13.00 million
    (57.5%). Local optimizations (neighbour and revisit) are 33.8%, the pass 8.7%. This is not
    what the plan expected (two of the three predictions below do not agree).
@@ -178,8 +179,9 @@ Reading of the table: where the 13.00 million evaluations of `S5` with the pass 
 Reading of the table: the cost of one index run (the seed step's evaluations divided by the
 number of index runs, in `D4` and in `S5`), how often `D4`'s seed step fails and goes to the grid
 search, what one fallback costs, and the fallback rate at which `S5`'s dearer seed step breaks
-even (extra evaluations per index run, divided by the cost of a fallback). This is arithmetic on
-the counters of two runs; it holds for these two samples only.
+even (extra evaluations per index run, divided by the cost of a fallback). The break-even rate
+assumes that `S5` never falls back. This is arithmetic on the counters of two runs; it holds for
+these two samples only.
 
 <!-- table:seed_cost -->
 | sample | index_runs_d4 | evals_per_index_run_d4 | evals_per_index_run_s5 | fallback_rate_d4 | evals_per_grid_fallback_d4 | break_even_pct |
@@ -188,12 +190,30 @@ the counters of two runs; it holds for these two samples only.
 | gradient | 1298 | 2611 | 4633 | 76 of 1298 (4.70 to 7.27%) | 339914 | 0.6 |
 <!-- /table:seed_cost -->
 
-`S5`'s seed step costs 1.75 to 1.77 times `D4`'s per index run on the two samples. It pays when `D4` falls back
-often. On the gradient sample `D4` fell back on 5.9% of its index runs, against a break-even of
-0.6%. On `big` it fell back on 2.4%, with a break-even of 3.0% that lies inside the interval of
-the rate. So the small loss of `S5` on `big` is consistent with too few grid fallbacks to
-repay it; the rate on `big` is too uncertain (8 fallbacks) to say on which side of the
-break-even it lies.
+`S5`'s seed step costs 1.75 to 1.77 times `D4`'s per index run on the two samples. It pays when
+`D4` falls back often. The break-even rate in the table assumes that `S5` never falls back. On
+`big` that holds: `S5` fell back 0 times in 349 index runs (0.00 to 1.09%). On the gradient
+sample it does not: `S5` fell back 15 times in 1,293 index runs (1.16%, interval 0.70 to
+1.91%). One `S5` fallback there cost about the same as one `D4` fallback (339,890 against
+339,914 evaluations). With `S5`'s own rate added, `D4`'s break-even rate on the gradient sample
+is 1.75%, not 0.6%. `D4` fell back on 5.9% of its index runs there, above either value. On
+`big` `D4` fell back on 2.4%, with a break-even of 3.0% that lies inside the interval of the
+rate.
+
+Added: the split of the difference on `big`. The seed step and the grid fallbacks of `S5` cost
+7,469,574 evaluations, those of `D4` 6,469,147: 1,000,427 more in `S5`. `S5` also ran 20 more
+index runs than `D4` (349 against 329: 314 against 291 reseeds, and 35 against 38 first
+seeds). With the extra runs priced at `S5`'s cost per index run, the difference has three parts:
+
+- +3.03 million: each of `D4`'s 329 index runs costs more in `S5`;
+- -2.45 million: the 8 grid fallbacks of `D4` that `S5` did not need;
+- +0.43 million: `S5`'s 20 extra index runs, about 43% of the 1.00 million.
+
+The split depends on the pricing. Priced at `D4`'s cost per index run, the extra runs make
+0.24 million (24%). Why `S5` needed 23 more reseeds than `D4` was not tested. So the higher
+cost of `S5` on `big` is consistent with two things: too few grid fallbacks to repay the dearer
+index run, and the extra reseeds. The fallback rate on `big` is too uncertain (8 fallbacks) to
+say on which side of the break-even it lies.
 
 An index run also costs 4.6 to 4.7 times as much on `big` as on the gradient sample, in both
 `D4` and `S5`. Added, from `S5`'s seed log: the seed steps by the true level of the grain.
