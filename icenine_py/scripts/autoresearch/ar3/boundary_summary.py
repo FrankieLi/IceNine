@@ -31,7 +31,15 @@ RUN_EVALS = {  # evaluations of the run that made the map (refine stage included
     "K": ("boundary/runs/K", None),
     "KE": ("boundary/runs/KE", None),
 }
-PAIRS = [("D4", "D"), ("P4R4", "PR"), ("E4", "D2"), ("K", "D4"), ("KE", "E4")]
+PAIRS = [
+    ("D4", "D"),
+    ("P4R4", "PR"),
+    ("E4", "D2"),
+    ("K", "D4"),
+    ("K", "D"),
+    ("KE", "E4"),
+    ("KE", "D2"),
+]
 RH_GRID = [0.90, 0.92, 0.94, 0.96, 0.98, 1.00]
 CQ_GRID = [25, 50, 75, 90, 100]  # cost quantiles (pooled step 4 maps); 100 = cost not used
 
@@ -288,6 +296,43 @@ def main() -> None:
         ],
         {"evals_this": ",", "evals_against": ","},
     )
+    # ------------------------------------------------------------ evaluations by stage (BFS runs)
+    kr = []
+    for m in ("K", "D4", "D", "KE", "E4", "D2"):
+        rp = B.C.OUT / RUN_EVALS[m][0] / "run.json"
+        if not rp.exists():
+            continue
+        st = json.loads(rp.read_text())["stats"]
+        g = lambda k: int(st.get(k, 0))  # noqa: E731
+        kr.append(
+            dict(
+                run=m,
+                seed=g("n_evals_seed"),
+                neighbor=g("n_evals_neighbor"),
+                revisit=g("n_evals_revisit"),
+                reseed=g("n_evals_reseed"),
+                total=int(json.loads(rp.read_text())["evals_total"]),
+                entries=g("n_seeds") + g("n_reseeds"),
+                index_used=g("index_used"),
+                grid_fallbacks=g("index_fallback_seed_test"),
+                grid_evals=g("index_fallback_grid_evals"),
+                first_accepted=g("n_neighbor_accepted_first"),
+                neighbor_fits=g("n_neighbor_fits"),
+                retries=g("n_retry_attempted_neighbor") + g("n_retry_attempted_revisit"),
+                retries_accepted=g("n_retry_accepted_neighbor") + g("n_retry_accepted_revisit"),
+                wall_s=float(json.loads(rp.read_text())["wall_total_s"]),
+            )
+        )
+    S["stages"] = kr
+    if kr:
+        T["ar3e_stages"] = DT.markdown_table(
+            kr,
+            ["run", "seed", "neighbor", "revisit", "reseed", "total", "entries", "index_used",
+             "grid_fallbacks", "grid_evals", "neighbor_fits", "first_accepted", "retries",
+             "retries_accepted", "wall_s"],
+            {k: "," for k in ("seed", "neighbor", "revisit", "reseed", "total", "grid_evals")}
+            | {"wall_s": ".0f"},
+        )
     # ------------------------------------------------------------ second pass
     sec = []
     for m in have:

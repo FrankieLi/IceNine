@@ -11507,3 +11507,24 @@ three ran side by side). Wrapper only in `local_optimization`: every CMA call is
 Review fixes (task ar3d, same day): text and summary output only, no rerun. Open question for
 the owner: whether something known at acceptance (hit ratio over the best, cost) tells the
 accepted wrong fits apart.
+
+## Autoresearch AR3 step 5: neighbouring grains compete for the boundary voxels (done 2026-11-10, task ar3e)
+
+No change under `icenine/`; scripts `scripts/autoresearch/ar3/{boundary_common,boundary_part0,
+boundary_check,boundary_pass,boundary_lib,boundary_summary,boundary_ratio,run_keys,keys_bg}.py`,
+results `benchmarks/autoresearch/ar3/boundary/`, page `docs/autoresearch/findings_ar3_boundary.md`
+(placed by the main session; the tool refused the implementer's write).
+Gradient sample of step 3 and step 2's sample; C++ read, not run; one run, one voxel order.
+Part 0 gate passed (412 of 412 newly wrong voxels have a candidate within 1 degree of the truth
+and a truth that scores better), but 94% of voxels are boundary voxels (grains of about 50
+voxels), so the test is weak. One try reproduces run C on 200 of 200 voxels. Pass (every try of
+every boundary voxel, 61 evaluations each, 3.0 to 3.7 million evaluations, 3 to 22% of a run):
+pick on set A is the `hit` rule; wrong voxels after it: D4 225 to 74, P4R4 281 to 82, E4 305 to 0
+(step 3's D, PR and step 2's D: 203 to 88, 170 to 78, 153 to 14). D4 plus pass against D without
+the pass: 74 against 203 wrong at 38.8 against 118.4 million evaluations; against D plus pass no
+gain or loss (74 against 88). A skip rule on the neighbour-relative hit ratio (at least 0.94)
+skips about 92% of the tries and loses none of 360 fixed voxels on A, 1 of 313 on B. Run `KE`
+(library keys, no wrapper) finished: 5.4 against 13.6 million evaluations for E4, 0 wrong after the
+pass. Run `K` hit its cap of 60 awake minutes in the reseed stage (no map). The first K and KE
+attempts were stopped by a wall-clock cap while the machine slept and were rerun with an awake-time
+cap. Parts 0 and 1 took about 145 minutes, not 90.
