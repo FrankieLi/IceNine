@@ -56,6 +56,11 @@ def main() -> None:
                 broken_vs_stored=int((~st & lib).sum()),
                 both_wrong=int((st & lib).sum()),
                 n_voxels_with_different_error=int((e[f"lib_{tag}"] != e[f"stored_{tag}"]).sum()),
+                max_abs_error_difference_deg=float(
+                    np.abs(e[f"lib_{tag}"] - e[f"stored_{tag}"]).max()
+                ),
+                fixed_voxels=[int(v) for v in np.where(st & ~lib)[0]][:20],
+                broken_voxels=[int(v) for v in np.where(~st & lib)[0]][:20],
             )
         # the pass on the library's own map: fixed / broken against the library map before it
         lb, la = w["lib_before"], w["lib_after"]

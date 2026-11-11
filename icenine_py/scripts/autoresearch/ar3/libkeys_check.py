@@ -64,20 +64,30 @@ def compare_pass(new_npz: Path, old_npz: Path) -> Dict[str, Any]:
                          int(len(np.unique(b["voxel"])))),
     )  # fmt: skip
     if len(a["voxel"]) == len(b["voxel"]):
+        n = len(a["voxel"])
         same_key = (a["voxel"] == b["voxel"]) & (a["cand"] == b["cand"])
-        same_end = (a["end"] == b["end"]).reshape(len(a["voxel"]), -1).all(1)
+        same_end = (a["end"] == b["end"]).reshape(n, -1).all(1)
+        end_diff = np.abs(a["end"].astype(np.float64) - b["end"].astype(np.float64)).reshape(n, -1)
         same = same_key & same_end & (a["cost"] == b["cost"]) & (a["evals"] == b["evals"])
+        out["same_voxel_and_candidate"] = int(same_key.sum())
+        out["same_evaluations"] = int((a["evals"] == b["evals"]).sum())
+        out["same_cost_exact"] = int((a["cost"] == b["cost"]).sum())
+        out["same_hit_exact"] = int((a["hit"] == b["hit"]).sum())
+        out["same_end_exact"] = int(same_end.sum())
+        out["max_abs_end_difference"] = float(end_diff.max())
+        out["ends_further_apart_than_1e-5"] = int((end_diff.max(1) > 1e-5).sum())
+        out["max_abs_cost_difference"] = float(np.abs(a["cost"] - b["cost"]).max())
         out["tries_equal_in_every_field"] = int(same.sum())
         bad = np.where(~same)[0]
         out["tries_differ"] = int(len(bad))
-        out["voxels_touched_by_differing_tries"] = sorted({int(v) for v in a["voxel"][bad]})[:50]
+        out["voxels_touched_by_differing_tries"] = sorted({int(v) for v in a["voxel"][bad]})[:30]
         if len(bad):
             i = int(bad[0])
             out["first_differing_try"] = dict(
                 voxel=int(a["voxel"][i]), cand=int(a["cand"][i]),
                 evals=(int(a["evals"][i]), int(b["evals"][i])),
                 cost=(float(a["cost"][i]), float(b["cost"][i])),
-                max_abs_end_diff=float(np.abs(a["end"][i] - b["end"][i]).max()),
+                max_abs_end_diff=float(end_diff[i].max()),
             )  # fmt: skip
     else:
         sa = set(zip(a["voxel"].tolist(), a["cand"].tolist()))
@@ -86,6 +96,16 @@ def compare_pass(new_npz: Path, old_npz: Path) -> Dict[str, Any]:
         out["pairs_only_in_stored"] = sorted(sb - sa)[:50]
         out["n_pairs_only_in_library"] = len(sa - sb)
         out["n_pairs_only_in_stored"] = len(sb - sa)
+        common = sorted(sa & sb)
+        ia = {p: i for i, p in enumerate(zip(a["voxel"].tolist(), a["cand"].tolist()))}
+        ib = {p: i for i, p in enumerate(zip(b["voxel"].tolist(), b["cand"].tolist()))}
+        ja = np.array([ia[p] for p in common])
+        jb = np.array([ib[p] for p in common])
+        e_a, e_b = a["end"][ja].astype(np.float64), b["end"][jb].astype(np.float64)
+        out["same_voxel_and_candidate"] = len(common)
+        out["same_end_exact"] = int((e_a == e_b).reshape(len(common), -1).all(1).sum())
+        out["same_evaluations"] = int((a["evals"][ja] == b["evals"][jb]).sum())
+        out["voxels_with_a_pair_in_one_list_only"] = sorted({v for v, _ in (sa ^ sb)})
     return out
 
 
@@ -111,7 +131,8 @@ def main() -> None:
         ),
         evals_before_pass=(new["evals_total_before_pass"], exp["evals"]),
     )
-    res["counters"] = compare_counters(st, old["stats"])
+    # the final stats: the pass adds its own keys (listed as "only in library") and changes no other
+    res["counters"] = compare_counters(new["stats"], old["stats"])
     res["stored_evals_total"] = old.get("evals_total")
     res["records"] = compare_records(
         K.read_gz(run / "records.json.gz"), K.read_gz(stored_dir / "records.json.gz")
@@ -136,7 +157,7 @@ def main() -> None:
             fallback_won=(st["cma_first_fallback_won"], w["fallback_won"]),
         )
     if kind == "S8L":
-        s8 = old["s8"]
+        s8 = json.loads((stored_dir / "s8.json").read_text())
         res["early_stops"] = dict(
             stopped_early=(st["index_stopped_early"], s8["stopped_early"]),
             seed_steps=(st["index_runs"], s8["seed_steps"]),

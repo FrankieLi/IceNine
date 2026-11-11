@@ -1,0 +1,137 @@
+{
+ "kind": "S8L",
+ "stored_run": "S5",
+ "keys": [
+  "BFSNeighborCMAFirst 1",
+  "CMASigma0 0.05",
+  "CMANeighborMaxEvals 60",
+  "BoundaryPass 1",
+  "SeedIndexCandidates 20 5",
+  "SeedIndexStopHitRatio 0.95"
+ ],
+ "plan_numbers": {
+  "seeds": [
+   37,
+   37
+  ],
+  "reseeds": [
+   292,
+   292
+  ],
+  "grid": [
+   0,
+   0
+  ],
+  "evals_before_pass": [
+   7201863,
+   7201863
+  ]
+ },
+ "counters": {
+  "n_stored_counters": 33,
+  "differ": {},
+  "only_in_stored": [],
+  "only_in_library": [
+   "boundary_changed",
+   "boundary_tries",
+   "boundary_voxels",
+   "cma_first_fallback_runs",
+   "cma_first_fallback_won",
+   "index_stopped_early",
+   "n_evals_boundary_pass",
+   "n_evals_boundary_score"
+  ]
+ },
+ "stored_evals_total": 7201863,
+ "records": {
+  "equal": true,
+  "n": 24570
+ },
+ "map_before_pass_vs_stored_recon_mic": {
+  "equal": true,
+  "bytes": 6535568
+ },
+ "early_stops": {
+  "stopped_early": [
+   322,
+   322
+  ],
+  "seed_steps": [
+   329,
+   329
+  ],
+  "seed_step_evals": [
+   2856712,
+   2856712
+  ]
+ },
+ "pass_in_run": {
+  "tries": [
+   18664,
+   18665
+  ],
+  "evals": [
+   1138504,
+   1138565
+  ],
+  "boundary_voxels": [
+   11054,
+   11054
+  ],
+  "pairs_only_in_library": [
+   [
+    8679,
+    8687
+   ],
+   [
+    8687,
+    8685
+   ],
+   [
+    8687,
+    8689
+   ]
+  ],
+  "pairs_only_in_stored": [
+   [
+    8679,
+    13893
+   ],
+   [
+    8687,
+    8688
+   ],
+   [
+    8687,
+    20981
+   ],
+   [
+    8687,
+    20991
+   ]
+  ],
+  "n_pairs_only_in_library": 3,
+  "n_pairs_only_in_stored": 4,
+  "same_voxel_and_candidate": 18661,
+  "same_end_exact": 5,
+  "same_evaluations": 18661,
+  "voxels_with_a_pair_in_one_list_only": [
+   8679,
+   8687
+  ]
+ },
+ "pass_counts": {
+  "tries": [
+   18664,
+   18665
+  ],
+  "evals": [
+   1138504,
+   1138565
+  ],
+  "boundary_voxels": 11054,
+  "changed": 1084
+ },
+ "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 100% CPU); single run, one worker",
+ "wall_total_s": 865.3472299575806
+}

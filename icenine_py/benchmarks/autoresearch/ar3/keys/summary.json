@@ -1,0 +1,647 @@
+{
+ "runs": {
+  "D4L": {
+   "library": {
+    "seeds": 38,
+    "reseeds": 291,
+    "grid": 8,
+    "seed_step": 4016458,
+    "grid_fallback": 2452689,
+    "neighbour": 3479526,
+    "revisit": 863042,
+    "pass_": 1131977,
+    "total": 11943692
+   },
+   "stored": {
+    "seeds": 38,
+    "reseeds": 291,
+    "grid": 8,
+    "seed_step": 4016458,
+    "grid_fallback": 2452689,
+    "neighbour": 3479526,
+    "revisit": 863042,
+    "pass_": 1131977,
+    "total": 11943692
+   }
+  },
+  "S5L": {
+   "library": {
+    "seeds": 35,
+    "reseeds": 314,
+    "grid": 0,
+    "seed_step": 7469574,
+    "grid_fallback": 0,
+    "neighbour": 3513895,
+    "revisit": 884040,
+    "pass_": 1132343,
+    "total": 12999852
+   },
+   "stored": {
+    "seeds": 35,
+    "reseeds": 314,
+    "grid": 0,
+    "seed_step": 7469574,
+    "grid_fallback": 0,
+    "neighbour": 3513895,
+    "revisit": 884040,
+    "pass_": 1132343,
+    "total": 12999852
+   }
+  },
+  "S8L": {
+   "library": {
+    "seeds": 37,
+    "reseeds": 292,
+    "grid": 0,
+    "seed_step": 2856712,
+    "grid_fallback": 0,
+    "neighbour": 3491437,
+    "revisit": 853714,
+    "pass_": 1138504,
+    "total": 8340367
+   },
+   "stored": {
+    "seeds": 37,
+    "reseeds": 292,
+    "grid": 0,
+    "seed_step": 2856712,
+    "grid_fallback": 0,
+    "neighbour": 3491437,
+    "revisit": 853714,
+    "pass_": 1138565,
+    "total": 8340428
+   }
+  }
+ },
+ "checks": {
+  "D4L": {
+   "kind": "D4L",
+   "stored_run": "D4",
+   "keys": [
+    "BFSNeighborCMAFirst 1",
+    "CMASigma0 0.05",
+    "CMANeighborMaxEvals 60",
+    "BoundaryPass 1"
+   ],
+   "plan_numbers": {
+    "seeds": [
+     38,
+     38
+    ],
+    "reseeds": [
+     291,
+     291
+    ],
+    "grid": [
+     8,
+     8
+    ],
+    "evals_before_pass": [
+     10811715,
+     10811715
+    ]
+   },
+   "counters": {
+    "n_stored_counters": 36,
+    "differ": {},
+    "only_in_stored": [],
+    "only_in_library": [
+     "boundary_changed",
+     "boundary_tries",
+     "boundary_voxels",
+     "cma_first_fallback_runs",
+     "cma_first_fallback_won",
+     "n_evals_boundary_pass",
+     "n_evals_boundary_score"
+    ]
+   },
+   "stored_evals_total": 10811715,
+   "records": {
+    "equal": true,
+    "n": 24570
+   },
+   "map_before_pass_vs_stored_recon_mic": {
+    "equal": true,
+    "bytes": 6535568
+   },
+   "wrapper_counts": {
+    "fits": [
+     32562,
+     32562
+    ],
+    "mc_fallbacks": [
+     3194,
+     3194
+    ],
+    "fallback_won": [
+     4,
+     4
+    ]
+   },
+   "pass_in_run": {
+    "tries": [
+     18557,
+     18557
+    ],
+    "evals": [
+     1131977,
+     1131977
+    ],
+    "boundary_voxels": [
+     11087,
+     11087
+    ],
+    "same_voxel_and_candidate": 18556,
+    "same_evaluations": 18557,
+    "same_cost_exact": 14292,
+    "same_hit_exact": 13257,
+    "same_end_exact": 14,
+    "max_abs_end_difference": 0.01222085952758789,
+    "ends_further_apart_than_1e-5": 3171,
+    "max_abs_cost_difference": 0.4575631250812974,
+    "tries_equal_in_every_field": 14,
+    "tries_differ": 18543,
+    "voxels_touched_by_differing_tries": [
+     0,
+     1,
+     2,
+     8,
+     9,
+     10,
+     31,
+     32,
+     35,
+     36,
+     37,
+     38,
+     39,
+     40,
+     41,
+     42,
+     43,
+     53,
+     54,
+     55,
+     56,
+     57,
+     58,
+     60,
+     61,
+     62,
+     63,
+     80,
+     81,
+     82
+    ],
+    "first_differing_try": {
+     "voxel": 0,
+     "cand": 9423,
+     "evals": [
+      61,
+      61
+     ],
+     "cost": [
+      0.11689717902711327,
+      0.11689717902711327
+     ],
+     "max_abs_end_diff": 2.5704503059387207e-07
+    }
+   },
+   "pass_counts": {
+    "tries": [
+     18557,
+     18557
+    ],
+    "evals": [
+     1131977,
+     1131977
+    ],
+    "boundary_voxels": 11087,
+    "changed": 1052
+   },
+   "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 100% CPU); single run, one worker",
+   "wall_total_s": 1089.82909989357
+  },
+  "S5L": {
+   "kind": "S5L",
+   "stored_run": "S5",
+   "keys": [
+    "BFSNeighborCMAFirst 1",
+    "CMASigma0 0.05",
+    "CMANeighborMaxEvals 60",
+    "BoundaryPass 1",
+    "SeedIndexCandidates 20 5"
+   ],
+   "plan_numbers": {
+    "seeds": [
+     35,
+     35
+    ],
+    "reseeds": [
+     314,
+     314
+    ],
+    "grid": [
+     0,
+     0
+    ],
+    "evals_before_pass": [
+     11867509,
+     11867509
+    ]
+   },
+   "counters": {
+    "n_stored_counters": 33,
+    "differ": {},
+    "only_in_stored": [],
+    "only_in_library": [
+     "boundary_changed",
+     "boundary_tries",
+     "boundary_voxels",
+     "cma_first_fallback_runs",
+     "cma_first_fallback_won",
+     "n_evals_boundary_pass",
+     "n_evals_boundary_score"
+    ]
+   },
+   "stored_evals_total": 11867509,
+   "records": {
+    "equal": true,
+    "n": 24570
+   },
+   "map_before_pass_vs_stored_recon_mic": {
+    "equal": true,
+    "bytes": 6535568
+   },
+   "wrapper_counts": {
+    "fits": [
+     32673,
+     32673
+    ],
+    "mc_fallbacks": [
+     3235,
+     3235
+    ],
+    "fallback_won": [
+     3,
+     3
+    ]
+   },
+   "pass_in_run": {
+    "tries": [
+     18563,
+     18563
+    ],
+    "evals": [
+     1132343,
+     1132343
+    ],
+    "boundary_voxels": [
+     11049,
+     11049
+    ],
+    "same_voxel_and_candidate": 18563,
+    "same_evaluations": 18563,
+    "same_cost_exact": 14219,
+    "same_hit_exact": 13174,
+    "same_end_exact": 11,
+    "max_abs_end_difference": 0.015282390639185905,
+    "ends_further_apart_than_1e-5": 3272,
+    "max_abs_cost_difference": 0.4204336613225944,
+    "tries_equal_in_every_field": 11,
+    "tries_differ": 18552,
+    "voxels_touched_by_differing_tries": [
+     0,
+     1,
+     2,
+     8,
+     9,
+     10,
+     31,
+     32,
+     35,
+     36,
+     37,
+     38,
+     39,
+     41,
+     42,
+     53,
+     54,
+     55,
+     56,
+     57,
+     58,
+     60,
+     61,
+     62,
+     63,
+     80,
+     81,
+     82,
+     83,
+     96
+    ],
+    "first_differing_try": {
+     "voxel": 0,
+     "cand": 12299,
+     "evals": [
+      61,
+      61
+     ],
+     "cost": [
+      0.15036792627736906,
+      0.15036792627736906
+     ],
+     "max_abs_end_diff": 3.4086406230926514e-07
+    }
+   },
+   "pass_counts": {
+    "tries": [
+     18563,
+     18563
+    ],
+    "evals": [
+     1132343,
+     1132343
+    ],
+    "boundary_voxels": 11049,
+    "changed": 1023
+   },
+   "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 100% CPU); single run, one worker",
+   "wall_total_s": 1156.439749956131
+  },
+  "S8L": {
+   "kind": "S8L",
+   "stored_run": "S5",
+   "keys": [
+    "BFSNeighborCMAFirst 1",
+    "CMASigma0 0.05",
+    "CMANeighborMaxEvals 60",
+    "BoundaryPass 1",
+    "SeedIndexCandidates 20 5",
+    "SeedIndexStopHitRatio 0.95"
+   ],
+   "plan_numbers": {
+    "seeds": [
+     37,
+     37
+    ],
+    "reseeds": [
+     292,
+     292
+    ],
+    "grid": [
+     0,
+     0
+    ],
+    "evals_before_pass": [
+     7201863,
+     7201863
+    ]
+   },
+   "counters": {
+    "n_stored_counters": 33,
+    "differ": {},
+    "only_in_stored": [],
+    "only_in_library": [
+     "boundary_changed",
+     "boundary_tries",
+     "boundary_voxels",
+     "cma_first_fallback_runs",
+     "cma_first_fallback_won",
+     "index_stopped_early",
+     "n_evals_boundary_pass",
+     "n_evals_boundary_score"
+    ]
+   },
+   "stored_evals_total": 7201863,
+   "records": {
+    "equal": true,
+    "n": 24570
+   },
+   "map_before_pass_vs_stored_recon_mic": {
+    "equal": true,
+    "bytes": 6535568
+   },
+   "early_stops": {
+    "stopped_early": [
+     322,
+     322
+    ],
+    "seed_steps": [
+     329,
+     329
+    ],
+    "seed_step_evals": [
+     2856712,
+     2856712
+    ]
+   },
+   "pass_in_run": {
+    "tries": [
+     18664,
+     18665
+    ],
+    "evals": [
+     1138504,
+     1138565
+    ],
+    "boundary_voxels": [
+     11054,
+     11054
+    ],
+    "pairs_only_in_library": [
+     [
+      8679,
+      8687
+     ],
+     [
+      8687,
+      8685
+     ],
+     [
+      8687,
+      8689
+     ]
+    ],
+    "pairs_only_in_stored": [
+     [
+      8679,
+      13893
+     ],
+     [
+      8687,
+      8688
+     ],
+     [
+      8687,
+      20981
+     ],
+     [
+      8687,
+      20991
+     ]
+    ],
+    "n_pairs_only_in_library": 3,
+    "n_pairs_only_in_stored": 4,
+    "same_voxel_and_candidate": 18661,
+    "same_end_exact": 5,
+    "same_evaluations": 18661,
+    "voxels_with_a_pair_in_one_list_only": [
+     8679,
+     8687
+    ]
+   },
+   "pass_counts": {
+    "tries": [
+     18664,
+     18665
+    ],
+    "evals": [
+     1138504,
+     1138565
+    ],
+    "boundary_voxels": 11054,
+    "changed": 1084
+   },
+   "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 100% CPU); single run, one worker",
+   "wall_total_s": 865.3472299575806
+  }
+ },
+ "score": {
+  "D4L": {
+   "lib_before": 68,
+   "lib_after": 22,
+   "stored_before": 68,
+   "stored_after": 21,
+   "wrong_after_ci95": [
+    0.00059,
+    0.00136
+   ],
+   "expected": {
+    "wrong_before": 68,
+    "wrong_after": 21
+   },
+   "paired_before": {
+    "fixed_vs_stored": 0,
+    "broken_vs_stored": 0,
+    "both_wrong": 68,
+    "n_voxels_with_different_error": 0,
+    "max_abs_error_difference_deg": 0.0,
+    "fixed_voxels": [],
+    "broken_voxels": []
+   },
+   "paired_after": {
+    "fixed_vs_stored": 0,
+    "broken_vs_stored": 1,
+    "both_wrong": 21,
+    "n_voxels_with_different_error": 1082,
+    "max_abs_error_difference_deg": 32.39267302415387,
+    "fixed_voxels": [],
+    "broken_voxels": [
+     19614
+    ]
+   },
+   "pass_on_library_map": {
+    "fixed": 48,
+    "broken": 2,
+    "both_wrong": 20
+   }
+  },
+  "S5L": {
+   "lib_before": 71,
+   "lib_after": 30,
+   "stored_before": 71,
+   "stored_after": 30,
+   "wrong_after_ci95": [
+    0.00086,
+    0.00174
+   ],
+   "expected": {
+    "wrong_before": 71,
+    "wrong_after": 30
+   },
+   "paired_before": {
+    "fixed_vs_stored": 0,
+    "broken_vs_stored": 0,
+    "both_wrong": 71,
+    "n_voxels_with_different_error": 0,
+    "max_abs_error_difference_deg": 0.0,
+    "fixed_voxels": [],
+    "broken_voxels": []
+   },
+   "paired_after": {
+    "fixed_vs_stored": 0,
+    "broken_vs_stored": 0,
+    "both_wrong": 30,
+    "n_voxels_with_different_error": 1067,
+    "max_abs_error_difference_deg": 0.25658277241495303,
+    "fixed_voxels": [],
+    "broken_voxels": []
+   },
+   "pass_on_library_map": {
+    "fixed": 44,
+    "broken": 3,
+    "both_wrong": 27
+   }
+  },
+  "S8L": {
+   "lib_before": 67,
+   "lib_after": 24,
+   "stored_before": 67,
+   "stored_after": 24,
+   "wrong_after_ci95": [
+    0.00066,
+    0.00145
+   ],
+   "expected": {
+    "wrong_before": 67,
+    "wrong_after": 24
+   },
+   "paired_before": {
+    "fixed_vs_stored": 0,
+    "broken_vs_stored": 0,
+    "both_wrong": 67,
+    "n_voxels_with_different_error": 0,
+    "max_abs_error_difference_deg": 0.0,
+    "fixed_voxels": [],
+    "broken_voxels": []
+   },
+   "paired_after": {
+    "fixed_vs_stored": 5,
+    "broken_vs_stored": 5,
+    "both_wrong": 19,
+    "n_voxels_with_different_error": 1335,
+    "max_abs_error_difference_deg": 59.841858797416144,
+    "fixed_voxels": [
+     10325,
+     13838,
+     16458,
+     22347,
+     22612
+    ],
+    "broken_voxels": [
+     12908,
+     17818,
+     19678,
+     20294,
+     22600
+    ]
+   },
+   "pass_on_library_map": {
+    "fixed": 46,
+    "broken": 3,
+    "both_wrong": 21
+   }
+  }
+ },
+ "tables": [
+  "keys_evals",
+  "keys_exact",
+  "keys_pass1",
+  "keys_pass2",
+  "keys_off",
+  "keys_measured"
+ ]
+}
