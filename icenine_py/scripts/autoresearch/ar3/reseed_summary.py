@@ -206,6 +206,11 @@ def main() -> None:
     )
 
     plot_split(steps, lvl)
+    import reseed_summary2 as S2
+
+    s2, t2 = S2.build()
+    summ.update(s2)
+    tabs.update(t2)
     (OUT / "summary.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
     write_tables(OUT / "tables.md", tabs)
     print(tabs["step_split"])
