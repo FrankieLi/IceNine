@@ -41,7 +41,12 @@ brief and the note "continue from the commits on the branch".
 
 ## Running jobs
 
-None yet. (Filled in when the step 6 implementer and the page agent start.)
+- Step 6 implementer (Sonnet, own worktree, branch `feature/eval-reduction-ar3f`), started
+  2026-11-10 at about 23:50. Its report goes to `.claude/reports/20261110-2308-ar3f.md` (in
+  the main checkout, or at the same path in its own worktree). The session is notified when it
+  ends. Check without reading its output: `git worktree list | tail -n 3` and
+  `git log --oneline feature/eval-reduction..feature/eval-reduction-ar3f | head -n 10`.
+- The review page is at version 29 (step 5 done, step 6 running). No page job is open.
 
 ## Queue
 
@@ -50,7 +55,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 6 | the seed cost (task `ar3f`) | plan c88fdd8 approved (N8); implementer starting |
+| AR3 step 6 | the seed cost (task `ar3f`) | plan c88fdd8 approved (N8); implementer running |
 | AR3 later | larger-grain check; opt-in keys for the boundary pass and the remedy | after step 6 |
 | AR4 | the learned proposer | after step 6 |
 | AR5 | the stop rule inside the grid search | after step 6 |
