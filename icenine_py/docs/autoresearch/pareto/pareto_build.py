@@ -10,6 +10,11 @@ import json
 import os
 import math
 
+S9_PASS = (
+    "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, start test 0.90, "
+    "CMA + boundary pass (run S9)"
+)
+
 S = os.path.dirname(os.path.abspath(__file__)) + "/"
 d = json.load(open(S + "pareto_rows.json"))
 
@@ -23,6 +28,11 @@ PANELS = [
         id="big_24570",
         big=True,
         title="Whole layer, larger grains, gradients up to 4 degrees (24,570 voxels)",
+    ),
+    dict(
+        id="mid_24570",
+        big=True,
+        title="Whole layer, 120 grains, gradients up to 4 degrees (24,570 voxels)",
     ),
     dict(
         id="layer_24570", big=True, title="Whole layer, one orientation per grain (24,570 voxels)"
@@ -51,9 +61,9 @@ LABELS = {
         ),
         "BFS indexed, neighbour tries + best 5 of 20 seeds, CMA + boundary pass (run S)": (
             "S + pass",
-            -17,
+            10,
             4,
-            "end",
+            "start",
         ),
         "BFS indexed, best 5 of 20 seeds, CMA + boundary pass (run S5)": (
             "S5 + pass",
@@ -75,8 +85,20 @@ LABELS = {
         ),
         "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA (run S8)": (
             "S5 with early stop (S8)",
+            -4,
             -12,
-            4,
+            "start",
+        ),
+        "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, start test 0.90, CMA (run S9)": (
+            "S8 with start test (S9)",
+            -10,
+            -18,
+            "middle",
+        ),
+        S9_PASS: (
+            "S9 + pass",
+            -14,
+            5,
             "end",
         ),
         "BFS indexed, neighbour tries + best 5 of 20 seeds, lib. CMA + boundary pass (run K2)": (
@@ -116,9 +138,9 @@ LABELS = {
         ),
         "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA (run S8)": (
             "S5 with early stop (S8)",
-            0,
-            -14,
-            "middle",
+            -40,
+            -12,
+            "start",
         ),
         "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA + boundary pass (run S8)": (
             "S8 + pass",
@@ -126,10 +148,62 @@ LABELS = {
             25,
             "middle",
         ),
+        "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, start test 0.90, CMA (run S9)": (
+            "S8 with start test (S9)",
+            -4,
+            -14,
+            "middle",
+        ),
+        S9_PASS: (
+            "S9 + pass",
+            -4,
+            25,
+            "end",
+        ),
         "Paint + CMA local optimization (run P4R4)": ("paint + CMA (P4R4)", 12, 4, "start"),
         "Paint + CMA + boundary pass (run P4R4)": ("P4R4 + pass", 12, 14, "start"),
         "BFS indexed seeds, stock local optimization (run D)": ("base run (D)", 0, -14, "middle"),
         "BFS indexed, stock + boundary pass (run D)": ("D + pass", 0, -14, "middle"),
+    },
+    "mid_24570": {
+        "BFS indexed seeds, CMA local optimization (run D4)": (
+            "old seed step (D4)",
+            12,
+            -8,
+            "start",
+        ),
+        "BFS indexed, CMA + boundary pass (run D4)": ("D4 + pass", 12, -8, "start"),
+        "BFS indexed, best 5 of 20 seeds, CMA (run S5)": ("new seed step (S5)", 12, 4, "start"),
+        "BFS indexed, best 5 of 20 seeds, CMA + boundary pass (run S5)": (
+            "S5 + pass",
+            12,
+            -10,
+            "start",
+        ),
+        "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA (run S8)": (
+            "S5 with early stop (S8)",
+            12,
+            4,
+            "start",
+        ),
+        "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA + boundary pass (run S8)": (
+            "S8 + pass",
+            0,
+            26,
+            "middle",
+        ),
+        "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, start test 0.90, CMA (run S9)": (
+            "S8 with start test (S9)",
+            0,
+            -16,
+            "end",
+        ),
+        S9_PASS: (
+            "S9 + pass",
+            0,
+            26,
+            "middle",
+        ),
     },
     "layer_24570": {
         "Paint grains (run C)": ("paint grains", 12, -10, "start"),

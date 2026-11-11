@@ -104,6 +104,13 @@
    "n_voxels": 24570,
    "wrong_definition": "more than 1 degree from the true orientation, after crystal symmetry (icenine_py/docs/autoresearch/findings_ar3_gradient.md:14)",
    "note": "AR3 step 7. 32 grains on the same 24,570-voxel grid; gradient levels 0, 0.2, 0.5, 1, 2 and 4 degrees (5 grains at 0, 5 grains at 0.2, 1 grains at 0.5, 9 grains at 1, 6 grains at 2, 6 grains at 4); clean images."
+  },
+  {
+   "id": "mid_24570",
+   "label": "Whole layer, 120 grains with orientation gradients (sample mid): 24,570 voxels",
+   "n_voxels": 24570,
+   "wrong_definition": "more than 1 degree from the true orientation, after crystal symmetry (icenine_py/docs/autoresearch/findings_ar3_gradient.md:14)",
+   "note": "AR3 step 9. 120 grains from a Voronoi grain map made for step 9 on the same 24,570-voxel grid (the plan asked for 120 grains; step 7's 32-grain file could not give them, so the map departs from the plan); orientations drawn so that adjacent grains differ by at least 5 degrees; grains with orientation gradients at six levels (0, 0.2, 0.5, 1, 2 and 4 degrees on 20, 16, 18, 22, 25 and 19 grains); clean images; random seed 0. No setting of any method was chosen on this sample."
   }
  ],
  "rows": [
@@ -2349,6 +2356,258 @@
    "source_json": "icenine_py/benchmarks/autoresearch/ar3/reseed/summary.json :: s8[grad][S8].{total, stages, wrong_after, ci_after}",
    "source_page": "icenine_py/docs/autoresearch/findings_ar3_reseed.md",
    "flag": "run S8 on the first gradient sample: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 16 grid-search fallbacks; the stop test was chosen after results (D-20261111-N5), so this is not a confirmed result"
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed seeds, CMA local optimization (run D4)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 37511301,
+   "evals_per_voxel": 1526.71,
+   "per_voxel_derived": true,
+   "wrong": 94,
+   "n": 24570,
+   "interval_pct": [
+    0.31,
+    0.47
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 13,551,359, grid-search fallbacks 17,640,347, neighbour local optimizations 3,821,439, revisit local optimizations 2,498,156",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[mid][D4].{total, stages, wrong_before}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run D4: the old seed step (on the new sample mid); 53 grid-search fallbacks; no setting was chosen on this sample; derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, CMA + boundary pass (run D4)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 40560874,
+   "evals_per_voxel": 1650.83,
+   "per_voxel_derived": true,
+   "wrong": 48,
+   "n": 24570,
+   "interval_pct": [
+    0.15,
+    0.26
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 13,551,359, grid-search fallbacks 17,640,347, neighbour local optimizations 3,821,439, revisit local optimizations 2,498,156, boundary pass 3,049,573",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[mid][D4].{total, stages, wrong_after}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run D4: the old seed step (on the new sample mid); 53 grid-search fallbacks; no setting was chosen on this sample"
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, best 5 of 20 seeds, CMA (run S5)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 36053983,
+   "evals_per_voxel": 1467.4,
+   "per_voxel_derived": true,
+   "wrong": 87,
+   "n": 24570,
+   "interval_pct": [
+    0.29,
+    0.44
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 24,678,413, grid-search fallbacks 4,996,273, neighbour local optimizations 3,806,891, revisit local optimizations 2,572,406",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[mid][S5].{total, stages, wrong_before}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run S5: the new seed step without tries from neighbours (on the new sample mid); 15 grid-search fallbacks; no setting was chosen on this sample; derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, best 5 of 20 seeds, CMA + boundary pass (run S5)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 39093613,
+   "evals_per_voxel": 1591.11,
+   "per_voxel_derived": true,
+   "wrong": 34,
+   "n": 24570,
+   "interval_pct": [
+    0.1,
+    0.19
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 24,678,413, grid-search fallbacks 4,996,273, neighbour local optimizations 3,806,891, revisit local optimizations 2,572,406, boundary pass 3,039,630",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[mid][S5].{total, stages, wrong_after}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run S5: the new seed step without tries from neighbours (on the new sample mid); 15 grid-search fallbacks; no setting was chosen on this sample"
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA (run S8)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 23387035,
+   "evals_per_voxel": 951.85,
+   "per_voxel_derived": true,
+   "wrong": 84,
+   "n": 24570,
+   "interval_pct": [
+    0.28,
+    0.42
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 12,007,352, grid-search fallbacks 5,002,750, neighbour local optimizations 3,859,661, revisit local optimizations 2,517,272",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[mid][S8].{total, stages, wrong_before}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run S8: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95 (on the new sample mid); 15 grid-search fallbacks; no setting was chosen on this sample; one run of each arm on one new sample; counted as the confirmation of the stop test (D-20261111-N7, the owner can overrule); derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA + boundary pass (run S8)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 26443074,
+   "evals_per_voxel": 1076.23,
+   "per_voxel_derived": true,
+   "wrong": 31,
+   "n": 24570,
+   "interval_pct": [
+    0.09,
+    0.18
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 12,007,352, grid-search fallbacks 5,002,750, neighbour local optimizations 3,859,661, revisit local optimizations 2,517,272, boundary pass 3,056,039",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[mid][S8].{total, stages, wrong_after}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run S8: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95 (on the new sample mid); 15 grid-search fallbacks; no setting was chosen on this sample; one run of each arm on one new sample; counted as the confirmation of the stop test (D-20261111-N7, the owner can overrule)"
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, start test 0.90, CMA (run S9)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 19605102,
+   "evals_per_voxel": 797.93,
+   "per_voxel_derived": true,
+   "wrong": 76,
+   "n": 24570,
+   "interval_pct": [
+    0.25,
+    0.39
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 11,666,873, grid-search fallbacks 4,997,389, neighbour local optimizations 1,167,148, revisit local optimizations 1,773,692",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[mid][S9].{total, stages, wrong_before}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run S9: run S8 plus a start test for the neighbour local optimizations (one evaluation of the start; if its hit ratio is at least 0.90 the start is kept and the local optimization is skipped) (on the new sample mid); 15 grid-search fallbacks; no setting was chosen on this sample; with the boundary pass S9 breaks more voxels than it fixes against S8 on all three samples (10 fixed and 15 broken on big, 31 and 38 on the first gradient sample, 9 and 18 on mid) and the median error rises; not a candidate for a key (D-20261111-N7); derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, start test 0.90, CMA + boundary pass (run S9)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 22672792,
+   "evals_per_voxel": 922.78,
+   "per_voxel_derived": true,
+   "wrong": 40,
+   "n": 24570,
+   "interval_pct": [
+    0.12,
+    0.22
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 11,666,873, grid-search fallbacks 4,997,389, neighbour local optimizations 1,167,148, revisit local optimizations 1,773,692, boundary pass 3,067,690",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[mid][S9].{total, stages, wrong_after}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run S9: run S8 plus a start test for the neighbour local optimizations (one evaluation of the start; if its hit ratio is at least 0.90 the start is kept and the local optimization is skipped) (on the new sample mid); 15 grid-search fallbacks; no setting was chosen on this sample; with the boundary pass S9 breaks more voxels than it fixes against S8 on all three samples (10 fixed and 15 broken on big, 31 and 38 on the first gradient sample, 9 and 18 on mid) and the median error rises; not a candidate for a key (D-20261111-N7)"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, start test 0.90, CMA (run S9)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 4483048,
+   "evals_per_voxel": 182.46,
+   "per_voxel_derived": true,
+   "wrong": 68,
+   "n": 24570,
+   "interval_pct": [
+    0.22,
+    0.35
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 3,097,413, neighbour local optimizations 960,109, revisit local optimizations 425,526",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[big][S9].{total, stages, wrong_before}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run S9: run S8 plus a start test for the neighbour local optimizations (one evaluation of the start; if its hit ratio is at least 0.90 the start is kept and the local optimization is skipped) (on the sample with larger grains); 0 grid-search fallbacks; with the boundary pass S9 breaks more voxels than it fixes against S8 on all three samples (10 fixed and 15 broken on big, 31 and 38 on the first gradient sample, 9 and 18 on mid) and the median error rises; not a candidate for a key (D-20261111-N7); derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, start test 0.90, CMA + boundary pass (run S9)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 5634362,
+   "evals_per_voxel": 229.32,
+   "per_voxel_derived": true,
+   "wrong": 29,
+   "n": 24570,
+   "interval_pct": [
+    0.08,
+    0.17
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 3,097,413, neighbour local optimizations 960,109, revisit local optimizations 425,526, boundary pass 1,151,314",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[big][S9].{total, stages, wrong_after}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run S9: run S8 plus a start test for the neighbour local optimizations (one evaluation of the start; if its hit ratio is at least 0.90 the start is kept and the local optimization is skipped) (on the sample with larger grains); 0 grid-search fallbacks; with the boundary pass S9 breaks more voxels than it fixes against S8 on all three samples (10 fixed and 15 broken on big, 31 and 38 on the first gradient sample, 9 and 18 on mid) and the median error rises; not a candidate for a key (D-20261111-N7)"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, start test 0.90, CMA (run S9)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 10941738,
+   "evals_per_voxel": 445.33,
+   "per_voxel_derived": true,
+   "wrong": 215,
+   "n": 24570,
+   "interval_pct": [
+    0.77,
+    1.0
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 3,088,444, grid-search fallbacks 4,756,980, neighbour local optimizations 1,423,346, revisit local optimizations 1,672,968",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[grad][S9].{total, stages, wrong_before}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run S9: run S8 plus a start test for the neighbour local optimizations (one evaluation of the start; if its hit ratio is at least 0.90 the start is kept and the local optimization is skipped) (on the first gradient sample); 14 grid-search fallbacks; with the boundary pass S9 breaks more voxels than it fixes against S8 on all three samples (10 fixed and 15 broken on big, 31 and 38 on the first gradient sample, 9 and 18 on mid) and the median error rises; not a candidate for a key (D-20261111-N7); derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR3 step 9",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, start test 0.90, CMA + boundary pass (run S9)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 14631262,
+   "evals_per_voxel": 595.49,
+   "per_voxel_derived": true,
+   "wrong": 70,
+   "n": 24570,
+   "interval_pct": [
+    0.23,
+    0.36
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 3,088,444, grid-search fallbacks 4,756,980, neighbour local optimizations 1,423,346, revisit local optimizations 1,672,968, boundary pass 3,689,524",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/start/summary.json :: part3[grad][S9].{total, stages, wrong_after}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_start.md",
+   "flag": "run S9: run S8 plus a start test for the neighbour local optimizations (one evaluation of the start; if its hit ratio is at least 0.90 the start is kept and the local optimization is skipped) (on the first gradient sample); 14 grid-search fallbacks; with the boundary pass S9 breaks more voxels than it fixes against S8 on all three samples (10 fixed and 15 broken on big, 31 and 38 on the first gradient sample, 9 and 18 on mid) and the median error rises; not a candidate for a key (D-20261111-N7)"
   }
  ],
  "excluded": [
