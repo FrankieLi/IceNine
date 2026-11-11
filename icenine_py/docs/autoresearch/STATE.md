@@ -12,7 +12,7 @@ Read this file first after any restart or wake. It holds only what is true now a
 | finished steps, old notes (archive, use `grep`) | `docs/autoresearch/STATE_HISTORY.md` |
 | numbers of a finished step | its findings page, or `shmem query "IceNine autoresearch <step>"` |
 | review page for the owner | https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW |
-| open PR | #43 (AR3 steps 2 to 10), https://github.com/FrankieLi/IceNine/pull/43 |
+| open PR | #43 (AR3 steps 2 to 10, AR5 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
 
 ## How to restart
 
@@ -24,57 +24,58 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-AR5 step 1 (stop rules for the boundary pass, the grid fallbacks and the finished map; task
-`ar5a`; scripts only; plan D-20261111-N10). Implemented on branch `feature/eval-reduction-ar5a`
-(worktree `agent-a68538c58665829a1`, 10 commits to 29e9b56; the last one is the findings page,
-placed by the main session). Hand-back check: 0 FAIL. Result: no rule passed its pass rule,
-predictions 1 to 5 do not agree, run `T1` was not run. Reports are in the main
-`.claude/reports/` (`20261111-1008-ar5a.md` and `...-findings-page.md`).
+Runbook, "A step, from plan to merge". Both tasks add a section to `MIGRATION_HISTORY.md`:
+merge the parent into each task branch before its fixes round.
 
-1. Wait for the review (`code-reviewer`, Opus; report `20261111-1215-review-ar5a.md` in the
-   main `.claude/reports/`). Then runbook points 7 to 9: the decision on the fixes
-   (D-20261111-N11 or the day's next ID), a fixes round (Opus), `finish_task.sh --yes --push`,
-   close (page version 38; no new plot point since `T1` did not run).
-2. AR4: an Explore agent gathers facts for the plan (the seed step's refinement cost, the
-   Procrustes step, the learned refiners in the library). Write the plan when it reports.
+1. AR5 step 2 (task `ar5b`, plan D-20261111-N12): handed back, in review (Opus, started
+   13:10). Branch `feature/eval-reduction-ar5b` at 591ad30 in worktree `agent-acc78ac2a483ed86f`
+   (cut before AR5 step 1 merged). Reports in `.claude/reports/`: `20261111-1134-ar5b.md`,
+   review to come at `20261111-1310-review-ar5b.md`. Then points 6 to 9: decision N14 (fixes;
+   the two questions below), fixes round, merge, close. At the close put the 6 `S10` rows of
+   `docs/autoresearch/pareto/pareto_rows.json` on the page's plots (version 39).
+   Result, review pending: no CMA seed refinement met the 1% rule (pick stays MC). Run `S10`
+   (no MC fallback) needs 29.3 / 15.7 / 14.3% fewer evaluations than `S8`; wrong 22/24, 67/63,
+   35/31. Questions: an opt-in key for it? CMA seed with MC only under hit ratio 0.95?
+2. AR4 step 1 (a learned verifier against the hit ratio, offline; task `ar4a`; plan
+   D-20261111-N13): implementer runs. Report `.claude/reports/20261111-1208-ar4a.md` in its
+   worktree. At hand-back: points 5 to 9.
+3. After both: plan the next step from their results (a library key for `S10`'s changes if it
+   passes; the verifier inside the BFS if a model passes).
 
 ## Running jobs
 
-- Review of AR5 step 1 (`code-reviewer`, Opus), started 2026-11-11 at 12:15.
-- Explore agent for the AR4 plan (read-only), started 2026-11-11 at 12:20.
-- The review page is at version 37 (step 10 is on it; no new plot point). No page job.
+- AR5 step 2 reviewer (started 2026-11-11 13:10); it hands back by message.
+- AR4 step 1 implementer (started 2026-11-11 about 12:40), at most 2 heavy processes.
+- The review page is at version 38 (AR5 step 1 is on it; no new plot point). No page job.
 
 ## Queue
 
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
-7, 18, 22, 23, AR0, AR1, AR2, AR3 steps 1 to 10) are in `STATE_HISTORY.md` under "Queue".
+7, 18, 22, 23, AR0 to AR2, AR3 steps 1 to 10, AR5 step 1) are in `STATE_HISTORY.md`, "Queue".
 
 | step | what | state |
 |---|---|---|
-| AR5 step 1 | stop rules: pass tries, grid fallbacks, finished map (task `ar5a`) | in review |
-| AR4 | the learned proposer | plan being prepared |
+| AR5 step 2 | CMA seed refinement, no MC fallback, run `S10` (task `ar5b`) | in review |
+| AR4 step 1 | learned verifier against the hit ratio, offline (task `ar4a`) | running |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
-| tooling | `audit_numbers.py` misses numbers with thousands separators | small, not started |
+| tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
 ## Last finished step
 
-AR3 step 10 (four opt-in keys in the library: `BFSNeighborCMAFirst`, `SeedIndexCandidates`,
-`SeedIndexStopHitRatio`, `BoundaryPass`; all off by default; task `ar3j`): merged into
-`feature/eval-reduction` at 17790e5 on 2026-11-11, pushed; suite 1576 passed, 47 skipped, 1
-deselected. Page: `docs/autoresearch/findings_ar3_keys.md`. Decisions D-20261111-N8 (plan), N9
-(review: 8 fixes, and a test of one reading). On `big` the library-key runs `D4L`, `S5L`, `S8L`
-equal the stored runs exactly before the pass (10,811,715, 11,867,509, 7,201,863 evaluations; 68,
-71, 67 wrong). The pass on the stored maps is exact; inside the run it differs a little (wrong
-after: 22 against 21, 30 and 30, 24 and 24). Tested for `D4L` and `S8L`: the rounding of the `.mic`
-file accounts for it, the process does not. Keys off: byte-identical files on the pilot. No setting
-recommended; no timing (busy machine). More in `STATE_HISTORY.md`, "AR3 step 10".
+AR5 step 1 (stop rules for the boundary pass, the grid fallbacks and the finished map; task
+`ar5a`; scripts only): merged into `feature/eval-reduction` at e51e883 on 2026-11-11, pushed;
+suite 1596 passed, 47 skipped, 1 deselected. Page: `docs/autoresearch/findings_ar5_stop.md`.
+Decisions D-20261111-N10 (plan), N11 (review: 12 fixes to the documents). A negative result: no
+rule passed, run `T1` was not run. More in `STATE_HISTORY.md`, "AR5 step 1".
 
 ## Untracked data that later steps need
 
 Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, do not commit it.
 
+- `agent-acc78ac2a483ed86f` (AR5 step 2, branch `ar5b`): `ar5/fit/cache/` and links.
+- `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
 - `agent-a6c7c67b4a03d1843` (step 10, detached at 84ce8b5): `ar3/keys/cache/` (28 MB) and
   links; `agent-a3145f902bf0a61fb` (step 10 fixes): a copy of it plus the two reruns.
 - `agent-a9c88b610fb10e1b6` (step 9, detached at 86e3ffa): `ar3/start/cache/`, the image
@@ -94,23 +95,25 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
-- Your word on PR #43 ("merge PR 43" in the session). It now holds AR3 steps 2 to 10.
+- Your word on PR #43 ("merge PR 43" in the session). It now holds AR3 steps 2 to 10 and AR5 step 1.
 - A choice: which seed step the documentation of the keys recommends. Step 10 added the
   keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
   5`, `SeedIndexStopHitRatio 0.95`): cheapest on all three samples, wrong counts not worse.
 - Item 12: apply and commit `docs/autoresearch/item12_owner.patch` (the commands are in the
   history file). Agents cannot: it needs your `ALLOW_CLAUDE_CONFIG=1`.
 - Three questions that block nothing (gradient shapes, your settings, voxels per grain).
-- A note to read: C++ parallel mode keeps the higher confidence for a voxel that two clients
-  fit; that rule did harm in the Python test of step 5. A reading of the source, not a test.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N10 (all
-  on the review page). The gradient levels of step 7's sample are my choice. Step 5's result
-  files add about 50 MB to git; say so if you want them pruned.
+- A note: C++ parallel mode keeps the higher confidence for a voxel that two clients fit;
+  that rule did harm in the Python test of step 5. A reading of the source, not a test.
+- A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N13 (all
+  on the review page). N13 recasts AR4 from a learned proposer to a learned verifier.
+  The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
+  MB to git; say so if you want them pruned.
 - Not done unless you ask: a repo-wide rename of "finisher". Ilium's plan approvals are yours.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N11.
+- Next decision ID: D-20261111-N14.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);

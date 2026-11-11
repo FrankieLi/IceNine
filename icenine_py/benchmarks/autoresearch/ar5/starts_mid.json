@@ -1,0 +1,12 @@
+{
+ "sample": "mid",
+ "n_tries": 50099,
+ "pass_evals": 3056039,
+ "start_evals": 50099,
+ "wrong_before": 84,
+ "wrong_after": 31,
+ "stored_map_reproduced": true,
+ "wall_total_s": 3.8449978828430176,
+ "wall_start_scores_s": 3.7439939975738525,
+ "timing_label": "contended (another agent on the machine); not a timing result"
+}

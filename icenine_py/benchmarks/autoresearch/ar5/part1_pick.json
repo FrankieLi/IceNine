@@ -1,0 +1,363 @@
+{
+ "pick_samples": [
+  "big",
+  "grad"
+ ],
+ "full_pass": {
+  "per_sample": {
+   "big": {
+    "tries": 18665,
+    "tries_kept": 18665,
+    "evals": 1138565,
+    "wrong_before": 67,
+    "wrong_after": 24,
+    "net_gain": 43,
+    "voxels_changed": 1056,
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 24
+   },
+   "grad": {
+    "tries": 60381,
+    "tries_kept": 60381,
+    "evals": 3683241,
+    "wrong_before": 210,
+    "wrong_after": 63,
+    "net_gain": 147,
+    "voxels_changed": 752,
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 63
+   }
+  },
+  "evals": 4821806,
+  "net_gain": 190
+ },
+ "min_net_gain": 180.5,
+ "p1_pick_d": 0.2,
+ "p1_has_qualifying_setting": false,
+ "rows": [
+  {
+   "name": "P1 d=0",
+   "kind": "P1",
+   "d": 0.0,
+   "m": null,
+   "per_sample": {
+    "big": {
+     "tries": 18665,
+     "tries_kept": 20,
+     "evals": 19885,
+     "wrong_before": 67,
+     "wrong_after": 53,
+     "net_gain": 14,
+     "voxels_changed": 20,
+     "fixed": 2,
+     "broken": 31,
+     "both_wrong": 22
+    },
+    "grad": {
+     "tries": 60381,
+     "tries_kept": 77,
+     "evals": 65078,
+     "wrong_before": 210,
+     "wrong_after": 148,
+     "net_gain": 62,
+     "voxels_changed": 74,
+     "fixed": 7,
+     "broken": 92,
+     "both_wrong": 56
+    }
+   },
+   "evals": 84963,
+   "net_gain": 76,
+   "tries_kept": 97
+  },
+  {
+   "name": "P1 d=0.02",
+   "kind": "P1",
+   "d": 0.02,
+   "m": null,
+   "per_sample": {
+    "big": {
+     "tries": 18665,
+     "tries_kept": 32,
+     "evals": 20617,
+     "wrong_before": 67,
+     "wrong_after": 49,
+     "net_gain": 18,
+     "voxels_changed": 31,
+     "fixed": 1,
+     "broken": 26,
+     "both_wrong": 23
+    },
+    "grad": {
+     "tries": 60381,
+     "tries_kept": 99,
+     "evals": 66420,
+     "wrong_before": 210,
+     "wrong_after": 140,
+     "net_gain": 70,
+     "voxels_changed": 84,
+     "fixed": 6,
+     "broken": 83,
+     "both_wrong": 57
+    }
+   },
+   "evals": 87037,
+   "net_gain": 88,
+   "tries_kept": 131
+  },
+  {
+   "name": "P1 d=0.05",
+   "kind": "P1",
+   "d": 0.05,
+   "m": null,
+   "per_sample": {
+    "big": {
+     "tries": 18665,
+     "tries_kept": 56,
+     "evals": 22081,
+     "wrong_before": 67,
+     "wrong_after": 45,
+     "net_gain": 22,
+     "voxels_changed": 47,
+     "fixed": 0,
+     "broken": 21,
+     "both_wrong": 24
+    },
+    "grad": {
+     "tries": 60381,
+     "tries_kept": 147,
+     "evals": 69348,
+     "wrong_before": 210,
+     "wrong_after": 130,
+     "net_gain": 80,
+     "voxels_changed": 99,
+     "fixed": 4,
+     "broken": 71,
+     "both_wrong": 59
+    }
+   },
+   "evals": 91429,
+   "net_gain": 102,
+   "tries_kept": 203
+  },
+  {
+   "name": "P1 d=0.1",
+   "kind": "P1",
+   "d": 0.1,
+   "m": null,
+   "per_sample": {
+    "big": {
+     "tries": 18665,
+     "tries_kept": 171,
+     "evals": 29096,
+     "wrong_before": 67,
+     "wrong_after": 42,
+     "net_gain": 25,
+     "voxels_changed": 105,
+     "fixed": 0,
+     "broken": 18,
+     "both_wrong": 24
+    },
+    "grad": {
+     "tries": 60381,
+     "tries_kept": 419,
+     "evals": 85940,
+     "wrong_before": 210,
+     "wrong_after": 110,
+     "net_gain": 100,
+     "voxels_changed": 126,
+     "fixed": 2,
+     "broken": 49,
+     "both_wrong": 61
+    }
+   },
+   "evals": 115036,
+   "net_gain": 125,
+   "tries_kept": 590
+  },
+  {
+   "name": "P1 d=0.2",
+   "kind": "P1",
+   "d": 0.2,
+   "m": null,
+   "per_sample": {
+    "big": {
+     "tries": 18665,
+     "tries_kept": 855,
+     "evals": 70820,
+     "wrong_before": 67,
+     "wrong_after": 36,
+     "net_gain": 31,
+     "voxels_changed": 363,
+     "fixed": 0,
+     "broken": 12,
+     "both_wrong": 24
+    },
+    "grad": {
+     "tries": 60381,
+     "tries_kept": 1223,
+     "evals": 134984,
+     "wrong_before": 210,
+     "wrong_after": 85,
+     "net_gain": 125,
+     "voxels_changed": 181,
+     "fixed": 1,
+     "broken": 23,
+     "both_wrong": 62
+    }
+   },
+   "evals": 205804,
+   "net_gain": 156,
+   "tries_kept": 2078
+  },
+  {
+   "name": "P2 m=1",
+   "kind": "P2",
+   "d": null,
+   "m": 1,
+   "per_sample": {
+    "big": {
+     "tries": 18665,
+     "tries_kept": 11054,
+     "evals": 692959,
+     "wrong_before": 67,
+     "wrong_after": 24,
+     "net_gain": 43,
+     "voxels_changed": 827,
+     "fixed": 0,
+     "broken": 0,
+     "both_wrong": 24
+    },
+    "grad": {
+     "tries": 60381,
+     "tries_kept": 23126,
+     "evals": 1471067,
+     "wrong_before": 210,
+     "wrong_after": 72,
+     "net_gain": 138,
+     "voxels_changed": 528,
+     "fixed": 0,
+     "broken": 9,
+     "both_wrong": 63
+    }
+   },
+   "evals": 2164026,
+   "net_gain": 181,
+   "tries_kept": 34180
+  },
+  {
+   "name": "P2 m=2",
+   "kind": "P2",
+   "d": null,
+   "m": 2,
+   "per_sample": {
+    "big": {
+     "tries": 18665,
+     "tries_kept": 15257,
+     "evals": 949342,
+     "wrong_before": 67,
+     "wrong_after": 24,
+     "net_gain": 43,
+     "voxels_changed": 995,
+     "fixed": 0,
+     "broken": 0,
+     "both_wrong": 24
+    },
+    "grad": {
+     "tries": 60381,
+     "tries_kept": 41182,
+     "evals": 2572483,
+     "wrong_before": 210,
+     "wrong_after": 63,
+     "net_gain": 147,
+     "voxels_changed": 683,
+     "fixed": 0,
+     "broken": 0,
+     "both_wrong": 63
+    }
+   },
+   "evals": 3521825,
+   "net_gain": 190,
+   "tries_kept": 56439
+  },
+  {
+   "name": "P3 d=0.2 m=1",
+   "kind": "P3",
+   "d": 0.2,
+   "m": 1,
+   "per_sample": {
+    "big": {
+     "tries": 18665,
+     "tries_kept": 841,
+     "evals": 69966,
+     "wrong_before": 67,
+     "wrong_after": 36,
+     "net_gain": 31,
+     "voxels_changed": 360,
+     "fixed": 0,
+     "broken": 12,
+     "both_wrong": 24
+    },
+    "grad": {
+     "tries": 60381,
+     "tries_kept": 1214,
+     "evals": 134435,
+     "wrong_before": 210,
+     "wrong_after": 85,
+     "net_gain": 125,
+     "voxels_changed": 181,
+     "fixed": 1,
+     "broken": 23,
+     "both_wrong": 62
+    }
+   },
+   "evals": 204401,
+   "net_gain": 156,
+   "tries_kept": 2055
+  },
+  {
+   "name": "P3 d=0.2 m=2",
+   "kind": "P3",
+   "d": 0.2,
+   "m": 2,
+   "per_sample": {
+    "big": {
+     "tries": 18665,
+     "tries_kept": 854,
+     "evals": 70759,
+     "wrong_before": 67,
+     "wrong_after": 36,
+     "net_gain": 31,
+     "voxels_changed": 363,
+     "fixed": 0,
+     "broken": 12,
+     "both_wrong": 24
+    },
+    "grad": {
+     "tries": 60381,
+     "tries_kept": 1218,
+     "evals": 134679,
+     "wrong_before": 210,
+     "wrong_after": 85,
+     "net_gain": 125,
+     "voxels_changed": 181,
+     "fixed": 1,
+     "broken": 23,
+     "both_wrong": 62
+    }
+   },
+   "evals": 205438,
+   "net_gain": 156,
+   "tries_kept": 2072
+  }
+ ],
+ "pick": {
+  "name": "P2 m=1",
+  "kind": "P2",
+  "d": null,
+  "m": 1
+ },
+ "note": "chosen on big and grad only; mid is read by stop_part1_test.py after this commit"
+}

@@ -672,6 +672,42 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
 - The plots of cost against accuracy get no new point (review page version 37 says so).
   PR #43 now holds steps 2 to 10.
 
+### AR5 step 1 (stop rules for the boundary pass, the grid fallbacks and the finished map; task `ar5a`), merged at e51e883 on 2026-11-11
+
+- Page `findings_ar5_stop.md`; results `benchmarks/autoresearch/ar5/` (about 4.5 MB); scripts
+  `scripts/autoresearch/ar5/stop_*.py`; tests `tests/test_ar5_stop_rules.py` (20). Decisions
+  D-20261111-N10 (plan), N11 (review). Suite at the merge:
+  1596 passed, 47 skipped, 1 deselected.
+- Scripts only. A negative result: no rule passed its pass rule; run `T1` was not run; no new
+  point on the plots. All on stored `S8` runs, clean images, one run each; picks on `big` and
+  the first gradient sample, test on `mid`.
+- Part 1, try test for the boundary pass. Pick `P2 m=1` (keep the try with the best start hit
+  ratio): pick samples 4,821,806 to 2,164,026 evaluations (55.1% cut), net gain 181 of 190
+  (needs 180.5). On `mid`: 62.7% cut, 9.4% of the gain lost (48 of 53; 0 fixed, 5 broken):
+  fails. `P2 m=2` loses no gain on any sample, cuts 16.6%, 30.2%, 38.9% (under the 50% rule).
+  `P1` and `P3` cut 95.7% to 98.2% and lose 17.9% to 60.0%.
+- Part 2, the 31 grid-fallback cases (16 + 15). A near-truth candidate was costed and refined
+  in all 31 (rank 1 in 27). `R1` costed every candidate (lists of 32 to 62) and repeated the
+  seed step's refinements in 20 of 31; it passes the seed test in 0 (23 right ends at hit
+  ratio 0.6561 to 0.7998, 8 wrong at 0.6964 to 0.7855). `R3` passes 17, all right. Ladder
+  11,364,144 against grid 10,606,351 evaluations (107.1%). What-if with level 0 reused:
+  8,536,861 (80.5%), above two thirds.
+- Part 3, the finished map. Hit ratio under 0.95 flags 87 of 87 and 31 of 31 wrong voxels and
+  8.8% and 15.1% of all voxels. `V1` on `mid`: 13 of 31 fixed, 0 broken, 27,882,533
+  evaluations (105.4% of the run; 27,717,299 of them on right voxels). Vote count: weak; best
+  cut moves from 1,975 to 3,035 between samples; cut picked on the pick samples (2,919)
+  catches 12 of 31 wrong and 281 of 3,678 right on `mid` (a what-if).
+- Review (fix 1): a first computation of `mid`'s start scores ran before the Part 1 pick was
+  committed and was redone. The picks are mechanical; no plan setting passes on `mid` with
+  hindsight. Not adopted (N11): `V1`, the vote count as a stop rule.
+- Open for the owner: `P2 m=2` as an opt-in key.
+- Commits: 53f8951 (tests first) to 29e9b56; fixes 35527a7 (parent merged), dfefe3a, 242f30c,
+  0f5aa0b, 169abb5. Reports in the main `.claude/reports/`: `20261111-1008-ar5a.md`,
+  `20261111-1215-review-ar5a.md`, `20261111-1134-ar5a-fixes.md`. The findings page of the
+  first round was placed by the main session from the implementer's text (its Write was
+  refused; the standing exception). Worktree with the cache: `agent-a68538c58665829a1`.
+- What it led to: AR4 recast from proposer to verifier (N13), AR5 step 2 (N12).
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
