@@ -121,7 +121,10 @@ by stage (millions). `S8` is the third bar of each panel.
    right (median error 0.294 degrees) and was still rejected: its median hit ratio is 0.835 while
    the flood's best is 1.000. This is class A. It is consistent with a fit that stops a few
    tenths of a degree from the truth, where the hit ratio has already dropped below 0.9 times
-   the best. That the fit would pass if it ran longer is untested.
+   the best. That the fit would pass if it ran longer is untested. A second reading is also
+   untested: in a grain with a strong gradient the true orientation itself may score below 0.9
+   times the flood's best (for example if its spots are smeared or overlap). These data do not
+   tell the two apart.
 5. **What does a reseed buy?** The 314 reseeds on `big` cost 6,892,620 evaluations in seed steps
    and 197,122 in their floods; 91.1% of that is in the 258 clusters of level 4. They settle
    1,471 voxels in all, 4.7 voxels per reseed. A median cluster has 3 voxels and 102 are a single
@@ -248,7 +251,10 @@ the ordinary boundary rejections, and they sit next to a boundary (median distan
 class-B voxels have a start that is itself far off (median 31.6 degrees: the neighbour's own fit
 was wrong); none started within 0.5 degrees. So in these data "not reached from a good start" is
 rare, and the cost is in class A. The cause of class A is untested: it is consistent with a fit
-that stops a few tenths of a degree short, but a longer fit was not run.
+that stops a few tenths of a degree short, but a longer fit was not run. It is also consistent
+with a second, untested reading: in a grain with a strong gradient the true orientation itself
+may score below 0.9 times the flood's best (smeared or overlapping spots). The hit ratio at the
+true orientation was not computed, so these data do not tell the two apart.
 
 ## Part 1.3: the clusters
 
