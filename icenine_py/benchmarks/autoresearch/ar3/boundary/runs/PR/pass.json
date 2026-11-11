@@ -1,0 +1,14 @@
+{
+  "map": "PR",
+  "tag": "",
+  "n_boundary_voxels": 23183,
+  "n_boundary_all": 23183,
+  "n_tries": 61031,
+  "evals": 3722891,
+  "score_evals": 24570,
+  "wall_tries_s": 3136.8725039958954,
+  "wall_score_s": 1.2502250671386719,
+  "timing_label": "contended: timing preflight refused (cpptools at 196% CPU, spotlightknowledged at 100% CPU); single run, one worker; 6 passes ran side by side",
+  "limit": 0,
+  "rng": "default_rng(0), one generator for the whole pass"
+}
