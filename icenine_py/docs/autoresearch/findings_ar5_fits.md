@@ -127,6 +127,7 @@ the same split for "within 1 degree", the seed-step evaluations and how much few
 
 Reading line for the table: the error of the end each arm keeps, over the steps that have
 candidates. `C0` is the error of the candidate as costed, which is the start of each refinement.
+The `mid` rows come from the replay of `mid`, run after the pick was committed.
 
 <!-- table:err -->
 | sample | arm | steps with candidates | median error (deg) | 90th percentile (deg) | within 0.2 deg (%) |
@@ -139,10 +140,10 @@ candidates. `C0` is the error of the candidate as costed, which is the start of 
 | first gradient sample | C60 | 1279 | 0.058 | 17.465 | 74.2 |
 | first gradient sample | C200 | 1279 | 0.010 | 0.234 | 87.3 |
 | first gradient sample | C0 | 1279 | 0.276 | 44.539 | 40.3 |
-| mid M | not evaluated | not evaluated | not evaluated | not evaluated | not evaluated |
-| mid C60 | not evaluated | not evaluated | not evaluated | not evaluated | not evaluated |
-| mid C200 | not evaluated | not evaluated | not evaluated | not evaluated | not evaluated |
-| mid C0 | not evaluated | not evaluated | not evaluated | not evaluated | not evaluated |
+| mid | M | 1611 | 0.020 | 0.076 | 97.8 |
+| mid | C60 | 1611 | 0.160 | 23.341 | 56.0 |
+| mid | C200 | 1611 | 0.013 | 0.317 | 85.5 |
+| mid | C0 | 1611 | 0.423 | 41.431 | 16.1 |
 <!-- /table:err -->
 
 The start is far from the truth more often than the AR1 medians suggested. Those medians were for
@@ -201,10 +202,11 @@ only) are not separate runs: `S10a` would be `S8` and `S10b` is `S10`. They were
 Reading line for the table: for each run and sample, the evaluations by stage and in total (with
 the boundary pass), the grid fallbacks, the wrong voxels before and after the pass with Wilson
 95% intervals, "fixed / broken" against `S8` paired by voxel (fixed: wrong in `S8`, right in the
-run), and the median error after the pass. The `S8` rows are the stored runs.
+run), and the median error after the pass over all 24,570 voxels of the sample (not only the
+right ones). The `S8` rows are the stored runs.
 
 <!-- table:part2 -->
-| run | sample | seed step | grid fallback | neighbour fits | revisits | boundary pass | total | grid fallbacks (count) | wrong before the pass | wrong after the pass | fixed / broken before | fixed / broken after | median error after (deg) |
+| run | sample | seed step | grid fallback | neighbour fits | revisits | boundary pass | total | grid fallbacks (count) | wrong before the pass | wrong after the pass | fixed / broken before | fixed / broken after | median error after, all 24570 voxels (deg) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | S8 | big | 2856712 | 0 | 3491437 | 853714 | 1138565 | 8340428 | 0 | 67 (0.21 to 0.35%) | 24 (0.07 to 0.15%) |  |  | 0.0316 |
 | S8 | first gradient sample | 3008757 | 5449501 | 2798001 | 3060730 | 3683241 | 18000230 | 16 | 210 (0.75 to 0.98%) | 63 (0.20 to 0.33%) |  |  | 0.0226 |
@@ -216,10 +218,10 @@ run), and the median error after the pass. The `S8` rows are the stored runs.
 
 Reading line: the plan's pass rule for `S10`. Rule (a): at least 20% fewer evaluations than `S8`
 with the pass. Rule (b): broken minus fixed, after the pass, at most 5 voxels. Rule (c): median
-error at most 0.005 degree above `S8`'s.
+error after the pass, over all 24,570 voxels, at most 0.005 degree above `S8`'s.
 
 <!-- table:rule -->
-| run | sample | fewer than S8 (%) | rule (a) | broken minus fixed | rule (b) | median error minus S8's (deg) | rule (c) | passes |
+| run | sample | fewer than S8 (%) | rule (a) | broken minus fixed | rule (b) | median error minus S8's, all 24570 voxels (deg) | rule (c) | passes |
 |---|---|---|---|---|---|---|---|---|
 | S10 | big | 29.3 | True | -2 | True | +0.0002 | True | True |
 | S10 | first gradient sample | 15.7 | False | 4 | True | -0.0002 | True | False |
@@ -270,8 +272,12 @@ Reading line: each prediction, the observed numbers and the verdict.
 - 1 agrees. On `mid` the point value is 0.99%, just under the line, with an interval that spans it.
 - 2 does not agree: no CMA arm is the pick. The cut of at least 90% holds for `C60` on all three.
 - 3 agrees. `C0` passes the seed test in 542 of the 1,608 pick steps, `M` in 1,592.
-- 4 does not agree. The totals are above the predicted limits on all three samples, because the
-  seed step stayed as in `S8`, and `S10` fails its rule on two samples.
+- 4 does not agree. The totals are above the predicted limits on all three samples, and `S10`
+  fails its rule on two samples. Prediction 2 expected `C60` as the pick; the pick is `M`, so
+  `S10` kept `S8`'s seed refinement. A what-if by arithmetic, not run: `S10`'s total with its
+  seed-step evaluations replaced by those of the `C60` replay is about 3.20, 12.32 and 11.68
+  million, under the limits of 4.0, 14 and 13.5 million. `C60` fails the pick rules, and a real
+  run would take a different path.
 - 5 agrees.
 
 ## What this does not show
@@ -290,6 +296,13 @@ Reading line: each prediction, the observed numbers and the verdict.
 
 From `icenine_py/` (the launcher sets the sample and the cache):
 
+- Inputs: the scripts read the stored `S8` runs and their boundary passes from two sibling
+  worktrees under `.claude/worktrees/` (paths set in `fit_common.py`; untracked, read only).
+  `big` and the first gradient sample: `agent-a635b2f904279bdc9`, folder
+  `icenine_py/benchmarks/autoresearch/ar3/reseed/cache/` (`S8_big`, `S8_grad`, `passes_big`,
+  `passes_grad`). `mid`: `agent-a9c88b610fb10e1b6`, folder
+  `icenine_py/benchmarks/autoresearch/ar3/start/cache/` (`S8_mid`, `passes_mid`). These worktrees
+  are temporary: if they are removed, Parts 0 to 2 cannot be run again from git alone.
 - Part 0: `fit_bg.sh <sample> part0_<sample> fit_part0.py`.
 - Part 1: `fit_bg.sh <sample> replay_<sample> fit_part1_replay.py`, then `fit_part1_pick.py`
   (writes `pick.json`, commit it), then the same replay on `mid` and `fit_part1_mid.py`.

@@ -11813,3 +11813,12 @@ separately (no arm picked, so they would be `S8` and `S10`). Predictions 1, 3 an
 do not. Rows of the three `S10` runs (before and after the pass) were added to
 `docs/autoresearch/pareto/pareto_rows.json`. Walls contended, not timing results. Full suite on
 the branch: 1589 passed, 47 skipped, 1 deselected.
+
+Fixes round (review `20261111-1310-review-ar5b`, decision D-20261111-N14; documents, the summary
+script and `part1_mid.json` only, no new run). The parent was merged into the task branch.
+`part1_mid.json` was written again from the cached replay of `mid` and now holds the end errors,
+so the page's error table has the `mid` rows (median 0.020, 0.160, 0.013, 0.423 degree for `M`,
+`C60`, `C200`, `C0`). The Part 2 and rule tables say their medians are over all 24,570 voxels.
+Prediction 4 no longer gives an untested cause; it gives a what-if by arithmetic, not run (`S10`
+with the `C60` replay's seed-step evaluations: about 3.20, 12.32 and 11.68 million, under the
+limits). The Reproduce section names the two sibling worktrees that hold the stored `S8` runs.
