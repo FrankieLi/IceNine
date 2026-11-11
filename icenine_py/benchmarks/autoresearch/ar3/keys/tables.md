@@ -44,18 +44,35 @@
 | S8L | early stop: seed_step_evals | 2,856,712 | 2,856,712 | exact |
 <!-- /table:keys_exact -->
 
+<!-- table:keys_fresh -->
+| run | compared | tries_a | tries_b | evals_a | evals_b | voxels_differing | verdict |
+|---|---|---|---|---|---|---|---|
+| D4L | (i) rerun's in-run pass vs step 10's in-run pass | 18,557 | 18,557 | 1,131,977 | 1,131,977 | 0 | equal |
+| D4L | (iii) same process, rounded map vs script tries | 18,557 | 18,557 | 1,131,977 | 1,131,977 | 0 | equal |
+| D4L | (iv) fresh process, unrounded map vs in-run pass | 18,557 | 18,557 | 1,131,977 | 1,131,977 | 0 | equal |
+| D4L | (v) same process, rounded map vs in-run pass | 18,557 | 18,557 | 1,131,977 | 1,131,977 | 11087 | differ |
+| D4L | (ii) before-pass .mic vs step 10's (bytes) |  |  |  |  |  | equal |
+| D4L | (ii) map read back vs the script's before_*.npy |  |  |  |  |  | equal |
+| S8L | (i) rerun's in-run pass vs step 10's in-run pass | 18,664 | 18,664 | 1,138,504 | 1,138,504 | 0 | equal |
+| S8L | (iii) same process, rounded map vs script tries | 18,665 | 18,665 | 1,138,565 | 1,138,565 | 0 | equal |
+| S8L | (iv) fresh process, unrounded map vs in-run pass | 18,664 | 18,664 | 1,138,504 | 1,138,504 | 0 | equal |
+| S8L | (v) same process, rounded map vs in-run pass | 18,665 | 18,664 | 1,138,565 | 1,138,504 | 11054 | differ |
+| S8L | (ii) before-pass .mic vs step 10's (bytes) |  |  |  |  |  | equal |
+| S8L | (ii) map read back vs the script's before_*.npy |  |  |  |  |  | equal |
+<!-- /table:keys_fresh -->
+
 <!-- table:keys_measured -->
-| sample | run | evals_with_pass | wrong_before | wrong_after |
-|---|---|---|---|---|
-| big | D4 | 11943692 | 68 | 21 |
-| big | S5 | 12999852 | 71 | 30 |
-| big | S8 | 8340428 | 67 | 24 |
-| grad | D4 | 38807186 | 225 | 74 |
-| grad | S5 | 20629760 | 203 | 62 |
-| grad | S8 | 18000230 | 210 | 63 |
-| mid | D4 | 40560874 | 94 | 48 |
-| mid | S5 | 39093613 | 87 | 34 |
-| mid | S8 | 26443074 | 84 | 31 |
+| sample | run | evals_with_pass | wrong_before | before_ci_pct | wrong_after | after_ci_pct |
+|---|---|---|---|---|---|---|
+| big | D4 | 11943692 | 68 | 0.22 to 0.35 | 21 | 0.06 to 0.13 |
+| big | S5 | 12999852 | 71 | 0.23 to 0.36 | 30 | 0.09 to 0.17 |
+| big | S8 | 8340428 | 67 | 0.21 to 0.35 | 24 | 0.07 to 0.15 |
+| grad | D4 | 38807186 | 225 | 0.80 to 1.04 | 74 | 0.24 to 0.38 |
+| grad | S5 | 20629760 | 203 | 0.72 to 0.95 | 62 | 0.20 to 0.32 |
+| grad | S8 | 18000230 | 210 | 0.75 to 0.98 | 63 | 0.20 to 0.33 |
+| mid | D4 | 40560874 | 94 | 0.31 to 0.47 | 48 | 0.15 to 0.26 |
+| mid | S5 | 39093613 | 87 | 0.29 to 0.44 | 34 | 0.10 to 0.19 |
+| mid | S8 | 26443074 | 84 | 0.28 to 0.42 | 31 | 0.09 to 0.18 |
 <!-- /table:keys_measured -->
 
 <!-- table:keys_off -->
@@ -77,9 +94,17 @@
 <!-- /table:keys_pass1 -->
 
 <!-- table:keys_pass2 -->
-| run | tries | tries_stored | evals | evals_stored | same_voxel_and_cand | same_end | wrong_after | wrong_after_stored | fixed | broken |
-|---|---|---|---|---|---|---|---|---|---|---|
-| D4L | 18,557 | 18,557 | 1,131,977 | 1,131,977 | 18556 | 14 | 22 | 21 | 0 | 1 |
-| S5L | 18,563 | 18,563 | 1,132,343 | 1,132,343 | 18563 | 11 | 30 | 30 | 0 | 0 |
-| S8L | 18,664 | 18,665 | 1,138,504 | 1,138,565 | 18661 | 5 | 24 | 24 | 5 | 5 |
+| run | tries | tries_stored | evals | evals_stored | same_voxel_and_cand | same_end | wrong_after | wrong_after_stored | fixed | broken | both_wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| D4L | 18,557 | 18,557 | 1,131,977 | 1,131,977 | 18556 | 14 | 22 | 21 | 0 | 1 | 21 |
+| S5L | 18,563 | 18,563 | 1,132,343 | 1,132,343 | 18563 | 11 | 30 | 30 | 0 | 0 | 30 |
+| S8L | 18,664 | 18,665 | 1,138,504 | 1,138,565 | 18661 | 5 | 24 | 24 | 5 | 5 | 19 |
 <!-- /table:keys_pass2 -->
+
+<!-- table:keys_uncounted -->
+| run | boundary_score_evals | early_stop_hit_evals | wall_s | pass_wall_s |
+|---|---|---|---|---|
+| D4L | 11,087 | 0 | 1,090 | 125.4 |
+| S5L | 11,049 | 0 | 1,156 | 123.5 |
+| S8L | 11,054 | 465 | 865 | 128.0 |
+<!-- /table:keys_uncounted -->

@@ -636,11 +636,365 @@
    }
   }
  },
+ "fresh_checks": {
+  "D4L": {
+   "kind": "D4L",
+   "smoke": false,
+   "timing_label_run": "contended: timing preflight refused (Python at 100% CPU, cpptools at 99% CPU, Python at 100% CPU); single run, one worker",
+   "timing_label_fresh": "contended: timing preflight refused (cpptools at 98% CPU, Python at 100% CPU, Python at 100% CPU, Python at 99% CPU, spotlightknowledged at 99% CPU, Python at 100% CPU); single run, one worker",
+   "wall_bfs_with_inrun_pass_s": 1132.8111763000488,
+   "wall_inrun_pass_s": 135.1312699317932,
+   "wall_inproc_rounded_pass_s": 130.048437833786,
+   "wall_fresh_unrounded_pass_s": 132.4102041721344,
+   "max_abs_rounding": 8.774686307139179e-07,
+   "voxels_rounded_differently": 24570,
+   "seed_steps": 329,
+   "seed_step_refinements": 658,
+   "early_stop_hit_evals": 0,
+   "iv_fresh_unrounded_vs_inrun": {
+    "n_tries": [
+     18557,
+     18557
+    ],
+    "evals": [
+     1131977,
+     1131977
+    ],
+    "ends_compared_as": "float64",
+    "voxels_with_differing_tries": 0,
+    "differing_tries": 0,
+    "first_differing_voxels": [],
+    "voxels_changed": [
+     1052,
+     1052
+    ],
+    "same_changed_voxels": true,
+    "equal": true
+   },
+   "rounding_inproc_rounded_vs_inrun": {
+    "n_tries": [
+     18557,
+     18557
+    ],
+    "evals": [
+     1131977,
+     1131977
+    ],
+    "ends_compared_as": "float64",
+    "voxels_with_differing_tries": 11087,
+    "differing_tries": 18557,
+    "first_differing_voxels": [
+     0,
+     1,
+     2,
+     8,
+     9,
+     10,
+     31,
+     32,
+     35,
+     36
+    ],
+    "voxels_changed": [
+     1057,
+     1052
+    ],
+    "same_changed_voxels": false,
+    "equal": false
+   },
+   "i_inrun_vs_stored_step10_inrun": {
+    "n_tries": [
+     18557,
+     18557
+    ],
+    "evals": [
+     1131977,
+     1131977
+    ],
+    "ends_compared_as": "float32",
+    "voxels_with_differing_tries": 0,
+    "differing_tries": 0,
+    "first_differing_voxels": [],
+    "voxels_changed": [
+     1052,
+     1052
+    ],
+    "same_changed_voxels": true,
+    "equal": true
+   },
+   "iv_fresh_unrounded_vs_stored_step10_inrun": {
+    "n_tries": [
+     18557,
+     18557
+    ],
+    "evals": [
+     1131977,
+     1131977
+    ],
+    "ends_compared_as": "float32",
+    "voxels_with_differing_tries": 0,
+    "differing_tries": 0,
+    "first_differing_voxels": [],
+    "voxels_changed": [
+     1052,
+     1052
+    ],
+    "same_changed_voxels": true,
+    "equal": true
+   },
+   "iii_inproc_rounded_vs_script": {
+    "n_tries": [
+     18557,
+     18557
+    ],
+    "evals": [
+     1131977,
+     1131977
+    ],
+    "ends_compared_as": "float32",
+    "voxels_with_differing_tries": 0,
+    "differing_tries": 0,
+    "first_differing_voxels": [],
+    "voxels_changed": [
+     1057,
+     null
+    ],
+    "same_changed_voxels": null,
+    "equal": true
+   },
+   "inrun_vs_script": {
+    "n_tries": [
+     18557,
+     18557
+    ],
+    "evals": [
+     1131977,
+     1131977
+    ],
+    "ends_compared_as": "float32",
+    "voxels_with_differing_tries": 11082,
+    "differing_tries": 18543,
+    "first_differing_voxels": [
+     0,
+     1,
+     2,
+     8,
+     9,
+     10,
+     31,
+     32,
+     35,
+     36
+    ],
+    "voxels_changed": [
+     1052,
+     null
+    ],
+    "same_changed_voxels": null,
+    "equal": false
+   },
+   "ii_before_mic_equals_stored_step10_bytes": true,
+   "ii_read_back_equals_script_before_npy": true
+  },
+  "S8L": {
+   "kind": "S8L",
+   "smoke": false,
+   "timing_label_run": "contended: timing preflight refused (Python at 99% CPU, cpptools at 197% CPU); single run, one worker",
+   "timing_label_fresh": "contended: timing preflight refused (cpptools at 101% CPU, Python at 99% CPU, Python at 100% CPU, Python at 99% CPU, Python at 100% CPU, Python at 100% CPU, Python at 100% CPU); single run, one worker",
+   "wall_bfs_with_inrun_pass_s": 886.4581110477448,
+   "wall_inrun_pass_s": 138.13460993766785,
+   "wall_inproc_rounded_pass_s": 140.7542598247528,
+   "wall_fresh_unrounded_pass_s": 134.68159294128418,
+   "max_abs_rounding": 8.774686307139179e-07,
+   "voxels_rounded_differently": 24570,
+   "seed_steps": 329,
+   "seed_step_refinements": 465,
+   "early_stop_hit_evals": 465,
+   "iv_fresh_unrounded_vs_inrun": {
+    "n_tries": [
+     18664,
+     18664
+    ],
+    "evals": [
+     1138504,
+     1138504
+    ],
+    "ends_compared_as": "float64",
+    "voxels_with_differing_tries": 0,
+    "differing_tries": 0,
+    "first_differing_voxels": [],
+    "voxels_changed": [
+     1084,
+     1084
+    ],
+    "same_changed_voxels": true,
+    "equal": true
+   },
+   "rounding_inproc_rounded_vs_inrun": {
+    "n_tries": [
+     18665,
+     18664
+    ],
+    "evals": [
+     1138565,
+     1138504
+    ],
+    "ends_compared_as": "float64",
+    "voxels_with_differing_tries": 11054,
+    "differing_tries": 18665,
+    "first_differing_voxels": [
+     0,
+     1,
+     2,
+     8,
+     9,
+     10,
+     31,
+     32,
+     35,
+     36
+    ],
+    "voxels_changed": [
+     1056,
+     1084
+    ],
+    "same_changed_voxels": false,
+    "equal": false
+   },
+   "i_inrun_vs_stored_step10_inrun": {
+    "n_tries": [
+     18664,
+     18664
+    ],
+    "evals": [
+     1138504,
+     1138504
+    ],
+    "ends_compared_as": "float32",
+    "voxels_with_differing_tries": 0,
+    "differing_tries": 0,
+    "first_differing_voxels": [],
+    "voxels_changed": [
+     1084,
+     1084
+    ],
+    "same_changed_voxels": true,
+    "equal": true
+   },
+   "iv_fresh_unrounded_vs_stored_step10_inrun": {
+    "n_tries": [
+     18664,
+     18664
+    ],
+    "evals": [
+     1138504,
+     1138504
+    ],
+    "ends_compared_as": "float32",
+    "voxels_with_differing_tries": 0,
+    "differing_tries": 0,
+    "first_differing_voxels": [],
+    "voxels_changed": [
+     1084,
+     1084
+    ],
+    "same_changed_voxels": true,
+    "equal": true
+   },
+   "iii_inproc_rounded_vs_script": {
+    "n_tries": [
+     18665,
+     18665
+    ],
+    "evals": [
+     1138565,
+     1138565
+    ],
+    "ends_compared_as": "float32",
+    "voxels_with_differing_tries": 0,
+    "differing_tries": 0,
+    "first_differing_voxels": [],
+    "voxels_changed": [
+     1056,
+     null
+    ],
+    "same_changed_voxels": null,
+    "equal": true
+   },
+   "inrun_vs_script": {
+    "n_tries": [
+     18664,
+     18665
+    ],
+    "evals": [
+     1138504,
+     1138565
+    ],
+    "ends_compared_as": "float32",
+    "voxels_with_differing_tries": 11054,
+    "differing_tries": 18660,
+    "first_differing_voxels": [
+     0,
+     1,
+     2,
+     8,
+     9,
+     10,
+     31,
+     32,
+     35,
+     36
+    ],
+    "voxels_changed": [
+     1084,
+     null
+    ],
+    "same_changed_voxels": null,
+    "equal": false
+   },
+   "ii_before_mic_equals_stored_step10_bytes": true,
+   "ii_read_back_equals_script_before_npy": true
+  }
+ },
+ "walls_contended": {
+  "D4L": {
+   "wall_total_s": 1089.82909989357,
+   "wall_boundary_pass_s": 125.4447820186615,
+   "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 100% CPU); single run, one worker"
+  },
+  "S5L": {
+   "wall_total_s": 1156.439749956131,
+   "wall_boundary_pass_s": 123.50905704498291,
+   "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 100% CPU); single run, one worker"
+  },
+  "S8L": {
+   "wall_total_s": 865.3472299575806,
+   "wall_boundary_pass_s": 128.04457187652588,
+   "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 100% CPU); single run, one worker"
+  }
+ },
+ "suite": {
+  "full_suite": {
+   "line": "1576 passed, 47 skipped, 1 deselected, 1455 warnings in 769.15s (0:12:49)",
+   "passed": 1576,
+   "skipped": 47,
+   "deselected": 1
+  },
+  "test_bfs_ar3_keys": {
+   "line": "59 passed, 33 warnings in 24.69s",
+   "passed": 59
+  }
+ },
+ "notes": {
+  "stored_S8_name": "The stored S8 run.json carries the name 'S5' (reseed_s8.py calls run_seed.run('S5') with the early stop patched in); its s8.json reads 'S8 = S5 + E1' and its totals are S8's. check_S8L.json's stored_run 'S5' is that name, not a comparison with S5."
+ },
  "tables": [
   "keys_evals",
   "keys_exact",
   "keys_pass1",
   "keys_pass2",
+  "keys_fresh",
+  "keys_uncounted",
   "keys_off",
   "keys_measured"
  ]

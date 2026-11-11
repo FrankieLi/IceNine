@@ -1,17 +1,22 @@
 """AR3 step 10: the summary of the validation runs: tables, plot and slim result files.
 
-  libkeys_summary.py
+  libkeys_summary.py [--suite-log LOG] [--file-log LOG]
 
-Reads ``keys/check_<kind>.json``, ``keys/score.json``, ``keys/pass_check_S8L.json``,
-``keys/off_compare.json`` (all made by the ``libkeys_*.py`` scripts) and the slim copy of each run
+Reads ``keys/check_<kind>.json``, ``keys/score.json``, ``keys/pass_check_<kind>.json``,
+``keys/off_compare.json``, ``keys/fresh_check_<kind>.json`` (fixes round, ``libkeys_fresh.py``;
+those present) (all made by the ``libkeys_*.py`` scripts) and the slim copy of each run
 (``keys/slim/<kind>_run.json``, made here from ``keys/cache/<kind>/run.json``). The stored runs'
-stage numbers and wrong counts are read from ``start/tables.md`` (committed; step 9's tables).
+stage numbers and wrong counts (with their Wilson intervals) are read from ``start/tables.md``
+(committed; step 9's tables). The suite counts come from pytest logs given with ``--suite-log`` /
+``--file-log`` (their last lines are kept in ``keys/suite.json``), else from ``keys/suite.json``.
 Writes ``keys/tables.md``, ``keys/summary.json`` and ``keys/ar3_keys_evals.png``.
 """
 
+import argparse
 import json
+import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import libkeys_common as K
 import matplotlib
@@ -71,7 +76,45 @@ def lib_stages(st: Dict[str, Any]) -> Dict[str, int]:
     return d
 
 
+FRESH_ROWS = (
+    ("i_inrun_vs_stored_step10_inrun", "(i) rerun's in-run pass vs step 10's in-run pass"),
+    ("iii_inproc_rounded_vs_script", "(iii) same process, rounded map vs script tries"),
+    ("iv_fresh_unrounded_vs_inrun", "(iv) fresh process, unrounded map vs in-run pass"),
+    ("rounding_inproc_rounded_vs_inrun", "(v) same process, rounded map vs in-run pass"),
+)
+SUITE = K.OUT / "suite.json"
+_LAST = re.compile(r"(\d+) (passed|skipped|deselected|failed|errors?|xfailed|xpassed)")
+
+
+def parse_last_line(log: Path) -> Dict[str, Any]:
+    """Counts of pytest's last summary line in ``log`` (the line itself is kept too)."""
+    lines = [ln for ln in log.read_text().splitlines() if " in " in ln and "passed" in ln]
+    line = lines[-1].strip().strip("=").strip()
+    return dict(line=line, **{k: int(n) for n, k in _LAST.findall(line)})
+
+
+def suite_counts(full: Optional[Path] = None, file_: Optional[Path] = None) -> Dict[str, Any]:
+    """The suite counts of this branch: parsed from pytest logs when given (and stored in
+    ``keys/suite.json``), else read from ``keys/suite.json``."""
+    old = jl(SUITE) if SUITE.exists() else {}
+    if full is not None:
+        old["full_suite"] = parse_last_line(full)
+    if file_ is not None:
+        old["test_bfs_ar3_keys"] = parse_last_line(file_)
+    if full is not None or file_ is not None:
+        SUITE.write_text(json.dumps(old, indent=1) + "\n")
+    return old
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--suite-log", type=Path, help="log of `uv run pytest tests/`")
+    ap.add_argument(
+        "--file-log", type=Path, help="log of `uv run pytest tests/test_bfs_ar3_keys.py`"
+    )
+    a = ap.parse_args()
+    if a.suite_log or a.file_log:
+        suite_counts(a.suite_log, a.file_log)
     slim = K.OUT / "slim"
     slim.mkdir(parents=True, exist_ok=True)
     runs: Dict[str, Any] = {}
@@ -178,12 +221,89 @@ def main() -> None:
         rows.append([kind, f"{pr['tries'][0]:,}", f"{pr['tries'][1]:,}", f"{pr['evals'][0]:,}",
                      f"{pr['evals'][1]:,}", pr.get("same_voxel_and_candidate", "n/a"),
                      pr.get("same_end_exact", "n/a"), sc["lib_after"], sc["stored_after"],
-                     pa["fixed_vs_stored"], pa["broken_vs_stored"]])  # fmt: skip
+                     pa["fixed_vs_stored"], pa["broken_vs_stored"],
+                     pa["both_wrong"]])  # fmt: skip
     T["keys_pass2"] = markdown_table(
         rows,
         ["run", "tries", "tries_stored", "evals", "evals_stored", "same_voxel_and_cand",
-         "same_end", "wrong_after", "wrong_after_stored", "fixed", "broken"],
+         "same_end", "wrong_after", "wrong_after_stored", "fixed", "broken", "both_wrong"],
     )  # fmt: skip
+
+    # ---- fixes round (D-20261111-N9): the reading of the in-run pass, tested
+    fresh = {k: jl(K.OUT / f"fresh_check_{k}.json") for k in KINDS
+             if (K.OUT / f"fresh_check_{k}.json").exists()}  # fmt: skip
+    S["fresh_checks"] = fresh
+    rows = []
+    for kind, fc in fresh.items():
+        for key, what in FRESH_ROWS:
+            if key not in fc:
+                continue
+            c = fc[key]
+            rows.append([kind, what, f"{c['n_tries'][0]:,}", f"{c['n_tries'][1]:,}",
+                         f"{c['evals'][0]:,}", f"{c['evals'][1]:,}",
+                         c["voxels_with_differing_tries"],
+                         "equal" if c["equal"] else "differ"])  # fmt: skip
+        rows.append(
+            [
+                kind,
+                "(ii) before-pass .mic vs step 10's (bytes)",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "equal" if fc.get("ii_before_mic_equals_stored_step10_bytes") else "differ",
+            ]
+        )
+        rows.append(
+            [
+                kind,
+                "(ii) map read back vs the script's before_*.npy",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "equal" if fc.get("ii_read_back_equals_script_before_npy") else "differ",
+            ]
+        )
+    T["keys_fresh"] = markdown_table(
+        rows,
+        ["run", "compared", "tries_a", "tries_b", "evals_a", "evals_b", "voxels_differing",
+         "verdict"],
+    )  # fmt: skip
+
+    # ---- costs left out of the totals, and the wall times (all contended)
+    rows = []
+    walls = {}
+    for kind in KINDS:
+        st = runs[kind]["stats"]
+        hit = fresh.get(kind, {}).get("early_stop_hit_evals")
+        if hit is None:
+            hit = 0 if runs[kind]["stats"].get("index_stopped_early") is None else "not stored"
+        walls[kind] = dict(
+            wall_total_s=float(runs[kind]["wall_total_s"]),
+            wall_boundary_pass_s=float(st["wall_boundary_pass_s"]),
+            timing_label=runs[kind]["timing_label"],
+        )
+        rows.append([kind, f"{int(st['n_evals_boundary_score']):,}",
+                     f"{hit:,}" if isinstance(hit, int) else hit,
+                     f"{walls[kind]['wall_total_s']:,.0f}",
+                     f"{walls[kind]['wall_boundary_pass_s']:.1f}"])  # fmt: skip
+    S["walls_contended"] = walls
+    T["keys_uncounted"] = markdown_table(
+        rows, ["run", "boundary_score_evals", "early_stop_hit_evals", "wall_s", "pass_wall_s"]
+    )
+
+    # ---- the test suite on this branch (pytest's last lines, kept in keys/suite.json)
+    S["suite"] = suite_counts()
+    S["notes"] = dict(
+        stored_S8_name=(
+            "The stored S8 run.json carries the name 'S5' (reseed_s8.py calls run_seed.run('S5')"
+            " with the early stop patched in); its s8.json reads 'S8 = S5 + E1' and its totals"
+            " are S8's. check_S8L.json's stored_run 'S5' is that name, not a comparison with S5."
+        )
+    )
 
     # ---- check (c)
     oc = jl(K.OUT / "off_compare.json")
@@ -200,10 +320,12 @@ def main() -> None:
         for name in ("D4", "S5", "S8"):
             s = stored_stages(sample, name)
             w = wrong[(sample, name)]
-            rows.append([sample, name, s["total"], w[2], w[4]])
+            rows.append([sample, name, s["total"], w[2], w[3], w[4], w[5]])
     T["keys_measured"] = markdown_table(
-        rows, ["sample", "run", "evals_with_pass", "wrong_before", "wrong_after"]
-    )
+        rows,
+        ["sample", "run", "evals_with_pass", "wrong_before", "before_ci_pct", "wrong_after",
+         "after_ci_pct"],
+    )  # fmt: skip
 
     write_tables(K.OUT / "tables.md", T)
     S["tables"] = list(T)
