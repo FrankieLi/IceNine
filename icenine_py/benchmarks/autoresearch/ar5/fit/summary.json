@@ -1,0 +1,897 @@
+{
+ "samples": [
+  "big",
+  "grad",
+  "mid"
+ ],
+ "part0": {
+  "big": {
+   "sample": "big",
+   "seed_steps": 329,
+   "seed_steps_stopped_early": 322,
+   "seed_refinements": 465,
+   "seed_refinement_evals": 2850132,
+   "seed_refinement_evals_mean": 6129.316129032258,
+   "seed_costing_evals": 6580,
+   "seed_step_evals": 2856712,
+   "seed_step_evals_check": 2856712,
+   "grid_fallback_evals": 0,
+   "grid_fallbacks": 0,
+   "neighbour_fit_calls": 32563,
+   "mc_fallback_runs": 3197,
+   "mc_fallback_share": 0.09817891471915978,
+   "mc_fallback_evals": 2358808,
+   "mc_fallback_evals_mean": 737.8192055051611,
+   "mc_fallback_won": 3,
+   "evals_before_pass": 7201863,
+   "pass_evals": 1138565,
+   "evals_with_pass": 8340428,
+   "share_seed_refinements": 0.34172490908140446,
+   "share_mc_fallback": 0.2828161816156197,
+   "share_both": 0.6245410906970241,
+   "stages": {
+    "seed": 339810,
+    "reseed": 2516902,
+    "neighbour": 3491437,
+    "revisit": 853714
+   }
+  },
+  "grad": {
+   "sample": "grad",
+   "seed_steps": 1279,
+   "seed_steps_stopped_early": 1091,
+   "seed_refinements": 2356,
+   "seed_refinement_evals": 2983177,
+   "seed_refinement_evals_mean": 1266.2041595925298,
+   "seed_costing_evals": 25580,
+   "seed_step_evals": 3008757,
+   "seed_step_evals_check": 3008757,
+   "grid_fallback_evals": 5449501,
+   "grid_fallbacks": 16,
+   "neighbour_fit_calls": 53300,
+   "mc_fallback_runs": 3903,
+   "mc_fallback_share": 0.07322701688555347,
+   "mc_fallback_evals": 2607431,
+   "mc_fallback_evals_mean": 668.058160389444,
+   "mc_fallback_won": 3,
+   "evals_before_pass": 14316989,
+   "pass_evals": 3683241,
+   "evals_with_pass": 18000230,
+   "share_seed_refinements": 0.16572993789523802,
+   "share_mc_fallback": 0.1448554268473236,
+   "share_both": 0.3105853647425616,
+   "stages": {
+    "seed": 979074,
+    "reseed": 7479184,
+    "neighbour": 2798001,
+    "revisit": 3060730
+   }
+  },
+  "mid": {
+   "sample": "mid",
+   "seed_steps": 1611,
+   "seed_steps_stopped_early": 1367,
+   "seed_refinements": 3217,
+   "seed_refinement_evals": 11975132,
+   "seed_refinement_evals_mean": 3722.453217283183,
+   "seed_costing_evals": 32220,
+   "seed_step_evals": 12007352,
+   "seed_step_evals_check": 12007352,
+   "grid_fallback_evals": 5002750,
+   "grid_fallbacks": 15,
+   "neighbour_fit_calls": 51696,
+   "mc_fallback_runs": 4568,
+   "mc_fallback_share": 0.08836273599504797,
+   "mc_fallback_evals": 3223477,
+   "mc_fallback_evals_mean": 705.6648423817863,
+   "mc_fallback_won": 45,
+   "evals_before_pass": 23387035,
+   "pass_evals": 3056039,
+   "evals_with_pass": 26443074,
+   "share_seed_refinements": 0.4528645950920835,
+   "share_mc_fallback": 0.1219025064937609,
+   "share_both": 0.5747671015858443,
+   "stages": {
+    "seed": 1229676,
+    "reseed": 15780426,
+    "neighbour": 3859661,
+    "revisit": 2517272
+   }
+  }
+ },
+ "pick": {
+  "rule": "cheapest arm with (a) passes and (b) right-within-1-degree each at most 1% of all steps fewer than M (net counts, pooled over the pick samples)",
+  "pick_samples": [
+   "big",
+   "grad"
+  ],
+  "n_steps": 1608,
+  "n_steps_by_sample": {
+   "big": 329,
+   "grad": 1279
+  },
+  "log_mismatches_M": {
+   "big": 0,
+   "grad": 0
+  },
+  "counts_pooled": {
+   "M": {
+    "n_pass": 1592,
+    "n_right": 1583,
+    "evals": 5865469
+   },
+   "C60": {
+    "n_pass": 1347,
+    "n_right": 1448,
+    "evals": 362292
+   },
+   "C200": {
+    "n_pass": 1532,
+    "n_right": 1546,
+    "evals": 650436
+   },
+   "C0": {
+    "n_pass": 542,
+    "n_right": 1177,
+    "evals": 32160
+   }
+  },
+  "counts_by_sample": {
+   "big": {
+    "M": {
+     "n_pass": 329,
+     "n_right": 329,
+     "evals": 2856712
+    },
+    "C60": {
+     "n_pass": 244,
+     "n_right": 303,
+     "evals": 88503
+    },
+    "C200": {
+     "n_pass": 323,
+     "n_right": 324,
+     "evals": 117733
+    },
+    "C0": {
+     "n_pass": 43,
+     "n_right": 254,
+     "evals": 6580
+    }
+   },
+   "grad": {
+    "M": {
+     "n_pass": 1263,
+     "n_right": 1254,
+     "evals": 3008757
+    },
+    "C60": {
+     "n_pass": 1103,
+     "n_right": 1145,
+     "evals": 273789
+    },
+    "C200": {
+     "n_pass": 1209,
+     "n_right": 1222,
+     "evals": 532703
+    },
+    "C0": {
+     "n_pass": 499,
+     "n_right": 923,
+     "evals": 25580
+    }
+   }
+  },
+  "paired_passed": {
+   "C60": {
+    "both": 1345,
+    "m_only": 247,
+    "arm_only": 2,
+    "neither": 14
+   },
+   "C200": {
+    "both": 1528,
+    "m_only": 64,
+    "arm_only": 4,
+    "neither": 12
+   },
+   "C0": {
+    "both": 542,
+    "m_only": 1050,
+    "arm_only": 0,
+    "neither": 16
+   }
+  },
+  "paired_right": {
+   "C60": {
+    "both": 1446,
+    "m_only": 137,
+    "arm_only": 2,
+    "neither": 23
+   },
+   "C200": {
+    "both": 1538,
+    "m_only": 45,
+    "arm_only": 8,
+    "neither": 17
+   },
+   "C0": {
+    "both": 1173,
+    "m_only": 410,
+    "arm_only": 4,
+    "neither": 21
+   }
+  },
+  "one_percent_of_steps": 16.08,
+  "rule_a": {
+   "C60": false,
+   "C200": false,
+   "C0": false
+  },
+  "rule_b": {
+   "C60": false,
+   "C200": false,
+   "C0": false
+  },
+  "evals_fall_vs_M": {
+   "M": 0.0,
+   "C60": 0.9382330722402591,
+   "C200": 0.889107588839017,
+   "C0": 0.9945170624889501
+  },
+  "pick": "M"
+ },
+ "part1": {
+  "big": {
+   "n_steps": 329,
+   "counts": {
+    "M": {
+     "n_pass": 329,
+     "n_right": 329,
+     "evals": 2856712
+    },
+    "C60": {
+     "n_pass": 244,
+     "n_right": 303,
+     "evals": 88503
+    },
+    "C200": {
+     "n_pass": 323,
+     "n_right": 324,
+     "evals": 117733
+    },
+    "C0": {
+     "n_pass": 43,
+     "n_right": 254,
+     "evals": 6580
+    }
+   },
+   "paired_passed": {
+    "C60": {
+     "both": 244,
+     "m_only": 85,
+     "arm_only": 0,
+     "neither": 0
+    },
+    "C200": {
+     "both": 323,
+     "m_only": 6,
+     "arm_only": 0,
+     "neither": 0
+    },
+    "C0": {
+     "both": 43,
+     "m_only": 286,
+     "arm_only": 0,
+     "neither": 0
+    }
+   },
+   "paired_right": {
+    "C60": {
+     "both": 303,
+     "m_only": 26,
+     "arm_only": 0,
+     "neither": 0
+    },
+    "C200": {
+     "both": 324,
+     "m_only": 5,
+     "arm_only": 0,
+     "neither": 0
+    },
+    "C0": {
+     "both": 254,
+     "m_only": 75,
+     "arm_only": 0,
+     "neither": 0
+    }
+   },
+   "log_mismatches_M": 0,
+   "err_q": {
+    "M": {
+     "n": 329,
+     "median": 0.01617558149852254,
+     "p90": 0.05586533656819106,
+     "within_0_2": 1.0
+    },
+    "C60": {
+     "n": 329,
+     "median": 0.12554656588845098,
+     "p90": 0.5417793578606768,
+     "within_0_2": 0.6869300911854104
+    },
+    "C200": {
+     "n": 329,
+     "median": 0.012691234014765893,
+     "p90": 0.05029281190177176,
+     "within_0_2": 0.9696048632218845
+    },
+    "C0": {
+     "n": 329,
+     "median": 0.4532763357848464,
+     "p90": 38.95638801167473,
+     "within_0_2": 0.13069908814589665
+    }
+   }
+  },
+  "grad": {
+   "n_steps": 1279,
+   "counts": {
+    "M": {
+     "n_pass": 1263,
+     "n_right": 1254,
+     "evals": 3008757
+    },
+    "C60": {
+     "n_pass": 1103,
+     "n_right": 1145,
+     "evals": 273789
+    },
+    "C200": {
+     "n_pass": 1209,
+     "n_right": 1222,
+     "evals": 532703
+    },
+    "C0": {
+     "n_pass": 499,
+     "n_right": 923,
+     "evals": 25580
+    }
+   },
+   "paired_passed": {
+    "C60": {
+     "both": 1101,
+     "m_only": 162,
+     "arm_only": 2,
+     "neither": 14
+    },
+    "C200": {
+     "both": 1205,
+     "m_only": 58,
+     "arm_only": 4,
+     "neither": 12
+    },
+    "C0": {
+     "both": 499,
+     "m_only": 764,
+     "arm_only": 0,
+     "neither": 16
+    }
+   },
+   "paired_right": {
+    "C60": {
+     "both": 1143,
+     "m_only": 111,
+     "arm_only": 2,
+     "neither": 23
+    },
+    "C200": {
+     "both": 1214,
+     "m_only": 40,
+     "arm_only": 8,
+     "neither": 17
+    },
+    "C0": {
+     "both": 919,
+     "m_only": 335,
+     "arm_only": 4,
+     "neither": 21
+    }
+   },
+   "log_mismatches_M": 0,
+   "err_q": {
+    "M": {
+     "n": 1279,
+     "median": 0.016528739117068852,
+     "p90": 0.08030222866291471,
+     "within_0_2": 0.9585613760750586
+    },
+    "C60": {
+     "n": 1279,
+     "median": 0.057967087845604046,
+     "p90": 17.4652415797622,
+     "within_0_2": 0.7419859265050821
+    },
+    "C200": {
+     "n": 1279,
+     "median": 0.010466550230226726,
+     "p90": 0.2338866898605059,
+     "within_0_2": 0.872556684910086
+    },
+    "C0": {
+     "n": 1279,
+     "median": 0.27556796495225727,
+     "p90": 44.53949215818361,
+     "within_0_2": 0.40265832681782643
+    }
+   }
+  },
+  "mid": {
+   "n_steps": 1611,
+   "counts": {
+    "M": {
+     "n_pass": 1596,
+     "n_right": 1595,
+     "evals": 12007352
+    },
+    "C60": {
+     "n_pass": 1037,
+     "n_right": 1445,
+     "evals": 447142
+    },
+    "C200": {
+     "n_pass": 1467,
+     "n_right": 1542,
+     "evals": 765267
+    },
+    "C0": {
+     "n_pass": 180,
+     "n_right": 1280,
+     "evals": 32220
+    }
+   },
+   "paired_passed": {
+    "C60": {
+     "both": 1037,
+     "m_only": 559,
+     "arm_only": 0,
+     "neither": 15
+    },
+    "C200": {
+     "both": 1463,
+     "m_only": 133,
+     "arm_only": 4,
+     "neither": 11
+    },
+    "C0": {
+     "both": 180,
+     "m_only": 1416,
+     "arm_only": 0,
+     "neither": 15
+    }
+   },
+   "paired_right": {
+    "C60": {
+     "both": 1441,
+     "m_only": 154,
+     "arm_only": 4,
+     "neither": 12
+    },
+    "C200": {
+     "both": 1537,
+     "m_only": 58,
+     "arm_only": 5,
+     "neither": 11
+    },
+    "C0": {
+     "both": 1276,
+     "m_only": 319,
+     "arm_only": 4,
+     "neither": 12
+    }
+   },
+   "log_mismatches_M": 0
+  }
+ },
+ "part1_mid_pass": {
+  "pick": "M",
+  "pick_commit": "e5f422fc327395bf8ffd329506655e170bad5e57",
+  "verdict_of_pick": null,
+  "arms": {
+   "C60": {
+    "a": false,
+    "b": false,
+    "c": true,
+    "evals_fall": 0.9627609817718344,
+    "passes": false
+   },
+   "C200": {
+    "a": false,
+    "b": false,
+    "c": true,
+    "evals_fall": 0.93626679720891,
+    "passes": false
+   },
+   "C0": {
+    "a": false,
+    "b": false,
+    "c": true,
+    "evals_fall": 0.9973166440027743,
+    "passes": false
+   }
+  },
+  "n_steps": 1611
+ },
+ "base_check": {
+  "evals_total": [
+   7201863,
+   7201863,
+   true
+  ],
+  "stages": {
+   "n_evals_seed": [
+    339810,
+    339810,
+    true
+   ],
+   "n_evals_reseed": [
+    2516902,
+    2516902,
+    true
+   ],
+   "n_evals_neighbor": [
+    3491437,
+    3491437,
+    true
+   ],
+   "n_evals_revisit": [
+    853714,
+    853714,
+    true
+   ],
+   "index_evals": [
+    2856712,
+    2856712,
+    true
+   ]
+  },
+  "wrapper": {
+   "wrapper_calls": [
+    32563,
+    32563,
+    true
+   ],
+   "picked_fell": [
+    29366,
+    29366,
+    true
+   ],
+   "fallback_runs": [
+    3197,
+    3197,
+    true
+   ],
+   "fallback_won": [
+    3,
+    3,
+    true
+   ],
+   "evals_fallback": [
+    2358808,
+    2358808,
+    true
+   ]
+  },
+  "seed_log_identical": true,
+  "seed_steps": [
+   329,
+   329
+  ],
+  "map_max_abs_diff": 0.0,
+  "map_identical": true,
+  "wrong_new": 67,
+  "wrong_stored": 67,
+  "error_arrays_identical": true,
+  "reproduces": true
+ },
+ "part2": {
+  "S10": {
+   "big": {
+    "run": "S10",
+    "sample": "big",
+    "unfinished": false,
+    "seed_arm": "M",
+    "no_mc_fallback": true,
+    "seed_steps": 333,
+    "stopped_early": 323,
+    "stages": {
+     "seed_step": 2790857,
+     "grid_fallback": 0,
+     "neighbour": 1496574,
+     "revisit": 479704,
+     "pass_": 1131123,
+     "before_pass": 4767135,
+     "total": 5898258
+    },
+    "stages_s8": {
+     "seed_step": 2856712,
+     "grid_fallback": 0,
+     "neighbour": 3491437,
+     "revisit": 853714,
+     "pass_": 1138565,
+     "before_pass": 7201863,
+     "total": 8340428
+    },
+    "grid_fallbacks": 0,
+    "grid_fallbacks_s8": 0,
+    "wrapper": {
+     "wrapper_calls": 32398,
+     "picked_fell": 29246,
+     "fallback_runs": 0,
+     "fallback_won": 0,
+     "evals_picked": 1976278,
+     "evals_fallback": 0,
+     "cma_calls_total": 32398,
+     "vmo_calls_total": 467,
+     "vmo_calls_in_wrapper": 0,
+     "vmo_calls_outside_wrapper": 467,
+     "cma_not_fell": 3152,
+     "mc_fallback_off": true
+    },
+    "before": {
+     "wrong": 77,
+     "wilson_lo": 0.0025084294323638196,
+     "wilson_hi": 0.003914725830425862,
+     "median_err_deg": 0.03222421637156812
+    },
+    "after": {
+     "wrong": 22,
+     "wilson_lo": 0.0005914051061572457,
+     "wilson_hi": 0.001355445564516891,
+     "median_err_deg": 0.0317896413133856
+    },
+    "s8_before": {
+     "wrong": 67,
+     "wilson_lo": 0.0021480022296533167,
+     "wilson_hi": 0.003461279470933539,
+     "median_err_deg": 0.03203684557345755
+    },
+    "s8_after": {
+     "wrong": 24,
+     "wilson_lo": 0.0006565177937645098,
+     "wilson_hi": 0.001453107589350192,
+     "median_err_deg": 0.031606382282736975
+    },
+    "wall_s": 601.5778551101685,
+    "wall_label": "contended (other jobs on the machine); not a timing result",
+    "wall_pass_s": 131.86394023895264,
+    "paired_before": {
+     "fixed": 10,
+     "broken": 20,
+     "both_wrong": 57
+    },
+    "paired_after": {
+     "fixed": 11,
+     "broken": 9,
+     "both_wrong": 13
+    },
+    "rule": {
+     "fewer": 0.29281111233140555,
+     "a": true,
+     "b": true,
+     "c": true,
+     "net_broken": -2,
+     "med_diff": 0.00018325903064862759,
+     "passes": true
+    }
+   },
+   "grad": {
+    "run": "S10",
+    "sample": "grad",
+    "unfinished": false,
+    "seed_arm": "M",
+    "no_mc_fallback": true,
+    "seed_steps": 1327,
+    "stopped_early": 1128,
+    "stages": {
+     "seed_step": 3122117,
+     "grid_fallback": 5108107,
+     "neighbour": 1477481,
+     "revisit": 1779065,
+     "pass_": 3681228,
+     "before_pass": 11486770,
+     "total": 15167998
+    },
+    "stages_s8": {
+     "seed_step": 3008757,
+     "grid_fallback": 5449501,
+     "neighbour": 2798001,
+     "revisit": 3060730,
+     "pass_": 3683241,
+     "before_pass": 14316989,
+     "total": 18000230
+    },
+    "grid_fallbacks": 15,
+    "grid_fallbacks_s8": 16,
+    "wrapper": {
+     "wrapper_calls": 53386,
+     "picked_fell": 49510,
+     "fallback_runs": 0,
+     "fallback_won": 0,
+     "evals_picked": 3256546,
+     "evals_fallback": 0,
+     "cma_calls_total": 53386,
+     "vmo_calls_total": 2467,
+     "vmo_calls_in_wrapper": 0,
+     "vmo_calls_outside_wrapper": 2467,
+     "cma_not_fell": 3876,
+     "mc_fallback_off": true
+    },
+    "before": {
+     "wrong": 198,
+     "wilson_lo": 0.007014997200955767,
+     "wilson_hi": 0.00925602816448811,
+     "median_err_deg": 0.02266916621973251
+    },
+    "after": {
+     "wrong": 67,
+     "wilson_lo": 0.0021480022296533167,
+     "wilson_hi": 0.003461279470933539,
+     "median_err_deg": 0.022427245923741117
+    },
+    "s8_before": {
+     "wrong": 210,
+     "wilson_lo": 0.007470309001022389,
+     "wilson_hi": 0.00977736463906488,
+     "median_err_deg": 0.02285236562148693
+    },
+    "s8_after": {
+     "wrong": 63,
+     "wilson_lo": 0.002004792724438049,
+     "wilson_hi": 0.003278939551267675,
+     "median_err_deg": 0.022638749845755476
+    },
+    "wall_s": 1583.7562391757965,
+    "wall_label": "contended (other jobs on the machine); not a timing result",
+    "wall_pass_s": 399.5012700557709,
+    "paired_before": {
+     "fixed": 51,
+     "broken": 39,
+     "both_wrong": 159
+    },
+    "paired_after": {
+     "fixed": 29,
+     "broken": 33,
+     "both_wrong": 34
+    },
+    "rule": {
+     "fewer": 0.15734421171285035,
+     "a": false,
+     "b": true,
+     "c": true,
+     "net_broken": 4,
+     "med_diff": -0.000211503922014359,
+     "passes": false
+    }
+   },
+   "mid": {
+    "run": "S10",
+    "sample": "mid",
+    "unfinished": false,
+    "seed_arm": "M",
+    "no_mc_fallback": true,
+    "seed_steps": 1604,
+    "stopped_early": 1363,
+    "stages": {
+     "seed_step": 11431628,
+     "grid_fallback": 5008366,
+     "neighbour": 1489254,
+     "revisit": 1687748,
+     "pass_": 3051708,
+     "before_pass": 19616996,
+     "total": 22668704
+    },
+    "stages_s8": {
+     "seed_step": 12007352,
+     "grid_fallback": 5002750,
+     "neighbour": 3859661,
+     "revisit": 2517272,
+     "pass_": 3056039,
+     "before_pass": 23387035,
+     "total": 26443074
+    },
+    "grid_fallbacks": 15,
+    "grid_fallbacks_s8": 15,
+    "wrapper": {
+     "wrapper_calls": 52082,
+     "picked_fell": 47586,
+     "fallback_runs": 0,
+     "fallback_won": 0,
+     "evals_picked": 3177002,
+     "evals_fallback": 0,
+     "cma_calls_total": 52082,
+     "vmo_calls_total": 3214,
+     "vmo_calls_in_wrapper": 0,
+     "vmo_calls_outside_wrapper": 3214,
+     "cma_not_fell": 4496,
+     "mc_fallback_off": true
+    },
+    "before": {
+     "wrong": 73,
+     "wilson_lo": 0.0023638749233669677,
+     "wilson_hi": 0.0037337309145415837,
+     "median_err_deg": 0.030368446526707022
+    },
+    "after": {
+     "wrong": 35,
+     "wilson_lo": 0.001024480457633824,
+     "wilson_hi": 0.001980405843903987,
+     "median_err_deg": 0.029969603959290148
+    },
+    "s8_before": {
+     "wrong": 84,
+     "wilson_lo": 0.0027625009856155278,
+     "wilson_hi": 0.004230365770716132,
+     "median_err_deg": 0.030239472968499957
+    },
+    "s8_after": {
+     "wrong": 31,
+     "wilson_lo": 0.0008890352069823217,
+     "wilson_hi": 0.0017903016696743583,
+     "median_err_deg": 0.029722923795110812
+    },
+    "wall_s": 2406.0044939517975,
+    "wall_label": "contended (other jobs on the machine); not a timing result",
+    "wall_pass_s": 332.6315178871155,
+    "paired_before": {
+     "fixed": 25,
+     "broken": 14,
+     "both_wrong": 59
+    },
+    "paired_after": {
+     "fixed": 11,
+     "broken": 15,
+     "both_wrong": 20
+    },
+    "rule": {
+     "fewer": 0.14273567437734358,
+     "a": false,
+     "b": true,
+     "c": true,
+     "net_broken": 4,
+     "med_diff": 0.0002466801641793359,
+     "passes": false
+    }
+   }
+  },
+  "S10a": {
+   "big": null,
+   "grad": null,
+   "mid": null
+  },
+  "S10b": {
+   "big": null,
+   "grad": null,
+   "mid": null
+  }
+ },
+ "derived": {
+  "net_fewer_passes": {
+   "C60": 245,
+   "C200": 60,
+   "C0": 1050
+  },
+  "net_fewer_right": {
+   "C60": 135,
+   "C200": 37,
+   "C0": 406
+  },
+  "replayed_steps_all_samples": 3219,
+  "sample_grains": {
+   "big": 32,
+   "grad": 497,
+   "mid": 120
+  },
+  "voxels_per_sample": 24570
+ }
+}

@@ -52,6 +52,104 @@ def ci(k: int, n: int) -> str:
     return f"{100 * lo:.1f} to {100 * hi:.1f}%"
 
 
+HEADERS: Dict[str, Dict[str, str]] = {
+    "part0": dict(
+        steps="seed steps",
+        refs="refinements",
+        ref_evals="refinement evaluations",
+        ref_mean="mean per refinement",
+        fb_runs="MC fallbacks",
+        fb_share="share of fits (%)",
+        fb_evals="fallback evaluations",
+        fb_mean="mean per fallback",
+        fb_won="ended lower than CMA",
+        fb_won_ci="Wilson 95% interval",
+        total="evaluations of S8 with the pass",
+        share="refinements + fallbacks (% of total)",
+    ),
+    "part1": dict(
+        passed="pass the seed test",
+        passed_ci="Wilson 95% interval",
+        m_only_p="passes: M only",
+        arm_only_p="passes: arm only",
+        right="within 1 degree",
+        m_only_r="within 1 deg: M only",
+        arm_only_r="within 1 deg: arm only",
+        evals="seed-step evaluations",
+        fall="fewer than M (%)",
+    ),
+    "err": {
+        "steps": "steps with candidates",
+        "median": "median error (deg)",
+        "p90": "90th percentile (deg)",
+        "within": "within 0.2 deg (%)",
+    },
+    "pick": dict(
+        passed="pass the seed test",
+        right="within 1 degree",
+        evals="seed-step evaluations",
+        a="rule (a)",
+        b="rule (b)",
+        chosen="picked",
+    ),
+    "mid_pass": dict(a="rule (a)", b="rule (b)", fall="evaluations fall (%)", c="rule (c)"),
+    "part2": dict(
+        seed="seed step",
+        grid="grid fallback",
+        neigh="neighbour fits",
+        rev="revisits",
+        pas="boundary pass",
+        total="total",
+        gfb="grid fallbacks (count)",
+        wrong_b="wrong before the pass",
+        wrong_a="wrong after the pass",
+        fix_b="fixed / broken before",
+        fix_a="fixed / broken after",
+        med="median error after (deg)",
+    ),
+    "fits": dict(
+        s8_fits="S8 fits",
+        s8_fb="S8 MC fallbacks",
+        s8_won="S8 MC ended lower",
+        s10_fits="S10 fits",
+        s10_nofall="S10 CMA cost did not fall",
+        s8_neigh_revisit="S8 neighbour + revisit evaluations",
+        s10_neigh_revisit="S10 neighbour + revisit evaluations",
+        seeds8="S8 seed steps",
+        seeds10="S10 seed steps",
+    ),
+    "rule": dict(
+        fewer="fewer than S8 (%)",
+        a="rule (a)",
+        net="broken minus fixed",
+        b="rule (b)",
+        meddiff="median error minus S8's (deg)",
+        c="rule (c)",
+        passes="passes",
+    ),
+    "pred": dict(n="prediction", obs="observed", verdict="verdict"),
+    "shares": dict(
+        t8="S8 total",
+        t10="S10 total",
+        saved="saved",
+        seed="S8 seed step (% of total)",
+        grid="S8 grid fallback (%)",
+        nr="S8 neighbour + revisit (%)",
+        pas="S8 boundary pass (%)",
+        nr_saved="saved in neighbour + revisit (% of S8 total)",
+    ),
+}
+
+
+def pretty(name: str, md: str) -> str:
+    """Rename the header cells of a markdown table (the keys used while building it)."""
+    lines = md.split("\n")
+    m = HEADERS.get(name, {})
+    cells = [c.strip() for c in lines[0].strip("|").split("|")]
+    lines[0] = "| " + " | ".join(m.get(c, c) for c in cells) + " |"
+    return "\n".join(lines)
+
+
 def wrong_text(side: Dict[str, Any]) -> str:
     """'count (Wilson 95% interval)' of a scored side."""
     lo, hi = 100 * side["wilson_lo"], 100 * side["wilson_hi"]
@@ -71,6 +169,7 @@ def part1_counts(sample: str) -> Optional[Dict[str, Any]]:
         paired_passed={a: L.paired(rows, a, "passed") for a in FC.ARMS if a != "M"},
         paired_right={a: L.paired(rows, a, "right") for a in FC.ARMS if a != "M"},
         log_mismatches_M=sum(1 for r in rows if not r["log_ok"]),
+        err_q=L.err_quantiles(rows),
     )
 
 
@@ -83,6 +182,18 @@ def main() -> None:
     S["base_check"] = rj("base_check.json")
     S["part2"] = {n: {s: rj(f"part2_{n}_{s}.json") for s in SAMPLES} for n in RUN_NAMES}
     T: Dict[str, str] = {}
+    pk0 = S["pick"]
+    if pk0:
+        c = pk0["counts_pooled"]
+        S["derived"] = dict(
+            net_fewer_passes={a: c["M"]["n_pass"] - c[a]["n_pass"] for a in FC.ARMS if a != "M"},
+            net_fewer_right={a: c["M"]["n_right"] - c[a]["n_right"] for a in FC.ARMS if a != "M"},
+            replayed_steps_all_samples=sum(
+                S["part1"][s]["n_steps"] for s in SAMPLES if S["part1"][s]
+            ),
+            sample_grains=dict(big=32, grad=497, mid=120),
+            voxels_per_sample=24570,
+        )
 
     # ---- Part 0
     rows0: List[Optional[Dict[str, Any]]] = []
@@ -181,6 +292,33 @@ def main() -> None:
         labels=lab1,
     )
 
+    # ---- end errors of the arms
+    rows_e: List[Optional[Dict[str, Any]]] = []
+    lab_e: List[str] = []
+    for s in SAMPLES:
+        d = S["part1"][s]
+        for arm in FC.ARMS:
+            lab_e.append(f"{NAMES[s]} {arm}")
+            if d is None or "err_q" not in d:
+                rows_e.append(None)
+                continue
+            q = d["err_q"][arm]
+            rows_e.append(
+                dict(
+                    sample=NAMES[s],
+                    arm=arm,
+                    steps=q["n"],
+                    median=q["median"],
+                    p90=q["p90"],
+                    within=100 * q["within_0_2"],
+                )
+            )
+    T["err"] = markdown_table(
+        rows_e,
+        ["sample", "arm", "steps", "median", "p90", "within"],
+        formats=dict(median=".3f", p90=".3f", within=".1f"),
+        labels=lab_e,
+    )
     # ---- pick
     pk = S["pick"]
     if pk:
@@ -224,6 +362,8 @@ def main() -> None:
     rows2: List[Optional[Dict[str, Any]]] = []
     lab2: List[str] = []
     for n in ("S8",) + RUN_NAMES:
+        if n != "S8" and not any(S["part2"][n][s] for s in SAMPLES):
+            continue
         for s in SAMPLES:
             d = S["part2"][n][s] if n != "S8" else None
             if n == "S8":
@@ -281,6 +421,81 @@ def main() -> None:
         formats=dict(seed="d", grid="d", neigh="d", rev="d", pas="d", total="d", med=".4f"),
         labels=lab2,
     )
+    # ---- what the fallback did in S8 and what S10 saved
+    rf: List[Optional[Dict[str, Any]]] = []
+    lf: List[str] = []
+    for s in SAMPLES:
+        d, p0 = S["part2"]["S10"][s], S["part0"][s]
+        lf.append(NAMES[s])
+        if d is None or d.get("unfinished") or p0 is None:
+            rf.append(None)
+            continue
+        w = d["wrapper"]
+        rf.append(
+            dict(
+                sample=NAMES[s],
+                s8_fits=p0["neighbour_fit_calls"],
+                s8_fb=p0["mc_fallback_runs"],
+                s8_won=p0["mc_fallback_won"],
+                s10_fits=w["wrapper_calls"],
+                s10_nofall=w["cma_not_fell"],
+                s8_neigh_revisit=d["stages_s8"]["neighbour"] + d["stages_s8"]["revisit"],
+                s10_neigh_revisit=d["stages"]["neighbour"] + d["stages"]["revisit"],
+                seeds8=p0["seed_steps"],
+                seeds10=d["seed_steps"],
+            )
+        )
+    T["fits"] = markdown_table(
+        rf,
+        [
+            "sample",
+            "s8_fits",
+            "s8_fb",
+            "s8_won",
+            "s10_fits",
+            "s10_nofall",
+            "s8_neigh_revisit",
+            "s10_neigh_revisit",
+            "seeds8",
+            "seeds10",
+        ],
+        formats=dict(s8_neigh_revisit="d", s10_neigh_revisit="d"),
+        labels=lf,
+    )
+    # ---- where S8's evaluations are, and what S10 saved
+    rs: List[Optional[Dict[str, Any]]] = []
+    ls: List[str] = []
+    for s in SAMPLES:
+        d = S["part2"]["S10"][s]
+        ls.append(NAMES[s])
+        if d is None or d.get("unfinished"):
+            rs.append(None)
+            continue
+        a8, a10 = d["stages_s8"], d["stages"]
+        t8 = a8["total"]
+        rs.append(
+            dict(
+                sample=NAMES[s],
+                t8=t8,
+                t10=a10["total"],
+                saved=t8 - a10["total"],
+                seed=100 * a8["seed_step"] / t8,
+                grid=100 * a8["grid_fallback"] / t8,
+                nr=100 * (a8["neighbour"] + a8["revisit"]) / t8,
+                pas=100 * a8["pass_"] / t8,
+                nr_saved=100
+                * (a8["neighbour"] + a8["revisit"] - a10["neighbour"] - a10["revisit"])
+                / t8,
+            )
+        )
+    T["shares"] = markdown_table(
+        rs,
+        ["sample", "t8", "t10", "saved", "seed", "grid", "nr", "pas", "nr_saved"],
+        formats=dict(
+            t8="d", t10="d", saved="d", seed=".1f", grid=".1f", nr=".1f", pas=".1f", nr_saved=".1f"
+        ),
+        labels=ls,
+    )
     # ---- rule verdicts
     rr = []
     rl = []
@@ -334,10 +549,102 @@ def main() -> None:
             ["item", "new", "stored"],
             formats=dict(new="d", stored="d"),
         )
+    T["pred"] = predictions(S)
+    T = {k: pretty(k, v) for k, v in T.items()}
     write_tables(FIT / "tables.md", T)
     (FIT / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
     plots(S)
     print("summary written;", sorted(T))
+
+
+def predictions(S: Dict[str, Any]) -> str:
+    """The five predictions of the plan, each with the observed numbers and a verdict."""
+    rows: List[Dict[str, Any]] = []
+    NE = "not evaluated"
+
+    def done(n: str, s: str) -> Optional[Dict[str, Any]]:
+        d = S["part2"][n][s]
+        return d if d and not d.get("unfinished") else None
+
+    # 1: the MC fallback ended lower than the CMA end in under 1% of its runs, every sample
+    shares = []
+    ok1 = True
+    for s in SAMPLES:
+        p = S["part0"][s]
+        if p is None:
+            ok1 = None
+            continue
+        sh = 100 * p["mc_fallback_won"] / p["mc_fallback_runs"]
+        shares.append(f"{NAMES[s]} {p['mc_fallback_won']} of {p['mc_fallback_runs']} ({sh:.2f}%)")
+        ok1 = ok1 and sh < 1.0 if ok1 is not None else ok1
+    rows.append(
+        dict(n=1, obs="; ".join(shares), verdict=NE if ok1 is None else "agrees" if ok1 else "no")
+    )
+    # 2: C60 is the pick, passes on mid, and cuts the seed-step evaluations by 90% or more
+    pk = S["pick"]
+    cuts = []
+    ok_cut = True
+    for s in SAMPLES:
+        d = S["part1"][s]
+        if d is None:
+            ok_cut = None
+            continue
+        f = 100 * FR.fall(d["counts"]["C60"]["evals"], d["counts"]["M"]["evals"])
+        cuts.append(f"{NAMES[s]} {f:.1f}%")
+        ok_cut = ok_cut and f >= 90.0 if ok_cut is not None else ok_cut
+    v2 = "no (the pick is " + (pk["pick"] if pk else "?") + ")"
+    rows.append(
+        dict(
+            n=2,
+            obs=f"pick {pk['pick'] if pk else NE}; C60 cuts the seed step by " + ", ".join(cuts),
+            verdict=v2
+            + ("; the cut holds" if ok_cut else "; the cut fails" if ok_cut is False else ""),
+        )
+    )
+    # 3: C0 fails rule (a)
+    if pk:
+        c0 = pk["counts_pooled"]["C0"]["n_pass"]
+        m0 = pk["counts_pooled"]["M"]["n_pass"]
+        rows.append(
+            dict(
+                n=3,
+                obs=f"C0 passes the seed test in {c0} of {pk['n_steps']} steps, M in {m0}",
+                verdict="agrees" if not pk["rule_a"]["C0"] else "no",
+            )
+        )
+    # 4: S10 with the pass under 4.0 / 14 / 13.5 million and passes its rule on all three
+    lim = dict(big=4.0e6, grad=14.0e6, mid=13.5e6)
+    obs4 = []
+    ok4: Optional[bool] = True
+    for s in SAMPLES:
+        d = done("S10", s)
+        if d is None:
+            ok4 = None
+            obs4.append(f"{NAMES[s]} {NE}")
+            continue
+        t = d["stages"]["total"]
+        obs4.append(f"{NAMES[s]} {t} (limit {int(lim[s])}; rule passes {d['rule']['passes']})")
+        if ok4 is not None:
+            ok4 = ok4 and t < lim[s] and bool(d["rule"]["passes"])
+    rows.append(
+        dict(n=4, obs="; ".join(obs4), verdict=NE if ok4 is None else "agrees" if ok4 else "no")
+    )
+    # 5: grid fallbacks of S10 within 2 of S8's
+    obs5 = []
+    ok5: Optional[bool] = True
+    for s in SAMPLES:
+        d = done("S10", s)
+        if d is None:
+            ok5 = None
+            obs5.append(f"{NAMES[s]} {NE}")
+            continue
+        obs5.append(f"{NAMES[s]} {d['grid_fallbacks']} against {d['grid_fallbacks_s8']}")
+        if ok5 is not None:
+            ok5 = ok5 and abs(d["grid_fallbacks"] - d["grid_fallbacks_s8"]) <= 2
+    rows.append(
+        dict(n=5, obs="; ".join(obs5), verdict=NE if ok5 is None else "agrees" if ok5 else "no")
+    )
+    return markdown_table(rows, ["n", "obs", "verdict"])
 
 
 def plots(S: Dict[str, Any]) -> None:

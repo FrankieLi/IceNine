@@ -30,6 +30,7 @@ def main() -> None:
         paired_passed={a: L.paired(rows, a, "passed") for a in FC.ARMS if a != "M"},
         paired_right={a: L.paired(rows, a, "right") for a in FC.ARMS if a != "M"},
         log_mismatches_M=sum(1 for r in rows if not r["log_ok"]),
+        err_q=L.err_quantiles(rows),
     )
     (FC.FIT / "part1_mid.json").write_text(json.dumps(part1, indent=1) + "\n")
     arms = {a: FR.mid_pass(counts[a], counts["M"], n) for a in FC.ARMS if a != "M"}

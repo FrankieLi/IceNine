@@ -1,0 +1,66 @@
+{
+ "n_steps": 1611,
+ "counts": {
+  "M": {
+   "n_pass": 1596,
+   "n_right": 1595,
+   "evals": 12007352
+  },
+  "C60": {
+   "n_pass": 1037,
+   "n_right": 1445,
+   "evals": 447142
+  },
+  "C200": {
+   "n_pass": 1467,
+   "n_right": 1542,
+   "evals": 765267
+  },
+  "C0": {
+   "n_pass": 180,
+   "n_right": 1280,
+   "evals": 32220
+  }
+ },
+ "paired_passed": {
+  "C60": {
+   "both": 1037,
+   "m_only": 559,
+   "arm_only": 0,
+   "neither": 15
+  },
+  "C200": {
+   "both": 1463,
+   "m_only": 133,
+   "arm_only": 4,
+   "neither": 11
+  },
+  "C0": {
+   "both": 180,
+   "m_only": 1416,
+   "arm_only": 0,
+   "neither": 15
+  }
+ },
+ "paired_right": {
+  "C60": {
+   "both": 1441,
+   "m_only": 154,
+   "arm_only": 4,
+   "neither": 12
+  },
+  "C200": {
+   "both": 1537,
+   "m_only": 58,
+   "arm_only": 5,
+   "neither": 11
+  },
+  "C0": {
+   "both": 1276,
+   "m_only": 319,
+   "arm_only": 4,
+   "neither": 12
+  }
+ },
+ "log_mismatches_M": 0
+}

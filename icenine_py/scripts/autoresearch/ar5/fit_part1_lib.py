@@ -58,6 +58,23 @@ def counts(rows: List[Dict[str, Any]]) -> Dict[str, Dict[str, int]]:
     return out
 
 
+def err_quantiles(rows: List[Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
+    """Median and 90th percentile of the end error (degrees) of each arm over the steps that have
+    candidates; ``n`` is the number of those steps. ``C0`` is the error of the candidate as costed
+    (the start of every refinement)."""
+    out: Dict[str, Dict[str, float]] = {}
+    for arm in FC.ARMS:
+        e = arrays(rows, arm)["err"]
+        e = e[np.isfinite(e)]
+        out[arm] = dict(
+            n=int(len(e)),
+            median=float(np.median(e)),
+            p90=float(np.percentile(e, 90)),
+            within_0_2=float((e <= 0.2).mean()),
+        )
+    return out
+
+
 def paired(rows: List[Dict[str, Any]], arm: str, key: str) -> Dict[str, int]:
     """Paired split of a flag (``passed`` or ``right``): a = M, b = the arm."""
     m = arrays(rows, "M")[key]
