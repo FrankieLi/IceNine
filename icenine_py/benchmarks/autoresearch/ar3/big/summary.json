@@ -1879,5 +1879,31 @@
   "intervals_overlap": true,
   "s5_more_wrong": false,
   "s5_fewer_or_equal_evals": false
+ },
+ "seed_cost": {
+  "big": {
+   "index_runs_d4": 329,
+   "index_runs_s5": 349,
+   "evals_per_index_run_d4": 12208.079027355623,
+   "evals_per_index_run_s5": 21402.79083094556,
+   "grid_fallbacks_d4": 8,
+   "fallback_rate_d4": 0.0243161094224924,
+   "fallback_rate_d4_ci": "8 of 329 (1.24 to 4.72%)",
+   "evals_per_grid_fallback_d4": 306586.125,
+   "extra_per_index_run_s5": 9194.711803589937,
+   "break_even_fallback_rate": 0.029990632497116223
+  },
+  "gradient": {
+   "index_runs_d4": 1298,
+   "index_runs_s5": 1293,
+   "evals_per_index_run_d4": 2611.135593220339,
+   "evals_per_index_run_s5": 4633.251353441608,
+   "grid_fallbacks_d4": 76,
+   "fallback_rate_d4": 0.05855161787365177,
+   "fallback_rate_d4_ci": "76 of 1298 (4.70 to 7.27%)",
+   "evals_per_grid_fallback_d4": 339914.3947368421,
+   "extra_per_index_run_s5": 2022.1157602212693,
+   "break_even_fallback_rate": 0.005948897109187649
+  }
  }
 }

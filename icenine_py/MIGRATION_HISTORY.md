@@ -11576,3 +11576,30 @@ broken (S5 added after S). The tries are "consistent with" the extra wrong voxel
 voxel. The 14 near-truth refined ends all fail the 0.80 seed test (median hit 0.779). Default
 until the owner decides: the S5 seed step (best 5 of 20, no tries), checked on larger grains
 before any opt-in key.
+
+## Autoresearch AR3 step 7: the same pipelines on larger grains (done 2026-11-11, task ar3g)
+
+No change under `icenine/`; scripts `scripts/autoresearch/ar3/big_{make_sample,stack_note,
+seed_check,run,pass,errors,summary}.py` and a sample switch (`AR3_SAMPLE=big`, default the
+gradient sample) in `ar3_common.py` and `gradient_common.py`; results
+`benchmarks/autoresearch/ar3/big/` (slim, under 3 MB); page `docs/autoresearch/
+findings_ar3_big.md` (placed by the main session; the tool refused the implementer's write).
+Simulated sample only; C++ not run; one run per pipeline, one voxel order; wall times contended.
+The sample `big`: 32 grains (132 to 1,720 voxels) on the gradient sample's 24,570-voxel grid,
+levels 0 to 4 degrees, one level per grain (5, 5, 1, 9, 6, 6 grains at 0, 0.2, 0.5, 1, 2, 4).
+Checks passed: every fine voxel in exactly one coarse voxel, 32 distinct orientations, the truth
+passes the seed test on 200 of 200 voxels (and on the gradient sample, 200 of 200).
+With the pass, evaluations on `big` against the gradient sample: `D` 65.87 against 122.07
+million, `D4` 11.94 against 38.81, `S5` 13.00 against 20.63, `P4R4` 19.96 against 54.56. Wrong
+after the pass: `D` 26, `D4` 21, `S5` 30, `P4R4` 31 of 24,570 (`S5` against `D4`: intervals
+overlap, 6 fixed, 15 broken). Predictions: (1) reseeds fall to the order of the number of grains
+and the seed step plus grid fallbacks are under a tenth of `S5`: does not agree (314 reseeds on
+32 grains; 57.5% of the evaluations); (2) `S5` with the pass close to its local optimizations and
+pass alone: does not agree (529.1 against 225.1 per voxel); (3) wrong share at matched levels no
+higher than on the gradient sample: agrees (each level holds 1 to 9 grains). Result for the keys
+step: `S5` has no more wrong voxels than `D4` (intervals) but costs 8.8% more evaluations on
+`big` (it saves 47% on the gradient sample); neither branch of the plan covers it; the owner
+decides. The seed step is 57.5% of `S5` on `big`, 267 of its 349 seed steps are in the 6 grains
+of level 4 ("consistent with" fast turning of the orientation; not tested). No run hit its cap.
+Added beyond the plan: seed steps by level, the cost of an index run and the break-even grid
+fallback rate (3.0% on `big`, 0.6% on the gradient sample; `D4` fell back on 2.4% and 5.9%).

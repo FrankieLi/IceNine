@@ -92,6 +92,13 @@
 | 1 | 5539 | 761 | 683 | 137.4 | 3837430 |
 <!-- /table:seed_by_level_gradient -->
 
+<!-- table:seed_cost -->
+| sample | index_runs_d4 | evals_per_index_run_d4 | evals_per_index_run_s5 | fallback_rate_d4 | evals_per_grid_fallback_d4 | break_even_pct |
+|---|---|---|---|---|---|---|
+| big | 329 | 12208 | 21403 | 8 of 329 (1.24 to 4.72%) | 306586 | 3.0 |
+| gradient | 1298 | 2611 | 4633 | 76 of 1298 (4.70 to 7.27%) | 339914 | 0.6 |
+<!-- /table:seed_cost -->
+
 <!-- table:wrong_all -->
 | pipeline | big_before | big_after | gradient_before | gradient_after |
 |---|---|---|---|---|

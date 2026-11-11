@@ -1,6 +1,9 @@
 """AR3 step 7: the summary of the four runs on ``big`` against the gradient sample.
 
-  uv run python scripts/autoresearch/ar3/big_summary.py
+  uv run python scripts/autoresearch/ar3/big_summary.py [--slim]
+
+``--slim`` first makes the slim copies from the full run folders and the pass cache (not in git;
+the committed copies are what the summary reads without it).
 
 Reads (all committed): ``big/errors.npz`` (per-voxel errors of each map before and after the pass),
 ``big/{gradient,fine,seed}/runs/*/run.json`` and the pass folders' ``pass.json``, ``big/gradient/
@@ -375,6 +378,38 @@ def main() -> None:
         s5_fewer_or_equal_evals=bool(s5["total"] <= bigS["D4"]["total"]),
     )
 
+    # ---- added: the cost of one index run, and what a grid fallback costs (arithmetic on counters)
+    sc: Dict[str, Any] = {}
+    srcs = {
+        "big": {
+            "D4": jl(BIG / "slim" / "D4_run.json")["stats"],
+            "S5": jl(BIG / "slim" / "S5_run.json")["stats"],
+        },
+        "gradient": {
+            "D4": jl(GRAD / "fine" / "runs" / "D4" / "run.json")["stats"],
+            "S5": jl(GRAD / "seed" / "runs" / "S5" / "run.json")["stats"],
+        },
+    }
+    for side, d in srcs.items():
+        d4, s5s = d["D4"], d["S5"]
+        per4 = d4["index_evals"] / d4["index_runs"]
+        per5 = s5s["index_evals"] / s5s["index_runs"]
+        nfb = d4.get("index_fallback_seed_test", 0)
+        per_fb = d4.get("index_fallback_grid_evals", 0) / nfb
+        sc[side] = dict(
+            index_runs_d4=int(d4["index_runs"]),
+            index_runs_s5=int(s5s["index_runs"]),
+            evals_per_index_run_d4=per4,
+            evals_per_index_run_s5=per5,
+            grid_fallbacks_d4=int(nfb),
+            fallback_rate_d4=nfb / d4["index_runs"],
+            fallback_rate_d4_ci=ci(int(nfb), int(d4["index_runs"])),
+            evals_per_grid_fallback_d4=per_fb,
+            extra_per_index_run_s5=per5 - per4,
+            break_even_fallback_rate=(per5 - per4) / per_fb,
+        )
+    S["seed_cost"] = sc
+
     (BIG / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
     write_tables(BIG / "tables.md", tables(S))
     plots(S)
@@ -499,6 +534,39 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
         )
     rows.append(dict(stage="total", evals=s5["total"], share_pct=100.0))
     T["s5_split"] = markdown_table(rows, ["stage", "evals", "share_pct"], {"share_pct": ".1f"})
+    rows = []
+    for side in ("big", "gradient"):
+        c = S["seed_cost"][side]
+        rows.append(
+            dict(
+                sample=side,
+                index_runs_d4=c["index_runs_d4"],
+                evals_per_index_run_d4=c["evals_per_index_run_d4"],
+                evals_per_index_run_s5=c["evals_per_index_run_s5"],
+                grid_fallbacks_d4=c["grid_fallbacks_d4"],
+                fallback_rate_d4=c["fallback_rate_d4_ci"],
+                evals_per_grid_fallback_d4=c["evals_per_grid_fallback_d4"],
+                break_even_pct=100.0 * c["break_even_fallback_rate"],
+            )
+        )
+    T["seed_cost"] = markdown_table(
+        rows,
+        [
+            "sample",
+            "index_runs_d4",
+            "evals_per_index_run_d4",
+            "evals_per_index_run_s5",
+            "fallback_rate_d4",
+            "evals_per_grid_fallback_d4",
+            "break_even_pct",
+        ],
+        {
+            "evals_per_index_run_d4": ".0f",
+            "evals_per_index_run_s5": ".0f",
+            "evals_per_grid_fallback_d4": ".0f",
+            "break_even_pct": ".1f",
+        },
+    )
     rows = []
     for x in S["seed_steps_by_level"]:
         rows.append(dict(x, per_1000_voxels=1000.0 * x["seed_steps"] / x["voxels"]))
