@@ -11634,7 +11634,10 @@ plan's `E1` (stop the refinements at the first that passes the seed test, 0.80) 
 rule on the test set (odd grains): 6 broken against 0 fixed on `big` and 51 against 2 on the
 gradient sample. So by the plan's rule no listed remedy passed. A variant of `E1` with a stop
 test of 0.95, added after those results and chosen on the pick set (even grains), cuts the seed
-step by 58.4% on `big` and 48.4% on the gradient sample on the test set and breaks no case.
+step by 58.4% on `big` and 48.4% on the gradient sample on the test set and breaks no case. The
+stop-test grid and pick rule were written after the 0.80 test rows of the gradient sample had
+been read; the pick set alone shows the same failure at 0.80 (45 broken, 1 fixed, pooled), and
+the 0.95 test rows were not read before the choice.
 `E2` (keep a rejected fit that passes a second test) fails on the pick set: no test has broken
 at most fixed (best: 3 broken, 2 fixed, 4.4% cut); `E3` not tried (class B 1.5%). Part 3 was
 run on the variant: `S8` = `S5` + the variant (stop at 0.95), with the pass: 8.34 million

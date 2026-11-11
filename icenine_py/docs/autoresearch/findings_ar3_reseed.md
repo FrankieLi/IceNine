@@ -298,8 +298,14 @@ of this loop gives the same numbers.) The target is the seed step. The step's co
 
 The plain test is the seed test, 0.80. It breaks many cases on `grad` (see the table), so I tried
 stop tests 0.80, 0.85, 0.90, 0.95 and 0.98 on the pick set, pooled over `S5` on both samples. The
-rule, written in code before the test sets were summed: the test with the largest cut among
-those with broken at most fixed; if none, the plain 0.80.
+rule: the test with the largest cut among those with broken at most fixed; if none, the plain
+0.80. The grid and the rule were written in code before the test sets were summed at any stop
+test other than 0.80. The 0.80 test rows of `grad` had already been read. No file in git shows
+this order: the draft script already holds the grid, and the pick and the test results were
+committed together; only the order inside `reseed_e1.py` shows that the pick is written first.
+Two things limit the leak. The pick set alone shows the same failure at 0.80 (45 broken against
+1 fixed, pooled, in the first table below). The test rows at 0.95 were not read before the
+choice.
 
 Reading of the table: pooled pick set of `S5` on both samples (780 seed steps). `stored` is the
 evaluations of the stored seed steps, `e1` those with the stop test `tau`, `cut` the percent
