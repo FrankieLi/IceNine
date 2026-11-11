@@ -308,8 +308,8 @@ confidence) of the old end and of the try ends. The candidates are the neighbour
 the map. The skip rule reads only the old hit ratios of the voxel and of its neighbours: the ratio
 `rel_hit` is the voxel's hit ratio over the highest hit ratio among its neighbours. Its cost is the
 other feature on the grid (the cost grid is the 25, 50, 75, 90 and 100th percentile of the cost
-over the three maps; 100 means the cost is not used). No rule reads the truth. The truth scores a rule
-(wrong counts, fixed, broken) and picks the keep rule and the threshold on A.
+over the three maps; 100 means the cost is not used). No rule reads the truth. The truth scores
+a rule (wrong counts, fixed, broken) and picks the keep rule and the threshold on A.
 
 The skip rule: skip all tries of a voxel with `rel_hit` at least a threshold (and cost at most a
 cost threshold). Grid: `rel_hit` 0.90 to 1.00 in steps of 0.02, cost percentile 25 to 100. The pick
