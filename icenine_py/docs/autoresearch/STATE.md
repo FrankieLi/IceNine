@@ -36,15 +36,15 @@ merge the parent into each task branch before its fixes round.
    Numbers: `shmem query "AR5 step 2"`. After the merge: AR5 step 3 (task `ar5c`, plan in
    `PLAN.md`, approved by N14): brief, Sonnet implementer, at most 3 heavy processes.
 2. AR4 step 1 (a learned verifier against the hit ratio, offline; task `ar4a`; plan
-   D-20261111-N13): implementer runs. Report `.claude/reports/20261111-1208-ar4a.md` in its
-   worktree. At hand-back: points 5 to 9.
-3. After both: plan the next step from their results (a library key for `S10`'s changes if it
-   passes; the verifier inside the BFS if a model passes).
+   D-20261111-N13): handed back (no model passed), in review (Opus, started 13:35; report to
+   come at `.claude/reports/20261111-1335-review-ar4a.md`). Branch at 1d862a5 in worktree
+   `agent-ab349f0b6193c2ca1`. Then points 6 to 9; its fixes round merges the parent first.
+3. After AR4's review: decide whether use 2 (accept a seed by the network) gets a whole-layer test.
 
 ## Running jobs
 
 - AR5 step 2 fixes implementer (started 2026-11-11 13:20); it hands back by message.
-- AR4 step 1 implementer (started 2026-11-11 about 12:40), at most 2 heavy processes.
+- AR4 step 1 reviewer (started 2026-11-11 13:35); it hands back by message.
 - The review page is at version 38 (AR5 step 1 is on it; no new plot point). No page job.
 
 ## Queue
@@ -56,7 +56,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 |---|---|---|
 | AR5 step 2 | CMA seed refinement, no MC fallback, run `S10` (task `ar5b`) | fixes round |
 | AR5 step 3 | mixed seed refinement (CMA, MC under 0.95), run `S11` (task `ar5c`) | planned |
-| AR4 step 1 | learned verifier against the hit ratio, offline (task `ar4a`) | running |
+| AR4 step 1 | learned verifier against the hit ratio, offline (task `ar4a`) | in review |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -74,7 +74,7 @@ rule passed, run `T1` was not run. More in `STATE_HISTORY.md`, "AR5 step 1".
 
 Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, do not commit it.
 
-- `agent-acc78ac2a483ed86f` (AR5 step 2, branch `ar5b`): `ar5/fit/cache/` and links.
+- `agent-acc78ac2a483ed86f` (AR5 step 2), `agent-ab349f0b6193c2ca1` (AR4 step 1): caches, links.
 - `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
 - `agent-a6c7c67b4a03d1843` (step 10, detached at 84ce8b5): `ar3/keys/cache/` (28 MB) and
   links; `agent-a3145f902bf0a61fb` (step 10 fixes): a copy of it plus the two reruns.
