@@ -24,27 +24,28 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-Plan the next step from step 7's result, write it into `PLAN.md`, log the approval as
-D-20261111-N4 (`scripts/dev/log_decision.sh`), and start an implementer (runbook, "A step,
-from plan to merge", points 1 to 4). What step 7 leaves open, in my order of preference:
+Step 8 of AR3 (why the seed step costs so much in grains with strong gradients, task `ar3h`;
+plan in `PLAN.md` under "Step 8: ...", approved by D-20261111-N4). An implementer is running.
 
-1. The seed step inside grains with strong gradients. On `big`, 267 of `S5`'s 349 seed steps
-   are in the 6 grains with a 4 degree gradient, and the seed step is 57.5% of `S5`'s cost.
-   A reseed starts an index run from nothing although a refined neighbour is a few voxels
-   away. A cheaper reseed (start from the nearest accepted neighbour, a wider local
-   optimization first, the index run only if that fails) is the largest cost left.
-2. Opt-in keys for the seed step and for the boundary pass. A library change, so tests first.
-   The key takes both numbers as settings (candidates costed, candidates refined), so the old
-   seed step (5 and 2) and step 6's (20 and 5) are both reachable. Which one the
-   documentation recommends is the owner's choice; do not pick it.
-3. AR4 (learned proposer) for the voxels every seed step leaves to the grid search, and AR5
-   (stop rule inside the grid search). On `big` the grid search ran on 0 to 25 voxels per
-   run, so both now matter less than point 1 on these samples.
+1. Wait for its notification. Then: `verify_handback.sh feature/eval-reduction <report>
+   --branch feature/eval-reduction-ar3h`, `/review-task`, the decision on the fixes
+   (D-20261111-N5 or the day's next ID), a fixes round, `finish_task.sh --yes --push` in the
+   worktree that holds the branch, and the close (runbook, "A step, from plan to merge",
+   points 5 to 9). Copy the fixes report out of the fixes worktree before the merge: after
+   the merge of step 7 that worktree was removed, and its untracked report with it.
+2. At the close, add the step's whole-layer runs (run `S8`, if Part 3 ran) to
+   `docs/autoresearch/pareto/pareto_rows.json`, and check the plan's three predictions on the
+   review page.
+3. Then: opt-in keys for the seed step and the boundary pass (library change, tests first;
+   both numbers as settings; the recommended seed step is the owner's choice). Then AR4, AR5.
 
 ## Running jobs
 
-None. No page job is open. The review page is at version 33 (step 7 done, the `big` panel in
-the plots of cost against accuracy).
+- Step 8 implementer (Sonnet, own worktree, branch `feature/eval-reduction-ar3h`), started
+  2026-11-11. Its report: `.claude/reports/20261111-0423-ar3h.md` (maybe in its own worktree;
+  the findings page may sit next to it if its Write was refused).
+- The review page is at version 34 (step 7 done, step 8 running, decision N4). No page job
+  is open.
 
 ## Queue
 
@@ -53,7 +54,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 8 | a cheaper reseed inside grains with strong gradients | to plan |
+| AR3 step 8 | where the seed step's evaluations go; remedies (task `ar3h`) | implementer running |
 | AR3 later | opt-in keys for the seed step and the boundary pass | with settings; the owner picks |
 | AR4 | the learned proposer | after step 8 |
 | AR5 | the stop rule inside the grid search | after step 8 |
@@ -103,7 +104,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   local-optimization settings on real data; how many voxels a grain spans in your maps.
 - A note to read: C++ parallel mode keeps the higher confidence for a voxel that two clients
   fit; that rule did harm in the Python test of step 5. A reading of the source, not a test.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N3 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N4 (all
   on the review page). The gradient levels of step 7's sample are my choice. Step 5's result
   files add about 50 MB to git; say so if you want them pruned.
 - Not done unless you ask: a repo-wide rename of "finisher" to "local optimization".
@@ -111,7 +112,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N4.
+- Next decision ID: D-20261111-N5.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
