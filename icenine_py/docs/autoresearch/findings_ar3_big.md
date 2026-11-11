@@ -93,8 +93,13 @@ where the interval on `big` lies wholly above the interval on the gradient sampl
 
 ## The sample and the checks
 
-**Terms.** A **reseed** is a voxel the BFS (the breadth-first search that spreads from voxel to
-voxel) cannot reach from a neighbour; it runs the seed step again. The **seed step** is: ray
+**Terms.** The **BFS** is the breadth-first search that spreads from voxel to voxel: each voxel
+is fitted starting from a fitted neighbour's orientation, and a fit that fails its test is
+rejected. A **reseed** comes after the BFS has visited every voxel. The voxels whose fits from
+neighbours were rejected form connected clusters; a reseed runs the seed step once on the voxel
+nearest the centre of one such cluster (`reconstructor.py`, `_reseed_clusters`). If that seed
+step is rejected too, the same cluster can get another reseed on another voxel. So reseeds count
+clusters of rejected fits, not single voxels. The **seed step** is: ray
 indexing proposes candidate orientations and the best are refined. A **grid fallback** is a seed
 step that fails the seed test (a hit ratio of at least 0.80), after which the full grid search
 (a global search: no starting guess) runs. The **boundary pass** is step 5's pass, rule `hit`:
