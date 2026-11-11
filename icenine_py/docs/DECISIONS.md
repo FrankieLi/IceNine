@@ -1285,3 +1285,22 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   search. Offline only; no BFS change. H4 comes back if ray indexing fails on realistic images
   (not tested). Starts after AR5 step 1 is merged. Implementer: Sonnet, own worktree, at most 2
   heavy processes. Where: PLAN.md AR4, AR4 step 1.
+
+### D-20261111-N14 · Track A / AR5 step 2 · AR5 step 2 review: 4 fixes to the documents; no key for 'no MC fallback' alone; next is a whole-layer test of a mixed seed refinement
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Review verdict APPROVE with 4 required fixes (report
+  .claude/reports/20261111-1310-review-ar5b.md); all four are applied in a fixes round, no new
+  run. On the implementer's two questions, decided under the mandate D-20261109-N1 and the owner's
+  to overrule: (1) No library key now for 'no MC fallback after CMA' alone. Run S10 keeps accuracy
+  on all three samples (broken minus fixed -2, 4, 4; limit 5) but meets the plan's 20% rule on 1
+  of 3 (29.3, 15.7, 14.3% fewer evaluations than S8 with the pass). The plan made a key
+  conditional on S10 passing, and I do not waive a rule written before the runs. (2) The next
+  step, AR5 step 3, tests a mixed seed refinement on whole layers: CMA with at most 200
+  evaluations first, the stock MC optimizer from the same start only when the CMA end hit ratio is
+  below 0.95, together with no MC fallback (run S11). The reviewer's what-if from the stored
+  replay (not a run): the same seed-test passes as MC (1,596 against 1,592 on the pick samples,
+  1,600 against 1,596 on mid) with 57.3% and 53.0% fewer seed-step evaluations. The sample mid is
+  no longer held out for this idea; the step says so and the whole-layer runs, with predictions
+  written first, are the test. A key for both changes together is considered only if S11 passes
+  its rule. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 2; AR5 step 3 to be added),
+  .claude/reports/20261111-1310-review-ar5b.md.
