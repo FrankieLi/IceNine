@@ -6,7 +6,7 @@ and of its neighbours. Ties go to the first option, the old end first.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import boundary_common as B
 import numpy as np
@@ -34,7 +34,7 @@ class Tries:
 
 
 def apply_rule(
-    t: Tries, R0: np.ndarray, rule: str, skip: np.ndarray = None  # type: ignore
+    t: Tries, R0: np.ndarray, rule: str, skip: Optional[np.ndarray] = None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """(new map, took_a_try (n,) bool). ``skip`` (n,) bool: those voxels keep the old end."""
     R = R0.copy()
@@ -93,7 +93,3 @@ def groups(env: B.Env) -> List[Tuple[str, np.ndarray]]:
     if env.level is not None:
         g += [(f"level {L:g}", env.level == L) for L in B.G.LEVELS]
     return g
-
-
-def as_any(x: Any) -> Any:
-    return x

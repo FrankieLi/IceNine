@@ -4,7 +4,7 @@
 
 A killed run is reported as not finished: ``<kind>.killed`` is written beside the log, and
 ``<kind>.done`` in both cases. Logs: ``boundary/cache/logs/<kind>.log``. Each child runs under
-``caffeinate -i``.
+``caffeinate -dimsu`` (the flags the code passes).
 """
 
 import os
@@ -23,7 +23,6 @@ def main() -> None:
     kinds = sys.argv[1:] or list(CAPS_MIN)
     LOGS.mkdir(parents=True, exist_ok=True)
     procs = {}
-    t0 = time.time()
     for k in kinds:
         log = open(LOGS / f"{k}.log", "w")
         procs[k] = subprocess.Popen(

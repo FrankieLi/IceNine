@@ -5,19 +5,23 @@
 
 Keys added to ``key_on_fused.config`` (every other key as in D4 and E4, which use the same file):
 
-    LocalOptimizer cma        # the neighbour, revisit and retry fits, the seed finisher and the
-                              # grid search's refinement all use the CMA fit
+    LocalOptimizer cma        # the neighbour, revisit and retry fits, the seed's local
+                              # optimization and the grid search's refinement all use CMA
     CMASigma0 0.05            # first step in degrees (the library default is 0.2)
     CMANeighborMaxEvals 60    # budget of a neighbour or revisit fit (start's evaluation included)
 
 ``CMARetrySigma0`` and ``CMAMaxEvals`` are left at the library defaults (1.5 degrees, retry on;
-1000 evaluations). The retry is a second fit from the same start with a wider first step when the
-caller rejects the first; D4 and E4 had the stock fit there instead. The seed's own fit: with
-``SeedByIndexing`` the seed is the indexed candidate refined by the finisher
-(``refine_from_candidates``), and the grid search of a failed index seed refines its candidates
-there too; in cma mode both use the CMA run with ``CMASigma0`` and ``CMAMaxEvals`` (1000), while
-D4's seed path used the stock finisher and the stock grid refinement. So K and KE change the seed
-path as well as the neighbour fits; this is what the keys do and is not hidden.
+1000 evaluations). The retry is a second fit from the same start with a wider first step (same
+60-evaluation budget) when the caller rejects the first. D4 and E4 had a different trigger: the
+step 4 wrapper ran the stock variance-minimizing fit (box 5 degrees) when the CMA end cost was not
+below the start cost. The seed's own fit: with ``SeedByIndexing`` the seed is indexed, the strict
+cost is taken on 5 candidates, and the 2 with the lowest cost are refined by the local
+optimization (``refine_from_candidates``); the grid search of a failed index seed refines its
+candidates there too. In cma mode ``refine_from_candidates`` makes one CMA run (``CMASigma0``,
+``CMAMaxEvals`` 1000) per candidate, up to ``MaxDiscreteCandidates`` (30 in this config), stops
+when a run that lowers the best cost reaches hit ratio 1, and skips VarianceMinimizing. D4's seed
+path used FindOptimal MC plus VarianceMinimizing. So K and KE change the seed path as well as the
+neighbour fits; this is what the keys do and is not hidden.
 
 Writes ``boundary/runs/<kind>/``: ``recon.mic.gz``, ``records.json.gz``, ``run.json``,
 ``progress.json`` (every 5 minutes), ``preflight.json``, ``run.config``.

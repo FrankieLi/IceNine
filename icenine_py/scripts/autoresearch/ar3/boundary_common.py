@@ -11,7 +11,6 @@ candidates within 0.5 degrees of each other counted once (the first in neighbour
 kept); a try is one CMA fit (first step 0.05 degrees, at most 60 evaluations plus the final one).
 """
 
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import ar3_common as C
