@@ -27,11 +27,11 @@ Read this file first after any restart or wake. It holds only what is true now a
 Step 7 of AR3 (the same pipelines on larger grains, task `ar3g`; plan in `PLAN.md` under
 "Step 7: the same pipelines on larger grains", approved by D-20261111-N2).
 
-1. Wait for the implementer's notification (see "Running jobs"). Do not poll its output file.
-2. Hand-back: `scripts/dev/verify_handback.sh feature/eval-reduction <its report> --branch
-   feature/eval-reduction-ar3g`. Then `/review-task` (the `code-reviewer` agent, model Opus),
-   a decision on the fixes (next ID below), the fixes round, `finish_task.sh --yes --push`, and
-   the close (runbook, "A step, from plan to merge", points 5 to 9).
+1. The implementer handed back (branch head b762441; hand-back check: 0 FAIL, 3 expected
+   FLAG). The review is running (see "Running jobs"). Wait for its notification.
+2. Then: a decision on the fixes (next ID below), the fixes round (a fresh `implementer`,
+   model Opus), `finish_task.sh --yes --push`, and the close (runbook, "A step, from plan to
+   merge", points 7 to 9). If the review agent died: start it again with the same brief.
 3. At the close, add step 7's runs to `docs/autoresearch/pareto/pareto_rows.json` as a new
    sample (`big`, a new panel in `pareto_build.py`), and check the plan's three predictions on
    the review page.
@@ -46,10 +46,13 @@ brief and the note "continue from the commits on the branch".
 
 ## Running jobs
 
-- Step 7 implementer (Sonnet, own worktree `.claude/worktrees/agent-a38ba6f5a25aa033e`, branch
-  `feature/eval-reduction-ar3g`), started 2026-11-11 at about 01:50. Its report:
-  `.claude/reports/20261111-0151-ar3g.md` (maybe in its own worktree). Four whole-layer runs,
-  caps 180 and 90 minutes, so the hand-back can take several hours.
+- Step 7 review (`code-reviewer`, Opus), started 2026-11-11 after the hand-back. It reads the
+  worktree `.claude/worktrees/agent-a38ba6f5a25aa033e` (branch `feature/eval-reduction-ar3g`).
+  Its report: `.claude/reports/20261111-0500-review-ar3g.md` (maybe in that worktree). The
+  implementer's report is `.claude/reports/20261111-0151-ar3g.md` in that worktree; the page
+  is `docs/autoresearch/findings_ar3_big.md` on the branch (placed by the main session).
+- Step 7's hand-back, not yet reviewed: 2 of the plan's 3 predictions do not agree. On `big`,
+  `S5` with the pass costs 13.00 million evaluations and `D4` 11.94; wrong 30 and 21.
 - The review page is at version 32 (step 6 done, step 7 running; "grid search" defined). No page job is open.
 
 ## Queue
@@ -59,7 +62,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 7 | the runs of steps 3 to 6 on larger grains (task `ar3g`) | implementer running |
+| AR3 step 7 | the runs of steps 3 to 6 on larger grains (task `ar3g`) | in review |
 | AR3 later | opt-in keys for the seed step and the boundary pass | after step 7 |
 | AR4 | the learned proposer | after step 7 |
 | AR5 | the stop rule inside the grid search | after step 7 |
