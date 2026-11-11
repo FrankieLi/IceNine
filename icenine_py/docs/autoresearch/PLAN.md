@@ -1012,6 +1012,87 @@ optimization", and defines each term at first use. Only the result files that th
 script reads are committed, and they hold only the fields it reads: per-voxel logs as gzipped
 JSON, no per-try arrays of unused fields. The committed results of this step stay under 5 MB.
 
+### Step 7: the same pipelines on larger grains
+
+Task `ar3g`. It starts after step 6 is merged. No file under `icenine_py/icenine/` changes.
+
+**Why.** Step 6 left this split of run `S5` (24,570 voxels, with the boundary pass, 20.6
+million evaluations): the seed step 6.0 million, 15 grid fallbacks 5.1 million, the local
+optimizations 5.9 million, the pass 3.7 million. A seed and a grid fallback happen once per
+reseed, so their cost follows the number of grains. The gradient sample has 497 grains, about
+49 voxels each. A sample with larger grains has fewer reseeds per voxel. This step measures
+what the pipelines cost there and whether step 6's seed step still does no harm. It is the
+check that D-20261111-N1 puts before any opt-in key.
+
+**Terms.** *Reseed*: the BFS has no neighbour to start from and runs the seed step. *Seed
+step*: ray indexing proposes candidates and the best are refined. *Grid fallback*: the seed
+step fails and the full grid search runs. *Boundary pass*: step 5's pass, rule `hit`.
+
+**The sample `big`.** 32 grains on the grid of the gradient sample (24,570 voxels, the same
+voxel side), about 770 voxels per grain.
+
+- Orientations come from `Examples/Example2.ManyGrains/SimInput/random_cubic_32grains.mic`
+  (6,144 voxels, one size coarser). Each voxel of `rand_500grains_1mm_neworient_s0_grid.mic`
+  takes the orientation of the coarse voxel that holds its centre. Check: every fine voxel
+  finds exactly one coarse voxel, and there are 32 distinct orientations.
+- A grain map is written from the 32 orientations (connected voxels of one orientation).
+- Gradients: `gradient_orientations` as in step 3, seed 0, one level per grain, with the
+  levels 0, 0.2, 0.5, 1, 2 and 4 degrees of spread across a grain. A grain here is about 4
+  times wider than in the gradient sample. So a spread of 0.4 to 4 degrees here gives the same
+  change from voxel to voxel as 0.1 to 1 degree there, and 0.2 to 1 degree here gives a
+  gentler one. If the function takes no list of levels, the script sets the levels; the
+  library file is not edited.
+- Images: clean, rendered with `scripts/phase_d/render_full.py --mic`, tag `big`, packed into
+  one stack as in step 3. The stack is not committed.
+- Check before any run: at the truth, 200 voxels drawn with seed 0 pass the seed test at the
+  same share as on the gradient sample (step 3's check).
+
+**Runs.** Four whole-layer runs on `big`, side by side, each with a coded cap and each
+followed by the boundary pass. The sample and stack are chosen by an argument or an
+environment variable in the scripts; the default stays the gradient sample.
+
+| run | what | cap |
+|---|---|---|
+| `D` | the stock BFS with the grid search (step 3's setting D) | 180 min |
+| `D4` | step 5's run: index seeds, CMA local optimization, grid fallback | 90 min |
+| `S5` | `D4` with step 6's seed step (refine the best 5 of 20 candidates) | 90 min |
+| `P4R4` | step 4's run: index the layer, paint grains, CMA local optimization | 90 min |
+
+**Written down before the runs.** (1) Reseeds fall to the order of the number of grains, and
+the seed step and the grid fallbacks together take less than a tenth of the evaluations of
+`S5`. (2) The cost of `S5` with the pass comes close to its local optimizations and pass
+alone, about 390 evaluations per voxel on the gradient sample. (3) At the levels with the same
+voxel-to-voxel change, the share of wrong voxels is no higher than on the gradient sample.
+The page says for each whether the run agrees.
+
+**Readings.** Evaluations by stage (seed step, grid fallbacks, neighbour, revisit, pass);
+seeds, reseeds, grid fallbacks; wrong voxels and error by level, before and after the pass,
+with 95% intervals; paired counts (fixed, broken) for `S5` against `D4`, `S5` against `D` and
+`P4R4` against `S5`, all with the pass. One table puts the two samples side by side for each
+pipeline. The page leads with a plot: evaluations per voxel by stage, per pipeline, on the two
+samples; then the share wrong. Wall times are labelled as contended. A level holds only about
+five grains: say so, and give its result as a result on those grains.
+
+**What the result decides.** If `S5` with the pass has no more wrong voxels than `D4` with
+the pass (intervals) at fewer or equal evaluations, the opt-in keys step uses step 6's seed
+step. If it has more, the keys step uses `D4`'s seed step and the page says so. If the seed
+step and the grid fallbacks are a small part on `big`, the next target is what is left: the
+local optimization per voxel and the pass. The split is reported for that.
+
+**Stop rules of the task.** Sample and images: 30 minutes of compute. Runs: the caps above. A
+run that hits its cap is reported with what it reached, not repeated. The general stop rule
+holds as well.
+
+**Not claimed.** That C++ behaves the same. That the gradient model or these levels match a
+real sample. A change of any default. A tested wall time unless the preflight passes. That 32
+grains stand for all large-grained samples: it is one sample, one run each.
+
+**Files.** Scripts in `scripts/autoresearch/ar3/` (`big_*.py`, and a sample switch in the
+common files); results in `benchmarks/autoresearch/ar3/big/`, slim, under 5 MB; findings in
+`docs/autoresearch/findings_ar3_big.md` (returned as text if the write is refused).
+`MIGRATION_HISTORY.md` gets the summary. The page says "local optimization" and defines each
+term at first use. The stored maps and images of earlier steps are where step 6's page says.
+
 ## AR4: the learned proposer
 
 Train and measure H4 on the same voxels as AR1. It starts after AR1 so that it can be compared
