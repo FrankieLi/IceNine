@@ -23,6 +23,10 @@ line. The only dots under the line are the settings that keep most tries.
 
 Three simulated samples, one run of `S8` on each, one voxel order, clean images, Q-max 8. `big` is
 32 grains, the first gradient sample is 497 grains, `mid` is 120 grains; all have 24,570 voxels.
+All three samples have orientation gradients inside grains: the orientation changes slowly across
+a grain. The largest gradient level is 4 degrees on `big` and `mid` and 1 degree on the first
+gradient sample (levels as in `findings_ar3_start.md`). The name "first gradient sample" does not
+mean that the other two have none.
 None is a real sample, and C++ was not run. No extra random seed was run. Counts carry a Wilson
 95% interval or a paired count; there are no p-values. The intervals count voxels, tries and
 cases as independent, but they cluster in grains, so they are too narrow for statements across
@@ -31,7 +35,21 @@ result. The cost that counts is the evaluation count.
 
 Settings were picked on `big` and the first gradient sample (the pick samples). Nothing was
 changed after the pick. Each pick is written to a results file (`part1_pick.json`,
-`part3_pick.json`) that was committed before any script read `mid` for that part.
+`part3_pick.json`). The order of the git commits does not prove that `mid` was unseen at a pick:
+
+- Part 1: a first computation of `mid`'s start scores ran before the Part 1 pick was committed.
+  It was deleted and redone after the commit. Whether its output was looked at is not recorded.
+  The start scores and the stored tries give the result of every setting on `mid` in seconds.
+- Part 3: `mid`'s hit ratios and errors after the pass were committed (`starts_mid.npz`) before
+  the Part 3 pick. The Part 2 script, which reads `mid`'s cases, may also have run before it.
+
+What protects the picks is that they are mechanical. Both pick scripts read only the pick
+samples. The rules, the grids of settings and the pick rules are fixed by the plan and by
+`stop_rules.py`, which was committed before either pick. The Part 3 pick has no free choice.
+The Part 1 pick has one: the `d` of `P3` when no `P1` setting qualifies. That choice cannot
+change the pick: at no `d` does `P3` reach the net gain of 180.5 that the pick needs (the most is
+156). And with hindsight no setting of the plan passes on `mid` (a what-if under Part 1's
+tables), so the Part 1 negative does not depend on the pick.
 
 ## Terms
 
@@ -43,8 +61,8 @@ changed after the pick. Each pick is written to a results file (`part1_pick.json
 - **Seed step**: index the voxel from its observed rays, cost the 20 best candidates, run local
   optimization on up to 5, and stop at the first end with hit ratio 0.95 or more.
 - **Seed test**: the BFS accepts a seed step's end if its hit ratio is at least 0.80.
-- **Grid fallback**: a seed step whose end fails the seed test, so a full grid search runs
-  (about 340,000 evaluations).
+- **Grid fallback**: a seed step whose end fails the seed test, so a full grid search runs. Over
+  the 31 grid fallbacks of Part 2 it cost a mean of 342,140 evaluations (332,369 to 347,951).
 - **Boundary pass**: after the run, every voxel with a neighbour of another orientation gets one
   try from each distinct neighbour orientation. It keeps the end with the highest hit ratio.
 - **Try**: one local optimization of a boundary voxel from one neighbour's orientation, up to 61
@@ -58,9 +76,15 @@ changed after the pick. Each pick is written to a results file (`part1_pick.json
 - **Flag**: a rule without the truth that marks a voxel as possibly not finished.
 - **Unexplained rays**: the rays attached to a voxel that the voxel's orientation does not
   explain (`explained_mask` in `icenine/ray_indexing.py`).
+- **H3**: an idea of the plan, a stop rule from what is left unexplained. If the unexplained rays
+  near a voxel give no votes to any other orientation, more search cannot find a better one.
+  The **vote count** of a voxel is the highest number of votes any orientation gets from its
+  unexplained rays.
+- **What-if**: a number computed from the stored data for a setting that was not picked or a
+  variant that was not run. It is not a result and decides nothing.
 - `S8`: the run of AR3 step 8 (indexed seeds, seed step as above, then the boundary pass).
   Its evaluations are 8,340,428 on `big`, 18,000,230 on the first gradient sample and 26,443,074
-  on `mid`, with the pass.
+  on `mid`, with the pass (stored totals in `benchmarks/autoresearch/ar3/start/summary.json`).
 
 ## Part 1: a try test for the boundary pass
 
@@ -94,7 +118,9 @@ loses at most 5% of the gain. The pick is the cheapest setting that is ok.
 `P1` and `P3` cut 95.7% to 98.2% of the evaluations and lose 17.9% to 60.0% of the gain. `P3` took
 `d` = 0.2 because no `P1` setting qualified (the code takes the `P1` setting with the highest net
 gain in that case; written before the pick). `P2` with `m` = 1 is the pick: it cuts 55.1% and
-loses 4.7% of the gain (181 of 190). The cut is far under the 70% of prediction 1.
+loses 4.7% of the gain (181 of 190). The cut is far under the 70% of prediction 1. The pick
+passes the 5% rule by a single voxel: it needs a net gain of 180.5 (95% of 190) and has 181. A
+gain of 180 would have failed.
 
 Reading the next table: one row per setting and sample. `kept` is the tries run, `fixed` and
 `broken` are voxels paired against the full pass (wrong with the full pass and right with the rule;
@@ -138,6 +164,10 @@ the reverse), `gain` is the net gain, `lost` is the share of the full pass's gai
 On `mid` the pick cuts 62.7% of the pass but loses 9.4% of its gain (48 of 53): 5 voxels broken,
 none fixed. **The pass rule is not met** (at least half cut and at most 5% of the gain lost).
 
+What-if, with hindsight (not a pick): no setting of the plan passes on `mid` either. `P2` with
+`m` = 1 loses 9.4% of the gain. `P2` with `m` = 2 loses none but cuts only 38.9% of the pass.
+Every `P1` and `P3` setting loses at least 17.0%, and so does `P3` at every `d` of the grid.
+
 Why `P1` breaks voxels: the next table gives, per sample, the tries that won (the voxel took the
 try's end). Winning tries start well below the voxel's own hit ratio, so a rule that reads the
 start score against the voxel's score throws many of them away. This is a description of the
@@ -167,45 +197,46 @@ end, read from the map of `S8` before the pass.
 <!-- table:p2_failed -->
 | sample | voxel | kind | cand | rank | c20 | r5 | s8best | gridhit | griderr |
 |---|---|---|---|---|---|---|---|---|---|
-| first gradient sample | 19058 | first seed | 45 | 1 | yes | yes | 0.792 | 0.971 | 0.02 |
-| first gradient sample | 367 | reseed | 48 | 1 | yes | yes | 0.783 | 0.980 | 0.00 |
-| first gradient sample | 18267 | reseed | 49 | 1 | yes | yes | 0.774 | 1.000 | 0.00 |
-| first gradient sample | 20136 | reseed | 53 | 3 | yes | yes | 0.721 | 0.984 | 0.01 |
-| first gradient sample | 1672 | reseed | 38 | 1 | yes | yes | 0.786 | 0.984 | 0.00 |
-| first gradient sample | 3957 | reseed | 46 | 1 | yes | yes | 0.795 | 0.993 | 0.01 |
-| first gradient sample | 8146 | reseed | 49 | 1 | yes | yes | 0.758 | 0.990 | 0.01 |
-| first gradient sample | 2740 | reseed | 38 | 1 | yes | yes | 0.784 | 0.996 | 0.00 |
-| first gradient sample | 2744 | reseed | 54 | 1 | yes | yes | 0.784 | 0.966 | 0.01 |
-| first gradient sample | 3494 | reseed | 36 | 1 | yes | yes | 0.689 | 0.401 | 1.40 |
-| first gradient sample | 19063 | reseed | 44 | 1 | yes | yes | 0.791 | 0.988 | 0.03 |
-| first gradient sample | 6768 | reseed | 51 | 1 | yes | yes | 0.800 | 0.984 | 0.00 |
-| first gradient sample | 11536 | reseed | 39 | 1 | yes | yes | 0.784 | 1.000 | 0.00 |
-| first gradient sample | 11654 | reseed | 58 | 1 | yes | yes | 0.791 | 0.997 | 0.00 |
-| first gradient sample | 24194 | reseed | 32 | 1 | yes | yes | 0.656 | 0.995 | 0.01 |
-| first gradient sample | 23825 | reseed | 45 | 1 | yes | yes | 0.756 | 0.998 | 0.01 |
-| mid | 17538 | first seed | 40 | 1 | yes | yes | 0.779 | 0.996 | 0.01 |
-| mid | 7134 | reseed | 47 | 1 | yes | yes | 0.711 | 0.967 | 0.01 |
-| mid | 7167 | reseed | 42 | 1 | yes | yes | 0.723 | 0.988 | 0.00 |
-| mid | 20676 | reseed | 42 | 1 | yes | yes | 0.734 | 1.000 | 0.00 |
-| mid | 1339 | reseed | 47 | 1 | yes | yes | 0.747 | 0.751 | 34.96 |
-| mid | 1158 | reseed | 36 | 1 | yes | yes | 0.799 | 0.969 | 0.01 |
-| mid | 17608 | reseed | 53 | 1 | yes | yes | 0.787 | 1.000 | 0.00 |
-| mid | 15577 | reseed | 48 | 1 | yes | yes | 0.763 | 0.853 | 0.10 |
-| mid | 13439 | reseed | 39 | 1 | yes | yes | 0.771 | 0.986 | 0.03 |
-| mid | 8425 | reseed | 44 | 1 | yes | yes | 0.741 | 0.997 | 0.00 |
-| mid | 10395 | reseed | 61 | 2 | yes | yes | 0.796 | 0.970 | 0.01 |
-| mid | 10603 | reseed | 62 | 2 | yes | yes | 0.783 | 1.000 | 0.01 |
-| mid | 12282 | reseed | 47 | 1 | yes | yes | 0.785 | 0.977 | 0.00 |
-| mid | 16731 | reseed | 57 | 1 | yes | yes | 0.742 | 0.992 | 0.01 |
-| mid | 20251 | reseed | 55 | 2 | yes | yes | 0.769 | 0.734 | 45.70 |
+| first gradient sample | 19058 | first seed | 45 | 1 | yes | yes | 0.7921 | 0.9705 | 0.02 |
+| first gradient sample | 367 | reseed | 48 | 1 | yes | yes | 0.7830 | 0.9796 | 0.00 |
+| first gradient sample | 18267 | reseed | 49 | 1 | yes | yes | 0.7741 | 1.0000 | 0.00 |
+| first gradient sample | 20136 | reseed | 53 | 3 | yes | yes | 0.7207 | 0.9839 | 0.01 |
+| first gradient sample | 1672 | reseed | 38 | 1 | yes | yes | 0.7855 | 0.9843 | 0.00 |
+| first gradient sample | 3957 | reseed | 46 | 1 | yes | yes | 0.7954 | 0.9928 | 0.01 |
+| first gradient sample | 8146 | reseed | 49 | 1 | yes | yes | 0.7576 | 0.9903 | 0.01 |
+| first gradient sample | 2740 | reseed | 38 | 1 | yes | yes | 0.7838 | 0.9963 | 0.00 |
+| first gradient sample | 2744 | reseed | 54 | 1 | yes | yes | 0.7838 | 0.9665 | 0.01 |
+| first gradient sample | 3494 | reseed | 36 | 1 | yes | yes | 0.6893 | 0.4007 | 1.40 |
+| first gradient sample | 19063 | reseed | 44 | 1 | yes | yes | 0.7910 | 0.9882 | 0.03 |
+| first gradient sample | 6768 | reseed | 51 | 1 | yes | yes | 0.7998 | 0.9839 | 0.00 |
+| first gradient sample | 11536 | reseed | 39 | 1 | yes | yes | 0.7841 | 1.0000 | 0.00 |
+| first gradient sample | 11654 | reseed | 58 | 1 | yes | yes | 0.7909 | 0.9973 | 0.00 |
+| first gradient sample | 24194 | reseed | 32 | 1 | yes | yes | 0.6561 | 0.9953 | 0.01 |
+| first gradient sample | 23825 | reseed | 45 | 1 | yes | yes | 0.7556 | 0.9982 | 0.01 |
+| mid | 17538 | first seed | 40 | 1 | yes | yes | 0.7789 | 0.9963 | 0.01 |
+| mid | 7134 | reseed | 47 | 1 | yes | yes | 0.7113 | 0.9672 | 0.01 |
+| mid | 7167 | reseed | 42 | 1 | yes | yes | 0.7231 | 0.9877 | 0.00 |
+| mid | 20676 | reseed | 42 | 1 | yes | yes | 0.7340 | 1.0000 | 0.00 |
+| mid | 1339 | reseed | 47 | 1 | yes | yes | 0.7467 | 0.7508 | 34.96 |
+| mid | 1158 | reseed | 36 | 1 | yes | yes | 0.7991 | 0.9686 | 0.01 |
+| mid | 17608 | reseed | 53 | 1 | yes | yes | 0.7865 | 1.0000 | 0.00 |
+| mid | 15577 | reseed | 48 | 1 | yes | yes | 0.7632 | 0.8527 | 0.10 |
+| mid | 13439 | reseed | 39 | 1 | yes | yes | 0.7713 | 0.9864 | 0.03 |
+| mid | 8425 | reseed | 44 | 1 | yes | yes | 0.7407 | 0.9970 | 0.00 |
+| mid | 10395 | reseed | 61 | 2 | yes | yes | 0.7956 | 0.9700 | 0.01 |
+| mid | 10603 | reseed | 62 | 2 | yes | yes | 0.7835 | 1.0000 | 0.01 |
+| mid | 12282 | reseed | 47 | 1 | yes | yes | 0.7851 | 0.9773 | 0.00 |
+| mid | 16731 | reseed | 57 | 1 | yes | yes | 0.7418 | 0.9917 | 0.01 |
+| mid | 20251 | reseed | 55 | 2 | yes | yes | 0.7688 | 0.7338 | 45.70 |
 <!-- /table:p2_failed -->
 
 In 27 of 31 cases the first candidate is within 2 degrees of the truth; in the other four it is
 second or third. In all 31 it was among the 20 costed and the 5 refined. So no candidate was
 missing: the refinement of the right candidate ended under hit ratio 0.80. The grid search ended
 right in 28 of 31 cases (15 of 16 and 13 of 15). The page does not test why the refinements end
-low. This is consistent with a seed test of 0.80 that is strict for voxels in grains with
-orientation gradients; the untested part is any change of the test.
+low. This is consistent with a seed test of 0.80 that is too strict for these voxels. Two parts
+are untested: any change of the test, and a link to orientation gradients (the gradient level of
+each case's grain was not looked at).
 
 The rungs, each run on every case. `R1`: cost the first 100 candidates, refine the 5 cheapest with
 the seed step's local optimization, stop at the first end with hit ratio 0.95. `R3`: run level 0
@@ -215,6 +246,13 @@ stub that keeps the candidates; no library file changed. The library cannot cont
 level 0, so when `R3` fails the full grid search pays level 0 again. A rung passes a case if its
 end passes the seed test (0.80).
 
+No list held 100 candidates: the lists held 32 to 62. So "the first 100" was in effect "all
+candidates", and `R1` costed every candidate in all 31 cases. In 20 of 31 cases its five
+refinements gave exactly the seed step's end hit ratios, so there `R1` repeated the seed step.
+
+Hit ratios near the seed test are shown with 4 decimals in the next tables: case 6768, for
+example, ends at 0.7998 and fails the test.
+
 Reading the next table: one row per case. `r1hit`, `r1err` and `r1ev` are `R1`'s end hit ratio,
 error (degrees) and evaluations; `r3...` the same for `R3`; `ends` is the rung where the ladder
 stops; `ladev` is the ladder's evaluations and `gridev` the stored grid fallback's.
@@ -222,37 +260,37 @@ stops; `ladev` is the ladder's evaluations and `gridev` the stored grid fallback
 <!-- table:p2_rungs -->
 | sample | voxel | r1hit | r1ev | r1err | r3hit | r3ev | r3err | ends | ladev | gridev |
 |---|---|---|---|---|---|---|---|---|---|---|
-| first gradient sample | 19058 | 0.792 | 4,350 | 0.26 | 0.797 | 210,151 | 0.21 | grid | 557,093 | 342,592 |
-| first gradient sample | 367 | 0.783 | 3,561 | 0.33 | 0.620 | 209,558 | 47.71 | grid | 557,965 | 344,846 |
-| first gradient sample | 18267 | 0.774 | 5,218 | 52.54 | 0.864 | 212,299 | 0.11 | R3 | 217,517 | 343,763 |
-| first gradient sample | 20136 | 0.721 | 4,773 | 0.21 | 0.673 | 209,577 | 24.34 | grid | 560,222 | 345,872 |
-| first gradient sample | 1672 | 0.786 | 5,317 | 25.88 | 0.967 | 208,144 | 0.03 | R3 | 213,461 | 347,730 |
-| first gradient sample | 3957 | 0.795 | 3,762 | 0.43 | 1.000 | 207,507 | 0.00 | R3 | 211,269 | 346,279 |
-| first gradient sample | 8146 | 0.752 | 5,495 | 18.02 | 0.757 | 209,962 | 18.02 | grid | 562,048 | 346,591 |
-| first gradient sample | 2740 | 0.784 | 5,483 | 0.07 | 0.877 | 211,540 | 0.05 | R3 | 217,023 | 345,796 |
-| first gradient sample | 2744 | 0.784 | 4,288 | 0.06 | 0.726 | 208,260 | 0.19 | grid | 558,590 | 346,042 |
-| first gradient sample | 3494 | 0.689 | 4,092 | 0.57 | 0.997 | 207,132 | 0.00 | R3 | 211,224 | 343,279 |
-| first gradient sample | 19063 | 0.791 | 5,469 | 0.18 | 0.926 | 210,505 | 0.08 | R3 | 215,974 | 347,701 |
-| first gradient sample | 6768 | 0.800 | 4,415 | 0.10 | 0.802 | 211,105 | 0.10 | R3 | 215,520 | 346,340 |
-| first gradient sample | 11536 | 0.784 | 4,715 | 0.15 | 0.999 | 207,049 | 0.00 | R3 | 211,764 | 339,153 |
-| first gradient sample | 11654 | 0.791 | 4,342 | 0.25 | 0.980 | 207,732 | 0.01 | R3 | 212,074 | 345,632 |
-| first gradient sample | 24194 | 0.656 | 3,590 | 0.58 | 0.655 | 209,128 | 0.58 | grid | 557,060 | 344,342 |
-| first gradient sample | 23825 | 0.756 | 4,387 | 0.16 | 0.845 | 209,810 | 0.09 | R3 | 214,197 | 342,629 |
-| mid | 17538 | 0.752 | 7,630 | 0.33 | 0.758 | 202,240 | 0.33 | grid | 542,616 | 332,746 |
-| mid | 7134 | 0.711 | 8,320 | 37.59 | 0.948 | 205,521 | 0.01 | R3 | 213,841 | 347,951 |
-| mid | 7167 | 0.723 | 6,980 | 0.08 | 0.757 | 208,501 | 0.10 | grid | 556,571 | 341,090 |
-| mid | 20676 | 0.734 | 5,813 | 0.58 | 0.809 | 204,078 | 0.07 | R3 | 209,891 | 332,369 |
-| mid | 1339 | 0.747 | 6,692 | 34.96 | 0.729 | 207,345 | 35.02 | grid | 554,245 | 340,208 |
-| mid | 1158 | 0.799 | 6,061 | 0.24 | 0.707 | 203,782 | 0.33 | grid | 551,380 | 341,537 |
-| mid | 17608 | 0.787 | 7,442 | 0.20 | 0.863 | 211,212 | 0.15 | R3 | 218,654 | 340,577 |
-| mid | 15577 | 0.763 | 5,089 | 36.67 | 0.747 | 203,739 | 36.69 | grid | 544,411 | 335,583 |
-| mid | 13439 | 0.771 | 4,868 | 0.05 | 0.792 | 203,631 | 0.04 | grid | 548,421 | 339,922 |
-| mid | 8425 | 0.696 | 7,772 | 56.26 | 0.702 | 204,150 | 56.30 | grid | 553,968 | 342,046 |
-| mid | 10395 | 0.796 | 5,214 | 0.11 | 0.974 | 201,128 | 0.01 | R3 | 206,342 | 339,552 |
-| mid | 10603 | 0.783 | 4,234 | 0.28 | 0.999 | 201,648 | 0.01 | R3 | 205,882 | 335,381 |
-| mid | 12282 | 0.785 | 4,921 | 0.11 | 0.516 | 200,675 | 0.59 | grid | 540,868 | 335,272 |
-| mid | 16731 | 0.731 | 6,145 | 53.41 | 0.859 | 210,412 | 0.15 | R3 | 216,557 | 342,091 |
-| mid | 20251 | 0.769 | 5,853 | 0.09 | 0.989 | 201,643 | 0.02 | R3 | 207,496 | 341,439 |
+| first gradient sample | 19058 | 0.7921 | 4,350 | 0.26 | 0.7966 | 210,151 | 0.21 | grid | 557,093 | 342,592 |
+| first gradient sample | 367 | 0.7830 | 3,561 | 0.33 | 0.6202 | 209,558 | 47.71 | grid | 557,965 | 344,846 |
+| first gradient sample | 18267 | 0.7741 | 5,218 | 52.54 | 0.8642 | 212,299 | 0.11 | R3 | 217,517 | 343,763 |
+| first gradient sample | 20136 | 0.7207 | 4,773 | 0.21 | 0.6728 | 209,577 | 24.34 | grid | 560,222 | 345,872 |
+| first gradient sample | 1672 | 0.7855 | 5,317 | 25.88 | 0.9671 | 208,144 | 0.03 | R3 | 213,461 | 347,730 |
+| first gradient sample | 3957 | 0.7954 | 3,762 | 0.43 | 1.0000 | 207,507 | 0.00 | R3 | 211,269 | 346,279 |
+| first gradient sample | 8146 | 0.7518 | 5,495 | 18.02 | 0.7569 | 209,962 | 18.02 | grid | 562,048 | 346,591 |
+| first gradient sample | 2740 | 0.7838 | 5,483 | 0.07 | 0.8772 | 211,540 | 0.05 | R3 | 217,023 | 345,796 |
+| first gradient sample | 2744 | 0.7838 | 4,288 | 0.06 | 0.7262 | 208,260 | 0.19 | grid | 558,590 | 346,042 |
+| first gradient sample | 3494 | 0.6893 | 4,092 | 0.57 | 0.9973 | 207,132 | 0.00 | R3 | 211,224 | 343,279 |
+| first gradient sample | 19063 | 0.7910 | 5,469 | 0.18 | 0.9261 | 210,505 | 0.08 | R3 | 215,974 | 347,701 |
+| first gradient sample | 6768 | 0.7998 | 4,415 | 0.10 | 0.8018 | 211,105 | 0.10 | R3 | 215,520 | 346,340 |
+| first gradient sample | 11536 | 0.7841 | 4,715 | 0.15 | 0.9991 | 207,049 | 0.00 | R3 | 211,764 | 339,153 |
+| first gradient sample | 11654 | 0.7909 | 4,342 | 0.25 | 0.9804 | 207,732 | 0.01 | R3 | 212,074 | 345,632 |
+| first gradient sample | 24194 | 0.6561 | 3,590 | 0.58 | 0.6545 | 209,128 | 0.58 | grid | 557,060 | 344,342 |
+| first gradient sample | 23825 | 0.7556 | 4,387 | 0.16 | 0.8449 | 209,810 | 0.09 | R3 | 214,197 | 342,629 |
+| mid | 17538 | 0.7524 | 7,630 | 0.33 | 0.7580 | 202,240 | 0.33 | grid | 542,616 | 332,746 |
+| mid | 7134 | 0.7113 | 8,320 | 37.59 | 0.9475 | 205,521 | 0.01 | R3 | 213,841 | 347,951 |
+| mid | 7167 | 0.7231 | 6,980 | 0.08 | 0.7574 | 208,501 | 0.10 | grid | 556,571 | 341,090 |
+| mid | 20676 | 0.7340 | 5,813 | 0.58 | 0.8091 | 204,078 | 0.07 | R3 | 209,891 | 332,369 |
+| mid | 1339 | 0.7467 | 6,692 | 34.96 | 0.7293 | 207,345 | 35.02 | grid | 554,245 | 340,208 |
+| mid | 1158 | 0.7991 | 6,061 | 0.24 | 0.7071 | 203,782 | 0.33 | grid | 551,380 | 341,537 |
+| mid | 17608 | 0.7865 | 7,442 | 0.20 | 0.8635 | 211,212 | 0.15 | R3 | 218,654 | 340,577 |
+| mid | 15577 | 0.7632 | 5,089 | 36.67 | 0.7471 | 203,739 | 36.69 | grid | 544,411 | 335,583 |
+| mid | 13439 | 0.7713 | 4,868 | 0.05 | 0.7918 | 203,631 | 0.04 | grid | 548,421 | 339,922 |
+| mid | 8425 | 0.6964 | 7,772 | 56.26 | 0.7022 | 204,150 | 56.30 | grid | 553,968 | 342,046 |
+| mid | 10395 | 0.7956 | 5,214 | 0.11 | 0.9738 | 201,128 | 0.01 | R3 | 206,342 | 339,552 |
+| mid | 10603 | 0.7835 | 4,234 | 0.28 | 0.9990 | 201,648 | 0.01 | R3 | 205,882 | 335,381 |
+| mid | 12282 | 0.7851 | 4,921 | 0.11 | 0.5156 | 200,675 | 0.59 | grid | 540,868 | 335,272 |
+| mid | 16731 | 0.7306 | 6,145 | 53.41 | 0.8587 | 210,412 | 0.15 | R3 | 216,557 | 342,091 |
+| mid | 20251 | 0.7688 | 5,853 | 0.09 | 0.9893 | 201,643 | 0.02 | R3 | 207,496 | 341,439 |
 <!-- /table:p2_rungs -->
 
 Reading the next table: totals. `r1pass` and `r3pass` count rungs whose end passes the seed test;
@@ -268,14 +306,36 @@ grid; `rl` and `rg` are the cases ended right by the ladder and by the grid sear
 <!-- /table:p2_totals -->
 
 `R1` passes the seed test in no case, although 23 of 31 of its ends are right. The hit ratios of
-its 23 right ends run from 0.656 to 0.800 and those of its 8 wrong ends from 0.696 to 0.786. The
-ranges overlap, so the hit ratio does not tell them apart (as AR0 found for the grid levels).
+its 23 right ends run from 0.6561 to 0.7998 and those of its 8 wrong ends from 0.6964 to 0.7855.
+The ranges overlap, so the hit ratio does not tell them apart (as AR0 found for the grid levels).
 `R3` passes in 17 cases, but level 0 alone costs 6,290,498 evaluations over the 31 cases. The
 ladder needs 11,364,144 evaluations against 10,606,351 for
 the grid fallbacks it replaces (107.1%), and ends right in 30 cases against 28. The two cases the
 ladder got right and the grid search wrong are voxels 3494 and 20251. No case was right with the
 grid search and wrong with the ladder. **The pass rule is not met**: it needs at most two thirds
 of the evaluations.
+
+Reading the next table: the counts of Part 2 out of `n` cases, with the Wilson 95% interval of
+the share (`lo` and `hi`, in percent). With 31 cases the intervals are wide.
+
+<!-- table:p2_intervals -->
+| count | k | n | lo | hi |
+|---|---|---|---|---|
+| R1 end right | 23 | 31 | 57 | 86 |
+| R3 passes the seed test | 17 | 31 | 38 | 71 |
+| R3 end right | 25 | 31 | 64 | 91 |
+| R3 end right, of the cases it passes | 17 | 17 | 82 | 100 |
+| ladder end right | 30 | 31 | 84 | 99 |
+| grid search end right | 28 | 31 | 75 | 97 |
+<!-- /table:p2_intervals -->
+
+**What-if, not a result: a ladder that reuses level 0.** When `R3` fails, the grid search pays
+level 0 again. Suppose the grid search could start from `R3`'s level 0. The 14 cases that end at
+the grid would then save 2,827,283 evaluations, and the ladder would need 8,536,861, 80.5% of the
+grid fallbacks' evaluations. Without `R1` as well (166,291 evaluations) it would need 8,370,570,
+78.9%. Both are above the two-thirds limit of 7,070,901. This assumes that the grid search's own
+level 0 costs what `R3`'s level 0 cost; `R3` used a fixed random state (`default_rng(0)`) and the
+stored grid search used another. So the ladder fails its rule without the double count too.
 
 ## Part 3: is a voxel finished?
 
@@ -286,9 +346,10 @@ from the stored scores and tries.
 is the lowest threshold from 0.50 to 0.95 (step 0.05) that flags at least 80% of the wrong voxels
 on the pick samples pooled. That is 0.95, the top of the grid.
 
-Reading the plot: each line is one sample; each dot is one threshold. The x axis is the share of
-voxels flagged, the y axis the share of wrong voxels flagged. The dashed vertical line is the 5%
-limit of prediction 4; the dotted horizontal line is 80%.
+Reading the plot: each marker shape is one sample; each marker is one threshold. Nothing between
+two thresholds was measured, so no line joins the markers. The x axis is the share of voxels
+flagged, the y axis the share of wrong voxels flagged. The dashed vertical line is the 5% limit of
+prediction 4; the dotted horizontal line is 80%.
 
 ![Hit-ratio flag](../../benchmarks/autoresearch/ar5/ar5_flag.png)
 
@@ -333,8 +394,9 @@ wrong voxels above the threshold, `nw` all wrong voxels.
 
 At 0.95 the flag catches every wrong voxel on all three samples, but it flags 6.2%, 11.3% and
 15.1% of all voxels. Just under it, at 0.90, it catches 0 of 24, 32 of 63 and 13 of 31. The
-threshold sits at the edge of the grid tried here, and the seed step stops at hit ratio 0.95, so
-many right voxels end just under it. A threshold above 0.95 was not tried.
+threshold sits at the top of the grid tried here. Most flagged voxels lie just under it: 1,452 of
+the 1,532 flagged on `big`, 2,491 of the 2,785 on the first gradient sample and 3,225 of the 3,709
+on `mid` have a hit ratio from 0.90 up to 0.95. A threshold above 0.95 was not tried.
 
 Reading the next table: at 0.95, by the voxel's source in `S8` (first seed, neighbour fit,
 revisit, reseed) and for boundary voxels alone (voxels that had at least one try). `wrong` is
@@ -363,8 +425,9 @@ the wrong voxels in the group, `wf` those flagged.
 | mid | all | 24,570 | 3,709 | 31 | 31 |
 <!-- /table:p3_source -->
 
-All wrong voxels are boundary voxels (24 of 24, 63 of 63, 31 of 31). No first seed is wrong. The
-wrong voxels come from neighbour fits, revisits and reseeds.
+All wrong voxels are boundary voxels (24 of 24, 63 of 63, 31 of 31). For scale, boundary voxels
+are 45.0%, 94.1% and 72.7% of all voxels, so on the first gradient sample almost every voxel is
+one. No first seed is wrong. The wrong voxels come from neighbour fits, revisits and reseeds.
 
 What "finished" would mean. Reading the next table: at 0.95, the wrong voxels left among the
 unflagged ones, with the Wilson 95% interval of their share (`lo` and `hi`, in percent). This is
@@ -386,7 +449,8 @@ voxels that must be treated as not finished.
 rays attached to the voxel that its orientation does not explain were indexed (`index_rays`) and
 the highest vote count was kept. Reading the plot: each dot is a flagged voxel on the three
 samples, wrong on the top strip and right on the bottom strip, placed by its count. The vertical
-spread is only for visibility.
+spread is only for visibility. The dashed line is the cut of the next table for all three samples
+(2,369), chosen after the result.
 
 ![Vote count, flagged voxels](../../benchmarks/autoresearch/ar5/ar5_votes.png)
 
@@ -405,12 +469,22 @@ the cut. `sep` is yes when the Wilson 95% intervals of the two shares do not ove
 | all three | 118 | 7908 | 2573 | 1535 | 2369 | 67 of 118 (48 to 65%) | 1410 of 7908 (17 to 19%) | 1477 | yes |
 <!-- /table:p3_votes -->
 
-The vote count separates the groups, but weakly. Of 118 wrong voxels, 67 are at or above the cut;
-of 7,908 right voxels, 1,410 are. So of the 1,477 voxels at or above the cut, 67 are wrong. The
-other 51 wrong voxels are under it. The unflagged boundary voxels that were sampled have a
-median count of 1,445 and none is wrong. Prediction 5 said no separation; it does not agree. The
-count is not a useful stop rule on this evidence. What replaced it is the hit-ratio flag, which
-is cheaper (no indexing) and catches all wrong voxels, at the price above.
+The vote count separates the groups, but weakly, and only at a cut chosen after the result. Of
+118 wrong voxels, 67 are at or above the cut; of 7,908 right voxels, 1,410 are. So 67 of the
+1,477 voxels at or above the cut are wrong (4.5%), against 118 of the 8,026 flagged voxels
+(1.5%). The other 51 wrong voxels are under it. The best cut also moves between samples, from
+1,975 on `mid` to 3,035 on the first gradient sample. The unflagged boundary voxels that were
+sampled have a median count of 1,445 and none is wrong.
+
+What-if, a cut chosen without `mid`: the best cut on the pick samples pooled is 2,919. On `mid`
+it catches 12 of 31 wrong voxels (Wilson 95% interval 24% to 56%) and 281 of 3,678 right voxels
+(6.8% to 8.5%). The two intervals still do not overlap.
+
+Prediction 5 said no separation. Its verdict, "does not agree", rests on the cut chosen after
+the result. Whether the count adds anything beyond the hit ratio itself is not tested: a voxel
+with a lower hit ratio may simply have more unexplained rays. The count is not a
+useful stop rule on this evidence. What replaced it is the hit-ratio flag, which is cheaper (no
+indexing) and catches all wrong voxels, at the price above.
 
 **Check V1, on `mid`.** At each of the 3,709 voxels flagged at 0.95, the seed step was run and
 its end was kept if its hit ratio was higher than the voxel's. All 3,709 were run (no cap was
@@ -443,10 +517,10 @@ Reading the next table: the six predictions written before the runs, and whether
 | n | what | result | numbers |
 |---|---|---|---|
 | 1 | a try-test setting cuts 70% of the pass and loses at most 5% of its gain | does not agree | best cut within the 5% loss: 55.1% |
-| 2 | a candidate near the truth is in the first 100 and not the 20 costed, in half the cases | does not agree | 0 of 31 |
+| 2 | a candidate near the truth is in the first 100 and not the 20 costed, in half the cases | does not agree | 0 of 31; no list held 100 (they held 32 to 62), so the first 100 were all candidates |
 | 3 | the ladder passes its rule | does not agree | 107.1% of the grid evaluations |
 | 4 | a hit-ratio threshold flags 80% of wrong voxels and at most 5% of voxels | does not agree | first part holds (100% of wrong voxels caught); second part fails (8.8% of voxels flagged on the pick samples, 15.1% on mid) |
-| 5 | the vote count does not separate wrong from right among flagged voxels | does not agree | a weak separation exists; cut 2369: 67 of 118 wrong, 1410 of 7908 right at or above |
+| 5 | the vote count does not separate wrong from right among flagged voxels | does not agree (on a cut chosen after the result) | a weak separation exists; cut 2369: 67 of 118 wrong, 1410 of 7908 right at or above; the best cut moves from 1975 to 3035 between samples |
 | 6 | T1 needs under 14 M (gradient) and 22 M (mid) evaluations | not evaluated | no rule passed, so T1 was not run |
 <!-- /table:predictions -->
 
@@ -468,13 +542,15 @@ choice; this step recommends no setting.
 
 ## Numbers chosen after a result
 
-The cut on the vote count (above). Nothing else was chosen after a result. `P3`'s `d` came from
-a rule written into the code before the pick.
+The cut on the vote count (above), and so the verdict on prediction 5, which rests on it.
+Nothing else was chosen after a result. `P3`'s `d` came from a rule written into the code before
+the pick. The what-ifs (hindsight on `mid` in Part 1, the ladder that reuses level 0, the cut
+chosen without `mid`) were computed after the results; they pick nothing.
 
 ## Notes on the data
 
-- The start scores of `mid` were computed after the pick was committed (a first computation was
-  deleted and redone, so that git shows the order).
+- The start scores of `mid` in `starts_mid.npz` were computed after the Part 1 pick was
+  committed. A first computation ran before the commit and was deleted (see Scope).
 - A grid fallback's end is read from the map of `S8` before the pass. A revisit may have refit
   the voxel after its grid search; the stored data do not separate them. The grid search's
   evaluations are its stored `full_search_evaluations` (reseeds) or the voxel's record minus the
