@@ -857,6 +857,161 @@ results in `benchmarks/autoresearch/ar3/boundary/`; findings in
 "Task split"). `MIGRATION_HISTORY.md` gets the summary. Only the result files that the summary
 script reads are committed; a per-voxel record above 2 MB is stored gzipped and read gzipped.
 
+### Step 6: the seed cost
+
+Added 2026-11-10 after the review of step 5 (D-20261110-N7). Task `ar3f`.
+
+In this step a **local optimization** is a refinement from a starting orientation, with no
+grid search. Earlier steps of this plan call it "finisher" or "local fit"; it is the same
+thing. A **fit** is one run of a local optimization.
+
+**Why.** With the small CMA fit of step 4 and the boundary pass of step 5, the neighbour and
+revisit fits are no longer the largest cost. In step 4's run `D4` (35,129,496 evaluations) the
+grid search took 25,833,494. It ran 76 times, each time because the index seed failed the seed
+test. Run `K` of step 5 had spent 31,067,562 of its 38,149,476 evaluations the same way when
+its cap stopped it. The index seeds themselves took 3,389,254 evaluations in `D4` (1,298
+seeds, about 2,600 each); that is more than the neighbour fits (2,817,382) or the revisit fits
+(3,089,366). So the seed step is now where the operations go.
+
+**What the stored records of `D4` already show** (read by the main session; the implementer
+derives these again and the page quotes the implementer's numbers, not these):
+
+- Each grid search costs about 340,000 evaluations, whatever the voxel.
+- 74 of the 76 are at reseeds. 2 are at first seeds (2 of 344). So the index fails mostly
+  on voxels that the BFS had already failed to settle.
+- After the grid search the voxel's hit ratio is 0.88 or higher on 73 of the 76, and 1.0 on
+  24. So an orientation that passes the seed test exists there, and the index seed did not
+  reach it. The records do not say why.
+- 36 of the 74 reseeds were for a cluster of one voxel and 11 for a cluster of two. A grid
+  search of 340,000 evaluations then settles one or two voxels.
+- Of all 954 reseeds, 260 were for a cluster of one voxel and 101 for a cluster of two. Each
+  pays an index seed of about 2,600 evaluations. A try from a neighbour costs 61.
+- Step 2's sample (`E4`) had no failed index seed. The failures belong to the gradient sample.
+
+**The questions.** (1) Why does the index seed fail where the grid search succeeds? (2) Which
+cheaper step reaches an end as good as the grid search's on those voxels? (3) Do small
+clusters need a seed at all? Nothing is claimed before it is measured.
+
+**Terms.**
+
+- The **seed step** of a voxel is what `seed_by_indexing` does: index the voxel (the
+  candidates), take the strict cost of the first 5, run a local optimization from the best 2,
+  keep the lowest cost. The **seed test** is the caller's: the end must have a hit ratio of at
+  least the configured threshold (0.80 here; read the value from the run's config).
+- A **grid fallback** is the full grid search that the caller runs when the seed step returns
+  no candidate or its end fails the seed test.
+- A **fallback voxel** is a voxel where a stored run made a grid fallback.
+- A **cluster** is the set of unsettled voxels that one reseed is made for.
+- **Error**, **wrong** (error above 1 degree), **level**, pick set **A** and test set **B**
+  are as in step 3. A voxel belongs to A or B by its true grain.
+
+**Part 0: why the index seed fails (stored records and a replay; no whole-layer run; the
+truth is used for analysis only).** The seed step does not depend on the state of the BFS: it
+reads the voxel's observed rays and uses its own generator. So it can be run again at any
+voxel.
+
+1. List the fallback voxels of every stored run on the gradient sample that has per-voxel
+   records (`D4`, `P4`, step 3's D and P). Say how each is identified. Give the counts by
+   seed or reseed, by cluster size, by level, and by whether the voxel is at a true grain
+   boundary. Give the evaluations by cluster size for all reseeds.
+2. Check: the replayed seed step fails the seed test on these voxels, and passes on 200
+   index seeds that the run used (a fixed draw, `default_rng(0)`). If more than 5% of either
+   group disagree with the stored run, stop and report.
+3. Replay the seed step on each fallback voxel with the indexer returning 50 candidates, and
+   log: the number of candidates; the rank of the first candidate within 1 degree of the
+   truth; the strict cost and the hit ratio of the first 20 candidates and of the truth;
+   which candidates the seed step costed and which it refined; the end of each local
+   optimization (error, cost, hit ratio, evaluations).
+4. Put each fallback voxel in one class, in this order:
+   (a) the truth itself fails the seed test;
+   (b) no candidate within 1 degree of the truth;
+   (c) such a candidate exists but beyond the first 5 (not costed);
+   (d) costed but not among the 2 refined;
+   (e) refined, and the local optimization ends away from the truth or below the seed test;
+   (f) the replay passes (should be empty after check 2).
+5. The grid search's end at each fallback voxel: error against the truth, hit ratio. Is the
+   grid's end right? Count the settled neighbours (in the final map) whose orientation is
+   within 1 degree of the voxel's truth: could a try from a neighbour have started near it?
+6. The same log (items 3 to 5 without the grid) for the 200 control seeds, so that the cost
+   of each remedy on ordinary seeds is known.
+
+**Gate.** If class (a) holds more than half of the fallback voxels, no change of the seed
+step can pass the test there. Then part 1 tests only remedies 4 and 5 and the page says that
+the seed test, not the index, is the question.
+
+**Part 1: remedies, by replay on the fallback voxels and the controls.** No whole-layer run.
+Each remedy replaces or follows the seed step at one voxel. All use the images and Q-max of
+the stored run, one worker, a fixed generator.
+
+| remedy | what it does at the voxel |
+|---|---|
+| 1 `more` | strict cost on the first 20 candidates in place of 5; local optimization from the best 2, and from the best 5 |
+| 2 `cma-seed` | the seed step of the library's `LocalOptimizer cma` mode, as run `KE` used it (read it in the code; list what it does) |
+| 3 `wide` | when the seed step fails: one CMA fit from its best end with a first step of 1.5 degrees and at most 1,000 evaluations |
+| 4 `neighbours` | before the seed step: one try (CMA, 0.05 degrees, 61 evaluations) from each distinct orientation among the voxel's settled neighbours in the final map; keep rule `hit` of step 5 |
+| 5 `defer` | no seed step and no grid search for a cluster of one or two voxels: only the tries of remedy 4 |
+| 6 `outward` | when the seed step fails: the existing outward search (the policy behind the `OutwardSearch` key) from its best end, if a script can call it without a library change; say so if it cannot |
+
+Remedy 4 reads the final map, which the run did not have at that moment. Say so as a limit:
+it shows what a try from a neighbour can reach, not what the run would have had.
+
+Readings of part 1, per remedy, on the fallback voxels and on the controls:
+
+1. Voxels that pass the seed test. Voxels that end right. Paired counts against the grid
+   search's end at the same voxel (right in both, fixed, broken, wrong in both).
+2. Evaluations per voxel (median, mean, largest), against the grid search's.
+3. On the controls: does the remedy change an end that was right? What does it add in cost?
+4. Small clusters (question 3): for every reseed of `D4` with a cluster of one or two voxels,
+   does remedy 5 end within 0.1 degrees of the stored end, with a hit ratio that is no lower?
+   The evaluations it would have saved.
+
+**The pick.** On the fallback voxels of A: the remedy (or the chain of two remedies, cheapest
+first) with the fewest voxels that still need the grid search, among those that break no
+more right ends than they fix. A tie goes to the fewer evaluations. Reported on B. The counts
+are small (about 40 fallback voxels per set from `D4`); give them as counts with intervals and
+do not call a difference of a few voxels a gain.
+
+**Part 2: whole-layer runs with the pick.** A script wrapper around the seed step, as step 4
+wrapped the fit; no library change. Two runs on the gradient sample, side by side:
+
+| run | what | compared with | cap |
+|---|---|---|---|
+| `S` | `D4`'s setting with the picked remedy in the seed step; then the boundary pass with rule `hit` | `D4` plus pass; step 3's D plus pass | 60 min |
+| `K2` | run `K` of step 5 again (the library's cma keys and no fit wrapper) with the picked remedy; then the pass | `S`; `D4` plus pass | 60 min |
+
+Start both on a machine with no other heavy job of this track. Each cap is coded, as in step
+4. Readings: evaluations by stage (seed step, grid fallbacks, neighbour, revisit, pass),
+seeds, reseeds, grid fallbacks, wrong voxels and error by level before and after the pass,
+paired counts. The comparison that counts has the pass on both sides. If part 1 finds no
+remedy that removes at least half of the grid fallbacks on A, part 2 is not run and the page
+says so.
+
+**Stop rules of the task.** Parts 0 and 1 together: 90 minutes of compute. Part 2: the caps
+above. The general stop rule holds as well.
+
+**Not claimed.** That C++ behaves the same. That the gradient model matches a real sample. A
+change of any default. A tested wall time unless the preflight passes. That a remedy picked
+on about 40 voxels holds on another sample.
+
+**What comes after** (not part of `ar3f`). If a remedy removes the grid fallbacks: the same
+check on a sample with larger grains, then opt-in keys for the remedy and for the boundary
+pass. The learned proposer (AR4) is a candidate for the voxels that every remedy here leaves
+to the grid search. Then the stop rule inside the grid search (AR5).
+
+**Practical notes for the implementer.** Step 5 is merged: reuse `boundary_lib.py` (a try,
+the keep rules, the neighbour relation), `boundary_common.py` and `run_keys.py`. `D4`'s
+`run.json` has no per-seed log; a fallback voxel is found from its record (a seed record with
+far more evaluations than an index seed) and from `stats.reseeds`. Check that against
+`index_fallback_seed_test`. The stored maps and images are where step 5's page says.
+
+**Files.** No file under `icenine_py/icenine/` changes. Scripts in `scripts/autoresearch/ar3/`;
+results in `benchmarks/autoresearch/ar3/seed/`; findings in
+`docs/autoresearch/findings_ar3_seed.md` (returned as text if the write is refused, see "Task
+split"). `MIGRATION_HISTORY.md` gets the summary. The page leads with a plot, says "local
+optimization", and defines each term at first use. Only the result files that the summary
+script reads are committed, and they hold only the fields it reads: per-voxel logs as gzipped
+JSON, no per-try arrays of unused fields. The committed results of this step stay under 5 MB.
+
 ## AR4: the learned proposer
 
 Train and measure H4 on the same voxels as AR1. It starts after AR1 so that it can be compared
