@@ -11622,8 +11622,10 @@ Part 1 (seed steps replayed from the stored runs, one logged rerun of `S5` on `b
 reproduced the stored counters and reseed list exactly; every replayed seed step has the stored
 evaluation count): the refinements are 99.9% of the evaluations of a seed step in `S5` on `big`
 (mean 21,403 per step; 20 evaluations of costing), 99.6% on the gradient sample (mean 4,633).
-The first refinement alone costs 4,710 at level 0 on `big` (5 steps) against 1,115 on the
-gradient sample (101 steps); in the grains at 4 degrees refinements 2 to 5 are 16,554 of 24,427.
+The first refinement is dearer on `big`, also without a gradient: 4,710 at level 0 on `big` (5
+grains, one seed step each) against 1,115 on the gradient sample (101 steps); the later
+refinements are not dearer there (level 0, fifth: 514 against 570); in the grains at 4 degrees
+refinements 2 to 5 are 16,554 of 24,427.
 62.2% of `S5`'s seed-step evaluations on `big` (55.5% on the gradient sample) run after a
 refinement already passed the seed test at a right orientation. Of the 1,471 voxels in the 314
 reseed clusters of `S5` on `big`, 1,069 (72.7%) were reached by a local optimization that ended

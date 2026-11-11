@@ -101,9 +101,12 @@ by stage (millions). `S8` is the third bar of each panel.
    seed steps cost 7,469,574 evaluations, a mean of 21,403. The costing is 20 of them; the
    refinements are 99.9%. On `grad` it is 99.6% of a mean of 4,633.
 2. **Why is a seed step dearer on `big`?** Two things show in the numbers, neither with a tested
-   cause. First, each refinement is dearer on `big`, also where there is no gradient: the first
-   refinement costs a mean 4,710 evaluations at level 0 on `big` (5 steps) and 1,115 on `grad`
-   (101 steps). Second, in the grains at 4 degrees the later refinements cost a lot: refinements
+   cause. First, the first refinement is dearer on `big`, also where there is no gradient: it
+   costs a mean 4,710 evaluations at level 0 on `big` and 1,115 on `grad` (101 steps). Level 0
+   on `big` is 5 grains with one seed step each, so this is a result on those 5 grains. The
+   later refinements are not dearer there: at level 0 the fifth costs 514 on `big` against 570
+   on `grad`, and at level 0.5 (1 grain on `big`) the second to fifth all cost less on `big`
+   than on `grad`. Second, in the grains at 4 degrees the later refinements cost a lot: refinements
    2 to 5 are 16,554 of the 24,427 evaluations of a step (267 steps).
 3. **How much of that is not needed?** In `S5` on `big`, 62.2% of the seed-step evaluations
    (4,645,742 of 7,469,574) are spent on refinements that run after one refinement already
