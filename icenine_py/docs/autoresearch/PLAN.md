@@ -220,8 +220,9 @@ before step 1 is reviewed and merged, and no part of it belongs in `ar3a`. Added
 step 1 is merged (8e3098f), so task `ar3b` is step 2 as written under "Step 2, the details"
 below; step 1 is not redone. Task `ar3c` is step 3 as written under "Step 3" below; it starts
 after `ar3b` is merged and redoes nothing of steps 1 and 2. Task `ar3d` is step 4 as written
-under "Step 4" below; it starts after `ar3c` is merged and reruns nothing of step 3. For the
-implementer of
+under "Step 4" below; it starts after `ar3c` is merged and reruns nothing of step 3. Task
+`ar3e` is step 5 as written under "Step 5" below; it starts after `ar3d` is merged and reruns
+none of step 4's whole-layer runs. For the implementer of
 any of these tasks: the tool refuses a helper agent's write of a new `.md` file. So do not write the
 findings page or the hand-back report as files. Return each as text in the final message, the
 findings page between the lines `=== FINDINGS PAGE ===` and `=== END FINDINGS PAGE ===`, the
@@ -724,6 +725,137 @@ results in `benchmarks/autoresearch/ar3/fine/`; findings in
 `docs/autoresearch/findings_ar3_fine.md` (returned as text, see "Task split").
 `MIGRATION_HISTORY.md` gets the summary. Only the result files that the summary script reads
 are committed; a per-voxel record above 2 MB is stored gzipped and read gzipped.
+
+### Step 5: let neighbouring grains compete for the boundary voxels
+
+Added 2026-11-10 after the review of step 4. Task `ar3e`.
+
+**Why.** Step 4 found a local fit that moves (the existing CMA fit, first step 0.05 degrees, 61
+evaluations). In the whole-layer search it cut the evaluations from 118,350,225 to 35,129,496.
+But two of the three whole-layer runs ended with more wrong voxels (281 against 170; 305
+against 153). The review read the stored records. In the paint run, all 134 newly wrong voxels
+were already wrong after the paint, 107 of them were settled by a fit, and 104 of those 107
+fits started from a grain that was seeded in another true grain. All 107 passed the caller's
+0.9 test. On step 2's sample, the 170 newly wrong voxels were accepted at the first neighbour
+fit (114) or at a revisit (56). So the loss sits in fits that the caller accepts: a voxel next
+to a grain boundary takes the orientation of the wrong side, the small fit polishes it, and
+the 0.9 test lets it pass. The stock fit used to fail that test, and the voxel was then
+settled another way. A fallback for rejected voxels does not reach an accepted fit.
+
+**The idea.** A voxel that passed from one side of a boundary was never tried from the other
+side. Try it. After a run, every voxel that has a neighbour with a clearly different
+orientation gets one small fit from that neighbour's orientation, and keeps the better of the
+two ends. This costs 61 evaluations per try and is run only at boundaries. It uses nothing but
+the reconstructed map, and it does not depend on the crystal symmetry. The docstring of
+`_expand` in `reconstructor.py` says that C++ refits a fitted voxel when another neighbour
+reaches it and keeps the end with the higher confidence, and that the Python port does not.
+The implementer reads `BreadthFirstReconstructor.tmpl.cpp` and reports what C++ does there.
+Whether the pass removes the extra wrong voxels, and what it costs, are to be measured;
+neither is claimed here.
+
+**Terms.**
+
+- Two voxels are **neighbours** when the reconstructor's own neighbour relation says so.
+- A **boundary voxel** is a voxel with at least one neighbour whose orientation in the map
+  differs from its own by more than 0.5 degrees (symmetry-reduced). The 0.5 is set, not tuned:
+  inside a grain of this sample, neighbours differ by far less; across a boundary by far more.
+- The **candidates** of a boundary voxel are its neighbours' orientations that differ from its
+  own by more than 0.5 degrees, with candidates within 0.5 degrees of each other counted once.
+- A **try** is one CMA fit (first step 0.05 degrees, at most 60 evaluations plus the final
+  one) at the voxel, started from a candidate.
+- The **pass** makes every try of every boundary voxel. The candidates are read from the map
+  as it was before the pass, so the order of the voxels does not matter. A **keep rule** then
+  decides, per voxel, between its old end and the ends of its tries.
+- **Error**, **wrong**, **level**, pick set **A** and test set **B** are as in step 3.
+
+**Part 0: can the pass work at all? (records and single scores; the truth is used for analysis
+only.)** For every wrong voxel of six stored maps (step 4's `D4`, `P4` plus `R4`, `E4`; and
+the runs they were compared with: step 3's D, step 3's P plus R, step 2's D):
+
+1. Is the voxel a boundary voxel? Is there a candidate within 1 degree of its true orientation?
+2. One strict score of the true orientation and of the voxel's end: which costs less, which
+   has the higher hit ratio, which has the higher confidence.
+
+Also, for all voxels of each map: the number of boundary voxels and of candidates, so that the
+cost of the pass is known before it runs.
+
+**Gate.** Take the newly wrong voxels of the three step 4 runs (134, 170, and the 108 of
+`D4`). If, on fewer than half of them, a candidate lies within 1 degree of the truth and the
+truth scores better than the end by at least one of the three measures, stop after part 0 and
+report. The pass would then have little to offer.
+
+**Part 1: the pass on the stored maps.** No whole-layer run. Run the pass once on each of the
+six maps, with the images and Q-max of the run that made the map, one worker, one generator
+state. The tries do not depend on the keep rule, so each map needs one set of tries; the rules
+are applied to the stored tries.
+
+| keep rule | the voxel takes the end with |
+|---|---|
+| `cost` | the lowest strict cost |
+| `hit` | the highest hit ratio (a tie: the lowest cost) |
+| `conf` | the highest confidence (the rule the docstring gives for C++) |
+
+**The pick.** On A, over the three step 4 maps together: the rule with the fewest wrong voxels
+after the pass. Among rules whose intervals overlap with that one, the rule that changes the
+fewest voxels. The pick is reported on B.
+
+Readings of part 1, per map, for the picked rule (the other two rules in one short table):
+
+1. Boundary voxels, tries, evaluations. The evaluations of the pass as a share of the run's.
+2. Voxels changed. Paired counts against the map before the pass: fixed, broken, wrong in both.
+3. Wrong voxels, the share above 0.1 degrees, median and 95th percentile of the error, all
+   voxels and by level, before and after.
+4. The whole pipeline: run plus pass against the compared run, and against the compared run
+   plus pass (the same pass on both sides is the fair comparison). Evaluations and wrong
+   voxels, with paired counts. A gain or a loss only when the intervals do not overlap.
+5. A second pass on the map the first pass made: how many voxels change again.
+6. When is a try needed? From what is known before the pass (the voxel's hit ratio over the
+   highest hit ratio among its neighbours; its cost), a rule that skips the tries of a voxel.
+   Thresholds on a fixed grid, picked on A (the rule that skips the most tries while losing at
+   most 1% of the voxels the pass fixed), reported on B. A pick at the edge of its grid is
+   called uninformative.
+
+**Part 2: the same saving with the keys that exist.** Step 4 used a script wrapper. The
+library already has the keys `LocalOptimizer cma`, `CMASigma0`, `CMANeighborMaxEvals` and
+`CMARetrySigma0` (a wider second fit when the caller rejects the first; this is close to the
+fallback step 4's plan asked for). Two whole-layer runs with these keys and no wrapper:
+
+| run | what | compared with | cap |
+|---|---|---|---|
+| `K` | BFS with indexed seeds on the gradient sample; neighbour and revisit fits are the CMA fit of step 4 (first step 0.05 degrees, 60 evaluations), set through the keys; then the pass with the picked rule | `D4` plus pass; step 3's D plus pass | 60 min |
+| `KE` | the same on step 2's sample (one orientation per grain, stored images) | `E4` plus pass; step 2's D plus pass | 60 min |
+
+Leave every other key as in the compared runs. List every key set, and say what the seed's own
+fit does in this mode (read it in the code; do not assume it equals `D4`'s). The two runs may
+run side by side. Each cap is coded, as in step 4. Readings: as part 3 of step 4 (evaluations
+by stage, entries, grid fallbacks, error by level, paired counts), before and after the pass.
+The paint run is not repeated here; whether the paint needs the pass is read from part 1.
+
+**Stop rules of the task.** Part 0 and part 1 together: 90 minutes. Part 2: the caps above.
+Total compute about 3.5 hours. The general stop rule holds as well.
+
+**Not claimed.** That C++ behaves the same (the source is read; the program is not run). That
+the gradient model matches a real sample. A change of any default. A tested wall time unless
+the preflight passes. That a rule picked here holds on another sample.
+
+**What comes after** (not part of `ar3e`). If the pass is a gain: an opt-in key for it in the
+library (a new module, the off path bit-identical). Then the seed cost, which is now the
+largest part: in `D4` the grid search behind 76 failed index seeds took 25,833,494 of the
+35,129,496 evaluations. Then the stop rule inside the grid search (AR5), and the grain-wide
+model of the orientation field.
+
+**Practical notes for the implementer.** Step 4 is merged: reuse `run_fine.py` (how a script
+calls the CMA fit and counts its evaluations), `wrapped_summary.py` (paired counts, tables by
+level) and `ar3_common.py`. The stored maps are `recon.mic.gz` (or `recon.mic`) in each run's
+directory; the untracked ones are in the worktrees named in `docs/autoresearch/STATE.md`
+(link them, do not commit them). Check first that one try reproduces a fit of step 4: for 200
+voxels of run `C`, a try from the painted start gives the stored end and evaluation count.
+
+**Files.** No file under `icenine_py/icenine/` changes. Scripts in `scripts/autoresearch/ar3/`;
+results in `benchmarks/autoresearch/ar3/boundary/`; findings in
+`docs/autoresearch/findings_ar3_boundary.md` (returned as text if the write is refused, see
+"Task split"). `MIGRATION_HISTORY.md` gets the summary. Only the result files that the summary
+script reads are committed; a per-voxel record above 2 MB is stored gzipped and read gzipped.
 
 ## AR4: the learned proposer
 
