@@ -155,8 +155,11 @@ go on.
      `scripts/dev/finish_task.sh --yes --push` in the worktree that holds the task branch
      (background, about 12 minutes; keep the main checkout clean and do not commit to it
      while it runs); then `gh pr edit 43` (or a new PR if #43 is merged by then); this file;
-     the review page (a step 4 section, plot before table); one shmem fact. No heads-up to
-     Ilium is needed (step 4 changes scripts only).
+     the review page; one shmem fact. No heads-up to Ilium is needed (step 4 changes scripts
+     only). The review page already has the step 4 section (Version 21, 2026-11-10, plot
+     before table, from the reviewer-recomputed numbers) and step 5 as planned; after the
+     merge only its chips, the commit, the link to the findings page and any number the
+     fixes changed need an update.
    **AR3 step 5 (task `ar3e`)**: the plan is "Step 5" of the AR3 section (05577ac), approved
    under the mandate (D-20261110-N6). Start it after step 4 is merged:
    `scripts/dev/read_on_fetch.sh --save` (merge Ilium's branch if it moved, then `--mark`);
