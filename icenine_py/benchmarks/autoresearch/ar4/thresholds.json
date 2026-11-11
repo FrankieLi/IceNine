@@ -1,0 +1,51 @@
+{
+ "train_samples": [
+  "big",
+  "grad"
+ ],
+ "rule": "cut = flags the fewest voxels while flagging >= 95% of the wrong voxels (error > 1 deg) of the S8 maps after the pass, train samples pooled; flagged: score <= cut; ties at the cut are all flagged",
+ "n_pairs": 143409,
+ "n_use1_voxels": 49140,
+ "n_use1_wrong": 87,
+ "n1_parameters": 21953,
+ "n1_epochs": 20,
+ "n1_final_loss": 0.08301431352275371,
+ "n1_wall_s": 125.18401527404785,
+ "b1_wall_s": 2.8398358821868896,
+ "b1_weights": {
+  "hit": 8.143809691010565,
+  "cost": -1.5648080690079647,
+  "conf": -1.5220551058874823,
+  "lit_share": -3.0675864776078114,
+  "low_quarter": -3.1978203917525416,
+  "n_explained": 0.9897720980412332
+ },
+ "generator_seed": 0,
+ "thresholds": {
+  "B0": {
+   "cut": 0.9262851600387972,
+   "train_voxels_flagged": 1741,
+   "train_wrong_flagged": 83,
+   "train_flagged_share": 0.03542938542938543
+  },
+  "B1": {
+   "cut": 0.9755782674658959,
+   "train_voxels_flagged": 25009,
+   "train_wrong_flagged": 83,
+   "train_flagged_share": 0.5089336589336589
+  },
+  "N1": {
+   "cut": 0.7491437792778015,
+   "train_voxels_flagged": 110,
+   "train_wrong_flagged": 83,
+   "train_flagged_share": 0.0022385022385022386
+  },
+  "lit": {
+   "cut": 1.0,
+   "train_voxels_flagged": 49140,
+   "train_wrong_flagged": 87,
+   "train_flagged_share": 1.0
+  }
+ },
+ "timing_label": "contended (another agent on the machine); not a timing result"
+}
