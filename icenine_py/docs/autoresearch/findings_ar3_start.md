@@ -255,10 +255,10 @@ cost 3,513,895 evaluations and the revisits 884,040. A fit with a passing start 
 0.95 the median move is 0.040 degrees (90th percentile 0.095). At 0.95 and 0.98 no passing start
 is wrong, on either sample. At 0.90 there are 15 wrong starts among the neighbour fits on `big`
 and 36 on `grad`. On `grad` only 19.1% of the neighbour fits start at 0.95 (4,621 of 24,222), and
-58.7% of all 24,222 neighbour fits start more than 1 degree from the truth. This is consistent with small grains (49
-voxels on average): many voxels are reached first from another grain. The stored counters agree
-with the fit log (9,508 of 24,222 neighbour fits accepted at the first try on `grad`; 19,119 of
-24,535 on `big`).
+58.7% of all 24,222 neighbour fits start more than 1 degree from the truth. This is consistent
+with small grains (49 voxels on average): many voxels are reached first from another grain. The
+stored counters agree with the fit log (9,508 of 24,222 neighbour fits accepted at the first try
+on `grad`; 19,119 of 24,535 on `big`).
 
 ### 1.2 Class A, the check
 
@@ -266,8 +266,8 @@ Reading of the table: for the class A voxels of the reseed clusters of `S5` (a v
 its first cluster). `truth_pass` is the number whose true orientation passes the relative test
 against the flood's best at that moment; `after_pass` is the number that passes after one more
 local optimization from the rejected end (first step 0.1 degrees, 61 evaluations each: 60 plus
-the final one; see "Deviations");
-`after_ci` is its 95% interval in percent. The other columns are medians.
+the final one; see "Deviations"); `after_ci` is its 95% interval in percent. The other columns
+are medians.
 
 <!-- table:p1_class_a -->
 | sample | voxels | class_a | truth_pass | truth_fail | after_pass | after_ci | hit_stored | hit_truth | best | hit_after | err_end | err_after | extra_evals |
@@ -285,9 +285,10 @@ So this check passes by construction and has no power here; only realistic image
 (b). The evidence for (a) is the extra fit. The stored fits end at a median error of 0.294
 degrees (`big`) and 0.227 (`grad`) with a median hit ratio of 0.835 and 0.839, and the extra fit
 brings the median error to 0.069 and 0.052 and the hit ratio to 0.952 and 0.948. It passes in
-75.5% (807 of 1,069) and 76.6% (451 of 589). The 262 and 138 that still fail were not tried with a longer or wider
-fit; that is untested. Class A is 1,069 of the 1,471 cluster voxels on `big` (72.7%) but 589 of
-the 6,140 on `grad` (9.6%); the other 5,551 voxels on `grad` are not class A.
+75.5% (807 of 1,069) and 76.6% (451 of 589). The 262 and 138 that still fail were not tried
+with a longer or wider fit; that is untested. Class A is 1,069 of the 1,471 cluster voxels on
+`big` (72.7%) but 589 of the 6,140 on `grad` (9.6%); the other 5,551 voxels on `grad` are not
+class A.
 
 Whether the stored rejected fit includes the BFS's own retry: it does not. The retry runs only
 when the local optimizer is `cma` (`retry_on` in `_expand`), and `S5` runs in the classic mode (the
