@@ -31,6 +31,7 @@ from .experimental_data import ExperimentalData
 from .forward_simulation import ForwardSimulation
 from .mic_file import MicFile, ReconstructionState
 from .orientation_search import (
+    LOCAL_OPTIMIZERS,
     CMAOptimizer,
     MCOptimizer,
     RiemannianAdamOptimizer,
@@ -1293,10 +1294,11 @@ class AdaptiveVoxelReconstructor:
         optimizer: Optional[str] = None,
     ) -> SearchCandidate:
         """
-        MC-only optimization from a given starting orientation (for BFS neighbors).
+        Local optimization from a given starting orientation (for BFS neighbors).
 
-        Runs variance-minimizing MC without any discrete search. This is the
-        cheap path used when orientation is inherited from a fitted neighbor.
+        Runs variance-minimizing MC (``mc``) or one local CMA-ES run (``cma``), without any
+        discrete search. This is the cheap path used when orientation is inherited from a fitted
+        neighbor.
 
         Args:
             voxel_vertices: Triangle vertices in sample frame, shape (3, 3)
@@ -1333,8 +1335,10 @@ class AdaptiveVoxelReconstructor:
         )
 
         mode = self.params.local_optimizer if optimizer is None else optimizer
-        if mode not in ("mc", "cma"):
-            raise ValueError(f"optimizer must be 'mc', 'cma' or None, got {optimizer!r}")
+        if mode not in LOCAL_OPTIMIZERS:
+            raise ValueError(
+                f"optimizer must be one of {LOCAL_OPTIMIZERS} or None, got {optimizer!r}"
+            )
         result: SearchCandidate
         if mode == "cma":
             # one local CMA-ES run from the inherited start replaces the variance-minimizing MC

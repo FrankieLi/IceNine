@@ -89,6 +89,7 @@ def test_defaults_and_parsing(tmp_path: Path) -> None:
         "SeedIndexCandidates 5 0",
         "SeedIndexCandidates 5",
         "SeedIndexCandidates",
+        "SeedIndexCandidates 20 5 7",
         "SeedIndexStopHitRatio 1.5",
         "SeedIndexStopHitRatio -0.1",
         "SeedIndexStopHitRatio",
@@ -394,15 +395,39 @@ def test_index_seed_with_the_stop_equals_the_e1_loop_on_the_toy(toy: Any, tau: f
     assert lib.evals == hand["evals"]
 
 
+# index_seed(verts, phase) on the toy, recorded from the parent code (commit 4ff3ce6, before the
+# counts and the stop were arguments), the parent package on PYTHONPATH.
+PARENT_SEED = dict(taken=1, cost=0.180327868852459, evals=549, refined=[1, 0])
+PARENT_SEED_FINISHER_COSTS = [0.180327868852459, 0.4479166666666665]
+PARENT_SEED_ORIENTATION = np.array(
+    [
+        [0.9071078420456102, -0.42083749065569104, -0.007153276031125422],
+        [0.4185461838800449, 0.9037026031100777, -0.09022581167005998],
+        [0.04443483834569397, 0.0788505649357736, 0.9958956439057767],
+    ]
+)
+
+
 @needs_c
-def test_index_seed_without_the_stop_is_the_old_call_on_the_toy(toy: Any) -> None:
+@pytest.mark.parametrize("explicit", [False, True])
+def test_index_seed_without_the_stop_is_the_old_call_on_the_toy(toy: Any, explicit: bool) -> None:
+    """The bare call and the call with the defaults written out both equal the parent's call
+    (values recorded from commit 4ff3ce6; float fields to 1e-12 relative)."""
     rec, voxel, _ = toy
     verts = _get_voxel_vertices(voxel)
-    a = rec.index_seed(verts, voxel.phase)
-    b = rec.index_seed(verts, voxel.phase, 5, 2, stop_hit=0.0)
-    assert a.stopped_at == b.stopped_at == -1
-    assert (a.taken, a.cost, a.evals, a.refined) == (b.taken, b.cost, b.evals, b.refined)
-    assert np.array_equal(a.orientation, b.orientation)
+    if explicit:
+        a = rec.index_seed(verts, voxel.phase, 5, 2, stop_hit=0.0)
+    else:
+        a = rec.index_seed(verts, voxel.phase)
+    assert a.stopped_at == -1
+    assert (a.taken, a.evals, a.refined) == (
+        PARENT_SEED["taken"],
+        PARENT_SEED["evals"],
+        PARENT_SEED["refined"],
+    )
+    np.testing.assert_allclose(a.cost, PARENT_SEED["cost"], rtol=1e-12, atol=0.0)
+    np.testing.assert_allclose(a.finisher_costs, PARENT_SEED_FINISHER_COSTS, rtol=1e-12, atol=0.0)
+    np.testing.assert_allclose(a.orientation, PARENT_SEED_ORIENTATION, rtol=1e-12, atol=1e-15)
 
 
 # ------------------------------------------------------------------------------ 8. CMA first
@@ -558,9 +583,12 @@ def test_cma_first_falls_back_to_mc_from_the_truth(toy: Any, toy_params: Any) ->
 
 
 @needs_c
-def test_cma_first_leaves_the_grid_search_and_the_finisher_alone(
+def test_refine_from_candidates_makes_no_cma_call_with_cma_first_on(
     toy: Any, toy_params: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Plan test 8, last part: with ``BFSNeighborCMAFirst`` on, ``refine_from_candidates`` (the
+    seed step's refinement with ``LocalOptimizer mc``) makes no CMA call. A guard against the key
+    being read outside ``_local_fit``; the grid search itself is not run here."""
     rec0, voxel, R_true = toy
     toy_params.bfs_neighbor_cma_first = True
     n = [0]
@@ -612,13 +640,29 @@ def test_start_cost_is_the_first_evaluation_of_a_cma_run() -> None:
     assert OS.CMAResult(np.eye(3), 0.1, None).start_cost is None
 
 
+# CMAOptimizer(_Quad(), None, sigma0_deg=0.2, max_evals=100).optimize(start, seed=3), recorded from
+# the parent code (commit 4ff3ce6, before ``start_cost`` existed), the parent package on PYTHONPATH.
+PARENT_CMA_ORIENTATION = np.array(
+    [
+        [0.9999999852453088, -4.3672235355953386e-05, 0.00016613885314559318],
+        [4.374747523552882e-05, 0.9999998964853186, -0.0004528967992064885],
+        [-0.0001661190569321757, 0.00045290406067949974, 0.9999998836411789],
+    ]
+)
+PARENT_CMA_COST = 0.0007702389413883503
+PARENT_CMA_N_EVALS, PARENT_CMA_STOP = 100, "max_evals"
+
+
 def test_cma_result_is_otherwise_unchanged() -> None:
-    """The same run with and without looking at ``start_cost``: orientation, cost, evaluations."""
+    """The branch's CMA run equals the parent's (values recorded from commit 4ff3ce6): the same
+    orientation and cost (to 1e-12 relative, for float differences between machines), the same
+    evaluations and stop reason. Only ``start_cost`` is new."""
     start = _rot_deg([0.3, -0.2, 0.25])
     a = OS.CMAOptimizer(_Quad(), None, sigma0_deg=0.2, max_evals=100).optimize(start, seed=3)
-    b = OS.CMAOptimizer(_Quad(), None, sigma0_deg=0.2, max_evals=100).optimize(start, seed=3)
-    assert np.array_equal(a.orientation, b.orientation) and a.cost == b.cost
-    assert (a.n_evals, a.stop_reason) == (b.n_evals, b.stop_reason)
+    np.testing.assert_allclose(a.orientation, PARENT_CMA_ORIENTATION, rtol=1e-12, atol=1e-15)
+    np.testing.assert_allclose(a.cost, PARENT_CMA_COST, rtol=1e-12, atol=0.0)
+    assert (a.n_evals, a.stop_reason) == (PARENT_CMA_N_EVALS, PARENT_CMA_STOP)
+    assert a.start_cost is not None
 
 
 # ------------------------------------------------------------------------------ 10. candidates

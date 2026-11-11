@@ -17,6 +17,11 @@ candidates in neighbour-index order), not from the run's generator.
 
 Voxels that were never fitted (``reconstruction_id`` NOT_VISITED, e.g. with ``max_voxels``) are
 skipped as targets and as sources of candidates.
+
+What the pass leaves untouched: the BFS records (``bfs.records``). After the pass the record of a
+changed voxel still holds the hit ratio of its BFS end (the map's voxel holds the new one), and the
+pass's evaluations are not in any record's ``n_evals``; they are only in ``bfs.stats``
+(``n_evals_boundary_pass`` for the tries, ``n_evals_boundary_score`` for the old-end scores).
 """
 
 import time

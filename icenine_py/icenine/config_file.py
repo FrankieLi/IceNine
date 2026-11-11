@@ -626,8 +626,10 @@ class ConfigFile:
         1 <= n_refine <= n_cost <= ray_indexing.SEED_TOP_K."""
         from .ray_indexing import SEED_TOP_K
 
-        if len(tokens) < 3:
-            raise ValueError(f"{tokens[0]} needs two integers: n_cost n_refine")
+        if len(tokens) != 3:
+            raise ValueError(
+                f"{tokens[0]} needs exactly two integers: n_cost n_refine, got {tokens[1:]}"
+            )
         n_cost, n_refine = int(tokens[1]), int(tokens[2])
         if not 1 <= n_refine <= n_cost <= SEED_TOP_K:
             raise ValueError(
@@ -636,10 +638,10 @@ class ConfigFile:
             )
         self.seed_index_n_cost, self.seed_index_n_refine = n_cost, n_refine
 
-    def _parse_unit_interval(self, attr_name: str):
+    def _parse_unit_interval(self, attr_name: str) -> Callable[[List[str]], None]:
         """Parser for a float in [0, 1]."""
 
-        def parser(tokens):
+        def parser(tokens: List[str]) -> None:
             if len(tokens) < 2:
                 raise ValueError(f"Missing value for {tokens[0]}")
             value = float(tokens[1])
