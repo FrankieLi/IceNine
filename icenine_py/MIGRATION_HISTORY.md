@@ -11678,8 +11678,9 @@ Part 3: `mid` with the pass, `D4` 40.56, `S5` 39.09, `S8` 26.44 million evaluati
 48, 34, 31 (intervals overlap): `S8` is confirmed on a sample it was not chosen on (prediction 3).
 `S9` (`S8` + `F1` 0.90): 5.63 million on `big` (`S8` 8.34), 14.63 on `grad` (18.00), 22.67 on `mid`
 (26.44); wrong voxels 29 (24), 70 (63), 40 (31), intervals overlap; median error after the pass
-0.0550 (0.0316), 0.0360 (0.0226), 0.0429 (0.0297) degrees. Predictions: 1, 3 and 4 agree; 2 half
-agrees (49.9% of the neighbour fits at 1 degree or less start at 0.95, not more than half). The
+0.0550 (0.0316), 0.0360 (0.0226), 0.0429 (0.0297) degrees. Predictions: 1, 3 and 4 agree; 2 does
+not agree (its first part fails: 49.9% of the neighbour fits at 1 degree or less start at 0.95,
+interval 49.1 to 50.7, not more than half; its second part, 0.6% at 4 degrees, holds). The
 choice of keys stays the owner's: `S8`'s seed step is the plan's recommendation; `F1` is a
 candidate for a second key, with a small systematic rise in error and a threshold that won the
 pick under a rule blind to kept wrong starts.

@@ -46,9 +46,10 @@ The plan wrote down four predictions. Whether the result agrees:
    on `grad` (on clean images, where the true orientation scores about 1.000).
 2. *In `S5` on `big`, more than half of the neighbour fits in the grains at 1 degree or less
    start with a hit ratio of at least 0.95, and fewer than a quarter in the grains at 4 degrees.*
-   **Half agrees.** At 1 degree or less it is 7,818 of 15,666 fits (49.9%, Wilson 95% interval
-   49.1 to 50.7): not more than half. At 4 degrees it is 25 of 4,175 (0.6%, interval 0.4 to
-   0.9): fewer than a quarter.
+   **Does not agree.** The prediction has two parts joined by "and", and the first part fails. At
+   1 degree or less it is 7,818 of 15,666 fits (49.9%, Wilson 95% interval 49.1 to 50.7): just
+   under half, not more than half (the interval includes one half). The second part holds: at 4
+   degrees it is 25 of 4,175 (0.6%, interval 0.4 to 0.9), fewer than a quarter.
 3. *On `mid`, `S8` with the pass needs fewer evaluations than `S5` and than `D4` with the pass,
    and its interval of wrong voxels overlaps that of the one with fewer wrong voxels.*
    **Agrees.** `S8` needs 26,443,074 evaluations, `S5` 39,093,613, `D4` 40,560,874. After the
