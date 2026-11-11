@@ -1182,3 +1182,23 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   26.2%). The page gives F2 by sample (big alone 34.1%) and says that the pooled rule decides.
   Where: icenine_py/docs/autoresearch/findings_ar3_start.md;
   .claude/reports/20261111-0810-review-ar3i.md.
+
+### D-20261111-N8 · Track A / AR3 step 10 · AR3 step 10 plan approved: opt-in keys in the library for the indexed seed step, its early stop, the CMA-first neighbour fit and the boundary pass; all off by default, no recommendation
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Plan in icenine_py/docs/autoresearch/PLAN.md, section 'Step 10: opt-in keys for the indexed seed
+  step and the boundary pass' (task ar3j), approved under D-20261109-N1; it starts after step 9 is
+  merged. First AR3 step that changes the library. Four keys, all off by default, off path
+  bit-identical: BFSNeighborCMAFirst (step 4's neighbour fit: CMA first, the stock fit if the cost
+  does not fall), SeedIndexCandidates (S5 uses 20 5), SeedIndexStopHitRatio (S8 uses 0.95),
+  BoundaryPass. Tests are written first. Validation: the library runs with the keys must reproduce
+  the stored script runs D4, S5 and S8 on the sample big exactly before the pass (evaluations,
+  seeds, reseeds, wrong counts); a difference stops the step. Decided with the plan, each the
+  owner's to overrule: (1) the third key BFSNeighborCMAFirst is in scope, because without it no
+  stored run can be reproduced; (2) icenine/boundary_pass.py is added to the plan's list of new
+  modules; (3) the pass is exact on the stored map and a prediction in the run, the library does
+  not round its map; (4) the pass uses its own fixed generator; (5) never-fitted voxels are
+  skipped by the pass; (6) the fixes round of this step may change the library files the step
+  touched, with its tests and bit-identity checks run again (an exception to the runbook's fixes
+  rule, this step only). The step recommends no seed step: the choice stays the owner's. No key
+  for the start test (D-20261111-N7). No default flip, no golden change, no new dependency. Where:
+  icenine_py/docs/autoresearch/PLAN.md (Step 10).
