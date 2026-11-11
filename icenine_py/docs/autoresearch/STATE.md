@@ -27,21 +27,22 @@ Read this file first after any restart or wake. It holds only what is true now a
 Step 10 of AR3 (opt-in keys in the library: the indexed seed step, its early stop, the
 CMA-first neighbour fit, the boundary pass; all off by default; task `ar3j`; plan in `PLAN.md`
 under "Step 10: ...", approved by D-20261111-N8).
-Implemented in worktree `agent-a6c7c67b4a03d1843` (branch `feature/eval-reduction-ar3j`, at
-84ce8b5; hand-back check 0 FAIL). The review runs (`20261111-0941-review-ar3j.md`).
+Implemented on branch `feature/eval-reduction-ar3j` (84ce8b5 before the fixes). Reviewed
+(`.claude/reports/20261111-0941-review-ar3j.md`: changes requested, documentation and one
+test; the library code is sound). Decision D-20261111-N9: all 8 fixes, a test of the reading
+that the pass inside the run differs because its input map is not rounded, the page keeps "fit".
 
-1. Wait for the review. Then runbook, "A step, from plan to merge", points 6 to 9 (the
-   hand-back check and the findings page are done): the decision on the fixes
-   (D-20261111-N9 or the day's next ID), a fixes round (Opus; it may change the library files
-   the step touched, D-20261111-N8), `finish_task.sh --yes --push`, close. Copy every report
-   to the main `.claude/reports/` before a merge. In a brief, name the report fields as the
-   hand-back check does (branch / commits; files; tests; criteria; suspicious / unexpected).
-2. At the close: `D4L`, `S5L`, `S8L` must equal the stored runs, so they add no point to the
-   plots; say so on the review page. Then AR5 (the stop rule inside the grid search), then AR4.
+1. Wait for the fixes round (Opus implementer; report `20261111-1000-ar3j-fixes.md` in its
+   worktree). Then runbook points 5, 8 and 9: `verify_handback.sh ... --fixes <review>` from
+   the worktree that holds the branch, the findings page placed if its Edit was refused, the
+   report copied to the main `.claude/reports/`, `finish_task.sh --yes --push`, close (page
+   version 37; `D4L`, `S5L`, `S8L` equal the stored runs before the pass, so no new plot
+   point: say so; PR #43 to "steps 2 to 10"; a "merged" entry in the Newt mailbox).
+2. Meanwhile and after: the plan of AR5 (the stop rule inside the grid search), then AR4.
 
 ## Running jobs
 
-- Step 10 review (`code-reviewer`, Opus), started 2026-11-11 at 09:41.
+- Step 10 fixes round (`implementer`, Opus, own worktree), started 2026-11-11 at 10:00.
 - The review page is at version 36 (`mid` and run `S9` are on its plots). No page job.
 
 ## Queue
@@ -51,7 +52,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 10 | opt-in keys: seed step, early stop, CMA-first fit, pass (task `ar3j`) | review running |
+| AR3 step 10 | opt-in keys: seed step, early stop, CMA-first fit, pass (task `ar3j`) | fixes round running |
 | AR4 | the learned proposer | after AR5 |
 | AR5 | the stop rule inside the grid search (the grid fallbacks) | after step 10 |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
@@ -75,6 +76,8 @@ relative test in 807 of 1,069 and 451 of 589 voxels; the remedy built on it (`F2
 
 Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, do not commit it.
 
+- `agent-a6c7c67b4a03d1843` (step 10, detached at 84ce8b5): `ar3/keys/cache/` (28 MB) and
+  links.
 - `agent-a9c88b610fb10e1b6` (step 9, detached at 86e3ffa): `ar3/start/cache/`, the image
   stack and the samples of `mid`, and links.
 - `agent-a635b2f904279bdc9` (step 8, detached at 2aaa72a): `ar3/reseed/cache/` (the logged
@@ -82,13 +85,11 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - `agent-a38ba6f5a25aa033e` (step 7, detached at b762441): its caches and runs under
   `ar3/big/`, and the report `.claude/reports/20261111-0151-ar3g.md`.
 - `agent-a6db3cabf8ab230e9` (step 6, detached at 6c4665c): `seed/cache/`, `seed/runs/`, a
-  `boundary/cache/`, the image-stack link, and the report `.claude/reports/20261110-2308-ar3f.md`.
-- `agent-a27b4a932b0dd99b6`: step 6's fixes report `.claude/reports/20261111-0128-ar3f-fixes.md`.
+  `boundary/cache/`, the image-stack link, and its report; `agent-a27b4a932b0dd99b6` holds
+  step 6's fixes report.
 - `agent-a4fd6282107a76186` (detached at 3813d69): step 5's `boundary/cache/` (the maps after
-  the pass, `after_<map>.npy`, and the run environments `env_grad`, `env_layer`), the link to
-  the image stacks `Examples/Example2.ManyGrains/ScatteringData_PhaseD`.
-- `agent-ad88d4ade1ca5a039` (step 5 fixes): a second copy of `boundary/cache/`, and the fixes
-  report `.claude/reports/20261110-2233-ar3e-fixes.md`.
+  the pass, `after_<map>.npy`, and the run environments), the image-stack link.
+- `agent-ad88d4ade1ca5a039` (step 5 fixes): a second `boundary/cache/` and the fixes report.
 - Steps 3 and 4: `agent-ae68d32fb972a8ad4` and `agent-ac609f1c28c619ed0` (see
   `grep -n "worktrees/agent-" docs/autoresearch/STATE_HISTORY.md`).
 
@@ -104,7 +105,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   local-optimization settings on real data; how many voxels a grain spans in your maps.
 - A note to read: C++ parallel mode keeps the higher confidence for a voxel that two clients
   fit; that rule did harm in the Python test of step 5. A reading of the source, not a test.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N8 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N9 (all
   on the review page). The gradient levels of step 7's sample are my choice. Step 5's result
   files add about 50 MB to git; say so if you want them pruned.
 - Not done unless you ask: a repo-wide rename of "finisher" to "local optimization".
@@ -112,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N9.
+- Next decision ID: D-20261111-N10.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
