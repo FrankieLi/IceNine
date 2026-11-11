@@ -85,16 +85,15 @@ go on.
   implementer from the stored records, no new run), merged and pushed (a442712). Full suite at
   the merge: 1520 passed, 44 skipped, 1 deselected. PR #43 now holds steps 2 and 3. Numbers:
   "Results so far".
-- **AR3 step 4 is implemented and in review** (plan 592937a, D-20261110-N5; task `ar3d`): a
-  local fit whose step matches the error of its start. The Sonnet implementer handed back on
-  2026-11-10 (branch `feature/eval-reduction-ar3d`, head 160a43d; its full suite: 1520 passed,
-  44 skipped, 1 deselected). `verify_handback.sh`: 0 FAIL, 2 FLAG (the page commit is the main
-  session's; untracked run files). **Reviewed** (verdict "request changes": 14 required fixes
-  plus 4 added by the main session, text and summary output only, no run to repeat). An Opus
-  implementer is applying the fixes (see "Running jobs").
-- **AR3 step 5 is planned and approved** under the mandate (plan 05577ac, D-20261110-N6; task
-  `ar3e`): after a run, let neighbouring grains compete for the boundary voxels. Its
-  implementer starts after step 4 is merged.
+- **AR3 step 4 is done** (plan 592937a, D-20261110-N5; task `ar3d`): a local fit whose step
+  matches the error of its start. Implemented, reviewed (14 required fixes plus 4 of the main
+  session, text and summary output only), all 18 applied by an Opus implementer with no new
+  run (6e7e471, 60cafe1, ad72aab, 654a09f; 27c72ca by the main session), merged and pushed
+  (5ccbd2e). Full suite at the merge: 1520 passed, 44 skipped, 1 deselected. PR #43 now holds
+  steps 2, 3 and 4 (title and body updated). Page: `docs/autoresearch/findings_ar3_fine.md`.
+- **AR3 step 5 is running** (plan 05577ac, D-20261110-N6; task `ar3e`): after a run, let
+  neighbouring grains compete for the boundary voxels. A Sonnet implementer started on
+  2026-11-10 at about 18:40 (see "Running jobs").
 
 ## Next action
 
@@ -126,54 +125,37 @@ go on.
    worktree `.claude/worktrees/agent-ae68d32fb972a8ad4` (detached at a359b87) holds the
    untracked run files of step 3 that step 4 needs: P's `recon.mic` and `records.json`, the
    pairing cache, the image symlink. Do not remove it before step 4 is merged.
-   **AR3 step 4 (task `ar3d`)**: the plan is "Step 4" of the AR3 section, approved under the
-   mandate (D-20261110-N5). Brief: `scripts/dev/make_brief.sh --plan
-   icenine_py/docs/autoresearch/PLAN.md --task ar3d --section "AR3: index the layer and paint
-   grains"`; one fresh Sonnet implementer in the background in its own worktree. The task has a
-   gate: if no fine fit is a gain over the start on set B, it stops after part 1.
-   - If the agent died with the session (a branch `feature/eval-reduction-ar3d` with no
-     report): see point 3 above.
-   - Handed back 2026-11-10. Report: `.claude/reports/20261110-1313-ar3d.md` (copied from the
-     agent's worktree; its hand-back call carried the word "placeholder" by mistake). The
-     findings page `docs/autoresearch/findings_ar3_fine.md` was placed on the task branch by
-     the main session from the agent's draft (160a43d); tables match `tables.md`. The task
-     branch is checked out in `.claude/worktrees/agent-ac609f1c28c619ed0` (locked).
-   - Reviewed 2026-11-10: `.claude/reports/20261110-1555-review-ar3d.md` (verdict "request
-     changes"; required fixes 1 to 14, and 15 to 18 added by the main session at its end). The
-     review's two questions are decided in D-20261110-N6: no rerun of step 4, no wrapper that
-     reads the caller's frame.
-   - The fixes: a fresh Opus implementer runs in the background in its own worktree on
-     `feature/eval-reduction-ar3d` (the old worktree `agent-ac609f1c28c619ed0` is detached at
-     160a43d and holds step 4's untracked run files; keep it until step 5 is merged). Its
-     report: `.claude/reports/20261110-1603-ar3d-fixes.md` in its worktree. If the agent died
-     with the session: point 3 above, with the brief from `make_brief.sh ... --task ar3d
-     --fixes .claude/reports/20261110-1555-review-ar3d.md`.
-   - When the fixes are back: copy the report into the main `.claude/reports/`; place the
-     page if its write was refused; `scripts/dev/verify_handback.sh feature/eval-reduction
-     <report> --branch feature/eval-reduction-ar3d --fixes
-     .claude/reports/20261110-1555-review-ar3d.md --no-tests`; then
-     `scripts/dev/finish_task.sh --yes --push` in the worktree that holds the task branch
-     (background, about 12 minutes; keep the main checkout clean and do not commit to it
-     while it runs); then `gh pr edit 43` (or a new PR if #43 is merged by then); this file;
-     the review page; one shmem fact. No heads-up to Ilium is needed (step 4 changes scripts
-     only). The review page already has the step 4 section (Version 21, 2026-11-10, plot
-     before table, from the reviewer-recomputed numbers) and step 5 as planned; after the
-     merge only its chips, the commit, the link to the findings page and any number the
-     fixes changed need an update.
+   **AR3 step 4 (task `ar3d`)**: done, merged and pushed (5ccbd2e). Reports:
+   `.claude/reports/20261110-1313-ar3d.md` (implementer), `20261110-1555-review-ar3d.md`
+   (review, fixes 1 to 18), `20261110-1603-ar3d-fixes.md` (fixes). The worktree
+   `.claude/worktrees/agent-ac609f1c28c619ed0` holds step 4's untracked run files
+   (`fine/runs/P4/maps.npz`, `fine/cache/`, the image symlink); keep it until step 5 is
+   merged. From the fixes round, for step 5: among the fits the caller accepted in P4, every
+   wrong voxel has an acceptance ratio below 0.95 (113 of 342 wrong at 0.90 to 0.92, 22 of
+   614 at 0.92 to 0.95, none above); a description, no threshold picked.
    **AR3 step 5 (task `ar3e`)**: the plan is "Step 5" of the AR3 section (05577ac), approved
-   under the mandate (D-20261110-N6). Start it after step 4 is merged:
-   `scripts/dev/read_on_fetch.sh --save` (merge Ilium's branch if it moved, then `--mark`);
-   brief from `scripts/dev/make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task
-   ar3e --section "AR3: index the layer and paint grains"`; one fresh Sonnet implementer in
-   the background in its own worktree. It has a gate after part 0. Tell it where the
-   untracked maps are: step 4's in `.claude/worktrees/agent-ac609f1c28c619ed0` (or committed
-   by the fixes round), step 3's in `.claude/worktrees/agent-ae68d32fb972a8ad4`. When it hands
-   back: the same procedure as step 4 (`/review-task` with the extra focus: is the pass
-   compared on one footing, the same pass on both sides; does a keep rule or a skip rule use
-   the truth anywhere; are part 2's keys listed and the seed's fit described from the code;
-   what the C++ source does with an already fitted voxel). After step 5: an opt-in key for
-   the pass if it is a gain; then the seed cost (the grid search behind failed index seeds
-   is 25.8 of D4's 35.1 million evaluations). Next decision ID: D-20261110-N7 or later.
+   under the mandate (D-20261110-N6). `read_on_fetch.sh` was run and marked (Ilium's branch
+   at 347a8a4, nothing to merge). A fresh Sonnet implementer runs in the background in its
+   own worktree on `feature/eval-reduction-ar3e` (brief from `scripts/dev/make_brief.sh
+   --plan icenine_py/docs/autoresearch/PLAN.md --task ar3e --section "AR3: index the layer
+   and paint grains"`, plus notes: step 5 only; the gate after part 0; where the untracked
+   maps are; the acceptance ratio as a candidate feature of the skip rule; the 200-voxel
+   check first; no truth in any rule; one hand-back at the end). Its report:
+   `.claude/reports/20261110-1836-ar3e.md` in its worktree.
+   - If the agent died with the session (a branch `feature/eval-reduction-ar3e` with no
+     report): see point 3 above.
+   - When it hands back: copy the report into the main `.claude/reports/`; place the page
+     `docs/autoresearch/findings_ar3_boundary.md` if its write was refused (the text is then
+     in the report between `=== FINDINGS PAGE ===` lines); `scripts/dev/verify_handback.sh
+     feature/eval-reduction <report> --branch feature/eval-reduction-ar3e --no-tests`; then
+     `/review-task` with the extra focus: is the pass compared on one footing, the same pass
+     on both sides; does a keep rule or a skip rule use the truth anywhere; are part 2's keys
+     listed and the seed's fit described from the code; what the C++ source does with an
+     already fitted voxel. Then the fixes (a fresh Opus implementer), `finish_task.sh --yes
+     --push`, `gh pr edit 43`, this file, the review page, one shmem fact.
+   - After step 5: an opt-in key for the pass if it is a gain; then the seed cost (the grid
+     search behind failed index seeds is 25.8 of D4's 35.1 million evaluations). Next
+     decision ID: D-20261110-N7 or later.
 7. Item 7: **PR #41 is merged** into `develop` (357a2b3, 2026-11-09, at branch head 16c72db), on
    the owner's word in the session (D-20261109-N11). The branch `feature/eval-reduction` is kept.
    **PR #42 is merged** into `develop` (66e93fd, 2026-11-10, at branch head 0b3852d) on the
@@ -216,33 +198,34 @@ Reading the table: one row per step, in order, with its state.
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
 | AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) **done** 2026-11-09 (a8c99b7) |
-| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer) **done** 2026-11-10 (741e8fc), in PR #43; step 3 (paint as a start, then refine, on grains with gradients; stop-rule readings) **done** 2026-11-10 (a442712), in PR #43; step 4 (a local fit whose step matches the error, task `ar3d`): implemented and reviewed 2026-11-10, **fixes running**; step 5 (let neighbouring grains compete for the boundary voxels, task `ar3e`): planned (05577ac, D-20261110-N6), starts after step 4 is merged |
+| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer) **done** 2026-11-10 (741e8fc), in PR #43; step 3 (paint as a start, then refine, on grains with gradients; stop-rule readings) **done** 2026-11-10 (a442712), in PR #43; step 4 (a local fit whose step matches the error, task `ar3d`) **done** 2026-11-10 (5ccbd2e), in PR #43; step 5 (let neighbouring grains compete for the boundary voxels, task `ar3e`): **running** since 2026-11-10 18:40 (plan 05577ac, D-20261110-N6) |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 
 ## Running jobs
 
-One agent is running (started 2026-11-10 at about 16:10): the Opus implementer that applies
-the review's 18 fixes to task `ar3d` (AR3 step 4), in its own worktree (`git worktree list`
-names it; branch `feature/eval-reduction-ar3d`). It starts no reconstruction run. Check:
-`git log --oneline 160a43d..feature/eval-reduction-ar3d`.
+One agent is running (started 2026-11-10 at about 18:40): the Sonnet implementer of task
+`ar3e` (AR3 step 5), in its own worktree (`git worktree list` names it; branch
+`feature/eval-reduction-ar3e`). Parts 0 and 1 read stored maps and run short fits; part 2
+starts two whole-layer runs (`K`, `KE`, capped at 60 minutes each). Check:
+`git log --oneline 5ccbd2e..feature/eval-reduction-ar3e`.
 
-Step 4, from the implementer's report. The review recomputed these numbers from the stored
-records and they match; the wording fixes are still being applied, so quote the page only
-after the merge. Scope: the simulated linear-gradient sample of step 3 (run E4: step 2's
-sample). The review adds: box 5/8 degree is about 1.6 times cheaper than the stock fit, not
-"not cheaper"; every loss in part 3 is with the trigger "the cost did not fall" (the stock
-fallback ran on 3,974 of 53,373 calls in D4), so the plan's fallback was not tested; all 134
-newly wrong voxels of P4 plus R4 were wrong after the paint, 107 settled by a fit that passed
-the 0.9 test, 104 of them from a grain seeded in another true grain; E4's 170 were accepted
-at the first neighbour fit (114) or a revisit (56).
+Step 4 (merged, 5ccbd2e; page `docs/autoresearch/findings_ar3_fine.md`). The review
+recomputed these numbers from the stored records. Scope: the simulated linear-gradient sample
+of step 3 (run E4: step 2's sample); one run of each arm, one voxel order. Every loss in part
+3 is with the trigger "the cost did not fall" (the stock fallback ran on 3,974 of 53,373
+calls in D4), so the plan's fallback was not tested. All 134 newly wrong voxels of P4 plus R4
+were wrong after the paint, 107 settled by a fit that passed the 0.9 test, 104 of them from a
+grain seeded in another true grain; E4's 170 were accepted at the first neighbour fit (114)
+or a revisit (56).
 
 - Part 1, 19,013 painted voxels, share more than 0.1 degrees off: start 2,240; stock fit
   2,230; box 5/8 degree 937; box 5/16 degree 542; the existing CMA fit (first step 0.05
   degrees, at most 60 evaluations) 334. Median evaluations per fit: 662, 398, 1,245 and 61.
-  A finer box of the stock fit is not cheaper (the plan had guessed about 46 per fit). The
-  box 5/32 and the ladder ran on 600 voxels only (about 22,000 evaluations per fit). Wrong
+  The plan had guessed about 46 per fit; box 5/8 degree is about 1.7 times cheaper than
+  the stock fit and box 5/16 costs more. The box 5/32 and the ladder ran on 600 voxels
+  only (22,145 and 22,189 evaluations per fit, median). Wrong
   voxels: 87 in every arm. The pick on set A is the CMA fit; on set B it is a gain.
 - Part 2: with a fit of 61 evaluations a skip or stop rule saves little (best: 195,627 of
   567,605 on B at about 1% hurt); a second fit helps 73 of 4,768.
@@ -473,8 +456,8 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
 - 2026-11-10: PR #42 was merged on your comment "merge now" on the review page together with
   your session message "added comments" (D-20261110-N3). If the session message was not meant
   as the go, say so and the merge is reverted by a PR.
-- 2026-11-10: **PR #43** (https://github.com/FrankieLi/IceNine/pull/43) holds AR3 steps 2 and
-  3 and the plan of step 4. It is merged only on your word in the session ("merge PR 43").
+- 2026-11-10: **PR #43** (https://github.com/FrankieLi/IceNine/pull/43) holds AR3 steps 2,
+  3 and 4 and the plan of step 5. It is merged only on your word in the session ("merge PR 43").
 - 2026-11-10, a question that blocks nothing: which local-fit settings do you use on real data?
   Every config file here has `LocalOrientationGridRadius 5` and `MinLocalResolution 0`, which
   gives first trial steps of about 0.7 degrees. Step 3 found that such a fit almost never
