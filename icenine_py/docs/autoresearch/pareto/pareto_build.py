@@ -20,6 +20,11 @@ PANELS = [
         title="Whole layer, grains with orientation gradients (24,570 voxels)",
     ),
     dict(
+        id="big_24570",
+        big=True,
+        title="Whole layer, larger grains, gradients up to 4 degrees (24,570 voxels)",
+    ),
+    dict(
         id="layer_24570", big=True, title="Whole layer, one orientation per grain (24,570 voxels)"
     ),
     dict(id="pilot_2000", big=False, title="Pilot region (2,000 voxels), whole run"),
@@ -75,6 +80,21 @@ LABELS = {
         "BFS indexed, stock + boundary pass": ("BFS stock + pass", 0, -13, "middle"),
         "Paint + stock + boundary pass": ("paint + stock + pass", -12, 4, "end"),
         "Paint + CMA + boundary pass": ("paint + CMA + pass", 12, -5, "start"),
+    },
+    "big_24570": {
+        "BFS indexed seeds, CMA local optimization (run D4)": ("old seed step (D4)", -17, 4, "end"),
+        "BFS indexed, CMA + boundary pass (run D4)": ("D4 + pass", -17, 4, "end"),
+        "BFS indexed, best 5 of 20 seeds, CMA (run S5)": ("new seed step (S5)", 12, -8, "start"),
+        "BFS indexed, best 5 of 20 seeds, CMA + boundary pass (run S5)": (
+            "S5 + pass",
+            10,
+            -8,
+            "start",
+        ),
+        "Paint + CMA local optimization (run P4R4)": ("paint + CMA (P4R4)", 12, 4, "start"),
+        "Paint + CMA + boundary pass (run P4R4)": ("P4R4 + pass", 12, 14, "start"),
+        "BFS indexed seeds, stock local optimization (run D)": ("base run (D)", 0, -14, "middle"),
+        "BFS indexed, stock + boundary pass (run D)": ("D + pass", 0, -14, "middle"),
     },
     "layer_24570": {
         "Paint grains (run C)": ("paint grains", 12, -10, "start"),

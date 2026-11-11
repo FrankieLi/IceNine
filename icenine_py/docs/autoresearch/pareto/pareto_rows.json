@@ -97,6 +97,13 @@
    "n_voxels": 9305,
    "wrong_definition": "more than 1 degree from the true orientation, after crystal symmetry (icenine_py/docs/autoresearch/findings_ar3_fine.md:20-21)",
    "note": "Split of gradient_painted_19013; do not merge."
+  },
+  {
+   "id": "big_24570",
+   "label": "Whole layer, larger grains with orientation gradients (sample big)",
+   "n_voxels": 24570,
+   "wrong_definition": "more than 1 degree from the true orientation, after crystal symmetry (icenine_py/docs/autoresearch/findings_ar3_gradient.md:14)",
+   "note": "AR3 step 7. 32 grains on the same 24,570-voxel grid; gradient levels 0, 0.2, 0.5, 1, 2 and 4 degrees (5 grains at 0, 5 grains at 0.2, 1 grains at 0.5, 9 grains at 1, 6 grains at 2, 6 grains at 4); clean images."
   }
  ],
  "rows": [
@@ -2090,6 +2097,174 @@
    "source_json": "icenine_py/benchmarks/autoresearch/ar3/seed/summary_part2.json :: stages[run=K2 + pass].{total, pass_} ; levels[map=K2 after, level=all].wrong.{k, lo, hi}",
    "source_page": "icenine_py/docs/autoresearch/findings_ar3_seed.md",
    "flag": "run K2; wrong counted as in the D4 row"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 7",
+   "method": "BFS indexed seeds, stock local optimization (run D)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 64683586,
+   "evals_per_voxel": 2632.62,
+   "per_voxel_derived": true,
+   "wrong": 83,
+   "n": 24570,
+   "interval_pct": [
+    0.27,
+    0.42
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 12,232,014, grid-search fallbacks 7,620,044, neighbour local optimizations 19,130,714, revisit local optimizations 25,700,814",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/big/summary.json :: big[D].{total, stages} ; levels_big[pipe=D, when=before, level=all].k",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_big.md",
+   "flag": "run D on the sample with larger grains; 25 grid-search fallbacks; derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 7",
+   "method": "BFS indexed, stock + boundary pass (run D)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 65873391,
+   "evals_per_voxel": 2681.05,
+   "per_voxel_derived": true,
+   "wrong": 26,
+   "n": 24570,
+   "interval_pct": [
+    0.07,
+    0.16
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 12,232,014, grid-search fallbacks 7,620,044, neighbour local optimizations 19,130,714, revisit local optimizations 25,700,814, boundary pass 1,189,805",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/big/summary.json :: big[D].{total, stages} ; levels_big[pipe=D, when=after, level=all].k",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_big.md",
+   "flag": "run D on the sample with larger grains; 25 grid-search fallbacks"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 7",
+   "method": "BFS indexed seeds, CMA local optimization (run D4)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 10811715,
+   "evals_per_voxel": 440.04,
+   "per_voxel_derived": true,
+   "wrong": 68,
+   "n": 24570,
+   "interval_pct": [
+    0.22,
+    0.35
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 4,016,458, grid-search fallbacks 2,452,689, neighbour local optimizations 3,479,526, revisit local optimizations 863,042",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/big/summary.json :: big[D4].{total, stages} ; levels_big[pipe=D4, when=before, level=all].k",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_big.md",
+   "flag": "run D4 on the sample with larger grains; 8 grid-search fallbacks; derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 7",
+   "method": "BFS indexed, CMA + boundary pass (run D4)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 11943692,
+   "evals_per_voxel": 486.11,
+   "per_voxel_derived": true,
+   "wrong": 21,
+   "n": 24570,
+   "interval_pct": [
+    0.06,
+    0.13
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 4,016,458, grid-search fallbacks 2,452,689, neighbour local optimizations 3,479,526, revisit local optimizations 863,042, boundary pass 1,131,977",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/big/summary.json :: big[D4].{total, stages} ; levels_big[pipe=D4, when=after, level=all].k",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_big.md",
+   "flag": "run D4 on the sample with larger grains; 8 grid-search fallbacks"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 7",
+   "method": "BFS indexed, best 5 of 20 seeds, CMA (run S5)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 11867509,
+   "evals_per_voxel": 483.01,
+   "per_voxel_derived": true,
+   "wrong": 71,
+   "n": 24570,
+   "interval_pct": [
+    0.23,
+    0.36
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 7,469,574, neighbour local optimizations 3,513,895, revisit local optimizations 884,040",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/big/summary.json :: big[S5].{total, stages} ; levels_big[pipe=S5, when=before, level=all].k",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_big.md",
+   "flag": "run S5 on the sample with larger grains; 0 grid-search fallbacks; derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 7",
+   "method": "BFS indexed, best 5 of 20 seeds, CMA + boundary pass (run S5)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 12999852,
+   "evals_per_voxel": 529.09,
+   "per_voxel_derived": true,
+   "wrong": 30,
+   "n": 24570,
+   "interval_pct": [
+    0.09,
+    0.17
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 7,469,574, neighbour local optimizations 3,513,895, revisit local optimizations 884,040, boundary pass 1,132,343",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/big/summary.json :: big[S5].{total, stages} ; levels_big[pipe=S5, when=after, level=all].k",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_big.md",
+   "flag": "run S5 on the sample with larger grains; 0 grid-search fallbacks"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 7",
+   "method": "Paint + CMA local optimization (run P4R4)",
+   "family": "paint + local optimization",
+   "boundary_pass": false,
+   "evals_total": 18838541,
+   "evals_per_voxel": 766.73,
+   "per_voxel_derived": true,
+   "wrong": 102,
+   "n": 24570,
+   "interval_pct": [
+    0.34,
+    0.5
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 12,061,434, grid-search fallbacks 5,179,680, neighbour local optimizations 534,643, revisit local optimizations 977,586, scoring 85,198",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/big/summary.json :: big[P4R4].{total, stages} ; levels_big[pipe=P4R4, when=before, level=all].k",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_big.md",
+   "flag": "run P4R4 on the sample with larger grains; derived: evals_total = total minus the boundary pass"
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR3 step 7",
+   "method": "Paint + CMA + boundary pass (run P4R4)",
+   "family": "paint + local optimization",
+   "boundary_pass": true,
+   "evals_total": 19960941,
+   "evals_per_voxel": 812.41,
+   "per_voxel_derived": true,
+   "wrong": 31,
+   "n": 24570,
+   "interval_pct": [
+    0.09,
+    0.18
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 12,061,434, grid-search fallbacks 5,179,680, neighbour local optimizations 534,643, revisit local optimizations 977,586, scoring 85,198, boundary pass 1,122,400",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/big/summary.json :: big[P4R4].{total, stages} ; levels_big[pipe=P4R4, when=after, level=all].k",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_big.md",
+   "flag": "run P4R4 on the sample with larger grains"
   }
  ],
  "excluded": [
