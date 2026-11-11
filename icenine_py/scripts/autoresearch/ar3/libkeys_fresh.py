@@ -24,7 +24,9 @@ float32, cost, hit ratio, confidence, evaluations):
   (ii)  the before-pass ``.mic`` against the stored one (bytes), the map read back against the
         script's ``before_<map>.npy``;
   (iii) the same-process pass on the rounded map against the script's stored ``tries.npz``;
-  (iv)  the fresh-process pass on the unrounded map against the in-run pass.
+  (iv)  the fresh-process pass on the unrounded map against the in-run pass;
+  and, for the size of the rounding's effect, the same-process pass on the rounded map against the
+  in-run pass (unrounded).
 Writes ``<CACHE>/fresh_<kind>/`` (large files, ``run.done`` / ``fresh.done``) and
 ``keys/fresh_check_<kind>.json``. No truth is read.
 """
@@ -246,6 +248,8 @@ def stage_fresh(kind: str, out: Path, smoke: bool) -> None:
         seed_step_refinements=run_info.get("seed_step_refinements"),
         early_stop_hit_evals=run_info.get("early_stop_hit_evals"),
         iv_fresh_unrounded_vs_inrun=compare_tries(fresh, inrun),
+        # the size of the rounding's effect: the same process, rounded against unrounded input
+        rounding_inproc_rounded_vs_inrun=compare_tries(inproc, inrun),
     )
     if not smoke:
         stored_inrun = load_tries(K.CACHE / kind / "pass_tries.npz")
