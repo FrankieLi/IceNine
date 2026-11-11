@@ -35,7 +35,7 @@ GRAD = C.ICE / "benchmarks" / "autoresearch" / "ar3"
 WRONG = 1.0
 PIPES = ("D", "D4", "S5", "P4R4")
 NAMES = {
-    "D": "D (stock BFS, grid search)",
+    "D": "D (BFS, indexed seeds, stock local optimization, grid fallback)",
     "D4": "D4 (index seeds, CMA fit)",
     "S5": "S5 (D4 with step 6's seed step)",
     "P4R4": "P4R4 (paint, CMA fit)",

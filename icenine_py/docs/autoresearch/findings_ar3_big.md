@@ -139,10 +139,11 @@ lowest 0.961, read from step 3's stored Reading 0, so nothing was rerun there;
 
 Reading of the table: one row per pipeline and sample, boundary pass included. The columns are
 the mean evaluations per voxel in each stage; `revisit` holds the R4 fits for `P4R4`; `scoring`
-is the paint run's scoring; `total_M` is the total in millions. `D` is the stock BFS with the
-grid search, `D4` step 5's run (index seeds, CMA local optimization, grid fallback), `S5` `D4`
-with step 6's seed step (refine the best 5 of 20 candidates), `P4R4` step 4's run (index the
-layer, paint grains, CMA local optimization).
+is the paint run's scoring; `total_M` is the total in millions. `D` is step 3's setting `D`:
+the BFS with indexed seeds, the stock local optimization and grid fallback. `D4` is step 5's
+run (index seeds, CMA local optimization, grid fallback), `S5` `D4` with step 6's seed step
+(refine the best 5 of 20 candidates), `P4R4` step 4's run (index the layer, paint grains, CMA
+local optimization).
 
 <!-- table:evals_per_voxel -->
 | pipeline | sample | seed_step | grid_fallback | neighbour | revisit | scoring | pass_ | total | total_M |
