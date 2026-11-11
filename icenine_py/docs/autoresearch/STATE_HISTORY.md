@@ -708,6 +708,39 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
   refused; the standing exception). Worktree with the cache: `agent-a68538c58665829a1`.
 - What it led to: AR4 recast from proposer to verifier (N13), AR5 step 2 (N12).
 
+### AR5 step 2 (two long local optimizations; task `ar5b`), merged at c688191 on 2026-11-11
+
+- Page `findings_ar5_fits.md`; results `benchmarks/autoresearch/ar5/fit/`; scripts
+  `scripts/autoresearch/ar5/fit_*.py`; tests `tests/test_ar5_fit_rules.py` (13). Decisions
+  D-20261111-N12 (plan), N14 (review). Suite at the merge: 1609 passed, 47 skipped, 1
+  deselected.
+- Scripts only, clean images, one run each; picks on `big` and the first gradient sample, test
+  on `mid`. The pick file was committed at 12:00:26, the first `mid` replay started 12:00:47.
+- Base check: the script layer with both changes off gives stored `S8` on `big` exactly
+  (7,201,863 evaluations, 67 wrong before the pass).
+- Part 1, replay of 3,219 seed steps. Arm `M` (stored MC) matched the log on every step. No
+  CMA arm met the 1% rule: `C200` loses 60 seed-test passes net on the 1,608 steps of the pick
+  samples (64 with `M` only, 4 with the arm only; limit 16). Pick stays `M`. End errors on
+  `mid`, median / 90th percentile / within 0.2 degree: `M` 0.020 / 0.076 / 97.8%, `C60` 0.160
+  / 23.341 / 56.0%, `C200` 0.013 / 0.317 / 85.5%, `C0` 0.423 / 41.431 / 16.1%.
+- MC fallback after CMA ended lower than the CMA end in 3 of 3,197, 3 of 3,903 and 45 of 4,568
+  runs (`big`, first gradient sample, `mid`; the last is 0.985%).
+- Part 2, run `S10` (`S8` with no MC fallback), with the pass: 5,898,258 / 15,167,998 /
+  22,668,704 evaluations against 8,340,428 / 18,000,230 / 26,443,074 (29.3 / 15.7 / 14.3%
+  fewer). Wrong after the pass 22 / 67 / 35 against 24 / 63 / 31; fixed and broken 11/9,
+  29/33, 11/15. Passes the 20% rule on `big` only. `S10a` and `S10b` were not run (with pick
+  `M` they equal `S8` and `S10`). Predictions 1, 3, 5 agree; 2 and 4 do not.
+- Review's what-if from the stored replay (arithmetic, not a run): `C200` first, MC only when
+  the CMA end hit ratio is below 0.95: passes 1,596 against 1,592 (pick samples), 1,600
+  against 1,596 (`mid`); seed-step evaluations 2,501,991 against 5,865,469 and 5,643,374
+  against 12,007,352. This became AR5 step 3 (N14). No key for `S10` alone (N14).
+- The findings page was placed by the main session from the implementer's text (commit
+  591ad30). Six `S10` rows in `docs/autoresearch/pareto/pareto_rows.json`.
+- Commits: 71bbdee (tests first) to aeda9e4, 591ad30; fixes dbd4a9f (parent merged), 573a599,
+  a186b34. Reports in `.claude/reports/`: `20261111-1134-ar5b.md`,
+  `20261111-1310-review-ar5b.md`, `20261111-1317-ar5b-fixes.md`. Cache (untracked):
+  worktree `agent-acc78ac2a483ed86f`, `ar5/fit/cache/`.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
