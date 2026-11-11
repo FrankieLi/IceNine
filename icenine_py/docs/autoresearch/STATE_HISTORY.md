@@ -549,6 +549,42 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
 - The step's eight rows are a new panel of the cost-against-accuracy plots (review page
   version 33). PR #43 now holds steps 2 to 7.
 
+### AR3 step 8 (where the seed step's evaluations go, task `ar3h`), merged at ce9b106 on 2026-11-11
+
+- Page `findings_ar3_reseed.md`; results `benchmarks/autoresearch/ar3/reseed/` (about 2 MB);
+  decisions D-20261111-N4 (plan), D-20261111-N5 (review: 10 fixes to wording and to what the
+  page discloses, no rerun, no result file changed). Suite at the merge: 1517 passed, 47 skipped, 1 deselected.
+- One seed step, split. In `S5` on `big`: 349 seed steps, 7,469,574 evaluations, 20 of each
+  step for costing candidates, the rest in the 5 refinements (99.9%). 62.2% of the seed-step
+  evaluations (55.5% on the first gradient sample) run after a refinement that, judged with
+  the truth, had already passed the seed test at a right orientation; in 279 of 349 steps the
+  first refinement is that one. Only the first refinement is dearer on `big`.
+- Classes of the 1,471 voxels in reseed clusters of `S5` on `big`: A (the fit ended within 1
+  degree and was rejected by the relative test) 1,069, median error 0.294 degrees, median hit
+  ratio 0.835 against a best of 1.000; B (own grain, not reached) 22; C (start from another
+  grain) 380. Why class A is rejected is not tested: the fit may stop short, or the truth
+  itself may score under 0.9 times the best.
+- Remedies on stored cases (pick set: true grains with an even index; test set: odd). The
+  plan's `E1` (stop at the first refinement that passes 0.80) failed: test sets 6 broken and 0
+  fixed on `big`, 51 and 2 on the first gradient sample. A variant with a stop test of 0.95
+  (grid 0.80 to 0.98, picked on the pick set, added after the 0.80 rows of one test set had
+  been read) breaks none and cuts the seed step by 58.4% and 48.4%. `E2` (keep a rejected fit
+  under a second test) failed on the pick set. `E3` was not tried (class B is 22 voxels).
+- Run `S8` = `S5` with the variant, plus the boundary pass. `big`: 8,340,428 evaluations, 24
+  wrong (`D4` 11,943,692 and 21; `S5` 12,999,852 and 30). First gradient sample: 18,000,230
+  and 63 (`S5` 20,629,760 and 62; `D4` 38,807,186 and 74). The intervals overlap.
+- The plan's predictions. 1 agrees (most rejected fits in the clusters at 2 and 4 degrees are
+  of class A or B). 2 agrees (the cost is in the refinements). 3 is met by the variant only,
+  not a confirmed prediction (D-20261111-N5); the page makes no recommendation.
+- The fixes, one commit each: 79a5f51 (1), bb27a7f (2), 14c0b75 (3), d2fca4a (4), c47c3af (5),
+  b092172 (6), 2fe1e59 (7), f46fd45 (8), 64ccd78 (9), 1f5e000 (10), then 36eaf21 (fix 5 in the
+  history file). The fixes report is in the main `.claude/reports/`.
+- The hand-back check stopped with exit 141 on branches with more than 8 commits (a pipe into
+  `head` under `pipefail`); repaired in 9fdbbe9. On the fixes report it still reports one
+  field missing ("left undone"): the field is there, in the middle of a line.
+- Run `S8` is on the plots of cost against accuracy (review page version 35). PR #43 now
+  holds steps 2 to 8.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what

@@ -12,7 +12,7 @@ Read this file first after any restart or wake. It holds only what is true now a
 | finished steps, old notes (archive, use `grep`) | `docs/autoresearch/STATE_HISTORY.md` |
 | numbers of a finished step | its findings page, or `shmem query "IceNine autoresearch <step>"` |
 | review page for the owner | https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW |
-| open PR | #43 (AR3 steps 2 to 7), https://github.com/FrankieLi/IceNine/pull/43 |
+| open PR | #43 (AR3 steps 2 to 8), https://github.com/FrankieLi/IceNine/pull/43 |
 
 ## How to restart
 
@@ -24,41 +24,38 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-Step 8 of AR3 (why the seed step costs so much in grains with strong gradients, task `ar3h`;
-plan in `PLAN.md` under "Step 8: ...", approved by D-20261111-N4). Handed back at 2aaa72a
-(worktree `agent-a635b2f904279bdc9`, now detached; page placed by the main session). Reviewed:
-changes asked, 10 fixes to wording, no number wrong (D-20261111-N5). The fixes round is running.
+Step 9 of AR3 (a start test for the neighbour fits, the rejected fits that end right, a
+third sample; task `ar3i`; plan in `PLAN.md` under "Step 9: ...", approved by D-20261111-N6).
+An implementer (Sonnet, own worktree, branch `feature/eval-reduction-ar3i`) started on 2026-11-11.
+Its report goes to `.claude/reports/20261111-0613-ar3i.md` in its worktree.
 
-1. Wait for the fixes implementer (report `20261111-0550-ar3h-fixes.md` in its worktree).
-   Then `verify_handback.sh ... --fixes`, `finish_task.sh --yes --push` in the worktree that
-   holds the branch, and the close (runbook, "A step, from plan to merge", points 7 to 9).
-   Copy the fixes report to the main `.claude/reports/` before the merge: after the merge of
-   step 7 the fixes worktree was removed, and its untracked report with it.
-2. At the close, add the step's whole-layer runs (run `S8`, if Part 3 ran) to
-   `docs/autoresearch/pareto/pareto_rows.json`, and check the plan's three predictions on the
-   review page.
-3. Then: opt-in keys for the seed step and the boundary pass (library change, tests first;
-   both numbers as settings; the recommended seed step is the owner's choice). Then AR4, AR5.
+1. Wait for the implementer's hand-back. Then runbook, "A step, from plan to merge", points 5
+   to 9: `verify_handback.sh`, review (`code-reviewer`, Opus), the decision on the fixes
+   (D-20261111-N7 or the day's next ID), a fixes round, `finish_task.sh --yes --push`, close.
+   Copy every report to the main `.claude/reports/` before a merge: a merged worktree can be
+   removed with its untracked files.
+2. At the close: add the runs on the third sample (`mid`) and run `S9`, if it ran, to
+   `docs/autoresearch/pareto/pareto_rows.json` (a new panel for `mid`); say on the review page
+   whether run `S8` is confirmed (prediction 3 of step 9) and check the other predictions.
+3. Then: opt-in keys for the seed step and the boundary pass (library change, tests first,
+   settings off by default; the owner chooses what a key recommends). Then AR5, then AR4.
 
 ## Running jobs
 
-- Step 8 fixes round (`implementer`, Opus), started 2026-11-11. Review report:
-  `.claude/reports/20261111-0545-review-ar3h.md`. N5: the plan's `E1` (stop at 0.80) failed
-  Part 2; run `S8` uses a variant (stop at 0.95) chosen after results, so prediction 3 is met
-  by the variant only. `S8` with the pass: 8.34 million evaluations on `big`, 24 wrong.
-- The review page is at version 34 (step 8 running, decision N4). No page job is open.
+- Step 9 implementer (`implementer`, Sonnet, own worktree), started 2026-11-11.
+- The review page is at version 35 (run `S8` is on its plots). No page job is open.
 
 ## Queue
 
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
-7, 18, 22, 23, AR0, AR1, AR2, AR3 steps 1 to 7) are in `STATE_HISTORY.md` under "Queue".
+7, 18, 22, 23, AR0, AR1, AR2, AR3 steps 1 to 8) are in `STATE_HISTORY.md` under "Queue".
 
 | step | what | state |
 |---|---|---|
-| AR3 step 8 | where the seed step's evaluations go; remedies (task `ar3h`) | fixes round running |
+| AR3 step 9 | start test, rejected fits that end right, third sample (task `ar3i`) | implementer running |
 | AR3 later | opt-in keys for the seed step and the boundary pass | with settings; the owner picks |
-| AR4 | the learned proposer | after step 8 |
-| AR5 | the stop rule inside the grid search | after step 8 |
+| AR4 | the learned proposer | after AR5 |
+| AR5 | the stop rule inside the grid search (the grid fallbacks) | after step 9 |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -66,20 +63,23 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 ## Last finished step
 
-AR3 step 7 (larger grains, task `ar3g`): merged into `feature/eval-reduction` at b98a14b on
-2026-11-11, pushed; suite 1517 passed, 47 skipped, 1 deselected. Page: `docs/autoresearch/findings_ar3_big.md`. Decisions
-D-20261111-N2 (plan), N3 (review: 10 fixes, no rerun). Sample `big`: 32 grains on the
-24,570-voxel grid, gradients 0 to 4 degrees. Run plus pass: `D` 65.87 million evaluations, 26
-wrong; `D4` 11.94 million, 21; `S5` 13.00 million, 30; `P4R4` 19.96 million, 31. Two of the
-plan's three predictions do not agree: the seed step stays the larger part (57.5% of `S5`),
-and `S5` costs 8.8% more than `D4` here (it saved 47% on the first gradient sample). The
-plan's rule does not pick a seed step. Review report:
-`.claude/reports/20261111-0500-review-ar3g.md`. More in `STATE_HISTORY.md`, "AR3 step 7".
+AR3 step 8 (where the seed step's evaluations go, task `ar3h`): merged into
+`feature/eval-reduction` at ce9b106 on 2026-11-11, pushed; suite 1517 passed, 47 skipped, 1
+deselected. Page: `docs/autoresearch/findings_ar3_reseed.md`. Decisions D-20261111-N4 (plan), N5
+(review: 10 fixes, no rerun). Refinements are 99.9% of a seed step on `big`. The plan's early
+stop (hit ratio 0.80) failed on stored cases; a variant (0.95), chosen after results, gives run
+`S8`. `S8` plus pass: 8.34 million evaluations and 24 wrong on `big` (`D4` 11.94 and 21, `S5`
+13.00 and 30); 18.00 million and 63 on the first gradient sample (`S5` 20.63 and 62). Prediction
+3 is met by the variant only: not confirmed until step 9's third sample. 1,069 of 1,471 voxels
+in reseed clusters had a fit that ended right and was rejected (class A); the cause is not
+tested. More in `STATE_HISTORY.md`, "AR3 step 8".
 
 ## Untracked data that later steps need
 
 Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, do not commit it.
 
+- `agent-a635b2f904279bdc9` (step 8, detached at 2aaa72a): `ar3/reseed/cache/` (the logged
+  rerun and the `S8` maps), and links to the image stacks of both gradient samples.
 - `agent-a38ba6f5a25aa033e` (step 7, detached at b762441): its caches and runs under
   `ar3/big/`, and the report `.claude/reports/20261111-0151-ar3g.md`.
 - `agent-a6db3cabf8ab230e9` (step 6, detached at 6c4665c): `seed/cache/`, `seed/runs/`, a
@@ -95,17 +95,17 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
-- Your word on PR #43 ("merge PR 43" in the session). It now holds AR3 steps 2 to 7.
-- A choice: which seed step the opt-in key recommends. Step 7 does not pick one: step 6's
-  (`S5`) saved 47% on the first gradient sample and cost 8.8% more on larger grains. My plan:
-  the key takes both numbers as settings, so both are reachable.
+- Your word on PR #43 ("merge PR 43" in the session). It now holds AR3 steps 2 to 8.
+- A choice: which seed step the opt-in key recommends. Three candidates: the old one (`D4`),
+  step 6's (`S5`), and `S5` with the early stop (`S8`). `S8` was cheapest on both samples but
+  its stop test was chosen after results; I recommend nothing before step 9 has tested it.
 - Item 12: apply and commit `docs/autoresearch/item12_owner.patch` (the commands are in the
   history file). Agents cannot: it needs your `ALLOW_CLAUDE_CONFIG=1`.
 - Questions that block nothing: the shape and size of real orientation gradients; your
   local-optimization settings on real data; how many voxels a grain spans in your maps.
 - A note to read: C++ parallel mode keeps the higher confidence for a voxel that two clients
   fit; that rule did harm in the Python test of step 5. A reading of the source, not a test.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N5 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N6 (all
   on the review page). The gradient levels of step 7's sample are my choice. Step 5's result
   files add about 50 MB to git; say so if you want them pruned.
 - Not done unless you ask: a repo-wide rename of "finisher" to "local optimization".
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N6.
+- Next decision ID: D-20261111-N7.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
