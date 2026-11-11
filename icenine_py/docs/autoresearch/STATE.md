@@ -37,8 +37,8 @@ rerun; decision D-20261111-N7. The fixes round runs (Opus, own worktree, branch
 2. At the close: add the runs on the third sample (`mid`) and run `S9`, if it ran, to
    `docs/autoresearch/pareto/pareto_rows.json` (a new panel for `mid`); say on the review page
    whether run `S8` is confirmed (prediction 3 of step 9) and check the other predictions.
-3. Then: opt-in keys for the seed step and the boundary pass (library change, tests first,
-   settings off by default; the owner chooses what a key recommends). Then AR5, then AR4.
+3. Then step 10 (opt-in keys, task `ar3j`, plan approved by D-20261111-N8): brief and
+   implementer (Sonnet). Step 9's plot rows are ready in the scratchpad folder `pareto9`.
 
 ## Running jobs
 
@@ -105,7 +105,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   local-optimization settings on real data; how many voxels a grain spans in your maps.
 - A note to read: C++ parallel mode keeps the higher confidence for a voxel that two clients
   fit; that rule did harm in the Python test of step 5. A reading of the source, not a test.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N7 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N8 (all
   on the review page). The gradient levels of step 7's sample are my choice. Step 5's result
   files add about 50 MB to git; say so if you want them pruned.
 - Not done unless you ask: a repo-wide rename of "finisher" to "local optimization".
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N8.
+- Next decision ID: D-20261111-N9.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
