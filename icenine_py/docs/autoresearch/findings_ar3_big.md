@@ -12,8 +12,9 @@ not hold for a real sample. C++ was not run. No extra random seed was run. Count
 overlap. The intervals count voxels as independent, but wrong voxels cluster in a few grains
 (after the pass, `S5`'s 30 wrong voxels sit in 10 grains, 15 of them in two grains of level 4;
 `D4`'s 21 sit in 9 grains), so the intervals are too narrow for statements across grains, such
-as the matched levels and the second picture. Every wall time on this page was measured with other jobs running (contended) and is
-not a timing result. The evaluation count is the cost that counts.
+as the matched levels and the second picture. Every wall time on this page was measured with
+other jobs running (contended) and is not a timing result. The evaluation count is the cost
+that counts.
 
 ## The result in two pictures
 
@@ -99,8 +100,8 @@ rejected. A **reseed** comes after the BFS has visited every voxel. The voxels w
 neighbours were rejected form connected clusters; a reseed runs the seed step once on the voxel
 nearest the centre of one such cluster (`reconstructor.py`, `_reseed_clusters`). If that seed
 step is rejected too, the same cluster can get another reseed on another voxel. So reseeds count
-clusters of rejected fits, not single voxels. The **seed step** is: ray
-indexing proposes candidate orientations and the best are refined. A **grid fallback** is a seed
+clusters of rejected fits, not single voxels. The **seed step** is: ray indexing proposes
+candidate orientations and the best are refined. A **grid fallback** is a seed
 step that fails the seed test (a hit ratio of at least 0.80), after which the full grid search
 (a global search: no starting guess) runs. The **boundary pass** is step 5's pass, rule `hit`:
 each voxel next to a neighbour with another orientation gets one local optimization from each
@@ -208,7 +209,7 @@ these two samples only.
 
 `S5`'s seed step costs 1.75 to 1.77 times `D4`'s per index run on the two samples. It pays when
 `D4` falls back often. The break-even rate in the table assumes that `S5` never falls back. On
-`big` that holds: `S5` fell back 0 times in 349 index runs (0.00 to 1.09%). On the gradient
+`big` that holds: `S5` fell back 0 times in 349 index runs (interval 0.00 to 1.09%). On the gradient
 sample it does not: `S5` fell back 15 times in 1,293 index runs (1.16%, interval 0.70 to
 1.91%). One `S5` fallback there cost about the same as one `D4` fallback (339,890 against
 339,914 evaluations). With `S5`'s own rate added, `D4`'s break-even rate on the gradient sample
@@ -222,14 +223,15 @@ index runs than `D4` (349 against 329: 314 against 291 reseeds, and 35 against 3
 seeds). With the extra runs priced at `S5`'s cost per index run, the difference has three parts:
 
 - +3.03 million: each of `D4`'s 329 index runs costs more in `S5`;
-- -2.45 million: the 8 grid fallbacks of `D4` that `S5` did not need;
+- -2.45 million: the 8 grid fallbacks of `D4`, which `S5` did not have;
 - +0.43 million: `S5`'s 20 extra index runs, about 43% of the 1.00 million.
 
 The split depends on the pricing. Priced at `D4`'s cost per index run, the extra runs make
-0.24 million (24%). Why `S5` needed 23 more reseeds than `D4` was not tested. So the higher
-cost of `S5` on `big` is consistent with two things: too few grid fallbacks to repay the dearer
-index run, and the extra reseeds. The fallback rate on `big` is too uncertain (8 fallbacks) to
-say on which side of the break-even it lies.
+0.24 million (24%), and the dearer index runs, counted over `S5`'s 349, make 3.21 million.
+Why `S5` needed 23 more reseeds than `D4` was not tested. So the higher cost of `S5` on `big`
+is consistent with two things: too few grid fallbacks to repay the dearer index run, and the
+extra reseeds. The fallback rate on `big` is too uncertain (8 fallbacks) to say on which side
+of the break-even it lies.
 
 An index run also costs 4.6 to 4.7 times as much on `big` as on the gradient sample, in both
 `D4` and `S5`. Added, from `S5`'s seed log: the seed steps by the true level of the grain.
@@ -372,8 +374,8 @@ against 26, 12 fixed, 16 broken. `P4R4` against `S5`: 31 against 30, 11 fixed, 1
 intervals overlap in each pair. Before the pass `P4R4` has more wrong voxels in the raw count
 (102 against 71, 20 fixed and 51 broken), but the intervals overlap narrowly (0.34 to 0.50%
 against 0.23 to 0.36%), so this is not called a loss. After the pass the counts are 31 against
-30. The pass itself costs 1.12 to 1.19 million evaluations on
-`big` (46 to 48 per voxel), for 10,999 to 11,478 boundary voxels, and about 2 minutes (contended).
+30. The pass itself costs 1.12 to 1.19 million evaluations on `big` (46 to 48 per voxel), for
+10,999 to 11,478 boundary voxels, and about 2 minutes (contended).
 
 ## What the result decides
 
@@ -393,9 +395,10 @@ the rule does not pick step 6's seed step. The second branch can be read in two 
 This page does not choose between the two readings. The choice of the seed step is the owner's.
 The facts for the owner: on the gradient sample `S5` saves 47% of the evaluations of `D4` (20.63
 against 38.81 million) with 62 against 74 wrong; on `big` it costs 8.8% more with 30 against 21
-wrong (raw counts; the intervals overlap on both samples).
-Both samples are simulated; the break-even above shows that the result depends on how often the
-grid search is needed, which this study measured on two samples only.
+wrong (raw counts; the intervals overlap on both samples). Both samples are simulated. The
+section on why `S5` is not cheaper shows that the result depends on how often the grid search
+is needed and on how many index runs each pipeline makes; this study measured both on two
+samples only.
 
 The plan's other branch: if the seed step and grid fallbacks are a small part on `big`, the next
 target is the local optimization and the pass. They are not small: the seed step is 57.5% of
