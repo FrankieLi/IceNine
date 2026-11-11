@@ -38,11 +38,13 @@ that the pass inside the run differs because its input map is not rounded, the p
    report copied to the main `.claude/reports/`, `finish_task.sh --yes --push`, close (page
    version 37; `D4L`, `S5L`, `S8L` equal the stored runs before the pass, so no new plot
    point: say so; PR #43 to "steps 2 to 10"; a "merged" entry in the Newt mailbox).
-2. Meanwhile and after: the plan of AR5 (the stop rule inside the grid search), then AR4.
+2. AR5 step 1 (task `ar5a`, plan D-20261111-N10, scripts only) runs side by side: at its
+   hand-back, runbook points 5 to 9 (report `20261111-1008-ar5a.md`). Then AR4.
 
 ## Running jobs
 
 - Step 10 fixes round (`implementer`, Opus, own worktree), started 2026-11-11 at 10:00.
+- AR5 step 1 implementer (Sonnet, own worktree), started 2026-11-11 at 10:10.
 - The review page is at version 36 (`mid` and run `S9` are on its plots). No page job.
 
 ## Queue
@@ -53,8 +55,8 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | step | what | state |
 |---|---|---|
 | AR3 step 10 | opt-in keys: seed step, early stop, CMA-first fit, pass (task `ar3j`) | fixes round running |
-| AR4 | the learned proposer | after AR5 |
-| AR5 | the stop rule inside the grid search (the grid fallbacks) | after step 10 |
+| AR5 step 1 | stop rules: pass tries, grid fallbacks, finished map (task `ar5a`) | implementer running |
+| AR4 | the learned proposer | after AR5 step 1 |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -101,19 +103,17 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   refined, stop at hit ratio 0.95): cheapest on all three samples, wrong counts not worse.
 - Item 12: apply and commit `docs/autoresearch/item12_owner.patch` (the commands are in the
   history file). Agents cannot: it needs your `ALLOW_CLAUDE_CONFIG=1`.
-- Questions that block nothing: the shape and size of real orientation gradients; your
-  local-optimization settings on real data; how many voxels a grain spans in your maps.
+- Three questions that block nothing (gradient shapes, your settings, voxels per grain).
 - A note to read: C++ parallel mode keeps the higher confidence for a voxel that two clients
   fit; that rule did harm in the Python test of step 5. A reading of the source, not a test.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N9 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N10 (all
   on the review page). The gradient levels of step 7's sample are my choice. Step 5's result
   files add about 50 MB to git; say so if you want them pruned.
-- Not done unless you ask: a repo-wide rename of "finisher" to "local optimization".
-- Ilium's plan approvals, when posted, are yours.
+- Not done unless you ask: a repo-wide rename of "finisher". Ilium's plan approvals are yours.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N10.
+- Next decision ID: D-20261111-N11.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
