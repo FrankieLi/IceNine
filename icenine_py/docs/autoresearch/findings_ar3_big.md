@@ -221,10 +221,12 @@ gradient sample (levels 0, 0.1, 0.2, 0.5, 1).
 | 1 | 5539 | 761 | 683 | 137.4 | 3837430 |
 <!-- /table:seed_by_level_gradient -->
 
-A seed step costs 8,571 evaluations at level 0 on `big` (42,857 over 5), against 3,786 on the
-gradient sample (382,383 over 101), and 24,427 at level 4 (6,522,072 over 267). The cost per
-seed step therefore rises with the level inside `big`. It is also higher at level 0 than on the
-gradient sample. Why was not tested (this is a reading of two logs).
+The cost of one seed step on `big` is `evals` divided by `seed_steps`. It is highest at level 4:
+24,427 evaluations (6,522,072 over 267 seed steps). At the other levels it is 4,799 to 13,984:
+level 0 8,571 (n = 5), level 0.2 13,984 (n = 5), level 0.5 4,799 (n = 1), level 1 9,330
+(n = 17), level 2 12,432 (n = 54). It does not rise steadily with the level, and below level 4
+the counts are small. At level 0 it is higher on `big` than on the gradient sample (8,571
+against 3,786, which is 382,383 over 101). Why was not tested (this is a reading of two logs).
 
 ## Wrong voxels
 
