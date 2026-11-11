@@ -381,11 +381,19 @@ The plan says: if `S5` with the pass has no more wrong voxels than `D4` with the
 at fewer or equal evaluations, the opt-in keys step uses step 6's seed step; if it has more
 wrong voxels, it uses `D4`'s.
 
-On `big`, the first condition holds (30 against 21, intervals overlap) and the second does not
-(13.00 against 11.94 million, 8.8% more). Neither branch covers this result. The facts for the
-owner: on the gradient sample `S5` saves 47% of the evaluations of `D4` (20.63 against 38.81
-million) with 62 against 74 wrong; on `big` it costs 8.8% more with 30 against 21 wrong (point
-counts, intervals overlap in both). Which seed step the keys step uses is the owner's decision.
+On `big` the rule's first branch fails. Its wrong-voxel part holds (30 against 21, intervals
+overlap), but its cost part does not (13.00 against 11.94 million evaluations, 8.8% more). So
+the rule does not pick step 6's seed step. The second branch can be read in two ways:
+
+- Read literally ("if it has more wrong voxels"), it does not fire either, because the
+  intervals overlap. Then neither branch covers this result.
+- Read as "otherwise" (every result the first branch does not cover), it fires, and the keys
+  step uses `D4`'s seed step.
+
+This page does not choose between the two readings. The choice of the seed step is the owner's.
+The facts for the owner: on the gradient sample `S5` saves 47% of the evaluations of `D4` (20.63
+against 38.81 million) with 62 against 74 wrong; on `big` it costs 8.8% more with 30 against 21
+wrong (raw counts; the intervals overlap on both samples).
 Both samples are simulated; the break-even above shows that the result depends on how often the
 grid search is needed, which this study measured on two samples only.
 
