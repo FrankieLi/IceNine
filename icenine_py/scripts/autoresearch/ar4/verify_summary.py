@@ -136,6 +136,47 @@ def main() -> None:
         bnd[name] = dict(auc=VL.auc(s_, ~bw), flagged=fl, wrong_flagged=wf)
     out["boundary_mid"] = bnd
 
+    # ---- what-if on mid (cuts picked on mid itself; not a result of the step): how many voxels
+    # each score must flag to reach 30 of 31 (95%) and 31 of 31 of the wrong voxels
+    hind: Dict[str, Any] = {}
+    for name in SCORES:
+        s_ = sc["mid"][name][m]
+        h: Dict[str, Any] = {}
+        for tag, frac in (("95pct", 0.95), ("all", 1.0)):
+            cut = VL.pick_threshold(s_, wrong_mid, frac)
+            fl, wf = VL.flag_counts(s_, wrong_mid, cut)
+            h[tag] = dict(cut=cut, flagged=fl, wrong_flagged=wf, flagged_share=fl / int(m.sum()))
+        hind[name] = h
+    out["whatif_mid_cut_picked_on_mid"] = hind
+    # the wrong voxels of mid that N1 does not flag at its train cut
+    vox_m = inp["mid"]["voxel"][m]
+    summ_m = inp["mid"]["summary"][m]
+    miss = np.where(wrong_mid & (sc["mid"]["N1"][m] > cuts["N1"]))[0]
+    out["n1_missed_mid"] = [
+        dict(
+            voxel=int(vox_m[i]),
+            err_deg=float(inp["mid"]["err"][m][i]),
+            hit=float(summ_m[i, 0]),
+            B0=float(sc["mid"]["B0"][m][i]),
+            N1=float(sc["mid"]["N1"][m][i]),
+            boundary=bool(vox_m[i] in set(tries_vox.tolist())),
+        )
+        for i in miss
+    ]
+    lit: Dict[str, Any] = {}
+    for s in SAMPLES:
+        mm = inp[s]["kind"] == 0
+        ls = inp[s]["summary"][mm, VL.SUMMARY_NAMES.index("lit_share")]
+        ww = ~VL.right_label(inp[s]["err"][mm])
+        lit[s] = dict(
+            share_of_voxels_with_all_peaks_lit=float((ls == 1.0).mean()),
+            lowest_lit_share_of_wrong=float(ls[ww].min()),
+            median_lit_share_of_wrong=float(np.median(ls[ww])),
+            n_wrong_with_all_peaks_lit=int((ls[ww] == 1.0).sum()),
+            n_wrong=int(ww.sum()),
+        )
+    out["lit_share_after_pass"] = lit
+
     # ---- use 2: the chosen end of each stored seed step
     part2 = json.loads((AR5 / "part2_cases.json").read_text())
     use2: Dict[str, Any] = {}
@@ -179,6 +220,12 @@ def main() -> None:
                 right_accepted=sum(r["right"] for r in acc),
                 wrong_accepted=sum(not r["right"] for r in acc),
                 grid_evals_of_right_accepted=int(sum(grid[r["voxel"]] for r in acc if r["right"])),
+                right_accepted_wilson=VL.wilson_interval(
+                    sum(r["right"] for r in acc), max(u["n_fb_right"], 1)
+                ),
+                wrong_accepted_wilson=VL.wilson_interval(
+                    sum(not r["right"] for r in acc), max(u["n_fb_wrong"], 1)
+                ),
                 passed_refused=len(ref),
                 passed_refused_right=sum(r["right"] for r in ref),
             )
@@ -275,16 +322,51 @@ def tables(o: Dict[str, Any]) -> Dict[str, str]:
         for n in SCORES
     ]
     t["ar4_boundary"] = DT.markdown_table(rows, ["score", "auc", "wrong", "flagged"])
+    h = o["whatif_mid_cut_picked_on_mid"]
+    rows = [
+        dict(
+            score=LABEL[n],
+            p95=f"{h[n]['95pct']['flagged']} ({100 * h[n]['95pct']['flagged_share']:.2f}%)",
+            p100=f"{h[n]['all']['flagged']} ({100 * h[n]['all']['flagged_share']:.2f}%)",
+        )
+        for n in SCORES
+    ]
+    t["ar4_whatif"] = DT.markdown_table(rows, ["score", "p95", "p100"], labels=None)
+    rows = [
+        dict(
+            voxel=r["voxel"],
+            err=f"{r['err_deg']:.2f}",
+            hit=f"{r['hit']:.3f}",
+            n1=f"{r['N1']:.3f}",
+            bnd="yes" if r["boundary"] else "no",
+        )
+        for r in o["n1_missed_mid"]
+    ]
+    t["ar4_missed"] = DT.markdown_table(rows, ["voxel", "err", "hit", "n1", "bnd"])
+    rows = [
+        dict(
+            sample=s,
+            all_lit=f"{100 * v['share_of_voxels_with_all_peaks_lit']:.1f}%",
+            wrong_all_lit=f"{v['n_wrong_with_all_peaks_lit']} of {v['n_wrong']}",
+            lowest=f"{v['lowest_lit_share_of_wrong']:.3f}",
+            median=f"{v['median_lit_share_of_wrong']:.3f}",
+        )
+        for s, v in o["lit_share_after_pass"].items()
+    ]
+    t["ar4_lit"] = DT.markdown_table(
+        rows, ["sample", "all_lit", "wrong_all_lit", "lowest", "median"]
+    )
     for s in ("mid", "grad"):
         u = o["use2"][s]
         rows = []
         for name in SCORES:
             r = u[name]
+            (rl, rh), (wl, wh) = r["right_accepted_wilson"], r["wrong_accepted_wilson"]
             rows.append(
                 dict(
                     score=LABEL[name],
-                    right=f"{r['right_accepted']} of {u['n_fb_right']}",
-                    wrong=f"{r['wrong_accepted']} of {u['n_fb_wrong']}",
+                    right=f"{r['right_accepted']} of {u['n_fb_right']} ({rl:.2f} to {rh:.2f})",
+                    wrong=f"{r['wrong_accepted']} of {u['n_fb_wrong']} ({wl:.2f} to {wh:.2f})",
                     saved=f"{r['grid_evals_of_right_accepted']:,}",
                     refused=f"{r['passed_refused']} of {u['n_passed']}"
                     f" ({r['passed_refused_right']} right)",
