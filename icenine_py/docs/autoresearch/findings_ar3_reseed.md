@@ -79,8 +79,9 @@ Reading of the first picture: each bar is the mean number of evaluations in one 
 gradient level of the voxel's true grain, split into the costing of the candidates (grey, too
 thin to see) and the refinements in the order they ran (colours). Top: `big`. Bottom: `grad`.
 Left: `S5`. Right: `D4`. The vertical axes are shared. Bars on `big` are taller than on `grad`
-at every level shown, mostly by a factor of 2 to 5 (level 0.5 has one step on `big`), and the tall
-part is the later refinements.
+at every level the two samples share (0, 0.2, 0.5 and 1 degree). The ratio of `big` to `grad`
+there is 1.1 to 5.0 (two runs at four levels: 4 of the 8 ratios lie between 2 and 5; level 0.5
+has one step on `big`). The tall part is the later refinements.
 
 ![Evaluations of one seed step by part, per level, on the two samples](../../benchmarks/autoresearch/ar3/reseed/ar3_reseed_split.png)
 
