@@ -5,14 +5,18 @@ the plots.
 
 Reads the pair inputs of the three samples (``cache/inputs_<sample>.npz``), ``models.npz`` and
 ``thresholds.json`` (committed before ``mid`` was touched), the stored seed-step replays
-(``cache/seeds_<sample>.json``) and AR5 step 1's ``part2_cases.json`` (stored grid-search
-evaluations of the fallback cases). No model is trained and no threshold is picked here.
+(``cache/seeds_<sample>.json``), AR5 step 1's ``part2_cases.json`` (the fallback cases) with the
+stored S8 log and ``run.json`` (``cache/stored/<sample>/S8_<sample>/``: the seed-step evaluations
+of the reseed cases, subtracted to give grid-only evaluations, and the library's grid counter as
+the check) and AR5's ``part3_votes.npz`` (only to count which voxels have a stored vote count).
+No model is trained and no threshold is picked here.
 """
 
+import gzip
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import matplotlib
 
@@ -56,6 +60,43 @@ def f3(x: float) -> str:
     return f"{x:.3f}"
 
 
+def grid_only(cases: List[Dict[str, Any]], s: str) -> Tuple[Dict[int, int], Dict[str, Any]]:
+    """Grid-search evaluations per fallback voxel, without the seed step of the reseed cases.
+
+    AR5's ``grid_evals`` of a reseed case is ``full_search_evaluations`` (seed step plus grid
+    search); the seed step's evaluations are read from the stored log of S8 (``e1_log``) and
+    subtracted. The total is checked against the library counter ``index_fallback_grid_evals``
+    of S8's ``run.json``."""
+    s8 = VF.VC.CACHE / "stored" / s / f"S8_{s}"
+    log = json.loads(gzip.open(s8 / "e1_log.json.gz", "rt").read())
+    counter = int(json.loads((s8 / "run.json").read_text())["stats"]["index_fallback_grid_evals"])
+    seed_ev: Dict[int, List[int]] = {}
+    for e in log:
+        if e["stop"] == -1 and e["reseed"]:
+            seed_ev.setdefault(int(e["voxel"]), []).append(int(e["evals"]))
+    out: Dict[int, int] = {}
+    sub = 0
+    for c in cases:
+        v = int(c["voxel"])
+        ev = 0
+        if c["reseed"]:
+            assert len(seed_ev[v]) == 1, (s, v, seed_ev.get(v))
+            ev = seed_ev[v][0]
+            sub += ev
+        out[v] = VL.grid_only_evals(c["grid_evals"], bool(c["reseed"]), ev)
+    total = int(sum(out.values()))
+    assert total == counter, (s, total, counter)
+    check = dict(
+        ar5_field_total=int(sum(int(c["grid_evals"]) for c in cases)),
+        seed_step_evals_of_reseed_cases=sub,
+        n_reseed_cases=int(sum(bool(c["reseed"]) for c in cases)),
+        grid_only_total=total,
+        library_counter_index_fallback_grid_evals=counter,
+        equal=bool(total == counter),
+    )
+    return out, check
+
+
 def main() -> None:
     thr = json.loads((AR4 / "thresholds.json").read_text())
     cuts = {k: v["cut"] for k, v in thr["thresholds"].items()}
@@ -87,6 +128,24 @@ def main() -> None:
             for s in SAMPLES
         },
     )
+    # the pairs whose per-peak sums differ from the fused evaluation, by label (review fix 4)
+    sbl: Dict[str, Any] = {}
+    for s in SAMPLES:
+        d = VL.sumback_differs(inp[s]["peaks"], inp[s]["offsets"], inp[s]["counts"])
+        r = VL.right_label(inp[s]["err"])
+        sbl[s] = dict(
+            n_differ=int(d.sum()),
+            n_right=int(r.sum()),
+            n_wrong=int((~r).sum()),
+            n_differ_right=int(d[r].sum()),
+            n_differ_wrong=int(d[~r].sum()),
+            share_differ_right=float(d[r].mean()),
+            share_differ_wrong=float(d[~r].mean()),
+            equal_to_stored_count=bool(
+                int(d.sum()) == int(info[s]["sum_back"]["n_pairs_pixel_counts_differ_from_fused"])
+            ),
+        )
+    out["sum_back_by_label"] = sbl
 
     # ---- use 1: the S8 maps after the pass (pairs of kind "after")
     use1: Dict[str, Any] = {}
@@ -135,7 +194,19 @@ def main() -> None:
         s_ = sc["mid"][name][m][b_mask]
         fl, wf = VL.flag_counts(s_, bw, cuts[name])
         bnd[name] = dict(auc=VL.auc(s_, ~bw), flagged=fl, wrong_flagged=wf)
+    # the measured distribution of the lit share at the boundary voxels (why auc is near 0.5)
+    ls_b = sc["mid"]["lit"][m][b_mask]
+    bnd["lit_detail"] = dict(
+        share_right_all_lit=float((ls_b[~bw] == 1.0).mean()),
+        share_wrong_all_lit=float((ls_b[bw] == 1.0).mean()),
+        lowest_right=float(ls_b[~bw].min()),
+        lowest_wrong=float(ls_b[bw].min()),
+        n_distinct_right=int(len(np.unique(ls_b[~bw]))),
+        n_distinct_wrong=int(len(np.unique(ls_b[bw]))),
+        median_peaks_per_pair=float(np.median(inp["mid"]["n_peaks"][m][b_mask])),
+    )
     out["boundary_mid"] = bnd
+    out["all_wrong_mid_are_boundary"] = bool(int(bw.sum()) == int(wrong_mid.sum()))
 
     # ---- what-if on mid (cuts picked on mid itself; not a result of the step): how many voxels
     # each score must flag to reach 30 of 31 (95%) and 31 of 31 of the wrong voxels
@@ -188,7 +259,7 @@ def main() -> None:
             for i, (k, st, a) in enumerate(zip(inp[s]["kind"], inp[s]["step"], inp[s]["aux"]))
             if k == KIND_SEED_END
         }
-        grid = {c["voxel"]: c["grid_evals"] for c in part2[s]}
+        grid, grid_check = grid_only(part2[s], s)
         fb_vox = sorted(
             st["voxel"] for st in seeds if not st["passed_seed_test"] and st["taken_pos"] >= 0
         )
@@ -214,28 +285,39 @@ def main() -> None:
             n_passed=len(rows_ps),
             n_passed_right=sum(r["right"] for r in rows_ps),
         )
+        grid_all = int(sum(grid[r["voxel"]] for r in rows_fb))
+        mean_grid = grid_all / max(len(rows_fb), 1)
+        fb_right = np.array([r["right"] for r in rows_fb], bool)
+        fb_grid = np.array([grid[r["voxel"]] for r in rows_fb], np.int64)
+        ps_right = np.array([r["right"] for r in rows_ps], bool)
         for name in SCORES:
-            acc = [r for r in rows_fb if r[name] >= cuts[name]]
-            ref = [r for r in rows_ps if r[name] < cuts[name]]
+            c = VL.use2_counts(
+                np.array([r[name] for r in rows_fb]),
+                fb_right,
+                fb_grid,
+                np.array([r[name] for r in rows_ps]),
+                ps_right,
+                cuts[name],
+            )
             u[name] = dict(
-                right_accepted=sum(r["right"] for r in acc),
-                wrong_accepted=sum(not r["right"] for r in acc),
-                grid_evals_of_right_accepted=int(sum(grid[r["voxel"]] for r in acc if r["right"])),
+                **c,
                 right_accepted_wilson=VL.wilson_interval(
-                    sum(r["right"] for r in acc), max(u["n_fb_right"], 1)
+                    c["right_accepted"], max(u["n_fb_right"], 1)
                 ),
                 wrong_accepted_wilson=VL.wilson_interval(
-                    sum(not r["right"] for r in acc), max(u["n_fb_wrong"], 1)
+                    c["wrong_accepted"], max(u["n_fb_wrong"], 1)
                 ),
-                passed_refused=len(ref),
-                passed_refused_right=sum(r["right"] for r in ref),
+                rules_arithmetic_not_run=VL.use2_rule_costs(c, mean_grid),
             )
         u["rows_fallback"] = rows_fb
-        u["grid_evals_all_fallbacks"] = int(sum(grid[r["voxel"]] for r in rows_fb))
+        u["grid_evals_all_fallbacks"] = grid_all
+        u["grid_evals_mean_per_fallback"] = mean_grid
+        u["grid_evals_check"] = grid_check
         use2[s] = u
     out["use2"] = use2
 
     # ---- predictions
+    votes = np.load(AR5 / "part3_votes.npz")
     u1, u2 = use1["mid"], use2["mid"]
     n15 = u2["n_fb_right"]
     out["predictions"] = dict(
@@ -265,6 +347,14 @@ def main() -> None:
         half_of_B0_flagged_mid=u1["B0"]["flagged"] / 2,
         two_thirds_of_right_fallback_mid=2 * n15 / 3,
         n1_missed_wrong_mid=int(len(out["n1_missed_mid"])),
+        n1_missed_wrong_train=int(
+            thr["n_use1_wrong"] - thr["thresholds"]["N1"]["train_wrong_flagged"]
+        ),
+        n_use1_wrong_train=int(thr["n_use1_wrong"]),
+        replace_mean_grid_evals_mid=u2["grid_evals_mean_per_fallback"],
+        n1_or_rule_saved_share_of_fallback_grid_mid=u2["N1"]["grid_evals_of_right_accepted"]
+        / u2["grid_evals_all_fallbacks"],
+        ar5_stored_votes_voxels={s: int(len(votes[f"{s}_voxel"])) for s in SAMPLES},
         n_passed_wrong_mid=u2["n_passed"] - u2["n_passed_right"],
         n1_passed_refused_wrong_mid=u2["N1"]["passed_refused"] - u2["N1"]["passed_refused_right"],
         n_wrong_with_lit_under_1_train=int(
@@ -321,7 +411,7 @@ def tables(o: Dict[str, Any]) -> Dict[str, str]:
                     flagged=f"{r['flagged']} of {u['n_voxels']}",
                     share=f"{100 * r['flagged_share']:.2f}%",
                     auc=f3(r["auc"]),
-                    rule="yes" if r["pass_rule"] else "no",
+                    rule="baseline" if name == "B0" else ("yes" if r["pass_rule"] else "no"),
                 )
             )
         t[f"ar4_use1_{s}"] = DT.markdown_table(
@@ -391,6 +481,43 @@ def tables(o: Dict[str, Any]) -> Dict[str, str]:
         t[f"ar4_use2_{s}"] = DT.markdown_table(
             rows, ["score", "right", "wrong", "saved", "refused"]
         )
+    # the two readings of use 2 on mid, priced by arithmetic from stored numbers (not a run)
+    u = o["use2"]["mid"]
+    rows = []
+    for name in SCORES:
+        r, a = u[name], u[name]["rules_arithmetic_not_run"]
+        rows.append(
+            dict(
+                score=LABEL[name],
+                or_saved=f"{a['or_saved']:,.0f}",
+                or_wrong=f"{r['wrong_accepted']} of {u['n_fb_wrong']}",
+                rep_refused=f"{r['passed_refused_right']} right, {r['passed_refused_wrong']} wrong",
+                rep_extra_right=f"{a['replace_extra_right']:,.0f}",
+                rep_extra_wrong=f"{a['replace_extra_wrong']:,.0f}",
+            )
+        )
+    t["ar4_use2_rules"] = DT.markdown_table(
+        rows,
+        ["score", "or_saved", "or_wrong", "rep_refused", "rep_extra_right", "rep_extra_wrong"],
+    )
+    # grid-only evaluations of the fallback cases against AR5's field
+    rows = []
+    for s in ("grad", "mid"):
+        g = o["use2"][s]["grid_evals_check"]
+        rows.append(
+            dict(
+                sample=s,
+                cases=o["use2"][s]["n_fallback"],
+                reseed=g["n_reseed_cases"],
+                ar5_field=f"{g['ar5_field_total']:,}",
+                seed_steps=f"{g['seed_step_evals_of_reseed_cases']:,}",
+                grid_only=f"{g['grid_only_total']:,}",
+                counter=f"{g['library_counter_index_fallback_grid_evals']:,}",
+            )
+        )
+    t["ar4_grid_evals"] = DT.markdown_table(
+        rows, ["sample", "cases", "reseed", "ar5_field", "seed_steps", "grid_only", "counter"]
+    )
     return t
 
 
@@ -405,7 +532,8 @@ def plots(
         c = o["curve_mid"][name]
         x = np.array(c["wrong_flagged"])
         y = 100 * np.array(c["flagged"]) / c["n"]
-        ax.plot(x, y, "o-", ms=3, color=colors[name], label=LABEL[name])
+        # markers only: the measured points (no line between them)
+        ax.plot(x, y, "o", ms=3, color=colors[name], label=LABEL[name])
         r = o["use1"]["mid"][name]
         ax.plot(
             [r["wrong_flagged"]],

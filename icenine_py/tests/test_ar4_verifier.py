@@ -210,3 +210,49 @@ def test_curve_cuts_are_the_wrong_voxel_scores() -> None:
 def test_wrong_label_is_error_above_one_degree() -> None:
     err = np.array([0.0, 0.99, 1.0, 1.01, 30.0])
     assert VL.right_label(err).tolist() == [True, True, True, False, False]
+
+
+# ---- review fixes: use 2 and the sum-back check
+
+
+def test_grid_only_evals_drops_the_seed_step_of_reseed_cases() -> None:
+    # a reseed case's stored field counts the seed step and the grid search
+    assert VL.grid_only_evals(350_000, True, 6_000) == 344_000
+    # a non-reseed case's field is already the grid search alone
+    assert VL.grid_only_evals(350_000, False, 6_000) == 350_000
+
+
+def test_use2_counts_accept_at_or_above_and_refuse_under_the_cut() -> None:
+    fb_score = np.array([0.9, 0.5, 0.7, 0.2])
+    fb_right = np.array([True, True, False, False])
+    fb_grid = np.array([100, 200, 300, 400])
+    ps_score = np.array([0.95, 0.69, 0.1, 0.7])
+    ps_right = np.array([True, True, False, True])
+    c = VL.use2_counts(fb_score, fb_right, fb_grid, ps_score, ps_right, 0.7)
+    assert c["right_accepted"] == 1  # 0.9
+    assert c["wrong_accepted"] == 1  # 0.7 (a tie is accepted)
+    assert c["grid_evals_of_right_accepted"] == 100
+    assert c["passed_refused"] == 2  # 0.69 and 0.1; 0.7 is not refused
+    assert c["passed_refused_right"] == 1
+    assert c["passed_refused_wrong"] == 1
+
+
+def test_use2_rule_costs_price_refusals_only_under_the_replace_rule() -> None:
+    c = dict(grid_evals_of_right_accepted=1000, passed_refused_right=3, passed_refused_wrong=2)
+    r = VL.use2_rule_costs(c, 400.0)
+    assert r["or_saved"] == 1000 and r["or_refused"] == 0
+    assert r["replace_extra_right"] == 1200 and r["replace_extra_wrong"] == 800
+    assert r["replace_net_right_only"] == -200
+    assert r["replace_net_all"] == -1000
+
+
+def test_sumback_differs_per_pair() -> None:
+    # pair 0: two peaks, overlap 2 + 3 = 5, on detector 4 + 6 = 10: equal to the counts
+    # pair 1: one peak, on detector 8 against 9 in the counts: differs
+    peaks = np.array(
+        [[0, 0, 0, 0.5, 4], [1, 0, 0, 0.5, 6], [0, 0, 0, 0.25, 8]],
+        dtype=np.float32,
+    )
+    offsets = np.array([0, 2, 3])
+    counts = np.array([[5, 10, 2], [2, 9, 1]])
+    assert VL.sumback_differs(peaks, offsets, counts).tolist() == [False, True]

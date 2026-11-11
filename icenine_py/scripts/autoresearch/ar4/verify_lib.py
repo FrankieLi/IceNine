@@ -6,7 +6,7 @@ cut. Nothing here is specific to a crystal system: the peak family is a rank by 
 reciprocal vector, not Miller indices. Tests: ``tests/test_ar4_verifier.py``.
 """
 
-from typing import List, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
 
@@ -202,3 +202,83 @@ def wilson_interval(k: int, n: int) -> List[float]:
 
     lo, hi = stats.wilson(k, n)
     return [float(lo), float(hi)]
+
+
+# ---- use 2 and the sum-back check (added in the review fixes; used by ``verify_summary.py`` only)
+
+
+def grid_only_evals(grid_evals: int, reseed: bool, seed_step_evals: int) -> int:
+    """Grid-search evaluations of one grid-fallback case.
+
+    AR5 step 1's ``part2_cases.json`` field ``grid_evals`` is, for a reseed case, the stored
+    ``full_search_evaluations``: the whole fit from the seed, so the seed step plus the grid
+    search. The seed step runs before any accept decision and is never skipped, so it is
+    subtracted here. For a non-reseed case the field is already the grid search alone."""
+    return int(grid_evals) - int(seed_step_evals) if reseed else int(grid_evals)
+
+
+def use2_counts(
+    fb_score: np.ndarray,
+    fb_right: np.ndarray,
+    fb_grid: np.ndarray,
+    ps_score: np.ndarray,
+    ps_right: np.ndarray,
+    cut: float,
+) -> Dict[str, int]:
+    """Accept and refuse counts of one score at one cut.
+
+    ``fb_*``: the ends of the seed steps that failed the seed test (the grid-fallback cases) and
+    their grid-search evaluations; ``ps_*``: the ends of the seed steps that passed. A fallback
+    end is accepted when its score is at or above the cut; a passing end is refused when its
+    score is under the cut."""
+    fs, fr = np.asarray(fb_score, np.float64), np.asarray(fb_right, bool)
+    fg = np.asarray(fb_grid, np.int64)
+    ps, pr = np.asarray(ps_score, np.float64), np.asarray(ps_right, bool)
+    acc = fs >= cut
+    ref = ps < cut
+    return dict(
+        right_accepted=int((acc & fr).sum()),
+        wrong_accepted=int((acc & ~fr).sum()),
+        grid_evals_of_right_accepted=int(fg[acc & fr].sum()),
+        passed_refused=int(ref.sum()),
+        passed_refused_right=int((ref & pr).sum()),
+        passed_refused_wrong=int((ref & ~pr).sum()),
+    )
+
+
+def use2_rule_costs(counts: Dict[str, int], mean_grid_evals: float) -> Dict[str, float]:
+    """The two readings of use 2, priced by arithmetic from stored numbers (not a run).
+
+    OR rule: a seed is accepted when the seed test passes or the score is at or above the cut;
+    nothing is refused, so the skipped grid searches are the saving. Replace rule: the score
+    replaces the seed test; each refused passing seed then pays one grid search, priced at
+    ``mean_grid_evals`` (the mean of the stored grid-fallback cases)."""
+    saved = float(counts["grid_evals_of_right_accepted"])
+    extra_right = counts["passed_refused_right"] * mean_grid_evals
+    extra_wrong = counts["passed_refused_wrong"] * mean_grid_evals
+    return dict(
+        or_saved=saved,
+        or_refused=0.0,
+        replace_saved=saved,
+        replace_extra_right=float(extra_right),
+        replace_extra_wrong=float(extra_wrong),
+        replace_net_right_only=float(saved - extra_right),
+        replace_net_all=float(saved - extra_right - extra_wrong),
+    )
+
+
+def sumback_differs(peaks: np.ndarray, offsets: np.ndarray, counts: np.ndarray) -> np.ndarray:
+    """Per pair: do the per-peak pixel counts sum to other totals than ``counts``?
+
+    ``peaks`` holds rows ``(rank, dist, omega, share, pixels)`` per peak, pair ``i`` owning rows
+    ``offsets[i]:offsets[i + 1]``; ``counts`` holds ``(pixel_overlap, pixel_on_detector, ...)``
+    of the fused evaluation. The overlap of a peak is ``share * pixels`` rounded."""
+    p = np.asarray(peaks, np.float64)
+    off = np.asarray(offsets, np.int64)
+    c = np.asarray(counts)
+    cs_pod = np.concatenate([[0.0], np.cumsum(p[:, 4])])
+    cs_po = np.concatenate([[0.0], np.cumsum(np.rint(p[:, 3] * p[:, 4]))])
+    pod = np.rint(cs_pod[off[1:]] - cs_pod[off[:-1]])
+    po = np.rint(cs_po[off[1:]] - cs_po[off[:-1]])
+    out: np.ndarray = (pod != c[:, 1]) | (po != c[:, 0])
+    return out
