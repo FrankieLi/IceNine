@@ -27,9 +27,9 @@ Read this file first after any restart or wake. It holds only what is true now a
 Step 6 of AR3 (the seed cost, task `ar3f`; plan in `PLAN.md` under "Step 6: the seed cost",
 approved by D-20261110-N8).
 
-1. Wait for the implementer's notification (see "Running jobs"). Do not poll its output file.
-2. Hand-back, review, decision, fixes, merge, close: runbook section "A step, from plan to
-   merge", points 5 to 9.
+1. Wait for the reviewer's notification (see "Running jobs"). Do not poll its output file.
+2. Decision, fixes, merge, close: runbook section "A step, from plan to merge", points 7
+   to 9.
 3. Then plan the next step from step 6's result. Candidates, in the plan's order: the same
    check on a sample with larger grains, then opt-in keys for the remedy and for the boundary
    pass; AR4 (learned proposer) for the voxels every remedy leaves to the grid search; AR5
@@ -41,11 +41,14 @@ brief and the note "continue from the commits on the branch".
 
 ## Running jobs
 
-- Step 6 implementer (Sonnet, own worktree, branch `feature/eval-reduction-ar3f`), started
-  2026-11-10 at about 23:50. Its report goes to `.claude/reports/20261110-2308-ar3f.md` (in
-  the main checkout, or at the same path in its own worktree). The session is notified when it
-  ends. Check without reading its output: `git worktree list | tail -n 3` and
-  `git log --oneline feature/eval-reduction..feature/eval-reduction-ar3f | head -n 10`.
+- Step 6 is handed back (2026-11-11): task branch `feature/eval-reduction-ar3f` at 6c4665c, in
+  the worktree `.claude/worktrees/agent-a6db3cabf8ab230e9` (report in its
+  `.claude/reports/20261110-2308-ar3f.md`). The findings page `findings_ar3_seed.md` was placed
+  by the main session from the implementer's text (its Write was refused). `verify_handback.sh`:
+  0 FAIL, 2 expected flags.
+- Step 6 reviewer (Opus `code-reviewer`), started 2026-11-11. Its report goes to
+  `.claude/reports/20261111-0330-review-ar3f.md`. The session is notified when it ends. Then:
+  runbook points 7 to 9 (decision D-20261111-N1, fixes round, merge, close).
 - The review page is at version 30 (step 5 done, step 6 running). No page job is open. Version
   30 added the section "Cost against accuracy, all methods" (owner's request, 2026-11-11): one
   plot per sample with the frontier marked. When a step ends, add its rows to
@@ -59,7 +62,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 6 | the seed cost (task `ar3f`) | plan c88fdd8 approved (N8); implementer running |
+| AR3 step 6 | the seed cost (task `ar3f`) | handed back 2026-11-11; review running |
 | AR3 later | larger-grain check; opt-in keys for the boundary pass and the remedy | after step 6 |
 | AR4 | the learned proposer | after step 6 |
 | AR5 | the stop rule inside the grid search | after step 6 |
