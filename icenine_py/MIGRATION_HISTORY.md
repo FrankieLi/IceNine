@@ -11681,8 +11681,8 @@ pooled test set. The pooled rule (written before any `F2` result) decides: by sa
 member must pass); with `F2` free the pooled cut would be 21.5% (26.2% at 0.1), under a third.
 Part 3: `mid` with the pass, `D4` 40.56, `S5` 39.09, `S8` 26.44 million evaluations; wrong voxels
 48, 34, 31 (intervals overlap): `S8` is confirmed by prediction 3 in one run of each arm on one new
-sample, whose grain map (a 120-cell Voronoi map) departs from the plan; the owner counted it as
-the confirmation (D-20261111-N7) and can overrule that.
+sample, whose grain map (a 120-cell Voronoi map) departs from the plan; D-20261111-N7 counts it
+as the confirmation, and the owner can overrule that.
 `S9` (`S8` + `F1` 0.90): 5.63 million on `big` (`S8` 8.34), 14.63 on `grad` (18.00), 22.67 on `mid`
 (26.44); wrong voxels 29 (24), 70 (63), 40 (31), intervals overlap, but paired against `S8` it
 breaks more than it fixes on all three (10 fixed / 15 broken, 31 / 38, 9 / 18), which fails Part

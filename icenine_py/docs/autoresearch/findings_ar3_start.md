@@ -103,8 +103,8 @@ the truth (Part 1).
    each arm on one new sample, `mid`: fewer evaluations than `S5` and `D4` with the pass, with an
    interval of wrong voxels that overlaps `S5`'s. The cut against `S5` is 32.4% (26.44 against
    39.09 million). `mid`'s grain map (a 120-cell Voronoi map) departs from the plan, which asked
-   for step 7's generator. The owner counted `mid` as the confirmation sample (D-20261111-N7) and
-   can overrule that.
+   for step 7's generator. Decision D-20261111-N7 counts `mid` as the confirmation sample; the
+   owner can overrule that.
 2. **Does the start test save evaluations?** Yes. `S9` against `S8`, with the pass: `big` 5.63
    against 8.34 million (-32.4%), `grad` 14.63 against 18.00 (-18.7%), `mid` 22.67 against 26.44
    (-14.3%). On the neighbour fits and revisits alone the cut is 68.1%, 47.2% and 53.9%.
@@ -588,8 +588,8 @@ What the tables say.
 Prediction 3 holds in one run of each arm on one new sample, `mid`. So `S8`'s seed step (stop the
 refinements at the first with hit ratio at least 0.95) counts as confirmed on a sample it was not
 chosen on. `mid`'s grain map is a 120-cell Voronoi map, not step 7's generator that the plan named
-("Deviations"). The owner decided that `mid` counts as the confirmation (D-20261111-N7) and can
-overrule that. The plan's other branch ("both numbers as settings, no stop test") is not needed.
+("Deviations"). Decision D-20261111-N7 counts `mid` as the confirmation; the owner can overrule
+that. The plan's other branch ("both numbers as settings, no stop test") is not needed.
 What an opt-in key recommends stays the owner's choice.
 
 `F1` at 0.90 passed Part 2 and prediction 4 holds on `big`. But in the whole layer `S9` breaks
