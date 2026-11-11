@@ -70,8 +70,8 @@ The plan wrote down four predictions. Whether the result agrees:
    the "0 broken" of the stored cases did not carry over.
 
 Chosen after I had seen results: nothing in the plan's tables. Some rules were fixed in the
-scripts after Part 1 and before the pick; they are listed under "Deviations" so a reader can
-judge them.
+scripts after Part 1 on `big` (both sets) had been read, and before Part 1 on `grad`, any `F2`
+result and the pick. They are listed under "Deviations" so a reader can judge them.
 
 ## The result in pictures
 
@@ -645,7 +645,15 @@ sample name `mid`; nothing else changed there.
 - **Rules fixed in the scripts before the pick** (commit `5cfff2f`, before `55b7323`): a setting
   must save more than zero evaluations to qualify; `F2` replaces the rejected end only if its hit
   ratio is higher; the vanishing-cluster accounting of `F2`; the pass rule is judged on the pooled
-  test set; the start evaluation of `F1` is counted (the fit does not reuse it).
+  test set; the start evaluation of `F1` is counted (the fit does not reuse it). Timing: Part 1 on
+  `big`, which covers both sets, ended at 06:26:55, before that commit (06:37:01). So these rules
+  were written after Part 1 on `big` had been read. They were written before Part 1 on `grad`
+  (06:57) and before any `F2` result. None of them changes `F1`'s verdict (`F1` passes on each
+  sample too). The pooled rule decides `F2`'s verdict (Part 2).
+- **`F2`'s cluster accounting crosses the split.** A reseed cluster is put in the pick or test
+  set by the grain of its reseed voxel, but it can hold members from grains of the other set.
+  Their `F2` fits decide whether the cluster vanishes. So the `F2` pick read some fits of
+  test-set grains. This has no effect on the verdict, since `F2` fails.
 - **A pilot that flooded the layer.** The first pilot of `S9` (`--smoke 400`, `big`) did not
   stop at 400 voxels (the BFS floods the layer), and I ended it after about two minutes; it is not
   a result. The second pilot (150 seconds, `F1` 0.95 and `F2` 0.1 set by hand, before the pick) is
