@@ -46,7 +46,11 @@ brief and the note "continue from the commits on the branch".
   the main checkout, or at the same path in its own worktree). The session is notified when it
   ends. Check without reading its output: `git worktree list | tail -n 3` and
   `git log --oneline feature/eval-reduction..feature/eval-reduction-ar3f | head -n 10`.
-- The review page is at version 29 (step 5 done, step 6 running). No page job is open.
+- The review page is at version 30 (step 5 done, step 6 running). No page job is open. Version
+  30 added the section "Cost against accuracy, all methods" (owner's request, 2026-11-11): one
+  plot per sample with the frontier marked. When a step ends, add its rows to
+  `docs/autoresearch/pareto/pareto_rows.json` and rebuild the section (runbook, "The review
+  page").
 
 ## Queue
 
@@ -103,7 +107,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## Bookkeeping
 
-- Next decision ID: D-20261110-N9 (or `D-<today>-N1` on a later day).
+- Next decision ID: D-20261111-N1.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`); mailbox in
