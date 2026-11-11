@@ -1964,6 +1964,132 @@
    "source_json": "icenine_py/benchmarks/autoresearch/ar3/fine/summary.json :: set_B.C.{evals_total, evals_median, wrong.k}",
    "source_page": "icenine_py/docs/autoresearch/findings_ar3_fine.md:217",
    "flag": "not a full pipeline: cost excludes the paint run that supplied the starting orientations"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR3 step 6",
+   "method": "BFS indexed, neighbour tries + best 5 of 20 seeds, CMA (run S)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 12491925,
+   "evals_per_voxel": 508.42,
+   "per_voxel_derived": true,
+   "wrong": 265,
+   "n": 24570,
+   "interval_pct": [
+    0.96,
+    1.22
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 2,900,218, 11 grid-search fallbacks 3,741,087, neighbour local optimizations 2,786,526, revisit local optimizations 3,064,094 (run alone; the boundary pass 3,648,837 is subtracted from the stage-table total 16,140,762)",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/seed/summary_part2.json :: stages[run=S + pass].{total, pass_} ; levels[map=S before, level=all].wrong.{k, lo, hi}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_seed.md",
+   "flag": "run S; wrong counted as in the D4 row"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR3 step 6",
+   "method": "BFS indexed, best 5 of 20 seeds, CMA (run S5)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 16947800,
+   "evals_per_voxel": 689.78,
+   "per_voxel_derived": true,
+   "wrong": 203,
+   "n": 24570,
+   "interval_pct": [
+    0.72,
+    0.95
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 5,990,794, 15 grid-search fallbacks 5,098,353, neighbour local optimizations 2,786,526, revisit local optimizations 3,072,127 (run alone; the boundary pass 3,681,960 is subtracted from the stage-table total 20,629,760)",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/seed/summary_part2.json :: stages[run=S5 + pass].{total, pass_} ; levels[map=S5 before, level=all].wrong.{k, lo, hi}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_seed.md",
+   "flag": "run S5; wrong counted as in the D4 row"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR3 step 6",
+   "method": "BFS indexed, neighbour tries + best 5 of 20 seeds, lib. CMA (run K2)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 26710744,
+   "evals_per_voxel": 1087.13,
+   "per_voxel_derived": true,
+   "wrong": 268,
+   "n": 24570,
+   "interval_pct": [
+    0.97,
+    1.23
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 3,372,608, 53 grid-search fallbacks 18,310,455, neighbour local optimizations 2,373,510, revisit local optimizations 2,654,171 (run alone; the boundary pass 3,633,038 is subtracted from the stage-table total 30,343,782)",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/seed/summary_part2.json :: stages[run=K2 + pass].{total, pass_} ; levels[map=K2 before, level=all].wrong.{k, lo, hi}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_seed.md",
+   "flag": "run K2; wrong counted as in the D4 row"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR3 step 6",
+   "method": "BFS indexed, neighbour tries + best 5 of 20 seeds, CMA + boundary pass (run S)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 16140762,
+   "evals_per_voxel": 656.93,
+   "per_voxel_derived": true,
+   "wrong": 100,
+   "n": 24570,
+   "interval_pct": [
+    0.33,
+    0.49
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 2,900,218, 11 grid-search fallbacks 3,741,087, neighbour local optimizations 2,786,526, revisit local optimizations 3,064,094, boundary pass 3,648,837",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/seed/summary_part2.json :: stages[run=S + pass].{total, pass_} ; levels[map=S after, level=all].wrong.{k, lo, hi}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_seed.md",
+   "flag": "run S; wrong counted as in the D4 row"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR3 step 6",
+   "method": "BFS indexed, best 5 of 20 seeds, CMA + boundary pass (run S5)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 20629760,
+   "evals_per_voxel": 839.63,
+   "per_voxel_derived": true,
+   "wrong": 62,
+   "n": 24570,
+   "interval_pct": [
+    0.2,
+    0.32
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 5,990,794, 15 grid-search fallbacks 5,098,353, neighbour local optimizations 2,786,526, revisit local optimizations 3,072,127, boundary pass 3,681,960",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/seed/summary_part2.json :: stages[run=S5 + pass].{total, pass_} ; levels[map=S5 after, level=all].wrong.{k, lo, hi}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_seed.md",
+   "flag": "run S5; wrong counted as in the D4 row"
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR3 step 6",
+   "method": "BFS indexed, neighbour tries + best 5 of 20 seeds, lib. CMA + boundary pass (run K2)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 30343782,
+   "evals_per_voxel": 1234.99,
+   "per_voxel_derived": true,
+   "wrong": 96,
+   "n": 24570,
+   "interval_pct": [
+    0.32,
+    0.48
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 3,372,608, 53 grid-search fallbacks 18,310,455, neighbour local optimizations 2,373,510, revisit local optimizations 2,654,171, boundary pass 3,633,038",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/seed/summary_part2.json :: stages[run=K2 + pass].{total, pass_} ; levels[map=K2 after, level=all].wrong.{k, lo, hi}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_seed.md",
+   "flag": "run K2; wrong counted as in the D4 row"
   }
  ],
  "excluded": [

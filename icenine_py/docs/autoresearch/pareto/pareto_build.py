@@ -36,8 +36,32 @@ PANELS = [
 LABELS = {
     "gradient_24570": {
         "BFS indexed seeds, CMA local optimization": ("BFS, indexed seeds, CMA", 12, -8, "start"),
-        "BFS indexed, CMA + boundary pass": ("+ boundary pass", -14, 4, "end"),
-        "BFS indexed, CMA + 2 boundary passes": ("+ 2 passes", 0, 25, "middle"),
+        "BFS indexed, CMA + boundary pass": ("BFS CMA + pass", 0, -14, "middle"),
+        "BFS indexed, CMA + 2 boundary passes": ("BFS CMA + 2 passes", 0, 25, "middle"),
+        "BFS indexed, neighbour tries + best 5 of 20 seeds, CMA (run S)": (
+            "new seed step with neighbour tries (S)",
+            12,
+            -8,
+            "start",
+        ),
+        "BFS indexed, neighbour tries + best 5 of 20 seeds, CMA + boundary pass (run S)": (
+            "S + pass",
+            -17,
+            4,
+            "end",
+        ),
+        "BFS indexed, best 5 of 20 seeds, CMA + boundary pass (run S5)": (
+            "new seed step, no tries, + pass (S5)",
+            -8,
+            25,
+            "middle",
+        ),
+        "BFS indexed, neighbour tries + best 5 of 20 seeds, lib. CMA + boundary pass (run K2)": (
+            "K2 + pass",
+            -10,
+            -10,
+            "end",
+        ),
         "Paint + stock + 2 boundary passes": ("paint + stock + 2 passes", 0, 25, "middle"),
         "BFS indexed seeds, stock local optimization": (
             "BFS, indexed seeds, stock (the base run)",
