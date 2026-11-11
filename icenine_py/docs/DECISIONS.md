@@ -1160,3 +1160,25 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   key, no default change. The opt-in keys wait for this step, since the settings they would hold
   are still moving. Taken under the mandate D-20261109-N1; the owner can overrule. Where:
   icenine_py/docs/autoresearch/PLAN.md, Step 9.
+
+### D-20261111-N7 · Track A / AR3 step 9 · AR3 step 9 review: apply all 13 required fixes, no rerun; S8 counts as confirmed on one new sample; the start test F1 at 0.90 is not a candidate for a key; F2's fail stands
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Review of task ar3i (report .claude/reports/20261111-0810-review-ar3i.md): changes requested, 13
+  required fixes, all to wording and to what the page discloses. All 13 are applied; no
+  whole-layer run is repeated; fixes 4 and 7 add numbers to start_summary.py and regenerate the
+  summary from stored files. The reviewer's three open questions, decided under D-20261109-N1 (the
+  owner can overrule each): (1) The sample mid counts as the confirmation that D-20261111-N5 asked
+  for, worded as one run per arm on one new sample whose grain map (a 120-cell Voronoi map)
+  departs from the plan. No setting was chosen on mid; the reviewer checked that both pilots ran
+  on big and that mid's first result came after the pick commit. S8's seed step is therefore the
+  recommended seed step for the opt-in key; what the key recommends stays the owner's choice. (2)
+  The start test F1 at 0.90 passed on stored cases but in the whole layer run S9 broke more voxels
+  than it fixed on all three samples (10 fixed and 15 broken on big, 31 and 38 on the first
+  gradient sample, 9 and 18 on mid) and raised the median error. It is not a candidate for a key.
+  F1 at 0.95 was a listed setting, kept no wrong start on stored cases, and was not run on a whole
+  layer; a whole-layer test of it would be a variant chosen after results and needs its own plan.
+  (3) F2's verdict (fails) stands: the pooled rule was written in the scripts before any F2
+  result, and with F2's own cost set to zero the pooled cut is still under a third (21.5% and
+  26.2%). The page gives F2 by sample (big alone 34.1%) and says that the pooled rule decides.
+  Where: icenine_py/docs/autoresearch/findings_ar3_start.md;
+  .claude/reports/20261111-0810-review-ar3i.md.
