@@ -31,6 +31,7 @@ from .experimental_data import ExperimentalData
 from .forward_simulation import ForwardSimulation
 from .mic_file import MicFile, ReconstructionState
 from .orientation_search import (
+    LOCAL_OPTIMIZERS,
     CMAOptimizer,
     MCOptimizer,
     RiemannianAdamOptimizer,
@@ -104,6 +105,35 @@ def check_paint_grains_keys(params: Any) -> None:
         raise ValueError("PaintGrains 1 needs SeedByIndexing 1 (the seed path is the indexing)")
     if getattr(params, "outward_search", False):
         raise ValueError("PaintGrains 1 cannot be combined with OutwardSearch 1")
+
+
+def check_bfs_keys(params: Any) -> None:
+    """The AR3 step 10 keys (all opt-in, off by default) and their invalid combinations; raised
+    before any search. ``BFSNeighborCMAFirst`` needs ``LocalOptimizer mc`` and refuses
+    ``OutwardSearch`` and the hybrid optimizer; the seed keys need ``SeedByIndexing``; none of the
+    keys is part of the paint path."""
+    cma_first = bool(getattr(params, "bfs_neighbor_cma_first", False))
+    cands = (getattr(params, "seed_index_n_cost", 5), getattr(params, "seed_index_n_refine", 2))
+    stop = float(getattr(params, "seed_index_stop_hit", 0.0))
+    seed_keys = cands != (5, 2) or stop != 0.0
+    boundary = bool(getattr(params, "boundary_pass", False))
+    if seed_keys and not getattr(params, "seed_by_indexing", False):
+        raise ValueError(
+            "SeedIndexCandidates and SeedIndexStopHitRatio need SeedByIndexing 1 "
+            "(they act on the indexed seed step)"
+        )
+    if (cma_first or seed_keys or boundary) and getattr(params, "paint_grains", False):
+        raise ValueError(
+            "BFSNeighborCMAFirst, SeedIndexCandidates, SeedIndexStopHitRatio and BoundaryPass "
+            "cannot be combined with PaintGrains 1"
+        )
+    if cma_first:
+        if getattr(params, "local_optimizer", "mc") != "mc":
+            raise ValueError("BFSNeighborCMAFirst 1 needs LocalOptimizer mc")
+        if getattr(params, "outward_search", False):
+            raise ValueError("BFSNeighborCMAFirst 1 cannot be combined with OutwardSearch 1")
+        if getattr(params, "use_hybrid_optimizer", False):
+            raise ValueError("BFSNeighborCMAFirst 1 cannot be combined with use_hybrid_optimizer")
 
 
 def setup_reconstruction(
@@ -1261,12 +1291,14 @@ class AdaptiveVoxelReconstructor:
         rng: Optional[np.random.Generator] = None,
         cma_sigma0_deg: Optional[float] = None,
         cma_max_evals: Optional[int] = None,
+        optimizer: Optional[str] = None,
     ) -> SearchCandidate:
         """
-        MC-only optimization from a given starting orientation (for BFS neighbors).
+        Local optimization from a given starting orientation (for BFS neighbors).
 
-        Runs variance-minimizing MC without any discrete search. This is the
-        cheap path used when orientation is inherited from a fitted neighbor.
+        Runs variance-minimizing MC (``mc``) or one local CMA-ES run (``cma``), without any
+        discrete search. This is the cheap path used when orientation is inherited from a fitted
+        neighbor.
 
         Args:
             voxel_vertices: Triangle vertices in sample frame, shape (3, 3)
@@ -1277,6 +1309,9 @@ class AdaptiveVoxelReconstructor:
                 params.cma_sigma0_deg)
             cma_max_evals: local_optimizer == "cma" only: budget override (default
                 params.cma_max_evals; BFS passes params.cma_neighbor_max_evals)
+            optimizer: "mc" or "cma" for this call only (AR3 step 10: ``BFSNeighborCMAFirst`` and
+                the boundary pass); None (the default) takes params.local_optimizer. A CMA call
+                leaves the start's own cost in ``result.start_cost``.
 
         Returns:
             Optimized SearchCandidate. The number of cost evaluations of the call (final
@@ -1299,8 +1334,13 @@ class AdaptiveVoxelReconstructor:
             pixel_radius=0,
         )
 
+        mode = self.params.local_optimizer if optimizer is None else optimizer
+        if mode not in LOCAL_OPTIMIZERS:
+            raise ValueError(
+                f"optimizer must be one of {LOCAL_OPTIMIZERS} or None, got {optimizer!r}"
+            )
         result: SearchCandidate
-        if self.params.local_optimizer == "cma":
+        if mode == "cma":
             # one local CMA-ES run from the inherited start replaces the variance-minimizing MC
             cma_opt = self._make_cma_optimizer(local_cost_fn, voxel_vertices, phase_index, rng)
             if cma_sigma0_deg is not None:
@@ -1486,11 +1526,14 @@ class AdaptiveVoxelReconstructor:
         phase_index: int,
         n_cost: int = 5,
         n_refine: int = 2,
+        stop_hit: float = 0.0,
     ) -> Any:
         """SeedByIndexing (opt-in): the voxel's seed search from its observed rays
         (``ray_indexing.seed_by_indexing``): strict cost on the first ``n_cost`` candidates, the
         finisher on the ``n_refine`` lowest, the lowest final cost. Returns a ``SeedResult``
-        (``orientation`` None: no candidate). The caller applies the seed acceptance test."""
+        (``orientation`` None: no candidate). The caller applies the seed acceptance test.
+        ``stop_hit`` > 0 (SeedIndexStopHitRatio): the finisher runs stop at the first end whose
+        hit ratio (one overlap evaluation, not counted) is at least ``stop_hit``."""
         from . import ray_indexing as RI
 
         sc, crystal, params, strict_cf = self._index_context(phase_index)
@@ -1500,9 +1543,19 @@ class AdaptiveVoxelReconstructor:
                 strict_cf.evaluate(np.asarray(R, np.float64), voxel_vertices, phase_index).cost
             )
 
+        if stop_hit <= 0:
+            return RI.seed_by_indexing(
+                self, sc, crystal, voxel_vertices, phase_index, params, strict, n_cost, n_refine
+            )
+
+        def hit_fn(R: np.ndarray) -> float:
+            info = self.evaluate_overlap(np.asarray(R, np.float64), voxel_vertices, phase_index)
+            return float(BFSReconstruction._ratios(info)[0])
+
         return RI.seed_by_indexing(
-            self, sc, crystal, voxel_vertices, phase_index, params, strict, n_cost, n_refine
-        )
+            self, sc, crystal, voxel_vertices, phase_index, params, strict, n_cost, n_refine,
+            stop_hit=stop_hit, hit_fn=hit_fn,
+        )  # fmt: skip
 
 
 # ---------------------------------------------------------------------------
@@ -1612,6 +1665,7 @@ class BFSReconstruction:
 
     def __init__(self, setup: ReconstructionSetup):
         check_paint_grains_keys(setup.search_params)
+        check_bfs_keys(setup.search_params)
         self.setup = setup
         self.reconstructor = AdaptiveVoxelReconstructor(setup)
         # PaintGrains (opt-in): the paint result and hooks of the last run (None with the key off)
@@ -1625,6 +1679,8 @@ class BFSReconstruction:
         self.outward_log: List[Dict[str, Any]] = []
         # SeedByIndexing (opt-in): one entry per indexed seed or reseed (empty with the key off)
         self.index_log: List[Dict[str, Any]] = []
+        # BoundaryPass (opt-in): one entry per voxel the pass changed (empty with the key off)
+        self.boundary_log: List[Dict[str, Any]] = []
 
     @staticmethod
     def _ratios(info: Optional[OverlapInfo]) -> Tuple[float, float]:
@@ -1705,6 +1761,7 @@ class BFSReconstruction:
         self.reseed_log = []
         self.outward_log = []
         self.index_log = []
+        self.boundary_log = []
 
         # Randomized seed order (C++ uses random_shuffle)
         voxel_order = list(range(n_process))
@@ -1752,6 +1809,12 @@ class BFSReconstruction:
 
         if self.setup.search_params.bfs_restart_pass:
             self._restart_pass(mic, rng)
+
+        if getattr(self.setup.search_params, "boundary_pass", False):
+            # BoundaryPass (opt-in, AR3 step 10): once on the whole map, before the write
+            from . import boundary_pass as BP
+
+            BP.run_boundary_pass(self, mic)
 
         for i in self._refit_candidates:
             if mic.voxels[i].reconstruction_id != ReconstructionState.FITTED:
@@ -2134,13 +2197,16 @@ class BFSReconstruction:
             if res.accepted:
                 start = res.orientation
         t0 = time.time()
-        opt_result = self.reconstructor.local_optimization(
-            voxel_vertices=vertices,
-            phase_index=voxel.phase,
-            initial_orientation=start,
-            rng=rng,
-            **kwargs,
-        )
+        if getattr(params, "bfs_neighbor_cma_first", False):
+            opt_result = self._cma_first_fit(vertices, voxel.phase, start, rng)
+        else:
+            opt_result = self.reconstructor.local_optimization(
+                voxel_vertices=vertices,
+                phase_index=voxel.phase,
+                initial_orientation=start,
+                rng=rng,
+                **kwargs,
+            )
         dt = time.time() - t0
         n_ev = self.reconstructor.last_local_optimization_evals
         rec.n_evals += n_ev
@@ -2149,6 +2215,50 @@ class BFSReconstruction:
         self.stats[f"wall_{phase}_s"] += dt
         hit, conf = self._ratios(opt_result.overlap_info)
         return opt_result, hit, conf
+
+    def _cma_first_fit(
+        self,
+        vertices: torch.Tensor,
+        phase: int,
+        start: np.ndarray,
+        rng: np.random.Generator,
+    ) -> SearchCandidate:
+        """BFSNeighborCMAFirst (opt-in): a CMA fit from ``start`` (``CMASigma0``,
+        ``CMANeighborMaxEvals``, the start's own evaluation included). If its end cost is not below
+        its start cost the stock MC fit runs from the same start and the lower cost is kept (the
+        CMA end on a tie). ``last_local_optimization_evals`` is the sum of both fits."""
+        params = self.setup.search_params
+        rec = self.reconstructor
+        R0 = np.asarray(start, dtype=np.float64)
+        r1 = rec.local_optimization(
+            voxel_vertices=vertices,
+            phase_index=phase,
+            initial_orientation=R0,
+            rng=rng,
+            cma_sigma0_deg=params.cma_sigma0_deg,
+            cma_max_evals=params.cma_neighbor_max_evals,
+            optimizer="cma",
+        )
+        n1 = int(rec.last_local_optimization_evals)
+        c0 = getattr(r1, "start_cost", None)
+        if c0 is None:
+            raise RuntimeError("the CMA fit returned no start_cost")
+        if r1.cost < c0:
+            self._count("cma_first_fallback_runs", 0)
+            self._count("cma_first_fallback_won", 0)
+            return r1
+        r2 = rec.local_optimization(
+            voxel_vertices=vertices,
+            phase_index=phase,
+            initial_orientation=R0,
+            rng=rng,
+            optimizer="mc",
+        )
+        rec.last_local_optimization_evals = n1 + int(rec.last_local_optimization_evals)
+        won = r2.cost < r1.cost
+        self._count("cma_first_fallback_runs")
+        self._count("cma_first_fallback_won", 1 if won else 0)
+        return r2 if won else r1
 
     def _run_outward(
         self,
@@ -2214,7 +2324,17 @@ class BFSReconstruction:
         seed's (``n_evals_seed`` / ``wall_seed_s``, moved to the reseed buckets by
         ``_reseed_clusters``), used or not; ``stats["index_*"]`` and ``index_log`` split them."""
         t0 = time.time()
-        res = self.reconstructor.index_seed(vertices, voxel.phase)
+        sp = self.setup.search_params
+        n_cost, n_refine = getattr(sp, "seed_index_n_cost", 5), getattr(
+            sp, "seed_index_n_refine", 2
+        )
+        stop_hit = float(getattr(sp, "seed_index_stop_hit", 0.0))
+        kw: Dict[str, Any] = {}
+        if (n_cost, n_refine) != (5, 2):
+            kw.update(n_cost=n_cost, n_refine=n_refine)
+        if stop_hit > 0:
+            kw["stop_hit"] = stop_hit
+        res = self.reconstructor.index_seed(vertices, voxel.phase, **kw)
         dt = time.time() - t0  # includes the one-time pairing on the first call
         rec.n_evals += res.evals
         rec.wall_s += dt
@@ -2236,6 +2356,9 @@ class BFSReconstruction:
             hit_ratio=None,
             used=False,
         )
+        if stop_hit > 0:
+            entry["stopped_at"] = int(res.stopped_at)
+            self._count("index_stopped_early", 1 if res.stopped_at >= 0 else 0)
         self.index_log.append(entry)
         self._count("index_runs")
         self._count("index_evals", res.evals)

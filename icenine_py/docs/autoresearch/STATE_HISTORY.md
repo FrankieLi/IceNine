@@ -621,6 +621,57 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
 - The runs on `mid` and run `S9` are on the plots of cost against accuracy (review page
   version 36). PR #43 now holds steps 2 to 9.
 
+### AR3 step 10 (opt-in keys for the indexed seed step and the boundary pass; task `ar3j`), merged at 17790e5 on 2026-11-11
+
+- Page `findings_ar3_keys.md`; results `benchmarks/autoresearch/ar3/keys/` (about 1 MB);
+  decisions D-20261111-N8 (plan), D-20261111-N9 (review: 8 fixes, a test of the reading about
+  the pass inside the run, the repo page keeps the word "fit"). Suite at the merge:
+  1576 passed, 47 skipped, 1 deselected.
+- The first AR3 step since step 2 that changes the library: new `icenine/boundary_pass.py`;
+  changes in `reconstructor.py` (`_local_fit`, `_index_seed`, `local_optimization`,
+  `reconstruct_sample`, new `check_bfs_keys`), `orientation_search.py`, `config_file.py`,
+  `ray_indexing.py`. Tests: `tests/test_bfs_ar3_keys.py`, 59 tests (57 written before the code).
+- Keys, all off by default: `BFSNeighborCMAFirst 0|1`; `SeedIndexCandidates n_cost n_refine`
+  (default `5 2`; a third token raises `ValueError`); `SeedIndexStopHitRatio t` (default 0);
+  `BoundaryPass 0|1`. The stored runs as keys: `D4L` = `BFSNeighborCMAFirst 1`, `CMASigma0
+  0.05`, `CMANeighborMaxEvals 60`, `BoundaryPass 1`; `S5L` adds `SeedIndexCandidates 20 5`;
+  `S8L` adds `SeedIndexStopHitRatio 0.95`.
+- Sample `big`, clean, Q-max 8, contended, one run each. Before the pass `D4L`, `S5L`, `S8L`
+  equal the stored `D4`, `S5`, `S8` exactly: seeds / reseeds / grid fallbacks 38/291/8,
+  35/314/0, 37/292/0; evaluations 10,811,715, 11,867,509, 7,201,863; wrong 68, 71, 67; every
+  counter, the 24,570 records, the `.mic` bytes. `S8L`: 322 early stops in 329 seed steps.
+- The pass on the stored (rounded) maps is exact: tries / evaluations 18,557 / 1,131,977,
+  18,563 / 1,132,343, 18,665 / 1,138,565. In the run: `S5L` identical (30 wrong); `D4L` the
+  same counts, 22 wrong against 21 (voxel 19614); `S8L` 18,664 tries / 1,138,504 evaluations,
+  24 wrong in both, 5 fixed and 5 broken. Wilson 95% intervals after the pass: `D4L` 22
+  (0.059% to 0.136%), `S5L` 30 (0.086% to 0.174%), `S8L` 24 (0.066% to 0.145%).
+- The reading test (N9, fixes round): `S8L` and `D4L` rerun (886 s, 1,133 s, contended). For
+  both: the rerun's in-run pass equals step 10's; the pass on the `.mic`-rounded map in the
+  same process gives the stored tries exactly; a fresh process on the unrounded map gives the
+  in-run pass try for try. So the rounding accounts for the difference, the process does not.
+  `S5L` was not rerun. Rounded against unrounded in one process: every boundary voxel's
+  float64 ends differ (11,087 and 11,054 voxels; largest rounding 8.8e-7); not a prediction.
+- Evaluations not counted in the totals: the strict score of each boundary voxel's old end
+  (11,087 / 11,049 / 11,054) and `S8L`'s 465 hit-ratio evaluations of the early stop.
+- Off path: the 2,000-voxel pilot with every key absent gives byte-identical files on the
+  parent commit (4ff3ce6) and on the branch. Not rerun after the fixes (they changed
+  annotations, docstrings, an error message and the `ValueError` on a third token).
+- No timing: the preflight refused twice (another program at about 100% of a CPU). The
+  single-worker wall pair stays for "Machine-time runs".
+- Commits: e289607 (tests first), 3fbfe2f (keys), b0716ed, 5b04c9f; fixes 07037d4, 7b992ab,
+  6989d53, 159dcc2, 5c0487f, cd3a2b5. Reports in the main `.claude/reports/`:
+  `20261111-0834-ar3j.md`, `20261111-0941-review-ar3j.md`, `20261111-1000-ar3j-fixes.md`.
+- The findings page of the first round was placed by the main session from the implementer's
+  text (its Write was refused; the standing exception the owner knows). In the fixes round the
+  implementer's own edit of the page worked.
+- Tooling trap found by this step: in a worktree `uv run pytest` could import the main
+  checkout's library. Fixed in fb06e95 (the dev scripts use `uv run --extra dev pytest`;
+  briefs tell implementers to `uv sync --extra dev` and check `uv run which pytest`).
+- The heads-up to Ilium (protocol rule 3(a)) was posted late, after the task started and
+  before the merge. Ilium's branch did not move (347a8a4) and its mailbox had no objection.
+- The plots of cost against accuracy get no new point (review page version 37 says so).
+  PR #43 now holds steps 2 to 10.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what

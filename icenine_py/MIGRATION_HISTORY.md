@@ -11693,6 +11693,52 @@ interval 49.1 to 50.7, not more than half; its second part, 0.6% at 4 degrees, h
 choice of keys stays the owner's: `S8`'s seed step is the plan's recommendation; `F1` at 0.90 is
 not a candidate for a key (D-20261111-N7); `F1` at 0.95 was not run on a whole layer.
 
+## Autoresearch AR3 step 10: opt-in keys for the indexed seed step and the boundary pass (done 2026-11-11, task ar3j)
+
+The first AR3 step that changes `icenine/`: four opt-in config keys and one new module, all off
+by default (D-20261111-N8). No default flip, no golden change, no new dependency, no setting
+recommended. Keys: `BFSNeighborCMAFirst` (each neighbour and revisit fit runs a CMA fit first,
+the stock MC fit if its end cost is not below its start cost, the lower cost kept),
+`SeedIndexCandidates n_cost n_refine` (default `5 2`), `SeedIndexStopHitRatio t` (default 0, the
+early stop) and `BoundaryPass` (step 5's pass, rule `hit`, once before the `.mic` is written).
+Code: `icenine/boundary_pass.py` (new); `check_bfs_keys`, `_cma_first_fit`, the `optimizer`
+argument of `local_optimization` and the `stop_hit` argument of `index_seed` in `reconstructor.py`;
+`seed_by_indexing(stop_hit, hit_fn)` and `SeedResult.stopped_at` in `ray_indexing.py`;
+`CMAResult.start_cost` in `orientation_search.py`; the key table in `config_file.py`. Tests first
+(`tests/test_bfs_ar3_keys.py`, 57 tests, committed before the code; 59 after the fixes round);
+full suite on the branch after the fixes round 1576 passed, 47 skipped, 1 deselected
+(`keys/suite.json`). The two checks before the code: no test or golden compares a whole
+`CMAResult` or `SeedResult`; `cma_sigma0_deg` and `cma_neighbor_max_evals` are read only on the
+`LocalOptimizer cma` paths of `local_optimization` (the grid search and `refine_from_candidates`
+never read them under `mc`).
+Validation on `big` (scripts `scripts/autoresearch/ar3/libkeys_*.py`, results in
+`benchmarks/autoresearch/ar3/keys/`, contended, one run of each): `D4L`, `S5L`, `S8L` reproduce
+the stored runs `D4`, `S5`, `S8` exactly before the pass (seeds, reseeds, grid fallbacks,
+10,811,715, 11,867,509 and 7,201,863 evaluations, every counter, all 24,570 records, the map as
+a `.mic` byte for byte, 3,194 and 3,235 MC fallbacks, 322 early stops in 329 seed steps). The
+pass on the stored (rounded) maps is exact: 18,557, 18,563 and 18,665 tries, 1,131,977, 1,132,343
+and 1,138,565 evaluations, every try. In the run the pass reads the unrounded map and differs a
+little (as the plan predicted): `D4L` 18,557 tries and the same evaluations, 22 wrong voxels
+against 21 (voxel 19614 broken); `S5L` identical, 30; `S8L` 18,664 tries, 1,138,504
+evaluations, 24 wrong against 24 with 5 fixed and 5 broken against the stored map. Off path: the
+2,000-voxel pilot on the parent package and on this branch gives equal orientations, records,
+stats, logs and `.mic` bytes. The optional single-worker wall pair was not run (preflight
+refused). Page: `docs/autoresearch/findings_ar3_keys.md`.
+
+Fixes round (review `20261111-0941-review-ar3j`, decision D-20261111-N9). Page: the plot first;
+"Check 2 gives a reading"; which counts carry an interval, with the Wilson intervals added to the
+table of earlier runs; `grad` and `mid` defined; "both wrong" in the paired split; the uncounted
+evaluations as numbers (boundary scores 11,087, 11,049 and 11,054; 465 early-stop hit
+evaluations in `S8L`); the pass wall times and the suite counts in `keys/summary.json`; the
+stored `S8` run's "S5" label explained. Tests: two compare with values recorded from the parent
+code (4ff3ce6), one renamed, `SeedIndexCandidates` with a third number now raises `ValueError`.
+Library: annotations, `LOCAL_OPTIMIZERS`, docstrings (no behaviour change except the new
+`ValueError`). The reading of the in-run pass was tested (`libkeys_fresh.py`, `S8L` and `D4L`
+rerun, contended): a fresh process on the unrounded map gives the in-run pass try for try, and
+the same process after the BFS on the `.mic`-rounded map gives the script's stored tries. For
+these two runs the input rounding alone accounts for the difference; the process does not. The
+single-worker pair was not run (the timing preflight refused again).
+
 ## Autoresearch AR5 step 1: stop rules for the boundary pass, the grid fallbacks and the finished map (done 2026-11-11, task ar5a)
 
 No change under `icenine/`; no key, no default, no dependency. Scripts

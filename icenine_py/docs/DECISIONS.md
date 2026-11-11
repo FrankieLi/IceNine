@@ -1237,3 +1237,51 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the grid fallbacks at 19 and 30 percent of the evaluations. It starts while the fixes round of
   AR3 step 10 runs: it does not depend on step 10. Where: icenine_py/docs/autoresearch/PLAN.md,
   AR5 step 1.
+
+### D-20261111-N11 · Track A / AR5 step 1 (task ar5a) · AR5 step 1 review: apply the 12 required fixes; V1 and the vote count are not adopted
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under the owner mandate D-20261109-N1; the owner may overrule. Review
+  report .claude/reports/20261111-1215-review-ar5a.md: verdict REQUEST CHANGES, documents only, no
+  result changes, the negative results stand at their stated scope. (1) All 12 required fixes are
+  applied in a fixes round (Opus), with the parent merged into the task branch first (fix 2). The
+  suggestions that cost little are applied too: remove the unused held parameter, offset the plot
+  labels, draw the vote cut, give the share of boundary voxels, Wilson intervals for the Part 2
+  counts. The audit_numbers tool artifact goes to the tooling queue. (2) The implementer's two
+  questions: the check V1 after the 0.95 flag is not adopted (13 of 31 wrong voxels fixed on mid
+  for 105.4% of the run's evaluations; 99.4% of them spent on right voxels); the vote count is
+  dropped as a stop rule (its cut was chosen after the result and moves between samples). (3) The
+  run T1 is not run. No new point on the plots of cost against accuracy. (4) The reviewer's three
+  next-step options: option 1 (try test P2 m=2 as an opt-in key) is left to the owner; options 2
+  and 3 (a second check beside the hit ratio) go into AR4 step 1. Where: PLAN.md AR5 step 1;
+  findings_ar5_stop.md.
+
+### D-20261111-N12 · Track A / AR5 step 2 (task ar5b) · AR5 step 2 plan approved: seed refinement by CMA and no MC fallback after CMA, replay then run S10
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under the owner mandate D-20261109-N1; the owner may overrule. Plan in
+  PLAN.md, 'AR5 step 2: two long local optimizations that rarely change the result' (commit
+  2030e9e). Scripts only, no library file, no key, no default. Why: in run S8 the stock MC
+  refinement of indexed candidates and the MC fallback after CMA in neighbour fits are about 62%,
+  31% and 58% of the evaluations (big, first gradient sample, mid), and the MC fallback ended
+  lower than CMA in 3 to 6 of 3,000 to 4,000 runs where that was counted. Part 0 recomputes these
+  from the stored runs. Part 1 replays the stored seed steps with arms M, C60, C200, C0; pick on
+  big and the first gradient sample, test on mid, no script runs on mid before the pick commit.
+  Part 2 runs S10 on the three samples with the pass, after a base check that reproduces S8
+  exactly on big. Pass rules and five predictions are written in the plan before any run.
+  Implementer: Sonnet, own worktree, at most 3 heavy processes. Where: PLAN.md AR5 step 2.
+
+### D-20261111-N13 · Track A / AR4 step 1 (task ar4a) · AR4 recast from a learned proposer to a learned verifier; step 1 plan approved (offline)
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under the owner mandate D-20261109-N1; the owner may overrule, and the
+  recast in particular is the owner's to overrule. Plan in PLAN.md, 'AR4: learning where the
+  search is uncertain' and 'AR4 step 1: a learned verifier, measured offline against the hit
+  ratio' (commit 2030e9e). Why the recast: the premise of H4 (a network proposes where the voting
+  fails) does not hold on these samples: AR1 had the truth among the first 5 candidates for 69 of
+  69 and 200 of 200 voxels, and in all 31 grid-fallback cases of S8 a candidate near the truth was
+  already costed and refined (AR5 step 1). What fails is the test of a result: right and wrong
+  ends overlap in hit ratio, a 0.95 flag marks 8.8% and 15.1% of voxels. Step 1 trains a logistic
+  regression and a small set network on per-peak overlap shares (train on big and the first
+  gradient sample, test on mid, thresholds committed before mid is scored) and compares them with
+  the hit ratio for two uses: the flag of unfinished voxels, and accepting a seed without a grid
+  search. Offline only; no BFS change. H4 comes back if ray indexing fails on realistic images
+  (not tested). Starts after AR5 step 1 is merged. Implementer: Sonnet, own worktree, at most 2
+  heavy processes. Where: PLAN.md AR4, AR4 step 1.

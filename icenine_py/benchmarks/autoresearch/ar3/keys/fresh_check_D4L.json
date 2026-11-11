@@ -1,0 +1,159 @@
+{
+ "kind": "D4L",
+ "smoke": false,
+ "timing_label_run": "contended: timing preflight refused (Python at 100% CPU, cpptools at 99% CPU, Python at 100% CPU); single run, one worker",
+ "timing_label_fresh": "contended: timing preflight refused (cpptools at 98% CPU, Python at 100% CPU, Python at 100% CPU, Python at 99% CPU, spotlightknowledged at 99% CPU, Python at 100% CPU); single run, one worker",
+ "wall_bfs_with_inrun_pass_s": 1132.8111763000488,
+ "wall_inrun_pass_s": 135.1312699317932,
+ "wall_inproc_rounded_pass_s": 130.048437833786,
+ "wall_fresh_unrounded_pass_s": 132.4102041721344,
+ "max_abs_rounding": 8.774686307139179e-07,
+ "voxels_rounded_differently": 24570,
+ "seed_steps": 329,
+ "seed_step_refinements": 658,
+ "early_stop_hit_evals": 0,
+ "iv_fresh_unrounded_vs_inrun": {
+  "n_tries": [
+   18557,
+   18557
+  ],
+  "evals": [
+   1131977,
+   1131977
+  ],
+  "ends_compared_as": "float64",
+  "voxels_with_differing_tries": 0,
+  "differing_tries": 0,
+  "first_differing_voxels": [],
+  "voxels_changed": [
+   1052,
+   1052
+  ],
+  "same_changed_voxels": true,
+  "equal": true
+ },
+ "rounding_inproc_rounded_vs_inrun": {
+  "n_tries": [
+   18557,
+   18557
+  ],
+  "evals": [
+   1131977,
+   1131977
+  ],
+  "ends_compared_as": "float64",
+  "voxels_with_differing_tries": 11087,
+  "differing_tries": 18557,
+  "first_differing_voxels": [
+   0,
+   1,
+   2,
+   8,
+   9,
+   10,
+   31,
+   32,
+   35,
+   36
+  ],
+  "voxels_changed": [
+   1057,
+   1052
+  ],
+  "same_changed_voxels": false,
+  "equal": false
+ },
+ "i_inrun_vs_stored_step10_inrun": {
+  "n_tries": [
+   18557,
+   18557
+  ],
+  "evals": [
+   1131977,
+   1131977
+  ],
+  "ends_compared_as": "float32",
+  "voxels_with_differing_tries": 0,
+  "differing_tries": 0,
+  "first_differing_voxels": [],
+  "voxels_changed": [
+   1052,
+   1052
+  ],
+  "same_changed_voxels": true,
+  "equal": true
+ },
+ "iv_fresh_unrounded_vs_stored_step10_inrun": {
+  "n_tries": [
+   18557,
+   18557
+  ],
+  "evals": [
+   1131977,
+   1131977
+  ],
+  "ends_compared_as": "float32",
+  "voxels_with_differing_tries": 0,
+  "differing_tries": 0,
+  "first_differing_voxels": [],
+  "voxels_changed": [
+   1052,
+   1052
+  ],
+  "same_changed_voxels": true,
+  "equal": true
+ },
+ "iii_inproc_rounded_vs_script": {
+  "n_tries": [
+   18557,
+   18557
+  ],
+  "evals": [
+   1131977,
+   1131977
+  ],
+  "ends_compared_as": "float32",
+  "voxels_with_differing_tries": 0,
+  "differing_tries": 0,
+  "first_differing_voxels": [],
+  "voxels_changed": [
+   1057,
+   null
+  ],
+  "same_changed_voxels": null,
+  "equal": true
+ },
+ "inrun_vs_script": {
+  "n_tries": [
+   18557,
+   18557
+  ],
+  "evals": [
+   1131977,
+   1131977
+  ],
+  "ends_compared_as": "float32",
+  "voxels_with_differing_tries": 11082,
+  "differing_tries": 18543,
+  "first_differing_voxels": [
+   0,
+   1,
+   2,
+   8,
+   9,
+   10,
+   31,
+   32,
+   35,
+   36
+  ],
+  "voxels_changed": [
+   1052,
+   null
+  ],
+  "same_changed_voxels": null,
+  "equal": false
+ },
+ "ii_before_mic_equals_stored_step10_bytes": true,
+ "ii_read_back_equals_script_before_npy": true
+}

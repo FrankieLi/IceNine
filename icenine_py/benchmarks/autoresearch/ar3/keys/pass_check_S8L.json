@@ -1,0 +1,35 @@
+{
+ "kind": "S8L",
+ "n_tries": [
+  18665,
+  18665
+ ],
+ "evals": [
+  1138565,
+  1138565
+ ],
+ "score_evals_library": 11054,
+ "boundary_voxels": [
+  11054,
+  11054
+ ],
+ "wall_s": 129.4044451713562,
+ "timing_label": "contended: timing preflight refused (cpptools at 100% CPU, Python at 99% CPU, Python at 100% CPU, Python at 100% CPU); single run, one worker",
+ "differ_voxel": 0,
+ "differ_cand": 0,
+ "differ_evals": 0,
+ "differ_cost": 0,
+ "differ_hit": 0,
+ "differ_conf": 0,
+ "differ_end": 0,
+ "differ_old_score": 0,
+ "voxels_changed": [
+  1056,
+  1056
+ ],
+ "same_changed_voxels": true,
+ "changed_voxels_with_a_different_end_after_the_script_rounding": 0,
+ "first_differing_voxel": [],
+ "max_abs_diff_library_vs_stored_map_at_changed_voxels": 5.607053699119291e-08,
+ "unchanged_voxels_equal": true
+}

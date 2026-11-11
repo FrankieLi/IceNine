@@ -1572,10 +1572,109 @@ keys in "Key Config Parameters for Reconstruction" and the new module in "Packag
 `MIGRATION_HISTORY.md`: a section for step 10. Results in `benchmarks/autoresearch/ar3/keys/`,
 slim, under 5 MB tracked; maps and records are linked from the worktrees, not committed.
 
-## AR4: the learned proposer
+## AR4: learning where the search is uncertain
 
-Train and measure H4 on the same voxels as AR1. It starts after AR1 so that it can be compared
-with the voting and aimed at the voxels the voting misses.
+The first plan put the learned part at the proposer (H4): a network that proposes orientations
+where the voting of ray indexing fails. The results since then say the voting does not fail on
+these samples. In AR1 the truth was among the first 5 candidates for 69 of 69 and 200 of 200
+voxels. In AR5 step 1, in all 31 grid-fallback cases of run `S8` a candidate within 2 degrees
+of the truth was costed and refined. A network that proposes has nothing to add there. Ray
+indexing on realistic images (overlap and detector noise) has not been tested; if it fails
+there, H4 comes back.
+
+What does fail is the test of a result. The only test is the hit ratio, and the hit ratios of
+right and wrong results overlap. A right seed that ends at a hit ratio of 0.66 to 0.80 fails
+the seed test and costs a full grid search (5.45 and 5.00 million evaluations on the two
+samples that have fallbacks, 30% and 19% of `S8` with the pass). A flag at 0.95 catches every
+wrong voxel but marks 8.8% and 15.1% of all voxels; the check `V1` on the flagged voxels of
+`mid` then spent 27,717,299 of its 27,882,533 evaluations on right voxels. A seed test
+lowered to 0.78 would accept 14 right ends and 1 wrong end of the 31 (both from the review
+of AR5 step 1). So the learned part moves from proposing
+to verifying: "is this orientation right for this voxel, or can more search find a better
+one?" This is the owner's goal 5 (predict whether more optimization can help) with the tool
+of goal 2 (a model fitted once per setup and material, reused for every voxel).
+
+### AR4 step 1: a learned verifier, measured offline against the hit ratio
+
+Task `ar4a`. Scripts and results only: no file under `icenine_py/icenine/` changes. It starts
+after AR5 step 1 is merged, because it reads that step's cases and vote counts.
+
+**Terms.** A **pair** is one voxel with one orientation. A pair is **right** if the
+orientation is within 1 degree of the voxel's truth (the symmetry-reduced angle of the
+library; nothing here is specific to cubic crystals). A **verifier** reads numbers that one
+evaluation of the pair gives, with no truth, and returns a score from 0 to 1 that the pair is
+right. A pair is **flagged** when its score is under a threshold. Train samples: `big` and the
+first gradient sample. Test sample: `mid`; no model is trained and no threshold is picked on
+it, and the file of thresholds is committed before any script scores a pair of `mid`.
+
+**The idea to test.** At a boundary voxel the footprint lies partly in a neighbouring grain.
+The right orientation then lights part of every predicted peak. A wrong orientation (most
+often the neighbour grain's) lights some peaks fully and misses others. The hit ratio adds
+all pixels together and cannot tell these apart; the per-peak pattern may.
+
+**Inputs of a pair** (from one evaluation and the stored ray lists):
+
+- per predicted peak: its lattice-plane family as a rank by length of the reciprocal vector,
+  the detector distance, the rotation angle, and the share of its pixels that fall on observed
+  intensity;
+- summary numbers: hit ratio, cost, confidence, the share of peaks with any lit pixel, the
+  lowest quarter of the per-peak shares, the number of attached rays the orientation explains,
+  and the best vote count among the rays it does not explain (AR5 step 1's number).
+
+If the cost function does not give the per-peak shares, a script computes them from the same
+overlap data; the library is not changed.
+
+**Models.**
+
+- `B0`: the hit ratio alone (today's rule).
+- `B1`: a logistic regression on the summary numbers.
+- `N1`: a small set network on the per-peak inputs (a shared layer per peak, mean and max
+  over the peaks, then two layers; under 50,000 parameters), plus the summary numbers.
+  PyTorch, CPU, one training run with generator seed 0, at most 10 minutes. The layer sizes,
+  the loss and the number of epochs are written in the script and committed before training.
+
+**Pairs.** For each sample: (i) every voxel with its `S8` orientation before the boundary
+pass and after it; (ii) at every boundary voxel, each distinct neighbour orientation (the
+rival-grain case); (iii) the refined ends of every stored seed step, and the costed candidates
+of every 10th seed step; (iv) the truth turned by 0.1, 0.3 and 0.5 degree about a random axis
+at every 20th voxel (right, but not exact). Labels come from the truth. One evaluation per
+pair; the count of pairs and of evaluations is reported.
+
+**Two uses, each with its own test on `mid`.**
+
+- *Use 1: the flag of unfinished voxels.* On the `S8` maps after the pass. For each model the
+  threshold is the one that flags the fewest voxels while flagging at least 95% of the wrong
+  voxels of the train samples, pooled. On `mid`: wrong voxels flagged (of 31, with a Wilson
+  95% interval) and the share of all voxels flagged. Pass rule for a model: it flags at least
+  as many of the 31 as `B0` at `B0`'s own threshold, and at most half as many voxels.
+- *Use 2: accept a seed without a grid search.* On the stored seed steps whose refined end
+  failed the seed test (the 31 fallback cases; 16 on a train sample, 15 on `mid`) and, as a
+  control, on the seed steps that passed. A seed is accepted when its score is at or above the
+  threshold of use 1. Count on `mid`: right ends accepted (each one is a grid search saved;
+  give the stored evaluations of those searches as a what-if, not as a result), wrong ends
+  accepted, and passing seeds that would now be refused. These are small counts and are read
+  as counts.
+
+**Predictions, written before any training.**
+
+1. `B1` does not pass use 1 (the summary numbers add little to the hit ratio).
+2. `N1` passes use 1 on `mid`.
+3. Use 2 on `mid`: `N1` accepts at least two thirds of the right ends among the 15 fallback
+   cases and at most one wrong end.
+4. The share of peaks with any lit pixel alone (one number, no training) separates right from
+   wrong at boundary voxels better than the hit ratio does. If it does as well as `N1`, the
+   page says so and the network is not needed.
+
+**Budgets.** Inputs of all pairs: 45 minutes, at most 2 heavy processes. Training: 10
+minutes a model. No whole-layer run.
+
+**Files.** `scripts/autoresearch/ar4/verify_*.py`, tests of the pure functions (inputs,
+pooling, threshold pick) in `tests/test_ar4_verifier.py`, results in
+`benchmarks/autoresearch/ar4/` (under 5 MB tracked; the pair inputs stay untracked in a
+cache), page `docs/autoresearch/findings_ar4_verifier.md`.
+
+**Not in this step.** The verifier inside the BFS, a whole-layer run, a key. If a model
+passes, step 2 wires it in as a script layer and runs the three samples. Realistic images.
 
 ## AR5: the stop rule
 
@@ -1747,6 +1846,103 @@ samples stand for all samples. That realistic images give the same thresholds.
 term at first use, and leads with a plot: evaluations by stage for `S8` and `T1` on the
 three samples (or, if no rule passed, the tries kept against the net gain lost for each
 setting of the try test); then the tables.
+
+### AR5 step 2: two long local optimizations that rarely change the result
+
+Task `ar5b`. Scripts and results only: no file under `icenine_py/icenine/` changes, no key is
+added, no default changes. Planned on 2026-11-11 from stored numbers; step 1's result (no rule
+passed) does not change it.
+
+**Why.** Two stages of run `S8` run the stock MC optimizer (`FindOptimal`, then the
+variance-minimizing stage) from a start that is already close. Stored numbers, not yet put side
+by side on a page:
+
+- The seed step refines each indexed candidate with the stock MC optimizer. The candidate is a
+  least-squares (Procrustes) output; in AR1 its median distance from the truth was 0.038 and
+  0.054 degree. One refinement costs 6,129 evaluations on average on `big`, 1,266 on the first
+  gradient sample and 3,723 on `mid`. The seed step is 2,856,712, 3,008,757 and 12,007,352
+  evaluations; costing the candidates is a tiny part of that (6,580 on `big`).
+- A neighbour fit runs CMA first (61 evaluations). If the CMA end cost is not below the start
+  cost, the stock MC fit runs from the same start (the "MC fallback"). In `S8` it ran in 3,197,
+  3,903 and 4,568 fits (9.8%, 7.3%, 8.8%) at a mean of 738, 668 and 706 evaluations: about
+  2.36, 2.61 and 3.23 million. In the runs where its wins were counted it ended lower than the
+  CMA end in 6 of 3,974 (`D4`, first gradient sample), 4 of 3,194 (`D4`, `big`) and 3 of 3,235
+  (`S5`, `big`).
+
+Together that is about 62%, 31% and 58% of the evaluations of `S8` with the boundary pass
+(8,340,428, 18,000,230 and 26,443,074). These shares are my arithmetic from the stored
+numbers; Part 0 recomputes them from the files.
+
+**Terms.** Evaluation, seed step, seed test (hit ratio at least 0.80), early stop (0.95), grid
+fallback, neighbour fit, revisit, boundary pass, wrong (more than 1 degree from the truth): as
+in `findings_ar3_keys.md`. Pick samples: `big` and the first gradient sample. Test sample:
+`mid`. A pick file is committed before any script reads `mid`. No script runs on `mid` before
+that commit, not even to fill a cache (the review of step 1 found such a run; the page must
+be able to say there was none).
+
+**Part 0: the stored numbers.** From the stored `S8` runs of the three samples: per sample,
+the number of seed refinements and their evaluations, the number of MC fallbacks, their
+evaluations and how many ended lower than the CMA end. If a stored run does not hold the last
+count, say so and take it from Part 2's base run. One table.
+
+**Part 1: a seed refinement whose step matches the error of its start (replay).** For every
+stored seed step of `S8` (329, 1,279 and 1,611 steps), index the voxel again and check what
+the log holds (the number of candidates, the number costed). Then refine with each arm, in `S8`'s
+order, with `S8`'s early stop (the first end with a hit ratio of at least 0.95 is kept; if none,
+the lowest cost of up to 5 ends):
+
+- `M`: the stored MC refinement. Its numbers come from the log. Rerun it on every 10th step
+  and check that evaluations and hit ratio equal the stored ones; if they do not, stop and
+  report.
+- `C60`: a CMA fit, first step 0.05 degree, at most 60 evaluations (the neighbour fit's
+  settings).
+- `C200`: the same with at most 200 evaluations.
+- `C0`: no refinement; the candidate as costed.
+
+Per step and arm: evaluations, end hit ratio, error against the truth, seed test passed or
+not. Pick rule (on the pick samples, pooled, paired by step): the cheapest arm for which (a)
+the steps that pass the seed test are at most 1% of all steps fewer than with `M`, and (b) the
+steps that end within 1 degree of the truth are at most 1% of all steps fewer than with `M`.
+Pass rule on `mid`: (a) and (b) hold there, and the seed-step evaluations fall by at least
+80%. Report the paired counts (passes with `M` only, with the arm only), no p-values.
+
+**Part 2: the whole layer.** One base check first: the script layer with both changes off must
+give stored `S8` exactly on `big` before the pass (7,201,863 evaluations, 67 wrong). Then run
+`S10` = `S8` with (i) the picked seed refinement, if Part 1's pick passed on `mid`, and (ii)
+no MC fallback: a neighbour fit or revisit returns what the CMA fit returned. Three samples,
+with the boundary pass, at most 90 minutes a run; a run at its cap is reported as unfinished.
+Evaluations by stage, grid fallbacks, wrong voxels before and after the pass with Wilson 95%
+intervals, fixed and broken against `S8` paired by voxel, median error.
+
+Pass rule for `S10`, on each sample: at least 20% fewer evaluations than `S8` with the pass;
+broken minus fixed at most 5 voxels; median error at most 0.005 degree above `S8`'s. If it
+fails on a sample, run the two changes alone on that sample (`S10a`: seed refinement only;
+`S10b`: no MC fallback only) to see which one fails. The rows of every finished run go into
+`docs/autoresearch/pareto/pareto_rows.json`.
+
+**Predictions, written before any run.**
+
+1. Part 0: in `S8` the MC fallback ended lower than the CMA end in under 1% of its runs on
+   every sample that holds the count.
+2. `C60` is the pick and passes on `mid`; it cuts the seed-step evaluations by at least 90% on
+   all three samples.
+3. `C0` fails rule (a): without a refinement too few candidates pass the seed test.
+4. `S10` with the pass needs under 4.0 million evaluations on `big` (`S8`: 8.34), under 14
+   million on the first gradient sample (18.00) and under 13.5 million on `mid` (26.44), and
+   passes its rule on all three.
+5. The number of grid fallbacks of `S10` is within 2 of `S8`'s on every sample (0, 16, 15).
+
+**Budgets.** Part 0 minutes; Part 1 30 minutes; Part 2 at most 90 minutes a run, at most 3
+heavy processes at a time. All wall times are contended and are not timing results.
+
+**Files.** `scripts/autoresearch/ar5/fit_*.py`, tests of the pure functions in
+`tests/test_ar5_fit_rules.py`, results in `benchmarks/autoresearch/ar5/fit/` (under 5 MB
+tracked), page `docs/autoresearch/findings_ar5_fits.md`.
+
+**Not in this step.** A library key (a later step, if `S10` passes). A timing. A real sample
+or realistic images. The try test `P2 m=2` of step 1 (it lost no net gain on any sample and
+cut 16.6%, 30.2% and 38.9% of the pass, under the plan's 50% rule): whether it becomes an
+opt-in key is the owner's choice.
 
 ## Machine-time runs from the review page
 

@@ -225,6 +225,12 @@ class ConfigFile:
     outward_search: bool = False  # BFS neighbours / reseeds start with the Task F policy (opt-in)
     seed_by_indexing: bool = False  # BFS seeds / reseeds indexed first (opt-in)
     paint_grains: bool = False  # grain painting in place of the BFS (opt-in, needs SeedByIndexing)
+    # AR3 step 10 (opt-in, all off at these defaults; see SearchParameters)
+    bfs_neighbor_cma_first: bool = False  # CMA fit first in each BFS neighbour fit, MC if no gain
+    seed_index_n_cost: int = 5  # indexed seed step: candidates that get the strict cost
+    seed_index_n_refine: int = 2  # ... and candidates refined (the cheapest)
+    seed_index_stop_hit: float = 0.0  # indexed seed step stops at this hit ratio (0 = off)
+    boundary_pass: bool = False  # one boundary pass over the map before the .mic is written
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
@@ -475,6 +481,10 @@ class ConfigFile:
             "OutwardSearch": self._parse_bool("outward_search"),
             "SeedByIndexing": self._parse_bool("seed_by_indexing"),
             "PaintGrains": self._parse_bool("paint_grains"),
+            "BFSNeighborCMAFirst": self._parse_bool("bfs_neighbor_cma_first"),
+            "SeedIndexCandidates": self._parse_seed_index_candidates,
+            "SeedIndexStopHitRatio": self._parse_unit_interval("seed_index_stop_hit"),
+            "BoundaryPass": self._parse_bool("boundary_pass"),
             "CppOverlapRule": self._parse_bool("cpp_overlap_rule"),
             "CppEdgeRules": self._parse_bool("cpp_edge_rules"),
             "CppOmegaInterp": self._parse_bool("cpp_omega_interp"),
@@ -609,6 +619,37 @@ class ConfigFile:
         if not ok:
             raise ValueError(f"RayOverlapRule must be off, R<n> or A, got {value!r}")
         self.ray_overlap_rule = "off" if value.lower() in ("off", "0") else value.upper()
+
+    def _parse_seed_index_candidates(self, tokens: List[str]) -> None:
+        """SeedIndexCandidates n_cost n_refine (Python-only, opt-in; needs SeedByIndexing 1): the
+        indexed seed step costs n_cost candidates and refines the n_refine cheapest.
+        1 <= n_refine <= n_cost <= ray_indexing.SEED_TOP_K."""
+        from .ray_indexing import SEED_TOP_K
+
+        if len(tokens) != 3:
+            raise ValueError(
+                f"{tokens[0]} needs exactly two integers: n_cost n_refine, got {tokens[1:]}"
+            )
+        n_cost, n_refine = int(tokens[1]), int(tokens[2])
+        if not 1 <= n_refine <= n_cost <= SEED_TOP_K:
+            raise ValueError(
+                f"{tokens[0]} needs 1 <= n_refine <= n_cost <= {SEED_TOP_K}, "
+                f"got {n_cost} {n_refine}"
+            )
+        self.seed_index_n_cost, self.seed_index_n_refine = n_cost, n_refine
+
+    def _parse_unit_interval(self, attr_name: str) -> Callable[[List[str]], None]:
+        """Parser for a float in [0, 1]."""
+
+        def parser(tokens: List[str]) -> None:
+            if len(tokens) < 2:
+                raise ValueError(f"Missing value for {tokens[0]}")
+            value = float(tokens[1])
+            if not 0.0 <= value <= 1.0:
+                raise ValueError(f"{tokens[0]} must be in [0, 1], got {value}")
+            setattr(self, attr_name, value)
+
+        return parser
 
     def _parse_local_optimizer(self, tokens: List[str]) -> None:
         """LocalOptimizer mc|cma (Python-only; selects the local refinement optimizer)."""
