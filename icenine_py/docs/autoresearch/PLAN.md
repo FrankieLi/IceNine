@@ -1212,6 +1212,128 @@ the two samples; then the classes of rejected fits per level. The stored maps, l
 stacks of steps 6 and 7 are in the worktrees that `STATE.md` lists; they are linked, not
 copied into git.
 
+### Step 9: a start test for the neighbour fits, the rejected fits that end right, a third sample
+
+Task `ar3i`. It starts after step 8 is merged. No file under `icenine_py/icenine/` changes.
+No key is added and no default changes.
+
+**Why.** Step 8 leaves three things open.
+
+- *Run `S8` is not confirmed.* Its stop test (hit ratio 0.95) was added after results
+  (D-20261111-N5). It has to be an arm of a whole-layer run on a sample it was not chosen on.
+- *The neighbour fits are now the largest stage on `big`.* In `S8` with the boundary pass they
+  are 3.49 of 8.34 million evaluations, and the revisits 0.85 million more. A fit costs up to
+  61 evaluations. Nothing stops it when its start is already good.
+- *Class A.* 1,069 of the 1,471 voxels in reseed clusters of `S5` on `big` had a fit from a
+  neighbour that ended right and was rejected by the relative test. The 292 reseeds of `S8`
+  cost most of its 2.86 million seed-step evaluations. Step 8 named two explanations and
+  tested neither: the fit stops a few tenths of a degree short of the best orientation, or the
+  true orientation itself scores under 0.9 times the flood's best.
+
+**Terms.** As in step 8 (BFS, relative test, reseed, seed step, seed test, grid fallback,
+boundary pass, classes A, B and C). *Neighbour fit*: the local optimization of a voxel started
+from a fitted neighbour's orientation. *Revisit*: a later fit of a voxel the BFS marked for
+another try. *Start test*: one evaluation of the start before a fit; if its hit ratio is at
+least a threshold, the start is kept and the fit is skipped. *Right*: within 1 degree of the
+truth, as on step 8's page. *Error*: the angle between a voxel's orientation and the truth.
+
+**Part 1: what the stored runs say.** From step 8's logged run of `S5` on `big` and its
+stored cases on the first gradient sample. One more logged rerun is allowed if a field is
+missing (cap 90 minutes, same voxel order; the page shows its counts match).
+
+1. *The start of every neighbour fit and revisit.* The hit ratio and the error at the start
+   and at the end, and the evaluations used. Reported by gradient level: the share of fits
+   whose start already has a hit ratio of at least 0.90, 0.95 and 0.98, and how far those
+   fits moved.
+2. *Class A, the check.* For every class A voxel: the hit ratio at the true orientation,
+   against 0.9 times the flood's best at that moment. Then the same after one more local
+   optimization from the rejected fit's end (first step 0.1 degrees, at most 60 evaluations).
+   The page says which explanation holds for how many voxels, and whether the stored rejected
+   fit already includes the BFS's own retry.
+
+**Part 2: remedies, on stored cases first.** The split is step 8's: true grains with an even
+index are the pick set, with an odd index the test set. The remedies and their settings are
+fixed here. No remedy, setting or test that is not in this table is added after a result. The
+pick is written to a results file and committed before the script that reads the test set is
+run, so that git shows the order.
+
+| remedy | aimed at | what it does | settings |
+|---|---|---|---|
+| `F1` | neighbour fits, revisits | the start test: keep the start, skip the fit | threshold 0.90, 0.95, 0.98 |
+| `F2` | class A | before a fit is rejected, one more fit from its end | first step 0.05, 0.1, 0.2 degrees |
+
+`F2` uses at most 60 evaluations and is then judged by the relative test. It runs on every
+rejected fit, because the BFS does not know the class; its cost on classes B and C counts. It
+is tried only if Part 1 shows that the fit stopped short in at least half of class A.
+
+*The pick.* Among a remedy's settings, the one that saves most evaluations on the pick set
+among those that break no more cases than they fix. If none qualifies, the remedy fails. *The
+pass rule.* On the test set the remedy cuts the evaluations of its target by at least a third
+and breaks no more cases than it fixes. For `F1` the target is the neighbour fits and
+revisits; a case is broken if the stored fit ended right and the kept start is wrong. For
+`F2` the target is the seed steps of the reseed clusters that vanish, less `F2`'s own cost.
+
+Stored cases cannot show one risk of `F1`: a kept start is passed on to the next voxel, so
+the error can add up across a grain with a gradient. Only the whole-layer run measures that.
+The page therefore reports the error (median, 90th and 99th percentile), not only the count
+of wrong voxels.
+
+**Part 3: whole-layer runs.** A third sample, `mid`: step 7's generator with its stored
+settings and seed value, about 120 grains on the same 24,570-voxel grid (about 205 voxels per
+grain, between the two samples so far), the same six gradient levels in step 7's proportions,
+clean images. No setting was chosen on it.
+
+- On `mid`: runs `D4`, `S5` and `S8`, each with the boundary pass. This is the confirmation
+  that D-20261111-N5 asks for. It runs whatever Part 2 gives.
+- Run `S9` is `S8` with every remedy that passed: on `mid`, on `big` and on the first
+  gradient sample, each with the boundary pass. Only if a remedy passed.
+
+Cap 90 minutes per run, 60 minutes for the image stack of `mid`. No other whole-layer run.
+Accounting as in step 8: evaluations by stage, seeds, reseeds, grid fallbacks, wrong voxels
+before and after the pass with 95% intervals, the error percentiles, paired counts.
+
+**Written down before the runs.** (1) In most class A voxels the truth passes the relative
+test: the fit stopped short. (2) In `S5` on `big`, more than half of the neighbour fits in the
+grains at 1 degree or less start with a hit ratio of at least 0.95, and fewer than a quarter
+in the grains at 4 degrees. (3) On `mid`, `S8` with the pass needs fewer evaluations than
+`S5` and than `D4` with the pass, and its interval of wrong voxels overlaps that of the one
+with fewer wrong voxels. (4) `S9` with the pass needs under 6.5 million evaluations on `big`
+(`S8`: 8.34), with an interval of wrong voxels that overlaps `S8`'s and a median error no
+more than 0.05 degrees above `S8`'s. The page says for each whether the result agrees.
+
+**What the result decides.** If prediction 3 holds, `S8`'s seed step counts as confirmed on a
+sample it was not chosen on, and it is my recommendation for the opt-in key. If it does not
+hold, the page says so and the recommendation falls back to "both numbers as settings, no
+stop test". If `F1` passes and prediction 4 holds, the start test is a candidate for a second
+opt-in key. The choice of what a key recommends stays the owner's in every case. AR5 proper
+(a stop rule inside the grid search, with the vote count of unexplained rays) is not part of
+this step: it aims at the grid fallbacks, 5.45 of `S8`'s 18.00 million evaluations on the
+first gradient sample.
+
+**Rules of the study.** One run per arm; no extra random seeds (`mid` is a new grain size,
+not a repeat). No p-values: counts, paired fixed and broken, 95% intervals. Intervals treat
+voxels, fits and seed steps as independent although they cluster in grains; the page says
+so. A gradient level holds few grains: each result by level is a result on those grains.
+Every number chosen after a result is listed as such. Nothing here is specific to cubic
+symmetry or to special misorientations.
+
+**Stop rules of the task.** Part 1: 60 minutes of compute besides the one allowed rerun.
+Part 2: 60 minutes. Part 3: the caps above. A run that hits its cap is reported with what it
+reached, not repeated. The general stop rule holds as well.
+
+**Not claimed.** That C++ behaves the same. That the gradient model or these levels match a
+real sample. A change of any default. A tested wall time unless the preflight passes. That
+three samples stand for all samples.
+
+**Files.** Scripts in `scripts/autoresearch/ar3/` (`start_*.py`); results in
+`benchmarks/autoresearch/ar3/start/`, slim, under 5 MB; findings in
+`docs/autoresearch/findings_ar3_start.md` (returned as text if the write is refused).
+`MIGRATION_HISTORY.md` gets the summary. The page says "local optimization", defines each
+term at first use, and leads with a plot: evaluations by stage for `D4`, `S5`, `S8` and `S9`
+on the three samples; then the share of fits whose start passes, per level. The stored maps,
+logs and image stacks of steps 6 to 8 are in the worktrees that `STATE.md` lists; they are
+linked, not copied into git.
+
 ## AR4: the learned proposer
 
 Train and measure H4 on the same voxels as AR1. It starts after AR1 so that it can be compared
