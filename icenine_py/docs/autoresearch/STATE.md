@@ -27,9 +27,12 @@ Read this file first after any restart or wake. It holds only what is true now a
 Step 6 of AR3 (the seed cost, task `ar3f`; plan in `PLAN.md` under "Step 6: the seed cost",
 approved by D-20261110-N8).
 
-1. Wait for the reviewer's notification (see "Running jobs"). Do not poll its output file.
-2. Decision, fixes, merge, close: runbook section "A step, from plan to merge", points 7
-   to 9.
+1. Wait for the fixes implementer's notification (see "Running jobs"). Do not poll its output
+   file. Then `verify_handback.sh feature/eval-reduction <its report> --branch
+   feature/eval-reduction-ar3f --fixes .claude/reports/20261111-0330-review-ar3f.md --no-tests`
+   and the key-by-key check of the summary files against 6c4665c.
+2. Merge and close: runbook section "A step, from plan to merge", points 8 and 9. Add step 6's
+   runs (S, S5, K2, each with the boundary pass) to the cost-against-accuracy panels.
 3. Then plan the next step from step 6's result. Candidates, in the plan's order: the same
    check on a sample with larger grains, then opt-in keys for the remedy and for the boundary
    pass; AR4 (learned proposer) for the voxels every remedy leaves to the grid search; AR5
@@ -46,9 +49,13 @@ brief and the note "continue from the commits on the branch".
   `.claude/reports/20261110-2308-ar3f.md`). The findings page `findings_ar3_seed.md` was placed
   by the main session from the implementer's text (its Write was refused). `verify_handback.sh`:
   0 FAIL, 2 expected flags.
-- Step 6 reviewer (Opus `code-reviewer`), started 2026-11-11. Its report goes to
-  `.claude/reports/20261111-0330-review-ar3f.md`. The session is notified when it ends. Then:
-  runbook points 7 to 9 (decision D-20261111-N1, fixes round, merge, close).
+- Step 6 review (2026-11-11): request changes, 11 fixes, text, tables and plot label only, no
+  rerun. Report `.claude/reports/20261111-0330-review-ar3f.md`. Decision D-20261111-N1: all 11
+  fixes; additions 7a, 7b, S5 kept as marked; default for the next work is the seed step of
+  run S5 (best 5 of 20, no neighbour tries), after a larger-grain check; the owner can overrule.
+- Step 6 fixes implementer (Opus, own worktree), started 2026-11-11. Its report:
+  `.claude/reports/20261111-0128-ar3f-fixes.md` (maybe in its own worktree). The old worktree
+  is detached at 6c4665c, so the task branch is free for it.
 - The review page is at version 30 (step 5 done, step 6 running). No page job is open. Version
   30 added the section "Cost against accuracy, all methods" (owner's request, 2026-11-11): one
   plot per sample with the frontier marked. When a step ends, add its rows to
@@ -62,7 +69,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 6 | the seed cost (task `ar3f`) | handed back 2026-11-11; review running |
+| AR3 step 6 | the seed cost (task `ar3f`) | reviewed; fixes round running (D-20261111-N1) |
 | AR3 later | larger-grain check; opt-in keys for the boundary pass and the remedy | after step 6 |
 | AR4 | the learned proposer | after step 6 |
 | AR5 | the stop rule inside the grid search | after step 6 |
@@ -91,6 +98,8 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   the image stacks `Examples/Example2.ManyGrains/ScatteringData_PhaseD`.
 - `agent-ad88d4ade1ca5a039` (step 5 fixes): a second copy of `boundary/cache/`, and the fixes
   report `.claude/reports/20261110-2233-ar3e-fixes.md`.
+- `agent-a6db3cabf8ab230e9` (step 6, detached at 6c4665c): `seed/cache/`, `seed/runs/`, a
+  `boundary/cache/`, the image-stack link, and the report `.claude/reports/20261110-2308-ar3f.md`.
 - Steps 3 and 4: `agent-ae68d32fb972a8ad4` and `agent-ac609f1c28c619ed0` (see
   `grep -n "worktrees/agent-" docs/autoresearch/STATE_HISTORY.md`).
 
@@ -103,14 +112,14 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   local-optimization settings on real data; how many voxels a grain spans in your maps.
 - A note to read: C++ parallel mode keeps the higher confidence for a voxel that two clients
   fit; that rule did harm in the Python test of step 5. A reading of the source, not a test.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8 (the review page lists
-  them). Step 5's result files add about 50 MB to git; say so if you want them pruned.
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8 and D-20261111-N1 (the
+  review page lists them up to N8). Step 5's result files add about 50 MB to git; say so if you want them pruned.
 - Not done unless you ask: a repo-wide rename of "finisher" to "local optimization".
 - Ilium's plan approvals, when posted, are yours.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N1.
+- Next decision ID: D-20261111-N2.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`); mailbox in
