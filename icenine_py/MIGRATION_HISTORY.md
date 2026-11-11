@@ -11478,7 +11478,7 @@ tested stop rule, a tested wall time, another local optimizer.
 
 No change under `icenine/`; scripts `scripts/autoresearch/ar3/{run_fine,fine_summary,fine_part2,
 run_wrapped,wrapped_bg,wrapped_summary}.py`, results `benchmarks/autoresearch/ar3/fine/`, page
-`docs/autoresearch/findings_ar3_fine.md` (returned as text; the tool refuses a new `.md`). The box
+`docs/autoresearch/findings_ar3_fine.md`. The box
 (`search_box_side`, radians) is replaced by the script while its own `local_optimization` call
 runs; no config key. Gradient sample of step 3 only; C++ not run; one run per arm. Part 1, fits
 from step 3's stored painted starts (19,013 voxels), stock box reproduces run R on the first 200
@@ -11487,13 +11487,23 @@ fits (200 of 200). Share above 0.1 degrees: start 11.3 to 12.2%, stock 11.3 to 1
 at 61 evaluations per fit. The plan's "about 46 evaluations" for a small box was wrong: medians
 398 (5/8), 1,245 (5/16), 22,145 (5/32, run on 600 voxels only; the ladder too); the MC budget
 extends while a block's cost spread is large (consistent with; two voxels looked at, not
-tabulated). Wrong count unchanged (87) in every arm. Pick on set A: the CMA fit; on set B a gain
-over the start and the stock box (204 of 9,305 above 0.1 against 1,304). Part 2 (step 3's stop
-readings on the CMA fit, trace by generation): little to save; second fit helps 73 of 4,768.
-Part 3, whole layer, wrapped fit (CMA first, stock fit when the cost did not fall; the caller's
-acceptance test is not visible to the wrapper): D4 35,129,496 evaluations against 118,350,225,
-wrong 225 against 203 (no difference), above 0.1 a gain; P4 plus R4 50,892,696 against
-90,985,770, wrong 281 against 170 (loss); E4 13,608,181 against 33,040,126, wrong 305 against 153
-(loss). No run killed at its cap; all walls contended. Wrapper only in `local_optimization`:
-every CMA call is the wrapper's. Owner decides on a variant that gives the caller-rejected voxels
-to the stock fit.
+tabulated); box 5/8 is still about 1.6 times cheaper than the stock box (median 398 against
+662). Wrong count unchanged (87) in every arm. Pick on set A among the four arms run on all
+voxels: the CMA fit (B015 and L, 600 voxels only, were not candidates; with them added, on
+their 299 set-A voxels, the rule still picks the CMA fit). On set B a gain over the start and
+the stock box (204 of 9,305 above 0.1 against 1,304). Part 2 (step 3's stop readings on the CMA
+fit, trace by generation): little to save; second fit helps 73 of 4,768. Part 3, whole layer,
+wrapped fit (CMA first, stock fit when the cost did not fall; the caller's acceptance test was
+not evaluated, it would need the caller's local variables): D4 35,129,496 evaluations against
+118,350,225, wrong 225 against 203 (no difference), above 0.1 a gain; P4 plus R4 50,892,696
+against 90,985,770, wrong 281 against 170 (loss); E4 13,608,181 against 33,040,126, wrong 305
+against 153 (loss). These losses are for the "cost did not fall" trigger: the stock fit ran on
+only 3,974 of 53,373 calls (D4), 232 of 9,290 (P4 paint) and 14,609 of 48,237 (E4), so the
+plan's "stock as fallback on the caller's test" was not tested. From the records: all 134 voxels
+broken in P4 plus R4 were wrong after the paint; 107 were fit-settled, 104 of them from an entry
+seeded in another true grain, all passing the 0.9 test; in E4 the 170 broken were accepted at the
+first neighbour fit (114) or a revisit (56). No run killed at its cap; all walls contended (the
+three ran side by side). Wrapper only in `local_optimization`: every CMA call is the wrapper's.
+Review fixes (task ar3d, same day): text and summary output only, no rerun. Open question for
+the owner: whether something known at acceptance (hit ratio over the best, cost) tells the
+accepted wrong fits apart.
