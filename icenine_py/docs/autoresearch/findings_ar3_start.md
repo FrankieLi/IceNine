@@ -11,7 +11,8 @@ grains, levels up to 1 degree). `mid` is new: 120 grains on the same 24,570-voxe
 real sample, and C++ was not run. No extra random seed was run. Counts carry a Wilson 95% interval
 or a paired count; there are no p-values. The intervals count voxels, fits and seed steps as
 independent, but they cluster in grains, so they are too narrow for statements across grains. A
-gradient level holds few grains (1 to 25): a result by level is a result on those grains. Every
+gradient level holds 1 to 9 grains on `big`, 81 to 116 on `grad` and 16 to 25 on `mid`: a result
+by level is a result on those grains. Every
 wall time here was measured with other jobs running (contended) and is not a timing result. The
 cost that counts is the evaluation count.
 
@@ -516,8 +517,8 @@ in `run`, `broken` the reverse.
 <!-- /table:p3_paired -->
 
 Reading of the table: `S8` and `S9` by gradient level of the voxel's true grain, after the pass:
-wrong voxels, median and 99th percentile error. A level holds 1 to 25 grains; this is a result on
-those grains.
+wrong voxels, median and 99th percentile error. A level holds 1 to 9 grains on `big`, 81 to 116
+on `grad` and 16 to 25 on `mid`; this is a result on those grains.
 
 <!-- table:p3_by_level -->
 | sample | level | voxels | wrong_s8 | wrong_s9 | med_s8 | med_s9 | p99_s8 | p99_s9 |
