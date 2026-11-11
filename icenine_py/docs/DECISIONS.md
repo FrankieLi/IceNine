@@ -1268,3 +1268,20 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   Part 2 runs S10 on the three samples with the pass, after a base check that reproduces S8
   exactly on big. Pass rules and five predictions are written in the plan before any run.
   Implementer: Sonnet, own worktree, at most 3 heavy processes. Where: PLAN.md AR5 step 2.
+
+### D-20261111-N13 · Track A / AR4 step 1 (task ar4a) · AR4 recast from a learned proposer to a learned verifier; step 1 plan approved (offline)
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under the owner mandate D-20261109-N1; the owner may overrule, and the
+  recast in particular is the owner's to overrule. Plan in PLAN.md, 'AR4: learning where the
+  search is uncertain' and 'AR4 step 1: a learned verifier, measured offline against the hit
+  ratio' (commit 2030e9e). Why the recast: the premise of H4 (a network proposes where the voting
+  fails) does not hold on these samples: AR1 had the truth among the first 5 candidates for 69 of
+  69 and 200 of 200 voxels, and in all 31 grid-fallback cases of S8 a candidate near the truth was
+  already costed and refined (AR5 step 1). What fails is the test of a result: right and wrong
+  ends overlap in hit ratio, a 0.95 flag marks 8.8% and 15.1% of voxels. Step 1 trains a logistic
+  regression and a small set network on per-peak overlap shares (train on big and the first
+  gradient sample, test on mid, thresholds committed before mid is scored) and compares them with
+  the hit ratio for two uses: the flag of unfinished voxels, and accepting a seed without a grid
+  search. Offline only; no BFS change. H4 comes back if ray indexing fails on realistic images
+  (not tested). Starts after AR5 step 1 is merged. Implementer: Sonnet, own worktree, at most 2
+  heavy processes. Where: PLAN.md AR4, AR4 step 1.
