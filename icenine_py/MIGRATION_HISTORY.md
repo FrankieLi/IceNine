@@ -11667,9 +11667,10 @@ Part 1 (one logged rerun of `S5` on `grad` reproduced the stored run exactly: 16
 evaluations, 945 reseeds): 35.1% of the 24,535 neighbour fits of `S5` on `big` (19.1% of 24,222 on
 `grad`) start at hit ratio 0.95 or more; no such start is wrong; the fit moves them a median 0.040
 degrees. In every class A voxel (1,069 on `big`, 589 on `grad`) the true orientation itself passes
-the relative test; one more fit (0.1 degrees, 60 evaluations) from the rejected end passes in
-807 and 451. Consistent with fits that stop a few tenths of a degree short; the other explanation
-(the truth scores low) holds for none. The stored rejected fit has no BFS retry (classic mode).
+the relative test, but on clean images that holds by construction (the truth scores at least 0.954
+and 0.961, and any hit ratio above 0.90 passes). The evidence is one more fit (0.1 degrees, 60
+evaluations) from the rejected end, which passes in 807 and 451: consistent with fits that stop a
+few tenths of a degree short. The stored rejected fit has no BFS retry (classic mode).
 Part 2 (pick committed before the test set was read, commits `55b7323` then `91c48a6`): `F1` (start
 test) at 0.90 passes: 57.7% fewer neighbour and revisit evaluations on the test set, 0 fixed, 0
 broken (41 kept wrong starts where the stored fit was wrong too, not counted by the rule). `F2`

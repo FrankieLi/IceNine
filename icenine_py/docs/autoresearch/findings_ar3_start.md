@@ -41,9 +41,12 @@ cost that counts is the evaluation count.
 
 The plan wrote down four predictions. Whether the result agrees:
 
-1. *In most class A voxels the truth passes the relative test: the fit stopped short.* **Agrees.**
-   The truth passes the relative test in 1,069 of 1,069 class A voxels on `big` and in 589 of 589
-   on `grad` (on clean images, where the true orientation scores about 1.000).
+1. *In most class A voxels the truth passes the relative test: the fit stopped short.* **Agrees,
+   by construction.** The truth passes the relative test in 1,069 of 1,069 class A voxels on
+   `big` and in 589 of 589 on `grad`. But on these clean images this check cannot fail: the truth
+   has a hit ratio of at least 0.954 (`big`) and 0.961 (`grad`) in every class A voxel, and any
+   hit ratio above 0.90 passes, whatever the flood's best. Only realistic images could test it.
+   The real evidence that the fits stopped short is the extra fit (Part 1.2).
 2. *In `S5` on `big`, more than half of the neighbour fits in the grains at 1 degree or less
    start with a hit ratio of at least 0.95, and fewer than a quarter in the grains at 4 degrees.*
    **Does not agree.** The prediction has two parts joined by "and", and the first part fails. At
@@ -96,13 +99,14 @@ there start more than 1 degree from the truth (Part 1).
    `grad` and from 0.0297 to 0.0429 on `mid`. Wrong voxels after the pass: 29 against 24, 70
    against 63 and 40 against 31. The intervals overlap on all three samples. Paired with `S8`
    after the pass: `big` 10 fixed and 15 broken, `grad` 31 and 38, `mid` 9 and 18.
-4. **Why were the class A fits rejected?** The data exclude one explanation and are consistent
-   with the other. In every class A voxel (1,069 on `big`, 589 on `grad`) the true orientation
-   itself passes the relative test, so the second explanation (the truth scores below 0.9 times
-   the flood's best) holds for none of them. One more local optimization from the rejected end
-   (0.1 degrees, at most 60 evaluations) passes the test in 807 of 1,069 and 451 of 589. This is
-   consistent with fits that stop a few tenths of a degree short. That a fit that ran longer would
-   pass is tested only in this form (one more fit).
+4. **Why were the class A fits rejected?** The data are consistent with fits that stop short. In
+   every class A voxel (1,069 on `big`, 589 on `grad`) the true orientation itself passes the
+   relative test, so the second explanation (the truth scores below 0.9 times the flood's best)
+   holds for none of them. On clean images that is by construction (the truth scores at least
+   0.954), so it is not a test of that explanation. The evidence is the extra fit: one more local
+   optimization from the rejected end (0.1 degrees, at most 60 evaluations) passes the test in
+   807 of 1,069 and 451 of 589. This is consistent with fits that stop a few tenths of a degree
+   short. That a fit that ran longer would pass is tested only in this form (one more fit).
 5. **Does `F2` (one more fit before rejecting) pay?** No. On the test set it cuts the seed-step
    evaluations of the reseed clusters by 4.8% (0.2 degrees, the pick), not by the third the plan
    asks for. It runs on every rejected fit (38,438 in the two sets, 61 evaluations each), and
@@ -249,14 +253,15 @@ local optimization from the rejected end (first step 0.1 degrees, at most 60 eva
 <!-- /table:p1_class_a -->
 
 The two explanations: (a) the fit stopped a few tenths of a degree short of the best
-orientation, (b) the true orientation scores under 0.9 times the flood's best. The data exclude
-(b) for every class A voxel (`truth_fail` is 0 on both samples; the median hit ratio at the
-truth is 1.000, the flood's best 1.000 on `big` and 0.998 on `grad`). The hit ratio at the truth
-is the best a fit can reach on these clean images, so this is the strictest reading. Explanation
-(a) is consistent with the data: the stored fits end at a median error of 0.294 degrees (`big`)
-and 0.227 (`grad`) with a median hit ratio of 0.835 and 0.839, and the extra fit brings the median
-error to 0.069 and 0.052 and the hit ratio to 0.952 and 0.948. It passes in 75.5% (807 of 1,069)
-and 76.6% (451 of 589). The 262 and 138 that still fail were not tried with a longer or wider
+orientation, (b) the true orientation scores under 0.9 times the flood's best. `truth_fail` is 0
+on both samples: (b) holds for no class A voxel. But on these clean images (b) could not hold.
+The lowest hit ratio at the truth in class A is 0.954 on `big` and 0.961 on `grad`, and a hit
+ratio above 0.90 passes the relative test whatever the flood's best (a hit ratio is at most 1).
+So this check passes by construction and has no power here; only realistic images could test
+(b). The evidence for (a) is the extra fit. The stored fits end at a median error of 0.294
+degrees (`big`) and 0.227 (`grad`) with a median hit ratio of 0.835 and 0.839, and the extra fit
+brings the median error to 0.069 and 0.052 and the hit ratio to 0.952 and 0.948. It passes in
+75.5% (807 of 1,069) and 76.6% (451 of 589). The 262 and 138 that still fail were not tried with a longer or wider
 fit; that is untested. Class A is 1,069 of the 1,471 cluster voxels on `big` (72.7%) but 589 of
 the 6,140 on `grad` (9.6%); the other 5,551 voxels on `grad` are not class A.
 
@@ -266,8 +271,9 @@ run's configuration has no `LocalOptimizer` key; `run_seed.py` asserts it). What
 step 4 fit: a CMA fit of at most 61 evaluations and, if its cost did not fall, the stock fit
 from the same start. So the extra fit here is a second CMA fit from the end of that.
 
-The gate for `F2` ("stopped short in at least half of class A") is met on both readings: the
-truth passes in all of class A, and the extra fit passes in more than half.
+The gate for `F2` ("stopped short in at least half of class A") is met by the extra fit, which
+passes in more than half of class A on both samples. That the truth passes in all of class A
+adds nothing here, because it passes by construction.
 
 ## Part 2: remedies on stored cases
 
