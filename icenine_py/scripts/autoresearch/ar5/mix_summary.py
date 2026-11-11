@@ -330,18 +330,22 @@ def tables() -> Dict[str, str]:
                 f10=pct(1 - b11 / b10),
                 gsave=d10["stages_s8"]["grid_fallback"] - d11["stages"]["grid_fallback"],
                 tsave=d10["stages_s8"]["total"] - d11["stages"]["total"],
+                gsave10=d10["stages"]["grid_fallback"] - d11["stages"]["grid_fallback"],
+                tsave10=d10["stages"]["total"] - d11["stages"]["total"],
             )
         )
     T["nogrid"] = markdown_table(
         rows,
-        ["sample", "s8", "s10", "s11", "f8", "f10", "gsave", "tsave"],
+        ["sample", "s8", "s10", "s11", "f8", "f10", "gsave", "tsave", "gsave10", "tsave10"],
         {"f8": ".1f", "f10": ".1f"},
     ).replace(
-        "| sample | s8 | s10 | s11 | f8 | f10 | gsave | tsave |",
+        "| sample | s8 | s10 | s11 | f8 | f10 | gsave | tsave | gsave10 | tsave10 |",
         "| sample | S8 without grid fallbacks | S10 without grid fallbacks"
         " | S11 without grid fallbacks | S11 fewer than S8 (%) | S11 fewer than S10 (%)"
         " | grid-fallback evaluations S11 saves against S8"
-        " | all evaluations S11 saves against S8 |",
+        " | all evaluations S11 saves against S8"
+        " | grid-fallback evaluations S11 saves against S10"
+        " | all evaluations S11 saves against S10 |",
     )
     # ---- predictions
     rows = []

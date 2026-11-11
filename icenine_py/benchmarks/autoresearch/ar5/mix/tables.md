@@ -21,11 +21,11 @@
 <!-- /table:fallback_cost -->
 
 <!-- table:nogrid -->
-| sample | S8 without grid fallbacks | S10 without grid fallbacks | S11 without grid fallbacks | S11 fewer than S8 (%) | S11 fewer than S10 (%) | grid-fallback evaluations S11 saves against S8 | all evaluations S11 saves against S8 |
-|---|---|---|---|---|---|---|---|
-| big | 8340428 | 5898258 | 4015342 | 51.9 | 31.9 | 0 | 4325086 |
-| first gradient sample | 12550729 | 10059891 | 8566586 | 31.7 | 14.8 | 1708093 | 5692236 |
-| mid | 21440324 | 17660338 | 12078111 | 43.7 | 31.6 | 998165 | 10360378 |
+| sample | S8 without grid fallbacks | S10 without grid fallbacks | S11 without grid fallbacks | S11 fewer than S8 (%) | S11 fewer than S10 (%) | grid-fallback evaluations S11 saves against S8 | all evaluations S11 saves against S8 | grid-fallback evaluations S11 saves against S10 | all evaluations S11 saves against S10 |
+|---|---|---|---|---|---|---|---|---|---|
+| big | 8340428 | 5898258 | 4015342 | 51.9 | 31.9 | 0 | 4325086 | 0 | 1882916 |
+| first gradient sample | 12550729 | 10059891 | 8566586 | 31.7 | 14.8 | 1708093 | 5692236 | 1366699 | 2860004 |
+| mid | 21440324 | 17660338 | 12078111 | 43.7 | 31.6 | 998165 | 10360378 | 1003781 | 6586008 |
 <!-- /table:nogrid -->
 
 <!-- table:paired -->
