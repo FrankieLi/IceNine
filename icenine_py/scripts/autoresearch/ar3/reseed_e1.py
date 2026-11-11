@@ -6,14 +6,20 @@ Reads only the slim step files (``reseed/slim/steps_<sample>_<run>.json.gz``; fo
 rows of the logged run, ``S5L``). Nothing is run again: a seed step costs the strict cost on the
 costed candidates and then one refinement per refined candidate, in the order of the strict cost.
 The stored step runs all of them and keeps the one with the lowest final cost. E1 stops after the
-first refinement whose end has hit ratio >= 0.80 (the seed test) and keeps it; if none passes it
+first refinement whose end has hit ratio >= tau (the stop test) and keeps it; if none passes it
 is the stored step. So E1's evaluations at a step are the costing plus the refinements up to and
 including that one, and its result is that refinement's end. The pieces are those logged by the
 replay (identical to the stored run's counts, see ``check_*.json``).
 
+The plan's E1 stops at the seed test (tau 0.80). It failed the plan's rule (it broke more cases
+than it fixed), so a tuned stop test was added after those results had been seen: the grid
+``TAUS`` (0.80 to 0.98) is tried on the pick set of run S5, pooled over both samples. The rule:
+the tau with the largest cut among those with broken <= fixed; if none, 0.80. The pick table and
+the chosen tau are written to ``remedies_pick.json`` before the test rows are summed; then
+``remedies_e1.json`` holds every set at tau 0.80 and at the chosen tau.
+
 The pick set is the seed steps whose voxel lies in a true grain with an even index, the test set
-those with an odd index. E1 has one setting, the seed test (0.80, set by the plan, not tuned), and
-no choice is made on the pick set; ``remedies.json`` records that before the test rows are summed.
+those with an odd index.
 
 Per set and per sample and run: steps; evaluations of the stored step and of E1; the cut; steps
 where the first passing refinement is not the stored one's choice (``switched``); paired with the
