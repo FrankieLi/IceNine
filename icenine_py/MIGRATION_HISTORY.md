@@ -11652,3 +11652,43 @@ arm of a whole-layer run on a sample it was not chosen on. The choice of the see
 opt-in key stays the owner's; no recommendation is made.
 Added after seeing results (labelled on the page): the stop-test grid of `E1`, counting voxels at
 their first appearance in a cluster, and the plurality reading of "cost share".
+
+## Autoresearch AR3 step 9: a start test for the neighbour fits, class A, a third sample (done 2026-11-11, task ar3i)
+
+No change under `icenine/`; no key, no default, no dependency. Scripts
+`scripts/autoresearch/ar3/start_*.py` (`start_bg.sh` starts a logged background job); results
+`benchmarks/autoresearch/ar3/start/` (slim, 3.6 MB; caches stay out of git); page
+`docs/autoresearch/findings_ar3_start.md` (the tool refused the write of the page; the text was
+returned beside the report for the main session to place). Simulated samples only: `big` (32
+grains), the first gradient sample `grad` (497) and the new `mid` (120 grains, same 24,570-voxel
+grid, Voronoi grain map, step 7's gradient generator with seed 0); C++ not run; one run per arm;
+wall times contended. Evaluation counts are with the boundary pass.
+Part 1 (one logged rerun of `S5` on `grad` reproduced the stored run exactly: 16,947,800
+evaluations, 945 reseeds): 35.1% of the 24,535 neighbour fits of `S5` on `big` (19.1% of 24,222 on
+`grad`) start at hit ratio 0.95 or more; no such start is wrong; the fit moves them a median 0.040
+degrees. In every class A voxel (1,069 on `big`, 589 on `grad`) the true orientation itself passes
+the relative test, but on clean images that holds by construction (the truth scores at least 0.954
+and 0.961, and any hit ratio above 0.90 passes). The evidence is one more fit (0.1 degrees, 61
+evaluations: 60 plus the final one, against the plan's "at most 60"; the same for `F2`) from the
+rejected end, which passes in 807 and 451: consistent with fits that stop a
+few tenths of a degree short. The stored rejected fit has no BFS retry (classic mode).
+Part 2 (pick committed before the test set was read, commits `55b7323` then `91c48a6`): `F1` (start
+test) at 0.90 passes: 57.7% fewer neighbour and revisit evaluations on the test set, 0 fixed, 0
+broken (41 kept wrong starts where the stored fit was wrong too, not counted by the rule). `F2`
+(one more fit before rejecting) fails: 4.8% net cut of the reseed seed steps at 0.2 degrees on the
+pooled test set. The pooled rule (written before any `F2` result) decides: by sample the cut is
+34.1% on `big` (above a third) and -11.8% on `grad`. Only 137 of 672 test clusters vanish (every
+member must pass); with `F2` free the pooled cut would be 21.5% (26.2% at 0.1), under a third.
+Part 3: `mid` with the pass, `D4` 40.56, `S5` 39.09, `S8` 26.44 million evaluations; wrong voxels
+48, 34, 31 (intervals overlap): `S8` is confirmed by prediction 3 in one run of each arm on one new
+sample, whose grain map (a 120-cell Voronoi map) departs from the plan; D-20261111-N7 counts it
+as the confirmation, and the owner can overrule that.
+`S9` (`S8` + `F1` 0.90): 5.63 million on `big` (`S8` 8.34), 14.63 on `grad` (18.00), 22.67 on `mid`
+(26.44); wrong voxels 29 (24), 70 (63), 40 (31), intervals overlap, but paired against `S8` it
+breaks more than it fixes on all three (10 fixed / 15 broken, 31 / 38, 9 / 18), which fails Part
+2's own rule in the whole layer; median error after the pass 0.0550 (0.0316), 0.0360 (0.0226),
+0.0429 (0.0297) degrees. Predictions: 1 (by construction on clean images), 3 and 4 agree; 2 does
+not agree (its first part fails: 49.9% of the neighbour fits at 1 degree or less start at 0.95,
+interval 49.1 to 50.7, not more than half; its second part, 0.6% at 4 degrees, holds). The
+choice of keys stays the owner's: `S8`'s seed step is the plan's recommendation; `F1` at 0.90 is
+not a candidate for a key (D-20261111-N7); `F1` at 0.95 was not run on a whole layer.

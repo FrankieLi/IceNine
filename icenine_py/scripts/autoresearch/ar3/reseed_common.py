@@ -17,8 +17,8 @@ refinement (local optimization); attaching rays and indexing are not cost evalua
 import os
 
 SAMPLE = os.environ.get("RESEED_SAMPLE", "grad")
-assert SAMPLE in ("big", "grad"), SAMPLE
-os.environ["AR3_SAMPLE"] = "big" if SAMPLE == "big" else "gradient"
+assert SAMPLE in ("big", "grad", "mid"), SAMPLE  # step 9: mid, the third sample
+os.environ["AR3_SAMPLE"] = {"big": "big", "mid": "mid", "grad": "gradient"}[SAMPLE]
 
 import gzip  # noqa: E402
 import json  # noqa: E402
@@ -32,7 +32,7 @@ import numpy as np  # noqa: E402
 REPO = C.ICE.parent
 WORKTREES = REPO.parent  # sibling worktrees hold the untracked stored runs
 OUT = C.ICE / "benchmarks" / "autoresearch" / "ar3" / "reseed"
-CACHE = OUT / "cache"
+CACHE = Path(os.environ.get("RESEED_CACHE", str(OUT / "cache")))  # step 9 may redirect it
 CACHE.mkdir(parents=True, exist_ok=True)
 
 _BIG_WT = WORKTREES / "agent-a38ba6f5a25aa033e/icenine_py/benchmarks/autoresearch/ar3/big"

@@ -1,0 +1,142 @@
+{
+ "sets": "pick = even true-grain index (this file); test = odd (not read here)",
+ "F1": {
+  "by_sample": {
+   "big": {
+    "fits": 17428,
+    "evals_stored": 2106940,
+    "0.9": {
+     "kept": 8449,
+     "evals_f1": 619419,
+     "cut": 0.7060101379251427,
+     "fixed": 0,
+     "broken": 0,
+     "both_wrong": 6,
+     "kept_fail_relative_test": 2
+    },
+    "0.95": {
+     "kept": 5480,
+     "evals_f1": 801852,
+     "cut": 0.6194234292386114,
+     "fixed": 0,
+     "broken": 0,
+     "both_wrong": 0,
+     "kept_fail_relative_test": 0
+    },
+    "0.98": {
+     "kept": 2813,
+     "evals_f1": 1007293,
+     "cut": 0.5219166184134336,
+     "fixed": 0,
+     "broken": 0,
+     "both_wrong": 0,
+     "kept_fail_relative_test": 0
+    }
+   },
+   "grad": {
+    "fits": 26604,
+    "evals_stored": 2969308,
+    "0.9": {
+     "kept": 7250,
+     "evals_f1": 1475066,
+     "cut": 0.5032290351826082,
+     "fixed": 0,
+     "broken": 0,
+     "both_wrong": 31,
+     "kept_fail_relative_test": 1
+    },
+    "0.95": {
+     "kept": 5186,
+     "evals_f1": 1616858,
+     "cut": 0.4554764948600819,
+     "fixed": 0,
+     "broken": 0,
+     "both_wrong": 0,
+     "kept_fail_relative_test": 0
+    },
+    "0.98": {
+     "kept": 2730,
+     "evals_f1": 1908706,
+     "cut": 0.3571882741702781,
+     "fixed": 0,
+     "broken": 0,
+     "both_wrong": 0,
+     "kept_fail_relative_test": 0
+    }
+   }
+  },
+  "pooled": {
+   "fits": 44032,
+   "evals_stored": 5076248,
+   "0.9": {
+    "kept": 15699,
+    "evals_f1": 2094485,
+    "cut": 0.5873950602886227,
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 37,
+    "kept_fail_relative_test": 3
+   },
+   "0.95": {
+    "kept": 10666,
+    "evals_f1": 2418710,
+    "cut": 0.5235240673820507,
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 0,
+    "kept_fail_relative_test": 0
+   },
+   "0.98": {
+    "kept": 5543,
+    "evals_f1": 2915999,
+    "cut": 0.42556017751693775,
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 0,
+    "kept_fail_relative_test": 0
+   }
+  },
+  "chosen_threshold": 0.9
+ },
+ "F2": {
+  "pooled": {
+   "rejected_fits": 19035,
+   "clusters": 587,
+   "seed_evals_clusters": 9013134,
+   "0.05": {
+    "f2_evals": 1161135,
+    "rejected_pass": 1621,
+    "clusters_vanish": 96,
+    "seed_evals_vanish": 1265864,
+    "net_saving": 104729,
+    "cut": 0.01161959868787039,
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 0
+   },
+   "0.1": {
+    "f2_evals": 1161135,
+    "rejected_pass": 1968,
+    "clusters_vanish": 107,
+    "seed_evals_vanish": 1440348,
+    "net_saving": 279213,
+    "cut": 0.030978458769169524,
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 0
+   },
+   "0.2": {
+    "f2_evals": 1161135,
+    "rejected_pass": 2155,
+    "clusters_vanish": 93,
+    "seed_evals_vanish": 1454203,
+    "net_saving": 293068,
+    "cut": 0.03251565992472762,
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 0
+   }
+  },
+  "chosen_sigma_deg": 0.2
+ }
+}
