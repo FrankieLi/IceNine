@@ -1944,6 +1944,90 @@ or realistic images. The try test `P2 m=2` of step 1 (it lost no net gain on any
 cut 16.6%, 30.2% and 38.9% of the pass, under the plan's 50% rule): whether it becomes an
 opt-in key is the owner's choice.
 
+### AR5 step 3: a mixed seed refinement, tested on whole layers
+
+Task `ar5c`. Scripts and results only: no file under `icenine_py/icenine/` changes, no key is
+added, no default changes. It starts after AR5 step 2 is merged, because it uses that step's
+script layer (`fit_*.py`), its replay cache and its base check. Planned on 2026-11-11
+(D-20261111-N14).
+
+**Why.** In step 2 no CMA seed refinement met the 1% rule alone: the 200-evaluation arm
+(`C200`) lost 60 seed-test passes on the 1,608 seed steps of the pick samples (limit 16). The
+review of step 2 then read the stored replay step by step and found that the losses are the
+steps where the CMA end stays under a hit ratio of 0.95. A what-if from those stored numbers
+(arithmetic, not a run): refine with `C200` first, and run the stock MC optimizer from the same
+start only when the CMA end hit ratio is below 0.95.
+
+| what-if, from the stored replay | MC (`M`) | mixed |
+|---|---|---|
+| seed-test passes, pick samples (1,608 steps) | 1,592 | 1,596 |
+| ends within 1 degree, pick samples | 1,583 | 1,589 |
+| seed-step evaluations, pick samples | 5,865,469 | 2,501,991 |
+| seed-test passes, `mid` (1,611 steps) | 1,596 | 1,600 |
+| seed-step evaluations, `mid` | 12,007,352 | 5,643,374 |
+
+Reading the table: one row per count, the stored MC refinement against the mixed rule. The
+mixed rule keeps the passes and needs 57.3% and 53.0% fewer seed-step evaluations.
+
+**What this what-if is not.** It was read after all three samples were seen, `mid` included,
+so no sample is held out for the seed rule. It treats each seed step alone: in a whole layer a
+different seed end changes what the neighbours start from. The test of this step is therefore
+the whole-layer run, with the predictions below written before it.
+
+**Terms.** As in step 2 and in `findings_ar5_fits.md`. **Mixed seed refinement** (`X60`,
+`X200`): for each indexed candidate, in `S8`'s order, a CMA fit with a first step of 0.05
+degree and at most 60 or 200 evaluations; if its end hit ratio is at least 0.95 that end is
+kept and the seed step stops (`S8`'s early stop). If not, the stock MC optimizer runs from the
+same candidate, and the candidate's end is the one of the two with the lower cost. If no end
+reaches 0.95, the lowest cost of up to 5 ends is kept, as in `S8`. Evaluations count both.
+
+**Part 1: the mixed rule from the replay cache (no new evaluation).** A committed script and
+tests replace the review's hand count. For `X60` and `X200` and each sample: seed-test passes,
+ends within 1 degree, seed-step evaluations, the paired counts against `M` (passes with `M`
+only, with the arm only), and the share of candidates where the MC optimizer still ran. Pick:
+the arm with the fewer seed-step evaluations on the pick samples, pooled, among those that
+meet step 2's rules (a) and (b) there. The pick is committed before any whole-layer run. If
+neither arm meets (a) and (b), stop and report.
+
+**Part 2: the whole layer.** Run `S11` = `S8` with the picked mixed seed refinement and with
+no MC fallback after CMA in a neighbour local optimization or revisit (step 2's run `S10` plus
+the seed rule). Three samples, with the boundary pass, at most 90 minutes a run; a run at its
+cap is reported as unfinished. Before the runs, check on 20 seed steps of `big` that the
+script layer's mixed refinement gives the ends and evaluation counts that Part 1 computed from
+the cache; if not, stop and report. Report evaluations by stage, grid fallbacks, wrong voxels
+before and after the pass with Wilson 95% intervals, fixed and broken against `S8` and against
+`S10` paired by voxel, and the median error over all 24,570 voxels.
+
+Pass rule for `S11`, on each sample, the same as step 2's and not re-tuned: at least 20% fewer
+evaluations than `S8` with the pass; broken minus fixed against `S8` at most 5 voxels; median
+error at most 0.005 degree above `S8`'s. If it fails on a sample, run `S11a` there (the mixed
+seed refinement with the MC fallback kept) to see which change fails. The rows of every
+finished run go into `docs/autoresearch/pareto/pareto_rows.json`.
+
+**Predictions, written before any run.**
+
+1. `X200` is the pick: `X60` reaches 0.95 too rarely, so the MC optimizer runs on most of its
+   candidates.
+2. `S11` with the pass needs under 4.4 million evaluations on `big` (`S8`: 8.34, `S10`: 5.90),
+   under 14.2 million on the first gradient sample (18.00, 15.17) and under 17.5 million on
+   `mid` (26.44, 22.67), and passes its rule on all three.
+3. The number of grid fallbacks of `S11` is within 2 of `S8`'s on every sample (0, 16, 15).
+4. The seed-step evaluations of `S11` in the whole layer are within 15% of Part 1's count for
+   the same sample (the path changes little).
+
+**Budgets.** Part 1 minutes; Part 2 at most 90 minutes a run, at most 3 heavy processes at a
+time. All wall times are contended and are not timing results.
+
+**Files.** `scripts/autoresearch/ar5/mix_*.py` (reusing `fit_common.py` and `fit_run.py`; a
+change to a step 2 script must leave step 2's results reproducible), tests of the pure
+functions in `tests/test_ar5_mix_rules.py`, results in `benchmarks/autoresearch/ar5/mix/`
+(under 5 MB tracked), page `docs/autoresearch/findings_ar5_mix.md`.
+
+**Not in this step.** A library key (the next step, for both changes together, if `S11`
+passes). A timing. A real sample or realistic images. Other thresholds than 0.95 and other
+budgets than 60 and 200: the two values come from keys that already exist, and tuning them on
+three samples that have all been read would fit the samples.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
