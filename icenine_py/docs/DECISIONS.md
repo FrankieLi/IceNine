@@ -1254,3 +1254,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   next-step options: option 1 (try test P2 m=2 as an opt-in key) is left to the owner; options 2
   and 3 (a second check beside the hit ratio) go into AR4 step 1. Where: PLAN.md AR5 step 1;
   findings_ar5_stop.md.
+
+### D-20261111-N12 · Track A / AR5 step 2 (task ar5b) · AR5 step 2 plan approved: seed refinement by CMA and no MC fallback after CMA, replay then run S10
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under the owner mandate D-20261109-N1; the owner may overrule. Plan in
+  PLAN.md, 'AR5 step 2: two long local optimizations that rarely change the result' (commit
+  2030e9e). Scripts only, no library file, no key, no default. Why: in run S8 the stock MC
+  refinement of indexed candidates and the MC fallback after CMA in neighbour fits are about 62%,
+  31% and 58% of the evaluations (big, first gradient sample, mid), and the MC fallback ended
+  lower than CMA in 3 to 6 of 3,000 to 4,000 runs where that was counted. Part 0 recomputes these
+  from the stored runs. Part 1 replays the stored seed steps with arms M, C60, C200, C0; pick on
+  big and the first gradient sample, test on mid, no script runs on mid before the pick commit.
+  Part 2 runs S10 on the three samples with the pass, after a base check that reproduces S8
+  exactly on big. Pass rules and five predictions are written in the plan before any run.
+  Implementer: Sonnet, own worktree, at most 3 heavy processes. Where: PLAN.md AR5 step 2.
