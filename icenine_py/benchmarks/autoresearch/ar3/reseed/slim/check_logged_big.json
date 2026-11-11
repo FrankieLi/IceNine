@@ -1,0 +1,50 @@
+{
+ "counters_logged_vs_stored": {
+  "n_seeds": [
+   35,
+   35
+  ],
+  "n_reseeds": [
+   314,
+   314
+  ],
+  "n_evals_seed": [
+   576954,
+   576954
+  ],
+  "n_evals_reseed": [
+   6892620,
+   6892620
+  ],
+  "n_evals_neighbor": [
+   3513895,
+   3513895
+  ],
+  "n_evals_revisit": [
+   884040,
+   884040
+  ],
+  "n_neighbor_fits": [
+   24535,
+   24535
+  ],
+  "n_revisit_attempted": [
+   8138,
+   8138
+  ],
+  "index_evals": [
+   7469574,
+   7469574
+  ]
+ },
+ "counters_equal": true,
+ "reseeds_logged": 314,
+ "reseeds_stored": 314,
+ "reseeds_equal": true,
+ "evals_total_logged": 11867509,
+ "evals_total_stored": 11867509,
+ "n_fit_rows": 32673,
+ "fit_rows_evals": 4397935,
+ "wall_logged_s": 1029.0545027256012,
+ "timing_label": "contended: timing preflight refused (fseventsd at 56% CPU, Python at 95% CPU, Python at 98% CPU, Python at 99% CPU, Python at 98% CPU, Python at 100% CPU, cpptools at 162% CPU, Python at 88% CPU); single run, one worker"
+}

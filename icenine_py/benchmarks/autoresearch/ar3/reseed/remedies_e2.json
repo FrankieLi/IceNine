@@ -1,0 +1,122 @@
+{
+ "chosen": null,
+ "pick": {
+  "abs-0.60": {
+   "cases": 2615,
+   "kept": 1129,
+   "settled_wrong": 461,
+   "fixed": 5,
+   "broken": 461,
+   "stored_wrong_among_kept": 5,
+   "clusters": 155,
+   "clusters_gone": 84,
+   "reseed_evals": 4425531,
+   "saved_evals": 1585350,
+   "cut": 0.35822819905679115
+  },
+  "abs-0.65": {
+   "cases": 2615,
+   "kept": 1037,
+   "settled_wrong": 395,
+   "fixed": 5,
+   "broken": 395,
+   "stored_wrong_among_kept": 5,
+   "clusters": 155,
+   "clusters_gone": 74,
+   "reseed_evals": 4425531,
+   "saved_evals": 1297234,
+   "cut": 0.2931250509825827
+  },
+  "abs-0.70": {
+   "cases": 2615,
+   "kept": 807,
+   "settled_wrong": 214,
+   "fixed": 4,
+   "broken": 214,
+   "stored_wrong_among_kept": 4,
+   "clusters": 155,
+   "clusters_gone": 65,
+   "reseed_evals": 4425531,
+   "saved_evals": 1099774,
+   "cut": 0.24850667637397636
+  },
+  "abs-0.75": {
+   "cases": 2615,
+   "kept": 581,
+   "settled_wrong": 71,
+   "fixed": 3,
+   "broken": 71,
+   "stored_wrong_among_kept": 3,
+   "clusters": 155,
+   "clusters_gone": 53,
+   "reseed_evals": 4425531,
+   "saved_evals": 851467,
+   "cut": 0.19239883304398953
+  },
+  "abs-0.80": {
+   "cases": 2615,
+   "kept": 420,
+   "settled_wrong": 16,
+   "fixed": 3,
+   "broken": 16,
+   "stored_wrong_among_kept": 3,
+   "clusters": 155,
+   "clusters_gone": 38,
+   "reseed_evals": 4425531,
+   "saved_evals": 624264,
+   "cut": 0.14105968300753063
+  },
+  "abs-0.85": {
+   "cases": 2615,
+   "kept": 262,
+   "settled_wrong": 11,
+   "fixed": 3,
+   "broken": 11,
+   "stored_wrong_among_kept": 3,
+   "clusters": 155,
+   "clusters_gone": 18,
+   "reseed_evals": 4425531,
+   "saved_evals": 307628,
+   "cut": 0.06951211052413823
+  },
+  "nb-0.7": {
+   "cases": 2615,
+   "kept": 875,
+   "settled_wrong": 241,
+   "fixed": 5,
+   "broken": 241,
+   "stored_wrong_among_kept": 5,
+   "clusters": 155,
+   "clusters_gone": 68,
+   "reseed_evals": 4425531,
+   "saved_evals": 1144974,
+   "cut": 0.2587201400238751
+  },
+  "nb-0.8": {
+   "cases": 2615,
+   "kept": 526,
+   "settled_wrong": 24,
+   "fixed": 3,
+   "broken": 24,
+   "stored_wrong_among_kept": 3,
+   "clusters": 155,
+   "clusters_gone": 45,
+   "reseed_evals": 4425531,
+   "saved_evals": 721542,
+   "cut": 0.16304077409016002
+  },
+  "nb-0.9": {
+   "cases": 2615,
+   "kept": 212,
+   "settled_wrong": 3,
+   "fixed": 2,
+   "broken": 3,
+   "stored_wrong_among_kept": 2,
+   "clusters": 155,
+   "clusters_gone": 10,
+   "reseed_evals": 4425531,
+   "saved_evals": 193561,
+   "cut": 0.04373735038800994
+  }
+ }
+}
