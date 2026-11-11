@@ -615,3 +615,7 @@ such a variant would give that earlier fit to the stock fit, with an outcome not
 The open question in its place: does something known at the moment of
 acceptance (the hit ratio over the best, or the cost) tell these fits apart? The ratio table in
 Part 3 describes the two runs; it picks no threshold. The owner decides the next step.
+
+Added by the main session on 2026-11-10: the next step is set under the owner's mandate
+(D-20261110-N6, the owner's to overrule). Step 5 of the plan lets the neighbouring grains
+compete for each boundary voxel after a run, and reads when such a try is needed.
