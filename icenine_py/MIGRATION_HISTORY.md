@@ -11596,10 +11596,16 @@ overlap, 6 fixed, 15 broken). Predictions: (1) reseeds fall to the order of the 
 and the seed step plus grid fallbacks are under a tenth of `S5`: does not agree (314 reseeds on
 32 grains; 57.5% of the evaluations); (2) `S5` with the pass close to its local optimizations and
 pass alone: does not agree (529.1 against 225.1 per voxel); (3) wrong share at matched levels no
-higher than on the gradient sample: agrees (each level holds 1 to 9 grains). Result for the keys
-step: `S5` has no more wrong voxels than `D4` (intervals) but costs 8.8% more evaluations on
-`big` (it saves 47% on the gradient sample); neither branch of the plan covers it; the owner
-decides. The seed step is 57.5% of `S5` on `big`, 267 of its 349 seed steps are in the 6 grains
-of level 4 ("consistent with" fast turning of the orientation; not tested). No run hit its cap.
-Added beyond the plan: seed steps by level, the cost of an index run and the break-even grid
-fallback rate (3.0% on `big`, 0.6% on the gradient sample; `D4` fell back on 2.4% and 5.9%).
+higher than on the gradient sample: agrees, judged first on the plan's pairs (`big` 2 against
+0.5, 4 against 1; the factor-5 pairs were added; each level holds 1 to 9 grains). Evaluations
+are raw calls of the strict cost, the same counters as steps 3 to 6. Result for the keys step:
+`S5` has no more wrong voxels than `D4` (intervals) but costs 8.8% more evaluations on `big` (it
+saves 47% on the gradient sample). The rule's first branch fails; read literally the second does
+not fire either, read as "otherwise" it picks `D4`'s seed step; the owner decides. The seed step
+is 57.5% of `S5` on `big`, 267 of its 349 seed steps are in the 6 grains of level 4 ("consistent
+with" fast turning of the orientation; not tested). No run hit its cap. Added beyond the plan:
+seed steps by level, the cost of an index run and the break-even grid fallback rate, assuming
+`S5` never falls back (3.0% on `big`; on the gradient sample 0.6%, or 1.75% with `S5`'s own 15
+fallbacks in 1,293 index runs; `D4` fell back on 2.4% and 5.9%). On `big` 0.43 of the 1.00
+million extra seed-step evaluations of `S5` come from its 20 extra index runs (priced at `S5`'s
+cost; untested cause). Review fixes 1 to 10 applied to the page (D-20261111-N3).
