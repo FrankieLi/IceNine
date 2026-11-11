@@ -11627,7 +11627,8 @@ grains, one seed step each) against 1,115 on the gradient sample (101 steps); th
 refinements are not dearer there (level 0, fifth: 514 against 570); in the grains at 4 degrees
 refinements 2 to 5 are 16,554 of 24,427.
 62.2% of `S5`'s seed-step evaluations on `big` (55.5% on the gradient sample) run after a
-refinement already passed the seed test at a right orientation. Of the 1,471 voxels in the 314
+refinement that, judged with the truth, already passed the seed test at a right orientation (a
+share a run cannot save, since it lacks the truth). Of the 1,471 voxels in the 314
 reseed clusters of `S5` on `big`, 1,069 (72.7%) were reached by a local optimization that ended
 right (median error 0.294 degrees) and was rejected by the relative test (median hit ratio
 0.835, flood best 1.000: class A); 22 started in their own grain at a wrong orientation (B); 380
