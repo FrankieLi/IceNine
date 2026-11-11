@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-11-10T14:00:30",
+  "host": "newt.local",
+  "loadavg": [
+    4.0302734375,
+    4.24755859375,
+    4.22607421875
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+    {
+      "pid": 18415,
+      "cpu": 100.1,
+      "command": "<home>/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+    },
+    {
+      "pid": 81864,
+      "cpu": 100.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 81866,
+      "cpu": 99.3,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    }
+  ]
+}
