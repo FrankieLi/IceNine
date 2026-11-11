@@ -108,11 +108,13 @@ by stage (millions). `S8` is the third bar of each panel.
    on `grad`, and at level 0.5 (1 grain on `big`) the second to fifth all cost less on `big`
    than on `grad`. Second, in the grains at 4 degrees the later refinements cost a lot: refinements
    2 to 5 are 16,554 of the 24,427 evaluations of a step (267 steps).
-3. **How much of that is not needed?** In `S5` on `big`, 62.2% of the seed-step evaluations
-   (4,645,742 of 7,469,574) are spent on refinements that run after one refinement already
-   passed the seed test at a right orientation. On `grad` it is 55.5%. In 279 of 349 steps on
-   `big` the first refinement is already that one (Wilson 95% interval of the share, 0.75 to
-   0.84).
+3. **How much is spent after a refinement that already passed?** In `S5` on `big`, 62.2% of the
+   seed-step evaluations (4,645,742 of 7,469,574) are spent on refinements that run after a
+   refinement that, judged with the truth, already passed the seed test at a right orientation.
+   On `grad` it is 55.5%. This share uses the truth, which a run does not have, so it is not a
+   saving a run can make: stopping at the seed test without the truth breaks cases (Part 2). In
+   279 of 349 steps on `big` the first refinement is already that one (Wilson 95% interval of
+   the share, 0.75 to 0.84).
 4. **Why does the BFS reject fits that start in the right grain?** In the clusters of `S5` on
    `big`, 72.7% of the voxels (1,069 of 1,471) were reached by a local optimization that ended
    right (median error 0.294 degrees) and was still rejected: its median hit ratio is 0.835 while
