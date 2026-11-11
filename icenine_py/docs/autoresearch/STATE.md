@@ -26,14 +26,14 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 Step 9 of AR3 (a start test for the neighbour fits, the rejected fits that end right, a
 third sample; task `ar3i`; plan in `PLAN.md` under "Step 9: ...", approved by D-20261111-N6).
-An implementer (Sonnet, own worktree, branch `feature/eval-reduction-ar3i`) started on 2026-11-11.
-Its report goes to `.claude/reports/20261111-0613-ar3i.md` in its worktree.
+Handed back (branch `feature/eval-reduction-ar3i`, head 86e3ffa, worktree
+`agent-a9c88b610fb10e1b6`; check 0 FAIL). The review runs; its report goes to the main
+`.claude/reports/20261111-0810-review-ar3i.md`.
 
-1. Wait for the implementer's hand-back. Then runbook, "A step, from plan to merge", points 5
-   to 9: `verify_handback.sh`, review (`code-reviewer`, Opus), the decision on the fixes
-   (D-20261111-N7 or the day's next ID), a fixes round, `finish_task.sh --yes --push`, close.
-   Copy every report to the main `.claude/reports/` before a merge: a merged worktree can be
-   removed with its untracked files.
+1. Wait for the review. Then runbook, "A step, from plan to merge", points 7 to 9: the
+   decision on the fixes (D-20261111-N7 or the day's next ID), a fixes round (Opus; free the
+   branch first with `git -C <worktree> checkout --detach`), `finish_task.sh --yes --push`, close.
+   Copy the reports to the main `.claude/reports/` first: a merged worktree can vanish.
 2. At the close: add the runs on the third sample (`mid`) and run `S9`, if it ran, to
    `docs/autoresearch/pareto/pareto_rows.json` (a new panel for `mid`); say on the review page
    whether run `S8` is confirmed (prediction 3 of step 9) and check the other predictions.
@@ -42,7 +42,7 @@ Its report goes to `.claude/reports/20261111-0613-ar3i.md` in its worktree.
 
 ## Running jobs
 
-- Step 9 implementer (`implementer`, Sonnet, own worktree), started 2026-11-11.
+- Step 9 review (`code-reviewer`, Opus), started 2026-11-11. The implementer is done.
 - The review page is at version 35 (run `S8` is on its plots). No page job is open.
 
 ## Queue
@@ -52,7 +52,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 9 | start test, rejected fits that end right, third sample (task `ar3i`) | implementer running |
+| AR3 step 9 | start test, rejected fits that end right, third sample (task `ar3i`) | review running |
 | AR3 later | opt-in keys for the seed step and the boundary pass | with settings; the owner picks |
 | AR4 | the learned proposer | after AR5 |
 | AR5 | the stop rule inside the grid search (the grid fallbacks) | after step 9 |
