@@ -27,11 +27,11 @@ Read this file first after any restart or wake. It holds only what is true now a
 Step 10 of AR3 (opt-in keys in the library: the indexed seed step, its early stop, the
 CMA-first neighbour fit, the boundary pass; all off by default; task `ar3j`; plan in `PLAN.md`
 under "Step 10: ...", approved by D-20261111-N8).
-The implementer runs (Sonnet, own worktree, branch `feature/eval-reduction-ar3j` off 4ff3ce6;
-report `.claude/reports/20261111-0834-ar3j.md`).
+Implemented in worktree `agent-a6c7c67b4a03d1843` (branch `feature/eval-reduction-ar3j`, at
+84ce8b5; hand-back check 0 FAIL). The review runs (`20261111-0941-review-ar3j.md`).
 
-1. Wait for the implementer's hand-back. Then runbook, "A step, from plan to merge", points 5
-   to 9: `verify_handback.sh`, review (`code-reviewer`, Opus), the decision on the fixes
+1. Wait for the review. Then runbook, "A step, from plan to merge", points 6 to 9 (the
+   hand-back check and the findings page are done): the decision on the fixes
    (D-20261111-N9 or the day's next ID), a fixes round (Opus; it may change the library files
    the step touched, D-20261111-N8), `finish_task.sh --yes --push`, close. Copy every report
    to the main `.claude/reports/` before a merge. In a brief, name the report fields as the
@@ -41,7 +41,7 @@ report `.claude/reports/20261111-0834-ar3j.md`).
 
 ## Running jobs
 
-- Step 10 implementer (`implementer`, Sonnet, own worktree), started 2026-11-11.
+- Step 10 review (`code-reviewer`, Opus), started 2026-11-11 at 09:41.
 - The review page is at version 36 (`mid` and run `S9` are on its plots). No page job.
 
 ## Queue
@@ -51,7 +51,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 10 | opt-in keys: seed step, early stop, CMA-first fit, pass (task `ar3j`) | implementer running |
+| AR3 step 10 | opt-in keys: seed step, early stop, CMA-first fit, pass (task `ar3j`) | review running |
 | AR4 | the learned proposer | after AR5 |
 | AR5 | the stop rule inside the grid search (the grid fallbacks) | after step 10 |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
