@@ -516,6 +516,39 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
   3,072,127; pass 3,681,960.
 - The step's rows are on the cost-against-accuracy panels (review page version 31).
 
+### AR3 step 7 (larger grains, task `ar3g`), merged at b98a14b on 2026-11-11
+
+- Page `findings_ar3_big.md`; results `benchmarks/autoresearch/ar3/big/`; decisions
+  D-20261111-N2 (plan), D-20261111-N3 (review: 10 fixes to wording and numbers, no rerun, no
+  result file changed). Suite at the merge: 1517 passed, 47 skipped, 1 deselected.
+- Sample `big`: 32 grains on the 24,570-voxel grid (about 770 voxels per grain; the first
+  gradient sample has 497 grains, about 49 each). Gradient levels 0, 0.2, 0.5, 1, 2 and 4
+  degrees on 5, 5, 1, 9, 6 and 6 grains. The levels are my choice.
+- Run plus boundary pass on `big`: `D` 65,873,391 evaluations, 26 wrong; `D4` 11,943,692, 21;
+  `S5` 12,999,852, 30; `P4R4` 19,960,941, 31. Evaluations per voxel against the first
+  gradient sample: `D` 2,681 and 4,968; `D4` 486 and 1,579; `S5` 529 and 840; `P4R4` 812 and
+  2,221. The page does not credit grain size alone for the drop.
+- The plan's predictions. 1 does not agree: `S5` has 314 reseeds on 32 grains and 35 first
+  seeds; its seed step is 7,469,574 of 12,999,852 evaluations (57.5%). 2 does not agree: 529.1
+  evaluations per voxel against 225.1 for the local optimizations and the pass alone. 3
+  agrees on the plan's two matched pairs of levels (1 to 9 grains per level).
+- `S5` against `D4` on `big`: 8.8% more evaluations; 6 voxels fixed, 15 broken, 15 wrong in
+  both; the intervals overlap. `S5`'s seed step costs 1.75 to 1.77 times `D4`'s per index run.
+  `D4` fell back to the grid search on 8 of 329 seed steps (2.4%) here and 76 of 1,298 (5.9%)
+  on the first gradient sample; `S5` breaks even at about 3.0% and 1.75%.
+- Where `S5`'s 349 seed steps are: 267 in the 6 grains at 4 degrees, 54 in the 6 grains at 2
+  degrees. Its 30 wrong voxels are in 10 grains, 15 of them in two grains at 4 degrees.
+- The plan's rule: the first branch fails on cost; the second has two readings. The seed step
+  for the opt-in key is the owner's choice.
+- The fixes, one commit each: 8b3ca8a (1), 7810869 (2), e1e4410 (3), a00bb87 (4), 1aad88c
+  (5), d742b39 (6), a2df75e (7), 5d8efb7 (8), 21d9529 (9), 409961b (10), then 9396c30 and
+  073ac59 (follow-ups). The fixes report (`20261111-0355-ar3g-fixes.md`) was an untracked file
+  in the fixes worktree, and that worktree was removed after the merge; this list replaces it.
+- The suite at the merge skipped 47 tests, 3 more than at step 6 (1520 passed, 44 skipped);
+  the same 1,564 tests ran or skipped.
+- The step's eight rows are a new panel of the cost-against-accuracy plots (review page
+  version 33). PR #43 now holds steps 2 to 7.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
