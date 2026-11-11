@@ -12,8 +12,9 @@ GRAD = C.OUT / "gradient"
 SAMPLE = GRAD / "sample"
 TRUTH_MIC = SAMPLE / "gradient_truth.mic"
 GRID_MIC = SAMPLE / "gradient_grid.mic"
-BIG = C.SAMPLE_KIND == "big"  # AR3 step 7: the 32-grain sample (env AR3_SAMPLE=big)
-STACK = "big_clean.npy" if BIG else "grad_clean.npy"
+BIG = C.SAMPLE_KIND in ("big", "mid")  # AR3 step 7: the 32-grain sample (env AR3_SAMPLE=big);
+# AR3 step 9: AR3_SAMPLE=mid, the third sample, is built and stored the same way
+STACK = f"{C.SAMPLE_KIND}_clean.npy" if BIG else "grad_clean.npy"
 WRONG = 1.0  # degrees: "wrong" is an error above this
 HURT = 0.05  # degrees: a voxel is hurt / helped by more than this
 LEVELS = (0.0, 0.2, 0.5, 1.0, 2.0, 4.0) if BIG else (0.0, 0.1, 0.2, 0.5, 1.0)
