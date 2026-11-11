@@ -1100,3 +1100,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   each; the levels are a choice of the agent and the real gradient shape stays an open question
   for the owner. Where: icenine_py/docs/autoresearch/PLAN.md, section 'Step 7: the same pipelines
   on larger grains'.
+
+### D-20261111-N3 · Track A / AR3 step 7 · AR3 step 7 review: apply all 10 required fixes, no rerun
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The review of task ar3g (report .claude/reports/20261111-0500-review-ar3g.md) asks for changes:
+  the data and code are sound, the findings page has wording and number errors. Apply all 10
+  required fixes in one fixes round. No whole-layer run is repeated; existing values in the
+  summary files stay unchanged; nothing under icenine_py/icenine/ changes. Any number a fix adds
+  is recomputed from the stored records, not copied from the review. The choice of the seed step
+  for the opt-in keys stays with the owner: on the sample with larger grains the seed step of run
+  S5 costs more than that of run D4, so the plan's rule does not pick one. Taken under the mandate
+  D-20261109-N1; the owner can overrule. Where: icenine_py/docs/autoresearch/PLAN.md, Step 7;
+  findings_ar3_big.md.
