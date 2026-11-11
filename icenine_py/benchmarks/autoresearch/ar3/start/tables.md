@@ -91,6 +91,20 @@
 | grad | revisit | 1.0 | 10776 | 793328 | 275 (2.6%) | 69 (0.6%) | 17 (0.2%) | 0.5 to 0.8 |
 <!-- /table:p1_start_share -->
 
+<!-- table:p2_f2_by_sample -->
+| set | sample | setting | clusters | vanish | seed_evals | seed_evals_vanish | f2_evals | net_cut | gross_cut |
+|---|---|---|---|---|---|---|---|---|---|
+| test | big | 0.05 deg | 159 | 58 | 2570539 | 1040658 | 258701 | 30.4 | 40.5 |
+| test | big | 0.1 deg | 159 | 63 | 2570539 | 1088839 | 258701 | 32.3 | 42.4 |
+| test | big | 0.2 deg | 159 | 60 | 2570539 | 1134114 | 258701 | 34.1 | 44.1 |
+| test | grad | 0.05 deg | 513 | 76 | 4520102 | 726430 | 924882 | -4.4 | 16.1 |
+| test | grad | 0.1 deg | 513 | 82 | 4520102 | 766868 | 924882 | -3.5 | 17.0 |
+| test | grad | 0.2 deg | 513 | 77 | 4520102 | 390687 | 924882 | -11.8 | 8.6 |
+| test | pooled | 0.05 deg | 672 | 134 | 7090641 | 1767088 | 1183583 | 8.2 | 24.9 |
+| test | pooled | 0.1 deg | 672 | 145 | 7090641 | 1855707 | 1183583 | 9.5 | 26.2 |
+| test | pooled | 0.2 deg | 672 | 137 | 7090641 | 1524801 | 1183583 | 4.8 | 21.5 |
+<!-- /table:p2_f2_by_sample -->
+
 <!-- table:p2_remedies -->
 | set | remedy | setting | kept | evals | cut | fixed | broken | both_wrong |
 |---|---|---|---|---|---|---|---|---|

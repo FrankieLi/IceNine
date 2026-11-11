@@ -346,7 +346,84 @@ def part2() -> Any:
         ["set", "remedy", "setting", "kept", "evals", "cut", "fixed", "broken", "both_wrong"],
         formats={"cut": ".1f", "evals": "d"},
     )
+    f2_out, f2_rows = f2_by_sample()
+    if f2_out:
+        out["f2_by_sample"] = f2_out
+        tabs["p2_f2_by_sample"] = markdown_table(
+            f2_rows,
+            ["set", "sample", "setting", "clusters", "vanish", "seed_evals", "seed_evals_vanish"]
+            + ["f2_evals", "net_cut", "gross_cut"],
+            formats={"net_cut": ".1f", "gross_cut": ".1f"}
+            | {k: "d" for k in ("seed_evals", "seed_evals_vanish", "f2_evals")},
+        )
     return out, tabs
+
+
+def f2_by_sample() -> Any:
+    """F2 by sample and pooled, on both sets (review fix 4; read from the stored F2 files).
+
+    ``net_cut`` is the pass rule's cut: (seed-step evaluations of the vanishing clusters less F2's
+    own evaluations on all rejected fits) over the seed-step evaluations of all reseed clusters.
+    ``gross_cut`` leaves out F2's own cost (as if F2 were free). A cluster vanishes only if every
+    member's last rejected fit passes after the extra fit.
+    """
+    out: Dict[str, Any] = {}
+    rows: List[Dict[str, Any]] = []
+    for st in ("pick", "test"):
+        per = {}
+        for smp in ("big", "grad"):
+            p = START / f"part2_{st}_{smp}_f2.json"
+            if p.exists():
+                per[smp] = rj(p)
+        if len(per) != 2:
+            continue
+        res: Dict[str, Any] = {}
+        sigmas = list(per["big"]["settings"].keys())
+        for name in ("big", "grad", "pooled"):
+            src = list(per.values()) if name == "pooled" else [per[name]]
+            clus = sum(int(d["clusters"]) for d in src)
+            sec = sum(int(d["seed_evals_clusters"]) for d in src)
+            rej = sum(int(d["rejected_fits"]) for d in src)
+            r_s: Dict[str, Any] = dict(clusters=clus, seed_evals_clusters=sec, rejected_fits=rej)
+            for sg in sigmas:
+                v = sum(int(d["settings"][sg]["clusters_vanish"]) for d in src)
+                sv = sum(int(d["settings"][sg]["seed_evals_vanish"]) for d in src)
+                fe = sum(int(d["settings"][sg]["f2_evals"]) for d in src)
+                r_s[sg] = dict(
+                    clusters_vanish=v,
+                    seed_evals_vanish=sv,
+                    f2_evals=fe,
+                    f2_evals_per_rejected_fit=fe / rej,
+                    net_saving=sv - fe,
+                    net_cut=(sv - fe) / sec,
+                    gross_cut=sv / sec,
+                )
+                if st == "test":
+                    rows.append(
+                        dict(
+                            set=st,
+                            sample=name,
+                            setting=f"{sg} deg",
+                            clusters=clus,
+                            vanish=v,
+                            seed_evals=sec,
+                            seed_evals_vanish=sv,
+                            f2_evals=fe,
+                            net_cut=100 * (sv - fe) / sec,
+                            gross_cut=100 * sv / sec,
+                        )
+                    )
+            # the per-sample pick (the largest net saving), for comparison with the pooled pick
+            r_s["largest_net_saving_at"] = max(sigmas, key=lambda s: r_s[s]["net_saving"])
+            res[name] = r_s
+        # the pooled numbers must equal the stored pooled rows of the pick and verdict files
+        stored = rj(START / ("f_pick.json" if st == "pick" else "part2_verdict.json"))["F2"]
+        for sg in sigmas:
+            assert stored["pooled"][sg]["clusters_vanish"] == res["pooled"][sg]["clusters_vanish"]
+            assert stored["pooled"][sg]["f2_evals"] == res["pooled"][sg]["f2_evals"]
+            assert abs(stored["pooled"][sg]["cut"] - res["pooled"][sg]["net_cut"]) < 1e-12
+        out[st] = res
+    return out, rows
 
 
 # ------------------------------------------------------------------------------------- part 3
@@ -486,6 +563,7 @@ def part3() -> Any:
             )
         )
         z = load_errors(smp)
+        res["by_level_s9_vs_s8"] = level_pairs(z)
         for L in sorted(set(z["level"].tolist())):
             m = z["level"] == L
             lvl_rows.append(
@@ -546,6 +624,35 @@ def part3() -> Any:
     fig.savefig(START / "ar3_start_evals.png", dpi=110)
     plt.close(fig)
     return out, tabs
+
+
+def level_pairs(z: Dict[str, np.ndarray]) -> Dict[str, Any]:
+    """S9 against S8 after the pass, by gradient level (review fix 7).
+
+    Per level: voxels, grains, wrong voxels of each run, 1% of the voxels (the 99th percentile
+    falls among the wrong voxels when more than that many are wrong), the paired fixed and broken
+    voxels and the grains they lie in (with the largest number in one grain).
+    """
+    out: Dict[str, Any] = {}
+    for L in sorted(set(z["level"].tolist())):
+        m = z["level"] == L
+        a8, a9, g = z["S8_after"][m] > RIGHT, z["S9_after"][m] > RIGHT, z["grain"][m]
+        fx, br = a8 & ~a9, a9 & ~a8
+        r: Dict[str, Any] = dict(
+            voxels=int(m.sum()),
+            grains=int(len(np.unique(g))),
+            wrong_s8=int(a8.sum()),
+            wrong_s9=int(a9.sum()),
+            one_percent_of_voxels=float(m.sum()) / 100.0,
+            fixed=int(fx.sum()),
+            broken=int(br.sum()),
+        )
+        for nm, mm in (("fixed", fx), ("broken", br), ("fixed_or_broken", fx | br)):
+            u, c = np.unique(g[mm], return_counts=True)
+            r[f"grains_{nm}"] = int(len(u))
+            r[f"max_per_grain_{nm}"] = int(c.max()) if len(c) else 0
+        out[f"{L:g}"] = r
+    return out
 
 
 def plot_share(p1: Dict[str, Any]) -> None:
