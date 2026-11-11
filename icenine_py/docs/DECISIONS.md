@@ -1081,3 +1081,22 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   neighbour tries. One sample, one run each; no extra seeds. Where:
   icenine_py/docs/autoresearch/findings_ar3_seed.md (task branch feature/eval-reduction-ar3f);
   review report .claude/reports/20261111-0330-review-ar3f.md.
+
+### D-20261111-N2 · Track A / AR3 step 7 · AR3 step 7 plan approved under the mandate: the same pipelines on a sample with larger grains (task ar3g)
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. The plan
+  (PLAN.md 'Step 7', commit 96b6902) follows D-20261111-N1. Reason: in step 6's run S5 (20.6M
+  evaluations with the boundary pass, 24,570 voxels) the seed step took 6.0M and 15 grid fallbacks
+  5.1M; both happen once per reseed, and the gradient sample has 497 grains of about 49 voxels.
+  The step builds one sample 'big': the 32 orientations of random_cubic_32grains.mic on the
+  gradient sample's voxel grid (about 770 voxels per grain), gradients by the step 3 function with
+  seed 0 and spreads of 0, 0.2, 0.5, 1, 2 and 4 degrees per grain (0.4 to 4 degrees gives the same
+  voxel-to-voxel change as 0.1 to 1 degree on the gradient sample), clean images. Four whole-layer
+  runs with coded caps, each followed by the boundary pass: D (stock BFS with grid search, 180
+  min), D4 (step 5), S5 (step 6's seed step, best 5 of 20), P4R4 (paint then CMA local
+  optimization), 90 min each. Three predictions are written in the plan before the runs. The
+  result decides which seed step the opt-in keys step uses, and names the next cost target from
+  the split by stage. No library change, no default change, no extra seeds; one sample, one run
+  each; the levels are a choice of the agent and the real gradient shape stays an open question
+  for the owner. Where: icenine_py/docs/autoresearch/PLAN.md, section 'Step 7: the same pipelines
+  on larger grains'.
