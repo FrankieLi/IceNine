@@ -24,11 +24,14 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-Two implementers run. At each hand-back: runbook, "A step, from plan to merge", points 5
+Two agents run. At each hand-back: runbook, "A step, from plan to merge", points 5
 to 9. Merge the parent into a task branch before its fixes round (shared files conflict).
 
-1. AR5 step 3 (task `ar5c`, plan approved by N14; Sonnet; at most 3 heavy processes): the
-   mixed seed refinement, run `S11` on three samples. Report `20261111-1351-ar5c.md`.
+1. AR5 step 3 (task `ar5c`, N14): handed back 2026-11-11 15:00, in review (Opus; report
+   `.claude/reports/20261111-1503-review-ar5c.md`). Branch `feature/eval-reduction-ar5c` in
+   worktree `agent-a5a3601b746680640` (page placed by the main session, 6174af7). Unreviewed:
+   pick `X200`; `S11` with the pass 51.9 / 31.6 / 39.2% fewer evaluations than `S8`, wrong 18
+   / 62 / 36; passes on all three (`mid` at the limit). Then decision N16, fixes, merge, close.
 2. AR3 step 11 (task `ar3k`, plan approved by N15; Sonnet; at most 2 heavy processes): the
    sample `held` (250 grains) and its `S8` baseline. Report `20261111-1351-ar3k.md`. No other
    run may read `held` before the plan of the step that uses it is committed.
@@ -37,8 +40,8 @@ to 9. Merge the parent into a task branch before its fixes round (shared files c
 
 ## Running jobs
 
-- AR5 step 3 implementer, AR3 step 11 implementer (both started 2026-11-11 about 13:55);
-  each hands back by message.
+- AR3 step 11 implementer (started 2026-11-11 about 13:55) and the AR5 step 3 reviewer
+  (started 15:05); each hands back by message.
 - No other job. The review page is at artifact version 41 (its small print says 40; the next
   build is 42). The text of PR #43 holds AR5 step 2 and AR4 step 1.
 
@@ -49,7 +52,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR5 step 3 | mixed seed refinement (CMA, MC under 0.95), run `S11` (task `ar5c`) | running |
+| AR5 step 3 | mixed seed refinement (CMA, MC under 0.95), run `S11` (task `ar5c`) | in review |
 | AR3 step 11 | sample `held` (250 grains) with its `S8` baseline (task `ar3k`) | running |
 | test on `held` | `S8`, `S11`, `S11` + verifier `N1` on the held-out sample | after both |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
