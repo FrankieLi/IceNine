@@ -1093,6 +1093,125 @@ common files); results in `benchmarks/autoresearch/ar3/big/`, slim, under 5 MB; 
 `MIGRATION_HISTORY.md` gets the summary. The page says "local optimization" and defines each
 term at first use. The stored maps and images of earlier steps are where step 6's page says.
 
+### Step 8: why the seed step costs so much in grains with strong gradients
+
+Task `ar3h`. It starts after step 7 is merged. No file under `icenine_py/icenine/` changes.
+No key is added and no default changes.
+
+**Why.** Step 7 left the seed step as the largest stage on the sample `big`: 7.47 of the 13.00
+million evaluations of run `S5` with the boundary pass (57.5%), and, with the grid fallbacks,
+6.47 of the 11.94 million of run `D4` (54%). Two numbers make this cost, and step 7 measured
+neither cause.
+
+- *How many seed steps.* `S5` ran 349 on 32 grains. 267 of them are in the 6 grains with a 4
+  degree gradient and 54 in the 6 grains with 2 degrees. The grains without a gradient have 5
+  seed steps and no reseed.
+- *What one seed step costs.* About 21,400 evaluations in `S5` on `big` (7,469,574 over 349)
+  against about 4,600 on the first gradient sample (5,990,794 over 1,293). `D4`'s seed step
+  shows the same factor: 12,208 against 2,611.
+
+If a seed step on `big` cost what it costs on the first gradient sample, `S5` would need about
+7 million evaluations there, not 13. This step finds out where the evaluations go, tries
+remedies on stored cases first, and only then spends whole-layer runs.
+
+**Terms.** *BFS*: the breadth-first search that spreads from voxel to voxel; each voxel gets a
+local optimization started from a fitted neighbour's orientation. *Relative test*: the BFS
+accepts that fit if its hit ratio is above 0.9 times the best hit ratio seen so far in the
+same flood. *Reseed*: after the BFS, the rejected voxels form connected clusters, and the seed
+step runs on the voxel nearest the centre of a cluster (`_reseed_clusters`). *Seed step*: ray
+indexing proposes candidate orientations, the candidates are costed, and the best are refined
+by a local optimization (`D4`: 5 costed, 2 refined; `S5`: 20 costed, 5 refined). *Seed test*:
+a hit ratio of at least 0.80. *Grid fallback*: the seed step fails the seed test and the full
+grid search runs (a global search: no starting guess). *Boundary pass*: step 5's pass, rule
+`hit`. *Right*: within the angle from the truth that step 7's page uses for a right voxel.
+
+**Part 1: where the evaluations go.** From the stored runs of step 7 (`S5` and `D4` on `big`)
+and of step 6 (the same two on the first gradient sample). If a stored log lacks a field, one
+logged rerun of `S5` on `big` is allowed (cap 90 minutes, the same voxel order); the page
+then shows that its counts match the stored run.
+
+1. *One seed step, split.* For every seed step: the evaluations spent costing candidates, and
+   the evaluations of each refinement in the order they ran; which refined candidate was
+   kept; the hit ratio of each refined candidate; whether a candidate refined earlier already
+   passed the seed test at a right orientation. Reported by gradient level and by sample.
+2. *Why the BFS rejected.* For every voxel in a reseed cluster, the rejected fit from a
+   neighbour falls in one class, judged with the truth:
+   - A, reached and rejected: the fit ended right, and the relative test rejected it;
+   - B, not reached: the start came from the voxel's own true grain, and the fit did not end
+     right (split by the start's angle from the truth: under 0.1, 0.1 to 0.2, 0.2 to 0.5,
+     over 0.5 degrees);
+   - C, other grain: the start came from another true grain.
+   Reported with the hit ratio, the flood's best hit ratio at that moment, and the voxel's
+   distance to the nearest true grain boundary, by gradient level.
+3. *The clusters.* Size of each reseed cluster, its level, its distance to the boundary, and
+   how many voxels the flood from its reseed then settles.
+
+**Part 2: remedies, on stored cases first.** The seed steps and clusters are split by true
+grain: grains with an even index are the pick set, grains with an odd index the test set. A
+remedy's settings are chosen on the pick set and written into the results file before the
+test set is read. The list is fixed here; a remedy is tried only if Part 1 shows its class or
+its cost share is at least a fifth of its total.
+
+| remedy | aimed at | what it does |
+|---|---|---|
+| `E1` | one seed step | refine in order of cost; stop at the first that passes the seed test |
+| `E2` | class A | keep a rejected fit that passes a second test, chosen on the pick set |
+| `E3` | class B | try a rejected fit again from a better start |
+
+For `E2` the second test is, for example, the seed test, or 0.9 times the hit ratio of the
+neighbour the fit started from. For `E3` the better start is a wider first step, or a start
+extrapolated from two fitted neighbours in a line.
+
+Step 6 showed the risk of `E2` and `E3`: tries from the neighbours settled 602 voxels and 59
+of them were wrong, because a boundary voxel accepted the orientation of the grain next to it.
+So each remedy is reported with the count of cases it settles wrong, paired with what the
+stored run did on the same cases (fixed, broken). A remedy goes on to Part 3 if, on the test
+set, it cuts the evaluations of its target by at least a third and breaks no more cases than
+it fixes.
+
+**Part 3: whole-layer runs.** Only if a remedy passes. Run `S8` is `S5` with every remedy
+that passed, on `big` and on the first gradient sample, each followed by the boundary pass
+(cap 90 minutes each). If more than one remedy passed, one more run on `big` with only the
+remedy that saved most in Part 2. No other whole-layer run. Same accounting as step 7:
+evaluations by stage, seeds, reseeds, grid fallbacks, wrong voxels before and after the pass
+with 95% intervals, paired counts against `S5` and `D4` with the pass.
+
+**Written down before the runs.** (1) Most rejected fits in the clusters of the grains at 2
+and 4 degrees are of class A or B, not C. (2) A seed step is dearer on `big` because of the
+refinements, not because of the costing of candidates. (3) `S8` with the pass needs under 9.0
+million evaluations on `big` (`D4`: 11.94) and no more than `S5`'s 20.6 million on the first
+gradient sample, with intervals of wrong voxels that overlap `D4`'s on `big` and `S5`'s on
+the first gradient sample. The page says for each whether the result agrees.
+
+**What the result decides.** If prediction 3 holds, `S8`'s seed step is my recommendation for
+the opt-in key, and the owner's choice between the old and the new seed step gets simpler. If
+no remedy passes Part 2, the page says which class or cost share is left and why the listed
+remedies do not reach it; the next step is then AR4 or AR5 on those cases. The choice of the
+seed step for the key stays the owner's in both cases.
+
+**Rules of the study.** One run per arm, the stored voxel order; no extra random seeds. No
+p-values: counts, paired fixed and broken, 95% intervals. Intervals treat voxels as
+independent although wrong voxels cluster in grains; the page says so. A gradient level holds
+1 to 9 grains: each result by level is a result on those grains. Nothing here is specific to
+cubic symmetry or to special misorientations.
+
+**Stop rules of the task.** Part 1: 60 minutes of compute besides the one allowed rerun.
+Part 2: 60 minutes. Part 3: the caps above. A run that hits its cap is reported with what it
+reached, not repeated. The general stop rule holds as well.
+
+**Not claimed.** That C++ behaves the same. That the gradient model or these levels match a
+real sample. A change of any default. A tested wall time unless the preflight passes. That
+two samples stand for all samples.
+
+**Files.** Scripts in `scripts/autoresearch/ar3/` (`reseed_*.py`); results in
+`benchmarks/autoresearch/ar3/reseed/`, slim, under 5 MB; findings in
+`docs/autoresearch/findings_ar3_reseed.md` (returned as text if the write is refused).
+`MIGRATION_HISTORY.md` gets the summary. The page says "local optimization", defines each
+term at first use, and leads with a plot: evaluations of one seed step by part, per level, on
+the two samples; then the classes of rejected fits per level. The stored maps, logs and image
+stacks of steps 6 and 7 are in the worktrees that `STATE.md` lists; they are linked, not
+copied into git.
+
 ## AR4: the learned proposer
 
 Train and measure H4 on the same voxels as AR1. It starts after AR1 so that it can be compared
