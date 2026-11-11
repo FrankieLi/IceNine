@@ -110,7 +110,7 @@ there start more than 1 degree from the truth (Part 1).
    relative test, so the second explanation (the truth scores below 0.9 times the flood's best)
    holds for none of them. On clean images that is by construction (the truth scores at least
    0.954), so it is not a test of that explanation. The evidence is the extra fit: one more local
-   optimization from the rejected end (0.1 degrees, at most 60 evaluations) passes the test in
+   optimization from the rejected end (0.1 degrees, 61 evaluations each) passes the test in
    807 of 1,069 and 451 of 589. This is consistent with fits that stop a few tenths of a degree
    short. That a fit that ran longer would pass is tested only in this form (one more fit).
 5. **Does `F2` (one more fit before rejecting) pay?** No, under the pooled rule. Pooled over the
@@ -256,7 +256,8 @@ with the fit log (9,508 of 24,222 neighbour fits accepted at the first try on `g
 Reading of the table: for the class A voxels of the reseed clusters of `S5` (a voxel counted at
 its first cluster). `truth_pass` is the number whose true orientation passes the relative test
 against the flood's best at that moment; `after_pass` is the number that passes after one more
-local optimization from the rejected end (first step 0.1 degrees, at most 60 evaluations);
+local optimization from the rejected end (first step 0.1 degrees, 61 evaluations each: 60 plus
+the final one; see "Deviations");
 `after_ci` is its 95% interval in percent. The other columns are medians.
 
 <!-- table:p1_class_a -->
@@ -299,9 +300,10 @@ run of `F2` refuse to start unless that file is committed); the test results are
 `F1`: per fit, the stored evaluations against 1 plus (0 if kept, else the stored evaluations). A
 case is *fixed* if the stored fit ended wrong and the kept start is right, *broken* if the stored
 fit ended right and the kept start is wrong, *both wrong* if both are wrong (not counted by the
-plan's rule). `F2`: one more fit from every rejected fit's end (60 evaluations at most, always
-reached), judged by the relative test, and replacing the end if its hit ratio is higher. A reseed
-cluster vanishes if every member's last rejected fit passes; the saving is the seed-step
+plan's rule). `F2`: one more fit from every rejected fit's end (61 evaluations each: 60 plus the
+final one; see "Deviations"), judged by the relative test, and replacing the end if its hit
+ratio is higher. A reseed cluster vanishes if every member's last rejected fit passes; the saving
+is the seed-step
 evaluations of the vanishing clusters less `F2`'s own evaluations on all rejected fits; fixed and
 broken are counted on the voxels of vanishing clusters against the stored final map.
 
@@ -650,6 +652,11 @@ sample name `mid`; nothing else changed there.
   kept in `pilot_notes/` for the record and used nowhere.
 - **Part 1 was run on all fits** (both sets), so the shares at 0.90, 0.95 and 0.98 had been seen
   on the test set before the pick. The thresholds were fixed by the plan.
+- **61 evaluations, not "at most 60".** The extra fit of Part 1.2 and every fit of `F2` used 61
+  evaluations: 60 in the search plus one final evaluation of the end. Every class A voxel shows
+  61 (65,209 for 1,069 voxels on `big`), and `F2` used 1,161,135 evaluations on the 19,035
+  rejected fits of the pick set (61.0 each). The plan says "at most 60". The extra evaluation is
+  counted in every total on this page.
 
 ## Limits and not claimed
 
