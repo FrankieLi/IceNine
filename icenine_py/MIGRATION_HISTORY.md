@@ -11568,3 +11568,11 @@ fallbacks, 30.3 million, 96 wrong. Two remedies (7a, 7b: indexer order, no stric
 were added beyond the plan. Parts 0 and 1 took about 8 minutes of compute. Not done: an opt-in key
 for the remedy (waits for the owner and a larger-grain check); README unchanged (no library
 module).
+Review fixes (2026-11-11, decision D-20261111-N1, all 11 fixes, no rerun): page text, summary
+keys, tables and the plot label only; summary files gained new keys only. The pass did not repair
+most tries-settled wrong voxels: 40 of the 59 are still wrong after it (D4: 24 on the same 602
+voxels). S5 against S after the pass: 62 against 100, intervals do not overlap, 57 fixed and 19
+broken (S5 added after S). The tries are "consistent with" the extra wrong voxels, not shown per
+voxel. The 14 near-truth refined ends all fail the 0.80 seed test (median hit 0.779). Default
+until the owner decides: the S5 seed step (best 5 of 20, no tries), checked on larger grains
+before any opt-in key.
