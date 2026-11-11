@@ -144,6 +144,8 @@ def main() -> None:
             equal_to_stored_count=bool(
                 int(d.sum()) == int(info[s]["sum_back"]["n_pairs_pixel_counts_differ_from_fused"])
             ),
+            median_peak_pixels=float(np.median(inp[s]["peaks"][:, 4])),
+            min_peak_pixels=float(inp[s]["peaks"][:, 4].min()),
         )
     out["sum_back_by_label"] = sbl
 
@@ -381,6 +383,19 @@ def tables(o: Dict[str, Any]) -> Dict[str, str]:
         r.update(o["pairs"][s]["by_kind"])
         rows.append(r)
     t["ar4_pairs"] = DT.markdown_table(rows, ["sample", "pairs", *KINDS])
+    rows = []
+    for s in SAMPLES:
+        b = o["sum_back_by_label"][s]
+        rows.append(
+            dict(
+                sample=s,
+                right=f"{b['n_differ_right']} of {b['n_right']} "
+                f"({100 * b['share_differ_right']:.2f}%)",
+                wrong=f"{b['n_differ_wrong']} of {b['n_wrong']} "
+                f"({100 * b['share_differ_wrong']:.2f}%)",
+            )
+        )
+    t["ar4_sumback"] = DT.markdown_table(rows, ["sample", "right", "wrong"])
     rows = []
     for name in SCORES:
         d = o["thresholds"][name]

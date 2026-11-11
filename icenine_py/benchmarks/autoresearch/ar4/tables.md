@@ -52,6 +52,14 @@
 | mid | 86242 | 24570 | 1429 | 50099 | 3217 | 3240 | 1229 | 1229 | 1229 |
 <!-- /table:ar4_pairs -->
 
+<!-- table:ar4_sumback -->
+| sample | right | wrong |
+|---|---|---|
+| big | 932 of 37196 (2.51%) | 326 of 11907 (2.74%) |
+| grad | 956 of 36607 (2.61%) | 1618 of 57699 (2.80%) |
+| mid | 1373 of 52188 (2.63%) | 898 of 34054 (2.64%) |
+<!-- /table:ar4_sumback -->
+
 <!-- table:ar4_use1_big -->
 | score | wrong | flagged | share | auc | rule |
 |---|---|---|---|---|---|
