@@ -1144,3 +1144,19 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   The choice of the seed step for the opt-in key stays with the owner; the key takes the stop test
   as a setting that is off by default. Taken under the mandate D-20261109-N1; the owner can
   overrule. Where: icenine_py/docs/autoresearch/PLAN.md, Step 8; findings_ar3_reseed.md.
+
+### D-20261111-N6 · Track A / AR3 step 9 · AR3 step 9 plan approved: a start test for the neighbour fits, the rejected fits that end right, and a third sample that confirms or refutes run S8
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Step 9 (task ar3i) follows from step 8 and its review. Part 1 reads the stored runs: the hit
+  ratio and error at the start and end of every neighbour fit and revisit, and for class A the hit
+  ratio at the true orientation (the reviewer's check). Part 2 tries two remedies on stored cases
+  with step 8's pick and test split: F1, a start test that skips the fit (threshold 0.90, 0.95 or
+  0.98), and F2, one more fit from a rejected fit's end (first step 0.05, 0.1 or 0.2 degrees). The
+  settings and the pick rule are fixed in the plan; nothing is added after a result, and the pick
+  is committed before the test set is read. Part 3 builds a third sample, mid (about 120 grains,
+  step 7's generator and seed value), and runs D4, S5 and S8 with the boundary pass on it: the
+  confirmation that D-20261111-N5 asks for. Run S9 (S8 plus passed remedies) runs on all three
+  samples only if a remedy passes. Four predictions are written in the plan. No library change, no
+  key, no default change. The opt-in keys wait for this step, since the settings they would hold
+  are still moving. Taken under the mandate D-20261109-N1; the owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md, Step 9.
