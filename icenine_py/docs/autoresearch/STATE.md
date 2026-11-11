@@ -91,9 +91,13 @@ go on.
   run (6e7e471, 60cafe1, ad72aab, 654a09f; 27c72ca by the main session), merged and pushed
   (5ccbd2e). Full suite at the merge: 1520 passed, 44 skipped, 1 deselected. PR #43 now holds
   steps 2, 3 and 4 (title and body updated). Page: `docs/autoresearch/findings_ar3_fine.md`.
-- **AR3 step 5 is running** (plan 05577ac, D-20261110-N6; task `ar3e`): after a run, let
-  neighbouring grains compete for the boundary voxels. A Sonnet implementer started on
-  2026-11-10 at about 18:40 (see "Running jobs").
+- **AR3 step 5 is in its fixes round** (plan 05577ac, D-20261110-N6; task `ar3e`): after a
+  run, let neighbouring grains compete for the boundary voxels. Handed back partial, reviewed
+  (request changes, 15 fixes), an Opus implementer applies the fixes since 2026-11-10 at
+  about 22:40 (D-20261110-N7; see "Running jobs").
+- **AR3 step 6 is planned** (plan c88fdd8, D-20261110-N8; task `ar3f`): the seed cost. Why
+  the index seed fails where the grid search succeeds, and what can replace the grid
+  fallback. It starts after step 5 is merged.
 
 ## Next action
 
@@ -198,34 +202,55 @@ Reading the table: one row per step, in order, with its state.
 | item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
 | C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
 | AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) **done** 2026-11-09 (a8c99b7) |
-| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer) **done** 2026-11-10 (741e8fc), in PR #43; step 3 (paint as a start, then refine, on grains with gradients; stop-rule readings) **done** 2026-11-10 (a442712), in PR #43; step 4 (a local fit whose step matches the error, task `ar3d`) **done** 2026-11-10 (5ccbd2e), in PR #43; step 5 (let neighbouring grains compete for the boundary voxels, task `ar3e`): **running** since 2026-11-10 18:40 (plan 05577ac, D-20261110-N6) |
+| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer) **done** 2026-11-10 (741e8fc), in PR #43; step 3 (paint as a start, then refine, on grains with gradients; stop-rule readings) **done** 2026-11-10 (a442712), in PR #43; step 4 (a local fit whose step matches the error, task `ar3d`) **done** 2026-11-10 (5ccbd2e), in PR #43; step 5 (let neighbouring grains compete for the boundary voxels, task `ar3e`): handed back partial, reviewed, **fixes running** since 2026-11-10 22:40 (D-20261110-N7); step 6 (the seed cost, task `ar3f`): plan c88fdd8 approved (D-20261110-N8), starts after step 5 is merged |
 | AR4 | the learned proposer | waits for AR1 |
 | AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 
 ## Running jobs
 
-Step 5 (task `ar3e`) was handed back on 2026-11-10 at about 22:05, status partial: parts 0
-and 1 done, run `KE` done, run `K` stopped at its cap with no map. The report is copied to the
-main `.claude/reports/20261110-1836-ar3e.md`. The main session placed the page
-`docs/autoresearch/findings_ar3_boundary.md` on the task branch (commits 2eda7ec, 3813d69; the
-implementer's write was refused). `verify_handback.sh`: 0 FAIL, 3 expected FLAGs. One agent is
-running: the Opus reviewer (started at about 22:20). Its report will be
-`.claude/reports/20261110-2220-review-ar3e.md`; check with `ls -la` on that path. The task
-branch is in the worktree `.claude/worktrees/agent-a4fd6282107a76186` (it holds untracked
-`boundary/cache/`, preflight and progress files and `runs/KE/records.json.gz`).
+Step 5 (task `ar3e`): handed back partial on 2026-11-10 at about 22:05 (report
+`.claude/reports/20261110-1836-ar3e.md`), page placed by the main session (2eda7ec, 3813d69),
+reviewed by Opus (`.claude/reports/20261110-2220-review-ar3e.md`: request changes, 15 fixes,
+the numbers reproduce). Decisions D-20261110-N7 (all 15 fixes and additions A to G with no
+rerun; the 47 MB of `tries.npz` kept; no rerun of K before step 6; step 6 is the seed cost)
+and D-20261110-N8 (step 6 plan, PLAN.md c88fdd8, task `ar3f`).
 
-Unreviewed numbers of step 5 (from the implementer's report; do not quote before the review):
-gate 412 of 412; wrong voxels before and after the pass with the `hit` keep rule: D4 225 to
-74, P4R4 281 to 82, E4 305 to 0, D 203 to 88, PR 170 to 78, D2 153 to 14; the pass costs 3.0
-to 3.7 million evaluations; 94% of the voxels are boundary voxels, so the pass is a second
-look at nearly everything; skip rule (hit ratio over the best neighbour's at least 0.94)
-skips 92% of the tries; KE 5.4 against 13.6 million evaluations; K at its cap had 38.1
-million evaluations, 31.07 of them in 90 grid fallbacks. Open after the review, to decide
-under the mandate (next ID D-20261110-N7 or later): keep or drop about 47 MB of `tries.npz`
-in git; whether to rerun K with a longer cap; whether a sample with large grains is needed
-before an opt-in key. Also for the fixes: the owner's term is "local optimization", not
-"finisher" (2026-11-10).
+**One agent is running: the Opus fixes implementer** (started 2026-11-10 at about 22:40, in
+its own worktree on `feature/eval-reduction-ar3e`, head before it 3813d69). Its report will
+be `.claude/reports/20261110-2233-ar3e-fixes.md`; check with `ls -la` on that path and
+`git log --oneline feature/eval-reduction..feature/eval-reduction-ar3e`. When it is back:
+
+1. `scripts/dev/verify_handback.sh feature/eval-reduction <fixes report> --branch
+   feature/eval-reduction-ar3e --fixes .claude/reports/20261110-2220-review-ar3e.md
+   --no-tests`; read the changed page lead and the summary.json diff statement.
+2. In the worktree that holds the branch: `scripts/dev/finish_task.sh --yes --push`
+   (background, about 12 minutes; keep the main checkout clean while it runs).
+3. `gh pr edit 43` (add step 5), this file, one shmem fact, the review page.
+4. Step 6: `scripts/dev/read_on_fetch.sh --save` then `--mark`; brief from
+   `scripts/dev/make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar3f
+   --section "AR3: index the layer and paint grains"`; a Sonnet implementer in its own
+   worktree. Notes for it: step 6 only; the stored maps of step 5 are in the old worktree
+   `.claude/worktrees/agent-a4fd6282107a76186` (untracked `boundary/cache/`, the image
+   symlink); results slim, under 5 MB; "local optimization" in the page; plot first.
+
+If the fixes agent died with the session: a fresh Opus implementer with the same brief
+(`make_brief.sh ... --task ar3e --fixes .claude/reports/20261110-2220-review-ar3e.md`) and the
+additions A to G of D-20261110-N7, with the note "continue from the commits on the branch".
+
+Reviewed numbers of step 5 (scope: the simulated gradient sample of step 3 and step 2's
+sample; one run each; grains of about 50 voxels, so 93 to 94% of the voxels are boundary
+voxels). Keep rule `hit`, picked on A by about 2 voxels over `cost`; `conf` breaks 4,445
+right voxels on A. Wrong before and after the pass (A and B pooled): D4 225 to 74, P4R4 281
+to 82, E4 305 to 0, D 203 to 88, PR 170 to 78, D2 153 to 14. The pass costs 3.0 to 3.7
+million evaluations per map. With the pass on both sides: D4 74 against D 88 wrong at 38.8M
+against 122.1M evaluations; P4R4 82 against PR 78 at 54.6M against 94.7M; E4 0 against D2 14
+at 16.6M against 36.1M; KE 0 at 8.45M. A second pass fixes 17 to 23 more per gradient map.
+The skip rule (hit ratio over the best neighbour's at least 0.94) skips about 92% of the
+tries and loses 0 of 360 fixed on A, 1 of 313 on B. K at its cap: 38.1M evaluations, 31.07M
+in 90 grid fallbacks, no map. C++ note for the owner: in parallel mode other clients fit
+accepted voxels again and the server keeps the higher confidence (the `conf` rule); not
+tested.
 
 Step 4 (merged, 5ccbd2e; page `docs/autoresearch/findings_ar3_fine.md`). The review
 recomputed these numbers from the stored records. Scope: the simulated linear-gradient sample
