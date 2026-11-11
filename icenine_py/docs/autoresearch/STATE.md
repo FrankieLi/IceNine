@@ -27,15 +27,14 @@ Read this file first after any restart or wake. It holds only what is true now a
 Runbook, "A step, from plan to merge". Both tasks add a section to `MIGRATION_HISTORY.md`:
 merge the parent into each task branch before its fixes round.
 
-1. AR5 step 2 (task `ar5b`, plan D-20261111-N12): handed back, in review (Opus, started
-   13:10). Branch `feature/eval-reduction-ar5b` at 591ad30 in worktree `agent-acc78ac2a483ed86f`
-   (cut before AR5 step 1 merged). Reports in `.claude/reports/`: `20261111-1134-ar5b.md`,
-   review to come at `20261111-1310-review-ar5b.md`. Then points 6 to 9: decision N14 (fixes;
-   the two questions below), fixes round, merge, close. At the close put the 6 `S10` rows of
-   `docs/autoresearch/pareto/pareto_rows.json` on the page's plots (version 39).
-   Result, review pending: no CMA seed refinement met the 1% rule (pick stays MC). Run `S10`
-   (no MC fallback) needs 29.3 / 15.7 / 14.3% fewer evaluations than `S8`; wrong 22/24, 67/63,
-   35/31. Questions: an opt-in key for it? CMA seed with MC only under hit ratio 0.95?
+1. AR5 step 2 (task `ar5b`, plan D-20261111-N12): reviewed (APPROVE, 4 document fixes,
+   `.claude/reports/20261111-1310-review-ar5b.md`), decision N14. Fixes round runs (Opus, own
+   worktree, started 13:20; it merges the parent first; report
+   `.claude/reports/20261111-1317-ar5b-fixes.md` there). Then points 7 to 9: hand-back check
+   with `--fixes`, `finish_task.sh --yes --push` in its worktree, close. At the close put the
+   6 `S10` rows of `docs/autoresearch/pareto/pareto_rows.json` on the page's plots (version 39).
+   Numbers: `shmem query "AR5 step 2"`. After the merge: AR5 step 3 (task `ar5c`, plan in
+   `PLAN.md`, approved by N14): brief, Sonnet implementer, at most 3 heavy processes.
 2. AR4 step 1 (a learned verifier against the hit ratio, offline; task `ar4a`; plan
    D-20261111-N13): implementer runs. Report `.claude/reports/20261111-1208-ar4a.md` in its
    worktree. At hand-back: points 5 to 9.
@@ -44,7 +43,7 @@ merge the parent into each task branch before its fixes round.
 
 ## Running jobs
 
-- AR5 step 2 reviewer (started 2026-11-11 13:10); it hands back by message.
+- AR5 step 2 fixes implementer (started 2026-11-11 13:20); it hands back by message.
 - AR4 step 1 implementer (started 2026-11-11 about 12:40), at most 2 heavy processes.
 - The review page is at version 38 (AR5 step 1 is on it; no new plot point). No page job.
 
@@ -55,7 +54,8 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR5 step 2 | CMA seed refinement, no MC fallback, run `S10` (task `ar5b`) | in review |
+| AR5 step 2 | CMA seed refinement, no MC fallback, run `S10` (task `ar5b`) | fixes round |
+| AR5 step 3 | mixed seed refinement (CMA, MC under 0.95), run `S11` (task `ar5c`) | planned |
 | AR4 step 1 | learned verifier against the hit ratio, offline (task `ar4a`) | running |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
@@ -105,7 +105,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A note: C++ parallel mode keeps the higher confidence for a voxel that two clients fit;
   that rule did harm in the Python test of step 5. A reading of the source, not a test.
 - A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N13 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N14 (all
   on the review page). N13 recasts AR4 from a learned proposer to a learned verifier.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N14.
+- Next decision ID: D-20261111-N15.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
