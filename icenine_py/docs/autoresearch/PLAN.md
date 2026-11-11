@@ -101,7 +101,8 @@ where H1, H2 and H4 give no candidate.
 - New switches are opt-in and off by default. No default flips and no golden regeneration.
 
 **Library changes:** new modules only (`icenine/ray_indexing.py`, later `icenine/grain_paint.py`,
-`icenine/gradient_sample.py` (AR3 step 3, D-20261110-N4)
+`icenine/gradient_sample.py` (AR3 step 3, D-20261110-N4),
+`icenine/boundary_pass.py` (AR3 step 10, D-20261111-N8)
 and `icenine/ray_proposer_nn.py`), and opt-in keys in `reconstructor.py`, `config_file.py` and
 `orientation_search.py` whose off path is bit-identical. Steps AR0 and AR1 change nothing under
 `icenine_py/icenine/` except adding `ray_indexing.py`.
@@ -1333,6 +1334,243 @@ term at first use, and leads with a plot: evaluations by stage for `D4`, `S5`, `
 on the three samples; then the share of fits whose start passes, per level. The stored maps,
 logs and image stacks of steps 6 to 8 are in the worktrees that `STATE.md` lists; they are
 linked, not copied into git.
+
+### Step 10: opt-in keys for the indexed seed step and the boundary pass
+
+Task `ar3j`. It starts after step 9 and its fixes round are merged. This is the first AR3 step
+that changes files under `icenine_py/icenine/`. It adds opt-in keys only. No default changes.
+
+**Goal.** Steps 6 to 9 ran their seed steps and the boundary pass as script wrappers around the
+library BFS. A user cannot switch them on. This step moves that code into the library behind
+opt-in keys, so that a config file alone gives runs `D4`, `S5` and `S8`, each with the pass.
+With every new key absent, the library does exactly what it does today. The step recommends no
+setting. It documents what each key does and what was measured; the choice stays the owner's.
+
+**Decided with the plan (D-20261111-N8; the owner can overrule each).**
+
+- A third key, `BFSNeighborCMAFirst`, is part of the step. Without it no stored run can be
+  reproduced, and a user who switched on the seed keys alone would get a pipeline nobody ran.
+- `icenine/boundary_pass.py` is added to the list of new modules in "How every arm is judged".
+  `ray_indexing.py`, a module of this track, gets new arguments whose defaults are today's code.
+- The pass is "exact on the stored map, a prediction in the run" (see the validation runs). The
+  library does not round its map to imitate the script.
+- The pass draws from its own `default_rng(0)`, as `seed_by_indexing` does. With the run's
+  generator no stored pass could be reproduced.
+- The pass uses every voxel that has a fitted orientation, as a target and as a source of
+  candidates. A voxel that was never fitted is skipped in both roles. In the stored runs every
+  voxel was fitted, so this changes no stored number.
+- The fixes round of this step may change the library files the step itself touched, with the
+  tests of this step and the bit-identity checks (a) and (b) run again. This is an exception
+  to the runbook's rule for fixes rounds, for this step only.
+- The implementer checks two things before writing code and reports them: whether any test or
+  golden compares a whole `CMAResult` or `SeedResult` object (the new fields must not break
+  it), and whether `cma_sigma0_deg` or `cma_neighbor_max_evals` is read on any path of
+  `LocalOptimizer mc` (the grid search, `refine_from_candidates`). If either is so, the step
+  stops and reports before the validation runs.
+- If a stored map, record or `before_S8.npy` is missing from the worktrees that `STATE.md`
+  lists, the exact check that needs it cannot run. The step says so; it does not rebuild it.
+
+**Terms.** *BFS*: `BFSReconstruction` in `reconstructor.py`; it spreads from voxel to voxel.
+*Seed step*: ray indexing proposes candidates, the first ones get the strict cost, and the
+cheapest are refined by a local optimization (`ray_indexing.seed_by_indexing`, called through
+`AdaptiveVoxelReconstructor.index_seed` and `BFSReconstruction._index_seed`). *Seed test*: a hit
+ratio of at least `MinAccelerationThreshold` (0.80 here). *Early stop*: the seed step stops at
+the first refinement whose end has a hit ratio of at least a threshold (`S8`: 0.95).
+*Neighbour fit*: the local optimization of a voxel from a fitted neighbour's orientation
+(`_local_fit`); a *revisit* is a later fit of a rejected voxel. *Boundary pass*: step 5's pass,
+rule `hit`. *Off path*: a run with every new key absent or written at its default.
+
+**What the scripts do today, and what the library lacks** (read in the code):
+
+| run | script code | library code it calls | what the script adds |
+|---|---|---|---|
+| all | `run_wrapped.Wrap` | `local_optimization` | CMA first, MC if no gain |
+| `S5` | `seed_pick.SeedPick` | `index_seed(..., 20, 5)` | 20 and 5, not 5 and 2 |
+| `S8` | `reseed_s8.E1Pick` | `index_voxel`, `refine_from_candidates` | the early stop loop |
+| pass | `boundary_pass.py`, `boundary_*` | `local_optimization` | all of the pass |
+
+Reading the table: one row per piece of script code. The first row matters most. `D4`, `S5` and
+`S8` all ran with step 4's fit wrapper. It replaces the instance method `local_optimization`:
+a CMA fit (first step 0.05 degrees, at most 60 evaluations) runs first; if its end cost is not
+below the start cost, the stock MC fit runs from the same start, and the lower cost is kept
+(the CMA end on a tie). The library has no such mode. Its `LocalOptimizer cma` with
+`CMARetrySigma0` (run `K`) is different: it also changes the seed path and retries on rejection.
+So the seed keys alone cannot reproduce any stored run. This step therefore needs a third key.
+
+**The keys.** Parsed in `config_file.py` (the parser table in `ConfigFile`, beside
+`SeedByIndexing`), carried by `SearchParameters` in `orientation_search.py` (`from_config` and
+`__post_init__` checks), and checked together in a new `check_bfs_keys(params)` in
+`reconstructor.py`, called from `BFSReconstruction.__init__` beside `check_paint_grains_keys`.
+
+| key (new) | type, default | field (new) | where it acts |
+|---|---|---|---|
+| `BFSNeighborCMAFirst` | 0 or 1, 0 | `bfs_neighbor_cma_first` | `_local_fit` |
+| `SeedIndexCandidates` | two ints, `5 2` | `seed_index_n_cost`, `_n_refine` | `_index_seed` |
+| `SeedIndexStopHitRatio` | float, 0 (off) | `seed_index_stop_hit` | `seed_by_indexing` |
+| `BoundaryPass` | 0 or 1, 0 | `boundary_pass` | `reconstruct_sample` |
+
+Reading the table: one row per key; the defaults equal today's behaviour. The second field is
+`seed_index_n_refine`. `_local_fit`, `_index_seed` and `reconstruct_sample` are methods of
+`BFSReconstruction`; `seed_by_indexing` is in `ray_indexing.py`.
+
+- `BFSNeighborCMAFirst 1`: each neighbour and revisit fit is the wrapper's rule. The CMA fit
+  uses `CMASigma0` and `CMANeighborMaxEvals` (the runs set 0.05 and 60). Needs `LocalOptimizer
+  mc`. The seed path and the grid search stay as they are. `CMARetrySigma0` has no effect here.
+- `SeedIndexCandidates n_cost n_refine`: the seed step costs `n_cost` candidates and refines the
+  `n_refine` cheapest. `S5` and `S8` use `20 5`. Valid: 1 <= `n_refine` <= `n_cost` <=
+  `ray_indexing.SEED_TOP_K` (20, the indexer's list length).
+- `SeedIndexStopHitRatio t`: with 0 < t <= 1, the early stop at hit ratio t. If no refinement
+  reaches t, all are refined and the lowest cost is kept, as today. The hit ratio of each end is
+  one overlap evaluation, not counted in the totals (as in `S8` and in today's seed test).
+- `BoundaryPass 1`: after the reseeds (and the restart pass, if on), before the `.mic` is
+  written, the pass runs once on the whole map with rule `hit`. Its settings are constants of
+  the new module, not keys: the 0.5 degree threshold, CMA tries of 0.05 degrees and 60
+  evaluations, its own generator `default_rng(0)`, voxels in index order, candidates in
+  neighbour-index order. These are the measured settings.
+
+Invalid combinations raise `ValueError` before any search: either seed key off its default
+without `SeedByIndexing 1`; any new key with `PaintGrains 1` (the paint path is not part of
+this step); `BFSNeighborCMAFirst 1` with `LocalOptimizer cma`, with `OutwardSearch 1`, or with
+the field `use_hybrid_optimizer` (no config key) set; these were never measured together. Bad
+values raise at parse time: `SeedIndexCandidates 30 5`, `5 6` or one number;
+`SeedIndexStopHitRatio 1.5` or negative; `BoundaryPass 2`.
+
+**The design.** Code moves; nothing that reads the truth, logs to files, caches runs, counts by
+monkeypatching or watches a time cap moves (`Env.err`, `G.Truth`, `CostRecorder`, progress
+threads, watchdogs, `seed_log`, the pick and test sets stay in the scripts).
+
+1. `orientation_search.py`: `CMAResult` gets `start_cost` (new, `Optional[float] = None`), set
+   in `CMAOptimizer.optimize` from the start's own evaluation. This replaces the wrapper's
+   `CostRecorder` without an extra evaluation.
+2. `reconstructor.py`: `local_optimization` gets `optimizer: Optional[str] = None` (None: as
+   today, from `params.local_optimizer`). `_local_fit`, when `bfs_neighbor_cma_first`, calls it
+   with `optimizer="cma"` and the CMA overrides, then with `optimizer="mc"` if needed, and sets
+   `last_local_optimization_evals` to the sum, as `Wrap.wrapped` does. Counters
+   `cma_first_fallback_runs` and `cma_first_fallback_won` are made by `_count` (key on only).
+3. `ray_indexing.seed_by_indexing` gets `stop_hit: float = 0.0` and `hit_fn=None`; `SeedResult`
+   gets `stopped_at: int = -1` (new). With `stop_hit` 0 the loop is the current code.
+   `AdaptiveVoxelReconstructor.index_seed` builds `hit_fn` from `evaluate_overlap` and
+   `BFSReconstruction._ratios`. `_index_seed` passes the two counts and the threshold, and adds
+   `stopped_at` to `index_log` and `index_stopped_early` to the stats only when the key is on.
+4. New module `icenine/boundary_pass.py` (the scope list gets this name):
+   `boundary_candidates(R, neighbours, sym)`, `keep_hit(old, tries)` and
+   `run_boundary_pass(bfs, mic)`. It ports `Env.boundary`, `Env._merge`, `try_fit` and
+   `apply_rule(..., "hit")`; neighbours from `MicFile.get_neighbors` (radius 2 side lengths,
+   sorted), angles from `ray_indexing.misorientation_deg` and `proper_rotations`. Only boundary
+   voxels get the strict score of their old end (the script scored all voxels; the score was
+   never counted). A changed voxel takes the end's orientation, cost, confidence and hit ratio.
+   Stats (key on only): boundary voxels, tries, voxels changed, `n_evals_boundary_pass`,
+   `n_evals_boundary_score`, wall time; `bfs.boundary_log` keeps each changed voxel's old and
+   new orientation, so the map before the pass can be rebuilt.
+
+**How the off path stays bit-identical.** Every new branch is behind a new field at its
+default, and the default calls are the current calls (`index_seed(vertices, phase, 5, 2)` is
+what `_index_seed` makes today). Checks: (a) the whole suite and every golden unchanged, no
+golden file touched; (b) the fingerprint tests below; (c) one validation run, outside the suite:
+the BFS with `scripts/autoresearch/ar2/key_on_fused.config` on the 2,000-voxel pilot region, the
+new keys absent, once on the parent commit and once on the task branch; orientations, records,
+stats (wall times left out) and the written `.mic` bytes must be equal.
+
+**Tests first** (written and committed before the implementation; each runs in seconds; new
+file `tests/test_bfs_ar3_keys.py`, reusing `test_bfs_refit.FakeReconstructor`, `_run` and the
+`_fingerprint` of `test_seed_by_indexing.py`):
+
+1. Defaults and parsing of the four keys; `SearchParameters()` holds today's values.
+2. Bad values and the invalid combinations above raise `ValueError`.
+3. Keys absent equals keys written at their defaults, with `SeedByIndexing` and `BFSReseed` on
+   and off: same orientations, records, stats; no new stats key; no new `index_log` field.
+4. `test_key_off_scripted_grid_still_matches_the_golden`, again with the new keys written at
+   their defaults (`bfs_grid_golden.npz`).
+5. `_index_seed` passes `n_cost`, `n_refine` and the threshold to `index_seed` (a fake records
+   the call).
+6. The early stop on a fake reconstructor with scripted refinement costs and hit ratios: it
+   stops at the first end at or above the threshold and keeps it although a later end would cost
+   less; with none above, the lowest cost as today; the counted evaluations are the costing plus
+   the refinements made; with threshold 0 the `SeedResult` equals today's field by field.
+7. On the ThreeVoxels toy (real images, `needs_c`): `index_seed` with `20 5` and 0.95 equals
+   the loop of `reseed_s8.E1Pick.e1_step` written out by hand, as
+   `test_library_path_equals_the_script_path_on_the_toy` does for the old seed step.
+8. `BFSNeighborCMAFirst` on the toy: from a start where the CMA fit lowers the cost, the CMA end
+   and its evaluations; from one where it does not (the truth itself), the MC fit also runs, the
+   lower cost is kept, the evaluations add up; equal to `Wrap.wrapped` written out by hand.
+   `refine_from_candidates` makes no CMA call with the key on.
+9. `start_cost` equals the first evaluation of a CMA run, and CMA results are otherwise
+   unchanged.
+10. `boundary_candidates` on a hand-made 6 x 6 grid with two orientations: the boundary voxels,
+    the merge of candidates within 0.5 degrees (the first in index order kept), no truth used.
+11. `keep_hit`: highest hit ratio, then lowest cost, then order; the old end wins a full tie.
+12. The pass in the scripted BFS: it runs after the reseeds and before the write; candidates
+    come from the map before the pass; with the key off it is never called.
+13. On the toy with one voxel turned 5 degrees: `run_boundary_pass` equals `Env.boundary`,
+    `try_fit` and `apply_rule(..., "hit")` written out by hand (tries, ends, evaluations).
+
+**Validation runs** (not in the suite; scripts `scripts/autoresearch/ar3/libkeys_*.py`, new;
+no truth inside the library; the scripts score against the truth afterwards). All on `big`,
+clean images, Q-max 8, `key_on_fused.config` plus the keys, `default_rng(0)` for the voxel
+order, one worker each. The configs:
+
+| run | keys added to `key_on_fused.config` |
+|---|---|
+| `D4L` | `BFSNeighborCMAFirst 1`, `CMASigma0 0.05`, `CMANeighborMaxEvals 60`, `BoundaryPass 1` |
+| `S5L` | as `D4L`, plus `SeedIndexCandidates 20 5` |
+| `S8L` | as `S5L`, plus `SeedIndexStopHitRatio 0.95` |
+
+Reading the table: one row per library run; each should give the stored run of the same name.
+
+**Written down before the runs.** Exact (every number equal):
+
+| run | seeds | reseeds | grid | evals before the pass | wrong before | source |
+|---|---|---|---|---|---|---|
+| `D4L` | 38 | 291 | 8 | 10,811,715 | 68 | `big/slim/D4_run.json` |
+| `S5L` | 35 | 314 | 0 | 11,867,509 | 71 | `big/slim/S5_run.json` |
+| `S8L` | 37 | 292 | 0 | 7,201,863 | 67 | `reseed/slim/s8_big.json` |
+
+Reading the table: counts of the BFS before the pass. Paths are under
+`benchmarks/autoresearch/ar3/`; the wrong counts are in `reseed/tables.md` (`s8_wrong`). Also
+exact: every stats counter except wall times; for `S8L`, 322 early stops in 329 seed steps and
+2,856,712 seed-step evaluations; for `S5L`, 3,235 MC fallbacks in 32,673 neighbour fits (the
+wrapper counts). The map before the pass, rebuilt from `boundary_log`, written as a `.mic`,
+equals the stored `recon.mic.gz` byte for byte (stored in the worktrees that `STATE.md` lists).
+
+The pass is checked twice. (1) Exact: `run_boundary_pass` applied to the stored map that the
+script read (`before_S8.npy`, `reseed/cache/passes_big/` in the step 8 worktree) gives the stored
+`tries.npz` (18,665 tries, 1,138,565 evaluations) and the same map after rule `hit`. (2) In the
+run: the library pass reads the map in memory, but the script read the `.mic` file, whose angles
+are rounded (4 and 6 decimals). So the tries can start a tiny angle apart. Prediction, not
+guaranteed: the same tries and evaluations as stored (`D4L` 18,557 and 1,131,977; `S5L` 18,563
+and 1,132,343; `S8L` 18,665 and 1,138,565, from `big/passes/*_pass.json` and `s8_big.json`), and
+the same wrong counts after the pass (21, 30 and 24). A difference here is reported with the
+voxels it touches. It is not tuned away.
+
+If an exact number differs, the step stops and reports the first differing voxel and counter.
+No setting is changed to make a number match.
+
+**Time budgets.** Stored wall times, all contended: `D4` 970 s, `S5` 1,027 s, `S8` 721 s; each
+pass about 122 s of tries (4 passes side by side). Budget 30 minutes per whole-layer run with its
+pass, 10 minutes for the pilot pair of check (c), 10 minutes for pass check (1), 15 minutes for
+scoring. Total about 2 hours of compute; the three runs go side by side (3 heavy processes; at
+most 6). The general stop rule holds: a run past twice its budget is stopped and reported.
+
+**Optional, separable: a wall-clock pair.** Every AR3 run so far was contended, so no stored
+wall time is a timing. If, and only if, `preflight.require_quiet()` passes: `D4L` and `S8L`
+without the pass, one after the other, one worker, `FusedCost` on, preflight JSON saved beside
+them, labelled "single-worker". If the preflight refuses, this part is not run here; it goes to
+"Machine-time runs from the review page". Nothing else in the step depends on it.
+
+**What the step must not do.** No default flip. No golden change. No new dependency. No
+recommendation of a seed step. No key for the start test (`F1`, run `S9`). Nothing learned. No
+change to C++. No grid-search change (the 16 grid fallbacks of `grad` stay). No new run on
+`grad` or `mid`.
+
+**Documentation.** `docs/autoresearch/findings_ar3_keys.md` (returned as text if the write is
+refused): each key, what it does, the measured numbers of `D4`, `S5` and `S8` with the pass on
+the three samples (`big`: 11.94, 13.00, 8.34 million evaluations and 21, 30, 24 wrong; first
+gradient sample: 38.81, 20.63, 18.00 million and 74, 62, 63; `mid`: `D4` 40.56 million and 48,
+`S8` 26.44 million and 31, `S5` from step 9's page), and the validation tables. It leads with a
+plot: evaluations by stage, script run against library run. `icenine_py/README.md`: the four
+keys in "Key Config Parameters for Reconstruction" and the new module in "Package Modules".
+`MIGRATION_HISTORY.md`: a section for step 10. Results in `benchmarks/autoresearch/ar3/keys/`,
+slim, under 5 MB tracked; maps and records are linked from the worktrees, not committed.
 
 ## AR4: the learned proposer
 
