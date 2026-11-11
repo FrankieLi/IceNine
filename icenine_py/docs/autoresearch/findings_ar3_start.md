@@ -85,8 +85,10 @@ task's on `mid`.
 
 Reading of the second picture: for each gradient level, the share of neighbour fits (in `S5`)
 whose start already has a hit ratio of at least 0.90, 0.95 and 0.98. Left `big`, right `grad`.
-The share falls as the gradient grows. On `grad` it is low at every level: most neighbour fits
-there start more than 1 degree from the truth (Part 1).
+On `big` the share is highest at 0 to 0.5 degrees and falls from 1 degree up; at 0.90 it rises
+from 0 to 0.5 degrees (73.8, 81.3 and 93.4%), and level 0.5 is one grain. On `grad` it falls level
+by level, and it is low at every level: most neighbour fits there start more than 1 degree from
+the truth (Part 1).
 
 ![Share of neighbour fits whose start passes, by level](../../benchmarks/autoresearch/ar3/start/ar3_start_share.png)
 
