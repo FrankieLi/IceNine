@@ -26,14 +26,14 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 Step 9 of AR3 (a start test for the neighbour fits, the rejected fits that end right, a
 third sample; task `ar3i`; plan in `PLAN.md` under "Step 9: ...", approved by D-20261111-N6).
-Handed back (branch `feature/eval-reduction-ar3i`, head 86e3ffa, worktree
-`agent-a9c88b610fb10e1b6`; check 0 FAIL). The review runs; its report goes to the main
-`.claude/reports/20261111-0810-review-ar3i.md`.
+Reviewed (main `.claude/reports/20261111-0810-review-ar3i.md`): 13 fixes to wording, no
+rerun; decision D-20261111-N7. The fixes round runs (Opus, own worktree, branch
+`feature/eval-reduction-ar3i`, was 86e3ffa; report `20261111-0815-ar3i-fixes.md`).
 
-1. Wait for the review. Then runbook, "A step, from plan to merge", points 7 to 9: the
-   decision on the fixes (D-20261111-N7 or the day's next ID), a fixes round (Opus; free the
-   branch first with `git -C <worktree> checkout --detach`), `finish_task.sh --yes --push`, close.
-   Copy the reports to the main `.claude/reports/` first: a merged worktree can vanish.
+1. Wait for the fixes hand-back. Then runbook, "A step, from plan to merge", points 5, 8, 9:
+   `verify_handback.sh ... --fixes <review report>` in the worktree that holds the branch,
+   copy the fixes report to the main `.claude/reports/` (a merged worktree can vanish),
+   `finish_task.sh --yes --push` there, close.
 2. At the close: add the runs on the third sample (`mid`) and run `S9`, if it ran, to
    `docs/autoresearch/pareto/pareto_rows.json` (a new panel for `mid`); say on the review page
    whether run `S8` is confirmed (prediction 3 of step 9) and check the other predictions.
@@ -42,7 +42,7 @@ Handed back (branch `feature/eval-reduction-ar3i`, head 86e3ffa, worktree
 
 ## Running jobs
 
-- Step 9 review (`code-reviewer`, Opus), started 2026-11-11. The implementer is done.
+- Step 9 fixes round (`implementer`, Opus, own worktree), started 2026-11-11.
 - The review page is at version 35 (run `S8` is on its plots). No page job is open.
 
 ## Queue
@@ -52,7 +52,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 9 | start test, rejected fits that end right, third sample (task `ar3i`) | review running |
+| AR3 step 9 | start test, rejected fits that end right, third sample (task `ar3i`) | fixes round running |
 | AR3 later | opt-in keys for the seed step and the boundary pass | with settings; the owner picks |
 | AR4 | the learned proposer | after AR5 |
 | AR5 | the stop rule inside the grid search (the grid fallbacks) | after step 9 |
@@ -105,7 +105,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   local-optimization settings on real data; how many voxels a grain spans in your maps.
 - A note to read: C++ parallel mode keeps the higher confidence for a voxel that two clients
   fit; that rule did harm in the Python test of step 5. A reading of the source, not a test.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N6 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N7 (all
   on the review page). The gradient levels of step 7's sample are my choice. Step 5's result
   files add about 50 MB to git; say so if you want them pruned.
 - Not done unless you ask: a repo-wide rename of "finisher" to "local optimization".
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N7.
+- Next decision ID: D-20261111-N8.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
