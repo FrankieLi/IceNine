@@ -65,16 +65,35 @@ def ci_d(k: int, n: int) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------------- big side
 def big_stats(pipe: str) -> Dict[str, Any]:
     """Counters and stages of one run on ``big`` (run.json and pass.json)."""
-    run = {
+    r = jl(BIG / "slim" / f"{pipe}_run.json")
+    pj = jl(BIG / "passes" / f"{pipe}_pass.json")
+    return stages_of(pipe, r, pj["evals"], pj)
+
+
+def make_slim() -> None:
+    """Copy each run's ``run.json`` without its non-scalar stats (index logs and the like) to
+    ``big/slim/<pipe>_run.json`` and the pass folder's ``pass.json`` to ``big/passes/``. Run on the
+    full results; the summary reads the slim copies only."""
+    src = {
         "D": BIG / "gradient" / "runs" / "D" / "run.json",
         "D4": BIG / "fine" / "runs" / "D4" / "run.json",
         "S5": BIG / "seed" / "runs" / "S5" / "run.json",
         "P4R4": BIG / "fine" / "runs" / "P4" / "run.json",
-    }[pipe]
-    pass_json = BIG / "boundary" / "cache" / "passes" / f"D4_{pipe}" / "pass.json"
-    r = jl(run)
-    pj = jl(pass_json) if pass_json.exists() else jl(BIG / "passes" / f"{pipe}_pass.json")
-    return stages_of(pipe, r, pj["evals"], pj)
+    }
+    (BIG / "slim").mkdir(exist_ok=True)
+    (BIG / "passes").mkdir(exist_ok=True)
+    for pipe, p in src.items():
+        r = jl(p)
+        if "stats" in r:
+            r["stats"] = {k: v for k, v in r["stats"].items() if isinstance(v, (int, float))}
+        (BIG / "slim" / f"{pipe}_run.json").write_text(json.dumps(r, indent=1) + "\n")
+        pj = BIG / "boundary" / "cache" / "passes" / f"D4_{pipe}" / "pass.json"
+        (BIG / "passes" / f"{pipe}_pass.json").write_text(pj.read_text())
+    import shutil
+
+    shutil.copyfile(
+        BIG / "seed" / "runs" / "S5" / "seed_log.json.gz", BIG / "slim" / "S5_seed_log.json.gz"
+    )
 
 
 def stages_of(pipe: str, r: Dict[str, Any], pass_evals: int, pj: Dict[str, Any]) -> Dict[str, Any]:
@@ -99,7 +118,7 @@ def stages_of(pipe: str, r: Dict[str, Any], pass_evals: int, pj: Dict[str, Any])
         s = r["stats"]
         st = dict(
             seed_step=int(s["index_evals"]),
-            grid_fallback=int(s["index_fallback_grid_evals"]),
+            grid_fallback=int(s.get("index_fallback_grid_evals", 0)),
             neighbour=int(s["n_evals_neighbor"]),
             revisit=int(s["n_evals_revisit"]),
             scoring=0,
@@ -112,7 +131,7 @@ def stages_of(pipe: str, r: Dict[str, Any], pass_evals: int, pj: Dict[str, Any])
             seeds=int(s["n_seeds"]),
             reseeds=int(s["n_reseeds"]),
             grid_fallbacks=int(
-                s["index_fallback_seed_test"] + s.get("index_fallback_no_candidate", 0)
+                s.get("index_fallback_seed_test", 0) + s.get("index_fallback_no_candidate", 0)
             ),
             wall_run_s=float(r["wall_total_s"]),
         )
@@ -179,6 +198,10 @@ def paired(wa: np.ndarray, wb: np.ndarray) -> Dict[str, int]:
 
 # ------------------------------------------------------------------------------------- main
 def main() -> None:
+    import sys
+
+    if "--slim" in sys.argv:  # needs the full run folders and the pass cache (not committed)
+        make_slim()
     z = np.load(BIG / "errors.npz")
     level = z["level"].astype(float)
     err = {f"{p}_{w}": z[f"{p}_{w}"].astype(float) for p in PIPES for w in ("before", "after")}
@@ -298,6 +321,50 @@ def main() -> None:
     w5, w4 = wrong["S5_after"].sum(), wrong["D4_after"].sum()
     lo5, hi5 = wilson(int(w5), N)
     lo4, hi4 = wilson(int(w4), N)
+    # ---- added: seed steps of S5 by the true level of the voxel's grain (a reading of the log)
+    import gzip
+
+    with gzip.open(BIG / "slim" / "S5_seed_log.json.gz", "rt") as f:
+        slog = json.load(f)
+    sl: List[Dict[str, Any]] = []
+    for L in LEVELS:
+        sel = np.isclose(level, L)
+        steps = [e for e in slog if sel[e["voxel"]]]
+        sl.append(
+            dict(
+                level=lv(L),
+                grains=grains_by_level[lv(L)],
+                voxels=int(sel.sum()),
+                seed_steps=len(steps),
+                reseeds=int(sum(1 for e in steps if e["reseed"])),
+                evals=int(sum(e["evals"] for e in steps)),
+            )
+        )
+    assert sum(x["seed_steps"] for x in sl) == len(slog)
+    S["seed_steps_by_level"] = sl
+    # the same reading on the gradient sample, from its committed log and sample record
+    with gzip.open(GRAD / "seed" / "runs" / "S5" / "seed_log.json.gz", "rt") as f:
+        glog = json.load(f)
+    ginfo = jl(GRAD / "gradient" / "sample" / "sample.json")
+    gmap = np.load(C.EX / "SimInput" / "rand_500grains_1mm_neworient_s0_grainmap.npy")
+    glev_of = {g["id"]: g["level_deg"] for g in ginfo["grains"]}
+    glevel = np.array([glev_of[int(g)] for g in gmap])
+    gl2: List[Dict[str, Any]] = []
+    for L in (0.0, 0.1, 0.2, 0.5, 1.0):
+        sel = np.isclose(glevel, L)
+        steps = [e for e in glog if sel[e["voxel"]]]
+        gl2.append(
+            dict(
+                level=lv(L),
+                voxels=int(sel.sum()),
+                seed_steps=len(steps),
+                reseeds=int(sum(1 for e in steps if e["reseed"])),
+                evals=int(sum(e["evals"] for e in steps)),
+            )
+        )
+    assert sum(x["seed_steps"] for x in gl2) == len(glog)
+    S["seed_steps_by_level_gradient"] = gl2
+
     S["decision"] = dict(
         s5_wrong=int(w5),
         d4_wrong=int(w4),
@@ -432,6 +499,22 @@ def tables(S: Dict[str, Any]) -> Dict[str, str]:
         )
     rows.append(dict(stage="total", evals=s5["total"], share_pct=100.0))
     T["s5_split"] = markdown_table(rows, ["stage", "evals", "share_pct"], {"share_pct": ".1f"})
+    rows = []
+    for x in S["seed_steps_by_level"]:
+        rows.append(dict(x, per_1000_voxels=1000.0 * x["seed_steps"] / x["voxels"]))
+    T["seed_by_level"] = markdown_table(
+        rows,
+        ["level", "grains", "voxels", "seed_steps", "reseeds", "per_1000_voxels", "evals"],
+        {"per_1000_voxels": ".1f"},
+    )
+    rows = []
+    for x in S["seed_steps_by_level_gradient"]:
+        rows.append(dict(x, per_1000_voxels=1000.0 * x["seed_steps"] / x["voxels"]))
+    T["seed_by_level_gradient"] = markdown_table(
+        rows,
+        ["level", "voxels", "seed_steps", "reseeds", "per_1000_voxels", "evals"],
+        {"per_1000_voxels": ".1f"},
+    )
     return T
 
 
