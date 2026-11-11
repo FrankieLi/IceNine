@@ -29,8 +29,8 @@ OUT = ICE / "benchmarks" / "autoresearch" / "ar3"
 # 32-grain sample; the default (unset) is the gradient sample, so earlier scripts behave as before.
 SAMPLE_KIND = os.environ.get("AR3_SAMPLE", "gradient")
 # AR3 step 9: AR3_SAMPLE=mid is the third sample (about 120 grains, same grid), same layout as big.
-assert SAMPLE_KIND in ("gradient", "big", "mid"), SAMPLE_KIND
-if SAMPLE_KIND in ("big", "mid"):
+assert SAMPLE_KIND in ("gradient", "big", "mid", "held"), SAMPLE_KIND  # step 11: held
+if SAMPLE_KIND in ("big", "mid", "held"):
     OUT = OUT / SAMPLE_KIND
 CONFIG = ICE / "scripts" / "autoresearch" / "ar2" / "key_on_fused.config"
 STORED_KEY_ON = ICE / "benchmarks" / "autoresearch" / "ar2" / "key" / "runs" / "key_on"

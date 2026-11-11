@@ -12,7 +12,8 @@ GRAD = C.OUT / "gradient"
 SAMPLE = GRAD / "sample"
 TRUTH_MIC = SAMPLE / "gradient_truth.mic"
 GRID_MIC = SAMPLE / "gradient_grid.mic"
-BIG = C.SAMPLE_KIND in ("big", "mid")  # AR3 step 7: the 32-grain sample (env AR3_SAMPLE=big);
+BIG = C.SAMPLE_KIND in ("big", "mid", "held")
+# AR3 step 7: the 32-grain sample (env AR3_SAMPLE=big); step 11: AR3_SAMPLE=held, the fourth sample
 # AR3 step 9: AR3_SAMPLE=mid, the third sample, is built and stored the same way
 STACK = f"{C.SAMPLE_KIND}_clean.npy" if BIG else "grad_clean.npy"
 WRONG = 1.0  # degrees: "wrong" is an error above this
