@@ -1,0 +1,12 @@
+{
+ "sample": "grad",
+ "n_tries": 60381,
+ "pass_evals": 3683241,
+ "start_evals": 60381,
+ "wrong_before": 210,
+ "wrong_after": 63,
+ "stored_map_reproduced": true,
+ "wall_total_s": 7.3981077671051025,
+ "wall_start_scores_s": 7.273245811462402,
+ "timing_label": "contended (another agent on the machine); not a timing result"
+}

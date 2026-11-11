@@ -11738,3 +11738,51 @@ rerun, contended): a fresh process on the unrounded map gives the in-run pass tr
 the same process after the BFS on the `.mic`-rounded map gives the script's stored tries. For
 these two runs the input rounding alone accounts for the difference; the process does not. The
 single-worker pair was not run (the timing preflight refused again).
+
+## Autoresearch AR5 step 1: stop rules for the boundary pass, the grid fallbacks and the finished map (done 2026-11-11, task ar5a)
+
+No change under `icenine/`; no key, no default, no dependency. Scripts
+`scripts/autoresearch/ar5/stop_*.py` (pure rule functions in `stop_rules.py`, tests in
+`tests/test_ar5_stop_rules.py`, written and committed first); results
+`benchmarks/autoresearch/ar5/` (slim; caches stay out of git); page
+`docs/autoresearch/findings_ar5_stop.md` (the write of the page into `docs/` was refused; the text
+was written beside the report for the main session to place). Simulated samples only (`big`, the
+first gradient sample, `mid`); C++ not run; one run per arm; wall times contended. Git order does
+not prove that `mid` was unseen at the picks (a first computation of `mid`'s start scores ran
+before the Part 1 pick commit and was deleted; `mid`'s Part 3 inputs were committed before the
+Part 3 pick); the picks are protected by being mechanical (see the fixes round below). None of the
+three ideas passed its rule, so the whole-layer run `T1` (Part 4) was not run.
+Part 1 (a try test for the boundary pass, replayed on the stored tries of `S8`): the replay with no
+test reproduces the stored maps (24, 63, 31 wrong voxels). Settings that skip tries by the start
+hit ratio (`P1`, `P3`) cut 95.7% to 98.2% of the pass's evaluations on the two pick samples and
+lose 17.9% to 60.0% of its net gain (winning tries start well below the voxel's hit ratio). `P2`
+with `m` = 1 (keep the try with the best start hit ratio) is the pick: 55.1% cut, 4.7% of the
+gain lost on the pick samples; on `mid` 62.7% cut, 9.4% lost (48 of 53), 5 broken, 0 fixed: fails.
+Part 2 (31 grid-fallback cases, 16 and 15): the first candidate is within 2 degrees of the truth
+in 27, and in all 31 the near-truth candidate was among the 20 costed and the 5 refined; the
+refinement of the right candidate ended under hit ratio 0.80. `R1` (the first 100 costed; the
+lists held 32 to 62, so every candidate) passes the seed test in 0; `R3` (grid level 0 alone, about 200,000 evaluations each) in 17; the ladder needs
+11,364,144 evaluations against 10,606,351 for the grid fallbacks (107.1%), right in 30 against 28:
+fails (the evaluation rule). Prediction 2 does not agree (0 of 31).
+Part 3 (the map after the pass): hit ratio under 0.95 flags every wrong voxel on all three samples
+(87 of 87, 31 of 31) but 8.8% of the voxels on the pick samples and 15.1% on `mid`; no wrong voxel
+is left among the unflagged (upper interval end 0.018%). The vote count of the unexplained rays
+separates wrong from right weakly (cut chosen after the result: 67 of 118 wrong, 1,410 of 7,908
+right at or above it). Check `V1` (the seed step at the 3,709 flagged voxels of `mid`) fixes 13 of
+31 wrong voxels, breaks none (wrong 31 to 18), and costs 27,882,533 evaluations, 105.4% of the
+run: fails the cost rule. Predictions 1, 2, 3, 4 and 5 do not agree; 6 is not evaluated. No rule
+is a candidate for a key; the use of `V1` after a flag stays the owner's choice.
+
+Fixes round (review `20261111-1215-review-ar5a`, decision D-20261111-N11; documents and the
+summary script only, no result changed, no new run). The parent was merged into the task branch.
+New `stop_summary_review.py` (called by `stop_summary.py`) recomputes from committed files the
+numbers the page now gives, under the key `review` of `summary.json`. The picks: both read only
+`big` and the first gradient sample, and the one free choice (`P3`'s `d`) cannot change the Part 1
+pick (no `d` reaches the needed net gain of 180.5; the most is 156); with hindsight no plan setting
+passes on `mid` (a what-if). The Part 1 pick clears the 5% rule by one voxel (181 against 180.5).
+`R1` repeated the seed step's refinements in 20 of 31 cases. What-if: a ladder whose grid search
+reused `R3`'s level 0 would need 8,536,861 evaluations (80.5%), still above two thirds. The
+vote-count verdict rests on a cut chosen after the result; the best cut moves from 1,975 to 3,035
+between samples. The page now says that all three samples have orientation gradients inside
+grains, defines `H3`, gives hit ratios near 0.80 with 4 decimals, Wilson intervals for the Part 2
+counts and the boundary-voxel shares; the flag plot shows markers only and the vote plot the cut.
