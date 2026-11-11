@@ -11705,8 +11705,9 @@ Code: `icenine/boundary_pass.py` (new); `check_bfs_keys`, `_cma_first_fit`, the 
 argument of `local_optimization` and the `stop_hit` argument of `index_seed` in `reconstructor.py`;
 `seed_by_indexing(stop_hit, hit_fn)` and `SeedResult.stopped_at` in `ray_indexing.py`;
 `CMAResult.start_cost` in `orientation_search.py`; the key table in `config_file.py`. Tests first
-(`tests/test_bfs_ar3_keys.py`, 57 tests, committed before the code); full suite 1574 passed, 47
-skipped, 1 deselected. The two checks before the code: no test or golden compares a whole
+(`tests/test_bfs_ar3_keys.py`, 57 tests, committed before the code; 59 after the fixes round);
+full suite on the branch after the fixes round 1576 passed, 47 skipped, 1 deselected
+(`keys/suite.json`). The two checks before the code: no test or golden compares a whole
 `CMAResult` or `SeedResult`; `cma_sigma0_deg` and `cma_neighbor_max_evals` are read only on the
 `LocalOptimizer cma` paths of `local_optimization` (the grid search and `refine_from_candidates`
 never read them under `mc`).
@@ -11722,5 +11723,18 @@ against 21 (voxel 19614 broken); `S5L` identical, 30; `S8L` 18,664 tries, 1,138,
 evaluations, 24 wrong against 24 with 5 fixed and 5 broken against the stored map. Off path: the
 2,000-voxel pilot on the parent package and on this branch gives equal orientations, records,
 stats, logs and `.mic` bytes. The optional single-worker wall pair was not run (preflight
-refused). Page: `docs/autoresearch/findings_ar3_keys.md` (the tool refused the write; the text
-was returned beside the report for the main session to place).
+refused). Page: `docs/autoresearch/findings_ar3_keys.md`.
+
+Fixes round (review `20261111-0941-review-ar3j`, decision D-20261111-N9). Page: the plot first;
+"Check 2 gives a reading"; which counts carry an interval, with the Wilson intervals added to the
+table of earlier runs; `grad` and `mid` defined; "both wrong" in the paired split; the uncounted
+evaluations as numbers (boundary scores 11,087, 11,049 and 11,054; 465 early-stop hit
+evaluations in `S8L`); the pass wall times and the suite counts in `keys/summary.json`; the
+stored `S8` run's "S5" label explained. Tests: two compare with values recorded from the parent
+code (4ff3ce6), one renamed, `SeedIndexCandidates` with a third number now raises `ValueError`.
+Library: annotations, `LOCAL_OPTIMIZERS`, docstrings (no behaviour change except the new
+`ValueError`). The reading of the in-run pass was tested (`libkeys_fresh.py`, `S8L` and `D4L`
+rerun, contended): a fresh process on the unrounded map gives the in-run pass try for try, and
+the same process after the BFS on the `.mic`-rounded map gives the script's stored tries. For
+these two runs the input rounding alone accounts for the difference; the process does not. The
+single-worker pair was not run (the timing preflight refused again).
