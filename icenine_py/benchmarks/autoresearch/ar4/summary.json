@@ -1250,5 +1250,14 @@
    "auc_hit": 0.9743507856434604,
    "auc_N1": 0.9910995389637178
   }
+ },
+ "derived": {
+  "total_pairs": 229651,
+  "half_of_B0_flagged_mid": 880.0,
+  "two_thirds_of_right_fallback_mid": 6.666666666666667,
+  "n1_missed_wrong_mid": 8,
+  "n_passed_wrong_mid": 11,
+  "n1_passed_refused_wrong_mid": 9,
+  "n_wrong_with_lit_under_1_train": 20
  }
 }

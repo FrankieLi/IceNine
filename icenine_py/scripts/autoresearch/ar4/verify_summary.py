@@ -49,6 +49,7 @@ KINDS = (
 )
 SAMPLES = ("big", "grad", "mid")
 KIND_SEED_END = 3
+TRAIN_SAMPLES = ("big", "grad")
 
 
 def f3(x: float) -> str:
@@ -257,6 +258,21 @@ def main() -> None:
             auc_lit=bnd["lit"]["auc"],
             auc_hit=bnd["B0"]["auc"],
             auc_N1=bnd["N1"]["auc"],
+        ),
+    )
+    out["derived"] = dict(
+        total_pairs=int(sum(out["pairs"][s]["n_pairs"] for s in SAMPLES)),
+        half_of_B0_flagged_mid=u1["B0"]["flagged"] / 2,
+        two_thirds_of_right_fallback_mid=2 * n15 / 3,
+        n1_missed_wrong_mid=int(len(out["n1_missed_mid"])),
+        n_passed_wrong_mid=u2["n_passed"] - u2["n_passed_right"],
+        n1_passed_refused_wrong_mid=u2["N1"]["passed_refused"] - u2["N1"]["passed_refused_right"],
+        n_wrong_with_lit_under_1_train=int(
+            sum(
+                out["lit_share_after_pass"][s]["n_wrong"]
+                - out["lit_share_after_pass"][s]["n_wrong_with_all_peaks_lit"]
+                for s in TRAIN_SAMPLES
+            )
         ),
     )
     (AR4 / "summary.json").write_text(json.dumps(out, indent=1, default=float) + "\n")

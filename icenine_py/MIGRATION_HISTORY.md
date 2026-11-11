@@ -11786,3 +11786,30 @@ vote-count verdict rests on a cut chosen after the result; the best cut moves fr
 between samples. The page now says that all three samples have orientation gradients inside
 grains, defines `H3`, gives hit ratios near 0.80 with 4 decimals, Wilson intervals for the Part 2
 counts and the boundary-voxel shares; the flag plot shows markers only and the vote plot the cut.
+
+## Autoresearch AR4 step 1: a learned verifier, measured offline against the hit ratio (done 2026-11-11, task ar4a)
+
+No change under `icenine/`; no key, no default, no dependency (`pyproject.toml` and `uv.lock`
+unchanged). Scripts `scripts/autoresearch/ar4/verify_*.py` (pure functions in `verify_lib.py`,
+tests `tests/test_ar4_verifier.py`, written and committed first; model definitions in
+`verify_models.py` and the training script `verify_fit.py` committed before any training); results
+`benchmarks/autoresearch/ar4/` (slim; the pair inputs stay in an untracked cache); findings page
+text `findings_ar4_verifier.md` (the write of the page into `docs/` was refused by a hook; the full
+text was written beside the report for the main session to place). Approval D-20261111-N13.
+Simulated samples (`big`, the first gradient sample, `mid`), clean images only; realistic images
+untested; one training run per model, generator seed 0; wall times contended.
+Pairs: 229,651 (49,103, 94,306, 86,242), one evaluation each; per-peak pixel counts come from the
+same overlap data in a script (the library returns totals only). Per-peak sums equal the totals of
+the per-peak path exactly and differ from the fused evaluation by at most 6 pixels (hit ratio at
+most 0.0047). The seed-step replays (329, 1,279, 1,611) matched the stored logs. The vote count
+among unexplained rays (50 to 200 ms a pair) was not computed; no model uses it.
+Order rule: models, training and the thresholds file (`669b9a3`) were committed before the first
+script that read `mid` (12:44 on 11 Nov 2026).
+Use 1 (flag unfinished voxels, `mid`, 31 wrong voxels): `B0` (cut 0.926) flags 31 and 1,760 voxels;
+`B1` 31 and 13,653; `N1` (21,953 parameters, cut 0.749) 23 (0.57 to 0.86) and 190: no model passes
+the plan's rule. The 8 wrong voxels `N1` misses are boundary voxels with hit ratios 0.889 to 0.910.
+Use 2 (accept a seed without a grid search, the 15 fallback cases of `mid`): `N1` accepts 7 of 10
+right ends and 0 of 5 wrong ends; `B0` 0 of 10 and 0 of 5; what-if stored grid evaluations skipped
+by `N1`: 2,365,778 of 5,087,764. Predictions 1 and 3 agree; 2 and 4 do not (the share of lit
+peaks has `auc` 0.496 against 0.974 for the hit ratio at boundary voxels). No whole-layer run;
+step 2 (wiring a verifier in) is not triggered by the plan's rule.
