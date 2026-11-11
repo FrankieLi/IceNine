@@ -103,7 +103,11 @@ class Replayer:
         )
         out["evals"] = k
         out["strict_costs"] = [float(c) for c in costs]
-        order = [int(j) for j in np.argsort(costs, kind="stable")[:n_refine]]
+        if n_cost == 0:  # added remedy: the indexer's own order, no strict cost
+            costs = np.ones(min(n_refine, len(R)))
+            order = list(range(len(costs)))
+        else:
+            order = [int(j) for j in np.argsort(costs, kind="stable")[:n_refine]]
         best = None
         for j in order:
             r = self.rec.refine_from_candidates(
@@ -325,6 +329,11 @@ class Replayer:
         # remedy 1
         for nm, nr in (("more20_2", 2), ("more20_5", 5)):
             r = self.seed_from(v, R50[:20], strict_cf, 20, nr)
+            rem[nm] = dict(self.end_row(r["R"], v, r["cost"]), evals=int(r["evals"]), seed_in=False)
+        # added beyond the plan (not in the pick): the local optimization on the first 2 or 5
+        # candidates in the indexer's own order (explained rays first), with no strict cost
+        for nm, nr in (("order2", 2), ("order5", 5)):
+            r = self.seed_from(v, R50[:20], strict_cf, 0, nr)
             rem[nm] = dict(self.end_row(r["R"], v, r["cost"]), evals=int(r["evals"]), seed_in=False)
         # remedy 2
         r = self.cma_seed(v, R50, strict_cf)
