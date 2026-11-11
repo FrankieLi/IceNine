@@ -17,7 +17,8 @@ AR5 = Path(__file__).resolve().parents[3] / "benchmarks" / "autoresearch" / "ar5
 WRONG = 1.0
 KEEP = (
     "voxel reseed n_cand rank_near_truth near_truth_deg n_within_2deg in_costed20 in_first100 "
-    "in_refined5 replay_evals_match replay_hit_match R1 R3 grid ladder grid_evals"
+    "in_refined5 replay_evals_match replay_hit_match replay_hit stored_fin_hit R1 R3 grid ladder "
+    "grid_evals"
 ).split()
 
 

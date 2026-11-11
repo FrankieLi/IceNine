@@ -1,0 +1,499 @@
+{
+ "part1": {
+  "pick": {
+   "name": "P2 m=1",
+   "kind": "P2",
+   "d": null,
+   "m": 1
+  },
+  "pooled_full_evals": 4821806,
+  "pooled_full_net_gain": 190,
+  "min_net_gain": 180.5,
+  "p1_pick_d": 0.2,
+  "p1_has_qualifying_setting": false,
+  "pass_rule_mid": {
+   "setting": "P2 m=1",
+   "evals": 1139498,
+   "evals_full": 3056039,
+   "cut": 0.6271323762556695,
+   "net_gain": 48,
+   "net_gain_full": 53,
+   "passes": false
+  },
+  "prediction1": false,
+  "prediction1_pick_samples": false,
+  "max_cut_with_loss_within_5pc": 55.12001104980166,
+  "passes": false
+ },
+ "part2": {
+  "pooled": {
+   "n": 31,
+   "n_reseed": 29,
+   "n_cand_median": 47.0,
+   "near_truth_found": 31,
+   "rank0": 27,
+   "in_costed20": 31,
+   "in_refined5": 31,
+   "in_first100_not_costed20": 0,
+   "replay_all_match": true,
+   "r1_pass_seed_test": 0,
+   "r1_right": 23,
+   "r1_pass_and_right": 0,
+   "r1_evals": 166291,
+   "r3_pass_seed_test": 17,
+   "r3_right": 25,
+   "r3_pass_and_right": 17,
+   "r3_evals": 6419164,
+   "r3_level0_evals": 6290498,
+   "ladder_rung": {
+    "R1": 0,
+    "R3": 17,
+    "grid": 14
+   },
+   "ladder_evals": 11364144.0,
+   "grid_evals": 10606351,
+   "ladder_share_of_grid": 1.0714470980641693,
+   "right_grid": 28,
+   "right_ladder": 30,
+   "grid_right_ladder_wrong": [],
+   "grid_wrong_ladder_right": [
+    3494,
+    20251
+   ],
+   "verdict": {
+    "evals_ok": false,
+    "right_ok": true,
+    "passes": false
+   }
+  },
+  "per_sample": {
+   "grad": {
+    "n": 16,
+    "n_reseed": 15,
+    "n_cand_median": 46.0,
+    "near_truth_found": 16,
+    "rank0": 15,
+    "in_costed20": 16,
+    "in_refined5": 16,
+    "in_first100_not_costed20": 0,
+    "replay_all_match": true,
+    "r1_pass_seed_test": 0,
+    "r1_right": 13,
+    "r1_pass_and_right": 0,
+    "r1_evals": 73257,
+    "r3_pass_seed_test": 10,
+    "r3_right": 13,
+    "r3_pass_and_right": 10,
+    "r3_evals": 3349459,
+    "r3_level0_evals": 3299549,
+    "ladder_rung": {
+     "R1": 0,
+     "R3": 10,
+     "grid": 6
+    },
+    "ladder_evals": 5493001.0,
+    "grid_evals": 5518587,
+    "ladder_share_of_grid": 0.9953636682723314,
+    "right_grid": 15,
+    "right_ladder": 16,
+    "grid_right_ladder_wrong": [],
+    "grid_wrong_ladder_right": [
+     3494
+    ],
+    "verdict": {
+     "evals_ok": false,
+     "right_ok": true,
+     "passes": false
+    }
+   },
+   "mid": {
+    "n": 15,
+    "n_reseed": 14,
+    "n_cand_median": 47.0,
+    "near_truth_found": 15,
+    "rank0": 12,
+    "in_costed20": 15,
+    "in_refined5": 15,
+    "in_first100_not_costed20": 0,
+    "replay_all_match": true,
+    "r1_pass_seed_test": 0,
+    "r1_right": 10,
+    "r1_pass_and_right": 0,
+    "r1_evals": 93034,
+    "r3_pass_seed_test": 7,
+    "r3_right": 12,
+    "r3_pass_and_right": 7,
+    "r3_evals": 3069705,
+    "r3_level0_evals": 2990949,
+    "ladder_rung": {
+     "R1": 0,
+     "R3": 7,
+     "grid": 8
+    },
+    "ladder_evals": 5871143.0,
+    "grid_evals": 5087764,
+    "ladder_share_of_grid": 1.1539731402635813,
+    "right_grid": 13,
+    "right_ladder": 14,
+    "grid_right_ladder_wrong": [],
+    "grid_wrong_ladder_right": [
+     20251
+    ],
+    "verdict": {
+     "evals_ok": false,
+     "right_ok": true,
+     "passes": false
+    }
+   }
+  },
+  "prediction2": {
+   "cases_with_candidate_in_first100_not_costed20": 0,
+   "n": 31,
+   "holds": false
+  },
+  "prediction3": {
+   "holds": false,
+   "verdict": {
+    "evals_ok": false,
+    "right_ok": true,
+    "passes": false
+   }
+  }
+ },
+ "part3": {
+  "threshold": 0.95,
+  "flags": {
+   "big": {
+    "flagged": 1532,
+    "wrong_flagged": 24,
+    "wrong_unflagged": 0,
+    "n": 24570,
+    "n_wrong": 24,
+    "share_flagged": 0.062352462352462355,
+    "recall": 1.0,
+    "unflagged": 23038,
+    "wrong_unflagged_interval": [
+     0,
+     23038,
+     0.0,
+     0.00016672278486629295
+    ],
+    "recall_interval": [
+     24,
+     24,
+     0.8620194241710247,
+     1.0
+    ]
+   },
+   "grad": {
+    "flagged": 2785,
+    "wrong_flagged": 63,
+    "wrong_unflagged": 0,
+    "n": 24570,
+    "n_wrong": 63,
+    "share_flagged": 0.11334961334961335,
+    "recall": 1.0,
+    "unflagged": 21785,
+    "wrong_unflagged_interval": [
+     0,
+     21785,
+     0.0,
+     0.00017631042854522383
+    ],
+    "recall_interval": [
+     63,
+     63,
+     0.9425268096514744,
+     0.9999999999999999
+    ]
+   },
+   "mid": {
+    "flagged": 3709,
+    "wrong_flagged": 31,
+    "wrong_unflagged": 0,
+    "n": 24570,
+    "n_wrong": 31,
+    "share_flagged": 0.15095645095645097,
+    "recall": 1.0,
+    "unflagged": 20861,
+    "wrong_unflagged_interval": [
+     0,
+     20861,
+     0.0,
+     0.00018411834001174493
+    ],
+    "recall_interval": [
+     31,
+     31,
+     0.889740999265246,
+     0.9999999999999999
+    ]
+   }
+  },
+  "pooled_pick": {
+   "flagged": 4317,
+   "n": 49140,
+   "wrong_flagged": 87,
+   "n_wrong": 87,
+   "share_flagged": 0.08785103785103784,
+   "recall": 1.0
+  },
+  "prediction4": {
+   "pick_samples": false,
+   "mid": false,
+   "holds": false
+  },
+  "votes": {
+   "big": {
+    "n_wrong_flagged": 24,
+    "n_right_flagged": 1508,
+    "median_wrong": 2516.0,
+    "median_right": 1476.5,
+    "q25_q75_wrong": [
+     1658.75,
+     3807.25
+    ],
+    "q25_q75_right": [
+     989.75,
+     2028.0
+    ],
+    "n_unflagged_sampled": 485,
+    "median_unflagged_sampled": 1411.0,
+    "wrong_among_unflagged_sampled": 0,
+    "best_cut": {
+     "cut": 2446.0,
+     "wrong_ge": 13,
+     "right_ge": 173,
+     "j": 0.42694518125552605,
+     "n_wrong": 24,
+     "n_right": 1508
+    },
+    "wrong_interval": [
+     13,
+     24,
+     0.35074553553106635,
+     0.7210894164831857
+    ],
+    "right_interval": [
+     173,
+     1508,
+     0.09960624947870209,
+     0.13179471210351656
+    ],
+    "separates": true
+   },
+   "grad": {
+    "n_wrong_flagged": 63,
+    "n_right_flagged": 2722,
+    "median_wrong": 2707.0,
+    "median_right": 1714.0,
+    "q25_q75_wrong": [
+     1630.0,
+     4066.5
+    ],
+    "q25_q75_right": [
+     1258.25,
+     2318.25
+    ],
+    "n_unflagged_sampled": 1018,
+    "median_unflagged_sampled": 1567.0,
+    "wrong_among_unflagged_sampled": 0,
+    "best_cut": {
+     "cut": 3035.0,
+     "wrong_ge": 31,
+     "right_ge": 324,
+     "j": 0.37303336715533625,
+     "n_wrong": 63,
+     "n_right": 2722
+    },
+    "wrong_interval": [
+     31,
+     63,
+     0.3726660281435346,
+     0.6123732288461243
+    ],
+    "right_interval": [
+     324,
+     2722,
+     0.10739851185770745,
+     0.13173555961585143
+    ],
+    "separates": true
+   },
+   "mid": {
+    "n_wrong_flagged": 31,
+    "n_right_flagged": 3678,
+    "median_wrong": 2553.0,
+    "median_right": 1412.0,
+    "q25_q75_wrong": [
+     2007.0,
+     3578.0
+    ],
+    "q25_q75_right": [
+     972.0,
+     2012.5
+    ],
+    "n_unflagged_sampled": 711,
+    "median_unflagged_sampled": 1307.0,
+    "wrong_among_unflagged_sampled": 0,
+    "best_cut": {
+     "cut": 1975.0,
+     "wrong_ge": 25,
+     "right_ge": 955,
+     "j": 0.5467996281288918,
+     "n_wrong": 31,
+     "n_right": 3678
+    },
+    "wrong_interval": [
+     25,
+     31,
+     0.6371939644454013,
+     0.9081311641365236
+    ],
+    "right_interval": [
+     955,
+     3678,
+     0.24573812704184667,
+     0.27406739636796
+    ],
+    "separates": true
+   },
+   "all": {
+    "n_wrong_flagged": 118,
+    "n_right_flagged": 7908,
+    "median_wrong": 2573.0,
+    "median_right": 1535.0,
+    "q25_q75_wrong": [
+     1692.0,
+     3906.25
+    ],
+    "q25_q75_right": [
+     1065.0,
+     2111.0
+    ],
+    "n_unflagged_sampled": 2214,
+    "median_unflagged_sampled": 1445.0,
+    "wrong_among_unflagged_sampled": 0,
+    "best_cut": {
+     "cut": 2369.0,
+     "wrong_ge": 67,
+     "right_ge": 1410,
+     "j": 0.3894961549342867,
+     "n_wrong": 118,
+     "n_right": 7908
+    },
+    "wrong_interval": [
+     67,
+     118,
+     0.4776703089507045,
+     0.6536477302083349
+    ],
+    "right_interval": [
+     1410,
+     7908,
+     0.1700208912692686,
+     0.18689242206096793
+    ],
+    "separates": true
+   }
+  },
+  "v1": {
+   "threshold": 0.95,
+   "flagged_total": 3709,
+   "wrong_flagged_total": 31,
+   "voxels_processed": 3709,
+   "shards": 4,
+   "capped_shards": 0,
+   "all_flagged_processed": true,
+   "evals_processed": 27882533,
+   "mean_evals_per_voxel": 7517.533836613642,
+   "evals_whole_flag_estimate": 27882533.0,
+   "run_total_evals": 26443074,
+   "share_of_run_estimate": 1.0544361446025525,
+   "share_of_run_processed": 1.0544361446025525,
+   "kept": 3485,
+   "wrong_among_processed": 31,
+   "fixed": 13,
+   "broken": 0,
+   "wrong_before_v1": 31,
+   "wrong_after_v1": 18,
+   "fixed_share_of_wrong_processed": 0.41935483870967744,
+   "fixed_interval": [
+    13,
+    31,
+    0.26415303073549257,
+    0.5923403564797902
+   ],
+   "pass_fixes_more_than_breaks": true,
+   "pass_fixes_quarter": true,
+   "pass_cost_under_5pc": false,
+   "wall_s_per_shard": [
+    917.4589183330536,
+    911.2119469642639,
+    868.8950798511505,
+    863.7726500034332
+   ],
+   "timing_label": "contended (another agent on the machine); not a timing result",
+   "passes": false
+  },
+  "prediction5_holds": false
+ },
+ "rules": [
+  {
+   "rule": "try test (Part 1)",
+   "what": "on mid: at least half of the pass cut, at most 5% of the gain lost",
+   "verdict": "not met",
+   "numbers": "62.7% cut, 9.4% of the gain lost (48 of 53)"
+  },
+  {
+   "rule": "ladder (Part 2)",
+   "what": "at most 2/3 of the grid evaluations, at most one case fewer right",
+   "verdict": "not met",
+   "numbers": "107.1% of the evaluations; right 30 against 28"
+  },
+  {
+   "rule": "V1 (Part 3)",
+   "what": "fixes more than it breaks, fixes a quarter, costs under 5% of the run",
+   "verdict": "not met",
+   "numbers": "fixed 13, broken 0, 31 wrong processed; about 105% of the run"
+  }
+ ],
+ "predictions": [
+  {
+   "n": "1",
+   "what": "a try-test setting cuts 70% of the pass and loses at most 5% of its gain",
+   "result": "does not agree",
+   "numbers": "best cut within the 5% loss: 55.1%"
+  },
+  {
+   "n": "2",
+   "what": "a candidate near the truth is in the first 100 and not the 20 costed, in half the cases",
+   "result": "does not agree",
+   "numbers": "0 of 31"
+  },
+  {
+   "n": "3",
+   "what": "the ladder passes its rule",
+   "result": "does not agree",
+   "numbers": "107.1% of the grid evaluations"
+  },
+  {
+   "n": "4",
+   "what": "a hit-ratio threshold flags 80% of wrong voxels and at most 5% of voxels",
+   "result": "does not agree",
+   "numbers": "first part holds (100% of wrong voxels caught); second part fails (8.8% of voxels flagged on the pick samples, 15.1% on mid)"
+  },
+  {
+   "n": "5",
+   "what": "the vote count does not separate wrong from right among flagged voxels",
+   "result": "does not agree",
+   "numbers": "a weak separation exists; cut 2369: 67 of 118 wrong, 1410 of 7908 right at or above"
+  },
+  {
+   "n": "6",
+   "what": "T1 needs under 14 M (gradient) and 22 M (mid) evaluations",
+   "result": "not evaluated",
+   "numbers": "no rule passed, so T1 was not run"
+  }
+ ]
+}
