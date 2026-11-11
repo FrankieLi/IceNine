@@ -10,7 +10,8 @@ Reads (all committed): ``big/errors.npz`` (per-voxel errors of each map before a
 sample/sample.json``; and, for the gradient sample, the committed summaries of steps 4, 5 and 6
 (nothing is rerun there). Writes ``big/summary.json``, ``big/tables.md`` and the two plots.
 
-Stages of the evaluations (strict-equivalent units, as step 6): *seed step* (all index runs),
+Evaluations are calls of the strict cost (raw counts, not weighted by time; the same counters as
+steps 3 to 6; pairing and indexing are not counted). Stages: *seed step* (all index runs),
 *grid fallbacks* (full grid searches after a failed seed step), *neighbour* (the BFS's fits from
 a neighbour; for the paint run the fits of the painting loop), *revisit* (the BFS's revisit fits;
 for the paint run the R4 fits), *scoring* (the paint run only), *pass* (step 5's pass, rule hit).

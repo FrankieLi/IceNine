@@ -14,8 +14,9 @@ not a timing result. The evaluation count is the cost that counts.
 
 ## The result in two pictures
 
-Reading of the first picture: each bar is the mean number of strict-equivalent evaluations per
-voxel for one pipeline, with the boundary pass included; the colours are the stages. Left: the
+Reading of the first picture: each bar is the mean number of evaluations per voxel for one
+pipeline (calls of the strict cost, raw counts, the same counters as steps 3 to 6), with the
+boundary pass included; the colours are the stages. Left: the
 gradient sample of steps 3 to 6 (497 grains). Right: `big` (32 grains). The vertical axes are
 shared. The grid fallbacks (orange) shrink on `big` for all four pipelines. The seed step (blue)
 does not: per voxel it is higher on `big` for all four, and it is the largest part of the `S5`
@@ -92,7 +93,9 @@ centre orientation, in degrees. **Error** is the symmetry-reduced misorientation
 own true orientation; a voxel is **wrong** above 1 degree (the same threshold and function as
 steps 5 and 6). **Fixed** and **broken** are counted against the baseline named second: fixed
 is wrong in the baseline and right in the run; broken is the reverse. An **evaluation** is one
-strict-equivalent cost evaluation.
+call of the strict cost (the share of predicted spots that miss lit pixels). The counts are raw
+calls, not weighted by time, and they are the same counters as steps 3 to 6. Pairing (matching
+the spots of the two detectors into rays) and indexing are not counted.
 
 The sample. Each of the 24,570 voxels of the gradient sample's grid takes the orientation of
 the voxel of `random_cubic_32grains.mic` (6,144 voxels, one size coarser) that holds its
