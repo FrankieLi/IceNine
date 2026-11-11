@@ -987,3 +987,24 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the script, not by MinLocalResolution. No library change, no default changed, C++ not run. An
   opt-in key comes after, only if the whole-layer runs show a gain. Where:
   icenine_py/docs/autoresearch/PLAN.md, AR3 'Step 4'.
+
+### D-20261110-N6 · Track A / AR3 step 5 · AR3 step 4 review decisions and step 5 plan approved under the mandate: let neighbouring grains compete for the boundary voxels (task ar3e)
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. (1) Step 4's
+  review (verdict request changes, 14 required fixes, text and summary output only) asked two
+  questions. Decided: no rerun of step 4 and no wrapper that reads the caller's frame; the plan's
+  fallback on the caller's 0.9 test stays untested and the page says so. Reason: the review's
+  recomputation from the stored records shows the extra wrong voxels sit in fits the caller
+  accepts (paint run: all 107 fit-settled newly wrong voxels passed the 0.9 test, 104 from a grain
+  seeded in another true grain; step 2's sample: 114 accepted at the first neighbour fit, 56 at a
+  revisit), so a fallback for rejected voxels would not act on them. (2) Step 5 (PLAN.md 'Step 5',
+  commit 05577ac): after a run, each voxel with a neighbour whose orientation differs by more than
+  0.5 degrees gets one CMA fit (0.05 degrees, 61 evaluations) from that neighbour's orientation
+  and keeps the better end. Part 0 reads from stored maps and single scores whether the pass can
+  work (a gate). Part 1 runs the pass on six stored maps with three keep rules (cost, hit ratio,
+  confidence), picked on set A, reported on set B, with a skip rule for when a try is needed. Part
+  2 makes two whole-layer runs with the existing library keys (LocalOptimizer cma, CMASigma0,
+  CMANeighborMaxEvals, CMARetrySigma0) and no wrapper, each with a coded 60-minute cap. No library
+  change, no default changed, C++ source read but not run. An opt-in key for the pass comes after,
+  only if the pass is a gain. Where: icenine_py/docs/autoresearch/PLAN.md, 'Step 5' of the AR3
+  section.
