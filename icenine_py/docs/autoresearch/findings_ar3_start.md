@@ -23,6 +23,11 @@ cost that counts is the evaluation count.
   optimization** (a fit that starts from a fitted neighbour's orientation).
 - **Neighbour fit**: the local optimization of a voxel started from a fitted neighbour's
   orientation. **Revisit**: a later fit of a voxel the BFS marked for another try.
+- **Hit ratio**: the share of an orientation's predicted detector pixels that fall on observed
+  intensity, in a voxel. It is between 0 and 1; the true orientation scores near 1 on clean
+  images.
+- **Flood**: the part of the BFS that spreads from one seed voxel. It starts with the seed's hit
+  ratio as its best hit ratio and keeps the best seen so far while it spreads.
 - **Relative test**: the BFS accepts a fit if its hit ratio is above 0.9 times the best hit ratio
   seen so far in the same flood. Otherwise the voxel is **rejected**.
 - **Start test** (`F1`): one evaluation of the start before a fit; if its hit ratio is at least a
@@ -250,7 +255,7 @@ cost 3,513,895 evaluations and the revisits 884,040. A fit with a passing start 
 0.95 the median move is 0.040 degrees (90th percentile 0.095). At 0.95 and 0.98 no passing start
 is wrong, on either sample. At 0.90 there are 15 wrong starts among the neighbour fits on `big`
 and 36 on `grad`. On `grad` only 19.1% of the neighbour fits start at 0.95 (4,621 of 24,222), and
-58.7% of them start more than 1 degree from the truth. This is consistent with small grains (49
+58.7% of all 24,222 neighbour fits start more than 1 degree from the truth. This is consistent with small grains (49
 voxels on average): many voxels are reached first from another grain. The stored counters agree
 with the fit log (9,508 of 24,222 neighbour fits accepted at the first try on `grad`; 19,119 of
 24,535 on `big`).
