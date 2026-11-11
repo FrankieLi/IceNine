@@ -1112,3 +1112,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   S5 costs more than that of run D4, so the plan's rule does not pick one. Taken under the mandate
   D-20261109-N1; the owner can overrule. Where: icenine_py/docs/autoresearch/PLAN.md, Step 7;
   findings_ar3_big.md.
+
+### D-20261111-N4 · Track A / AR3 step 8 · AR3 step 8 plan approved: where the seed step's evaluations go in grains with strong gradients, remedies on stored cases first
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1. Step 7 left the seed step as the largest stage on the
+  sample with larger grains (57.5% of run S5), with 267 of 349 seed steps in the 6 grains at 4
+  degrees and one seed step costing about 4.6 times what it costs on the first gradient sample.
+  Step 8 (task ar3h, scripts and results only, no key, no default change) measures where those
+  evaluations go (the split of one seed step; why the BFS rejected the fits that led to reseeds),
+  tries three listed remedies on stored cases with a pick set and a test set split by grain, and
+  spends whole-layer runs only on a remedy that cuts its target by a third and breaks no more
+  cases than it fixes. Three predictions are written in the plan before the runs. The choice of
+  the seed step for the opt-in key stays the owner's. The opt-in keys step waits for this result.
+  Where: icenine_py/docs/autoresearch/PLAN.md, 'Step 8: why the seed step costs so much in grains
+  with strong gradients'.
