@@ -27,6 +27,10 @@ import numpy as np
 SEED = C.OUT / "seed"
 CACHE = SEED / "cache"
 WORKTREES = C.ICE.parent.parent  # sibling worktrees hold untracked run files of steps 3 and 4
+# Transient input (not in git): step 3's D ``records.json`` in an agent worktree. It is read only
+# by the part 0 listing (``seed_part01.py``, and ``seed_extra.py`` through ``counts()``) and is
+# gone when that worktree is cleaned up. The summary scripts without ``--slim`` / ``--pack`` read
+# committed files only.
 D_RECORDS = (
     WORKTREES / "agent-ae68d32fb972a8ad4/icenine_py/benchmarks/autoresearch/ar3/gradient/runs/D"
 )

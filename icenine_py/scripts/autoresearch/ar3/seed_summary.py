@@ -39,6 +39,18 @@ NAME = {
     "neighbours_only": "5 defer (tries only)",
     "outward": "6 outward",
 }
+# the remedy numbers the findings page uses for the code names
+PAGE = {
+    "more20_2": "1a",
+    "more20_5": "1b",
+    "cma_seed": "2",
+    "wide": "3",
+    "neighbours": "4",
+    "neighbours_only": "5",
+    "outward": "6",
+    "order2": "7a",
+    "order5": "7b",
+}
 ORDER = ("D4", "D", "P4", "P")
 GRID_EVALS = 339_914  # D4: index_fallback_grid_evals / index_fallback_seed_test (25,833,494 / 76)
 
@@ -75,6 +87,11 @@ def ws(d: Dict[str, Any]) -> str:
     if not d["n"]:
         return "0 of 0"
     return f"{d['k']} of {d['n']} ({100 * d['lo']:.0f} to {100 * d['hi']:.0f}%)"
+
+
+def page_name(chain_name: str) -> str:
+    """'neighbours_only then more20_5' -> '5 then 1b' (the remedy numbers of the page)."""
+    return " then ".join(PAGE[p] for p in chain_name.split(" then "))
 
 
 def ref_run(r: Dict[str, Any]) -> str:
@@ -387,7 +404,11 @@ def main() -> None:
                 cs = [c["cost"] for c in r["cand"]["first"][:5]]
                 pos.append(int(np.argsort(cs, kind="stable").tolist().index(k)))
         SUM[f"near_cost_pos_{nm}"] = dict(
-            n=len(pos), refined=sum(p < 2 for p in pos), lowest=sum(p == 0 for p in pos)
+            n=len(pos),
+            refined=sum(p < 2 for p in pos),
+            lowest=sum(p == 0 for p in pos),
+            # added in the review fixes (D-20261111-N1): Wilson 95% interval of ``refined``
+            refined_w=wil(sum(p < 2 for p in pos), len(pos)),
         )
         # error of that candidate (degrees) and its raw hit ratio, by group
         ne = [
@@ -408,10 +429,15 @@ def main() -> None:
         )
     # the refined ends of the stock replay: how close to the truth, and their hit ratio
     fe = [(e, h) for r in fb for e, h in zip(r["stock"]["fin_err"], r["stock"]["fin_hit"])]
+    near_h = [h for e, h in fe if e <= WRONG]  # the refined ends within 1 degree of the truth
     SUM["stock_ends"] = dict(
         n=len(fe),
         within1=sum(e <= WRONG for e, _ in fe),
-        median_hit=float(np.median([h for _, h in fe])) if fe else None,
+        median_hit=float(np.median([h for _, h in fe])) if fe else None,  # over all n ends
+        # added in the review fixes (D-20261111-N1): the ends within 1 degree alone
+        within1_median_hit=float(np.median(near_h)) if near_h else None,
+        within1_max_hit=float(max(near_h)) if near_h else None,
+        within1_below_test=sum(h < S.TEST for h in near_h),
     )
 
     # ---------------- part 0 item 5: the grid end and the neighbours
@@ -528,6 +554,8 @@ def main() -> None:
                 add_median=float(np.median(ea)),
                 add_mean=float(ea.mean()),
                 add_max=float(ea.max()),
+                # added in the review fixes (D-20261111-N1): Wilson 95% interval of ``broken``
+                broken_w=wil(sum(x["stock_right"] and not x["right"] for x in xs), len(xs)),
             )
         )
     SUM["controls"] = rows_ct
@@ -642,6 +670,7 @@ def main() -> None:
     rows_x = [
         dict(
             chain=t["name"],
+            remedies=page_name(t["name"]),
             need_A=ws(t["A"]["need_grid"]),
             broken_A=t["A"]["broken"],
             fixed_A=t["A"]["fixed"],
@@ -656,6 +685,7 @@ def main() -> None:
     T["ar3f_pick_extras"] = DT.markdown_table(
         rows_x,
         [
+            "remedies",
             "chain",
             "need_A",
             "broken_A",
@@ -676,6 +706,8 @@ def main() -> None:
         B=None if pick is None else pick["B"],
         runner_up=[t["name"] for t in okc[1:4]],
         n_candidates=len(table),
+        # added in the review fixes (D-20261111-N1): the pick in the page's remedy numbers
+        picked_page=None if pick is None else page_name(pick["name"]),
     )
     removed = None if pick is None else 1 - pick["A"]["need_grid"]["k"] / max(len(A), 1)
     SUM["pick"]["share_removed_A"] = removed
@@ -685,6 +717,7 @@ def main() -> None:
         rows_p.append(
             dict(
                 chain=t["name"],
+                remedies=page_name(t["name"]),
                 need_A=ws(t["A"]["need_grid"]),
                 broken_A=t["A"]["broken"],
                 fixed_A=t["A"]["fixed"],
@@ -698,6 +731,7 @@ def main() -> None:
     T["ar3f_pick"] = DT.markdown_table(
         rows_p,
         [
+            "remedies",
             "chain",
             "need_A",
             "broken_A",
@@ -730,7 +764,10 @@ def figure(SUM: Dict[str, Any], P1: Dict[str, Any]) -> None:
     items = [(NAME[m], P1["A"][m], P1["B"][m]) for m in REMEDIES + EXTRAS]
     pk = SUM["pick"]
     if pk["picked"]:
-        lab = "pick: " + pk["picked"].replace("_only", "").replace(" then ", " then\n")
+        # page names: '5 defer (tries only)' then '1b more, best 5' (fix 9 of the review; the old
+        # label dropped '_only' and so named the chain of remedy 4, not the pick)
+        parts = [NAME[p] for p in pk["picked"].split(" then ")]
+        lab = "pick: " + " then\n".join(parts)
         items.append((lab, pk["A"], pk["B"]))
     fig, ax = plt.subplots(1, 2, figsize=(13, 4.8))
     for j, (sn, col) in enumerate((("A", "tab:blue"), ("B", "tab:orange"))):

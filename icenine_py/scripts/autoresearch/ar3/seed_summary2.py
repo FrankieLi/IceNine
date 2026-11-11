@@ -27,6 +27,9 @@ from seed_summary import wil, ws
 import doc_tables as DT  # noqa: E402
 
 RUNS = S.SEED / "runs"
+# Transient input (not in git), read by ``--pack`` only: step 5's ``after_D4.npy`` and
+# ``after_D.npy`` in an agent worktree; gone when that worktree is cleaned up. ``--pack`` also
+# reads the untracked ``seed/runs/<k>/recon.mic.gz`` and ``seed/cache/passes/after_<k>.npy``.
 OTHER = (
     S.WORKTREES / "agent-a4fd6282107a76186/icenine_py/benchmarks/autoresearch/ar3/boundary/cache"
 )
@@ -105,6 +108,27 @@ def paired(ea: np.ndarray, eb: np.ndarray, sel: Optional[np.ndarray] = None) -> 
         fixed=int((wb & ~wa).sum()),
         broken=int((~wb & wa).sum()),
         both_wrong=int((wa & wb).sum()),
+    )
+
+
+def after_split(
+    maps: Dict[str, np.ndarray], k: str, vs: np.ndarray, ek: np.ndarray
+) -> Dict[str, Any]:
+    """Wilson intervals of the counts before the pass, and the same voxels after the pass in run
+    ``k`` and in D4 (``after_fixed``: wrong in D4 after, right in ``k`` after; ``after_broken``
+    the reverse; ``after_still_wrong``: wrong in ``k`` before and still wrong after)."""
+    wk_b = ek > G.WRONG
+    w4_b = maps["D4 before"][vs] > G.WRONG
+    wk = maps[f"{k} after"][vs] > G.WRONG
+    w4 = maps["D4 after"][vs] > G.WRONG
+    return dict(
+        wrong_in_run_w=wil(int(wk_b.sum()), len(vs)),
+        wrong_in_D4_w=wil(int(w4_b.sum()), len(vs)),
+        after_wrong_in_run=int(wk.sum()),
+        after_wrong_in_D4=int(w4.sum()),
+        after_still_wrong=int((wk_b & wk).sum()),
+        after_fixed=int((w4 & ~wk).sum()),
+        after_broken=int((~w4 & wk).sum()),
     )
 
 
@@ -258,21 +282,48 @@ def main() -> None:
                 continue
             ek = maps[f"{k} before"][vs]
             e4 = maps["D4 before"][vs]
-            rows_by.append(
-                dict(
-                    run=k,
-                    settled_by=by,
-                    voxels=len(vs),
-                    wrong_in_run=int((ek > G.WRONG).sum()),
-                    wrong_in_D4=int((e4 > G.WRONG).sum()),
-                    run_wrong_D4_right=int(((ek > G.WRONG) & ~(e4 > G.WRONG)).sum()),
-                    run_right_D4_wrong=int((~(ek > G.WRONG) & (e4 > G.WRONG)).sum()),
-                )
+            row = dict(
+                run=k,
+                settled_by=by,
+                voxels=len(vs),
+                wrong_in_run=int((ek > G.WRONG).sum()),
+                wrong_in_D4=int((e4 > G.WRONG).sum()),
+                run_wrong_D4_right=int(((ek > G.WRONG) & ~(e4 > G.WRONG)).sum()),
+                run_right_D4_wrong=int((~(ek > G.WRONG) & (e4 > G.WRONG)).sum()),
             )
+            # added in the review fixes (D-20261111-N1): intervals, and the same voxels after
+            # the pass (the pass on both sides)
+            row.update(after_split(maps, k, vs, ek))
+            rows_by.append(row)
     SUM["by_path"] = rows_by
+    # added in the review fixes: every voxel that the tries did not settle, after the pass
+    SUM["by_path_other"] = []
+    for k in ("S", "K2"):
+        lg = (
+            G.load_gz(RUNS / k / "seed_log.json.gz")
+            if (RUNS / k / "seed_log.json.gz").exists()
+            else []
+        )
+        tv = {int(e["voxel"]) for e in lg if e["by"] == "tries"}
+        if not tv or f"{k} after" not in maps:
+            continue
+        vs = np.array(sorted(set(range(N)) - tv), dtype=int)
+        ek = maps[f"{k} before"][vs]
+        e4 = maps["D4 before"][vs]
+        row = dict(
+            run=k,
+            settled_by="not by tries",
+            voxels=len(vs),
+            wrong_in_run=int((ek > G.WRONG).sum()),
+            wrong_in_D4=int((e4 > G.WRONG).sum()),
+            run_wrong_D4_right=int(((ek > G.WRONG) & ~(e4 > G.WRONG)).sum()),
+            run_right_D4_wrong=int((~(ek > G.WRONG) & (e4 > G.WRONG)).sum()),
+        )
+        row.update(after_split(maps, k, vs, ek))
+        SUM["by_path_other"].append(row)
     if rows_by:
         T_["ar3f_bypath"] = DT.markdown_table(
-            rows_by,
+            rows_by + SUM["by_path_other"],
             [
                 "run",
                 "settled_by",
@@ -281,6 +332,11 @@ def main() -> None:
                 "wrong_in_D4",
                 "run_wrong_D4_right",
                 "run_right_D4_wrong",
+                "after_wrong_in_run",
+                "after_still_wrong",
+                "after_wrong_in_D4",
+                "after_fixed",
+                "after_broken",
             ],
         )
     T_["ar3f_paired"] = DT.markdown_table(

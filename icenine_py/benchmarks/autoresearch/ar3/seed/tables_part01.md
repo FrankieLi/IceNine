@@ -72,25 +72,25 @@
 <!-- /table:ar3f_lists -->
 
 <!-- table:ar3f_pick -->
-| chain | need_A | broken_A | fixed_A | total_A | need_B | broken_B | fixed_B | total_B |
-|---|---|---|---|---|---|---|---|---|
-| neighbours_only then more20_5 | 6 of 91 (3 to 14%) | 0 | 1 | 24,124 | 6 of 98 (3 to 13%) | 0 | 0 | 22,114 |
-| neighbours then more20_5 | 6 of 91 (3 to 14%) | 0 | 1 | 24,779 | 6 of 98 (3 to 13%) | 0 | 0 | 22,553 |
-| cma_seed then more20_5 | 6 of 91 (3 to 14%) | 0 | 1 | 28,587 | 10 of 98 (6 to 18%) | 0 | 0 | 41,001 |
-| wide then more20_5 | 6 of 91 (3 to 14%) | 1 | 1 | 29,445 | 7 of 98 (4 to 14%) | 0 | 0 | 31,352 |
-| more20_5 | 9 of 91 (5 to 18%) | 0 | 1 | 37,924 | 10 of 98 (6 to 18%) | 0 | 0 | 39,047 |
-| more20_2 then more20_5 | 9 of 91 (5 to 18%) | 0 | 1 | 39,869 | 10 of 98 (6 to 18%) | 0 | 0 | 40,966 |
+| remedies | chain | need_A | broken_A | fixed_A | total_A | need_B | broken_B | fixed_B | total_B |
+|---|---|---|---|---|---|---|---|---|---|
+| 5 then 1b | neighbours_only then more20_5 | 6 of 91 (3 to 14%) | 0 | 1 | 24,124 | 6 of 98 (3 to 13%) | 0 | 0 | 22,114 |
+| 4 then 1b | neighbours then more20_5 | 6 of 91 (3 to 14%) | 0 | 1 | 24,779 | 6 of 98 (3 to 13%) | 0 | 0 | 22,553 |
+| 2 then 1b | cma_seed then more20_5 | 6 of 91 (3 to 14%) | 0 | 1 | 28,587 | 10 of 98 (6 to 18%) | 0 | 0 | 41,001 |
+| 3 then 1b | wide then more20_5 | 6 of 91 (3 to 14%) | 1 | 1 | 29,445 | 7 of 98 (4 to 14%) | 0 | 0 | 31,352 |
+| 1b | more20_5 | 9 of 91 (5 to 18%) | 0 | 1 | 37,924 | 10 of 98 (6 to 18%) | 0 | 0 | 39,047 |
+| 1a then 1b | more20_2 then more20_5 | 9 of 91 (5 to 18%) | 0 | 1 | 39,869 | 10 of 98 (6 to 18%) | 0 | 0 | 40,966 |
 <!-- /table:ar3f_pick -->
 
 <!-- table:ar3f_pick_extras -->
-| chain | need_A | broken_A | fixed_A | total_A | need_B | broken_B | fixed_B | total_B |
-|---|---|---|---|---|---|---|---|---|
-| neighbours_only then order5 | 4 of 91 (2 to 11%) | 0 | 1 | 16,684 | 6 of 98 (3 to 13%) | 0 | 0 | 22,160 |
-| neighbours then order5 | 4 of 91 (2 to 11%) | 0 | 1 | 17,339 | 6 of 98 (3 to 13%) | 0 | 0 | 22,599 |
-| cma_seed then order5 | 4 of 91 (2 to 11%) | 0 | 1 | 21,199 | 9 of 98 (5 to 17%) | 0 | 0 | 37,679 |
-| neighbours_only then order2 | 5 of 91 (2 to 12%) | 0 | 1 | 19,691 | 8 of 98 (4 to 15%) | 0 | 0 | 28,556 |
-| neighbours then order2 | 5 of 91 (2 to 12%) | 0 | 1 | 20,347 | 8 of 98 (4 to 15%) | 0 | 0 | 28,995 |
-| wide then order5 | 5 of 91 (2 to 12%) | 1 | 1 | 25,795 | 6 of 98 (3 to 13%) | 0 | 0 | 28,031 |
+| remedies | chain | need_A | broken_A | fixed_A | total_A | need_B | broken_B | fixed_B | total_B |
+|---|---|---|---|---|---|---|---|---|---|
+| 5 then 7b | neighbours_only then order5 | 4 of 91 (2 to 11%) | 0 | 1 | 16,684 | 6 of 98 (3 to 13%) | 0 | 0 | 22,160 |
+| 4 then 7b | neighbours then order5 | 4 of 91 (2 to 11%) | 0 | 1 | 17,339 | 6 of 98 (3 to 13%) | 0 | 0 | 22,599 |
+| 2 then 7b | cma_seed then order5 | 4 of 91 (2 to 11%) | 0 | 1 | 21,199 | 9 of 98 (5 to 17%) | 0 | 0 | 37,679 |
+| 5 then 7a | neighbours_only then order2 | 5 of 91 (2 to 12%) | 0 | 1 | 19,691 | 8 of 98 (4 to 15%) | 0 | 0 | 28,556 |
+| 4 then 7a | neighbours then order2 | 5 of 91 (2 to 12%) | 0 | 1 | 20,347 | 8 of 98 (4 to 15%) | 0 | 0 | 28,995 |
+| 3 then 7b | wide then order5 | 5 of 91 (2 to 12%) | 1 | 1 | 25,795 | 6 of 98 (3 to 13%) | 0 | 0 | 28,031 |
 <!-- /table:ar3f_pick_extras -->
 
 <!-- table:ar3f_rank -->

@@ -1,11 +1,13 @@
 <!-- table:ar3f_bypath -->
-| run | settled_by | voxels | wrong_in_run | wrong_in_D4 | run_wrong_D4_right | run_right_D4_wrong |
-|---|---|---|---|---|---|---|
-| S | tries | 602 | 59 | 27 | 36 | 4 |
-| S | seed_step | 611 | 2 | 2 | 0 | 0 |
-| K2 | tries | 619 | 65 | 27 | 42 | 4 |
-| K2 | seed_step | 625 | 4 | 3 | 3 | 2 |
-| S5 | seed_step | 1293 | 24 | 39 | 7 | 22 |
+| run | settled_by | voxels | wrong_in_run | wrong_in_D4 | run_wrong_D4_right | run_right_D4_wrong | after_wrong_in_run | after_still_wrong | after_wrong_in_D4 | after_fixed | after_broken |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| S | tries | 602 | 59 | 27 | 36 | 4 | 40 | 40 | 24 | 5 | 21 |
+| S | seed_step | 611 | 2 | 2 | 0 | 0 | 1 | 1 | 1 | 1 | 1 |
+| K2 | tries | 619 | 65 | 27 | 42 | 4 | 39 | 39 | 21 | 5 | 23 |
+| K2 | seed_step | 625 | 4 | 3 | 3 | 2 | 3 | 3 | 1 | 0 | 2 |
+| S5 | seed_step | 1293 | 24 | 39 | 7 | 22 | 22 | 19 | 30 | 14 | 6 |
+| S | not by tries | 23968 | 206 | 198 | 45 | 37 | 60 | 39 | 50 | 21 | 31 |
+| K2 | not by tries | 23951 | 203 | 198 | 65 | 60 | 57 | 40 | 53 | 26 | 30 |
 <!-- /table:ar3f_bypath -->
 
 <!-- table:ar3f_levels2 -->
