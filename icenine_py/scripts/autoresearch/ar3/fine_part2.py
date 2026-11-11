@@ -18,8 +18,6 @@ import gradient_common as G
 import gradient_summary as GS
 import numpy as np
 
-import doc_tables as DT  # noqa: E402
-
 NAMES = {
     "ar3c_skip": "ar3d_p2_skip",
     "ar3c_skip_level": "ar3d_p2_skip_level",
@@ -78,4 +76,3 @@ def part2(D: Any, S: Dict[str, Any], T: Dict[str, str], run: str) -> None:
     S["part2"] = S2
     for k, v in T2.items():
         T[NAMES[k]] = v
-    _ = DT

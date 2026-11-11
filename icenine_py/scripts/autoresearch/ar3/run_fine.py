@@ -266,7 +266,6 @@ def main() -> None:
     fb = FitBox()
     cr = CostRecorder() if a.trace_cma else None
     fit = Fitter(hooks, tracer, T, fb, cr)
-    ebh = None
     rR = G.load_gz(RG.RUNS / "P" / "refine_R.json.gz")
     ebh = {r["voxel"]: r["entry_best_hit"] for r in rR}
     assert [r["voxel"] for r in rR] == voxels, "voxel order differs from stored run R"

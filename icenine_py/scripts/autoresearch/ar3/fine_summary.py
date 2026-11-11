@@ -138,10 +138,6 @@ class Data:
             else:
                 assert (arm.v == self.order[: len(arm.v)]).all()
 
-    def sub(self, arm: Arm, other: Arm) -> np.ndarray:
-        """Indices of ``other`` rows whose voxels are in ``arm`` (same order prefix)."""
-        return np.arange(len(arm.v))
-
 
 def stats_of(e_end: np.ndarray, e_start: np.ndarray, a: Arm, m: np.ndarray) -> Dict[str, Any]:
     n = int(m.sum())
@@ -425,6 +421,63 @@ def set_tables(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> Dict[str, Any]:
     return pick
 
 
+def pick_with_subset_arms(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
+    """The pick rule applied once more with ``B015`` and ``L`` as candidates: on the set-A voxels
+    of the first N voxels (the voxels every arm ran on). A check of the pick, not a second pick."""
+    if not all(a in D.arms for a in ARMS_SUB):
+        return
+    n_first = min(len(D.arms[a].v) for a in ARMS_SUB)
+    names = ARMS_FULL + ARMS_SUB
+    st: Dict[str, Any] = {}
+    for a in names:
+        cut = restrict(D, D.arms[a], n_first)
+        st[a] = stats_of(cut.e_end, cut.e_start, cut, cut.mask("A"))
+    best = min(names, key=lambda a: (st[a]["gt01"]["k"] / st[a]["gt01"]["n"], a))
+    ties = [a for a in names if overlap(st[a]["gt01"], st[best]["gt01"])]
+    chosen = min(ties, key=lambda a: st[a]["evals_total"])
+    S["pick_with_subset_arms"] = dict(
+        n_first=n_first,
+        n_A=st["C"]["n"],
+        lowest_share_arm=best,
+        overlapping_arms=ties,
+        chosen=chosen,
+        gt01={a: st[a]["gt01"] for a in names},
+        evals_total={a: st[a]["evals_total"] for a in names},
+        note="lowest share: ties broken by arm name; every arm overlapping it is listed",
+    )
+    rows = []
+    for a in names:
+        mark = "picked" if a == chosen else ("in overlap" if a in ties else "")
+        rows.append(
+            dict(
+                arm=ARM_LABEL[a],
+                n=st[a]["n"],
+                gt01=wil_str(st[a]["gt01"]),
+                ev_tot=st[a]["evals_total"],
+                mark=mark,
+            )
+        )
+    T["ar3d_pick_sub"] = DT.markdown_table(
+        rows, ["arm", "n", "gt01", "ev_tot", "mark"], {"n": ",", "ev_tot": ","}
+    )
+
+
+def cost_notes(D: Data, S: Dict[str, Any]) -> None:
+    """Two notes for the text: how much cheaper box 5/8 is than the stock box, and how many of the
+    "lowered" fits lowered the cost by less than 1e-9 (the test is a strict ``<``)."""
+    b5, b06 = D.arms["B5"], D.arms["B06"]
+    S["evals_ratio_B5_over_B06"] = dict(
+        total=float(b5.evals.sum() / b06.evals.sum()),
+        median=float(np.median(b5.evals) / np.median(b06.evals)),
+    )
+    tiny: Dict[str, int] = {}
+    for a in ARMS_FULL:
+        arm = D.arms[a]
+        drop = arm.start_cost - arm.end_cost
+        tiny[a] = int(((drop > 0) & (drop < 1e-9)).sum())
+    S["lowered_by_less_than_1e-9"] = tiny
+
+
 def ladder_table(D: Data, S: Dict[str, Any], T: Dict[str, str]) -> None:
     if "L" not in D.arms:
         return
@@ -544,6 +597,8 @@ def main() -> None:
     level_tables(D, S, T)
     bin_tables(D, S, T)
     set_tables(D, S, T)
+    pick_with_subset_arms(D, S, T)
+    cost_notes(D, S)
     ladder_table(D, S, T)
     if (FRUNS / "C_trace" / "refine2.json.gz").exists():
         import fine_part2 as P2

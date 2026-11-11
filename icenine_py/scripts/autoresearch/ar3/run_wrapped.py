@@ -12,9 +12,11 @@ below the start cost, the stock fit (variance-minimizing MC, box 5 degrees, the 
 path) runs from the same start and the end with the lower cost is returned (the picked fit's on a
 tie). The evaluations of both fits are counted (``last_local_optimization_evals``).
 
-The caller's acceptance test (BFS: ``hit_ratio / best_conf > 0.9`` in ``_expand``; paint:
-``hit / max(entry best hit, hit) > 0.9`` in ``grain_paint``) needs ``best_conf`` / the entry's best
-hit, which the wrapper does not see. So the trigger of the stock fit is "the cost did not fall".
+The caller's acceptance test (BFS: ``hit_ratio / best_conf > 0.9`` in ``_expand``, where
+``best_conf`` already includes the fit's own hit ratio; paint: ``hit / max(entry best hit, hit) >
+0.9`` in ``grain_paint``) was not evaluated in the wrapper: it would need the caller's local
+variables (``best_conf`` of ``_expand``; the entry ``g`` of the paint loop). So the trigger of the
+stock fit is "the cost did not fall".
 
 Counts that show the wrapper is the only change: calls of the wrapper by caller; calls of
 ``CMAOptimizer.optimize`` (all of them are the wrapper's, the run's own local_optimizer being
@@ -35,7 +37,7 @@ import threading
 import time
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import ar3_common as C
 import gradient_common as G
@@ -82,7 +84,9 @@ class Wrap:
         MCOptimizer.variance_minimizing_optimize = vmo_counted
         self.rec.local_optimization = self.wrapped
 
-    def cma_fit(self, voxel_vertices: Any, phase_index: int, R0: np.ndarray, rng: Any) -> tuple:
+    def cma_fit(
+        self, voxel_vertices: Any, phase_index: int, R0: np.ndarray, rng: Any
+    ) -> Tuple[Any, int, float]:
         """The picked fit. Returns (result, evaluations, start cost)."""
         params = self.rec.params
         old = params.local_optimizer

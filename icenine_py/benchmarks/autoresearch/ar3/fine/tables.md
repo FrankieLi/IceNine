@@ -134,6 +134,27 @@
 | cost | level 1 | 1658 | 16,382 | 101,138 | 33 |
 <!-- /table:ar3d_p2_stop_level -->
 
+<!-- table:ar3d_p3_broken_bfs -->
+| pair | source | this_run | compared |
+|---|---|---|---|
+| D4 vs D (step 3) | neighbor | 61 | not stored |
+| D4 vs D (step 3) | revisit | 39 | not stored |
+| D4 vs D (step 3) | seed | 7 | not stored |
+| D4 vs D (step 3) | unresolved | 1 | not stored |
+| E4 vs D (step 2) | neighbor | 114 | 0 |
+| E4 vs D (step 2) | revisit | 56 | 165 |
+| E4 vs D (step 2) | seed | 0 | 5 |
+<!-- /table:ar3d_p3_broken_bfs -->
+
+<!-- table:ar3d_p3_broken_paint -->
+| stage_P4 | broken | wrong_after_paint | entry_other_grain | P: seed after a rejected fit | P: painted from a grain |
+|---|---|---|---|---|---|
+| seed | 3 | 3 |  | 1 | 2 |
+| fit-settled | 107 | 107 | 104 | 78 | 29 |
+| painted from a grain | 22 | 22 |  | 0 | 22 |
+| failed, not painted | 2 | 2 |  | 1 | 1 |
+<!-- /table:ar3d_p3_broken_paint -->
+
 <!-- table:ar3d_p3_entries -->
 | run | entries | seeds | reseeds | index_used | grid_fallbacks | grid_evals |
 |---|---|---|---|---|---|---|
@@ -205,17 +226,35 @@
 | E4 vs D (step 2) | all | 24,570 | 153 | 305 | 18 | 170 | 135 |
 <!-- /table:ar3d_p3_paired -->
 
+<!-- table:ar3d_p3_ratio -->
+| run | ratio | n | wrong |
+|---|---|---|---|
+| P4 fit-settled (ratio tested) | 0.90 to 0.92 | 342 | 113 of 342 (28.3 to 38.2%) |
+| P4 fit-settled (ratio tested) | 0.92 to 0.95 | 614 | 22 of 614 (2.4 to 5.4%) |
+| P4 fit-settled (ratio tested) | 0.95 to 0.98 | 1,845 | 0 of 1845 (0.00 to 0.21%) |
+| P4 fit-settled (ratio tested) | 0.98 to 1.00 | 3,124 | 0 of 3124 (0.00 to 0.12%) |
+| P4 fit-settled (ratio tested) | 1.00 exactly | 1,153 | 0 of 1153 (0.00 to 0.33%) |
+| E4 neighbour or revisit (stored hit ratio) | below 0.90 | 87 | 87 of 87 (95.8 to 100.0%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.90 to 0.92 | 218 | 212 of 218 (94.1 to 98.7%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.92 to 0.95 | 114 | 6 of 114 (2.4 to 11.0%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.95 to 0.98 | 3,520 | 0 of 3520 (0.00 to 0.11%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.98 to 1.00 | 11,962 | 0 of 11962 (0.00 to 0.03%) |
+| E4 neighbour or revisit (stored hit ratio) | 1.00 exactly | 8,162 | 0 of 8162 (0.00 to 0.05%) |
+<!-- /table:ar3d_p3_ratio -->
+
 <!-- table:ar3d_p3_stage -->
 | run | stage | n | wrong |
 |---|---|---|---|
 | P4 plus R4 | seed | 2,535 | 58 of 2535 (1.8 to 2.9%) |
 | P4 plus R4 | fit-settled | 7,078 | 135 of 7078 (1.6 to 2.3%) |
 | P4 plus R4 | painted from a grain | 14,953 | 86 of 14953 (0.47 to 0.71%) |
-| P4 plus R4 | failed | 4 | 2 of 4 (15.0 to 85.0%) |
+| P4 plus R4 | failed, later painted | 2 | 0 of 2 (0.0 to 65.8%) |
+| P4 plus R4 | failed, not painted | 2 | 2 of 2 (34.2 to 100.0%) |
 | P plus R (step 3) | seed | 5,369 | 80 of 5369 (1.2 to 1.9%) |
 | P plus R (step 3) | fit-settled | 184 | 0 of 184 (0.0 to 2.0%) |
 | P plus R (step 3) | painted from a grain | 19,013 | 87 of 19013 (0.37 to 0.56%) |
-| P plus R (step 3) | failed | 4 | 3 of 4 (30.1 to 95.4%) |
+| P plus R (step 3) | failed, later painted | 0 | 0 of 0 |
+| P plus R (step 3) | failed, not painted | 4 | 3 of 4 (30.1 to 95.4%) |
 <!-- /table:ar3d_p3_stage -->
 
 <!-- table:ar3d_p3_status -->
@@ -233,6 +272,17 @@
 | P4 (paint) | 9,290 | local_fit 9290 | 9,058 | 232 | 2 | 9,290 | 232 | 5,203 |
 | E4 | 48,237 | _local_fit 48237 | 33,628 | 14,609 | 0 | 48,237 | 14,609 | 1,014 |
 <!-- /table:ar3d_p3_wrapper -->
+
+<!-- table:ar3d_pick_sub -->
+| arm | n | gt01 | ev_tot | mark |
+|---|---|---|---|---|
+| B5 stock box 5 deg | 299 | 12 of 299 (2.3 to 6.9%) | 201,954 |  |
+| B06 box 5/8 deg | 299 | 5 of 299 (0.7 to 3.9%) | 120,190 | in overlap |
+| B03 box 5/16 deg | 299 | 1 of 299 (0.1 to 1.9%) | 419,830 | in overlap |
+| C CMA, step 0.05 deg | 299 | 2 of 299 (0.2 to 2.4%) | 18,239 | picked |
+| B015 box 5/32 deg | 299 | 1 of 299 (0.1 to 1.9%) | 9,882,129 | in overlap |
+| L ladder 5/32, 5/8, 5 | 299 | 2 of 299 (0.2 to 2.4%) | 10,118,883 | in overlap |
+<!-- /table:ar3d_pick_sub -->
 
 <!-- table:ar3d_sets -->
 | set | arm | n | med | gt01 | wrong | ev_tot | mark |

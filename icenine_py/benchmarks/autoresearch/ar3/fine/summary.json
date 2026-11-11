@@ -1532,6 +1532,76 @@
   },
   "gate_open": true
  },
+ "pick_with_subset_arms": {
+  "n_first": 600,
+  "n_A": 299,
+  "lowest_share_arm": "B015",
+  "overlapping_arms": [
+   "B06",
+   "B03",
+   "C",
+   "B015",
+   "L"
+  ],
+  "chosen": "C",
+  "gt01": {
+   "B5": {
+    "k": 12,
+    "n": 299,
+    "lo": 0.0231045994433325,
+    "hi": 0.06882993002685919
+   },
+   "B06": {
+    "k": 5,
+    "n": 299,
+    "lo": 0.0071633186851657385,
+    "hi": 0.038542423194417516
+   },
+   "B03": {
+    "k": 1,
+    "n": 299,
+    "lo": 0.0005906120949380513,
+    "hi": 0.01869867973286896
+   },
+   "C": {
+    "k": 2,
+    "n": 299,
+    "lo": 0.0018362372183591338,
+    "hi": 0.02405716712239194
+   },
+   "B015": {
+    "k": 1,
+    "n": 299,
+    "lo": 0.0005906120949380513,
+    "hi": 0.01869867973286896
+   },
+   "L": {
+    "k": 2,
+    "n": 299,
+    "lo": 0.0018362372183591338,
+    "hi": 0.02405716712239194
+   }
+  },
+  "evals_total": {
+   "B5": 201954,
+   "B06": 120190,
+   "B03": 419830,
+   "C": 18239,
+   "B015": 9882129,
+   "L": 10118883
+  },
+  "note": "lowest share: ties broken by arm name; every arm overlapping it is listed"
+ },
+ "evals_ratio_B5_over_B06": {
+  "total": 1.6395053372428476,
+  "median": 1.6633165829145728
+ },
+ "lowered_by_less_than_1e-9": {
+  "B5": 0,
+  "B06": 5,
+  "B03": 9,
+  "C": 22
+ },
  "ladder": {
   "0.15625": {
    "ended_here": 439,
@@ -2670,7 +2740,8 @@
   "D4_run": {
    "evals_total": 35129496,
    "wall_total_s": 3124.5136411190033,
-   "timing_label": "contended: timing preflight refused (cpptools at 96% CPU); single run, one worker",
+   "timing_label": "contended: timing preflight refused (cpptools at 96% CPU); D4, P4 and E4 ran side by side (three heavy processes on the machine)",
+   "timing_label_run_json": "contended: timing preflight refused (cpptools at 96% CPU); single run, one worker",
    "stages": {
     "seed": 1556905,
     "neighbor": 2817382,
@@ -2757,6 +2828,24 @@
     "broken": 37,
     "both_wrong": 50
    }
+  },
+  "D4_saving": {
+   "fits_D4": 5906748,
+   "fits_D": 60319831,
+   "reseed_D4": 27665843,
+   "reseed_D": 55571593
+  },
+  "D4_broken_source": {
+   "n_broken": 108,
+   "D4": {
+    "revisit": 39,
+    "neighbor": 61,
+    "seed": 7,
+    "unresolved": 1
+   },
+   "broken_with_a_rejected_fit": 46,
+   "unresolved_all": 2,
+   "unresolved_broken": 1
   },
   "D4_vs_D_gt01_overlap": false,
   "D4_vs_D_wrong_overlap": true,
@@ -3091,9 +3180,11 @@
     "failed": 4
    },
    "n_entries": 2535,
+   "n_refined_r4": 14955,
    "wall_p_s": 4507.581657886505,
    "wall_r4_s": 92.71791076660156,
-   "timing_label": "contended: timing preflight refused (cpptools at 100% CPU); single run, one worker",
+   "timing_label": "contended: timing preflight refused (cpptools at 100% CPU); D4, P4 and E4 ran side by side (three heavy processes on the machine)",
+   "timing_label_run_json": "contended: timing preflight refused (cpptools at 100% CPU); single run, one worker",
    "wrapper_after_paint": {
     "wrapper_calls": 9290,
     "wrapper_calls_by_caller": {
@@ -3215,11 +3306,17 @@
     "lo": 0.004659763998649881,
     "hi": 0.0070968357369520525
    },
-   "P4 plus R4 / failed": {
+   "P4 plus R4 / failed, later painted": {
+    "k": 0,
+    "n": 2,
+    "lo": 0.0,
+    "hi": 0.6576280471103807
+   },
+   "P4 plus R4 / failed, not painted": {
     "k": 2,
-    "n": 4,
-    "lo": 0.15003570882017148,
-    "hi": 0.8499642911798285
+    "n": 2,
+    "lo": 0.34237195288961925,
+    "hi": 1.0
    },
    "P plus R (step 3) / seed": {
     "k": 80,
@@ -3239,11 +3336,99 @@
     "lo": 0.003711455040161406,
     "hi": 0.005640339739472243
    },
-   "P plus R (step 3) / failed": {
+   "P plus R (step 3) / failed, later painted": {
+    "k": 0,
+    "n": 0,
+    "lo": NaN,
+    "hi": NaN
+   },
+   "P plus R (step 3) / failed, not painted": {
     "k": 3,
     "n": 4,
     "lo": 0.3006360524426366,
     "hi": 0.9544139373553637
+   }
+  },
+  "P4_refined_r4_check": {
+   "painted_from_a_grain": 14953,
+   "failed_later_painted": 2,
+   "n_refined_r4": 14955
+  },
+  "P4_records_fit_count": 7078,
+  "P4R4_broken": {
+   "n_broken": 134,
+   "wrong_after_paint": 134,
+   "seed": {
+    "n": 3,
+    "wrong_after_paint": 3,
+    "in_P": {
+     "painted from a grain": 2,
+     "seed after a rejected fit": 1
+    }
+   },
+   "fit-settled": {
+    "n": 107,
+    "wrong_after_paint": 107,
+    "entry_seeded_in_other_grain": 104,
+    "ratio_min": 0.9000989119683481,
+    "passed_0_9": 107,
+    "end_to_entry_median_deg": 0.045060065998164575,
+    "end_to_entry_max_deg": 0.3741412939984497,
+    "in_P": {
+     "seed after a rejected fit": 78,
+     "painted from a grain": 29
+    }
+   },
+   "painted from a grain": {
+    "n": 22,
+    "wrong_after_paint": 22,
+    "in_P": {
+     "painted from a grain": 22
+    }
+   },
+   "failed, not painted": {
+    "n": 2,
+    "wrong_after_paint": 2,
+    "in_P": {
+     "seed after a rejected fit": 1,
+     "painted from a grain": 1
+    }
+   }
+  },
+  "P4_fit_ratio": {
+   "n": 7078,
+   "min": 0.9000010707096664,
+   "bins": {
+    "0.90 to 0.92": {
+     "k": 113,
+     "n": 342,
+     "lo": 0.2826840305151353,
+     "hi": 0.3819023003369079
+    },
+    "0.92 to 0.95": {
+     "k": 22,
+     "n": 614,
+     "lo": 0.023779058680741278,
+     "hi": 0.05365438056970738
+    },
+    "0.95 to 0.98": {
+     "k": 0,
+     "n": 1845,
+     "lo": 0.0,
+     "hi": 0.0020778416063333928
+    },
+    "0.98 to 1.00": {
+     "k": 0,
+     "n": 3124,
+     "lo": 0.0,
+     "hi": 0.001228195187377775
+    },
+    "1.00 exactly": {
+     "k": 0,
+     "n": 1153,
+     "lo": 0.0,
+     "hi": 0.00332076578159015
+    }
    }
   },
   "P4R4_vs_PR_gt01_overlap": false,
@@ -3289,7 +3474,8 @@
   "E4_run": {
    "evals_total": 13608181,
    "wall_total_s": 1182.5787966251373,
-   "timing_label": "contended: timing preflight refused (cpptools at 96% CPU); single run, one worker",
+   "timing_label": "contended: timing preflight refused (cpptools at 96% CPU); D4, P4 and E4 ran side by side (three heavy processes on the machine)",
+   "timing_label_run_json": "contended: timing preflight refused (cpptools at 96% CPU); single run, one worker",
    "stages": {
     "seed": 649395,
     "neighbor": 6219398,
@@ -3312,6 +3498,59 @@
     "vmo_calls_total": 15623,
     "vmo_calls_in_wrapper": 14609,
     "vmo_calls_outside_wrapper": 1014
+   }
+  },
+  "E4_broken_source": {
+   "n_broken": 170,
+   "E4": {
+    "neighbor": 114,
+    "revisit": 56
+   },
+   "D_step2": {
+    "revisit": 165,
+    "seed": 5
+   }
+  },
+  "E4_fit_hit": {
+   "n": 24063,
+   "min": 0.8663865546218488,
+   "bins": {
+    "below 0.90": {
+     "k": 87,
+     "n": 87,
+     "lo": 0.957711004649852,
+     "hi": 1.0
+    },
+    "0.90 to 0.92": {
+     "k": 212,
+     "n": 218,
+     "lo": 0.9412640644540636,
+     "hi": 0.9873264253368504
+    },
+    "0.92 to 0.95": {
+     "k": 6,
+     "n": 114,
+     "lo": 0.024341829683317877,
+     "hi": 0.11008947471173444
+    },
+    "0.95 to 0.98": {
+     "k": 0,
+     "n": 3520,
+     "lo": 0.0,
+     "hi": 0.0010901738602552395
+    },
+    "0.98 to 1.00": {
+     "k": 0,
+     "n": 11962,
+     "lo": 0.0,
+     "hi": 0.0003210472049036651
+    },
+    "1.00 exactly": {
+     "k": 0,
+     "n": 8162,
+     "lo": 0.0,
+     "hi": 0.00047044752864175085
+    }
    }
   },
   "E_run": {
