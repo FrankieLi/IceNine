@@ -8,27 +8,32 @@ there. Every wall time was measured with other jobs running (contended) and is n
 result.
 
 **The question.** In step 2 no short CMA fit could replace the stock MC optimizer in the seed
-step on its own. The review of step 2 found why: the CMA fit loses only on the steps where its
-end stays under a hit ratio of 0.95. So the mixed rule is: run the short CMA fit first, and run
+step on its own. The review of step 2 read the stored replay and found that the losses are the
+steps where the CMA end stays under a hit ratio of 0.95. That is a pattern in the stored numbers,
+not a tested cause. So the mixed rule is: run the short CMA fit first, and run
 the stock MC optimizer from the same start only when the CMA end is under 0.95. This step tests
 that rule, first on the stored replay (no new evaluation) and then on whole layers.
 
 ## Short answer
 
 1. **Part 1 (stored replay).** The mixed rule with a CMA fit of at most 200 evaluations (`X200`)
-   keeps the seed-test passes and the ends within 1 degree of the stock refinement, and needs
-   57.3% fewer seed-step evaluations on the two pick samples. The version with at most 60
+   keeps, in net counts, the seed-test passes and the ends within 1 degree of the stock
+   refinement, and needs 57.3% fewer seed-step evaluations on the two pick samples. The version with at most 60
    (`X60`) also meets step 2's two rules but saves only 25.2%. The pick is `X200`.
 2. **Part 2 (whole layers).** Run `S11` (`S10` plus the mixed seed refinement `X200`) passes its
    rule on all three samples: 51.9%, 31.6% and 39.2% fewer evaluations than `S8` (`big`, the
    first gradient sample, `mid`), with the boundary pass in all three. Against `S10` it is
-   31.9%, 18.9% and 29.1% fewer.
+   31.9%, 18.9% and 29.1% fewer. Part of that comes from fewer grid fallbacks (item 4).
 3. **Accuracy.** Wrong voxels after the pass: 18, 62 and 36 (`S8`: 24, 63 and 31). Broken minus
    fixed against `S8` is -6, -1 and 5. The rule allows 5, so `mid` is exactly at the limit.
 4. **Caution.** The mixed rule was found in a replay that included `mid`, so no sample is held
    out for it. The grid-fallback stage also moved: `S11` has fewer grid fallbacks than `S8`
-   on two samples. About 30% of the saving on the first gradient sample comes from that
-   stage (see the second table).
+   and `S10` on two samples (11 against 16 and 15 on the first gradient sample, 12 against 15
+   and 15 on `mid`). Against `S8`, 30.0% of the saving on the first gradient sample comes from
+   that stage. Against `S10`, which differs from `S11` only in the seed rule, it is 47.8% on the
+   first gradient sample and 15.2% on `mid`. One grid fallback costs 333,517 to 340,594
+   evaluations, so a few fallbacks in one run move more than a million evaluations. There is
+   one run per sample (see the share and fallback tables below).
 
 ## First plot: evaluations by stage, `S8`, `S10` and `S11`
 
@@ -58,26 +63,67 @@ after a seed result failed the seed test.
 <!-- /table:stages -->
 
 Reading line: the same totals with the grid-fallback stage taken out of all three runs. The
-last two columns say how much of the saving of `S11` against `S8` is the grid-fallback stage.
+last four columns say how much of the saving of `S11` is the grid-fallback stage, against `S8`
+and against `S10`.
 
 <!-- table:nogrid -->
-| sample | S8 without grid fallbacks | S10 without grid fallbacks | S11 without grid fallbacks | S11 fewer than S8 (%) | S11 fewer than S10 (%) | grid-fallback evaluations S11 saves against S8 | all evaluations S11 saves against S8 |
-|---|---|---|---|---|---|---|---|
-| big | 8340428 | 5898258 | 4015342 | 51.9 | 31.9 | 0 | 4325086 |
-| first gradient sample | 12550729 | 10059891 | 8566586 | 31.7 | 14.8 | 1708093 | 5692236 |
-| mid | 21440324 | 17660338 | 12078111 | 43.7 | 31.6 | 998165 | 10360378 |
+| sample | S8 without grid fallbacks | S10 without grid fallbacks | S11 without grid fallbacks | S11 fewer than S8 (%) | S11 fewer than S10 (%) | grid-fallback evaluations S11 saves against S8 | all evaluations S11 saves against S8 | grid-fallback evaluations S11 saves against S10 | all evaluations S11 saves against S10 |
+|---|---|---|---|---|---|---|---|---|---|
+| big | 8340428 | 5898258 | 4015342 | 51.9 | 31.9 | 0 | 4325086 | 0 | 1882916 |
+| first gradient sample | 12550729 | 10059891 | 8566586 | 31.7 | 14.8 | 1708093 | 5692236 | 1366699 | 2860004 |
+| mid | 21440324 | 17660338 | 12078111 | 43.7 | 31.6 | 998165 | 10360378 | 1003781 | 6586008 |
 <!-- /table:nogrid -->
 
-The seed step's own saving is the largest single piece: the seed-step evaluations of `S11` are
-888,360 against 2,856,712 for `S8` on `big` (first table). The grid-fallback stage of `S11` is
-lower on the first gradient sample (11 fallbacks against 16) and on `mid` (12 against 15). We did
-not test why. It is consistent with the mixed seed refinement passing the seed test on a few more
-seed steps (Part 1 below: 4 more on each of those two samples), but later steps also depend on the
-seed ends, so this is untested.
+Reading line for the table: the share of the evaluations `S11` saves that comes from each stage.
+Against `S8` the saving mixes step 2's change (neighbour fits and revisits with no MC fallback)
+with the new seed rule. Against `S10` only the seed rule differs. A share below zero means the
+stage needed a few more evaluations in `S11`.
+
+<!-- table:shares -->
+| sample | against | evaluations S11 saves | seed step (%) | grid fallback (%) | neighbour fits (%) | revisits (%) | boundary pass (%) |
+|---|---|---|---|---|---|---|---|
+| big | S8 | 4325086 | 45.5 | 0.0 | 46.1 | 8.3 | 0.1 |
+| first gradient sample | S8 | 5692236 | 24.3 | 30.0 | 23.2 | 22.6 | -0.0 |
+| mid | S8 | 10360378 | 59.7 | 9.6 | 22.9 | 7.7 | 0.1 |
+| big | S10 | 1882916 | 101.0 | 0.0 | -0.0 | -0.8 | -0.2 |
+| first gradient sample | S10 | 2860004 | 52.3 | 47.8 | -0.0 | 0.1 | -0.2 |
+| mid | S10 | 6586008 | 85.1 | 15.2 | -0.0 | -0.4 | 0.1 |
+<!-- /table:shares -->
+
+No single stage is the largest piece on every sample. Against `S8`, the neighbour fits save a
+little more than the seed step on `big` (46.1% against 45.5%). On the first gradient sample the
+grid-fallback stage saves the most (30.0%, against 24.3% for the seed step). Only on `mid` is
+the seed step the largest piece (59.7%). Against `S10`, the seed step is the largest piece on all
+three samples, but the grid-fallback stage is 47.8% of the saving on the first gradient sample
+and 15.2% on `mid`.
+
+Reading line for the table: per run and sample, the grid-fallback evaluations, the number of
+grid fallbacks, and the evaluations per fallback. One fallback costs about the same in every run.
+
+<!-- table:fallback_cost -->
+| sample | S8 grid-fallback evaluations | S8 fallbacks | S8 per fallback | S10 grid-fallback evaluations | S10 fallbacks | S10 per fallback | S11 grid-fallback evaluations | S11 fallbacks | S11 per fallback |
+|---|---|---|---|---|---|---|---|---|---|
+| big | 0 | 0 | n/a | 0 | 0 | n/a | 0 | 0 | n/a |
+| first gradient sample | 5449501 | 16 | 340594 | 5108107 | 15 | 340540 | 3741408 | 11 | 340128 |
+| mid | 5002750 | 15 | 333517 | 5008366 | 15 | 333891 | 4004585 | 12 | 333715 |
+<!-- /table:fallback_cost -->
+
+So a few fallbacks move a lot of evaluations. `S11` has 4 fewer fallbacks than `S10` on the
+first gradient sample (11 against 15), and that stage saves 1,366,699 evaluations. On `mid` it
+has 3 fewer (12 against 15), and that stage saves 1,003,781. There is one run per sample, so this
+part of the saving rests on a difference of 3 or 4 fallbacks. We did not test why the fallbacks
+went down. It is consistent with a direct effect: the mixed seed refinement passes the seed test
+on a few more seed steps (Part 1 below: 4 more on each of those two samples). It is also
+consistent with a path effect: later steps start from the seed ends, so a different seed end
+changes them. This step did not separate the two.
 
 ## Terms
 
-- **Evaluation**: one call of the strict cost function. Indexing is not counted.
+- **Evaluation**: one call of the strict cost function. Indexing is not counted. The hit-ratio
+  checks are not counted either, as in `S8`. The mixed seed refinement adds one such check per
+  candidate it refines (the hit ratio of the CMA end, one overlap evaluation): 436, 2,158 and
+  2,814 on `big`, the first gradient sample and `mid`, under 0.02% of the counted evaluations
+  (table at the end of this section).
 - **Seed step, seed test, early stop, grid fallback, neighbour fit, revisit, boundary pass,
   wrong**: as in `findings_ar3_keys.md` and `findings_ar5_fits.md`. The seed test passes at hit
   ratio 0.80 or more. The early stop keeps the first refinement end with hit ratio 0.95 or more.
@@ -86,10 +132,11 @@ seed ends, so this is untested.
   the local optimization of a voxel.
 - **Hit ratio**: the share of the predicted detector pixels that fall on observed intensity.
 - **Mixed seed refinement** (`X60`, `X200`): for each indexed candidate, in the order of `S8`,
-  a CMA fit with a first step of 0.05 degree and at most 60 or 200 evaluations. If its end hit
-  ratio is at least 0.95, that end is kept and the seed step stops. If not, the stock MC
-  optimizer runs from the same candidate, and the candidate's end is the one of the two with the
-  lower cost (a tie keeps the CMA end). The early stop is then tested on the kept end. If no
+  a CMA fit with a first step of 0.05 degree and a budget of 60 or 200 evaluations (counted with
+  the start, a 200-evaluation fit is 201 evaluations). If its end hit ratio is at least 0.95,
+  that end is kept and the seed step stops. If not, the stock MC optimizer runs from the same
+  candidate, and the candidate's end is the one of the two with the lower cost (a tie keeps the
+  CMA end). The early stop is then tested on the kept end. If no
   end reaches 0.95, the lowest cost of up to 5 ends is kept, as in `S8`. Evaluations count both.
 - **Arms**: `M` is the stock MC refinement; `C60` and `C200` are the CMA fits alone.
 - **Runs**: `S8` is the best earlier run (indexed seeds, early stop at 0.95, boundary pass).
@@ -102,6 +149,17 @@ seed ends, so this is untested.
 - **Samples**: `big` (32 grains) and the first gradient sample (497 grains) are the pick
   samples. `mid` (about 120 grains) was read by step 2. All have 24,570 voxels, clean images,
   Q-max 8. One run per sample with the stored seeds.
+
+Reading line for the table: per sample, the hit-ratio checks that the mixed seed refinement adds
+and that no count includes, against the counted evaluations of `S11` with the pass.
+
+<!-- table:uncounted -->
+| sample | uncounted hit-ratio checks (one per mixed candidate) | counted evaluations of S11 with the pass | uncounted as a share of counted (%) |
+|---|---|---|---|
+| big | 436 | 4015342 | 0.0109 |
+| first gradient sample | 2158 | 12307994 | 0.0175 |
+| mid | 2814 | 16082696 | 0.0175 |
+<!-- /table:uncounted -->
 
 ## Part 1: the mixed rule from the stored replay
 
@@ -122,7 +180,9 @@ change the pick.
 
 Reading line for the plot: each dot is an arm. Height is the share of steps whose end is within
 1 degree of the truth; a cross is the share that passes the seed test. Left is cheaper. The mixed
-arms sit at about the same height as `M` and to the left of it.
+arms sit at about the same height as `M` and to the left of it. Each panel has its own vertical
+axis, and on the first gradient sample and `mid` it spans about one percentage point or less, so
+a gap of a few steps looks large. The tables below give the counts.
 
 ![Seed refinement arms](../../benchmarks/autoresearch/ar5/mix/ar5_mix_arms.png)
 
@@ -174,10 +234,23 @@ end hit ratio, end error, stop position and evaluation count as Part 1 computed 
 <!-- /table:check -->
 
 One difference from the what-if in the plan: on `mid`, `X200` needs 5,643,575 seed-step
-evaluations here against 5,643,374 in the plan's what-if. The two differ in one step. There the
-CMA end (hit ratio 0.9475) has the lower cost and the MC end has hit ratio 0.953; this page
-keeps the lower-cost end and tests the early stop on it, as the plan's definition says, so that
-step goes on to the next candidate. The pick samples are not affected (2,501,991 in both).
+evaluations here against 5,643,374 in the plan's what-if. The two differ in one step, replay
+step 442 of `mid` (table below). On its first candidate the CMA end has hit ratio 0.94752 and
+cost 0.06939, and the MC end has hit ratio 0.95300 and cost 0.07189. This page keeps the
+lower-cost end, the CMA end, and tests the early stop on it, as the plan's definition says. That
+end is under 0.95, so the step goes on to the next candidate: one more CMA fit of 201
+evaluations, whose end has hit ratio 0.979. The plan's what-if stopped when either end reached
+0.95. `mix_part1.py` recomputes that variant from the replay and gets 5,643,374, with no other
+step different. The pick samples are not affected (2,501,991 in both).
+
+Reading line for the table: the only replay step where the two counts differ, with both ends of
+its first candidate, the next candidate's CMA fit, and the two totals for `mid`.
+
+<!-- table:whatif -->
+| sample | replay step | candidate | CMA end hit ratio | CMA end cost | CMA evaluations | MC end hit ratio | MC end cost | MC evaluations | next candidate: CMA evaluations | next candidate: CMA end hit ratio | X200 seed-step evaluations, this page | the plan's what-if |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mid | 442 | 1 | 0.94752 | 0.06939 | 201 | 0.95300 | 0.07189 | 5983 | 201 | 0.979 | 5643575 | 5643374 |
+<!-- /table:whatif -->
 
 ## Part 2: whole layers
 
@@ -222,8 +295,11 @@ over all 24,570 voxels at most 0.005 degree above `S8`'s. `S11` passes on all th
 | mid | S11 | 5 | 0.02913 | 0.02972 | -0.00060 | True | True | True | True | 39.2 |
 <!-- /table:rule -->
 
-Against `S10`, `S11` fixes 9, 39 and 12 voxels after the pass and breaks 5, 34 and 13. The
-counts of wrong voxels after the pass are close to `S8`'s on every sample; we do not test them.
+Against `S10`, `S11` fixes 9, 39 and 12 voxels after the pass and breaks 5, 34 and 13. After
+the pass, `S11` has fewer wrong voxels than `S8` on `big` (18 against 24) and on the first
+gradient sample (62 against 63). On `mid` it has more: 36, against 31 for `S8` and 35 for `S10`.
+There it breaks 15 voxels and fixes 10 against `S8`, so broken minus fixed is 5, exactly the
+limit of the rule. This rests on one run.
 
 ## Predictions
 
@@ -255,11 +331,15 @@ how often the MC optimizer ran in the whole layer.
 ## What this does and does not show
 
 - On these three clean samples the mixed seed refinement with local optimizations that never
-  call the MC optimizer saves evaluations against `S8` and against `S10` and stays within step
-  2's accuracy rule. This is one run per sample.
+  call the MC optimizer saves evaluations against `S8` and against `S10`. It meets step 2's
+  accuracy rule on all three, but on `mid` only just: 36 wrong voxels after the pass against 31
+  for `S8`, and broken minus fixed is 5, at the limit of 5. This is one run per sample.
 - The seed rule was found after the samples were read. `mid` cannot count as a held-out test of
-  the rule. A held-out sample is the next step of the plan (a sample no choice has read).
-- The saving of the grid-fallback stage is a path effect that this step did not isolate.
+  the rule. A held-out sample is the next step of the plan: AR3 step 11, the sample `held`
+  (D-20261111-N15), which no choice has read.
+- The lower number of grid fallbacks in `S11` is consistent with a direct effect (the seed
+  result passes the seed test more often) and with a path effect (later steps start from
+  different seed ends). This step did not separate the two.
 - No timing, no real sample, no realistic images, no library key (the key is the next step, for
   both changes together).
 
