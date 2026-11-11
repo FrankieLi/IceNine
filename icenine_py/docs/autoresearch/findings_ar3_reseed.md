@@ -533,8 +533,8 @@ fit from a wrong one at a boundary voxel is what is missing.
   grid fallback steps of `D4` cannot be compared (their stored count includes the grid search).
 - The logged rerun of `S5` on `big` reproduced the stored run: the same counters
   (35 seeds, 314 reseeds, 7,469,574 index evaluations, 11,867,509 in all), and the same reseed
-  list (voxel, cluster size, evaluations, accepted). It took 1,033 s with other jobs running; the
-  cap was 90 minutes.
+  list (voxel, cluster size, evaluations, accepted). It took 1,029 s with other jobs running
+  (`slim/check_logged_big.json`); the cap was 90 minutes.
 - The `E1` loop of `S8` against the library's `index_seed`, 12 steps per sample: identical
   evaluations and orientation with the stop test off, and the evaluations of part 2 with it on
   (`s8_check_big.json`, `s8_check_grad.json`).
