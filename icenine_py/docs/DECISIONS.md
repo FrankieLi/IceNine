@@ -1057,3 +1057,27 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   boundary pass; it is skipped if no remedy removes half of the grid fallbacks on A. No library
   change, no default changed. Committed results stay under 5 MB and hold only what the summary
   reads. Where: icenine_py/docs/autoresearch/PLAN.md, 'Step 6' of the AR3 section.
+
+### D-20261111-N1 · Track A / AR3 step 6 review · AR3 step 6 review decisions approved under the mandate: all 11 fixes with no rerun, additions 7a, 7b and S5 kept as marked, next key direction left to the owner with a default
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. Step 6's
+  review (verdict request changes, 11 required fixes, the code, the evaluation counts and the
+  truth checks are sound) left three choices. (1) All 11 fixes are applied, to the findings page,
+  the summary script, its tables and the plot label only; no replay and no whole-layer run is
+  repeated. The summary script may be run again on the stored records; existing values in the
+  summary files stay unchanged and new keys (the intervals) are added. (2) The remedies 7a and 7b
+  and the whole-layer run S5 were added by the implementer beyond the plan after it saw the
+  results. They are kept, marked 'added after seeing results', and are not part of the plan's
+  pick. (3) The plan's pick (tries from the neighbours, then refine the best 5 of 20 candidates)
+  cut the grid fallbacks from 76 to 11 and the evaluations from 38.8M to 16.1M (run S against D4,
+  both with the boundary pass), but left 100 against 74 wrong voxels (intervals overlap), and the
+  voxels settled by a neighbour's try were wrong on 59 against 27 of 602 before the pass (40 of
+  the 59 still wrong after it). Run S5 (refine the best 5 of 20, no neighbour tries) gave 15
+  fallbacks, 20.6M evaluations and 62 wrong; against S that is 62 against 100 with 57 fixed and 19
+  broken; against D4 no detectable difference in wrong voxels at about half the evaluations. The
+  page presents the choice of the next opt-in key as the owner's. The default taken until the
+  owner says otherwise: the next work uses the seed step of S5 (best 5 of 20, no neighbour tries),
+  checks it on a sample with larger grains before any opt-in key is added, and does not add the
+  neighbour tries. One sample, one run each; no extra seeds. Where:
+  icenine_py/docs/autoresearch/findings_ar3_seed.md (task branch feature/eval-reduction-ar3f);
+  review report .claude/reports/20261111-0330-review-ar3f.md.
