@@ -15,6 +15,13 @@ written too, so it can be compared with the stored run's map.
 Writes ``<CACHE>/<kind>/``: ``recon.mic.gz`` (after the pass), ``recon_before_pass.mic.gz``,
 ``records.json.gz``, ``run.json``, ``pass_tries.npz``, ``preflight.json``, ``run.config``,
 ``progress.json``; ``run.done`` at the end.
+
+Totals in ``run.json``: ``evals_total_before_pass`` is the BFS's total (``libkeys_common.
+evals_total``). ``evals_total_with_pass`` adds the pass's tries (``n_evals_boundary_pass``) AND
+the strict scores of the boundary voxels' old ends (``n_evals_boundary_score``, one per boundary
+voxel). The page's and the tables' ``total`` leave the scores out, as step 8 did, so
+``evals_total_with_pass`` is larger than that ``total`` by ``n_evals_boundary_score`` (D4L:
+11,954,779 against 11,943,692). The field keeps its name because stored results carry it.
 """
 
 import argparse

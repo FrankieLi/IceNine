@@ -121,6 +121,10 @@ def main() -> None:
     old = json.loads((stored_dir / "run.json").read_text())
     exp = K.EXPECT[kind]
     st = new["stats_before_pass"]
+    # ``stored_run`` is the "name" field of the stored run.json. The stored S8 run.json carries
+    # "S5": reseed_s8.py calls run_seed.run("S5", ...) with the early stop patched in. Its
+    # s8.json reads "S8 = S5 + E1" and its totals are S8's; check_S8L.json is not a comparison
+    # with S5.
     res: Dict[str, Any] = dict(kind=kind, stored_run=old.get("name"), keys=new["keys"])
     res["plan_numbers"] = dict(
         seeds=(st["n_seeds"], exp["seeds"]),
