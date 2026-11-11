@@ -12,10 +12,12 @@ GRAD = C.OUT / "gradient"
 SAMPLE = GRAD / "sample"
 TRUTH_MIC = SAMPLE / "gradient_truth.mic"
 GRID_MIC = SAMPLE / "gradient_grid.mic"
-STACK = "grad_clean.npy"
+BIG = C.SAMPLE_KIND == "big"  # AR3 step 7: the 32-grain sample (env AR3_SAMPLE=big)
+STACK = "big_clean.npy" if BIG else "grad_clean.npy"
 WRONG = 1.0  # degrees: "wrong" is an error above this
 HURT = 0.05  # degrees: a voxel is hurt / helped by more than this
-LEVELS = (0.0, 0.1, 0.2, 0.5, 1.0)
+LEVELS = (0.0, 0.2, 0.5, 1.0, 2.0, 4.0) if BIG else (0.0, 0.1, 0.2, 0.5, 1.0)
+GRAINMAP_BIG = SAMPLE / "grainmap.npy"
 
 
 def dump_gz(obj: Any, path: Path) -> None:
@@ -44,7 +46,7 @@ class Truth:
         mic = MicFile.read(str(TRUTH_MIC))
         self.R = np.array([v.orientation for v in mic.voxels], dtype=np.float64)
         self.xy = np.array([v.position[:2] for v in mic.voxels], dtype=float)
-        self.gmap = np.load(M.GRAINMAP)
+        self.gmap = np.load(GRAINMAP_BIG if BIG else M.GRAINMAP)
         info = json.loads((SAMPLE / "sample.json").read_text())
         self.gids = [g["id"] for g in info["grains"]]
         self.level_of = {g["id"]: g["level_deg"] for g in info["grains"]}
