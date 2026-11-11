@@ -107,10 +107,15 @@ there start more than 1 degree from the truth (Part 1).
    optimization from the rejected end (0.1 degrees, at most 60 evaluations) passes the test in
    807 of 1,069 and 451 of 589. This is consistent with fits that stop a few tenths of a degree
    short. That a fit that ran longer would pass is tested only in this form (one more fit).
-5. **Does `F2` (one more fit before rejecting) pay?** No. On the test set it cuts the seed-step
-   evaluations of the reseed clusters by 4.8% (0.2 degrees, the pick), not by the third the plan
-   asks for. It runs on every rejected fit (38,438 in the two sets, 61 evaluations each), and
-   class A is 1,658 voxels in all.
+5. **Does `F2` (one more fit before rejecting) pay?** No, under the pooled rule. Pooled over the
+   two samples, on the test set it cuts the seed-step evaluations of the reseed clusters by 4.8%
+   (0.2 degrees, the pick), not by the third the plan asks for. By sample it differs: on `big`
+   alone the cut is 34.1%, above a third; on `grad` it is negative (-11.8%). The pass rule is
+   judged on the pooled test set, so the pooled rule decides the fail (Part 2). The cut is small
+   because a reseed cluster vanishes only if every member's last rejected fit passes: 137 of the
+   672 test clusters do. Even if `F2` cost nothing, the pooled cut would be 21.5% at 0.2 degrees
+   and 26.2% at 0.1, under a third. It runs on every rejected fit (38,438 in the two sets, 61
+   evaluations each), and class A is 1,658 voxels in all.
 6. **Does a kept start add up error across a grain?** A little. The median error after the pass
    rises by 0.013 to 0.023 degrees (answer 3). The one large change by level is `grad` at 1
    degree: the 99th percentile error is 0.339 degrees for `S8` and 5.872 for `S9` (5,539 voxels;
@@ -322,7 +327,40 @@ than the 580,103 it saves at 0.05 degrees).
 The verdict on the test set. `F1` at 0.90 **passes**: the neighbour fits and revisits need 57.7%
 fewer evaluations (2,190,746 against 5,180,340), 0 fixed and 0 broken. By sample: `big` 73.8%,
 `grad` 45.0%. `F2` at 0.2 degrees **fails**: 4.8% net cut (341,218 of 7,090,641), 0 fixed and 0
-broken; no setting reaches a third.
+broken; no setting reaches a third on the pooled test set.
+
+The pooled rule decides `F2`'s verdict. By sample the result differs (table below). On `big`
+alone, `F2` at 0.2 degrees cuts 34.1%: (1,134,114 - 258,701) / 2,570,539, with 0 fixed and 0
+broken. That is above a third. On `big`'s pick set alone the pick would also be 0.2 degrees. On
+`grad` the net cut is negative at every setting. The rule that the pass is judged on the pooled
+test set was written in the scripts (commit `5cfff2f`) before any `F2` result. So it was not
+chosen after a result, but it decides the verdict; the owner can weigh the by-sample numbers.
+
+Reading of the table: `F2` on the test set, by sample and pooled. `clusters` is the reseed
+clusters and `vanish` those whose every member's last rejected fit passes after the extra fit.
+`seed_evals` is the seed-step evaluations of all clusters, `seed_evals_vanish` those of the
+vanishing clusters, `f2_evals` `F2`'s own cost on all rejected fits. `net_cut` is the pass rule's
+cut in percent; `gross_cut` leaves out `F2`'s own cost, as if `F2` were free.
+
+<!-- table:p2_f2_by_sample -->
+| set | sample | setting | clusters | vanish | seed_evals | seed_evals_vanish | f2_evals | net_cut | gross_cut |
+|---|---|---|---|---|---|---|---|---|---|
+| test | big | 0.05 deg | 159 | 58 | 2570539 | 1040658 | 258701 | 30.4 | 40.5 |
+| test | big | 0.1 deg | 159 | 63 | 2570539 | 1088839 | 258701 | 32.3 | 42.4 |
+| test | big | 0.2 deg | 159 | 60 | 2570539 | 1134114 | 258701 | 34.1 | 44.1 |
+| test | grad | 0.05 deg | 513 | 76 | 4520102 | 726430 | 924882 | -4.4 | 16.1 |
+| test | grad | 0.1 deg | 513 | 82 | 4520102 | 766868 | 924882 | -3.5 | 17.0 |
+| test | grad | 0.2 deg | 513 | 77 | 4520102 | 390687 | 924882 | -11.8 | 8.6 |
+| test | pooled | 0.05 deg | 672 | 134 | 7090641 | 1767088 | 1183583 | 8.2 | 24.9 |
+| test | pooled | 0.1 deg | 672 | 145 | 7090641 | 1855707 | 1183583 | 9.5 | 26.2 |
+| test | pooled | 0.2 deg | 672 | 137 | 7090641 | 1524801 | 1183583 | 4.8 | 21.5 |
+<!-- /table:p2_f2_by_sample -->
+
+Two accounting facts explain why the cut is small. First, a cluster vanishes only if every member's
+last rejected fit passes, and only 137 of the 672 test clusters do at 0.2 degrees. Clusters also
+hold voxels of classes B and C, so "the truth passes in all of class A" does not make clusters
+vanish. Second, even with `F2`'s own cost set to zero the pooled cut is
+21.5% at 0.2 degrees and 26.2% at 0.1, under a third. These are counts, not a tested cause.
 
 Two things the stored cases do not show. They cannot show the accumulation of error along a
 grain (Part 3 does). And the pass rule counts *broken* only where the stored fit ended right: at

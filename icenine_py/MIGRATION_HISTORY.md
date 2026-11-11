@@ -11674,7 +11674,10 @@ few tenths of a degree short. The stored rejected fit has no BFS retry (classic 
 Part 2 (pick committed before the test set was read, commits `55b7323` then `91c48a6`): `F1` (start
 test) at 0.90 passes: 57.7% fewer neighbour and revisit evaluations on the test set, 0 fixed, 0
 broken (41 kept wrong starts where the stored fit was wrong too, not counted by the rule). `F2`
-(one more fit before rejecting) fails: 4.8% net cut of the reseed seed steps at 0.2 degrees.
+(one more fit before rejecting) fails: 4.8% net cut of the reseed seed steps at 0.2 degrees on the
+pooled test set. The pooled rule (written before any `F2` result) decides: by sample the cut is
+34.1% on `big` (above a third) and -11.8% on `grad`. Only 137 of 672 test clusters vanish (every
+member must pass); with `F2` free the pooled cut would be 21.5% (26.2% at 0.1), under a third.
 Part 3: `mid` with the pass, `D4` 40.56, `S5` 39.09, `S8` 26.44 million evaluations; wrong voxels
 48, 34, 31 (intervals overlap): `S8` is confirmed on a sample it was not chosen on (prediction 3).
 `S9` (`S8` + `F1` 0.90): 5.63 million on `big` (`S8` 8.34), 14.63 on `grad` (18.00), 22.67 on `mid`
