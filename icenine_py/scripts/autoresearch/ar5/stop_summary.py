@@ -24,6 +24,7 @@ AR5 = HERE.parents[2] / "benchmarks" / "autoresearch" / "ar5"
 sys.path.insert(0, str(HERE.parents[1] / "common"))
 sys.path.insert(0, str(HERE))
 import doc_tables as DT  # noqa: E402
+import stop_part1_lib as P1  # noqa: E402
 import stop_rules as SR  # noqa: E402
 
 SAMPLES = ("big", "grad", "mid")
@@ -90,6 +91,53 @@ def main() -> None:
         {"evals": ",d", "cut": ".1f", "lost": ".1f"},
     )
     pr = p1["pass_rule_mid"]
+    win_rows = []
+    winners = {}
+    for s in SAMPLES:
+        S = P1.load(s)
+        full_choice = SR.choose_try(
+            S["voxel"],
+            S["old_hit"].astype(float),
+            S["old_cost"].astype(float),
+            S["end_hit"].astype(float),
+            S["end_cost"].astype(float),
+            np.ones(len(S["voxel"]), bool),
+        )
+        wi = full_choice[full_choice >= 0]
+        sh = S["start_hit"][wi].astype(float)
+        oh = S["old_hit"][S["voxel"][wi]].astype(float)
+        w = dict(
+            changed=int(len(wi)),
+            tries=int(len(S["voxel"])),
+            median_start_winners=float(np.median(sh)),
+            median_start_all=float(np.median(S["start_hit"])),
+            median_old_hit_winners=float(np.median(oh)),
+            winners_start_within_0_2=int((sh >= oh - 0.2 - SR.TOL).sum()),
+            winners_start_below_0_5=int((sh < 0.5).sum()),
+        )
+        winners[s] = w
+        win_rows.append(dict(sample=NAME[s], **w))
+    tables["p1_winners"] = DT.markdown_table(
+        win_rows,
+        [
+            "sample",
+            "tries",
+            "changed",
+            "median_start_all",
+            "median_start_winners",
+            "median_old_hit_winners",
+            "winners_start_within_0_2",
+            "winners_start_below_0_5",
+        ],
+        {
+            "tries": ",d",
+            "changed": ",d",
+            "median_start_all": ".3f",
+            "median_start_winners": ".3f",
+            "median_old_hit_winners": ".3f",
+        },
+    )
+    summary["part1_winners"] = winners
     summary["part1"] = dict(
         pick=p1p["pick"],
         pooled_full_evals=full_ev,
@@ -213,6 +261,18 @@ def main() -> None:
         ],
         {"ladev": ",d", "gridev": ",d", "share": ".1f"},
     )
+    allc = [c for s in ("grad", "mid") for c in cases[s]]
+    rh_right = [c["R1"]["hit"] for c in allc if c["R1"]["err"] <= 1.0]
+    rh_wrong = [c["R1"]["hit"] for c in allc if c["R1"]["err"] > 1.0]
+    r1_hits = dict(
+        right_min=min(rh_right),
+        right_max=max(rh_right),
+        wrong_min=min(rh_wrong),
+        wrong_max=max(rh_wrong),
+        n_right=len(rh_right),
+        n_wrong=len(rh_wrong),
+    )
+    summary["part2_r1_hits"] = r1_hits
     summary["part2"] = dict(
         pooled=p2["pooled"],
         per_sample=p2["per_sample"],
@@ -295,14 +355,17 @@ def main() -> None:
                 mw=d["median_wrong"],
                 mr=d["median_right"],
                 cut=c["cut"],
-                w=f"{c['wrong_ge']} of {c['n_wrong']}",
-                r=f"{c['right_ge']} of {c['n_right']}",
+                w=f"{c['wrong_ge']} of {c['n_wrong']} "
+                f"({100 * d['wrong_interval'][2]:.0f} to {100 * d['wrong_interval'][3]:.0f}%)",
+                r=f"{c['right_ge']} of {c['n_right']} "
+                f"({100 * d['right_interval'][2]:.0f} to {100 * d['right_interval'][3]:.0f}%)",
+                above=c["wrong_ge"] + c["right_ge"],
                 sep="yes" if d["separates"] else "no",
             )
         )
     tables["p3_votes"] = DT.markdown_table(
         vrows,
-        ["group", "nw", "nr", "mw", "mr", "cut", "w", "r", "sep"],
+        ["group", "nw", "nr", "mw", "mr", "cut", "w", "r", "above", "sep"],
         {"mw": ".0f", "mr": ".0f", "cut": ".0f"},
     )
     v1rows = [

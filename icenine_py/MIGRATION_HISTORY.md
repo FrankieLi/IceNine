@@ -11692,3 +11692,35 @@ not agree (its first part fails: 49.9% of the neighbour fits at 1 degree or less
 interval 49.1 to 50.7, not more than half; its second part, 0.6% at 4 degrees, holds). The
 choice of keys stays the owner's: `S8`'s seed step is the plan's recommendation; `F1` at 0.90 is
 not a candidate for a key (D-20261111-N7); `F1` at 0.95 was not run on a whole layer.
+
+## Autoresearch AR5 step 1: stop rules for the boundary pass, the grid fallbacks and the finished map (done 2026-11-11, task ar5a)
+
+No change under `icenine/`; no key, no default, no dependency. Scripts
+`scripts/autoresearch/ar5/stop_*.py` (pure rule functions in `stop_rules.py`, tests in
+`tests/test_ar5_stop_rules.py`, written and committed first); results
+`benchmarks/autoresearch/ar5/` (slim; caches stay out of git); page
+`docs/autoresearch/findings_ar5_stop.md` (the write of the page into `docs/` was refused; the text
+was written beside the report for the main session to place). Simulated samples only (`big`, the
+first gradient sample, `mid`); C++ not run; one run per arm; wall times contended. Every pick was
+committed before any script read `mid` for that part. None of the three ideas passed its rule, so
+the whole-layer run `T1` (Part 4) was not run.
+Part 1 (a try test for the boundary pass, replayed on the stored tries of `S8`): the replay with no
+test reproduces the stored maps (24, 63, 31 wrong voxels). Settings that skip tries by the start
+hit ratio (`P1`, `P3`) cut 95.7% to 98.2% of the pass's evaluations on the two pick samples and
+lose 17.9% to 60.0% of its net gain (winning tries start well below the voxel's hit ratio). `P2`
+with `m` = 1 (keep the try with the best start hit ratio) is the pick: 55.1% cut, 4.7% of the
+gain lost on the pick samples; on `mid` 62.7% cut, 9.4% lost (48 of 53), 5 broken, 0 fixed: fails.
+Part 2 (31 grid-fallback cases, 16 and 15): the first candidate is within 2 degrees of the truth
+in 27, and in all 31 the near-truth candidate was among the 20 costed and the 5 refined; the
+refinement of the right candidate ended under hit ratio 0.80. `R1` (100 costed) passes the seed
+test in 0; `R3` (grid level 0 alone, about 200,000 evaluations each) in 17; the ladder needs
+11,364,144 evaluations against 10,606,351 for the grid fallbacks (107.1%), right in 30 against 28:
+fails (the evaluation rule). Prediction 2 does not agree (0 of 31).
+Part 3 (the map after the pass): hit ratio under 0.95 flags every wrong voxel on all three samples
+(87 of 87, 31 of 31) but 8.8% of the voxels on the pick samples and 15.1% on `mid`; no wrong voxel
+is left among the unflagged (upper interval end 0.018%). The vote count of the unexplained rays
+separates wrong from right weakly (cut chosen after the result: 67 of 118 wrong, 1,410 of 7,908
+right at or above it). Check `V1` (the seed step at the 3,709 flagged voxels of `mid`) fixes 13 of
+31 wrong voxels, breaks none (wrong 31 to 18), and costs 27,882,533 evaluations, 105.4% of the
+run: fails the cost rule. Predictions 1, 2, 3, 4 and 5 do not agree; 6 is not evaluated. No rule
+is a candidate for a key; the use of `V1` after a flag stays the owner's choice.

@@ -1,4 +1,33 @@
 {
+ "part1_winners": {
+  "big": {
+   "changed": 1056,
+   "tries": 18665,
+   "median_start_winners": 0.6805645227432251,
+   "median_start_all": 0.46630728244781494,
+   "median_old_hit_winners": 0.933768630027771,
+   "winners_start_within_0_2": 350,
+   "winners_start_below_0_5": 152
+  },
+  "grad": {
+   "changed": 752,
+   "tries": 60381,
+   "median_start_winners": 0.578029215335846,
+   "median_start_all": 0.3055555522441864,
+   "median_old_hit_winners": 0.9168152809143066,
+   "winners_start_within_0_2": 181,
+   "winners_start_below_0_5": 249
+  },
+  "mid": {
+   "changed": 1429,
+   "tries": 50099,
+   "median_start_winners": 0.6061739921569824,
+   "median_start_all": 0.4086444079875946,
+   "median_old_hit_winners": 0.9216683506965637,
+   "winners_start_within_0_2": 222,
+   "winners_start_below_0_5": 276
+  }
+ },
  "part1": {
   "pick": {
    "name": "P2 m=1",
@@ -24,6 +53,14 @@
   "prediction1_pick_samples": false,
   "max_cut_with_loss_within_5pc": 55.12001104980166,
   "passes": false
+ },
+ "part2_r1_hits": {
+  "right_min": 0.6560693641618497,
+  "right_max": 0.7998204667863554,
+  "wrong_min": 0.6963636363636364,
+  "wrong_max": 0.7855227882037533,
+  "n_right": 23,
+  "n_wrong": 8
  },
  "part2": {
   "pooled": {

@@ -48,6 +48,14 @@
 | P3 d=0.2 m=2 | mid | 1,103 | 50,099 | 117,382 | 40 | 0 | 9 | 44 | 17.0 |
 <!-- /table:p1_rules -->
 
+<!-- table:p1_winners -->
+| sample | tries | changed | median_start_all | median_start_winners | median_old_hit_winners | winners_start_within_0_2 | winners_start_below_0_5 |
+|---|---|---|---|---|---|---|---|
+| big | 18,665 | 1,056 | 0.466 | 0.681 | 0.934 | 350 | 152 |
+| first gradient sample | 60,381 | 752 | 0.306 | 0.578 | 0.917 | 181 | 249 |
+| mid | 50,099 | 1,429 | 0.409 | 0.606 | 0.922 | 222 | 276 |
+<!-- /table:p1_winners -->
+
 <!-- table:p2_failed -->
 | sample | voxel | kind | cand | rank | c20 | r5 | s8best | gridhit | griderr |
 |---|---|---|---|---|---|---|---|---|---|
@@ -201,12 +209,12 @@
 <!-- /table:p3_v1 -->
 
 <!-- table:p3_votes -->
-| group | nw | nr | mw | mr | cut | w | r | sep |
-|---|---|---|---|---|---|---|---|---|
-| big | 24 | 1508 | 2516 | 1476 | 2446 | 13 of 24 | 173 of 1508 | yes |
-| first gradient sample | 63 | 2722 | 2707 | 1714 | 3035 | 31 of 63 | 324 of 2722 | yes |
-| mid | 31 | 3678 | 2553 | 1412 | 1975 | 25 of 31 | 955 of 3678 | yes |
-| all three | 118 | 7908 | 2573 | 1535 | 2369 | 67 of 118 | 1410 of 7908 | yes |
+| group | nw | nr | mw | mr | cut | w | r | above | sep |
+|---|---|---|---|---|---|---|---|---|---|
+| big | 24 | 1508 | 2516 | 1476 | 2446 | 13 of 24 (35 to 72%) | 173 of 1508 (10 to 13%) | 186 | yes |
+| first gradient sample | 63 | 2722 | 2707 | 1714 | 3035 | 31 of 63 (37 to 61%) | 324 of 2722 (11 to 13%) | 355 | yes |
+| mid | 31 | 3678 | 2553 | 1412 | 1975 | 25 of 31 (64 to 91%) | 955 of 3678 (25 to 27%) | 980 | yes |
+| all three | 118 | 7908 | 2573 | 1535 | 2369 | 67 of 118 (48 to 65%) | 1410 of 7908 (17 to 19%) | 1477 | yes |
 <!-- /table:p3_votes -->
 
 <!-- table:predictions -->
