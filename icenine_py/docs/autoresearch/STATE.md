@@ -35,18 +35,17 @@ into a task branch before its fixes round (shared files conflict).
    the implementer's Write and the main session's copy were refused (auto mode). No way round:
    the owner places it or allows it. Then: sync check, commit, fix 2 (MIGRATION_HISTORY names
    that commit), merge, close (page version 45, PR #43).
-2. AR5 step 6 (task `ar5f`; plan in `PLAN.md`, 2ed6618; N24): the frozen `N1` rule (`S11n`)
-   and a plain hit-ratio rule (`S11h`) on `mid` and `grad`. Its implementer (Sonnet,
-   worktree) starts only after step 4 is merged.
-3. Items 14 + 3 (task `item14`; plan in `PLAN.md`; N25): phase A is with the implementer.
-   On "READY TO RUN": read `run_item14.sh`, start it as a background command, wait for its
-   exit; then phase B by `SendMessage`. While the timing arms run (about 2.6 hours): no
-   merge, no test suite, no other run. The C++ time is a separate step, not planned yet.
+2. AR5 step 6 (task `ar5f`; plan 2ed6618; N24): `S11n` (frozen `N1` rule) and `S11h` (plain
+   hit-ratio rule) on `mid`, `grad`. Implementer (Sonnet, worktree) only after step 4 merges.
+3. Items 14 + 3 (task `item14`; N25): phase A done (tip e70a296). `run_item14.sh` started
+   23:27 (E0 arms first). Its preflight refuses (exit 3) while `cpptools` (pid 18415) is
+   busy: then wait for the owner and rerun the same command (E0 resumes). After exit 0:
+   phase B by `SendMessage`. While timing arms run: no merge, no test suite, no other run.
 
 ## Running jobs
 
-- Items 14 + 3 phase A: `implementer` agent `a012b8f461d1630a1` (Sonnet, own worktree,
-  started 22:35 on 2026-11-11); reports by hand-back, report `20261111-2300-item14.md`.
+- Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
+  of worktree `agent-a012b8f461d1630a1` (started 23:27, 2026-11-11); ends with `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
 - Review page: version 44 (`run43.sh`, then `patch_v44.py`, scratchpad).
 
@@ -59,16 +58,15 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page) |
 | AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | planned; after step 4 |
-| items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | phase A |
+| items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | running; needs a quiet machine |
 | C++ time | measured C++ time on the pilot region (MPI mode, own config) | not planned |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 | tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
 ## Last finished step
 
-AR5 step 5 (two opt-in library keys for run `S11`; task `ar5e`): merged at a494bcd on
-2026-11-11; suite 1724 passed, 47 skipped, 1 deselected. Page:
-`docs/autoresearch/findings_ar5_keys.md`. Decisions N21, N22. More: `STATE_HISTORY.md`.
+AR5 step 5 (two opt-in keys for run `S11`; task `ar5e`): merged at a494bcd, 2026-11-11; suite
+1724 passed, 47 skipped, 1 deselected. Page `findings_ar5_keys.md`. N21, N22. `STATE_HISTORY.md`.
 
 ## Untracked data that later steps need
 
@@ -79,7 +77,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - `agent-af8961874e131bda2` (AR3 step 11): the sample `held`, its image stack, the baseline
   cache (`S8_held/`, `S8_held_cap120/`).
 - AR5 step 4: `agent-a814d0121e137b01c` (three run caches on `held`), `agent-a8a1ac8e80f8913cf`.
-- AR5 step 5: `agent-afc3f195cb4fffb30` (the library runs under `ar5/keys/cache/`).
+- AR5 step 5: `agent-afc3f195cb4fffb30` (`ar5/keys/cache/`). Item 14: `agent-a012b8f461d1630a1`.
 - `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
 - Step 10: `agent-a6c7c67b4a03d1843` (`ar3/keys/cache/`), `agent-a3145f902bf0a61fb` (two reruns).
 - `agent-a9c88b610fb10e1b6` (step 9): `ar3/start/cache/`, the image stack and samples of `mid`.
@@ -92,6 +90,8 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
+- Free the machine for the item 14 timing: `cpptools` (VS Code C/C++ extension, pid 18415)
+  has used a whole core for 2 days; the timing preflight refuses while it does. Yours to close.
 - Place the page of AR5 step 4 (or allow me to): `.claude/reports/20261111-2330-ar5d-phaseB-page.md`
   goes to `icenine_py/docs/autoresearch/findings_ar5_held.md` in worktree `agent-a8a1ac8e80f8913cf`.
 - Your word on PR #43 ("merge PR 43" in the session): AR3 2 to 11, AR5 1 to 3 and 5, AR4 1.
