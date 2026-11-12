@@ -20,6 +20,30 @@
   "spots": 179718
  },
  "unfinished": false,
+ "derived": {
+  "note": "derived from the stored run files and the maps; quoted in the findings page",
+  "first_seeds": 305,
+  "reseeds": 3262,
+  "wall_min": 133.4,
+  "wall_pass_min": 9.7,
+  "wall_label": "contended: cpptools at 101% CPU at the start of the run and of the pass, and the three AR5 step 4 runs on held (D-20261111-N18) on the machine from 16:53; not a timing result",
+  "lower_levels": [
+   0.0,
+   0.2,
+   0.5,
+   1.0,
+   2.0
+  ],
+  "lower_levels_wrong_before": 46,
+  "lower_levels_wrong_after": 17,
+  "top_level": 4.0,
+  "evals_total_minus_grid": 34008405,
+  "grains_with_wrong_before": 53,
+  "grains_with_wrong_after": 34,
+  "small_grain_voxels": 40,
+  "n_grains_under_small": 28,
+  "n_grains": 250
+ },
  "seed_steps": 3567,
  "stopped_early": 2801,
  "wrapper": {
@@ -66,37 +90,49 @@
    "n_grains": 39,
    "n_voxels": 4150,
    "wrong_before": 7,
-   "wrong_after": 0
+   "wrong_after": 0,
+   "fixed_by_pass": 7,
+   "broken_by_pass": 0
   },
   "0.2": {
    "n_grains": 40,
    "n_voxels": 3562,
    "wrong_before": 7,
-   "wrong_after": 0
+   "wrong_after": 0,
+   "fixed_by_pass": 7,
+   "broken_by_pass": 0
   },
   "0.5": {
    "n_grains": 44,
    "n_voxels": 4359,
    "wrong_before": 2,
-   "wrong_after": 0
+   "wrong_after": 0,
+   "fixed_by_pass": 2,
+   "broken_by_pass": 0
   },
   "1.0": {
    "n_grains": 37,
    "n_voxels": 3680,
    "wrong_before": 9,
-   "wrong_after": 2
+   "wrong_after": 2,
+   "fixed_by_pass": 7,
+   "broken_by_pass": 0
   },
   "2.0": {
    "n_grains": 46,
    "n_voxels": 4473,
    "wrong_before": 21,
-   "wrong_after": 15
+   "wrong_after": 15,
+   "fixed_by_pass": 7,
+   "broken_by_pass": 1
   },
   "4.0": {
    "n_grains": 44,
    "n_voxels": 4346,
    "wrong_before": 49,
-   "wrong_after": 53
+   "wrong_after": 53,
+   "fixed_by_pass": 0,
+   "broken_by_pass": 4
   }
  },
  "wrong_both": 65,

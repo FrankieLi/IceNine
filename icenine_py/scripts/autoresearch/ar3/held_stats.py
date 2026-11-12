@@ -199,18 +199,47 @@ def main() -> None:
     sample = json.loads((G.SAMPLE / "sample.json").read_text())
     check = json.loads((G.SAMPLE / "held_check.json").read_text())
     stack = json.loads((G.GRAD / "held_stack.json").read_text())
+    wb, wa = eb > G.WRONG, ea > G.WRONG
     by_level = {}
     for L in G.LEVELS:
         m = T.level == L
         by_level[str(L)] = dict(
             n_grains=int(sample["n_by_level"][str(L)]),
             n_voxels=int(m.sum()),
-            wrong_before=int((eb[m] > G.WRONG).sum()),
-            wrong_after=int((ea[m] > G.WRONG).sum()),
+            wrong_before=int(wb[m].sum()),
+            wrong_after=int(wa[m].sum()),
+            fixed_by_pass=int((wb & ~wa & m).sum()),
+            broken_by_pass=int((~wb & wa & m).sum()),
         )
-    wb, wa = eb > G.WRONG, ea > G.WRONG
+    top = str(max(G.LEVELS))
+    lower = [v for L, v in by_level.items() if L != top]
+    gids, gsize = np.unique(T.gmap, return_counts=True)
+    derived = dict(
+        note="derived from the stored run files and the maps; quoted in the findings page",
+        first_seeds=int(run["stats"]["n_seeds"]),
+        reseeds=int(run["stats"]["n_reseeds"]),
+        wall_min=round(float(fit["wall_s"]) / 60.0, 1),
+        wall_pass_min=round(float(pj["wall_tries_s"]) / 60.0, 1),
+        wall_label=(
+            "contended: cpptools at 101% CPU at the start of the run and of the pass, and the "
+            "three AR5 step 4 runs on held (D-20261111-N18) on the machine from 16:53; "
+            "not a timing result"
+        ),
+        lower_levels=[float(L) for L in G.LEVELS if str(L) != top],
+        lower_levels_wrong_before=int(sum(v["wrong_before"] for v in lower)),
+        lower_levels_wrong_after=int(sum(v["wrong_after"] for v in lower)),
+        top_level=float(top),
+        evals_total_minus_grid=int(st["total"] - st["grid_fallback"]),
+        grains_with_wrong_before=int(len(np.unique(T.gmap[wb]))),
+        grains_with_wrong_after=int(len(np.unique(T.gmap[wa]))),
+        small_grain_voxels=40,
+        n_grains_under_small=int((gsize < 40).sum()),
+        n_grains=int(len(gids)),
+    )
+    assert derived["first_seeds"] + derived["reseeds"] == fit["seed_steps"]
     out.update(
         unfinished=False,
+        derived=derived,
         seed_steps=fit["seed_steps"],
         stopped_early=fit["stopped_early"],
         wrapper={k: v for k, v in run["wrapper"].items() if k != "wrapper_calls_by_caller"},
@@ -293,11 +322,15 @@ def main() -> None:
             voxels=v["n_voxels"],
             wrong_before=v["wrong_before"],
             wrong_after=v["wrong_after"],
+            fixed=v["fixed_by_pass"],
+            broken=v["broken_by_pass"],
         )
         for L, v in by_level.items()
     ]
     tabs["ar3_held_levels"] = DT.markdown_table(
-        lv, ["level", "grains", "voxels", "wrong_before", "wrong_after"], formats=dict(level="s")
+        lv,
+        ["level", "grains", "voxels", "wrong_before", "wrong_after", "fixed", "broken"],
+        formats=dict(level="s"),
     )
     tabs["ar3_held_sample"] = sample_table(sample, check, stack)
     DT.write_tables(HELD / "tables.md", tabs)
