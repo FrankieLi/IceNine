@@ -231,6 +231,9 @@ class ConfigFile:
     seed_index_n_refine: int = 2  # ... and candidates refined (the cheapest)
     seed_index_stop_hit: float = 0.0  # indexed seed step stops at this hit ratio (0 = off)
     boundary_pass: bool = False  # one boundary pass over the map before the .mic is written
+    # AR5 step 5 (opt-in, off at these defaults; see SearchParameters)
+    seed_index_cma_first: int = 0  # mixed seed refinement: CMA evaluations per candidate (0 = off)
+    bfs_neighbor_cma_no_fallback: bool = False  # the CMA end of a neighbour fit is returned
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
@@ -485,6 +488,8 @@ class ConfigFile:
             "SeedIndexCandidates": self._parse_seed_index_candidates,
             "SeedIndexStopHitRatio": self._parse_unit_interval("seed_index_stop_hit"),
             "BoundaryPass": self._parse_bool("boundary_pass"),
+            "SeedIndexCMAFirst": self._parse_off_or_min2("seed_index_cma_first"),
+            "BFSNeighborCMANoFallback": self._parse_bool("bfs_neighbor_cma_no_fallback"),
             "CppOverlapRule": self._parse_bool("cpp_overlap_rule"),
             "CppEdgeRules": self._parse_bool("cpp_edge_rules"),
             "CppOmegaInterp": self._parse_bool("cpp_omega_interp"),
@@ -637,6 +642,19 @@ class ConfigFile:
                 f"got {n_cost} {n_refine}"
             )
         self.seed_index_n_cost, self.seed_index_n_refine = n_cost, n_refine
+
+    def _parse_off_or_min2(self, attr_name: str) -> Callable[[List[str]], None]:
+        """Parser for an integer that is 0 (off) or at least 2."""
+
+        def parser(tokens: List[str]) -> None:
+            if len(tokens) < 2:
+                raise ValueError(f"Missing value for {tokens[0]}")
+            value = int(tokens[1])
+            if value != 0 and value < 2:
+                raise ValueError(f"{tokens[0]} must be 0 (off) or >= 2, got {value}")
+            setattr(self, attr_name, value)
+
+        return parser
 
     def _parse_unit_interval(self, attr_name: str) -> Callable[[List[str]], None]:
         """Parser for a float in [0, 1]."""

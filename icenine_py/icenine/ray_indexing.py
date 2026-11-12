@@ -509,6 +509,34 @@ class SeedResult:
     # position (in finisher order) of the run that ended the loop at the hit-ratio threshold
     # (``stop_hit``); -1: no early stop (threshold off, or no run reached it)
     stopped_at: int = -1
+    # SeedIndexCMAFirst only: one dict per refined candidate, ``cma_hit`` (the hit ratio of the CMA
+    # end) and ``mc_ran`` (the stock MC refinement ran from the same candidate); [] otherwise
+    mixed: List[Dict[str, Any]] = field(default_factory=list)
+
+
+def mixed_refinement(
+    R: np.ndarray,
+    cost: float,
+    cma_fn: Any,
+    mc_fn: Any,
+    hit_fn: Any,
+    stop_hit: float,
+) -> Tuple[np.ndarray, float, int, Dict[str, Any]]:
+    """The mixed seed refinement of one candidate (``SeedIndexCMAFirst``, opt-in): a CMA fit
+    ``cma_fn(R, cost) -> (end, end cost, evaluations)``; its end is kept when
+    ``hit_fn(end) >= stop_hit``. If not, the MC refinement ``mc_fn(R, cost)`` (same return) runs
+    from the same candidate and its end is kept only if its cost is strictly lower (a tie keeps the
+    CMA end). The evaluations of both fits are summed. Returns (end, cost, evaluations, info) with
+    ``info = dict(cma_hit, mc_ran)``."""
+    rc, cc, ec = cma_fn(R, cost)
+    hc = float(hit_fn(rc))
+    if hc >= stop_hit:
+        return rc, cc, int(ec), dict(cma_hit=hc, mc_ran=False)
+    rm, cm, em = mc_fn(R, cost)
+    info = dict(cma_hit=hc, mc_ran=True)
+    if cm < cc:
+        return rm, cm, int(ec) + int(em), info
+    return rc, cc, int(ec) + int(em), info
 
 
 def seed_by_indexing(
@@ -524,6 +552,7 @@ def seed_by_indexing(
     top_k: int = SEED_TOP_K,
     stop_hit: float = 0.0,
     hit_fn: Any = None,
+    refine_fn: Any = None,
 ) -> SeedResult:
     """The AR2 seed search of one voxel: index it, take the strict cost on the first ``n_cost``
     candidates, run the finisher (``rec.refine_from_candidates``: FindOptimal, VarianceMinimizing,
@@ -539,11 +568,17 @@ def seed_by_indexing(
     ``hit_fn(end) >= stop_hit`` and that run's end is the result, although a later run could cost
     less; if no run reaches it, all are run and the lowest cost is kept. ``hit_fn(R)`` returns the
     hit ratio of an orientation (one overlap evaluation, not counted in ``evals``). With
-    ``stop_hit`` 0 the loop is the one of AR2."""
+    ``stop_hit`` 0 the loop is the one of AR2.
+
+    ``refine_fn(R, cost) -> (end, end cost, evaluations, info)`` (AR5 step 5, opt-in) replaces the
+    finisher of each candidate (``rec.refine_from_candidates``); ``info`` is appended to
+    ``SeedResult.mixed``. It needs ``stop_hit`` > 0."""
     from .orientation_search import SearchCandidate
 
     if stop_hit > 0 and hit_fn is None:
         raise ValueError("stop_hit > 0 needs hit_fn")
+    if refine_fn is not None and stop_hit <= 0:
+        raise ValueError("refine_fn needs stop_hit > 0")
     t0 = time.perf_counter()
     res, att = index_voxel(sc, voxel_vertices, crystal, p, top_k)
     index_s = time.perf_counter() - t0
@@ -559,16 +594,24 @@ def seed_by_indexing(
     out.evals = k
     order = [int(j) for j in np.argsort(costs, kind="stable")[:n_refine]]
     for j in order:
-        r = rec.refine_from_candidates(
-            [SearchCandidate(orientation=R[j].copy(), cost=float(costs[j]))],
-            voxel_vertices,
-            phase_index,
-            rng=np.random.default_rng(0),
-        )
-        out.refined.append(j)
-        out.finisher_costs.append(float(r.cost))
-        out.finisher_evals.append(int(rec.last_eval_counts[1]))
-        out.finisher_R.append(np.asarray(r.orientation, dtype=np.float64))
+        if refine_fn is not None:
+            end, c_end, n_ev, info = refine_fn(R[j], float(costs[j]))
+            out.mixed.append(info)
+            out.refined.append(j)
+            out.finisher_costs.append(float(c_end))
+            out.finisher_evals.append(int(n_ev))
+            out.finisher_R.append(np.asarray(end, dtype=np.float64))
+        else:
+            r = rec.refine_from_candidates(
+                [SearchCandidate(orientation=R[j].copy(), cost=float(costs[j]))],
+                voxel_vertices,
+                phase_index,
+                rng=np.random.default_rng(0),
+            )
+            out.refined.append(j)
+            out.finisher_costs.append(float(r.cost))
+            out.finisher_evals.append(int(rec.last_eval_counts[1]))
+            out.finisher_R.append(np.asarray(r.orientation, dtype=np.float64))
         if stop_hit > 0 and float(hit_fn(out.finisher_R[-1])) >= stop_hit:
             out.stopped_at = len(out.refined) - 1
             break

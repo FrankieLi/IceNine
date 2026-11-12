@@ -1,0 +1,134 @@
+{
+ "note": "Pass inside the library run against the stored script pass, try by try. Read from stored files only. Angles: rotation angle of A^T B, no symmetry reduction.",
+ "runs": {
+  "S8L_big": {
+   "library": "agent-afc3f195cb4fffb30/icenine_py/benchmarks/autoresearch/ar5/keys/cache/S8L_big/pass_tries.npz",
+   "stored": "agent-a635b2f904279bdc9/icenine_py/benchmarks/autoresearch/ar3/reseed/cache/passes_big/D4_S8/tries.npz",
+   "tries": [
+    18664,
+    18665
+   ],
+   "evals": [
+    1138504,
+    1138565
+   ],
+   "changed": {
+    "library": 1084,
+    "library_counter": 1084,
+    "stored": 1056,
+    "stored_rebuilt_by_rule": 1056,
+    "stored_rule_equals_map": true,
+    "both": 805,
+    "only_library": 279,
+    "only_stored": 251
+   },
+   "same_length": false
+  },
+  "S10L_big": {
+   "library": "agent-afc3f195cb4fffb30/icenine_py/benchmarks/autoresearch/ar5/keys/cache/S10L_big/pass_tries.npz",
+   "stored": "agent-acc78ac2a483ed86f/icenine_py/benchmarks/autoresearch/ar5/fit/cache/passes_big/D4_S10/tries.npz",
+   "tries": [
+    18547,
+    18543
+   ],
+   "evals": [
+    1131367,
+    1131123
+   ],
+   "changed": {
+    "library": 1135,
+    "library_counter": 1135,
+    "stored": 1087,
+    "stored_rebuilt_by_rule": 1087,
+    "stored_rule_equals_map": true,
+    "both": 738,
+    "only_library": 397,
+    "only_stored": 349
+   },
+   "same_length": false
+  },
+  "S11L_big": {
+   "library": "agent-afc3f195cb4fffb30/icenine_py/benchmarks/autoresearch/ar5/keys/cache/S11L_big/pass_tries.npz",
+   "stored": "agent-a5a3601b746680640/icenine_py/benchmarks/autoresearch/ar5/mix/cache/passes_big/D4_S11/tries.npz",
+   "tries": [
+    18617,
+    18617
+   ],
+   "evals": [
+    1135637,
+    1135637
+   ],
+   "changed": {
+    "library": 986,
+    "library_counter": 986,
+    "stored": 983,
+    "stored_rebuilt_by_rule": 983,
+    "stored_rule_equals_map": true,
+    "both": 954,
+    "only_library": 32,
+    "only_stored": 29
+   },
+   "same_length": true,
+   "tries_with_another_candidate": 1,
+   "another_candidate": [
+    {
+     "try_index": 6553,
+     "voxel": 8415,
+     "cand_library": 1819,
+     "cand_stored": 8417
+    }
+   ],
+   "cost_differs": 4372,
+   "hit_ratio_differs": 5425,
+   "evals_differ": 0,
+   "end_exactly_equal": 15,
+   "end_angle_max_deg": 1.2240068988995945,
+   "end_angle_max_at": {
+    "try_index": 9283,
+    "voxel": 12264
+   },
+   "end_angle_over_0_01_deg": 2884,
+   "end_angle_over_0_1_deg": 999,
+   "end_angle_median_deg": 2.9534330718666037e-05,
+   "end_entry_max_abs_difference": 0.021177703980356455
+  },
+  "S11L_grad": {
+   "library": "agent-afc3f195cb4fffb30/icenine_py/benchmarks/autoresearch/ar5/keys/cache/S11L_grad/pass_tries.npz",
+   "stored": "agent-a5a3601b746680640/icenine_py/benchmarks/autoresearch/ar5/mix/cache/passes_grad/D4_S11/tries.npz",
+   "tries": [
+    60423,
+    60423
+   ],
+   "evals": [
+    3685803,
+    3685803
+   ],
+   "changed": {
+    "library": 688,
+    "library_counter": 688,
+    "stored": 681,
+    "stored_rebuilt_by_rule": 681,
+    "stored_rule_equals_map": true,
+    "both": 660,
+    "only_library": 28,
+    "only_stored": 21
+   },
+   "same_length": true,
+   "tries_with_another_candidate": 0,
+   "another_candidate": [],
+   "cost_differs": 15813,
+   "hit_ratio_differs": 18885,
+   "evals_differ": 0,
+   "end_exactly_equal": 21,
+   "end_angle_max_deg": 1.1076852733478963,
+   "end_angle_max_at": {
+    "try_index": 6782,
+    "voxel": 2778
+   },
+   "end_angle_over_0_01_deg": 10541,
+   "end_angle_over_0_1_deg": 2282,
+   "end_angle_median_deg": 3.08841449680774e-05,
+   "end_entry_max_abs_difference": 0.017758607864379883
+  }
+ }
+}

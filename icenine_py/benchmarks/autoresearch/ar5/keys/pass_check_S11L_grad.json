@@ -1,0 +1,30 @@
+{
+ "kind": "S11L",
+ "sample": "grad",
+ "n_tries": [
+  60423,
+  60423
+ ],
+ "evals": [
+  3685803,
+  3685803
+ ],
+ "total_with_pass": [
+  12307994,
+  12307994
+ ],
+ "wall_s": 392.9796299934387,
+ "timing_label": "contended: timing preflight refused (cpptools at 97% CPU, Python at 99% CPU); single run, one worker",
+ "differ_voxel": 0,
+ "differ_cand": 0,
+ "differ_evals": 0,
+ "differ_cost": 0,
+ "differ_hit": 0,
+ "differ_conf": 0,
+ "differ_end": 0,
+ "voxels_changed": [
+  681,
+  681
+ ],
+ "same_changed_voxels": true
+}

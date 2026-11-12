@@ -169,6 +169,18 @@ class SearchParameters:
     seed_index_n_refine: int = 2
     seed_index_stop_hit: float = 0.0
     boundary_pass: bool = False
+    # AR5 step 5 (D-20261111-N21): two opt-in keys, off at their defaults, for run S11 of
+    #   docs/autoresearch/findings_ar5_keys.md; no setting is recommended.
+    # seed_index_cma_first (SeedIndexCMAFirst n, 0 = off, else n >= 2): the mixed seed refinement.
+    #   Each indexed seed candidate gets a CMA fit first (first step CMASigma0, n evaluations);
+    #   its end is kept when its hit ratio reaches seed_index_stop_hit; if not, the stock MC
+    #   refinement runs from the same candidate and the end with the strictly lower cost is kept.
+    #   Needs seed_by_indexing and seed_index_stop_hit > 0.
+    # bfs_neighbor_cma_no_fallback (BFSNeighborCMANoFallback): the CMA end of a neighbour fit or
+    #   revisit is returned as it is; the MC fit does not run after it. Needs
+    #   bfs_neighbor_cma_first.
+    seed_index_cma_first: int = 0
+    bfs_neighbor_cma_no_fallback: bool = False
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
     #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
     #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
@@ -269,6 +281,10 @@ class SearchParameters:
             raise ValueError(
                 f"seed_index_stop_hit must be in [0, 1], got {self.seed_index_stop_hit}"
             )
+        if self.seed_index_cma_first != 0 and self.seed_index_cma_first < 2:
+            raise ValueError(
+                f"seed_index_cma_first must be 0 (off) or >= 2, got {self.seed_index_cma_first}"
+            )
         from .candidate_dedup import DedupSpec
 
         DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
@@ -309,6 +325,10 @@ class SearchParameters:
             seed_index_n_refine=int(getattr(config, "seed_index_n_refine", 2)),
             seed_index_stop_hit=float(getattr(config, "seed_index_stop_hit", 0.0)),
             boundary_pass=bool(getattr(config, "boundary_pass", False)),
+            seed_index_cma_first=int(getattr(config, "seed_index_cma_first", 0)),
+            bfs_neighbor_cma_no_fallback=bool(
+                getattr(config, "bfs_neighbor_cma_no_fallback", False)
+            ),
             paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
