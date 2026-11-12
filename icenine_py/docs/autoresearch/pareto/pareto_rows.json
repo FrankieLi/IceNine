@@ -2820,6 +2820,10 @@
   {
    "what": "AR3 step 5 by-level and by-group tables",
    "why": "no evaluations per level or group"
+  },
+  {
+   "what": "AR3 step 11 run S8 on held",
+   "why": "reached the 120 minute cap; no finished map and no pass"
   }
  ]
 }

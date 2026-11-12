@@ -11822,3 +11822,21 @@ so the page's error table has the `mid` rows (median 0.020, 0.160, 0.013, 0.423 
 Prediction 4 no longer gives an untested cause; it gives a what-if by arithmetic, not run (`S10`
 with the `C60` replay's seed-step evaluations: about 3.20, 12.32 and 11.68 million, under the
 limits). The Reproduce section names the two sibling worktrees that hold the stored `S8` runs.
+
+## Autoresearch AR3 step 11: a held-out sample and its S8 baseline (done 2026-11-11, task ar3k)
+
+Scripts and results only (D-20261111-N15): nothing under `icenine/` changed, no key, no default, no
+golden, no dependency. Scripts `scripts/autoresearch/ar3/held_*.py` (builder `held_make_sample.py`
+with pure parts in `held_sample_lib.py`, tests `tests/test_ar3_held_sample.py`, 7 tests); the three
+sample-name tables of `ar3_common.py`, `gradient_common.py` and `reseed_common.py` got `held`
+added (other samples unchanged). Results in `benchmarks/autoresearch/ar3/held/`. The page text
+`docs/autoresearch/findings_ar3_held.md` was refused by the Write guard of the implementer and was
+left in the report folder (`20261111-1351-ar3k-findings-page.md`) for the main session to place.
+Sample `held`: 250 Voronoi cells (generator seed 1), 250 grains (9 to 271 voxels, median 89.5), six
+gradient levels on 39, 40, 44, 37, 46 and 44 grains, clean images (10,897,893 lit pixels, 179,718
+spots). Base check on `big` (script layer of AR5 step 2, both changes off): reproduces stored `S8`
+exactly (7,201,863 evaluations, 67 wrong, same map and seed-step log). The `S8` run on `held`
+reached the 120 minute cap (contended) before it finished: no map, no wrong count, no pass, no
+pareto rows (listed under `excluded`). Counters at the cap: 48,312,402 evaluations before the pass,
+61 grid fallbacks (21,082,802 evaluations), 3,237 seed steps. Predictions 1 and 3 not met, 2 not
+evaluated. Not rerun, by the plan's rule.

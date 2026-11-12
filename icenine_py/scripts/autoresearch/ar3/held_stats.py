@@ -49,17 +49,113 @@ def pct(k: int, n: int) -> str:
     return f"{k} ({100 * lo:.2f} to {100 * hi:.2f}%)"
 
 
+def sample_table(sample: Dict[str, Any], check: Dict[str, Any], stack: Dict[str, Any]) -> str:
+    sz = check["grain_size_min_median_max"]
+    return DT.markdown_table(
+        [
+            dict(
+                grains=sample["n_grains"],
+                smin=sz[0],
+                smed=sz[1],
+                smax=sz[2],
+                lit=stack["render_lit_clean_total"],
+                spots=stack["render_spots_total"],
+                err=check["max_abs_spread_minus_level_deg"],
+            )
+        ],
+        ["grains", "smin", "smed", "smax", "lit", "spots", "err"],
+        formats=dict(lit=",d", spots=",d", smed=".1f", err=".5f"),
+    )
+
+
+def unfinished(out: Dict[str, Any], rd: Path) -> None:
+    """The run reached its cap (or has no result): counters at the cap, no scores, no pass."""
+    cap = json.loads((rd / "capped.json").read_text()) if (rd / "capped.json").exists() else None
+    out["unfinished"] = True
+    out["capped"] = cap
+    sample = json.loads((G.SAMPLE / "sample.json").read_text())
+    check = json.loads((G.SAMPLE / "held_check.json").read_text())
+    stack = json.loads((G.GRAD / "held_stack.json").read_text())
+    tabs: Dict[str, str] = {"ar3_held_sample": sample_table(sample, check, stack)}
+    if cap is not None:
+        s = cap["stats"]
+        st = dict(
+            seed_step=int(s["index_evals"]),
+            grid_fallback=int(s["index_fallback_grid_evals"]),
+            neighbour=int(s["n_evals_neighbor"]),
+            revisit=int(s["n_evals_revisit"]),
+        )
+        st["before_pass"] = sum(st.values())
+        assert st["seed_step"] + st["grid_fallback"] == s["n_evals_seed"] + s["n_evals_reseed"]
+        out["at_cap"] = dict(
+            stages=st,
+            grid_fallbacks=int(s["index_fallback_seed_test"]),
+            first_seeds=int(s["n_seeds"]),
+            reseeds=int(s["n_reseeds"]),
+            index_runs=int(s["index_runs"]),
+            grid_share_of_evals_pct=round(100.0 * st["grid_fallback"] / st["before_pass"], 1),
+            grid_evals_per_fallback=round(st["grid_fallback"] / s["index_fallback_seed_test"]),
+            voxels_with_record=int(cap["voxels_with_record"]),
+            wall_reseed_s=float(s["wall_reseed_total_s"]),
+            wall_neighbour_s=float(s["wall_neighbor_s"]),
+            wall_revisit_s=float(s["wall_revisit_s"]),
+            wall_grid_s=float(s["index_fallback_grid_wall_s"]),
+            cap_s=float(cap["cap_s"]),
+            wall_label="contended (other jobs on the machine); not a timing result",
+        )
+        out["predictions"] = dict(
+            p1_evals_20_to_40_million="not met: the count at the cap is already above 40 million",
+            p2_wrong_after_30_to_120="not evaluated: no finished map, no pass",
+            p3_grid_fallbacks_5_to_40="not met: the count at the cap is already above 40",
+            evals_before_pass_at_cap=st["before_pass"],
+            grid_fallbacks_at_cap=int(s["index_fallback_seed_test"]),
+        )
+        rows: List[Dict[str, Any]] = []
+        for k in ("big", "grad", "mid"):
+            d = other(k)
+            x = d["stages"]
+            rows.append(
+                dict(
+                    sample=NAMES[k],
+                    state="finished",
+                    seed=x["seed_step"],
+                    grid=x["grid_fallback"],
+                    neighbour=x["neighbour"],
+                    revisit=x["revisit"],
+                    before=x["before_pass"],
+                    fallbacks=d["grid_fallbacks"],
+                )
+            )
+        rows.append(
+            dict(
+                sample="held",
+                state="stopped at 120 minutes",
+                seed=st["seed_step"],
+                grid=st["grid_fallback"],
+                neighbour=st["neighbour"],
+                revisit=st["revisit"],
+                before=st["before_pass"],
+                fallbacks=int(s["index_fallback_seed_test"]),
+            )
+        )
+        tabs["ar3_held_capped"] = DT.markdown_table(
+            rows,
+            ["sample", "state", "seed", "grid", "neighbour", "revisit", "before", "fallbacks"],
+            formats=dict(
+                seed=",d", grid=",d", neighbour=",d", revisit=",d", before=",d", state="s"
+            ),
+        )
+    (HELD / "summary.json").write_text(json.dumps(out, indent=1, default=float) + "\n")
+    DT.write_tables(HELD / "tables.md", tabs)
+    print("unfinished", json.dumps(out.get("predictions", {})))
+
+
 def main() -> None:
     rd = FC.CACHE / "S8_held"
     pd = FC.CACHE / "passes_held"
     out: Dict[str, Any] = dict(run="S8", sample="held")
     if (rd / "capped.json").exists() or not (rd / "run.json").exists():
-        out["unfinished"] = True
-        out["capped"] = (
-            json.loads((rd / "capped.json").read_text()) if (rd / "capped.json").exists() else None
-        )
-        (HELD / "summary.json").write_text(json.dumps(out, indent=1) + "\n")
-        print("unfinished")
+        unfinished(out, rd)
         return
     T = G.Truth()
     run = json.loads((rd / "run.json").read_text())
@@ -181,22 +277,7 @@ def main() -> None:
     tabs["ar3_held_levels"] = DT.markdown_table(
         lv, ["level", "grains", "voxels", "wrong_before", "wrong_after"], formats=dict(level="s")
     )
-    sz = check["grain_size_min_median_max"]
-    tabs["ar3_held_sample"] = DT.markdown_table(
-        [
-            dict(
-                grains=sample["n_grains"],
-                smin=sz[0],
-                smed=sz[1],
-                smax=sz[2],
-                lit=stack["render_lit_clean_total"],
-                spots=stack["render_spots_total"],
-                err=check["max_abs_spread_minus_level_deg"],
-            )
-        ],
-        ["grains", "smin", "smed", "smax", "lit", "spots", "err"],
-        formats=dict(lit=",d", spots=",d", smed=".1f", err=".5f"),
-    )
+    tabs["ar3_held_sample"] = sample_table(sample, check, stack)
     DT.write_tables(HELD / "tables.md", tabs)
     print(json.dumps(out["predictions"], indent=1))
 
