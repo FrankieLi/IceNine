@@ -30,7 +30,13 @@ _ap = argparse.ArgumentParser()
 _ap.add_argument("--sample", required=True, choices=["big", "grad", "mid", "held"])
 _ap.add_argument("--run", required=True)
 _ap.add_argument("--h", type=float, required=True)
+_ap.add_argument(
+    "--suffix",
+    default="",
+    help="file-name suffix; 'v2' = variant 2 (aligned draws, decided after the first live result)",
+)
 ARGS = _ap.parse_args()
+SUFFIX = ARGS.suffix
 if ARGS.sample != "grad":  # ar3_common reads the sample kind when it is imported
     os.environ["AR3_SAMPLE"] = ARGS.sample
 sys.path.insert(0, str(GC.ICE / "scripts" / "autoresearch" / "ar3"))
@@ -47,7 +53,7 @@ def main() -> None:
     from icenine.mic_file import ReconstructionState
 
     sample, run, h = ARGS.sample, ARGS.run, ARGS.h
-    tag = f"live_{sample}_{run}_h{h:g}"
+    tag = f"live_{sample}_{run}_h{h:g}" + (f"_{SUFFIX}" if SUFFIX else "")
     out = GC.GATE / "cache" / tag
     if out.exists():
         raise SystemExit(f"refusing to start: {out} exists")
@@ -106,7 +112,28 @@ def main() -> None:
             lib = np.array([t[f] for t in res.tries])
             info[f"differ_{f}"] = int((lib != stored[f][kept]).sum())
         end = np.array([t["end"] for t in res.tries], np.float32).reshape(-1, 3, 3)
-        info["differ_end"] = int((~(end == stored["end"][kept]).reshape(n, -1).all(1)).sum())
+        bad_end = ~(end == stored["end"][kept]).reshape(n, -1).all(1)
+        info["differ_end"] = int(bad_end.sum())
+        any_bad = bad_end.copy()
+        for f in ("voxel", "cand", "evals", "cost", "hit", "conf"):
+            any_bad |= np.array([t[f] for t in res.tries]) != stored[f][kept]
+        info["kept_tries_identical"] = int(n - any_bad.sum())
+        info["kept_tries_total"] = n
+        if any_bad.any():
+            j = int(np.flatnonzero(any_bad)[0])
+            info["first_difference"] = dict(
+                kept_try_index=j,
+                voxel=int(res.tries[j]["voxel"]),
+                cand=int(res.tries[j]["cand"]),
+                stored_voxel=int(stored["voxel"][kept][j]),
+                stored_cand=int(stored["cand"][kept][j]),
+                end_differs=bool(bad_end[j]),
+                cost_live=float(res.tries[j]["cost"]),
+                cost_stored=float(stored["cost"][kept][j]),
+                hit_live=float(res.tries[j]["hit"]),
+                hit_stored=float(stored["hit"][kept][j]),
+            )
+    info["variant"] = SUFFIX or "v1-era"
     info["voxels_changed"] = int(len(res.changed))
     changed_stored = np.flatnonzero((P["after"] != P["before"]).reshape(GC.N, -1).any(1))
     info["stored_voxels_changed"] = int(len(changed_stored))

@@ -38,6 +38,7 @@ BOUNDARY_THRESHOLD_DEG = 0.5  # boundary test and candidate merge distance
 PASS_SIGMA0_DEG = 0.05  # first step of a try (degrees)
 PASS_MAX_EVALS = 60  # evaluation budget of a try, the start's own evaluation included
 PASS_SEED = 0  # the pass's own generator
+CMA_SEED_BOUND = 2**31 - 2  # the bound of the one seed a CMA try draws (orientation_search.py)
 
 
 @dataclass
@@ -122,8 +123,9 @@ def run_boundary_pass(bfs: Any, mic: Any, skip_hit: float = 0.0) -> BoundaryPass
     (one evaluation per boundary voxel, skipped or not, key on or off). The skipped voxels are
     listed in ``res.skipped`` and counted in ``bfs.stats['boundary_skipped']`` (written only with
     the key on, so the stats of a key-off run keep today's entries). ``boundary_voxels`` still
-    counts all boundary voxels. The pass has one generator, so the tries after a skipped voxel
-    draw different random numbers than in the full pass."""
+    counts all boundary voxels. The pass has one generator; a skipped voxel's tries draw their CMA
+    seeds from it and discard them (no evaluation), so every kept try gets the same draw as in the
+    full pass."""
     t0 = time.time()
     rec = bfs.reconstructor
     voxels = mic.voxels
@@ -154,6 +156,12 @@ def run_boundary_pass(bfs: Any, mic: Any, skip_hit: float = 0.0) -> BoundaryPass
         res.n_evals_score += 1
         if skip_hit > 0.0 and old[1] >= skip_hit:
             res.skipped.append(v)
+            # Aligned draws (variant 2, D-20261112-N5): each skipped try would have drawn one CMA
+            # seed from the pass's generator (``CMAOptimizer.optimize``: one ``integers`` call, no
+            # other draw per try or per voxel), so draw it here and discard it with no cost
+            # evaluation. The kept tries then get the draws they get in the full pass.
+            for _ in cands[v]:
+                rng.integers(0, CMA_SEED_BOUND)
             continue
         rows: List[Dict[str, Any]] = []
         for c in cands[v]:

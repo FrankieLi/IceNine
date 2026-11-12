@@ -195,3 +195,67 @@ def test_the_bfs_passes_the_key_only_when_it_is_on(monkeypatch: pytest.MonkeyPat
     _run((0.5, -0.5), monkeypatch, boundary_pass=True, boundary_pass_skip_hit=0.95)
     _run((0.5, -0.5), monkeypatch, boundary_pass=False)
     assert calls == [{}, {}, {"skip_hit": 0.95}]
+
+
+# ------------------------------------------------------------------------------ 4. aligned draws
+# Variant 2 (decided after the first live result, D-20261112-N5): a skipped try consumes the one
+# CMA seed it would have drawn, so every kept try gets the draw it gets in the full pass.
+class DrawFake(PassFake):
+    """``PassFake`` whose fit draws a CMA seed as the real ``CMAOptimizer`` does and records it."""
+
+    draws: List[Any] = []
+
+    def local_optimization(self, *a: Any, **k: Any) -> Any:
+        rng = k["rng"]
+        i = self._idx(k["voxel_vertices"])
+        DrawFake.draws.append((i, int(rng.integers(0, 2**31 - 2))))
+        k = dict(k, rng=np.random.default_rng(0))  # PassFake's own rng.integers(0, 10) is private
+        return super().local_optimization(*a, **k)
+
+
+def _draw_run(monkeypatch: pytest.MonkeyPatch, **kw: Any) -> Any:
+    bfs, mic = _pass_bfs(monkeypatch, [0.0, 2.0, 2.0, 2.0])
+    monkeypatch.setattr(reconstructor_module, "AdaptiveVoxelReconstructor", DrawFake)
+    bfs.reconstructor = DrawFake(None)
+    DrawFake.draws = []
+    res = BP.run_boundary_pass(bfs, mic, **kw)
+    return res, list(DrawFake.draws)
+
+
+def test_a_cut_that_skips_nothing_equals_key_off_try_by_try(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    off, d_off = _draw_run(monkeypatch)
+    on, d_on = _draw_run(monkeypatch, skip_hit=1.0)  # no own hit ratio reaches 1.0 here
+    assert on.skipped == [] and len(d_off) == 3
+    assert d_on == d_off
+    assert [(t["voxel"], t["cand"], t["cost"], t["hit"]) for t in on.tries] == [
+        (t["voxel"], t["cand"], t["cost"], t["hit"]) for t in off.tries
+    ]
+
+
+def test_every_kept_try_gets_the_draw_it_gets_in_the_full_pass(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    full, d_full = _draw_run(monkeypatch)
+    # case 1: voxels 1 and 2 are skipped, voxel 0 (own hit 0.85) is kept and comes first
+    part, d_part = _draw_run(monkeypatch, skip_hit=0.9)
+    assert part.skipped == [1, 2]
+    assert d_part == [d for d in d_full if d[0] == 0]  # voxel 0 first in the pass: same draw
+    # case 2: voxel 0 now fits its start and is skipped; the kept voxels come AFTER it
+    PassFake.TRUTH_DEG = [0.0, 2.0, 2.0, 2.0]
+    try:
+        full2, d_full2 = _draw_run(monkeypatch)
+        part2, d_part2 = _draw_run(monkeypatch, skip_hit=0.9)
+    finally:
+        PassFake.TRUTH_DEG = [2.0, 2.0, 2.0, 2.0]
+    assert part2.skipped  # voxel 0 now fits its start: skipped, voxels after it are kept
+    kept_full = [d for d in d_full2 if d[0] not in part2.skipped]
+    assert d_part2 == kept_full and len(d_part2) < len(d_full2)
+
+
+def test_key_off_draws_are_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
+    a, d_a = _draw_run(monkeypatch)
+    b, d_b = _draw_run(monkeypatch, skip_hit=0.0)
+    assert d_a == d_b and len(d_a) == len(a.tries) == 3
+    assert [t["end"].tobytes() for t in a.tries] == [t["end"].tobytes() for t in b.tries]
