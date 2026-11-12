@@ -11926,3 +11926,16 @@ mixed refinement (436, 2,158 and 2,814, under 0.02%). The page no longer calls t
 the largest piece of the saving (false against `S8` on `big` and the first gradient sample),
 words the lower fallback count as consistent with a direct or a path effect, and says plainly
 that `mid` has 36 wrong voxels after the pass against 31 for `S8`, at the rule's limit.
+
+Completion round of AR3 step 11 (decision D-20261111-N17): the first `S8` run on `held` missed the
+120 minute budget; the same run went again with a cap of 480 minutes and finished (8,001.6 s, then
+the pass 583.1 s; contended, not timing results). Numbers: 54,733,887 evaluations before the pass
+and 59,923,523 with it (seed step 21,257,244, grid fallbacks 25,915,118, neighbour 3,004,901,
+revisit 4,556,624, pass 5,189,636); 75 grid fallbacks; wrong voxels 95 (Wilson 0.32 to 0.47%)
+before and 70 (0.23 to 0.36%) after the pass; median error over all voxels 0.0288 and 0.0286 degree;
+21,131 boundary voxels (86.0%). The pass fixed 30, broke 5; at the 4 degree level it did not help
+(49 before, 53 after). Predictions: 2 met, 1 and 3 not met. The excluded entry in
+`pareto_rows.json` was replaced by the row pair and the sample entry `held_24570`. The counters of
+the capped run are kept in `cache/S8_held_cap120/` (untracked). The updated page text is in the
+report folder (`20261111-1351-ar3k-findings-page.md`), because the Write to `docs/` was refused
+again; the main session places it.

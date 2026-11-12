@@ -68,6 +68,27 @@ def sample_table(sample: Dict[str, Any], check: Dict[str, Any], stack: Dict[str,
     )
 
 
+def first_run_counters() -> Any:
+    """Counters of the first, capped run (120 minutes), moved to ``S8_held_cap120`` (D-N17)."""
+    p = FC.CACHE / "S8_held_cap120" / "capped.json"
+    if not p.exists():
+        return None
+    c = json.loads(p.read_text())
+    s = c["stats"]
+    return dict(
+        cap_s=c["cap_s"],
+        evals_before_pass=int(
+            s["index_evals"]
+            + s["index_fallback_grid_evals"]
+            + s["n_evals_neighbor"]
+            + s["n_evals_revisit"]
+        ),
+        grid_fallbacks=int(s["index_fallback_seed_test"]),
+        first_seeds=int(s["n_seeds"]),
+        reseeds=int(s["n_reseeds"]),
+    )
+
+
 def unfinished(out: Dict[str, Any], rd: Path) -> None:
     """The run reached its cap (or has no result): counters at the cap, no scores, no pass."""
     cap = json.loads((rd / "capped.json").read_text()) if (rd / "capped.json").exists() else None
@@ -210,6 +231,7 @@ def main() -> None:
         wall_label=fit["wall_label"],
         wall_pass_s=pj["wall_tries_s"],
         cap_min=fit["cap_min"],
+        first_run_capped=first_run_counters(),
     )
     allv = {s: other(s) for s in ("big", "grad", "mid")}
     allv["held"] = held

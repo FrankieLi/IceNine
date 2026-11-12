@@ -111,6 +111,13 @@
    "n_voxels": 24570,
    "wrong_definition": "more than 1 degree from the true orientation, after crystal symmetry (icenine_py/docs/autoresearch/findings_ar3_gradient.md:14)",
    "note": "AR3 step 9. 120 grains from a Voronoi grain map made for step 9 on the same 24,570-voxel grid (the plan asked for 120 grains; step 7's 32-grain file could not give them, so the map departs from the plan); orientations drawn so that adjacent grains differ by at least 5 degrees; grains with orientation gradients at six levels (0, 0.2, 0.5, 1, 2 and 4 degrees on 20, 16, 18, 22, 25 and 19 grains); clean images; random seed 0. No setting of any method was chosen on this sample."
+  },
+  {
+   "id": "held_24570",
+   "label": "Whole layer, 250 grains with orientation gradients (sample held): 24,570 voxels",
+   "n_voxels": 24570,
+   "wrong_definition": "more than 1 degree from the true orientation, after crystal symmetry (icenine_py/docs/autoresearch/findings_ar3_gradient.md:14)",
+   "note": "AR3 step 11. 250 grains from a Voronoi grain map on the same 24,570-voxel grid, built like mid with generator seed 1; orientations drawn so that adjacent grains differ by at least 5 degrees; orientation gradients at six levels (0, 0.2, 0.5, 1, 2 and 4 degrees on 39, 40, 44, 37, 46, 44 grains); clean images. Held out: no setting of any method was chosen on this sample, and only run S8 has been run on it."
   }
  ],
  "rows": [
@@ -2860,6 +2867,48 @@
    "source_json": "icenine_py/benchmarks/autoresearch/ar5/mix/part2_S11_mid.json :: stages, after",
    "source_page": "icenine_py/docs/autoresearch/findings_ar5_mix.md",
    "flag": "run S11: run S10 (no MC fallback after a CMA neighbour or revisit fit) with the mixed seed refinement X200 (a CMA fit of at most 200 evaluations; the stock MC optimizer from the same candidate only when the CMA end hit ratio is below 0.95; the lower-cost end is kept) (on mid); 12 grid-search fallbacks; script layer, no library key; the mixed rule was found in a replay that included mid, so no sample is held out for it"
+  },
+  {
+   "sample": "held_24570",
+   "step": "AR3 step 11",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA (run S8)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": false,
+   "evals_total": 54733887,
+   "evals_per_voxel": 2227.67,
+   "per_voxel_derived": true,
+   "wrong": 95,
+   "n": 24570,
+   "interval_pct": [
+    0.32,
+    0.47
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 21,257,244, grid-search fallbacks 25,915,118, neighbour local optimizations 3,004,901, revisit local optimizations 4,556,624",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/held/summary.json :: held.{stages, before}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_held.md",
+   "flag": "run S8 on the held-out sample held: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 75 grid-search fallbacks; no setting was chosen on this sample; this is the baseline for later whole-layer tests on held; derived: evals_total = total minus the pass"
+  },
+  {
+   "sample": "held_24570",
+   "step": "AR3 step 11",
+   "method": "BFS indexed, best 5 of 20 seeds, stop at hit ratio 0.95, CMA + boundary pass (run S8)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 59923523,
+   "evals_per_voxel": 2438.89,
+   "per_voxel_derived": true,
+   "wrong": 70,
+   "n": 24570,
+   "interval_pct": [
+    0.23,
+    0.36
+   ],
+   "estimated": false,
+   "what_evals_include": "seed step 21,257,244, grid-search fallbacks 25,915,118, neighbour local optimizations 3,004,901, revisit local optimizations 4,556,624, boundary pass 5,189,636",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar3/held/summary.json :: held.{stages, after}",
+   "source_page": "icenine_py/docs/autoresearch/findings_ar3_held.md",
+   "flag": "run S8 on the held-out sample held: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 75 grid-search fallbacks; no setting was chosen on this sample; this is the baseline for later whole-layer tests on held"
   }
  ],
  "excluded": [
@@ -2946,10 +2995,6 @@
   {
    "what": "AR3 step 5 by-level and by-group tables",
    "why": "no evaluations per level or group"
-  },
-  {
-   "what": "AR3 step 11 run S8 on held",
-   "why": "reached the 120 minute cap; no finished map and no pass"
   }
  ]
 }
