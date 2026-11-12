@@ -1463,3 +1463,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   so counts are small. Cost at most 56.8 million evaluations, four runs side by side. The
   implementer starts only after AR5 step 4 is merged, which waits for the owner to place its page.
   The owner can overrule. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 6).
+
+### D-20261111-N25 · Both tracks / review items 14 and 3 · Items 14 and 3 plan approved: both speed keys together on E0 and the pilot, timing A/B on a quiet machine
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Plan in PLAN.md, section Items 14 and 3, task item14; scripts and one config only, no library
+  change. Stored arms are read (E0 off 41 wrong, smooth key 7; pilot off 37, smooth 34, FusedCost
+  24; all stored pilot times are contended). New runs: E0 with FusedCost alone and with both keys
+  (accuracy only); on the pilot the timing arms A (FusedCost) and B (both keys), one worker, alone
+  on the machine, order A1, B1, A2, B2 after a warm-up. Repeats of a timing are not extra random
+  seeds: each repeat must give byte-identical results and A1 must equal the stored run, or the
+  step stops. Decision rules R1 to R4 and seven predictions are written before any run; a run that
+  is not quiet reports no time. The measured C++ time is left as a separate step (its BFS runs
+  only in MPI mode and needs its own config). AR5 step 6 runs and any merge wait while the timing
+  arms run. The owner can overrule. Where: icenine_py/docs/autoresearch/PLAN.md (Items 14 and 3).
