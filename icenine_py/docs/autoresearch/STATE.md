@@ -35,17 +35,17 @@ into a task branch before its fixes round (shared files conflict).
    the implementer's Write and the main session's copy were refused (auto mode). No way round:
    the owner places it or allows it. Then: sync check, commit, fix 2 (MIGRATION_HISTORY names
    that commit), merge, close (page version 45, PR #43).
-2. AR5 step 6 (task `ar5f`; plan 2ed6618; N24): `S11n` (frozen `N1` rule) and `S11h` (plain
-   hit-ratio rule) on `mid`, `grad`. Implementer (Sonnet, worktree) only after step 4 merges.
-3. Items 14 + 3 (task `item14`; N25): phase A done (tip e70a296). `run_item14.sh` started
-   23:27 (E0 arms first). Its preflight refuses (exit 3) while `cpptools` (pid 18415) is
-   busy: then wait for the owner and rerun the same command (E0 resumes). After exit 0:
+2. AR5 step 6 (`ar5f`; plan 2ed6618; N24): `S11n`, `S11h` on `mid`, `grad`; after step 4 merges.
+3. Items 14 + 3 (task `item14`; N25): E0 arms done (`F` 41 wrong, `FS` 7 of 200, both as
+   predicted). The run stopped at 00:01 on 2026-11-12 with exit 3: the preflight refused
+   before A1 (`cpptools`, pid 18415, 99% CPU). Once the owner frees the machine: rerun the
+   command below (E0 resumes; the warm-up is a whole pilot run, 25 min). After exit 0:
    phase B by `SendMessage`. While timing arms run: no merge, no test suite, no other run.
 
 ## Running jobs
 
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
-  of worktree `agent-a012b8f461d1630a1` (started 23:27, 2026-11-11); ends with `item14.done`.
+  of worktree `agent-a012b8f461d1630a1` (stopped, exit 3, 00:01, 2026-11-12); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
 - Review page: version 44 (`run43.sh`, then `patch_v44.py`, scratchpad).
 
@@ -58,8 +58,8 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page) |
 | AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | planned; after step 4 |
-| items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | running; needs a quiet machine |
-| C++ time | measured C++ time on the pilot region (MPI mode, own config) | not planned |
+| items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | E0 done; timing waits for a quiet machine |
+| C++ time | measured C++ time on the pilot region (MPI mode, own config) | plan draft: agent `a063d22b8b2cf5c89`, `plan_cpp_time_draft.md` (scratchpad) |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 | tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
