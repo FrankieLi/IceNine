@@ -868,8 +868,9 @@ Library change (four files: `boundary_pass.py`, `config_file.py`, `orientation_s
 first live result), N6 (review: request changes, twelve fixes, 1 to 11 applied; fix 12, placing
 the page, waits for the owner). Reports: `20261112-1302-ar5g.md` (worktree
 `agent-a331e7882919e74aa`), `20261112-1345-review-ar5g.md` (main checkout),
-`20261112-1355-ar5g-fixes.md` and the page text `20261112-ar5g-page-v2.md` (worktree
-`agent-a0db870adb7758a69`). The page `findings_ar5_gate.md` is not in the tree yet.
+`20261112-1355-ar5g-fixes.md` and the page text `20261112-ar5g-page-v2.md` (main checkout;
+the merge removed the fixes worktree, both files were recovered exactly from the recorded
+writes). The page `findings_ar5_gate.md` is not in the tree yet.
 
 - The key, off by default: with `BoundaryPass 1`, a boundary voxel whose own hit ratio before
   the pass is at least `h` gets no try. A skipped try still consumes its random draw (aligned
