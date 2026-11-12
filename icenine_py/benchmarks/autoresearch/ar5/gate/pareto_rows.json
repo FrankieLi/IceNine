@@ -22,10 +22,25 @@
   "disclosed_sample": true,
   "source_json": "icenine_py/benchmarks/autoresearch/ar5/gate/summary.json",
   "source_page": "icenine_py/docs/autoresearch/findings_ar5_gate.md",
-  "method": "run S11n with BoundaryPassSkipHitRatio 0.95 (live pass, stored map)",
+  "method": "run S11n with BoundaryPassSkipHitRatio 0.95, variant 1 (live pass)",
   "evals_total": 11997038,
   "wrong": 38,
   "kind": "live"
+ },
+ {
+  "sample": "mid_24570",
+  "step": "AR5 step 7",
+  "family": "BFS with indexed seeds",
+  "boundary_pass": true,
+  "n": 24570,
+  "disclosed_sample": true,
+  "source_json": "icenine_py/benchmarks/autoresearch/ar5/gate/summary.json",
+  "source_page": "icenine_py/docs/autoresearch/findings_ar5_gate.md",
+  "method": "run S11n with BoundaryPassSkipHitRatio 0.95, variant 2 (aligned draws; live pass)",
+  "evals_total": 11997038,
+  "wrong": 35,
+  "kind": "live",
+  "flag": "variant 2, decided after the first live result, D-20261112-N5"
  },
  {
   "sample": "gradient_24570",
@@ -50,10 +65,25 @@
   "disclosed_sample": true,
   "source_json": "icenine_py/benchmarks/autoresearch/ar5/gate/summary.json",
   "source_page": "icenine_py/docs/autoresearch/findings_ar5_gate.md",
-  "method": "run S11n with BoundaryPassSkipHitRatio 0.95 (live pass, stored map)",
+  "method": "run S11n with BoundaryPassSkipHitRatio 0.95, variant 1 (live pass)",
   "evals_total": 6469435,
   "wrong": 56,
   "kind": "live"
+ },
+ {
+  "sample": "gradient_24570",
+  "step": "AR5 step 7",
+  "family": "BFS with indexed seeds",
+  "boundary_pass": true,
+  "n": 24570,
+  "disclosed_sample": true,
+  "source_json": "icenine_py/benchmarks/autoresearch/ar5/gate/summary.json",
+  "source_page": "icenine_py/docs/autoresearch/findings_ar5_gate.md",
+  "method": "run S11n with BoundaryPassSkipHitRatio 0.95, variant 2 (aligned draws; live pass)",
+  "evals_total": 6469435,
+  "wrong": 59,
+  "kind": "live",
+  "flag": "variant 2, decided after the first live result, D-20261112-N5"
  },
  {
   "sample": "big_24570",
@@ -78,10 +108,25 @@
   "disclosed_sample": true,
   "source_json": "icenine_py/benchmarks/autoresearch/ar5/gate/summary.json",
   "source_page": "icenine_py/docs/autoresearch/findings_ar5_gate.md",
-  "method": "run S11 with BoundaryPassSkipHitRatio 0.95 (live pass, stored map)",
+  "method": "run S11 with BoundaryPassSkipHitRatio 0.95, variant 1 (live pass)",
   "evals_total": 3153656,
   "wrong": 22,
   "kind": "live"
+ },
+ {
+  "sample": "big_24570",
+  "step": "AR5 step 7",
+  "family": "BFS with indexed seeds",
+  "boundary_pass": true,
+  "n": 24570,
+  "disclosed_sample": true,
+  "source_json": "icenine_py/benchmarks/autoresearch/ar5/gate/summary.json",
+  "source_page": "icenine_py/docs/autoresearch/findings_ar5_gate.md",
+  "method": "run S11 with BoundaryPassSkipHitRatio 0.95, variant 2 (aligned draws; live pass)",
+  "evals_total": 3153656,
+  "wrong": 18,
+  "kind": "live",
+  "flag": "variant 2, decided after the first live result, D-20261112-N5"
  },
  {
   "sample": "gradient_24570",
@@ -162,9 +207,24 @@
   "disclosed_sample": false,
   "source_json": "icenine_py/benchmarks/autoresearch/ar5/gate/summary.json",
   "source_page": "icenine_py/docs/autoresearch/findings_ar5_gate.md",
-  "method": "run S11v2 with BoundaryPassSkipHitRatio 0.95 (live pass, stored map)",
+  "method": "run S11v2 with BoundaryPassSkipHitRatio 0.95, variant 1 (live pass)",
   "evals_total": 33753877,
   "wrong": 75,
   "kind": "live"
+ },
+ {
+  "sample": "held_24570",
+  "step": "AR5 step 7",
+  "family": "BFS with indexed seeds",
+  "boundary_pass": true,
+  "n": 24570,
+  "disclosed_sample": false,
+  "source_json": "icenine_py/benchmarks/autoresearch/ar5/gate/summary.json",
+  "source_page": "icenine_py/docs/autoresearch/findings_ar5_gate.md",
+  "method": "run S11v2 with BoundaryPassSkipHitRatio 0.95, variant 2 (aligned draws; live pass)",
+  "evals_total": 33753877,
+  "wrong": 69,
+  "kind": "live",
+  "flag": "variant 2, decided after the first live result, D-20261112-N5"
  }
 ]

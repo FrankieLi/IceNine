@@ -12020,3 +12020,23 @@ are contended; no timing claim. Tests run: the touched files and the `boundary_p
 `config_file`, `reconstructor`, BFS key files (201 passed); the full suite is left to the merge.
 Page: `docs/autoresearch/findings_ar5_gate.md` (its Write was refused; the text is in the
 agent's report folder).
+
+### AR5 step 7, phase D: variant 2, aligned draws (decided after the first live result, D-20261112-N5)
+
+Variant 1's live skipped passes (above) failed the plan's rule on `held`, `mid` and `big`. Phase D
+tests whether the order of random draws caused the flips. Read from the code: a CMA try draws
+exactly one integer (`CMAOptimizer.optimize`, before any early return) from the pass's generator,
+and the pass draws nothing else; a voxel's number of tries is its candidate count, known before
+any try. Library change in `boundary_pass.py` only, with the key on: each skipped try draws and
+discards that integer (no evaluation). Key off is unchanged. Tests first (3 new, 17 in
+`tests/test_boundary_pass_skip.py`): a cut that skips nothing equals key off try by try; kept
+tries get the full pass's draws; key-off draws unchanged. Live passes, same seed 0, same four
+samples: every kept try identical to the stored full pass (voxel, candidate, end, cost, hit ratio,
+confidence, evaluations): 15,592 of 15,592 (`mid`), 10,074 (first gradient), 4,491 (`big`),
+23,557 (`held`); fixed / broken 0 / 0 on all four; wrong voxels equal the replay's (35, 59, 18,
+69); pass evaluations equal the replay's; the rule passes on all four. Consistent with the draw
+order being the whole cause of variant 1's flips. `held` was read live once, under variant 1,
+before variant 2 was decided. Variant 1's files are unchanged; variant 2's carry `_v2`. Variant 1's
+flips are also a finding: one re-draw of the pass changes 820 to 1,674 kept voxels' ends and gives
+4/7, 15/12, 2/6 and 4/10 fixed / broken against the full pass; a tilt toward broken cannot be
+judged from these counts.

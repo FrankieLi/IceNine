@@ -42,6 +42,24 @@
 | held | S11v2 | 1,436,977 | 1,436,977 | 23557 (replay 23557) | 16610 (replay 16610) | 75 (0.24 to 0.38%) | 69 | 69 | 4 / 10 | 23 / 28 | 0.02616 | 33,753,877 | 43.7% |
 <!-- /table:live -->
 
+<!-- table:live_v2 -->
+| sample | run | pass evaluations, live (equal to the replay) | kept tries identical to the stored full pass (voxel, candidate, end, cost, hit ratio, confidence, evaluations) | first difference | wrong, live (95% interval) | fixed / broken vs the full pass | fixed / broken vs S8 | median error (deg) | run total | fewer than S8 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| mid | S11n | 951,112 | 15,592 of 15,592 | none | 35 (0.10 to 0.20%) | 0 / 0 | 13 / 17 | 0.02913 | 11,997,038 | 54.6% |
+| first gradient | S11n | 614,514 | 10,074 of 10,074 | none | 59 (0.19 to 0.31%) | 0 / 0 | 33 / 29 | 0.02122 | 6,469,435 | 64.1% |
+| big | S11 | 273,951 | 4,491 of 4,491 | none | 18 (0.05 to 0.12%) | 0 / 0 | 13 / 7 | 0.03084 | 3,153,656 | 62.2% |
+| held | S11v2 | 1,436,977 | 23,557 of 23,557 | none | 69 (0.22 to 0.36%) | 0 / 0 | 24 / 23 | 0.02610 | 33,753,877 | 43.7% |
+<!-- /table:live_v2 -->
+
+<!-- table:noise -->
+| sample | run | boundary voxels kept (with tries) | kept voxels whose end differs from the full pass | fixed / broken vs the full pass | wrong, live against full pass |
+|---|---|---|---|---|---|
+| mid | S11n | 4068 | 1674 | 4 / 7 | 38 against 35 |
+| first gradient | S11n | 2968 | 820 | 15 / 12 | 56 against 59 |
+| big | S11 | 1828 | 944 | 2 / 6 | 22 against 18 |
+| held | S11v2 | 4497 | 1264 | 4 / 10 | 75 against 69 |
+<!-- /table:noise -->
+
 <!-- table:parity -->
 | tries, live and stored | pass evaluations, live and stored | tries that differ: voxel / candidate / evaluations / cost / hit ratio / confidence / end | map equals the stored map | voxels changed, live and stored | same voxels changed |
 |---|---|---|---|---|---|
@@ -67,6 +85,25 @@
 | 5 | held S11v2 | +0.00011 degree against the full pass | met |
 <!-- /table:predictions -->
 
+<!-- table:predictions_v2 -->
+| prediction | sample | observed | verdict |
+|---|---|---|---|
+| 1 | held (replay) | cut 72.3%; fixed / broken 0 / 0 | met |
+| 2 | held (live) | 10.0% fewer (33,753,877 against 37,507,939); the pass was 5,191,039 | met |
+| 3 | mid S11n | live 951,112, replay 951,112; 15592 tries at 61.0 each | met |
+| 3 | grad S11n | live 614,514, replay 614,514; 10074 tries at 61.0 each | met |
+| 3 | big S11 | live 273,951, replay 273,951; 4491 tries at 61.0 each | met |
+| 3 | held S11v2 | live 1,436,977, replay 1,436,977; 23557 tries at 61.0 each | met |
+| 4 | mid S11n | live 35, replay 35 (difference +0) | met |
+| 4 | grad S11n | live 59, replay 59 (difference +0) | met |
+| 4 | big S11 | live 18, replay 18 (difference +0) | met |
+| 4 | held S11v2 | live 69, replay 69 (difference +0) | met |
+| 5 | mid S11n | +0.00000 degree against the full pass | met |
+| 5 | grad S11n | +0.00003 degree against the full pass | met |
+| 5 | big S11 | +0.00007 degree against the full pass | met |
+| 5 | held S11v2 | +0.00006 degree against the full pass | met |
+<!-- /table:predictions_v2 -->
+
 <!-- table:replay -->
 | sample | run | disclosed | pass evaluations, full | pass evaluations, skip | cut | voxels skipped | wrong, full pass | wrong, skip (95% interval) | fixed / broken | median error, full (deg) | median error, skip (deg) | highest own hit ratio of a voxel wrong before the pass | rule parts of the pass met |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -87,6 +124,15 @@
 | held | S11v2 | met (72.3%) | not met (6 <= 2) | met (+0.00011) | met | met (5 <= 5) | met (-0.00243) | no |
 <!-- /table:rule_live -->
 
+<!-- table:rule_live_v2 -->
+| sample | run | pass cut at least 50% | broken minus fixed vs the full pass within the allowance | median error at most 0.001 deg higher than the full pass | at least 20% fewer evaluations than S8 | broken minus fixed vs S8 at most 5 | median error at most 0.005 deg above S8 | the skip passes |
+|---|---|---|---|---|---|---|---|---|
+| mid | S11n | met (68.9%) | met (0 <= 2) | met (+0.00000) | met | met (4 <= 5) | met (-0.00060) | yes |
+| first gradient | S11n | met (83.3%) | met (0 <= 8) | met (+0.00003) | met | met (-4 <= 5) | met (-0.00142) | yes |
+| big | S11 | met (75.9%) | met (0 <= 3) | met (+0.00007) | met | met (-6 <= 5) | met (-0.00077) | yes |
+| held | S11v2 | met (72.3%) | met (0 <= 2) | met (+0.00006) | met | met (-1 <= 5) | met (-0.00248) | yes |
+<!-- /table:rule_live_v2 -->
+
 <!-- table:rule_replay -->
 | sample | run | pass cut at least 50% | broken minus fixed within the allowance | median within 0.001 deg | house rules vs S8 | the skip passes (replay) |
 |---|---|---|---|---|---|---|
@@ -97,3 +143,12 @@
 | mid | S11 | met | met | met | met | yes |
 | held | S11v2 | met | met | met | met | yes |
 <!-- /table:rule_replay -->
+
+<!-- table:variants -->
+| sample | run | variant 1 (one draw stream): passes the rule | variant 1: fixed / broken vs the full pass | variant 2 (aligned draws): passes the rule | variant 2: fixed / broken vs the full pass |
+|---|---|---|---|---|---|
+| mid | S11n | no | 4 / 7 | yes | 0 / 0 |
+| first gradient | S11n | yes | 15 / 12 | yes | 0 / 0 |
+| big | S11 | no | 2 / 6 | yes | 0 / 0 |
+| held | S11v2 | no | 4 / 10 | yes | 0 / 0 |
+<!-- /table:variants -->

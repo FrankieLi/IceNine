@@ -421,7 +421,11 @@ def predictions(R: Dict[Tuple[str, str], Dict[str, Any]], L: Dict[Tuple[str, str
     return out
 
 
-def plot(R: Dict[Tuple[str, str], Dict[str, Any]], L: Dict[Tuple[str, str], Any]) -> None:
+def plot(
+    R: Dict[Tuple[str, str], Dict[str, Any]],
+    L: Dict[Tuple[str, str], Any],
+    L2: Optional[Dict[Tuple[str, str], Any]] = None,
+) -> None:
     import matplotlib
 
     matplotlib.use("Agg")
@@ -456,19 +460,35 @@ def plot(R: Dict[Tuple[str, str], Dict[str, Any]], L: Dict[Tuple[str, str], Any]
                 color=ln.get_color(),
                 ls="none",
             )
+        v2 = (L2 or {}).get((s, run))
+        if v2 is not None:
+            ax.plot(
+                100 * v2["cut"],
+                v2["live"]["wrong"] - v2["wrong_full"],
+                marker="+",
+                ms=14,
+                mew=2,
+                color="k",
+                ls="none",
+            )
     ax.axvline(50, color="grey", ls=":", lw=1)
     ax.set_xlabel("share of the boundary pass cut (percent of its evaluations)")
     ax.set_ylabel("net gain lost (wrong voxels after the skip minus after the full pass)")
     ax.set_title(
         "What-if curve over h from 0.99 (left) to 0.90 (right); circle = 0.95 (frozen)\n"
-        "cross = the live pass at 0.95"
+        "x = live pass, variant 1 (one draw stream); + = live pass, variant 2 (aligned draws,\n"
+        "decided after the first live result)"
     )
     ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(G / "ar5_gate_curve.png", dpi=130)
 
 
-def pareto(R: Dict[Tuple[str, str], Dict[str, Any]], L: Dict[Tuple[str, str], Any]) -> None:
+def pareto(
+    R: Dict[Tuple[str, str], Dict[str, Any]],
+    L: Dict[Tuple[str, str], Any],
+    L2: Optional[Dict[Tuple[str, str], Any]] = None,
+) -> None:
     rows = []
     sid = {"big": "big_24570", "grad": "gradient_24570", "mid": "mid_24570", "held": "held_24570"}
     for s, run in ENTRIES:
@@ -500,13 +520,26 @@ def pareto(R: Dict[Tuple[str, str], Dict[str, Any]], L: Dict[Tuple[str, str], An
             rows.append(
                 dict(
                     base,
-                    method=f"run {run} with BoundaryPassSkipHitRatio 0.95 (live pass, stored map)",
+                    method=f"run {run} with BoundaryPassSkipHitRatio 0.95, variant 1 (live pass)",
                     evals_total=v["total_with_pass"],
                     wrong=v["live"]["wrong"],
                     kind="live",
                 )
             )
-        else:
+        v2 = (L2 or {}).get((s, run))
+        if v2 is not None:
+            rows.append(
+                dict(
+                    base,
+                    method=f"run {run} with BoundaryPassSkipHitRatio 0.95, variant 2 (aligned "
+                    "draws; live pass)",
+                    evals_total=v2["total_with_pass"],
+                    wrong=v2["live"]["wrong"],
+                    kind="live",
+                    flag="variant 2, decided after the first live result, D-20261112-N5",
+                )
+            )
+        if v is None:
             x = at(r)
             rows.append(
                 dict(
@@ -520,12 +553,135 @@ def pareto(R: Dict[Tuple[str, str], Dict[str, Any]], L: Dict[Tuple[str, str], An
     (G / "pareto_rows.json").write_text(json.dumps(rows, indent=1) + "\n")
 
 
+V2 = "variant 2, aligned draws, decided after the first live result, D-20261112-N5"
+
+
+def live_rows_v2() -> Dict[Tuple[str, str], Dict[str, Any]]:
+    out = {}
+    for s, r in LIVE:
+        p = G / f"live_{s}_{r}_h0.95_v2.json"
+        if p.exists():
+            out[(s, r)] = load(p)
+    return out
+
+
+def yn(b: bool) -> str:
+    return "met" if b else "not met"
+
+
+def v2_tables(L1: Dict[Tuple[str, str], Any], L2: Dict[Tuple[str, str], Any]) -> Dict[str, Any]:
+    """Tables of variant 2 (aligned draws; decided after the first live result) beside variant 1."""
+    T: Dict[str, str] = {}
+    rows, rr, vs, nz = [], [], [], []
+    fl = load(G / "flips.json") if (G / "flips.json").exists() else {}
+    for s, run in LIVE:
+        v, v1 = L2.get((s, run)), L1.get((s, run))
+        if v is None or v1 is None:
+            continue
+        u, u1 = v["rule"], v1["rule"]
+        fd = v.get("first_difference")
+        rows.append(
+            dict(
+                sample=NAME[s],
+                run=run,
+                ev=f"{v['live_pass_evals']:,}",
+                ident=f"{v['kept_tries_identical']:,} of {v['kept_tries_total']:,}",
+                first="none" if fd is None else f"voxel {fd['voxel']}, candidate {fd['cand']}",
+                wrong=f"{v['live']['wrong']} ({interval(v['live'])})",
+                fbf=f"{v['fixed_vs_full']} / {v['broken_vs_full']}",
+                fbs=f"{v['fixed_vs_s8']} / {v['broken_vs_s8']}",
+                med=f"{v['live']['median_err_deg']:.5f}",
+                total=f"{v['total_with_pass']:,}",
+                fewer=pct(1 - v["total_with_pass"] / v["s8_total"]),
+            )
+        )
+        dm_full = v["live"]["median_err_deg"] - v["median_full"]
+        dm_s8 = v["live"]["median_err_deg"] - v["s8_median"]
+        rr.append(
+            dict(
+                sample=NAME[s],
+                run=run,
+                cut=f"{yn(u['pass_cut'])} ({pct(v['cut'])})",
+                loss=f"{yn(u['pass_loss'])} ({v['broken_vs_full'] - v['fixed_vs_full']} <= "
+                f"{u['allowed_loss']})",
+                med=f"{yn(u['pass_median'])} ({dm_full:+.5f})",
+                s8e=yn(u["pass_s8_evals"]),
+                s8w=f"{yn(u['pass_s8_wrong'])} ({v['broken_vs_s8'] - v['fixed_vs_s8']} <= 5)",
+                s8m=f"{yn(u['pass_s8_median'])} ({dm_s8:+.5f})",
+                passes="yes" if u["passes"] else "no",
+            )
+        )
+        vs.append(
+            dict(
+                sample=NAME[s],
+                run=run,
+                a="yes" if u1["passes"] else "no",
+                b=f"{v1['fixed_vs_full']} / {v1['broken_vs_full']}",
+                c="yes" if u["passes"] else "no",
+                d=f"{v['fixed_vs_full']} / {v['broken_vs_full']}",
+            )
+        )
+        f = fl.get(f"{s} {run}", {})
+        nz.append(
+            dict(
+                sample=NAME[s],
+                run=run,
+                kept=f.get("boundary_kept", "n/a"),
+                diff=f.get("end_differs_kept", "n/a"),
+                fb=f"{v1['fixed_vs_full']} / {v1['broken_vs_full']}",
+                wrong=f"{v1['live']['wrong']} against {v1['wrong_full']}",
+            )
+        )
+    T["live_v2"] = markdown_table(
+        rows,
+        ["sample", "run", "ev", "ident", "first", "wrong", "fbf", "fbs", "med", "total"]
+        + ["fewer"],
+    ).replace(
+        "| sample | run | ev | ident | first | wrong | fbf | fbs | med | total | fewer |",
+        "| sample | run | pass evaluations, live (equal to the replay) "
+        "| kept tries identical to the "
+        "stored full pass (voxel, candidate, end, cost, hit ratio, confidence, evaluations) | "
+        "first difference | wrong, live (95% interval) | fixed / broken vs the full pass | "
+        "fixed / broken vs S8 | median error (deg) | run total | fewer than S8 |",
+    )
+    T["rule_live_v2"] = markdown_table(
+        rr, ["sample", "run", "cut", "loss", "med", "s8e", "s8w", "s8m", "passes"]
+    ).replace(
+        "| sample | run | cut | loss | med | s8e | s8w | s8m | passes |",
+        "| sample | run | pass cut at least 50% | broken minus fixed vs the full pass within the "
+        "allowance | median error at most 0.001 deg higher than the full pass | at least 20% "
+        "fewer evaluations than S8 | broken minus fixed vs S8 at most 5 | median error at most "
+        "0.005 deg above S8 | the skip passes |",
+    )
+    T["variants"] = markdown_table(vs, ["sample", "run", "a", "b", "c", "d"]).replace(
+        "| sample | run | a | b | c | d |",
+        "| sample | run | variant 1 (one draw stream): passes the rule | variant 1: fixed / broken "
+        "vs the full pass | variant 2 (aligned draws): passes the rule | variant 2: fixed / "
+        "broken vs the full pass |",
+    )
+    T["noise"] = markdown_table(nz, ["sample", "run", "kept", "diff", "fb", "wrong"]).replace(
+        "| sample | run | kept | diff | fb | wrong |",
+        "| sample | run | boundary voxels kept (with tries) | kept voxels whose end differs from "
+        "the full pass | fixed / broken vs the full pass | wrong, live against full pass |",
+    )
+    pred = predictions(rows_replay(), L2)
+    T["predictions_v2"] = markdown_table(pred, ["no", "sample", "observed", "verdict"]).replace(
+        "| no | sample | observed | verdict |", "| prediction | sample | observed | verdict |"
+    )
+    return dict(tables=T, predictions=pred, live={f"{s} {r}": v for (s, r), v in L2.items()})
+
+
 def main() -> None:
     T, S = tables()
-    write_tables(G / "tables.md", T)
     R, L = rows_replay(), live_rows()
-    plot(R, L)
-    pareto(R, L)
+    L2 = live_rows_v2()
+    if L2:
+        d = v2_tables(L, L2)
+        T.update(d["tables"])
+        S["variant_2"] = dict(label=V2, predictions=d["predictions"], live=d["live"])
+    write_tables(G / "tables.md", T)
+    plot(R, L, L2)
+    pareto(R, L, L2)
     (G / "summary.json").write_text(json.dumps(S, indent=1, default=float) + "\n")
     print("wrote tables.md, summary.json, ar5_gate_curve.png, pareto_rows.json")
     for p in S["predictions"]:
