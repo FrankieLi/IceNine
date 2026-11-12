@@ -35,7 +35,7 @@ into a task branch before its fixes round (shared files conflict).
    the implementer's Write and the main session's copy were refused (auto mode). No way round:
    the owner places it or allows it. Then: sync check, commit, fix 2 (MIGRATION_HISTORY names
    that commit), merge, close (page version 45, PR #43).
-2. AR5 step 6 (`ar5f`; N24; D-20261112-N2): the four runs are going; see its Queue row.
+2. AR5 step 6 (`ar5f`; N24; D-20261112-N2): runs done, phase B going; see its Queue row.
 3. Items 14 + 3 (task `item14`; N25): E0 arms done (`F` 41 wrong, `FS` 7 of 200, both as
    predicted). The run stopped at 00:01 on 2026-11-12 with exit 3: the preflight refused
    before A1 (`cpptools`, pid 18415, 99% CPU). Once the owner frees the machine: rerun the
@@ -57,7 +57,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | step | what | state |
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page) |
-| AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | phase A done (agent and worktree `a89458addd73332d9`, tip f39e0eb; `h_c` 0.7904203, frozen at b451086). `scripts/autoresearch/ar5/ver_run_all.sh` started 04:18 on 2026-11-12 in its `icenine_py/` (4 runs, then passes; about 1.5 h, cap 240 min); marker `benchmarks/autoresearch/ar5/ver/cache/logs/ver_run_all.done`. At exit 0: phase B by `SendMessage`; review against fac79f9; merge only after step 4. No timing run beside it |
+| AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | phase A done (agent and worktree `a89458addd73332d9`, tip f39e0eb; `h_c` 0.7904203, frozen at b451086). The four runs and passes finished (exit 0, 04:59 on 2026-11-12, 40 minutes). Phase B is with the same agent (`SendMessage`, 05:00), report `20261112-0353-ar5f.md` in its worktree. Then: `verify_handback.sh`, Opus review against fac79f9, fixes; merge only after step 4 |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | E0 done; timing waits for a quiet machine |
 | C++ time | measured C++ time on the pilot region (MPI mode, own config) | D-20261112-N1, task `cpptime`: phase A done (agent and worktree `ad44bb90c441eca35`, tip 5d6cec2, report in that worktree's `.claude/reports/20261112-0012-cpptime.md`). Run, after item 14's timing and on a quiet machine: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in its `icenine_py/` (background command); marker `benchmarks/autoresearch/cpptime/cache/cpptime.done`; then phase B by `SendMessage`. R4 limit 3.5 (own load 2.0: the server rank spins). `lldb` cannot run (developer mode off): evaluations missing unless the owner enables it or accepts a print in `Src/` |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
