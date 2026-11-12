@@ -1,0 +1,42 @@
+{
+  "tag": "held",
+  "sample_seed": 0,
+  "noise_seed": 12345,
+  "noise_variant": "nodrop",
+  "noise_params": {
+    "p_miss": 0.0,
+    "p_flip": 0.05,
+    "p_hot": 0.05,
+    "p_blob": 0.1,
+    "window": 32
+  },
+  "n_voxels": 24570,
+  "workers": 1,
+  "timing_label": "contended (1 workers; machine quiet at start: False)",
+  "wall_s": 319.3562331199646,
+  "worker_peak_rss_gb_max": 4.62487552,
+  "worker_peak_rss_gb_sum": 4.62487552,
+  "worker_t_setup_s_max": 1.196493148803711,
+  "worker_t_sim_s_max": 220.17027187347412,
+  "worker_t_write_noise_s_max": 96.59325695037842,
+  "n_frames": 360,
+  "lit_clean_per_frame_median": 30118.5,
+  "lit_clean_per_frame_min_max": [
+    23347,
+    37169
+  ],
+  "lit_real_total": 10898929,
+  "lit_clean_total": 10897893,
+  "max_q": "config (8)",
+  "lit_clean_fraction_of_pixels": 0.007217389345169067,
+  "spot_px_pooled_median": 20.0,
+  "spot_px_pooled_p95": 256.0,
+  "spot_px_max": 2066,
+  "spot_px_n_gt_2000": 1,
+  "spots_total": 179718,
+  "missed_total": 0,
+  "hot_total": 8087,
+  "blob_total": 17755,
+  "output_dir": "Examples/Example2.ManyGrains/ScatteringData_PhaseD/held",
+  "realistic_dir": "realistic_nodrop"
+}

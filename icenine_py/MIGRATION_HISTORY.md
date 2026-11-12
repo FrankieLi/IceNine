@@ -11823,6 +11823,30 @@ Prediction 4 no longer gives an untested cause; it gives a what-if by arithmetic
 with the `C60` replay's seed-step evaluations: about 3.20, 12.32 and 11.68 million, under the
 limits). The Reproduce section names the two sibling worktrees that hold the stored `S8` runs.
 
+## Autoresearch AR3 step 11: a held-out sample and its S8 baseline (done 2026-11-11, task ar3k)
+
+**Superseded in part by the completion round below** (paragraph "Completion round of AR3 step 11",
+after the AR5 step 3 section; D-20261111-N17) and its fixes round: the run was made again with a
+cap of 480 minutes and finished, the pareto rows replaced the `excluded` entry, and the main
+session placed the page in `docs/`. The lines "no pareto rows", "Not rerun" and "left in the
+report folder" below describe the first round only.
+
+Scripts and results only (D-20261111-N15): nothing under `icenine/` changed, no key, no default, no
+golden, no dependency. Scripts `scripts/autoresearch/ar3/held_*.py` (builder `held_make_sample.py`
+with pure parts in `held_sample_lib.py`, tests `tests/test_ar3_held_sample.py`, 7 tests); the three
+sample-name tables of `ar3_common.py`, `gradient_common.py` and `reseed_common.py` got `held`
+added (other samples unchanged). Results in `benchmarks/autoresearch/ar3/held/`. The page text
+`docs/autoresearch/findings_ar3_held.md` was refused by the Write guard of the implementer and was
+left in the report folder (`20261111-1351-ar3k-findings-page.md`) for the main session to place.
+Sample `held`: 250 Voronoi cells (generator seed 1), 250 grains (9 to 271 voxels, median 89.5), six
+gradient levels on 39, 40, 44, 37, 46 and 44 grains, clean images (10,897,893 lit pixels, 179,718
+spots). Base check on `big` (script layer of AR5 step 2, both changes off): reproduces stored `S8`
+exactly (7,201,863 evaluations, 67 wrong, same map and seed-step log). The `S8` run on `held`
+reached the 120 minute cap (contended) before it finished: no map, no wrong count, no pass, no
+pareto rows (listed under `excluded`). Counters at the cap: 48,312,402 evaluations before the pass,
+61 grid fallbacks (21,082,802 evaluations), 3,237 seed steps. Predictions 1 and 3 not met, 2 not
+evaluated. Not rerun, by the plan's rule.
+
 ## Autoresearch AR4 step 1: a learned verifier, measured offline against the hit ratio (done 2026-11-11, task ar4a)
 
 No change under `icenine/`; no key, no default, no dependency (`pyproject.toml` and `uv.lock`
@@ -11908,3 +11932,27 @@ mixed refinement (436, 2,158 and 2,814, under 0.02%). The page no longer calls t
 the largest piece of the saving (false against `S8` on `big` and the first gradient sample),
 words the lower fallback count as consistent with a direct or a path effect, and says plainly
 that `mid` has 36 wrong voxels after the pass against 31 for `S8`, at the rule's limit.
+
+Completion round of AR3 step 11 (decision D-20261111-N17): the first `S8` run on `held` missed the
+120 minute budget; the same run went again with a cap of 480 minutes and finished (8,001.6 s, then
+the pass 583.1 s; contended, not timing results). Numbers: 54,733,887 evaluations before the pass
+and 59,923,523 with it (seed step 21,257,244, grid fallbacks 25,915,118, neighbour 3,004,901,
+revisit 4,556,624, pass 5,189,636); 75 grid fallbacks; wrong voxels 95 (Wilson 0.32 to 0.47%)
+before and 70 (0.23 to 0.36%) after the pass; median error over all voxels 0.0288 and 0.0286 degree;
+21,131 boundary voxels (86.0%). The pass fixed 30, broke 5; at the 4 degree level it did not help
+(49 before, 53 after). Predictions: 2 met, 1 and 3 not met. The excluded entry in
+`pareto_rows.json` was replaced by the row pair and the sample entry `held_24570`. The counters of
+the capped run are kept in `cache/S8_held_cap120/` (untracked). The updated page text is in the
+report folder (`20261111-1351-ar3k-findings-page.md`), because the Write to `docs/` was refused
+again; the main session places it.
+
+Fixes round of AR3 step 11 (review 20261111-1900, D-20261111-N19; documents, tables and small
+scripts, no new run): at the 4 degree level the pass fixed 0 wrong voxels and broke 4 (49 before,
+53 after; "did not help" above understates it), and `ar3_held_levels` now has `fixed` and `broken`
+columns; `summary.json` has a `derived` block (3,262 reseeds, 133.4 wall minutes, 46 and 17 wrong
+over the five lower levels, 53 and 34 grains holding wrong voxels, 28 grains under 40 voxels); the
+page scopes "no other run" to this step and names the three AR5 step 4 runs on `held` (N18, started
+16:53), labels both wall times contended inline, drops the 120 minute counterfactual, lists the
+four heavy processes as a deviation (the plan allowed two) and gives the exact second-run command;
+`held_chain.sh` takes the cap and log name as arguments (default 120, `chain_held`); the
+`held_24570` sample note says only run S8 was run on `held` in AR3 step 11.
