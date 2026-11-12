@@ -60,7 +60,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | reviewed and fixed; waits for the owner (page) and for step 4's merge. Branch tip d643eff, held by the fixes worktree `agent-a9420a98460078e81`; the first worktree `agent-a89458addd73332d9` (detached, 4c18740) holds the run cache `ar5/ver/cache/`: keep both. Opus review (`.claude/reports/20261112-0510-review-ar5f.md`): every headline number recomputed, none differs; 11 wording fixes, no rerun (N3). Fixes round done (7f272ce, 18260d5, d643eff; report `.claude/reports/20261112-0517-ar5f-fixes.md` in the fixes worktree; hand-back check: only the expected format flag; no number changed, `predictions[4].met` now false; 14 tests pass). Numbers: on `mid` `S11n` 14,105,137 evaluations (12.3% fewer than `S11`, 6 seeds kept, 0 wrong), `S11h` 15,680,025 (2.5%, 1 kept); both pass; "plain does as well" not met on `mid` (20.4% of the saving; 62.2% on `grad`, in-sample); six of seven predictions met. PAGE: not in the repo (Write refused). Corrected text: `.claude/reports/20261112-ar5f-page-v2.md` in the fixes worktree; the owner places it at `icenine_py/docs/autoresearch/findings_ar5_ver.md` there (or allows it). Then: sync check, commit, merge after step 4 (`finish_task.sh` in the fixes worktree), close (pareto points, page, PR #43); then a decision on an opt-in key for the `N1` rule |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | E0 done; timing waits for a quiet machine |
 | C++ time | measured C++ time on the pilot region (MPI mode, own config) | D-20261112-N1, task `cpptime`: phase A done (agent and worktree `ad44bb90c441eca35`, tip 5d6cec2, report in that worktree's `.claude/reports/20261112-0012-cpptime.md`). Run, after item 14's timing and on a quiet machine: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in its `icenine_py/` (background command); marker `benchmarks/autoresearch/cpptime/cache/cpptime.done`; then phase B by `SendMessage`. R4 limit 3.5 (own load 2.0: the server rank spins). `lldb` cannot run (developer mode off): evaluations missing unless the owner enables it or accepts a print in `Src/` |
-| AR5 step 7 | opt-in key `BoundaryPassSkipHitRatio`: no boundary-pass try at a voxel whose own hit ratio is at least 0.95 (task `ar5g`) | D-20261112-N4 (72e9027), plan 2a4db6b. Why: in `S11n` the pass is 21.7% of `mid` and 38.6% of `grad`; a replay written with the plan (a what-if) cuts 69% to 84% of five stored passes with 0 fixed, 0 broken; margin small (wrong voxels up to 0.944). Test sample `held`, cut frozen at 0.95. Branch from `feature/eval-reduction`, does not wait for steps 4 and 6. Sonnet implementer and worktree `a331e7882919e74aa` (13:03), all phases in one session, brief `brief_ar5g.md` (scratchpad), report `.claude/reports/20261112-1302-ar5g.md` in its worktree. Then hand-back check, Opus review, decision, fixes, merge (library change: full suite; not beside a timing run). Not chosen: a key for `N1` (open choice after step 6 closes); the MC part of the seed step (next target, 37.3% of `S11n` on `mid`) |
+| AR5 step 7 | opt-in key `BoundaryPassSkipHitRatio`: no boundary-pass try at a voxel whose own hit ratio is at least 0.95 (task `ar5g`) | N4 (plan 2a4db6b), N5. Sonnet implementer and worktree `a331e7882919e74aa`, branch tip 7b4fd0f after phases A to C; report `.claude/reports/20261112-1302-ar5g.md` there; hand-back check: format flags only. FIRST RESULT (unreviewed): replay 0 fixed, 0 broken on `held` and five disclosed passes, pass cut 69% to 84% (`held` 72.3%, run 10.0% cheaper); LIVE with the key the same evaluations but fixed/broken against the full pass 4/7 `mid`, 15/12 `grad`, 2/6 `big`, 4/10 `held` (75 wrong against 69): fails the plan's rule on `held`; key stays off. All flips at kept voxels. N5 adds phase D (13:40, by `SendMessage` to the same agent): a skipped try consumes its random draw, rerun the four live passes with the same seed, compare kept tries with the full pass; labelled as decided after the first result. Then: hand-back check, Opus review (library change in `boundary_pass.py`, `orientation_search.py`, `reconstructor.py`, `config_file.py`: heads-up to Ilium in the ROADMAP mailbox is due), decision, fixes, merge (full suite; not beside a timing run). Page Write refused (subagent-report-file guard): text in `.claude/reports/20261112-ar5g-page.md` there, for the owner to place at `docs/autoresearch/findings_ar5_gate.md`. Not chosen in N4: a key for `N1`; the MC part of the seed step (next target, 37.3% of `S11n` on `mid`) |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 | tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
@@ -93,7 +93,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 - Free the machine for the item 14 timing: `cpptools` (VS Code C/C++ extension, pid 18415)
   has used a whole core for 2 days; the timing preflight refuses while it does. Yours to close.
-- Place two pages, or allow me to: AR5 step 4's and step 6's. Paths: their Queue rows.
+- Place three pages, or allow me to: AR5 steps 4, 6 and 7 (later). Paths: their Queue rows.
 - Your word on PR #43 ("merge PR 43" in the session): AR3 2 to 11, AR5 1 to 3 and 5, AR4 1.
 - A choice: which seed step the documentation of the keys recommends. Step 10 added the
   keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
@@ -107,13 +107,13 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: whether the documentation recommends the two `S11` keys. They were added off by
   default under N21, after `S11` passed on `held`; the documentation recommends none now.
 - Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25 and
-  D-20261112-N1 to N4. N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
+  D-20261112-N1 to N5. N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261112-N5 (first of a day is N1).
+- Next decision ID: D-20261112-N6 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
