@@ -1504,3 +1504,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   in the plan changes. The owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md,
   section 'AR5 step 6: the frozen seed-accept rule on two more whole layers, against a plain
   rule'.
+
+### D-20261112-N3 · Track A / AR5 step 6 (review) · AR5 step 6 review: request changes, all 11 fixes accepted; wording only, no rerun; prediction 5 counts as not met in full
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The Opus review of task ar5f (diff fac79f9..4c18740) recomputed every headline number from the
+  raw run files and found none that differs; frozen.json (b451086, 04:00) was committed before the
+  runs started (04:18). Verdict: request changes, 11 required fixes, all to wording on the page
+  text, in ver_tables.py and in the MIGRATION_HISTORY entry. All 11 are accepted. Prediction 5
+  names no arm in the plan, so it is quoted as written and reported as met for S11n (median growth
+  1 and 1) and not met for S11h on grad (4): six of seven predictions met, not seven. The page
+  states that nothing was tuned in this step but that N1 was trained and its cut picked on big and
+  grad, that the h_c pool holds 16 grad ends, and every earlier use of mid. The claim that the
+  plain rule does not replace the verifier is dropped: the page reports 20.4 percent of the saving
+  on mid (rule not met) and 62.2 percent on grad (in-sample). No rerun; no number in a summary
+  file changes; nothing under icenine_py/icenine/ changes. The fixes go to a fresh Opus
+  implementer. The page file itself is still for the owner to place (its Write was refused); the
+  fixes are made in the page text. The merge waits for step 4's merge (D-20261112-N2). The owner
+  may overrule. Where: .claude/reports/20261112-0510-review-ar5f.md (review report, 'Required
+  fixes').
