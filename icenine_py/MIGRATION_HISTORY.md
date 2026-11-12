@@ -11956,3 +11956,29 @@ page scopes "no other run" to this step and names the three AR5 step 4 runs on `
 four heavy processes as a deviation (the plan allowed two) and gives the exact second-run command;
 `held_chain.sh` takes the cap and log name as arguments (default 120, `chain_held`); the
 `held_24570` sample note says only run S8 was run on `held` in AR3 step 11.
+
+## Autoresearch AR5 step 5: opt-in keys for the mixed seed refinement and for no MC fallback (done 2026-11-11, task ar5e)
+
+Plan (D-20261111-N21): move the two changes of script run `S11` into the library as keys that are
+off by default, and show parity with the stored script runs. `SeedIndexCMAFirst n` (0 = off, else
+n >= 2): each refined seed candidate gets a CMA fit first (`CMASigma0`, n evaluations); if the hit
+ratio of its end reaches `SeedIndexStopHitRatio` it is kept, else the stock MC refinement runs
+from the same candidate and wins only on a strictly lower cost. `BFSNeighborCMANoFallback 0|1`:
+the CMA end of a neighbour fit or revisit is returned (needs `BFSNeighborCMAFirst 1`). Refused
+combinations raise `ValueError` (`check_bfs_keys`). Stock paths (`local_optimization`,
+`refine_from_candidates`) are not edited; no default, golden, dependency or C++ change.
+
+Done: `ray_indexing.mixed_refinement` and `seed_by_indexing(refine_fn=)`; `index_seed(cma_first_evals,
+cma_sigma0_deg)`; the no-fallback branch of `_cma_first_fit`; counters `cma_not_fell`,
+`index_mixed_cands`, `index_mixed_cma_reached`, `index_mixed_mc_ran`; 62 new tests
+(`tests/test_bfs_ar5_keys.py`, written first; the plan expected 25 to 50); README key table; scripts
+`scripts/autoresearch/ar5/keys_*.py`. Parity (library run vs stored script run, same evaluations,
+seeds, reseeds, records, counters and `.mic` bytes before the pass): `big` S8 keys 7,201,863
+evaluations and 67 wrong voxels; `big` no fallback 4,767,135 (`S10`); `big` both keys 2,879,705
+(`S11`); first gradient sample both keys 8,622,191 with 11 grid fallbacks (`S11`). The pass from
+the stored maps gave the stored tries; totals with the pass 4,015,342 and 12,307,994. The pass
+inside a run differed from the stored pass by 1 and 4 tries in two `big` runs (reads the unrounded
+map, as step 10 found) and by 0 evaluations for `S11` on both samples. Full suite 1,718 passed,
+47 skipped, 1 deselected. Not tested: timing, `mid`, `held`, realistic images; no recommended
+setting. Page: `docs/autoresearch/findings_ar5_keys.md` (placed by the main session from
+`.claude/reports/20261111-2030-ar5e-page.md` because a write under `docs/` was refused).
