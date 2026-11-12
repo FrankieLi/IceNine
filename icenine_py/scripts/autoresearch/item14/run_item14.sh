@@ -105,6 +105,7 @@ timed() { # name cmd...   (gated, sampled, time -p; not quiet or failing stops t
     --out "$C/quiet/$n.json" >> "$MAIN" 2>&1
   local q=$?
   echo "quiet_$n rc=$q" >> "$CODES"
+  if [ $q -ne 0 ] && [ "$DRY" = 1 ]; then say "DRY: run $n was not quiet; a real run would stop here (exit 5)"; q=0; fi
   if [ $q -ne 0 ]; then finish 5 "run $n was not quiet (limit $LIMIT, see $C/quiet/$n.json); no time is reported"; fi
   check_time
 }
