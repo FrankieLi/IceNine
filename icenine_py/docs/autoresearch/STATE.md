@@ -30,9 +30,10 @@ Merge the parent into a task branch before its fixes round (shared files conflic
 1. AR3 step 11 (task `ar3k`, plan approved by N15; Sonnet; at most 2 heavy processes): the
    sample `held` (250 grains) and its `S8` baseline. Report `20261111-1351-ar3k.md`. No other
    run may read `held` before the plan of the step that uses it is committed.
-2. After `held` is merged: plan the test on `held` (`S10`, `S11`, and `S11` plus verifier
-   `N1` as an added seed-accept rule, against `S8`; evaluations by stage, fallback cases
-   paired by seed step; N16), predictions first; decision; implementer. A key only after it.
+2. After `held` is merged: AR5 step 4 (task `ar5d`), the test on `held` (`S10`, `S11`, and
+   `S11v` = `S11` plus verifier `N1`, against `S8`; N16). Its plan with predictions is in
+   `PLAN.md` (17a27c1, written before any `held` number was read). Then: decision to approve
+   it, brief, Sonnet implementer. A key only after it.
 
 ## Running jobs
 
@@ -49,7 +50,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | step | what | state |
 |---|---|---|
 | AR3 step 11 | sample `held` (250 grains) with its `S8` baseline (task `ar3k`) | running |
-| test on `held` | `S10`, `S11`, `S11` + verifier `N1` on the held-out sample | after step 11 |
+| AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (plan drafted) | after step 11 |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
