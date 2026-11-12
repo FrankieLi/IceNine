@@ -11986,3 +11986,37 @@ changed voxels 986 against 983 and 688 against 681 (`keys_pass_contents.py`,
 shown for `S8L` in AR3 step 10 and not tested for `S10L` and `S11L`. Full suite after the fixes
 round 1,724 passed, 47 skipped, 1 deselected (`suite_counts.json`). Not tested: timing, `mid`,
 `held`, realistic images; no recommended setting. Page: `docs/autoresearch/findings_ar5_keys.md`.
+
+## Autoresearch AR5 step 7: skip the boundary pass at voxels that already fit (done 2026-11-12, task ar5g)
+
+Plan (D-20261112-N4): one opt-in key, `BoundaryPassSkipHitRatio h` (float in [0, 1], 0 = off): in
+the boundary pass a voxel whose own hit ratio (the hit ratio of its end before the pass, from the
+score the pass already makes) is at least `h` gets no try and keeps its end. `run_boundary_pass`
+takes `skip_hit` (default 0); the reconstructor passes it only when it is above 0, so the key-off
+call and path are unchanged. `bfs.stats` gains `boundary_skipped` (key on only). The own-hit-ratio
+evaluation is the pass's old-end score, counted in `n_evals_boundary_score` (one per boundary
+voxel) with and without the key. `BoundaryPassSkipHitRatio > 0` without `BoundaryPass 1` (and with
+`PaintGrains 1`) raises `ValueError`. No default, golden, dependency or C++ change.
+
+Done: key and parser (`config_file.py`, `orientation_search.py`, `reconstructor.py`,
+`boundary_pass.py`); 14 new tests in `tests/test_boundary_pass_skip.py` (parsing, bad values,
+refusals, key off equals key absent, key on skips exactly the voxels at or above `h`, counts, the
+call from the BFS) and 9 in `tests/test_ar5_gate.py` (replay rule, fixed / broken, decision rule);
+scripts `scripts/autoresearch/ar5/gate_*.py`; results `benchmarks/autoresearch/ar5/gate/`.
+`h` = 0.95, the rule and the predictions were frozen in `frozen.json` (commit `b32f1de`, 13:11:16)
+before any file of `held` was opened (13:12:10). Replay at 0.95 on five stored passes of the
+disclosed samples and on `held` `S11v2`: cut 68.9% to 83.5% (`held` 72.3%), 0 fixed / 0 broken
+against the full pass on all six; the plan's five pass totals reproduced. Key-off parity pass on
+`mid` `S11n`: all 50,151 tries identical to the stored ones (voxel, candidate, end, cost, hit
+ratio, confidence, evaluations), same 1,491 changed voxels. Live skipped passes spend exactly the
+replay's evaluations on all four samples; live wrong voxels differ from the replay by +3 (`mid`),
+-3 (first gradient), +4 (`big`) and +6 (`held`), so prediction 4 fails on all four. On `held`
+live: 75 wrong against 69 with the full pass, fixed / broken 4 / 10, the run needs 10.0% fewer
+evaluations than with the full pass. The skip fails the plan's rule on `held`, `mid` and `big`
+and passes on the first gradient sample, so it fails the step: the key stays off, not
+recommended; `h` was not tuned. Every flipped voxel is a kept voxel (none skipped); consistent
+with the kept tries drawing other random numbers from the one generator, not tested. Wall times
+are contended; no timing claim. Tests run: the touched files and the `boundary_pass`,
+`config_file`, `reconstructor`, BFS key files (201 passed); the full suite is left to the merge.
+Page: `docs/autoresearch/findings_ar5_gate.md` (its Write was refused; the text is in the
+agent's report folder).
