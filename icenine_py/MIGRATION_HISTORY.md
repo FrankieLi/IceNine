@@ -11865,3 +11865,46 @@ and its two deviations from the plan, the sum-back difference as consistent with
 (about 2.6% of pairs, alike for right and wrong pairs; not traced per pair), why AR5's stored
 vote counts (2,017, 3,803, 4,420 voxels) were not used, and the lit-share distribution. Use-2
 counts, the rule prices and the sum-back check are pure functions in `verify_lib.py` with tests.
+
+## Autoresearch AR5 step 3: a mixed seed refinement, tested on whole layers (done 2026-11-11, task ar5c)
+
+Scripts and results only (D-20261111-N14): nothing under `icenine/` changed, no key, no default, no
+golden, no dependency, no step 2 script changed (so no rerun of step 2's base check). Scripts
+`scripts/autoresearch/ar5/mix_*.py` (they import step 2's `fit_*.py`; `mix_common.py` adds the arms
+`X60` and `X200` to `fit_common.refine_arm` at run time), tests of the pure rule functions
+`tests/test_ar5_mix_rules.py` (12 tests, committed before `mix_rules.py`), results in
+`benchmarks/autoresearch/ar5/mix/`, findings page `docs/autoresearch/findings_ar5_mix.md`
+(placed by the main session from the implementer's text, commit `6174af7`).
+Mixed refinement: a CMA fit (at most 60 or 200 evaluations); the stock MC optimizer from the same
+candidate only when the CMA end hit ratio is below 0.95; the lower-cost end is kept; the early
+stop is tested on it.
+Part 1 (stored replay, no new evaluation): on the pick samples pooled (1,608 steps) `X200` has
+1,596 seed-test passes and 1,589 ends within 1 degree against 1,592 and 1,583 for the stock
+refinement, with 2,501,991 against 5,865,469 seed-step evaluations (57.3% fewer); `X60` meets
+the same two rules with 4,390,198 (25.2% fewer). Pick: `X200` (commit `22db075`, 13:57; the
+first whole-layer run started 14:05:51). On `mid` the plan's what-if differs by one step
+(5,643,575 here, 5,643,374 there: the lower-cost end is kept and the early stop tested on it).
+Check of the script layer on 20 seed steps of `big` (10 with an MC run): 20 of 20 identical to
+Part 1 (121,659 evaluations both).
+Part 2: `S11` (= `S10` plus `X200`, with the pass): 4,015,342, 12,307,994 and 16,082,696
+evaluations against 8,340,428, 18,000,230 and 26,443,074 for `S8` (51.9%, 31.6%, 39.2% fewer) and
+against 5,898,258, 15,167,998 and 22,668,704 for `S10`; wrong after the pass 18, 62 and 36
+against 24, 63 and 31; broken minus fixed against `S8` -6, -1 and 5; the step 2 rule passes on all
+three (`mid` is at the limit of 5). `S11a` not needed. Grid fallbacks 0, 11, 12 (`S8`: 0, 16, 15).
+Predictions 1, 2 and 4 agree; 3 does not. The mixed rule was found in a replay that included
+`mid`, so no sample is held out for it. Rows of the three `S11` runs (before and after the pass)
+were added to `docs/autoresearch/pareto/pareto_rows.json`. Walls contended, not timing results.
+
+Fixes round (review `20261111-1503-review-ar5c`, decision D-20261111-N16; documents, the Part 1
+and summary scripts only, no new run and no new evaluation). The parent was merged into the
+task branch. `mix_part1.py --all` also stores the plan's what-if count: a variant that stops
+when either end of a candidate reaches 0.95 (`mix_rules.mixed_step(stop_on_either=True)`, off
+by default, two new tests) gives 5,643,374 on `mid`; it differs from the rule as run only at
+replay step 442 (CMA end hit 0.94752, cost 0.06939; MC end hit 0.95300, cost 0.07189).
+`mix_summary.py` adds the share of `S11`'s saving by stage against `S8` and `S10` (against `S10`
+the grid-fallback stage is 47.8% on the first gradient sample and 15.2% on `mid`), the cost of
+one grid fallback (333,517 to 340,594 evaluations), and the uncounted hit-ratio checks of the
+mixed refinement (436, 2,158 and 2,814, under 0.02%). The page no longer calls the seed step
+the largest piece of the saving (false against `S8` on `big` and the first gradient sample),
+words the lower fallback count as consistent with a direct or a path effect, and says plainly
+that `mid` has 36 wrong voxels after the pass against 31 for `S8`, at the rule's limit.

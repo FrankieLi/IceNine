@@ -1,0 +1,134 @@
+{
+ "run": "S11",
+ "sample": "big",
+ "unfinished": false,
+ "seed_arm": "X200",
+ "no_mc_fallback": true,
+ "seed_steps": 330,
+ "stopped_early": 327,
+ "stages": {
+  "seed_step": 888360,
+  "grid_fallback": 0,
+  "neighbour": 1496635,
+  "revisit": 494710,
+  "pass_": 1135637,
+  "before_pass": 2879705,
+  "total": 4015342
+ },
+ "stages_s8": {
+  "seed_step": 2856712,
+  "grid_fallback": 0,
+  "neighbour": 3491437,
+  "revisit": 853714,
+  "pass_": 1138565,
+  "before_pass": 7201863,
+  "total": 8340428
+ },
+ "grid_fallbacks": 0,
+ "grid_fallbacks_s8": 0,
+ "wrapper": {
+  "wrapper_calls": 32645,
+  "picked_fell": 29433,
+  "fallback_runs": 0,
+  "fallback_won": 0,
+  "evals_picked": 1991345,
+  "evals_fallback": 0,
+  "cma_calls_total": 33081,
+  "vmo_calls_total": 170,
+  "vmo_calls_in_wrapper": 0,
+  "vmo_calls_outside_wrapper": 170,
+  "cma_not_fell": 3212,
+  "mc_fallback_off": true
+ },
+ "before": {
+  "wrong": 70,
+  "wilson_lo": 0.002255787723261974,
+  "wilson_hi": 0.0035976560459857285,
+  "median_err_deg": 0.031094867705247074
+ },
+ "after": {
+  "wrong": 18,
+  "wilson_lo": 0.0004634698324144462,
+  "wilson_hi": 0.00115783141337856,
+  "median_err_deg": 0.03076515356291136
+ },
+ "s8_before": {
+  "wrong": 67,
+  "wilson_lo": 0.0021480022296533167,
+  "wilson_hi": 0.003461279470933539,
+  "median_err_deg": 0.03203684557345755
+ },
+ "s8_after": {
+  "wrong": 24,
+  "wilson_lo": 0.0006565177937645098,
+  "wilson_hi": 0.001453107589350192,
+  "median_err_deg": 0.031606382282736975
+ },
+ "wall_s": 502.26793384552,
+ "wall_label": "contended (other jobs on the machine); not a timing result",
+ "wall_pass_s": 132.0461709499359,
+ "paired_before": {
+  "fixed": 10,
+  "broken": 13,
+  "both_wrong": 57
+ },
+ "paired_after": {
+  "fixed": 13,
+  "broken": 7,
+  "both_wrong": 11
+ },
+ "rule": {
+  "fewer": 0.5185688312398357,
+  "a": true,
+  "b": true,
+  "c": true,
+  "net_broken": -6,
+  "med_diff": -0.0008412287198256152,
+  "passes": true
+ },
+ "vs_s10": {
+  "evals_total_s10": 5898258,
+  "evals_before_pass_s10": 4767135,
+  "stages_s10": {
+   "seed_step": 2790857,
+   "grid_fallback": 0,
+   "neighbour": 1496574,
+   "revisit": 479704,
+   "pass_": 1131123,
+   "before_pass": 4767135,
+   "total": 5898258
+  },
+  "grid_fallbacks_s10": 0,
+  "after_s10": {
+   "wrong": 22,
+   "wilson_lo": 0.0005914051061572457,
+   "wilson_hi": 0.001355445564516891,
+   "median_err_deg": 0.0317896413133856
+  },
+  "before_s10": {
+   "wrong": 77,
+   "wilson_lo": 0.0025084294323638196,
+   "wilson_hi": 0.003914725830425862,
+   "median_err_deg": 0.03222421637156812
+  },
+  "paired_before": {
+   "fixed": 16,
+   "broken": 9,
+   "both_wrong": 61
+  },
+  "paired_after": {
+   "fixed": 9,
+   "broken": 5,
+   "both_wrong": 13
+  },
+  "fewer_than_s10": 0.3192325598507221,
+  "seed_step_evals_part1": 938875,
+  "seed_step_evals_run": 888360,
+  "seed_step_run_over_part1": -0.05380375449340968
+ },
+ "mc_share": {
+  "candidates": 436,
+  "mc_ran": 170,
+  "share": 0.38990825688073394
+ }
+}
