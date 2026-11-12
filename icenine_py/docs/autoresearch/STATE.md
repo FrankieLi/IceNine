@@ -42,7 +42,7 @@ into a task branch before its fixes round (shared files conflict).
 
 ## Running jobs
 
-- Re-review of phase B (Opus `code-reviewer`, started 2026-11-11 22:10): report to
+- Re-review of phase B (Opus `code-reviewer`, started 2026-11-11 22:03): report to
   `.claude/reports/20261111-2215-review-ar5d-phaseB.md`; it reports by hand-back. Branch
   `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip d01ceef).
 - Review page: version 44 (`run43.sh`, then `patch_v44.py`, scratchpad).
