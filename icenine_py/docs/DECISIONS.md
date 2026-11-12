@@ -1522,3 +1522,23 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   fixes are made in the page text. The merge waits for step 4's merge (D-20261112-N2). The owner
   may overrule. Where: .claude/reports/20261112-0510-review-ar5f.md (review report, 'Required
   fixes').
+
+### D-20261112-N4 · Track A / AR5 step 7 (plan) · AR5 step 7 approved: an opt-in key that skips the boundary pass at voxels whose own hit ratio is at least 0.95, tested on held
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- With the owner's two pages and the quiet machine still open, the next step is planned and
+  started now. A table of the stored runs shows what is left in S11n with the pass: on mid the
+  seed step 39.2 percent, the boundary pass 21.7, the grid fallback 16.6, revisits 12.0, neighbour
+  local optimizations 10.6; on grad the pass is the largest stage at 38.6 percent. The step chosen
+  is a skip rule for the boundary pass: a boundary voxel whose own hit ratio before the pass is at
+  least 0.95 gets no try. A replay on five stored passes (mid, grad, big; written with the plan, a
+  what-if, not a result) removes 69 to 84 percent of the pass with 0 fixed and 0 broken against
+  the full pass; the highest hit ratio of a wrong voxel before the pass is 0.944, so the margin is
+  small. The cut 0.95 is frozen in the plan; held is the test sample and its pass files were not
+  opened. The library gains one opt-in key, BoundaryPassSkipHitRatio, default 0 (off), off path
+  bit-identical. Not chosen now: a library key for the N1 seed-accept rule (it makes the measured
+  12.3 percent usable but adds no new saving; it stays an open choice after step 6 closes), and
+  the MC part of the seed step (the next target; its log lacks the MC end). The task branch ar5g
+  starts from feature/eval-reduction and does not wait for steps 4 and 6. One implementer session
+  runs all phases; no run needs a quiet machine and none runs beside a timing run. The owner may
+  overrule. Where: icenine_py/docs/autoresearch/PLAN.md, section 'AR5 step 7: skip the boundary
+  pass at voxels that already fit' (2a4db6b).
