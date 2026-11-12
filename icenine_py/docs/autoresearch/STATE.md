@@ -38,15 +38,16 @@ into a task branch before its fixes round (shared files conflict).
 2. AR5 step 6 (task `ar5f`; plan in `PLAN.md`, 2ed6618; N24): the frozen `N1` rule (`S11n`)
    and a plain hit-ratio rule (`S11h`) on `mid` and `grad`. Its implementer (Sonnet,
    worktree) starts only after step 4 is merged.
-3. Items 14 + 3 (both speed keys together, timing A/B; N2, N3 of 2026-11-09): the machine is
-   quiet while step 4 waits. On the draft's hand-back: read it, put it in `PLAN.md`, decision
-   N25, start its implementer. Timing arms run alone, before step 6's runs.
+3. Items 14 + 3 (task `item14`; plan in `PLAN.md`; N25): phase A is with the implementer.
+   On "READY TO RUN": read `run_item14.sh`, start it as a background command, wait for its
+   exit; then phase B by `SendMessage`. While the timing arms run (about 2.6 hours): no
+   merge, no test suite, no other run. The C++ time is a separate step, not planned yet.
 
 ## Running jobs
 
-- Plan draft for items 14 + 3: general-purpose agent (Opus, started 22:23 on 2026-11-11);
-  writes only `plan_item14_draft.md` (scratchpad); reports by hand-back. Branch `ar5d` is
-  held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
+- Items 14 + 3 phase A: `implementer` agent `a012b8f461d1630a1` (Sonnet, own worktree,
+  started 22:35 on 2026-11-11); reports by hand-back, report `20261111-2300-item14.md`.
+  Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
 - Review page: version 44 (`run43.sh`, then `patch_v44.py`, scratchpad).
 
 ## Queue
@@ -58,8 +59,8 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page) |
 | AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | planned; after step 4 |
-| items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | plan being drafted |
-| C++ time | measured C++ time on the pilot region | not started |
+| items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | phase A |
+| C++ time | measured C++ time on the pilot region (MPI mode, own config) | not planned |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 | tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
@@ -105,14 +106,14 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
 - A choice: whether the documentation recommends the two `S11` keys. They were added off by
   default under N21, after `S11` passed on `held`; the documentation recommends none now.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N24 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25 (all
   on the review page). N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N25.
+- Next decision ID: D-20261111-N26.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
